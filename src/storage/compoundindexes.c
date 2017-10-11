@@ -35,7 +35,9 @@ static lispval compound_fetch(fd_index ix,lispval key)
       fd_index_setcache(eix,fd_default_cache_level);}
     if (fd_hashtable_probe(&(eix->index_cache),key))
       value = fd_hashtable_get(&(eix->index_cache),key,EMPTY);
-    else if ((eix->index_adds.table_n_keys) || (eix->index_edits.table_n_keys))
+    else if ((eix->index_adds.table_n_keys) ||
+             (eix->index_drops.table_n_keys) ||
+             (eix->index_stores.table_n_keys))
       value = fd_index_get(eix,key);
     else value = eix->index_handler->fetch(eix,key);
     if (FD_ABORTP(value)) {
@@ -84,14 +86,14 @@ static int compound_prefetch(fd_index ix,lispval keys)
   return n_fetches;
 }
 
-static lispval *compound_fetchn(fd_index ix,int n,lispval *keys)
+static lispval *compound_fetchn(fd_index ix,int n,const lispval *keys)
 {
   int n_fetches = 0, i = 0, lim;
   struct FD_COMPOUND_INDEX *cix = (struct FD_COMPOUND_INDEX *)ix;
   lispval *keyv = u8_alloc_n(n,lispval);
   lispval *valuev = u8_alloc_n(n,lispval);
   unsigned int *posmap = u8_alloc_n(n,unsigned int);
-  lispval *scan = keys, *limit = keys+n;
+  const lispval *scan = keys, *limit = keys+n;
   while (scan<limit) {
     int off = scan-keys; lispval key = *scan++;
     if (!(fd_hashtable_probe(&(cix->index_cache),key))) {

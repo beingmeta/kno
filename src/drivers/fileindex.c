@@ -524,7 +524,9 @@ static int run_schedule(struct FD_FILE_INDEX *fx,int n,
   return n;
 }
 
-static lispval *fetchn(struct FD_FILE_INDEX *fx,int n,lispval *keys,int lock_adds)
+static lispval *fetchn(struct FD_FILE_INDEX *fx,int n,
+                       const lispval *keys,
+                       int lock_adds)
 {
   unsigned int *offsets = fx->index_offsets;
   union SCHEDULE *schedule = u8_alloc_n(n,union SCHEDULE);
@@ -581,7 +583,7 @@ static lispval *fetchn(struct FD_FILE_INDEX *fx,int n,lispval *keys,int lock_add
     return values;}
 }
 
-static lispval *file_index_fetchn(fd_index ix,int n,lispval *keys)
+static lispval *file_index_fetchn(fd_index ix,int n,const lispval *keys)
 {
   struct FD_FILE_INDEX *fx = (struct FD_FILE_INDEX *)ix;
   lispval *results;
@@ -616,7 +618,8 @@ static lispval *file_index_fetchn(fd_index ix,int n,lispval *keys)
      offset for that slot (in the case where we don't have cached offsets).
 */
 struct KEYDATA {
-  lispval key; int serial, slotno, chain_width, n_values;
+  lispval key; lispval add;
+  int serial, slotno, chain_width, n_values;
   fd_off_t pos;};
 
 /* This is used to track which slotnos are newly filled when we are writing
@@ -805,17 +808,6 @@ static int fetch_keydata(struct FD_FILE_INDEX *fx,
   return new_keys;
 }
 
-#if 0 /* For debugging */
-static void check_reservations(unsigned int *iv,int len)
-{
-  int i = 0, last = -1; while (i<len) {
-    if ((i==0) || (last<iv[i]))
-      fprintf(stdout,"Reservation: %d\n",iv[i]);
-    else fprintf(stdout,"!!! %d\n",iv[i]);
-    last = iv[i]; i++;}
-}
-#endif
-
 static int write_values(fd_stream stream,
                         struct FD_OUTBUF *outstream,
                         lispval values,
@@ -849,72 +841,93 @@ static int write_values(fd_stream stream,
 
 /* This extends the KEYDATA vector with entries for the values
    which are being set or modified by dropping. */
-static int commit_edits(struct FD_KEYVAL *edits,int n_edits,
+static int commit_stores(struct FD_KEYVAL *stores,int n_stores,
+                         struct FD_FILE_INDEX *f,
+                         struct FD_OUTBUF *outstream,
+                         struct KEYDATA *kdata,
+                        unsigned int *valpos,
+                         int kdata_i)
+{
+  struct FD_STREAM *stream = &(f->index_stream);
+  fd_set_direction(stream,fd_byteflow_write);
+  fd_off_t filepos = fd_endpos(stream);
+  int store_i = 0; while (store_i < n_stores) {
+    lispval key = stores[store_i].kv_key;
+    lispval val = stores[store_i].kv_val;
+    int decref_val = 0;
+    if (FD_PRECHOICEP(val)) {
+      val = fd_make_simple_choice(val);
+      decref_val=1;}
+    kdata[kdata_i].key    = key;
+    kdata[kdata_i].serial = kdata_i;
+    kdata[kdata_i].add    = VOID;
+    if (EMPTYP(val)) {
+      kdata[kdata_i].n_values = 0;
+      valpos[kdata_i] = 0;}
+    else {
+      kdata[kdata_i].n_values = FD_CHOICE_SIZE(val);
+      valpos[kdata_i] = filepos;
+      filepos = filepos+
+        write_values(stream,outstream,val,0,
+                     &(kdata[kdata_i].n_values));}
+    if (decref_val) fd_decref(val);
+    store_i++;
+    kdata_i++;}
+  return kdata_i;
+}
+
+/* This extends the KEYDATA vector with entries for the values
+   which are being set or modified by dropping. */
+static int commit_drops(struct FD_KEYVAL *drops,int n_drops,
                         struct FD_FILE_INDEX *f,
                         struct FD_OUTBUF *outstream,
-                        struct KEYDATA *kdata)
+                        struct KEYDATA *kdata,
+                        unsigned int *valpos,
+                        int kdata_i)
 {
-  fd_off_t filepos;
-  int i = 0, n_drops = 0;
   struct FD_STREAM *stream = &(f->index_stream);
-  lispval *dropkeys, *dropvals;
-  struct FD_HASH_BUCKET **scan, **limit;
-  if (f->index_edits.table_n_keys == 0) return 0;
-  dropkeys = u8_alloc_n(f->index_edits.table_n_keys,lispval);
+  lispval *dropkeys = u8_alloc_n(n_drops,lispval);
   /* Change some drops to sets when cached, record the ones that can't
      be changed so they can be fetched and resolved. */
-  int edit_i = 0; while (edit_i < n_edits) {
-    lispval key = edits[edit_i].kv_key;
-    lispval val = edits[edit_i].kv_val;
-    if ( (PAIRP(key)) && (FD_EQ(FD_CAR(key),drop_symbol)) && 
-         (!(VOIDP(val))) ) {
-      lispval cached = fd_hashtable_get(&(f->index_cache),FD_CDR(key),VOID);
-      if (!(VOIDP(cached))) {
-        /* If the value of the key is cached, it will be up to date with
-           these drops, so we just convert the key to a "set" key
-           and store the cached value there.  Note that this breaks the
-           hashtable, but it doesn't matter because we're going to reset
-           it anyway. */
-        struct FD_PAIR *pair=fd_consptr(struct FD_PAIR *,key,fd_pair_type);
-        pair->car = set_symbol;}
-      else dropkeys[n_drops++] = FD_CDR(key);}
-    edit_i++;}
-  fd_set_direction(stream,fd_byteflow_write);
-  if (n_drops)
-    dropvals = fetchn(f,n_drops,dropkeys,0);
-  else dropvals = NULL;
-  filepos = fd_endpos(stream);
-  edit_i = 0; while ( edit_i < n_edits ) {
-    lispval key = edits[edit_i].kv_key;
-    lispval val = edits[edit_i].kv_val;
-    if (PAIRP(key)) {
-      lispval op = FD_CAR(key);
-      kdata[n_edits].key = FD_CDR(key);
-      kdata[n_edits].pos = filepos;
-      if (op == set_symbol) {
-        /* If it's a set edit, just write out the whole thing */
-        if (EMPTYP(val)) {
-          kdata[n_edits].n_values = 0; kdata[n_edits].pos = 0;}
-        else filepos = filepos+
-               write_values(stream,outstream,val,0,
-                            &(kdata[n_edits].n_values));}
-      else if (op == drop_symbol) {
-        /* If it's a drop edit, you got the value, so compute
-           the difference and write that out.*/
-        lispval new_value = fd_difference(dropvals[i],val);
-        if (EMPTYP(new_value)) {
-          kdata[n_edits].n_values = 0; kdata[n_edits].pos = 0;}
-        else filepos = filepos+write_values
-               (stream,outstream,new_value,0,&(kdata[n_edits].n_values));
-        fd_decref(new_value);}
-      else {}}
-    edit_i++;}
-
-  if (n_drops) {
-    i = 0; while (i<n_drops) {fd_decref(dropvals[i]); i++;}
-    u8_free(dropvals);}
+  int drop_i = 0; while (drop_i < n_drops) {
+    dropkeys[drop_i] = drops[drop_i].kv_key;
+    drop_i++;}
+  lispval *dropvals = fetchn(f,n_drops,dropkeys,0);
   u8_free(dropkeys);
-  return n_edits;
+
+  fd_set_direction(stream,fd_byteflow_write);
+  fd_off_t filepos = fd_endpos(stream);
+
+  drop_i=0; while (drop_i<n_drops) {
+    lispval key = drops[drop_i].kv_key;
+    lispval dropped = drops[drop_i].kv_val;
+    lispval ondisk = dropvals[drop_i];
+    lispval val = fd_difference(ondisk,dropped);
+
+    if (FD_PRECHOICEP(val))
+      val = fd_simplify_choice(val);
+
+    kdata[kdata_i].key    = key;
+    kdata[kdata_i].add    = VOID;
+    kdata[kdata_i].serial = kdata_i;
+
+    if (EMPTYP(val)) {
+      kdata[kdata_i].n_values = 0;
+      valpos[kdata_i] = 0;}
+    else {
+      kdata[kdata_i].n_values = FD_CHOICE_SIZE(val);
+      valpos[kdata_i] = filepos;
+      filepos = filepos +
+        write_values(stream,outstream,val,0,
+                     &(kdata[kdata_i].n_values));}
+
+    fd_decref(val);
+    drop_i++;
+    kdata_i++;}
+
+  fd_decref_vec(dropvals,n_drops,1);
+
+  return kdata_i;
 }
 
 static void write_keys(struct FD_FILE_INDEX *fx,
@@ -961,20 +974,15 @@ static void write_offsets(struct FD_FILE_INDEX *fx,
 
 static int file_index_commit(struct FD_INDEX *ix,
                              struct FD_KEYVAL *adds,int n_adds,
-                             struct FD_KEYVAL *edits,int n_edits,
+                             struct FD_KEYVAL *drops,int n_drops,
+                             struct FD_KEYVAL *stores,int n_stores,
                              lispval changed_metadata)
-{
-  return 0;
-}
-#if 0
 {
   struct FD_FILE_INDEX *fx = (struct FD_FILE_INDEX *)ix;
   struct FD_STREAM *stream = &(fx->index_stream);
   unsigned int *new_offsets = NULL, gc_new_offsets = 0;
   int pos_offset = fx->index_n_slots*4, newcount;
   double started = u8_elapsed_time();
-  fd_write_lock_table(&(ix->index_adds));
-  fd_write_lock_table(&(ix->index_edits));
   fd_lock_index(fx);
   /* Get the current offsets from the index */
 #if HAVE_MMAP
@@ -993,75 +1001,68 @@ static int file_index_commit(struct FD_INDEX *ix,
     fd_start_read(stream,8);
     fd_read_ints(instream,fx->ht_n_buckets,new_offsets);}
 #endif
-  {
-    fd_off_t filepos;
+  int kdata_i = 0, n_changes = n_adds+n_drops+n_stores, kdata_add=0;
+  if (n_changes) {
     struct FD_OUTBUF *outstream = fd_writebuf(stream);
-    int n_adds = ix->index_adds.table_n_keys, n_edits = ix->index_edits.table_n_keys;
-    int i = 0, n = 0, n_changes = n_adds+n_edits, add_index;
     struct KEYDATA *kdata = u8_alloc_n(n_changes,struct KEYDATA);
-    unsigned int *value_locs=
-      ((n_edits) ? (u8_alloc_n(n_edits,unsigned int)) : (NULL));
-
-    while ( i < n ) {
+    unsigned int *valpos= u8_alloc_n(n_changes,unsigned int);
+    int i=0; while ( i < n_adds ) {
       lispval key = adds[i].kv_key, val = adds[i].kv_val;
-      kdata[n].key = key;
+      kdata[kdata_i].key = key;
+      kdata[kdata_i].add = val;
       /* We'll use this to sort back into the order of the adds table */
-      kdata[n].serial = n;
+      kdata[kdata_i].serial = kdata_i;
       /* Initialize the other fields */
-      kdata[n].n_values = -1;
-      kdata[n].slotno = -1;
-      kdata[n].pos = -1;
-      n++;}
-    add_index = n;
-    n = n+commit_edits(fx,outstream,kdata+n);
-    /* Copy the value locations recorded by commit_edits into
-       value_locs.  (The .pos field will be used by fetch_keydata). */
-    i = add_index; while (i<n) {
-      kdata[i].serial = i; value_locs[i-add_index]=((unsigned int)kdata[i].pos);
-      i++;}
-    newcount = fetch_keydata(fx,fd_readbuf(stream),kdata,n,new_offsets);
+      kdata[kdata_i].n_values = -1;
+      kdata[kdata_i].slotno = -1;
+      kdata[kdata_i].pos = -1;
+      i++; kdata_i++;}
+    kdata_add = kdata_i;
+
+    if (n_stores)
+      kdata_i = commit_stores(stores,n_stores,fx,outstream,kdata,valpos,kdata_i);
+    if (n_drops)
+      kdata_i = commit_drops(drops,n_drops,fx,outstream,kdata,valpos,kdata_i);
+
+    /* This figures out which slot all of the keys go into, trying to be
+       clever about reading things in order, if that matters anymore. */
+    newcount = fetch_keydata(fx,fd_readbuf(stream),kdata,kdata_i,new_offsets);
+
     if (newcount<0) {
-      u8_free(kdata);
-      if (value_locs) u8_free(value_locs);
+      u8_free(kdata); u8_free(valpos);
       if (gc_new_offsets) u8_free(new_offsets);
-      fd_unlock_table((&(ix->index_adds)));
-      fd_unlock_table((&(ix->index_edits)));
       fd_unlock_index(fx);
       return newcount;}
+
     /* Sort back into the original order. */
-    qsort(kdata,n,sizeof(struct KEYDATA),sort_keydata_serial);
-    /* Copy back the value locations written by commit_edits. */
-    i = add_index; while (i<n) {
-      if (value_locs[i-add_index])
-        kdata[i].pos = ((fd_off_t)(value_locs[i-add_index]-pos_offset));
+    qsort(kdata,kdata_i,sizeof(struct KEYDATA),sort_keydata_serial);
+
+    /* Set the .pos fields for edits, since we're not using them */
+    i = kdata_add; while (i<kdata_i) {
+      if (valpos[i])
+        kdata[i].pos = ((fd_off_t)(valpos[i]-pos_offset));
       else kdata[i].pos = ((fd_off_t)0);
       i++;}
+
     /* Now, scan the adds again and write the added values. */
-    scan = ix->index_adds.ht_buckets; limit = scan+ix->index_adds.ht_n_buckets;
-    i = 0; while (scan < limit) {
-      struct FD_OUTBUF *outstream = fd_writebuf(stream);
-      filepos = fd_endpos(stream);
-      if (*scan) {
-        struct FD_HASH_BUCKET *e = *scan; int n_keyvals = e->bucket_len;
-        struct FD_KEYVAL *kvscan = &(e->kv_val0), *kvlimit = kvscan+n_keyvals;
-        while (kvscan<kvlimit) {
-          fd_off_t writepos = filepos; int new_values;
-          filepos = filepos+
-            write_values(stream,outstream,
-                         kvscan->kv_val,kdata[i].pos,
-                         &new_values);
-          kdata[i].pos = writepos-pos_offset;
-          kdata[i].n_values = kdata[i].n_values+new_values;
-          i++; kvscan++;}
-        scan++;}
-      else scan++;}
-    write_keys(fx,fd_writebuf(stream),n,kdata,new_offsets);
+    fd_off_t filepos = fd_endpos(stream);
+    i = 0; while (i < kdata_add) {
+      struct FD_OUTBUF *outstream = fd_writebuf(stream); 
+      fd_off_t writepos = filepos;
+      lispval add = kdata[i].add;
+      int new_values;
+      filepos = filepos +
+        write_values(stream,outstream,add,kdata[i].pos,&new_values);
+      kdata[i].pos = writepos-pos_offset;
+      kdata[i].n_values = kdata[i].n_values+new_values;
+      i++;}
+    write_keys(fx,fd_writebuf(stream),kdata_i,kdata,new_offsets);
     /* Write recovery information which can be used to restore the
        offsets table. */
     if ((fd_acid_files) && (new_offsets))
       write_file_index_recovery_data(fx,new_offsets);
     /* Now, start writing the offsets themselves */
-    write_offsets(fx,fd_writebuf(stream),n,kdata,new_offsets);
+    write_offsets(fx,fd_writebuf(stream),kdata_i,kdata,new_offsets);
     if (fd_acid_files) {
       int retval = 0;
       if (new_offsets) fd_setpos(stream,0);
@@ -1081,7 +1082,7 @@ static int file_index_commit(struct FD_INDEX *ix,
                  "Trouble truncating recovery information from %s",
                  fx->indexid);}}
     fd_unlock_index(fx);
-    if (value_locs) u8_free(value_locs);
+    if (valpos) u8_free(valpos);
     u8_free(kdata);
     if (gc_new_offsets) u8_free(new_offsets);
 
@@ -1089,14 +1090,9 @@ static int file_index_commit(struct FD_INDEX *ix,
            "Saved mappings for %d keys to %s in %f secs",
            n_changes,ix->indexid,u8_elapsed_time()-started);
 
-    fd_reset_hashtable(&(ix->index_adds),67,0);
-    fd_unlock_table(&(ix->index_adds));
-    fd_reset_hashtable(&(ix->index_edits),67,0);
-    fd_unlock_table(&(ix->index_edits));
-    return n;}
+    return kdata_i;}
+  else return 0;
 }
-#endif
-
 
 static void write_file_index_recovery_data(struct FD_FILE_INDEX *fx,
                                            unsigned int *offsets)

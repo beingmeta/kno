@@ -1531,7 +1531,8 @@ static lispval change_load(lispval db)
   else if ( (FD_INDEXP(db)) || (TYPEP(db,fd_consed_index_type) ) ) {
     fd_index ix = fd_lisp2index(db);
     int n_pending = ix->index_adds.table_n_keys +
-      ix->index_edits.table_n_keys ;
+      ix->index_drops.table_n_keys +
+      ix->index_stores.table_n_keys ;
     return FD_INT(n_pending);}
   else return fd_err(fd_TypeError,"change_load",_("pool or index"),db);
 }
@@ -3086,7 +3087,9 @@ static lispval dbmodifiedp(lispval arg1,lispval arg2)
       else return FD_FALSE;}
     else if ((FD_INDEXP(arg1))||(TYPEP(arg1,fd_consed_index_type))) {
       fd_index ix = fd_lisp2index(arg1);
-      if ((ix->index_edits.table_n_keys) || (ix->index_adds.table_n_keys))
+      if ((ix->index_adds.table_n_keys) ||
+          (ix->index_drops.table_n_keys) ||
+          (ix->index_stores.table_n_keys))
         return FD_TRUE;
       else return FD_FALSE;}
     else if (TABLEP(arg1)) {
@@ -3102,7 +3105,8 @@ static lispval dbmodifiedp(lispval arg1,lispval arg2)
     if (ix == NULL)
       return fd_type_error("index","loadedp",arg2);
     else if ((fd_hashtable_probe(&(ix->index_adds),arg1)) ||
-             (fd_hashtable_probe(&(ix->index_edits),arg1)))
+             (fd_hashtable_probe(&(ix->index_drops),arg1)) ||
+             (fd_hashtable_probe(&(ix->index_stores),arg1)))
       return FD_TRUE;
     else return FD_FALSE;}
   else if (FD_POOLP(arg2))
@@ -3124,7 +3128,8 @@ static lispval dbmodifiedp(lispval arg1,lispval arg2)
     if (ix == NULL)
       return fd_type_error("pool/index","loadedp",arg2);
     else if ((fd_hashtable_probe(&(ix->index_adds),arg1)) ||
-             (fd_hashtable_probe(&(ix->index_edits),arg1)))
+             (fd_hashtable_probe(&(ix->index_drops),arg1)) ||
+             (fd_hashtable_probe(&(ix->index_stores),arg1)))
       return FD_TRUE;
     else return FD_FALSE;}
   else return fd_type_error("pool/index","loadedp",arg2);

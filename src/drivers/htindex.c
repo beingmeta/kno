@@ -26,7 +26,7 @@
 
 /* The in-memory index */
 
-static lispval *htindex_fetchn(fd_index ix,int n,lispval *keys)
+static lispval *htindex_fetchn(fd_index ix,int n,const lispval *keys)
 {
   lispval *results = u8_alloc_n(n,lispval);
   int i = 0; while (i<n) {
@@ -74,13 +74,10 @@ static struct FD_KEY_SIZE *htindex_fetchinfo(fd_index ix,fd_choice filter,int *n
 }
 
 static int htindex_commit(struct FD_INDEX *ix,
-                            struct FD_KEYVAL *adds,int n_adds,
-                            struct FD_KEYVAL *edits,int n_edits,
-                            lispval changed_metadata)
-{
-  return 0;
-}
-#if 0
+			  struct FD_KEYVAL *adds,int n_adds,
+			  struct FD_KEYVAL *drops,int n_drops,
+			  struct FD_KEYVAL *stores,int n_stores,
+			  lispval changed_metadata)
 {
   struct FD_HT_INDEX *mix = (struct FD_HT_INDEX *)ix;
   if ((mix->index_source) && (mix->commitfn))
@@ -89,12 +86,13 @@ static int htindex_commit(struct FD_INDEX *ix,
     fd_seterr(fd_EphemeralIndex,"htindex_commit",ix->indexid,VOID);
     return -1;}
 }
-#endif
 
 static int htindex_commitfn(struct FD_HT_INDEX *ix,u8_string file)
 {
   struct FD_STREAM stream, *rstream;
-  if ((ix->index_adds.table_n_keys>0) || (ix->index_edits.table_n_keys>0)) {
+  if ((ix->index_adds.table_n_keys>0) ||
+      (ix->index_drops.table_n_keys>0) ||
+      (ix->index_stores.table_n_keys>0)) {
     rstream = fd_init_file_stream
       (&stream,file,FD_FILE_CREATE,-1,fd_driver_bufsize);
     if (rstream == NULL) return -1;

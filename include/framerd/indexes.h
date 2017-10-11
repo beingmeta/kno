@@ -22,9 +22,10 @@ FD_EXPORT u8_condition fd_IndexCommit;
 #define fd_lock_index(p) u8_lock_mutex(&((p)->index_lock))
 #define fd_unlock_index(p) u8_unlock_mutex(&((p)->index_lock))
 
-#define FD_INDEX_CACHE_INIT 73
-#define FD_INDEX_EDITS_INIT 73
-#define FD_INDEX_ADDS_INIT 123
+#define FD_INDEX_CACHE_INIT   512
+#define FD_INDEX_ADDS_INIT    256
+#define FD_INDEX_DROPS_INIT   0
+#define FD_INDEX_REPLACE_INIT 0
 FD_EXPORT int fd_index_cache_init;
 FD_EXPORT int fd_index_edits_init;
 FD_EXPORT int fd_index_adds_init;
@@ -44,9 +45,11 @@ FD_EXPORT int fd_index_adds_init;
   fd_storage_flags index_flags, modified_flags;			   \
   int index_serialno;						   \
   short index_cache_level;					   \
-  struct FD_HASHTABLE index_cache, index_adds, index_edits;        \
+  struct FD_HASHTABLE index_cache;				   \
+  struct FD_HASHTABLE index_adds, index_drops;			   \
+  struct FD_HASHTABLE index_stores;				   \
   struct FD_SLOTMAP index_metadata, index_props;		   \
-  lispval index_keyslot;						   \
+  lispval index_keyslot;					   \
   lispval index_covers_slotids;					   \
   lispval index_opts
 
@@ -66,12 +69,13 @@ typedef struct FD_INDEX_HANDLER {
   void (*close)(fd_index ix);
   int (*commit)(fd_index ix,
 		struct FD_KEYVAL *adds,int n_adds,
-		struct FD_KEYVAL *edits,int n_edits,
+		struct FD_KEYVAL *drops,int n_drops,
+		struct FD_KEYVAL *stores,int n_stores,
 		lispval metadata);
   lispval (*fetch)(fd_index ix,lispval key);
   int (*fetchsize)(fd_index ix,lispval key);
   int (*prefetch)(fd_index ix,lispval keys);
-  lispval *(*fetchn)(fd_index ix,int n,lispval *keys);
+  lispval *(*fetchn)(fd_index ix,int n,const lispval *keys);
   lispval *(*fetchkeys)(fd_index ix,int *n);
   struct FD_KEY_SIZE *(*fetchinfo)(fd_index ix,struct FD_CHOICE *filter,int *n);
   int (*batchadd)(fd_index ix,lispval);
@@ -89,6 +93,8 @@ FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args
 FD_EXPORT lispval fd_index_base_metadata(fd_index ix);
 
 FD_EXPORT lispval fd_index_hashop, fd_index_slotsop, fd_index_bucketsop;
+
+#define FD_INDEX_READONLYP(ix) ( ((ix)->index_flags) & (FD_STORAGE_READ_ONLY) )
 
 #if 0
 struct FD_INDEX_HANDLER some_handler={

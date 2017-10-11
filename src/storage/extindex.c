@@ -70,7 +70,7 @@ static lispval extindex_fetch(fd_index p,lispval oid)
 /* This assumes that the FETCH function handles a vector intelligently,
    and just calls it on the vector of OIDs and extracts the data from
    the returned vector.  */
-static lispval *extindex_fetchn(fd_index p,int n,lispval *keys)
+static lispval *extindex_fetchn(fd_index p,int n,const lispval *keys)
 {
   struct FD_EXTINDEX *xp = (fd_extindex)p;
   struct FD_VECTOR vstruct; lispval vecarg;
@@ -80,7 +80,7 @@ static lispval *extindex_fetchn(fd_index p,int n,lispval *keys)
                             (NULL));
   FD_INIT_STATIC_CONS(&vstruct,fd_vector_type);
   vstruct.vec_length = n; 
-  vstruct.vec_elts = keys; 
+  vstruct.vec_elts = (lispval *) keys;
   vstruct.vec_free_elts = 0;
   vecarg = LISP_CONS(&vstruct);
   if ((VOIDP(state))||(FALSEP(state))||
@@ -128,77 +128,40 @@ static lispval *extindex_fetchn(fd_index p,int n,lispval *keys)
 
 static int extindex_commit(struct FD_INDEX *ix,
 			   struct FD_KEYVAL *adds,int n_adds,
-			   struct FD_KEYVAL *edits,int n_edits,
+			   struct FD_KEYVAL *drops,int n_drops,
+			   struct FD_KEYVAL *stores,int n_stores,
 			   lispval changed_metadata)
 {
-  return 1;
-}
-#if 0
-{
   struct FD_EXTINDEX *exi = (fd_extindex)ix;
-  lispval *adds, *drops, *stores;
-  int n_adds = 0, n_drops = 0, n_stores = 0;
-  fd_write_lock_table(&(exi->index_adds));
-  fd_write_lock_table(&(exi->index_edits));
-  if (exi->index_edits.table_n_keys) {
-    drops = u8_alloc_n(exi->index_edits.table_n_keys,lispval);
-    stores = u8_alloc_n(exi->index_edits.table_n_keys,lispval);}
-  else {drops = NULL; stores = NULL;}
-  if (exi->index_adds.table_n_keys)
-    adds = u8_alloc_n(exi->index_adds.table_n_keys,lispval);
-  else adds = NULL;
-  if (exi->index_edits.table_n_keys) {
-    int n_edits;
-    struct FD_KEYVAL *kvals = fd_hashtable_keyvals(&(exi->index_edits),&n_edits,0);
-    struct FD_KEYVAL *scan = kvals, *limit = kvals+n_edits;
-    while (scan<limit) {
-      lispval key = scan->kv_key;
-      if (PAIRP(key)) {
-        lispval kind = FD_CAR(key), realkey = FD_CDR(key), value = scan->kv_val;
-        lispval assoc = fd_conspair(realkey,value);
-        if (FD_EQ(kind,set_symbol)) {
-          stores[n_stores++]=assoc; fd_incref(realkey);}
-        else if (FD_EQ(kind,drop_symbol)) {
-          drops[n_drops++]=assoc; fd_incref(realkey);}
-        else u8_raise(_("Bad edit key in index"),"fd_extindex_commit",NULL);}
-      else u8_raise(_("Bad edit key in index"),"fd_extindex_commit",NULL);
-      scan++;}
-    scan = kvals; while (scan<kvals) {
-      fd_decref(scan->kv_key);
-      /* Not neccessary because we used the pointer above. */
-      /* fd_decref(scan->kv_val); */
-      scan++;}}
-  if (exi->index_adds.table_n_keys) {
-    int add_len;
-    struct FD_KEYVAL *kvals = fd_hashtable_keyvals(&(exi->index_adds),&add_len,0);
-    /* Note that we don't have to decref these kvals because
-       their pointers will become in the assocs in the adds vector. */
-    struct FD_KEYVAL *scan = kvals, *limit = kvals+add_len;
-    while (scan<limit) {
-      lispval key = scan->kv_key, value = scan->kv_val;
-      lispval assoc = fd_conspair(key,value);
-      adds[n_adds++]=assoc;
-      scan++;}}
-  {
-    lispval avec = fd_init_vector(NULL,n_adds,adds);
-    lispval dvec = fd_init_vector(NULL,n_drops,drops);
-    lispval svec = fd_init_vector(NULL,n_stores,stores);
-    lispval argv[4], result = VOID;
-    argv[0]=avec;
-    argv[1]=dvec;
-    argv[2]=svec;
-    argv[3]=exi->state;
-    result = fd_apply(exi->commitfn,((VOIDP(exi->state))?(3):(4)),argv);
-    fd_decref(argv[0]); fd_decref(argv[1]); fd_decref(argv[2]);
-    fd_reset_hashtable(&(exi->index_adds),fd_index_adds_init,0);
-    fd_reset_hashtable(&(exi->index_edits),fd_index_edits_init,0);
-    fd_unlock_table(&(exi->index_adds));
-    fd_unlock_table(&(exi->index_edits));
-    if (FD_ABORTP(result)) return -1;
-    else {fd_decref(result); return 1;}
-  }
+  lispval avec = fd_make_vector(n_adds,NULL);
+  lispval dvec = fd_make_vector(n_drops,NULL);
+  lispval svec = fd_make_vector(n_stores,NULL);
+  int i = 0; while (i<n_adds) {
+    lispval key = adds[i].kv_key, val = adds[i].kv_val;
+    lispval pair = fd_make_pair(key,val);
+    FD_VECTOR_SET(avec,i,pair);}
+  i=0; while (i<n_drops) {
+    lispval key = drops[i].kv_key, val = drops[i].kv_val;
+    lispval pair = fd_make_pair(key,val);
+    FD_VECTOR_SET(dvec,i,pair);}
+  i=0; while (i<n_stores) {
+    lispval key = stores[i].kv_key, val = stores[i].kv_val;
+    lispval pair = fd_make_pair(key,val);
+    FD_VECTOR_SET(svec,i,pair);}
+
+  lispval argv[4], result = VOID;
+  argv[0]=avec;
+  argv[1]=dvec;
+  argv[2]=svec;
+  argv[3]=exi->state;
+  result = fd_apply(exi->commitfn,((VOIDP(exi->state))?(3):(4)),argv);
+  fd_decref(argv[0]); fd_decref(argv[1]); fd_decref(argv[2]);
+  if (FD_ABORTP(result))
+    return -1;
+  else {
+    fd_decref(result);
+    return 1;}
 }
-#endif
 
 static void recycle_extindex(fd_index ix)
 {

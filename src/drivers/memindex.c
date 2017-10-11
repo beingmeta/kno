@@ -28,7 +28,8 @@
 
 static int memindex_cache_init = 10000;
 static int memindex_adds_init = 5000;
-static int memindex_edits_init = 1000;
+static int memindex_drops_init = 1000;
+static int memindex_stores_init = 1000;
 
 static struct FD_INDEX_HANDLER mem_index_handler;
 
@@ -53,7 +54,7 @@ static int mem_index_fetchsize(fd_index ix,lispval key)
   return size;
 }
 
-static lispval *mem_index_fetchn(fd_index ix,int n,lispval *keys)
+static lispval *mem_index_fetchn(fd_index ix,int n,const lispval *keys)
 {
   struct FD_MEM_INDEX *mix = (struct FD_MEM_INDEX *)ix;
   if (mix->mix_loaded==0) load_mem_index(mix,1);
@@ -138,110 +139,16 @@ static struct FD_KEY_SIZE *mem_index_fetchinfo(fd_index ix,fd_choice filter,int 
   return keysizes;
 }
 
-static lispval drop_symbol, set_symbol;
-
-static int write_add(struct FD_KEYVAL *kv,void *mixptr)
-{
-  struct FD_MEM_INDEX *memidx = (struct FD_MEM_INDEX *)mixptr;
-  struct FD_STREAM *stream = &(memidx->index_stream);
-  struct FD_OUTBUF *out = fd_writebuf(stream);
-  fd_write_byte(out,1);
-  fd_write_dtype(out,kv->kv_key);
-  fd_write_dtype(out,kv->kv_val);
-  return 0;
-}
-
-static int merge_adds(struct FD_KEYVAL *kv,void *cacheptr)
-{
-  fd_hashtable cache = (fd_hashtable)cacheptr;
-  fd_hashtable_op_nolock(cache,fd_table_add,kv->kv_key,kv->kv_val);
-  return 0;
-}
-
-static int write_edit(struct FD_KEYVAL *kv,void *mixptr)
-{
-  struct FD_MEM_INDEX *memidx = (struct FD_MEM_INDEX *)mixptr;
-  struct FD_STREAM *stream = &(memidx->index_stream);
-  struct FD_OUTBUF *out = fd_writebuf(stream);
-  lispval key = kv->kv_key;
-  if ((PAIRP(key))&&(SYMBOLP(FD_CAR(key)))) {
-    if ((FD_CAR(key)) == drop_symbol) {
-      fd_write_byte(out,(unsigned char)-1);
-      fd_write_dtype(out,FD_CDR(key));
-      fd_write_dtype(out,kv->kv_val);}
-    else if ((FD_CAR(key)) == set_symbol) {
-      fd_write_byte(out,(unsigned char)0);
-      fd_write_dtype(out,FD_CDR(key));
-      fd_write_dtype(out,kv->kv_val);}
-    else {}}
-  else {}
-  return 0;
-}
-
-static int merge_edits(struct FD_KEYVAL *kv,void *cacheptr)
-{
-  fd_hashtable cache = (fd_hashtable)cacheptr;
-  lispval key = kv->kv_key;
-  if ((PAIRP(key))&&(FD_CAR(key) == drop_symbol)) {
-    lispval real_key = FD_CDR(key);
-    fd_hashtable_op_nolock(cache,fd_table_drop,real_key,kv->kv_val);}
-  return 0;
-}
-
 static int mem_index_commit(struct FD_INDEX *ix,
                             struct FD_KEYVAL *adds,int n_adds,
-                            struct FD_KEYVAL *edits,int n_edits,
+                            struct FD_KEYVAL *drops,int n_drops,
+			    struct FD_KEYVAL *stores,int n_stores,
                             lispval changed_metadata)
 {
-  return 1;
-}
-#if 0
-{
   struct FD_MEM_INDEX *memidx = (struct FD_MEM_INDEX *)ix;
-  struct FD_HASHTABLE *adds = &(ix->index_adds), *edits = &(ix->index_edits);
-  struct FD_HASHTABLE *cache = &(ix->index_cache);
-  struct FD_HASHTABLE _adds, _edits;
-  unsigned long long n_updates = 0;
+  unsigned long long n_changes = n_adds + n_drops + n_stores;
 
-  if ((adds->table_n_keys==0)&&(edits->table_n_keys==0))
-    return 0;
-
-  /* Update the cache from the adds and edits */
-  u8_write_lock(&(cache->table_rwlock));
-  u8_read_lock(&(adds->table_rwlock));
-  u8_read_lock(&(edits->table_rwlock));
-
-  n_updates = adds->table_n_keys+edits->table_n_keys;
-
-  if (n_updates>60000)
-    u8_log(fd_storage_loglevel,"MemIndex/Commit",
-	   "Saving %d updates to %s",n_updates,ix->indexid);
-  else u8_log(fd_storage_loglevel+1,"MemIndex/Commit",
-	      "Saving %d updates to %s",n_updates,ix->indexid);
-
-  fd_for_hashtable_kv(adds,merge_adds,(void *)cache,0);
-  fd_for_hashtable_kv(edits,merge_edits,(void *)cache,0);
-
-  /* Now copy the adds and edits into the hashtables on the stack */
-  fd_swap_hashtable(adds,&_adds,256,1);
-  fd_swap_hashtable(edits,&_edits,256,1);
-  u8_rw_unlock(&(cache->table_rwlock));
-  u8_rw_unlock(&(adds->table_rwlock));
-  u8_rw_unlock(&(edits->table_rwlock));
-
-
-  u8_log(fd_storage_loglevel+1,"MemIndex/Commit",
-	 "Updated in-memory cache with %d updates to %s, writing to disk",
-	 n_updates,ix->indexid);
-
-  /* At this point, the index tables are unlocked and can start being
-     used by other threads. We'll now write the changes to the
-     disk. */
-
-  /* We don't currently have recovery provisions here. One possibility
-     would be to write all of the values to a separate file before
-     returning. Another would be to wait with unlocking the adds and
-     edits until they've been written. */
+  if (n_changes == 0) return 0;
 
   /* Now write the adds and edits to disk */
   fd_stream stream = &(memidx->index_stream);
@@ -250,19 +157,29 @@ static int mem_index_commit(struct FD_INDEX *ix,
   size_t end = fd_read_8bytes(in);
   fd_outbuf out = fd_start_write(stream,end);
 
-  n_entries = n_entries+_adds.table_n_keys;
-  fd_for_hashtable_kv(&_adds,write_add,(void *)memidx,0);
-  fd_recycle_hashtable(&_adds);
+  int i=0; while (i<n_adds) {
+    fd_write_byte(out,1);
+    fd_write_dtype(out,adds[i].kv_key);
+    fd_write_dtype(out,adds[i].kv_val);
+    i++;}
 
-  n_entries = n_entries+_edits.table_n_keys;
-  fd_for_hashtable_kv(&_edits,write_edit,(void *)memidx,0);
-  fd_recycle_hashtable(&_edits);
+  i=0; while (i<n_drops) {
+    fd_write_byte(out,(unsigned char)-1);
+    fd_write_dtype(out,drops[i].kv_key);
+    fd_write_dtype(out,drops[i].kv_val);
+    i++;}
+
+  i=0; while (i<n_stores) {
+    fd_write_byte(out,(unsigned char)0);
+    fd_write_dtype(out,stores[i].kv_key);
+    fd_write_dtype(out,stores[i].kv_val);
+    i++;}
 
   end = fd_getpos(stream);
 
   fd_setpos(stream,0x08); out = fd_writebuf(stream);
 
-  fd_write_8bytes(out,n_entries);
+  fd_write_8bytes(out,n_entries+n_changes);
   fd_write_8bytes(out,end);
 
   fd_flush_stream(stream);
@@ -271,11 +188,10 @@ static int mem_index_commit(struct FD_INDEX *ix,
 
   u8_log(fd_storage_loglevel,"MemIndex/Finished",
 	 "Finished writing %lld/%lld changes to disk for %s, endpos=%lld",
-	 n_updates,n_entries,ix->indexid,end);
+	 n_changes,n_entries,ix->indexid,end);
 
-  return n_updates;
+  return n_changes;
 }
-#endif
 
 static int simplify_choice(struct FD_KEYVAL *kv,void *data)
 {
@@ -361,7 +277,8 @@ static fd_index open_mem_index(u8_string file,fd_storage_flags flags,lispval opt
       fd_resize_hashtable(&(memidx->index_cache),memindex_cache_init);
     else fd_resize_hashtable(&(memidx->index_cache),1.5*n_entries);
     fd_resize_hashtable(&(memidx->index_adds),memindex_adds_init);
-    fd_resize_hashtable(&(memidx->index_edits),memindex_edits_init);
+    fd_resize_hashtable(&(memidx->index_drops),memindex_drops_init);
+    fd_resize_hashtable(&(memidx->index_stores),memindex_stores_init);
     if (!(FALSEP(preload)))
       load_mem_index(memidx,0);
     if (!(U8_BITP(flags,FD_STORAGE_UNREGISTERED)))
@@ -438,9 +355,6 @@ static struct FD_INDEX_HANDLER mem_index_handler={
 
 FD_EXPORT void fd_init_memindex_c()
 {
-  drop_symbol = fd_intern("DROP");
-  set_symbol = fd_intern("SET");
-
   preload_opt = fd_intern("PRELOAD");
 
   fd_register_index_type("memindex",
