@@ -122,7 +122,7 @@ static int procindex_fetchsize(fd_index ix,lispval key)
       return ival;}}
 }
 
-static lispval *procindex_fetchn(fd_index ix,int n,lispval *keys)
+static lispval *procindex_fetchn(fd_index ix,int n,const lispval *keys)
 {
   struct FD_PROCINDEX *pix = (fd_procindex)ix;
   lispval lp = fd_index2lisp(ix);
@@ -133,7 +133,7 @@ static lispval *procindex_fetchn(fd_index ix,int n,lispval *keys)
     FD_INIT_STATIC_CONS(&vec,fd_vector_type);
     vec.vec_free_elts=0;
     vec.vec_length=n;
-    vec.vec_elts=keys;
+    vec.vec_elts= (lispval *) keys;
     lispval keyvec = (lispval) &vec;
     lispval args[]={lp,pix->index_state,keyvec};
     lispval result = fd_dapply(pix->fetchnfn,3,args);
@@ -194,32 +194,30 @@ struct FD_KEY_SIZE *procindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
 
 static int procindex_commit(struct FD_INDEX *ix,
                             struct FD_KEYVAL *adds,int n_adds,
-                            struct FD_KEYVAL *edits,int n_edits,
+                            struct FD_KEYVAL *drops,int n_drops,
+                            struct FD_KEYVAL *stores,int n_stores,
                             lispval changed_metadata)
-{
-  return 0;
-}
-#if 0
 {
   struct FD_PROCINDEX *pix = (fd_procindex)ix;
   lispval lx = fd_index2lisp(ix);
   if (VOIDP(pix->savefn))
     return 0;
   else {
-    struct FD_HASHTABLE *adds = u8_alloc(struct FD_HASHTABLE);
-    struct FD_HASHTABLE *edits = u8_alloc(struct FD_HASHTABLE);
-    fd_swap_hashtable(&(ix->index_adds),adds,-1,0);
-    fd_swap_hashtable(&(ix->index_edits),edits,-1,0);
-    lispval args[]={lx,pix->index_state,(lispval)adds,(lispval)edits};
-    lispval result = fd_dapply(pix->savefn,4,args);
-    if (FD_ABORTP(result)) {
-      /* This should probably try to restore them. */
-      fd_decref((lispval)adds);
-      fd_decref((lispval)edits);
-      return -1;}
+    struct FD_SLOTMAP add_table, drop_table, store_table;
+    fd_init_slotmap(&add_table,n_adds,adds);
+    fd_init_slotmap(&drop_table,n_drops,drops);
+    fd_init_slotmap(&store_table,n_stores,stores);
+    lispval args[]={lx,
+		    pix->index_state,
+		    (lispval)(&adds),
+		    (lispval)(&drops),
+		    (lispval)(&stores),
+		    ( (FD_VOIDP(changed_metadata)) ? (FD_FALSE) :
+		      (changed_metadata) )};
+    lispval result = fd_dapply(pix->savefn,5,args);
+    if (FD_ABORTP(result))
+      return -1;
     else {
-      fd_decref((lispval)adds);
-      fd_decref((lispval)edits);
       if (FD_FIXNUMP(result)) {
 	int ival = FD_FIX2INT(result);
 	fd_decref(result);
@@ -232,7 +230,6 @@ static int procindex_commit(struct FD_INDEX *ix,
 	fd_decref(result);
 	return 1;}}}
 }
-#endif
 
 static void procindex_close(fd_index ix)
 {
