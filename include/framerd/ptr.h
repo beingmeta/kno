@@ -891,6 +891,7 @@ FD_EXPORT void lispval_sort(lispval *v,size_t n,fd_compare_flags flags);
 #define EMPTY      (FD_EMPTY_CHOICE)
 #define FD_EMPTYP(x) (FD_EMPTY_CHOICEP(x))
 #define EMPTYP(x)  (FD_EMPTY_CHOICEP(x))
+#define EXISTSP(x) (! (FD_EMPTY_CHOICEP(x)) )
 #define NIL        (FD_EMPTY_LIST)
 #define NILP(x)    (FD_EMPTY_LISTP(x))
 #define CONSP(x)   (FD_CONSP(x))
