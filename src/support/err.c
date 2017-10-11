@@ -511,8 +511,6 @@ static int unparse_exception(struct U8_OUTPUT *out,lispval x)
   u8_context caller = xo->ex_caller;
   u8_string details = xo->ex_details;
   lispval irritant = xo->ex_irritant;
-  lispval backtrace = xo->ex_stack;
-  lispval context = xo->ex_context;
   u8_puts(out,"#<!EXCEPTION %s");
   if (condition) u8_printf(out," %s",condition);
   else u8_puts(out," missingCondition");
