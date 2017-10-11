@@ -99,11 +99,11 @@ static int netindex_fetchsize(fd_index ix,lispval key)
   else return fd_getint(result);
 }
 
-static lispval *netindex_fetchn(fd_index ix,int n,lispval *keys)
+static lispval *netindex_fetchn(fd_index ix,int n,const lispval *keys)
 {
   struct FD_NETWORK_INDEX *nix = (struct FD_NETWORK_INDEX *)ix;
   lispval vector, result;
-  vector = fd_init_vector(NULL,n,keys);
+  vector = fd_init_vector(NULL,n,(lispval *)keys);
   if (VOIDP(nix->xname))
     result = fd_dtcall(nix->index_connpool,2,iserver_fetchn,vector);
   else result = fd_dtcall_x(nix->index_connpool,3,3,
@@ -145,101 +145,75 @@ static lispval *netindex_fetchkeys(fd_index ix,int *n)
 
 static int netindex_commit(struct FD_INDEX *ix,
                            struct FD_KEYVAL *adds,int n_adds,
-                           struct FD_KEYVAL *edits,int n_edits,
+                           struct FD_KEYVAL *drops,int n_drops,
+                           struct FD_KEYVAL *stores,int n_stores,
                            lispval changed_metadata)
 {
-  return 0;
-}
-#if 0
-{
   struct FD_NETWORK_INDEX *nix = (struct FD_NETWORK_INDEX *)ix;
+  lispval xname = nix->xname;
   int n_transactions = 0;
-  fd_write_lock_table(&(nix->index_adds));
-  fd_write_lock_table(&(nix->index_edits));
-  if (nix->index_edits.table_n_keys) {
-    int n_edits;
-    struct FD_KEYVAL *kvals = fd_hashtable_keyvals(&(nix->index_edits),&n_edits,0);
-    struct FD_KEYVAL *scan = kvals, *limit = kvals+n_edits;
-    while (scan<limit) {
-      lispval key = scan->kv_key, result = VOID;
-      if ((PAIRP(key)) && (FD_EQ(FD_CAR(key),set_symbol)))
-        if (nix->capabilities&FD_ISERVER_RESET) {
-          n_transactions++;
-          if (VOIDP(nix->xname))
-            result = fd_dtcall(nix->index_connpool,3,iserver_reset,FD_CDR(key),scan->kv_val);
-          else result = fd_dtcall_nrx(nix->index_connpool,3,4,
-                                    ixserver_reset,nix->xname,
-                                    FD_CDR(key),scan->kv_val);}
-        else u8_log(LOG_WARN,fd_NoServerMethod,
-                    "Server %s doesn't support resets",ix->index_source);
-      else if ((PAIRP(key)) && (FD_EQ(FD_CAR(key),drop_symbol)))
-        if (nix->capabilities&FD_ISERVER_DROP) {
-          n_transactions++;
-          if (VOIDP(nix->xname))
-            result = fd_dtcall(nix->index_connpool,3,iserver_drop,FD_CDR(key),scan->kv_val);
-          else result = fd_dtcall_x(nix->index_connpool,3,4,ixserver_drop,nix->xname,
-                                  FD_CDR(key),scan->kv_val);}
-        else u8_log(LOG_WARN,fd_NoServerMethod,
-                    "Server %s doesn't support drops",ix->index_source);
-      else u8_raise(_("Bad edit key in index"),"fd_netindex_commit",NULL);
-      if (FD_ABORTP(result)) {
-        fd_unlock_table(&(nix->index_adds));
-        fd_unlock_table(&(nix->index_edits));
-        return -1;}
-      else fd_decref(result);
-      scan++;}
-    scan = kvals; while (scan<kvals) {
-      fd_decref(scan->kv_key); fd_decref(scan->kv_val); scan++;}}
-  if (nix->capabilities&FD_ISERVER_ADDN) {
-    int n_adds;
-    struct FD_KEYVAL *kvals = fd_hashtable_keyvals(&(nix->index_adds),&n_adds,0);
-    lispval vector = fd_init_vector(NULL,n_adds*2,(lispval *)kvals), result = VOID;
-    if (VOIDP(nix->xname))
-      result = fd_dtcall_nr(nix->index_connpool,2,iserver_addn,vector);
-    else result = fd_dtcall_nrx(nix->index_connpool,3,3,ixserver_addn,nix->xname,vector);
-    if (FD_ABORTP(result)) {
-      fd_unlock_table(&(nix->index_adds));
-      fd_unlock_table(&(nix->index_edits));
-      return -1;}
-    else fd_decref(result);
-    return n_transactions+1;}
-  else {
-    int n_adds; lispval xname = nix->xname;
-    struct FD_KEYVAL *kvals = fd_hashtable_keyvals(&(nix->index_adds),&n_adds,0);
-    struct FD_KEYVAL *scan = kvals, *limit = scan+n_adds;
-    if (VOIDP(xname))
-      while (scan<limit) {
+  
+  if (n_stores) {
+    if (nix->capabilities&FD_ISERVER_RESET) {
+      int i = 0; while ( i< n_stores ) {
         lispval result = VOID;
-        n_transactions++;
-        result = fd_dtcall_nr(nix->index_connpool,3,
-                            iserver_add,scan->kv_key,scan->kv_val);
+        lispval key = stores[i].kv_key;
+        lispval val = stores[i].kv_val;
+        if (VOIDP(xname))
+          result = fd_dtcall(nix->index_connpool,3,iserver_reset,key,val);
+        else result = fd_dtcall_nrx(nix->index_connpool,3,4,
+                                    ixserver_reset,xname,key,val);
         if (FD_ABORTP(result)) {
-          fd_unlock_table(&(nix->index_adds));
-          fd_unlock_table(&(nix->index_edits));
-          return -1;}
-        else fd_decref(result);
-        scan++;}
-    else while (scan<limit) {
-      lispval result = VOID;
-      n_transactions++;
-      result = fd_dtcall_nrx(nix->index_connpool,3,3,
-                           ixserver_add,xname,scan->kv_key,scan->kv_val);
-      if (FD_ABORTP(result)) {
-        fd_unlock_table(&(nix->index_adds));
-        fd_unlock_table(&(nix->index_edits));
-        return -1;}
-      else fd_decref(result);
-      scan++;}
-    scan = kvals; while (scan<kvals) {
-      fd_decref(scan->kv_key); fd_decref(scan->kv_val); scan++;}
-    u8_free(kvals);
-    fd_reset_hashtable(&(nix->index_adds),67,0);
-    fd_reset_hashtable(&(nix->index_edits),67,0);
-    fd_unlock_table(&(nix->index_adds));
-    fd_unlock_table(&(nix->index_edits));
-    return n_transactions;}
+          u8_exception ex = u8_erreify();
+          lispval exception = fd_get_exception(ex);
+          fd_clear_errors(1);}
+        else n_transactions++;
+        i++;}}}
+    
+  if (n_drops) {
+    if (nix->capabilities&FD_ISERVER_DROP) {
+      int i = 0; while ( i< n_drops ) {
+        lispval result = VOID;
+        lispval key = drops[i].kv_key;
+        lispval val = drops[i].kv_val;
+        if (VOIDP(xname))
+          result = fd_dtcall(nix->index_connpool,3,iserver_drop,key,val);
+        else result = fd_dtcall_x(nix->index_connpool,3,4,ixserver_drop,xname,key,val);
+        if (FD_ABORTP(result)) {
+          u8_exception ex = u8_erreify();
+          lispval exception = fd_get_exception(ex);
+          fd_clear_errors(1);}
+        else n_transactions++;
+        i++;}}}
+      
+    if (n_adds) {
+      if (nix->capabilities&FD_ISERVER_ADDN) {
+        lispval vector = fd_make_vector(n_adds*2,NULL), result=FD_VOID;
+        int i=0; while (i<n_adds) {
+          lispval key = adds[i].kv_key, val = adds[i].kv_val;
+          FD_VECTOR_SET(vector,i*2,key); fd_incref(key);
+          FD_VECTOR_SET(vector,i*2+1,val); fd_incref(val);
+          i=i+2;}
+        if (VOIDP(xname))
+          result = fd_dtcall_nr(nix->index_connpool,2,iserver_addn,vector);
+        else result = fd_dtcall_nrx(nix->index_connpool,3,3,ixserver_addn,xname,vector);
+        if (FD_ABORTP(result)) {
+          fd_clear_errors(1);}
+        n_transactions++;}
+      else {
+        int i = 0; while (i < n_adds) {
+          lispval result = VOID;
+          lispval key = adds[i].kv_key, val = adds[i].kv_val;
+          if (VOIDP(xname)) 
+            result = fd_dtcall_nr(nix->index_connpool,3,iserver_add,key,val);
+          else result = fd_dtcall_nr(nix->index_connpool,4,iserver_add,xname,key,val);
+          if (FD_ABORTP(result))
+            fd_clear_errors(1);
+          else n_transactions++;
+          i++;}}}
+
+    return n_transactions;
 }
-#endif
 
 static void netindex_close(fd_index ix)
 {
