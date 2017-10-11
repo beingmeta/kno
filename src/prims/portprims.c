@@ -845,7 +845,8 @@ static lispval lisp_pprint(int n,lispval *args)
         long long margin_width = FD_FIX2INT(margin_opt);
         u8_byte *margin = alloca(margin_width+1);
         u8_byte *scan=margin, *limit=scan+margin_width;
-        while (scan<limit) *scan++=' '; *scan='\0';
+        while (scan<limit) *scan++=' ';
+        *scan='\0';
         ppcxt.pp_margin=margin;
         /* Since it's all ASCII spaces, margin_len (bytes) =
            margin_width (chars) */
