@@ -21,10 +21,10 @@ typedef enum FD_TABLEOP {
   fd_table_increment_if_present = 10,
   fd_table_multiply_if_present = 11,
   fd_table_store_noref = 12, fd_table_add_noref = 13,
-  fd_table_test = 14,
-  fd_table_add_empty = 15, fd_table_add_empty_noref = 16,
-  fd_table_maximize = 17, fd_table_maximize_if_present = 18,
-  fd_table_minimize = 19, fd_table_minimize_if_present = 20}
+  fd_table_test = 14, fd_table_haskey = 15,
+  fd_table_add_empty = 16, fd_table_add_empty_noref = 17,
+  fd_table_maximize = 18, fd_table_maximize_if_present = 19,
+  fd_table_minimize = 20, fd_table_minimize_if_present = 21}
  fd_tableop;
 
 typedef lispval (*fd_table_get_fn)(lispval,lispval,lispval);

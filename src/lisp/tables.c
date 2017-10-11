@@ -2008,17 +2008,19 @@ FD_EXPORT void fd_hash_quality
 
 /* A general operations function for hashtables */
 
+#define TESTOP(x) ( ((x) == fd_table_test) || ((x) == fd_table_haskey) )
+
 static int do_hashtable_op
   (struct FD_HASHTABLE *ht,fd_tableop op,lispval key,lispval value)
 {
   struct FD_KEYVAL *result; int added=0, was_prechoice=0;
   if (EMPTYP(key)) return 0;
-  if ((ht->table_readonly) && (op!=fd_table_test)) {
+  if ( (ht->table_readonly) && ( ! (TESTOP(op) ) ) ) {
     fd_seterr2(fd_ReadOnlyHashtable,"do_hashtable_op");
     return -1;}
   switch (op) {
   case fd_table_replace: case fd_table_replace_novoid: case fd_table_drop:
-  case fd_table_add_if_present: case fd_table_test:
+  case fd_table_add_if_present: case fd_table_test: case fd_table_haskey:
   case fd_table_increment_if_present: case fd_table_multiply_if_present:
   case fd_table_maximize_if_present: case fd_table_minimize_if_present: {
     /* These are operations which can be resolved immediately if the key
@@ -2026,8 +2028,12 @@ static int do_hashtable_op
        if it doesn't have to. */
     if (ht->table_n_keys == 0) return 0;
     result=fd_hashvec_get(key,ht->ht_buckets,ht->ht_n_buckets);
-    if (result==NULL) return 0; 
+    if (result == NULL)
+      return 0;
+    else if ( op == fd_table_haskey )
+      return 1;
     else { added=1; break; }}
+
   case fd_table_add: case fd_table_add_noref:
     if ((EMPTYP(value)) &&
         ((op == fd_table_add) ||
@@ -2036,21 +2042,25 @@ static int do_hashtable_op
          (op == fd_table_test) ||
          (op == fd_table_drop)))
       return 0;
+
   default:
     if (ht->ht_n_buckets == 0) setup_hashtable(ht,fd_init_hash_size);
     result=fd_hashvec_insert(key,ht->ht_buckets,ht->ht_n_buckets,
-                             &(ht->table_n_keys));}
-  if ((!(result))&&
-      ((op==fd_table_drop)||
-       (op==fd_table_test)||
-       (op==fd_table_replace)||
-       (op==fd_table_add_if_present)||
-       (op==fd_table_multiply_if_present)||
-       (op==fd_table_maximize_if_present)||
-       (op==fd_table_minimize_if_present)||
-       (op==fd_table_increment_if_present)))
+                             &(ht->table_n_keys));
+  } /* switch (op) */
+
+  if ((result==NULL) &&
+      ((op == fd_table_drop)                ||
+       (op == fd_table_test)                ||
+       (op == fd_table_replace)             ||
+       (op == fd_table_add_if_present)      ||
+       (op == fd_table_multiply_if_present) ||
+       (op == fd_table_maximize_if_present) ||
+       (op == fd_table_minimize_if_present) ||
+       (op == fd_table_increment_if_present)))
     return 0;
-  if ((result)&&(PRECHOICEP(result->kv_val))) was_prechoice=1;
+  if ((result)&&(PRECHOICEP(result->kv_val)))
+    was_prechoice=1;
   switch (op) {
   case fd_table_replace_novoid:
     if (VOIDP(result->kv_val)) return 0;
@@ -2082,9 +2092,9 @@ static int do_hashtable_op
       break;}
     else return 0;
   case fd_table_test:
-    if ((CHOICEP(result->kv_val)) || 
+    if ((CHOICEP(result->kv_val)) ||
         (PRECHOICEP(result->kv_val)) ||
-        (CHOICEP(value)) || 
+        (CHOICEP(value)) ||
         (PRECHOICEP(value)))
       return fd_overlapp(value,result->kv_val);
     else if (LISP_EQUAL(value,result->kv_val))
@@ -2267,12 +2277,14 @@ FD_EXPORT int fd_hashtable_iter
     unlock=1;}
   while (i < n) {
     KEY_CHECK(key,ht);
-    if (added==0)
+    if (added==0) {
       added=do_hashtable_op(ht,op,keys[i],values[i]);
+      if ( (added) && (TESTOP(op)) ) break;}
     else do_hashtable_op(ht,op,keys[i],values[i]);
     i++;}
   if (unlock) fd_unlock_table(ht);
-  if (PRED_FALSE(hashtable_needs_resizep(ht))) {
+  if ( (added) && (!(TESTOP(op))) &&
+       (PRED_FALSE(hashtable_needs_resizep(ht)))) {
     /* We resize when n_keys/n_buckets < loading/4;
        at this point, the new size is > loading/2 (a bigger number). */
     int new_size=fd_get_hashtable_size(hashtable_resize_target(ht));
@@ -2293,11 +2305,18 @@ FD_EXPORT int fd_hashtable_iter_kv
   while (i < n) {
     lispval key = kvals[i].kv_key;
     lispval val = kvals[i].kv_val;
-    if (added==0)
+    if (added==0) {
       added=do_hashtable_op(ht,op,key,val);
+      if ( (added) && (TESTOP(op)) ) break;}
     else do_hashtable_op(ht,op,key,val);
     i++;}
   if (unlock) fd_unlock_table(ht);
+  if ( (added) && (!(TESTOP(op))) &&
+       (PRED_FALSE(hashtable_needs_resizep(ht)))) {
+    /* We resize when n_keys/n_buckets < loading/4;
+       at this point, the new size is > loading/2 (a bigger number). */
+    int new_size=fd_get_hashtable_size(hashtable_resize_target(ht));
+    fd_resize_hashtable(ht,new_size);}
   return added;
 }
 
@@ -2312,15 +2331,18 @@ FD_EXPORT int fd_hashtable_iterkeys
     unlock=1;}
   while (i < n) {
     KEY_CHECK(key,ht);
-    if (added==0)
+    if (added==0) {
       added=do_hashtable_op(ht,op,keys[i],value);
+      if ( (added) && (TESTOP(op)) )
+        break;}
     else do_hashtable_op(ht,op,keys[i],value);
     if (added<0) {
       if (unlock) fd_unlock_table(ht);
       return added;}
     i++;}
   if (unlock) fd_unlock_table(ht);
-  if (PRED_FALSE(hashtable_needs_resizep(ht))) {
+  if ( (added) && (!(TESTOP(op))) &&
+       (PRED_FALSE(hashtable_needs_resizep(ht)))) {
     /* We resize when n_keys/n_buckets < loading/4;
        at this point, the new size is > loading/2 (a bigger number). */
     int new_size=fd_get_hashtable_size(hashtable_resize_target(ht));
@@ -2337,12 +2359,15 @@ FD_EXPORT int fd_hashtable_itervals
   if (ht->table_uselock) { fd_write_lock_table(ht); unlock=1;}
   while (i < n) {
     KEY_CHECK(key,ht);
-    if (added==0)
+    if (added==0) {
       added=do_hashtable_op(ht,op,key,values[i]);
+      if ( (added) && ( (op == fd_table_haskey) || (op == fd_table_test) ) )
+        break;}
     else do_hashtable_op(ht,op,key,values[i]);
     i++;}
   if (unlock) fd_unlock_table(ht);
-  if (PRED_FALSE(hashtable_needs_resizep(ht))) {
+  if ( (added) && (!(TESTOP(op))) &&
+       (PRED_FALSE(hashtable_needs_resizep(ht)))) {
     /* We resize when n_keys/n_buckets < loading/4;
        at this point, the new size is > loading/2 (a bigger number). */
     int new_size=fd_get_hashtable_size(hashtable_resize_target(ht));
