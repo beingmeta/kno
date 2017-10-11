@@ -731,6 +731,11 @@ index_leaktests:
 	make TESTPROG="${LEAKTESTER}" TEST_ENV="${LEAKTEST_ENV}" RUNCONF="${LEAKCONF}" TESTSIZE="${SMALLTESTSIZE}" indexes
 	@${header} "■■■■■■■■ Finished leak tests on indexes and index drivers"
 
+fileindex_leaktests:
+	@${header} "■■■■■■■■ Running leak tests on indexes and index drivers"
+	make TESTPROG="${LEAKTESTER}" TEST_ENV="${LEAKTEST_ENV}" RUNCONF="${LEAKCONF}" TESTSIZE="${SMALLTESTSIZE}" fileindexes
+	@${header} "■■■■■■■■ Finished leak tests on indexes and index drivers"
+
 hashindex_leaktests:
 	@${header} "■■■■■■■■ Running leak tests on indexes and index drivers"
 	make TESTPROG="${LEAKTESTER}" TEST_ENV="${LEAKTEST_ENV}" RUNCONF="${LEAKCONF}" TESTSIZE="${SMALLTESTSIZE}" hashindexes
