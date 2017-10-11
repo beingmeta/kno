@@ -169,7 +169,6 @@ static lispval debugpage2html_prim(lispval exception,lispval where)
 static lispval backtrace2html_prim(lispval arg,lispval where)
 {
   u8_exception ex=NULL;
-  struct U8_EXCEPTION tempex={0};
   lispval backtrace=FD_VOID;
   if ((VOIDP(arg))||(FALSEP(arg))||(arg == FD_DEFAULT_VALUE)) {
     ex = u8_current_exception;
