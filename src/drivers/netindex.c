@@ -143,7 +143,14 @@ static lispval *netindex_fetchkeys(fd_index ix,int *n)
     return dtypes;}
 }
 
-static int netindex_commit(fd_index ix)
+static int netindex_commit(struct FD_INDEX *ix,
+                           struct FD_KEYVAL *adds,int n_adds,
+                           struct FD_KEYVAL *edits,int n_edits,
+                           lispval changed_metadata)
+{
+  return 0;
+}
+#if 0
 {
   struct FD_NETWORK_INDEX *nix = (struct FD_NETWORK_INDEX *)ix;
   int n_transactions = 0;
@@ -232,6 +239,7 @@ static int netindex_commit(fd_index ix)
     fd_unlock_table(&(nix->index_edits));
     return n_transactions;}
 }
+#endif
 
 static void netindex_close(fd_index ix)
 {

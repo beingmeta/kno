@@ -2202,7 +2202,14 @@ static int update_hashindex_metadata(fd_hashindex hx,struct FD_STREAM *stream);
 
 static void free_keybuckets(int n,struct KEYBUCKET **keybuckets);
 
-static int hashindex_commit(struct FD_INDEX *ix)
+static int hashindex_commit(struct FD_INDEX *ix,
+                            struct FD_KEYVAL *adds,int n_adds,
+                            struct FD_KEYVAL *edits,int n_edits,
+                            lispval changed_metadata)
+{
+  return 0;
+}
+#if 0
 {
   struct FD_HASHINDEX *hx = (struct FD_HASHINDEX *)ix;
   u8_string fname=hx->index_source;
@@ -2445,6 +2452,7 @@ static int hashindex_commit(struct FD_INDEX *ix)
 
   return n_keys;
 }
+#endif
 
 static void free_keybuckets(int n,struct KEYBUCKET **keybuckets)
 {
@@ -2483,7 +2491,9 @@ static int update_hashindex_metadata(fd_hashindex hx,struct FD_STREAM *stream)
       u8_log(LOGCRIT,"MetaDataWriteError",
              "There was an inconsistency writing the metadata for %s",
              hx->indexid);
-    else fd_set_modified((lispval)metadata,0);}
+    else fd_set_modified((lispval)metadata,0);
+    return error;}
+  else return 0;
 }
 
 static int update_hashindex_ondisk
@@ -2627,6 +2637,8 @@ static int update_hashindex_ondisk
   fd_write_4bytes_at(stream,cur_keys,16);
   fd_write_4bytes_at(stream,FD_HASHINDEX_MAGIC_NUMBER,0);
   fd_flush_stream(stream);
+  
+  return 0;
 }
 
 static void reload_offdata(struct FD_INDEX *ix)

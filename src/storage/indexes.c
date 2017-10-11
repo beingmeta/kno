@@ -1001,23 +1001,41 @@ FD_EXPORT int fd_index_commit(fd_index ix)
   else if ((ix->index_adds.table_n_keys) ||
            (ix->index_edits.table_n_keys) ||
            (fd_modifiedp((lispval)&(ix->index_metadata)))) {
-    int n_edits = ix->index_edits.table_n_keys;
-    int n_adds = ix->index_adds.table_n_keys;
-    int n_keys = n_edits+n_adds, retval = 0;
 
-    if (! ( (ix->index_handler) && (ix->index_handler->commit) ) ) {
-      u8_seterr("NoCommitHandler","fd_index_commit",u8_strdup(ix->indexid));
-      return -1;}
+    int unlock_adds = 0, unlock_edits = 0;
 
-    if (n_keys) init_cache_level(ix);
+    lispval metadata = (lispval) (&(ix->index_metadata));
+    lispval metadata_copy = 
+      (fd_modifiedp(metadata)) ?
+      (fd_deep_copy(metadata)) :
+      (FD_VOID);
 
-    u8_log(fd_storage_loglevel+1,fd_IndexCommit,
-           "####### Saving %d updates to %s",n_keys,ix->indexid);
+    /* Lock the adds and edits */
+    if (ix->index_adds.table_uselock) {
+      u8_write_lock(&(ix->index_adds.table_rwlock));
+      unlock_adds=1;}
+    if (ix->index_edits.table_uselock) {
+      u8_write_lock(&(ix->index_edits.table_rwlock));
+      unlock_edits=1;}
+
+    /* Copy them */
+    int n_adds=0, n_edits=0, retval=0;
+    struct FD_KEYVAL *adds = fd_hashtable_keyvals(&(ix->index_adds),&n_adds,0);
+    struct FD_KEYVAL *edits = fd_hashtable_keyvals(&(ix->index_edits),&n_edits,0);
+    int n_keys = n_adds + n_edits;
+
+    if (n_keys) {
+      init_cache_level(ix);
+      u8_log(fd_storage_loglevel+1,fd_IndexCommit,
+             "####### Saving %d updates to %s",n_keys,ix->indexid);
+      if (unlock_adds) u8_rw_unlock(&(ix->index_adds.table_rwlock));
+      if (unlock_edits) u8_rw_unlock(&(ix->index_edits.table_rwlock));
+      unlock_adds=0; unlock_edits=0;}
 
     double start_time = u8_elapsed_time();
-    if (ix->index_cache_level<0) {
-      fd_index_setcache(ix,fd_default_cache_level);}
-    retval = ix->index_handler->commit(ix);
+
+    retval = ix->index_handler->commit(ix,adds,n_adds,edits,n_edits,metadata_copy);
+
     if (retval<0)
       u8_log(LOG_CRIT,fd_IndexCommitError,
              _("!!!!!!! Error saving %d keys to %s after %f secs"),
@@ -1027,12 +1045,37 @@ FD_EXPORT int fd_index_commit(fd_index ix)
              _("####### Saved %d updated keys to %s in %f secs"),
              retval,ix->indexid,u8_elapsed_time()-start_time);
     else {}
-    if (retval<0)
+
+    if (retval<0) {
+      fd_decref(metadata_copy);
+      fd_free_keyvals(adds,n_adds);
+      fd_free_keyvals(edits,n_edits);
       u8_seterr(fd_IndexCommitError,"fd_index_commit",
                 u8_strdup(ix->indexid));
-    return retval;}
-  else if (metadata_changed(ix))
-    return ix->index_handler->commit(ix);
+      return retval;}
+
+    fd_decref(metadata_copy);
+
+    /* Lock the adds and edits again */
+    if (ix->index_adds.table_uselock) {
+      u8_write_lock(&(ix->index_adds.table_rwlock));
+      unlock_adds=1;}
+    if (ix->index_edits.table_uselock) {
+      u8_write_lock(&(ix->index_edits.table_rwlock));
+      unlock_edits=1;}
+
+    fd_hashtable_iter_kv(&(ix->index_adds),fd_table_drop,
+                         (fd_const_keyval) adds,n_adds,0);
+    fd_hashtable_iter_kv(&(ix->index_edits),fd_table_drop,
+                         (fd_const_keyval)edits,n_edits,0);
+
+    fd_free_keyvals(adds,n_adds);
+    fd_free_keyvals(edits,n_edits);
+
+    if (unlock_adds) u8_rw_unlock(&(ix->index_adds.table_rwlock));
+    if (unlock_edits) u8_rw_unlock(&(ix->index_edits.table_rwlock));
+
+    return 0;}
   else return 0;
 }
 

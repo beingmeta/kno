@@ -126,7 +126,14 @@ static lispval *extindex_fetchn(fd_index p,int n,lispval *keys)
       return values;}}
 }
 
-static int extindex_commit(fd_index ix)
+static int extindex_commit(struct FD_INDEX *ix,
+			   struct FD_KEYVAL *adds,int n_adds,
+			   struct FD_KEYVAL *edits,int n_edits,
+			   lispval changed_metadata)
+{
+  return 1;
+}
+#if 0
 {
   struct FD_EXTINDEX *exi = (fd_extindex)ix;
   lispval *adds, *drops, *stores;
@@ -191,6 +198,7 @@ static int extindex_commit(fd_index ix)
     else {fd_decref(result); return 1;}
   }
 }
+#endif
 
 static void recycle_extindex(fd_index ix)
 {

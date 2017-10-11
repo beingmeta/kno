@@ -91,8 +91,10 @@ FD_EXPORT int   fd_init_hash_size;
 
 /* Slotmaps */
 
-struct FD_KEYVAL {
-  lispval kv_key, kv_val;};
+typedef struct FD_KEYVAL {
+  lispval kv_key, kv_val;} *fd_keyval;
+typedef struct FD_CONST_KEYVAL {
+  const lispval kv_key, kv_val;} *fd_const_keyval;
 
 typedef int (*kv_valfn)(lispval,lispval,void *);
 typedef int (*fd_kvfn)(struct FD_KEYVAL *,void *);
@@ -242,6 +244,7 @@ FD_EXPORT lispval _fd_slotmap_get
 FD_EXPORT lispval _fd_slotmap_test
   (struct FD_SLOTMAP *sm,lispval key,lispval val);
 FD_EXPORT void fd_recycle_slotmap(struct FD_SLOTMAP *sm);
+FD_EXPORT void fd_free_keyvals(struct FD_KEYVAL *kvals,int n_kvals);
 
 #if FD_INLINE_TABLES
 static U8_MAYBE_UNUSED lispval fd_slotmap_get
@@ -543,7 +546,8 @@ FD_EXPORT int fd_remove_deadwood
 FD_EXPORT int fd_devoid_hashtable(fd_hashtable ht,int locked);
 FD_EXPORT int fd_static_hashtable(struct FD_HASHTABLE *ptr,int);
 
-FD_EXPORT lispval fd_copy_hashtable(FD_HASHTABLE *nptr,FD_HASHTABLE *ptr);
+FD_EXPORT struct FD_HASHTABLE *
+fd_copy_hashtable(FD_HASHTABLE *dest,FD_HASHTABLE *src,int locksrc);
 
 FD_EXPORT int fd_hashtable_op
    (fd_hashtable ht,fd_tableop op,lispval key,lispval value);
@@ -552,6 +556,10 @@ FD_EXPORT int fd_hashtable_op_nolock
 FD_EXPORT int fd_hashtable_iter
    (fd_hashtable ht,fd_tableop op,int n,
     const lispval *keys,const lispval *values);
+FD_EXPORT int fd_hashtable_iter_kv
+(struct FD_HASHTABLE *ht,fd_tableop op,
+ struct FD_CONST_KEYVAL *kvals,int n,
+ int lock);
 FD_EXPORT int fd_hashtable_iterkeys
    (fd_hashtable ht,fd_tableop op,int n,
     const lispval *keys,lispval value);
@@ -606,6 +614,8 @@ FD_EXPORT void fd_hash_quality
 
 FD_EXPORT int fd_recycle_hashtable(struct FD_HASHTABLE *h);
 FD_EXPORT int fd_free_buckets(struct FD_HASH_BUCKET **slots,int slots_to_free);
+
+FD_EXPORT void fd_free_keyvals(struct FD_KEYVAL *keyvals,int n_keyvals);
 
 FD_EXPORT int fd_hashtable_set_readonly(FD_HASHTABLE *ht,int readonly);
 

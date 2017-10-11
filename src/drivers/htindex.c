@@ -73,7 +73,14 @@ static struct FD_KEY_SIZE *htindex_fetchinfo(fd_index ix,fd_choice filter,int *n
   return sizes;
 }
 
-static int htindex_commit(fd_index ix)
+static int htindex_commit(struct FD_INDEX *ix,
+                            struct FD_KEYVAL *adds,int n_adds,
+                            struct FD_KEYVAL *edits,int n_edits,
+                            lispval changed_metadata)
+{
+  return 0;
+}
+#if 0
 {
   struct FD_HT_INDEX *mix = (struct FD_HT_INDEX *)ix;
   if ((mix->index_source) && (mix->commitfn))
@@ -82,6 +89,7 @@ static int htindex_commit(fd_index ix)
     fd_seterr(fd_EphemeralIndex,"htindex_commit",ix->indexid,VOID);
     return -1;}
 }
+#endif
 
 static int htindex_commitfn(struct FD_HT_INDEX *ix,u8_string file)
 {

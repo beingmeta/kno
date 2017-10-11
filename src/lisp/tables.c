@@ -752,7 +752,6 @@ static lispval copy_slotmap(lispval smap,int flags)
 FD_EXPORT int fd_copy_slotmap(struct FD_SLOTMAP *src,
                               struct FD_SLOTMAP *dest)
 {
-  int unlock=0;
   if (dest->sm_keyvals) {
     if (dest->n_slots) {
       struct FD_KEYVAL *scan = dest->sm_keyvals;
@@ -766,8 +765,8 @@ FD_EXPORT int fd_copy_slotmap(struct FD_SLOTMAP *src,
         scan->kv_val=VOID;
         scan++;}}
     if (dest->sm_free_keyvals) u8_free(dest->sm_keyvals);
-    dest->sm_keyvals=NULL;}
-  u8_destroy_rwlock(&(dest->table_rwlock));
+    dest->sm_keyvals=NULL;
+    u8_destroy_rwlock(&(dest->table_rwlock));}
   dest->n_slots = src->n_slots;
   dest->n_allocd = src->n_allocd;
   dest->sm_keyvals = u8_alloc_n(src->n_allocd,struct FD_KEYVAL);
@@ -785,6 +784,17 @@ FD_EXPORT int fd_copy_slotmap(struct FD_SLOTMAP *src,
     write->kv_val = read->kv_val; fd_incref(write->kv_val);
     write++; read++;}
   return dest->n_slots;
+}
+
+FD_EXPORT void fd_free_keyvals(struct FD_KEYVAL *kvals,int n_kvals)
+{
+  int i=0; while (i<n_kvals) {
+    lispval key = kvals[i].kv_key;
+    lispval val = kvals[i].kv_val;
+    fd_decref(key);
+    fd_decref(val);
+    i++;}
+  u8_free(kvals);
 }
 
 FD_EXPORT void fd_recycle_slotmap(struct FD_SLOTMAP *c)
@@ -2270,6 +2280,27 @@ FD_EXPORT int fd_hashtable_iter
   return added;
 }
 
+FD_EXPORT int fd_hashtable_iter_kv
+(struct FD_HASHTABLE *ht,fd_tableop op,
+ struct FD_CONST_KEYVAL *kvals,int n,
+ int lock)
+{
+  int i=0, added=0, unlock=0;
+  FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
+  if ( (lock) && (ht->table_uselock) ) {
+    fd_write_lock_table(ht);
+    unlock=1;}
+  while (i < n) {
+    lispval key = kvals[i].kv_key;
+    lispval val = kvals[i].kv_val;
+    if (added==0)
+      added=do_hashtable_op(ht,op,key,val);
+    else do_hashtable_op(ht,op,key,val);
+    i++;}
+  if (unlock) fd_unlock_table(ht);
+  return added;
+}
+
 FD_EXPORT int fd_hashtable_iterkeys
    (struct FD_HASHTABLE *ht,fd_tableop op,int n,
     const lispval *keys,lispval value)
@@ -2846,23 +2877,33 @@ FD_EXPORT int fd_hashtable_stats
   return n_keys;
 }
 
-FD_EXPORT lispval fd_copy_hashtable(FD_HASHTABLE *nptr,FD_HASHTABLE *ptr)
+FD_EXPORT struct FD_HASHTABLE *
+fd_copy_hashtable(FD_HASHTABLE *dest_arg,
+                  FD_HASHTABLE *src,
+                  int locksrc)
 {
+  struct FD_HASHTABLE *dest;
   int n_keys=0, n_buckets=0, unlock=0, copied_keys=0;
   struct FD_HASH_BUCKET **buckets, **read, **write, **read_limit;
-  if (nptr==NULL) nptr=u8_alloc(struct FD_HASHTABLE);
-  if (ptr->table_uselock) { fd_read_lock_table(ptr); unlock=1;}
-  FD_INIT_CONS(nptr,fd_hashtable_type);
-  nptr->table_modified=0;
-  nptr->table_readonly=0;
-  nptr->table_uselock=1;
-  nptr->ht_n_buckets=n_buckets=ptr->ht_n_buckets;
-  nptr->table_n_keys=n_keys=ptr->table_n_keys;
-  read=buckets=ptr->ht_buckets;
+  if (dest_arg==NULL)
+    dest=u8_alloc(struct FD_HASHTABLE);
+  else dest=dest_arg;
+  if ( (locksrc) && (src->table_uselock) ) {
+    fd_read_lock_table(src);
+    unlock=1;}
+  if (dest_arg) {
+    FD_INIT_STATIC_CONS(dest,fd_hashtable_type);}
+  else {FD_INIT_CONS(dest,fd_hashtable_type);}
+  dest->table_modified=0;
+  dest->table_readonly=0;
+  dest->table_uselock=1;
+  dest->ht_n_buckets=n_buckets=src->ht_n_buckets;
+  dest->table_n_keys=n_keys=src->table_n_keys;
+  read=buckets=src->ht_buckets;
   read_limit=read+n_buckets;
-  nptr->table_load_factor=ptr->table_load_factor;
+  dest->table_load_factor=src->table_load_factor;
 
-  write=nptr->ht_buckets=u8_alloc_n(n_buckets,fd_hash_bucket);
+  write=dest->ht_buckets=u8_alloc_n(n_buckets,fd_hash_bucket);
 
   while ( (read<read_limit) && (copied_keys < n_keys) )  {
     if (*read==NULL) {read++; write++;}
@@ -2884,18 +2925,17 @@ FD_EXPORT lispval fd_copy_hashtable(FD_HASHTABLE *nptr,FD_HASHTABLE *ptr)
         kvwrite++;
         copied_keys++;}}}
 
-  if (unlock) fd_unlock_table(ptr);
+  if (unlock) fd_unlock_table(src);
 
-  u8_init_rwlock(&(nptr->table_rwlock));
+  u8_init_rwlock(&(dest->table_rwlock));
 
-  return LISP_CONS(nptr);
+  return dest;
 }
 
 static lispval copy_hashtable(lispval table,int deep)
 {
-  struct FD_HASHTABLE *ptr=fd_consptr(fd_hashtable,table,fd_hashtable_type);
-  struct FD_HASHTABLE *nptr=u8_alloc(struct FD_HASHTABLE);
-  return fd_copy_hashtable(nptr,ptr);
+  return (lispval) fd_copy_hashtable
+    (NULL,fd_consptr(fd_hashtable,table,fd_hashtable_type),1);
 }
 
 static lispval copy_hashset(lispval table,int deep)

@@ -188,7 +188,14 @@ static int merge_edits(struct FD_KEYVAL *kv,void *cacheptr)
   return 0;
 }
 
-static int mem_index_commit(fd_index ix)
+static int mem_index_commit(struct FD_INDEX *ix,
+                            struct FD_KEYVAL *adds,int n_adds,
+                            struct FD_KEYVAL *edits,int n_edits,
+                            lispval changed_metadata)
+{
+  return 1;
+}
+#if 0
 {
   struct FD_MEM_INDEX *memidx = (struct FD_MEM_INDEX *)ix;
   struct FD_HASHTABLE *adds = &(ix->index_adds), *edits = &(ix->index_edits);
@@ -268,6 +275,7 @@ static int mem_index_commit(fd_index ix)
 
   return n_updates;
 }
+#endif
 
 static int simplify_choice(struct FD_KEYVAL *kv,void *data)
 {
@@ -373,7 +381,7 @@ static lispval mem_index_ctl(fd_index ix,lispval op,int n,lispval *args)
     else return FD_INT(0);}
   else if (op == fd_getmap_op) {
     if (mix->mix_loaded==0) load_mem_index(mix,1);
-    return fd_copy_hashtable(NULL,&(ix->index_cache));}
+    return (lispval) fd_copy_hashtable(NULL,&(ix->index_cache),1);}
   else if (op == fd_preload_op) {
     if (mix->mix_loaded==0) load_mem_index(mix,1);
     return FD_TRUE;}

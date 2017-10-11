@@ -64,7 +64,10 @@ typedef struct FD_KEY_SIZE *fd_key_size;
 typedef struct FD_INDEX_HANDLER {
   u8_string name; int version, length, n_handlers;
   void (*close)(fd_index ix);
-  int (*commit)(fd_index ix);
+  int (*commit)(fd_index ix,
+		struct FD_KEYVAL *adds,int n_adds,
+		struct FD_KEYVAL *edits,int n_edits,
+		lispval metadata);
   lispval (*fetch)(fd_index ix,lispval key);
   int (*fetchsize)(fd_index ix,lispval key);
   int (*prefetch)(fd_index ix,lispval keys);

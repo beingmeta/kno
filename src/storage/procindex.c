@@ -192,7 +192,14 @@ struct FD_KEY_SIZE *procindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
 }
 
 
-static int procindex_commit(fd_index ix)
+static int procindex_commit(struct FD_INDEX *ix,
+                            struct FD_KEYVAL *adds,int n_adds,
+                            struct FD_KEYVAL *edits,int n_edits,
+                            lispval changed_metadata)
+{
+  return 0;
+}
+#if 0
 {
   struct FD_PROCINDEX *pix = (fd_procindex)ix;
   lispval lx = fd_index2lisp(ix);
@@ -225,6 +232,7 @@ static int procindex_commit(fd_index ix)
 	fd_decref(result);
 	return 1;}}}
 }
+#endif
 
 static void procindex_close(fd_index ix)
 {
