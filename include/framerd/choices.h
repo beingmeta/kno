@@ -123,11 +123,12 @@ typedef struct FD_CHOICE {
 typedef struct FD_CHOICE *fd_choice;
 
 #define FD_CHOICE_SIZE_MASK 0x7FFFFFFF
-#define FD_CHOICEP(x) (FD_TYPEP(x,fd_choice_type))
-#define FD_XCHOICE(x) (fd_consptr(struct FD_CHOICE *,x,fd_choice_type))
-#define FD_XCHOICE_DATA(ch) ((const lispval *) (&(ch->choice_0)))
-#define FD_CHOICE_DATA(x) \
-  (FD_XCHOICE_DATA(FD_CONSPTR(fd_choice,x)))
+#define FD_CHOICEP(x) (FD_TYPEP((x),fd_choice_type))
+#define FD_XCHOICE(x) (fd_consptr(struct FD_CHOICE *,(x),fd_choice_type))
+#define FD_XCHOICE_DATA(ch) ((const lispval *) (&((ch)->choice_0)))
+#define FD_XCHOICE_ELTS(ch) ((const lispval *) (&((ch)->choice_0)))
+#define FD_CHOICE_DATA(x)   (FD_XCHOICE_DATA(FD_CONSPTR(fd_choice,(x))))
+#define FD_CHOICE_ELTS(x)   (FD_XCHOICE_DATA(FD_CONSPTR(fd_choice,(x))))
 #define FD_XCHOICE_SIZE(ch) ((ch)->choice_size)
 
 #define FD_ATOMIC_CHOICEP(x) ((FD_XCHOICE(x))->choice_isatomic)
