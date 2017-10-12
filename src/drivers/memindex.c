@@ -30,21 +30,21 @@ static int memindex_map_init = 10000;
 
 static struct FD_INDEX_HANDLER memindex_handler;
 
-static ssize_t load_memindex(struct FD_MEMINDEX *memidx,int lock_cache);
+static ssize_t load_memindex(struct FD_MEMINDEX *memidx);
 
 /* The in-memory index */
 
 static lispval memindex_fetch(fd_index ix,lispval key)
 {
   struct FD_MEMINDEX *mix = (struct FD_MEMINDEX *)ix;
-  if (! (mix->mix_loaded) ) load_memindex(mix,1);
+  if (! (mix->mix_loaded) ) load_memindex(mix);
   return fd_hashtable_get(&(mix->mix_map),key,EMPTY);
 }
 
 static int memindex_fetchsize(fd_index ix,lispval key)
 {
   struct FD_MEMINDEX *mix = (struct FD_MEMINDEX *)ix;
-  if (! (mix->mix_loaded) ) load_memindex(mix,1);
+  if (! (mix->mix_loaded) ) load_memindex(mix);
   lispval v = fd_hashtable_get(&(mix->mix_map),key,EMPTY);
   int size = FD_CHOICE_SIZE(v);
   fd_decref(v);
@@ -54,7 +54,7 @@ static int memindex_fetchsize(fd_index ix,lispval key)
 static lispval *memindex_fetchn(fd_index ix,int n,const lispval *keys)
 {
   struct FD_MEMINDEX *mix = (struct FD_MEMINDEX *)ix;
-  if (! (mix->mix_loaded) ) load_memindex(mix,1);
+  if (! (mix->mix_loaded) ) load_memindex(mix);
   struct FD_HASHTABLE *map = &(mix->mix_map);
   lispval *results = u8_alloc_n(n,lispval);
   fd_write_lock_table(map);
@@ -68,7 +68,7 @@ static lispval *memindex_fetchn(fd_index ix,int n,const lispval *keys)
 static lispval *memindex_fetchkeys(fd_index ix,int *n)
 {
   struct FD_MEMINDEX *mix = (struct FD_MEMINDEX *)ix;
-  if (! (mix->mix_loaded) ) load_memindex(mix,1);
+  if (! (mix->mix_loaded) ) load_memindex(mix);
   lispval keys = fd_hashtable_keys(&(mix->mix_map));
   if (FD_PRECHOICEP(keys)) keys = fd_simplify_choice(keys);
   if (FD_CHOICEP(keys)) {
@@ -117,8 +117,8 @@ static int gather_keysizes(struct FD_KEYVAL *kv,void *data)
 static struct FD_KEY_SIZE *memindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
 {
   struct FD_MEMINDEX *mix = (struct FD_MEMINDEX *)ix;
-  if (! (mix->mix_loaded) ) load_memindex(mix,1);
-  int n_keys = (filter == NULL) ? (ix->index_cache.table_n_keys) :
+  if (! (mix->mix_loaded) ) load_memindex(mix);
+  int n_keys = (filter == NULL) ? (mix->mix_map.table_n_keys) :
     (FD_XCHOICE_SIZE(filter));
   struct FD_KEY_SIZE *keysizes = u8_alloc_n(n_keys,struct FD_KEY_SIZE);
   struct FETCHINFO_STATE state={keysizes,filter,0,n_keys};
@@ -192,7 +192,7 @@ static int simplify_choice(struct FD_KEYVAL *kv,void *data)
   return 0;
 }
 
-static ssize_t load_memindex(struct FD_MEMINDEX *memidx,int lock_cache)
+static ssize_t load_memindex(struct FD_MEMINDEX *memidx)
 {
   struct FD_STREAM *stream = &(memidx->index_stream);
   if (memidx->mix_loaded) return 0;
@@ -268,7 +268,7 @@ static fd_index open_memindex(u8_string file,fd_storage_flags flags,lispval opts
       fd_init_hashtable(&(memidx->mix_map),memindex_map_init,NULL);
     else fd_init_hashtable(&(memidx->mix_map),1.5*n_entries,NULL);
     if (!(FALSEP(preload)))
-      load_memindex(memidx,0);
+      load_memindex(memidx);
     if (!(U8_BITP(flags,FD_STORAGE_UNREGISTERED)))
       fd_register_index((fd_index)memidx);
     return (fd_index)memidx;}
@@ -285,10 +285,10 @@ static lispval memindex_ctl(fd_index ix,lispval op,int n,lispval *args)
       return FD_INT(3);
     else return FD_INT(0);}
   else if (op == fd_getmap_op) {
-    if (mix->mix_loaded==0) load_memindex(mix,1);
-    return (lispval) fd_copy_hashtable(NULL,&(ix->index_cache),1);}
+    if (mix->mix_loaded==0) load_memindex(mix);
+    return (lispval) fd_copy_hashtable(NULL,&(mix->mix_map),1);}
   else if (op == fd_preload_op) {
-    if (mix->mix_loaded==0) load_memindex(mix,1);
+    if (mix->mix_loaded==0) load_memindex(mix);
     return FD_TRUE;}
   else if (op == fd_capacity_op)
     return EMPTY;
@@ -297,10 +297,10 @@ static lispval memindex_ctl(fd_index ix,lispval op,int n,lispval *args)
       mix->mix_loaded=0;
       fd_reset_hashtable(&(mix->mix_map),17,1);
       return FD_TRUE;}
-    return FD_INT(mix->index_cache.table_n_keys);}
+    return FD_INT(mix->mix_map.table_n_keys);}
   else if (op == fd_load_op) {
-    if (mix->mix_loaded == 0) load_memindex(mix,1);
-    return FD_INT(mix->index_cache.table_n_keys);}
+    if (mix->mix_loaded == 0) load_memindex(mix);
+    return FD_INT(mix->mix_map.table_n_keys);}
   else return fd_default_indexctl(ix,op,n,args);
 }
 
