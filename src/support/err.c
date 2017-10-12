@@ -472,26 +472,6 @@ static int dtype_exception(struct FD_OUTBUF *out,lispval x)
   return n_bytes;
 }
 
-static u8_exception copy_exception_helper(u8_exception ex,int flags)
-{
-  u8_exception newex; u8_string details = NULL; lispval irritant;
-  if (ex == NULL) return ex;
-  if (ex->u8x_details) details = u8_strdup(ex->u8x_details);
-  irritant = fd_exception_xdata(ex);
-  if (VOIDP(irritant))
-    newex = u8_make_exception
-      (ex->u8x_cond,ex->u8x_context,details,NULL,NULL);
-  else if (flags)
-    newex = u8_make_exception
-      (ex->u8x_cond,ex->u8x_context,details,
-       (void *)fd_copier(irritant,flags),fd_decref_u8x_xdata);
-  else newex = u8_make_exception
-         (ex->u8x_cond,ex->u8x_context,details,
-          (void *)fd_incref(irritant),fd_decref_u8x_xdata);
-  newex->u8x_prev = copy_exception_helper(ex->u8x_prev,flags);
-  return newex;
-}
-
 static lispval copy_exception(lispval x,int deep)
 {
   struct FD_EXCEPTION *xo=

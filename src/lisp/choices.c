@@ -358,7 +358,7 @@ lispval fd_make_prechoice(lispval x,lispval y)
     if ((CHOICEP(ny)) && (FD_ATOMIC_CHOICEP(ny))) {}
     else ch->prechoice_atomic = 0;}
   ch->prechoice_write = ch->prechoice_write+2;
-  ch->prechoice_uselock = 1; 
+  ch->prechoice_uselock = 1;
   u8_init_mutex(&(ch->prechoice_lock));
   return LISP_CONS(ch);
 }

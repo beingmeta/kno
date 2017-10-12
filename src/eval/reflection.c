@@ -594,11 +594,6 @@ static lispval get_all_modules_prim()
   return fd_all_modules();
 }
 
-static lispval get_safe_modules_prim()
-{
-  return fd_safe_modules();
-}
-
 /* Initialization */
 
 FD_EXPORT void fd_init_reflection_c()
