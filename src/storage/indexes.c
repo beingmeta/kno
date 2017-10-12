@@ -1076,10 +1076,18 @@ FD_EXPORT int fd_index_commit(fd_index ix)
     struct FD_KEYVAL *drops = hashtable_keyvals(drops_table,&n_drops,0);
     struct FD_KEYVAL *stores = hashtable_keyvals(stores_table,&n_stores,1);
 
+    /* We've got the data to save, so we unlock the tables. */
+    if (unlock_adds) fd_unlock_table(adds_table);
+    if (unlock_drops) fd_unlock_table(drops_table);
+    if (unlock_stores) fd_unlock_table(stores_table);
+    unlock_adds=unlock_stores=unlock_drops=0;
+
     int n_changes = n_adds + n_stores + n_drops;
 
     lispval merged = EMPTY;
 
+    /* This merges adds and drops over explicitly stored values into
+       the stored values, removing the corresponding add/drops. */
     if (n_stores) {
       int i=0; while (i<n_stores) {
         lispval key = stores[i].kv_key;
@@ -1104,11 +1112,7 @@ FD_EXPORT int fd_index_commit(fd_index ix)
     if (n_changes) {
       init_cache_level(ix);
       u8_log(fd_storage_loglevel+1,fd_IndexCommit,
-             "####### Saving %d changes to %s",n_changes,ix->indexid);
-      if (unlock_adds) fd_unlock_table(adds_table);
-      if (unlock_drops) fd_unlock_table(drops_table);
-      if (unlock_stores) fd_unlock_table(stores_table);
-      unlock_adds=unlock_stores=unlock_drops=0;}
+             "####### Saving %d changes to %s",n_changes,ix->indexid);}
 
     double start_time = u8_elapsed_time();
 
@@ -1149,6 +1153,8 @@ FD_EXPORT int fd_index_commit(fd_index ix)
     if (stores_table->table_uselock) {
       fd_write_lock_table(stores_table);
       unlock_stores=1;}
+
+    /* Remove everything you just saved */
 
     fd_hashtable_iter_kv(adds_table,fd_table_drop,
                          (const_keyvals)adds,n_adds,0);
