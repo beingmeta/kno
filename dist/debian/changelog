@@ -1,3 +1,9 @@
+framerd (4.2.4-6) stable; urgency=medium
+
+  * Updated index structure to address bugs and expand flexibility
+
+ --
+
 framerd (4.2.3-5) unstable; urgency=medium
 
   * Added rich storage layer in Scheme, including flexpools
