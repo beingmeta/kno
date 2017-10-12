@@ -49,28 +49,28 @@
 #define BAD_VALUEP(value) \
   (PRED_FALSE((FD_EODP(value))||(FD_EOFP(value))||(FD_ABORTP(value))))
 
-static void write_file_index_recovery_data(struct FD_FILE_INDEX *fx,unsigned int *);
-static int recover_file_index(struct FD_FILE_INDEX *fx);
+static void write_fileindex_recovery_data(struct FD_FILEINDEX *fx,unsigned int *);
+static int recover_fileindex(struct FD_FILEINDEX *fx);
 
 #define SLOTSIZE (sizeof(unsigned int))
 
-static ssize_t file_index_default_size=32000;
+static ssize_t fileindex_default_size=32000;
 
 static lispval set_symbol, drop_symbol, slotids_symbol;
 static lispval buckets_slot, slotids_slot;
-static struct FD_INDEX_HANDLER file_index_handler;
+static struct FD_INDEX_HANDLER fileindex_handler;
 
-static lispval file_index_fetch(fd_index ix,lispval key);
+static lispval fileindex_fetch(fd_index ix,lispval key);
 
-static fd_index open_file_index(u8_string fname,fd_storage_flags flags,lispval opts)
+static fd_index open_fileindex(u8_string fname,fd_storage_flags flags,lispval opts)
 {
-  struct FD_FILE_INDEX *index = u8_alloc(struct FD_FILE_INDEX);
+  struct FD_FILEINDEX *index = u8_alloc(struct FD_FILEINDEX);
   int read_only = U8_BITP(flags,FD_STORAGE_READ_ONLY);
   int consed = U8_BITP(flags,FD_STORAGE_UNREGISTERED);
   unsigned int magicno;
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
-  fd_init_index((fd_index)index,&file_index_handler,
+  fd_init_index((fd_index)index,&fileindex_handler,
                 fname,u8_realpath(fname,NULL),
                 consed);
   struct FD_STREAM *s = fd_init_file_stream
@@ -82,7 +82,7 @@ static fd_index open_file_index(u8_string fname,fd_storage_flags flags,lispval o
   if (s == NULL) {
     u8_free(index);
     u8_free(realpath);
-    fd_seterr3(u8_CantOpenFile,"open_file_index",fname);
+    fd_seterr3(u8_CantOpenFile,"open_fileindex",fname);
     return NULL;}
 
   /* See if it ended up read only */
@@ -90,17 +90,17 @@ static fd_index open_file_index(u8_string fname,fd_storage_flags flags,lispval o
   s->stream_flags &= ~FD_STREAM_IS_CONSED;
   magicno = fd_read_4bytes_at(s,0,FD_ISLOCKED);
   index->index_n_slots = fd_read_4bytes_at(s,4,FD_ISLOCKED);
-  if ((magicno == FD_FILE_INDEX_TO_RECOVER) ||
-      (magicno == FD_MULT_FILE_INDEX_TO_RECOVER) ||
+  if ((magicno == FD_FILEINDEX_TO_RECOVER) ||
+      (magicno == FD_MULT_FILEINDEX_TO_RECOVER) ||
       (magicno == FD_MULT_FILE3_INDEX_TO_RECOVER)) {
     u8_log(LOG_WARN,fd_RecoveryRequired,"Recovering the file index %s",fname);
-    recover_file_index(index);
+    recover_fileindex(index);
     magicno = magicno&(~0x20);}
-  if (magicno == FD_FILE_INDEX_MAGIC_NUMBER) index->index_hashv = 1;
-  else if (magicno == FD_MULT_FILE_INDEX_MAGIC_NUMBER) index->index_hashv = 2;
+  if (magicno == FD_FILEINDEX_MAGIC_NUMBER) index->index_hashv = 1;
+  else if (magicno == FD_MULT_FILEINDEX_MAGIC_NUMBER) index->index_hashv = 2;
   else if (magicno == FD_MULT_FILE3_INDEX_MAGIC_NUMBER) index->index_hashv = 3;
   else {
-    fd_seterr3(fd_NotAFileIndex,"open_file_index",fname);
+    fd_seterr3(fd_NotAFileIndex,"open_fileindex",fname);
     u8_free(index);
     return NULL;}
   index->index_offsets = NULL;
@@ -109,22 +109,22 @@ static fd_index open_file_index(u8_string fname,fd_storage_flags flags,lispval o
   u8_init_mutex(&(index->index_lock));
   index->slotids = VOID;
   {
-    lispval slotids = file_index_fetch((fd_index)index,slotids_symbol);
+    lispval slotids = fileindex_fetch((fd_index)index,slotids_symbol);
     if (!(EMPTYP(slotids)))
       index->slotids = fd_simplify_choice(slotids);}
   if (!(consed)) fd_register_index((fd_index)index);
   return (fd_index)index;
 }
 
-static unsigned int get_offset(fd_file_index ix,int slotno)
+static unsigned int get_offset(fd_fileindex ix,int slotno)
 {
   fd_stream stream = &(ix->index_stream);
   return fd_read_4bytes(fd_start_read(stream,slotno*4+8));
 }
 
-static void file_index_setcache(fd_index ix,int level)
+static void fileindex_setcache(fd_index ix,int level)
 {
-  struct FD_FILE_INDEX *fx = (struct FD_FILE_INDEX *)ix;
+  struct FD_FILEINDEX *fx = (struct FD_FILEINDEX *)ix;
   if (level == 2)
     if (fx->index_offsets) return;
     else {
@@ -140,7 +140,7 @@ static void file_index_setcache(fd_index ix,int level)
              PROT_READ,MMAP_FLAGS,s->stream_fileno,0);
       if ((newmmap == NULL) || (newmmap == MAP_FAILED)) {
         u8_log(LOG_CRIT,u8_strerror(errno),
-               "file_index_setcache:mmap %s",fx->index_source);
+               "fileindex_setcache:mmap %s",fx->index_source);
         fx->index_offsets = NULL; errno = 0;}
       else fx->index_offsets = offsets = newmmap+2;
 #else
@@ -159,7 +159,7 @@ static void file_index_setcache(fd_index ix,int level)
       retval = munmap(fx->index_offsets-2,(fx->index_n_slots*SLOTSIZE)+8);
       if (retval<0) {
         u8_log(LOG_CRIT,u8_strerror(errno),
-               "file_index_setcache:munmap %s",fx->index_source);
+               "fileindex_setcache:munmap %s",fx->index_source);
         fx->index_offsets = NULL; errno = 0;}
 #else
       u8_free(fx->index_offsets);
@@ -168,7 +168,7 @@ static void file_index_setcache(fd_index ix,int level)
       fd_unlock_index(fx);}}
 }
 
-FD_FASTOP unsigned int file_index_hash(struct FD_FILE_INDEX *fx,lispval x)
+FD_FASTOP unsigned int fileindex_hash(struct FD_FILEINDEX *fx,lispval x)
 {
   switch (fx->index_hashv) {
   case 0: case 1:
@@ -178,12 +178,12 @@ FD_FASTOP unsigned int file_index_hash(struct FD_FILE_INDEX *fx,lispval x)
   case 3:
     return fd_hash_lisp3(x);
   default:
-    u8_raise(_("Bad hash version"),"file_index_hash",fx->indexid);}
+    u8_raise(_("Bad hash version"),"fileindex_hash",fx->indexid);}
   /* Never reached */
   return -1;
 }
 
-FD_FASTOP int redundantp(struct FD_FILE_INDEX *fx,lispval key)
+FD_FASTOP int redundantp(struct FD_FILEINDEX *fx,lispval key)
 {
   if ((PAIRP(key)) && (!(VOIDP(fx->slotids)))) {
     lispval slotid = FD_CAR(key), slotids = fx->slotids;
@@ -197,15 +197,15 @@ FD_FASTOP int redundantp(struct FD_FILE_INDEX *fx,lispval key)
   else return 0;
 }
 
-static lispval file_index_fetch(fd_index ix,lispval key)
+static lispval fileindex_fetch(fd_index ix,lispval key)
 {
-  struct FD_FILE_INDEX *fx = (struct FD_FILE_INDEX *)ix;
+  struct FD_FILEINDEX *fx = (struct FD_FILEINDEX *)ix;
   if (redundantp(fx,key)) return EMPTY;
   else  fd_lock_index(fx);
   {
     fd_stream stream = &(fx->index_stream);
     fd_inbuf instream = fd_readbuf(stream);
-    unsigned int hashval = file_index_hash(fx,key);
+    unsigned int hashval = fileindex_hash(fx,key);
     unsigned int n_probes = 0;
     unsigned int probe = hashval%(fx->index_n_slots);
     unsigned int chain_width = (hashval%(fx->index_n_slots-2))+1;
@@ -219,7 +219,7 @@ static lispval file_index_fetch(fd_index ix,lispval key)
       val_start = fd_read_4bytes(instream);
       if (PRED_FALSE((n_vals==0) && (val_start)))
         u8_log(LOG_CRIT,fd_IndexDriverError,
-               "file_index_fetch %s",u8_strdup(ix->indexid));
+               "fileindex_fetch %s",u8_strdup(ix->indexid));
       thiskey = fd_read_dtype(instream);
       if (LISP_EQUAL(key,thiskey)) {
         if (n_vals==0) {
@@ -235,7 +235,7 @@ static lispval file_index_fetch(fd_index ix,lispval key)
             lispval v;
             if (PRED_FALSE(i>=n_vals))
               u8_raise(_("inconsistent file index"),
-                       "file_index_fetch",u8_strdup(ix->indexid));
+                       "fileindex_fetch",u8_strdup(ix->indexid));
             if (next_pos>1) fd_setpos(stream,next_pos+pos_offset);
             v = fd_read_dtype(instream);
             if ((atomicp) && (CONSP(v))) atomicp = 0;
@@ -250,7 +250,7 @@ static lispval file_index_fetch(fd_index ix,lispval key)
       else if (n_probes>256) {
         u8_unlock_mutex(&fx->index_lock);
         fd_decref(thiskey);
-        return fd_err(fd_FileIndexSizeOverflow,"file_index_fetch",
+        return fd_err(fd_FileIndexSizeOverflow,"fileindex_fetch",
                       u8_strdup(fx->index_source),thiskey);}
       else {
         n_probes++;
@@ -263,14 +263,14 @@ static lispval file_index_fetch(fd_index ix,lispval key)
 
 /* Fetching sizes */
 
-static int file_index_fetchsize(fd_index ix,lispval key)
+static int fileindex_fetchsize(fd_index ix,lispval key)
 {
-  struct FD_FILE_INDEX *fx = (struct FD_FILE_INDEX *)ix;
+  struct FD_FILEINDEX *fx = (struct FD_FILEINDEX *)ix;
   fd_lock_index(fx);
   {
     fd_stream stream = &(fx->index_stream);
     fd_inbuf instream = fd_readbuf(stream);
-    unsigned int hashval = file_index_hash(fx,key);
+    unsigned int hashval = fileindex_hash(fx,key);
     unsigned int n_probes = 0;
     unsigned int probe = hashval%(fx->index_n_slots),
       chain_width = (hashval%(fx->index_n_slots-2))+1;
@@ -289,7 +289,7 @@ static int file_index_fetchsize(fd_index ix,lispval key)
       else if (n_probes>256) {
         u8_unlock_mutex(&fx->index_lock);
         return fd_err(fd_FileIndexSizeOverflow,
-                      "file_index_fetchsize",
+                      "fileindex_fetchsize",
                       u8_strdup(fx->index_source),VOID);}
       else {n_probes++; probe = (probe+chain_width)%(fx->index_n_slots);}}
     u8_unlock_mutex(&fx->index_lock);
@@ -317,9 +317,9 @@ static int compress_offsets(unsigned int *offsets,int n)
   return write-offsets;
 }
 
-static lispval *file_index_fetchkeys(fd_index ix,int *n)
+static lispval *fileindex_fetchkeys(fd_index ix,int *n)
 {
-  struct FD_FILE_INDEX *fx = (struct FD_FILE_INDEX *)ix;
+  struct FD_FILEINDEX *fx = (struct FD_FILEINDEX *)ix;
   struct FD_STREAM *stream = &(fx->index_stream);
   unsigned int n_slots, i = 0, pos_offset, *offsets, n_keys;
   fd_lock_index(fx);
@@ -343,9 +343,9 @@ static lispval *file_index_fetchkeys(fd_index ix,int *n)
     return keys;}
 }
 
-static struct FD_KEY_SIZE *file_index_fetchinfo(fd_index ix,fd_choice filter,int *n)
+static struct FD_KEY_SIZE *fileindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
 {
-  struct FD_FILE_INDEX *fx = (struct FD_FILE_INDEX *)ix;
+  struct FD_FILEINDEX *fx = (struct FD_FILEINDEX *)ix;
   struct FD_STREAM *stream = &(fx->index_stream);
   struct FD_INBUF *instream = fd_readbuf(stream);
   unsigned int n_slots, i = 0, pos_offset, *offsets, n_keys;
@@ -421,7 +421,7 @@ static int sort_by_filepos(const void *xp,const void *yp)
   else return 0;
 }
 
-static int run_schedule(struct FD_FILE_INDEX *fx,int n,
+static int run_schedule(struct FD_FILEINDEX *fx,int n,
                         union SCHEDULE *schedule,
                         unsigned int *offsets,
                         lispval *values)
@@ -524,7 +524,7 @@ static int run_schedule(struct FD_FILE_INDEX *fx,int n,
   return n;
 }
 
-static lispval *fetchn(struct FD_FILE_INDEX *fx,int n,
+static lispval *fetchn(struct FD_FILEINDEX *fx,int n,
                        const lispval *keys,
                        int lock_adds)
 {
@@ -538,7 +538,7 @@ static lispval *fetchn(struct FD_FILE_INDEX *fx,int n,
     else if (VOIDP(cached)) {
       struct KEY_FETCH_SCHEDULE *ksched=
         (struct KEY_FETCH_SCHEDULE *)&(schedule[schedule_size]);
-      int hashcode = file_index_hash(fx,key);
+      int hashcode = fileindex_hash(fx,key);
       int probe = hashcode%(fx->index_n_slots);
       ksched->key = key; ksched->index = -(i+1);
       if (offsets) {
@@ -583,9 +583,9 @@ static lispval *fetchn(struct FD_FILE_INDEX *fx,int n,
     return values;}
 }
 
-static lispval *file_index_fetchn(fd_index ix,int n,const lispval *keys)
+static lispval *fileindex_fetchn(fd_index ix,int n,const lispval *keys)
 {
-  struct FD_FILE_INDEX *fx = (struct FD_FILE_INDEX *)ix;
+  struct FD_FILEINDEX *fx = (struct FD_FILEINDEX *)ix;
   lispval *results;
   fd_lock_index(fx);
   results = fetchn(fx,n,keys,1);
@@ -691,7 +691,7 @@ static int reserve_slotno(struct RESERVATIONS *r,unsigned int slotno)
     This finds where all the keys are, reserving slots for them if neccessary.
     It also fetches the current number of values and the valuepos.
    Returns the number of new keys or -1 on error. */
-static int fetch_keydata(struct FD_FILE_INDEX *fx,
+static int fetch_keydata(struct FD_FILEINDEX *fx,
                          struct FD_INBUF *instream,
                          struct KEYDATA *kdata,
                          int n,unsigned int *offsets)
@@ -709,7 +709,7 @@ static int fetch_keydata(struct FD_FILE_INDEX *fx,
   /* Setup the key data */
   while (i < n) {
     lispval key = kdata[i].key;
-    int hash = file_index_hash(fx,key);
+    int hash = fileindex_hash(fx,key);
     int probe = hash%(fx->index_n_slots), chain_width = hash%(fx->index_n_slots-2)+1;
     if (offsets) {
       int koff = offsets[probe];
@@ -842,7 +842,7 @@ static int write_values(fd_stream stream,
 /* This extends the KEYDATA vector with entries for the values
    which are being set or modified by dropping. */
 static int commit_stores(struct FD_CONST_KEYVAL *stores,int n_stores,
-                         struct FD_FILE_INDEX *f,
+                         struct FD_FILEINDEX *f,
                          struct FD_OUTBUF *outstream,
                          struct KEYDATA *kdata,
                         unsigned int *valpos,
@@ -879,7 +879,7 @@ static int commit_stores(struct FD_CONST_KEYVAL *stores,int n_stores,
 /* This extends the KEYDATA vector with entries for the values
    which are being set or modified by dropping. */
 static int commit_drops(struct FD_CONST_KEYVAL *drops,int n_drops,
-                        struct FD_FILE_INDEX *f,
+                        struct FD_FILEINDEX *f,
                         struct FD_OUTBUF *outstream,
                         struct KEYDATA *kdata,
                         unsigned int *valpos,
@@ -930,7 +930,7 @@ static int commit_drops(struct FD_CONST_KEYVAL *drops,int n_drops,
   return kdata_i;
 }
 
-static void write_keys(struct FD_FILE_INDEX *fx,
+static void write_keys(struct FD_FILEINDEX *fx,
                        struct FD_OUTBUF *outstream,
                        int n,struct KEYDATA *kdata,
                        unsigned int *offsets)
@@ -949,7 +949,7 @@ static void write_keys(struct FD_FILE_INDEX *fx,
     i++;}
 }
 
-static void write_offsets(struct FD_FILE_INDEX *fx,
+static void write_offsets(struct FD_FILEINDEX *fx,
                           struct FD_OUTBUF *outstream,
                           int n,
                           struct KEYDATA *kdata,
@@ -972,13 +972,13 @@ static void write_offsets(struct FD_FILE_INDEX *fx,
 
 /* Putting it all together */
 
-static int file_index_commit(struct FD_INDEX *ix,
+static int fileindex_commit(struct FD_INDEX *ix,
                              struct FD_CONST_KEYVAL *adds,int n_adds,
                              struct FD_CONST_KEYVAL *drops,int n_drops,
                              struct FD_CONST_KEYVAL *stores,int n_stores,
                              lispval changed_metadata)
 {
-  struct FD_FILE_INDEX *fx = (struct FD_FILE_INDEX *)ix;
+  struct FD_FILEINDEX *fx = (struct FD_FILEINDEX *)ix;
   struct FD_STREAM *stream = &(fx->index_stream);
   unsigned int *new_offsets = NULL, gc_new_offsets = 0;
   int pos_offset = fx->index_n_slots*4, newcount;
@@ -1062,7 +1062,7 @@ static int file_index_commit(struct FD_INDEX *ix,
     /* Write recovery information which can be used to restore the
        offsets table. */
     if ((fd_acid_files) && (new_offsets))
-      write_file_index_recovery_data(fx,new_offsets);
+      write_fileindex_recovery_data(fx,new_offsets);
     /* Now, start writing the offsets themselves */
     write_offsets(fx,fd_writebuf(stream),kdata_i,kdata,new_offsets);
     if (fd_acid_files) {
@@ -1070,9 +1070,9 @@ static int file_index_commit(struct FD_INDEX *ix,
       if (new_offsets) fd_setpos(stream,0);
       if (new_offsets == NULL) {}
       else if (fx->index_hashv==1)
-        fd_write_4bytes(outstream,FD_FILE_INDEX_MAGIC_NUMBER);
+        fd_write_4bytes(outstream,FD_FILEINDEX_MAGIC_NUMBER);
       else if (fx->index_hashv==2)
-        fd_write_4bytes(outstream,FD_MULT_FILE_INDEX_MAGIC_NUMBER);
+        fd_write_4bytes(outstream,FD_MULT_FILEINDEX_MAGIC_NUMBER);
       fd_flush_stream(stream);
       /* Now erase the recovery information, since we don't need it anymore. */
       if (new_offsets) {
@@ -1080,7 +1080,7 @@ static int file_index_commit(struct FD_INDEX *ix,
         fd_movepos(stream,-(4*(fx->index_n_slots)));
         retval = ftruncate(stream->stream_fileno,end-(4*(fx->index_n_slots)));
         if (retval<0)
-          u8_log(LOG_ERR,"file_index_commit",
+          u8_log(LOG_ERR,"fileindex_commit",
                  "Trouble truncating recovery information from %s",
                  fx->indexid);}}
     fd_unlock_index(fx);
@@ -1096,7 +1096,7 @@ static int file_index_commit(struct FD_INDEX *ix,
   else return 0;
 }
 
-static void write_file_index_recovery_data(struct FD_FILE_INDEX *fx,
+static void write_fileindex_recovery_data(struct FD_FILEINDEX *fx,
                                            unsigned int *offsets)
 {
   struct FD_STREAM *stream = &(fx->index_stream);
@@ -1118,7 +1118,7 @@ static void write_file_index_recovery_data(struct FD_FILE_INDEX *fx,
   fd_flush_stream(stream);
 }
 
-static int recover_file_index(struct FD_FILE_INDEX *fx)
+static int recover_fileindex(struct FD_FILEINDEX *fx)
 {
   /* This reads the offsets vector written at the end of the file
      during commitment. */
@@ -1147,9 +1147,9 @@ static int recover_file_index(struct FD_FILE_INDEX *fx)
   return retval;
 }
 
-static void file_index_close(fd_index ix)
+static void fileindex_close(fd_index ix)
 {
-  struct FD_FILE_INDEX *fx = (struct FD_FILE_INDEX *)ix;
+  struct FD_FILEINDEX *fx = (struct FD_FILEINDEX *)ix;
   fd_lock_index(fx);
   fd_close_stream(&(fx->index_stream),0);
   if (fx->index_offsets) {
@@ -1157,7 +1157,7 @@ static void file_index_close(fd_index ix)
     int retval = munmap(fx->index_offsets-2,(SLOTSIZE*fx->index_n_slots)+8);
     if (retval<0) {
       u8_log(LOG_CRIT,u8_strerror(errno),
-             "[%d:%d] file_index_close:munmap %s",
+             "[%d:%d] fileindex_close:munmap %s",
              retval,errno,fx->index_source);
       errno = 0;}
 #else
@@ -1168,9 +1168,9 @@ static void file_index_close(fd_index ix)
   fd_unlock_index(fx);
 }
 
-static void file_index_setbuf(fd_index ix,int bufsiz)
+static void fileindex_setbuf(fd_index ix,int bufsiz)
 {
-  struct FD_FILE_INDEX *fx = (struct FD_FILE_INDEX *)ix;
+  struct FD_FILEINDEX *fx = (struct FD_FILEINDEX *)ix;
   fd_lock_index(fx);
   fd_setbufsize(&(fx->index_stream),bufsiz);
   fd_unlock_index(fx);
@@ -1178,11 +1178,11 @@ static void file_index_setbuf(fd_index ix,int bufsiz)
 
 /* File index ops */
 
-static lispval file_index_ctl(fd_index ix,lispval op,int n,lispval *args)
+static lispval fileindex_ctl(fd_index ix,lispval op,int n,lispval *args)
 {
-  struct FD_FILE_INDEX *flx = (struct FD_FILE_INDEX *)ix;
+  struct FD_FILEINDEX *flx = (struct FD_FILEINDEX *)ix;
   if ( ((n>0)&&(args == NULL)) || (n<0) )
-    return fd_err("BadIndexOpCall","file_index_ctl",
+    return fd_err("BadIndexOpCall","fileindex_ctl",
                   flx->indexid,VOID);
   else if (op == fd_cachelevel_op) {
     if (n==0)
@@ -1191,17 +1191,17 @@ static lispval file_index_ctl(fd_index ix,lispval op,int n,lispval *args)
       lispval arg = (args)?(args[0]):(VOID);
       if ((FIXNUMP(arg))&&(FIX2INT(arg)>=0)&&
           (FIX2INT(arg)<0x100)) {
-        file_index_setcache(ix,FIX2INT(arg));
+        fileindex_setcache(ix,FIX2INT(arg));
         return FD_INT(flx->index_cache_level);}
       else return fd_type_error
-             (_("cachelevel"),"file_index_ctl/cachelevel",arg);}}
+             (_("cachelevel"),"fileindex_ctl/cachelevel",arg);}}
   else if (op == fd_bufsize_op) {
     if (n==0)
       return FD_INT(flx->index_stream.buf.raw.buflen);
     else if (FIXNUMP(args[0])) {
-      file_index_setbuf(ix,FIX2INT(args[0]));
+      fileindex_setbuf(ix,FIX2INT(args[0]));
       return FD_INT(flx->index_stream.buf.raw.buflen);}
-    else return fd_type_error("buffer size","file_index_ctl/bufsize",args[0]);}
+    else return fd_type_error("buffer size","fileindex_ctl/bufsize",args[0]);}
   else if ( (op == fd_metadata_op) && (n == 0) ) {
     lispval base = fd_index_base_metadata(ix);
     fd_store(base,buckets_slot,FD_INT(flx->index_n_slots));
@@ -1213,7 +1213,7 @@ static lispval file_index_ctl(fd_index ix,lispval op,int n,lispval *args)
       return FD_INT(flx->index_n_slots);
     else {
       lispval mod_arg = (n>1) ? (args[1]) : (VOID);
-      unsigned int hash = file_index_hash(flx,args[0]);
+      unsigned int hash = fileindex_hash(flx,args[0]);
       if (FIXNUMP(mod_arg))
         return FD_INT((hash%FIX2INT(mod_arg)));
       else if ((FALSEP(mod_arg))||(VOIDP(mod_arg)))
@@ -1229,11 +1229,11 @@ static lispval file_index_ctl(fd_index ix,lispval op,int n,lispval *args)
 /* Making file indexes */
 
 FD_EXPORT
-/* fd_make_file_index:
+/* fd_make_fileindex:
     Arguments: a filename string, a magic number (usigned int), an FD_OID,
     a capacity, and a dtype pointer to a metadata description (a slotmap).
     Returns: -1 on error, 1 on success. */
-int fd_make_file_index(u8_string filename,unsigned int magicno,int n_slots_arg)
+int fd_make_fileindex(u8_string filename,unsigned int magicno,int n_slots_arg)
 {
   int i, n_slots;
   struct FD_STREAM _stream;
@@ -1243,7 +1243,7 @@ int fd_make_file_index(u8_string filename,unsigned int magicno,int n_slots_arg)
   if (outstream == NULL)
     return -1;
   else if ((stream->stream_flags)&FD_STREAM_READ_ONLY) {
-    fd_seterr3(fd_CantWrite,"fd_make_file_index",filename);
+    fd_seterr3(fd_CantWrite,"fd_make_fileindex",filename);
     fd_free_stream(stream);
     return -1;}
 
@@ -1266,16 +1266,16 @@ int fd_make_file_index(u8_string filename,unsigned int magicno,int n_slots_arg)
   return 1;
 }
 
-static fd_index file_index_create(u8_string spec,void *type_data,
+static fd_index fileindex_create(u8_string spec,void *type_data,
                                   fd_storage_flags flags,lispval opts)
 {
   lispval n_slots = fd_getopt(opts,fd_intern("SLOTS"),
                              fd_getopt(opts,fd_intern("SIZE"),
-                                       FD_INT(file_index_default_size)));
+                                       FD_INT(fileindex_default_size)));
   if (!(FD_UINTP(n_slots))) {
-    fd_seterr("NumberOfIndexSlots","file_index_create",spec,n_slots);
+    fd_seterr("NumberOfIndexSlots","fileindex_create",spec,n_slots);
     return NULL;}
-  else if (fd_make_file_index(spec,
+  else if (fd_make_fileindex(spec,
                               (unsigned int)((unsigned long long)type_data),
                               FIX2INT(n_slots))>=0)
     return fd_open_index(spec,flags,VOID);
@@ -1285,21 +1285,21 @@ static fd_index file_index_create(u8_string spec,void *type_data,
 
 /* Initializing the driver module */
 
-static struct FD_INDEX_HANDLER file_index_handler={
-  "file_index", 1, sizeof(struct FD_FILE_INDEX), 12,
-  file_index_close, /* close */
-  file_index_commit, /* commit */
-  file_index_fetch, /* fetch */
-  file_index_fetchsize, /* fetchsize */
+static struct FD_INDEX_HANDLER fileindex_handler={
+  "fileindex", 1, sizeof(struct FD_FILEINDEX), 12,
+  fileindex_close, /* close */
+  fileindex_commit, /* commit */
+  fileindex_fetch, /* fetch */
+  fileindex_fetchsize, /* fetchsize */
   NULL, /* prefetch */
-  file_index_fetchn, /* fetchn */
-  file_index_fetchkeys, /* fetchkeys */
-  file_index_fetchinfo, /* fetchinfo */
+  fileindex_fetchn, /* fetchn */
+  fileindex_fetchkeys, /* fetchkeys */
+  fileindex_fetchinfo, /* fetchinfo */
   NULL, /* batchadd */
-  file_index_create, /* create */
+  fileindex_create, /* create */
   NULL, /* walk */
   NULL, /* recycle */
-  file_index_ctl  /* indexctl */
+  fileindex_ctl  /* indexctl */
 };
 
 FD_EXPORT void fd_init_fileindex_c()
@@ -1312,28 +1312,28 @@ FD_EXPORT void fd_init_fileindex_c()
   slotids_slot = fd_intern("SLOTIDS");
   buckets_slot = fd_intern("BUCKETS");
   fd_register_index_type("fileindex",
-                         &file_index_handler,
-                         open_file_index,
+                         &fileindex_handler,
+                         open_fileindex,
                          fd_match_index_file,
-                         (void *) U8_INT2PTR(FD_FILE_INDEX_MAGIC_NUMBER));
+                         (void *) U8_INT2PTR(FD_FILEINDEX_MAGIC_NUMBER));
   fd_register_index_type("fileindex.v2",
-                         &file_index_handler,
-                         open_file_index,
+                         &fileindex_handler,
+                         open_fileindex,
                          fd_match_index_file,
-                         (void *) U8_INT2PTR(FD_MULT_FILE_INDEX_MAGIC_NUMBER));
+                         (void *) U8_INT2PTR(FD_MULT_FILEINDEX_MAGIC_NUMBER));
   fd_register_index_type("damaged_fileindex",
-                         &file_index_handler,
-                         open_file_index,
+                         &fileindex_handler,
+                         open_fileindex,
                          fd_match_index_file,
-                         (void *) U8_INT2PTR(FD_FILE_INDEX_TO_RECOVER));
+                         (void *) U8_INT2PTR(FD_FILEINDEX_TO_RECOVER));
   fd_register_index_type("damaged_fileindex.v2",
-                         &file_index_handler,
-                         open_file_index,
+                         &fileindex_handler,
+                         open_fileindex,
                          fd_match_index_file,
-                         (void *) U8_INT2PTR(FD_MULT_FILE_INDEX_TO_RECOVER));
+                         (void *) U8_INT2PTR(FD_MULT_FILEINDEX_TO_RECOVER));
   fd_register_config("FILEINDEX:SIZE","The default size for file indexes",
                      fd_sizeconfig_get,fd_sizeconfig_set,
-                     &file_index_default_size);
+                     &fileindex_default_size);
 }
 
 

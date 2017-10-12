@@ -146,7 +146,7 @@
 
 FD_EXPORT u8_condition fd_TooManyArgs;
 
-static ssize_t hash_index_default_size=32000;
+static ssize_t hashindex_default_size=32000;
 
 static ssize_t get_maxpos(fd_hashindex p)
 {
@@ -257,7 +257,7 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
   stream->stream_flags &= ~FD_STREAM_IS_CONSED;
   magicno = fd_read_4bytes_at(stream,0,FD_ISLOCKED);
   if ( magicno != 0x8011308) {
-    fd_seterr3(fd_NotAFileIndex,"open_file_index",fname);
+    fd_seterr3(fd_NotAFileIndex,"open_fileindex",fname);
     u8_free(index);
     fd_close_stream(stream,FD_STREAM_FREEDATA|FD_STREAM_NOFLUSH);
     return NULL;}
@@ -2633,7 +2633,7 @@ static fd_index hashindex_create(u8_string spec,void *typedata,
   lispval baseoids_init = fd_getopt(opts,fd_intern("BASEOIDS"),VOID);
   lispval nbuckets_arg = fd_getopt(opts,fd_intern("SLOTS"),
                                   fd_getopt(opts,FDSYM_SIZE,
-                                            FD_INT(hash_index_default_size)));
+                                            FD_INT(hashindex_default_size)));
   lispval hashconst = fd_getopt(opts,fd_intern("HASHCONST"),FD_FIXZERO);
   if (!(FD_UINTP(nbuckets_arg))) {
     fd_seterr("InvalidBucketCount","hashindex_create",spec,nbuckets_arg);
@@ -3190,7 +3190,7 @@ FD_EXPORT void fd_init_hashindex_c()
 
   fd_register_config("HASHINDEX:SIZE","The default size for hash indexes",
                      fd_sizeconfig_get,fd_sizeconfig_set,
-                     &hash_index_default_size);
+                     &hashindex_default_size);
 
 
   fd_set_default_index_type("hashindex");

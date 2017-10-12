@@ -17,9 +17,9 @@
    The code is either -1 (drop), 0 (store), or 1 (add).
 */
 
-#define FD_MEM_INDEX_MAGIC_NUMBER ((12<<24)|(7<<16)|(9<<8)|(24))
+#define FD_MEMINDEX_MAGIC_NUMBER ((12<<24)|(7<<16)|(9<<8)|(24))
 
-typedef struct FD_MEM_INDEX {
+typedef struct FD_MEMINDEX {
   FD_INDEX_FIELDS;
   unsigned int mix_loaded;
   struct FD_HASHTABLE mix_map;

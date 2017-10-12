@@ -569,8 +569,8 @@ static int load_pool_cache(fd_pool p,void *ignored)
 static int load_index_cache(fd_index ix,void *ignored)
 {
   if ((ix->index_handler == NULL) || (ix->index_handler->name == NULL)) return 0;
-  else if (strcmp(ix->index_handler->name,"file_index")==0) {
-    struct FD_FILE_INDEX *fx = (struct FD_FILE_INDEX *)ix;
+  else if (strcmp(ix->index_handler->name,"fileindex")==0) {
+    struct FD_FILEINDEX *fx = (struct FD_FILEINDEX *)ix;
     if (fx->index_offsets) load_cache(fx->index_offsets,fx->index_n_slots);}
   else if (strcmp(ix->index_handler->name,"hashindex")==0) {
     struct FD_HASHINDEX *hx = (struct FD_HASHINDEX *)ix;

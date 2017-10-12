@@ -17,10 +17,10 @@
    The code is either -1 (drop), 0 (store), or 1 (add).
 */
 
-typedef struct FD_HT_INDEX {
+typedef struct FD_HTINDEX {
   FD_INDEX_FIELDS;
-  int (*commitfn)(struct FD_HT_INDEX *,u8_string);} FD_HT_INDEX;
-typedef struct FD_HT_INDEX *fd_ht_index;
+  int (*commitfn)(struct FD_HTINDEX *,u8_string);} FD_HTINDEX;
+typedef struct FD_HTINDEX *fd_htindex;
 
-FD_EXPORT fd_index fd_make_ht_index(fd_storage_flags flags);
+FD_EXPORT fd_index fd_make_htindex(fd_storage_flags flags);
 

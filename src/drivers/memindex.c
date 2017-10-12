@@ -28,33 +28,33 @@
 
 static int memindex_map_init = 10000;
 
-static struct FD_INDEX_HANDLER mem_index_handler;
+static struct FD_INDEX_HANDLER memindex_handler;
 
-static ssize_t load_mem_index(struct FD_MEM_INDEX *memidx,int lock_cache);
+static ssize_t load_memindex(struct FD_MEMINDEX *memidx,int lock_cache);
 
 /* The in-memory index */
 
-static lispval mem_index_fetch(fd_index ix,lispval key)
+static lispval memindex_fetch(fd_index ix,lispval key)
 {
-  struct FD_MEM_INDEX *mix = (struct FD_MEM_INDEX *)ix;
-  if (! (mix->mix_loaded) ) load_mem_index(mix,1);
+  struct FD_MEMINDEX *mix = (struct FD_MEMINDEX *)ix;
+  if (! (mix->mix_loaded) ) load_memindex(mix,1);
   return fd_hashtable_get(&(mix->mix_map),key,EMPTY);
 }
 
-static int mem_index_fetchsize(fd_index ix,lispval key)
+static int memindex_fetchsize(fd_index ix,lispval key)
 {
-  struct FD_MEM_INDEX *mix = (struct FD_MEM_INDEX *)ix;
-  if (! (mix->mix_loaded) ) load_mem_index(mix,1);
+  struct FD_MEMINDEX *mix = (struct FD_MEMINDEX *)ix;
+  if (! (mix->mix_loaded) ) load_memindex(mix,1);
   lispval v = fd_hashtable_get(&(mix->mix_map),key,EMPTY);
   int size = FD_CHOICE_SIZE(v);
   fd_decref(v);
   return size;
 }
 
-static lispval *mem_index_fetchn(fd_index ix,int n,const lispval *keys)
+static lispval *memindex_fetchn(fd_index ix,int n,const lispval *keys)
 {
-  struct FD_MEM_INDEX *mix = (struct FD_MEM_INDEX *)ix;
-  if (! (mix->mix_loaded) ) load_mem_index(mix,1);
+  struct FD_MEMINDEX *mix = (struct FD_MEMINDEX *)ix;
+  if (! (mix->mix_loaded) ) load_memindex(mix,1);
   struct FD_HASHTABLE *map = &(mix->mix_map);
   lispval *results = u8_alloc_n(n,lispval);
   fd_write_lock_table(map);
@@ -65,10 +65,10 @@ static lispval *mem_index_fetchn(fd_index ix,int n,const lispval *keys)
   return results;
 }
 
-static lispval *mem_index_fetchkeys(fd_index ix,int *n)
+static lispval *memindex_fetchkeys(fd_index ix,int *n)
 {
-  struct FD_MEM_INDEX *mix = (struct FD_MEM_INDEX *)ix;
-  if (! (mix->mix_loaded) ) load_mem_index(mix,1);
+  struct FD_MEMINDEX *mix = (struct FD_MEMINDEX *)ix;
+  if (! (mix->mix_loaded) ) load_memindex(mix,1);
   lispval keys = fd_hashtable_keys(&(mix->mix_map));
   if (FD_PRECHOICEP(keys)) keys = fd_simplify_choice(keys);
   if (FD_CHOICEP(keys)) {
@@ -114,10 +114,10 @@ static int gather_keysizes(struct FD_KEYVAL *kv,void *data)
   return 0;
 }
 
-static struct FD_KEY_SIZE *mem_index_fetchinfo(fd_index ix,fd_choice filter,int *n)
+static struct FD_KEY_SIZE *memindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
 {
-  struct FD_MEM_INDEX *mix = (struct FD_MEM_INDEX *)ix;
-  if (! (mix->mix_loaded) ) load_mem_index(mix,1);
+  struct FD_MEMINDEX *mix = (struct FD_MEMINDEX *)ix;
+  if (! (mix->mix_loaded) ) load_memindex(mix,1);
   int n_keys = (filter == NULL) ? (ix->index_cache.table_n_keys) :
     (FD_XCHOICE_SIZE(filter));
   struct FD_KEY_SIZE *keysizes = u8_alloc_n(n_keys,struct FD_KEY_SIZE);
@@ -127,13 +127,13 @@ static struct FD_KEY_SIZE *mem_index_fetchinfo(fd_index ix,fd_choice filter,int 
   return keysizes;
 }
 
-static int mem_index_commit(struct FD_INDEX *ix,
+static int memindex_commit(struct FD_INDEX *ix,
                             struct FD_CONST_KEYVAL *adds,int n_adds,
                             struct FD_CONST_KEYVAL *drops,int n_drops,
 			    struct FD_CONST_KEYVAL *stores,int n_stores,
                             lispval changed_metadata)
 {
-  struct FD_MEM_INDEX *memidx = (struct FD_MEM_INDEX *)ix;
+  struct FD_MEMINDEX *memidx = (struct FD_MEMINDEX *)ix;
   unsigned long long n_changes = n_adds + n_drops + n_stores;
 
   if (n_changes == 0) return 0;
@@ -192,7 +192,7 @@ static int simplify_choice(struct FD_KEYVAL *kv,void *data)
   return 0;
 }
 
-static ssize_t load_mem_index(struct FD_MEM_INDEX *memidx,int lock_cache)
+static ssize_t load_memindex(struct FD_MEMINDEX *memidx,int lock_cache)
 {
   struct FD_STREAM *stream = &(memidx->index_stream);
   if (memidx->mix_loaded) return 0;
@@ -238,10 +238,10 @@ static ssize_t load_mem_index(struct FD_MEM_INDEX *memidx,int lock_cache)
 
 static lispval preload_opt;
 
-static fd_index open_mem_index(u8_string file,fd_storage_flags flags,lispval opts)
+static fd_index open_memindex(u8_string file,fd_storage_flags flags,lispval opts)
 {
-  struct FD_MEM_INDEX *memidx = u8_alloc(struct FD_MEM_INDEX);
-  fd_init_index((fd_index)memidx,&mem_index_handler,
+  struct FD_MEMINDEX *memidx = u8_alloc(struct FD_MEMINDEX);
+  fd_init_index((fd_index)memidx,&memindex_handler,
 		file,u8_realpath(file,NULL),
 		flags|FD_STORAGE_NOSWAP);
   struct FD_STREAM *stream=
@@ -252,8 +252,8 @@ static fd_index open_mem_index(u8_string file,fd_storage_flags flags,lispval opt
   if (!(stream)) return NULL;
   stream->stream_flags &= ~FD_STREAM_IS_CONSED;
   unsigned int magic_no = fd_read_4bytes(fd_readbuf(stream));
-  if (magic_no!=FD_MEM_INDEX_MAGIC_NUMBER) {
-    fd_seterr(_("NotMemindex"),"open_mem_index",file,VOID);
+  if (magic_no!=FD_MEMINDEX_MAGIC_NUMBER) {
+    fd_seterr(_("NotMemindex"),"open_memindex",file,VOID);
     fd_close_stream(stream,0);
     u8_free(memidx);
     return NULL;}
@@ -268,15 +268,15 @@ static fd_index open_mem_index(u8_string file,fd_storage_flags flags,lispval opt
       fd_init_hashtable(&(memidx->mix_map),memindex_map_init,NULL);
     else fd_init_hashtable(&(memidx->mix_map),1.5*n_entries,NULL);
     if (!(FALSEP(preload)))
-      load_mem_index(memidx,0);
+      load_memindex(memidx,0);
     if (!(U8_BITP(flags,FD_STORAGE_UNREGISTERED)))
       fd_register_index((fd_index)memidx);
     return (fd_index)memidx;}
 }
 
-static lispval mem_index_ctl(fd_index ix,lispval op,int n,lispval *args)
+static lispval memindex_ctl(fd_index ix,lispval op,int n,lispval *args)
 {
-  struct FD_MEM_INDEX *mix = (struct FD_MEM_INDEX *)ix;
+  struct FD_MEMINDEX *mix = (struct FD_MEMINDEX *)ix;
   if ( ((n>0)&&(args == NULL)) || (n<0) )
     return fd_err("BadIndexOpCall","hashindex_ctl",
 		  mix->indexid,VOID);
@@ -285,10 +285,10 @@ static lispval mem_index_ctl(fd_index ix,lispval op,int n,lispval *args)
       return FD_INT(3);
     else return FD_INT(0);}
   else if (op == fd_getmap_op) {
-    if (mix->mix_loaded==0) load_mem_index(mix,1);
+    if (mix->mix_loaded==0) load_memindex(mix,1);
     return (lispval) fd_copy_hashtable(NULL,&(ix->index_cache),1);}
   else if (op == fd_preload_op) {
-    if (mix->mix_loaded==0) load_mem_index(mix,1);
+    if (mix->mix_loaded==0) load_memindex(mix,1);
     return FD_TRUE;}
   else if (op == fd_capacity_op)
     return EMPTY;
@@ -299,19 +299,19 @@ static lispval mem_index_ctl(fd_index ix,lispval op,int n,lispval *args)
       return FD_TRUE;}
     return FD_INT(mix->index_cache.table_n_keys);}
   else if (op == fd_load_op) {
-    if (mix->mix_loaded == 0) load_mem_index(mix,1);
+    if (mix->mix_loaded == 0) load_memindex(mix,1);
     return FD_INT(mix->index_cache.table_n_keys);}
   else return fd_default_indexctl(ix,op,n,args);
 }
 
-FD_EXPORT int fd_make_mem_index(u8_string spec)
+FD_EXPORT int fd_make_memindex(u8_string spec)
 {
   struct FD_STREAM _stream;
   struct FD_STREAM *stream=
     fd_init_file_stream(&_stream,spec,FD_FILE_CREATE,-1,fd_driver_bufsize);
   fd_outbuf out = fd_writebuf(stream);
   int i = 24;
-  fd_write_4bytes(out,FD_MEM_INDEX_MAGIC_NUMBER);
+  fd_write_4bytes(out,FD_MEMINDEX_MAGIC_NUMBER);
   fd_write_4bytes(out,0); /* n_keys */
   fd_write_8bytes(out,0); /* n_entries */
   fd_write_8bytes(out,256); /* valid_data */
@@ -320,31 +320,31 @@ FD_EXPORT int fd_make_mem_index(u8_string spec)
   return 1;
 }
 
-static fd_index mem_index_create(u8_string spec,void *type_data,
+static fd_index memindex_create(u8_string spec,void *type_data,
 				 fd_storage_flags flags,lispval opts)
 {
-  if (fd_make_mem_index(spec)>=0)
+  if (fd_make_memindex(spec)>=0)
     return fd_open_index(spec,flags,VOID);
   else return NULL;
 }
 
 /* Initializing the driver module */
 
-static struct FD_INDEX_HANDLER mem_index_handler={
-  "memindex", 1, sizeof(struct FD_MEM_INDEX), 14,
+static struct FD_INDEX_HANDLER memindex_handler={
+  "memindex", 1, sizeof(struct FD_MEMINDEX), 14,
   NULL, /* close */
-  mem_index_commit, /* commit */
-  mem_index_fetch, /* fetch */
-  mem_index_fetchsize, /* fetchsize */
+  memindex_commit, /* commit */
+  memindex_fetch, /* fetch */
+  memindex_fetchsize, /* fetchsize */
   NULL, /* prefetch */
-  mem_index_fetchn, /* fetchn */
-  mem_index_fetchkeys, /* fetchkeys */
-  mem_index_fetchinfo, /* fetchinfo */
+  memindex_fetchn, /* fetchn */
+  memindex_fetchkeys, /* fetchkeys */
+  memindex_fetchinfo, /* fetchinfo */
   NULL, /* batchadd */
-  mem_index_create, /* create */
+  memindex_create, /* create */
   NULL, /* walk */
   NULL, /* recycle */
-  mem_index_ctl  /* indexctl */
+  memindex_ctl  /* indexctl */
 };
 
 FD_EXPORT void fd_init_memindex_c()
@@ -352,10 +352,10 @@ FD_EXPORT void fd_init_memindex_c()
   preload_opt = fd_intern("PRELOAD");
 
   fd_register_index_type("memindex",
-                         &mem_index_handler,
-                         open_mem_index,
+                         &memindex_handler,
+                         open_memindex,
                          fd_match_index_file,
-                         (void *) U8_INT2PTR(FD_MEM_INDEX_MAGIC_NUMBER));
+                         (void *) U8_INT2PTR(FD_MEMINDEX_MAGIC_NUMBER));
 
   u8_register_source_file(_FILEINFO);
 }

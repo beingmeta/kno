@@ -101,7 +101,7 @@ FD_EXPORT fd_index fd_make_index(u8_string spec,u8_string indextype,
 
 FD_EXPORT lispval fd_read_index_metadata(fd_stream ds);
 FD_EXPORT lispval fd_write_index_metadata(fd_stream,lispval);
-FD_EXPORT int fd_make_file_index(u8_string,unsigned int,int);
+FD_EXPORT int fd_make_fileindex(u8_string,unsigned int,int);
 
 unsigned int fd_hash_lisp1(lispval x);
 unsigned int fd_hash_lisp2(lispval x);
