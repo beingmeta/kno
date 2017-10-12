@@ -20,7 +20,7 @@
 typedef struct FD_HT_INDEX {
   FD_INDEX_FIELDS;
   int (*commitfn)(struct FD_HT_INDEX *,u8_string);} FD_HT_INDEX;
-typedef struct FD_HT_INDEX *fd_mem_index;
+typedef struct FD_HT_INDEX *fd_ht_index;
 
 FD_EXPORT fd_index fd_make_ht_index(fd_storage_flags flags);
 

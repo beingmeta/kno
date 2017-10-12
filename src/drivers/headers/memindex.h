@@ -21,13 +21,14 @@
 
 typedef struct FD_MEM_INDEX {
   FD_INDEX_FIELDS;
+  unsigned int mix_loaded;
+  struct FD_HASHTABLE mix_map;
   unsigned int mix_n_commits;
   unsigned int mix_n_keys, mix_n_entries;
   unsigned int mix_n_slotids, mix_added_slotids;
   unsigned int mix_slotids_length;
   unsigned int mix_n_baseoids, mix_added_baseoids;
   unsigned int mix_baseoids_length;
-  unsigned int mix_loaded;
   lispval *mix_slotids, *mix_baseoids;
   size_t mix_valid_data;
   struct FD_STREAM index_stream;} FD_LOG_INDEX;

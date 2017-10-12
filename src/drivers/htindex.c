@@ -74,9 +74,9 @@ static struct FD_KEY_SIZE *htindex_fetchinfo(fd_index ix,fd_choice filter,int *n
 }
 
 static int htindex_commit(struct FD_INDEX *ix,
-			  struct FD_KEYVAL *adds,int n_adds,
-			  struct FD_KEYVAL *drops,int n_drops,
-			  struct FD_KEYVAL *stores,int n_stores,
+			  struct FD_CONST_KEYVAL *adds,int n_adds,
+			  struct FD_CONST_KEYVAL *drops,int n_drops,
+			  struct FD_CONST_KEYVAL *stores,int n_stores,
 			  lispval changed_metadata)
 {
   struct FD_HT_INDEX *mix = (struct FD_HT_INDEX *)ix;
@@ -105,7 +105,7 @@ static int htindex_commitfn(struct FD_HT_INDEX *ix,u8_string file)
 
 static fd_index open_htindex(u8_string file,fd_storage_flags flags,lispval opts)
 {
-  struct FD_HT_INDEX *mix = (fd_mem_index)fd_make_ht_index(flags);
+  struct FD_HT_INDEX *mix = (fd_ht_index)fd_make_ht_index(flags);
   lispval lval; struct FD_HASHTABLE *h;
   struct FD_STREAM stream;
   fd_init_file_stream
