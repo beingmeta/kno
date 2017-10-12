@@ -231,7 +231,6 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
 {
   struct FD_HASHINDEX *index = u8_alloc(struct FD_HASHINDEX);
   int read_only = U8_BITP(flags,FD_STORAGE_READ_ONLY);
-  int consed = U8_BITP(flags,FD_STORAGE_UNREGISTERED);
 
   unsigned int magicno, n_keys;
   fd_off_t slotids_pos, baseoids_pos, metadata_loc, metadata_size;
@@ -377,7 +376,7 @@ static fd_index recover_hashindex(u8_string fname,fd_storage_flags open_flags,
   else if (fd_testopt(opts,fd_intern("FORCE-RECOVERY"),FD_VOID)) {
     char *src = u8_tolibc(fname);
     int out=open(src,O_RDWR);
-    unsigned char num = 0x08, new=0;
+    unsigned char num = 0x08;
 #if HAVE_PREAD
     int rv = pwrite(out,&num,1,3);
 #else
@@ -804,7 +803,8 @@ FD_FASTOP lispval write_zvalue(fd_hashindex hx,fd_outbuf out,lispval value)
 FD_FASTOP lispval read_zvalue(fd_hashindex hx,fd_inbuf in)
 {
   int prefix = fd_read_zint(in);
-  if (prefix==0) return fd_read_dtype(in);
+  if (prefix==0)
+    return fd_read_dtype(in);
   else {
     unsigned int base = hx->index_baseoid_ids[prefix-1];
     unsigned int offset = fd_read_zint(in);
@@ -1333,37 +1333,10 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
   return values;
 }
 
-static lispval *hashindex_fetchn_inner(fd_index ix,
-                                       int n,const lispval *keys,
-                                       int stream_locked,
-                                       int adds_locked)
-{
-  struct FD_HASHINDEX *hx = (struct FD_HASHINDEX *)ix;
-  lispval *results;
-  results = fetchn(hx,n,keys);
-  if (results) {
-    int i = 0;
-    if (adds_locked==0) fd_read_lock_table(&(hx->index_adds));
-    while (i<n) {
-      lispval v = fd_hashtable_get_nolock(&(hx->index_adds),keys[i],
-                                       EMPTY);
-      if (FD_ABORTP(v)) {
-        int j = 0; while (j<n) { fd_decref(results[j]); j++;}
-        u8_free(results);
-        if (adds_locked) fd_unlock_table(&(hx->index_adds));
-        fd_interr(v);
-        return NULL;}
-      else if (EMPTYP(v)) i++;
-      else {
-        CHOICE_ADD(results[i],v); i++;}}
-    if (adds_locked==0) fd_unlock_table(&(hx->index_adds));}
-  return results;
-}
-
 /* This is the handler exposed by the index handler struct */
 static lispval *hashindex_fetchn(fd_index ix,int n,const lispval *keys)
 {
-  return hashindex_fetchn_inner(ix,n,keys,0,0);
+  return fetchn((fd_hashindex)ix,n,keys);
 }
 
 
@@ -1812,120 +1785,17 @@ static int sort_kb_by_bucket(const void *k1,const void *k2)
   else return 0;
 }
 
-static int process_edits(struct FD_HASHINDEX *hx,
-                        fd_hashtable adds,fd_hashtable edits,
-                         fd_hashset replaced_keys,
-                         struct COMMIT_SCHEDULE *s,
-                         int i)
-{
-  fd_hashtable cache = &(hx->index_cache);
-  lispval *drops = u8_alloc_n((edits->table_n_keys),lispval), *drop_values;
-  int j = 0, n_drops = 0, oddkeys = 0;
-  struct FD_HASH_BUCKET **scan = edits->ht_buckets;
-  struct FD_HASH_BUCKET **lim = scan+edits->ht_n_buckets;
-  while (scan < lim)
-    if (*scan) {
-      struct FD_HASH_BUCKET *e = *scan;
-      int n_keyvals = e->bucket_len;
-      struct FD_KEYVAL *kvscan = &(e->kv_val0);
-      struct FD_KEYVAL *kvlimit = kvscan+n_keyvals;
-      while (kvscan<kvlimit) {
-        lispval key = kvscan->kv_key;
-        if (PAIRP(key)) {
-          lispval real_key = FD_CDR(key); fd_incref(real_key);
-          if ((FD_CAR(key)) == set_symbol) {
-            fd_hashset_add(replaced_keys,real_key);
-            if ((oddkeys==0) && (PAIRP(real_key)) &&
-                ((OIDP(FD_CAR(real_key))) ||
-                 (SYMBOLP(FD_CAR(real_key))))) {
-              if (get_slotid_index(hx,key)<0) oddkeys = 1;}
-            lispval save_value = fd_incref(kvscan->kv_val);
-            lispval added = fd_hashtable_get_nolock(adds,real_key,EMPTY);
-            CHOICE_ADD(save_value,added);
-            s[i].commit_key = real_key;
-            s[i].commit_values = fd_simplify_choice(save_value);
-            s[i].commit_replace = 1;
-            i++;}
-          else if ((FD_CAR(key)) == drop_symbol) {
-            lispval cached = fd_hashtable_get(cache,real_key,VOID);
-            fd_hashset_add(replaced_keys,real_key);
-            if (VOIDP(cached))
-              drops[n_drops++]=FD_CDR(key);
-            else {
-              lispval added=
-                fd_hashtable_get_nolock(adds,real_key,EMPTY);
-              /* This uses up the reference to added */
-              CHOICE_ADD(cached,added);
-              s[i].commit_key = real_key;
-              s[i].commit_values = fd_difference(cached,kvscan->kv_val);
-              s[i].commit_replace = 1;
-              fd_decref(cached);
-              i++;}}
-          else {
-            u8_log(LOGWARN,"CorruptedIndex",
-                   "The edits table for %s contained an invalid key %q",
-                   hx->indexid,real_key);
-            fd_decref(real_key);}}
-        else {}
-        kvscan++;}
-      scan++;}
-    else scan++;
-  
-  /* Record if there are odd keys */
-  if (oddkeys)
-    hx->storage_xformat |= (FD_HASHINDEX_ODDKEYS);
-  
-  /* Get the current values of all the keys you're dropping, to turn
-     the drops into stores. */
-  drop_values = hashindex_fetchn_inner((fd_index)hx,n_drops,drops,1,1);
-  
-  /* Now, scan the edits again, in the same order as before, with 'j'
-     tracking which dropped key you're processing. */
-  scan = edits->ht_buckets;
-  lim = scan+edits->ht_n_buckets;
-  j = 0; while (scan < lim)
-    if (*scan) {
-      struct FD_HASH_BUCKET *e = *scan; int n_keyvals = e->bucket_len;
-      struct FD_KEYVAL *kvscan = &(e->kv_val0), *kvlimit = kvscan+n_keyvals;
-      while (kvscan<kvlimit) {
-        lispval key = kvscan->kv_key;
-        if ((PAIRP(key)) && ((FD_CAR(key)) == drop_symbol)) {
-          lispval real_key = FD_CDR(key); fd_incref(real_key);
-          if ((j<n_drops) && (real_key == drops[j])) {
-            lispval cached = drop_values[j];
-            lispval added = fd_hashtable_get_nolock(adds,real_key,EMPTY);
-            /* This consumes the reference to 'added' */
-            CHOICE_ADD(cached,added);
-            /* Add a new commit to the schedule */
-            s[i].commit_key = real_key;
-            /* Now remove the dropped values from the current value
-               and save the drop as a store. */
-            s[i].commit_values = fd_difference(cached,kvscan->kv_val);
-            s[i].commit_replace = 1;
-            fd_decref(cached);
-            i++; j++;}}
-        kvscan++;}
-      scan++;}
-    else scan++;
-  u8_free(drops); u8_free(drop_values);
-  return i;
-}
-
 static int process_stores(struct FD_HASHINDEX *hx,
-                          struct FD_KEYVAL *stores,int n_stores,
+                          struct FD_CONST_KEYVAL *stores,int n_stores,
                           struct COMMIT_SCHEDULE *s,
                           int i)
 {
-  fd_hashtable cache = &(hx->index_cache);
   int oddkeys = ((hx->storage_xformat)&(FD_HASHINDEX_ODDKEYS));
   int store_i = 0; while ( store_i < n_stores) {
     lispval key = stores[store_i].kv_key, val = stores[store_i].kv_val;
-    if ((oddkeys==0) && (PAIRP(key)) &&
-        ((OIDP(FD_CAR(key))) || (SYMBOLP(FD_CAR(key))))) {
-      if (get_slotid_index(hx,key)<0) oddkeys = 1;}
-    s[i].commit_key = key;
-    s[i].commit_key = val;
-    fd_incref(val);
+    s[i].commit_key     = key;
+    s[i].commit_values  = val;
+    s[i].free_values    = 0;
     s[i].commit_replace = 1;
     store_i++;
     i++;}
@@ -1937,54 +1807,62 @@ static int process_stores(struct FD_HASHINDEX *hx,
 }
 
 static int process_drops(struct FD_HASHINDEX *hx,
-                         struct FD_KEYVAL *drops,int n_drops,
+                         struct FD_CONST_KEYVAL *drops,int n_drops,
                          struct COMMIT_SCHEDULE *s,
-                         int i)
+                         int sched_i)
 {
   fd_hashtable cache = &(hx->index_cache);
-  lispval *dropkeys = u8_alloc_n(n_drops,lispval);
-  int *droprefs = u8_alloc_n(n_drops,unsigned int);
-  int drop_fetch = 0;
+  lispval *to_fetch = u8_alloc_n(n_drops,lispval); int n_fetches = 0;
+  int *fetch_scheds = u8_alloc_n(n_drops,unsigned int);
   int oddkeys = ((hx->storage_xformat)&(FD_HASHINDEX_ODDKEYS));
   int drop_i = 0; while ( drop_i < n_drops) {
     lispval key = drops[drop_i].kv_key, val = drops[drop_i].kv_val;
-    if ((oddkeys==0) && (PAIRP(key)) &&
-        ((OIDP(FD_CAR(key))) || (SYMBOLP(FD_CAR(key))))) {
-      if (get_slotid_index(hx,key)<0) oddkeys = 1;}
-    s[i].commit_key = key;
-
     lispval cached = fd_hashtable_get(cache,key,VOID);
-    if (!(FD_VOIDP(cached)))
-      s[i].commit_values = fd_difference(cached,val);
-    else {
-      s[i].commit_values = val;
-      dropkeys[drop_fetch] = key;
-      droprefs[drop_fetch] = i;
-      drop_fetch++;}
-    s[i].commit_replace = 1;
-    drop_i++;
-    i++;}
 
-  /* Record if there were any odd keys */
+    s[sched_i].commit_key = key;
+
+    if (!(FD_VOIDP(cached))) {
+      s[sched_i].commit_values = fd_difference(cached,val);
+      s[sched_i].free_values = 1;
+      fd_decref(cached);}
+    else {
+      /* We temporarily store the dropped values in the
+         schedule. We'll replace them with the call to fd_difference
+         below. */
+      s[sched_i].commit_values = val;
+      s[sched_i].free_values   = 0;
+      to_fetch[n_fetches]      = key;
+      fetch_scheds[n_fetches]  = sched_i;
+      n_fetches++;}
+    s[sched_i].commit_replace = 1;
+    drop_i++;
+    sched_i++;}
+
+  /* Record if there were any odd (non (slotid . val)) keys */
   if (oddkeys) hx->storage_xformat |= (FD_HASHINDEX_ODDKEYS);
-  
+
   /* Get the current values of all the keys you're dropping, to turn
      the drops into stores. */
-  lispval *dropvals = hashindex_fetchn_inner((fd_index)hx,drop_fetch,dropkeys,1,1);
+  lispval *drop_vals = fetchn(hx,n_fetches,to_fetch);
 
-  int j = 0; while (j<drop_fetch) {
-    int ref = droprefs[j];
-    lispval vals = dropvals[j];
-    lispval todrop = s[ref].commit_values;
-    lispval new_vals = fd_difference(vals,todrop);
-    s[ref].commit_values = new_vals;
+  int j = 0; while (j<n_fetches) {
+    int sched_ref = fetch_scheds[j];
+    lispval ondisk  = drop_vals[j];
+    lispval todrop  = s[sched_ref].commit_values;
+    lispval reduced = fd_difference(ondisk,todrop);
+    s[sched_ref].commit_values = reduced;
+    s[sched_i].free_values     = 1;
     j++;}
 
-  return i;
+  fd_decref_vec(drop_vals,n_fetches,1);
+  u8_free(fetch_scheds);
+  u8_free(to_fetch);
+
+  return sched_i;
 }
 
 static int process_adds(struct FD_HASHINDEX *hx,
-                        struct FD_KEYVAL *adds,int n_adds,
+                        struct FD_CONST_KEYVAL *adds,int n_adds,
                         struct COMMIT_SCHEDULE *s,
                         int i)
 {
@@ -1996,8 +1874,13 @@ static int process_adds(struct FD_HASHINDEX *hx,
     if ((oddkeys==0) && (PAIRP(key)) &&
         ((OIDP(FD_CAR(key))) || (SYMBOLP(FD_CAR(key))))) {
       if (get_slotid_index(hx,key)<0) oddkeys = 1;}
-    s[i].commit_key = key;
-    s[i].commit_values = fd_simplify_choice(val);
+    s[i].commit_key     = key;
+    if (PRECHOICEP(val)) {
+      s[i].commit_values  = fd_make_simple_choice(val);
+      s[i].free_values    = 1;}
+    else {
+      s[i].commit_values  = val;
+      s[i].free_values    = 0;}
     s[i].commit_replace = 0;
     add_i++;
     i++;}
@@ -2096,13 +1979,14 @@ FD_FASTOP fd_off_t extend_keybucket
           ke[key_i].ke_vref.off = 0;
           ke[key_i].ke_vref.size = 0;}
         else if (n_values==1) {
-          /* If there is only one value, we write it as part of the
-             keyblock (that's what being in .ke_values means) */
+          /* If there is only one value we're saving, so we'll write
+             it as part of the keyblock (that's what being in
+             .ke_values means) */
           lispval current = ke[key_i].ke_values;
           ke[key_i].ke_values = fd_incref(schedule[k].commit_values);
-          fd_decref(current);
           ke[key_i].ke_vref.off = 0;
-          ke[key_i].ke_vref.size = 0;}
+          ke[key_i].ke_vref.size = 0;
+          fd_decref(current);}
         else {
           ke[key_i].ke_values = VOID;
           ke[key_i].ke_vref=
@@ -2125,18 +2009,25 @@ FD_FASTOP fd_off_t extend_keybucket
         int n_values = ke[key_i].ke_nvals;
         int n_values_added = FD_CHOICE_SIZE(schedule[k].commit_values);
         ke[key_i].ke_nvals = n_values+n_values_added;
-        if (n_values==0) {}
+        if ( (n_values==0) && (n_values_added == 1) ) {
+          /* This is the case where there was an entry with no values
+             and we're adding one value */
+          lispval one_val = schedule[k].commit_values;
+          ke[key_i].ke_values=one_val;
+          fd_incref(one_val);}
         else if (n_values==1) {
-          /* This is the special case is where there is one current value
-             and we are adding to that.  The value block we write must
-             contain both the current singleton value and whatever values
-             we are adding.  We pass this as the fourth (extra) argument
-             to write_value_block.  */
+          /* This is the special case is where there is one current
+             value and we are adding to that.  The value block we
+             write must contain both the values we are adding and the
+             current singleton value.  The current singleton value is
+             passed as the fourth (extra) argument to
+             write_value_block.  */
           lispval current = ke[key_i].ke_values;
           ke[key_i].ke_vref=
             write_value_block(hx,stream,schedule[k].commit_values,
                               current,0,0,endpos);
           endpos = ke[key_i].ke_vref.off+ke[key_i].ke_vref.size;
+          /* We void this because it's now on disk */
           fd_decref(current);
           ke[key_i].ke_values = VOID;}
         else {
@@ -2144,7 +2035,6 @@ FD_FASTOP fd_off_t extend_keybucket
             write_value_block(hx,stream,schedule[k].commit_values,VOID,
                               ke[key_i].ke_vref.off,ke[key_i].ke_vref.size,
                               endpos);
-          /* We void the values field because there's a values block now. */
           if (ke[key_i].ke_values!=VOID)
             u8_log(LOGWARN,"NotVoid",
                    "This value for key %d is %q, not VOID as expected",
@@ -2261,9 +2151,9 @@ static int update_hashindex_metadata(fd_hashindex hx,struct FD_STREAM *stream);
 static void free_keybuckets(int n,struct KEYBUCKET **keybuckets);
 
 static int hashindex_commit(struct FD_INDEX *ix,
-                            struct FD_KEYVAL *adds,int n_adds,
-                            struct FD_KEYVAL *drops,int n_drops,
-                            struct FD_KEYVAL *stores,int n_stores,
+                            struct FD_CONST_KEYVAL *adds,int n_adds,
+                            struct FD_CONST_KEYVAL *drops,int n_drops,
+                            struct FD_CONST_KEYVAL *stores,int n_stores,
                             lispval changed_metadata)
 {
   struct FD_HASHINDEX *hx = (struct FD_HASHINDEX *)ix;
@@ -2310,139 +2200,139 @@ static int hashindex_commit(struct FD_INDEX *ix,
   fd_lock_index(hx);
   schedule_max = n_adds + n_drops + n_stores;
   bucket_locs = u8_alloc_n(schedule_max,struct BUCKET_REF);
+
   /* This is where we write everything to disk */
-  {
-    int sched_i = 0, bucket_i = 0;
-    int schedule_size = 0;
-    struct COMMIT_SCHEDULE *schedule=
-      u8_alloc_n(schedule_max,struct COMMIT_SCHEDULE);
-    struct KEYBUCKET **keybuckets=
-      u8_alloc_n(schedule_max,struct KEYBUCKET *);
-    struct FD_OUTBUF out, newkeys;
+  int sched_i = 0, bucket_i = 0;
+  int schedule_size = 0;
+  struct COMMIT_SCHEDULE *schedule=
+    u8_alloc_n(schedule_max,struct COMMIT_SCHEDULE);
+  struct KEYBUCKET **keybuckets=
+    u8_alloc_n(schedule_max,struct KEYBUCKET *);
+  struct FD_OUTBUF out, newkeys;
 
-    /* Get all the keys we need to write.  */
-    schedule_size = process_stores(hx,stores,n_stores,schedule,schedule_size);
-    schedule_size = process_drops(hx,drops,n_drops,schedule,schedule_size);
-    schedule_size = process_adds(hx,adds,n_adds,schedule,schedule_size);
+  /* Get all the keys we need to write.  */
+  schedule_size = process_stores(hx,stores,n_stores,schedule,schedule_size);
+  schedule_size = process_drops(hx,drops,n_drops,schedule,schedule_size);
+  schedule_size = process_adds(hx,adds,n_adds,schedule,schedule_size);
 
-    /* The commit schedule is now filled and we start generating a
-       bucket schedule for reading the buckets to determine what goes
-       where. */
-    /* We're going to write DTYPE representations of keys and values,
-       so we create streams to buffer them */
-    FD_INIT_BYTE_OUTPUT(&out,1024);
-    FD_INIT_BYTE_OUTPUT(&newkeys,schedule_max*16);
-    if ((hx->storage_xformat)&(FD_HASHINDEX_DTYPEV2)) {
-      out.buf_flags = out.buf_flags|FD_USE_DTYPEV2;
-      newkeys.buf_flags = newkeys.buf_flags|FD_USE_DTYPEV2;}
+  /* The commit schedule is now filled and we start generating a
+     bucket schedule for reading the buckets to determine what goes
+     where. */
+  /* We're going to write DTYPE representations of keys and values,
+     so we create streams to buffer them */
+  FD_INIT_BYTE_OUTPUT(&out,1024);
+  FD_INIT_BYTE_OUTPUT(&newkeys,schedule_max*16);
+  if ((hx->storage_xformat)&(FD_HASHINDEX_DTYPEV2)) {
+    out.buf_flags = out.buf_flags|FD_USE_DTYPEV2;
+    newkeys.buf_flags = newkeys.buf_flags|FD_USE_DTYPEV2;}
     
-    /* Compute the hashes and the buckets for all of the keys
-       in the commit schedule. */
-    sched_i = 0; while (sched_i<schedule_size) {
-      lispval key = schedule[sched_i].commit_key; int bucket;
-      out.bufwrite = out.buffer;
-      write_zkey(hx,&out,key);
-      schedule[sched_i].commit_bucket = bucket =
-        hash_bytes(out.buffer,out.bufwrite-out.buffer)%n_buckets;
-      sched_i++;}
+  /* Compute the hashes and the buckets for all of the keys
+     in the commit schedule. */
+  sched_i = 0; while (sched_i<schedule_size) {
+    lispval key = schedule[sched_i].commit_key; int bucket;
+    out.bufwrite = out.buffer;
+    write_zkey(hx,&out,key);
+    schedule[sched_i].commit_bucket = bucket =
+      hash_bytes(out.buffer,out.bufwrite-out.buffer)%n_buckets;
+    sched_i++;}
 
-    /* Get all the bucket locations.  It may be that we can fold this
-       into the phase above when we have the offsets table in
-       memory. */
-    qsort(schedule,schedule_size,sizeof(struct COMMIT_SCHEDULE),
-          sort_cs_by_bucket);
-    sched_i = 0; bucket_i = 0; while (sched_i<schedule_size) {
-      int bucket = schedule[sched_i].commit_bucket;
-      int bucket_first_key = sched_i;
-      int bucket_last_key = sched_i;
-      bucket_locs[changed_buckets].bucketno = bucket;
-      bucket_locs[changed_buckets].bck_ref = (offdata) ?
-        (fd_get_chunk_ref(offdata,offtype,bucket,hx->index_n_buckets)):
-        (fd_fetch_chunk_ref(stream,256,offtype,bucket,1));
-      while ( (bucket_last_key<schedule_size) &&
-              (schedule[bucket_last_key].commit_bucket == bucket) )
-        bucket_last_key++;
-      bucket_locs[changed_buckets].max_new=
-        bucket_last_key-bucket_first_key;
-      sched_i = bucket_last_key;
-      changed_buckets++;}
+  /* Get all the bucket locations.  It may be that we can fold this
+     into the phase above when we have the offsets table in
+     memory. */
+  qsort(schedule,schedule_size,sizeof(struct COMMIT_SCHEDULE),
+        sort_cs_by_bucket);
+  sched_i = 0; bucket_i = 0; while (sched_i<schedule_size) {
+    int bucket = schedule[sched_i].commit_bucket;
+    int bucket_first_key = sched_i;
+    int bucket_last_key = sched_i;
+    bucket_locs[changed_buckets].bucketno = bucket;
+    bucket_locs[changed_buckets].bck_ref = (offdata) ?
+      (fd_get_chunk_ref(offdata,offtype,bucket,hx->index_n_buckets)):
+      (fd_fetch_chunk_ref(stream,256,offtype,bucket,1));
+    while ( (bucket_last_key<schedule_size) &&
+            (schedule[bucket_last_key].commit_bucket == bucket) )
+      bucket_last_key++;
+    bucket_locs[changed_buckets].max_new=
+      bucket_last_key-bucket_first_key;
+    sched_i = bucket_last_key;
+    changed_buckets++;}
 
-    /* Now we have all the bucket locations, which we'll read in
-       order. */
+  /* Now we have all the bucket locations, which we'll read in
+     order. */
 
-    /* Process all of the buckets in order, reading each keyblock.  We
-       may be able to combine this with extending the bucket below,
-       but that would entail moving the writing of values out of the
-       bucket extension (since both want to get at the file) Could we
-       have two pointers into the file?  */
-    qsort(bucket_locs,changed_buckets,sizeof(struct BUCKET_REF),
-          sort_br_by_off);
-    bucket_i = 0; while (bucket_i<changed_buckets) {
-      keybuckets[bucket_i]=
-        read_keybucket(hx,stream,bucket_locs[bucket_i].bucketno,
-                       bucket_locs[bucket_i].bck_ref,
-                       bucket_locs[bucket_i].max_new);
-      if ((keybuckets[bucket_i]->kb_n_keys)==0) new_buckets++;
-      bucket_i++;}
+  /* Process all of the buckets in order, reading each keyblock.  We
+     may be able to combine this with extending the bucket below,
+     but that would entail moving the writing of values out of the
+     bucket extension (since both want to get at the file) Could we
+     have two pointers into the file?  */
+  qsort(bucket_locs,changed_buckets,sizeof(struct BUCKET_REF),
+        sort_br_by_off);
+  bucket_i = 0; while (bucket_i<changed_buckets) {
+    keybuckets[bucket_i]=
+      read_keybucket(hx,stream,bucket_locs[bucket_i].bucketno,
+                     bucket_locs[bucket_i].bck_ref,
+                     bucket_locs[bucket_i].max_new);
+    if ((keybuckets[bucket_i]->kb_n_keys)==0) new_buckets++;
+    bucket_i++;}
 
-    /* Now all the keybuckets have been read and buckets have been
-       created for keys that didn't have buckets before. */
-    qsort(schedule,schedule_size,sizeof(struct COMMIT_SCHEDULE),
-          sort_cs_by_bucket);
-    qsort(keybuckets,changed_buckets,sizeof(struct KEYBUCKET *),
-          sort_kb_by_bucket);
-    /* bucket_locs is currently sorted by offset */
-    qsort(bucket_locs,changed_buckets,sizeof(struct BUCKET_REF),
-          sort_br_by_bucket);
+  /* Now all the keybuckets have been read and buckets have been
+     created for keys that didn't have buckets before. */
+  qsort(schedule,schedule_size,sizeof(struct COMMIT_SCHEDULE),
+        sort_cs_by_bucket);
+  qsort(keybuckets,changed_buckets,sizeof(struct KEYBUCKET *),
+        sort_kb_by_bucket);
+  /* bucket_locs is currently sorted by offset */
+  qsort(bucket_locs,changed_buckets,sizeof(struct BUCKET_REF),
+        sort_br_by_bucket);
 
-    /* March along the commit schedule (keys) and keybuckets (buckets)
-       in parallel, extending each bucket.  This is where values are
-       written out and their new offsets stored in the schedule. */
-    sched_i = 0; bucket_i = 0; endpos = fd_endpos(stream);
-    while (sched_i<schedule_size) {
-      struct KEYBUCKET *kb = keybuckets[bucket_i];
-      int bucket = schedule[sched_i].commit_bucket;
-      int j = sched_i, cur_keys = kb->kb_n_keys;
-      assert(bucket == kb->kb_bucketno);
-      while ((j<schedule_size) && (schedule[j].commit_bucket == bucket)) j++;
-      /* This may write values to disk, so we use the returned endpos */
-      endpos = extend_keybucket(hx,stream,kb,schedule,sched_i,j,
-                                &newkeys,&new_valueblocks,
-                                endpos,maxpos);
+  /* March along the commit schedule (keys) and keybuckets (buckets)
+     in parallel, extending each bucket.  This is where values are
+     written out and their new offsets stored in the schedule. */
+  sched_i = 0; bucket_i = 0; endpos = fd_endpos(stream);
+  while (sched_i<schedule_size) {
+    struct KEYBUCKET *kb = keybuckets[bucket_i];
+    int bucket = schedule[sched_i].commit_bucket;
+    int j = sched_i, cur_keys = kb->kb_n_keys;
+    assert(bucket == kb->kb_bucketno);
+    while ((j<schedule_size) && (schedule[j].commit_bucket == bucket)) j++;
+    /* This may write values to disk, so we use the returned endpos */
+    endpos = extend_keybucket(hx,stream,kb,schedule,sched_i,j,
+                              &newkeys,&new_valueblocks,
+                              endpos,maxpos);
+    CHECK_POS(endpos,stream);
+    new_keys = new_keys+(kb->kb_n_keys-cur_keys);
+    {
+      fd_off_t startpos = endpos;
+      /* This writes the keybucket itself. */
+      endpos = write_keybucket(hx,stream,kb,endpos,maxpos);
+      new_keyblocks++;
+      if (endpos<0) {
+        u8_free(bucket_locs);
+        u8_free(schedule);
+        u8_free(keybuckets);
+        fd_unlock_index(hx);
+        fd_close_stream(stream,FD_STREAM_FREEDATA);
+        return -1;}
       CHECK_POS(endpos,stream);
-      new_keys = new_keys+(kb->kb_n_keys-cur_keys);
-      {
-        fd_off_t startpos = endpos;
-        /* This writes the keybucket itself. */
-        endpos = write_keybucket(hx,stream,kb,endpos,maxpos);
-        new_keyblocks++;
-        if (endpos<0) {
-          u8_free(bucket_locs);
-          u8_free(schedule);
-          u8_free(keybuckets);
-          fd_unlock_index(hx);
-          fd_close_stream(stream,FD_STREAM_FREEDATA);
-          return -1;}
-        CHECK_POS(endpos,stream);
-        bucket_locs[bucket_i].bck_ref.off = startpos;
-        bucket_locs[bucket_i].bck_ref.size = endpos-startpos;}
-      sched_i = j; bucket_i++;}
-    fd_flush_stream(stream);
+      bucket_locs[bucket_i].bck_ref.off = startpos;
+      bucket_locs[bucket_i].bck_ref.size = endpos-startpos;}
+    sched_i = j; bucket_i++;}
+  fd_flush_stream(stream);
 
-    /* Free all the keybuckets */
-    free_keybuckets(changed_buckets,keybuckets);
+  /* Free all the keybuckets */
+  free_keybuckets(changed_buckets,keybuckets);
 
-    /* Now we free the keys and values in the schedule. */
-    sched_i = 0; while (sched_i<schedule_size) {
-      lispval key = schedule[sched_i].commit_key;
+  /* Now we free the keys and values in the schedule. */
+  sched_i = 0; while (sched_i<schedule_size) {
+    if (schedule[sched_i].free_values) {
       lispval v = schedule[sched_i].commit_values;
-      fd_decref(key);
-      fd_decref(v);
-      sched_i++;}
-    u8_free(schedule);
-    u8_free(out.buffer);
-    u8_free(newkeys.buffer);
-    n_keys = schedule_size;}
+      schedule[sched_i].commit_values = VOID;
+      fd_decref(v);}
+    sched_i++;}
+  u8_free(schedule);
+  u8_free(out.buffer);
+  u8_free(newkeys.buffer);
+  n_keys = schedule_size;
 
   total_keys += new_keys;
   hx->table_n_keys = total_keys;
@@ -2450,17 +2340,12 @@ static int hashindex_commit(struct FD_INDEX *ix,
   if (update_hashindex_ondisk
       (hx,hx->storage_xformat,total_keys,changed_buckets,bucket_locs,
        stream) >= 0) {
-    if (u8_file_existsp(recovery_file)) 
+    if (u8_file_existsp(recovery_file))
       u8_removefile(recovery_file);
     u8_free(recovery_file);}
 
-#if FD_DEBUG_HASHINDEXES
-  u8_message("Resetting tables");
-#endif
-
   /* Free the bucket locations */
   u8_free(bucket_locs);
-
   /* And unlock all the locks. */
   fd_close_stream(stream,FD_STREAM_FREEDATA);
   fd_unlock_index(hx);
@@ -2469,10 +2354,6 @@ static int hashindex_commit(struct FD_INDEX *ix,
          "Saved mappings for %d keys (%d/%d new/total) to %s in %f secs",
          n_keys,new_keys,total_keys,
          ix->indexid,u8_elapsed_time()-started);
-
-#if FD_DEBUG_HASHINDEXES
-  u8_message("Returning from hashindex_commit()");
-#endif
 
   return n_keys;
 }
@@ -2941,7 +2822,6 @@ static lispval get_hashbuckets(struct FD_HASHINDEX *hx)
   fd_stream s = &(hx->index_stream);
   unsigned int *offdata = hx->index_offdata;
   fd_offset_type offtype = hx->index_offtype;
-  fd_inbuf ins = fd_readbuf(s);
   int i = 0, n_buckets = (hx->index_n_buckets);
   init_cache_level((fd_index)hx);
   fd_lock_stream(s);
@@ -2973,8 +2853,7 @@ static lispval hashbucket_info(struct FD_HASHINDEX *hx,lispval bucket_nums)
   fd_stream s = &(hx->index_stream);
   unsigned int *offdata = hx->index_offdata;
   fd_offset_type offtype = hx->index_offtype;
-  fd_inbuf ins = fd_readbuf(s);
-  int i = 0, n_buckets = (hx->index_n_buckets), total_keys;
+  int i = 0, n_buckets = (hx->index_n_buckets);
   int n_to_fetch = FD_CHOICE_SIZE(bucket_nums), n_refs=0;
   init_cache_level((fd_index)hx);
   fd_lock_stream(s);
@@ -3053,8 +2932,6 @@ static lispval hashrange_info(struct FD_HASHINDEX *hx,
   fd_stream s = &(hx->index_stream);
   unsigned int *offdata = hx->index_offdata;
   fd_offset_type offtype = hx->index_offtype;
-  fd_inbuf ins = fd_readbuf(s);
-  int n_buckets = (hx->index_n_buckets), total_keys;
   int n_to_fetch = end-start, n_refs=0;
   init_cache_level((fd_index)hx);
   fd_lock_stream(s);

@@ -144,9 +144,9 @@ static lispval *netindex_fetchkeys(fd_index ix,int *n)
 }
 
 static int netindex_commit(struct FD_INDEX *ix,
-                           struct FD_KEYVAL *adds,int n_adds,
-                           struct FD_KEYVAL *drops,int n_drops,
-                           struct FD_KEYVAL *stores,int n_stores,
+                           struct FD_CONST_KEYVAL *adds,int n_adds,
+                           struct FD_CONST_KEYVAL *drops,int n_drops,
+                           struct FD_CONST_KEYVAL *stores,int n_stores,
                            lispval changed_metadata)
 {
   struct FD_NETWORK_INDEX *nix = (struct FD_NETWORK_INDEX *)ix;
@@ -165,7 +165,6 @@ static int netindex_commit(struct FD_INDEX *ix,
                                     ixserver_reset,xname,key,val);
         if (FD_ABORTP(result)) {
           u8_exception ex = u8_erreify();
-          lispval exception = fd_get_exception(ex);
           fd_clear_errors(1);}
         else n_transactions++;
         i++;}}}
@@ -181,7 +180,6 @@ static int netindex_commit(struct FD_INDEX *ix,
         else result = fd_dtcall_x(nix->index_connpool,3,4,ixserver_drop,xname,key,val);
         if (FD_ABORTP(result)) {
           u8_exception ex = u8_erreify();
-          lispval exception = fd_get_exception(ex);
           fd_clear_errors(1);}
         else n_transactions++;
         i++;}}}

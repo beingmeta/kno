@@ -78,16 +78,16 @@ struct BUCKET_REF {
   FD_CHUNK_REF bck_ref;};
 
 struct COMMIT_SCHEDULE {
-  lispval commit_key, commit_values; 
-  short commit_replace;
+  lispval commit_key, commit_values;
+  int commit_replace:1, free_values:1;
   int commit_bucket;};
 
 struct KEYENTRY {
-  int ke_nvals, ke_dtrep_size; 
+  int ke_nvals, ke_dtrep_size;
   /* This points to the point in keybucket's kb_keybuf
      where the dtype representation of the key begins. */
   const unsigned char *ke_dtstart;
-  lispval ke_values; 
+  lispval ke_values;
   FD_CHUNK_REF ke_vref;};
 
 struct KEYBUCKET {

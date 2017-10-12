@@ -127,9 +127,9 @@ static lispval *extindex_fetchn(fd_index p,int n,const lispval *keys)
 }
 
 static int extindex_commit(struct FD_INDEX *ix,
-			   struct FD_KEYVAL *adds,int n_adds,
-			   struct FD_KEYVAL *drops,int n_drops,
-			   struct FD_KEYVAL *stores,int n_stores,
+			   struct FD_CONST_KEYVAL *adds,int n_adds,
+			   struct FD_CONST_KEYVAL *drops,int n_drops,
+			   struct FD_CONST_KEYVAL *stores,int n_stores,
 			   lispval changed_metadata)
 {
   struct FD_EXTINDEX *exi = (fd_extindex)ix;

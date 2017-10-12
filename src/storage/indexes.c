@@ -1004,6 +1004,40 @@ static int remove_keyvals(struct FD_KEYVAL *keyvals,int n,lispval remove)
   return n;
 }
 
+typedef struct FD_CONST_KEYVAL *const_keyvals;
+
+static struct FD_KEYVAL *
+hashtable_keyvals(fd_hashtable ht,int *sizep,int keep_empty)
+{
+  struct FD_KEYVAL *results, *rscan;
+  if (ht->table_n_keys == 0) {
+    *sizep=0;
+    return NULL;}
+  if (ht->ht_n_buckets) {
+    int size = 0;
+   struct FD_HASH_BUCKET **scan=ht->ht_buckets;
+    struct FD_HASH_BUCKET **lim=scan+ht->ht_n_buckets;
+    rscan=results=u8_alloc_n(ht->table_n_keys,struct FD_KEYVAL);
+    while (scan < lim)
+      if (*scan) {
+        struct FD_HASH_BUCKET *e=*scan;
+        int bucket_len=e->bucket_len;
+        struct FD_KEYVAL *kvscan=&(e->kv_val0);
+        struct FD_KEYVAL *kvlimit=kvscan+bucket_len;
+        while (kvscan<kvlimit) {
+          lispval key = kvscan->kv_key, val = kvscan->kv_val;
+          if ( (EXISTSP(val)) || (keep_empty) ) {
+            rscan->kv_key=key; fd_incref(key);
+            rscan->kv_val=val; fd_incref(val);
+            rscan++; size++;}
+          kvscan++;}
+        scan++;}
+      else scan++;
+    *sizep=size;}
+  else {*sizep=0; results=NULL;}
+  return results;
+}
+
 FD_EXPORT int fd_index_commit(fd_index ix)
 {
   if (ix == NULL)
@@ -1021,26 +1055,26 @@ FD_EXPORT int fd_index_commit(fd_index ix)
       (fd_deep_copy(metadata)) :
       (FD_VOID);
 
-    /* Lock the edit tables */
-    if (ix->index_adds.table_uselock) {
-      u8_write_lock(&(ix->index_adds.table_rwlock));
-      unlock_adds=1;}
-    if (ix->index_drops.table_uselock) {
-      u8_write_lock(&(ix->index_drops.table_rwlock));
-      unlock_drops=1;}
-    if (ix->index_stores.table_uselock) {
-      u8_write_lock(&(ix->index_stores.table_rwlock));
-      unlock_stores=1;}
-
-    /* Copy them */
     int n_adds=0, n_drops=0, n_stores=0, retval=0;
     struct FD_HASHTABLE *adds_table = &(ix->index_adds);
     struct FD_HASHTABLE *drops_table = &(ix->index_drops);
     struct FD_HASHTABLE *stores_table = &(ix->index_stores);
 
-    struct FD_KEYVAL *adds = fd_hashtable_keyvals(adds_table,&n_adds,0);
-    struct FD_KEYVAL *drops = fd_hashtable_keyvals(drops_table,&n_drops,0);
-    struct FD_KEYVAL *stores = fd_hashtable_keyvals(stores_table,&n_stores,0);
+    /* Lock the changes for the index */
+    if (adds_table->table_uselock) {
+      fd_write_lock_table(adds_table);
+      unlock_adds=1;}
+    if (drops_table->table_uselock) {
+      fd_write_lock_table(drops_table);
+      unlock_drops=1;}
+    if (stores_table->table_uselock) {
+      fd_write_lock_table(stores_table);
+      unlock_stores=1;}
+
+    /* Copy them */
+    struct FD_KEYVAL *adds = hashtable_keyvals(adds_table,&n_adds,0);
+    struct FD_KEYVAL *drops = hashtable_keyvals(drops_table,&n_drops,0);
+    struct FD_KEYVAL *stores = hashtable_keyvals(stores_table,&n_stores,1);
 
     int n_changes = n_adds + n_stores + n_drops;
 
@@ -1071,17 +1105,17 @@ FD_EXPORT int fd_index_commit(fd_index ix)
       init_cache_level(ix);
       u8_log(fd_storage_loglevel+1,fd_IndexCommit,
              "####### Saving %d changes to %s",n_changes,ix->indexid);
-      if (unlock_adds) u8_rw_unlock(&(ix->index_adds.table_rwlock));
-      if (unlock_drops) u8_rw_unlock(&(ix->index_drops.table_rwlock));
-      if (unlock_stores) u8_rw_unlock(&(ix->index_stores.table_rwlock));
+      if (unlock_adds) fd_unlock_table(adds_table);
+      if (unlock_drops) fd_unlock_table(drops_table);
+      if (unlock_stores) fd_unlock_table(stores_table);
       unlock_adds=unlock_stores=unlock_drops=0;}
 
     double start_time = u8_elapsed_time();
 
     retval = ix->index_handler->commit(ix,
-                                       adds,n_adds,
-                                       drops,n_drops,
-                                       stores,n_stores,
+                                       (const_keyvals)adds,n_adds,
+                                       (const_keyvals)drops,n_drops,
+                                       (const_keyvals)stores,n_stores,
                                        changed_metadata);
 
     if (retval<0)
@@ -1106,22 +1140,22 @@ FD_EXPORT int fd_index_commit(fd_index ix)
     fd_decref(changed_metadata);
 
     /* Lock the adds and edits again */
-    if (ix->index_adds.table_uselock) {
-      u8_write_lock(&(ix->index_adds.table_rwlock));
+    if (adds_table->table_uselock) {
+      fd_write_lock_table(adds_table);
       unlock_adds=1;}
-    if (ix->index_drops.table_uselock) {
-      u8_write_lock(&(ix->index_drops.table_rwlock));
+    if (drops_table->table_uselock) {
+      fd_write_lock_table(drops_table);
       unlock_drops=1;}
-    if (ix->index_stores.table_uselock) {
-      u8_write_lock(&(ix->index_stores.table_rwlock));
+    if (stores_table->table_uselock) {
+      fd_write_lock_table(stores_table);
       unlock_stores=1;}
 
-    fd_hashtable_iter_kv
-      (&(ix->index_adds),fd_table_drop,(fd_const_keyval) adds,n_adds,0);
-    fd_hashtable_iter_kv
-      (&(ix->index_drops),fd_table_drop,(fd_const_keyval)drops,n_drops,0);
-    fd_hashtable_iter_kv
-      (&(ix->index_stores),fd_table_drop,(fd_const_keyval)stores,n_stores,0);
+    fd_hashtable_iter_kv(adds_table,fd_table_drop,
+                         (const_keyvals)adds,n_adds,0);
+    fd_hashtable_iter_kv(drops_table,fd_table_drop,
+                         (const_keyvals)drops,n_drops,0);
+    fd_hashtable_iter_kv(stores_table,fd_table_drop,
+                         (const_keyvals)stores,n_stores,0);
 
     fd_free_keyvals(adds,n_adds);
     fd_free_keyvals(drops,n_drops);

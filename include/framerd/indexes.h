@@ -68,9 +68,9 @@ typedef struct FD_INDEX_HANDLER {
   u8_string name; int version, length, n_handlers;
   void (*close)(fd_index ix);
   int (*commit)(fd_index ix,
-		struct FD_KEYVAL *adds,int n_adds,
-		struct FD_KEYVAL *drops,int n_drops,
-		struct FD_KEYVAL *stores,int n_stores,
+		struct FD_CONST_KEYVAL *adds,int n_adds,
+		struct FD_CONST_KEYVAL *drops,int n_drops,
+		struct FD_CONST_KEYVAL *stores,int n_stores,
 		lispval metadata);
   lispval (*fetch)(fd_index ix,lispval key);
   int (*fetchsize)(fd_index ix,lispval key);

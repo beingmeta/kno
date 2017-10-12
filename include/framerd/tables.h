@@ -93,8 +93,11 @@ FD_EXPORT int   fd_init_hash_size;
 
 typedef struct FD_KEYVAL {
   lispval kv_key, kv_val;} *fd_keyval;
+typedef struct FD_KEYVAL *fd_keyvals;
+
 typedef struct FD_CONST_KEYVAL {
   const lispval kv_key, kv_val;} *fd_const_keyval;
+typedef struct FD_CONST_KEYVAL *fd_const_keyvals;
 
 typedef int (*kv_valfn)(lispval,lispval,void *);
 typedef int (*fd_kvfn)(struct FD_KEYVAL *,void *);

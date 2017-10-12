@@ -39,9 +39,10 @@ fd_index fd_make_procindex(lispval opts,lispval state,
 
   struct FD_PROCINDEX *pix = u8_alloc(struct FD_PROCINDEX);
   unsigned int flags = FD_STORAGE_ISINDEX | FD_STORAGE_VIRTUAL;
-  int cache_level = -1;
   memset(pix,0,sizeof(struct FD_PROCINDEX));
   lispval source_opt = FD_VOID;
+
+  int cache_level = -1;
 
   if (source == NULL) {
     source_opt = fd_getopt(opts,FDSYM_SOURCE,FD_VOID);
@@ -51,7 +52,7 @@ fd_index fd_make_procindex(lispval opts,lispval state,
   if (fd_testopt(opts,FDSYM_CACHELEVEL,FD_VOID)) {
     lispval v = fd_getopt(opts,FDSYM_CACHELEVEL,FD_VOID);
     if (FD_FALSEP(v))
-      cache_level=0;
+      cache_level = 0;
     else if (FD_FIXNUMP(v)) {
       int ival=FD_FIX2INT(v);
       cache_level=ival;}
@@ -71,6 +72,7 @@ fd_index fd_make_procindex(lispval opts,lispval state,
 		id,u8_strdup(source),flags);
 
   pix->index_opts = fd_getopt(opts,fd_intern("OPTS"),FD_FALSE);
+  pix->index_cache_level = cache_level;
 
   fd_register_index((fd_index)pix);
   pix->fetchfn = indexopt(opts,"FETCH");
@@ -193,9 +195,9 @@ struct FD_KEY_SIZE *procindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
 
 
 static int procindex_commit(struct FD_INDEX *ix,
-                            struct FD_KEYVAL *adds,int n_adds,
-                            struct FD_KEYVAL *drops,int n_drops,
-                            struct FD_KEYVAL *stores,int n_stores,
+                            struct FD_CONST_KEYVAL *adds,int n_adds,
+                            struct FD_CONST_KEYVAL *drops,int n_drops,
+                            struct FD_CONST_KEYVAL *stores,int n_stores,
                             lispval changed_metadata)
 {
   struct FD_PROCINDEX *pix = (fd_procindex)ix;
@@ -204,9 +206,11 @@ static int procindex_commit(struct FD_INDEX *ix,
     return 0;
   else {
     struct FD_SLOTMAP add_table, drop_table, store_table;
-    fd_init_slotmap(&add_table,n_adds,adds);
-    fd_init_slotmap(&drop_table,n_drops,drops);
-    fd_init_slotmap(&store_table,n_stores,stores);
+    fd_init_slotmap(&add_table,n_adds,(fd_keyval)adds);
+    fd_init_slotmap(&drop_table,n_drops,(fd_keyvals)drops);
+    fd_init_slotmap(&store_table,n_stores,(fd_keyvals)stores);
+    add_table.table_readonly=drop_table.table_readonly=1;
+    store_table.table_readonly=1;
     lispval args[]={lx,
 		    pix->index_state,
 		    (lispval)(&adds),
@@ -294,7 +298,7 @@ struct FD_INDEX_HANDLER fd_procindex_handler={
   NULL, /* batchadd */
   NULL, /* create */
   NULL, /* walk */
-  NULL, /* recycle */
+  recycle_procindex, /* recycle */
   procindex_ctl /* indexctl */
 };
 

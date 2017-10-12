@@ -841,7 +841,7 @@ static int write_values(fd_stream stream,
 
 /* This extends the KEYDATA vector with entries for the values
    which are being set or modified by dropping. */
-static int commit_stores(struct FD_KEYVAL *stores,int n_stores,
+static int commit_stores(struct FD_CONST_KEYVAL *stores,int n_stores,
                          struct FD_FILE_INDEX *f,
                          struct FD_OUTBUF *outstream,
                          struct KEYDATA *kdata,
@@ -878,7 +878,7 @@ static int commit_stores(struct FD_KEYVAL *stores,int n_stores,
 
 /* This extends the KEYDATA vector with entries for the values
    which are being set or modified by dropping. */
-static int commit_drops(struct FD_KEYVAL *drops,int n_drops,
+static int commit_drops(struct FD_CONST_KEYVAL *drops,int n_drops,
                         struct FD_FILE_INDEX *f,
                         struct FD_OUTBUF *outstream,
                         struct KEYDATA *kdata,
@@ -973,9 +973,9 @@ static void write_offsets(struct FD_FILE_INDEX *fx,
 /* Putting it all together */
 
 static int file_index_commit(struct FD_INDEX *ix,
-                             struct FD_KEYVAL *adds,int n_adds,
-                             struct FD_KEYVAL *drops,int n_drops,
-                             struct FD_KEYVAL *stores,int n_stores,
+                             struct FD_CONST_KEYVAL *adds,int n_adds,
+                             struct FD_CONST_KEYVAL *drops,int n_drops,
+                             struct FD_CONST_KEYVAL *stores,int n_stores,
                              lispval changed_metadata)
 {
   struct FD_FILE_INDEX *fx = (struct FD_FILE_INDEX *)ix;
@@ -983,29 +983,31 @@ static int file_index_commit(struct FD_INDEX *ix,
   unsigned int *new_offsets = NULL, gc_new_offsets = 0;
   int pos_offset = fx->index_n_slots*4, newcount;
   double started = u8_elapsed_time();
-  fd_lock_index(fx);
   /* Get the current offsets from the index */
+  if (n_adds+n_drops+n_stores) {
+    int kdata_i = 0, kdata_edits=0, n_changes = n_adds+n_drops+n_stores;
+    fd_lock_index(fx);
 #if HAVE_MMAP
-  if (fx->index_offsets) {
-    int i = 0, n = fx->index_n_slots;
-    /* We have to copy these if they're MMAPd, because
-       we can't modify them (while updating) otherwise.  */
-    new_offsets = u8_alloc_n((fx->index_n_slots),unsigned int);
-    gc_new_offsets = 1;
-    while (i<n) {
-      new_offsets[i]=offget(fx->index_offsets,i); i++;}}
+    if (fx->index_offsets) {
+      int i = 0, n = fx->index_n_slots;
+      /* We have to copy these if they're MMAPd, because
+         we can't modify them (while updating) otherwise.  */
+      new_offsets = u8_alloc_n((fx->index_n_slots),unsigned int);
+      gc_new_offsets = 1;
+      while (i<n) {
+        new_offsets[i]=offget(fx->index_offsets,i);
+        i++;}}
 #else
-  if (fx->index_offsets) {
-    fd_inbuf *instream = fd_readbuf(stream);
-    new_offsets = fx->index_offsets;
-    fd_start_read(stream,8);
-    fd_read_ints(instream,fx->ht_n_buckets,new_offsets);}
+    if (fx->index_offsets) {
+      fd_inbuf *instream = fd_readbuf(stream);
+      new_offsets = fx->index_offsets;
+      fd_start_read(stream,8);
+      fd_read_ints(instream,fx->ht_n_buckets,new_offsets);}
 #endif
-  int kdata_i = 0, n_changes = n_adds+n_drops+n_stores, kdata_add=0;
-  if (n_changes) {
+
     struct FD_OUTBUF *outstream = fd_writebuf(stream);
     struct KEYDATA *kdata = u8_alloc_n(n_changes,struct KEYDATA);
-    unsigned int *valpos= u8_alloc_n(n_changes,unsigned int);
+    unsigned int *valpos = u8_alloc_n(n_changes,unsigned int);
     int i=0; while ( i < n_adds ) {
       lispval key = adds[i].kv_key, val = adds[i].kv_val;
       kdata[kdata_i].key = key;
@@ -1017,7 +1019,7 @@ static int file_index_commit(struct FD_INDEX *ix,
       kdata[kdata_i].slotno = -1;
       kdata[kdata_i].pos = -1;
       i++; kdata_i++;}
-    kdata_add = kdata_i;
+    kdata_edits = kdata_i;
 
     if (n_stores)
       kdata_i = commit_stores(stores,n_stores,fx,outstream,kdata,valpos,kdata_i);
@@ -1038,16 +1040,16 @@ static int file_index_commit(struct FD_INDEX *ix,
     qsort(kdata,kdata_i,sizeof(struct KEYDATA),sort_keydata_serial);
 
     /* Set the .pos fields for edits, since we're not using them */
-    i = kdata_add; while (i<kdata_i) {
+    i = kdata_edits; while (i<kdata_i) {
       if (valpos[i])
         kdata[i].pos = ((fd_off_t)(valpos[i]-pos_offset));
       else kdata[i].pos = ((fd_off_t)0);
       i++;}
 
-    /* Now, scan the adds again and write the added values. */
+    /* Now, scan the adds again and write the added values to disk. */
     fd_off_t filepos = fd_endpos(stream);
-    i = 0; while (i < kdata_add) {
-      struct FD_OUTBUF *outstream = fd_writebuf(stream); 
+    i = 0; while (i < kdata_edits) {
+      struct FD_OUTBUF *outstream = fd_writebuf(stream);
       fd_off_t writepos = filepos;
       lispval add = kdata[i].add;
       int new_values;
@@ -1084,12 +1086,12 @@ static int file_index_commit(struct FD_INDEX *ix,
     fd_unlock_index(fx);
     if (valpos) u8_free(valpos);
     u8_free(kdata);
-    if (gc_new_offsets) u8_free(new_offsets);
 
     u8_log(fd_storage_loglevel,"FileIndexCommit",
            "Saved mappings for %d keys to %s in %f secs",
            n_changes,ix->indexid,u8_elapsed_time()-started);
 
+    if (gc_new_offsets) u8_free(new_offsets);
     return kdata_i;}
   else return 0;
 }
