@@ -689,7 +689,6 @@ static lispval threadfinish_prim(lispval args,lispval U8_MAYBE_UNUSED opts)
       if (TYPEP(arg,fd_thread_type)) {
         struct FD_THREAD_STRUCT *thread = (fd_thread_struct)thread;
         if (thread->finished<0) {
-          u8_byte buf[64];
           int retval = pthread_join(thread->tid,NULL);
           if (retval) {
             u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",

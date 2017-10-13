@@ -330,7 +330,7 @@ FD_EXPORT int _fd_grow_inbuf(struct FD_INBUF *b,size_t delta);
 
 FD_EXPORT int _fd_read_byte(struct FD_INBUF *buf);
 FD_EXPORT int _fd_unread_byte(struct FD_INBUF *buf,int byte);
-FD_EXPORT fd_4bytes _fd_read_4bytes(struct FD_INBUF *buf);
+FD_EXPORT long long _fd_read_4bytes(struct FD_INBUF *buf);
 FD_EXPORT fd_8bytes _fd_read_8bytes(struct FD_INBUF *buf);
 FD_EXPORT int _fd_read_bytes
   (unsigned char *bytes,struct FD_INBUF *buf,int len);
@@ -377,11 +377,12 @@ FD_FASTOP int fd_unread_byte(struct FD_INBUF *buf,int byte)
     return fd_iswritebuf(buf);
   else if ( (buf->bufread>buf->buffer) &&
        (buf->bufread[-1]==byte)) {
-    buf->bufread--; return 0;}
+    buf->bufread--;
+    return 0;}
   else return _fd_unread_byte(buf,byte);
 }
 
-FD_FASTOP fd_4bytes fd_read_4bytes(struct FD_INBUF *buf)
+FD_FASTOP long long fd_read_4bytes(struct FD_INBUF *buf)
 {
   if (FD_EXPECT_FALSE(FD_ISWRITING(buf)))
     return fd_iswritebuf(buf);

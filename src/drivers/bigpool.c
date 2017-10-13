@@ -1638,8 +1638,6 @@ static void reload_bigpool(fd_bigpool bp,int is_locked)
     return;}
   /* Make it NULL while we're messing with it */
   else bp->pool_offdata=NULL;
-  unsigned int cur_load = bp->pool_load;
-  size_t refsize = get_chunk_ref_size(bp);
   double start = u8_elapsed_time();
 #if HAVE_MMAP
   /* When we have MMAP, the offlen is always the whole cache */

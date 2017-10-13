@@ -72,10 +72,6 @@ static lispval return_error_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   return return_error_helper(expr,env,0);
 }
-static lispval extend_error_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
-{
-  return return_error_helper(expr,env,1);
-}
 
 static lispval return_irritant_helper(lispval expr,fd_lexenv env,
                                       int wrapped,int eval_args)
@@ -181,10 +177,6 @@ static lispval return_irritant_evalfn(lispval expr,fd_lexenv env,fd_stack _stack
 {
   return return_irritant_helper(expr,env,0,0);
 }
-static lispval extend_irritant_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
-{
-  return return_irritant_helper(expr,env,1,0);
-}
 
 static lispval onerror_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
@@ -271,7 +263,6 @@ static lispval ignore_errors_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   if (FD_THROWP(value))
     return value;
   else if (FD_ABORTP(value)) {
-    u8_exception ex = u8_current_exception;
     fd_clear_errors(0);
     if (FD_VOIDP(dflt))
       return FD_FALSE;
@@ -481,15 +472,6 @@ static lispval reraise_prim(lispval exo)
     fd_consptr(struct FD_EXCEPTION *,exo,fd_exception_type);
   fd_restore_exception(xo);
   return FD_ERROR_VALUE;
-}
-
-/* Getting an irritant without a stacktrace */
-
-static lispval get_irritant_prim(lispval exo)
-{
-  struct FD_EXCEPTION *xo=
-    fd_consptr(struct FD_EXCEPTION *,exo,fd_exception_type);
-  return fd_incref(xo->ex_irritant);
 }
 
 /* Clear errors */

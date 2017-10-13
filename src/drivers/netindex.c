@@ -164,7 +164,6 @@ static int netindex_save(struct FD_INDEX *ix,
         else result = fd_dtcall_nrx(nix->index_connpool,3,4,
                                     ixserver_reset,xname,key,val);
         if (FD_ABORTP(result)) {
-          u8_exception ex = u8_erreify();
           fd_clear_errors(1);}
         else n_transactions++;
         i++;}}}
@@ -179,7 +178,6 @@ static int netindex_save(struct FD_INDEX *ix,
           result = fd_dtcall(nix->index_connpool,3,iserver_drop,key,val);
         else result = fd_dtcall_x(nix->index_connpool,3,4,ixserver_drop,xname,key,val);
         if (FD_ABORTP(result)) {
-          u8_exception ex = u8_erreify();
           fd_clear_errors(1);}
         else n_transactions++;
         i++;}}}
