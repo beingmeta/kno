@@ -377,6 +377,8 @@ static fd_index recover_hashindex(u8_string fname,fd_storage_flags open_flags,
     char *src = u8_tolibc(fname);
     int out=open(src,O_RDWR);
     unsigned char num = 0x08;
+    /* Things get inconsistent if we combine regular write and pread,
+       so we use pwrite here. */
 #if HAVE_PREAD
     int rv = pwrite(out,&num,1,3);
 #else
@@ -1288,12 +1290,14 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
         fd_size_t next_size;
         fd_open_block(stream,&vblock,
                       vsched[i].vsched_chunk.off,
-                      vsched[i].vsched_chunk.size,1);
+                      vsched[i].vsched_chunk.size,
+                      1);
         n_vals = fd_read_zint(&vblock);
         while (j<n_vals) {
           lispval v = read_zvalue(hx,&vblock);
           if (CONSP(v)) vsched[i].vsched_atomicp = 0;
-          *((vsched[i].vsched_write)++) = v; j++;}
+          *((vsched[i].vsched_write)++) = v;
+          j++;}
         next_size = fd_read_zint(&vblock);
         if (next_size) {
           vsched[i].vsched_chunk.size = next_size;

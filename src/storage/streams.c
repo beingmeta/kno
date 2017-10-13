@@ -265,6 +265,41 @@ static int writeall(int fd,const unsigned char *data,int n)
   return n;
 }
 
+#if HAVE_PREAD
+static ssize_t pread_all(int fileno,unsigned char *buf,size_t len,size_t offset)
+{
+  size_t to_read = len, delta = 0;
+  unsigned char *point = buf;
+  while (to_read > 0) {
+    delta = pread(fileno,point,to_read,offset);
+    if (delta<0) break;
+    to_read -= delta;
+    offset  += delta;
+    point   = point + delta;}
+  if (delta>=0)
+    return len-to_read;
+  else return delta;
+}
+static ssize_t stream_pread(struct FD_STREAM *s,int locked,
+                            unsigned char *buf,size_t len,size_t offset)
+{
+  if ((FD_ISWRITING(&(s->buf.raw))) &&
+      ((offset+len)>(s->stream_filepos))) {
+    /* This is the case where the stream is being written to and we're
+       reading from beyond the position it's writing at. In this case,
+       we lock the stream to do our read, which will block until the
+       writer is done. At that point, we'll set the direction on the
+       stream which will flush any buffered output. */
+    ssize_t result;
+    if (!(locked)) fd_lock_stream(s);
+    fd_set_direction(s,fd_byteflow_read);
+    result = pread_all(s->stream_fileno,buf,len,offset);
+    if (!(locked)) fd_unlock_stream(s);
+    return result;}
+  else return pread_all(s->stream_fileno,buf,len,offset);
+}
+#endif
+
 /* Unwrappers */
 
 FD_EXPORT fd_inbuf _fd_readbuf(fd_stream s)
@@ -936,21 +971,7 @@ FD_EXPORT ssize_t fd_read_block(fd_stream s,unsigned char *buf,
                                 int stream_locked)
 {
 #if HAVE_PREAD
-  if ((!(stream_locked)) &&
-      (FD_ISWRITING(&(s->buf.raw))) &&
-      ((offset+count)>(s->stream_filepos))) {
-    /* This is the case where the stream is being written to and we're
-       reading from beyond the position it's writing at. In this case,
-       we lock the stream to do our read, which will block until the
-       writer is done. At that point, we'll set the direction on the
-       stream which will flush any buffered output. */
-    ssize_t result;
-    fd_lock_stream(s);
-    fd_set_direction(s,fd_byteflow_read);
-    result = pread(s->stream_fileno,buf,count,offset);
-    fd_unlock_stream(s);
-    return result;}
-  else return pread(s->stream_fileno,buf,count,offset);
+  return stream_pread(s,stream_locked,buf,count,offset);
 #else
   fd_off_t result = -1;
   if (!(stream_locked)) fd_lock_stream(s);
@@ -987,7 +1008,6 @@ FD_EXPORT fd_inbuf fd_open_block(fd_stream s,fd_inbuf in,
     in->buflim=in->buffer+offset+len;
     return in;}
 #if HAVE_PREAD
-  ssize_t result;
   unsigned char *buf;
   if ( ( in->buffer ) && (len < in->buflen) )
     buf=(unsigned char *)in->buffer;
@@ -996,21 +1016,10 @@ FD_EXPORT fd_inbuf fd_open_block(fd_stream s,fd_inbuf in,
       return NULL;
     buf=(unsigned char *)in->buffer;}
   in->buflim=buf; in->bufread=buf;
-  if ((!(stream_locked)) &&
-      (FD_ISWRITING(&(s->buf.raw))) &&
-      ((offset+len)>(s->stream_filepos))) {
-    /* This is the case where the stream is being written to and we're
-       reading from beyond the position it's writing at. In this case,
-       we lock the stream to do our read, which will block until the
-       writer is done. At that point, we'll set the direction on the
-       stream which will flush any buffered output. */
-    fd_lock_stream(s);
-    fd_set_direction(s,fd_byteflow_read);
-    result = pread(s->stream_fileno,buf,len,offset);
-    fd_unlock_stream(s);}
-  else result=pread(s->stream_fileno,buf,len,offset);
+  unsigned char *writebuf = (unsigned char *) in->buffer;
+  ssize_t result = stream_pread(s,stream_locked,writebuf,len,offset);
   if (result>=0) {
-    in->buflim=in->buffer+result;
+    in->buflim=in->buffer+len;
     return in;}
   else return NULL;
 #else
