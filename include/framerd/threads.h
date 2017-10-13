@@ -14,11 +14,11 @@
 FD_EXPORT fd_ptr_type fd_thread_type;
 FD_EXPORT fd_ptr_type fd_condvar_type;
 
-#define FD_THREAD_DONE       0x01
-#define FD_THREAD_ERROR      0x02
-#define FD_EVAL_THREAD       0x04
-#define FD_THREAD_TRACE_EXIT 0x80
-#define FD_THREAD_QUIET_EXIT 0x81
+#define FD_THREAD_DONE       0x0001
+#define FD_THREAD_ERROR      0x0002
+#define FD_EVAL_THREAD       0x0004
+#define FD_THREAD_TRACE_EXIT 0x0080
+#define FD_THREAD_QUIET_EXIT 0x0100
 
 typedef struct FD_THREAD_STRUCT {
   FD_CONS_HEADER;

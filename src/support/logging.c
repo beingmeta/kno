@@ -255,12 +255,12 @@ void setup_logging()
      fd_intconfig_get,fd_loglevelconfig_set,
      &u8_loglevel);
   fd_register_config
-    ("STDOUTLEVEL",
+    ("LOGLEVEL:STDOUT",
      _("Required priority for messages to be displayed on stdout"),
      fd_intconfig_get,fd_loglevelconfig_set,
      &u8_stdout_loglevel);
   fd_register_config
-    ("STDERRLEVEL",
+    ("LOGLEVEL:STDERR",
      _("Required priority for messages to be displayed on stderr"),
      fd_intconfig_get,fd_loglevelconfig_set,
      &u8_stderr_loglevel);
@@ -276,7 +276,7 @@ void setup_logging()
   fd_register_config
     ("LOGSUFFIX",_("Suffix for log messages (default ']\\n')"),
      fd_sconfig_get,fd_sconfig_set,&u8_logsuffix);
-  
+
   fd_register_config
     ("LOGDATE",_("Whether to show the date in log messages"),
      fd_boolconfig_get,fd_boolconfig_set,
@@ -293,6 +293,20 @@ void setup_logging()
     ("LOGELAPSED",_("Whether to show elapsed time in messages"),
      fd_boolconfig_get,fd_boolconfig_set,
      &u8_log_show_elapsed);
+
+  fd_register_config
+    ("LOG:DATE",_("Whether to show the date in log messages"),
+     fd_boolconfig_get,fd_boolconfig_set,
+     &u8_log_show_date);
+  fd_register_config
+    ("LOG:ELAPSED",_("Whether to show elapsed time in messages"),
+     fd_boolconfig_get,fd_boolconfig_set,
+     &u8_log_show_elapsed);
+  fd_register_config
+    ("LOG:THREADID",_("Whether to show thread id info in messages"),
+     fd_boolconfig_get,fd_boolconfig_set,
+     &u8_log_show_threadinfo);
+
 #if U8_THREAD_DEBUG
   fd_register_config
     ("THREAD_DEBUG",_("Whether to output thread debug messages"),
