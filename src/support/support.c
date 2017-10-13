@@ -184,12 +184,6 @@ void fd_init_support_c()
   fd_init_fluid_c();
 
   fd_register_config
-    ("MERGECHOICES",
-     _("Threshold at which to use an external hashset for merging"),
-     fd_intconfig_get,fd_intconfig_set,
-     &fd_mergesort_threshold);
-
-  fd_register_config
     ("MAXCHARS",_("Max number of chars to show in strings"),
      fd_intconfig_get,fd_intconfig_set,
      &fd_unparse_maxchars);

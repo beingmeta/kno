@@ -103,15 +103,9 @@
 #define FRAMERD_CHOICES_H_INFO "include/framerd/"
 #endif
 
-#ifndef FD_MERGESORT_THRESHOLD
-#define FD_MERGESORT_THRESHOLD 100000
-#endif
-
 #ifndef FD_FAST_CHOICE_CONTAINSP
 #define FD_FAST_CHOICE_CONTAINSP 0
 #endif
-
-FD_EXPORT int fd_mergesort_threshold;
 
 /* Choices */
 

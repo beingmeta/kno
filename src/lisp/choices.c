@@ -17,8 +17,6 @@
 #define MYSTERIOUS_MULTIPLIER 2654435769U
 #define FD_HASHSET_THRESHOLD 200000
 
-int fd_mergesort_threshold = FD_MERGESORT_THRESHOLD;
-
 static lispval normalize_choice(lispval x,int free_prechoice);
 
 #define lock_prechoice(ach) u8_lock_mutex(&((ach)->prechoice_lock))
@@ -475,7 +473,7 @@ static lispval normalize_choice(lispval x,int free_prechoice)
       ch->prechoice_normalized = fd_incref(result);
       if (ch->prechoice_uselock) unlock_prechoice(ch);
       return result;}
-    else if (1) { /* (ch->size<fd_mergesort_threshold)  */
+    else { /* (ch->size<fd_mergesort_threshold)  */
       /* If the choice is small enough, we can call convert_prechoice,
          which just appends the choices together and relies on sort
          and compression to remove duplicates.  We don't want to do
@@ -489,58 +487,7 @@ static lispval normalize_choice(lispval x,int free_prechoice)
       else {
         ch->prechoice_normalized = fd_incref(converted);
         if (ch->prechoice_uselock) unlock_prechoice(ch);
-        return converted;}}
-    else {
-      /* This is the hairy case, where you are actually merging a bunch
-         of choices.  You create a tmp_choice of all the non choices
-         and merge this with all the choice elements.*/
-      struct FD_CHOICE **choices, *_choices[16], *tmp_choice;
-      const lispval *scan = ch->prechoice_data;
-      const lispval *lim = ch->prechoice_write;
-      lispval result, *write;
-      int n_entries = ch->prechoice_write-ch->prechoice_data;
-      int n_vals = n_entries-ch->prechoice_nested;
-      int i = 0, n_choices;
-      /* Figure out how many choices we need to merge. */
-      if (n_vals)
-        n_choices = ch->prechoice_nested+1;
-      else n_choices = ch->prechoice_nested;
-      /* We try to use a stack mallocd choices vector. */
-      if (n_choices>16)
-        choices = u8_alloc_n(n_choices,struct FD_CHOICE *);
-      else choices=_choices;
-      /* If we are using a tmp_choice, we initialize it and fill it
-         while copying choice elements. */
-      if (n_vals) {
-        int flags = FD_CHOICE_DOSORT, atomicp = 1;
-        tmp_choice = fd_alloc_choice(n_vals);
-        write = (lispval *)FD_XCHOICE_DATA(tmp_choice);
-        choices[i++]=tmp_choice;
-        while (scan < lim)
-          if (CHOICEP(*scan)) {
-            choices[i++]=(struct FD_CHOICE *)(*scan); scan++;}
-          else {
-            if ((atomicp) && (!(ATOMICP(*scan)))) atomicp = 0;
-            *(write++)= *scan++;}
-        if (atomicp) flags = flags|FD_CHOICE_ISATOMIC;
-        else flags = flags|FD_CHOICE_ISCONSES;
-        fd_init_choice(tmp_choice,n_vals,FD_XCHOICE_DATA(tmp_choice),flags);}
-      /* Otherwise, just copy the choices into the vector. */
-      else while (scan < lim) {
-          choices[i++]=(struct FD_CHOICE *)(*scan); scan++;}
-      /* This does the merging of the sorted choices. */
-      result = fd_merge_choices(choices,n_choices);
-      /* We free the tmp_choice if we made it. */
-      if ((n_vals)&&(result!=((lispval)tmp_choice)))
-        u8_free((struct FD_CHOICE *)tmp_choice);
-      if (n_choices>16) u8_free(choices);
-      if (ch->prechoice_uselock) unlock_prechoice(ch);
-      if (free_prechoice) {
-        recycle_prechoice((fd_raw_cons)ch);
-        return result;}
-      else {
-        ch->prechoice_normalized = result;
-        return fd_incref(result);}}}
+        return converted;}}}
   else return x;
 }
 
