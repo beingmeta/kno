@@ -695,8 +695,8 @@ static lispval mongodb_update(lispval arg,lispval query,lispval update,
     bson_error_t error;
     int success = 0, no_error = boolopt(opts,softfailsym,0);
     mongoc_update_flags_t update_flags=
-      (MONGOC_UPDATE_NONE) ||
-      ((boolopt(opts,upsertsym,0))?(MONGOC_UPDATE_UPSERT):(0)) ||
+      (MONGOC_UPDATE_NONE) |
+      ((boolopt(opts,upsertsym,0))?(MONGOC_UPDATE_UPSERT):(0)) |
       ((boolopt(opts,singlesym,0))?(0):(MONGOC_UPDATE_MULTI_UPDATE));
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
       u8_log(-LOG_INFO,"MongoDB/update",
