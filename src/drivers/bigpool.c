@@ -1937,6 +1937,7 @@ static struct FD_POOL_HANDLER bigpool_handler={
   bigpool_lock, /* lock */
   bigpool_unlock, /* release */
   bigpool_storen, /* storen */
+  NULL, /* commit */
   NULL, /* swapout */
   bigpool_create, /* create */
   NULL,  /* walk */

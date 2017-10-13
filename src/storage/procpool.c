@@ -312,6 +312,7 @@ struct FD_POOL_HANDLER fd_procpool_handler={
   procpool_lock, /* lock */
   procpool_release, /* release */
   procpool_storen, /* storen */
+  NULL, /* commit */
   procpool_swapout, /* swapout */
   NULL, /* create */
   NULL,  /* walk */

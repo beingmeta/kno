@@ -248,6 +248,7 @@ struct FD_POOL_HANDLER fd_extpool_handler={
   extpool_lock, /* lock */
   extpool_unlock, /* release */
   NULL, /* storen */
+  NULL, /* commit */
   NULL, /* swapout */
   NULL, /* create */
   NULL,  /* walk */

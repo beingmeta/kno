@@ -1116,11 +1116,11 @@ FD_EXPORT int fd_index_commit(fd_index ix)
 
     double start_time = u8_elapsed_time();
 
-    retval = ix->index_handler->commit(ix,
-                                       (const_keyvals)adds,n_adds,
-                                       (const_keyvals)drops,n_drops,
-                                       (const_keyvals)stores,n_stores,
-                                       changed_metadata);
+    retval = ix->index_handler->save
+      (ix,(const_keyvals)adds,n_adds,
+       (const_keyvals)drops,n_drops,
+       (const_keyvals)stores,n_stores,
+       changed_metadata);
 
     if (retval<0)
       u8_log(LOG_CRIT,fd_IndexCommitError,
@@ -1324,6 +1324,7 @@ FD_EXPORT void fd_init_index(fd_index ix,
   ix->index_keyslot = VOID;
   ix->index_covers_slotids = VOID;
   ix->index_opts = FD_FALSE;
+  u8_init_mutex(&(ix->index_commit_lock));
 }
 
 FD_EXPORT void fd_reset_index_tables

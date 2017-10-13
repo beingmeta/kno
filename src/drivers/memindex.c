@@ -127,7 +127,7 @@ static struct FD_KEY_SIZE *memindex_fetchinfo(fd_index ix,fd_choice filter,int *
   return keysizes;
 }
 
-static int memindex_commit(struct FD_INDEX *ix,
+static int memindex_save(struct FD_INDEX *ix,
                             struct FD_CONST_KEYVAL *adds,int n_adds,
                             struct FD_CONST_KEYVAL *drops,int n_drops,
                             struct FD_CONST_KEYVAL *stores,int n_stores,
@@ -333,7 +333,8 @@ static fd_index memindex_create(u8_string spec,void *type_data,
 static struct FD_INDEX_HANDLER memindex_handler={
   "memindex", 1, sizeof(struct FD_MEMINDEX), 14,
   NULL, /* close */
-  memindex_commit, /* commit */
+  memindex_save, /* save */
+  NULL, /* commit */
   memindex_fetch, /* fetch */
   memindex_fetchsize, /* fetchsize */
   NULL, /* prefetch */

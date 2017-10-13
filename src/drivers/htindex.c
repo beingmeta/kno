@@ -73,7 +73,7 @@ static struct FD_KEY_SIZE *htindex_fetchinfo(fd_index ix,fd_choice filter,int *n
   return sizes;
 }
 
-static int htindex_commit(struct FD_INDEX *ix,
+static int htindex_save(struct FD_INDEX *ix,
                           struct FD_CONST_KEYVAL *adds,int n_adds,
                           struct FD_CONST_KEYVAL *drops,int n_drops,
                           struct FD_CONST_KEYVAL *stores,int n_stores,
@@ -83,11 +83,11 @@ static int htindex_commit(struct FD_INDEX *ix,
   if ((mix->index_source) && (mix->commitfn))
     return (mix->commitfn)(mix,mix->index_source);
   else {
-    fd_seterr(fd_EphemeralIndex,"htindex_commit",ix->indexid,VOID);
+    fd_seterr(fd_EphemeralIndex,"htindex_save",ix->indexid,VOID);
     return -1;}
 }
 
-static int htindex_commitfn(struct FD_HTINDEX *ix,u8_string file)
+static int htindex_savefn(struct FD_HTINDEX *ix,u8_string file)
 {
   struct FD_STREAM stream, *rstream;
   if ((ix->index_adds.table_n_keys>0) ||
@@ -120,7 +120,7 @@ static fd_index open_htindex(u8_string file,fd_storage_flags flags,lispval opts)
   if (mix->indexid) u8_free(mix->indexid);
   mix->indexid = u8_strdup(file);
   mix->index_source = u8_realpath(file,NULL);
-  mix->commitfn = htindex_commitfn;
+  mix->commitfn = htindex_savefn;
   mix->index_cache.ht_n_buckets = h->ht_n_buckets;
   mix->index_cache.table_n_keys = h->table_n_keys;
   mix->index_cache.table_load_factor = h->table_load_factor;
@@ -132,7 +132,8 @@ static fd_index open_htindex(u8_string file,fd_storage_flags flags,lispval opts)
 static struct FD_INDEX_HANDLER htindex_handler={
   "htindex", 1, sizeof(struct FD_HTINDEX), 14,
   NULL, /* close */
-  htindex_commit, /* commit */
+  htindex_save, /* save */
+  NULL, /* commit */
   NULL, /* fetch */
   NULL, /* fetchsize */
   NULL, /* prefetch */

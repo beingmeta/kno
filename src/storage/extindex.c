@@ -126,7 +126,7 @@ static lispval *extindex_fetchn(fd_index p,int n,const lispval *keys)
       return values;}}
 }
 
-static int extindex_commit(struct FD_INDEX *ix,
+static int extindex_save(struct FD_INDEX *ix,
                            struct FD_CONST_KEYVAL *adds,int n_adds,
                            struct FD_CONST_KEYVAL *drops,int n_drops,
                            struct FD_CONST_KEYVAL *stores,int n_stores,
@@ -175,7 +175,8 @@ static void recycle_extindex(fd_index ix)
 struct FD_INDEX_HANDLER fd_extindex_handler={
   "extindexhandler", 1, sizeof(struct FD_EXTINDEX), 14,
   NULL, /* close */
-  extindex_commit, /* commit */
+  extindex_save, /* save */
+  NULL, /* commit */
   extindex_fetch, /* fetch */
   NULL, /* fetchsize */
   NULL, /* prefetch */

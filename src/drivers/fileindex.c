@@ -972,7 +972,7 @@ static void write_offsets(struct FD_FILEINDEX *fx,
 
 /* Putting it all together */
 
-static int fileindex_commit(struct FD_INDEX *ix,
+static int fileindex_save(struct FD_INDEX *ix,
                              struct FD_CONST_KEYVAL *adds,int n_adds,
                              struct FD_CONST_KEYVAL *drops,int n_drops,
                              struct FD_CONST_KEYVAL *stores,int n_stores,
@@ -1080,7 +1080,7 @@ static int fileindex_commit(struct FD_INDEX *ix,
         fd_movepos(stream,-(4*(fx->index_n_slots)));
         retval = ftruncate(stream->stream_fileno,end-(4*(fx->index_n_slots)));
         if (retval<0)
-          u8_log(LOG_ERR,"fileindex_commit",
+          u8_log(LOG_ERR,"fileindex_save",
                  "Trouble truncating recovery information from %s",
                  fx->indexid);}}
     fd_unlock_index(fx);
@@ -1288,7 +1288,8 @@ static fd_index fileindex_create(u8_string spec,void *type_data,
 static struct FD_INDEX_HANDLER fileindex_handler={
   "fileindex", 1, sizeof(struct FD_FILEINDEX), 12,
   fileindex_close, /* close */
-  fileindex_commit, /* commit */
+  fileindex_save, /* save */
+  NULL, /* commit */
   fileindex_fetch, /* fetch */
   fileindex_fetchsize, /* fetchsize */
   NULL, /* prefetch */

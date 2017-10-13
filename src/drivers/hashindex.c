@@ -2150,7 +2150,7 @@ static int update_hashindex_metadata(fd_hashindex hx,struct FD_STREAM *stream);
 
 static void free_keybuckets(int n,struct KEYBUCKET **keybuckets);
 
-static int hashindex_commit(struct FD_INDEX *ix,
+static int hashindex_save(struct FD_INDEX *ix,
                             struct FD_CONST_KEYVAL *adds,int n_adds,
                             struct FD_CONST_KEYVAL *drops,int n_drops,
                             struct FD_CONST_KEYVAL *stores,int n_stores,
@@ -2159,7 +2159,7 @@ static int hashindex_commit(struct FD_INDEX *ix,
   struct FD_HASHINDEX *hx = (struct FD_HASHINDEX *)ix;
   u8_string fname=hx->index_source;
   if (!(u8_file_writablep(fname))) {
-    fd_seterr("CantWriteFile","hashindex_commit",fname,FD_VOID);
+    fd_seterr("CantWriteFile","hashindex_save",fname,FD_VOID);
     return -1;}
   struct FD_STREAM _stream = {0}, *stream =
     fd_init_file_stream(&_stream,fname,FD_FILE_WRITE,-1,-1);
@@ -2169,7 +2169,7 @@ static int hashindex_commit(struct FD_INDEX *ix,
   if (!((offtype == FD_B32)||(offtype = FD_B40)||(offtype = FD_B64))) {
     u8_log(LOG_WARN,"Corrupted hashindex (in memory)",
            "Bad offset type code=%d for %s",(int)offtype,hx->indexid);
-    u8_seterr("CorruptedHashIndex","hashindex_commit",u8_strdup(ix->indexid));
+    u8_seterr("CorruptedHashIndex","hashindex_save",u8_strdup(ix->indexid));
     fd_close_stream(stream,0);
     return -1;}
 
@@ -3141,7 +3141,8 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
 static struct FD_INDEX_HANDLER hashindex_handler={
   "hashindex", 1, sizeof(struct FD_HASHINDEX), 14,
   hashindex_close, /* close */
-  hashindex_commit, /* commit */
+  hashindex_save, /* save */
+  NULL, /* commit */
   hashindex_fetch, /* fetch */
   hashindex_fetchsize, /* fetchsize */
   NULL, /* prefetch */

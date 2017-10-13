@@ -946,11 +946,11 @@ FD_EXPORT int fd_pool_commit(fd_pool p,lispval oids)
     int rv = fd_pool_unlock(p,oids,leave_modified);
     return rv;}
   else {
-    u8_lock_mutex(&(p->pool_save_lock));
+    u8_lock_mutex(&(p->pool_commit_lock));
     if (locks->table_n_keys==0) {
       if (metadata_changed(p))
         p->pool_handler->storen(p,0,NULL,NULL);
-      u8_unlock_mutex(&(p->pool_save_lock));
+      u8_unlock_mutex(&(p->pool_commit_lock));
       return 0;}
     int retval = 0; double start_time = u8_elapsed_time();
     struct FD_POOL_WRITES writes=
@@ -974,7 +974,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,lispval oids)
              errno,u8_strerror(errno),p->poolid);
       u8_seterr(fd_PoolCommitError,"fd_pool_commit",u8_strdup(p->poolid));
       abort_commit(p,writes);
-      u8_unlock_mutex(&(p->pool_save_lock));
+      u8_unlock_mutex(&(p->pool_commit_lock));
       return retval;}
     else if (writes.len) {
       u8_log(fd_storage_loglevel,fd_PoolCommit,
@@ -982,7 +982,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,lispval oids)
              writes.len,p->poolid,u8_elapsed_time()-start_time);
       finish_commit(p,writes);}
     else {}
-    u8_unlock_mutex(&(p->pool_save_lock));
+    u8_unlock_mutex(&(p->pool_commit_lock));
     return retval;}
 }
 
@@ -1403,9 +1403,9 @@ FD_EXPORT int fd_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
   if (n==0) return 0;
   else if (p==NULL) return 0;
   else if ((p->pool_handler) && (p->pool_handler->storen)) {
-    u8_lock_mutex(&(p->pool_save_lock));
+    u8_lock_mutex(&(p->pool_commit_lock));
     int rv=p->pool_handler->storen(p,n,oids,values);
-    u8_unlock_mutex(&(p->pool_save_lock));
+    u8_unlock_mutex(&(p->pool_commit_lock));
     return rv;}
   else if (p->pool_handler) {
     u8_seterr("NoHandler","fd_pool_storen",u8_strdup(p->poolid));
@@ -1749,7 +1749,7 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
   fd_init_slotmap(&(p->pool_metadata),17,NULL);
   fd_init_slotmap(&(p->pool_props),17,NULL);
   u8_init_rwlock(&(p->pool_lock));
-  u8_init_mutex(&(p->pool_save_lock));
+  u8_init_mutex(&(p->pool_commit_lock));
 }
 
 FD_EXPORT void fd_set_pool_namefn(fd_pool p,lispval namefn)
@@ -2355,7 +2355,7 @@ static void init_zero_pool()
   _fd_zero_pool.pool_handler = &zero_pool_handler;
   _fd_zero_pool.pool_islocked = 0;
   u8_init_rwlock(&(_fd_zero_pool.pool_lock));
-  u8_init_mutex(&(_fd_zero_pool.pool_save_lock));
+  u8_init_mutex(&(_fd_zero_pool.pool_commit_lock));
   fd_init_hashtable(&(_fd_zero_pool.pool_cache),0,0);
   fd_init_hashtable(&(_fd_zero_pool.pool_changes),0,0);
   _fd_zero_pool.pool_n_adjuncts = 0;

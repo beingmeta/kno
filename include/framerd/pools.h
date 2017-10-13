@@ -159,9 +159,9 @@ typedef struct FD_ADJUNCT *fd_adjunct;
   short pool_cache_level;                               \
   unsigned char pool_islocked;                          \
   U8_RWLOCK_DECL(pool_lock);                            \
-  U8_MUTEX_DECL(pool_save_lock);                        \
+  U8_MUTEX_DECL(pool_commit_lock);                      \
   struct FD_HASHTABLE pool_cache, pool_changes;         \
-  struct FD_SLOTMAP pool_metadata, pool_props;  \
+  struct FD_SLOTMAP pool_metadata, pool_props;          \
   int pool_n_adjuncts, pool_adjuncts_len;               \
   struct FD_ADJUNCT *pool_adjuncts;                     \
   lispval pool_indexes;                                 \
@@ -222,9 +222,10 @@ typedef struct FD_POOL_HANDLER {
   int (*lock)(fd_pool p,lispval oids);
   int (*unlock)(fd_pool p,lispval oids);
   int (*storen)(fd_pool p,int n,lispval *oids,lispval *vals);
+  int (*commit)(fd_pool p,int phase);
   int (*swapout)(fd_pool p,lispval oids);
   fd_pool (*create)(u8_string spec,void *typedata,
-		    fd_storage_flags flags,lispval opts);
+                    fd_storage_flags flags,lispval opts);
   int (*walker)(fd_pool,fd_walker,void *,fd_walk_flags,int);
   void (*recycle)(fd_pool p);
   lispval (*poolctl)(fd_pool p,lispval op,int n,lispval *args);}
@@ -254,8 +255,8 @@ FD_EXPORT lispval fd_default_poolctl(fd_pool p,lispval op,int n,lispval *args);
 FD_EXPORT lispval fd_pool_base_metadata(fd_pool p);
 
 FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
-			    struct FD_POOL_HANDLER *h,
-			    u8_string id,u8_string source);
+                            struct FD_POOL_HANDLER *h,
+                            u8_string id,u8_string source);
 FD_EXPORT void fd_set_pool_namefn(fd_pool p,lispval namefn);
 
 FD_EXPORT int fd_for_pools(int (*fcn)(fd_pool,void *),void *data);
@@ -433,10 +434,10 @@ typedef struct FD_PROCPOOL *fd_procpool;
 
 FD_EXPORT
 fd_pool fd_make_procpool(FD_OID base,
-			 unsigned int cap,unsigned int load,
-			 lispval opts,lispval state,
-			 u8_string label,
-			 u8_string source);
+                         unsigned int cap,unsigned int load,
+                         lispval opts,lispval state,
+                         u8_string label,
+                         u8_string source);
 
 FD_EXPORT struct FD_POOL_HANDLER fd_procpool_handler;
 

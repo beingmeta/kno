@@ -45,6 +45,7 @@ FD_EXPORT int fd_index_adds_init;
   fd_storage_flags index_flags, modified_flags;                    \
   int index_serialno;                                              \
   short index_cache_level;                                         \
+  U8_MUTEX_DECL(index_commit_lock);                                \
   struct FD_HASHTABLE index_cache;                                 \
   struct FD_HASHTABLE index_adds, index_drops;                     \
   struct FD_HASHTABLE index_stores;                                \
@@ -67,11 +68,12 @@ typedef struct FD_KEY_SIZE *fd_key_size;
 typedef struct FD_INDEX_HANDLER {
   u8_string name; int version, length, n_handlers;
   void (*close)(fd_index ix);
-  int (*commit)(fd_index ix,
-		struct FD_CONST_KEYVAL *adds,int n_adds,
-		struct FD_CONST_KEYVAL *drops,int n_drops,
-		struct FD_CONST_KEYVAL *stores,int n_stores,
-		lispval metadata);
+  int (*save)(fd_index ix,
+              struct FD_CONST_KEYVAL *adds,int n_adds,
+              struct FD_CONST_KEYVAL *drops,int n_drops,
+              struct FD_CONST_KEYVAL *stores,int n_stores,
+              lispval metadata);
+  int (*commit)(fd_index ix,int phase);
   lispval (*fetch)(fd_index ix,lispval key);
   int (*fetchsize)(fd_index ix,lispval key);
   int (*prefetch)(fd_index ix,lispval keys);
@@ -80,7 +82,7 @@ typedef struct FD_INDEX_HANDLER {
   struct FD_KEY_SIZE *(*fetchinfo)(fd_index ix,struct FD_CHOICE *filter,int *n);
   int (*batchadd)(fd_index ix,lispval);
   fd_index (*create)(u8_string spec,void *type_data,
-		     fd_storage_flags flags,lispval opts);
+                     fd_storage_flags flags,lispval opts);
   int (*walker)(fd_index,fd_walker,void *,fd_walk_flags,int);
   void (*recycle)(fd_index p);
   lispval (*indexctl)(fd_index ix,lispval op,int n,lispval *args);}
@@ -100,6 +102,7 @@ FD_EXPORT lispval fd_index_hashop, fd_index_slotsop, fd_index_bucketsop;
 struct FD_INDEX_HANDLER some_handler={
   "somehandler", 1, sizeof(somestruct), 4,
   NULL, /* close */
+  NULL, /* save */
   NULL, /* commit */
   NULL, /* fetch */
   NULL, /* fetchsize */
@@ -204,9 +207,9 @@ FD_EXPORT struct FD_INDEX_HANDLER fd_procindex_handler;
 
 FD_EXPORT
 fd_index fd_make_procindex(lispval opts,lispval state,
-			   u8_string typeid,
-			   u8_string label,
-			   u8_string source);
+                           u8_string typeid,
+                           u8_string label,
+                           u8_string source);
 
 /* Compound indexes */
 
@@ -283,7 +286,7 @@ FD_FASTOP int fd_index_add(fd_index ix,lispval key,lispval value)
       FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
       tempkey.car = fd_index2lisp(ix); tempkey.cdr = akey;
       if (fd_hashtable_probe(&fdtc->indexes,(lispval)&tempkey)) {
-	fd_hashtable_add(&fdtc->indexes,(lispval)&tempkey,value);}}}
+        fd_hashtable_add(&fdtc->indexes,(lispval)&tempkey,value);}}}
 
   if ((ix->index_flags&FD_INDEX_IN_BACKGROUND) &&
       (fd_background->index_cache.table_n_keys)) {
@@ -300,7 +303,7 @@ FD_FASTOP int fd_index_add(fd_index ix,lispval key,lispval value)
   if ((!(FD_VOIDP(ix->index_covers_slotids))) &&
       (FD_EXPECT_TRUE(FD_PAIRP(key))) &&
       (FD_EXPECT_TRUE((FD_OIDP(FD_CAR(key))) ||
-		      (FD_SYMBOLP(FD_CAR(key)))))) {
+                      (FD_SYMBOLP(FD_CAR(key)))))) {
     if (!(atomic_choice_containsp(FD_CAR(key),ix->index_covers_slotids))) {
       fd_decref(ix->index_covers_slotids);
       ix->index_covers_slotids = FD_VOID;}}
