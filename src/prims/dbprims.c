@@ -32,7 +32,7 @@
 #include "libu8/u8printf.h"
 
 static lispval pools_symbol, indexes_symbol, id_symbol, drop_symbol;
-static lispval flags_symbol, register_symbol, readonly_symbol;
+static lispval flags_symbol, register_symbol, readonly_symbol, phased_symbol;
 static lispval background_symbol, adjunct_symbol, sparse_symbol;
 
 static lispval slotidp(lispval arg)
@@ -101,6 +101,8 @@ static fd_storage_flags getdbflags(lispval opts,fd_storage_flags init_flags)
     int is_index = (flags&FD_STORAGE_ISINDEX);
     if (testopt(opts,readonly_symbol,0))
       flags |= FD_STORAGE_READ_ONLY;
+    if (testopt(opts,phased_symbol,0))
+      flags |= FD_STORAGE_PHASED;
     if (!(testopt(opts,register_symbol,1)))
       flags |= FD_STORAGE_UNREGISTERED;
     if ( (is_index) && (testopt(opts,background_symbol,0)) )
@@ -3687,6 +3689,7 @@ FD_EXPORT void fd_init_dbprims_c()
   flags_symbol = fd_intern("FLAGS");
   register_symbol = fd_intern("REGISTER");
   readonly_symbol = fd_intern("READONLY");
+  phased_symbol = fd_intern("PHASED");
 
   sparse_symbol    = fd_intern("SPARSE");
   adjunct_symbol    = fd_intern("ADJUNCT");

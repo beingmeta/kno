@@ -1621,8 +1621,10 @@ FD_EXPORT int fd_close_pools()
   return fd_for_pools(do_close,NULL);
 }
 
-static int do_commit(fd_pool p,void *data)
+static int commit_each_pool(fd_pool p,void *data)
 {
+  /* Phased pools shouldn't be committed by themselves */
+  if ( (p->pool_flags) & (FD_STORAGE_PHASED) ) return 0;
   int retval = fd_pool_unlock_all(p,1);
   if (retval<0)
     if (data) {
@@ -1635,12 +1637,12 @@ static int do_commit(fd_pool p,void *data)
 
 FD_EXPORT int fd_commit_pools()
 {
-  return fd_for_pools(do_commit,(void *)NULL);
+  return fd_for_pools(commit_each_pool,(void *)NULL);
 }
 
 FD_EXPORT int fd_commit_pools_noerr()
 {
-  return fd_for_pools(do_commit,(void *)"NOERR");
+  return fd_for_pools(commit_each_pool,(void *)"NOERR");
 }
 
 static int do_unlock(fd_pool p,void *data)

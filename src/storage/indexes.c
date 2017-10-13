@@ -1461,8 +1461,10 @@ FD_EXPORT void fd_close_indexes()
   fd_for_indexes(close_index_handler,NULL);
 }
 
-static int commit_index_handler(fd_index ix,void *data)
+static int commit_each_index(fd_index ix,void *data)
 {
+  /* Phased indexes shouldn't be committed by themselves */
+  if ( (ix->index_flags) & (FD_STORAGE_PHASED) ) return 0;
   int *count = (int *) data;
   int retval = fd_index_commit(ix);
   if (retval<0)
@@ -1474,7 +1476,7 @@ static int commit_index_handler(fd_index ix,void *data)
 FD_EXPORT int fd_commit_indexes()
 {
   int count=0;
-  int rv=fd_for_indexes(commit_index_handler,&count);
+  int rv=fd_for_indexes(commit_each_index,&count);
   if (rv<0) return rv;
   else return count;
 }
@@ -1482,7 +1484,7 @@ FD_EXPORT int fd_commit_indexes()
 FD_EXPORT int fd_commit_indexes_noerr()
 {
   int count=0;
-  int rv=fd_for_indexes(commit_index_handler,&count);
+  int rv=fd_for_indexes(commit_each_index,&count);
   if (rv<0) return rv;
   else return count;
 }
