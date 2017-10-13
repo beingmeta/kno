@@ -117,9 +117,8 @@ FD_EXPORT int fd_mergesort_threshold;
 
 typedef struct FD_CHOICE {
   FD_CONS_HEADER;
-  unsigned int choice_size:30;
+  unsigned int choice_size:31;
   unsigned int choice_isatomic:1;
-  unsigned int choice_mmapped:1;
   lispval choice_0;} FD_CHOICE;
 typedef struct FD_CHOICE *fd_choice;
 
