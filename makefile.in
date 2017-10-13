@@ -63,7 +63,7 @@ LISP_HEADERS=\
  include/framerd/fdsource.h                          \
  include/framerd/config.h                            \
  include/framerd/common.h                            \
- include/framerd/exception.h                         \
+ include/framerd/exceptions.h                        \
  include/framerd/defines.h                           \
  include/framerd/support.h                           \
  include/framerd/numbers.h                           \
@@ -80,22 +80,24 @@ LISP_HEADERS=\
  include/framerd/bufio.h			     \
  include/framerd/dtypeio.h
 APPLY_HEADERS=\
- include/framerd/apply.h include/framerd/stacks.h \
- include/framerd/lexenv.h include/framerd/ffi.h
+ include/framerd/apply.h   \
+ include/framerd/stacks.h  \
+ include/framerd/lexenv.h  \
+ include/framerd/ffi.h
 STORAGE_HEADERS=\
  include/framerd/streams.h			\
  include/framerd/storage.h			\
  include/framerd/pools.h			\
  include/framerd/indexes.h			\
- include/framerd/bloom.h  			     \
+ include/framerd/bloom.h  			\
  include/framerd/dtproc.h			\
  include/framerd/dtcall.h			\
  include/framerd/frames.h			\
  include/framerd/methods.h
 
 DRIVERS_H=include/framerd/drivers.h
-SCHEME_HEADERS=include/framerd/eval.h include/framerd/opcodes.h \
-	include/framerd/seqprims.h
+SCHEME_HEADERS=include/framerd/eval.h include/framerd/threads.h \
+	include/framerd/opcodes.h include/framerd/seqprims.h
 LIB_HEADERS=include/framerd/texttools.h include/framerd/fdweb.h \
 		include/framerd/mongodb.h include/framerd/leveldb.h
 
