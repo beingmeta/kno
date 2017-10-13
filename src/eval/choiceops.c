@@ -716,7 +716,7 @@ static lispval difference_lexpr(int n,lispval *args)
 static lispval choice2vector(lispval x,lispval sortspec)
 {
   fd_compare_flags flags = fd_get_compare_flags(sortspec);
-  if (EMPTYP(x)) 
+  if (EMPTYP(x))
     return fd_init_vector(NULL,0,NULL);
   else if (PRECHOICEP(x)) {
     lispval normal = fd_make_simple_choice(x);
@@ -734,7 +734,7 @@ static lispval choice2vector(lispval x,lispval sortspec)
     else while (i<n) {
         vector_elts[i]=fd_incref(choice_elts[i]);
         i++;}
-    if ((VOIDP(sortspec))||(FALSEP(sortspec))) 
+    if ((VOIDP(sortspec))||(FALSEP(sortspec)))
       return vector;
     else {
       lispval_sort(vector_elts,n,flags);

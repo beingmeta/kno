@@ -51,28 +51,28 @@ FD_EXPORT lispval fd_getopt(lispval opts,lispval key,lispval dflt)
     return fd_getopt(FD_XQCHOICE(opts)->qchoiceval,key,dflt);
   else while (!(VOIDP(opts))) {
       if (PAIRP(opts)) {
-	lispval car = FD_CAR(opts);
-	if (SYMBOLP(car)) {
-	  if (FD_EQ(key,car))
-	    return FD_TRUE;
-	  else {}}
-	else if (PAIRP(car)) {
-	  if (FD_EQ(FD_CAR(car),key))
-	    return fd_incref(FD_CDR(car));
-	  else {
-	    lispval value = fd_getopt(car,key,VOID);
-	    if (!(VOIDP(value)))
-	      return value;}}
-	else if (TABLEP(car)) {
-	  lispval value = fd_get(car,key,VOID);
-	  if (!(VOIDP(value)))
-	    return value;}
-	else if ((FALSEP(car))||(NILP(car))) {}
-	else return fd_err(WeirdOption,"fd_getopt",NULL,car);
-	opts = FD_CDR(opts);}
+        lispval car = FD_CAR(opts);
+        if (SYMBOLP(car)) {
+          if (FD_EQ(key,car))
+            return FD_TRUE;
+          else {}}
+        else if (PAIRP(car)) {
+          if (FD_EQ(FD_CAR(car),key))
+            return fd_incref(FD_CDR(car));
+          else {
+            lispval value = fd_getopt(car,key,VOID);
+            if (!(VOIDP(value)))
+              return value;}}
+        else if (TABLEP(car)) {
+          lispval value = fd_get(car,key,VOID);
+          if (!(VOIDP(value)))
+            return value;}
+        else if ((FALSEP(car))||(NILP(car))) {}
+        else return fd_err(WeirdOption,"fd_getopt",NULL,car);
+        opts = FD_CDR(opts);}
       else if (SYMBOLP(opts))
         if (FD_EQ(key,opts))
-	  return FD_TRUE;
+          return FD_TRUE;
         else return fd_incref(dflt);
       else if (TABLEP(opts))
         return fd_get(opts,key,dflt);
@@ -97,25 +97,25 @@ static int boolopt(lispval opts,lispval key)
       else if (TABLEP(car)) {
         lispval value = fd_get(car,key,VOID);
         if (FALSEP(value))
-	  return 0;
+          return 0;
         else if (!(VOIDP(value))) {
           fd_decref(value);
-	  return 1;}}
+          return 1;}}
       else return fd_err(WeirdOption,"fd_getopt",NULL,car);
       opts = FD_CDR(opts);}
     else if (SYMBOLP(opts))
       if (FD_EQ(key,opts))
-	return 1;
+        return 1;
       else return 0;
     else if (TABLEP(opts)) {
       lispval value = fd_get(opts,key,VOID);
       if (FALSEP(value))
-	return 0;
+        return 0;
       else if (VOIDP(value))
-	return 0;
+        return 0;
       else {
-	fd_decref(value);
-	return 1;}}
+        fd_decref(value);
+        return 1;}}
     else if ((NILP(opts))||(FALSEP(opts)))
       return 0;
     else return fd_err(WeirdOption,"fd_getopt",NULL,opts);}
@@ -186,9 +186,14 @@ FD_EXPORT long long fd_getfixopt(lispval opts,u8_string name,long long dflt)
     return dflt;}
 }
 
-
-
 void fd_init_getopt_c()
 {
   u8_register_source_file(_FILEINFO);
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

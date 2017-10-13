@@ -293,7 +293,6 @@ FD_EXPORT int fd_init_exif()
   return 1;
 }
 
-
 /* Emacs local variables
    ;;;  Local variables: ***
    ;;;  compile-command: "make -C ../.. debug;" ***

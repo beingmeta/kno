@@ -171,12 +171,12 @@ static void kill_dependent_onsignal(int sig,siginfo_t *info,void *stuff)
 static struct sigaction sigaction_ignore;
 static struct sigaction sigaction_abraham;
 static struct sigaction sigaction_shutdown;
- 
+
 static void sigactions_init()
 {
   memset(&sigaction_ignore,0,sizeof(sigaction_ignore));
   sigaction_ignore.sa_handler = SIG_IGN;
-  
+
   memset(&sigaction_abraham,0,sizeof(sigaction_ignore));
   sigaction_abraham.sa_sigaction = kill_dependent_onsignal;
   sigaction_abraham.sa_flags = SA_SIGINFO;
@@ -228,7 +228,7 @@ static int check_for_injection()
                    "Error %s (%s) processing injection %s: %s\n\"%s\"",
                    ex->u8x_cond,ex->u8x_context,inject_file,
                    ex->u8x_details,content);
-          else if (ex->u8x_context!=NULL) 
+          else if (ex->u8x_context!=NULL)
             u8_log(LOGCRIT,"FDServlet/InjectionError",
                    "Error %s (%s) processing injection %s\n\"%s\"",
                    ex->u8x_cond,ex->u8x_context,inject_file,content);
@@ -439,7 +439,7 @@ static void write_cmd_file(int argc,char **argv)
     u8_string argstring = u8_fromlibc(arg);
     if (i>0) u8_putc(&out,' '); i++;
     if (need_escape(argstring)) {
-      u8_string scan = argstring; 
+      u8_string scan = argstring;
       int c = u8_sgetc(&scan); u8_putc(&out,'"');
       while (c>=0) {
         if (c=='\\') {

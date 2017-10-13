@@ -72,3 +72,10 @@ FD_EXPORT int fd_init_drivers()
 
   return dbs_initialized;
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

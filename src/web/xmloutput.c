@@ -1017,7 +1017,7 @@ static lispval output_javascript(u8_output out,lispval args,fd_lexenv env)
     else u8_printf(out,"%s(",CSTRING(head));
     {FD_DOELTS(elt,body,count) {
         lispval val;
-        if (i>0) u8_putc(out,','); 
+        if (i>0) u8_putc(out,',');
         i++;
         if (FD_NEED_EVALP(elt))
           val = fd_eval(elt,env);

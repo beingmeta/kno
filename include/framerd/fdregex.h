@@ -24,3 +24,10 @@ FD_EXPORT ssize_t fd_regex_matchlen(lispval pat,u8_string s,ssize_t len);
 FD_EXPORT off_t fd_regex_search(lispval pat,u8_string s,ssize_t len);
 
 #endif /* FRAMERD_FDREGEX_H */
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

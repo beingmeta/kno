@@ -119,3 +119,10 @@ typedef struct FD_COMPOUND_CONSTRUCTOR {
 typedef struct FD_COMPOUND_CONSTRUCTOR *fd_compound_constructor;
 
 #endif /* FRAMERD_DTYPEIO_H */
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

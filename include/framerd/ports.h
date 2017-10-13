@@ -30,3 +30,10 @@ FD_EXPORT void fd_log_backtrace(u8_exception ex,int loglevel,
 FD_EXPORT void fd_summarize_backtrace(U8_OUTPUT *out,u8_exception ex);
 
 #endif
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

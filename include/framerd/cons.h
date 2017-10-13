@@ -25,12 +25,12 @@
     this limit has not been a problem to date.  Two reference count values
     have special meanings:
       * a reference count of 0 means that the structure
-        is not dynamically allocated and shouldn't be reference counted.  It
-        is mostly used when a structure is allocated on the stack or with a
-        static top-level declaration.
+	is not dynamically allocated and shouldn't be reference counted.  It
+	is mostly used when a structure is allocated on the stack or with a
+	static top-level declaration.
       * a reference count of xx (the maximnum) indicates that the
-         CONS has been freed and is no longer in use.  Attempting to
-         increment or decrement such a reference count yields an error.
+	 CONS has been freed and is no longer in use.  Attempting to
+	 increment or decrement such a reference count yields an error.
     Because the reference count is in the high 30 bits, referencing and
     dereferencing actually increments or decrements the conshead by
     4, after checking for the boundary cases of a static CONS (zero reference
@@ -81,31 +81,31 @@
 FD_EXPORT u8_condition fd_MallocFailed, fd_StringOverflow, fd_StackOverflow;
 FD_EXPORT u8_condition fd_DoubleGC, fd_UsingFreedCons, fd_FreeingNonHeapCons;
 
-#define FD_GET_CONS(x,typecode,cast)					\
-  ((FD_EXPECT_TRUE(FD_TYPEP(x,typecode))) ?				\
-   ((cast)(FD_CONS_DATA(x))) :						\
+#define FD_GET_CONS(x,typecode,cast)                                    \
+  ((FD_EXPECT_TRUE(FD_TYPEP(x,typecode))) ?                             \
+   ((cast)(FD_CONS_DATA(x))) :                                          \
    ((cast)(fd_err(fd_TypeError,fd_type_names[typecode],NULL,x),NULL)))
 
 #define FD_STRIP_CONS(x,typecode,typecast) ((typecast)(FD_CONS_DATA(x)))
 
-#define FD_CHECK_TYPE_THROW(x,typecode)			 \
+#define FD_CHECK_TYPE_THROW(x,typecode)                  \
   if (FD_EXPECT_FALSE(!((FD_CONS_TYPE(x)) == typecode))) \
     u8_raise(fd_TypeError,fd_type_names[typecode],NULL)
 
-#define FD_CHECK_TYPE_RET(x,typecode)				    \
-  if (FD_EXPECT_FALSE(!((FD_CONS_TYPE(x)) == typecode))) {	    \
+#define FD_CHECK_TYPE_RET(x,typecode)                               \
+  if (FD_EXPECT_FALSE(!((FD_CONS_TYPE(x)) == typecode))) {          \
     fd_seterr(fd_TypeError,fd_type_names[typecode],NULL,(lispval)x); \
     return -1;}
 
-#define FD_CHECK_TYPE_RETDTYPE(x,typecode)				\
-  if (FD_EXPECT_FALSE(!((FD_CONS_TYPE(x)) == typecode)))		\
+#define FD_CHECK_TYPE_RETDTYPE(x,typecode)                              \
+  if (FD_EXPECT_FALSE(!((FD_CONS_TYPE(x)) == typecode)))                \
     return fd_err(fd_TypeError,fd_type_names[typecode],NULL,(lispval)x);
 
-#define FD_PTR2CONS(x,typecode,typecast)			    \
+#define FD_PTR2CONS(x,typecode,typecast)                            \
   (((typecode<0) || (FD_TYPEP(x,typecode))) ?                       \
-   ((typecast)(FD_CONS_DATA(x))) :				    \
+   ((typecast)(FD_CONS_DATA(x))) :                                  \
    ((typecast)(u8_raise(fd_TypeError,fd_type2name(typecode),NULL),  \
-                NULL)))
+		NULL)))
 
 /* External functions */
 
@@ -150,23 +150,23 @@ FD_EXPORT void _FD_SET_REFCOUNT(void *vptr,unsigned int count);
 #if FD_INLINE_REFCOUNTS && FD_LOCKFREE_REFCOUNTS
 #define FD_CBITS(x) (((fd_ref_cons)x)->conshead)
 #define FD_SET_CONS_TYPE(ptr,type) \
-  atomic_store							\
-  (&(FD_CBITS(ptr)),						\
-    (((atomic_load(&(FD_CBITS(ptr))))&(~(FD_CONS_TYPE_MASK)))|	\
+  atomic_store                                                  \
+  (&(FD_CBITS(ptr)),                                            \
+    (((atomic_load(&(FD_CBITS(ptr))))&(~(FD_CONS_TYPE_MASK)))|  \
      ((type-(FD_CONS_TYPE_OFF))&0x7f)))
 #define FD_SET_REFCOUNT(ptr,count) \
-  atomic_store							\
-  (&(FD_CBITS(ptr)),						\
-    (((atomic_load(&(FD_CBITS(ptr))))&(FD_CONS_TYPE_MASK))|	\
+  atomic_store                                                  \
+  (&(FD_CBITS(ptr)),                                            \
+    (((atomic_load(&(FD_CBITS(ptr))))&(FD_CONS_TYPE_MASK))|     \
      (count<<7)))
 #elif FD_INLINE_REFCOUNTS
 #define FD_SET_CONS_TYPE(ptr,type) \
-  ((fd_raw_cons)ptr)->conshead=				      \
+  ((fd_raw_cons)ptr)->conshead=                               \
     ((((fd_raw_cons)ptr)->conshead&(~(FD_CONS_TYPE_MASK)))) | \
     ((type-(FD_CONS_TYPE_OFF))&0x7f)
 #define FD_SET_REFCOUNT(ptr,count) \
-  ((fd_raw_cons)ptr)->conshead=					\
-    (((((fd_raw_cons)ptr)->conshead)&(FD_CONS_TYPE_MASK))|	\
+  ((fd_raw_cons)ptr)->conshead=                                 \
+    (((((fd_raw_cons)ptr)->conshead)&(FD_CONS_TYPE_MASK))|      \
      (count<<7))))
 #else
 #define FD_SET_CONS_TYPE(ptr,type) \
@@ -454,12 +454,12 @@ FD_EXPORT lispval lispval_string(u8_string string);
 #define fd_stream2string(stream) \
   ((((stream)->u8_streaminfo)&(U8_STREAM_OWNS_BUF))?                    \
    (fd_block_string((((stream)->u8_write)-((stream)->u8_outbuf)),      \
-                   ((stream)->u8_outbuf))):                             \
+		   ((stream)->u8_outbuf))):                             \
    (fd_make_string(NULL,(((stream)->u8_write)-((stream)->u8_outbuf)),  \
-                   ((stream)->u8_outbuf))))
+		   ((stream)->u8_outbuf))))
 #define fd_stream_string(stream) \
   (fd_make_string(NULL,(((stream)->u8_write)-((stream)->u8_outbuf)),   \
-                  ((stream)->u8_outbuf)))
+		  ((stream)->u8_outbuf)))
 #define fdstring(s) (fd_make_string(NULL,-1,(s)))
 
 #define fd_lispstring(s) fd_init_string(NULL,-1,(s))
@@ -511,7 +511,7 @@ typedef struct FD_PAIR *fd_pair;
 #define FD_TRY_CAR(x) \
   ((FD_PAIRP(x)) ? ((FD_CONSPTR(FD_PAIR *,(x)))->car) : (FD_VOID))
 #define FD_TRY_CDR(x) \
-  ((FD_PAIRP(x)) ? ((FD_CONSPTR(fd_pair,(x)))->cdr) :	\
+  ((FD_PAIRP(x)) ? ((FD_CONSPTR(fd_pair,(x)))->cdr) :   \
    (FD_VOID))
 FD_FASTOP lispval FD_CADR(lispval x)
 {
@@ -556,7 +556,7 @@ FD_FASTOP lispval FD_CAAR(lispval x)
 #define FD_DOLIST(x,list) \
   lispval x, _tmp = list; \
   while ((FD_PAIRP(_tmp)) ? \
-         (x = FD_CAR(_tmp),_tmp = FD_CDR(_tmp),1) : 0)
+	 (x = FD_CAR(_tmp),_tmp = FD_CDR(_tmp),1) : 0)
 
 FD_EXPORT lispval fd_init_pair(struct FD_PAIR *ptr,lispval car,lispval cdr);
 FD_EXPORT lispval fd_make_pair(lispval car,lispval cdr);
@@ -624,21 +624,21 @@ FD_EXPORT lispval fd_make_nrail(int len,...);
   if (FD_PAIRP(seq)) {                           \
      _islist = 1; _scan=_seq; _ok = 1;}              \
   else if ((FD_VECTORP(_seq))||                  \
-           (FD_CODEP(_seq))) {			 \
+	   (FD_CODEP(_seq))) {                   \
     _lim = FD_VECTOR_LENGTH(_seq);                 \
     _elts = FD_VECTOR_DATA(_seq);                  \
     _ok = 1;}                                      \
   else if ((FD_EMPTY_LISTP(_seq))||              \
-           (FD_EMPTY_CHOICEP(_seq))) {           \
+	   (FD_EMPTY_CHOICEP(_seq))) {           \
     _ok = -1;}                                     \
   else u8_log(LOG_WARN,fd_TypeError,             \
-              "Not a pair or vector: %q",_seq);  \
+	      "Not a pair or vector: %q",_seq);  \
   if (_ok<0) {}                                  \
   else if (!(_ok)) {}                            \
   else while (((_islist)?(FD_PAIRP(_scan)):(counter<_lim))? \
 	      (evar = (_islist)?(FD_CAR(_scan)):(_elts[_i]),  \
 	       _scan = ((_islist)?(FD_CDR(_scan)):(FD_VOID)), \
-	       counter=_i++,1):				    \
+	       counter=_i++,1):                             \
 	      (0))
 
 /* Compounds */
@@ -828,14 +828,14 @@ FD_EXPORT void fd_decref_embedded_exception(void *ptr);
 
 #define FD_EXCEPTIONP(x) (FD_TYPEP((x),fd_exception_type))
 
-#define FD_XDATA_ISLISP(ex)					\
-  ( ((ex)->u8x_free_xdata == fd_decref_u8x_xdata) ||	\
+#define FD_XDATA_ISLISP(ex)                                     \
+  ( ((ex)->u8x_free_xdata == fd_decref_u8x_xdata) ||    \
     ((ex)->u8x_free_xdata == fd_decref_embedded_exception) )
 
 #define FD_U8X_STACK(ex) \
   (((ex)->u8x_free_xdata != fd_decref_embedded_exception) ? (FD_VOID) : \
-   (FD_TYPEP(((lispval)((ex)->u8x_xdata)),fd_exception_type)) ?		\
-   (((fd_exception)((ex)->u8x_xdata))->ex_stack) :		\
+   (FD_TYPEP(((lispval)((ex)->u8x_xdata)),fd_exception_type)) ?         \
+   (((fd_exception)((ex)->u8x_xdata))->ex_stack) :              \
    (FD_VOID))
 
 FD_EXPORT void fd_restore_exception(struct FD_EXCEPTION *exo);
@@ -874,8 +874,8 @@ typedef struct FD_RAWPTR {
 typedef struct FD_RAWPTR *fd_rawptr;
 
 FD_EXPORT lispval fd_wrap_pointer(void *ptrval,
-                                 fd_raw_recyclefn recycler,
-                                 lispval typespec,
+				 fd_raw_recyclefn recycler,
+				 lispval typespec,
 				 u8_string idstring);
 
 /* Compounds */
@@ -887,7 +887,7 @@ typedef lispval (*fd_compound_dumpfn)(lispval,fd_compound_typeinfo);
 typedef lispval (*fd_compound_restorefn)(lispval,lispval,fd_compound_typeinfo);
 
 typedef struct FD_COMPOUND_TYPEINFO {
-  lispval compound_typetag, compound_metadata; 
+  lispval compound_typetag, compound_metadata;
   int compound_corelen;
   fd_compound_parsefn compound_parser;
   fd_compound_unparsefn compound_unparser;
@@ -967,9 +967,9 @@ static int base_compare(lispval x,lispval y)
 	else if (xlen < ylen)
 	  return -1;
 	int minlen = (xlen < ylen) ? (xlen) : (ylen);
-        while (i < minlen) {
+	while (i < minlen) {
 	  int cmp = FD_QCOMPARE(xdata[i],ydata[i]);
-          if (cmp)
+	  if (cmp)
 	    return cmp;
 	  else i++;}
 	return 0;}
@@ -1022,9 +1022,9 @@ static int cons_compare(lispval x,lispval y)
 	else if (xlen<ylen)
 	  return -1;
 	int minlen = (xlen < ylen) ? (xlen) : (ylen);
-        while (i < minlen) {
+	while (i < minlen) {
 	  int cmp = base_compare(xdata[i],ydata[i]);
-          if (cmp)
+	  if (cmp)
 	    return cmp;
 	  else i++;}
 	return 0;}
@@ -1059,3 +1059,10 @@ FD_EXPORT lispval fd_zero_pool_value(lispval oid);
 FD_EXPORT lispval fd_zero_pool_store(lispval oid,lispval value);
 
 #endif /* ndef FRAMERD_CONS_H */
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

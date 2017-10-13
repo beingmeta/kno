@@ -91,7 +91,7 @@ static lispval unpack_compound(lispval x,lispval tag)
   else {
     int len = compound->compound_length;
     lispval *elts = &(compound->compound_0), result = VOID;
-    if (compound->compound_ismutable) 
+    if (compound->compound_ismutable)
       u8_lock_mutex(&(compound->compound_lock));
     {
       lispval *scan = elts, *lim = elts+len; while (scan<lim) {
@@ -422,7 +422,6 @@ FD_EXPORT void fd_init_compounds_c()
                            compound_set_stringfn_prim,2,
                            -1,VOID,-1,VOID));
 }
-
 
 /* Emacs local variables
    ;;;  Local variables: ***

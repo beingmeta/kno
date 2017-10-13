@@ -72,4 +72,9 @@ int fd_index_frame(fd_index ix,lispval frame,lispval slotid,lispval values);
 
 #endif /* FRAMERD_FRAMES_H */
 
-
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

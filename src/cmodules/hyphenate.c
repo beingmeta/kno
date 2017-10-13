@@ -155,7 +155,7 @@ static lispval hyphenout_prim(lispval string_arg,lispval hyphen_arg)
   int len = FD_STRLEN(string_arg);
   int hyphen_char = FD_CHAR2CODE(hyphen_arg);
   const u8_byte *scan = string;
-  struct U8_OUTPUT word; 
+  struct U8_OUTPUT word;
   int c = u8_sgetc(&scan);
   if (len==0) return FD_VOID;
   while ((c>=0)&&(!(u8_isalnum(c)))) {

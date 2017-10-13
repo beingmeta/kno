@@ -372,9 +372,9 @@ static lispval profiled_eval_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
 }
 
 #if __clang__
-#define DONT_OPTIMIZE  __attribute__((optnone)) 
+#define DONT_OPTIMIZE  __attribute__((optnone))
 #else
-#define DONT_OPTIMIZE __attribute__((optimize("O0"))) 
+#define DONT_OPTIMIZE __attribute__((optimize("O0")))
 #endif
 
 /* These are for wrapping around Scheme code to see in C profilers */
@@ -1208,8 +1208,8 @@ FD_EXPORT lispval fd_make_evalfn(u8_string name,fd_eval_handler fn)
 {
   struct FD_EVALFN *f = u8_alloc(struct FD_EVALFN);
   FD_INIT_CONS(f,fd_evalfn_type);
-  f->evalfn_name = u8_strdup(name); 
-  f->evalfn_filename = NULL; 
+  f->evalfn_name = u8_strdup(name);
+  f->evalfn_filename = NULL;
   f->evalfn_handler = fn;
   return LISP_CONS(f);
 }
@@ -1218,8 +1218,8 @@ FD_EXPORT void fd_defspecial(lispval mod,u8_string name,fd_eval_handler fn)
 {
   struct FD_EVALFN *f = u8_alloc(struct FD_EVALFN);
   FD_INIT_CONS(f,fd_evalfn_type);
-  f->evalfn_name = u8_strdup(name); 
-  f->evalfn_handler = fn; 
+  f->evalfn_name = u8_strdup(name);
+  f->evalfn_handler = fn;
   f->evalfn_filename = NULL;
   fd_store(mod,fd_intern(name),LISP_CONS(f));
   fd_decref(LISP_CONS(f));
@@ -1231,8 +1231,8 @@ FD_EXPORT void fd_new_evalfn(lispval mod,u8_string name,
 {
   struct FD_EVALFN *f = u8_alloc(struct FD_EVALFN);
   FD_INIT_CONS(f,fd_evalfn_type);
-  f->evalfn_name = u8_strdup(name); 
-  f->evalfn_handler = fn; 
+  f->evalfn_name = u8_strdup(name);
+  f->evalfn_handler = fn;
   f->evalfn_filename = filename;
   f->evalfn_documentation = doc;
   fd_store(mod,fd_intern(name),LISP_CONS(f));
@@ -1259,10 +1259,10 @@ static lispval boundp_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     lispval val = fd_symeval(symbol,env);
     if ((VOIDP(val))||(val == FD_DEFAULT_VALUE))
       return FD_FALSE;
-    else if (val == FD_UNBOUND) 
+    else if (val == FD_UNBOUND)
       return FD_FALSE;
     else {
-      fd_decref(val); 
+      fd_decref(val);
       return FD_TRUE;}}
 }
 
@@ -1675,15 +1675,15 @@ FD_EXPORT lispval fd_open_dtserver(u8_string server,int bufsiz)
       u8_free(dts);
       return -1;}}
   else server_addr = u8_strdup(server);
-  dts->dtserverid = u8_strdup(server); 
+  dts->dtserverid = u8_strdup(server);
   dts->dtserver_addr = server_addr;
   /* Then try to connect, just to see if that works */
   socket = u8_connect_x(server,&(dts->dtserver_addr));
   if (socket<0) {
     /* If connecting fails, signal an error rather than creating
        the dtserver connection pool. */
-    u8_free(dts->dtserverid); 
-    u8_free(dts->dtserver_addr); 
+    u8_free(dts->dtserverid);
+    u8_free(dts->dtserver_addr);
     u8_free(dts);
     return fd_err(fd_ConnectionFailed,"fd_open_dtserver",
                   u8_strdup(server),VOID);}
@@ -1694,7 +1694,7 @@ FD_EXPORT lispval fd_open_dtserver(u8_string server,int bufsiz)
   /* If creating the connection pool fails for some reason,
      cleanup and return an error value. */
   if (dts->connpool == NULL) {
-    u8_free(dts->dtserverid); 
+    u8_free(dts->dtserverid);
     u8_free(dts->dtserver_addr);
     u8_free(dts);
     return FD_ERROR;}
@@ -1932,7 +1932,7 @@ static int check_num(lispval arg,int num)
     return -1;}
   else {
     int n = FIX2INT(arg);
-    if (num>=n) 
+    if (num>=n)
       return 1;
     else return 0;}
 }
@@ -1940,21 +1940,21 @@ static int check_num(lispval arg,int num)
 static lispval check_version_prim(int n,lispval *args)
 {
   int rv = check_num(args[0],FD_MAJOR_VERSION);
-  if (rv<0) return FD_ERROR; 
+  if (rv<0) return FD_ERROR;
   else if (rv==0) return FD_FALSE;
   else if (n==1) return FD_TRUE;
   else rv = check_num(args[1],FD_MINOR_VERSION);
-  if (rv<0) return FD_ERROR; 
+  if (rv<0) return FD_ERROR;
   else if (rv==0) return FD_FALSE;
   else if (n==2) return FD_TRUE;
   else rv = check_num(args[2],FD_RELEASE_VERSION);
-  if (rv<0) return FD_ERROR; 
+  if (rv<0) return FD_ERROR;
   else if (rv==0) return FD_FALSE;
   else if (n==3) return FD_TRUE;
   else rv = check_num(args[2],FD_RELEASE_VERSION-1);
   /* The fourth argument should be a patch level, but we're not
      getting that in builds yet. So if there are more arguments,
-     we see if required release number is larger than release-1 
+     we see if required release number is larger than release-1
      (which means that we should be okay, since patch levels
      are reset with releases. */
   if (rv<0) return FD_ERROR;
@@ -2014,7 +2014,7 @@ static lispval choiceref_prim(lispval arg,lispval off)
         lispval elt = FD_XCHOICE_DATA(ch)[i];
         return fd_incref(elt);}}
     else if (PRECHOICEP(arg)) {
-      lispval simplified = fd_make_simple_choice(arg); 
+      lispval simplified = fd_make_simple_choice(arg);
       lispval result = choiceref_prim(simplified,off);
       fd_decref(simplified);
       return result;}

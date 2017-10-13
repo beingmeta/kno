@@ -35,16 +35,16 @@ static lispval poolopt(lispval opts,u8_string name)
 
 FD_EXPORT
 fd_pool fd_make_procpool(FD_OID base,
-			 unsigned int cap,unsigned int load,
-			 lispval opts,lispval state,
-			 u8_string label,
-			 u8_string source)
+                         unsigned int cap,unsigned int load,
+                         lispval opts,lispval state,
+                         u8_string label,
+                         u8_string source)
 {
   if (load>cap) {
     u8_seterr(fd_PoolOverflow,"fd_make_procpool",
-	      u8_sprintf(NULL,256,
-			 "Specified load (%u) > capacity (%u) for '%s'",
-			 load,cap,(source)?(source):(label)));
+              u8_sprintf(NULL,256,
+                         "Specified load (%u) > capacity (%u) for '%s'",
+                         load,cap,(source)?(source):(label)));
     return NULL;}
 
   struct FD_PROCPOOL *pp = u8_alloc(struct FD_PROCPOOL);
@@ -58,8 +58,8 @@ fd_pool fd_make_procpool(FD_OID base,
       source = CSTRING(source_opt);}
 
   fd_init_pool((fd_pool)pp,base,cap,
-	       &fd_procpool_handler,
-	       label,source);
+               &fd_procpool_handler,
+               label,source);
 
   if (fd_testopt(opts,FDSYM_CACHELEVEL,FD_VOID)) {
     lispval v = fd_getopt(opts,FDSYM_CACHELEVEL,FD_VOID);
@@ -70,8 +70,8 @@ fd_pool fd_make_procpool(FD_OID base,
       pp->pool_cache_level=ival;}
     else if ( (FD_TRUEP(v)) || (v == FD_DEFAULT_VALUE) ) {}
     else u8_log(LOGCRIT,"BadCacheLevel",
-		"Invalid cache level %q specified for procpool %s",
-		v,label);
+                "Invalid cache level %q specified for procpool %s",
+                v,label);
     fd_decref(v);}
 
   if (fd_testopt(opts,fd_intern("ADJUNCT"),FD_VOID))
@@ -109,8 +109,8 @@ fd_pool fd_make_procpool(FD_OID base,
       pp->pool_typeid = u8_strdup(FD_SYMBOL_NAME(idval));
     else if (FD_OIDP(idval)) {
       FD_OID addr = FD_OID_ADDR(idval);
-      pp->pool_typeid = 
-	u8_mkstring("@%lx/%lx",FD_OID_HI(addr),FD_OID_LO(addr));}
+      pp->pool_typeid =
+        u8_mkstring("@%lx/%lx",FD_OID_HI(addr),FD_OID_LO(addr));}
     else u8_log(LOGWARN,"BadPoolTypeID","%q",idval);
     fd_decref(idval);}
 
@@ -143,9 +143,9 @@ static lispval *procpool_fetchn(fd_pool p,int n,lispval *oids)
     if (VECTORP(result)) {
       lispval *vals = u8_alloc_n(n,lispval);
       int i = 0; while (i<n) {
-	lispval val = VEC_REF(result,i);
-	FD_VECTOR_SET(result,i,VOID);
-	vals[i++]=val;}
+        lispval val = VEC_REF(result,i);
+        FD_VECTOR_SET(result,i,VOID);
+        vals[i++]=val;}
       fd_decref(result);
       return vals;}
     else {
@@ -323,3 +323,10 @@ FD_EXPORT void fd_init_procpool_c()
 {
   u8_register_source_file(_FILEINFO);
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

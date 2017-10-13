@@ -61,3 +61,9 @@ struct OIDPOOL_FETCH_SCHEDULE {
 struct OIDPOOL_SAVEINFO {
   FD_CHUNK_REF chunk; unsigned int oidoff;} OIDPOOL_SAVEINFO;
 
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

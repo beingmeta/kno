@@ -144,7 +144,7 @@ fd_init_bloom_filter(struct FD_BLOOM *use_bloom,int entries,double error)
     return NULL;}
   else if (error <= 0) {
     fd_seterr(fd_TypeError,"fd_bloom_init","bad allowed error value",
-	      fd_make_double(error));
+              fd_make_double(error));
     return NULL;}
   else if (use_bloom == NULL)
     bloom = u8_alloc(struct FD_BLOOM);
@@ -184,7 +184,7 @@ fd_init_bloom_filter(struct FD_BLOOM *use_bloom,int entries,double error)
 /* Adding and checking primitives */
 
 int bloom_check_add_dtype(struct FD_BLOOM *bloom,lispval key,
-			  int add,int raw,int err)
+                          int add,int raw,int err)
 {
   int rv=0;
   if (raw) {
@@ -194,7 +194,7 @@ int bloom_check_add_dtype(struct FD_BLOOM *bloom,lispval key,
       rv=bloom_check_add(bloom,FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),add);
     else if (err) {
       fd_seterr("Raw bloom arg wasn't a string or packet",
-		"bloom_check_add_dtype",NULL,key);
+                "bloom_check_add_dtype",NULL,key);
       return -1;}
     if (rv<0)
       u8_seterr("BadBloomFilter","bloom_check_add_dtype",NULL);
@@ -204,8 +204,8 @@ int bloom_check_add_dtype(struct FD_BLOOM *bloom,lispval key,
     size_t dtype_len = fd_write_dtype(&out,key);
     if ( PRED_FALSE (dtype_len<0) ) {
       if (err) {
-	if (u8_current_exception) u8_pop_exception();
-	return 0;}
+        if (u8_current_exception) u8_pop_exception();
+        return 0;}
       else return -1;}
     else if (out.buf_flags&FD_BUFFER_IS_MALLOCD) {
       int rv=bloom_check_add(bloom,out.buffer,out.bufwrite-out.buffer,add);
@@ -229,10 +229,10 @@ FD_EXPORT int fd_bloom_op(struct FD_BLOOM * bloom, lispval key,int flags)
     DO_CHOICES(elt,key) {
       int rv=bloom_check_add_dtype(bloom, elt, add, raw, err);
       if (rv<0) {
-	FD_STOP_DO_CHOICES;
-	return rv;}
+        FD_STOP_DO_CHOICES;
+        return rv;}
       else if ( (rv) && (check) )
-	return 1;
+        return 1;
       else if ( (add) && (rv==0) ) count++;
       else if ( (!(add)) && (rv==1) ) count++;
       else {}}
@@ -256,10 +256,10 @@ int unparse_bloom(u8_output out,lispval x)
 {
   struct FD_BLOOM *filter = (struct FD_BLOOM *)x;
   u8_printf(out,"#<BLOOM #!%llx %lld/%lld(%f)>",
-	    (U8_PTR2INT(filter)),
-	    filter->bloom_adds,
-	    filter->entries,
-	    filter->error);
+            (U8_PTR2INT(filter)),
+            filter->bloom_adds,
+            filter->entries,
+            filter->error);
   return 1;
 }
 
@@ -305,4 +305,9 @@ void fd_init_bloom_c()
  * Refer to bloom.h for documentation on the public interfaces.
  */
 
-
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

@@ -79,3 +79,9 @@ int fd_pprint_table(u8_output out,lispval x,
 
 #endif /* ndef FRAMERD_PPRINT_H */
 
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

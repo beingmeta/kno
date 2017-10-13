@@ -107,3 +107,10 @@ FD_EXPORT u8_condition fd_FileNotFound, fd_NoSuchFile;
 #include "exceptions.h"
 
 #endif /* ndef FRAMERD_COMMON_H */
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

@@ -64,7 +64,7 @@ static void init_symbol_tables()
     lispval *new_symbol_names = u8_alloc_n(new_max,lispval);
     int i = 0, lim = new_size; while (i < lim) new_entries[i++]=NULL;
     i = 0; lim = new_max; while (i < lim) new_symbol_names[i++]=VOID;
-    fd_symbol_table.table_size = new_size; 
+    fd_symbol_table.table_size = new_size;
     fd_symbol_table.fd_symbol_entries = new_entries;
     fd_symbol_names = new_symbol_names; fd_max_symbols = new_max;
     u8_rw_unlock(&fd_symbol_lock);

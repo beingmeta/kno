@@ -431,7 +431,7 @@ static int unparse_compound(struct U8_OUTPUT *out,lispval x)
       lispval elt = data[i++];
       if (0) { /* (PACKETP(elt)) */
         struct FD_STRING *packet = fd_consptr(fd_string,elt,fd_packet_type);
-        const unsigned char *bytes = packet->str_bytes; 
+        const unsigned char *bytes = packet->str_bytes;
         int n_bytes = packet->str_bytelen;
         u8_puts(out," ");
         fd_unparse_packet(out,bytes,n_bytes,16);}

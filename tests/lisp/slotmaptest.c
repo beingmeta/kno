@@ -95,3 +95,10 @@ int main(int argc,char **argv)
   free_val(smap);
   exit(0);
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

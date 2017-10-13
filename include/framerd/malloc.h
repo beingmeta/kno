@@ -13,3 +13,10 @@
 
 #endif /* #ifndef FRAMERD_MALLOC_H */
 
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/
+

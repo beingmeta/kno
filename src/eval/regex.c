@@ -247,7 +247,6 @@ FD_EXPORT int fd_init_regex_c()
   return 1;
 }
 
-
 /* Emacs local variables
    ;;;  Local variables: ***
    ;;;  compile-command: "make -C ../.. debug;" ***

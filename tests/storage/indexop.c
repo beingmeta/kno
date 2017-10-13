@@ -35,7 +35,7 @@ int main(int argc,char **argv)
   if (argc == 3) {
     lispval value = fd_index_get(ix,key);
     u8_fprintf(stderr,_("The key %q is associated with %d values\n"),
-               key,FD_CHOICE_SIZE(value));
+	       key,FD_CHOICE_SIZE(value));
     {FD_DO_CHOICES(each,value)
        u8_fprintf(stderr,"\t%q\n",each);}
     fd_decref(value); value = FD_VOID;}
@@ -53,3 +53,10 @@ int main(int argc,char **argv)
   fd_index_close(ix);
   return 0;
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

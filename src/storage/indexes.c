@@ -1395,7 +1395,7 @@ static lispval index_parsefn(int n,lispval *args,fd_compound_typeinfo e)
   if (n<2) return VOID;
   else if (STRINGP(args[2]))
     ix = fd_get_index(FD_STRING_DATA(args[2]),0,VOID);
-  if (ix) 
+  if (ix)
     return fd_index_ref(ix);
   else return fd_err(fd_CantParseRecord,"index_parsefn",NULL,VOID);
 }

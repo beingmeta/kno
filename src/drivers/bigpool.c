@@ -533,7 +533,7 @@ static int make_bigpool
     fd_setpos(stream,FD_BIGPOOL_METADATA_POS);
     fd_write_8bytes(outstream,metadata_pos);
     fd_write_4bytes(outstream,metadata_size);}
-  
+
   if (slotids_pos) {
     fd_setpos(stream,FD_BIGPOOL_SLOTIDS_POS);
     fd_write_8bytes(outstream,slotids_pos);
@@ -1968,7 +1968,6 @@ FD_EXPORT void fd_init_bigpool_c()
 
   fd_set_default_pool_type("bigpool");
 }
-
 
 /* Emacs local variables
    ;;;  Local variables: ***

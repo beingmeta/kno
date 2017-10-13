@@ -260,7 +260,7 @@ static void set_elt_name(FD_XML *,u8_string);
 static void init_node(FD_XML *node,FD_XML *parent,u8_string name)
 {
   node->xml_eltname = name;
-  node->xml_head = NIL; 
+  node->xml_head = NIL;
   node->xml_content_tail = NULL;
   node->xml_attribs = EMPTY;
   node->xml_parent = parent;
@@ -478,7 +478,7 @@ int fd_parse_xmltag(u8_byte **scanner,u8_byte *end,
   if ((*scan=='/') || (*scan=='?') || (*scan=='!')) {
     /* Skip post < character */
     scan++; elt_start = scan;}
-  while (scan<end) 
+  while (scan<end)
     /* Scan to set scan at the end */
     if (isspace(*scan)) {
       u8_byte *item_end = scan;
@@ -607,7 +607,7 @@ static void process_attribs(int (*attribfn)(FD_XML *,u8_string,u8_string,int),
 {
   int i = 0; while (i< n) {
     u8_byte *item = (u8_byte *)attribs[i++], *end = item+strlen(item)-1;
-    u8_byte *equals = strchr(item,'='), *name_end = equals; 
+    u8_byte *equals = strchr(item,'='), *name_end = equals;
     u8_string name = item, val; int quote = -1;
     if (equals) {
       const u8_byte *scan = item; int c = u8_sgetc(&scan);
@@ -615,7 +615,7 @@ static void process_attribs(int (*attribfn)(FD_XML *,u8_string,u8_string,int),
          the equals sign. */
       while ((scan<=equals)&&(c>=0)) {
         /* When we exit the loop, we've got the end of the attrib name */
-        if (!((c==' ')||(c=='\n')||(c=='\r')||(u8_isspace(c)))) 
+        if (!((c==' ')||(c=='\n')||(c=='\r')||(u8_isspace(c))))
           name_end = (u8_byte *)scan;
         c = u8_sgetc(&scan);}
       c = u8_sgetc(&scan); /* c=='=' */
@@ -1101,7 +1101,7 @@ static lispval xmlparse_core(lispval input,int flags)
     fd_seterr("XMLPARSE error","xmlparse_core",NULL,FD_INT(errpos));
     free_node(root,0);
     return FD_ERROR;}
-  else if ( (retval!=root) && 
+  else if ( (retval!=root) &&
             (!(((retval->xml_bits) & (FORCE_CLOSE_FLAGS)) ||
                ((root->xml_bits)  & (FORCE_CLOSE_FLAGS)) ))) {
     struct FD_XML *cleanup = retval, *next;
@@ -1120,7 +1120,7 @@ static lispval xmlparse_core(lispval input,int flags)
       struct FD_XML *next = fd_default_popfn(scan);
       free_node(scan,1);
       scan = next;}}
-  
+
   lispval result = fd_incref(root->xml_head);
   free_node(root,0);
   return result;

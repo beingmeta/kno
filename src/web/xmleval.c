@@ -55,7 +55,7 @@ void *inherit_node_data(FD_XML *node)
 fd_lexenv read_xml_env(fd_lexenv env)
 {
   lispval xmlenv = fd_symeval(xml_env_symbol,env);
-  if (VOIDP(xmlenv)) 
+  if (VOIDP(xmlenv))
     return fdxml_module;
   else if (FD_LEXENVP(xmlenv)) {
     fd_decref(xmlenv);
@@ -1513,7 +1513,7 @@ static lispval fdxml_seq_loop(lispval var,lispval count_var,lispval xpr,fd_lexen
     return VOID;}
   FD_INIT_STATIC_CONS(&envstruct,fd_lexenv_type);
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
-  bindings.table_schema = vars; bindings.schema_values = vals; 
+  bindings.table_schema = vars; bindings.schema_values = vals;
   bindings.schema_length = 1; bindings.schemap_onstack = 1;
   u8_init_rwlock(&(bindings.table_rwlock));
   envstruct.env_parent = env;

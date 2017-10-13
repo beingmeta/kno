@@ -39,7 +39,7 @@ fd_index fd_make_extindex
     struct FD_EXTINDEX *fetchix = u8_alloc(struct FD_EXTINDEX);
     FD_INIT_STRUCT(fetchix,struct FD_EXTINDEX);
     fd_init_index((fd_index)fetchix,&fd_extindex_handler,
-		  name,NULL,(!(reg)));
+                  name,NULL,(!(reg)));
     fetchix->index_cache_level = 1;
     if (VOIDP(commitfn))
       U8_SETBITS(fetchix->index_flags,FD_STORAGE_READ_ONLY);
@@ -79,7 +79,7 @@ static lispval *extindex_fetchn(fd_index p,int n,const lispval *keys)
                             ((struct FD_FUNCTION *)fetchfn):
                             (NULL));
   FD_INIT_STATIC_CONS(&vstruct,fd_vector_type);
-  vstruct.vec_length = n; 
+  vstruct.vec_length = n;
   vstruct.vec_elts = (lispval *) keys;
   vstruct.vec_free_elts = 0;
   vecarg = LISP_CONS(&vstruct);
@@ -127,10 +127,10 @@ static lispval *extindex_fetchn(fd_index p,int n,const lispval *keys)
 }
 
 static int extindex_commit(struct FD_INDEX *ix,
-			   struct FD_CONST_KEYVAL *adds,int n_adds,
-			   struct FD_CONST_KEYVAL *drops,int n_drops,
-			   struct FD_CONST_KEYVAL *stores,int n_stores,
-			   lispval changed_metadata)
+                           struct FD_CONST_KEYVAL *adds,int n_adds,
+                           struct FD_CONST_KEYVAL *drops,int n_drops,
+                           struct FD_CONST_KEYVAL *stores,int n_stores,
+                           lispval changed_metadata)
 {
   struct FD_EXTINDEX *exi = (fd_extindex)ix;
   lispval avec = fd_make_vector(n_adds,NULL);
@@ -196,3 +196,10 @@ FD_EXPORT void fd_init_extindex_c()
 
   u8_register_source_file(_FILEINFO);
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

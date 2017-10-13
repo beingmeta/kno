@@ -626,12 +626,12 @@ static lispval scripturl_core(u8_string baseuri,lispval params,int n,
   if (baseuri) u8_puts(&out,baseuri);
   if (n == 1) {
     if (need_qmark) {u8_putc(&out,'?'); need_qmark = 0;}
-    if (STRINGP(args[0])) 
+    if (STRINGP(args[0]))
       fd_uri_output(&out,CSTRING(args[0]),STRLEN(args[0]),0,NULL);
     else if (TYPEP(args[0],fd_secret_type)) {
       fd_uri_output(&out,
-		    FD_PACKET_DATA(args[0]),FD_PACKET_LENGTH(args[0]),
-		    0,NULL);
+                    FD_PACKET_DATA(args[0]),FD_PACKET_LENGTH(args[0]),
+                    0,NULL);
       keep_secret = 1;}
     else if (OIDP(args[0])) {
       FD_OID addr = FD_OID_ADDR(args[0]);
@@ -782,30 +782,30 @@ FD_EXPORT void fd_init_urifns_c()
   /* This is the non-deterministic version */
   lispval uriencode_proc=
     fd_new_cprim3("URIENCODE",_FILEINFO,
-		  "(uriencode *val* [*chars*] [*upper*]) encodes a value "
-		  "for use as a URI component (e.g. translating space "
-		  "into '%20'.) "
-		  "If *val* is a string, packet, or secret it is encoded "
-		  "directly, otherwise it is unparsed into a string which "
-		  "is then encoded. *chars*, if specified, indicates "
-		  "additional characters to be escaped beyond (+%=&#;) "
-		  "which are automatically escaped. If *upper* is not falsy, "
-		  "generated hex escapes are generated with uppercase letters "
-		  "(e.g. %A0 rather than %a0).",
-		  uriencode_prim,1,1,0,
-		  -1,VOID,
-		  fd_string_type,VOID,
-		  -1,VOID);
+                  "(uriencode *val* [*chars*] [*upper*]) encodes a value "
+                  "for use as a URI component (e.g. translating space "
+                  "into '%20'.) "
+                  "If *val* is a string, packet, or secret it is encoded "
+                  "directly, otherwise it is unparsed into a string which "
+                  "is then encoded. *chars*, if specified, indicates "
+                  "additional characters to be escaped beyond (+%=&#;) "
+                  "which are automatically escaped. If *upper* is not falsy, "
+                  "generated hex escapes are generated with uppercase letters "
+                  "(e.g. %A0 rather than %a0).",
+                  uriencode_prim,1,1,0,
+                  -1,VOID,
+                  fd_string_type,VOID,
+                  -1,VOID);
   lispval form_encode_proc=
     fd_new_cprim2("FORM->URISTRING",_FILEINFO,
-		  "(FORM->URISTRING *form* [*opts*]) encodes a table as an "
-		  "application/x-www-url-encoded string.",
+                  "(FORM->URISTRING *form* [*opts*]) encodes a table as an "
+                  "application/x-www-url-encoded string.",
                   form_encode_prim,1,0,0,
                   -1,VOID,-1,VOID);
 
   lispval uridecode_proc=
     fd_make_cprim1x("URIDECODE",uridecode_prim,1,
-		    fd_string_type,VOID);
+                    fd_string_type,VOID);
 
   lispval oid2id_proc=
     fd_make_cprim2x("OID2ID",oid2id,1,fd_oid_type,VOID,-1,VOID);
@@ -844,7 +844,6 @@ FD_EXPORT void fd_init_urifns_c()
 
   u8_register_source_file(_FILEINFO);
 }
-
 
 /* Emacs local variables
    ;;;  Local variables: ***

@@ -151,11 +151,11 @@ static ssize_t hashindex_default_size=32000;
 static ssize_t get_maxpos(fd_hashindex p)
 {
   switch (p->index_offtype) {
-  case FD_B32: 
+  case FD_B32:
     return ((size_t)(((size_t)1)<<32));
-  case FD_B40: 
+  case FD_B40:
     return ((size_t)(((size_t)1)<<40));
-  case FD_B64: 
+  case FD_B64:
     return ((size_t)(((size_t)1)<<62));
   default:
     return -1;}
@@ -566,7 +566,7 @@ FD_EXPORT int make_hashindex
 
   fd_flush_stream(stream);
   fd_close_stream(stream,FD_STREAM_FREEDATA);
-  
+
   return 0;
 }
 
@@ -1760,7 +1760,7 @@ static int sort_br_by_off(const void *p1,const void *p2)
    form of the changed buckets from the BUCKET_REF array. Once
    this is written to disk, we write the position where the recovery
    information started to the end of the file and set the initial word
-   of the file to the code FD_HASHINDEX_TO_RECOVER. 
+   of the file to the code FD_HASHINDEX_TO_RECOVER.
 
    After the recovery data is written, we write the new offset data
    and change the initial word. Then we truncate the file to remove
@@ -1901,7 +1901,7 @@ FD_FASTOP void parse_keybucket(fd_hashindex hx,struct KEYBUCKET *kb,
     in->bufread = in->bufread+dt_size;
     entry->ke_nvals = n_values = fd_read_zint(in);
     if (n_values==0) entry->ke_values = EMPTY;
-    else if (n_values==1) 
+    else if (n_values==1)
       entry->ke_values = read_zvalue(hx,in);
     else {
       entry->ke_values = VOID;
@@ -2225,7 +2225,7 @@ static int hashindex_commit(struct FD_INDEX *ix,
   if ((hx->storage_xformat)&(FD_HASHINDEX_DTYPEV2)) {
     out.buf_flags = out.buf_flags|FD_USE_DTYPEV2;
     newkeys.buf_flags = newkeys.buf_flags|FD_USE_DTYPEV2;}
-    
+
   /* Compute the hashes and the buckets for all of the keys
      in the commit schedule. */
   sched_i = 0; while (sched_i<schedule_size) {
@@ -2541,7 +2541,7 @@ static int update_hashindex_ondisk
   fd_write_4bytes_at(stream,cur_keys,16);
   fd_write_4bytes_at(stream,FD_HASHINDEX_MAGIC_NUMBER,0);
   fd_flush_stream(stream);
-  
+
   return 0;
 }
 
@@ -3203,7 +3203,6 @@ FD_EXPORT void fd_init_hashindex_c()
  * implement commit
  * implement ACID
  */
-
 
 /* Emacs local variables
    ;;;  Local variables: ***

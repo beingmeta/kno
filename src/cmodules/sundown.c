@@ -84,15 +84,22 @@ FD_EXPORT int fd_init_sundown()
   sundown_module = fd_new_module("SUNDOWN",(FD_MODULE_SAFE));
 
   fd_idefn(sundown_module,
-           fd_make_cprim2x("MARKDOWN->HTML",markdown2html_prim,1,
-                           fd_string_type,FD_VOID,-1,FD_VOID));
+	   fd_make_cprim2x("MARKDOWN->HTML",markdown2html_prim,1,
+			   fd_string_type,FD_VOID,-1,FD_VOID));
   fd_defalias(sundown_module,"MD->HTML","MARKDOWN->HTML");
 
   fd_idefn(sundown_module,
-           fd_make_cprim2x("MARKOUT",markout_prim,1,
-                           fd_string_type,FD_VOID,-1,FD_VOID));
+	   fd_make_cprim2x("MARKOUT",markout_prim,1,
+			   fd_string_type,FD_VOID,-1,FD_VOID));
 
   u8_register_source_file(_FILEINFO);
 
   return 1;
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

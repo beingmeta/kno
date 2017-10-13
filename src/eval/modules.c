@@ -239,12 +239,12 @@ int fd_static_module(lispval module)
 FD_EXPORT
 int fd_lock_exports(lispval module)
 {
-  if (HASHTABLEP(module)) 
+  if (HASHTABLEP(module))
     return fd_hashtable_set_readonly((struct FD_HASHTABLE *) module, 1);
   else if (FD_LEXENVP(module)) {
     fd_lexenv env = (fd_lexenv) module;
     lispval exports = env->env_exports;
-    if (HASHTABLEP(exports)) 
+    if (HASHTABLEP(exports))
       return fd_hashtable_set_readonly((struct FD_HASHTABLE *) exports, 1);
     else return 0;}
   else {
@@ -271,7 +271,7 @@ static lispval dloadpath = NIL;
 static void init_dloadpath()
 {
   u8_string tmp = u8_getenv("FD_INIT_DLOADPATH"); lispval strval;
-  if (tmp == NULL) 
+  if (tmp == NULL)
     strval = lispval_string(FD_DEFAULT_DLOADPATH);
   else strval = fd_lispstring(tmp);
   dloadpath = fd_init_pair(NULL,strval,dloadpath);
@@ -831,7 +831,7 @@ get_binding_helper(lispval modarg,lispval symbol,lispval dflt,
   else if (FD_HASHTABLEP(module)) {
     lispval value = fd_hashtable_get((fd_hashtable)module,symbol,VOID);
     if (VOIDP(value)) {
-      lispval retval= 
+      lispval retval=
         fd_err(fd_UnboundIdentifier,caller,SYMBOL_NAME(symbol),module);
       if (module == modarg) fd_decref(module);
       return retval;}
@@ -849,7 +849,7 @@ get_binding_helper(lispval modarg,lispval symbol,lispval dflt,
         if (module != modarg) fd_decref(module);
         return inval;}}
     if (VOIDP(dflt)) {
-      lispval retval= 
+      lispval retval=
         fd_err(fd_UnboundIdentifier,caller,SYMBOL_NAME(symbol),module);
       if (module == modarg) fd_decref(module);
       return retval;}

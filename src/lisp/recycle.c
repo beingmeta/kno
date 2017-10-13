@@ -172,13 +172,13 @@ void fd_recycle_cons(fd_raw_cons c)
 {
   int ctype = FD_CONS_TYPE(c);
   switch (ctype) {
-  case fd_string_type: case fd_packet_type: case fd_secret_type: 
+  case fd_string_type: case fd_packet_type: case fd_secret_type:
     recycle_string((struct FD_STRING *)c);
     return;
   case fd_vector_type: case fd_code_type:
     recycle_vector((struct FD_VECTOR *)c);
     return;
-  case fd_choice_type: 
+  case fd_choice_type:
     recycle_choice((struct FD_CHOICE *)c);
     return;
   case fd_pair_type:
@@ -199,7 +199,7 @@ void fd_recycle_cons(fd_raw_cons c)
   case fd_rawptr_type:
     recycle_rawptr(c);
     return;
-  case fd_qchoice_type: 
+  case fd_qchoice_type:
     recycle_qchoice((struct FD_QCHOICE *)c);
     return;
   default: {
@@ -239,3 +239,10 @@ void fd_init_recycle_c()
 
   u8_register_source_file(_FILEINFO);
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

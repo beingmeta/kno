@@ -102,21 +102,21 @@ void fd_sum_backtrace(u8_output out,lispval backtrace)
     int n=0; while (PAIRP(scan)) {
       lispval entry = FD_CAR(scan);
       if ((VECTORP(entry)) && (VEC_LEN(entry)>=7)) {
-	lispval type=VEC_REF(entry,1);
-	lispval label=VEC_REF(entry,2);
-	lispval status=VEC_REF(entry,3);
-	if (n) u8_puts(out," ⇒ ");
-	if (STRINGP(label)) u8_puts(out,CSTRING(label));
-	else u8_putc(out,'?');
-	if (STRINGP(type)) {
-	  u8_putc(out,'.');
-	  u8_puts(out,CSTRING(type));}
-	else u8_puts(out,".?");
-	if (STRINGP(status)) {
-	  u8_putc(out,'(');
-	  u8_puts(out,CSTRING(status));
-	  u8_putc(out,')');}
-	n++;}
+        lispval type=VEC_REF(entry,1);
+        lispval label=VEC_REF(entry,2);
+        lispval status=VEC_REF(entry,3);
+        if (n) u8_puts(out," ⇒ ");
+        if (STRINGP(label)) u8_puts(out,CSTRING(label));
+        else u8_putc(out,'?');
+        if (STRINGP(type)) {
+          u8_putc(out,'.');
+          u8_puts(out,CSTRING(type));}
+        else u8_puts(out,".?");
+        if (STRINGP(status)) {
+          u8_putc(out,'(');
+          u8_puts(out,CSTRING(status));
+          u8_putc(out,')');}
+        n++;}
       else {}
       scan=FD_CDR(scan);}}
 }
@@ -130,3 +130,10 @@ void fd_init_stacks_c()
   fd_stackptr=NULL;
 #endif
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

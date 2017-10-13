@@ -60,7 +60,7 @@ FD_EXPORT int fd_probe_source
     u8_string data = scan->getsource
       (0,path,NULL,&basepath,timep,scan->getsource_data);
     if (data) {
-      *basepathp = basepath; 
+      *basepathp = basepath;
       fd_clear_errors(0);
       return 1;}
     else scan = scan->getsource_next;}
@@ -656,7 +656,6 @@ FD_EXPORT void fd_init_load_c()
  fd_register_config("TRACELOADEVAL","Trace expressions while loading files",
                     fd_boolconfig_get,fd_boolconfig_set,&trace_load_eval);
 }
-
 
 /* Emacs local variables
    ;;;  Local variables: ***

@@ -599,7 +599,7 @@ static lispval define_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
             u8_string sourcebase = fd_sourcebase();
             if (sourcebase) s->fcn_filename = u8_strdup(sourcebase);}
           if (fd_record_source) {
-            s->lambda_source=expr; 
+            s->lambda_source=expr;
             fd_incref(expr);}}
         fd_decref(value);
         return VOID;}
@@ -633,7 +633,7 @@ static lispval defslambda_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
             u8_string sourcebase = fd_sourcebase();
             if (sourcebase) s->fcn_filename = u8_strdup(sourcebase);}
           if (fd_record_source) {
-            s->lambda_source=expr; 
+            s->lambda_source=expr;
             fd_incref(expr);}}
         fd_decref(value);
         return VOID;}
@@ -667,7 +667,7 @@ static lispval defambda_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
             u8_string sourcebase = fd_sourcebase();
             if (sourcebase) s->fcn_filename = u8_strdup(sourcebase);}
           if (fd_record_source) {
-            s->lambda_source=expr; 
+            s->lambda_source=expr;
             fd_incref(expr);}}
         fd_decref(value);
         return VOID;}

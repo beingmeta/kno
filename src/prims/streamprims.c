@@ -176,7 +176,7 @@ static lispval lisp2file(lispval object,lispval filename,lispval bufsiz)
       bytes=fd_stream_write(stream,bytes,tmp.buffer);
       fd_close_outbuf(&tmp);
       if (bytes<0)
-	return FD_ERROR;
+        return FD_ERROR;
       else return FD_INT(bytes);}}
   else return fd_type_error(_("string"),"lisp2file",filename);
 }
@@ -216,7 +216,7 @@ static lispval lisp2zipfile(lispval object,lispval filename,lispval bufsiz)
       bytes=fd_stream_write(stream,bytes,tmp.buffer);
       fd_close_outbuf(&tmp);
       if (bytes<0)
-	return FD_ERROR;
+        return FD_ERROR;
       else return FD_INT(bytes);}}
   else return fd_type_error(_("string"),"lisp2zipfile",filename);
 }
@@ -234,28 +234,28 @@ static ssize_t write_dtypes(lispval dtypes,struct FD_STREAM *out)
     DO_CHOICES(dtype,dtypes) {
       ssize_t write_size=0;
       if ((tmp.buflim-tmp.bufwrite)<(tmp.buflen/5)) {
-	write_size=fd_stream_write
-	  (out,tmp.bufwrite-tmp.buffer,tmp.buffer);
-	tmp.bufwrite=tmp.buffer;}
+        write_size=fd_stream_write
+          (out,tmp.bufwrite-tmp.buffer,tmp.buffer);
+        tmp.bufwrite=tmp.buffer;}
       if (write_size>=0) {
-	ssize_t dtype_size=fd_write_dtype(&tmp,dtype);
-	if (dtype_size<0)
-	  write_size=dtype_size;
-	else if ((tmp.buflim-tmp.bufwrite)<(tmp.buflen/5)) {
-	  write_size=fd_stream_write
-	    (out,tmp.bufwrite-tmp.buffer,tmp.buffer);
-	  tmp.bufwrite=tmp.buffer;}
-	else write_size=dtype_size;}
+        ssize_t dtype_size=fd_write_dtype(&tmp,dtype);
+        if (dtype_size<0)
+          write_size=dtype_size;
+        else if ((tmp.buflim-tmp.bufwrite)<(tmp.buflen/5)) {
+          write_size=fd_stream_write
+            (out,tmp.bufwrite-tmp.buffer,tmp.buffer);
+          tmp.bufwrite=tmp.buffer;}
+        else write_size=dtype_size;}
       if (write_size<0) {
-	rv=write_size;
-	FD_STOP_DO_CHOICES;
-	break;}
+        rv=write_size;
+        FD_STOP_DO_CHOICES;
+        break;}
       else bytes=bytes+write_size;}}
   else {
     bytes=fd_write_dtype(&tmp,dtypes);
     if (bytes>0)
       rv=fd_stream_write
-	(out,tmp.bufwrite-tmp.buffer,tmp.buffer);}
+        (out,tmp.bufwrite-tmp.buffer,tmp.buffer);}
   fd_close_outbuf(&tmp);
   if (rv<0) {
     if (start>=0)
@@ -367,9 +367,9 @@ static lispval file2dtypes(lispval filename)
       fd_inbuf inbuf = fd_readbuf(in);
       object = fd_read_dtype(inbuf);
       while (!(FD_EODP(object))) {
-	if (FD_ABORTP(object)) {
-	  fd_decref(results);
-	  return object;}
+        if (FD_ABORTP(object)) {
+          fd_decref(results);
+          return object;}
         CHOICE_ADD(results,object);
         object = fd_read_dtype(inbuf);}
       fd_free_stream(in);
@@ -418,7 +418,7 @@ static lispval open_dtype_input_file(lispval fname)
     fd_seterr(fd_FileNotFound,"open_dtype_input_file",filename,VOID);
     return FD_ERROR;}
   else return (lispval)
-	 fd_open_file(filename,FD_STREAM_READ_ONLY);
+         fd_open_file(filename,FD_STREAM_READ_ONLY);
 }
 
 static lispval extend_dtype_file(lispval fname)
@@ -428,12 +428,12 @@ static lispval extend_dtype_file(lispval fname)
     return (lispval)
       fd_open_file(filename,FD_FILE_MODIFY);
   else return (lispval)
-	 fd_open_file(filename,FD_FILE_CREATE);
+         fd_open_file(filename,FD_FILE_CREATE);
 }
 
 static lispval streamp(lispval arg)
 {
-  if (TYPEP(arg,fd_stream_type)) 
+  if (TYPEP(arg,fd_stream_type))
     return FD_TRUE;
   else return FD_FALSE;
 }
@@ -472,19 +472,19 @@ static lispval streampos_prim(lispval stream_arg,lispval pos)
     if (intval<0) {
       fd_off_t target = maxpos-(intval+1);
       if ((target>=0)&&(target<maxpos)) {
-	fd_off_t result = fd_setpos(stream,target);
-	if (result<0) return FD_ERROR;
-	else return FD_INT(result);}
+        fd_off_t result = fd_setpos(stream,target);
+        if (result<0) return FD_ERROR;
+        else return FD_INT(result);}
       else {
-	fd_seterr(_("Out of file range"),"streampos_prim",stream->streamid,pos);
-	return FD_ERROR;}}
+        fd_seterr(_("Out of file range"),"streampos_prim",stream->streamid,pos);
+        return FD_ERROR;}}
     else if (intval<maxpos) {
       fd_off_t result = fd_setpos(stream,intval);
       if (result<0) return FD_ERROR;
       else return FD_INT(result);}
     else {
-	fd_seterr(_("Out of file range"),"streampos_prim",stream->streamid,pos);
-	return FD_ERROR;}}
+        fd_seterr(_("Out of file range"),"streampos_prim",stream->streamid,pos);
+        return FD_ERROR;}}
   else return fd_type_error("stream position","streampos_prim",pos);
 }
 
@@ -502,47 +502,47 @@ FD_EXPORT void fd_init_streamprims_c()
   u8_register_source_file(_FILEINFO);
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("READ-DTYPE",read_dtype,1,fd_stream_type,VOID));
+           fd_make_cprim1x("READ-DTYPE",read_dtype,1,fd_stream_type,VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("WRITE-DTYPE",write_dtype,2,
-			   -1,VOID,fd_stream_type,VOID));
+           fd_make_cprim2x("WRITE-DTYPE",write_dtype,2,
+                           -1,VOID,fd_stream_type,VOID));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("WRITE-BYTES",write_bytes,2,
-			   -1,VOID,fd_stream_type,VOID));
+           fd_make_cprim2x("WRITE-BYTES",write_bytes,2,
+                           -1,VOID,fd_stream_type,VOID));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("READ-INT",read_int,1,fd_stream_type,VOID));
+           fd_make_cprim1x("READ-INT",read_int,1,fd_stream_type,VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("WRITE-INT",write_int,2,
-			   -1,VOID,fd_stream_type,VOID));
+           fd_make_cprim2x("WRITE-INT",write_int,2,
+                           -1,VOID,fd_stream_type,VOID));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("ZREAD-DTYPE",
-			   zread_dtype,1,fd_stream_type,VOID));
+           fd_make_cprim1x("ZREAD-DTYPE",
+                           zread_dtype,1,fd_stream_type,VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("ZWRITE-DTYPE",zwrite_dtype,2,
-			   -1,VOID,fd_stream_type,VOID));
+           fd_make_cprim2x("ZWRITE-DTYPE",zwrite_dtype,2,
+                           -1,VOID,fd_stream_type,VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("ZWRITE-DTYPES",zwrite_dtypes,2,
-			   -1,VOID,fd_stream_type,VOID));
+           fd_make_cprim2x("ZWRITE-DTYPES",zwrite_dtypes,2,
+                           -1,VOID,fd_stream_type,VOID));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("ZREAD-INT",
-			   zread_int,1,fd_stream_type,VOID));
+           fd_make_cprim1x("ZREAD-INT",
+                           zread_int,1,fd_stream_type,VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("ZWRITE-INT",zwrite_int,2,
-			   -1,VOID,fd_stream_type,VOID));
+           fd_make_cprim2x("ZWRITE-INT",zwrite_int,2,
+                           -1,VOID,fd_stream_type,VOID));
 
   fd_idefn(streamprims_module,
-	   fd_make_ndprim(fd_make_cprim3("DTYPE->FILE",lisp2file,2)));
+           fd_make_ndprim(fd_make_cprim3("DTYPE->FILE",lisp2file,2)));
   fd_idefn(streamprims_module,
-	   fd_make_ndprim(fd_make_cprim2("DTYPES->FILE+",add_dtypes2file,2)));
+           fd_make_ndprim(fd_make_cprim2("DTYPES->FILE+",add_dtypes2file,2)));
   fd_defalias(streamprims_module,"DTYPE->FILE+","DTYPES->FILE+");
   fd_idefn(streamprims_module,
-	   fd_make_ndprim(fd_make_cprim3("DTYPE->ZFILE",lisp2zipfile,2)));
+           fd_make_ndprim(fd_make_cprim3("DTYPE->ZFILE",lisp2zipfile,2)));
   fd_idefn(streamprims_module,
-	   fd_make_ndprim(fd_make_cprim2("DTYPE->ZFILE+",add_lisp2zipfile,2)));
+           fd_make_ndprim(fd_make_cprim2("DTYPE->ZFILE+",add_lisp2zipfile,2)));
 
   /* We make these aliases because the output file isn't really a zip
      file, but we don't want to break code which uses the old
@@ -557,27 +557,33 @@ FD_EXPORT void fd_init_streamprims_c()
   fd_defalias(streamprims_module,"ZIPFILE->DTYPES","ZFILE->DTYPES");
 
   fd_idefn(streamprims_module,
-	   fd_make_cprim1x("OPEN-DTYPE-FILE",open_dtype_input_file,1,
-			   fd_string_type,VOID));
+           fd_make_cprim1x("OPEN-DTYPE-FILE",open_dtype_input_file,1,
+                           fd_string_type,VOID));
   fd_idefn(streamprims_module,
-	   fd_make_cprim1x("OPEN-DTYPE-INPUT",open_dtype_input_file,1,
-			   fd_string_type,VOID));
+           fd_make_cprim1x("OPEN-DTYPE-INPUT",open_dtype_input_file,1,
+                           fd_string_type,VOID));
   fd_idefn(streamprims_module,
-	   fd_make_cprim1x("OPEN-DTYPE-OUTPUT",open_dtype_output_file,1,
-			   fd_string_type,VOID));
+           fd_make_cprim1x("OPEN-DTYPE-OUTPUT",open_dtype_output_file,1,
+                           fd_string_type,VOID));
   fd_idefn(streamprims_module,
-	   fd_make_cprim1x("EXTEND-DTYPE-FILE",extend_dtype_file,1,
-			   fd_string_type,VOID));
+           fd_make_cprim1x("EXTEND-DTYPE-FILE",extend_dtype_file,1,
+                           fd_string_type,VOID));
 
   fd_idefn(streamprims_module,fd_make_cprim1("DTYPE-STREAM?",streamp,1));
   fd_idefn(streamprims_module,fd_make_cprim1("DTYPE-INPUT?",dtype_inputp,1));
   fd_idefn(streamprims_module,fd_make_cprim1("DTYPE-OUTPUT?",dtype_outputp,1));
 
   fd_idefn(streamprims_module,
-	   fd_make_cprim2x("STREAMPOS",streampos_prim,1,
-			   fd_stream_type,VOID,
-			   -1,VOID));
+           fd_make_cprim2x("STREAMPOS",streampos_prim,1,
+                           fd_stream_type,VOID,
+                           -1,VOID));
 
   fd_finish_module(streamprims_module);
 }
 
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

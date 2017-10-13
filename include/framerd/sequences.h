@@ -47,3 +47,10 @@ lispval *fd_elts(lispval seq,int *len);
 lispval fd_makeseq(fd_ptr_type ctype,int n,lispval *v);
 
 #endif /*  FRAMERD_SEQUENCES_H */
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

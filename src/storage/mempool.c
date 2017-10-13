@@ -34,25 +34,25 @@ FD_EXPORT fd_pool fd_make_mempool(u8_string label,FD_OID base,
     if ( base != (p->pool_base) ) {
       u8_byte buf[128];
       fd_seterr(fd_PoolConflict,"fd_make_mempool",
-		u8_sprintf(buf,128,
-			   "Existing '%s' mempool doesn't have a base of @%x/%x",
-			   label,FD_OID_HI(base),FD_OID_LO(base)),
-		fd_pool2lisp(p));
+                u8_sprintf(buf,128,
+                           "Existing '%s' mempool doesn't have a base of @%x/%x",
+                           label,FD_OID_HI(base),FD_OID_LO(base)),
+                fd_pool2lisp(p));
       return NULL;}
     else if ( cap != (p->pool_capacity) ) {
       u8_byte buf[128];
       fd_seterr(fd_PoolConflict,"fd_make_mempool",
-		u8_sprintf(buf,128,
-			   "Existing '%s' mempool doesn't have a capacity of @%d OIDs",
-			   label,cap),
-		fd_pool2lisp(p));
+                u8_sprintf(buf,128,
+                           "Existing '%s' mempool doesn't have a capacity of @%d OIDs",
+                           label,cap),
+                fd_pool2lisp(p));
       return NULL;}
     else return p;}
   else if (load>cap) {
     u8_seterr(fd_PoolOverflow,"make_mempool",
-	      u8_sprintf(NULL,256,
-			 "Specified load (%u) > capacity (%u) for '%s'",
-			 load,cap,label));
+              u8_sprintf(NULL,256,
+                         "Specified load (%u) > capacity (%u) for '%s'",
+                         load,cap,label));
     return NULL;}
   else {
     struct FD_MEMPOOL *mp = u8_alloc(struct FD_MEMPOOL);
@@ -189,7 +189,7 @@ static struct FD_POOL_HANDLER mempool_handler={
   NULL,  /* walk */
   NULL, /* recycle */
   NULL  /* poolctl */
-}; 
+};
 
 FD_EXPORT int fd_clean_mempool(fd_pool p)
 {
@@ -226,3 +226,10 @@ FD_EXPORT void fd_init_mempool_c()
   u8_register_source_file(_FILEINFO);
 
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

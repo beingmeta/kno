@@ -18,6 +18,11 @@ typedef struct FD_FILE_POOL {
 typedef struct FD_FILE_POOL *fd_file_pool;
 
 FD_EXPORT int fd_make_file_pool(u8_string,unsigned int,
-                                FD_OID,unsigned int,unsigned int);
+				FD_OID,unsigned int,unsigned int);
 
-
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

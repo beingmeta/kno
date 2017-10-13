@@ -93,12 +93,12 @@ struct FD_KEYVAL *_fd_keyvec_get
   if (ATOMICP(fd_key))
     while (scan<limit)
       if (scan->kv_key==fd_key)
-	return (struct FD_KEYVAL *)scan;
+        return (struct FD_KEYVAL *)scan;
       else scan++;
   else while (scan<limit)
-	 if (LISP_EQUAL(scan->kv_key,fd_key))
-	   return (struct FD_KEYVAL *) scan;
-	 else scan++;
+         if (LISP_EQUAL(scan->kv_key,fd_key))
+           return (struct FD_KEYVAL *) scan;
+         else scan++;
   return NULL;
 }
 
@@ -975,7 +975,7 @@ FD_EXPORT lispval fd_blist_to_slotmap(lispval blist)
         return fd_type_error(_("binding list"),"fd_blist_to_slotmap",blist);}
       else {
         lispval key=FD_CAR(binding), scan=FD_CDR(binding);
-        if (NILP(scan)) 
+        if (NILP(scan))
           build_table(result,key,EMPTY);
         else while (PAIRP(scan)) {
           build_table(result,key,FD_CAR(scan));
@@ -1624,8 +1624,8 @@ FD_EXPORT lispval fd_hashtable_get
   struct FD_KEYVAL *result; int unlock=0;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RETDTYPE(ht,fd_hashtable_type);
   if (ht->table_n_keys == 0) return fd_incref(dflt);
-  if (ht->table_uselock) { 
-    fd_read_lock_table(ht); 
+  if (ht->table_uselock) {
+    fd_read_lock_table(ht);
     unlock=1; }
   if (ht->table_n_keys == 0) {
     /* Race condition */
@@ -1659,8 +1659,8 @@ FD_EXPORT lispval fd_hashtable_get_nolock
   if (result) {
     lispval rv=fd_incref(result->kv_val);
     lispval v=((VOIDP(rv))?(fd_incref(dflt),dflt):
-              (PRECHOICEP(rv)) ? 
-              (fd_simplify_choice(rv)) : 
+              (PRECHOICEP(rv)) ?
+              (fd_simplify_choice(rv)) :
               (rv));
     return v;}
   else {
@@ -2069,7 +2069,7 @@ static int do_hashtable_op(struct FD_HASHTABLE *ht,fd_tableop op,lispval key,lis
     break;}
   case fd_table_store_noref:
     fd_decref(result->kv_val);
-    result->kv_val=value; 
+    result->kv_val=value;
     break;
   case fd_table_add_if_present:
     if (VOIDP(result->kv_val)) break;
@@ -2470,7 +2470,7 @@ FD_EXPORT lispval fd_hashtable_assocs(struct FD_HASHTABLE *ptr)
   int size;
   FD_CHECK_TYPE_RETDTYPE(ptr,fd_hashtable_type);
   if (ptr->table_uselock) {
-    u8_read_lock(&ptr->table_rwlock); 
+    u8_read_lock(&ptr->table_rwlock);
     unlock=1;}
   size=ptr->table_n_keys;
   /* Otherwise, copy the keys into a choice vector. */
@@ -3096,7 +3096,7 @@ FD_EXPORT int fd_for_hashtable
     struct FD_HASH_BUCKET **lim=scan+ht->ht_n_buckets;
     while (scan < lim)
       if (*scan) {
-        struct FD_HASH_BUCKET *e=*scan; 
+        struct FD_HASH_BUCKET *e=*scan;
         int n_entries=e->bucket_len;
         const struct FD_KEYVAL *kvscan=&(e->kv_val0);
         const struct FD_KEYVAL *kvlimit=kvscan+n_entries;
@@ -3955,7 +3955,7 @@ FD_EXPORT lispval fd_getassocs(lispval arg)
 {
   CHECKPTR(arg,"fd_getassocs/table");
   /* Eventually, these might be fd_tablefns fields */
-  if (TYPEP(arg,fd_hashtable_type)) 
+  if (TYPEP(arg,fd_hashtable_type))
     return fd_hashtable_assocs(FD_XHASHTABLE(arg));
   else if (TYPEP(arg,fd_slotmap_type))
     return fd_slotmap_assocs(FD_XSLOTMAP(arg));

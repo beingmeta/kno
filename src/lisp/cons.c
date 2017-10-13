@@ -277,7 +277,7 @@ FD_EXPORT
   This returns a lisp string object from a region of a character string.
   If the structure pointer is NULL, one is mallocd.
   This copies the region between the pointers into a string and initializes
-   a lisp string based on the region. 
+   a lisp string based on the region.
    If the second argument is NULL, the end of the first argument is used. */
 lispval fd_extract_string(struct FD_STRING *ptr,u8_string start,u8_string end)
 {
@@ -558,8 +558,8 @@ FD_EXPORT lispval fd_init_code(struct FD_VECTOR *ptr,int len,lispval *data)
     elts = data;}
   FD_INIT_CONS(ptr,fd_code_type);
   if (data == NULL) while (i < len) elts[i++]=VOID;
-  ptr->vec_length = len; 
-  ptr->vec_elts = elts; 
+  ptr->vec_length = len;
+  ptr->vec_elts = elts;
   ptr->vec_free_elts = freedata;
   return LISP_CONS(ptr);
 }
@@ -796,7 +796,7 @@ struct FD_COMPOUND_TYPEINFO
   newrec->compound_nextinfo = fd_compound_entries;
   newrec->compound_typetag = symbol;
   newrec->compound_parser = NULL;
-  newrec->compound_dumpfn = NULL; 
+  newrec->compound_dumpfn = NULL;
   newrec->compound_restorefn = NULL;
   newrec->compund_tablefns = NULL;
   fd_compound_entries = newrec;
@@ -804,7 +804,7 @@ struct FD_COMPOUND_TYPEINFO
   return newrec;
 }
 
-FD_EXPORT struct FD_COMPOUND_TYPEINFO 
+FD_EXPORT struct FD_COMPOUND_TYPEINFO
           *fd_declare_compound(lispval symbol,lispval data,int core_slots)
 {
   struct FD_COMPOUND_TYPEINFO *scan, *newrec;
@@ -825,7 +825,7 @@ FD_EXPORT struct FD_COMPOUND_TYPEINFO
   newrec->compound_metadata = data;
   newrec->compound_corelen = core_slots;
   newrec->compound_typetag = symbol;
-  newrec->compound_nextinfo = fd_compound_entries; 
+  newrec->compound_nextinfo = fd_compound_entries;
   newrec->compound_parser = NULL;
   newrec->compound_dumpfn = NULL;
   newrec->compound_restorefn = NULL;

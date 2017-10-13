@@ -506,15 +506,6 @@ FD_EXPORT void fd_init_hashdtype_c()
   u8_register_source_file(_FILEINFO);
 }
 
-
-/* File specific stuff */
-
-/* Emacs local variables
-;;;  Local variables: ***
-;;;  compile-command: "cd ../..; make" ***
-;;;  End: ***
-*/
-
 /* Emacs local variables
    ;;;  Local variables: ***
    ;;;  compile-command: "make -C ../.. debug;" ***

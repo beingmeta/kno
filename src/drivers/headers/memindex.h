@@ -10,7 +10,7 @@
 /* The file layout has a 256-byte header block consisting of
      0x00 Magic number (4 bytes)
      0x10 Valid data size (8 bytes)
-     
+
    The header block is followed by key value entries
    each of which consists of a 1-byte code followed by 4 bytes of
    length and the dtype representations of a key and a value.
@@ -34,4 +34,9 @@ typedef struct FD_MEMINDEX {
   struct FD_STREAM index_stream;} FD_LOG_INDEX;
 typedef struct FD_LOG_INDEX *fd_log_index;
 
-
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

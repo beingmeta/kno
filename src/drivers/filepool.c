@@ -936,7 +936,6 @@ FD_EXPORT void fd_init_file_pool_c()
      (void *)(U8_INT2PTR(FD_FILE_POOL_TO_RECOVER)));
 }
 
-
 /* Emacs local variables
    ;;;  Local variables: ***
    ;;;  compile-command: "make -C ../.. debug;" ***

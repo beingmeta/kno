@@ -37,3 +37,10 @@ int main(int argc,char **argv)
   fd_decref(value); fd_decref(expr); fd_decref((lispval)env);
   return 0;
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

@@ -180,3 +180,10 @@ static U8_MAYBE_UNUSED void _show_stack_env(void *arg)
     _show_env(stack->stack_env,-1);
   else fprintf(stderr,"!! No env\n");
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

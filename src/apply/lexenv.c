@@ -113,7 +113,7 @@ static int envcountproc(lispval v,void *data)
     fd_lexenv scan = (fd_lexenv)v;
     while (scan)
       if ( (scan == env) ||
-	   (scan->env_copy == env) ) {
+           (scan->env_copy == env) ) {
         state->count++;
         return 0;}
       else scan = scan->env_parent;
@@ -153,7 +153,7 @@ int fd_recycle_lexenv(fd_lexenv env)
       fd_decref(env->env_bindings);
       fd_decref(env->env_exports);
       if (env->env_parent)
-	fd_decref((lispval)(env->env_parent));
+        fd_decref((lispval)(env->env_parent));
       envstruct->conshead = (0xFFFFFF80|(env->conshead&0x7F));
       u8_free(env);
       return 1;}
@@ -196,9 +196,9 @@ static int dtype_lexenv(struct FD_OUTBUF *out,lispval x)
     lispval ids = fd_get(env->env_bindings,moduleid_symbol,EMPTY);
     DO_CHOICES(id,ids) {
       if (SYMBOLP(id))
-	modname=SYM_NAME(id);
+        modname=SYM_NAME(id);
       else if (STRINGP(id))
-	modfile=CSTRING(id);
+        modfile=CSTRING(id);
       else {}}}
   u8_byte buf[200]; struct FD_OUTBUF tmp;
   FD_INIT_OUTBUF(&tmp,buf,200,0);
@@ -251,3 +251,10 @@ FD_EXPORT void fd_init_lexenv_c()
   fd_dtype_writers[fd_lexenv_type]=dtype_lexenv;
 
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

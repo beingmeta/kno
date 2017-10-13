@@ -135,10 +135,10 @@ static lispval quasiquote_list(lispval obj,fd_lexenv env,int level)
               lispval insert_elt = VEC_REF(insertion,i);
               lispval new_pair = fd_conspair(insert_elt,NIL);
               *tail = new_pair; tail = &(FD_CDR(new_pair));
-              fd_incref(insert_elt); 
+              fd_incref(insert_elt);
               i++;}}
           else {
-            u8_string details_string = 
+            u8_string details_string =
               u8_mkstring("RESULT=%q=%q",elt,insertion);
             lispval err;
             err = fd_err(fd_SyntaxError,
@@ -165,7 +165,7 @@ static lispval quasiquote_list(lispval obj,fd_lexenv env,int level)
   if (!(NILP(obj))) {
     lispval final = fd_quasiquote(obj,env,level);
     if (FD_ABORTED(final)) {
-      fd_decref(head); 
+      fd_decref(head);
       return final;}
     else *tail = final;}
   return head;
@@ -309,7 +309,7 @@ lispval fd_quasiquote(lispval obj,fd_lexenv env,int level)
     else if (FD_EQ(FD_CAR(obj),unquote))
       if (level==1) {
         lispval result=fd_eval(FD_CAR(FD_CDR(obj)),env);
-        if (PRECHOICEP(result)) 
+        if (PRECHOICEP(result))
           result=fd_simplify_choice(result);
         return result;}
       else {

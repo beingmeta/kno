@@ -63,14 +63,14 @@ FD_EXPORT void fd_seterr
     (NULL,condition,caller,u8_strdup(details),irritant,backtrace,VOID);
   fd_incref(irritant);
   u8_push_exception(condition,caller,u8_strdup(details),
-		    (void *)exception,fd_decref_embedded_exception);
+                    (void *)exception,fd_decref_embedded_exception);
 }
 
 FD_EXPORT void fd_restore_exception(struct FD_EXCEPTION *exo)
 {
   u8_push_exception(exo->ex_condition,exo->ex_caller,
-		    u8_strdup(exo->ex_details),
-		    (void *)exo,fd_decref_embedded_exception);
+                    u8_strdup(exo->ex_details),
+                    (void *)exo,fd_decref_embedded_exception);
 }
 
 FD_EXPORT lispval fd_wrap_exception(u8_exception ex)
@@ -87,9 +87,9 @@ FD_EXPORT lispval fd_wrap_exception(u8_exception ex)
     lispval irritant = (ex) ? (fd_get_irritant(ex)) : (FD_VOID);
     lispval backtrace = fd_get_backtrace(fd_stackptr);
     return fd_init_exception(NULL,condition,caller,
-			     u8_strdup(details),
-			     fd_incref(irritant),
-			     backtrace,FD_VOID);}
+                             u8_strdup(details),
+                             fd_incref(irritant),
+                             backtrace,FD_VOID);}
 }
 
 FD_EXPORT int fd_stacktracep(lispval rep)
@@ -223,9 +223,9 @@ void fd_log_exception(u8_exception ex)
   if (ex->u8x_xdata) {
     lispval irritant = fd_get_irritant(ex);
     u8_log(LOG_WARN,ex->u8x_cond,"%m (%m)\n\t%Q",
-	   (U8ALT((ex->u8x_details),((U8S0())))),
-	   (U8ALT((ex->u8x_context),((U8S0())))),
-	   irritant);}
+           (U8ALT((ex->u8x_details),((U8S0())))),
+           (U8ALT((ex->u8x_context),((U8S0())))),
+           irritant);}
   else u8_log(LOG_WARN,ex->u8x_cond,"%m (%m)",
               (U8ALT((ex->u8x_details),((U8S0())))),
               (U8ALT((ex->u8x_context),((U8S0())))));
@@ -248,13 +248,13 @@ void fd_output_exception(u8_output out,u8_exception ex)
     lispval irritant=fd_get_irritant(ex);
     if (VOIDP(irritant)) {}
     else if ( (PAIRP(irritant)) ||
-	      (VECTORP(irritant)) ||
-	      (SLOTMAPP(irritant)) ||
-	      (SCHEMAPP(irritant)) ) {
+              (VECTORP(irritant)) ||
+              (SLOTMAPP(irritant)) ||
+              (SCHEMAPP(irritant)) ) {
       u8_puts(out," irritant:\n    ");
       fd_pprint(out,irritant,"    ",0,4,120);}
     else if ( (STRINGP(irritant)) &&
-	      (STRLEN(irritant)>40) ) {
+              (STRLEN(irritant)>40) ) {
       u8_puts(out," irritant (string):\n    ");
       fd_unparse(out,irritant);}
     else {
@@ -280,23 +280,23 @@ void fd_log_errstack(u8_exception ex,int loglevel,int w_irritant)
     lispval irritant = fd_get_irritant(ex);
     if (VOIDP(irritant))
       u8_log(loglevel,ex->u8x_cond,"@%s %s",ex->u8x_context,
-	     U8ALT(ex->u8x_details,""));
+             U8ALT(ex->u8x_details,""));
     else if ( (FD_IMMEDIATEP(irritant)) ||
-	      (NUMBERP(irritant)) ||
-	      (TYPEP(irritant,fd_timestamp_type)) ||
-	      (TYPEP(irritant,fd_uuid_type)) ||
-	      (TYPEP(irritant,fd_regex_type)) )
+              (NUMBERP(irritant)) ||
+              (TYPEP(irritant,fd_timestamp_type)) ||
+              (TYPEP(irritant,fd_uuid_type)) ||
+              (TYPEP(irritant,fd_regex_type)) )
       u8_log(loglevel,ex->u8x_cond,"%q @%s %s",
-	     irritant,ex->u8x_context,
-	     U8ALT(ex->u8x_details,""));
+             irritant,ex->u8x_context,
+             U8ALT(ex->u8x_details,""));
     else {
       lispval backtrace = FD_U8X_STACK(ex);
       if (!(FD_VOIDP(backtrace))) {
-	U8_STATIC_OUTPUT(tmp,1000);
-	fd_pprint(tmpout,backtrace,NULL,0,0,111);
-	if (tmp.u8_outbuf[0])
-	  u8_log(loglevel,ex->u8x_cond,"%s",tmp.u8_outbuf);
-	u8_close_output(tmpout);}}
+        U8_STATIC_OUTPUT(tmp,1000);
+        fd_pprint(tmpout,backtrace,NULL,0,0,111);
+        if (tmp.u8_outbuf[0])
+          u8_log(loglevel,ex->u8x_cond,"%s",tmp.u8_outbuf);
+        u8_close_output(tmpout);}}
     ex=ex->u8x_prev;}
 }
 
@@ -320,8 +320,8 @@ int sum_exception(U8_OUTPUT *out,u8_exception ex,u8_exception bg)
              (strcmp(bg->u8x_details,details)==0)) )
         details = NULL;
       if ( (!(VOIDP(irritant))) &&
-	   ( irritant == ((lispval)(bg->u8x_xdata)) ) )
-	irritant=VOID;}
+           ( irritant == ((lispval)(bg->u8x_xdata)) ) )
+        irritant=VOID;}
     if ((cond) && (context) && (details))
       u8_printf(out,"%m @%s (%s)",cond,context,details);
     else if ((cond) && (context))
@@ -341,7 +341,7 @@ int sum_exception(U8_OUTPUT *out,u8_exception ex,u8_exception bg)
       u8_byte buf[max_irritant_len+1];
       u8_sprintf(buf,max_irritant_len,"%Q",irritant);
       if ( (strchr(buf,'\n')) || (strlen(buf)>42) )
-	u8_printf(out,"\n  %s",buf);
+        u8_printf(out,"\n  %s",buf);
       else u8_printf(out,"  %s",buf);}
     return 1;}
 }
@@ -357,7 +357,7 @@ FD_EXPORT void fd_compact_backtrace(u8_output out,lispval backtrace)
       u8_puts(out,CSTRING(car));
       depth++;
       if ((depth%7)==0)
-	u8_puts(out," //...\n;;* ...");
+        u8_puts(out," //...\n;;* ...");
       else u8_putc(out,' ');}}
 }
 
@@ -477,10 +477,10 @@ static lispval copy_exception(lispval x,int deep)
   struct FD_EXCEPTION *xo=
     fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
   return fd_init_exception(NULL,xo->ex_condition,xo->ex_caller,
-			   u8_strdup(xo->ex_details),
-			   fd_incref(xo->ex_irritant),
-			   fd_incref(xo->ex_stack),
-			   fd_incref(xo->ex_context));
+                           u8_strdup(xo->ex_details),
+                           fd_incref(xo->ex_irritant),
+                           fd_incref(xo->ex_stack),
+                           fd_incref(xo->ex_context));
 }
 
 static int unparse_exception(struct U8_OUTPUT *out,lispval x)
@@ -617,13 +617,13 @@ static int sigconfig_abort_setfn(lispval var,lispval val,void *data)
 {
   sigset_t *mask = (sigset_t *)data;
   return sigconfig_setfn(var,val,mask,&sigaction_abort,
-			 "sigconfig_abort_setfn");
+                         "sigconfig_abort_setfn");
 }
 static int sigconfig_default_setfn(lispval var,lispval val,void *data)
 {
   sigset_t *mask = (sigset_t *)data;
   return sigconfig_setfn(var,val,mask,&sigaction_default,
-			 "sigconfig_default_setfn");
+                         "sigconfig_default_setfn");
 }
 
 void fd_init_err_c()
@@ -719,3 +719,10 @@ void fd_init_err_c()
      &sigexit_set);
 
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

@@ -26,3 +26,10 @@ static U8_MAYBE_UNUSED void _fd_lisp2stderr(lispval x)
 {
   u8_fprintf(stderr,"%q\n",x);
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

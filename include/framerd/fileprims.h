@@ -18,3 +18,10 @@ FD_EXPORT int fd_snapback(fd_lexenv env,u8_string filename);
 FD_EXPORT u8_string fd_tempdir(u8_string arg,int keep);
 
 #endif
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

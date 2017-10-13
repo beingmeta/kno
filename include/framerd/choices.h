@@ -310,7 +310,7 @@ static U8_MAYBE_UNUSED lispval _add_to_choice(lispval current,lispval new)
       return new;
     else if (FD_PRECHOICEP(new))
       if ((FD_CONS_REFCOUNT(((struct FD_CONS *)new)))>1)
-        return fd_simplify_choice(new);
+	return fd_simplify_choice(new);
       else return new;
     else return new;
   else if (current==new) {
@@ -319,7 +319,7 @@ static U8_MAYBE_UNUSED lispval _add_to_choice(lispval current,lispval new)
     _prechoice_add((struct FD_PRECHOICE *)current,new);
     return current;}
   else if (LISP_EQUAL(current,new)) {
-    fd_decref(new); 
+    fd_decref(new);
     return current;}
   else return fd_make_prechoice(current,new);
 }
@@ -366,11 +366,11 @@ static int fast_choice_containsp(lispval x,struct FD_CHOICE *choice)
     return 0;}
   else {
     while (top>=bottom) {
-        const lispval *middle = bottom+(top-bottom)/2;
-        int comparison = cons_compare(x,*middle);
-        if (comparison == 0) return 1;
-        else if (comparison<0) top = middle-1;
-        else bottom = middle+1;}
+	const lispval *middle = bottom+(top-bottom)/2;
+	int comparison = cons_compare(x,*middle);
+	if (comparison == 0) return 1;
+	else if (comparison<0) top = middle-1;
+	else bottom = middle+1;}
       return 0;}
 }
 #endif
@@ -410,3 +410,10 @@ FD_EXPORT lispval *fd_natsort_choice(fd_choice ch,lispval *,ssize_t);
 
 
 #endif /* FRAMERD_CHOICES_H */
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

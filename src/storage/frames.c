@@ -799,7 +799,7 @@ int fd_find_prefetch(fd_index ix,lispval slotids,lispval values)
     DO_CHOICES(slotid,slotids) {
       if (keyslot == slotid) {
         DO_CHOICES(value,values) {
-          keyv[n_keys++]=value; 
+          keyv[n_keys++]=value;
           fd_incref(value);}}
       else {
         DO_CHOICES(value,values) {

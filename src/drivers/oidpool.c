@@ -159,7 +159,7 @@ static size_t get_maxpos(fd_oidpool p)
     return ((size_t)(((size_t)1)<<32));
   case FD_B40:
     return ((size_t)(((size_t)1)<<40));
-  case FD_B64: 
+  case FD_B64:
     return ((size_t)(((size_t)1)<<63));
   default:
     return -1;}
@@ -1785,7 +1785,6 @@ FD_EXPORT void fd_init_oidpool_c()
      (void*)U8_INT2PTR(FD_OIDPOOL_TO_RECOVER));
 
 }
-
 
 /* Emacs local variables
    ;;;  Local variables: ***

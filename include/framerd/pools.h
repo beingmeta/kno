@@ -148,25 +148,25 @@ typedef struct FD_ADJUNCT {
 typedef struct FD_ADJUNCT *fd_adjunct;
 
 #define FD_POOL_FIELDS \
-  FD_CONS_HEADER;					\
-  int pool_serialno;					\
-  u8_string poolid, pool_source, pool_label;		\
-  u8_string pool_typeid;				\
-  FD_OID pool_base;					\
-  unsigned int pool_capacity;				\
-  fd_storage_flags pool_flags, modified_flags;		\
-  struct FD_POOL_HANDLER *pool_handler;			\
-  short pool_cache_level;				\
-  unsigned char pool_islocked;				\
-  U8_RWLOCK_DECL(pool_lock);				\
-  U8_MUTEX_DECL(pool_save_lock);			\
-  struct FD_HASHTABLE pool_cache, pool_changes;		\
-  struct FD_SLOTMAP pool_metadata, pool_props;	\
-  int pool_n_adjuncts, pool_adjuncts_len;		\
-  struct FD_ADJUNCT *pool_adjuncts;			\
-  lispval pool_indexes;					\
-  u8_string pool_prefix;				\
-  lispval pool_namefn;					\
+  FD_CONS_HEADER;                                       \
+  int pool_serialno;                                    \
+  u8_string poolid, pool_source, pool_label;            \
+  u8_string pool_typeid;                                \
+  FD_OID pool_base;                                     \
+  unsigned int pool_capacity;                           \
+  fd_storage_flags pool_flags, modified_flags;          \
+  struct FD_POOL_HANDLER *pool_handler;                 \
+  short pool_cache_level;                               \
+  unsigned char pool_islocked;                          \
+  U8_RWLOCK_DECL(pool_lock);                            \
+  U8_MUTEX_DECL(pool_save_lock);                        \
+  struct FD_HASHTABLE pool_cache, pool_changes;         \
+  struct FD_SLOTMAP pool_metadata, pool_props;  \
+  int pool_n_adjuncts, pool_adjuncts_len;               \
+  struct FD_ADJUNCT *pool_adjuncts;                     \
+  lispval pool_indexes;                                 \
+  u8_string pool_prefix;                                \
+  lispval pool_namefn;                                  \
   lispval pool_opts
 
 typedef struct FD_POOL {FD_POOL_FIELDS;} FD_POOL;
@@ -254,8 +254,8 @@ FD_EXPORT lispval fd_default_poolctl(fd_pool p,lispval op,int n,lispval *args);
 FD_EXPORT lispval fd_pool_base_metadata(fd_pool p);
 
 FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
-                            struct FD_POOL_HANDLER *h,
-                            u8_string id,u8_string source);
+			    struct FD_POOL_HANDLER *h,
+			    u8_string id,u8_string source);
 FD_EXPORT void fd_set_pool_namefn(fd_pool p,lispval namefn);
 
 FD_EXPORT int fd_for_pools(int (*fcn)(fd_pool,void *),void *data);
@@ -479,3 +479,10 @@ FD_EXPORT int fd_clean_mempool(fd_pool p);
 FD_EXPORT int fd_reset_mempool(fd_pool p);
 
 #endif /* FRAMERD_POOLS_H */
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

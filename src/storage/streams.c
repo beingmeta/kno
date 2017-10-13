@@ -1276,8 +1276,8 @@ fd_fetch_chunk_ref(struct FD_STREAM *stream,
       break;
     default:
       u8_log(LOGCRIT,"InvalidOffsetType",
-	     "Invalid offset type 0x%x for data stream %s",
-	     offtype,stream->streamid);
+             "Invalid offset type 0x%x for data stream %s",
+             offtype,stream->streamid);
       u8_seterr("Invalid Offset type","read_chunk_ref",NULL);
       result.off = -1;
       result.size = -1;} /* switch (p->kb_offtype) */
@@ -1415,7 +1415,6 @@ FD_EXPORT void fd_init_streams_c()
 
   u8_register_source_file(_FILEINFO);
 }
-
 
 /* Emacs local variables
    ;;;  Local variables: ***

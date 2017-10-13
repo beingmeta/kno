@@ -60,7 +60,7 @@ static lispval return_error_helper(lispval expr,fd_lexenv env,int wrapped)
     fd_printout_to(&out,printout_body,env);
     if (wrapped) {
       u8_exception sub_ex = u8_new_exception
-	((u8_condition)ex,(u8_context)cxt,out.u8_outbuf,(void *)VOID,NULL);
+        ((u8_condition)ex,(u8_context)cxt,out.u8_outbuf,(void *)VOID,NULL);
       u8_close_output(&out);
       return fd_wrap_exception(sub_ex);}
     else  {

@@ -17,7 +17,7 @@
 
 typedef struct FD_FFI_PROC {
   FD_FUNCTION_FIELDS;
-  ffi_cif ffi_interface; 
+  ffi_cif ffi_interface;
   ffi_type *ffi_return_type;
   ffi_type **ffi_argtypes;
   lispval ffi_return_spec, *ffi_argspecs;
@@ -37,3 +37,9 @@ FD_EXPORT lispval fd_ffi_call(struct FD_FUNCTION *fn,int n,lispval *args);
 
 #endif /* FRAMERD_FFI_H */
 
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

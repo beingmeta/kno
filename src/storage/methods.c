@@ -767,7 +767,6 @@ FD_EXPORT void fd_init_methods_c()
 
 }
 
-
 /* Emacs local variables
    ;;;  Local variables: ***
    ;;;  compile-command: "make -C ../.. debug;" ***

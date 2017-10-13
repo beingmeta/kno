@@ -24,3 +24,9 @@ typedef struct FD_HTINDEX *fd_htindex;
 
 FD_EXPORT fd_index fd_make_htindex(fd_storage_flags flags);
 
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

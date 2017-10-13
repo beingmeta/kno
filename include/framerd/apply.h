@@ -87,13 +87,13 @@ typedef lispval (*fd_xprim2)(fd_function,lispval,lispval);
 typedef lispval (*fd_xprim3)(fd_function,lispval,lispval,lispval);
 typedef lispval (*fd_xprim4)(fd_function,lispval,lispval,lispval,lispval);
 typedef lispval (*fd_xprim5)(fd_function,
-                            lispval,lispval,lispval,lispval,lispval);
+			    lispval,lispval,lispval,lispval,lispval);
 typedef lispval (*fd_xprim6)(fd_function,lispval,lispval,
-                            lispval,lispval,lispval,lispval);
+			    lispval,lispval,lispval,lispval);
 typedef lispval (*fd_xprim7)(fd_function,lispval,lispval,
-                            lispval,lispval,lispval,lispval,lispval);
+			    lispval,lispval,lispval,lispval,lispval);
 typedef lispval (*fd_xprim8)(fd_function,lispval,lispval,
-                            lispval,lispval,lispval,lispval,lispval,lispval);
+			    lispval,lispval,lispval,lispval,lispval,lispval);
 typedef lispval (*fd_xprim9)(fd_function,
 			    lispval,lispval,lispval,
 			    lispval,lispval,lispval,
@@ -134,33 +134,33 @@ typedef lispval (*fd_xprim15)(fd_function,
 typedef lispval (*fd_xprimn)(fd_function,int n,lispval *);
 
 #define FD_FUNCTION_FIELDS \
-  FD_CONS_HEADER;							\
-  u8_string fcn_name, fcn_filename;					\
-  u8_string fcn_documentation;						\
-  unsigned int fcn_ndcall:1, fcn_xcall:1, fcn_wrap_calls:1;		\
-  unsigned int fcn_profile:1, fcn_break:1, fcn_trace:3;			\
-  lispval fcnid;							\
-  short fcn_arity, fcn_min_arity;					\
-  lispval fcn_attribs;							\
-  int *fcn_typeinfo;							\
-  lispval *fcn_defaults;						\
-  double fcn_profile_time;						\
-  long long fcn_profile_count;						\
+  FD_CONS_HEADER;                                                       \
+  u8_string fcn_name, fcn_filename;                                     \
+  u8_string fcn_documentation;                                          \
+  unsigned int fcn_ndcall:1, fcn_xcall:1, fcn_wrap_calls:1;             \
+  unsigned int fcn_profile:1, fcn_break:1, fcn_trace:3;                 \
+  lispval fcnid;                                                        \
+  short fcn_arity, fcn_min_arity;                                       \
+  lispval fcn_attribs;                                                  \
+  int *fcn_typeinfo;                                                    \
+  lispval *fcn_defaults;                                                \
+  double fcn_profile_time;                                              \
+  long long fcn_profile_count;                                          \
   union {                                                               \
     fd_cprim0 call0; fd_cprim1 call1; fd_cprim2 call2;                  \
     fd_cprim3 call3; fd_cprim4 call4; fd_cprim5 call5;                  \
     fd_cprim6 call6; fd_cprim7 call7; fd_cprim8 call8;                  \
-    fd_cprim9 call9; fd_cprim10 call10; fd_cprim11 call11;		\
-    fd_cprim12 call12; fd_cprim13 call13; fd_cprim14 call14;		\
-    fd_cprim15 call15;							\
-    fd_cprimn calln;							\
+    fd_cprim9 call9; fd_cprim10 call10; fd_cprim11 call11;              \
+    fd_cprim12 call12; fd_cprim13 call13; fd_cprim14 call14;            \
+    fd_cprim15 call15;                                                  \
+    fd_cprimn calln;                                                    \
     fd_xprim0 xcall0; fd_xprim1 xcall1; fd_xprim2 xcall2;               \
     fd_xprim3 xcall3; fd_xprim4 xcall4; fd_xprim5 xcall5;               \
     fd_xprim6 xcall6; fd_xprim7 xcall7; fd_xprim8 xcall8;               \
-    fd_xprim9 xcall9; fd_xprim10 xcall10; fd_xprim11 xcall11;		\
-    fd_xprim12 xcall12; fd_xprim13 xcall13; fd_xprim14 xcall14;		\
-    fd_xprim15 xcall15;							\
-    fd_xprimn xcalln;							\
+    fd_xprim9 xcall9; fd_xprim10 xcall10; fd_xprim11 xcall11;           \
+    fd_xprim12 xcall12; fd_xprim13 xcall13; fd_xprim14 xcall14;         \
+    fd_xprim15 xcall15;                                                 \
+    fd_xprimn xcalln;                                                   \
     void *fnptr;}                                                       \
   fcn_handler
 
@@ -287,21 +287,21 @@ FD_EXPORT lispval fd_new_cprim15(u8_string name,u8_string filename,u8_string doc
 #define fd_make_cprim15x(name,fn,min,...) \
   fd_new_cprim15(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0,__VA_ARGS__)
 
-#define fd_idefnN(module,name,fn,min,doc)				\
-  fd_idefn(module,fd_new_cprimn						\
+#define fd_idefnN(module,name,fn,min,doc)                               \
+  fd_idefn(module,fd_new_cprimn                                         \
 	   (name,_FILEINFO,doc,fn,((min)&0xFFFF),((min)&0x10000),0))
 
-#define fd_idefn0(module,name,fn,doc)				\
+#define fd_idefn0(module,name,fn,doc)                           \
   fd_idefn(module,fd_new_cprim0(name,_FILEINFO,doc,fn,0))
-#define fd_idefn1(module,name,fn,min,doc,...)			\
+#define fd_idefn1(module,name,fn,min,doc,...)                   \
   fd_idefn(module,fd_new_cprim1(name,_FILEINFO,doc,fn,((min)&0xFFFF),\
 				((min)&0x10000),0,\
 				__VA_ARGS__))
-#define fd_idefn2(module,name,fn,min,doc,...)				\
+#define fd_idefn2(module,name,fn,min,doc,...)                           \
   fd_idefn(module,fd_new_cprim2(name,_FILEINFO,doc,fn,\
 				((min)&0xFFFF),((min)&0x10000),0,\
 				__VA_ARGS__))
-#define fd_idefn3(module,name,fn,min,doc,...)				\
+#define fd_idefn3(module,name,fn,min,doc,...)                           \
   fd_idefn(module,fd_new_cprim3(name,_FILEINFO,doc,fn,\
 				((min)&0xFFFF),((min)&0x10000),0,\
 				__VA_ARGS__))
@@ -331,27 +331,27 @@ FD_EXPORT lispval fd_new_cprim15(u8_string name,u8_string filename,u8_string doc
 				__VA_ARGS__))
 #define fd_idefn10(module,name,fn,min,doc,...) \
   fd_idefn(module,fd_new_cprim10(name,_FILEINFO,doc,fn,\
-				 ((min)&0xFFFF),((min)&0x10000),0,	\
+				 ((min)&0xFFFF),((min)&0x10000),0,      \
 				 __VA_ARGS__))
 #define fd_idefn11(module,name,fn,min,doc,...) \
-  fd_idefn(module,fd_new_cprim11(name,_FILEINFO,doc,fn,			\
-				 ((min)&0xFFFF),((min)&0x10000),0,	\
+  fd_idefn(module,fd_new_cprim11(name,_FILEINFO,doc,fn,                 \
+				 ((min)&0xFFFF),((min)&0x10000),0,      \
 				 __VA_ARGS__))
 #define fd_idefn12(module,name,fn,min,doc,...) \
   fd_idefn(module,fd_new_cprim12(name,_FILEINFO,doc,fn,\
-				 ((min)&0xFFFF),((min)&0x10000),0,	\
+				 ((min)&0xFFFF),((min)&0x10000),0,      \
 				 __VA_ARGS__))
 #define fd_idefn13(module,name,fn,min,doc,...) \
   fd_idefn(module,fd_new_cprim13(name,_FILEINFO,doc,fn,\
-				 ((min)&0xFFFF),((min)&0x10000),0,	\
+				 ((min)&0xFFFF),((min)&0x10000),0,      \
 				 __VA_ARGS__))
 #define fd_idefn14(module,name,fn,min,doc,...) \
   fd_idefn(module,fd_new_cprim14(name,_FILEINFO,doc,fn,\
-				 ((min)&0xFFFF),((min)&0x10000),0,	\
+				 ((min)&0xFFFF),((min)&0x10000),0,      \
 				 __VA_ARGS__))
 #define fd_idefn15(module,name,fn,min,doc,...) \
-  fd_idefn(module,fd_new_cprim15(name,_FILEINFO,doc,fn,			\
-				 ((min)&0xFFFF),((min)&0x10000),0,	\
+  fd_idefn(module,fd_new_cprim15(name,_FILEINFO,doc,fn,                 \
+				 ((min)&0xFFFF),((min)&0x10000),0,      \
 				 __VA_ARGS__))
 
 #define FD_NEEDS_0_ARGS 0
@@ -502,12 +502,12 @@ lispval fd_stack_ndapply(struct FD_STACK *stack,lispval fn,int n_args,lispval *a
 #define fd_dapply(fn,n_args,argv) (fd_stack_dapply(fd_stackptr,fn,n_args,argv))
 
 #define FD_APPLICABLEP(x) \
-  ((FD_TYPEP(x,fd_fcnid_type)) ?		\
-   ((fd_applyfns[FD_FCNID_TYPE(x)])!=NULL) :	\
+  ((FD_TYPEP(x,fd_fcnid_type)) ?                \
+   ((fd_applyfns[FD_FCNID_TYPE(x)])!=NULL) :    \
    ((fd_applyfns[FD_PRIM_TYPE(x)])!=NULL))
 
-#define FD_DTYPE2FCN(x)		     \
-  ((FD_FCNIDP(x)) ?		     \
+#define FD_DTYPE2FCN(x)              \
+  ((FD_FCNIDP(x)) ?                  \
    ((fd_function)(fd_fcnid_ref(x))) : \
    ((fd_function)x))
 
@@ -520,3 +520,10 @@ FD_EXPORT int fd_unparse_function
   (u8_output out,lispval x,u8_string name,u8_string before,u8_string after);
 
 #endif /* FRAMERD_APPLY_H */
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

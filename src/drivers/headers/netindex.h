@@ -17,3 +17,9 @@ typedef struct FD_NETWORK_INDEX *fd_network_index;
 FD_EXPORT fd_index fd_open_network_index(u8_string spec,fd_storage_flags flags,
 					 lispval opts);
 
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

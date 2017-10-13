@@ -56,8 +56,15 @@ int main(int argc,char **argv)
   else object = fd_parse(argv[2]);
   write_dtype_to_file(object,f);
   u8_fprintf(stdout,"Dumped the %s %q\n",
-             fd_type_names[FD_PTR_TYPE(object)],object);
+	     fd_type_names[FD_PTR_TYPE(object)],object);
   fd_decref(object); object = FD_VOID;
   fclose(f);
   exit(0);
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

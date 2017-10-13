@@ -99,3 +99,9 @@ FD_EXPORT int fd_pprint
 
 #endif /* ndef FRAMERD_DTYPE_H */
 
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

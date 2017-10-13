@@ -74,17 +74,17 @@ static int fd_logger(int loglevel,u8_condition c,u8_string message)
   lispval args[3]={ll,csym,mstring};
   lispval logfns = fd_make_simple_choice(framerd_logfns);
   char *level = ((abs_loglevel>MAX_LOGLEVEL)?(NULL):
-               (loglevel_names[abs_loglevel]));
+	       (loglevel_names[abs_loglevel]));
   if (reqout) {
     struct U8_XTIME xt;
     u8_local_xtime(&xt,-1,u8_nanosecond,0);
     if (local_log)
       u8_printf(reqout,"<logentry level='%d' scope='local'>",
-                abs_loglevel);
+		abs_loglevel);
     else u8_printf(reqout,"<logentry level='%d'>",abs_loglevel);
     if (level) u8_printf(reqout,"\n\t<level>%s</level>",level);
     u8_printf(reqout,"\n\t<datetime tick='%ld' nsecs='%d'>%Xlt</datetime>",
-              xt.u8_tick,xt.u8_nsecs,&xt);
+	      xt.u8_tick,xt.u8_nsecs,&xt);
     if (c) u8_printf(reqout,"\n\t<condition>%s</condition>",c);
     u8_printf(reqout,"\n\t<message>\n%s\n\t</message>",message);
     u8_printf(reqout,"\n</logentry>\n");}
@@ -110,8 +110,8 @@ static int fd_logger(int loglevel,u8_condition c,u8_string message)
     DO_CHOICES(logfn,framerd_logfns) {
       lispval v = fd_apply(logfn,3,args);
       if (FD_ABORTP(v)) {
-        u8_default_logger(LOG_CRIT,"Log Error","FramerD log call failed");
-        default_log_error();}
+	u8_default_logger(LOG_CRIT,"Log Error","FramerD log call failed");
+	default_log_error();}
       fd_decref(v);}}
   fd_decref(mstring); fd_decref(ll); fd_decref(logfns);
   return 1;
@@ -351,3 +351,10 @@ void fd_init_logging_c()
      _("only use per-request logging (when available) for loglevels >= this"),
      config_get_reqlogonly,config_set_reqlogonly,NULL);
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

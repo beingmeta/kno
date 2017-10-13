@@ -182,7 +182,7 @@ FD_EXPORT ssize_t fd_read_block(fd_stream s,unsigned char *buf,
 				size_t count,fd_off_t offset,
 				int stream_locked);
 FD_EXPORT fd_inbuf fd_open_block(fd_stream s,fd_inbuf in,
-                                 fd_off_t offset,ssize_t count,
+				 fd_off_t offset,ssize_t count,
 				 int stream_locked);
 
 #if FD_INLINE_BUFIO
@@ -338,9 +338,9 @@ FD_FASTOP int fd_unlock_stream(fd_stream s)
   if (tid != s->stream_locker) {
     u8_string id = s->streamid;
     u8_log(LOGCRIT,"BadStreamUnlock",
-           "Stream %s 0x%llx is owned by T%lld, not current T%lld",
+	   "Stream %s 0x%llx is owned by T%lld, not current T%lld",
 	   ((id)?(id):(U8S0())),((id)?((u8_string)" "):(U8S0())),
-           (U8_PTR2INT(s)),s->stream_locker,tid);
+	   (U8_PTR2INT(s)),s->stream_locker,tid);
     u8_seterr("BadStreamUnlock","fd_unlock_stream",s->streamid);
     return -1;}
   s->stream_locker = 0;
@@ -473,3 +473,10 @@ FD_EXPORT u8_condition fd_CantWrite, fd_CantRead, fd_CantSeek;
 FD_EXPORT u8_condition fd_BadLSEEK, fd_OverSeek, fd_UnderSeek;
 
 #endif /* FD_STREAMS_H */
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

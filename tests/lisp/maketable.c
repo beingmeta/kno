@@ -40,8 +40,8 @@ static void report_on_hashtable(lispval ht)
 {
   int n_slots, n_keys, n_buckets, n_collisions, max_bucket, n_vals, max_vals;
   fd_hashtable_stats(fd_consptr(struct FD_HASHTABLE *,ht,fd_hashtable_type),
-                     &n_slots,&n_keys,&n_buckets,&n_collisions,&max_bucket,
-                     &n_vals,&max_vals);
+		     &n_slots,&n_keys,&n_buckets,&n_collisions,&max_bucket,
+		     &n_vals,&max_vals);
   u8_fprintf
     (stderr,"Table distributes %d keys over %d slots in %d buckets\n",
      n_keys,n_slots,n_buckets);
@@ -80,7 +80,7 @@ int main(int argc,char **argv)
       fd_decref(key); key = fd_incref(item);}
     else fd_hashtable_add
 	   (fd_consptr(struct FD_HASHTABLE *,ht,fd_hashtable_type),
-            key,item);
+	    key,item);
     fd_decref(item); item = fd_read_dtype(inbuf);
     i = i+1;}
   report_on_hashtable(ht);
@@ -93,3 +93,10 @@ int main(int argc,char **argv)
   fd_decref(ht); ht = FD_VOID;
   exit(0);
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

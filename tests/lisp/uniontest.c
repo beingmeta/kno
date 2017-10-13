@@ -79,11 +79,11 @@ int main(int argc,char **argv)
     else {
       lispval item = read_choice(argv[i]);
       if (FD_ABORTP(item)) {
-        if (!(FD_THROWP(item)))
-          u8_fprintf(stderr,"Trouble reading %s: %q\n",argv[i],item);
-        return -1;}
+	if (!(FD_THROWP(item)))
+	  u8_fprintf(stderr,"Trouble reading %s: %q\n",argv[i],item);
+	return -1;}
       u8_fprintf(stderr,"Read %d items from %s\n",
-                 FD_CHOICE_SIZE(item),argv[i]);
+		 FD_CHOICE_SIZE(item),argv[i]);
       inputv[n_inputs++]=item; i++;}
   i = 0; while (i < n_inputs) {
     lispval item = inputv[i++];
@@ -93,9 +93,9 @@ int main(int argc,char **argv)
   donetime = get_elapsed();
   write_dtype_to_file(combined_inputs,"union.dtype");
   fprintf(stderr,
-          "CHOICE_SIZE(combined_inputs)=%d; read time=%f; run time=%f\n",
-          fd_choice_size(scombined_inputs),
-          inputtime-starttime,donetime-inputtime);
+	  "CHOICE_SIZE(combined_inputs)=%d; read time=%f; run time=%f\n",
+	  fd_choice_size(scombined_inputs),
+	  inputtime-starttime,donetime-inputtime);
   if ((output_file[0]=='-') && (output_file[1]=='b')) write_binary = 1;
   else f = fopen(output_file,"w");
   if (write_binary)
@@ -112,3 +112,10 @@ int main(int argc,char **argv)
   if (f) fclose(f);
   exit(0);
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

@@ -694,7 +694,7 @@ static lispval get_stmt_values
       int j = 0; result = FD_EMPTY_CHOICE;
       while (j<n_slots) {
         if (kv[j].kv_key == mergefn) {
-          result = kv[j].kv_val; 
+          result = kv[j].kv_val;
           fd_decref(kv[j].kv_key);
           j++;}
         else {
@@ -759,7 +759,7 @@ static int init_stmt_results
     U8_INIT_STATIC_OUTPUT_BUF(out,128,namebuf);
     if (fields == NULL) {
       const char *errmsg = mysql_stmt_error(stmt);
-      if (mysqlproc_colnames) u8_free(mysqlproc_colnames); 
+      if (mysqlproc_colnames) u8_free(mysqlproc_colnames);
       if (outbound) u8_free(outbound);
       if (nullbuf) u8_free(nullbuf);
       if (metadata) mysql_free_result(metadata);
@@ -909,7 +909,7 @@ static lispval mysqlmakeproc
   dbproc->mysqlproc_string_len = stmt_len;
 
   /* Set up fields for the function object itself */
-  dbproc->fcn_filename = dbproc->extdb_spec; 
+  dbproc->fcn_filename = dbproc->extdb_spec;
   dbproc->fcn_name = dbproc->extdb_qtext;
   dbproc->fcn_ndcall = 0; dbproc->fcn_xcall = 1; dbproc->fcn_arity = -1;
   dbproc->fcn_min_arity = 0;
@@ -976,7 +976,7 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
     if (outbound) u8_free(outbound);
     dbproc->mysqlproc_outbound = NULL;}
   if (dbproc->mysqlproc_colnames) {
-    u8_free(dbproc->mysqlproc_colnames); 
+    u8_free(dbproc->mysqlproc_colnames);
     dbproc->mysqlproc_colnames = NULL;}
   if (dbproc->mysqlproc_isnullbuf) {
     u8_free(dbproc->mysqlproc_isnullbuf);
@@ -1421,10 +1421,10 @@ static lispval applymysqlproc(fd_function fn,int n,lispval *args,int reconn)
     else return applymysqlproc(fn,n,args,reconn-1);}
   else {
     if (dblock) {
-      u8_unlock_mutex(&(dbp->mysql_lock)); 
+      u8_unlock_mutex(&(dbp->mysql_lock));
       dblock = 0;}
     if (proclock) {
-      u8_unlock_mutex(&(dbproc->mysqlproc_lock)); 
+      u8_unlock_mutex(&(dbproc->mysqlproc_lock));
       proclock = 0;}
     return values;}
 }

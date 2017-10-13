@@ -2834,7 +2834,7 @@ static lispval hex2oid_prim(lispval arg,lispval base_arg)
 
 static lispval b32oid_prim(lispval arg,lispval base_arg)
 {
-  long long offset; 
+  long long offset;
   if (STRINGP(arg)) {
     offset = fd_b32_to_longlong(CSTRING(arg));
     if (offset<0) {
@@ -3693,7 +3693,6 @@ FD_EXPORT void fd_init_dbprims_c()
   background_symbol = fd_intern("BACKGROUND");
 
 }
-
 
 /* Emacs local variables
    ;;;  Local variables: ***

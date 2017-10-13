@@ -102,5 +102,11 @@ FD_EXPORT lispval fd_md5(lispval string);
 FD_EXPORT lispval fd_words2vector(u8_string string,int keep_punct);
 FD_EXPORT lispval fd_words2list(u8_string string,int keep_punct);
 
-
 #endif /* FRAMERD_TEXTTOOLS_H */
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

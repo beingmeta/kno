@@ -556,7 +556,7 @@ static lispval set_curlopt
       if (strchr(CSTRING(val),':')) {
         curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP6,
                          CSTRING(val));}
-      else { 
+      else {
         curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP4,
                          CSTRING(val));}}
     else if ((FALSEP(val))||(STRINGP(val))) {
@@ -573,7 +573,7 @@ static lispval set_curlopt
       else if (strchr(CSTRING(cval),':')) {
         curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP6,
                          CSTRING(cval));}
-      else { 
+      else {
         curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP4,
                          CSTRING(cval));}}
     else return fd_type_error("string","set_curlopt/dns",val);}

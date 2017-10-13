@@ -152,7 +152,7 @@ static int netindex_commit(struct FD_INDEX *ix,
   struct FD_NETWORK_INDEX *nix = (struct FD_NETWORK_INDEX *)ix;
   lispval xname = nix->xname;
   int n_transactions = 0;
-  
+
   if (n_stores) {
     if (nix->capabilities&FD_ISERVER_RESET) {
       int i = 0; while ( i< n_stores ) {
@@ -168,7 +168,7 @@ static int netindex_commit(struct FD_INDEX *ix,
           fd_clear_errors(1);}
         else n_transactions++;
         i++;}}}
-    
+
   if (n_drops) {
     if (nix->capabilities&FD_ISERVER_DROP) {
       int i = 0; while ( i< n_drops ) {
@@ -183,7 +183,7 @@ static int netindex_commit(struct FD_INDEX *ix,
           fd_clear_errors(1);}
         else n_transactions++;
         i++;}}}
-      
+
     if (n_adds) {
       if (nix->capabilities&FD_ISERVER_ADDN) {
         lispval vector = fd_make_vector(n_adds*2,NULL), result=FD_VOID;
@@ -202,7 +202,7 @@ static int netindex_commit(struct FD_INDEX *ix,
         int i = 0; while (i < n_adds) {
           lispval result = VOID;
           lispval key = adds[i].kv_key, val = adds[i].kv_val;
-          if (VOIDP(xname)) 
+          if (VOIDP(xname))
             result = fd_dtcall_nr(nix->index_connpool,3,iserver_add,key,val);
           else result = fd_dtcall_nr(nix->index_connpool,4,iserver_add,xname,key,val);
           if (FD_ABORTP(result))

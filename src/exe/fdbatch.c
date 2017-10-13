@@ -157,7 +157,7 @@ static void write_cmd_file(int argc,char **argv)
     u8_string argstring = u8_fromlibc(arg);
     if (i>0) u8_putc(&out,' '); i++;
     if (need_escape(argstring)) {
-      u8_string scan = argstring; 
+      u8_string scan = argstring;
       int c = u8_sgetc(&scan); u8_putc(&out,'"');
       while (c>=0) {
         if (c=='\\') {
@@ -204,13 +204,13 @@ int main(int argc,char **argv)
   _stack->stack_free_label=1;
 
   fd_register_config("LOGAPPEND",
-		     _("Whether to extend existing log files or truncate them"),
-		     fd_boolconfig_get,fd_boolconfig_set,
-		     &keeplog);
+                     _("Whether to extend existing log files or truncate them"),
+                     fd_boolconfig_get,fd_boolconfig_set,
+                     &keeplog);
   fd_register_config("KEEPLOG",
-		     _("Whether to extend existing log files or truncate them"),
-		     fd_boolconfig_get,fd_boolconfig_set,
-		     &keeplog);
+                     _("Whether to extend existing log files or truncate them"),
+                     fd_boolconfig_get,fd_boolconfig_set,
+                     &keeplog);
 
   if (!(keeplog)) logopen_flags = O_WRONLY|O_CREAT|O_TRUNC;
 
@@ -250,7 +250,7 @@ int main(int argc,char **argv)
     u8_log(LOG_CRIT,u8_CantOpenFile,"Couldn't open pid file %s",pid_file);
     fd_pop_stack(_stack);
     exit(-1);}
-  
+
   /* Remove any pre-existing state files. */
   if (u8_file_existsp(cmd_file)) u8_removefile(cmd_file);
   if (u8_file_existsp(done_file)) u8_removefile(done_file);
@@ -272,7 +272,7 @@ int main(int argc,char **argv)
       if ((log_file)&&(log_fd>=0)) close(log_fd);
       fd_pop_stack(_stack);
       exit(-1);}}
-  
+
   write_cmd_file(argc,argv);
 
   /* Now, do the fork. */
@@ -308,7 +308,7 @@ int main(int argc,char **argv)
       dup2(err_fd,2); u8_free(err_file); close(err_fd);}
     atexit(fdbatch_atexit);
     retval = do_main(argc,argv,exe_name,source_file,
-		   args,n_args);
+                   args,n_args);
     if (retval>=0) {
       FILE *f = u8_fopen(done_file,"w");
       if (f) {
@@ -329,7 +329,7 @@ int main(int argc,char **argv)
       died_file = NULL;}
     {
       int free_i = 0; while (free_i<n_args) {
-	fd_decref(args[free_i]); free_i++;}
+        fd_decref(args[free_i]); free_i++;}
       u8_free(args);}
     fd_pop_stack(_stack);
     exit(retval);
@@ -343,3 +343,10 @@ int main(int argc,char **argv)
   exit(0);
   return 0;
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

@@ -202,16 +202,16 @@ FD_EXPORT u8_string fd_type_names[FD_TYPE_MAX];
 
 #define fd_ptr_typename(tc) \
   ( (tc<fd_next_cons_type) ? (fd_type_names[tc]) : ((u8_string)"oddtype"))
-#define fd_type2name(tc)	\
-  (((tc<0)||(tc>FD_TYPE_MAX))?	\
-   ((u8_string)"oddtype"):	\
+#define fd_type2name(tc)        \
+  (((tc<0)||(tc>FD_TYPE_MAX))?  \
+   ((u8_string)"oddtype"):      \
    (fd_type_names[tc]))
 
 FD_EXPORT lispval fd_badptr_err(lispval badx,u8_context cxt,u8_string details);
 
-#define FD_VALID_TYPECODEP(x)				       \
-  (FD_EXPECT_TRUE((((int)x)>=0) &&			       \
-		  (((int)x)<256) &&			       \
+#define FD_VALID_TYPECODEP(x)                                  \
+  (FD_EXPECT_TRUE((((int)x)>=0) &&                             \
+		  (((int)x)<256) &&                            \
 		  (((x<0x84)&&((x)<fd_next_immediate_type)) || \
 		   ((x>=0x84)&&((x)<fd_next_cons_type)))))
 
@@ -291,18 +291,18 @@ FD_FASTOP U8_MAYBE_UNUSED int _FD_ISDTYPE(lispval x){ return 1;}
 #define FD_CONSPTR_TYPE(x) (FD_CONS_TYPE((fd_cons)x))
 
 #define FD_CONSPTR(cast,x) ((cast)((fd_cons)x))
-#define fd_consptr(cast,x,typecode)					\
-  ((FD_EXPECT_TRUE(FD_TYPEP(x,typecode))) ? ((cast)((fd_cons)(x))) :	\
-   (((FD_CHECK_PTR(x))?							\
-     (fd_seterr(fd_TypeError,fd_type_names[typecode],NULL,x),		\
-      (_fd_bad_pointer(x,fd_type_names[typecode]))) :			\
-     (fd_raise(fd_BadPtr,fd_type_names[typecode],NULL,x))),		\
+#define fd_consptr(cast,x,typecode)                                     \
+  ((FD_EXPECT_TRUE(FD_TYPEP(x,typecode))) ? ((cast)((fd_cons)(x))) :    \
+   (((FD_CHECK_PTR(x))?                                                 \
+     (fd_seterr(fd_TypeError,fd_type_names[typecode],NULL,x),           \
+      (_fd_bad_pointer(x,fd_type_names[typecode]))) :                   \
+     (fd_raise(fd_BadPtr,fd_type_names[typecode],NULL,x))),             \
     ((cast)NULL)))
-#define fd_xconsptr(cast,x,typecode)					\
-  ((FD_EXPECT_TRUE(FD_TYPEP(x,typecode))) ? ((cast)((fd_cons)(x))) :	\
-   (((FD_CHECK_PTR(x))?							\
-     (fd_seterr(fd_TypeError,fd_type_names[typecode],NULL,x)):		\
-     (fd_seterr(fd_BadPtr,fd_type_names[typecode],NULL,x))),		\
+#define fd_xconsptr(cast,x,typecode)                                    \
+  ((FD_EXPECT_TRUE(FD_TYPEP(x,typecode))) ? ((cast)((fd_cons)(x))) :    \
+   (((FD_CHECK_PTR(x))?                                                 \
+     (fd_seterr(fd_TypeError,fd_type_names[typecode],NULL,x)):          \
+     (fd_seterr(fd_BadPtr,fd_type_names[typecode],NULL,x))),            \
     ((cast)NULL)))
 
 #define FD_NULL ((lispval)(NULL))
@@ -337,7 +337,7 @@ static fd_ptr_type FD_PTR_TYPE(lispval x)
 #endif
 #define FD_PRIM_TYPE(x)         (FD_PTR_TYPE(x))
 
-#define FD_TYPEP(ptr,type)						      \
+#define FD_TYPEP(ptr,type)                                                    \
   ((type >= 0x84) ? ( (FD_CONSP(ptr)) && (FD_CONSPTR_TYPE(ptr) == type) ) :   \
    (type >= 0x04) ? ( (FD_IMMEDIATEP(ptr)) && (FD_IMM_TYPE(ptr) == type ) ) : \
    ( ( (ptr) & (0x3) ) == type) )
@@ -347,8 +347,8 @@ static fd_ptr_type FD_PTR_TYPE(lispval x)
 #define FD_PRIM_TYPEP(x,tp)     (FD_TYPEP(x,tp))
 
 #define FD_MAKE_STATIC(ptr) \
-  if (FD_CONSP(ptr))							\
-    (((struct FD_RAW_CONS *)ptr)->conshead) &= (FD_CONS_TYPE_MASK);	\
+  if (FD_CONSP(ptr))                                                    \
+    (((struct FD_RAW_CONS *)ptr)->conshead) &= (FD_CONS_TYPE_MASK);     \
   else {}
 
 #define FD_MAKE_CONS_STATIC(ptr)  \
@@ -371,8 +371,8 @@ FD_FASTOP FD_OID FD_OID_PLUS(FD_OID x,unsigned int increment)
 #define FD_SET_OID_LO(oid,low) oid.fd_oid_lo = low
 #define FD_OID_COMPARE(oid1,oid2) \
   ((oid1.fd_oid_hi == oid2.fd_oid_hi) ? \
-   ((oid1.fd_oid_lo == oid2.fd_oid_lo) ? (0) :			\
-    (oid1.fd_oid_lo > oid2.fd_oid_lo) ? (1) : (-1)) :		\
+   ((oid1.fd_oid_lo == oid2.fd_oid_lo) ? (0) :                  \
+    (oid1.fd_oid_lo > oid2.fd_oid_lo) ? (1) : (-1)) :           \
   (oid1.fd_oid_hi > oid2.fd_oid_hi) ? (1) : (-1))
 #define FD_OID_DIFFERENCE(oid1,oid2) \
   ((oid1.fd_oid_lo>oid2.fd_oid_lo) ? \
@@ -465,7 +465,7 @@ FD_EXPORT int fd_n_base_oids, fd_oid_buckets_len;
 /*
   The bit layout of an OID pointer is:
   pos:  |                 k*4          2  0
-        | offset from base | bucket id |11|
+	| offset from base | bucket id |11|
   size: |    (20 bits)     | (k bits)  |
 */
 
@@ -509,44 +509,44 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
 #define to64(x) ((long long)(x))
 #define to64u(x) ((unsigned long long)(x))
 
-#define FD_FIX2INT(x)							\
+#define FD_FIX2INT(x)                                                   \
   ((long long)((((to64(x))>=0) ? ((x)/4) : (-((to64(-(x)))>>2)))))
 #define FD_FIX2UINT(x)   \
   ((long long)((((to64(x))>=0) ? ((x)/4) : (-((to64(-(x)))>>2)))))
 
-#define FD_INT2FIX(x)						\
-  ((lispval)							\
-   ((FD_EXPECT_FALSE(x>FD_MAX_FIXNUM)) ? (FD_MAX_FIXNUM) :	\
-    (FD_EXPECT_FALSE(x<FD_MIN_FIXNUM)) ? (FD_MIN_FIXNUM) :	\
-    ((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :		\
+#define FD_INT2FIX(x)                                           \
+  ((lispval)                                                    \
+   ((FD_EXPECT_FALSE(x>FD_MAX_FIXNUM)) ? (FD_MAX_FIXNUM) :      \
+    (FD_EXPECT_FALSE(x<FD_MIN_FIXNUM)) ? (FD_MIN_FIXNUM) :      \
+    ((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :           \
     (- ( fd_fixnum_type | ((to64(-(x)))<<2)))))
 
 #define FD_MAKE_FIXNUM(x) \
-  ((lispval)							\
-   (((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :		\
+  ((lispval)                                                    \
+   (((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :           \
     (- ( fd_fixnum_type | ((to64u(-(x)))<<2)) )))
 
 #define FD_INT2DTYPE(x) \
-  ((((to64(x)) > (to64(FD_MAX_FIXNUM))) ||			\
-    ((to64(x)) < (to64(FD_MIN_FIXNUM)))) ?			\
-   (fd_make_bigint(to64(x))) :					\
-   ((lispval)							\
-    (((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :		\
+  ((((to64(x)) > (to64(FD_MAX_FIXNUM))) ||                      \
+    ((to64(x)) < (to64(FD_MIN_FIXNUM)))) ?                      \
+   (fd_make_bigint(to64(x))) :                                  \
+   ((lispval)                                                   \
+    (((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :          \
      (- ( fd_fixnum_type | ((to64u(-(x)))<<2)) ))))
 #define FD_INT(x) (FD_INT2DTYPE(x))
 #define FD_MAKEINT(x) (FD_INT2DTYPE(x))
 
 #define FD_UINT2DTYPE(x) \
-  (((to64u(x)) > (to64(FD_MAX_FIXNUM))) ?			\
-   (fd_make_bigint(to64u(x))) :					\
+  (((to64u(x)) > (to64(FD_MAX_FIXNUM))) ?                       \
+   (fd_make_bigint(to64u(x))) :                                 \
    ((lispval) (((to64u(x))*4)|fd_fixnum_type)))
 
-#define FD_SHORT2DTYPE(x)				\
-  ((lispval)						\
-   (((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :	\
+#define FD_SHORT2DTYPE(x)                               \
+  ((lispval)                                            \
+   (((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :   \
     (- ( fd_fixnum_type | ((to64(-(x)))<<2)))))
 
-#define FD_SHORT2FIX(x)	(FD_SHORT2DTYPE(x))
+#define FD_SHORT2FIX(x) (FD_SHORT2DTYPE(x))
 
 #define FD_USHORT2DTYPE(x)     ((lispval)(fd_fixnum_type|((x&0xFFFF)<<2)))
 #define FD_BYTE2DTYPE(x)       ((lispval) (fd_fixnum_type|((x&0xFF)<<2)))
@@ -687,7 +687,7 @@ FD_EXPORT u8_rwlock fd_symbol_lock;
 
 #define FD_SYMBOL_NAME(x) \
   ((FD_GOOD_SYMBOLP(x)) ? \
-   (FD_STRDATA(fd_symbol_names[FD_SYMBOL2ID(x)])) :	\
+   (FD_STRDATA(fd_symbol_names[FD_SYMBOL2ID(x)])) :     \
    ((u8_string )("#.bad$ymbol.#")))
 #define FD_XSYMBOL_NAME(x) (FD_STRDATA(fd_symbol_names[FD_SYMBOL2ID(x)]))
 
@@ -860,11 +860,11 @@ FD_EXPORT int fd_numcompare(lispval x,lispval y);
 #define LISP_EQUAL(x,y) \
   ((x == y) || ((FD_CONSP(x)) && (FD_CONSP(y)) && (lispval_equal(x,y))))
 #define LISP_EQUALV(x,y) \
-  ((x == y) ? (1) :			  \
+  ((x == y) ? (1) :                       \
    (((FD_FIXNUMP(x)) && (FD_CONSP(x))) || \
     ((FD_FIXNUMP(y)) && (FD_CONSP(y))) || \
-    ((FD_CONSP(x)) && (FD_CONSP(y)))) ?	  \
-   (lispval_equal(x,y)) :		  \
+    ((FD_CONSP(x)) && (FD_CONSP(y)))) ?   \
+   (lispval_equal(x,y)) :                 \
    (0)
 #define LISP_COMPARE(x,y,flags)  ((x == y) ? (0) : (lispval_compare(x,y,flags)))
 #define FD_QUICK_COMPARE(x,y) \
@@ -957,7 +957,7 @@ FD_EXPORT int fd_check_immediate(lispval);
   ((FD_FIXNUMP(x)) ? (1) :                          \
    (FD_OIDP(x)) ? (((x>>2)&0x3FF)<fd_n_base_oids) : \
    (x==0) ? (0) :                                   \
-   (FD_CONSP(x)) ? ((x == FD_NULL) ? (0) : (1)) :	    \
+   (FD_CONSP(x)) ? ((x == FD_NULL) ? (0) : (1)) :           \
    (fd_check_immediate(x))))
 
 #if FD_FULL_CHECK_PTR
@@ -995,7 +995,7 @@ FD_EXPORT int fd_check_immediate(lispval);
 
    As a rule of thumb, currently, the levels should be used as follows:
     1: topical debugging for places you think something odd is happening;
-        the system code should almost never use this level
+	the system code should almost never use this level
     2: assignment debugging (called when a pointer is stored)
     3: return value debugging (called when a pointer is returned)
 
@@ -1062,3 +1062,10 @@ FD_EXPORT int fd_ptr_debug_density;
 #endif
 
 #endif /* ndef FRAMERD_PTR_H */
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

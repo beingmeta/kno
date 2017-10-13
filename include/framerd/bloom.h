@@ -131,3 +131,10 @@ int fd_bloom_op(struct FD_BLOOM * bloom, lispval val, int flags);
 #define FD_BLOOM_CHECK 0x08
 
 #endif /* FRAMERD_BLOOM_H */
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

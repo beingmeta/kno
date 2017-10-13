@@ -219,12 +219,12 @@ static U8_MAYBE_UNUSED struct FD_KEYVAL *fd_sortvec_get
       *bottom = keyvals, *limit = bottom+size, *top = limit-1, *middle;
     if (FD_ATOMICP(key))
       while (top>=bottom) {
-        middle = bottom+(top-bottom)/2;
-        if (middle>=limit) break;
-        else if (key == middle->kv_key) {found = 1; break;}
-        else if (FD_CONSP(middle->kv_key)) top = middle-1;
-        else if (key<middle->kv_key) top = middle-1;
-        else bottom = middle+1;}
+	middle = bottom+(top-bottom)/2;
+	if (middle>=limit) break;
+	else if (key == middle->kv_key) {found = 1; break;}
+	else if (FD_CONSP(middle->kv_key)) top = middle-1;
+	else if (key<middle->kv_key) top = middle-1;
+	else bottom = middle+1;}
     else while (top>=bottom) {
       int comparison;
       middle = bottom+(top-bottom)/2;
@@ -287,7 +287,7 @@ static U8_MAYBE_UNUSED lispval fd_slotmap_test
     if (FD_VOIDP(val)) cmp = 1;
     else if (FD_EQ(val,current)) cmp = 1;
     else if ((FD_CHOICEP(val)) || (FD_PRECHOICEP(val)) ||
-             (FD_CHOICEP(current)) || (FD_PRECHOICEP(current)))
+	     (FD_CHOICEP(current)) || (FD_PRECHOICEP(current)))
       cmp = fd_overlapp(val,current);
     else if (FD_EQUAL(val,current)) cmp = 1;
     else cmp = 0;
@@ -401,9 +401,9 @@ static U8_MAYBE_UNUSED int _fd_get_slotno
     while (top>bottom) {
       if (key== *middle) return middle-schema;
       else if (key<*middle) {
-        top = middle-1; middle = bottom+(top-bottom)/2;}
+	top = middle-1; middle = bottom+(top-bottom)/2;}
       else {
-        bottom = middle+1; middle = bottom+(top-bottom)/2;}}
+	bottom = middle+1; middle = bottom+(top-bottom)/2;}}
     if ((middle) && (middle<hard_top) && (key== *middle))
       return middle-schema;
     else return -1;}
@@ -453,7 +453,7 @@ static U8_MAYBE_UNUSED lispval fd_schemap_test
     if (FD_VOIDP(val)) cmp = 1;
     else if (FD_EQ(val,current)) cmp = 1;
     else if ((FD_CHOICEP(val)) || (FD_PRECHOICEP(val)) ||
-             (FD_CHOICEP(current)) || (FD_PRECHOICEP(current)))
+	     (FD_CHOICEP(current)) || (FD_PRECHOICEP(current)))
       cmp = fd_overlapp(val,current);
     else if (FD_EQUAL(val,current)) cmp = 1;
     else cmp = 0;
@@ -655,3 +655,10 @@ FD_EXPORT int fd_recycle_hashset(struct FD_HASHSET *h);
 FD_EXPORT int fd_reset_hashset(fd_hashset);
 
 #endif /* FRAMERD_TABLES_H */
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

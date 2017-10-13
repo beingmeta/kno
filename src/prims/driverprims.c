@@ -172,7 +172,6 @@ FD_EXPORT void fd_init_driverfns_c()
   fd_finish_module(driverfns_module);
 }
 
-
 /* Emacs local variables
    ;;;  Local variables: ***
    ;;;  compile-command: "make -C ../.. debug;" ***

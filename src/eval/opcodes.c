@@ -124,50 +124,50 @@ static lispval pickone_opcode(lispval normal);
 static lispval nd1_dispatch(lispval opcode,lispval arg1)
 {
   switch (opcode) {
-  case FD_AMBIGP_OPCODE: 
+  case FD_AMBIGP_OPCODE:
     if (CHOICEP(arg1)) return FD_TRUE;
     else return FD_FALSE;
-  case FD_SINGLETONP_OPCODE: 
+  case FD_SINGLETONP_OPCODE:
     if (EMPTYP(arg1)) return FD_FALSE;
     else if (CHOICEP(arg1)) return FD_FALSE;
     else return FD_TRUE;
-  case FD_FAILP_OPCODE: 
+  case FD_FAILP_OPCODE:
     if (arg1==EMPTY) return FD_TRUE;
     else return FD_FALSE;
-  case FD_EXISTSP_OPCODE: 
+  case FD_EXISTSP_OPCODE:
     if (arg1==EMPTY) return FD_FALSE;
     else return FD_TRUE;
   case FD_SINGLETON_OPCODE:
     if (CHOICEP(arg1)) return EMPTY;
     else return fd_incref(arg1);
-  case FD_CAR_OPCODE: 
+  case FD_CAR_OPCODE:
     if (EMPTYP(arg1)) return arg1;
     else if (PAIRP(arg1))
       return fd_incref(FD_CAR(arg1));
     else if (CHOICEP(arg1)) {
       lispval results = EMPTY;
       DO_CHOICES(arg,arg1)
-	if (PAIRP(arg)) {
-	  lispval car = FD_CAR(arg); fd_incref(car);
-	  CHOICE_ADD(results,car);}
-	else {
-	  fd_decref(results);
-	  return fd_type_error(_("pair"),"CAR opcode",arg);}
+        if (PAIRP(arg)) {
+          lispval car = FD_CAR(arg); fd_incref(car);
+          CHOICE_ADD(results,car);}
+        else {
+          fd_decref(results);
+          return fd_type_error(_("pair"),"CAR opcode",arg);}
       return results;}
     else return fd_type_error(_("pair"),"CAR opcode",arg1);
-  case FD_CDR_OPCODE: 
+  case FD_CDR_OPCODE:
     if (EMPTYP(arg1)) return arg1;
     else if (PAIRP(arg1))
       return fd_incref(FD_CDR(arg1));
     else if (CHOICEP(arg1)) {
       lispval results = EMPTY;
       DO_CHOICES(arg,arg1)
-	if (PAIRP(arg)) {
-	  lispval cdr = FD_CDR(arg); fd_incref(cdr);
-	  CHOICE_ADD(results,cdr);}
-	else {
-	  fd_decref(results);
-	  return fd_type_error(_("pair"),"CDR opcode",arg);}
+        if (PAIRP(arg)) {
+          lispval cdr = FD_CDR(arg); fd_incref(cdr);
+          CHOICE_ADD(results,cdr);}
+        else {
+          fd_decref(results);
+          return fd_type_error(_("pair"),"CDR opcode",arg);}
       return results;}
     else return fd_type_error(_("pair"),"CDR opcode",arg1);
   case FD_LENGTH_OPCODE:
@@ -175,13 +175,13 @@ static lispval nd1_dispatch(lispval opcode,lispval arg1)
     else if (CHOICEP(arg1)) {
       lispval results = EMPTY;
       DO_CHOICES(arg,arg1) {
-	if (FD_SEQUENCEP(arg)) {
-	  int len = fd_seq_length(arg);
-	  lispval dlen = FD_INT(len);
-	  CHOICE_ADD(results,dlen);}
-	else {
-	  fd_decref(results);
-	  return fd_type_error(_("sequence"),"LENGTH opcode",arg);}}
+        if (FD_SEQUENCEP(arg)) {
+          int len = fd_seq_length(arg);
+          lispval dlen = FD_INT(len);
+          CHOICE_ADD(results,dlen);}
+        else {
+          fd_decref(results);
+          return fd_type_error(_("sequence"),"LENGTH opcode",arg);}}
       return fd_simplify_choice(results);}
     else if (FD_SEQUENCEP(arg1))
       return FD_INT(fd_seq_length(arg1));
@@ -190,7 +190,7 @@ static lispval nd1_dispatch(lispval opcode,lispval arg1)
     if (CHOICEP(arg1)) {
       fd_incref(arg1);
       return fd_init_qchoice(NULL,arg1);}
-    else if (PRECHOICEP(arg1)) 
+    else if (PRECHOICEP(arg1))
       return fd_init_qchoice(NULL,fd_make_simple_choice(arg1));
      else if (EMPTYP(arg1))
       return fd_init_qchoice(NULL,EMPTY);
@@ -256,36 +256,36 @@ static lispval d1_dispatch(lispval opcode,lispval arg1)
   int delta = 1;
   switch (opcode) {
   case FD_MINUS1_OPCODE: delta = -1;
-  case FD_PLUS1_OPCODE: 
+  case FD_PLUS1_OPCODE:
     if (FIXNUMP(arg1)) {
       long long iarg = FIX2INT(arg1);
       return FD_INT(iarg+delta);}
     else if (NUMBERP(arg1))
       return fd_plus(arg1,FIX2INT(-1));
     else return fd_type_error(_("number"),"opcode 1+/-",arg1);
-  case FD_NUMBERP_OPCODE: 
+  case FD_NUMBERP_OPCODE:
     if (NUMBERP(arg1)) return FD_TRUE; else return FD_FALSE;
-  case FD_ZEROP_OPCODE: 
+  case FD_ZEROP_OPCODE:
     if (arg1==FD_INT(0)) return FD_TRUE; else return FD_FALSE;
-  case FD_VECTORP_OPCODE: 
+  case FD_VECTORP_OPCODE:
     if (VECTORP(arg1)) return FD_TRUE; else return FD_FALSE;
-  case FD_PAIRP_OPCODE: 
+  case FD_PAIRP_OPCODE:
     if (PAIRP(arg1)) return FD_TRUE; else return FD_FALSE;
-  case FD_EMPTY_LISTP_OPCODE: 
+  case FD_EMPTY_LISTP_OPCODE:
     if (arg1==NIL) return FD_TRUE; else return FD_FALSE;
-  case FD_STRINGP_OPCODE: 
+  case FD_STRINGP_OPCODE:
     if (STRINGP(arg1)) return FD_TRUE; else return FD_FALSE;
-  case FD_OIDP_OPCODE: 
+  case FD_OIDP_OPCODE:
     if (OIDP(arg1)) return FD_TRUE; else return FD_FALSE;
-  case FD_SYMBOLP_OPCODE: 
+  case FD_SYMBOLP_OPCODE:
     if (FD_SYMBOLP(arg1)) return FD_TRUE; else return FD_FALSE;
-  case FD_FIXNUMP_OPCODE: 
+  case FD_FIXNUMP_OPCODE:
     if (FIXNUMP(arg1)) return FD_TRUE; else return FD_FALSE;
-  case FD_FLONUMP_OPCODE: 
+  case FD_FLONUMP_OPCODE:
     if (FD_FLONUMP(arg1)) return FD_TRUE; else return FD_FALSE;
-  case FD_TABLEP_OPCODE: 
+  case FD_TABLEP_OPCODE:
     if (TABLEP(arg1)) return FD_TRUE; else return FD_FALSE;
-  case FD_SEQUENCEP_OPCODE: 
+  case FD_SEQUENCEP_OPCODE:
     if (FD_SEQUENCEP(arg1)) return FD_TRUE; else return FD_FALSE;
   case FD_CADR_OPCODE: {
     lispval cdr = FD_CDR(arg1);
@@ -420,37 +420,37 @@ static lispval d2_dispatch(lispval opcode,lispval arg1,lispval arg2)
 {
   switch (opcode) {
   case FD_NUMEQ_OPCODE:
-    if ((FIXNUMP(arg1)) && (FIXNUMP(arg2))) 
+    if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))
       if ((FIX2INT(arg1)) == (FIX2INT(arg2)))
-	return FD_TRUE;
+        return FD_TRUE;
       else return FD_FALSE;
     else if (fd_numcompare(arg1,arg2)==0) return FD_TRUE;
     else return FD_FALSE;
   case FD_GT_OPCODE:
-    if ((FIXNUMP(arg1)) && (FIXNUMP(arg2))) 
+    if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))
       if ((FIX2INT(arg1))>(FIX2INT(arg2)))
-	return FD_TRUE;
+        return FD_TRUE;
       else return FD_FALSE;
     else if (fd_numcompare(arg1,arg2)>0) return FD_TRUE;
     else return FD_FALSE;
   case FD_GTE_OPCODE:
-    if ((FIXNUMP(arg1)) && (FIXNUMP(arg2))) 
+    if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))
       if ((FIX2INT(arg1))>=(FIX2INT(arg2)))
-	return FD_TRUE;
+        return FD_TRUE;
       else return FD_FALSE;
     else if (fd_numcompare(arg1,arg2)>=0) return FD_TRUE;
     else return FD_FALSE;
   case FD_LT_OPCODE:
-    if ((FIXNUMP(arg1)) && (FIXNUMP(arg2))) 
+    if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))
       if ((FIX2INT(arg1))<(FIX2INT(arg2)))
-	return FD_TRUE;
+        return FD_TRUE;
       else return FD_FALSE;
     else if (fd_numcompare(arg1,arg2)<0) return FD_TRUE;
     else return FD_FALSE;
   case FD_LTE_OPCODE:
-    if ((FIXNUMP(arg1)) && (FIXNUMP(arg2))) 
+    if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))
       if ((FIX2INT(arg1))<=(FIX2INT(arg2)))
-	return FD_TRUE;
+        return FD_TRUE;
       else return FD_FALSE;
     else if (fd_numcompare(arg1,arg2)<=0) return FD_TRUE;
     else return FD_FALSE;
@@ -500,7 +500,7 @@ static lispval d2_dispatch(lispval opcode,lispval arg1,lispval arg2)
     if (arg1==arg2) return FD_TRUE;
     else if ((NUMBERP(arg1)) && (NUMBERP(arg2)))
       if (fd_numcompare(arg1,arg2)==0)
-	return FD_TRUE; else return FD_FALSE;
+        return FD_TRUE; else return FD_FALSE;
     else return FD_FALSE;
     break;}
   case FD_EQUAL_OPCODE: {
@@ -1240,7 +1240,7 @@ FD_EXPORT lispval fd_get_opcode(u8_string name)
 {
   int i = 0; while (i<fd_opcodes_length) {
     u8_string opname = fd_opcode_names[i];
-    if ((opname)&&(strcasecmp(name,opname)==0)) 
+    if ((opname)&&(strcasecmp(name,opname)==0))
       return FD_OPCODE(i);
     else i++;}
   return FD_FALSE;
@@ -1267,8 +1267,8 @@ static lispval pickoids_opcode(lispval arg1)
     if (CHOICEP(arg1)) choice = arg1;
     else {choice = fd_make_simple_choice(arg1); free_choice = 1;}
     {DO_CHOICES(elt,choice) {
-	if (OIDP(elt)) {CHOICE_ADD(results,elt);}
-	else if (all_oids) all_oids = 0;}}
+        if (OIDP(elt)) {CHOICE_ADD(results,elt);}
+        else if (all_oids) all_oids = 0;}}
     if (all_oids) {
       fd_decref(results);
       if (free_choice) return choice;
@@ -1286,9 +1286,9 @@ static lispval pickstrings_opcode(lispval arg1)
     if (CHOICEP(arg1)) choice = arg1;
     else {choice = fd_make_simple_choice(arg1); free_choice = 1;}
     {DO_CHOICES(elt,choice) {
-	if (STRINGP(elt)) {
-	  fd_incref(elt); CHOICE_ADD(results,elt);}
-	else if (all_strings) all_strings = 0;}}
+        if (STRINGP(elt)) {
+          fd_incref(elt); CHOICE_ADD(results,elt);}
+        else if (all_strings) all_strings = 0;}}
     if (all_strings) {
       fd_decref(results);
       if (free_choice) return choice;

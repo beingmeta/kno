@@ -418,3 +418,9 @@ void fd_init_fluid_c()
   atexit(recycle_thread_table);
 }
 
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

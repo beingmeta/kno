@@ -206,7 +206,7 @@ static int getflags(lispval opts,int dflt)
 
 static int get_write_flags(lispval val)
 {
-  if (FD_VOIDP(val)) 
+  if (FD_VOIDP(val))
     return MONGOC_WRITE_CONCERN_W_DEFAULT;
   else if (FD_FALSEP(val))
     return MONGOC_WRITE_CONCERN_W_UNACKNOWLEDGED;
@@ -368,7 +368,7 @@ static lispval mongodb_open(lispval arg,lispval opts)
     u8_string dbname = mongoc_uri_get_database(info);
     lispval poolmax = fd_getopt(opts,poolmaxsym,FD_VOID);
     lispval poolmin = fd_getopt(opts,poolminsym,FD_VOID);
-    if ((mongoc_uri_get_ssl(info))&& 
+    if ((mongoc_uri_get_ssl(info))&&
         (setup_ssl(&ssl_opts,info,opts)))
       mongoc_client_pool_set_ssl_opts(client_pool,&ssl_opts);
     if (FD_UINTP(poolmax)) {
@@ -379,8 +379,8 @@ static lispval mongodb_open(lispval arg,lispval opts)
       mongoc_client_pool_min_size(client_pool,pmin);}
     fd_decref(poolmax); fd_decref(poolmin);
     FD_INIT_CONS(srv,fd_mongoc_server);
-    srv->dburi = uri; 
-    if (dbname == NULL) 
+    srv->dburi = uri;
+    if (dbname == NULL)
       srv->dbname = NULL;
     else srv->dbname = u8_strdup(dbname);
     srv->dbspec = get_connection_spec(info);
@@ -412,7 +412,7 @@ static int unparse_server(struct U8_OUTPUT *out,lispval x)
 
 static u8_string get_connection_spec(mongoc_uri_t *info)
 {
-  struct U8_OUTPUT out; 
+  struct U8_OUTPUT out;
   const mongoc_host_list_t *hosts = mongoc_uri_get_hosts(info);
   U8_INIT_OUTPUT(&out,256);
   u8_printf(&out,"%s@%s",mongoc_uri_get_username(info),hosts->host_and_port);
@@ -426,7 +426,7 @@ static u8_string modify_ssl(u8_string uri,int add)
       return u8_string_append(uri,"&ssl = true",NULL);
     else return u8_string_append(uri,"?ssl = true",NULL);}
   else return u8_strdup(uri);
-  
+
 }
 
 static lispval pemsym, pempwd, cafilesym, cadirsym, crlsym;
@@ -460,7 +460,7 @@ static lispval mongodb_collection(lispval server,lispval name_arg,lispval opts_a
 {
   struct FD_MONGODB_COLLECTION *result;
   struct FD_MONGODB_DATABASE *srv;
-  u8_string name = FD_STRDATA(name_arg), collection_name = NULL; 
+  u8_string name = FD_STRDATA(name_arg), collection_name = NULL;
   lispval opts; int flags;
   if (FD_TYPEP(server,fd_mongoc_server)) {
     srv = (struct FD_MONGODB_DATABASE *)server;
@@ -956,9 +956,9 @@ static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
     if ((cursor)&&(mongoc_cursor_next(cursor,&doc))) {
       result = fd_bson2dtype((bson_t *)doc,flags,opts);}
     if (cursor) mongoc_cursor_destroy(cursor);
-    if (rp) mongoc_read_prefs_destroy(rp); 
-    if (q) bson_destroy(q); 
-    if (fields) bson_destroy(fields); 
+    if (rp) mongoc_read_prefs_destroy(rp);
+    if (q) bson_destroy(q);
+    if (fields) bson_destroy(fields);
     fd_decref(opts);
     collection_done(collection,client,domain);
     U8_CLEAR_ERRNO();
@@ -1190,7 +1190,7 @@ static lispval mongodb_command(int n,lispval *args)
     opts = args[1];}
   if ((logops)||(flags&FD_MONGODB_LOGOPS)) {
     u8_log(-LOG_INFO,"MongoDB/RESULTS","At %q: %q",arg,command);}
-  if (FD_TYPEP(arg,fd_mongoc_server)) 
+  if (FD_TYPEP(arg,fd_mongoc_server))
     result = db_command(arg,command,opts);
   else if (FD_TYPEP(arg,fd_mongoc_collection))
     result = collection_command(arg,command,opts);
@@ -1550,7 +1550,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       bson_t arr; char buf[16];
       ok = bson_append_array_begin(out,key,keylen,&arr);
       memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
-      rout.bson_doc = &arr; rout.bson_flags = b.bson_flags; 
+      rout.bson_doc = &arr; rout.bson_flags = b.bson_flags;
       rout.bson_opts = b.bson_opts; rout.bson_fieldmap = b.bson_fieldmap;
       if (ok) {
         int i = 0; FD_DO_CHOICES(v,val) {
@@ -1571,7 +1571,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
         if (ok) ok = bson_append_array_begin(&ch,"0",1,&arr);}
       else ok = bson_append_array_begin(out,key,keylen,&arr);
       memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
-      rout.bson_doc = &arr; rout.bson_flags = b.bson_flags; 
+      rout.bson_doc = &arr; rout.bson_flags = b.bson_flags;
       rout.bson_opts = b.bson_opts; rout.bson_fieldmap = b.bson_fieldmap;
       if (ok) while (i<lim) {
           lispval v = data[i]; sprintf(buf,"%d",i++);
@@ -1588,7 +1588,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       lispval keys = fd_getkeys(val);
       ok = bson_append_document_begin(out,key,keylen,&doc);
       memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
-      rout.bson_doc = &doc; rout.bson_flags = b.bson_flags; 
+      rout.bson_doc = &doc; rout.bson_flags = b.bson_flags;
       rout.bson_opts = b.bson_opts; rout.bson_fieldmap = b.bson_fieldmap;
       if (ok) {
         FD_DO_CHOICES(key,keys) {
@@ -1619,7 +1619,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
         ok = bson_append_array_begin(out,key,keylen,&doc);
       else ok = bson_append_document_begin(out,key,keylen,&doc);
       memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
-      rout.bson_doc = &doc; rout.bson_flags = b.bson_flags; 
+      rout.bson_doc = &doc; rout.bson_flags = b.bson_flags;
       rout.bson_opts = b.bson_opts; rout.bson_fieldmap = b.bson_fieldmap;
       if (tag == mongovec_symbol) {
         lispval *scan = elts, *limit = scan+len; int i = 0;
@@ -1660,7 +1660,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
     if (flags&FD_MONGODB_COLONIZE_OUT) {
       u8_string pname = FD_SYMBOL_NAME(val);
       u8_byte _buf[512], *buf=_buf;
-      size_t len = strlen(pname); 
+      size_t len = strlen(pname);
       if (len>510) buf = u8_malloc(len+2);
       buf[0]=':'; strcpy(buf+1,pname);
       if (buf!=_buf) {
@@ -1793,7 +1793,7 @@ FD_EXPORT lispval fd_bson_output(struct FD_BSON_OUTPUT out,lispval obj)
         i++; scan++;
         if (!(ok)) break;}}
     else {
-      int i = 0; 
+      int i = 0;
       ok = bson_append_dtype(out,"%fdtag",6,tag);
       if (ok) while (i<len) {
           char buf[16]; sprintf(buf,"%d",i);
@@ -1949,7 +1949,7 @@ static void bson_read_step(FD_BSON_INPUT b,lispval into,lispval *loc)
     if (BSON_ITER_HOLDS_DOCUMENT(in)) {
       struct FD_BSON_INPUT r; bson_iter_t child;
       bson_iter_recurse(in,&child);
-      r.bson_iter = &child; r.bson_flags = b.bson_flags; 
+      r.bson_iter = &child; r.bson_flags = b.bson_flags;
       r.bson_opts = b.bson_opts; r.bson_fieldmap = b.bson_fieldmap;
       value = fd_init_slotmap(NULL,0,NULL);
       while (bson_iter_next(&child))
@@ -1958,7 +1958,7 @@ static void bson_read_step(FD_BSON_INPUT b,lispval into,lispval *loc)
         lispval tag = fd_get(value,fdtag_symbol,FD_VOID), compound;
         struct FD_COMPOUND_TYPEINFO *entry = fd_lookup_compound(tag);
         lispval fields[16], keys = fd_getkeys(value);
-        int max = -1, i = 0, n, ok = 1; 
+        int max = -1, i = 0, n, ok = 1;
         while (i<16) fields[i++]=FD_VOID;
         {FD_DO_CHOICES(key,keys) {
             if (FD_FIXNUMP(key)) {
@@ -2092,8 +2092,8 @@ FD_EXPORT lispval fd_bson2dtype(bson_t *in,int flags,lispval opts)
 
 static lispval mongovec_lexpr(int n,lispval *values)
 {
-  int i = 0; while (i<n) { 
-    lispval value = values[i++]; 
+  int i = 0; while (i<n) {
+    lispval value = values[i++];
     fd_incref(value);}
   return fd_init_compound_from_elts(NULL,mongovec_symbol,0,n,values);
 }
@@ -2133,7 +2133,7 @@ static void add_to_mongo_opmap(u8_string keystring)
                       &mongo_opmap_size,
                       &mongo_opmap_space,
                       1);
-  if (entry) 
+  if (entry)
     entry->kv_val = lispval_string(keystring);
   else u8_log(LOG_WARN,"Couldn't add %s to the mongo opmap",keystring);
 }
@@ -2177,7 +2177,7 @@ static void init_mongo_opmap()
   add_to_mongo_opmap("$bitsAllClear");
   add_to_mongo_opmap("$bitsAnySet");
   add_to_mongo_opmap("$bitsAnyClear");
-  
+
   add_to_mongo_opmap("$maxScan");
   add_to_mongo_opmap("$maxTimeMS");
   add_to_mongo_opmap("$returnKey");
@@ -2259,7 +2259,7 @@ static lispval mongodb_opts(lispval arg)
 static lispval mongodb_collection_name(lispval arg)
 {
   struct FD_MONGODB_COLLECTION *collection = NULL;
-  if (FD_TYPEP(arg,fd_mongoc_collection)) 
+  if (FD_TYPEP(arg,fd_mongoc_collection))
     collection = fd_consptr(struct FD_MONGODB_COLLECTION *,arg,fd_mongoc_collection);
   else if (FD_TYPEP(arg,fd_mongoc_cursor)) {
     struct FD_MONGODB_CURSOR *cursor=
@@ -2274,9 +2274,9 @@ static lispval mongodb_collection_name(lispval arg)
 static lispval mongodb_getdb(lispval arg)
 {
   struct FD_MONGODB_COLLECTION *collection = NULL;
-  if (FD_TYPEP(arg,fd_mongoc_server)) 
+  if (FD_TYPEP(arg,fd_mongoc_server))
     return fd_incref(arg);
-  else if (FD_TYPEP(arg,fd_mongoc_collection)) 
+  else if (FD_TYPEP(arg,fd_mongoc_collection))
     collection = fd_consptr(struct FD_MONGODB_COLLECTION *,arg,fd_mongoc_collection);
   else if (FD_TYPEP(arg,fd_mongoc_cursor)) {
     struct FD_MONGODB_CURSOR *cursor=
@@ -2306,7 +2306,7 @@ static int mongodb_getflags(lispval arg)
 
 static lispval mongodb_getcollection(lispval arg)
 {
-  if (FD_TYPEP(arg,fd_mongoc_collection)) 
+  if (FD_TYPEP(arg,fd_mongoc_collection))
     return fd_incref(arg);
   else if (FD_TYPEP(arg,fd_mongoc_cursor)) {
     struct FD_MONGODB_CURSOR *cursor=
@@ -2466,7 +2466,7 @@ FD_EXPORT int fd_init_mongodb()
   cafilesym = fd_intern("CAFILE");
   cadirsym = fd_intern("CADIR");
   crlsym = fd_intern("CRLFILE");
-  
+
   mongovec_symbol = fd_intern("%MONGOVEC");
 
   bsonflags = fd_intern("BSON");
@@ -2617,8 +2617,6 @@ FD_EXPORT int fd_init_mongodb()
 
   return 1;
 }
-
-/* Future code */
 
 /* Emacs local variables
    ;;;  Local variables: ***

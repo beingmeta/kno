@@ -282,13 +282,13 @@ int do_main(int argc,char **argv,
                  n,wait_for_file);}}}
 
   fd_idefn((lispval)env,fd_make_cprimn("CHAIN",chain_prim,0));
-  
+
   if (source_file) {
     lispval src = fd_lispstring(u8_realpath(source_file,NULL));
     result = fd_load_source(source_file,env,NULL);
 
     fd_set_config("SOURCE",src);
-    
+
     fd_decref(src);
     source_file = NULL;}
   else {
@@ -404,7 +404,6 @@ int main(int argc,char **argv)
   return retval;
 }
 #endif
-  
 
 /* Emacs local variables
    ;;;  Local variables: ***

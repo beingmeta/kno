@@ -20,13 +20,13 @@
 fd_walk_fn fd_walkers[FD_TYPE_MAX];
 
 static int cons_walk(fd_walker walker,int constype,
-		     lispval obj,void *walkdata,
-		     fd_walk_flags flags,
-		     int depth);
+                     lispval obj,void *walkdata,
+                     fd_walk_flags flags,
+                     int depth);
 
 FD_FASTOP int fast_walk(fd_walker walker,lispval obj,
-			 void *walkdata,fd_walk_flags flags,
-			 int depth)
+                         void *walkdata,fd_walk_flags flags,
+                         int depth)
 {
   if (depth==0)
     return 0;
@@ -42,13 +42,13 @@ FD_FASTOP int fast_walk(fd_walker walker,lispval obj,
       else return cons_walk(walker,constype,obj,walkdata,flags,depth);}
     default:
       if (fd_walkers[constype]) {
-	int rv = walker(obj,walkdata);
-	if (rv<0) return rv;
-	else if (rv>0)
-	  return cons_walk(walker,constype,obj,walkdata,flags,depth);
-	else return 0;}
+        int rv = walker(obj,walkdata);
+        if (rv<0) return rv;
+        else if (rv>0)
+          return cons_walk(walker,constype,obj,walkdata,flags,depth);
+        else return 0;}
       else if ( (flags==0) || (flags&(FD_WALK_ALL|FD_WALK_TERMINALS)) )
-	return walker(obj,walkdata);
+        return walker(obj,walkdata);
       else return 0;}}
   else if ((flags)&(FD_WALK_ALL))
     return walker(obj,walkdata);
@@ -67,15 +67,15 @@ FD_EXPORT
     Returns: 1, 0, or -1 (an int)
   Walks the object tree, calling walker on nodes encountered. */
 int fd_walk(fd_walker walker,lispval obj,void *walkdata,
-	    fd_walk_flags flags,int depth)
+            fd_walk_flags flags,int depth)
 {
   return fast_walk(walker,obj,walkdata,flags,depth);
 }
 
 static int cons_walk(fd_walker walker,int constype,
-		     lispval obj,void *walkdata,
-		     fd_walk_flags flags,
-		     int depth)
+                     lispval obj,void *walkdata,
+                     fd_walk_flags flags,
+                     int depth)
 {
   switch (constype) {
   case fd_pair_type: {
@@ -84,8 +84,8 @@ static int cons_walk(fd_walker walker,int constype,
       struct FD_PAIR *pair = (fd_pair) scan;
       int rv = walker(scan,walkdata);
       if (rv>0) {
-	fast_walk(walker,pair->car,walkdata,flags,depth-1);
-	scan = pair->cdr;}
+        fast_walk(walker,pair->car,walkdata,flags,depth-1);
+        scan = pair->cdr;}
       else return rv;}
     return fast_walk(walker,scan,walkdata,flags,depth-1);}
   case fd_code_type: case fd_vector_type: {
@@ -103,9 +103,9 @@ static int cons_walk(fd_walker walker,int constype,
     struct FD_KEYVAL *keyvals = slotmap->sm_keyvals;
     while (i<len) {
       if ((fast_walk(walker,keyvals[i].kv_key,walkdata,flags,depth-1)<0)||
-	  (fast_walk(walker,keyvals[i].kv_val,walkdata,flags,depth-1)<0)) {
-	fd_unlock_table(slotmap);
-	return -1;}
+          (fast_walk(walker,keyvals[i].kv_val,walkdata,flags,depth-1)<0)) {
+        fd_unlock_table(slotmap);
+        return -1;}
       else i++;}
     fd_unlock_table(slotmap);
     return len;}
@@ -117,9 +117,9 @@ static int cons_walk(fd_walker walker,int constype,
     lispval *slotvals = schemap->schema_values;
     while (i<len) {
       if ((fast_walk(walker,slotids[i],walkdata,flags,depth-1)<0) ||
-	  (fast_walk(walker,slotvals[i],walkdata,flags,depth-1)<0) ) {
-	fd_unlock_table(schemap);
-	return -1;}
+          (fast_walk(walker,slotvals[i],walkdata,flags,depth-1)<0) ) {
+        fd_unlock_table(schemap);
+        return -1;}
       else i++;}
     fd_unlock_table(schemap);
     return len;}
@@ -130,15 +130,15 @@ static int cons_walk(fd_walker walker,int constype,
     while (i<len) {
       lispval e = data[i++];
       if (fast_walk(walker,e,walkdata,flags,depth-1)<0)
-	return -1;}
+        return -1;}
     return len;}
   case fd_prechoice_type: {
     struct FD_PRECHOICE *ach = (struct FD_PRECHOICE *)obj;
     lispval *data = ach->prechoice_data, *end = ach->prechoice_write;
     while (data<end) {
-	lispval e = *data++;
-	if (fast_walk(walker,e,walkdata,flags,depth-1)<0)
-	  return -1;}
+        lispval e = *data++;
+        if (fast_walk(walker,e,walkdata,flags,depth-1)<0)
+          return -1;}
     return end-data;}
   case fd_qchoice_type: {
     struct FD_QCHOICE *qc = (struct FD_QCHOICE *)obj;
@@ -151,17 +151,17 @@ static int cons_walk(fd_walker walker,int constype,
       buckets = ht->ht_buckets;
       n_keys = ht->table_n_keys;
       while (i<n_buckets) {
-	if (buckets[i]) {
-	  struct FD_HASH_BUCKET *hashentry = buckets[i++];
-	  int j = 0, n_keyvals = hashentry->bucket_len;
-	  struct FD_KEYVAL *keyvals = &(hashentry->kv_val0);
-	  while (j<n_keyvals) {
-	    if ((fast_walk(walker,keyvals[j].kv_key,walkdata,flags,depth-1)<0) ||
-		(fast_walk(walker,keyvals[j].kv_val,walkdata,flags,depth-1)<0) ) {
-	      fd_unlock_table(ht);
-	      return -1;}
-	    else j++;}}
-	else i++;}
+        if (buckets[i]) {
+          struct FD_HASH_BUCKET *hashentry = buckets[i++];
+          int j = 0, n_keyvals = hashentry->bucket_len;
+          struct FD_KEYVAL *keyvals = &(hashentry->kv_val0);
+          while (j<n_keyvals) {
+            if ((fast_walk(walker,keyvals[j].kv_key,walkdata,flags,depth-1)<0) ||
+                (fast_walk(walker,keyvals[j].kv_val,walkdata,flags,depth-1)<0) ) {
+              fd_unlock_table(ht);
+              return -1;}
+            else j++;}}
+        else i++;}
       fd_unlock_table(ht);
       return n_keys;}
   case fd_hashset_type: {
@@ -170,11 +170,11 @@ static int cons_walk(fd_walker walker,int constype,
       int i = 0, n_slots = hs->hs_n_buckets, n_elts = hs->hs_n_elts;
       lispval *slots = hs->hs_buckets;
       while (i<n_slots) {
-	if (slots[i]) {
-	  if (fast_walk(walker,slots[i],walkdata,flags,depth-1)<0) {
-	    fd_unlock_table(hs);
-	    return -1;}}
-	i++;}
+        if (slots[i]) {
+          if (fast_walk(walker,slots[i],walkdata,flags,depth-1)<0) {
+            fd_unlock_table(hs);
+            return -1;}}
+        i++;}
       fd_unlock_table(hs);
       return n_elts;}}
   default:
@@ -185,9 +185,9 @@ static int cons_walk(fd_walker walker,int constype,
 }
 
 static int walk_compound(fd_walker walker,lispval x,
-			  void *walkdata,
-			  fd_walk_flags flags,
-			  int depth)
+                          void *walkdata,
+                          fd_walk_flags flags,
+                          int depth)
 {
   struct FD_COMPOUND *c = fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);
   int i = 0, len = c->compound_length;
@@ -204,3 +204,10 @@ void fd_init_walk_c()
 {
   fd_walkers[fd_compound_type]=walk_compound;
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

@@ -624,7 +624,6 @@ FD_EXPORT void fd_init_json_c()
   u8_register_source_file(_FILEINFO);
 }
 
-
 /* Emacs local variables
    ;;;  Local variables: ***
    ;;;  compile-command: "make -C ../.. debug;" ***

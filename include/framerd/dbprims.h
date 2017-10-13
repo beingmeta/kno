@@ -18,3 +18,9 @@ FD_EXPORT lispval fd_retract(lispval frames,lispval slotids,lispval values);
 
 #endif
 
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

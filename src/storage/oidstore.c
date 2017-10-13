@@ -29,7 +29,7 @@ u8_condition fd_BadAdjunct=_("Bad adjunct table"),
 
 /* TODO: Fix finish/modify semantics
 
-   There's a problem with using OIDs after they've been finished. 
+   There's a problem with using OIDs after they've been finished.
 
    Suppose thread A gets a locked OID, and (eventually) does something
    to it's value (e.g. storing a value on its table). In between when

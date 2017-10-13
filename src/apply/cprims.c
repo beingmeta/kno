@@ -118,9 +118,9 @@ static int dtype_cprim(struct FD_OUTBUF *out,lispval x)
 static struct FD_FUNCTION *new_cprim(u8_string name,
                                      u8_string filename,
                                      u8_string doc,
-				     int arity,int min_arity,
-				     int non_deterministic,
-				     int extended_call)
+                                     int arity,int min_arity,
+                                     int non_deterministic,
+                                     int extended_call)
 {
   struct FD_FUNCTION *f = u8_alloc(struct FD_FUNCTION);
   FD_INIT_FRESH_CONS(f,fd_cprim_type);
@@ -467,7 +467,6 @@ FD_EXPORT void fd_init_cprims_c()
   fd_recyclers[fd_cprim_type]=recycle_primitive;
   fd_dtype_writers[fd_cprim_type]=dtype_cprim;
 }
-
 
 /* Emacs local variables
    ;;;  Local variables: ***

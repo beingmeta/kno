@@ -77,8 +77,8 @@ static size_t app_argc;
 /* This takes an argv, argc combination and processes the argv elements
    which are configs (var = value again) */
 FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
-				  unsigned int arg_mask,
-				  size_t *arglen_ptr)
+                                  unsigned int arg_mask,
+                                  size_t *arglen_ptr)
 {
   if (argc>0) {
     u8_string exe_name = u8_fromlibc(argv[0]);
@@ -89,7 +89,7 @@ FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
     if (exe_name[0]=='/')
       exec_path = exe_name;
     else if ( (u8_file_existsp("/proc/self/exe")) &&
-	      (exec_path = u8_filestring("/proc/self/exe",NULL)) ) {}
+              (exec_path = u8_filestring("/proc/self/exe",NULL)) ) {}
     else if (strchr(exe_name,'/'))
       exec_path = u8_abspath(exe_name,NULL);
     else if (u8_file_existsp(exe_name))
@@ -105,7 +105,7 @@ FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
     fd_decref(interp);}
 
   if (fd_argv!=NULL)  {
-    if ((init_argc>0) && (argc != init_argc)) 
+    if ((init_argc>0) && (argc != init_argc))
       u8_log(LOG_WARN,"InconsistentArgv/c",
              "Trying to reprocess argv with a different argc (%d) length != %d",
              argc,init_argc);
@@ -138,7 +138,7 @@ FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
       FD_VECTOR_SET(raw_args,i,lispval_string(arg));
       /* Don't include argv[0] in the arglists */
       if (i==0) {
-        i++; u8_free(arg); continue;} 
+        i++; u8_free(arg); continue;}
       else if ( ( n < 32 ) && ( ( (arg_mask) & (1<<i)) !=0 ) ) {
         i++; u8_free(arg); continue;}
       else i++;
@@ -189,7 +189,7 @@ static void set_vector_length(lispval vector,int len)
       return;}}
   u8_log(LOGCRIT,"Internal/CmdArgInitVec","Not a vector! %q",
          vector);
-} 
+}
 
 /* Accessing source file registry */
 
@@ -257,13 +257,13 @@ static int config_atexit_set(lispval var,lispval val,void *data)
   struct FD_ATEXIT *scan=atexit_handlers;
   while (scan) {
     if ( (FD_EQUALP(name,scan->exitfn_name)) ||
-	 (fn==scan->exitfn_handler) ) {
+         (fn==scan->exitfn_handler) ) {
       lispval oldfn=scan->exitfn_handler;
       int changed = (fn != oldfn);
       if (changed) {
-	fd_incref(fn);
-	scan->exitfn_handler=fn;
-	fd_decref(oldfn);}
+        fd_incref(fn);
+        scan->exitfn_handler=fn;
+        fd_decref(oldfn);}
       u8_unlock_mutex(&atexit_handlers_lock);
       return changed;}
     else scan=scan->exitfn_next;}
@@ -289,17 +289,17 @@ FD_EXPORT void fd_doexit(lispval arg)
   if (atexit_handlers) {
     u8_lock_mutex(&atexit_handlers_lock);
     u8_log(LOG_NOTICE,"fd_doexit","Running %d FramerD exit handlers",
-	   n_atexit_handlers);
+           n_atexit_handlers);
     scan = atexit_handlers; atexit_handlers = NULL;
     u8_unlock_mutex(&atexit_handlers_lock);
     while (scan) {
       lispval handler = scan->exitfn_handler, result = VOID;
       u8_log(LOG_INFO,"fd_doexit","Running FramerD exit handler %q",handler);
       if ((FD_FUNCTIONP(handler))&&(FD_FUNCTION_ARITY(handler)))
-	result = fd_apply(handler,1,&arg);
+        result = fd_apply(handler,1,&arg);
       else result = fd_apply(handler,0,NULL);
       if (FD_ABORTP(result)) {
-	fd_clear_errors(1);}
+        fd_clear_errors(1);}
       else fd_decref(result);
       fd_decref(handler);
       tmp = scan;
@@ -402,7 +402,7 @@ FD_EXPORT int fd_config_rlimit_set(lispval ignored,lispval v,void *vptr)
   else {
     fd_incref(v);
     fd_seterr(fd_TypeError,"fd_config_rlimit_set",
-	      "resource limit (integer)",v);
+              "resource limit (integer)",v);
     return -1;}
   if (retval<0) {
     u8_condition cond = u8_strerror(errno); errno = 0;
@@ -413,17 +413,17 @@ FD_EXPORT int fd_config_rlimit_set(lispval ignored,lispval v,void *vptr)
     return -1;}
   if (setval == rlim.rlim_cur)
     u8_log(LOG_WARN,SetRLimit,
-	   "Setting for %s did not need to change",
-	   nrl->name);
+           "Setting for %s did not need to change",
+           nrl->name);
   else if (setval == RLIM_INFINITY)
     u8_log(LOG_WARN,SetRLimit,
-	   "Setting %s to unlimited from %d",
-	   nrl->name,rlim.rlim_cur);
+           "Setting %s to unlimited from %d",
+           nrl->name,rlim.rlim_cur);
   else u8_log(LOG_WARN,SetRLimit,
-	      "Setting %s to %lld from %lld",
-	      nrl->name,
-	      (long long)setval,
-	      rlim.rlim_cur);
+              "Setting %s to %lld from %lld",
+              nrl->name,
+              (long long)setval,
+              rlim.rlim_cur);
   rlim.rlim_cur = setval;
   retval = setrlimit(nrl->code,&rlim);
   if (retval<0) {
@@ -513,7 +513,7 @@ static long long randomseed = 0x327b23c6;
 
 static lispval config_getrandomseed(lispval var,void *data)
 {
-  if (randomseed<FD_MAX_FIXNUM) 
+  if (randomseed<FD_MAX_FIXNUM)
     return FD_INT(randomseed);
   else return (lispval)fd_long_long_to_bigint(randomseed);
 }
@@ -791,13 +791,15 @@ FD_EXPORT int fd_boot_message()
   U8_FIXED_OUTPUT(time,256);
   u8_xtime_to_rfc822(timeout,&xt);
   u8_log(-1,NULL,"(%s:%lld) %s %s",
-	 u8_appid(),(unsigned long long)getpid(),
-	 fd_getrevision(),u8_getrevision());
+         u8_appid(),(unsigned long long)getpid(),
+         fd_getrevision(),u8_getrevision());
   u8_log(-1,NULL,_("Copyright (C) beingmeta 2004-2017, all rights reserved"));
   u8_log(-1,NULL,_("Starting on %-s, %s"),u8_gethostname(),time.u8_outbuf);
   boot_message_delivered = 1;
   return 1;
 }
+
+/* Full startup */
 
 void fd_init_startup_c()
 {
@@ -972,3 +974,10 @@ void fd_init_startup_c()
   fd_register_config("ATEXIT",_("Procedures to call on exit"),
                      config_atexit_get,config_atexit_set,NULL);
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

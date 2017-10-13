@@ -110,7 +110,7 @@ FD_EXPORT lispval fd_mapseq(lispval fn,int n_seqs,lispval *sequences)
   if ((TABLEP(fn)) || (ATOMICP(fn))) {
     if (n_seqs>1)
       return fd_err(fd_TooManyArgs,"fd_mapseq",NULL,fn);
-    else if (NILP(firstseq)) 
+    else if (NILP(firstseq))
       return firstseq;}
   if (!(FD_SEQUENCEP(firstseq)))
     return fd_type_error("sequence","fd_mapseq",firstseq);
@@ -181,7 +181,7 @@ FD_EXPORT lispval fd_foreach(lispval fn,int n_seqs,lispval *sequences)
   if ((TABLEP(fn)) || ((ATOMICP(fn)) && (FD_FCNIDP(fn)))) {
     if (n_seqs>1)
       return fd_err(fd_TooManyArgs,"fd_foreach",NULL,fn);
-    else if (NILP(firstseq)) 
+    else if (NILP(firstseq))
       return firstseq;}
   if (!(FD_SEQUENCEP(firstseq)))
     return fd_type_error("sequence","fd_mapseq",firstseq);
@@ -1105,9 +1105,9 @@ static lispval elts_prim(lispval x,lispval start_arg,lispval end_arg)
       case fd_short_elt: {
         fd_short *vec = FD_NUMVEC_SHORTS(x);
         while (i<lim) {
-          fd_short num = vec[i++]; 
-          lispval elt = FD_SHORT2FIX(num); 
-          CHOICE_ADD(results,elt); 
+          fd_short num = vec[i++];
+          lispval elt = FD_SHORT2FIX(num);
+          CHOICE_ADD(results,elt);
           i++;}}
       case fd_int_elt: {
         fd_int *vec = FD_NUMVEC_INTS(x);
@@ -1134,7 +1134,7 @@ static lispval elts_prim(lispval x,lispval start_arg,lispval end_arg)
           CHOICE_ADD(results,elt);}
         break;}
       default: {
-        fd_seterr(_("Corrputed numerical vector"),"fd_seq_elts",NULL,x); 
+        fd_seterr(_("Corrputed numerical vector"),"fd_seq_elts",NULL,x);
         fd_incref(x); fd_decref(results);
         results = FD_ERROR;}}
       break;}

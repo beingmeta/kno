@@ -191,13 +191,13 @@ FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,lispval x)
       else if (itype == fd_constant_type)
         switch (data) {
         case 0: fd_output_byte(out,dt_void); return 1;
-        case 1: 
+        case 1:
           fd_output_byte(out,dt_boolean);
           fd_output_byte(out,0);
           return 2;
-        case 2: 
-          fd_output_byte(out,dt_boolean); 
-          fd_output_byte(out,1); 
+        case 2:
+          fd_output_byte(out,dt_boolean);
+          fd_output_byte(out,1);
           return 2;
         case 3:
           if ((out->buf_flags)&(FD_USE_DTYPEV2)) {

@@ -1125,7 +1125,7 @@ static lispval secs2string(lispval secs,lispval prec_arg)
   else if (precision>0) {
     int more_precision = precision-elts;
     if (elts>0) u8_puts(&out,", ");
-    if ((elts==0)&&(reduce<1)) 
+    if ((elts==0)&&(reduce<1))
       u8_printf(&out,_("%f seconds"),reduce);
     else if (more_precision>3)
       u8_printf(&out,_("%f seconds"),reduce);
@@ -1530,8 +1530,6 @@ FD_EXPORT void fd_init_timeprims_c()
            fd_make_cprim1x("SECS->SHORT",secs2short,1,-1,VOID));
 
 }
-
-
 
 /* Emacs local variables
    ;;;  Local variables: ***

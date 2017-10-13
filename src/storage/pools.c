@@ -610,7 +610,7 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,lispval oids)
         n_fetches++; fd_decref(v);}
       return n_fetches;}}
   if (PRECHOICEP(oids)) {
-    oids = fd_make_simple_choice(oids); 
+    oids = fd_make_simple_choice(oids);
     decref_oids = 1;}
   if (fd_ipeval_status()) {
     FD_HASHTABLE *cache = &(p->pool_cache); int n_to_fetch = 0;
@@ -1592,7 +1592,7 @@ FD_EXPORT fd_pool fd_find_pool_by_prefix(u8_string prefix)
   while (i<n) {
     fd_pool p = fd_pools_by_serialno[i++];
     if (( (p->pool_prefix) && ((strcasecmp(prefix,p->pool_prefix)) == 0) ) ||
-        ( (p->pool_label) && ((strcasecmp(prefix,p->pool_label)) == 0) )) 
+        ( (p->pool_label) && ((strcasecmp(prefix,p->pool_label)) == 0) ))
       return p;}
   return NULL;
 }
@@ -2280,7 +2280,7 @@ static lispval zero_pool_alloc(fd_pool p,int n)
   start = fd_zero_pool_load;
   fd_zero_pool_load = start+n;
   u8_unlock_mutex(&zero_pool_alloc_lock);
-  if (n==1) 
+  if (n==1)
     return fd_make_oid(FD_MAKE_OID(0,start));
   else {
     struct FD_CHOICE *ch = fd_alloc_choice(n);

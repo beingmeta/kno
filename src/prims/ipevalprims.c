@@ -92,7 +92,7 @@ static lispval letq_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     int i = 0; lispval scan = bindexprs; while (i<n) {
       lispval bind_expr = FD_CAR(scan), var = FD_CAR(bind_expr);
       vars[i]=var; vals[i]=VOID; scan = FD_CDR(scan); i++;}
-    if (ipeval_let_binding(n,vals,bindexprs,env)<0) 
+    if (ipeval_let_binding(n,vals,bindexprs,env)<0)
       return ERROR_VALUE;
     {lispval body = fd_get_body(expr,2);
      FD_DOLIST(bodyexpr,body) {
@@ -121,13 +121,13 @@ static lispval letqstar_evalfn
     int i = 0; lispval scan = bindexprs; while (i<n) {
       lispval bind_expr = FD_CAR(scan), var = FD_CAR(bind_expr);
       vars[i]=var; vals[i]=FD_UNBOUND; scan = FD_CDR(scan); i++;}
-    if (ipeval_letstar_binding(n,vals,bindexprs,inner_env,inner_env)<0) 
+    if (ipeval_letstar_binding(n,vals,bindexprs,inner_env,inner_env)<0)
       return FD_ERROR;
     {lispval body = fd_get_body(expr,2);
      FD_DOLIST(bodyexpr,body) {
       fd_decref(result);
       result = fast_eval(bodyexpr,inner_env);
-      if (FD_ABORTED(result)) 
+      if (FD_ABORTED(result))
         return result;}}
     if (inner_env->env_copy) fd_free_lexenv(inner_env->env_copy);
     return result;}

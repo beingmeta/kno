@@ -119,7 +119,7 @@ static lispval *extpool_fetchn(fd_pool p,int n,lispval *oids)
     memcpy(results,vstruct->vec_elts,sizeof(lispval)*n);
     /* Free the CONS itself (and maybe data), to avoid DECREF/INCREF
        of values. */
-    if (vstruct->vec_free_elts) 
+    if (vstruct->vec_free_elts)
       u8_free(vstruct->vec_elts);
     u8_free((struct FD_CONS *)value);
     return results;}
@@ -198,7 +198,7 @@ static int extpool_unlock(fd_pool p,lispval oids)
 {
   struct FD_EXTPOOL *xp = (struct FD_EXTPOOL *) p;
   if (FD_APPLICABLEP(xp->lockfn)) {
-    lispval lockfn = xp->lockfn; 
+    lispval lockfn = xp->lockfn;
     fd_hashtable locks = &(xp->pool_changes);
     fd_hashtable cache = &(xp->pool_cache);
     DO_CHOICES(oid,oids) {
@@ -234,7 +234,7 @@ static void recycle_extpool(fd_pool p)
   if (p->pool_handler== &fd_extpool_handler) {
     struct FD_EXTPOOL *xp = (struct FD_EXTPOOL *)p;
     fd_decref(xp->fetchfn); fd_decref(xp->savefn);
-    fd_decref(xp->lockfn); fd_decref(xp->allocfn); 
+    fd_decref(xp->lockfn); fd_decref(xp->allocfn);
     fd_decref(xp->state);}
 }
 
@@ -263,3 +263,9 @@ FD_EXPORT void fd_init_extpool_c()
   u8_register_source_file(_FILEINFO);
 }
 
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

@@ -387,7 +387,7 @@ static lispval filecontent_prim(lispval filename)
   unsigned char *data = u8_filedata(CSTRING(filename),&len);
   if (len>=0) {
     lispval result;
-    if (u8_validp(data)) 
+    if (u8_validp(data))
       result = fd_make_string(NULL,len,data);
     else result = fd_make_packet(NULL,len,data);
     u8_free(data);
@@ -452,7 +452,7 @@ static lispval file_readlink(lispval arg,lispval abs,lispval err)
     result = u8_readlink(CSTRING(arg),0);
   else result = u8_readlink(CSTRING(arg),1);
   if (result) return fd_lispstring(result);
-  else if (FD_TRUEP(err)) 
+  else if (FD_TRUEP(err))
     return FD_ERROR;
   else {
     u8_clear_errors(0);
@@ -731,9 +731,9 @@ static lispval tempdir_done_prim(lispval tempdir,lispval force_arg)
 static lispval is_tempdir_prim(lispval tempdir)
 {
   u8_lock_mutex(&tempdirs_lock); {
-    lispval cur_tempdirs = tempdirs; 
+    lispval cur_tempdirs = tempdirs;
     int found = fd_overlapp(tempdir,cur_tempdirs);
-    u8_unlock_mutex(&tempdirs_lock); 
+    u8_unlock_mutex(&tempdirs_lock);
     if (found) return FD_TRUE; else return FD_FALSE;}
 }
 
@@ -963,7 +963,7 @@ static lispval getlinks_prim(lispval dirname,lispval fullpath)
 {
   lispval results = EMPTY;
   u8_string *contents=
-    u8_readdir(CSTRING(dirname),U8_LIST_LINKS,(!(FALSEP(fullpath)))), 
+    u8_readdir(CSTRING(dirname),U8_LIST_LINKS,(!(FALSEP(fullpath)))),
     *scan = contents;
   if (contents == NULL) return FD_ERROR;
   else while (*scan) {
@@ -978,7 +978,7 @@ static lispval readdir_prim(lispval dirname,lispval fullpath)
 {
   lispval results = EMPTY;
   u8_string *contents=
-    u8_readdir(CSTRING(dirname),0,(!(FALSEP(fullpath)))), 
+    u8_readdir(CSTRING(dirname),0,(!(FALSEP(fullpath)))),
     *scan = contents;
   if (contents == NULL) return FD_ERROR;
   else while (*scan) {

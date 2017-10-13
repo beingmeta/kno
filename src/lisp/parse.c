@@ -72,7 +72,7 @@ static int skip_whitespace(u8_input s)
       while ((c>=0) && (c != '\n')) c = u8_getc(s);
       if (c<0) return -1;}
     else if ((c=='#')&&(u8_peekc(s)<0)) {
-      u8_ungetc(s,c); 
+      u8_ungetc(s,c);
       return c;}
     else if ((c=='#') && (u8_probec(s)=='|')) {
       int bar = 0; c = u8_getc(s);
@@ -622,8 +622,8 @@ static lispval parse_text_packet(U8_INPUT *in)
           else {
             struct U8_OUTPUT tmpout; u8_byte buf[16];
             U8_INIT_FIXED_OUTPUT(&tmpout,16,buf);
-            u8_putc(&tmpout,'\\'); 
-            u8_putc(&tmpout,c1); 
+            u8_putc(&tmpout,'\\');
+            u8_putc(&tmpout,c1);
             u8_putc(&tmpout,c2);
             u8_seterr(_("Bad hex escape"),"parse_text_packet",
                       u8_strdup(tmpout.u8_outbuf));
@@ -644,14 +644,14 @@ static lispval parse_text_packet(U8_INPUT *in)
           else {
             c = strtol(obuf,NULL,8);
             if (c<256) {
-              data[len++]=c; 
+              data[len++]=c;
               break;}
             else {
               u8_free(data);
               u8_seterr(_("Bad octal escape"),"parse_text_packet",
                         u8_strdup(obuf));
               return FD_PARSE_ERROR;}}}
-        default: 
+        default:
           data[len++]=c;}}
     else data[len++]=c;
     c = u8_getc(in);}
@@ -741,7 +741,7 @@ static lispval parse_base64_packet(U8_INPUT *in)
 static lispval parse_packet(U8_INPUT *in,int nextc)
 {
   if (nextc<0) return FD_EOF;
-  else if (nextc=='"') 
+  else if (nextc=='"')
     return parse_text_packet(in);
   else if ((nextc=='X')||(nextc=='x')) {
     int nc = u8_getc(in);

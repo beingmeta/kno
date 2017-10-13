@@ -119,3 +119,10 @@ FD_EXPORT u8_string fd_match_pool_file(u8_string spec,void *data);
 FD_EXPORT u8_string fd_match_index_file(u8_string spec,void *data);
 
 #endif /* #ifndef FRAMERD_DRIVERS_H */
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

@@ -38,10 +38,10 @@ FD_FASTOP
 void fd_free_lexenv(struct FD_LEXENV *env)
 {
   /* There are three cases:
-        a simple static environment (env->env_copy == NULL)
-        a static environment copied into a dynamic environment
-          (env->env_copy!=env)
-        a dynamic environment (env->env_copy == env->env_copy)
+	a simple static environment (env->env_copy == NULL)
+	a static environment copied into a dynamic environment
+	  (env->env_copy!=env)
+	a dynamic environment (env->env_copy == env->env_copy)
   */
   if (env->env_copy)
     if (env == env->env_copy)
@@ -50,7 +50,7 @@ void fd_free_lexenv(struct FD_LEXENV *env)
       struct FD_SCHEMAP *sm = FD_XSCHEMAP(env->env_bindings);
       int i = 0, n = FD_XSCHEMAP_SIZE(sm);
       lispval *vals = sm->schema_values;
-      if ( sm->schemap_stackvals == 0) 
+      if ( sm->schemap_stackvals == 0)
 	while (i < n) {
 	  lispval val = vals[i++];
 	  if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
@@ -73,3 +73,10 @@ void fd_free_lexenv(struct FD_LEXENV *env)
 #endif
 
 #endif
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

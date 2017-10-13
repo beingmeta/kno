@@ -36,8 +36,8 @@
 #include <libu8/u8xfiles.h>
 
 static void output_value(u8_output out,lispval val,
-			 u8_string eltname,
-			 u8_string classname);
+                         u8_string eltname,
+                         u8_string classname);
 FD_EXPORT void fd_html_exception(u8_output s,u8_exception ex,int backtrace);
 
 static u8_string error_stylesheet=NULL;
@@ -209,8 +209,8 @@ static int isexprp(lispval expr)
 {
   FD_DOLIST(elt,expr) {
     if ( (PAIRP(elt)) || (CHOICEP(elt)) ||
-	 (SLOTMAPP(elt)) || (SCHEMAPP(elt)) ||
-	 (VECTORP(elt)) || (FD_CODEP(elt)))
+         (SLOTMAPP(elt)) || (SCHEMAPP(elt)) ||
+         (VECTORP(elt)) || (FD_CODEP(elt)))
       return 0;}
   return 1;
 }
@@ -233,7 +233,7 @@ static void output_opts(u8_output out,lispval expr)
   if (PAIRP(expr))
     if ( (SYMBOLP(FD_CAR(expr))) && (!(PAIRP(FD_CDR(expr)))) ) {
       u8_printf(out,"\n <tr><th class='optname'>%s</th>\n       ",
-		SYM_NAME(FD_CAR(expr)));
+                SYM_NAME(FD_CAR(expr)));
       output_value(out,FD_CDR(expr),"td","optval");
       u8_printf(out,"</tr>");}
     else {
@@ -242,14 +242,14 @@ static void output_opts(u8_output out,lispval expr)
   else if (NILP(expr)) {}
   else if (SYMBOLP(expr))
     u8_printf(out,"\n <tr><th class='optname'>%s</th><td>%s</td></tr>",
-	      SYM_NAME(expr),SYM_NAME(expr));
+              SYM_NAME(expr),SYM_NAME(expr));
   else if ( (SCHEMAPP(expr)) || (SLOTMAPP(expr)) ) {
     lispval keys=fd_getkeys(expr);
     DO_CHOICES(key,keys) {
       lispval optval=fd_get(expr,key,VOID);
       if (SYMBOLP(key))
-	u8_printf(out,"\n <tr><th class='optname'>%s</th>",
-		  SYM_NAME(expr));
+        u8_printf(out,"\n <tr><th class='optname'>%s</th>",
+                  SYM_NAME(expr));
       else u8_printf(out,"\n <tr><th class='optkey'>%q</th>",expr);
       output_value(out,optval,"td","optval");
       u8_printf(out,"</tr>");
@@ -295,8 +295,8 @@ void fd_html_exception(u8_output s,u8_exception ex,int backtrace)
 }
 
 static void output_value(u8_output out,lispval val,
-			 u8_string eltname,
-			 u8_string classname)
+                         u8_string eltname,
+                         u8_string classname)
 {
   if (STRINGP(val))
     if (STRLEN(val)>42)
@@ -306,10 +306,10 @@ static void output_value(u8_output out,lispval val,
                    eltname,classname,STRLEN(val),FD_STRDATA(val),eltname);
   else if (SYMBOLP(val))
     u8_printf(out," <%s class='%s symbol'>%k</%s>",
-	      eltname,classname,SYM_NAME(val),eltname);
+              eltname,classname,SYM_NAME(val),eltname);
   else if (NUMBERP(val))
     u8_printf(out," <%s class='%s number'>%lk</%s>",
-	      eltname,classname,val,eltname);
+              eltname,classname,val,eltname);
   else if (VECTORP(val)) {
     int len=VEC_LEN(val);
     if (len<2) {
@@ -319,9 +319,9 @@ static void output_value(u8_output out,lispval val,
     else {
       u8_printf(out," <ol class='%s vector'>#(",classname);
       int i=0; while (i<len) {
-	if (i>0) u8_putc(out,' ');
-	output_value(out,VEC_REF(val,i),"li","vecelt");
-	i++;}
+        if (i>0) u8_putc(out,' ');
+        output_value(out,VEC_REF(val,i),"li","vecelt");
+        i++;}
       u8_printf(out,")</ol>");}}
   else if ( (SLOTMAPP(val)) || (SCHEMAPP(val)) ) {
     lispval keys=fd_getkeys(val);
@@ -331,22 +331,22 @@ static void output_value(u8_output out,lispval val,
     else if (n_keys==1) {
       lispval value=fd_get(val,keys,VOID);
       u8_printf(out," <%s class='%s map'>#[<span class='slotid'>%lk</span> ",
-		eltname,classname,keys);
+                eltname,classname,keys);
       output_value(out,value,"span","slotvalue");
       u8_printf(out," ]</%s>",eltname);
       fd_decref(value);}
     else {
       u8_printf(out,"\n<div class='%s map'>",classname);
       int i=0; DO_CHOICES(key,keys) {
-	lispval value=fd_get(val,key,VOID);
+        lispval value=fd_get(val,key,VOID);
         u8_printf(out,"\n  <div class='%s keyval keyval%d'>",classname,i);
-	output_value(out,key,"span","key");
-	if (CHOICEP(value)) u8_puts(out," <span class='slotvals'>");
+        output_value(out,key,"span","key");
+        if (CHOICEP(value)) u8_puts(out," <span class='slotvals'>");
         {DO_CHOICES(v,value) {
-	    u8_putc(out,' ');
-	    output_value(out,value,"span","slotval");}}
-	if (CHOICEP(value)) u8_puts(out," </span>");
-	u8_printf(out,"</div>");
+            u8_putc(out,' ');
+            output_value(out,value,"span","slotval");}}
+        if (CHOICEP(value)) u8_puts(out," </span>");
+        u8_printf(out,"</div>");
         fd_decref(value);
         i++;}
       u8_printf(out,"\n</div>",classname);}}
@@ -354,7 +354,7 @@ static void output_value(u8_output out,lispval val,
     u8_string tmp = fd_lisp2string(val);
     if (strlen(tmp)< 50)
       u8_printf(out,"<%s class='%s listval'>%s</%s>",
-		eltname,classname,tmp,eltname);
+                eltname,classname,tmp,eltname);
     else if (isoptsp(val)) {
       u8_printf(out,"\n<table class='%s opts'>",classname);
       output_opts(out,val);
@@ -367,10 +367,10 @@ static void output_value(u8_output out,lispval val,
       lispval scan=val;
       u8_printf(out," <ol class='%s list'>",classname);
       while (PAIRP(scan)) {
-	lispval car=FD_CAR(val); scan=FD_CDR(scan);
-	output_value(out,car,"li","listelt");}
+        lispval car=FD_CAR(val); scan=FD_CDR(scan);
+        output_value(out,car,"li","listelt");}
       if (!(NILP(scan)))
-	output_value(out,scan,"li","cdrelt");
+        output_value(out,scan,"li","cdrelt");
       u8_printf(out,"\n</ol>");}
     u8_free(tmp);}
   else if (CHOICEP(val)) {
@@ -393,8 +393,8 @@ static void output_value(u8_output out,lispval val,
     fd_ptr_type ptrtype=FD_PTR_TYPE(val);
     if (fd_type_names[ptrtype])
       u8_printf(out," <%s class='%s %s'>%lk</%s>",
-		eltname,classname,fd_type_names[ptrtype],
-		val,eltname);}
+                eltname,classname,fd_type_names[ptrtype],
+                val,eltname);}
 }
 
 #define INTVAL(x)    ((FIXNUMP(x))?(FD_INT(x)):(-1))

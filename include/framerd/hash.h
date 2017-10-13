@@ -43,13 +43,13 @@ static unsigned int hash_mult(unsigned int x,unsigned int y)
 #if 0
 #if (SIZEOF_LONG_LONG == 8)
 static unsigned int hash_multr(unsigned int x,unsigned int y,
-                               unsigned int r)
+			       unsigned int r)
 {
   return ((x*y)%(r));
 }
 #else
 static unsigned int hash_multr(unsigned int x,unsigned int y,
-                               unsigned int r)
+			       unsigned int r)
 {
   if (x == 1) return y;
   else if (y == 1) return x;
@@ -80,3 +80,10 @@ unsigned int hash_combine(unsigned int x,unsigned int y)
 }
 
 #endif /* FRAMERD_HASH_H */
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

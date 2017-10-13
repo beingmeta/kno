@@ -34,9 +34,9 @@ static lispval error_symbol;
 static int validate_dtype(int pos,const unsigned char *ptr,
                           const unsigned char *lim)
 {
-  if (pos < 0) 
+  if (pos < 0)
     return pos;
-  else if (ptr+pos >= lim) 
+  else if (ptr+pos >= lim)
     return -1;
   else {
     int code = ptr[pos];

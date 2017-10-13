@@ -227,7 +227,7 @@ static lispval bind_random_symbol(lispval result,fd_lexenv env)
 static int output_result(u8_output out,lispval result,
                          int histref,int showall)
 {
-  if (VOIDP(result)) 
+  if (VOIDP(result))
     return 0;
   else if ((showall)&&(OIDP(result))) {
     lispval v = fd_oid_value(result);

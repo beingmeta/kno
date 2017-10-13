@@ -80,7 +80,7 @@ static lispval inexactp(lispval x)
 {
   if (FD_COMPLEXP(x)) {
     lispval real = FD_REALPART(x), imag = FD_IMAGPART(x);
-    if ((FD_FLONUMP(real)) || (FD_FLONUMP(imag))) 
+    if ((FD_FLONUMP(real)) || (FD_FLONUMP(imag)))
       return FD_TRUE;
     else return FD_FALSE;}
   else if (FD_FLONUMP(x))
@@ -102,7 +102,7 @@ static lispval oddp(lispval x)
     if (FD_ABORTP(remainder)) return remainder;
     else if (FIXNUMP(remainder))
       if (FD_INT(remainder))
-        return FD_TRUE; 
+        return FD_TRUE;
       else return FD_FALSE;
     else {
       fd_decref(remainder);
@@ -166,7 +166,7 @@ static lispval plus_lexpr(int n,lispval *args)
     if (FIXNUMP(x))
       return x;
     else return fd_incref(x);}
-  else if (n==2) 
+  else if (n==2)
     return fd_plus(args[0],args[1]);
   else {
     int i = 0; int floating = 0, generic = 0, vector = 0;
@@ -252,7 +252,7 @@ static lispval times_lexpr(int n,lispval *args)
     else if ((FD_NUMVECP(arg))||(VECTORP(arg)))
       return fd_incref(arg);
     return fd_type_error(_("number"),"times_lexpr",fd_incref(arg));}
-  else if (n==2) 
+  else if (n==2)
     return fd_multiply(args[0],args[1]);
   else {
     while (i < n)
@@ -526,7 +526,7 @@ static lispval toexact(lispval x,lispval direction)
       double d = FD_FLONUM(x);
       struct FD_FLONUM tmp;
       FD_INIT_STATIC_CONS(&tmp,fd_flonum_type);
-      if (dir==1) 
+      if (dir==1)
         tmp.floval = ceil(d);
       else tmp.floval = round(d);
       return fd_make_exact((lispval)(&tmp));}}
@@ -658,7 +658,7 @@ static lispval inexact_nthroot_prim(lispval v,lispval n)
 
 static lispval min_prim(int n,lispval *args)
 {
-  if (n==0) 
+  if (n==0)
     return fd_err(fd_TooFewArgs,"max_prim",NULL,VOID);
   else {
     lispval result = args[0]; int i = 1, inexact = FD_FLONUMP(args[0]);
@@ -1093,7 +1093,7 @@ static lispval itoa_prim(lispval arg,lispval base_arg)
     else if (base==8) u8_uitoa8(FIX2INT(arg),buf);
     else if (base==16) u8_uitoa16(FIX2INT(arg),buf);
     else return fd_type_error("16,10,or 8","itoa_prim",base_arg);}
-  else if (!(FD_BIGINTP(arg))) 
+  else if (!(FD_BIGINTP(arg)))
     return fd_type_error("number","itoa_prim",arg);
   else {
     fd_bigint bi = (fd_bigint)arg;

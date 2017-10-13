@@ -65,9 +65,9 @@ typedef struct FD_XML {
   u8_string xml_eltname; int xml_bits;
   lispval xml_head, xml_attribs;
   u8_string xml_namespace;
-  u8_string *xml_nsmap; 
+  u8_string *xml_nsmap;
   int xml_size, xml_limit;
-  struct FD_PAIR *xml_content_tail; 
+  struct FD_PAIR *xml_content_tail;
   void *xml_data;
   struct FD_XML *xml_parent;} FD_XML;
 
@@ -206,8 +206,15 @@ FD_EXPORT void fd_init_json_c(void);
   "Content-type: text/html; charset = utf-8;"
 #define DEFAULT_DOCTYPE \
   "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\"\
-               \"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">"
+	       \"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">"
 #define DEFAULT_XMLPI \
   "<?xml version='1.0' charset='utf-8' ?>"
 
 #endif /* FRAMERD_FDWEB_H */
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

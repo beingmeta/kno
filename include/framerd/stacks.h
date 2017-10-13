@@ -96,62 +96,62 @@ FD_EXPORT __thread struct FD_STACK *fd_stackptr;
 #define set_call_stack(s) fd_stackptr = s
 #endif
 
-#define FD_SETUP_NAMED_STACK(name,caller,type,label,op)	\
-  struct FD_STACK _ ## name, *name=&_ ## name;		\
-  memset(&_ ## name,0,sizeof(struct FD_STACK));		\
-  assert( caller != name);				\
-  if (caller) _ ## name.stack_root=caller->stack_root;	\
-  if (caller)						\
-    _ ## name.stack_depth = 1 + caller->stack_depth;	\
-  if (caller)						\
-    _ ## name.stack_errflags = caller->stack_errflags;	\
+#define FD_SETUP_NAMED_STACK(name,caller,type,label,op) \
+  struct FD_STACK _ ## name, *name=&_ ## name;          \
+  memset(&_ ## name,0,sizeof(struct FD_STACK));         \
+  assert( caller != name);                              \
+  if (caller) _ ## name.stack_root=caller->stack_root;  \
+  if (caller)                                           \
+    _ ## name.stack_depth = 1 + caller->stack_depth;    \
+  if (caller)                                           \
+    _ ## name.stack_errflags = caller->stack_errflags;  \
   else _ ## name.stack_errflags = FD_STACK_ERR_DEFAULT; \
-  _ ## name.stack_caller=caller;			\
-  _ ## name.stack_type=type;				\
-  _ ## name.stack_label=label;				\
-  _ ## name.stack_op=op;				\
-  _ ## name.stack_source=FD_VOID;			\
-  _ ## name.stack_vals=FD_EMPTY_CHOICE;			\
-  _ ## name.cleanups=_ ## name._cleanups;		\
+  _ ## name.stack_caller=caller;                        \
+  _ ## name.stack_type=type;                            \
+  _ ## name.stack_label=label;                          \
+  _ ## name.stack_op=op;                                \
+  _ ## name.stack_source=FD_VOID;                       \
+  _ ## name.stack_vals=FD_EMPTY_CHOICE;                 \
+  _ ## name.cleanups=_ ## name._cleanups;               \
   _ ## name.stack_live=1
 
-#define FD_PUSH_STACK(name,type,label,op)	       \
+#define FD_PUSH_STACK(name,type,label,op)              \
   FD_SETUP_NAMED_STACK(name,_stack,type,label,op);     \
   set_call_stack(name)
 
-#define FD_NEW_STACK(caller,type,label,op)	       \
+#define FD_NEW_STACK(caller,type,label,op)             \
   FD_SETUP_NAMED_STACK(_stack,caller,type,label,op);     \
   set_call_stack(_stack)
 
-#define FD_ALLOCA_STACK(name)					\
-  name=alloca(sizeof(struct FD_STACK));				\
-  memset(name,0,sizeof(struct FD_STACK));			\
-  assert( fd_stackptr != name);					\
-  name->stack_caller = fd_stackptr;				\
-  if (name->stack_caller)					\
-    name->stack_depth=1+name->stack_caller->stack_depth;	\
-  if (name->stack_caller)					\
-    name->stack_root=name->stack_caller->stack_root;		\
-  if (name->stack_caller)					\
-    name->stack_errflags =					\
-      name->stack_caller->stack_errflags;			\
-  else name->stack_errflags = FD_STACK_ERR_DEFAULT;		\
-  name->stack_type = "alloca";					\
-  name->stack_vals = FD_EMPTY_CHOICE;				\
-  name->stack_source = FD_VOID;					\
-  name->stack_op = FD_VOID;					\
-  name->cleanups = name->_cleanups;				\
+#define FD_ALLOCA_STACK(name)                                   \
+  name=alloca(sizeof(struct FD_STACK));                         \
+  memset(name,0,sizeof(struct FD_STACK));                       \
+  assert( fd_stackptr != name);                                 \
+  name->stack_caller = fd_stackptr;                             \
+  if (name->stack_caller)                                       \
+    name->stack_depth=1+name->stack_caller->stack_depth;        \
+  if (name->stack_caller)                                       \
+    name->stack_root=name->stack_caller->stack_root;            \
+  if (name->stack_caller)                                       \
+    name->stack_errflags =                                      \
+      name->stack_caller->stack_errflags;                       \
+  else name->stack_errflags = FD_STACK_ERR_DEFAULT;             \
+  name->stack_type = "alloca";                                  \
+  name->stack_vals = FD_EMPTY_CHOICE;                           \
+  name->stack_source = FD_VOID;                                 \
+  name->stack_op = FD_VOID;                                     \
+  name->cleanups = name->_cleanups;                             \
   name->stack_live=1; \
   set_call_stack(name)
 
-#define FD_INIT_STACK()				\
-  fd_init_cstack();				\
+#define FD_INIT_STACK()                         \
+  fd_init_cstack();                             \
   set_call_stack(((fd_stack)NULL))
 
-#define FD_INIT_THREAD_STACK()				\
-  fd_init_cstack();					\
-  u8_byte label[128];					\
-  u8_sprintf(label,128,"thread%d",u8_threadid());	\
+#define FD_INIT_THREAD_STACK()                          \
+  fd_init_cstack();                                     \
+  u8_byte label[128];                                   \
+  u8_sprintf(label,128,"thread%d",u8_threadid());       \
   FD_NEW_STACK(((struct FD_STACK *)NULL),"thread",label,FD_VOID)
 
 FD_EXPORT void _fd_free_stack(struct FD_STACK *stack);
@@ -341,6 +341,11 @@ fd_add_cleanup(struct FD_STACK *stack,fd_stack_cleanop op,
 FD_EXPORT lispval fd_get_backtrace(struct FD_STACK *stack);
 FD_EXPORT void fd_sum_backtrace(u8_output out,lispval backtrace);
 
-
-
 #endif /* FRAMERD_STACKS_H */
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

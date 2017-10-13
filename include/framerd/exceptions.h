@@ -71,3 +71,10 @@ FD_EXPORT u8_condition fd_retcode_to_exception(lispval err);
 FD_EXPORT lispval fd_exception_backtrace(u8_exception ex);
 
 #endif /* ndef FRAMERD_EXCEPTIONS_H */
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

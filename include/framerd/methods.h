@@ -45,6 +45,11 @@ FD_EXPORT int fd_inherits_valuep
   (lispval root,lispval slotid,lispval through,lispval value);
 FD_EXPORT int fd_pathp(lispval root,lispval slotid,lispval to);
 
-
-
 #endif /* FRAMERD_METHODS_H */
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

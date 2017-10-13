@@ -85,13 +85,13 @@ static int load_source_module(lispval spec,int safe,void *ignored)
       lispval module_key = lispval_string(module_source);
       fd_register_module_x(module_key,load_result,safe);
       /* Store non symbolic specifiers as module identifiers */
-      if (STRINGP(spec)) 
-	fd_add(load_result,moduleid_symbol,spec);
+      if (STRINGP(spec))
+        fd_add(load_result,moduleid_symbol,spec);
       /* Register the module under its filename too. */
       if (strchr(module_source,':') == NULL) {
-	lispval abspath_key = fd_lispstring(u8_abspath(module_source,NULL));
-	fd_register_module_x(abspath_key,load_result,safe);
-	fd_decref(abspath_key);}
+        lispval abspath_key = fd_lispstring(u8_abspath(module_source,NULL));
+        fd_register_module_x(abspath_key,load_result,safe);
+        fd_decref(abspath_key);}
       fd_decref(module_key);
       u8_free(module_source);
       fd_decref(load_result);
@@ -174,7 +174,7 @@ static lispval reload_module(lispval module)
       fd_decref(resolved);
       return result;}
     else return fd_err(fd_TypeError,"reload_module",
-		       "module name or path",module);}
+                       "module name or path",module);}
   else if (TABLEP(module)) {
     lispval ids = fd_get(module,moduleid_symbol,EMPTY), source = VOID;
     DO_CHOICES(id,ids) {
@@ -186,9 +186,9 @@ static lispval reload_module(lispval module)
     else {
       fd_decref(ids);
       return fd_err(fd_ReloadError,"reload_module",
-		    "Couldn't find source",module);}}
+                    "Couldn't find source",module);}}
   else return fd_err(fd_TypeError,"reload_module",
-		     "module name or path",module);
+                     "module name or path",module);
 }
 
 static lispval safe_reload_module(lispval module)
@@ -203,7 +203,7 @@ static lispval safe_reload_module(lispval module)
       fd_decref(resolved);
       return result;}
     else return fd_err(fd_TypeError,"safe_reload_module",
-		       "module name or path",module);}
+                       "module name or path",module);}
   else if (TABLEP(module)) {
     lispval ids = fd_get(module,moduleid_symbol,EMPTY), source = VOID;
     DO_CHOICES(id,ids) {
@@ -215,9 +215,9 @@ static lispval safe_reload_module(lispval module)
     else {
       fd_decref(ids);
       return fd_err(fd_ReloadError,"safe_reload_module",
-		    "Couldn't find source",module);}}
+                    "Couldn't find source",module);}}
   else return fd_err(fd_TypeError,"safe_reload_module",
-		     "module name or path",module);
+                     "module name or path",module);
 }
 
 /* Automatic module reloading */
@@ -712,12 +712,12 @@ FD_EXPORT void fd_init_loader_c()
     lispval v = ((path) ? (fd_lispstring(path)) :
                 (lispval_string(FD_DEFAULT_LOADPATH)));
     loadpath = fd_init_pair(NULL,v,loadpath);}
-    
+
   {u8_string path = u8_getenv("FD_INIT_SAFELOADPATH");
     lispval v = ((path) ? (fd_lispstring(path)) :
                 (lispval_string(FD_DEFAULT_SAFE_LOADPATH)));
     safe_loadpath = fd_init_pair(NULL,v,safe_loadpath);}
-    
+
   {u8_string dir=u8_getenv("FD_LIBSCM_DIR");
     if (dir==NULL) dir = u8_strdup(FD_LIBSCM_DIR);
     if (u8_has_suffix(dir,"/",0))

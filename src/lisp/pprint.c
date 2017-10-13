@@ -467,7 +467,7 @@ int fd_pprint_table(u8_output out,lispval x,
   int maxcol = pprint_max(maxcol,ppcxt);
   int maxkeys = pprint_max(maxkeys,ppcxt);
   u8_string margin = (ppcxt)? (ppcxt->pp_margin) : (pprint_margin);
-  size_t margin_len = (ppcxt) ? (ppcxt->pp_margin_len) : 
+  size_t margin_len = (ppcxt) ? (ppcxt->pp_margin_len) :
     (margin) ? (strlen(margin)) : (0);
   int count=0;
   while (scan<limit) {

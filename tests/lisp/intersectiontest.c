@@ -74,17 +74,17 @@ int main(int argc,char **argv)
     else {
       lispval item = read_choice(argv[i]);
       if (FD_ABORTP(item)) {
-        if (!(FD_THROWP(item)))
-          u8_fprintf(stderr,"Trouble reading %s: %q\n",argv[i],item);
-        return -1;}
+	if (!(FD_THROWP(item)))
+	  u8_fprintf(stderr,"Trouble reading %s: %q\n",argv[i],item);
+	return -1;}
       u8_fprintf(stderr,"Read %d items from %s\n",FD_CHOICE_SIZE(item),argv[i]);
       args[j++]=item; i++;}
   inputtime = get_elapsed();
   common = fd_intersection(args,j);
   donetime = get_elapsed();
   u8_fprintf(stderr,"CHOICE_SIZE(common)=%d read time=%f; run time=%f\n",
-             FD_CHOICE_SIZE(common),
-             inputtime-starttime,donetime-inputtime);
+	     FD_CHOICE_SIZE(common),
+	     inputtime-starttime,donetime-inputtime);
   write_dtype_to_file(common,"intersection.dtype");
   if ((argv[1][0]=='-') && (argv[1][1]=='b')) write_binary = 1;
   else f = fopen(argv[1],"w");
@@ -103,3 +103,10 @@ int main(int argc,char **argv)
   if (f) fclose(f);
   exit(0);
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

@@ -341,7 +341,6 @@ FD_EXPORT void fd_init_extdbprims_c()
   fd_finish_module(extdb_module);
 }
 
-
 /* Emacs local variables
    ;;;  Local variables: ***
    ;;;  compile-command: "make -C ../.. debug;" ***

@@ -133,7 +133,7 @@ static lispval protected_cgi_get(lispval var,void *ptr)
   struct FD_PROTECTED_CGI *scan = protected_cgi;
   while (scan) {
     lispval field = scan->field; fd_incref(field);
-    CHOICE_ADD(result,field); 
+    CHOICE_ADD(result,field);
     scan = scan->next;}
   return result;
 }

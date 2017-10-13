@@ -24,3 +24,10 @@ FD_EXPORT lispval fd_make_dtproc
    int minsock,int maxsock,int initsock);
 
 #endif
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

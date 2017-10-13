@@ -143,10 +143,10 @@ FD_EXPORT char *fd_ulonglong_to_b32(unsigned long long offset,
 {
   char tmpbuf[32]; int rem = offset, outlen = 0;
   int buflen = ((len)?(*len):((sizeof(unsigned long long)/5)+1));
-  char *write = tmpbuf, *read, *limit = tmpbuf+buflen; 
+  char *write = tmpbuf, *read, *limit = tmpbuf+buflen;
   while (rem>0) {
     char digit = rem&0x1F, ch = b32_chars[(int)digit];
-    if (write<limit) *write = ch; 
+    if (write<limit) *write = ch;
     else outlen = (write-tmpbuf);
     write++; rem = rem>>5;}
   if (outlen) {*len = -outlen; return NULL;}

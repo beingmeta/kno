@@ -35,3 +35,10 @@ int main(int argc,char **argv)
   fd_close_stream(out,FD_STREAM_CLOSE_FULL);
   return 0;
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

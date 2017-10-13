@@ -158,7 +158,6 @@ FD_EXPORT int fd_init_zlib()
   return 1;
 }
 
-
 /* Emacs local variables
    ;;;  Local variables: ***
    ;;;  compile-command: "make -C ../.. debug;" ***

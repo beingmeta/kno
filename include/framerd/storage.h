@@ -49,25 +49,25 @@ FD_EXPORT u8_mutex fd_swapcheck_lock;
 
 typedef unsigned int fd_storage_flags;
 
-#define FD_STORAGE_ISPOOL		   0x001
-#define FD_STORAGE_ISINDEX		   0x002
-#define FD_STORAGE_READ_ONLY		   0x004
+#define FD_STORAGE_ISPOOL                  0x001
+#define FD_STORAGE_ISINDEX                 0x002
+#define FD_STORAGE_READ_ONLY               0x004
 
-#define FD_STORAGE_UNREGISTERED	           0x010
+#define FD_STORAGE_UNREGISTERED            0x010
 #define FD_STORAGE_KEEP_CACHESIZE          0x020
-#define FD_STORAGE_NOSWAP		   0x040
-#define FD_STORAGE_NOERR		   0x080
-#define FD_STORAGE_PHASED		   0x100
-#define FD_STORAGE_REPAIR		   0x200
-#define FD_STORAGE_VIRTUAL		   0x400
+#define FD_STORAGE_NOSWAP                  0x040
+#define FD_STORAGE_NOERR                   0x080
+#define FD_STORAGE_PHASED                  0x100
+#define FD_STORAGE_REPAIR                  0x200
+#define FD_STORAGE_VIRTUAL                 0x400
 
-#define FD_STORAGE_MAX_INIT_BITS	   0x800
-#define FD_STORAGE_MAX_STATE_BITS	   0x1000
+#define FD_STORAGE_MAX_INIT_BITS           0x800
+#define FD_STORAGE_MAX_STATE_BITS          0x1000
 
 typedef char fdb_cache_level;
 
-#define FD_POOL_FLAG(n)	           ((0x10000)<<n)
-#define FD_INDEX_FLAG(n)	   ((0x10000)<<n)
+#define FD_POOL_FLAG(n)            ((0x10000)<<n)
+#define FD_INDEX_FLAG(n)           ((0x10000)<<n)
 
 #ifndef FD_DBSERV_MAX_POOLS
 #define FD_DBSERV_MAX_POOLS 128
@@ -273,3 +273,9 @@ FD_EXPORT ssize_t fd_restore_head(u8_string source,u8_string dest,ssize_t trunc_
 
 #endif
 
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

@@ -81,8 +81,8 @@ static lispval *memindex_fetchkeys(fd_index ix,int *n)
     else {
       const lispval *elts = FD_CHOICE_ELTS(keys);
       int i=0; while (i<count) {
-	keyv[i] = fd_incref(elts[i]);
-	i++;}
+        keyv[i] = fd_incref(elts[i]);
+        i++;}
       fd_decref(keys);}
     *n=count;
     return keyv;}
@@ -130,7 +130,7 @@ static struct FD_KEY_SIZE *memindex_fetchinfo(fd_index ix,fd_choice filter,int *
 static int memindex_commit(struct FD_INDEX *ix,
                             struct FD_CONST_KEYVAL *adds,int n_adds,
                             struct FD_CONST_KEYVAL *drops,int n_drops,
-			    struct FD_CONST_KEYVAL *stores,int n_stores,
+                            struct FD_CONST_KEYVAL *stores,int n_stores,
                             lispval changed_metadata)
 {
   struct FD_MEMINDEX *memidx = (struct FD_MEMINDEX *)ix;
@@ -179,8 +179,8 @@ static int memindex_commit(struct FD_INDEX *ix,
     memidx->mix_loaded=0;}
 
   u8_log(fd_storage_loglevel,"MemIndex/Finished",
-	 "Finished writing %lld/%lld changes to disk for %s, endpos=%lld",
-	 n_changes,n_entries,ix->indexid,end);
+         "Finished writing %lld/%lld changes to disk for %s, endpos=%lld",
+         n_changes,n_entries,ix->indexid,end);
 
   return n_changes;
 }
@@ -205,7 +205,7 @@ static ssize_t load_memindex(struct FD_MEMINDEX *memidx)
   double started = u8_elapsed_time();
   fd_hashtable mix_map = &(memidx->mix_map);
   u8_log(fd_storage_loglevel+1,"MemIndexLoad",
-	 "Loading %lld entries for '%s'",n_entries,memidx->indexid);
+         "Loading %lld entries for '%s'",n_entries,memidx->indexid);
   memidx->mix_valid_data = fd_read_8bytes(in);
   ftruncate(stream->stream_fileno,memidx->mix_valid_data);
   fd_setpos(stream,256);
@@ -220,8 +220,8 @@ static ssize_t load_memindex(struct FD_MEMINDEX *memidx)
     lispval value = fd_read_dtype(in);
     fd_hashtable_op_nolock
       (mix_map,( (op<0) ? (fd_table_drop) :
-		 (op==0) ? (fd_table_store_noref):
-		 (fd_table_add_noref)),
+                 (op==0) ? (fd_table_store_noref):
+                 (fd_table_add_noref)),
        key,value);
     fd_decref(key);
     if (op<0) fd_decref(value);
@@ -231,8 +231,8 @@ static ssize_t load_memindex(struct FD_MEMINDEX *memidx)
   memidx->mix_loaded = 1;
   fd_unlock_stream(stream);
   u8_log(fd_storage_loglevel,"MemIndexLoad",
-	 "Loaded %lld entries for '%s' in %fs",
-	 n_entries,memidx->indexid,u8_elapsed_time()-started);
+         "Loaded %lld entries for '%s' in %fs",
+         n_entries,memidx->indexid,u8_elapsed_time()-started);
   return 1;
 }
 
@@ -242,12 +242,12 @@ static fd_index open_memindex(u8_string file,fd_storage_flags flags,lispval opts
 {
   struct FD_MEMINDEX *memidx = u8_alloc(struct FD_MEMINDEX);
   fd_init_index((fd_index)memidx,&memindex_handler,
-		file,u8_realpath(file,NULL),
-		flags|FD_STORAGE_NOSWAP);
+                file,u8_realpath(file,NULL),
+                flags|FD_STORAGE_NOSWAP);
   struct FD_STREAM *stream=
     fd_init_file_stream(&(memidx->index_stream),file,
-			FD_FILE_MODIFY,-1,
-			fd_driver_bufsize);
+                        FD_FILE_MODIFY,-1,
+                        fd_driver_bufsize);
   lispval preload = fd_getopt(opts,preload_opt,FD_TRUE);
   if (!(stream)) return NULL;
   stream->stream_flags &= ~FD_STREAM_IS_CONSED;
@@ -279,7 +279,7 @@ static lispval memindex_ctl(fd_index ix,lispval op,int n,lispval *args)
   struct FD_MEMINDEX *mix = (struct FD_MEMINDEX *)ix;
   if ( ((n>0)&&(args == NULL)) || (n<0) )
     return fd_err("BadIndexOpCall","hashindex_ctl",
-		  mix->indexid,VOID);
+                  mix->indexid,VOID);
   else if (op == fd_cachelevel_op) {
     if (mix->mix_loaded)
       return FD_INT(3);
@@ -321,7 +321,7 @@ FD_EXPORT int fd_make_memindex(u8_string spec)
 }
 
 static fd_index memindex_create(u8_string spec,void *type_data,
-				 fd_storage_flags flags,lispval opts)
+                                 fd_storage_flags flags,lispval opts)
 {
   if (fd_make_memindex(spec)>=0)
     return fd_open_index(spec,flags,VOID);
@@ -359,3 +359,10 @@ FD_EXPORT void fd_init_memindex_c()
 
   u8_register_source_file(_FILEINFO);
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

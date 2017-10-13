@@ -175,3 +175,9 @@ FD_EXPORT sigset_t *fd_default_sigmask;
 
 #endif /* #ifndef FRAMERD_SUPPORT_H */
 
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

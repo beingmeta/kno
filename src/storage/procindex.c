@@ -32,9 +32,9 @@ static lispval indexopt(lispval opts,u8_string name)
 
 FD_EXPORT
 fd_index fd_make_procindex(lispval opts,lispval state,
-			   u8_string id,
-			   u8_string source,
-			   u8_string typeid)
+                           u8_string id,
+                           u8_string source,
+                           u8_string typeid)
 {
 
   struct FD_PROCINDEX *pix = u8_alloc(struct FD_PROCINDEX);
@@ -58,8 +58,8 @@ fd_index fd_make_procindex(lispval opts,lispval state,
       cache_level=ival;}
     else if ( (FD_TRUEP(v)) || (v == FD_DEFAULT_VALUE) ) {}
     else u8_log(LOGCRIT,"BadCacheLevel",
-		"Invalid cache level %q specified for procindex %s",
-		v,id);
+                "Invalid cache level %q specified for procindex %s",
+                v,id);
     fd_decref(v);}
 
   if (fd_testopt(opts,fd_intern("READONLY"),FD_VOID))
@@ -68,8 +68,8 @@ fd_index fd_make_procindex(lispval opts,lispval state,
     flags |= FD_STORAGE_UNREGISTERED;
 
   fd_init_index((fd_index)pix,
-		&fd_procindex_handler,
-		id,u8_strdup(source),flags);
+                &fd_procindex_handler,
+                id,u8_strdup(source),flags);
 
   pix->index_opts = fd_getopt(opts,fd_intern("OPTS"),FD_FALSE);
   pix->index_cache_level = cache_level;
@@ -143,9 +143,9 @@ static lispval *procindex_fetchn(fd_index ix,int n,const lispval *keys)
     if (VECTORP(result)) {
       lispval *vals = u8_alloc_n(n,lispval);
       int i = 0; while (i<n) {
-	lispval val = VEC_REF(result,i);
-	FD_VECTOR_SET(result,i,VOID);
-	vals[i++]=val;}
+        lispval val = VEC_REF(result,i);
+        FD_VECTOR_SET(result,i,VOID);
+        vals[i++]=val;}
       fd_decref(result);
       return vals;}
     else {
@@ -169,9 +169,9 @@ static lispval *procindex_fetchkeys(fd_index ix,int *n_keys)
       int n = FD_VECTOR_LENGTH(result);
       lispval *vals = u8_alloc_n(n,lispval);
       int i = 0; while (i<n) {
-	lispval val = VEC_REF(result,i);
-	FD_VECTOR_SET(result,i,VOID);
-	vals[i++]=val;}
+        lispval val = VEC_REF(result,i);
+        FD_VECTOR_SET(result,i,VOID);
+        vals[i++]=val;}
       fd_decref(result);
       *n_keys=n;
       return vals;}
@@ -179,7 +179,7 @@ static lispval *procindex_fetchkeys(fd_index ix,int *n_keys)
       int i=0, n = FD_CHOICE_SIZE(result);
       lispval *vals = u8_alloc_n(n,lispval);
       FD_DO_CHOICES(elt,result) {
-	vals[i++]=elt; fd_incref(elt);}
+        vals[i++]=elt; fd_incref(elt);}
       *n_keys=n;
       return vals;}
     else {
@@ -212,27 +212,27 @@ static int procindex_commit(struct FD_INDEX *ix,
     add_table.table_readonly=drop_table.table_readonly=1;
     store_table.table_readonly=1;
     lispval args[]={lx,
-		    pix->index_state,
-		    (lispval)(&adds),
-		    (lispval)(&drops),
-		    (lispval)(&stores),
-		    ( (FD_VOIDP(changed_metadata)) ? (FD_FALSE) :
-		      (changed_metadata) )};
+                    pix->index_state,
+                    (lispval)(&adds),
+                    (lispval)(&drops),
+                    (lispval)(&stores),
+                    ( (FD_VOIDP(changed_metadata)) ? (FD_FALSE) :
+                      (changed_metadata) )};
     lispval result = fd_dapply(pix->savefn,5,args);
     if (FD_ABORTP(result))
       return -1;
     else {
       if (FD_FIXNUMP(result)) {
-	int ival = FD_FIX2INT(result);
-	fd_decref(result);
-	return ival;}
+        int ival = FD_FIX2INT(result);
+        fd_decref(result);
+        return ival;}
       else if (FD_FALSEP(result))
-	return 0;
+        return 0;
       else if (FD_TRUEP(result))
-	return 1;
+        return 1;
       else {
-	fd_decref(result);
-	return 1;}}}
+        fd_decref(result);
+        return 1;}}}
 }
 
 static void procindex_close(fd_index ix)
@@ -306,3 +306,10 @@ FD_EXPORT void fd_init_procindex_c()
 {
   u8_register_source_file(_FILEINFO);
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

@@ -103,7 +103,7 @@ lispval fd_copier(lispval x,int flags)
         memcpy(write,read,sizeof(lispval)*n);
       else if (flags&FD_FULL_COPY) while (read<limit) {
           lispval v = *read++, c = fd_copier(v,flags);
-	  *write++=c;}
+          *write++=c;}
       else while (read<limit) {
           lispval v = *read++, newv = v;
           if (CONSP(newv)) {
@@ -186,7 +186,7 @@ static lispval copy_compound(lispval x,int flags)
     FD_INIT_CONS(nc,fd_compound_type);
     if (xc->compound_ismutable) u8_init_mutex(&(nc->compound_lock));
     nc->compound_ismutable = xc->compound_ismutable; nc->compound_isopaque = 1;
-    nc->compound_typetag = fd_incref(xc->compound_typetag); 
+    nc->compound_typetag = fd_incref(xc->compound_typetag);
     nc->compound_length = xc->compound_length;
     if (flags)
       while (i<n) {
@@ -203,3 +203,10 @@ void fd_init_copy_c()
   fd_copiers[fd_compound_type]=copy_compound;
 
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

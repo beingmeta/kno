@@ -81,14 +81,14 @@ static ffi_type *get_ffi_type(lispval arg)
   else if (arg == void_symbol)
     return &ffi_type_void;
   else if ((arg == ptr_symbol) || (arg == cons_symbol) ||
-	   (arg == string_symbol) || (arg == packet_symbol))
+           (arg == string_symbol) || (arg == packet_symbol))
     return &ffi_type_pointer;
   else {
     fd_seterr("BadFFItype","get_ffi_type",NULL,arg);
     return NULL;}
 }
 
-/** Change notes: 
+/** Change notes:
 
     Make fd_make_ffi_proc take fdtypes for the return type and
     argtypes, and convert them into ffi_types to be passed in.
@@ -101,14 +101,14 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
   if (name==NULL) {
     u8_seterr("NullArg","fd_make_ffi_proc/name",NULL);
     return NULL;}
-  void *mod_arg = (filename == NULL) ? ((void *)NULL) : 
+  void *mod_arg = (filename == NULL) ? ((void *)NULL) :
     (u8_dynamic_load(filename));
   if ((filename) && (mod_arg == NULL))
     return NULL;
   void *symbol=u8_dynamic_symbol(name,mod_arg);
   if (symbol == NULL) {
     u8_seterr("NoSuchLink","fd_make_ffi_proc/u8_dynamic_symbol",
-	      u8_strdup(name));
+              u8_strdup(name));
     return NULL;}
   ffi_type *return_type = get_ffi_type(return_spec);
   if (return_type == NULL) return NULL;
@@ -128,7 +128,7 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
   FD_INIT_CONS(proc,fd_ffi_type);
   ffi_status rv=
     ffi_prep_cif(&(proc->ffi_interface), FFI_DEFAULT_ABI, arity,
-		 return_type,ffi_argtypes);
+                 return_type,ffi_argtypes);
   if (rv == FFI_OK) {
     /* Set up generic function fields */
     fd_incref_vec(savespecs,arity);
@@ -165,7 +165,7 @@ static int ffi_type_error(u8_context expecting,lispval arg)
 }
 
 static int handle_ffi_arg(lispval arg,lispval spec,
-			  void **valptr,void **argptr)
+                          void **valptr,void **argptr)
 {
   if (spec == lisp_symbol)
     *valptr = (void *) arg;
@@ -187,43 +187,43 @@ static int handle_ffi_arg(lispval arg,lispval spec,
     long long ival = FIX2INT(arg);
     if (spec == int_symbol) {
       if ((ival <= INT_MAX) && (ival >= INT_MIN))
-	*((int *)valptr) = ival;
+        *((int *)valptr) = ival;
       else return ffi_type_error("int(C)",arg);}
     else if (spec == uint_symbol) {
       if ((ival <= UINT_MAX) && (ival >= 0 ))
-	*((unsigned int *)valptr) = ival;
+        *((unsigned int *)valptr) = ival;
       else return ffi_type_error("uint(C)",arg);}
     else if (spec == long_symbol) {
       if ((ival <= LONG_MAX) && (ival >= LONG_MIN ))
-	*((long *)valptr) = ival;
+        *((long *)valptr) = ival;
       else return ffi_type_error("long(C)",arg);}
     else if (spec == ulong_symbol) {
       if ((ival <= ULONG_MAX) && (ival >= 0 ))
-	*((unsigned long *)valptr) = ival;
+        *((unsigned long *)valptr) = ival;
       else return ffi_type_error("ulong(C)",arg);}
     else if (spec == short_symbol) {
       if ((ival <= SHRT_MAX) && (ival >= SHRT_MIN ))
-	*((short *)valptr) = ival;
+        *((short *)valptr) = ival;
       else return ffi_type_error("short(C)",arg);}
     else if (spec == ushort_symbol) {
       if ((ival <= USHRT_MAX) && (ival >= 0 ))
-	*((unsigned short *)valptr) = ival;
+        *((unsigned short *)valptr) = ival;
       else return ffi_type_error("ushort(C)",arg);}
     else if (spec == char_symbol) {
       if ((ival <= CHAR_MAX) && (ival >= CHAR_MIN ))
-	*((char *)valptr) = ival;
+        *((char *)valptr) = ival;
       else return ffi_type_error("char(C)",arg);}
     else if (spec == uchar_symbol) {
       if ((ival <= UCHAR_MAX) && (ival >= 0 ))
-	*((unsigned char *)valptr) = ival;
+        *((unsigned char *)valptr) = ival;
       else return ffi_type_error("uchar(C)",arg);}
     else if (spec == byte_symbol) {
       if ((ival <= UCHAR_MAX) && (ival >= 0 ))
-	*((unsigned char *)valptr) = ival;
+        *((unsigned char *)valptr) = ival;
       else return ffi_type_error("byte/uchar(C)",arg);}
     else if (spec == size_symbol) {
       if ((ival <= LONG_MAX) && (ival >= LONG_MIN ))
-	*((ssize_t *)valptr) = ival;
+        *((ssize_t *)valptr) = ival;
       else return ffi_type_error("ssize_t(C)",arg);}
     else if (spec == float_symbol) {
       float f=(float)ival;
@@ -293,7 +293,7 @@ FD_EXPORT lispval fd_ffi_call(struct FD_FUNCTION *fn,int n,lispval *args)
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&result,argptrs);
       return fd_incref(result);}
     else if ( (return_spec == string_symbol) ||
-	      (return_spec == strcpy_symbol) ) {
+              (return_spec == strcpy_symbol) ) {
       u8_string stringval = NULL;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&stringval,argptrs);
       return fd_make_string(NULL,-1,stringval);}
@@ -347,7 +347,7 @@ FD_EXPORT lispval fd_ffi_call(struct FD_FUNCTION *fn,int n,lispval *args)
       return fd_make_flonum(dval);}
     else return VOID;}
   else return fd_err(_("Not an foreign function interface"),
-		     "ffi_caller",u8_strdup(fn->fcn_name),VOID);
+                     "ffi_caller",u8_strdup(fn->fcn_name),VOID);
 }
 
 /* Generic object methods */
@@ -515,3 +515,9 @@ FD_EXPORT void fd_init_ffi_c()
 }
 #endif
 
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

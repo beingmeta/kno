@@ -284,7 +284,7 @@ static lispval compound_procedure_args(lispval arg)
     struct FD_LAMBDA *proc = (fd_lambda)x;
     return fd_incref(proc->lambda_arglist);}
   else return fd_type_error
-	 ("compound procedure","compound_procedure_args",x);
+         ("compound procedure","compound_procedure_args",x);
 }
 
 static lispval set_compound_procedure_args(lispval arg,lispval new_arglist)
@@ -297,7 +297,7 @@ static lispval set_compound_procedure_args(lispval arg,lispval new_arglist)
     fd_decref(arglist);
     return VOID;}
   else return fd_type_error
-	 ("compound procedure","set_compound_procedure_args",x);
+         ("compound procedure","set_compound_procedure_args",x);
 }
 
 static lispval compound_procedure_env(lispval arg)
@@ -316,7 +316,7 @@ static lispval compound_procedure_body(lispval arg)
     struct FD_LAMBDA *proc = (fd_lambda)fd_fcnid_ref(x);
     return fd_incref(proc->lambda_body);}
   else return fd_type_error
-	 ("compound procedure","compound_procedure_body",x);
+         ("compound procedure","compound_procedure_body",x);
 }
 
 static lispval compound_procedure_source(lispval arg)
@@ -328,7 +328,7 @@ static lispval compound_procedure_source(lispval arg)
       return FD_FALSE;
     else return fd_incref(proc->lambda_source);}
   else return fd_type_error
-	 ("compound procedure","compound_procedure_source",x);
+         ("compound procedure","compound_procedure_source",x);
 }
 
 static lispval set_compound_procedure_body(lispval arg,lispval new_body)
@@ -341,7 +341,7 @@ static lispval set_compound_procedure_body(lispval arg,lispval new_body)
     fd_decref(body);
     return VOID;}
   else return fd_type_error
-	 ("compound procedure","set_compound_procedure_body",x);
+         ("compound procedure","set_compound_procedure_body",x);
 }
 
 static lispval set_compound_procedure_source(lispval arg,lispval new_source)
@@ -354,7 +354,7 @@ static lispval set_compound_procedure_source(lispval arg,lispval new_source)
     fd_decref(source);
     return VOID;}
   else return fd_type_error
-	 ("compound procedure","set_compound_procedure_source",x);
+         ("compound procedure","set_compound_procedure_source",x);
 }
 
 static lispval compound_procedure_bytecode(lispval arg)
@@ -368,7 +368,7 @@ static lispval compound_procedure_bytecode(lispval arg)
       return cur;}
     else return FD_FALSE;}
   else return fd_type_error
-	 ("compound procedure","compound_procedure_body",x);
+         ("compound procedure","compound_procedure_body",x);
 }
 
 static lispval set_compound_procedure_bytecode(lispval arg,lispval bytecode)
@@ -383,7 +383,7 @@ static lispval set_compound_procedure_bytecode(lispval arg,lispval bytecode)
     proc->lambda_bytecode = (struct FD_VECTOR *)bytecode;
     return VOID;}
   else return fd_type_error
-	 ("compound procedure","set_compound_procedure_bytecode",x);
+         ("compound procedure","set_compound_procedure_bytecode",x);
 }
 
 static lispval set_compound_procedure_optimizer(lispval arg,lispval optimizer)
@@ -398,7 +398,7 @@ static lispval set_compound_procedure_optimizer(lispval arg,lispval optimizer)
     proc->lambda_optimizer = optimizer;
     return VOID;}
   else return fd_type_error
-	 ("compound procedure","set_compound_procedure_optimizer",x);
+         ("compound procedure","set_compound_procedure_optimizer",x);
 }
 
 /* Function IDs */

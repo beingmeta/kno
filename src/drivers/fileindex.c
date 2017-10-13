@@ -1336,7 +1336,6 @@ FD_EXPORT void fd_init_fileindex_c()
                      &fileindex_default_size);
 }
 
-
 /* Emacs local variables
    ;;;  Local variables: ***
    ;;;  compile-command: "make -C ../.. debug;" ***

@@ -87,15 +87,15 @@ static ssize_t grow_output_buffer(struct FD_OUTBUF *b,size_t delta)
 {
   if ((b->buf_flushfn) &&
       ( (U8_BITP(b->buf_flags,FD_BUFFER_NO_GROW)) ||
-	( (b->bufwrite > b->buffer) &&
-	  (!(b->buf_flags&FD_BUFFER_NO_FLUSH)) ) ) ) {
+        ( (b->bufwrite > b->buffer) &&
+          (!(b->buf_flags&FD_BUFFER_NO_FLUSH)) ) ) ) {
     ssize_t result = b->buf_flushfn(b,b->buf_data);
     if (result<0) {
       u8_log(LOGWARN,"WriteFailed",
-	     "Can't flush output to file");
+             "Can't flush output to file");
       return result;}
     /* See if that fixed it */
-    else if (b->bufwrite+delta<b->buflim) 
+    else if (b->bufwrite+delta<b->buflim)
       return b->buflen;
     else if (((b->bufwrite-b->buffer)+delta)<b->buflen) {
       /* You've got the space in the buffer */
@@ -136,7 +136,7 @@ static ssize_t grow_input_buffer(struct FD_INBUF *in,int delta)
   size_t need_size = current_point+delta;
   unsigned char *new;
   if (new_limit<=0) new_limit = 1000;
-  else if (new_limit<current_limit) 
+  else if (new_limit<current_limit)
     new_limit = current_limit;
   else {}
   while (new_limit < need_size)
@@ -180,7 +180,7 @@ FD_EXPORT int _fd_write_byte(struct FD_OUTBUF *b,unsigned char byte)
 {
   if (PRED_FALSE(FD_ISREADING(b))) return fd_isreadbuf(b);
   else if (fd_needs_space(b,1)) {
-    *(b->bufwrite++) = byte; 
+    *(b->bufwrite++) = byte;
     return 1;}
   else return -1;
 }
@@ -369,3 +369,10 @@ unsigned char *fd_snappy_compress
     if (zbuf != out ) u8_free(zbuf);
     return NULL;}
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

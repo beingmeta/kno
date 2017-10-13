@@ -413,3 +413,9 @@ typedef double fd_double;
 
 #endif /* FRAMERD_DEFINES_H */
 
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

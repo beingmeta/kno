@@ -39,8 +39,8 @@ static void print_table(lispval frames,lispval slotids)
       lispval value = fd_frame_get(frame,slotid);
       u8_string valstring = fd_lisp2string(value);
       if (strlen(valstring)>40) {
-        u8_fprintf(stderr,"  %q\n",slotid);
-        {FD_DO_CHOICES(v,value) u8_fprintf(stdout,"\t%q\n",v);}}
+	u8_fprintf(stderr,"  %q\n",slotid);
+	{FD_DO_CHOICES(v,value) u8_fprintf(stdout,"\t%q\n",v);}}
       else u8_fprintf(stderr,"  %q\t %s\n",slotid,valstring);
       fd_decref(value);
       u8_free(valstring);}}}
@@ -66,25 +66,25 @@ int main(int argc,char **argv)
     lispval slotids = fd_qparse(argv[2]);
     enum FRAMEOP { drop, add, set}
     op = ((argv[3][0]=='+') ? (add) :
-        (argv[3][0]=='-') ? (drop) :
-        (argv[3][0]=='=') ? (set) : (add));
+	(argv[3][0]=='-') ? (drop) :
+	(argv[3][0]=='=') ? (set) : (add));
     lispval values = ((strchr("+-=",argv[3][0])) ? (fd_qparse(argv[3]+1)) :
-                   (fd_qparse(argv[3])));
+		   (fd_qparse(argv[3])));
     FD_DO_CHOICES(frame,frames) {
       FD_DO_CHOICES(slotid,slotids) {
-        if ((op == add) || (op == drop)) {
-          FD_DO_CHOICES(value,values)
-            if (op == add)
-              fd_frame_add(frame,slotid,value);
-            else if (op == drop)
-              fd_frame_drop(frame,slotid,value);}
-        else {
-          lispval current = fd_frame_get(frame,slotid);
-          lispval toadd = fd_difference(values,current);
-          lispval todrop = fd_difference(current,values);
-          {FD_DO_CHOICES(a,toadd) fd_frame_add(frame,slotid,a);}
-          {FD_DO_CHOICES(a,todrop) fd_frame_drop(frame,slotid,a);}
-          fd_decref(toadd); fd_decref(todrop); fd_decref(current);}}}
+	if ((op == add) || (op == drop)) {
+	  FD_DO_CHOICES(value,values)
+	    if (op == add)
+	      fd_frame_add(frame,slotid,value);
+	    else if (op == drop)
+	      fd_frame_drop(frame,slotid,value);}
+	else {
+	  lispval current = fd_frame_get(frame,slotid);
+	  lispval toadd = fd_difference(values,current);
+	  lispval todrop = fd_difference(current,values);
+	  {FD_DO_CHOICES(a,toadd) fd_frame_add(frame,slotid,a);}
+	  {FD_DO_CHOICES(a,todrop) fd_frame_drop(frame,slotid,a);}
+	  fd_decref(toadd); fd_decref(todrop); fd_decref(current);}}}
     fd_decref(frames); fd_decref(slotids); fd_decref(values);}
   fd_commit_pools();
   fd_commit_indexes();
@@ -96,3 +96,10 @@ int main(int argc,char **argv)
 #endif
   return 0;
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

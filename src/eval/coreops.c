@@ -187,7 +187,7 @@ static lispval get_refcount(lispval x,lispval delta)
  Returns #t if x and y are the exact same object (if their pointers
  are the same).
 
- Note that because 
+ Note that because
 
 */
 static lispval eqp(lispval x,lispval y)
@@ -337,7 +337,7 @@ static lispval numberp(lispval x)
 
 static lispval flonump(lispval x)
 {
-  if (FD_FLONUMP(x)) 
+  if (FD_FLONUMP(x))
     return FD_TRUE;
   else return FD_FALSE;
 }
@@ -677,7 +677,7 @@ static lispval thread_ref_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
     return fd_err(fd_SyntaxError,"thread_ref",NULL,VOID);
   sym = fd_eval(sym_arg,env);
   if (FD_ABORTP(sym)) return sym;
-  else if (!(SYMBOLP(sym))) 
+  else if (!(SYMBOLP(sym)))
     return fd_err(fd_TypeError,"thread_ref",u8_strdup("symbol"),sym);
   else val = fd_thread_get(sym);
   if (FD_ABORTP(val)) return val;

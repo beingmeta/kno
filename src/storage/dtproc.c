@@ -41,7 +41,7 @@ FD_EXPORT lispval fd_make_dtproc(u8_string name,u8_string server,
   if (minsock<0) minsock = 2;
   if (maxsock<0) maxsock = minsock+3;
   if (initsock<0) initsock = 1;
-  f->connpool = 
+  f->connpool =
     u8_open_connpool(f->dtprocserver,minsock,maxsock,initsock);
   if (f->connpool == NULL) {
     u8_free(f->fcn_name);

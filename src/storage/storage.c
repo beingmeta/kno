@@ -607,7 +607,7 @@ FD_EXPORT int fd_init_storage()
   fd_register_config
     ("DBLOGLEVEL",_("Default log level for database messages"),
      fd_intconfig_get,fd_intconfig_set,&fd_storage_loglevel);
-  
+
   fd_register_config
     ("PREFETCH",_("Whether to prefetch for large operations"),
      get_prefetch,
@@ -622,7 +622,7 @@ FD_EXPORT int fd_init_storage()
   fd_register_config
     ("BACKGROUND",_("indexes in the default search background"),
      config_get_background,config_use_index,NULL);
-  
+
   fd_register_config
     ("DBCONNRESERVE",
      _("Number of connections to keep for each DB server"),

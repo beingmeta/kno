@@ -514,7 +514,7 @@ int main(int argc,char **argv)
       fd_bind_value(that_symbol,lastval,env);
     /* u8_printf(out,EVAL_PROMPT); */
     u8_flush(out);}
-  if (eval_server) 
+  if (eval_server)
     fd_bytestream_close(eval_server,FD_BYTESTREAM_FREE);
   u8_free(eval_server);
   fd_decref(lastval);
@@ -531,3 +531,10 @@ int main(int argc,char **argv)
   /* fd_recycle_environment(env); */
   return 0;
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

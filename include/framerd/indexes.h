@@ -38,19 +38,19 @@ FD_EXPORT int fd_index_adds_init;
 #define FD_N_PRIMARY_INDEXES 1024
 
 #define FD_INDEX_FIELDS \
-  FD_CONS_HEADER;						   \
-  u8_string indexid, index_source;				   \
-  u8_string index_typeid;					   \
-  struct FD_INDEX_HANDLER *index_handler;			   \
-  fd_storage_flags index_flags, modified_flags;			   \
-  int index_serialno;						   \
-  short index_cache_level;					   \
-  struct FD_HASHTABLE index_cache;				   \
-  struct FD_HASHTABLE index_adds, index_drops;			   \
-  struct FD_HASHTABLE index_stores;				   \
-  struct FD_SLOTMAP index_metadata, index_props;		   \
-  lispval index_keyslot;					   \
-  lispval index_covers_slotids;					   \
+  FD_CONS_HEADER;                                                  \
+  u8_string indexid, index_source;                                 \
+  u8_string index_typeid;                                          \
+  struct FD_INDEX_HANDLER *index_handler;                          \
+  fd_storage_flags index_flags, modified_flags;                    \
+  int index_serialno;                                              \
+  short index_cache_level;                                         \
+  struct FD_HASHTABLE index_cache;                                 \
+  struct FD_HASHTABLE index_adds, index_drops;                     \
+  struct FD_HASHTABLE index_stores;                                \
+  struct FD_SLOTMAP index_metadata, index_props;                   \
+  lispval index_keyslot;                                           \
+  lispval index_covers_slotids;                                    \
   lispval index_opts
 
 typedef struct FD_INDEX {FD_INDEX_FIELDS;} FD_INDEX;
@@ -253,7 +253,7 @@ FD_FASTOP int fd_index_add(fd_index ix,lispval key,lispval value)
   FDTC *fdtc = (FD_WRITETHROUGH_THREADCACHE)?(fd_threadcache):(NULL);
   fd_hashtable adds = &(ix->index_adds);
   fd_hashtable cache = &(ix->index_cache);
-  if (U8_BITP(ix->index_flags,FD_STORAGE_READ_ONLY)) 
+  if (U8_BITP(ix->index_flags,FD_STORAGE_READ_ONLY))
     /* This will signal an error */
     return _fd_index_add(ix,key,value);
   else if (FD_CHOICEP(key)) {
@@ -338,3 +338,10 @@ FD_EXPORT lispval *fd_get_index_delays(void);
 FD_EXPORT int fd_execute_index_delays(fd_index ix,void *data);
 
 #endif /* FRAMERD_INDEXES_H */
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

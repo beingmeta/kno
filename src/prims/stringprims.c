@@ -1113,8 +1113,8 @@ static u8_string strsearch(u8_string string,lispval pat,
       if (matchlen<0) {
         u8_string start = string+off, next = start; u8_sgetc(&next);
         /* Not sure when this would happen, but catch it anyway. If
-           rx_matchlen fails on a result from rx_search, assume the 
-           match is just one character long, so you don't loop. 
+           rx_matchlen fails on a result from rx_search, assume the
+           match is just one character long, so you don't loop.
            Use sgetc to get the length of the utf-8 encoded character
            at the point. */
         *matchlenp = next-start;
@@ -1145,7 +1145,7 @@ static lispval string_subst_prim(lispval string,lispval pat,lispval with)
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,startlen);
       u8_string last = original; while (point) {
         u8_putn(&out,last,point-last); u8_puts(&out,replace);
-        last = point+matchlen; 
+        last = point+matchlen;
         point = strsearch(last,pat,patlen,&matchlen);}
       u8_puts(&out,last);
       return fd_stream2string(&out);}
@@ -1282,7 +1282,7 @@ static lispval textif_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     return fd_make_string(NULL,0,"");
   else {
     lispval body = fd_get_body(expr,2), len = fd_seq_length(body);
-    fd_decref(test_val); 
+    fd_decref(test_val);
     if (len==0) return fd_make_string(NULL,0,NULL);
     else if (len==1) {
       lispval text = fd_eval(fd_get_arg(body,0),env);

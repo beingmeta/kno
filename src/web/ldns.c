@@ -50,10 +50,10 @@ static lispval rdf2dtype ( ldns_rdf *field )
   case LDNS_RDF_TYPE_INT32: {
     long long val = ldns_rdf2native_int32( field );
     return FD_INT2DTYPE( val );}
-  case LDNS_RDF_TYPE_DNAME: case LDNS_RDF_TYPE_A: case LDNS_RDF_TYPE_AAAA: 
+  case LDNS_RDF_TYPE_DNAME: case LDNS_RDF_TYPE_A: case LDNS_RDF_TYPE_AAAA:
   case LDNS_RDF_TYPE_LOC: case LDNS_RDF_TYPE_TAG: case LDNS_RDF_TYPE_LONG_STR: {
     lispval result = VOID;
-    ldns_buffer *tmp = ldns_buffer_new( LDNS_MAX_PACKETLEN ); 
+    ldns_buffer *tmp = ldns_buffer_new( LDNS_MAX_PACKETLEN );
     int rv = -1;
     if (!(tmp)) {}
     else if (field_type == LDNS_RDF_TYPE_DNAME)
@@ -69,12 +69,12 @@ static lispval rdf2dtype ( ldns_rdf *field )
     else if (field_type == LDNS_RDF_TYPE_LONG_STR)
       rv = ldns_rdf2buffer_str_long_str( tmp, field );
     else {}
-    if (rv != LDNS_STATUS_OK) 
+    if (rv != LDNS_STATUS_OK)
       result = fd_err("Unexpected LDNS condition","rdf2dtype",NULL,VOID);
     else result = fd_make_string(NULL,tmp->_position,tmp->_data);
     ldns_buffer_free( tmp );
     return result;}
-  default: 
+  default:
     return fd_make_packet(NULL,size,(unsigned char *) data);
   }
 }
@@ -86,14 +86,14 @@ static lispval dns_query(lispval domain_arg,lispval type_arg)
   ldns_rr_type rr_type = ldns_get_rr_type_by_name( SYM_NAME( type_arg ) );
   ldns_rdf *domain = ldns_dname_new_frm_str( CSTRING(domain_arg) );
   ldns_status s = ldns_resolver_new_frm_file( &res, NULL );
-  ldns_pkt *p = 
+  ldns_pkt *p =
     (s == LDNS_STATUS_OK) ?
     (ldns_resolver_query ( res, domain, rr_type, LDNS_RR_CLASS_IN, LDNS_RD )) :
     (NULL);
 
   if (!(p)) {}
   else {
-      ldns_rr_list *result_list = 
+      ldns_rr_list *result_list =
         ldns_pkt_rr_list_by_type( p, rr_type, LDNS_SECTION_ANSWER );
       if (!(result_list)) {}
       else {
@@ -120,7 +120,7 @@ static lispval dns_query(lispval domain_arg,lispval type_arg)
   ldns_rdf_deep_free( domain );
   ldns_resolver_deep_free( res );
   if (p) ldns_pkt_free( p );
-  
+
   return results;
 }
 

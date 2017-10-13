@@ -69,7 +69,7 @@ FD_EXPORT int fd_seq_length(lispval x)
 FD_EXPORT lispval fd_seq_elt(lispval x,int i)
 {
   int ctype = FD_PTR_TYPE(x);
-  if (i<0) 
+  if (i<0)
     return FD_RANGE_ERROR;
   else switch (ctype) {
     case fd_vector_type:
@@ -249,7 +249,7 @@ FD_EXPORT int fd_position(lispval key,lispval seq,int start,int limit)
         u8_string lower = u8_substring(data,min);
         u8_string upper = u8_substring(lower,max-min);
         if (code<0x80) {
-          if (delta<0) 
+          if (delta<0)
             found = strrchr(upper,code);
           else found = strchr(lower,code);
           if (found == NULL) return -1;
@@ -337,7 +337,7 @@ FD_EXPORT int fd_generic_position(lispval key,lispval x,int start,int end)
   else {}
   if ((start<0)||(end<0))
     return FD_RANGE_ERROR;
-  else if (start>end) 
+  else if (start>end)
     return -1;
   else {
     int delta = (start<end)?(1):(-1);
@@ -347,12 +347,12 @@ FD_EXPORT int fd_generic_position(lispval key,lispval x,int start,int end)
         fd_decref(elt);
         return i;}
       else {
-        fd_decref(elt); 
+        fd_decref(elt);
         i = i+delta;}}
     return -1;}
 }
 
-/* Sub-sequence search */ 
+/* Sub-sequence search */
 
 static int packet_search(lispval subseq,lispval seq,int start,int end);
 static int vector_search(lispval subseq,lispval seq,int start,int end);
@@ -639,7 +639,7 @@ FD_EXPORT lispval fd_append(int n,lispval *sequences)
       else if (FD_PTR_TYPE(seq) == result_type) {}
       else if ((result_type == fd_secret_type)&&
                ((FD_PTR_TYPE(seq) == fd_packet_type)||
-                (FD_PTR_TYPE(seq) == fd_string_type))) 
+                (FD_PTR_TYPE(seq) == fd_string_type)))
         result_type = fd_secret_type;
       else if ((result_type == fd_packet_type)&&
                (FD_PTR_TYPE(seq) == fd_secret_type))
@@ -868,7 +868,6 @@ FD_EXPORT void fd_init_sequences_c()
 
   u8_register_source_file(_FILEINFO);
 }
-
 
 /* Emacs local variables
    ;;;  Local variables: ***

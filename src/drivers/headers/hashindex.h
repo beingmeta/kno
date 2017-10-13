@@ -122,3 +122,10 @@ FD_EXPORT ssize_t fd_hashindex_bucket
 
 FD_EXPORT lispval fd_hashindex_keyinfo
 (lispval lix,lispval min_count,lispval max_count);
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

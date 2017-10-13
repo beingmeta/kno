@@ -74,10 +74,10 @@ static struct FD_KEY_SIZE *htindex_fetchinfo(fd_index ix,fd_choice filter,int *n
 }
 
 static int htindex_commit(struct FD_INDEX *ix,
-			  struct FD_CONST_KEYVAL *adds,int n_adds,
-			  struct FD_CONST_KEYVAL *drops,int n_drops,
-			  struct FD_CONST_KEYVAL *stores,int n_stores,
-			  lispval changed_metadata)
+                          struct FD_CONST_KEYVAL *adds,int n_adds,
+                          struct FD_CONST_KEYVAL *drops,int n_drops,
+                          struct FD_CONST_KEYVAL *stores,int n_stores,
+                          lispval changed_metadata)
 {
   struct FD_HTINDEX *mix = (struct FD_HTINDEX *)ix;
   if ((mix->index_source) && (mix->commitfn))
@@ -162,18 +162,25 @@ FD_EXPORT void fd_init_htindex_c()
   u8_register_source_file(_FILEINFO);
 
   fd_register_index_type("htindex1",
-			 &htindex_handler,open_htindex,
+                         &htindex_handler,open_htindex,
                            fd_match4bytes,(void *)0x42c20000);
   fd_register_index_type("htindex2",
-			 &htindex_handler,open_htindex,
+                         &htindex_handler,open_htindex,
                            fd_match4bytes,(void *)0x42c20100);
   fd_register_index_type("htindex3",
-			 &htindex_handler,open_htindex,
+                         &htindex_handler,open_htindex,
                            fd_match4bytes,(void *)0x42820200);
   fd_register_index_type("htindex4",
-			 &htindex_handler,open_htindex,
+                         &htindex_handler,open_htindex,
                            fd_match4bytes,(void *)0x42820300);
   fd_register_index_type("htindex5",
-			 &htindex_handler,open_htindex,
+                         &htindex_handler,open_htindex,
                            fd_match4bytes,(void *)0x42820400);
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

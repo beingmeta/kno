@@ -589,7 +589,7 @@ static void write_cmd_file(int argc,char **argv)
     u8_string argstring = u8_fromlibc(arg);
     if (i>0) u8_putc(&out,' '); i++;
     if (need_escape(argstring)) {
-      u8_string scan = argstring; 
+      u8_string scan = argstring;
       int c = u8_sgetc(&scan); u8_putc(&out,'"');
       while (c>=0) {
         if (c=='\\') {
@@ -1046,7 +1046,7 @@ static int webservefn(u8_client ucl)
     if (FD_ABORTP(proc)) {
       if (!(FD_VOIDP(default_nocontentpage)))
         fd_incref(default_nocontentpage);
-      proc = default_nocontentpage;}} 
+      proc = default_nocontentpage;}}
   else if (FD_ABORTP(proc)) {
     u8_log(LOG_CRIT,"BadWebProc",
            "Getting procedure failed for request %q",cgidata);}
@@ -1211,7 +1211,7 @@ static int webservefn(u8_client ucl)
           else u8_log(LOG_ERR,excond,
                       "Unexpected recursive error \"%m \" %s:@%s (%s) (#%lx)",
                       excond,excxt,exdetails,(unsigned long)ucl);
-          if (!(FD_VOIDP(irritant))) 
+          if (!(FD_VOIDP(irritant)))
             u8_log(LOG_ERR,excond,"Irritant: %q",irritant);
           lastex = exscan; exscan = exscan->u8x_prev; depth++;}
         while (exscan) {
@@ -1630,7 +1630,7 @@ static void kill_dependent_onsignal(int sig,siginfo_t *info,void *stuff)
 
 static struct sigaction sigaction_abraham;
 static struct sigaction sigaction_reload;
- 
+
 static void sigactions_init()
 {
   memset(&sigaction_abraham,0,sizeof(sigaction_ignore));
@@ -2067,7 +2067,7 @@ int main(int argc,char **argv)
   FD_INIT_SCHEME_BUILTINS();
   fd_init_dbserv();
 #endif
-  
+
   /* This is the module where the data-access API lives */
   fd_register_module("DBSERV",fd_incref(fd_dbserv_module),FD_MODULE_SAFE);
   fd_finish_module(fd_dbserv_module);
@@ -2096,7 +2096,7 @@ int main(int argc,char **argv)
   u8_init_mutex(&log_lock);
 
   u8_log(LOG_NOTICE,Startup,"FDServlet %s",socket_spec);
-  
+
   if (!(FD_VOIDP(default_notfoundpage)))
     u8_log(LOG_NOTICE,"SetPageNotFound","Handler=%q",default_notfoundpage);
   if (!socket_spec) {
@@ -2268,7 +2268,7 @@ static int fork_servlet(u8_string socket_spec)
       u8_log(LOG_WARN,Startup,
              "Servlet %s hasn't launched after %02fs",
              socket_spec,done-start);
-    
+
     else u8_log(LOG_CRIT,ServletAbort,
                 "Servlet %s hasn't launched after %02fs",
                 socket_spec,done-start);

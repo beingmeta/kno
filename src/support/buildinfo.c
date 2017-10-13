@@ -72,7 +72,7 @@ FD_EXPORT void fd_init_build_info()
 #ifdef FD_DEFAULT_MALLOC
   config_string(FD_DEFAULT_MALLOC);
 #endif
-  
+
 #ifdef FD_EXEC_WRAPPER
   config_string(FD_EXEC_WRAPPER);
 #endif
@@ -469,10 +469,10 @@ FD_EXPORT void fd_init_build_info()
 
 #if (WORDS_BIGENDIAN)
   fd_add(build_info,fd_intern("BYTE_ORDER"),
-	 fd_intern("LITTLE_ENDIAN"));
+         fd_intern("LITTLE_ENDIAN"));
 #else
   fd_add(build_info,fd_intern("BYTE_ORDER"),
-	 fd_intern("BIG_ENDIAN"));
+         fd_intern("BIG_ENDIAN"));
 #endif
 
   config_string(FD_VERSION);
@@ -575,10 +575,16 @@ FD_EXPORT void fd_init_build_info()
 #endif
 
   fd_register_config("BUILDINFO",
-		     "Information about compile-time features",
-		     config_get_build_info,NULL,NULL);
+                     "Information about compile-time features",
+                     config_get_build_info,NULL,NULL);
 
   struct FD_SLOTMAP *table= (fd_slotmap) build_info;
   table->table_readonly=1;
 }
 
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

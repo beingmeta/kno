@@ -47,3 +47,10 @@ typedef struct FD_CONDVAR {
 typedef struct FD_CONDVAR *fd_consed_condvar;
 
 #endif
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

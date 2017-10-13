@@ -100,8 +100,8 @@ int lispval_compare(lispval x,lispval y,fd_compare_flags flags)
         int xlen = STRLEN(x), ylen = STRLEN(y);
         if ((compare_lengths)&&(!(lexical))) {
           if (xlen>ylen) return 1; else if (xlen<ylen) return -1;
-	  else return string_compare(CSTRING(x),CSTRING(y),nocase);}
-	else return string_compare(CSTRING(x),CSTRING(y),nocase);}
+          else return string_compare(CSTRING(x),CSTRING(y),nocase);}
+        else return string_compare(CSTRING(x),CSTRING(y),nocase);}
       case fd_packet_type: case fd_secret_type: {
         int xlen = FD_PACKET_LENGTH(x), ylen = FD_PACKET_LENGTH(y);
         if ((quick)||(compare_lengths)) {
@@ -254,7 +254,7 @@ static int compare_uuids(lispval x,lispval y,fd_compare_flags flags)
 lispval compare_quick, compare_recursive, compare_elts, compare_natural,
   compare_natsort, compare_numeric, compare_lexical, compare_alphabetical,
   compare_ci, compare_ic, compare_caseinsensitive, compare_case_insensitive,
-  compare_nocase, compare_full; 
+  compare_nocase, compare_full;
 
 FD_EXPORT fd_compare_flags fd_get_compare_flags(lispval spec)
 {
@@ -264,27 +264,27 @@ FD_EXPORT fd_compare_flags fd_get_compare_flags(lispval spec)
     return FD_COMPARE_FULL;
   else if (TABLEP(spec)) {
     fd_compare_flags flags = 0;
-    if (fd_testopt(spec,compare_full,VOID)) 
+    if (fd_testopt(spec,compare_full,VOID))
       flags = FD_COMPARE_FULL;
-    else if (fd_testopt(spec,compare_quick,VOID)) 
+    else if (fd_testopt(spec,compare_quick,VOID))
       flags = 0;
     else {}
     if ( (fd_testopt(spec,compare_recursive,VOID)) ||
-	 (fd_testopt(spec,compare_elts,VOID)) )
+         (fd_testopt(spec,compare_elts,VOID)) )
       flags |= FD_COMPARE_RECURSIVE;
     if ( (fd_testopt(spec,compare_natural,VOID)) ||
-	 (fd_testopt(spec,compare_natsort,VOID)) )
+         (fd_testopt(spec,compare_natsort,VOID)) )
       flags |= FD_COMPARE_NATSORT;
     if ( (fd_testopt(spec,compare_numeric,VOID)) )
       flags |= FD_COMPARE_NUMERIC;
     if ( (fd_testopt(spec,compare_lexical,VOID)) ||
-	 (fd_testopt(spec,compare_alphabetical,VOID)))
+         (fd_testopt(spec,compare_alphabetical,VOID)))
       flags |= FD_COMPARE_ALPHABETICAL;
     if ( (fd_testopt(spec,compare_ci,VOID)) ||
-	 (fd_testopt(spec,compare_ic,VOID)) ||
-	 (fd_testopt(spec,compare_nocase,VOID)) ||
-	 (fd_testopt(spec,compare_caseinsensitive,VOID)) ||
-	 (fd_testopt(spec,compare_case_insensitive,VOID)) )
+         (fd_testopt(spec,compare_ic,VOID)) ||
+         (fd_testopt(spec,compare_nocase,VOID)) ||
+         (fd_testopt(spec,compare_caseinsensitive,VOID)) ||
+         (fd_testopt(spec,compare_case_insensitive,VOID)) )
       flags |= FD_COMPARE_CI;
     return flags;}
   else return FD_COMPARE_QUICK;
@@ -313,3 +313,10 @@ void fd_init_compare_c()
   compare_nocase = fd_intern("NOCASE");
   compare_full = fd_intern("FULL");
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

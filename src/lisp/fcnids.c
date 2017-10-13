@@ -99,7 +99,7 @@ FD_EXPORT lispval fd_set_fcnid(lispval id,lispval value)
         fcn->fcnid = id;
         if (!(_fd_leak_fcnids)) {
           /* This is dangerous if, for example, a module is being reloaded
-             (and fcnid's redefined) while another thread is using the old 
+             (and fcnid's redefined) while another thread is using the old
              value. If this bothers you, set fd_leak_fcnids to 1. */
           if (current) {fd_decref((lispval)current);}}
         u8_unlock_mutex(&_fd_fcnid_lock);
