@@ -16,12 +16,29 @@ set env TCMALLOC_DEBUG=3
 #set env HEAPCHECK=normal # strict|draconian
 #set CPUPROFILE=/tmp/cpu-profile
 set print elements 64
+
 define vg
   target remote | vgdb
 end
 define vgx
   target remote | vgdb $arg0
 end
+define w5
+  where 5
+end
+define w10
+  where 10
+end
+define w15
+  where 15
+end
+define freeze
+  set scheduler on
+end
+define unfreeze
+  set scheduler off
+end
+
 define heapcheck
   set env HEAPPROFILE=/tmp/heap.profiles/heapprof
   set env HEAPCHECK=normal # strict|draconian
