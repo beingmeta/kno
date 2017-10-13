@@ -273,7 +273,7 @@ FD_EXPORT int _fd_unread_byte(struct FD_INBUF *buf,int byte)
   else {buf->bufread--; return 0;}
 }
 
-FD_EXPORT unsigned int _fd_read_4bytes(struct FD_INBUF *buf)
+FD_EXPORT long long _fd_read_4bytes(struct FD_INBUF *buf)
 {
   if (PRED_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
   else if (fd_request_bytes(buf,4)) {
@@ -282,7 +282,7 @@ FD_EXPORT unsigned int _fd_read_4bytes(struct FD_INBUF *buf)
     return value;}
   else {
     fd_seterr1(fd_UnexpectedEOD);
-    return 0;}
+    return -1;}
 }
 
 FD_EXPORT fd_8bytes _fd_read_8bytes(struct FD_INBUF *buf)
