@@ -138,10 +138,17 @@ typedef struct FD_CHOICE *fd_choice;
   FD_INIT_CONS(ch,fd_choice_type); \
   ch->choice_size=sz; ch->choice_isatomic=atomicp
 
-#define fd_alloc_choice(n) \
-  (assert(n>0),u8_malloc(sizeof(struct FD_CHOICE)+((n-1)*sizeof(lispval))))
-#define fd_realloc_choice(ch,n)                                         \
-  (assert(n>0),u8_realloc((ch),sizeof(struct FD_CHOICE)+((n-1)*sizeof(lispval))))
+FD_FASTOP struct FD_CHOICE *fd_alloc_choice(int n_choices)
+{
+  assert(n_choices>0);
+  size_t base_size = sizeof(struct FD_CHOICE);
+  size_t extra_elts = (n_choices-1)*sizeof(lispval);
+  return u8_big_alloc(base_size+extra_elts);
+}
+FD_FASTOP void fd_free_choice(struct FD_CHOICE *ch)
+{
+  u8_big_free(ch);
+}
 
 /* Flags to pass to fd_init_choice (and fd_make_choice) */
 
@@ -221,12 +228,14 @@ static U8_MAYBE_UNUSED int fd_choice_size(lispval x)
 }
 static U8_MAYBE_UNUSED lispval fd_simplify_choice(lispval x)
 {
-  if (FD_PRECHOICEP(x)) return _fd_simplify_choice(x);
+  if (FD_PRECHOICEP(x))
+    return _fd_simplify_choice(x);
   else return x;
 }
 static U8_MAYBE_UNUSED lispval fd_make_simple_choice(lispval x)
 {
-  if (FD_PRECHOICEP(x)) return _fd_make_simple_choice(x);
+  if (FD_PRECHOICEP(x))
+    return _fd_make_simple_choice(x);
   else return fd_incref(x);
 }
 #else
@@ -273,14 +282,14 @@ static void _prechoice_add(struct FD_PRECHOICE *ch,lispval v)
   if (ch->prechoice_uselock) u8_lock_mutex(&(ch->prechoice_lock));
   if (ch->prechoice_write >= ch->prechoice_limit) {
     struct FD_CHOICE *prechoice_choicedata;
-    old_size=ch->prechoice_limit-ch->prechoice_data;
-    write_off=ch->prechoice_write-ch->prechoice_data;
-    if (old_size<0x10000) new_size=old_size*2;
+    old_size  = ch->prechoice_limit-ch->prechoice_data;
+    write_off = ch->prechoice_write-ch->prechoice_data;
+    if (old_size<0x10000)
+      new_size=old_size*2;
     else new_size=old_size+0x20000;
     prechoice_choicedata=
-      u8_realloc(ch->prechoice_choicedata,
-		 sizeof(struct FD_CHOICE)+
-		 (sizeof(lispval)*(new_size-1)));
+      u8_big_realloc(ch->prechoice_choicedata,
+                     sizeof(struct FD_CHOICE)+(sizeof(lispval)*(new_size-1)));
     ch->prechoice_choicedata=prechoice_choicedata;
     ch->prechoice_data=((lispval *)FD_XCHOICE_DATA(prechoice_choicedata));
     ch->prechoice_write=ch->prechoice_data+write_off;
@@ -310,7 +319,7 @@ static U8_MAYBE_UNUSED lispval _add_to_choice(lispval current,lispval new)
       return new;
     else if (FD_PRECHOICEP(new))
       if ((FD_CONS_REFCOUNT(((struct FD_CONS *)new)))>1)
-	return fd_simplify_choice(new);
+        return fd_simplify_choice(new);
       else return new;
     else return new;
   else if (current==new) {
@@ -366,11 +375,11 @@ static int fast_choice_containsp(lispval x,struct FD_CHOICE *choice)
     return 0;}
   else {
     while (top>=bottom) {
-	const lispval *middle = bottom+(top-bottom)/2;
-	int comparison = cons_compare(x,*middle);
-	if (comparison == 0) return 1;
-	else if (comparison<0) top = middle-1;
-	else bottom = middle+1;}
+        const lispval *middle = bottom+(top-bottom)/2;
+        int comparison = cons_compare(x,*middle);
+        if (comparison == 0) return 1;
+        else if (comparison<0) top = middle-1;
+        else bottom = middle+1;}
       return 0;}
 }
 #endif
@@ -392,7 +401,7 @@ static int fast_choice_containsp(lispval x,struct FD_CHOICE *choice)
    else {\
      _singlev[0]=_val; _scan=_singlev; _limit=_scan+1;} \
   while ((_scan<_limit) ? (elt=*(_scan++)) : \
-	 ((_need_gc) ? (fd_decref(_val),0) : (0)))
+         ((_need_gc) ? (fd_decref(_val),0) : (0)))
 
 #define FD_STOP_DO_CHOICES \
    if (_need_gc) fd_decref(_val)

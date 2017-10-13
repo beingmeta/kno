@@ -36,7 +36,7 @@ static void recycle_choice(struct FD_CHOICE *cv)
     int len = cv->choice_size;
     const lispval *scan = FD_XCHOICE_DATA(cv), *limit = scan+len;
     if (scan) while (scan<limit) {fd_decref(*scan); scan++;}}
-  if (!(FD_STATIC_CONSP(cv))) u8_free(cv);
+  fd_free_choice(cv);
 }
 
 static void recycle_qchoice(struct FD_QCHOICE *qc)

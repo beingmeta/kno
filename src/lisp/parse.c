@@ -1009,7 +1009,7 @@ static lispval parse_choice(U8_INPUT *in)
       lispval result = fd_init_choice(ch,n_elts,elts,FD_CHOICE_DOSORT);
       if (FD_XCHOICE_SIZE(ch)==1) {
         result = FD_XCHOICE_DATA(ch)[0];
-        u8_free(ch);}
+        u8_big_free(ch);}
       u8_free(elts);
       return result;}
     else return FD_PARSE_ERROR;}

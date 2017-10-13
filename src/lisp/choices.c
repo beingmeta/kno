@@ -36,7 +36,7 @@ static void recycle_prechoice(struct FD_RAW_CONS *c)
         lispval v = *read++;
         fd_decref(v);}
     if (ch->prechoice_mallocd) {
-      u8_free(ch->prechoice_choicedata);
+      fd_free_choice(ch->prechoice_choicedata);
       ch->prechoice_choicedata = NULL;
       ch->prechoice_mallocd = 0;}}
   fd_decref(ch->prechoice_normalized);
@@ -255,13 +255,13 @@ lispval fd_init_choice
   const lispval *base, *scan, *limit;
   if (PRED_FALSE((n==0) && (flags&FD_CHOICE_REALLOC))) {
     if ( (data) && (flags&FD_CHOICE_FREEDATA) ) u8_free(data);
-    if (ch) u8_free(ch);
+    if (ch) fd_free_choice(ch);
     return EMPTY;}
   else if ( (n==1) &&  (flags&FD_CHOICE_REALLOC) ) {
     lispval elt = (data!=NULL) ? (data[0]) :
       (ch!=NULL) ? ((FD_XCHOICE_DATA(ch))[0]) :
       (FD_NULL);
-    if (ch) u8_free(ch);
+    if (ch) fd_free_choice(ch);
     if ((data) && (flags&FD_CHOICE_FREEDATA)) u8_free(data);
     if (elt == FD_NULL) {
       fd_seterr2(_("BadInitData"),"fd_init_choice");
@@ -308,14 +308,14 @@ lispval fd_init_choice
     newlen = compress_choice((lispval *)base,n,atomicp);
   else newlen = n;
   if (newlen == 0) {
-    if (flags&FD_CHOICE_REALLOC) u8_free(ch);
+    if (flags&FD_CHOICE_REALLOC) fd_free_choice(ch);
     return FD_EMPTY;}
   else if ((newlen==1) && (flags&FD_CHOICE_REALLOC)) {
     lispval v = base[0];
-    u8_free(ch);
+    fd_free_choice(ch);
     return v;}
   else if ((flags&FD_CHOICE_REALLOC) && (newlen<(n/2)))
-    ch = u8_realloc(ch,sizeof(struct FD_CHOICE)+((newlen-1)*sizeof(lispval)));
+    ch = u8_big_realloc(ch,sizeof(struct FD_CHOICE)+((newlen-1)*sizeof(lispval)));
   else {}
   if (ch) {
     FD_INIT_XCHOICE(ch,newlen,atomicp);
@@ -339,17 +339,25 @@ lispval fd_make_prechoice(lispval x,lispval y)
   lispval nx = fd_simplify_choice(x), ny = fd_simplify_choice(y);
   FD_INIT_FRESH_CONS(ch,fd_prechoice_type);
   ch->prechoice_choicedata = fd_alloc_choice(64);
-  ch->prechoice_write = ch->prechoice_data = (lispval *)FD_XCHOICE_DATA(ch->prechoice_choicedata);
+  ch->prechoice_write = ch->prechoice_data =
+    (lispval *)FD_XCHOICE_DATA(ch->prechoice_choicedata);
   ch->prechoice_limit = ch->prechoice_data+64; ch->prechoice_normalized = VOID;
-  ch->prechoice_mallocd = 1; ch->prechoice_nested = 0; ch->prechoice_muddled = 0;
+  ch->prechoice_mallocd = 1;
+  ch->prechoice_nested = 0;
+  ch->prechoice_muddled = 0;
   ch->prechoice_size = FD_CHOICE_SIZE(nx)+FD_CHOICE_SIZE(ny);
   if (CHOICEP(nx)) ch->prechoice_nested++;
   if (CHOICEP(ny)) ch->prechoice_nested++;
   if (ch->prechoice_nested) {
-    ch->prechoice_write[0]=nx; ch->prechoice_write[1]=ny; ch->prechoice_muddled = 1;}
+    ch->prechoice_write[0]=nx;
+    ch->prechoice_write[1]=ny;
+    ch->prechoice_muddled = 1;}
   else if (cons_compare(nx,ny)<1) {
-    ch->prechoice_write[0]=nx; ch->prechoice_write[1]=ny;}
-  else {ch->prechoice_write[0]=ny; ch->prechoice_write[1]=nx;}
+    ch->prechoice_write[0]=nx;
+    ch->prechoice_write[1]=ny;}
+  else {
+    ch->prechoice_write[0]=ny;
+    ch->prechoice_write[1]=nx;}
   ch->prechoice_atomic = 1;
   if (CONSP(nx)) {
     if ((CHOICEP(nx)) && (FD_ATOMIC_CHOICEP(nx))) {}
@@ -376,9 +384,13 @@ lispval fd_init_prechoice(struct FD_PRECHOICE *ch,int lim,int uselock)
   if (ch == NULL) ch = u8_alloc(struct FD_PRECHOICE);
   FD_INIT_FRESH_CONS(ch,fd_prechoice_type);
   ch->prechoice_choicedata = fd_alloc_choice(lim);
-  ch->prechoice_write = ch->prechoice_data = (lispval *)FD_XCHOICE_DATA(ch->prechoice_choicedata);
+  ch->prechoice_write = ch->prechoice_data =
+    (lispval *)FD_XCHOICE_DATA(ch->prechoice_choicedata);
   ch->prechoice_limit = ch->prechoice_data+lim; ch->prechoice_size = 0;
-  ch->prechoice_nested = 0; ch->prechoice_muddled = 0; ch->prechoice_atomic = 1; ch->prechoice_mallocd = 1;
+  ch->prechoice_nested = 0;
+  ch->prechoice_muddled = 0;
+  ch->prechoice_atomic = 1;
+  ch->prechoice_mallocd = 1;
   ch->prechoice_normalized = VOID;
   ch->prechoice_uselock = uselock;
   u8_init_mutex(&(ch->prechoice_lock));
@@ -741,8 +753,7 @@ lispval convert_prechoice(struct FD_PRECHOICE *ch,int freeing_prechoice)
         while (vscan < vlimit) {
           lispval ev = *vscan++; *write++=fd_incref(ev);}}
       if (freed) {
-        struct FD_CHOICE *ch = (struct FD_CHOICE *)each;
-        if (FD_MALLOCD_CONSP(ch)) u8_free(ch);
+        fd_free_choice(each);
         *scan = VOID;}}
     else if (freeing_prechoice) {
       *write++=v; *scan = VOID;}
@@ -1033,11 +1044,11 @@ static lispval compute_choice_difference
     return fd_init_choice(result,write-newv,NULL,
                           ((watomicp)?(FD_CHOICE_ISATOMIC):(0)));
   else if (write == newv) {
-    u8_free(result);
+    fd_free_choice(result);
     return EMPTY;}
   else {
     lispval singleton = newv[0];
-    u8_free(result);
+    fd_free_choice(result);
     return singleton;}
 }
 

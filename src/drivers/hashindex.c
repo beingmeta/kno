@@ -1319,7 +1319,7 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
                had zero or one element), so the real result is what is
                returned and not what was passed in. */
             int index = read->vsched_i, atomicp = read->vsched_atomicp;
-            struct FD_CHOICE *result = (struct FD_CHOICE *)values[index];
+            struct FD_CHOICE *result = (struct FD_CHOICE *)values[index];  /* ??big_alloc?? */
             int n_values = result->choice_size;
             lispval realv = fd_init_choice(result,n_values,NULL,
                                           FD_CHOICE_DOSORT|

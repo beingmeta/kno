@@ -781,6 +781,7 @@ static lispval lisp_show_table(lispval tables,lispval slotids,lispval portarg)
 
 /* PPRINT lisp primitives */
 
+static lispval column_symbol, depth_symbol;
 static lispval maxcol_symbol, width_symbol, margin_symbol;
 static lispval maxelts_symbol, maxchars_symbol, maxbytes_symbol;
 static lispval maxkeys_symbol, listmax_symbol, vecmax_symbol, choicemax_symbol;
@@ -793,7 +794,7 @@ static lispval lisp_pprint(int n,lispval *args)
   struct U8_OUTPUT tmpout;
   struct PPRINT_CONTEXT ppcxt={0};
   int arg_i=0, used[7]={0};
-  int col = 0, indent=0, depth = 0, close_port=0, stringout=0;
+  int indent=0, close_port=0, stringout=0, col=0, depth=0;
   lispval opts = VOID, port_arg=VOID, obj = args[0]; used[0]=1;
   if (n>7) return fd_err(fd_TooManyArgs,"lisp_pprint",NULL,VOID);
   while (arg_i<n)
@@ -819,12 +820,17 @@ static lispval lisp_pprint(int n,lispval *args)
       arg_i++;}
   if ( (FD_PAIRP(opts)) || (FD_TABLEP(opts)) ) {
     lispval maxelts = fd_getopt(opts,maxelts_symbol,FD_VOID);
+    lispval colval = fd_getopt(opts,column_symbol,FD_VOID);
+    lispval depthval = fd_getopt(opts,depth_symbol,FD_VOID);
     lispval maxchars = fd_getopt(opts,maxchars_symbol,FD_VOID);
     lispval maxbytes = fd_getopt(opts,maxbytes_symbol,FD_VOID);
     lispval maxkeys = fd_getopt(opts,maxkeys_symbol,FD_VOID);
     lispval list_max = fd_getopt(opts,listmax_symbol,FD_VOID);
     lispval vec_max = fd_getopt(opts,vecmax_symbol,FD_VOID);
     lispval choice_max = fd_getopt(opts,choicemax_symbol,FD_VOID);
+    if (FD_FIXNUMP(colval))   col   = FD_FIX2INT(colval);
+    if (FD_FIXNUMP(depthval)) depth = FD_FIX2INT(depthval);
+
     if (FD_FIXNUMP(maxelts)) ppcxt.pp_maxelts=FD_FIX2INT(maxelts);
     if (FD_FIXNUMP(maxchars)) ppcxt.pp_maxchars=FD_FIX2INT(maxchars);
     if (FD_FIXNUMP(maxbytes)) ppcxt.pp_maxbytes=FD_FIX2INT(maxbytes);
@@ -835,6 +841,7 @@ static lispval lisp_pprint(int n,lispval *args)
     fd_decref(maxbytes); fd_decref(maxchars);
     fd_decref(maxelts); fd_decref(maxkeys);
     fd_decref(list_max); fd_decref(vec_max);
+    fd_decref(colval); fd_decref(depthval);
     fd_decref(choice_max);
     if (ppcxt.pp_margin == NULL) {
       lispval margin_opt = fd_getopt(opts,margin_symbol,FD_VOID);
@@ -884,7 +891,7 @@ static lispval lisp_pprint(int n,lispval *args)
     U8_INIT_OUTPUT(&tmpout,1000);
     out=&tmpout;}
   else out = get_output_port(VOID);
-  col = fd_pprinter(out,obj,indent,0,0,NULL,NULL,&ppcxt);
+  col = fd_pprinter(out,obj,indent,col,depth,NULL,NULL,&ppcxt);
   if (stringout)
     return fd_init_string(NULL,tmpout.u8_write-tmpout.u8_outbuf,
                           tmpout.u8_outbuf);
@@ -892,7 +899,7 @@ static lispval lisp_pprint(int n,lispval *args)
     u8_flush(out);
     if (close_port) u8_close_output(out);
     fd_decref(port_arg);
-    return FD_VOID;}
+    return FD_INT(col);}
 }
 
 /* Base 64 stuff */
@@ -1108,6 +1115,8 @@ static void recycle_port(struct FD_RAW_CONS *c)
 
 static void init_portprims_symbols()
 {
+  column_symbol=fd_intern("COLUMN");
+  depth_symbol=fd_intern("DEPTH");
   maxcol_symbol=fd_intern("MAXCOL");
   width_symbol=fd_intern("WIDTH");
   margin_symbol=fd_intern("MARGIN");

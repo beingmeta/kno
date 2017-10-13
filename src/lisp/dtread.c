@@ -316,7 +316,7 @@ FD_EXPORT lispval fd_read_dtype(struct FD_INBUF *in)
         while (write<limit) {
           lispval v = fd_read_dtype(in);
           if (FD_ABORTP(v)) {
-            u8_free(ch);
+            fd_free_choice(ch);
             return v;}
           *write++=v;}
         return fd_init_choice(ch,len,NULL,(FD_CHOICE_DOSORT|FD_CHOICE_REALLOC));}
@@ -353,7 +353,7 @@ FD_EXPORT lispval fd_read_dtype(struct FD_INBUF *in)
                 lispval *scan=(lispval *)FD_XCHOICE_DATA(ch);
                 while (scan<write) {
                   lispval v=*scan++; fd_decref(v);}
-                u8_free(ch);
+                u8_big_free(ch);
                 return v;}
               else *write++=v;}
             result = fd_init_choice(ch,len,NULL,(FD_CHOICE_DOSORT|FD_CHOICE_REALLOC));

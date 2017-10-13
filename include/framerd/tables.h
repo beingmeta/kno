@@ -470,6 +470,8 @@ static U8_MAYBE_UNUSED lispval fd_schemap_test
 
 /* Hashtables */
 
+FD_EXPORT unsigned int fd_big_buckets_threshold;
+
 typedef struct FD_HASH_BUCKET {
   int bucket_len;
   struct FD_KEYVAL kv_val0;} FD_HASH_BUCKET;
@@ -482,6 +484,8 @@ typedef struct FD_HASHTABLE {
   unsigned int table_modified:1;
   unsigned int table_finished:1;
   unsigned int table_uselock:1;
+
+  unsigned int ht_big_buckets:1;
   unsigned int ht_n_buckets;
   double table_load_factor;
   struct FD_HASH_BUCKET **ht_buckets;
@@ -537,7 +541,7 @@ FD_EXPORT lispval fd_init_hashtable
 FD_EXPORT int fd_reset_hashtable(fd_hashtable ht,int n_slots,int lock);
 FD_EXPORT struct FD_KEYVAL *fd_hashvec_get(lispval,struct FD_HASH_BUCKET **,int);
 FD_EXPORT int fd_fast_reset_hashtable
-(fd_hashtable,int,int,struct FD_HASH_BUCKET ***,int *);
+(fd_hashtable,int,int,struct FD_HASH_BUCKET ***,int *,int *);
 FD_EXPORT int fd_swap_hashtable
 (struct FD_HASHTABLE *src,struct FD_HASHTABLE *dest,
  int n_keys,int locked);
@@ -616,7 +620,9 @@ FD_EXPORT void fd_hash_quality
    unsigned int *ncollisionsp);
 
 FD_EXPORT int fd_recycle_hashtable(struct FD_HASHTABLE *h);
-FD_EXPORT int fd_free_buckets(struct FD_HASH_BUCKET **slots,int slots_to_free);
+FD_EXPORT int fd_free_buckets(struct FD_HASH_BUCKET **slots,
+                              int slots_to_free,
+                              int isbig);
 
 FD_EXPORT void fd_free_keyvals(struct FD_KEYVAL *keyvals,int n_keyvals);
 

@@ -2163,17 +2163,13 @@ static lispval pick_helper(lispval candidates,int n,lispval *tests,int datalevel
           atomic_results = 0;
           fd_incref(candidate);}}}
     if (n_results==0) {
-      u8_free(write_choice);
+      fd_free_choice(write_choice);
       return EMPTY;}
     else if (n_results==1) {
       lispval result = FD_XCHOICE_DATA(write_choice)[0];
-      u8_free(write_choice);
+      fd_free_choice(write_choice);
       /* This was incref'd during the loop. */
       return result;}
-    else if (n_results*2<n_elts)
-      return fd_init_choice
-        (fd_realloc_choice(write_choice,n_results),n_results,NULL,
-         ((atomic_results)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES)));
     else return fd_init_choice
            (write_choice,n_results,NULL,
             ((atomic_results)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES)));}
@@ -2260,7 +2256,8 @@ static lispval hashtable_filter(lispval candidates,fd_hashtable ht,int pick)
       if (write == keep) {
         u8_free(keep); return EMPTY;}
       else if ((write-keep)==1) {
-        lispval v = keep[0]; u8_free(keep);
+        lispval v = keep[0];
+        u8_free(keep);
         return v;}
       else return fd_init_choice
              (NULL,write-keep,keep,
@@ -2343,9 +2340,12 @@ static lispval reject_helper(lispval candidates,int n,lispval *tests,int datalev
       lispval candidate = *read++;
       int retval = test_selector_clauses(candidate,n,tests,datalevel);
       if (retval<0) {
-        const lispval *scan = FD_XCHOICE_DATA(write_choice), *limit = scan+n_results;
-        while (scan<limit) {lispval v = *scan++; fd_decref(v);}
-        u8_free(write_choice);
+        const lispval *scan  = FD_XCHOICE_DATA(write_choice);
+        const lispval *limit = scan+n_results;
+        while (scan<limit) {
+          lispval v = *scan++; 
+          fd_decref(v);}
+        fd_free_choice(write_choice);
         return FD_ERROR;}
       else if (retval==0) {
         *write++=candidate; n_results++;
@@ -2353,17 +2353,13 @@ static lispval reject_helper(lispval candidates,int n,lispval *tests,int datalev
           atomic_results = 0;
           fd_incref(candidate);}}}
     if (n_results==0) {
-      u8_free(write_choice);
+      fd_free_choice(write_choice);
       return EMPTY;}
     else if (n_results==1) {
       lispval result = FD_XCHOICE_DATA(write_choice)[0];
-      u8_free(write_choice);
+      fd_free_choice(write_choice);
       /* This was incref'd during the loop. */
       return result;}
-    else if (n_results*2<n_elts)
-      return fd_init_choice
-        (fd_realloc_choice(write_choice,n_results),n_results,NULL,
-         ((atomic_results)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES)));
     else return fd_init_choice
            (write_choice,n_results,NULL,
             ((atomic_results)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES)));}

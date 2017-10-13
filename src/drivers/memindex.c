@@ -77,7 +77,7 @@ static lispval *memindex_fetchkeys(fd_index ix,int *n)
     if (FD_CONS_REFCOUNT(keys) == 1) {
       struct FD_CHOICE *ch = (fd_choice) keys;
       memmove(keyv,FD_CHOICE_ELTS(keys),count*sizeof(lispval));
-      u8_free(ch);}
+      fd_free_choice(ch);}
     else {
       const lispval *elts = FD_CHOICE_ELTS(keys);
       int i=0; while (i<count) {
