@@ -1035,10 +1035,7 @@ static void abort_commit(fd_pool p,struct FD_POOL_WRITES writes)
   while (scan<limit) {
     lispval v = *scan++;
     if (!(CONSP(v))) continue;
-    else if (SLOTMAPP(v)) {FD_SLOTMAP_MARK_MODIFIED(v);}
-    else if (SCHEMAPP(v)) {FD_SCHEMAP_MARK_MODIFIED(v);}
-    else if (HASHTABLEP(v)) {FD_HASHTABLE_MARK_MODIFIED(v);}
-    else {}
+    modify_modified(v,1);
     fd_decref(v);}
   u8_free(writes.values); writes.values = NULL;
   u8_free(writes.oids); writes.oids = NULL;
@@ -1992,9 +1989,7 @@ static int pool_store(fd_pool p,lispval key,lispval value)
       return -1;}
     else {
       unsigned int offset = FD_OID_DIFFERENCE(addr,base);
-      if ( (FD_SLOTMAPP(value))||
-           (FD_SCHEMAPP(value)) ||
-           (FD_HASHTABLEP(value)) )fd_set_modified(value,1);
+      modify_modified(value,1);
       int cap = p->pool_capacity, rv = -1;
       if (offset>cap) {
         fd_seterr(fd_PoolRangeError,"pool_store",fd_pool_id(p),key);
