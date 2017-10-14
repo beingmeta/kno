@@ -338,7 +338,8 @@ static lispval tryopt_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   else {
     lispval keys = fd_eval(fd_get_arg(expr,2),env);
     if (FD_ABORTED(keys)) {
-      fd_decref(opts); return keys;}
+      fd_decref(opts);
+      return keys;}
     else {
       lispval results = EMPTY;
       DO_CHOICES(opt,opts) {
@@ -356,7 +357,7 @@ static lispval tryopt_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
       if (FD_ABORTED(results)) { /* Not sure this ever happens */
         fd_clear_errors(0);
         results=FD_EMPTY_CHOICE;}
-      else if (EMPTYP(results)) {
+      if (EMPTYP(results)) {
         lispval dflt_expr = fd_get_arg(expr,3);
         if (VOIDP(dflt_expr))
           return FD_FALSE;
