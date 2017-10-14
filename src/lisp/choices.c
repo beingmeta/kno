@@ -337,17 +337,25 @@ lispval fd_make_prechoice(lispval x,lispval y)
   lispval nx = fd_simplify_choice(x), ny = fd_simplify_choice(y);
   FD_INIT_FRESH_CONS(ch,fd_prechoice_type);
   ch->prechoice_choicedata = fd_alloc_choice(64);
-  ch->prechoice_write = ch->prechoice_data = (lispval *)FD_XCHOICE_DATA(ch->prechoice_choicedata);
+  ch->prechoice_write = ch->prechoice_data =
+    (lispval *)FD_XCHOICE_DATA(ch->prechoice_choicedata);
   ch->prechoice_limit = ch->prechoice_data+64; ch->prechoice_normalized = VOID;
-  ch->prechoice_mallocd = 1; ch->prechoice_nested = 0; ch->prechoice_muddled = 0;
+  ch->prechoice_mallocd = 1;
+  ch->prechoice_nested = 0;
+  ch->prechoice_muddled = 0;
   ch->prechoice_size = FD_CHOICE_SIZE(nx)+FD_CHOICE_SIZE(ny);
   if (CHOICEP(nx)) ch->prechoice_nested++;
   if (CHOICEP(ny)) ch->prechoice_nested++;
   if (ch->prechoice_nested) {
-    ch->prechoice_write[0]=nx; ch->prechoice_write[1]=ny; ch->prechoice_muddled = 1;}
+    ch->prechoice_write[0]=nx;
+    ch->prechoice_write[1]=ny;
+    ch->prechoice_muddled = 1;}
   else if (cons_compare(nx,ny)<1) {
-    ch->prechoice_write[0]=nx; ch->prechoice_write[1]=ny;}
-  else {ch->prechoice_write[0]=ny; ch->prechoice_write[1]=nx;}
+    ch->prechoice_write[0]=nx;
+    ch->prechoice_write[1]=ny;}
+  else {
+    ch->prechoice_write[0]=ny;
+    ch->prechoice_write[1]=nx;}
   ch->prechoice_atomic = 1;
   if (CONSP(nx)) {
     if ((CHOICEP(nx)) && (FD_ATOMIC_CHOICEP(nx))) {}
