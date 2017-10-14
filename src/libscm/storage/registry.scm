@@ -189,7 +189,8 @@
 
 (define (good-frame? oid (v))
   (default! v (oid-value oid))
-  (and (exists? v) (or (slotmap? v) (schemap? v))))
+  (and (not (void? v)) (exists? v)
+       (or (slotmap? v) (schemap? v))))
 
 (defambda (check-existing registry index slotid value existing)
   (cond ((fail? existing) existing)
