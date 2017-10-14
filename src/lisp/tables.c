@@ -66,7 +66,7 @@ static int numcompare(lispval x,lispval y)
 short fd_init_smap_size = FD_INIT_SMAP_SIZE;
 int   fd_init_hash_size = FD_INIT_HASH_SIZE;
 
-unsigned int fd_big_buckets_threshold = 0x4000000;
+unsigned int fd_hash_bigthresh = FD_HASH_BIGTHRESH;
 
 /* Debugging tools */
 
@@ -1796,7 +1796,7 @@ static struct FD_HASH_BUCKET **get_buckets(struct FD_HASHTABLE *ht,int n)
 {
   struct FD_HASH_BUCKET **buckets = NULL;
   size_t buckets_size = n*sizeof(fd_hash_bucket);
-  int use_bigalloc = ( buckets_size > fd_big_buckets_threshold );
+  int use_bigalloc = ( buckets_size > fd_hash_bigthresh );
   if (use_bigalloc) {
     ht->ht_big_buckets=1;
     buckets = u8_big_alloc(buckets_size);}

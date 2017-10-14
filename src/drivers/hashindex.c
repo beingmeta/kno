@@ -921,7 +921,7 @@ static FD_CHUNK_REF read_value_block
     while (new_size < vblock_size)
       new_size=((new_size<0x20000)? (new_size*2) :
                 (((new_size/0x20000)+4)*0x20000));
-    unsigned char *newbuf=u8_realloc(vbuf,new_size);
+    unsigned char *newbuf=u8_big_realloc(vbuf,new_size);
     if (newbuf == NULL) {
       u8_seterr("ReallocFailed","read_value_block",u8_strdup(hx->indexid));
       return result;}
@@ -978,7 +978,7 @@ static lispval read_values
   lispval *values = (lispval *)FD_XCHOICE_DATA(result);
   size_t vbuf_len = ( vblock_size < 0x20000) ? (0x20000) :
     (((vblock_size/0x20000)+4)*0x20000);
-  unsigned char *vbuf = u8_malloc(vbuf_len);
+  unsigned char *vbuf = u8_big_alloc(vbuf_len);
   int consp = 0, n_read=0;
   while ( (chunk_ref.off>0) && (n_read < n_values) )
     chunk_ref=read_value_block(hx,key,n_values,chunk_ref,
@@ -992,7 +992,7 @@ static lispval read_values
               key);
     result->choice_size=n_read;
     fd_decref_ptr(result);
-    u8_free(vbuf);
+    u8_big_free(vbuf);
     return FD_ERROR;}
   else if (n_read != n_values) {
     u8_log(LOGWARN,"InconsistentValueSize",
@@ -1003,16 +1003,16 @@ static lispval read_values
     result->choice_size=n_read;
     fd_seterr("InconsistentValueSize","read_values",NULL,key);
     fd_decref_ptr(result);
-    u8_free(vbuf);
+    u8_big_free(vbuf);
     return FD_ERROR;}
   else if (n_values == 1) {
     lispval v = values[0];
     fd_incref(v);
     u8_free(result);
-    u8_free(vbuf);
+    u8_big_free(vbuf);
     return v;}
   else {
-    u8_free(vbuf);
+    u8_big_free(vbuf);
     return fd_init_choice
       (result,n_values,NULL,
        FD_CHOICE_DOSORT|FD_CHOICE_REALLOC|
@@ -1319,7 +1319,7 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
                had zero or one element), so the real result is what is
                returned and not what was passed in. */
             int index = read->vsched_i, atomicp = read->vsched_atomicp;
-            struct FD_CHOICE *result = (struct FD_CHOICE *)values[index];  /* ??big_alloc?? */
+            struct FD_CHOICE *result = (struct FD_CHOICE *)values[index];
             int n_values = result->choice_size;
             lispval realv = fd_init_choice(result,n_values,NULL,
                                           FD_CHOICE_DOSORT|

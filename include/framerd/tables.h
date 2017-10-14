@@ -470,7 +470,9 @@ static U8_MAYBE_UNUSED lispval fd_schemap_test
 
 /* Hashtables */
 
-FD_EXPORT unsigned int fd_big_buckets_threshold;
+#define FD_HASH_BIGTHRESH 0x4000000
+
+FD_EXPORT unsigned int fd_hash_bigthresh;
 
 typedef struct FD_HASH_BUCKET {
   int bucket_len;
