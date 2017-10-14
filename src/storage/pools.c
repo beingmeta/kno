@@ -146,8 +146,38 @@ FD_FASTOP int modify_readonly(lispval table,int val)
       struct FD_HASHTABLE *tbl=(fd_hashtable)table;
       tbl->table_readonly=val;
       return 1;}
-    default:
-      return 0;}}
+    default: {
+      fd_ptr_type typecode = FD_PTR_TYPE(table);
+      struct FD_TABLEFNS *methods = fd_tablefns[typecode];
+      if ( (methods) && (methods->readonly) )
+        return (methods->readonly)(table,1);
+      else return 0;}}}
+  else return 0;
+}
+
+FD_FASTOP int modify_modified(lispval table,int val)
+{
+  if (CONSP(table)) {
+    fd_ptr_type table_type = FD_PTR_TYPE(table);
+    switch (table_type) {
+    case fd_slotmap_type: {
+      struct FD_SLOTMAP *tbl=(fd_slotmap)table;
+      tbl->table_modified=val;
+      return 1;}
+    case fd_schemap_type: {
+      struct FD_SCHEMAP *tbl=(fd_schemap)table;
+      tbl->table_modified=val;
+      return 1;}
+    case fd_hashtable_type: {
+      struct FD_HASHTABLE *tbl=(fd_hashtable)table;
+      tbl->table_modified=val;
+      return 1;}
+    default: {
+      fd_ptr_type typecode = FD_PTR_TYPE(table);
+      struct FD_TABLEFNS *methods = fd_tablefns[typecode];
+      if ( (methods) && (methods->modified) )
+        return (methods->modified)(table,1);
+      else return 0;}}}
   else return 0;
 }
 
@@ -536,6 +566,7 @@ FD_EXPORT int fd_set_oid_value(lispval oid,lispval value)
     return fd_zero_pool_store(oid,value);
   else {
     modify_readonly(value,0);
+    modify_modified(value,1);
     if ( (p->pool_handler->lock == NULL) ||
          (U8_BITP(p->pool_flags,FD_POOL_VIRTUAL)) ||
          (U8_BITP(p->pool_flags,FD_POOL_NOLOCKS)) ) {

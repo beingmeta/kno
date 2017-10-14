@@ -624,9 +624,10 @@ FD_EXPORT lispval fd_new_frame(lispval pool_spec,lispval initval,int copyflags)
   else if (copyflags)
     initval = fd_deep_copy(initval);
   else fd_incref(initval);
-  /* Now we actually set the OID */
+  /* Now we actually set the OID's value */
   if ((fd_set_oid_value(oid,initval))<0) {
-    fd_decref(initval); return FD_ERROR;}
+    fd_decref(initval);
+    return FD_ERROR;}
   else {
     fd_decref(initval);
     return oid;}
