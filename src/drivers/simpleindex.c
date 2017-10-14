@@ -41,6 +41,10 @@
    the index writes the changed values, updates the offsets table, and
    writes it out at the end. It then writes a .commit file and a
    .recovery file with the new header.
+
+   The offsets table can have choice values, which is a way to have
+   easy adding.
+
 */
 
 FD_EXPORT void fd_init_simpleindex_c()
