@@ -774,9 +774,10 @@ FD_EXPORT int fd_copy_slotmap(struct FD_SLOTMAP *src,
   dest->table_readonly = src->table_readonly;
   dest->table_modified = src->table_modified;
   dest->table_finished = src->table_finished;
-  dest->table_uselock = src->table_uselock;
   dest->sm_sort_keyvals = src->sm_sort_keyvals;
   dest->sm_free_keyvals = 1;
+  dest->table_uselock = 1;
+  u8_init_rwlock(&(dest->table_rwlock));
   struct FD_KEYVAL *read = src->sm_keyvals;
   struct FD_KEYVAL *limit = read + src->n_slots;
   struct FD_KEYVAL *write = dest->sm_keyvals;
@@ -1108,7 +1109,7 @@ static lispval copy_schemap(lispval schemap,int flags)
   if  ( ptr->table_schema == nptr->table_schema ) {
     ptr->schemap_shared=nptr->schemap_shared=1;}
   if (unlock) fd_unlock_table(ptr);
-  ptr->table_uselock=1;
+  nptr->table_uselock=1;
   u8_init_rwlock(&(nptr->table_rwlock));
   return LISP_CONS(nptr);
 }

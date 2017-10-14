@@ -188,6 +188,21 @@ static int dtype_coderef(struct FD_OUTBUF *out,lispval x)
   return n_bytes;
 }
 
+/* Checking if eval is needed */
+
+FD_EXPORT int fd_choice_evalp(lispval x)
+{
+  if (FD_NEED_EVALP(x))
+    return 1;
+  else if (FD_AMBIGP(x)) {
+    FD_DO_CHOICES(e,x) {
+      if (FD_NEED_EVALP(e)) {
+        FD_STOP_DO_CHOICES;
+        return 1;}}
+    return 0;}
+  else return 0;
+}
+
 /* Symbol lookup */
 
 FD_EXPORT lispval _fd_symeval(lispval sym,fd_lexenv env)
@@ -283,8 +298,9 @@ FD_EXPORT lispval _fd_get_body(lispval expr,int i)
 
 static lispval getopt_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  lispval opts = fd_eval(fd_get_arg(expr,1),env);
-  if (FD_ABORTED(opts)) return opts;
+  lispval opts = fd_stack_eval(fd_get_arg(expr,1),env,_stack,0);
+  if (FD_ABORTED(opts))
+    return opts;
   else {
     lispval keys = fd_eval(fd_get_arg(expr,2),env);
     if (FD_ABORTED(keys)) {
@@ -305,7 +321,49 @@ static lispval getopt_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
       else if (EMPTYP(results)) {
         lispval dflt_expr = fd_get_arg(expr,3);
         if (VOIDP(dflt_expr)) return FD_FALSE;
-        else return fd_eval(dflt_expr,env);}
+        else return fd_stack_eval(dflt_expr,env,_stack,0);}
+      else return results;}}
+}
+static lispval tryopt_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+{
+  lispval opts = fd_stack_eval(fd_get_arg(expr,1),env,_stack,0);
+  lispval default_expr = fd_get_arg(expr,3);
+  if ( (FD_ABORTED(opts)) || (!(FD_TABLEP(opts))) ) {
+    if (FD_ABORTED(opts)) fd_clear_errors(0);
+    if (FD_VOIDP(default_expr)) {
+      return FD_FALSE;}
+    else if (!(FD_EVALP(default_expr)))
+      return fd_incref(default_expr);
+    else return fd_stack_eval(default_expr,env,_stack,0);}
+  else {
+    lispval keys = fd_eval(fd_get_arg(expr,2),env);
+    if (FD_ABORTED(keys)) {
+      fd_decref(opts);
+      return keys;}
+    else {
+      lispval results = EMPTY;
+      DO_CHOICES(opt,opts) {
+        DO_CHOICES(key,keys) {
+          lispval v = fd_getopt(opt,key,VOID);
+          if (FD_ABORTED(v)) {
+            fd_clear_errors(0);
+            fd_decref(results);
+            results = FD_EMPTY_CHOICE;
+            FD_STOP_DO_CHOICES;
+            break;}
+          else if (!(VOIDP(v))) {CHOICE_ADD(results,v);}}
+        if (FD_ABORTED(results)) {FD_STOP_DO_CHOICES;}}
+      fd_decref(keys); fd_decref(opts);
+      if (FD_ABORTED(results)) { /* Not sure this ever happens */
+        fd_clear_errors(0);
+        results=FD_EMPTY_CHOICE;}
+      if (EMPTYP(results)) {
+        lispval dflt_expr = fd_get_arg(expr,3);
+        if (VOIDP(dflt_expr))
+          return FD_FALSE;
+        else if (!(FD_EVALP(dflt_expr)))
+          return fd_incref(dflt_expr);
+        else return fd_stack_eval(dflt_expr,env,_stack,0);}
       else return results;}}
 }
 static lispval getopt_prim(lispval opts,lispval keys,lispval dflt)
@@ -1281,11 +1339,46 @@ static lispval modref_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 
 static lispval voidp_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  lispval result = fd_eval(fd_get_arg(expr,1),env);
-  if (VOIDP(result)) return FD_TRUE;
+  lispval to_eval = fd_get_arg(expr,1);
+  if (FD_SYMBOLP(to_eval)) {
+    lispval v = fd_symeval(to_eval,env);
+    if ( ( v == VOID ) || ( v == FD_UNBOUND ) )
+      return FD_TRUE;
+    else if  (v == FD_NULL) {
+      return FD_TRUE;}
+    else {
+      fd_decref(v);
+      return FD_FALSE;}}
   else {
-    fd_decref(result);
-    return FD_FALSE;}
+    lispval v = fd_eval(to_eval,env);
+    if ( ( v == VOID ) || ( v == FD_UNBOUND ) )
+      return FD_TRUE;
+    else {
+      fd_decref(v);
+      return FD_FALSE;}}
+}
+
+static lispval badp_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+{
+  lispval to_eval = fd_get_arg(expr,1);
+  if (FD_SYMBOLP(to_eval)) {
+    lispval v = fd_symeval(to_eval,env);
+    if ( ( v == VOID ) || ( v == FD_UNBOUND ) )
+      return FD_TRUE;
+    else if  ( (v == FD_NULL) || (! (FD_CHECK_PTR(v)) ) ) {
+      u8_log(LOGWARN,fd_BadPtr,"Bad pointer value 0x%llx for %q",v,to_eval);
+      return FD_TRUE;}
+    else return FD_FALSE;}
+  else {
+    lispval v = fd_eval(to_eval,env);
+    if ( ( v == VOID ) || ( v == FD_UNBOUND ) )
+      return FD_TRUE;
+    else if  ( (v == FD_NULL) || (! (FD_CHECK_PTR(v)) ) ) {
+      u8_log(LOGWARN,fd_BadPtr,"Bad pointer value 0x%llx for %q",v,to_eval);
+      return FD_TRUE;}
+    else {
+      fd_decref(v);
+      return FD_FALSE;}}
 }
 
 static lispval env_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
@@ -2252,6 +2345,7 @@ static void init_localfns()
   fd_def_evalfn(fd_scheme_module,"EVAL","",eval_evalfn);
   fd_def_evalfn(fd_scheme_module,"BOUND?","",boundp_evalfn);
   fd_def_evalfn(fd_scheme_module,"VOID?","",voidp_evalfn);
+  fd_def_evalfn(fd_scheme_module,"BAD?","",badp_evalfn);
   fd_def_evalfn(fd_scheme_module,"QUOTE","",quote_evalfn);
   fd_def_evalfn(fd_scheme_module,"%ENV","",env_evalfn);
   fd_def_evalfn(fd_scheme_module,"%MODREF","",modref_evalfn);
@@ -2296,16 +2390,38 @@ static void init_localfns()
   fd_def_evalfn(fd_xscheme_module,"WITHENV/SAFE","",withenv_safe_evalfn);
 
 
-  fd_idefn(fd_scheme_module,fd_make_cprim3("GET-ARG",get_arg_prim,2));
-  fd_def_evalfn(fd_scheme_module,"GETOPT","",getopt_evalfn);
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim3x("%GETOPT",getopt_prim,2,
-                                          -1,VOID,fd_symbol_type,VOID,
-                                          -1,FD_FALSE)));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim3x("TESTOPT",testopt_prim,2,
-                           -1,VOID,fd_symbol_type,VOID,
-                           -1,VOID));
+  fd_idefn3(fd_scheme_module,"GET-ARG",get_arg_prim,2,
+            "(GET-ARG *expression* *i* [*default*]) "
+            "returns the *i*'th parameter in *expression*, "
+            "or *default* (otherwise)",
+            -1,FD_VOID,fd_fixnum_type,FD_VOID,-1,FD_VOID);
+  fd_def_evalfn(fd_scheme_module,"GETOPT",
+                "(GETOPT *opts* *name* [*default*=#f]) returns any *name* "
+                "option defined in *opts* or *default* otherwise. "
+                "If *opts* or *name* are choices, this only returns *default* "
+                "if none of the alternatives yield results.",
+                 getopt_evalfn);
+  fd_def_evalfn(fd_scheme_module,"TRYOPT",
+                "(TRYOPT *opts* *name* [*default*=#f]) returns any *name* "
+                "option defined in *opts* or *default* otherwise. Any errors "
+                "during option resolution are ignored. "
+                "If *opts* or *name* are choices, this only returns *default* "
+                "if none of the alternatives yield results. Note that the "
+                "*default*, if evaluated, may signal an error.",
+                tryopt_evalfn);
+  fd_idefn3(fd_scheme_module,"%GETOPT",getopt_prim,FD_NEEDS_2_ARGS|FD_NDCALL,
+            "(%GETOPT *opts* *name* [*default*=#f]) gets any *name* option "
+            "from opts, returning *default* if there isn't any. This is a real "
+            "procedure (unlike `GETOPT`) so that *default* will be evaluated even "
+            "if an option is returned.",
+            -1,VOID,fd_symbol_type,VOID,
+            -1,FD_FALSE);
+  fd_idefn3(fd_scheme_module,"TESTOPT",testopt_prim,2,
+            "(TESTOPT *opts* *name* [*value*]) returns true if "
+            "the option *name* is specified in *opts* and it includes "
+            "*value* (if provided).",
+            -1,VOID,fd_symbol_type,VOID,
+            -1,VOID);
   fd_idefn(fd_scheme_module,
            fd_make_cprim3x("OPT+",optplus_prim,2,
                            -1,VOID,fd_symbol_type,VOID,
