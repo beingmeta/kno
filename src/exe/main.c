@@ -150,9 +150,9 @@ void _show_stack_frame(void *arg)
 	u8_string line=u8_sprintf(buf,128,"\n#%d\t%q",i,args[i]);
 	fputs(line,stderr);
 	i++;}}}
+  fputs("\n",stderr);
   if (stack->stack_env)
     _show_env(stack->stack_env,-1);
-  fputs("\n",stderr);
 }
 
 static U8_MAYBE_UNUSED void _show_stack(void *arg,int limit)

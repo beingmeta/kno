@@ -33,8 +33,15 @@ FD_EXPORT void fd_init_schemeio(void) FD_LIBINIT0_FN;
 
 FD_EXPORT void (*fd_dump_backtrace)(lispval bt);
 
-#define FD_NEED_EVALP(x) ((FD_SYMBOLP(x)) || (FD_LEXREFP(x)) || \
-			  (FD_PAIRP(x)) || (FD_CODEP(x)))
+FD_EXPORT int fd_choice_evalp(lispval x);
+
+#define FD_NEED_EVALP(x) \
+  ((FD_SYMBOLP(x)) || (FD_LEXREFP(x)) ||        \
+   (FD_PAIRP(x))   || (FD_CODEP(x)))
+#define FD_EVALP(x) \
+  ( (FD_SYMBOLP(x)) || (FD_LEXREFP(x)) || \
+    (FD_PAIRP(x))   || (FD_CODEP(x))   ||       \
+    ( (FD_AMBIGP(x)) && (fd_choice_evalp(x)) ) )
 
 /* Constants */
 
@@ -56,8 +63,8 @@ FD_EXPORT void fd_set_app_env(fd_lexenv env);
 /* Eval functions (for special forms, FEXPRs, whatever) */
 
 typedef lispval (*fd_eval_handler)(lispval expr,
-			    struct FD_LEXENV *,
-			    struct FD_STACK *stack);
+                            struct FD_LEXENV *,
+                            struct FD_STACK *stack);
 
 typedef struct FD_EVALFN {
   FD_CONS_HEADER;
@@ -69,13 +76,13 @@ typedef struct FD_EVALFN *fd_evalfn;
 FD_EXPORT lispval fd_make_evalfn(u8_string name,fd_eval_handler fn);
 FD_EXPORT void fd_defspecial(lispval mod,u8_string name,fd_eval_handler fn);
 FD_EXPORT void fd_new_evalfn(lispval mod,u8_string name,
-			     u8_string filename,
-			     u8_string doc,
-			     fd_eval_handler fn);
+                             u8_string filename,
+                             u8_string doc,
+                             fd_eval_handler fn);
 FD_EXPORT void fd_new_evalfn(lispval mod,u8_string name,
-			     u8_string filename,
-			     u8_string doc,
-			     fd_eval_handler fn);
+                             u8_string filename,
+                             u8_string doc,
+                             fd_eval_handler fn);
 
 #define fd_def_evalfn(mod,name,doc,evalfn) \
   fd_new_evalfn(mod,name,_FILEINFO,doc,evalfn)
@@ -161,13 +168,13 @@ FD_EXPORT int fd_record_source;
   else {}
 
 FD_EXPORT lispval fd_apply_lambda(struct FD_STACK *,struct FD_LAMBDA *fn,
-				int n,lispval *args);
+                                int n,lispval *args);
 FD_EXPORT lispval fd_xapply_lambda
   (struct FD_LAMBDA *fn,void *data,lispval (*getval)(void *,lispval));
 
 FD_EXPORT lispval fd_make_lambda(u8_string name,
-			       lispval arglist,lispval body,fd_lexenv env,
-			       int nd,int sync);
+                               lispval arglist,lispval body,fd_lexenv env,
+                               int nd,int sync);
 
 /* Loading files and config data */
 
@@ -202,8 +209,8 @@ typedef struct FD_CONFIG_RECORD {
 
 FD_EXPORT
 lispval fd_stack_eval(lispval expr,fd_lexenv env,
-		     struct FD_STACK *stack,
-		     int tail);
+                     struct FD_STACK *stack,
+                     int tail);
 #define fd_tail_eval(expr,env) (fd_stack_eval(expr,env,fd_stackptr,1))
 
 FD_EXPORT lispval fd_eval_exprs(lispval exprs,fd_lexenv env);
@@ -250,13 +257,14 @@ FD_FASTOP lispval fd_symeval(lispval symbol,fd_lexenv env)
     if (val == FD_UNBOUND)
       env = env->env_parent;
     else return val;
-    if ((env) && (env->env_copy)) env = env->env_copy;}
+    if ((env) && (env->env_copy))
+      env = env->env_copy;}
   return FD_VOID;
 }
 
 FD_FASTOP lispval _fd_fast_eval(lispval x,fd_lexenv env,
-			       struct FD_STACK *stack,
-			       int tail)
+                               struct FD_STACK *stack,
+                               int tail)
 {
   switch (FD_PTR_MANIFEST_TYPE(x)) {
   case fd_oid_ptr_type: case fd_fixnum_ptr_type:
@@ -267,7 +275,7 @@ FD_FASTOP lispval _fd_fast_eval(lispval x,fd_lexenv env,
     else if (FD_SYMBOLP(x)) {
       lispval val = fd_symeval(x,env);
       if (FD_EXPECT_FALSE(FD_VOIDP(val)))
-	return fd_err(fd_UnboundIdentifier,"fd_eval",FD_SYMBOL_NAME(x),x);
+        return fd_err(fd_UnboundIdentifier,"fd_eval",FD_SYMBOL_NAME(x),x);
       else return val;}
     else return x;
   case fd_slotmap_type: case fd_schemap_type:
@@ -293,7 +301,7 @@ FD_FASTOP lispval fd_get_arg(lispval expr,int i)
 {
   while (FD_PAIRP(expr))
     if ((FD_PAIRP(FD_CAR(expr))) &&
-	(FD_EQ(FD_CAR(FD_CAR(expr)),_fd_comment_symbol)))
+        (FD_EQ(FD_CAR(FD_CAR(expr)),_fd_comment_symbol)))
       expr = FD_CDR(expr);
     else if (i == 0) return FD_CAR(expr);
     else {expr = FD_CDR(expr); i--;}
@@ -304,7 +312,7 @@ FD_FASTOP lispval fd_get_body(lispval expr,int i)
   while (FD_PAIRP(expr))
     if (i == 0) break;
     else if ((FD_PAIRP(FD_CAR(expr))) &&
-	     (FD_EQ(FD_CAR(FD_CAR(expr)),_fd_comment_symbol)))
+             (FD_EQ(FD_CAR(FD_CAR(expr)),_fd_comment_symbol)))
       expr = FD_CDR(expr);
     else {expr = FD_CDR(expr); i--;}
   return expr;
@@ -333,16 +341,16 @@ FD_EXPORT lispval _fd_symeval(lispval,fd_lexenv);
 #define FD_DOBINDINGS(var,val,bindings)                                 \
   U8_MAYBE_UNUSED lispval var, val, _scan = bindings, _binding = FD_VOID;       \
   for (_scan = bindings,                                                        \
-	 _binding = FD_PAIRP(_scan)?(FD_CAR(_scan)):(FD_VOID),          \
-	 var = FD_PAIRP(_binding)?(FD_CAR(_binding)):(FD_VOID),         \
-	 val = ((FD_PAIRP(_binding)&&(FD_PAIRP(FD_CDR(_binding))))?     \
-	      (FD_CAR(FD_CDR(_binding))):(FD_VOID));                    \
+         _binding = FD_PAIRP(_scan)?(FD_CAR(_scan)):(FD_VOID),          \
+         var = FD_PAIRP(_binding)?(FD_CAR(_binding)):(FD_VOID),         \
+         val = ((FD_PAIRP(_binding)&&(FD_PAIRP(FD_CDR(_binding))))?     \
+              (FD_CAR(FD_CDR(_binding))):(FD_VOID));                    \
        FD_PAIRP(_scan);                                                 \
        _scan = FD_CDR(_scan),                                           \
-	 _binding = FD_PAIRP(_scan)?(FD_CAR(_scan)):(FD_VOID),          \
-	 var = FD_PAIRP(_binding)?(FD_CAR(_binding)):(FD_VOID),         \
-	 val = ((FD_PAIRP(_binding)&&(FD_PAIRP(FD_CDR(_binding))))?     \
-	      (FD_CAR(FD_CDR(_binding))):(FD_VOID)) )
+         _binding = FD_PAIRP(_scan)?(FD_CAR(_scan)):(FD_VOID),          \
+         var = FD_PAIRP(_binding)?(FD_CAR(_binding)):(FD_VOID),         \
+         val = ((FD_PAIRP(_binding)&&(FD_PAIRP(FD_CDR(_binding))))?     \
+              (FD_CAR(FD_CDR(_binding))):(FD_VOID)) )
 
 /* Simple continuations */
 

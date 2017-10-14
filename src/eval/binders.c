@@ -195,7 +195,9 @@ FD_FASTOP fd_lexenv make_dynamic_env(int n,fd_lexenv parent)
   lispval schemap = fd_make_schemap(NULL,n,FD_SCHEMAP_PRIVATE,vars,vals);
   while (i<n) {vars[i]=VOID; vals[i]=VOID; i++;}
   FD_INIT_FRESH_CONS(e,fd_lexenv_type);
-  e->env_copy = e; e->env_bindings = schemap; e->env_exports = VOID;
+  e->env_copy = e;
+  e->env_bindings = schemap;
+  e->env_exports = VOID;
   e->env_parent = fd_copy_env(parent);
   return e;
 }
