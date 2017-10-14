@@ -32,6 +32,12 @@ end
 define w15
   where 15
 end
+define w20
+  where 20
+end
+define ww
+  where 25
+end
 define freeze
   set scheduler on
 end
@@ -55,7 +61,15 @@ define locals
   info locals
 end
 define pp
-  print *(($arg1)($arg0))
+  if ($argc == 0)
+    print/x *$
+  else
+     if ($argc == 1)
+      print/x *$arg0
+    else
+      print/x *(($arg1)($arg0))
+    end
+  end
 end
 define xp
   print/x $arg0
