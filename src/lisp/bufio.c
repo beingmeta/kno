@@ -33,7 +33,7 @@ u8_condition fd_IsReadBuf=_("Writing to a read buffer");
 
 static u8_condition BadUnReadByte=_("Inconsistent read/unread byte");
 
-size_t fd_bufio_bigthresh = FD_BUFIO_BIGTHRESH;
+size_t fd_bigbuf_threshold = FD_BIGBUF_THRESHOLD;
 
 /* Byte output */
 
@@ -77,10 +77,8 @@ FD_EXPORT lispval fdt_iswritebuf(struct FD_INBUF *b)
 
 FD_EXPORT size_t _fd_raw_closebuf(struct FD_RAWBUF *buf)
 {
-  if (buf->buf_flags&FD_BUFFER_IS_MALLOCD) {
-    if (buf->buf_flags&FD_BUFFER_BIGALLOC)
-      u8_big_free(buf->buffer);
-    else u8_free(buf->buffer);
+  if (buf->buf_flags&FD_BUFFER_ALLOC) {
+    BUFIO_FREE(buf);
     return buf->buflen;}
   else return 0;
 }
@@ -89,10 +87,11 @@ FD_EXPORT size_t _fd_raw_closebuf(struct FD_RAWBUF *buf)
 
 static ssize_t grow_output_buffer(struct FD_OUTBUF *b,size_t delta)
 {
+  int flags = b->buf_flags;
   if ((b->buf_flushfn) &&
-      ( (U8_BITP(b->buf_flags,FD_BUFFER_NO_GROW)) ||
+      ( (U8_BITP(flags,FD_BUFFER_NO_GROW)) ||
         ( (b->bufwrite > b->buffer) &&
-          (!(b->buf_flags&FD_BUFFER_NO_FLUSH)) ) ) ) {
+          (!(flags&FD_BUFFER_NO_FLUSH)) ) ) ) {
     ssize_t result = b->buf_flushfn(b,b->buf_data);
     if (result<0) {
       u8_log(LOGWARN,"WriteFailed",
@@ -105,7 +104,7 @@ static ssize_t grow_output_buffer(struct FD_OUTBUF *b,size_t delta)
       /* You've got the space in the buffer */
       b->buflim = b->bufwrite+delta;
       return (b->bufwrite+delta)-b->buffer;}
-    else if (U8_BITP(b->buf_flags,FD_BUFFER_NO_GROW)) {
+    else if (U8_BITP(flags,FD_BUFFER_NO_GROW)) {
       u8_log(LOGWARN,"WriteFailed","Can't grow buffer");
       return -1;}
     else {/* Go ahead and grow the buffer */}}
@@ -113,30 +112,47 @@ static ssize_t grow_output_buffer(struct FD_OUTBUF *b,size_t delta)
   size_t current_limit = b->buflim-b->buffer;
   size_t new_limit = current_limit;
   size_t need_size = current_size+delta;
-  unsigned char *new;
+  unsigned char *old = b->buffer, *new=NULL;
   if (new_limit<=0) new_limit = 1000;
   while (new_limit < need_size)
     if (new_limit>=250000) new_limit = new_limit+250000;
     else new_limit = new_limit*2;
-  if ( (b->buf_flags) & (FD_BUFFER_IS_MALLOCD) ) {
-    if ( (b->buf_flags) & (FD_BUFFER_BIGALLOC) )
-      new = u8_big_realloc(b->buffer,new_limit);
-    else if ( new_limit < fd_bufio_bigthresh )
-      new = u8_realloc(b->buffer,new_limit);
-    else {
-      unsigned char *old =b->buffer;
-       b->buffer = new = u8_big_copy(old,new_limit,current_size);
-      b->buf_flags |= FD_BUFFER_BIGALLOC;}}
+  bufio_alloc cur_alloc = BUFIO_ALLOC(b), new_alloc = cur_alloc;
+  int free_old = 0;
+  if (new_limit > fd_bigbuf_threshold) {
+    if (cur_alloc == FD_BIGALLOC_BUFFER)
+      new = u8_big_realloc(old,new_limit);
+    else new = u8_big_copy(old,new_limit,current_size);
+    free_old = (cur_alloc != FD_BIGALLOC_BUFFER);
+    new_alloc = FD_BIGALLOC_BUFFER;}
+  else if (cur_alloc == FD_BIGALLOC_BUFFER)
+    new = u8_big_realloc(old,new_limit);
+  else if (cur_alloc == FD_HEAP_BUFFER)
+    new = u8_realloc(old,new_limit);
   else {
-    if (new_limit < fd_bufio_bigthresh)
-      new = u8_malloc(new_limit);
-    else {
-      new = u8_big_alloc(new_limit);
-      b->buf_flags |= FD_BUFFER_BIGALLOC;}
-    if (new) memcpy(new,b->buffer,current_size);
-    b->buf_flags |= FD_BUFFER_IS_MALLOCD;}
+    new=u8_malloc(new_limit);
+    memcpy(new,old,current_size);
+    new_alloc = FD_HEAP_BUFFER;
+    free_old = cur_alloc;}
   if (new == NULL) return 0;
-  b->buffer = new; b->bufwrite = new+current_size;
+  if (free_old == 0) {}
+  else
+    if (cur_alloc == FD_HEAP_BUFFER)
+      u8_free(old);
+    else if (cur_alloc == FD_BIGALLOC_BUFFER)
+      u8_big_free(old);
+    else if (cur_alloc == FD_MMAP_BUFFER) {
+      int rv = munmap(old,b->buflen);
+      if (rv) {
+        u8_log(LOGERR,"MUnmapFailed",
+               "For buffer %llx (len=%lld) in %llx "
+               "with errno=%d (%s), keeping new %llx",
+               old,b->buflen,b,errno,u8_strerror(errno),new);
+        errno=0;}}
+    else {}
+  b->buf_flags = ( (flags) & (~FD_BUFFER_ALLOC) ) | new_alloc;
+  b->buffer = new;
+  b->bufwrite = new+current_size;
   b->buflim = b->buffer+new_limit;
   b->buflen = new_limit;
   return 1;
@@ -144,12 +160,16 @@ static ssize_t grow_output_buffer(struct FD_OUTBUF *b,size_t delta)
 
 static ssize_t grow_input_buffer(struct FD_INBUF *in,int delta)
 {
+  int flags = in->buf_flags;
   struct FD_RAWBUF *b = (struct FD_RAWBUF *)in;
   size_t current_point = b->bufpoint-b->buffer;
   size_t current_limit = b->buflim-b->buffer;
   size_t new_limit = current_limit;
   size_t need_size = current_point+delta;
-  unsigned char *new;
+  unsigned char *old = b->buffer, *new;
+  if (U8_BITP(flags,FD_BUFFER_NO_GROW)) {
+    u8_seterr("CantGrowInputBuffer","grow_input_buffer",NULL);
+    return -1;}
   if (new_limit<=0) new_limit = 1000;
   else if (new_limit<current_limit)
     new_limit = current_limit;
@@ -157,26 +177,27 @@ static ssize_t grow_input_buffer(struct FD_INBUF *in,int delta)
   while (new_limit < need_size)
     if (new_limit>=250000) new_limit = new_limit+25000;
     else new_limit = new_limit*2;
-  if ((b->buf_flags)&(FD_BUFFER_IS_MALLOCD)) {
-    if ((b->buf_flags)&(FD_BUFFER_BIGALLOC))
-      new = u8_big_realloc(b->buffer,new_limit);
-    else if (new_limit < fd_bufio_bigthresh)
-      new = u8_realloc(b->buffer,new_limit);
-    else {
-      unsigned char *buffer = b->buffer;
-      new = u8_big_copy(buffer,new_limit,current_point);
-      b->buf_flags |= FD_BUFFER_BIGALLOC;
-      u8_free(b->buffer);}}
+  bufio_alloc cur_alloc = BUFIO_ALLOC(in), new_alloc = cur_alloc;
+  int free_old = 0;
+  if (new_limit > fd_bigbuf_threshold) {
+    if (cur_alloc == FD_BIGALLOC_BUFFER)
+      new = u8_big_realloc(old,new_limit);
+    else new = u8_big_copy(old,new_limit,current_point);
+    free_old = (cur_alloc != FD_BIGALLOC_BUFFER);
+    new_alloc = FD_BIGALLOC_BUFFER;}
+  else if (cur_alloc == FD_BIGALLOC_BUFFER)
+    new = u8_big_realloc(old,new_limit);
+  else if (cur_alloc == FD_HEAP_BUFFER)
+    new = u8_realloc(old,new_limit);
   else {
-    if (new_limit < fd_bufio_bigthresh)
-      new = u8_malloc(new_limit);
-    else {
-      new = u8_big_alloc(new_limit);
-      b->buf_flags |= FD_BUFFER_BIGALLOC;}
-    if (new) memcpy(new,b->buffer,current_point);
-    b->buf_flags = b->buf_flags|FD_BUFFER_IS_MALLOCD;}
+    new=u8_malloc(new_limit);
+    memcpy(new,old,current_point);
+    new_alloc = FD_HEAP_BUFFER;
+    free_old = cur_alloc;}
   if (new == NULL) return 0;
-  b->buffer = new; b->bufpoint = new+current_point;
+  b->buf_flags = ( (flags) & (~FD_BUFFER_ALLOC) ) | new_alloc;
+  b->buffer = new;
+  b->bufpoint = new+current_point;
   b->buflim = b->buffer+current_limit;
   b->buflen = new_limit;
   return new_limit;
@@ -254,45 +275,11 @@ FD_EXPORT int _fd_write_bytes
 #define nobytes(in,nbytes) (PRED_FALSE(!(fd_request_bytes(in,nbytes))))
 #define havebytes(in,nbytes) (PRED_TRUE(fd_request_bytes(in,nbytes)))
 
-FD_EXPORT int fd_grow_byte_input(struct FD_INBUF *b,size_t len)
+FD_EXPORT ssize_t fd_grow_byte_input(struct FD_INBUF *b,size_t len)
 {
-  unsigned int current_off = b->bufread-b->buffer;
-  unsigned int current_limit = b->buflim-b->buffer;
-  unsigned char *old = (unsigned char *)b->buffer, *new;
-  if (old==NULL) {
-    if (len < fd_bufio_bigthresh)
-      new=u8_malloc(len);
-    else {
-      new=u8_big_alloc(len);
-      b->buf_flags |= FD_BUFFER_BIGALLOC;}
-    b->buffer=new;
-    b->bufread=new;
-    b->buflim=new;
-    b->buflen=len;
-    b->buf_flags |= FD_BUFFER_IS_MALLOCD;
-    return 1;}
-  else if ((b->buf_flags)&(FD_BUFFER_IS_MALLOCD)) {
-    if ((b->buf_flags)&(FD_BUFFER_BIGALLOC))
-      new = u8_big_realloc(old,len);
-    else if (len < fd_bufio_bigthresh)
-      new = u8_realloc(old,len);
-    else {
-      const unsigned char *buffer = b->buffer;
-      new = u8_big_copy(buffer,len,current_off);
-      b->buf_flags |= FD_BUFFER_BIGALLOC;
-      u8_free(old);}}
-  else {
-    if (len < fd_bufio_bigthresh)
-      new = u8_malloc(len);
-    else {
-      new = u8_big_alloc(len);
-      b->buf_flags |= FD_BUFFER_BIGALLOC;}
-    if (new) memcpy(new,old,current_limit);
-    b->buf_flags = b->buf_flags|FD_BUFFER_IS_MALLOCD;}
-  if (new == NULL) return 0;
-  b->buffer = new; b->bufread = new+current_off;
-  b->buflim = b->buffer+current_limit;
-  return 1;
+  if ( b->buflen >= len)
+    return len;
+  else return grow_input_buffer(b,len-b->buflen);
 }
 
 /* Exported functions */

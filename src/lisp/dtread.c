@@ -778,7 +778,7 @@ FD_EXPORT lispval fd_zread_dtype(struct FD_INBUF *in)
     return FD_ERROR;}
   memset(&tmp,0,sizeof(tmp));
   tmp.bufread = tmp.buffer = do_uncompress(bytes,n_bytes,&dbytes,NULL,-1);
-  tmp.buf_flags = FD_BUFFER_IS_MALLOCD;
+  tmp.buf_flags = FD_HEAP_BUFFER;
   tmp.buflim = tmp.buffer+dbytes;
   result = fd_read_dtype(&tmp);
   u8_free(bytes); u8_free(tmp.buffer);

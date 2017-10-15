@@ -207,7 +207,7 @@ int bloom_check_add_dtype(struct FD_BLOOM *bloom,lispval key,
         if (u8_current_exception) u8_pop_exception();
         return 0;}
       else return -1;}
-    else if (out.buf_flags&FD_BUFFER_IS_MALLOCD) {
+    else if ( (out.buf_flags) & (FD_BUFFER_ALLOC) ) {
       int rv=bloom_check_add(bloom,out.buffer,out.bufwrite-out.buffer,add);
       fd_close_outbuf(&out);
       if (rv<0) u8_seterr("BadBloomFilter","bloom_check_add_dtype",NULL);

@@ -17,12 +17,16 @@ u8_condition fd_IsWriteBuf, fd_IsReadBuf;
 #define FD_DEFAULT_ZLEVEL 7
 #endif
 
-#ifndef FD_BUFIO_BIGTHRESH
-#define FD_BUFIO_BIGTHRESH 0x10000000
+#ifndef FD_BIGBUF_THRESHOLD
+#define FD_BIGBUF_THRESHOLD 0x100000
 #endif
 
 FD_EXPORT size_t fd_zlib_level;
-FD_EXPORT size_t fd_bufio_bigthresh;
+FD_EXPORT size_t fd_bigbuf_threshold;
+
+#if HAVE_MMAP
+#include <sys/mman.h>
+#endif
 
 /* Byte Streams */
 
@@ -65,17 +69,60 @@ typedef size_t (*fd_byte_flushfn)(fd_outbuf,void *);
 
 /* Flags for all byte I/O buffers */
 
-#define FD_BUFIO_FLAGS       (1 << 0 )
-#define FD_IS_WRITING        (FD_BUFIO_FLAGS << 0)
-#define FD_BUFFER_IS_MALLOCD (FD_BUFIO_FLAGS << 1)
-#define FD_IN_STREAM         (FD_BUFIO_FLAGS << 2)
-#define FD_BUFFER_NO_FLUSH   (FD_BUFIO_FLAGS << 3)
-#define FD_BUFFER_NO_GROW    (FD_BUFIO_FLAGS << 4)
-#define FD_BUFFER_BIGALLOC   (FD_BUFIO_FLAGS << 5)
-#define FD_BUFIO_MAX_FLAG    (FD_BUFIO_FLAGS << 10)
+#define FD_BUFIO_FLAGS       ( 1 << 0 )
+#define FD_IS_WRITING        0x0001
+#define FD_IN_STREAM         0x0002
+#define FD_BUFFER_NO_FLUSH   0x0004
+#define FD_BUFFER_NO_GROW    0x0008
+/* This is the mask for the BUFIO_ALLOC value */
+#define FD_BUFFER_ALLOC      0x0030
+
+typedef enum BUFIO_ALLOC {
+  FD_STATIC_BUFFER     = 0x0000,
+  FD_HEAP_BUFFER       = 0x0010,
+  FD_BIGALLOC_BUFFER   = 0x0020,
+  FD_MMAP_BUFFER       = 0x0030}
+  bufio_alloc;
+
+/* This is the max flag value reserved for BUFIO itself */
+#define FD_BUFIO_MAX_FLAG    0x0800
 
 #define FD_ISWRITING(buf) (((buf)->buf_flags)&(FD_IS_WRITING))
 #define FD_ISREADING(buf) (!(FD_ISWRITING(buf)))
+
+#define BUFIO_ALLOC(buf) ((bufio_alloc)(((buf)->buf_flags)&(FD_BUFFER_ALLOC)))
+#define BUFIO_SET_ALLOC(buf,v) \
+  (buf)->buf_flags = \
+    ( ( ((buf)->buf_flags) & (~(FD_BUFFER_ALLOC)) ) | ( (v) & FD_BUFFER_ALLOC) );
+
+/* Freeing the buffer */
+
+FD_FASTOP void _BUFIO_FREE(struct FD_RAWBUF *buf)
+{
+  bufio_alloc alloc_type = (bufio_alloc) (buf->buf_flags&FD_BUFFER_ALLOC);
+  unsigned char *curbuf = buf->buffer;
+  ssize_t curlen = buf->buflen;
+  buf->buffer=NULL;
+  switch (alloc_type) {
+  case FD_STATIC_BUFFER: return;
+  case FD_HEAP_BUFFER: u8_free(curbuf); return;
+  case FD_BIGALLOC_BUFFER: u8_big_free(curbuf); return;
+  case FD_MMAP_BUFFER: {
+#if HAVE_MMAP
+    int rv = munmap(curbuf,curlen);
+    if (rv == 0) return;
+    u8_log(LOGWARN,"BufferUnmapFailed","errno=%d (%s)",
+           errno,u8_strerror(errno));
+    errno=0;}
+#else
+    u8_log(LOGCRIT,"Bad BUFIO buffer",
+           "When freeing buffer for %llx, it claims to be MMAPPED but "
+           "we were not compiled with MMAP support",
+           buf);
+#endif
+  }
+}
+#define BUFIO_FREE(buf) _BUFIO_FREE((fd_rawbuf)buf)
 
 /* Initializing macros */
 
@@ -98,13 +145,12 @@ FD_FASTOP void _FD_INIT_OUTBUF
 
 FD_FASTOP void _FD_INIT_BYTE_OUTPUT(struct FD_OUTBUF *bo,size_t sz)
 {
-  if ( sz < fd_bufio_bigthresh ) {
+  if ( sz < fd_bigbuf_threshold ) {
     (bo)->bufwrite = (bo)->buffer = u8_malloc(sz);
-    (bo)->buf_flags = FD_BUFFER_IS_MALLOCD|FD_IS_WRITING;}
+    (bo)->buf_flags = FD_HEAP_BUFFER|FD_IS_WRITING;}
   else {
     (bo)->bufwrite = (bo)->buffer = u8_big_alloc(sz);
-    (bo)->buf_flags =
-      FD_BUFFER_IS_MALLOCD|FD_IS_WRITING|FD_BUFFER_BIGALLOC;}
+    (bo)->buf_flags = FD_BIGALLOC_BUFFER|FD_IS_WRITING;}
   (bo)->buflim = (bo)->buffer+sz;
   (bo)->buflen = sz;
   (bo)->buf_data = NULL;
@@ -156,7 +202,7 @@ FD_FASTOP void _FD_INIT_BYTE_OUTBUF(fd_outbuf bo,unsigned char *buf,size_t sz)
 /* Utility functions for growing buffers */
 
 FD_EXPORT int fd_needs_space(struct FD_OUTBUF *b,size_t delta);
-FD_EXPORT int fd_grow_byte_input(struct FD_INBUF *b,size_t len);
+FD_EXPORT ssize_t fd_grow_byte_input(struct FD_INBUF *b,size_t len);
 
 /* Read/write error signalling functions */
 
@@ -366,10 +412,8 @@ FD_EXPORT size_t _fd_raw_closebuf(struct FD_RAWBUF *buf);
 FD_FASTOP size_t fd_raw_closebuf(struct FD_RAWBUF *buf)
 {
   if (buf->buf_closefn) (buf->buf_closefn)(buf,buf->buf_data);
-  if (buf->buf_flags&FD_BUFFER_IS_MALLOCD) {
-    if (buf->buf_flags&FD_BUFFER_BIGALLOC)
-      u8_big_free(buf->buffer);
-    else u8_free(buf->buffer);
+  if (buf->buf_flags&FD_BUFFER_ALLOC) {
+    BUFIO_FREE(buf);
     return buf->buflen;}
   else return 0;
 }

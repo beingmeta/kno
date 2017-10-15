@@ -962,7 +962,7 @@ void fd_init_startup_c()
   fd_register_config("BUFIO:BIGTHRESH",
                      _("Size of binary buffers to use bigalloc"),
                      fd_sizeconfig_get,fd_sizeconfig_set,
-                     &fd_bufio_bigthresh);
+                     &fd_bigbuf_threshold);
 
   fd_register_config("ATEXIT",_("Procedures to call on exit"),
                      config_atexit_get,config_atexit_set,NULL);
