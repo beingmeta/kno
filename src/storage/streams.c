@@ -66,7 +66,8 @@ u8_condition fd_CantSeek=_("Can't seek on stream");
 u8_condition fd_BadLSEEK=_("lseek() failed");
 u8_condition fd_OverSeek=_("Seeking past end of file");
 u8_condition fd_UnderSeek=_("Seeking before the beginning of the file");
-
+u8_condition fd_mmap_failed=_("Call to mmap() failed");
+u8_condition fd_munmap_failed = _("Call to munmap() failed");
 u8_condition fd_CantMMAP=_("Can't MMAP stream buffer");
 
 #define FD_DEBUG_DTYPEIO 0
@@ -452,6 +453,7 @@ FD_EXPORT fd_stream fd_init_file_stream
     return stream;}
   else {
     fd_seterr3(u8_CantOpenFile,"fd_init_file_stream",localname);
+    u8_free(localname);
     return NULL;}
 }
 
@@ -645,7 +647,7 @@ FD_EXPORT ssize_t fd_setbufsize(fd_stream s,ssize_t bufsize)
               (cur_alloc == FD_MMAP_BUFFER) ){
       int rv=munmap(bufptr->buffer,bufptr->buflen);
       if (rv<0) {
-        u8_log(LOGWARN,"MunmapFailed",
+        u8_log(LOGWARN,fd_munmap_failed,
                "Couldn't unmap buffer for stream '%s'",s->streamid);
         U8_CLEAR_ERRNO();}
       oldbuf=NULL;}
@@ -1053,15 +1055,16 @@ FD_EXPORT fd_inbuf fd_open_block(fd_stream s,fd_inbuf in,
     fd_off_t read_offset  = offset-page_offset;
     size_t buflen         = (offset+len)-page_offset;
     unsigned char *buf = mmap(NULL,buflen,PROT_READ,MAP_SHARED,
-                              s->stream_fileno,offset);
+                              s->stream_fileno,page_offset);
     if ( (buf) && (buf != MAP_FAILED) ) {
       in->buffer  = buf;
       in->bufread = buf+read_offset;
       in->buflim  = buf+buflen;
+      in->buflen  = buflen;
       BUFIO_SET_ALLOC(in,FD_MMAP_BUFFER);
       return in;}
     else {
-      u8_log(LOGWARN,"MMapFailed",
+      u8_log(LOGWARN,fd_mmap_failed,
              "Couldn't open block into %llx (%s), errno=%d (%s)",
              s,s->streamid,errno,u8_strerror(errno));
       errno=0;}
