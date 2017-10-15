@@ -28,6 +28,8 @@
 #include <errno.h>
 #include <zlib.h>
 
+u8_condition TruncatedHead=_("The head file has no data");
+
 FD_EXPORT ssize_t fd_save_head(u8_string source,u8_string dest,size_t head_len)
 {
   struct stat info={0};
@@ -94,8 +96,7 @@ FD_EXPORT ssize_t fd_save_head(u8_string source,u8_string dest,size_t head_len)
   else return head_len;
 }
 
-FD_EXPORT ssize_t fd_restore_head(u8_string source,u8_string dest,
-                                  ssize_t trunc_loc)
+FD_EXPORT ssize_t fd_restore_head(u8_string source,u8_string dest,ssize_t trunc_loc)
 {
   char *src=u8_tolibc(source), *dst=u8_tolibc(dest);
   if ( (src==NULL) || (dst==NULL) )
@@ -117,7 +118,7 @@ FD_EXPORT ssize_t fd_restore_head(u8_string source,u8_string dest,
   unsigned char *buf=u8_malloc(head_len);
   u8_free(src);
   size_t bytes_read=0;
-  while (bytes_read<head_len) {
+  while (bytes_read < head_len) {
     ssize_t delta=read(in,buf+bytes_read,head_len-bytes_read);
     if (delta<0) {
       u8_free(buf); u8_free(dst);
@@ -150,7 +151,7 @@ FD_EXPORT ssize_t fd_restore_head(u8_string source,u8_string dest,
       u8_free(buf);
       return delta;}
     bytes_written += delta;}
-  if ( (trunc_loc>=0) && ((trunc_loc+8)<head_len)) {
+  if ( (trunc_loc >= 0) && ( (trunc_loc+8) < head_len )) {
     unsigned char bytes[8];
     memcpy(bytes,buf+trunc_loc,8);
     size_t *trunc_ptr=(size_t *)&bytes;
