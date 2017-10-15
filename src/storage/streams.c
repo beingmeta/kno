@@ -20,7 +20,9 @@
 #include <libu8/u8filefns.h>
 #include <libu8/u8fileio.h>
 #include <libu8/u8printf.h>
+#include <libu8/u8rusage.h>
 #include <libu8/libu8io.h>
+
 
 #include <fcntl.h>
 #include <sys/types.h>
@@ -43,6 +45,8 @@
 #if HAVE_MMAP
 #include <sys/mman.h>
 #endif
+
+static size_t pagesize = 512;
 
 #if ((FD_LARGEFILES_ENABLED) && (defined(O_LARGEFILE)))
 #define POSIX_OPEN_FLAGS O_LARGEFILE
@@ -1039,6 +1043,30 @@ FD_EXPORT fd_inbuf fd_open_block(fd_stream s,fd_inbuf in,
     in->bufread=in->buffer+offset;
     in->buflim=in->buffer+offset+len;
     return in;}
+#if HAVE_MMAP
+  /* If the input stream doesn't have a buffer or it has an MMAPPed
+     buffer, use MMAP */
+  if ( (in->buffer == NULL) || (BUFIO_ALLOC(in) == FD_MMAP_BUFFER) ) {
+    if ( (in->buffer) && (BUFIO_ALLOC(in) == FD_MMAP_BUFFER) ) {
+      BUFIO_FREE(in);}
+    fd_off_t page_offset = pagesize * (offset/pagesize);
+    fd_off_t read_offset  = offset-page_offset;
+    size_t buflen         = (offset+len)-page_offset;
+    unsigned char *buf = mmap(NULL,buflen,PROT_READ,MAP_SHARED,
+                              s->stream_fileno,offset);
+    if ( (buf) && (buf != MAP_FAILED) ) {
+      in->buffer  = buf;
+      in->bufread = buf+read_offset;
+      in->buflim  = buf+buflen;
+      BUFIO_SET_ALLOC(in,FD_MMAP_BUFFER);
+      return in;}
+    else {
+      u8_log(LOGWARN,"MMapFailed",
+             "Couldn't open block into %llx (%s), errno=%d (%s)",
+             s,s->streamid,errno,u8_strerror(errno));
+      errno=0;}
+  }
+#endif
 #if HAVE_PREAD
   unsigned char *buf;
   if ( ( in->buffer ) && (len < in->buflen) )
@@ -1047,7 +1075,8 @@ FD_EXPORT fd_inbuf fd_open_block(fd_stream s,fd_inbuf in,
     if (fd_grow_byte_input(in,len)<0)
       return NULL;
     buf=(unsigned char *)in->buffer;}
-  in->buflim=buf; in->bufread=buf;
+  in->buflim=buf;
+  in->bufread=buf;
   unsigned char *writebuf = (unsigned char *) in->buffer;
   ssize_t result = stream_pread(s,stream_locked,writebuf,len,offset);
   if (result>=0) {
@@ -1451,6 +1480,8 @@ FD_EXPORT ssize_t fd_write_zdtype_to_file(lispval object,u8_string filename)
 
 FD_EXPORT void fd_init_streams_c()
 {
+  pagesize = u8_getpagesize();
+
   fd_unparsers[fd_stream_type]=unparse_stream;
   fd_recyclers[fd_stream_type]=recycle_stream;
 
