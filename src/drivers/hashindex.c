@@ -898,43 +898,35 @@ static lispval hashindex_fetch(fd_index ix,lispval key)
 static FD_CHUNK_REF read_value_block
 (fd_hashindex hx,lispval key,
  int n_values,FD_CHUNK_REF chunk,
- int *n_readp,lispval *values,int *consp,
- unsigned char **vbufp,size_t *vbuf_len)
+ int *n_readp,lispval *values,int *consp)
 {
   fd_stream stream = &(hx->index_stream);
   int n_read=*n_readp;
   FD_CHUNK_REF result = {-1,-1};
   fd_off_t vblock_off = chunk.off;
   size_t  vblock_size = chunk.size;
-  unsigned char *vbuf=*vbufp;
-  if (vblock_size > *vbuf_len) {
-    size_t cur_size = *vbuf_len;
-    size_t new_size = cur_size;
-    while (new_size < vblock_size)
-      new_size=((new_size<0x20000)? (new_size*2) :
-                (((new_size/0x20000)+4)*0x20000));
-    unsigned char *newbuf=u8_big_realloc(vbuf,new_size);
-    if (newbuf == NULL) {
-      u8_seterr("ReallocFailed","read_value_block",u8_strdup(hx->indexid));
-      return result;}
-    else {
-      vbuf=*vbufp=newbuf;
-      *vbuf_len=new_size;}}
   struct FD_INBUF instream={0};
+  unsigned char stackbuf[HX_VALBUF_SIZE];
+  if ( vblock_size < HX_VALBUF_SIZE ) {
+    FD_INIT_INBUF(&instream,stackbuf,HX_VALBUF_SIZE,0);}
+  else if (! HAVE_MMAP) {
+    unsigned char *usebuf = u8_big_alloc(vblock_size);
+    FD_INIT_INBUF(&instream,usebuf,HX_VALBUF_SIZE,FD_BIGALLOC_BUFFER);}
+  else {}
+  fd_inbuf vblock = fd_open_block(stream,&instream,vblock_off,vblock_size,1);
   fd_off_t next_off;
   ssize_t next_size=-1;
   int i=0, atomicp = 1;
-  fd_open_block(stream,&instream,vblock_off,vblock_size,1);
-  ssize_t n_elts = fd_read_zint(&instream);
+  ssize_t n_elts = fd_read_zint(vblock);
   if (n_elts<0) {
-    fd_close_inbuf(&instream);
+    fd_close_inbuf(vblock);
     return result;}
   i = 0; while ( (i<n_elts) && (n_read < n_values) ) {
-    lispval val = read_zvalue(hx,&instream);
+    lispval val = read_zvalue(hx,vblock);
     if (FD_ABORTP(val)) {
       if (!(atomicp)) *consp=1;
       *n_readp = n_read;
-      fd_close_inbuf(&instream);
+      fd_close_inbuf(vblock);
       return result;}
     else if (CONSP(val)) atomicp = 0;
     else {}
@@ -943,20 +935,20 @@ static FD_CHUNK_REF read_value_block
     i++;}
   /* For vblock continuation pointers, we make the size be first,
      so that we don't need to store an offset if it's zero. */
-  next_size = fd_read_zint(&instream);
+  next_size = fd_read_zint(vblock);
   if (next_size<0) {}
   else if (next_size)
-    next_off = fd_read_zint(&instream);
+    next_off = fd_read_zint(vblock);
   else next_off = 0;
   if ( (next_size<0) || (next_off < 0)) {
     *n_readp = n_read;
     if (!(atomicp)) *consp=0;
-    fd_close_inbuf(&instream);
+    fd_close_inbuf(vblock);
     return result;}
   result.off=next_off; result.size=next_size;
   *n_readp = n_read;
   if (!(atomicp)) *consp=1;
-  fd_close_inbuf(&instream);
+  fd_close_inbuf(vblock);
   return result;
 }
 
@@ -968,14 +960,10 @@ static lispval read_values
   struct FD_CHOICE *result = fd_alloc_choice(n_values);
   FD_CHUNK_REF chunk_ref = { vblock_off, vblock_size };
   lispval *values = (lispval *)FD_XCHOICE_DATA(result);
-  size_t vbuf_len = ( vblock_size < 0x20000) ? (0x20000) :
-    (((vblock_size/0x20000)+4)*0x20000);
-  unsigned char *vbuf = u8_big_alloc(vbuf_len);
   int consp = 0, n_read=0;
   while ( (chunk_ref.off>0) && (n_read < n_values) )
     chunk_ref=read_value_block(hx,key,n_values,chunk_ref,
-                               &n_read,values,&consp,
-                               &vbuf,&vbuf_len);
+                               &n_read,values,&consp);
   if (chunk_ref.off<0) {
     u8_byte buf[64];
     fd_seterr("HashIndexError","read_values",
@@ -984,7 +972,6 @@ static lispval read_values
               key);
     result->choice_size=n_read;
     fd_decref_ptr(result);
-    u8_big_free(vbuf);
     return FD_ERROR;}
   else if (n_read != n_values) {
     u8_log(LOGWARN,"InconsistentValueSize",
@@ -995,16 +982,13 @@ static lispval read_values
     result->choice_size=n_read;
     fd_seterr("InconsistentValueSize","read_values",NULL,key);
     fd_decref_ptr(result);
-    u8_big_free(vbuf);
     return FD_ERROR;}
   else if (n_values == 1) {
     lispval v = values[0];
     fd_incref(v);
     u8_free(result);
-    u8_big_free(vbuf);
     return v;}
   else {
-    u8_big_free(vbuf);
     return fd_init_choice
       (result,n_values,NULL,
        FD_CHOICE_DOSORT|FD_CHOICE_REALLOC|
