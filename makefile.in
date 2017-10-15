@@ -1716,7 +1716,8 @@ $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS):  buildmode
 $(STORAGE_OBJS) $(DRIVER_OBJS):  buildmode
 $(SCHEME_OBJS): buildmode
 $(WEB_OBJS) $(TEXT_OBJS): buildmode
-$(CMODULE_OBJS): buildmode
+$(CMODULE_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
+	$(SCHEME_HEADERS) $(REVISION_H) buildmode
 src/eval/choiceops.o src/prims/seqprims.o: include/framerd/sorting.h
 # Driver dependencies
 src/drivers/filepool.o: src/drivers/headers/filepool.h
