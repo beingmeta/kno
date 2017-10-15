@@ -285,7 +285,8 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
   if (slotids_size) {
     lispval slotids_vector = read_dtype_at_pos(stream,slotids_pos);
     if (VOIDP(slotids_vector)) {
-      index->index_n_slotids = 0; index->index_new_slotids = 0;
+      index->index_n_slotids = 0;
+      index->index_new_slotids = 0;
       index->index_slotids = NULL;
       index->slotid_lookup = NULL;}
     else if (VECTORP(slotids_vector)) {
@@ -299,7 +300,8 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
       u8_free(index);
       return NULL;}}
   else {
-    index->index_n_slotids = 0; index->index_new_slotids = 0;
+    index->index_n_slotids = 0;
+    index->index_new_slotids = 0;
     index->index_slotids = NULL;
     index->slotid_lookup = NULL;}
 
@@ -363,28 +365,35 @@ static fd_index recover_hashindex(u8_string fname,fd_storage_flags open_flags,
     if (rv<0) {
       u8_graberrno("recover_hashindex",recovery_file);
       return NULL;}
-    else u8_free(recovery_file);
-    return open_hashindex(fname,open_flags,opts);}
-  else if (fd_testopt(opts,fd_intern("FORCE-RECOVERY"),FD_VOID)) {
+    else if (rv == 0)
+      u8_log(LOGCRIT,"Corrupted hashindex",
+             "The hashindex file %s has a corrupted recovery file %s",
+             fname,recovery_file);
+    else {
+      u8_free(recovery_file);
+      return open_hashindex(fname,open_flags,opts);}}
+  else u8_log(LOGCRIT,"Corrupted hashindex",
+              "The hashindex file %s doesn't have a recovery file %s",
+              fname,recovery_file);
+  if (fd_testopt(opts,fd_intern("FIXUP"),FD_VOID)) {
     char *src = u8_tolibc(fname);
+    FD_DECL_OUTBUF(headbuf,256);
+    unsigned int magicno = FD_HASHINDEX_MAGIC_NUMBER;
     int out=open(src,O_RDWR);
-    unsigned char num = 0x08;
-    /* Things get inconsistent if we combine regular write and pread,
-       so we use pwrite here. */
+    fd_write_4bytes(&headbuf,magicno);
 #if HAVE_PREAD
-    int rv = pwrite(out,&num,1,3);
+    int rv = pwrite(out,headbuf.buffer,4,0);
 #else
-    lseek(out,SEEK_SET,3);
-    int rv = write(out,&num,1);
+    lseek(out,SEEK_SET,0);
+    int rv = write(out,headbuf.buffer,4);
 #endif
     fsync(out);
     close(out);
     u8_free(src);
-    if (rv>0) return open_hashindex(fname,open_flags,opts);}
-  u8_log(LOGCRIT,"Corrupted hashindex",
-         "The hashindex file %s doesn't have a recovery file %s",
-         fname,recovery_file);
-  u8_free(recovery_file);
+    if (rv>0) {
+      u8_free(recovery_file);
+      return open_hashindex(fname,open_flags,opts);}
+    else u8_seterr("FailedRecovery","recover_hashindex",recovery_file);}
   return NULL;
 }
 
@@ -402,7 +411,8 @@ static int init_slotids(fd_hashindex hx,int n_slotids,lispval *slotids_init)
   lispval *slotids, slotids_choice = EMPTY;
   hx->index_slotids = slotids = u8_alloc_n(n_slotids,lispval);
   hx->slotid_lookup = lookup = u8_alloc_n(n_slotids,FD_SLOTID_LOOKUP);
-  hx->index_n_slotids = n_slotids; hx->index_new_slotids = 0;
+  hx->index_n_slotids = n_slotids;
+  hx->index_new_slotids = 0;
   if ((hx->storage_xformat)&(FD_HASHINDEX_ODDKEYS))
     slotids_choice = VOID;
   while (i<n_slotids) {
