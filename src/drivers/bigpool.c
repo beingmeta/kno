@@ -38,6 +38,10 @@
 #define MMAP_FLAGS MAP_SHARED
 #endif
 
+#ifndef FETCHBUF_SIZE
+#define FETCHBUF_SIZE 16000
+#endif
+
 static lispval load_symbol, slotids_symbol;
 
 static void bigpool_setcache(fd_bigpool p,int level);
@@ -652,28 +656,24 @@ static lispval read_oid_value(fd_bigpool bp,
   else return fd_read_dtype(in);
 }
 
-static lispval read_oid_value_at(fd_bigpool bp,
-                                 fd_inbuf fetchbuf,
-                                 FD_CHUNK_REF ref,
-                                 u8_context cxt)
+static lispval read_oid_value_at
+(fd_bigpool bp,fd_inbuf fetchbuf,FD_CHUNK_REF ref,u8_context cxt)
 {
+  fd_stream stream=&(bp->pool_stream);
   if (ref.off == 0)
     return VOID;
   else if (ref.size == 0)
     return FD_EMPTY;
+  else if ( (fetchbuf == NULL) || (fetchbuf->buffer == NULL) ||
+            (ref.size > fetchbuf->buflen) ) {
+    struct FD_INBUF _in={0}, *in =
+      fd_open_block(stream,&_in,ref.off,ref.size,0);
+    lispval value = read_oid_value(bp,in,cxt);
+    fd_close_inbuf(in);
+    return value;}
   else {
-    fd_stream stream=&(bp->pool_stream);
-    struct FD_INBUF _in={0}, *in=
-      (fetchbuf == NULL) ?
-      (fd_open_block(stream,&_in,ref.off,ref.size,0)) :
-      (fd_open_block(stream,fetchbuf,ref.off,ref.size,0));
-    if ( (in) && (fetchbuf) )
-      return read_oid_value(bp,in,cxt);
-    else if (in) {
-      lispval result=read_oid_value(bp,in,cxt);
-      fd_close_inbuf(in);
-      return result;}
-    else return FD_ERROR_VALUE;}
+    struct FD_INBUF *in = fd_open_block(stream,fetchbuf,ref.off,ref.size,0);
+    return read_oid_value(bp,fetchbuf,cxt);}
 }
 
 static int bigpool_locked_load(fd_pool p)
@@ -716,9 +716,17 @@ static lispval bigpool_fetch(fd_pool p,lispval oid)
     (fd_fetch_chunk_ref(&(bp->pool_stream),256,bp->pool_offtype,
                           offset,0));
   lispval result;
-  if (ref.off<0) result=FD_ERROR;
-  else if (ref.off==0) result=EMPTY;
-  else result=read_oid_value_at(bp,NULL,ref,"bigpool_fetch");
+  struct FD_INBUF in;
+  unsigned char buf[FETCHBUF_SIZE];
+  if (ref.off < 0) result=FD_ERROR;
+  else if (ref.off == 0) result=EMPTY;
+  else {
+    struct FD_INBUF in;
+    unsigned char buf[FETCHBUF_SIZE];
+    if (ref.size < FETCHBUF_SIZE)
+      FD_INIT_INBUF(&in,buf,FETCHBUF_SIZE,0);
+    result=read_oid_value_at(bp,&in,ref,"bigpool_fetch");
+    fd_close_inbuf(&in);}
   bigpool_finished(bp);
   return result;
 }
@@ -733,10 +741,13 @@ static int compare_offsets(const void *x1,const void *x2)
 
 static lispval *bigpool_fetchn(fd_pool p,int n,lispval *oids)
 {
-  fd_bigpool bp = (fd_bigpool)p;
   FD_OID base = p->pool_base;
-  use_bigpool(bp);
+  fd_bigpool bp = (fd_bigpool)p;
+  struct FD_STREAM *stream = &(bp->pool_stream);
   lispval *values = u8_alloc_n(n,lispval);
+
+  use_bigpool(bp); /* Ensure that the file stream is opened */
+
   unsigned int *offdata = bp->pool_offdata;
   unsigned int offdata_offlen = bp->pool_offlen;
   unsigned int load = bp->pool_load;
@@ -744,22 +755,17 @@ static lispval *bigpool_fetchn(fd_pool p,int n,lispval *oids)
     /* Don't bother being clever if you don't even have an offsets
        table. */
     int i = 0; while (i<n) {
-      values[i]=bigpool_fetch(p,oids[i]); i++;}
+      values[i]=bigpool_fetch(p,oids[i]);
+      i++;}
     bigpool_finished(bp);
     return values;}
   else {
     unsigned int unlock_stream = 0;
     struct BIGPOOL_FETCH_SCHEDULE *schedule=
       u8_alloc_n(n,struct BIGPOOL_FETCH_SCHEDULE);
-  if (bp->pool_load>bp->pool_offlen)
-    update_offdata_cache(bp,bp->pool_cache_level,get_chunk_ref_size(bp));
-
-#if (!(HAVE_PREAD))
-    fd_lock_stream(&(bp->pool_stream));
-    unlock_stream = 1;
-#endif
+    if (bp->pool_load>bp->pool_offlen)
+      update_offdata_cache(bp,bp->pool_cache_level,get_chunk_ref_size(bp));
     int i = 0;
-    struct FD_INBUF _in={0}, *in=&_in;
     /* Populate a fetch schedule with where to get OID values */
     while (i<n) {
       lispval oid = oids[i]; FD_OID addr = FD_OID_ADDR(oid);
@@ -778,26 +784,39 @@ static lispval *bigpool_fetchn(fd_pool p,int n,lispval *oids)
     if (i<n) {
       u8_free(schedule);
       u8_free(values);
-      if (unlock_stream) fd_unlock_stream(&(bp->pool_stream));
       bigpool_finished(bp);
       return NULL;}
     /* Note that we sort the fetch schedule even if we're mmapped in
        order to try to take advantage of page locality. */
     qsort(schedule,n,sizeof(struct BIGPOOL_FETCH_SCHEDULE),compare_offsets);
+
+    unsigned char bytes[FETCHBUF_SIZE];
+    struct FD_INBUF sbuf={0}, mbuf={0};
+    FD_INIT_INBUF(&sbuf,bytes,FETCHBUF_SIZE,0);
+
     i = 0; while (i<n) {
-      lispval value =
-        (schedule[i].location.size==0) ? (FD_EMPTY_CHOICE) :
-        (read_oid_value_at(bp,in,schedule[i].location,"bigpool_fetchn"));
-      if (FD_ABORTP(value)) break;
-      else values[schedule[i].value_at]=value;
+      lispval value;
+      if (schedule[i].location.size==0)
+        value = FD_EMPTY;
+      else {
+        fd_inbuf usebuf =
+          ( schedule[i].location.size < FETCHBUF_SIZE ) ? (&sbuf) :
+          (HAVE_MMAP) ? (&mbuf) : (&sbuf);
+        fd_inbuf in = fd_open_block(stream,usebuf,
+                                    schedule[i].location.off,
+                                    schedule[i].location.size,
+                                    0);
+        lispval value = read_oid_value(bp,in,"bigpool_fetchn");
+        if (FD_ABORTP(value)) break;
+        else values[schedule[i].value_at]=value;}
       i++;}
+
     if (i<n) {
       /* Error */
       int j = 0; while (j<i) {
         lispval value = values[schedule[j].value_at];
         fd_decref(value);
         j++;}
-      u8_free(schedule); u8_free(values);
       u8_condition condition;
       u8_exception ex = u8_current_exception;
       if (ex==NULL)
@@ -807,10 +826,10 @@ static lispval *bigpool_fetchn(fd_pool p,int n,lispval *oids)
       if (unlock_stream)
         fd_unlock_stream(&(bp->pool_stream));
       bigpool_finished(bp);
-      return NULL;}
-    if (unlock_stream)
-      fd_unlock_stream(&(bp->pool_stream));
-    fd_close_inbuf(in);
+      u8_free(values);
+      values = NULL;}
+    fd_close_inbuf(&mbuf);
+    fd_close_inbuf(&sbuf);
     u8_free(schedule);
     bigpool_finished(bp);
     return values;}
