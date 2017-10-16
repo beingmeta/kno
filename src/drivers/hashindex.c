@@ -1357,7 +1357,7 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
   unsigned int *offdata = hx->index_offdata;
   fd_offset_type offtype = hx->index_offtype;
   int i = 0, n_buckets = (hx->index_n_buckets), n_to_fetch = 0;
-  int total_keys = 0, key_count = 0, buckets_len;
+  int total_keys = 0, key_count = 0, buckets_len, results_len;
   FD_CHUNK_REF *buckets;
   fd_lock_stream(s);
   total_keys = fd_read_4bytes(fd_start_read(s,16));
@@ -1369,6 +1369,7 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
   buckets_len=total_keys;
   if (buckets == NULL) return NULL;
   else results = u8_alloc_n(total_keys,lispval);
+  results_len=total_keys;
   if (results == NULL) {
     fd_unlock_stream(s);
     u8_free(buckets);
@@ -1402,7 +1403,8 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
       i++;}
     fd_unlock_stream(s);}
   if (n_to_fetch > total_keys) {
-    results = u8_realloc_n(results,n_to_fetch,lispval);}
+    results = u8_realloc_n(results,n_to_fetch,lispval);
+    results_len = n_to_fetch;}
   qsort(buckets,n_to_fetch,sizeof(FD_CHUNK_REF),sort_blockrefs_by_off);
   unsigned char keyblock_buf[HX_KEYBUF_SIZE];
   struct FD_INBUF keyblock={0};
@@ -1422,6 +1424,9 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
       fd_read_zint(&keyblock); /* IGNORE size */
       key = read_key(hx,&keyblock);
       n_vals = fd_read_zint(&keyblock);
+      if (key_count >= results_len) {
+        results=u8_realloc(results,sizeof(lispval)*results_len*2);
+        results_len = results_len * 2;}
       results[key_count++]=key;
       if (n_vals==0) {}
       else if (n_vals==1) {
@@ -1897,15 +1902,16 @@ FD_FASTOP void parse_keybucket(fd_hashindex hx,struct KEYBUCKET *kb,
   while (i<n_keys) {
     int dt_size = fd_read_zint(in), n_values;
     struct KEYENTRY *entry = base_entry+i;
-    entry->ke_dtrep_size = dt_size; entry->ke_dtstart = in->bufread;
-    in->bufread = in->bufread+dt_size;
-    entry->ke_nvals = n_values = fd_read_zint(in);
+    entry->ke_dtrep_size = dt_size;
+    entry->ke_dtstart    = in->bufread;
+    in->bufread          = in->bufread+dt_size;
+    entry->ke_nvals      = n_values = fd_read_zint(in);
     if (n_values==0) entry->ke_values = EMPTY;
     else if (n_values==1)
       entry->ke_values = read_zvalue(hx,in);
     else {
-      entry->ke_values = VOID;
-      entry->ke_vref.off = fd_read_zint(in);
+      entry->ke_values    = VOID;
+      entry->ke_vref.off  = fd_read_zint(in);
       entry->ke_vref.size = fd_read_zint(in);}
     i++;}
 }
@@ -2119,7 +2125,7 @@ FD_FASTOP struct KEYBUCKET *read_keybucket
      the keybucket. */
   if (ref.size>0) {
     unsigned char *keybuf=u8_malloc(ref.size);
-    ssize_t read_result=fd_read_block(stream,keybuf, ref.size,ref.off,1);
+    ssize_t read_result=fd_read_block(stream,keybuf,ref.size,ref.off,1);
     if (read_result<0)
       return NULL;
     else {
@@ -2130,15 +2136,16 @@ FD_FASTOP struct KEYBUCKET *read_keybucket
         u8_malloc(sizeof(struct KEYBUCKET)+
                   sizeof(struct KEYENTRY)*((extra+n_keys)-1));
       kb->kb_bucketno = bucket;
-      kb->kb_n_keys = n_keys;
-      kb->kb_keybuf = keybuf;
+      kb->kb_n_keys   = n_keys;
+      kb->kb_keybuf   = keybuf;
       parse_keybucket(hx,kb,&keystream,n_keys);}}
   else {
     kb = (struct KEYBUCKET *)
       u8_malloc(sizeof(struct KEYBUCKET)+
                 sizeof(struct KEYENTRY)*(extra-1));
     kb->kb_bucketno = bucket;
-    kb->kb_n_keys = 0; kb->kb_keybuf = NULL;}
+    kb->kb_n_keys   = 0;
+    kb->kb_keybuf   = NULL;}
   return kb;
 }
 
@@ -2223,8 +2230,8 @@ static int hashindex_commit(struct FD_INDEX *ix,
   FD_INIT_BYTE_OUTPUT(&out,1024);
   FD_INIT_BYTE_OUTPUT(&newkeys,schedule_max*16);
   if ((hx->storage_xformat)&(FD_HASHINDEX_DTYPEV2)) {
-    out.buf_flags = out.buf_flags|FD_USE_DTYPEV2;
-    newkeys.buf_flags = newkeys.buf_flags|FD_USE_DTYPEV2;}
+    out.buf_flags |= FD_USE_DTYPEV2;
+    newkeys.buf_flags |= FD_USE_DTYPEV2;}
 
   /* Compute the hashes and the buckets for all of the keys
      in the commit schedule. */
@@ -2330,8 +2337,8 @@ static int hashindex_commit(struct FD_INDEX *ix,
       fd_decref(v);}
     sched_i++;}
   u8_free(schedule);
-  u8_free(out.buffer);
-  u8_free(newkeys.buffer);
+  fd_close_outbuf(&out);
+  fd_close_outbuf(&newkeys);
   n_keys = schedule_size;
 
   total_keys += new_keys;
