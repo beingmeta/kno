@@ -25,12 +25,12 @@
     this limit has not been a problem to date.  Two reference count values
     have special meanings:
       * a reference count of 0 means that the structure
-	is not dynamically allocated and shouldn't be reference counted.  It
-	is mostly used when a structure is allocated on the stack or with a
-	static top-level declaration.
+        is not dynamically allocated and shouldn't be reference counted.  It
+        is mostly used when a structure is allocated on the stack or with a
+        static top-level declaration.
       * a reference count of xx (the maximnum) indicates that the
-	 CONS has been freed and is no longer in use.  Attempting to
-	 increment or decrement such a reference count yields an error.
+         CONS has been freed and is no longer in use.  Attempting to
+         increment or decrement such a reference count yields an error.
     Because the reference count is in the high 30 bits, referencing and
     dereferencing actually increments or decrements the conshead by
     4, after checking for the boundary cases of a static CONS (zero reference
@@ -105,7 +105,7 @@ FD_EXPORT u8_condition fd_DoubleGC, fd_UsingFreedCons, fd_FreeingNonHeapCons;
   (((typecode<0) || (FD_TYPEP(x,typecode))) ?                       \
    ((typecast)(FD_CONS_DATA(x))) :                                  \
    ((typecast)(u8_raise(fd_TypeError,fd_type2name(typecode),NULL),  \
-		NULL)))
+                NULL)))
 
 /* External functions */
 
@@ -276,8 +276,8 @@ FD_INLINE_FCN void _fd_decref(struct FD_REF_CONS *x)
     fd_consbits oldcb=atomic_fetch_sub(&(x->conshead),0x80);
     if ((oldcb>=0x80)&&(oldcb<0x100)) {
       /* If the modified consbits indicated a refcount of 1,
-	 we've reduced it to zero, so we recycle it. Otherwise,
-	 someone got in to free it or incref it in the meanwhile. */
+         we've reduced it to zero, so we recycle it. Otherwise,
+         someone got in to free it or incref it in the meanwhile. */
       atomic_store(&(x->conshead),((oldcb&0x7F)|0xFFFFFF80));
       fd_recycle_cons((fd_raw_cons)x);}
   }
@@ -314,7 +314,7 @@ FD_INLINE_FCN void _fd_decref(struct FD_REF_CONS *x)
       FD_UNLOCK_PTR(x);}
     else {
       /* Someone else decref'd it before we got the lock, so we
-	 unlock and recycle it */
+         unlock and recycle it */
       FD_UNLOCK_PTR(x);
       fd_recycle_cons((struct FD_RAW_CONS *)x);}}
 }
@@ -326,14 +326,14 @@ FD_INLINE_FCN void _fd_decref(struct FD_REF_CONS *x)
   ((FD_PTR_MANIFEST_TYPE(x)) ? ((lispval)x) : (_fd_incref(FD_REF_CONS(x))))
 #define fd_decref(x) \
   ((void)((FD_PTR_MANIFEST_TYPE(x)) ? (FD_VOID) : \
-	  (_fd_decref(FD_REF_CONS(x)),FD_VOID)))
+          (_fd_decref(FD_REF_CONS(x)),FD_VOID)))
 #else
 
 #define fd_incref(x) \
    ((FD_PTR_MANIFEST_TYPE(x)) ? (x) : (_fd_incref_fn(x)))
 #define fd_decref(x) \
   ((void)((FD_PTR_MANIFEST_TYPE(x)) ? (FD_VOID) : \
-	  (_fd_decref_fn(x),FD_VOID)))
+          (_fd_decref_fn(x),FD_VOID)))
 
 #endif
 
@@ -454,12 +454,12 @@ FD_EXPORT lispval lispval_string(u8_string string);
 #define fd_stream2string(stream) \
   ((((stream)->u8_streaminfo)&(U8_STREAM_OWNS_BUF))?                    \
    (fd_block_string((((stream)->u8_write)-((stream)->u8_outbuf)),      \
-		   ((stream)->u8_outbuf))):                             \
+                   ((stream)->u8_outbuf))):                             \
    (fd_make_string(NULL,(((stream)->u8_write)-((stream)->u8_outbuf)),  \
-		   ((stream)->u8_outbuf))))
+                   ((stream)->u8_outbuf))))
 #define fd_stream_string(stream) \
   (fd_make_string(NULL,(((stream)->u8_write)-((stream)->u8_outbuf)),   \
-		  ((stream)->u8_outbuf)))
+                  ((stream)->u8_outbuf)))
 #define fdstring(s) (fd_make_string(NULL,-1,(s)))
 
 #define fd_lispstring(s) fd_init_string(NULL,-1,(s))
@@ -556,7 +556,7 @@ FD_FASTOP lispval FD_CAAR(lispval x)
 #define FD_DOLIST(x,list) \
   lispval x, _tmp = list; \
   while ((FD_PAIRP(_tmp)) ? \
-	 (x = FD_CAR(_tmp),_tmp = FD_CDR(_tmp),1) : 0)
+         (x = FD_CAR(_tmp),_tmp = FD_CDR(_tmp),1) : 0)
 
 FD_EXPORT lispval fd_init_pair(struct FD_PAIR *ptr,lispval car,lispval cdr);
 FD_EXPORT lispval fd_make_pair(lispval car,lispval cdr);
@@ -624,22 +624,22 @@ FD_EXPORT lispval fd_make_nrail(int len,...);
   if (FD_PAIRP(seq)) {                           \
      _islist = 1; _scan=_seq; _ok = 1;}              \
   else if ((FD_VECTORP(_seq))||                  \
-	   (FD_CODEP(_seq))) {                   \
+           (FD_CODEP(_seq))) {                   \
     _lim = FD_VECTOR_LENGTH(_seq);                 \
     _elts = FD_VECTOR_DATA(_seq);                  \
     _ok = 1;}                                      \
   else if ((FD_EMPTY_LISTP(_seq))||              \
-	   (FD_EMPTY_CHOICEP(_seq))) {           \
+           (FD_EMPTY_CHOICEP(_seq))) {           \
     _ok = -1;}                                     \
   else u8_log(LOG_WARN,fd_TypeError,             \
-	      "Not a pair or vector: %q",_seq);  \
+              "Not a pair or vector: %q",_seq);  \
   if (_ok<0) {}                                  \
   else if (!(_ok)) {}                            \
   else while (((_islist)?(FD_PAIRP(_scan)):(counter<_lim))? \
-	      (evar = (_islist)?(FD_CAR(_scan)):(_elts[_i]),  \
-	       _scan = ((_islist)?(FD_CDR(_scan)):(FD_VOID)), \
-	       counter=_i++,1):                             \
-	      (0))
+              (evar = (_islist)?(FD_CAR(_scan)):(_elts[_i]),  \
+               _scan = ((_islist)?(FD_CDR(_scan)):(FD_VOID)), \
+               counter=_i++,1):                             \
+              (0))
 
 /* Compounds */
 
@@ -816,13 +816,20 @@ typedef struct FD_EXCEPTION {
   u8_string  ex_details;
   lispval ex_irritant;
   lispval ex_stack;
-  lispval ex_context;}
+  lispval ex_context;
+  u8_string  ex_session;
+  double     ex_moment;
+  long long  ex_thread;
+  time_t     ex_timebase;}
   FD_EXCEPTION;
 typedef struct FD_EXCEPTION *fd_exception;
 
 FD_EXPORT lispval fd_init_exception(fd_exception,
-				    u8_condition,u8_context,u8_string,
-				    lispval,lispval,lispval);
+                                    u8_condition,u8_context,
+                                    u8_string,lispval,
+                                    lispval,lispval,
+                                    u8_string,double,long long,
+                                    time_t);
 FD_EXPORT void fd_decref_u8x_xdata(void *ptr);
 FD_EXPORT void fd_decref_embedded_exception(void *ptr);
 
@@ -874,9 +881,9 @@ typedef struct FD_RAWPTR {
 typedef struct FD_RAWPTR *fd_rawptr;
 
 FD_EXPORT lispval fd_wrap_pointer(void *ptrval,
-				 fd_raw_recyclefn recycler,
-				 lispval typespec,
-				 u8_string idstring);
+                                 fd_raw_recyclefn recycler,
+                                 lispval typespec,
+                                 u8_string idstring);
 
 /* Compounds */
 
@@ -926,9 +933,9 @@ static int base_compare(lispval x,lispval y)
   if (FD_ATOMICP(x))
     if (FD_ATOMICP(y))
       if (x < y)
-	return -1;
+        return -1;
       else if (x == y)
-	return 0;
+        return 0;
       else return 1;
     else return -1;
   else if (FD_ATOMICP(y))
@@ -938,7 +945,7 @@ static int base_compare(lispval x,lispval y)
     fd_ptr_type ytype = FD_PTR_TYPE(y);
     if (FD_NUMBER_TYPEP(xtype))
       if (FD_NUMBER_TYPEP(ytype))
-	return fd_numcompare(x,y);
+        return fd_numcompare(x,y);
       else return -1;
     else if (FD_NUMBER_TYPEP(ytype))
       return 1;
@@ -948,42 +955,42 @@ static int base_compare(lispval x,lispval y)
       return 1;
     else switch (xtype) {
       case fd_pair_type: {
-	int car_cmp = FD_QCOMPARE(FD_CAR(x),FD_CAR(y));
-	if (car_cmp == 0)
-	  return (FD_QCOMPARE(FD_CDR(x),FD_CDR(y)));
-	else return car_cmp;}
+        int car_cmp = FD_QCOMPARE(FD_CAR(x),FD_CAR(y));
+        if (car_cmp == 0)
+          return (FD_QCOMPARE(FD_CDR(x),FD_CDR(y)));
+        else return car_cmp;}
       case fd_string_type: {
-	int xlen = FD_STRLEN(x), ylen = FD_STRLEN(y);
-	if (xlen>ylen)
-	  return 1;
-	else if (xlen<ylen)
-	  return -1;
-	else return strncmp(FD_STRDATA(x),FD_STRDATA(y),xlen);}
+        int xlen = FD_STRLEN(x), ylen = FD_STRLEN(y);
+        if (xlen>ylen)
+          return 1;
+        else if (xlen<ylen)
+          return -1;
+        else return strncmp(FD_STRDATA(x),FD_STRDATA(y),xlen);}
       case fd_vector_type: {
-	int i = 0, xlen = VEC_LEN(x), ylen = VEC_LEN(y);
-	lispval *xdata = VEC_DATA(x), *ydata = VEC_DATA(y);
-	if (xlen > ylen)
-	  return 1;
-	else if (xlen < ylen)
-	  return -1;
-	int minlen = (xlen < ylen) ? (xlen) : (ylen);
-	while (i < minlen) {
-	  int cmp = FD_QCOMPARE(xdata[i],ydata[i]);
-	  if (cmp)
-	    return cmp;
-	  else i++;}
-	return 0;}
+        int i = 0, xlen = VEC_LEN(x), ylen = VEC_LEN(y);
+        lispval *xdata = VEC_DATA(x), *ydata = VEC_DATA(y);
+        if (xlen > ylen)
+          return 1;
+        else if (xlen < ylen)
+          return -1;
+        int minlen = (xlen < ylen) ? (xlen) : (ylen);
+        while (i < minlen) {
+          int cmp = FD_QCOMPARE(xdata[i],ydata[i]);
+          if (cmp)
+            return cmp;
+          else i++;}
+        return 0;}
       default:
-	return LISP_COMPARE(x,y,FD_COMPARE_QUICK);}}
+        return LISP_COMPARE(x,y,FD_COMPARE_QUICK);}}
 }
 static int cons_compare(lispval x,lispval y)
 {
   if (FD_ATOMICP(x))
     if (FD_ATOMICP(y))
       if (x < y)
-	return -1;
+        return -1;
       else if (x == y)
-	return 0;
+        return 0;
       else return 1;
     else return -1;
   else if (FD_ATOMICP(y))
@@ -1003,33 +1010,33 @@ static int cons_compare(lispval x,lispval y)
       return 1;
     else switch (xtype) {
       case fd_pair_type: {
-	int car_cmp = base_compare(FD_CAR(x),FD_CAR(y));
-	if (car_cmp == 0)
-	  return base_compare(FD_CDR(x),FD_CDR(y));
-	else return car_cmp;}
+        int car_cmp = base_compare(FD_CAR(x),FD_CAR(y));
+        if (car_cmp == 0)
+          return base_compare(FD_CDR(x),FD_CDR(y));
+        else return car_cmp;}
       case fd_string_type: {
-	int xlen = FD_STRLEN(x), ylen = FD_STRLEN(y);
-	if (xlen>ylen)
-	  return 1;
-	else if (xlen<ylen)
-	  return -1;
-	else return strncmp(FD_STRDATA(x),FD_STRDATA(y),xlen);}
+        int xlen = FD_STRLEN(x), ylen = FD_STRLEN(y);
+        if (xlen>ylen)
+          return 1;
+        else if (xlen<ylen)
+          return -1;
+        else return strncmp(FD_STRDATA(x),FD_STRDATA(y),xlen);}
       case fd_vector_type: {
-	int i = 0, xlen = VEC_LEN(x), ylen = VEC_LEN(y);
-	lispval *xdata = VEC_DATA(x), *ydata = VEC_DATA(y);
-	if (xlen>ylen)
-	  return 1;
-	else if (xlen<ylen)
-	  return -1;
-	int minlen = (xlen < ylen) ? (xlen) : (ylen);
-	while (i < minlen) {
-	  int cmp = base_compare(xdata[i],ydata[i]);
-	  if (cmp)
-	    return cmp;
-	  else i++;}
-	return 0;}
+        int i = 0, xlen = VEC_LEN(x), ylen = VEC_LEN(y);
+        lispval *xdata = VEC_DATA(x), *ydata = VEC_DATA(y);
+        if (xlen>ylen)
+          return 1;
+        else if (xlen<ylen)
+          return -1;
+        int minlen = (xlen < ylen) ? (xlen) : (ylen);
+        while (i < minlen) {
+          int cmp = base_compare(xdata[i],ydata[i]);
+          if (cmp)
+            return cmp;
+          else i++;}
+        return 0;}
       default:
-	return LISP_COMPARE(x,y,FD_COMPARE_QUICK);}}
+        return LISP_COMPARE(x,y,FD_COMPARE_QUICK);}}
 }
 
 #endif
