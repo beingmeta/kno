@@ -164,8 +164,8 @@ static lispval return_irritant_helper(lispval expr,fd_lexenv env,
     else details=out.u8_outbuf;
     if (wrapped) {
       u8_exception u8ex=
-        u8_make_exception((u8_condition)ex,(u8_context)cxt,details,
-                          (void *)irritant,fd_decref_u8x_xdata);
+        u8_new_exception((u8_condition)ex,(u8_context)cxt,details,
+                         (void *)irritant,fd_decref_u8x_xdata);
       return fd_wrap_exception(u8ex);}
     else {
       lispval err_result=fd_err(ex,cxt,details,irritant);
