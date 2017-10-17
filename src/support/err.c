@@ -497,7 +497,6 @@ FD_EXPORT lispval fd_restore_exception_dtype(lispval content)
   u8_string sessionid = NULL;
   double moment = -1.0;
   time_t timebase = -1;
-  int new_format = 0;
   if (FD_TYPEP(content,fd_exception_type))
     return content;
   else if (VECTORP(content)) {
@@ -510,17 +509,51 @@ FD_EXPORT lispval fd_restore_exception_dtype(lispval content)
        We handle all cases
     */
     if (len>0) {
-      lispval elt0 = VEC_REF(content,0);
-      if (SYMBOLP(elt0)) {
-        condname = SYM_NAME(elt0); new_format = 1;}
-      else if (STRINGP(elt0)) { /* Old format */
-        condname = SYM_NAME(elt0); new_format = 0;}
+      lispval condval = VEC_REF(content,0);
+      if (SYMBOLP(condval))
+        condname = SYM_NAME(condval);
+      else if (STRINGP(condval)) {
+        lispval tmp = fd_probe_symbol(CSTRING(condval),STRLEN(condval));
+        if (FD_VOIDP(tmp)) {
+          u8_log(LOG_WARN,fd_DTypeError,"Bad non-symbolic condition name",
+                 condval);
+          tmp=fd_intern(CSTRING(condval));}
+        condname = SYM_NAME(tmp);}
       else {
-        u8_log(LOG_WARN,fd_DTypeError,"Odd exception content: %q",content);
-        new_format = -1;}}
+        u8_log(LOG_WARN,fd_DTypeError,
+               "Bad condition (not a symbol) %q in exception serialization %q",
+               condval,content);
+        condname="BadCondName";}}
+    if (len>1) {
+      lispval caller_val = VEC_REF(content,0);
+      if (SYMBOLP(caller_val))
+        caller = SYM_NAME(caller_val);
+      else if (STRINGP(caller_val)) {
+        lispval tmp =
+          fd_probe_symbol(CSTRING(caller_val),STRLEN(caller_val));
+        if (FD_VOIDP(tmp)) {
+          u8_log(LOG_WARN,fd_DTypeError,"Bad non-symbolic caller",
+                 caller_val);
+          tmp=fd_intern(CSTRING(caller_val));}
+        caller = SYM_NAME(tmp);}
+      else if ( (FD_FALSEP(caller_val)) ||
+                (FD_EMPTYP(caller_val)) ||
+                (caller_val == FD_EMPTY_LIST) ||
+                (FD_VOIDP(caller_val)) )
+        caller = NULL;
+      else {
+        u8_log(LOG_WARN,fd_DTypeError,
+               "Bad caller (not a symbol) %q in exception serialization %q",
+               caller_val,content);
+         caller="BadCaller";}}
+    if (len > 2) {
+      lispval details_val = VEC_REF(content,2);
+      if (FD_STRINGP(details_val))
+        details = u8_strdup(CSTRING(details_val));
+      else details = NULL;}
     if (len > 3) irritant = VEC_REF(content,3);
     if ( (len > 4) && (FD_STRINGP(VEC_REF(content,4))) )
-        sessionid = CSTRING(VEC_REF(content,4));
+      sessionid = CSTRING(VEC_REF(content,4));
     if (len > 5) {
       lispval tstamp = VEC_REF(content,5);
       if (TYPEP(tstamp,fd_timestamp_type)) {
