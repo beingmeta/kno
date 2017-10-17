@@ -267,7 +267,7 @@ static int writeall(int fd,const unsigned char *data,int n)
 #if HAVE_PREAD
 static ssize_t pread_all(int fileno,unsigned char *buf,size_t len,size_t offset)
 {
-  size_t to_read = len, delta = 0;
+  ssize_t to_read = len, delta = 0;
   unsigned char *point = buf;
   while (to_read > 0) {
     delta = pread(fileno,point,to_read,offset);
@@ -1070,7 +1070,6 @@ FD_EXPORT fd_inbuf fd_open_block(fd_stream s,fd_inbuf in,
       errno=0;}
   }
 #endif
-#if HAVE_PREAD
   unsigned char *buf;
   if ( ( in->buffer ) && (len < in->buflen) )
     buf=(unsigned char *)in->buffer;
@@ -1081,6 +1080,7 @@ FD_EXPORT fd_inbuf fd_open_block(fd_stream s,fd_inbuf in,
   in->buflim=buf;
   in->bufread=buf;
   unsigned char *writebuf = (unsigned char *) in->buffer;
+#if HAVE_PREAD
   ssize_t result = stream_pread(s,stream_locked,writebuf,len,offset);
   if (result>=0) {
     in->buflim=in->buffer+len;
@@ -1090,9 +1090,12 @@ FD_EXPORT fd_inbuf fd_open_block(fd_stream s,fd_inbuf in,
   fd_off_t result = -1;
   if (!(stream_locked)) fd_lock_stream(s);
   fd_setpos(s,offset);
-  result = fd_read_bytes(fd_readbuf(s),buf,len);
+  result = fd_read_bytes(writebuf,buf,len);
   if (!(stream_locked)) fd_unlock_stream(s);
-  return result;
+  if (result >= 0) {
+    in->buflim=in->buffer+len;
+    return in;}
+  else return NULL;
 #endif
 }
 
