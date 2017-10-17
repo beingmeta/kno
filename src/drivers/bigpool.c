@@ -672,7 +672,7 @@ static lispval read_oid_value_at
     fd_close_inbuf(in);
     return value;}
   else {
-    struct FD_INBUF *in = fd_open_block(stream,fetchbuf,ref.off,ref.size,0);
+    fd_open_block(stream,fetchbuf,ref.off,ref.size,0);
     return read_oid_value(bp,fetchbuf,cxt);}
 }
 
@@ -716,8 +716,6 @@ static lispval bigpool_fetch(fd_pool p,lispval oid)
     (fd_fetch_chunk_ref(&(bp->pool_stream),256,bp->pool_offtype,
                           offset,0));
   lispval result;
-  struct FD_INBUF in;
-  unsigned char buf[FETCHBUF_SIZE];
   if (ref.off < 0) result=FD_ERROR;
   else if (ref.off == 0) result=EMPTY;
   else {
