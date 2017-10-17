@@ -1101,7 +1101,7 @@ static lispval opcode_dispatch(lispval opcode,lispval expr,
                               fd_stack caller,
                               int tail)
 {
-  FD_NEW_STACK(caller,"opcode",opcode_name(opcode),opcode);
+  FD_NEW_STACK(caller,"opcode",opcode_name(opcode),expr);
   lispval result = opcode_dispatch_inner(opcode,expr,env,_stack,tail);
   _return result;
 }
