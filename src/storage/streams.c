@@ -85,16 +85,17 @@ static ssize_t stream_flushfn(fd_outbuf buf,void *vdata)
 
 static ssize_t mmap_read_update(struct FD_STREAM *stream)
 {
-  /* This updates (or sets up) the MMAP buffer for *stream*
-     if needed. */
+  /* This updates (or sets up) the MMAP buffer for *stream* if
+     needed. Note that his is just for the case where the entire file
+     is mmapped; the byte buffer may be anonymously mmapped, but this
+     is orthogonal to that. */
   struct FD_RAWBUF *buf = &(stream->buf.raw);
   int fd = stream->stream_fileno;
-  bufio_alloc alloc = BUFIO_ALLOC(buf);
   struct stat fileinfo;
   if (fstat(fd,&fileinfo)<0) {
     u8_graberrno("mmap_read_update:fstat",u8_strdup(stream->streamid));
     return -1;}
-  else if ( (alloc == FD_MMAP_BUFFER) &&
+  else if ( (stream->stream_flags & FD_STREAM_MMAPPED) &&
             (stream->mmap_time.tv_sec==fileinfo.stat_mtime.tv_sec) &&
             (stream->mmap_time.tv_nsec==fileinfo.stat_mtime.tv_nsec) )
     /* Already mmapped and underlying file not changed */
@@ -107,6 +108,9 @@ static ssize_t mmap_read_update(struct FD_STREAM *stream)
       return -1;}
     if ((stream->mmap_time.tv_sec==fileinfo.stat_mtime.tv_sec) &&
         (stream->mmap_time.tv_nsec==fileinfo.stat_mtime.tv_nsec)) {
+      /* No change. This handles a potential race condition when two
+         threads are both doing updates and the first threads update
+         obviates the second threads update. */
       u8_rw_unlock(&(stream->mmap_lock));
       return 0;}
     else stream->mmap_time=fileinfo.stat_mtime;
@@ -119,22 +123,27 @@ static ssize_t mmap_read_update(struct FD_STREAM *stream)
     unsigned char *oldbuf = buf->buffer;
     ssize_t point_off = (oldbuf) ? (buf->bufpoint-buf->buffer) : (0);
     unsigned char *newbuf = mmap(NULL,new_size,prot,flags,fd,0);
-    if ((newbuf==NULL)||(newbuf==MAP_FAILED)) {
+    if ( (newbuf==NULL) || (newbuf==MAP_FAILED) ) {
       u8_log(LOGWARN,u8_strerror(errno),
              "mmap_read_update:mmap of %s",stream->streamid);
       u8_graberrno("mmap_read_update:mmap",u8_strdup(stream->streamid));
       u8_rw_unlock(&(stream->mmap_lock));
       return -1;}
-    buf->buflen = new_size;
-    buf->buffer = newbuf;
+    /* This will unmmap it if neccessary */
+    if ( ( oldbuf ) && ( oldbuf != newbuf ) ) {
+      int rv = munmap(oldbuf,old_size);
+      if (rv!=0)
+        u8_log(LOGWARN,fd_munmap_failed,
+               "Couldn't unmap buffer for %s (0x%llx)",
+               stream->streamid,stream);}
+    buf->buflen   = new_size;
+    buf->buffer   = newbuf;
     buf->bufpoint = newbuf+point_off;
-    buf->buflim = newbuf+fileinfo.st_size;
+    buf->buflim   = newbuf+new_size;
     buf->buf_data = stream;
     stream->stream_filepos=stream->stream_maxpos=fileinfo.st_size;
+    BUFIO_SET_ALLOC(buf,FD_MMAP_BUFFER);
     u8_rw_unlock(&(stream->mmap_lock));
-    if (( oldbuf ) && ( oldbuf != newbuf )) {
-      BUFIO_FREE(buf);
-      BUFIO_SET_ALLOC(buf,FD_MMAP_BUFFER);}
     return new_size;}
 }
 
@@ -643,7 +652,7 @@ FD_EXPORT ssize_t fd_setbufsize(fd_stream s,ssize_t bufsize)
     size_t point=bufptr->bufpoint-oldbuf, maxpoint=bufptr->buflim-oldbuf;
     bufio_alloc cur_alloc = BUFIO_ALLOC(bufptr), new_alloc=cur_alloc;
     if (oldbuf == NULL) {}
-    else if ( (U8_BITP(s->stream_flags,FD_STREAM_MMAPPED)) ||
+    else if ( (U8_BITP(flags,FD_STREAM_MMAPPED)) ||
               (cur_alloc == FD_MMAP_BUFFER) ){
       int rv=munmap(bufptr->buffer,bufptr->buflen);
       if (rv<0) {
@@ -683,11 +692,11 @@ FD_EXPORT ssize_t fd_setbufsize(fd_stream s,ssize_t bufsize)
       bufptr->buflim = newbuf+maxpoint;
     else bufptr->buflim=bufptr->buffer+bufsize;
     bufptr->buflen = bufsize;
-    BUFIO_SET_ALLOC(bufptr,FD_HEAP_BUFFER);
+    BUFIO_SET_ALLOC(bufptr,new_alloc);
     if (unlock) fd_unlock_stream(s);
     return bufsize;}
   else {
-    bufio_alloc cur_alloc = BUFIO_ALLOC(bufptr), new_alloc=cur_alloc;
+    bufio_alloc cur_alloc = BUFIO_ALLOC(bufptr);
     if ( (U8_BITP(s->stream_flags,FD_STREAM_MMAPPED)) ||
          (cur_alloc == FD_MMAP_BUFFER) ) {
       int rv=munmap(bufptr->buffer,bufptr->buflen);

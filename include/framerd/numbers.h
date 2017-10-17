@@ -65,6 +65,10 @@ FD_EXPORT int fd_exactp(lispval x);
    ((FD_FIXNUMP(x))||(FD_BIGINTP(x)))?(1):		      \
    (fd_exactp(x)))
 
+#define FD_POSINTP(x) \
+  ( (FD_FIXNUMP(x)) ? ( (FD_FIX2INT(x)) > 0 ) : \
+    ( (FD_BIGINTP(x)) && (!(fd_bigint_negativep(x)))) )
+
 FD_EXPORT int fd_tolonglong(lispval r,long long *intval);
 
 /* Numeric vectors */

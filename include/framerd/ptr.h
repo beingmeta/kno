@@ -211,9 +211,9 @@ FD_EXPORT lispval fd_badptr_err(lispval badx,u8_context cxt,u8_string details);
 
 #define FD_VALID_TYPECODEP(x)                                  \
   (FD_EXPECT_TRUE((((int)x)>=0) &&                             \
-		  (((int)x)<256) &&                            \
-		  (((x<0x84)&&((x)<fd_next_immediate_type)) || \
-		   ((x>=0x84)&&((x)<fd_next_cons_type)))))
+                  (((int)x)<256) &&                            \
+                  (((x<0x84)&&((x)<fd_next_immediate_type)) || \
+                   ((x>=0x84)&&((x)<fd_next_cons_type)))))
 
 /* In the type field, 0 means an integer, 1 means an oid, 2 means
    an immediate constant, and 3 means a cons. */
@@ -465,7 +465,7 @@ FD_EXPORT int fd_n_base_oids, fd_oid_buckets_len;
 /*
   The bit layout of an OID pointer is:
   pos:  |                 k*4          2  0
-	| offset from base | bucket id |11|
+        | offset from base | bucket id |11|
   size: |    (20 bits)     | (k bits)  |
 */
 
@@ -476,10 +476,10 @@ FD_EXPORT int fd_n_base_oids, fd_oid_buckets_len;
 */
 #define FD_OID_ADDR(x) \
   (FD_OID_PLUS(fd_base_oids[((x>>2)&(FD_OID_BUCKET_MASK))],\
-	       (x>>((FD_OID_BUCKET_WIDTH)+2))))
+               (x>>((FD_OID_BUCKET_WIDTH)+2))))
 #define FD_CONSTRUCT_OID(baseid,offset) \
   ((lispval) ((((fd_ptrbits)baseid)<<2)|\
-	     (((fd_ptrbits)offset)<<((FD_OID_BUCKET_WIDTH)+2))|3))
+             (((fd_ptrbits)offset)<<((FD_OID_BUCKET_WIDTH)+2))|3))
 FD_EXPORT lispval fd_make_oid(FD_OID addr);
 FD_EXPORT int fd_get_oid_base_index(FD_OID addr,int add);
 
@@ -758,8 +758,8 @@ static U8_MAYBE_UNUSED lispval _fd_fcnid_ref(lispval ref)
     if (FD_EXPECT_FALSE(serialno>_fd_fcnid_count))
       return fd_err(fd_InvalidFCNID,"_fd_fcnid_ref",NULL,ref);
     else return (lispval) _fd_fcnids
-	   [serialno/FD_FCNID_BLOCKSIZE]
-	   [serialno%FD_FCNID_BLOCKSIZE];}
+           [serialno/FD_FCNID_BLOCKSIZE]
+           [serialno%FD_FCNID_BLOCKSIZE];}
   else return ref;
 }
 #define fd_fcnid_ref(x) ((FD_FCNIDP(x))?(_fd_fcnid_ref(x)):(x))
@@ -878,7 +878,7 @@ FD_EXPORT int fd_numcompare(lispval x,lispval y);
 #define FD_COMPARE(x,y) FD_FULL_COMPARE(x,y)
 
 FD_EXPORT int fd_walk(fd_walker walker,lispval obj,void *walkdata,
-		      fd_walk_flags flags,int depth);
+                      fd_walk_flags flags,int depth);
 
 FD_EXPORT void lispval_sort(lispval *v,size_t n,fd_compare_flags flags);
 
@@ -995,7 +995,7 @@ FD_EXPORT int fd_check_immediate(lispval);
 
    As a rule of thumb, currently, the levels should be used as follows:
     1: topical debugging for places you think something odd is happening;
-	the system code should almost never use this level
+        the system code should almost never use this level
     2: assignment debugging (called when a pointer is stored)
     3: return value debugging (called when a pointer is returned)
 

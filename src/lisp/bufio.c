@@ -167,6 +167,7 @@ static ssize_t grow_input_buffer(struct FD_INBUF *in,int delta)
   size_t new_limit = current_limit;
   size_t need_size = current_point+delta;
   unsigned char *old = b->buffer, *new;
+  int free_old = 0;
   if (U8_BITP(flags,FD_BUFFER_NO_GROW)) {
     u8_seterr("CantGrowInputBuffer","grow_input_buffer",NULL);
     return -1;}
@@ -178,7 +179,6 @@ static ssize_t grow_input_buffer(struct FD_INBUF *in,int delta)
     if (new_limit>=250000) new_limit = new_limit+25000;
     else new_limit = new_limit*2;
   bufio_alloc cur_alloc = BUFIO_ALLOC(in), new_alloc = cur_alloc;
-  int free_old = 0;
   if (new_limit > fd_bigbuf_threshold) {
     if (cur_alloc == FD_BIGALLOC_BUFFER)
       new = u8_big_realloc(old,new_limit);
@@ -200,6 +200,12 @@ static ssize_t grow_input_buffer(struct FD_INBUF *in,int delta)
   b->bufpoint = new+current_point;
   b->buflim = b->buffer+current_limit;
   b->buflen = new_limit;
+  if (free_old==0) {}
+  else if (cur_alloc == FD_HEAP_BUFFER)
+    u8_free(old);
+  else if (cur_alloc == FD_BIGALLOC_BUFFER)
+    u8_big_free(old);
+  else {}
   return new_limit;
 }
 
