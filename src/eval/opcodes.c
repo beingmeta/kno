@@ -919,6 +919,22 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
 {
   if (opcode == FD_QUOTE_OPCODE)
     return fd_incref(pop_arg(expr));
+  if (opcode == FD_SOURCEREF_OPCODE) {
+    if (!(FD_PAIRP(FD_CDR(expr)))) {
+      lispval err = fd_err(fd_SyntaxError,"opcode_dispatch",NULL,expr);
+      _return err;}
+    lispval source = FD_CAR(FD_CDR(expr));
+    lispval code   = FD_CDR(FD_CDR(expr));
+    if (!(FD_PAIRP(code))) {
+      lispval err = fd_err(fd_SyntaxError,"opcode_dispatch",NULL,expr);
+      _return err;}
+    _stack->stack_source = source;
+    _stack->stack_op = source;
+    lispval realop = FD_CAR(code);
+    if (FD_OPCODEP(realop)) {
+      opcode=realop;
+      expr = code;}
+    else _return _fd_fast_eval(code,env,_stack,tail);}
   lispval args = FD_CDR(expr);
   switch (opcode) {
   case FD_NOT_OPCODE: {
@@ -1172,6 +1188,8 @@ static void init_opcode_names()
   set_opcode_name(FD_TRY_OPCODE,"OP_TRY");
   set_opcode_name(FD_CHOICEREF_OPCODE,"OP_CHOICEREF");
   set_opcode_name(FD_FIXCHOICE_OPCODE,"OP_FIXCHOICE");
+
+  set_opcode_name(FD_SOURCEREF_OPCODE,"OP_SOURCEREF");
 
   set_opcode_name(FD_AMBIGP_OPCODE,"OP_AMBIGP");
   set_opcode_name(FD_SINGLETONP_OPCODE,"OP_SINGLETONP");
