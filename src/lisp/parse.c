@@ -227,6 +227,10 @@ static struct FD_KEYVAL *hashnames=NULL;
 static int n_hashnames=0, hashnames_len=0;
 static u8_rwlock hashnames_lock;
 
+#ifndef MAX_HASHNAMES
+#define MAX_HASHNAMES 7654321
+#endif
+
 static lispval lookup_hashname(u8_string s,int len,int lock)
 {
   if (len<0) len=strlen(s);
@@ -255,7 +259,9 @@ int fd_add_hashname(u8_string s,lispval value)
     u8_string d=u8_upcase(s);
     lispval string=lispval_string(d);
     struct FD_KEYVAL *added=
-      fd_sortvec_insert(string,&hashnames,&n_hashnames,&hashnames_len,1);
+      fd_sortvec_insert(string,&hashnames,
+                        &n_hashnames,&hashnames_len,MAX_HASHNAMES,
+                        1);
     if (added)
       added->kv_val=value;
     if ( (added) && (added->kv_key != string ) ) {

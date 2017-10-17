@@ -44,6 +44,7 @@ static int resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots,int need_lock);
 #endif
 
 #include <math.h>
+#include <limits.h>
 
 #define flip_word(x) \
   (((x>>24)&0xff) | ((x>>8)&0xff00) | ((x&0xff00)<<8) | ((x&0xff)<<24))
@@ -103,9 +104,11 @@ struct FD_KEYVAL *_fd_keyvec_get
   return NULL;
 }
 
-static struct FD_KEYVAL *fd_keyvec_insert
+FD_EXPORT
+struct FD_KEYVAL *fd_keyvec_insert
  (lispval key,struct FD_KEYVAL **keyvalp,
-  int *sizep,int *spacep,int freedata)
+  int *sizep,int *spacep,int max_space,
+  int freedata)
 {
   int size=*sizep;
   int space= (spacep) ? (*spacep) : (0);
@@ -126,7 +129,7 @@ static struct FD_KEYVAL *fd_keyvec_insert
     keyvals[size].kv_val=EMPTY;
     *sizep=size+1;
     return &(keyvals[size]);}
-  else {
+  else if (space < max_space) {
     size_t new_space = (spacep) ? (space+4) : (space+1);
     struct FD_KEYVAL *nkeyvals= ((keyvals) && (freedata)) ?
       (u8_realloc_n(keyvals,new_space,struct FD_KEYVAL)) :
@@ -140,6 +143,7 @@ static struct FD_KEYVAL *fd_keyvec_insert
     if (spacep) *spacep=new_space;
     *sizep=size+1;
     return &(nkeyvals[size]);}
+  else return NULL;
 }
 
 /* Sort map */
@@ -202,7 +206,10 @@ FD_EXPORT struct FD_KEYVAL *_fd_sortvec_get
 }
 
 FD_EXPORT struct FD_KEYVAL *fd_sortvec_insert
-  (lispval key,struct FD_KEYVAL **kvp,int *sizep,int *spacep,int freedata)
+  (lispval key,
+   struct FD_KEYVAL **kvp,
+   int *sizep,int *spacep,int max_space,
+   int freedata)
 {
   struct FD_KEYVAL *keyvals=*kvp;
   int size=*sizep, space=((spacep)?(*spacep):(0)), found=0;
@@ -233,7 +240,8 @@ FD_EXPORT struct FD_KEYVAL *fd_sortvec_insert
     if (comparison==0) {found=1; break;}
     else if (comparison<0) top=middle-1;
     else bottom=middle+1;}
-  if (found) return middle;
+  if (found)
+    return middle;
   else if (size+1<space) {
     struct FD_KEYVAL *insert_point=&(keyvals[size+1]);
     *sizep=size+1;
@@ -241,7 +249,7 @@ FD_EXPORT struct FD_KEYVAL *fd_sortvec_insert
     insert_point->kv_val=EMPTY;
     sort_keyvals(keyvals,size+1);
     return insert_point;}
-  else {
+  else if (space < max_space) {
     int mpos=(middle-keyvals), dir=(bottom>middle), ipos=mpos+dir;
     struct FD_KEYVAL *insert_point;
     struct FD_KEYVAL *new_keyvals=
@@ -256,6 +264,21 @@ FD_EXPORT struct FD_KEYVAL *fd_sortvec_insert
     insert_point->kv_key=fd_getref(key);
     insert_point->kv_val=EMPTY;
     return insert_point;}
+  else return NULL;
+}
+
+static int slotmap_fail(struct FD_SLOTMAP *sm,u8_context caller)
+{
+  char dbuf[64];
+  short size = sm->n_slots, space = sm->n_allocd;
+  if (space >= SHRT_MAX)
+    fd_seterr("SlotmapOverflow",caller,
+              u8_sprintf(dbuf,64,"%d:%d>%d",size,space,SHRT_MAX),
+              (lispval)sm);
+  else fd_seterr("SlotmapInsertFail",caller,
+                 u8_sprintf(dbuf,64,"%d:%d",size,space),
+                 (lispval)sm);
+  return -1;
 }
 
 FD_EXPORT lispval _fd_slotmap_get
@@ -288,14 +311,15 @@ FD_EXPORT int fd_slotmap_store(struct FD_SLOTMAP *sm,lispval key,lispval value)
     struct FD_KEYVAL *cur_keyvals=sm->sm_keyvals;;
     struct FD_KEYVAL *result=
       (sm->sm_sort_keyvals) ?
-      (fd_sortvec_insert(key,&(sm->sm_keyvals),&nslots,&allocd,
+      (fd_sortvec_insert(key,&(sm->sm_keyvals),
+                         &nslots,&allocd,SHRT_MAX,
                          sm->sm_free_keyvals)) :
-      (fd_keyvec_insert(key,&(sm->sm_keyvals),&nslots,&allocd,
+      (fd_keyvec_insert(key,&(sm->sm_keyvals),
+                        &nslots,&allocd,SHRT_MAX,
                         sm->sm_free_keyvals));
     if (PRED_FALSE(result==NULL)) {
       if (unlock) u8_rw_unlock(&(sm->table_rwlock));
-      fd_seterr2(fd_MallocFailed,"fd_slotmap_store");
-      return -1;}
+      return slotmap_fail(sm,"fd_slotmap_store");}
     if (sm->sm_keyvals!=cur_keyvals) sm->sm_free_keyvals=1;
     fd_decref(result->kv_val);
     result->kv_val=fd_incref(value);
@@ -327,14 +351,15 @@ FD_EXPORT int fd_slotmap_add(struct FD_SLOTMAP *sm,lispval key,lispval value)
     struct FD_KEYVAL *cur_keyvals=sm->sm_keyvals;
     struct FD_KEYVAL *result=
       (sm->sm_sort_keyvals) ?
-      (fd_sortvec_insert(key,&(sm->sm_keyvals),&size,&space,
+      (fd_sortvec_insert(key,&(sm->sm_keyvals),
+                         &size,&space,SHRT_MAX,
                          sm->sm_free_keyvals)) :
-      (fd_keyvec_insert(key,&(sm->sm_keyvals),&size,&space,
+      (fd_keyvec_insert(key,&(sm->sm_keyvals),
+                        &size,&space,SHRT_MAX,
                         sm->sm_free_keyvals));
     if (PRED_FALSE(result==NULL)) {
       if (unlock) u8_rw_unlock(&sm->table_rwlock);
-      fd_seterr2(fd_MallocFailed,"fd_slotmap_add");
-      return -1;}
+      return slotmap_fail(sm,"fd_slotmap_add");}
     /* If this allocated a new keyvals structure, it needs to be
        freed.  (sm_free_kevyvals==0) when the keyvals are allocated at
        the end of the slotmap structure itself. */

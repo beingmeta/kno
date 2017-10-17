@@ -183,11 +183,17 @@ FD_EXPORT int fd_copy_slotmap(struct FD_SLOTMAP *src,struct FD_SLOTMAP *dest);
 FD_EXPORT lispval fd_slotmap_max
   (struct FD_SLOTMAP *sm,lispval scope,lispval *maxvalp);
 
+FD_EXPORT struct FD_KEYVAL *fd_keyvec_insert
+(lispval key,struct FD_KEYVAL **kvp,
+ int *sizep,int *spacep,int limit,
+ int freedata);
 FD_EXPORT struct FD_KEYVAL *_fd_keyvec_get
    (lispval key,struct FD_KEYVAL *keyvals,int size);
 
 FD_EXPORT struct FD_KEYVAL *fd_sortvec_insert
-  (lispval key,struct FD_KEYVAL **kvp,int *sizep,int *spacep,int freedata);
+(lispval key,struct FD_KEYVAL **kvp,
+ int *sizep,int *spacep,int limit,
+ int freedata);
 FD_EXPORT struct FD_KEYVAL *_fd_sortvec_get
    (lispval key,struct FD_KEYVAL *keyvals,int size);
 

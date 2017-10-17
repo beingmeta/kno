@@ -46,6 +46,9 @@ static lispval hosts_symbol, connections_symbol, fieldmap_symbol, logopsym;
 
 static struct FD_KEYVAL *mongo_opmap = NULL;
 static int mongo_opmap_size = 0, mongo_opmap_space = 0;
+#ifndef MONGO_OPMAP_MAX
+#define MONGO_OPMAP_MAX 8000
+#endif
 
 fd_ptr_type fd_mongoc_server, fd_mongoc_collection, fd_mongoc_cursor;
 
@@ -2132,6 +2135,7 @@ static void add_to_mongo_opmap(u8_string keystring)
     fd_sortvec_insert(key,&mongo_opmap,
                       &mongo_opmap_size,
                       &mongo_opmap_space,
+                      MONGO_OPMAP_MAX,
                       1);
   if (entry)
     entry->kv_val = lispval_string(keystring);
