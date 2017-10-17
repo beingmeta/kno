@@ -923,18 +923,23 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
     if (!(FD_PAIRP(FD_CDR(expr)))) {
       lispval err = fd_err(fd_SyntaxError,"opcode_dispatch",NULL,expr);
       _return err;}
-    lispval source = FD_CAR(FD_CDR(expr));
-    lispval code   = FD_CDR(FD_CDR(expr));
-    if (!(FD_PAIRP(code))) {
-      lispval err = fd_err(fd_SyntaxError,"opcode_dispatch",NULL,expr);
-      _return err;}
-    _stack->stack_source = source;
-    _stack->stack_op = source;
-    lispval realop = FD_CAR(code);
-    if (FD_OPCODEP(realop)) {
+    while (opcode == FD_SOURCEREF_OPCODE) {
+      lispval source = FD_CAR(FD_CDR(expr));
+      lispval code   = FD_CDR(FD_CDR(expr));
+      if (!(FD_PAIRP(code))) {
+        lispval err = fd_err(fd_SyntaxError,"opcode_dispatch",NULL,expr);
+        return err;}
+      else expr = code;
+      if (FD_VOIDP(_stack->stack_source))
+        _stack->stack_source=source;
+      lispval realop = FD_CAR(code);
+      if (!(FD_OPCODEP(realop))) {
+        opcode = FD_VOID;
+        break;}
       opcode=realop;
       expr = code;}
-    else _return _fd_fast_eval(code,env,_stack,tail);}
+    if (! (FD_OPCODEP(opcode)) )
+      return _fd_fast_eval(expr,env,_stack,tail);}
   lispval args = FD_CDR(expr);
   switch (opcode) {
   case FD_NOT_OPCODE: {
