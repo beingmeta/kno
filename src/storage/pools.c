@@ -689,7 +689,7 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,lispval oids)
       if (nolock) {
         /* If the pool doesn't have to be locked, don't bother locking
            any values */}
-      else if (n_locked) {
+      else if (n_locked>0) {
         /* If some values are locked, we consider each value and
            store it in the appropriate tables (changes or cache). */
         int j = 0; while (j<n) {

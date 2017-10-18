@@ -1923,6 +1923,23 @@ static lispval commit_index_prim(lispval ix_arg)
   return VOID;
 }
 
+static lispval index_save_prim(lispval index,
+                               lispval adds,lispval drops,
+                               lispval stores,
+                               lispval metadata)
+{
+  fd_index ix = fd_lisp2index(index);
+  if (!(ix))
+    return fd_type_error("index","index_save_prim",index);
+
+  int rv = fd_index_save(ix,adds,drops,stores,metadata);
+  if (rv<0)
+    return FD_ERROR_VALUE;
+  else return FD_INT(rv);
+}
+
+
+
 static lispval suggest_hash_size(lispval size)
 {
   unsigned int suggestion = fd_get_hashtable_size(fd_getint(size));
@@ -3531,8 +3548,12 @@ FD_EXPORT void fd_init_dbprims_c()
   fd_idefn2(fd_scheme_module,"INDEX-PREFETCH!",index_prefetch_keys,
             (FD_NEEDS_2_ARGS|FD_NDCALL),"(INDEX-PREFETCH! *index* *keys*)",
             -1,FD_VOID,-1,FD_VOID);
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim1("FETCHOIDS",fetchoids_prim,1)));
+  fd_idefn5(fd_scheme_module,"INDEX/SAVE!",index_save_prim,FD_NEEDS_2_ARGS,
+            "(INDEX-PREFETCH! *index* *keys*)",
+            -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID);
+  fd_idefn1(fd_scheme_module,"FETCHOIDS",fetchoids_prim,FD_NEEDS_1_ARG|FD_NDCALL,
+            "(FETCHOIDS *oids*) returns *oids* after prefetching their values.",
+            -1,FD_VOID);
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("CACHED-OIDS",cached_oids,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CACHED-KEYS",cached_keys,0));

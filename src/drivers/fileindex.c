@@ -370,8 +370,8 @@ static struct FD_KEY_SIZE *fileindex_fetchinfo(fd_index ix,fd_choice filter,int 
       /* vpos = */ fd_read_4bytes(instream);
       key = fd_read_dtype(instream);
       if ( (filter == NULL) || (fast_choice_containsp(key,filter)) ) {
-        sizes[key_count].keysizekey = key;
-        sizes[key_count].keysizenvals = size;
+        sizes[key_count].keysize_key = key;
+        sizes[key_count].keysize_count = size;
         key_count++;}
       else fd_decref(key);
       i++;}

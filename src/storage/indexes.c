@@ -696,8 +696,8 @@ FD_EXPORT lispval fd_index_keysizes(fd_index ix,lispval for_keys)
       lispval *write = &(result->choice_0);
       if (decref_keys) fd_decref(keys);
       int i = 0; while (i<n_fetched) {
-        lispval key = fetched[i].keysizekey, pair;
-        unsigned int n_values = fetched[i].keysizenvals;
+        lispval key = fetched[i].keysize_key, pair;
+        unsigned int n_values = fetched[i].keysize_count;
         pair = fd_conspair(fd_incref(key),FD_INT(n_values));
         *write++=pair;
         i++;}
@@ -714,8 +714,8 @@ FD_EXPORT lispval fd_index_keysizes(fd_index ix,lispval for_keys)
       n_total = n_fetched+ix->index_adds.table_n_keys;
       result = fd_alloc_choice(n_total); write = &(result->choice_0);
       while (i<n_fetched) {
-        lispval key = fetched[i].keysizekey, pair;
-        unsigned int n_values = fetched[i].keysizenvals;
+        lispval key = fetched[i].keysize_key, pair;
+        unsigned int n_values = fetched[i].keysize_count;
         lispval added = fd_hashtable_get(&added_sizes,key,FD_INT(0));
         n_values = n_values+fd_getint(added);
         pair = fd_conspair(fd_incref(key),FD_INT(n_values));
@@ -1173,6 +1173,117 @@ FD_EXPORT int fd_index_commit(fd_index ix)
 
     return 0;}
   else return 0;
+}
+
+FD_EXPORT int fd_index_save(fd_index ix,
+                            lispval toadd,
+                            lispval todrop,
+                            lispval tostore,
+                            lispval metadata)
+{
+  int retval = 0;
+
+  if (ix == NULL)
+    return -1;
+
+  int free_adds = 0, free_drops =0, free_stores = 0;
+  int n_adds = 0, n_drops =0, n_stores = 0;
+  struct FD_KEYVAL *adds=NULL, *drops=NULL, *stores=NULL;
+
+  if (FD_VOIDP(toadd)) {}
+  else if (FD_SLOTMAPP(toadd))
+    adds = FD_SLOTMAP_KEYVALS(toadd);
+  else if (FD_HASHTABLEP(toadd)) {
+    adds = hashtable_keyvals((fd_hashtable)toadd,&n_adds,1);
+    free_adds = 1;}
+  else if (FD_TABLEP(toadd)) {
+    lispval keys = fd_getkeys(toadd);
+    int i=0, n = FD_CHOICE_SIZE(keys);
+    adds = u8_big_alloc_n(n,struct FD_KEYVAL);
+    FD_DO_CHOICES(key,keys) {
+      lispval val = fd_get(toadd,key,FD_VOID);
+      if (!((FD_VOIDP(val)) || (FD_EMPTYP(val)))) {
+        adds[i].kv_key = key; fd_incref(key);
+        adds[i].kv_val = val;
+        i++;}}
+    fd_decref(keys);
+    free_adds = 1;
+    toadd=i;}
+
+  if (FD_VOIDP(toadd)) {}
+  else if (FD_SLOTMAPP(todrop))
+    drops = FD_SLOTMAP_KEYVALS(todrop);
+  else if (FD_HASHTABLEP(todrop)) {
+    drops = hashtable_keyvals((fd_hashtable)todrop,&n_drops,1);
+    free_drops = 1;}
+  else if (FD_TABLEP(todrop)) {
+    lispval keys = fd_getkeys(todrop);
+    int i=0, n = FD_CHOICE_SIZE(keys);
+    drops = u8_big_alloc_n(n,struct FD_KEYVAL);
+    FD_DO_CHOICES(key,keys) {
+      lispval val = fd_get(todrop,key,FD_VOID);
+      if (!((FD_VOIDP(val)) || (FD_EMPTYP(val)))) {
+        drops[i].kv_key = key; fd_incref(key);
+        drops[i].kv_val = val;
+        i++;}}
+    fd_decref(keys);
+    free_drops = 1;
+    todrop=i;}
+
+  if (FD_VOIDP(tostore)) {}
+  else if (FD_SLOTMAPP(tostore))
+    stores = FD_SLOTMAP_KEYVALS(tostore);
+  else if (FD_HASHTABLEP(tostore)) {
+    stores = hashtable_keyvals((fd_hashtable)tostore,&n_stores,0);
+    free_stores = 1;}
+  else if (FD_TABLEP(tostore)) {
+    lispval keys = fd_getkeys(tostore);
+    int i=0, n = FD_CHOICE_SIZE(keys);
+    stores = u8_big_alloc_n(n,struct FD_KEYVAL);
+    FD_DO_CHOICES(key,keys) {
+      lispval val = fd_get(tostore,key,FD_VOID);
+      if (!((FD_VOIDP(val)) || (FD_EMPTYP(val)))) {
+        stores[i].kv_key = key; fd_incref(key);
+        stores[i].kv_val = val;
+        i++;}}
+    fd_decref(keys);
+    free_stores = 1;
+    tostore=i;}
+
+  int n_changes = n_adds + n_drops + n_stores;
+
+  if (n_changes) {
+    init_cache_level(ix);
+    u8_log(fd_storage_loglevel+1,fd_IndexCommit,
+           "####### Saving %d changes to %s",n_changes,ix->indexid);}
+
+  double start_time = u8_elapsed_time();
+
+  retval = ix->index_handler->commit
+    (ix,(const_keyvals)adds,n_adds,
+     (const_keyvals)drops,n_drops,
+     (const_keyvals)stores,n_stores,
+     metadata);
+
+  if (retval<0)
+    u8_log(LOG_CRIT,fd_IndexCommitError,
+           _("!!!!!!! Error saving %d keys to %s after %f secs"),
+           n_changes,ix->indexid,u8_elapsed_time()-start_time);
+  else if (retval>0)
+    u8_log(fd_storage_loglevel,fd_IndexCommit,
+           _("####### Saved %d updated keys to %s in %f secs"),
+           retval,ix->indexid,u8_elapsed_time()-start_time);
+  else {}
+
+  if (retval<0)
+    u8_seterr(fd_IndexCommitError,"fd_index_commit",
+              u8_strdup(ix->indexid));
+
+  if (free_adds) fd_free_keyvals(adds,n_adds);
+  if (free_drops) fd_free_keyvals(drops,n_drops);
+  if (free_stores) fd_free_keyvals(stores,n_stores);
+
+  return retval;
 }
 
 FD_EXPORT void fd_index_swapout(fd_index ix,lispval keys)

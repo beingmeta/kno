@@ -1193,7 +1193,6 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
         sort_ks_by_refoff);
   {
     struct FD_INBUF keyblock={0};
-    unsigned char keyblock_buf[HX_KEYBUF_SIZE];
     int bucket = -1, j = 0, k = 0, n_keys=0;
     const unsigned char *keyblock_start=NULL;
     while (j<n_entries) {
@@ -1516,8 +1515,8 @@ struct FD_KEY_SIZE *hashindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
       n_vals = fd_read_zint(&keyblkstrm);
       assert(key!=0);
       if ( (filter == NULL) || (fast_choice_containsp(key,filter)) ) {
-        sizes[key_count].keysizekey = key;
-        sizes[key_count].keysizenvals = n_vals;
+        sizes[key_count].keysize_key = key;
+        sizes[key_count].keysize_count = n_vals;
         key_count++;}
       else fd_decref(key);
       if (n_vals==0) {}
@@ -2168,6 +2167,7 @@ static int hashindex_commit(struct FD_INDEX *ix,
   if (!(u8_file_writablep(fname))) {
     fd_seterr("CantWriteFile","hashindex_commit",fname,FD_VOID);
     return -1;}
+  fd_lock_index(hx);
   struct FD_STREAM _stream = {0}, *stream =
     fd_init_file_stream(&_stream,fname,FD_FILE_WRITE,-1,-1);
   struct FD_OUTBUF *outstream = fd_writebuf(stream);
@@ -2178,12 +2178,14 @@ static int hashindex_commit(struct FD_INDEX *ix,
            "Bad offset type code=%d for %s",(int)offtype,hx->indexid);
     u8_seterr("CorruptedHashIndex","hashindex_commit",u8_strdup(ix->indexid));
     fd_close_stream(stream,0);
+    fd_unlock_index(hx);
     return -1;}
 
   if (  (n_adds==0) && (n_drops==0) && (n_stores==0) ) {
     if (fd_modifiedp((lispval)&(hx->index_metadata)))
       update_hashindex_metadata(hx,stream);
     fd_close_stream(stream,FD_STREAM_FREEDATA);
+    fd_unlock_index(hx);
     return 0;}
 
   u8_string recovery_file=u8_string_append(fname,".recovery",NULL);
@@ -2195,6 +2197,7 @@ static int hashindex_commit(struct FD_INDEX *ix,
     fd_setpos(stream,0);
     if (fd_write_4bytes(outstream,FD_HASHINDEX_TO_RECOVER)<0) {
       fd_close_stream(stream,FD_STREAM_FREEDATA);
+      fd_unlock_index(hx);
       return -1;}}
 
   int new_keys = 0, n_keys, new_buckets = 0;
@@ -2204,7 +2207,6 @@ static int hashindex_commit(struct FD_INDEX *ix,
   double started = u8_elapsed_time();
   unsigned int n_buckets = hx->index_n_buckets;
   unsigned int *offdata = hx->index_offdata;
-  fd_lock_index(hx);
   schedule_max = n_adds + n_drops + n_stores;
   bucket_locs = u8_alloc_n(schedule_max,struct BUCKET_REF);
 
@@ -3133,9 +3135,9 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
     struct FD_HASHTABLE *table= (fd_hashtable) fd_make_hashtable(NULL,n_keys);
     int i=0; while (i<n_keys) {
       fd_hashtable_op_nolock(table,fd_table_store,
-                             info[i].keysizekey,
-                             FD_INT(info[i].keysizenvals));
-      fd_decref(info[i].keysizekey);
+                             info[i].keysize_key,
+                             FD_INT(info[i].keysize_count));
+      fd_decref(info[i].keysize_key);
       i++;}
     u8_free(info);
     return (lispval)table;}

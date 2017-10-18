@@ -107,9 +107,9 @@ static int gather_keysizes(struct FD_KEYVAL *kv,void *data)
     if ( (filter==NULL) || (fast_choice_containsp(key,filter)) ) {
       lispval value = kv->kv_val;
       int size = FD_CHOICE_SIZE(value);
-      state->sizes[i].keysizekey = key;
+      state->sizes[i].keysize_key = key;
       fd_incref(key);
-      state->sizes[i].keysizenvals = FD_INT(size);
+      state->sizes[i].keysize_count = FD_INT(size);
       state->i++;}}
   return 0;
 }

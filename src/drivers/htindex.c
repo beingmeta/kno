@@ -54,8 +54,8 @@ static int htindex_fetchinfo_helper(lispval key,lispval value,void *ptr)
 {
   struct FETCHINFO_STATE *state=(struct FETCHINFO_STATE *)ptr;
   if ( (state->filter == NULL) || (fast_choice_containsp(key,state->filter)) ) {
-    state->write->keysizekey = key; fd_incref(key);
-    state->write->keysizenvals = FD_CHOICE_SIZE(value);
+    state->write->keysize_key = key; fd_incref(key);
+    state->write->keysize_count = FD_CHOICE_SIZE(value);
     state->write++;}
   return 0;
 }
