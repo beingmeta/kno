@@ -813,7 +813,6 @@ static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
 static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
-  struct FD_MONGODB_DATABASE *db = DOMAIN2DB(domain);
   int flags = getflags(opts_arg,domain->domain_flags);
   lispval opts = combine_opts(opts_arg,domain->domain_opts);
   mongoc_client_t *client = NULL;
@@ -933,7 +932,6 @@ static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
 {
   lispval result = FD_EMPTY_CHOICE;
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
-  struct FD_MONGODB_DATABASE *db = DOMAIN2DB(domain);
   int flags = getflags(opts_arg,domain->domain_flags);
   lispval opts = combine_opts(opts_arg,domain->domain_opts);
   mongoc_client_t *client = NULL;
