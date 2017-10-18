@@ -187,10 +187,55 @@ static lispval *procindex_fetchkeys(fd_index ix,int *n_keys)
       return NULL;}}
 }
 
-static
-struct FD_KEY_SIZE *procindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
+static int copy_keyinfo(lispval info,struct FD_KEY_SIZE *keyinfo)
 {
-  return NULL;
+  if ( (FD_PAIRP(info)) && (FD_INTEGERP(FD_CDR(info))) ) {
+    int retval = 0;
+    lispval key = FD_CAR(info);
+    lispval count = FD_CDR(info);
+    long long icount = fd_getint(count);
+    if (icount>=0) {
+      keyinfo->keysize_key   = key;
+      keyinfo->keysize_count = icount;
+      retval=1;}
+    if (FD_CONS_REFCOUNT(info) > 1) {
+      fd_incref(key);}
+    else {
+      FD_SETCAR(info,FD_VOID);
+      FD_SETCDR(info,FD_VOID);
+      fd_decref(count);}
+    fd_decref(info);
+    return retval;}
+  else return 0;
+}
+
+static
+struct FD_KEY_SIZE *procindex_fetchinfo(fd_index ix,fd_choice filter,int *n_ptr)
+{
+  struct FD_PROCINDEX *pix = (fd_procindex)ix;
+  lispval lp = fd_index2lisp(ix);
+  if (VOIDP(pix->fetchinfofn)) {
+    *n_ptr = -1;
+    return NULL;}
+  else {
+    int key_count = 0;
+    lispval args[]={lp,pix->index_state};
+    lispval result = fd_dapply(pix->fetchinfofn,2,args);
+    if (VECTORP(result)) {
+      int n = FD_VECTOR_LENGTH(result);
+      struct FD_KEY_SIZE *info = u8_alloc_n(n,struct FD_KEY_SIZE);
+      int i = 0; while (i<n) {
+        lispval keysize_pair = VEC_REF(result,i);
+        FD_VECTOR_SET(result,i,VOID);
+        if (copy_keyinfo(keysize_pair,&(info[key_count]))) key_count++;
+        i++;}
+      fd_decref(result);
+      *n_ptr = key_count;
+      return info;}
+    else {
+      fd_decref(result);
+      *n_ptr = 0;
+      return NULL;}}
 }
 
 
@@ -294,7 +339,7 @@ struct FD_INDEX_HANDLER fd_procindex_handler={
   NULL, /* prefetch */
   procindex_fetchn, /* fetchn */
   procindex_fetchkeys, /* fetchkeys */
-  NULL, /* fetchinfo */
+  procindex_fetchinfo, /* fetchinfo */
   NULL, /* batchadd */
   NULL, /* create */
   NULL, /* walk */
