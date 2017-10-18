@@ -793,9 +793,8 @@ static lispval *bigpool_fetchn(fd_pool p,int n,lispval *oids)
     FD_INIT_INBUF(&sbuf,bytes,FETCHBUF_SIZE,0);
 
     i = 0; while (i<n) {
-      lispval value;
       if (schedule[i].location.size==0)
-        value = FD_EMPTY;
+        values[schedule[i].value_at]=FD_EMPTY;
       else {
         fd_inbuf usebuf =
           ( schedule[i].location.size < FETCHBUF_SIZE ) ? (&sbuf) :
@@ -805,7 +804,8 @@ static lispval *bigpool_fetchn(fd_pool p,int n,lispval *oids)
                                     schedule[i].location.size,
                                     0);
         lispval value = read_oid_value(bp,in,"bigpool_fetchn");
-        if (FD_ABORTP(value)) break;
+        if (FD_ABORTP(value))
+          break;
         else values[schedule[i].value_at]=value;}
       i++;}
 
