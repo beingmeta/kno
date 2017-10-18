@@ -283,7 +283,7 @@ static ssize_t pread_all(int fileno,unsigned char *buf,size_t len,size_t offset)
     if (delta<0) break;
     to_read -= delta;
     offset  += delta;
-    point   = point + delta;}
+    point   += delta;}
   if (delta>=0)
     return len-to_read;
   else return delta;

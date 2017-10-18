@@ -158,39 +158,39 @@ static ssize_t grow_output_buffer(struct FD_OUTBUF *b,size_t delta)
   return 1;
 }
 
-static ssize_t grow_input_buffer(struct FD_INBUF *in,int delta)
+static ssize_t grow_input_buffer(struct FD_INBUF *in,size_t need_size)
 {
   int flags = in->buf_flags;
   struct FD_RAWBUF *b = (struct FD_RAWBUF *)in;
   size_t current_point = b->bufpoint-b->buffer;
   size_t current_limit = b->buflim-b->buffer;
-  size_t new_limit = current_limit;
-  size_t need_size = current_point+delta;
+  size_t cur_size = b->buflen, new_size=cur_size;
   unsigned char *old = b->buffer, *new;
   int free_old = 0;
+  if (cur_size > need_size) return cur_size;
   if (U8_BITP(flags,FD_BUFFER_NO_GROW)) {
     u8_seterr("CantGrowInputBuffer","grow_input_buffer",NULL);
     return -1;}
-  if (new_limit<=0) new_limit = 1000;
-  else if (new_limit<current_limit)
-    new_limit = current_limit;
-  else {}
-  while (new_limit < need_size)
-    if (new_limit>=250000) new_limit = new_limit+25000;
-    else new_limit = new_limit*2;
+  if (cur_size<=0) new_size=need_size+1;
+  else {
+    new_size = cur_size;
+    while (new_size < need_size)
+      if (new_size >= 2500000)
+        new_size = new_size + 250000;
+      else new_size = new_size*2;}
   bufio_alloc cur_alloc = BUFIO_ALLOC(in), new_alloc = cur_alloc;
-  if (new_limit > fd_bigbuf_threshold) {
+  if (new_size > fd_bigbuf_threshold) {
     if (cur_alloc == FD_BIGALLOC_BUFFER)
-      new = u8_big_realloc(old,new_limit);
-    else new = u8_big_copy(old,new_limit,current_point);
+      new = u8_big_realloc(old,new_size);
+    else new = u8_big_copy(old,new_size,current_point);
     free_old = (cur_alloc != FD_BIGALLOC_BUFFER);
     new_alloc = FD_BIGALLOC_BUFFER;}
   else if (cur_alloc == FD_BIGALLOC_BUFFER)
-    new = u8_big_realloc(old,new_limit);
+    new = u8_big_realloc(old,new_size);
   else if (cur_alloc == FD_HEAP_BUFFER)
-    new = u8_realloc(old,new_limit);
+    new = u8_realloc(old,new_size);
   else {
-    new=u8_malloc(new_limit);
+    new=u8_malloc(new_size);
     memcpy(new,old,current_point);
     new_alloc = FD_HEAP_BUFFER;
     free_old = cur_alloc;}
@@ -199,14 +199,14 @@ static ssize_t grow_input_buffer(struct FD_INBUF *in,int delta)
   b->buffer = new;
   b->bufpoint = new+current_point;
   b->buflim = b->buffer+current_limit;
-  b->buflen = new_limit;
+  b->buflen = new_size;
   if (free_old==0) {}
   else if (cur_alloc == FD_HEAP_BUFFER)
     u8_free(old);
   else if (cur_alloc == FD_BIGALLOC_BUFFER)
     u8_big_free(old);
   else {}
-  return new_limit;
+  return new_size;
 }
 
 FD_EXPORT int fd_needs_space(struct FD_OUTBUF *b,size_t delta)
@@ -223,8 +223,9 @@ FD_EXPORT int _fd_grow_outbuf(struct FD_OUTBUF *b,size_t delta)
 }
 FD_EXPORT int _fd_grow_inbuf(struct FD_INBUF *b,size_t delta)
 {
-  if (b->bufread+delta > b->buflim)
-    return grow_input_buffer(b,delta);
+  if (b->bufread+delta > b->buflim) {
+    ssize_t need_bytes = delta + (b->buflim-b->buffer);
+    return grow_input_buffer(b,need_bytes);}
   else return 1;
 }
 
@@ -285,7 +286,7 @@ FD_EXPORT ssize_t fd_grow_byte_input(struct FD_INBUF *b,size_t len)
 {
   if ( b->buflen >= len)
     return len;
-  else return grow_input_buffer(b,len-b->buflen);
+  else return grow_input_buffer(b,len);
 }
 
 /* Exported functions */
