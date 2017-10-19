@@ -1009,27 +1009,9 @@ static lispval compute_choice_difference
         pscan++;}
       else if (cons_compare(*wscan,*pscan)<0) {
         *write = fd_incref(*wscan);
-        write++; wscan++;}
-      else if (cons_compare(*wscan,*pscan)<=0)
-        pscan++;
-      else {
-        /* We are now looking for the next element of 'part' which
-           would be at or after the next element of whole. */
-        lispval nextval = *wscan;
-        const lispval *bottom = pscan, *top = plim-1;
-        size_t window = top-bottom;
-        const lispval *middle = bottom + (window/2);
-        while (top > bottom) {
-          lispval midval = *middle;
-          int cmp = cons_compare(nextval,midval);
-          if (cmp == 0)
-            break;
-          else if (cmp < 0 )
-            top = middle-1;
-          else bottom = middle+1;
-          window = top - bottom;
-          middle = bottom + (window/2);}
-        if (middle>pscan) pscan=middle;}}
+        write++;
+        wscan++;}
+      else pscan++;}
   /* Now we just copy the remainder, since *part* has run out */
   if (watomicp) {
     memmove(write,wscan,sizeof(lispval)*(wlim-wscan));
