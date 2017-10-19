@@ -1220,6 +1220,9 @@ FD_EXPORT void fd_init_arith_c()
   arithdef2("ATAN2",latan2,atan2);
   arithdef2("POW~",lpow,lpow);
 
+  fd_store(fd_scheme_module,fd_intern("MAX-FIXNUM"),fd_max_fixnum);
+  fd_store(fd_scheme_module,fd_intern("MIN-FIXNUM"),fd_min_fixnum);
+
   fd_idefn(fd_scheme_module,fd_make_cprimn("+",plus_lexpr,-1));
   fd_idefn(fd_scheme_module,fd_make_cprimn("-",minus_lexpr,-1));
   fd_idefn(fd_scheme_module,fd_make_cprimn("*",times_lexpr,-1));

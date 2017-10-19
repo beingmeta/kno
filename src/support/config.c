@@ -878,6 +878,19 @@ void fd_init_config_c()
     ("CWD",_("Get/set the current working directory"),
      cwd_config_get,cwd_config_set,NULL);
 
+  fd_register_config("FIXMAX","The maximum fixnum value",
+                     fd_lconfig_get,fd_readonly_config_set,
+                     &fd_max_fixnum);
+  fd_register_config("MAXFIX","The maximum fixnum value",
+                     fd_lconfig_get,fd_readonly_config_set,
+                     &fd_max_fixnum);
+  fd_register_config("FIXMIN","The minimum fixnum value",
+                     fd_lconfig_get,fd_readonly_config_set,
+                     &fd_min_fixnum);
+  fd_register_config("MINFIX","The minimum fixnum value",
+                     fd_lconfig_get,fd_readonly_config_set,
+                     &fd_min_fixnum);
+
   fd_register_config
     ("TRACECONFIG",_("whether to trace configuration"),
      fd_boolconfig_get,fd_boolconfig_set,&trace_config);

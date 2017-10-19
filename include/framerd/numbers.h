@@ -3,6 +3,9 @@ FD_EXPORT u8_condition fd_NotANumber;
 FD_EXPORT u8_condition fd_DivideByZero;
 FD_EXPORT u8_condition fd_InvalidNumericLiteral;
 
+FD_EXPORT lispval fd_max_fixnum;
+FD_EXPORT lispval fd_min_fixnum;
+
 FD_EXPORT lispval fd_make_bigint(long long intval);
 FD_EXPORT lispval fd_init_double(struct FD_FLONUM *ptr,double flonum);
 FD_EXPORT lispval fd_string2number(u8_string string,int base);
