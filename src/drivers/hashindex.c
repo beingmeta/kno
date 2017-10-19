@@ -2191,13 +2191,16 @@ static int hashindex_commit(struct FD_INDEX *ix,
   u8_string recovery_file=u8_string_append(fname,".recovery",NULL);
   size_t recovery_size = 256+(get_chunk_ref_size(hx)*hx->index_n_buckets);
   ssize_t saved=fd_save_head(fname,recovery_file,recovery_size);
-  if (saved<0)
-    return saved;
+  if (saved<0) {
+    u8_seterr("CouldntSaveHead","hashindex_commit",recovery_file);
+    return saved;}
   else {
     fd_setpos(stream,0);
     if (fd_write_4bytes(outstream,FD_HASHINDEX_TO_RECOVER)<0) {
       fd_close_stream(stream,FD_STREAM_FREEDATA);
       fd_unlock_index(hx);
+      u8_seterr("PreRecoverFailed","hashindex_commit",
+                u8_strdup("Failed to write recovery header"));
       return -1;}}
 
   int new_keys = 0, n_keys, new_buckets = 0;
@@ -2321,6 +2324,8 @@ static int hashindex_commit(struct FD_INDEX *ix,
         u8_free(keybuckets);
         fd_unlock_index(hx);
         fd_close_stream(stream,FD_STREAM_FREEDATA);
+        u8_seterr("WriteKeyBucketFailed","hashindex_commit",
+                  u8_strdup(hx->indexid));
         return -1;}
       CHECK_POS(endpos,stream);
       bucket_locs[bucket_i].bck_ref.off = startpos;
