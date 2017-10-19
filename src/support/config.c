@@ -477,6 +477,13 @@ FD_EXPORT int fd_readonly_config_set(lispval ignored,lispval v,void *vptr)
   else return fd_reterr(fd_ReadOnlyConfig,"fd_set_config",NULL,VOID);
 }
 
+/* For configuration variables which are just integer constants */
+FD_EXPORT lispval fd_constconfig_get(lispval ignored,void *llval)
+{
+  long long int_val = (long long) llval;
+  return FD_INT(int_val);
+}
+
 /* For configuration variables which get/set dtype value. */
 FD_EXPORT lispval fd_lconfig_get(lispval ignored,void *lispp)
 {
@@ -890,6 +897,19 @@ void fd_init_config_c()
   fd_register_config("MINFIX","The minimum fixnum value",
                      fd_lconfig_get,fd_readonly_config_set,
                      &fd_min_fixnum);
+
+  fd_register_config("UINT_MAX",
+                     "Maximum value for an underlying unsigned INT",
+                     fd_constconfig_get,fd_readonly_config_set,
+                     (void *) UINT_MAX);
+  fd_register_config("INT_MAX",
+                     "Maximum value for an underlying unsigned INT",
+                     fd_constconfig_get,fd_readonly_config_set,
+                     (void *) INT_MAX);
+  fd_register_config("INT_MIN",
+                     "Maximum value for an underlying unsigned INT",
+                     fd_constconfig_get,fd_readonly_config_set,
+                     (void *) INT_MIN);
 
   fd_register_config
     ("TRACECONFIG",_("whether to trace configuration"),
