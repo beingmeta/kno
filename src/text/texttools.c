@@ -478,19 +478,23 @@ static lispval seq2phrase_prim(lispval arg,lispval start_arg,lispval end_arg)
     return fd_type_error("uint","seq2phrase_prim",start_arg);
   else {
     int dospace = 0, start = FIX2INT(start_arg), end;
-    int len = fd_seq_length(arg);
+    int len = fd_seq_length(arg); char tmpbuf[32];
+
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
     if (start<0) start = len+start;
     if ((start<0) || (start>len)) {
-      char buf[32]; sprintf(buf,"%lld",FIX2INT(start_arg));
-      return fd_err(fd_RangeError,"seq2phrase_prim",buf,arg);}
+      char buf[32];
+      return fd_err(fd_RangeError,"seq2phrase_prim",
+                    u8_itoa10(FIX2INT(start_arg),tmpbuf),
+                    arg);}
     if (!(FD_INTP(end_arg))) end = len;
     else {
       end = FIX2INT(end_arg);
       if (end<0) end = len+end;
       if ((end<0) || (end>len)) {
-        char buf[32]; sprintf(buf,"%lld",FIX2INT(end_arg));
-        return fd_err(fd_RangeError,"seq2phrase_prim",buf,arg);}}
+        return fd_err(fd_RangeError,"seq2phrase_prim",
+                      u8_itoa10(FIX2INT(end_arg),tmpbuf),
+                      arg);}}
     while (start<end) {
       lispval word = fd_seq_elt(arg,start);
       if (CHOICEP(word)) {

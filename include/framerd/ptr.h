@@ -114,11 +114,7 @@
 
 FD_EXPORT u8_condition fd_BadPtr;
 
-#ifndef SIZEOF_VOID_P
-#define FD_PTR_WIDTH (32*8)
-#else
-#define FD_PTR_WIDTH (SIZEOF_VOID_P*4)
-#endif
+#define FD_PTR_WIDTH ((SIZEOF_VOID_P)*8)
 
 #if SIZEOF_INT == SIZEOF_VOID_P
 typedef unsigned int _fd_ptrbits;
@@ -528,11 +524,11 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
 /* For FD_FIX2INT, we convert the fixnum to a long long and mask out
    the type bits; we then just divide by four to get the integer
    value. */
-#define FD_FIX2INT(fx)  ( ( ((long long) fx) & (~0x3)) / 4)
-#define FD_INT2FIX(n)   ( (lispval) ( ( ((_fd_sptr)(n)) * 4 ) | fd_fixnum_type) )
+#define FD_FIX2INT(fx)  ( (_fd_sptr) ( ( ((_fd_sptr) fx) & (~0x3)) / 4) )
+#define FD_INT2FIX(n)   ( (lispval) ( ( ((_fd_sptr)(n)) << 2 ) | fd_fixnum_type) )
 
-#define FD_MAX_FIXNUM ((((long long)1)<<(FD_FIXNUM_BITS))-1)
-#define FD_MIN_FIXNUM -((((long long)1)<<(FD_FIXNUM_BITS))-1)
+#define FD_MAX_FIXNUM ((((long long)1)<<(FD_FIXNUM_BITS-1))-1)
+#define FD_MIN_FIXNUM -((((long long)1)<<(FD_FIXNUM_BITS-1))-1)
 
 #define FD_MAX_FIXVAL (INT2FIX(FD_MAX_FIXNUM))
 #define FD_MIN_FIXVAL (INT2FIX(FD_MIN_FIXNUM))

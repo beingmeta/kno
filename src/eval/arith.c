@@ -1177,9 +1177,9 @@ static lispval number2locale(lispval x,lispval precision)
       return lispval_string(buf);}
     else return fd_type_error("fixnum","inexact2string",precision);
   else if (FIXNUMP(x)) {
-    char buf[128];
-    sprintf(buf,"%'lld",FIX2INT(x));
-    return lispval_string(buf);}
+    long long i_val = FIX2INT(x);
+    char tmpbuf[32];
+    return lispval_string(u8_itoa10(i_val,tmpbuf));}
   else {
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
     fd_unparse(&out,x);
