@@ -970,29 +970,70 @@ static lispval compute_choice_difference
   const lispval *pscan = FD_XCHOICE_DATA(part), *plim = pscan+psize;
   struct FD_CHOICE *result = fd_alloc_choice(wsize);
   lispval *newv = (lispval *)FD_XCHOICE_DATA(result), *write = newv;
-  /* An additional optimization here might quit as soon as we start getting
-     into nonatomic elements of PART while WHOLE is all atomic. */
-  if ((watomicp) && (patomicp))
-    while ((wscan<wlim) && (pscan<plim))
+  if ((watomicp) && (patomicp)) {
+    while ( (wscan<wlim) && (pscan<plim) ) {
       if (*wscan == *pscan) {
         wscan++;
-        pscan++;}
+        pscan++;
+        continue;}
       else if (*wscan < *pscan) {
         *write = *wscan;
-        write++; wscan++;}
+        write++;
+        wscan++;
+        continue;}
       else pscan++;
-  else while ((wscan<wlim) && (pscan<plim))
-    if (LISP_EQUAL(*wscan,*pscan)) {
-      wscan++;
-      pscan++;}
-    else if (cons_compare(*wscan,*pscan)<0) {
-      *write = fd_incref(*wscan);
-      write++; wscan++;}
-    else pscan++;
-  if (watomicp)
-    while (wscan < wlim) {
-      *write = *wscan;
-      write++; wscan++;}
+      if (pscan >= plim)
+        break;
+      else if (*wscan <= *pscan)
+        continue;
+      else {
+        /* We are now looking for the next element of 'part' which
+           would be at or after the next element of whole. */
+        lispval nextval = *wscan;
+        const lispval *bottom = pscan, *top = plim-1;
+        size_t window = top-bottom;
+        const lispval *middle = bottom + (window/2);
+        while (top > bottom) {
+          lispval midval = *middle;
+          if (nextval == midval)
+            break;
+          else if (nextval < midval)
+            top = middle-1;
+          else bottom = middle+1;
+          window = top - bottom;
+          middle = bottom + (window/2);}
+        if (middle>pscan) pscan=middle;}}}
+  else while ( (wscan<wlim) && (pscan<plim) ) {
+      if (LISP_EQUAL(*wscan,*pscan)) {
+        wscan++;
+        pscan++;}
+      else if (cons_compare(*wscan,*pscan)<0) {
+        *write = fd_incref(*wscan);
+        write++; wscan++;}
+      else if (cons_compare(*wscan,*pscan)<=0)
+        pscan++;
+      else {
+        /* We are now looking for the next element of 'part' which
+           would be at or after the next element of whole. */
+        lispval nextval = *wscan;
+        const lispval *bottom = pscan, *top = plim-1;
+        size_t window = top-bottom;
+        const lispval *middle = bottom + (window/2);
+        while (top > bottom) {
+          lispval midval = *middle;
+          int cmp = cons_compare(nextval,midval);
+          if (cmp == 0)
+            break;
+          else if (cmp < 0 )
+            top = middle-1;
+          else bottom = middle+1;
+          window = top - bottom;
+          middle = bottom + (window/2);}
+        if (middle>pscan) pscan=middle;}}
+  /* Now we just copy the remainder, since *part* has run out */
+  if (watomicp) {
+    memmove(write,wscan,sizeof(lispval)*(wlim-wscan));
+    write = write + (wlim-wscan);}
   else while (wscan < wlim) {
       *write = fd_incref(*wscan);
       write++; wscan++;}
