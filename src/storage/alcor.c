@@ -49,6 +49,11 @@ FD_EXPORT ssize_t fd_save_head(u8_string source,u8_string dest,size_t head_len)
   if (in<0)
     return in;
   else rv=u8_lock_fd(in,0);
+  if (rv<0) {
+    u8_seterr("LockFailed","fd_save_head",u8_strdup(source));
+    u8_free(dst);
+    close(in);
+    return rv;}
   unsigned char *buf=u8_big_alloc(head_len);
   size_t bytes_read=0;
   while (bytes_read<head_len) {
@@ -59,7 +64,13 @@ FD_EXPORT ssize_t fd_save_head(u8_string source,u8_string dest,size_t head_len)
       return delta;}
     bytes_read += delta;}
   rv=u8_unlock_fd(in);
-  rv=close(in);
+  if (rv<0) {
+    u8_seterr("UnlockFailed","fd_save_head",u8_strdup(source));
+    if ( (close(in)) < 0 )
+      u8_seterr("CloseFailed","fd_save_head",u8_strdup(source));}
+  else if ((rv=close(in)) < 0)
+    u8_seterr("CloseFailed","fd_save_head",u8_strdup(source));
+  else {}
   if (rv<0) {
     u8_big_free(buf);
     return rv;}
