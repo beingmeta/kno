@@ -245,7 +245,8 @@
     (applytest vectorval get frame 'contents-as-vector)
     (applytest exprsval get frame 'contents-as-choice)
     (applytest (choice-size exprsval)
- 	       choice-size (find-frames index 'type 'expr 'in-file frame))))
+ 	       choice-size (find-frames index 'type 'expr 'in-file frame)))
+  (message "Done checking filename frame " frame))
 
 (define (checkexpr frame pool index)
   (applytest (get frame 'in-file)
