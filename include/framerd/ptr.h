@@ -5,8 +5,8 @@
    and a valuable trade secret of beingmeta, inc.
 
    This file implements the basic structures, macros, and function
-    prototypes for dealing with dtype pointers as implemented for the
-    FramerC library
+   prototypes for dealing with dtype pointers as implemented for the
+   FramerC library
 */
 
 /* THE ANATOMY OF A POINTER
@@ -15,74 +15,74 @@
    model which uses an internal pointer format designed for efficency in
    the normal cases and easy extensibility to more advanced cases.
 
-    A dtype pointer is an unsigned int the same size as a memory
-    pointer.  The lower two bits of the int represent one of four
-    *manifest type codes*.  These are CONS (0), IMMEDIATE (1), FIXNUM
-    (2), and OID (3).  These are all referred to the "base type" of a
-    pointer.  In essense, CONSes point to structures in memory,
-    IMMEDIATEs represent constant persistent values, FIXNUMs represent
-    low magnitude signed integers, and OIDs are compressed object
-    references into 64-bit object address space.
+   A dtype pointer is an unsigned int the same size as a memory
+   pointer.  The lower two bits of the int represent one of four
+   *manifest type codes*.  These are CONS (0), IMMEDIATE (1), FIXNUM
+   (2), and OID (3).  These are all referred to the "base type" of a
+   pointer.  In essense, CONSes point to structures in memory,
+   IMMEDIATEs represent constant persistent values, FIXNUMs represent
+   low magnitude signed integers, and OIDs are compressed object
+   references into 64-bit object address space.
 
-    Fixing the CONS type at zero (0), together with structure
-    alignment on 4-byte word boundaries, enables dtype pointers to be
-    direclty used as structure pointers and vice versa.  A CONS
-    pointer is exactly such a memory reference.  The detailed
-    implementation of CONSes is described at the head of
-    <include/framerd/cons.h>, but it is basically a block of memory
-    whose first 4 bytes encode a 25-bit reference count and a 7-bit
-    type code.
+   Fixing the CONS type at zero (0), together with structure
+   alignment on 4-byte word boundaries, enables dtype pointers to be
+   direclty used as structure pointers and vice versa.  A CONS
+   pointer is exactly such a memory reference.  The detailed
+   implementation of CONSes is described at the head of
+   <include/framerd/cons.h>, but it is basically a block of memory
+   whose first 4 bytes encode a 25-bit reference count and a 7-bit
+   type code.
 
-    The IMMEDIATE type is used to represent a number of "constant" data
-    types, including booleans, special values (error codes, etc), unicode
-    characters, and symbols.  The high 7 bits of an IMMEDIATE pointer encode
-    a more detailed type code and the remaining 23 bits are available to
-    represent particular values of each type.
+   The IMMEDIATE type is used to represent a number of "constant" data
+   types, including booleans, special values (error codes, etc), unicode
+   characters, and symbols.  The high 7 bits of an IMMEDIATE pointer encode
+   a more detailed type code and the remaining 23 bits are available to
+   represent particular values of each type.
 
-    The FIXNUM base pointer type is used for small magnitude signed
-    integers.  Rather than using a two's complement representation for
-    negative numbers, FramerC uses the 32nd bit (the high order bit on 32
-    bit architectures) as a sign bit and stores the absolute magnitude
-    in the remainder of the word (down to the two bits of type code.
-    For positive numbers, converting between C ints dtype fixnums is
-    simply a matter of multiply or diving by 4 and adding the type
-    code (when converting to DTYPEs).  For negative numbers, it is
-    trickier but not much, as in FD_INT2DTYPE and FD_DTYPE2INT below.
-    Currently, fixnums do not take advantage of the full word on
-    64-bit machines, for a mix of present practical and prospective
-    design reasons.
+   The FIXNUM base pointer type is used for small magnitude signed
+   integers.  Rather than using a two's complement representation for
+   negative numbers, FramerC uses the 32nd bit (the high order bit on 32
+   bit architectures) as a sign bit and stores the absolute magnitude
+   in the remainder of the word (down to the two bits of type code.
+   For positive numbers, converting between C ints dtype fixnums is
+   simply a matter of multiply or diving by 4 and adding the type
+   code (when converting to DTYPEs).  For negative numbers, it is
+   trickier but not much, as in FD_INT2DTYPE and FD_DTYPE2INT below.
+   Currently, fixnums do not take advantage of the full word on
+   64-bit machines, for a mix of present practical and prospective
+   design reasons.
 
-    The OID base pointer type is used to represent object pointers into a
-    64-bit object space.  It does this by dividing the 64 bit object space
-    into buckets addressable by 20 bits (roughly a million objects).  The
-    30 content bits in an OID pointer are then divided between a base ID
-    (indicating a particular bucket in the 64-bit space) and an offset from
-    that base address.  Currently, on both 32-bit and 64-bit
-    architectures, ten (10) bits are used for base oids, though this could
-    obviously be increased in 64-bit architectures.  However, there might
-    also be value in keeping it small and allowing 32 bit OID pointers even
-    on 64-bit architectures.
+   The OID base pointer type is used to represent object pointers into a
+   64-bit object space.  It does this by dividing the 64 bit object space
+   into buckets addressable by 20 bits (roughly a million objects).  The
+   30 content bits in an OID pointer are then divided between a base ID
+   (indicating a particular bucket in the 64-bit space) and an offset from
+   that base address.  Currently, on both 32-bit and 64-bit
+   architectures, ten (10) bits are used for base oids, though this could
+   obviously be increased in 64-bit architectures.  However, there might
+   also be value in keeping it small and allowing 32 bit OID pointers even
+   on 64-bit architectures.
 
-    This pointer layout is not just useful for compressing the 64-bit
-    space, but can speed up processing, since the baseids are small and
-    many lookup procedures can simply use this baseid directly as an
-    index into an array.  Thus, even on 64-bit architectures, a direct
-    representation of object addresses may not be desirable.
+   This pointer layout is not just useful for compressing the 64-bit
+   space, but can speed up processing, since the baseids are small and
+   many lookup procedures can simply use this baseid directly as an
+   index into an array.  Thus, even on 64-bit architectures, a direct
+   representation of object addresses may not be desirable.
 
-    A single unified space of type codes (fd_ptr_type) combines the four
-    base type codes with the 7-bit type codes associated with CONSes and
-    IMMEDIATE pointers.  In this single space, CONS types start at 0x04 and
-    IMMEDIATE types start at 0x84.  For example, dtype pairs, implemented as
-    structures with a stored type code of 0x03, are represented in the
-    unified type space by 0x07.  Symbols, which are implemented as
-    CONSTANT types with a stored type value of 0x02, are represented in
-    the unified space by 0x86.
+   A single unified space of type codes (fd_ptr_type) combines the four
+   base type codes with the 7-bit type codes associated with CONSes and
+   IMMEDIATE pointers.  In this single space, CONS types start at 0x04 and
+   IMMEDIATE types start at 0x84.  For example, dtype pairs, implemented as
+   structures with a stored type code of 0x03, are represented in the
+   unified type space by 0x07.  Symbols, which are implemented as
+   CONSTANT types with a stored type value of 0x02, are represented in
+   the unified space by 0x86.
 
-    The built in components of the unified type space are represented
-    by the enumeration fd_ptr_type (enum FD_PTR_TYPE).  New immediate
-    and cons types can be allocated by fd_register_immediate_type(char
-    *) and fd_register_cons_type(char *).
-*/
+   The built in components of the unified type space are represented
+   by the enumeration fd_ptr_type (enum FD_PTR_TYPE).  New immediate
+   and cons types can be allocated by fd_register_immediate_type(char
+   *) and fd_register_cons_type(char *).
+   */
 
 /* DTYPE Types */
 
@@ -94,13 +94,6 @@
 
 #include "common.h"
 
-/* 0 and 1 are reserved for OIDs and fixnums.
-   CONS types start at 0x84 and go until 0x104, which
-    is the limit to what we can store together with
-    the reference count in fd_consbit
-   IMMEDIATE types start after that
-*/
-
 #define FD_CONS_TYPECODE(i) (0x84+i)
 #define FD_IMMEDIATE_TYPECODE(i) (0x04+i)
 #define FD_MAX_CONS_TYPES  0x80
@@ -108,12 +101,37 @@
 #define FD_MAX_IMMEDIATE_TYPES 0x80
 #define FD_MAX_IMMEDIATE_TYPE FD_IMMEDIATE_TYPECODE(0x80)
 
-FD_EXPORT u8_condition fd_BadPtr;
-
+/* 0 and 1 are reserved for OIDs and fixnums.
+   CONS types start at 0x84 and go until 0x104, which
+   is the limit to what we can store together with
+   the reference count in fd_consbit
+   IMMEDIATE types start after that
+*/
 #define fd_cons_ptr_type (0)
 #define fd_immediate_ptr_type (1)
 #define fd_fixnum_ptr_type (2)
 #define fd_oid_ptr_type (3)
+
+FD_EXPORT u8_condition fd_BadPtr;
+
+#ifndef SIZEOF_VOID_P
+#define FD_PTR_WIDTH (32*8)
+#else
+#define FD_PTR_WIDTH (SIZEOF_VOID_P*4)
+#endif
+
+#if SIZEOF_INT == SIZEOF_VOID_P
+typedef unsigned int _fd_ptrbits;
+typedef int _fd_sptr;
+#elif SIZEOF_LONG == SIZEOF_VOID_P
+typedef long _fd_sptr;
+#elif SIZEOF_LONG_LONG == SIZEOF_VOID_P
+typedef long long _fd_sptr;
+#else
+typedef int _fd_sptr;
+#endif
+
+/* Basic types */
 
 typedef enum FD_PTR_TYPE {
   fd_cons_type = 0, fd_immediate_type = 1,
@@ -495,44 +513,38 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
 
 /* Fixnums */
 
-#ifndef SIZEOF_VOID_P
-#define FD_FIXNUM_BITS 30
-#elif SIZEOF_VOID_P <= 4
-#define FD_FIXNUM_BITS 30
-#else
-#define FD_FIXNUM_BITS ((SIZEOF_VOID_P*8)-3)
-#endif
+/* Fixnums use PTR_WIDTH-2 bits to represent integer values and are
+   optimized to assume a standard 2s-complement representation for
+   negative numbers. So, the layout of an integer is:
+     signbit magnitude typecode(2 bits)
+   and we try make conversion as simple as possible.
+ */
+
+#define FD_PTRMASK     (~((_fd_ptrbits)3))
+#define FD_FIXNUM_BITS ((FD_PTR_WIDTH)-2)
+#define FD_2CMASK      (((_fd_ptrbits)1)<<(FD_PTR_WIDTH-1))
+
+/* Fixnum conversion */
+/* For FD_FIX2INT, we convert the fixnum to a long long and mask out
+   the type bits; we then just divide by four to get the integer
+   value. */
+#define FD_FIX2INT(fx)  ( ( ((long long) fx) & (~0x3)) / 4)
+#define FD_INT2FIX(n)   ( (lispval) ( ( ((_fd_sptr)(n)) * 4 ) | fd_fixnum_type) )
 
 #define FD_MAX_FIXNUM ((((long long)1)<<(FD_FIXNUM_BITS))-1)
 #define FD_MIN_FIXNUM -((((long long)1)<<(FD_FIXNUM_BITS))-1)
 
+#define FD_MAX_FIXVAL (INT2FIX(FD_MAX_FIXNUM))
+#define FD_MIN_FIXVAL (INT2FIX(FD_MIN_FIXNUM))
+
 #define to64(x) ((long long)(x))
 #define to64u(x) ((unsigned long long)(x))
 
-#define FD_FIX2INT(x)                                                   \
-  ((long long)((((to64(x))>=0) ? ((x)/4) : (-((to64(-(x)))>>2)))))
-#define FD_FIX2UINT(x)   \
-  ((long long)((((to64(x))>=0) ? ((x)/4) : (-((to64(-(x)))>>2)))))
+#define FD_MAKE_FIXNUM FD_INT2FIX
 
-#define FD_INT2FIX(x)                                           \
-  ((lispval)                                                    \
-   ((FD_EXPECT_FALSE(x>FD_MAX_FIXNUM)) ? (FD_MAX_FIXNUM) :      \
-    (FD_EXPECT_FALSE(x<FD_MIN_FIXNUM)) ? (FD_MIN_FIXNUM) :      \
-    ((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :           \
-    (- ( fd_fixnum_type | ((to64(-(x)))<<2)))))
-
-#define FD_MAKE_FIXNUM(x) \
-  ((lispval)                                                    \
-   (((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :           \
-    (- ( fd_fixnum_type | ((to64u(-(x)))<<2)) )))
-
-#define FD_INT2DTYPE(x) \
-  ((((to64(x)) > (to64(FD_MAX_FIXNUM))) ||                      \
-    ((to64(x)) < (to64(FD_MIN_FIXNUM)))) ?                      \
-   (fd_make_bigint(to64(x))) :                                  \
-   ((lispval)                                                   \
-    (((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :          \
-     (- ( fd_fixnum_type | ((to64u(-(x)))<<2)) ))))
+#define FD_INT2DTYPE(n)                                  \
+  ( ( ((n) > FD_MAX_FIXNUM) || ((n) < FD_MIN_FIXNUM) ) ? \
+    (fd_make_bigint(n)) : (FD_INT2FIX(n)) )
 #define FD_INT(x) (FD_INT2DTYPE(x))
 #define FD_MAKEINT(x) (FD_INT2DTYPE(x))
 
@@ -541,12 +553,8 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
    (fd_make_bigint(to64u(x))) :                                 \
    ((lispval) (((to64u(x))*4)|fd_fixnum_type)))
 
-#define FD_SHORT2DTYPE(x)                               \
-  ((lispval)                                            \
-   (((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :   \
-    (- ( fd_fixnum_type | ((to64(-(x)))<<2)))))
-
-#define FD_SHORT2FIX(x) (FD_SHORT2DTYPE(x))
+#define FD_SHORT2DTYPE(shrt) (FD_INT2FIX((long long)shrt))
+#define FD_SHORT2FIX(shrt)   (FD_INT2FIX((long long)shrt))
 
 #define FD_USHORT2DTYPE(x)     ((lispval)(fd_fixnum_type|((x&0xFFFF)<<2)))
 #define FD_BYTE2DTYPE(x)       ((lispval) (fd_fixnum_type|((x&0xFF)<<2)))

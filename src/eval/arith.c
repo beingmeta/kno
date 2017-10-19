@@ -430,8 +430,20 @@ static lispval random_prim(lispval maxarg)
     long long max = fd_getint(maxarg);
     if (max<=0)
       return fd_type_error("Small positive integer","random_prim",maxarg);
-    else if (max > UINT_MAX)
-      return fd_type_error("Small positive integer","random_prim",maxarg);
+    else if (max > UINT_MAX) {
+      long long short_max = max%USHRT_MAX;
+      unsigned long long base_rand = max-short_max;
+      unsigned long long big_rand =  u8_random(short_max);
+      while (base_rand>0) {
+        unsigned int short_rand = u8_random(USHRT_MAX);
+        big_rand = (big_rand << 16) + short_rand;
+        base_rand = base_rand >> 16;}
+      big_rand = big_rand % max;
+      if (big_rand<FD_MAX_FIXNUM)
+        return FD_INT2FIX(big_rand);
+      else {
+        fd_bigint bi = fd_ulong_long_to_bigint(big_rand);
+        return (lispval) bi;}}
     else {
       unsigned int n = u8_random(max);
       return FD_INT(n);}}
