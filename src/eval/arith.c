@@ -427,10 +427,14 @@ static lispval remainder_prim(lispval x,lispval m)
 static lispval random_prim(lispval maxarg)
 {
   if (FD_INTEGERP(maxarg)) {
-    long long max = fd_getint(maxarg), n = u8_random(max);
-    if ((max<=0)||(max>0x80000000))
+    long long max = fd_getint(maxarg);
+    if (max<=0)
       return fd_type_error("Small positive integer","random_prim",maxarg);
-    else return FD_INT(n);}
+    else if (max > UINT_MAX)
+      return fd_type_error("Small positive integer","random_prim",maxarg);
+    else {
+      unsigned int n = u8_random(max);
+      return FD_INT(n);}}
   else if (FD_FLONUMP(maxarg)) {
     double flomax = FD_FLONUM(maxarg);
     long long  intmax = (long long)flomax;
