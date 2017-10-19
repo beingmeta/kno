@@ -974,19 +974,28 @@ static lispval compute_choice_difference
      into nonatomic elements of PART while WHOLE is all atomic. */
   if ((watomicp) && (patomicp))
     while ((wscan<wlim) && (pscan<plim))
-      if (*wscan == *pscan) {wscan++; pscan++;}
+      if (*wscan == *pscan) {
+        wscan++;
+        pscan++;}
       else if (*wscan < *pscan) {
-        *write = *wscan; write++; wscan++;}
+        *write = *wscan;
+        write++; wscan++;}
       else pscan++;
   else while ((wscan<wlim) && (pscan<plim))
-    if (LISP_EQUAL(*wscan,*pscan)) {wscan++; pscan++;}
+    if (LISP_EQUAL(*wscan,*pscan)) {
+      wscan++;
+      pscan++;}
     else if (cons_compare(*wscan,*pscan)<0) {
-      *write = fd_incref(*wscan); write++; wscan++;}
+      *write = fd_incref(*wscan);
+      write++; wscan++;}
     else pscan++;
   if (watomicp)
-    while (wscan < wlim) {*write = *wscan; write++; wscan++;}
-  else while (wscan < wlim)
-    {*write = fd_incref(*wscan); write++; wscan++;}
+    while (wscan < wlim) {
+      *write = *wscan;
+      write++; wscan++;}
+  else while (wscan < wlim) {
+      *write = fd_incref(*wscan);
+      write++; wscan++;}
   if (write-newv>1)
     return fd_init_choice(result,write-newv,NULL,
                           ((watomicp)?(FD_CHOICE_ISATOMIC):(0)));
@@ -1013,7 +1022,8 @@ lispval fd_difference(lispval value,lispval remove)
     lispval svalue = fd_make_simple_choice(value);
     lispval sremove = fd_make_simple_choice(remove);
     lispval result = fd_difference(svalue,sremove);
-    fd_decref(svalue); fd_decref(sremove);
+    fd_decref(svalue);
+    fd_decref(sremove);
     return result;}
   else if (CHOICEP(value))
     if (!(CHOICEP(remove)))
@@ -1030,8 +1040,9 @@ lispval fd_difference(lispval value,lispval remove)
           else return fd_incref((FD_XCHOICE_DATA(vchoice))[0]);
         else {
           struct FD_CHOICE *new_choice = fd_alloc_choice(size-1);
-          lispval *newv = (lispval *)FD_XCHOICE_DATA(new_choice), *write = newv;
+          lispval *newv = (lispval *)FD_XCHOICE_DATA(new_choice);
           const lispval *read = FD_XCHOICE_DATA(vchoice), *lim = read+size;
+          lispval *write = newv;
           int flags = ((atomicp)?(FD_CHOICE_ISATOMIC):(0))|FD_CHOICE_REALLOC;
           while (read < lim)
             if (LISP_EQUAL(*read,remove))
@@ -1067,19 +1078,29 @@ int fd_overlapp(lispval xarg,lispval yarg)
   if (EMPTYP(xarg)) return 0;
   else if (EMPTYP(yarg)) return 0;
   else {
-    lispval x, y; int retval = 0;
-    if (PRECHOICEP(xarg)) x = normalize_choice(xarg,0); else x = xarg;
-    if (PRECHOICEP(yarg)) y = normalize_choice(yarg,0); else y = yarg;
+    int retval = 0;
+    lispval x, y;
+    if (PRECHOICEP(xarg))
+      x = normalize_choice(xarg,0);
+    else x = xarg;
+    if (PRECHOICEP(yarg))
+      y = normalize_choice(yarg,0);
+    else y = yarg;
     if (CHOICEP(x))
       if (CHOICEP(y))
         if (FD_CHOICE_SIZE(x)>FD_CHOICE_SIZE(y)) {
           DO_CHOICES(elt,y)
-            if (choice_containsp(elt,(fd_choice)x)) {retval = 1; break;}}
+            if (choice_containsp(elt,(fd_choice)x)) {
+              retval = 1;
+              break;}}
         else {
           DO_CHOICES(elt,x)
-            if (choice_containsp(elt,(fd_choice)y)) {retval = 1; break;}}
+            if (choice_containsp(elt,(fd_choice)y)) {
+              retval = 1;
+              break;}}
       else retval = choice_containsp(y,(fd_choice)x);
-    else if (CHOICEP(y)) retval = choice_containsp(x,(fd_choice)y);
+    else if (CHOICEP(y))
+      retval = choice_containsp(x,(fd_choice)y);
     else retval = LISP_EQUAL(x,y);
     if (PRECHOICEP(xarg)) fd_decref(x);
     if (PRECHOICEP(yarg)) fd_decref(y);
@@ -1101,18 +1122,26 @@ int fd_containsp(lispval xarg,lispval yarg)
   else if (EMPTYP(yarg)) return 0;
   else {
     lispval x, y; int retval = 0;
-    if (PRECHOICEP(xarg)) x = normalize_choice(xarg,0); else x = xarg;
-    if (PRECHOICEP(yarg)) y = normalize_choice(yarg,0); else y = yarg;
+    if (PRECHOICEP(xarg))
+      x = normalize_choice(xarg,0);
+    else x = xarg;
+    if (PRECHOICEP(yarg))
+      y = normalize_choice(yarg,0);
+    else y = yarg;
     if (CHOICEP(x))
       if (CHOICEP(y)) {
         int contained = 1;
         DO_CHOICES(elt,x)
           if (choice_containsp(elt,(fd_choice)y)) {}
           else {
-            contained = 0; FD_STOP_DO_CHOICES; break;}
-        if (contained) retval = 1;}
+            contained = 0;
+            FD_STOP_DO_CHOICES;
+            break;}
+        if (contained) 
+          retval = 1;}
       else retval = 0;
-    else if (CHOICEP(y)) retval = choice_containsp(x,(fd_choice)y);
+    else if (CHOICEP(y))
+      retval = choice_containsp(x,(fd_choice)y);
     else retval = LISP_EQUAL(x,y);
     if (PRECHOICEP(xarg)) fd_decref(x);
     if (PRECHOICEP(yarg)) fd_decref(y);
@@ -1126,7 +1155,8 @@ lispval *fd_natsort_choice(fd_choice ch,lispval *tmpbuf,ssize_t tmp_len)
 {
   int len = FD_XCHOICE_SIZE(ch);
   const lispval *data = FD_XCHOICE_DATA(ch);
-  lispval *natsorted = (tmp_len>len) ? (tmpbuf) : u8_alloc_n(len,lispval);
+  lispval *natsorted = (tmp_len>len) ? (tmpbuf) :
+    u8_alloc_n(len,lispval);
   memcpy(natsorted,data,len*sizeof(lispval));
   lispval_sort(natsorted,len,FD_COMPARE_NATSORT);
   return natsorted;

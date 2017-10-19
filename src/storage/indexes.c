@@ -1,4 +1,4 @@
-/* -*- Mode: C; Character-encoding: utf-8; -*- */
+/* -*- Mode: C; Character-encoding: utf-8; fill-column: 95; -*- */
 
 /* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
@@ -1112,7 +1112,8 @@ FD_EXPORT int fd_index_commit(fd_index ix)
     if (n_changes) {
       init_cache_level(ix);
       u8_log(fd_storage_loglevel+1,fd_IndexCommit,
-             "####### Saving %d changes to %s",n_changes,ix->indexid);}
+             "####### Saving %d changes (+%d-%d=%d) to %s",
+             n_changes,n_adds,n_drops,n_stores,ix->indexid);}
 
     double start_time = u8_elapsed_time();
 
@@ -1156,12 +1157,9 @@ FD_EXPORT int fd_index_commit(fd_index ix)
 
     /* Remove everything you just saved */
 
-    fd_hashtable_iter_kv(adds_table,fd_table_drop,
-                         (const_keyvals)adds,n_adds,0);
-    fd_hashtable_iter_kv(drops_table,fd_table_drop,
-                         (const_keyvals)drops,n_drops,0);
-    fd_hashtable_iter_kv(stores_table,fd_table_drop,
-                         (const_keyvals)stores,n_stores,0);
+    fd_hashtable_iter_kv(adds_table,fd_table_drop,(const_keyvals)adds,n_adds,0);
+    fd_hashtable_iter_kv(drops_table,fd_table_drop,(const_keyvals)drops,n_drops,0);
+    fd_hashtable_iter_kv(stores_table,fd_table_drop,(const_keyvals)stores,n_stores,0);
 
     fd_free_keyvals(adds,n_adds);
     fd_free_keyvals(drops,n_drops);
@@ -1255,7 +1253,8 @@ FD_EXPORT int fd_index_save(fd_index ix,
   if (n_changes) {
     init_cache_level(ix);
     u8_log(fd_storage_loglevel+1,fd_IndexCommit,
-           "####### Saving %d changes to %s",n_changes,ix->indexid);}
+           "####### Saving %d changes (+%d-%d=%d) to %s",
+           n_changes,n_adds,n_drops,n_stores,ix->indexid);}
 
   double start_time = u8_elapsed_time();
 
