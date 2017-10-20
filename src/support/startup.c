@@ -787,14 +787,17 @@ FD_EXPORT int fd_boot_message()
 {
   if (fd_be_vewy_quiet) return 0;
   if (boot_message_delivered) return 0;
+  uid_t uid = getuid(); gid_t gid = getgid();
   struct U8_XTIME xt; u8_localtime(&xt,time(NULL));
-  U8_FIXED_OUTPUT(time,256);
-  u8_xtime_to_rfc822(timeout,&xt);
+  U8_FIXED_OUTPUT(curtime,256);
+  u8_xtime_to_rfc822_x(curtimeout,&xt,xt.u8_tzoff,0);
   u8_log(-1,NULL,"(%s:%lld) %s %s",
          u8_appid(),(unsigned long long)getpid(),
          fd_getrevision(),u8_getrevision());
   u8_log(-1,NULL,_("Copyright (C) beingmeta 2004-2017, all rights reserved"));
-  u8_log(-1,NULL,_("Starting on %-s, %s"),u8_gethostname(),time.u8_outbuf);
+  u8_log(-1,NULL,_("%-s@%-s:%-s (%s)"),
+         u8_username(uid),u8_gethostname(),u8_getcwd(),
+         curtime.u8_outbuf);
   boot_message_delivered = 1;
   return 1;
 }
