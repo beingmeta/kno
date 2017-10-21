@@ -196,6 +196,7 @@ SCHEME_OBJS=\
 	src/prims/seqprims.o \
 	src/prims/stringprims.o \
 	src/prims/portprims.o \
+	src/prims/logprims.o \
 	src/prims/streamprims.o \
 	src/prims/timeprims.o \
 	src/prims/sysprims.o \
@@ -396,6 +397,7 @@ FRAMERD_SOURCES=\
 	src/eval/coreops.c                  				\
 	src/eval/arith.c src/eval/side-effects.c              		\
 	src/prims/dbprims.c 						\
+	src/prims/logprims.c						\
 	src/prims/portprims.c						\
 	src/prims/streamprims.c                    			\
 	src/prims/tableprims.c src/eval/choiceops.c               	\
