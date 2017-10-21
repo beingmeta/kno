@@ -73,11 +73,12 @@ static lispval extindex_fetch(fd_index p,lispval oid)
 static lispval *extindex_fetchn(fd_index p,int n,const lispval *keys)
 {
   struct FD_EXTINDEX *xp = (fd_extindex)p;
-  struct FD_VECTOR vstruct; lispval vecarg;
   lispval state = xp->state, fetchfn = xp->fetchfn, value = VOID;
   struct FD_FUNCTION *fptr = ((FD_FUNCTIONP(fetchfn))?
                             ((struct FD_FUNCTION *)fetchfn):
                             (NULL));
+  struct FD_VECTOR vstruct;
+  lispval vecarg;
   FD_INIT_STATIC_CONS(&vstruct,fd_vector_type);
   vstruct.vec_length = n;
   vstruct.vec_elts = (lispval *) keys;

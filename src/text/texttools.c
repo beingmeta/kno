@@ -483,7 +483,6 @@ static lispval seq2phrase_prim(lispval arg,lispval start_arg,lispval end_arg)
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
     if (start<0) start = len+start;
     if ((start<0) || (start>len)) {
-      char buf[32];
       return fd_err(fd_RangeError,"seq2phrase_prim",
                     u8_itoa10(FIX2INT(start_arg),tmpbuf),
                     arg);}

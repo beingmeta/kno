@@ -2559,6 +2559,7 @@ FD_EXPORT void fd_init_dbprims_c(void);
 FD_EXPORT void fd_init_seqprims_c(void);
 FD_EXPORT void fd_init_modules_c(void);
 FD_EXPORT void fd_init_load_c(void);
+FD_EXPORT void fd_init_logprims_c(void);
 FD_EXPORT void fd_init_portprims_c(void);
 FD_EXPORT void fd_init_streamprims_c(void);
 FD_EXPORT void fd_init_timeprims_c(void);
@@ -2602,6 +2603,7 @@ static void init_eval_core()
   fd_init_stringprims_c();
   fd_init_dbprims_c();
   fd_init_seqprims_c();
+  fd_init_logprims_c();
   fd_init_portprims_c();
   fd_init_streamprims_c();
   fd_init_timeprims_c();

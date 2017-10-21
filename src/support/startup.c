@@ -787,8 +787,8 @@ FD_EXPORT int fd_boot_message()
 {
   if (fd_be_vewy_quiet) return 0;
   if (boot_message_delivered) return 0;
-  uid_t uid = getuid(); gid_t gid = getgid();
   struct U8_XTIME xt; u8_localtime(&xt,time(NULL));
+  uid_t uid = getuid();
   U8_FIXED_OUTPUT(curtime,256);
   u8_xtime_to_rfc822_x(curtimeout,&xt,xt.u8_tzoff,0);
   u8_log(-1,NULL,"(%s:%lld) %s %s",

@@ -1484,7 +1484,8 @@ static lispval mongodb_readvec(lispval cursor,lispval howmany,lispval opts_arg)
       opts = combine_opts(opts_arg,opts);}
     while ((i<n)&&(mongoc_cursor_next(scan,&doc))) {
       lispval dtype = fd_bson2dtype((bson_t *)doc,flags,opts);
-      FD_VECTOR_SET(result,i,dtype); i++;}
+      FD_VECTOR_SET(result,i,dtype);
+      i++;}
     if (!(FD_VOIDP(opts_arg))) fd_decref(opts);
     if (i == n) return result;
     else {
@@ -2103,7 +2104,9 @@ static lispval make_mongovec(lispval vec)
 {
   lispval *elts = FD_VECTOR_ELTS(vec);
   int n = FD_VECTOR_LENGTH(vec), i = 0;
-  while (i<n) {lispval v = elts[i++]; fd_incref(v);}
+  while (i<n) {
+    lispval v = elts[i++];
+    fd_incref(v);}
   return fd_init_compound_from_elts(NULL,mongovec_symbol,0,n,elts);
 }
 
