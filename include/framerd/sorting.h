@@ -11,55 +11,55 @@
 #define FRAMERD_SORTING_H_INFO "include/framerd/sorting.h"
 #endif
 
+#include <libu8/u8strcmp.h>
+
+#ifndef HAVE_U8_STRCMP
+static int _u8_strcmp(u8_string s1,u8_string s2,int cmpflags)
+{
+  u8_string scan1 = s1, scan2 = s2;
+  while ( (*scan1) && (*scan2) ) {
+    if ( (*scan1 < 0x80 ) && (*scan2 < 0x80 ) ) {
+      int c1, c2;
+      if (cmpflags & U8_STRCMP_CI) {
+	c1 = u8_tolower(*scan1);
+	c2 = u8_tolower(*scan2);}
+      else {
+	c1 = *scan1;
+	c2 = *scan2;}
+      if (c1 < c2)
+	return -1;
+      else if (c1 > c2)
+	return 1;
+      else {}
+      scan1++;
+      scan2++;}
+    else {
+      int c1 = u8_sgetc(&scan1);
+      int c2 = u8_sgetc(&scan2);
+      if (cmpflags & U8_STRCMP_CI) {
+	c1 = u8_tolower(c1);
+	c2 = u8_tolower(c2);}
+      if (c1<c2)
+	return -1;
+      else if (c1>c2)
+	return 1;
+      else {}}}
+  if (*scan1)
+    return 1;
+  else if (*scan2)
+    return -1;
+  else return 0;
+}
+
+#define u8_strcmp _u8_strcmp
+#endif
+
+
+
 typedef int (*fd_sortfn)(const void *x,const void *y);
 
 struct FD_SORT_ENTRY {
   lispval sortval, sortkey;};
-
-static int utf8_strcmp(u8_string s1,u8_string s2)
-{
-  u8_string scan1 = s1, scan2 = s2;
-  while ( (*scan1) && (*scan2) ) {
-    if ( (*scan1 < 0x80 ) && (*scan2 < 0x80 ) ) {
-      if (*scan1 < *scan2) return -1;
-      else if (*scan1 > *scan2) return 1;
-      scan1++;
-      scan2++;}
-    else {
-      int c1 = u8_sgetc(&scan1);
-      int c2 = u8_sgetc(&scan2);
-      if (c1<c2) return -1;
-      else if (c1>c2) return 1;}}
-  if (*scan1)
-    return 1;
-  else if (*scan2)
-    return -1;
-  else return 0;
-}
-static int utf8_strcmp_ci(u8_string s1,u8_string s2)
-{
-  u8_string scan1 = s1, scan2 = s2;
-  while ( (*scan1) && (*scan2) ) {
-    if ( (*scan1 < 0x80 ) && (*scan2 < 0x80 ) ) {
-      int lc1 = u8_tolower(*scan1), lc2 = u8_tolower(*scan2);
-      if (lc1 < lc2) return -1;
-      else if (lc1 > lc2) return 1;
-      scan1++;
-      scan2++;}
-    else {
-      int c1 = u8_sgetc(&scan1);
-      int c2 = u8_sgetc(&scan2);
-      c1 = u8_tolower(c1);
-      c2 = u8_tolower(c2);
-      if (c1<c2) return -1;
-      else if (c1>c2) return 1;}}
-  if (*scan1)
-    return 1;
-  else if (*scan2)
-    return -1;
-  else return 0;
-}
-
 
 static int _fd_sort_helper(const void *vx,const void *vy)
 {
@@ -192,11 +192,11 @@ static int _fd_lexsort_helper(const void *vx,const void *vy)
         long long yval = FD_FIX2INT(sy->sortkey);
         if (xval<yval) return -1; else return 1;}
       else if (xtype == fd_string_type)
-        return (utf8_strcmp(FD_STRDATA(sx->sortkey),
-                            FD_STRDATA(sy->sortkey)));
+        return (u8_strcmp(FD_STRDATA(sx->sortkey),
+                          FD_STRDATA(sy->sortkey),0));
       else if (xtype == fd_symbol_type)
-        return (utf8_strcmp(FD_XSYMBOL_NAME(sx->sortkey),
-                            FD_XSYMBOL_NAME(sy->sortkey)));
+        return (u8_strcmp(FD_XSYMBOL_NAME(sx->sortkey),
+                          FD_XSYMBOL_NAME(sy->sortkey),0));
       else return FD_FULL_COMPARE(sx->sortkey,sy->sortkey);
     else if ((xtype == fd_fixnum_type) || (xtype == fd_bigint_type) ||
               (xtype == fd_flonum_type) || (xtype == fd_rational_type) ||
@@ -237,11 +237,13 @@ static int _fd_lexsort_ci_helper(const void *vx,const void *vy)
         long long yval = FD_FIX2INT(sy->sortkey);
         if (xval<yval) return -1; else return 1;}
       else if (xtype == fd_string_type)
-        return (utf8_strcmp_ci(FD_STRDATA(sx->sortkey),
-                               FD_STRDATA(sy->sortkey)));
+        return (u8_strcmp(FD_STRDATA(sx->sortkey),
+                          FD_STRDATA(sy->sortkey),
+                          U8_STRCMP_CI));
       else if (xtype == fd_symbol_type)
-        return (utf8_strcmp_ci(FD_XSYMBOL_NAME(sx->sortkey),
-                               FD_XSYMBOL_NAME(sy->sortkey)));
+        return (u8_strcmp(FD_XSYMBOL_NAME(sx->sortkey),
+                          FD_XSYMBOL_NAME(sy->sortkey),
+                          U8_STRCMP_CI));
       else return FD_FULL_COMPARE(sx->sortkey,sy->sortkey);
     else if ((xtype == fd_fixnum_type) || (xtype == fd_bigint_type) ||
               (xtype == fd_flonum_type) || (xtype == fd_rational_type) ||
