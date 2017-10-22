@@ -51,7 +51,7 @@ static int resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots,int need_lock);
 #define compute_offset(hash,size) (hash%size)
 /* #define compute_offset(hash,size) hash_multr(hash,2654435769U,size) */
 
-static int numcompare(lispval x,lispval y)
+FD_FASTOP int numcompare(lispval x,lispval y)
 {
   if ((FIXNUMP(x)) && (FIXNUMP(y)))
     if ((FIX2INT(x))>(FIX2INT(y))) return 1;
@@ -4098,6 +4098,17 @@ lispval fd_hashtable_max(struct FD_HASHTABLE *h,lispval scope,lispval *maxvalp)
     return hmax.keys;}
 }
 
+static int hashskimfn_noscope(lispval key,lispval value,void *hmaxp)
+{
+  struct FD_HASHMAX *hashmax=hmaxp;
+  if (NUMBERP(value)) {
+    int cmp=numcompare(value,hashmax->max);
+    if (cmp>=0) {
+      fd_incref(key);
+      CHOICE_ADD(hashmax->keys,key);}}
+  return 0;
+}
+
 static int hashskimfn(lispval key,lispval value,void *hmaxp)
 {
   struct FD_HASHMAX *hashmax=hmaxp;
@@ -4113,11 +4124,14 @@ static int hashskimfn(lispval key,lispval value,void *hmaxp)
 FD_EXPORT
 lispval fd_hashtable_skim(struct FD_HASHTABLE *h,lispval maxval,lispval scope)
 {
-  if (EMPTYP(scope)) return EMPTY;
+  if (EMPTYP(scope))
+    return EMPTY;
   else {
     struct FD_HASHMAX hmax;
     hmax.keys=EMPTY; hmax.scope=scope; hmax.max=maxval;
-    fd_for_hashtable(h,hashskimfn,&hmax,1);
+    if (FD_VOIDP(scope))
+      fd_for_hashtable(h,hashskimfn_noscope,&hmax,1);
+    else fd_for_hashtable(h,hashskimfn,&hmax,1);
     return hmax.keys;}
 }
 
