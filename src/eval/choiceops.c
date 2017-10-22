@@ -1008,8 +1008,28 @@ static lispval pickn(lispval x,lispval count,lispval offset)
   else return fd_type_error("integer","topn",count);
 }
 
+/* Sorting */
+
+enum SORTFN {
+  NORMAL_SORT, LEXICAL_SORT, COLLATED_SORT }; /* , NUMERIC_SORT, POINTER_SORT */
+
+static lispval lexical_symbol, lexsort_symbol, collate_symbol, normal_symbol;
+
+static enum SORTFN get_sortfn(lispval arg)
+{
+  if ( (FD_VOIDP(arg)) || (FD_FALSEP(arg)) || (FD_DEFAULTP(arg)) )
+    return NORMAL_SORT;
+  else if ( (FD_TRUEP(arg)) || (arg == lexical_symbol) )
+    return LEXICAL_SORT;
+  else if (arg == collate_symbol)
+    return COLLATED_SORT;
+  else if (arg == normal_symbol)
+    return NORMAL_SORT;
+  else return NORMAL_SORT;
+}
+
 static lispval sorted_primfn(lispval choices,lispval keyfn,int reverse,
-                            int lexsort)
+                             enum SORTFN sortfn)
 {
   if (EMPTYP(choices))
     return fd_init_vector(NULL,0,NULL);
@@ -1029,9 +1049,16 @@ static lispval sorted_primfn(lispval choices,lispval keyfn,int reverse,
       entries[i].sortval = elt;
       entries[i].sortkey = key;
       i++;}
-    if (lexsort)
+    switch (sortfn) {
+    case NORMAL_SORT:
+      qsort(entries,n,sizeof(struct FD_SORT_ENTRY),_fd_sort_helper);
+      break;
+    case LEXICAL_SORT:
       qsort(entries,n,sizeof(struct FD_SORT_ENTRY),_fd_lexsort_helper);
-    else qsort(entries,n,sizeof(struct FD_SORT_ENTRY),_fd_sort_helper);
+      break;
+    case COLLATED_SORT:
+      qsort(entries,n,sizeof(struct FD_SORT_ENTRY),_fd_collate_helper);
+      break;}
     i = 0; j = n-1; if (reverse) while (i < n) {
       fd_decref(entries[i].sortkey);
       vecdata[j]=fd_incref(entries[i].sortval);
@@ -1537,6 +1564,12 @@ FD_EXPORT void fd_init_choicefns_c()
                                           -1,VOID,fd_fixnum_type,VOID,
                                           -1,VOID)));
   fd_defalias(fd_scheme_module,"NMIN->VECTOR","MIN/SORTED");
+
+
+  lexical_symbol = fd_intern("LEXICAL");
+  lexsort_symbol = fd_intern("LEXSORT");
+  collate_symbol = fd_intern("COLLATE");
+  normal_symbol  = fd_intern("NORMAL");
 
 }
 
