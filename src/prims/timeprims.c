@@ -785,7 +785,7 @@ static lispval xtime_get(struct U8_XTIME *xt,lispval slotid,int reterr)
       int mon = xt->u8_mon+1;
       if ((mon>=12) || (mon<4)) {
         CHOICE_ADD(results,winter_symbol);}
-      if ((mon>=3) && (mon<7)) {
+      if ((mon>=3) && (mon<6)) {
         CHOICE_ADD(results,spring_symbol);}
       if ((mon>5) && (mon<10)) {
         CHOICE_ADD(results,summer_symbol);}
@@ -802,7 +802,7 @@ static lispval xtime_get(struct U8_XTIME *xt,lispval slotid,int reterr)
       int hr = xt->u8_hour;
       if ((hr<5) || (hr>20)) {
         CHOICE_ADD(results,nighttime_symbol);}
-      if ((hr>5) && (hr<=12)) {
+      if ((hr>=5) && (hr<12)) {
         CHOICE_ADD(results,morning_symbol);}
       if ((hr>=12) && (hr<19)) {
         CHOICE_ADD(results,afternoon_symbol);}
