@@ -175,6 +175,11 @@ static double time_startup = 1;
 
 static void output_element(u8_output out,lispval elt)
 {
+  if (OIDP(elt)) {
+    lispval val = fd_oid_value(elt);
+    if (FD_ABORTP(val)) fd_clear_errors(0);
+    fd_decref(val);}
+
   if ((historicp(elt))||(STRINGP(elt))) {
     U8_STATIC_OUTPUT(tmp,1000);
     fd_unparse(tmpout,elt);
@@ -229,6 +234,9 @@ static lispval bind_random_symbol(lispval result,fd_lexenv env)
 static int output_result(u8_output out,lispval result,
                          int histref,int showall)
 {
+  if (OIDP(result)) {
+    lispval v = fd_oid_value(result);
+    fd_decref(v);}
   if (VOIDP(result))
     return 0;
   else if ((showall)&&(OIDP(result))) {
