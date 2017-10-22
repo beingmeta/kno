@@ -544,8 +544,11 @@ FD_EXPORT unsigned int fd_hash_bytes(u8_string string,int len);
 FD_EXPORT unsigned int fd_hash_lisp(lispval x);
 
 FD_EXPORT lispval fd_make_hashtable(fd_hashtable ptr,int n_slots);
-FD_EXPORT lispval fd_init_hashtable
-   (fd_hashtable ptr,int n_keyvals,struct FD_KEYVAL *init);
+FD_EXPORT lispval fd_init_hashtable(fd_hashtable ptr,int n_keyvals,
+                                    struct FD_KEYVAL *init);
+FD_EXPORT lispval fd_initialize_hashtable(fd_hashtable ptr,
+                                          struct FD_KEYVAL *init,
+                                          int n_keyvals);
 FD_EXPORT int fd_reset_hashtable(fd_hashtable ht,int n_slots,int lock);
 FD_EXPORT struct FD_KEYVAL *fd_hashvec_get(lispval,struct FD_HASH_BUCKET **,int);
 FD_EXPORT int fd_fast_reset_hashtable

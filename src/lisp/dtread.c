@@ -395,21 +395,28 @@ FD_EXPORT lispval fd_read_dtype(struct FD_INBUF *in)
             return fd_init_hashtable(NULL,0,NULL);
           else {
             int n_keys = len/2, n_read = 0;
-            lispval result = fd_init_hashtable(NULL,len/2,NULL);
-            struct FD_HASHTABLE *ht = (struct FD_HASHTABLE *)result;
+            struct FD_KEYVAL *keyvals = u8_big_alloc_n(n_keys,struct FD_KEYVAL);
             while (n_read<n_keys) {
               lispval key = fd_read_dtype(in), value;
               if (FD_ABORTP(key)) value=key;
               else value = fd_read_dtype(in);
               if (FD_ABORTP(value)) {
                 if (!(FD_ABORTP(key))) fd_decref(key);
-                fd_decref(result);
+                int j = 0; while (j<n_read) {
+                  fd_decref(keyvals[j].kv_key);
+                  fd_decref(keyvals[j].kv_val);
+                  j++;}
+                u8_big_free(keyvals);
                 return value;}
-              else if (!(EMPTYP(value)))
-                fd_hashtable_op_nolock(ht,fd_table_store_noref,key,value);
-              fd_decref(key);
-              n_read++;}
-            return result;}
+              else if ( (EMPTYP(value)) || (EMPTYP(key)) ) {
+                fd_decref(key); fd_decref(value);}
+              else {
+                keyvals[n_read].kv_key = key;
+                keyvals[n_read].kv_val = value;
+                n_read++;}}
+            lispval table = fd_initialize_hashtable(NULL,keyvals,n_read);
+            u8_big_free(keyvals);
+            return table;}
         case dt_hashset: case dt_small_hashset: {
           int i = 0;
           struct FD_HASHSET *h = u8_alloc(struct FD_HASHSET);
