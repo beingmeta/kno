@@ -1,3 +1,9 @@
+framerd (4.2.4-8) stable; urgency=medium
+
+  * Update packaging rules to skip building tests
+
+ -- Ken Haase <kh@beingmeta.com>  Sun, 22 Oct 2017 19:40:53 -0400
+
 framerd (4.2.4-7) stable; urgency=medium
 
   * Add dependency on lub8 2.6.5 because we're using bigalloc

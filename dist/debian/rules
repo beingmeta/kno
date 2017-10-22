@@ -13,6 +13,7 @@ export DH_OPTIONS
 override_dh_auto_configure:
 	dh_auto_configure -- --libdir=$(DESTDIR)/usr/lib \
 		--without-sudo --with-bootsystem=allboot \
+		--with-make-target=packaged		 \
 		--with-libscm=version			 \
                 --with-malloc=tcmalloc
 

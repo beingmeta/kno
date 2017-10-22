@@ -462,6 +462,8 @@ ALL=testbin exe cmodules @TAGS@
 
 # Targets
 
+default: @DEFAULTMAKETARGET@
+
 update: buildmode
 	@+make -s `cat buildmode`
 normal:
@@ -481,6 +483,7 @@ nitpicking:
 	@+make -s XCFLAGS="-Wall" testbin exe cmodules etc @TAGS@
 
 all: testbin exe cmodules etc i18n @TAGS@
+packaged: exe cmodules etc i18n
 
 fresh: clean
 	make -s update
@@ -718,6 +721,10 @@ etc/usememory: etc/usememory.c
 libs: static-libs @SHARED_LIB_TARGET@
 static-libs: $(STATIC_LIBS)
 shared-libs: $(SHARED_LIBS)
+
+exe: $(EXECUTABLES) exe/.gdbinit
+static-exe: $(STATIC_EXECUTABLES)
+
 testbin: constestbin dbtestbin schemetestbin etc/usememory
 constestbin: libs tests/lisp/makefile tests/lisp/.gdbinit
 	@make -s XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
@@ -728,9 +735,6 @@ dbtestbin: libs tests/storage/makefile tests/storage/.gdbinit
 schemetestbin: libs tests/scheme/makefile tests/scheme/.gdbinit src/exe/main.h
 	@make -s  XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
 		-C tests/scheme testbin
-exe: $(EXECUTABLES) exe/.gdbinit
-static-exe: $(STATIC_EXECUTABLES)
-
 cmodules: @CMODULES@
 
 # Uninstall

@@ -31,6 +31,7 @@ AC_MSG_CHECKING([for group $1])
 # Override the default value for localstatedir
 AC_ARG_WITH(statedir,--with-statedir where to keep local state e.g. /var,localstatedir=$withval,localstatedir="/var")
 
+DEFAULTMAKETARGET=update
 threads_default="yes"
 shared_default="yes"
 shared_suffix="so"
@@ -203,6 +204,7 @@ fi
 AC_CONFIG_AUX_DIR(etc)
 AC_CONFIG_HEADER(include/framerd/fdsource.h include/framerd/config.h)
 
+AC_SUBST(DEFAULTMAKETARGET)
 AC_SUBST(install_dir_opts)
 AC_SUBST(install_file_opts)
 AC_SUBST(install_exe_opts)
@@ -381,6 +383,9 @@ AC_ARG_WITH(touchfile,--with-touchfile command,with_touchfile=$withval,with_touc
 TOUCHFILE=$with_touchfile
 AC_ARG_WITH(apxs,--with-apxs command,with_apxs=$withval,with_apxs=$APXS)
 APXS=$with_apxs
+
+AC_ARG_WITH(make-target,--with-make-target command,with_make_target=$withval,with_make_target=update)
+DEFAULTMAKETARGET=$with_make_target
 
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET

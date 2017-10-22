@@ -810,6 +810,7 @@ shared_suffix
 install_exe_opts
 install_file_opts
 install_dir_opts
+DEFAULTMAKETARGET
 ac_prefix_program
 target_alias
 host_alias
@@ -862,6 +863,7 @@ with_deletefile
 with_copyfile
 with_touchfile
 with_apxs
+with_make_target
 with_rpath
 with_fileinfo
 with_codename
@@ -1607,6 +1609,7 @@ Optional Packages:
 --with-copyfile command
 --with-touchfile command
 --with-apxs command
+--with-make-target command
 --with-rpath dir
 --without-fileinfo record fileinfo
 --with-codename for distribution
@@ -2903,6 +2906,7 @@ else
 fi
 
 
+DEFAULTMAKETARGET=update
 threads_default="yes"
 shared_default="yes"
 shared_suffix="so"
@@ -3102,6 +3106,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
 
 
 
@@ -4108,6 +4113,16 @@ else
 fi
 
 APXS=$with_apxs
+
+
+# Check whether --with-make-target was given.
+if test "${with_make_target+set}" = set; then :
+  withval=$with_make_target; with_make_target=$withval
+else
+  with_make_target=update
+fi
+
+DEFAULTMAKETARGET=$with_make_target
 
 # Make sure we can run config.sub.
 $SHELL "$ac_aux_dir/config.sub" sun4 >/dev/null 2>&1 ||
