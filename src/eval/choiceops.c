@@ -1011,20 +1011,24 @@ static lispval pickn(lispval x,lispval count,lispval offset)
 /* Sorting */
 
 enum SORTFN {
-  NORMAL_SORT, LEXICAL_SORT, COLLATED_SORT }; /* , NUMERIC_SORT, POINTER_SORT */
+  NORMAL_SORT, LEXICAL_SORT, LEXICAL_CI_SORT, COLLATED_SORT, POINTER_SORT };
 
-static lispval lexical_symbol, lexsort_symbol, collate_symbol, normal_symbol;
+static lispval lexical_symbol, lexci_symbol, collate_symbol, pointer_symbol;
 
 static enum SORTFN get_sortfn(lispval arg)
 {
   if ( (FD_VOIDP(arg)) || (FD_FALSEP(arg)) || (FD_DEFAULTP(arg)) )
     return NORMAL_SORT;
-  else if ( (FD_TRUEP(arg)) || (arg == lexical_symbol) )
+  else if ( (FD_TRUEP(arg)) || (arg == lexci_symbol) )
+    return LEXICAL_CI_SORT;
+  else if (arg == lexical_symbol)
     return LEXICAL_SORT;
+  else if (arg == pointer_symbol)
+    return POINTER_SORT;
   else if (arg == collate_symbol)
     return COLLATED_SORT;
-  else if (arg == normal_symbol)
-    return NORMAL_SORT;
+  else if (arg == pointer_symbol)
+    return POINTER_SORT;
   else return NORMAL_SORT;
 }
 
@@ -1056,6 +1060,12 @@ static lispval sorted_primfn(lispval choices,lispval keyfn,int reverse,
     case LEXICAL_SORT:
       qsort(entries,n,sizeof(struct FD_SORT_ENTRY),_fd_lexsort_helper);
       break;
+    case LEXICAL_CI_SORT:
+      qsort(entries,n,sizeof(struct FD_SORT_ENTRY),_fd_lexsort_ci_helper);
+      break;
+    case POINTER_SORT:
+      qsort(entries,n,sizeof(struct FD_SORT_ENTRY),_fd_pointer_sort_helper);
+      break;
     case COLLATED_SORT:
       qsort(entries,n,sizeof(struct FD_SORT_ENTRY),_fd_collate_helper);
       break;}
@@ -1075,19 +1085,28 @@ static lispval sorted_primfn(lispval choices,lispval keyfn,int reverse,
     return fd_init_vector(NULL,1,vec);}
 }
 
-static lispval sorted_prim(lispval choices,lispval keyfn)
+static lispval sorted_prim(lispval choices,lispval keyfn,
+                           lispval sortfn_arg)
 {
-  return sorted_primfn(choices,keyfn,0,0);
+  enum SORTFN sortfn;
+  if ( (keyfn == lexical_symbol) || (keyfn == pointer_symbol) ||
+       (keyfn == collate_symbol) || (keyfn == lexci_symbol) ) {
+    sortfn = get_sortfn(keyfn);
+    keyfn  = FD_VOID;}
+  else sortfn = get_sortfn(sortfn_arg);
+  return sorted_primfn(choices,keyfn,0,sortfn);
+}
+
+static lispval rsorted_prim(lispval choices,lispval keyfn,
+                            lispval sortfn_arg)
+{
+  enum SORTFN sortfn = get_sortfn(sortfn_arg);
+  return sorted_primfn(choices,keyfn,1,sortfn);
 }
 
 static lispval lexsorted_prim(lispval choices,lispval keyfn)
 {
-  return sorted_primfn(choices,keyfn,0,1);
-}
-
-static lispval rsorted_prim(lispval choices,lispval keyfn)
-{
-  return sorted_primfn(choices,keyfn,1,0);
+  return sorted_primfn(choices,keyfn,0,COLLATED_SORT);
 }
 
 /* Selection */
@@ -1502,14 +1521,27 @@ FD_EXPORT void fd_init_choicefns_c()
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim1("PICK-ONE",pickone,1)));
 
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim2("SORTED",sorted_prim,1)));
+  fd_idefn3(fd_scheme_module,"SORTED",sorted_prim,FD_NEEDS_1_ARG|FD_NDCALL,
+            "(SORTED *choice* *keyfn* *sortfn*), returns a sorted vector "
+            "of items in *choice*. If provided, *keyfn* is specified "
+            "a property (slot, function, table-mapping, etc) is compared "
+            "instead of the object itself. "
+            "*sortfn* can be NORMAL (#f), LEXICAL, or COLLATE "
+            "to specify whether comparison of strings is done lexicographically "
+            "or using the locale's COLLATE rules.",
+            -1,FD_VOID,-1,FD_VOID,-1,FD_VOID);
+  fd_idefn3(fd_scheme_module,"RSORTED",rsorted_prim,FD_NEEDS_1_ARG|FD_NDCALL,
+            "(RSORTED *choice* *keyfn* *sortfn*), returns a sorted vector "
+            "of items in *choice*. If provided, *keyfn* is specified "
+            "a property (slot, function, table-mapping, etc) is compared "
+            "instead of the object itself. "
+            "*sortfn* can be NORMAL (#f), LEXICAL, or COLLATE "
+            "to specify whether comparison of strings is done lexicographically "
+            "or using the locale's COLLATE rules.",
+            -1,FD_VOID,-1,FD_VOID,-1,FD_VOID);
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2("LEXSORTED",lexsorted_prim,1)));
-
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim2("RSORTED",rsorted_prim,1)));
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim3x("PICK>",pick_gt_prim,1,
@@ -1567,9 +1599,8 @@ FD_EXPORT void fd_init_choicefns_c()
 
 
   lexical_symbol = fd_intern("LEXICAL");
-  lexsort_symbol = fd_intern("LEXSORT");
+  lexci_symbol = fd_intern("LEXICAL/CI");
   collate_symbol = fd_intern("COLLATE");
-  normal_symbol  = fd_intern("NORMAL");
 
 }
 
