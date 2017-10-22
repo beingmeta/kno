@@ -711,6 +711,49 @@ static lispval difference_lexpr(int n,lispval *args)
   return fd_simplify_choice(result);
 }
 
+/* Prechoice elements */
+
+static lispval choicevec_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+{
+  lispval sub_expr = fd_get_arg(expr,1);
+  if (FD_VOIDP(sub_expr))
+    return fd_err(fd_SyntaxError,"choicevec_evalfn",NULL,expr);
+  else {
+    lispval result = fd_stack_eval(sub_expr,env,_stack,0);
+    if (FD_CHOICEP(result)) {
+      struct FD_CHOICE *ch = (fd_choice) result;
+      const lispval *elts = FD_XCHOICE_ELTS(ch);
+      int size = ch->choice_size;
+      lispval vector = fd_make_vector(size,(lispval *)elts);
+      if (ch->choice_isatomic)
+        return vector;
+      else {
+        fd_incref_vec((lispval *)elts,size);
+        return vector;}}
+    else if (FD_PRECHOICEP(result)) {
+      struct FD_PRECHOICE *pch = (fd_prechoice) result;
+      int n = pch->prechoice_size;
+      lispval vec = fd_make_vector(n,NULL);
+      lispval *write = FD_VECTOR_ELTS(vec);
+      lispval *scan = pch->prechoice_data, *limit = pch->prechoice_limit;
+      while (scan<limit) {
+        lispval add = *scan++;
+        if (FD_CHOICEP(add)) {
+          int n_adds = FD_CHOICE_SIZE(add);
+          const lispval *add_elts = FD_CHOICE_ELTS(add);
+          memmove(write,add_elts,n_adds*sizeof(lispval));
+          if (! (FD_ATOMIC_CHOICEP(add)) )
+            fd_incref_vec((lispval *)add_elts,n);}
+        else if (EMPTYP(add)) {}
+        else {
+          *write++=add;
+          fd_incref(add);}}
+      return vec;}
+    else {
+      lispval data[1]={result};
+      return fd_make_vector(1,data);}}
+}
+
 /* Conversion functions */
 
 static lispval choice2vector(lispval x,lispval sortspec)
@@ -1330,6 +1373,8 @@ FD_EXPORT void fd_init_choicefns_c()
   fd_defalias(fd_scheme_module,"TRY∀","TRY-CHOICES");
   fd_def_evalfn(fd_scheme_module,"FILTER-CHOICES","",filterchoices_evalfn);
   fd_defalias(fd_scheme_module,"?∀","FILTER-CHOICES");
+
+  fd_def_evalfn(fd_scheme_module,"CHOICEVEC","",choicevec_evalfn);
 
   fd_def_evalfn(fd_scheme_module,"DO-SUBSETS","",dosubsets_evalfn);
 
