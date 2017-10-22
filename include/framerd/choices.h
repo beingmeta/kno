@@ -278,9 +278,7 @@ static void _prechoice_add(struct FD_PRECHOICE *ch,lispval v)
     struct FD_CHOICE *prechoice_choicedata;
     old_size  = ch->prechoice_limit-ch->prechoice_data;
     write_off = ch->prechoice_write-ch->prechoice_data;
-    if (old_size<0x10000)
-      new_size=old_size*2;
-    else new_size=old_size+0x20000;
+    new_size=old_size*2;
     prechoice_choicedata=
       u8_big_realloc(ch->prechoice_choicedata,
                      sizeof(struct FD_CHOICE)+(sizeof(lispval)*(new_size-1)));
