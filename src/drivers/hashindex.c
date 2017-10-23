@@ -859,7 +859,11 @@ static lispval hashindex_fetch(fd_index ix,lispval key)
     fd_close_outbuf(&out);
     return EMPTY;}
   else {
-    struct FD_INBUF keystream={0}, *opened=
+    unsigned char keybuf[HX_KEYBUF_SIZE];
+    struct FD_INBUF keystream={0};
+    if (keyblock.size<HX_KEYBUF_SIZE) {
+      FD_INIT_INBUF(&keystream,keybuf,HX_KEYBUF_SIZE,FD_STATIC_BUFFER);}
+    struct FD_INBUF *opened=
       fd_open_block(stream,&keystream,keyblock.off,keyblock.size,1);
     if (opened==NULL) {
       fd_close_outbuf(&out);
@@ -1115,19 +1119,23 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
   unsigned int *offdata = hx->index_offdata;
   unsigned char *keyreps;
   int i = 0, n_entries = 0, vsched_size = 0;
-  size_t max_keyblock_size = 0, vbuf_size=0;
+  size_t vbuf_size=0;
   int oddkeys = ((hx->storage_xformat)&(FD_HASHINDEX_ODDKEYS));
   fd_stream stream = &(hx->index_stream);
 #if FD_DEBUG_HASHINDEXES
   u8_message("Reading %d keys from %s",n,hx->indexid);
 #endif
-  /* Assuming 32 bytes per key */
+  /* Initialize sized based on assuming 32 bytes per key */
   FD_INIT_BYTE_OUTPUT(&keysbuf,n*32);
   if ((hx->storage_xformat)&(FD_HASHINDEX_DTYPEV2))
     keysbuf.buf_flags = keysbuf.buf_flags|FD_USE_DTYPEV2;
-  /* Fill out a fetch schedule, computing hashes and buckets for each key.
-     If we have an offsets table, we compute the offsets during this phase,
-     otherwise we defer to an additional loop. */
+  /* Fill out a fetch schedule, computing hashes and buckets for each
+     key.  If we have an offsets table, we compute the offsets during
+     this phase, otherwise we defer to an additional loop.
+
+     This also writes out DTYPE representations for all of the keys
+     and we use a direct memcmp to match requested keys to byte ranges
+     in fetched buckets. */
   while (i<n) {
     lispval key = keys[i];
     int dt_start = keysbuf.bufwrite-keysbuf.buffer;
@@ -1155,9 +1163,6 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
         fd_get_chunk_ref(offdata,hx->index_offtype,bucket,
                          hx->index_n_buckets);
       size_t keyblock_size = ksched[n_entries].ksched_chunk.size;
-      /* Track the max_keyblock_size, for a VLA below*/
-      if (keyblock_size > max_keyblock_size)
-        max_keyblock_size=keyblock_size;
       if (keyblock_size==0) {
         /* It is empty, so we don't even need to handle this entry. */
         values[i]=EMPTY;
@@ -1178,8 +1183,6 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
       ksched[i].ksched_chunk = fd_fetch_chunk_ref
         (stream,256,hx->index_offtype,ksched[i].ksched_bucket,0);
       size_t keyblock_size=ksched[i].ksched_chunk.size;
-      /* Track the max_keyblock_size, for a VLA below*/
-      if (keyblock_size>max_keyblock_size)max_keyblock_size=keyblock_size;
       if (keyblock_size==0) {
         values[ksched[i].ksched_i]=EMPTY;
         i++;}
@@ -1194,7 +1197,9 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
   qsort(ksched,n_entries,sizeof(struct KEY_SCHEDULE),
         sort_ks_by_refoff);
   {
+    unsigned char keyblock_buf[HX_KEYBUF_SIZE];
     struct FD_INBUF keyblock={0};
+    FD_INIT_INBUF(&keyblock,keyblock_buf,HX_KEYBUF_SIZE,FD_STATIC_BUFFER);
     int bucket = -1, j = 0, k = 0, n_keys=0;
     const unsigned char *keyblock_start=NULL;
     while (j<n_entries) {

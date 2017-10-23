@@ -1045,6 +1045,8 @@ FD_EXPORT fd_inbuf fd_open_block(fd_stream s,fd_inbuf in,
     u8_seterr("InvalidOffsets","fd_open_block",s->streamid);
     return NULL;}
   if ((s->stream_flags) & (FD_STREAM_MMAPPED)) {
+    /* If the stream (whole file) is mmapped, just reference a slice
+       of the mapped file. */
     if (s->buf.in.buffer != in->buffer) {
       u8_read_lock(&(s->mmap_lock));
       in->buffer=s->buf.in.buffer;
@@ -1055,17 +1057,23 @@ FD_EXPORT fd_inbuf fd_open_block(fd_stream s,fd_inbuf in,
     in->buflim=in->buffer+offset+len;
     return in;}
 #if HAVE_MMAP
-  /* If the input stream doesn't have a buffer or it has an MMAPPed
-     buffer, use MMAP */
+  /* If the input stream doesn't have a buffer or it already has an
+     MMAPPed buffer, use MMAP */
   if ( (in->buffer == NULL) || (BUFIO_ALLOC(in) == FD_MMAP_BUFFER) ) {
     if ( (in->buffer) && (BUFIO_ALLOC(in) == FD_MMAP_BUFFER) ) {
       BUFIO_FREE(in);}
+    errno = 0;
     fd_off_t page_offset = pagesize * (offset/pagesize);
     fd_off_t read_offset  = offset-page_offset;
     size_t buflen         = (offset+len)-page_offset;
     unsigned char *buf = mmap(NULL,buflen,PROT_READ,MAP_SHARED,
                               s->stream_fileno,page_offset);
     if ( (buf) && (buf != MAP_FAILED) ) {
+      if ( errno ) {
+        u8_log(LOGWARN,"MMAP:Errno",
+               "Errno set by mmap %d %s ptr = %llx",
+               errno,u8_strerror(errno),buf);
+        errno=0;}
       in->buffer  = buf;
       in->bufread = buf+read_offset;
       in->buflim  = buf+buflen;

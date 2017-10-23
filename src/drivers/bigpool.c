@@ -810,8 +810,7 @@ static lispval *bigpool_fetchn(fd_pool p,int n,lispval *oids)
         else values[schedule[i].value_at]=value;}
       i++;}
 
-    if (i<n) {
-      /* Error */
+    if (i != n) { /* Error */
       int j = 0; while (j<i) {
         lispval value = values[schedule[j].value_at];
         fd_decref(value);
@@ -824,9 +823,8 @@ static lispval *bigpool_fetchn(fd_pool p,int n,lispval *oids)
       u8_seterr(condition,"bigpool_fetchn/read",u8dup(bp->poolid));
       if (unlock_stream)
         fd_unlock_stream(&(bp->pool_stream));
-      bigpool_finished(bp);
       u8_big_free(values);
-      values = NULL;}
+      values=NULL;}
     fd_close_inbuf(&mbuf);
     fd_close_inbuf(&sbuf);
     u8_big_free(schedule);
