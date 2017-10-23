@@ -461,7 +461,7 @@ static void cleanup_tmpchoice(struct FD_CHOICE *reduced)
        delay_index_fetch stores them. */
     fd_incref_vec(vals,FD_XCHOICE_SIZE(reduced));
     fd_incref(lptr);}
-  else u8_free(reduced);
+  else fd_free_choice(reduced);
 }
 
 FD_EXPORT int fd_index_prefetch(fd_index ix,lispval keys)
@@ -584,7 +584,7 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,lispval keys)
             fetched[scan_i] = v;}
           scan_i++;}}
       fd_hashtable_iter(cache,fd_table_store_noref,n_to_fetch,to_fetch,fetched);
-      u8_free(fetched);
+      u8_big_free(fetched);
       rv = n_fetched+n_to_fetch;}
     else rv = -1;}
   else {
@@ -593,7 +593,8 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,lispval keys)
       lispval val = vals[0];
       fd_hashtable_store(cache,needed,val);
       /* fdtc_store(ix,needed,val); */
-      fd_decref(val); u8_free(vals);
+      fd_decref(val);
+      u8_big_free(vals);
       rv = n_fetched+1;}
     else rv=-1;}
   if (reduced) cleanup_tmpchoice(reduced);
@@ -649,7 +650,7 @@ FD_EXPORT lispval fd_index_keys(fd_index ix)
       write_at = write_start+n_fetched;
       if (n_added) fd_for_hashtable(&(ix->index_adds),add_key_fn,&write_at,1);
       if (n_replaced) fd_for_hashtable(&(ix->index_stores),edit_key_fn,&write_at,1);
-      u8_free(fetched);
+      u8_big_free(fetched);
       return fd_init_choice(result,write_at-write_start,NULL,
                             FD_CHOICE_DOSORT|FD_CHOICE_REALLOC);}}
   else return fd_err(fd_NoMethod,"fd_index_keys",NULL,fd_index2lisp(ix));
@@ -701,7 +702,7 @@ FD_EXPORT lispval fd_index_keysizes(fd_index ix,lispval for_keys)
         pair = fd_conspair(fd_incref(key),FD_INT(n_values));
         *write++=pair;
         i++;}
-      u8_free(fetched);
+      u8_big_free(fetched);
       return fd_init_choice(result,n_fetched,NULL,
                             FD_CHOICE_DOSORT|FD_CHOICE_REALLOC);}
     else {
@@ -724,7 +725,7 @@ FD_EXPORT lispval fd_index_keysizes(fd_index ix,lispval for_keys)
         i++;}
       fd_recycle_hashtable(&added_sizes);
       if (decref_keys) fd_decref(keys);
-      u8_free(fetched);
+      u8_big_free(fetched);
       return fd_init_choice(result,n_total,NULL,
                             FD_CHOICE_DOSORT|FD_CHOICE_REALLOC);}}
   else return fd_err(fd_NoMethod,"fd_index_keys",NULL,fd_index2lisp(ix));
@@ -974,8 +975,8 @@ FD_EXPORT int fd_batch_add(fd_index ix,lispval table)
         keys[i]=key; values[i]=v; i++;}}
     fd_hashtable_iter(adds,fd_table_add,i,keys,values);
     if (!(atomic)) for (int j = 0;j<i;j++) { fd_decref(values[j]); }
-    u8_free(keys);
-    u8_free(values);
+    u8_big_free(keys);
+    u8_big_free(values);
     fd_decref(allkeys);
     return i;}
   else {

@@ -110,7 +110,8 @@ static fd_pool open_file_pool(u8_string fname,fd_storage_flags flags,lispval opt
       fd_seterr(fd_BadFilePoolLabel,"open_file_pool","bad label loc",
                 FD_INT(label_loc));
       fd_close_stream(&(pool->pool_stream),0);
-      u8_free(rname); u8_free(pool);
+      u8_free(rname);
+      u8_free(pool);
       return NULL;}}
   pool->pool_load = load;
   pool->pool_flags = flags;
@@ -279,8 +280,8 @@ static lispval *file_pool_fetchn(fd_pool p,int n,lispval *oids)
   struct FD_FILE_POOL *fp = (struct FD_FILE_POOL *)p; FD_OID base = p->pool_base;
   struct FD_STREAM *stream = &(fp->pool_stream);
   struct POOL_FETCH_SCHEDULE *schedule=
-    u8_alloc_n(n,struct POOL_FETCH_SCHEDULE);
-  lispval *result = u8_alloc_n(n,lispval);
+    u8_big_alloc_n(n,struct POOL_FETCH_SCHEDULE);
+  lispval *result = u8_big_alloc_n(n,lispval);
   int i = 0, min_file_pos = 24+fp->pool_capacity*4, load;
   fd_lock_pool(p,0);
   load = fp->pool_load;
@@ -290,7 +291,8 @@ static lispval *file_pool_fetchn(fd_pool p,int n,lispval *oids)
       lispval oid = oids[i]; FD_OID addr = FD_OID_ADDR(oid);
       unsigned int off = FD_OID_DIFFERENCE(addr,base), file_off;
       if (PRED_FALSE(off>=load)) {
-        u8_free(result); u8_free(schedule);
+        u8_big_free(result);
+        u8_big_free(schedule);
         fd_unlock_pool(p);
         fd_seterr(fd_UnallocatedOID,"file_pool_fetchn",fp->poolid,oid);
         return NULL;}
@@ -301,7 +303,8 @@ static lispval *file_pool_fetchn(fd_pool p,int n,lispval *oids)
       else if (PRED_FALSE(file_off<min_file_pos)) {
         /* As above, we have a data pointer into the header.
            This should never happen unless a file is corrupted. */
-        u8_free(result); u8_free(schedule);
+        u8_big_free(result);
+        u8_big_free(schedule);
         fd_unlock_pool(p);
         fd_seterr(fd_CorruptedPool,"file_pool_fetchn",fp->poolid,oid);
         return NULL;}
@@ -315,8 +318,8 @@ static lispval *file_pool_fetchn(fd_pool p,int n,lispval *oids)
       unsigned int off = FD_OID_DIFFERENCE(addr,base), file_off;
       schedule[i].vpos = i;
       if (fd_setpos(stream,24+4*off)<0) {
-        u8_free(schedule);
-        u8_free(result);
+        u8_big_free(schedule);
+        u8_big_free(result);
         fd_unlock_stream(stream);
         fd_unlock_pool(p);
         return NULL;}
@@ -327,7 +330,8 @@ static lispval *file_pool_fetchn(fd_pool p,int n,lispval *oids)
       else if (PRED_FALSE(file_off<min_file_pos)) {
         /* As above, we have a data pointer into the header.
            This should never happen unless a file is corrupted. */
-        u8_free(result); u8_free(schedule);
+        u8_big_free(result);
+        u8_big_free(schedule);
         fd_unlock_stream(stream);
         fd_unlock_pool(p);
         fd_seterr(fd_CorruptedPool,"file_pool_fetchn",fp->poolid,oid);
@@ -341,15 +345,15 @@ static lispval *file_pool_fetchn(fd_pool p,int n,lispval *oids)
       if (fd_setpos(stream,schedule[i].filepos)<0) {
         int j = 0; while (j<i) {
           fd_decref(result[schedule[j].vpos]); j++;}
-        u8_free(schedule);
-        u8_free(result);
+        u8_big_free(schedule);
+        u8_big_free(result);
         fd_unlock_pool(p);
         fd_unlock_stream(stream);
         return NULL;}
       result[schedule[i].vpos]=fd_read_dtype(fd_readbuf(stream));
       i++;}
     else result[schedule[i++].vpos]=EMPTY;
-  u8_free(schedule);
+  u8_big_free(schedule);
   fd_unlock_stream(stream);
   fd_unlock_pool(p);
   return result;
@@ -365,7 +369,7 @@ static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
   struct FD_FILE_POOL *fp = (struct FD_FILE_POOL *)p;
   /* This stores the offset where the DTYPE representation of each changed OID
      has been written, indexed by the OIDs position in *oids. */
-  unsigned int *changed_offsets = u8_alloc_n(n,unsigned int);
+  unsigned int *changed_offsets = u8_big_alloc_n(n,unsigned int);
   struct FD_STREAM *stream = &(fp->pool_stream);
   struct FD_OUTBUF *outstream = fd_writebuf(stream);
   /* Make sure that pos_limit fits into an int, in case fd_off_t is an int. */
@@ -412,7 +416,7 @@ static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
     int i = 0;
     unsigned int *old_offsets = fp->pool_offdata;
     old_size = fp->pool_offdata_size;
-    tmp_offsets = u8_alloc_n(load,unsigned int);
+    tmp_offsets = u8_big_alloc_n(load,unsigned int);
     /* Initialize tmp_offsets from the current offsets */
     if (HAVE_MMAP) {
       /* If we're mmapped, the latest values are there. */
@@ -429,7 +433,7 @@ static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
       unsigned int oid_off = FD_OID_DIFFERENCE(addr,base);
       tmp_offsets[oid_off]=changed_offsets[i];
       i++;}
-    u8_free(changed_offsets);
+    u8_big_free(changed_offsets);
     /* Now write the new offset values to the end of the file. */
     write_file_pool_recovery_data(fp,tmp_offsets);
     /* Now write the real data */
@@ -445,7 +449,7 @@ static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
         retcode = -1; break;}
       fd_write_4bytes(outstream,changed_offsets[i]);
       i++;}
-    u8_free(changed_offsets);}
+    u8_big_free(changed_offsets);}
   if (retcode>=0) {
     /* Now we update the load and do other cleanup.  */
     if (write_file_pool_load(fp)<0)
@@ -482,9 +486,9 @@ static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
       else {
         fp->pool_offdata = newmmap+6;
         fp->pool_offdata_size = fp->pool_load;}
-      u8_free(tmp_offsets);}
+      u8_big_free(tmp_offsets);}
     else {
-      u8_free(fp->pool_offdata);
+      u8_big_free(fp->pool_offdata);
       fp->pool_offdata = tmp_offsets;
       fp->pool_offdata_size = fp->pool_load;}}
   /* Note that if we exited abnormally, the file is still intact. */
@@ -516,7 +520,7 @@ static int recover_file_pool(struct FD_FILE_POOL *fp)
   /* This reads the offsets vector written at the end of the file
      during commitment. */
   int i = 0, len = fp->pool_capacity, load; fd_off_t new_end, retval;
-  unsigned int *offsets = u8_malloc(4*len);
+  unsigned int *offsets = u8_big_alloc(4*len);
   struct FD_STREAM *s = &(fp->pool_stream);
   struct FD_INBUF *instream = fd_readbuf(s);
   struct FD_OUTBUF *outstream;
@@ -610,7 +614,7 @@ static void file_pool_setcache(fd_pool p,int level)
       fd_inbuf ins = fd_readbuf(s);
       fd_setpos(s,12);
       fp->pool_load = load = fd_read_4bytes(ins);
-      offsets = u8_alloc_n(load,unsigned int);
+      offsets = u8_big_alloc_n(load,unsigned int);
       fd_setpos(s,24);
       fd_read_ints(ins,load,offsets);
       fp->pool_offdata = offsets; fp->pool_offdata_size = load;
@@ -631,7 +635,7 @@ static void file_pool_setcache(fd_pool p,int level)
                fp->poolid);
         fp->pool_offdata = NULL; errno = 0;}
 #else
-      u8_free(fp->pool_offdata);
+      u8_big_free(fp->pool_offdata);
 #endif
       fp->pool_offdata = NULL; fp->pool_offdata_size = 0;}}
 }
@@ -649,7 +653,7 @@ static void reload_file_pool_cache(struct FD_FILE_POOL *fp,int lock)
   if (lock) fd_lock_pool(p,1);
   oscan = fp->pool_offdata; olim = oscan+fp->pool_offdata_size;
   fd_setpos(s,16); new_load = fd_read_4bytes(ins);
-  nscan = offsets = u8_alloc_n(new_load,unsigned int);
+  nscan = offsets = u8_big_alloc_n(new_load,unsigned int);
   fd_setpos(s,24);
   fd_read_ints(ins,new_load,offsets);
   while (oscan < olim)
@@ -659,7 +663,7 @@ static void reload_file_pool_cache(struct FD_FILE_POOL *fp,int lock)
       lispval changed_oid = fd_make_oid(addr);
       fd_hashtable_op(&(fp->pool_cache),fd_table_replace,changed_oid,VOID);
       oscan++; nscan++;}
-  u8_free(fp->pool_offdata);
+  u8_big_free(fp->pool_offdata);
   fp->pool_offdata = offsets;
   fp->pool_load = fp->pool_offdata_size = new_load;
   update_modtime(fp);
@@ -683,7 +687,7 @@ static void file_pool_close(fd_pool p)
       u8_log(LOG_WARN,u8_strerror(errno),"file_pool_close:munmap %s",fp->poolid);
       errno = 0;}
 #else
-    u8_free(fp->pool_offdata);
+    u8_big_free(fp->pool_offdata);
 #endif
     fp->pool_offdata = NULL; fp->pool_offdata_size = 0;
     fp->pool_cache_level = -1;}

@@ -56,7 +56,7 @@ static lispval *memindex_fetchn(fd_index ix,int n,const lispval *keys)
   struct FD_MEMINDEX *mix = (struct FD_MEMINDEX *)ix;
   if (! (mix->mix_loaded) ) load_memindex(mix);
   struct FD_HASHTABLE *map = &(mix->mix_map);
-  lispval *results = u8_alloc_n(n,lispval);
+  lispval *results = u8_big_alloc_n(n,lispval);
   fd_write_lock_table(map);
   int i = 0; while (i<n) {
     results[i]=fd_hashtable_get_nolock(map,keys[i],EMPTY);
@@ -73,7 +73,7 @@ static lispval *memindex_fetchkeys(fd_index ix,int *n)
   if (FD_PRECHOICEP(keys)) keys = fd_simplify_choice(keys);
   if (FD_CHOICEP(keys)) {
     int count = FD_CHOICE_SIZE(keys);
-    lispval *keyv = u8_alloc_n(count,lispval);
+    lispval *keyv = u8_big_alloc_n(count,lispval);
     if (FD_CONS_REFCOUNT(keys) == 1) {
       struct FD_CHOICE *ch = (fd_choice) keys;
       memmove(keyv,FD_CHOICE_ELTS(keys),count*sizeof(lispval));
@@ -87,7 +87,7 @@ static lispval *memindex_fetchkeys(fd_index ix,int *n)
     *n=count;
     return keyv;}
   else {
-    lispval *one = u8_alloc_n(1,lispval);
+    lispval *one = u8_big_alloc_n(1,lispval);
     *one=keys; *n=1;
     return one;}
 }
@@ -120,7 +120,7 @@ static struct FD_KEY_SIZE *memindex_fetchinfo(fd_index ix,fd_choice filter,int *
   if (! (mix->mix_loaded) ) load_memindex(mix);
   int n_keys = (filter == NULL) ? (mix->mix_map.table_n_keys) :
     (FD_XCHOICE_SIZE(filter));
-  struct FD_KEY_SIZE *keysizes = u8_alloc_n(n_keys,struct FD_KEY_SIZE);
+  struct FD_KEY_SIZE *keysizes = u8_big_alloc_n(n_keys,struct FD_KEY_SIZE);
   struct FETCHINFO_STATE state={keysizes,filter,0,n_keys};
   fd_for_hashtable_kv(&(mix->mix_map),gather_keysizes,(void *)&state,1);
   *n = state.i;

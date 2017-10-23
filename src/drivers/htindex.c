@@ -28,7 +28,7 @@
 
 static lispval *htindex_fetchn(fd_index ix,int n,const lispval *keys)
 {
-  lispval *results = u8_alloc_n(n,lispval);
+  lispval *results = u8_big_alloc_n(n,lispval);
   int i = 0; while (i<n) {
     results[i]=fd_hashtable_get(&(ix->index_cache),keys[i],EMPTY);
     i++;}
@@ -39,7 +39,7 @@ static lispval *htindex_fetchkeys(fd_index ix,int *n)
 {
   lispval keys = fd_hashtable_keys(&(ix->index_cache));
   int n_elts = FD_CHOICE_SIZE(keys);
-  lispval *result = u8_alloc_n(n_elts,lispval);
+  lispval *result = u8_big_alloc_n(n_elts,lispval);
   int j = 0;
   DO_CHOICES(key,keys) {result[j++]=key;}
   *n = n_elts;
@@ -66,7 +66,7 @@ static struct FD_KEY_SIZE *htindex_fetchinfo(fd_index ix,fd_choice filter,int *n
     *n=0; return NULL;}
   int n_keys = (filter == NULL) ? (ix->index_cache.table_n_keys) :
     (FD_XCHOICE_SIZE(filter));
-  struct FD_KEY_SIZE *sizes= u8_zalloc_n(n_keys,FD_KEY_SIZE);
+  struct FD_KEY_SIZE *sizes= u8_big_alloc_n(n_keys,FD_KEY_SIZE);
   struct FETCHINFO_STATE state={sizes,sizes,filter};
   fd_for_hashtable(&(ix->index_cache),htindex_fetchinfo_helper,&state,1);
   *n = n_keys;
