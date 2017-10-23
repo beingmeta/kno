@@ -102,7 +102,7 @@ FD_FASTOP void _BUFIO_FREE(struct FD_RAWBUF *buf)
   bufio_alloc alloc_type = (bufio_alloc) (buf->buf_flags&FD_BUFFER_ALLOC);
   unsigned char *curbuf = buf->buffer;
   ssize_t curlen = buf->buflen;
-  buf->buffer=NULL;
+  buf->bufpoint=buf->buflim=buf->buffer=NULL;
   switch (alloc_type) {
   case FD_STATIC_BUFFER: return;
   case FD_HEAP_BUFFER: u8_free(curbuf); return;
