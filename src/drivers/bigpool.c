@@ -1576,7 +1576,8 @@ static int update_offdata_cache(fd_bigpool bp,int level,int chunk_ref_size)
   unsigned int *offdata=bp->pool_offdata;
   if ( (level < 2) && (offdata) ) {
     bp->pool_offdata = NULL;
-    return 1;}
+    u8_free(offdata);
+   return 1;}
   else if ( (level >= 2) && (offdata == NULL) ) {
     fd_stream stream = &(bp->pool_stream);
     fd_inbuf  readbuf = fd_readbuf(s);
@@ -1589,7 +1590,7 @@ static int update_offdata_cache(fd_bigpool bp,int level,int chunk_ref_size)
       fd_setpos(s,0x10);
       bp->pool_load = load = fd_read_4bytes(ins);
       size_t offdata_length = chunk_ref_size*load;
-      offdata=u8_big_alloc(offdata_length);
+      offdata=u8_malloc(offdata_length);
       fd_setpos(s,0x100);
       fd_read_ints(readbuf,load,offdata);
       bp->pool_offdata = offsets;
@@ -1666,7 +1667,7 @@ static void reload_bigpool(fd_bigpool bp,int is_locked)
   fd_inbuf  readbuf = fd_readbuf(stream);
   size_t new_size = chunkref_size*new_load;
   if (new_load != cur_load)
-    offdata=u8_big_realloc(offdata,new_size);
+    offdata = u8_realloc(offdata,new_size);
   fd_setpos(s,0x100);
   fd_read_ints(ins,new_load,new_offdata);
   bp->pool_offdata = offdata;
@@ -1704,7 +1705,7 @@ static void bigpool_close(fd_pool p)
              "bigpool_close:munmap offsets %s",bp->poolid);
       errno = 0;}
 #else
-    u8_big_free(bp->pool_offdata);
+    u8_free(bp->pool_offdata);
 #endif
   }
   fd_unlock_pool(p);

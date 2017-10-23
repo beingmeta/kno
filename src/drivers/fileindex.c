@@ -141,7 +141,8 @@ static void fileindex_setcache(fd_index ix,int level)
       if ((newmmap == NULL) || (newmmap == MAP_FAILED)) {
         u8_log(LOG_CRIT,u8_strerror(errno),
                "fileindex_setcache:mmap %s",fx->index_source);
-        fx->index_offsets = NULL; errno = 0;}
+        fx->index_offsets = NULL;
+        errno = 0;}
       else fx->index_offsets = offsets = newmmap+2;
 #else
       offsets = u8_big_alloc(SLOTSIZE*(fx->ht_n_buckets));
@@ -151,7 +152,8 @@ static void fileindex_setcache(fd_index ix,int level)
 #endif
       fd_unlock_index(fx);}
   else if (level < 2) {
-    if (fx->index_offsets == NULL) return;
+    if (fx->index_offsets == NULL)
+      return;
     else {
       int retval;
       fd_lock_index(fx);
@@ -160,7 +162,8 @@ static void fileindex_setcache(fd_index ix,int level)
       if (retval<0) {
         u8_log(LOG_CRIT,u8_strerror(errno),
                "fileindex_setcache:munmap %s",fx->index_source);
-        fx->index_offsets = NULL; errno = 0;}
+        fx->index_offsets = NULL;
+        errno = 0;}
 #else
       u8_big_free(fx->index_offsets);
 #endif
@@ -323,7 +326,8 @@ static lispval *fileindex_fetchkeys(fd_index ix,int *n)
   struct FD_STREAM *stream = &(fx->index_stream);
   unsigned int n_slots, i = 0, pos_offset, *offsets, n_keys;
   fd_lock_index(fx);
-  n_slots = fx->index_n_slots; offsets = u8_big_alloc(SLOTSIZE*n_slots);
+  n_slots = fx->index_n_slots;
+  offsets = u8_big_alloc(SLOTSIZE*n_slots);
   pos_offset = SLOTSIZE*n_slots;
   fd_start_read(stream,8);
   fd_read_ints(stream,fx->index_n_slots,offsets);
@@ -886,14 +890,14 @@ static int commit_drops(struct FD_CONST_KEYVAL *drops,int n_drops,
                         int kdata_i)
 {
   struct FD_STREAM *stream = &(f->index_stream);
-  lispval *dropkeys = u8_alloc_n(n_drops,lispval);
+  lispval *dropkeys = u8_big_alloc_n(n_drops,lispval);
   /* Change some drops to sets when cached, record the ones that can't
      be changed so they can be fetched and resolved. */
   int drop_i = 0; while (drop_i < n_drops) {
     dropkeys[drop_i] = drops[drop_i].kv_key;
     drop_i++;}
   lispval *dropvals = fetchn(f,n_drops,dropkeys,0);
-  u8_free(dropkeys);
+  u8_big_free(dropkeys);
 
   fd_set_direction(stream,fd_byteflow_write);
   fd_off_t filepos = fd_endpos(stream);
