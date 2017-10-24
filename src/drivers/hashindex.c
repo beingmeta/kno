@@ -249,7 +249,7 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
   stream->stream_flags &= ~FD_STREAM_IS_CONSED;
   magicno = fd_read_4bytes_at(stream,0,FD_ISLOCKED);
   if ( magicno != 0x8011308) {
-    fd_seterr3(fd_NotAFileIndex,"open_fileindex",fname);
+    fd_seterr3(fd_NotAFileIndex,"open_hashindex",fname);
     u8_free(index);
     fd_close_stream(stream,FD_STREAM_FREEDATA|FD_STREAM_NOFLUSH);
     return NULL;}
@@ -370,8 +370,15 @@ static fd_index recover_hashindex(u8_string fname,fd_storage_flags open_flags,
              "The hashindex file %s has a corrupted recovery file %s",
              fname,recovery_file);
     else {
-      u8_free(recovery_file);
-      return open_hashindex(fname,open_flags,opts);}}
+      fd_index opened = open_hashindex(fname,open_flags,opts);
+      if (opened) {
+        u8_free(recovery_file);
+        return opened;}
+      if (! (fd_testopt(opts,fd_intern("FIXUP"),FD_VOID))) {
+        fd_seterr("RecoveryFailed","recover_hashindex",fname,FD_VOID);
+        return NULL;}
+      else u8_log(LOGERR,"RecoveryFailed",
+                  "Recovering %s using %s failed",fname,recovery_file);}}
   else u8_log(LOGCRIT,"Corrupted hashindex",
               "The hashindex file %s doesn't have a recovery file %s",
               fname,recovery_file);
