@@ -514,7 +514,7 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,lispval keys)
       /* Some of the values are already in the cache */
       int atomicp = 1;
       reduced = fd_alloc_choice(n);
-      lispval *elts = ((lispval *)(FD_CHOICE_ELTS(keys))), *write = elts;
+      lispval *elts = ((lispval *)(FD_CHOICE_ELTS(reduced))), *write = elts;
       FD_DO_CHOICES(key,keys) {
         if (! (fd_hashtable_probe(cache,key)) ) {
           if (fd_hashtable_probe(stores,key)) {

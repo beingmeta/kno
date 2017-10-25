@@ -144,7 +144,9 @@
 		     (set! count (1+ count))
 		     (set! next (glom (textsubst source flexindex-suffix "")
 				  "." (padnum count 3 16) ".index")))
-		   (lognotice |FlexIndex| "Found " count " indexes based at " baseindex)
+		   (if (> count 1)
+		       (lognotice |FlexIndex| "Found " count " indexes based at " baseindex)
+		       (loginfo |FlexIndex| "Found one index based at " baseindex))
 		   (indexctl baseindex 'props 'seealso indexes)
 		   (indexctl indexes 'props 'base baseindex))
 		 baseindex))))))
@@ -152,7 +154,8 @@
 (define (ref-index path opts)
   (if (file-exists? path)
       (open-index path opts)
-      (make-index path opts)))
+      (begin (lognotice |NewIndex| "Creating new index file " path)
+	(make-index path opts))))
 
 ;;; Copying OIDs between pools
 

@@ -40,7 +40,7 @@
    memory and fetching values gets the corresponding block. Committing
    the index writes the changed values, updates the offsets table, and
    writes it out at the end. It then writes a .commit file and a
-   .recovery file with the new header.
+   .rollback file with the new header.
 
    The offsets table can have choice values, which is a way to have
    easy adding.

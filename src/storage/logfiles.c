@@ -56,7 +56,7 @@ typedef struct FD_LOGFILE FD_LOGFILE;
     updates the number of entries, time, and end of valid data.
 
     Pre-committing writes a .commit file with that data which can be
-    written into it and also writes a .recovery file which can be used
+    written into it and also writes a .rollback file which can be used
     to rollback.
 
     Here are the functions:
