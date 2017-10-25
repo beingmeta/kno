@@ -61,7 +61,7 @@ typedef int (*fd_sortfn)(const void *x,const void *y);
 struct FD_SORT_ENTRY {
   lispval sortval, sortkey;};
 
-static int _fd_sort_helper(const void *vx,const void *vy)
+U8_MAYBE_UNUSED static int _fd_sort_helper(const void *vx,const void *vy)
 {
   const struct FD_SORT_ENTRY *sx = (struct FD_SORT_ENTRY *)vx;
   const struct FD_SORT_ENTRY *sy = (struct FD_SORT_ENTRY *)vy;
@@ -118,7 +118,7 @@ static int _fd_sort_helper(const void *vx,const void *vy)
     else return 0;}
 }
 
-static int _fd_pointer_sort_helper(const void *vx,const void *vy)
+U8_MAYBE_UNUSED static int _fd_pointer_sort_helper(const void *vx,const void *vy)
 {
   const struct FD_SORT_ENTRY *sx = (struct FD_SORT_ENTRY *)vx;
   const struct FD_SORT_ENTRY *sy = (struct FD_SORT_ENTRY *)vy;
@@ -129,7 +129,7 @@ static int _fd_pointer_sort_helper(const void *vx,const void *vy)
   else return 1;
 }
 
-static int _fd_collate_helper(const void *vx,const void *vy)
+U8_MAYBE_UNUSED static int _fd_collate_helper(const void *vx,const void *vy)
 {
   const struct FD_SORT_ENTRY *sx = (struct FD_SORT_ENTRY *)vx;
   const struct FD_SORT_ENTRY *sy = (struct FD_SORT_ENTRY *)vy;
@@ -174,7 +174,7 @@ static int _fd_collate_helper(const void *vx,const void *vy)
     else return 0;}
 }
 
-static int _fd_lexsort_helper(const void *vx,const void *vy)
+U8_MAYBE_UNUSED static int _fd_lexsort_helper(const void *vx,const void *vy)
 {
   const struct FD_SORT_ENTRY *sx = (struct FD_SORT_ENTRY *)vx;
   const struct FD_SORT_ENTRY *sy = (struct FD_SORT_ENTRY *)vy;
@@ -219,7 +219,7 @@ static int _fd_lexsort_helper(const void *vx,const void *vy)
     else return 0;}
 }
 
-static int _fd_lexsort_ci_helper(const void *vx,const void *vy)
+U8_MAYBE_UNUSED static int _fd_lexsort_ci_helper(const void *vx,const void *vy)
 {
   const struct FD_SORT_ENTRY *sx = (struct FD_SORT_ENTRY *)vx;
   const struct FD_SORT_ENTRY *sy = (struct FD_SORT_ENTRY *)vy;
@@ -266,7 +266,7 @@ static int _fd_lexsort_ci_helper(const void *vx,const void *vy)
     else return 0;}
 }
 
-static lispval _fd_apply_keyfn(lispval x,lispval keyfn)
+U8_MAYBE_UNUSED static lispval _fd_apply_keyfn(lispval x,lispval keyfn)
 {
   if ((FD_VOIDP(keyfn)) ||
       (FD_EMPTY_CHOICEP(keyfn)) ||
