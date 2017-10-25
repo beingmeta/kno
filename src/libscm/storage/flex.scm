@@ -185,14 +185,30 @@
 
 (defambda (flex/save! . args)
   (dolist (arg args)
-    (cond ((ambiguous? arg)
-	   (thread/wait (thread/call flex/save! arg)))
-	  ((registry? arg) (registry/save! arg))
+    (cond ((ambiguous? arg) (thread/wait (thread/call flex/save! arg)))
+	  ((registry? arg) (save-registry arg))
 	  ((flexpool/record arg)
 	   (thread/wait 
-	    (thread/call commit (pick (flexpool/partitions arg) modified?))))
+	    (thread/call safe-commit (pick (flexpool/partitions arg) modified?))))
 	  ((exists? (db->registry arg))
-	   (begin (registry/save! (db->registry arg))
-	     (commit arg)))
-	  ((or (pool? arg) (index? arg)) (commit arg))
+	   (begin (save-registry (db->registry arg))
+	     (safe-commit arg)))
+	  ((or (pool? arg) (index? arg)) (safe-commit arg))
+	  ((and (applicable? arg) (zero? (procedure-min-arity arg))) (arg))
+
+	  ((and (pair? arg) (applicable? car arg)) (apply (car arg) (cdr arg)))
 	  (else (logwarn |CantSave| "No method for saving " arg)))))
+
+(define (safe-commit arg)
+  (when (modified? arg)
+    (onerror (commit arg)
+	(lambda (ex)
+	  (logwarn |CommitError| "Error committing " arg ": " ex)
+	  #f))))
+(define (save-registry arg)
+  (onerror (registry/save! arg)
+      (lambda (ex)
+	(logwarn |CommitError| "Error saving registry " arg ": " ex)
+	#f)))
+
+
