@@ -358,20 +358,74 @@ static void update_filetime(struct FD_BIGPOOL *fp)
 static fd_pool recover_bigpool(u8_string fname,fd_storage_flags open_flags,
                                lispval opts)
 {
-  u8_string head_file=u8_string_append(fname,".recovery",NULL);
-  if (u8_file_existsp(head_file)) {
-    ssize_t rv=fd_restore_head(head_file,fname,256-8);
+  u8_string rollback_file=u8_string_append(fname,".rollback",NULL);
+  if (u8_file_existsp(rollback_file)) {
+    u8_log(LOGWARN,"Rollback",
+           "Applying rollback file %s to %s",rollback_file,fname);
+    ssize_t rv=fd_restore_head(rollback_file,fname,256-8);
     if (rv<0) {
-      u8_graberrno("recover_bigpool",head_file);
+      u8_graberrno("recover_bigpool",rollback_file);
       return NULL;}
-    else u8_free(head_file);
-    return open_bigpool(fname,open_flags,opts);}
+    fd_pool opened = open_bigpool(fname,open_flags,opts);
+    if (opened) {
+      u8_string rollback_applied = u8_string_append(rollback_file,".applied",NULL);
+      u8_movefile(rollback_file,rollback_applied);
+      u8_free(rollback_applied);
+      u8_free(rollback_file);
+      return opened;}
+    else if (! (fd_testopt(opts,fd_intern("FIXUP"),FD_VOID))) {
+      fd_seterr("RecoveryFailed","recover_bigpool",fname,FD_VOID);
+      u8_free(rollback_file);
+      return NULL;}
+    else {
+      u8_string rollback_failed = u8_string_append(rollback_file,".failed",NULL);
+      u8_byte details[256];
+      u8_log(LOGERR,"RecoveryFailed",
+             "Failed to recover %s using %s",fname,rollback_file);
+      if (u8_movefile(rollback_file,rollback_failed) < 0) {
+        fd_seterr("RecoveryFailed","recover_bigpool",
+                  u8_sprintf(details,256,"Couldn't (re)move rollback file %s",
+                             rollback_file),
+                  FD_VOID);
+        u8_free(rollback_file);
+        u8_free(rollback_failed);
+        return NULL;}
+      else {
+        u8_free(rollback_file);
+        u8_free(rollback_failed);}}}
+  else if (! (fd_testopt(opts,fd_intern("FIXUP"),FD_VOID)) ) {
+    u8_seterr("NoRollbackFile",
+              "The bigpool file %s doesn't have a rollback file %s",
+              rollback_file);
+    return NULL;}
   else {
     u8_log(LOGCRIT,"Corrupted Bigpool",
-           "The bigpool file %s doesn't have a recovery file %s",
-           fname,head_file);
-    u8_free(head_file);
+           "The bigpool file %s doesn't have a rollback file %s",
+           fname,rollback_file);
+    u8_free(rollback_file);
+    rollback_file=NULL;}
+  /* Try to 'force' recovery by updating the header */
+  char *src = u8_tolibc(fname);
+  FD_DECL_OUTBUF(headbuf,256);
+  unsigned int magicno = FD_BIGPOOL_MAGIC_NUMBER;
+  int out=open(src,O_RDWR);
+  fd_write_4bytes(&headbuf,magicno);
+#if HAVE_PREAD
+  int rv = pwrite(out,headbuf.buffer,4,0);
+#else
+  lseek(out,SEEK_SET,0);
+  int rv = write(out,headbuf.buffer,4);
+#endif
+  fsync(out);
+  close(out);
+  u8_free(src);
+  if (rv>0) {
+    fd_pool opened = open_bigpool(fname,open_flags,opts);
+    if (opened)
+      return opened;
+    u8_seterr("FailedFixup","recover_bigpool",u8_strdup(fname));
     return NULL;}
+  else return NULL;
 }
 
 /* Getting slotids */
@@ -881,7 +935,7 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
     return -1;}
 
   unsigned int load = bp->pool_load;
-  u8_string recovery_file=u8_string_append(fname,".recovery",NULL);
+  u8_string recovery_file=u8_string_append(fname,".rollback",NULL);
   size_t recovery_size = 256+(chunk_ref_size*p->pool_capacity);
   ssize_t saved=fd_save_head(fname,recovery_file,recovery_size);
   if (saved<0)

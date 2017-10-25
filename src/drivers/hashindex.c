@@ -359,7 +359,7 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
 static fd_index recover_hashindex(u8_string fname,fd_storage_flags open_flags,
                                   lispval opts)
 {
-  u8_string recovery_file=u8_string_append(fname,".recovery",NULL);
+  u8_string recovery_file=u8_string_append(fname,".rollback",NULL);
   if (u8_file_existsp(recovery_file)) {
     ssize_t rv=fd_restore_head(recovery_file,fname,256-8);
     if (rv<0) {
@@ -372,13 +372,16 @@ static fd_index recover_hashindex(u8_string fname,fd_storage_flags open_flags,
     else {
       fd_index opened = open_hashindex(fname,open_flags,opts);
       if (opened) {
+        u8_removefile(recovery_file);
         u8_free(recovery_file);
         return opened;}
       if (! (fd_testopt(opts,fd_intern("FIXUP"),FD_VOID))) {
         fd_seterr("RecoveryFailed","recover_hashindex",fname,FD_VOID);
         return NULL;}
-      else u8_log(LOGERR,"RecoveryFailed",
-                  "Recovering %s using %s failed",fname,recovery_file);}}
+      else {
+        u8_log(LOGERR,"RecoveryFailed",
+               "Recovering %s using %s failed",fname,recovery_file);
+        u8_removefile(recovery_file);}}}
   else u8_log(LOGCRIT,"Corrupted hashindex",
               "The hashindex file %s doesn't have a recovery file %s",
               fname,recovery_file);
@@ -2214,7 +2217,7 @@ static int hashindex_commit(struct FD_INDEX *ix,
     fd_unlock_index(hx);
     return 0;}
 
-  u8_string recovery_file=u8_string_append(fname,".recovery",NULL);
+  u8_string recovery_file=u8_string_append(fname,".rollback",NULL);
   size_t recovery_size = 256+(get_chunk_ref_size(hx)*hx->index_n_buckets);
   ssize_t saved=fd_save_head(fname,recovery_file,recovery_size);
   if (saved<0) {
