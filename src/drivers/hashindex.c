@@ -193,7 +193,7 @@ static lispval slotids_symbol, baseoids_symbol, buckets_symbol, nkeys_symbol;
 
 /* Getting chunk refs */
 
-static int get_chunk_ref_size(fd_hashindex ix)
+static ssize_t get_chunk_ref_size(fd_hashindex ix)
 {
   switch (ix->index_offtype) {
   case FD_B32: case FD_B40: return 8;

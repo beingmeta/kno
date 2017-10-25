@@ -175,10 +175,11 @@ static u8_condition InvalidOffset=_("Invalid offset in BIGPOOL");
 typedef long long int ll;
 typedef unsigned long long ull;
 
-static int get_chunk_ref_size(fd_bigpool p)
+static ssize_t get_chunk_ref_size(fd_bigpool p)
 {
   switch (p->pool_offtype) {
-  case FD_B32: case FD_B40: return 8;
+  case FD_B32: case FD_B40:
+    return 8;
   case FD_B64: return 12;}
   return -1;
 }
