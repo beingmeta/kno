@@ -3,7 +3,7 @@
 
 (in-module 'storage/flex)
 
-(use-module '{ezrecords stringfmts logger texttools})
+(use-module '{ezrecords stringfmts logger texttools reflection})
 (use-module '{storage/adjuncts storage/registry storage/filenames})
 (use-module '{storage/flexpools storage/flexindexes 
 	      storage/adjuncts})
@@ -199,7 +199,8 @@
 	  ((or (pool? arg) (index? arg)) (safe-commit arg))
 	  ((and (applicable? arg) (zero? (procedure-min-arity arg))) (arg))
 
-	  ((and (pair? arg) (applicable? car arg)) (apply (car arg) (cdr arg)))
+	  ((and (pair? arg) (applicable? (car arg)))
+	   (apply (car arg) (cdr arg)))
 	  (else (logwarn |CantSave| "No method for saving " arg)))))
 
 (define (safe-commit arg)
