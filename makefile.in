@@ -472,9 +472,10 @@ normal:
 	@+make -s testbin exe cmodules etc @TAGS@
 debugging:
 	@echo Building DEBUGGING configuration
-	@+make -s XCFLAGS="@debugcflags@ -Wall $(XCFLAGS)"	\
+	@+make -s XCFLAGS="@debugcflags@ -O0 -Wall $(XCFLAGS)"	\
 	          XLDFLAGS="@debugldflags@ $(XLDFLAGS)"		\
-	          XOPTFLAGS="" XLIBS="@debuglibs@ $(XLIBS)" 	\
+	          XOPTFLAGS="-O0" OPTFLAGS="-O0" 		\
+		  XLIBS="@debuglibs@ $(XLIBS)" 			\
 	  testbin exe cmodules etc @TAGS@
 optimizing:
 	@echo Building OPTIMIZING configuration
@@ -891,10 +892,10 @@ src/lisp/choices.o : XCFLAGS="${XOPTFLAGS}"
 src/lisp/tables.o src/storage/bloom.o src/lisp/sequences.o : XCFLAGS="${XOPTFLAGS}"
 src/lisp/numbers.o src/lisp/compare.o : XCFLAGS="${XOPTFLAGS}"
 src/apply/apply.o : XCFLAGS="${XOPTFLAGS}"
-src/storage/streams.o : XCFLAGS="${XOPTFLAGS}"
-src/eval/eval.o : XCFLAGS="${XOPTFLAGS}"
+src/storage/streams.o src/storage/pools.o src/storage/indexes.o : XCFLAGS="${XOPTFLAGS}"
+src/eval/eval.o src/eval/choiceops.o : XCFLAGS="${XOPTFLAGS}"
 src/eval/conditionals.o src/eval/iterators.o : XCFLAGS="${XOPTFLAGS}"
-src/eval/opcodes.o : XCFLAGS="${XOPTFLAGS}"
+src/eval/opcodes.o src/eval/lambda.o : XCFLAGS="${XOPTFLAGS}"
 src/text/matcher.o src/text/texttools.o : XCFLAGS="${XOPTFLAGS}"
 
 # Library targets
