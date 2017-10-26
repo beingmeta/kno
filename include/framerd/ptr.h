@@ -525,7 +525,7 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
    the type bits; we then just divide by four to get the integer
    value. */
 #define FD_FIX2INT(fx)  ( (_fd_sptr) ( ( ((_fd_sptr) fx) & (~0x3)) / 4) )
-#define FD_INT2FIX(n)   ( (lispval) ( ( ((_fd_sptr)(n)) << 2 ) | fd_fixnum_type) )
+#define FD_INT2FIX(n)   ( (lispval)  ( ( ((_fd_sptr)(n)) << 2 ) | fd_fixnum_type) )
 
 #define FD_MAX_FIXNUM ((((long long)1)<<(FD_FIXNUM_BITS-1))-1)
 #define FD_MIN_FIXNUM -((((long long)1)<<(FD_FIXNUM_BITS-1))-1)
@@ -533,14 +533,27 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
 #define FD_MAX_FIXVAL (INT2FIX(FD_MAX_FIXNUM))
 #define FD_MIN_FIXVAL (INT2FIX(FD_MIN_FIXNUM))
 
+#if ( FD_FIXNUM_BITS >= 56 )
+#define FD_FIXNUM_BYTES 7
+#elif ( FD_FIXNUM_BITS >= 56 )
+#define FD_FIXNUM_BYTES 3
+#else
+#define FD_FIXNUM_BYTES 3
+#endif
+
 #define to64(x) ((long long)(x))
 #define to64u(x) ((unsigned long long)(x))
 
 #define FD_MAKE_FIXNUM FD_INT2FIX
 
-#define FD_INT2DTYPE(n)                                  \
-  ( ( ((n) > FD_MAX_FIXNUM) || ((n) < FD_MIN_FIXNUM) ) ? \
-    (fd_make_bigint(n)) : (FD_INT2FIX(n)) )
+/* The sizeof check here avoids *tautological* range errors
+   when n can't be too big for a fixnum. */
+#define FD_INT2DTYPE(n)                         \
+  ( ( (sizeof(n) < FD_FIXNUM_BYTES) ||          \
+      ((n) > FD_MAX_FIXNUM) ||                  \
+      ((n) < FD_MIN_FIXNUM) ) ?                 \
+    (fd_make_bigint(n)) :                       \
+    (FD_INT2FIX(n)) )
 #define FD_INT(x) (FD_INT2DTYPE(x))
 #define FD_MAKEINT(x) (FD_INT2DTYPE(x))
 
