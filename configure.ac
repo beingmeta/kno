@@ -149,6 +149,8 @@ use_dtblock_default="yes"
 default_bootsystem="none"
 BOOTSETUP="none"
 CFLAGS="-DLIBU8_SOURCE -DFRAMERD_SOURCE"
+OPTFLAGS=
+XOPTFLAGS=
 CLANG=no
 MALLOC_FLAGS="-fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free"
 MYSQL_CFLAGS=
@@ -162,7 +164,7 @@ LIBZIP_LDFLAGS=
 DEFAULTISASYNC=0
 USEDTBLOCK=0
 MSG=echo
-debugcflags=" -O0 -g3 -ggdb3 -fno-inline -fno-omit-frame-pointer "
+debugcflags=" -Og -g3 -ggdb3 -fno-inline -fno-omit-frame-pointer "
 debugldflags=""
 debuglibs=""
 manually_disabled=""
@@ -213,6 +215,8 @@ AC_SUBST(vshared_suffix)
 AC_SUBST(mshared_suffix)
 AC_SUBST(mmshared_suffix)
 AC_SUBST(dynamic_cflag)
+AC_SUBST(OPTFLAGS)
+AC_SUBST(XOPTFLAGS)
 AC_SUBST(rpath)
 AC_SUBST(curlconfig)
 AC_SUBST(calltracko)
@@ -419,9 +423,13 @@ AC_PROG_RANLIB
 AC_CHECK_DECL(__clang__,CLANG=yes)
 
 if test "${CLANG}" = "yes"; then
-   CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb "
+   CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb"
+   OPTFLAGS="-O2"
+   XOPTFLAGS="-O3"
 elif test "${GCC}" = "yes"; then
-   CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb "
+   CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb"
+   OPTFLAGS="-O2"
+   XOPTFLAGS="-O3"
    gcc_version=`gcc -dumpversion`;
    dynamic_cflag="-rdynamic";
 fi;

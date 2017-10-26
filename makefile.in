@@ -4,9 +4,10 @@
 
 CC	      = @CC@
 XCFLAGS       =
-OPTFLAGS      = -O3
+OPTFLAGS      = @OPTFLAGS@
+OPTFLAGS      = @XOPTFLAGS@
 ARCHFLAGS     = @archflags@
-EXECFLAGS     = @CFLAGS@ @MALLOC_FLAGS@ @PROFILING@ @DREENTRANT@ -I./include $(XCFLAGS) $(ARCHFLAGS)
+EXECFLAGS     = @CFLAGS@ ${OPTFLAGS} @MALLOC_FLAGS@ @PROFILING@ @DREENTRANT@ -I./include $(XCFLAGS) $(ARCHFLAGS)
 DYNAMIC_CFLAG = @dynamic_cflag@
 CFLAGS        = -I./include @CFLAGS@ @MALLOC_FLAGS@ @PROFILING@ @DREENTRANT@ @PTHREAD_LIBS@ \
 		$(DYNAMIC_CFLAG) -I./include $(XCFLAGS)  $(ARCHFLAGS)
@@ -473,7 +474,7 @@ debugging:
 	@echo Building DEBUGGING configuration
 	@+make -s XCFLAGS="@debugcflags@ -Wall $(XCFLAGS)"	\
 	          XLDFLAGS="@debugldflags@ $(XLDFLAGS)"		\
-	          OPTFLAGS="" XLIBS="@debuglibs@ $(XLIBS)" 	\
+	          XOPTFLAGS="" XLIBS="@debuglibs@ $(XLIBS)" 	\
 	  testbin exe cmodules etc @TAGS@
 optimizing:
 	@echo Building OPTIMIZING configuration
@@ -885,16 +886,16 @@ src/eval/binders.o src/eval/conditionals.o src/eval/iterators.o: \
 
 # Custom rules
 
-src/lisp/dtread.o src/lisp/dtwrite.o src/lisp/bufio.o : XCFLAGS="${OPTFLAGS}"
-src/lisp/choices.o : XCFLAGS="${OPTFLAGS}"
-src/lisp/tables.o src/storage/bloom.o src/lisp/sequences.o : XCFLAGS="${OPTFLAGS}"
-src/lisp/numbers.o src/lisp/compare.o : XCFLAGS="${OPTFLAGS}"
-src/apply/apply.o : XCFLAGS="${OPTFLAGS}"
-src/storage/streams.o : XCFLAGS="${OPTFLAGS}"
-src/eval/eval.o : XCFLAGS="${OPTFLAGS}"
-src/eval/conditionals.o src/eval/iterators.o : XCFLAGS="${OPTFLAGS}"
-src/eval/opcodes.o : XCFLAGS="${OPTFLAGS}"
-src/text/matcher.o src/text/texttools.o : XCFLAGS="${OPTFLAGS}"
+src/lisp/dtread.o src/lisp/dtwrite.o src/lisp/bufio.o : XCFLAGS="${XOPTFLAGS}"
+src/lisp/choices.o : XCFLAGS="${XOPTFLAGS}"
+src/lisp/tables.o src/storage/bloom.o src/lisp/sequences.o : XCFLAGS="${XOPTFLAGS}"
+src/lisp/numbers.o src/lisp/compare.o : XCFLAGS="${XOPTFLAGS}"
+src/apply/apply.o : XCFLAGS="${XOPTFLAGS}"
+src/storage/streams.o : XCFLAGS="${XOPTFLAGS}"
+src/eval/eval.o : XCFLAGS="${XOPTFLAGS}"
+src/eval/conditionals.o src/eval/iterators.o : XCFLAGS="${XOPTFLAGS}"
+src/eval/opcodes.o : XCFLAGS="${XOPTFLAGS}"
+src/text/matcher.o src/text/texttools.o : XCFLAGS="${XOPTFLAGS}"
 
 # Library targets
 

@@ -802,6 +802,8 @@ curlo
 calltracko
 curlconfig
 rpath
+XOPTFLAGS
+OPTFLAGS
 dynamic_cflag
 mmshared_suffix
 mshared_suffix
@@ -3024,6 +3026,8 @@ use_dtblock_default="yes"
 default_bootsystem="none"
 BOOTSETUP="none"
 CFLAGS="-DLIBU8_SOURCE -DFRAMERD_SOURCE"
+OPTFLAGS=
+XOPTFLAGS=
 CLANG=no
 MALLOC_FLAGS="-fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free"
 MYSQL_CFLAGS=
@@ -3037,7 +3041,7 @@ LIBZIP_LDFLAGS=
 DEFAULTISASYNC=0
 USEDTBLOCK=0
 MSG=echo
-debugcflags=" -O0 -g3 -ggdb3 -fno-inline -fno-omit-frame-pointer "
+debugcflags=" -Og -g3 -ggdb3 -fno-inline -fno-omit-frame-pointer "
 debugldflags=""
 debuglibs=""
 manually_disabled=""
@@ -3106,6 +3110,8 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
+
 
 
 
@@ -5617,9 +5623,13 @@ fi
 
 
 if test "${CLANG}" = "yes"; then
-   CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb "
+   CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb"
+   OPTFLAGS="-O2"
+   XOPTFLAGS="-O3"
 elif test "${GCC}" = "yes"; then
-   CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb "
+   CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb"
+   OPTFLAGS="-O2"
+   XOPTFLAGS="-O3"
    gcc_version=`gcc -dumpversion`;
    dynamic_cflag="-rdynamic";
 fi;
