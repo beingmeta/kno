@@ -450,8 +450,13 @@ static ssize_t write_dtypes(lispval dtypes,struct FD_STREAM *out)
         (out,tmp.bufwrite-tmp.buffer,tmp.buffer);}
   fd_close_outbuf(&tmp);
   if (rv<0) {
-    if (start>=0)
-      ftruncate(out->stream_fileno,start);
+    if (start>=0) {
+      int rv = ftruncate(out->stream_fileno,start);
+      if (rv<0) {
+        int got_err = errno; errno=0;
+        u8_log(LOGWARN,"TruncateFailed",
+               "Couldn't undo write to %s (errno=%d:%s)",
+               out->streamid,got_err,u8_strerror(got_err));}}
     return rv;}
   else return bytes;
 }

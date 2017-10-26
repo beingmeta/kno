@@ -422,40 +422,6 @@ static lispval config_get_fullscheme(lispval var,void U8_MAYBE_UNUSED *data)
     the server's process id, and an nid file indicating the ports on which
     the server is listening. */
 
-#define need_escape(s) \
-  ((strchr(s,'"'))||(strchr(s,'\\'))|| \
-   (strchr(s,' '))||(strchr(s,'\t'))|| \
-   (strchr(s,'\n'))||(strchr(s,'\r')))
-
-static void write_cmd_file(int argc,char **argv)
-{
-  const char *abspath = u8_abspath(cmd_file,NULL);
-  int i = 0, fd = open(abspath,O_CREAT|O_RDWR|O_TRUNC,
-                   S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH);
-  u8_byte buf[512]; struct U8_OUTPUT out;
-  U8_INIT_OUTPUT_BUF(&out,512,buf);
-  while (i<argc) {
-    char *arg = argv[i];
-    u8_string argstring = u8_fromlibc(arg);
-    if (i>0) u8_putc(&out,' '); i++;
-    if (need_escape(argstring)) {
-      u8_string scan = argstring;
-      int c = u8_sgetc(&scan); u8_putc(&out,'"');
-      while (c>=0) {
-        if (c=='\\') {
-          u8_putc(&out,'\\'); c = u8_sgetc(&scan);}
-        else if ((c==' ')||(c=='\n')||(c=='\t')||(c=='\r')||(c=='"')) {
-          u8_putc(&out,'\\');}
-        if (c>=0) u8_putc(&out,c);
-        c = u8_sgetc(&scan);}
-      u8_putc(&out,'"');}
-    else u8_puts(&out,argstring);
-    if (argstring!=((u8_string)arg)) u8_free(argstring);}
-  u8_log(LOG_INFO,"DaemonInvocation","%s",out.u8_outbuf);
-  if (fd>=0) write(fd,out.u8_outbuf,out.u8_write-out.u8_outbuf);
-  u8_free(abspath); u8_close_output(&out); close(fd);
-}
-
 static void cleanup_state_files()
 {
   if (state_files_written) {
@@ -1168,7 +1134,7 @@ int main(int argc,char **argv)
   cmd_file = fd_runbase_filename(".cmd");
   inject_file = fd_runbase_filename(".inj");
 
-  write_cmd_file(argc,argv);
+  write_cmd_file(cmd_file,"DaemonInvocation",argc,argv);
 
   if (daemonize>0)
     return fork_server(server_spec,core_env);

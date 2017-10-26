@@ -32,6 +32,18 @@ static struct FD_INDEX_HANDLER memindex_handler;
 
 static ssize_t load_memindex(struct FD_MEMINDEX *memidx);
 
+static void truncate_failed(int fileno,u8_string file)
+{
+  int got_err = errno; errno=0;
+  if (got_err)
+    u8_log(LOGWARN,"TruncateFailed",
+           "Couldn't truncate memindex file %s (fd=%d) (errno=%d:%s)",
+           file,fileno,got_err,u8_strerror(got_err));
+  else u8_log(LOGWARN,"TruncateFailed",
+              "Couldn't truncate memindex file %s (fd=%d)",file,fileno);
+}
+
+
 /* The in-memory index */
 
 static lispval memindex_fetch(fd_index ix,lispval key)
@@ -207,7 +219,8 @@ static ssize_t load_memindex(struct FD_MEMINDEX *memidx)
   u8_log(fd_storage_loglevel+1,"MemIndexLoad",
          "Loading %lld entries for '%s'",n_entries,memidx->indexid);
   memidx->mix_valid_data = fd_read_8bytes(in);
-  ftruncate(stream->stream_fileno,memidx->mix_valid_data);
+  int rv = ftruncate(stream->stream_fileno,memidx->mix_valid_data);
+  if (rv<0) truncate_failed(stream->stream_fileno,stream->streamid);
   fd_setpos(stream,256);
   if (n_entries<memindex_map_init)
     fd_resize_hashtable(mix_map,memindex_map_init);
@@ -262,7 +275,8 @@ static fd_index open_memindex(u8_string file,fd_storage_flags flags,lispval opts
     unsigned U8_MAYBE_UNUSED int n_keys = fd_read_4bytes(in);
     long long n_entries = fd_read_8bytes(in);
     memidx->mix_valid_data = fd_read_8bytes(in);
-    ftruncate(stream->stream_fileno,memidx->mix_valid_data);
+    int rv = ftruncate(stream->stream_fileno,memidx->mix_valid_data);
+    if (rv<0) truncate_failed(stream->stream_fileno,stream->streamid);
     fd_setpos(stream,256);
     if (n_entries<memindex_map_init)
       fd_init_hashtable(&(memidx->mix_map),memindex_map_init,NULL);

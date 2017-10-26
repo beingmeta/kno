@@ -1,3 +1,48 @@
+/* Writing the cmd file */
+
+#define need_escape(s) \
+  ((strchr(s,'"'))||(strchr(s,'\\'))|| \
+   (strchr(s,' '))||(strchr(s,'\t'))|| \
+   (strchr(s,'\n'))||(strchr(s,'\r')))
+
+static void write_cmd_file(u8_string cmd_file,u8_condition label,
+                           int argc,char **argv)
+{
+  const char *abspath = u8_abspath(cmd_file,NULL);
+  int i = 0, fd = open(abspath,O_CREAT|O_RDWR|O_TRUNC,
+                   S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH);
+  u8_byte buf[512]; struct U8_OUTPUT out;
+  U8_INIT_OUTPUT_BUF(&out,512,buf);
+  while (i<argc) {
+    char *arg = argv[i];
+    u8_string argstring = u8_fromlibc(arg);
+    if (i>0) u8_putc(&out,' '); i++;
+    if (need_escape(argstring)) {
+      u8_string scan = argstring;
+      int c = u8_sgetc(&scan); u8_putc(&out,'"');
+      while (c>=0) {
+        if (c=='\\') {
+          u8_putc(&out,'\\'); c = u8_sgetc(&scan);}
+        else if ((c==' ')||(c=='\n')||(c=='\t')||(c=='\r')||(c=='"')) {
+          u8_putc(&out,'\\');}
+        if (c>=0) u8_putc(&out,c);
+        c = u8_sgetc(&scan);}
+      u8_putc(&out,'"');}
+    else u8_puts(&out,argstring);
+    if (argstring!=((u8_string)arg)) u8_free(argstring);}
+  u8_log(LOG_INFO,label,"%s",out.u8_outbuf);
+  if (fd>=0) {
+    ssize_t rv = write(fd,out.u8_outbuf,out.u8_write-out.u8_outbuf);
+    if (rv<0) {
+      int got_errno = errno; errno=0;
+      u8_log(LOGWARN,"SaveFailed",
+             "Couldn't save the command line to %s (errno=%d:%s)",
+             cmd_file,got_errno,u8_strerror(got_errno));}}
+  u8_free(abspath);
+  u8_close_output(&out);
+  close(fd);
+}
+
 /* Environment debugging */
 
 FD_EXPORT void _show_env(fd_lexenv start,int limit)
@@ -11,21 +56,21 @@ FD_EXPORT void _show_env(fd_lexenv start,int limit)
     u8_byte buf[128];
     FD_DO_CHOICES(key,keys) {
       if (FD_SYMBOLP(key)) {
-	lispval val=fd_get(bindings,key,FD_VOID);
-	u8_string vstring=u8_sprintf(buf,128,"%q",val);
-	fprintf(stderr,"  %s\t=\t%s\n",FD_SYMBOL_NAME(key),vstring);
-	fd_decref(val);}}
+        lispval val=fd_get(bindings,key,FD_VOID);
+        u8_string vstring=u8_sprintf(buf,128,"%q",val);
+        fprintf(stderr,"  %s\t=\t%s\n",FD_SYMBOL_NAME(key),vstring);
+        fd_decref(val);}}
     fd_decref(keys);}
   else while ( (env) && (depth < limit) ) {
       lispval bindings = env->env_bindings;
       fd_ptr_type btype = FD_PTR_TYPE(bindings);
       lispval name = fd_get(bindings,moduleid,FD_VOID);
       if (FD_VOIDP(name)) {
-	lispval keys = fd_getkeys(bindings);
-	u8_fprintf(stderr,"  env#%d %q\t\t\t(%s[%d]) 0x%llx/0x%llx\n",
-		   depth,keys,fd_type_names[btype],FD_CHOICE_SIZE(keys),
-		   bindings,env);
-	fd_decref(keys);}
+        lispval keys = fd_getkeys(bindings);
+        u8_fprintf(stderr,"  env#%d %q\t\t\t(%s[%d]) 0x%llx/0x%llx\n",
+                   depth,keys,fd_type_names[btype],FD_CHOICE_SIZE(keys),
+                   bindings,env);
+        fd_decref(keys);}
       else u8_fprintf(stderr,"  env#%d module %q\t\t0x%llx\n",depth,name,env);
       fd_decref(name);
       env=env->env_parent;
@@ -67,11 +112,11 @@ static struct FD_STACK *_get_stack_frame(void *arg)
   if (arg==NULL)
     return curstack;
   else if ((intval < 100000) && (curstack) &&
-	   (intval <= (curstack->stack_depth))) {
+           (intval <= (curstack->stack_depth))) {
     struct FD_STACK *scan=curstack;
     while (scan) {
       if ( scan->stack_depth == intval )
-	return scan;
+        return scan;
       else scan=scan->stack_caller;}
     if (scan==NULL)
       fprintf(stderr,"!! No stack frame %lld\n",intval);
@@ -129,7 +174,7 @@ static void _concise_stack_frame(struct FD_STACK *stack)
     int n=sm->schema_length, i=0; while (i<n) {
       lispval var=schema[i++];
       if (SYMBOLP(var))
-	fprintf(stderr," %s",SYM_NAME(var));}}
+        fprintf(stderr," %s",SYM_NAME(var));}}
   fprintf(stderr,"\n");
 }
 
@@ -147,9 +192,9 @@ void _show_stack_frame(void *arg)
       lispval *args=stack->stack_args;
       int i=0, n=stack->n_args;
       while (i<n) {
-	u8_string line=u8_sprintf(buf,128,"\n#%d\t%q",i,args[i]);
-	fputs(line,stderr);
-	i++;}}}
+        u8_string line=u8_sprintf(buf,128,"\n#%d\t%q",i,args[i]);
+        fputs(line,stderr);
+        i++;}}}
   fputs("\n",stderr);
   if (stack->stack_env)
     _show_env(stack->stack_env,-1);
