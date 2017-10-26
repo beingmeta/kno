@@ -415,6 +415,8 @@ static lispval lisp2zipfile(lispval object,lispval filename,lispval bufsiz)
 
 static lispval add_lisp2zipfile(lispval object,lispval filename);
 
+#define flushp(b) ( (((b).buflim)-((b).bufwrite)) < ((b).buflen)/5 )
+
 static ssize_t write_dtypes(lispval dtypes,struct FD_STREAM *out)
 {
   ssize_t bytes=0, rv=0;
@@ -423,31 +425,35 @@ static ssize_t write_dtypes(lispval dtypes,struct FD_STREAM *out)
   struct FD_OUTBUF tmp; unsigned char tmpbuf[1000];
   FD_INIT_BYTE_OUTBUF(&tmp,tmpbuf,1000);
   if ((CHOICEP(dtypes))||(PRECHOICEP(dtypes))) {
+    /* This writes out the objects sequentially, writing into memory
+       first and then to disk, to reduce the danger of malformed
+       DTYPEs on the disk. */
     DO_CHOICES(dtype,dtypes) {
       ssize_t write_size=0;
-      if ((tmp.buflim-tmp.bufwrite)<(tmp.buflen/5)) {
-        write_size=fd_stream_write
-          (out,tmp.bufwrite-tmp.buffer,tmp.buffer);
+      if ( (flushp(tmp)) ) {
+        write_size=fd_stream_write(out,tmp.bufwrite-tmp.buffer,tmp.buffer);
         tmp.bufwrite=tmp.buffer;}
       if (write_size>=0) {
         ssize_t dtype_size=fd_write_dtype(&tmp,dtype);
         if (dtype_size<0)
           write_size=dtype_size;
-        else if ((tmp.buflim-tmp.bufwrite)<(tmp.buflen/5)) {
-          write_size=fd_stream_write
-            (out,tmp.bufwrite-tmp.buffer,tmp.buffer);
+        else if (flushp(tmp)) {
+          write_size=fd_stream_write(out,tmp.bufwrite-tmp.buffer,tmp.buffer);
           tmp.bufwrite=tmp.buffer;}
         else write_size=dtype_size;}
       if (write_size<0) {
         rv=write_size;
         FD_STOP_DO_CHOICES;
         break;}
-      else bytes=bytes+write_size;}}
+      else bytes=bytes+write_size;}
+    if (tmp.bufwrite > tmp.buffer) {
+      ssize_t written = fd_stream_write(out,tmp.bufwrite-tmp.buffer,tmp.buffer);
+      tmp.bufwrite=tmp.buffer;
+      bytes += written;}}
   else {
     bytes=fd_write_dtype(&tmp,dtypes);
     if (bytes>0)
-      rv=fd_stream_write
-        (out,tmp.bufwrite-tmp.buffer,tmp.buffer);}
+      rv=fd_stream_write (out,tmp.bufwrite-tmp.buffer,tmp.buffer);}
   fd_close_outbuf(&tmp);
   if (rv<0) {
     if (start>=0) {
