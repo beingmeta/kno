@@ -573,6 +573,7 @@ FD_EXPORT lispval fd_init_code(struct FD_VECTOR *ptr,int len,lispval *data)
   ptr->vec_length = len;
   ptr->vec_elts = elts;
   ptr->vec_free_elts = freedata;
+  ptr->vec_bigalloc = 0;
   return LISP_CONS(ptr);
 }
 
@@ -597,6 +598,7 @@ FD_EXPORT lispval fd_make_code(int len,lispval *data)
   ptr->vec_length = len;
   ptr->vec_elts = elts;
   ptr->vec_free_elts = 0;
+  ptr->vec_bigalloc = 0;
   while (i < len) {elts[i]=data[i]; i++;}
   return LISP_CONS(ptr);
 }
