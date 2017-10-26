@@ -829,6 +829,7 @@ int fd_index_frame(fd_index ix,lispval frames,lispval slotids,lispval values)
       DO_CHOICES(slotid,slotids) {
         lispval values = fd_frame_get(f,slotid);
         if (FD_ABORTP(values)) {
+          fd_decref(frame_features);
           frame_features = values; rv = -1;
           /* break from iterating over slotids */
           FD_LOOP_BREAK();}
