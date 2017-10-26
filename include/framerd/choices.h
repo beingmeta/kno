@@ -240,6 +240,12 @@ static U8_MAYBE_UNUSED lispval fd_make_simple_choice(lispval x)
 
 #define FD_SIMPLIFY_CHOICE(ref) ((ref)=fd_simplify_choice(ref))
 
+#ifndef FD_CHOICEMERGE_THRESHOLD
+#define FD_CHOICEMERGE_THRESHOLD 32
+#endif
+
+FD_EXPORT ssize_t fd_choicemerge_threshold;
+
 /* Quoted choices */
 
 typedef struct FD_QCHOICE {
