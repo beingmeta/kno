@@ -1437,7 +1437,6 @@ lispval fd_streamctl(fd_stream s,fd_streamop op,void *data)
 
 FD_EXPORT lispval fd_read_dtype_from_file(u8_string filename)
 {
-  struct FD_STREAM *stream = u8_alloc(struct FD_STREAM);
   ssize_t filesize = u8_file_size(filename);
   if (filesize<0) {
     fd_seterr(fd_FileNotFound,"fd_read_dtype_from_file",filename,VOID);
@@ -1446,6 +1445,7 @@ FD_EXPORT lispval fd_read_dtype_from_file(u8_string filename)
     fd_seterr("Zero-length file","fd_read_dtype_from_file",filename,VOID);
     return FD_ERROR;}
   else {
+    struct FD_STREAM *stream = u8_alloc(struct FD_STREAM);
     struct FD_STREAM *opened=
       fd_init_file_stream(stream,filename,
                           FD_FILE_READ,
