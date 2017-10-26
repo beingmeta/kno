@@ -281,15 +281,8 @@ lispval fd_init_choice
     else {
       lispval *write = &(ch->choice_0), *writelim = write+n;
       while (write<writelim) *write++=VOID;}}
-  else if ((data) && (data!=FD_XCHOICE_DATA(ch))) {
-    if (flags&FD_CHOICE_INCREF) {
-      lispval *write = (lispval *)FD_XCHOICE_DATA(ch);
-      lispval *read = (lispval *)data, *limit = read+n;
-      while (read<limit) {
-        lispval v = fd_incref(*read);
-        read++;
-        *write++=v;}}
-    else memcpy((lispval *)FD_XCHOICE_DATA(ch),data,sizeof(lispval)*n);}
+  else if ((data) && (data!=FD_XCHOICE_DATA(ch)))
+    memcpy((lispval *)FD_XCHOICE_DATA(ch),data,sizeof(lispval)*n);
   else {}
   /* Free the original data vector if requested. */
   if ((data) && (flags&FD_CHOICE_FREEDATA)) {
@@ -301,6 +294,8 @@ lispval fd_init_choice
   else if (flags&FD_CHOICE_ISCONSES) atomicp = 0;
   else while (scan<limit)
     if (ATOMICP(*scan)) scan++; else {atomicp = 0; break;}
+  if ( (flags&FD_CHOICE_INCREF) && (! atomicp ) )
+    fd_incref_vec(((lispval *)(FD_XCHOICE_DATA(ch))),n);
   /* Now sort and compress it if requested */
   if (flags&FD_CHOICE_DOSORT) {
     if (atomicp) atomic_sort((lispval *)base,n);
@@ -492,12 +487,12 @@ static lispval normalize_choice(lispval x,int free_prechoice)
     return combined;}
   else if (ch->prechoice_size > fd_choicemerge_threshold) {
     int is_atomic = 1, nested = ch->prechoice_nested,
-      n_stragglers = (ch->prechoice_write-ch->prechoice_data)-nested;
-    struct FD_CHOICE *stragglers = fd_alloc_choice(n_stragglers);
+      n_loners = (ch->prechoice_write-ch->prechoice_data)-nested;
+    struct FD_CHOICE *loners = fd_alloc_choice(n_loners);
     struct FD_CHOICE **choices = u8_alloc_n(nested+1,struct FD_CHOICE *);
     struct FD_CHOICE **write_choices = choices;
-    *write_choices++=stragglers;
-    lispval *xdata = (lispval *) (FD_XCHOICE_ELTS(stragglers)), *write = xdata;
+    *write_choices++=loners;
+    lispval *xdata = (lispval *) (FD_XCHOICE_ELTS(loners)), *write = xdata;
     lispval *scan = ch->prechoice_data, *limit = ch->prechoice_write;
     while (scan<limit) {
       lispval v = *scan++;
@@ -506,8 +501,8 @@ static lispval normalize_choice(lispval x,int free_prechoice)
       else {
         if (FD_CONSP(v)) is_atomic=0;
         *write++=v;}}
-    fd_init_choice(stragglers,write-xdata,NULL,
-                   FD_CHOICE_DOSORT|FD_CHOICE_COMPRESS|
+    fd_init_choice(loners,write-xdata,NULL,
+                   FD_CHOICE_INCREF|FD_CHOICE_DOSORT|FD_CHOICE_COMPRESS|
                    ((is_atomic) ? (FD_CHOICE_ISATOMIC) :
                     (FD_CHOICE_ISCONSES)));
     lispval combined = fd_merge_choices(choices,nested+1);
@@ -517,7 +512,8 @@ static lispval normalize_choice(lispval x,int free_prechoice)
     else {
       ch->prechoice_normalized = fd_incref(combined);
       if (ch->prechoice_uselock) unlock_prechoice(ch);}
-    u8_free(choices); fd_free_choice(stragglers);
+    u8_free(choices);
+    fd_decref(((lispval)loners));
     return combined;}
   else {
     /* If the choice is small enough, we can call prechoice_append,
