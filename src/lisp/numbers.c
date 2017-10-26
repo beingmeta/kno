@@ -69,8 +69,13 @@ u8_condition fd_BigIntException=_("BigInt Exception");
 u8_condition fd_DivideByZero=_("Division by zero");
 u8_condition fd_InvalidNumericLiteral=_("Invalid numeric literal");
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wshift-negative-value"
+
 lispval fd_max_fixnum = FD_INT(FD_MAX_FIXNUM);
 lispval fd_min_fixnum = FD_INT(FD_MIN_FIXNUM);
+
+#pragma clang diagnostic pop
 
 /* These macros come from the original MIT Scheme code */
 #define	DEFUN(name, arglist, args)	name(args)
