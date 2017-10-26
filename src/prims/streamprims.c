@@ -263,7 +263,7 @@ static lispval write_8bytes(lispval object,lispval stream,lispval pos)
   struct FD_STREAM *ds=
     fd_consptr(struct FD_STREAM *,stream,fd_stream_type);
   long long filepos = (FD_VOIDP(pos)) ? (-1) : (fd_getint(pos));
-  unsigned long long ival;
+  long long ival;
   if (FD_FIXNUMP(object)) {
     ival = FD_FIX2INT(object);
     if (ival<0)
