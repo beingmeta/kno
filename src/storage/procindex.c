@@ -239,11 +239,11 @@ struct FD_KEY_SIZE *procindex_fetchinfo(fd_index ix,fd_choice filter,int *n_ptr)
 }
 
 
-static int procindex_commit(struct FD_INDEX *ix,
-                            struct FD_CONST_KEYVAL *adds,int n_adds,
-                            struct FD_CONST_KEYVAL *drops,int n_drops,
-                            struct FD_CONST_KEYVAL *stores,int n_stores,
-                            lispval changed_metadata)
+static int procindex_save(struct FD_INDEX *ix,
+                          struct FD_CONST_KEYVAL *adds,int n_adds,
+                          struct FD_CONST_KEYVAL *drops,int n_drops,
+                          struct FD_CONST_KEYVAL *stores,int n_stores,
+                          lispval changed_metadata)
 {
   struct FD_PROCINDEX *pix = (fd_procindex)ix;
   lispval lx = fd_index2lisp(ix);
@@ -258,9 +258,9 @@ static int procindex_commit(struct FD_INDEX *ix,
     store_table.table_readonly=1;
     lispval args[]={lx,
                     pix->index_state,
-                    (lispval)(&adds),
-                    (lispval)(&drops),
-                    (lispval)(&stores),
+                    (lispval)(&add_table),
+                    (lispval)(&drop_table),
+                    (lispval)(&store_table),
                     ( (FD_VOIDP(changed_metadata)) ? (FD_FALSE) :
                       (changed_metadata) )};
     lispval result = fd_dapply(pix->savefn,5,args);
@@ -333,7 +333,7 @@ static void recycle_procindex(fd_index ix)
 struct FD_INDEX_HANDLER fd_procindex_handler={
   "procindex", 1, sizeof(struct FD_PROCINDEX), 14,
   procindex_close, /* close */
-  procindex_commit, /* commit */
+  procindex_save, /* commit */
   procindex_fetch, /* fetch */
   procindex_fetchsize, /* fetchsize */
   NULL, /* prefetch */
