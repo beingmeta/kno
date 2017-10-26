@@ -688,7 +688,7 @@ static lispval threadfinish_prim(lispval args,lispval U8_MAYBE_UNUSED opts)
   lispval results = EMPTY;
   {DO_CHOICES(arg,args)
       if (TYPEP(arg,fd_thread_type)) {
-        struct FD_THREAD_STRUCT *thread = (fd_thread_struct)thread;
+        struct FD_THREAD_STRUCT *thread = (fd_thread_struct)arg;
         if (thread->finished<0) {
           int retval = pthread_join(thread->tid,NULL);
           if (retval) {
