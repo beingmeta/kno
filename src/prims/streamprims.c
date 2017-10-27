@@ -691,6 +691,56 @@ static lispval streampos_prim(lispval stream_arg,lispval pos)
   else return fd_type_error("stream position","streampos_prim",pos);
 }
 
+/* Truncate prim */
+
+static lispval ftruncate_prim(lispval arg,lispval offset)
+{
+  off_t new_len = -1;
+  if (! ( (FD_FIXNUMP(new_len)) || (FD_BIGINTP(new_len))) )
+    return fd_type_error("integer","ftruncate_prim",offset);
+  else if (fd_numcompare(new_len,FD_FIXZERO)<0)
+    return fd_type_error("positive integer","ftruncate_prim",offset);
+  else if ( (FD_BIGINTP(new_len)) &&
+            ( ! (fd_bigint_fits_in_word_p((fd_bigint)arg,sizeof(new_len),1)) ) )
+    return fd_type_error("file size","ftruncate_prim",offset);
+  else new_len = fd_getint64(arg);
+  if (FD_STRINGP(arg)) {
+    char *libc_string = u8_tolibc(FD_CSTRING(arg));
+    int rv = truncate(libc_string,new_len);
+    if (rv<0) {
+      int saved_errno = errno; errno=0;
+      u8_graberr(errno,"ftruncate_prim",u8_strdup(FD_CSTRING(arg)));
+      u8_free(libc_string);
+      return FD_ERROR_VALUE;}
+    else {
+      u8_free(libc_string);
+      return offset;}}
+  else if (FD_TYPEP(arg,fd_stream_type)) {
+    fd_stream s = (fd_stream) arg;
+    fd_lock_stream(s);
+    int fd = s->stream_fileno;
+    if (fd<0) {
+      u8_seterr("ClosedStream","ftruncate_prim",s->streamid);
+      fd_unlock_stream(s);
+      return FD_ERROR_VALUE;}
+    else {
+      fd_off_t old_pos = s->stream_filepos;
+      if (old_pos > new_len) fd_setpos(s,new_len);
+      int rv = ftruncate(fd,new_len);
+      if (rv<0) {
+        u8_graberr(errno,"ftruncate_prim",u8_strdup(FD_CSTRING(arg)));
+        fd_setpos(s,old_pos);
+        fd_unlock_stream(s);
+        return FD_ERROR_VALUE;}
+      else {
+        s->stream_maxpos=new_len;
+        if (s->stream_flags & FD_STREAM_MMAPPED)
+          fd_reopen_file_stream(s,-1,-1);
+        fd_unlock_stream(s);
+        return offset;}}}
+  else return fd_type_error("Filename or stream","ftruncate_prim",arg);
+}
+
 static int scheme_streamprims_initialized = 0;
 
 FD_EXPORT void fd_init_streamprims_c()
@@ -819,10 +869,14 @@ FD_EXPORT void fd_init_streamprims_c()
   fd_idefn(streamprims_module,fd_make_cprim1("DTYPE-INPUT?",dtype_inputp,1));
   fd_idefn(streamprims_module,fd_make_cprim1("DTYPE-OUTPUT?",dtype_outputp,1));
 
-  fd_idefn(streamprims_module,
-           fd_make_cprim2x("STREAMPOS",streampos_prim,1,
-                           fd_stream_type,VOID,
-                           -1,VOID));
+  fd_idefn2(streamprims_module,"STREAMPOS",streampos_prim,1,
+            "(STREAMPOS *stream* [*setpos*]) gets or sets the position of *stream*",
+            fd_stream_type,VOID,-1,VOID);
+
+  fd_idefn2(streamprims_module,"FTRUNCATE",ftruncate_prim,2,
+            "(FTRUNCATE *nameorstream* *newsize*) truncates "
+            "a file (name or stream) to a particular length",
+            fd_stream_type,VOID,-1,VOID);
 
   fd_finish_module(streamprims_module);
 }
