@@ -1404,7 +1404,7 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
         if (n_to_fetch >= buckets_len) {
           u8_log(LOGWARN,"BadKeyCount",
                  "Bad key count in %s: %d",ix->indexid,total_keys);
-          buckets=u8_realloc_n(buckets,n_buckets,FD_CHUNK_REF);
+          buckets=u8_big_realloc_n(buckets,n_buckets,FD_CHUNK_REF);
           buckets_len=n_buckets;}
         buckets[n_to_fetch++]=ref;}
       i++;}}
@@ -1415,7 +1415,7 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
         if (n_to_fetch >= buckets_len) {
           u8_log(LOGWARN,"BadKeyCount",
                  "Bad key count in %s: %d",ix->indexid,total_keys);
-          buckets=u8_realloc_n(buckets,n_buckets,FD_CHUNK_REF);
+          buckets=u8_big_realloc_n(buckets,n_buckets,FD_CHUNK_REF);
           buckets_len=n_buckets;}
         buckets[n_to_fetch++]=ref;}
       i++;}
