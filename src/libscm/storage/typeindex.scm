@@ -22,14 +22,17 @@
 
 (module-export! '{typeindex/open})
 
+(message "Loading from dev")
+
 ;;; Flexpool records
 
 (define (typeindex->string ix)
   (stringout "#<TYPEINDEX " (typeindex-filename ix) 
+    " " (write (mkpath (typeindex-prefix ix) "*")) " "
     " " (table-size (typeindex-keyinfo ix)) " keys>"))
 
 (defrecord (typeindex mutable opaque `(stringfn . typeindex->string))
-  filename (opts) (keyinfo) (filecount 0))
+  filename prefix (opts) (keyinfo) (filecount 0))
 
 (define-init typeindex-data (make-hashtable))
 (define-init typeindexes (make-hashtable))
@@ -41,6 +44,7 @@
        (let ((keyinfo (if (file-exists? filename)
 			  (file->dtype filename)
 			  (init-typeindex filename)))
+	     (prefix (textsubst filename #("." (not> "/") (eos)) ""))
 	     (filecount 0))
 	 (do-choices (key (getkeys keyinfo))
 	   (let ((v (get keyinfo key)))
@@ -48,7 +52,7 @@
 		 (if (> (get v'serial) filecount) 
 		     (set! filecount (get v 'serial)))
 		 (irritant v |InvalidKeyInfo|))))
-	 (let* ((typeindex (cons-typeindex filename opts keyinfo filecount))
+	 (let* ((typeindex (cons-typeindex filename prefix opts keyinfo filecount))
 		(index (make-procindex (realpath filename)
 				       (make-typeindex-opts opts)
 				       typeindex
@@ -78,13 +82,14 @@
 	       typeindex)
 	(let* ((filename (typeindex-filename typeindex))
 	       (filecount (typeindex-filecount typeindex))
-	       (basepath (textsubst filename #("." (rest)) ""))
-	       (valuepath (glom basepath "." (padnum filecount 4 16)
+	       (valuepath (glom (typeindex-prefix typeindex)
+			    "." (padnum filecount 4 16)
 			    ".values.dtype"))
 	       (info (frame-create #f
 		       'key key 'count (choice-size value)
 		       'file valuepath)))
-	  (logwarn |InitValue| "Writing to " valuepath " for " key)
+	  (logwarn |InitValue|
+	    "Writing " (choice-size value) " values to " valuepath " for " key)
 	  (dtype->file value valuepath)
 	  (store! info 'size (file-size valuepath))
 	  (store! info 'serial filecount)
