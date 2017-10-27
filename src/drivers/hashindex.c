@@ -2225,7 +2225,7 @@ static int hashindex_commit(struct FD_INDEX *ix,
     return saved;}
   else {
     fd_setpos(stream,0);
-    if (fd_write_4bytes(outstream,FD_HASHINDEX_TO_RECOVER)<0) {
+    if (fd_write_4bytes(outstream,FD_HASHINDEX_MAGIC_NUMBER)<0) { /* FD_HASHINDEX_TO_RECOVER */
       fd_close_stream(stream,FD_STREAM_FREEDATA);
       fd_unlock_index(hx);
       u8_seterr("PreRecoverFailed","hashindex_commit",

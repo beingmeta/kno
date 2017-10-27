@@ -943,7 +943,7 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
     return saved;
   else {
     fd_setpos(stream,0);
-    fd_write_4bytes(fd_writebuf(stream),FD_BIGPOOL_TO_RECOVER);}
+    fd_write_4bytes(fd_writebuf(stream),FD_BIGPOOL_MAGIC_NUMBER);} /* FD_BIGPOOL_TO_RECOVER */
 
   double started = u8_elapsed_time();
   struct BIGPOOL_SAVEINFO *saveinfo= (n>0) ?
