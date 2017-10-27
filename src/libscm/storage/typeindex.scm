@@ -44,7 +44,7 @@
        (let ((keyinfo (if (file-exists? filename)
 			  (file->dtype filename)
 			  (init-typeindex filename)))
-	     (prefix (textsubst filename #("." (not> "/") (eos)) ""))
+	     (prefix (textsubst (basename filename) #("." (not> "/") (eos)) ""))
 	     (filecount 0))
 	 (do-choices (key (getkeys keyinfo))
 	   (let ((v (get keyinfo key)))
@@ -75,7 +75,7 @@
 
 ;;; Adding a key
 
-(defambda (typeindex/add! typeindex key (value {}))
+(defambda (typeindex/add! typeindex key (init-value {}))
   (let ((existing (get (typeindex-keyinfo typeindex) key)))
     (if (exists? existing)
 	(error |InternalTypeindexError| typeindex/add! 
@@ -84,14 +84,16 @@
 	       (filecount (typeindex-filecount typeindex))
 	       (valuepath (glom (typeindex-prefix typeindex)
 			    "." (padnum filecount 4 16)
-			    ".values.dtype"))
+			    ".dtype"))
+	       (fullpath (mkpath (dirname filename) valuepath))
 	       (info (frame-create #f
-		       'key key 'count (choice-size value)
+		       'key key 'count (choice-size init-value)
 		       'file valuepath)))
 	  (logwarn |InitValue|
-	    "Writing " (choice-size value) " values to " valuepath " for " key)
-	  (dtype->file value valuepath)
-	  (store! info 'size (file-size valuepath))
+	    "Writing " ($num (choice-size init-value)) " values "
+	    "to " valuepath " for " key)
+	  (dtypes->file+ init-value fullpath)
+	  (store! info 'size (file-size fullpath))
 	  (store! info 'serial filecount)
 	  (store! (typeindex-keyinfo typeindex) key info)
 	  (set-typeindex-filecount! typeindex (1+ filecount))
@@ -117,8 +119,9 @@
 (define (typeindex-fetch index typeindex key (info) (file))
   (set! info (get (typeindex-keyinfo typeindex) key))
   (tryif (exists? info)
-    (let ((v (file->dtypes (mkpath (dirname (typeindex-filename typeindex))
-				   (get info 'file)))))
+    (let ((v (file->dtypes 
+	      (mkpath (dirname (typeindex-filename typeindex))
+		      (get info 'file)))))
       (store! info 'count (choice-size v))
       v)))
 
@@ -136,40 +139,49 @@
   (getkeys (typeindex-keyinfo typeindex)))
 
 (define (typeindex-save index typeindex adds drops stores (metadata #f))
-  (let ((keyinfo (typeindex-keyinfo typeindex)))
+  (let ((keyinfo (typeindex-keyinfo typeindex))
+	(savedir (dirname (typeindex-filename typeindex))))
     (when stores
       (do-choices (key (getkeys stores))
 	(if (test keyinfo key)
-	    (dtype->file (get stores key) (get (get keyinfo key) 'file))
+	    (let ((filename (mkpath savedir (get keyinfo 'file))))
+	      (ftruncate filename 0)
+	      (dtype->file+ (get stores key) filename))
 	    (typeindex/add! typeindex key (get stores key)))))
     (when drops
       (do-choices (key (getkeys drops))
 	(when (test keyinfo key)
 	  (let* ((info (get keyinfo key))
 		 (file (get info 'file))
-		 (dir (dirname (typeindex-filename typeindex)))
-		 (current (tryif (file-exists? (mkpath dir file))
-			    (file->dtypes (mkpath dir file)))))
-	    (dtype->file (difference (choice current (get adds key))
-				     (get drops key))
-			 (mkpath dir file))))))
+		 (fullpath (mkpath savedir file))
+		 (current (tryif (file-exists? fullpath)
+			    (file->dtypes fullpath))))
+	    (move-file fullpath (glom fullpath ".bak"))
+	    (dtypes->file+ (difference (choice current (get adds key))
+				       (get drop(mkpath savedir file)s key))
+			   fullpath)))))
     (when adds
       (do-choices (key (difference (getkeys adds) (tryif drops (getkeys drops))))
 	(if (test keyinfo key)
 	    (let* ((info (get keyinfo key))
 		   (file (get info 'file))
 		   (dir (dirname (typeindex-filename typeindex)))
-		   (path (mkpath dir file))
+		   (fullpath (mkpath dir file))
 		   (values (get adds key)))
-	      (dtype->file+ values path)
+	      (dtype->file+ values fullpath)
 	      (store! info 'count (+ (get info 'count) (choice-size values)))
-	      (store! info 'size (file-size path)))
+	      (store! info 'size (file-size fullpath)))
 	    (typeindex/add! typeindex key (get adds key)))))
     (when metadata
       (dtype->file metadata 
 		   (glom (textsubst (typeindex-filename typeindex) #("." (rest)) "")
 		     ".metadata.dtype")))
-    (dtype->file keyinfo (typeindex-filename typeindex))))
+    (dtype->file keyinfo (typeindex-filename typeindex))
+    (+ (if adds (table-size adds) 0)
+       (if drops (table-size drops) 0)
+       (if stores (table-size stores) 0))))
+
+
 
 
 
