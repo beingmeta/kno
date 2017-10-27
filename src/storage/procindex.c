@@ -66,6 +66,9 @@ fd_index fd_make_procindex(lispval opts,lispval state,
     flags |= FD_STORAGE_READ_ONLY;
   if (!(fd_testopt(opts,fd_intern("REGISTER"),FD_VOID)))
     flags |= FD_STORAGE_UNREGISTERED;
+  if (fd_testopt(opts,fd_intern("BACKGROUND"),FD_VOID)) {
+    flags |= FD_INDEX_IN_BACKGROUND;
+    flags &= ~FD_STORAGE_UNREGISTERED;}
 
   fd_init_index((fd_index)pix,
                 &fd_procindex_handler,
