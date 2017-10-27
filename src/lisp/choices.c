@@ -50,10 +50,10 @@ static void recycle_prechoice_wrapper(struct FD_PRECHOICE *ch)
   u8_destroy_mutex(&(ch->prechoice_lock));
   if (!(FD_STATIC_CONSP(ch))) u8_free(ch);
 }
-static int write_prechoice_dtype(struct FD_OUTBUF *s,lispval x)
+static ssize_t write_prechoice_dtype(struct FD_OUTBUF *s,lispval x)
 {
   lispval sc = fd_make_simple_choice(x);
-  int n_bytes = fd_write_dtype(s,sc);
+  ssize_t n_bytes = fd_write_dtype(s,sc);
   fd_decref(sc);
   return n_bytes;
 }
@@ -778,7 +778,7 @@ lispval fd_init_qchoice(struct FD_QCHOICE *ptr,lispval choice)
   return LISP_CONS(ptr);
 }
 
-static int write_qchoice_dtype(struct FD_OUTBUF *s,lispval x)
+static ssize_t write_qchoice_dtype(struct FD_OUTBUF *s,lispval x)
 {
   struct FD_QCHOICE *qc = FD_XQCHOICE(x);
   return fd_write_dtype(s,qc->qchoiceval);

@@ -805,7 +805,8 @@ FD_EXPORT lispval fd_make_regex(u8_string src,int flags);
 
 typedef struct FD_MYSTERY_DTYPE {
   FD_CONS_HEADER;
-  unsigned char myst_dtpackage, myst_dtcode; unsigned int myst_dtsize;
+  unsigned char myst_dtpackage, myst_dtcode;
+  size_t myst_dtsize;
   union {
     lispval *elts; unsigned char *bytes;} mystery_payload;} FD_MYSTERY;
 typedef struct FD_MYSTERY_DTYPE *fd_mystery;

@@ -46,9 +46,9 @@ static lispval copy_uuid(lispval x,int deep)
 
 #define MU U8_MAYBE_UNUSED
 
-static int uuid_dtype(struct FD_OUTBUF *out,lispval x)
+static ssize_t uuid_dtype(struct FD_OUTBUF *out,lispval x)
 {
-  int size = 0;
+  ssize_t size = 0;
   struct FD_UUID *uuid = fd_consptr(struct FD_UUID *,x,fd_uuid_type);
   fd_write_byte(out,dt_compound);
   size = size+1+fd_write_dtype(out,uuid_symbol);
@@ -165,11 +165,11 @@ static lispval copy_timestamp(lispval x,int deep)
   return LISP_CONS(newtm);
 }
 
-static int dtype_timestamp(struct FD_OUTBUF *out,lispval x)
+static ssize_t timestamp_dtype(struct FD_OUTBUF *out,lispval x)
 {
   struct FD_TIMESTAMP *xtm=
     fd_consptr(struct FD_TIMESTAMP *,x,fd_timestamp_type);
-  int size = 1;
+  ssize_t size = 1;
   fd_write_byte(out,dt_compound);
   size = size+fd_write_dtype(out,timestamp_symbol);
   if ((xtm->u8xtimeval.u8_prec == u8_second) && (xtm->u8xtimeval.u8_tzoff==0)) {
@@ -292,7 +292,7 @@ void fd_init_misctypes_c()
     e->compound_parser = timestamp_parsefn;
     e->compound_dumpfn = NULL;
     e->compound_restorefn = timestamp_restore;}
-  fd_dtype_writers[fd_timestamp_type]=dtype_timestamp;
+  fd_dtype_writers[fd_timestamp_type]=timestamp_dtype;
 
   fd_copiers[fd_timestamp_type]=copy_timestamp;
 

@@ -449,7 +449,7 @@ FD_EXPORT lispval fd_init_exception
   return LISP_CONS(exo);
 }
 
-static int dtype_exception(struct FD_OUTBUF *out,lispval x)
+static ssize_t write_exception_dtype(struct FD_OUTBUF *out,lispval x)
 {
   struct FD_EXCEPTION *xo = (struct FD_EXCEPTION *)x;
   u8_condition condition = xo->ex_condition;
@@ -463,7 +463,7 @@ static int dtype_exception(struct FD_OUTBUF *out,lispval x)
   double moment = xo->ex_moment;
   int veclen = (FD_VOIDP(irritant)) ? (8) : (9);
   lispval vector = fd_init_vector(NULL,veclen,NULL);
-  int n_bytes;
+  ssize_t n_bytes;
   FD_VECTOR_SET(vector,0,fd_intern(condition));
   if (caller) {
     FD_VECTOR_SET(vector,1,fd_intern(caller));}
@@ -756,7 +756,7 @@ void fd_init_err_c()
 
   fd_copiers[fd_exception_type]=copy_exception;
   if (fd_dtype_writers[fd_exception_type]==NULL)
-    fd_dtype_writers[fd_exception_type]=dtype_exception;
+    fd_dtype_writers[fd_exception_type]=write_exception_dtype;
   if (fd_unparsers[fd_exception_type]==NULL)
     fd_unparsers[fd_exception_type]=unparse_exception;
 

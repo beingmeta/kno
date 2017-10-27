@@ -383,7 +383,7 @@ static int unparse_ffi_proc(u8_output out,lispval x)
   return 1;
 }
 
-static int dtype_ffi(struct FD_OUTBUF *out,lispval x)
+static ssize_t write_ffi_dtype(struct FD_OUTBUF *out,lispval x)
 {
   int n_elts=0;
   struct FD_FFI_PROC *fcn = (struct FD_FFI_PROC *)x;
@@ -407,7 +407,7 @@ static int dtype_ffi(struct FD_OUTBUF *out,lispval x)
     fd_write_byte(&tmp,dt_string);
     fd_write_4bytes(&tmp,len);
     fd_write_bytes(&tmp,fcn->fcn_filename,len);}
-  size_t n_bytes=tmp.bufwrite-tmp.buffer;
+  ssize_t n_bytes=tmp.bufwrite-tmp.buffer;
   fd_write_bytes(out,tmp.buffer,n_bytes);
   fd_close_outbuf(&tmp);
   return n_bytes;
@@ -450,7 +450,7 @@ FD_EXPORT int ffitest_chr(u8_string s,int off)
 FD_EXPORT void fd_init_ffi_c()
 {
   fd_type_names[fd_ffi_type]="foreign-function";
-  fd_dtype_writers[fd_ffi_type]=dtype_ffi;
+  fd_dtype_writers[fd_ffi_type]=write_ffi_dtype;
 
   fd_unparsers[fd_ffi_type]=unparse_ffi_proc;
   fd_recyclers[fd_ffi_type]=recycle_ffi_proc;

@@ -82,7 +82,7 @@ static void recycle_primitive(struct FD_RAW_CONS *c)
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
-static int dtype_cprim(struct FD_OUTBUF *out,lispval x)
+static ssize_t cprim_dtype(struct FD_OUTBUF *out,lispval x)
 {
   int n_elts=0;
   struct FD_FUNCTION *fcn = (struct FD_FUNCTION *)x;
@@ -107,7 +107,7 @@ static int dtype_cprim(struct FD_OUTBUF *out,lispval x)
     fd_write_byte(&tmp,dt_string);
     fd_write_4bytes(&tmp,len);
     fd_write_bytes(&tmp,fcn->fcn_filename,len);}
-  size_t n_bytes=tmp.bufwrite-tmp.buffer;
+  ssize_t n_bytes=tmp.bufwrite-tmp.buffer;
   fd_write_bytes(out,tmp.buffer,n_bytes);
   fd_close_outbuf(&tmp);
   return n_bytes;
@@ -465,7 +465,7 @@ FD_EXPORT void fd_init_cprims_c()
 
   fd_unparsers[fd_cprim_type]=unparse_primitive;
   fd_recyclers[fd_cprim_type]=recycle_primitive;
-  fd_dtype_writers[fd_cprim_type]=dtype_cprim;
+  fd_dtype_writers[fd_cprim_type]=cprim_dtype;
 }
 
 /* Emacs local variables

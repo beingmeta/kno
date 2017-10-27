@@ -187,7 +187,7 @@ static int unparse_lexenv(u8_output out,lispval x)
 }
 
 /* Of course this doesn't preserve "eqness" in any way */
-static int dtype_lexenv(struct FD_OUTBUF *out,lispval x)
+static ssize_t lexenv_dtype(struct FD_OUTBUF *out,lispval x)
 {
   struct FD_LEXENV *env=
     fd_consptr(struct FD_LEXENV *,x,fd_lexenv_type);
@@ -235,7 +235,7 @@ static int dtype_lexenv(struct FD_OUTBUF *out,lispval x)
     fd_write_4bytes(&tmp,(len+2));
     fd_write_bytes(&tmp,"#!",2);
     fd_write_bytes(&tmp,numstring,len);}
-  size_t n_bytes=tmp.bufwrite-tmp.buffer;
+  ssize_t n_bytes=tmp.bufwrite-tmp.buffer;
   fd_write_bytes(out,tmp.buffer,n_bytes);
   fd_close_outbuf(&tmp);
   return n_bytes;
@@ -248,7 +248,7 @@ FD_EXPORT void fd_init_lexenv_c()
   fd_unparsers[fd_lexenv_type]=unparse_lexenv;
   fd_copiers[fd_lexenv_type]=lisp_copy_lexenv;
   fd_recyclers[fd_lexenv_type]=recycle_lexenv;
-  fd_dtype_writers[fd_lexenv_type]=dtype_lexenv;
+  fd_dtype_writers[fd_lexenv_type]=lexenv_dtype;
 
 }
 

@@ -844,7 +844,7 @@ typedef unsigned int fd_walk_flags;
 
 typedef void (*fd_recycle_fn)(struct FD_RAW_CONS *x);
 typedef int (*fd_unparse_fn)(u8_output,lispval);
-typedef int (*fd_dtype_fn)(struct FD_OUTBUF *,lispval);
+typedef ssize_t (*fd_dtype_fn)(struct FD_OUTBUF *,lispval);
 typedef int (*fd_compare_fn)(lispval,lispval,fd_compare_flags);
 typedef lispval (*fd_copy_fn)(lispval,int);
 typedef int (*fd_walker)(lispval,void *);

@@ -35,7 +35,7 @@ static lispval error_symbol;
 
 #define newpos(pos,ptr,lim) ((((ptr)+pos) <= lim) ? (pos) : (-1))
 
-static int validate_dtype(int pos,const unsigned char *ptr,
+static ssize_t validate_dtype(int pos,const unsigned char *ptr,
                           const unsigned char *lim)
 {
   if (pos < 0)
@@ -100,7 +100,7 @@ static int validate_dtype(int pos,const unsigned char *ptr,
       else return -1;}}
 }
 
-FD_EXPORT int fd_validate_dtype(struct FD_INBUF *in)
+FD_EXPORT ssize_t fd_validate_dtype(struct FD_INBUF *in)
 {
   return validate_dtype(0,in->bufread,in->buflim);
 }

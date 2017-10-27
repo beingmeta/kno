@@ -819,7 +819,7 @@ struct FD_COMPOUND_TYPEINFO
 }
 
 FD_EXPORT struct FD_COMPOUND_TYPEINFO
-          *fd_declare_compound(lispval symbol,lispval data,int core_slots)
+*fd_declare_compound(lispval symbol,lispval data,int core_slots)
 {
   struct FD_COMPOUND_TYPEINFO *scan, *newrec;
   u8_lock_mutex(&compound_registry_lock);
@@ -975,8 +975,8 @@ void fd_init_cons_c()
                      fd_intern("RESTOREFN")),
      FD_FALSE,FD_FALSE,FD_FALSE,FD_FALSE,
      FD_FALSE,FD_FALSE);
-  ((fd_compound)fd_compound_descriptor_type)->compound_typetag=
-    fd_compound_descriptor_type;
+  ((fd_compound)fd_compound_descriptor_type)
+    ->compound_typetag = fd_compound_descriptor_type;
   fd_incref(fd_compound_descriptor_type);
 
   i=0; while (i<256) {

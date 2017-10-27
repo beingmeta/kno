@@ -38,15 +38,15 @@ struct  FD_DTYPE_PACKAGE {
   fd_vector_unpacker vectorfns[64];};
 extern struct FD_DTYPE_PACKAGE *fd_dtype_packages[64];
 
-static int write_hashtable(struct FD_OUTBUF *out,struct FD_HASHTABLE *v);
-static int write_hashset(struct FD_OUTBUF *out,struct FD_HASHSET *v);
-static int write_slotmap(struct FD_OUTBUF *out,struct FD_SLOTMAP *v);
-static int write_schemap(struct FD_OUTBUF *out,struct FD_SCHEMAP *v);
-static int write_mystery(struct FD_OUTBUF *out,struct FD_MYSTERY_DTYPE *v);
+static ssize_t write_hashtable(struct FD_OUTBUF *out,struct FD_HASHTABLE *v);
+static ssize_t write_hashset(struct FD_OUTBUF *out,struct FD_HASHSET *v);
+static ssize_t write_slotmap(struct FD_OUTBUF *out,struct FD_SLOTMAP *v);
+static ssize_t write_schemap(struct FD_OUTBUF *out,struct FD_SCHEMAP *v);
+static ssize_t write_mystery(struct FD_OUTBUF *out,struct FD_MYSTERY_DTYPE *v);
 
 static u8_byte _dbg_outbuf[FD_DEBUG_OUTBUF_SIZE];
 
-static ssize_t try_dtype_output(int *len,struct FD_OUTBUF *out,lispval x)
+static ssize_t try_dtype_output(ssize_t *len,struct FD_OUTBUF *out,lispval x)
 {
   ssize_t olen = out->bufwrite-out->buffer;
   ssize_t dlen = fd_write_dtype(out,x);
@@ -67,7 +67,7 @@ static ssize_t try_dtype_output(int *len,struct FD_OUTBUF *out,lispval x)
   if (PRED_FALSE(FD_ISREADING(out))) return fd_isreadbuf(out); \
   else if (try_dtype_output(&len,out,x)<0) return -1; else {}
 
-static int write_opaque(struct FD_OUTBUF *out,lispval x)
+static ssize_t write_opaque(struct FD_OUTBUF *out,lispval x)
 {
   u8_string srep = fd_lisp2string(x);
   int slen = strlen(srep);
@@ -82,10 +82,11 @@ static int write_opaque(struct FD_OUTBUF *out,lispval x)
   return 22+slen;
 }
 
-static int write_choice_dtype(fd_outbuf out,fd_choice ch)
+static ssize_t write_choice_dtype(fd_outbuf out,fd_choice ch)
 {
   lispval _natsorted[17], *natsorted=_natsorted;
-  int dtype_len = 0, n_choices = FD_XCHOICE_SIZE(ch);
+  int n_choices = FD_XCHOICE_SIZE(ch);
+  ssize_t dtype_len =0;
   const lispval *data; int i = 0;
   if  ((out->buf_flags)&(FD_NATSORT_VALUES)) {
     natsorted = fd_natsort_choice(ch,_natsorted,17);
@@ -112,9 +113,10 @@ static int write_choice_dtype(fd_outbuf out,fd_choice ch)
   return dtype_len;
 }
 
-FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,lispval x)
+FD_EXPORT ssize_t fd_write_dtype(struct FD_OUTBUF *out,lispval x)
 {
-  if (PRED_FALSE(FD_ISREADING(out))) return fd_isreadbuf(out);
+  if (PRED_FALSE(FD_ISREADING(out)))
+    return fd_isreadbuf(out);
   else switch (FD_PTR_MANIFEST_TYPE(x)) {
     case fd_oid_ptr_type: { /* output OID */
       FD_OID addr = FD_OID_ADDR(x);
@@ -264,7 +266,8 @@ FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,lispval x)
         fd_output_bytes(out,data,len);
         return sz+len;}
       case fd_pair_type: {
-        int len = 0; lispval scan = x;
+        lispval scan = x;
+        ssize_t len = 0;
         while (1) {
           struct FD_PAIR *p = (struct FD_PAIR *) scan;
           lispval cdr = p->cdr;
@@ -277,7 +280,7 @@ FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,lispval x)
         return len;}
       case fd_rational_type:  case fd_complex_type: {
         lispval car, cdr;
-        unsigned int len = 1;
+        ssize_t len = 1;
         if (ctype == fd_rational_type) {
           _fd_unpack_rational((lispval)cons,&car,&cdr);
           fd_output_byte(out,dt_rational);}
@@ -289,7 +292,8 @@ FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,lispval x)
         return len;}
       case fd_vector_type: {
         struct FD_VECTOR *v = (struct FD_VECTOR *) cons;
-        int i = 0, length = v->vec_length, dtype_len = 5;
+        int i = 0, length = v->vec_length;
+        ssize_t dtype_len = 5;
         fd_output_byte(out,dt_vector);
         fd_output_4bytes(out,length);
         while (i < length) {
@@ -307,7 +311,8 @@ FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,lispval x)
         else {
           struct FD_CHOICE *v = (struct FD_CHOICE *) (qv->qchoiceval);
           const lispval *data = FD_XCHOICE_DATA(v);
-          int i = 0, len = FD_XCHOICE_SIZE(v), dtype_len;
+          int i = 0, len = FD_XCHOICE_SIZE(v);
+          ssize_t dtype_len;
           if (len < 256) {
             dtype_len = 3;
             fd_output_byte(out,dt_small_qchoice);
@@ -346,9 +351,10 @@ FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,lispval x)
     }
 }
 
-static int write_mystery(struct FD_OUTBUF *out,struct FD_MYSTERY_DTYPE *v)
+static ssize_t write_mystery(struct FD_OUTBUF *out,struct FD_MYSTERY_DTYPE *v)
 {
-  int size = v->myst_dtsize, dtype_size = 2;
+  ssize_t dtype_size = 2;
+  int size = v->myst_dtsize;
   int vectorp = (v->myst_dtcode)&0x80;
   fd_output_byte(out,v->myst_dtpackage);
   if (size>256) {
@@ -369,9 +375,9 @@ static int write_mystery(struct FD_OUTBUF *out,struct FD_MYSTERY_DTYPE *v)
     return dtype_size+size;}
 }
 
-static int write_slotmap(struct FD_OUTBUF *out,struct FD_SLOTMAP *v)
+static ssize_t write_slotmap(struct FD_OUTBUF *out,struct FD_SLOTMAP *v)
 {
-  int dtype_len;
+  ssize_t dtype_len;
   fd_read_lock_table(v);
   {
     struct FD_KEYVAL *keyvals = v->sm_keyvals;
@@ -396,9 +402,9 @@ static int write_slotmap(struct FD_OUTBUF *out,struct FD_SLOTMAP *v)
   return dtype_len;
 }
 
-static int write_schemap(struct FD_OUTBUF *out,struct FD_SCHEMAP *v)
+static ssize_t write_schemap(struct FD_OUTBUF *out,struct FD_SCHEMAP *v)
 {
-  int dtype_len;
+  ssize_t dtype_len;
   fd_read_lock_table(v);
   {
     lispval *schema = v->table_schema, *values = v->schema_values;
@@ -423,9 +429,9 @@ static int write_schemap(struct FD_OUTBUF *out,struct FD_SCHEMAP *v)
   return dtype_len;
 }
 
-static int write_hashtable(struct FD_OUTBUF *out,struct FD_HASHTABLE *v)
+static ssize_t write_hashtable(struct FD_OUTBUF *out,struct FD_HASHTABLE *v)
 {
-  int dtype_len;
+  ssize_t dtype_len;
   fd_read_lock_table(v);
   {
     int size = v->table_n_keys;
@@ -458,9 +464,9 @@ static int write_hashtable(struct FD_OUTBUF *out,struct FD_HASHTABLE *v)
   return dtype_len;
 }
 
-static int write_hashset(struct FD_OUTBUF *out,struct FD_HASHSET *v)
+static ssize_t write_hashset(struct FD_OUTBUF *out,struct FD_HASHSET *v)
 {
-  int dtype_len;
+  ssize_t dtype_len;
   fd_read_lock_table(v); {
     int size = v->hs_n_elts;
     lispval *scan = v->hs_buckets, *limit = scan+v->hs_n_buckets;
@@ -556,7 +562,7 @@ FD_EXPORT int fd_zwrite_dtypes(struct FD_OUTBUF *s,lispval x)
 
 /* Custom compounds */
 
-static int dtype_compound(struct FD_OUTBUF *out,lispval x)
+static ssize_t dtype_compound(struct FD_OUTBUF *out,lispval x)
 {
   struct FD_COMPOUND *xc = fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);
   int n_bytes = 1;
