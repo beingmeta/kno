@@ -187,7 +187,7 @@ static void output_element(u8_output out,lispval elt)
       u8_printf(out,"\n  %s ;=##%d",tmp.u8_outbuf,fd_histpush(elt));
       u8_close_output(tmpout);
       return;}
-    u8_printf(out,"\n   ;; ##%d=\n   ",fd_histpush(elt),elt);
+    u8_printf(out,"\n  ;; ##%d=\n  ",fd_histpush(elt),elt);
     tmp.u8_write=tmp.u8_outbuf; tmp.u8_outbuf[0]='\0';
     fd_pprint(tmpout,elt,NULL,3,3,console_width);
     u8_puts(out,tmp.u8_outbuf);
