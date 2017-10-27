@@ -342,7 +342,7 @@ static lispval lisp2file(lispval object,lispval filename,lispval bufsiz)
     struct FD_STREAM *out=
       fd_open_file(temp_name,FD_FILE_CREATE);
     struct FD_OUTBUF *outstream = NULL;
-    int bytes;
+    ssize_t bytes;
     if (out == NULL) return FD_ERROR;
     else outstream = fd_writebuf(out);
     if (FIXNUMP(bufsiz))
@@ -353,9 +353,17 @@ static lispval lisp2file(lispval object,lispval filename,lispval bufsiz)
       u8_free(temp_name);
       return FD_ERROR;}
     fd_free_stream(out);
-    u8_movefile(temp_name,CSTRING(filename));
-    u8_free(temp_name);
-    return FD_INT(bytes);}
+    int rv = u8_movefile(temp_name,CSTRING(filename));
+    if (rv<0) {
+      u8_log(LOGWARN,"MoveFailed",
+             "Couldn't move the completed file into %s, leaving in %s",
+             CSTRING(filename),temp_name);
+      u8_seterr("MoveFailed","lisp2file",u8_strdup(CSTRING(filename)));
+      u8_free(temp_name);
+      return FD_ERROR_VALUE;}
+    else {
+      u8_free(temp_name);
+      return FD_INT(bytes);}}
   else if (TYPEP(filename,fd_stream_type)) {
     FD_DECL_OUTBUF(tmp,FD_DTWRITE_SIZE);
     struct FD_STREAM *stream=
