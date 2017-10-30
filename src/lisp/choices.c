@@ -829,11 +829,13 @@ FD_EXPORT
  */
 lispval fd_intersect_choices(struct FD_CHOICE **choices,int n_choices)
 {
-  lispval *results, *write; int max_results, atomicp = 1;
+  lispval v, *results, *write; int max_results, atomicp = 1;
+  /* Sort the choices by size, iterate over the smallest and check
+     the others in order. */
   qsort(choices,n_choices,sizeof(struct FD_CHOICE *),
         compare_choicep_size);
   max_results = FD_XCHOICE_SIZE(choices[0]);
-  write = results = u8_alloc_n(max_results,lispval);
+  write = results = u8_big_alloc_n(max_results,lispval);
   {
     const lispval *scan = FD_XCHOICE_DATA(choices[0]);
     const lispval *limit = scan+max_results;
@@ -847,17 +849,15 @@ lispval fd_intersect_choices(struct FD_CHOICE **choices,int n_choices)
           fd_incref(item);
           *write++=item;}
         else *write++=item;}}}
-  if (write == results) {
-    u8_free(results);
-    return EMPTY;}
-  else if (write == (results+1)) {
-    lispval v = results[0];
-    u8_free(results);
-    return v;}
+  if (write == results)
+    v=EMPTY;
+  else if (write == (results+1))
+    v = results[0];
   else if (atomicp)
-    return fd_make_choice
-      (write-results,results,(FD_CHOICE_ISATOMIC|FD_CHOICE_FREEDATA));
-  else return fd_make_choice(write-results,results,(FD_CHOICE_FREEDATA));
+    v=fd_make_choice(write-results,results,FD_CHOICE_ISATOMIC);
+  else v=fd_make_choice(write-results,results,0);
+  u8_big_free(results);
+  return v;
 }
 
 FD_EXPORT
