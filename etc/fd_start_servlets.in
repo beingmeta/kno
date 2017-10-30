@@ -1,0 +1,32 @@
+#!/bin/sh
+ROOTDIR=$1
+shift
+XARGS=$*
+READLINK=`which readlink`
+if ${READLINK} -e /tmp 2>&1 > /dev/null; then 
+    READLINK="${READLINK} -e";
+fi;
+export FD_LOGLEVEL=7
+export FD_LAUNCHER=${FD_LAUNCHER:-fd_start_servlets} 
+export LAUNCHCFG="LAUNCHER=${FD_LAUNCHER}" 
+export COMMONCFG="RESTART=1 PIDWAIT=no STEALSOCKETS=yes" 
+export WEBSTART="sudo -u @webuser@ -g @admin_group@"
+export SERVLETCFG="${COMMONCFG} STATEDIR=@servlet_rundir@ FDSTART=${ROOTDIR}";
+
+servlet ( ) {
+    file = $1
+    name = $2;
+    sudo touch @servlet_rundir@/${name}.nospawn;
+    echo "Starting servlet manager ${name} for ${file}";
+    if (${READLINK} ${file}>/dev/null); then
+	${WEBSTART} u8run ${name} \
+		    RUNDIR=@servlet_rundir@ LOGFILE=@servlet_logdir@/${name}.log \
+		    @execprefix@/fdservlet @servlet_rundir@/${name}.sock ${LAUNCHCFG} \
+		    CONFIG=`${READLINK} ${file}` ${SERVLETCFG} ${XARGS};
+    else echo "Missing servlet controller "${file} " linked to " `readlink -m ${file}`;
+}
+
+for sock in $(find -L ${ROOTDIR} -name "*.sock"); do servlet ${sock} $(basename ${sock} .sock); done
+for conf in $(find -L ${ROOTDIR} -name "*.cfg"); do servlet ${conf} $(basename ${conf} .cfg); done
+for addr in $(find -L ${ROOTDIR} -name "*@*"); do servlet ${addr} ${addr}; done
+for addr in $(find -L ${ROOTDIR} -name "*:*"); do servlet ${addr} ${addr}; done

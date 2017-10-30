@@ -1690,6 +1690,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
            etc/gdbinit
 	   exe/.gdbinit tests/lisp/.gdbinit
 	   tests/storage/.gdbinit tests/scheme/.gdbinit tests/scheme/.valgrind
+	   etc/fd_start_servlets etc/fd_start_daemons etc/fd_stop_jobs
 	   etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup
 	   etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog 
 	   etc/fdreload etc/fdrestart etc/fdctl etc/fdgdb

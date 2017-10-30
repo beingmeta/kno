@@ -1,0 +1,41 @@
+#!/bin/sh
+ROOTDIR=$1
+SIGNAL=TERM
+shift
+READLINK=`which readlink`
+if ${READLINK} -e /tmp 2>&1 > /dev/null; then 
+    READLINK="${READLINK} -e";
+fi;
+
+stopjob ( ) {
+    name = $1;
+
+    if [ -f @servlet_rundir@/${name}.ppid ]; then
+	ppid_file = "@servlet_rundir@/${name}.ppid"
+	ppid = $(cat ${ppid_file});
+	if kill -O ${ppid} > /dev/null; then
+	    echo "Killing ${name}:${pid}";
+	    kill ${TERM} ${ppid};
+	else
+	    echo "Leftover PPID file ${ppid_file} for ${name}";
+	    rm @servlet_rundir@/${name}.ppid;
+	fi;
+    elif [ -f @daemon_rundir@/${name}.ppid ]; then
+	ppid_file = "@daemon_rundir@/${name}.ppid"
+	ppid = $(cat ${ppid_file});
+	if kill -O ${ppid} > /dev/null; then
+	    echo "Killing ${name}:${pid}";
+	    kill ${TERM} ${ppid};
+	else
+	    echo "Leftover PPID file ${ppid_file} for ${name}";
+	    rm @servlet_rundir@/${name}.ppid;
+	fi;
+    else
+	echo "Couldn't find PPID for ${name}";
+    fi;
+}
+
+for sock in $(find -L ${ROOTDIR} -name "*.sock"); do stopjob $(basename ${sock} .sock); done
+for conf in $(find -L ${ROOTDIR} -name "*.cfg"); do servlet $(basename ${conf} .cfg); done
+for addr in $(find -L ${ROOTDIR} -name "*@*"); do stopjob ${addr}; done
+for addr in $(find -L ${ROOTDIR} -name "*:*"); do stopjob ${addr}; done

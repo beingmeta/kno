@@ -23,6 +23,9 @@ usr/bin/fdgetconfig
 usr/bin/fdsetconfig
 usr/bin/fdsignal
 usr/bin/fdconfig
+usr/bin/fd_start_servers
+usr/bin/fd_start_daemons
+usr/bin/fd_stop_jobs
 usr/bin/fdstart
 usr/bin/fdstop
 usr/bin/fdctl
