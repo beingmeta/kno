@@ -127,6 +127,9 @@ static int fastfail_threshold = 20, fastfail_wait = 30;
 static u8_mutex init_server_lock;
 
 static void init_server(void);
+static void write_state_files(void);
+static int run_server(u8_string server_spec);
+static int init_server_env(u8_string server_spec,fd_lexenv core_env);
 
 /* Managing your dependent (for restarting servers) */
 
@@ -1136,11 +1139,10 @@ int main(int argc,char **argv)
 
   write_cmd_file(cmd_file,"DaemonInvocation",argc,argv);
 
-  if (daemonize>0)
-    return fork_server(server_spec,core_env);
-  else if (foreground)
-    return launch_server(server_spec,core_env);
-  else return fork_server(server_spec,core_env);
+  init_server_env(server_spec,core_env);
+
+  return run_server(server_spec);
+
 }
 
 static void init_configs()
@@ -1270,180 +1272,39 @@ static fd_lexenv init_core_env()
   return core_env;
 }
 
-static int sustain_server(pid_t grandchild,
-                          u8_string server_spec,
-                          fd_lexenv env);
-
-static int fork_server(u8_string server_spec,fd_lexenv env)
+static void write_state_files()
 {
-  pid_t child, grandchild; double start = u8_elapsed_time();
-  if ((foreground)&&(daemonize>0)) {
-    /* This is the scenario where we stay in the foreground but
-       restart automatically.  */
-    if ((child = fork())) {
-      if (child<0) {
-        u8_log(LOG_CRIT,ServerFork,"Fork failed for %s",server_spec);
-        exit(1);}
-      else {
-        u8_log(LOG_NOTICE,ServerFork,"Running server %s has PID %d",
-               server_spec,child);
-        return sustain_server(child,server_spec,env);}}
-    else return launch_server(server_spec,env);}
-  else if ((child = fork()))  {
-    /* The grandparent waits until the parent exits and then
-       waits until the .pid file has been written. */
-    int count = 60; double done; int status = 0;
-    if (child<0) {
-      u8_log(LOG_CRIT,ServerFork,"Fork failed for %s\n",server_spec);
-      exit(1);}
-    else u8_log(LOG_WARN,ServerFork,"Initial fork spawned pid %d from %d",
-                child,getpid());
-#if HAVE_WAITPID
-    if (waitpid(child,&status,0)<0) {
-      u8_log(LOG_CRIT,ServerFork,"Fork wait failed");
-      exit(1);}
-    if (!(WIFEXITED(status))) {
-      u8_log(LOG_CRIT,ServerFork,"First fork failed to finish");
-      exit(1);}
-    else if (WEXITSTATUS(status)!=0) {
-      u8_log(LOG_CRIT,ServerFork,"First fork return non-zero status");
-      exit(1);}
-#endif
-    /* If the parent has exited, we wait around for the pid_file to be created
-       by our grandchild. */
-    if (!(pidwait))
-      u8_log(LOG_WARN,Startup,"Not waiting for PID file %s",pid_file);
-    else while ((count>0)&&(!(u8_file_existsp(pid_file)))) {
-      if ((count%10)==0)
-        u8_log(LOG_WARN,Startup,"Waiting for PID file %s",pid_file);
-      count--; sleep(1);}
-    done = u8_elapsed_time();
-    if (u8_file_existsp(pid_file))
-      u8_log(LOG_NOTICE,Startup,"Server %s launched in %02fs",
-             server_spec,done-start);
-    else if (!(pidwait))
-      u8_log(LOG_WARN,Startup,
-             "Server %s hasn't launched after %02fs",
-             server_spec,done-start);
-    else u8_log(LOG_CRIT,ServerAbort,
-                "Server %s hasn't launched after %02fs",
-                server_spec,done-start);
-    exit(0);}
+  FILE *f = u8_fopen(pid_file,"w"); if (f) {
+    fprintf(f,"%d\n",getpid());
+    fclose(f);}
   else {
-    /* If we get here, we're the parent, and we start by trying to
-       become session leader */
-    if (setsid()== -1) {
-      u8_log(LOG_CRIT,ServerAbort,
-             "Process %d failed to become session leader for %s (%s)",
-             getpid(),server_spec,strerror(errno));
-      errno = 0;
-      exit(1);}
-    else u8_log(LOG_INFO,ServerFork,
-                "Process %d become session leader for %s",
-                getpid(),server_spec);
-    /* Now we fork again.  In the normal case, this fork (the grandchild) is
-       the actual server.  If we're auto-restarting, this fork is the one which
-       does the restarting. */
-    if ((grandchild = fork())) {
-      if (grandchild<0) {
-        u8_log(LOG_CRIT,ServerAbort,"Second fork failed for %s",server_spec);
-        exit(1);}
-      else if (daemonize>0)
-        u8_log(LOG_NOTICE,ServerFork,"Restart monitor for %s has PID %d",
-               server_spec,grandchild);
-      else u8_log(LOG_NOTICE,ServerFork,"Running server %s has PID %d",
-                  server_spec,grandchild);
-      /* This is the parent, which always exits */
-      exit(0);}
-    else if (daemonize>0) {
-      pid_t worker;
-      if ((worker = fork())) {
-        if (worker<0)
-          u8_log(LOG_CRIT,ServerAbort,"Worker fork failed for %s",server_spec);
-        else {
-          u8_log(LOG_NOTICE,ServerFork,"Running server %s has PID %d",
-                 server_spec,worker);
-          return sustain_server(worker,server_spec,env);}}
-      else return launch_server(server_spec,env);}
-    else return launch_server(server_spec,env);}
-  exit(0);
+    u8_log(LOG_WARN,u8_strerror(errno),
+           "Couldn't write PID %d to '%s'",
+           getpid(),pid_file);
+    errno = 0;}
+  /* Write the NID file */
+  f = u8_fopen(nid_file,"w"); if (f) {
+    if (dtype_server.n_servers) {
+      int i = 0; while (i<dtype_server.n_servers) {
+        fprintf(f,"%s\n",dtype_server.server_info[i].idstring);
+        i++;}}
+    fclose(f);}
+  else {
+    u8_log(LOG_WARN,u8_strerror(errno),
+           "Couldn't write NID info to '%s'",
+           pid_file);
+    if (dtype_server.n_servers) {
+      int i = 0; while (i<dtype_server.n_servers) {
+        u8_log(LOG_NOTICE,Startup,"%s\n",
+               dtype_server.server_info[i].idstring);
+        i++;}}
+    else u8_log(LOG_NOTICE,Startup,"temp.socket\n");
+    errno = 0;}
+  state_files_written = u8_microtime();
+  atexit(cleanup_state_files);
 }
 
-static int sustain_server(pid_t grandchild,
-                          u8_string server_spec,fd_lexenv env)
-{
-  u8_string ppid_filename = fd_runbase_filename(".ppid");
-  FILE *f = fopen(ppid_filename,"w");
-  int status = -1, sleepfor = daemonize;
-  u8_log(LOGWARN,"Sustaining","Sustaining child for '%s' at %lld",
-         server_spec,grandchild);
-  tweak_exename("fdserv",2,'x');
-  sustaining = 1;
-  if (f) {
-    fprintf(f,"%ld\n",(long)getpid());
-    fclose(f);
-    u8_free(ppid_filename);}
-  else {
-    u8_log(LOG_WARN,"CantWritePPID","Couldn't write ppid file %s",
-           ppid_filename);
-    u8_free(ppid_filename);}
-  last_launch = time(NULL);
-  /* Don't try to catch an error here */
-  if (sleepfor>60) sleepfor = 60;
-  errno = 0;
-  /* Update the global variable with our current dependent grandchild */
-  dependent = grandchild;
-  /* Setup atexit and signal handlers to kill our dependent when we're
-     gone. */
-  u8_log(LOG_WARN,ServerLoop,"Monitoring %s pid=%d",server_spec,grandchild);
-  atexit(kill_dependent_onexit);
-#ifdef SIGHUP
-  sigaction(SIGHUP,&sigaction_ignore,NULL);
-#endif
-#ifdef SIGTERM
-  sigaction(SIGTERM,&sigaction_abraham,NULL);
-#endif
-#ifdef SIGQUIT
-  sigaction(SIGQUIT,&sigaction_abraham,NULL);
-#endif
-  while ((sustaining)&&(waitpid(grandchild,&status,0))) {
-    time_t now = time(NULL);
-    if (WIFSIGNALED(status))
-      u8_log(LOG_WARN,ServerRestart,
-             "Server %s(%d) terminated on signal %d",
-             server_spec,grandchild,WTERMSIG(status));
-    else if (WIFEXITED(status))
-      u8_log(LOG_NOTICE,ServerRestart,
-             "Server %s(%d) terminated normally with status %d",
-             server_spec,grandchild,status);
-    else continue;
-    if (dependent<0) {
-      u8_log(LOG_WARN,ServerAbort,
-             "Terminating restart process for %s",server_spec);
-      exit(0);}
-    if ((now-last_launch)<fastfail_threshold) {
-      u8_log(LOG_CRIT,ServerLoop,
-             "FDServer %s fast-failed after %d seconds, pausing %d seconds",
-             server_spec,now-last_launch,fastfail_wait);
-      if (fastfail_threshold<fastfail_wait)
-        sleep(fastfail_wait-((now-last_launch)/2));}
-    else if (sleepfor>0) sleep(sleepfor);
-    else {}
-    last_launch = time(NULL);
-    if ((grandchild = fork())) {
-      u8_log(LOG_NOTICE,ServerRestart,
-             "Server %s restarted with pid %d",
-             server_spec,grandchild);
-      dependent = grandchild;
-      continue;}
-    else return launch_server(server_spec,env);}
-  exit(0);
-  return 0;
-}
-
-static void write_state_files(void);
-
-static int launch_server(u8_string server_spec,fd_lexenv core_env)
+static int init_server_env(u8_string server_spec,fd_lexenv core_env)
 {
 #ifdef SIGHUP
   sigaction(SIGHUP,&sigaction_shutdown,NULL);
@@ -1454,10 +1315,9 @@ static int launch_server(u8_string server_spec,fd_lexenv core_env)
 #ifdef SIGEXIT
   sigaction(SIGEXT,&sigaction_shutdown,NULL);
 #endif
-  tweak_exename("fdxerv",2,'s');
   if (u8_file_existsp(server_spec)) {
     /* The source file is loaded into a full (non sandbox environment).
-       It's exports are then exposed through the server. */
+       Its exports are then exposed through the server. */
     u8_string source_file = u8_abspath(server_spec,NULL);
     fd_lexenv env = working_env = fd_working_lexenv();
     lispval result = fd_load_source(source_file,env,NULL);
@@ -1514,13 +1374,11 @@ static int launch_server(u8_string server_spec,fd_lexenv core_env)
             exit(fd_interr(result));}
           else fd_decref(result);}}}}
   else server_env = exposed_lexenv;
-
-  return run_server(server_spec);
+  return 1;
 }
 
 static int run_server(u8_string server_spec)
 {
-  dependent = -1;
   init_server();
   /* Prepare for the end */
   atexit(shutdown_dtypeserver_onexit);
@@ -1548,39 +1406,7 @@ static int run_server(u8_string server_spec)
   run_shutdown_procs();
   u8_log(LOG_NOTICE,ServerShutdown,"Exited server loop");
   fd_doexit(FD_FALSE);
-  exit(0);
-}
-
-static void write_state_files()
-{
-  FILE *f = u8_fopen(pid_file,"w"); if (f) {
-    fprintf(f,"%d\n",getpid());
-    fclose(f);}
-  else {
-    u8_log(LOG_WARN,u8_strerror(errno),
-           "Couldn't write PID %d to '%s'",
-           getpid(),pid_file);
-    errno = 0;}
-  /* Write the NID file */
-  f = u8_fopen(nid_file,"w"); if (f) {
-    if (dtype_server.n_servers) {
-      int i = 0; while (i<dtype_server.n_servers) {
-        fprintf(f,"%s\n",dtype_server.server_info[i].idstring);
-        i++;}}
-    fclose(f);}
-  else {
-    u8_log(LOG_WARN,u8_strerror(errno),
-           "Couldn't write NID info to '%s'",
-           pid_file);
-    if (dtype_server.n_servers) {
-      int i = 0; while (i<dtype_server.n_servers) {
-        u8_log(LOG_NOTICE,Startup,"%s\n",
-               dtype_server.server_info[i].idstring);
-        i++;}}
-    else u8_log(LOG_NOTICE,Startup,"temp.socket\n");
-    errno = 0;}
-  state_files_written = u8_microtime();
-  atexit(cleanup_state_files);
+  return 0;
 }
 
 /* Emacs local variables

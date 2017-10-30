@@ -1,8 +1,8 @@
 #!/bin/sh
-ROOTDIR=$1
-shift
-XARGS=$*
-READLINK=`which readlink`
+ROOTDIR=$1;
+shift;
+XARGS=$*;
+READLINK=`which readlink`;
 if ${READLINK} -e /tmp 2>&1 > /dev/null; then 
     READLINK="${READLINK} -e";
 fi;
@@ -11,22 +11,30 @@ export FD_LAUNCHER=${FD_LAUNCHER:-fd_start_daemons}
 export LAUNCHCFG="LAUNCHER=${FD_LAUNCHER}" 
 export COMMONCFG="RESTART=1 PIDWAIT=no STEALSOCKETS=yes" 
 export FDSTART="sudo -u @fdaemon@ -g @admin_group@"
+#export FDSTART=logstart
+export FDSERVER=@BINDIR@/fdserver
 export DAEMONCFG="${LAUNCHCFG} ${COMMONCFG} STATEDIR=@daemon_rundir@ FDSTART=${ROOTDIR}";
 
 daemon ( ) {
-    file = $1
-    name = $2;
+    file=$1;
+    name=$2;
     sudo touch @servlet_rundir@/${name}.nospawn;
     echo "Starting servlet manager ${name} for ${file}";
     if (${READLINK} ${file}>/dev/null); then
-	${WEBSTART} u8run ${name} \
+	${FDSTART} u8run ${name} \
 		    RUNDIR=@daemon_rundir@ LOGFILE=@daemon_logdir@/${name}.log \
-		    @execprefix@/fdserver $(${READLINK} ${file}) ${LAUNCHCFG} \
+		    ${FDSERVER} $(${READLINK} ${file}) ${LAUNCHCFG} \
 		    CONFIG=`${READLINK} ${file}` ${DAEMONCFG} ${XARGS};
-    else echo "Missing servlet controller "${file} " linked to " `readlink -m ${file}`;
+    else echo "Missing daemon controller "${file} " linked to " `readlink -m ${file}`;
+    fi;
 }
+
+logstart( ) {
+    echo "Starting: " $*;
+    cmd=$1; shift;
+    ${cmd} $*;}
 
 for fdz in  $(find -L ${ROOTDIR} -name "*.fdz"); do daemon ${fdz} $(basename ${fdz} .fdz); done
 for cfg in  $(find -L ${ROOTDIR} -name "*.cfg"); do daemon ${cfg} $(basename ${cfg} .cfg); done
-for addr in $(find -L ${ROOTDIR} -name "*@*"); do servlet ${addr} ${addr}; done
-for addr in $(find -L ${ROOTDIR} -name "*:*"); do servlet ${addr} ${addr}; done
+for addr in $(find -L ${ROOTDIR} -name "*@*"); do daemon ${addr} ${addr}; done
+for addr in $(find -L ${ROOTDIR} -name "*:*"); do daemon ${addr} ${addr}; done
