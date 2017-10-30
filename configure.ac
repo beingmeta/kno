@@ -1053,7 +1053,7 @@ AC_CHECK_FUNCS(wait4)
 AC_CHECK_FUNCS(statfs)
 AC_CHECK_FUNCS(gettext)
 
-AC_CHECK_FUNCS(geteuid getuid getgid getegid)
+AC_CHECK_FUNCS(geteuid getuid getgid getegid getumask)
 AC_CHECK_FUNCS(seteuid setuid setgid setegid)
 AC_CHECK_FUNCS(getpwnam_r getpwnam)
 AC_CHECK_FUNCS(getgrnam getgrnam_r)

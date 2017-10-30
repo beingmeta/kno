@@ -841,8 +841,14 @@ FD_EXPORT lispval fd_tblconfig_get(lispval var,void *data)
 
 /* Initialization */
 
+static int support_config_c_init_done = 0;
+
 void fd_init_config_c()
 {
+  if (support_config_c_init_done)
+    return;
+  else support_config_c_init_done=1;
+
   u8_register_source_file(_FILEINFO);
 
   configuration_table = fd_make_hashtable(NULL,16);
