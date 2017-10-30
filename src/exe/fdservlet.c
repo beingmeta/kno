@@ -564,46 +564,17 @@ static int write_pid_file()
       u8_log(LOGWARN,"FDServlet/write_pid_file",
              "Bogarted existing PID file %s",abspath);
     sprintf(buf,"%d\n",getpid());
-    write(pid_fd,buf,strlen(buf));
+    int rv = write(pid_fd,buf,strlen(buf));
+    if (rv<0) {
+      int got_err = errno; errno=0;
+      u8_log(LOGWARN,"CantWriteFile",
+             "Can't write PID file %s (errno=%d:%s)",
+             abspath,got_err,u8_strerror(got_err));}
     atexit(cleanup_pid_file);
     /* It's now okay to steal sockets and other files */
     stealsockets = 1;
     u8_free(abspath);
     return pid_fd;}
-}
-
-#define need_escape(s) \
-  ((strchr(s,'"'))||(strchr(s,'\\'))|| \
-   (strchr(s,' '))||(strchr(s,'\t'))|| \
-   (strchr(s,'\n'))||(strchr(s,'\r')))
-
-static void write_cmd_file(int argc,char **argv)
-{
-  const char *abspath = u8_abspath(cmd_file,NULL);
-  int i = 0, fd = open(abspath,O_CREAT|O_RDWR|O_TRUNC,
-                   S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
-  u8_byte buf[512]; struct U8_OUTPUT out;
-  U8_INIT_OUTPUT_BUF(&out,512,buf);
-  while (i<argc) {
-    char *arg = argv[i];
-    u8_string argstring = u8_fromlibc(arg);
-    if (i>0) u8_putc(&out,' '); i++;
-    if (need_escape(argstring)) {
-      u8_string scan = argstring;
-      int c = u8_sgetc(&scan); u8_putc(&out,'"');
-      while (c>=0) {
-        if (c=='\\') {
-          u8_putc(&out,'\\'); c = u8_sgetc(&scan);}
-        else if ((c==' ')||(c=='\n')||(c=='\t')||(c=='\r')||(c=='"')) {
-          u8_putc(&out,'\\');}
-        if (c>=0) u8_putc(&out,c);
-        c = u8_sgetc(&scan);}
-      u8_putc(&out,'"');}
-    else u8_puts(&out,argstring);
-    if (argstring!=((u8_string)arg)) u8_free(argstring);}
-  u8_log(LOG_INFO,"ServletInvocation","%s",out.u8_outbuf);
-  if (fd>=0) write(fd,out.u8_outbuf,out.u8_write-out.u8_outbuf);
-  u8_free(abspath); u8_close_output(&out); close(fd);
 }
 
 static void close_statlog()
@@ -2117,7 +2088,7 @@ int main(int argc,char **argv)
   cmd_file = fd_runbase_filename(".cmd");
   inject_file = fd_runbase_filename(".inj");
 
-  write_cmd_file(argc,argv);
+  write_cmd_file(cmd_file,"ServletInvocation",argc,argv);
 
   if (!(load_source)) {}
   else if ((u8_has_suffix(load_source,".scm",1))||

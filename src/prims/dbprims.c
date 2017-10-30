@@ -1925,6 +1925,23 @@ static lispval commit_index_prim(lispval ix_arg)
   return VOID;
 }
 
+static lispval index_save_prim(lispval index,
+                               lispval adds,lispval drops,
+                               lispval stores,
+                               lispval metadata)
+{
+  fd_index ix = fd_lisp2index(index);
+  if (!(ix))
+    return fd_type_error("index","index_save_prim",index);
+
+  int rv = fd_index_save(ix,adds,drops,stores,metadata);
+  if (rv<0)
+    return FD_ERROR_VALUE;
+  else return FD_INT(rv);
+}
+
+
+
 static lispval suggest_hash_size(lispval size)
 {
   unsigned int suggestion = fd_get_hashtable_size(fd_getint(size));
@@ -2165,17 +2182,13 @@ static lispval pick_helper(lispval candidates,int n,lispval *tests,int datalevel
           atomic_results = 0;
           fd_incref(candidate);}}}
     if (n_results==0) {
-      u8_free(write_choice);
+      fd_free_choice(write_choice);
       return EMPTY;}
     else if (n_results==1) {
       lispval result = FD_XCHOICE_DATA(write_choice)[0];
-      u8_free(write_choice);
+      fd_free_choice(write_choice);
       /* This was incref'd during the loop. */
       return result;}
-    else if (n_results*2<n_elts)
-      return fd_init_choice
-        (fd_realloc_choice(write_choice,n_results),n_results,NULL,
-         ((atomic_results)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES)));
     else return fd_init_choice
            (write_choice,n_results,NULL,
             ((atomic_results)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES)));}
@@ -2262,7 +2275,8 @@ static lispval hashtable_filter(lispval candidates,fd_hashtable ht,int pick)
       if (write == keep) {
         u8_free(keep); return EMPTY;}
       else if ((write-keep)==1) {
-        lispval v = keep[0]; u8_free(keep);
+        lispval v = keep[0];
+        u8_free(keep);
         return v;}
       else return fd_init_choice
              (NULL,write-keep,keep,
@@ -2345,9 +2359,12 @@ static lispval reject_helper(lispval candidates,int n,lispval *tests,int datalev
       lispval candidate = *read++;
       int retval = test_selector_clauses(candidate,n,tests,datalevel);
       if (retval<0) {
-        const lispval *scan = FD_XCHOICE_DATA(write_choice), *limit = scan+n_results;
-        while (scan<limit) {lispval v = *scan++; fd_decref(v);}
-        u8_free(write_choice);
+        const lispval *scan  = FD_XCHOICE_DATA(write_choice);
+        const lispval *limit = scan+n_results;
+        while (scan<limit) {
+          lispval v = *scan++; 
+          fd_decref(v);}
+        fd_free_choice(write_choice);
         return FD_ERROR;}
       else if (retval==0) {
         *write++=candidate; n_results++;
@@ -2355,17 +2372,13 @@ static lispval reject_helper(lispval candidates,int n,lispval *tests,int datalev
           atomic_results = 0;
           fd_incref(candidate);}}}
     if (n_results==0) {
-      u8_free(write_choice);
+      fd_free_choice(write_choice);
       return EMPTY;}
     else if (n_results==1) {
       lispval result = FD_XCHOICE_DATA(write_choice)[0];
-      u8_free(write_choice);
+      fd_free_choice(write_choice);
       /* This was incref'd during the loop. */
       return result;}
-    else if (n_results*2<n_elts)
-      return fd_init_choice
-        (fd_realloc_choice(write_choice,n_results),n_results,NULL,
-         ((atomic_results)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES)));
     else return fd_init_choice
            (write_choice,n_results,NULL,
             ((atomic_results)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES)));}
@@ -3537,8 +3550,12 @@ FD_EXPORT void fd_init_dbprims_c()
   fd_idefn2(fd_scheme_module,"INDEX-PREFETCH!",index_prefetch_keys,
             (FD_NEEDS_2_ARGS|FD_NDCALL),"(INDEX-PREFETCH! *index* *keys*)",
             -1,FD_VOID,-1,FD_VOID);
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim1("FETCHOIDS",fetchoids_prim,1)));
+  fd_idefn5(fd_scheme_module,"INDEX/SAVE!",index_save_prim,FD_NEEDS_2_ARGS,
+            "(INDEX-PREFETCH! *index* *keys*)",
+            -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID);
+  fd_idefn1(fd_scheme_module,"FETCHOIDS",fetchoids_prim,FD_NEEDS_1_ARG|FD_NDCALL,
+            "(FETCHOIDS *oids*) returns *oids* after prefetching their values.",
+            -1,FD_VOID);
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("CACHED-OIDS",cached_oids,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CACHED-KEYS",cached_keys,0));

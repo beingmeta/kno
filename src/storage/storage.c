@@ -388,12 +388,15 @@ FD_EXPORT void fd_swapout_all()
 
 /* This stores a hashtable's data to free after it has been reset. */
 struct HASHVEC_TO_FREE {
-  struct FD_HASH_BUCKET **slots; int n_slots;};
+  struct FD_HASH_BUCKET **slots;
+  int n_slots, big_buckets;};
 struct HASHVECS_TODO {
-  struct HASHVEC_TO_FREE *to_free; int n_to_free, max_to_free;};
+  struct HASHVEC_TO_FREE *to_free;
+  int n_to_free, max_to_free, big_buckets;};
 
 static void fast_reset_hashtable
-  (fd_hashtable h,int n_slots_arg,struct HASHVECS_TODO *todo)
+  (fd_hashtable h,int n_slots_arg,
+   struct HASHVECS_TODO *todo)
 {
   int i = todo->n_to_free;
   if (todo->n_to_free == todo->max_to_free) {
@@ -402,7 +405,8 @@ static void fast_reset_hashtable
     todo->max_to_free = (todo->max_to_free)*2;}
   fd_fast_reset_hashtable(h,n_slots_arg,1,
                           &(todo->to_free[i].slots),
-                          &(todo->to_free[i].n_slots));
+                          &(todo->to_free[i].n_slots),
+                          &(todo->to_free[i].big_buckets));
   todo->n_to_free = i+1;
 }
 
@@ -435,7 +439,9 @@ FD_EXPORT void fd_fast_swapout_all()
   fd_for_indexes(fast_swapout_index,(void *)&todo);
   fd_for_pools(fast_swapout_pool,(void *)&todo);
   while (i<todo.n_to_free) {
-    fd_free_buckets(todo.to_free[i].slots,todo.to_free[i].n_slots);
+    fd_free_buckets(todo.to_free[i].slots,
+                    todo.to_free[i].n_slots,
+                    todo.to_free[i].big_buckets);
     i++;}
   u8_free(todo.to_free);
 }

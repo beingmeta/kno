@@ -36,7 +36,7 @@ static lispval catcherr_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 
 /* Returning errors */
 
-static lispval return_error_helper(lispval expr,fd_lexenv env,int wrapped)
+static lispval error_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   u8_condition ex = SchemeError, cxt = NULL;
   lispval head = fd_get_arg(expr,0);
@@ -58,23 +58,31 @@ static lispval return_error_helper(lispval expr,fd_lexenv env,int wrapped)
   {
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
     fd_printout_to(&out,printout_body,env);
-    if (wrapped) {
-      u8_exception sub_ex = u8_new_exception
-        ((u8_condition)ex,(u8_context)cxt,out.u8_outbuf,(void *)VOID,NULL);
-      u8_close_output(&out);
-      return fd_wrap_exception(sub_ex);}
-    else  {
-      fd_seterr(ex,cxt,out.u8_outbuf,VOID);
-      u8_close_output(&out);
-      return FD_ERROR;}}
-}
-static lispval return_error_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
-{
-  return return_error_helper(expr,env,0);
+    fd_seterr(ex,cxt,out.u8_outbuf,VOID);
+    u8_close_output(&out);
+    return FD_ERROR;}
 }
 
-static lispval return_irritant_helper(lispval expr,fd_lexenv env,
-                                      int wrapped,int eval_args)
+static lispval error_prim(lispval condition,lispval caller,
+                          lispval details_arg,
+                          lispval irritant)
+{
+  u8_string details = NULL; int free_details=0;
+  if ((FD_VOIDP(details_arg)) || (FD_DEFAULTP(details_arg)))
+    details=NULL;
+  else if (FD_STRINGP(details_arg)) details=FD_CSTRING(details_arg);
+  else if (FD_SYMBOLP(details_arg)) details=FD_CSTRING(details_arg);
+  else {
+    details=fd_lisp2string(details_arg);
+    free_details=1;}
+  fd_seterr(FD_SYMBOL_NAME(condition),
+            ((FD_VOIDP(caller)) ? (NULL) : (FD_SYMBOL_NAME(caller))),
+            details,irritant);
+  if (free_details) u8_free(details);
+  return FD_ERROR;
+}
+
+static lispval irritant_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   u8_condition ex = SchemeError, cxt = NULL;
   lispval head = fd_get_arg(expr,0);
@@ -83,29 +91,7 @@ static lispval return_irritant_helper(lispval expr,fd_lexenv env,
   lispval arg2 = fd_get_arg(expr,3);
   lispval printout_body;
 
-  if (eval_args) {
-    lispval exval = fd_eval(arg1,env), cxtval;
-    if (FD_ABORTP(exval))
-      ex = (u8_condition)"Recursive error on exception name";
-    else if (SYMBOLP(exval))
-      ex = (u8_condition)(SYM_NAME(exval));
-    else if (STRINGP(exval)) {
-      lispval sym = fd_intern(CSTRING(exval));
-      ex = (u8_condition)(SYM_NAME(sym));}
-    else ex = (u8_condition)"Bad exception condition";
-    cxtval = fd_eval(arg2,env);
-    if ((FALSEP(cxtval))||(EMPTYP(cxtval)))
-      cxt = (u8_condition)NULL;
-    else if (FD_ABORTP(cxtval))
-      cxt = (u8_context)"Recursive error on exception context";
-    else if (SYMBOLP(cxtval))
-      cxt = (u8_context)(SYM_NAME(cxtval));
-    else if (STRINGP(exval)) {
-      lispval sym = fd_intern(CSTRING(cxtval));
-      cxt = (u8_context)(SYM_NAME(sym));}
-    else cxt = (u8_context)"Bad exception condition";
-    printout_body = fd_get_body(expr,4);}
-  else if ((SYMBOLP(arg1)) && (SYMBOLP(arg2))) {
+  if ((SYMBOLP(arg1)) && (SYMBOLP(arg2))) {
     ex = (u8_condition)(SYM_NAME(arg1));
     cxt = (u8_context)(SYM_NAME(arg2));
     printout_body = fd_get_body(expr,4);}
@@ -154,28 +140,18 @@ static lispval return_irritant_helper(lispval expr,fd_lexenv env,
       else {}
       cur=cur->stack_caller;}}
 
-  {
-    u8_string details=NULL;
-    U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
-    fd_printout_to(&out,printout_body,env);
-    if (out.u8_outbuf == out.u8_write) {
-      u8_close_output(&out);
-      details=NULL;}
-    else details=out.u8_outbuf;
-    if (wrapped) {
-      u8_exception u8ex=
-        u8_make_exception((u8_condition)ex,(u8_context)cxt,details,
-                          (void *)irritant,fd_decref_u8x_xdata);
-      return fd_wrap_exception(u8ex);}
-    else {
-      lispval err_result=fd_err(ex,cxt,details,irritant);
-      fd_decref(irritant);
-      if (details) u8_close_output(&out);
-      return err_result;}}
-}
-static lispval return_irritant_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
-{
-  return return_irritant_helper(expr,env,0,0);
+  u8_string details=NULL;
+  U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
+  fd_printout_to(&out,printout_body,env);
+  if (out.u8_outbuf == out.u8_write) {
+    u8_close_output(&out);
+    details=NULL;}
+  else details=out.u8_outbuf;
+
+  lispval err_result=fd_err(ex,cxt,details,irritant);
+  fd_decref(irritant);
+  if (details) u8_close_output(&out);
+  return err_result;
 }
 
 static lispval onerror_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
@@ -486,14 +462,23 @@ FD_EXPORT void fd_init_errors_c()
                 "*condition* and *caller* should be symbols and are not "
                 "evaluated. *irritant* is a lisp object (evaluated) and "
                 "a details message is generated by PRINTOUT ..details",
-                return_error_evalfn);
+                error_evalfn);
   fd_def_evalfn(fd_scheme_module,"IRRITANT",
                 "(irritant *irritant* *condition* *caller* details...) "
                 "signals an error with the designated *irritant* \n"
                 "*condition* and *caller* should be symbols and are not "
                 "evaluated. A details message is generated by "
                 "PRINTOUT ..details",
-                return_irritant_evalfn);
+                irritant_evalfn);
+
+  fd_idefn4(fd_scheme_module,"%ERR",error_prim,FD_NEEDS_1_ARG|FD_NDCALL,
+            "(%err *cond* [*caller*] [*details*] [*irritant*]) returns "
+            "an error object with condition *cond* (a symbol), "
+            "a *caller* (also a symbol), *details* (usually a string), "
+            "and *irritant* (a lisp object).",
+            fd_symbol_type,FD_VOID,fd_symbol_type,FD_VOID,
+            -1,FD_VOID,-1,FD_VOID);
+
   fd_def_evalfn(fd_scheme_module,"ONERROR",
                 "(ONERROR *expr* *onerr* [*normally*])\n"
                 "Evaluates *expr*, catching errors during the evaluation. "
@@ -504,27 +489,29 @@ FD_EXPORT void fd_init_errors_c()
                 "the result and return it's result.",
                 onerror_evalfn);
   fd_def_evalfn(fd_scheme_module,"CATCHERR",
-                "(CATCHERR *expr*) returns the result of *expr* or an exception object "
-                "describing any signalled errors",
+                "(CATCHERR *expr*) returns the result of *expr* "
+                "or an exception object describing any signalled errors",
                 catcherr_evalfn);
   fd_def_evalfn(fd_scheme_module,"ERREIFY",
-                "(ERREIFY *expr*) returns the result of *expr* or an exception object "
-                "describing any signalled errors",
+                "(ERREIFY *expr*) returns the result of *expr* "
+                "or an exception object describing any signalled errors",
                 catcherr_evalfn);
 
   fd_def_evalfn(fd_scheme_module,"REPORT-ERRORS",
-                "(REPORT-ERRORS *expr* [*errval*]) evaluates *expr*, reporting and clearing any errors.\n"
+                "(REPORT-ERRORS *expr* [*errval*]) evaluates *expr*, "
+                "reporting and clearing any errors.\n"
                 "Returns *errval* or #f if any errors occur.",
                 report_errors_evalfn);
   fd_def_evalfn(fd_scheme_module,"IGNORE-ERRORS",
-                "(REPORT-ERRORS *expr* [*errval*]) evaluates *expr*, reporting and clearing any errors.\n"
+                "(REPORT-ERRORS *expr* [*errval*]) evaluates *expr*, "
+                "reporting and clearing any errors.\n"
                 "Returns *errval* or #f if any errors occur.",
                 ignore_errors_evalfn);
   fd_idefn(fd_scheme_module,
            fd_make_cprim0("CLEAR-ERRORS!",clear_errors));
 
   /* Deprecated, from old error system */
-  fd_def_evalfn(fd_scheme_module,"NEWERR","",return_irritant_evalfn);
+  fd_def_evalfn(fd_scheme_module,"NEWERR","",irritant_evalfn);
 
 
   fd_idefn1(fd_scheme_module,"RERAISE",reraise_prim,1,

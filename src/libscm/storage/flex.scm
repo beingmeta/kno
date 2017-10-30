@@ -3,7 +3,7 @@
 
 (in-module 'storage/flex)
 
-(use-module '{ezrecords stringfmts logger texttools})
+(use-module '{ezrecords stringfmts logger texttools reflection})
 (use-module '{storage/adjuncts storage/registry storage/filenames})
 (use-module '{storage/flexpools storage/flexindexes 
 	      storage/adjuncts})
@@ -144,7 +144,9 @@
 		     (set! count (1+ count))
 		     (set! next (glom (textsubst source flexindex-suffix "")
 				  "." (padnum count 3 16) ".index")))
-		   (lognotice |FlexIndex| "Found " count " indexes based at " baseindex)
+		   (if (> count 1)
+		       (lognotice |FlexIndex| "Found " count " indexes based at " baseindex)
+		       (loginfo |FlexIndex| "Found one index based at " baseindex))
 		   (indexctl baseindex 'props 'seealso indexes)
 		   (indexctl indexes 'props 'base baseindex))
 		 baseindex))))))
@@ -152,7 +154,8 @@
 (define (ref-index path opts)
   (if (file-exists? path)
       (open-index path opts)
-      (make-index path opts)))
+      (begin (lognotice |NewIndex| "Creating new index file " path)
+	(make-index path opts))))
 
 ;;; Copying OIDs between pools
 
@@ -185,14 +188,31 @@
 
 (defambda (flex/save! . args)
   (dolist (arg args)
-    (cond ((ambiguous? arg)
-	   (thread/wait (thread/call flex/save! arg)))
-	  ((registry? arg) (registry/save! arg))
+    (cond ((ambiguous? arg) (thread/wait (thread/call flex/save! arg)))
+	  ((registry? arg) (save-registry arg))
 	  ((flexpool/record arg)
 	   (thread/wait 
-	    (thread/call commit (pick (flexpool/partitions arg) modified?))))
+	    (thread/call safe-commit (pick (flexpool/partitions arg) modified?))))
 	  ((exists? (db->registry arg))
-	   (begin (registry/save! (db->registry arg))
-	     (commit arg)))
-	  ((or (pool? arg) (index? arg)) (commit arg))
+	   (begin (save-registry (db->registry arg))
+	     (safe-commit arg)))
+	  ((or (pool? arg) (index? arg)) (safe-commit arg))
+	  ((and (applicable? arg) (zero? (procedure-min-arity arg))) (arg))
+
+	  ((and (pair? arg) (applicable? (car arg)))
+	   (apply (car arg) (cdr arg)))
 	  (else (logwarn |CantSave| "No method for saving " arg)))))
+
+(define (safe-commit arg)
+  (when (modified? arg)
+    (onerror (commit arg)
+	(lambda (ex)
+	  (logwarn |CommitError| "Error committing " arg ": " ex)
+	  #f))))
+(define (save-registry arg)
+  (onerror (registry/save! arg)
+      (lambda (ex)
+	(logwarn |CommitError| "Error saving registry " arg ": " ex)
+	#f)))
+
+

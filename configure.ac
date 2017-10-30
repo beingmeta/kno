@@ -31,6 +31,7 @@ AC_MSG_CHECKING([for group $1])
 # Override the default value for localstatedir
 AC_ARG_WITH(statedir,--with-statedir where to keep local state e.g. /var,localstatedir=$withval,localstatedir="/var")
 
+DEFAULTMAKETARGET=update
 threads_default="yes"
 shared_default="yes"
 shared_suffix="so"
@@ -148,6 +149,8 @@ use_dtblock_default="yes"
 default_bootsystem="none"
 BOOTSETUP="none"
 CFLAGS="-DLIBU8_SOURCE -DFRAMERD_SOURCE"
+OPTFLAGS=
+XOPTFLAGS=
 CLANG=no
 MALLOC_FLAGS="-fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free"
 MYSQL_CFLAGS=
@@ -161,7 +164,7 @@ LIBZIP_LDFLAGS=
 DEFAULTISASYNC=0
 USEDTBLOCK=0
 MSG=echo
-debugcflags=" -O0 -g3 -ggdb3 -fno-inline -fno-omit-frame-pointer "
+debugcflags=" -Og -g3 -ggdb3 -fno-inline -fno-omit-frame-pointer "
 debugldflags=""
 debuglibs=""
 manually_disabled=""
@@ -203,6 +206,7 @@ fi
 AC_CONFIG_AUX_DIR(etc)
 AC_CONFIG_HEADER(include/framerd/fdsource.h include/framerd/config.h)
 
+AC_SUBST(DEFAULTMAKETARGET)
 AC_SUBST(install_dir_opts)
 AC_SUBST(install_file_opts)
 AC_SUBST(install_exe_opts)
@@ -211,6 +215,8 @@ AC_SUBST(vshared_suffix)
 AC_SUBST(mshared_suffix)
 AC_SUBST(mmshared_suffix)
 AC_SUBST(dynamic_cflag)
+AC_SUBST(OPTFLAGS)
+AC_SUBST(XOPTFLAGS)
 AC_SUBST(rpath)
 AC_SUBST(curlconfig)
 AC_SUBST(calltracko)
@@ -382,6 +388,9 @@ TOUCHFILE=$with_touchfile
 AC_ARG_WITH(apxs,--with-apxs command,with_apxs=$withval,with_apxs=$APXS)
 APXS=$with_apxs
 
+AC_ARG_WITH(make-target,--with-make-target command,with_make_target=$withval,with_make_target=update)
+DEFAULTMAKETARGET=$with_make_target
+
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 AC_PROG_CC([cc gcc clang])
@@ -414,9 +423,13 @@ AC_PROG_RANLIB
 AC_CHECK_DECL(__clang__,CLANG=yes)
 
 if test "${CLANG}" = "yes"; then
-   CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb "
+   CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb"
+   OPTFLAGS="-O2"
+   XOPTFLAGS="-O3"
 elif test "${GCC}" = "yes"; then
-   CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb "
+   CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb"
+   OPTFLAGS="-O2"
+   XOPTFLAGS="-O3"
    gcc_version=`gcc -dumpversion`;
    dynamic_cflag="-rdynamic";
 fi;
@@ -1040,7 +1053,7 @@ AC_CHECK_FUNCS(wait4)
 AC_CHECK_FUNCS(statfs)
 AC_CHECK_FUNCS(gettext)
 
-AC_CHECK_FUNCS(geteuid getuid getgid getegid)
+AC_CHECK_FUNCS(geteuid getuid getgid getegid getumask)
 AC_CHECK_FUNCS(seteuid setuid setgid setegid)
 AC_CHECK_FUNCS(getpwnam_r getpwnam)
 AC_CHECK_FUNCS(getgrnam getgrnam_r)
@@ -1677,6 +1690,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
            etc/gdbinit
 	   exe/.gdbinit tests/lisp/.gdbinit
 	   tests/storage/.gdbinit tests/scheme/.gdbinit tests/scheme/.valgrind
+	   etc/fd_start_servlets etc/fd_start_daemons etc/fd_stop_jobs
 	   etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup
 	   etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog 
 	   etc/fdreload etc/fdrestart etc/fdctl etc/fdgdb

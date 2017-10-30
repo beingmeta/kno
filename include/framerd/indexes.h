@@ -62,7 +62,8 @@ FD_EXPORT fd_index *fd_secondary_indexes;
 FD_EXPORT int fd_n_primary_indexes, fd_n_secondary_indexes;
 
 typedef struct FD_KEY_SIZE {
-  lispval keysizekey; unsigned int keysizenvals;} FD_KEY_SIZE;
+  lispval keysize_key;
+  long long keysize_count;} FD_KEY_SIZE;
 typedef struct FD_KEY_SIZE *fd_key_size;
 
 typedef struct FD_INDEX_HANDLER {
@@ -134,6 +135,7 @@ FD_EXPORT int fd_index_store(fd_index ix,lispval key,lispval value);
 FD_EXPORT int fd_index_drop(fd_index ix,lispval key,lispval value);
 FD_EXPORT int fd_index_merge(fd_index ix,fd_hashtable table);
 FD_EXPORT int fd_index_commit(fd_index ix);
+FD_EXPORT int fd_index_save(fd_index ix,lispval,lispval,lispval,lispval);
 FD_EXPORT void fd_index_close(fd_index ix);
 FD_EXPORT fd_index _fd_indexptr(lispval x);
 FD_EXPORT lispval _fd_index_get(fd_index ix,lispval key);

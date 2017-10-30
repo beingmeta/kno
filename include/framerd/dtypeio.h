@@ -89,8 +89,8 @@ FD_EXPORT lispval(*_fd_make_double)(double);
 
 /* Packing and unpacking */
 
-typedef lispval(*fd_packet_unpacker)(unsigned int len,unsigned char *packet);
-typedef lispval(*fd_vector_unpacker)(unsigned int len,lispval *vector);
+typedef lispval(*fd_packet_unpacker)(ssize_t len,unsigned char *packet);
+typedef lispval(*fd_vector_unpacker)(ssize_t len,lispval *vector);
 
 FD_EXPORT int fd_register_vector_unpacker
   (unsigned int code,unsigned int subcode,fd_vector_unpacker f);
@@ -101,8 +101,8 @@ FD_EXPORT int fd_register_packet_unpacker
 
 /* The top level functions */
 
-FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,lispval x);
-FD_EXPORT int fd_validate_dtype(struct FD_INBUF *in);
+FD_EXPORT ssize_t fd_write_dtype(struct FD_OUTBUF *out,lispval x);
+FD_EXPORT ssize_t fd_validate_dtype(struct FD_INBUF *in);
 FD_EXPORT lispval fd_read_dtype(struct FD_INBUF *in);
 
 /* Returning error codes */

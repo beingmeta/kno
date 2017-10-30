@@ -69,6 +69,14 @@ u8_condition fd_BigIntException=_("BigInt Exception");
 u8_condition fd_DivideByZero=_("Division by zero");
 u8_condition fd_InvalidNumericLiteral=_("Invalid numeric literal");
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wshift-negative-value"
+
+lispval fd_max_fixnum = FD_INT(FD_MAX_FIXNUM);
+lispval fd_min_fixnum = FD_INT(FD_MIN_FIXNUM);
+
+#pragma clang diagnostic pop
+
 /* These macros come from the original MIT Scheme code */
 #define	DEFUN(name, arglist, args)	name(args)
 #define	DEFUN_VOID(name)		name()
@@ -1901,7 +1909,7 @@ static lispval copy_flonum(lispval x,int deep)
   return fd_init_flonum(NULL,d->floval);
 }
 
-static lispval unpack_flonum(unsigned int n,unsigned char *packet)
+static lispval unpack_flonum(ssize_t n,unsigned char *packet)
 {
   unsigned char bytes[8]; double *f = (double *)&bytes;
 #if WORDS_BIGENDIAN
@@ -1913,7 +1921,7 @@ static lispval unpack_flonum(unsigned int n,unsigned char *packet)
   return fd_init_flonum(NULL,*f);
 }
 
-static int dtype_flonum(struct FD_OUTBUF *out,lispval x)
+static ssize_t write_flonum_dtype(struct FD_OUTBUF *out,lispval x)
 {
   struct FD_FLONUM *d = fd_consptr(struct FD_FLONUM *,x,fd_flonum_type);
   unsigned char bytes[8]; int i = 0;
@@ -3404,7 +3412,7 @@ static void output_bigint_byte(unsigned char **scan,int digit)
 {
   **scan = digit; (*scan)++;
 }
-static int dtype_bigint(struct FD_OUTBUF *out,lispval x)
+static ssize_t write_bigint_dtype(struct FD_OUTBUF *out,lispval x)
 {
   fd_bigint bi = fd_consptr(fd_bigint,x,fd_bigint_type);
   if (fd_bigint_fits_in_word_p(bi,32,1)) {
@@ -3414,9 +3422,11 @@ static int dtype_bigint(struct FD_OUTBUF *out,lispval x)
     fd_write_4bytes(out,fixed);
     return 5;}
   else {
-    int n_bytes = fd_bigint_length_in_bytes(bi), dtype_size;
+    ssize_t dtype_size;
+    int n_bytes = fd_bigint_length_in_bytes(bi);
     unsigned char _bytes[64], *bytes, *scan;
-    if (n_bytes>=64) scan = bytes = u8_malloc(n_bytes);
+    if (n_bytes>=64)
+      scan = bytes = u8_malloc(n_bytes);
     else scan = bytes=_bytes;
     fd_bigint_to_digit_stream
       (bi,256,(bigint_consumer)output_bigint_byte,(void *)&scan);
@@ -3470,7 +3480,7 @@ static int read_bigint_byte(unsigned char **data)
   int val = **data; (*data)++;
   return val;
 }
-static lispval unpack_bigint(unsigned int n,unsigned char *packet)
+static lispval unpack_bigint(ssize_t n,unsigned char *packet)
 {
   int n_digits = n-1; unsigned char *scan = packet+1;
   fd_bigint bi = fd_digit_stream_to_bigint
@@ -3718,8 +3728,8 @@ void fd_init_numbers_c()
   fd_hashfns[fd_flonum_type]=hash_flonum;
   fd_hashfns[fd_numeric_vector_type]=hash_numeric_vector;
 
-  fd_dtype_writers[fd_bigint_type]=dtype_bigint;
-  fd_dtype_writers[fd_flonum_type]=dtype_flonum;
+  fd_dtype_writers[fd_bigint_type]=write_bigint_dtype;
+  fd_dtype_writers[fd_flonum_type]=write_flonum_dtype;
 
   fd_register_packet_unpacker
     (dt_numeric_package,dt_double,unpack_flonum);

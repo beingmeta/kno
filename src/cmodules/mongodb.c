@@ -46,6 +46,9 @@ static lispval hosts_symbol, connections_symbol, fieldmap_symbol, logopsym;
 
 static struct FD_KEYVAL *mongo_opmap = NULL;
 static int mongo_opmap_size = 0, mongo_opmap_space = 0;
+#ifndef MONGO_OPMAP_MAX
+#define MONGO_OPMAP_MAX 8000
+#endif
 
 fd_ptr_type fd_mongoc_server, fd_mongoc_collection, fd_mongoc_cursor;
 
@@ -810,7 +813,6 @@ static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
 static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
-  struct FD_MONGODB_DATABASE *db = DOMAIN2DB(domain);
   int flags = getflags(opts_arg,domain->domain_flags);
   lispval opts = combine_opts(opts_arg,domain->domain_opts);
   mongoc_client_t *client = NULL;
@@ -930,7 +932,6 @@ static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
 {
   lispval result = FD_EMPTY_CHOICE;
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
-  struct FD_MONGODB_DATABASE *db = DOMAIN2DB(domain);
   int flags = getflags(opts_arg,domain->domain_flags);
   lispval opts = combine_opts(opts_arg,domain->domain_opts);
   mongoc_client_t *client = NULL;
@@ -1483,7 +1484,8 @@ static lispval mongodb_readvec(lispval cursor,lispval howmany,lispval opts_arg)
       opts = combine_opts(opts_arg,opts);}
     while ((i<n)&&(mongoc_cursor_next(scan,&doc))) {
       lispval dtype = fd_bson2dtype((bson_t *)doc,flags,opts);
-      FD_VECTOR_SET(result,i,dtype); i++;}
+      FD_VECTOR_SET(result,i,dtype);
+      i++;}
     if (!(FD_VOIDP(opts_arg))) fd_decref(opts);
     if (i == n) return result;
     else {
@@ -2102,7 +2104,9 @@ static lispval make_mongovec(lispval vec)
 {
   lispval *elts = FD_VECTOR_ELTS(vec);
   int n = FD_VECTOR_LENGTH(vec), i = 0;
-  while (i<n) {lispval v = elts[i++]; fd_incref(v);}
+  while (i<n) {
+    lispval v = elts[i++];
+    fd_incref(v);}
   return fd_init_compound_from_elts(NULL,mongovec_symbol,0,n,elts);
 }
 
@@ -2132,6 +2136,7 @@ static void add_to_mongo_opmap(u8_string keystring)
     fd_sortvec_insert(key,&mongo_opmap,
                       &mongo_opmap_size,
                       &mongo_opmap_space,
+                      MONGO_OPMAP_MAX,
                       1);
   if (entry)
     entry->kv_val = lispval_string(keystring);

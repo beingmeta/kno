@@ -17,7 +17,16 @@ u8_condition fd_IsWriteBuf, fd_IsReadBuf;
 #define FD_DEFAULT_ZLEVEL 7
 #endif
 
+#ifndef FD_BIGBUF_THRESHOLD
+#define FD_BIGBUF_THRESHOLD 0x100000
+#endif
+
 FD_EXPORT size_t fd_zlib_level;
+FD_EXPORT size_t fd_bigbuf_threshold;
+
+#if HAVE_MMAP
+#include <sys/mman.h>
+#endif
 
 /* Byte Streams */
 
@@ -60,49 +69,110 @@ typedef size_t (*fd_byte_flushfn)(fd_outbuf,void *);
 
 /* Flags for all byte I/O buffers */
 
-#define FD_BUFIO_FLAGS       (1 << 0 )
-#define FD_IS_WRITING        (FD_BUFIO_FLAGS << 0)
-#define FD_BUFFER_IS_MALLOCD (FD_BUFIO_FLAGS << 1)
-#define FD_IN_STREAM         (FD_BUFIO_FLAGS << 2)
-#define FD_BUFFER_NO_FLUSH   (FD_BUFIO_FLAGS << 3)
-#define FD_BUFFER_NO_GROW    (FD_BUFIO_FLAGS << 4)
-#define FD_BUFIO_MAX_FLAG    (FD_BUFIO_FLAGS << 10)
+#define FD_BUFIO_FLAGS       ( 1 << 0 )
+#define FD_IS_WRITING        0x0001
+#define FD_IN_STREAM         0x0002
+#define FD_BUFFER_NO_FLUSH   0x0004
+#define FD_BUFFER_NO_GROW    0x0008
+/* This is the mask for the BUFIO_ALLOC value */
+#define FD_BUFFER_ALLOC      0x0030
+
+typedef enum BUFIO_ALLOC {
+  FD_STATIC_BUFFER     = 0x0000,
+  FD_HEAP_BUFFER       = 0x0010,
+  FD_BIGALLOC_BUFFER   = 0x0020,
+  FD_MMAP_BUFFER       = 0x0030}
+  bufio_alloc;
+
+/* This is the max flag value reserved for BUFIO itself */
+#define FD_BUFIO_MAX_FLAG    0x0800
 
 #define FD_ISWRITING(buf) (((buf)->buf_flags)&(FD_IS_WRITING))
 #define FD_ISREADING(buf) (!(FD_ISWRITING(buf)))
+
+#define BUFIO_ALLOC(buf) ((bufio_alloc)(((buf)->buf_flags)&(FD_BUFFER_ALLOC)))
+#define BUFIO_SET_ALLOC(buf,v) \
+  (buf)->buf_flags = \
+    ( ( ((buf)->buf_flags) & (~(FD_BUFFER_ALLOC)) ) | ( (v) & FD_BUFFER_ALLOC) );
+
+/* Freeing the buffer */
+
+FD_FASTOP void _BUFIO_FREE(struct FD_RAWBUF *buf)
+{
+  bufio_alloc alloc_type = (bufio_alloc) (buf->buf_flags&FD_BUFFER_ALLOC);
+  unsigned char *curbuf = buf->buffer;
+  ssize_t curlen = buf->buflen;
+  buf->bufpoint=buf->buflim=buf->buffer=NULL;
+  switch (alloc_type) {
+  case FD_STATIC_BUFFER: return;
+  case FD_HEAP_BUFFER: u8_free(curbuf); return;
+  case FD_BIGALLOC_BUFFER: u8_big_free(curbuf); return;
+  case FD_MMAP_BUFFER: {
+#if HAVE_MMAP
+    int rv = munmap(curbuf,curlen);
+    if (rv == 0) return;
+    u8_log(LOGWARN,"BufferUnmapFailed","errno=%d (%s)",
+           errno,u8_strerror(errno));
+    errno=0;}
+#else
+    u8_log(LOGCRIT,"Bad BUFIO buffer",
+           "When freeing buffer for %llx, it claims to be MMAPPED but "
+           "we were not compiled with MMAP support",
+           buf);
+#endif
+  }
+}
+#define BUFIO_FREE(buf) _BUFIO_FREE((fd_rawbuf)buf)
 
 /* Initializing macros */
 
 /* These are for input or output */
 
-#define FD_INIT_OUTBUF(bo,buf,sz,flags)         \
-  (bo)->bufwrite = (bo)->buffer = buf;          \
-  (bo)->buflim = (bo)->buffer+sz;               \
-  (bo)->buflen = sz;                            \
-  (bo)->buf_flags = flags|FD_IS_WRITING;        \
-  (bo)->buf_data = NULL;                        \
-  (bo)->buf_flushfn = NULL;                     \
-  (bo)->buf_fillfn = NULL;                      \
-  (bo)->buf_closefn = NULL
+FD_FASTOP void _FD_INIT_OUTBUF
+(struct FD_OUTBUF *bo,unsigned char *buf,size_t sz,int flags)
+{
+  (bo)->bufwrite = (bo)->buffer = buf;
+  (bo)->buflim = (bo)->buffer+sz;
+  (bo)->buflen = sz;
+  (bo)->buf_flags = flags|FD_IS_WRITING;
+  (bo)->buf_data = NULL;
+  (bo)->buf_flushfn = NULL;
+  (bo)->buf_fillfn = NULL;
+  (bo)->buf_closefn = NULL;
+}
+#define FD_INIT_OUTBUF(bo,buf,sz,flags) \
+  _FD_INIT_OUTBUF((fd_outbuf)bo,(unsigned char *)buf,(size_t)sz,(int)flags)
 
-#define FD_INIT_BYTE_OUTPUT(bo,sz)                      \
-  (bo)->bufwrite = (bo)->buffer = u8_malloc(sz);        \
-  (bo)->buflim = (bo)->buffer+sz;                       \
-  (bo)->buflen = sz;                                    \
-  (bo)->buf_flags = FD_BUFFER_IS_MALLOCD|FD_IS_WRITING; \
-  (bo)->buf_data = NULL;                                \
-  (bo)->buf_flushfn = NULL;                             \
-  (bo)->buf_fillfn = NULL;                              \
-  (bo)->buf_closefn = NULL
+FD_FASTOP void _FD_INIT_BYTE_OUTPUT(struct FD_OUTBUF *bo,size_t sz)
+{
+  if ( sz < fd_bigbuf_threshold ) {
+    (bo)->bufwrite = (bo)->buffer = u8_malloc(sz);
+    (bo)->buf_flags = FD_HEAP_BUFFER|FD_IS_WRITING;}
+  else {
+    (bo)->bufwrite = (bo)->buffer = u8_big_alloc(sz);
+    (bo)->buf_flags = FD_BIGALLOC_BUFFER|FD_IS_WRITING;}
+  (bo)->buflim = (bo)->buffer+sz;
+  (bo)->buflen = sz;
+  (bo)->buf_data = NULL;
+  (bo)->buf_flushfn = NULL;
+  (bo)->buf_fillfn = NULL;
+  (bo)->buf_closefn = NULL;
+}
+#define FD_INIT_BYTE_OUTPUT(bo,sz) \
+  _FD_INIT_BYTE_OUTPUT((fd_outbuf)(bo),(size_t)sz)
 
+FD_FASTOP void _FD_INIT_BYTE_OUTBUF(fd_outbuf bo,unsigned char *buf,size_t sz)
+ {
+   (bo)->bufwrite = (bo)->buffer = buf;
+   (bo)->buflim = (bo)->buffer+sz;
+   (bo)->buflen = sz;
+   (bo)->buf_flags = FD_IS_WRITING;
+   (bo)->buf_fillfn = NULL;
+   (bo)->buf_flushfn = NULL;
+   (bo)->buf_closefn = NULL;
+ }
 #define FD_INIT_BYTE_OUTBUF(bo,buf,sz)       \
-  (bo)->bufwrite = (bo)->buffer = buf;       \
-  (bo)->buflim = (bo)->buffer+sz;            \
-  (bo)->buflen = sz;                         \
-  (bo)->buf_flags = FD_IS_WRITING;           \
-  (bo)->buf_fillfn = NULL;                   \
-  (bo)->buf_flushfn = NULL;                  \
-  (bo)->buf_closefn = NULL
+  _FD_INIT_BYTE_OUTBUF((fd_outbuf)bo,(unsigned char *)buf,(size_t)sz)
 
 #define FD_DECL_OUTBUF(v,size)       \
   struct FD_OUTBUF v;                \
@@ -132,7 +202,7 @@ typedef size_t (*fd_byte_flushfn)(fd_outbuf,void *);
 /* Utility functions for growing buffers */
 
 FD_EXPORT int fd_needs_space(struct FD_OUTBUF *b,size_t delta);
-FD_EXPORT int fd_grow_byte_input(struct FD_INBUF *b,size_t len);
+FD_EXPORT ssize_t fd_grow_byte_input(struct FD_INBUF *b,size_t len);
 
 /* Read/write error signalling functions */
 
@@ -145,17 +215,17 @@ FD_EXPORT lispval fdt_iswritebuf(struct FD_INBUF *b);
 
 FD_FASTOP unsigned int fd_flip_word(unsigned int _w)
 { return ((((_w) << 24) & 0xff000000) | (((_w) << 8) & 0x00ff0000) |
-	  (((_w) >> 8) & 0x0000ff00) | ((_w) >>24) );}
+          (((_w) >> 8) & 0x0000ff00) | ((_w) >>24) );}
 
 FD_FASTOP unsigned long long fd_flip_word8(unsigned long long _w)
 { return (((_w&(0xFF)) << 56) |
-	  ((_w&(0xFF00)) << 48) |
-	  ((_w&(0xFF0000)) << 24) |
-	  ((_w&(0xFF000000)) << 8) |
-	  ((_w>>56) & 0xFF) |
-	  ((_w>>40) & 0xFF00) |
-	  ((_w>>24) & 0xFF0000) |
-	  ((_w>>8) & 0xFF000000));}
+          ((_w&(0xFF00)) << 48) |
+          ((_w&(0xFF0000)) << 24) |
+          ((_w&(0xFF000000)) << 8) |
+          ((_w>>56) & 0xFF) |
+          ((_w>>40) & 0xFF00) |
+          ((_w>>24) & 0xFF0000) |
+          ((_w>>8) & 0xFF000000));}
 
 FD_FASTOP unsigned int fd_flip_ushort(unsigned short _w)
 { return ((((_w) >> 8) & 0x0000ff) | (((_w) << 8) & 0x0000ff00) );}
@@ -175,7 +245,7 @@ FD_FASTOP unsigned int fd_flip_ushort(unsigned short _w)
 FD_EXPORT void fd_need_bytes(struct FD_OUTBUF *b,int size);
 FD_EXPORT int _fd_write_byte(struct FD_OUTBUF *,unsigned char);
 FD_EXPORT int _fd_write_bytes(struct FD_OUTBUF *,
-			      const unsigned char *,int len);
+                              const unsigned char *,int len);
 FD_EXPORT int _fd_write_4bytes(struct FD_OUTBUF *,unsigned int);
 FD_EXPORT int _fd_write_8bytes(struct FD_OUTBUF *,fd_8bytes);
 
@@ -342,8 +412,8 @@ FD_EXPORT size_t _fd_raw_closebuf(struct FD_RAWBUF *buf);
 FD_FASTOP size_t fd_raw_closebuf(struct FD_RAWBUF *buf)
 {
   if (buf->buf_closefn) (buf->buf_closefn)(buf,buf->buf_data);
-  if (buf->buf_flags&FD_BUFFER_IS_MALLOCD) {
-    u8_free(buf->buffer);
+  if (buf->buf_flags&FD_BUFFER_ALLOC) {
+    BUFIO_FREE(buf);
     return buf->buflen;}
   else return 0;
 }

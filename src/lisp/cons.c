@@ -46,6 +46,11 @@ int fd_n_constants = FD_N_BUILTIN_CONSTANTS;
 
 lispval fd_compound_descriptor_type;
 
+#ifndef FD_BIGVEC_THRESHOLD
+#define FD_BIGVEC_THRESHOLD 10000
+#endif
+ssize_t fd_bigvec_threshold = FD_BIGVEC_THRESHOLD;
+
 ssize_t fd_max_strlen = -1;
 int fd_check_utf8 = 0;
 
@@ -486,26 +491,29 @@ FD_EXPORT lispval fd_reverse_list(lispval l)
 
 FD_EXPORT lispval fd_init_vector(struct FD_VECTOR *ptr,int len,lispval *data)
 {
-  lispval *elts; int freedata = 1;
+  lispval *elts; int free_data = 1, big_alloc=0;
   if ((ptr == NULL)&&(data == NULL)) {
     int i = 0;
-    ptr = u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(lispval)*len));
-    /* This might be weird on non byte-addressed architectures */
+    if ( len > fd_bigvec_threshold) {
+      ptr = u8_big_alloc(sizeof(struct FD_VECTOR)+(sizeof(lispval)*len));
+      big_alloc=1;}
+    else ptr = u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(lispval)*len));
     elts = ((lispval *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
     while (i < len) elts[i++]=VOID;
-    freedata = 0;}
+    free_data = 0;}
   else if (ptr == NULL) {
     ptr = u8_alloc(struct FD_VECTOR);
     elts = data;}
   else if (data == NULL) {
       int i = 0; elts = u8_malloc(sizeof(lispval)*len);
       while (i<len) elts[i]=VOID;
-      freedata = 1;}
+      free_data = 1;}
   else elts = data;
   FD_INIT_CONS(ptr,fd_vector_type);
   ptr->vec_length = len;
   ptr->vec_elts = elts;
-  ptr->vec_free_elts = freedata;
+  ptr->vec_free_elts = free_data;
+  ptr->vec_bigalloc  = big_alloc;
   return LISP_CONS(ptr);
 }
 
@@ -524,13 +532,17 @@ FD_EXPORT lispval fd_make_nvector(int len,...)
 FD_EXPORT lispval fd_make_vector(int len,lispval *data)
 {
   int i = 0;
-  struct FD_VECTOR *ptr=
-    u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(lispval)*len));
+  int use_big_alloc = (len > fd_bigvec_threshold);
+  struct FD_VECTOR *ptr =
+    (use_big_alloc) ?
+    (u8_big_alloc(sizeof(struct FD_VECTOR)+(sizeof(lispval)*len))) :
+    (u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(lispval)*len)));
   lispval *elts = ((lispval *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
   FD_INIT_CONS(ptr,fd_vector_type);
   ptr->vec_length = len;
   ptr->vec_elts = elts;
   ptr->vec_free_elts = 0;
+  ptr->vec_bigalloc = use_big_alloc;
   if (data) {
     while (i < len) {elts[i]=data[i]; i++;}}
   else {while (i < len) {elts[i]=VOID; i++;}}
@@ -561,6 +573,7 @@ FD_EXPORT lispval fd_init_code(struct FD_VECTOR *ptr,int len,lispval *data)
   ptr->vec_length = len;
   ptr->vec_elts = elts;
   ptr->vec_free_elts = freedata;
+  ptr->vec_bigalloc = 0;
   return LISP_CONS(ptr);
 }
 
@@ -585,6 +598,7 @@ FD_EXPORT lispval fd_make_code(int len,lispval *data)
   ptr->vec_length = len;
   ptr->vec_elts = elts;
   ptr->vec_free_elts = 0;
+  ptr->vec_bigalloc = 0;
   while (i < len) {elts[i]=data[i]; i++;}
   return LISP_CONS(ptr);
 }
@@ -805,7 +819,7 @@ struct FD_COMPOUND_TYPEINFO
 }
 
 FD_EXPORT struct FD_COMPOUND_TYPEINFO
-          *fd_declare_compound(lispval symbol,lispval data,int core_slots)
+*fd_declare_compound(lispval symbol,lispval data,int core_slots)
 {
   struct FD_COMPOUND_TYPEINFO *scan, *newrec;
   u8_lock_mutex(&compound_registry_lock);
@@ -961,8 +975,8 @@ void fd_init_cons_c()
                      fd_intern("RESTOREFN")),
      FD_FALSE,FD_FALSE,FD_FALSE,FD_FALSE,
      FD_FALSE,FD_FALSE);
-  ((fd_compound)fd_compound_descriptor_type)->compound_typetag=
-    fd_compound_descriptor_type;
+  ((fd_compound)fd_compound_descriptor_type)
+    ->compound_typetag = fd_compound_descriptor_type;
   fd_incref(fd_compound_descriptor_type);
 
   i=0; while (i<256) {

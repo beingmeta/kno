@@ -105,24 +105,24 @@ FD_EXPORT ssize_t fd_fill_stream(fd_stream df,size_t n);
 
 FD_EXPORT
 struct FD_STREAM *fd_init_stream(fd_stream s,
-				 u8_string id,
-				 int fileno,
-				 int flags,
-				 ssize_t bufsiz);
+                                 u8_string id,
+                                 int fileno,
+                                 int flags,
+                                 ssize_t bufsiz);
 
 FD_EXPORT
 fd_stream fd_init_file_stream (fd_stream stream,
-			       u8_string filename,
-			       fd_stream_mode mode,
-			       fd_stream_flags flags,
-			       ssize_t bufsiz);
+                               u8_string filename,
+                               fd_stream_mode mode,
+                               fd_stream_flags flags,
+                               ssize_t bufsiz);
 
 FD_EXPORT fd_stream fd_open_file(u8_string filename,fd_stream_mode mode);
 
 FD_EXPORT
 fd_stream fd_reopen_file_stream(fd_stream stream,
-				fd_stream_mode mode,
-				ssize_t bufsiz);
+                                fd_stream_mode mode,
+                                ssize_t bufsiz);
 
 typedef enum fd_streamop {
   fd_stream_close,
@@ -179,11 +179,11 @@ FD_EXPORT fd_off_t _fd_endpos(fd_stream s);
 FD_EXPORT fd_off_t _fd_getpos(fd_stream s);
 
 FD_EXPORT ssize_t fd_read_block(fd_stream s,unsigned char *buf,
-				size_t count,fd_off_t offset,
-				int stream_locked);
+                                size_t count,fd_off_t offset,
+                                int stream_locked);
 FD_EXPORT fd_inbuf fd_open_block(fd_stream s,fd_inbuf in,
-				 fd_off_t offset,ssize_t count,
-				 int stream_locked);
+                                 fd_off_t offset,ssize_t count,
+                                 int stream_locked);
 
 #if FD_INLINE_BUFIO
 
@@ -192,8 +192,8 @@ FD_FASTOP fd_off_t fd_getpos(fd_stream s)
   if (((s)->stream_flags)&FD_STREAM_CAN_SEEK) {
     if (((s)->stream_filepos)>=0) {
       if (FD_STREAM_ISREADING(s))
-	/* If you're reading, subtract what's buffered from the file pos. */
-	return (((s)->stream_filepos)-(((s)->buf.raw.buflim)-((s)->buf.raw.bufpoint)));
+        /* If you're reading, subtract what's buffered from the file pos. */
+        return (((s)->stream_filepos)-(((s)->buf.raw.buflim)-((s)->buf.raw.bufpoint)));
       /* If you're writing, add what's buffered to the file pos. */
       else return (((s)->stream_filepos)+(((s)->buf.raw.bufpoint)-((s)->buf.raw.buffer)));}
     else return _fd_getpos(s);}
@@ -206,9 +206,9 @@ FD_FASTOP fd_off_t fd_setpos(fd_stream s,fd_off_t pos)
   if ((((s->stream_flags)&FD_STREAM_CAN_SEEK) == 0)||(pos<0))
     return _fd_setpos(s,pos);
   else if ((s->stream_filepos>=0)&&
-	   (!((s->buf.raw.buf_flags)&(FD_IS_WRITING)))&&
-	   (pos<s->stream_filepos)&&
-	   (pos>=(s->stream_filepos-(s->buf.raw.buflim-s->buf.raw.buffer)))) {
+           (!((s->buf.raw.buf_flags)&(FD_IS_WRITING)))&&
+           (pos<s->stream_filepos)&&
+           (pos>=(s->stream_filepos-(s->buf.raw.buflim-s->buf.raw.buffer)))) {
     /* The location is in the read buffer, so just move the pointer */
     fd_off_t delta = pos-s->stream_filepos;
     s->buf.raw.bufpoint = s->buf.raw.buflim+delta;
@@ -223,7 +223,7 @@ FD_FASTOP fd_off_t fd_endpos(fd_stream s)
   if (((s->stream_flags)&FD_STREAM_CAN_SEEK) == 0)
     return _fd_endpos(s);
   else if ((s->stream_filepos>=0)&&(s->stream_maxpos>=0)&&
-	   (s->stream_filepos == s->stream_maxpos))
+           (s->stream_filepos == s->stream_maxpos))
     if ((s->buf.raw.buf_flags)&(FD_IS_WRITING))
       return s->stream_maxpos+(s->buf.raw.bufpoint-s->buf.raw.buffer);
     else return s->stream_maxpos;
@@ -299,9 +299,9 @@ FD_FASTOP int fd_lock_stream(fd_stream s)
   if (s->stream_locker == tid) {
     u8_string id = s->streamid;
     u8_log(LOGCRIT,"RecursiveStreamLock",
-	   "Recursively locking stream %s%s0x%llx",
-	   ((id)?(id):(U8S0())),((id)?((u8_string)" "):(U8S0())),
-	   (U8_PTR2INT(s)));
+           "Recursively locking stream %s%s0x%llx",
+           ((id)?(id):(U8S0())),((id)?((u8_string)" "):(U8S0())),
+           (U8_PTR2INT(s)));
     u8_seterr("RecursiveStreamLock","fd_lock_stream",id);
     return -1;}
   else {
@@ -338,9 +338,9 @@ FD_FASTOP int fd_unlock_stream(fd_stream s)
   if (tid != s->stream_locker) {
     u8_string id = s->streamid;
     u8_log(LOGCRIT,"BadStreamUnlock",
-	   "Stream %s 0x%llx is owned by T%lld, not current T%lld",
-	   ((id)?(id):(U8S0())),((id)?((u8_string)" "):(U8S0())),
-	   (U8_PTR2INT(s)),s->stream_locker,tid);
+           "Stream %s 0x%llx is owned by T%lld, not current T%lld",
+           ((id)?(id):(U8S0())),((id)?((u8_string)" "):(U8S0())),
+           (U8_PTR2INT(s)),s->stream_locker,tid);
     u8_seterr("BadStreamUnlock","fd_unlock_stream",s->streamid);
     return -1;}
   s->stream_locker = 0;
@@ -393,9 +393,9 @@ typedef long long fd_ll;
 
 FD_FASTOP
 FD_CHUNK_REF fd_get_chunk_ref(unsigned int *offsets,
-			      fd_offset_type offtype,
-			      unsigned int offset,
-			      unsigned int offmax)
+                              fd_offset_type offtype,
+                              unsigned int offset,
+                              unsigned int offmax)
 {
   struct FD_CHUNK_REF result;
   if (offset>=offmax) {
@@ -444,8 +444,8 @@ FD_CHUNK_REF fd_get_chunk_ref(unsigned int *offsets,
 
 U8_MAYBE_UNUSED static
 int fd_convert_FD_B40_ref(FD_CHUNK_REF ref,
-		       unsigned int *word1,
-		       unsigned int *word2)
+                       unsigned int *word1,
+                       unsigned int *word2)
 {
   if (ref.size>=0x1000000) return -1;
   else if (ref.off<0x100000000LL) {
@@ -461,10 +461,10 @@ int fd_convert_FD_B40_ref(FD_CHUNK_REF ref,
 
 FD_EXPORT FD_CHUNK_REF
 fd_fetch_chunk_ref(struct FD_STREAM *stream,
-		   fd_off_t base,
-		   fd_offset_type offtype,
-		   unsigned int offset,
-		   int locked);
+                   fd_off_t base,
+                   fd_offset_type offtype,
+                   unsigned int offset,
+                   int locked);
 
 /* Exceptions */
 

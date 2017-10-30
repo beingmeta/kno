@@ -15,12 +15,16 @@
 #include "framerd/dtype.h"
 #include "framerd/dtypeio.h"
 
+#include <libu8/u8elapsed.h>
+
 #include <zlib.h>
 #include <errno.h>
 
 #ifndef FD_DEBUG_DTYPEIO
 #define FD_DEBUG_DTYPEIO 0
 #endif
+
+FD_EXPORT lispval fd_restore_exception_dtype(lispval content);
 
 static u8_mutex dtype_unpacker_lock;
 
@@ -31,7 +35,7 @@ static lispval error_symbol;
 
 #define newpos(pos,ptr,lim) ((((ptr)+pos) <= lim) ? (pos) : (-1))
 
-static int validate_dtype(int pos,const unsigned char *ptr,
+static ssize_t validate_dtype(int pos,const unsigned char *ptr,
                           const unsigned char *lim)
 {
   if (pos < 0)
@@ -96,7 +100,7 @@ static int validate_dtype(int pos,const unsigned char *ptr,
       else return -1;}}
 }
 
-FD_EXPORT int fd_validate_dtype(struct FD_INBUF *in)
+FD_EXPORT ssize_t fd_validate_dtype(struct FD_INBUF *in)
 {
   return validate_dtype(0,in->bufread,in->buflim);
 }
@@ -106,7 +110,6 @@ FD_EXPORT int fd_validate_dtype(struct FD_INBUF *in)
 #define nobytes(in,nbytes) (PRED_FALSE(!(fd_request_bytes(in,nbytes))))
 #define havebytes(in,nbytes) (PRED_TRUE(fd_request_bytes(in,nbytes)))
 
-static lispval restore_dtype_exception(lispval content);
 FD_EXPORT lispval fd_make_mystery_packet(int,int,unsigned int,unsigned char *);
 FD_EXPORT lispval fd_make_mystery_vector(int,int,unsigned int,lispval *);
 static lispval read_packaged_dtype(int,struct FD_INBUF *);
@@ -187,7 +190,7 @@ FD_EXPORT lispval fd_read_dtype(struct FD_INBUF *in)
       lispval content = fd_read_dtype(in);
       if (FD_ABORTP(content))
         return content;
-      else return restore_dtype_exception(content);}
+      else return fd_restore_exception_dtype(content);}
     case dt_pair: {
       lispval head = NIL, *tail = &head;
       while (1) {
@@ -316,7 +319,7 @@ FD_EXPORT lispval fd_read_dtype(struct FD_INBUF *in)
         while (write<limit) {
           lispval v = fd_read_dtype(in);
           if (FD_ABORTP(v)) {
-            u8_free(ch);
+            fd_free_choice(ch);
             return v;}
           *write++=v;}
         return fd_init_choice(ch,len,NULL,(FD_CHOICE_DOSORT|FD_CHOICE_REALLOC));}
@@ -353,7 +356,7 @@ FD_EXPORT lispval fd_read_dtype(struct FD_INBUF *in)
                 lispval *scan=(lispval *)FD_XCHOICE_DATA(ch);
                 while (scan<write) {
                   lispval v=*scan++; fd_decref(v);}
-                u8_free(ch);
+                u8_big_free(ch);
                 return v;}
               else *write++=v;}
             result = fd_init_choice(ch,len,NULL,(FD_CHOICE_DOSORT|FD_CHOICE_REALLOC));
@@ -392,21 +395,28 @@ FD_EXPORT lispval fd_read_dtype(struct FD_INBUF *in)
             return fd_init_hashtable(NULL,0,NULL);
           else {
             int n_keys = len/2, n_read = 0;
-            lispval result = fd_init_hashtable(NULL,len/2,NULL);
-            struct FD_HASHTABLE *ht = (struct FD_HASHTABLE *)result;
+            struct FD_KEYVAL *keyvals = u8_big_alloc_n(n_keys,struct FD_KEYVAL);
             while (n_read<n_keys) {
               lispval key = fd_read_dtype(in), value;
               if (FD_ABORTP(key)) value=key;
               else value = fd_read_dtype(in);
               if (FD_ABORTP(value)) {
                 if (!(FD_ABORTP(key))) fd_decref(key);
-                fd_decref(result);
+                int j = 0; while (j<n_read) {
+                  fd_decref(keyvals[j].kv_key);
+                  fd_decref(keyvals[j].kv_val);
+                  j++;}
+                u8_big_free(keyvals);
                 return value;}
-              else if (!(EMPTYP(value)))
-                fd_hashtable_op_nolock(ht,fd_table_store_noref,key,value);
-              fd_decref(key);
-              n_read++;}
-            return result;}
+              else if ( (EMPTYP(value)) || (EMPTYP(key)) ) {
+                fd_decref(key); fd_decref(value);}
+              else {
+                keyvals[n_read].kv_key = key;
+                keyvals[n_read].kv_val = value;
+                n_read++;}}
+            lispval table = fd_initialize_hashtable(NULL,keyvals,n_read);
+            u8_big_free(keyvals);
+            return table;}
         case dt_hashset: case dt_small_hashset: {
           int i = 0;
           struct FD_HASHSET *h = u8_alloc(struct FD_HASHSET);
@@ -607,71 +617,6 @@ FD_EXPORT lispval fd_make_mystery_vector
   return LISP_CONS(myst);
 }
 
-static lispval restore_dtype_exception(lispval content)
-{
-  /* Return an exception object if possible (content as expected)
-     and a compound if there are any big surprises */
-  u8_condition condname=_("Poorly Restored Error");
-  u8_context caller = NULL; u8_string details = NULL;
-  lispval irritant = VOID, stack = VOID, context = VOID;
-  int new_format = 0;
-  if (FD_TROUBLEP(content)) return content;
-  else if (VECTORP(content)) {
-    int len = VEC_LEN(content);
-    /* The old format was:
-         #(ex details irritant backtrace)
-         where ex is a string
-       And the new format is:
-         #(ex caller details irritant [stack] [context])
-         where ex and context are symbols and stack and context
-          are optional values which default to VOID
-       We handle all cases
-    */
-    if (len>0) {
-      lispval elt0 = VEC_REF(content,0);
-      if (SYMBOLP(elt0)) {
-        condname = SYM_NAME(elt0); new_format = 1;}
-      else if (STRINGP(elt0)) { /* Old format */
-        condname = SYM_NAME(elt0); new_format = 0;}
-      else {
-        u8_log(LOG_WARN,fd_DTypeError,"Odd exception content: %q",content);
-        new_format = -1;}}
-    if (new_format<0) {}
-    else if (new_format)
-      if ((len<3) ||
-          (!(SYMBOLP(VEC_REF(content,0)))) ||
-          (!((FALSEP(VEC_REF(content,1))) ||
-             (SYMBOLP(VEC_REF(content,1))))) ||
-          (!((FALSEP(VEC_REF(content,2))) ||
-             (STRINGP(VEC_REF(content,1))))))
-        u8_log(LOG_WARN,fd_DTypeError,"Odd exception content: %q",content);
-      else {
-        condname = (u8_condition)(SYM_NAME(VEC_REF(content,0)));
-        caller = (u8_context)
-          ((FALSEP(VEC_REF(content,1))) ? (NULL) :
-           (SYM_NAME(VEC_REF(content,1))));
-        details = (u8_string)
-          ((FALSEP(VEC_REF(content,2))) ? (NULL) :
-           (CSTRING(content)));
-        if (len>3) irritant = VEC_REF(content,3);
-        if (len>4) stack    = VEC_REF(content,4);
-        if (len>5) context  = VEC_REF(content,5);}
-    else { /* Old format */
-      if ((len>0) && (SYMBOLP(VEC_REF(content,0)))) {
-        lispval sym = fd_intern(CSTRING(VEC_REF(content,0)));
-        condname = (u8_condition)SYM_NAME(sym);}
-      else if ((len>0) && (STRINGP(VEC_REF(content,0)))) {
-        condname = (u8_condition)SYM_NAME(VEC_REF(content,0));}
-      if ((len>1) && (STRINGP(VEC_REF(content,1))))
-        details = CSTRING(VEC_REF(content,1));
-      if (len>2) irritant = VEC_REF(content,2);}
-    return fd_init_exception(NULL,condname,caller,details,
-                             irritant,stack,context);}
-  else return fd_init_exception
-         (NULL,fd_DTypeError,"restore_dtype_exception",NULL,
-          content,stack,context);
-}
-
 /* Arith stubs */
 
 static lispval default_make_rational(lispval car,lispval cdr)
@@ -778,7 +723,7 @@ FD_EXPORT lispval fd_zread_dtype(struct FD_INBUF *in)
     return FD_ERROR;}
   memset(&tmp,0,sizeof(tmp));
   tmp.bufread = tmp.buffer = do_uncompress(bytes,n_bytes,&dbytes,NULL,-1);
-  tmp.buf_flags = FD_BUFFER_IS_MALLOCD;
+  tmp.buf_flags = FD_HEAP_BUFFER;
   tmp.buflim = tmp.buffer+dbytes;
   result = fd_read_dtype(&tmp);
   u8_free(bytes); u8_free(tmp.buffer);

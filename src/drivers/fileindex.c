@@ -141,17 +141,19 @@ static void fileindex_setcache(fd_index ix,int level)
       if ((newmmap == NULL) || (newmmap == MAP_FAILED)) {
         u8_log(LOG_CRIT,u8_strerror(errno),
                "fileindex_setcache:mmap %s",fx->index_source);
-        fx->index_offsets = NULL; errno = 0;}
+        fx->index_offsets = NULL;
+        errno = 0;}
       else fx->index_offsets = offsets = newmmap+2;
 #else
-      offsets = u8_malloc(SLOTSIZE*(fx->ht_n_buckets));
+      offsets = u8_big_alloc(SLOTSIZE*(fx->ht_n_buckets));
       fd_start_read(s,8);
       fd_read_ints(s,fx->ht_n_buckets,offsets);
       fx->index_offsets = offsets;
 #endif
       fd_unlock_index(fx);}
   else if (level < 2) {
-    if (fx->index_offsets == NULL) return;
+    if (fx->index_offsets == NULL)
+      return;
     else {
       int retval;
       fd_lock_index(fx);
@@ -160,9 +162,10 @@ static void fileindex_setcache(fd_index ix,int level)
       if (retval<0) {
         u8_log(LOG_CRIT,u8_strerror(errno),
                "fileindex_setcache:munmap %s",fx->index_source);
-        fx->index_offsets = NULL; errno = 0;}
+        fx->index_offsets = NULL;
+        errno = 0;}
 #else
-      u8_free(fx->index_offsets);
+      u8_big_free(fx->index_offsets);
 #endif
       fx->index_offsets = NULL;
       fd_unlock_index(fx);}}
@@ -323,23 +326,24 @@ static lispval *fileindex_fetchkeys(fd_index ix,int *n)
   struct FD_STREAM *stream = &(fx->index_stream);
   unsigned int n_slots, i = 0, pos_offset, *offsets, n_keys;
   fd_lock_index(fx);
-  n_slots = fx->index_n_slots; offsets = u8_malloc(SLOTSIZE*n_slots);
+  n_slots = fx->index_n_slots;
+  offsets = u8_big_alloc(SLOTSIZE*n_slots);
   pos_offset = SLOTSIZE*n_slots;
   fd_start_read(stream,8);
   fd_read_ints(stream,fx->index_n_slots,offsets);
   n_keys = compress_offsets(offsets,fx->index_n_slots);
   if (n_keys==0) {
     *n = n_keys;
-    u8_free(offsets);
+    u8_big_free(offsets);
     return NULL;}
   else {
-    lispval *keys = u8_alloc_n(n_keys,lispval);
+    lispval *keys = u8_big_alloc_n(n_keys,lispval);
     qsort(offsets,n_keys,SLOTSIZE,sort_offsets);
     while (i < n_keys) {
       keys[i]=fd_read_dtype(fd_start_read(stream,pos_offset+offsets[i]+8));
       i++;}
     *n = n_keys;
-    u8_free(offsets);
+    u8_big_free(offsets);
     return keys;}
 }
 
@@ -350,17 +354,17 @@ static struct FD_KEY_SIZE *fileindex_fetchinfo(fd_index ix,fd_choice filter,int 
   struct FD_INBUF *instream = fd_readbuf(stream);
   unsigned int n_slots, i = 0, pos_offset, *offsets, n_keys;
   fd_lock_index(fx);
-  n_slots = fx->index_n_slots; offsets = u8_malloc(SLOTSIZE*n_slots);
+  n_slots = fx->index_n_slots; offsets = u8_big_alloc(SLOTSIZE*n_slots);
   pos_offset = SLOTSIZE*n_slots;
   fd_start_read(stream,8);
   fd_read_ints(stream,fx->index_n_slots,offsets);
   n_keys = compress_offsets(offsets,fx->index_n_slots);
   if (n_keys==0) {
     *n = 0;
-    u8_free(offsets);
+    u8_big_free(offsets);
     return NULL;}
   else {
-    struct FD_KEY_SIZE *sizes = u8_alloc_n(n_keys,FD_KEY_SIZE);
+    struct FD_KEY_SIZE *sizes = u8_big_alloc_n(n_keys,FD_KEY_SIZE);
     unsigned int key_count=0;
     qsort(offsets,n_keys,SLOTSIZE,sort_offsets);
     while (i < n_keys) {
@@ -370,13 +374,13 @@ static struct FD_KEY_SIZE *fileindex_fetchinfo(fd_index ix,fd_choice filter,int 
       /* vpos = */ fd_read_4bytes(instream);
       key = fd_read_dtype(instream);
       if ( (filter == NULL) || (fast_choice_containsp(key,filter)) ) {
-        sizes[key_count].keysizekey = key;
-        sizes[key_count].keysizenvals = size;
+        sizes[key_count].keysize_key = key;
+        sizes[key_count].keysize_count = size;
         key_count++;}
       else fd_decref(key);
       i++;}
     *n = key_count;
-    u8_free(offsets);
+    u8_big_free(offsets);
     return sizes;}
 }
 
@@ -529,8 +533,8 @@ static lispval *fetchn(struct FD_FILEINDEX *fx,int n,
                        int lock_adds)
 {
   unsigned int *offsets = fx->index_offsets;
-  union SCHEDULE *schedule = u8_alloc_n(n,union SCHEDULE);
-  lispval *values = u8_alloc_n(n,lispval);
+  union SCHEDULE *schedule = u8_big_alloc_n(n,union SCHEDULE);
+  lispval *values = u8_big_alloc_n(n,lispval);
   int i = 0, schedule_size = 0, init_schedule_size; while (i < n) {
     lispval key = keys[i], cached = fd_hashtable_get(&(fx->index_cache),key,VOID);
     if (redundantp(fx,key))
@@ -570,8 +574,8 @@ static lispval *fetchn(struct FD_FILEINDEX *fx,int n,
       if (schedule[k].fs.filepos<0)
         fd_decref(values[schedule[k].fs.index]);
       k++;}
-    u8_free(values);
-    u8_free(schedule);
+    u8_big_free(values);
+    u8_big_free(schedule);
     return NULL;}
   else {
     int k = 0; while (k<n) {
@@ -579,7 +583,7 @@ static lispval *fetchn(struct FD_FILEINDEX *fx,int n,
       if (PRECHOICEP(v)) {
         struct FD_PRECHOICE *ac = (struct FD_PRECHOICE *)v;
         ac->prechoice_uselock = 1;}}
-    u8_free(schedule);
+    u8_big_free(schedule);
     return values;}
 }
 
@@ -886,14 +890,14 @@ static int commit_drops(struct FD_CONST_KEYVAL *drops,int n_drops,
                         int kdata_i)
 {
   struct FD_STREAM *stream = &(f->index_stream);
-  lispval *dropkeys = u8_alloc_n(n_drops,lispval);
+  lispval *dropkeys = u8_big_alloc_n(n_drops,lispval);
   /* Change some drops to sets when cached, record the ones that can't
      be changed so they can be fetched and resolved. */
   int drop_i = 0; while (drop_i < n_drops) {
     dropkeys[drop_i] = drops[drop_i].kv_key;
     drop_i++;}
   lispval *dropvals = fetchn(f,n_drops,dropkeys,0);
-  u8_free(dropkeys);
+  u8_big_free(dropkeys);
 
   fd_set_direction(stream,fd_byteflow_write);
   fd_off_t filepos = fd_endpos(stream);
@@ -925,7 +929,8 @@ static int commit_drops(struct FD_CONST_KEYVAL *drops,int n_drops,
     drop_i++;
     kdata_i++;}
 
-  fd_decref_vec(dropvals,n_drops,1);
+  fd_decref_vec(dropvals,n_drops,0);
+  u8_big_free(dropvals);
 
   return kdata_i;
 }
@@ -992,7 +997,7 @@ static int fileindex_save(struct FD_INDEX *ix,
       int i = 0, n = fx->index_n_slots;
       /* We have to copy these if they're MMAPd, because
          we can't modify them (while updating) otherwise.  */
-      new_offsets = u8_alloc_n((fx->index_n_slots),unsigned int);
+      new_offsets = u8_big_alloc_n((fx->index_n_slots),unsigned int);
       gc_new_offsets = 1;
       while (i<n) {
         new_offsets[i]=offget(fx->index_offsets,i);
@@ -1006,8 +1011,8 @@ static int fileindex_save(struct FD_INDEX *ix,
 #endif
 
     struct FD_OUTBUF *outstream = fd_writebuf(stream);
-    struct KEYDATA *kdata = u8_alloc_n(n_changes,struct KEYDATA);
-    unsigned int *valpos = u8_alloc_n(n_changes,unsigned int);
+    struct KEYDATA *kdata = u8_big_alloc_n(n_changes,struct KEYDATA);
+    unsigned int *valpos = u8_big_alloc_n(n_changes,unsigned int);
     int i=0; while ( i < n_adds ) {
       lispval key = adds[i].kv_key, val = adds[i].kv_val;
       kdata[kdata_i].key = key;
@@ -1031,8 +1036,9 @@ static int fileindex_save(struct FD_INDEX *ix,
     newcount = fetch_keydata(fx,fd_readbuf(stream),kdata,kdata_i,new_offsets);
 
     if (newcount<0) {
-      u8_free(kdata); u8_free(valpos);
-      if (gc_new_offsets) u8_free(new_offsets);
+      u8_big_free(kdata);
+      u8_big_free(valpos);
+      if (gc_new_offsets) u8_big_free(new_offsets);
       fd_unlock_index(fx);
       return newcount;}
 
@@ -1084,14 +1090,14 @@ static int fileindex_save(struct FD_INDEX *ix,
                  "Trouble truncating recovery information from %s",
                  fx->indexid);}}
     fd_unlock_index(fx);
-    if (valpos) u8_free(valpos);
-    u8_free(kdata);
+    if (valpos) u8_big_free(valpos);
+    u8_big_free(kdata);
 
     u8_log(fd_storage_loglevel,"FileIndexCommit",
            "Saved mappings for %d keys to %s in %f secs",
            n_changes,ix->indexid,u8_elapsed_time()-started);
 
-    if (gc_new_offsets) u8_free(new_offsets);
+    if (gc_new_offsets) u8_big_free(new_offsets);
     return kdata_i;}
   else return 0;
 }
@@ -1123,7 +1129,7 @@ static int recover_fileindex(struct FD_FILEINDEX *fx)
   /* This reads the offsets vector written at the end of the file
      during commitment. */
   int i = 0, len = fx->index_n_slots, retval = 0; fd_off_t new_end;
-  unsigned int *offsets = u8_malloc(4*len), magic_no;
+  unsigned int *offsets = u8_big_alloc(4*len), magic_no;
   struct FD_STREAM *s = &(fx->index_stream);
   fd_outbuf outstream; fd_inbuf instream;
   fd_endpos(s); new_end = fd_movepos(s,-(4*len));
@@ -1161,7 +1167,7 @@ static void fileindex_close(fd_index ix)
              retval,errno,fx->index_source);
       errno = 0;}
 #else
-    u8_free(fx->index_offsets);
+    u8_big_free(fx->index_offsets);
 #endif
     fx->index_offsets = NULL;
     fx->index_cache_level = -1;}

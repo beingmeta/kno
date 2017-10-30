@@ -711,6 +711,49 @@ static lispval difference_lexpr(int n,lispval *args)
   return fd_simplify_choice(result);
 }
 
+/* Prechoice elements */
+
+static lispval choicevec_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+{
+  lispval sub_expr = fd_get_arg(expr,1);
+  if (FD_VOIDP(sub_expr))
+    return fd_err(fd_SyntaxError,"choicevec_evalfn",NULL,expr);
+  else {
+    lispval result = fd_stack_eval(sub_expr,env,_stack,0);
+    if (FD_CHOICEP(result)) {
+      struct FD_CHOICE *ch = (fd_choice) result;
+      const lispval *elts = FD_XCHOICE_ELTS(ch);
+      int size = ch->choice_size;
+      lispval vector = fd_make_vector(size,(lispval *)elts);
+      if (ch->choice_isatomic)
+        return vector;
+      else {
+        fd_incref_vec((lispval *)elts,size);
+        return vector;}}
+    else if (FD_PRECHOICEP(result)) {
+      struct FD_PRECHOICE *pch = (fd_prechoice) result;
+      int n = pch->prechoice_size;
+      lispval vec = fd_make_vector(n,NULL);
+      lispval *write = FD_VECTOR_ELTS(vec);
+      lispval *scan = pch->prechoice_data, *limit = pch->prechoice_limit;
+      while (scan<limit) {
+        lispval add = *scan++;
+        if (FD_CHOICEP(add)) {
+          int n_adds = FD_CHOICE_SIZE(add);
+          const lispval *add_elts = FD_CHOICE_ELTS(add);
+          memmove(write,add_elts,n_adds*sizeof(lispval));
+          if (! (FD_ATOMIC_CHOICEP(add)) )
+            fd_incref_vec((lispval *)add_elts,n);}
+        else if (EMPTYP(add)) {}
+        else {
+          *write++=add;
+          fd_incref(add);}}
+      return vec;}
+    else {
+      lispval data[1]={result};
+      return fd_make_vector(1,data);}}
+}
+
 /* Conversion functions */
 
 static lispval choice2vector(lispval x,lispval sortspec)
@@ -965,8 +1008,32 @@ static lispval pickn(lispval x,lispval count,lispval offset)
   else return fd_type_error("integer","topn",count);
 }
 
+/* Sorting */
+
+enum SORTFN {
+  NORMAL_SORT, LEXICAL_SORT, LEXICAL_CI_SORT, COLLATED_SORT, POINTER_SORT };
+
+static lispval lexical_symbol, lexci_symbol, collate_symbol, pointer_symbol;
+
+static enum SORTFN get_sortfn(lispval arg)
+{
+  if ( (FD_VOIDP(arg)) || (FD_FALSEP(arg)) || (FD_DEFAULTP(arg)) )
+    return NORMAL_SORT;
+  else if ( (FD_TRUEP(arg)) || (arg == lexci_symbol) )
+    return LEXICAL_CI_SORT;
+  else if (arg == lexical_symbol)
+    return LEXICAL_SORT;
+  else if (arg == pointer_symbol)
+    return POINTER_SORT;
+  else if (arg == collate_symbol)
+    return COLLATED_SORT;
+  else if (arg == pointer_symbol)
+    return POINTER_SORT;
+  else return NORMAL_SORT;
+}
+
 static lispval sorted_primfn(lispval choices,lispval keyfn,int reverse,
-                            int lexsort)
+                             enum SORTFN sortfn)
 {
   if (EMPTYP(choices))
     return fd_init_vector(NULL,0,NULL);
@@ -986,9 +1053,22 @@ static lispval sorted_primfn(lispval choices,lispval keyfn,int reverse,
       entries[i].sortval = elt;
       entries[i].sortkey = key;
       i++;}
-    if (lexsort)
+    switch (sortfn) {
+    case NORMAL_SORT:
+      qsort(entries,n,sizeof(struct FD_SORT_ENTRY),_fd_sort_helper);
+      break;
+    case LEXICAL_SORT:
       qsort(entries,n,sizeof(struct FD_SORT_ENTRY),_fd_lexsort_helper);
-    else qsort(entries,n,sizeof(struct FD_SORT_ENTRY),_fd_sort_helper);
+      break;
+    case LEXICAL_CI_SORT:
+      qsort(entries,n,sizeof(struct FD_SORT_ENTRY),_fd_lexsort_ci_helper);
+      break;
+    case POINTER_SORT:
+      qsort(entries,n,sizeof(struct FD_SORT_ENTRY),_fd_pointer_sort_helper);
+      break;
+    case COLLATED_SORT:
+      qsort(entries,n,sizeof(struct FD_SORT_ENTRY),_fd_collate_helper);
+      break;}
     i = 0; j = n-1; if (reverse) while (i < n) {
       fd_decref(entries[i].sortkey);
       vecdata[j]=fd_incref(entries[i].sortval);
@@ -1005,19 +1085,28 @@ static lispval sorted_primfn(lispval choices,lispval keyfn,int reverse,
     return fd_init_vector(NULL,1,vec);}
 }
 
-static lispval sorted_prim(lispval choices,lispval keyfn)
+static lispval sorted_prim(lispval choices,lispval keyfn,
+                           lispval sortfn_arg)
 {
-  return sorted_primfn(choices,keyfn,0,0);
+  enum SORTFN sortfn;
+  if ( (keyfn == lexical_symbol) || (keyfn == pointer_symbol) ||
+       (keyfn == collate_symbol) || (keyfn == lexci_symbol) ) {
+    sortfn = get_sortfn(keyfn);
+    keyfn  = FD_VOID;}
+  else sortfn = get_sortfn(sortfn_arg);
+  return sorted_primfn(choices,keyfn,0,sortfn);
+}
+
+static lispval rsorted_prim(lispval choices,lispval keyfn,
+                            lispval sortfn_arg)
+{
+  enum SORTFN sortfn = get_sortfn(sortfn_arg);
+  return sorted_primfn(choices,keyfn,1,sortfn);
 }
 
 static lispval lexsorted_prim(lispval choices,lispval keyfn)
 {
-  return sorted_primfn(choices,keyfn,0,1);
-}
-
-static lispval rsorted_prim(lispval choices,lispval keyfn)
-{
-  return sorted_primfn(choices,keyfn,1,0);
+  return sorted_primfn(choices,keyfn,0,COLLATED_SORT);
 }
 
 /* Selection */
@@ -1331,6 +1420,8 @@ FD_EXPORT void fd_init_choicefns_c()
   fd_def_evalfn(fd_scheme_module,"FILTER-CHOICES","",filterchoices_evalfn);
   fd_defalias(fd_scheme_module,"?∀","FILTER-CHOICES");
 
+  fd_def_evalfn(fd_scheme_module,"CHOICEVEC","",choicevec_evalfn);
+
   fd_def_evalfn(fd_scheme_module,"DO-SUBSETS","",dosubsets_evalfn);
 
   fd_idefn(fd_scheme_module,
@@ -1430,14 +1521,27 @@ FD_EXPORT void fd_init_choicefns_c()
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim1("PICK-ONE",pickone,1)));
 
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim2("SORTED",sorted_prim,1)));
+  fd_idefn3(fd_scheme_module,"SORTED",sorted_prim,FD_NEEDS_1_ARG|FD_NDCALL,
+            "(SORTED *choice* *keyfn* *sortfn*), returns a sorted vector "
+            "of items in *choice*. If provided, *keyfn* is specified "
+            "a property (slot, function, table-mapping, etc) is compared "
+            "instead of the object itself. "
+            "*sortfn* can be NORMAL (#f), LEXICAL, or COLLATE "
+            "to specify whether comparison of strings is done lexicographically "
+            "or using the locale's COLLATE rules.",
+            -1,FD_VOID,-1,FD_VOID,-1,FD_VOID);
+  fd_idefn3(fd_scheme_module,"RSORTED",rsorted_prim,FD_NEEDS_1_ARG|FD_NDCALL,
+            "(RSORTED *choice* *keyfn* *sortfn*), returns a sorted vector "
+            "of items in *choice*. If provided, *keyfn* is specified "
+            "a property (slot, function, table-mapping, etc) is compared "
+            "instead of the object itself. "
+            "*sortfn* can be NORMAL (#f), LEXICAL, or COLLATE "
+            "to specify whether comparison of strings is done lexicographically "
+            "or using the locale's COLLATE rules.",
+            -1,FD_VOID,-1,FD_VOID,-1,FD_VOID);
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2("LEXSORTED",lexsorted_prim,1)));
-
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim2("RSORTED",rsorted_prim,1)));
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim3x("PICK>",pick_gt_prim,1,
@@ -1492,6 +1596,11 @@ FD_EXPORT void fd_init_choicefns_c()
                                           -1,VOID,fd_fixnum_type,VOID,
                                           -1,VOID)));
   fd_defalias(fd_scheme_module,"NMIN->VECTOR","MIN/SORTED");
+
+
+  lexical_symbol = fd_intern("LEXICAL");
+  lexci_symbol = fd_intern("LEXICAL/CI");
+  collate_symbol = fd_intern("COLLATE");
 
 }
 

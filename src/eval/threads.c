@@ -26,6 +26,7 @@
 
 #include "eval_internals.h"
 
+#include <libu8/u8elapsed.h>
 #include <libu8/u8timefns.h>
 #include <libu8/u8printf.h>
 #include <libu8/u8logging.h>
@@ -687,7 +688,7 @@ static lispval threadfinish_prim(lispval args,lispval U8_MAYBE_UNUSED opts)
   lispval results = EMPTY;
   {DO_CHOICES(arg,args)
       if (TYPEP(arg,fd_thread_type)) {
-        struct FD_THREAD_STRUCT *thread = (fd_thread_struct)thread;
+        struct FD_THREAD_STRUCT *thread = (fd_thread_struct)arg;
         if (thread->finished<0) {
           int retval = pthread_join(thread->tid,NULL);
           if (retval) {
@@ -697,7 +698,9 @@ static lispval threadfinish_prim(lispval args,lispval U8_MAYBE_UNUSED opts)
               thread->result = fd_init_exception
                 (NULL,ThreadReturnError,"threadfinish_prim",
                  u8_mkstring("%d:%s",retval,strerror(retval)),
-                 VOID,VOID,VOID);}}
+                 VOID,VOID,VOID,
+                 NULL,u8_elapsed_time(),thread->threadid,
+                 u8_elapsed_base());}}
         lispval result = thread->result;
         fd_incref(result);
         CHOICE_ADD(results,result);}

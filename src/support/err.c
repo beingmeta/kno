@@ -25,6 +25,7 @@
 #include <pwd.h>
 
 #include <libu8/libu8.h>
+#include <libu8/u8elapsed.h>
 #include <libu8/u8netfns.h>
 #include <libu8/u8printf.h>
 #if FD_FILECONFIG_ENABLED
@@ -55,12 +56,15 @@ FD_EXPORT void fd_decref_embedded_exception(void *ptr)
 FD_EXPORT void fd_seterr
   (u8_condition c,u8_context caller,u8_string details,lispval irritant)
 {
-  u8_condition condition = (c) ? (c) :
-    (u8_current_exception) ? (u8_current_exception->u8x_cond) :
+  u8_exception ex = u8_current_exception;
+  u8_condition condition = (c) ? (c) : (ex) ? (ex->u8x_cond) :
     ((u8_condition)"Unknown (NULL) error");
   lispval backtrace = fd_get_backtrace(fd_stackptr);
   lispval exception = fd_init_exception
-    (NULL,condition,caller,u8_strdup(details),irritant,backtrace,VOID);
+    (NULL,condition,caller,u8_strdup(details),
+     irritant,backtrace,VOID,
+     NULL,u8_elapsed_time(),u8_threadid(),
+     u8_elapsed_base());
   fd_incref(irritant);
   u8_push_exception(condition,caller,u8_strdup(details),
                     (void *)exception,fd_decref_embedded_exception);
@@ -89,7 +93,9 @@ FD_EXPORT lispval fd_wrap_exception(u8_exception ex)
     return fd_init_exception(NULL,condition,caller,
                              u8_strdup(details),
                              fd_incref(irritant),
-                             backtrace,FD_VOID);}
+                             backtrace,FD_VOID,
+                             NULL,ex->u8x_moment,ex->u8x_thread,
+                             u8_elapsed_base());}
 }
 
 FD_EXPORT int fd_stacktracep(lispval rep)
@@ -420,21 +426,30 @@ int fd_clear_errors(int report)
 
 FD_EXPORT lispval fd_init_exception
    (struct FD_EXCEPTION *exo,
-    u8_condition condition,u8_context caller,u8_string details,
-    lispval irritant,lispval stack,lispval context)
+    u8_condition condition,u8_context caller,
+    u8_string details,lispval irritant,
+    lispval stack,lispval context,
+    u8_string sid,double moment,long long thread,
+    time_t timebase)
 {
   if (exo == NULL) exo = u8_alloc(struct FD_EXCEPTION);
   FD_INIT_CONS(exo,fd_exception_type);
   exo->ex_condition = condition;
   exo->ex_caller    = caller;
+  exo->ex_moment    = moment;
+  exo->ex_thread    = thread;
   exo->ex_details   = details;
   exo->ex_irritant  = irritant;
   exo->ex_stack     = stack;
   exo->ex_context   = context;
+  exo->ex_moment    = moment;
+  exo->ex_thread    = thread;
+  exo->ex_timebase  = timebase;
+  exo->ex_session   = sid;
   return LISP_CONS(exo);
 }
 
-static int dtype_exception(struct FD_OUTBUF *out,lispval x)
+static ssize_t write_exception_dtype(struct FD_OUTBUF *out,lispval x)
 {
   struct FD_EXCEPTION *xo = (struct FD_EXCEPTION *)x;
   u8_condition condition = xo->ex_condition;
@@ -443,13 +458,12 @@ static int dtype_exception(struct FD_OUTBUF *out,lispval x)
   lispval irritant = xo->ex_irritant;
   lispval backtrace = xo->ex_stack;
   lispval context = xo->ex_context;
-  int veclen = 3;
-  if (!(FD_VOIDP(context))) veclen=6;
-  else if (!(FD_VOIDP(backtrace))) veclen=5;
-  else if (!FD_VOIDP(irritant)) veclen=4;
-  else veclen=3;
+  u8_string session = (xo->ex_session) ? (xo->ex_session) : (u8_sessionid());
+  time_t timebase = xo->ex_timebase;
+  double moment = xo->ex_moment;
+  int veclen = (FD_VOIDP(irritant)) ? (8) : (9);
   lispval vector = fd_init_vector(NULL,veclen,NULL);
-  int n_bytes;
+  ssize_t n_bytes;
   FD_VECTOR_SET(vector,0,fd_intern(condition));
   if (caller) {
     FD_VECTOR_SET(vector,1,fd_intern(caller));}
@@ -457,19 +471,127 @@ static int dtype_exception(struct FD_OUTBUF *out,lispval x)
   if (details) {
     FD_VECTOR_SET(vector,2,lispval_string(details));}
   else {FD_VECTOR_SET(vector,2,FD_FALSE);}
-  if (!(VOIDP(irritant)))
-    FD_VECTOR_SET(vector,3,fd_incref(irritant));
-  else FD_VECTOR_SET(vector,3,FD_VOID);
+  FD_VECTOR_SET(vector,3,irritant);
   if (!(VOIDP(backtrace)))
     FD_VECTOR_SET(vector,4,fd_incref(backtrace));
-  else FD_VECTOR_SET(vector,3,FD_VOID);
-  if (!(VOIDP(backtrace)))
-    FD_VECTOR_SET(vector,5,fd_incref(backtrace));
-  else FD_VECTOR_SET(vector,5,FD_VOID);
+  else FD_VECTOR_SET(vector,4,FD_FALSE);
+  FD_VECTOR_SET(vector,5,fd_make_string(NULL,-1,session));
+  FD_VECTOR_SET(vector,6,fd_time2timestamp(timebase));
+  FD_VECTOR_SET(vector,7,fd_make_flonum(moment));
+  if (!(VOIDP(context)))
+    FD_VECTOR_SET(vector,8,fd_incref(context));
+  else FD_VECTOR_SET(vector,8,FD_FALSE);
   fd_write_byte(out,dt_exception);
   n_bytes = 1+fd_write_dtype(out,vector);
   fd_decref(vector);
   return n_bytes;
+}
+
+FD_EXPORT lispval fd_restore_exception_dtype(lispval content)
+{
+  /* Return an exception object if possible (content as expected)
+     and a compound if there are any big surprises */
+  u8_condition condname=_("Poorly Restored Error");
+  u8_context caller = NULL; u8_string details = NULL;
+  lispval irritant = VOID, stack = VOID, context = VOID;
+  u8_string sessionid = NULL;
+  double moment = -1.0;
+  time_t timebase = -1;
+  if (FD_TYPEP(content,fd_exception_type))
+    return content;
+  else if (VECTORP(content)) {
+    int len = VEC_LEN(content);
+    /* And the new format is:
+         #(ex caller details [irritant] [stack]
+           [sid] [timebase] [moment] [context] )
+         where ex and context are symbols and stack and context
+          are optional values which default to VOID
+       We handle all cases
+    */
+    if (len>0) {
+      lispval condval = VEC_REF(content,0);
+      if (SYMBOLP(condval))
+        condname = SYM_NAME(condval);
+      else if (STRINGP(condval)) {
+        lispval tmp = fd_probe_symbol(CSTRING(condval),STRLEN(condval));
+        if (FD_VOIDP(tmp)) {
+          u8_log(LOG_WARN,fd_DTypeError,"Bad non-symbolic condition name",
+                 condval);
+          tmp=fd_intern(CSTRING(condval));}
+        condname = SYM_NAME(tmp);}
+      else {
+        u8_log(LOG_WARN,fd_DTypeError,
+               "Bad condition (not a symbol) %q in exception serialization %q",
+               condval,content);
+        condname="BadCondName";}}
+    if (len>1) {
+      lispval caller_val = VEC_REF(content,0);
+      if (SYMBOLP(caller_val))
+        caller = SYM_NAME(caller_val);
+      else if (STRINGP(caller_val)) {
+        lispval tmp =
+          fd_probe_symbol(CSTRING(caller_val),STRLEN(caller_val));
+        if (FD_VOIDP(tmp)) {
+          u8_log(LOG_WARN,fd_DTypeError,"Bad non-symbolic caller",
+                 caller_val);
+          tmp=fd_intern(CSTRING(caller_val));}
+        caller = SYM_NAME(tmp);}
+      else if ( (FD_FALSEP(caller_val)) ||
+                (FD_EMPTYP(caller_val)) ||
+                (caller_val == FD_EMPTY_LIST) ||
+                (FD_VOIDP(caller_val)) )
+        caller = NULL;
+      else {
+        u8_log(LOG_WARN,fd_DTypeError,
+               "Bad caller (not a symbol) %q in exception serialization %q",
+               caller_val,content);
+         caller="BadCaller";}}
+    if (len > 2) {
+      lispval details_val = VEC_REF(content,2);
+      if (FD_STRINGP(details_val))
+        details = u8_strdup(CSTRING(details_val));
+      else details = NULL;}
+    if (len > 3) irritant = VEC_REF(content,3);
+    if ( (len > 4) && (FD_STRINGP(VEC_REF(content,4))) )
+      sessionid = CSTRING(VEC_REF(content,4));
+    if (len > 5) {
+      lispval tstamp = VEC_REF(content,5);
+      if (TYPEP(tstamp,fd_timestamp_type)) {
+        struct FD_TIMESTAMP *ts = (fd_timestamp) tstamp;
+        struct U8_XTIME *xt = &(ts->u8xtimeval);
+        timebase = xt->u8_tick;}
+      else if (FD_FIXNUMP(tstamp))
+        timebase = (time_t) fd_getint(tstamp);
+      else timebase=-1;}
+    if ( ( len > 6 ) && (FD_FLONUMP(VEC_REF(content,6))) ) {
+      lispval flonum = VEC_REF(content,6);
+      moment = FD_FLONUM(flonum);}
+    if (len > 7) stack = VEC_REF(content,7);
+    if (len > 8) context = VEC_REF(content,8);
+    return fd_init_exception(NULL,condname,caller,
+                             details,irritant,
+                             stack,context,
+                             sessionid,moment,-1,
+                             timebase);}
+  else if (FD_SYMBOLP(content))
+    return fd_init_exception
+      (NULL,FD_SYMBOL_NAME(content),
+       NULL,NULL,content,
+       FD_VOID,FD_VOID,NULL,
+       -1,-1,-1);
+  else if (FD_STRINGP(content))
+    return fd_init_exception
+      (NULL,"DtypeError",NULL,
+       u8_strdup(FD_CSTRING(content)),content,
+       FD_VOID,FD_VOID,NULL,
+       -1,-1,-1);
+  else return fd_init_exception
+         (NULL,fd_DTypeError,
+          "fd_restore_exception_dtype",NULL,content,
+          FD_VOID,FD_VOID,NULL,
+          u8_elapsed_time(),
+          u8_threadid(),
+          u8_elapsed_base());
 }
 
 static lispval copy_exception(lispval x,int deep)
@@ -480,7 +602,9 @@ static lispval copy_exception(lispval x,int deep)
                            u8_strdup(xo->ex_details),
                            fd_incref(xo->ex_irritant),
                            fd_incref(xo->ex_stack),
-                           fd_incref(xo->ex_context));
+                           fd_incref(xo->ex_context),
+                           xo->ex_session,xo->ex_moment,xo->ex_thread,
+                           xo->ex_timebase);
 }
 
 static int unparse_exception(struct U8_OUTPUT *out,lispval x)
@@ -632,7 +756,7 @@ void fd_init_err_c()
 
   fd_copiers[fd_exception_type]=copy_exception;
   if (fd_dtype_writers[fd_exception_type]==NULL)
-    fd_dtype_writers[fd_exception_type]=dtype_exception;
+    fd_dtype_writers[fd_exception_type]=write_exception_dtype;
   if (fd_unparsers[fd_exception_type]==NULL)
     fd_unparsers[fd_exception_type]=unparse_exception;
 

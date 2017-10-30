@@ -427,10 +427,26 @@ static lispval remainder_prim(lispval x,lispval m)
 static lispval random_prim(lispval maxarg)
 {
   if (FD_INTEGERP(maxarg)) {
-    long long max = fd_getint(maxarg), n = u8_random(max);
-    if ((max<=0)||(max>0x80000000))
+    long long max = fd_getint(maxarg);
+    if (max<=0)
       return fd_type_error("Small positive integer","random_prim",maxarg);
-    else return FD_INT(n);}
+    else if (max > UINT_MAX) {
+      long long short_max = max%USHRT_MAX;
+      unsigned long long base_rand = max-short_max;
+      unsigned long long big_rand =  u8_random(short_max);
+      while (base_rand>0) {
+        unsigned int short_rand = u8_random(USHRT_MAX);
+        big_rand = (big_rand << 16) + short_rand;
+        base_rand = base_rand >> 16;}
+      big_rand = big_rand % max;
+      if (big_rand<FD_MAX_FIXNUM)
+        return FD_INT2FIX(big_rand);
+      else {
+        fd_bigint bi = fd_ulong_long_to_bigint(big_rand);
+        return (lispval) bi;}}
+    else {
+      unsigned int n = u8_random(max);
+      return FD_INT(n);}}
   else if (FD_FLONUMP(maxarg)) {
     double flomax = FD_FLONUM(maxarg);
     long long  intmax = (long long)flomax;
@@ -1161,9 +1177,9 @@ static lispval number2locale(lispval x,lispval precision)
       return lispval_string(buf);}
     else return fd_type_error("fixnum","inexact2string",precision);
   else if (FIXNUMP(x)) {
-    char buf[128];
-    sprintf(buf,"%'lld",FIX2INT(x));
-    return lispval_string(buf);}
+    long long i_val = FIX2INT(x);
+    char tmpbuf[32];
+    return lispval_string(u8_itoa10(i_val,tmpbuf));}
   else {
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
     fd_unparse(&out,x);
@@ -1219,6 +1235,9 @@ FD_EXPORT void fd_init_arith_c()
 
   arithdef2("ATAN2",latan2,atan2);
   arithdef2("POW~",lpow,lpow);
+
+  fd_store(fd_scheme_module,fd_intern("MAX-FIXNUM"),fd_max_fixnum);
+  fd_store(fd_scheme_module,fd_intern("MIN-FIXNUM"),fd_min_fixnum);
 
   fd_idefn(fd_scheme_module,fd_make_cprimn("+",plus_lexpr,-1));
   fd_idefn(fd_scheme_module,fd_make_cprimn("-",minus_lexpr,-1));

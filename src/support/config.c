@@ -477,6 +477,13 @@ FD_EXPORT int fd_readonly_config_set(lispval ignored,lispval v,void *vptr)
   else return fd_reterr(fd_ReadOnlyConfig,"fd_set_config",NULL,VOID);
 }
 
+/* For configuration variables which are just integer constants */
+FD_EXPORT lispval fd_constconfig_get(lispval ignored,void *llval)
+{
+  long long int_val = (long long) llval;
+  return FD_INT(int_val);
+}
+
 /* For configuration variables which get/set dtype value. */
 FD_EXPORT lispval fd_lconfig_get(lispval ignored,void *lispp)
 {
@@ -834,8 +841,14 @@ FD_EXPORT lispval fd_tblconfig_get(lispval var,void *data)
 
 /* Initialization */
 
+static int support_config_c_init_done = 0;
+
 void fd_init_config_c()
 {
+  if (support_config_c_init_done)
+    return;
+  else support_config_c_init_done=1;
+
   u8_register_source_file(_FILEINFO);
 
   configuration_table = fd_make_hashtable(NULL,16);
@@ -877,6 +890,32 @@ void fd_init_config_c()
   fd_register_config
     ("CWD",_("Get/set the current working directory"),
      cwd_config_get,cwd_config_set,NULL);
+
+  fd_register_config("FIXMAX","The maximum fixnum value",
+                     fd_lconfig_get,fd_readonly_config_set,
+                     &fd_max_fixnum);
+  fd_register_config("MAXFIX","The maximum fixnum value",
+                     fd_lconfig_get,fd_readonly_config_set,
+                     &fd_max_fixnum);
+  fd_register_config("FIXMIN","The minimum fixnum value",
+                     fd_lconfig_get,fd_readonly_config_set,
+                     &fd_min_fixnum);
+  fd_register_config("MINFIX","The minimum fixnum value",
+                     fd_lconfig_get,fd_readonly_config_set,
+                     &fd_min_fixnum);
+
+  fd_register_config("UINT_MAX",
+                     "Maximum value for an underlying unsigned INT",
+                     fd_constconfig_get,fd_readonly_config_set,
+                     (void *) UINT_MAX);
+  fd_register_config("INT_MAX",
+                     "Maximum value for an underlying unsigned INT",
+                     fd_constconfig_get,fd_readonly_config_set,
+                     (void *) INT_MAX);
+  fd_register_config("INT_MIN",
+                     "Maximum value for an underlying unsigned INT",
+                     fd_constconfig_get,fd_readonly_config_set,
+                     (void *) INT_MIN);
 
   fd_register_config
     ("TRACECONFIG",_("whether to trace configuration"),

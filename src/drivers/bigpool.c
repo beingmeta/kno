@@ -38,6 +38,10 @@
 #define MMAP_FLAGS MAP_SHARED
 #endif
 
+#ifndef FETCHBUF_SIZE
+#define FETCHBUF_SIZE 16000
+#endif
+
 static lispval load_symbol, slotids_symbol;
 
 static void bigpool_setcache(fd_bigpool p,int level);
@@ -171,10 +175,11 @@ static u8_condition InvalidOffset=_("Invalid offset in BIGPOOL");
 typedef long long int ll;
 typedef unsigned long long ull;
 
-static int get_chunk_ref_size(fd_bigpool p)
+static ssize_t get_chunk_ref_size(fd_bigpool p)
 {
   switch (p->pool_offtype) {
-  case FD_B32: case FD_B40: return 8;
+  case FD_B32: case FD_B40:
+    return 8;
   case FD_B64: return 12;}
   return -1;
 }
@@ -290,7 +295,8 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,
       fd_seterr(fd_BadFilePoolLabel,"open_bigpool","bad label loc",
                 FD_INT(label_loc));
       fd_close_stream(stream,0);
-      u8_free(rname); u8_free(pool);
+      u8_free(rname);
+      u8_free(pool);
       return NULL;}}
 
   lispval metadata=FD_VOID;
@@ -353,20 +359,74 @@ static void update_filetime(struct FD_BIGPOOL *fp)
 static fd_pool recover_bigpool(u8_string fname,fd_storage_flags open_flags,
                                lispval opts)
 {
-  u8_string head_file=u8_string_append(fname,".recovery",NULL);
-  if (u8_file_existsp(head_file)) {
-    ssize_t rv=fd_restore_head(head_file,fname,256-8);
+  u8_string rollback_file=u8_string_append(fname,".rollback",NULL);
+  if (u8_file_existsp(rollback_file)) {
+    u8_log(LOGWARN,"Rollback",
+           "Applying rollback file %s to %s",rollback_file,fname);
+    ssize_t rv=fd_restore_head(rollback_file,fname,256-8);
     if (rv<0) {
-      u8_graberrno("recover_bigpool",head_file);
+      u8_graberrno("recover_bigpool",rollback_file);
       return NULL;}
-    else u8_free(head_file);
-    return open_bigpool(fname,open_flags,opts);}
+    fd_pool opened = open_bigpool(fname,open_flags,opts);
+    if (opened) {
+      u8_string rollback_applied = u8_string_append(rollback_file,".applied",NULL);
+      u8_movefile(rollback_file,rollback_applied);
+      u8_free(rollback_applied);
+      u8_free(rollback_file);
+      return opened;}
+    else if (! (fd_testopt(opts,fd_intern("FIXUP"),FD_VOID))) {
+      fd_seterr("RecoveryFailed","recover_bigpool",fname,FD_VOID);
+      u8_free(rollback_file);
+      return NULL;}
+    else {
+      u8_string rollback_failed = u8_string_append(rollback_file,".failed",NULL);
+      u8_byte details[256];
+      u8_log(LOGERR,"RecoveryFailed",
+             "Failed to recover %s using %s",fname,rollback_file);
+      if (u8_movefile(rollback_file,rollback_failed) < 0) {
+        fd_seterr("RecoveryFailed","recover_bigpool",
+                  u8_sprintf(details,256,"Couldn't (re)move rollback file %s",
+                             rollback_file),
+                  FD_VOID);
+        u8_free(rollback_file);
+        u8_free(rollback_failed);
+        return NULL;}
+      else {
+        u8_free(rollback_file);
+        u8_free(rollback_failed);}}}
+  else if (! (fd_testopt(opts,fd_intern("FIXUP"),FD_VOID)) ) {
+    u8_seterr("NoRollbackFile",
+              "The bigpool file %s doesn't have a rollback file %s",
+              rollback_file);
+    return NULL;}
   else {
     u8_log(LOGCRIT,"Corrupted Bigpool",
-           "The bigpool file %s doesn't have a recovery file %s",
-           fname,head_file);
-    u8_free(head_file);
+           "The bigpool file %s doesn't have a rollback file %s",
+           fname,rollback_file);
+    u8_free(rollback_file);
+    rollback_file=NULL;}
+  /* Try to 'force' recovery by updating the header */
+  char *src = u8_tolibc(fname);
+  FD_DECL_OUTBUF(headbuf,256);
+  unsigned int magicno = FD_BIGPOOL_MAGIC_NUMBER;
+  int out=open(src,O_RDWR);
+  fd_write_4bytes(&headbuf,magicno);
+#if HAVE_PREAD
+  int rv = pwrite(out,headbuf.buffer,4,0);
+#else
+  lseek(out,SEEK_SET,0);
+  int rv = write(out,headbuf.buffer,4);
+#endif
+  fsync(out);
+  close(out);
+  u8_free(src);
+  if (rv>0) {
+    fd_pool opened = open_bigpool(fname,open_flags,opts);
+    if (opened)
+      return opened;
+    u8_seterr("FailedFixup","recover_bigpool",u8_strdup(fname));
     return NULL;}
+  else return NULL;
 }
 
 /* Getting slotids */
@@ -652,28 +712,24 @@ static lispval read_oid_value(fd_bigpool bp,
   else return fd_read_dtype(in);
 }
 
-static lispval read_oid_value_at(fd_bigpool bp,
-                                 fd_inbuf fetchbuf,
-                                 FD_CHUNK_REF ref,
-                                 u8_context cxt)
+static lispval read_oid_value_at
+(fd_bigpool bp,fd_inbuf fetchbuf,FD_CHUNK_REF ref,u8_context cxt)
 {
+  fd_stream stream=&(bp->pool_stream);
   if (ref.off == 0)
     return VOID;
   else if (ref.size == 0)
     return FD_EMPTY;
+  else if ( (fetchbuf == NULL) || (fetchbuf->buffer == NULL) ||
+            (ref.size > fetchbuf->buflen) ) {
+    struct FD_INBUF _in={0}, *in =
+      fd_open_block(stream,&_in,ref.off,ref.size,0);
+    lispval value = read_oid_value(bp,in,cxt);
+    fd_close_inbuf(in);
+    return value;}
   else {
-    fd_stream stream=&(bp->pool_stream);
-    struct FD_INBUF _in={0}, *in=
-      (fetchbuf == NULL) ?
-      (fd_open_block(stream,&_in,ref.off,ref.size,0)) :
-      (fd_open_block(stream,fetchbuf,ref.off,ref.size,0));
-    if ( (in) && (fetchbuf) )
-      return read_oid_value(bp,in,cxt);
-    else if (in) {
-      lispval result=read_oid_value(bp,in,cxt);
-      fd_close_inbuf(in);
-      return result;}
-    else return FD_ERROR_VALUE;}
+    fd_open_block(stream,fetchbuf,ref.off,ref.size,0);
+    return read_oid_value(bp,fetchbuf,cxt);}
 }
 
 static int bigpool_locked_load(fd_pool p)
@@ -716,9 +772,15 @@ static lispval bigpool_fetch(fd_pool p,lispval oid)
     (fd_fetch_chunk_ref(&(bp->pool_stream),256,bp->pool_offtype,
                           offset,0));
   lispval result;
-  if (ref.off<0) result=FD_ERROR;
-  else if (ref.off==0) result=EMPTY;
-  else result=read_oid_value_at(bp,NULL,ref,"bigpool_fetch");
+  if (ref.off < 0) result=FD_ERROR;
+  else if (ref.off == 0) result=EMPTY;
+  else {
+    struct FD_INBUF in;
+    unsigned char buf[FETCHBUF_SIZE];
+    if (ref.size < FETCHBUF_SIZE)
+      FD_INIT_INBUF(&in,buf,FETCHBUF_SIZE,0);
+    result=read_oid_value_at(bp,&in,ref,"bigpool_fetch");
+    fd_close_inbuf(&in);}
   bigpool_finished(bp);
   return result;
 }
@@ -733,10 +795,13 @@ static int compare_offsets(const void *x1,const void *x2)
 
 static lispval *bigpool_fetchn(fd_pool p,int n,lispval *oids)
 {
-  fd_bigpool bp = (fd_bigpool)p;
   FD_OID base = p->pool_base;
-  use_bigpool(bp);
-  lispval *values = u8_alloc_n(n,lispval);
+  fd_bigpool bp = (fd_bigpool)p;
+  struct FD_STREAM *stream = &(bp->pool_stream);
+  lispval *values = u8_big_alloc_n(n,lispval);
+
+  use_bigpool(bp); /* Ensure that the file stream is opened */
+
   unsigned int *offdata = bp->pool_offdata;
   unsigned int offdata_offlen = bp->pool_offlen;
   unsigned int load = bp->pool_load;
@@ -744,22 +809,17 @@ static lispval *bigpool_fetchn(fd_pool p,int n,lispval *oids)
     /* Don't bother being clever if you don't even have an offsets
        table. */
     int i = 0; while (i<n) {
-      values[i]=bigpool_fetch(p,oids[i]); i++;}
+      values[i]=bigpool_fetch(p,oids[i]);
+      i++;}
     bigpool_finished(bp);
     return values;}
   else {
     unsigned int unlock_stream = 0;
     struct BIGPOOL_FETCH_SCHEDULE *schedule=
-      u8_alloc_n(n,struct BIGPOOL_FETCH_SCHEDULE);
-  if (bp->pool_load>bp->pool_offlen)
-    update_offdata_cache(bp,bp->pool_cache_level,get_chunk_ref_size(bp));
-
-#if (!(HAVE_PREAD))
-    fd_lock_stream(&(bp->pool_stream));
-    unlock_stream = 1;
-#endif
+      u8_big_alloc_n(n,struct BIGPOOL_FETCH_SCHEDULE);
+    if (bp->pool_load>bp->pool_offlen)
+      update_offdata_cache(bp,bp->pool_cache_level,get_chunk_ref_size(bp));
     int i = 0;
-    struct FD_INBUF _in={0}, *in=&_in;
     /* Populate a fetch schedule with where to get OID values */
     while (i<n) {
       lispval oid = oids[i]; FD_OID addr = FD_OID_ADDR(oid);
@@ -776,28 +836,40 @@ static lispval *bigpool_fetchn(fd_pool p,int n,lispval *oids)
         break;}
       else i++;}
     if (i<n) {
-      u8_free(schedule);
-      u8_free(values);
-      if (unlock_stream) fd_unlock_stream(&(bp->pool_stream));
+      u8_big_free(schedule);
+      u8_big_free(values);
       bigpool_finished(bp);
       return NULL;}
     /* Note that we sort the fetch schedule even if we're mmapped in
        order to try to take advantage of page locality. */
     qsort(schedule,n,sizeof(struct BIGPOOL_FETCH_SCHEDULE),compare_offsets);
+
+    unsigned char bytes[FETCHBUF_SIZE];
+    struct FD_INBUF sbuf={0}, mbuf={0};
+    FD_INIT_INBUF(&sbuf,bytes,FETCHBUF_SIZE,0);
+
     i = 0; while (i<n) {
-      lispval value =
-        (schedule[i].location.size==0) ? (FD_EMPTY_CHOICE) :
-        (read_oid_value_at(bp,in,schedule[i].location,"bigpool_fetchn"));
-      if (FD_ABORTP(value)) break;
-      else values[schedule[i].value_at]=value;
+      if (schedule[i].location.size==0)
+        values[schedule[i].value_at]=FD_EMPTY;
+      else {
+        fd_inbuf usebuf =
+          ( schedule[i].location.size < FETCHBUF_SIZE ) ? (&sbuf) :
+          (HAVE_MMAP) ? (&mbuf) : (&sbuf);
+        fd_inbuf in = fd_open_block(stream,usebuf,
+                                    schedule[i].location.off,
+                                    schedule[i].location.size,
+                                    0);
+        lispval value = read_oid_value(bp,in,"bigpool_fetchn");
+        if (FD_ABORTP(value))
+          break;
+        else values[schedule[i].value_at]=value;}
       i++;}
-    if (i<n) {
-      /* Error */
+
+    if (i != n) { /* Error */
       int j = 0; while (j<i) {
         lispval value = values[schedule[j].value_at];
         fd_decref(value);
         j++;}
-      u8_free(schedule); u8_free(values);
       u8_condition condition;
       u8_exception ex = u8_current_exception;
       if (ex==NULL)
@@ -806,12 +878,11 @@ static lispval *bigpool_fetchn(fd_pool p,int n,lispval *oids)
       u8_seterr(condition,"bigpool_fetchn/read",u8dup(bp->poolid));
       if (unlock_stream)
         fd_unlock_stream(&(bp->pool_stream));
-      bigpool_finished(bp);
-      return NULL;}
-    if (unlock_stream)
-      fd_unlock_stream(&(bp->pool_stream));
-    fd_close_inbuf(in);
-    u8_free(schedule);
+      u8_big_free(values);
+      values=NULL;}
+    fd_close_inbuf(&mbuf);
+    fd_close_inbuf(&sbuf);
+    u8_big_free(schedule);
     bigpool_finished(bp);
     return values;}
 }
@@ -865,18 +936,18 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
     return -1;}
 
   unsigned int load = bp->pool_load;
-  u8_string recovery_file=u8_string_append(fname,".recovery",NULL);
+  u8_string recovery_file=u8_string_append(fname,".rollback",NULL);
   size_t recovery_size = 256+(chunk_ref_size*p->pool_capacity);
   ssize_t saved=fd_save_head(fname,recovery_file,recovery_size);
   if (saved<0)
     return saved;
   else {
     fd_setpos(stream,0);
-    fd_write_4bytes(fd_writebuf(stream),FD_BIGPOOL_TO_RECOVER);}
+    fd_write_4bytes(fd_writebuf(stream),FD_BIGPOOL_MAGIC_NUMBER);} /* FD_BIGPOOL_TO_RECOVER */
 
   double started = u8_elapsed_time();
   struct BIGPOOL_SAVEINFO *saveinfo= (n>0) ?
-    (u8_alloc_n(n,struct BIGPOOL_SAVEINFO)) :
+    (u8_big_alloc_n(n,struct BIGPOOL_SAVEINFO)) :
     (NULL);
 
   int i=0;
@@ -930,7 +1001,9 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
 
       /* Check for file format overflow */
       if ((endpos+n_bytes)>=maxpos) {
-        u8_free(zbuf); u8_free(saveinfo); u8_free(tmpout.buffer);
+        u8_free(zbuf);
+        u8_free(saveinfo);
+        u8_free(tmpout.buffer);
         return file_format_overflow(p,stream);}
 
       if (n_bytes) {
@@ -954,7 +1027,7 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
   if (update_bigpool(bp,stream,load,n,saveinfo)<0) {
     u8_log(LOGCRIT,"Couldn't update bigpool %s",bp->poolid);
     fd_restore_head(recovery_file,fname,256-8);
-    u8_free(saveinfo);
+    u8_big_free(saveinfo);
     if (u8_removefile(recovery_file)<0)
       u8_log(LOGWARN,"CouldntRemoveFile",
              "Couldn't remove recovery file %s",recovery_file);
@@ -974,7 +1047,7 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
 
     return -1;}
 
-  u8_free(saveinfo);
+  u8_big_free(saveinfo);
   fd_start_write(stream,0);
   fd_write_4bytes(outstream,FD_BIGPOOL_MAGIC_NUMBER);
   fd_flush_stream(stream);
@@ -1277,7 +1350,7 @@ static ssize_t write_offdata
            "Bad offset type code (%d) for %s",(int)offtype,bp->poolid);
     u8_seterr("CorruptedBigpoolStruct","bigpool:write_offdata",
               u8_strdup(bp->poolid));
-    u8_free(saveinfo);
+    u8_big_free(saveinfo);
     return -1;}
   else if ( (offdata=bp->pool_offdata) )
     while (i<n) {
@@ -1350,7 +1423,7 @@ static ssize_t mmap_write_offdata
     break;}
   default:
     u8_log(LOG_WARN,"Bad offset type for %s",bp->poolid);
-    u8_free(saveinfo);
+    u8_big_free(saveinfo);
     exit(-1);}
   retval = msync(offdata-64,256+byte_length,MS_SYNC|MS_INVALIDATE);
   if (retval<0) {
@@ -1406,7 +1479,7 @@ static ssize_t cache_write_offdata
       break;}
     default:
       u8_log(LOG_WARN,"Bad offset type for %s",bp->poolid);
-      u8_free(saveinfo);
+      u8_big_free(saveinfo);
       exit(-1);}
   fd_setpos(stream,256+offdata_modified_start);
   fd_write_ints(stream,offdata_modified_length,offdata);
@@ -1446,7 +1519,7 @@ static ssize_t direct_write_offdata(struct FD_BIGPOOL *bp,fd_stream stream,
     break;}
   default:
     u8_log(LOG_WARN,"Bad offset type for %s",bp->poolid);
-    u8_free(saveinfo);
+    u8_big_free(saveinfo);
     exit(-1);}
   return n;
 }
@@ -1556,7 +1629,8 @@ static int update_offdata_cache(fd_bigpool bp,int level,int chunk_ref_size)
   unsigned int *offdata=bp->pool_offdata;
   if ( (level < 2) && (offdata) ) {
     bp->pool_offdata = NULL;
-    return 1;}
+    u8_free(offdata);
+   return 1;}
   else if ( (level >= 2) && (offdata == NULL) ) {
     fd_stream stream = &(bp->pool_stream);
     fd_inbuf  readbuf = fd_readbuf(s);
@@ -1569,7 +1643,7 @@ static int update_offdata_cache(fd_bigpool bp,int level,int chunk_ref_size)
       fd_setpos(s,0x10);
       bp->pool_load = load = fd_read_4bytes(ins);
       size_t offdata_length = chunk_ref_size*load;
-      offdata=u8_zmalloc(offdata_length);
+      offdata=u8_malloc(offdata_length);
       fd_setpos(s,0x100);
       fd_read_ints(readbuf,load,offdata);
       bp->pool_offdata = offsets;
@@ -1646,7 +1720,7 @@ static void reload_bigpool(fd_bigpool bp,int is_locked)
   fd_inbuf  readbuf = fd_readbuf(stream);
   size_t new_size = chunkref_size*new_load;
   if (new_load != cur_load)
-    offdata=u8_realloc(offdata,new_size);
+    offdata = u8_realloc(offdata,new_size);
   fd_setpos(s,0x100);
   fd_read_ints(ins,new_load,new_offdata);
   bp->pool_offdata = offdata;

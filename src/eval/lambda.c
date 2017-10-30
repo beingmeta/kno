@@ -852,7 +852,7 @@ static int unparse_extended_fcnid(u8_output out,lispval x)
   return 1;
 }
 
-static int dtype_lambda(struct FD_OUTBUF *out,lispval x)
+static ssize_t write_lambda_dtype(struct FD_OUTBUF *out,lispval x)
 {
   int n_elts=1; /* Always include some source */
   struct FD_LAMBDA *fcn = (struct FD_LAMBDA *)x;
@@ -881,7 +881,7 @@ static int dtype_lambda(struct FD_OUTBUF *out,lispval x)
     fd_write_byte(&tmp,dt_pair);
     fd_write_dtype(&tmp,fcn->lambda_arglist);
     fd_write_dtype(&tmp,fcn->lambda_body);}
-  size_t n_bytes=tmp.bufwrite-tmp.buffer;
+  ssize_t n_bytes=tmp.bufwrite-tmp.buffer;
   fd_write_bytes(out,tmp.buffer,n_bytes);
   fd_close_outbuf(&tmp);
   return n_bytes;
@@ -907,7 +907,7 @@ FD_EXPORT void fd_init_lambdas_c()
 
   fd_unparsers[fd_fcnid_type]=unparse_extended_fcnid;
 
-  fd_dtype_writers[fd_lambda_type] = dtype_lambda;
+  fd_dtype_writers[fd_lambda_type] = write_lambda_dtype;
 
   fd_def_evalfn(fd_scheme_module,"LAMBDA","",lambda_evalfn);
   fd_def_evalfn(fd_scheme_module,"AMBDA","",ambda_evalfn);

@@ -97,11 +97,12 @@ static lispval extpool_fetch(fd_pool p,lispval oid)
 static lispval *extpool_fetchn(fd_pool p,int n,lispval *oids)
 {
   struct FD_EXTPOOL *xp = (fd_extpool)p;
-  struct FD_VECTOR vstruct; lispval vecarg;
   lispval state = xp->state, fetchfn = xp->fetchfn, value = VOID;
   struct FD_FUNCTION *fptr = ((FD_FUNCTIONP(fetchfn))?
                             ((struct FD_FUNCTION *)fetchfn):
                             (NULL));
+  struct FD_VECTOR vstruct;
+  lispval vecarg;
   FD_INIT_STATIC_CONS(&vstruct,fd_vector_type);
   vstruct.vec_length = n; vstruct.vec_elts = oids;
   vstruct.vec_free_elts = 0;

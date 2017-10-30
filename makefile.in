@@ -4,11 +4,12 @@
 
 CC	      = @CC@
 XCFLAGS       =
-OPTFLAGS      = -O3
+OPTFLAGS      = @OPTFLAGS@
+XOPTFLAGS      = @XOPTFLAGS@
 ARCHFLAGS     = @archflags@
-EXECFLAGS     = @CFLAGS@ @MALLOC_FLAGS@ @PROFILING@ @DREENTRANT@ -I./include $(XCFLAGS) $(ARCHFLAGS)
+EXECFLAGS     = @CFLAGS@ ${OPTFLAGS} @MALLOC_FLAGS@ @PROFILING@ @DREENTRANT@ -I./include $(XCFLAGS) $(ARCHFLAGS)
 DYNAMIC_CFLAG = @dynamic_cflag@
-CFLAGS        = -I./include @CFLAGS@ @MALLOC_FLAGS@ @PROFILING@ @DREENTRANT@ @PTHREAD_LIBS@ \
+CFLAGS        = -I./include @CFLAGS@ ${OPTFLAGS} @MALLOC_FLAGS@ @PROFILING@ @DREENTRANT@ @PTHREAD_LIBS@ \
 		$(DYNAMIC_CFLAG) -I./include $(XCFLAGS)  $(ARCHFLAGS)
 RPATH         = @rpath@
 RPATHFLAGS    = @RPATHFLAGS@
@@ -134,7 +135,8 @@ SUPPORT_OBJS=						\
 	src/support/buildinfo.o src/support/support.o	\
 	src/support/config.o src/support/err.o		\
 	src/support/logging.o src/support/getopt.o	\
-	src/support/startup.o src/support/fluid.o
+	src/support/startup.o src/support/fluid.o 	\
+	src/support/posix.o
 
 APPLY_OBJS=\
 	src/apply/apply.o src/apply/stacks.o 			\
@@ -196,6 +198,7 @@ SCHEME_OBJS=\
 	src/prims/seqprims.o \
 	src/prims/stringprims.o \
 	src/prims/portprims.o \
+	src/prims/logprims.o \
 	src/prims/streamprims.o \
 	src/prims/timeprims.o \
 	src/prims/sysprims.o \
@@ -330,6 +333,7 @@ STATIC_EXECUTABLES=static/fdexec@suffix@ static/fdconsole@suffix@ \
 	static/fdservlet@suffix@ static/fdserver@suffix@
 SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig etc/fdconfig \
 	etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall \
+	etc/fd_start_daemons etc/fd_start_servlets etc/fd_stop_jobs \
 	etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog  \
 	etc/fdrestart etc/fdctl etc/fdgdb \
 	etc/fdcleanup
@@ -364,7 +368,7 @@ FRAMERD_SOURCES=\
         src/lisp/bufio.c src/lisp/dtread.c src/lisp/dtread.c 		\
 	src/lisp/parse.c src/lisp/unparse.c src/lisp/lisp.c \
 	src/support/buildinfo.c \
-	src/support/support.c src/support/config.c	\
+	src/support/support.c src/support/config.c src/support/posix.c	\
 	src/support/err.c src/support/logging.c src/support/getopt.c		\
 	src/support/startup.c src/support/fluid.c				\
 	src/apply/apply.c src/apply/stacks.c src/apply/lexenv.c \
@@ -396,6 +400,7 @@ FRAMERD_SOURCES=\
 	src/eval/coreops.c                  				\
 	src/eval/arith.c src/eval/side-effects.c              		\
 	src/prims/dbprims.c 						\
+	src/prims/logprims.c						\
 	src/prims/portprims.c						\
 	src/prims/streamprims.c                    			\
 	src/prims/tableprims.c src/eval/choiceops.c               	\
@@ -460,6 +465,8 @@ ALL=testbin exe cmodules @TAGS@
 
 # Targets
 
+default: @DEFAULTMAKETARGET@
+
 update: buildmode
 	@+make -s `cat buildmode`
 normal:
@@ -467,9 +474,10 @@ normal:
 	@+make -s testbin exe cmodules etc @TAGS@
 debugging:
 	@echo Building DEBUGGING configuration
-	@+make -s XCFLAGS="@debugcflags@ -Wall $(XCFLAGS)"	\
+	@+make -s XCFLAGS="@debugcflags@ -O0 -Wall $(XCFLAGS)"	\
 	          XLDFLAGS="@debugldflags@ $(XLDFLAGS)"		\
-	          OPTFLAGS="" XLIBS="@debuglibs@ $(XLIBS)" 	\
+	          XOPTFLAGS="-O0" OPTFLAGS="-O0" 		\
+		  XLIBS="@debuglibs@ $(XLIBS)" 			\
 	  testbin exe cmodules etc @TAGS@
 optimizing:
 	@echo Building OPTIMIZING configuration
@@ -479,6 +487,7 @@ nitpicking:
 	@+make -s XCFLAGS="-Wall" testbin exe cmodules etc @TAGS@
 
 all: testbin exe cmodules etc i18n @TAGS@
+packaged: exe cmodules etc i18n
 
 fresh: clean
 	make -s update
@@ -716,6 +725,10 @@ etc/usememory: etc/usememory.c
 libs: static-libs @SHARED_LIB_TARGET@
 static-libs: $(STATIC_LIBS)
 shared-libs: $(SHARED_LIBS)
+
+exe: $(EXECUTABLES) exe/.gdbinit
+static-exe: $(STATIC_EXECUTABLES)
+
 testbin: constestbin dbtestbin schemetestbin etc/usememory
 constestbin: libs tests/lisp/makefile tests/lisp/.gdbinit
 	@make -s XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
@@ -726,9 +739,6 @@ dbtestbin: libs tests/storage/makefile tests/storage/.gdbinit
 schemetestbin: libs tests/scheme/makefile tests/scheme/.gdbinit src/exe/main.h
 	@make -s  XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
 		-C tests/scheme testbin
-exe: $(EXECUTABLES) exe/.gdbinit
-static-exe: $(STATIC_EXECUTABLES)
-
 cmodules: @CMODULES@
 
 # Uninstall
@@ -879,16 +889,16 @@ src/eval/binders.o src/eval/conditionals.o src/eval/iterators.o: \
 
 # Custom rules
 
-src/lisp/dtread.o src/lisp/dtwrite.o src/lisp/bufio.o : XCFLAGS="${OPTFLAGS}"
-src/lisp/choices.o : XCFLAGS="${OPTFLAGS}"
-src/lisp/tables.o src/storage/bloom.o src/lisp/sequences.o : XCFLAGS="${OPTFLAGS}"
-src/lisp/numbers.o src/lisp/compare.o : XCFLAGS="${OPTFLAGS}"
-src/apply/apply.o : XCFLAGS="${OPTFLAGS}"
-src/storage/streams.o : XCFLAGS="${OPTFLAGS}"
-src/eval/eval.o : XCFLAGS="${OPTFLAGS}"
-src/eval/conditionals.o src/eval/iterators.o : XCFLAGS="${OPTFLAGS}"
-src/eval/opcodes.o : XCFLAGS="${OPTFLAGS}"
-src/text/matcher.o src/text/texttools.o : XCFLAGS="${OPTFLAGS}"
+src/lisp/dtread.o src/lisp/dtwrite.o src/lisp/bufio.o : XCFLAGS="${XOPTFLAGS}"
+src/lisp/choices.o : XCFLAGS="${XOPTFLAGS}"
+src/lisp/tables.o src/storage/bloom.o src/lisp/sequences.o : XCFLAGS="${XOPTFLAGS}"
+src/lisp/numbers.o src/lisp/compare.o : XCFLAGS="${XOPTFLAGS}"
+src/apply/apply.o : XCFLAGS="${XOPTFLAGS}"
+src/storage/streams.o src/storage/pools.o src/storage/indexes.o : XCFLAGS="${XOPTFLAGS}"
+src/eval/eval.o src/eval/choiceops.o : XCFLAGS="${XOPTFLAGS}"
+src/eval/conditionals.o src/eval/iterators.o : XCFLAGS="${XOPTFLAGS}"
+src/eval/opcodes.o src/eval/lambda.o : XCFLAGS="${XOPTFLAGS}"
+src/text/matcher.o src/text/texttools.o : XCFLAGS="${XOPTFLAGS}"
 
 # Library targets
 
@@ -1716,7 +1726,8 @@ $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS):  buildmode
 $(STORAGE_OBJS) $(DRIVER_OBJS):  buildmode
 $(SCHEME_OBJS): buildmode
 $(WEB_OBJS) $(TEXT_OBJS): buildmode
-$(CMODULE_OBJS): buildmode
+$(CMODULE_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
+	$(SCHEME_HEADERS) $(REVISION_H) buildmode
 src/eval/choiceops.o src/prims/seqprims.o: include/framerd/sorting.h
 # Driver dependencies
 src/drivers/filepool.o: src/drivers/headers/filepool.h

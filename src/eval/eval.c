@@ -126,7 +126,7 @@ static int unparse_lexref(u8_output out,lispval lexref)
   return 1;
 }
 
-static int dtype_lexref(struct FD_OUTBUF *out,lispval x)
+static ssize_t write_lexref_dtype(struct FD_OUTBUF *out,lispval x)
 {
   int code = FD_GET_IMMEDIATE(x,fd_lexref_type);
   int up = code/32, across = code%32;
@@ -143,7 +143,7 @@ static int dtype_lexref(struct FD_OUTBUF *out,lispval x)
   fd_write_4bytes(&tmp,up);
   fd_write_byte(&tmp,dt_fixnum);
   fd_write_4bytes(&tmp,across);
-  size_t n_bytes=tmp.bufwrite-tmp.buffer;
+  ssize_t n_bytes=tmp.bufwrite-tmp.buffer;
   fd_write_bytes(out,tmp.buffer,n_bytes);
   fd_close_outbuf(&tmp);
   return n_bytes;
@@ -170,7 +170,7 @@ static int unparse_coderef(u8_output out,lispval coderef)
   return 1;
 }
 
-static int dtype_coderef(struct FD_OUTBUF *out,lispval x)
+static ssize_t write_coderef_dtype(struct FD_OUTBUF *out,lispval x)
 {
   int offset = FD_GET_IMMEDIATE(x,fd_coderef_type);
   unsigned char buf[100], *tagname="%CODEREF";
@@ -182,7 +182,7 @@ static int dtype_coderef(struct FD_OUTBUF *out,lispval x)
   fd_write_bytes(&tmp,tagname,strlen(tagname));
   fd_write_byte(&tmp,dt_fixnum);
   fd_write_4bytes(&tmp,offset);
-  size_t n_bytes=tmp.bufwrite-tmp.buffer;
+  ssize_t n_bytes=tmp.bufwrite-tmp.buffer;
   fd_write_bytes(out,tmp.buffer,n_bytes);
   fd_close_outbuf(&tmp);
   return n_bytes;
@@ -1571,7 +1571,7 @@ static int unparse_evalfn(u8_output out,lispval x)
   return 1;
 }
 
-static int dtype_evalfn(struct FD_OUTBUF *out,lispval x)
+static ssize_t write_evalfn_dtype(struct FD_OUTBUF *out,lispval x)
 {
   struct FD_EVALFN *s=
     fd_consptr(struct FD_EVALFN *,x,fd_evalfn_type);
@@ -1596,7 +1596,7 @@ static int dtype_evalfn(struct FD_OUTBUF *out,lispval x)
     fd_write_byte(&tmp,dt_string);
     fd_write_4bytes(&tmp,file_len);
     fd_write_bytes(&tmp,filename,file_len);}
-  size_t n_bytes=tmp.bufwrite-tmp.buffer;
+  ssize_t n_bytes=tmp.bufwrite-tmp.buffer;
   fd_write_bytes(out,tmp.buffer,n_bytes);
   fd_close_outbuf(&tmp);
   return n_bytes;
@@ -2309,14 +2309,14 @@ void fd_init_eval_c()
   fd_recyclers[fd_evalfn_type]=recycle_evalfn;
 
   fd_unparsers[fd_evalfn_type]=unparse_evalfn;
-  fd_dtype_writers[fd_evalfn_type]=dtype_evalfn;
+  fd_dtype_writers[fd_evalfn_type]=write_evalfn_dtype;
 
   fd_unparsers[fd_lexref_type]=unparse_lexref;
-  fd_dtype_writers[fd_lexref_type]=dtype_lexref;
+  fd_dtype_writers[fd_lexref_type]=write_lexref_dtype;
   fd_type_names[fd_lexref_type]=_("lexref");
 
   fd_unparsers[fd_coderef_type]=unparse_coderef;
-  fd_dtype_writers[fd_coderef_type]=dtype_coderef;
+  fd_dtype_writers[fd_coderef_type]=write_coderef_dtype;
   fd_type_names[fd_coderef_type]=_("coderef");
 
   quote_symbol = fd_intern("QUOTE");
@@ -2559,6 +2559,7 @@ FD_EXPORT void fd_init_dbprims_c(void);
 FD_EXPORT void fd_init_seqprims_c(void);
 FD_EXPORT void fd_init_modules_c(void);
 FD_EXPORT void fd_init_load_c(void);
+FD_EXPORT void fd_init_logprims_c(void);
 FD_EXPORT void fd_init_portprims_c(void);
 FD_EXPORT void fd_init_streamprims_c(void);
 FD_EXPORT void fd_init_timeprims_c(void);
@@ -2602,6 +2603,7 @@ static void init_eval_core()
   fd_init_stringprims_c();
   fd_init_dbprims_c();
   fd_init_seqprims_c();
+  fd_init_logprims_c();
   fd_init_portprims_c();
   fd_init_streamprims_c();
   fd_init_timeprims_c();

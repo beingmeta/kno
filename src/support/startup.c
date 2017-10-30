@@ -788,13 +788,16 @@ FD_EXPORT int fd_boot_message()
   if (fd_be_vewy_quiet) return 0;
   if (boot_message_delivered) return 0;
   struct U8_XTIME xt; u8_localtime(&xt,time(NULL));
-  U8_FIXED_OUTPUT(time,256);
-  u8_xtime_to_rfc822(timeout,&xt);
+  uid_t uid = getuid();
+  U8_FIXED_OUTPUT(curtime,256);
+  u8_xtime_to_rfc822_x(curtimeout,&xt,xt.u8_tzoff,0);
   u8_log(-1,NULL,"(%s:%lld) %s %s",
          u8_appid(),(unsigned long long)getpid(),
          fd_getrevision(),u8_getrevision());
   u8_log(-1,NULL,_("Copyright (C) beingmeta 2004-2017, all rights reserved"));
-  u8_log(-1,NULL,_("Starting on %-s, %s"),u8_gethostname(),time.u8_outbuf);
+  u8_log(-1,NULL,_("%-s@%-s:%-s (%s)"),
+         u8_username(uid),u8_gethostname(),u8_getcwd(),
+         curtime.u8_outbuf);
   boot_message_delivered = 1;
   return 1;
 }
@@ -811,71 +814,55 @@ void fd_init_startup_c()
 
   boot_config();
 
-  fd_register_config
-    ("QUIET",_("Avoid unneccessary verbiage"),
-     fd_intconfig_get,fd_boolconfig_set,&fd_be_vewy_quiet);
-  fd_register_config
-    ("PID",_("system process ID (read-only)"),
-     config_getpid,NULL,NULL);
-  fd_register_config
-    ("PPID",_("parent's process ID (read-only)"),
-     config_getppid,NULL,NULL);
+  fd_register_config("QUIET",_("Avoid unneccessary verbiage"),
+                     fd_intconfig_get,fd_boolconfig_set,&fd_be_vewy_quiet);
+  fd_register_config("PID",_("system process ID (read-only)"),
+                     config_getpid,NULL,NULL);
+  fd_register_config("PPID",_("parent's process ID (read-only)"),
+                     config_getppid,NULL,NULL);
 
-  fd_register_config
-    ("UTF8WARN",_("warn on bad UTF-8 sequences"),
-     config_getutf8warn,config_setutf8warn,NULL);
-  fd_register_config
-    ("UTF8ERR",_("fail (error) on bad UTF-8 sequences"),
-     config_getutf8err,config_setutf8err,NULL);
-  fd_register_config
-    ("RANDOMSEED",_("random seed used for stochastic operations"),
-     config_getrandomseed,config_setrandomseed,NULL);
+  fd_register_config("UTF8WARN",_("warn on bad UTF-8 sequences"),
+                     config_getutf8warn,config_setutf8warn,NULL);
+  fd_register_config("UTF8ERR",_("fail (error) on bad UTF-8 sequences"),
+                     config_getutf8err,config_setutf8err,NULL);
+  fd_register_config("RANDOMSEED",_("random seed used for stochastic operations"),
+                     config_getrandomseed,config_setrandomseed,NULL);
 
-  fd_register_config
-    ("CHECKUTF8",_("check that strings are valid UTF-8 on creation"),
-     fd_boolconfig_get,fd_boolconfig_set,&fd_check_utf8);
+  fd_register_config("CHECKUTF8",_("check that strings are valid UTF-8 on creation"),
+                     fd_boolconfig_get,fd_boolconfig_set,&fd_check_utf8);
 
-  fd_register_config
-    ("APPID",_("application ID used in messages and SESSIONID"),
-     config_getappid,config_setappid,NULL);
+  fd_register_config("APPID",_("application ID used in messages and SESSIONID"),
+                     config_getappid,config_setappid,NULL);
 
-  fd_register_config
-    ("ARGV",
-     _("the vector of args (before parsing) to the application (no configs)"),
-     fd_lconfig_get,NULL,&raw_argv);
-  fd_register_config
-    ("RAWARGS",
-     _("the vector of args (before parsing) to the application (no configs)"),
-     fd_lconfig_get,NULL,&raw_argv);
-  fd_register_config
-    ("CMDARGS",_("the vector of parsed args to the application (no configs)"),
+  fd_register_config("ARGV",
+                     _("the vector of args (before parsing) to the application (no configs)"),
+                     fd_lconfig_get,NULL,&raw_argv);
+  fd_register_config("RAWARGS",
+                     _("the vector of args (before parsing) to the application (no configs)"),
+                     fd_lconfig_get,NULL,&raw_argv);
+  fd_register_config("CMDARGS",
+                     _("the vector of parsed args to the application (no configs)"),
      fd_lconfig_get,NULL,&lisp_argv);
-  fd_register_config
-    ("ARGS",_("the vector of parsed args to the application (no configs)"),
+  fd_register_config("ARGS",
+                     _("the vector of parsed args to the application (no configs)"),
      fd_lconfig_get,NULL,&lisp_argv);
-  fd_register_config
-    ("STRINGARGS",
-     _("the vector of args (before parsing) to the application (no configs)"),
+  fd_register_config("STRINGARGS",
+                     _("the vector of args (before parsing) to the application (no configs)"),
      fd_lconfig_get,NULL,&string_argv);
-  fd_register_config
-    ("CONFIGARGS",_("config arguments passed to the application (unparsed)"),
-     fd_lconfig_get,NULL,&config_argv);
+  fd_register_config("CONFIGARGS",
+                     _("config arguments passed to the application (unparsed)"),
+                     fd_lconfig_get,NULL,&config_argv);
 
-  fd_register_config
-    ("SESSIONID",_("unique session identifier"),
-     config_getsessionid,config_setsessionid,NULL);
-  fd_register_config
-    ("FASTEXIT",_("whether to recycle session state on exit"),
-     fd_boolconfig_get,fd_boolconfig_set,&fd_fast_exit);
-  fd_register_config
-    ("EXIT:FAST",_("whether to recycle session state on exit"),
-     fd_boolconfig_get,fd_boolconfig_set,&fd_fast_exit);
-  fd_register_config
-    ("RUNUSER",_("Set the user ID for this process"),
-     config_getuser,config_setuser,NULL);
-  fd_register_config
-    ("RUNGROUP",_("Set the group ID for this process"),
-     config_getgroup,config_setgroup,NULL);
+  fd_register_config("SESSIONID",_("unique session identifier"),
+                     config_getsessionid,config_setsessionid,NULL);
+  fd_register_config("FASTEXIT",_("whether to recycle session state on exit"),
+                     fd_boolconfig_get,fd_boolconfig_set,&fd_fast_exit);
+  fd_register_config("EXIT:FAST",_("whether to recycle session state on exit"),
+                     fd_boolconfig_get,fd_boolconfig_set,&fd_fast_exit);
+  fd_register_config("RUNUSER",_("Set the user ID for this process"),
+                     config_getuser,config_setuser,NULL);
+  fd_register_config("RUNGROUP",_("Set the group ID for this process"),
+                     config_getgroup,config_setgroup,NULL);
 
 
   fd_register_config("RUNBASE",_("Path prefix for program state files"),
@@ -952,24 +939,33 @@ void fd_init_startup_c()
 #endif
 
   if (!(logdir)) logdir = u8_strdup(FD_LOG_DIR);
-  fd_register_config
-    ("LOGDIR",_("Root FramerD logging directories"),
-     fd_sconfig_get,fd_sconfig_set,&logdir);
+  fd_register_config("LOGDIR",_("Root FramerD logging directories"),
+                     fd_sconfig_get,fd_sconfig_set,&logdir);
 
   if (!(sharedir)) sharedir = u8_strdup(FD_SHARE_DIR);
-  fd_register_config
-    ("SHAREDIR",_("Shared config/data directory for FramerD"),
-     fd_sconfig_get,fd_sconfig_set,&sharedir);
+  fd_register_config("SHAREDIR",_("Shared config/data directory for FramerD"),
+                     fd_sconfig_get,fd_sconfig_set,&sharedir);
 
   if (!(datadir)) datadir = u8_strdup(FD_DATA_DIR);
-  fd_register_config
-    ("DATADIR",_("Data directory for FramerD"),
-     fd_sconfig_get,fd_sconfig_set,&datadir);
+  fd_register_config("DATADIR",_("Data directory for FramerD"),
+                     fd_sconfig_get,fd_sconfig_set,&datadir);
 
-  fd_register_config
-    ("SOURCES",_("Registered source files"),
-     config_get_source_files,config_add_source_file,
-     &u8_log_show_procinfo);
+  fd_register_config("SOURCES",_("Registered source files"),
+                     config_get_source_files,config_add_source_file,
+                     &u8_log_show_procinfo);
+
+  fd_register_config("U8:MMAPTHRESH",
+                     _("Size at which u8_big_alloc starts using MMAP"),
+                     fd_sizeconfig_get,fd_sizeconfig_set,
+                     &u8_mmap_threshold);
+  fd_register_config("HASH:BIGTHRESH",
+                     _("Number of buckets at which hashtables use bigalloc"),
+                     fd_sizeconfig_get,fd_sizeconfig_set,
+                     &fd_hash_bigthresh);
+  fd_register_config("BUFIO:BIGTHRESH",
+                     _("Size of binary buffers to use bigalloc"),
+                     fd_sizeconfig_get,fd_sizeconfig_set,
+                     &fd_bigbuf_threshold);
 
   fd_register_config("ATEXIT",_("Procedures to call on exit"),
                      config_atexit_get,config_atexit_set,NULL);

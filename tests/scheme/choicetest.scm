@@ -2,6 +2,17 @@
 
 (optimization-leaks)
 
+(define-tester (random-choice n (numrange))
+  (default! numrange (config 'fixmax (* n 8)))
+  (when (and (config 'int_max) (> numrange (config 'int_max)))
+    (set! numrange (config 'int_max)))
+  (let ((answer {}))
+    (dotimes (i n) (set+! answer (random numrange)))
+    (while (< (choice-size answer) n)
+      (dotimes (i (* 2 (- n (choice-size answer))))
+	(set+! answer (random numrange))))
+    (pick-n answer n)))
+
 (define-tester (nrange start end)
   (let ((answer {}))
     (dotimes (i (- end start))
@@ -159,8 +170,6 @@
 (define-amb-tester (lnd x y) (list (qc x) (qc y)))
 (applytest '({3 4} 5) apply lnd (qc {3 4}) (list 5))
 
-(message "CHOICETEST successfuly completed")
-
 ;;; Set operations
 
 (define-tester (set-same? x y) (identical? (elts x) (elts y)))
@@ -176,5 +185,30 @@
 (applytest #f set-overlaps? '(a b c) #(x y z))
 (applytest #f set-overlaps? '(a c d) '(p q r))
 (applytest #t set-overlaps? '(a c d) '(p q r d))
+
+;;; Bigger sets
+
+(define big-choice-size 20000)
+
+(message "Running bigtest #1")
+
+(define big1 (difference (random-choice big-choice-size) {3 14 15}))
+
+(applytest {} difference big1 big1)
+(applytest {3 14 15} difference {3 14 15} big1)
+(applytest big1 difference big1 {3 14 15})
+
+(dotimes (i 5)
+  (message "Running bigtest #" (+ i 2))
+  (let* ((bigchoice (random-choice big-choice-size))
+	 (removed (sample-n bigchoice 42))
+	 (usechoice (difference bigchoice removed))
+	 (removed2 (sample-n removed 17)))
+    (applytest {} difference usechoice usechoice)
+    (applytest removed difference removed usechoice)
+    (applytest usechoice difference usechoice removed)
+    (applytest removed2 difference removed2 usechoice)))
+
+(message "CHOICETEST successfuly completed")
 
 (test-finished "CHOICETEST")

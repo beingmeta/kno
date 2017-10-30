@@ -23,11 +23,15 @@ static void recycle_string(struct FD_STRING *s)
 
 static void recycle_vector(struct FD_VECTOR *v)
 {
-  int len = v->vec_length; lispval *scan = v->vec_elts, *limit = scan+len;
+  int len = v->vec_length;
+  lispval *scan = v->vec_elts, *limit = scan+len;
   if (scan) {
     while (scan<limit) {fd_decref(*scan); scan++;}
     if (v->vec_free_elts) u8_free(v->vec_elts);}
-  if (!(FD_STATIC_CONSP(v))) u8_free(v);
+  if (!(FD_STATIC_CONSP(v))) {
+    if (v->vec_bigalloc)
+      u8_big_free(v);
+    else u8_free(v);}
 }
 
 static void recycle_choice(struct FD_CHOICE *cv)
@@ -36,7 +40,7 @@ static void recycle_choice(struct FD_CHOICE *cv)
     int len = cv->choice_size;
     const lispval *scan = FD_XCHOICE_DATA(cv), *limit = scan+len;
     if (scan) while (scan<limit) {fd_decref(*scan); scan++;}}
-  if (!(FD_STATIC_CONSP(cv))) u8_free(cv);
+  fd_free_choice(cv);
 }
 
 static void recycle_qchoice(struct FD_QCHOICE *qc)

@@ -3,6 +3,9 @@ FD_EXPORT u8_condition fd_NotANumber;
 FD_EXPORT u8_condition fd_DivideByZero;
 FD_EXPORT u8_condition fd_InvalidNumericLiteral;
 
+FD_EXPORT lispval fd_max_fixnum;
+FD_EXPORT lispval fd_min_fixnum;
+
 FD_EXPORT lispval fd_make_bigint(long long intval);
 FD_EXPORT lispval fd_init_double(struct FD_FLONUM *ptr,double flonum);
 FD_EXPORT lispval fd_string2number(u8_string string,int base);
@@ -64,6 +67,10 @@ FD_EXPORT int fd_exactp(lispval x);
   ((FD_FLONUMP(x))?(0):(!(FD_NUMBERP(x)))?(-1):		      \
    ((FD_FIXNUMP(x))||(FD_BIGINTP(x)))?(1):		      \
    (fd_exactp(x)))
+
+#define FD_POSINTP(x) \
+  ( (FD_FIXNUMP(x)) ? ( (FD_FIX2INT(x)) > 0 ) : \
+    ( (FD_BIGINTP(x)) && (!(fd_bigint_negativep(x)))) )
 
 FD_EXPORT int fd_tolonglong(lispval r,long long *intval);
 

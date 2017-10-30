@@ -42,7 +42,8 @@ typedef struct FD_HASHINDEX {
   fd_offset_type index_offtype;
 
   /* This is used to store compressed keys and values. */
-  int index_n_slotids, index_new_slotids; lispval *index_slotids;
+  int index_n_slotids, index_new_slotids;
+  lispval *index_slotids;
   struct FD_SLOTID_LOOKUP *slotid_lookup;
   int index_n_baseoids, index_new_baseoids;
   unsigned int *index_baseoid_ids;

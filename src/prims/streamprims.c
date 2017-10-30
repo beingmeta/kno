@@ -13,6 +13,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
+#include "framerd/numbers.h"
 #include "framerd/eval.h"
 #include "framerd/storage.h"
 #include "framerd/pools.h"
@@ -36,58 +37,249 @@
 #define FD_DTWRITE_SIZE 2000
 #endif
 
-static lispval read_dtype(lispval stream)
+static lispval read_dtype(lispval stream,lispval pos,lispval len)
 {
   struct FD_STREAM *ds=
     fd_consptr(struct FD_STREAM *,stream,fd_stream_type);
-  lispval object = fd_read_dtype(fd_readbuf(ds));
-  if (object == FD_EOD) return FD_EOF;
-  else return object;
-}
-
-static lispval write_dtype(lispval object,lispval stream)
-{
-  struct FD_STREAM *ds=
-    fd_consptr(struct FD_STREAM *,stream,fd_stream_type);
-  int bytes = fd_write_dtype(fd_writebuf(ds),object);
-  if (bytes<0) return FD_ERROR;
-  else return FD_INT(bytes);
-}
-
-static lispval write_bytes(lispval object,lispval stream)
-{
-  struct FD_STREAM *ds=
-    fd_consptr(struct FD_STREAM *,stream,fd_stream_type);
-  if (STRINGP(object)) {
-    fd_write_bytes(fd_writebuf(ds),CSTRING(object),STRLEN(object));
-    return STRLEN(object);}
-  else if (PACKETP(object)) {
-    fd_write_bytes
-      (fd_writebuf(ds),FD_PACKET_DATA(object),FD_PACKET_LENGTH(object));
-    return FD_PACKET_LENGTH(object);}
+  if (FD_VOIDP(pos)) {
+    lispval object = fd_read_dtype(fd_readbuf(ds));
+    if (object == FD_EOD)
+      return FD_EOF;
+    else return object;}
+  else if (FD_VOIDP(len)) {
+    long long filepos = FD_FIX2INT(pos);
+    if (filepos<0)
+      return fd_type_error("file position","read_type",pos);
+    fd_lock_stream(ds);
+    fd_setpos(ds,filepos);
+    lispval object = fd_read_dtype(fd_readbuf(ds));
+    fd_unlock_stream(ds);
+    return object;}
   else {
-    int bytes = fd_write_dtype(fd_writebuf(ds),object);
-    if (bytes<0) return FD_ERROR;
-    else return FD_INT(bytes);}
+    long long off     = FD_FIX2INT(pos);
+    ssize_t   n_bytes = FD_FIX2INT(len);
+    struct FD_INBUF _inbuf,
+      *in = fd_open_block(ds,&_inbuf,off,n_bytes,0);
+    lispval object = fd_read_dtype(in);
+    fd_close_inbuf(in);
+    return object;}
 }
 
-static lispval read_int(lispval stream)
+static lispval write_bytes(lispval object,lispval stream,lispval pos)
 {
   struct FD_STREAM *ds=
     fd_consptr(struct FD_STREAM *,stream,fd_stream_type);
-  unsigned int ival = fd_read_4bytes_at(ds,-1,FD_ISLOCKED);
-  fd_unlock_stream(ds);
-  return FD_INT(ival);
+  if (! ( (FD_VOIDP(pos)) ||
+          ( (FD_INTEGERP(pos)) && (fd_numcompare(pos,FD_FIXZERO) >= 0))) )
+    return fd_err(fd_TypeError,"write_bytes","filepos",pos);
+  const unsigned char *bytes = NULL;
+  ssize_t n_bytes = -1;
+  if (STRINGP(object)) {
+    bytes   = CSTRING(object);
+    n_bytes = STRLEN(object);}
+  else if (PACKETP(object)) {
+    bytes   = FD_PACKET_DATA(object);
+    n_bytes = FD_PACKET_LENGTH(object);}
+  else return fd_type_error("string or packet","write_bytes",object);
+  if (FD_VOIDP(pos)) {
+    int rv = fd_write_bytes(fd_writebuf(ds),bytes,n_bytes);
+    if (rv<0)
+      return FD_ERROR;
+    else return FD_INT(n_bytes);}
+  int rv = 0;
+  fd_off_t filepos = fd_getint(pos);
+#if HAVE_PREAD
+  ssize_t to_write = n_bytes;
+  const unsigned char *point=bytes;
+  while (to_write>0) {
+    ssize_t delta = pwrite(ds->stream_fileno,point,to_write,filepos);
+    if (delta>0) {
+      to_write -= delta;
+      point    += delta;
+      filepos  += delta;}
+    else if (delta<0) {rv=-1; break;}
+    else break;}
+#else
+  rv = fd_lock_stream(ds);
+  rv = fd_setpos(ds,filepos);
+  if (rv>=0) rv = fd_write_bytes(fd_writebuf(ds),bytes,n_bytes);
+  rv = fd_unlock_stream(ds);
+#endif
+  if (rv<0)
+    return FD_ERROR;
+  else {
+    fd_flush_stream(ds);
+    fsync(ds->stream_fileno);
+    return FD_INT(n_bytes);}
 }
 
-static lispval write_int(lispval object,lispval stream)
+static lispval write_dtype(lispval object,lispval stream,
+                           lispval pos,lispval max_bytes)
 {
   struct FD_STREAM *ds=
     fd_consptr(struct FD_STREAM *,stream,fd_stream_type);
-  int ival = fd_getint(object);
-  int bytes = fd_write_4bytes_at(ds,ival,-1);
-  if (bytes<0) return FD_ERROR;
-  else return FD_INT(bytes);
+  if (! ( (FD_VOIDP(pos)) ||
+          ( (FD_INTEGERP(pos)) && (fd_numcompare(pos,FD_FIXZERO) >= 0))) )
+    return fd_err(fd_TypeError,"write_bytes","filepos",pos);
+  long long byte_len = (FD_VOIDP(max_bytes)) ? (-1) : (FD_FIX2INT(max_bytes));
+  unsigned char *bytes = NULL;
+  ssize_t n_bytes = -1, init_len = (byte_len>0) ? (byte_len) : (1000);
+  unsigned char *bytebuf =  u8_big_alloc(init_len);
+  FD_OUTBUF out;
+  FD_INIT_OUTBUF(&out,bytebuf,init_len,FD_BIGALLOC_BUFFER);
+  n_bytes    = fd_write_dtype(&out,object);
+  bytebuf    = out.buffer;
+  if (!(FD_VOIDP(max_bytes))) {
+    ssize_t max_len = fd_getint(max_bytes);
+    if ( (out.bufwrite-out.buffer) > max_len) {
+      fd_seterr("TooBig","write_dtype",
+                u8_mkstring("The object's DType representation was longer "
+                            "than %lld bytes",max_len),
+                object);
+      fd_close_outbuf(&out);
+      return FD_ERROR;}}
+  if (FD_VOIDP(pos)) {
+    int rv = fd_write_bytes(fd_writebuf(ds),bytes,n_bytes);
+    u8_big_free(bytes);
+    if (rv<0)
+      return FD_ERROR;
+    else return FD_INT(n_bytes);}
+  int rv = 0;
+  fd_off_t filepos = fd_getint(pos);
+#if HAVE_PREAD
+  ssize_t to_write = n_bytes;
+  unsigned char *point=bytes;
+  while (to_write>0) {
+    ssize_t delta = pwrite(ds->stream_fileno,point,to_write,filepos);
+    if (delta>0) {
+      to_write -= delta;
+      point    += delta;
+      filepos  += delta;}
+    else if (delta<0) {rv=-1; break;}
+    else break;}
+#else
+  rv = fd_lock_stream(ds);
+  rv = fd_setpos(ds,filepos);
+  if (rv>=0) rv = fd_write_bytes(fd_writebuf(ds),bytes,n_bytes);
+  rv = fd_unlock_stream(ds);
+#endif
+  u8_big_free(bytes);
+  if (rv<0)
+    return FD_ERROR;
+  else {
+    fd_flush_stream(ds);
+    fsync(ds->stream_fileno);
+    return FD_INT(n_bytes);}
+}
+
+static lispval read_4bytes(lispval stream,lispval pos)
+{
+  struct FD_STREAM *ds=
+    fd_consptr(struct FD_STREAM *,stream,fd_stream_type);
+  long long filepos = (FD_VOIDP(pos)) ? (-1) : (fd_getint(pos));
+  long long ival = fd_read_4bytes_at(ds,filepos,FD_UNLOCKED);
+  if (ival<0)
+    return FD_ERROR;
+  else return FD_INT(ival);
+}
+
+static lispval read_8bytes(lispval stream,lispval pos)
+{
+  struct FD_STREAM *ds=
+    fd_consptr(struct FD_STREAM *,stream,fd_stream_type);
+  int err = 0;
+  long long filepos = (FD_VOIDP(pos)) ? (-1) : (fd_getint(pos));
+  unsigned long long ival = fd_read_8bytes_at(ds,filepos,FD_UNLOCKED,&err);
+  if (err)
+    return FD_ERROR;
+  else return FD_INT(ival);
+}
+
+static lispval read_bytes(lispval stream,lispval n,lispval pos)
+{
+  struct FD_STREAM *ds=
+    fd_consptr(struct FD_STREAM *,stream,fd_stream_type);
+  long long filepos = (FD_VOIDP(pos)) ? (fd_getpos(ds)) : (fd_getint(pos));
+  ssize_t n_bytes;
+  if (FD_INTEGERP(n))
+    n_bytes = fd_getint(n);
+  else return fd_type_error("integer size","read_bytes",n);
+  unsigned char *bytes = u8_malloc(n_bytes);
+#if HAVE_PREAD
+  ssize_t to_read = n_bytes;
+  unsigned char *point = bytes;
+  while (to_read>0) {
+    ssize_t delta = pread(ds->stream_fileno,point,to_read,filepos);
+    if (delta>0) {
+      to_read -= delta;
+      point   += delta;
+      filepos += delta;}
+    else {
+      u8_free(bytes);
+      u8_graberr(errno,"read_bytes/pread",u8_strdup(ds->streamid));
+      errno=0;
+      return FD_ERROR_VALUE;}}
+  if (to_read==0)
+    return fd_init_packet(NULL,n_bytes,bytes);
+#elif HAVE_MMAP
+  ssize_t page_off = (filepos/512)*512;
+  ssize_t map_len  = (pos+n_bytes)-page_off;
+  ssize_t buf_off  = filepos - pos;
+  unsigned char *mapbuf =
+    mmap(NULL,n_bytes,PROT_READ,MAP_PRIVATE,ds->stream_fileno,pos);
+  if (mapbuf) {
+    memcpy(bytes,mapbuf+buf_off,n_bytes);
+    int rv = munmap(mapbuf,map_len);
+    if (rv<0) {
+      u8_log(LOGCRIT,fd_failed_unmap,
+             "Couldn't unmap buffer for %s (0x%llx)",ds->streamid,ds);}
+    else return fd_init_packet(NULL,n_bytes,bytes);}
+#endif
+  fd_lock_stream(ds);
+  if (! (FD_VOIDP(pos)) ) fd_setpos(ds,pos);
+  size_t result = fd_read_bytes(bytes,fd_readbuf(ds),n_bytes);
+  if (result<0) {
+    u8_free(bytes);
+    return FD_ERROR;}
+  else return fd_init_packet(NULL,n_bytes,bytes);
+}
+
+static lispval write_4bytes(lispval object,lispval stream,lispval pos)
+{
+  struct FD_STREAM *ds=
+    fd_consptr(struct FD_STREAM *,stream,fd_stream_type);
+  long long filepos = (FD_VOIDP(pos)) ? (-1) : (fd_getint(pos));
+  long long ival = fd_getint(object);
+  if ( (ival < 0) || (ival >= 0x100000000))
+    return fd_type_error("positive 4-byte value","write_4bytes",object);
+  int n_bytes = fd_write_4bytes_at(ds,ival,filepos);
+  if (n_bytes<0)
+    return FD_ERROR;
+  else return FD_INT(n_bytes);
+}
+
+static lispval write_8bytes(lispval object,lispval stream,lispval pos)
+{
+  struct FD_STREAM *ds=
+    fd_consptr(struct FD_STREAM *,stream,fd_stream_type);
+  long long filepos = (FD_VOIDP(pos)) ? (-1) : (fd_getint(pos));
+  long long ival;
+  if (FD_FIXNUMP(object)) {
+    ival = FD_FIX2INT(object);
+    if (ival<0)
+      return fd_type_error("positive 8-byte value","write_8bytes",object);}
+  else if (FD_BIGINTP(object)) {
+    struct FD_BIGINT *bi = (fd_bigint) object;
+    if (fd_bigint_negativep(bi))
+      return fd_type_error("positive 4-byte value","write_8bytes",object);
+    else if (fd_bigint_fits_in_word_p(bi,8,0))
+      ival = fd_bigint_to_ulong_long(bi);
+    else return fd_type_error("positive 4-byte value","write_8bytes",object);}
+  else return fd_type_error("positive 4-byte value","write_8bytes",object);
+  int n_bytes = fd_write_8bytes_at(ds,ival,filepos);
+  if (n_bytes<0)
+    return FD_ERROR;
+  else return FD_INT(n_bytes);
 }
 
 static lispval zread_dtype(lispval stream)
@@ -150,7 +342,7 @@ static lispval lisp2file(lispval object,lispval filename,lispval bufsiz)
     struct FD_STREAM *out=
       fd_open_file(temp_name,FD_FILE_CREATE);
     struct FD_OUTBUF *outstream = NULL;
-    int bytes;
+    ssize_t bytes;
     if (out == NULL) return FD_ERROR;
     else outstream = fd_writebuf(out);
     if (FIXNUMP(bufsiz))
@@ -161,9 +353,17 @@ static lispval lisp2file(lispval object,lispval filename,lispval bufsiz)
       u8_free(temp_name);
       return FD_ERROR;}
     fd_free_stream(out);
-    u8_movefile(temp_name,CSTRING(filename));
-    u8_free(temp_name);
-    return FD_INT(bytes);}
+    int rv = u8_movefile(temp_name,CSTRING(filename));
+    if (rv<0) {
+      u8_log(LOGWARN,"MoveFailed",
+             "Couldn't move the completed file into %s, leaving in %s",
+             CSTRING(filename),temp_name);
+      u8_seterr("MoveFailed","lisp2file",u8_strdup(CSTRING(filename)));
+      u8_free(temp_name);
+      return FD_ERROR_VALUE;}
+    else {
+      u8_free(temp_name);
+      return FD_INT(bytes);}}
   else if (TYPEP(filename,fd_stream_type)) {
     FD_DECL_OUTBUF(tmp,FD_DTWRITE_SIZE);
     struct FD_STREAM *stream=
@@ -223,6 +423,8 @@ static lispval lisp2zipfile(lispval object,lispval filename,lispval bufsiz)
 
 static lispval add_lisp2zipfile(lispval object,lispval filename);
 
+#define flushp(b) ( (((b).buflim)-((b).bufwrite)) < ((b).buflen)/5 )
+
 static ssize_t write_dtypes(lispval dtypes,struct FD_STREAM *out)
 {
   ssize_t bytes=0, rv=0;
@@ -231,35 +433,44 @@ static ssize_t write_dtypes(lispval dtypes,struct FD_STREAM *out)
   struct FD_OUTBUF tmp; unsigned char tmpbuf[1000];
   FD_INIT_BYTE_OUTBUF(&tmp,tmpbuf,1000);
   if ((CHOICEP(dtypes))||(PRECHOICEP(dtypes))) {
+    /* This writes out the objects sequentially, writing into memory
+       first and then to disk, to reduce the danger of malformed
+       DTYPEs on the disk. */
     DO_CHOICES(dtype,dtypes) {
       ssize_t write_size=0;
-      if ((tmp.buflim-tmp.bufwrite)<(tmp.buflen/5)) {
-        write_size=fd_stream_write
-          (out,tmp.bufwrite-tmp.buffer,tmp.buffer);
+      if ( (flushp(tmp)) ) {
+        write_size=fd_stream_write(out,tmp.bufwrite-tmp.buffer,tmp.buffer);
         tmp.bufwrite=tmp.buffer;}
       if (write_size>=0) {
         ssize_t dtype_size=fd_write_dtype(&tmp,dtype);
         if (dtype_size<0)
           write_size=dtype_size;
-        else if ((tmp.buflim-tmp.bufwrite)<(tmp.buflen/5)) {
-          write_size=fd_stream_write
-            (out,tmp.bufwrite-tmp.buffer,tmp.buffer);
+        else if (flushp(tmp)) {
+          write_size=fd_stream_write(out,tmp.bufwrite-tmp.buffer,tmp.buffer);
           tmp.bufwrite=tmp.buffer;}
         else write_size=dtype_size;}
       if (write_size<0) {
         rv=write_size;
         FD_STOP_DO_CHOICES;
         break;}
-      else bytes=bytes+write_size;}}
+      else bytes=bytes+write_size;}
+    if (tmp.bufwrite > tmp.buffer) {
+      ssize_t written = fd_stream_write(out,tmp.bufwrite-tmp.buffer,tmp.buffer);
+      tmp.bufwrite=tmp.buffer;
+      bytes += written;}}
   else {
     bytes=fd_write_dtype(&tmp,dtypes);
     if (bytes>0)
-      rv=fd_stream_write
-        (out,tmp.bufwrite-tmp.buffer,tmp.buffer);}
+      rv=fd_stream_write (out,tmp.bufwrite-tmp.buffer,tmp.buffer);}
   fd_close_outbuf(&tmp);
   if (rv<0) {
-    if (start>=0)
-      ftruncate(out->stream_fileno,start);
+    if (start>=0) {
+      int rv = ftruncate(out->stream_fileno,start);
+      if (rv<0) {
+        int got_err = errno; errno=0;
+        u8_log(LOGWARN,"TruncateFailed",
+               "Couldn't undo write to %s (errno=%d:%s)",
+               out->streamid,got_err,u8_strerror(got_err));}}
     return rv;}
   else return bytes;
 }
@@ -488,6 +699,56 @@ static lispval streampos_prim(lispval stream_arg,lispval pos)
   else return fd_type_error("stream position","streampos_prim",pos);
 }
 
+/* Truncate prim */
+
+static lispval ftruncate_prim(lispval arg,lispval offset)
+{
+  off_t new_len = -1;
+  if (! ( (FD_FIXNUMP(new_len)) || (FD_BIGINTP(new_len))) )
+    return fd_type_error("integer","ftruncate_prim",offset);
+  else if (fd_numcompare(new_len,FD_FIXZERO)<0)
+    return fd_type_error("positive integer","ftruncate_prim",offset);
+  else if ( (FD_BIGINTP(new_len)) &&
+            ( ! (fd_bigint_fits_in_word_p((fd_bigint)arg,sizeof(new_len),1)) ) )
+    return fd_type_error("file size","ftruncate_prim",offset);
+  else new_len = fd_getint64(arg);
+  if (FD_STRINGP(arg)) {
+    char *libc_string = u8_tolibc(FD_CSTRING(arg));
+    int rv = truncate(libc_string,new_len);
+    if (rv<0) {
+      int saved_errno = errno; errno=0;
+      u8_graberr(errno,"ftruncate_prim",u8_strdup(FD_CSTRING(arg)));
+      u8_free(libc_string);
+      return FD_ERROR_VALUE;}
+    else {
+      u8_free(libc_string);
+      return offset;}}
+  else if (FD_TYPEP(arg,fd_stream_type)) {
+    fd_stream s = (fd_stream) arg;
+    fd_lock_stream(s);
+    int fd = s->stream_fileno;
+    if (fd<0) {
+      u8_seterr("ClosedStream","ftruncate_prim",s->streamid);
+      fd_unlock_stream(s);
+      return FD_ERROR_VALUE;}
+    else {
+      fd_off_t old_pos = s->stream_filepos;
+      if (old_pos > new_len) fd_setpos(s,new_len);
+      int rv = ftruncate(fd,new_len);
+      if (rv<0) {
+        u8_graberr(errno,"ftruncate_prim",u8_strdup(FD_CSTRING(arg)));
+        fd_setpos(s,old_pos);
+        fd_unlock_stream(s);
+        return FD_ERROR_VALUE;}
+      else {
+        s->stream_maxpos=new_len;
+        if (s->stream_flags & FD_STREAM_MMAPPED)
+          fd_reopen_file_stream(s,-1,-1);
+        fd_unlock_stream(s);
+        return offset;}}}
+  else return fd_type_error("Filename or stream","ftruncate_prim",arg);
+}
+
 static int scheme_streamprims_initialized = 0;
 
 FD_EXPORT void fd_init_streamprims_c()
@@ -501,21 +762,64 @@ FD_EXPORT void fd_init_streamprims_c()
   streamprims_module = fd_new_module("STREAMPRIMS",(FD_MODULE_DEFAULT));
   u8_register_source_file(_FILEINFO);
 
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("READ-DTYPE",read_dtype,1,fd_stream_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("WRITE-DTYPE",write_dtype,2,
-                           -1,VOID,fd_stream_type,VOID));
+  fd_idefn3(fd_scheme_module,"READ-DTYPE",read_dtype,1,
+            "(READ-DTYPE *stream* [*off*] [*len*]) reads "
+            "the dtype representation store at *off* in *stream*. "
+            "If *off* is not provided, it reads from the current position "
+            "of the stream; if *len* is provided, it is a maximum "
+            "size of the dtype representation and is used to prefetch "
+            "bytes from the file when possible.",
+            fd_stream_type,VOID,
+            fd_fixnum_type,FD_VOID,
+            fd_fixnum_type,FD_VOID);
+  
+  fd_idefn4(fd_scheme_module,"WRITE-DTYPE",write_dtype,2,
+            "(WRITE-DTYPE *obj* *stream* [*pos*] [*max*]) writes "
+            "a dtype representation of *obj* to *stream* at "
+            "file position *pos* *(defaults to the current file "
+            "position of the stream). *max*, if provided, "
+            "is the maximum size of *obj*'s DType representation. "
+            "It is an error if the object has a larger representation "
+            "and the value may also be used for allocating temporary buffers, "
+            "etc.",
+            -1,VOID,fd_stream_type,VOID,
+            fd_fixnum_type,FD_VOID,
+            fd_fixnum_type,FD_VOID);
+  
+  fd_idefn3(fd_scheme_module,"WRITE-BYTES",write_bytes,2,
+            "(WRITE-BYTES *obj* *stream* [*pos*]) writes "
+            "the bytes in *obj* to *stream* at *pos*. "
+            "*obj* is a string or a packet and *pos* defaults to "
+            "the current file position of the stream.",
+            -1,VOID,fd_stream_type,VOID,-1,FD_VOID);
+  
+  fd_idefn2(fd_scheme_module,"READ-4BYTES",read_4bytes,1,
+            "(READ-4BYTES *stream* [*pos*]) reads a bigendian 4-byte integer "
+            "from *stream* at *pos* (or the current location, if none)",
+            fd_stream_type,VOID,-1,FD_VOID);
+  fd_idefn2(fd_scheme_module,"READ-8BYTES",read_8bytes,1,
+            "(READ-8BYTES *stream* [*pos*]) reads a bigendian 8-byte integer "
+            "from *stream* at *pos* (or the current location, if none)",
+            fd_stream_type,VOID,-1,FD_VOID);
 
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("WRITE-BYTES",write_bytes,2,
-                           -1,VOID,fd_stream_type,VOID));
+  fd_idefn3(fd_scheme_module,"READ-BYTES",read_bytes,2,
+            "(READ-BYTES *stream* *n*] [*pos*]) reads *n bytes "
+            "from *stream* at *pos* (or the current location, if none)",
+            fd_stream_type,VOID,-1,FD_VOID,-1,FD_VOID);
 
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("READ-INT",read_int,1,fd_stream_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("WRITE-INT",write_int,2,
-                           -1,VOID,fd_stream_type,VOID));
+  fd_idefn3(fd_scheme_module,"WRITE-4BYTES",write_4bytes,2,
+            "(WRITE-4BYTES *intval* *stream* [*pos*]) writes a "
+            "bigendian 4-byte integer to *stream* at *pos* "
+            "(or the current location, if none)",
+            -1,FD_VOID,fd_stream_type,VOID,-1,FD_VOID);
+  fd_idefn3(fd_scheme_module,"WRITE-8BYTES",write_8bytes,2,
+            "(WRITE-8BYTES *intval* *stream* [*pos*]) writes a "
+            "bigendian 8-byte integer to *stream* at *pos* "
+            "(or the current location, if none)",
+            -1,FD_VOID,fd_stream_type,VOID,-1,FD_VOID);
+
+  fd_defalias(fd_scheme_module,"READ-INT","READ-4BYTES");
+  fd_defalias(fd_scheme_module,"WRITE-INT","WRITE-4BYTES");
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("ZREAD-DTYPE",
@@ -573,10 +877,14 @@ FD_EXPORT void fd_init_streamprims_c()
   fd_idefn(streamprims_module,fd_make_cprim1("DTYPE-INPUT?",dtype_inputp,1));
   fd_idefn(streamprims_module,fd_make_cprim1("DTYPE-OUTPUT?",dtype_outputp,1));
 
-  fd_idefn(streamprims_module,
-           fd_make_cprim2x("STREAMPOS",streampos_prim,1,
-                           fd_stream_type,VOID,
-                           -1,VOID));
+  fd_idefn2(streamprims_module,"STREAMPOS",streampos_prim,1,
+            "(STREAMPOS *stream* [*setpos*]) gets or sets the position of *stream*",
+            fd_stream_type,VOID,-1,VOID);
+
+  fd_idefn2(streamprims_module,"FTRUNCATE",ftruncate_prim,2,
+            "(FTRUNCATE *nameorstream* *newsize*) truncates "
+            "a file (name or stream) to a particular length",
+            fd_stream_type,VOID,-1,VOID);
 
   fd_finish_module(streamprims_module);
 }

@@ -662,7 +662,7 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,lispval oids)
     /* We use n_locked to track how many of the OIDs are in
        pool_changes (locked). */
     int n_locked = (changes->table_n_keys)?(0):(-1);
-    lispval *values, *oidv = u8_alloc_n(n,lispval), *write = oidv;
+    lispval *values, *oidv = u8_big_alloc_n(n,lispval), *write = oidv;
     DO_CHOICES(o,oids)
       if (((oidcache == NULL)||(fd_hashtable_probe_novoid(oidcache,o)==0))&&
           (fd_hashtable_probe_novoid(cache,o)==0) &&
@@ -678,7 +678,7 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,lispval oids)
       else {}
     if (write == oidv) {
       /* Nothing to prefetch, free and return */
-      u8_free(oidv);
+      u8_big_free(oidv);
       if (decref_oids) fd_decref(oids);
       return 0;}
     else n = write-oidv;
@@ -689,7 +689,7 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,lispval oids)
       if (nolock) {
         /* If the pool doesn't have to be locked, don't bother locking
            any values */}
-      else if (n_locked) {
+      else if (n_locked>0) {
         /* If some values are locked, we consider each value and
            store it in the appropriate tables (changes or cache). */
         int j = 0; while (j<n) {
@@ -716,10 +716,11 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,lispval oids)
         /* Store them all in the cache */
         fd_hashtable_iter(cache,fd_table_store_noref,n,oidv,values);}}
     else {
-      u8_free(oidv);
+      u8_big_free(oidv);
       if (decref_oids) fd_decref(oids);
       return -1;}
-    u8_free(oidv); u8_free(values);
+    u8_big_free(oidv);
+    u8_big_free(values);
     if (decref_oids) fd_decref(oids);
     return n;}
   else {
@@ -847,7 +848,7 @@ FD_EXPORT int fd_pool_lock(fd_pool p,lispval oids)
     if (decref_oids) fd_decref(oids);
     if (write == oidv) {
       /* Nothing to lock, free and return */
-      u8_free(oidc);
+      fd_free_choice(oidc);
       return 1;}
     else n = write-oidv;
     if (p->pool_handler->lock == NULL) {
@@ -855,7 +856,7 @@ FD_EXPORT int fd_pool_lock(fd_pool p,lispval oids)
       return -1;}
     if (n==1) {
       needy=temp_oidv[0]=oidv[0];
-      u8_free(oidc);
+      fd_free_choice(oidc);
       oidv=temp_oidv;}
     else needy = fd_init_choice(oidc,n,NULL,FD_CHOICE_ISATOMIC);
     retval = p->pool_handler->lock(p,needy);
@@ -1037,8 +1038,8 @@ static void abort_commit(fd_pool p,struct FD_POOL_WRITES writes)
     if (!(CONSP(v))) continue;
     modify_modified(v,1);
     fd_decref(v);}
-  u8_free(writes.values); writes.values = NULL;
-  u8_free(writes.oids); writes.oids = NULL;
+  u8_big_free(writes.values); writes.values = NULL;
+  u8_big_free(writes.oids); writes.oids = NULL;
 }
 
 static void finish_commit(fd_pool p,struct FD_POOL_WRITES writes)
@@ -1085,7 +1086,7 @@ static void finish_commit(fd_pool p,struct FD_POOL_WRITES writes)
       fd_decref(v);
       i++;}}
   u8_rw_unlock(&(changes->table_rwlock));
-  u8_free(writes.values); writes.values = NULL;
+  u8_big_free(writes.values); writes.values = NULL;
   unlock_count = unlock-oids;
   if ((p->pool_handler->unlock)&&(unlock_count)) {
     lispval to_unlock = fd_init_choice
@@ -1098,7 +1099,7 @@ static void finish_commit(fd_pool p,struct FD_POOL_WRITES writes)
              p->poolid,n,unlock_count);
       fd_clear_errors(1);}
     fd_decref(to_unlock);}
-  u8_free(writes.oids);
+  u8_big_free(writes.oids);
   writes.oids = NULL;
   fd_devoid_hashtable(changes,0);
 }
@@ -1160,8 +1161,8 @@ struct FD_POOL_WRITES pick_writes(fd_pool p,lispval oids)
     lispval *oidv, *values;
     u8_zero_struct(writes);
     writes.len = n;
-    writes.oids = oidv = u8_alloc_n(n,lispval);
-    writes.values = values = u8_alloc_n(n,lispval);
+    writes.oids = oidv = u8_big_alloc_n(n,lispval);
+    writes.values = values = u8_big_alloc_n(n,lispval);
     {DO_CHOICES(oid,oids) {
         fd_pool pool = fd_oid2pool(oid);
         if (pool == p) {
@@ -1185,8 +1186,8 @@ struct FD_POOL_WRITES pick_modified(fd_pool p,int finished)
   lispval *oidv, *values;
   u8_zero_struct(writes);
   writes.len = n;
-  writes.oids = oidv = u8_alloc_n(n,lispval);
-  writes.values = values = u8_alloc_n(n,lispval);
+  writes.oids = oidv = u8_big_alloc_n(n,lispval);
+  writes.values = values = u8_big_alloc_n(n,lispval);
   {
     struct FD_HASH_BUCKET **scan = changes->ht_buckets;
     struct FD_HASH_BUCKET **lim = scan+changes->ht_n_buckets;
@@ -1212,8 +1213,8 @@ struct FD_POOL_WRITES pick_modified(fd_pool p,int finished)
   if (unlock) u8_rw_unlock(&(changes->table_rwlock));
   writes.len = oidv-writes.oids;
   if (writes.len==0) {
-    u8_free(writes.oids); writes.oids = NULL;
-    u8_free(writes.values); writes.values = NULL;}
+    u8_big_free(writes.oids); writes.oids = NULL;
+    u8_big_free(writes.values); writes.values = NULL;}
   return writes;
 }
 
@@ -1470,7 +1471,7 @@ FD_EXPORT lispval fd_pool_fetchn(fd_pool p,lispval oids_arg)
         lispval table=fd_make_hashtable(NULL,n*3);
         fd_hashtable_iter((fd_hashtable)table,fd_table_store_noref,n,
                           oidv,values);
-        u8_free(values);
+        u8_big_free((lispval *)values);
         fd_decref(oids);
         return table;}}}
   else if (p->pool_handler) {

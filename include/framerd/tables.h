@@ -183,11 +183,17 @@ FD_EXPORT int fd_copy_slotmap(struct FD_SLOTMAP *src,struct FD_SLOTMAP *dest);
 FD_EXPORT lispval fd_slotmap_max
   (struct FD_SLOTMAP *sm,lispval scope,lispval *maxvalp);
 
+FD_EXPORT struct FD_KEYVAL *fd_keyvec_insert
+(lispval key,struct FD_KEYVAL **kvp,
+ int *sizep,int *spacep,int limit,
+ int freedata);
 FD_EXPORT struct FD_KEYVAL *_fd_keyvec_get
    (lispval key,struct FD_KEYVAL *keyvals,int size);
 
 FD_EXPORT struct FD_KEYVAL *fd_sortvec_insert
-  (lispval key,struct FD_KEYVAL **kvp,int *sizep,int *spacep,int freedata);
+(lispval key,struct FD_KEYVAL **kvp,
+ int *sizep,int *spacep,int limit,
+ int freedata);
 FD_EXPORT struct FD_KEYVAL *_fd_sortvec_get
    (lispval key,struct FD_KEYVAL *keyvals,int size);
 
@@ -470,6 +476,10 @@ static U8_MAYBE_UNUSED lispval fd_schemap_test
 
 /* Hashtables */
 
+#define FD_HASH_BIGTHRESH 0x4000000
+
+FD_EXPORT unsigned int fd_hash_bigthresh;
+
 typedef struct FD_HASH_BUCKET {
   int bucket_len;
   struct FD_KEYVAL kv_val0;} FD_HASH_BUCKET;
@@ -482,6 +492,8 @@ typedef struct FD_HASHTABLE {
   unsigned int table_modified:1;
   unsigned int table_finished:1;
   unsigned int table_uselock:1;
+
+  unsigned int ht_big_buckets:1;
   unsigned int ht_n_buckets;
   double table_load_factor;
   struct FD_HASH_BUCKET **ht_buckets;
@@ -532,12 +544,15 @@ FD_EXPORT unsigned int fd_hash_bytes(u8_string string,int len);
 FD_EXPORT unsigned int fd_hash_lisp(lispval x);
 
 FD_EXPORT lispval fd_make_hashtable(fd_hashtable ptr,int n_slots);
-FD_EXPORT lispval fd_init_hashtable
-   (fd_hashtable ptr,int n_keyvals,struct FD_KEYVAL *init);
+FD_EXPORT lispval fd_init_hashtable(fd_hashtable ptr,int n_keyvals,
+                                    struct FD_KEYVAL *init);
+FD_EXPORT lispval fd_initialize_hashtable(fd_hashtable ptr,
+                                          struct FD_KEYVAL *init,
+                                          int n_keyvals);
 FD_EXPORT int fd_reset_hashtable(fd_hashtable ht,int n_slots,int lock);
 FD_EXPORT struct FD_KEYVAL *fd_hashvec_get(lispval,struct FD_HASH_BUCKET **,int);
 FD_EXPORT int fd_fast_reset_hashtable
-(fd_hashtable,int,int,struct FD_HASH_BUCKET ***,int *);
+(fd_hashtable,int,int,struct FD_HASH_BUCKET ***,int *,int *);
 FD_EXPORT int fd_swap_hashtable
 (struct FD_HASHTABLE *src,struct FD_HASHTABLE *dest,
  int n_keys,int locked);
@@ -616,7 +631,9 @@ FD_EXPORT void fd_hash_quality
    unsigned int *ncollisionsp);
 
 FD_EXPORT int fd_recycle_hashtable(struct FD_HASHTABLE *h);
-FD_EXPORT int fd_free_buckets(struct FD_HASH_BUCKET **slots,int slots_to_free);
+FD_EXPORT int fd_free_buckets(struct FD_HASH_BUCKET **slots,
+                              int slots_to_free,
+                              int isbig);
 
 FD_EXPORT void fd_free_keyvals(struct FD_KEYVAL *keyvals,int n_keyvals);
 

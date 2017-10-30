@@ -32,6 +32,18 @@ static struct FD_INDEX_HANDLER memindex_handler;
 
 static ssize_t load_memindex(struct FD_MEMINDEX *memidx);
 
+static void truncate_failed(int fileno,u8_string file)
+{
+  int got_err = errno; errno=0;
+  if (got_err)
+    u8_log(LOGWARN,"TruncateFailed",
+           "Couldn't truncate memindex file %s (fd=%d) (errno=%d:%s)",
+           file,fileno,got_err,u8_strerror(got_err));
+  else u8_log(LOGWARN,"TruncateFailed",
+              "Couldn't truncate memindex file %s (fd=%d)",file,fileno);
+}
+
+
 /* The in-memory index */
 
 static lispval memindex_fetch(fd_index ix,lispval key)
@@ -56,7 +68,7 @@ static lispval *memindex_fetchn(fd_index ix,int n,const lispval *keys)
   struct FD_MEMINDEX *mix = (struct FD_MEMINDEX *)ix;
   if (! (mix->mix_loaded) ) load_memindex(mix);
   struct FD_HASHTABLE *map = &(mix->mix_map);
-  lispval *results = u8_alloc_n(n,lispval);
+  lispval *results = u8_big_alloc_n(n,lispval);
   fd_write_lock_table(map);
   int i = 0; while (i<n) {
     results[i]=fd_hashtable_get_nolock(map,keys[i],EMPTY);
@@ -73,11 +85,11 @@ static lispval *memindex_fetchkeys(fd_index ix,int *n)
   if (FD_PRECHOICEP(keys)) keys = fd_simplify_choice(keys);
   if (FD_CHOICEP(keys)) {
     int count = FD_CHOICE_SIZE(keys);
-    lispval *keyv = u8_alloc_n(count,lispval);
+    lispval *keyv = u8_big_alloc_n(count,lispval);
     if (FD_CONS_REFCOUNT(keys) == 1) {
       struct FD_CHOICE *ch = (fd_choice) keys;
       memmove(keyv,FD_CHOICE_ELTS(keys),count*sizeof(lispval));
-      u8_free(ch);}
+      fd_free_choice(ch);}
     else {
       const lispval *elts = FD_CHOICE_ELTS(keys);
       int i=0; while (i<count) {
@@ -87,7 +99,7 @@ static lispval *memindex_fetchkeys(fd_index ix,int *n)
     *n=count;
     return keyv;}
   else {
-    lispval *one = u8_alloc_n(1,lispval);
+    lispval *one = u8_big_alloc_n(1,lispval);
     *one=keys; *n=1;
     return one;}
 }
@@ -107,9 +119,9 @@ static int gather_keysizes(struct FD_KEYVAL *kv,void *data)
     if ( (filter==NULL) || (fast_choice_containsp(key,filter)) ) {
       lispval value = kv->kv_val;
       int size = FD_CHOICE_SIZE(value);
-      state->sizes[i].keysizekey = key;
+      state->sizes[i].keysize_key = key;
       fd_incref(key);
-      state->sizes[i].keysizenvals = FD_INT(size);
+      state->sizes[i].keysize_count = FD_INT(size);
       state->i++;}}
   return 0;
 }
@@ -120,7 +132,7 @@ static struct FD_KEY_SIZE *memindex_fetchinfo(fd_index ix,fd_choice filter,int *
   if (! (mix->mix_loaded) ) load_memindex(mix);
   int n_keys = (filter == NULL) ? (mix->mix_map.table_n_keys) :
     (FD_XCHOICE_SIZE(filter));
-  struct FD_KEY_SIZE *keysizes = u8_alloc_n(n_keys,struct FD_KEY_SIZE);
+  struct FD_KEY_SIZE *keysizes = u8_big_alloc_n(n_keys,struct FD_KEY_SIZE);
   struct FETCHINFO_STATE state={keysizes,filter,0,n_keys};
   fd_for_hashtable_kv(&(mix->mix_map),gather_keysizes,(void *)&state,1);
   *n = state.i;
@@ -207,7 +219,8 @@ static ssize_t load_memindex(struct FD_MEMINDEX *memidx)
   u8_log(fd_storage_loglevel+1,"MemIndexLoad",
          "Loading %lld entries for '%s'",n_entries,memidx->indexid);
   memidx->mix_valid_data = fd_read_8bytes(in);
-  ftruncate(stream->stream_fileno,memidx->mix_valid_data);
+  int rv = ftruncate(stream->stream_fileno,memidx->mix_valid_data);
+  if (rv<0) truncate_failed(stream->stream_fileno,stream->streamid);
   fd_setpos(stream,256);
   if (n_entries<memindex_map_init)
     fd_resize_hashtable(mix_map,memindex_map_init);
@@ -262,7 +275,8 @@ static fd_index open_memindex(u8_string file,fd_storage_flags flags,lispval opts
     unsigned U8_MAYBE_UNUSED int n_keys = fd_read_4bytes(in);
     long long n_entries = fd_read_8bytes(in);
     memidx->mix_valid_data = fd_read_8bytes(in);
-    ftruncate(stream->stream_fileno,memidx->mix_valid_data);
+    int rv = ftruncate(stream->stream_fileno,memidx->mix_valid_data);
+    if (rv<0) truncate_failed(stream->stream_fileno,stream->streamid);
     fd_setpos(stream,256);
     if (n_entries<memindex_map_init)
       fd_init_hashtable(&(memidx->mix_map),memindex_map_init,NULL);

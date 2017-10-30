@@ -170,9 +170,16 @@ static u8_string stats_message_w_history_and_sym=
 static double run_start = -1.0;
 
 static int console_width = 80, quiet_console = 0, show_elts = 5;
+static double time_startup = 1;
+
 
 static void output_element(u8_output out,lispval elt)
 {
+  if (OIDP(elt)) {
+    lispval val = fd_oid_value(elt);
+    if (FD_ABORTP(val)) fd_clear_errors(0);
+    fd_decref(val);}
+
   if ((historicp(elt))||(STRINGP(elt))) {
     U8_STATIC_OUTPUT(tmp,1000);
     fd_unparse(tmpout,elt);
@@ -180,7 +187,7 @@ static void output_element(u8_output out,lispval elt)
       u8_printf(out,"\n  %s ;=##%d",tmp.u8_outbuf,fd_histpush(elt));
       u8_close_output(tmpout);
       return;}
-    u8_printf(out,"\n   ;; ##%d=\n   ",fd_histpush(elt),elt);
+    u8_printf(out,"\n  ;; ##%d=\n  ",fd_histpush(elt),elt);
     tmp.u8_write=tmp.u8_outbuf; tmp.u8_outbuf[0]='\0';
     fd_pprint(tmpout,elt,NULL,3,3,console_width);
     u8_puts(out,tmp.u8_outbuf);
@@ -227,6 +234,9 @@ static lispval bind_random_symbol(lispval result,fd_lexenv env)
 static int output_result(u8_output out,lispval result,
                          int histref,int showall)
 {
+  if (OIDP(result)) {
+    lispval v = fd_oid_value(result);
+    fd_decref(v);}
   if (VOIDP(result))
     return 0;
   else if ((showall)&&(OIDP(result))) {
@@ -758,6 +768,9 @@ int main(int argc,char **argv)
     ("QUIET",_("Whether to minimize console output"),
      fd_boolconfig_get,fd_boolconfig_set,&quiet_console);
   fd_register_config
+    ("STARTUPTIME",_("Report startup times when longer than N seconds"),
+     fd_dblconfig_get,fd_dblconfig_set,&time_startup);
+  fd_register_config
     ("CONSOLEWIDTH",
      _("Number of characters available for pretty-printing console output"),
      fd_intconfig_get,fd_intconfig_set,&console_width);
@@ -847,12 +860,7 @@ int main(int argc,char **argv)
   /* Announce preamble, suppressed by quiet_console */
   if (!(quiet_console)) {
     if (fd_boot_message()) {
-      uid_t uid=getuid();
-      u8_string username=u8_username(uid);
-      u8_string cwd=u8_getcwd();
-      if (username==NULL) username=u8_strdup("unknown");
-      u8_message("USER=%s(%d) CWD=%s",username,uid,cwd);
-      u8_free(username); u8_free(cwd);}}
+      /* Extra stuff, if desired */}}
 
   if (source_file == NULL) {}
   else if (strchr(source_file,'@')) {
@@ -890,14 +898,16 @@ int main(int argc,char **argv)
 
   if (!(quiet_console)) {
     double startup_time = u8_elapsed_time()-fd_load_start;
+    double show_startup_time = startup_time;
     char *units="s";
-    if (startup_time>1) {}
-    else if (startup_time>0.001) {
-      startup_time = startup_time*1000; units="ms";}
-    else {startup_time = startup_time*1000000; units="us";}
-    u8_message("FramerD %s loaded in %0.3f%s, %d/%d pools/indexes",
-               u8_appid(),startup_time,units,fd_n_pools,
-               fd_n_primary_indexes+fd_n_secondary_indexes);}
+    if (show_startup_time>1) {}
+    else if (show_startup_time>0.001) {
+      show_startup_time = show_startup_time*1000; units="ms";}
+    else {show_startup_time = show_startup_time*1000000; units="us";}
+    if (startup_time > time_startup)
+      u8_message("FramerD %s loaded in %0.3f%s, %d/%d pools/indexes",
+                 u8_appid(),show_startup_time,units,fd_n_pools,
+                 fd_n_primary_indexes+fd_n_secondary_indexes);}
   if (dotload) {
     dotloader("~/.fdconfig",NULL);
     dotloader(".fdconfig",NULL);

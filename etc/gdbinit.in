@@ -24,19 +24,40 @@ define vgx
   target remote | vgdb $arg0
 end
 define w5
+  if ($argc > 0)
+    thread $arg0
+  end
   where 5
 end
 define w10
+  if ($argc > 0)
+    thread $arg0
+  end
   where 10
 end
 define w15
+  if ($argc > 0)
+    thread $arg0
+  end
   where 15
 end
 define w20
+  if ($argc > 0)
+    thread $arg0
+  end
   where 20
 end
 define ww
+  if ($argc > 0)
+    thread $arg0
+  end
   where 25
+end
+define wh
+  if ($argc > 1)
+    thread $arg1
+  end
+  where $arg0
 end
 define freeze
   set scheduler on
@@ -60,13 +81,17 @@ define locals
   info args
   info locals
 end
+
 define pp
   if ($argc == 0)
+    print/x $
     print/x *$
   else
      if ($argc == 1)
+      print/x $arg0
       print/x *$arg0
     else
+      print/x (($arg1)($arg0))
       print/x *(($arg1)($arg0))
     end
   end
@@ -74,16 +99,14 @@ end
 define xp
   print/x $arg0
 end
-define xpp
-  if ($argc == 1)
-    print/x *$arg0
-  else
-    print/x *(($arg1)($arg0))
-  end
-end
+
 define lisp
   printf "%s\n",fd_lisp2string($arg0)
 end
+define lispval
+  printf "%s\n",fd_lisp2string($arg0)
+end
+
 define showtype
   printf "type of 0x%llx is 0x%x: %s\n",((lispval)$arg0),(((($arg0)&0x03)==2)?(fd_fixnum_type):((($arg0)&0x3)==3)?(fd_oid_type):((($arg0)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($arg0))->conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04))),fd_type_names[(((($arg0)&0x03)==2)?(fd_fixnum_type):((($arg0)&0x3)==3)?(fd_oid_type):((($arg0)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($arg0))->conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04)))]
 end
@@ -231,6 +254,7 @@ break u8_new_exception
 break _fd_debug
 break _u8_dbg
 break u8_raise
+break TCMalloc_Printer::printf
 break __msan_warning
 break __msan_warning_noreturn
 break __asan_report_error

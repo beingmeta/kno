@@ -134,7 +134,17 @@ static lispval *procpool_fetchn(fd_pool p,int n,lispval *oids)
 {
   struct FD_PROCPOOL *pp = (fd_procpool)p;
   lispval lp = fd_pool2lisp(p);
-  if (VOIDP(pp->fetchnfn)) return NULL;
+  if (VOIDP(pp->fetchnfn)) {
+    lispval *vals = u8_big_alloc_n(n,lispval);
+    int i = 0; while (i<n) {
+      lispval oid = oids[i];
+      lispval v = procpool_fetch(p,oid);
+      if (FD_ABORTP(v)) {
+        fd_decref_vec(vals,i,0);
+        u8_big_free(vals);
+        return NULL;}
+      else vals[i++]=v;}
+    return vals;}
   else {
     lispval oidvec = fd_make_vector(n,oids);
     lispval args[]={lp,pp->pool_state,oidvec};

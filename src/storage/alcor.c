@@ -28,6 +28,8 @@
 #include <errno.h>
 #include <zlib.h>
 
+u8_condition TruncatedHead=_("The head file has no data");
+
 FD_EXPORT ssize_t fd_save_head(u8_string source,u8_string dest,size_t head_len)
 {
   struct stat info={0};
@@ -47,39 +49,50 @@ FD_EXPORT ssize_t fd_save_head(u8_string source,u8_string dest,size_t head_len)
   if (in<0)
     return in;
   else rv=u8_lock_fd(in,0);
-  unsigned char *buf=u8_malloc(head_len);
+  if (rv<0) {
+    u8_seterr("LockFailed","fd_save_head",u8_strdup(source));
+    u8_free(dst);
+    close(in);
+    return rv;}
+  unsigned char *buf=u8_big_alloc(head_len);
   size_t bytes_read=0;
   while (bytes_read<head_len) {
     ssize_t delta=read(in,buf+bytes_read,head_len-bytes_read);
-    if (delta<0) {
-      u8_free(buf);
+    if (delta<=0) {
+      u8_big_free(buf);
       close(in);
       return delta;}
     bytes_read += delta;}
   rv=u8_unlock_fd(in);
-  rv=close(in);
   if (rv<0) {
-    u8_free(buf);
+    u8_seterr("UnlockFailed","fd_save_head",u8_strdup(source));
+    if ( (close(in)) < 0 )
+      u8_seterr("CloseFailed","fd_save_head",u8_strdup(source));}
+  else if ((rv=close(in)) < 0)
+    u8_seterr("CloseFailed","fd_save_head",u8_strdup(source));
+  else {}
+  if (rv<0) {
+    u8_big_free(buf);
     return rv;}
   int out=open(dst,O_WRONLY|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
   u8_free(dst);
   if (out<0) {
-    u8_free(buf);
+    u8_big_free(buf);
     return out;}
   else rv=u8_lock_fd(out,1);
   if (rv<0) {
     close(out);
-    u8_free(buf);
+    u8_big_free(buf);
     return rv;}
   size_t bytes_written=0;
   while (bytes_written<head_len) {
     ssize_t delta=write(out,buf+bytes_written,head_len-bytes_written);
-    if (delta<0) {
+    if (delta<=0) {
       close(out);
-      u8_free(buf);
+      u8_big_free(buf);
       return delta;}
     bytes_written += delta;}
-  u8_free(buf);
+  u8_big_free(buf);
   rv=u8_unlock_fd(out);
   if (rv<0) {
     u8_log(LOGWARN,"RecoveryFileUnlockFailed",
@@ -94,8 +107,7 @@ FD_EXPORT ssize_t fd_save_head(u8_string source,u8_string dest,size_t head_len)
   else return head_len;
 }
 
-FD_EXPORT ssize_t fd_restore_head(u8_string source,u8_string dest,
-                                  ssize_t trunc_loc)
+FD_EXPORT ssize_t fd_restore_head(u8_string source,u8_string dest,ssize_t trunc_loc)
 {
   char *src=u8_tolibc(source), *dst=u8_tolibc(dest);
   if ( (src==NULL) || (dst==NULL) )
@@ -114,43 +126,46 @@ FD_EXPORT ssize_t fd_restore_head(u8_string source,u8_string dest,
     u8_free(src); u8_free(dst);
     return rv;}
   else head_len=info.st_size;
-  unsigned char *buf=u8_malloc(head_len);
+  unsigned char *buf=u8_big_alloc(head_len);
   u8_free(src);
   size_t bytes_read=0;
-  while (bytes_read<head_len) {
+  while (bytes_read < head_len) {
     ssize_t delta=read(in,buf+bytes_read,head_len-bytes_read);
-    if (delta<0) {
-      u8_free(buf); u8_free(dst);
+    if (delta<=0) {
+      u8_big_free(buf);
+      u8_free(dst);
       close(in);
       return delta;}
     bytes_read += delta;}
   if ((rv=u8_unlock_fd(in))<0) {
-    u8_free(buf); u8_free(dst);
+    u8_big_free(buf);
+    u8_free(dst);
     close(in);
     return rv;}
   else rv=close(in);
   if (rv<0) {
-    u8_free(buf); u8_free(dst);
+    u8_big_free(buf);
+    u8_free(dst);
     return rv;}
   int out=open(dst,O_RDWR);
   u8_free(dst);
   if (out<0) {
-    u8_free(buf);
+    u8_big_free(buf);
     return out;}
   rv=u8_lock_fd(out,1);
   if (rv<0) {
     close(out);
-    u8_free(buf);
+    u8_big_free(buf);
     return rv;}
   size_t bytes_written=0;
   while (bytes_written<head_len) {
     ssize_t delta=write(out,buf+bytes_written,head_len-bytes_written);
-    if (delta<0) {
+    if (delta<=0) {
       close(out);
-      u8_free(buf);
+      u8_big_free(buf);
       return delta;}
     bytes_written += delta;}
-  if ( (trunc_loc>=0) && ((trunc_loc+8)<head_len)) {
+  if ( (trunc_loc >= 0) && ( (trunc_loc+8) < head_len )) {
     unsigned char bytes[8];
     memcpy(bytes,buf+trunc_loc,8);
     size_t *trunc_ptr=(size_t *)&bytes;
@@ -160,15 +175,15 @@ FD_EXPORT ssize_t fd_restore_head(u8_string source,u8_string dest,
   if (rv<0) {
     u8_unlock_fd(out);
     close(out);
-    u8_free(buf);
+    u8_big_free(buf);
     return rv;}
   else rv=u8_unlock_fd(out);
   if (rv<0) {
     close(out);
-    u8_free(buf);
+    u8_big_free(buf);
     return rv;}
   else rv=close(out);
-  u8_free(buf);
+  u8_big_free(buf);
  if (rv<0)
     return rv;
   else return head_len;

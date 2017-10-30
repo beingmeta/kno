@@ -802,6 +802,8 @@ curlo
 calltracko
 curlconfig
 rpath
+XOPTFLAGS
+OPTFLAGS
 dynamic_cflag
 mmshared_suffix
 mshared_suffix
@@ -810,6 +812,7 @@ shared_suffix
 install_exe_opts
 install_file_opts
 install_dir_opts
+DEFAULTMAKETARGET
 ac_prefix_program
 target_alias
 host_alias
@@ -862,6 +865,7 @@ with_deletefile
 with_copyfile
 with_touchfile
 with_apxs
+with_make_target
 with_rpath
 with_fileinfo
 with_codename
@@ -1607,6 +1611,7 @@ Optional Packages:
 --with-copyfile command
 --with-touchfile command
 --with-apxs command
+--with-make-target command
 --with-rpath dir
 --without-fileinfo record fileinfo
 --with-codename for distribution
@@ -2903,6 +2908,7 @@ else
 fi
 
 
+DEFAULTMAKETARGET=update
 threads_default="yes"
 shared_default="yes"
 shared_suffix="so"
@@ -3020,6 +3026,8 @@ use_dtblock_default="yes"
 default_bootsystem="none"
 BOOTSETUP="none"
 CFLAGS="-DLIBU8_SOURCE -DFRAMERD_SOURCE"
+OPTFLAGS=
+XOPTFLAGS=
 CLANG=no
 MALLOC_FLAGS="-fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free"
 MYSQL_CFLAGS=
@@ -3033,7 +3041,7 @@ LIBZIP_LDFLAGS=
 DEFAULTISASYNC=0
 USEDTBLOCK=0
 MSG=echo
-debugcflags=" -O0 -g3 -ggdb3 -fno-inline -fno-omit-frame-pointer "
+debugcflags=" -Og -g3 -ggdb3 -fno-inline -fno-omit-frame-pointer "
 debugldflags=""
 debuglibs=""
 manually_disabled=""
@@ -3102,6 +3110,9 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
+
+
 
 
 
@@ -4108,6 +4119,16 @@ else
 fi
 
 APXS=$with_apxs
+
+
+# Check whether --with-make-target was given.
+if test "${with_make_target+set}" = set; then :
+  withval=$with_make_target; with_make_target=$withval
+else
+  with_make_target=update
+fi
+
+DEFAULTMAKETARGET=$with_make_target
 
 # Make sure we can run config.sub.
 $SHELL "$ac_aux_dir/config.sub" sun4 >/dev/null 2>&1 ||
@@ -5602,9 +5623,13 @@ fi
 
 
 if test "${CLANG}" = "yes"; then
-   CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb "
+   CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb"
+   OPTFLAGS="-O2"
+   XOPTFLAGS="-O3"
 elif test "${GCC}" = "yes"; then
-   CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb "
+   CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb"
+   OPTFLAGS="-O2"
+   XOPTFLAGS="-O3"
    gcc_version=`gcc -dumpversion`;
    dynamic_cflag="-rdynamic";
 fi;
@@ -8590,7 +8615,7 @@ fi
 done
 
 
-for ac_func in geteuid getuid getgid getegid
+for ac_func in geteuid getuid getgid getegid getumask
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
@@ -12153,7 +12178,7 @@ if (test ! -f src/scheme/gpath.scm); then
    fi;
 fi;
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/scheme/makefile DIY/makefile etc/gdbinit exe/.gdbinit tests/lisp/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit tests/scheme/.valgrind etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl etc/fdgdb etc/fdsetconfig etc/fdgetconfig etc/fdconfig tests/scheme/vgleaktest tests/scheme/vgmemtest tests/scheme/runenv.sh tests/scheme/xtest tests/scheme/runtest tests/scheme/memtest tests/scheme/leaktest tests/scheme/fdexectest tests/scheme/tcdebug tests/scheme/vgdebug tests/scheme/gheaptest src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/framerd.service etc/FramerD.plist etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-4.2.spec"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/scheme/makefile DIY/makefile etc/gdbinit exe/.gdbinit tests/lisp/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit tests/scheme/.valgrind etc/fd_start_servlets etc/fd_start_daemons etc/fd_stop_jobs etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl etc/fdgdb etc/fdsetconfig etc/fdgetconfig etc/fdconfig tests/scheme/vgleaktest tests/scheme/vgmemtest tests/scheme/runenv.sh tests/scheme/xtest tests/scheme/runtest tests/scheme/memtest tests/scheme/leaktest tests/scheme/fdexectest tests/scheme/tcdebug tests/scheme/vgdebug tests/scheme/gheaptest src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/framerd.service etc/FramerD.plist etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-4.2.spec"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -12867,6 +12892,9 @@ do
     "tests/storage/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/storage/.gdbinit" ;;
     "tests/scheme/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/scheme/.gdbinit" ;;
     "tests/scheme/.valgrind") CONFIG_FILES="$CONFIG_FILES tests/scheme/.valgrind" ;;
+    "etc/fd_start_servlets") CONFIG_FILES="$CONFIG_FILES etc/fd_start_servlets" ;;
+    "etc/fd_start_daemons") CONFIG_FILES="$CONFIG_FILES etc/fd_start_daemons" ;;
+    "etc/fd_stop_jobs") CONFIG_FILES="$CONFIG_FILES etc/fd_stop_jobs" ;;
     "etc/fdstart") CONFIG_FILES="$CONFIG_FILES etc/fdstart" ;;
     "etc/fdstop") CONFIG_FILES="$CONFIG_FILES etc/fdstop" ;;
     "etc/fdstartall") CONFIG_FILES="$CONFIG_FILES etc/fdstartall" ;;

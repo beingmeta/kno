@@ -785,7 +785,7 @@ static lispval xtime_get(struct U8_XTIME *xt,lispval slotid,int reterr)
       int mon = xt->u8_mon+1;
       if ((mon>=12) || (mon<4)) {
         CHOICE_ADD(results,winter_symbol);}
-      if ((mon>=3) && (mon<7)) {
+      if ((mon>=3) && (mon<6)) {
         CHOICE_ADD(results,spring_symbol);}
       if ((mon>5) && (mon<10)) {
         CHOICE_ADD(results,summer_symbol);}
@@ -802,7 +802,7 @@ static lispval xtime_get(struct U8_XTIME *xt,lispval slotid,int reterr)
       int hr = xt->u8_hour;
       if ((hr<5) || (hr>20)) {
         CHOICE_ADD(results,nighttime_symbol);}
-      if ((hr>5) && (hr<=12)) {
+      if ((hr>=5) && (hr<12)) {
         CHOICE_ADD(results,morning_symbol);}
       if ((hr>=12) && (hr<19)) {
         CHOICE_ADD(results,afternoon_symbol);}
@@ -1021,11 +1021,12 @@ static lispval microtime_prim()
 static lispval secs2string(lispval secs,lispval prec_arg)
 {
   struct U8_OUTPUT out;
-  int precision = ((FD_UINTP(prec_arg)) ? (FIX2INT(prec_arg)) :
-                 (FALSEP(prec_arg)) ?
-                 (-1) :
-                 (0));
-  int elts = 0;
+  double precision =
+    ((FD_FLONUMP(prec_arg)) ? (FD_FLONUM(prec_arg)) :
+     (FD_UINTP(prec_arg)) ? (FIX2INT(prec_arg)) :
+     (FALSEP(prec_arg)) ? (-1) :
+     (0));
+  int elts = 0, done = 0;
   double seconds, reduce;
   int years, months, weeks, days, hours, minutes;
   if (FIXNUMP(secs))
@@ -1053,8 +1054,7 @@ static lispval secs2string(lispval secs,lispval prec_arg)
   minutes = floor(reduce/60);
   reduce = reduce-minutes*60;
 
-  if ((precision>0) && (elts>=precision)) {}
-  else if (years>0) {
+  if (years>0) {
     if (elts>0) u8_puts(&out,", ");
     if (years>1) {
       u8_printf(&out,_("%d years"),years);}
@@ -1063,7 +1063,7 @@ static lispval secs2string(lispval secs,lispval prec_arg)
     else {}
     elts++;}
 
-  if ((precision>0) && (elts>=precision)) {}
+  if (done) {}
   else if (months>0) {
     if (elts>0) u8_puts(&out,", ");
     if (months>1) {
@@ -1071,9 +1071,10 @@ static lispval secs2string(lispval secs,lispval prec_arg)
     else if (months==1) {
       u8_printf(&out,_("one month"));}
     else {}
+    if (precision >= 3600*24*300 ) done=1;
     elts++;}
 
-  if ((precision>0) && (elts>=precision)) {}
+  if (done) {}
   else if (weeks>0) {
     if (elts>0) u8_puts(&out,", ");
     if (weeks>1)
@@ -1081,9 +1082,10 @@ static lispval secs2string(lispval secs,lispval prec_arg)
     else if (weeks==1)
       u8_printf(&out,_("one week"));
     else {}
+    if (precision >= 3600*24*31 ) done=1;
     elts++;}
 
-  if ((precision>0) && (elts>=precision)) {}
+  if (done) {}
   else if (days>0) {
     if (elts>0) u8_puts(&out,", ");
     if (days>1)
@@ -1091,9 +1093,10 @@ static lispval secs2string(lispval secs,lispval prec_arg)
     else if (days==1)
       u8_printf(&out,_("one day"));
     else {}
+    if (precision >= 3600*24 ) done=1;
     elts++;}
 
-  if ((precision>0) && (elts>=precision)) {}
+  if (done) {}
   else if (hours>0) {
     if (elts>0) u8_puts(&out,", ");
     if (hours>1)
@@ -1101,9 +1104,10 @@ static lispval secs2string(lispval secs,lispval prec_arg)
     else if (hours==1)
       u8_printf(&out,_("one hour"));
     else {}
+    if (precision >= 3600 ) done=1;
     elts++;}
 
-  if ((precision>0) && (elts>=precision)) {}
+  if (done) {}
   else if (minutes>0) {
     if (elts>0) u8_puts(&out,", ");
     if (minutes>1)
@@ -1111,9 +1115,10 @@ static lispval secs2string(lispval secs,lispval prec_arg)
     else if (minutes==1)
       u8_printf(&out,_("one minute"));
     else {}
+    if (precision >= 60 ) done=1;
     elts++;}
 
-  if ((precision>0) && (elts>=precision)) {}
+  if (done) {}
   else if (reduce==0) {}
   else if (seconds==0) {}
   else if (precision<0) {
@@ -1122,19 +1127,20 @@ static lispval secs2string(lispval secs,lispval prec_arg)
   else if (!(FD_FLONUMP(secs)))  {
     if (elts>0) u8_puts(&out,", ");
     u8_printf(&out,_("%d seconds"),(int)floor(reduce));}
-  else if (precision>0) {
-    int more_precision = precision-elts;
+  else if (precision<1) {
     if (elts>0) u8_puts(&out,", ");
-    if ((elts==0)&&(reduce<1))
+    if ( (elts==0) && (reduce<1) )
       u8_printf(&out,_("%f seconds"),reduce);
-    else if (more_precision>3)
+    else if (precision < 0.0001)
       u8_printf(&out,_("%f seconds"),reduce);
-    else if (more_precision>2)
+    else if (precision < 0.001)
       u8_printf(&out,_("%.3f seconds"),reduce);
-    else if (more_precision>1)
+    else if (precision < 0.01)
       u8_printf(&out,_("%.2f seconds"),reduce);
     else u8_printf(&out,_("%.1f seconds"),reduce);}
-  else u8_printf(&out,_("%.1f seconds"),reduce);
+  else {
+    if (elts>0) u8_puts(&out,", ");
+    u8_printf(&out,_("%d seconds"),(int)round(reduce));}
   return fd_stream2string(&out);
 }
 

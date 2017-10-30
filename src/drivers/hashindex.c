@@ -116,11 +116,11 @@
 #endif
 
 #ifndef HX_KEYBUF_SIZE
-#define HX_KEYBUF_SIZE 2000
+#define HX_KEYBUF_SIZE 8000
 #endif
 
-#ifdef HX_VALBUF_SIZE
-#define HX_VALBUF_SIZE 1000
+#ifndef HX_VALBUF_SIZE
+#define HX_VALBUF_SIZE 16000
 #endif
 
 #define LOCK_STREAM 1
@@ -193,7 +193,7 @@ static lispval slotids_symbol, baseoids_symbol, buckets_symbol, nkeys_symbol;
 
 /* Getting chunk refs */
 
-static int get_chunk_ref_size(fd_hashindex ix)
+static ssize_t get_chunk_ref_size(fd_hashindex ix)
 {
   switch (ix->index_offtype) {
   case FD_B32: case FD_B40: return 8;
@@ -202,14 +202,6 @@ static int get_chunk_ref_size(fd_hashindex ix)
 }
 
 /* Opening database blocks */
-
-FD_FASTOP fd_inbuf open_block
-  (struct FD_INBUF *tmpbuf,struct FD_HASHINDEX *hx,
-   fd_off_t off,fd_size_t size,unsigned char *buf)
-{
-  fd_stream stream = &(hx->index_stream);
-  return fd_open_block(stream,tmpbuf,off,size,1);
-}
 
 FD_FASTOP lispval read_dtype_at_pos(fd_stream s,fd_off_t off)
 {
@@ -257,7 +249,7 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
   stream->stream_flags &= ~FD_STREAM_IS_CONSED;
   magicno = fd_read_4bytes_at(stream,0,FD_ISLOCKED);
   if ( magicno != 0x8011308) {
-    fd_seterr3(fd_NotAFileIndex,"open_fileindex",fname);
+    fd_seterr3(fd_NotAFileIndex,"open_hashindex",fname);
     u8_free(index);
     fd_close_stream(stream,FD_STREAM_FREEDATA|FD_STREAM_NOFLUSH);
     return NULL;}
@@ -293,7 +285,8 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
   if (slotids_size) {
     lispval slotids_vector = read_dtype_at_pos(stream,slotids_pos);
     if (VOIDP(slotids_vector)) {
-      index->index_n_slotids = 0; index->index_new_slotids = 0;
+      index->index_n_slotids = 0;
+      index->index_new_slotids = 0;
       index->index_slotids = NULL;
       index->slotid_lookup = NULL;}
     else if (VECTORP(slotids_vector)) {
@@ -307,7 +300,8 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
       u8_free(index);
       return NULL;}}
   else {
-    index->index_n_slotids = 0; index->index_new_slotids = 0;
+    index->index_n_slotids = 0;
+    index->index_new_slotids = 0;
     index->index_slotids = NULL;
     index->slotid_lookup = NULL;}
 
@@ -365,34 +359,51 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
 static fd_index recover_hashindex(u8_string fname,fd_storage_flags open_flags,
                                   lispval opts)
 {
-  u8_string recovery_file=u8_string_append(fname,".recovery",NULL);
+  u8_string recovery_file=u8_string_append(fname,".rollback",NULL);
   if (u8_file_existsp(recovery_file)) {
     ssize_t rv=fd_restore_head(recovery_file,fname,256-8);
     if (rv<0) {
       u8_graberrno("recover_hashindex",recovery_file);
       return NULL;}
-    else u8_free(recovery_file);
-    return open_hashindex(fname,open_flags,opts);}
-  else if (fd_testopt(opts,fd_intern("FORCE-RECOVERY"),FD_VOID)) {
+    else if (rv == 0)
+      u8_log(LOGCRIT,"Corrupted hashindex",
+             "The hashindex file %s has a corrupted recovery file %s",
+             fname,recovery_file);
+    else {
+      fd_index opened = open_hashindex(fname,open_flags,opts);
+      if (opened) {
+        u8_removefile(recovery_file);
+        u8_free(recovery_file);
+        return opened;}
+      if (! (fd_testopt(opts,fd_intern("FIXUP"),FD_VOID))) {
+        fd_seterr("RecoveryFailed","recover_hashindex",fname,FD_VOID);
+        return NULL;}
+      else {
+        u8_log(LOGERR,"RecoveryFailed",
+               "Recovering %s using %s failed",fname,recovery_file);
+        u8_removefile(recovery_file);}}}
+  else u8_log(LOGCRIT,"Corrupted hashindex",
+              "The hashindex file %s doesn't have a recovery file %s",
+              fname,recovery_file);
+  if (fd_testopt(opts,fd_intern("FIXUP"),FD_VOID)) {
     char *src = u8_tolibc(fname);
+    FD_DECL_OUTBUF(headbuf,256);
+    unsigned int magicno = FD_HASHINDEX_MAGIC_NUMBER;
     int out=open(src,O_RDWR);
-    unsigned char num = 0x08;
-    /* Things get inconsistent if we combine regular write and pread,
-       so we use pwrite here. */
+    fd_write_4bytes(&headbuf,magicno);
 #if HAVE_PREAD
-    int rv = pwrite(out,&num,1,3);
+    int rv = pwrite(out,headbuf.buffer,4,0);
 #else
-    lseek(out,SEEK_SET,3);
-    int rv = write(out,&num,1);
+    lseek(out,SEEK_SET,0);
+    int rv = write(out,headbuf.buffer,4);
 #endif
     fsync(out);
     close(out);
     u8_free(src);
-    if (rv>0) return open_hashindex(fname,open_flags,opts);}
-  u8_log(LOGCRIT,"Corrupted hashindex",
-         "The hashindex file %s doesn't have a recovery file %s",
-         fname,recovery_file);
-  u8_free(recovery_file);
+    if (rv>0) {
+      u8_free(recovery_file);
+      return open_hashindex(fname,open_flags,opts);}
+    else u8_seterr("FailedRecovery","recover_hashindex",recovery_file);}
   return NULL;
 }
 
@@ -410,7 +421,8 @@ static int init_slotids(fd_hashindex hx,int n_slotids,lispval *slotids_init)
   lispval *slotids, slotids_choice = EMPTY;
   hx->index_slotids = slotids = u8_alloc_n(n_slotids,lispval);
   hx->slotid_lookup = lookup = u8_alloc_n(n_slotids,FD_SLOTID_LOOKUP);
-  hx->index_n_slotids = n_slotids; hx->index_new_slotids = 0;
+  hx->index_n_slotids = n_slotids;
+  hx->index_new_slotids = 0;
   if ((hx->storage_xformat)&(FD_HASHINDEX_ODDKEYS))
     slotids_choice = VOID;
   while (i<n_slotids) {
@@ -857,7 +869,11 @@ static lispval hashindex_fetch(fd_index ix,lispval key)
     fd_close_outbuf(&out);
     return EMPTY;}
   else {
-    struct FD_INBUF keystream={0}, *opened=
+    unsigned char keybuf[HX_KEYBUF_SIZE];
+    struct FD_INBUF keystream={0};
+    if (keyblock.size<HX_KEYBUF_SIZE) {
+      FD_INIT_INBUF(&keystream,keybuf,HX_KEYBUF_SIZE,FD_STATIC_BUFFER);}
+    struct FD_INBUF *opened=
       fd_open_block(stream,&keystream,keyblock.off,keyblock.size,1);
     if (opened==NULL) {
       fd_close_outbuf(&out);
@@ -906,43 +922,35 @@ static lispval hashindex_fetch(fd_index ix,lispval key)
 static FD_CHUNK_REF read_value_block
 (fd_hashindex hx,lispval key,
  int n_values,FD_CHUNK_REF chunk,
- int *n_readp,lispval *values,int *consp,
- unsigned char **vbufp,size_t *vbuf_len)
+ int *n_readp,lispval *values,int *consp)
 {
   fd_stream stream = &(hx->index_stream);
   int n_read=*n_readp;
   FD_CHUNK_REF result = {-1,-1};
   fd_off_t vblock_off = chunk.off;
   size_t  vblock_size = chunk.size;
-  unsigned char *vbuf=*vbufp;
-  if (vblock_size > *vbuf_len) {
-    size_t cur_size = *vbuf_len;
-    size_t new_size = cur_size;
-    while (new_size < vblock_size)
-      new_size=((new_size<0x20000)? (new_size*2) :
-                (((new_size/0x20000)+4)*0x20000));
-    unsigned char *newbuf=u8_realloc(vbuf,new_size);
-    if (newbuf == NULL) {
-      u8_seterr("ReallocFailed","read_value_block",u8_strdup(hx->indexid));
-      return result;}
-    else {
-      vbuf=*vbufp=newbuf;
-      *vbuf_len=new_size;}}
   struct FD_INBUF instream={0};
+  unsigned char stackbuf[HX_VALBUF_SIZE];
+  if ( vblock_size < HX_VALBUF_SIZE ) {
+    FD_INIT_INBUF(&instream,stackbuf,HX_VALBUF_SIZE,0);}
+  else if (! HAVE_MMAP) {
+    unsigned char *usebuf = u8_malloc(vblock_size);
+    FD_INIT_INBUF(&instream,usebuf,HX_VALBUF_SIZE,FD_HEAP_BUFFER);}
+  else {}
+  fd_inbuf vblock = fd_open_block(stream,&instream,vblock_off,vblock_size,1);
   fd_off_t next_off;
   ssize_t next_size=-1;
   int i=0, atomicp = 1;
-  fd_open_block(stream,&instream,vblock_off,vblock_size,1);
-  ssize_t n_elts = fd_read_zint(&instream);
+  ssize_t n_elts = fd_read_zint(vblock);
   if (n_elts<0) {
-    fd_close_inbuf(&instream);
+    fd_close_inbuf(vblock);
     return result;}
   i = 0; while ( (i<n_elts) && (n_read < n_values) ) {
-    lispval val = read_zvalue(hx,&instream);
+    lispval val = read_zvalue(hx,vblock);
     if (FD_ABORTP(val)) {
       if (!(atomicp)) *consp=1;
       *n_readp = n_read;
-      fd_close_inbuf(&instream);
+      fd_close_inbuf(vblock);
       return result;}
     else if (CONSP(val)) atomicp = 0;
     else {}
@@ -951,20 +959,20 @@ static FD_CHUNK_REF read_value_block
     i++;}
   /* For vblock continuation pointers, we make the size be first,
      so that we don't need to store an offset if it's zero. */
-  next_size = fd_read_zint(&instream);
+  next_size = fd_read_zint(vblock);
   if (next_size<0) {}
   else if (next_size)
-    next_off = fd_read_zint(&instream);
+    next_off = fd_read_zint(vblock);
   else next_off = 0;
   if ( (next_size<0) || (next_off < 0)) {
     *n_readp = n_read;
     if (!(atomicp)) *consp=0;
-    fd_close_inbuf(&instream);
+    fd_close_inbuf(vblock);
     return result;}
   result.off=next_off; result.size=next_size;
   *n_readp = n_read;
   if (!(atomicp)) *consp=1;
-  fd_close_inbuf(&instream);
+  fd_close_inbuf(vblock);
   return result;
 }
 
@@ -976,14 +984,10 @@ static lispval read_values
   struct FD_CHOICE *result = fd_alloc_choice(n_values);
   FD_CHUNK_REF chunk_ref = { vblock_off, vblock_size };
   lispval *values = (lispval *)FD_XCHOICE_DATA(result);
-  size_t vbuf_len = ( vblock_size < 0x20000) ? (0x20000) :
-    (((vblock_size/0x20000)+4)*0x20000);
-  unsigned char *vbuf = u8_malloc(vbuf_len);
   int consp = 0, n_read=0;
   while ( (chunk_ref.off>0) && (n_read < n_values) )
     chunk_ref=read_value_block(hx,key,n_values,chunk_ref,
-                               &n_read,values,&consp,
-                               &vbuf,&vbuf_len);
+                               &n_read,values,&consp);
   if (chunk_ref.off<0) {
     u8_byte buf[64];
     fd_seterr("HashIndexError","read_values",
@@ -992,7 +996,6 @@ static lispval read_values
               key);
     result->choice_size=n_read;
     fd_decref_ptr(result);
-    u8_free(vbuf);
     return FD_ERROR;}
   else if (n_read != n_values) {
     u8_log(LOGWARN,"InconsistentValueSize",
@@ -1003,16 +1006,13 @@ static lispval read_values
     result->choice_size=n_read;
     fd_seterr("InconsistentValueSize","read_values",NULL,key);
     fd_decref_ptr(result);
-    u8_free(vbuf);
     return FD_ERROR;}
   else if (n_values == 1) {
     lispval v = values[0];
     fd_incref(v);
-    u8_free(result);
-    u8_free(vbuf);
+    u8_big_free(result);
     return v;}
   else {
-    u8_free(vbuf);
     return fd_init_choice
       (result,n_values,NULL,
        FD_CHOICE_DOSORT|FD_CHOICE_REALLOC|
@@ -1108,38 +1108,44 @@ static int match_keybuf(u8_string buf,int size,
 
 static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
 {
-  lispval *values = u8_alloc_n(n,lispval);
+  if (n == 0) return NULL;
+
+  lispval *values = u8_big_alloc_n(n,lispval);
   /* This is a buffer where we write keybuf representations of all of the
      keys, which let's use do memcmp to match them to on-disk data */
   struct FD_OUTBUF keysbuf;
   /* This is used to fetch information about keys, sorted to be linear */
-  struct KEY_SCHEDULE *ksched = u8_alloc_n(n,struct KEY_SCHEDULE);
+  struct KEY_SCHEDULE *ksched = u8_big_alloc_n(n,struct KEY_SCHEDULE);
   /* This is used to fetch the chained values in the table, also
      sorted to be linear. */
-  struct VALUE_SCHEDULE *vsched = u8_alloc_n(n,struct VALUE_SCHEDULE);
+  struct VALUE_SCHEDULE *vsched = u8_big_alloc_n(n,struct VALUE_SCHEDULE);
   if ( (values==NULL) || (ksched==NULL) || (vsched==NULL) ) {
     u8_seterr(fd_MallocFailed,"hashindex_fetchn",NULL);
-    if (values) u8_free(values);
-    if (ksched) u8_free(ksched);
-    if (vsched) u8_free(vsched);
+    if (values) u8_big_free(values);
+    if (ksched) u8_big_free(ksched);
+    if (vsched) u8_big_free(vsched);
     return NULL;}
 
   unsigned int *offdata = hx->index_offdata;
   unsigned char *keyreps;
   int i = 0, n_entries = 0, vsched_size = 0;
-  size_t max_keyblock_size = 0, vbuf_size=0;
+  size_t vbuf_size=0;
   int oddkeys = ((hx->storage_xformat)&(FD_HASHINDEX_ODDKEYS));
   fd_stream stream = &(hx->index_stream);
 #if FD_DEBUG_HASHINDEXES
   u8_message("Reading %d keys from %s",n,hx->indexid);
 #endif
-  /* Assuming 32 bytes per key */
+  /* Initialize sized based on assuming 32 bytes per key */
   FD_INIT_BYTE_OUTPUT(&keysbuf,n*32);
   if ((hx->storage_xformat)&(FD_HASHINDEX_DTYPEV2))
     keysbuf.buf_flags = keysbuf.buf_flags|FD_USE_DTYPEV2;
-  /* Fill out a fetch schedule, computing hashes and buckets for each key.
-     If we have an offsets table, we compute the offsets during this phase,
-     otherwise we defer to an additional loop. */
+  /* Fill out a fetch schedule, computing hashes and buckets for each
+     key.  If we have an offsets table, we compute the offsets during
+     this phase, otherwise we defer to an additional loop.
+
+     This also writes out DTYPE representations for all of the keys
+     and we use a direct memcmp to match requested keys to byte ranges
+     in fetched buckets. */
   while (i<n) {
     lispval key = keys[i];
     int dt_start = keysbuf.bufwrite-keysbuf.buffer;
@@ -1167,9 +1173,6 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
         fd_get_chunk_ref(offdata,hx->index_offtype,bucket,
                          hx->index_n_buckets);
       size_t keyblock_size = ksched[n_entries].ksched_chunk.size;
-      /* Track the max_keyblock_size, for a VLA below*/
-      if (keyblock_size > max_keyblock_size)
-        max_keyblock_size=keyblock_size;
       if (keyblock_size==0) {
         /* It is empty, so we don't even need to handle this entry. */
         values[i]=EMPTY;
@@ -1180,7 +1183,7 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
     else n_entries++;
     i++;}
   keyreps=keysbuf.buffer;
-  if (offdata==NULL) {
+  if (offdata == NULL) {
     int write_at = 0;
     /* When fetching bucket references, we sort the schedule first, so that
        we're accessing them in order in the file. */
@@ -1190,8 +1193,6 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
       ksched[i].ksched_chunk = fd_fetch_chunk_ref
         (stream,256,hx->index_offtype,ksched[i].ksched_bucket,0);
       size_t keyblock_size=ksched[i].ksched_chunk.size;
-      /* Track the max_keyblock_size, for a VLA below*/
-      if (keyblock_size>max_keyblock_size)max_keyblock_size=keyblock_size;
       if (keyblock_size==0) {
         values[ksched[i].ksched_i]=EMPTY;
         i++;}
@@ -1206,41 +1207,43 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
   qsort(ksched,n_entries,sizeof(struct KEY_SCHEDULE),
         sort_ks_by_refoff);
   {
-    struct FD_INBUF keyblkstrm={0};
+    unsigned char keyblock_buf[HX_KEYBUF_SIZE];
+    struct FD_INBUF keyblock={0};
+    FD_INIT_INBUF(&keyblock,keyblock_buf,HX_KEYBUF_SIZE,FD_STATIC_BUFFER);
     int bucket = -1, j = 0, k = 0, n_keys=0;
     const unsigned char *keyblock_start=NULL;
     while (j<n_entries) {
       int found = 0;
       fd_off_t blockpos = ksched[j].ksched_chunk.off;
       fd_size_t blocksize = ksched[j].ksched_chunk.size;
-      if (ksched[j].ksched_bucket!=bucket) {
+      if (ksched[j].ksched_bucket != bucket) {
         /* If we're in a new bucket, open it as input */
-        fd_open_block(stream,&keyblkstrm,blockpos,blocksize,1);
+        fd_open_block(stream,&keyblock,blockpos,blocksize,1);
         bucket=ksched[j].ksched_bucket;
+        keyblock_start = keyblock.bufread;
         /* And initialize bucket position and limit */
-        k=0; n_keys = fd_read_zint(&keyblkstrm);
-        keyblock_start = keyblkstrm.bufread;}
+        k=0; n_keys = fd_read_zint(&keyblock);
+        keyblock_start = keyblock.bufread;}
       else {
-        /* We could be smarter here, but it might not be worth it if
-           the file indexes have reasonable load factors. */
-        keyblkstrm.bufread=keyblock_start;
+        /* We could be smarter here, but it's probably not worth it */
+        keyblock.bufread=keyblock_start;
         k=0;}
       while (k<n_keys) {
         int n_vals;
-        fd_size_t dtsize = fd_read_zint(&keyblkstrm);
-        if (match_keybuf(keyblkstrm.bufread,dtsize,&ksched[j],keyreps)) {
+        fd_size_t dtsize = fd_read_zint(&keyblock);
+        if (match_keybuf(keyblock.bufread,dtsize,&ksched[j],keyreps)) {
           found = 1;
-          keyblkstrm.bufread = keyblkstrm.bufread+dtsize;
-          n_vals = fd_read_zint(&keyblkstrm);
+          keyblock.bufread = keyblock.bufread+dtsize;
+          n_vals = fd_read_zint(&keyblock);
           if (n_vals==0)
             values[ksched[j].ksched_i]=EMPTY;
           else if (n_vals==1)
             /* Single values are stored inline in the keyblocks */
-            values[ksched[j].ksched_i]=read_zvalue(hx,&keyblkstrm);
+            values[ksched[j].ksched_i]=read_zvalue(hx,&keyblock);
           else {
             /* Populate the values schedule for that key */
-            fd_off_t block_off = fd_read_zint(&keyblkstrm);
-            fd_size_t block_size = fd_read_zint(&keyblkstrm);
+            fd_off_t block_off = fd_read_zint(&keyblock);
+            fd_size_t block_size = fd_read_zint(&keyblock);
             struct FD_CHOICE *result = fd_alloc_choice(n_vals);
             /* Track the max vblock size for later buffer allocation */
             if (block_size>vbuf_size) vbuf_size=block_size;
@@ -1261,47 +1264,52 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
           break;}
         else {
           /* Skip this key */
-          keyblkstrm.bufread = keyblkstrm.bufread+dtsize;
-          n_vals = fd_read_zint(&keyblkstrm);
+          keyblock.bufread = keyblock.bufread+dtsize;
+          n_vals = fd_read_zint(&keyblock);
           if (n_vals==0) {}
           else if (n_vals==1) {
             /* Read the one inline value */
             /* TODO: replace with skip_zvalue */
-            lispval v = read_zvalue(hx,&keyblkstrm);
+            lispval v = read_zvalue(hx,&keyblock);
             fd_decref(v);}
           else {
             /* Skip offset information */
-            fd_read_zint(&keyblkstrm);
-            fd_read_zint(&keyblkstrm);}}
+            fd_read_zint(&keyblock);
+            fd_read_zint(&keyblock);}}
         k++;}
       if (!(found))
         values[ksched[j].ksched_i]=EMPTY;
       j++;}
-    fd_close_inbuf(&keyblkstrm);}
+    fd_close_inbuf(&keyblock);}
   /* Now we're done with the ksched */
-  u8_free(ksched);
+  u8_big_free(ksched);
   {
-    struct FD_INBUF vblock={0};
+    struct FD_INBUF vblock={0}, bigvblock={};
+    unsigned char valbuf[HX_VALBUF_SIZE];
+    FD_INIT_INBUF(&vblock,valbuf,HX_VALBUF_SIZE,0);
     while (vsched_size) {
       qsort(vsched,vsched_size,sizeof(struct VALUE_SCHEDULE),
             sort_vs_by_refoff);
       i = 0; while (i<vsched_size) {
         int j = 0, n_vals;
         fd_size_t next_size;
-        fd_open_block(stream,&vblock,
-                      vsched[i].vsched_chunk.off,
-                      vsched[i].vsched_chunk.size,
-                      1);
-        n_vals = fd_read_zint(&vblock);
+        off_t off = vsched[i].vsched_chunk.off;
+        size_t size = vsched[i].vsched_chunk.size;
+        fd_inbuf valstream =
+          ( (HAVE_MMAP) && (size > vblock.buflen) &&
+            (size > fd_bigbuf_threshold) ) ?
+          ( fd_open_block(stream,&bigvblock,off,size,1) ) :
+          ( fd_open_block(stream,&vblock,off,size,1) );
+        n_vals = fd_read_zint(valstream);
         while (j<n_vals) {
-          lispval v = read_zvalue(hx,&vblock);
+          lispval v = read_zvalue(hx,valstream);
           if (CONSP(v)) vsched[i].vsched_atomicp = 0;
           *((vsched[i].vsched_write)++) = v;
           j++;}
-        next_size = fd_read_zint(&vblock);
+        next_size = fd_read_zint(valstream);
         if (next_size) {
           vsched[i].vsched_chunk.size = next_size;
-          vsched[i].vsched_chunk.off = fd_read_zint(&vblock);}
+          vsched[i].vsched_chunk.off = fd_read_zint(valstream);}
         else {
           vsched[i].vsched_chunk.size = 0;
           vsched[i].vsched_chunk.off = 0;}
@@ -1311,7 +1319,8 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
         struct VALUE_SCHEDULE *limit = read+vsched_size;
         vsched_size = 0; while (read<limit) {
           if (read->vsched_chunk.size) {
-            *write++= *read++; vsched_size++;}
+            *write++= *read++;
+            vsched_size++;}
           else {
             /* We're now done with this value, so we finalize it,
                using fd_init_choice to sort it.  Note that (rarely),
@@ -1328,8 +1337,9 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
                                           FD_CHOICE_REALLOC);
             values[index]=realv;
             read++;}}}}
-    fd_close_inbuf(&vblock);}
-  u8_free(vsched);
+    fd_close_inbuf(&vblock);
+    fd_close_inbuf(&bigvblock);}
+  u8_big_free(vsched);
 #if FD_DEBUG_HASHINDEXES
   u8_message("Finished reading %d keys from %s",n,hx->indexid);
 #endif
@@ -1363,7 +1373,7 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
   unsigned int *offdata = hx->index_offdata;
   fd_offset_type offtype = hx->index_offtype;
   int i = 0, n_buckets = (hx->index_n_buckets), n_to_fetch = 0;
-  int total_keys = 0, key_count = 0, buckets_len;
+  int total_keys = 0, key_count = 0, buckets_len, results_len;
   FD_CHUNK_REF *buckets;
   fd_lock_stream(s);
   total_keys = fd_read_4bytes(fd_start_read(s,16));
@@ -1371,13 +1381,16 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
     fd_unlock_stream(s);
     *n = 0;
     return NULL;}
-  buckets = u8_alloc_n(total_keys,FD_CHUNK_REF);
+  buckets = u8_big_alloc_n(total_keys,FD_CHUNK_REF);
   buckets_len=total_keys;
-  if (buckets == NULL) return NULL;
-  else results = u8_alloc_n(total_keys,lispval);
+  if (buckets == NULL)
+    return NULL;
+  else {
+    results = u8_big_alloc_n(total_keys,lispval);
+    results_len=total_keys;}
   if (results == NULL) {
     fd_unlock_stream(s);
-    u8_free(buckets);
+    u8_big_free(buckets);
     u8_seterr(fd_MallocFailed,"hashindex_fetchkeys",NULL);
     return NULL;}
   /* If we have chunk offsets in memory, we don't need to keep the
@@ -1385,13 +1398,13 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
   if (offdata) {
     fd_unlock_stream(s);
     while (i<n_buckets) {
-      FD_CHUNK_REF ref = fd_get_chunk_ref(offdata,offtype,i,
-                                          hx->index_n_buckets);
+      FD_CHUNK_REF ref =
+        fd_get_chunk_ref(offdata,offtype,i,hx->index_n_buckets);
       if (ref.size>0) {
         if (n_to_fetch >= buckets_len) {
           u8_log(LOGWARN,"BadKeyCount",
                  "Bad key count in %s: %d",ix->indexid,total_keys);
-          buckets=u8_realloc_n(buckets,n_buckets,FD_CHUNK_REF);
+          buckets=u8_big_realloc_n(buckets,n_buckets,FD_CHUNK_REF);
           buckets_len=n_buckets;}
         buckets[n_to_fetch++]=ref;}
       i++;}}
@@ -1402,45 +1415,51 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
         if (n_to_fetch >= buckets_len) {
           u8_log(LOGWARN,"BadKeyCount",
                  "Bad key count in %s: %d",ix->indexid,total_keys);
-          buckets=u8_realloc_n(buckets,n_buckets,FD_CHUNK_REF);
+          buckets=u8_big_realloc_n(buckets,n_buckets,FD_CHUNK_REF);
           buckets_len=n_buckets;}
         buckets[n_to_fetch++]=ref;}
       i++;}
     fd_unlock_stream(s);}
   if (n_to_fetch > total_keys) {
-    results = u8_realloc_n(results,n_to_fetch,lispval);}
+    results = u8_realloc_n(results,n_to_fetch,lispval);
+    results_len = n_to_fetch;}
   qsort(buckets,n_to_fetch,sizeof(FD_CHUNK_REF),sort_blockrefs_by_off);
-  struct FD_INBUF keyblkstrm={0};
+  unsigned char keyblock_buf[HX_KEYBUF_SIZE];
+  struct FD_INBUF keyblock={0};
+  FD_INIT_INBUF(&keyblock,keyblock_buf,HX_KEYBUF_SIZE,0);
   i = 0; while (i<n_to_fetch) {
     int j = 0, n_keys;
-    if (!fd_open_block(s,&keyblkstrm,buckets[i].off,buckets[i].size,1)) {
+    if (!fd_open_block(s,&keyblock,buckets[i].off,buckets[i].size,1)) {
       fd_unlock_stream(s);
-      u8_free(buckets);
-      u8_free(results);
-      fd_close_inbuf(&keyblkstrm);
+      u8_big_free(buckets);
+      u8_big_free(results);
+      fd_close_inbuf(&keyblock);
       *n=-1;
       return NULL;}
-    n_keys = fd_read_zint(&keyblkstrm);
+    n_keys = fd_read_zint(&keyblock);
     while (j<n_keys) {
       lispval key; int n_vals;
-      fd_read_zint(&keyblkstrm); /* IGNORE size */
-      key = read_key(hx,&keyblkstrm);
-      n_vals = fd_read_zint(&keyblkstrm);
+      fd_read_zint(&keyblock); /* IGNORE size */
+      key = read_key(hx,&keyblock);
+      n_vals = fd_read_zint(&keyblock);
+      if (key_count >= results_len) {
+        results=u8_big_realloc(results,sizeof(lispval)*results_len*2);
+        results_len = results_len * 2;}
       results[key_count++]=key;
       if (n_vals==0) {}
       else if (n_vals==1) {
-        int code = fd_read_zint(&keyblkstrm);
+        int code = fd_read_zint(&keyblock);
         if (code==0) {
-          lispval val = fd_read_dtype(&keyblkstrm);
+          lispval val = fd_read_dtype(&keyblock);
           fd_decref(val);}
-        else fd_read_zint(&keyblkstrm);}
+        else fd_read_zint(&keyblock);}
       else {
-        fd_read_zint(&keyblkstrm);
-        fd_read_zint(&keyblkstrm);}
+        fd_read_zint(&keyblock);
+        fd_read_zint(&keyblock);}
       j++;}
     i++;}
-  fd_close_inbuf(&keyblkstrm);
-  u8_free(buckets);
+  fd_close_inbuf(&keyblock);
+  u8_big_free(buckets);
   *n = total_keys;
   return results;
 }
@@ -1461,30 +1480,24 @@ struct FD_KEY_SIZE *hashindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
     fd_unlock_stream(s);
     *n = 0;
     return NULL;}
-  FD_CHUNK_REF *buckets = u8_alloc_n(total_keys,FD_CHUNK_REF);
-  struct FD_KEY_SIZE *sizes = u8_alloc_n(total_keys,FD_KEY_SIZE);
-  buckets_len=total_keys;
+  FD_CHUNK_REF *buckets = u8_big_alloc_n(total_keys,FD_CHUNK_REF);
+  if (buckets)
+    buckets_len=total_keys;
+  else {
+    fd_unlock_stream(s);
+    u8_seterr(fd_MallocFailed,"hashindex_fetchinfo/buckets",NULL);
+    *n = -1;
+    return NULL;}
+  struct FD_KEY_SIZE *sizes = u8_big_alloc_n(total_keys,FD_KEY_SIZE);
   if (sizes == NULL) {
     fd_unlock_stream(s);
-    u8_seterr(fd_MallocFailed,"hashindex_fetchinfo",NULL);
+    if (buckets)  u8_big_free(buckets);
+    u8_seterr(fd_MallocFailed,"hashindex_fetchinfo/sizes",NULL);
     *n = -1;
     return NULL;}
   /* If we don't have chunk offsets in memory, we keep the stream
      locked while we get them. */
-  if (offdata) {
-    fd_unlock_stream(s);
-    while (i<n_buckets) {
-      FD_CHUNK_REF ref = fd_get_chunk_ref(offdata,offtype,i,
-                                          hx->index_n_buckets);
-      if (ref.size>0) {
-        if (n_to_fetch >= buckets_len) {
-          u8_log(LOGWARN,"BadKeyCount",
-                 "Bad key count in %s: %d",ix->indexid,total_keys);
-          buckets=u8_realloc_n(buckets,n_buckets,FD_CHUNK_REF);
-          buckets_len=n_buckets;}
-        buckets[n_to_fetch++]=ref;}
-      i++;}}
-  else {
+  if (offdata == NULL) {
     while (i<n_buckets) {
       FD_CHUNK_REF ref = fd_fetch_chunk_ref(s,256,offtype,i,1);
       if (ref.size>0) {
@@ -1496,15 +1509,28 @@ struct FD_KEY_SIZE *hashindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
         buckets[n_to_fetch++]=ref;}
       i++;}
     fd_unlock_stream(s);}
-  if (n_to_fetch > total_keys) {
-    sizes = u8_realloc_n(sizes,n_to_fetch,FD_KEY_SIZE);}
+  else {
+    fd_unlock_stream(s);
+    int ref_i=0; while (ref_i<n_buckets) {
+      FD_CHUNK_REF ref = fd_get_chunk_ref
+        (offdata,offtype,ref_i,hx->index_n_buckets);
+      if (ref.size>0) {
+        if (n_to_fetch >= buckets_len) {
+          u8_log(LOGWARN,"BadKeyCount",
+                 "Bad key count in %s: %d",ix->indexid,total_keys);
+          /* Allocate the whole n_buckets if something goes wrong */
+          buckets = u8_big_realloc_n(buckets,n_buckets,FD_CHUNK_REF);
+          sizes   = u8_big_realloc_n(sizes,n_buckets,FD_KEY_SIZE);
+          buckets_len=n_buckets;}
+        buckets[n_to_fetch++]=ref;}
+      ref_i++;}}
   qsort(buckets,n_to_fetch,sizeof(FD_CHUNK_REF),sort_blockrefs_by_off);
   struct FD_INBUF keyblkstrm={0};
   i = 0; while (i<n_to_fetch) {
     int j = 0, n_keys;
     if (!fd_open_block(s,&keyblkstrm,buckets[i].off,buckets[i].size,1)) {
       fd_close_inbuf(&keyblkstrm);
-      u8_free(buckets);
+      u8_big_free(buckets);
       *n=-1;
       return NULL;}
     n_keys = fd_read_zint(&keyblkstrm);
@@ -1515,8 +1541,8 @@ struct FD_KEY_SIZE *hashindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
       n_vals = fd_read_zint(&keyblkstrm);
       assert(key!=0);
       if ( (filter == NULL) || (fast_choice_containsp(key,filter)) ) {
-        sizes[key_count].keysizekey = key;
-        sizes[key_count].keysizenvals = n_vals;
+        sizes[key_count].keysize_key = key;
+        sizes[key_count].keysize_count = n_vals;
         key_count++;}
       else fd_decref(key);
       if (n_vals==0) {}
@@ -1532,7 +1558,7 @@ struct FD_KEY_SIZE *hashindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
       j++;}
     i++;}
   fd_close_inbuf(&keyblkstrm);
-  u8_free(buckets);
+  u8_big_free(buckets);
   *n=key_count;
   return sizes;
 }
@@ -1555,14 +1581,14 @@ static void hashindex_getstats(struct FD_HASHINDEX *hx,
     fd_unlock_stream(s);
     *nf = 0; *max = 0; *singles = 0; *n2sum = 0;
     return;}
-  buckets = u8_alloc_n(total_keys,FD_CHUNK_REF);
+  buckets = u8_big_alloc_n(total_keys,FD_CHUNK_REF);
   /* If we don't have chunk offsets in memory, we keep the stream
      locked while we get them. */
   if (offdata) {
     fd_unlock_stream(s);
     while (i<n_buckets) {
-      FD_CHUNK_REF ref = fd_get_chunk_ref(offdata,offtype,i,
-                                          hx->index_n_buckets);
+      FD_CHUNK_REF ref =
+        fd_get_chunk_ref(offdata,offtype,i,hx->index_n_buckets);
       if (ref.size>0) {
         if (n_to_fetch >= buckets_len) {
           u8_log(LOGWARN,"BadKeyCount",
@@ -1587,14 +1613,14 @@ static void hashindex_getstats(struct FD_HASHINDEX *hx,
   struct FD_INBUF keyblkstrm={0};
   int n_keys;
   i = 0; while (i<n_to_fetch) {
-    open_block(&keyblkstrm,hx,buckets[i].off,buckets[i].size,NULL);
+    fd_open_block(s,&keyblkstrm,buckets[i].off,buckets[i].size,1);
     n_keys = fd_read_zint(&keyblkstrm);
     if (n_keys==1) (*singles)++;
     if (n_keys>(*max)) *max = n_keys;
     *n2sum = *n2sum+(n_keys*n_keys);
     i++;}
   fd_close_inbuf(&keyblkstrm);
-  if (buckets) u8_free(buckets);
+  if (buckets) u8_big_free(buckets);
 }
 
 
@@ -1633,8 +1659,8 @@ static void hashindex_setcache(struct FD_HASHINDEX *hx,int level)
         errno = 0;}
       else hx->index_offdata = buckets = newmmap+64;
 #else
-      ht_buckets = u8_alloc_n(chunk_ref_size*(hx->index_n_buckets),
-                              unsigned int);
+      ht_buckets = u8_big_alloc_n
+        (chunk_ref_size*(hx->index_n_buckets),unsigned int);
       fd_lock_stream(s);
       stream_start_read(s);
       fd_setpos(s,256);
@@ -1665,7 +1691,7 @@ static void hashindex_setcache(struct FD_HASHINDEX *hx,int level)
              "hashindex_setcache:munmap %s",hx->index_source);
       errno = 0;}
 #else
-    u8_free(offdata);
+    u8_big_free(offdata);
 #endif
   }
   else {}
@@ -1816,8 +1842,8 @@ static int process_drops(struct FD_HASHINDEX *hx,
                          int sched_i)
 {
   fd_hashtable cache = &(hx->index_cache);
-  lispval *to_fetch = u8_alloc_n(n_drops,lispval); int n_fetches = 0;
-  int *fetch_scheds = u8_alloc_n(n_drops,unsigned int);
+  lispval *to_fetch = u8_big_alloc_n(n_drops,lispval); int n_fetches = 0;
+  int *fetch_scheds = u8_big_alloc_n(n_drops,unsigned int);
   int oddkeys = ((hx->storage_xformat)&(FD_HASHINDEX_ODDKEYS));
   int drop_i = 0; while ( drop_i < n_drops) {
     lispval key = drops[drop_i].kv_key, val = drops[drop_i].kv_val;
@@ -1859,8 +1885,8 @@ static int process_drops(struct FD_HASHINDEX *hx,
     j++;}
 
   fd_decref_vec(drop_vals,n_fetches,1);
-  u8_free(fetch_scheds);
-  u8_free(to_fetch);
+  u8_big_free(fetch_scheds);
+  u8_big_free(to_fetch);
 
   return sched_i;
 }
@@ -1901,15 +1927,16 @@ FD_FASTOP void parse_keybucket(fd_hashindex hx,struct KEYBUCKET *kb,
   while (i<n_keys) {
     int dt_size = fd_read_zint(in), n_values;
     struct KEYENTRY *entry = base_entry+i;
-    entry->ke_dtrep_size = dt_size; entry->ke_dtstart = in->bufread;
-    in->bufread = in->bufread+dt_size;
-    entry->ke_nvals = n_values = fd_read_zint(in);
+    entry->ke_dtrep_size = dt_size;
+    entry->ke_dtstart    = in->bufread;
+    in->bufread          = in->bufread+dt_size;
+    entry->ke_nvals      = n_values = fd_read_zint(in);
     if (n_values==0) entry->ke_values = EMPTY;
     else if (n_values==1)
       entry->ke_values = read_zvalue(hx,in);
     else {
-      entry->ke_values = VOID;
-      entry->ke_vref.off = fd_read_zint(in);
+      entry->ke_values    = VOID;
+      entry->ke_vref.off  = fd_read_zint(in);
       entry->ke_vref.size = fd_read_zint(in);}
     i++;}
 }
@@ -2000,7 +2027,8 @@ FD_FASTOP fd_off_t extend_keybucket
           endpos = ke[key_i].ke_vref.off+ke[key_i].ke_vref.size;}
         if (endpos>=maxpos) {
           if (free_keyvecs) {
-            u8_free(keyoffs); u8_free(keysizes);
+            u8_big_free(keyoffs);
+            u8_big_free(keysizes);
             u8_seterr(fd_DataFileOverflow,"extend_keybucket",
                       u8_mkstring("%s: %lld >= %lld",
                                   hx->indexid,endpos,maxpos));
@@ -2046,7 +2074,8 @@ FD_FASTOP fd_off_t extend_keybucket
           endpos = ke[key_i].ke_vref.off+ke[key_i].ke_vref.size;}
         if (endpos>=maxpos) {
           if (free_keyvecs) {
-            u8_free(keyoffs); u8_free(keysizes);
+            u8_big_free(keyoffs);
+            u8_big_free(keysizes);
             u8_seterr(fd_DataFileOverflow,"extend_keybucket",
                       u8_mkstring("%s: %lld >= %lld",
                                   hx->indexid,endpos,maxpos));
@@ -2072,7 +2101,8 @@ FD_FASTOP fd_off_t extend_keybucket
         endpos = ke[key_i].ke_vref.off+ke[key_i].ke_vref.size;
         if (endpos>=maxpos) {
           if (free_keyvecs) {
-            u8_free(keyoffs); u8_free(keysizes);
+            u8_big_free(keyoffs);
+            u8_big_free(keysizes);
             u8_seterr(fd_DataFileOverflow,"extend_keybucket",
                       u8_mkstring("%s: %lld >= %lld",
                                   hx->indexid,endpos,maxpos));
@@ -2123,7 +2153,7 @@ FD_FASTOP struct KEYBUCKET *read_keybucket
      the keybucket. */
   if (ref.size>0) {
     unsigned char *keybuf=u8_malloc(ref.size);
-    ssize_t read_result=fd_read_block(stream,keybuf, ref.size,ref.off,1);
+    ssize_t read_result=fd_read_block(stream,keybuf,ref.size,ref.off,1);
     if (read_result<0)
       return NULL;
     else {
@@ -2134,15 +2164,16 @@ FD_FASTOP struct KEYBUCKET *read_keybucket
         u8_malloc(sizeof(struct KEYBUCKET)+
                   sizeof(struct KEYENTRY)*((extra+n_keys)-1));
       kb->kb_bucketno = bucket;
-      kb->kb_n_keys = n_keys;
-      kb->kb_keybuf = keybuf;
+      kb->kb_n_keys   = n_keys;
+      kb->kb_keybuf   = keybuf;
       parse_keybucket(hx,kb,&keystream,n_keys);}}
   else {
     kb = (struct KEYBUCKET *)
       u8_malloc(sizeof(struct KEYBUCKET)+
                 sizeof(struct KEYENTRY)*(extra-1));
     kb->kb_bucketno = bucket;
-    kb->kb_n_keys = 0; kb->kb_keybuf = NULL;}
+    kb->kb_n_keys   = 0;
+    kb->kb_keybuf   = NULL;}
   return kb;
 }
 
@@ -2165,6 +2196,7 @@ static int hashindex_save(struct FD_INDEX *ix,
   if (!(u8_file_writablep(fname))) {
     fd_seterr("CantWriteFile","hashindex_save",fname,FD_VOID);
     return -1;}
+  fd_lock_index(hx);
   struct FD_STREAM _stream = {0}, *stream =
     fd_init_file_stream(&_stream,fname,FD_FILE_WRITE,-1,-1);
   struct FD_OUTBUF *outstream = fd_writebuf(stream);
@@ -2175,23 +2207,29 @@ static int hashindex_save(struct FD_INDEX *ix,
            "Bad offset type code=%d for %s",(int)offtype,hx->indexid);
     u8_seterr("CorruptedHashIndex","hashindex_save",u8_strdup(ix->indexid));
     fd_close_stream(stream,0);
+    fd_unlock_index(hx);
     return -1;}
 
   if (  (n_adds==0) && (n_drops==0) && (n_stores==0) ) {
     if (fd_modifiedp((lispval)&(hx->index_metadata)))
       update_hashindex_metadata(hx,stream);
     fd_close_stream(stream,FD_STREAM_FREEDATA);
+    fd_unlock_index(hx);
     return 0;}
 
-  u8_string recovery_file=u8_string_append(fname,".recovery",NULL);
+  u8_string recovery_file=u8_string_append(fname,".rollback",NULL);
   size_t recovery_size = 256+(get_chunk_ref_size(hx)*hx->index_n_buckets);
   ssize_t saved=fd_save_head(fname,recovery_file,recovery_size);
-  if (saved<0)
-    return saved;
+  if (saved<0) {
+    u8_seterr("CouldntSaveHead","hashindex_commit",recovery_file);
+    return saved;}
   else {
     fd_setpos(stream,0);
-    if (fd_write_4bytes(outstream,FD_HASHINDEX_TO_RECOVER)<0) {
+    if (fd_write_4bytes(outstream,FD_HASHINDEX_MAGIC_NUMBER)<0) { /* FD_HASHINDEX_TO_RECOVER */
       fd_close_stream(stream,FD_STREAM_FREEDATA);
+      fd_unlock_index(hx);
+      u8_seterr("PreRecoverFailed","hashindex_commit",
+                u8_strdup("Failed to write recovery header"));
       return -1;}}
 
   int new_keys = 0, n_keys, new_buckets = 0;
@@ -2201,17 +2239,16 @@ static int hashindex_save(struct FD_INDEX *ix,
   double started = u8_elapsed_time();
   unsigned int n_buckets = hx->index_n_buckets;
   unsigned int *offdata = hx->index_offdata;
-  fd_lock_index(hx);
   schedule_max = n_adds + n_drops + n_stores;
-  bucket_locs = u8_alloc_n(schedule_max,struct BUCKET_REF);
+  bucket_locs = u8_big_alloc_n(schedule_max,struct BUCKET_REF);
 
   /* This is where we write everything to disk */
   int sched_i = 0, bucket_i = 0;
   int schedule_size = 0;
   struct COMMIT_SCHEDULE *schedule=
-    u8_alloc_n(schedule_max,struct COMMIT_SCHEDULE);
+    u8_big_alloc_n(schedule_max,struct COMMIT_SCHEDULE);
   struct KEYBUCKET **keybuckets=
-    u8_alloc_n(schedule_max,struct KEYBUCKET *);
+    u8_big_alloc_n(schedule_max,struct KEYBUCKET *);
   struct FD_OUTBUF out, newkeys;
 
   /* Get all the keys we need to write.  */
@@ -2227,8 +2264,8 @@ static int hashindex_save(struct FD_INDEX *ix,
   FD_INIT_BYTE_OUTPUT(&out,1024);
   FD_INIT_BYTE_OUTPUT(&newkeys,schedule_max*16);
   if ((hx->storage_xformat)&(FD_HASHINDEX_DTYPEV2)) {
-    out.buf_flags = out.buf_flags|FD_USE_DTYPEV2;
-    newkeys.buf_flags = newkeys.buf_flags|FD_USE_DTYPEV2;}
+    out.buf_flags |= FD_USE_DTYPEV2;
+    newkeys.buf_flags |= FD_USE_DTYPEV2;}
 
   /* Compute the hashes and the buckets for all of the keys
      in the commit schedule. */
@@ -2311,11 +2348,13 @@ static int hashindex_save(struct FD_INDEX *ix,
       endpos = write_keybucket(hx,stream,kb,endpos,maxpos);
       new_keyblocks++;
       if (endpos<0) {
-        u8_free(bucket_locs);
-        u8_free(schedule);
-        u8_free(keybuckets);
+        u8_big_free(bucket_locs);
+        u8_big_free(schedule);
+        u8_big_free(keybuckets);
         fd_unlock_index(hx);
         fd_close_stream(stream,FD_STREAM_FREEDATA);
+        u8_seterr("WriteKeyBucketFailed","hashindex_commit",
+                  u8_strdup(hx->indexid));
         return -1;}
       CHECK_POS(endpos,stream);
       bucket_locs[bucket_i].bck_ref.off = startpos;
@@ -2333,9 +2372,9 @@ static int hashindex_save(struct FD_INDEX *ix,
       schedule[sched_i].commit_values = VOID;
       fd_decref(v);}
     sched_i++;}
-  u8_free(schedule);
-  u8_free(out.buffer);
-  u8_free(newkeys.buffer);
+  u8_big_free(schedule);
+  fd_close_outbuf(&out);
+  fd_close_outbuf(&newkeys);
   n_keys = schedule_size;
 
   total_keys += new_keys;
@@ -2349,7 +2388,7 @@ static int hashindex_save(struct FD_INDEX *ix,
     u8_free(recovery_file);}
 
   /* Free the bucket locations */
-  u8_free(bucket_locs);
+  u8_big_free(bucket_locs);
   /* And unlock all the locks. */
   fd_close_stream(stream,FD_STREAM_FREEDATA);
   fd_unlock_index(hx);
@@ -2371,7 +2410,7 @@ static void free_keybuckets(int n,struct KEYBUCKET **keybuckets)
        the commit schedule from where they'll be freed. */
     if (kb->kb_keybuf) u8_free(kb->kb_keybuf);
     u8_free(kb);}
-  u8_free(keybuckets);
+  u8_big_free(keybuckets);
 }
 
 static int update_hashindex_metadata(fd_hashindex hx,struct FD_STREAM *stream)
@@ -2428,11 +2467,11 @@ static int update_hashindex_ondisk
   else offdata = memblock+64;
 #else
   size_t offdata_length = n_buckets*chunk_ref_size;
-  offdata = u8_malloc(offdata_length);
+  offdata = u8_big_alloc(offdata_length);
   int rv = fd_read_ints(stream,offdata_length/4,offdata);
   if (rv<0) {
     u8_graberrno("update_hashindex_ondisk:fd_read_ints",u8_strdup(hx->indexid));
-    u8_free(offdata);
+    u8_big_free(offdata);
     return -1;}
 #endif
   /* Update the buckets if you have them */
@@ -2534,6 +2573,7 @@ static int update_hashindex_ondisk
     if (hx->index_offtype == FD_B64)
       fd_write_ints(outstream,3*SIZEOF_INT*n_buckets,offdata);
     else fd_write_ints(outstream,2*SIZEOF_INT*n_buckets,offdata);
+    u8_big_free(offdata);
 #endif
   }
 
@@ -2559,7 +2599,7 @@ static void reload_offdata(struct FD_INDEX *ix)
   unsigned int *offdata=NULL;
   if (hx->index_offdata==NULL)
     return;
-  offdata=hx->index_offdata;
+  else offdata=hx->index_offdata;
   fd_stream stream = &(hx->index_stream);
   unsigned int n_buckets = hx->index_n_buckets;
   unsigned int chunk_ref_size = get_chunk_ref_size(hx);
@@ -2591,7 +2631,7 @@ static void hashindex_close(fd_index ix)
              "hashindex_close:munmap %s",hx->index_source);
       errno = 0;}
 #else
-    u8_free(offdata);
+    u8_big_free(offdata);
 #endif
     hx->index_offdata = NULL;
     hx->index_cache_level = -1;}
@@ -2747,8 +2787,8 @@ FD_EXPORT lispval fd_hashindex_keyinfo(lispval lix,
     return FD_EMPTY_CHOICE;}
   struct FD_CHOICE *choice = fd_alloc_choice(total_keys);
   lispval *elts  = (lispval *) FD_CHOICE_DATA(choice);
-  FD_CHUNK_REF *buckets = u8_alloc_n(total_keys,FD_CHUNK_REF);
-  int *bucket_no = u8_alloc_n(total_keys,unsigned int);
+  FD_CHUNK_REF *buckets = u8_big_alloc_n(total_keys,FD_CHUNK_REF);
+  int *bucket_no = u8_big_alloc_n(total_keys,unsigned int);
   if (offdata) {
     /* If we have chunk offsets in memory, we just read them off. */
     fd_unlock_stream(s);
@@ -2777,8 +2817,8 @@ FD_EXPORT lispval fd_hashindex_keyinfo(lispval lix,
     int j = 0, n_keys;
     if (!fd_open_block(s,&keyblkstrm,buckets[i].off,buckets[i].size,1)) {
       fd_close_inbuf(&keyblkstrm);
-      u8_free(buckets);
-      u8_free(bucket_no);
+      u8_big_free(buckets);
+      u8_big_free(bucket_no);
       fd_decref_elts(elts,key_count);
       return FD_EMPTY_CHOICE;}
     n_keys = fd_read_zint(&keyblkstrm);
@@ -2812,8 +2852,8 @@ FD_EXPORT lispval fd_hashindex_keyinfo(lispval lix,
       j++;}
     i++;}
   fd_close_inbuf(&keyblkstrm);
-  u8_free(buckets);
-  u8_free(bucket_no);
+  u8_big_free(buckets);
+  u8_big_free(bucket_no);
   return fd_init_choice(choice,key_count,NULL,
                         FD_CHOICE_REALLOC|
                         FD_CHOICE_ISCONSES|
@@ -2862,8 +2902,8 @@ static lispval hashbucket_info(struct FD_HASHINDEX *hx,lispval bucket_nums)
   init_cache_level((fd_index)hx);
   fd_lock_stream(s);
   lispval keyinfo = FD_EMPTY;
-  FD_CHUNK_REF *buckets = u8_alloc_n(n_to_fetch,FD_CHUNK_REF);
-  int *bucket_no = u8_alloc_n(n_to_fetch,unsigned int);
+  FD_CHUNK_REF *buckets = u8_big_alloc_n(n_to_fetch,FD_CHUNK_REF);
+  int *bucket_no = u8_big_alloc_n(n_to_fetch,unsigned int);
   if (offdata) {
     /* If we have chunk offsets in memory, we just read them off. */
     fd_unlock_stream(s);
@@ -2894,8 +2934,8 @@ static lispval hashbucket_info(struct FD_HASHINDEX *hx,lispval bucket_nums)
     int j = 0, n_keys;
     if (!fd_open_block(s,&keyblkstrm,buckets[i].off,buckets[i].size,1)) {
       fd_close_inbuf(&keyblkstrm);
-      u8_free(buckets);
-      u8_free(bucket_no);
+      u8_big_free(buckets);
+      u8_big_free(bucket_no);
       fd_decref(keyinfo);
       return FD_EMPTY_CHOICE;}
     n_keys = fd_read_zint(&keyblkstrm);
@@ -2925,8 +2965,8 @@ static lispval hashbucket_info(struct FD_HASHINDEX *hx,lispval bucket_nums)
       j++;}
     i++;}
   fd_close_inbuf(&keyblkstrm);
-  u8_free(buckets);
-  u8_free(bucket_no);
+  u8_big_free(buckets);
+  u8_big_free(bucket_no);
   return keyinfo;
 }
 
@@ -2940,8 +2980,8 @@ static lispval hashrange_info(struct FD_HASHINDEX *hx,
   init_cache_level((fd_index)hx);
   fd_lock_stream(s);
   lispval keyinfo = FD_EMPTY;
-  FD_CHUNK_REF *buckets = u8_alloc_n(n_to_fetch,FD_CHUNK_REF);
-  int *bucket_no = u8_alloc_n(n_to_fetch,unsigned int);
+  FD_CHUNK_REF *buckets = u8_big_alloc_n(n_to_fetch,FD_CHUNK_REF);
+  int *bucket_no = u8_big_alloc_n(n_to_fetch,unsigned int);
   if (offdata) {
     /* If we have chunk offsets in memory, we just read them off. */
     fd_unlock_stream(s);
@@ -2969,8 +3009,8 @@ static lispval hashrange_info(struct FD_HASHINDEX *hx,
     int j = 0, n_keys;
     if (!fd_open_block(s,&keyblkstrm,buckets[i].off,buckets[i].size,1)) {
       fd_close_inbuf(&keyblkstrm);
-      u8_free(buckets);
-      u8_free(bucket_no);
+      u8_big_free(buckets);
+      u8_big_free(bucket_no);
       fd_decref(keyinfo);
       return FD_EMPTY_CHOICE;}
     n_keys = fd_read_zint(&keyblkstrm);
@@ -3000,8 +3040,8 @@ static lispval hashrange_info(struct FD_HASHINDEX *hx,
       j++;}
     i++;}
   fd_close_inbuf(&keyblkstrm);
-  u8_free(buckets);
-  u8_free(bucket_no);
+  u8_big_free(buckets);
+  u8_big_free(bucket_no);
   return keyinfo;
 }
 
@@ -3125,16 +3165,15 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
         static_choice.choice_isatomic=(!(FD_CONSP(arg0)));
         static_choice.choice_0=arg0;
         filter=&static_choice;}}
-    struct FD_KEY_SIZE *info=
-      hashindex_fetchinfo(ix,filter,&n_keys);
+    struct FD_KEY_SIZE *info = hashindex_fetchinfo(ix,filter,&n_keys);
     struct FD_HASHTABLE *table= (fd_hashtable) fd_make_hashtable(NULL,n_keys);
     int i=0; while (i<n_keys) {
       fd_hashtable_op_nolock(table,fd_table_store,
-                             info[i].keysizekey,
-                             FD_INT(info[i].keysizenvals));
-      fd_decref(info[i].keysizekey);
+                             info[i].keysize_key,
+                             FD_INT(info[i].keysize_count));
+      fd_decref(info[i].keysize_key);
       i++;}
-    u8_free(info);
+    u8_big_free(info);
     return (lispval)table;}
   else return fd_default_indexctl(ix,op,n,args);
 }

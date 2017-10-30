@@ -55,6 +55,10 @@
 (define-init persist-default #f)
 (varconfig! optimize:persist persist-default)
 
+(define-init keep-source-default #t)
+(varconfig! optimize:keepsource keep-source-default)
+
+
 (define (optmode-macro optname thresh varname)
   (macro expr
     `(getopt ,(cadr expr) ',optname
@@ -73,6 +77,7 @@
 (define use-substs? (optmode substs 2 substs-default))
 (define use-lexrefs? (optmode lexrefs 2 lexrefs-default))
 (define rewrite? (optmode 'rewrite 3 rewrite-default))
+(define keep-source? (optmode keepsource 2 keep-source-default))
 
 ;;; Controls whether optimization warnings are emitted in real time
 ;;; (when encountered)
@@ -86,6 +91,13 @@
 (defslambda (codewarning warning)
   (debug%watch "CODEWARNING" warning)
   (threadset! 'codewarnings (choice warning (threadget 'codewarnings))))
+
+
+
+(define (annotate optimized source opts)
+  (if (keep-source? opts)
+      (cons* sourcref-opcode source optimized)
+      optimized))
 
 ;;; What we export
 
@@ -266,6 +278,8 @@
 (define choiceref-opcode #OP_CHOICEREF)
 (define fixchoice-opcode  #OP_FIXCHOICE)
 
+(define sourcref-opcode  #OP_SOURCEREF)
+
 (def-opcode AMBIGUOUS? #OP_AMBIGP 1)
 (def-opcode SINGLETON? #OP_SINGLETONP 1)
 (def-opcode EMPTY?     #OP_FAILP 1)
@@ -326,6 +340,8 @@
 (def-opcode GET        #OP_FGET 2)
 (def-opcode TEST       #OP_FTEST 3)
 (def-opcode ASSERT!    #OP_ASSERT 3)
+(def-opcode ADD!       #OP_ADD 3)
+(def-opcode DROP!      #OP_DROP 3)
 (def-opcode RETRACT!   #OP_RETRACT 3)
 (def-opcode %GET       #OP_PGET 2)
 (def-opcode %TEST      #OP_PTEST 3)
@@ -460,10 +476,10 @@
   (let* ((head (get-arg expr 0))
 	 (use-opcodes (use-opcodes? opts))
 	 (n-exprs (-1+ (length expr)))
-	 (value (if (symbol? head)
-		    (or (get-lexref head bound 0)
-			(get env head))
-		    head))
+	 (headvalue (if (symbol? head)
+			(or (get-lexref head bound 0)
+			    (get env head))
+			head))
 	 (from (and (symbol? head)
 		    (not (get-lexref head bound 0))
 		    (wherefrom head env))))
@@ -477,61 +493,76 @@
 	   expr)
 	  ((and from (%test from '%rewrite)
 		(%test (get from '%rewrite) head))
-	   (do-rewrite (get (get from '%rewrite) head) 
-		       expr env bound opts))
-	  ((and (ambiguous? value)
-		(or (exists special-form? value)
-		    (exists macro? value)))
+	   (annotate (do-rewrite (get (get from '%rewrite) head) 
+				 expr env bound opts)
+		     expr opts))
+	  ((and (ambiguous? headvalue)
+		(or (exists special-form? headvalue)
+		    (exists macro? headvalue)))
 	   (logwarn |CantOptimize|
 	     "Ambiguous head includes a macro or special form"
 	     expr)
 	   expr)
-	  ((fail? value)
+	  ((fail? headvalue)
 	   (logwarn |CantOptimize|
 	     "The head's value is the empty choice"
 	     expr)
 	   expr)
-	  ((exists special-form? value)
-	   (loginfo |SpecialForm| "Optimizing reference to " value)
+	  ((exists special-form? headvalue)
+	   (loginfo |SpecialForm| "Optimizing reference to " headvalue)
 	   (let* ((optimizer
-		   (try (get special-form-optimizers value)
+		   (try (get special-form-optimizers headvalue)
 			(get special-form-optimizers
-			     (procedure-name value))
+			     (procedure-name headvalue))
 			(get special-form-optimizers head)))
-		  (transformed (try (optimizer value expr env bound opts)
+		  (transformed (try (optimizer headvalue expr env bound opts)
 				    expr))
 		  (newhead (car transformed)))
-	     (cons (try (get opcode-map newhead)
-			(tryif (use-fcnrefs? opts)
-			  (get-fcnid head #f newhead))
-			newhead)
-		   (cdr transformed))))
-	  ((exists macro? value)
-	   (optimize (macroexpand value expr) env bound opts))
-	  ((fail? (reject value applicable?))
+	     (cond ((equal? transformed expr)
+		    (cons (try (get opcode-map newhead)
+			       (tryif (use-fcnrefs? opts)
+				 (get-fcnid head #f newhead))
+			       newhead)
+			  (cdr transformed)) )
+		   ((test opcode-map newhead)
+		    (annotate (cons (get opcode-map newhead)
+				    (cdr transformed))
+			      expr opts))
+		   (else (annotate (cons (try (get opcode-map newhead)
+					      (tryif (use-fcnrefs? opts)
+						(get-fcnid head #f newhead))
+					      newhead)
+					 (cdr transformed))
+				   expr opts)))))
+	  ((exists macro? headvalue)
+	   (annotate (optimize (macroexpand headvalue expr) env bound opts)
+		     expr opts))
+	  ((fail? (reject headvalue applicable?))
 	   ;; If all of the head values are applicable, we optimize
 	   ;;  the call, replacing the head with shortcuts to the
 	   ;;  value
-	   (check-arguments value n-exprs expr)
-	   (try (tryif (singleton? (get procedure-optimizers value))
-		  ((get procedure-optimizers value)
-		   value expr env bound opts))
-		(callcons
-		 (cond ((or (not from) (fail? value)
-			    (test from '%nosubst head))
-			head)
-		       ((test from '%volatile head)
-			`(#OP_SYMREF ,from ,head))
-		       ((map-opcode value opts n-exprs)
-			(map-opcode value opts n-exprs))
-		       (else (%wc fcnref value head env opts)))
-		 (optimize-args (cdr expr) env bound opts))))
-	  ((%lexref? value)
-	   (cons value (optimize-args (cdr expr) env bound opts)))
+	   (check-arguments headvalue n-exprs expr)
+	   (try (tryif (singleton? (get procedure-optimizers headvalue))
+		  ((get procedure-optimizers headvalue)
+		   headvalue expr env bound opts))
+		(annotate
+		 (callcons
+		  (cond ((or (not from) (fail? headvalue)
+			     (test from '%nosubst head))
+			 head)
+			((test from '%volatile head)
+			 `(#OP_SYMREF ,from ,head))
+			((map-opcode headvalue opts n-exprs)
+			 (map-opcode headvalue opts n-exprs))
+			(else (fcnref headvalue head env opts)))
+		  (optimize-args (cdr expr) env bound opts))
+		 expr opts)))
+	  ((%lexref? headvalue)
+	   (cons headvalue (optimize-args (cdr expr) env bound opts)))
 	  (else
 	   (when (and optwarn from
 		      (not (test from '{%nosubst %volatile} head)))
-	     (codewarning (cons* 'NOTFCN expr value))
+	     (codewarning (cons* 'NOTFCN expr headvalue))
 	     (warning "The current value of " expr " (" head ") "
 		      "doesn't appear to be a applicable given "
 		      (apply append bound)))
