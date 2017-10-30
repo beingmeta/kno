@@ -207,6 +207,9 @@
 /* Define if you have the setegid library function.  */
 #undef HAVE_SETEGID
 
+/* Define if you have the setegid library function.  */
+#undef HAVE_GETUMASK
+
 /* Define if you have the getpwnam library function.  */
 #undef HAVE_GETPWNAM
 

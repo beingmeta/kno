@@ -5,8 +5,8 @@
    (strchr(s,' '))||(strchr(s,'\t'))|| \
    (strchr(s,'\n'))||(strchr(s,'\r')))
 
-static void write_cmd_file(u8_string cmd_file,u8_condition label,
-                           int argc,char **argv)
+U8_MAYBE_UNUSED static
+void write_cmd_file(u8_string cmd_file,u8_condition label,int argc,char **argv)
 {
   const char *abspath = u8_abspath(cmd_file,NULL);
   int i = 0, fd = open(abspath,O_CREAT|O_RDWR|O_TRUNC,
