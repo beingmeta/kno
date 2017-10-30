@@ -333,6 +333,7 @@ STATIC_EXECUTABLES=static/fdexec@suffix@ static/fdconsole@suffix@ \
 	static/fdservlet@suffix@ static/fdserver@suffix@
 SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig etc/fdconfig \
 	etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall \
+	etc/fd_start_daemons etc/fd_start_servlets etc/fd_stop_jobs \
 	etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog  \
 	etc/fdrestart etc/fdctl etc/fdgdb \
 	etc/fdcleanup

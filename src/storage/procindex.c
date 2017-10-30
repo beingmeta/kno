@@ -131,8 +131,17 @@ static lispval *procindex_fetchn(fd_index ix,int n,const lispval *keys)
 {
   struct FD_PROCINDEX *pix = (fd_procindex)ix;
   lispval lp = fd_index2lisp(ix);
-  if (VOIDP(pix->fetchnfn))
-    return NULL;
+  if (VOIDP(pix->fetchnfn)) {
+    lispval *vals = u8_big_alloc_n(n,lispval);
+    int i = 0; while (i<n) {
+      lispval key = keys[i];
+      lispval v = procindex_fetch(ix,key);
+      if (FD_ABORTP(v)) {
+        fd_decref_vec(vals,i,0);
+        u8_big_free(vals);
+        return NULL;}
+      else vals[i++]=v;}
+    return vals;}
   else {
     struct FD_VECTOR vec={0};
     FD_INIT_STATIC_CONS(&vec,fd_vector_type);
