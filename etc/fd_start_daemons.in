@@ -35,7 +35,9 @@ daemon ( ) {
     if (${READLINK} ${file}>/dev/null); then
 	${RUNCMD} u8run +daemon ${name} \
 		  RUNDIR=@daemon_rundir@ LOGFILE=@daemon_logdir@/${name}.log \
-		  ${FDSERVER} $(${READLINK} ${file}) ${LAUNCHCFG} ${DAEMONCFG} ${XARGS};
+		  ${FDSERVER} $(${READLINK} ${file}) ${LAUNCHCFG} ${DAEMONCFG} \
+		  RUNDIR=@daemon_rundir@ LOGFILE=@daemon_logdir@/${name}.log \
+		  ${XARGS};
     else echo "Missing daemon controller "${file} " linked to " `readlink -m ${file}`;
     fi;
 }
