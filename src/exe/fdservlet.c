@@ -1961,8 +1961,6 @@ int main(int argc,char **argv)
     dup2(log_fd,1);
     dup2(log_fd,2);}
 
-  set_exename(argv);
-
   /* Set this here, before processing any configs */
   fd_storage_loglevel = LOG_INFO;
 
