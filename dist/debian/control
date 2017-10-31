@@ -34,10 +34,11 @@ Architecture: any
 Section: debug
 Depends: 
     framerd-core (= ${binary:Version}),
-    libssl1.0-dbg | libssl1.0.0-dbg,
-    libcurl3-dbg,
     libu8-dbg,
     ${misc:Depends}
+Suggests:
+    libssl1.0-dbg | libssl1.0.0-dbg,
+    libcurl3-dbg
 Description: This package contains the debugging symbols for framerd-core
 
 Package: framerd-builtin
