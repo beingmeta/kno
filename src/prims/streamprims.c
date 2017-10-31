@@ -716,8 +716,7 @@ static lispval ftruncate_prim(lispval arg,lispval offset)
     char *libc_string = u8_tolibc(FD_CSTRING(arg));
     int rv = truncate(libc_string,new_len);
     if (rv<0) {
-      int saved_errno = errno; errno=0;
-      u8_graberr(errno,"ftruncate_prim",u8_strdup(FD_CSTRING(arg)));
+      u8_graberrno("ftruncate_prim",u8_strdup(FD_CSTRING(arg)));
       u8_free(libc_string);
       return FD_ERROR_VALUE;}
     else {
