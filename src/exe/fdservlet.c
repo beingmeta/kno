@@ -65,19 +65,13 @@
 #include "main.c"
 
 static u8_condition ServletStartup=_("FDServlet/STARTUP");
-static u8_condition ServletLoop=_("FDServlet/LOOP");
-static u8_condition ServletRestart=_("FDServlet/RESTART");
 static u8_condition ServletAbort=_("FDServlet/ABORT");
-static u8_condition ServletFork=_("FDServlet/FORK");
 static u8_condition NoServers=_("No servers configured");
 #define Startup ServletStartup
 
 static int daemonize = 0, foreground = 0, pidwait = 1;
 
 static const sigset_t *server_sigmask;
-
-static time_t last_launch = (time_t)-1;
-static int fastfail_threshold = 15, fastfail_wait = 5;
 
 FD_EXPORT int fd_init_dbserv(void);
 
@@ -1570,48 +1564,6 @@ static lispval servlet_status_string()
   return fd_lispstring(status);
 }
 
-/* Managing your dependent (for restarting servers) */
-
-static int sustaining = 0;
-static pid_t dependent = -1;
-static void kill_dependent_onexit()
-{
-  u8_string ppid_file = fd_runbase_filename(".ppid");
-  pid_t dep = dependent; dependent = -1;
-  sustaining = 0;
-  if (dep>0) kill(dep,SIGTERM);
-  if (u8_file_existsp(ppid_file)) {
-    u8_removefile(ppid_file);
-    u8_free(ppid_file);}
-}
-static void kill_dependent_onsignal(int sig,siginfo_t *info,void *stuff)
-{
-  u8_string ppid_file = fd_runbase_filename(".ppid");
-  pid_t dep = dependent; dependent = -1;
-  sustaining = 0;
-  if (dep>0)
-    u8_log(LOG_WARN,"FDServlet/signal",
-           "FDServer controller %d got signal %d, passing to %d",
-           getpid(),sig,dep);
-  if (dep>0) kill(dep,sig);
-  if (u8_file_existsp(ppid_file)) {
-    u8_removefile(ppid_file);
-    u8_free(ppid_file);}
-}
-
-static struct sigaction sigaction_abraham;
-static struct sigaction sigaction_reload;
-
-static void sigactions_init()
-{
-  memset(&sigaction_abraham,0,sizeof(sigaction_ignore));
-  sigaction_abraham.sa_sigaction = kill_dependent_onsignal;
-  sigaction_abraham.sa_flags = SA_SIGINFO;
-  memset(&sigaction_reload,0,sizeof(sigaction_reload));
-  sigaction_reload.sa_sigaction = kill_dependent_onsignal;
-  sigaction_reload.sa_flags = SA_SIGINFO;
-}
-
 /* Making sure you can write the socket file */
 
 #define SOCKDIR_PERMISSIONS \
@@ -1792,12 +1744,6 @@ static void register_servlet_configs()
                      fd_boolconfig_get,fd_boolconfig_set,&daemonize);
   fd_register_config("PIDWAIT",_("Whether to wait for the servlet PID file"),
                      fd_boolconfig_get,fd_boolconfig_set,&pidwait);
-  fd_register_config("FASTFAIL",_("Threshold for daemon fast-fails"),
-                     fd_intconfig_get,fd_intconfig_set,&fastfail_threshold);
-  fd_register_config("FASTFAIL_WAIT",
-                     _("How long (secs) to wait after a fast-fail, "
-                       "increasing linearly up to 60s"),
-                     fd_intconfig_get,fd_intconfig_set,&fastfail_wait);
 
   fd_register_config("U8LOGLISTEN",
                      _("Whether to have libu8 log each monitored address"),
@@ -2145,7 +2091,6 @@ static int run_servlet(u8_string socket_spec)
 
   /* Now that we're running, shutdowns occur normally. */
   init_webcommon_finalize();
-  sigactions_init();
 
   update_preloads();
 

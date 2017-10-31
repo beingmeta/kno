@@ -75,12 +75,8 @@ static u8_condition BadPortSpec=_("Bad port spec");
 static u8_condition BadRequest=_("Bad client request");
 static u8_condition NoServers=_("NoServers");
 static u8_condition Startup=_("Startup");
-static u8_condition ServerFork=_("FDServer/FORK");
 static u8_condition ServerAbort=_("FDServer/ABORT");
-static u8_condition ServerSignal=_("FDServer/SIGNAL");
-static u8_condition ServerRestart=_("FDServer/RESTART");
 static u8_condition ServerConfig=_("FDServer/CONFIG");
-static u8_condition ServerLoop=_("FDServer/LOOP");
 static u8_condition ServerStartup=_("FDServer/STARTUP");
 static u8_condition ServerShutdown=_("FDServer/SHUTDOWN");
 
@@ -121,9 +117,6 @@ static int backtrace_width = FD_BACKTRACE_WIDTH;
 
 static int no_storage_api = 0;
 
-static time_t last_launch = (time_t)-1;
-static int fastfail_threshold = 20, fastfail_wait = 30;
-
 static u8_mutex init_server_lock;
 
 static void init_server(void);
@@ -133,46 +126,7 @@ static int init_server_env(u8_string server_spec,fd_lexenv core_env);
 
 /* Managing your dependent (for restarting servers) */
 
-static int sustaining = 0;
-static pid_t dependent = -1;
-static void kill_dependent_onexit()
-{
-  u8_string ppid_file = fd_runbase_filename(".ppid");
-  pid_t dep = dependent; dependent = -1;
-  sustaining = 0;
-  if (dep>0) kill(dep,SIGTERM);
-  if ((ppid_file)&&(u8_file_existsp(ppid_file))) {
-    u8_removefile(ppid_file);
-    u8_free(ppid_file);
-    ppid_file = NULL;}
-  if ((inject_file)&&(u8_file_existsp(inject_file))) {
-    u8_removefile(inject_file);
-    u8_free(inject_file);
-    inject_file = NULL;}
-}
-
-static void kill_dependent_onsignal(int sig,siginfo_t *info,void *stuff)
-{
-  u8_string ppid_file = fd_runbase_filename(".ppid");
-  pid_t dep = dependent; dependent = -1;
-  sustaining = 0;
-  if (dep>0)
-    u8_log(LOG_WARN,ServerSignal,
-           "FDServer controller %d got signal %d, passing to %d",
-           getpid(),sig,dep);
-  if (dep>0) kill(dep,sig);
-  if ((ppid_file)&&(u8_file_existsp(ppid_file))) {
-    u8_removefile(ppid_file);
-    u8_free(ppid_file);
-    ppid_file = NULL;}
-  if ((inject_file)&&(u8_file_existsp(inject_file))) {
-    u8_removefile(inject_file);
-    u8_free(inject_file);
-    inject_file = NULL;}
-}
-
 static struct sigaction sigaction_ignore;
-static struct sigaction sigaction_abraham;
 static struct sigaction sigaction_shutdown;
 
 static void sigactions_init()
@@ -180,14 +134,9 @@ static void sigactions_init()
   memset(&sigaction_ignore,0,sizeof(sigaction_ignore));
   sigaction_ignore.sa_handler = SIG_IGN;
 
-  memset(&sigaction_abraham,0,sizeof(sigaction_ignore));
-  sigaction_abraham.sa_sigaction = kill_dependent_onsignal;
-  sigaction_abraham.sa_flags = SA_SIGINFO;
-
   memset(&sigaction_shutdown,0,sizeof(sigaction_ignore));
   sigaction_shutdown.sa_sigaction = shutdown_onsignal;
   sigaction_shutdown.sa_flags = SA_SIGINFO;
-
 }
 
 /* Checking for (good) injections */
@@ -950,8 +899,6 @@ static void init_server()
 FD_EXPORT int fd_init_dbserv(void);
 static void init_configs(void);
 static fd_lexenv init_core_env(void);
-static int launch_server(u8_string source_file,fd_lexenv env);
-static int fork_server(u8_string source_file,fd_lexenv env);
 static int run_server(u8_string source_file);
 
 static void exit_fdserver()
@@ -1156,13 +1103,6 @@ static void init_configs()
   fd_register_config
     ("PIDWAIT",_("Whether to wait for the servlet PID file"),
      fd_boolconfig_get,fd_boolconfig_set,&pidwait);
-  fd_register_config
-    ("FASTFAIL",_("Threshold for daemon fastfails"),
-     fd_intconfig_get,fd_intconfig_set,&fastfail_threshold);
-  fd_register_config
-    ("FASTFAIL:WAIT",
-     _("How long (secs) to wait after a fastfail"),
-     fd_intconfig_get,fd_intconfig_set,&fastfail_wait);
   fd_register_config
     ("BACKLOG",
      _("Number of pending connection requests allowed"),
