@@ -1856,8 +1856,7 @@ static lispval notfoundpage()
 /* The main() event */
 
 FD_EXPORT int fd_init_drivers(void);
-static int launch_servlet(u8_string socket_spec);
-static int fork_servlet(u8_string socket_spec);
+static int run_servlet(u8_string socket_spec);
 
 static void exit_fdservlet()
 {
@@ -2101,14 +2100,12 @@ int main(int argc,char **argv)
 
   u8_use_syslog(0);
 
-  if (foreground)
-    return launch_servlet(socket_spec);
-  else return fork_servlet(socket_spec);
+  return run_servlet(socket_spec);
 }
 
-static int launch_servlet(u8_string socket_spec)
+static int run_servlet(u8_string socket_spec)
 {
-  tweak_exename("fdxerv",2,'s');
+
 #ifdef SIGHUP
   sigaction(SIGHUP,&sigaction_shutdown,NULL);
 #endif
@@ -2179,184 +2176,6 @@ static int launch_servlet(u8_string socket_spec)
 
   exit(0);
 
-  return 0;
-}
-
-static int sustain_servlet(pid_t grandchild,u8_string socket_spec);
-
-static int fork_servlet(u8_string socket_spec)
-{
-  pid_t child, grandchild;
-  double start = u8_elapsed_time();
-  if ((foreground)&&(daemonize>0)) {
-    /* This is the scenario where we stay in the foreground but
-       restart automatically.  */
-    if ((child = fork())) {
-      if (child<0) {
-        u8_log(LOG_CRIT,ServletFork,
-               "Fork failed for %s",socket_spec);
-        exit(1);}
-      else {
-        u8_log(LOG_NOTICE,ServletFork,
-               "Running server %s has PID %d",socket_spec,child);
-        return sustain_servlet(child,socket_spec);}}
-    else return launch_servlet(socket_spec);}
-  else if ((child = fork()))  {
-    /* The grandparent waits until the parent exits and then
-       waits until the .pid file has been written. */
-    int count = 60; double done; int status = 0;
-    if (child<0) {
-      u8_log(LOG_CRIT,ServletFork,
-             "Fork failed for %s\n",socket_spec);
-      exit(1);}
-    else u8_log(LOG_WARN,ServletFork,
-                "Initial fork spawned pid %d from %d",
-                child,getpid());
-#if HAVE_WAITPID
-    if (waitpid(child,&status,0)<0) {
-      u8_log(LOG_CRIT,ServletStartup,"Fork wait failed");
-      exit(1);}
-    if (!(WIFEXITED(status))) {
-      u8_log(LOG_CRIT,ServletStartup,"First fork failed to finish");
-      exit(1);}
-    else if (WEXITSTATUS(status)!=0) {
-      u8_log(LOG_CRIT,ServletStartup,"First fork return non-zero status");
-      exit(1);}
-#endif
-    /* If the parent has exited, we wait around for the pid_file to be created
-       by our grandchild. */
-    if (!(pidwait))
-      u8_log(LOG_WARN,Startup,"Not waiting for PID file %s",pid_file);
-    else while ((count>0)&&(!(u8_file_existsp(pid_file)))) {
-      if ((count%10)==0)
-        u8_log(LOG_WARN,Startup,"Waiting for PID file %s",pid_file);
-      count--; sleep(1);}
-    done = u8_elapsed_time();
-    if (u8_file_existsp(pid_file))
-      u8_log(LOG_NOTICE,Startup,"Servlet %s launched in %02fs",
-             socket_spec,done-start);
-    else if (!(pidwait))
-      u8_log(LOG_WARN,Startup,
-             "Servlet %s hasn't launched after %02fs",
-             socket_spec,done-start);
-
-    else u8_log(LOG_CRIT,ServletAbort,
-                "Servlet %s hasn't launched after %02fs",
-                socket_spec,done-start);
-    exit(0);}
-  else {
-    /* If we get here, we're the parent, and we start by trying to
-       become session leader */
-    if (setsid()== -1) {
-      u8_log(LOG_CRIT,ServletFork,
-             "Process %d failed to become session leader for %s (%s)",
-             getpid(),socket_spec,strerror(errno));
-      errno = 0;
-      exit(1);}
-    else u8_log(LOG_INFO,ServletFork,
-                "Process %d become session leader for %s",
-                getpid(),socket_spec);
-    /* Now we fork again.  In the normal case, this fork (the grandchild) is
-       the actual server.  If we're auto-restarting, this fork is the one which
-       does the restarting. */
-    if ((grandchild = fork())) {
-      if (grandchild<0) {
-        u8_log(LOG_CRIT,ServletFork,
-               "Second fork failed for %s",socket_spec);
-        exit(1);}
-      else if (daemonize>0)
-        u8_log(LOG_NOTICE,ServletFork,
-               "Restart monitor for %s has PID %d",socket_spec,grandchild);
-      else u8_log(LOG_NOTICE,ServletFork,
-                  "Running server %s has PID %d",socket_spec,grandchild);
-      /* This is the parent, which always exits */
-      exit(0);}
-    else if (daemonize>0) {
-      pid_t worker;
-      if ((worker = fork())) {
-        if (worker<0)
-          u8_log(LOG_CRIT,ServletFork,
-                 "Worker fork failed for %s",socket_spec);
-        else {
-          u8_log(LOG_NOTICE,ServletFork,
-                 "Running server %s has PID %d",socket_spec,worker);
-          return sustain_servlet(worker,socket_spec);}}
-      else return launch_servlet(socket_spec);}
-    else return launch_servlet(socket_spec);}
-  exit(0);
-}
-
-static int sustain_servlet(pid_t grandchild,u8_string socket_spec)
-{
-  u8_string ppid_filename = fd_runbase_filename(".ppid");
-  FILE *f = fopen(ppid_filename,"w");
-  int status = -1, sleepfor = daemonize;
-  tweak_exename("fdserv",2,'x');
-  sustaining = 1;
-  if (f) {
-    fprintf(f,"%ld\n",(long)getpid());
-    fclose(f);
-    u8_free(ppid_filename);}
-  else {
-    u8_log(LOG_WARN,"CantWritePPID",
-           "Couldn't write ppid file %s",ppid_filename);
-    u8_free(ppid_filename);}
-  last_launch = time(NULL);
-  /* Don't try to catch an error here */
-  if (sleepfor<0) sleepfor = 7;
-  else if (sleepfor>60) sleepfor = 60;
-  errno = 0;
-  /* Update the global variable with our current dependent grandchild */
-  dependent = grandchild;
-  /* Setup atexit and signal handlers to kill our dependent when we're
-     gone. */
-  u8_log(LOG_WARN,"FDServlet/sustain",
-         "Starting %s pid=%d",socket_spec,grandchild);
-  atexit(kill_dependent_onexit);
-#ifdef SIGTERM
-  sigaction(SIGTERM,&sigaction_abraham,NULL);
-#endif
-#ifdef SIGQUIT
-  sigaction(SIGQUIT,&sigaction_abraham,NULL);
-#endif
-#ifdef SIGHUP
-  sigaction(SIGHUP,&sigaction_ignore,NULL);
-#endif
-  while ((sustaining)&&(waitpid(grandchild,&status,0))) {
-    time_t now = time(NULL);
-    int wait = fastfail_wait;
-    if (WIFSIGNALED(status))
-      u8_log(LOG_WARN,ServletRestart,
-             "Servlet %s(%d) terminated on signal %d",
-             socket_spec,grandchild,WTERMSIG(status));
-    else if (WIFEXITED(status))
-      u8_log(LOG_NOTICE,ServletRestart,
-             "Servlet %s(%d) terminated normally with status %d",
-             socket_spec,grandchild,status);
-    else continue;
-    if (dependent<0) {
-      u8_log(LOG_WARN,ServletAbort,
-             "Terminating restart process for %s",socket_spec);
-      exit(0);}
-    if ((now-last_launch)<fastfail_threshold) {
-      u8_log(LOG_CRIT,ServletLoop,
-             "FDServlet %s fast-failed after %d seconds, pausing %d seconds",
-             socket_spec,now-last_launch,fastfail_wait);
-      sleep(wait);
-      if (wait<60) wait=wait+fastfail_wait;}
-    else if (sleepfor>0) sleep(sleepfor);
-    else {}
-    last_launch = time(NULL);
-    if ((grandchild = fork())) {
-      u8_log(LOG_NOTICE,ServletRestart,
-             "Servlet %s restarted with pid %d",
-             socket_spec,grandchild);
-      dependent = grandchild;
-      wait=fastfail_wait;
-      continue;}
-    else return launch_servlet(socket_spec);}
-  fd_doexit(FD_FALSE);
-  exit(0);
   return 0;
 }
 
