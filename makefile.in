@@ -1342,7 +1342,9 @@ install-scheme-scripts: $(BININSTALLDIR) $(SCHEME_SCRIPTS)
 	@$(SYSINSTALL) @install_exe_opts@ $(SCHEME_SCRIPTS) $(BININSTALLDIR)
 
 install-data: \
-	$(DESTDIR)@config_dir@/boot/framerd.service	\
+	$(DESTDIR)@config_dir@/boot/framerd.target	\
+	$(DESTDIR)@config_dir@/boot/fdaemons.service	\
+	$(DESTDIR)@config_dir@/boot/fdservlets.service	\
 	$(DESTDIR)@config_dir@/boot/framerd-rc.d 	\
 	$(DESTDIR)@config_dir@/boot/framerd.conf 	\
 	$(DESTDIR)@config_dir@/boot/logrotate
@@ -1524,11 +1526,13 @@ $(DESTDIR)/etc/init/framerd.conf: etc/framerd.conf $(DESTDIR)/etc/init
 
 $(DESTDIR)@systemd_loc@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)@systemd_loc@
-setup-systemd: $(DESTDIR)@systemd_loc@/framerd.service startupdirs
-$(DESTDIR)@systemd_loc@/framerd.service: $(DESTDIR)@systemd_loc@ etc/framerd.service
-	@$(MSG) Installing framerd systemd config to $(DESTDIR)@systemd_loc@/framerd.service
-	@$(SYSINSTALL) -m 0444 @admininstall@ \
-		   etc/framerd.service $(DESTDIR)@systemd_loc@/framerd.service
+setup-systemd: $(DESTDIR)@systemd_loc@/framerd.target \
+		$(DESTDIR)@systemd_loc@/fdaemons.service \
+		$(DESTDIR)@systemd_loc@/fdservlets.service \
+		startupdirs
+$(DESTDIR)@systemd_loc@/%: etc/% $(DESTDIR)@systemd_loc@
+	@$(MSG) Installing systemd config in $@
+	@$(SYSINSTALL) -m 0444 @admininstall@ $< $@
 	@if test -z "${DESTDIR}" && test ! -z "${SUDO}"; then 	\
 	   ${MSG} systemctl daemon-reload; 			\
 	   ${SUDO} systemctl daemon-reload; 			\

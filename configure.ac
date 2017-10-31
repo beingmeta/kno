@@ -1706,6 +1706,9 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/logrotate
 	   etc/framerd-rc.d
 	   etc/framerd.conf
+	   etc/framerd.target
+	   etc/fdaemons.service
+	   etc/fdservlets.service
 	   etc/framerd.service
 	   etc/FramerD.plist
 	   etc/fdserv.conf 

@@ -1,6 +1,9 @@
+# This systemd unit is deprecated in favor of framerd.target and
+#  fdservlets.service and fdaemons.service
 [Unit]
 Description=FramerD service(s) starter
 Requires=network.target local-fs.target
+Conflicts=fdaemons.in fdservlets.in
 After=upsource.target
 
 [Service]
@@ -22,5 +25,7 @@ ExecStartPost=@COPYFILE@ @framerd_rundir@/_started @framerd_rundir@/_systemd
 ExecStop=@BINDIR@/fd_stop_jobs @daemon_rundir@; @BINDIR@/fd_stop_jobs @servlet_rundir@
 ExecStopPost=@DELETEFILE@ -f @framerd_rundir@/_started @framerd_rundir@/_systemd
 
+#This should keep the system from running this service, now divided
+# into fdservlets and fdaemons, automatically
 [Install]
-WantedBy=default.target
+#WantedBy=default.target

@@ -1,5 +1,9 @@
 #!/bin/sh
-ROOTDIR=$1
+if [ -z $# ]; then
+    ROOTDIR=@config_dir@/servlets
+else
+    ROOTDIR=$1
+fi;
 shift
 XARGS=$*
 READLINK=`which readlink`
@@ -10,21 +14,30 @@ export FD_LOGLEVEL=7
 export FD_LAUNCHER=${FD_LAUNCHER:-fd_start_servlets} 
 export LAUNCHCFG="LAUNCHER=${FD_LAUNCHER}" 
 export COMMONCFG="RESTART=1 PIDWAIT=no STEALSOCKETS=yes" 
-export WEBSTART="sudo -u @webuser@ -g @admin_group@"
-#export WEBSTART=logstart
 export FDSERVLET=@BINDIR@/fdservlet
 export SERVLETCFG="${COMMONCFG} STATEDIR=@servlet_rundir@ FDSTART=${ROOTDIR}";
+RUNCMD=
+SUDO_ARGS=
+if [ ! -z ${AS_USER} ]; then
+    SUDO_ARGS="-u ${AS_USER} ";
+fi
+if [ ! -z ${AS_GROUP} ]; then
+    SUDO_ARGS="-g ${AS_GROUP} ";
+fi
+if [ ! -z "${SUDO_ARGS}"]; then
+    RUNCMD="sudo ${SUDO_ARGS} ";
+fi
 
 servlet ( ) {
     file=$1
     name=$2;
-    sudo touch @servlet_rundir@/${name}.nospawn;
+    ${RUNCMD} touch @servlet_rundir@/${name}.nospawn;
     echo "Starting servlet manager ${name} for ${file}";
     if (${READLINK} ${file}>/dev/null); then
-	${WEBSTART} u8run ${name} \
-		    RUNDIR=@servlet_rundir@ LOGFILE=@servlet_logdir@/${name}.log \
-		    ${FDSERVLET} @servlet_rundir@/${name}.sock ${LAUNCHCFG} \
-		    CONFIG=`${READLINK} ${file}` ${SERVLETCFG} ${XARGS};
+	${RUNCMD} u8run +daemon ${name} \
+		  RUNDIR=@servlet_rundir@ LOGFILE=@servlet_logdir@/${name}.log \
+		  ${FDSERVLET} @servlet_rundir@/${name}.sock ${LAUNCHCFG} \
+		  CONFIG=`${READLINK} ${file}` ${SERVLETCFG} ${XARGS};
     else echo "Missing servlet controller "${file} " linked to " `readlink -m ${file}`;
     fi;
 }
