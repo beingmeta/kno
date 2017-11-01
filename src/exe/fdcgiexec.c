@@ -63,14 +63,11 @@ static int max_backlog = -1;
 
 /* Writing the PID file */
 
-static void shutdown_server(u8_condition reason)
+static void shutdown_server()
 {
-  if (reason)
-    u8_log(LOG_WARN,reason,
-           "Shutting down, removing socket %s and pidfile %s",
-           portfile,pidfile);
-  webcommon_shutdown(reason);
-  exit(0);
+  if (server_shutdown)
+    return;
+  else server_shutdown = 1;
 }
 
 /* Running the server */

@@ -1532,15 +1532,20 @@ static int reuse_webclient(u8_client ucl)
   return 1;
 }
 
-static void shutdown_server(u8_condition reason)
+static void shutdown_server()
 {
+  u8_server_shutdown(&fdwebserver,shutdown_grace);
+}
+
+static void shutdown_servlet(u8_condition reason)
+{
+  if (reason == NULL) reason = "fate";
   int i = n_ports-1;
   u8_lock_mutex(&server_port_lock); i = n_ports-1;
   if (reason)
     u8_log(LOG_WARN,reason,
            "Shutting down, removing socket files and pidfile %s",
            pidfile);
-  u8_server_shutdown(&fdwebserver,shutdown_grace);
   webcommon_shutdown(reason);
   while (i>=0) {
     u8_string spec = ports[i];
@@ -2175,7 +2180,7 @@ static int launch_servlet(u8_string socket_spec)
 
   u8_message("FDServlet, normal exit of u8_server_loop()");
 
-  shutdown_server("exit");
+  shutdown_servlet(shutdown_reason);
 
   exit(0);
 
