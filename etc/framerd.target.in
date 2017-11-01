@@ -1,6 +1,6 @@
 [Unit]
 Description=FramerD service(s) starter
-Requires=fdaemons.service fdservlets.service
+Requires=fdaemons.service fdweb.service
 After=upsource.target
 
 [Install]
