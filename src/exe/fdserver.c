@@ -641,6 +641,8 @@ static int config_use_module(lispval var,lispval val,void *data)
 
 /* Handling signals, etc. */
 
+static u8_condition shutdown_reason = "fate";
+
 static void run_shutdown_procs()
 {
   lispval procs = shutdown_procs; shutdown_procs = FD_EMPTY;
@@ -658,7 +660,7 @@ static void run_shutdown_procs()
 
 static void shutdown_server(u8_string why)
 {
-  u8_log(LOG_CRIT,ServerShutdown,"Shutting down server for %s",why);
+  shutdown_reason = why;
   u8_server_shutdown(&dtype_server,shutdown_grace);
 }
 
@@ -674,10 +676,7 @@ static void shutdown_onsignal(int sig,siginfo_t *info,void *data)
            "Already shutdown but received signal %d",
            sig);
     return;}
-  else {
-    server_shutdown=1;
-    u8_log(LOG_CRIT,"shutdown_server_onsignal",
-           "Shutting down on signal %d",sig);}
+  else server_shutdown=1;
 #ifdef SIGHUP
   if (sig == SIGHUP) {
     shutdown_server("SIGHUP");
@@ -1343,6 +1342,9 @@ static int run_server(u8_string server_spec)
   u8_log(LOG_NOTICE,ServerStartup,"Serving on %d sockets",n_ports);
   u8_server_loop(&dtype_server);
   normal_exit = 1;
+  u8_log(LOG_CRIT,ServerShutdown,
+         "Shutting down server for %s",
+         shutdown_reason);
   run_shutdown_procs();
   u8_log(LOG_NOTICE,ServerShutdown,"Exited server loop");
   fd_doexit(FD_FALSE);

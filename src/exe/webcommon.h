@@ -694,7 +694,7 @@ static void init_webcommon_configs()
 		     postflight_get,postflight_set,NULL);
 }
 
-static void shutdown_server(u8_condition why);
+static void shutdown_server(void);
 
 static void webcommon_shutdown(u8_condition why)
 {
@@ -708,7 +708,8 @@ static void webcommon_shutdown(u8_condition why)
   if (pidfile) {
     u8_removefile(pidfile);}
   pidfile = NULL;
-  fd_recycle_hashtable(&pagemap);
+  if (pagemap.conshead)
+    fd_recycle_hashtable(&pagemap);
   if (exitfile) {
     struct U8_XTIME xt; struct U8_OUTPUT out;
     char timebuf[64]; double elapsed = u8_elapsed_time();
@@ -721,35 +722,44 @@ static void webcommon_shutdown(u8_condition why)
   u8_free(exit_filename);
 }
 
+static u8_byte shutdown_buf[64];
+static u8_condition shutdown_reason = NULL;
 static int server_shutdown = 0;
 
 static void shutdown_onsignal(int sig,siginfo_t *info,void *data)
 {
   char buf[64];
   if (server_shutdown) {
-    u8_log(LOG_CRIT,"shutdown_server_onsignal","Already shutdown but received signal %d",
-	   sig);
+    u8_log(LOG_CRIT,"shutdown_server_onsignal",
+           "Already shutdown but received signal %d",
+           sig);
     return;}
 #ifdef SIGHUP
   if (sig == SIGHUP) {
     server_shutdown = 1;
-    shutdown_server("SIGHUP"); return;}
+    shutdown_reason = "SIGHUP";
+    shutdown_server();
+    return;}
 #endif
 #ifdef SIGHUP
   if (sig == SIGQUIT) {
     server_shutdown = 1;
-    shutdown_server("SIGQUIT"); return;}
+    shutdown_reason = "SIGQUIT";
+    shutdown_server();
+    return;}
 #endif
 #ifdef SIGHUP
   if (sig == SIGTERM) {
     server_shutdown = 1;
-    shutdown_server("SIGTERM"); return;}
+    shutdown_reason = "SIGTERM";
+    shutdown_server();
+    return;}
 #endif
-  sprintf(buf,"SIG%d",sig);
+  sprintf(shutdown_buf,"SIG%d",sig);
   server_shutdown = 1;
-  shutdown_server((u8_condition)buf);
-  fd_doexit(FD_INT(sig));
-  return;  
+  shutdown_reason = (u8_condition)buf;
+  shutdown_server();
+  return;
 }
 
 static struct sigaction sigaction_ignore;
@@ -759,7 +769,8 @@ static void shutdown_on_exit()
 {
   if (server_shutdown) return;
   server_shutdown = 1;
-  shutdown_server("EXIT");
+  shutdown_reason = "EXIT";
+  shutdown_server();
 }
 
 static void init_webcommon_finalize()
