@@ -1,4 +1,4 @@
-framerd (4.2.5-9) unstable; urgency=medium
+framerd (4.2.5-9) stable; urgency=medium
 
   * Switched daemons/servlets to using u8run
 
