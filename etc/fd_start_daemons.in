@@ -15,7 +15,11 @@ export FD_LAUNCHER=${FD_LAUNCHER:-fd_start_daemons}
 export LAUNCHCFG="LAUNCHER=${FD_LAUNCHER}" 
 export COMMONCFG="RESTART=1 PIDWAIT=no STEALSOCKETS=yes" 
 export FDSERVER=@BINDIR@/fdserver
-export DAEMONCFG="${LAUNCHCFG} ${COMMONCFG} STATEDIR=@daemon_rundir@ FDSTART=${ROOTDIR}";
+export RUNUSER=@fdaemon@
+export RUNGROUP=@admin_group@
+export RUNDIR=@daemon_rundir@
+export U8RUNFLAGS="RUNUSER=${RUNUSER} RUNGROUP=${RUNGROUP} RUNDIR=${RUNDIR}";
+export DAEMONCFG="${LAUNCHCFG} ${COMMONCFG} STATEDIR=${RUNDIR} FDSTART=${ROOTDIR}";
 RUNCMD=
 SUDO_ARGS=
 if [ ! -z ${AS_USER} ]; then
@@ -33,8 +37,7 @@ daemon ( ) {
     name=$2;
     echo "Starting servlet manager ${name} for ${file}";
     if (${READLINK} ${file}>/dev/null); then
-	${RUNCMD} u8run +daemon ${name} \
-		  RUNDIR=@daemon_rundir@ LOGFILE=@daemon_logdir@/${name}.log \
+	${RUNCMD} u8run +daemon ${name} ${U8RUNFLAGS} \
 		  ${FDSERVER} $(${READLINK} ${file}) ${LAUNCHCFG} ${DAEMONCFG} \
 		  RUNDIR=@daemon_rundir@ LOGFILE=@daemon_logdir@/${name}.log \
 		  ${XARGS};
