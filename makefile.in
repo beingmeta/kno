@@ -1344,7 +1344,7 @@ install-scheme-scripts: $(BININSTALLDIR) $(SCHEME_SCRIPTS)
 install-data: \
 	$(DESTDIR)@config_dir@/boot/framerd.target	\
 	$(DESTDIR)@config_dir@/boot/fdaemons.service	\
-	$(DESTDIR)@config_dir@/boot/fdservlets.service	\
+	$(DESTDIR)@config_dir@/boot/fdweb.service	\
 	$(DESTDIR)@config_dir@/boot/framerd-rc.d 	\
 	$(DESTDIR)@config_dir@/boot/framerd.conf 	\
 	$(DESTDIR)@config_dir@/boot/logrotate
@@ -1528,7 +1528,7 @@ $(DESTDIR)@systemd_loc@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)@systemd_loc@
 setup-systemd: $(DESTDIR)@systemd_loc@/framerd.target \
 		$(DESTDIR)@systemd_loc@/fdaemons.service \
-		$(DESTDIR)@systemd_loc@/fdservlets.service \
+		$(DESTDIR)@systemd_loc@/fdweb.service \
 		startupdirs
 $(DESTDIR)@systemd_loc@/%: etc/% $(DESTDIR)@systemd_loc@
 	@$(MSG) Installing systemd config in $@
