@@ -1,5 +1,3 @@
 lib/systemd/system/framerd.target
 lib/systemd/system/fdaemons.service
 lib/systemd/system/fdweb.service
-etc/init.d/framerd
-etc/init/framerd.conf
