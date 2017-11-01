@@ -6,8 +6,10 @@ After=upsource.target
 [Service]
 Type=forking
 RemainAfterExit=true
-Environment=FD_LAUNCHER=framerd.service AS_USER=@webuser@ AS_GROUP=framerd
-PassEnvironment=FD_LAUNCHER AS_USER AS_GROUP
+Environment=FD_LAUNCHER=framerd.service
+PassEnvironment=FD_LAUNCHER
+TimeoutStartSec=30
+TimeoutStopSec=30
 ExecStartPre=@MKDIR@ -p @daemon_rundir@ @daemon_logdir@
 ExecStartPre=@CHOWN@ @fdaemon@ @daemon_rundir@ @daemon_logdir@
 ExecStartPre=@CHGRP@ @admin_group@ @daemon_rundir@ @daemon_logdir@

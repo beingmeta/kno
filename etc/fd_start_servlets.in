@@ -10,12 +10,15 @@ READLINK=`which readlink`
 if ${READLINK} -e /tmp 2>&1 > /dev/null; then 
     READLINK="${READLINK} -e";
 fi;
-export FD_LOGLEVEL=7
 export FD_LAUNCHER=${FD_LAUNCHER:-fd_start_servlets} 
 export LAUNCHCFG="LAUNCHER=${FD_LAUNCHER}" 
 export COMMONCFG="RESTART=1 PIDWAIT=no STEALSOCKETS=yes" 
 export FDSERVLET=@BINDIR@/fdservlet
-export SERVLETCFG="${COMMONCFG} STATEDIR=@servlet_rundir@ FDSTART=${ROOTDIR}";
+export RUNUSER=@webuser@
+export RUNGROUP=@admin_group@
+export RUNDIR=@servlet_rundir@
+export U8RUNFLAGS="RUNUSER=${RUNUSER} RUNGROUP=${RUNGROUP} RUNDIR=${RUNDIR}";
+export SERVLETCFG="${COMMONCFG} STATEDIR=${RUNDIR} FDSTART=${ROOTDIR}";
 RUNCMD=
 SUDO_ARGS=
 if [ ! -z ${AS_USER} ]; then
@@ -34,8 +37,7 @@ servlet ( ) {
     ${RUNCMD} touch @servlet_rundir@/${name}.nospawn;
     echo "Starting servlet manager ${name} for ${file}";
     if (${READLINK} ${file}>/dev/null); then
-	${RUNCMD} u8run +daemon ${name} \
-		  RUNDIR=@servlet_rundir@ LOGFILE=@servlet_logdir@/${name}.log \
+	${RUNCMD} u8run +daemon ${name} ${U8RUNFLAGS} \
 		  ${FDSERVLET} @servlet_rundir@/${name}.sock ${LAUNCHCFG} \
 		  RUNDIR=@servlet_rundir@ LOGFILE=@servlet_logdir@/${name}.log \
 		  CONFIG=`${READLINK} ${file}` ${SERVLETCFG} ${XARGS};
