@@ -52,11 +52,13 @@ static int compound_prefetch(fd_index ix,lispval keys)
 {
   int n_fetches = 0, i = 0, lim, n = FD_CHOICE_SIZE(keys);
   struct FD_COMPOUND_INDEX *cix = (struct FD_COMPOUND_INDEX *)ix;
-  lispval *keyv = u8_alloc_n(n,lispval);
-  lispval *valuev = u8_alloc_n(n,lispval);
+  lispval *keyv = u8_big_alloc_n(n,lispval);
+  lispval *valuev = u8_big_alloc_n(n,lispval);
   DO_CHOICES(key,keys)
     if (!(fd_hashtable_probe(&(cix->index_cache),key))) {
-      keyv[n_fetches]=key; valuev[n_fetches]=EMPTY; n_fetches++;}
+      keyv[n_fetches]=key;
+      valuev[n_fetches]=EMPTY;
+      n_fetches++;}
   if (n_fetches==0) {
     u8_free(keyv); u8_free(valuev);
     return 0;}
@@ -64,61 +66,14 @@ static int compound_prefetch(fd_index ix,lispval keys)
   lim = cix->n_indexes;
   while (i < lim) {
     int j = 0; fd_index eix = cix->indexes[i];
-    lispval *values=
-      eix->index_handler->fetchn(eix,n_fetches,keyv);
+    lispval *values=eix->index_handler->fetchn(eix,n_fetches,keyv);
     if (values == NULL) {
-      u8_free(keyv); u8_free(valuev);
+      u8_big_free(keyv); u8_big_free(valuev);
       fd_unlock_index(cix);
       return -1;}
     while (j<n_fetches) {
       CHOICE_ADD(valuev[j],values[j]); j++;}
-    u8_free(values);
-    i++;}
-  fd_unlock_index(cix);
-  i = 0; while (i<n_fetches)
-    if (PRECHOICEP(valuev[i])) {
-      valuev[i]=fd_simplify_choice(valuev[i]); i++;}
-    else i++;
-  /* The operation fd_table_add_empty_noref will create an entry even if the value
-     is the empty choice. */
-  fd_hashtable_iter(&(cix->index_cache),fd_table_add_empty_noref,n_fetches,keyv,valuev);
-  u8_free(keyv); u8_free(valuev);
-  return n_fetches;
-}
-
-static lispval *compound_fetchn(fd_index ix,int n,const lispval *keys)
-{
-  int n_fetches = 0, i = 0, lim;
-  struct FD_COMPOUND_INDEX *cix = (struct FD_COMPOUND_INDEX *)ix;
-  lispval *keyv = u8_alloc_n(n,lispval);
-  lispval *valuev = u8_alloc_n(n,lispval);
-  unsigned int *posmap = u8_alloc_n(n,unsigned int);
-  const lispval *scan = keys, *limit = keys+n;
-  while (scan<limit) {
-    int off = scan-keys; lispval key = *scan++;
-    if (!(fd_hashtable_probe(&(cix->index_cache),key))) {
-      keyv[n_fetches]=key;
-      valuev[n_fetches]=EMPTY;
-      posmap[n_fetches]=off;
-      n_fetches++;}
-    else valuev[scan-keys]=
-           fd_hashtable_get(&(cix->index_cache),key,EMPTY);}
-  if (n_fetches==0) {
-    u8_free(keyv); u8_free(posmap);
-    return valuev;}
-  fd_lock_index(cix);
-  lim = cix->n_indexes;
-  while (i < lim) {
-    int j = 0; fd_index eix = cix->indexes[i];
-    lispval *values=
-      eix->index_handler->fetchn(eix,n_fetches,keyv);
-    if (values == NULL) {
-      u8_free(keyv); u8_free(posmap); u8_free(valuev);
-      fd_unlock_index(cix);
-      return NULL;}
-    while (j<n_fetches) {
-      CHOICE_ADD(valuev[posmap[j]],values[j]); j++;}
-    u8_free(values);
+    u8_big_free(values);
     i++;}
   fd_unlock_index(cix);
   i = 0; while (i<n_fetches)
@@ -127,7 +82,55 @@ static lispval *compound_fetchn(fd_index ix,int n,const lispval *keys)
     else i++;
   /* The operation fd_table_add_empty_noref will create an entry even
      if the value is the empty choice. */
-  u8_free(keyv); u8_free(posmap);
+  fd_hashtable_iter(&(cix->index_cache),fd_table_add_empty_noref,
+                    n_fetches,keyv,valuev);
+  u8_big_free(keyv);
+  u8_big_free(valuev);
+  return n_fetches;
+}
+
+static lispval *compound_fetchn(fd_index ix,int n,const lispval *keys)
+{
+  int n_fetches = 0, i = 0, lim;
+  struct FD_COMPOUND_INDEX *cix = (struct FD_COMPOUND_INDEX *)ix;
+  lispval *keyv = u8_big_alloc_n(n,lispval);
+  lispval *valuev = u8_big_alloc_n(n,lispval);
+  unsigned int *posmap = u8_big_alloc_n(n,unsigned int);
+  const lispval *scan = keys, *limit = keys+n;
+  while (scan<limit) {
+    int off = scan-keys; lispval key = *scan++;
+    if (!(fd_hashtable_probe(&(cix->index_cache),key))) {
+      keyv[n_fetches]=key;
+      valuev[n_fetches]=EMPTY;
+      posmap[n_fetches]=off;
+      n_fetches++;}
+    else valuev[scan-keys]=fd_hashtable_get(&(cix->index_cache),key,EMPTY);}
+  if (n_fetches==0) {
+    u8_big_free(keyv); u8_big_free(posmap);
+    return valuev;}
+  fd_lock_index(cix);
+  lim = cix->n_indexes;
+  while (i < lim) {
+    int j = 0; fd_index eix = cix->indexes[i];
+    lispval *values=eix->index_handler->fetchn(eix,n_fetches,keyv);
+    if (values == NULL) {
+      u8_big_free(keyv);
+      u8_big_free(posmap);
+      u8_big_free(valuev);
+      fd_unlock_index(cix);
+      return NULL;}
+    while (j<n_fetches) {
+      CHOICE_ADD(valuev[posmap[j]],values[j]); j++;}
+    u8_big_free(values);
+    i++;}
+  fd_unlock_index(cix);
+  i = 0; while (i<n_fetches)
+    if (PRECHOICEP(valuev[i])) {
+      valuev[i]=fd_simplify_choice(valuev[i]); i++;}
+    else i++;
+  /* The operation fd_table_add_empty_noref will create an entry even
+     if the value is the empty choice. */
+  u8_big_free(keyv); u8_big_free(posmap);
   return valuev;
 }
 
@@ -159,7 +162,7 @@ static lispval *compound_fetchkeys(fd_index ix,int *n)
       return results;}
     else if (FD_CONS_REFCOUNT((fd_cons)simple)==1) {
       DO_CHOICES(key,simple) {results[j]=key;}
-      u8_free((fd_cons)simple);
+      fd_free_choice((fd_choice)simple);
       *n = n_elts; return results;}
     else {
       DO_CHOICES(key,simple) {results[j]=fd_incref(key);}

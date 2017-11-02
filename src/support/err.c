@@ -810,6 +810,9 @@ void fd_init_err_c()
   sigaddset(&(sigaction_abort.sa_mask),SIGQUIT);
   sigaction(SIGQUIT,&(sigaction_abort),NULL);
 
+  sigaddset(&(sigaction_abort.sa_mask),SIGINT);
+  sigaction(SIGINT,&(sigaction_abort),NULL);
+
 #ifdef SIGBUS
   sigaddset(&(sigaction_abort.sa_mask),SIGBUS);
   sigaction(SIGBUS,&(sigaction_abort),NULL);
@@ -826,7 +829,7 @@ void fd_init_err_c()
 #endif
 
   fd_register_config
-    ("SIGCATCH",_("SIGNALS to catch and return as errors"),
+    ("SIGRAISE",_("SIGNALS to catch and return as errors"),
      sigconfig_getfn,sigconfig_catch_setfn,
      &sigcatch_set);
   fd_register_config

@@ -1,3 +1,9 @@
+framerd (4.2.5-9) stable; urgency=medium
+
+  * Switched daemons/servlets to using u8run
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 01 Nov 2017 15:29:42 +0000
+
 framerd (4.2.4-8) stable; urgency=medium
 
   * Update packaging rules to skip building tests

@@ -113,6 +113,8 @@ void fd_init_posix_c()
 
   u8_register_source_file(_FILEINFO);
 
+  umask( FD_INIT_UMASK );
+
   fd_register_config
     ("UMASK",_("The UMASK of the current process"),
      umask_config_get,umask_config_set,NULL);

@@ -273,6 +273,28 @@ static int writeall(int fd,const unsigned char *data,int n)
   return n;
 }
 
+static ssize_t failed_pread(int fileno,size_t offset,size_t len)
+{
+  struct stat fileinfo;
+  if (errno) u8_graberrno("failed_pread",NULL);
+  int rv = fstat(fileno,&fileinfo);
+  if (rv<0) {
+    u8_seterr("StatFailed","failed_pread",NULL);
+    return -1;}
+  else if (offset > fileinfo.st_size) {
+    u8_seterr("InvalidOffset","failed_pread",
+              u8_mkstring("%lld+%lld > %lld",offset,len,fileinfo.st_size));
+    return -1;}
+  else if (offset+len > fileinfo.st_size) {
+    u8_seterr("InvalidBlockRef","failed_pread",
+              u8_mkstring("%lld+%lld > %lld",offset,len,fileinfo.st_size));
+    return -1;}
+  else {
+    u8_seterr("InvalidBlockRef","failed_pread",
+              u8_mkstring("%lld+%lld > %lld",offset,len,fileinfo.st_size));
+    return -1;}
+}
+
 #if HAVE_PREAD
 static ssize_t pread_all(int fileno,unsigned char *buf,size_t len,size_t offset)
 {
@@ -280,7 +302,9 @@ static ssize_t pread_all(int fileno,unsigned char *buf,size_t len,size_t offset)
   unsigned char *point = buf;
   while (to_read > 0) {
     delta = pread(fileno,point,to_read,offset);
-    if (delta<0) break;
+    if (delta < 0) break;
+    if ( (delta == 0) && (to_read > 0) )
+      return failed_pread(fileno,offset,len);
     to_read -= delta;
     offset  += delta;
     point   += delta;}

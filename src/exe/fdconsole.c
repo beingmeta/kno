@@ -934,6 +934,8 @@ int main(int argc,char **argv)
   /* This is the REPL value history, not the editline history */
   fd_histinit(0);
 
+  fd_set_config("SIGRAISE",FD_INT(SIGINT));
+
   while (1) { /* ((c = skip_whitespace((u8_input)in))>=0) */
     int start_icache, finish_icache;
     int start_ocache, finish_ocache;

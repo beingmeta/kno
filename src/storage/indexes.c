@@ -528,7 +528,7 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,lispval keys)
             *write++=key;
             fd_incref(key);}}}
       if (write == elts) {
-        u8_free(reduced);
+        u8_big_free(reduced); reduced=NULL;
         if (decref_keys) fd_decref(keys);
         return n_fetched;}
       else {
@@ -542,7 +542,7 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,lispval keys)
     if (fd_ipeval_status())
       delay_index_fetch(ix,needed);
     else rv = ix->index_handler->prefetch(ix,needed);
-    if (reduced) cleanup_tmpchoice(reduced);
+    if (reduced) {cleanup_tmpchoice(reduced); reduced=NULL;}
     if (decref_keys) fd_decref(keys);
     if (rv>=0) rv = n_fetched + rv;}
   else if (ix->index_handler->fetchn == NULL) {
@@ -555,7 +555,7 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,lispval keys)
         lispval v = fd_index_fetch(ix,key);
         if (FD_ABORTP(v)) {
           FD_STOP_DO_CHOICES;
-          if (reduced) cleanup_tmpchoice(reduced);
+          if (reduced) {cleanup_tmpchoice(reduced); reduced=NULL;}
           if (decref_keys) fd_decref(keys);
           return fd_interr(v);}
         if (! read_only ) v = edit_result(key,v,adds,drops);
@@ -597,7 +597,7 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,lispval keys)
       u8_big_free(vals);
       rv = n_fetched+1;}
     else rv=-1;}
-  if (reduced) cleanup_tmpchoice(reduced);
+  if (reduced) {cleanup_tmpchoice(reduced); reduced=NULL;}
   if (decref_keys) fd_decref(keys);
   return rv;
 }

@@ -817,6 +817,85 @@ static struct FD_POOL_HANDLER leveldb_pool_handler={
   NULL  /* poolctl */
 };
 
+/* LevelDB indexes */
+
+static struct FD_INDEX_HANDLER leveldb_index_handler;
+
+fd_index fd_open_leveldb_index(u8_string path,fd_storage_flags flags,lispval opts)
+{
+  struct FD_LEVELDB_INDEX *index = u8_alloc(struct FD_LEVELDB_INDEX);
+  if (fd_setup_leveldb(&(index->leveldb),path,opts)) {
+    leveldb_t *dbptr = index->leveldb.dbptr;
+    u8_string rname = u8_realpath(path,NULL);
+    lispval label = get_prop(dbptr,"\377LABEL",FD_VOID);
+    fd_init_index((fd_index)index,
+                  &leveldb_index_handler,
+                  (FD_STRINGP(label)) ? (FD_CSTRING(label)) : (path),
+                  rname,
+                  0);
+    fd_decref(label);
+    if (fd_testopt(opts,SYM("READONLY"),FD_VOID))
+      index->index_flags |= FD_STORAGE_READ_ONLY;
+    index->index_flags = flags;
+    fd_register_index((fd_index)index);
+    return (fd_index)index;}
+  else {
+    u8_free(index);
+    return NULL;}
+}
+
+FD_EXPORT
+fd_index fd_make_leveldb_index(u8_string path,lispval opts)
+{
+  struct FD_LEVELDB_INDEX *index = u8_alloc(struct FD_LEVELDB_INDEX);
+  lispval label = fd_getopt(opts,SYM("LABEL"),FD_VOID);
+  if (fd_setup_leveldb(&(index->leveldb),path,opts)) {
+    leveldb_t *dbptr = index->leveldb.dbptr;
+    lispval cur_label = get_prop(dbptr,"\377LABEL",FD_VOID);
+    u8_string rname = u8_realpath(path,NULL);
+    if (!(FD_VOIDP(label))) {
+      if (!(FD_EQUALP(label,cur_label)))
+        set_prop(dbptr,"\377LABEL",label,sync_writeopts);}
+    fd_init_index((fd_index)index,
+                  &leveldb_index_handler,
+                  (FD_STRINGP(label)) ? (FD_CSTRING(label)) : (rname),
+                  rname,
+                  0);
+    index->index_flags &= ~FD_STORAGE_READ_ONLY;
+    fd_register_index((fd_index)index);
+    return (fd_index)index;}
+  else {
+    u8_free(index);
+    return (fd_index) NULL;}
+}
+
+static void leveldb_index_close(fd_index ix)
+{
+  struct FD_LEVELDB_INDEX *ldbx = (struct FD_LEVELDB_INDEX *)ix;
+  fd_close_leveldb(&(ldbx->leveldb));
+}
+
+
+/* Initializing the driver module */
+
+static struct FD_INDEX_HANDLER leveldb_index_handler={
+  "leveldb_index", 1, sizeof(struct FD_LEVELDB_INDEX), 14,
+  leveldb_index_close, /* close */
+  NULL, /* commit */
+  NULL, /* fetch */
+  NULL, /* fetchsize */
+  NULL, /* prefetch */
+  NULL, /* fetchn */
+  NULL, /* fetchkeys */
+  NULL, /* fetchinfo */
+  NULL, /* batchadd */
+  NULL, /* create */
+  NULL, /* walk */
+  NULL, /* recycle */
+  NULL /* indexctl */
+};
+
+
 /* Scheme primitives */
 
 static lispval use_leveldb_pool_prim(lispval path,lispval opts)
