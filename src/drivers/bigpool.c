@@ -859,6 +859,7 @@ static lispval *bigpool_fetchn(fd_pool p,int n,lispval *oids)
                                     schedule[i].location.off,
                                     schedule[i].location.size,
                                     0);
+        if (in == NULL) break;
         lispval value = read_oid_value(bp,in,"bigpool_fetchn");
         if (FD_ABORTP(value))
           break;
