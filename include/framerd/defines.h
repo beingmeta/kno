@@ -77,6 +77,10 @@
 
 #endif
 
+#ifndef FD_INIT_UMASK
+#define FD_INIT_UMASK ((mode_t) (S_IWOTH ))
+#endif
+
 /* Whether to have FD_CHECK_PTR check underlying CONS structs */
 #ifdef FD_FULL_CHECK_PTR
 #define FD_FULL_CHECK_PTR 1

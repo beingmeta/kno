@@ -12178,7 +12178,7 @@ if (test ! -f src/scheme/gpath.scm); then
    fi;
 fi;
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/scheme/makefile DIY/makefile etc/gdbinit exe/.gdbinit tests/lisp/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit tests/scheme/.valgrind etc/fd_start_servlets etc/fd_start_daemons etc/fd_stop_jobs etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl etc/fdgdb etc/fdsetconfig etc/fdgetconfig etc/fdconfig tests/scheme/vgleaktest tests/scheme/vgmemtest tests/scheme/runenv.sh tests/scheme/xtest tests/scheme/runtest tests/scheme/memtest tests/scheme/leaktest tests/scheme/fdexectest tests/scheme/tcdebug tests/scheme/vgdebug tests/scheme/gheaptest src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/framerd.target etc/fdaemons.service etc/fdweb.service etc/framerd.service etc/FramerD.plist etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-4.2.spec"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/scheme/makefile DIY/makefile etc/gdbinit exe/.gdbinit tests/lisp/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit tests/scheme/.valgrind etc/fd_start_servlets etc/fd_start_daemons etc/fd_stop_jobs etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl etc/fdgdb etc/fdsetconfig etc/fdgetconfig etc/fdconfig tests/scheme/vgleaktest tests/scheme/vgmemtest tests/scheme/runenv.sh tests/scheme/xtest tests/scheme/runtest tests/scheme/memtest tests/scheme/leaktest tests/scheme/fdexectest tests/scheme/tcdebug tests/scheme/vgdebug tests/scheme/gheaptest src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/fdaemons.service etc/fdweb.service etc/framerd.service etc/FramerD.plist etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-4.2.spec"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -12927,7 +12927,6 @@ do
     "etc/logrotate") CONFIG_FILES="$CONFIG_FILES etc/logrotate" ;;
     "etc/framerd-rc.d") CONFIG_FILES="$CONFIG_FILES etc/framerd-rc.d" ;;
     "etc/framerd.conf") CONFIG_FILES="$CONFIG_FILES etc/framerd.conf" ;;
-    "etc/framerd.target") CONFIG_FILES="$CONFIG_FILES etc/framerd.target" ;;
     "etc/fdaemons.service") CONFIG_FILES="$CONFIG_FILES etc/fdaemons.service" ;;
     "etc/fdweb.service") CONFIG_FILES="$CONFIG_FILES etc/fdweb.service" ;;
     "etc/framerd.service") CONFIG_FILES="$CONFIG_FILES etc/framerd.service" ;;

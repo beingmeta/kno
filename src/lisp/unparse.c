@@ -493,10 +493,12 @@ static int unparse_mystery(u8_output out,lispval x)
     fd_consptr(struct FD_MYSTERY_DTYPE *,x,fd_mystery_type);
   char buf[128];
   if (d->myst_dtcode&0x80)
-    sprintf(buf,_("#<MysteryVector 0x%x/0x%x %d elements>"),
-            d->myst_dtpackage,d->myst_dtcode,d->myst_dtsize);
-  else sprintf(buf,_("#<MysteryPacket 0x%x/0x%x %d bytes>"),
-               d->myst_dtpackage,d->myst_dtcode,d->myst_dtsize);
+    sprintf(buf,_("#<MysteryVector 0x%x/0x%x %lld elements>"),
+            d->myst_dtpackage,d->myst_dtcode,
+            (long long)d->myst_dtsize);
+  else sprintf(buf,_("#<MysteryPacket 0x%x/0x%x %lld bytes>"),
+               d->myst_dtpackage,d->myst_dtcode,
+               (long long)d->myst_dtsize);
   u8_puts(out,buf);
   return 1;
 }
