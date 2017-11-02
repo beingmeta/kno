@@ -237,7 +237,7 @@ static lispval read_bytes(lispval stream,lispval n,lispval pos)
 #endif
   fd_lock_stream(ds);
   if (! (FD_VOIDP(pos)) ) fd_setpos(ds,pos);
-  size_t result = fd_read_bytes(bytes,fd_readbuf(ds),n_bytes);
+  ssize_t result = fd_read_bytes(bytes,fd_readbuf(ds),n_bytes);
   if (result<0) {
     u8_free(bytes);
     return FD_ERROR;}
