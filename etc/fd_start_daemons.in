@@ -10,37 +10,33 @@ READLINK=`which readlink`;
 if ${READLINK} -e /tmp 2>&1 > /dev/null; then 
     READLINK="${READLINK} -e";
 fi;
-export FD_LOGLEVEL=7
 export FD_LAUNCHER=${FD_LAUNCHER:-fd_start_daemons} 
 export LAUNCHCFG="LAUNCHER=${FD_LAUNCHER}" 
 export COMMONCFG="RESTART=1 PIDWAIT=no STEALSOCKETS=yes" 
 export FDSERVER=@BINDIR@/fdserver
-export RUNUSER=@fdaemon@
-export RUNGROUP=@admin_group@
 export RUNDIR=@daemon_rundir@
-export U8RUNFLAGS="RUNUSER=${RUNUSER} RUNGROUP=${RUNGROUP} RUNDIR=${RUNDIR}";
+export U8RUNFLAGS="RUNDIR=${RUNDIR}";
 export DAEMONCFG="${LAUNCHCFG} ${COMMONCFG} STATEDIR=${RUNDIR} FDSTART=${ROOTDIR}";
-RUNCMD=
-SUDO_ARGS=
-if [ ! -z ${AS_USER} ]; then
-    SUDO_ARGS="-u ${AS_USER} ";
-fi
-if [ ! -z ${AS_GROUP} ]; then
-    SUDO_ARGS="-g ${AS_GROUP} ";
-fi
-if [ ! -z "${SUDO_ARGS}"]; then
-    RUNCMD="sudo ${SUDO_ARGS} ";
-fi
+export DAEMON="+daemon"
+if [ ! -z "${RUNUSER}" ]; then
+    U8RUNFLAGS="RUNUSER=${RUNUSER} ${U8RUNFLAGS}"
+fi;
+if [ ! -z "${RUNGROUP}" ]; then
+    U8RUNFLAGS="RUNGROUP=${RUNGROUP} ${U8RUNFLAGS}";
+fi;
+if [ ! -z "${NOSPAWN}" ] ; then
+    DAEMON=
+fi;
 
 daemon ( ) {
     file=$1;
     name=$2;
     echo "Starting servlet manager ${name} for ${file}";
     if (${READLINK} ${file}>/dev/null); then
-	${RUNCMD} u8run +daemon ${name} ${U8RUNFLAGS} \
-		  ${FDSERVER} $(${READLINK} ${file}) ${LAUNCHCFG} ${DAEMONCFG} \
-		  RUNDIR=@daemon_rundir@ LOGFILE=@daemon_logdir@/${name}.log \
-		  ${XARGS};
+	u8run ${DAEMON} ${name} ${U8RUNFLAGS} \
+	      ${FDSERVER} $(${READLINK} ${file}) ${LAUNCHCFG} ${DAEMONCFG} \
+	      RUNDIR=@daemon_rundir@ LOGFILE=@daemon_logdir@/${name}.log \
+	      ${XARGS};
     else echo "Missing daemon controller "${file} " linked to " `readlink -m ${file}`;
     fi;
 }
