@@ -36,3 +36,11 @@ typedef struct FD_LEVELDB_POOL {
   struct FRAMERD_LEVELDB leveldb;} FD_LEVELDB_POOL;
 typedef struct FD_LEVELDB_POOL *fd_leveldb_pool;
 
+typedef struct FD_LEVELDB_INDEX {
+  FD_INDEX_FIELDS;
+  unsigned int locked:1;
+  lispval *index_slotids; ssize_t n_index_slotids;
+  struct FD_HASHTABLE slotids_table;
+  struct FRAMERD_LEVELDB leveldb;} FD_LEVELDB_INDEX;
+typedef struct FD_LEVELDB_INDEX *fd_leveldb_index;
+
