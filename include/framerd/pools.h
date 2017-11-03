@@ -210,6 +210,15 @@ FD_FASTOP void fd_unlock_pool(fd_pool p)
 #define fd_unlock_pool(p) _fd_unlock_pool(p)
 #endif
 
+/* Pool commit objects */
+
+typedef struct FD_POOL_COMMITMENT {
+  fd_pool commit_pool;
+  ssize_t commit_count;
+  lispval *commit_oids;
+  lispval *commit_vals;
+  lispval commit_metadata;} *fd_pool_commitment;
+
 /* Pool handlers */
 
 typedef struct FD_POOL_HANDLER {

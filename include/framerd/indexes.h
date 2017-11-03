@@ -57,6 +57,18 @@ FD_EXPORT int fd_index_adds_init;
 typedef struct FD_INDEX {FD_INDEX_FIELDS;} FD_INDEX;
 typedef struct FD_INDEX *fd_index;
 
+/* Pool commit objects */
+
+typedef struct FD_INDEX_COMMITMENT {
+  fd_index commit_index;
+  ssize_t commit_n_adds, commit_n_drops, commit_n_stores;
+  const struct FD_KEYVAL *commit_adds;
+  const struct FD_KEYVAL *commit_drops;
+  const struct FD_KEYVAL *commit_stores;
+  lispval commit_metadata;} *fd_index_commitment;
+
+/* Lookup tables */
+
 FD_EXPORT fd_index fd_primary_indexes[FD_N_PRIMARY_INDEXES];
 FD_EXPORT fd_index *fd_secondary_indexes;
 FD_EXPORT int fd_n_primary_indexes, fd_n_secondary_indexes;

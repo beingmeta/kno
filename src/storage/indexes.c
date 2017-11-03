@@ -1259,7 +1259,7 @@ FD_EXPORT int fd_index_save(fd_index ix,
 
   double start_time = u8_elapsed_time();
 
-  retval = ix->index_handler->commit
+  retval = ix->index_handler->save
     (ix,(const_keyvals)adds,n_adds,
      (const_keyvals)drops,n_drops,
      (const_keyvals)stores,n_stores,
