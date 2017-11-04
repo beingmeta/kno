@@ -1200,7 +1200,8 @@ struct FD_POOL_WRITES pick_modified(fd_pool p,int finished)
         while (kvscan<kvlimit) {
           lispval key = kvscan->kv_key, val = kvscan->kv_val;
           if (val == FD_LOCKHOLDER) {
-            kvscan++; continue;}
+            kvscan++;
+            continue;}
           else if (savep(val,finished)) {
             *oidv++=key;
             *values++=val;
