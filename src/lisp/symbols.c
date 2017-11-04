@@ -27,7 +27,7 @@ lispval FDSYM_TYPE, FDSYM_SIZE, FDSYM_LABEL, FDSYM_NAME,
   FDSYM_NO, FDSYM_NONE, FDSYM_ALWAYS, FDSYM_ALL, FDSYM_FLAGS,
   FDSYM_STRING, FDSYM_CONS, FDSYM_SOURCE, FDSYM_CREATE,
   FDSYM_FILE, FDSYM_FILENAME, FDSYM_INPUT, FDSYM_OUTPUT,
-  FDSYM_KEYSLOT;
+  FDSYM_KEYSLOT, FDSYM_MAIN, FDSYM_TEST;
 
 u8_rwlock fd_symbol_lock;
 
@@ -123,6 +123,8 @@ static void init_builtin_symbols()
   FDSYM_INPUT = fd_intern("INPUT");
   FDSYM_OUTPUT = fd_intern("OUTPUT");
   FDSYM_KEYSLOT = fd_intern("KEYSLOT");
+  FDSYM_TEST = fd_intern("TEST");
+  FDSYM_MAIN = fd_intern("MAIN");
 }
 
 static void grow_symbol_tables()
