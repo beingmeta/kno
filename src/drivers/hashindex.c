@@ -1884,7 +1884,8 @@ static int process_drops(struct FD_HASHINDEX *hx,
     s[sched_i].free_values     = 1;
     j++;}
 
-  fd_decref_vec(drop_vals,n_fetches,1);
+  fd_decref_vec(drop_vals,n_fetches,0);
+  u8_big_free(drop_vals);
   u8_big_free(fetch_scheds);
   u8_big_free(to_fetch);
 
