@@ -481,6 +481,79 @@ FD_EXPORT u8_string fd_match_index_file(u8_string spec,void *data)
       return NULL;}}
 }
 
+/* Setting fileinfo */
+
+static uid_t get_owner(lispval spec)
+{
+  if (FD_UINTP(spec))
+    return (uid_t) (FD_FIX2INT(spec));
+  else if (FD_STRINGP(spec)) {
+      uid_t uid = u8_getuid(FD_CSTRING(spec));
+      if (uid>=0) return uid;}
+  else {}
+  u8_log(LOGWARN,"NoSuchUser",
+         "Couldn't identify a user from %q",spec);
+  return (gid_t) -1;
+}
+
+static gid_t get_group(lispval spec)
+{
+  if (FD_UINTP(spec))
+    return (gid_t) (FD_FIX2INT(spec));
+  else if (FD_STRINGP(spec)) {
+      gid_t gid = u8_getgid(FD_CSTRING(spec));
+      if (gid>=0) return gid;}
+  else {}
+  u8_log(LOGWARN,"NoSuchGroup",
+         "Couldn't identify a group from %q",spec);
+  return (gid_t) -1;
+}
+
+FD_EXPORT int fd_set_file_opts(u8_string filename,lispval opts)
+{
+  lispval owner = fd_getopt(opts,fd_intern("OWNER"),FD_VOID);
+  lispval group = fd_getopt(opts,fd_intern("GROUP"),FD_VOID);
+  lispval mode = fd_getopt(opts,fd_intern("MODE"),FD_VOID);
+  int set_rv = 0;
+  if ( (FD_VOIDP(owner))  &&
+       (FD_VOIDP(group)) &&
+       (FD_VOIDP(mode)) )
+    return set_rv;
+  if (! ((FD_VOIDP(owner)) && (FD_VOIDP(group))) ) {
+    uid_t file_owner = (FD_VOIDP(owner)) ? (-1) : (get_owner(owner));
+    gid_t file_group = (FD_VOIDP(group)) ? (-1) : (get_group(group));
+    if ( (file_owner >= 0) || (file_group >= 0) ) {
+      const char *path = u8_tolibc(filename);
+      int rv = chown(path,file_owner,file_group);
+      u8_free(path);
+      if (rv<0) {
+        if (file_owner < 0)
+          u8_log(LOGWARN,"FileOptsFailed",
+                 "Couldn't set the group of '%s' to %q",filename,group);
+        else if (file_group < 0)
+          u8_log(LOGWARN,"FileOptsFailed",
+                 "Couldn't set the owner of '%s' to %q",filename,owner);
+        else u8_log(LOGWARN,"FileOptsFailed",
+                    "Couldn't set the owner:group of '%s' to %q:%q",
+                    filename,owner,group);
+        return -1;}
+      set_rv=1;}}
+  if (FD_VOIDP(mode))
+    return set_rv;
+  else if ( (FD_UINTP(mode)) && ((FD_FIX2INT(mode)) < 512) ) {
+    char *s = u8_tolibc(filename);
+    int rv = u8_chmod(s,((mode_t)(FD_FIX2INT(mode))));
+    if (rv<0) {
+      u8_log(LOGWARN,"FileOptsFailed",
+             "Couldn't change file mode of '%s' to %q",filename,mode);
+      return rv;}
+    else return 1;}
+  else {}
+  u8_log(LOGWARN,"FileOptsFailed",
+         "Couldn't set the mode of '%s' to %q",filename,mode);
+  return -1;
+}
+
 /* Initialization */
 
 int fd_init_mempool_c(void);

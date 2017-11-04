@@ -794,8 +794,9 @@ static fd_pool filepool_create(u8_string spec,void *type_data,
   if (rv<0) return NULL;
   else rv = fd_make_file_pool(spec,magic_number,
                             FD_OID_ADDR(base_oid),capacity,load);
-  if (rv>=0)
-    return fd_open_pool(spec,flags,opts);
+  if (rv>=0) {
+    fd_set_file_opts(spec,opts);
+    return fd_open_pool(spec,flags,opts);}
   else return NULL;
 }
 

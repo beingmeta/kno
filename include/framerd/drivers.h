@@ -63,7 +63,7 @@ FD_EXPORT fd_pool_typeinfo fd_set_default_pool_type(u8_string name);
 FD_EXPORT fd_pool_handler fd_get_pool_handler(u8_string name);
 
 FD_EXPORT fd_pool fd_make_pool(u8_string spec,u8_string pooltype,
-			       fd_storage_flags flags,lispval opts);
+                               fd_storage_flags flags,lispval opts);
 
 #define FD_POOLFILE_LOCKEDP(fp) \
   (((fp)->pool_stream.stream_flags)&FD_STREAM_FILE_LOCKED)
@@ -86,10 +86,10 @@ void fd_register_index_type
 (u8_string name,
  fd_index_handler handler,
  fd_index (*opener)(u8_string spec,
-		    fd_storage_flags flags,
-		    lispval opts),
+                    fd_storage_flags flags,
+                    lispval opts),
  u8_string (*matcher)(u8_string spec,
-		      void *),
+                      void *),
  void *type_data);
 
 FD_EXPORT fd_index_typeinfo fd_set_default_index_type(u8_string name);
@@ -97,7 +97,7 @@ FD_EXPORT fd_index_typeinfo fd_set_default_index_type(u8_string name);
 FD_EXPORT fd_index_handler fd_get_index_handler(u8_string name);
 
 FD_EXPORT fd_index fd_make_index(u8_string spec,u8_string indextype,
-				 fd_storage_flags flags,lispval opts);
+                                 fd_storage_flags flags,lispval opts);
 
 FD_EXPORT lispval fd_read_index_metadata(fd_stream ds);
 FD_EXPORT lispval fd_write_index_metadata(fd_stream,lispval);
@@ -117,6 +117,10 @@ unsigned int fd_hash_dtype_rep(lispval x);
 
 FD_EXPORT u8_string fd_match_pool_file(u8_string spec,void *data);
 FD_EXPORT u8_string fd_match_index_file(u8_string spec,void *data);
+
+/* Setting file options */
+
+FD_EXPORT int fd_set_file_opts(u8_string filename,lispval opts);
 
 #endif /* #ifndef FRAMERD_DRIVERS_H */
 

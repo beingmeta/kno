@@ -2709,7 +2709,9 @@ static fd_index hashindex_create(u8_string spec,void *typedata,
 
   if (rv<0)
     return NULL;
-  else return fd_open_index(spec,flags,VOID);
+  else {
+    fd_set_file_opts(spec,opts);
+    return fd_open_index(spec,flags,VOID);}
 }
 
 
