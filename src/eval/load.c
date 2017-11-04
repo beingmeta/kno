@@ -521,6 +521,74 @@ static lispval lisp_read_config(lispval arg)
   else return FD_INT2DTYPE(retval);
 }
 
+/* Lisp run */
+
+static lispval fd_run(u8_string source_file,struct U8_OUTPUT *out,
+                      int n,lispval *args)
+{
+  fd_lexenv env = fd_working_lexenv();
+  lispval load_result = fd_load_source(source_file,env,NULL);
+  if (FD_ABORTP(load_result)) {
+    fd_decref((lispval)env);
+    return load_result;}
+  else {
+    lispval main_proc = fd_symeval(FDSYM_MAIN,env);
+    if (FD_VOIDP(main_proc)) {
+      u8_log(LOGCRIT,"NoMain",
+             "No (MAIN) was defined in '%s', returning last value",
+             source_file);
+      return load_result;}
+    else if (!(FD_APPLICABLEP(main_proc))) {
+      fd_seterr("BadMainProc","lisp_run_file",u8_strdup(source_file),main_proc);
+      fd_decref((lispval)env);
+      return FD_ERROR_VALUE;}
+    else {
+      u8_output prev = u8_current_output;
+      if (out) u8_set_default_output(out);
+      lispval result = fd_dapply(main_proc,n,args);
+      fd_decref((lispval)env);
+      fd_decref(load_result);
+      if (out) u8_set_default_output(prev);
+      if (FD_ABORTP(result)) {
+        u8_exception ex = u8_erreify();
+        lispval exception_object = fd_wrap_exception(ex);
+        u8_free_exception(ex,1);
+        return exception_object;}
+      else return result;}}
+}
+
+static lispval lisp_fdexec_file(int n,lispval *args)
+{
+  if ( (FD_STRINGP(args[0])) &&
+       (u8_file_existsp(FD_CSTRING(args[0]))) )
+    return fd_run(FD_CSTRING(args[0]),NULL,n-1,args+1);
+  else return fd_type_error("filename","lisp_run_file",args[0]);
+}
+
+static lispval lisp_fdexecout_file(int n,lispval *args)
+{
+  if ( (FD_STRINGP(args[0])) &&
+       (u8_file_existsp(FD_CSTRING(args[0]))) ) {
+    struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,4096);
+    lispval result = fd_run(FD_CSTRING(args[0]),&out,n-1,args+1);
+    if (FD_ABORTP(result)) {
+      if ( (out.u8_write-out.u8_outbuf) > 0) {
+        lispval output = fd_stream_string(&out);
+        u8_close_output(&out);
+        fd_seterr("RunFailed","lisp_run2string_file",
+                  u8_strdup(FD_CSTRING(args[0])),
+                  output);
+        fd_decref(output);
+        return result;}
+      else return result;}
+    else {
+      lispval output = fd_stream_string(&out);
+      fd_decref(result);
+      u8_close_output(&out);
+      return output;}}
+  else return fd_type_error("filename","lisp_run_file",args[0]);
+}
+
 /* Config config */
 
 static u8_mutex config_file_lock;
@@ -635,6 +703,13 @@ FD_EXPORT void fd_init_load_c()
  fd_idefn(fd_scheme_module,
           fd_make_cprim1x("LOAD-DEFAULT-CONFIG",lisp_load_default_config,1,
                           -1,VOID));
+
+ fd_idefnN(fd_scheme_module,"FDEXEC",
+           lisp_fdexec_file,FD_NEEDS_1_ARG|FD_NDCALL,
+           "Loads a file and applies its (main) procedure to the arguments");
+ fd_idefnN(fd_scheme_module,"FDEXECOUT",
+           lisp_fdexecout_file,FD_NEEDS_1_ARG|FD_NDCALL,
+           "Loads a file and applies its (main) procedure to the arguments");
 
  fd_idefn(fd_scheme_module,
           fd_make_cprim2x("GET-COMPONENT",lisp_get_component,1,
