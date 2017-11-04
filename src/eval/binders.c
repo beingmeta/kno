@@ -331,7 +331,7 @@ static lispval do_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
         if (FD_ABORTED(tmp[i])) {
           /* GC the updated values you've generated so far.
              Note that tmp[i] (the exception) is not freed. */
-          fd_decref_vec(tmp,i,0);
+          fd_decref_vec(tmp,i);
           /* Free the temporary arrays if neccessary */
           if (n>16) {u8_free(tmp); u8_free(updaters);}
           /* Return the error result, adding the expr and environment. */

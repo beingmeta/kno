@@ -1047,7 +1047,7 @@ static lispval call_function(u8_string fname,lispval headval,
       if ( (FD_ABORTED(argval)) ||
            ( (d_prim) && (EMPTYP(argval)) ) ) {
         /* Clean up the arguments we've already evaluated */
-        if (gc_args) fd_decref_vec(argbuf,arg_count,0);
+        if (gc_args) fd_decref_vec(argbuf,arg_count);
         return argval;}
       else if (CONSP(argval)) {
         if ( (nd_args == 0) && (ND_ARGP(argval)) ) nd_args = 1;
@@ -1061,7 +1061,7 @@ static lispval call_function(u8_string fname,lispval headval,
            ((d_prim) && (nd_args)))
     result=fd_ndcall(stack,fn,arg_count,argbuf);
   else result=fd_dcall(stack,fn,arg_count,argbuf);
-  if (gc_args) fd_decref_vec(argbuf,arg_count,0);
+  if (gc_args) fd_decref_vec(argbuf,arg_count);
   return result;
 }
 

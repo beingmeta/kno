@@ -520,8 +520,10 @@ lispval *fd_elts(lispval seq,int *n)
         vec[i++]=elt;}
       if (!(FD_EMPTY_LISTP(scan))) {
         fd_seterr("ImproperList","fd_seq_elts",NULL,seq);
-        fd_decref_vec(vec,len,1);
-        vec=NULL; *n=-1;}
+        fd_decref_vec(vec,len);
+        u8_free(vec);
+        vec=NULL;
+        *n=-1;}
       break;}
     default:
       if ((fd_seqfns[ctype]) && (fd_seqfns[ctype]->elts))

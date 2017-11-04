@@ -929,7 +929,7 @@ static int commit_drops(struct FD_CONST_KEYVAL *drops,int n_drops,
     drop_i++;
     kdata_i++;}
 
-  fd_decref_vec(dropvals,n_drops,0);
+  fd_decref_vec(dropvals,n_drops);
   u8_big_free(dropvals);
 
   return kdata_i;
