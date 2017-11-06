@@ -1993,8 +1993,9 @@ static fd_pool bigpool_create(u8_string spec,void *type_data,
   fd_decref(mtime_opt);
   fd_decref(generation_opt);
 
-  if (rv>=0)
-    return fd_open_pool(spec,storage_flags,opts);
+  if (rv>=0) {
+    fd_set_file_opts(spec,opts);
+    return fd_open_pool(spec,storage_flags,opts);}
   else return NULL;
 }
 

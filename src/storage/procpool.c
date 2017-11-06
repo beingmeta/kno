@@ -140,7 +140,7 @@ static lispval *procpool_fetchn(fd_pool p,int n,lispval *oids)
       lispval oid = oids[i];
       lispval v = procpool_fetch(p,oid);
       if (FD_ABORTP(v)) {
-        fd_decref_vec(vals,i,0);
+        fd_decref_vec(vals,i);
         u8_big_free(vals);
         return NULL;}
       else vals[i++]=v;}

@@ -137,7 +137,7 @@ static lispval *procindex_fetchn(fd_index ix,int n,const lispval *keys)
       lispval key = keys[i];
       lispval v = procindex_fetch(ix,key);
       if (FD_ABORTP(v)) {
-        fd_decref_vec(vals,i,0);
+        fd_decref_vec(vals,i);
         u8_big_free(vals);
         return NULL;}
       else vals[i++]=v;}

@@ -929,7 +929,7 @@ static int commit_drops(struct FD_CONST_KEYVAL *drops,int n_drops,
     drop_i++;
     kdata_i++;}
 
-  fd_decref_vec(dropvals,n_drops,0);
+  fd_decref_vec(dropvals,n_drops);
   u8_big_free(dropvals);
 
   return kdata_i;
@@ -1273,7 +1273,8 @@ int fd_make_fileindex(u8_string filename,unsigned int magicno,int n_slots_arg)
 }
 
 static fd_index fileindex_create(u8_string spec,void *type_data,
-                                  fd_storage_flags flags,lispval opts)
+                                 fd_storage_flags flags,
+                                 lispval opts)
 {
   lispval n_slots = fd_getopt(opts,fd_intern("SLOTS"),
                              fd_getopt(opts,fd_intern("SIZE"),
@@ -1283,8 +1284,9 @@ static fd_index fileindex_create(u8_string spec,void *type_data,
     return NULL;}
   else if (fd_make_fileindex(spec,
                               (unsigned int)((unsigned long long)type_data),
-                              FIX2INT(n_slots))>=0)
-    return fd_open_index(spec,flags,VOID);
+                             FIX2INT(n_slots))>=0) {
+    fd_set_file_opts(spec,opts);
+    return fd_open_index(spec,flags,VOID);}
   else return NULL;
 }
 

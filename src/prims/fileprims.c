@@ -557,7 +557,7 @@ static lispval rmdir_prim(lispval dirname)
 static lispval mkdirs_prim(lispval pathname,lispval mode_arg)
 {
   mode_t mode=
-    ((FD_UINTP(mode_arg))?((mode_t)(FIX2INT(mode_arg))):((mode_t)0777));
+    ((FD_UINTP(mode_arg))?((mode_t)(FIX2INT(mode_arg))):((mode_t)-1));
   int retval = u8_mkdirs(CSTRING(pathname),mode);
   if (retval<0) {
     u8_condition cond = u8_strerror(errno); errno = 0;
@@ -911,6 +911,39 @@ static lispval file_owner(lispval filename)
   u8_string name = u8_file_owner(CSTRING(filename));
   if (name) return fd_lispstring(name);
   else return FD_ERROR;
+}
+
+static lispval set_file_access_prim(lispval filename,
+                                    lispval owner,
+                                    lispval group,
+                                    lispval mode_arg)
+{
+  mode_t mode = (FD_FIXNUMP(mode_arg)) ? (FD_FIX2INT(mode_arg)) : -1;
+  uid_t uid; gid_t gid;
+  if (FD_FIXNUMP(owner))
+    uid = FD_FIX2INT(owner);
+  else if (FD_STRINGP(owner)) {
+    uid = u8_getuid(FD_CSTRING(owner));
+    if (uid<0) {
+      fd_seterr("UnknownUser","set_file_access_prim",
+                u8_strdup(FD_CSTRING(owner)),
+                VOID);
+      return FD_ERROR;}}
+  else return fd_type_error("username","set_file_access_prim",owner);
+  if (FD_FIXNUMP(owner))
+    uid = FD_FIX2INT(owner);
+  else if (FD_STRINGP(group)) {
+    gid = u8_getgid(FD_CSTRING(group));
+    if (gid<0) {
+      fd_seterr("UnknownGroup","set_file_access_prim",
+                u8_strdup(FD_CSTRING(group)),
+                VOID);
+      return FD_ERROR;}}
+  else return fd_type_error("groupname","set_file_access_prim",group);
+  int rv = u8_set_access_x(FD_CSTRING(filename),uid,gid,mode);
+  if (rv < 0)
+    return FD_ERROR;
+  else return FD_INT(rv);
 }
 
 /* Current directory information */
@@ -1661,6 +1694,12 @@ FD_EXPORT void fd_init_fileprims_c()
            fd_make_cprim2x("SET-FILE-ATIME!",set_file_atime,1,
                            fd_string_type,VOID,
                            -1,VOID));
+
+  fd_idefn4(fileio_module,"SET-FILE-ACCESS!",
+            set_file_access_prim,FD_NEEDS_2_ARGS,
+            "(SET-FILE-ACCESS! *file* [*mode*] [*group*] [*owner*]) sets "
+            "the mode/group/owner of a file",
+            fd_string_type,VOID,fd_fixnum_type,VOID,-1,VOID,-1,VOID);
 
   fd_idefn(fileio_module,
            fd_make_cprim1x("FILE-OWNER",file_owner,1,

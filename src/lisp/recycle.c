@@ -222,12 +222,11 @@ void fd_incref_vec(lispval *vec,size_t n)
 
 FD_EXPORT
 /* Decrefs the elements of a vector of LISP pointers */
-void fd_decref_vec(lispval *vec,size_t n,int free_vec)
+void fd_decref_vec(lispval *vec,size_t n)
 {
   int i = 0; while (i<n) {
     lispval elt = vec[i++];
     fd_decref(elt);}
-  if (free_vec) u8_free(vec);
 }
 
 void fd_init_recycle_c()

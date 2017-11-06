@@ -1679,8 +1679,9 @@ fd_pool oidpool_create
                          schemas,
                          time(NULL),
                          time(NULL),1);
-  if (rv>=0)
-    return fd_open_pool(spec,storage_flags,opts);
+  if (rv>=0) {
+    fd_set_file_opts(spec,opts);
+    return fd_open_pool(spec,storage_flags,opts);}
   else return NULL;
 }
 

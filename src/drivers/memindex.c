@@ -335,10 +335,12 @@ FD_EXPORT int fd_make_memindex(u8_string spec)
 }
 
 static fd_index memindex_create(u8_string spec,void *type_data,
-                                 fd_storage_flags flags,lispval opts)
+                                fd_storage_flags flags,
+                                lispval opts)
 {
-  if (fd_make_memindex(spec)>=0)
-    return fd_open_index(spec,flags,VOID);
+  if (fd_make_memindex(spec)>=0) {
+    fd_set_file_opts(spec,opts);
+    return fd_open_index(spec,flags,VOID);}
   else return NULL;
 }
 

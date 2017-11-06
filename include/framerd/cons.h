@@ -236,7 +236,7 @@ FD_EXPORT lispval fd_static_copy(lispval x);
 
 FD_EXPORT lispval *fd_copy_vec(lispval *vec,size_t n,lispval *into,int copy_flags);
 FD_EXPORT void fd_incref_vec(lispval *vec,size_t n);
-FD_EXPORT void fd_decref_vec(lispval *vec,size_t n,int free_vec);
+FD_EXPORT void fd_decref_vec(lispval *vec,size_t n);
 
 #define FD_DEEP_COPY 2   /* Make a deep copy */
 #define FD_FULL_COPY 4   /* Copy non-static objects */

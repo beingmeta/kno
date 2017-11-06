@@ -100,22 +100,6 @@
 	((config 'ncycles) (/ n (config 'ncycles)))
 	(else 100000)))
 
-(define last-save (elapsed-time))
-(define save-interval 30)
-(define saving #f)
-
-(defslambda (getsavelock)
-  (cond (saving #f)
-	(else (set! saving (timestamp))
-	      #t)))
-
-(define (dosave old new)
-  (commit new)
-  (swapout old)
-  (swapout new)
-  (set! last-save (elapsed-time))
-  (set! saving #f))
-
 (define (copy-block queuefn old new (msg #f))
   (let ((oids (queuefn))
 	(started (elapsed-time)))
@@ -184,6 +168,8 @@
 (define (main (from) (to))
   (default! to from)
   (cond ((not (bound? from)) (usage))
+	((and (file-exists? to) (not (equal? from to)) (config 'COPY #f))
+	 (copy-pool from to))
 	((and (file-exists? to) 
 	      (not (equal? from to))
 	      (not (config 'OVERWRITE #f)))
@@ -231,8 +217,24 @@
     (when bakfile
       (onerror (move-file from bakfile)
 	  (lambda (ex) (system "mv " from " " bakfile))))
-    (onerror (move-file tmpfile from)
-	(lambda (ex) (system "mv " tmpfile " " from)))))
+    (when inplace
+      (onerror (move-file tmpfile from)
+	  (lambda (ex) (system "mv " tmpfile " " from))))))
+
+(define (copy-pool from to)
+  (let* ((base (basename from)))
+    (config! 'appid (glom "copy(" (basename to) ")"))
+    (when (not (writable? to))
+      (logcrit |NotWritable| "Can't write output file " (write to))
+      (exit))
+    (let ((old (open-pool from #[register #t adjunct #t cachelevel 2]))
+	  (new (open-pool to #[register #t adjunct #t cachelevel 2])))
+      (lognotice |Copy| 
+	"Copying " ($num (pool-load old)) "/" ($num (pool-capacity old)) " "
+	"OIDs " (if (pool-label old) (glom "for " (pool-label old)))
+	" to " to)
+      (copy-oids old new)
+      (commit new))))
 
 (define (usage)
   (lineout "Usage: pack-pool <from> [to]")

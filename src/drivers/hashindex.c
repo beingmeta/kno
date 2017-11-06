@@ -1884,7 +1884,8 @@ static int process_drops(struct FD_HASHINDEX *hx,
     s[sched_i].free_values     = 1;
     j++;}
 
-  fd_decref_vec(drop_vals,n_fetches,1);
+  fd_decref_vec(drop_vals,n_fetches);
+  u8_big_free(drop_vals);
   u8_big_free(fetch_scheds);
   u8_big_free(to_fetch);
 
@@ -2708,7 +2709,9 @@ static fd_index hashindex_create(u8_string spec,void *typedata,
 
   if (rv<0)
     return NULL;
-  else return fd_open_index(spec,flags,VOID);
+  else {
+    fd_set_file_opts(spec,opts);
+    return fd_open_index(spec,flags,VOID);}
 }
 
 

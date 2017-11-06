@@ -602,6 +602,11 @@ static int simplecgi(lispval path)
 
 FD_EXPORT int fd_init_drivers(void);
 
+static void webcommon_atexit()
+{
+  webcommon_shutdown("atexit");
+}
+
 int main(int argc,char **argv)
 {
   int i = 1;
@@ -667,6 +672,8 @@ int main(int argc,char **argv)
 
   fd_init_fdweb();
   fd_init_drivers();
+
+  atexit(webcommon_atexit);
 
   init_webcommon_data();
   init_webcommon_symbols();
