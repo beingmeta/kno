@@ -270,7 +270,7 @@ static int config_serve_port(lispval var,lispval val,void U8_MAYBE_UNUSED *data)
     else if (retval<0)
       fd_seterr(BadPortSpec,"config_serve_port",NULL,val);
     else {
-      u8_log(LOGWARN,"NoServers","No servers were added for port #%q");
+      u8_log(LOGWARN,"NoServers","No servers were added for port #%q",val);
       return 0;}
     return retval;}
   else if (STRINGP(val)) {
@@ -281,7 +281,7 @@ static int config_serve_port(lispval var,lispval val,void U8_MAYBE_UNUSED *data)
       fd_seterr(BadPortSpec,"config_serve_port",NULL,val);
       return -1;}
     else {
-      u8_log(LOGWARN,"NoServers","No servers were added for port #%q");
+      u8_log(LOGWARN,"NoServers","No servers were added for port %q",val);
       return 0;}
     return retval;}
   else {
