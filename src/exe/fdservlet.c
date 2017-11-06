@@ -1667,30 +1667,50 @@ static lispval getfdservports(lispval var,void *data)
   return result;
 }
 
+static int socketp(u8_string filename)
+{
+  int rv = 0;
+  char *localized = u8_tolibc(filename);
+  struct stat info;
+  if (stat(localized,&info)<0)
+    errno=0;
+  else if (info.st_mode & S_IFSOCK)
+    rv=1;
+  else return 0;
+  u8_free(localized);
+  return rv;
+}
+
 static int start_servers()
 {
-  int i = 0, lim = n_ports;
+  int i = 0, lim = n_ports, added=0;
   u8_lock_mutex(&server_port_lock); lim = n_ports;
   while (i<lim) {
     u8_string port = ports[i++];
-    if ((strchr(port,'/'))&&(u8_file_existsp(port))) {
-      if (stealsockets) {
+    int add_port = 0;
+    if ((strchr(port,'/')) && (u8_file_existsp(port))) {
+      if (! (socketp(port)) )
+        u8_log(LOG_CRIT,"FDServlet/start",
+               "File %s exists and is not a socket",port);
+      else if (stealsockets) {
         int retval = u8_removefile(port);
         if (retval<0)
-          u8_log(LOG_WARN,"FDServlet/start",
-                 "Couldn't remove existing socket file %s",port);}
+          u8_log(LOG_CRIT,"FDServlet/start",
+                 "Couldn't remove existing socket file %s",port);
+        else add_port=1;}
       else {
         u8_log(LOG_WARN,"FDServlet/start",
-               "Socket file %s already exists",port);}}}
-  i = 0; while (i<lim) {
-    int retval = add_server(ports[i]);
+               "Socket file %s already exists",port);}}
+    else add_port=1;
+    int retval = (add_port) ? (add_server(port)) : (0);
     if (retval<0) {
       u8_log(LOG_CRIT,"FDServlet/START","Couldn't start server %s",ports[i]);
       u8_clear_errors(1);}
+    else added++;
     i++;}
   server_running = 1;
   u8_unlock_mutex(&server_port_lock);
-  return i;
+  return added;
 }
 
 /* Initializing configs */
