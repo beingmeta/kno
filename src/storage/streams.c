@@ -477,6 +477,9 @@ FD_EXPORT fd_stream fd_init_file_stream
     fd = open(localname,O_RDONLY,0666);}
   if (fd>0) {
     U8_CLEAR_ERRNO();
+    if (stream == NULL) {
+      stream = u8_alloc(struct FD_STREAM);
+      stream_flags |= FD_STREAM_IS_CONSED;}
     fd_init_stream(stream,fname,fd,stream_flags,bufsiz);
     if (stream->stream_maxpos<=0) {
       stream->stream_maxpos = lseek(fd,0,SEEK_END);
