@@ -277,7 +277,8 @@ FD_EXPORT lispval (*fd_get_oid_name)(fd_pool,lispval);
 FD_EXPORT lispval fd_getpath(lispval start,int n,lispval *path,int infer,int accumulate);
 
 FD_EXPORT ssize_t fd_save_head(u8_string source,u8_string dest,size_t head_len);
-FD_EXPORT ssize_t fd_restore_head(u8_string source,u8_string dest,ssize_t trunc_loc);
+FD_EXPORT ssize_t fd_apply_head(u8_string source,u8_string apply,ssize_t trunc);
+FD_EXPORT ssize_t fd_restore_head(u8_string source,u8_string dest,ssize_t trunc);
 
 #endif
 

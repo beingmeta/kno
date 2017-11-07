@@ -898,7 +898,8 @@ static ssize_t bigpool_write_value(fd_bigpool p,lispval value,
                                    struct FD_OUTBUF *tmpout,
                                    unsigned char **zbuf,int *zbuf_size);
 static int update_bigpool(fd_bigpool bp,fd_stream stream,int new_load,
-                          int n_saved,struct BIGPOOL_SAVEINFO *saveinfo);
+                          int n_saved,struct BIGPOOL_SAVEINFO *saveinfo,
+                          lispval metadata);
 
 static int file_format_overflow(fd_pool p,fd_stream stream)
 {
@@ -913,17 +914,36 @@ static int file_format_overflow(fd_pool p,fd_stream stream)
   return -1;
 }
 
-static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
+static fd_stream get_commit_stream(fd_pool p,struct FD_POOL_COMMITS *commit)
+{
+  if (commit->commit_stream)
+    return commit->commit_stream;
+  else if (u8_file_writablep(p->pool_source)) {
+    struct FD_STREAM *new_stream =
+      fd_init_file_stream(NULL,p->pool_source,FD_FILE_MODIFY,-1,-1);
+    /* Lock the file descriptor */
+    if (fd_lockfile(new_stream)<0) {
+      fd_close_stream(new_stream,FD_STREAM_FREEDATA);
+      fd_seterr("CantLockFile","get_commit_stream/bigpool",p->pool_source,
+                FD_VOID);
+      return NULL;}
+    commit->commit_stream = new_stream;
+    return new_stream;}
+  else {
+    fd_seterr("CantWriteFile","bigpool_storen",p->pool_source,FD_VOID);
+    return NULL;}
+}
+
+static int bigpool_storen(fd_pool p,int n,
+                          lispval *oids,lispval *values,
+                          lispval metadata,
+                          fd_stream stream)
 {
   fd_bigpool bp = (fd_bigpool)p;
   u8_string fname=bp->pool_source;
   if (!(u8_file_writablep(fname))) {
     fd_seterr("CantWriteFile","bigpool_storen",fname,FD_VOID);
     return -1;}
-
-  struct FD_STREAM _stream={0};
-  struct FD_STREAM *stream =
-    fd_init_file_stream(&_stream,fname,FD_FILE_MODIFY,-1,-1);
   int chunk_ref_size = get_chunk_ref_size(bp);
 
   if (stream==NULL)
@@ -931,10 +951,6 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
 
   struct FD_OUTBUF *outstream = fd_writebuf(stream);
 
-  /* Lock the file descriptor */
-  if (fd_lockfile(stream)<0) {
-    fd_close_stream(stream,FD_STREAM_FREEDATA);
-    return -1;}
 
   unsigned int load = bp->pool_load;
   u8_string recovery_file=u8_string_append(fname,".rollback",NULL);
@@ -1025,7 +1041,7 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
 
   fd_lock_pool(p,1);
 
-  if (update_bigpool(bp,stream,load,n,saveinfo)<0) {
+  if (update_bigpool(bp,stream,load,n,saveinfo,metadata)<0) {
     u8_log(LOGCRIT,"Couldn't update bigpool %s",bp->poolid);
     fd_restore_head(recovery_file,fname,256-8);
     u8_big_free(saveinfo);
@@ -1076,6 +1092,49 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
   fd_close_stream(stream,FD_STREAM_FREEDATA);
 
   return n;
+}
+
+static int bigpool_commit(fd_pool p,fd_commit_phase phase,
+                          struct FD_POOL_COMMITS *commits)
+{
+  fd_bigpool bp = (fd_bigpool) p;
+  fd_stream stream = get_commit_stream(p,commits);
+  if (stream == NULL)
+    return -1;
+  u8_string fname = p->pool_source;
+  int chunk_ref_size = get_chunk_ref_size(bp);
+  switch (phase) {
+  case fd_no_commit:
+    u8_seterr("BadCommitPhase(commit_none)","bigpool_commit",
+              u8_strdup(p->poolid));
+    return -1;
+  case fd_commit_start: {
+    size_t recovery_size = 256+(chunk_ref_size*p->pool_capacity);
+    u8_string rollback = u8_string_append(fname,".rollback",NULL);
+    return fd_save_head(fname,rollback,recovery_size);}
+  case fd_commit_save: {
+    size_t recovery_size = 256+(chunk_ref_size*p->pool_capacity);
+    u8_string commit = u8_string_append(fname,".commit",NULL);
+    int head_saved = fd_save_head(fname,commit,recovery_size);
+    struct FD_STREAM *head_stream = (head_saved>=0) ?
+      (fd_init_file_stream(NULL,commit,FD_FILE_MODIFY,-1,-1)) : (NULL);
+    if (head_stream == NULL) {
+      u8_free(commit); return -1;}
+    int rv = bigpool_storen(p,commits->commit_count,
+                            commits->commit_oids,
+                            commits->commit_vals,
+                            commits->commit_metadata,
+                            stream);
+    fd_close_stream(head_stream,FD_STREAM_FREEDATA);
+    u8_free(commit);
+    return rv;}
+  case fd_commit_rollback: {
+    u8_string rollback = u8_string_append(fname,".rollback",NULL);
+    return fd_apply_head(fname,rollback,256-8);}
+  case fd_commit_finish: {
+    u8_string commit = u8_string_append(fname,".commit",NULL);
+    return fd_apply_head(fname,commit,256-8);}
+  }
 }
 
 /* Maintaining slotcodes */
@@ -1286,11 +1345,11 @@ static int write_bigpool_slotids(fd_bigpool bp,fd_stream stream)
 
 /* These assume that the pool itself is locked */
 
-static int write_bigpool_metadata(fd_bigpool bp,fd_stream stream)
+static int write_bigpool_metadata(fd_bigpool bp,lispval metadata,fd_stream stream)
 {
-  lispval metadata = (lispval) &(bp->pool_metadata);
-  if ( (FD_TABLEP(metadata)) && (fd_modifiedp(metadata)) ) {
-    u8_log(LOGWARN,"WriteMetadata","Writing modified metadata for %s",bp->poolid);
+  if (FD_TABLEP(metadata)) {
+    u8_log(LOGWARN,"WriteMetadata",
+           "Writing modified metadata for %s",bp->poolid);
     off_t start_pos = fd_endpos(stream), end_pos = start_pos;
     fd_outbuf out = fd_writebuf(stream);
     int rv=fd_write_dtype(out,metadata);
@@ -1311,13 +1370,15 @@ static int write_bigpool_metadata(fd_bigpool bp,fd_stream stream)
 }
 
 static int update_bigpool(fd_bigpool bp,fd_stream stream,int new_load,
-                          int n_saved,struct BIGPOOL_SAVEINFO *saveinfo)
+                          int n_saved,struct BIGPOOL_SAVEINFO *saveinfo,
+                          lispval metadata)
 {
   int rv=write_bigpool_slotids(bp,stream);
   if (saveinfo) {
     if (rv>=0) rv=write_offdata(bp,stream,n_saved,new_load,saveinfo);
     if (rv>=0) rv=bump_bigpool_nblocks(bp,n_saved,stream);}
-  if (rv>=0) rv=write_bigpool_metadata(bp,stream);
+  if ( (rv>=0) && (!(FD_VOIDP(metadata))) )
+    rv=write_bigpool_metadata(bp,metadata,stream);
   if (rv>=0) rv=write_bigpool_load(bp,new_load,stream);
   return rv;
 }
@@ -2010,8 +2071,7 @@ static struct FD_POOL_HANDLER bigpool_handler={
   bigpool_load, /* getload */
   bigpool_lock, /* lock */
   bigpool_unlock, /* release */
-  bigpool_storen, /* storen */
-  NULL, /* commit */
+  bigpool_commit, /* commit */
   NULL, /* swapout */
   bigpool_create, /* create */
   NULL,  /* walk */

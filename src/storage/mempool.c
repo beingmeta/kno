@@ -148,7 +148,8 @@ static int mempool_load(fd_pool p)
   return mp->pool_load;
 }
 
-static int mempool_storen(fd_pool p,int n,lispval *oids,lispval *values)
+static int mempool_commit(fd_pool p,fd_commit_phase phase,
+                          struct FD_POOL_COMMITS *commits)
 {
   return 1;
 }
@@ -183,8 +184,7 @@ static struct FD_POOL_HANDLER mempool_handler={
   mempool_load, /* getload */
   NULL, /* lock (mempool_lock) */
   NULL, /* release (mempool_unlock) */
-  mempool_storen, /* storen */
-  NULL, /* commit */
+  mempool_commit, /* commit */
   mempool_swapout, /* swapout */
   NULL, /* create */
   NULL,  /* walk */

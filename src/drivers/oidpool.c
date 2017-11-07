@@ -896,6 +896,22 @@ static int oidpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
   return n;
 }
 
+static int oidpool_commit(fd_pool p,fd_commit_phase phase,
+                          struct FD_POOL_COMMITS *commits)
+{
+  switch (phase) {
+  case fd_commit_save:
+    return oidpool_storen(p,commits->commit_count,
+                          commits->commit_oids,
+                          commits->commit_vals);
+  default:
+    u8_log(LOG_WARN,"NoPhasedCommit",
+           "The pool %s doesn't support phased commits",
+           p->poolid);
+    return -1;
+  }
+}
+
 static int oidpool_finalize(struct FD_OIDPOOL *op,fd_stream stream,
                             int n,struct OIDPOOL_SAVEINFO *saveinfo,
                             unsigned int load)
@@ -1767,8 +1783,7 @@ static struct FD_POOL_HANDLER oidpool_handler={
   oidpool_load, /* getload */
   oidpool_lock, /* lock */
   oidpool_unlock, /* release */
-  oidpool_storen, /* storen */
-  NULL, /* commit */
+  oidpool_commit, /* commit */
   NULL, /* swapout */
   oidpool_create, /* create */
   NULL,  /* walk */

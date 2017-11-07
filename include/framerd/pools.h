@@ -212,12 +212,13 @@ FD_FASTOP void fd_unlock_pool(fd_pool p)
 
 /* Pool commit objects */
 
-typedef struct FD_POOL_COMMITMENT {
+typedef struct FD_POOL_COMMITS {
   fd_pool commit_pool;
   ssize_t commit_count;
   lispval *commit_oids;
   lispval *commit_vals;
-  lispval commit_metadata;} *fd_pool_commitment;
+  lispval commit_metadata;
+  struct FD_STREAM *commit_stream;} *fd_pool_commits;
 
 /* Pool handlers */
 
@@ -230,8 +231,7 @@ typedef struct FD_POOL_HANDLER {
   int (*getload)(fd_pool p);
   int (*lock)(fd_pool p,lispval oids);
   int (*unlock)(fd_pool p,lispval oids);
-  int (*storen)(fd_pool p,int n,lispval *oids,lispval *vals);
-  int (*commit)(fd_pool p,int phase);
+  int (*commit)(fd_pool p,fd_commit_phase phase,struct FD_POOL_COMMITS *);
   int (*swapout)(fd_pool p,lispval oids);
   fd_pool (*create)(u8_string spec,void *typedata,
                     fd_storage_flags flags,lispval opts);
@@ -378,6 +378,8 @@ FD_EXPORT lispval fd_cached_oids(fd_pool p);
 FD_EXPORT lispval fd_changed_oids(fd_pool p);
 
 FD_EXPORT int fd_commit_oids(lispval oids);
+FD_EXPORT int fd_init_pool_commits(fd_pool p,lispval oids,
+                                   struct FD_POOL_COMMITS *commits);
 
 #if FD_INLINE_POOLS
 FD_FASTOP fd_pool fd_oid2pool(lispval oid)

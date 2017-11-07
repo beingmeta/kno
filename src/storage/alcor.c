@@ -107,7 +107,7 @@ FD_EXPORT ssize_t fd_save_head(u8_string source,u8_string dest,size_t head_len)
   else return head_len;
 }
 
-FD_EXPORT ssize_t fd_restore_head(u8_string source,u8_string dest,ssize_t trunc_loc)
+FD_EXPORT ssize_t fd_apply_head(u8_string dest,u8_string source,ssize_t trunc)
 {
   char *src=u8_tolibc(source), *dst=u8_tolibc(dest);
   if ( (src==NULL) || (dst==NULL) )
@@ -165,9 +165,9 @@ FD_EXPORT ssize_t fd_restore_head(u8_string source,u8_string dest,ssize_t trunc_
       u8_big_free(buf);
       return delta;}
     bytes_written += delta;}
-  if ( (trunc_loc >= 0) && ( (trunc_loc+8) < head_len )) {
+  if ( (trunc >= 0) && ( (trunc+8) < head_len )) {
     unsigned char bytes[8];
-    memcpy(bytes,buf+trunc_loc,8);
+    memcpy(bytes,buf+trunc,8);
     size_t *trunc_ptr=(size_t *)&bytes;
     size_t restore_len=*trunc_ptr;
     if (restore_len>head_len)
@@ -187,6 +187,11 @@ FD_EXPORT ssize_t fd_restore_head(u8_string source,u8_string dest,ssize_t trunc_
  if (rv<0)
     return rv;
   else return head_len;
+}
+
+FD_EXPORT ssize_t fd_restore_head(u8_string source,u8_string dest,ssize_t trunc_loc)
+{
+  return fd_apply_head(dest,source,trunc_loc);
 }
 
 FD_EXPORT void fd_init_alcor_c()

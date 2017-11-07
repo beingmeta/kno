@@ -246,6 +246,22 @@ static int procpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
       return -1;}}
 }
 
+static int procpool_commit(fd_pool p,fd_commit_phase phase,
+                          struct FD_POOL_COMMITS *commits)
+{
+  switch (phase) {
+  case fd_commit_save:
+    return procpool_storen(p,commits->commit_count,
+                           commits->commit_oids,
+                           commits->commit_vals);
+  default:
+    u8_log(LOG_WARN,"NoPhasedCommit",
+           "The pool %s doesn't support phased commits",
+           p->poolid);
+    return -1;
+  }
+}
+
 static void procpool_close(fd_pool p)
 {
   struct FD_PROCPOOL *pp = (fd_procpool)p;
@@ -321,8 +337,7 @@ struct FD_POOL_HANDLER fd_procpool_handler={
   procpool_getload, /* getload */
   procpool_lock, /* lock */
   procpool_release, /* release */
-  procpool_storen, /* storen */
-  NULL, /* commit */
+  procpool_commit, /* commit */
   procpool_swapout, /* swapout */
   NULL, /* create */
   NULL,  /* walk */
