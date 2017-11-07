@@ -1032,7 +1032,7 @@ static int docommit(fd_pool p,lispval oids,struct FD_POOL_COMMITS *use_commits)
     struct FD_POOL_COMMITS commits = {0};
     int retval = 0; double start_time = u8_elapsed_time();
     u8_lock_mutex(&(p->pool_commit_lock));
-    if (locks->table_n_keys==0)
+    if (locks->table_n_keys)
       commits = ( ((FALSEP(oids))||(VOIDP(oids))) ? (pick_modified(p,0)) :
                   ((OIDP(oids))||(CHOICEP(oids))||(PRECHOICEP(oids))) ?
                   (pick_writes(p,oids)) :
