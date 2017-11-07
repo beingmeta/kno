@@ -1876,12 +1876,12 @@ static int process_drops(struct FD_HASHINDEX *hx,
   lispval *drop_vals = fetchn(hx,n_fetches,to_fetch);
 
   int j = 0; while (j<n_fetches) {
-    int sched_ref = fetch_scheds[j];
+    int sched_ref   = fetch_scheds[j];
     lispval ondisk  = drop_vals[j];
     lispval todrop  = s[sched_ref].commit_values;
     lispval reduced = fd_difference(ondisk,todrop);
     s[sched_ref].commit_values = reduced;
-    s[sched_i].free_values     = 1;
+    s[sched_ref].free_values   = 1;
     j++;}
 
   fd_decref_vec(drop_vals,n_fetches);

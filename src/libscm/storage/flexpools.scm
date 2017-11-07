@@ -13,6 +13,7 @@
 		  flexpool/partitions flexpool/partcount
 		  flexpool/delete!
 		  flexpool/adjunct!
+		  flexpool/padlen
 		  flex/zero flex/front flex/last flex/info})
 
 (module-export! '{flexpool-suffix})
@@ -199,7 +200,7 @@
   (unless (has-prefix filename "/")
     (set! filename (abspath filename)))
   (let* ((prefix (textsubst file-prefix pool-suffix ""))
-	 (padlen (get-padlen flexcap partsize))
+	 (padlen (flexpool/padlen flexcap partsize))
 	 (flexdir  (dirname filename))
 	 (start-ref (glom prefix "." (padnum 0 padlen 16) ".pool"))
 	 (start-file (realpath (mkpath flexdir start-ref)))
@@ -392,7 +393,7 @@
 	 (flexbase (flexpool-base fp))
 	 (partsize (flexpool-partsize fp))
 	 (prefix (flexpool-prefix fp))
-	 (padlen (get-padlen (flexpool-capacity fp) partsize))
+	 (padlen (flexpool/padlen (flexpool-capacity fp) partsize))
 	 (serial (quotient (oid-offset base flexbase) partsize))
 	 (relpath (glom prefix "." (padnum serial padlen 16) ".pool"))
 	 (opts `#[base ,base load 0 capacity ,partsize
@@ -484,7 +485,7 @@
 				 (strip-suffix (basename file) ".flexpool"))))
 	 (partition-suffix
 	  (append #(".")
-		  (make-vector (get-padlen (get info 'capacity) (get info 'partsize))
+		  (make-vector (flexpool/padlen (get info 'capacity) (get info 'partsize))
 			       '(isxdigit))
 		  #(".pool")))
 	 (metadata (get info 'metadata))
@@ -550,7 +551,7 @@
 			 (mkpath (basename file) 
 				 (strip-suffix (basename file) ".flexpool"))))
 	 (partition-suffix
-	  `#("." ,(make-vector (get-padlen cap partsize) '(isxdigit)) ".pool"))
+	  `#("." ,(make-vector (flexpool/padlen cap partsize) '(isxdigit)) ".pool"))
 	 (metadata (get info 'metadata))
 	 (adjuncts (get metadata 'adjuncts))
 	 (patterns `#(,(abspath prefix (dirname file)) ,partition-suffix))
@@ -597,7 +598,7 @@
 
 ;;; Support functions
 
-(define (get-padlen cap chunk)
+(define (flexpool/padlen cap chunk)
   (let ((n-chunks (quotient (or cap 0x100000000) chunk))
 	(digits 1)
 	(n 16))
@@ -609,7 +610,7 @@
 (define (make-partition-metadata filename opts flexbase flexcap partsize serial)
   (let* ((metadata (deep-copy (getopt opts 'metadata #[])))
 	 (prefix (get-partition-prefix filename))
-	 (padlen (get-padlen flexcap partsize))
+	 (padlen (flexpool/padlen flexcap partsize))
 	 (adjuncts (get metadata 'adjuncts))
 	 (adjslots (getkeys adjuncts)))
     (when (test metadata 'type 'flexpool) (drop! metadata 'type))
@@ -690,7 +691,7 @@
 	 (metadata (poolctl input 'metadata))
 	 (label (config 'LABEL (pool-label input)))
 	 (source (pool-source input))
-	 (padlen (get-padlen flexcap partsize)))
+	 (padlen (flexpool/padlen flexcap partsize)))
 
     (let* ((opts+ `#[base ,flexbase 
 		     prefix ,prefix
