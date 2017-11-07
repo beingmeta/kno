@@ -59,13 +59,13 @@ typedef struct FD_INDEX *fd_index;
 
 /* Pool commit objects */
 
-typedef struct FD_INDEX_COMMITMENT {
+typedef struct FD_INDEX_COMMITS {
   fd_index commit_index;
   ssize_t commit_n_adds, commit_n_drops, commit_n_stores;
   const struct FD_KEYVAL *commit_adds;
   const struct FD_KEYVAL *commit_drops;
   const struct FD_KEYVAL *commit_stores;
-  lispval commit_metadata;} *fd_index_commitment;
+  lispval commit_metadata;} *fd_index_commits;
 
 /* Lookup tables */
 

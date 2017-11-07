@@ -2402,6 +2402,59 @@ static int hashindex_save(struct FD_INDEX *ix,
   return n_keys;
 }
 
+static int hashindex_commit(fd_index ix,fd_commit_phase phase,
+                            struct FD_INDEX_COMMITS *commit)
+{
+  struct FD_HASHINDEX *hx = (fd_hashindex) ix;
+  int ref_size = get_chunk_ref_size(hx);
+  switch (phase) {
+  case fd_commit_start: {
+    u8_string source = hx->index_source;
+    u8_string rollback_file = u8_string_append(source,".rollback",NULL);
+    int rv = fd_save_head(source,rollback_file,256+(ref_size*hx->index_n_buckets));
+    u8_free(rollback_file);
+    return rv;}
+  case fd_commit_save: {
+    return hashindex_save(ix,
+                          (struct FD_CONST_KEYVAL *)commit->commit_adds,
+                          commit->commit_n_adds,
+                          (struct FD_CONST_KEYVAL *)commit->commit_drops,
+                          commit->commit_n_drops,
+                          (struct FD_CONST_KEYVAL *)commit->commit_stores,
+                          commit->commit_n_stores,
+                          commit->commit_metadata);}
+  case fd_commit_finish:
+    return 0;
+  case fd_commit_cleanup: {
+    u8_string source = ix->index_source;
+    u8_string rollback_file = u8_string_append(source,".rollback",NULL);
+    if (u8_file_existsp(rollback_file))
+      return u8_removefile(rollback_file);
+    else {
+      u8_log(LOGWARN,"Rollback file %s was deleted",rollback_file);
+      u8_free(rollback_file);
+      return -1;}}
+  case fd_commit_rollback: {
+    u8_string source = ix->index_source;
+    u8_string rollback_file = u8_string_append(source,".rollback",NULL);
+    if (u8_file_existsp(rollback_file)) {
+      int rv = fd_apply_head(source,rollback_file,256-8);
+      u8_free(rollback_file);
+      return rv;}
+    else {
+      u8_log(LOG_CRIT,"NoRollbackFile",
+             "The rollback file %s for %s doesn't exist",
+             rollback_file,ix->indexid);
+      u8_free(rollback_file);
+      return -1;}}
+  default: {
+    u8_log(LOG_WARN,"NoPhasedCommit",
+           "The index %s doesn't support phased commits",
+           ix->indexid);
+    return -1;}
+  }
+}
+
 static void free_keybuckets(int n,struct KEYBUCKET **keybuckets)
 {
   int i = 0; while (i<n) {

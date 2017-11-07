@@ -197,6 +197,27 @@ static int memindex_save(struct FD_INDEX *ix,
   return n_changes;
 }
 
+static int memindex_commit(fd_index ix,fd_commit_phase phase,
+                           struct FD_INDEX_COMMITS *commit)
+{
+  switch (phase) {
+  case fd_commit_save: {
+    return memindex_save(ix,
+                         (struct FD_CONST_KEYVAL *)commit->commit_adds,
+                         commit->commit_n_adds,
+                         (struct FD_CONST_KEYVAL *)commit->commit_drops,
+                         commit->commit_n_drops,
+                         (struct FD_CONST_KEYVAL *)commit->commit_stores,
+                         commit->commit_n_stores,
+                         commit->commit_metadata);}
+  default: {
+    u8_log(LOG_WARN,"NoPhasedCommit",
+           "The index %s doesn't support phased commits",
+           ix->indexid);
+    return -1;}
+  }
+}
+
 static int simplify_choice(struct FD_KEYVAL *kv,void *data)
 {
   if (PRECHOICEP(kv->kv_val))

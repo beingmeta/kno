@@ -49,9 +49,6 @@
 #define BAD_VALUEP(value) \
   (PRED_FALSE((FD_EODP(value))||(FD_EOFP(value))||(FD_ABORTP(value))))
 
-static void write_fileindex_recovery_data(struct FD_FILEINDEX *fx,unsigned int *);
-static int recover_fileindex(struct FD_FILEINDEX *fx);
-
 #define SLOTSIZE (sizeof(unsigned int))
 
 static ssize_t fileindex_default_size=32000;
@@ -90,12 +87,6 @@ static fd_index open_fileindex(u8_string fname,fd_storage_flags flags,lispval op
   s->stream_flags &= ~FD_STREAM_IS_CONSED;
   magicno = fd_read_4bytes_at(s,0,FD_ISLOCKED);
   index->index_n_slots = fd_read_4bytes_at(s,4,FD_ISLOCKED);
-  if ((magicno == FD_FILEINDEX_TO_RECOVER) ||
-      (magicno == FD_MULT_FILEINDEX_TO_RECOVER) ||
-      (magicno == FD_MULT_FILE3_INDEX_TO_RECOVER)) {
-    u8_log(LOG_WARN,fd_RecoveryRequired,"Recovering the file index %s",fname);
-    recover_fileindex(index);
-    magicno = magicno&(~0x20);}
   if (magicno == FD_FILEINDEX_MAGIC_NUMBER) index->index_hashv = 1;
   else if (magicno == FD_MULT_FILEINDEX_MAGIC_NUMBER) index->index_hashv = 2;
   else if (magicno == FD_MULT_FILE3_INDEX_MAGIC_NUMBER) index->index_hashv = 3;
@@ -1065,10 +1056,6 @@ static int fileindex_save(struct FD_INDEX *ix,
       kdata[i].n_values = kdata[i].n_values+new_values;
       i++;}
     write_keys(fx,fd_writebuf(stream),kdata_i,kdata,new_offsets);
-    /* Write recovery information which can be used to restore the
-       offsets table. */
-    if ((fd_acid_files) && (new_offsets))
-      write_fileindex_recovery_data(fx,new_offsets);
     /* Now, start writing the offsets themselves */
     write_offsets(fx,fd_writebuf(stream),kdata_i,kdata,new_offsets);
     if (fd_acid_files) {
@@ -1102,26 +1089,56 @@ static int fileindex_save(struct FD_INDEX *ix,
   else return 0;
 }
 
-static void write_fileindex_recovery_data(struct FD_FILEINDEX *fx,
-                                           unsigned int *offsets)
+static int fileindex_commit(fd_index ix,fd_commit_phase phase,
+                            struct FD_INDEX_COMMITS *commit)
 {
-  struct FD_STREAM *stream = &(fx->index_stream);
-  struct FD_OUTBUF *outstream;
-  int i = 0, n_slots = fx->index_n_slots; unsigned int magic_no;
-  fd_endpos(stream);
-  outstream = fd_writebuf(stream);
-  while (i<n_slots) {
-    unsigned int off = offget(offsets,i);
-    fd_write_4bytes(outstream,off);
-    i++;}
-  fd_setpos(stream,0);
-  magic_no = fd_read_4bytes(fd_readbuf(stream));
-  /* Compute a variant magic number indicating that the
-     index needs to be restored. */
-  magic_no = magic_no|0x20;
-  fd_setpos(stream,0);
-  fd_write_4bytes(fd_writebuf(stream),magic_no);
-  fd_flush_stream(stream);
+  struct FD_FILEINDEX *fx = (fd_fileindex) ix;
+  switch (phase) {
+  case fd_commit_start: {
+    u8_string source = fx->index_source;
+    u8_string rollback_file = u8_string_append(source,".rollback",NULL);
+    int rv = fd_save_head(source,rollback_file,8+(4*fx->index_n_slots));
+    u8_free(rollback_file);
+    return rv;}
+  case fd_commit_save: {
+    return fileindex_save(ix,
+                          (struct FD_CONST_KEYVAL *)commit->commit_adds,
+                          commit->commit_n_adds,
+                          (struct FD_CONST_KEYVAL *)commit->commit_drops,
+                          commit->commit_n_drops,
+                          (struct FD_CONST_KEYVAL *)commit->commit_stores,
+                          commit->commit_n_stores,
+                          commit->commit_metadata);}
+  case fd_commit_finish:
+    return 0;
+  case fd_commit_cleanup: {
+    u8_string source = ix->index_source;
+    u8_string rollback_file = u8_string_append(source,".rollback",NULL);
+    if (u8_file_existsp(rollback_file))
+      return u8_removefile(rollback_file);
+    else {
+      u8_log(LOGWARN,"Rollback file %s was deleted",rollback_file);
+      u8_free(rollback_file);
+      return -1;}}
+  case fd_commit_rollback: {
+    u8_string source = ix->index_source;
+    u8_string rollback_file = u8_string_append(source,".rollback",NULL);
+    if (u8_file_existsp(rollback_file)) {
+      int rv = fd_apply_head(source,rollback_file,-1);
+      u8_free(rollback_file);
+      return rv;}
+    else {
+      u8_log(LOG_CRIT,"NoRollbackFile",
+             "The rollback file %s for %s doesn't exist",
+             rollback_file,ix->indexid);
+      u8_free(rollback_file);
+      return -1;}}
+  default: {
+    u8_log(LOG_WARN,"NoPhasedCommit",
+           "The index %s doesn't support phased commits",
+           ix->indexid);
+    return -1;}
+  }
 }
 
 static int recover_fileindex(struct FD_FILEINDEX *fx)

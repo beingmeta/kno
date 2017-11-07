@@ -899,11 +899,14 @@ static int oidpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
 static int oidpool_commit(fd_pool p,fd_commit_phase phase,
                           struct FD_POOL_COMMITS *commits)
 {
-  switch (phase) {
+  struct FD_OIDPOOL *op = (fd_oidpool) p;
+ int chunk_ref_size = get_chunk_ref_size(op);
+ switch (phase) {
   case fd_commit_start: {
     u8_string source = p->pool_source;
     u8_string rollback_file = u8_string_append(source,".rollback",NULL);
-    int rv = fd_save_head(source,rollback_file,8+(4*p->pool_capacity));
+    int rv = fd_save_head(source,rollback_file,
+                          256+(chunk_ref_size*p->pool_capacity));
     u8_free(rollback_file);
     return rv;}
   case fd_commit_save: {
