@@ -229,6 +229,22 @@ static int network_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
     return 1;}
 }
 
+static int network_pool_commit(fd_pool p,fd_commit_phase phase,
+                               struct FD_POOL_COMMITS *commits)
+{
+  switch (phase) {
+  case fd_commit_save:
+    return network_pool_storen(p,commits->commit_count,
+                               commits->commit_oids,
+                               commits->commit_vals);
+  default: {
+    u8_log(LOG_WARN,"NoPhasedCommit",
+           "The pool %s doesn't support phased commits",
+           p->poolid);
+    return -1;}
+  }
+}
+
 static void network_pool_close(fd_pool p)
 {
 }
@@ -254,7 +270,7 @@ static struct FD_POOL_HANDLER netpool_handler={
   network_pool_load, /* getload */
   network_pool_lock, /* lock */
   network_pool_unlock, /* release */
-  network_pool_storen, /* storen */
+  network_pool_commit, /* commit */
   NULL, /* swapout */
   NULL, /* create */
   NULL,  /* walk */

@@ -359,9 +359,6 @@ static lispval *file_pool_fetchn(fd_pool p,int n,lispval *oids)
   return result;
 }
 
-static void write_file_pool_recovery_data
-  (struct FD_FILE_POOL *fp,unsigned int *off);
-
 static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
 {
   FD_OID base = p->pool_base;
@@ -402,16 +399,7 @@ static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
     endpos = endpos+delta;
     i++;}
   fp->pool_load = load;
-  /* Write recovery information which can be used to restore the
-     offsets table and load. */
   if (retcode<0) {}
-  else if ((fp->pool_offdata) &&
-           ((endpos+((fp->pool_load)*4))>=pos_limit)) {
-    /* No space to write the recovery information! */
-    fd_seterr(fd_PoolFileSizeOverflow,
-              "file_pool_storen",fp->poolid,
-              VOID);
-    retcode = -1;}
   else if (fp->pool_offdata) {
     int i = 0;
     unsigned int *old_offsets = fp->pool_offdata;
@@ -434,8 +422,6 @@ static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
       tmp_offsets[oid_off]=changed_offsets[i];
       i++;}
     u8_big_free(changed_offsets);
-    /* Now write the new offset values to the end of the file. */
-    write_file_pool_recovery_data(fp,tmp_offsets);
     /* Now write the real data */
     fd_setpos(stream,24);
     fd_write_ints(stream,fp->pool_load,tmp_offsets);}
@@ -461,11 +447,10 @@ static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
     if (fp->pool_offdata) {
       fd_off_t end = fd_endpos(stream); int retval;
       fd_setpos(stream,0);
-      /* This was overwritten with FD_FILE_POOL_TO_RECOVER by
-         fd_write_file_pool_recovery_data. */
-      fd_write_4bytes(fd_writebuf(stream),FD_FILE_POOL_MAGIC_NUMBER);
-      fd_flush_stream(stream); fsync(stream->stream_fileno);
-      fd_endpos(stream); fd_movepos(stream,-(4*(fp->pool_capacity+1)));
+      fd_flush_stream(stream);
+      fsync(stream->stream_fileno);
+      fd_endpos(stream);
+      fd_movepos(stream,-(4*(fp->pool_capacity+1)));
       retval = ftruncate(stream->stream_fileno,end-(4*(fp->pool_capacity+1)));
       if (retval<0) {
         retcode = -1; u8_graberr(errno,"file_pool_storen",fp->poolid);}}
@@ -501,34 +486,49 @@ static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
 }
 
 static int file_pool_commit(fd_pool p,fd_commit_phase phase,
-                          struct FD_POOL_COMMITS *commits)
+                            struct FD_POOL_COMMITS *commits)
 {
   switch (phase) {
-  case fd_commit_save:
+  case fd_commit_start: {
+    u8_string source = p->pool_source;
+    u8_string rollback_file = u8_string_append(source,".rollback",NULL);
+    int rv = fd_save_head(source,rollback_file,8+(4*p->pool_capacity));
+    u8_free(rollback_file);
+    return rv;}
+  case fd_commit_save: {
     return file_pool_storen(p,commits->commit_count,
                             commits->commit_oids,
-                            commits->commit_vals);
-  default:
+                            commits->commit_vals);}
+  case fd_commit_finish:
+    return 0;
+  case fd_commit_cleanup: {
+    u8_string source = p->pool_source;
+    u8_string rollback_file = u8_string_append(source,".rollback",NULL);
+    if (u8_file_existsp(rollback_file))
+      return u8_removefile(rollback_file);
+    else {
+      u8_log(LOGWARN,"Rollback file %s was deleted",rollback_file);
+      u8_free(rollback_file);
+      return -1;}}
+  case fd_commit_rollback: {
+    u8_string source = p->pool_source;
+    u8_string rollback_file = u8_string_append(source,".rollback",NULL);
+    if (u8_file_existsp(rollback_file)) {
+      int rv = fd_apply_head(source,rollback_file,-1);
+      u8_free(rollback_file);
+      return rv;}
+    else {
+      u8_log(LOG_CRIT,"NoRollbackFile",
+             "The rollback file %s for %s doesn't exist",
+             rollback_file,p->poolid);
+      u8_free(rollback_file);
+      return -1;}}
+  default: {
     u8_log(LOG_WARN,"NoPhasedCommit",
            "The pool %s doesn't support phased commits",
            p->poolid);
-    return -1;
+    return -1;}
   }
-}
-
-static void write_file_pool_recovery_data
-   (struct FD_FILE_POOL *fp,unsigned int *offsets)
-{
-  struct FD_STREAM *stream = &(fp->pool_stream);
-  int i = 0, load = fp->pool_load, len = fp->pool_capacity;
-  fd_endpos(stream);
-  fd_write_4bytes(fd_writebuf(stream),load);
-  while (i<load) {
-    fd_write_4bytes(fd_writebuf(stream),offsets[i]); i++;}
-  while (i<len) {fd_write_4bytes(fd_writebuf(stream),0); i++;}
-  fd_setpos(stream,0);
-  fd_write_4bytes(fd_writebuf(stream),FD_FILE_POOL_TO_RECOVER);
-  fd_flush_stream(stream);
 }
 
 static int recover_file_pool(struct FD_FILE_POOL *fp)

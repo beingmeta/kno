@@ -799,6 +799,22 @@ static int leveldb_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
   else return n;
 }
 
+static int leveldb_pool_commit(fd_pool p,fd_commit_phase phase,
+                               struct FD_POOL_COMMITS *commits)
+{
+  switch (phase) {
+  case fd_commit_save:
+    return leveldb_pool_storen(p,commits->commit_count,
+                               commits->commit_oids,
+                               commits->commit_vals);
+  default: {
+    u8_log(LOG_WARN,"NoPhasedCommit",
+           "The pool %s doesn't support phased commits",
+           p->poolid);
+    return -1;}
+  }
+}
+
 /* The LevelDB pool handler */
 
 static struct FD_POOL_HANDLER leveldb_pool_handler={
@@ -810,7 +826,7 @@ static struct FD_POOL_HANDLER leveldb_pool_handler={
   leveldb_pool_getload, /* getload */
   leveldb_pool_lock, /* lock */
   leveldb_pool_unlock, /* release */
-  leveldb_pool_storen, /* storen */
+  leveldb_pool_commit, /* commit */
   NULL, /* create */
   NULL,  /* walk */
   NULL, /* recycle */
