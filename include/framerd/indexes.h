@@ -45,6 +45,7 @@ FD_EXPORT int fd_index_adds_init;
   fd_storage_flags index_flags, modified_flags;                    \
   int index_serialno;                                              \
   short index_cache_level;                                         \
+  short index_loglevel;                                            \
   U8_MUTEX_DECL(index_commit_lock);                                \
   struct FD_HASHTABLE index_cache;                                 \
   struct FD_HASHTABLE index_adds, index_drops;                     \
