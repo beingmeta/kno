@@ -33,6 +33,12 @@
 
 #define fast_eval(x,env) (fd_stack_eval(x,env,_stack,0))
 
+#ifndef FD_HTMLOUT_MAX
+#define FD_HTMLOUT_MAX 15000000
+#endif
+
+ssize_t fd_htmlout_max = FD_HTMLOUT_MAX;
+
 #include <libu8/u8xfiles.h>
 
 static void output_value(u8_output out,lispval val,
@@ -298,7 +304,9 @@ static void output_value(u8_output out,lispval val,
                          u8_string eltname,
                          u8_string classname)
 {
-  if (STRINGP(val))
+  if ( (out->u8_write - out->u8_outbuf) >= fd_htmlout_max)
+    return;
+  else if (STRINGP(val))
     if (STRLEN(val)>42)
       u8_printf(out," <%s class='%s long string' title='%d characters'>“%k”</%s>",
                 eltname,classname,STRLEN(val),FD_STRDATA(val),eltname);
@@ -442,7 +450,10 @@ static void output_stack_frame(u8_output out,lispval entry)
       lispval vars=fd_getkeys(env);
       u8_printf(out,"<div class='bindings'>");
       DO_CHOICES(var,vars) {
-        if (SYMBOLP(var)) {
+        if ( (out->u8_write - out->u8_outbuf) >= fd_htmlout_max) {
+          FD_STOP_DO_CHOICES;
+          break;}
+        else if (SYMBOLP(var)) {
           lispval val=fd_get(env,var,VOID);
           u8_puts(out,"\n <div class='binding'>");
           if ((val == VOID) || (val == FD_UNBOUND))
@@ -480,6 +491,7 @@ void fd_html_backtrace(u8_output out,lispval backtrace)
 {
   /* Output the backtrace */
   lispval scan=backtrace; while (PAIRP(scan)) {
+    if ( (out->u8_write - out->u8_outbuf) >= fd_htmlout_max) return;
     lispval entry=FD_CAR(scan); scan=FD_CDR(scan);
     output_stack_frame(out,entry);}
 }
@@ -498,6 +510,8 @@ static void output_xhtml_table(U8_OUTPUT *out,lispval tbl,lispval keys,
                  fd_type_names[FD_PTR_TYPE(tbl)]);
   {
     DO_CHOICES(key,keys) {
+      if ( (out->u8_write - out->u8_outbuf) >= fd_htmlout_max) {
+        FD_STOP_DO_CHOICES; return;}
       lispval _value=
         ((OIDP(tbl)) ? (fd_frame_get(tbl,key)) :
          (fd_get(tbl,key,EMPTY)));
