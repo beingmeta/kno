@@ -1078,6 +1078,10 @@ static int fileindex_commit(fd_index ix,fd_commit_phase phase,
   switch (phase) {
   case fd_commit_start: {
     u8_string source = fx->index_source;
+    int lock_rv = fd_streamctl(&(fx->index_stream),fd_stream_lockfile,NULL);
+    if (lock_rv <= 0) {
+      u8_graberrno("fileindex_commit",u8_strdup(source));
+      return -1;}
     u8_string rollback_file = u8_string_append(source,".rollback",NULL);
     int rv = fd_save_head(source,rollback_file,8+(4*fx->index_n_slots));
     u8_free(rollback_file);
@@ -1093,15 +1097,6 @@ static int fileindex_commit(fd_index ix,fd_commit_phase phase,
                           commit->commit_metadata);}
   case fd_commit_finish:
     return 0;
-  case fd_commit_cleanup: {
-    u8_string source = ix->index_source;
-    u8_string rollback_file = u8_string_append(source,".rollback",NULL);
-    if (u8_file_existsp(rollback_file))
-      return u8_removefile(rollback_file);
-    else {
-      u8_log(LOGWARN,"Rollback file %s was deleted",rollback_file);
-      u8_free(rollback_file);
-      return -1;}}
   case fd_commit_rollback: {
     u8_string source = ix->index_source;
     u8_string rollback_file = u8_string_append(source,".rollback",NULL);
@@ -1113,6 +1108,21 @@ static int fileindex_commit(fd_index ix,fd_commit_phase phase,
       u8_log(LOG_CRIT,"NoRollbackFile",
              "The rollback file %s for %s doesn't exist",
              rollback_file,ix->indexid);
+      u8_free(rollback_file);
+      return -1;}}
+  case fd_commit_cleanup: {
+    u8_string source = ix->index_source;
+    int unlock_rv = fd_streamctl(&(fx->index_stream),fd_stream_unlockfile,NULL);
+    if (unlock_rv <= 0) {
+      int saved_errno = errno; errno=0;
+      u8_log(LOG_CRIT,"UnlockFailed",
+             "Couldn't unlock %s for hashindex %s errno=%d:%s",
+             source,fx->indexid,saved_errno,u8_strerror(saved_errno));}
+    u8_string rollback_file = u8_string_append(source,".rollback",NULL);
+    if (u8_file_existsp(rollback_file))
+      return u8_removefile(rollback_file);
+    else {
+      u8_log(LOGWARN,"Rollback file %s was deleted",rollback_file);
       u8_free(rollback_file);
       return -1;}}
   default: {
