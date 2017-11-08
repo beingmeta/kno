@@ -65,10 +65,8 @@ FD_EXPORT fd_pool_handler fd_get_pool_handler(u8_string name);
 FD_EXPORT fd_pool fd_make_pool(u8_string spec,u8_string pooltype,
                                fd_storage_flags flags,lispval opts);
 
-#define FD_POOLFILE_LOCKEDP(fp) \
+#define FD_POOLSTREAM_LOCKEDP(fp) \
   (((fp)->pool_stream.stream_flags)&FD_STREAM_FILE_LOCKED)
-#define FD_LOCK_POOLFILE(fp) fd_lockfile(&((fp)->pool_stream))
-#define FD_UNLOCK_POOLFILE(fp) fd_unlockfile(&((fp)->pool_stream))
 
 /* File indexes */
 

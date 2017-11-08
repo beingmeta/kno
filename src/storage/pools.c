@@ -119,14 +119,14 @@ struct FD_POOL_WRITES {
 
 /* Locking functions for external libraries */
 
-FD_EXPORT void _fd_lock_pool(fd_pool p,int for_write)
+FD_EXPORT void _fd_lock_pool_struct(fd_pool p,int for_write)
 {
-  fd_lock_pool(p,for_write);
+  fd_lock_pool_struct(p,for_write);
 }
 
-FD_EXPORT void _fd_unlock_pool(fd_pool p)
+FD_EXPORT void _fd_unlock_pool_struct(fd_pool p)
 {
-  fd_unlock_pool(p);
+  fd_unlock_pool_struct(p);
 }
 
 FD_FASTOP int modify_readonly(lispval table,int val)
@@ -967,67 +967,131 @@ static void finish_commit(fd_pool p,struct FD_POOL_COMMITS *commits);
 static int docommit(fd_pool p,lispval oids,struct FD_POOL_COMMITS *use_commits)
 {
   struct FD_HASHTABLE *locks = &(p->pool_changes);
+  int loglevel = (p->pool_loglevel>=0) ? (p->pool_loglevel) :
+    (fd_storage_loglevel);
+
   if ((locks->table_n_keys==0) && (! (metadata_changed(p)) )) {
-    u8_log(fd_storage_loglevel+1,fd_PoolCommit,
+    u8_log(loglevel+1,fd_PoolCommit,
            "####### No locked oids in %s",p->poolid);
     return 0;}
   else if (p->pool_handler->commit == NULL) {
-    u8_log(fd_storage_loglevel+1,fd_PoolCommit,
+    u8_log(loglevel+1,fd_PoolCommit,
            "####### Unlocking OIDs in %s",p->poolid);
     int rv = fd_pool_unlock(p,oids,leave_modified);
     return rv;}
+
   else  {
+    int free_commits = 1;
     struct FD_POOL_COMMITS commits = { 0 };
-    double start_time = u8_elapsed_time();
-    commits.commit_pool = p;
     u8_lock_mutex(&(p->pool_commit_lock));
+    if (use_commits) {
+      memcpy(&commits,use_commits,sizeof(struct FD_POOL_COMMITS));
+      if (commits.commit_vals)
+        fd_incref_vec(commits.commit_vals,commits.commit_count);
+      free_commits=0;}
+    else commits.commit_pool = p;
+    double start_time = u8_elapsed_time();
+    u8_log(loglevel+2,"PoolCommit/Start","Starting to commit %s",p->poolid);
     int started = p->pool_handler->commit(p,fd_commit_start,&commits);
-    if (started < 0) {
+    if ( (started < 0) || (commits.commit_count < 0) ) {
+      u8_graberrno("pool_commit",u8_strdup(p->poolid));
+      u8_log(LOG_WARN,"PoolCommit/Start",
+             "Failed starting to commit %s",p->poolid);
       u8_unlock_mutex(&(p->pool_commit_lock));
       return started;}
-    if (use_commits)
-      memcpy(&commits,use_commits,sizeof(struct FD_POOL_COMMITS));
-    else if (! (locks->table_n_keys) ) {/* Nothing to save */}
-    else if ((FALSEP(oids))||(VOIDP(oids)))
+    if (commits.commit_count) {
+      u8_log(loglevel+1,"PoolCommit/Explicit",
+             "Starting to commit %d explicit commits %sto %s",
+             commits.commit_count,
+             ((FD_VOIDP(commits.commit_metadata)) ? ("") :
+              ("(and metadata) ")),
+             p->poolid);
+      /* Either use_commits or fd_commit_start initialized the
+         commit_count, so we won't touch it. */}
+    else if (! (locks->table_n_keys) ) {
+      u8_log(loglevel+2,"PoolCommit/NoOIDs",
+             "No locked OIDs to commit to %s",p->poolid);
+      /* No locked OIDs to commit */}
+    else if ((FALSEP(oids))||(VOIDP(oids))) {
       pick_modified(p,0,&commits);
-    else if ((OIDP(oids))||(CHOICEP(oids))||(PRECHOICEP(oids)))
+      u8_log(loglevel+1,"PoolCommit/NoOIDs",
+             "%d modified OIDs to commit to %s",
+             commits.commit_count,p->poolid);}
+    else if ((OIDP(oids))||(CHOICEP(oids))||(PRECHOICEP(oids))) {
       pick_writes(p,oids,&commits);
-    else if (FD_TRUEP(oids))
+      u8_log(loglevel+1,"PoolCommit/Passed",
+             "%d/%d modified OIDs to commit to %s",
+             commits.commit_count,FD_CHOICE_SIZE(oids),p->poolid);}
+    else if (FD_TRUEP(oids)) {
       pick_modified(p,1,&commits);
-    else pick_writes(p,EMPTY,&commits);
+      u8_log(loglevel+1,"PoolCommit/Finished",
+             "%d modified+finished OIDs to commit to %s",
+             commits.commit_count,p->poolid);}
+    else {
+      pick_writes(p,EMPTY,&commits);}
 
     if (metadata_changed(p))
       commits.commit_metadata = fd_deep_copy((lispval)&(p->pool_metadata));
     else commits.commit_metadata = FD_VOID;
 
+    u8_log(loglevel+2,"PoolCommit/Save",
+           "Saving %d OIDs%s to %s",
+           commits.commit_count,
+           ((FD_VOIDP(commits.commit_metadata)) ? ("") : (" and metadata") ),
+           p->poolid);
     int saved = p->pool_handler->commit(p,fd_commit_save,&commits);
     if (saved >= 0) {
+      u8_log(loglevel+1,"PoolCommit/Finish",
+             "Saved %d OIDs%s to %s, 'finishing' commit...",
+             commits.commit_count,
+             ((FD_VOIDP(commits.commit_metadata)) ? ("") : (" and metadata") ),
+             p->poolid);
       int finish = p->pool_handler->commit(p,fd_commit_finish,&commits);
       if (finish < 0) {
-        u8_log(LOGCRIT,"FinishFailed",
+        u8_log(LOG_CRIT,"FinishFailed",
                "Couldn't finish commit for %s",p->poolid);
         u8_seterr("FinishFailed","pool_commit",u8_strdup(p->poolid));
         saved = -1;}
       else finish_commit(p,&commits);}
     if (saved < 0) {
+      u8_log(LOG_CRIT,"PoolCommit/Failed",
+             "Failed saving %d OIDs%s to %s, rolling back...",
+             commits.commit_count,
+             ((FD_VOIDP(commits.commit_metadata)) ? ("") : (" and metadata") ),
+             p->poolid);
       int rollback = p->pool_handler->commit(p,fd_commit_rollback,&commits);
       if (rollback < 0) {
         u8_log(LOGCRIT,"RollbackFailed",
                "Couldn't rollback failed commit for %s",p->poolid);
         u8_seterr("FinishFailed","pool_commit",u8_strdup(p->poolid));}
       abort_commit(p,&commits);}
+    u8_log(loglevel+3,"PoolCommit/Cleanup",
+           "Cleaning up after saving %d OIDs%s to %s",
+           commits.commit_count,
+           ((FD_VOIDP(commits.commit_metadata)) ? ("") : (" and metadata") ),
+           p->poolid);
     int cleanup = p->pool_handler->commit(p,fd_commit_cleanup,&commits);
     if (cleanup < 0) {
       u8_seterr("CleanupFailed","pool_commit",u8_strdup(p->poolid));
-      u8_log(LOGCRIT,"CleanupFailed","Cleanup for %s failed",p->poolid);}
-    if (commits.commit_oids) {
-      u8_big_free(commits.commit_oids);
-      commits.commit_oids=NULL;}
-    else {
-      u8_big_free(commits.commit_oids);
-      commits.commit_oids=NULL;}
-    fd_decref(commits.commit_metadata);
+      u8_log(LOG_CRIT,"CleanupFailed","Cleanup for %s failed",p->poolid);}
+
+    if (saved>0)
+      u8_log(loglevel,"Pool/Commit/Complete",
+             "Saved %d OIDs%s to %s in %f secs",
+             commits.commit_count,
+             ((FD_VOIDP(commits.commit_metadata)) ? ("") : (" and metadata") ),
+             p->poolid,u8_elapsed_time()-start_time);
+
+    if (free_commits) {
+      if (commits.commit_oids) {
+        u8_big_free(commits.commit_oids);
+        commits.commit_oids=NULL;}
+      else {
+        u8_big_free(commits.commit_oids);
+        commits.commit_oids=NULL;}
+      fd_decref(commits.commit_metadata);}
     u8_unlock_mutex(&(p->pool_commit_lock));
+
     return saved;}
 }
 
@@ -1183,13 +1247,15 @@ static int pick_writes(fd_pool p,lispval oids,struct FD_POOL_COMMITS *commits)
           lispval v = fd_hashtable_get(changes,oid,VOID);
           if (v == FD_LOCKHOLDER) {}
           else if (savep(v,0)) {
-            *oidv++=oid; *values++=v;}
+            *oidv++=oid;
+            *values++=v;}
           else fd_decref(v);}}}
     commits->commit_count = oidv-commits->commit_oids;
     return commits->commit_count;}
 }
 
-static int pick_modified(fd_pool p,int finished,struct FD_POOL_COMMITS *commits)
+static int pick_modified(fd_pool p,int finished,
+                         struct FD_POOL_COMMITS *commits)
 {
   fd_hashtable changes = &(p->pool_changes); int unlock = 0;
   if (changes->table_uselock) {
@@ -1449,7 +1515,6 @@ FD_EXPORT int fd_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
     commits.commit_vals = values;
     commits.commit_metadata = FD_VOID;
     int rv = docommit(p,FD_VOID,&commits);
-    u8_unlock_mutex(&(p->pool_commit_lock));
     return rv;}
   else if (p->pool_handler) {
     u8_seterr("NoHandler","fd_pool_storen",u8_strdup(p->poolid));
@@ -1768,7 +1833,8 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
                             u8_string id,u8_string source)
 {
   FD_INIT_CONS(p,fd_consed_pool_type);
-  p->pool_base = base; p->pool_capacity = capacity;
+  p->pool_base = base;
+  p->pool_capacity = capacity;
   p->pool_source = u8_strdup(source);
   p->poolid = u8_strdup(id);
   p->pool_typeid = NULL;
@@ -1783,6 +1849,8 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
   p->pool_prefix = NULL;
   p->pool_namefn = VOID;
 
+  p->pool_loglevel = fd_storage_loglevel;
+
   /* Data tables */
   FD_INIT_STATIC_CONS(&(p->pool_cache),fd_hashtable_type);
   FD_INIT_STATIC_CONS(&(p->pool_changes),fd_hashtable_type);
@@ -1794,7 +1862,7 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
   FD_INIT_STATIC_CONS(&(p->pool_props),fd_slotmap_type);
   fd_init_slotmap(&(p->pool_metadata),17,NULL);
   fd_init_slotmap(&(p->pool_props),17,NULL);
-  u8_init_rwlock(&(p->pool_lock));
+  u8_init_rwlock(&(p->pool_struct_lock));
   u8_init_mutex(&(p->pool_commit_lock));
 }
 
@@ -2397,8 +2465,7 @@ static void init_zero_pool()
   _fd_zero_pool.pool_flags = 0;
   _fd_zero_pool.modified_flags = 0;
   _fd_zero_pool.pool_handler = &zero_pool_handler;
-  _fd_zero_pool.pool_islocked = 0;
-  u8_init_rwlock(&(_fd_zero_pool.pool_lock));
+  u8_init_rwlock(&(_fd_zero_pool.pool_struct_lock));
   u8_init_mutex(&(_fd_zero_pool.pool_commit_lock));
   fd_init_hashtable(&(_fd_zero_pool.pool_cache),0,0);
   fd_init_hashtable(&(_fd_zero_pool.pool_changes),0,0);

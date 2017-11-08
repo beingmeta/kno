@@ -1123,35 +1123,6 @@ static int fileindex_commit(fd_index ix,fd_commit_phase phase,
   }
 }
 
-static int recover_fileindex(struct FD_FILEINDEX *fx)
-{
-  /* This reads the offsets vector written at the end of the file
-     during commitment. */
-  int i = 0, len = fx->index_n_slots, retval = 0; fd_off_t new_end;
-  unsigned int *offsets = u8_big_alloc(4*len), magic_no;
-  struct FD_STREAM *s = &(fx->index_stream);
-  fd_outbuf outstream; fd_inbuf instream;
-  fd_endpos(s); new_end = fd_movepos(s,-(4*len));
-  instream = fd_readbuf(s);
-  while (i<len) {
-    offsets[i]=fd_read_4bytes(instream); i++;}
-  outstream = fd_writebuf(s);
-  fd_setpos(s,24);
-  i = 0; while (i<len) {
-    fd_write_4bytes(outstream,offsets[i]); i++;}
-  instream = fd_readbuf(s);
-  fd_setpos(s,0);
-  magic_no = fd_read_4bytes(instream);
-  outstream = fd_writebuf(s);
-  fd_setpos(s,0);
-  fd_write_4bytes(outstream,(magic_no&(~0x20)));
-  fd_flush_stream(s);
-  retval = ftruncate(s->stream_fileno,new_end);
-  if (retval<0) return retval;
-  else retval = fsync(s->stream_fileno);
-  return retval;
-}
-
 static void fileindex_close(fd_index ix)
 {
   struct FD_FILEINDEX *fx = (struct FD_FILEINDEX *)ix;

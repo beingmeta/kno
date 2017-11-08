@@ -283,9 +283,6 @@ FD_EXPORT int fd_set_read(fd_stream s,int read);
 
 FD_EXPORT ssize_t fd_flush_stream(fd_stream s);
 
-FD_EXPORT int fd_lockfile(fd_stream s);
-FD_EXPORT int fd_unlockfile(fd_stream s);
-
 FD_EXPORT ssize_t fd_setbufsize(fd_stream s,ssize_t bufsize);
 
 FD_EXPORT int _fd_lock_stream(fd_stream s);

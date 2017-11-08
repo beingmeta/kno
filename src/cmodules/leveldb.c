@@ -653,13 +653,13 @@ static lispval leveldb_pool_alloc(fd_pool p,int n)
 {
   lispval results = FD_EMPTY_CHOICE; unsigned int i = 0, start;
   struct FD_LEVELDB_POOL *pool = (struct FD_LEVELDB_POOL *)p;
-  fd_lock_pool(p,1);
+  fd_lock_pool_struct(p,1);
   if (pool->pool_load+n>=pool->pool_capacity) {
-    fd_unlock_pool(p);
+    fd_unlock_pool_struct(p);
     return fd_err(fd_ExhaustedPool,"leveldb_pool_alloc",pool->poolid,FD_VOID);}
   start = pool->pool_load;
   pool->pool_load = start+n;
-  fd_unlock_pool(p);
+  fd_unlock_pool_struct(p);
   while (i < n) {
     FD_OID new_addr = FD_OID_PLUS(pool->pool_base,start+i);
     lispval new_oid = fd_make_oid(new_addr);
@@ -788,11 +788,11 @@ static int leveldb_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
       break;
     else i++;}
   if (errval>=0) {
-    fd_lock_pool(p,1); {
+    fd_lock_pool_struct(p,1); {
       lispval loadval = FD_INT(pool->pool_load);
       int retval = set_prop(dbptr,"\377LOAD",loadval,sync_writeopts);
       fd_decref(loadval);
-      fd_unlock_pool(p);
+      fd_unlock_pool_struct(p);
       if (retval<0) return retval;}}
   if (errval<0)
     return errval;

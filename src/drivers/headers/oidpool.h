@@ -19,7 +19,7 @@
 #define FD_OIDPOOL_SPARSE      0x200
 #define FD_OIDPOOL_ADJUNCT     0x400
 
-#define FD_OIDPOOL_LOCKED(x) (FD_POOLFILE_LOCKEDP(x))
+#define FD_OIDPOOL_LOCKED(x) (FD_POOLSTREAM_LOCKEDP(x))
 
 typedef struct FD_SCHEMA_ENTRY {
   int op_nslots, op_schema_id;

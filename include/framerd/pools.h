@@ -157,8 +157,8 @@ typedef struct FD_ADJUNCT *fd_adjunct;
   fd_storage_flags pool_flags, modified_flags;          \
   struct FD_POOL_HANDLER *pool_handler;                 \
   short pool_cache_level;                               \
-  unsigned char pool_islocked;                          \
-  U8_RWLOCK_DECL(pool_lock);                            \
+  short pool_loglevel;                                  \
+  U8_RWLOCK_DECL(pool_struct_lock);                     \
   U8_MUTEX_DECL(pool_commit_lock);                      \
   struct FD_HASHTABLE pool_cache, pool_changes;         \
   struct FD_SLOTMAP pool_metadata, pool_props;          \
@@ -191,23 +191,23 @@ FD_EXPORT lispval fd_all_pools(void);
 
 /* Locking functions */
 
-FD_EXPORT void _fd_lock_pool(fd_pool p,int for_write);
-FD_EXPORT void _fd_unlock_pool(fd_pool p);
+FD_EXPORT void _fd_lock_pool_struct(fd_pool p,int for_write);
+FD_EXPORT void _fd_unlock_pool_struct(fd_pool p);
 
 #if FD_INLINE_POOLS
-FD_FASTOP void fd_lock_pool(fd_pool p,int for_write)
+FD_FASTOP void fd_lock_pool_struct(fd_pool p,int for_write)
 {
   if (for_write)
-    u8_write_lock(&((p)->pool_lock));
-  else u8_read_lock(&((p)->pool_lock));
+    u8_write_lock(&((p)->pool_struct_lock));
+  else u8_read_lock(&((p)->pool_struct_lock));
 }
-FD_FASTOP void fd_unlock_pool(fd_pool p)
+FD_FASTOP void fd_unlock_pool_struct(fd_pool p)
 {
-  u8_rw_unlock(&((p)->pool_lock));
+  u8_rw_unlock(&((p)->pool_struct_lock));
 }
 #else
-#define fd_lock_pool(p,for_write) _fd_lock_pool(p,for_write)
-#define fd_unlock_pool(p) _fd_unlock_pool(p)
+#define fd_lock_pool_struct(p,for_write) _fd_lock_pool_struct(p,for_write)
+#define fd_unlock_pool_struct(p) _fd_unlock_pool_struct(p)
 #endif
 
 /* Pool commit objects */

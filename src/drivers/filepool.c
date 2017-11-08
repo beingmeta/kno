@@ -136,42 +136,38 @@ static void update_modtime(struct FD_FILE_POOL *fp)
 /* These assume that the pool itself is locked */
 static int write_file_pool_load(fd_file_pool fp)
 {
-  if (FD_POOLFILE_LOCKEDP(fp)) {
-    /* Update the load */
-    long long load;
-    fd_stream stream = &(fp->pool_stream);
-    load = fd_read_4bytes_at(stream,16,FD_ISLOCKED);
-    if (load<0) {
-      return -1;}
-    else if (load>fp->pool_capacity) {
-      u8_seterr("InvalidLoad","write_file_pool_load",u8_strdup(fp->poolid));
-      fd_unlockfile(stream);
-      return -1;}
-    else if (fp->pool_load>load) {
-      int rv = fd_write_4bytes_at(stream,fp->pool_load,16);
-      if (rv<0) return rv;
-      return 1;}
-    else {
-      return 0;}}
-  else return 0;
+  long long load;
+  fd_stream stream = &(fp->pool_stream);
+  load = fd_read_4bytes_at(stream,16,FD_ISLOCKED);
+  if (load<0) {
+    return -1;}
+  else if (load>fp->pool_capacity) {
+    u8_seterr("InvalidLoad","write_file_pool_load",u8_strdup(fp->poolid));
+    return -1;}
+  else if (fp->pool_load>load) {
+    int rv = fd_write_4bytes_at(stream,fp->pool_load,16);
+    if (rv<0) return rv;
+    return 1;}
+  else {
+    return 0;}
 }
 
 static int read_file_pool_load(fd_file_pool fp)
 {
   long long load;
   fd_stream stream = &(fp->pool_stream);
-  if (FD_POOLFILE_LOCKEDP(fp)) {
+  if (FD_POOLSTREAM_LOCKEDP(fp)) {
     return fp->pool_load;}
-  if (fd_lockfile(stream)<0) return -1;
+  if (fd_streamctl(stream,fd_stream_lockfile,NULL)<0) return -1;
   load = fd_read_4bytes_at(stream,16,FD_ISLOCKED);
   if (load<0) {
-    fd_unlockfile(stream);
+    fd_streamctl(stream,fd_stream_unlockfile,NULL);
     return -1;}
   else if (load>fp->pool_capacity) {
     u8_seterr("InvalidLoad","read_file_pool_load",u8_strdup(fp->poolid));
-    fd_unlockfile(stream);
+    fd_streamctl(stream,fd_stream_unlockfile,NULL);
     return -1;}
-  fd_unlockfile(stream);
+  fd_streamctl(stream,fd_stream_unlockfile,NULL);
   fp->pool_load = load;
   return load;
 }
@@ -179,33 +175,33 @@ static int read_file_pool_load(fd_file_pool fp)
 static int file_pool_load(fd_pool p)
 {
   fd_file_pool fp = (fd_file_pool)p;
-  if (FD_POOLFILE_LOCKEDP(fp))
+  if (FD_POOLSTREAM_LOCKEDP(fp))
     return fp->pool_load;
   else {
     int pool_load;
-    fd_lock_pool(p,1);
+    fd_lock_pool_struct(p,1);
     fd_lock_stream(&(fp->pool_stream));
     pool_load = read_file_pool_load(fp);
     fd_unlock_stream(&(fp->pool_stream));
-    fd_unlock_pool(p);
+    fd_unlock_pool_struct(p);
     return pool_load;}
 }
 
 static int lock_file_pool(struct FD_FILE_POOL *fp,int use_mutex)
 {
-  if (FD_POOLFILE_LOCKEDP(fp)) return 1;
+  if (FD_POOLSTREAM_LOCKEDP(fp)) return 1;
   else if ((fp->pool_flags)&(FD_STORAGE_READ_ONLY))
     return 0;
   else {
     struct FD_STREAM *s = &(fp->pool_stream);
     struct stat fileinfo;
-    if (use_mutex) fd_lock_pool((fd_pool)fp,1);
+    if (use_mutex) fd_lock_pool_struct((fd_pool)fp,1);
     /* Handle race condition by checking when locked */
-    if (FD_POOLFILE_LOCKEDP(fp)) {
-      if (use_mutex) fd_unlock_pool((fd_pool)fp);
+    if (FD_POOLSTREAM_LOCKEDP(fp)) {
+      if (use_mutex) fd_unlock_pool_struct((fd_pool)fp);
       return 1;}
-    if (fd_lockfile(s)==0) {
-      if (use_mutex) fd_unlock_pool((fd_pool)fp);
+    if (fd_streamctl(s,fd_stream_lockfile,NULL)==0) {
+      if (use_mutex) fd_unlock_pool_struct((fd_pool)fp);
       return 0;}
     fstat(s->stream_fileno,&fileinfo);
     if (fileinfo.st_mtime>fp->pool_mtime) {
@@ -215,7 +211,7 @@ static int lock_file_pool(struct FD_FILE_POOL *fp,int use_mutex)
         fd_reset_hashtable(&(fp->pool_cache),-1,1);
         fd_reset_hashtable(&(fp->pool_changes),32,1);}}
     read_file_pool_load(fp);
-    if (use_mutex) fd_unlock_pool((fd_pool)fp);
+    if (use_mutex) fd_unlock_pool_struct((fd_pool)fp);
     return 1;}
 }
 
@@ -227,9 +223,9 @@ static lispval file_pool_fetch(fd_pool p,lispval oid)
   int offset = FD_OID_DIFFERENCE(addr,fp->pool_base), stream_locked = 0;
   fd_stream stream = &(fp->pool_stream);
   fd_off_t data_pos;
-  fd_lock_pool((fd_pool)fp,0);
+  fd_lock_pool_struct((fd_pool)fp,0);
   if (PRED_FALSE(offset>=fp->pool_load)) {
-    fd_unlock_pool((fd_pool)fp);
+    fd_unlock_pool_struct((fd_pool)fp);
     if ( (p->pool_flags) & (FD_POOL_ADJUNCT) )
       return FD_EMPTY;
     else return FD_UNALLOCATED_OID;}
@@ -239,7 +235,7 @@ static lispval file_pool_fetch(fd_pool p,lispval oid)
     fd_lock_stream(stream); stream_locked = 1;
     if (fd_setpos(stream,24+4*offset)<0) {
       fd_unlock_stream(stream);
-      fd_unlock_pool((fd_pool)fp);
+      fd_unlock_pool_struct((fd_pool)fp);
       return FD_ERROR;}
     data_pos = fd_read_4bytes(fd_readbuf(stream));}
   if (data_pos == 0) value = EMPTY;
@@ -248,7 +244,7 @@ static lispval file_pool_fetch(fd_pool p,lispval oid)
        happen in the (hopefully now non-existent) case where
        we've stored a >32 bit offset into a 32-bit sized location
        and it got truncated down. */
-    fd_unlock_pool((fd_pool)fp);
+    fd_unlock_pool_struct((fd_pool)fp);
     if (stream_locked) fd_unlock_stream(stream);
     return fd_err(fd_CorruptedPool,"file_pool_fetch",fp->poolid,VOID);}
   else {
@@ -256,11 +252,11 @@ static lispval file_pool_fetch(fd_pool p,lispval oid)
       fd_lock_stream(stream); stream_locked = 1;}
     if (fd_setpos(&(fp->pool_stream),data_pos)<0) {
       fd_unlock_stream(stream);
-      fd_unlock_pool((fd_pool)fp);
+      fd_unlock_pool_struct((fd_pool)fp);
       return FD_ERROR;}
     value = fd_read_dtype(fd_readbuf(stream));}
   if (stream_locked) fd_unlock_stream(stream);
-  fd_unlock_pool((fd_pool)fp);
+  fd_unlock_pool_struct((fd_pool)fp);
   return value;
 }
 
@@ -283,7 +279,7 @@ static lispval *file_pool_fetchn(fd_pool p,int n,lispval *oids)
     u8_big_alloc_n(n,struct POOL_FETCH_SCHEDULE);
   lispval *result = u8_big_alloc_n(n,lispval);
   int i = 0, min_file_pos = 24+fp->pool_capacity*4, load;
-  fd_lock_pool(p,0);
+  fd_lock_pool_struct(p,0);
   load = fp->pool_load;
   if (fp->pool_offdata) {
     unsigned int *offsets = fp->pool_offdata;
@@ -293,7 +289,7 @@ static lispval *file_pool_fetchn(fd_pool p,int n,lispval *oids)
       if (PRED_FALSE(off>=load)) {
         u8_big_free(result);
         u8_big_free(schedule);
-        fd_unlock_pool(p);
+        fd_unlock_pool_struct(p);
         fd_seterr(fd_UnallocatedOID,"file_pool_fetchn",fp->poolid,oid);
         return NULL;}
       file_off = offget(offsets,off);
@@ -305,7 +301,7 @@ static lispval *file_pool_fetchn(fd_pool p,int n,lispval *oids)
            This should never happen unless a file is corrupted. */
         u8_big_free(result);
         u8_big_free(schedule);
-        fd_unlock_pool(p);
+        fd_unlock_pool_struct(p);
         fd_seterr(fd_CorruptedPool,"file_pool_fetchn",fp->poolid,oid);
         return NULL;}
       else schedule[i].filepos = file_off;
@@ -321,7 +317,7 @@ static lispval *file_pool_fetchn(fd_pool p,int n,lispval *oids)
         u8_big_free(schedule);
         u8_big_free(result);
         fd_unlock_stream(stream);
-        fd_unlock_pool(p);
+        fd_unlock_pool_struct(p);
         return NULL;}
       file_off = fd_read_4bytes(fd_readbuf(stream));
       if (PRED_FALSE(file_off==0))
@@ -333,7 +329,7 @@ static lispval *file_pool_fetchn(fd_pool p,int n,lispval *oids)
         u8_big_free(result);
         u8_big_free(schedule);
         fd_unlock_stream(stream);
-        fd_unlock_pool(p);
+        fd_unlock_pool_struct(p);
         fd_seterr(fd_CorruptedPool,"file_pool_fetchn",fp->poolid,oid);
         return NULL;}
       else schedule[i].filepos = file_off;
@@ -347,7 +343,7 @@ static lispval *file_pool_fetchn(fd_pool p,int n,lispval *oids)
           fd_decref(result[schedule[j].vpos]); j++;}
         u8_big_free(schedule);
         u8_big_free(result);
-        fd_unlock_pool(p);
+        fd_unlock_pool_struct(p);
         fd_unlock_stream(stream);
         return NULL;}
       result[schedule[i].vpos]=fd_read_dtype(fd_readbuf(stream));
@@ -355,7 +351,7 @@ static lispval *file_pool_fetchn(fd_pool p,int n,lispval *oids)
     else result[schedule[i++].vpos]=EMPTY;
   u8_big_free(schedule);
   fd_unlock_stream(stream);
-  fd_unlock_pool(p);
+  fd_unlock_pool_struct(p);
   return result;
 }
 
@@ -374,7 +370,7 @@ static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
   unsigned int *tmp_offsets = NULL, old_size = 0;
   int i = 0, retcode = n, load;
   double started = u8_elapsed_time();
-  fd_lock_pool(p,1);
+  fd_lock_pool_struct(p,1);
   load = fp->pool_load;
   /* Get the endpos after the file pool structure is locked. */
   fd_lock_stream(stream);
@@ -478,7 +474,7 @@ static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
       fp->pool_offdata_size = fp->pool_load;}}
   /* Note that if we exited abnormally, the file is still intact. */
   fd_unlock_stream(stream);
-  fd_unlock_pool(p);
+  fd_unlock_pool_struct(p);
   u8_log(fd_storage_loglevel,"FilePoolStore",
          "Stored %d oid values in oidpool %s in %f seconds",
          n,p->poolid,u8_elapsed_time()-started);
@@ -491,9 +487,17 @@ static int file_pool_commit(fd_pool p,fd_commit_phase phase,
   switch (phase) {
   case fd_commit_start: {
     u8_string source = p->pool_source;
-    ssize_t rlen = strlen(source) + 10; u8_byte rbuf[rlen];
-    u8_string rollback_file = u8_sprintf(rbuf,rlen,"%s.rollback",source);
+    struct FD_FILE_POOL *fp = (fd_file_pool) p;
+    if (!(FD_POOLSTREAM_LOCKEDP(fp))) {
+      int locked = fd_streamctl(&(fp->pool_stream),fd_stream_lockfile,NULL);
+      if (locked <= 0) {
+        u8_seterr("LockFailed","file_pool_commit",u8_strdup(source));
+        return -1;}
+      else {
+        commits->commit_stream = &(fp->pool_stream);}}
+    u8_string rollback_file = u8_mkstring("%s.rollback",source);
     int rv = fd_save_head(source,rollback_file,24+(4*p->pool_capacity));
+    u8_free(rollback_file);
     return rv;}
   case fd_commit_save: {
     return file_pool_storen(p,commits->commit_count,
@@ -503,23 +507,34 @@ static int file_pool_commit(fd_pool p,fd_commit_phase phase,
     return 0;
   case fd_commit_cleanup: {
     u8_string source = p->pool_source;
-    ssize_t rlen = strlen(source) + 10; u8_byte rbuf[rlen];
-    u8_string rollback_file = u8_sprintf(rbuf,rlen,"%s.rollback",source);
-    if (u8_file_existsp(rollback_file))
-      return u8_removefile(rollback_file);
+    u8_string rollback_file = u8_mkstring("%s.rollback",source);
+    if (commits->commit_stream) {
+      int unlocked = fd_streamctl(commits->commit_stream,fd_stream_unlockfile,NULL);
+      if (unlocked<=0) {
+        int saved_errno = errno; errno=0;
+        u8_log(LOG_WARN,"CantUnlock",
+               "Can't unlock stream for %s errno=%d:%s",
+               source,saved_errno,u8_strerror(saved_errno));}}
+    if (u8_file_existsp(rollback_file)) {
+      int rv = u8_removefile(rollback_file);
+      u8_free(rollback_file);
+      return rv;}
     else {
       u8_log(LOGWARN,"Rollback file %s was deleted",rollback_file);
+      u8_free(rollback_file);
       return -1;}}
   case fd_commit_rollback: {
     u8_string source = p->pool_source;
-    ssize_t rlen = strlen(source) + 10; u8_byte rbuf[rlen];
-    u8_string rollback_file = u8_sprintf(rbuf,rlen,"%s.rollback",source);
-    if (u8_file_existsp(rollback_file))
-      return fd_apply_head(source,rollback_file,-1);
+    u8_string rollback_file = u8_mkstring("%s.rollback",source);
+    if (u8_file_existsp(rollback_file)) {
+      int rv= fd_apply_head(source,rollback_file,-1);
+      u8_free(rollback_file);
+      return rv;}
     else {
       u8_log(LOG_CRIT,"NoRollbackFile",
              "The rollback file %s for %s doesn't exist",
              rollback_file,p->poolid);
+      u8_free(rollback_file);
       return -1;}}
   default: {
     u8_log(LOG_INFO,"NoPhasedCommit",
@@ -566,13 +581,13 @@ static lispval file_pool_alloc(fd_pool p,int n)
   struct FD_FILE_POOL *fp = (struct FD_FILE_POOL *)p;
  FD_OID base=fp->pool_base;
   unsigned int start;
-  fd_lock_pool(p,1);
-  if (!(FD_POOLFILE_LOCKEDP(fp))) lock_file_pool(fp,0);
+  fd_lock_pool_struct(p,1);
+  if (!(FD_POOLSTREAM_LOCKEDP(fp))) lock_file_pool(fp,0);
   if ( (fp->pool_load+n) > fp->pool_capacity ) {
-    fd_unlock_pool(p);
+    fd_unlock_pool_struct(p);
     return fd_err(fd_ExhaustedPool,"file_pool_alloc",p->poolid,VOID);}
   start=fp->pool_load; fp->pool_load+=n;
-  fd_unlock_pool(p);
+  fd_unlock_pool_struct(p);
   while (i < n) {
     FD_OID new_addr = FD_OID_PLUS(base,start+i);
     lispval new_oid = fd_make_oid(new_addr);
@@ -584,17 +599,17 @@ static lispval file_pool_alloc(fd_pool p,int n)
 static int file_pool_lock(fd_pool p,lispval oids)
 {
   struct FD_FILE_POOL *fp = (struct FD_FILE_POOL *)p;
-  if (FD_POOLFILE_LOCKEDP(fp)) return 1;
+  if (FD_POOLSTREAM_LOCKEDP(fp)) return 1;
   else return lock_file_pool(fp,1);
 }
 
 static int file_pool_unlock(fd_pool p,lispval oids)
 {
   struct FD_FILE_POOL *fp = (struct FD_FILE_POOL *)p;
-  fd_lock_pool(p,1);
+  fd_lock_pool_struct(p,1);
   if (fp->pool_changes.table_n_keys == 0)
-    fd_unlockfile(&(fp->pool_stream));
-  fd_unlock_pool(p);
+    fd_streamctl(&(fp->pool_stream),fd_stream_unlockfile,NULL);
+  fd_unlock_pool_struct(p);
   return 1;
 }
 
@@ -606,9 +621,9 @@ static void file_pool_setcache(fd_pool p,int level)
     else {
       fd_stream s = &(fp->pool_stream);
       unsigned int *offsets, *newmmap;
-      fd_lock_pool(p,1);
+      fd_lock_pool_struct(p,1);
       if (fp->pool_offdata) {
-        fd_unlock_pool(p);
+        fd_unlock_pool_struct(p);
         return;}
 #if HAVE_MMAP
       newmmap=
@@ -633,12 +648,12 @@ static void file_pool_setcache(fd_pool p,int level)
       fd_read_ints(ins,load,offsets);
       fp->pool_offdata = offsets; fp->pool_offdata_size = load;
 #endif
-      fd_unlock_pool(p);}
+      fd_unlock_pool_struct(p);}
   else if (level < 2) {
     if (fp->pool_offdata == NULL) return;
     else {
       int retval;
-      fd_lock_pool(p,1);
+      fd_lock_pool_struct(p,1);
 #if HAVE_MMAP
       /* Since we were just reading, the buffer was only as big
          as the load, not the capacity. */
@@ -664,7 +679,7 @@ static void reload_file_pool_cache(struct FD_FILE_POOL *fp,int lock)
   /* Read new offsets table, compare it with the current, and
      only void those OIDs */
   unsigned int new_load, *offsets, *nscan, *oscan, *olim;
-  if (lock) fd_lock_pool(p,1);
+  if (lock) fd_lock_pool_struct(p,1);
   oscan = fp->pool_offdata; olim = oscan+fp->pool_offdata_size;
   fd_setpos(s,16); new_load = fd_read_4bytes(ins);
   nscan = offsets = u8_big_alloc_n(new_load,unsigned int);
@@ -681,16 +696,19 @@ static void reload_file_pool_cache(struct FD_FILE_POOL *fp,int lock)
   fp->pool_offdata = offsets;
   fp->pool_load = fp->pool_offdata_size = new_load;
   update_modtime(fp);
-  if (lock) fd_unlock_pool(p);
+  if (lock) fd_unlock_pool_struct(p);
 #endif
 }
 
 static void file_pool_close(fd_pool p)
 {
   struct FD_FILE_POOL *fp = (struct FD_FILE_POOL *)p;
-  fd_lock_pool(p,1);
+  fd_lock_pool_struct(p,1);
+  /* Finish delete */
+  /*
   if (write_file_pool_load(fp)<0)
     u8_log(LOG_CRIT,"FileError","Can't update load for %s",fp->poolid);
+  */
   fd_close_stream(&(fp->pool_stream),0);
   if (fp->pool_offdata) {
 #if HAVE_MMAP
@@ -705,7 +723,7 @@ static void file_pool_close(fd_pool p)
 #endif
     fp->pool_offdata = NULL; fp->pool_offdata_size = 0;
     fp->pool_cache_level = -1;}
-  fd_unlock_pool(p);
+  fd_unlock_pool_struct(p);
 }
 
 /* Making file pools */
@@ -879,9 +897,9 @@ static lispval file_pool_ctl(fd_pool p,lispval op,int n,lispval *args)
     if (n==0)
       return FD_INT(fp->pool_stream.buf.raw.buflen);
     else if (FIXNUMP(args[0])) {
-      fd_lock_pool(p,1);
+      fd_lock_pool_struct(p,1);
       fd_setbufsize(&(fp->pool_stream),FIX2INT(args[0]));
-      fd_unlock_pool(p);
+      fd_unlock_pool_struct(p);
       return FD_INT(fp->pool_stream.buf.raw.buflen);}
     else return fd_type_error("buffer size","filepool_op/bufsize",args[0]);}
   else if (op == fd_capacity_op)
@@ -899,7 +917,7 @@ static lispval file_pool_ctl(fd_pool p,lispval op,int n,lispval *args)
 static lispval label_file_pool(struct FD_FILE_POOL *fp,lispval label)
 {
   int retval = -1;
-  if ((FD_POOLFILE_LOCKEDP(fp)) &&
+  if ((FD_POOLSTREAM_LOCKEDP(fp)) &&
       (fd_lock_stream(&(fp->pool_stream))>0)) {
     fd_stream stream = &(fp->pool_stream);
     fd_off_t endpos = fd_endpos(stream);

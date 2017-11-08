@@ -887,7 +887,7 @@ FD_EXPORT int _fd_using_stream(fd_stream s)
   return fd_using_stream(s);
 }
 
-FD_EXPORT int fd_lockfile(fd_stream s)
+static int lock_filestream(fd_stream s)
 {
   if (s->stream_flags&FD_STREAM_FILE_LOCKED)
     return 1;
@@ -897,7 +897,7 @@ FD_EXPORT int fd_lockfile(fd_stream s)
   return 0;
 }
 
-FD_EXPORT int fd_unlockfile(fd_stream s)
+static int unlock_filestream(fd_stream s)
 {
   if (!(s->stream_flags&FD_STREAM_FILE_LOCKED))
     return 1;
@@ -1418,12 +1418,12 @@ lispval fd_streamctl(fd_stream s,fd_streamop op,void *data)
     fd_close_stream(s,0);
     return VOID;
   case fd_stream_lockfile: {
-    int rv = fd_lockfile(s);
+    int rv = lock_filestream(s);
     if (rv<0) return FD_ERROR;
     else if (rv) return FD_TRUE;
     else return FD_FALSE;}
   case fd_stream_unlockfile: {
-    int rv = fd_unlockfile(s);
+    int rv = unlock_filestream(s);
     if (rv<0) return FD_ERROR;
     else if (rv) return FD_TRUE;
     else return FD_FALSE;}
