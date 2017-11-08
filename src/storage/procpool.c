@@ -99,7 +99,7 @@ fd_pool fd_make_procpool(FD_OID base,
   pp->ctlfn = poolopt(opts,"CTLFN");
   pp->pool_state = state;
   fd_incref(state);
-  pp->pool_label = label;
+  pp->pool_label = u8_strdup(label);
 
   if (fd_testopt(opts,fd_intern("TYPEID"),VOID)) {
     lispval idval = poolopt(opts,"TYPEID");

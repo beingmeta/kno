@@ -64,9 +64,12 @@ fd_pool fd_make_extpool(u8_string label,
     fd_incref(fetchfn); fd_incref(savefn);
     fd_incref(lockfn); fd_incref(allocfn);
     fd_incref(state);
-    xp->fetchfn = fetchfn; xp->savefn = savefn;
-    xp->lockfn = lockfn; xp->allocfn = allocfn;
-    xp->state = state; xp->pool_label = label;
+    xp->fetchfn = fetchfn;
+    xp->savefn = savefn;
+    xp->lockfn = lockfn;
+    xp->allocfn = allocfn;
+    xp->state = state;
+    xp->pool_label = u8_strdup(label);
     xp->pool_flags = xp->pool_flags|FD_POOL_SPARSE;
     return (fd_pool)xp;}
 }
