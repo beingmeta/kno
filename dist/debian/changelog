@@ -1,3 +1,9 @@
+framerd (4.2.6-10) stable; urgency=medium
+
+  * Switched to a new commit architecture
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 08 Nov 2017 21:09:42 +0000
+
 framerd (4.2.5-9) stable; urgency=medium
 
   * Switched daemons/servlets to using u8run
