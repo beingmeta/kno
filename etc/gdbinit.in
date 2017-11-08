@@ -1,4 +1,4 @@
-directory @abs_top_srcdir@:@abs_top_srcdir@/../libu8:@abs_top_srcdir@/../aikit/c:@extra_src@
+directory @source_dir@/framerd:@source_dir@/libu8:@source_dir@/lingo:@extra_sources@
 set env UNDERGDB=yes
 set env STDLOG=yes
 set env FD_FOREGROUND=yes

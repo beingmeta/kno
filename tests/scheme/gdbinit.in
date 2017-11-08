@@ -1,4 +1,5 @@
 source @abs_top_srcdir@/etc/gdbinit
+directory @abs_top_srcdir@:@abs_top_srcdir@/../libu8:@abs_top_srcdir@/../lingo:@extra_sources@
 #set env FD_POOLS /data/bg/brico.pool
 #set env FD_INDICES /data/bg/brico.index
 #set env FD_POOLS bground@localhost
