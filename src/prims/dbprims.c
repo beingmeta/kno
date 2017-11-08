@@ -984,13 +984,13 @@ static lispval commit_lexpr(int n,lispval *args)
   else if (n == 1) {
     lispval arg = args[0]; int retval = 0;
     if (TYPEP(arg,fd_index_type))
-      retval = fd_index_commit(fd_indexptr(arg));
+      retval = fd_commit_index(fd_indexptr(arg));
     else if (TYPEP(arg,fd_pool_type))
-      retval = fd_pool_commit_all(fd_lisp2pool(arg));
+      retval = fd_commit_all_oids(fd_lisp2pool(arg));
     else if (TYPEP(arg,fd_consed_index_type))
-      retval = fd_index_commit(fd_indexptr(arg));
+      retval = fd_commit_index(fd_indexptr(arg));
     else if (TYPEP(arg,fd_consed_pool_type))
-      retval = fd_pool_commit_all((fd_pool)arg);
+      retval = fd_commit_all_oids((fd_pool)arg);
     else if (OIDP(arg))
       retval = fd_commit_oids(arg);
     else return fd_type_error(_("pool or index"),"commit_lexpr",arg);
@@ -1029,7 +1029,7 @@ static lispval commit_pool(lispval pool,lispval opts)
   if (!(p))
     return fd_type_error("pool","commit_pool",pool);
   else {
-    int rv = fd_pool_commit(p,VOID);
+    int rv = fd_commit_pool(p,VOID);
     if (rv<0)
       return FD_ERROR;
     else return VOID;}
@@ -1041,7 +1041,7 @@ static lispval commit_finished(lispval pool)
   if (!(p))
     return fd_type_error("pool","commit_finished",pool);
   else {
-    int rv = fd_pool_commit(p,FD_TRUE);
+    int rv = fd_commit_pool(p,FD_TRUE);
     if (rv<0)
       return FD_ERROR;
     else return VOID;}
@@ -1921,7 +1921,7 @@ static lispval commit_index_prim(lispval ix_arg)
   fd_index ix = fd_indexptr(ix_arg);
   if (ix == NULL)
     return fd_type_error("index","index_close",ix_arg);
-  fd_index_commit(ix);
+  fd_commit_index(ix);
   return VOID;
 }
 

@@ -897,8 +897,9 @@ static ssize_t bigpool_write_value(fd_bigpool p,lispval value,
                                    fd_stream stream,
                                    struct FD_OUTBUF *tmpout,
                                    unsigned char **zbuf,int *zbuf_size);
-static int update_bigpool(fd_bigpool bp,fd_stream stream,int new_load,
-                          int n_saved,struct BIGPOOL_SAVEINFO *saveinfo,
+static int update_bigpool(fd_bigpool bp,fd_stream stream,fd_stream head_stream,
+                          int new_load,int n_saved,
+                          struct BIGPOOL_SAVEINFO *saveinfo,
                           lispval metadata);
 
 static int file_format_overflow(fd_pool p,fd_stream stream)
@@ -924,6 +925,7 @@ static fd_stream get_commit_stream(fd_pool p,struct FD_POOL_COMMITS *commit)
     /* Lock the file descriptor */
     if (fd_lockfile(new_stream)<0) {
       fd_close_stream(new_stream,FD_STREAM_FREEDATA);
+      u8_free(new_stream);
       fd_seterr("CantLockFile","get_commit_stream/bigpool",p->pool_source,
                 FD_VOID);
       return NULL;}
@@ -934,24 +936,31 @@ static fd_stream get_commit_stream(fd_pool p,struct FD_POOL_COMMITS *commit)
     return NULL;}
 }
 
+static void release_commit_stream(fd_pool p,struct FD_POOL_COMMITS *commit)
+{
+  fd_stream stream = commit->commit_stream;
+  if (stream == NULL) return;
+  else commit->commit_stream=NULL;
+  if (fd_unlockfile(stream)<0)
+    u8_log(LOG_WARN,"CantUnLockFile",
+           "For commit stream of bigpool %s",p->poolid);
+  fd_close_stream(stream,FD_STREAM_FREEDATA);
+  u8_free(stream);
+}
+
 static int bigpool_storen(fd_pool p,int n,
                           lispval *oids,lispval *values,
                           lispval metadata,
-                          fd_stream stream)
+                          fd_stream stream,
+                          fd_stream head_stream)
 {
   fd_bigpool bp = (fd_bigpool)p;
   u8_string fname=bp->pool_source;
   if (!(u8_file_writablep(fname))) {
     fd_seterr("CantWriteFile","bigpool_storen",fname,FD_VOID);
     return -1;}
-  int chunk_ref_size = get_chunk_ref_size(bp);
-
-  if (stream==NULL)
-    return -1;
 
   struct FD_OUTBUF *outstream = fd_writebuf(stream);
-
-
   unsigned int load = bp->pool_load;
 
   double started = u8_elapsed_time();
@@ -1033,7 +1042,7 @@ static int bigpool_storen(fd_pool p,int n,
 
   fd_lock_pool(p,1);
 
-  if (update_bigpool(bp,stream,load,n,saveinfo,metadata)<0) {
+  if (update_bigpool(bp,stream,head_stream,load,n,saveinfo,metadata)<0) {
     u8_log(LOGCRIT,"Couldn't update bigpool %s",bp->poolid);
 
     /* Unlock the pool */
@@ -1046,21 +1055,17 @@ static int bigpool_storen(fd_pool p,int n,
              stream->stream_fileno,
              bp->pool_source,
              bp->poolid);
-    fd_close_stream(stream,FD_STREAM_FREEDATA);
-
     return -1;}
 
   u8_big_free(saveinfo);
-  fd_start_write(stream,0);
+  fd_start_write(head_stream,0);
   fd_write_4bytes(outstream,FD_BIGPOOL_MAGIC_NUMBER);
-  fd_flush_stream(stream);
+  fd_flush_stream(head_stream);
   fsync(stream->stream_fileno);
 
   u8_log(fd_storage_loglevel+1,"BigpoolStore",
          "Stored %d oid values in bigpool %s in %f seconds",
          n,p->poolid,u8_elapsed_time()-started);
-
-  update_offdata_cache(bp,p->pool_cache_level,chunk_ref_size);
 
   /* Unlock the pool */
   fd_unlock_pool(p);
@@ -1072,8 +1077,6 @@ static int bigpool_storen(fd_pool p,int n,
            stream->stream_fileno,
            bp->pool_source,
            bp->poolid);
-  fd_close_stream(stream,FD_STREAM_FREEDATA);
-
   return n;
 }
 
@@ -1093,30 +1096,57 @@ static int bigpool_commit(fd_pool p,fd_commit_phase phase,
     return -1;
   case fd_commit_start: {
     size_t recovery_size = 256+(chunk_ref_size*p->pool_capacity);
-    u8_string rollback = u8_string_append(fname,".rollback",NULL);
-    return fd_save_head(fname,rollback,recovery_size);}
+    u8_string rollback = u8_mkstring("%s.rollback",fname);
+    int rv= fd_save_head(fname,rollback,recovery_size);
+    u8_free(rollback);
+    return rv;}
   case fd_commit_save: {
     size_t recovery_size = 256+(chunk_ref_size*p->pool_capacity);
-    u8_string commit = u8_string_append(fname,".commit",NULL);
+    u8_string commit = u8_mkstring("%s.commit",fname);
     int head_saved = fd_save_head(fname,commit,recovery_size);
     struct FD_STREAM *head_stream = (head_saved>=0) ?
       (fd_init_file_stream(NULL,commit,FD_FILE_MODIFY,-1,-1)) : (NULL);
-    if (head_stream == NULL) {
-      u8_free(commit); return -1;}
-    int rv = bigpool_storen(p,commits->commit_count,
-                            commits->commit_oids,
-                            commits->commit_vals,
-                            commits->commit_metadata,
-                            stream);
-    fd_close_stream(head_stream,FD_STREAM_FREEDATA);
     u8_free(commit);
+    if (head_stream == NULL)
+      return -1;
+    int rv = bigpool_storen
+      (p,commits->commit_count,
+       commits->commit_oids,
+       commits->commit_vals,
+       commits->commit_metadata,
+       stream,head_stream);
+    fd_close_stream(head_stream,FD_STREAM_FREEDATA);
+    u8_free(head_stream);
     return rv;}
   case fd_commit_rollback: {
-    u8_string rollback = u8_string_append(fname,".rollback",NULL);
-    return fd_apply_head(fname,rollback,256-8);}
+    u8_string rollback = u8_mkstring("%s.rollback",fname);
+    int rv = fd_apply_head(fname,rollback,256-8);
+    u8_free(rollback);
+    return rv;}
   case fd_commit_finish: {
-    u8_string commit = u8_string_append(fname,".commit",NULL);
-    return fd_apply_head(fname,commit,256-8);}
+    u8_string commit = u8_mkstring("%s.commit",fname);
+    int rv = fd_apply_head(fname,commit,256-8);
+    u8_free(commit);
+    if (rv >= 0) {
+      update_offdata_cache(bp,p->pool_cache_level,chunk_ref_size);
+      return rv;}
+    else return rv;}
+  case fd_commit_cleanup: {
+    u8_string rollback = u8_mkstring("%s.rollback",fname);
+    u8_string commit = u8_mkstring("%s.commit",fname);
+    if (u8_file_existsp(rollback)) {
+      if ( (u8_removefile(rollback)) < 0) {
+        u8_log(LOG_WARN,"PoolCleanupFailed",
+               "Couldn't remove file %s for %s",rollback,fname);}}
+    if (u8_file_existsp(commit)) {
+      if ( (u8_removefile(commit)) < 0) {
+        u8_log(LOG_WARN,"PoolCleanupFailed",
+               "Couldn't remove file %s for %s",commit,fname);}}
+    if (commits->commit_stream) release_commit_stream(p,commits);
+    u8_free(rollback); u8_free(commit);
+    return 0;}
+  default:
+    return 0;
   }
 }
 
@@ -1306,7 +1336,7 @@ static int bump_bigpool_nblocks(fd_bigpool bp,
 }
 
 /* These assume that the pool itself is locked */
-static int write_bigpool_slotids(fd_bigpool bp,fd_stream stream)
+static int write_bigpool_slotids(fd_bigpool bp,fd_stream stream,fd_stream head_stream)
 {
   if (bp->bigpool_added_slotids) {
     lispval *slotids = bp->bigpool_slotids;
@@ -1318,9 +1348,9 @@ static int write_bigpool_slotids(fd_bigpool bp,fd_stream stream)
       ssize_t size = fd_write_dtype(out,slotid);
       if (size<0) return -1;
       else end_pos+=size;}
-    fd_write_4bytes_at(stream,n_slotids,0x50);
-    fd_write_8bytes_at(stream,start_pos,0x54);
-    fd_write_4bytes_at(stream,end_pos-start_pos,0x5c);
+    fd_write_4bytes_at(head_stream,n_slotids,0x50);
+    fd_write_8bytes_at(head_stream,start_pos,0x54);
+    fd_write_4bytes_at(head_stream,end_pos-start_pos,0x5c);
     bp->bigpool_added_slotids = 0;
     return 1;}
   else return 0;
@@ -1328,7 +1358,8 @@ static int write_bigpool_slotids(fd_bigpool bp,fd_stream stream)
 
 /* These assume that the pool itself is locked */
 
-static int write_bigpool_metadata(fd_bigpool bp,lispval metadata,fd_stream stream)
+static int write_bigpool_metadata(fd_bigpool bp,lispval metadata,
+                                  fd_stream stream,fd_stream head_stream)
 {
   if (FD_TABLEP(metadata)) {
     u8_log(LOGWARN,"WriteMetadata",
@@ -1345,24 +1376,25 @@ static int write_bigpool_metadata(fd_bigpool bp,lispval metadata,fd_stream strea
       return rv;}
     else end_pos=fd_endpos(stream);
     fd_flush_stream(stream);
-    fd_write_8bytes_at(stream,start_pos,FD_BIGPOOL_METADATA_POS);
-    fd_write_4bytes_at(stream,end_pos-start_pos,FD_BIGPOOL_METADATA_POS+8);
+    fd_write_8bytes_at(head_stream,start_pos,FD_BIGPOOL_METADATA_POS);
+    fd_write_4bytes_at(head_stream,end_pos-start_pos,FD_BIGPOOL_METADATA_POS+8);
     fd_set_modified(metadata,0);
     return 1;}
   else return 0;
 }
 
-static int update_bigpool(fd_bigpool bp,fd_stream stream,int new_load,
-                          int n_saved,struct BIGPOOL_SAVEINFO *saveinfo,
+static int update_bigpool(fd_bigpool bp,fd_stream stream,fd_stream head_stream,
+                          int new_load,int n_saved,
+                          struct BIGPOOL_SAVEINFO *saveinfo,
                           lispval metadata)
 {
-  int rv=write_bigpool_slotids(bp,stream);
+  int rv=write_bigpool_slotids(bp,stream,head_stream);
   if (saveinfo) {
-    if (rv>=0) rv=write_offdata(bp,stream,n_saved,new_load,saveinfo);
-    if (rv>=0) rv=bump_bigpool_nblocks(bp,n_saved,stream);}
+    if (rv>=0) rv=write_offdata(bp,head_stream,n_saved,new_load,saveinfo);
+    if (rv>=0) rv=bump_bigpool_nblocks(bp,n_saved,head_stream);}
   if ( (rv>=0) && (!(FD_VOIDP(metadata))) )
-    rv=write_bigpool_metadata(bp,metadata,stream);
-  if (rv>=0) rv=write_bigpool_load(bp,new_load,stream);
+    rv=write_bigpool_metadata(bp,metadata,stream,head_stream);
+  if (rv>=0) rv=write_bigpool_load(bp,new_load,head_stream);
   return rv;
 }
 

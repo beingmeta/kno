@@ -57,7 +57,6 @@ FD_FASTOP int LOCK_POOLSTREAM(fd_oidpool op,u8_string caller)
 
 static void update_modtime(struct FD_OIDPOOL *fp);
 static void reload_offdata(struct FD_OIDPOOL *fp,int lock);
-static int recover_oidpool(struct FD_OIDPOOL *);
 
 static struct FD_POOL_HANDLER oidpool_handler;
 
@@ -247,11 +246,6 @@ static fd_pool open_oidpool(u8_string fname,
   pool->pool_flags=open_flags;
   u8_free(rname); /* Done with this */
 
-  if (magicno == FD_OIDPOOL_TO_RECOVER) {
-    u8_log(LOG_WARN,fd_RecoveryRequired,"Recovering the file pool %s",fname);
-    if (recover_oidpool(pool)<0) {
-      fd_seterr(fd_MallocFailed,"open_oidpool",NULL,VOID);
-      return NULL;}}
   /* Get the label */
   label_loc = fd_read_8bytes(instream);
   /* label_size = */ fd_read_4bytes(instream);
@@ -345,11 +339,16 @@ static int init_schema_entry(struct FD_SCHEMA_ENTRY *e,int pos,lispval vec)
   lispval *slotids = u8_alloc_n((len+1),lispval);
   unsigned int *mapin = u8_alloc_n(len,unsigned int);
   unsigned int *mapout = u8_alloc_n(len,unsigned int);
-  e->op_schema_id = pos; e->op_nslots = len; e->normal = fd_incref(vec);
-  e->op_slotids = slotids; e->op_slotmapin = mapin; e->op_slotmapout = mapout;
+  e->op_schema_id = pos;
+  e->op_nslots = len;
+  e->normal = fd_incref(vec);
+  e->op_slotids = slotids;
+  e->op_slotmapin = mapin;
+  e->op_slotmapout = mapout;
   while (i<len) {
     lispval val = VEC_REF(vec,i);
-    slotids[i]=fd_incref(val); i++;}
+    slotids[i]=fd_incref(val);
+    i++;}
   sort_schema(slotids,len);
   /* This will make it fast to get the pos from the schema pointer */
   slotids[len]=FD_INT(pos);
@@ -904,7 +903,7 @@ static int oidpool_commit(fd_pool p,fd_commit_phase phase,
  switch (phase) {
   case fd_commit_start: {
     u8_string source = p->pool_source;
-    u8_string rollback_file = u8_string_append(source,".rollback",NULL);
+    u8_string rollback_file = u8_mkstring("%s.rollback",source);
     int rv = fd_save_head(source,rollback_file,
                           256+(chunk_ref_size*p->pool_capacity));
     u8_free(rollback_file);
@@ -917,16 +916,23 @@ static int oidpool_commit(fd_pool p,fd_commit_phase phase,
     return 0;
   case fd_commit_cleanup: {
     u8_string source = p->pool_source;
-    u8_string rollback_file = u8_string_append(source,".rollback",NULL);
-    if (u8_file_existsp(rollback_file))
-      return u8_removefile(rollback_file);
+    u8_string rollback_file = u8_mkstring("%s.rollback",source);
+    if (u8_file_existsp(rollback_file)) {
+      int rv = u8_removefile(rollback_file);
+      if (rv<0) {
+        int saved_errno = errno; errno=0;
+        u8_log(LOGWARN,"CleanupFailed",
+               "Rollback file %s couldn't be deleted errno=%d:%s",
+               rollback_file,saved_errno,u8_strerror(saved_errno));}
+      u8_free(rollback_file);
+      return 0;}
     else {
       u8_log(LOGWARN,"Rollback file %s was deleted",rollback_file);
       u8_free(rollback_file);
       return -1;}}
   case fd_commit_rollback: {
     u8_string source = p->pool_source;
-    u8_string rollback_file = u8_string_append(source,".rollback",NULL);
+    u8_string rollback_file = u8_mkstring("%s.rollback",source);
     if (u8_file_existsp(rollback_file)) {
       int rv = fd_apply_head(source,rollback_file,-1);
       u8_free(rollback_file);
@@ -938,10 +944,10 @@ static int oidpool_commit(fd_pool p,fd_commit_phase phase,
       u8_free(rollback_file);
       return -1;}}
   default: {
-    u8_log(LOG_WARN,"NoPhasedCommit",
+    u8_log(LOG_INFO,"NoPhasedCommit",
            "The pool %s doesn't support phased commits",
            p->poolid);
-    return -1;}
+    return 0;}
   }
 }
 
@@ -1070,32 +1076,6 @@ static int oidpool_finalize(struct FD_OIDPOOL *op,fd_stream stream,
   return 0;
 }
 
-
-static int recover_oidpool(struct FD_OIDPOOL *fp)
-{
-  struct FD_STREAM *stream = &(fp->pool_stream);
-  struct FD_INBUF *instream = fd_readbuf(stream);
-  fd_off_t recovery_data_pos;
-  unsigned int i = 0, new_load, n_changes;
-  struct OIDPOOL_SAVEINFO *saveinfo;
-  fd_endpos(stream); fd_movepos(stream,-8);
-  recovery_data_pos = fd_read_8bytes(instream);
-  fd_setpos(stream,recovery_data_pos);
-  new_load = fd_read_4bytes(instream);
-  n_changes = fd_read_4bytes(instream);
-  saveinfo = u8_big_alloc_n(n_changes,struct OIDPOOL_SAVEINFO);
-  while (i<n_changes) {
-    saveinfo[i].oidoff = fd_read_4bytes(instream);
-    saveinfo[i].chunk.off = (fd_off_t)fd_read_8bytes(instream);
-    saveinfo[i].chunk.size = (fd_off_t)fd_read_4bytes(instream);
-    i++;}
-  if (oidpool_finalize(fp,stream,n_changes,saveinfo,new_load)<0) {
-    u8_big_free(saveinfo);
-    return -1;}
-  else {
-    u8_big_free(saveinfo);
-    return 0;}
-}
 
 /* Three different ways to write offdata */
 

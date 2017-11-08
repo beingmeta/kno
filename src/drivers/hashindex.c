@@ -3240,8 +3240,7 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
 static struct FD_INDEX_HANDLER hashindex_handler={
   "hashindex", 1, sizeof(struct FD_HASHINDEX), 14,
   hashindex_close, /* close */
-  hashindex_save, /* save */
-  NULL, /* commit */
+  hashindex_commit, /* commit */
   hashindex_fetch, /* fetch */
   hashindex_fetchsize, /* fetchsize */
   NULL, /* prefetch */

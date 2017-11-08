@@ -491,9 +491,9 @@ static int file_pool_commit(fd_pool p,fd_commit_phase phase,
   switch (phase) {
   case fd_commit_start: {
     u8_string source = p->pool_source;
-    u8_string rollback_file = u8_string_append(source,".rollback",NULL);
-    int rv = fd_save_head(source,rollback_file,8+(4*p->pool_capacity));
-    u8_free(rollback_file);
+    ssize_t rlen = strlen(source) + 10; u8_byte rbuf[rlen];
+    u8_string rollback_file = u8_sprintf(rbuf,rlen,"%s.rollback",source);
+    int rv = fd_save_head(source,rollback_file,24+(4*p->pool_capacity));
     return rv;}
   case fd_commit_save: {
     return file_pool_storen(p,commits->commit_count,
@@ -503,31 +503,29 @@ static int file_pool_commit(fd_pool p,fd_commit_phase phase,
     return 0;
   case fd_commit_cleanup: {
     u8_string source = p->pool_source;
-    u8_string rollback_file = u8_string_append(source,".rollback",NULL);
+    ssize_t rlen = strlen(source) + 10; u8_byte rbuf[rlen];
+    u8_string rollback_file = u8_sprintf(rbuf,rlen,"%s.rollback",source);
     if (u8_file_existsp(rollback_file))
       return u8_removefile(rollback_file);
     else {
       u8_log(LOGWARN,"Rollback file %s was deleted",rollback_file);
-      u8_free(rollback_file);
       return -1;}}
   case fd_commit_rollback: {
     u8_string source = p->pool_source;
-    u8_string rollback_file = u8_string_append(source,".rollback",NULL);
-    if (u8_file_existsp(rollback_file)) {
-      int rv = fd_apply_head(source,rollback_file,-1);
-      u8_free(rollback_file);
-      return rv;}
+    ssize_t rlen = strlen(source) + 10; u8_byte rbuf[rlen];
+    u8_string rollback_file = u8_sprintf(rbuf,rlen,"%s.rollback",source);
+    if (u8_file_existsp(rollback_file))
+      return fd_apply_head(source,rollback_file,-1);
     else {
       u8_log(LOG_CRIT,"NoRollbackFile",
              "The rollback file %s for %s doesn't exist",
              rollback_file,p->poolid);
-      u8_free(rollback_file);
       return -1;}}
   default: {
-    u8_log(LOG_WARN,"NoPhasedCommit",
+    u8_log(LOG_INFO,"NoPhasedCommit",
            "The pool %s doesn't support phased commits",
            p->poolid);
-    return -1;}
+    return 0;}
   }
 }
 

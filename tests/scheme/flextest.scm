@@ -1,4 +1,6 @@
-(use-module '{storage/flex storage/flexpools texttools varconfig logger})
+(use-module '{storage/flex storage/flexpools texttools varconfig logger logctl})
+
+(logctl! 'storage/flexpools %debug%)
 
 (define poolfile "flex.flexpool")
 (define pooltype 'bigpool)

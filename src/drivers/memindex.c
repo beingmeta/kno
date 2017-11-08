@@ -211,10 +211,10 @@ static int memindex_commit(fd_index ix,fd_commit_phase phase,
                          commit->commit_n_stores,
                          commit->commit_metadata);}
   default: {
-    u8_log(LOG_WARN,"NoPhasedCommit",
+    u8_log(LOG_INFO,"NoPhasedCommit",
            "The index %s doesn't support phased commits",
            ix->indexid);
-    return -1;}
+    return 0;}
   }
 }
 
@@ -370,8 +370,7 @@ static fd_index memindex_create(u8_string spec,void *type_data,
 static struct FD_INDEX_HANDLER memindex_handler={
   "memindex", 1, sizeof(struct FD_MEMINDEX), 14,
   NULL, /* close */
-  memindex_save, /* save */
-  NULL, /* commit */
+  memindex_commit, /* commit */
   memindex_fetch, /* fetch */
   memindex_fetchsize, /* fetchsize */
   NULL, /* prefetch */

@@ -419,7 +419,7 @@ static lispval store_oid_proc(lispval oid,lispval value)
       add_to_changelog(&oid_changelog,oid);
       /* Commit the pool.  Journalling should now happen on a per-pool
          rather than a server-wide basis. */
-      if (fd_pool_commit(p,oid)>=0) {
+      if (fd_commit_pool(p,oid)>=0) {
         fd_pool_unlock(p,oid,leave_modified);
         return FD_TRUE;}
       else i++;}

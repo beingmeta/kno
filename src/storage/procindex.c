@@ -292,6 +292,27 @@ static int procindex_save(struct FD_INDEX *ix,
         return 1;}}}
 }
 
+static int procindex_commit(fd_index ix,fd_commit_phase phase,
+                            struct FD_INDEX_COMMITS *commit)
+{
+  switch (phase) {
+  case fd_commit_save: {
+    return procindex_save(ix,
+                          (struct FD_CONST_KEYVAL *)commit->commit_adds,
+                          commit->commit_n_adds,
+                          (struct FD_CONST_KEYVAL *)commit->commit_drops,
+                          commit->commit_n_drops,
+                          (struct FD_CONST_KEYVAL *)commit->commit_stores,
+                          commit->commit_n_stores,
+                          commit->commit_metadata);}
+  default: {
+    u8_log(LOG_INFO,"NoPhasedCommit",
+           "The index %s doesn't support phased commits",
+           ix->indexid);
+    return 0;}
+  }
+}
+
 static void procindex_close(fd_index ix)
 {
   struct FD_PROCINDEX *pix = (fd_procindex)ix;
@@ -345,8 +366,7 @@ static void recycle_procindex(fd_index ix)
 struct FD_INDEX_HANDLER fd_procindex_handler={
   "procindex", 1, sizeof(struct FD_PROCINDEX), 14,
   procindex_close, /* close */
-  procindex_save, /* save */
-  NULL, /* commit */
+  procindex_commit, /* commit */
   procindex_fetch, /* fetch */
   procindex_fetchsize, /* fetchsize */
   NULL, /* prefetch */

@@ -136,7 +136,7 @@ static void fileindex_setcache(fd_index ix,int level)
         errno = 0;}
       else fx->index_offsets = offsets = newmmap+2;
 #else
-      offsets = u8_big_alloc(SLOTSIZE*(fx->ht_n_buckets));
+      offsets = u8_big_alloc(SLOTSIZE*(fx->index_n_slots));
       fd_start_read(s,8);
       fd_read_ints(s,fx->ht_n_buckets,offsets);
       fx->index_offsets = offsets;
@@ -1058,24 +1058,6 @@ static int fileindex_save(struct FD_INDEX *ix,
     write_keys(fx,fd_writebuf(stream),kdata_i,kdata,new_offsets);
     /* Now, start writing the offsets themselves */
     write_offsets(fx,fd_writebuf(stream),kdata_i,kdata,new_offsets);
-    if (fd_acid_files) {
-      int retval = 0;
-      if (new_offsets) fd_setpos(stream,0);
-      if (new_offsets == NULL) {}
-      else if (fx->index_hashv==1)
-        fd_write_4bytes(outstream,FD_FILEINDEX_MAGIC_NUMBER);
-      else if (fx->index_hashv==2)
-        fd_write_4bytes(outstream,FD_MULT_FILEINDEX_MAGIC_NUMBER);
-      fd_flush_stream(stream);
-      /* Now erase the recovery information, since we don't need it anymore. */
-      if (new_offsets) {
-        fd_off_t end = fd_endpos(stream);
-        fd_movepos(stream,-(4*(fx->index_n_slots)));
-        retval = ftruncate(stream->stream_fileno,end-(4*(fx->index_n_slots)));
-        if (retval<0)
-          u8_log(LOG_ERR,"fileindex_save",
-                 "Trouble truncating recovery information from %s",
-                 fx->indexid);}}
     fd_unlock_index(fx);
     if (valpos) u8_big_free(valpos);
     u8_big_free(kdata);
@@ -1313,8 +1295,7 @@ static fd_index fileindex_create(u8_string spec,void *type_data,
 static struct FD_INDEX_HANDLER fileindex_handler={
   "fileindex", 1, sizeof(struct FD_FILEINDEX), 12,
   fileindex_close, /* close */
-  fileindex_save, /* save */
-  NULL, /* commit */
+  fileindex_commit, /* commit */
   fileindex_fetch, /* fetch */
   fileindex_fetchsize, /* fetchsize */
   NULL, /* prefetch */

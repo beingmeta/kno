@@ -821,7 +821,6 @@ FD_EXPORT void fd_free_keyvals(struct FD_KEYVAL *kvals,int n_kvals)
     fd_decref(key);
     fd_decref(val);
     i++;}
-  u8_free(kvals);
 }
 
 FD_EXPORT void fd_recycle_slotmap(struct FD_SLOTMAP *c)

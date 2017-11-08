@@ -406,6 +406,7 @@
     (let ((new (if (file-exists? path)
 		   (use-pool path (cons opts (flexpool-opts fp)))
 		   (make-pool path (cons opts (flexpool-opts fp))))))
+      (loginfo |FlexpoolNext| "Created new pool " new " in " fp)
       (when (exists? (poolctl new 'metadata 'adjuncts)) 
 	(adjuncts/setup! new))
       (set-flexpool-partitions! fp (choice new (flexpool-partitions fp)))

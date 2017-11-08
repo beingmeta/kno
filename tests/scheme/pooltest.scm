@@ -127,21 +127,19 @@
 	  (dotimes (i (* testcount 4))
 	    (make-random-frame pool))))
     (when (exists? (poolctl pool 'metadata 'status))
-      (if init
-	  (applytest 'fresh (poolctl pool 'metadata 'status))
-	  (applytest 'existing (poolctl pool 'metadata 'status)))
+      (comment
+       (if init
+	   (applytest 'fresh (poolctl pool 'metadata 'status))
+	   (applytest 'existing (poolctl pool 'metadata 'status))))
       (poolctl pool 'metadata 'status 'existing))
-    (dotimes (i (quotient testcount 4)) 
-      (applytest #t test-frame (random-oid pool)))
+    (dotimes (i (quotient testcount 4)) (applytest #t test-frame (random-oid pool)))
     (logwarn |PoolTests1| "Passed pre-commit tests " pool)
     (commit pool)
     (commit adjpool)
-    (dotimes (i (quotient testcount 4)) 
-      (applytest #t test-frame (random-oid pool)))
+    (dotimes (i (quotient testcount 4)) (applytest #t test-frame (random-oid pool)))
     (logwarn |PoolTests1| "Passed post-commit tests " pool)
     (swapout)
-    (dotimes (i (quotient testcount 4)) 
-      (applytest #t test-frame (random-oid pool)))
+    (dotimes (i (quotient testcount 4)) (applytest #t test-frame (random-oid pool)))
     (logwarn |PoolTests3| "Passed post-swapout tests on " pool)
     (swapout)
     (let ((oids (pool-elts pool)))
@@ -155,5 +153,7 @@
     (logwarn |AdjPoolTests| 
       "Checking adjunct pool load")
     (applytest 41 pool-load adjpool)))
+
+
 
 

@@ -35,7 +35,7 @@ int main(int argc,char **argv)
   if (argc == 3) {
     lispval value = fd_index_get(ix,key);
     u8_fprintf(stderr,_("The key %q is associated with %d values\n"),
-	       key,FD_CHOICE_SIZE(value));
+               key,FD_CHOICE_SIZE(value));
     {FD_DO_CHOICES(each,value)
        u8_fprintf(stderr,"\t%q\n",each);}
     fd_decref(value); value = FD_VOID;}
@@ -47,7 +47,7 @@ int main(int argc,char **argv)
     if (argv[3][0] == '-') fd_index_drop(ix,key,value);
     else fd_index_add(ix,key,value);
     fd_decref(value); value = FD_VOID;
-    fd_index_commit(ix);}
+    fd_commit_index(ix);}
   fd_decref(key); key = FD_VOID;
   fd_index_swapout(ix,FD_VOID);
   fd_index_close(ix);

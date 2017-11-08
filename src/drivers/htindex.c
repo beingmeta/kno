@@ -101,10 +101,10 @@ static int htindex_commit(fd_index ix,fd_commit_phase phase,
                         commit->commit_n_stores,
                         commit->commit_metadata);}
   default: {
-    u8_log(LOG_WARN,"NoPhasedCommit",
+    u8_log(LOG_INFO,"NoPhasedCommit",
            "The index %s doesn't support phased commits",
            ix->indexid);
-    return -1;}
+    return 0;}
   }
 }
 
@@ -153,8 +153,7 @@ static fd_index open_htindex(u8_string file,fd_storage_flags flags,lispval opts)
 static struct FD_INDEX_HANDLER htindex_handler={
   "htindex", 1, sizeof(struct FD_HTINDEX), 14,
   NULL, /* close */
-  htindex_save, /* save */
-  NULL, /* commit */
+  htindex_commit, /* commit */
   NULL, /* fetch */
   NULL, /* fetchsize */
   NULL, /* prefetch */

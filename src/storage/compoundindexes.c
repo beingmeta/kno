@@ -233,7 +233,6 @@ FD_EXPORT int fd_add_to_compound_index(fd_compound_index cix,fd_index add)
 static struct FD_INDEX_HANDLER compoundindex_handler={
   "compoundindex", 1, sizeof(struct FD_COMPOUND_INDEX), 14,
   NULL, /* close */
-  NULL, /* save */
   NULL, /* commit */
   compound_fetch, /* fetch */
   NULL, /* fetchsize */

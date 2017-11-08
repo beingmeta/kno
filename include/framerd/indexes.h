@@ -62,9 +62,9 @@ typedef struct FD_INDEX *fd_index;
 typedef struct FD_INDEX_COMMITS {
   fd_index commit_index;
   ssize_t commit_n_adds, commit_n_drops, commit_n_stores;
-  const struct FD_KEYVAL *commit_adds;
-  const struct FD_KEYVAL *commit_drops;
-  const struct FD_KEYVAL *commit_stores;
+  struct FD_CONST_KEYVAL *commit_adds;
+  struct FD_CONST_KEYVAL *commit_drops;
+  struct FD_CONST_KEYVAL *commit_stores;
   lispval commit_metadata;} *fd_index_commits;
 
 /* Lookup tables */
@@ -81,12 +81,7 @@ typedef struct FD_KEY_SIZE *fd_key_size;
 typedef struct FD_INDEX_HANDLER {
   u8_string name; int version, length, n_handlers;
   void (*close)(fd_index ix);
-  int (*save)(fd_index ix,
-              struct FD_CONST_KEYVAL *adds,int n_adds,
-              struct FD_CONST_KEYVAL *drops,int n_drops,
-              struct FD_CONST_KEYVAL *stores,int n_stores,
-              lispval metadata);
-  int (*commit)(fd_index ix,int phase);
+  int (*commit)(fd_index ix,fd_commit_phase,struct FD_INDEX_COMMITS *);
   lispval (*fetch)(fd_index ix,lispval key);
   int (*fetchsize)(fd_index ix,lispval key);
   int (*prefetch)(fd_index ix,lispval keys);
@@ -146,7 +141,7 @@ FD_EXPORT void fd_register_index(fd_index ix);
 FD_EXPORT int fd_index_store(fd_index ix,lispval key,lispval value);
 FD_EXPORT int fd_index_drop(fd_index ix,lispval key,lispval value);
 FD_EXPORT int fd_index_merge(fd_index ix,fd_hashtable table);
-FD_EXPORT int fd_index_commit(fd_index ix);
+FD_EXPORT int fd_commit_index(fd_index ix);
 FD_EXPORT int fd_index_save(fd_index ix,lispval,lispval,lispval,lispval);
 FD_EXPORT void fd_index_close(fd_index ix);
 FD_EXPORT fd_index _fd_indexptr(lispval x);

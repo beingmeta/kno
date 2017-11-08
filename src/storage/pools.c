@@ -897,7 +897,7 @@ FD_EXPORT int fd_pool_unlock(fd_pool p,lispval oids,
     fd_reset_hashtable(changes,-1,1);
     return -n;}
   else {
-    int n_unlocked = 0, n_committed = (flags>0) ? (fd_pool_commit(p,oids)) : (0);
+    int n_unlocked = 0, n_committed = (flags>0) ? (fd_commit_pool(p,oids)) : (0);
     lispval to_unlock = EMPTY;
     lispval locked_oids = fd_hashtable_keys(changes);
     if (n_committed<0) {}
@@ -959,10 +959,10 @@ FD_EXPORT int fd_pool_finish(fd_pool p,lispval oids)
 
 /* Committing OIDs to external sources */
 
-struct FD_POOL_COMMITS pick_writes(fd_pool p,lispval oids);
-struct FD_POOL_COMMITS pick_modified(fd_pool p,int finished);
-static void abort_commit(fd_pool p,struct FD_POOL_COMMITS commits);
-static void finish_commit(fd_pool p,struct FD_POOL_COMMITS commits);
+static int pick_writes(fd_pool p,lispval oids,struct FD_POOL_COMMITS *commits);
+static int pick_modified(fd_pool p,int finished,struct FD_POOL_COMMITS *commits);
+static void abort_commit(fd_pool p,struct FD_POOL_COMMITS *commits);
+static void finish_commit(fd_pool p,struct FD_POOL_COMMITS *commits);
 
 static int docommit(fd_pool p,lispval oids,struct FD_POOL_COMMITS *use_commits)
 {
@@ -976,9 +976,10 @@ static int docommit(fd_pool p,lispval oids,struct FD_POOL_COMMITS *use_commits)
            "####### Unlocking OIDs in %s",p->poolid);
     int rv = fd_pool_unlock(p,oids,leave_modified);
     return rv;}
-  else if (p->pool_flags & (FD_STORAGE_PHASED)) {
-    struct FD_POOL_COMMITS commits = {0};
-    int retval = 0; double start_time = u8_elapsed_time();
+  else  {
+    struct FD_POOL_COMMITS commits = { 0 };
+    double start_time = u8_elapsed_time();
+    commits.commit_pool = p;
     u8_lock_mutex(&(p->pool_commit_lock));
     int started = p->pool_handler->commit(p,fd_commit_start,&commits);
     if (started < 0) {
@@ -986,21 +987,20 @@ static int docommit(fd_pool p,lispval oids,struct FD_POOL_COMMITS *use_commits)
       return started;}
     if (use_commits)
       memcpy(&commits,use_commits,sizeof(struct FD_POOL_COMMITS));
-    else if (locks->table_n_keys==0)
-      commits = ( ((FALSEP(oids))||(VOIDP(oids))) ? (pick_modified(p,0)) :
-                  ((OIDP(oids))||(CHOICEP(oids))||(PRECHOICEP(oids))) ?
-                  (pick_writes(p,oids)) :
-                  (FD_TRUEP(oids)) ? (pick_modified(p,1)) :
-                  (pick_writes(p,EMPTY)) );
-    else {/* Nothing to save */}
-    if (commits.commit_count < 0) {
-      u8_unlock_mutex(&(p->pool_commit_lock));
-      return commits.commit_count;}
+    else if (! (locks->table_n_keys) ) {/* Nothing to save */}
+    else if ((FALSEP(oids))||(VOIDP(oids)))
+      pick_modified(p,0,&commits);
+    else if ((OIDP(oids))||(CHOICEP(oids))||(PRECHOICEP(oids)))
+      pick_writes(p,oids,&commits);
+    else if (FD_TRUEP(oids))
+      pick_modified(p,1,&commits);
+    else pick_writes(p,EMPTY,&commits);
+
     if (metadata_changed(p))
       commits.commit_metadata = fd_deep_copy((lispval)&(p->pool_metadata));
     else commits.commit_metadata = FD_VOID;
-    int saved = (commits.commit_count) ?
-      p->pool_handler->commit(p,fd_commit_save,&commits) : (0);
+
+    int saved = p->pool_handler->commit(p,fd_commit_save,&commits);
     if (saved >= 0) {
       int finish = p->pool_handler->commit(p,fd_commit_finish,&commits);
       if (finish < 0) {
@@ -1008,14 +1008,14 @@ static int docommit(fd_pool p,lispval oids,struct FD_POOL_COMMITS *use_commits)
                "Couldn't finish commit for %s",p->poolid);
         u8_seterr("FinishFailed","pool_commit",u8_strdup(p->poolid));
         saved = -1;}
-      else finish_commit(p,commits);}
+      else finish_commit(p,&commits);}
     if (saved < 0) {
       int rollback = p->pool_handler->commit(p,fd_commit_rollback,&commits);
       if (rollback < 0) {
         u8_log(LOGCRIT,"RollbackFailed",
                "Couldn't rollback failed commit for %s",p->poolid);
         u8_seterr("FinishFailed","pool_commit",u8_strdup(p->poolid));}
-      abort_commit(p,commits);}
+      abort_commit(p,&commits);}
     int cleanup = p->pool_handler->commit(p,fd_commit_cleanup,&commits);
     if (cleanup < 0) {
       u8_seterr("CleanupFailed","pool_commit",u8_strdup(p->poolid));
@@ -1026,67 +1026,46 @@ static int docommit(fd_pool p,lispval oids,struct FD_POOL_COMMITS *use_commits)
     else {
       u8_big_free(commits.commit_oids);
       commits.commit_oids=NULL;}
+    fd_decref(commits.commit_metadata);
     u8_unlock_mutex(&(p->pool_commit_lock));
-    return saved;}
-  else /* Not (p->pool_flags & (FD_STORAGE_PHASED)) */ {
-    struct FD_POOL_COMMITS commits = {0};
-    int retval = 0; double start_time = u8_elapsed_time();
-    u8_lock_mutex(&(p->pool_commit_lock));
-    if (locks->table_n_keys)
-      commits = ( ((FALSEP(oids))||(VOIDP(oids))) ? (pick_modified(p,0)) :
-                  ((OIDP(oids))||(CHOICEP(oids))||(PRECHOICEP(oids))) ?
-                  (pick_writes(p,oids)) :
-                  (FD_TRUEP(oids)) ? (pick_modified(p,1)) :
-                  (pick_writes(p,EMPTY)) );
-    if (commits.commit_count < 0) {
-      u8_unlock_mutex(&(p->pool_commit_lock));
-      return commits.commit_count;}
-    if (metadata_changed(p))
-      commits.commit_metadata = fd_deep_copy((lispval)&(p->pool_metadata));
-    else commits.commit_metadata = FD_VOID;
-    int saved = (commits.commit_count) ?
-      p->pool_handler->commit(p,fd_commit_save,&commits) : (0);
-    if (saved < 0)
-      abort_commit(p,commits);
-    else finish_commit(p,commits);
     return saved;}
 }
 
-FD_EXPORT int fd_pool_commit(fd_pool p,lispval oids)
+FD_EXPORT int fd_commit_pool(fd_pool p,lispval oids)
 {
   return docommit(p,oids,NULL);
 }
 
-FD_EXPORT int fd_pool_commit_all(fd_pool p)
+FD_EXPORT int fd_commit_all_oids(fd_pool p)
 {
-  return fd_pool_commit(p,FD_FALSE);
+  return fd_commit_pool(p,FD_FALSE);
 }
 
-FD_EXPORT int fd_pool_commit_finished(fd_pool p)
+FD_EXPORT int fd_commit_finished_oids(fd_pool p)
 {
-  return fd_pool_commit(p,FD_TRUE);
+  return fd_commit_pool(p,FD_TRUE);
 }
 
 /* Commitment commitment and recovery */
 
-static void abort_commit(fd_pool p,struct FD_POOL_COMMITS commits)
+static void abort_commit(fd_pool p,struct FD_POOL_COMMITS *commits)
 {
-  lispval *scan = commits.commit_vals, *limit = scan+commits.commit_count;
+  lispval *scan = commits->commit_vals, *limit = scan+commits->commit_count;
   while (scan<limit) {
     lispval v = *scan++;
-    if (!(CONSP(v))) continue;
-    modify_modified(v,1);
-    fd_decref(v);}
-  fd_decref(commits.commit_metadata);
-  commits.commit_metadata=FD_VOID;
+    if (CONSP(v)) {
+      modify_modified(v,1);
+      fd_decref(v);}}
+  u8_big_free(commits->commit_vals);
+  commits->commit_vals = NULL;
 }
 
-static void finish_commit(fd_pool p,struct FD_POOL_COMMITS commits)
+static void finish_commit(fd_pool p,struct FD_POOL_COMMITS *commits)
 {
   fd_hashtable changes = &(p->pool_changes);
-  int i = 0, n = commits.commit_count, unlock_count=0;
-  lispval *oids = commits.commit_oids;
-  lispval *values = commits.commit_vals;
+  int i = 0, n = commits->commit_count, unlock_count=0;
+  lispval *oids = commits->commit_oids;
+  lispval *values = commits->commit_vals;
   lispval *unlock = oids;
   u8_write_lock(&(changes->table_rwlock));
   FD_HASH_BUCKET **buckets = changes->ht_buckets;
@@ -1138,8 +1117,8 @@ static void finish_commit(fd_pool p,struct FD_POOL_COMMITS commits)
       fd_clear_errors(1);}
     fd_decref(to_unlock);}
   fd_devoid_hashtable(changes,0);
-  fd_decref(commits.commit_metadata);
-  commits.commit_metadata=FD_VOID;
+  u8_big_free(commits->commit_vals);
+  commits->commit_vals = NULL;
 }
 
 /* Support for committing OIDs */
@@ -1184,23 +1163,20 @@ static int modifiedp(lispval v)
   else return 1;
 }
 
-struct FD_POOL_COMMITS pick_writes(fd_pool p,lispval oids)
+static int pick_writes(fd_pool p,lispval oids,struct FD_POOL_COMMITS *commits)
 {
-  struct FD_POOL_COMMITS commits;
   if (EMPTYP(oids)) {
-    u8_zero_struct(commits);
-    commits.commit_count = 0;
-    commits.commit_oids = NULL;
-    commits.commit_vals = NULL;
-    return commits;}
+    commits->commit_count = 0;
+    commits->commit_oids = NULL;
+    commits->commit_vals = NULL;
+    return 0;}
   else {
     fd_hashtable changes = &(p->pool_changes);
     int n = FD_CHOICE_SIZE(oids);
     lispval *oidv, *values;
-    u8_zero_struct(commits);
-    commits.commit_count = n;
-    commits.commit_oids = oidv = u8_big_alloc_n(n,lispval);
-    commits.commit_vals = values = u8_big_alloc_n(n,lispval);
+    commits->commit_count = n;
+    commits->commit_oids = oidv = u8_big_alloc_n(n,lispval);
+    commits->commit_vals = values = u8_big_alloc_n(n,lispval);
     {DO_CHOICES(oid,oids) {
         fd_pool pool = fd_oid2pool(oid);
         if (pool == p) {
@@ -1209,23 +1185,21 @@ struct FD_POOL_COMMITS pick_writes(fd_pool p,lispval oids)
           else if (savep(v,0)) {
             *oidv++=oid; *values++=v;}
           else fd_decref(v);}}}
-    commits.commit_count = oidv-commits.commit_oids;
-    return commits;}
+    commits->commit_count = oidv-commits->commit_oids;
+    return commits->commit_count;}
 }
 
-struct FD_POOL_COMMITS pick_modified(fd_pool p,int finished)
+static int pick_modified(fd_pool p,int finished,struct FD_POOL_COMMITS *commits)
 {
-  struct FD_POOL_COMMITS commits;
   fd_hashtable changes = &(p->pool_changes); int unlock = 0;
   if (changes->table_uselock) {
     u8_read_lock(&(changes->table_rwlock));
     unlock = 1;}
   int n = changes->table_n_keys;
   lispval *oidv, *values;
-  u8_zero_struct(commits);
-  commits.commit_count = n;
-  commits.commit_oids = oidv = u8_big_alloc_n(n,lispval);
-  commits.commit_vals = values = u8_big_alloc_n(n,lispval);
+  commits->commit_count = n;
+  commits->commit_oids = oidv = u8_big_alloc_n(n,lispval);
+  commits->commit_vals = values = u8_big_alloc_n(n,lispval);
   {
     struct FD_HASH_BUCKET **scan = changes->ht_buckets;
     struct FD_HASH_BUCKET **lim = scan+changes->ht_n_buckets;
@@ -1250,13 +1224,8 @@ struct FD_POOL_COMMITS pick_modified(fd_pool p,int finished)
       else scan++;}
   }
   if (unlock) u8_rw_unlock(&(changes->table_rwlock));
-  commits.commit_count = oidv-commits.commit_oids;
-  if (commits.commit_count==0) {
-    u8_big_free(commits.commit_oids);
-    commits.commit_oids = NULL;
-    u8_big_free(commits.commit_vals);
-    commits.commit_vals = NULL;}
-  return commits;
+  commits->commit_count = oidv-commits->commit_oids;
+  return commits->commit_count;
 }
 
 /* Operations on a single OID which operate on its pool */
@@ -1384,7 +1353,7 @@ int fd_prefetch_oids(lispval oids)
 
 FD_EXPORT int fd_commit_oids(lispval oids)
 {
-  return apply_poolop(fd_pool_commit,oids);
+  return apply_poolop(fd_commit_pool,oids);
 }
 
 FD_EXPORT int fd_finish_oids(lispval oids)

@@ -211,6 +211,27 @@ static int netindex_save(struct FD_INDEX *ix,
     return n_transactions;
 }
 
+static int netindex_commit(fd_index ix,fd_commit_phase phase,
+                           struct FD_INDEX_COMMITS *commit)
+{
+  switch (phase) {
+  case fd_commit_save: {
+    return netindex_save(ix,
+                         (struct FD_CONST_KEYVAL *)commit->commit_adds,
+                         commit->commit_n_adds,
+                         (struct FD_CONST_KEYVAL *)commit->commit_drops,
+                         commit->commit_n_drops,
+                         (struct FD_CONST_KEYVAL *)commit->commit_stores,
+                         commit->commit_n_stores,
+                         commit->commit_metadata);}
+  default: {
+    u8_log(LOG_INFO,"NoPhasedCommit",
+           "The index %s doesn't support phased commits",
+           ix->indexid);
+    return 0;}
+  }
+}
+
 static void netindex_close(fd_index ix)
 {
 }
@@ -218,8 +239,7 @@ static void netindex_close(fd_index ix)
 static struct FD_INDEX_HANDLER netindex_handler={
   "netindex", 1, sizeof(struct FD_NETWORK_INDEX), 14,
   netindex_close, /* close */
-  netindex_save, /* save */
-  NULL, /* commit */
+  netindex_commit, /* commit */
   netindex_fetch, /* fetch */
   netindex_fetchsize, /* fetchsize */
   NULL, /* prefetch */

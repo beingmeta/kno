@@ -238,10 +238,10 @@ static int network_pool_commit(fd_pool p,fd_commit_phase phase,
                                commits->commit_oids,
                                commits->commit_vals);
   default: {
-    u8_log(LOG_WARN,"NoPhasedCommit",
+    u8_log(LOG_INFO,"NoPhasedCommit",
            "The pool %s doesn't support phased commits",
            p->poolid);
-    return -1;}
+    return 0;}
   }
 }
 
