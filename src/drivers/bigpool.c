@@ -27,6 +27,7 @@
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
 #include <libu8/u8printf.h>
+#include <libu8/u8netfns.h>
 
 #include <zlib.h>
 
@@ -1966,6 +1967,21 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
           return FD_ERROR_VALUE;
         else return FD_INT(rv);}}
     else return fd_err("BadArg","bigpool_ctl/label",p->poolid,args[0]);}
+  else if (op == fd_label_op) {
+    if (n == 0) {
+      if (p->pool_label)
+        return FD_FALSE;
+      else return lispval_string(p->pool_label);}
+    else if ( (n==1) && ( (FD_STRINGP(args[0])) || (FD_FALSEP(args[0]))) ) {
+      if ( (p->pool_flags) && (FD_STORAGE_READ_ONLY) )
+        return fd_err(fd_ReadOnlyPool,"bigpool_ctl/label",p->poolid,args[0]);
+      else {
+        int rv = (FD_STRINGP(args[0])) ? (set_bigpool_label(bp,FD_CSTRING(args[0]))) :
+          (set_bigpool_label(bp,NULL));
+        if (rv<0)
+          return FD_ERROR_VALUE;
+        else return FD_INT(rv);}}
+    else return fd_err("BadArg","bigpool_ctl/label",p->poolid,args[0]);}
   else if (op == fd_capacity_op)
     return FD_INT(bp->pool_capacity);
   else if ( (op == fd_metadata_op) && (n == 0) ) {
@@ -1997,8 +2013,19 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
     fd_add(base,FDSYM_READONLY,offmode_symbol);
     fd_decref(slotids_vec);
     return base;}
-  else if (op == fd_load_op)
+  else if ( (op == fd_load_op) && (n == 0) )
     return FD_INT(bp->pool_load);
+  else if (op == fd_load_op) {
+    lispval loadval = args[0];
+    if (FD_UINTP(loadval)) {
+      lispval sessionid = lispval_string(u8_sessionid());
+      lispval timestamp = fd_make_timestamp(NULL);
+      lispval record = fd_make_nvector(3,fd_incref(args[0]),timestamp,sessionid);
+      fd_store(((lispval)(&(p->pool_metadata))),
+               fd_intern("LOAD_CHANGED"),record);
+      bp->pool_load = FD_FIX2INT(loadval);
+      return record;}
+    else return fd_type_error("pool load","bigpool_ctl",args[0]);}
   else if (op == fd_keys_op) {
     lispval keys = bigpool_getoids(bp);
     return fd_simplify_choice(keys);}
