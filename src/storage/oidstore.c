@@ -40,11 +40,11 @@ u8_condition fd_BadAdjunct=_("Bad adjunct table"),
 
    Possible fixes:
    1. Put locks around setting the readonly flag and have thread A lock
-      the OID while it's working its way to modifying it. This requires
-      using something other than fd_store or fd_slotmap_store to do the
-      modification since they lock the OIDs themselves.
+   the OID while it's working its way to modifying it. This requires
+   using something other than fd_store or fd_slotmap_store to do the
+   modification since they lock the OIDs themselves.
    2. Get rid of OID finishing and come up with another way to mark OIDs
-      that are (probably) ready to be committed.
+   that are (probably) ready to be committed.
    3. Something I haven't thought of yet.
 
    (2) is probably the best option because it was something of a
@@ -643,10 +643,10 @@ FD_EXPORT lispval fd_getpath(lispval start,int n,lispval *path,int infer,int acc
         else argv[j++]=args;
         if (j>7)
           newval = fd_err(fd_RangeError,"fd_getpath",
-                        "too many elements in compound path",VOID);
+                          "too many elements in compound path",VOID);
         else newval = fd_apply(j,fcn,argv);}
       else newval = fd_err(fd_TypeError,"fd_getpath",
-                         "invalid path element",VOID);
+                           "invalid path element",VOID);
       if (FD_ABORTP(newval)) {
         fd_decref(scan);
         fd_decref(newscan);

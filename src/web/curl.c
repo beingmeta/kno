@@ -9,6 +9,8 @@
 #define _FILEINFO __FILE__
 #endif
 
+#define U8_LOGLEVEL (u8_getloglevel(curl_loglevel))
+
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/tables.h"
@@ -35,6 +37,8 @@ static pthread_mutex_t *ssl_lockarray;
 #define LOCK_OPENSSL 0
 #endif
 
+static int curl_loglevel = LOG_NOTIFY;
+
 static u8_string default_user_agent="FramerD/CURL";
 
 static lispval curl_defaults, url_symbol;
@@ -50,7 +54,6 @@ static lispval eurl_slotid, filetime_slotid, response_code_slotid;
 static lispval timeout_symbol, connect_timeout_symbol, accept_timeout_symbol;
 static lispval dns_symbol, dnsip_symbol, dns_cachelife_symbol;
 static lispval fresh_connect_symbol, forbid_reuse_symbol, filetime_symbol;
-
 
 static lispval text_types = EMPTY;
 
@@ -117,9 +120,9 @@ static size_t process_content_data(char *data,size_t elt_size,size_t n_elts,
   // TODO: Possibly return CURL_READFUNC_PAUSE and CURL_WRITEFUNC_PAUSE
   lispval *state = (lispval *) vdhandler;
   lispval handler=state[0], result=state[1];
-  u8_log(LOGWARN,"ProcessContentData",
-         "Using %q to process %lld bytes into %q",
-         handler,n_elts*elt_size,result);
+  u8_logf(LOG_INFO,"ProcessContentData",
+          "Using %q to process %lld bytes into %q",
+          handler,n_elts*elt_size,result);
   int data_len=n_elts*elt_size;
   lispval packet=fd_make_packet(NULL,data_len,data);
   lispval argvec[2]={packet,result};
@@ -337,9 +340,8 @@ struct FD_CURL_HANDLE *fd_open_curl_handle()
     fd_seterr(CurlError,"fd_open_curl_handle",
               "curl_easy_init failed",VOID);
     return NULL;}
-  if (debugging_curl) {
-    FD_INTPTR ptrval = (FD_INTPTR) h->handle;
-    u8_log(LOG_DEBUG,"CURL","Creating CURL handle %llx",ptrval);
+  u8_logf(LOG_INFO,"CURL","Creating CURL handle %llx",(FD_INTPTR) h->handle);
+  if (curl_loglevel > LOG_NOTIFY) {
     curl_easy_setopt(h->handle,CURLOPT_VERBOSE,1);}
   /*
   memset(h->curl_errbuf,0,sizeof(h->curl_errbuf));
@@ -410,9 +412,7 @@ static void reset_curl_handle(struct FD_CURL_HANDLE *ch)
 static void recycle_curl_handle(struct FD_RAW_CONS *c)
 {
   struct FD_CURL_HANDLE *ch = (struct FD_CURL_HANDLE *)c;
-  if (debugging_curl) {
-    FD_INTPTR ptrval = (FD_INTPTR) ch->handle;
-    u8_log(LOG_DEBUG,"CURL","Freeing CURL handle %llx",ptrval);}
+  u8_logf(LOG_INFO,"CURL","Freeing CURL handle %llx",(FD_INTPTR) ch->handle);
   /* curl_easy_setopt(ch->handle,CURLOPT_ERRORBUFFER,NULL); */
   curl_slist_free_all(ch->headers);
   curl_easy_cleanup(ch->handle);
@@ -1713,8 +1713,8 @@ FD_EXPORT void fd_init_curl_c()
            (fd_make_cprim3("RESPONSE/STATUS?",testresponseprim,2)));
 
   fd_register_config
-    ("CURL:DEBUG",_("Whether to debug low level CURL interaction"),
-     fd_boolconfig_get,fd_boolconfig_set,&debugging_curl);
+    ("CURL:LOGLEVEL",_("Loglevel for debugging CURL calls"),
+     fd_intconfig_get,fd_loglevelconfig_set,&curl_loglevel);
 
   fd_register_config
     ("CURL:USERAGENT",_("What CURL should use as the default user agent string"),

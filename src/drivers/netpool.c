@@ -49,8 +49,8 @@ static int server_supportsp(struct FD_NETWORK_POOL *np,lispval operation)
 }
 
 static void init_network_pool
-  (struct FD_NETWORK_POOL *p,lispval netinfo,
-   u8_string spec,u8_string source,fd_storage_flags flags)
+(struct FD_NETWORK_POOL *p,lispval netinfo,
+ u8_string spec,u8_string source,fd_storage_flags flags)
 {
   lispval scan = netinfo;
   FD_OID addr; unsigned int capacity; u8_string label;
@@ -84,14 +84,14 @@ static lispval get_pool_data(u8_string spec,u8_string *xid)
     return FD_ERROR;
   if (VOIDP(client_id)) init_client_id();
   request = fd_make_list(2,pool_data_symbol,fd_incref(client_id));
-  /* u8_log(LOG_WARN,"GETPOOLDATA","Making request (on #%d) for %q",c,request); */
+  /* u8_logf(LOG_WARN,"GETPOOLDATA","Making request (on #%d) for %q",c,request); */
   if (fd_write_dtype(outstream,request)<0) {
     fd_free_stream(stream);
     fd_decref(request);
     return FD_ERROR;}
   fd_decref(request);
   result = fd_read_dtype(fd_readbuf(stream));
-  /* u8_log(LOG_WARN,"GETPOOLDATA","Got result (on #%d)",c,request); */
+  /* u8_logf(LOG_WARN,"GETPOOLDATA","Got result (on #%d)",c,request); */
   fd_free_stream(stream);
   return result;
 }
@@ -238,9 +238,9 @@ static int network_pool_commit(fd_pool p,fd_commit_phase phase,
                                commits->commit_oids,
                                commits->commit_vals);
   default: {
-    u8_log(LOG_INFO,"NoPhasedCommit",
-           "The pool %s doesn't support phased commits",
-           p->poolid);
+    u8_logf(LOG_INFO,"NoPhasedCommit",
+            "The pool %s doesn't support phased commits",
+            p->poolid);
     return 0;}
   }
 }

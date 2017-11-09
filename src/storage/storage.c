@@ -41,6 +41,7 @@ u8_condition fd_BadMetaData=_("Error getting metadata");
 int fd_default_cache_level = 1;
 int fd_oid_display_level = 2;
 int fd_storage_loglevel = LOG_NOTICE;
+int *fd_storage_loglevel_ptr = &fd_storage_loglevel;
 int fd_prefetch = FD_PREFETCHING_ENABLED;
 int fd_require_mmap = HAVE_MMAP;
 
@@ -395,8 +396,8 @@ struct HASHVECS_TODO {
   int n_to_free, max_to_free, big_buckets;};
 
 static void fast_reset_hashtable
-  (fd_hashtable h,int n_slots_arg,
-   struct HASHVECS_TODO *todo)
+(fd_hashtable h,int n_slots_arg,
+ struct HASHVECS_TODO *todo)
 {
   int i = todo->n_to_free;
   if (todo->n_to_free == todo->max_to_free) {
@@ -515,22 +516,22 @@ FD_EXPORT int fd_swapcheck()
   lispval l_memgap = fd_config_get("SWAPCHECK");
   if (FIXNUMP(l_memgap)) memgap = FIX2INT(l_memgap);
   else if (!(VOIDP(l_memgap))) {
-    u8_log(LOG_WARN,fd_TypeError,"Bad SWAPCHECK config: %q",l_memgap);
+    u8_logf(LOG_WARN,fd_TypeError,"Bad SWAPCHECK config: %q",l_memgap);
     fd_decref(l_memgap);
     return -1;}
   else return 0;
   if (usage<(membase+memgap)) return 0;
   u8_lock_mutex(&fd_swapcheck_lock);
   if (usage>(membase+memgap)) {
-    u8_log(LOG_NOTICE,SwapCheck,"Swapping because %ld>%ld+%ld",
-           usage,membase,memgap);
+    u8_logf(LOG_NOTICE,SwapCheck,"Swapping because %ld>%ld+%ld",
+            usage,membase,memgap);
     fd_clear_slotcaches();
     fd_clear_callcache(VOID);
     fd_swapout_all();
     membase = u8_memusage();
-    u8_log(LOG_NOTICE,SwapCheck,
-           "Swapped out, next swap at=%ld, swap at %d=%d+%d",
-           membase+memgap,membase,memgap);
+    u8_logf(LOG_NOTICE,SwapCheck,
+            "Swapped out, next swap at=%ld, swap at %d=%d+%d",
+            membase+memgap,membase,memgap);
     u8_unlock_mutex(&fd_swapcheck_lock);}
   else {
     u8_unlock_mutex(&fd_swapcheck_lock);}

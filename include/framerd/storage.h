@@ -15,6 +15,12 @@
 #define FD_STORAGE_DRIVER_BUFSIZE 100000
 #endif
 
+#if FRAMERD_SOURCE
+#ifndef U8_LOGLEVEL
+#define U8_LOGLEVEL (u8_getloglevel(fd_storage_loglevel))
+#endif
+#endif
+
 #include "streams.h"
 
 FD_EXPORT u8_condition fd_AmbiguousObjectName,
@@ -32,6 +38,7 @@ FD_EXPORT int fd_init_dbserv(void) FD_LIBINIT_FN;
 FD_EXPORT int fd_default_cache_level;
 FD_EXPORT int fd_oid_display_level;
 FD_EXPORT int fd_storage_loglevel;
+FD_EXPORT int *fd_storage_loglevel_ptr;
 FD_EXPORT int fd_prefetch;
 
 FD_EXPORT lispval fd_dbserv_module;

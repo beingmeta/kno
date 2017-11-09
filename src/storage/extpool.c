@@ -79,8 +79,8 @@ static lispval extpool_fetch(fd_pool p,lispval oid)
   struct FD_EXTPOOL *xp = (fd_extpool)p;
   lispval state = xp->state, value, fetchfn = xp->fetchfn;
   struct FD_FUNCTION *fptr = ((FD_FUNCTIONP(fetchfn))?
-                            ((struct FD_FUNCTION *)fetchfn):
-                            (NULL));
+                              ((struct FD_FUNCTION *)fetchfn):
+                              (NULL));
   if ((VOIDP(state))||(FALSEP(state))||
       ((fptr)&&(fptr->fcn_arity==1)))
     value = fd_apply(fetchfn,1,&oid);
@@ -102,8 +102,8 @@ static lispval *extpool_fetchn(fd_pool p,int n,lispval *oids)
   struct FD_EXTPOOL *xp = (fd_extpool)p;
   lispval state = xp->state, fetchfn = xp->fetchfn, value = VOID;
   struct FD_FUNCTION *fptr = ((FD_FUNCTIONP(fetchfn))?
-                            ((struct FD_FUNCTION *)fetchfn):
-                            (NULL));
+                              ((struct FD_FUNCTION *)fetchfn):
+                              (NULL));
   struct FD_VECTOR vstruct;
   lispval vecarg;
   FD_INIT_STATIC_CONS(&vstruct,fd_vector_type);
@@ -163,7 +163,7 @@ static int extpool_lock(fd_pool p,lispval oids)
     DO_CHOICES(oid,oids) {
       lispval cur = fd_hashtable_get(cache,oid,VOID);
       lispval args[3]={lock_symbol,oid,
-                      ((cur == FD_LOCKHOLDER)?(VOID):(cur))};
+                       ((cur == FD_LOCKHOLDER)?(VOID):(cur))};
       lispval value = fd_apply(lockfn,3,args);
       if (FD_ABORTP(value)) {
         fd_decref(cur);
@@ -208,7 +208,7 @@ static int extpool_unlock(fd_pool p,lispval oids)
     DO_CHOICES(oid,oids) {
       lispval cur = fd_hashtable_get(locks,oid,VOID);
       lispval args[3]={unlock_symbol,oid,
-                      ((cur == FD_LOCKHOLDER)?(VOID):(cur))};
+                       ((cur == FD_LOCKHOLDER)?(VOID):(cur))};
       lispval value = fd_apply(lockfn,3,args);
       fd_hashtable_store(locks,oid,VOID);
       if (FD_ABORTP(value)) {

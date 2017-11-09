@@ -77,9 +77,9 @@ static int compound_prefetch(fd_index ix,lispval keys)
     i++;}
   fd_unlock_index(cix);
   i = 0; while (i<n_fetches)
-    if (PRECHOICEP(valuev[i])) {
-      valuev[i]=fd_simplify_choice(valuev[i]); i++;}
-    else i++;
+           if (PRECHOICEP(valuev[i])) {
+             valuev[i]=fd_simplify_choice(valuev[i]); i++;}
+           else i++;
   /* The operation fd_table_add_empty_noref will create an entry even
      if the value is the empty choice. */
   fd_hashtable_iter(&(cix->index_cache),fd_table_add_empty_noref,
@@ -125,9 +125,9 @@ static lispval *compound_fetchn(fd_index ix,int n,const lispval *keys)
     i++;}
   fd_unlock_index(cix);
   i = 0; while (i<n_fetches)
-    if (PRECHOICEP(valuev[i])) {
-      valuev[i]=fd_simplify_choice(valuev[i]); i++;}
-    else i++;
+           if (PRECHOICEP(valuev[i])) {
+             valuev[i]=fd_simplify_choice(valuev[i]); i++;}
+           else i++;
   /* The operation fd_table_add_empty_noref will create an entry even
      if the value is the empty choice. */
   u8_big_free(keyv); u8_big_free(posmap);
