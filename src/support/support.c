@@ -203,6 +203,10 @@ void fd_init_support_c()
      _("How to dump packets to ASCII (16 = hex,64 = base64,dflt = ascii-ish)"),
      fd_intconfig_get,fd_intconfig_set,
      &fd_packet_outfmt);
+  fd_register_config
+    ("OIDS:NUMERIC",_("Whether to use custom formatting for OIDs"),
+     fd_boolconfig_get,fd_boolconfig_set,
+     &fd_packet_outfmt);
 
   fd_register_config("PPRINT:MAXCHARS",
                      _("Maximum number of characters when pprinting strings"),

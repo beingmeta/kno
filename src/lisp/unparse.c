@@ -45,6 +45,8 @@ int fd_packet_outfmt = -1;
 
 int (*fd_unparse_error)(U8_OUTPUT *,lispval x,u8_string details) = NULL;
 
+int fd_numeric_oids = 0;
+
 static lispval quote_symbol, histref_symbol, comment_symbol;
 static lispval quasiquote_symbol, unquote_symbol, unquotestar_symbol;
 

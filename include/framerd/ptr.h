@@ -857,6 +857,7 @@ FD_EXPORT fd_compare_fn fd_comparators[FD_TYPE_MAX];
 FD_EXPORT fd_copy_fn fd_copiers[FD_TYPE_MAX];
 FD_EXPORT fd_walk_fn fd_walkers[FD_TYPE_MAX];
 
+FD_EXPORT int fd_numeric_oids;
 typedef u8_string (*fd_oid_info_fn)(lispval x);
 FD_EXPORT fd_oid_info_fn _fd_oid_info;
 

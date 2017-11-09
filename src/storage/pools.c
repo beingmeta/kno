@@ -450,15 +450,19 @@ static int add_to_gluepool(struct FD_GLUEPOOL *gp,fd_pool p)
 
 FD_EXPORT u8_string fd_pool_id(fd_pool p)
 {
-  if (p->pool_label!=NULL) return p->pool_label;
-  else if (p->poolid!=NULL) return p->poolid;
-  else if (p->pool_source!=NULL) return p->pool_source;
+  if (p->pool_label!=NULL)
+    return p->pool_label;
+  else if (p->poolid!=NULL)
+    return p->poolid;
+  else if (p->pool_source!=NULL)
+    return p->pool_source;
   else return NULL;
 }
 
 FD_EXPORT u8_string fd_pool_label(fd_pool p)
 {
-  if (p->pool_label!=NULL) return p->pool_label;
+  if (p->pool_label!=NULL)
+    return p->pool_label;
   else return NULL;
 }
 
