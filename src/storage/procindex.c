@@ -57,9 +57,9 @@ fd_index fd_make_procindex(lispval opts,lispval state,
       int ival=FD_FIX2INT(v);
       cache_level=ival;}
     else if ( (FD_TRUEP(v)) || (v == FD_DEFAULT_VALUE) ) {}
-    else u8_log(LOGCRIT,"BadCacheLevel",
-                "Invalid cache level %q specified for procindex %s",
-                v,id);
+    else u8_logf(LOGCRIT,"BadCacheLevel",
+                 "Invalid cache level %q specified for procindex %s",
+                 v,id);
     fd_decref(v);}
 
   if (fd_testopt(opts,fd_intern("READONLY"),FD_VOID))
@@ -306,9 +306,9 @@ static int procindex_commit(fd_index ix,fd_commit_phase phase,
                           commit->commit_n_stores,
                           commit->commit_metadata);}
   default: {
-    u8_log(LOG_INFO,"NoPhasedCommit",
-           "The index %s doesn't support phased commits",
-           ix->indexid);
+    u8_logf(LOG_INFO,"NoPhasedCommit",
+            "The index %s doesn't support phased commits",
+            ix->indexid);
     return 0;}
   }
 }

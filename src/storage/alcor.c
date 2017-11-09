@@ -95,9 +95,9 @@ FD_EXPORT ssize_t fd_save_head(u8_string source,u8_string dest,size_t head_len)
   u8_big_free(buf);
   rv=u8_unlock_fd(out);
   if (rv<0) {
-    u8_log(LOGWARN,"RecoveryFileUnlockFailed",
-           "Unlocking %s failed (errno=%d:%s)",
-           dest,errno,u8_strerror(errno));
+    u8_logf(LOGWARN,"RecoveryFileUnlockFailed",
+            "Unlocking %s failed (errno=%d:%s)",
+            dest,errno,u8_strerror(errno));
     errno=0;
     close(out);
     return rv;}
@@ -184,7 +184,7 @@ FD_EXPORT ssize_t fd_apply_head(u8_string dest,u8_string source,ssize_t trunc)
     return rv;}
   else rv=close(out);
   u8_big_free(buf);
- if (rv<0)
+  if (rv<0)
     return rv;
   else return head_len;
 }

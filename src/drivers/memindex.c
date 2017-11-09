@@ -36,11 +36,11 @@ static void truncate_failed(int fileno,u8_string file)
 {
   int got_err = errno; errno=0;
   if (got_err)
-    u8_log(LOGWARN,"TruncateFailed",
-           "Couldn't truncate memindex file %s (fd=%d) (errno=%d:%s)",
-           file,fileno,got_err,u8_strerror(got_err));
-  else u8_log(LOGWARN,"TruncateFailed",
-              "Couldn't truncate memindex file %s (fd=%d)",file,fileno);
+    u8_logf(LOGWARN,"TruncateFailed",
+            "Couldn't truncate memindex file %s (fd=%d) (errno=%d:%s)",
+            file,fileno,got_err,u8_strerror(got_err));
+  else u8_logf(LOGWARN,"TruncateFailed",
+               "Couldn't truncate memindex file %s (fd=%d)",file,fileno);
 }
 
 
@@ -140,10 +140,10 @@ static struct FD_KEY_SIZE *memindex_fetchinfo(fd_index ix,fd_choice filter,int *
 }
 
 static int memindex_save(struct FD_INDEX *ix,
-                            struct FD_CONST_KEYVAL *adds,int n_adds,
-                            struct FD_CONST_KEYVAL *drops,int n_drops,
-                            struct FD_CONST_KEYVAL *stores,int n_stores,
-                            lispval changed_metadata)
+                         struct FD_CONST_KEYVAL *adds,int n_adds,
+                         struct FD_CONST_KEYVAL *drops,int n_drops,
+                         struct FD_CONST_KEYVAL *stores,int n_stores,
+                         lispval changed_metadata)
 {
   struct FD_MEMINDEX *memidx = (struct FD_MEMINDEX *)ix;
   unsigned long long n_changes = n_adds + n_drops + n_stores;
@@ -190,9 +190,9 @@ static int memindex_save(struct FD_INDEX *ix,
     fd_reset_hashtable(&memidx->mix_map,17,1);
     memidx->mix_loaded=0;}
 
-  u8_log(fd_storage_loglevel,"MemIndex/Finished",
-         "Finished writing %lld/%lld changes to disk for %s, endpos=%lld",
-         n_changes,n_entries,ix->indexid,end);
+  u8_logf(LOG_NOTICE,"MemIndex/Finished",
+          "Finished writing %lld/%lld changes to disk for %s, endpos=%lld",
+          n_changes,n_entries,ix->indexid,end);
 
   return n_changes;
 }
@@ -211,9 +211,9 @@ static int memindex_commit(fd_index ix,fd_commit_phase phase,
                          commit->commit_n_stores,
                          commit->commit_metadata);}
   default: {
-    u8_log(LOG_INFO,"NoPhasedCommit",
-           "The index %s doesn't support phased commits",
-           ix->indexid);
+    u8_logf(LOG_INFO,"NoPhasedCommit",
+            "The index %s doesn't support phased commits",
+            ix->indexid);
     return 0;}
   }
 }
@@ -237,8 +237,8 @@ static ssize_t load_memindex(struct FD_MEMINDEX *memidx)
   long long i = 0, n_entries = fd_read_8bytes(in);
   double started = u8_elapsed_time();
   fd_hashtable mix_map = &(memidx->mix_map);
-  u8_log(fd_storage_loglevel+1,"MemIndexLoad",
-         "Loading %lld entries for '%s'",n_entries,memidx->indexid);
+  u8_logf(LOG_INFO,"MemIndexLoad",
+          "Loading %lld entries for '%s'",n_entries,memidx->indexid);
   memidx->mix_valid_data = fd_read_8bytes(in);
   int rv = ftruncate(stream->stream_fileno,memidx->mix_valid_data);
   if (rv<0) truncate_failed(stream->stream_fileno,stream->streamid);
@@ -264,9 +264,9 @@ static ssize_t load_memindex(struct FD_MEMINDEX *memidx)
   fd_unlock_table(mix_map);
   memidx->mix_loaded = 1;
   fd_unlock_stream(stream);
-  u8_log(fd_storage_loglevel,"MemIndexLoad",
-         "Loaded %lld entries for '%s' in %fs",
-         n_entries,memidx->indexid,u8_elapsed_time()-started);
+  u8_logf(LOG_NOTICE,"MemIndexLoad",
+          "Loaded %lld entries for '%s' in %fs",
+          n_entries,memidx->indexid,u8_elapsed_time()-started);
   return 1;
 }
 

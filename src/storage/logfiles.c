@@ -1,4 +1,4 @@
-/* -*- Mode: C; Character-encoding: utf-8; -*- */
+!/* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
@@ -43,29 +43,29 @@ typedef struct FD_LOGFILE FD_LOGFILE;
   but with a little more structure.
 
   The first 256 bytes consists of:
-    A magic number (8 bytes)
-    The number of entries (8 bytes)
-    The end of valid data (8 bytes)
-    The time that was written (8 bytes)
+  A magic number (8 bytes)
+  The number of entries (8 bytes)
+  The end of valid data (8 bytes)
+  The time that was written (8 bytes)
 
-    After those 256 bytes are just dtype representations.
+  After those 256 bytes are just dtype representations.
 
-    Reading from a log file, opens it and reads the dtypes up to the
-    end of valid data.
-    Writing to a log file just appends to the end. Committing the log file
-    updates the number of entries, time, and end of valid data.
+  Reading from a log file, opens it and reads the dtypes up to the
+  end of valid data.
+  Writing to a log file just appends to the end. Committing the log file
+  updates the number of entries, time, and end of valid data.
 
-    Pre-committing writes a .commit file with that data which can be
-    written into it and also writes a .rollback file which can be used
-    to rollback.
+  Pre-committing writes a .commit file with that data which can be
+  written into it and also writes a .rollback file which can be used
+  to rollback.
 
-    Here are the functions:
-     open(file) creates the log file if desired, returns an FD_LOGFILE structure.
-     modify(logfile) locks the underlying file and opens a stream at the end
-     add(logfile,objects) writes objects and increments the in-memory object count
-     precommit(logfile) writes a .commit file with a new header
-     commit(logfile) updates the actual file
- */
+  Here are the functions:
+  open(file) creates the log file if desired, returns an FD_LOGFILE structure.
+  modify(logfile) locks the underlying file and opens a stream at the end
+  add(logfile,objects) writes objects and increments the in-memory object count
+  precommit(logfile) writes a .commit file with a new header
+  commit(logfile) updates the actual file
+*/
 
 struct FD_LOGFILE *fd_open_logfile(u8_string filename)
 {

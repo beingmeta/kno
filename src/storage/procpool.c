@@ -69,9 +69,9 @@ fd_pool fd_make_procpool(FD_OID base,
       int ival=FD_FIX2INT(v);
       pp->pool_cache_level=ival;}
     else if ( (FD_TRUEP(v)) || (v == FD_DEFAULT_VALUE) ) {}
-    else u8_log(LOGCRIT,"BadCacheLevel",
-                "Invalid cache level %q specified for procpool %s",
-                v,label);
+    else u8_logf(LOGCRIT,"BadCacheLevel",
+                 "Invalid cache level %q specified for procpool %s",
+                 v,label);
     fd_decref(v);}
 
   if (fd_testopt(opts,fd_intern("ADJUNCT"),FD_VOID))
@@ -111,7 +111,7 @@ fd_pool fd_make_procpool(FD_OID base,
       FD_OID addr = FD_OID_ADDR(idval);
       pp->pool_typeid =
         u8_mkstring("@%lx/%lx",FD_OID_HI(addr),FD_OID_LO(addr));}
-    else u8_log(LOGWARN,"BadPoolTypeID","%q",idval);
+    else u8_logf(LOGWARN,"BadPoolTypeID","%q",idval);
     fd_decref(idval);}
 
   fd_register_pool((fd_pool)pp);
@@ -247,7 +247,7 @@ static int procpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
 }
 
 static int procpool_commit(fd_pool p,fd_commit_phase phase,
-                          struct FD_POOL_COMMITS *commits)
+                           struct FD_POOL_COMMITS *commits)
 {
   switch (phase) {
   case fd_commit_save:
@@ -255,9 +255,9 @@ static int procpool_commit(fd_pool p,fd_commit_phase phase,
                            commits->commit_oids,
                            commits->commit_vals);
   default:
-    u8_log(LOG_WARN,"NoPhasedCommit",
-           "The pool %s doesn't support phased commits",
-           p->poolid);
+    u8_logf(LOG_WARN,"NoPhasedCommit",
+            "The pool %s doesn't support phased commits",
+            p->poolid);
     return -1;
   }
 }

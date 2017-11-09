@@ -25,8 +25,8 @@
 static lispval quote_symbol;
 
 FD_EXPORT lispval fd_make_dtproc(u8_string name,u8_string server,
-                                int ndcall,int arity,int min_arity,
-                                int minsock,int maxsock,int initsock)
+                                 int ndcall,int arity,int min_arity,
+                                 int minsock,int maxsock,int initsock)
 {
   struct FD_DTPROC *f = u8_alloc(struct FD_DTPROC);
   FD_INIT_CONS(f,fd_dtproc_type);
@@ -81,11 +81,11 @@ static lispval dtapply(struct FD_DTPROC *dtp,int n,lispval *args)
   while (i>=0) {
     if ((SYMBOLP(args[i])) || (PAIRP(args[i])))
       expr = fd_conspair(fd_make_list(2,quote_symbol,fd_incref(args[i])),
-                       expr);
+                         expr);
     else expr = fd_conspair(fd_incref(args[i]),expr);
     i--;}
   expr = fd_conspair(dtp->dtprocname,expr);
-  /* u8_log(LOG_DEBUG,"DTPROC","Using connection %d",conn); */
+  /* u8_logf(LOG_DEBUG,"DTPROC","Using connection %d",conn); */
   if ((fd_write_dtype(fd_writebuf(&stream),expr)<0) ||
       (fd_flush_stream(&stream)<0)) {
     fd_clear_errors(1);
@@ -104,7 +104,7 @@ static lispval dtapply(struct FD_DTPROC *dtp,int n,lispval *args)
     if (FD_EQ(result,FD_EOD)) {
       if (conn>0) u8_discard_connection(cpool,conn);
       return fd_err(fd_UnexpectedEOD,"",dtp->dtprocserver,expr);}}
-  /* u8_log(LOG_DEBUG,"DTPROC","Freeing %d",conn); */
+  /* u8_logf(LOG_DEBUG,"DTPROC","Freeing %d",conn); */
   u8_return_connection(cpool,conn);
   return result;
 }

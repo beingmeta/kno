@@ -86,16 +86,16 @@ static fd_pool open_file_pool(u8_string fname,fd_storage_flags flags,lispval opt
   u8_free(rname);
 
   if (magicno == FD_FILE_POOL_TO_RECOVER) {
-    u8_log(LOG_WARN,fd_RecoveryRequired,"Recovering the file pool %s",fname);
+    u8_logf(LOG_WARN,fd_RecoveryRequired,"Recovering the file pool %s",fname);
     if (recover_file_pool(pool)<0) {
       fd_seterr(fd_MallocFailed,"open_file_pool",NULL,VOID);
       return NULL;}}
 
   load = fd_read_4bytes_at(s,16,FD_ISLOCKED);
   if (load > capacity) {
-    u8_log(LOGCRIT,"LoadOverFlow",
-           "The filepool %s specifies a load (%u) > its capacity (%u)",
-           fname,load,capacity);
+    u8_logf(LOGCRIT,"LoadOverFlow",
+            "The filepool %s specifies a load (%u) > its capacity (%u)",
+            fname,load,capacity);
     pool->pool_load=load=capacity;}
 
   label_loc = (fd_off_t)fd_read_4bytes_at(s,20,FD_ISLOCKED);
@@ -104,7 +104,7 @@ static fd_pool open_file_pool(u8_string fname,fd_storage_flags flags,lispval opt
       label = fd_read_dtype(fd_readbuf(s));
       if (STRINGP(label))
         pool->pool_label = u8_strdup(CSTRING(label));
-      else u8_log(LOG_WARN,fd_BadFilePoolLabel,fd_lisp2string(label));
+      else u8_logf(LOG_WARN,fd_BadFilePoolLabel,fd_lisp2string(label));
       fd_decref(label);}
     else {
       fd_seterr(fd_BadFilePoolLabel,"open_file_pool","bad label loc",
@@ -337,18 +337,18 @@ static lispval *file_pool_fetchn(fd_pool p,int n,lispval *oids)
   qsort(schedule,n,sizeof(struct POOL_FETCH_SCHEDULE),
         compare_filepos);
   i = 0; while (i < n)
-    if (schedule[i].filepos) {
-      if (fd_setpos(stream,schedule[i].filepos)<0) {
-        int j = 0; while (j<i) {
-          fd_decref(result[schedule[j].vpos]); j++;}
-        u8_big_free(schedule);
-        u8_big_free(result);
-        fd_unlock_pool_struct(p);
-        fd_unlock_stream(stream);
-        return NULL;}
-      result[schedule[i].vpos]=fd_read_dtype(fd_readbuf(stream));
-      i++;}
-    else result[schedule[i++].vpos]=EMPTY;
+           if (schedule[i].filepos) {
+             if (fd_setpos(stream,schedule[i].filepos)<0) {
+               int j = 0; while (j<i) {
+                 fd_decref(result[schedule[j].vpos]); j++;}
+               u8_big_free(schedule);
+               u8_big_free(result);
+               fd_unlock_pool_struct(p);
+               fd_unlock_stream(stream);
+               return NULL;}
+             result[schedule[i].vpos]=fd_read_dtype(fd_readbuf(stream));
+             i++;}
+           else result[schedule[i++].vpos]=EMPTY;
   u8_big_free(schedule);
   fd_unlock_stream(stream);
   fd_unlock_pool_struct(p);
@@ -435,7 +435,7 @@ static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
   if (retcode>=0) {
     /* Now we update the load and do other cleanup.  */
     if (write_file_pool_load(fp)<0)
-      u8_log(LOG_CRIT,"FileError","Can't update load for %s",fp->poolid);
+      u8_logf(LOG_CRIT,"FileError","Can't update load for %s",fp->poolid);
     update_modtime(fp);
     /* Now, we set the file's magic number back to something
        that doesn't require recovery and truncate away the saved
@@ -457,12 +457,12 @@ static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
       int retval = munmap((fp->pool_offdata)-6,4*old_size+24);
       unsigned int *newmmap;
       if (retval<0) {
-        u8_log(LOG_WARN,u8_strerror(errno),"file_pool_storen:munmap %s",fp->poolid);
+        u8_logf(LOG_WARN,u8_strerror(errno),"file_pool_storen:munmap %s",fp->poolid);
         fp->pool_offdata = NULL; errno = 0;}
       newmmap = mmap(NULL,(4*fp->pool_load)+24,PROT_READ,
-                   MAP_SHARED|MAP_NORESERVE,stream->stream_fileno,0);
+                     MAP_SHARED|MAP_NORESERVE,stream->stream_fileno,0);
       if ((newmmap == NULL) || (newmmap == MAP_FAILED)) {
-        u8_log(LOG_WARN,u8_strerror(errno),"file_pool_storen:mmap %s",fp->poolid);
+        u8_logf(LOG_WARN,u8_strerror(errno),"file_pool_storen:mmap %s",fp->poolid);
         fp->pool_offdata = NULL; fp->pool_offdata_size = 0; errno = 0;}
       else {
         fp->pool_offdata = newmmap+6;
@@ -475,9 +475,9 @@ static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
   /* Note that if we exited abnormally, the file is still intact. */
   fd_unlock_stream(stream);
   fd_unlock_pool_struct(p);
-  u8_log(fd_storage_loglevel,"FilePoolStore",
-         "Stored %d oid values in oidpool %s in %f seconds",
-         n,p->poolid,u8_elapsed_time()-started);
+  u8_logf(LOG_NOTICE,"FilePoolStore",
+          _("Stored %d oid values in oidpool %s in %f seconds"),
+          n,p->poolid,u8_elapsed_time()-started);
   return retcode;
 }
 
@@ -512,15 +512,15 @@ static int file_pool_commit(fd_pool p,fd_commit_phase phase,
       int unlocked = fd_streamctl(commits->commit_stream,fd_stream_unlockfile,NULL);
       if (unlocked<=0) {
         int saved_errno = errno; errno=0;
-        u8_log(LOG_WARN,"CantUnlock",
-               "Can't unlock stream for %s errno=%d:%s",
-               source,saved_errno,u8_strerror(saved_errno));}}
+        u8_logf(LOG_WARN,"CantUnlock",
+                "Can't unlock stream for %s errno=%d:%s",
+                source,saved_errno,u8_strerror(saved_errno));}}
     if (u8_file_existsp(rollback_file)) {
       int rv = u8_removefile(rollback_file);
       u8_free(rollback_file);
       return rv;}
     else {
-      u8_log(LOGWARN,"Rollback file %s was deleted",rollback_file);
+      u8_logf(LOGWARN,"Rollback file %s was deleted",rollback_file);
       u8_free(rollback_file);
       return -1;}}
   case fd_commit_rollback: {
@@ -531,15 +531,15 @@ static int file_pool_commit(fd_pool p,fd_commit_phase phase,
       u8_free(rollback_file);
       return rv;}
     else {
-      u8_log(LOG_CRIT,"NoRollbackFile",
-             "The rollback file %s for %s doesn't exist",
-             rollback_file,p->poolid);
+      u8_logf(LOG_CRIT,"NoRollbackFile",
+              "The rollback file %s for %s doesn't exist",
+              rollback_file,p->poolid);
       u8_free(rollback_file);
       return -1;}}
   default: {
-    u8_log(LOG_INFO,"NoPhasedCommit",
-           "The pool %s doesn't support phased commits",
-           p->poolid);
+    u8_logf(LOG_INFO,"NoPhasedCommit",
+            "The pool %s doesn't support phased commits",
+            p->poolid);
     return 0;}
   }
 }
@@ -579,7 +579,7 @@ static lispval file_pool_alloc(fd_pool p,int n)
 {
   lispval results = EMPTY; int i = 0;
   struct FD_FILE_POOL *fp = (struct FD_FILE_POOL *)p;
- FD_OID base=fp->pool_base;
+  FD_OID base=fp->pool_base;
   unsigned int start;
   fd_lock_pool_struct(p,1);
   if (!(FD_POOLSTREAM_LOCKEDP(fp))) lock_file_pool(fp,0);
@@ -632,8 +632,8 @@ static void file_pool_setcache(fd_pool p,int level)
         mmap(NULL,(4*fp->pool_load)+24,PROT_READ,
              MAP_SHARED|MAP_NORESERVE,s->stream_fileno,0);
       if ((newmmap == NULL) || (newmmap == MAP_FAILED)) {
-        u8_log(LOG_WARN,u8_strerror(errno),"file_pool_setcache:mmap %s",
-               fp->poolid);
+        u8_logf(LOG_WARN,u8_strerror(errno),"file_pool_setcache:mmap %s",
+                fp->poolid);
         fp->pool_offdata = NULL;
         fp->pool_offdata_size = 0;
         errno = 0;}
@@ -659,9 +659,9 @@ static void file_pool_setcache(fd_pool p,int level)
          as the load, not the capacity. */
       retval = munmap((fp->pool_offdata)-6,4*fp->pool_load+24);
       if (retval<0) {
-        u8_log(LOG_WARN,
-               u8_strerror(errno),"file_pool_setcache:munmap %s",
-               fp->poolid);
+        u8_logf(LOG_WARN,
+                u8_strerror(errno),"file_pool_setcache:munmap %s",
+                fp->poolid);
         fp->pool_offdata = NULL; errno = 0;}
 #else
       u8_big_free(fp->pool_offdata);
@@ -706,8 +706,8 @@ static void file_pool_close(fd_pool p)
   fd_lock_pool_struct(p,1);
   /* Finish delete */
   /*
-  if (write_file_pool_load(fp)<0)
-    u8_log(LOG_CRIT,"FileError","Can't update load for %s",fp->poolid);
+    if (write_file_pool_load(fp)<0)
+    u8_logf(LOG_CRIT,"FileError","Can't update load for %s",fp->poolid);
   */
   fd_close_stream(&(fp->pool_stream),0);
   if (fp->pool_offdata) {
@@ -716,7 +716,7 @@ static void file_pool_close(fd_pool p)
        as the load, not the capacity. */
     int retval = munmap((fp->pool_offdata)-6,4*fp->pool_offdata_size+24);
     if (retval<0) {
-      u8_log(LOG_WARN,u8_strerror(errno),"file_pool_close:munmap %s",fp->poolid);
+      u8_logf(LOG_WARN,u8_strerror(errno),"file_pool_close:munmap %s",fp->poolid);
       errno = 0;}
 #else
     u8_big_free(fp->pool_offdata);
@@ -730,12 +730,12 @@ static void file_pool_close(fd_pool p)
 
 FD_EXPORT
 /* fd_make_file_pool:
-    Arguments: a filename string, a magic number (usigned int), an FD_OID,
-    a capacity, and a dtype pointer to a metadata description (a slotmap).
-    Returns: -1 on error, 1 on success. */
+   Arguments: a filename string, a magic number (usigned int), an FD_OID,
+   a capacity, and a dtype pointer to a metadata description (a slotmap).
+   Returns: -1 on error, 1 on success. */
 int fd_make_file_pool
-  (u8_string filename,unsigned int magicno,
-   FD_OID base,unsigned int capacity,unsigned int load)
+(u8_string filename,unsigned int magicno,
+ FD_OID base,unsigned int capacity,unsigned int load)
 {
   int i, hi, lo;
   if (load>capacity) {
@@ -756,9 +756,9 @@ int fd_make_file_pool
     fd_free_stream(stream);
     return -1;}
 
-  u8_log(LOG_INFO,"CreateFilePool",
-         "Creating a file pool '%s' for %u OIDs based at %x/%x",
-         filename,capacity,FD_OID_HI(base),FD_OID_LO(base));
+  u8_logf(LOG_INFO,"CreateFilePool",
+          "Creating a file pool '%s' for %u OIDs based at %x/%x",
+          filename,capacity,FD_OID_HI(base),FD_OID_LO(base));
 
   stream->stream_flags &= ~FD_STREAM_IS_CONSED;
   fd_setpos(stream,0);
@@ -803,7 +803,7 @@ static fd_pool filepool_create(u8_string spec,void *type_data,
   else {
     fd_seterr("Not a valid capacity","filepool_create",
               spec,capacity_arg);
-      rv = -1;}
+    rv = -1;}
   if (rv<0) {}
   else if (FD_ISINT(load_arg)) {
     int loadval = fd_getint(load_arg);
@@ -825,7 +825,7 @@ static fd_pool filepool_create(u8_string spec,void *type_data,
     rv = -1;}
   if (rv<0) return NULL;
   else rv = fd_make_file_pool(spec,magic_number,
-                            FD_OID_ADDR(base_oid),capacity,load);
+                              FD_OID_ADDR(base_oid),capacity,load);
   if (rv>=0) {
     fd_set_file_opts(spec,opts);
     return fd_open_pool(spec,flags,opts);}
@@ -860,7 +860,7 @@ static lispval filepool_getoids(fd_file_pool fp)
   return results;
 }
 
-
+
 /* File pool ops function */
 
 static lispval label_file_pool(struct FD_FILE_POOL *fp,lispval label);
@@ -931,7 +931,7 @@ static lispval label_file_pool(struct FD_FILE_POOL *fp,lispval label)
   else return FD_TRUE;
 }
 
-
+
 /* The handler struct */
 
 static struct FD_POOL_HANDLER file_pool_handler={

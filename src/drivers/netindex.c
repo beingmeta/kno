@@ -52,8 +52,8 @@ FD_EXPORT fd_index fd_open_network_index(u8_string spec,fd_storage_flags flags,l
   struct FD_NETWORK_INDEX *ix;
   lispval writable_response; u8_string xid = NULL;
   u8_connpool cp = u8_open_connpool(spec,fd_dbconn_reserve_default,
-                                  fd_dbconn_cap_default,
-                                  fd_dbconn_init_default);
+                                    fd_dbconn_cap_default,
+                                    fd_dbconn_init_default);
   if (cp == NULL) return NULL;
   ix = u8_alloc(struct FD_NETWORK_INDEX); memset(ix,0,sizeof(*ix));
   fd_init_index((fd_index)ix,&netindex_handler,spec,xid,flags);
@@ -93,7 +93,7 @@ static int netindex_fetchsize(fd_index ix,lispval key)
   if (VOIDP(nix->xname))
     result = fd_dtcall(nix->index_connpool,2,iserver_fetchsize,key);
   else result = fd_dtcall_x(nix->index_connpool,3,3,
-                          ixserver_fetchsize,nix->xname,key);
+                            ixserver_fetchsize,nix->xname,key);
   if (FD_ABORTP(result))
     return -1;
   else return fd_getint(result);
@@ -107,7 +107,7 @@ static lispval *netindex_fetchn(fd_index ix,int n,const lispval *keys)
   if (VOIDP(nix->xname))
     result = fd_dtcall(nix->index_connpool,2,iserver_fetchn,vector);
   else result = fd_dtcall_x(nix->index_connpool,3,3,
-                          ixserver_fetchn,nix->xname,vector);
+                            ixserver_fetchn,nix->xname,vector);
   if (FD_ABORTP(result)) return NULL;
   else if (VECTORP(result)) {
     lispval *results = u8_alloc_n(n,lispval);
@@ -144,10 +144,10 @@ static lispval *netindex_fetchkeys(fd_index ix,int *n)
 }
 
 static int netindex_save(struct FD_INDEX *ix,
-                           struct FD_CONST_KEYVAL *adds,int n_adds,
-                           struct FD_CONST_KEYVAL *drops,int n_drops,
-                           struct FD_CONST_KEYVAL *stores,int n_stores,
-                           lispval changed_metadata)
+                         struct FD_CONST_KEYVAL *adds,int n_adds,
+                         struct FD_CONST_KEYVAL *drops,int n_drops,
+                         struct FD_CONST_KEYVAL *stores,int n_stores,
+                         lispval changed_metadata)
 {
   struct FD_NETWORK_INDEX *nix = (struct FD_NETWORK_INDEX *)ix;
   lispval xname = nix->xname;
@@ -182,33 +182,33 @@ static int netindex_save(struct FD_INDEX *ix,
         else n_transactions++;
         i++;}}}
 
-    if (n_adds) {
-      if (nix->capabilities&FD_ISERVER_ADDN) {
-        lispval vector = fd_make_vector(n_adds*2,NULL), result=FD_VOID;
-        int i=0; while (i<n_adds) {
-          lispval key = adds[i].kv_key, val = adds[i].kv_val;
-          FD_VECTOR_SET(vector,i*2,key); fd_incref(key);
-          FD_VECTOR_SET(vector,i*2+1,val); fd_incref(val);
-          i=i+2;}
+  if (n_adds) {
+    if (nix->capabilities&FD_ISERVER_ADDN) {
+      lispval vector = fd_make_vector(n_adds*2,NULL), result=FD_VOID;
+      int i=0; while (i<n_adds) {
+        lispval key = adds[i].kv_key, val = adds[i].kv_val;
+        FD_VECTOR_SET(vector,i*2,key); fd_incref(key);
+        FD_VECTOR_SET(vector,i*2+1,val); fd_incref(val);
+        i=i+2;}
+      if (VOIDP(xname))
+        result = fd_dtcall_nr(nix->index_connpool,2,iserver_addn,vector);
+      else result = fd_dtcall_nrx(nix->index_connpool,3,3,ixserver_addn,xname,vector);
+      if (FD_ABORTP(result)) {
+        fd_clear_errors(1);}
+      n_transactions++;}
+    else {
+      int i = 0; while (i < n_adds) {
+        lispval result = VOID;
+        lispval key = adds[i].kv_key, val = adds[i].kv_val;
         if (VOIDP(xname))
-          result = fd_dtcall_nr(nix->index_connpool,2,iserver_addn,vector);
-        else result = fd_dtcall_nrx(nix->index_connpool,3,3,ixserver_addn,xname,vector);
-        if (FD_ABORTP(result)) {
-          fd_clear_errors(1);}
-        n_transactions++;}
-      else {
-        int i = 0; while (i < n_adds) {
-          lispval result = VOID;
-          lispval key = adds[i].kv_key, val = adds[i].kv_val;
-          if (VOIDP(xname))
-            result = fd_dtcall_nr(nix->index_connpool,3,iserver_add,key,val);
-          else result = fd_dtcall_nr(nix->index_connpool,4,iserver_add,xname,key,val);
-          if (FD_ABORTP(result))
-            fd_clear_errors(1);
-          else n_transactions++;
-          i++;}}}
+          result = fd_dtcall_nr(nix->index_connpool,3,iserver_add,key,val);
+        else result = fd_dtcall_nr(nix->index_connpool,4,iserver_add,xname,key,val);
+        if (FD_ABORTP(result))
+          fd_clear_errors(1);
+        else n_transactions++;
+        i++;}}}
 
-    return n_transactions;
+  return n_transactions;
 }
 
 static int netindex_commit(fd_index ix,fd_commit_phase phase,
@@ -225,9 +225,9 @@ static int netindex_commit(fd_index ix,fd_commit_phase phase,
                          commit->commit_n_stores,
                          commit->commit_metadata);}
   default: {
-    u8_log(LOG_INFO,"NoPhasedCommit",
-           "The index %s doesn't support phased commits",
-           ix->indexid);
+    u8_logf(LOG_INFO,"NoPhasedCommit",
+            "The index %s doesn't support phased commits",
+            ix->indexid);
     return 0;}
   }
 }
