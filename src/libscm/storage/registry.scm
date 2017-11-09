@@ -5,7 +5,7 @@
 
 ;;; Maintaining registries of objects (OIDs) with unique IDs
 
-(use-module '{ezrecords logger stringfmts varconfig})
+(use-module '{ezrecords logger stringfmts varconfig storage/flexpools})
 
 (define %used_modules 'ezrecords)
 
@@ -128,7 +128,9 @@
 	 (logwarn |RemoteRegistry|
 	   "No need to save a remote registry")
 	 #f)
-	(else (let* ((pools (pick (registry-pool r) pool?))
+	(else (let* ((pools (choice (pick (registry-pool r) pool?)
+				    (flexpool/partitions
+				     (pick (pick (registry-pool r) pool?) flexpool/record))))
 		     (indexes (pick (registry-index r) index?))
 		     (adjuncts-map (get-adjuncts pools))
 		     (adjuncts (get adjuncts-map (getkeys adjuncts-map)))
