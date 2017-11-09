@@ -42,7 +42,7 @@
 #define FETCHBUF_SIZE 16000
 #endif
 
-static lispval load_symbol, slotids_symbol;
+static lispval load_symbol, slotids_symbol, compression_symbol, offmode_symbol;
 
 static void bigpool_setcache(fd_bigpool p,int level);
 static int update_offdata_cache(fd_bigpool bp,int level,int chunk_ref_size);
@@ -1975,8 +1975,26 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
                      bp->bigpool_slotids);
     fd_store(base,load_symbol,FD_INT(bp->pool_load));
     fd_store(base,slotids_symbol,slotids_vec);
+    if ( bp->pool_offtype == FD_B32)
+      fd_store(base,offmode_symbol,fd_intern("B32"));
+    else if ( bp->pool_offtype == FD_B40)
+      fd_store(base,offmode_symbol,fd_intern("B40"));
+    else if ( bp->pool_offtype == FD_B64)
+      fd_store(base,offmode_symbol,fd_intern("B64"));
+    else fd_store(base,offmode_symbol,fd_intern("!!INVALID!!"));
+    if ( bp->pool_compression == FD_NOCOMPRESS )
+      fd_store(base,compression_symbol,FD_FALSE);
+    else if ( bp->pool_compression == FD_ZLIB )
+      fd_store(base,compression_symbol,fd_intern("ZLIB"));
+    else if ( bp->pool_compression == FD_ZLIB9 )
+      fd_store(base,compression_symbol,fd_intern("ZLIB9"));
+    else if ( bp->pool_compression == FD_SNAPPY )
+      fd_store(base,compression_symbol,fd_intern("SNAPPY"));
+    else fd_store(base,compression_symbol,fd_intern("!!INVALID!!"));
     fd_add(base,FDSYM_READONLY,load_symbol);
     fd_add(base,FDSYM_READONLY,slotids_symbol);
+    fd_add(base,FDSYM_READONLY,compression_symbol);
+    fd_add(base,FDSYM_READONLY,offmode_symbol);
     fd_decref(slotids_vec);
     return base;}
   else if (op == fd_load_op)
@@ -2160,6 +2178,8 @@ FD_EXPORT void fd_init_bigpool_c()
 
   load_symbol=fd_intern("LOAD");
   slotids_symbol=fd_intern("SLOTIDS");
+  compression_symbol=fd_intern("COMPRESSION");
+  offmode_symbol=fd_intern("OFFMODE");
 
   fd_set_default_pool_type("bigpool");
 }
