@@ -27,6 +27,7 @@
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
 #include <libu8/u8printf.h>
+#include <libu8/u8netfns.h>
 
 #include <zlib.h>
 
@@ -42,7 +43,7 @@
 #define FETCHBUF_SIZE 16000
 #endif
 
-static lispval load_symbol, slotids_symbol;
+static lispval load_symbol, slotids_symbol, compression_symbol, offmode_symbol;
 
 static void bigpool_setcache(fd_bigpool p,int level);
 static int update_offdata_cache(fd_bigpool bp,int level,int chunk_ref_size);
@@ -1321,6 +1322,50 @@ static int bump_bigpool_nblocks(fd_bigpool bp,
   else return -1;
 }
 
+static int set_bigpool_label(fd_bigpool bp,u8_string label)
+{
+  int rv = -1;
+  u8_string source = bp->pool_source;
+  fd_off_t label_pos = 0; size_t label_size = 0;
+  /* We use this so we don't intrude on any active commits */
+  u8_lock_mutex(&(bp->pool_commit_lock));
+  /* But we open our own copy of the file */
+  fd_stream stream = fd_init_file_stream
+    (NULL,source,FD_FILE_MODIFY,-1,256);
+  if (stream == NULL) {
+    u8_unlock_mutex(&(bp->pool_commit_lock));
+    return -1;}
+  if (fd_streamctl(stream,fd_stream_lockfile,NULL)<0) {
+    fd_close_stream(stream,FD_STREAM_FREEDATA);
+    return -1;}
+  if (label) {
+    size_t len = strlen(label);
+    label_pos = fd_endpos(stream);
+    fd_outbuf out = fd_writebuf(stream);
+    label_size = strlen(label)+5;
+    if (out) {
+      rv = fd_write_byte(out,dt_string);
+      if (rv>0) rv=fd_write_4bytes(out,len);
+      if (rv>0) rv=fd_write_bytes(out,label,len);
+      fd_flush_stream(stream);}}
+  else {/* Resetting label */}
+  if (rv > 0) {
+    rv = fd_setpos(stream,FD_BIGPOOL_LABEL_POS);
+    if (rv>=0) {
+      fd_outbuf out = fd_writebuf(stream);
+      if (out) rv=fd_write_8bytes(out,label_pos);
+      if (rv>0) rv=fd_write_4bytes(out,label_size);
+      if (rv>0) fd_flush_stream(stream);}}
+  if (fd_streamctl(stream,fd_stream_unlockfile,NULL)<0) {
+    int saved_errno = errno; errno=0;
+    u8_log(LOG_ERR,"LabelUnlockFailed",
+           "Couldn't unlock file %s errno=%d:%s",
+           source,saved_errno,u8_strerror(saved_errno));}
+  fd_close_stream(stream,FD_STREAM_FREEDATA);
+  u8_free(stream);
+  return rv;
+}
+
 /* These assume that the pool itself is locked */
 static int write_bigpool_slotids(fd_bigpool bp,fd_stream stream,fd_stream head_stream)
 {
@@ -1907,6 +1952,36 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
       fd_incref(slotid);
       i++;}
     return result;}
+  else if (op == fd_label_op) {
+    if (n == 0) {
+      if (p->pool_label)
+        return FD_FALSE;
+      else return lispval_string(p->pool_label);}
+    else if ( (n==1) && ( (FD_STRINGP(args[0])) || (FD_FALSEP(args[0]))) ) {
+      if ( (p->pool_flags) && (FD_STORAGE_READ_ONLY) )
+        return fd_err(fd_ReadOnlyPool,"bigpool_ctl/label",p->poolid,args[0]);
+      else {
+        int rv = (FD_STRINGP(args[0])) ? (set_bigpool_label(bp,FD_CSTRING(args[0]))) :
+          (set_bigpool_label(bp,NULL));
+        if (rv<0)
+          return FD_ERROR_VALUE;
+        else return FD_INT(rv);}}
+    else return fd_err("BadArg","bigpool_ctl/label",p->poolid,args[0]);}
+  else if (op == fd_label_op) {
+    if (n == 0) {
+      if (p->pool_label)
+        return FD_FALSE;
+      else return lispval_string(p->pool_label);}
+    else if ( (n==1) && ( (FD_STRINGP(args[0])) || (FD_FALSEP(args[0]))) ) {
+      if ( (p->pool_flags) && (FD_STORAGE_READ_ONLY) )
+        return fd_err(fd_ReadOnlyPool,"bigpool_ctl/label",p->poolid,args[0]);
+      else {
+        int rv = (FD_STRINGP(args[0])) ? (set_bigpool_label(bp,FD_CSTRING(args[0]))) :
+          (set_bigpool_label(bp,NULL));
+        if (rv<0)
+          return FD_ERROR_VALUE;
+        else return FD_INT(rv);}}
+    else return fd_err("BadArg","bigpool_ctl/label",p->poolid,args[0]);}
   else if (op == fd_capacity_op)
     return FD_INT(bp->pool_capacity);
   else if ( (op == fd_metadata_op) && (n == 0) ) {
@@ -1916,12 +1991,41 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
                      bp->bigpool_slotids);
     fd_store(base,load_symbol,FD_INT(bp->pool_load));
     fd_store(base,slotids_symbol,slotids_vec);
+    if ( bp->pool_offtype == FD_B32)
+      fd_store(base,offmode_symbol,fd_intern("B32"));
+    else if ( bp->pool_offtype == FD_B40)
+      fd_store(base,offmode_symbol,fd_intern("B40"));
+    else if ( bp->pool_offtype == FD_B64)
+      fd_store(base,offmode_symbol,fd_intern("B64"));
+    else fd_store(base,offmode_symbol,fd_intern("!!INVALID!!"));
+    if ( bp->pool_compression == FD_NOCOMPRESS )
+      fd_store(base,compression_symbol,FD_FALSE);
+    else if ( bp->pool_compression == FD_ZLIB )
+      fd_store(base,compression_symbol,fd_intern("ZLIB"));
+    else if ( bp->pool_compression == FD_ZLIB9 )
+      fd_store(base,compression_symbol,fd_intern("ZLIB9"));
+    else if ( bp->pool_compression == FD_SNAPPY )
+      fd_store(base,compression_symbol,fd_intern("SNAPPY"));
+    else fd_store(base,compression_symbol,fd_intern("!!INVALID!!"));
     fd_add(base,FDSYM_READONLY,load_symbol);
     fd_add(base,FDSYM_READONLY,slotids_symbol);
+    fd_add(base,FDSYM_READONLY,compression_symbol);
+    fd_add(base,FDSYM_READONLY,offmode_symbol);
     fd_decref(slotids_vec);
     return base;}
-  else if (op == fd_load_op)
+  else if ( (op == fd_load_op) && (n == 0) )
     return FD_INT(bp->pool_load);
+  else if (op == fd_load_op) {
+    lispval loadval = args[0];
+    if (FD_UINTP(loadval)) {
+      lispval sessionid = lispval_string(u8_sessionid());
+      lispval timestamp = fd_make_timestamp(NULL);
+      lispval record = fd_make_nvector(3,fd_incref(args[0]),timestamp,sessionid);
+      fd_store(((lispval)(&(p->pool_metadata))),
+               fd_intern("LOAD_CHANGED"),record);
+      bp->pool_load = FD_FIX2INT(loadval);
+      return record;}
+    else return fd_type_error("pool load","bigpool_ctl",args[0]);}
   else if (op == fd_keys_op) {
     lispval keys = bigpool_getoids(bp);
     return fd_simplify_choice(keys);}
@@ -2101,6 +2205,8 @@ FD_EXPORT void fd_init_bigpool_c()
 
   load_symbol=fd_intern("LOAD");
   slotids_symbol=fd_intern("SLOTIDS");
+  compression_symbol=fd_intern("COMPRESSION");
+  offmode_symbol=fd_intern("OFFMODE");
 
   fd_set_default_pool_type("bigpool");
 }

@@ -450,15 +450,19 @@ static int add_to_gluepool(struct FD_GLUEPOOL *gp,fd_pool p)
 
 FD_EXPORT u8_string fd_pool_id(fd_pool p)
 {
-  if (p->pool_label!=NULL) return p->pool_label;
-  else if (p->poolid!=NULL) return p->poolid;
-  else if (p->pool_source!=NULL) return p->pool_source;
+  if (p->pool_label!=NULL)
+    return p->pool_label;
+  else if (p->poolid!=NULL)
+    return p->poolid;
+  else if (p->pool_source!=NULL)
+    return p->pool_source;
   else return NULL;
 }
 
 FD_EXPORT u8_string fd_pool_label(fd_pool p)
 {
-  if (p->pool_label!=NULL) return p->pool_label;
+  if (p->pool_label!=NULL)
+    return p->pool_label;
   else return NULL;
 }
 
@@ -2159,7 +2163,8 @@ static void recycle_consed_pool(struct FD_RAW_CONS *c)
 
 static lispval base_slot, capacity_slot, cachelevel_slot,
   label_slot, poolid_slot, source_slot, adjuncts_slot, _adjuncts_slot,
-  cached_slot, locked_slot, flags_slot, registered_slot, opts_slot;
+  cached_slot, locked_slot, flags_slot, registered_slot, opts_slot,
+  core_slot;
 
 static lispval read_only_flag, unregistered_flag, registered_flag,
   noswap_flag, noerr_flag, phased_flag, sparse_flag, background_flag,
@@ -2183,6 +2188,7 @@ FD_EXPORT lispval fd_pool_base_metadata(fd_pool p)
 {
   int flags=p->pool_flags;
   lispval metadata=fd_deep_copy((lispval) &(p->pool_metadata));
+  mdstore(metadata,core_slot,fd_deep_copy((lispval) &(p->pool_metadata)));
   mdstore(metadata,base_slot,fd_make_oid(p->pool_base));
   mdstore(metadata,capacity_slot,FD_INT(p->pool_capacity));
   mdstore(metadata,cachelevel_slot,FD_INT(p->pool_cache_level));
@@ -2249,6 +2255,7 @@ FD_EXPORT lispval fd_pool_base_metadata(fd_pool p)
 
   fd_add(metadata,FDSYM_READONLY,FDSYM_PROPS);
   fd_add(metadata,FDSYM_READONLY,opts_slot);
+  fd_add(metadata,FDSYM_READONLY,core_slot);
 
   return metadata;
 }
@@ -2518,6 +2525,7 @@ FD_EXPORT void fd_init_pools_c()
   flags_slot=fd_intern("FLAGS");
   registered_slot=fd_intern("REGISTERED");
   opts_slot=fd_intern("OPTS");
+  core_slot=fd_intern("CORE");
 
   read_only_flag=FDSYM_READONLY;
   unregistered_flag=fd_intern("UNREGISTERED");

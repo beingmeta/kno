@@ -221,7 +221,7 @@ static int print_oid_name(u8_output out,lispval name,int top)
 
 static int better_unparse_oid(u8_output out,lispval x)
 {
-  if ((fd_oid_display_level<1) || (out->u8_streaminfo&U8_STREAM_TACITURN)) {
+  if ( (fd_oid_display_level<1) || (out->u8_streaminfo&U8_STREAM_TACITURN) ) {
     FD_OID addr = FD_OID_ADDR(x); char buf[128];
     unsigned int hi = FD_OID_HI(addr), lo = FD_OID_LO(addr);
     sprintf(buf,"@%x/%x",hi,lo);
@@ -229,7 +229,7 @@ static int better_unparse_oid(u8_output out,lispval x)
     return 1;}
   else {
     fd_pool p = fd_oid2pool(x);
-    if ((p == NULL) || (p->pool_prefix == NULL)) {
+    if ((p == NULL) || (p->pool_prefix == NULL) || (fd_numeric_oids) ) {
       FD_OID addr = FD_OID_ADDR(x); char buf[128];
       unsigned int hi = FD_OID_HI(addr), lo = FD_OID_LO(addr);
       sprintf(buf,"@%x/%x",hi,lo);

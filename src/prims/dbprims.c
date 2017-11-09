@@ -2692,6 +2692,24 @@ static lispval oid_offset_prim(lispval oidarg,lispval against)
   else return FD_FALSE;
 }
 
+static lispval oid_minus_prim(lispval oidarg,lispval against)
+{
+  FD_OID oid = FD_OID_ADDR(oidarg), base; int cap = -1;
+  if (OIDP(against)) {
+    base = FD_OID_ADDR(against);}
+  else if (FD_POOLP(against)) {
+    fd_pool p = fd_lisp2pool(against);
+    if (p) {base = p->pool_base; cap = p->pool_capacity;}
+    else return FD_ERROR;}
+  else if ((VOIDP(against)) || (FALSEP(against))) {
+    fd_pool p = fd_oid2pool(oidarg);
+    if (p) {base = p->pool_base; cap = p->pool_capacity;}
+    else return FD_INT((FD_OID_LO(oid))%0x100000);}
+  else return fd_type_error(_("offset base"),"oid_offset_prim",against);
+  unsigned long long oid_difference = FD_OID_DIFFERENCE(oid,base);
+  return FD_INT(oid_difference);
+}
+
 #ifdef FD_OID_BASE_ID
 static lispval oid_ptrdata_prim(lispval oid)
 {
@@ -2702,7 +2720,7 @@ static lispval oid_ptrdata_prim(lispval oid)
 
 static lispval make_oid_prim(lispval high,lispval low)
 {
-  if (VOIDP(low)) {
+  if ( (VOIDP(low)) || (FD_FALSEP(low)) ) {
     FD_OID oid;
     unsigned long long addr;
     if (FIXNUMP(high))
@@ -3375,21 +3393,42 @@ FD_EXPORT void fd_init_dbprims_c()
            fd_make_ndprim(fd_make_cprim4("SEQ->FRAME",seq2frame_prim,3)));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2("ALLOCATE-OIDS",allocate_oids,1));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("OID-PLUS",oid_plus_prim,1,
-                           fd_oid_type,VOID,
-                           fd_fixnum_type,FD_INT(1)));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("OID-OFFSET",oid_offset_prim,1,
-                           fd_oid_type,VOID,
-                           -1,VOID));
-  fd_idefn(fd_scheme_module,fd_make_cprim2("MAKE-OID",make_oid_prim,1));
+
+  fd_idefn2(fd_scheme_module,"OID-PLUS",oid_plus_prim,1,
+            "Adds an integer to an OID address and returns that OID",
+            fd_oid_type,VOID,
+            fd_fixnum_type,FD_INT(1));
+  fd_idefn2(fd_scheme_module,"OID-MINUS",oid_minus_prim,1,
+            "Returns the difference between two OIDs. If the second "
+            "argument is a pool, the base of the pool is used for "
+            "comparision",
+            fd_oid_type,VOID,-1,FD_VOID);
+  fd_defalias(fd_scheme_module,"OID+","OID-PLUS");
+  fd_defalias(fd_scheme_module,"OID-","OID-MINUS");
+
+  fd_idefn2(fd_scheme_module,"OID-OFFSET",oid_offset_prim,1,
+            "Returns the offset of an OID from a container and #f if "
+            "it is not in the container. When the second argument "
+            "is an OID, it is used as the base of container; if it "
+            "is a pool, it is used as the container. Without a second "
+            "argument the registered pool for the OID is used as the "
+            "container.",
+            fd_oid_type,VOID,-1,VOID);
+
+  fd_idefn2(fd_scheme_module,"MAKE-OID",make_oid_prim,1,
+            "(MAKE-OID *addr* [*lo*]) returns an OID from numeric "
+            "components. If *lo* is not provided (or #f) *addr* is used "
+            "as the complete address. Otherwise, *addr* specifies "
+            "the high part of the OID address.",
+            -1,FD_VOID,-1,FD_VOID);
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("OID->STRING",oid2string_prim,1,
                            fd_oid_type,VOID,-1,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("OID-ADDR",oidaddr_prim,1,
-                           fd_oid_type,VOID));
+  fd_idefn1(fd_scheme_module,"OID-ADDR",oidaddr_prim,1,
+            "Returns the absolute numeric address of an OID",
+            fd_oid_type,VOID);
+  fd_defalias(fd_scheme_module,"OID@","OID-ADDR");
+
 #ifdef FD_OID_BASE_ID
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("OID-PTRDATA",oid_ptrdata_prim,1,
