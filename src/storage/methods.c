@@ -9,6 +9,8 @@
 #define _FILEINFO __FILE__
 #endif
 
+#include "framerd/components/storage_layer.h"
+
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/tables.h"
@@ -60,9 +62,9 @@ fd_walk_tree(lispval roots,lispval slotids,fd_tree_walkfn walk,void *data)
   memset(&ht,0,sizeof(ht));
   fd_init_hashset(&ht,1024,FD_STACK_CONS);
   {DO_CHOICES(root,roots)
-     if ((retval = keep_walking(&ht,root,slotids,walk,data))<=0) {
-       fd_recycle_hashset(&ht);
-       return retval;}}
+      if ((retval = keep_walking(&ht,root,slotids,walk,data))<=0) {
+        fd_recycle_hashset(&ht);
+        return retval;}}
   fd_recycle_hashset(&ht);
   return retval;
 }
@@ -86,19 +88,19 @@ FD_EXPORT lispval fd_get_basis(lispval collection,lispval lattice)
   memset(&ht,0,sizeof(ht));
   fd_init_hashset(&ht,1024,FD_STACK_CONS);
   {DO_CHOICES(node,collection) {
-    DO_CHOICES(slotid,lattice) {
-      lispval v = fd_frame_get(node,slotid);
-      if (FD_ABORTP(v)) {
-        fd_decref(root);
-        fd_recycle_hashset(&ht);
-        return v;}
-      else {CHOICE_ADD(root,v);}}}}
+      DO_CHOICES(slotid,lattice) {
+        lispval v = fd_frame_get(node,slotid);
+        if (FD_ABORTP(v)) {
+          fd_decref(root);
+          fd_recycle_hashset(&ht);
+          return v;}
+        else {CHOICE_ADD(root,v);}}}}
   fd_collect_tree(&ht,root,lattice);
   {DO_CHOICES(node,collection)
-     if (fd_hashset_get(&ht,node)) {}
-     else {
-       fd_incref(node);
-       CHOICE_ADD(result,node);}}
+      if (fd_hashset_get(&ht,node)) {}
+      else {
+        fd_incref(node);
+        CHOICE_ADD(result,node);}}
   fd_decref(root);
   fd_recycle_hashset(&ht);
   return result;
@@ -126,7 +128,7 @@ static int inherit_values_fn(lispval node,void *data)
   lispval values = EMPTY;
   DO_CHOICES(slotid,ivs->slotids) {
     lispval v = ((OIDP(node)) ? (fd_oid_get(node,slotid,EMPTY)) :
-               (fd_get(node,slotid,EMPTY)));
+                 (fd_get(node,slotid,EMPTY)));
     if (FD_ABORTP(v)) {
       fd_decref(values);
       return fd_interr(v);}
@@ -137,10 +139,10 @@ static int inherit_values_fn(lispval node,void *data)
 
 FD_EXPORT
 /* fd_inherit_values:
-     Arguments: a frame and two slotids
-     Returns: a lispval pointer
-     Searches for a value for the first slotid through the lattice
-     defined by the second slotid. */
+   Arguments: a frame and two slotids
+   Returns: a lispval pointer
+   Searches for a value for the first slotid through the lattice
+   defined by the second slotid. */
 lispval fd_inherit_values(lispval root,lispval slotid,lispval through)
 {
   struct FD_IVSTRUCT ivs;
@@ -153,10 +155,10 @@ lispval fd_inherit_values(lispval root,lispval slotid,lispval through)
 
 FD_EXPORT
 /* fd_inherit_values:
-     Arguments: a frame and two slotids
-     Returns: a lispval pointer
-  Searches for a value for the first slotid through the lattice
-  defined by the second slotid. */
+   Arguments: a frame and two slotids
+   Returns: a lispval pointer
+   Searches for a value for the first slotid through the lattice
+   defined by the second slotid. */
 lispval fd_inherit_inferred_values(lispval root,lispval slotid,lispval through)
 {
   struct FD_IVSTRUCT ivs;
@@ -194,12 +196,12 @@ static int inherits_valuesp_fn(lispval node,void *data)
 
 FD_EXPORT
 /* fd_inherits_valuep:
-     Arguments: a frame, two slotids, and a value
-     Returns: 1 or 0
-  Returns 1 if the value can be inherited for the first slotid
-  going through the lattice defined by the second slotid. */
+   Arguments: a frame, two slotids, and a value
+   Returns: 1 or 0
+   Returns 1 if the value can be inherited for the first slotid
+   going through the lattice defined by the second slotid. */
 int fd_inherits_valuep
-  (lispval root,lispval slotid,lispval through,lispval value)
+(lispval root,lispval slotid,lispval through,lispval value)
 {
   struct FD_IVPSTRUCT ivps;
   ivps.value = value; ivps.slotids = slotid; ivps.result = 0;
@@ -210,12 +212,12 @@ int fd_inherits_valuep
 
 FD_EXPORT
 /* fd_inherits_valuep:
-     Arguments: a frame, two slotids, and a value
-     Returns: 1 or 0
-  Returns 1 if the value can be inherited for the first slotid
-  going through the lattice defined by the second slotid. */
+   Arguments: a frame, two slotids, and a value
+   Returns: 1 or 0
+   Returns 1 if the value can be inherited for the first slotid
+   going through the lattice defined by the second slotid. */
 int fd_inherits_inferred_valuep
-  (lispval root,lispval slotid,lispval through,lispval value)
+(lispval root,lispval slotid,lispval through,lispval value)
 {
   struct FD_IVPSTRUCT ivps;
   ivps.value = value; ivps.slotids = slotid; ivps.result = 0;
@@ -234,9 +236,9 @@ static int pathp_fn(lispval node,void *data)
 
 FD_EXPORT
 /* fd_pathp:
-     Arguments: a frame, a slotid, and a frame
-     Returns: 1 or 0
-  Returns 1 if there is a path through slotid between the two frames */
+   Arguments: a frame, a slotid, and a frame
+   Returns: 1 or 0
+   Returns 1 if there is a path through slotid between the two frames */
 int fd_pathp(lispval root,lispval slotid,lispval to)
 {
   struct FD_PATHPSTRUCT pathstruct;
@@ -343,11 +345,11 @@ static lispval multi_drop_method(lispval root,lispval slotid,lispval value)
         fd_decref(primary_slot);
         return FD_ERROR;}}
     {DO_CHOICES(subslotid,slotids) {
-      int probe = fd_frame_test(root,subslotid,value);
-      if (probe<0) return FD_ERROR;
-      else if (probe)
-        if (fd_frame_drop(root,subslotid,value)<0)
-          return FD_ERROR;}}
+        int probe = fd_frame_test(root,subslotid,value);
+        if (probe<0) return FD_ERROR;
+        else if (probe)
+          if (fd_frame_drop(root,subslotid,value)<0)
+            return FD_ERROR;}}
     fd_decref(slotids);
     return VOID;}
 }
@@ -363,7 +365,7 @@ static inline lispval getter(lispval f,lispval s)
 }
 
 static int kleene_get_helper
-  (struct FD_HASHSET *ht,lispval frames,lispval slotids)
+(struct FD_HASHSET *ht,lispval frames,lispval slotids)
 {
   DO_CHOICES(frame,frames) {
     int probe = fd_hashset_get(ht,frame);

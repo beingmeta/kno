@@ -74,7 +74,7 @@ suffix=""
 rpath=""
 daemon_identity_default="daemon"
 setup_target="setup-unix"
-extra_src=
+extra_sources=
 DREENTRANT="-D_REENTRANT"
 MKSTATIC="ld -r -o"
 TESTLIBS=
@@ -112,6 +112,7 @@ default_module_path=""
 default_safe_module_path=""
 module_path=""
 safe_module_path=""
+source_dir=""
 CMODULES=""
 INSTALLCMODULES=""
 DATAFILES="etc/version"
@@ -125,6 +126,7 @@ GPGID=${GPGID:-E5AFF294}
 GITDESCRIBE=""
 TAGS="TAGS SCHEMETAGS"
 LIBSCM="\${REVISION}"
+default_source_dir="\$prefix/src"
 default_config_dir="\$prefix/etc/framerd"
 local_config="\$prefix/etc/framerd"
 shared_config="\$prefix/etc/framerd"
@@ -245,6 +247,7 @@ AC_SUBST(config_dir)
 AC_SUBST(local_config)
 AC_SUBST(shared_config)
 AC_SUBST(data_dir)
+AC_SUBST(source_dir)
 AC_SUBST(apache_log_dir)
 AC_SUBST(apache_modules_dir)
 AC_SUBST(apache_conf_dir)
@@ -268,7 +271,7 @@ AC_SUBST(archflags)
 AC_SUBST(versionsh)
 AC_SUBST(definefileinfo)
 AC_SUBST(setup_target)
-AC_SUBST(extra_src)
+AC_SUBST(extra_sources)
 AC_SUBST(debugcflags)
 AC_SUBST(debugldflags)
 AC_SUBST(debuglibs)
@@ -388,7 +391,7 @@ TOUCHFILE=$with_touchfile
 AC_ARG_WITH(apxs,--with-apxs command,with_apxs=$withval,with_apxs=$APXS)
 APXS=$with_apxs
 
-AC_ARG_WITH(make-target,--with-make-target command,with_make_target=$withval,with_make_target=update)
+AC_ARG_WITH(make-target,--with-make-target default-target,with_make_target=$withval,with_make_target=update)
 DEFAULTMAKETARGET=$with_make_target
 
 AC_CANONICAL_HOST
@@ -507,9 +510,11 @@ if test $with_optlib != "none"; then
   LDFLAGS="$LDFLAGS -L$with_optlib"
 fi
 
-AC_ARG_WITH(extrasrc,--with-extrasrc Configure extra source directories for gdb,,with_extrasrc="none")
-if test $with_extrasrc != "none"; then
-   extra_src=${with_extrasrc};
+AC_ARG_WITH(sourcedir,--with-sourcedir source directory,source_dir=$withval,source_dir=$prefix/src)
+
+AC_ARG_WITH(extra_sources,--with-extra_sources Configure extra source directories for gdb,,with_extra_sources="none")
+if test $with_extra_sources != "none"; then
+   extra_sources=${with_extra_sources};
 fi
 
 AC_ARG_WITH(optdir,--with-optdir Use optional header/lib,,with_optdir="/opt/local")

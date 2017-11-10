@@ -86,6 +86,7 @@ APPLY_HEADERS=\
  include/framerd/lexenv.h  \
  include/framerd/ffi.h
 STORAGE_HEADERS=\
+ include/framerd/components/storage_layer.h	\
  include/framerd/streams.h			\
  include/framerd/storage.h			\
  include/framerd/pools.h			\

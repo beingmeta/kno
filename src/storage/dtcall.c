@@ -9,6 +9,8 @@
 #define _FILEINFO __FILE__
 #endif
 
+#include "framerd/components/storage_layer.h"
+
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/dtcall.h"
@@ -37,15 +39,15 @@ static lispval dteval_sock(u8_socket conn,lispval expr)
      fd_network_bufsize);
   out = fd_writebuf(stream);
   if (log_eval_request)
-    u8_log(LOG_DEBUG,"DTEVAL","On #%d: %q",conn,expr);
+    u8_logf(LOG_DEBUG,"DTEVAL","On #%d: %q",conn,expr);
   retval = fd_write_dtype(out,expr);
   if ((retval<0) || (fd_flush_stream(stream)<0)) {
     fd_close_stream(stream,FD_STREAM_FREEDATA|FD_STREAM_NOCLOSE);
     return FD_ERROR;}
   else response = fd_read_dtype(fd_readbuf(stream));
   if (log_eval_response)
-    u8_log(LOG_DEBUG,"DTEVAL","On #%d: REQUEST %q\n\t==>\t%q",
-           conn,response);
+    u8_logf(LOG_DEBUG,"DTEVAL","On #%d: REQUEST %q\n\t==>\t%q",
+            conn,response);
   fd_close_stream(stream,FD_STREAM_FREEDATA|FD_STREAM_NOCLOSE);
   return response;
 }
@@ -56,10 +58,10 @@ static lispval dteval_connpool(struct U8_CONNPOOL *cpool,lispval expr,int async)
   u8_socket conn = u8_get_connection(cpool);
   if (conn<0) return FD_ERROR;
   if (log_eval_request)
-    u8_log(LOG_DEBUG,"DTEVAL","On %s%s#%d: %q",
-           (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
-            (async)?(" (async) "):("")),
-           cpool->u8cp_id,conn,expr);
+    u8_logf(LOG_DEBUG,"DTEVAL","On %s%s#%d: %q",
+            (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
+             (async)?(" (async) "):("")),
+            cpool->u8cp_id,conn,expr);
   memset(&stream,0,sizeof(stream));
   fd_init_stream(&stream,cpool->u8cp_id,conn,
                  FD_STREAM_SOCKET,
@@ -79,27 +81,27 @@ static lispval dteval_connpool(struct U8_CONNPOOL *cpool,lispval expr,int async)
     stream.stream_flags |= FD_STREAM_DOSYNC;
     retval = fd_write_dtype(out,expr);}
   if ((retval<0)||(fd_flush_stream(&stream)<0)) {
-    u8_log(LOG_ERR,"DTEVAL","Error with request to %s%s#%d for: %q",
-           (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
-            (async)?(" (async) "):("")),
-           cpool->u8cp_id,conn,expr);
+    u8_logf(LOG_ERR,"DTEVAL","Error with request to %s%s#%d for: %q",
+            (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
+             (async)?(" (async) "):("")),
+            cpool->u8cp_id,conn,expr);
     fd_clear_errors(1);
-    u8_log(LOG_ERR,"DTEVAL","Reconnecting %s to %s for %q",
-           (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
-            (async)?(" (async) "):("")),
-           cpool->u8cp_id,expr);
+    u8_logf(LOG_ERR,"DTEVAL","Reconnecting %s to %s for %q",
+            (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
+             (async)?(" (async) "):("")),
+            cpool->u8cp_id,expr);
     if ((conn = u8_reconnect(cpool,conn))<0) {
-      u8_log(LOG_ERR,"DTEVAL","Reconnection %s failed to %s for %q",
-             (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
-              (async)?(" (async) "):("")),
-             cpool->u8cp_id,expr);
+      u8_logf(LOG_ERR,"DTEVAL","Reconnection %s failed to %s for %q",
+              (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
+               (async)?(" (async) "):("")),
+              cpool->u8cp_id,expr);
       u8_discard_connection(cpool,conn);
       return FD_ERROR;}
     else {
-      u8_log(LOG_ERR,"DTEVAL","Reconnected %s to %s#%d for %q",
-             (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
-              (async)?(" (async) "):("")),
-             cpool->u8cp_id,conn,expr);}
+      u8_logf(LOG_ERR,"DTEVAL","Reconnected %s to %s#%d for %q",
+              (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
+               (async)?(" (async) "):("")),
+              cpool->u8cp_id,conn,expr);}
     fd_flush_stream(&stream);}
   result = fd_read_dtype(fd_readbuf(&stream));
   if (FD_EQ(result,FD_EOD)) {
@@ -115,14 +117,14 @@ static lispval dteval_connpool(struct U8_CONNPOOL *cpool,lispval expr,int async)
       return fd_err(fd_UnexpectedEOD,"",NULL,expr);}}
   if (log_eval_response) {
     if (CONSP(result))
-      u8_log(LOG_DEBUG,"DTEVAL","On %s%s#%d ==> %hq",
-             (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
-            (async)?(" (async) "):("")),
-             cpool->u8cp_id,conn,FD_PTR_TYPE(result));
-    else u8_log(LOG_DEBUG,"DTEVAL","On %s%s#%d ==> %q",
-                (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
-                 (async)?(" (async) "):("")),
-                cpool->u8cp_id,conn,result);}
+      u8_logf(LOG_DEBUG,"DTEVAL","On %s%s#%d ==> %hq",
+              (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
+               (async)?(" (async) "):("")),
+              cpool->u8cp_id,conn,FD_PTR_TYPE(result));
+    else u8_logf(LOG_DEBUG,"DTEVAL","On %s%s#%d ==> %q",
+                 (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
+                  (async)?(" (async) "):("")),
+                 cpool->u8cp_id,conn,result);}
   fd_close_stream(&stream,FD_STREAM_FREEDATA);
   u8_return_connection(cpool,conn);
   return result;
@@ -155,12 +157,12 @@ FD_FASTOP lispval quote_lisp(lispval x,int dorefs,int doeval)
   else return x;
 }
 static lispval dtapply(struct U8_CONNPOOL *cp,int n,int dorefs,int doeval,
-                      lispval *args)
+                       lispval *args)
 {
   lispval request = NIL, result = VOID;
   n--; while (n>0) {
     request = fd_conspair(quote_lisp(args[n],dorefs,((doeval)&(1<<n))),
-                        request);
+                          request);
     n--;}
   if (dorefs) fd_incref(args[0]);
   request = fd_conspair(args[0],request);

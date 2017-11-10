@@ -1,5 +1,5 @@
 source @abs_top_srcdir@/etc/gdbinit
-directory @abs_top_srcdir@:@abs_top_srcdir@/../libu8:@abs_top_srcdir@../tagger:@abs_top_srcdir@/src/lisp:@abs_top_srcdir@/src/storage:@abs_top_srcdir@/src/drivers:@abs_top_srcdir@/src/apply:@abs_top_srcdir@/src/drivers:@abs_top_srcdir@/src/eval:@abs_top_srcdir@/src/prims:@abs_top_srcdir@/src/text:@abs_top_srcdir@/src/web:@abs_top_srcdir@/src/cmodules:@abs_top_srcdir@/include/framerd
+directory @abs_top_srcdir@:@abs_top_srcdir@/../libu8:@abs_top_srcdir@/../lingo:@extra_src@
 set env DYLD_LIBRARY_PATH @abs_top_srcdir@/lib
 set env LD_LIBRARY_PATH @abs_top_srcdir@/lib
 set env FD_DLOADPATH @abs_top_srcdir@/lib/framerd/%.@shared_suffix@

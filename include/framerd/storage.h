@@ -32,6 +32,7 @@ FD_EXPORT int fd_init_dbserv(void) FD_LIBINIT_FN;
 FD_EXPORT int fd_default_cache_level;
 FD_EXPORT int fd_oid_display_level;
 FD_EXPORT int fd_storage_loglevel;
+FD_EXPORT int *fd_storage_loglevel_ptr;
 FD_EXPORT int fd_prefetch;
 
 FD_EXPORT lispval fd_dbserv_module;
@@ -106,6 +107,9 @@ typedef enum FD_COMMIT_PHASE {
   fd_commit_start, fd_commit_save,
   fd_commit_rollback, fd_commit_finish,
   fd_commit_cleanup } fd_commit_phase;
+
+struct FD_COMMIT_TIMES {
+  double base, start, setup, save, finalize,  apply, cleanup; };
 
 /* IPEVAL stuff */
 

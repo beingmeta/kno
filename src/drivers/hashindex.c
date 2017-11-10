@@ -12,68 +12,69 @@
 #define NO_ELSE {}
 
 /* Notes:
-    A normal 32-bit hash index with N buckets consists of 256 bytes of
-    header, followed by N*8 bytes of offset table, followed by an arbitrary
-    number of "data blocks", each starting with a zint-encoded byte,
-    count and a zint-encoded element count;
+   A normal 32-bit hash index with N buckets consists of 256 bytes of
+   header, followed by N*8 bytes of offset table, followed by an arbitrary
+   number of "data blocks", each starting with a zint-encoded byte,
+   count and a zint-encoded element count;
 
-    The header consists of: a 4-byte magic number (identifying the file
-    type), a 4-byte number indicating the number of buckets, 1 byte
-    indicating the "hash function" for the bucket and 3 bytes indicating
-    other flags and followed by a 4 byte number reserved for customizing
-    the hash function. This is followed by a 4 byte offset and a 4 byte
-    size pointing to a DTYPE representation for the index's metadata.
-    Following this are
+   The header consists of: a 4-byte magic number (identifying the file
+   type), a 4-byte number indicating the number of buckets, 1 byte
+   indicating the "hash function" for the bucket and 3 bytes indicating
+   other flags and followed by a 4 byte number reserved for customizing
+   the hash function. This is followed by a 4 byte offset and a 4 byte
+   size pointing to a DTYPE representation for the index's metadata.
+   Following this are
 
-0x00     XXXX    4-byte magic number
-0x04     XXXX    number of buckets
-0x08     XXXX    flags, including hash function identifier
-0x0C     XXXX    hash function constant
-0x10     XXXX    number of keys
-0x14     XXXX    file offset of slotids vector
-0x18     XXXX     (64 bits)
-0x1C     XXXX    size of slotids DTYPE representation
-0x20     XXXX    file offset of baseoids vector
-0x28     XXXX     (64 bits)
-0x2C     XXXX    size of baseoids DTYPE representation
-0x30     XXXX    file offset of index metadata
-0x34     XXXX     (64 bits)
-0x38     XXXX    size of metadata DTYPE representation
-0x3C     XXXX    number of used buckets
-0x40     XXXX    number of keyblocks
-0x44     XXXX     (64 bits)
-0x48     XXXX    number of value blocks
-0x4C     XXXX     (64 bits)
-0x80     XXXX    reserved for future use
-         ....
-0xEA     XXXX    end of valid data
-0xEC     XXXX     (64 bits)
-0x100    XXXX    beginning of offsets table
+   0x00     XXXX    4-byte magic number
+   0x04     XXXX    number of buckets
+   0x08     XXXX    flags, including hash function identifier
+   0x0C     XXXX    hash function constant
+   0x10     XXXX    number of keys
+   0x14     XXXX    file offset of slotids vector
+   0x18     XXXX     (64 bits)
+   0x1C     XXXX    size of slotids DTYPE representation
+   0x20     XXXX    file offset of baseoids vector
+   0x28     XXXX     (64 bits)
+   0x2C     XXXX    size of baseoids DTYPE representation
+   0x30     XXXX    file offset of index metadata
+   0x34     XXXX     (64 bits)
+   0x38     XXXX    size of metadata DTYPE representation
+   0x3C     XXXX    number of used buckets
+   0x40     XXXX    number of keyblocks
+   0x44     XXXX     (64 bits)
+   0x48     XXXX    number of value blocks
+   0x4C     XXXX     (64 bits)
+   0x80     XXXX    reserved for future use
+   ....
+   0xEA     XXXX    end of valid data
+   0xEC     XXXX     (64 bits)
+   0x100    XXXX    beginning of offsets table
 
-    There are two basic kinds of data blocks: key blocks and value
-    blocks.  Continuation offsets are not currently supported for key
-    blocks.  A value block consists of a byte count, an element count
-    (N), and a (possibly zero) continuation pointer, followed by N
-    "zvalue" dtype representations.  A key block consists of a
-    byte_count, an element_count, and a number of key entries.  A key
-    entry consists of a zint-coded size (in bytes) followed by a zkey
-    dtype representation, followed by a zint value_count.  If the
-    value_count is zero, the entry ends, if it is one, it is followed
-    by a single zvalue dtype.  Otherwise, it is followed by a 4 byte
-    file offset to a value block and a zint coded block size.
+   There are two basic kinds of data blocks: key blocks and value
+   blocks.  Continuation offsets are not currently supported for key
+   blocks.  A value block consists of a byte count, an element count
+   (N), and a (possibly zero) continuation pointer, followed by N
+   "zvalue" dtype representations.  A key block consists of a
+   byte_count, an element_count, and a number of key entries.  A key
+   entry consists of a zint-coded size (in bytes) followed by a zkey
+   dtype representation, followed by a zint value_count.  If the
+   value_count is zero, the entry ends, if it is one, it is followed
+   by a single zvalue dtype.  Otherwise, it is followed by a 4 byte
+   file offset to a value block and a zint coded block size.
 
-    A zvalue dtype representation consists of a zint encoded OID serial
-    number.  If this is zero, it is followed by a regular DTYPE representation.
-    Otherwise, it is followed by three bytes of OID offset which are added
-    to the base OID associated with the serial number.
+   A zvalue dtype representation consists of a zint encoded OID serial
+   number.  If this is zero, it is followed by a regular DTYPE representation.
+   Otherwise, it is followed by three bytes of OID offset which are added
+   to the base OID associated with the serial number.
 
-    A zkey dtype representation consists of a zint encoded SLOTID
-    serial number followed by a regular DTYPE representation.  If the
-    serial number is zero, the key is the following DTYPE; otherwise,
-    the key is a pair of the corresponding SLOTID and the following
-    DTYPE.
+   A zkey dtype representation consists of a zint encoded SLOTID
+   serial number followed by a regular DTYPE representation.  If the
+   serial number is zero, the key is the following DTYPE; otherwise,
+   the key is a pair of the corresponding SLOTID and the following
+   DTYPE.
 */
 
+#include "framerd/components/storage_layer.h"
 #define FD_INLINE_BUFIO 1
 #define FD_INLINE_CHOICES 1
 #define FD_FAST_CHOICE_CONTAINSP 1
@@ -128,16 +129,16 @@
 
 #if FD_DEBUG_HASHINDEXES
 #define CHECK_POS(pos,stream)                                      \
-  if ((pos)!=(fd_getpos(stream)))                                  \
-    u8_log(LOG_CRIT,"FILEPOS error","position mismatch %ld/%ld",   \
-           pos,fd_getpos(stream));                                 \
+  if ((pos)!=(fd_getpos(stream)))                                   \
+    u8_logf(LOG_CRIT,"FILEPOS error","position mismatch %ld/%ld",   \
+            pos,fd_getpos(stream));                                 \
   else {}
-#define CHECK_ENDPOS(pos,stream)                                      \
-  { ssize_t curpos = fd_getpos(stream), endpos = fd_endpos(stream);       \
-    if (((pos)!=(curpos)) && ((pos)!=(endpos)))                       \
-      u8_log(LOG_CRIT,"ENDPOS error","position mismatch %ld/%ld/%ld", \
-             pos,curpos,endpos);                                      \
-    else {}                                                           \
+#define CHECK_ENDPOS(pos,stream)                                        \
+  { ssize_t curpos = fd_getpos(stream), endpos = fd_endpos(stream);     \
+    if (((pos)!=(curpos)) && ((pos)!=(endpos)))                         \
+      u8_logf(LOG_CRIT,"ENDPOS error","position mismatch %ld/%ld/%ld",  \
+              pos,curpos,endpos);                                       \
+    else {}                                                             \
   }
 #else
 #define CHECK_POS(pos,stream)
@@ -184,11 +185,11 @@ static lispval slotids_symbol, baseoids_symbol, buckets_symbol, nkeys_symbol;
 #define nobytes(in,nbytes) (PRED_FALSE(!(fd_request_bytes(in,nbytes))))
 #define havebytes(in,nbytes) (PRED_TRUE(fd_request_bytes(in,nbytes)))
 
-#define output_byte(out,b) \
+#define output_byte(out,b)                              \
   if (fd_write_byte(out,b)<0) return -1; else {}
-#define output_4bytes(out,w) \
+#define output_4bytes(out,w)                            \
   if (fd_write_4bytes(out,w)<0) return -1; else {}
-#define output_bytes(out,bytes,n) \
+#define output_bytes(out,bytes,n)                       \
   if (fd_write_bytes(out,bytes,n)<0) return -1; else {}
 
 /* Getting chunk refs */
@@ -214,9 +215,9 @@ FD_FASTOP lispval read_dtype_at_pos(fd_stream s,fd_off_t off)
 /* Opening a hash index */
 
 static int init_slotids
-  (struct FD_HASHINDEX *hx,int n_slotids,lispval *slotids_init);
+(struct FD_HASHINDEX *hx,int n_slotids,lispval *slotids_init);
 static int init_baseoids
-  (struct FD_HASHINDEX *hx,int n_baseoids,lispval *baseoids_init);
+(struct FD_HASHINDEX *hx,int n_baseoids,lispval *baseoids_init);
 
 static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
                                lispval opts)
@@ -339,7 +340,7 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
                 FD_INT(metadata_loc));
       metadata=FD_ERROR_VALUE;}
     if (! ( (FD_FALSEP(metadata)) || (FD_SLOTMAPP(metadata)) ) ) {
-      u8_log(LOGWARN,"BadMetaData","Ignoring bad metadata stored for %s",fname);
+      u8_logf(LOGWARN,"BadMetaData","Ignoring bad metadata stored for %s",fname);
       metadata=FD_FALSE;}}
   if (FD_SLOTMAPP(metadata)) {
     struct FD_SLOTMAP *from_struct = &(index->index_metadata);
@@ -366,9 +367,9 @@ static fd_index recover_hashindex(u8_string fname,fd_storage_flags open_flags,
       u8_graberrno("recover_hashindex",recovery_file);
       return NULL;}
     else if (rv == 0)
-      u8_log(LOGCRIT,"Corrupted hashindex",
-             "The hashindex file %s has a corrupted recovery file %s",
-             fname,recovery_file);
+      u8_logf(LOGCRIT,"Corrupted hashindex",
+              "The hashindex file %s has a corrupted recovery file %s",
+              fname,recovery_file);
     else {
       fd_index opened = open_hashindex(fname,open_flags,opts);
       if (opened) {
@@ -379,12 +380,12 @@ static fd_index recover_hashindex(u8_string fname,fd_storage_flags open_flags,
         fd_seterr("RecoveryFailed","recover_hashindex",fname,FD_VOID);
         return NULL;}
       else {
-        u8_log(LOGERR,"RecoveryFailed",
-               "Recovering %s using %s failed",fname,recovery_file);
+        u8_logf(LOGERR,"RecoveryFailed",
+                "Recovering %s using %s failed",fname,recovery_file);
         u8_removefile(recovery_file);}}}
-  else u8_log(LOGCRIT,"Corrupted hashindex",
-              "The hashindex file %s doesn't have a recovery file %s",
-              fname,recovery_file);
+  else u8_logf(LOGCRIT,"Corrupted hashindex",
+               "The hashindex file %s doesn't have a recovery file %s",
+               fname,recovery_file);
   if (fd_testopt(opts,fd_intern("FIXUP"),FD_VOID)) {
     char *src = u8_tolibc(fname);
     FD_DECL_OUTBUF(headbuf,256);
@@ -493,9 +494,9 @@ FD_EXPORT int make_hashindex
   if (n_buckets_arg<0) n_buckets = -n_buckets_arg;
   else n_buckets = fd_get_hashtable_size(n_buckets_arg);
 
-  u8_log(LOG_INFO,"CreateHashIndex",
-         "Creating a hashindex '%s' with %ld buckets",
-         fname,n_buckets);
+  u8_logf(LOG_INFO,"CreateHashIndex",
+          "Creating a hashindex '%s' with %ld buckets",
+          fname,n_buckets);
 
   fd_setpos(stream,0);
   fd_write_4bytes(outstream,FD_HASHINDEX_MAGIC_NUMBER);
@@ -633,7 +634,7 @@ FD_FASTOP int get_slotid_index(fd_hashindex hx,lispval slotid)
     else if (slotid<middle->slotid) {
       top = middle-1; middle = bottom+(top-bottom)/2;}
     else {
-        bottom = middle+1; middle = bottom+(top-bottom)/2;}
+      bottom = middle+1; middle = bottom+(top-bottom)/2;}
     if ((middle) && (middle<hard_top) && (slotid == middle->slotid))
       return middle->zindex;}
   return -1;
@@ -998,10 +999,10 @@ static lispval read_values
     fd_decref_ptr(result);
     return FD_ERROR;}
   else if (n_read != n_values) {
-    u8_log(LOGWARN,"InconsistentValueSize",
-           "In '%s', the number of stored values "
-           "for %q, %lld != %lld (expected)",
-           hx->indexid,key,n_read,n_values);
+    u8_logf(LOGWARN,"InconsistentValueSize",
+            "In '%s', the number of stored values "
+            "for %q, %lld != %lld (expected)",
+            hx->indexid,key,n_read,n_values);
     /* This makes freeing the pointer work */
     result->choice_size=n_read;
     fd_seterr("InconsistentValueSize","read_values",NULL,key);
@@ -1068,7 +1069,7 @@ static int hashindex_fetchsize(fd_index ix,lispval key)
   return 0;
 }
 
-
+
 /* Fetching multiple keys */
 
 static int sort_ks_by_bucket(const void *k1,const void *k2)
@@ -1150,8 +1151,8 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
     lispval key = keys[i];
     int dt_start = keysbuf.bufwrite-keysbuf.buffer;
     int dt_size, bucket;
-   /* If the index doesn't have oddkeys and you're looking up some feature (pair)
-     whose slotid isn't in the slotids, the key isn't in the table. */
+    /* If the index doesn't have oddkeys and you're looking up some feature (pair)
+       whose slotid isn't in the slotids, the key isn't in the table. */
     if ((!oddkeys) && (PAIRP(key))) {
       lispval slotid = FD_CAR(key);
       if (((SYMBOLP(slotid)) || (OIDP(slotid))) &&
@@ -1331,10 +1332,10 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
             struct FD_CHOICE *result = (struct FD_CHOICE *)values[index];
             int n_values = result->choice_size;
             lispval realv = fd_init_choice(result,n_values,NULL,
-                                          FD_CHOICE_DOSORT|
-                                          ((atomicp)?(FD_CHOICE_ISATOMIC):
-                                           (FD_CHOICE_ISCONSES))|
-                                          FD_CHOICE_REALLOC);
+                                           FD_CHOICE_DOSORT|
+                                           ((atomicp)?(FD_CHOICE_ISATOMIC):
+                                            (FD_CHOICE_ISCONSES))|
+                                           FD_CHOICE_REALLOC);
             values[index]=realv;
             read++;}}}}
     fd_close_inbuf(&vblock);
@@ -1353,7 +1354,7 @@ static lispval *hashindex_fetchn(fd_index ix,int n,const lispval *keys)
   return fetchn((fd_hashindex)ix,n,keys);
 }
 
-
+
 /* Getting all keys */
 
 static int sort_blockrefs_by_off(const void *v1,const void *v2)
@@ -1402,8 +1403,8 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
         fd_get_chunk_ref(offdata,offtype,i,hx->index_n_buckets);
       if (ref.size>0) {
         if (n_to_fetch >= buckets_len) {
-          u8_log(LOGWARN,"BadKeyCount",
-                 "Bad key count in %s: %d",ix->indexid,total_keys);
+          u8_logf(LOGWARN,"BadKeyCount",
+                  "Bad key count in %s: %d",ix->indexid,total_keys);
           buckets=u8_big_realloc_n(buckets,n_buckets,FD_CHUNK_REF);
           buckets_len=n_buckets;}
         buckets[n_to_fetch++]=ref;}
@@ -1413,8 +1414,8 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
       FD_CHUNK_REF ref = fd_fetch_chunk_ref(s,256,offtype,i,1);
       if (ref.size>0) {
         if (n_to_fetch >= buckets_len) {
-          u8_log(LOGWARN,"BadKeyCount",
-                 "Bad key count in %s: %d",ix->indexid,total_keys);
+          u8_logf(LOGWARN,"BadKeyCount",
+                  "Bad key count in %s: %d",ix->indexid,total_keys);
           buckets=u8_big_realloc_n(buckets,n_buckets,FD_CHUNK_REF);
           buckets_len=n_buckets;}
         buckets[n_to_fetch++]=ref;}
@@ -1502,8 +1503,8 @@ struct FD_KEY_SIZE *hashindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
       FD_CHUNK_REF ref = fd_fetch_chunk_ref(s,256,offtype,i,1);
       if (ref.size>0) {
         if (n_to_fetch >= buckets_len) {
-          u8_log(LOGWARN,"BadKeyCount",
-                 "Bad key count in %s: %d",ix->indexid,total_keys);
+          u8_logf(LOGWARN,"BadKeyCount",
+                  "Bad key count in %s: %d",ix->indexid,total_keys);
           buckets=u8_realloc_n(buckets,n_buckets,FD_CHUNK_REF);
           buckets_len=n_buckets;}
         buckets[n_to_fetch++]=ref;}
@@ -1516,8 +1517,8 @@ struct FD_KEY_SIZE *hashindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
         (offdata,offtype,ref_i,hx->index_n_buckets);
       if (ref.size>0) {
         if (n_to_fetch >= buckets_len) {
-          u8_log(LOGWARN,"BadKeyCount",
-                 "Bad key count in %s: %d",ix->indexid,total_keys);
+          u8_logf(LOGWARN,"BadKeyCount",
+                  "Bad key count in %s: %d",ix->indexid,total_keys);
           /* Allocate the whole n_buckets if something goes wrong */
           buckets = u8_big_realloc_n(buckets,n_buckets,FD_CHUNK_REF);
           sizes   = u8_big_realloc_n(sizes,n_buckets,FD_KEY_SIZE);
@@ -1564,7 +1565,7 @@ struct FD_KEY_SIZE *hashindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
 }
 
 static void hashindex_getstats(struct FD_HASHINDEX *hx,
-                                int *nf,int *max,int *singles,int *n2sum)
+                               int *nf,int *max,int *singles,int *n2sum)
 {
   fd_stream s = &(hx->index_stream);
   fd_inbuf ins = fd_readbuf(s);
@@ -1591,8 +1592,8 @@ static void hashindex_getstats(struct FD_HASHINDEX *hx,
         fd_get_chunk_ref(offdata,offtype,i,hx->index_n_buckets);
       if (ref.size>0) {
         if (n_to_fetch >= buckets_len) {
-          u8_log(LOGWARN,"BadKeyCount",
-                 "Bad key count in %s: %d",hx->indexid,total_keys);
+          u8_logf(LOGWARN,"BadKeyCount",
+                  "Bad key count in %s: %d",hx->indexid,total_keys);
           buckets=u8_realloc_n(buckets,n_buckets,FD_CHUNK_REF);
           buckets_len=n_buckets;}
         buckets[n_to_fetch++]=ref;}
@@ -1623,15 +1624,15 @@ static void hashindex_getstats(struct FD_HASHINDEX *hx,
   if (buckets) u8_big_free(buckets);
 }
 
-
+
 /* Cache setting */
 
 static void hashindex_setcache(struct FD_HASHINDEX *hx,int level)
 {
   int chunk_ref_size = get_chunk_ref_size(hx);
   if (chunk_ref_size<0) {
-    u8_log(LOG_WARN,fd_CorruptedIndex,
-           "Index structure invalid: %s",hx->indexid);
+    u8_logf(LOG_WARN,fd_CorruptedIndex,
+            "Index structure invalid: %s",hx->indexid);
     return;}
   fd_stream stream = &(hx->index_stream);
   size_t bufsize  = fd_stream_bufsize(stream);
@@ -1653,8 +1654,8 @@ static void hashindex_setcache(struct FD_HASHINDEX *hx,int level)
         mmap(NULL,(n_buckets*chunk_ref_size)+256,
              PROT_READ,MMAP_FLAGS,s->stream_fileno,0);
       if ((newmmap == NULL) || (newmmap == MAP_FAILED)) {
-        u8_log(LOG_WARN,u8_strerror(errno),
-               "hashindex_setcache:mmap %s",hx->index_source);
+        u8_logf(LOG_WARN,u8_strerror(errno),
+                "hashindex_setcache:mmap %s",hx->index_source);
         hx->index_offdata = NULL;
         errno = 0;}
       else hx->index_offdata = buckets = newmmap+64;
@@ -1667,8 +1668,8 @@ static void hashindex_setcache(struct FD_HASHINDEX *hx,int level)
       retval = fd_read_ints
         (s,(chunk_ref_size/4)*(hx->index_n_buckets),ht_buckets);
       if (retval<0) {
-        u8_log(LOG_WARN,u8_strerror(errno),
-               "hashindex_setcache:read offsets %s",hx->index_source);
+        u8_logf(LOG_WARN,u8_strerror(errno),
+                "hashindex_setcache:read offsets %s",hx->index_source);
         errno = 0;}
       else hx->index_offdata = ht_buckets;
       fd_unlock_stream(s);
@@ -1687,8 +1688,8 @@ static void hashindex_setcache(struct FD_HASHINDEX *hx,int level)
 #if HAVE_MMAP
     retval = munmap(offdata-64,((hx->index_n_buckets)*chunk_ref_size)+256);
     if (retval<0) {
-      u8_log(LOG_WARN,u8_strerror(errno),
-             "hashindex_setcache:munmap %s",hx->index_source);
+      u8_logf(LOG_WARN,u8_strerror(errno),
+              "hashindex_setcache:munmap %s",hx->index_source);
       errno = 0;}
 #else
     u8_big_free(offdata);
@@ -1697,7 +1698,7 @@ static void hashindex_setcache(struct FD_HASHINDEX *hx,int level)
   else {}
 }
 
-
+
 /* Populating a hash index
    This writes data into the hashtable but ignores what is already there.
    It is commonly used when initializing a hash index. */
@@ -1720,7 +1721,7 @@ static int sort_br_by_off(const void *p1,const void *p2)
   else return 0;
 }
 
-
+
 /* COMMIT */
 
 /* General design:
@@ -2069,9 +2070,9 @@ FD_FASTOP fd_off_t extend_keybucket
                               ke[key_i].ke_vref.off,ke[key_i].ke_vref.size,
                               endpos);
           if (ke[key_i].ke_values!=VOID)
-            u8_log(LOGWARN,"NotVoid",
-                   "This value for key %d is %q, not VOID as expected",
-                   key_i,ke[key_i].ke_values);
+            u8_logf(LOGWARN,"NotVoid",
+                    "This value for key %d is %q, not VOID as expected",
+                    key_i,ke[key_i].ke_values);
           endpos = ke[key_i].ke_vref.off+ke[key_i].ke_vref.size;}
         if (endpos>=maxpos) {
           if (free_keyvecs) {
@@ -2179,18 +2180,22 @@ FD_FASTOP struct KEYBUCKET *read_keybucket
 }
 
 static int update_hashindex_ondisk
-  (fd_hashindex hx,unsigned int flags,unsigned int new_keys,
-   unsigned int changed_buckets,struct BUCKET_REF *bucket_locs,
-   struct FD_STREAM *stream);
-static int update_hashindex_metadata(fd_hashindex hx,struct FD_STREAM *stream);
+(fd_hashindex hx,lispval metadata,
+ unsigned int flags,unsigned int new_keys,
+ unsigned int changed_buckets,struct BUCKET_REF *bucket_locs,
+ struct FD_STREAM *stream,
+ struct FD_STREAM *head);
+static int update_hashindex_metadata(fd_hashindex,lispval,fd_stream,fd_stream);
 
 static void free_keybuckets(int n,struct KEYBUCKET **keybuckets);
 
 static int hashindex_save(struct FD_INDEX *ix,
-                            struct FD_CONST_KEYVAL *adds,int n_adds,
-                            struct FD_CONST_KEYVAL *drops,int n_drops,
-                            struct FD_CONST_KEYVAL *stores,int n_stores,
-                            lispval changed_metadata)
+                          struct FD_STREAM *stream,
+                          struct FD_STREAM *head,
+                          struct FD_CONST_KEYVAL *adds,int n_adds,
+                          struct FD_CONST_KEYVAL *drops,int n_drops,
+                          struct FD_CONST_KEYVAL *stores,int n_stores,
+                          lispval changed_metadata)
 {
   struct FD_HASHINDEX *hx = (struct FD_HASHINDEX *)ix;
   u8_string fname=hx->index_source;
@@ -2198,40 +2203,21 @@ static int hashindex_save(struct FD_INDEX *ix,
     fd_seterr("CantWriteFile","hashindex_save",fname,FD_VOID);
     return -1;}
   fd_lock_index(hx);
-  struct FD_STREAM _stream = {0}, *stream =
-    fd_init_file_stream(&_stream,fname,FD_FILE_WRITE,-1,-1);
   struct FD_OUTBUF *outstream = fd_writebuf(stream);
   struct BUCKET_REF *bucket_locs;
   fd_offset_type offtype = hx->index_offtype;
   if (!((offtype == FD_B32)||(offtype = FD_B40)||(offtype = FD_B64))) {
-    u8_log(LOG_WARN,"Corrupted hashindex (in memory)",
-           "Bad offset type code=%d for %s",(int)offtype,hx->indexid);
+    u8_logf(LOG_WARN,"Corrupted hashindex (in memory)",
+            "Bad offset type code=%d for %s",(int)offtype,hx->indexid);
     u8_seterr("CorruptedHashIndex","hashindex_save",u8_strdup(ix->indexid));
-    fd_close_stream(stream,0);
     fd_unlock_index(hx);
     return -1;}
 
   if (  (n_adds==0) && (n_drops==0) && (n_stores==0) ) {
-    if (fd_modifiedp((lispval)&(hx->index_metadata)))
-      update_hashindex_metadata(hx,stream);
-    fd_close_stream(stream,FD_STREAM_FREEDATA);
+    if (FD_SLOTMAPP(changed_metadata))
+      update_hashindex_metadata(hx,changed_metadata,stream,head);
     fd_unlock_index(hx);
     return 0;}
-
-  u8_string recovery_file=u8_string_append(fname,".rollback",NULL);
-  size_t recovery_size = 256+(get_chunk_ref_size(hx)*hx->index_n_buckets);
-  ssize_t saved=fd_save_head(fname,recovery_file,recovery_size);
-  if (saved<0) {
-    u8_seterr("CouldntSaveHead","hashindex_commit",recovery_file);
-    return saved;}
-  else {
-    fd_setpos(stream,0);
-    if (fd_write_4bytes(outstream,FD_HASHINDEX_MAGIC_NUMBER)<0) { /* FD_HASHINDEX_TO_RECOVER */
-      fd_close_stream(stream,FD_STREAM_FREEDATA);
-      fd_unlock_index(hx);
-      u8_seterr("PreRecoverFailed","hashindex_commit",
-                u8_strdup("Failed to write recovery header"));
-      return -1;}}
 
   int new_keys = 0, n_keys, new_buckets = 0;
   int schedule_max, changed_buckets = 0, total_keys = hx->table_n_keys;
@@ -2381,55 +2367,98 @@ static int hashindex_save(struct FD_INDEX *ix,
   total_keys += new_keys;
   hx->table_n_keys = total_keys;
 
-  if (update_hashindex_ondisk
-      (hx,hx->storage_xformat,total_keys,changed_buckets,bucket_locs,
-       stream) >= 0) {
-    if (u8_file_existsp(recovery_file))
-      u8_removefile(recovery_file);
-    u8_free(recovery_file);}
+  int final_rv = update_hashindex_ondisk
+    (hx,changed_metadata,
+     hx->storage_xformat,total_keys,
+     changed_buckets,bucket_locs,
+     stream,head);
 
   /* Free the bucket locations */
   u8_big_free(bucket_locs);
-  /* And unlock all the locks. */
-  fd_close_stream(stream,FD_STREAM_FREEDATA);
+  /* And unlock the index */
   fd_unlock_index(hx);
 
-  u8_log(fd_storage_loglevel+1,"HashIndexCommit",
-         "Saved mappings for %d keys (%d/%d new/total) to %s in %f secs",
-         n_keys,new_keys,total_keys,
-         ix->indexid,u8_elapsed_time()-started);
+  if (final_rv < 0)
+    u8_logf(LOG_ERR,"HashIndexCommit",
+            "Saving header information failed");
+  else u8_logf(LOG_INFO,"HashIndexCommit",
+               "Saved mappings for %d keys (%d/%d new/total) to %s in %f secs",
+               n_keys,new_keys,total_keys,
+               ix->indexid,u8_elapsed_time()-started);
 
-  return n_keys;
+  if (final_rv<0)
+    return final_rv;
+  else return n_keys;
+}
+
+static fd_stream get_commit_stream(fd_index ix,struct FD_INDEX_COMMITS *commit)
+{
+  if (commit->commit_stream)
+    return commit->commit_stream;
+  else if (u8_file_writablep(ix->index_source)) {
+    struct FD_STREAM *new_stream =
+      fd_init_file_stream(NULL,ix->index_source,FD_FILE_MODIFY,-1,-1);
+    /* Lock the file descriptor */
+    if (fd_streamctl(new_stream,fd_stream_lockfile,NULL)<0) {
+      fd_close_stream(new_stream,FD_STREAM_FREEDATA);
+      u8_free(new_stream);
+      fd_seterr("CantLockFile","get_commit_stream/hashindex",
+                ix->index_source,FD_VOID);
+      return NULL;}
+    commit->commit_stream = new_stream;
+    return new_stream;}
+  else {
+    fd_seterr("CantWriteFile","get_commit_stream/hashindex",
+              ix->index_source,FD_VOID);
+    return NULL;}
+}
+
+static void release_commit_stream(fd_index ix,struct FD_INDEX_COMMITS *commit)
+{
+  fd_stream stream = commit->commit_stream;
+  if (stream == NULL) return;
+  else commit->commit_stream=NULL;
+  if (fd_streamctl(stream,fd_stream_unlockfile,NULL)<0)
+    u8_logf(LOG_WARN,"CantUnLockFile",
+            "For commit stream of hashindex %s",ix->indexid);
+  fd_close_stream(stream,FD_STREAM_FREEDATA);
+  u8_free(stream);
 }
 
 static int hashindex_commit(fd_index ix,fd_commit_phase phase,
-                            struct FD_INDEX_COMMITS *commit)
+                            struct FD_INDEX_COMMITS *commits)
 {
   struct FD_HASHINDEX *hx = (fd_hashindex) ix;
   int ref_size = get_chunk_ref_size(hx);
+  fd_stream stream = get_commit_stream(ix,commits);
+  u8_string source = ix->index_source;
+  if (stream == NULL)
+    return -1;
   switch (phase) {
+  case fd_no_commit:
+    u8_seterr("BadCommitPhase(commit_none)","hashindex_commit",
+              u8_strdup(ix->indexid));
+    return -1;
   case fd_commit_start: {
-    u8_string source = hx->index_source;
-    int lock_rv = fd_streamctl(&(hx->index_stream),fd_stream_lockfile,NULL);
-    if (lock_rv <= 0) {
-      u8_graberrno("hashindex_commit",u8_strdup(source));
-      return -1;}
     u8_string rollback_file = u8_string_append(source,".rollback",NULL);
     size_t rollback_size = 256+(ref_size*hx->index_n_buckets);
     int rv = fd_save_head(source,rollback_file,rollback_size);
     u8_free(rollback_file);
     return rv;}
   case fd_commit_save: {
-    return hashindex_save(ix,
-                          (struct FD_CONST_KEYVAL *)commit->commit_adds,
-                          commit->commit_n_adds,
-                          (struct FD_CONST_KEYVAL *)commit->commit_drops,
-                          commit->commit_n_drops,
-                          (struct FD_CONST_KEYVAL *)commit->commit_stores,
-                          commit->commit_n_stores,
-                          commit->commit_metadata);}
-  case fd_commit_finish:
-    return 0;
+    size_t recovery_size = 256+(ref_size*hx->index_n_buckets);
+    u8_string commit_file = u8_mkstring("%s.commit",source);
+    int head_saved = fd_save_head(source,commit_file,recovery_size);
+    struct FD_STREAM *head_stream = (head_saved>=0) ?
+      (fd_init_file_stream(NULL,commit_file,FD_FILE_MODIFY,-1,-1)) :
+      (NULL);
+    u8_free(commit_file);
+    return hashindex_save
+      (ix,stream,head_stream,
+       (struct FD_CONST_KEYVAL *)commits->commit_adds,commits->commit_n_adds,
+       (struct FD_CONST_KEYVAL *)commits->commit_drops,commits->commit_n_drops,
+       (struct FD_CONST_KEYVAL *)commits->commit_stores,commits->commit_n_stores,
+       commits->commit_metadata);}
   case fd_commit_rollback: {
     u8_string source = ix->index_source;
     u8_string rollback_file = u8_string_append(source,".rollback",NULL);
@@ -2438,30 +2467,31 @@ static int hashindex_commit(fd_index ix,fd_commit_phase phase,
       u8_free(rollback_file);
       return rv;}
     else {
-      u8_log(LOG_CRIT,"NoRollbackFile",
-             "The rollback file %s for %s doesn't exist",
-             rollback_file,ix->indexid);
+      u8_logf(LOG_CRIT,"NoRollbackFile",
+              "The rollback file %s for %s doesn't exist",
+              rollback_file,ix->indexid);
       u8_free(rollback_file);
       return -1;}}
+  case fd_commit_finish: {
+    u8_string commit_file = u8_mkstring("%s.commit",source);
+    int rv = fd_apply_head(source,commit_file,-1);
+    u8_free(commit_file);
+    return rv;}
   case fd_commit_cleanup: {
     u8_string source = ix->index_source;
-    int unlock_rv = fd_streamctl(&(hx->index_stream),fd_stream_unlockfile,NULL);
-    if (unlock_rv <= 0) {
-      int saved_errno = errno; errno=0;
-      u8_log(LOG_CRIT,"UnlockFailed",
-             "Couldn't unlock %s for hashindex %s errno=%d:%s",
-             source,hx->indexid,saved_errno,u8_strerror(saved_errno));}
+    if (commits->commit_stream) release_commit_stream(ix,commits);
     u8_string rollback_file = u8_string_append(source,".rollback",NULL);
     if (u8_file_existsp(rollback_file))
       return u8_removefile(rollback_file);
     else {
-      u8_log(LOGWARN,"Rollback file %s was deleted",rollback_file);
+      u8_logf(LOGWARN,"MissingRollbackFile",
+              "Rollback file %s was deleted",rollback_file);
       u8_free(rollback_file);
-      return -1;}}
+      return 0;}}
   default: {
-    u8_log(LOG_WARN,"NoPhasedCommit",
-           "The index %s doesn't support phased commits",
-           ix->indexid);
+    u8_logf(LOG_WARN,"NoPhasedCommit",
+            "The index %s doesn't support phased commits",
+            ix->indexid);
     return -1;}
   }
 }
@@ -2478,42 +2508,45 @@ static void free_keybuckets(int n,struct KEYBUCKET **keybuckets)
   u8_big_free(keybuckets);
 }
 
-static int update_hashindex_metadata(fd_hashindex hx,struct FD_STREAM *stream)
+static int update_hashindex_metadata(fd_hashindex hx,
+                                     lispval metadata,
+                                     struct FD_STREAM *stream,
+                                     struct FD_STREAM *head)
 {
-  if (fd_modifiedp((lispval)&(hx->index_metadata))) {
-    int error=0;
-    u8_log(LOGWARN,"WriteMetadata","Writing modified metadata for %s",hx->indexid);
-    lispval metadata = (lispval) (&(hx->index_metadata));
-    ssize_t metadata_pos = fd_endpos(stream);
-    if (metadata_pos>0) {
-      fd_outbuf outbuf = fd_writebuf(stream);
-      ssize_t new_metadata_size = fd_write_dtype(outbuf,metadata);
-      ssize_t metadata_end = fd_getpos(stream);
-      if (new_metadata_size<0)
-        error=1;
-      else {
-        if ((metadata_end-metadata_pos) != new_metadata_size) {
-          u8_log(LOGCRIT,"MetadataSizeIconsistency",
-                 "There was an inconsistency writing the metadata for %s",
-                 hx->indexid);}
-        fd_write_8bytes_at(stream,metadata_pos,0x30);
-        fd_write_4bytes_at(stream,metadata_end-metadata_pos,0x38);}}
-    else error=1;
-    if (error)
-      u8_log(LOGCRIT,"MetaDataWriteError",
-             "There was an inconsistency writing the metadata for %s",
-             hx->indexid);
-    else fd_set_modified((lispval)metadata,0);
-    return error;}
-  else return 0;
+  int error=0;
+  u8_logf(LOG_WARN,"WriteMetadata",
+          "Writing modified metadata for %s",hx->indexid);
+  ssize_t metadata_pos = fd_endpos(stream);
+  if (metadata_pos>0) {
+    fd_outbuf outbuf = fd_writebuf(stream);
+    ssize_t new_metadata_size = fd_write_dtype(outbuf,metadata);
+    ssize_t metadata_end = fd_getpos(stream);
+    if (new_metadata_size<0)
+      error=1;
+    else {
+      if ((metadata_end-metadata_pos) != new_metadata_size) {
+        u8_logf(LOGCRIT,"MetadataSizeIconsistency",
+                "There was an inconsistency writing the metadata for %s",
+                hx->indexid);}
+      fd_write_8bytes_at(head,metadata_pos,0x30);
+      fd_write_4bytes_at(head,metadata_end-metadata_pos,0x38);}}
+  else error=1;
+  if (error)
+    u8_logf(LOGCRIT,"MetaDataWriteError",
+            "There was an inconsistency writing the metadata for %s",
+            hx->indexid);
+  if (error)
+    return -1;
+  else return 1;
 }
 
 static int update_hashindex_ondisk
-  (fd_hashindex hx,unsigned int flags,unsigned int cur_keys,
-   unsigned int changed_buckets,struct BUCKET_REF *bucket_locs,
-   struct FD_STREAM *stream)
+(fd_hashindex hx,lispval metadata,
+ unsigned int flags,unsigned int cur_keys,
+ unsigned int changed_buckets,struct BUCKET_REF *bucket_locs,
+ struct FD_STREAM *stream,struct FD_STREAM *head)
 {
-  struct FD_OUTBUF *outstream = fd_writebuf(stream);
+  struct FD_OUTBUF *outstream = fd_writebuf(head);
   int i = 0;
   unsigned int *offdata = NULL;
   unsigned int n_buckets = hx->index_n_buckets;
@@ -2524,7 +2557,7 @@ static int update_hashindex_ondisk
     mmap(NULL,256+offdata_byte_length,
          PROT_READ|PROT_WRITE,
          MMAP_FLAGS,
-         stream->stream_fileno,
+         head->stream_fileno,
          0);
   if ((memblock==NULL) || (memblock == MAP_FAILED)) {
     u8_graberrno("update_hashindex_ondisk:mmap",u8_strdup(hx->indexid));
@@ -2533,7 +2566,7 @@ static int update_hashindex_ondisk
 #else
   size_t offdata_length = n_buckets*chunk_ref_size;
   offdata = u8_big_alloc(offdata_length);
-  int rv = fd_read_ints(stream,offdata_length/4,offdata);
+  int rv = fd_read_ints(head,offdata_length/4,offdata);
   if (rv<0) {
     u8_graberrno("update_hashindex_ondisk:fd_read_ints",u8_strdup(hx->indexid));
     u8_big_free(offdata);
@@ -2589,7 +2622,7 @@ static int update_hashindex_ondisk
     while (i<changed_buckets) {
       unsigned int bucket_no = bucket_locs[i].bucketno;
       unsigned int bucket_pos = bucket_start+bytes_in_bucket*bucket_no;
-      fd_start_write(stream,bucket_pos);
+      fd_start_write(head,bucket_pos);
       fd_write_8bytes(outstream,bucket_locs[i].bck_ref.off);
       fd_write_4bytes(outstream,bucket_locs[i].bck_ref.size);
       i++;}}
@@ -2599,7 +2632,7 @@ static int update_hashindex_ondisk
     while (i<changed_buckets) {
       unsigned int bucket_no = bucket_locs[i].bucketno;
       unsigned int bucket_pos = bucket_start+bytes_in_bucket*bucket_no;
-      fd_start_write(stream,bucket_pos);
+      fd_start_write(head,bucket_pos);
       fd_write_4bytes(outstream,bucket_locs[i].bck_ref.off);
       fd_write_4bytes(outstream,bucket_locs[i].bck_ref.size);
       i++;}}
@@ -2612,7 +2645,7 @@ static int update_hashindex_ondisk
       unsigned int bucket_pos = bucket_start+bytes_in_bucket*bucket_no;
       unsigned int word1 = 0, word2 = 0;
       fd_convert_FD_B40_ref(bucket_locs[i].bck_ref,&word1,&word2);
-      fd_start_write(stream,bucket_pos);
+      fd_start_write(head,bucket_pos);
       fd_write_4bytes(outstream,word1);
       fd_write_4bytes(outstream,word2);
       i++;}}
@@ -2625,16 +2658,16 @@ static int update_hashindex_ondisk
                        256+offdata_byte_length,
                        MS_SYNC|MS_INVALIDATE);
     if (retval<0) {
-      u8_log(LOG_WARN,u8_strerror(errno),
-             "update_hashindex_ondisk:msync %s",hx->indexid);
+      u8_logf(LOG_WARN,u8_strerror(errno),
+              "update_hashindex_ondisk:msync %s",hx->indexid);
       u8_graberrno("update_hashindex_ondisk:msync",u8_strdup(hx->indexid));}
     retval = munmap(offdata-64,256+offdata_byte_length);
     if (retval<0) {
-      u8_log(LOG_WARN,u8_strerror(errno),
-             "update_hashindex_ondisk:munmap %s",hx->indexid);
+      u8_logf(LOG_WARN,u8_strerror(errno),
+              "update_hashindex_ondisk:munmap %s",hx->indexid);
       u8_graberrno("update_hashindex_ondisk:msync",u8_strdup(hx->indexid));}
 #else
-    struct FD_OUTBUF *out = fd_start_write(stream,256);
+    struct FD_OUTBUF *out = fd_start_write(head,256);
     if (hx->index_offtype == FD_B64)
       fd_write_ints(outstream,3*SIZEOF_INT*n_buckets,offdata);
     else fd_write_ints(outstream,2*SIZEOF_INT*n_buckets,offdata);
@@ -2642,14 +2675,15 @@ static int update_hashindex_ondisk
 #endif
   }
 
-  if (fd_modifiedp((lispval)&(hx->index_metadata)))
-    update_hashindex_metadata(hx,stream);
+  if (FD_SLOTMAPP(metadata))
+    update_hashindex_metadata(hx,metadata,stream,head);
 
   /* Write any changed flags */
-  fd_write_4bytes_at(stream,flags,8);
-  fd_write_4bytes_at(stream,cur_keys,16);
-  fd_write_4bytes_at(stream,FD_HASHINDEX_MAGIC_NUMBER,0);
+  fd_write_4bytes_at(head,flags,8);
+  fd_write_4bytes_at(head,cur_keys,16);
+  fd_write_4bytes_at(head,FD_HASHINDEX_MAGIC_NUMBER,0);
   fd_flush_stream(stream);
+  fd_flush_stream(head);
 
   return 0;
 }
@@ -2671,12 +2705,12 @@ static void reload_offdata(struct FD_INDEX *ix)
   fd_setpos(s,256);
   int retval = fd_read_ints(stream,int_len,offdata);
   if (retval<0)
-    u8_log(LOGCRIT,"reload_offdata",
-           "Couldn't reload offdata for %s",hx->indexid);
+    u8_logf(LOGCRIT,"reload_offdata",
+            "Couldn't reload offdata for %s",hx->indexid);
 }
 #endif
 
-
+
 /* Miscellaneous methods */
 
 static void hashindex_close(fd_index ix)
@@ -2684,7 +2718,7 @@ static void hashindex_close(fd_index ix)
   struct FD_HASHINDEX *hx = (struct FD_HASHINDEX *)ix;
   unsigned int chunk_ref_size = get_chunk_ref_size(hx);
   unsigned int *offdata = hx->index_offdata;
-  u8_log(LOG_DEBUG,"HASHINDEX","Closing hash index %s",ix->indexid);
+  u8_logf(LOG_DEBUG,"HASHINDEX","Closing hash index %s",ix->indexid);
   fd_lock_index(hx);
   fd_close_stream(&(hx->index_stream),0);
   if (offdata) {
@@ -2692,15 +2726,15 @@ static void hashindex_close(fd_index ix)
     int retval=
       munmap(offdata-64,(chunk_ref_size*hx->index_n_buckets)+256);
     if (retval<0) {
-      u8_log(LOG_WARN,u8_strerror(errno),
-             "hashindex_close:munmap %s",hx->index_source);
+      u8_logf(LOG_WARN,u8_strerror(errno),
+              "hashindex_close:munmap %s",hx->index_source);
       errno = 0;}
 #else
     u8_big_free(offdata);
 #endif
     hx->index_offdata = NULL;
     hx->index_cache_level = -1;}
-  u8_log(LOG_DEBUG,"HASHINDEX","Closed hash index %s",ix->indexid);
+  u8_logf(LOG_DEBUG,"HASHINDEX","Closed hash index %s",ix->indexid);
   fd_unlock_index(hx);
 }
 
@@ -2734,15 +2768,15 @@ static int good_initval(lispval val)
 }
 
 static fd_index hashindex_create(u8_string spec,void *typedata,
-                                  fd_storage_flags flags,lispval opts)
+                                 fd_storage_flags flags,lispval opts)
 {
   int rv = 0;
   lispval metadata_init = fd_getopt(opts,fd_intern("METADATA"),FD_VOID);
   lispval slotids_init = fd_getopt(opts,fd_intern("SLOTIDS"),VOID);
   lispval baseoids_init = fd_getopt(opts,fd_intern("BASEOIDS"),VOID);
   lispval nbuckets_arg = fd_getopt(opts,fd_intern("SLOTS"),
-                                  fd_getopt(opts,FDSYM_SIZE,
-                                            FD_INT(hashindex_default_size)));
+                                   fd_getopt(opts,FDSYM_SIZE,
+                                             FD_INT(hashindex_default_size)));
   lispval hashconst = fd_getopt(opts,fd_intern("HASHCONST"),FD_FIXZERO);
   if (!(FD_UINTP(nbuckets_arg))) {
     fd_seterr("InvalidBucketCount","hashindex_create",spec,nbuckets_arg);
@@ -2760,10 +2794,10 @@ static fd_index hashindex_create(u8_string spec,void *typedata,
   if (rv<0)
     return NULL;
   else rv = make_hashindex
-    (spec,FIX2INT(nbuckets_arg),
-     interpret_hashindex_flags(opts),
-     FD_INT(hashconst),
-     metadata_init,slotids_init,baseoids_init,-1,-1);
+         (spec,FIX2INT(nbuckets_arg),
+          interpret_hashindex_flags(opts),
+          FD_INT(hashconst),
+          metadata_init,slotids_init,baseoids_init,-1,-1);
 
   fd_decref(metadata_init);
   fd_decref(slotids_init);
@@ -2778,7 +2812,7 @@ static fd_index hashindex_create(u8_string spec,void *typedata,
     return fd_open_index(spec,flags,VOID);}
 }
 
-
+
 /* Useful functions */
 
 FD_EXPORT int fd_hashindexp(struct FD_INDEX *ix)
@@ -3245,7 +3279,7 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
   else return fd_default_indexctl(ix,op,n,args);
 }
 
-
+
 /* Initializing the driver module */
 
 static struct FD_INDEX_HANDLER hashindex_handler={

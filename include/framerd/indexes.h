@@ -66,7 +66,9 @@ typedef struct FD_INDEX_COMMITS {
   struct FD_CONST_KEYVAL *commit_adds;
   struct FD_CONST_KEYVAL *commit_drops;
   struct FD_CONST_KEYVAL *commit_stores;
-  lispval commit_metadata;} *fd_index_commits;
+  lispval commit_metadata;
+  struct FD_COMMIT_TIMES commit_times;
+  struct FD_STREAM *commit_stream;} *fd_index_commits;
 
 /* Lookup tables */
 

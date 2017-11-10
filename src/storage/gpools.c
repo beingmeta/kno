@@ -1,4 +1,4 @@
-/* -*- Mode: C; Character-encoding: utf-8; -*- */
+!/* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
@@ -21,18 +21,18 @@
 #include <stdarg.h>
 
 /*
-   Thoughts on odd pools.
-     The most general kind of pool has applicable lisp object
-      for all the pool handler functions;
-     Another interesting kind of pool is able to be fetched
-      but manages storage in other ways.  This is good for a case
-      where the OIDs represent objects in an external SQL database
-      (like WebEchoes pings).  Note that this kind of pool doesn't
-      really have an alloc function of its own, since creation happens
-      on the server side.
-     Another interesting variant is a memory-only pool, where
-      you can create and modify frames but they are limited to
-      the current memory image.  This is what mempools are.
+  Thoughts on odd pools.
+  The most general kind of pool has applicable lisp object
+  for all the pool handler functions;
+  Another interesting kind of pool is able to be fetched
+  but manages storage in other ways.  This is good for a case
+  where the OIDs represent objects in an external SQL database
+  (like WebEchoes pings).  Note that this kind of pool doesn't
+  really have an alloc function of its own, since creation happens
+  on the server side.
+  Another interesting variant is a memory-only pool, where
+  you can create and modify frames but they are limited to
+  the current memory image.  This is what mempools are.
 
 */
 
@@ -98,7 +98,7 @@ static lispval *gpool_fetchn(fd_pool p,int n,lispval *oids)
     return results;}
   else {
     fd_seterr(fd_BadServerResponse,"netpool_fetchn",
-             np->poolid,fd_incref(value));
+              np->poolid,fd_incref(value));
     return NULL;}
 }
 

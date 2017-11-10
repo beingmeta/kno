@@ -9,6 +9,8 @@
 #define _FILEINFO __FILE__
 #endif
 
+#include "framerd/components/storage_layer.h"
+
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/tables.h"
@@ -37,10 +39,10 @@ FD_EXPORT int fd_free_thread_cache(struct FD_THREAD_CACHE *tc)
   FD_INTPTR ptrval = (FD_INTPTR) tc;
   if (tc->threadcache_inuse) {
     if (tc->threadcache_id)
-      u8_log(LOG_WARN,FreeingInUseThreadCache,
-             "Freeing in-use threadcache: %llx (%s)",ptrval,tc->threadcache_id);
-    else u8_log(LOG_WARN,FreeingInUseThreadCache,
-                "Freeing in-use threadcache: %llx",ptrval);}
+      u8_logf(LOG_WARN,FreeingInUseThreadCache,
+              "Freeing in-use threadcache: %llx (%s)",ptrval,tc->threadcache_id);
+    else u8_logf(LOG_WARN,FreeingInUseThreadCache,
+                 "Freeing in-use threadcache: %llx",ptrval);}
   /* These may do customized things for some of the tables. */
   fd_recycle_hashtable(&(tc->calls));
   fd_recycle_hashtable(&(tc->oids));
@@ -71,7 +73,7 @@ FD_EXPORT int fd_pop_threadcache(struct FD_THREAD_CACHE *tc)
 }
 
 FD_EXPORT fd_thread_cache fd_cons_thread_cache
-  (int ccsize,int ocsize,int bcsize,int kcsize)
+(int ccsize,int ocsize,int bcsize,int kcsize)
 {
   struct FD_THREAD_CACHE *tc = u8_alloc(struct FD_THREAD_CACHE);
   tc->threadcache_inuse = 0; tc->threadcache_id = NULL;
@@ -104,10 +106,10 @@ FD_EXPORT fd_thread_cache fd_push_threadcache(struct FD_THREAD_CACHE *tc)
   FD_INTPTR ptrval = (FD_INTPTR) tc;
   if ((tc)&&(tc->threadcache_inuse)) {
     if (tc->threadcache_id)
-      u8_log(LOG_WARN,PushingInUseThreadCache,
-             "Pushing in-use threadcache: %llx (%s)",ptrval,tc->threadcache_id);
-    else u8_log(LOG_WARN,PushingInUseThreadCache,
-                "Pushing in-use threadcache: %llx",ptrval);}
+      u8_logf(LOG_WARN,PushingInUseThreadCache,
+              "Pushing in-use threadcache: %llx (%s)",ptrval,tc->threadcache_id);
+    else u8_logf(LOG_WARN,PushingInUseThreadCache,
+                 "Pushing in-use threadcache: %llx",ptrval);}
   if (tc == NULL) tc = fd_new_thread_cache();
   if (tc == fd_threadcache) return tc;
   tc->threadcache_prev = fd_threadcache;
@@ -125,10 +127,10 @@ FD_EXPORT fd_thread_cache fd_set_threadcache(struct FD_THREAD_CACHE *tc)
   FD_INTPTR ptrval = (FD_INTPTR) tc;
   if ((tc)&&(tc->threadcache_inuse)) {
     if (tc->threadcache_id)
-      u8_log(LOG_WARN,SettingInUseThreadCache,
-             "Setting in-use threadcache: %llx (%s)",ptrval,tc->threadcache_id);
-    else u8_log(LOG_WARN,SettingInUseThreadCache,
-                "Setting in-use threadcache: %llx",ptrval);}
+      u8_logf(LOG_WARN,SettingInUseThreadCache,
+              "Setting in-use threadcache: %llx (%s)",ptrval,tc->threadcache_id);
+    else u8_logf(LOG_WARN,SettingInUseThreadCache,
+                 "Setting in-use threadcache: %llx",ptrval);}
   if (tc == NULL) tc = fd_new_thread_cache();
   if (fd_threadcache) {
     struct FD_THREAD_CACHE *oldtc = fd_threadcache;

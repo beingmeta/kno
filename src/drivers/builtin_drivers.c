@@ -9,6 +9,8 @@
 #define _FILEINFO __FILE__
 #endif
 
+#include "framerd/components/storage_layer.h"
+
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/storage.h"

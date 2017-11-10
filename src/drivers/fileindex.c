@@ -9,6 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
+#include "framerd/components/storage_layer.h"
 #define FD_INLINE_BUFIO 1
 #define FD_INLINE_CHOICES 1
 #define FD_FAST_CHOICE_CONTAINSP 1
@@ -46,7 +47,7 @@
 #define set_offset(offvec,offset,v) (offvec)[offset]=(v)
 #endif
 
-#define BAD_VALUEP(value) \
+#define BAD_VALUEP(value)                                               \
   (PRED_FALSE((FD_EODP(value))||(FD_EOFP(value))||(FD_ABORTP(value))))
 
 #define SLOTSIZE (sizeof(unsigned int))
@@ -130,8 +131,8 @@ static void fileindex_setcache(fd_index ix,int level)
         mmap(NULL,(fx->index_n_slots*SLOTSIZE)+8,
              PROT_READ,MMAP_FLAGS,s->stream_fileno,0);
       if ((newmmap == NULL) || (newmmap == MAP_FAILED)) {
-        u8_log(LOG_CRIT,u8_strerror(errno),
-               "fileindex_setcache:mmap %s",fx->index_source);
+        u8_logf(LOG_CRIT,u8_strerror(errno),
+                "fileindex_setcache:mmap %s",fx->index_source);
         fx->index_offsets = NULL;
         errno = 0;}
       else fx->index_offsets = offsets = newmmap+2;
@@ -151,8 +152,8 @@ static void fileindex_setcache(fd_index ix,int level)
 #if HAVE_MMAP
       retval = munmap(fx->index_offsets-2,(fx->index_n_slots*SLOTSIZE)+8);
       if (retval<0) {
-        u8_log(LOG_CRIT,u8_strerror(errno),
-               "fileindex_setcache:munmap %s",fx->index_source);
+        u8_logf(LOG_CRIT,u8_strerror(errno),
+                "fileindex_setcache:munmap %s",fx->index_source);
         fx->index_offsets = NULL;
         errno = 0;}
 #else
@@ -212,8 +213,8 @@ static lispval fileindex_fetch(fd_index ix,lispval key)
       n_vals = fd_read_4bytes(fd_start_read(stream,keypos+pos_offset));
       val_start = fd_read_4bytes(instream);
       if (PRED_FALSE((n_vals==0) && (val_start)))
-        u8_log(LOG_CRIT,fd_IndexDriverError,
-               "fileindex_fetch %s",u8_strdup(ix->indexid));
+        u8_logf(LOG_CRIT,fd_IndexDriverError,
+                "fileindex_fetch %s",u8_strdup(ix->indexid));
       thiskey = fd_read_dtype(instream);
       if (LISP_EQUAL(key,thiskey)) {
         if (n_vals==0) {
@@ -378,16 +379,16 @@ static struct FD_KEY_SIZE *fileindex_fetchinfo(fd_index ix,fd_choice filter,int 
 /* Fetch N */
 
 /* In the following structures,
-     key: is the key being sought;
-     index: is the position in the values vector where the value will be
-      written; this is negative until the key has been found, and zero
-      after the value is complete.
-     filepos: is the next file position to look at; this is negative when
-      the lookup is done.
-     probe: is the slot in the hashtable being considered; when negative,
-      the offset of the key entry is being sought (this only makes sense
-      when the index offsets are NULL).
-     chain_width: how big a step to take when trying new buckets.
+   key: is the key being sought;
+   index: is the position in the values vector where the value will be
+   written; this is negative until the key has been found, and zero
+   after the value is complete.
+   filepos: is the next file position to look at; this is negative when
+   the lookup is done.
+   probe: is the slot in the hashtable being considered; when negative,
+   the offset of the key entry is being sought (this only makes sense
+   when the index offsets are NULL).
+   chain_width: how big a step to take when trying new buckets.
 */
 
 struct FETCH_SCHEDULE {
@@ -601,7 +602,7 @@ static lispval *fileindex_fetchn(fd_index ix,int n,const lispval *keys)
    over all of the keys and do a bunch of seeks for each one.
 
    One good side effect of all this hair is that we write all the data
-    to the file before we write the offsets, meaning that if it fails before
+   to the file before we write the offsets, meaning that if it fails before
    that point, the file remains consistent.
 */
 
@@ -610,7 +611,7 @@ static lispval *fileindex_fetchn(fd_index ix,int n,const lispval *keys)
 /* This is used to organize fetching and writing a particular key.
    A negative value for chain_width indicates that the entry is completed.
    A negative value for slotno indicates that we are fetching the
-     offset for that slot (in the case where we don't have cached offsets).
+   offset for that slot (in the case where we don't have cached offsets).
 */
 struct KEYDATA {
   lispval key; lispval add;
@@ -618,7 +619,7 @@ struct KEYDATA {
   fd_off_t pos;};
 
 /* This is used to track which slotnos are newly filled when we are writing
-    a file index without a vector of cached offsets. */
+   a file index without a vector of cached offsets. */
 struct RESERVATIONS {
   unsigned int *slotnos;
   int n_reservations, max_reservations;};
@@ -659,11 +660,11 @@ static int reserve_slotno(struct RESERVATIONS *r,unsigned int slotno)
     bottom[0]=slotno; r->n_reservations++;
     return 1;}
   else while (bottom<=top) {
-    middle = bottom+(top-bottom)/2;
-    if ((middle<slotnos) || (middle>=lim)) break;
-    else if (*middle == slotno) return 0;
-    else if (slotno>*middle) bottom = middle+1;
-    else top = middle-1;}
+      middle = bottom+(top-bottom)/2;
+      if ((middle<slotnos) || (middle>=lim)) break;
+      else if (*middle == slotno) return 0;
+      else if (slotno>*middle) bottom = middle+1;
+      else top = middle-1;}
   insertoff = (middle-slotnos);
   if ((middle<lim) && (slotno>*middle)) insertoff++;
   if (r->n_reservations == r->max_reservations) {
@@ -673,8 +674,8 @@ static int reserve_slotno(struct RESERVATIONS *r,unsigned int slotno)
   insertpos = slotnos+insertoff;
   if (!(((insertpos<=slotnos) || (slotno>insertpos[-1])) &&
         ((insertpos>=(slotnos+r->n_reservations)) || (slotno<insertpos[0]))))
-    u8_log(LOG_CRIT,fd_IndexDriverError,
-           "Corrupt reservations table when saving index");
+    u8_logf(LOG_CRIT,fd_IndexDriverError,
+            "Corrupt reservations table when saving index");
   if (insertoff<r->n_reservations)
     memmove(insertpos+1,insertpos,(SLOTSIZE*(r->n_reservations-insertoff)));
   *insertpos = slotno;
@@ -683,8 +684,8 @@ static int reserve_slotno(struct RESERVATIONS *r,unsigned int slotno)
 }
 
 /* Fetching keydata:
-    This finds where all the keys are, reserving slots for them if neccessary.
-    It also fetches the current number of values and the valuepos.
+   This finds where all the keys are, reserving slots for them if neccessary.
+   It also fetches the current number of values and the valuepos.
    Returns the number of new keys or -1 on error. */
 static int fetch_keydata(struct FD_FILEINDEX *fx,
                          struct FD_INBUF *instream,
@@ -810,7 +811,7 @@ static int write_values(fd_stream stream,
                         int *n_valuesp)
 {
   lispval realval = ((PRECHOICEP(values)) ? (fd_make_simple_choice(values)) :
-                   (values));
+                     (values));
   if (EMPTYP(realval)) {
     *n_valuesp = 0; return 0;}
   else if (CHOICEP(realval)) {
@@ -840,7 +841,7 @@ static int commit_stores(struct FD_CONST_KEYVAL *stores,int n_stores,
                          struct FD_FILEINDEX *f,
                          struct FD_OUTBUF *outstream,
                          struct KEYDATA *kdata,
-                        unsigned int *valpos,
+                         unsigned int *valpos,
                          int kdata_i)
 {
   struct FD_STREAM *stream = &(f->index_stream);
@@ -969,10 +970,10 @@ static void write_offsets(struct FD_FILEINDEX *fx,
 /* Putting it all together */
 
 static int fileindex_save(struct FD_INDEX *ix,
-                             struct FD_CONST_KEYVAL *adds,int n_adds,
-                             struct FD_CONST_KEYVAL *drops,int n_drops,
-                             struct FD_CONST_KEYVAL *stores,int n_stores,
-                             lispval changed_metadata)
+                          struct FD_CONST_KEYVAL *adds,int n_adds,
+                          struct FD_CONST_KEYVAL *drops,int n_drops,
+                          struct FD_CONST_KEYVAL *stores,int n_stores,
+                          lispval changed_metadata)
 {
   struct FD_FILEINDEX *fx = (struct FD_FILEINDEX *)ix;
   struct FD_STREAM *stream = &(fx->index_stream);
@@ -1062,9 +1063,9 @@ static int fileindex_save(struct FD_INDEX *ix,
     if (valpos) u8_big_free(valpos);
     u8_big_free(kdata);
 
-    u8_log(fd_storage_loglevel,"FileIndexCommit",
-           "Saved mappings for %d keys to %s in %f secs",
-           n_changes,ix->indexid,u8_elapsed_time()-started);
+    u8_logf(LOG_NOTICE,"FileIndexCommit",
+            _("Saved mappings for %d keys to %s in %f secs"),
+            n_changes,ix->indexid,u8_elapsed_time()-started);
 
     if (gc_new_offsets) u8_big_free(new_offsets);
     return kdata_i;}
@@ -1105,9 +1106,9 @@ static int fileindex_commit(fd_index ix,fd_commit_phase phase,
       u8_free(rollback_file);
       return rv;}
     else {
-      u8_log(LOG_CRIT,"NoRollbackFile",
-             "The rollback file %s for %s doesn't exist",
-             rollback_file,ix->indexid);
+      u8_logf(LOG_CRIT,"NoRollbackFile",
+              "The rollback file %s for %s doesn't exist",
+              rollback_file,ix->indexid);
       u8_free(rollback_file);
       return -1;}}
   case fd_commit_cleanup: {
@@ -1115,20 +1116,20 @@ static int fileindex_commit(fd_index ix,fd_commit_phase phase,
     int unlock_rv = fd_streamctl(&(fx->index_stream),fd_stream_unlockfile,NULL);
     if (unlock_rv <= 0) {
       int saved_errno = errno; errno=0;
-      u8_log(LOG_CRIT,"UnlockFailed",
-             "Couldn't unlock %s for hashindex %s errno=%d:%s",
-             source,fx->indexid,saved_errno,u8_strerror(saved_errno));}
+      u8_logf(LOG_CRIT,"UnlockFailed",
+              "Couldn't unlock %s for hashindex %s errno=%d:%s",
+              source,fx->indexid,saved_errno,u8_strerror(saved_errno));}
     u8_string rollback_file = u8_string_append(source,".rollback",NULL);
     if (u8_file_existsp(rollback_file))
       return u8_removefile(rollback_file);
     else {
-      u8_log(LOGWARN,"Rollback file %s was deleted",rollback_file);
+      u8_logf(LOGWARN,"Rollback file %s was deleted",rollback_file);
       u8_free(rollback_file);
       return -1;}}
   default: {
-    u8_log(LOG_WARN,"NoPhasedCommit",
-           "The index %s doesn't support phased commits",
-           ix->indexid);
+    u8_logf(LOG_WARN,"NoPhasedCommit",
+            "The index %s doesn't support phased commits",
+            ix->indexid);
     return -1;}
   }
 }
@@ -1142,9 +1143,9 @@ static void fileindex_close(fd_index ix)
 #if HAVE_MMAP
     int retval = munmap(fx->index_offsets-2,(SLOTSIZE*fx->index_n_slots)+8);
     if (retval<0) {
-      u8_log(LOG_CRIT,u8_strerror(errno),
-             "[%d:%d] fileindex_close:munmap %s",
-             retval,errno,fx->index_source);
+      u8_logf(LOG_CRIT,u8_strerror(errno),
+              "[%d:%d] fileindex_close:munmap %s",
+              retval,errno,fx->index_source);
       errno = 0;}
 #else
     u8_big_free(fx->index_offsets);
@@ -1216,9 +1217,9 @@ static lispval fileindex_ctl(fd_index ix,lispval op,int n,lispval *args)
 
 FD_EXPORT
 /* fd_make_fileindex:
-    Arguments: a filename string, a magic number (usigned int), an FD_OID,
-    a capacity, and a dtype pointer to a metadata description (a slotmap).
-    Returns: -1 on error, 1 on success. */
+   Arguments: a filename string, a magic number (usigned int), an FD_OID,
+   a capacity, and a dtype pointer to a metadata description (a slotmap).
+   Returns: -1 on error, 1 on success. */
 int fd_make_fileindex(u8_string filename,unsigned int magicno,int n_slots_arg)
 {
   int i, n_slots;
@@ -1237,9 +1238,9 @@ int fd_make_fileindex(u8_string filename,unsigned int magicno,int n_slots_arg)
   if (n_slots_arg<0) n_slots = -n_slots_arg;
   else n_slots = fd_get_hashtable_size(n_slots_arg);
 
-  u8_log(LOG_INFO,"CreateFileIndex",
-         "Creating a file index '%s' with %ld slots",
-         filename,n_slots);
+  u8_logf(LOG_INFO,"CreateFileIndex",
+          "Creating a file index '%s' with %ld slots",
+          filename,n_slots);
 
   fd_setpos(stream,0);
   fd_write_4bytes(outstream,magicno);
@@ -1257,20 +1258,20 @@ static fd_index fileindex_create(u8_string spec,void *type_data,
                                  lispval opts)
 {
   lispval n_slots = fd_getopt(opts,fd_intern("SLOTS"),
-                             fd_getopt(opts,fd_intern("SIZE"),
-                                       FD_INT(fileindex_default_size)));
+                              fd_getopt(opts,fd_intern("SIZE"),
+                                        FD_INT(fileindex_default_size)));
   if (!(FD_UINTP(n_slots))) {
     fd_seterr("NumberOfIndexSlots","fileindex_create",spec,n_slots);
     return NULL;}
   else if (fd_make_fileindex(spec,
-                              (unsigned int)((unsigned long long)type_data),
+                             (unsigned int)((unsigned long long)type_data),
                              FIX2INT(n_slots))>=0) {
     fd_set_file_opts(spec,opts);
     return fd_open_index(spec,flags,VOID);}
   else return NULL;
 }
 
-
+
 /* Initializing the driver module */
 
 static struct FD_INDEX_HANDLER fileindex_handler={

@@ -10,6 +10,7 @@
 #endif
 
 #define FD_INLINE_IPEVAL 1
+#include "framerd/components/storage_layer.h"
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
@@ -58,12 +59,12 @@ FD_EXPORT void _fd_set_ipeval_state(fd_wideint s)
 
 static void ipeval_start_msg(u8_condition c,int iteration)
 {
-  u8_log(LOG_DEBUG,c,"Starting %s#%d",c,iteration);
+  u8_logf(LOG_DEBUG,c,"Starting %s#%d",c,iteration);
 }
 
 static void ipeval_done_msg(u8_condition c,int iteration,double interval)
 {
-  u8_log(LOG_DEBUG,c,"Completed %s#%d in %lf seconds",c,iteration,interval);
+  u8_logf(LOG_DEBUG,c,"Completed %s#%d in %lf seconds",c,iteration,interval);
 }
 
 #define time_since(x) (u8_elapsed_time()-(x))
@@ -121,11 +122,11 @@ FD_EXPORT int fd_ipeval_call(int (*fcn)(void *),void *data)
   fd_set_ipeval_state(saved_state);
 #if FD_TRACE_IPEVAL
   if (fd_trace_ipeval) {
-    u8_log(LOG_DEBUG,ipeval_exec,"IPEVAL iteration #%d completed in %lf",
-           ipeval_count,time_since(point));
-    u8_log(LOG_DEBUG,ipeval_done,
-           "IPEVAL finished with %d iterations in %lf seconds",
-           ipeval_count,time_since(start));}
+    u8_logf(LOG_DEBUG,ipeval_exec,"IPEVAL iteration #%d completed in %lf",
+            ipeval_count,time_since(point));
+    u8_logf(LOG_DEBUG,ipeval_done,
+            "IPEVAL finished with %d iterations in %lf seconds",
+            ipeval_count,time_since(start));}
 #endif
 #if FD_GLOBAL_IPEVAL
   u8_unlock_mutex(&global_ipeval_lock);
@@ -203,11 +204,11 @@ FD_EXPORT int fd_tracked_ipeval_call(int (*fcn)(void *),void *data,
   *history = records; *n_cycles = ipeval_count; *total_time = time_since(start);
 #if FD_TRACE_IPEVAL
   if (fd_trace_ipeval) {
-    u8_log(LOG_INFO,ipeval_exec,"IPEVAL iteration #%d completed in %lf",
-           ipeval_count,time_since(point));
-    u8_log(LOG_INFO,ipeval_done,
-           "IPEVAL finished with %d iterations in %lf seconds",
-           ipeval_count,time_since(start));}
+    u8_logf(LOG_INFO,ipeval_exec,"IPEVAL iteration #%d completed in %lf",
+            ipeval_count,time_since(point));
+    u8_logf(LOG_INFO,ipeval_done,
+            "IPEVAL finished with %d iterations in %lf seconds",
+            ipeval_count,time_since(start));}
 #endif
 #if FD_GLOBAL_IPEVAL
   u8_unlock_mutex(&global_ipeval_lock);

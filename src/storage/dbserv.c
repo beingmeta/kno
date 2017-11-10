@@ -12,6 +12,7 @@
 #define FD_INLINE_POOLS 1
 #define FD_INLINE_CHOICES 1
 #define FD_INLINE_IPEVAL 1
+#include "framerd/components/storage_layer.h"
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
@@ -36,8 +37,8 @@ u8_condition fd_PrivateOID=_("private OID");
 static int served_poolp(fd_pool p)
 {
   int i = 0; while (i<n_served_pools)
-             if (served_pools[i]==p) return 1;
-             else i++;
+               if (served_pools[i]==p) return 1;
+               else i++;
   return 0;
 }
 
@@ -120,18 +121,18 @@ static lispval get_changes(struct FD_CHANGELOG *clog,int cstamp,int *new_cstamp)
     else {
       lispval changes = EMPTY;
       int i = top, point = clog->point; while (i >= 0)
-        if (cstamp <= entries[i].moment) {
-          lispval key = entries[i--].keys;
-          fd_incref(key);
-          CHOICE_ADD(changes,key);}
-        else break;
+                                          if (cstamp <= entries[i].moment) {
+                                            lispval key = entries[i--].keys;
+                                            fd_incref(key);
+                                            CHOICE_ADD(changes,key);}
+                                          else break;
       if (cstamp > entries[i].moment) {
         i = clog->max; while (i >= point)
-          if (cstamp <= entries[i].moment) {
-            lispval key = entries[i--].keys;
-            fd_incref(key);
-            CHOICE_ADD(changes,key);}
-          else break;}
+                         if (cstamp <= entries[i].moment) {
+                           lispval key = entries[i--].keys;
+                           fd_incref(key);
+                           CHOICE_ADD(changes,key);}
+                         else break;}
       result = changes;}}
   u8_unlock_mutex(&changelog_lock);
   return result;
@@ -414,16 +415,16 @@ static lispval store_oid_proc(lispval oid,lispval value)
 {
   fd_pool p = fd_oid2pool(oid);
   int i = 0; while (i < n_served_pools)
-    if (served_pools[i] == p) {
-      fd_set_oid_value(oid,value);
-      add_to_changelog(&oid_changelog,oid);
-      /* Commit the pool.  Journalling should now happen on a per-pool
-         rather than a server-wide basis. */
-      if (fd_commit_pool(p,oid)>=0) {
-        fd_pool_unlock(p,oid,leave_modified);
-        return FD_TRUE;}
-      else i++;}
-    else i++;
+               if (served_pools[i] == p) {
+                 fd_set_oid_value(oid,value);
+                 add_to_changelog(&oid_changelog,oid);
+                 /* Commit the pool.  Journalling should now happen on a per-pool
+                    rather than a server-wide basis. */
+                 if (fd_commit_pool(p,oid)>=0) {
+                   fd_pool_unlock(p,oid,leave_modified);
+                   return FD_TRUE;}
+                 else i++;}
+               else i++;
   return FD_FALSE;
 }
 
@@ -571,10 +572,10 @@ static lispval server_fetch_oids(lispval oidvec)
         lispval *fetch = u8_alloc_n(n,lispval);
         fd_hashtable cache = &(p->pool_cache), locks = &(p->pool_changes);
         int i = 0; while (i<n)
-                   if ((fd_hashtable_probe_novoid(cache,elts[i])==0) &&
-                       (fd_hashtable_probe_novoid(locks,elts[i])==0))
-                     fetch[fetchn++]=elts[i++];
-                   else i++;
+                     if ((fd_hashtable_probe_novoid(cache,elts[i])==0) &&
+                         (fd_hashtable_probe_novoid(locks,elts[i])==0))
+                       fetch[fetchn++]=elts[i++];
+                     else i++;
         p->pool_handler->fetchn(p,fetchn,fetch);
         i = 0; while (i<n) {
           results[i]=fd_fetch_oid(p,elts[i]); i++;}
@@ -584,7 +585,7 @@ static lispval server_fetch_oids(lispval oidvec)
           results[i]=fd_fetch_oid(p,elts[i]); i++;}
         return fd_init_vector(NULL,n,results);}}
     else return fd_err(fd_PrivateOID,"server_oid_value",NULL,elts[0]);
- else return fd_err(fd_AnonymousOID,"server_oid_value",NULL,elts[0]);
+  else return fd_err(fd_AnonymousOID,"server_oid_value",NULL,elts[0]);
 }
 
 static lispval server_pool_data(lispval session_id)
@@ -746,7 +747,7 @@ static int serve_pool(lispval var,lispval val,void *data)
       fd_seterr(_("too many pools to serve"),"serve_pool",NULL,val);
       return -1;}
     else {
-      u8_log(LOG_INFO,"SERVE_POOL","Serving objects from %s",p->poolid);
+      u8_logf(LOG_INFO,"SERVE_POOL","Serving objects from %s",p->poolid);
       served_pools[n_served_pools++]=p;
       return n_served_pools;}
   else return fd_reterr(fd_NotAPool,"serve_pool",NULL,val);
@@ -796,11 +797,11 @@ static int serve_index(lispval var,lispval val,void *data)
   else if (val == FD_TRUE)
     if (fd_background) ix = (fd_index)fd_background;
     else {
-      u8_log(LOG_WARN,_("No background"),"No current background index");
+      u8_logf(LOG_WARN,_("No background"),"No current background index");
       return 0;}
   else {}
   if (ix) {
-    u8_log(LOG_NOTICE,"SERVE_INDEX","Serving index %s",ix->indexid);
+    u8_logf(LOG_NOTICE,"SERVE_INDEX","Serving index %s",ix->indexid);
     fd_add_to_compound_index(primary_index,ix);
     return 1;}
   else return fd_reterr(fd_BadIndexSpec,"serve_index",NULL,val);

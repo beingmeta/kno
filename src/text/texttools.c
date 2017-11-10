@@ -1095,7 +1095,7 @@ static lispval textrewrite(lispval pattern,lispval string,
   else {
     lispval extract_results = fd_text_extract
       (pattern,NULL,CSTRING(string),off,lim,0);
-    if (FD_ABORTP(extract_results)) 
+    if (FD_ABORTP(extract_results))
       return extract_results;
     else {
       lispval subst_results = EMPTY;

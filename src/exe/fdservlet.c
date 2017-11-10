@@ -1932,9 +1932,6 @@ int main(int argc,char **argv)
     dup2(log_fd,1);
     dup2(log_fd,2);}
 
-  /* Set this here, before processing any configs */
-  fd_storage_loglevel = LOG_INFO;
-
   u8_init_mutex(&server_port_lock);
 
   if (!(socket_spec)) {}

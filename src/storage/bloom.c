@@ -10,6 +10,7 @@
 
 #define FD_INLINE_CHOICES 1
 #define FD_INLINE_TABLES 1
+#include "framerd/components/storage_layer.h"
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
@@ -284,14 +285,14 @@ void fd_init_bloom_c()
 /* Original headers and license information */
 
 /* MurmurHash2.c is taken from
-     http://sites.google.com/site/murmurhash/
+   http://sites.google.com/site/murmurhash/
 
    According to the above document:
-     All code is released to the public domain. For business purposes,
-     Murmurhash is under the MIT license.
+   All code is released to the public domain. For business purposes,
+   Murmurhash is under the MIT license.
 
-     ---------------------------------------------------------------
-     MurmurHash2, by Austin Appleby
+   ---------------------------------------------------------------
+   MurmurHash2, by Austin Appleby
 */
 
 /*

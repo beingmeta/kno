@@ -10,6 +10,7 @@
 #endif
 
 #define FD_INLINE_IPEVAL 1
+#include "framerd/components/storage_layer.h"
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
@@ -70,7 +71,7 @@ FD_EXPORT lispval fd_cachecall(lispval fcn,int n,lispval *args)
 }
 
 FD_EXPORT lispval fd_xcachecall
-  (struct FD_HASHTABLE *cache,lispval fcn,int n,lispval *args)
+(struct FD_HASHTABLE *cache,lispval fcn,int n,lispval *args)
 {
   lispval vec, cached;
   struct FD_VECTOR vecstruct;

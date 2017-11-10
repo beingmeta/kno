@@ -10,6 +10,7 @@
 #endif
 
 #define FD_INLINE_BUFIO 1
+#include "framerd/components/storage_layer.h"
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
@@ -25,7 +26,7 @@ lispval set_symbol, drop_symbol;
 
 FD_EXPORT
 fd_index fd_make_extindex
-  (u8_string name,lispval fetchfn,lispval commitfn,lispval state,int reg)
+(u8_string name,lispval fetchfn,lispval commitfn,lispval state,int reg)
 {
   if (!(PRED_TRUE(FD_APPLICABLEP(fetchfn)))) {
     fd_seterr(fd_TypeError,"fd_make_extindex","fetch function",
@@ -56,8 +57,8 @@ static lispval extindex_fetch(fd_index p,lispval oid)
   struct FD_EXTINDEX *xp = (fd_extindex)p;
   lispval state = xp->state, fetchfn = xp->fetchfn, value;
   struct FD_FUNCTION *fptr = ((FD_FUNCTIONP(fetchfn))?
-                            ((struct FD_FUNCTION *)fetchfn):
-                            (NULL));
+                              ((struct FD_FUNCTION *)fetchfn):
+                              (NULL));
   if ((VOIDP(state))||(FALSEP(state))||
       ((fptr)&&(fptr->fcn_arity==1)))
     value = fd_apply(fetchfn,1,&oid);
@@ -75,8 +76,8 @@ static lispval *extindex_fetchn(fd_index p,int n,const lispval *keys)
   struct FD_EXTINDEX *xp = (fd_extindex)p;
   lispval state = xp->state, fetchfn = xp->fetchfn, value = VOID;
   struct FD_FUNCTION *fptr = ((FD_FUNCTIONP(fetchfn))?
-                            ((struct FD_FUNCTION *)fetchfn):
-                            (NULL));
+                              ((struct FD_FUNCTION *)fetchfn):
+                              (NULL));
   struct FD_VECTOR vstruct;
   lispval vecarg;
   FD_INIT_STATIC_CONS(&vstruct,fd_vector_type);
@@ -128,10 +129,10 @@ static lispval *extindex_fetchn(fd_index p,int n,const lispval *keys)
 }
 
 static int extindex_save(struct FD_INDEX *ix,
-                           struct FD_CONST_KEYVAL *adds,int n_adds,
-                           struct FD_CONST_KEYVAL *drops,int n_drops,
-                           struct FD_CONST_KEYVAL *stores,int n_stores,
-                           lispval changed_metadata)
+                         struct FD_CONST_KEYVAL *adds,int n_adds,
+                         struct FD_CONST_KEYVAL *drops,int n_drops,
+                         struct FD_CONST_KEYVAL *stores,int n_stores,
+                         lispval changed_metadata)
 {
   struct FD_EXTINDEX *exi = (fd_extindex)ix;
   lispval avec = fd_make_vector(n_adds,NULL);
@@ -165,7 +166,7 @@ static int extindex_save(struct FD_INDEX *ix,
 }
 
 static int extindex_commit(fd_index ix,fd_commit_phase phase,
-                            struct FD_INDEX_COMMITS *commit)
+                           struct FD_INDEX_COMMITS *commit)
 {
   switch (phase) {
   case fd_commit_save: {
@@ -178,9 +179,9 @@ static int extindex_commit(fd_index ix,fd_commit_phase phase,
                          commit->commit_n_stores,
                          commit->commit_metadata);}
   default: {
-    u8_log(LOG_INFO,"NoPhasedCommit",
-           "The index %s doesn't support phased commits",
-           ix->indexid);
+    u8_logf(LOG_INFO,"NoPhasedCommit",
+            "The index %s doesn't support phased commits",
+            ix->indexid);
     return 0;}
   }
 }

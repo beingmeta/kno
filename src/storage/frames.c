@@ -13,6 +13,7 @@
 #define FD_INLINE_TABLES 1
 #define FD_INLINE_CHOICES 1
 #define FD_INLINE_IPEVAL 1
+#include "framerd/components/storage_layer.h"
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
@@ -29,37 +30,37 @@ static lispval add_effects, drop_effects;
 
 static u8_mutex slotcache_lock;
 
-
+
 /* The operations stack */
 
 /* How it works:
 
-    FramerD inference operations rely on a dynamic *operations
-     stack* which serves multipe roles.  The operations stack was
-     first introduced to handle the infinite recurrences which
-     commonly occur when inference methods refer to one another.  It
-     is also used in dependency tracking (described below).
+   FramerD inference operations rely on a dynamic *operations
+   stack* which serves multipe roles.  The operations stack was
+   first introduced to handle the infinite recurrences which
+   commonly occur when inference methods refer to one another.  It
+   is also used in dependency tracking (described below).
 
-    The key idea is to prune recursive method executions by keeping
-     track of the slot values being computed or tested and causing
-     recursive calls with identical arguments to fail.  For example,
-     suppose we have three interdependent methods for figuring out the
-     area, length, and width of a rectangle.  If in the course of if
-     we're are executing methods to figure out the area of a square,
-     and one of those methods requires the area of the square
-     (recursively), we prune that method's execution while allowing
-     other methods to continue.  This handles a common case where, for
-     example, the area is defined in terms of the height and width and
-     the height and width are each defined in terms of the area.
-     These natural mutually recursive definitions would get us into
-     trouble without something like this method.
+   The key idea is to prune recursive method executions by keeping
+   track of the slot values being computed or tested and causing
+   recursive calls with identical arguments to fail.  For example,
+   suppose we have three interdependent methods for figuring out the
+   area, length, and width of a rectangle.  If in the course of if
+   we're are executing methods to figure out the area of a square,
+   and one of those methods requires the area of the square
+   (recursively), we prune that method's execution while allowing
+   other methods to continue.  This handles a common case where, for
+   example, the area is defined in terms of the height and width and
+   the height and width are each defined in terms of the area.
+   These natural mutually recursive definitions would get us into
+   trouble without something like this method.
 
-    In practice, a method fails by returning either the empty choice (if it is computing a value)
-     or 0/false (if it is testing for a value).
-    The stack of frame operations is a simple linked list, allocated on the stack and
-     stored in a global/thread specific variable.  Each entry records the operation and
-     three arguments: a frame, a slotid, and (optionally) a value.  There are other fields
-     associated with the dependency mechanism implemented below.
+   In practice, a method fails by returning either the empty choice (if it is computing a value)
+   or 0/false (if it is testing for a value).
+   The stack of frame operations is a simple linked list, allocated on the stack and
+   stored in a global/thread specific variable.  Each entry records the operation and
+   three arguments: a frame, a slotid, and (optionally) a value.  There are other fields
+   associated with the dependency mechanism implemented below.
 */
 
 #if FD_USE_TLS
@@ -130,31 +131,31 @@ FD_EXPORT int fd_pop_opstack(struct FD_FRAMEOP_STACK *op,int normal)
   return 1;
 }
 
-
+
 /* Slot caches */
 
 /* How it works:
-     Slot caches record the results of executing slot GET and TEST methods
-      in order to speed up subsequent repetitions of the same operation.  The
-      validity of the slot caches are maintained by the dependency mechanisms
-      described below.  This comment describes the structure of the slot caches
-      themselves.
-     There are two global tables, one for slot caches (which cache whole values)
-      and one for test caches (which cache tests for particular values).  These
-      are different because many methods may depend on the presence or absence of
-      one particular value.
-     Each of these global tables map slotids into tables which map frames into
-      'cache entries'.  For the slot caches, the cache entry is just the cached
-      value itself.  For the test caches, the cache entry is a pair of two *hashsets*,
-      indicating if the test returned true (the CAR) or false (the CDR).
-     To put it formulaically:
-       slotid(frame) is cached as (slot_caches(slotid))(frame)
-       slotid(frame) = value is cached as
-         (CAR(test_caches(slotid))(frame)) contains value
-       slotid(frame)!=value is cached as
-         (CDR(test_caches(slotid))(frame)) contains value
-     where the '=' relationship above really indicates 'has value' since slots
-      are naturally multi-valued.
+   Slot caches record the results of executing slot GET and TEST methods
+   in order to speed up subsequent repetitions of the same operation.  The
+   validity of the slot caches are maintained by the dependency mechanisms
+   described below.  This comment describes the structure of the slot caches
+   themselves.
+   There are two global tables, one for slot caches (which cache whole values)
+   and one for test caches (which cache tests for particular values).  These
+   are different because many methods may depend on the presence or absence of
+   one particular value.
+   Each of these global tables map slotids into tables which map frames into
+   'cache entries'.  For the slot caches, the cache entry is just the cached
+   value itself.  For the test caches, the cache entry is a pair of two *hashsets*,
+   indicating if the test returned true (the CAR) or false (the CDR).
+   To put it formulaically:
+   slotid(frame) is cached as (slot_caches(slotid))(frame)
+   slotid(frame) = value is cached as
+   (CAR(test_caches(slotid))(frame)) contains value
+   slotid(frame)!=value is cached as
+   (CDR(test_caches(slotid))(frame)) contains value
+   where the '=' relationship above really indicates 'has value' since slots
+   are naturally multi-valued.
 */
 
 static struct FD_HASHTABLE *make_slot_cache(lispval slotid)
@@ -209,33 +210,33 @@ FD_EXPORT void fd_clear_testcache_entry(lispval frame,lispval slotid,lispval val
         fd_hashset_drop((fd_hashset)FD_CDR(cache),value);}}}
 }
 
-
+
 /* Dependency maintenance */
 
 /* How it works:
-     Dependency maintenance ensures that cached values are flushed when the values
-      they depend on change.  The overall model is very simple: when inferences
-      happen through GET and TEST methods, they start tracking slot accesses and
-      tests.  Each access or test is recorded and, when the method finishes, a
-      dependency is recorded from the accessed or tested slot/values and the result
-      of the methods.  Then, when a value is changed, this table is used to find the
-      dependent values and reset their cache entries.  Note that this method is ancient,
-      dating back to at least 1984, when it was a part of Haase's ARLO language.
-     In practice, individual accesses are represented by lisp objects which we will
-      call *factoids* but are just conses.  The CAR of the factoid is a frame and
-      the CDR is either a slotid (symbol or OID) or a pair of a slotid and a value.
-      The latter case represents the results of *tests* (e.g. does slotid(frame) = value)
-      while the former represents all the values of a slot (e.g. slotid(frame)).
-     Dependency tracking uses the frame operation stack which is also used to avoid
-      infinite recurrences.  When a slot is gotten or tested, the stack of frame
-      operations is climbed to find the first operation with a non-NULL dependencies
-      field.  The current operation is added to this value (which is a vector of
-      FD_DEPENDENCY_RECORD structures), with an VOID value distinguishing the
-      case of a GET and a TEST.
-     When a computed value is returned from a given operation, the accumulated dependencies
-      (stored on current frame operations stack entry) are converted into entries
-      in the 'implications' hashtable to be used by fd_decache() when any of the
-      dependencies are changed. */
+   Dependency maintenance ensures that cached values are flushed when the values
+   they depend on change.  The overall model is very simple: when inferences
+   happen through GET and TEST methods, they start tracking slot accesses and
+   tests.  Each access or test is recorded and, when the method finishes, a
+   dependency is recorded from the accessed or tested slot/values and the result
+   of the methods.  Then, when a value is changed, this table is used to find the
+   dependent values and reset their cache entries.  Note that this method is ancient,
+   dating back to at least 1984, when it was a part of Haase's ARLO language.
+   In practice, individual accesses are represented by lisp objects which we will
+   call *factoids* but are just conses.  The CAR of the factoid is a frame and
+   the CDR is either a slotid (symbol or OID) or a pair of a slotid and a value.
+   The latter case represents the results of *tests* (e.g. does slotid(frame) = value)
+   while the former represents all the values of a slot (e.g. slotid(frame)).
+   Dependency tracking uses the frame operation stack which is also used to avoid
+   infinite recurrences.  When a slot is gotten or tested, the stack of frame
+   operations is climbed to find the first operation with a non-NULL dependencies
+   field.  The current operation is added to this value (which is a vector of
+   FD_DEPENDENCY_RECORD structures), with an VOID value distinguishing the
+   case of a GET and a TEST.
+   When a computed value is returned from a given operation, the accumulated dependencies
+   (stored on current frame operations stack entry) are converted into entries
+   in the 'implications' hashtable to be used by fd_decache() when any of the
+   dependencies are changed. */
 
 static struct FD_HASHTABLE implications;
 fd_hashtable fd_implications_table = &implications;
@@ -280,7 +281,7 @@ static void record_dependencies(fd_frameop_stack *cxt,lispval factoid)
       if (VOIDP(records[i].value))
         depends = fd_conspair(records[i].frame,records[i].slotid);
       else depends = fd_make_list(3,records[i].frame,records[i].slotid,
-                                fd_incref(records[i].value));
+                                  fd_incref(records[i].value));
       factoids[i++]=depends;}
     fd_hashtable_iterkeys(&implications,fd_table_add,n,factoids,factoid);
     i = 0; while (i<n) {lispval factoid = factoids[i++]; fd_decref(factoid);}
@@ -336,7 +337,7 @@ FD_EXPORT void fd_clear_slotcaches()
   u8_unlock_mutex(&slotcache_lock);
 }
 
-
+
 /* Method lookup */
 
 static struct FD_FUNCTION *lookup_method(lispval arg)
@@ -372,7 +373,7 @@ static lispval get_slotid_methods(lispval slotid,lispval method_name)
   return result;
 }
 
-
+
 /* Frame Operations */
 
 FD_EXPORT lispval fd_frame_get(lispval f,lispval slotid)
@@ -508,8 +509,8 @@ FD_EXPORT int fd_frame_test(lispval f,lispval slotid,lispval value)
               else {}}}}
         if ((cache) && (!(fd_ipeval_failp()))) {
           lispval factoid = fd_make_list(3,fd_incref(f),
-                                      fd_incref(slotid),
-                                      fd_incref(value));
+                                         fd_incref(slotid),
+                                         fd_incref(value));
           record_dependencies(&fop,factoid); fd_decref(factoid);
           fd_pop_opstack(&fop,0);}
         else fd_pop_opstack(&fop,0);}
@@ -592,7 +593,7 @@ FD_EXPORT int fd_frame_drop(lispval f,lispval slotid,lispval value)
     return fd_oid_drop(f,slotid,value);}
 }
 
-
+
 /* Creating frames */
 
 FD_EXPORT lispval fd_new_frame(lispval pool_spec,lispval initval,int copyflags)
@@ -633,7 +634,7 @@ FD_EXPORT lispval fd_new_frame(lispval pool_spec,lispval initval,int copyflags)
     return oid;}
 }
 
-
+
 /* Searching */
 
 static lispval make_features(lispval slotids,lispval values)
@@ -766,7 +767,7 @@ FD_EXPORT lispval fd_find_frames(lispval indexes,...)
   else return fd_finder(indexes,n_slotvals,slotvals);
 }
 
-
+
 /* Find prefetching */
 
 /* This prefetches a set of slotvalue keys from an index.
@@ -813,7 +814,7 @@ int fd_find_prefetch(fd_index ix,lispval slotids,lispval values)
     return 1;}
 }
 
-
+
 /* Indexing frames */
 
 #define FD_LOOP_BREAK() FD_STOP_DO_CHOICES; break
@@ -869,7 +870,7 @@ int fd_index_frame(fd_index ix,lispval frames,lispval slotids,lispval values)
     else return sum;}
 }
 
-
+
 /* Background searching */
 
 FD_EXPORT lispval fd_bg_get(lispval slotid,lispval value)
@@ -960,7 +961,7 @@ FD_EXPORT int fd_slot_cache_load()
   return count;
 }
 
-
+
 /* Initialization */
 
 FD_EXPORT void fd_init_frames_c()

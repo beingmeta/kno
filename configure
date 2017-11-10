@@ -750,7 +750,7 @@ test_env
 debuglibs
 debugldflags
 debugcflags
-extra_src
+extra_sources
 setup_target
 definefileinfo
 versionsh
@@ -774,6 +774,7 @@ apache_modinfo
 apache_conf_dir
 apache_modules_dir
 apache_log_dir
+source_dir
 data_dir
 shared_config
 local_config
@@ -874,7 +875,8 @@ with_execwrapper
 enable_thread_debug
 with_optinclude
 with_optlib
-with_extrasrc
+with_sourcedir
+with_extra_sources
 with_optdir
 with_admin_group
 with_fdaemon
@@ -1611,7 +1613,7 @@ Optional Packages:
 --with-copyfile command
 --with-touchfile command
 --with-apxs command
---with-make-target command
+--with-make-target default-target
 --with-rpath dir
 --without-fileinfo record fileinfo
 --with-codename for distribution
@@ -1619,7 +1621,8 @@ Optional Packages:
 --with-execwrapper program to use when calling exec()
 --with-optinclude Use optional include directory
 --with-optlib Use optional library directory
---with-extrasrc Configure extra source directories for gdb
+--with-sourcedir source directory
+--with-extra_sources Configure extra source directories for gdb
 --with-optdir Use optional header/lib
 --with-admin-group Install files with admin group and group write permissions
 --with-fdaemon The identity (user) for FramerD servers to run as
@@ -2951,7 +2954,7 @@ suffix=""
 rpath=""
 daemon_identity_default="daemon"
 setup_target="setup-unix"
-extra_src=
+extra_sources=
 DREENTRANT="-D_REENTRANT"
 MKSTATIC="ld -r -o"
 TESTLIBS=
@@ -2989,6 +2992,7 @@ default_module_path=""
 default_safe_module_path=""
 module_path=""
 safe_module_path=""
+source_dir=""
 CMODULES=""
 INSTALLCMODULES=""
 DATAFILES="etc/version"
@@ -3002,6 +3006,7 @@ GPGID=${GPGID:-E5AFF294}
 GITDESCRIBE=""
 TAGS="TAGS SCHEMETAGS"
 LIBSCM="\${REVISION}"
+default_source_dir="\$prefix/src"
 default_config_dir="\$prefix/etc/framerd"
 local_config="\$prefix/etc/framerd"
 shared_config="\$prefix/etc/framerd"
@@ -3110,6 +3115,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
 
 
 
@@ -6144,15 +6150,24 @@ if test $with_optlib != "none"; then
 fi
 
 
-# Check whether --with-extrasrc was given.
-if test "${with_extrasrc+set}" = set; then :
-  withval=$with_extrasrc;
+# Check whether --with-sourcedir was given.
+if test "${with_sourcedir+set}" = set; then :
+  withval=$with_sourcedir; source_dir=$withval
 else
-  with_extrasrc="none"
+  source_dir=$prefix/src
 fi
 
-if test $with_extrasrc != "none"; then
-   extra_src=${with_extrasrc};
+
+
+# Check whether --with-extra_sources was given.
+if test "${with_extra_sources+set}" = set; then :
+  withval=$with_extra_sources;
+else
+  with_extra_sources="none"
+fi
+
+if test $with_extra_sources != "none"; then
+   extra_sources=${with_extra_sources};
 fi
 
 
