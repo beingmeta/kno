@@ -2180,14 +2180,18 @@ FD_FASTOP struct KEYBUCKET *read_keybucket
 }
 
 static int update_hashindex_ondisk
-(fd_hashindex hx,unsigned int flags,unsigned int new_keys,
+(fd_hashindex hx,lispval metadata,
+ unsigned int flags,unsigned int new_keys,
  unsigned int changed_buckets,struct BUCKET_REF *bucket_locs,
- struct FD_STREAM *stream);
-static int update_hashindex_metadata(fd_hashindex hx,struct FD_STREAM *stream);
+ struct FD_STREAM *stream,
+ struct FD_STREAM *head);
+static int update_hashindex_metadata(fd_hashindex,lispval,fd_stream,fd_stream);
 
 static void free_keybuckets(int n,struct KEYBUCKET **keybuckets);
 
 static int hashindex_save(struct FD_INDEX *ix,
+                          struct FD_STREAM *stream,
+                          struct FD_STREAM *head,
                           struct FD_CONST_KEYVAL *adds,int n_adds,
                           struct FD_CONST_KEYVAL *drops,int n_drops,
                           struct FD_CONST_KEYVAL *stores,int n_stores,
@@ -2199,8 +2203,6 @@ static int hashindex_save(struct FD_INDEX *ix,
     fd_seterr("CantWriteFile","hashindex_save",fname,FD_VOID);
     return -1;}
   fd_lock_index(hx);
-  struct FD_STREAM _stream = {0}, *stream =
-    fd_init_file_stream(&_stream,fname,FD_FILE_WRITE,-1,-1);
   struct FD_OUTBUF *outstream = fd_writebuf(stream);
   struct BUCKET_REF *bucket_locs;
   fd_offset_type offtype = hx->index_offtype;
@@ -2208,31 +2210,14 @@ static int hashindex_save(struct FD_INDEX *ix,
     u8_logf(LOG_WARN,"Corrupted hashindex (in memory)",
             "Bad offset type code=%d for %s",(int)offtype,hx->indexid);
     u8_seterr("CorruptedHashIndex","hashindex_save",u8_strdup(ix->indexid));
-    fd_close_stream(stream,0);
     fd_unlock_index(hx);
     return -1;}
 
   if (  (n_adds==0) && (n_drops==0) && (n_stores==0) ) {
-    if (fd_modifiedp((lispval)&(hx->index_metadata)))
-      update_hashindex_metadata(hx,stream);
-    fd_close_stream(stream,FD_STREAM_FREEDATA);
+    if (FD_SLOTMAPP(changed_metadata))
+      update_hashindex_metadata(hx,changed_metadata,stream,head);
     fd_unlock_index(hx);
     return 0;}
-
-  u8_string recovery_file=u8_string_append(fname,".rollback",NULL);
-  size_t recovery_size = 256+(get_chunk_ref_size(hx)*hx->index_n_buckets);
-  ssize_t saved=fd_save_head(fname,recovery_file,recovery_size);
-  if (saved<0) {
-    u8_seterr("CouldntSaveHead","hashindex_commit",recovery_file);
-    return saved;}
-  else {
-    fd_setpos(stream,0);
-    if (fd_write_4bytes(outstream,FD_HASHINDEX_MAGIC_NUMBER)<0) { /* FD_HASHINDEX_TO_RECOVER */
-      fd_close_stream(stream,FD_STREAM_FREEDATA);
-      fd_unlock_index(hx);
-      u8_seterr("PreRecoverFailed","hashindex_commit",
-                u8_strdup("Failed to write recovery header"));
-      return -1;}}
 
   int new_keys = 0, n_keys, new_buckets = 0;
   int schedule_max, changed_buckets = 0, total_keys = hx->table_n_keys;
@@ -2382,55 +2367,98 @@ static int hashindex_save(struct FD_INDEX *ix,
   total_keys += new_keys;
   hx->table_n_keys = total_keys;
 
-  if (update_hashindex_ondisk
-      (hx,hx->storage_xformat,total_keys,changed_buckets,bucket_locs,
-       stream) >= 0) {
-    if (u8_file_existsp(recovery_file))
-      u8_removefile(recovery_file);
-    u8_free(recovery_file);}
+  int final_rv = update_hashindex_ondisk
+    (hx,changed_metadata,
+     hx->storage_xformat,total_keys,
+     changed_buckets,bucket_locs,
+     stream,head);
 
   /* Free the bucket locations */
   u8_big_free(bucket_locs);
-  /* And unlock all the locks. */
-  fd_close_stream(stream,FD_STREAM_FREEDATA);
+  /* And unlock the index */
   fd_unlock_index(hx);
 
-  u8_logf(LOG_INFO,"HashIndexCommit",
-          "Saved mappings for %d keys (%d/%d new/total) to %s in %f secs",
-          n_keys,new_keys,total_keys,
-          ix->indexid,u8_elapsed_time()-started);
+  if (final_rv < 0)
+    u8_logf(LOG_ERR,"HashIndexCommit",
+            "Saving header information failed");
+  else u8_logf(LOG_INFO,"HashIndexCommit",
+               "Saved mappings for %d keys (%d/%d new/total) to %s in %f secs",
+               n_keys,new_keys,total_keys,
+               ix->indexid,u8_elapsed_time()-started);
 
-  return n_keys;
+  if (final_rv<0)
+    return final_rv;
+  else return n_keys;
+}
+
+static fd_stream get_commit_stream(fd_index ix,struct FD_INDEX_COMMITS *commit)
+{
+  if (commit->commit_stream)
+    return commit->commit_stream;
+  else if (u8_file_writablep(ix->index_source)) {
+    struct FD_STREAM *new_stream =
+      fd_init_file_stream(NULL,ix->index_source,FD_FILE_MODIFY,-1,-1);
+    /* Lock the file descriptor */
+    if (fd_streamctl(new_stream,fd_stream_lockfile,NULL)<0) {
+      fd_close_stream(new_stream,FD_STREAM_FREEDATA);
+      u8_free(new_stream);
+      fd_seterr("CantLockFile","get_commit_stream/hashindex",
+                ix->index_source,FD_VOID);
+      return NULL;}
+    commit->commit_stream = new_stream;
+    return new_stream;}
+  else {
+    fd_seterr("CantWriteFile","get_commit_stream/hashindex",
+              ix->index_source,FD_VOID);
+    return NULL;}
+}
+
+static void release_commit_stream(fd_index ix,struct FD_INDEX_COMMITS *commit)
+{
+  fd_stream stream = commit->commit_stream;
+  if (stream == NULL) return;
+  else commit->commit_stream=NULL;
+  if (fd_streamctl(stream,fd_stream_unlockfile,NULL)<0)
+    u8_logf(LOG_WARN,"CantUnLockFile",
+            "For commit stream of hashindex %s",ix->indexid);
+  fd_close_stream(stream,FD_STREAM_FREEDATA);
+  u8_free(stream);
 }
 
 static int hashindex_commit(fd_index ix,fd_commit_phase phase,
-                            struct FD_INDEX_COMMITS *commit)
+                            struct FD_INDEX_COMMITS *commits)
 {
   struct FD_HASHINDEX *hx = (fd_hashindex) ix;
   int ref_size = get_chunk_ref_size(hx);
+  fd_stream stream = get_commit_stream(ix,commits);
+  u8_string source = ix->index_source;
+  if (stream == NULL)
+    return -1;
   switch (phase) {
+  case fd_no_commit:
+    u8_seterr("BadCommitPhase(commit_none)","hashindex_commit",
+              u8_strdup(ix->indexid));
+    return -1;
   case fd_commit_start: {
-    u8_string source = hx->index_source;
-    int lock_rv = fd_streamctl(&(hx->index_stream),fd_stream_lockfile,NULL);
-    if (lock_rv <= 0) {
-      u8_graberrno("hashindex_commit",u8_strdup(source));
-      return -1;}
     u8_string rollback_file = u8_string_append(source,".rollback",NULL);
     size_t rollback_size = 256+(ref_size*hx->index_n_buckets);
     int rv = fd_save_head(source,rollback_file,rollback_size);
     u8_free(rollback_file);
     return rv;}
   case fd_commit_save: {
-    return hashindex_save(ix,
-                          (struct FD_CONST_KEYVAL *)commit->commit_adds,
-                          commit->commit_n_adds,
-                          (struct FD_CONST_KEYVAL *)commit->commit_drops,
-                          commit->commit_n_drops,
-                          (struct FD_CONST_KEYVAL *)commit->commit_stores,
-                          commit->commit_n_stores,
-                          commit->commit_metadata);}
-  case fd_commit_finish:
-    return 0;
+    size_t recovery_size = 256+(ref_size*hx->index_n_buckets);
+    u8_string commit_file = u8_mkstring("%s.commit",source);
+    int head_saved = fd_save_head(source,commit_file,recovery_size);
+    struct FD_STREAM *head_stream = (head_saved>=0) ?
+      (fd_init_file_stream(NULL,commit_file,FD_FILE_MODIFY,-1,-1)) :
+      (NULL);
+    u8_free(commit_file);
+    return hashindex_save
+      (ix,stream,head_stream,
+       (struct FD_CONST_KEYVAL *)commits->commit_adds,commits->commit_n_adds,
+       (struct FD_CONST_KEYVAL *)commits->commit_drops,commits->commit_n_drops,
+       (struct FD_CONST_KEYVAL *)commits->commit_stores,commits->commit_n_stores,
+       commits->commit_metadata);}
   case fd_commit_rollback: {
     u8_string source = ix->index_source;
     u8_string rollback_file = u8_string_append(source,".rollback",NULL);
@@ -2444,21 +2472,22 @@ static int hashindex_commit(fd_index ix,fd_commit_phase phase,
               rollback_file,ix->indexid);
       u8_free(rollback_file);
       return -1;}}
+  case fd_commit_finish: {
+    u8_string commit_file = u8_mkstring("%s.commit",source);
+    int rv = fd_apply_head(source,commit_file,-1);
+    u8_free(commit_file);
+    return rv;}
   case fd_commit_cleanup: {
     u8_string source = ix->index_source;
-    int unlock_rv = fd_streamctl(&(hx->index_stream),fd_stream_unlockfile,NULL);
-    if (unlock_rv <= 0) {
-      int saved_errno = errno; errno=0;
-      u8_logf(LOG_CRIT,"UnlockFailed",
-              "Couldn't unlock %s for hashindex %s errno=%d:%s",
-              source,hx->indexid,saved_errno,u8_strerror(saved_errno));}
+    if (commits->commit_stream) release_commit_stream(ix,commits);
     u8_string rollback_file = u8_string_append(source,".rollback",NULL);
     if (u8_file_existsp(rollback_file))
       return u8_removefile(rollback_file);
     else {
-      u8_logf(LOGWARN,"Rollback file %s was deleted",rollback_file);
+      u8_logf(LOGWARN,"MissingRollbackFile",
+              "Rollback file %s was deleted",rollback_file);
       u8_free(rollback_file);
-      return -1;}}
+      return 0;}}
   default: {
     u8_logf(LOG_WARN,"NoPhasedCommit",
             "The index %s doesn't support phased commits",
@@ -2479,42 +2508,45 @@ static void free_keybuckets(int n,struct KEYBUCKET **keybuckets)
   u8_big_free(keybuckets);
 }
 
-static int update_hashindex_metadata(fd_hashindex hx,struct FD_STREAM *stream)
+static int update_hashindex_metadata(fd_hashindex hx,
+                                     lispval metadata,
+                                     struct FD_STREAM *stream,
+                                     struct FD_STREAM *head)
 {
-  if (fd_modifiedp((lispval)&(hx->index_metadata))) {
-    int error=0;
-    u8_logf(LOGWARN,"WriteMetadata","Writing modified metadata for %s",hx->indexid);
-    lispval metadata = (lispval) (&(hx->index_metadata));
-    ssize_t metadata_pos = fd_endpos(stream);
-    if (metadata_pos>0) {
-      fd_outbuf outbuf = fd_writebuf(stream);
-      ssize_t new_metadata_size = fd_write_dtype(outbuf,metadata);
-      ssize_t metadata_end = fd_getpos(stream);
-      if (new_metadata_size<0)
-        error=1;
-      else {
-        if ((metadata_end-metadata_pos) != new_metadata_size) {
-          u8_logf(LOGCRIT,"MetadataSizeIconsistency",
-                  "There was an inconsistency writing the metadata for %s",
-                  hx->indexid);}
-        fd_write_8bytes_at(stream,metadata_pos,0x30);
-        fd_write_4bytes_at(stream,metadata_end-metadata_pos,0x38);}}
-    else error=1;
-    if (error)
-      u8_logf(LOGCRIT,"MetaDataWriteError",
-              "There was an inconsistency writing the metadata for %s",
-              hx->indexid);
-    else fd_set_modified((lispval)metadata,0);
-    return error;}
-  else return 0;
+  int error=0;
+  u8_logf(LOG_WARN,"WriteMetadata",
+          "Writing modified metadata for %s",hx->indexid);
+  ssize_t metadata_pos = fd_endpos(stream);
+  if (metadata_pos>0) {
+    fd_outbuf outbuf = fd_writebuf(stream);
+    ssize_t new_metadata_size = fd_write_dtype(outbuf,metadata);
+    ssize_t metadata_end = fd_getpos(stream);
+    if (new_metadata_size<0)
+      error=1;
+    else {
+      if ((metadata_end-metadata_pos) != new_metadata_size) {
+        u8_logf(LOGCRIT,"MetadataSizeIconsistency",
+                "There was an inconsistency writing the metadata for %s",
+                hx->indexid);}
+      fd_write_8bytes_at(head,metadata_pos,0x30);
+      fd_write_4bytes_at(head,metadata_end-metadata_pos,0x38);}}
+  else error=1;
+  if (error)
+    u8_logf(LOGCRIT,"MetaDataWriteError",
+            "There was an inconsistency writing the metadata for %s",
+            hx->indexid);
+  if (error)
+    return -1;
+  else return 1;
 }
 
 static int update_hashindex_ondisk
-(fd_hashindex hx,unsigned int flags,unsigned int cur_keys,
+(fd_hashindex hx,lispval metadata,
+ unsigned int flags,unsigned int cur_keys,
  unsigned int changed_buckets,struct BUCKET_REF *bucket_locs,
- struct FD_STREAM *stream)
+ struct FD_STREAM *stream,struct FD_STREAM *head)
 {
-  struct FD_OUTBUF *outstream = fd_writebuf(stream);
+  struct FD_OUTBUF *outstream = fd_writebuf(head);
   int i = 0;
   unsigned int *offdata = NULL;
   unsigned int n_buckets = hx->index_n_buckets;
@@ -2525,7 +2557,7 @@ static int update_hashindex_ondisk
     mmap(NULL,256+offdata_byte_length,
          PROT_READ|PROT_WRITE,
          MMAP_FLAGS,
-         stream->stream_fileno,
+         head->stream_fileno,
          0);
   if ((memblock==NULL) || (memblock == MAP_FAILED)) {
     u8_graberrno("update_hashindex_ondisk:mmap",u8_strdup(hx->indexid));
@@ -2534,7 +2566,7 @@ static int update_hashindex_ondisk
 #else
   size_t offdata_length = n_buckets*chunk_ref_size;
   offdata = u8_big_alloc(offdata_length);
-  int rv = fd_read_ints(stream,offdata_length/4,offdata);
+  int rv = fd_read_ints(head,offdata_length/4,offdata);
   if (rv<0) {
     u8_graberrno("update_hashindex_ondisk:fd_read_ints",u8_strdup(hx->indexid));
     u8_big_free(offdata);
@@ -2590,7 +2622,7 @@ static int update_hashindex_ondisk
     while (i<changed_buckets) {
       unsigned int bucket_no = bucket_locs[i].bucketno;
       unsigned int bucket_pos = bucket_start+bytes_in_bucket*bucket_no;
-      fd_start_write(stream,bucket_pos);
+      fd_start_write(head,bucket_pos);
       fd_write_8bytes(outstream,bucket_locs[i].bck_ref.off);
       fd_write_4bytes(outstream,bucket_locs[i].bck_ref.size);
       i++;}}
@@ -2600,7 +2632,7 @@ static int update_hashindex_ondisk
     while (i<changed_buckets) {
       unsigned int bucket_no = bucket_locs[i].bucketno;
       unsigned int bucket_pos = bucket_start+bytes_in_bucket*bucket_no;
-      fd_start_write(stream,bucket_pos);
+      fd_start_write(head,bucket_pos);
       fd_write_4bytes(outstream,bucket_locs[i].bck_ref.off);
       fd_write_4bytes(outstream,bucket_locs[i].bck_ref.size);
       i++;}}
@@ -2613,7 +2645,7 @@ static int update_hashindex_ondisk
       unsigned int bucket_pos = bucket_start+bytes_in_bucket*bucket_no;
       unsigned int word1 = 0, word2 = 0;
       fd_convert_FD_B40_ref(bucket_locs[i].bck_ref,&word1,&word2);
-      fd_start_write(stream,bucket_pos);
+      fd_start_write(head,bucket_pos);
       fd_write_4bytes(outstream,word1);
       fd_write_4bytes(outstream,word2);
       i++;}}
@@ -2635,7 +2667,7 @@ static int update_hashindex_ondisk
               "update_hashindex_ondisk:munmap %s",hx->indexid);
       u8_graberrno("update_hashindex_ondisk:msync",u8_strdup(hx->indexid));}
 #else
-    struct FD_OUTBUF *out = fd_start_write(stream,256);
+    struct FD_OUTBUF *out = fd_start_write(head,256);
     if (hx->index_offtype == FD_B64)
       fd_write_ints(outstream,3*SIZEOF_INT*n_buckets,offdata);
     else fd_write_ints(outstream,2*SIZEOF_INT*n_buckets,offdata);
@@ -2643,14 +2675,15 @@ static int update_hashindex_ondisk
 #endif
   }
 
-  if (fd_modifiedp((lispval)&(hx->index_metadata)))
-    update_hashindex_metadata(hx,stream);
+  if (FD_SLOTMAPP(metadata))
+    update_hashindex_metadata(hx,metadata,stream,head);
 
   /* Write any changed flags */
-  fd_write_4bytes_at(stream,flags,8);
-  fd_write_4bytes_at(stream,cur_keys,16);
-  fd_write_4bytes_at(stream,FD_HASHINDEX_MAGIC_NUMBER,0);
+  fd_write_4bytes_at(head,flags,8);
+  fd_write_4bytes_at(head,cur_keys,16);
+  fd_write_4bytes_at(head,FD_HASHINDEX_MAGIC_NUMBER,0);
   fd_flush_stream(stream);
+  fd_flush_stream(head);
 
   return 0;
 }
