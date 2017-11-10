@@ -928,13 +928,14 @@ static fd_stream get_commit_stream(fd_pool p,struct FD_POOL_COMMITS *commit)
     if (fd_streamctl(new_stream,fd_stream_lockfile,NULL)<0) {
       fd_close_stream(new_stream,FD_STREAM_FREEDATA);
       u8_free(new_stream);
-      fd_seterr("CantLockFile","get_commit_stream/bigpool",p->pool_source,
-                FD_VOID);
+      fd_seterr("CantLockFile","get_commit_stream/bigpool",
+                p->pool_source,FD_VOID);
       return NULL;}
     commit->commit_stream = new_stream;
     return new_stream;}
   else {
-    fd_seterr("CantWriteFile","bigpool_storen",p->pool_source,FD_VOID);
+    fd_seterr("CantWriteFile","get_commit_stream/bigpool",
+              p->pool_source,FD_VOID);
     return NULL;}
 }
 
@@ -1113,7 +1114,7 @@ static int bigpool_commit(fd_pool p,fd_commit_phase phase,
     return rv;}
   case fd_commit_finish: {
     u8_string commit = u8_mkstring("%s.commit",fname);
-    int rv = fd_apply_head(fname,commit,256-8);
+    int rv = fd_apply_head(fname,commit,-1);
     u8_free(commit);
     if (rv >= 0) {
       update_offdata_cache(bp,p->pool_cache_level,chunk_ref_size);
