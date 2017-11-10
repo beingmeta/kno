@@ -9,6 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
+#include "framerd/components/storage_layer.h"
 #define FD_INLINE_BUFIO 1
 
 #include "framerd/fdsource.h"

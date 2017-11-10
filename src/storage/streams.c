@@ -9,6 +9,9 @@
 #define _FILEINFO __FILE__
 #endif
 
+static int stream_loglevel;
+#define U8_LOGLEVEL stream_loglevel
+
 #define FD_INLINE_BUFIO 1
 #define FD_INLINE_STREAMIO 1
 
@@ -22,7 +25,6 @@
 #include <libu8/u8printf.h>
 #include <libu8/u8rusage.h>
 #include <libu8/libu8io.h>
-
 
 #include <fcntl.h>
 #include <sys/types.h>
@@ -53,6 +55,8 @@ static size_t pagesize = 512;
 #else
 #define POSIX_OPEN_FLAGS 0
 #endif
+
+static int stream_loglevel = LOG_WARN;
 
 size_t fd_stream_bufsize = FD_STREAM_BUFSIZE;
 size_t fd_filestream_bufsize = FD_FILESTREAM_BUFSIZE;
@@ -1534,6 +1538,10 @@ FD_EXPORT void fd_init_streams_c()
 
   fd_unparsers[fd_stream_type]=unparse_stream;
   fd_recyclers[fd_stream_type]=recycle_stream;
+
+  fd_register_config("STREAMS:LOGLEVEL",_("LOGLEVEL for binary streams"),
+                     fd_intconfig_get,fd_loglevelconfig_set,
+                     &stream_loglevel);
 
   u8_register_source_file(_FILEINFO);
 }

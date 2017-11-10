@@ -218,6 +218,7 @@ typedef struct FD_POOL_COMMITS {
   lispval *commit_oids;
   lispval *commit_vals;
   lispval commit_metadata;
+  struct FD_COMMIT_TIMES commit_times;
   struct FD_STREAM *commit_stream;} *fd_pool_commits;
 
 /* Pool handlers */

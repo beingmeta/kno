@@ -10,6 +10,7 @@
 #endif
 
 #define U8_INLINE_IO 1
+#include "framerd/components/storage_layer.h"
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"

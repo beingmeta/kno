@@ -9,6 +9,8 @@
 #define _FILEINFO __FILE__
 #endif
 
+#include "framerd/components/storage_layer.h"
+
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/storage.h"
@@ -613,7 +615,7 @@ FD_EXPORT int fd_init_storage()
      NULL);
   fd_register_config
     ("DBLOGLEVEL",_("Default log level for database messages"),
-     fd_intconfig_get,fd_intconfig_set,&fd_storage_loglevel);
+     fd_intconfig_get,fd_loglevelconfig_set,&fd_storage_loglevel);
 
   fd_register_config
     ("PREFETCH",_("Whether to prefetch for large operations"),
