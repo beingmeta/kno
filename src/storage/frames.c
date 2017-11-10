@@ -13,6 +13,7 @@
 #define FD_INLINE_TABLES 1
 #define FD_INLINE_CHOICES 1
 #define FD_INLINE_IPEVAL 1
+#include "framerd/components/storage_layer.h"
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"

@@ -10,6 +10,7 @@
 #endif
 
 #define FD_INLINE_BUFIO 1
+#include "framerd/components/storage_layer.h"
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"

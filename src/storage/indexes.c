@@ -12,6 +12,7 @@
 #define FD_INLINE_INDEXES 1
 #define FD_INLINE_CHOICES 1
 #define FD_INLINE_IPEVAL 1
+#include "framerd/components/storage_layer.h"
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
@@ -1058,7 +1059,7 @@ static void free_commits(struct FD_INDEX_COMMITS *commits)
     u8_big_free(stores);}
 }
 
-static int dosave(fd_index ix,struct FD_INDEX_COMMITS *commits)
+static int index_dosave(fd_index ix,struct FD_INDEX_COMMITS *commits)
 {
   double start_time = u8_elapsed_time();
   int fd_storage_loglevel = (ix->index_loglevel > 0) ? (ix->index_loglevel) :
@@ -1069,6 +1070,7 @@ static int dosave(fd_index ix,struct FD_INDEX_COMMITS *commits)
   if (!(FD_VOIDP(commits->commit_metadata))) n_changes++;
 
   int saved = ix->index_handler->commit(ix,fd_commit_save,commits);
+  commits->commit_times.save = u8_elapsed_time();
 
   if (saved < 0) {
     u8_logf(LOG_CRIT,fd_IndexCommitError,
@@ -1086,6 +1088,7 @@ static int dosave(fd_index ix,struct FD_INDEX_COMMITS *commits)
               ((FD_VOIDP(commits->commit_metadata)) ? ("") : ("(and metadata) ") ),
               ix->indexid,u8_elapsed_time()-start_time);
     int finished = ix->index_handler->commit(ix,fd_commit_finish,commits);
+
     if (finished < 0) {
       u8_logf(LOG_CRIT,fd_IndexCommitError,
               _("Failed completion of %d changes to %s"),saved,ix->indexid);
@@ -1096,10 +1099,29 @@ static int dosave(fd_index ix,struct FD_INDEX_COMMITS *commits)
         u8_seterr("IndexRollbackFailed","fd_commit_index",u8_strdup(ix->indexid));}
       saved = -1;}}
 
+  commits->commit_times.finalize = u8_elapsed_time();
+
   return saved;
 }
 
-static int docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
+#define elapsed_diff(t) (u8_elapsed_time()-(t))
+
+static void log_timings(fd_index ix,struct FD_INDEX_COMMITS *commits)
+{
+  u8_logf(LOG_INFO,"Index/Commit/Timing",
+          "for '%s'\n  total=%f, start=%f, setup=%f, save=%f, "
+          "finalize=%f, apply=%f, cleanup=%f",
+          ix->indexid,
+          u8_elapsed_time()-commits->commit_times.base,
+          commits->commit_times.start,
+          commits->commit_times.setup,
+          commits->commit_times.save,
+          commits->commit_times.finalize,
+          commits->commit_times.apply,
+          commits->commit_times.cleanup);
+}
+
+static int index_docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
 {
   int fd_storage_loglevel = (ix->index_loglevel > 0) ? (ix->index_loglevel) :
     (*(fd_storage_loglevel_ptr));
@@ -1110,8 +1132,12 @@ static int docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
     memcpy(&commits,use_commits,sizeof(struct FD_INDEX_COMMITS));
   else commits.commit_index = ix;
 
+  commits.commit_times.base = u8_elapsed_time();
+
   int started = ix->index_handler->commit(ix,fd_commit_start,&commits);
-  if (started < 0) return started;
+  if (started < 0)
+    return started;
+  else commits.commit_times.start = elapsed_diff(commits.commit_times.base);
 
   if (use_commits == NULL) {
     struct FD_HASHTABLE *adds_table = &(ix->index_adds);
@@ -1177,7 +1203,8 @@ static int docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
     commits.commit_drops   = (fd_const_keyvals) drops;
     commits.commit_n_drops = n_drops;
     commits.commit_stores   = (fd_const_keyvals) stores;
-    commits.commit_n_stores = n_stores;}
+    commits.commit_n_stores = n_stores;
+    commits.commit_times.setup = elapsed_diff(commits.commit_times.start);}
 
   int n_changes = commits.commit_n_adds + commits.commit_n_stores +
     commits.commit_n_drops + (FD_SLOTMAPP(commits.commit_metadata));
@@ -1191,13 +1218,11 @@ static int docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
             (FD_SLOTMAPP(commits.commit_metadata)) ? (" w/metadata") : (""),
             ix->indexid);}
 
-  int saved = dosave(ix,&commits);
+  int saved = index_dosave(ix,&commits);
 
   if (saved<0) {
-    if (use_commits == NULL) free_commits(&commits);
-    return saved;}
-
-  if (use_commits == NULL) {
+    if (use_commits == NULL) free_commits(&commits);}
+  else if (use_commits == NULL) {
     struct FD_HASHTABLE *adds_table = &(ix->index_adds);
     struct FD_HASHTABLE *drops_table = &(ix->index_drops);
     struct FD_HASHTABLE *stores_table = &(ix->index_stores);
@@ -1231,7 +1256,19 @@ static int docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
     if (unlock_drops) fd_unlock_table(&(ix->index_drops));
     if (unlock_stores) fd_unlock_table(&(ix->index_stores));
 
-    free_commits(&commits);}
+    if (use_commits == NULL) free_commits(&commits);}
+  else {}
+  commits.commit_times.apply = elapsed_diff(commits.commit_times.finalize);
+
+  int cleanup_rv = ix->index_handler->commit(ix,fd_commit_cleanup,&commits);
+  if (cleanup_rv < 0) {
+    if (errno) { u8_graberrno("index_docommit",u8_strdup(ix->indexid)); }
+    u8_log(LOG_WARN,"CleanupFailed",
+           "There was en error cleaning up after commiting %s",ix->indexid);
+    fd_clear_errors(1);}
+  commits.commit_times.cleanup = elapsed_diff(commits.commit_times.apply);
+
+  if (fd_storage_loglevel >= LOG_NOTIFY) log_timings(ix,&commits);
 
   return n_changes;
 }
@@ -1246,7 +1283,7 @@ FD_EXPORT int fd_commit_index(fd_index ix)
               (fd_modifiedp((lispval)&(ix->index_metadata)))) )
     return 0;
   u8_lock_mutex(&(ix->index_commit_lock));
-  int rv = docommit(ix,NULL);
+  int rv = index_docommit(ix,NULL);
   u8_unlock_mutex(&(ix->index_commit_lock));
   return rv;
 }
@@ -1355,7 +1392,7 @@ FD_EXPORT int fd_index_save(fd_index ix,
   commits.commit_stores   = (fd_const_keyvals) stores;
   commits.commit_n_stores = n_stores;
 
-  int saved = docommit(ix,&commits);
+  int saved = index_docommit(ix,&commits);
 
   free_commits(&commits);
 
