@@ -304,6 +304,10 @@ typedef int fd_size_t;
 #define FD_WRITE_PREFETCH(x)
 #endif
 
+/* Merging integer values */
+
+#define fd_int_default(l1,l2) ( (l1>0) ? (l1) : (l2) )
+
 /* Ints that hold pointers */
 
 #if (SIZEOF_VOID_P == SIZEOF_INT)

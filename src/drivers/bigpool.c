@@ -9,7 +9,10 @@
 #define _FILEINFO __FILE__
 #endif
 
-#include "framerd/components/storage_layer.h"
+extern int fd_storage_loglevel;
+static int bigpool_loglevel = -1;
+#define U8_LOGLEVEL (fd_int_default(bigpool_loglevel,(fd_storage_loglevel-1)))
+
 #define FD_INLINE_POOLS 1
 #define FD_INLINE_BUFIO 1
 
@@ -201,8 +204,7 @@ static size_t get_maxpos(fd_bigpool p)
 
 /* Making and opening bigpools */
 
-static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,
-                            lispval opts)
+static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,lispval opts)
 {
   FD_OID base = FD_NULL_OID_INIT;
   unsigned int hi, lo, magicno, capacity, load, n_slotids, bigpool_format = 0;
@@ -2209,6 +2211,11 @@ FD_EXPORT void fd_init_bigpool_c()
   slotids_symbol=fd_intern("SLOTIDS");
   compression_symbol=fd_intern("COMPRESSION");
   offmode_symbol=fd_intern("OFFMODE");
+
+  fd_register_config("BIGPOOL:LOGLEVEL",
+                     "The default loglevel for bigpools",
+                     fd_intconfig_get,fd_loglevelconfig_set,
+                     &bigpool_loglevel);
 
   fd_set_default_pool_type("bigpool");
 }

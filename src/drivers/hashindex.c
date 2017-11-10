@@ -74,7 +74,10 @@
    DTYPE.
 */
 
-#include "framerd/components/storage_layer.h"
+extern int fd_storage_loglevel;
+static int hashindex_loglevel = -1;
+#define U8_LOGLEVEL (fd_int_default(hashindex_loglevel,(fd_storage_loglevel-1)))
+
 #define FD_INLINE_BUFIO 1
 #define FD_INLINE_CHOICES 1
 #define FD_FAST_CHOICE_CONTAINSP 1
@@ -3335,6 +3338,10 @@ FD_EXPORT void fd_init_hashindex_c()
   fd_register_config("HASHINDEX:SIZE","The default size for hash indexes",
                      fd_sizeconfig_get,fd_sizeconfig_set,
                      &hashindex_default_size);
+  fd_register_config("HASHINDEX:LOGLEVEL",
+                     "The default loglevel for hashindexs",
+                     fd_intconfig_get,fd_loglevelconfig_set,
+                     &hashindex_loglevel);
 
 
   fd_set_default_index_type("hashindex");
