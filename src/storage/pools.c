@@ -963,7 +963,7 @@ FD_EXPORT int fd_pool_finish(fd_pool p,lispval oids)
 /* Timing */
 
 #define record_elapsed(loc) \
-  loc=(u8_elapsed_time()-(mark)); mark=u8_elapsed_time()
+  ((loc=(u8_elapsed_time()-(mark))),(mark=u8_elapsed_time()))
 
 /* Committing OIDs to external sources */
 
