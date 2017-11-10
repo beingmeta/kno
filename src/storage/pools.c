@@ -1022,17 +1022,17 @@ static int pool_docommit(fd_pool p,lispval oids,
       /* No locked OIDs to commit */}
     else if ((FALSEP(oids))||(VOIDP(oids))) {
       pick_modified(p,0,&commits);
-      u8_logf(LOG_INFO,"PoolCommit/NoOIDs",
+      u8_logf(LOG_INFO,"PoolCommit/modified",
               "%d modified OIDs to commit to %s",
               commits.commit_count,p->poolid);}
     else if ((OIDP(oids))||(CHOICEP(oids))||(PRECHOICEP(oids))) {
       pick_writes(p,oids,&commits);
-      u8_logf(LOG_INFO,"PoolCommit/Passed",
+      u8_logf(LOG_INFO,"PoolCommit/passed",
               "%d/%d modified OIDs to commit to %s",
               commits.commit_count,FD_CHOICE_SIZE(oids),p->poolid);}
     else if (FD_TRUEP(oids)) {
       pick_modified(p,1,&commits);
-      u8_logf(LOG_INFO,"PoolCommit/Finished",
+      u8_logf(LOG_INFO,"PoolCommit/finished",
               "%d modified+finished OIDs to commit to %s",
               commits.commit_count,p->poolid);}
     else {
