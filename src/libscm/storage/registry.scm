@@ -134,20 +134,22 @@
 		     (indexes (pick (registry-index r) index?))
 		     (adjuncts-map (get-adjuncts pools))
 		     (adjuncts (get adjuncts-map (getkeys adjuncts-map)))
-		     (dbs (pick {pools indexes adjuncts} {pool? index?})))
-		(when (exists modified? dbs) 
+		     (dbs (pick {pools indexes adjuncts} {pool? index?}))
+		     (tosave (pick dbs modified?)))
+		(when (exists? tosave) 
+		  (lognotice |SavingRegistry| r " with " ($size tosave "component"))
+		  (loginfo |SavingRegistry| 
+		    r " including\n  " (do-choices tosave (printout " " tosave "\n")))
 		  (if use-threads
 		      (let ((threads (thread/call+ #[logexit #f]
 					 commit (pick dbs modified?)))
 			    (started (elapsed-time)))
-			(lognotice |SavingRegistry| r)
 			(if (exists? threads)
 			    (begin (thread/wait threads)
 			      (lognotice |RegistrySaved| 
 				"Saved registry " r " in " (secs-since started)))
 			    (logwarn |NoRegistry| "Couldn't get a registry to save")))
 		      (let ((started (elapsed-time)))
-			(lognotice |SavingRegistry| r)
 			(do-choices (db (pick dbs modified?)) (commit dbs))
 			(lognotice |RegistrySaved| 
 			  "Saved registry " r " in " (secs-since started)))))))))
