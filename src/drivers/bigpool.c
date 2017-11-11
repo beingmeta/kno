@@ -636,8 +636,12 @@ static lispval read_oid_value(fd_bigpool bp,
     /* Compressed data */
     fd_compress_type zmethod=
       (fd_compress_type)(fd_read_byte(in), fd_read_zint(in));
-    size_t data_len = fd_read_zint(in);
-    if (fd_request_bytes(in,data_len)<0) {
+    ssize_t data_len = fd_read_zint(in);
+    if (data_len<0) {
+      u8_seterr("ReadZintFailed",cxt,u8_strdup(bp->poolid));
+      return FD_ERROR_VALUE;}
+    else if (fd_request_bytes(in,data_len)<0) {
+      u8_seterr("UnableToGetBytes",cxt,u8_strdup(bp->poolid));
       return FD_EOD;}
     switch (zmethod) {
     case FD_NOCOMPRESS:
@@ -673,7 +677,11 @@ static lispval read_oid_value(fd_bigpool bp,
       if (data_len>FD_INIT_ZBUF_SIZE)
         ubuf = do_zuncompress(in->bufread,data_len,&ubuf_size,NULL);
       else ubuf = do_zuncompress(in->bufread,data_len,&ubuf_size,_ubuf);
-      if (ubuf == NULL) return FD_ERROR;
+      if (ubuf == NULL) {
+        if (cxt)
+          u8_seterr("ZLIB/DecompressionFailed",cxt,u8_strdup(bp->poolid));
+        else u8_seterr("ZLIB/DecompressionFailed","read_oid_value",u8_strdup(bp->poolid));
+        return FD_ERROR;}
       FD_INIT_BYTE_INPUT(&inflated,ubuf,ubuf_size);
       if (ubuf==_ubuf)
         return read_oid_value(bp,&inflated,cxt);
@@ -864,7 +872,8 @@ static lispval *bigpool_fetchn(fd_pool p,int n,lispval *oids)
                                     schedule[i].location.off,
                                     schedule[i].location.size,
                                     0);
-        if (in == NULL) break;
+        if (in == NULL)
+          break;
         lispval value = read_oid_value(bp,in,"bigpool_fetchn");
         if (FD_ABORTP(value))
           break;
@@ -876,12 +885,7 @@ static lispval *bigpool_fetchn(fd_pool p,int n,lispval *oids)
         lispval value = values[schedule[j].value_at];
         fd_decref(value);
         j++;}
-      u8_condition condition;
-      u8_exception ex = u8_current_exception;
-      if (ex==NULL)
-        condition="Unknown bigpool error";
-      else condition=ex->u8x_cond;
-      u8_seterr(condition,"bigpool_fetchn/read",u8dup(bp->poolid));
+      u8_seterr("FetchNError","bigpool_fetchn/read",u8dup(bp->poolid));
       if (unlock_stream)
         fd_unlock_stream(&(bp->pool_stream));
       u8_big_free(values);

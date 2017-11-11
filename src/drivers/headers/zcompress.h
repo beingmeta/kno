@@ -18,7 +18,8 @@ static U8_MAYBE_UNUSED unsigned char *do_zuncompress
   unsigned long csize = n_bytes, dsize, dsize_max;
   Bytef *cbuf = (Bytef *)bytes, *dbuf;
   if (init_dbuf == NULL) {
-    dsize = dsize_max = csize*4; dbuf = u8_malloc(dsize_max);}
+    dsize = dsize_max = csize*4;
+    dbuf = u8_malloc(dsize_max);}
   else {
     dbuf = init_dbuf; dsize = dsize_max = *dbytes;}
   while ((zerror = uncompress(dbuf,&dsize,cbuf,csize)) < Z_OK)
@@ -42,6 +43,7 @@ static U8_MAYBE_UNUSED unsigned char *do_zuncompress
     return dbuf;}
   else {
     fd_seterr2(error,"do_zuncompress");
+    if (dbuf != init_dbuf) u8_free(dbuf);
     return NULL;}
 }
 
