@@ -242,7 +242,7 @@ static lispval exif_get(lispval x,lispval prop)
     exdata = exif_data_new_from_data(FD_PACKET_DATA(x),FD_PACKET_LENGTH(x));
   else if (FD_STRINGP(x)) {
     int n_bytes;
-    unsigned char *data = u8_filedata(FD_STRDATA(x),&n_bytes);
+    unsigned char *data = u8_filedata(FD_CSTRING(x),&n_bytes);
     exdata = exif_data_new_from_data(FD_PACKET_DATA(x),FD_PACKET_LENGTH(x));
     u8_free(data);}
   else return fd_type_error(_("filename or packet"),"exif_get",x);

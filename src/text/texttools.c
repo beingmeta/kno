@@ -345,7 +345,7 @@ FD_EXPORT lispval fd_words2vector(u8_string string,int keep_punct)
       if (n>=max) {
         if (wordsv==_buf) {
           lispval *newv = u8_alloc_n(max*2,lispval);
-          memcpy(newv,wordsv,sizeof(lispval)*n);
+          memcpy(newv,wordsv,LISPVEC_BYTELEN(n));
           wordsv = newv; max = max*2;}
         else {
           int newmax = ((n>=1024) ? (n+1024) : (n*2));

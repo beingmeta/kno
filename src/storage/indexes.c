@@ -646,7 +646,7 @@ FD_EXPORT lispval fd_index_keys(fd_index ix)
       fd_choice result = fd_alloc_choice(n_fetched+n_added+n_replaced);
       lispval *write_start, *write_at;
       if (n_fetched)
-        memcpy(&(result->choice_0),fetched,sizeof(lispval)*n_fetched);
+        memcpy(&(result->choice_0),fetched,LISPVEC_BYTELEN(n_fetched));
       write_start = &(result->choice_0);
       write_at = write_start+n_fetched;
       if (n_added) fd_for_hashtable(&(ix->index_adds),add_key_fn,&write_at,1);
@@ -1000,7 +1000,7 @@ static int remove_keyvals(struct FD_KEYVAL *keyvals,int n,lispval remove)
         (FD_EQUALP(key,remove)) ) {
       lispval val = keyvals[i].kv_val;
       fd_decref(key); fd_decref(val);
-      memmove(keyvals+i,keyvals+i+1,sizeof(struct FD_KEYVAL)*(n-(i+1)));
+      memmove(keyvals+i,keyvals+i+1,FD_KEYVAL_LEN*(n-(i+1)));
       n--;}
     i++;}
   return n;

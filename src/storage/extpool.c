@@ -121,7 +121,7 @@ static lispval *extpool_fetchn(fd_pool p,int n,lispval *oids)
   else if (VECTORP(value)) {
     struct FD_VECTOR *vstruct = (struct FD_VECTOR *)value;
     lispval *results = u8_alloc_n(n,lispval);
-    memcpy(results,vstruct->vec_elts,sizeof(lispval)*n);
+    memcpy(results,vstruct->vec_elts,LISPVEC_BYTELEN(n));
     /* Free the CONS itself (and maybe data), to avoid DECREF/INCREF
        of values. */
     if (vstruct->vec_free_elts)

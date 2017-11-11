@@ -741,7 +741,7 @@ static lispval choicevec_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
         if (FD_CHOICEP(add)) {
           int n_adds = FD_CHOICE_SIZE(add);
           const lispval *add_elts = FD_CHOICE_ELTS(add);
-          memmove(write,add_elts,n_adds*sizeof(lispval));
+          memmove(write,add_elts,n_adds*LISPVAL_LEN);
           if (! (FD_ATOMIC_CHOICEP(add)) )
             fd_incref_vec((lispval *)add_elts,n);}
         else if (EMPTYP(add)) {}
@@ -773,7 +773,7 @@ static lispval choice2vector(lispval x,lispval sortspec)
     lispval *vector_elts = VEC_DATA(vector);
     const lispval *choice_elts = FD_XCHOICE_DATA(ch);
     if (FD_XCHOICE_ATOMICP(ch))
-      memcpy(vector_elts,choice_elts,sizeof(lispval)*n);
+      memcpy(vector_elts,choice_elts,LISPVEC_BYTELEN(n));
     else while (i<n) {
         vector_elts[i]=fd_incref(choice_elts[i]);
         i++;}
@@ -991,7 +991,7 @@ static lispval pickn(lispval x,lispval count,lispval offset)
         const lispval *read = FD_XCHOICE_DATA(base)+start;
         lispval *write = (lispval *)FD_XCHOICE_DATA(result);
         if (FD_XCHOICE_ATOMICP(base)) {
-          memcpy(write,read,sizeof(lispval)*howmany);
+          memcpy(write,read,LISPVEC_BYTELEN(howmany));
           fd_decref(normal);
           return fd_init_choice(result,howmany,NULL,FD_CHOICE_ISATOMIC);}
         else {

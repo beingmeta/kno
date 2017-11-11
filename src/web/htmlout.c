@@ -309,9 +309,9 @@ static void output_value(u8_output out,lispval val,
   else if (STRINGP(val))
     if (STRLEN(val)>42)
       u8_printf(out," <%s class='%s long string' title='%d characters'>“%k”</%s>",
-                eltname,classname,STRLEN(val),FD_STRDATA(val),eltname);
+                eltname,classname,STRLEN(val),FD_CSTRING(val),eltname);
     else u8_printf(out," <%s class='%s string' title='% characters'>“%k”</%s>",
-                   eltname,classname,STRLEN(val),FD_STRDATA(val),eltname);
+                   eltname,classname,STRLEN(val),FD_CSTRING(val),eltname);
   else if (SYMBOLP(val))
     u8_printf(out," <%s class='%s symbol'>%k</%s>",
               eltname,classname,SYM_NAME(val),eltname);

@@ -754,7 +754,7 @@ FD_EXPORT lispval fd_find_frames(lispval indexes,...)
         while (i<64) {newsv[i]=slotvals[i]; i++;}
         slotvals = newsv; max_slotvals = 128;}
       else {
-        slotvals = u8_realloc(slotvals,sizeof(lispval)*max_slotvals*2);
+        slotvals = u8_realloc(slotvals,LISPVEC_BYTELEN(max_slotvals)*2);
         max_slotvals = max_slotvals*2;}}
     slotvals[n_slotvals++]=val; val = va_arg(args,lispval);}
   if (n_slotvals%2) {

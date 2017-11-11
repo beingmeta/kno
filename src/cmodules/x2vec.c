@@ -230,7 +230,7 @@ static long long getboolopt(lispval opts,lispval sym,int dflt)
   else {
     int bv=-1;
     if (FD_STRINGP(v))
-      bv=fd_boolstring(FD_STRDATA(v),dflt);
+      bv=fd_boolstring(FD_CSTRING(v),dflt);
     else if (FD_SYMBOLP(v))
       bv=fd_boolstring(FD_SYMBOL_NAME(v),dflt);
     else {}
@@ -416,14 +416,14 @@ static long long import_vocab(x2vec_context x2vcxt,lispval data)
       FD_DO_CHOICES(entry,data) {
         if (FD_PAIRP(entry)) {
           lispval word=FD_CAR(entry), num=FD_CDR(entry);
-          long wd = ((fresh)?(vocab_add(x2vcxt,FD_STRDATA(word),0,&vocab)):
-                     (vocab_ref(x2vcxt,FD_STRDATA(word),&vocab)));
+          long wd = ((fresh)?(vocab_add(x2vcxt,FD_CSTRING(word),0,&vocab)):
+                     (vocab_ref(x2vcxt,FD_CSTRING(word),&vocab)));
           if (fresh)
             vocab[wd].count = FD_INT(num);
           else vocab[wd].count += FD_INT(num);}
         else if (FD_STRINGP(entry)) {
-          long wd = ((fresh)?(vocab_add(x2vcxt,FD_STRDATA(entry),0,&vocab)):
-                     (vocab_ref(x2vcxt,FD_STRDATA(entry),&vocab)));
+          long wd = ((fresh)?(vocab_add(x2vcxt,FD_CSTRING(entry),0,&vocab)):
+                     (vocab_ref(x2vcxt,FD_CSTRING(entry),&vocab)));
           if (fresh) vocab[wd].count = 1;
           else vocab[wd].count++;}
         else {
@@ -434,7 +434,7 @@ static long long import_vocab(x2vec_context x2vcxt,lispval data)
       int i=0, len=vec->vec_length; while (i<len) {
         lispval elt=elts[i];
         if (FD_STRINGP(elt)) {
-          u8_string text = FD_STRDATA(elt);
+          u8_string text = FD_CSTRING(elt);
           int wd = vocab_ref(x2vcxt,text,NULL);
           vocab[wd].count++;}
         else {
@@ -446,7 +446,7 @@ static long long import_vocab(x2vec_context x2vcxt,lispval data)
         if (FD_STRINGP(key)) {
           lispval value=fd_get(data,key,FD_VOID);
           if ((FD_FIXNUMP(value))||(FD_BIGINTP(value))) {
-            u8_string text=FD_STRDATA(key);
+            u8_string text=FD_CSTRING(key);
             int wd=vocab_ref(x2vcxt,u8_strdup(text),&vocab);
             long long count=FD_FIXNUMP(value)? (FD_FIX2INT(value)) :
               (fd_bigint_to_long_long((fd_bigint)value));
@@ -488,7 +488,7 @@ static long long init_vocab(x2vec_context x2v,lispval traindata)
       int ref=0; while (ref<lim) {
         lispval word=data[ref];
         if (FD_STRINGP(word)) {
-          u8_string text = FD_STRDATA(word);
+          u8_string text = FD_CSTRING(word);
           long wd = vocab_ref(x2v,text,&vocab);
           vocab[wd].count++;}
         else u8_log(LOG_WARN,"BadTrainingInput",
@@ -838,7 +838,7 @@ void *training_threadproc(void *state)
       while (vec_pos<vec_len) {
 	lispval input = vec_data[vec_pos++];
 	if (FD_STRINGP(input)) 
-	  word = fd_x2vec_vocabid(x2v,FD_STRDATA(input));
+	  word = fd_x2vec_vocabid(x2v,FD_CSTRING(input));
 	else continue;
 	if (word < 0) continue;
         word_count++;
@@ -1242,7 +1242,7 @@ void *modular_training_threadproc(void *state)
     while (vec_pos<vec_len) {
       lispval input = vec_data[vec_pos++];
       if (FD_STRINGP(input)) 
-        word = fd_x2vec_vocabid(x2v,FD_STRDATA(input));
+        word = fd_x2vec_vocabid(x2v,FD_CSTRING(input));
       else continue;
       if (word < 0) continue;
       word_count++;
@@ -1643,7 +1643,7 @@ FD_EXPORT lispval fd_x2vec_init(x2vec_context x2vcxt,lispval init)
 	    else {
 	      fd_double *d=FD_NUMVEC_DOUBLES(v);
 	      int i=0; while (i<n) {write[i]=(float)d[i]; i++;}}
-	    if (init_vocab) init_vocab_word(&vocab[i],FD_STRDATA(key),1);}
+	    if (init_vocab) init_vocab_word(&vocab[i],FD_CSTRING(key),1);}
 	  else if (FD_PRIM_TYPEP(v,fd_vector_type)) {
 	    int n=FD_VECTOR_LENGTH(v);
 	    lispval *elts=FD_VECTOR_ELTS(v);
@@ -1656,7 +1656,7 @@ FD_EXPORT lispval fd_x2vec_init(x2vec_context x2vcxt,lispval init)
 		u8_log(LOGWARN,"BadX2VecValue","%q is not a flonum",elt);}
 	      i++;}
 	    if (init_vocab)
-	      init_vocab_word(&vocab[i],FD_STRDATA(key),1);}
+	      init_vocab_word(&vocab[i],FD_CSTRING(key),1);}
 	  else {
 	    u8_log(LOGWARN,"BadX2VecValue",
 		   "%q is not a vector or float vector",v);}
@@ -1735,7 +1735,7 @@ FD_EXPORT x2vec_context fd_init_x2vec(x2vec_context x2v,lispval opts)
   else x2v->x2vec_bag_of_words=default_cbow;
 
   if (FD_STRINGP(label))
-    x2v->x2vec_label=u8_strdup(FD_STRDATA(label));
+    x2v->x2vec_label=u8_strdup(FD_CSTRING(label));
   else if (FD_SYMBOLP(label))
     x2v->x2vec_label=u8_strdup(FD_SYMBOL_NAME(label));
   else if ((FD_PAIRP(label))||(FD_VECTORP(label))||(FD_NUMBERP(label)))
@@ -1744,21 +1744,21 @@ FD_EXPORT x2vec_context fd_init_x2vec(x2vec_context x2v,lispval opts)
 
   if (FD_STRINGP(optsep)) {
     if (FD_STRLEN(optsep)==1)
-      x2v->x2vec_opt_sep=FD_STRDATA(optsep)[0];
+      x2v->x2vec_opt_sep=FD_CSTRING(optsep)[0];
     else {
       u8_log(LOGWARN,InvalidOpSeparator,
              "Ignoring multi-character opt separator %q",optsep);}}
   else if (FD_CHARACTERP(optsep)) {
     int code=FD_CHAR2CODE(optsep);
     if (code<0x80) {
-      x2v->x2vec_opt_sep=FD_STRDATA(optsep)[0];}
+      x2v->x2vec_opt_sep=FD_CSTRING(optsep)[0];}
     else {
       u8_log(LOGWARN,InvalidOpSeparator,
              "Ignoring non-ascii opt separator %q",optsep);}}
   else if (FD_FIXNUMP(optsep)) {
     int code=FD_FIX2INT(optsep);
     if (code<0x80) {
-      x2v->x2vec_opt_sep=FD_STRDATA(optsep)[0];}
+      x2v->x2vec_opt_sep=FD_CSTRING(optsep)[0];}
     else {
       u8_log(LOGWARN,InvalidOpSeparator,
              "Ignoring non-ascii opt separator %q",optsep);}}
@@ -1782,7 +1782,7 @@ FD_EXPORT x2vec_context fd_x2vec_start
     return x2v;
   else if (FD_VECTORP(training_data)) {fd_incref(training_data);}
   else if (FD_STRINGP(training_data)) {
-    lispval wordvec=fd_words2vector(FD_STRDATA(training_data),0);
+    lispval wordvec=fd_words2vector(FD_CSTRING(training_data),0);
     training_data=wordvec;}
   else {
     fd_seterr(fd_TypeError,"fd_start_x2vec","training data",FD_VOID);
@@ -1803,7 +1803,7 @@ FD_EXPORT x2vec_context fd_x2vec_modular_start
     return x2v;
   else if (FD_VECTORP(training_data)) {fd_incref(training_data);}
   else if (FD_STRINGP(training_data)) {
-    lispval wordvec=fd_words2vector(FD_STRDATA(training_data),0);
+    lispval wordvec=fd_words2vector(FD_CSTRING(training_data),0);
     training_data=wordvec;}
   else {
     fd_seterr(fd_TypeError,"fd_start_x2vec","training data",FD_VOID);
@@ -1844,7 +1844,7 @@ static lispval x2vec_train_prim(lispval x2v_arg,lispval input,lispval alpha_arg)
   while ( vec_i<vec_length ) {
     lispval elt=vec_elts[vec_i++];
     if (!(FD_STRINGP(elt))) continue;
-    long long word = vocab_ref(x2v,FD_STRDATA(elt),NULL);
+    long long word = vocab_ref(x2v,FD_CSTRING(elt),NULL);
     if (word>=0) block[block_length++]=word;}
 
   result = block_train(x2v,block,block_length,alpha,NULL,NULL,NULL);
@@ -1893,7 +1893,7 @@ static lispval x2vec_counts_prim(lispval arg,lispval word)
       i++;}
     return result;}
   else if (FD_STRINGP(word)) {
-    u8_string s=FD_STRDATA(word);
+    u8_string s=FD_CSTRING(word);
     int id=fd_x2vec_vocabid(x2v,s);
     if (id<0) return FD_EMPTY_CHOICE;
     else {
@@ -1911,7 +1911,7 @@ static lispval x2vec_get_prim(lispval arg,lispval term)
   if (syn0==NULL)
     return FD_EMPTY_CHOICE;
   else if (FD_STRINGP(term)) {
-    int i=fd_x2vec_vocabid(x2v,FD_STRDATA(term));
+    int i=fd_x2vec_vocabid(x2v,FD_CSTRING(term));
     if (i<0) return FD_EMPTY_CHOICE;
     else {
       return normalized_floatvec(hidden_size,&(syn0[i*hidden_size]));}}
@@ -2097,11 +2097,11 @@ static float *get_float_vec(x2vec_context x2v,
     return result;}
   else if (FD_STRINGP(arg)) {
     if (x2v) {
-      float *v=fd_x2vec_get(x2v,FD_STRDATA(arg));
+      float *v=fd_x2vec_get(x2v,FD_CSTRING(arg));
       *lenp=x2v->x2vec_hidden_size;
       return v;}
     else {
-      fd_seterr(_("Not a vector"),"get_float_vec",FD_STRDATA(arg),FD_VOID);
+      fd_seterr(_("Not a vector"),"get_float_vec",FD_CSTRING(arg),FD_VOID);
       return NULL;}}
   else if (FD_FIXNUMP(arg)) {
     int id=FD_FIX2INT(arg);
@@ -2114,7 +2114,7 @@ static float *get_float_vec(x2vec_context x2v,
       return NULL;}
     else {
       fd_seterr(_("No X2VEC available"),"get_float_vec",
-                FD_STRDATA(arg),FD_VOID);
+                FD_CSTRING(arg),FD_VOID);
       return NULL;}}
   else if (x2v) {
     fd_incref(arg); 
@@ -2146,7 +2146,7 @@ FD_EXPORT x2vec_context fd_x2vec_read(u8_string filename,lispval opts)
 
 static lispval x2vec_read_prim(lispval filename,lispval opts)
 {
-  u8_string path=FD_STRDATA(filename);
+  u8_string path=FD_CSTRING(filename);
   if (u8_file_existsp(path)) {
     x2vec_context x2v=fd_x2vec_read(path,opts);
     if (x2v==NULL)

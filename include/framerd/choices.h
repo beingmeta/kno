@@ -116,6 +116,8 @@ typedef struct FD_CHOICE {
   lispval choice_0;} FD_CHOICE;
 typedef struct FD_CHOICE *fd_choice;
 
+#define FD_CHOICE_BYTES (sizeof(struct FD_CHOICE))
+
 #define FD_CHOICE_SIZE_MASK 0x7FFFFFFF
 #define FD_CHOICEP(x) (FD_TYPEP((x),fd_choice_type))
 #define FD_XCHOICE(x) (fd_consptr(struct FD_CHOICE *,(x),fd_choice_type))
@@ -135,8 +137,8 @@ typedef struct FD_CHOICE *fd_choice;
 FD_FASTOP struct FD_CHOICE *fd_alloc_choice(int n_choices)
 {
   assert(n_choices>0);
-  size_t base_size = sizeof(struct FD_CHOICE);
-  size_t extra_elts = (n_choices-1)*sizeof(lispval);
+  size_t base_size = FD_CHOICE_BYTES;
+  size_t extra_elts = (n_choices-1)*LISPVAL_LEN;
   return u8_big_alloc(base_size+extra_elts);
 }
 FD_FASTOP void fd_free_choice(struct FD_CHOICE *ch)
@@ -185,6 +187,8 @@ typedef struct FD_PRECHOICE {
 #endif
 } FD_PRECHOICE;
 typedef struct FD_PRECHOICE *fd_prechoice;
+
+#define FD_PRECHOICE_BYTES (sizeof(struct FD_PRECHOICE))
 
 #define FD_PRECHOICEP(x) (FD_TYPEP(x,fd_prechoice_type))
 #define FD_XPRECHOICE(x) (FD_CONSPTR(fd_prechoice,x))
@@ -287,7 +291,7 @@ static void _prechoice_add(struct FD_PRECHOICE *ch,lispval v)
     new_size=old_size*2;
     prechoice_choicedata=
       u8_big_realloc(ch->prechoice_choicedata,
-                     sizeof(struct FD_CHOICE)+(sizeof(lispval)*(new_size-1)));
+                     FD_CHOICE_BYTES+(LISPVEC_BYTELEN(new_size-1)));
     ch->prechoice_choicedata=prechoice_choicedata;
     ch->prechoice_data=((lispval *)FD_XCHOICE_DATA(prechoice_choicedata));
     ch->prechoice_write=ch->prechoice_data+write_off;

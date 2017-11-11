@@ -250,7 +250,7 @@ static lispval json_vector(U8_INPUT *in,int flags,lispval fieldmap)
       lispval elt;
       if (n_elts == max_elts)  {
         int new_max = max_elts*2;
-        lispval *newelts = u8_realloc(elts,sizeof(lispval)*new_max);
+        lispval *newelts = u8_realloc(elts,LISPVEC_BYTELEN(new_max));
         if (newelts) {elts = newelts; max_elts = new_max;}
         else {
           u8_seterr(fd_MallocFailed,"json_vector",NULL);
@@ -283,7 +283,7 @@ static lispval json_table(U8_INPUT *in,int flags,lispval fieldmap)
       if (n_elts == max_elts)  {
         int new_max = max_elts*2;
         struct FD_KEYVAL *newelts=
-          u8_realloc(kv,sizeof(struct FD_KEYVAL)*new_max);
+          u8_realloc(kv,FD_KEYVAL_LEN*new_max);
         if (newelts) {kv = newelts; max_elts = new_max;}
         else {
           u8_seterr(fd_MallocFailed,"json_table",NULL);

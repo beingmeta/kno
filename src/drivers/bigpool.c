@@ -1151,7 +1151,7 @@ static int grow_slotcodes(struct FD_BIGPOOL *bp)
   lispval *newslotids = u8_alloc_n(new_length,lispval);
   if (newslotids == NULL) return -1;
   else {
-    memcpy(newslotids,slotids,sizeof(lispval)*cur_length);
+    memcpy(newslotids,slotids,LISPVEC_BYTELEN(cur_length));
     if (bp->bigpool_old_slotids) u8_free(bp->bigpool_old_slotids);
     bp->bigpool_slotids_length = new_length;
     bp->bigpool_old_slotids = slotids;

@@ -225,7 +225,7 @@ static lispval get_uptime()
 static int urllog_set(lispval var,lispval val,void *data)
 {
   if (FD_STRINGP(val)) {
-    u8_string filename = FD_STRDATA(val);
+    u8_string filename = FD_CSTRING(val);
     u8_lock_mutex(&log_lock);
     if (urllog) {
       fclose(urllog); urllog = NULL;
@@ -274,7 +274,7 @@ static lispval urllog_get(lispval var,void *data)
 static int reqlog_set(lispval var,lispval val,void *data)
 {
   if (FD_STRINGP(val)) {
-    u8_string filename = FD_STRDATA(val);
+    u8_string filename = FD_CSTRING(val);
     u8_lock_mutex(&log_lock);
     if ((reqlogname) && (strcmp(filename,reqlogname)==0)) {
       fd_flush_stream(reqlog);
@@ -333,7 +333,7 @@ static void dolog
     if (urllog) {
       lispval uri = fd_get(cgidata,uri_slotid,FD_VOID);
       u8_string tmp = u8_mkstring(">%s\n@%*lt %g/%g\n",
-				FD_STRDATA(uri),
+				FD_CSTRING(uri),
 				exectime,
 				u8_elapsed_time());
       fputs(tmp,urllog); u8_free(tmp);
@@ -344,16 +344,16 @@ static void dolog
       if (FD_TROUBLEP(val)) {
 	u8_exception ex = u8_erreify();
 	if (ex == NULL)
-	  tmp = u8_mkstring("!%s\n@%*lt %g/%g (mystery error)\n",FD_STRDATA(uri),
+	  tmp = u8_mkstring("!%s\n@%*lt %g/%g (mystery error)\n",FD_CSTRING(uri),
 			  exectime,u8_elapsed_time());
 
 	else if (ex->u8x_context)
-	  tmp = u8_mkstring("!%s\n@%*lt %g/%g %s %s\n",FD_STRDATA(uri),
+	  tmp = u8_mkstring("!%s\n@%*lt %g/%g %s %s\n",FD_CSTRING(uri),
 			  exectime,u8_elapsed_time(),
 			  ex->u8x_cond,ex->u8x_context);
-	else tmp = u8_mkstring("!%s\n@%*lt %g/%g %s\n",FD_STRDATA(uri),
+	else tmp = u8_mkstring("!%s\n@%*lt %g/%g %s\n",FD_CSTRING(uri),
 			     exectime,u8_elapsed_time(),ex->u8x_cond);}
-      else tmp = u8_mkstring("!%s\n@%*lt %g/%g %q\n",FD_STRDATA(uri),
+      else tmp = u8_mkstring("!%s\n@%*lt %g/%g %q\n",FD_CSTRING(uri),
 			   exectime,u8_elapsed_time(),val);
       fputs(tmp,urllog); u8_free(tmp);}
     if (reqlog) {
@@ -362,7 +362,7 @@ static void dolog
   else {
     if (urllog) {
       lispval uri = fd_get(cgidata,uri_slotid,FD_VOID);
-      u8_string tmp = u8_mkstring("<%s\n@%*lt %ld %g/%g\n",FD_STRDATA(uri),
+      u8_string tmp = u8_mkstring("<%s\n@%*lt %ld %g/%g\n",FD_CSTRING(uri),
 				len,exectime,u8_elapsed_time());
       fputs(tmp,urllog); u8_free(tmp);}
     if ((reqlog) && (reqloglevel>2))
@@ -401,7 +401,7 @@ static int preload_set(lispval var,lispval val,void *ignored)
     return 0;
   else {
     struct FD_PRELOAD_LIST *scan;
-    u8_string filename = FD_STRDATA(val); time_t mtime;
+    u8_string filename = FD_CSTRING(val); time_t mtime;
     if (!(u8_file_existsp(filename)))
       return fd_reterr(fd_FileNotFound,"preload_config_set",
 		       u8_strdup(filename),FD_VOID);
@@ -473,7 +473,7 @@ static int whitespace_stringp(u8_string s)
 
 static lispval loadcontent(lispval path)
 {
-  u8_string pathname = FD_STRDATA(path), oldsource;
+  u8_string pathname = FD_CSTRING(path), oldsource;
   double load_start = u8_elapsed_time();
   u8_string content = u8_filestring(pathname,NULL);
   if (traceweb>0)
@@ -497,7 +497,7 @@ static lispval loadcontent(lispval path)
     parsed = xml->xml_head;
     while ((FD_PAIRP(parsed)) &&
 	   (FD_STRINGP(FD_CAR(parsed))) &&
-	   (whitespace_stringp(FD_STRDATA(FD_CAR(parsed))))) {
+	   (whitespace_stringp(FD_CSTRING(FD_CAR(parsed))))) {
       struct FD_PAIR *old_parsed = (struct FD_PAIR *)parsed;
       parsed = FD_CDR(parsed);
       old_parsed->cdr = FD_EMPTY_LIST;}
@@ -544,7 +544,7 @@ static lispval loadcontent(lispval path)
 static lispval update_pagemap(lispval path)
 {
   struct stat fileinfo; struct U8_XTIME mtime;
-  char *lpath = u8_localpath(FD_STRDATA(path));
+  char *lpath = u8_localpath(FD_CSTRING(path));
   int retval = stat(lpath,&fileinfo);
   if (retval<0) {
     u8_log(LOG_CRIT,"StatFailed","Stat on %s failed (errno=%d)",
@@ -567,9 +567,9 @@ static lispval update_pagemap(lispval path)
 
 static lispval getcontent(lispval path)
 {
-  if ((FD_STRINGP(path))&&(u8_file_existsp(FD_STRDATA(path)))) {
+  if ((FD_STRINGP(path))&&(u8_file_existsp(FD_CSTRING(path)))) {
     struct stat fileinfo; struct U8_XTIME mtime;
-    char *lpath = u8_localpath(FD_STRDATA(path));
+    char *lpath = u8_localpath(FD_CSTRING(path));
     int retval = stat(lpath,&fileinfo);
     if (retval<0) {
       u8_log(LOG_CRIT,"StatFailed","Stat on %s failed (errno=%d)",
@@ -618,7 +618,7 @@ static lispval getcontent(lispval path)
       u8_free(lpath);
       return content;}}
   else if (FD_STRINGP(path)) {
-    u8_log(LOG_CRIT,"FileNotFound","Content file %s",FD_STRDATA(path));
+    u8_log(LOG_CRIT,"FileNotFound","Content file %s",FD_CSTRING(path));
     return fd_err(fd_FileNotFound,"getcontent",NULL,path);}
   else {
     u8_log(LOG_CRIT,"BadPathArg","To getcontent");
@@ -836,10 +836,10 @@ static lispval webcommon_adjust_docroot(lispval cgidata,u8_string docroot)
       lispval lisp_docroot = lispval_string(docroot);
       fd_store(cgidata,document_root,lisp_docroot);
       if ((FD_STRINGP(scriptname))&&
-	  ((strncmp(FD_STRDATA(scriptname),FD_STRDATA(incoming_docroot),
+	  ((strncmp(FD_CSTRING(scriptname),FD_CSTRING(incoming_docroot),
 		    FD_STRLEN(incoming_docroot)))==0)) {
 	u8_string local_scriptname = u8_string_append
-	  (docroot,FD_STRDATA(scriptname)+FD_STRLEN(incoming_docroot),NULL);
+	  (docroot,FD_CSTRING(scriptname)+FD_STRLEN(incoming_docroot),NULL);
 	lispval new_scriptname = fd_init_string(NULL,-1,local_scriptname);
 	fd_store(cgidata,script_filename,new_scriptname);
 	fd_decref(new_scriptname);}

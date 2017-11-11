@@ -79,7 +79,7 @@ static U8_MAYBE_UNUSED int tidySetStringOpt(TidyDoc tdoc,
                                             TidyOptionId optname,
                                             lispval value){
   if (FD_STRINGP(value))
-    return tidyOptSetValue(tdoc,optname,FD_STRDATA(value));
+    return tidyOptSetValue(tdoc,optname,FD_CSTRING(value));
   else {
     fd_incref(value);
     fd_seterr(fd_TypeError,"tidySetIntOpt","string",value);
@@ -94,7 +94,7 @@ static U8_MAYBE_UNUSED int copyStringOpt(lispval opts,
   if (FD_VOIDP(value))
     rc = tidyOptSetValue(tdoc,optname,dflt);
   else if (FD_STRINGP(value))
-    rc = tidyOptSetValue(tdoc,optname,FD_STRDATA(value));
+    rc = tidyOptSetValue(tdoc,optname,FD_CSTRING(value));
   else {
     fd_incref(value);
     fd_seterr(fd_TypeError,"copyStringOpt(tidy)","string",value);
@@ -192,12 +192,12 @@ static lispval tidy_prim_helper(lispval string,lispval opts,lispval diag,
       tidyOptSetValue(tdoc,TidyDoctype,"<!DOCTYPE html>");}
     else {
       tidyOptSetInt(tdoc,TidyDoctypeMode,TidyDoctypeUser);
-      tidyOptSetValue(tdoc,TidyDoctype,FD_STRDATA(doctype));}
+      tidyOptSetValue(tdoc,TidyDoctype,FD_CSTRING(doctype));}
     fd_decref(doctype);}
   if (rc<0) result = fd_err(fd_TidyError,"tidy_prim/setopts",errbuf.bp,FD_VOID);
   else {
     lispval dontfix = fd_getopt(opts,dontfix_symbol,FD_FALSE);
-    rc = tidyParseString(tdoc,FD_STRDATA(string));
+    rc = tidyParseString(tdoc,FD_CSTRING(string));
     if (rc<0)
       result = fd_err(fd_TidyError,"tidy_prim/parse",errbuf.bp,FD_VOID);
     else if (FD_FALSEP(dontfix))

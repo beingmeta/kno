@@ -40,7 +40,7 @@ static lispval doencrypt(lispval data,lispval key,
   if (!(FD_PACKETP(key)))
     return fd_type_error("packet/secret","doencrypt",key);
   if ((!(dtype))&& (FD_STRINGP(data))) {
-    payload = FD_STRDATA(data); payload_len = FD_STRLEN(data);}
+    payload = FD_CSTRING(data); payload_len = FD_STRLEN(data);}
   else if ((!(dtype))&&(FD_PACKETP(data))) {
     payload = FD_PACKET_DATA(data); payload_len = FD_PACKET_LENGTH(data);}
   else {
@@ -66,7 +66,7 @@ static lispval encrypt_prim(lispval data,lispval key,lispval cipher,lispval iv)
 {
   u8_string ciphername = NULL;
   if (FD_SYMBOLP(cipher)) ciphername = FD_SYMBOL_NAME(cipher);
-  else if (FD_STRINGP(cipher)) ciphername = FD_STRDATA(cipher);
+  else if (FD_STRINGP(cipher)) ciphername = FD_CSTRING(cipher);
   else if (FD_VOIDP(cipher)) ciphername = NULL;
   else return fd_type_error("ciphername","encrypt_prim",cipher);
   return doencrypt(data,key,ciphername,iv,0);
@@ -75,7 +75,7 @@ static lispval encrypt_dtype_prim(lispval data,lispval key,lispval cipher,lispva
 {
   u8_string ciphername;
   if (FD_SYMBOLP(cipher)) ciphername = FD_SYMBOL_NAME(cipher);
-  else if (FD_STRINGP(cipher)) ciphername = FD_STRDATA(cipher);
+  else if (FD_STRINGP(cipher)) ciphername = FD_CSTRING(cipher);
   else if (FD_VOIDP(cipher)) ciphername = NULL;
   else return fd_type_error("ciphername","encrypt_dtype",cipher);
   return doencrypt(data,key,ciphername,iv,1);
@@ -90,7 +90,7 @@ static lispval decrypt_prim(lispval data,lispval key,lispval cipher,lispval iv)
   if (!(FD_PACKETP(key)))
     return fd_type_error("packet/secret","doencrypt",key);
   if (FD_SYMBOLP(cipher)) ciphername = FD_SYMBOL_NAME(cipher);
-  else if (FD_STRINGP(cipher)) ciphername = FD_STRDATA(cipher);
+  else if (FD_STRINGP(cipher)) ciphername = FD_CSTRING(cipher);
   else if (FD_VOIDP(cipher)) ciphername = NULL;
   else return fd_type_error("ciphername","decrypt_prim",cipher);
   if (FD_PACKETP(iv)) {
@@ -114,7 +114,7 @@ static lispval decrypt2string_prim(lispval data,lispval key,lispval cipher,lispv
   u8_string ciphername;
   if (!(FD_PACKETP(key))) return fd_type_error("packet/secret","doencrypt",key);
   if (FD_SYMBOLP(cipher)) ciphername = FD_SYMBOL_NAME(cipher);
-  else if (FD_STRINGP(cipher)) ciphername = FD_STRDATA(cipher);
+  else if (FD_STRINGP(cipher)) ciphername = FD_CSTRING(cipher);
   else if (FD_VOIDP(cipher)) ciphername = NULL;
   else return fd_type_error("ciphername","decrypt_prim",cipher);
   if (FD_PACKETP(iv)) {
@@ -138,7 +138,7 @@ static lispval decrypt2dtype_prim(lispval data,lispval key,lispval cipher,lispva
   u8_string ciphername;
   if (!(FD_PACKETP(key))) return fd_type_error("packet/secret","doencrypt",key);
   if (FD_SYMBOLP(cipher)) ciphername = FD_SYMBOL_NAME(cipher);
-  else if (FD_STRINGP(cipher)) ciphername = FD_STRDATA(cipher);
+  else if (FD_STRINGP(cipher)) ciphername = FD_CSTRING(cipher);
   else if (FD_VOIDP(cipher)) ciphername = NULL;
   else return fd_type_error("ciphername","decrypt_prim",cipher);
   if (FD_PACKETP(iv)) {

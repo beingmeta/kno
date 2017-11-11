@@ -139,12 +139,12 @@ static lispval zipopen(u8_string path,int zflags,int oflags)
 static lispval zipopen_prim(lispval filename,lispval create)
 {
   if ((FD_FALSEP(create))||(FD_VOIDP(create)))
-    return zipopen(FD_STRDATA(filename),ZIP_CHECKCONS,0);
-  else return zipopen(FD_STRDATA(filename),ZIP_CHECKCONS,ZIP_CREATE);
+    return zipopen(FD_CSTRING(filename),ZIP_CHECKCONS,0);
+  else return zipopen(FD_CSTRING(filename),ZIP_CHECKCONS,ZIP_CREATE);
 }
 static lispval zipmake_prim(lispval filename)
 {
-  return zipopen(FD_STRDATA(filename),0,ZIP_CREATE|ZIP_EXCL);
+  return zipopen(FD_CSTRING(filename),0,ZIP_CREATE|ZIP_EXCL);
 }
 
 static lispval zipfilename_prim(lispval zipfile)
@@ -194,13 +194,13 @@ static lispval zipadd_prim(lispval zipfile,lispval filename,lispval value,
                           lispval comment,lispval compress)
 {
   struct FD_ZIPFILE *zf = fd_consptr(fd_zipfile,zipfile,fd_zipfile_type);
-  u8_string fname = FD_STRDATA(filename);
+  u8_string fname = FD_CSTRING(filename);
   unsigned char *data = NULL; size_t datalen = 0;
   struct zip_source *zsource;
   long long int index = -1;
   if ((fname[0]=='.')&&(fname[1]=='/')) fname = fname+2;
   if (FD_STRINGP(value)) {
-    data = u8_strdup(FD_STRDATA(value));
+    data = u8_strdup(FD_CSTRING(value));
     datalen = FD_STRLEN(value);}
   else if (FD_PACKETP(value)) {
     datalen = FD_PACKET_LENGTH(value);
@@ -226,7 +226,7 @@ static lispval zipadd_prim(lispval zipfile,lispval filename,lispval value,
     int retval = -1;
     if (FD_STRINGP(comment))
       retval = zip_set_file_comment
-        (zf->zip,index,FD_STRDATA(comment),FD_STRLEN(comment));
+        (zf->zip,index,FD_CSTRING(comment),FD_STRLEN(comment));
     else if (FD_PACKETP(comment))
       retval = zip_set_file_comment
         (zf->zip,index,FD_PACKET_DATA(comment),
@@ -262,7 +262,7 @@ static lispval zipadd_prim(lispval zipfile,lispval filename,lispval value,
 static lispval zipdrop_prim(lispval zipfile,lispval filename)
 {
   struct FD_ZIPFILE *zf = fd_consptr(fd_zipfile,zipfile,fd_zipfile_type);
-  u8_string fname = FD_STRDATA(filename);
+  u8_string fname = FD_CSTRING(filename);
   int index; int retval;
   if ((fname[0]=='.')&&(fname[1]=='/')) fname = fname+2;
   u8_lock_mutex(&(zf->zipfile_lock));
@@ -297,7 +297,7 @@ static int istext(u8_byte *buf,int size)
 static lispval zipget_prim(lispval zipfile,lispval filename,lispval isbinary)
 {
   struct FD_ZIPFILE *zf = fd_consptr(fd_zipfile,zipfile,fd_zipfile_type);
-  u8_string fname = FD_STRDATA(filename);
+  u8_string fname = FD_CSTRING(filename);
   struct zip_stat zstat; int zret;
   struct zip_file *zfile;
   int index;
@@ -343,7 +343,7 @@ static lispval zipget_prim(lispval zipfile,lispval filename,lispval isbinary)
 static lispval zipexists_prim(lispval zipfile,lispval filename)
 {
   struct FD_ZIPFILE *zf = fd_consptr(fd_zipfile,zipfile,fd_zipfile_type);
-  u8_string fname = FD_STRDATA(filename); int index;
+  u8_string fname = FD_CSTRING(filename); int index;
   if ((fname[0]=='.')&&(fname[1]=='/')) fname = fname+2;
   u8_lock_mutex(&(zf->zipfile_lock));
   if (zf->closed) {
@@ -363,7 +363,7 @@ static lispval zipexists_prim(lispval zipfile,lispval filename)
 static lispval zipmodtime_prim(lispval zipfile,lispval filename)
 {
   struct FD_ZIPFILE *zf = fd_consptr(fd_zipfile,zipfile,fd_zipfile_type);
-  u8_string fname = FD_STRDATA(filename);
+  u8_string fname = FD_CSTRING(filename);
   struct zip_stat zstat; int zret;
   int index;
   if ((fname[0]=='.')&&(fname[1]=='/')) fname = fname+2;
@@ -390,7 +390,7 @@ static lispval zipmodtime_prim(lispval zipfile,lispval filename)
 static lispval zipgetsize_prim(lispval zipfile,lispval filename)
 {
   struct FD_ZIPFILE *zf = fd_consptr(fd_zipfile,zipfile,fd_zipfile_type);
-  u8_string fname = FD_STRDATA(filename);
+  u8_string fname = FD_CSTRING(filename);
   struct zip_stat zstat; int zret;
   int index;
   if ((fname[0]=='.')&&(fname[1]=='/')) fname = fname+2;

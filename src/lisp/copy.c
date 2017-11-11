@@ -100,7 +100,7 @@ lispval fd_copier(lispval x,int flags)
       lispval *write = (lispval *)&(copy->choice_0);
       lispval result;
       if (FD_ATOMIC_CHOICEP(x))
-        memcpy(write,read,sizeof(lispval)*n);
+        memcpy(write,read,LISPVEC_BYTELEN(n));
       else if (flags&FD_FULL_COPY) while (read<limit) {
           lispval v = *read++, c = fd_copier(v,flags);
           *write++=c;}
@@ -181,7 +181,7 @@ static lispval copy_compound(lispval x,int flags)
     fd_incref(x); return x;}
   else {
     int i = 0, n = xc->compound_length;
-    struct FD_COMPOUND *nc = u8_malloc(sizeof(FD_COMPOUND)+(n-1)*sizeof(lispval));
+    struct FD_COMPOUND *nc = u8_malloc(sizeof(FD_COMPOUND)+(n-1)*LISPVAL_LEN);
     lispval *data = &(xc->compound_0), *write = &(nc->compound_0);
     FD_INIT_CONS(nc,fd_compound_type);
     if (xc->compound_ismutable) u8_init_mutex(&(nc->compound_lock));

@@ -424,6 +424,8 @@ typedef struct FD_STRING {
   u8_string str_bytes;} FD_STRING;
 typedef struct FD_STRING *fd_string;
 
+#define FD_STRING_LEN (sizeof(struct FD_STRING))
+
 FD_EXPORT ssize_t fd_max_strlen;
 FD_EXPORT int fd_check_utf8;
 
@@ -577,6 +579,8 @@ typedef struct FD_VECTOR {
   unsigned int vec_bigalloc:1;
   lispval *vec_elts;} FD_VECTOR;
 typedef struct FD_VECTOR *fd_vector;
+
+#define FD_VECTOR_LEN (sizeof(struct FD_VECTOR))
 
 FD_EXPORT ssize_t fd_bigvec_threshold;
 
@@ -969,7 +973,7 @@ static int base_compare(lispval x,lispval y)
           return 1;
         else if (xlen<ylen)
           return -1;
-        else return strncmp(FD_STRDATA(x),FD_STRDATA(y),xlen);}
+        else return strncmp(FD_CSTRING(x),FD_CSTRING(y),xlen);}
       case fd_vector_type: {
         int i = 0, xlen = VEC_LEN(x), ylen = VEC_LEN(y);
         lispval *xdata = VEC_DATA(x), *ydata = VEC_DATA(y);
@@ -1024,7 +1028,7 @@ static int cons_compare(lispval x,lispval y)
           return 1;
         else if (xlen<ylen)
           return -1;
-        else return strncmp(FD_STRDATA(x),FD_STRDATA(y),xlen);}
+        else return strncmp(FD_CSTRING(x),FD_CSTRING(y),xlen);}
       case fd_vector_type: {
         int i = 0, xlen = VEC_LEN(x), ylen = VEC_LEN(y);
         lispval *xdata = VEC_DATA(x), *ydata = VEC_DATA(y);

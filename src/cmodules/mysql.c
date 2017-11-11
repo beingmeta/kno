@@ -43,7 +43,7 @@ static u8_string dupstring(lispval x)
 {
   if (FD_VOIDP(x)) return NULL;
   else if (FD_STRINGP(x))
-    return u8_strdup(FD_STRDATA(x));
+    return u8_strdup(FD_CSTRING(x));
   else if ((FD_PACKETP(x))||(FD_TYPEP(x,fd_secret_type))) {
     const unsigned char *data = FD_PACKET_DATA(x);
     int len = FD_PACKET_LENGTH(x);
@@ -208,11 +208,11 @@ static int setup_connection(struct FD_MYSQL *dbp)
         return fd_type_error("SSLCIPHERS","open_mysql",sslciphers);
       else retval = mysql_ssl_set
              (dbp->mysqldb,
-              ((FD_VOIDP(sslkey))?(NULL):(FD_STRDATA(sslkey))),
-              ((FD_VOIDP(sslcert))?(NULL):(FD_STRDATA(sslcert))),
-              ((FD_VOIDP(sslca))?(NULL):(FD_STRDATA(sslca))),
-              ((FD_VOIDP(sslcadir))?(NULL):(FD_STRDATA(sslcadir))),
-              ((FD_VOIDP(sslciphers))?(NULL):(FD_STRDATA(sslciphers))));}}
+              ((FD_VOIDP(sslkey))?(NULL):(FD_CSTRING(sslkey))),
+              ((FD_VOIDP(sslcert))?(NULL):(FD_CSTRING(sslcert))),
+              ((FD_VOIDP(sslca))?(NULL):(FD_CSTRING(sslca))),
+              ((FD_VOIDP(sslcadir))?(NULL):(FD_CSTRING(sslcadir))),
+              ((FD_VOIDP(sslciphers))?(NULL):(FD_CSTRING(sslciphers))));}}
 #ifdef MYSQL_OPT_SSL_MODE
   if (retval == RETVAL_OK) {
     retval = mysql_options(dbp->mysqldb,MYSQL_OPT_SSL_MODE,&ssl_mode);}
@@ -351,7 +351,7 @@ static void recycle_mysqldb(struct FD_EXTDB *c)
 {
   struct FD_MYSQL *dbp = (struct FD_MYSQL *)c;
   int n_procs = dbp->extdb_n_procs;
-  lispval *toremove = u8_malloc(sizeof(lispval)*(dbp->extdb_n_procs)), *write = toremove;
+  lispval *toremove = u8_malloc(LISPVEC_BYTELEN(dbp->extdb_n_procs)), *write = toremove;
   int i = 0;
   u8_lock_mutex(&(dbp->extdb_proclock));
   while (i<n_procs) {
@@ -409,11 +409,11 @@ static lispval open_mysql
   /* Initialize the MYSQL side of things (after the memset!) */
   /* If the hostname looks like a filename, we assume it's a Unix domain
      socket. */
-  if (strchr(FD_STRDATA(hostname),'/') == NULL) {
-    host = u8_strdup(FD_STRDATA(hostname));
+  if (strchr(FD_CSTRING(hostname),'/') == NULL) {
+    host = u8_strdup(FD_CSTRING(hostname));
     sockname = NULL;}
   else {
-    sockname = u8_strdup(FD_STRDATA(hostname));
+    sockname = u8_strdup(FD_CSTRING(hostname));
     host = NULL;}
   /* Process the other arguments */
   spec = dupstring(hostname);
@@ -623,7 +623,7 @@ static lispval get_stmt_values
         fd_decref(value);}
       else if (FD_OIDP(colmaps[i])) {
         if (FD_STRINGP(value)) {
-          kv[n_slots].kv_val = fd_parse(FD_STRDATA(value));}
+          kv[n_slots].kv_val = fd_parse(FD_CSTRING(value));}
         else {
           FD_OID base = FD_OID_ADDR(colmaps[i]);
           int offset = fd_getint(value);
@@ -640,7 +640,7 @@ static lispval get_stmt_values
       else if (colmaps[i]==FD_TRUE)
         if (FD_STRINGP(value)) {
           if (FD_STRLEN(value))
-            kv[n_slots].kv_val = fd_parse(FD_STRDATA(value));
+            kv[n_slots].kv_val = fd_parse(FD_CSTRING(value));
           else kv[n_slots].kv_val = FD_EMPTY_CHOICE;
           fd_decref(value);}
         else kv[n_slots].kv_val = value;
@@ -654,7 +654,7 @@ static lispval get_stmt_values
           const unsigned char *data=
             ((FD_PACKETP(value))?
              (FD_PACKET_DATA(value)):
-             (FD_STRDATA(value)));
+             (FD_CSTRING(value)));
           unsigned char *uuidbytes;
           FD_INIT_CONS(uuid,fd_uuid_type);
           uuidbytes = uuid->uuid16;
@@ -819,7 +819,7 @@ static lispval mysqlexec(struct FD_MYSQL *dbp,lispval string,
     fd_decref(colinfo);
     u8_unlock_mutex(&(dbp->mysql_lock));
     return FD_ERROR_VALUE;}
-  retval = mysql_stmt_prepare(stmt,FD_STRDATA(string),FD_STRLEN(string));
+  retval = mysql_stmt_prepare(stmt,FD_CSTRING(string),FD_STRLEN(string));
   if (retval == RETVAL_OK) {
     n_cols = init_stmt_results(stmt,&outbound,&mysqlproc_colnames,&isnullbuf);
     retval = mysql_stmt_execute(stmt);}
@@ -1158,7 +1158,7 @@ static lispval applymysqlproc(fd_function fn,int n,lispval *args,int reconn)
       else return fd_err(fd_TooManyArgs,"fd_dapply",fn->fcn_name,FD_VOID);}
 
     if (n_params>4) argbuf = u8_alloc_n(n_params,lispval);
-    /* memset(argbuf,0,sizeof(lispval)*n_params); */
+    /* memset(argbuf,0,LISPVEC_BYTELEN(n_params)); */
 
     /* Initialize the input parameters from the arguments.
        None of this accesses the database, so we don't lock it yet.*/
@@ -1214,7 +1214,7 @@ static lispval applymysqlproc(fd_function fn,int n,lispval *args,int reconn)
         valbuf[i].fval = FD_FLONUM(arg);}
       else if (FD_STRINGP(arg)) {
         inbound[i].buffer_type = MYSQL_TYPE_STRING;
-        inbound[i].buffer = (u8_byte *)FD_STRDATA(arg);
+        inbound[i].buffer = (u8_byte *)FD_CSTRING(arg);
         inbound[i].buffer_length = FD_STRLEN(arg);
         inbound[i].length = &(inbound[i].buffer_length);}
       else if (FD_SYMBOLP(arg)) {

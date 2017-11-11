@@ -34,7 +34,7 @@ static long long int hyphenate_init = 0;
 
 static lispval hyphenate_word_prim(lispval string_arg)
 {
-  u8_string string = FD_STRDATA(string_arg);
+  u8_string string = FD_CSTRING(string_arg);
   int len = FD_STRLEN(string_arg);
   if (len==0) return fd_incref(string_arg);
   else {
@@ -54,7 +54,7 @@ static lispval hyphenate_word_prim(lispval string_arg)
 
 static lispval hyphen_breaks_prim(lispval string_arg)
 {
-  u8_string string = FD_STRDATA(string_arg);
+  u8_string string = FD_CSTRING(string_arg);
   int len = FD_STRLEN(string_arg);
   if (len==0) return fd_init_vector(NULL,0,NULL);
   else {
@@ -95,7 +95,7 @@ static lispval hyphen_breaks_prim(lispval string_arg)
 
 static lispval shyphenate_prim(lispval string_arg)
 {
-  u8_string string = FD_STRDATA(string_arg);
+  u8_string string = FD_CSTRING(string_arg);
   int len = FD_STRLEN(string_arg);
   if (len==0) return fd_incref(string_arg);
   else {
@@ -151,7 +151,7 @@ static int hyphenout_helper(U8_OUTPUT *out,
 static lispval hyphenout_prim(lispval string_arg,lispval hyphen_arg)
 {
   U8_OUTPUT *output = u8_current_output;
-  u8_string string = FD_STRDATA(string_arg);
+  u8_string string = FD_CSTRING(string_arg);
   int len = FD_STRLEN(string_arg);
   int hyphen_char = FD_CHAR2CODE(hyphen_arg);
   const u8_byte *scan = string;
@@ -200,7 +200,7 @@ static lispval hyphenate_prim(lispval string_arg,lispval hyphen_arg)
 {
   lispval result;
   struct U8_OUTPUT out; U8_OUTPUT *output = &out;
-  u8_string string = FD_STRDATA(string_arg);
+  u8_string string = FD_CSTRING(string_arg);
   int len = FD_STRLEN(string_arg);
   int hyphen_char = FD_CHAR2CODE(hyphen_arg);
   const u8_byte *scan = string;

@@ -122,7 +122,7 @@ FD_FASTOP fd_lexenv init_static_env
    lispval *vars,lispval *vals)
 {
   memset(envstruct,0,sizeof(struct FD_LEXENV));
-  memset(bindings,0,sizeof(struct FD_SCHEMAP));
+  memset(bindings,0,FD_SCHEMAP_LEN);
   FD_INIT_STATIC_CONS(envstruct,fd_lexenv_type);
   FD_INIT_STATIC_CONS(bindings,fd_schemap_type);
   bindings->schemap_onstack = 1;

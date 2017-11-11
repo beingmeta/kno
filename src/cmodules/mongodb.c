@@ -121,9 +121,9 @@ static u8_string stropt(lispval opts,lispval key,u8_string dflt)
       if (dflt == NULL) return dflt;
       else return u8_strdup(dflt);}
     else if (FD_STRINGP(v))
-      return u8_strdup(FD_STRDATA(v));
+      return u8_strdup(FD_CSTRING(v));
     else if (FD_TYPEP(v,fd_secret_type))
-      return u8_strdup(FD_STRDATA(v));
+      return u8_strdup(FD_CSTRING(v));
     else {
       u8_log(LOG_WARN,"Invalid string option","%q=%q",key,v);
       fd_decref(v);
@@ -348,7 +348,7 @@ static lispval mongodb_open(lispval arg,lispval opts)
   mongoc_ssl_opt_t ssl_opts={ 0 };
   int add_ssl = boolopt(opts,sslsym,default_ssl);
   if ((FD_STRINGP(arg))||(FD_TYPEP(arg,fd_secret_type))) {
-    uri = modify_ssl(FD_STRDATA(arg),add_ssl);
+    uri = modify_ssl(FD_CSTRING(arg),add_ssl);
     info = mongoc_uri_new(uri);}
   else if (FD_SYMBOLP(arg)) {
     lispval conf_val = fd_config_get(FD_SYMBOL_NAME(arg));
@@ -356,8 +356,8 @@ static lispval mongodb_open(lispval arg,lispval opts)
       return fd_type_error("MongoDB URI config","mongodb_open",arg);
     else if ((FD_STRINGP(conf_val))||
              (FD_TYPEP(conf_val,fd_secret_type))) {
-      uri = modify_ssl(FD_STRDATA(conf_val),add_ssl);
-      info = mongoc_uri_new(FD_STRDATA(conf_val));
+      uri = modify_ssl(FD_CSTRING(conf_val),add_ssl);
+      info = mongoc_uri_new(FD_CSTRING(conf_val));
       fd_decref(conf_val);}
     else return fd_type_error("MongoDB URI config val",
                               FD_SYMBOL_NAME(arg),conf_val);}
@@ -463,7 +463,7 @@ static lispval mongodb_collection(lispval server,lispval name_arg,lispval opts_a
 {
   struct FD_MONGODB_COLLECTION *result;
   struct FD_MONGODB_DATABASE *srv;
-  u8_string name = FD_STRDATA(name_arg), collection_name = NULL;
+  u8_string name = FD_CSTRING(name_arg), collection_name = NULL;
   lispval opts; int flags;
   if (FD_TYPEP(server,fd_mongoc_server)) {
     srv = (struct FD_MONGODB_DATABASE *)server;
@@ -1506,7 +1506,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
     switch (ctype) {
     case fd_string_type: {
       unsigned char _buf[64], *buf=_buf;
-      u8_string str = FD_STRDATA(val); int len = FD_STRLEN(val);
+      u8_string str = FD_CSTRING(val); int len = FD_STRLEN(val);
       if ((flags&FD_MONGODB_COLONIZE)&&
           ((isdigit(str[0]))||(strchr(":(#@",str[0])!=NULL))) {
         if (len>62) buf = u8_malloc(len+2);
@@ -1711,7 +1711,7 @@ static bool bson_append_keyval(FD_BSON_OUTPUT b,lispval key,lispval val)
       if (FD_EXPECT_FALSE(opmap!=NULL))  {
         if (FD_STRINGP(opmap->kv_val)) {
           lispval mapped = opmap->kv_val;
-          keystring = FD_STRDATA(mapped);
+          keystring = FD_CSTRING(mapped);
           keylen = FD_STRLEN(mapped);}}
       if (keystring == NULL) {
         u8_string pname = FD_SYMBOL_NAME(key);
@@ -1736,7 +1736,7 @@ static bool bson_append_keyval(FD_BSON_OUTPUT b,lispval key,lispval val)
         store_value = fd_stream2string(&out);}
       else {}}}
   else if (FD_STRINGP(key)) {
-    keystring = FD_STRDATA(key);
+    keystring = FD_CSTRING(key);
     if ((flags&FD_MONGODB_SLOTIFY)&&
         ((isdigit(keystring[0]))||
          (strchr(":(#@",keystring[0])!=NULL))) {
@@ -1810,7 +1810,7 @@ FD_EXPORT bson_t *fd_lisp2bson(lispval obj,int flags,lispval opts)
 {
   if (FD_VOIDP(obj)) return NULL;
   else if (FD_STRINGP(obj)) {
-    u8_string json = FD_STRDATA(obj); int free_it = 0;
+    u8_string json = FD_CSTRING(obj); int free_it = 0;
     bson_error_t error; bson_t *result;
     if (strchr(json,'"')<0) {
       json = u8_string_subst(json,"'","\""); free_it = 1;}
@@ -1982,7 +1982,7 @@ static void bson_read_step(FD_BSON_INPUT b,lispval into,lispval *loc)
             compound = entry->compound_parser(n,fields,entry);
           else {
             struct FD_COMPOUND *c=
-              u8_malloc(sizeof(struct FD_COMPOUND)+(n*sizeof(lispval)));
+              u8_malloc(sizeof(struct FD_COMPOUND)+(n*LISPVAL_LEN));
             lispval *cdata = &(c->compound_0); fd_init_compound(c,tag,0,0);
             c->compound_length = n;
             memcpy(cdata,fields,n);
@@ -2012,7 +2012,7 @@ static void bson_read_step(FD_BSON_INPUT b,lispval into,lispval *loc)
     else if (FD_TABLEP(mapfn))
       new_value = fd_get(mapfn,value,FD_VOID);
     else if ((FD_TRUEP(mapfn))&&(FD_STRINGP(value)))
-      new_value = fd_parse(FD_STRDATA(value));
+      new_value = fd_parse(FD_CSTRING(value));
     if (FD_ABORTP(new_value)) {
       fd_clear_errors(1);
       new_value = FD_VOID;}

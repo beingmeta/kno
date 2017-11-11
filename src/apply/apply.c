@@ -912,7 +912,7 @@ FD_EXPORT lispval fd_tail_call(lispval fcn,int n,lispval *vec)
   else {
     int atomic = 1, nd = 0; lispval fcnid = f->fcnid;
     struct FD_TAILCALL *tc = (struct FD_TAILCALL *)
-      u8_malloc(sizeof(struct FD_TAILCALL)+sizeof(lispval)*n);
+      u8_malloc(sizeof(struct FD_TAILCALL)+LISPVEC_BYTELEN(n));
     lispval *write = &(tc->tailcall_head);
     lispval *write_limit = write+(n+1);
     lispval *read = vec;
@@ -953,7 +953,7 @@ FD_EXPORT lispval fd_void_tail_call(lispval fcn,int n,lispval *vec)
   else {
     int atomic = 1, nd = 0;
     struct FD_TAILCALL *tc = (struct FD_TAILCALL *)
-      u8_malloc(sizeof(struct FD_TAILCALL)+sizeof(lispval)*n);
+      u8_malloc(sizeof(struct FD_TAILCALL)+LISPVEC_BYTELEN(n));
     lispval *write = &(tc->tailcall_head);
     lispval *write_limit = write+(n+1);
     lispval *read = vec;
@@ -1046,7 +1046,7 @@ static void recycle_tail_call(struct FD_RAW_CONS *c)
   int mallocd = FD_MALLOCD_CONSP(c), n_elts = tc->tailcall_arity;
   lispval *scan = &(tc->tailcall_head), *limit = scan+n_elts;
   size_t tc_size = sizeof(struct FD_TAILCALL)+
-    (sizeof(lispval)*(n_elts-1));
+    (LISPVEC_BYTELEN((n_elts-1)));
   if (!(tc->tailcall_flags&FD_TAILCALL_ATOMIC_ARGS)) {
     while (scan<limit) {fd_decref(*scan); scan++;}}
   /* The head is always incref'd */

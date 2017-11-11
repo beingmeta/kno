@@ -2195,8 +2195,8 @@ static lispval with_log_context_evalfn(lispval expr,fd_lexenv env,fd_stack _stac
       return fd_type_error("string","with_context_evalfn",label);
     else {
       u8_string outer_context=u8_log_context;
-      u8_set_log_context(FD_STRDATA(label));
-      lispval result=eval_body("with_log_context",FD_STRDATA(label),
+      u8_set_log_context(FD_CSTRING(label));
+      lispval result=eval_body("with_log_context",FD_CSTRING(label),
                                expr,2,env,_stack);
       u8_set_log_context(outer_context);
       fd_decref(label);

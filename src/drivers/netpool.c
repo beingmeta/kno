@@ -174,7 +174,7 @@ static lispval *network_pool_fetchn(fd_pool p,int n,lispval *oids)
   fd_decref(oidvec);
   if (VECTORP(value)) {
     lispval *values = u8_alloc_n(n,lispval);
-    memcpy(values,FD_VECTOR_ELTS(value),sizeof(lispval)*n);
+    memcpy(values,FD_VECTOR_ELTS(value),LISPVEC_BYTELEN(n));
     return values;}
   else {
     fd_seterr(fd_BadServerResponse,"netpool_fetchn",

@@ -220,7 +220,7 @@ FD_EXPORT lispval fd_tcachecall(lispval fcn,int n,lispval *args)
       elts = u8_alloc_n(n+1,lispval);
     else elts=_elts;
     /* Initialize the elements */
-    elts[0]=fcn; memcpy(elts+1,args,sizeof(lispval)*n);
+    elts[0]=fcn; memcpy(elts+1,args,LISPVEC_BYTELEN(n));
     vecstruct.vec_elts = elts;
     vec = LISP_CONS(&vecstruct);
     /* Look it up in the cache. */

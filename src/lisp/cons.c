@@ -290,8 +290,8 @@ lispval fd_extract_string(struct FD_STRING *ptr,u8_string start,u8_string end)
   if ((length>=0)&&((fd_max_strlen<0)||(length<fd_max_strlen))) {
     u8_byte *bytes = NULL; int freedata = 1;
     if (ptr == NULL) {
-      ptr = u8_malloc(sizeof(struct FD_STRING)+length+1);
-      bytes = ((u8_byte *)ptr)+sizeof(struct FD_STRING);
+      ptr = u8_malloc(FD_STRING_LEN+length+1);
+      bytes = ((u8_byte *)ptr)+FD_STRING_LEN;
       memcpy(bytes,start,length); bytes[length]='\0';
       freedata = 0;}
     else bytes = (u8_byte *)u8_strndup(start,length+1);
@@ -319,8 +319,8 @@ lispval fd_substring(u8_string start,u8_string end)
 {
   ssize_t length = ((end == NULL) ? (strlen(start)) : (end-start));
   if ((length>=0)&&((fd_max_strlen<0)||(length<fd_max_strlen))) {
-    struct FD_STRING *ptr = u8_malloc(sizeof(struct FD_STRING)+length+1);
-    u8_byte *bytes = ((u8_byte *)ptr)+sizeof(struct FD_STRING);
+    struct FD_STRING *ptr = u8_malloc(FD_STRING_LEN+length+1);
+    u8_byte *bytes = ((u8_byte *)ptr)+FD_STRING_LEN;
     memcpy(bytes,start,length); bytes[length]='\0';
     FD_INIT_FRESH_CONS(ptr,fd_string_type);
     ptr->str_bytelen = length;
@@ -346,8 +346,8 @@ lispval fd_make_string(struct FD_STRING *ptr,int len,u8_string string)
   int length = ((len>=0)?(len):(strlen(string)));
   u8_byte *bytes = NULL; int freedata = 1;
   if (ptr == NULL) {
-    ptr = u8_malloc(sizeof(struct FD_STRING)+length+1);
-    bytes = ((u8_byte *)ptr)+sizeof(struct FD_STRING);
+    ptr = u8_malloc(FD_STRING_LEN+length+1);
+    bytes = ((u8_byte *)ptr)+FD_STRING_LEN;
     if (string) memcpy(bytes,string,length);
     else memset(bytes,'?',length);
     bytes[length]='\0';
@@ -377,8 +377,8 @@ lispval fd_block_string(int len,u8_string string)
 {
   u8_byte *bytes = NULL;
   int length = ((len>=0)?(len):(strlen(string)));
-  struct FD_STRING *ptr = u8_malloc(sizeof(struct FD_STRING)+length+1);
-  bytes = ((u8_byte *)ptr)+sizeof(struct FD_STRING);
+  struct FD_STRING *ptr = u8_malloc(FD_STRING_LEN+length+1);
+  bytes = ((u8_byte *)ptr)+FD_STRING_LEN;
   if (string) memcpy(bytes,string,length);
   else memset(bytes,'?',length);
   bytes[length]='\0';
@@ -406,8 +406,8 @@ lispval fd_conv_string(struct FD_STRING *ptr,int len,u8_string string)
   int length = ((len>0)?(len):(strlen(string)));
   u8_byte *bytes = NULL; int freedata = 1;
   if (ptr == NULL) {
-    ptr = u8_malloc(sizeof(struct FD_STRING)+length+1);
-    bytes = ((u8_byte *)ptr)+sizeof(struct FD_STRING);
+    ptr = u8_malloc(FD_STRING_LEN+length+1);
+    bytes = ((u8_byte *)ptr)+FD_STRING_LEN;
     memcpy(bytes,string,length); bytes[length]='\0';
     freedata = 0;}
   else {
@@ -495,17 +495,17 @@ FD_EXPORT lispval fd_init_vector(struct FD_VECTOR *ptr,int len,lispval *data)
   if ((ptr == NULL)&&(data == NULL)) {
     int i = 0;
     if ( len > fd_bigvec_threshold) {
-      ptr = u8_big_alloc(sizeof(struct FD_VECTOR)+(sizeof(lispval)*len));
+      ptr = u8_big_alloc(FD_VECTOR_LEN+(LISPVEC_BYTELEN(len)));
       big_alloc=1;}
-    else ptr = u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(lispval)*len));
-    elts = ((lispval *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
+    else ptr = u8_malloc(FD_VECTOR_LEN+(LISPVEC_BYTELEN(len)));
+    elts = ((lispval *)(((unsigned char *)ptr)+FD_VECTOR_LEN));
     while (i < len) elts[i++]=VOID;
     free_data = 0;}
   else if (ptr == NULL) {
     ptr = u8_alloc(struct FD_VECTOR);
     elts = data;}
   else if (data == NULL) {
-      int i = 0; elts = u8_malloc(sizeof(lispval)*len);
+    int i = 0; elts = u8_malloc(LISPVEC_BYTELEN(len));
       while (i<len) elts[i]=VOID;
       free_data = 1;}
   else elts = data;
@@ -535,9 +535,9 @@ FD_EXPORT lispval fd_make_vector(int len,lispval *data)
   int use_big_alloc = (len > fd_bigvec_threshold);
   struct FD_VECTOR *ptr =
     (use_big_alloc) ?
-    (u8_big_alloc(sizeof(struct FD_VECTOR)+(sizeof(lispval)*len))) :
-    (u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(lispval)*len)));
-  lispval *elts = ((lispval *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
+    (u8_big_alloc(FD_VECTOR_LEN+(LISPVEC_BYTELEN(len)))) :
+    (u8_malloc(FD_VECTOR_LEN+(LISPVEC_BYTELEN(len))));
+  lispval *elts = ((lispval *)(((unsigned char *)ptr)+FD_VECTOR_LEN));
   FD_INIT_CONS(ptr,fd_vector_type);
   ptr->vec_length = len;
   ptr->vec_elts = elts;
@@ -555,8 +555,8 @@ FD_EXPORT lispval fd_init_code(struct FD_VECTOR *ptr,int len,lispval *data)
 {
   lispval *elts; int i = 0, freedata = 1;
   if ((ptr == NULL)&&(data == NULL)) {
-    ptr = u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(lispval)*len));
-    elts = ((lispval *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
+    ptr = u8_malloc(FD_VECTOR_LEN+(LISPVEC_BYTELEN(len)));
+    elts = ((lispval *)(((unsigned char *)ptr)+FD_VECTOR_LEN));
     freedata = 0;}
   else if (ptr == NULL) {
     ptr = u8_alloc(struct FD_VECTOR);
@@ -592,8 +592,8 @@ FD_EXPORT lispval fd_make_code(int len,lispval *data)
 {
   int i = 0;
   struct FD_VECTOR *ptr = u8_malloc
-    (sizeof(struct FD_VECTOR)+(sizeof(lispval)*len));
-  lispval *elts = ((lispval *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
+    (FD_VECTOR_LEN+(LISPVEC_BYTELEN(len)));
+  lispval *elts = ((lispval *)(((unsigned char *)ptr)+FD_VECTOR_LEN));
   FD_INIT_CONS(ptr,fd_code_type);
   ptr->vec_length = len;
   ptr->vec_elts = elts;
@@ -627,8 +627,8 @@ FD_EXPORT lispval fd_make_packet
 {
   u8_byte *bytes = NULL; int freedata = 1;
   if (ptr == NULL) {
-    ptr = u8_malloc(sizeof(struct FD_STRING)+len+1);
-    bytes = ((u8_byte *)ptr)+sizeof(struct FD_STRING);
+    ptr = u8_malloc(FD_STRING_LEN+len+1);
+    bytes = ((u8_byte *)ptr)+FD_STRING_LEN;
     if (data) {
       memcpy(bytes,data,len);
       bytes[len]='\0';}
@@ -647,8 +647,8 @@ FD_EXPORT lispval fd_bytes2packet
 {
   u8_byte *bytes = NULL; int freedata = (data!=NULL);
   if (ptr == NULL) {
-    ptr = u8_malloc(sizeof(struct FD_STRING)+len+1);
-    bytes = ((u8_byte *)ptr)+sizeof(struct FD_STRING);
+    ptr = u8_malloc(FD_STRING_LEN+len+1);
+    bytes = ((u8_byte *)ptr)+FD_STRING_LEN;
     if (data) {
       memcpy(bytes,data,len);
       bytes[len]='\0';}
@@ -679,7 +679,7 @@ FD_EXPORT lispval fd_init_compound
       (_("positive byte"),"fd_init_compound",FD_SHORT2DTYPE(n));}
   else if (p == NULL) {
     if (n==0) p = u8_malloc(sizeof(struct FD_COMPOUND));
-    else p = u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(lispval));}
+    else p = u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*LISPVAL_LEN);}
   FD_INIT_CONS(p,fd_compound_type);
   if (ismutable) u8_init_mutex(&(p->compound_lock));
   p->compound_typetag = fd_incref(tag);
@@ -711,7 +711,7 @@ FD_EXPORT lispval fd_init_compound_from_elts
   else if (p == NULL) {
     if (n==0)
       p = u8_malloc(sizeof(struct FD_COMPOUND));
-    else p = u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(lispval));}
+    else p = u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*LISPVAL_LEN);}
   FD_INIT_CONS(p,fd_compound_type);
   if (ismutable) u8_init_mutex(&(p->compound_lock));
   p->compound_typetag = fd_incref(tag);

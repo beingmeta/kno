@@ -277,12 +277,12 @@ lispval fd_init_choice
       if ((data) && (flags&FD_CHOICE_FREEDATA)) u8_free(data);
       return FD_ERROR;}
     if (data)
-      memcpy((lispval *)FD_XCHOICE_DATA(ch),data,sizeof(lispval)*n);
+      memcpy((lispval *)FD_XCHOICE_DATA(ch),data,LISPVEC_BYTELEN(n));
     else {
       lispval *write = &(ch->choice_0), *writelim = write+n;
       while (write<writelim) *write++=VOID;}}
   else if ((data) && (data!=FD_XCHOICE_DATA(ch)))
-    memcpy((lispval *)FD_XCHOICE_DATA(ch),data,sizeof(lispval)*n);
+    memcpy((lispval *)FD_XCHOICE_DATA(ch),data,LISPVEC_BYTELEN(n));
   else {}
   /* Free the original data vector if requested. */
   if ((data) && (flags&FD_CHOICE_FREEDATA)) {
@@ -312,7 +312,7 @@ lispval fd_init_choice
     fd_free_choice(ch);
     return v;}
   else if ((flags&FD_CHOICE_REALLOC) && (newlen<(n/2)))
-    ch = u8_big_realloc(ch,sizeof(struct FD_CHOICE)+((newlen-1)*sizeof(lispval)));
+    ch = u8_big_realloc(ch,FD_CHOICE_BYTES+((newlen-1)*LISPVAL_LEN));
   else {}
   if (ch) {
     FD_INIT_XCHOICE(ch,newlen,atomicp);
@@ -638,7 +638,7 @@ static int atomic_scanner_loop(struct FD_CHOICE_SCANNER *scanners,
     lispval top = scanners[0].top; int len;
     if (top == last) scanners[0].ptr++;
     len = scanners[0].lim-scanners[0].ptr;
-    memcpy(write,scanners[0].ptr,len*sizeof(lispval));
+    memcpy(write,scanners[0].ptr,len*LISPVAL_LEN);
     write = write+len;}
   return write-vals;
 }
@@ -729,11 +729,11 @@ lispval prechoice_append(struct FD_PRECHOICE *ch,int freeing_prechoice)
         abort();}
       else if (FD_XCHOICE_ATOMICP(each)) {
         memcpy(write,FD_XCHOICE_DATA(each),
-               sizeof(lispval)*FD_XCHOICE_SIZE(each));
+               LISPVEC_BYTELEN(FD_XCHOICE_SIZE(each)));
         write = write+FD_XCHOICE_SIZE(each);}
       else if (freed) {
         memcpy(write,FD_XCHOICE_DATA(each),
-               sizeof(lispval)*FD_XCHOICE_SIZE(each));
+               LISPVEC_BYTELEN(FD_XCHOICE_SIZE(each)));
         write = write+FD_XCHOICE_SIZE(each);}
       else {
         const lispval *vscan = FD_XCHOICE_DATA(each),
@@ -1055,7 +1055,7 @@ static lispval compute_choice_difference
       else pscan++;}
   /* Now we just copy the remainder, since *part* has run out */
   if (watomicp) {
-    memmove(write,wscan,sizeof(lispval)*(wlim-wscan));
+    memmove(write,wscan,LISPVEC_BYTELEN((wlim-wscan)));
     write = write + (wlim-wscan);}
   else while (wscan < wlim) {
       *write = fd_incref(*wscan);
@@ -1221,7 +1221,7 @@ lispval *fd_natsort_choice(fd_choice ch,lispval *tmpbuf,ssize_t tmp_len)
   const lispval *data = FD_XCHOICE_DATA(ch);
   lispval *natsorted = (tmp_len>len) ? (tmpbuf) :
     u8_alloc_n(len,lispval);
-  memcpy(natsorted,data,len*sizeof(lispval));
+  memcpy(natsorted,data,len*LISPVAL_LEN);
   lispval_sort(natsorted,len,FD_COMPARE_NATSORT);
   return natsorted;
 }

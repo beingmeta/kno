@@ -704,9 +704,9 @@ FD_EXPORT u8_rwlock fd_symbol_lock;
 
 #define FD_SYMBOL_NAME(x) \
   ((FD_GOOD_SYMBOLP(x)) ? \
-   (FD_STRDATA(fd_symbol_names[FD_SYMBOL2ID(x)])) :     \
+   (FD_CSTRING(fd_symbol_names[FD_SYMBOL2ID(x)])) :     \
    ((u8_string )("#.bad$ymbol.#")))
-#define FD_XSYMBOL_NAME(x) (FD_STRDATA(fd_symbol_names[FD_SYMBOL2ID(x)]))
+#define FD_XSYMBOL_NAME(x) (FD_CSTRING(fd_symbol_names[FD_SYMBOL2ID(x)]))
 
 FD_EXPORT lispval fd_make_symbol(u8_string string,int len);
 FD_EXPORT lispval fd_probe_symbol(u8_string string,int len);

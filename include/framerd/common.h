@@ -40,6 +40,9 @@ typedef unsigned int fd_wideint;
 #define SIZEOF_LISPVAL SIZEOF_INT
 #endif
 
+#define LISPVAL_LEN (sizeof(lispval))
+#define LISPVEC_BYTELEN(n) (sizeof(lispval)*(n))
+
 #if (SIZEOF_LONG == 8)
 typedef unsigned long fd_8bytes;
 #elif (SIZEOF_LONG_LONG == 8)

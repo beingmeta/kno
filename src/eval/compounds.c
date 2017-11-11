@@ -153,7 +153,7 @@ static lispval compound_set(lispval x,lispval offset,lispval value,lispval tag)
 static lispval make_compound(int n,lispval *args)
 {
   struct FD_COMPOUND *compound=
-    u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*sizeof(lispval)));
+    u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*LISPVAL_LEN));
   int i = 1; lispval *write = &(compound->compound_0);
   FD_INIT_FRESH_CONS(compound,fd_compound_type);
   compound->compound_typetag = fd_incref(args[0]);
@@ -166,7 +166,7 @@ static lispval make_compound(int n,lispval *args)
 static lispval make_opaque_compound(int n,lispval *args)
 {
   struct FD_COMPOUND *compound=
-    u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*sizeof(lispval)));
+    u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*LISPVAL_LEN));
   int i = 1; lispval *write = &(compound->compound_0);
   FD_INIT_FRESH_CONS(compound,fd_compound_type);
   compound->compound_typetag = fd_incref(args[0]);
@@ -180,7 +180,7 @@ static lispval make_opaque_compound(int n,lispval *args)
 static lispval make_mutable_compound(int n,lispval *args)
 {
   struct FD_COMPOUND *compound=
-    u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*sizeof(lispval)));
+    u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*LISPVAL_LEN));
   int i = 1; lispval *write = &(compound->compound_0);
   FD_INIT_FRESH_CONS(compound,fd_compound_type);
   compound->compound_typetag = fd_incref(args[0]); compound->compound_length = n-1; compound->compound_ismutable = 1;
@@ -193,7 +193,7 @@ static lispval make_mutable_compound(int n,lispval *args)
 static lispval make_opaque_mutable_compound(int n,lispval *args)
 {
   struct FD_COMPOUND *compound=
-    u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*sizeof(lispval)));
+    u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*LISPVAL_LEN));
   int i = 1; lispval *write = &(compound->compound_0);
   FD_INIT_FRESH_CONS(compound,fd_compound_type);
   compound->compound_typetag = fd_incref(args[0]);
@@ -210,7 +210,7 @@ static lispval vector2compound(lispval vector,lispval tag,
 {
   int i = 0, n = VEC_LEN(vector);
   struct FD_COMPOUND *compound=
-    u8_malloc(sizeof(struct FD_COMPOUND)+((n-1)*sizeof(lispval)));
+    u8_malloc(sizeof(struct FD_COMPOUND)+((n-1)*LISPVAL_LEN));
   lispval *write = &(compound->compound_0);
   FD_INIT_FRESH_CONS(compound,fd_compound_type);
   compound->compound_typetag = fd_incref(tag); compound->compound_length = n;

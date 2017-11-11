@@ -92,12 +92,15 @@ FD_EXPORT int   fd_init_hash_size;
 /* Slotmaps */
 
 typedef struct FD_KEYVAL {
-  lispval kv_key, kv_val;} *fd_keyval;
+  lispval kv_key, kv_val;} FD_KEYVAL;
+typedef struct FD_KEYVAL *fd_keyval;
 typedef struct FD_KEYVAL *fd_keyvals;
 
 typedef struct FD_CONST_KEYVAL {
   const lispval kv_key, kv_val;} *fd_const_keyval;
 typedef struct FD_CONST_KEYVAL *fd_const_keyvals;
+
+#define FD_KEYVAL_LEN (sizeof(struct FD_KEYVAL))
 
 typedef int (*kv_valfn)(lispval,lispval,void *);
 typedef int (*fd_kvfn)(struct FD_KEYVAL *,void *);
@@ -115,6 +118,8 @@ typedef struct FD_SLOTMAP {
   struct FD_KEYVAL *sm_keyvals;
   U8_RWLOCK_DECL(table_rwlock);} FD_SLOTMAP;
 typedef struct FD_SLOTMAP *fd_slotmap;
+
+#define FD_SLOTMAP_LEN (sizeof(struct FD_SLOTMAP))
 
 #define FD_SLOTMAPP(x) (FD_TYPEP(x,fd_slotmap_type))
 #define FD_XSLOTMAP(x) \
@@ -339,6 +344,8 @@ typedef struct FD_SCHEMAP {
 /* Tagged schemaps keep an integer ID in their n+1st element */
 #define FD_SCHEMAP_TAGGED 64
 
+#define FD_SCHEMAP_LEN (sizeof(struct FD_SCHEMAP))
+
 typedef struct FD_SCHEMAP *fd_schemap;
 
 #define FD_SCHEMAPP(x) (FD_TYPEP(x,fd_schemap_type))
@@ -500,6 +507,8 @@ typedef struct FD_HASHTABLE {
   U8_RWLOCK_DECL(table_rwlock);} FD_HASHTABLE;
 typedef struct FD_HASHTABLE *fd_hashtable;
 
+#define FD_HASHTABLE_LEN (sizeof(struct FD_HASHTABLE))
+
 #define FD_HASHTABLEP(x) (FD_TYPEP(x,fd_hashtable_type))
 #define FD_XHASHTABLE(x) \
   fd_consptr(struct FD_HASHTABLE *,x,fd_hashtable_type)
@@ -650,6 +659,8 @@ typedef struct FD_HASHSET {
   lispval *hs_buckets;
   U8_RWLOCK_DECL(table_rwlock);} FD_HASHSET;
 typedef struct FD_HASHSET *fd_hashset;
+
+#define FD_HASHSET_LEN (sizeof(struct FD_HASHSET))
 
 #define FD_HASHSETP(x) (FD_TYPEP(x,fd_hashset_type))
 #define FD_XHASHSET(x) \

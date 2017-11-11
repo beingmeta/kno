@@ -1057,7 +1057,7 @@ static lispval recreate_record(int n,lispval *v)
       return result;}}
   {
     struct FD_COMPOUND *c=
-      u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(lispval));
+      u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*LISPVAL_LEN);
     lispval *data = &(c->compound_0); fd_init_compound(c,v[0],0,0);
     c->compound_length = n-1;
     i = 1; while (i<n) {data[i-1]=v[i]; i++;}

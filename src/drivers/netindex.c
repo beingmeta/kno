@@ -112,7 +112,7 @@ static lispval *netindex_fetchn(fd_index ix,int n,const lispval *keys)
   if (FD_ABORTP(result)) return NULL;
   else if (VECTORP(result)) {
     lispval *results = u8_alloc_n(n,lispval);
-    memcpy(results,FD_VECTOR_ELTS(result),sizeof(lispval)*n);
+    memcpy(results,FD_VECTOR_ELTS(result),LISPVEC_BYTELEN(n));
     return results;}
   else {
     fd_seterr(fd_BadServerResponse,"netindex_fetchn",ix->indexid,
@@ -134,7 +134,7 @@ static lispval *netindex_fetchkeys(fd_index ix,int *n)
   if (CHOICEP(result)) {
     int size = FD_CHOICE_SIZE(result);
     lispval *dtypes = u8_alloc_n(size,lispval);
-    memcpy(dtypes,FD_CHOICE_DATA(result),sizeof(lispval)*size);
+    memcpy(dtypes,FD_CHOICE_DATA(result),LISPVEC_BYTELEN(size));
     *n = size;
     u8_free((fd_cons)result);
     return dtypes;}

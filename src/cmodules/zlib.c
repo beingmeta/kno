@@ -38,7 +38,7 @@ static lispval zlib_compress_prim(lispval input_arg,lispval level_arg)
   int retval;
   if ((level<0)||(level>9)) level = 9;
   if (FD_STRINGP(input_arg)) {
-    input = FD_STRDATA(input_arg);
+    input = FD_CSTRING(input_arg);
     input_len = FD_STRLEN(input_arg);}
   else if (FD_PACKETP(input_arg)) {
     input = FD_PACKET_DATA(input_arg);
@@ -111,7 +111,7 @@ static lispval zlib_uncompress_prim(lispval input_arg,lispval text,lispval init_
       return fd_init_string(NULL,output_len,output);}
     else return fd_init_packet(NULL,output_len,output);}
   else if (FD_STRINGP(text)) {
-    u8_encoding enc = u8_get_encoding(FD_STRDATA(text));
+    u8_encoding enc = u8_get_encoding(FD_CSTRING(text));
     if (!(enc)) {
       u8_free(output);
       return fd_type_error("text encoding","unzip_prim",text);}

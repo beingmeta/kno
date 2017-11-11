@@ -302,7 +302,7 @@ static lispval procpool_ctl(fd_pool p,lispval opid,int n,lispval *args)
     if (n+3>32) argbuf = u8_alloc_n(n+3,lispval);
     argbuf[0]=lp; argbuf[1]=pp->pool_state;
     argbuf[2]=opid;
-    memcpy(argbuf+3,args,sizeof(lispval)*n);
+    memcpy(argbuf+3,args,LISPVEC_BYTELEN(n));
     if (argbuf==_argbuf)
       return fd_dapply(pp->ctlfn,n+3,argbuf);
     else {

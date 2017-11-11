@@ -156,7 +156,7 @@ static lispval qrencode_prim(lispval string,lispval opts)
     QRcode *qrcode=
       ((u8_lock_mutex(&qrencode_lock)),
        QRcode_encodeString8bit
-       (FD_STRDATA(string),FD_FIX2INT(version_arg),eclevel));
+       (FD_CSTRING(string),FD_FIX2INT(version_arg),eclevel));
     u8_unlock_mutex(&qrencode_lock);
     result = write_png_packet(qrcode,opts);
     QRcode_free(qrcode);

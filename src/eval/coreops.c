@@ -279,7 +279,7 @@ static lispval stringp(lispval x)
 static lispval valid_utf8p(lispval x)
 {
   if (STRINGP(x)) {
-    int rv = u8_validp(FD_STRDATA(x));
+    int rv = u8_validp(FD_CSTRING(x));
     if (rv)
       return FD_TRUE;
     else return FD_FALSE;}

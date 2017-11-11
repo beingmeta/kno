@@ -147,8 +147,8 @@ U8_MAYBE_UNUSED static int _fd_collate_helper(const void *vx,const void *vy)
         long long yval = FD_FIX2INT(sy->sortkey);
         if (xval<yval) return -1; else return 1;}
       else if (xtype == fd_string_type)
-        return (strcoll(FD_STRDATA(sx->sortkey),
-                        FD_STRDATA(sy->sortkey)));
+        return (strcoll(FD_CSTRING(sx->sortkey),
+                        FD_CSTRING(sy->sortkey)));
       else if (xtype == fd_symbol_type)
         return (strcoll(FD_XSYMBOL_NAME(sx->sortkey),
                         FD_XSYMBOL_NAME(sy->sortkey)));
@@ -192,8 +192,8 @@ U8_MAYBE_UNUSED static int _fd_lexsort_helper(const void *vx,const void *vy)
         long long yval = FD_FIX2INT(sy->sortkey);
         if (xval<yval) return -1; else return 1;}
       else if (xtype == fd_string_type)
-        return (u8_strcmp(FD_STRDATA(sx->sortkey),
-                          FD_STRDATA(sy->sortkey),0));
+        return (u8_strcmp(FD_CSTRING(sx->sortkey),
+                          FD_CSTRING(sy->sortkey),0));
       else if (xtype == fd_symbol_type)
         return (u8_strcmp(FD_XSYMBOL_NAME(sx->sortkey),
                           FD_XSYMBOL_NAME(sy->sortkey),0));
@@ -237,8 +237,8 @@ U8_MAYBE_UNUSED static int _fd_lexsort_ci_helper(const void *vx,const void *vy)
         long long yval = FD_FIX2INT(sy->sortkey);
         if (xval<yval) return -1; else return 1;}
       else if (xtype == fd_string_type)
-        return (u8_strcmp(FD_STRDATA(sx->sortkey),
-                          FD_STRDATA(sy->sortkey),
+        return (u8_strcmp(FD_CSTRING(sx->sortkey),
+                          FD_CSTRING(sy->sortkey),
                           U8_STRCMP_CI));
       else if (xtype == fd_symbol_type)
         return (u8_strcmp(FD_XSYMBOL_NAME(sx->sortkey),

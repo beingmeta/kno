@@ -159,7 +159,7 @@ static lispval sqlite_open_prim(lispval filename,lispval colinfo,lispval options
   lispval vfs_spec = fd_getopt(options,vfs_symbol,FD_VOID);
   u8_string vfs = NULL;
 #if HAVE_SQLITE3_OPEN_V2
-  int flags = getv2flags(options,FD_STRDATA(filename));
+  int flags = getv2flags(options,FD_CSTRING(filename));
   if (flags<0) {
     return FD_ERROR_VALUE;}
 #else
@@ -174,8 +174,8 @@ static lispval sqlite_open_prim(lispval filename,lispval colinfo,lispval options
   if (privcache)
     u8_log(LOG_WARN,"sqlite_open",
            "the sqlite3_open_v2 private cache option is not available");
-  if ((!(readcreate))&&(!(u8_file_existsp(FD_STRDATA(filename))))) {
-    u8_seterr(fd_NoSuchFile,"opensqlite",u8_strdup(FD_STRDATA(filename)));
+  if ((!(readcreate))&&(!(u8_file_existsp(FD_CSTRING(filename))))) {
+    u8_seterr(fd_NoSuchFile,"opensqlite",u8_strdup(FD_CSTRING(filename)));
     return FD_ERROR_VALUE;}
 
   if (!(FD_VOIDP(vfs)))
@@ -183,16 +183,16 @@ static lispval sqlite_open_prim(lispval filename,lispval colinfo,lispval options
            "the sqlite3_open_v2 vfs methods are not available");
 #endif
   if (FD_VOIDP(vfs_spec)) {}
-  else if (FD_STRINGP(vfs_spec)) vfs = u8_strdup(FD_STRDATA(vfs_spec));
+  else if (FD_STRINGP(vfs_spec)) vfs = u8_strdup(FD_CSTRING(vfs_spec));
   else if (FD_SYMBOLP(vfs_spec)) vfs = u8_downcase(FD_SYMBOL_NAME(vfs_spec));
   else return fd_type_error(_("string or symbol"),"sqlite_open_prim/VFS",vfs_spec);
   sqlcons = u8_alloc(struct FD_SQLITE);
   FD_INIT_FRESH_CONS(sqlcons,fd_extdb_type);
   sqlcons->extdb_handler = &sqlite_handler;
-  sqlcons->sqlitefile = u8_abspath(FD_STRDATA(filename),NULL);
+  sqlcons->sqlitefile = u8_abspath(FD_CSTRING(filename),NULL);
   sqlcons->extdb_colinfo = colinfo; fd_incref(colinfo);
   sqlcons->extdb_options = options; fd_incref(options);
-  sqlcons->extdb_spec = sqlcons->extdb_info = u8_strdup(FD_STRDATA(filename));
+  sqlcons->extdb_spec = sqlcons->extdb_info = u8_strdup(FD_CSTRING(filename));
   sqlcons->sqlitedb = NULL;
   sqlcons->sqlitevfs = vfs;
   u8_init_mutex(&(sqlcons->sqlite_lock));
@@ -301,7 +301,7 @@ static lispval sqliteexec(struct FD_SQLITE *fds,lispval string,lispval colinfo)
   const char *errmsg="er, err";
   int retval;
   u8_lock_mutex(&(fds->sqlite_lock));
-  retval = newstmt(dbp,FD_STRDATA(string),FD_STRLEN(string),&stmt);
+  retval = newstmt(dbp,FD_CSTRING(string),FD_STRLEN(string),&stmt);
   if (FD_VOIDP(colinfo)) colinfo = fds->extdb_colinfo;
   if (retval == SQLITE_OK) {
     lispval values = sqlite_values(dbp,stmt,colinfo);
@@ -496,7 +496,7 @@ static lispval sqlitecallproc(struct FD_FUNCTION *fn,int n,lispval *args)
       ret = sqlite3_bind_double(dbproc->stmt,i+1,floval);}
     else if (FD_TYPEP(arg,fd_string_type))
       ret = sqlite3_bind_text
-        (dbproc->stmt,i+1,FD_STRDATA(arg),FD_STRLEN(arg),SQLITE_TRANSIENT);
+        (dbproc->stmt,i+1,FD_CSTRING(arg),FD_STRLEN(arg),SQLITE_TRANSIENT);
     else if (FD_TYPEP(arg,fd_packet_type))
       ret = sqlite3_bind_blob
         (dbproc->stmt,i+1,
@@ -576,7 +576,7 @@ static lispval sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,lispval colinfo)
       return FD_ERROR_VALUE;
     else return FD_EMPTY_CHOICE;}
   else if (sorted) {
-    resultsv = u8_malloc(sizeof(lispval)*64); rmax = 64;}
+    resultsv = u8_malloc(LISPVEC_BYTELEN(64)); rmax = 64;}
   else {}
   if (n_cols>16) {
     colnames = u8_alloc_n(n_cols,lispval);
@@ -642,7 +642,7 @@ static lispval sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,lispval colinfo)
         fd_decref(value);}
       else if (FD_OIDP(colmaps[j]))
         if (FD_STRINGP(value)) {
-          kv[j].kv_val = fd_parse(FD_STRDATA(value));
+          kv[j].kv_val = fd_parse(FD_CSTRING(value));
           fd_decref(value);}
         else {
           FD_OID base = FD_OID_ADDR(colmaps[j]);
@@ -653,7 +653,7 @@ static lispval sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,lispval colinfo)
             fd_decref(value);}}
       else if (colmaps[j]==FD_TRUE)
         if (FD_STRINGP(value)) {
-          kv[j].kv_val = fd_parse(FD_STRDATA(value));
+          kv[j].kv_val = fd_parse(FD_CSTRING(value));
           fd_decref(value);}
         else kv[j].kv_val = value;
       else kv[j].kv_val = value;
@@ -673,12 +673,12 @@ static lispval sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,lispval colinfo)
       if (FD_ABORTP(result)) {}
       else if (rn>=rmax) {
         int new_max = ((rmax>=65536)?(rmax+65536):(rmax*2));
-        lispval *newv = u8_realloc(resultsv,sizeof(lispval)*new_max);
+        lispval *newv = u8_realloc(resultsv,LISPVEC_BYTELEN(new_max));
         if (newv == NULL) {
           int delta = (new_max-rmax)/2;
           while ((newv == NULL)&&(delta>=1)) {
             new_max = rmax+delta; delta = delta/2;
-            newv = u8_realloc(resultsv,sizeof(lispval)*new_max);}
+            newv = u8_realloc(resultsv,LISPVEC_BYTELEN(new_max));}
           if (!(newv)) {
             fd_decref(result);
             fd_seterr(fd_OutOfMemory,"sqlite_step",NULL,FD_VOID);

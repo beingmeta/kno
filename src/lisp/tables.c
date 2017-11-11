@@ -135,7 +135,7 @@ struct FD_KEYVAL *fd_keyvec_insert
       (u8_realloc_n(keyvals,new_space,struct FD_KEYVAL)) :
       (u8_alloc_n(new_space,struct FD_KEYVAL));
     if ((keyvals) && (!(freedata)))
-      memcpy(nkeyvals,keyvals,(size)*sizeof(struct FD_KEYVAL));
+      memcpy(nkeyvals,keyvals,(size)*FD_KEYVAL_LEN);
     if (nkeyvals != keyvals)
       *keyvalp=nkeyvals;
     nkeyvals[size].kv_key=fd_getref(key);
@@ -217,7 +217,7 @@ FD_EXPORT struct FD_KEYVAL *fd_sortvec_insert
   struct FD_KEYVAL *limit=bottom+size, *middle=bottom+size/2;
   if (keyvals == NULL) {
     *kvp=keyvals=u8_alloc(struct FD_KEYVAL);
-    memset(keyvals,0,sizeof(struct FD_KEYVAL));
+    memset(keyvals,0,FD_KEYVAL_LEN);
     if (keyvals==NULL) return NULL;
     keyvals->kv_key=fd_getref(key);
     keyvals->kv_val=EMPTY;
@@ -254,13 +254,13 @@ FD_EXPORT struct FD_KEYVAL *fd_sortvec_insert
     struct FD_KEYVAL *insert_point;
     struct FD_KEYVAL *new_keyvals=
       ((freedata)?(u8_realloc_n(keyvals,size+1,struct FD_KEYVAL)):
-       (u8_extalloc(keyvals,((size+1)*sizeof(struct FD_KEYVAL)),
-                    (size*sizeof(struct FD_KEYVAL)))));
+       (u8_extalloc(keyvals,((size+1)*FD_KEYVAL_LEN),
+                    (size*FD_KEYVAL_LEN))));
     if (new_keyvals==NULL) return NULL;
     *kvp=new_keyvals; *sizep=size+1; *spacep=size+1;
     insert_point=new_keyvals+ipos;
     memmove(insert_point+1,insert_point,
-            sizeof(struct FD_KEYVAL)*(size-ipos));
+            FD_KEYVAL_LEN*(size-ipos));
     insert_point->kv_key=fd_getref(key);
     insert_point->kv_val=EMPTY;
     return insert_point;}
@@ -408,7 +408,7 @@ FD_EXPORT int fd_slotmap_drop(struct FD_SLOTMAP *sm,lispval key,lispval value)
       if (EMPTYP(newval)) {
         int entries_to_move=(size-(result-sm->sm_keyvals))-1;
         fd_decref(result->kv_key); fd_decref(result->kv_val);
-        memmove(result,result+1,entries_to_move*sizeof(struct FD_KEYVAL));
+        memmove(result,result+1,entries_to_move*FD_KEYVAL_LEN);
         FD_XSLOTMAP_SET_NSLOTS(sm,size-1);}
       else {
         fd_decref(result->kv_val);
@@ -434,7 +434,7 @@ FD_EXPORT int fd_slotmap_delete(struct FD_SLOTMAP *sm,lispval key)
   if (result) {
     int entries_to_move=(size-(result-sm->sm_keyvals))-1;
     fd_decref(result->kv_key); fd_decref(result->kv_val);
-    memmove(result,result+1,entries_to_move*sizeof(struct FD_KEYVAL));
+    memmove(result,result+1,entries_to_move*FD_KEYVAL_LEN);
     FD_XSLOTMAP_MARK_MODIFIED(sm);
     FD_XSLOTMAP_SET_NSLOTS(sm,size-1);}
   if (unlock) u8_rw_unlock(&sm->table_rwlock);
@@ -660,10 +660,10 @@ FD_EXPORT lispval fd_init_slotmap
 FD_EXPORT lispval fd_make_slotmap(int space,int len,struct FD_KEYVAL *data)
 {
   struct FD_SLOTMAP *ptr=
-    u8_malloc((sizeof(struct FD_SLOTMAP))+
-              (space*(sizeof(struct FD_KEYVAL))));
+    u8_malloc((FD_SLOTMAP_LEN)+
+              (space*(FD_KEYVAL_LEN)));
   struct FD_KEYVAL *kv=
-    ((struct FD_KEYVAL *)(((unsigned char *)ptr)+sizeof(struct FD_SLOTMAP)));
+    ((struct FD_KEYVAL *)(((unsigned char *)ptr)+FD_SLOTMAP_LEN));
   int i=0;
   FD_INIT_STRUCT(ptr,struct FD_SLOTMAP);
   FD_INIT_CONS(ptr,fd_slotmap_type);
@@ -751,7 +751,7 @@ static lispval copy_slotmap(lispval smap,int flags)
     struct FD_KEYVAL *write=u8_alloc_n(n,struct FD_KEYVAL);
     fresh->n_allocd=fresh->n_slots=n;
     fresh->sm_keyvals=write;
-    memset(write,0,n*sizeof(struct FD_KEYVAL));
+    memset(write,0,n*FD_KEYVAL_LEN);
     while (read<read_limit) {
       lispval key=read->kv_key, val=read->kv_val; read++;
       if (CONSP(key)) {
@@ -839,7 +839,7 @@ FD_EXPORT void fd_recycle_slotmap(struct FD_SLOTMAP *c)
   if (sm->sm_free_keyvals) u8_free(sm->sm_keyvals);
   if (unlock) fd_unlock_table(sm);
   u8_destroy_rwlock(&(sm->table_rwlock));
-  memset(sm,0,sizeof(struct FD_SLOTMAP));
+  memset(sm,0,FD_SLOTMAP_LEN);
   u8_free(sm);
 }
 static int unparse_slotmap(u8_output out,lispval x)
@@ -898,9 +898,9 @@ static int compare_slotmaps(lispval x,lispval y,fd_compare_flags flags)
       if (xsize>17) xkvbuf=u8_alloc_n(xsize,struct FD_KEYVAL);
       if (ysize>17) ykvbuf=u8_alloc_n(ysize,struct FD_KEYVAL);
       memcpy(xkvbuf,FD_XSLOTMAP_KEYVALS(smx),
-             sizeof(struct FD_KEYVAL)*xsize);
+             FD_KEYVAL_LEN*xsize);
       memcpy(ykvbuf,FD_XSLOTMAP_KEYVALS(smy),
-             sizeof(struct FD_KEYVAL)*ysize);
+             FD_KEYVAL_LEN*ysize);
       sort_keyvals(xkvbuf,xsize);
       sort_keyvals(ykvbuf,ysize);
       while (i<limit) {
@@ -1313,7 +1313,7 @@ FD_EXPORT lispval fd_schemap_keys(struct FD_SCHEMAP *sm)
     else {
       struct FD_CHOICE *ch=fd_alloc_choice(size);
       memcpy((lispval *)FD_XCHOICE_DATA(ch),sm->table_schema,
-             sizeof(lispval)*size);
+             LISPVEC_BYTELEN(size));
       if (sm->schemap_sorted)
         return fd_init_choice(ch,size,sm->table_schema,0);
       else return fd_init_choice(ch,size,sm->table_schema,
@@ -1340,7 +1340,7 @@ static void recycle_schemap(struct FD_RAW_CONS *c)
       u8_free(sm->table_schema);
     if (unlock) fd_unlock_table(sm);
     u8_destroy_rwlock(&(sm->table_rwlock));
-    memset(sm,0,sizeof(struct FD_SCHEMAP));
+    memset(sm,0,FD_SCHEMAP_LEN);
     u8_free(sm);
   }
 }
@@ -1584,16 +1584,16 @@ FD_FASTOP struct FD_KEYVAL *hash_bucket_insert
       /* We don't need to use size+1 here because FD_HASH_BUCKET includes
          one value. */
       u8_realloc(he,(sizeof(struct FD_HASH_BUCKET)+
-                     (size)*sizeof(struct FD_KEYVAL)));
+                     (size)*FD_KEYVAL_LEN));
     memset((((unsigned char *)new_hashentry)+
             (sizeof(struct FD_HASH_BUCKET))+
-            ((size-1)*sizeof(struct FD_KEYVAL))),
-           0,sizeof(struct FD_KEYVAL));
+            ((size-1)*FD_KEYVAL_LEN)),
+           0,FD_KEYVAL_LEN);
     *hep=new_hashentry;
     new_hashentry->bucket_len++;
     insert_point=&(new_hashentry->kv_val0)+ipos;
     memmove(insert_point+1,insert_point,
-            sizeof(struct FD_KEYVAL)*(size-ipos));
+            FD_KEYVAL_LEN*(size-ipos));
     if (CONSP(key)) {
       if (FD_STATICP(key))
         insert_point->kv_key=fd_copy(key);
@@ -1613,9 +1613,9 @@ FD_FASTOP struct FD_HASH_BUCKET *hash_bucket_remove
     return NULL;}
   else {
     int offset = slot - base;
-    size_t new_size = sizeof(struct FD_HASH_BUCKET)+(sizeof(struct FD_KEYVAL)*(len-2));
+    size_t new_size = sizeof(struct FD_HASH_BUCKET)+(FD_KEYVAL_LEN*(len-2));
     assert( ( offset <= 0 ) && (offset < len ) );
-    memmove(slot,slot+1,sizeof(struct FD_KEYVAL)*(len-(offset+1)));
+    memmove(slot,slot+1,FD_KEYVAL_LEN*(len-(offset+1)));
     struct FD_HASH_BUCKET *new_bucket=u8_realloc(bucket,new_size);
     new_bucket->bucket_len--;
     return new_bucket;}
@@ -2727,7 +2727,7 @@ FD_EXPORT int fd_swap_hashtable(struct FD_HASHTABLE *src,
       u8_write_lock(&(src->table_rwlock));
       unlock=1;}}
 
-  memset(dest,0,sizeof(struct FD_HASHTABLE));
+  memset(dest,0,FD_HASHTABLE_LEN);
 
   FD_SET_CONS_TYPE(dest,fd_hashtable_type);
 
@@ -3125,7 +3125,7 @@ fd_copy_hashtable(FD_HASHTABLE *dest_arg,
       int n=he->bucket_len;
       *write++=newhe=(struct FD_HASH_BUCKET *)
         u8_malloc(sizeof(struct FD_HASH_BUCKET)+
-                  (n-1)*sizeof(struct FD_KEYVAL));
+                  (n-1)*FD_KEYVAL_LEN);
       kvread  = &(he->kv_val0);
       kvwrite = &(newhe->kv_val0);
       newhe->bucket_len=n; kvlimit=kvread+n;
@@ -3227,7 +3227,7 @@ FD_EXPORT int fd_recycle_hashtable(struct FD_HASHTABLE *c)
   ht->table_n_keys=0;
   if (unlock) fd_unlock_table(ht);
   u8_destroy_rwlock(&(ht->table_rwlock));
-  memset(ht,0,sizeof(struct FD_HASHTABLE));
+  memset(ht,0,FD_HASHTABLE_LEN);
   return 0;
 }
 

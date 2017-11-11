@@ -41,7 +41,7 @@ static lispval markdown2html_prim(lispval mdstring,lispval opts)
   sdhtml_renderer(&callbacks, &options, HTML_RENDER_FLAGS);
   markdown = sd_markdown_new(0, 16, &callbacks, &options);
 
-  sd_markdown_render(ob, FD_STRDATA(mdstring), FD_STRLEN(mdstring), markdown);
+  sd_markdown_render(ob, FD_CSTRING(mdstring), FD_STRLEN(mdstring), markdown);
   sd_markdown_free(markdown);
 
   result = fd_make_string(NULL,ob->size,ob->data);
@@ -65,7 +65,7 @@ static lispval markout_prim(lispval mdstring,lispval opts)
   sdhtml_renderer(&callbacks, &options, HTML_RENDER_FLAGS);
   markdown = sd_markdown_new(0, 16, &callbacks, &options);
 
-  sd_markdown_render(ob, FD_STRDATA(mdstring), FD_STRLEN(mdstring), markdown);
+  sd_markdown_render(ob, FD_CSTRING(mdstring), FD_STRLEN(mdstring), markdown);
   sd_markdown_free(markdown);
 
   u8_putn(out,ob->data,ob->size);
@@ -84,13 +84,13 @@ FD_EXPORT int fd_init_sundown()
   sundown_module = fd_new_module("SUNDOWN",(FD_MODULE_SAFE));
 
   fd_idefn(sundown_module,
-	   fd_make_cprim2x("MARKDOWN->HTML",markdown2html_prim,1,
-			   fd_string_type,FD_VOID,-1,FD_VOID));
+           fd_make_cprim2x("MARKDOWN->HTML",markdown2html_prim,1,
+                           fd_string_type,FD_VOID,-1,FD_VOID));
   fd_defalias(sundown_module,"MD->HTML","MARKDOWN->HTML");
 
   fd_idefn(sundown_module,
-	   fd_make_cprim2x("MARKOUT",markout_prim,1,
-			   fd_string_type,FD_VOID,-1,FD_VOID));
+           fd_make_cprim2x("MARKOUT",markout_prim,1,
+                           fd_string_type,FD_VOID,-1,FD_VOID));
 
   u8_register_source_file(_FILEINFO);
 

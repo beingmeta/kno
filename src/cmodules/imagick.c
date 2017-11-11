@@ -161,7 +161,7 @@ lispval file2imagick(lispval arg)
   struct FD_IMAGICK *fdwand = u8_alloc(struct FD_IMAGICK);
   FD_INIT_FRESH_CONS(fdwand,fd_imagick_type);
   fdwand->wand = wand = NewMagickWand();
-  retval = MagickReadImage(wand,FD_STRDATA(arg));
+  retval = MagickReadImage(wand,FD_CSTRING(arg));
   if (retval == MagickFalse) {
     grabmagickerr("file2imagick",wand);
     u8_free(wand); u8_free(fdwand);
@@ -191,7 +191,7 @@ lispval imagick2file(lispval fdwand,lispval filename)
   struct FD_IMAGICK *wrapper=
     fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   MagickWand *wand = wrapper->wand;
-  retval = MagickWriteImage(wand,FD_STRDATA(filename));
+  retval = MagickWriteImage(wand,FD_CSTRING(filename));
   if (retval == MagickFalse) {
     grabmagickerr("imagick2file",wand);
     return FD_ERROR_VALUE;}
@@ -277,7 +277,7 @@ static FilterTypes getfilter(lispval arg,u8_string cxt)
   else if (FD_SYMBOLP(arg))
     name = FD_SYMBOL_NAME(arg);
   else if (FD_STRINGP(arg))
-    name = FD_STRDATA(arg);
+    name = FD_CSTRING(arg);
   else name = NULL;
   if (name == NULL) {
     u8_log(LOG_WARN,cxt,"Bad filter arg %q",arg);
@@ -307,7 +307,7 @@ static lispval imagick_format(lispval fdwand,lispval format)
   struct FD_IMAGICK *wrapper=
     fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   MagickWand *wand = wrapper->wand;
-  retval = MagickSetImageFormat(wand,FD_STRDATA(format));
+  retval = MagickSetImageFormat(wand,FD_CSTRING(format));
   if (retval == MagickFalse) {
     grabmagickerr("imagick_format",wand);
     return FD_ERROR_VALUE;}
@@ -379,7 +379,7 @@ static lispval imagick_extend(lispval fdwand,lispval w_arg,lispval h_arg,
   size_t xoff = FD_FIX2INT(x_arg), yoff = FD_FIX2INT(y_arg);
   if (FD_STRINGP(bgcolor)) {
     PixelWand *color = NewPixelWand();
-    PixelSetColor(color,FD_STRDATA(bgcolor));
+    PixelSetColor(color,FD_CSTRING(bgcolor));
     MagickSetImageBackgroundColor(wand,color);
     DestroyPixelWand(color);}
   retval = MagickExtentImage(wand,width,height,xoff,yoff);
@@ -549,7 +549,7 @@ static lispval imagick_display(lispval fdwand,lispval display_name)
     fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   MagickWand *wand = wrapper->wand;
   u8_string display=
-    ((FD_VOIDP(display_name))?((u8_string)":0.0"):(FD_STRDATA(display_name)));
+    ((FD_VOIDP(display_name))?((u8_string)":0.0"):(FD_CSTRING(display_name)));
   retval = MagickDisplayImage(wand,display);
   if (retval == MagickFalse) {
     grabmagickerr("imagick_display",wand);
@@ -563,7 +563,7 @@ static lispval imagick_get(lispval fdwand,lispval property,lispval dflt)
     fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   MagickWand *wand = wrapper->wand;
   const char *pname = ((FD_SYMBOLP(property))?(FD_SYMBOL_NAME(property)):
-                     (FD_STRINGP(property))?(FD_STRDATA(property)):(NULL));
+                     (FD_STRINGP(property))?(FD_CSTRING(property)):(NULL));
   char *value = MagickGetImageProperty(wand,pname);
   if (value) {
     lispval stringval = fd_make_string(NULL,-1,value);

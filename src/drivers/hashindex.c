@@ -347,7 +347,7 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
     struct FD_SLOTMAP *from_struct = &(index->index_metadata);
     struct FD_SLOTMAP *from_disk = (fd_slotmap) metadata;
     if (from_struct->sm_keyvals) u8_free(from_struct->sm_keyvals);
-    memcpy(from_struct,from_disk,sizeof(struct FD_SLOTMAP));
+    memcpy(from_struct,from_disk,FD_SLOTMAP_LEN);
     u8_free(from_disk);
     from_struct->table_modified=0;}
 
@@ -1445,7 +1445,7 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
       key = read_key(hx,&keyblock);
       n_vals = fd_read_zint(&keyblock);
       if (key_count >= results_len) {
-        results=u8_big_realloc(results,sizeof(lispval)*results_len*2);
+        results=u8_big_realloc(results,LISPVEC_BYTELEN(results_len*2));
         results_len = results_len * 2;}
       results[key_count++]=key;
       if (n_vals==0) {}

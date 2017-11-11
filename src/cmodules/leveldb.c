@@ -278,7 +278,7 @@ static void recycle_leveldb(struct FD_RAW_CONS *c)
 static lispval leveldb_open_prim(lispval path,lispval opts)
 {
   struct FD_LEVELDB *db = u8_alloc(struct FD_LEVELDB);
-  fd_setup_leveldb(&(db->leveldb),FD_STRDATA(path),opts);
+  fd_setup_leveldb(&(db->leveldb),FD_CSTRING(path),opts);
   if (db->leveldb.dbptr) {
     FD_INIT_CONS(db,fd_leveldb_type);
     return (lispval) db;}
@@ -498,7 +498,7 @@ fd_pool fd_use_leveldb_pool(u8_string path,lispval opts)
         pool->pool_flags |= FD_STORAGE_READ_ONLY;
       pool->pool_load = FD_FIX2INT(load);
       if (FD_STRINGP(label)) {
-        pool->pool_label = u8_strdup(FD_STRDATA(label));}
+        pool->pool_label = u8_strdup(FD_CSTRING(label));}
       fd_register_pool((fd_pool)pool);
       return (fd_pool)pool;}
     else  {
@@ -552,7 +552,7 @@ fd_pool fd_make_leveldb_pool(u8_string path,lispval base,lispval cap,lispval opt
     pool->pool_flags &= ~FD_STORAGE_READ_ONLY;
     pool->pool_load = FD_FIX2INT(load);
     if (FD_STRINGP(label)) {
-      pool->pool_label = u8_strdup(FD_STRDATA(label));}
+      pool->pool_label = u8_strdup(FD_CSTRING(label));}
     fd_register_pool((fd_pool)pool);
     return (fd_pool)pool;}
   else  {
@@ -916,14 +916,14 @@ static struct FD_INDEX_HANDLER leveldb_index_handler={
 
 static lispval use_leveldb_pool_prim(lispval path,lispval opts)
 {
-  fd_pool pool = fd_use_leveldb_pool(FD_STRDATA(path),opts);
+  fd_pool pool = fd_use_leveldb_pool(FD_CSTRING(path),opts);
   return fd_pool2lisp(pool);
 }
 
 static lispval make_leveldb_pool_prim(lispval path,lispval base,lispval cap,
                                      lispval opts)
 {
-  fd_pool pool = fd_make_leveldb_pool(FD_STRDATA(path),base,cap,opts);
+  fd_pool pool = fd_make_leveldb_pool(FD_CSTRING(path),base,cap,opts);
   return fd_pool2lisp(pool);
 }
 

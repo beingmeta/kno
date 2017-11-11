@@ -97,14 +97,14 @@ FD_EXPORT lispval fd_odbc_connect(lispval spec,lispval colinfo,int interactive)
     SQLSetEnvAttr(dbp->env, SQL_ATTR_ODBC_VERSION,
                   (void *) SQL_OV_ODBC3, 0);
     ret = SQLAllocHandle(SQL_HANDLE_DBC,dbp->env,&(dbp->conn));
-    dbp->extdb_spec = u8_strdup(FD_STRDATA(spec)); dbp->extdb_options = FD_VOID;
+    dbp->extdb_spec = u8_strdup(FD_CSTRING(spec)); dbp->extdb_options = FD_VOID;
     info = u8_malloc(512); strcpy(info,"uninitialized"); dbp->extdb_info = info;
     u8_init_mutex(&(dbp->extdb_proclock));
     dbp->extdb_handler = &odbc_handler;
     if (SQL_SUCCEEDED(ret)) {
       howfar++;
       ret = SQLDriverConnect(dbp->conn,sqldialog,
-                           (char *)FD_STRDATA(spec),FD_STRLEN(spec),
+                           (char *)FD_CSTRING(spec),FD_STRLEN(spec),
                            info,512,NULL,
                            ((interactive==0) ? (SQL_DRIVER_NOPROMPT) :
                             (interactive==1) ? (SQL_DRIVER_COMPLETE_REQUIRED) :
@@ -435,7 +435,7 @@ static lispval odbcexec(struct FD_ODBC *dbp,lispval string,lispval colinfo)
   if (!(SQL_SUCCEEDED(ret))) {
     u8_seterr(ODBCError,"odbcexec",NULL);
     return FD_ERROR_VALUE;}
-  ret = SQLExecDirect(stmt,(char *)FD_STRDATA(string),FD_STRLEN(string));
+  ret = SQLExecDirect(stmt,(char *)FD_CSTRING(string),FD_STRLEN(string));
   if (FD_VOIDP(colinfo)) colinfo = dbp->extdb_colinfo;
   if (SQL_SUCCEEDED(ret))
     return get_stmt_results(stmt,"odbcexec",1,colinfo);
@@ -478,7 +478,7 @@ static lispval callodbcproc(struct FD_FUNCTION *fn,int n,lispval *args)
       SQLBindParameter(dbp->stmt,i+1,
                        SQL_PARAM_INPUT,SQL_C_CHAR,
                        dbp->sqltypes[i],0,0,
-                       (char *)FD_STRDATA(arg),
+                       (char *)FD_CSTRING(arg),
                        FD_STRLEN(arg),
                        NULL);}
     else if (FD_OIDP(arg)) {

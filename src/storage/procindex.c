@@ -337,7 +337,7 @@ static lispval procindex_ctl(fd_index ix,lispval opid,int n,lispval *args)
     lispval argbuf[n+3];
     argbuf[0]=lx; argbuf[1]=pix->index_state;
     argbuf[2]=opid;
-    memcpy(argbuf+3,args,sizeof(lispval)*n);
+    memcpy(argbuf+3,args,LISPVEC_BYTELEN(n));
     lispval result = fd_dapply(pix->ctlfn,n+3,argbuf);
     if (result == FD_DEFAULT_VALUE)
       return fd_default_indexctl(ix,opid,n,args);
