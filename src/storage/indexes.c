@@ -1320,7 +1320,7 @@ FD_EXPORT int fd_index_save(fd_index ix,
   else if (FD_SLOTMAPP(toadd))
     adds = FD_SLOTMAP_KEYVALS(toadd);
   else if (FD_HASHTABLEP(toadd)) {
-    adds = hashtable_keyvals((fd_hashtable)toadd,&n_adds,1);
+    adds = hashtable_keyvals((fd_hashtable)toadd,&n_adds,0);
     free_adds = 1;}
   else if (FD_TABLEP(toadd)) {
     lispval keys = fd_getkeys(toadd);
@@ -1340,7 +1340,7 @@ FD_EXPORT int fd_index_save(fd_index ix,
   else if (FD_SLOTMAPP(todrop))
     drops = FD_SLOTMAP_KEYVALS(todrop);
   else if (FD_HASHTABLEP(todrop)) {
-    drops = hashtable_keyvals((fd_hashtable)todrop,&n_drops,1);
+    drops = hashtable_keyvals((fd_hashtable)todrop,&n_drops,0);
     free_drops = 1;}
   else if (FD_TABLEP(todrop)) {
     lispval keys = fd_getkeys(todrop);
@@ -1360,7 +1360,7 @@ FD_EXPORT int fd_index_save(fd_index ix,
   else if (FD_SLOTMAPP(tostore))
     stores = FD_SLOTMAP_KEYVALS(tostore);
   else if (FD_HASHTABLEP(tostore)) {
-    stores = hashtable_keyvals((fd_hashtable)tostore,&n_stores,0);
+    stores = hashtable_keyvals((fd_hashtable)tostore,&n_stores,1);
     free_stores = 1;}
   else if (FD_TABLEP(tostore)) {
     lispval keys = fd_getkeys(tostore);
