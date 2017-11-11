@@ -1614,7 +1614,7 @@ FD_FASTOP struct FD_HASH_BUCKET *hash_bucket_remove
   else {
     int offset = slot - base;
     size_t new_size = sizeof(struct FD_HASH_BUCKET)+(FD_KEYVAL_LEN*(len-2));
-    assert( ( offset <= 0 ) && (offset < len ) );
+    assert( ( offset >= 0 ) && (offset < len ) );
     memmove(slot,slot+1,FD_KEYVAL_LEN*(len-(offset+1)));
     struct FD_HASH_BUCKET *new_bucket=u8_realloc(bucket,new_size);
     new_bucket->bucket_len--;
