@@ -673,6 +673,7 @@ static lispval read_oid_value(fd_bigpool bp,
       if (data_len>FD_INIT_ZBUF_SIZE)
         ubuf = do_zuncompress(in->bufread,data_len,&ubuf_size,NULL);
       else ubuf = do_zuncompress(in->bufread,data_len,&ubuf_size,_ubuf);
+      if (ubuf == NULL) return FD_ERROR;
       FD_INIT_BYTE_INPUT(&inflated,ubuf,ubuf_size);
       if (ubuf==_ubuf)
         return read_oid_value(bp,&inflated,cxt);
