@@ -9,8 +9,6 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define NO_ELSE {}
-
 /* Notes:
    A normal 32-bit hash index with N buckets consists of 256 bytes of
    header, followed by N*8 bytes of offset table, followed by an arbitrary

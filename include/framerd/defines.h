@@ -60,6 +60,10 @@
 
 #define FD_WRITETHROUGH_THREADCACHE 1
 
+#ifndef NO_ELSE
+#define NO_ELSE {}
+#endif
+
 #if defined(FD_ENABLE_FFI)
 
 #if ( (FD_ENABLE_FFI) && ( ! ( (HAVE_FFI_H) && (HAVE_LIBFFI) ) ) )
