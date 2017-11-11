@@ -1154,7 +1154,7 @@ static int index_docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
       (fd_deep_copy(metadata)) :
       (FD_VOID);
 
-    int n_adds=0, n_drops=0, n_stores=0, retval=0;
+    int n_adds=0, n_drops=0, n_stores=0;
     /* Lock the changes for the index */
     if (adds_table->table_uselock) {
       fd_write_lock_table(adds_table);
@@ -1304,8 +1304,6 @@ FD_EXPORT int fd_index_save(fd_index ix,
   int fd_storage_loglevel = (ix->index_loglevel > 0) ? (ix->index_loglevel) :
     (*(fd_storage_loglevel_ptr));
 
-  int retval = 0;
-
   if (ix == NULL)
     return -1;
 
@@ -1387,7 +1385,6 @@ FD_EXPORT int fd_index_save(fd_index ix,
             (FD_VOIDP(metadata)) ? ("") : ("/md"),
             ix->indexid);}
 
-  double start_time = u8_elapsed_time();
   if (FD_SLOTMAPP(metadata))
     commits.commit_metadata = metadata;
   else commits.commit_metadata = FD_VOID;
@@ -1401,9 +1398,19 @@ FD_EXPORT int fd_index_save(fd_index ix,
 
   int saved = index_docommit(ix,&commits);
 
-  free_commits(&commits);
+  if (free_adds) {
+    fd_free_keyvals(adds,n_adds);
+    u8_big_free(adds);}
+  if (free_drops) {
+    fd_free_keyvals(drops,n_drops);
+    u8_big_free(drops);}
+  if (free_stores) {
+    fd_free_keyvals(stores,n_stores);
+    u8_big_free(stores);}
 
-  return retval;
+  fd_decref(commits.commit_metadata);
+
+  return saved;
 }
 
 FD_EXPORT void fd_index_swapout(fd_index ix,lispval keys)
