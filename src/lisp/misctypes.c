@@ -176,7 +176,7 @@ static ssize_t timestamp_dtype(struct FD_OUTBUF *out,lispval x)
     lispval xval = FD_INT(xtm->u8xtimeval.u8_tick);
     size = size+fd_write_dtype(out,xval);}
   else {
-    lispval vec = fd_init_vector(NULL,4,NULL);
+    lispval vec = fd_empty_vector(4);
     int tzoff = xtm->u8xtimeval.u8_tzoff;
     FD_VECTOR_SET(vec,0,FD_INT(xtm->u8xtimeval.u8_tick));
     FD_VECTOR_SET(vec,1,FD_INT(xtm->u8xtimeval.u8_nsecs));

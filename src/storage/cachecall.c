@@ -58,7 +58,7 @@ FD_EXPORT lispval fd_cachecall(lispval fcn,int n,lispval *args)
       return result;}
     else if (fd_ipeval_status() == state) {
       lispval *datavec = ((n) ? (u8_alloc_n(n,lispval)) : (NULL));
-      lispval key = fd_init_vector(NULL,n,datavec);
+      lispval key = fd_wrap_vector(n,datavec);
       int i = 0; while (i<n) {
         datavec[i]=fd_incref(args[i]); i++;}
       fd_hashtable_store(cache,key,result);
@@ -90,7 +90,7 @@ FD_EXPORT lispval fd_xcachecall
       return result;}
     else if (fd_ipeval_status() == state) {
       lispval *datavec = ((n) ? (u8_alloc_n(n,lispval)) : (NULL));
-      lispval key = fd_init_vector(NULL,n,datavec);
+      lispval key = fd_wrap_vector(n,datavec);
       int i = 0; while (i<n) {
         datavec[i]=fd_incref(args[i]); i++;}
       fd_hashtable_store(cache,key,result);
@@ -112,7 +112,7 @@ FD_EXPORT void fd_clear_callcache(lispval arg)
     else {
       int i = 0, n_args = VEC_LEN(arg)-1;
       lispval *datavec = u8_alloc_n(n_args,lispval);
-      lispval key = fd_init_vector(NULL,n_args,datavec);
+      lispval key = fd_wrap_vector(n_args,datavec);
       while (i<n_args) {
         datavec[i]=fd_incref(VEC_REF(arg,i+1)); i++;}
       fd_hashtable_store((fd_hashtable)table,key,VOID);
@@ -239,11 +239,11 @@ FD_EXPORT lispval fd_tcachecall(lispval fcn,int n,lispval *args)
           int i = 0, nelts = n+1;
           elts = u8_alloc_n(n+1,lispval);
           while (i<nelts) {elts[i]=fd_incref(_elts[i]); i++;}
-          vec = fd_init_vector(NULL,nelts,elts);}
+          vec = fd_wrap_vector(nelts,elts);}
         else {
           int i = 0, nelts = n+1;
           while (i<nelts) {fd_incref(elts[i]); i++;}
-          vec = fd_init_vector(NULL,nelts,elts);}
+          vec = fd_wrap_vector(nelts,elts);}
         fd_hashtable_store(&(tc->calls),vec,result);
         fd_decref(vec);
         return result;}

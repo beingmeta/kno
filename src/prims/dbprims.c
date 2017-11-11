@@ -1282,7 +1282,7 @@ static lispval oid_vector(lispval start,lispval end)
   int i = 0, lim = fd_getint(end);
   if (lim<0) return FD_ERROR;
   else {
-    lispval result = fd_init_vector(NULL,lim,NULL);
+    lispval result = fd_empty_vector(lim);
     lispval *data = VEC_DATA(result);
     FD_OID base = FD_OID_ADDR(start);
     while (i<lim) {
@@ -1314,7 +1314,7 @@ static lispval pool_vec(lispval arg)
     int i = 0, lim = fd_pool_load(p);
     if (lim<0) return FD_ERROR;
     else {
-      lispval result = fd_init_vector(NULL,lim,NULL);
+      lispval result = fd_empty_vector(lim);
       FD_OID base = p->pool_base;
       if (lim<0) {
         fd_seterr("No OIDs","pool_vec",p->poolid,arg);
@@ -1883,7 +1883,7 @@ static lispval index_keysvec(lispval ixarg)
   if (ix->index_handler->fetchkeys) {
     lispval *keys; unsigned int n_keys;
     keys = ix->index_handler->fetchkeys(ix,&n_keys);
-    return fd_init_vector(NULL,n_keys,keys);}
+    return fd_cons_vector(NULL,n_keys,1,keys);}
   else return fd_index_keys(ix);
 }
 
@@ -2694,17 +2694,13 @@ static lispval oid_offset_prim(lispval oidarg,lispval against)
 
 static lispval oid_minus_prim(lispval oidarg,lispval against)
 {
-  FD_OID oid = FD_OID_ADDR(oidarg), base; int cap = -1;
+  FD_OID oid = FD_OID_ADDR(oidarg), base;
   if (OIDP(against)) {
     base = FD_OID_ADDR(against);}
   else if (FD_POOLP(against)) {
     fd_pool p = fd_lisp2pool(against);
-    if (p) {base = p->pool_base; cap = p->pool_capacity;}
+    if (p) base = p->pool_base;
     else return FD_ERROR;}
-  else if ((VOIDP(against)) || (FALSEP(against))) {
-    fd_pool p = fd_oid2pool(oidarg);
-    if (p) {base = p->pool_base; cap = p->pool_capacity;}
-    else return FD_INT((FD_OID_LO(oid))%0x100000);}
   else return fd_type_error(_("offset base"),"oid_offset_prim",against);
   unsigned long long oid_difference = FD_OID_DIFFERENCE(oid,base);
   return FD_INT(oid_difference);

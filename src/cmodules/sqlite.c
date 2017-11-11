@@ -718,7 +718,7 @@ static lispval sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,lispval colinfo)
   if (colmaps!=_colmaps) u8_free(colmaps);
   if (FD_ABORTP(results)) return results;
   else if (sorted)
-    return fd_init_vector(NULL,rn,resultsv);
+    return fd_wrap_vector(rn,resultsv);
   else return results;
 }
 

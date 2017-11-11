@@ -108,7 +108,7 @@ static lispval dns_query(lispval domain_arg,lispval type_arg)
             lispval value = rdf2dtype( fields[0] );
             CHOICE_ADD(results,value);}
           else {
-            lispval vec = fd_init_vector(NULL, n_fields, NULL);
+            lispval vec = fd_empty_vector(n_fields);
             int j = 0; while (j < n_fields) {
               ldns_rdf *field = fields[j];
               lispval value = rdf2dtype( field );

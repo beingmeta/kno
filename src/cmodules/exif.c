@@ -50,7 +50,7 @@ static lispval exif2lisp(ExifEntry *exentry)
     if (n==1) {
       lispval retval = lispdata[0]; u8_free(lispdata);
       return retval;}
-    else return fd_init_vector(NULL,n,lispdata);}
+    else return fd_wrap_vector(n,lispdata);}
   case EXIF_FORMAT_SHORT: case EXIF_FORMAT_SSHORT: {
     int n = exentry->components, i = 0;
     lispval *lispdata = u8_alloc_n(n,lispval);
@@ -69,7 +69,7 @@ static lispval exif2lisp(ExifEntry *exentry)
     if (n==1) {
       lispval retval = lispdata[0]; u8_free(lispdata);
       return retval;}
-    else return fd_init_vector(NULL,n,lispdata);}
+    else return fd_wrap_vector(n,lispdata);}
   case EXIF_FORMAT_LONG: case EXIF_FORMAT_SLONG: {
     int n = exentry->components, i = 0;
     lispval *lispdata = u8_alloc_n(n,lispval);
@@ -88,7 +88,7 @@ static lispval exif2lisp(ExifEntry *exentry)
     if (n==1) {
       lispval retval = lispdata[0]; u8_free(lispdata);
       return retval;}
-    else return fd_init_vector(NULL,n,lispdata);}
+    else return fd_wrap_vector(n,lispdata);}
   case EXIF_FORMAT_RATIONAL: case EXIF_FORMAT_SRATIONAL: {
     int n = exentry->components, i = 0;
     lispval *lispdata = u8_alloc_n(n,lispval);
@@ -111,7 +111,7 @@ static lispval exif2lisp(ExifEntry *exentry)
       while (i<n) {fd_decref(lispdata[i]); i++;}
       u8_free(lispdata);
       return retval;}
-    else return fd_init_vector(NULL,n,lispdata);}
+    else return fd_wrap_vector(n,lispdata);}
   default: return FD_EMPTY_CHOICE;
   }
 }

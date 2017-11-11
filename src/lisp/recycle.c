@@ -27,7 +27,10 @@ static void recycle_vector(struct FD_VECTOR *v)
   lispval *scan = v->vec_elts, *limit = scan+len;
   if (scan) {
     while (scan<limit) {fd_decref(*scan); scan++;}
-    if (v->vec_free_elts) u8_free(v->vec_elts);}
+    if (v->vec_free_elts) {
+      if (v->vec_bigalloc_elts)
+        u8_big_free(v->vec_elts);
+      else u8_free(v->vec_elts);}}
   if (!(FD_STATIC_CONSP(v))) {
     if (v->vec_bigalloc)
       u8_big_free(v);

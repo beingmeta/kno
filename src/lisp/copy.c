@@ -62,8 +62,8 @@ lispval fd_copier(lispval x,int flags)
       struct FD_VECTOR *v = FD_CONSPTR(fd_vector,x);
       lispval *olddata = v->vec_elts; int i = 0, len = v->vec_length;
       lispval result = ((ctype == fd_vector_type)?
-                     (fd_init_vector(NULL,len,NULL)):
-                     (fd_init_code(NULL,len,NULL)));
+                        (fd_empty_vector(len)):
+                        (fd_init_code(NULL,len,NULL)));
       lispval *newdata = FD_VECTOR_ELTS(result);
       while (i<len) {
           lispval v = olddata[i], newv = v;

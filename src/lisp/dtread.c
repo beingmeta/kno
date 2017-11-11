@@ -300,9 +300,9 @@ FD_EXPORT lispval fd_read_dtype(struct FD_INBUF *in)
       if (len < 0)
         return fd_return_errcode(FD_EOD);
       else if (PRED_FALSE(len == 0))
-        return fd_init_vector(NULL,0,NULL);
+        return fd_empty_vector(0);
       else {
-        lispval why_not = FD_EOD, result = fd_init_vector(NULL,len,NULL);
+        lispval why_not = FD_EOD, result = fd_empty_vector(len);
         lispval *elts = FD_VECTOR_ELTS(result);
         lispval *data = read_dtypes(len,in,&why_not,elts);
         if (PRED_TRUE((data!=NULL)))

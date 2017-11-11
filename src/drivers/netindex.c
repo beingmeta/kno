@@ -104,7 +104,7 @@ static lispval *netindex_fetchn(fd_index ix,int n,const lispval *keys)
 {
   struct FD_NETWORK_INDEX *nix = (struct FD_NETWORK_INDEX *)ix;
   lispval vector, result;
-  vector = fd_init_vector(NULL,n,(lispval *)keys);
+  vector = fd_wrap_vector(n,(lispval *)keys);
   if (VOIDP(nix->xname))
     result = fd_dtcall(nix->index_connpool,2,iserver_fetchn,vector);
   else result = fd_dtcall_x(nix->index_connpool,3,3,

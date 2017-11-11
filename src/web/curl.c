@@ -57,8 +57,6 @@ static lispval fresh_connect_symbol, forbid_reuse_symbol, filetime_symbol;
 
 static lispval text_types = EMPTY;
 
-static int debugging_curl = 0;
-
 static u8_condition NonTextualContent=
   _("can't parse non-textual content as XML");
 static u8_condition CurlError=_("Internal libcurl error");

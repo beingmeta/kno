@@ -760,7 +760,7 @@ static lispval choice2vector(lispval x,lispval sortspec)
 {
   fd_compare_flags flags = fd_get_compare_flags(sortspec);
   if (EMPTYP(x))
-    return fd_init_vector(NULL,0,NULL);
+    return fd_empty_vector(0);
   else if (PRECHOICEP(x)) {
     lispval normal = fd_make_simple_choice(x);
     lispval result = choice2vector(normal,sortspec);
@@ -1036,11 +1036,11 @@ static lispval sorted_primfn(lispval choices,lispval keyfn,int reverse,
                              enum SORTFN sortfn)
 {
   if (EMPTYP(choices))
-    return fd_init_vector(NULL,0,NULL);
+    return fd_empty_vector(0);
   else if (CHOICEP(choices)) {
     int i = 0, n = FD_CHOICE_SIZE(choices), j = 0;
-    lispval *vecdata = u8_alloc_n(n,lispval);
-    struct FD_SORT_ENTRY *entries = u8_alloc_n(n,struct FD_SORT_ENTRY);
+    lispval *vecdata = u8_big_alloc_n(n,lispval);
+    struct FD_SORT_ENTRY *entries = u8_big_alloc_n(n,struct FD_SORT_ENTRY);
     DO_CHOICES(elt,choices) {
       lispval key=_fd_apply_keyfn(elt,keyfn);
       if (FD_ABORTED(key)) {
@@ -1077,12 +1077,12 @@ static lispval sorted_primfn(lispval choices,lispval keyfn,int reverse,
       fd_decref(entries[i].sortkey);
       vecdata[i]=fd_incref(entries[i].sortval);
       i++;}
-    u8_free(entries);
-    return fd_init_vector(NULL,n,vecdata);}
+    u8_big_free(entries);
+    return fd_cons_vector(NULL,n,1,vecdata);}
   else {
     lispval *vec = u8_alloc_n(1,lispval);
     vec[0]=fd_incref(choices);
-    return fd_init_vector(NULL,1,vec);}
+    return fd_wrap_vector(1,vec);}
 }
 
 static lispval sorted_prim(lispval choices,lispval keyfn,

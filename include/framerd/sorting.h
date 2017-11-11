@@ -283,7 +283,7 @@ U8_MAYBE_UNUSED static lispval _fd_apply_keyfn(lispval x,lispval keyfn)
     lispval *keyfns = FD_VECTOR_DATA(keyfn);
     lispval *vecdata = u8_alloc_n(len,lispval);
     while (i<len) {vecdata[i]=_fd_apply_keyfn(x,keyfns[i]); i++;}
-    return fd_init_vector(NULL,len,vecdata);}
+    return fd_wrap_vector(len,vecdata);}
   else if ((FD_OIDP(x)) && (FD_SYMBOLP(keyfn)))
     return fd_frame_get(x,keyfn);
   else if (FD_TABLEP(x))

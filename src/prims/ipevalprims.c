@@ -183,7 +183,7 @@ static lispval track_ipeval_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
                       fd_init_double(NULL,record->fetch_time));}
   return fd_make_nvector(3,tmp.kv_val,
                          fd_init_double(NULL,total_time),
-                         fd_init_vector(NULL,n_cycles,vec));
+                         fd_wrap_vector(n_cycles,vec));
 }
 #endif
 

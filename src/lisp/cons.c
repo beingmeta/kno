@@ -489,9 +489,11 @@ FD_EXPORT lispval fd_reverse_list(lispval l)
 
 /* Vectors */
 
-FD_EXPORT lispval fd_init_vector(struct FD_VECTOR *ptr,int len,lispval *data)
+FD_EXPORT lispval fd_cons_vector(struct FD_VECTOR *ptr,
+                                 int len,int big_alloc_elts,
+                                 lispval *data)
 {
-  lispval *elts; int free_data = 1, big_alloc=0;
+  lispval *elts; int free_data = 1; int big_alloc = 0;
   if ((ptr == NULL)&&(data == NULL)) {
     int i = 0;
     if ( len > fd_bigvec_threshold) {
@@ -514,7 +516,23 @@ FD_EXPORT lispval fd_init_vector(struct FD_VECTOR *ptr,int len,lispval *data)
   ptr->vec_elts = elts;
   ptr->vec_free_elts = free_data;
   ptr->vec_bigalloc  = big_alloc;
+  ptr->vec_bigalloc_elts  = big_alloc_elts;
   return LISP_CONS(ptr);
+}
+
+FD_EXPORT lispval fd_init_vector(struct FD_VECTOR *ptr,int len,lispval *data)
+{
+  return fd_cons_vector(ptr,len,0,data);
+}
+
+FD_EXPORT lispval fd_empty_vector(int len)
+{
+  return fd_cons_vector(NULL,len,0,NULL);
+}
+
+FD_EXPORT lispval fd_wrap_vector(int len,lispval *data)
+{
+  return fd_cons_vector(NULL,len,0,data);
 }
 
 FD_EXPORT lispval fd_make_nvector(int len,...)
@@ -522,7 +540,7 @@ FD_EXPORT lispval fd_make_nvector(int len,...)
   va_list args; int i = 0;
   lispval result, *elts;
   va_start(args,len);
-  result = fd_init_vector(NULL,len,NULL);
+  result = fd_empty_vector(len);
   elts = FD_VECTOR_ELTS(result);
   while (i<len) elts[i++]=va_arg(args,lispval);
   va_end(args);

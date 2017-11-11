@@ -1120,8 +1120,10 @@ static int fileindex_commit(fd_index ix,fd_commit_phase phase,
               "Couldn't unlock %s for hashindex %s errno=%d:%s",
               source,fx->indexid,saved_errno,u8_strerror(saved_errno));}
     u8_string rollback_file = u8_string_append(source,".rollback",NULL);
-    if (u8_file_existsp(rollback_file))
-      return u8_removefile(rollback_file);
+    if (u8_file_existsp(rollback_file)) {
+      int rv = u8_removefile(rollback_file);
+      u8_free(rollback_file);
+      return rv;}
     else {
       u8_logf(LOGWARN,"Rollback file %s was deleted",rollback_file);
       u8_free(rollback_file);

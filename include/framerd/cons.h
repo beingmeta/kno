@@ -574,9 +574,10 @@ FD_EXPORT lispval fd_reverse_list(lispval l);
 
 typedef struct FD_VECTOR {
   FD_CONS_HEADER;
-  unsigned int vec_length:30;
+  unsigned int vec_length:29;
   unsigned int vec_free_elts:1;
   unsigned int vec_bigalloc:1;
+  unsigned int vec_bigalloc_elts:1;
   lispval *vec_elts;} FD_VECTOR;
 typedef struct FD_VECTOR *fd_vector;
 
@@ -596,7 +597,10 @@ FD_EXPORT ssize_t fd_bigvec_threshold;
 #define FD_VECTOR_SET(x,i,v) \
   ((FD_CONSPTR(fd_vector,(x)))->vec_elts[i]=(v))
 
+FD_EXPORT lispval fd_cons_vector(struct FD_VECTOR *ptr,int len,int big,lispval *data);
 FD_EXPORT lispval fd_init_vector(struct FD_VECTOR *ptr,int len,lispval *data);
+FD_EXPORT lispval fd_wrap_vector(int len,lispval *data);
+FD_EXPORT lispval fd_empty_vector(int len);
 FD_EXPORT lispval fd_make_vector(int len,lispval *elts);
 FD_EXPORT lispval fd_make_nvector(int len,...);
 

@@ -41,7 +41,7 @@ struct FD_STACK *fd_stackptr=NULL;
 
 static lispval stack2lisp(struct FD_STACK *stack)
 {
-  lispval vec=fd_init_vector(NULL,8,NULL);
+  lispval vec=fd_empty_vector(8);
   U8_FIXED_OUTPUT(tmp,128);
   FD_VECTOR_SET(vec,0,FD_INT(stack->stack_depth));
   if (stack->stack_type)

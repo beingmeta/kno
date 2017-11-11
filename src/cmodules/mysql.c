@@ -600,7 +600,7 @@ static lispval get_stmt_values
   int result_index = 0, n_results;
   if ((retval==0)||(retval == MYSQL_DATA_TRUNCATED)) {
     n_results = ((sorted)?(mysql_stmt_num_rows(stmt)):(0));
-    if (sorted) results = fd_init_vector(NULL,n_results,NULL);}
+    if (sorted) results = fd_empty_vector(n_results);}
   while (i<n_cols) {
     colmaps[i]=fd_getopt(colinfo,mysqlproc_colnames[i],FD_VOID); i++;}
   while ((retval==0) || (retval == MYSQL_DATA_TRUNCATED)) {
@@ -730,7 +730,7 @@ static lispval get_stmt_values
     if (sorted) {
       if (FD_VECTORP(results)) return results;
       fd_decref(results);
-      return fd_init_vector(NULL,0,NULL);}
+      return fd_empty_vector(0);}
     else return results;}
   else if ((retval)&&(retval!=MYSQL_DATA_TRUNCATED)) {
     fd_decref(results); /* Free any partial results */

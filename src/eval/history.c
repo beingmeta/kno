@@ -196,11 +196,11 @@ FD_EXPORT void fd_histinit(int size)
       size = 128;}}
   if (VOIDP(history)) {
     history = fd_make_nvector(3,FD_INT(0),
-                              fd_init_vector(NULL,size,NULL),
+                              fd_empty_vector(size),
                               fd_make_hashtable(NULL,17));
     fd_thread_set(history_symbol,history);}
   else {
-    lispval newvec = fd_init_vector(NULL,size,NULL);
+    lispval newvec = fd_empty_vector(size);
     lispval oldvec = VEC_REF(history,1);
     lispval topval = VEC_REF(history,0);
     if (!(FD_UINTP(topval))) {

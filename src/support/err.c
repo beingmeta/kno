@@ -462,7 +462,7 @@ static ssize_t write_exception_dtype(struct FD_OUTBUF *out,lispval x)
   time_t timebase = xo->ex_timebase;
   double moment = xo->ex_moment;
   int veclen = (FD_VOIDP(irritant)) ? (8) : (9);
-  lispval vector = fd_init_vector(NULL,veclen,NULL);
+  lispval vector = fd_empty_vector(veclen);
   ssize_t n_bytes;
   FD_VECTOR_SET(vector,0,fd_intern(condition));
   if (caller) {

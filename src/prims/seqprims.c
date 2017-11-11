@@ -884,9 +884,9 @@ static lispval make_vector(lispval size,lispval dflt)
 {
   int n = fd_getint(size);
   if (n==0)
-    return fd_init_vector(NULL,0,NULL);
+    return fd_empty_vector(0);
   else if (n>0) {
-    lispval result = fd_init_vector(NULL,n,NULL);
+    lispval result = fd_empty_vector(n);
     lispval *elts = FD_VECTOR_ELTS(result);
     int i = 0; while (i < n) {
       elts[i]=fd_incref(dflt); i++;}
@@ -897,7 +897,7 @@ static lispval make_vector(lispval size,lispval dflt)
 static lispval seq2vector(lispval seq)
 {
   if (NILP(seq))
-    return fd_init_vector(NULL,0,NULL);
+    return fd_empty_vector(0);
   else if (FD_SEQUENCEP(seq)) {
     int n; lispval *data = fd_elts(seq,&n);
     if (data) {
@@ -912,12 +912,12 @@ static lispval onevector_prim(int n,lispval *args)
 {
   lispval elts[32], result = VOID;
   struct U8_PILE pile; int i = 0;
-  if (n==0) return fd_init_vector(NULL,0,NULL);
+  if (n==0) return fd_empty_vector(0);
   else if (n==1) {
     if (VECTORP(args[0])) return fd_incref(args[0]);
     else if (PAIRP(args[0])) {}
     else if ((EMPTYP(args[0]))||(FD_EMPTY_QCHOICEP(args[0])))
-      return fd_init_vector(NULL,0,NULL);
+      return fd_empty_vector(0);
     else if (!(CONSP(args[0])))
       return fd_make_vector(1,args);
     else {
@@ -1329,12 +1329,12 @@ static lispval seqmatch_prim(lispval prefix,lispval seq,lispval startarg)
 static lispval sortvec_primfn(lispval vec,lispval keyfn,int reverse,int lexsort)
 {
   if (VEC_LEN(vec)==0)
-    return fd_init_vector(NULL,0,NULL);
+    return fd_empty_vector(0);
   else if (VEC_LEN(vec)==1)
     return fd_incref(vec);
   else {
     int i = 0, n = VEC_LEN(vec), j = 0;
-    lispval result = fd_init_vector(NULL,n,NULL);
+    lispval result = fd_empty_vector(n);
     lispval *vecdata = FD_VECTOR_ELTS(result);
     struct FD_SORT_ENTRY *sentries = u8_alloc_n(n,struct FD_SORT_ENTRY);
     while (i<n) {

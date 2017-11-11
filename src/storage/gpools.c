@@ -84,7 +84,7 @@ static lispval gpool_fetch(fd_pool p,lispval oid)
 static lispval *gpool_fetchn(fd_pool p,int n,lispval *oids)
 {
   struct FD_GPOOL *np = (struct FD_GPOOL *)p;
-  lispval vector = fd_init_vector(NULL,n,oids);
+  lispval vector = fd_wrap_vector(n,oids);
   lispval value = fd_dtcall(np->pool_connpool,2,fetch_oids_symbol,vector);
   fd_decref(vector);
   if (VECTORP(value)) {
@@ -136,7 +136,7 @@ static int gpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
       storevec[i*2]=oids[i];
       storevec[i*2+1]=values[i];
       i++;}
-    vec = fd_init_vector(NULL,n*2,storevec);
+    vec = fd_wrap_vector(n*2,storevec);
     result = fd_dtcall(np->pool_connpool,3,bulk_commit_symbol,client_id,vec);
     /* Don't decref the individual elements because you didn't incref them. */
     u8_free((struct FD_CONS *)vec); u8_free(storevec);

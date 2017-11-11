@@ -56,7 +56,7 @@ static lispval hyphen_breaks_prim(lispval string_arg)
 {
   u8_string string = FD_CSTRING(string_arg);
   int len = FD_STRLEN(string_arg);
-  if (len==0) return fd_init_vector(NULL,0,NULL);
+  if (len==0) return fd_empty_vector(0);
   else {
     char *hyphens = u8_malloc(len+5);
     char ** rep = NULL; int * pos = NULL; int * cut = NULL;
@@ -72,7 +72,7 @@ static lispval hyphen_breaks_prim(lispval string_arg)
       lispval result = FD_VOID, *elts;
       int i = 0, n_breaks = 0, seg = 0, cpos = 0, c = u8_sgetc(&scan); while (i<len) {
         if (hyphens[i++]&1) n_breaks++;}
-      result = fd_init_vector(NULL,n_breaks+1,NULL);
+      result = fd_empty_vector(n_breaks+1);
       elts = FD_VECTOR_DATA(result);
       U8_INIT_OUTPUT(&out,32);
       while (c>=0) {

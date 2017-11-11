@@ -562,12 +562,12 @@ static lispval server_fetch_oids(lispval oidvec)
   int n = VEC_LEN(oidvec), fetchn = 0;
   lispval *elts = VEC_DATA(oidvec);
   if (n==0)
-    return fd_init_vector(NULL,0,NULL);
+    return fd_empty_vector(0);
   else if (!(OIDP(elts[0])))
     return fd_type_error(_("oid vector"),"server_fetch_oids",oidvec);
   else if ((p = (fd_oid2pool(elts[0]))))
     if (served_poolp(p)) {
-      lispval *results = u8_alloc_n(n,lispval);
+      lispval *results = NULL;
       if (p->pool_handler->fetchn) {
         lispval *fetch = u8_alloc_n(n,lispval);
         fd_hashtable cache = &(p->pool_cache), locks = &(p->pool_changes);
@@ -576,14 +576,13 @@ static lispval server_fetch_oids(lispval oidvec)
                          (fd_hashtable_probe_novoid(locks,elts[i])==0))
                        fetch[fetchn++]=elts[i++];
                      else i++;
-        p->pool_handler->fetchn(p,fetchn,fetch);
-        i = 0; while (i<n) {
-          results[i]=fd_fetch_oid(p,elts[i]); i++;}
-        return fd_init_vector(NULL,n,results);}
+        results = p->pool_handler->fetchn(p,fetchn,fetch);
+        return fd_cons_vector(NULL,n,1,results);}
       else {
+        results = u8_big_alloc_n(n,lispval);
         int i = 0; while (i<n) {
           results[i]=fd_fetch_oid(p,elts[i]); i++;}
-        return fd_init_vector(NULL,n,results);}}
+        return fd_cons_vector(NULL,n,1,results);}}
     else return fd_err(fd_PrivateOID,"server_oid_value",NULL,elts[0]);
   else return fd_err(fd_AnonymousOID,"server_oid_value",NULL,elts[0]);
 }
@@ -601,7 +600,7 @@ static lispval server_pool_data(lispval session_id)
       ((p->pool_label) ?
        (fd_make_list(4,base,capacity,ro,lispval_string(p->pool_label))) :
        (fd_make_list(3,base,capacity,ro)));}
-  return fd_init_vector(NULL,len,elts);
+  return fd_wrap_vector(len,elts);
 }
 
 /* index DB methods */
@@ -625,7 +624,7 @@ static lispval iserver_bulk_get(lispval keys)
     while (i<n) {
       results[i]=fd_index_get((fd_index)(primary_index),data[i]); i++;}
     fd_decref(aschoice);
-    return fd_init_vector(NULL,n,results);}
+    return fd_wrap_vector(n,results);}
   else return fd_type_error("vector","iserver_bulk_get",keys);
 }
 static lispval iserver_get_size(lispval key)
@@ -670,7 +669,7 @@ static lispval ixserver_bulk_get(lispval index,lispval keys)
       while (i<n) {
         results[i]=fd_index_get(ix,data[i]); i++;}
       fd_decref(aschoice);
-      return fd_init_vector(NULL,n,results);}
+      return fd_wrap_vector(n,results);}
     else return fd_type_error("vector","ixserver_bulk_get",keys);
   else if (TABLEP(index))
     if (VECTORP(keys)) {
@@ -680,7 +679,7 @@ static lispval ixserver_bulk_get(lispval index,lispval keys)
       while (i<n) {
         results[i]=fd_get(index,data[i],EMPTY);
         i++;}
-      return fd_init_vector(NULL,n,results);}
+      return fd_wrap_vector(n,results);}
     else return fd_type_error("vector","ixserver_bulk_get",keys);
   else return fd_type_error("index","ixserver_get",VOID);
 }

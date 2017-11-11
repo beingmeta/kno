@@ -753,7 +753,7 @@ static lispval lists_to_vectors(lispval lists)
     int i = 0, lim = 0;
     lispval lsize = FD_CAR(list), scan = FD_CDR(list), vec, elt;
     while (PAIRP(scan)) {lim++; scan = FD_CDR(scan);}
-    vec = fd_init_vector(NULL,lim,NULL);
+    vec = fd_empty_vector(lim);
     scan = FD_CDR(list); while (i < lim) {
       lispval car = FD_CAR(scan); fd_incref(car);
       FD_VECTOR_SET(vec,i,car);

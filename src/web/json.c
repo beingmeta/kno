@@ -243,7 +243,7 @@ static lispval json_vector(U8_INPUT *in,int flags,lispval fieldmap)
     good_pos = in->u8_read-in->u8_inbuf;
     if (c==']') {
       u8_getc(in); /* Absorb ] */
-      return fd_init_vector(NULL,n_elts,elts);}
+      return fd_wrap_vector(n_elts,elts);}
     else if (c==',') {
       c = u8_getc(in); c = skip_whitespace(in);}
     else {

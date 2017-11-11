@@ -2204,7 +2204,6 @@ static int hashindex_save(struct FD_INDEX *ix,
     fd_seterr("CantWriteFile","hashindex_save",fname,FD_VOID);
     return -1;}
   fd_lock_index(hx);
-  struct FD_OUTBUF *outstream = fd_writebuf(stream);
   struct BUCKET_REF *bucket_locs;
   fd_offset_type offtype = hx->index_offtype;
   if (!((offtype == FD_B32)||(offtype = FD_B40)||(offtype = FD_B64))) {
@@ -2454,12 +2453,15 @@ static int hashindex_commit(fd_index ix,fd_commit_phase phase,
       (fd_init_file_stream(NULL,commit_file,FD_FILE_MODIFY,-1,-1)) :
       (NULL);
     u8_free(commit_file);
-    return hashindex_save
+    int rv = hashindex_save
       (ix,stream,head_stream,
        (struct FD_CONST_KEYVAL *)commits->commit_adds,commits->commit_n_adds,
        (struct FD_CONST_KEYVAL *)commits->commit_drops,commits->commit_n_drops,
        (struct FD_CONST_KEYVAL *)commits->commit_stores,commits->commit_n_stores,
-       commits->commit_metadata);}
+       commits->commit_metadata);
+    fd_close_stream(head_stream,FD_STREAM_FREEDATA);
+    u8_free(head_stream);
+    return rv;}
   case fd_commit_rollback: {
     u8_string source = ix->index_source;
     u8_string rollback_file = u8_string_append(source,".rollback",NULL);
@@ -2482,8 +2484,10 @@ static int hashindex_commit(fd_index ix,fd_commit_phase phase,
     u8_string source = ix->index_source;
     if (commits->commit_stream) release_commit_stream(ix,commits);
     u8_string rollback_file = u8_string_append(source,".rollback",NULL);
-    if (u8_file_existsp(rollback_file))
-      return u8_removefile(rollback_file);
+    if (u8_file_existsp(rollback_file)) {
+      int rv = u8_removefile(rollback_file);
+      u8_free(rollback_file);
+      return rv;}
     else {
       u8_logf(LOGWARN,"MissingRollbackFile",
               "Rollback file %s was deleted",rollback_file);
@@ -3236,7 +3240,7 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
     lispval *slotids = hx->index_slotids;
     int i = 0, n = hx->index_n_slotids;
     while (i< n) {elts[i]=slotids[i]; i++;}
-    return fd_init_vector(NULL,n,elts);}
+    return fd_wrap_vector(n,elts);}
   else if (op == fd_baseoids_op) {
     int n_baseoids=hx->index_n_baseoids+hx->index_new_baseoids;
     unsigned int *baseids=hx->index_baseoid_ids;
