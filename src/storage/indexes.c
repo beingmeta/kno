@@ -1210,22 +1210,23 @@ static int index_docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
     commits.commit_n_stores = n_stores;}
   record_elapsed(commits.commit_times.setup);
 
-  int n_changes = commits.commit_n_adds + commits.commit_n_stores +
-    commits.commit_n_drops + (FD_SLOTMAPP(commits.commit_metadata));
+  int n_keys = commits.commit_n_adds + commits.commit_n_stores +
+    commits.commit_n_drops;
+  int n_changes = n_keys + (FD_SLOTMAPP(commits.commit_metadata));
 
-  if (n_changes) {
-    init_cache_level(ix);
+  if (n_keys) init_cache_level(ix);
+  if (n_changes)
     u8_logf(LOG_INFO,fd_IndexCommit,
             _("Saving %d changes (+%d-%d=%d%s) to %s"),
             n_changes,commits.commit_n_adds,
             commits.commit_n_stores,commits.commit_n_drops,
             (FD_SLOTMAPP(commits.commit_metadata)) ? (" w/metadata") : (""),
-            ix->indexid);}
+            ix->indexid);
 
   int saved = index_dosave(ix,&commits);
-
+  
   mark=u8_elapsed_time();
-
+  
   if (saved<0) {
     if (use_commits == NULL) free_commits(&commits);}
   else if (use_commits == NULL) {
