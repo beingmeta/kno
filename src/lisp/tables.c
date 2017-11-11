@@ -1546,12 +1546,15 @@ static unsigned int hash_elts(lispval *x,unsigned int n)
 
 /* Hashvecs */
 
-FD_EXPORT struct FD_KEYVAL *fd_hashvec_get
-  (lispval key,struct FD_HASH_BUCKET **slots,int n_slots)
+static struct FD_KEYVAL *hashvec_get
+(lispval key,struct FD_HASH_BUCKET **slots,int n_slots,
+ struct FD_HASH_BUCKET ***bucket_loc)
 {
   unsigned int hash=fd_hash_lisp(key), offset=compute_offset(hash,n_slots);
   struct FD_HASH_BUCKET *he=slots[offset];
-  if (he == NULL) return NULL;
+  if (bucket_loc) *bucket_loc = &(slots[offset]);
+  if (he == NULL)
+    return NULL;
   else if (PRED_TRUE(he->bucket_len == 1))
     if (LISP_EQUAL(key,he->kv_val0.kv_key))
       return &(he->kv_val0);
@@ -1600,10 +1603,22 @@ FD_FASTOP struct FD_KEYVAL *hash_bucket_insert
     return insert_point;}
 }
 
-FD_EXPORT struct FD_KEYVAL *fd_hash_bucket_insert
-(lispval key,struct FD_HASH_BUCKET **hep)
+FD_FASTOP struct FD_HASH_BUCKET *hash_bucket_remove
+(struct FD_HASH_BUCKET *bucket,struct FD_KEYVAL *slot)
 {
-  return hash_bucket_insert(key,hep);
+  int len = bucket->bucket_len;
+  struct FD_KEYVAL *base = &(bucket->kv_val0);
+  if ( (len == 1) && (slot == base) ) {
+    u8_free(bucket);
+    return NULL;}
+  else {
+    int offset = slot - base;
+    size_t new_size = sizeof(struct FD_HASH_BUCKET)+(sizeof(struct FD_KEYVAL)*(len-2));
+    assert( ( offset <= 0 ) && (offset < len ) );
+    memmove(slot,slot+1,sizeof(struct FD_KEYVAL)*(len-(offset+1)));
+    struct FD_HASH_BUCKET *new_bucket=u8_realloc(bucket,new_size);
+    new_bucket->bucket_len--;
+    return new_bucket;}
 }
 
 FD_FASTOP struct FD_KEYVAL *hashvec_insert
@@ -1632,6 +1647,18 @@ FD_FASTOP struct FD_KEYVAL *hashvec_insert
     if ((n_keys) && (slots[offset]->bucket_len > size))
       (*n_keys)++;
     return kv;}
+}
+
+FD_EXPORT struct FD_KEYVAL *fd_hashvec_get
+  (lispval key,struct FD_HASH_BUCKET **slots,int n_slots)
+{
+  return hashvec_get(key,slots,n_slots,NULL);
+}
+
+FD_EXPORT struct FD_KEYVAL *fd_hash_bucket_insert
+(lispval key,struct FD_HASH_BUCKET **hep)
+{
+  return hash_bucket_insert(key,hep);
 }
 
 FD_EXPORT struct FD_KEYVAL *fd_hashvec_insert
@@ -1978,9 +2005,10 @@ FD_EXPORT int fd_hashtable_add(fd_hashtable ht,lispval key,lispval value)
 }
 
 FD_EXPORT int fd_hashtable_drop
-  (struct FD_HASHTABLE *ht,lispval key,lispval value)
+(struct FD_HASHTABLE *ht,lispval key,lispval value)
 {
   int unlock = 0;
+  struct FD_HASH_BUCKET **bucket_loc;
   struct FD_KEYVAL *result;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
   if (ht->table_n_keys == 0)
@@ -1992,14 +2020,25 @@ FD_EXPORT int fd_hashtable_drop
     fd_write_lock_table(ht);
     unlock=1;}
   else {}
-  result=fd_hashvec_get(key,ht->ht_buckets,ht->ht_n_buckets);
+  result=hashvec_get(key,ht->ht_buckets,ht->ht_n_buckets,&bucket_loc);
   if (result) {
-    lispval newval=
-      ((VOIDP(value)) ? (VOID) :
-       (fd_difference(result->kv_val,value)));
-    fd_decref(result->kv_val);
-    result->kv_val=newval;
-    ht->table_modified=1;
+    lispval cur = result->kv_val, new = FD_VOID;
+    int remove_key = (EMPTYP(cur)) || (VOIDP(value)), changed=1;
+    if (remove_key)
+      new = FD_EMPTY;
+    else {
+      new = fd_difference(cur,value);
+      if (EMPTYP(new)) remove_key=1;
+      else changed = ( new != cur );}
+    if (new != cur) fd_decref(cur);
+    if (remove_key) {
+      lispval key = result->kv_key;
+      struct FD_HASH_BUCKET *bucket = *bucket_loc;
+      *bucket_loc = hash_bucket_remove(bucket,result);
+      ht->table_n_keys--;
+      fd_decref(key);}
+    else result->kv_val = new;
+    if (changed) ht->table_modified=1;
     fd_unlock_table(ht);
     return 1;}
   if (unlock) fd_unlock_table(ht);
@@ -2067,7 +2106,9 @@ FD_EXPORT void fd_hash_quality
 
 static int do_hashtable_op(struct FD_HASHTABLE *ht,fd_tableop op,lispval key,lispval value)
 {
-  struct FD_KEYVAL *result; int added=0, was_prechoice=0;
+  struct FD_KEYVAL *result;
+  struct FD_HASH_BUCKET **bucket_loc=NULL;
+  int added=0, was_prechoice=0;
   if (EMPTYP(key)) return 0;
   if ( (ht->table_readonly) && ( ! (TESTOP(op) ) ) ) {
     fd_seterr2(fd_ReadOnlyHashtable,"do_hashtable_op");
@@ -2081,7 +2122,7 @@ static int do_hashtable_op(struct FD_HASHTABLE *ht,fd_tableop op,lispval key,lis
        does not exist in the table.  It doesn't bother setting up the hashtable
        if it doesn't have to. */
     if (ht->table_n_keys == 0) return 0;
-    result=fd_hashvec_get(key,ht->ht_buckets,ht->ht_n_buckets);
+    result=hashvec_get(key,ht->ht_buckets,ht->ht_n_buckets,&bucket_loc);
     if (result == NULL)
       return 0;
     else if ( op == fd_table_haskey )
@@ -2136,14 +2177,26 @@ static int do_hashtable_op(struct FD_HASHTABLE *ht,fd_tableop op,lispval key,lis
     if (VOIDP(result->kv_val)) result->kv_val=value;
     else {CHOICE_ADD(result->kv_val,value);}
     break;
-  case fd_table_drop:
-    if ((VOIDP(value))||(fd_overlapp(value,result->kv_val))) {
-      lispval newval=((VOIDP(value)) ? (EMPTY) :
-                     (fd_difference(result->kv_val,value)));
-      fd_decref(result->kv_val);
-      result->kv_val=newval;
-      break;}
-    else return 0;
+  case fd_table_drop: {
+    int drop_key = 0;
+    lispval cur = result->kv_val, new;
+    if (FD_VOIDP(value)) {
+      drop_key = 1; new=EMPTY;}
+    else if (FD_EMPTYP(cur)) {
+        drop_key = 1; new=EMPTY;}
+    else {
+      new=fd_difference(cur,value);
+      if (EMPTYP(new)) drop_key=1;}
+    if (new != cur) fd_decref(cur);
+    if (drop_key) {
+      lispval key = result->kv_key;
+      struct FD_HASH_BUCKET *bucket = *bucket_loc;
+      *bucket_loc = hash_bucket_remove(bucket,result);
+      fd_decref(key);
+      ht->table_n_keys--;
+      result = NULL;}
+    else result->kv_val = new;
+    break;}
   case fd_table_test:
     if ((CHOICEP(result->kv_val)) ||
         (PRECHOICEP(result->kv_val)) ||
@@ -2156,7 +2209,7 @@ static int do_hashtable_op(struct FD_HASHTABLE *ht,fd_tableop op,lispval key,lis
   case fd_table_default:
     if ((EMPTYP(result->kv_val)) ||
         (VOIDP(result->kv_val))) {
-      result->kv_val=fd_incref(value);}
+      result->kv_val = fd_incref(value);}
     break;
   case fd_table_increment_if_present:
     if (VOIDP(result->kv_val)) break;
@@ -2275,7 +2328,7 @@ static int do_hashtable_op(struct FD_HASHTABLE *ht,fd_tableop op,lispval key,lis
     break;}
   }
   ht->table_modified=1;
-  if ((was_prechoice==0) && (PRECHOICEP(result->kv_val))) {
+  if ( ( result ) && (was_prechoice==0) && (PRECHOICEP(result->kv_val))) {
     /* If we didn't have an prechoice before and we do now, that means
        a new prechoice was created with a mutex and everything.  We can
        safely destroy it and set the choice to not use locking, since
