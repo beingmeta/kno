@@ -190,7 +190,7 @@
   (let* ((base (basename from))
 	 (inplace (equal? from to))
 	 (tmpfile (config 'TMPFILE (CONFIG 'TEMPFILE (glom to ".part"))))
-	 (bakfile (and inplace (config 'BAKFILE (CONFIG 'BACKUP (glom from ".bak"))))))
+	 (bakfile (config 'BAKFILE (CONFIG 'BACKUP (glom from ".bak")))))
     (config! 'appid (glom "pack(" (basename to) ")"))
     (cond ((and (not (writable? to)))
 	   (logcrit |NotWritable| "Can't write output file " (write to))
@@ -210,16 +210,16 @@
       (lognotice |Repack| 
 	"Repacking " ($num (pool-load old)) "/" ($num (pool-capacity old)) " "
 	"OIDs " (if (pool-label old) (glom "for " (pool-label old)))
-	(when bakfile (printout " with backup saved as " bakfile)))
+	(when inplace
+	  (printout " with backup saved as " bakfile)))
       (let ((new (make-new-pool tmpfile old)))
 	(copy-oids old new)
 	(commit new)))
-    (when bakfile
+    (when inplace
       (onerror (move-file from bakfile)
 	  (lambda (ex) (system "mv " from " " bakfile))))
-    (when inplace
-      (onerror (move-file tmpfile from)
-	  (lambda (ex) (system "mv " tmpfile " " from))))))
+    (onerror (move-file tmpfile to)
+	  (lambda (ex) (system "mv " tmpfile " " to)))))
 
 (define (copy-pool from to)
   (let* ((base (basename from)))
