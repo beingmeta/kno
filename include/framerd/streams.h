@@ -163,7 +163,8 @@ FD_EXPORT ssize_t fd_stream_write(fd_stream s,size_t len,unsigned char *bytes);
 FD_EXPORT ssize_t fd_stream_read(fd_stream s,size_t len,unsigned char *bytes);
 
 FD_EXPORT int fd_set_direction(fd_stream s,fd_byteflow direction);
-FD_EXPORT lispval fd_streamctl(fd_stream s,fd_streamop,void *data);
+FD_EXPORT long long fd_streamctl(fd_stream s,fd_streamop,void *data);
+FD_EXPORT lispval fd_streamctl_x(fd_stream s,fd_streamop,void *data);
 
 #define fd_stream_bufsize(s) ((s)->buf.raw.buflen)
 

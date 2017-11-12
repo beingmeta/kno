@@ -1415,7 +1415,7 @@ fd_fetch_chunk_ref(struct FD_STREAM *stream,
 /* Stream ctl */
 
 FD_EXPORT
-lispval fd_streamctl(fd_stream s,fd_streamop op,void *data)
+lispval fd_streamctl_x(fd_stream s,fd_streamop op,void *data)
 {
   switch (op) {
   case fd_stream_close:
@@ -1462,6 +1462,22 @@ lispval fd_streamctl(fd_stream s,fd_streamop op,void *data)
   default:
     fd_seterr("Unhandled Operation","fd_streamctl",s->streamid,VOID);
     return FD_ERROR;}
+}
+
+FD_EXPORT long long fd_streamctl(fd_stream s,fd_streamop op,void *data)
+{
+  lispval v = fd_streamctl_x(s,op,data);
+  if (FD_ABORTP(v))
+    return -1;
+  else if ( (FD_FALSEP(v)) || (FD_EMPTYP(v)) )
+    return 0;
+  else if (FD_TRUEP(v))
+    return 1;
+  else if (FD_FIXNUMP(v))
+    return fd_getint(v);
+  else {
+    fd_decref(v);
+    return 1;}
 }
 
 /* Files 2 dtypes */
