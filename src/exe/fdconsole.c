@@ -467,7 +467,8 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
     fd_pprint(outfile,backtrace,NULL,0,0,120);
     u8_close((u8_stream)outfile);
     changemode(abspath,0444);
-    u8_log(LOG_ERROR,ex->u8x_cond,"Backtrace object written to %s",abspath);}
+    u8_log(LOG_ERROR,ex->u8x_cond,
+           "Backtrace object written to %s",abspath);}
 #if FD_HTMLDUMP_ENABLED
   else if ((u8_has_suffix(dumpfile,".html",1))||
            (u8_has_suffix(dumpfile,".htm",1))) {
@@ -523,7 +524,8 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
     fd_pprint(outfile,backtrace,NULL,0,0,120);
     u8_close((u8_stream)outfile);
     changemode(abspath,0444);
-    u8_log(LOG_ERROR,ex->u8x_cond,"Plaintext backtrace written to %s",abspath);}
+    u8_log(LOG_ERROR,ex->u8x_cond,"Plaintext backtrace written to %s",
+           abspath);}
   u8_free(abspath);
 }
 
@@ -837,7 +839,7 @@ int main(int argc,char **argv)
      storing the first non config field as a source file. */
   while (i<argc) {
     if (isconfig(argv[i]))
-      u8_log(LOGDEBUG,"Config","    %s",argv[i++]);
+      u8_log(LOG_DEBUG,"Config","    %s",argv[i++]);
     else if (source_file) i++;
     else {
       if (u8_file_existsp(argv[i])) {
