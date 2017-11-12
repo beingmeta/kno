@@ -531,7 +531,7 @@ static int write_pid_file()
     exists = 1;
     time_t ctime = fileinfo.st_ctime;
     time_t mtime = fileinfo.st_mtime;
-    uid_t uid = fileinfo.st_uid;
+    u8_uid uid = fileinfo.st_uid;
     u8_string uname = u8_username(uid);
     u8_log(LOG_WARN,"FDServlet/Leftover PID file",
            "File %s created %t, modified %t, owned by %s (%d)",

@@ -1967,7 +1967,7 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
         return FD_FALSE;
       else return lispval_string(p->pool_label);}
     else if ( (n==1) && ( (FD_STRINGP(args[0])) || (FD_FALSEP(args[0]))) ) {
-      if ( (p->pool_flags) && (FD_STORAGE_READ_ONLY) )
+      if ( (p->pool_flags)&(FD_STORAGE_READ_ONLY) )
         return fd_err(fd_ReadOnlyPool,"bigpool_ctl/label",p->poolid,args[0]);
       else {
         int rv = (FD_STRINGP(args[0])) ? (set_bigpool_label(bp,FD_CSTRING(args[0]))) :
@@ -1982,7 +1982,7 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
         return FD_FALSE;
       else return lispval_string(p->pool_label);}
     else if ( (n==1) && ( (FD_STRINGP(args[0])) || (FD_FALSEP(args[0]))) ) {
-      if ( (p->pool_flags) && (FD_STORAGE_READ_ONLY) )
+      if ( (p->pool_flags)&(FD_STORAGE_READ_ONLY) )
         return fd_err(fd_ReadOnlyPool,"bigpool_ctl/label",p->poolid,args[0]);
       else {
         int rv = (FD_STRINGP(args[0])) ? (set_bigpool_label(bp,FD_CSTRING(args[0]))) :
@@ -2063,7 +2063,7 @@ static unsigned int get_bigpool_format(fd_storage_flags sflags,lispval opts)
   if (fd_testopt(opts,fd_intern("DTYPEV2"),VOID))
     flags |= FD_BIGPOOL_DTYPEV2;
 
-  if ( (sflags) & (FD_STORAGE_READ_ONLY) ||
+  if ( ( (sflags) & (FD_STORAGE_READ_ONLY) ) ||
        (fd_testopt(opts,FDSYM_READONLY,VOID)) )
     flags |= FD_BIGPOOL_READ_ONLY;
 

@@ -72,7 +72,7 @@ static int group_config_set(lispval var,lispval val,void *data)
   if (FD_FIXNUMP(val)) {
     long long newval = FD_FIX2INT(val);
     if (newval >= 0) {
-      int rv = setgid((gid_t)newval);
+      int rv = setgid((u8_gid)newval);
       if (rv<0) {
         char buf[32], *str=u8_itoa10(newval,buf);
         u8_graberrno("group_config_set",u8_strdup(str));
@@ -98,7 +98,7 @@ static int group_config_set(lispval var,lispval val,void *data)
       fd_seterr("NoSuchGroup","group_config_set",FD_CSTRING(val),FD_VOID);
       return -1;}
     else {
-      gid_t gid = info->gr_gid;
+      u8_gid gid = info->gr_gid;
       int rv = setgid(gid);
       if (rv<0) {
         u8_graberrno("group_config_set",

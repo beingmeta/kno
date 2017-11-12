@@ -616,7 +616,7 @@ FD_EXPORT void fd_setapp(u8_string spec,u8_string statedir)
 
 static int resolve_uid(lispval val)
 {
-  if (FIXNUMP(val)) return (gid_t)(FIX2INT(val));
+  if (FIXNUMP(val)) return (u8_gid)(FIX2INT(val));
 #if ((HAVE_GETPWNAM_R)||(HAVE_GETPWNAM))
   if (STRINGP(val)) {
     struct passwd _uinfo, *uinfo; char buf[1024]; int retval;
@@ -628,7 +628,7 @@ static int resolve_uid(lispval val)
     if ((retval<0)||(uinfo == NULL)) {
       if (errno) u8_graberr(errno,"resolve_uid",NULL);
       fd_seterr("BadUser","resolve_uid",NULL,val);
-      return (uid_t) -1;}
+      return (u8_uid) -1;}
     else return uinfo->pw_uid;}
   else return fd_type_error("userid","resolve_uid",val);
 #else
@@ -638,7 +638,7 @@ static int resolve_uid(lispval val)
 
 static int resolve_gid(lispval val)
 {
-  if (FIXNUMP(val)) return (gid_t)(FIX2INT(val));
+  if (FIXNUMP(val)) return (u8_gid)(FIX2INT(val));
 #if ((HAVE_GETGRNAM_R)||(HAVE_GETGRNAM))
   if (STRINGP(val)) {
     struct group _ginfo, *ginfo; char buf[1024]; int retval;
@@ -650,7 +650,7 @@ static int resolve_gid(lispval val)
     if ((retval<0)||(ginfo == NULL)) {
       if (errno) u8_graberr(errno,"resolve_gid",NULL);
       fd_seterr("BadGroup","resolve_gid",NULL,val);
-      return (uid_t) -1;}
+      return (u8_uid) -1;}
     else return ginfo->gr_gid;}
   else return fd_type_error("groupid","resolve_gid",val);
 #else
@@ -689,7 +689,7 @@ static int resolve_gid(lispval val)
 #if (HAVE_GETUID|HAVE_GETEUID)
 static lispval config_getuser(lispval var,void *data)
 {
-  uid_t gid = GETUIDFN(); int ival = (int)gid;
+  u8_uid gid = GETUIDFN(); int ival = (int)gid;
   return FD_INT(ival);
 }
 #else
@@ -702,7 +702,7 @@ static lispval config_getuser(lispval var,void *fd_vecelts)
 #if ((HAVE_GETUID|HAVE_GETEUID)&((HAVE_SETUID|HAVE_SETEUID)))
 static int config_setuser(lispval var,lispval val,void *data)
 {
-  uid_t cur_uid = GETUIDFN(); int uid = resolve_uid(val);
+  u8_uid cur_uid = GETUIDFN(); int uid = resolve_uid(val);
   if (uid<0) return -1;
   else if (cur_uid == uid) return 0;
   else {
@@ -728,7 +728,7 @@ static int config_setuser(lispval var,lispval val,void *fd_vecelts)
 #if (HAVE_GETGID|HAVE_GETEGID)
 static lispval config_getgroup(lispval var,void *data)
 {
-  gid_t gid = GETGIDFN(); int i = (int)gid;
+  u8_gid gid = GETGIDFN(); int i = (int)gid;
   return FD_INT(i);
 }
 #else
@@ -741,7 +741,7 @@ static lispval config_getgroup(lispval var,void *fd_vecelts)
 #if (HAVE_SETGID|HAVE_SETEGID)
 static int config_setgroup(lispval var,lispval val,void *data)
 {
-  gid_t cur_gid = GETGIDFN(); int gid = resolve_gid(val);
+  u8_gid cur_gid = GETGIDFN(); int gid = resolve_gid(val);
   if (gid<0) return -1;
   else if (cur_gid == gid) return 0;
   else {
@@ -788,7 +788,7 @@ FD_EXPORT int fd_boot_message()
   if (fd_be_vewy_quiet) return 0;
   if (boot_message_delivered) return 0;
   struct U8_XTIME xt; u8_localtime(&xt,time(NULL));
-  uid_t uid = getuid();
+  u8_uid uid = getuid();
   U8_FIXED_OUTPUT(curtime,256);
   u8_xtime_to_rfc822_x(curtimeout,&xt,xt.u8_tzoff,0);
   u8_log(-1,NULL,"(%s:%lld) %s %s",

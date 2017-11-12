@@ -919,7 +919,7 @@ static lispval set_file_access_prim(lispval filename,
                                     lispval mode_arg)
 {
   mode_t mode = (FD_FIXNUMP(mode_arg)) ? (FD_FIX2INT(mode_arg)) : -1;
-  uid_t uid; gid_t gid;
+  u8_uid uid; u8_gid gid;
   if (FD_FIXNUMP(owner))
     uid = FD_FIX2INT(owner);
   else if (FD_STRINGP(owner)) {

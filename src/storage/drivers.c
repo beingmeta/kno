@@ -485,30 +485,30 @@ FD_EXPORT u8_string fd_match_index_file(u8_string spec,void *data)
 
 /* Setting fileinfo */
 
-static uid_t get_owner(lispval spec)
+static u8_uid get_owner(lispval spec)
 {
   if (FD_UINTP(spec))
-    return (uid_t) (FD_FIX2INT(spec));
+    return (u8_uid) (FD_FIX2INT(spec));
   else if (FD_STRINGP(spec)) {
-    uid_t uid = u8_getuid(FD_CSTRING(spec));
+    u8_uid uid = u8_getuid(FD_CSTRING(spec));
     if (uid>=0) return uid;}
   else {}
   u8_logf(LOGWARN,"NoSuchUser",
           "Couldn't identify a user from %q",spec);
-  return (gid_t) -1;
+  return (u8_gid) -1;
 }
 
-static gid_t get_group(lispval spec)
+static u8_gid get_group(lispval spec)
 {
   if (FD_UINTP(spec))
-    return (gid_t) (FD_FIX2INT(spec));
+    return (u8_gid) (FD_FIX2INT(spec));
   else if (FD_STRINGP(spec)) {
-    gid_t gid = u8_getgid(FD_CSTRING(spec));
+    u8_gid gid = u8_getgid(FD_CSTRING(spec));
     if (gid>=0) return gid;}
   else {}
   u8_logf(LOGWARN,"NoSuchGroup",
           "Couldn't identify a group from %q",spec);
-  return (gid_t) -1;
+  return (u8_gid) -1;
 }
 
 FD_EXPORT int fd_set_file_opts(u8_string filename,lispval opts)
@@ -522,8 +522,8 @@ FD_EXPORT int fd_set_file_opts(u8_string filename,lispval opts)
        (FD_VOIDP(mode)) )
     return set_rv;
   if (! ((FD_VOIDP(owner)) && (FD_VOIDP(group))) ) {
-    uid_t file_owner = (FD_VOIDP(owner)) ? (-1) : (get_owner(owner));
-    gid_t file_group = (FD_VOIDP(group)) ? (-1) : (get_group(group));
+    u8_uid file_owner = (FD_VOIDP(owner)) ? (-1) : (get_owner(owner));
+    u8_gid file_group = (FD_VOIDP(group)) ? (-1) : (get_group(group));
     if ( (file_owner >= 0) || (file_group >= 0) ) {
       const char *path = u8_tolibc(filename);
       int rv = chown(path,file_owner,file_group);

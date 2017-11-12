@@ -220,7 +220,7 @@ int fd_close_leveldb(framerd_leveldb db)
   if ( (db->dbstatus == leveldb_opened) ||
        (db->dbstatus == leveldb_opening) ) {
     u8_lock_mutex(&(db->leveldb_lock));
-    if ((db->dbstatus == leveldb_opened) ) {
+    if (db->dbstatus == leveldb_opened) {
       db->dbstatus = leveldb_closing;
       leveldb_close(db->dbptr);
       db->dbstatus = leveldb_closed;
