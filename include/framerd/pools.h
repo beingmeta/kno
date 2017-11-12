@@ -439,7 +439,7 @@ typedef struct FD_PROCPOOL {
   lispval allocfn, getloadfn,
     fetchfn, fetchnfn, swapoutfn,
     lockfn, releasefn,
-    storenfn, metadatafn,
+    commitfn, metadatafn,
     createfn, closefn, ctlfn;}
   FD_PROCPOOL;
 typedef struct FD_PROCPOOL *fd_procpool;

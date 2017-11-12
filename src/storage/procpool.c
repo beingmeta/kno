@@ -87,17 +87,17 @@ fd_pool fd_make_procpool(FD_OID base,
   pp->pool_opts = fd_getopt(opts,fd_intern("OPTS"),FD_FALSE);
 
   fd_register_pool((fd_pool)pp);
-  pp->allocfn = poolopt(opts,"ALLOCFN");
-  pp->getloadfn = poolopt(opts,"GETLOADFN");
-  pp->fetchfn = poolopt(opts,"FETCHFN");
-  pp->fetchnfn = poolopt(opts,"FETCHNFN");
-  pp->lockfn = poolopt(opts,"LOCKFN");
-  pp->releasefn = poolopt(opts,"RELEASEFN");
-  pp->storenfn = poolopt(opts,"STOREN");
-  pp->metadatafn = poolopt(opts,"METADATAFN");
-  pp->createfn = poolopt(opts,"CREATEFN");
-  pp->closefn = poolopt(opts,"CLOSEFN");
-  pp->ctlfn = poolopt(opts,"CTLFN");
+  pp->allocfn = poolopt(opts,"ALLOC");
+  pp->getloadfn = poolopt(opts,"GETLOAD");
+  pp->fetchfn = poolopt(opts,"FETCH");
+  pp->fetchnfn = poolopt(opts,"FETCHN");
+  pp->lockfn = poolopt(opts,"LOCKOIDS");
+  pp->releasefn = poolopt(opts,"RELEASEOIDS");
+  pp->commitfn = poolopt(opts,"COMMIT");
+  pp->metadatafn = poolopt(opts,"METADATA");
+  pp->createfn = poolopt(opts,"CREATE");
+  pp->closefn = poolopt(opts,"CLOSE");
+  pp->ctlfn = poolopt(opts,"POOLCTL");
   pp->pool_state = state;
   fd_incref(state);
   pp->pool_label = u8_strdup(label);
@@ -215,52 +215,45 @@ static int procpool_release(fd_pool p,lispval oid)
   else {
     lispval args[3]={lp,pp->pool_state,oid};
     lispval result = fd_dapply(pp->releasefn,3,args);
-    if (FIXNUMP(result)) return result;
+    if (FIXNUMP(result)) return fd_getint(result);
     else if (FD_TRUEP(result)) return 1;
     else if (FALSEP(result)) return 0;
     else {fd_decref(result); return -1;}}
 }
 
-static int procpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
+static int procpool_commit(fd_pool p,fd_commit_phase phase,
+                           struct FD_POOL_COMMITS *commits)
 {
   struct FD_PROCPOOL *pp = (fd_procpool)p;
-  lispval lp = fd_pool2lisp(p);
-  if (VOIDP(pp->storenfn)) return 0;
+  if (FD_VOIDP(pp->commitfn))
+    return 0;
   else {
-    lispval oidvec = fd_make_vector(n,oids);
-    lispval valuevec = fd_make_vector(n,values);
-    int i = 0; while (i<n) {fd_incref(values[i]); i++;}
-    lispval args[4]={lp,pp->pool_state,oidvec,valuevec};
-    lispval result = fd_dapply(pp->storenfn,4,args);
-    fd_decref(oidvec);
-    fd_decref(valuevec);
+    lispval lp = fd_pool2lisp(p);
+    struct FD_VECTOR oidvec, valvec;
+    FD_INIT_STATIC_CONS(&oidvec,fd_vector_type);
+    FD_INIT_STATIC_CONS(&valvec,fd_vector_type);
+    oidvec.vec_length = commits->commit_count;
+    oidvec.vec_elts = commits->commit_oids;
+    valvec.vec_length = commits->commit_count;
+    valvec.vec_elts = commits->commit_vals;
+    lispval args[6] = { lp, pp->pool_state, fd_commit_phases[phase], 
+                        ((lispval)(&oidvec)),
+                        ((lispval)(&valvec)),
+                        ( (FD_VOIDP(commits->commit_metadata)) ? 
+                          (FD_FALSE) :
+                          (commits->commit_metadata) ) };
+    lispval result = fd_apply(pp->commitfn,6,args);
     if (FIXNUMP(result))
-      return result;
+      return FD_INT(result);
     else if (FALSEP(result))
       return 0;
     else if (FD_ABORTP(result))
       return -1;
     else if (FD_TRUEP(result))
-      return n;
+      return 1;
     else {
       fd_decref(result);
       return -1;}}
-}
-
-static int procpool_commit(fd_pool p,fd_commit_phase phase,
-                           struct FD_POOL_COMMITS *commits)
-{
-  switch (phase) {
-  case fd_commit_save:
-    return procpool_storen(p,commits->commit_count,
-                           commits->commit_oids,
-                           commits->commit_vals);
-  default:
-    u8_logf(LOG_WARN,"NoPhasedCommit",
-            "The pool %s doesn't support phased commits",
-            p->poolid);
-    return -1;
-  }
 }
 
 static void procpool_close(fd_pool p)
@@ -322,7 +315,7 @@ static void recycle_procpool(fd_pool p)
   fd_decref(pp->releasefn);
   fd_decref(pp->getloadfn);
   fd_decref(pp->swapoutfn);
-  fd_decref(pp->storenfn);
+  fd_decref(pp->commitfn);
   fd_decref(pp->metadatafn);
   fd_decref(pp->createfn);
   fd_decref(pp->closefn);

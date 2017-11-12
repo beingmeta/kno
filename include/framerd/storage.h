@@ -103,13 +103,15 @@ FD_EXPORT void fd_fast_swapout_all(void);
 /* Committing changes */
 
 typedef enum FD_COMMIT_PHASE {
-  fd_no_commit,
-  fd_commit_start, fd_commit_save,
-  fd_commit_rollback, fd_commit_finish,
-  fd_commit_cleanup } fd_commit_phase;
+  fd_no_commit = 0,
+  fd_commit_start = 1, fd_commit_save = 2,
+  fd_commit_rollback = 3, fd_commit_finish = 4,
+  fd_commit_cleanup = 5 } fd_commit_phase;
 
 struct FD_COMMIT_TIMES {
   double base, start, setup, save, finalize,  apply, cleanup; };
+
+FD_EXPORT lispval fd_commit_phases[6];
 
 /* IPEVAL stuff */
 

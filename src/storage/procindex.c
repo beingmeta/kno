@@ -86,8 +86,8 @@ fd_index fd_make_procindex(lispval opts,lispval state,
   pix->fetchkeysfn = indexopt(opts,"FETCHKEYS");
   pix->fetchinfofn = indexopt(opts,"FETCHINFO");
   pix->batchaddfn = indexopt(opts,"BATCHADD");
-  pix->ctlfn = indexopt(opts,"CTL");
-  pix->savefn = indexopt(opts,"SAVE");
+  pix->ctlfn = indexopt(opts,"INDEXCTL");
+  pix->commitfn = indexopt(opts,"COMMIT");
   pix->closefn = indexopt(opts,"CLOSE");
   pix->index_state = state; fd_incref(state);
   pix->index_typeid = u8_strdup(typeid);
@@ -223,7 +223,8 @@ static int copy_keyinfo(lispval info,struct FD_KEY_SIZE *keyinfo)
 }
 
 static
-struct FD_KEY_SIZE *procindex_fetchinfo(fd_index ix,fd_choice filter,int *n_ptr)
+struct FD_KEY_SIZE *procindex_fetchinfo
+(fd_index ix,fd_choice filter,int *n_ptr)
 {
   struct FD_PROCINDEX *pix = (fd_procindex)ix;
   lispval lp = fd_index2lisp(ix);
@@ -252,31 +253,34 @@ struct FD_KEY_SIZE *procindex_fetchinfo(fd_index ix,fd_choice filter,int *n_ptr)
 }
 
 
-static int procindex_save(struct FD_INDEX *ix,
-                          struct FD_CONST_KEYVAL *adds,int n_adds,
-                          struct FD_CONST_KEYVAL *drops,int n_drops,
-                          struct FD_CONST_KEYVAL *stores,int n_stores,
-                          lispval changed_metadata)
+static int procindex_commit(fd_index ix,fd_commit_phase phase,
+                            struct FD_INDEX_COMMITS *commits)
 {
   struct FD_PROCINDEX *pix = (fd_procindex)ix;
   lispval lx = fd_index2lisp(ix);
-  if (VOIDP(pix->savefn))
+  if (VOIDP(pix->commitfn))
     return 0;
   else {
     struct FD_SLOTMAP add_table, drop_table, store_table;
-    fd_init_slotmap(&add_table,n_adds,(fd_keyval)adds);
-    fd_init_slotmap(&drop_table,n_drops,(fd_keyvals)drops);
-    fd_init_slotmap(&store_table,n_stores,(fd_keyvals)stores);
-    add_table.table_readonly=drop_table.table_readonly=1;
+    fd_init_slotmap(&add_table,commits->commit_n_adds,
+                    (fd_keyval)(commits->commit_adds));
+    fd_init_slotmap(&drop_table,commits->commit_n_drops,
+                    (fd_keyval)(commits->commit_drops));
+    fd_init_slotmap(&store_table,commits->commit_n_stores,
+                    (fd_keyval)(commits->commit_stores));
+    add_table.table_readonly=1;
+    drop_table.table_readonly=1;
     store_table.table_readonly=1;
-    lispval args[]={lx,
-                    pix->index_state,
-                    (lispval)(&add_table),
-                    (lispval)(&drop_table),
-                    (lispval)(&store_table),
-                    ( (FD_VOIDP(changed_metadata)) ? (FD_FALSE) :
-                      (changed_metadata) )};
-    lispval result = fd_dapply(pix->savefn,5,args);
+    lispval args[7]={lx,
+                     pix->index_state,
+                     fd_commit_phases[phase],
+                     (lispval)(&add_table),
+                     (lispval)(&drop_table),
+                     (lispval)(&store_table),
+                     ( (FD_VOIDP(commits->commit_metadata)) ? 
+                       (FD_FALSE) :
+                       (commits->commit_metadata) )};
+    lispval result = fd_dapply(pix->commitfn,7,args);
     if (FD_ABORTP(result))
       return -1;
     else {
@@ -291,27 +295,6 @@ static int procindex_save(struct FD_INDEX *ix,
       else {
         fd_decref(result);
         return 1;}}}
-}
-
-static int procindex_commit(fd_index ix,fd_commit_phase phase,
-                            struct FD_INDEX_COMMITS *commit)
-{
-  switch (phase) {
-  case fd_commit_save: {
-    return procindex_save(ix,
-                          (struct FD_CONST_KEYVAL *)commit->commit_adds,
-                          commit->commit_n_adds,
-                          (struct FD_CONST_KEYVAL *)commit->commit_drops,
-                          commit->commit_n_drops,
-                          (struct FD_CONST_KEYVAL *)commit->commit_stores,
-                          commit->commit_n_stores,
-                          commit->commit_metadata);}
-  default: {
-    u8_logf(LOG_INFO,"NoPhasedCommit",
-            "The index %s doesn't support phased commits",
-            ix->indexid);
-    return 0;}
-  }
 }
 
 static void procindex_close(fd_index ix)
@@ -355,7 +338,7 @@ static void recycle_procindex(fd_index ix)
   fd_decref(pix->fetchinfofn);
   fd_decref(pix->batchaddfn);
   fd_decref(pix->ctlfn);
-  fd_decref(pix->savefn);
+  fd_decref(pix->commitfn);
   fd_decref(pix->closefn);
   fd_decref(pix->index_state);
 

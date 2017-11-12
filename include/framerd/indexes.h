@@ -211,7 +211,7 @@ typedef struct FD_PROCINDEX {
   lispval index_state;
   lispval fetchfn, fetchsizefn, fetchnfn, prefetchfn,
     fetchkeysfn, fetchinfofn,
-    batchaddfn, ctlfn, savefn, closefn;}
+    batchaddfn, ctlfn, commitfn, closefn;}
   FD_PROCINDEX;
 typedef struct FD_PROCINDEX *fd_procindex;
 

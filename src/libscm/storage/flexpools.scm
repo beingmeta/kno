@@ -357,9 +357,9 @@
 				front start-pool last))
 	  (flex-opts `#[adjunct #t 
 			register #t
-			allocfn ,flexpool-alloc
-			getloadfn ,flexpool-load
-			fetchfn ,flexpool-fetch
+			alloc ,flexpool-alloc
+			getload ,flexpool-load
+			fetch ,flexpool-fetch
 			source ,filename
 			cachelevel 0]))
       (let ((pool (make-procpool 

@@ -53,6 +53,8 @@ int fd_dbconn_reserve_default = FD_DBCONN_RESERVE_DEFAULT;
 int fd_dbconn_cap_default = FD_DBCONN_CAP_DEFAULT;
 int fd_dbconn_init_default = FD_DBCONN_INIT_DEFAULT;
 
+lispval fd_commit_phases[6];
+
 static lispval id_symbol;
 static lispval lookupfns = EMPTY;
 
@@ -600,6 +602,13 @@ FD_EXPORT int fd_init_storage()
   u8_init_mutex(&fd_swapcheck_lock);
   u8_init_mutex(&onsave_handlers_lock);
   u8_init_mutex(&dosave_lock);
+
+  fd_commit_phases[0] = fd_intern("NONE");
+  fd_commit_phases[1] = fd_intern("START");
+  fd_commit_phases[2] = fd_intern("SAVE");
+  fd_commit_phases[3] = fd_intern("FINISH");
+  fd_commit_phases[4] = fd_intern("ROLLBACK");
+  fd_commit_phases[5] = fd_intern("CLEANUP");
 
   u8_threadcheck();
 

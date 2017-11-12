@@ -70,7 +70,7 @@
 (define (make-typeindex-opts opts)
   (cons `#[fetch ,typeindex-fetch
 	   fetchkeys ,typeindex-fetchkeys
-	   save ,typeindex-save] 
+	   commit ,typeindex-save] 
 	opts))
 
 ;;; Adding a key
@@ -138,48 +138,50 @@
 (define (typeindex-fetchkeys index typeindex)
   (getkeys (typeindex-keyinfo typeindex)))
 
-(define (typeindex-save index typeindex adds drops stores (metadata #f))
-  (let ((keyinfo (typeindex-keyinfo typeindex))
-	(savedir (dirname (typeindex-filename typeindex))))
-    (when stores
-      (do-choices (key (getkeys stores))
-	(if (test keyinfo key)
-	    (let ((filename (mkpath savedir (get keyinfo 'file))))
-	      (ftruncate filename 0)
-	      (dtype->file+ (get stores key) filename))
-	    (typeindex/add! typeindex key (get stores key)))))
-    (when drops
-      (do-choices (key (getkeys drops))
-	(when (test keyinfo key)
-	  (let* ((info (get keyinfo key))
-		 (file (get info 'file))
-		 (fullpath (mkpath savedir file))
-		 (current (tryif (file-exists? fullpath)
-			    (file->dtypes fullpath))))
-	    (move-file fullpath (glom fullpath ".bak"))
-	    (dtypes->file+ (difference (choice current (get adds key))
-				       (get drop(mkpath savedir file)s key))
-			   fullpath)))))
-    (when adds
-      (do-choices (key (difference (getkeys adds) (tryif drops (getkeys drops))))
-	(if (test keyinfo key)
-	    (let* ((info (get keyinfo key))
-		   (file (get info 'file))
-		   (dir (dirname (typeindex-filename typeindex)))
-		   (fullpath (mkpath dir file))
-		   (values (get adds key)))
-	      (dtype->file+ values fullpath)
-	      (store! info 'count (+ (get info 'count) (choice-size values)))
-	      (store! info 'size (file-size fullpath)))
-	    (typeindex/add! typeindex key (get adds key)))))
-    (when metadata
-      (dtype->file metadata 
-		   (glom (textsubst (typeindex-filename typeindex) #("." (rest)) "")
-		     ".metadata.dtype")))
-    (dtype->file keyinfo (typeindex-filename typeindex))
-    (+ (if adds (table-size adds) 0)
-       (if drops (table-size drops) 0)
-       (if stores (table-size stores) 0))))
+(define (typeindex-commit index typeindex phase adds drops stores (metadata #f))
+  (if (eq? phase 'save)
+      (let ((keyinfo (typeindex-keyinfo typeindex))
+	    (savedir (dirname (typeindex-filename typeindex))))
+	(when stores
+	  (do-choices (key (getkeys stores))
+	    (if (test keyinfo key)
+		(let ((filename (mkpath savedir (get keyinfo 'file))))
+		  (ftruncate filename 0)
+		  (dtype->file+ (get stores key) filename))
+		(typeindex/add! typeindex key (get stores key)))))
+	(when drops
+	  (do-choices (key (getkeys drops))
+	    (when (test keyinfo key)
+	      (let* ((info (get keyinfo key))
+		     (file (get info 'file))
+		     (fullpath (mkpath savedir file))
+		     (current (tryif (file-exists? fullpath)
+				(file->dtypes fullpath))))
+		(move-file fullpath (glom fullpath ".bak"))
+		(dtypes->file+ (difference (choice current (get adds key))
+					   (get drop(mkpath savedir file)s key))
+			       fullpath)))))
+	(when adds
+	  (do-choices (key (difference (getkeys adds) (tryif drops (getkeys drops))))
+	    (if (test keyinfo key)
+		(let* ((info (get keyinfo key))
+		       (file (get info 'file))
+		       (dir (dirname (typeindex-filename typeindex)))
+		       (fullpath (mkpath dir file))
+		       (values (get adds key)))
+		  (dtype->file+ values fullpath)
+		  (store! info 'count (+ (get info 'count) (choice-size values)))
+		  (store! info 'size (file-size fullpath)))
+		(typeindex/add! typeindex key (get adds key)))))
+	(when metadata
+	  (dtype->file metadata 
+		       (glom (textsubst (typeindex-filename typeindex) #("." (rest)) "")
+			 ".metadata.dtype")))
+	(dtype->file keyinfo (typeindex-filename typeindex))
+	(+ (if adds (table-size adds) 0)
+	   (if drops (table-size drops) 0)
+	   (if stores (table-size stores) 0)))
+      #f))
 
 
 
