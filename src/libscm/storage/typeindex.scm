@@ -70,7 +70,7 @@
 (define (make-typeindex-opts opts)
   (cons `#[fetch ,typeindex-fetch
 	   fetchkeys ,typeindex-fetchkeys
-	   commit ,typeindex-save] 
+	   commit ,typeindex-commit] 
 	opts))
 
 ;;; Adding a key
