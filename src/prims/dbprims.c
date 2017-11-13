@@ -2806,7 +2806,7 @@ static lispval oidhex_prim(lispval oid,lispval base_arg)
     FD_OID base = FD_OID_ADDR(base_arg);
     offset = FD_OID_DIFFERENCE(addr,base);}
   else offset = (FD_OID_LO(addr))%0x100000;
-  return fd_make_string(NULL,-1,u8_uitoa10(offset,buf));
+  return fd_make_string(NULL,-1,u8_uitoa16(offset,buf));
 }
 
 static lispval oidb32_prim(lispval oid,lispval base_arg)
