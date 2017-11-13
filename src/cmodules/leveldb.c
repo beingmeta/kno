@@ -26,6 +26,7 @@
 
 #include <libu8/libu8.h>
 #include <libu8/u8pathfns.h>
+#include <libu8/u8filefns.h>
 #include <libu8/u8printf.h>
 #include <libu8/u8crypto.h>
 
@@ -486,22 +487,39 @@ fd_pool fd_use_leveldb_pool(u8_string path,lispval opts)
     lispval base = get_prop(dbptr,"\377BASE",FD_VOID);
     lispval cap = get_prop(dbptr,"\377CAPACITY",FD_VOID);
     lispval load = get_prop(dbptr,"\377LOAD",FD_VOID);
+    lispval metadata = get_prop(dbptr,"\377METADATA",FD_VOID);
     if ((FD_OIDP(base)) && (FD_UINTP(cap)) && (FD_UINTP(load))) {
       u8_string rname = u8_realpath(path,NULL);
+      lispval adjunct_opt = fd_getopt(opts,SYM("ADJUNCT"),FD_VOID);
+      lispval read_only_opt = fd_getopt(opts,SYM("READONLY"),FD_VOID);
       lispval label = get_prop(dbptr,"\377LABEL",FD_VOID);
       fd_init_pool((fd_pool)pool,
                    FD_OID_ADDR(base),FD_FIX2INT(cap),
                    &leveldb_pool_handler,
                    u8_strdup(path),rname);
       u8_free(rname);
-      if (fd_testopt(opts,SYM("READONLY"),FD_VOID))
+      if (FD_VOIDP(read_only_opt))
+        read_only_opt = get_prop(dbptr,"\377READONLY",FD_VOID);
+      if (FD_VOIDP(read_only_opt))
+        adjunct_opt = get_prop(dbptr,"\377ADJUNCT",FD_VOID);
+      if ( (! FD_VOIDP(read_only_opt)) && (FD_TRUEP(read_only_opt)) )
         pool->pool_flags |= FD_STORAGE_READ_ONLY;
+      if ( (! FD_VOIDP(adjunct_opt)) && (!(FD_FALSEP(adjunct_opt))) )
+        pool->pool_flags |= FD_POOL_ADJUNCT;
       pool->pool_load = FD_FIX2INT(load);
       if (FD_STRINGP(label)) {
         pool->pool_label = u8_strdup(FD_CSTRING(label));}
+      if (FD_SLOTMAPP(metadata)) {
+        fd_copy_slotmap((fd_slotmap)metadata,
+                        &(pool->pool_metadata));
+        fd_set_modified(((lispval)(&(pool->pool_metadata))),0);}
+      fd_decref(adjunct_opt); fd_decref(read_only_opt);
+      fd_decref(metadata); fd_decref(label);
+      fd_decref(base); fd_decref(cap); fd_decref(load);
       fd_register_pool((fd_pool)pool);
       return (fd_pool)pool;}
     else  {
+      fd_decref(base); fd_decref(cap); fd_decref(load);
       fd_close_leveldb(&(pool->leveldb));
       u8_free(pool);
       fd_seterr("NotAPoolDB","fd_leveldb_pool",NULL,FD_VOID);
@@ -513,8 +531,9 @@ FD_EXPORT
 fd_pool fd_make_leveldb_pool(u8_string path,lispval base,lispval cap,lispval opts)
 {
   struct FD_LEVELDB_POOL *pool = u8_alloc(struct FD_LEVELDB_POOL);
+
   lispval load = fd_getopt(opts,SYM("LOAD"),FD_FIXZERO);
-  lispval label = fd_getopt(opts,SYM("LABEL"),FD_VOID);
+
   if ((!(FD_OIDP(base)))||(!(FD_UINTP(cap)))||(!(FD_UINTP(load)))) {
     u8_free(pool);
     fd_seterr("Not enough information to create a pool",
@@ -522,10 +541,13 @@ fd_pool fd_make_leveldb_pool(u8_string path,lispval base,lispval cap,lispval opt
     return (fd_pool)NULL;}
   else if (fd_setup_leveldb(&(pool->leveldb),path,opts)) {
     leveldb_t *dbptr = pool->leveldb.dbptr;
+    lispval label = fd_getopt(opts,SYM("LABEL"),FD_VOID);
+    lispval metadata = fd_getopt(opts,SYM("METADATA"),FD_VOID);
     lispval given_base = get_prop(dbptr,"\377BASE",FD_VOID);
     lispval given_cap = get_prop(dbptr,"\377CAPACITY",FD_VOID);
     lispval given_load = get_prop(dbptr,"\377LOAD",FD_VOID);
     lispval cur_label = get_prop(dbptr,"\377LABEL",FD_VOID);
+    lispval cur_metadata = get_prop(dbptr,"\377METADATA",FD_VOID);
     u8_string rname = u8_realpath(path,NULL);
     if (!((FD_VOIDP(given_base))||(FD_EQUALP(base,given_base)))) {
       u8_free(pool); u8_free(rname);
@@ -544,6 +566,13 @@ fd_pool fd_make_leveldb_pool(u8_string path,lispval base,lispval cap,lispval opt
     set_prop(dbptr,"\377CAPACITY",cap,sync_writeopts);
     if (FD_VOIDP(given_load))
       set_prop(dbptr,"\377LOAD",load,sync_writeopts);
+    if (! (FD_VOIDP(metadata)) ) {
+      if (FD_VOIDP(cur_metadata))
+        set_prop(dbptr,"\377METADATA",metadata,sync_writeopts);
+      else if (fd_testopt(opts,SYM("FORCE"),FD_VOID))
+        set_prop(dbptr,"\377METADATA",metadata,sync_writeopts);
+      else u8_log(LOG_WARN,"ExistingMetadata",
+                  "Not overwriting existing metatdata in leveldb pool %s",path);}
     fd_init_pool((fd_pool)pool,
                  FD_OID_ADDR(base),FD_FIX2INT(cap),
                  &leveldb_pool_handler,
@@ -807,12 +836,98 @@ static int leveldb_pool_commit(fd_pool p,fd_commit_phase phase,
     return leveldb_pool_storen(p,commits->commit_count,
                                commits->commit_oids,
                                commits->commit_vals);
-  default: {
-    u8_log(LOG_WARN,"NoPhasedCommit",
-           "The pool %s doesn't support phased commits",
-           p->poolid);
-    return -1;}
+  default: 
+    return 0;
   }
+}
+
+/* Creating leveldb pools */
+
+static fd_pool leveldb_pool_create(u8_string spec,void *type_data,
+                                   fd_storage_flags storage_flags,
+                                   lispval opts)
+{
+  lispval base_oid = fd_getopt(opts,fd_intern("BASE"),VOID);
+  lispval capacity_arg = fd_getopt(opts,fd_intern("CAPACITY"),VOID);
+  lispval load_arg = fd_getopt(opts,fd_intern("LOAD"),VOID);
+  lispval metadata = fd_getopt(opts,fd_intern("METADATA"),VOID);
+  lispval ctime_opt = fd_getopt(opts,fd_intern("CTIME"),FD_VOID);
+  lispval mtime_opt = fd_getopt(opts,fd_intern("MTIME"),FD_VOID);
+  lispval generation_opt = fd_getopt(opts,fd_intern("GENERATION"),FD_VOID);
+  time_t now=time(NULL), ctime, mtime;
+  long long generation=1;
+  unsigned int flags = 0;
+  unsigned int capacity, load;
+  fd_pool dbpool = NULL;
+  int rv = 0;
+  if (u8_file_existsp(spec)) {
+    fd_seterr(_("FileAlreadyExists"),"bigpool_create",spec,VOID);
+    return NULL;}
+  else if (!(OIDP(base_oid))) {
+    fd_seterr("Not a base oid","bigpool_create",spec,base_oid);
+    rv = -1;}
+  else if (FD_ISINT(capacity_arg)) {
+    int capval = fd_getint(capacity_arg);
+    if (capval<=0) {
+      fd_seterr("Not a valid capacity","bigpool_create",
+                spec,capacity_arg);
+      rv = -1;}
+    else capacity = capval;}
+  else {
+    fd_seterr("Not a valid capacity","bigpool_create",
+              spec,capacity_arg);
+    rv = -1;}
+  if (rv<0) {}
+  else if (FD_ISINT(load_arg)) {
+    int loadval = fd_getint(load_arg);
+    if (loadval<0) {
+      fd_seterr("Not a valid load","bigpool_create",spec,load_arg);
+      rv = -1;}
+    else if (loadval > capacity) {
+      fd_seterr(fd_PoolOverflow,"bigpool_create",spec,load_arg);
+      rv = -1;}
+    else load = loadval;}
+  else if ( (FALSEP(load_arg)) || (EMPTYP(load_arg)) ||
+            (VOIDP(load_arg)) || (load_arg == FD_DEFAULT_VALUE))
+    load=0;
+  else {
+    fd_seterr("Not a valid load","bigpool_create",spec,load_arg);
+    rv = -1;}
+
+  if (FD_FIXNUMP(ctime_opt))
+    ctime = (time_t) FD_FIX2INT(ctime_opt);
+  else if (FD_PRIM_TYPEP(ctime_opt,fd_timestamp_type)) {
+    struct FD_TIMESTAMP *moment = (fd_timestamp) ctime_opt;
+    ctime = moment->u8xtimeval.u8_tick;}
+  else ctime=now;
+
+  if (FD_FIXNUMP(mtime_opt))
+    mtime = (time_t) FD_FIX2INT(mtime_opt);
+  else if (FD_PRIM_TYPEP(ctime_opt,fd_timestamp_type)) {
+    struct FD_TIMESTAMP *moment = (fd_timestamp) mtime_opt;
+    mtime = moment->u8xtimeval.u8_tick;}
+  else mtime=now;
+
+  if (FD_FIXNUMP(generation_opt))
+    generation=FD_FIX2INT(generation_opt);
+  else generation=0;
+
+  if (rv>=0)
+    dbpool = fd_make_leveldb_pool(spec,FD_OID_ADDR(base_oid),capacity,opts);
+  if (dbpool == NULL) rv=-1;
+  fd_decref(base_oid);
+  fd_decref(capacity_arg);
+  fd_decref(load_arg);
+  fd_decref(load_arg);
+  fd_decref(metadata);
+  fd_decref(ctime_opt);
+  fd_decref(mtime_opt);
+  fd_decref(generation_opt);
+
+  if (rv>=0) {
+    fd_set_file_opts(spec,opts);
+    return fd_open_pool(spec,storage_flags,opts);}
+  else return NULL;
 }
 
 /* The LevelDB pool handler */
@@ -833,6 +948,7 @@ static struct FD_POOL_HANDLER leveldb_pool_handler={
   NULL  /* poolctl */
 };
 
+#if 0
 /* LevelDB indexes */
 
 static struct FD_INDEX_HANDLER leveldb_index_handler;
@@ -910,6 +1026,8 @@ static struct FD_INDEX_HANDLER leveldb_index_handler={
   NULL, /* recycle */
   NULL /* indexctl */
 };
+
+#endif
 
 
 /* Scheme primitives */
