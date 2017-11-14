@@ -872,15 +872,21 @@ static lispval *bigpool_fetchn(fd_pool p,int n,lispval *oids)
                                     schedule[i].location.off,
                                     schedule[i].location.size,
                                     0);
-        if (in == NULL)
-          break;
+        if (in == NULL) {
+          if (bp->pool_flags & FD_STORAGE_REPAIR) {
+            values[schedule[i].value_at]=FD_VOID;
+            i++; continue;}
+          else break;}
         lispval value = read_oid_value(bp,in,"bigpool_fetchn");
-        if (FD_ABORTP(value))
-          break;
+        if (FD_ABORTP(value)) {
+          if (bp->pool_flags & FD_STORAGE_REPAIR) {
+            values[schedule[i].value_at]=FD_VOID;
+            i++; continue;}
+          else break;}
         else values[schedule[i].value_at]=value;}
       i++;}
 
-    if (i != n) { /* Error */
+    if ( (i != n) && ( (bp->pool_flags & FD_STORAGE_REPAIR) == 0) ) { /* Error */
       int j = 0; while (j<i) {
         lispval value = values[schedule[j].value_at];
         fd_decref(value);
