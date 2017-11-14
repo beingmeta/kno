@@ -1636,7 +1636,7 @@ tests/tests.log: tests/scheme/fdexec tests/scheme/makefile.in
 	@make -s -C tests/scheme testclean 2>&1 > tests/testclean.log
 	@make -s -C tests/scheme -k -j 2>&1 > tests/tests.log && \
 	cp tests/libtests.log tests/libtests-`date +%d%b%yT%T`.log;
-tests: tests/libtests.log
+tests: tests/tests.log
 
 tests/libtests.log: tests/scheme/fdexec tests/scheme/makefile.in
 	@echo "#### Running libtests, output in" $@
