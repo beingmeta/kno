@@ -276,7 +276,7 @@ static void init_dloadpath()
   else strval = fd_lispstring(tmp);
   dloadpath = fd_init_pair(NULL,strval,dloadpath);
   if ((tmp)||(trace_dload)||(getenv("FD_DLOAD:TRACE")))
-    u8_log(-LOGNOTICE,"DynamicLoadPath","Initialized to %q",
+    u8_log(LOG_INFO,"DynamicLoadPath","Initialized to %q",
            dloadpath);
 }
 

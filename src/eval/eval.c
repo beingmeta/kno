@@ -678,17 +678,17 @@ static lispval watchptr_prim(lispval val,lispval label_arg)
     unsigned long long itype = FD_IMMEDIATE_TYPE(val);
     unsigned long long data = FD_IMMEDIATE_DATA(val);
     u8_string type_name = fd_type2name(itype);;
-    u8_log(-10,"Immediate pointer",
+    u8_log(U8_LOG_MSG,"Immediate pointer",
            "%s%s%s0x%llx [ T0x%llx(%s) data=%llu ] == %q",
            U8OPTSTR("",label,": "),
            ((unsigned long long)val),itype,type_name,data,val);}
   else if (FIXNUMP(val))
-    u8_log(-10,"%s%s%sFixnum","0x%llx == %d",
+    u8_log(U8_LOG_MSG,"%s%s%sFixnum","0x%llx == %d",
            U8OPTSTR("",label,": "),
            ((unsigned long long)val),FIX2INT(val));
   else if (OIDP(val)) {
     FD_OID addr = FD_OID_ADDR(val);
-    u8_log(-10,"OID",
+    u8_log(U8_LOG_MSG,"OID",
            "%s%s%s0x%llx [ base=%llx off=%llx ] == %llx/%llx",
            U8OPTSTR("",label,": "),
            ((unsigned long long)val),
@@ -697,7 +697,7 @@ static lispval watchptr_prim(lispval val,lispval label_arg)
   else if (FD_STATICP(val)) {
     fd_ptr_type ptype = FD_CONS_TYPE((fd_cons)val);
     u8_string type_name = fd_ptr_typename(ptype);
-    u8_log(-10,"Static pointer",
+    u8_log(U8_LOG_MSG,"Static pointer",
            "%s%s%s0x%llx [ T0x%llx(%s) ] == %q",
            U8OPTSTR("",label,": "),
            ((unsigned long long)val),
@@ -707,7 +707,7 @@ static lispval watchptr_prim(lispval val,lispval label_arg)
     fd_ptr_type ptype = FD_CONS_TYPE(c);
     u8_string type_name = fd_ptr_typename(ptype);
     unsigned int refcount = FD_CONS_REFCOUNT(c);
-    u8_log(-10,"Consed pointer",
+    u8_log(U8_LOG_MSG,"Consed pointer",
            "%s%s%s0x%llx [ T0x%llx(%s) refs=%d ] == %q",
            U8OPTSTR("",label,": "),
            ((unsigned long long)val),
@@ -792,12 +792,12 @@ static lispval watched_eval_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
     lispval value = fd_eval(toeval,env);
     double howlong = u8_elapsed_time()-start;
     if (howlong>1.0)
-      u8_log(-10,label,"<%.3fs> %q => %q",howlong*1000,toeval,value);
+      u8_log(U8_LOG_MSG,label,"<%.3fs> %q => %q",howlong*1000,toeval,value);
     else if (howlong>0.001)
-      u8_log(-10,label,"<%.3fms> %q => %q",howlong*1000,toeval,value);
+      u8_log(U8_LOG_MSG,label,"<%.3fms> %q => %q",howlong*1000,toeval,value);
     else if (remainder(howlong,0.0000001)>=0.001)
-      u8_log(-10,label,"<%.3fus> %q => %q",howlong*1000000,toeval,value);
-    else u8_log(-10,label,"<%.1fus> %q => %q",howlong*1000000,
+      u8_log(U8_LOG_MSG,label,"<%.3fus> %q => %q",howlong*1000000,toeval,value);
+    else u8_log(U8_LOG_MSG,label,"<%.1fus> %q => %q",howlong*1000000,
                 toeval,value);
     return value;}
 }

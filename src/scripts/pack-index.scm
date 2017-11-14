@@ -280,9 +280,8 @@
   (let* ((base (basename from))
 	 (tmpfile (or (config 'TMPFILE #f)
 		      (and (config 'TMPDIR #f)
-			   (mkpath (config 'TMPDIR)
-				   (string-append base ".tmp")))
-		      (string-append base ".tmp")))
+			   (mkpath (config 'TMPDIR) (glom base ".part")))
+		      (glom base ".part")))
 	 (bakfile (or (config 'BAKFILE #f)
 		      (string-append base ".bak"))))
     (lognotice |PackIndex| 

@@ -911,10 +911,13 @@ int main(int argc,char **argv)
                  u8_appid(),show_startup_time,units,fd_n_pools,
                  fd_n_primary_indexes+fd_n_secondary_indexes);}
   if (dotload) {
+    u8_string home_config = u8_realpath("~/.fdconfig",NULL);
+    u8_string cwd_config = u8_realpath(".fdconfig",NULL);
+    int not_in_kansas = strcmp(home_config,cwd_config);
     dotloader("~/.fdconfig",NULL);
-    dotloader(".fdconfig",NULL);
+    if (not_in_kansas) dotloader(".fdconfig",NULL);
     dotloader("~/.fdconsole",env);
-    dotloader(".fdconsole",env);}
+    if (not_in_kansas) dotloader(".fdconsole",env);}
   else u8_message("Warning: .fdconfig/.fdconsole files are suppressed");
 
 #if USING_EDITLINE
