@@ -639,12 +639,15 @@ FD_EXPORT lispval fd_new_frame(lispval pool_spec,lispval initval,int copyflags)
 
 static lispval make_features(lispval slotids,lispval values)
 {
-  lispval results = EMPTY;
-  DO_CHOICES(slotid,slotids) {
-    DO_CHOICES(value,values) {
-      lispval feature = fd_make_pair(slotid,value);
-      CHOICE_ADD(results,feature);}}
-  return results;
+  if (EMPTYP(values))
+    return values;
+  else {
+    lispval results = EMPTY;
+    DO_CHOICES(slotid,slotids) {
+      DO_CHOICES(value,values) {
+        lispval feature = fd_make_pair(slotid,value);
+        CHOICE_ADD(results,feature);}}
+    return results;}
 }
 
 static lispval index_prim_find(fd_index ix,lispval slotids,lispval values)
@@ -834,6 +837,7 @@ int fd_index_frame(fd_index ix,lispval frames,lispval slotids,lispval values)
           frame_features = values; rv = -1;
           /* break from iterating over slotids */
           FD_LOOP_BREAK();}
+        else if (EMPTYP(values)) {}
         else if (slotid == keyslot) {
           CHOICE_ADD(frame_features,values);}
         else {
@@ -846,6 +850,8 @@ int fd_index_frame(fd_index ix,lispval frames,lispval slotids,lispval values)
       fd_decref(frame_features);}
     if (rv<0) return rv;
     else return sum;}
+  else if (EMPTYP(values))
+    return 0;
   else {
     int rv = 0, sum = 0;
     lispval features = EMPTY;

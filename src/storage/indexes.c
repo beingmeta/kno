@@ -787,11 +787,11 @@ FD_EXPORT int _fd_index_add(fd_index ix,lispval key,lispval value)
   fd_hashtable adds = &(ix->index_adds), cache = &(ix->index_cache);
   fd_hashtable drops = &(ix->index_drops);
 
-  if (U8_BITP(ix->index_flags,FD_STORAGE_READ_ONLY)) {
+  if ( (EMPTYP(value)) || (EMPTYP(key)) )
+    return 0;
+  else if (U8_BITP(ix->index_flags,FD_STORAGE_READ_ONLY)) {
     fd_seterr(fd_ReadOnlyIndex,"_fd_index_add",ix->indexid,VOID);
     return -1;}
-
-  if (EMPTYP(value)) return 0;
   else init_cache_level(ix);
 
   int decref_key = 0;
@@ -828,7 +828,8 @@ FD_EXPORT int _fd_index_add(fd_index ix,lispval key,lispval value)
 static int table_indexadd(lispval ixarg,lispval key,lispval value)
 {
   fd_index ix = fd_indexptr(ixarg);
-  if (ix) return fd_index_add(ix,key,value);
+  if (ix)
+    return fd_index_add(ix,key,value);
   else return -1;
 }
 
@@ -838,7 +839,9 @@ FD_EXPORT int fd_index_drop(fd_index ix,lispval key,lispval value)
   fd_hashtable drops = &(ix->index_drops);
   fd_hashtable adds = &(ix->index_adds);
 
-  if (U8_BITP(ix->index_flags,FD_STORAGE_READ_ONLY)) {
+  if ( (EMPTYP(key)) || (EMPTYP(value)) )
+    return 0;
+  else if (U8_BITP(ix->index_flags,FD_STORAGE_READ_ONLY)) {
     fd_seterr(fd_ReadOnlyIndex,"_fd_index_add",ix->indexid,VOID);
     return -1;}
   else init_cache_level(ix);
@@ -886,7 +889,9 @@ FD_EXPORT int fd_index_store(fd_index ix,lispval key,lispval value)
   fd_hashtable drops = &(ix->index_drops);
   fd_hashtable stores = &(ix->index_stores);
 
-  if (U8_BITP(ix->index_flags,FD_STORAGE_READ_ONLY)) {
+  if (EMPTYP(key))
+    return 0;
+  else if (U8_BITP(ix->index_flags,FD_STORAGE_READ_ONLY)) {
     fd_seterr(fd_ReadOnlyIndex,"_fd_index_store",ix->indexid,VOID);
     return -1;}
   else init_cache_level(ix);
