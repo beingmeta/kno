@@ -748,6 +748,24 @@ FD_EXPORT lispval fd_init_compound_from_elts
   else return LISP_CONS(p);
 }
 
+FD_EXPORT lispval fd_compound_ref(lispval arg,lispval tag,int off,lispval dflt)
+{
+  struct FD_COMPOUND *tvec = (struct FD_COMPOUND *) arg;
+  if (! ( (FD_VOIDP(tag)) || (tvec->compound_typetag == tag) ) ) {
+    U8_STATIC_OUTPUT(details,512);
+    fd_unparse(&details,tag);
+    lispval errval =
+      fd_err(fd_TypeError,"fd_compound_ref",details.u8_outbuf,arg);
+    u8_close_output(&details);
+    return errval;}
+  else if (off >= tvec->compound_length)
+    return fd_incref(dflt);
+  else {
+    lispval v = FD_COMPOUND_VREF(tvec,off);
+    fd_incref(v);
+    return v;}
+}
+
 /* Registering new primitive types */
 
 static u8_mutex type_registry_lock;

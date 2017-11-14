@@ -675,12 +675,15 @@ typedef struct FD_COMPOUND *fd_compound;
   ((fd_consptr(struct FD_COMPOUND *,x,fd_compound_type))->compound_length)
 #define FD_COMPOUND_REF(x,i)                                            \
   ((&((fd_consptr(struct FD_COMPOUND *,x,fd_compound_type))->compound_0))[i])
+#define FD_COMPOUND_VREF(x,i) ((&((x)->compound_0))[i])
 #define FD_XCOMPOUND(x) (fd_consptr(struct FD_COMPOUND *,x,fd_compound_type))
 
 FD_EXPORT lispval fd_init_compound
   (struct FD_COMPOUND *ptr,lispval tag,int mutable,int n,...);
 FD_EXPORT lispval fd_init_compound_from_elts
   (struct FD_COMPOUND *p,lispval tag,int mutable,int n,lispval *elts);
+FD_EXPORT lispval fd_compound_ref(lispval arg,lispval tag,int off,lispval dflt);
+
 
 
 FD_EXPORT lispval fd_compound_descriptor_type;

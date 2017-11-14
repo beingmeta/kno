@@ -18,6 +18,8 @@
 
 static u8_condition SchemeError=_("Undistinguished Scheme Error");
 
+static lispval stack_entry_symbol;
+
 /* Returning error objects when troubled */
 
 static lispval catcherr_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
@@ -261,7 +263,7 @@ static lispval clear_errors()
 
 /* Primitives on exception objects */
 
-static lispval error_condition(lispval x)
+static lispval exception_condition(lispval x)
 {
   struct FD_EXCEPTION *xo=
     fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
@@ -270,7 +272,7 @@ static lispval error_condition(lispval x)
   else return FD_FALSE;
 }
 
-static lispval error_caller(lispval x)
+static lispval exception_caller(lispval x)
 {
   struct FD_EXCEPTION *xo=
     fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
@@ -279,7 +281,7 @@ static lispval error_caller(lispval x)
   else return FD_FALSE;
 }
 
-static lispval error_details(lispval x)
+static lispval exception_details(lispval x)
 {
   struct FD_EXCEPTION *xo=
     fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
@@ -288,14 +290,14 @@ static lispval error_details(lispval x)
   else return FD_FALSE;
 }
 
-static lispval error_irritant(lispval x)
+static lispval exception_irritant(lispval x)
 {
   struct FD_EXCEPTION *xo=
     fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
   return fd_incref(xo->ex_irritant);
 }
 
-static lispval error_has_irritant(lispval x)
+static lispval exception_has_irritant(lispval x)
 {
   struct FD_EXCEPTION *xo=
     fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
@@ -304,7 +306,7 @@ static lispval error_has_irritant(lispval x)
   else return FD_TRUE;
 }
 
-static lispval error_backtrace(lispval x)
+static lispval exception_stack(lispval x)
 {
   struct FD_EXCEPTION *xo=
     fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
@@ -313,7 +315,7 @@ static lispval error_backtrace(lispval x)
   else return fd_incref(xo->ex_stack);
 }
 
-static lispval error_summary(lispval x,lispval with_irritant)
+static lispval exception_summary(lispval x,lispval with_irritant)
 {
   struct FD_EXCEPTION *xo=
     fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
@@ -450,6 +452,48 @@ static lispval reraise_prim(lispval exo)
   return FD_ERROR_VALUE;
 }
 
+/* Operations on stack objects */
+
+static lispval stack_entry_depth(lispval stackobj)
+{
+  return fd_compound_ref(stackobj,stack_entry_symbol,0,FD_FALSE);
+}
+
+static lispval stack_entry_type(lispval stackobj)
+{
+  return fd_compound_ref(stackobj,stack_entry_symbol,1,FD_FALSE);
+}
+
+static lispval stack_entry_op(lispval stackobj)
+{
+  return fd_compound_ref(stackobj,stack_entry_symbol,2,FD_FALSE);
+}
+
+static lispval stack_entry_label(lispval stackobj)
+{
+  return fd_compound_ref(stackobj,stack_entry_symbol,3,FD_FALSE);
+}
+
+static lispval stack_entry_args(lispval stackobj)
+{
+  return fd_compound_ref(stackobj,stack_entry_symbol,4,FD_FALSE);
+}
+
+static lispval stack_entry_source(lispval stackobj)
+{
+  return fd_compound_ref(stackobj,stack_entry_symbol,5,FD_FALSE);
+}
+
+static lispval stack_entry_env(lispval stackobj)
+{
+  return fd_compound_ref(stackobj,stack_entry_symbol,6,FD_FALSE);
+}
+
+static lispval stack_entry_status(lispval stackobj)
+{
+  return fd_compound_ref(stackobj,stack_entry_symbol,7,FD_FALSE);
+}
+
 /* Clear errors */
 
 FD_EXPORT void fd_init_errors_c()
@@ -517,35 +561,79 @@ FD_EXPORT void fd_init_errors_c()
   fd_idefn1(fd_scheme_module,"RERAISE",reraise_prim,1,
             "Reraises the exception represented by an object",
             fd_exception_type,FD_VOID);
-  fd_idefn1(fd_scheme_module,"ERROR-CONDITION",error_condition,1,
-            "Returns the condition name (a symbol) for an error",
+
+  fd_idefn1(fd_scheme_module,"EXCEPTION-CONDITION",exception_condition,1,
+            "Returns the condition name (a symbol) for an exception",
             fd_exception_type,VOID);
-  fd_idefn1(fd_scheme_module,"ERROR-CALLER",error_caller,1,
-            "Returns the immediate context (caller, a symbol) for an error",
+  fd_idefn1(fd_scheme_module,"EXCEPTION-CALLER",exception_caller,1,
+            "Returns the immediate context (caller, a symbol) for an exception",
             fd_exception_type,VOID);
-  fd_idefn1(fd_scheme_module,"ERROR-DETAILS",error_details,1,
-            "Returns any descriptive details (a string) for the error",
+  fd_idefn1(fd_scheme_module,"EXCEPTION-DETAILS",exception_details,1,
+            "Returns any descriptive details (a string) for the exception",
             fd_exception_type,VOID);
-  fd_idefn1(fd_scheme_module,"ERROR-IRRITANT",error_irritant,1,
-            "Returns the LISP object (if any) caused the error",
+  fd_idefn1(fd_scheme_module,"EXCEPTION-IRRITANT",exception_irritant,1,
+            "Returns the LISP object (if any) which 'caused' the exception",
+            fd_exception_type,VOID);
+  fd_idefn1(fd_scheme_module,"EXCEPTION-IRRITANT?",exception_has_irritant,1,
+            "(EXCEPTION-IRRITANT? *ex*) Returns true if *ex* is an exception "
+            "and has an 'irritant'",
             fd_exception_type,VOID);
 
-  fd_defalias(fd_scheme_module,"ERROR-CONTEXT","ERROR-CALLER");
-  fd_defalias(fd_scheme_module,"GET-IRRITANT","ERROR-IRRITANT");
+  fd_idefn1(fd_scheme_module,"EXCEPTION-STACK",exception_stack,1,
+            "(EXCEPTION-STACK *ex*) returns the call stack when the "
+            "exception object *ex* occured",
+            fd_exception_type,VOID);
+  fd_defalias(fd_scheme_module,"EX/STACK","EXCEPTION-STACK");
+  fd_idefn2(fd_scheme_module,"EXCEPTION-SUMMARY",exception_summary,1,
+            "Returns a shortened backtrace for an exception",
+            fd_exception_type,VOID,-1,FD_FALSE);
+  fd_defalias(fd_scheme_module,"EX/CALLER","EXCEPTION-CALLER");
+  fd_defalias(fd_scheme_module,"EX/COND","EXCEPTION-CONDITION");
+  fd_defalias(fd_scheme_module,"EX/DETAILS","EXCEPTION-DETAILS");
+
+
+  fd_defalias(fd_scheme_module,"ERROR-CONDITION","EXCEPTION-CONDITION");
+  fd_defalias(fd_scheme_module,"ERROR-CALLER","EXCEPTION-CALLER");
+  fd_defalias(fd_scheme_module,"ERROR-DETAILS","EXCEPTION-DETAILS");
+  fd_defalias(fd_scheme_module,"ERROR-IRRITANT","EXCEPTION-IRRITANT");
+  fd_defalias(fd_scheme_module,"ERROR-BACKTRACE","EXCEPTION-BACKTRACE");
+  fd_defalias(fd_scheme_module,"ERROR-SUMMARY","EXCEPTION-SUMMARY");
+
+  fd_defalias(fd_scheme_module,"ERROR-CONTEXT","EXCEPTION-CALLER");
+  fd_defalias(fd_scheme_module,"GET-IRRITANT","EXCEPTION-IRRITANT");
+  fd_defalias(fd_scheme_module,"ERROR-IRRITANT","EXCEPTION-IRRITANT");
   fd_defalias(fd_scheme_module,"ERROR-XDATA","ERROR-IRRITANT");
-
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("ERROR-IRRITANT?",error_has_irritant,1,
-                           fd_exception_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("ERROR-SUMMARY",error_summary,1,
-                           fd_exception_type,VOID,-1,FD_FALSE));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("ERROR-BACKTRACE",error_backtrace,1,
-                           fd_exception_type,VOID));
+  fd_defalias(fd_scheme_module,"ERROR-IRRITANT?","EXCEPTION-IRRITANT?");
 
   fd_def_evalfn(fd_scheme_module,"DYNAMIC-WIND","",dynamic_wind_evalfn);
   fd_def_evalfn(fd_scheme_module,"UNWIND-PROTECT","",unwind_protect_evalfn);
+
+  fd_idefn1(fd_scheme_module,"STACK-DEPTH",stack_entry_depth,1,
+            "Returns the depth of a stack entry",
+            fd_compound_type,FD_VOID);
+  fd_idefn1(fd_scheme_module,"STACK-TYPE",stack_entry_type,1,
+            "Returns the type of a stack entry",
+            fd_compound_type,FD_VOID);
+  fd_idefn1(fd_scheme_module,"STACK-OP",stack_entry_op,1,
+            "Returns the op of a stack entry",
+            fd_compound_type,FD_VOID);
+  fd_idefn1(fd_scheme_module,"STACK-LABEL",stack_entry_label,1,
+            "Returns the label of a stack entry",
+            fd_compound_type,FD_VOID);
+  fd_idefn1(fd_scheme_module,"STACK-ARGS",stack_entry_args,1,
+            "Returns the args of a stack entry",
+            fd_compound_type,FD_VOID);
+  fd_idefn1(fd_scheme_module,"STACK-SOURCE",stack_entry_source,1,
+            "Returns the source of a stack entry",
+            fd_compound_type,FD_VOID);
+  fd_idefn1(fd_scheme_module,"STACK-ENV",stack_entry_env,1,
+            "Returns the env of a stack entry",
+            fd_compound_type,FD_VOID);
+  fd_idefn1(fd_scheme_module,"STACK-STATUS",stack_entry_status,1,
+            "Returns the status of a stack entry",
+            fd_compound_type,FD_VOID);
+
+  stack_entry_symbol = fd_intern("%STACK");
 
 }
 

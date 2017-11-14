@@ -1025,39 +1025,32 @@ int main(int argc,char **argv)
       if (ref>=0) histref = ref;}
     else {}
     if (FD_ABORTP(result)) stat_line = 0;
-    else if ((showtime_threshold>=0.0) &&
-             (((finish_time-start_time)>showtime_threshold) ||
-              (finish_ocache!=start_ocache) ||
-              (finish_icache!=start_icache)))
+    else if ((showtime_threshold >= 0.0) &&
+             (((finish_time-start_time) > showtime_threshold) ||
+              (finish_ocache != start_ocache) ||
+              (finish_icache != start_icache)))
+      /* Whether to show a stat line (time/dbs/etc) */
       stat_line = 1;
     fd_decref(expr); expr = VOID;
     if (FD_CHECK_PTR(result)==0) {
-      fprintf(stderr,";;; The expression returned an invalid pointer!!!!\n");}
+      fprintf(stderr,";;; An invalid pointer 0x%llx was returned!\n",
+              (unsigned long long)result);}
     else if (FD_TROUBLEP(result)) {
       u8_exception ex = u8_erreify();
       if (ex) {
-        U8_STATIC_OUTPUT(tmp,512);
-        int old_maxelts = fd_unparse_maxelts;
-        int old_maxchars = fd_unparse_maxchars;
-        fd_unparse_maxchars = debug_maxchars;
-        fd_unparse_maxelts = debug_maxelts;
-        fd_output_errstack(tmpout,ex);
-        fputs(tmp.u8_outbuf,stderr);
-        tmp.u8_write = tmp.u8_outbuf; tmp.u8_outbuf[0]='\0';
-        lispval backtrace = FD_U8X_STACK(ex);
-        if (show_backtrace) {
-          u8_puts(tmpout,";; ");
-          fd_sum_backtrace(tmpout,backtrace);}
-        u8_putc(tmpout,'\n');
-        fputs(tmp.u8_outbuf,stderr);
-        u8_close_output(tmpout);
-        if (save_backtrace)
-          u8_fprintf(stderr,";; Saved complete backtrace into ##%d\n",
-                     fd_histpush(backtrace));
-        fd_unparse_maxchars = old_maxchars;
-        fd_unparse_maxelts = old_maxelts;
-        if (fd_dump_backtrace) fd_dump_backtrace(backtrace);
-        u8_free_exception(ex,1);}
+        u8_fprintf(stderr,
+                   ";;!!; There was an unexpected error %m <%s> (%s)\n",
+                   ex->u8x_cond,
+                   U8ALT(ex->u8x_context,"no caller"),
+                   U8ALT(ex->u8x_details,"no details"));
+        lispval exo = fd_get_exception(ex);
+        if (!(FD_VOIDP(exo))) {
+          if (save_backtrace)
+            u8_fprintf(stderr,";; The exception was saved in ##%d\n",
+                       fd_histpush(exo));
+          /* Note that u8_free_exception will decref exo, so we don't
+             need to do so. */
+          u8_free_exception(ex,1);}}
       else fprintf(stderr,
                    ";;; The expression generated a mysterious error!!!!\n");}
     else if (stat_line)

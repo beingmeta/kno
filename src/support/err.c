@@ -551,11 +551,14 @@ FD_EXPORT lispval fd_restore_exception_dtype(lispval content)
       if (FD_STRINGP(details_val))
         details = u8_strdup(CSTRING(details_val));
       else details = NULL;}
-    if (len > 3) irritant = VEC_REF(content,3);
-    if ( (len > 4) && (FD_STRINGP(VEC_REF(content,4))) )
-      sessionid = CSTRING(VEC_REF(content,4));
-    if (len > 5) {
-      lispval tstamp = VEC_REF(content,5);
+    if (len > 3) {
+      irritant = VEC_REF(content,3); fd_incref(irritant);}
+    if ( (len > 4) && (FD_VECTORP(VEC_REF(content,4))) ) {
+      stack = VEC_REF(content,4); fd_incref(stack);}
+    if ( (len > 5) && (FD_STRINGP(VEC_REF(content,5))) )
+      sessionid = u8_strdup(CSTRING(VEC_REF(content,5)));
+    if (len > 6) {
+      lispval tstamp = VEC_REF(content,6);
       if (TYPEP(tstamp,fd_timestamp_type)) {
         struct FD_TIMESTAMP *ts = (fd_timestamp) tstamp;
         struct U8_XTIME *xt = &(ts->u8xtimeval);
@@ -563,28 +566,29 @@ FD_EXPORT lispval fd_restore_exception_dtype(lispval content)
       else if (FD_FIXNUMP(tstamp))
         timebase = (time_t) fd_getint(tstamp);
       else timebase=-1;}
-    if ( ( len > 6 ) && (FD_FLONUMP(VEC_REF(content,6))) ) {
-      lispval flonum = VEC_REF(content,6);
+    if ( ( len > 7 ) && (FD_FLONUMP(VEC_REF(content,7))) ) {
+      lispval flonum = VEC_REF(content,7);
       moment = FD_FLONUM(flonum);}
-    if (len > 7) stack = VEC_REF(content,7);
-    if (len > 8) context = VEC_REF(content,8);
+    if (len > 8) {
+      context = VEC_REF(content,8);
+      fd_incref(context);}
     return fd_init_exception(NULL,condname,caller,
                              details,irritant,
                              stack,context,
                              sessionid,moment,-1,
                              timebase);}
-  else if (FD_SYMBOLP(content))
+  else if (FD_SYMBOLP(content)) {
     return fd_init_exception
       (NULL,FD_SYMBOL_NAME(content),
        NULL,NULL,content,
        FD_VOID,FD_VOID,NULL,
-       -1,-1,-1);
-  else if (FD_STRINGP(content))
+       -1,-1,-1);}
+  else if (FD_STRINGP(content)) {
     return fd_init_exception
       (NULL,"DtypeError",NULL,
        u8_strdup(FD_CSTRING(content)),content,
        FD_VOID,FD_VOID,NULL,
-       -1,-1,-1);
+       -1,-1,-1);}
   else return fd_init_exception
          (NULL,fd_DTypeError,
           "fd_restore_exception_dtype",NULL,content,
@@ -615,7 +619,7 @@ static int unparse_exception(struct U8_OUTPUT *out,lispval x)
   u8_context caller = xo->ex_caller;
   u8_string details = xo->ex_details;
   lispval irritant = xo->ex_irritant;
-  u8_puts(out,"#<!EXCEPTION %s");
+  u8_puts(out,"#<!EXCEPTION");
   if (condition) u8_printf(out," %s",condition);
   else u8_puts(out," missingCondition");
   if (caller) u8_printf(out," @%s",caller);

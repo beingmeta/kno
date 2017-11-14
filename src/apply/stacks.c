@@ -39,58 +39,83 @@ __thread struct FD_STACK *fd_stackptr=NULL;
 struct FD_STACK *fd_stackptr=NULL;
 #endif
 
+static lispval stack_entry_symbol;
+
+static lispval stringval(u8_string s)
+{
+  if (s==NULL)
+    return FD_FALSE;
+  else return lispval_string(s);
+}
+
+/* Stacks are rendered into LISP as vectors as follows:
+   1. depth  (integer, increasing with calls)
+   2. type   (apply, eval, load, other)
+   3. label  (often the name of a function or expression type)
+   4. status (a string (or #f) describing the state of the operation)
+   5. op     (the thing being executed (expression, procedure applied, etc)
+   6. args   (a vector of arguments to an applied procedure, or () otherwise)
+   7. env    (the lexical environment established by the frame)
+   8. source (the original source code for the call, if available)
+ */
+
 static lispval stack2lisp(struct FD_STACK *stack)
 {
-  lispval vec=fd_empty_vector(8);
-  U8_FIXED_OUTPUT(tmp,128);
-  FD_VECTOR_SET(vec,0,FD_INT(stack->stack_depth));
-  if (stack->stack_type)
-    FD_VECTOR_SET(vec,1,lispval_string(stack->stack_type));
-  else FD_VECTOR_SET(vec,1,lispval_string("uninitialized"));
-  if (stack->stack_label)
-    FD_VECTOR_SET(vec,2,lispval_string(stack->stack_label));
-  else FD_VECTOR_SET(vec,2,FD_FALSE);
-  if (stack->stack_status)
-    FD_VECTOR_SET(vec,3,lispval_string(stack->stack_status));
-  else FD_VECTOR_SET(vec,3,FD_FALSE);
-  if (VOIDP(stack->stack_op))
-    FD_VECTOR_SET(vec,4,FD_FALSE);
-  else {
-    lispval op=stack->stack_op;
-    FD_VECTOR_SET(vec,4,op);
-    fd_incref(op);}
+  int n = 8;
+  lispval depth = FD_INT(stack->stack_depth);
+  lispval type = FD_FALSE, label = FD_FALSE, status = FD_FALSE;
+  lispval op = stack->stack_op, argvec = FD_FALSE, env = FD_FALSE;
+  lispval source = FD_FALSE;
+  if (stack->stack_type) type = fd_intern(stack->stack_type);
+  if (stack->stack_label) label = lispval_string(stack->stack_label);
+  if (stack->stack_status) status = lispval_string(stack->stack_status);
+  if (FD_VOIDP(op)) op = FD_FALSE; else fd_incref(op);
   if ( stack->stack_args ) {
     lispval n=stack->n_args, i=0;
     lispval *args=stack->stack_args;
-    lispval argvec=fd_make_vector(n,args);
-    while (i<n) {lispval elt=args[i++]; fd_incref(elt);}
-    FD_VECTOR_SET(vec,5,argvec);}
-  else FD_VECTOR_SET(vec,5,FD_FALSE);
+    argvec=fd_make_vector(n,args);
+    while (i<n) {lispval elt=args[i++]; fd_incref(elt);}}
   if (stack->stack_env) {
     lispval bindings = stack->stack_env->env_bindings;
     if ( (SLOTMAPP(bindings)) || (SCHEMAPP(bindings)) ) {
-      lispval b=fd_copy(bindings);
-      FD_VECTOR_SET(vec,6,b);}
-    else FD_VECTOR_SET(vec,6,FD_FALSE);}
+      env = fd_copy(bindings);}}
   if (!((FD_NULLP(stack->stack_source))||(VOIDP(stack->stack_source)))) {
-    lispval source = stack->stack_source;
-    FD_VECTOR_SET(vec,7,source);
+    source = stack->stack_source;
     fd_incref(source);}
-  else FD_VECTOR_SET(vec,7,FD_FALSE);
-  return vec;
+  if (FD_FALSEP(status)) {
+    n--; if (FD_FALSEP(env)) { n--; if (FD_FALSEP(source)) {
+        n--; if (FD_FALSEP(argvec)) {
+          n--;}}}}
+  switch (n) {
+  case 4:
+    return fd_init_compound(NULL,stack_entry_symbol,0,4,depth,type,op,label);
+  case 5:
+    return fd_init_compound(NULL,stack_entry_symbol,0,5,
+                            depth,type,op,label,argvec);
+  case 6:
+    return fd_init_compound(NULL,stack_entry_symbol,0,6,
+                            depth,type,op,label,argvec,source);
+  case 7:
+    return fd_init_compound(NULL,stack_entry_symbol,0,7,
+                            depth,type,op,label,argvec,source,env);
+  default:
+    return fd_init_compound(NULL,stack_entry_symbol,0,8,
+                            depth,type,op,label,argvec,source,env,status);
+  }
 }
 
 FD_EXPORT
 lispval fd_get_backtrace(struct FD_STACK *stack)
 {
-  lispval result = FD_EMPTY_LIST, *tail=&result;
   if (stack == NULL) stack=fd_stackptr;
+  if (stack == NULL) return FD_EMPTY_LIST;
+  int n = stack->stack_depth+1, i = stack->stack_depth;
+  lispval result = fd_make_vector(n,NULL);
   while (stack) {
     lispval entry = stack2lisp(stack);
-    lispval pair  = fd_init_pair(NULL,entry,FD_EMPTY_LIST);
-    *tail=pair;
-    tail = &(FD_CDR(pair));
-    stack=stack->stack_caller;}
+    FD_VECTOR_SET(result,i,entry);
+    stack=stack->stack_caller;
+    i--;}
   return result;
 }
 
@@ -117,6 +142,22 @@ void fd_sum_backtrace(u8_output out,lispval backtrace)
           u8_puts(out,CSTRING(status));
           u8_putc(out,')');}
         n++;}
+      else if (FD_COMPOUND_TYPEP(entry,stack_entry_symbol)) {
+        lispval type=FD_COMPOUND_REF(entry,1);
+        lispval label=FD_COMPOUND_REF(entry,2);
+        lispval status=FD_COMPOUND_REF(entry,3);
+        if (n) u8_puts(out," ⇒ ");
+        if (STRINGP(label)) u8_puts(out,CSTRING(label));
+        else u8_putc(out,'?');
+        if (STRINGP(type)) {
+          u8_putc(out,'.');
+          u8_puts(out,CSTRING(type));}
+        else u8_puts(out,".?");
+        if (STRINGP(status)) {
+          u8_putc(out,'(');
+          u8_puts(out,CSTRING(status));
+          u8_putc(out,')');}
+        n++;}
       else {}
       scan=FD_CDR(scan);}}
 }
@@ -129,6 +170,9 @@ void fd_init_stacks_c()
 #else
   fd_stackptr=NULL;
 #endif
+
+  stack_entry_symbol = fd_intern("%STACK");
+
 }
 
 /* Emacs local variables

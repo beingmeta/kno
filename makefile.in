@@ -1633,9 +1633,10 @@ update-fdserv: src/apache2/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 
 tests/tests.log: tests/scheme/fdexec tests/scheme/makefile.in
 	@echo "#### Running tests scripts, output in" $@
+	@echo "#### Note that killed/exited messages for the 'countup' scripts are normal"
 	@make -s -C tests/scheme testclean 2>&1 > tests/testclean.log
 	@make -s -C tests/scheme -k -j 2>&1 > tests/tests.log && \
-	cp tests/libtests.log tests/libtests-`date +%d%b%yT%T`.log;
+	cp tests/tests.log tests/tests-`date +%d%b%yT%T`.log;
 tests: tests/tests.log
 
 tests/libtests.log: tests/scheme/fdexec tests/scheme/makefile.in
