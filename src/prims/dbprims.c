@@ -33,7 +33,7 @@
 
 static lispval pools_symbol, indexes_symbol, id_symbol, drop_symbol;
 static lispval flags_symbol, register_symbol, readonly_symbol, phased_symbol;
-static lispval background_symbol, adjunct_symbol, sparse_symbol;
+static lispval background_symbol, adjunct_symbol, sparse_symbol, repair_symbol;
 
 static lispval slotidp(lispval arg)
 {
@@ -105,6 +105,8 @@ static fd_storage_flags getdbflags(lispval opts,fd_storage_flags init_flags)
       flags |= FD_STORAGE_PHASED;
     if (!(testopt(opts,register_symbol,1)))
       flags |= FD_STORAGE_UNREGISTERED;
+    if (testopt(opts,repair_symbol,0))
+      flags |= FD_STORAGE_REPAIR;
     if ( (is_index) && (testopt(opts,background_symbol,0)) )
       flags |= FD_INDEX_IN_BACKGROUND;
     if ( (!(is_index)) && (testopt(opts,adjunct_symbol,0)) )
@@ -3746,6 +3748,7 @@ FD_EXPORT void fd_init_dbprims_c()
   sparse_symbol    = fd_intern("SPARSE");
   adjunct_symbol    = fd_intern("ADJUNCT");
   background_symbol = fd_intern("BACKGROUND");
+  repair_symbol = fd_intern("REPAIR");
 
 }
 
