@@ -391,8 +391,7 @@ static lispval mongodb_open(lispval arg,lispval opts)
     srv->dbopts = opts; fd_incref(opts);
     srv->dbflags = flags;
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
-      u8_log(-LOG_INFO,"MongoDB/open",
-             "Opened %s with %s",dbname,srv->dbspec);
+      u8_log(LOG_INFO,"MongoDB/open","Opened %s with %s",dbname,srv->dbspec);
     return (lispval)srv;}
   else {
     mongoc_uri_destroy(info); fd_decref(opts); u8_free(uri);
@@ -582,7 +581,7 @@ static lispval mongodb_insert(lispval arg,lispval obj,lispval opts_arg)
       bson_t reply; bson_error_t error;
       mongoc_write_concern_t *wc = get_write_concern(opts);
       if ((logops)||(flags&FD_MONGODB_LOGOPS))
-        u8_log(-LOG_INFO,"MongoDB/insert",
+        u8_log(LOG_INFO,"MongoDB/insert",
                "Inserting %d items into %q",FD_CHOICE_SIZE(obj),arg);
       if (FD_CHOICEP(obj)) {
         mongoc_bulk_operation_t *bulk=
@@ -659,7 +658,7 @@ static lispval mongodb_remove(lispval arg,lispval obj,lispval opts_arg)
         fd_decref(id);}}
     else bson_append_dtype(q,"_id",3,obj);
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
-      u8_log(-LOG_INFO,"MongoDB/remove","Removing %q items from %q",obj,arg);
+      u8_log(LOG_INFO,"MongoDB/remove","Removing %q items from %q",obj,arg);
     if (mongoc_collection_remove(collection,
                                  ((hasid)?(MONGOC_REMOVE_SINGLE_REMOVE):
                                   (MONGOC_REMOVE_NONE)),
@@ -702,7 +701,7 @@ static lispval mongodb_update(lispval arg,lispval query,lispval update,
       ((boolopt(opts,upsertsym,0))?(MONGOC_UPDATE_UPSERT):(0)) |
       ((boolopt(opts,singlesym,0))?(0):(MONGOC_UPDATE_MULTI_UPDATE));
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
-      u8_log(-LOG_INFO,"MongoDB/update",
+      u8_log(LOG_INFO,"MongoDB/update",
              "Updating matches to %q with %q in %q",query,update,arg);
     if ((q)&&(u))
       success = mongoc_collection_update(collection,update_flags,q,u,wc,&error);
@@ -760,7 +759,7 @@ static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
     lispval *vec = NULL; size_t n = 0, max = 0;
     int sort_results = fd_testopt(opts,FDSYM_SORTED,FD_VOID);
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
-      u8_log(-LOG_INFO,"MongoDB/find",
+      u8_log(LOG_INFO,"MongoDB/find",
              "Matches to %q in %q",query,arg);
     if (q)
       cursor = mongoc_collection_find_with_opts(collection,q,findopts,rp);
@@ -831,7 +830,7 @@ static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
       bson_t *fields = get_projection(opts,flags);
       mongoc_read_prefs_t *rp = get_read_prefs(opts);
       if ((logops)||(flags&FD_MONGODB_LOGOPS))
-        u8_log(-LOG_INFO,"MongoDB/find","Matches to %q in %q",query,arg);
+        u8_log(LOG_INFO,"MongoDB/find","Matches to %q in %q",query,arg);
       if (q) cursor = mongoc_collection_find
                (collection,MONGOC_QUERY_NONE,
                 FD_FIX2INT(skip_arg),
@@ -909,7 +908,7 @@ static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
       bson_append_dtype(out,"_id",3,query);
       q = out.bson_doc;}
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
-      u8_log(-LOG_INFO,"MongoDB/get","Matches to %q in %q",query,arg);
+      u8_log(LOG_INFO,"MongoDB/get","Matches to %q in %q",query,arg);
     if (q) cursor = mongoc_collection_find_with_opts
              (collection,q,findopts,rp);
     if ((cursor)&&(mongoc_cursor_next(cursor,&doc))) {
@@ -951,7 +950,7 @@ static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
       bson_append_dtype(out,"_id",3,query);
       q = out.bson_doc;}
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
-      u8_log(-LOG_INFO,"MongoDB/get","Matches to %q in %q",query,arg);
+      u8_log(LOG_INFO,"MongoDB/get","Matches to %q in %q",query,arg);
     if (q) cursor = mongoc_collection_find
              (collection,MONGOC_QUERY_NONE,0,1,0,q,fields,NULL);
     if ((cursor)&&(mongoc_cursor_next(cursor,&doc))) {
@@ -998,7 +997,7 @@ static lispval mongodb_modify(lispval arg,lispval query,lispval update,
       U8_CLEAR_ERRNO();
       return FD_ERROR_VALUE;}
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
-      u8_log(-LOG_INFO,"MongoDB/find+modify","Matches to %q using %q in %q",
+      u8_log(LOG_INFO,"MongoDB/find+modify","Matches to %q using %q in %q",
              query,update,arg);
     if (mongoc_collection_find_and_modify
         (collection,
@@ -1190,7 +1189,7 @@ static lispval mongodb_command(int n,lispval *args)
     command = make_command(n-2,args+2);
     opts = args[1];}
   if ((logops)||(flags&FD_MONGODB_LOGOPS)) {
-    u8_log(-LOG_INFO,"MongoDB/RESULTS","At %q: %q",arg,command);}
+    u8_log(LOG_INFO,"MongoDB/RESULTS","At %q: %q",arg,command);}
   if (FD_TYPEP(arg,fd_mongoc_server))
     result = db_command(arg,command,opts);
   else if (FD_TYPEP(arg,fd_mongoc_collection))
@@ -1279,7 +1278,7 @@ static lispval mongodb_simple_command(int n,lispval *args)
     command = make_command(n-2,args+2);
     opts = args[1];}
   if ((logops)||(flags&FD_MONGODB_LOGOPS)) {
-    u8_log(-LOG_INFO,"MongoDB/DO","At %q: %q",arg,command);}
+    u8_log(LOG_INFO,"MongoDB/DO","At %q: %q",arg,command);}
   if (FD_TYPEP(arg,fd_mongoc_server))
     result = db_simple_command(arg,command,opts);
   else if (FD_TYPEP(arg,fd_mongoc_collection))
