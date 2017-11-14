@@ -270,7 +270,7 @@ _make_lambda(u8_string name,
         fd_add(attribs,key,value);
         scan=FD_CDR(FD_CDR(scan));}}
     else {
-      u8_log(LOGERR,"BadProcedureDECL",
+      u8_log(LOG_ERR,"BadProcedureDECL",
              "Couldn't get decls from %q",decls);}}
   scan = arglist; i = 0; while (PAIRP(scan)) {
     lispval argspec = FD_CAR(scan);

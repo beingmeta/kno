@@ -988,7 +988,7 @@ int main(int argc,char **argv)
       continue;}
     start_time = u8_elapsed_time();
     if (errno) {
-      u8_log(LOGWARN,u8_strerror(errno),"Unexpected errno after read");
+      u8_log(LOG_WARN,u8_strerror(errno),"Unexpected errno after read");
       errno = 0;}
     if (FD_ABORTP(expr)) {
       result = fd_incref(expr);
@@ -1003,7 +1003,7 @@ int main(int argc,char **argv)
         result = fd_read_dtype(fd_readbuf(eval_server));}
       else result = fd_eval(expr,env);}
     if (errno) {
-      u8_log(LOGWARN,u8_strerror(errno),"Unexpected errno after eval");
+      u8_log(LOG_WARN,u8_strerror(errno),"Unexpected errno after eval");
       errno = 0;}
     if (PRECHOICEP(result))
       result = fd_simplify_choice(result);
@@ -1069,7 +1069,7 @@ int main(int argc,char **argv)
       output_result(out,result,histref,is_histref);
       stat_line = 1;}
     if (errno) {
-      u8_log(LOGWARN,u8_strerror(errno),"Unexpected errno after output");
+      u8_log(LOG_WARN,u8_strerror(errno),"Unexpected errno after output");
       errno = 0;}
     if (stat_line) {
       if (histref<0)

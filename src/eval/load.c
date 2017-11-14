@@ -534,7 +534,7 @@ static lispval fd_run(u8_string source_file,struct U8_OUTPUT *out,
   else {
     lispval main_proc = fd_symeval(FDSYM_MAIN,env);
     if (FD_VOIDP(main_proc)) {
-      u8_log(LOGCRIT,"NoMain",
+      u8_log(LOG_CRIT,"NoMain",
              "No (MAIN) was defined in '%s', returning last value",
              source_file);
       return load_result;}

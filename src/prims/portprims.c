@@ -535,7 +535,7 @@ static lispval lisp_pprint(int n,lispval *args)
         used[arg_i]=1;}
       else if (FD_FALSEP(arg)) {
         stringout=1; used[arg_i]=1;}
-      else u8_log(LOGWARN,"BadPPrintArg","%q",arg);
+      else u8_log(LOG_WARN,"BadPPrintArg","%q",arg);
       arg_i++;}
   if ( (FD_PAIRP(opts)) || (FD_TABLEP(opts)) ) {
     lispval maxelts = fd_getopt(opts,maxelts_symbol,FD_VOID);
@@ -578,7 +578,7 @@ static lispval lisp_pprint(int n,lispval *args)
            margin_width (chars) */
         ppcxt.pp_margin_len=margin_width;}
       else if ( (FD_VOIDP(margin_opt)) || (FD_DEFAULTP(margin_opt)) ) {}
-      else u8_log(LOGWARN,"BadPPrintMargin","%q",margin_opt);
+      else u8_log(LOG_WARN,"BadPPrintMargin","%q",margin_opt);
       fd_decref(margin_opt);}
     if (ppcxt.pp_maxcol>0) {
       lispval maxcol = fd_getopt(opts,maxcol_symbol,FD_VOID);

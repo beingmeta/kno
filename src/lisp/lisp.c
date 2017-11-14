@@ -169,7 +169,7 @@ FD_EXPORT void fd_log_status(u8_condition why)
   int retval = u8_getrusage(0,&usage);
   if (why==NULL) why="Status";
   if (retval<0) {
-    u8_log(LOGCRIT,_("RUSAGE Failed"),
+    u8_log(LOG_CRIT,_("RUSAGE Failed"),
            "During a call to fd_log_status (%s)",why);
     return;}
   else {

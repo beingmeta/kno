@@ -932,7 +932,7 @@ static lispval swapout_lexpr(int n,lispval *args)
           return fd_type_error(_("pool, index, or OIDs"),
                                "swapout_lexpr",e);}
         if (rv<0) {
-          u8_log(LOGWARN,"SwapoutFailed","Error swapping out %q",e);
+          u8_log(LOG_WARN,"SwapoutFailed","Error swapping out %q",e);
           fd_clear_errors(1);}
         else rv_sum = rv_sum+rv;}
       fd_swapout_oids(oids);

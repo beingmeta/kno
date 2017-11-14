@@ -37,10 +37,10 @@ static void truncate_failed(int fileno,u8_string file)
 {
   int got_err = errno; errno=0;
   if (got_err)
-    u8_logf(LOGWARN,"TruncateFailed",
+    u8_logf(LOG_WARN,"TruncateFailed",
             "Couldn't truncate memindex file %s (fd=%d) (errno=%d:%s)",
             file,fileno,got_err,u8_strerror(got_err));
-  else u8_logf(LOGWARN,"TruncateFailed",
+  else u8_logf(LOG_WARN,"TruncateFailed",
                "Couldn't truncate memindex file %s (fd=%d)",file,fileno);
 }
 

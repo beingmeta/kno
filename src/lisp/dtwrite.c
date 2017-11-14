@@ -212,7 +212,7 @@ FD_EXPORT ssize_t fd_write_dtype(struct FD_OUTBUF *out,lispval x)
             return 3;}
         case 4: fd_output_byte(out,dt_empty_list); return 1;
         default:
-          u8_log(LOGCRIT,"InvalidConstantDType",
+          u8_log(LOG_CRIT,"InvalidConstantDType",
                  "The constant '%q' doesn't have a DType representation",
                  x);
           return -1;}

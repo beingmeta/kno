@@ -223,7 +223,7 @@ static fd_pool open_oidpool(u8_string fname,
   pool->oidpool_format = oidpool_format;
 
   if (load > capacity) {
-    u8_logf(LOGCRIT,fd_PoolOverflow,
+    u8_logf(LOG_CRIT,fd_PoolOverflow,
             "The oidpool %s specifies a load (%lld) > its capacity (%lld)",
             fname,load,capacity);
     pool->pool_load=load=capacity;}
@@ -923,13 +923,13 @@ static int oidpool_commit(fd_pool p,fd_commit_phase phase,
       int rv = u8_removefile(rollback_file);
       if (rv<0) {
         int saved_errno = errno; errno=0;
-        u8_logf(LOGWARN,"CleanupFailed",
+        u8_logf(LOG_WARN,"CleanupFailed",
                 "Rollback file %s couldn't be deleted errno=%d:%s",
                 rollback_file,saved_errno,u8_strerror(saved_errno));}
       u8_free(rollback_file);
       return 0;}
     else {
-      u8_logf(LOGWARN,"Rollback file %s was deleted",rollback_file);
+      u8_logf(LOG_WARN,"Rollback file %s was deleted",rollback_file);
       u8_free(rollback_file);
       return -1;}}
   case fd_commit_rollback: {
@@ -1018,7 +1018,7 @@ static ssize_t mmap_write_offdata
     mmap(NULL,256+(byte_length),(PROT_READ|PROT_WRITE),MAP_SHARED,
          stream->stream_fileno,0);
   if ( (memblock==NULL) || (memblock == MAP_FAILED) ) {
-    u8_logf(LOGCRIT,u8_strerror(errno),
+    u8_logf(LOG_CRIT,u8_strerror(errno),
             "Failed MMAP of %lld bytes of offdata for oidpool %s",
             256+(byte_length),op->poolid);
     U8_CLEAR_ERRNO();
@@ -1260,7 +1260,7 @@ static void oidpool_setcache(fd_pool p,int level)
       U8_CLEAR_ERRNO();}}
 
   if ( (LOCK_POOLSTREAM(op,"oidpool_setcache")) < 0) {
-    u8_logf(LOGWARN,"PoolStreamClosed",
+    u8_logf(LOG_WARN,"PoolStreamClosed",
             "During oidpool_setcache for %s",op->poolid);
     UNLOCK_POOLSTREAM(op);
     fd_unlock_pool_struct((fd_pool)op);
@@ -1308,7 +1308,7 @@ static void reload_offdata(fd_oidpool op)
      only void those OIDs */
   unsigned int load;
   if ( (LOCK_POOLSTREAM(op,"oidpool/reload_offdata")) < 0) {
-    u8_logf(LOGWARN,"PoolStreamClosed",
+    u8_logf(LOG_WARN,"PoolStreamClosed",
             "During oidpool_reload_offdata for %s",op->poolid);
     UNLOCK_POOLSTREAM(op);
     return;}

@@ -108,17 +108,17 @@ FD_EXPORT void fd_register_pool_type
   ptype = pool_typeinfo; while (ptype) {
     if (strcasecmp(name,ptype->pool_typename)==0) {
       if ((matcher) && (ptype->matcher) && (matcher!=ptype->matcher))
-        u8_logf(LOGWARN,"PoolTypeInconsistency",
+        u8_logf(LOG_WARN,"PoolTypeInconsistency",
                 "Attempt to redefine pool type '%s' with different matcher",
                 name);
       else if ((type_data) && (ptype->type_data) &&
                (type_data!=ptype->type_data))
-        u8_logf(LOGWARN,"PoolTypeInconsistency",
+        u8_logf(LOG_WARN,"PoolTypeInconsistency",
                 "Attempt to redefine pool type '%s' with different type data",
                 name);
       else if ((handler) && (ptype->handler) &&
                (handler!=ptype->handler))
-        u8_logf(LOGWARN,"PoolTypeInconsistency",
+        u8_logf(LOG_WARN,"PoolTypeInconsistency",
                 "Attempt to redefine pool type '%s' with different handler",
                 name);
       else break;}
@@ -181,7 +181,7 @@ fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,lispval opts)
           fd_decref(adjuncts);
           if (rv<0) {
             if (flags & FD_STORAGE_NOERR) {
-              u8_logf(LOGCRIT,fd_AdjunctError,
+              u8_logf(LOG_CRIT,fd_AdjunctError,
                       "Opening pool '%s' with opts=%q",
                       opened->poolid,opts);
               fd_clear_errors(1);}
@@ -240,7 +240,7 @@ static int fix_pool_opts(u8_string spec,lispval opts)
       lispval opt_root=opts;
       unsigned int new_capacity =
         (1+(capacity/FD_OID_BUCKET_SIZE))*FD_OID_BUCKET_SIZE;
-      u8_logf(LOGWARN,"FixingCapacity",
+      u8_logf(LOG_WARN,"FixingCapacity",
               "Rounding up the capacity of %s from %llu to 0x%llx",
               spec,(ull)capacity,(ull)new_capacity);
       if (FD_PAIRP(opts)) opt_root=FD_CAR(opts);
@@ -288,17 +288,17 @@ FD_EXPORT void fd_register_index_type
   ixtype = index_typeinfo; while (ixtype) {
     if (strcasecmp(name,ixtype->index_typename)==0) {
       if ((matcher) && (ixtype->matcher) && (matcher!=ixtype->matcher))
-        u8_logf(LOGWARN,"IndexTypeInconsistency",
+        u8_logf(LOG_WARN,"IndexTypeInconsistency",
                 "Attempt to redefine index type '%s' with different matcher",
                 name);
       else if ((type_data) && (ixtype->type_data) &&
                (type_data!=ixtype->type_data))
-        u8_logf(LOGWARN,"IndexTypeInconsistency",
+        u8_logf(LOG_WARN,"IndexTypeInconsistency",
                 "Attempt to redefine index type '%s' with different type data",
                 name);
       else if ((handler) && (ixtype->handler) &&
                (handler!=ixtype->handler))
-        u8_logf(LOGWARN,"IndexTypeInconsistency",
+        u8_logf(LOG_WARN,"IndexTypeInconsistency",
                 "Attempt to redefine index type '%s' with different handler",
                 name);
       else break;}
@@ -493,7 +493,7 @@ static u8_uid get_owner(lispval spec)
     u8_uid uid = u8_getuid(FD_CSTRING(spec));
     if (uid>=0) return uid;}
   else {}
-  u8_logf(LOGWARN,"NoSuchUser",
+  u8_logf(LOG_WARN,"NoSuchUser",
           "Couldn't identify a user from %q",spec);
   return (u8_gid) -1;
 }
@@ -506,7 +506,7 @@ static u8_gid get_group(lispval spec)
     u8_gid gid = u8_getgid(FD_CSTRING(spec));
     if (gid>=0) return gid;}
   else {}
-  u8_logf(LOGWARN,"NoSuchGroup",
+  u8_logf(LOG_WARN,"NoSuchGroup",
           "Couldn't identify a group from %q",spec);
   return (u8_gid) -1;
 }
@@ -530,12 +530,12 @@ FD_EXPORT int fd_set_file_opts(u8_string filename,lispval opts)
       u8_free(path);
       if (rv<0) {
         if (file_owner < 0)
-          u8_logf(LOGWARN,"FileOptsFailed",
+          u8_logf(LOG_WARN,"FileOptsFailed",
                   "Couldn't set the group of '%s' to %q",filename,group);
         else if (file_group < 0)
-          u8_logf(LOGWARN,"FileOptsFailed",
+          u8_logf(LOG_WARN,"FileOptsFailed",
                   "Couldn't set the owner of '%s' to %q",filename,owner);
-        else u8_logf(LOGWARN,"FileOptsFailed",
+        else u8_logf(LOG_WARN,"FileOptsFailed",
                      "Couldn't set the owner:group of '%s' to %q:%q",
                      filename,owner,group);
         return -1;}
@@ -546,12 +546,12 @@ FD_EXPORT int fd_set_file_opts(u8_string filename,lispval opts)
     char *s = u8_tolibc(filename);
     int rv = u8_chmod(s,((mode_t)(FD_FIX2INT(mode))));
     if (rv<0) {
-      u8_logf(LOGWARN,"FileOptsFailed",
+      u8_logf(LOG_WARN,"FileOptsFailed",
               "Couldn't change file mode of '%s' to %q",filename,mode);
       return rv;}
     else return 1;}
   else {}
-  u8_logf(LOGWARN,"FileOptsFailed",
+  u8_logf(LOG_WARN,"FileOptsFailed",
           "Couldn't set the mode of '%s' to %q",filename,mode);
   return -1;
 }

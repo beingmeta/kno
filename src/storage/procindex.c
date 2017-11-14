@@ -58,7 +58,7 @@ fd_index fd_make_procindex(lispval opts,lispval state,
       int ival=FD_FIX2INT(v);
       cache_level=ival;}
     else if ( (FD_TRUEP(v)) || (v == FD_DEFAULT_VALUE) ) {}
-    else u8_logf(LOGCRIT,"BadCacheLevel",
+    else u8_logf(LOG_CRIT,"BadCacheLevel",
                  "Invalid cache level %q specified for procindex %s",
                  v,id);
     fd_decref(v);}

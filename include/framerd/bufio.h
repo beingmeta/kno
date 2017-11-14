@@ -111,11 +111,11 @@ FD_FASTOP void _BUFIO_FREE(struct FD_RAWBUF *buf)
 #if HAVE_MMAP
     int rv = munmap(curbuf,curlen);
     if (rv == 0) return;
-    u8_log(LOGWARN,"BufferUnmapFailed","errno=%d (%s)",
+    u8_log(LOG_WARN,"BufferUnmapFailed","errno=%d (%s)",
            errno,u8_strerror(errno));
     errno=0;}
 #else
-    u8_log(LOGCRIT,"Bad BUFIO buffer",
+    u8_log(LOG_CRIT,"Bad BUFIO buffer",
            "When freeing buffer for %llx, it claims to be MMAPPED but "
            "we were not compiled with MMAP support",
            buf);

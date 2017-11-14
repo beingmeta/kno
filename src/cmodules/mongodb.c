@@ -9,6 +9,9 @@
 #define _FILEINFO __FILE__
 #endif
 
+static int mongodb_loglevel;
+#define U8_LOGLEVEL mongodb_loglevel
+
 #define U8_INLINE_IO 1
 
 #include "framerd/fdsource.h"
@@ -38,7 +41,7 @@ u8_condition fd_BSON_Compound_Overflow=_("BSON/FramerD compound overflow");
 
 static lispval sslsym;
 static int default_ssl = 0;
-static int client_loglevel = LOG_INFO;
+static int mongodb_loglevel = LOG_INFO;
 static int logops = 0;
 
 static lispval dbname_symbol, username_symbol, auth_symbol, fdtag_symbol;
@@ -81,21 +84,21 @@ static mongoc_client_t *get_client(FD_MONGODB_DATABASE *server,int block)
 {
   mongoc_client_t *client;
   if (block) {
-    u8_log(client_loglevel,_("MongoDB/getclient"),
-           "Getting client from server %llx (%s)",server->dbclients,server->dbspec);
+    u8_logf(LOG_INFO,_("MongoDB/getclient"),
+            "Getting client from server %llx (%s)",server->dbclients,server->dbspec);
     client = mongoc_client_pool_pop(server->dbclients);}
   else client = mongoc_client_pool_try_pop(server->dbclients);
-  u8_log(client_loglevel,_("MongoDB/gotclient"),
-         "Got client %llx from server %llx (%s)",
-         client,server->dbclients,server->dbspec);
+  u8_logf(LOG_INFO,_("MongoDB/gotclient"),
+          "Got client %llx from server %llx (%s)",
+          client,server->dbclients,server->dbspec);
   return client;
 }
 
 static void release_client(FD_MONGODB_DATABASE *server,mongoc_client_t *client)
 {
-  u8_log(client_loglevel,_("MongoDB/freeclient"),
-         "Releasing client %llx to server %llx (%s)",
-         client,server->dbclients,server->dbspec);
+  u8_logf(LOG_INFO,_("MongoDB/freeclient"),
+          "Releasing client %llx to server %llx (%s)",
+          client,server->dbclients,server->dbspec);
   mongoc_client_pool_push(server->dbclients,client);
 }
 
@@ -125,7 +128,7 @@ static u8_string stropt(lispval opts,lispval key,u8_string dflt)
     else if (FD_TYPEP(v,fd_secret_type))
       return u8_strdup(FD_CSTRING(v));
     else {
-      u8_log(LOG_WARN,"Invalid string option","%q=%q",key,v);
+      u8_logf(LOG_ERR,"Invalid string option","%q=%q",key,v);
       fd_decref(v);
       return NULL;}}
   else if (dflt == NULL) return dflt;
@@ -220,7 +223,7 @@ static int get_write_flags(lispval val)
   else if ((FD_UINTP(val))&&(FD_FIX2INT(val)>0))
     return FD_FIX2INT(val);
   else {
-    u8_log(LOGWARN,"mongodb/get_write_concern","Bad MongoDB write concern %q",val);
+    u8_logf(LOG_ERR,"mongodb/get_write_concern","Bad MongoDB write concern %q",val);
     return MONGOC_WRITE_CONCERN_W_DEFAULT;}
 }
 
@@ -255,7 +258,8 @@ static int getreadmode(lispval val)
   else if (FD_EQ(val,nearestsym))
     return MONGOC_READ_NEAREST;
   else {
-    u8_log(LOGWARN,"mongodb/getreadmode","Bad MongoDB read mode %q",val);
+    u8_logf(LOG_ERR,"mongodb/getreadmode",
+            "Bad MongoDB read mode %q",val);
     return MONGOC_READ_PRIMARY;}
 }
 
@@ -274,7 +278,8 @@ static mongoc_read_prefs_t *get_read_prefs(lispval opts)
         const bson_t *bson = fd_lisp2bson(s,flags,opts);
         mongoc_read_prefs_add_tag(rp,bson);}
       else {
-        u8_log(LOGWARN,"mongodb/getreadmode","Bad MongoDB read preference %q",s);}}
+        u8_logf(LOG_ERR,"mongodb/getreadmode",
+                "Bad MongoDB read preference %q",s);}}
     fd_decref(spec);
     return rp;}
 }
@@ -391,7 +396,8 @@ static lispval mongodb_open(lispval arg,lispval opts)
     srv->dbopts = opts; fd_incref(opts);
     srv->dbflags = flags;
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
-      u8_log(LOG_INFO,"MongoDB/open","Opened %s with %s",dbname,srv->dbspec);
+      u8_logf(LOG_INFO,"MongoDB/open",
+              "Opened %s with %s",dbname,srv->dbspec);
     return (lispval)srv;}
   else {
     mongoc_uri_destroy(info); fd_decref(opts); u8_free(uri);
@@ -548,7 +554,7 @@ static void client_done(lispval arg,mongoc_client_t *client)
       (struct FD_MONGODB_DATABASE *)(domain->domain_db);
     release_client(server,client);}
   else {
-    u8_log(LOG_WARN,"BAD client_done call","Wrong type for %q",arg);}
+    u8_logf(LOG_ERR,"BAD client_done call","Wrong type for %q",arg);}
 }
 
 /* This destroys the collection returns a client to a client pool. */
@@ -581,7 +587,7 @@ static lispval mongodb_insert(lispval arg,lispval obj,lispval opts_arg)
       bson_t reply; bson_error_t error;
       mongoc_write_concern_t *wc = get_write_concern(opts);
       if ((logops)||(flags&FD_MONGODB_LOGOPS))
-        u8_log(LOG_INFO,"MongoDB/insert",
+        u8_logf(LOG_DETAIL,"MongoDB/insert",
                "Inserting %d items into %q",FD_CHOICE_SIZE(obj),arg);
       if (FD_CHOICEP(obj)) {
         mongoc_bulk_operation_t *bulk=
@@ -658,7 +664,7 @@ static lispval mongodb_remove(lispval arg,lispval obj,lispval opts_arg)
         fd_decref(id);}}
     else bson_append_dtype(q,"_id",3,obj);
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
-      u8_log(LOG_INFO,"MongoDB/remove","Removing %q items from %q",obj,arg);
+      u8_logf(LOG_DETAIL,"MongoDB/remove","Removing %q items from %q",obj,arg);
     if (mongoc_collection_remove(collection,
                                  ((hasid)?(MONGOC_REMOVE_SINGLE_REMOVE):
                                   (MONGOC_REMOVE_NONE)),
@@ -701,7 +707,7 @@ static lispval mongodb_update(lispval arg,lispval query,lispval update,
       ((boolopt(opts,upsertsym,0))?(MONGOC_UPDATE_UPSERT):(0)) |
       ((boolopt(opts,singlesym,0))?(0):(MONGOC_UPDATE_MULTI_UPDATE));
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
-      u8_log(LOG_INFO,"MongoDB/update",
+      u8_logf(LOG_DETAIL,"MongoDB/update",
              "Updating matches to %q with %q in %q",query,update,arg);
     if ((q)&&(u))
       success = mongoc_collection_update(collection,update_flags,q,u,wc,&error);
@@ -713,11 +719,11 @@ static lispval mongodb_update(lispval arg,lispval query,lispval update,
     if (success) return FD_TRUE;
     else if (no_error) {
       if ((q)&&(u))
-        u8_log(LOG_WARN,"mongodb_update",
+        u8_logf(LOG_ERR,"mongodb_update",
                "Error %s on %s>%s>%s with query\nquery =  %q\nupdate =  %q\nflags = %q",
                error.message,db->dburi,db->dbname,
                domain->collection_name,query,update,opts);
-      else u8_log(LOG_WARN,"mongodb_update",
+      else u8_logf(LOG_ERR,"mongodb_update",
                   "Error %s on %s>%s>%s with query\nquery =  %q\nupdate =  %q\nflags = %q",
                   error.message,db->dburi,db->dbname,
                   domain->collection_name,query,update,opts);
@@ -759,8 +765,7 @@ static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
     lispval *vec = NULL; size_t n = 0, max = 0;
     int sort_results = fd_testopt(opts,FDSYM_SORTED,FD_VOID);
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
-      u8_log(LOG_INFO,"MongoDB/find",
-             "Matches to %q in %q",query,arg);
+      u8_logf(LOG_DETAIL,"MongoDB/find","Matches to %q in %q",query,arg);
     if (q)
       cursor = mongoc_collection_find_with_opts(collection,q,findopts,rp);
     if (cursor) {
@@ -830,7 +835,7 @@ static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
       bson_t *fields = get_projection(opts,flags);
       mongoc_read_prefs_t *rp = get_read_prefs(opts);
       if ((logops)||(flags&FD_MONGODB_LOGOPS))
-        u8_log(LOG_INFO,"MongoDB/find","Matches to %q in %q",query,arg);
+        u8_logf(LOG_DETAIL,"MongoDB/find","Matches to %q in %q",query,arg);
       if (q) cursor = mongoc_collection_find
                (collection,MONGOC_QUERY_NONE,
                 FD_FIX2INT(skip_arg),
@@ -908,7 +913,7 @@ static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
       bson_append_dtype(out,"_id",3,query);
       q = out.bson_doc;}
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
-      u8_log(LOG_INFO,"MongoDB/get","Matches to %q in %q",query,arg);
+      u8_logf(LOG_DETAIL,"MongoDB/get","Matches to %q in %q",query,arg);
     if (q) cursor = mongoc_collection_find_with_opts
              (collection,q,findopts,rp);
     if ((cursor)&&(mongoc_cursor_next(cursor,&doc))) {
@@ -950,7 +955,7 @@ static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
       bson_append_dtype(out,"_id",3,query);
       q = out.bson_doc;}
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
-      u8_log(LOG_INFO,"MongoDB/get","Matches to %q in %q",query,arg);
+      u8_logf(LOG_DETAIL,"MongoDB/get","Matches to %q in %q",query,arg);
     if (q) cursor = mongoc_collection_find
              (collection,MONGOC_QUERY_NONE,0,1,0,q,fields,NULL);
     if ((cursor)&&(mongoc_cursor_next(cursor,&doc))) {
@@ -997,7 +1002,7 @@ static lispval mongodb_modify(lispval arg,lispval query,lispval update,
       U8_CLEAR_ERRNO();
       return FD_ERROR_VALUE;}
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
-      u8_log(LOG_INFO,"MongoDB/find+modify","Matches to %q using %q in %q",
+      u8_logf(LOG_DETAIL,"MongoDB/find+modify","Matches to %q using %q in %q",
              query,update,arg);
     if (mongoc_collection_find_and_modify
         (collection,
@@ -1189,7 +1194,7 @@ static lispval mongodb_command(int n,lispval *args)
     command = make_command(n-2,args+2);
     opts = args[1];}
   if ((logops)||(flags&FD_MONGODB_LOGOPS)) {
-    u8_log(LOG_INFO,"MongoDB/RESULTS","At %q: %q",arg,command);}
+    u8_logf(LOG_DEBUG,"MongoDB/RESULTS","At %q: %q",arg,command);}
   if (FD_TYPEP(arg,fd_mongoc_server))
     result = db_command(arg,command,opts);
   else if (FD_TYPEP(arg,fd_mongoc_collection))
@@ -1278,7 +1283,7 @@ static lispval mongodb_simple_command(int n,lispval *args)
     command = make_command(n-2,args+2);
     opts = args[1];}
   if ((logops)||(flags&FD_MONGODB_LOGOPS)) {
-    u8_log(LOG_INFO,"MongoDB/DO","At %q: %q",arg,command);}
+    u8_logf(LOG_DEBUG,"MongoDB/DO","At %q: %q",arg,command);}
   if (FD_TYPEP(arg,fd_mongoc_server))
     result = db_simple_command(arg,command,opts);
   else if (FD_TYPEP(arg,fd_mongoc_collection))
@@ -1531,7 +1536,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
         long long int b64 = fd_bigint_to_long_long(b);
         ok = bson_append_int64(out,key,keylen,b64);}
       else {
-        u8_log(LOG_WARN,fd_MongoDB_Warning,
+        u8_logf(LOG_CRIT,fd_MongoDB_Warning,
                "Can't save bigint value %q",val);
         ok = bson_append_int32(out,key,keylen,0);}
       break;}
@@ -1968,7 +1973,7 @@ static void bson_read_step(FD_BSON_INPUT b,lispval into,lispval *loc)
                 i = 0; while (i<16) {
                   lispval value = fields[i++];
                   fd_decref(value);}
-                u8_log(LOG_WARN,fd_BSON_Compound_Overflow,
+                u8_logf(LOG_ERR,fd_BSON_Compound_Overflow,
                        "Compound of type %q: %q",tag,value);
                 FD_STOP_DO_CHOICES;
                 ok = 0;
@@ -1995,7 +2000,7 @@ static void bson_read_step(FD_BSON_INPUT b,lispval into,lispval *loc)
         value = bson_read_choice(b);
       else value = bson_read_vector(b);}
     else {
-      u8_log(LOGWARN,fd_BSON_Input_Error,
+      u8_logf(LOG_ERR,fd_BSON_Input_Error,
              "Can't handle BSON type %d",bt);
       return;}}
   if (!(FD_VOIDP(b.bson_fieldmap))) {
@@ -2139,7 +2144,7 @@ static void add_to_mongo_opmap(u8_string keystring)
                       1);
   if (entry)
     entry->kv_val = lispval_string(keystring);
-  else u8_log(LOG_WARN,"Couldn't add %s to the mongo opmap",keystring);
+  else u8_logf(LOG_ERR,"Couldn't add %s to the mongo opmap",keystring);
 }
 
 static void init_mongo_opmap()
@@ -2386,13 +2391,12 @@ static lispval mongodb_getinfo(lispval mongodb,lispval field)
 /* MongoDB logging */
 
 static int getu8loglevel(mongoc_log_level_t l);
-static int mongodb_loglevel = -1;
 static int mongodb_ignore_loglevel = -1;
 
 void mongoc_logger(mongoc_log_level_t l,const char *d,const char *m,void *u)
 {
   int u8l = getu8loglevel(l);
-  if (u8l<=LOG_CRIT)
+  if (u8l <= LOG_CRIT)
     u8_logger(u8l,d,m);
   else if ((mongodb_loglevel >= 0)&&
            (u8l <= mongodb_loglevel))
@@ -2596,9 +2600,9 @@ FD_EXPORT int fd_init_mongodb()
                      "Default flags (fixnum) for MongoDB/BSON processing",
                      fd_intconfig_get,fd_intconfig_set,&mongodb_defaults);
 
-  fd_register_config("MONGODB:LOGCLIENT",
+  fd_register_config("MONGODB:LOGLEVEL",
                      "Default flags (fixnum) for MongoDB/BSON processing",
-                     fd_intconfig_get,fd_intconfig_set,&client_loglevel);
+                     fd_intconfig_get,fd_intconfig_set,&mongodb_loglevel);
   fd_register_config("MONGODB:LOGOPS",
                      "Default flags (fixnum) for MongoDB/BSON processing",
                      fd_boolconfig_get,fd_boolconfig_set,&logops);

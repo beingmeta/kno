@@ -341,7 +341,7 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
                 FD_INT(metadata_loc));
       metadata=FD_ERROR_VALUE;}
     if (! ( (FD_FALSEP(metadata)) || (FD_SLOTMAPP(metadata)) ) ) {
-      u8_logf(LOGWARN,"BadMetaData","Ignoring bad metadata stored for %s",fname);
+      u8_logf(LOG_WARN,"BadMetaData","Ignoring bad metadata stored for %s",fname);
       metadata=FD_FALSE;}}
   if (FD_SLOTMAPP(metadata)) {
     struct FD_SLOTMAP *from_struct = &(index->index_metadata);
@@ -368,7 +368,7 @@ static fd_index recover_hashindex(u8_string fname,fd_storage_flags open_flags,
       u8_graberrno("recover_hashindex",recovery_file);
       return NULL;}
     else if (rv == 0)
-      u8_logf(LOGCRIT,"Corrupted hashindex",
+      u8_logf(LOG_CRIT,"Corrupted hashindex",
               "The hashindex file %s has a corrupted recovery file %s",
               fname,recovery_file);
     else {
@@ -381,10 +381,10 @@ static fd_index recover_hashindex(u8_string fname,fd_storage_flags open_flags,
         fd_seterr("RecoveryFailed","recover_hashindex",fname,FD_VOID);
         return NULL;}
       else {
-        u8_logf(LOGERR,"RecoveryFailed",
+        u8_logf(LOG_ERR,"RecoveryFailed",
                 "Recovering %s using %s failed",fname,recovery_file);
         u8_removefile(recovery_file);}}}
-  else u8_logf(LOGCRIT,"Corrupted hashindex",
+  else u8_logf(LOG_CRIT,"Corrupted hashindex",
                "The hashindex file %s doesn't have a recovery file %s",
                fname,recovery_file);
   if (fd_testopt(opts,fd_intern("FIXUP"),FD_VOID)) {
@@ -1000,7 +1000,7 @@ static lispval read_values
     fd_decref_ptr(result);
     return FD_ERROR;}
   else if (n_read != n_values) {
-    u8_logf(LOGWARN,"InconsistentValueSize",
+    u8_logf(LOG_WARN,"InconsistentValueSize",
             "In '%s', the number of stored values "
             "for %q, %lld != %lld (expected)",
             hx->indexid,key,n_read,n_values);
@@ -1404,7 +1404,7 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
         fd_get_chunk_ref(offdata,offtype,i,hx->index_n_buckets);
       if (ref.size>0) {
         if (n_to_fetch >= buckets_len) {
-          u8_logf(LOGWARN,"BadKeyCount",
+          u8_logf(LOG_WARN,"BadKeyCount",
                   "Bad key count in %s: %d",ix->indexid,total_keys);
           buckets=u8_big_realloc_n(buckets,n_buckets,FD_CHUNK_REF);
           buckets_len=n_buckets;}
@@ -1415,7 +1415,7 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
       FD_CHUNK_REF ref = fd_fetch_chunk_ref(s,256,offtype,i,1);
       if (ref.size>0) {
         if (n_to_fetch >= buckets_len) {
-          u8_logf(LOGWARN,"BadKeyCount",
+          u8_logf(LOG_WARN,"BadKeyCount",
                   "Bad key count in %s: %d",ix->indexid,total_keys);
           buckets=u8_big_realloc_n(buckets,n_buckets,FD_CHUNK_REF);
           buckets_len=n_buckets;}
@@ -1504,7 +1504,7 @@ struct FD_KEY_SIZE *hashindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
       FD_CHUNK_REF ref = fd_fetch_chunk_ref(s,256,offtype,i,1);
       if (ref.size>0) {
         if (n_to_fetch >= buckets_len) {
-          u8_logf(LOGWARN,"BadKeyCount",
+          u8_logf(LOG_WARN,"BadKeyCount",
                   "Bad key count in %s: %d",ix->indexid,total_keys);
           buckets=u8_realloc_n(buckets,n_buckets,FD_CHUNK_REF);
           buckets_len=n_buckets;}
@@ -1518,7 +1518,7 @@ struct FD_KEY_SIZE *hashindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
         (offdata,offtype,ref_i,hx->index_n_buckets);
       if (ref.size>0) {
         if (n_to_fetch >= buckets_len) {
-          u8_logf(LOGWARN,"BadKeyCount",
+          u8_logf(LOG_WARN,"BadKeyCount",
                   "Bad key count in %s: %d",ix->indexid,total_keys);
           /* Allocate the whole n_buckets if something goes wrong */
           buckets = u8_big_realloc_n(buckets,n_buckets,FD_CHUNK_REF);
@@ -1593,7 +1593,7 @@ static void hashindex_getstats(struct FD_HASHINDEX *hx,
         fd_get_chunk_ref(offdata,offtype,i,hx->index_n_buckets);
       if (ref.size>0) {
         if (n_to_fetch >= buckets_len) {
-          u8_logf(LOGWARN,"BadKeyCount",
+          u8_logf(LOG_WARN,"BadKeyCount",
                   "Bad key count in %s: %d",hx->indexid,total_keys);
           buckets=u8_realloc_n(buckets,n_buckets,FD_CHUNK_REF);
           buckets_len=n_buckets;}
@@ -2071,7 +2071,7 @@ FD_FASTOP fd_off_t extend_keybucket
                               ke[key_i].ke_vref.off,ke[key_i].ke_vref.size,
                               endpos);
           if (ke[key_i].ke_values!=VOID)
-            u8_logf(LOGWARN,"NotVoid",
+            u8_logf(LOG_WARN,"NotVoid",
                     "This value for key %d is %q, not VOID as expected",
                     key_i,ke[key_i].ke_values);
           endpos = ke[key_i].ke_vref.off+ke[key_i].ke_vref.size;}
@@ -2489,7 +2489,7 @@ static int hashindex_commit(fd_index ix,fd_commit_phase phase,
       u8_free(rollback_file);
       return rv;}
     else {
-      u8_logf(LOGWARN,"MissingRollbackFile",
+      u8_logf(LOG_WARN,"MissingRollbackFile",
               "Rollback file %s was deleted",rollback_file);
       u8_free(rollback_file);
       return 0;}}
@@ -2530,14 +2530,14 @@ static int update_hashindex_metadata(fd_hashindex hx,
       error=1;
     else {
       if ((metadata_end-metadata_pos) != new_metadata_size) {
-        u8_logf(LOGCRIT,"MetadataSizeIconsistency",
+        u8_logf(LOG_CRIT,"MetadataSizeIconsistency",
                 "There was an inconsistency writing the metadata for %s",
                 hx->indexid);}
       fd_write_8bytes_at(head,metadata_pos,0x30);
       fd_write_4bytes_at(head,metadata_end-metadata_pos,0x38);}}
   else error=1;
   if (error)
-    u8_logf(LOGCRIT,"MetaDataWriteError",
+    u8_logf(LOG_CRIT,"MetaDataWriteError",
             "There was an inconsistency writing the metadata for %s",
             hx->indexid);
   if (error)
@@ -2710,7 +2710,7 @@ static void reload_offdata(struct FD_INDEX *ix)
   fd_setpos(s,256);
   int retval = fd_read_ints(stream,int_len,offdata);
   if (retval<0)
-    u8_logf(LOGCRIT,"reload_offdata",
+    u8_logf(LOG_CRIT,"reload_offdata",
             "Couldn't reload offdata for %s",hx->indexid);
 }
 #endif

@@ -35,7 +35,7 @@ void write_cmd_file(u8_string cmd_file,u8_condition label,int argc,char **argv)
     ssize_t rv = write(fd,out.u8_outbuf,out.u8_write-out.u8_outbuf);
     if (rv<0) {
       int got_errno = errno; errno=0;
-      u8_log(LOGWARN,"SaveFailed",
+      u8_log(LOG_WARN,"SaveFailed",
              "Couldn't save the command line to %s (errno=%d:%s)",
              cmd_file,got_errno,u8_strerror(got_errno));}}
   u8_free(abspath);

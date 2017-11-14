@@ -94,7 +94,7 @@ static fd_pool open_file_pool(u8_string fname,fd_storage_flags flags,lispval opt
 
   load = fd_read_4bytes_at(s,16,FD_ISLOCKED);
   if (load > capacity) {
-    u8_logf(LOGCRIT,"LoadOverFlow",
+    u8_logf(LOG_CRIT,"LoadOverFlow",
             "The filepool %s specifies a load (%u) > its capacity (%u)",
             fname,load,capacity);
     pool->pool_load=load=capacity;}
@@ -521,7 +521,7 @@ static int file_pool_commit(fd_pool p,fd_commit_phase phase,
       u8_free(rollback_file);
       return rv;}
     else {
-      u8_logf(LOGWARN,"Rollback file %s was deleted",rollback_file);
+      u8_logf(LOG_WARN,"Rollback file %s was deleted",rollback_file);
       u8_free(rollback_file);
       return -1;}}
   case fd_commit_rollback: {

@@ -70,7 +70,7 @@ fd_pool fd_make_procpool(FD_OID base,
       int ival=FD_FIX2INT(v);
       pp->pool_cache_level=ival;}
     else if ( (FD_TRUEP(v)) || (v == FD_DEFAULT_VALUE) ) {}
-    else u8_logf(LOGCRIT,"BadCacheLevel",
+    else u8_logf(LOG_CRIT,"BadCacheLevel",
                  "Invalid cache level %q specified for procpool %s",
                  v,label);
     fd_decref(v);}
@@ -112,7 +112,7 @@ fd_pool fd_make_procpool(FD_OID base,
       FD_OID addr = FD_OID_ADDR(idval);
       pp->pool_typeid =
         u8_mkstring("@%lx/%lx",FD_OID_HI(addr),FD_OID_LO(addr));}
-    else u8_logf(LOGWARN,"BadPoolTypeID","%q",idval);
+    else u8_logf(LOG_WARN,"BadPoolTypeID","%q",idval);
     fd_decref(idval);}
 
   fd_register_pool((fd_pool)pp);

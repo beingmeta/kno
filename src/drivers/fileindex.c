@@ -1125,7 +1125,7 @@ static int fileindex_commit(fd_index ix,fd_commit_phase phase,
       u8_free(rollback_file);
       return rv;}
     else {
-      u8_logf(LOGWARN,"Rollback file %s was deleted",rollback_file);
+      u8_logf(LOG_WARN,"Rollback file %s was deleted",rollback_file);
       u8_free(rollback_file);
       return -1;}}
   default: {

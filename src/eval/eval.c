@@ -1366,7 +1366,7 @@ static lispval badp_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     if ( ( v == VOID ) || ( v == FD_UNBOUND ) )
       return FD_TRUE;
     else if  ( (v == FD_NULL) || (! (FD_CHECK_PTR(v)) ) ) {
-      u8_log(LOGWARN,fd_BadPtr,"Bad pointer value 0x%llx for %q",v,to_eval);
+      u8_log(LOG_WARN,fd_BadPtr,"Bad pointer value 0x%llx for %q",v,to_eval);
       return FD_TRUE;}
     else return FD_FALSE;}
   else {
@@ -1374,7 +1374,7 @@ static lispval badp_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     if ( ( v == VOID ) || ( v == FD_UNBOUND ) )
       return FD_TRUE;
     else if  ( (v == FD_NULL) || (! (FD_CHECK_PTR(v)) ) ) {
-      u8_log(LOGWARN,fd_BadPtr,"Bad pointer value 0x%llx for %q",v,to_eval);
+      u8_log(LOG_WARN,fd_BadPtr,"Bad pointer value 0x%llx for %q",v,to_eval);
       return FD_TRUE;}
     else {
       fd_decref(v);

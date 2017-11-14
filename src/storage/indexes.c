@@ -207,7 +207,7 @@ FD_EXPORT void fd_register_index(fd_index ix)
     lispval keyslotid = fd_slotmap_get(&(ix->index_metadata),FDSYM_KEYSLOT,FD_VOID);
     if ( (FD_SYMBOLP(keyslotid)) || (FD_OIDP(keyslotid)) )
       ix->index_keyslot=keyslotid;
-    else u8_logf(LOGWARN,"BadKeySlot",
+    else u8_logf(LOG_WARN,"BadKeySlot",
                  "Ignoring invalid keyslot from metadata: %q",keyslotid);
     fd_decref(keyslotid);}
   if (ix->index_flags&FD_STORAGE_UNREGISTERED)
@@ -1873,7 +1873,7 @@ FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args
       lispval defslot = args[0];
       if (!(FD_VOIDP(ix->index_keyslot))) {
         if (defslot == ix->index_keyslot) {
-          u8_logf(LOGNOTICE,"KeySlotOK",
+          u8_logf(LOG_NOTICE,"KeySlotOK",
                   "The keyslot of %s is already %q",ix->indexid,defslot);
           return defslot;}
         else return fd_err("KeySlotAlreadyDefined",

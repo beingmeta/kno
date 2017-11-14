@@ -146,7 +146,7 @@ FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
         int retval = (arg!=NULL) ? (fd_config_assignment(arg)) : (-1);
         FD_VECTOR_SET(config_args,config_i,lispval_string(arg)); config_i++;
         if (retval<0) {
-          u8_log(LOGCRIT,"FailedConfig",
+          u8_log(LOG_CRIT,"FailedConfig",
                  "Couldn't handle the config argument `%s`",
                  (arg == NULL) ? ((u8_string)carg) : (arg));
           u8_clear_errors(0);}
@@ -187,7 +187,7 @@ static void set_vector_length(lispval vector,int len)
     if (len>=0) {
       vec->vec_length = len;
       return;}}
-  u8_log(LOGCRIT,"Internal/CmdArgInitVec","Not a vector! %q",
+  u8_log(LOG_CRIT,"Internal/CmdArgInitVec","Not a vector! %q",
          vector);
 }
 
@@ -282,7 +282,7 @@ FD_EXPORT void fd_doexit(lispval arg)
   struct FD_ATEXIT *scan, *tmp;
   if (fd_exited) return;
   if (fd_in_doexit) {
-    u8_log(LOGWARN,"RecursiveExit","Recursive fd_doexit");
+    u8_log(LOG_WARN,"RecursiveExit","Recursive fd_doexit");
     return;}
   fd_in_doexit = 1;
   fd_exiting = 1;

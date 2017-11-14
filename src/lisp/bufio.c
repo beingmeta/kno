@@ -39,7 +39,7 @@ size_t fd_bigbuf_threshold = FD_BIGBUF_THRESHOLD;
 
 FD_EXPORT int fd_isreadbuf(struct FD_OUTBUF *b)
 {
-  u8_log(LOGCRIT,fd_IsReadBuf,
+  u8_log(LOG_CRIT,fd_IsReadBuf,
          "Trying to write to an input buffer 0x%llx",
          (unsigned long long)b);
   u8_seterr(fd_IsReadBuf,NULL,NULL);
@@ -48,7 +48,7 @@ FD_EXPORT int fd_isreadbuf(struct FD_OUTBUF *b)
 
 FD_EXPORT int fd_iswritebuf(struct FD_INBUF *b)
 {
-  u8_log(LOGCRIT,fd_IsWriteBuf,
+  u8_log(LOG_CRIT,fd_IsWriteBuf,
          "Trying to read from an output buffer 0x%llx",
          (unsigned long long)b);
   u8_seterr(fd_IsWriteBuf,NULL,NULL);
@@ -57,7 +57,7 @@ FD_EXPORT int fd_iswritebuf(struct FD_INBUF *b)
 
 FD_EXPORT lispval fdt_isreadbuf(struct FD_OUTBUF *b)
 {
-  u8_log(LOGCRIT,"WriteToRead",
+  u8_log(LOG_CRIT,"WriteToRead",
          "Trying to write to an input buffer 0x%llx",
          (unsigned long long)b);
   u8_seterr(fd_IsReadBuf,"ReturningDType",NULL);
@@ -66,7 +66,7 @@ FD_EXPORT lispval fdt_isreadbuf(struct FD_OUTBUF *b)
 
 FD_EXPORT lispval fdt_iswritebuf(struct FD_INBUF *b)
 {
-  u8_log(LOGCRIT,fd_IsWriteBuf,
+  u8_log(LOG_CRIT,fd_IsWriteBuf,
          "Trying to read from an output buffer 0x%llx",
          (unsigned long long)b);
   u8_seterr(fd_IsWriteBuf,"ReturningDType",NULL);
@@ -94,7 +94,7 @@ static ssize_t grow_output_buffer(struct FD_OUTBUF *b,size_t delta)
           (!(flags&FD_BUFFER_NO_FLUSH)) ) ) ) {
     ssize_t result = b->buf_flushfn(b,b->buf_data);
     if (result<0) {
-      u8_log(LOGWARN,"WriteFailed",
+      u8_log(LOG_WARN,"WriteFailed",
              "Can't flush output to file");
       return result;}
     /* See if that fixed it */
@@ -105,7 +105,7 @@ static ssize_t grow_output_buffer(struct FD_OUTBUF *b,size_t delta)
       b->buflim = b->bufwrite+delta;
       return (b->bufwrite+delta)-b->buffer;}
     else if (U8_BITP(flags,FD_BUFFER_NO_GROW)) {
-      u8_log(LOGWARN,"WriteFailed","Can't grow buffer");
+      u8_log(LOG_WARN,"WriteFailed","Can't grow buffer");
       return -1;}
     else {/* Go ahead and grow the buffer */}}
   size_t current_size = b->bufwrite-b->buffer;
@@ -144,7 +144,7 @@ static ssize_t grow_output_buffer(struct FD_OUTBUF *b,size_t delta)
     else if (cur_alloc == FD_MMAP_BUFFER) {
       int rv = munmap(old,b->buflen);
       if (rv) {
-        u8_log(LOGERR,"MUnmapFailed",
+        u8_log(LOG_ERR,"MUnmapFailed",
                "For buffer %llx (len=%lld) in %llx "
                "with errno=%d (%s), keeping new %llx",
                old,b->buflen,b,errno,u8_strerror(errno),new);

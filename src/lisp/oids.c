@@ -72,7 +72,7 @@ static int add_base_oid_index(FD_OID base)
       probe++; chain_len++;
       if (probe>=fd_oid_buckets_len) probe=0;
       if (probe==init_probe) {
-        u8_log(LOGCRIT,"Out of OID buckets",
+        u8_log(LOG_CRIT,"Out of OID buckets",
                "The OID bucket table has reached saturaration at %d buckets",
                fd_n_base_oids);
         return -1;}}

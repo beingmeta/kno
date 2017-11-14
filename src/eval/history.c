@@ -204,7 +204,7 @@ FD_EXPORT void fd_histinit(int size)
     lispval oldvec = VEC_REF(history,1);
     lispval topval = VEC_REF(history,0);
     if (!(FD_UINTP(topval))) {
-      u8_log(LOGWARN,"Bad history data",
+      u8_log(LOG_WARN,"Bad history data",
              "Negative topval in %q",history);
       fd_decref(newvec);
       return;}

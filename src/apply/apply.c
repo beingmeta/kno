@@ -198,12 +198,12 @@ FD_EXPORT ssize_t fd_init_cstack()
     unsigned long long val = fd_getint(fd_default_stackspec);
     if (val) return fd_stack_setsize((ssize_t) val);
     else {
-      u8_log(LOGCRIT,fd_BadStackSize,
+      u8_log(LOG_CRIT,fd_BadStackSize,
              "The default stack value %q wasn't a valid stack size",
              fd_default_stackspec);
       return -1;}}
   else {
-    u8_log(LOGCRIT,fd_BadStackSize,
+    u8_log(LOG_CRIT,fd_BadStackSize,
            "The default stack value %q wasn't a valid stack size",
            fd_default_stackspec);
     return -1;}

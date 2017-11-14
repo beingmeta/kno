@@ -149,7 +149,7 @@ static int check_for_injection()
     u8_string temp_file = u8_string_append(inject_file,".loading",NULL);
     int rv = u8_movefile(inject_file,temp_file);
     if (rv<0) {
-      u8_log(LOGWARN,"FDServlet/InjectionIgnored",
+      u8_log(LOG_WARN,"FDServlet/InjectionIgnored",
              "Can't stage injection file %s to %s",
              inject_file,temp_file);
       fd_clear_errors(1);
@@ -158,43 +158,43 @@ static int check_for_injection()
     else {
       u8_string content = u8_filestring(temp_file,NULL);
       if (content == NULL)  {
-        u8_log(LOGWARN,"FDServlet/InjectionCantRead",
+        u8_log(LOG_WARN,"FDServlet/InjectionCantRead",
                "Can't read %s",temp_file);
         fd_clear_errors(1);
         u8_free(temp_file);
         return -1;}
       else {
         lispval result;
-        u8_log(LOGWARN,"FDServlet/InjectLoad",
+        u8_log(LOG_WARN,"FDServlet/InjectLoad",
                "From %s\n\"%s\"",temp_file,content);
         result = fd_load_source(temp_file,working_env,NULL);
         if (FD_ABORTP(result)) {
           u8_exception ex = u8_current_exception;
           if (!(ex)) {
-            u8_log(LOGCRIT,"FDServlet/InjectError",
+            u8_log(LOG_CRIT,"FDServlet/InjectError",
                    "Unknown error processing injection from %s: \"%s\"",
                    inject_file,content);}
           else if ((ex->u8x_context!=NULL)&&
                    (ex->u8x_details!=NULL))
-            u8_log(LOGCRIT,"FDServlet/InjectionError",
+            u8_log(LOG_CRIT,"FDServlet/InjectionError",
                    "Error %s (%s) processing injection %s: %s\n\"%s\"",
                    ex->u8x_cond,ex->u8x_context,inject_file,
                    ex->u8x_details,content);
           else if (ex->u8x_context!=NULL)
-            u8_log(LOGCRIT,"FDServlet/InjectionError",
+            u8_log(LOG_CRIT,"FDServlet/InjectionError",
                    "Error %s (%s) processing injection %s\n\"%s\"",
                    ex->u8x_cond,ex->u8x_context,inject_file,content);
-          else u8_log(LOGCRIT,"FDServlet/InjectionError",
+          else u8_log(LOG_CRIT,"FDServlet/InjectionError",
                       "Error %s processing injection %s\n\"%s\"",
                       ex->u8x_cond,inject_file,content);
           fd_clear_errors(1);
           return -1;}
         else {
-          u8_log(LOGWARN,"FDServlet/InjectionDone",
+          u8_log(LOG_WARN,"FDServlet/InjectionDone",
                  "Finished from %s",inject_file);}
         rv = u8_removefile(temp_file);
         if (rv<0) {
-          u8_log(LOGCRIT,"FDServlet/InjectionCleanup",
+          u8_log(LOG_CRIT,"FDServlet/InjectionCleanup",
                  "Error removing %s",temp_file);
           fd_clear_errors(1);}
         fd_decref(result);
@@ -270,7 +270,7 @@ static int config_serve_port(lispval var,lispval val,void U8_MAYBE_UNUSED *data)
     else if (retval<0)
       fd_seterr(BadPortSpec,"config_serve_port",NULL,val);
     else {
-      u8_log(LOGWARN,"NoServers","No servers were added for port #%q",val);
+      u8_log(LOG_WARN,"NoServers","No servers were added for port #%q",val);
       return 0;}
     return retval;}
   else if (STRINGP(val)) {
@@ -281,7 +281,7 @@ static int config_serve_port(lispval var,lispval val,void U8_MAYBE_UNUSED *data)
       fd_seterr(BadPortSpec,"config_serve_port",NULL,val);
       return -1;}
     else {
-      u8_log(LOGWARN,"NoServers","No servers were added for port %q",val);
+      u8_log(LOG_WARN,"NoServers","No servers were added for port %q",val);
       return 0;}
     return retval;}
   else {
@@ -653,7 +653,7 @@ static void run_shutdown_procs()
       u8_log(LOG_WARN,ServerShutdown,"Calling shutdown procedure %q",proc);
       value = fd_apply(proc,1,&shutval);
       fd_decref(value);}
-    else u8_log(LOGWARN,"BadShutdownProc",
+    else u8_log(LOG_WARN,"BadShutdownProc",
                 "The value %q isn't applicable",proc);}
   fd_decref(procs);
 }
@@ -951,7 +951,7 @@ int main(int argc,char **argv)
   /* Find the server spec */
   while (i<argc) {
     if (isconfig(argv[i]))
-      u8_log(LOGNOTICE,"FDServerConfig","    %s",argv[i++]);
+      u8_log(LOG_NOTICE,"FDServerConfig","    %s",argv[i++]);
     else if (server_spec) i++;
     else {
       if (i<32) arg_mask = arg_mask | (1<<i);

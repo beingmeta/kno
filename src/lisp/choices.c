@@ -227,7 +227,7 @@ FD_EXPORT
 struct FD_CHOICE *fd_cleanup_choice(struct FD_CHOICE *ch,unsigned int flags)
 {
   if (ch == NULL) {
-    u8_log(LOGCRIT,"fd_cleanup_choice",
+    u8_log(LOG_CRIT,"fd_cleanup_choice",
            "The argument to fd_cleanup_choice is NULL");
     fd_seterr2("choice arg is NULL","fd_make_choice");
     return NULL;}

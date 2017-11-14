@@ -237,7 +237,7 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,lispval 
   pool->bigpool_format = bigpool_format;
 
   if (load > capacity) {
-    u8_logf(LOGCRIT,fd_PoolOverflow,
+    u8_logf(LOG_CRIT,fd_PoolOverflow,
             "The bigpool %s specifies a load (%lld) > its capacity (%lld)",
             fname,load,capacity);
     pool->pool_load=load=capacity;}
@@ -313,7 +313,7 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,lispval 
                 FD_INT(metadata_loc));
       metadata=FD_ERROR_VALUE;}
     if (! ( (FD_FALSEP(metadata)) || (FD_SLOTMAPP(metadata)) ) ) {
-      u8_logf(LOGWARN,"BadMetaData",
+      u8_logf(LOG_WARN,"BadMetaData",
               "Ignoring bad metadata stored for %s",fname);
       metadata=FD_FALSE;}}
   if (FD_SLOTMAPP(metadata)) {
@@ -365,7 +365,7 @@ static fd_pool recover_bigpool(u8_string fname,fd_storage_flags open_flags,
 {
   u8_string rollback_file=u8_string_append(fname,".rollback",NULL);
   if (u8_file_existsp(rollback_file)) {
-    u8_logf(LOGWARN,"Rollback",
+    u8_logf(LOG_WARN,"Rollback",
             "Applying rollback file %s to %s",rollback_file,fname);
     ssize_t rv=fd_restore_head(rollback_file,fname,256-8);
     if (rv<0) {
@@ -385,7 +385,7 @@ static fd_pool recover_bigpool(u8_string fname,fd_storage_flags open_flags,
     else {
       u8_string rollback_failed = u8_string_append(rollback_file,".failed",NULL);
       u8_byte details[256];
-      u8_logf(LOGERR,"RecoveryFailed",
+      u8_logf(LOG_ERR,"RecoveryFailed",
               "Failed to recover %s using %s",fname,rollback_file);
       if (u8_movefile(rollback_file,rollback_failed) < 0) {
         fd_seterr("RecoveryFailed","recover_bigpool",
@@ -404,7 +404,7 @@ static fd_pool recover_bigpool(u8_string fname,fd_storage_flags open_flags,
               rollback_file);
     return NULL;}
   else {
-    u8_logf(LOGCRIT,"Corrupted Bigpool",
+    u8_logf(LOG_CRIT,"Corrupted Bigpool",
             "The bigpool file %s doesn't have a rollback file %s",
             fname,rollback_file);
     u8_free(rollback_file);
@@ -921,7 +921,7 @@ static int file_format_overflow(fd_pool p,fd_stream stream)
 {
   u8_seterr(fd_DataFileOverflow,"bigpool_storen",u8_strdup(p->poolid));
   if (fd_streamctl(stream,fd_stream_unlockfile,NULL)<0)
-    u8_logf(LOGCRIT,"UnlockFailed",
+    u8_logf(LOG_CRIT,"UnlockFailed",
             "Couldn't unlock output stream (%d:%s) for %s",
             stream->stream_fileno,
             p->pool_source,
@@ -1015,14 +1015,14 @@ static int bigpool_storen(fd_pool p,int n,
       ssize_t n_bytes = 0;
       if ( (FD_CONSTANTP(value)) &&
            ( ( value >= FD_EOF) && (value <= FD_UNALLOCATED_OID) ) ) {
-        u8_logf(LOGCRIT,"BadOIDValue",
+        u8_logf(LOG_CRIT,"BadOIDValue",
                 "The value for @%x/%x (%q) couldn't be written to %s",
                 FD_OID_HI(addr),FD_OID_LO(addr),value,p->poolid);}
       else n_bytes = bigpool_write_value(bp,value,stream,
                                          &tmpout,&zbuf,&zbuf_size);
       if (n_bytes<0) {
         /* Should there be a way to force an error to be signalled here? */
-        u8_logf(LOGCRIT,"BadOIDValue",
+        u8_logf(LOG_CRIT,"BadOIDValue",
                 "The value for %x/%x couldn't be written to save to %s",
                 FD_OID_HI(addr),FD_OID_LO(addr),p->poolid);
         n_bytes=0;}
@@ -1059,7 +1059,7 @@ static int bigpool_storen(fd_pool p,int n,
   fd_lock_pool_struct(p,1);
 
   if (update_bigpool(bp,stream,head_stream,load,n,saveinfo,metadata)<0) {
-    u8_logf(LOGCRIT,"Couldn't update bigpool %s",bp->poolid);
+    u8_logf(LOG_CRIT,"Couldn't update bigpool %s",bp->poolid);
 
     /* Unlock the pool */
     fd_unlock_pool_struct(p);
@@ -1282,7 +1282,7 @@ static ssize_t bigpool_write_value(fd_bigpool p,lispval value,
         (tmpout->buffer,raw_length,&compressed_length,zbuf,9);
       break;
     default:
-      u8_logf(LOGCRIT,"BadCompressionType",
+      u8_logf(LOG_CRIT,"BadCompressionType",
               "The compression type code, %d, was invalid",
               (int)(p->pool_compression));
     }
@@ -1408,7 +1408,7 @@ static int write_bigpool_metadata(fd_bigpool bp,lispval metadata,
                                   fd_stream stream,fd_stream head_stream)
 {
   if (FD_TABLEP(metadata)) {
-    u8_logf(LOGWARN,"WriteMetadata",
+    u8_logf(LOG_WARN,"WriteMetadata",
             "Writing modified metadata for %s",bp->poolid);
     off_t start_pos = fd_endpos(stream), end_pos = start_pos;
     fd_outbuf out = fd_writebuf(stream);
@@ -1417,7 +1417,7 @@ static int write_bigpool_metadata(fd_bigpool bp,lispval metadata,
       u8_exception ex = u8_current_exception;
       u8_condition cond = (ex) ? (ex->u8x_cond) :
         ((u8_condition)"Unknown DType error");
-      u8_logf(LOGCRIT,cond,"Couldnt'save metadata for bigpool %s: %q",
+      u8_logf(LOG_CRIT,cond,"Couldnt'save metadata for bigpool %s: %q",
               bp->poolid,metadata);
       return rv;}
     else end_pos=fd_endpos(stream);
@@ -1513,7 +1513,7 @@ static ssize_t mmap_write_offdata
     mmap(NULL,256+(byte_length),(PROT_READ|PROT_WRITE),MAP_SHARED,
          stream->stream_fileno,0);
   if ( (memblock==NULL) || (memblock == MAP_FAILED) ) {
-    u8_logf(LOGCRIT,u8_strerror(errno),
+    u8_logf(LOG_CRIT,u8_strerror(errno),
             "Failed MMAP of %lld bytes of offdata for bigpool %s",
             256+(byte_length),bp->poolid);
     U8_CLEAR_ERRNO();
@@ -1718,7 +1718,7 @@ static int update_offdata_cache(fd_bigpool bp,int level,int chunk_ref_size)
   if (level < 2 ) return 1;
 
   if ( (LOCK_POOLSTREAM(bp,"bigpool_setcache")) < 0) {
-    u8_logf(LOGWARN,"PoolStreamClosed",
+    u8_logf(LOG_WARN,"PoolStreamClosed",
             "During bigpool_setcache for %s",bp->poolid);
     UNLOCK_POOLSTREAM(bp);
     return -1;}

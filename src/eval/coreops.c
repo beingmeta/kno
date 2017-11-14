@@ -535,7 +535,7 @@ static lispval config_get(lispval vars,lispval dflt,lispval valfn)
     else if (FD_APPLICABLEP(valfn)) {
       lispval converted = fd_apply(valfn,1,&value);
       if (FD_ABORTP(converted)) {
-        u8_log(LOGWARN,"ConfigConversionError",
+        u8_log(LOG_WARN,"ConfigConversionError",
                "Error converting config value of %q=%q using %q",
                var,value,valfn);
         fd_clear_errors(1);
@@ -547,7 +547,7 @@ static lispval config_get(lispval vars,lispval dflt,lispval valfn)
       u8_string valstring = FD_CSTRING(value);
       lispval parsed = fd_parse(valstring);
       if (FD_ABORTP(parsed)) {
-        u8_log(LOGWARN,"ConfigParseError",
+        u8_log(LOG_WARN,"ConfigParseError",
                "Error parsing config value of %q=%q",
                var,value);
         fd_clear_errors(1);

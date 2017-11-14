@@ -298,15 +298,15 @@ static int load_dynamic_module(lispval spec,int safe,void *data)
         if (module_filename) {
           void *mod = u8_dynamic_load(module_filename);
           if (mod == NULL) {
-            u8_log(LOGWARN,_("FailedModule"),
+            u8_log(LOG_WARN,_("FailedModule"),
                    "Failed to load module file %s for %q",
                    module_filename,spec);}
           else if (trace_dload) {
-            u8_log(LOGNOTICE,_("DynamicLoad"),
+            u8_log(LOG_NOTICE,_("DynamicLoad"),
                    "Loaded module %q from %s",spec,module_filename);}
           else {}
           if (errno) {
-            u8_log(LOGWARN,u8_UnexpectedErrno,
+            u8_log(LOG_WARN,u8_UnexpectedErrno,
                    "Leftover errno %d (%s) from loading %s",
                    errno,u8_strerror(errno),pname);
             errno = 0;}
@@ -860,7 +860,7 @@ get_binding_helper(lispval modarg,lispval symbol,lispval dflt,
     if (module == modarg) fd_decref(module);
     return retval;}
   else {
-    u8_log(LOGWARN,"BadModule","From %q for %q: %q",
+    u8_log(LOG_WARN,"BadModule","From %q for %q: %q",
            modarg,symbol,module);
     if (module == modarg) fd_decref(module);
     return fd_incref(dflt);}

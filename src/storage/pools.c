@@ -1090,7 +1090,7 @@ static int pool_docommit(fd_pool p,lispval oids,
         int rollback = p->pool_handler->commit(p,fd_commit_rollback,&commits);
         record_elapsed(commits.commit_times.finalize);
         if (rollback < 0) {
-          u8_logf(LOGCRIT,"RollbackFailed",
+          u8_logf(LOG_CRIT,"RollbackFailed",
                   "Couldn't rollback failed commit for %s",p->poolid);
           u8_seterr("FinishFailed","pool_commit",u8_strdup(p->poolid));}
         abort_commit(p,&commits);
@@ -1223,7 +1223,7 @@ static void finish_commit(fd_pool p,struct FD_POOL_COMMITS *commits)
       (NULL,unlock_count,oids,FD_CHOICE_ISATOMIC);
     int retval = p->pool_handler->unlock(p,to_unlock);
     if (retval<0) {
-      u8_logf(LOGCRIT,"UnlockFailed",
+      u8_logf(LOG_CRIT,"UnlockFailed",
               "Error unlocking pool %s, all %d values saved "
               "but up to %d OIDs may still be locked",
               p->poolid,n,unlock_count);

@@ -114,11 +114,11 @@ static lispval irritant_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   if (FD_ABORTP(irritant)) {
     u8_exception ex = u8_erreify();
     if (ex)
-      u8_log(LOGCRIT,"RecursiveError",
+      u8_log(LOG_CRIT,"RecursiveError",
              "Error %s (%s:%s) evaluating irritant arg %q",
              ex->u8x_cond,ex->u8x_context,ex->u8x_details,
              irritant_expr);
-    else u8_log(LOGCRIT,"RecursiveError",
+    else u8_log(LOG_CRIT,"RecursiveError",
                 "Error evaluating irritant arg %q",
                 irritant_expr);
     u8_free_exception(ex,0);
@@ -178,7 +178,7 @@ static lispval onerror_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
         u8_log(LOG_WARN,"Recursive error",
                "Error %m handling error during %q",
                handler_ex->u8x_cond,toeval);
-        fd_log_backtrace(handler_ex,LOGWARN,"RecursiveError",128);
+        fd_log_backtrace(handler_ex,LOG_WARN,"RecursiveError",128);
         u8_restore_exception(ex);
         u8_restore_exception(handler_ex);
         fd_decref(value);

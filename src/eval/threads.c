@@ -40,7 +40,7 @@ static u8_condition ThreadExit=_("ThreadExit");
 static u8_condition ThreadBacktrace=_("ThreadBacktrace");
 static u8_condition ThreadVOID=_("ThreadVoidResult");
 
-static int thread_loglevel = LOGNOTICE;
+static int thread_loglevel = LOG_NOTICE;
 static int thread_log_exit = 1;
 static lispval logexit_symbol = VOID;
 
@@ -59,9 +59,9 @@ fd_ptr_type fd_condvar_type;
 static void add_thread(struct FD_THREAD_STRUCT *thread)
 {
   if (thread == NULL)
-    u8_log(LOGCRIT,"AddThreadError","NULL thread added to thread ring!");
+    u8_log(LOG_CRIT,"AddThreadError","NULL thread added to thread ring!");
   else if ( (thread->ring_left) || (thread->ring_right) )
-    u8_log(LOGWARN,"RedundantAddThread",
+    u8_log(LOG_WARN,"RedundantAddThread",
            "'New' thread object %q is being added again",
            (lispval)thread);
   else {
@@ -76,7 +76,7 @@ static void add_thread(struct FD_THREAD_STRUCT *thread)
 static void remove_thread(struct FD_THREAD_STRUCT *thread)
 {
   if (thread == NULL)
-    u8_log(LOGCRIT,"RemoveThreadError",
+    u8_log(LOG_CRIT,"RemoveThreadError",
            "Attempt to remove NULL thread description!");
   else {
     u8_lock_mutex(&thread_ring_lock);

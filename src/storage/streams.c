@@ -128,7 +128,7 @@ static ssize_t mmap_read_update(struct FD_STREAM *stream)
     ssize_t point_off = (oldbuf) ? (buf->bufpoint-buf->buffer) : (0);
     unsigned char *newbuf = mmap(NULL,new_size,prot,flags,fd,0);
     if ( (newbuf==NULL) || (newbuf==MAP_FAILED) ) {
-      u8_logf(LOGWARN,u8_strerror(errno),
+      u8_logf(LOG_WARN,u8_strerror(errno),
               "mmap_read_update:mmap of %s",stream->streamid);
       u8_graberrno("mmap_read_update:mmap",u8_strdup(stream->streamid));
       u8_rw_unlock(&(stream->mmap_lock));
@@ -137,7 +137,7 @@ static ssize_t mmap_read_update(struct FD_STREAM *stream)
     if ( ( oldbuf ) && ( oldbuf != newbuf ) ) {
       int rv = munmap(oldbuf,old_size);
       if (rv!=0)
-        u8_logf(LOGWARN,fd_munmap_failed,
+        u8_logf(LOG_WARN,fd_munmap_failed,
                 "Couldn't unmap buffer for %s (0x%llx)",
                 stream->streamid,stream);}
     buf->buflen   = new_size;
@@ -237,13 +237,13 @@ static void release_mmap(struct FD_STREAM *stream)
     if ((rawbuf->buffer)&&(rawbuf->buflen>=0)) {
       int rv=munmap(rawbuf->buffer,rawbuf->buflen);
       if (rv<0) {
-        u8_logf(LOGWARN,_("MUNMAP failed"),
+        u8_logf(LOG_WARN,_("MUNMAP failed"),
                 "Failed to unmap %s (errno=%d) %s",
                 stream->streamid,errno,u8_strerror(errno));
         U8_CLEAR_ERRNO();}
       rawbuf->buffer=rawbuf->bufpoint=rawbuf->buflim=NULL;
       rawbuf->buflen=-1;}}
-  else u8_logf(LOGWARN,_("Not MMapped"),
+  else u8_logf(LOG_WARN,_("Not MMapped"),
                "Attempting to munmap a non-mapped stream %s",
                stream->streamid);
 }
@@ -418,7 +418,7 @@ FD_EXPORT struct FD_STREAM *fd_init_stream(fd_stream stream,
   struct FD_RAWBUF *bufptr = &(stream->buf.raw);
   /* If you can't get a whole buffer, try smaller */
   while ((bufsiz>=1024) && (buf == NULL)) {
-    u8_logf(LOGWARN,"BigBuffer",
+    u8_logf(LOG_WARN,"BigBuffer",
             "Can't allocate %lld-byte buffer for %s, trying %lld",
             bufsiz,(U8ALT(streamid,"somestream")),bufsiz/2);
     bufsiz = bufsiz/2; buf = u8_malloc(bufsiz);}
@@ -564,7 +564,7 @@ FD_EXPORT fd_stream fd_reopen_file_stream
     stream->stream_fileno=fd;
     stream->stream_flags=stream_flags;
     if (rv<0) {
-      u8_logf(LOGWARN,"Reopen/StatFailed","Couldn't call stat on fileno %s(fd=%d)",
+      u8_logf(LOG_WARN,"Reopen/StatFailed","Couldn't call stat on fileno %s(fd=%d)",
               stream->streamid,fd);
       stream->stream_maxpos = lseek(fd,0,SEEK_END);
       stream->stream_filepos = lseek(fd,0,SEEK_SET);}
@@ -573,7 +573,7 @@ FD_EXPORT fd_stream fd_reopen_file_stream
       stream->stream_maxpos = info.st_size;
       if (stream->stream_filepos>0) {
         if ((stream->stream_filepos) > (stream->stream_maxpos)) {
-          u8_logf(LOGWARN,"Reopen/FileTruncated",
+          u8_logf(LOG_WARN,"Reopen/FileTruncated",
                   "The file %s(fd=%d) is now smaller (%lld bytes) "
                   "than the previous offset (%lld bytes), positioning %s",
                   stream->streamid,fd,
@@ -617,7 +617,7 @@ FD_EXPORT void fd_close_stream(fd_stream s,int flags)
   else if ((U8_BITP(s->buf.raw.buf_flags,FD_IS_WRITING))&&
            (s->buf.out.bufwrite>s->buf.out.buffer)) {
     if (s->stream_fileno<0) {
-      u8_logf(LOGCRIT,_("StreamClosed"),
+      u8_logf(LOG_CRIT,_("StreamClosed"),
               "Stream %s (0x%llx) was closed with %d bytes still buffered",
               U8ALT(s->streamid,"somestream"),
               (unsigned long long)s,
@@ -656,12 +656,12 @@ FD_EXPORT void fd_free_stream(fd_stream s)
   struct FD_CONS *cons = (struct FD_CONS *)s;
   lispval sptr = (lispval)s;
   if (FD_STATIC_CONSP(cons)) {
-    u8_logf(LOGWARN,_("FreeingStaticStream"),
+    u8_logf(LOG_WARN,_("FreeingStaticStream"),
             "Attempting to free the static stream %s 0x%llx",
             U8ALT(s->streamid,"somestream"),
             (unsigned long long)s);}
   else if (FD_CONS_REFCOUNT(cons)>1) {
-    u8_logf(LOGWARN,_("DanglingStreamPointers"),
+    u8_logf(LOG_WARN,_("DanglingStreamPointers"),
             "Freeing a stream with dangling pointers %s 0x%llx",
             U8ALT(s->streamid,"somestream"),
             (unsigned long long)s);
@@ -687,7 +687,7 @@ FD_EXPORT ssize_t fd_setbufsize(fd_stream s,ssize_t bufsize)
               (cur_alloc == FD_MMAP_BUFFER) ){
       int rv=munmap(bufptr->buffer,bufptr->buflen);
       if (rv<0) {
-        u8_logf(LOGWARN,fd_munmap_failed,
+        u8_logf(LOG_WARN,fd_munmap_failed,
                 "Couldn't unmap buffer for stream '%s'",s->streamid);
         U8_CLEAR_ERRNO();}
       oldbuf=NULL;}
@@ -732,7 +732,7 @@ FD_EXPORT ssize_t fd_setbufsize(fd_stream s,ssize_t bufsize)
          (cur_alloc == FD_MMAP_BUFFER) ) {
       int rv=munmap(bufptr->buffer,bufptr->buflen);
       if (rv<0) {
-        u8_logf(LOGWARN,"MunmapFailed",
+        u8_logf(LOG_WARN,"MunmapFailed",
                 "Could unmap buffer for stream '%s'",s->streamid);
         U8_CLEAR_ERRNO();}}
     else if (cur_alloc ==  FD_HEAP_BUFFER)
@@ -1101,7 +1101,7 @@ FD_EXPORT fd_inbuf fd_open_block(fd_stream s,fd_inbuf in,
                               s->stream_fileno,page_offset);
     if ( (buf) && (buf != MAP_FAILED) ) {
       if ( errno ) {
-        u8_logf(LOGWARN,"MMAP:Errno",
+        u8_logf(LOG_WARN,"MMAP:Errno",
                 "Errno set by mmap %d %s ptr = %llx",
                 errno,u8_strerror(errno),buf);
         errno=0;}
@@ -1112,7 +1112,7 @@ FD_EXPORT fd_inbuf fd_open_block(fd_stream s,fd_inbuf in,
       BUFIO_SET_ALLOC(in,FD_MMAP_BUFFER);
       return in;}
     else {
-      u8_logf(LOGWARN,fd_mmap_failed,
+      u8_logf(LOG_WARN,fd_mmap_failed,
               "Couldn't open block into %llx (%s), errno=%d (%s)",
               s,s->streamid,errno,u8_strerror(errno));
       errno=0;}
@@ -1348,7 +1348,7 @@ fd_fetch_chunk_ref(struct FD_STREAM *stream,
   memset(&_in,0,sizeof(_in));
   FD_INIT_BYTE_INPUT(&_in,buf,chunk_size);
   if (fd_read_block(stream,buf,chunk_size,base+ref_off,1)!=chunk_size) {
-    u8_logf(LOGCRIT,"BlockReadFailed",
+    u8_logf(LOG_CRIT,"BlockReadFailed",
             "Reading %d-byte block from stream %s failed",
             chunk_size,stream->streamid);
     u8_seterr("Block read failed","fetch_chunk_ref",u8_strdup(stream->streamid));
@@ -1370,7 +1370,7 @@ fd_fetch_chunk_ref(struct FD_STREAM *stream,
       result.size = fd_read_4bytes(in);
       break;
     default:
-      u8_logf(LOGCRIT,"InvalidOffsetType",
+      u8_logf(LOG_CRIT,"InvalidOffsetType",
               "Invalid offset type 0x%x for data stream %s",
               offtype,stream->streamid);
       u8_seterr("Invalid Offset type","read_chunk_ref",NULL);
@@ -1399,7 +1399,7 @@ fd_fetch_chunk_ref(struct FD_STREAM *stream,
       result.size = fd_read_4bytes(in);
       break;
     default:
-      u8_logf(LOGCRIT,"InvalidOffsetType",
+      u8_logf(LOG_CRIT,"InvalidOffsetType",
               "Invalid offset type 0x%x for data stream %s",
               offtype,stream->streamid);
       u8_seterr("Invalid Offset type","read_chunk_ref",NULL);

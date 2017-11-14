@@ -296,7 +296,7 @@ FD_FASTOP int fd_lock_stream(fd_stream s)
   long long tid = u8_threadid();
   if (s->stream_locker == tid) {
     u8_string id = s->streamid;
-    u8_log(LOGCRIT,"RecursiveStreamLock",
+    u8_log(LOG_CRIT,"RecursiveStreamLock",
            "Recursively locking stream %s%s0x%llx",
            ((id)?(id):(U8S0())),((id)?((u8_string)" "):(U8S0())),
            (U8_PTR2INT(s)));
@@ -335,7 +335,7 @@ FD_FASTOP int fd_unlock_stream(fd_stream s)
   long long tid = u8_threadid();
   if (tid != s->stream_locker) {
     u8_string id = s->streamid;
-    u8_log(LOGCRIT,"BadStreamUnlock",
+    u8_log(LOG_CRIT,"BadStreamUnlock",
            "Stream %s 0x%llx is owned by T%lld, not current T%lld",
            ((id)?(id):(U8S0())),((id)?((u8_string)" "):(U8S0())),
            (U8_PTR2INT(s)),s->stream_locker,tid);

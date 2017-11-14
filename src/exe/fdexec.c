@@ -66,7 +66,7 @@ static lispval chain_prim(int n,lispval *args)
   if (n_configs>=MAX_CONFIGS)
     return fd_err(_("Too many configs to CHAIN"),"chain_prim",NULL,VOID);
   else if ( (stop_file) && (u8_file_existsp(stop_file)) ) {
-    u8_log(LOGCRIT,"StopFile",
+    u8_log(LOG_CRIT,"StopFile",
            "Not chaining because the file '%s' exists",stop_file);
     return FD_FALSE;}
   else {
@@ -260,7 +260,7 @@ int do_main(int argc,char **argv,
 
   if (!(fd_be_vewy_quiet)) fd_boot_message();
   if ( (stop_file) && (u8_file_existsp(stop_file)) ) {
-    u8_log(LOGCRIT,"StopFile",
+    u8_log(LOG_CRIT,"StopFile",
            "Not starting because the file '%s' exists",stop_file);
     return 1;}
   else if (wait_for_file) {

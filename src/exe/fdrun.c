@@ -16,14 +16,14 @@ char **envargs(char *argvec,int *argcount)
       if ( arg[eqpos+1] ) {
 	int rv = setenv(namebuf,eqpos+1,1);
 	if (rv<0) {
-	  u8_log(LOGCRIT,"ArgumentSetEnvFailed",
+	  u8_log(LOG_CRIT,"ArgumentSetEnvFailed",
 		 "Couldn't set %s to %s for %s",
 		 namebuf,eqpos+1,arg);
 	  exit(1);}}
 	else {
 	  int rv = unsetenv(namebuf);
 	  if (rv<0) {
-	    u8_log(LOGCRIT,"ArgumentUnSetEnvFailed",
+	    u8_log(LOG_CRIT,"ArgumentUnSetEnvFailed",
 		   "Couldn't set %s to %s for %s",
 		   namebuf,eqpos+1,arg);
 	    exit(1);}}}
@@ -89,7 +89,7 @@ int main(char *argv[],int argc)
       if (u8_file_existsp(pid_file))
 	exit(0);
       else exit(1);}
-    u8_log(LOGCRIT,"ForkFailed",
+    u8_log(LOG_CRIT,"ForkFailed",
 	   "Couldn't fork to launch %s",jobid);
     exit(1);}
   else return launch_loop(jobid,real_args,n_args);
@@ -146,7 +146,7 @@ static int launch_loop(u8_string jobid,char **real_args,int n_args)
 	continue;}
       else continue;}}
   if (pid<0) {
-    u8_log(LOGCRIT,"ForkFailed",
+    u8_log(LOG_CRIT,"ForkFailed",
 	   "Couldn't fork to %s %s",
 	   ((n_cycles)?("restart"):("start")),
 	   jobid);

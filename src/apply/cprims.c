@@ -139,7 +139,7 @@ static struct FD_FUNCTION *new_cprim(u8_string name,
   f->fcn_defaults = NULL;
   f->fcnid = VOID;
   if ( (arity>=0) && (min_arity>arity)) {
-    u8_log(LOGCRIT,_("Bad primitive definition"),
+    u8_log(LOG_CRIT,_("Bad primitive definition"),
            "Fixing primitive %s%s%s%s with min_arity=%d > arity=%d",
            name,U8OPTSTR(" (",filename,") "),arity,min_arity);
     f->fcn_min_arity = arity;}

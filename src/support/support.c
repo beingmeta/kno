@@ -149,7 +149,7 @@ FD_EXPORT lispval fd_read_sensors(lispval into)
     lispval v=scan->sensor();
     if (FD_ABORTP(v)) {
       u8_exception ex=u8_erreify();
-      u8_log(LOGWARN,"SensorFailed",
+      u8_log(LOG_WARN,"SensorFailed",
              "Resource sensor %q failed",scan->name);
       fd_log_exception(ex);
       u8_free_exception(ex,1);}

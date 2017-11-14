@@ -231,7 +231,7 @@ static lispval read_bytes(lispval stream,lispval n,lispval pos)
     memcpy(bytes,mapbuf+buf_off,n_bytes);
     int rv = munmap(mapbuf,map_len);
     if (rv<0) {
-      u8_log(LOGCRIT,fd_failed_unmap,
+      u8_log(LOG_CRIT,fd_failed_unmap,
              "Couldn't unmap buffer for %s (0x%llx)",ds->streamid,ds);}
     else return fd_init_packet(NULL,n_bytes,bytes);}
 #endif
@@ -355,7 +355,7 @@ static lispval lisp2file(lispval object,lispval filename,lispval bufsiz)
     fd_free_stream(out);
     int rv = u8_movefile(temp_name,CSTRING(filename));
     if (rv<0) {
-      u8_log(LOGWARN,"MoveFailed",
+      u8_log(LOG_WARN,"MoveFailed",
              "Couldn't move the completed file into %s, leaving in %s",
              CSTRING(filename),temp_name);
       u8_seterr("MoveFailed","lisp2file",u8_strdup(CSTRING(filename)));
@@ -468,7 +468,7 @@ static ssize_t write_dtypes(lispval dtypes,struct FD_STREAM *out)
       int rv = ftruncate(out->stream_fileno,start);
       if (rv<0) {
         int got_err = errno; errno=0;
-        u8_log(LOGWARN,"TruncateFailed",
+        u8_log(LOG_WARN,"TruncateFailed",
                "Couldn't undo write to %s (errno=%d:%s)",
                out->streamid,got_err,u8_strerror(got_err));}}
     return rv;}
