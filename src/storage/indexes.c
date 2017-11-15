@@ -1269,7 +1269,7 @@ static int index_docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
     if (unlock_stores) fd_unlock_table(&(ix->index_stores));
 
     if (use_commits == NULL) free_commits(&commits);}
-  else {}
+  else NO_ELSE; /* (use_commits == NULL) */
   record_elapsed(commits.commit_times.apply);
 
   int cleanup_rv = ix->index_handler->commit(ix,fd_commit_cleanup,&commits);
