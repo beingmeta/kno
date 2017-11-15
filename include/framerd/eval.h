@@ -31,7 +31,7 @@ FD_EXPORT int fd_load_scheme(void) FD_LIBINIT0_FN;
 FD_EXPORT int fd_init_scheme(void);
 FD_EXPORT void fd_init_schemeio(void) FD_LIBINIT0_FN;
 
-FD_EXPORT void (*fd_dump_backtrace)(lispval bt);
+FD_EXPORT int (*fd_dump_exception)(lispval bt);
 
 FD_EXPORT int fd_choice_evalp(lispval x);
 
@@ -368,6 +368,12 @@ FD_EXPORT fd_thread_struct fd_thread_eval(lispval *,lispval,fd_lexenv,int);
 FD_EXPORT lispval fd_opcode_dispatch
 (lispval opcode,lispval expr,fd_lexenv env,
  struct FD_STACK *,int tail);
+
+/* Recording bugs */
+
+FD_EXPORT int fd_record_bug(lispval ex);
+
+FD_EXPORT u8_string fd_bugdir;
 
 #endif /* FRAMERD_EVAL_H */
 

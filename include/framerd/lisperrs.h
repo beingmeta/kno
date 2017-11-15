@@ -5,10 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FRAMERD_EXCEPTIONS_H
-#define FRAMERD_EXCEPTIONS_H 1
-#ifndef FRAMERD_EXCEPTIONS_H_INFO
-#define FRAMERD_EXCEPTIONS_H_INFO "include/framerd/exceptions.h"
+#ifndef FRAMERD_LISPERRS_H
+#define FRAMERD_LISPERRS_H 1
+#ifndef FRAMERD_LISPERRS_H_INFO
+#define FRAMERD_LISPERRS_H_INFO "include/framerd/lisperrs.h"
 #endif
 
 /* Error handling */
@@ -37,14 +37,12 @@ FD_EXPORT void fd_log_errstack(u8_exception ex,int loglevel,int w_irritant);
 
 FD_EXPORT lispval fd_exception_backtrace(u8_exception ex);
 
-FD_EXPORT void fd_compact_backtrace(u8_output out,lispval stack);
+FD_EXPORT void fd_compact_backtrace(u8_output out,lispval stack,int limit);
 
 FD_EXPORT U8_NOINLINE void fd_seterr
   (u8_condition c,u8_context cxt,u8_string details,lispval irritant);
 FD_EXPORT U8_NOINLINE void fd_raise
   (u8_condition c,u8_context cxt,u8_string details,lispval irritant);
-
-FD_EXPORT int fd_stacktracep(lispval rep);
 
 #define fd_seterr3(c,cxt,details) \
    fd_seterr(c,cxt,details,FD_VOID)
@@ -70,7 +68,7 @@ FD_EXPORT u8_condition fd_retcode_to_exception(lispval err);
 
 FD_EXPORT lispval fd_exception_backtrace(u8_exception ex);
 
-#endif /* ndef FRAMERD_EXCEPTIONS_H */
+#endif /* ndef FRAMERD_LISPERRS_H */
 
 /* Emacs local variables
    ;;;  Local variables: ***

@@ -185,92 +185,92 @@ FD_FASTOP void fd_free_stack(struct FD_STACK *stack)
     struct FD_STACK_CLEANUP *cleanups = stack->cleanups;
     int i = 0, n = stack->n_cleanups;
     if ( (fd_exiting == 0) || (fd_fast_exit==0) ) while (i<n) {
-	switch (cleanups[i].cleanop) {
-	case FD_FREE_MEMORY:
-	  u8_free(cleanups[i].arg0);
-	  break;
-	case FD_DECREF: {
-	  lispval arg = (lispval)cleanups[i].arg0;
-	  fd_decref(arg);
-	  break;}
-	case FD_DECREF_PTRVAL: {
-	  lispval *ptr = (lispval *)cleanups[i].arg0;
-	  if (ptr) {
-	    lispval v=*ptr;
-	    fd_decref(v);}
-	  break;}
-	case FD_UNLOCK_MUTEX: {
-	  u8_mutex *lock = (u8_mutex *)cleanups[i].arg0;
-	  u8_unlock_mutex(lock);
-	  break;}
-	case FD_UNLOCK_RWLOCK: {
-	  u8_rwlock *lock = (u8_rwlock *)cleanups[i].arg0;
-	  u8_rw_unlock(lock);
-	  break;}
-	case FD_DECREF_VEC: {
-	  lispval *vec = (lispval *)cleanups[i].arg0;
-	  ssize_t *sizep = (ssize_t *)cleanups[i].arg1;
-	  ssize_t size = *sizep;
-	  int i = 0; while (i<size) {
-	    lispval elt = vec[i++];
-	    fd_decref(elt);}
-	  break;}
-	case FD_DECREF_N: {
-	  lispval *vec = (lispval *)cleanups[i].arg0;
-	  ssize_t size = (ssize_t)cleanups[i].arg1;
-	  int i = 0; while (i<size) {
-	    lispval elt = vec[i++];
-	    fd_decref(elt);}
-	  break;}
-	case FD_FREE_VEC: {
-	  lispval *vec = (lispval *)cleanups[i].arg0;
-	  ssize_t *sizep = (ssize_t *)cleanups[i].arg1;
-	  ssize_t size = *sizep;
-	  int i = 0; while (i<size) {
-	    lispval elt = vec[i++];
-	    fd_decref(elt);}
-	  u8_free(vec);
-	  break;}
-	case FD_CLOSE_FILENO: {
-	  long long fileno = (long long) cleanups[i].arg0;
-	  close((int)fileno);
-	  break;}
-	case U8_CLOSE_STREAM: {
-	  U8_STREAM *stream = (U8_STREAM *) cleanups[i].arg0;
-	  u8_close(stream);
-	  break;}
-	case FD_CALLFN: {
-	  fd_cleanupfn cleanup=(fd_cleanupfn)cleanups[i].arg0;
-	  cleanup(cleanups[i].arg1);
-	  break;}}
-	i++;}
+        switch (cleanups[i].cleanop) {
+        case FD_FREE_MEMORY:
+          u8_free(cleanups[i].arg0);
+          break;
+        case FD_DECREF: {
+          lispval arg = (lispval)cleanups[i].arg0;
+          fd_decref(arg);
+          break;}
+        case FD_DECREF_PTRVAL: {
+          lispval *ptr = (lispval *)cleanups[i].arg0;
+          if (ptr) {
+            lispval v=*ptr;
+            fd_decref(v);}
+          break;}
+        case FD_UNLOCK_MUTEX: {
+          u8_mutex *lock = (u8_mutex *)cleanups[i].arg0;
+          u8_unlock_mutex(lock);
+          break;}
+        case FD_UNLOCK_RWLOCK: {
+          u8_rwlock *lock = (u8_rwlock *)cleanups[i].arg0;
+          u8_rw_unlock(lock);
+          break;}
+        case FD_DECREF_VEC: {
+          lispval *vec = (lispval *)cleanups[i].arg0;
+          ssize_t *sizep = (ssize_t *)cleanups[i].arg1;
+          ssize_t size = *sizep;
+          int i = 0; while (i<size) {
+            lispval elt = vec[i++];
+            fd_decref(elt);}
+          break;}
+        case FD_DECREF_N: {
+          lispval *vec = (lispval *)cleanups[i].arg0;
+          ssize_t size = (ssize_t)cleanups[i].arg1;
+          int i = 0; while (i<size) {
+            lispval elt = vec[i++];
+            fd_decref(elt);}
+          break;}
+        case FD_FREE_VEC: {
+          lispval *vec = (lispval *)cleanups[i].arg0;
+          ssize_t *sizep = (ssize_t *)cleanups[i].arg1;
+          ssize_t size = *sizep;
+          int i = 0; while (i<size) {
+            lispval elt = vec[i++];
+            fd_decref(elt);}
+          u8_free(vec);
+          break;}
+        case FD_CLOSE_FILENO: {
+          long long fileno = (long long) cleanups[i].arg0;
+          close((int)fileno);
+          break;}
+        case U8_CLOSE_STREAM: {
+          U8_STREAM *stream = (U8_STREAM *) cleanups[i].arg0;
+          u8_close(stream);
+          break;}
+        case FD_CALLFN: {
+          fd_cleanupfn cleanup=(fd_cleanupfn)cleanups[i].arg0;
+          cleanup(cleanups[i].arg1);
+          break;}}
+        i++;}
     else { /* This is the case where we don't bother reclaiming memory
-	      because we're exiting. If there are big data structures
-	      in memory, this can speed up exits. */
+              because we're exiting. If there are big data structures
+              in memory, this can speed up exits. */
       switch (cleanups[i].cleanop) {
       case FD_UNLOCK_MUTEX: {
-	u8_mutex *lock = (u8_mutex *)cleanups[i].arg0;
-	u8_unlock_mutex(lock);
-	break;}
+        u8_mutex *lock = (u8_mutex *)cleanups[i].arg0;
+        u8_unlock_mutex(lock);
+        break;}
       case FD_UNLOCK_RWLOCK: {
-	u8_rwlock *lock = (u8_rwlock *)cleanups[i].arg0;
-	u8_rw_unlock(lock);
-	break;}
+        u8_rwlock *lock = (u8_rwlock *)cleanups[i].arg0;
+        u8_rw_unlock(lock);
+        break;}
       case FD_CLOSE_FILENO: {
-	long long fileno = (long long) cleanups[i].arg0;
-	close((int)fileno);
-	break;}
+        long long fileno = (long long) cleanups[i].arg0;
+        close((int)fileno);
+        break;}
       case U8_CLOSE_STREAM: {
-	U8_STREAM *stream = (U8_STREAM *) cleanups[i].arg0;
-	u8_close(stream);
-	break;}
+        U8_STREAM *stream = (U8_STREAM *) cleanups[i].arg0;
+        u8_close(stream);
+        break;}
       case FD_CALLFN: {
-	fd_cleanupfn cleanup=(fd_cleanupfn)cleanups[i].arg0;
-	cleanup(cleanups[i].arg1);
-	break;}
+        fd_cleanupfn cleanup=(fd_cleanupfn)cleanups[i].arg0;
+        cleanup(cleanups[i].arg1);
+        break;}
       case FD_FREE_MEMORY: case FD_DECREF: case FD_DECREF_PTRVAL:
       case FD_DECREF_VEC: case FD_DECREF_N: case FD_FREE_VEC:
-	break;}
+        break;}
       i++;}
     if (cleanups != stack->_cleanups)
       u8_free(cleanups);
@@ -294,7 +294,7 @@ FD_FASTOP void fd_pop_stack(struct FD_STACK *stack)
 FD_FASTOP
 struct FD_STACK_CLEANUP *
 fd_add_cleanup(struct FD_STACK *stack,fd_stack_cleanop op,
-		 void *arg0, void* arg1)
+                 void *arg0, void* arg1)
 {
   if ((stack->n_cleanups==0) ||
       (stack->n_cleanups%FD_STACK_CLEANUP_QUANTUM)) {
@@ -310,7 +310,7 @@ fd_add_cleanup(struct FD_STACK *stack,fd_stack_cleanop op,
     struct FD_STACK_CLEANUP *new_cleanups=
       u8_alloc_n(new_size,struct FD_STACK_CLEANUP);
     memcpy(new_cleanups,cleanups,
-	   size*sizeof(struct FD_STACK_CLEANUP));
+           size*sizeof(struct FD_STACK_CLEANUP));
     stack->cleanups = new_cleanups;
     if (size>FD_STACK_CLEANUP_QUANTUM)
       u8_free(cleanups);
@@ -339,7 +339,6 @@ fd_add_cleanup(struct FD_STACK *stack,fd_stack_cleanop op,
   fd_setup_stack(_stack,caller,label,op,n,args)
 
 FD_EXPORT lispval fd_get_backtrace(struct FD_STACK *stack);
-FD_EXPORT void fd_sum_backtrace(u8_output out,lispval backtrace);
 
 #endif /* FRAMERD_STACKS_H */
 

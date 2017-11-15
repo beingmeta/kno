@@ -1501,7 +1501,7 @@ static int stackdump_config_set(lispval var,lispval val,void *ignored)
       stackdump_filename = NULL;}
     if (filename) {
       stackdump_filename = u8_strdup(filename);
-      /* fd_dump_backtrace = stackdump_dump; */
+      /* fd_dump_exception = stackdump_dump; */
 }
     u8_unlock_mutex(&stackdump_lock);
     return 1;}

@@ -35,7 +35,10 @@
 
 static int max_irritant_len=256;
 
-static lispval stacktrace_symbol;
+static lispval stack_entry_symbol;
+
+int fd_log_stack_max = 500;
+int fd_sum_stack_max = 200;
 
 /* Managing error data */
 
@@ -96,13 +99,6 @@ FD_EXPORT lispval fd_wrap_exception(u8_exception ex)
                              backtrace,FD_VOID,
                              NULL,ex->u8x_moment,ex->u8x_thread,
                              u8_elapsed_base());}
-}
-
-FD_EXPORT int fd_stacktracep(lispval rep)
-{
-  if ((PAIRP(rep)) && (FD_CAR(rep) == stacktrace_symbol))
-    return 1;
-  else return 0;
 }
 
 /* This gets the 'actual' irritant from a u8_exception, extracting it
@@ -270,12 +266,61 @@ void fd_output_exception(u8_output out,u8_exception ex)
 }
 
 FD_EXPORT
+void sum_exception(u8_output out,u8_exception ex)
+{
+  u8_puts(out,ex->u8x_cond);
+  if (ex->u8x_context) {
+    u8_puts(out," <");
+    u8_puts(out,ex->u8x_context);
+    u8_puts(out,">");}
+  if (ex->u8x_details) {
+    u8_puts(out," (");
+    u8_puts(out,ex->u8x_details);
+    u8_puts(out,")");}
+}
+
+FD_EXPORT
 void fd_output_errstack(u8_output out,u8_exception ex)
 {
   if (ex==NULL) ex=u8_current_exception;
   while (ex) {
     fd_output_exception(out,ex);
     ex=ex->u8x_prev;}
+}
+
+static void output_stack_entry(u8_output out,lispval entry)
+{
+  if (FD_COMPOUND_TYPEP(entry,stack_entry_symbol)) {
+    ssize_t    len = FD_COMPOUND_LENGTH(entry);
+    lispval *elts = FD_COMPOUND_ELTS(entry);
+    long long depth = ( (len>0) && (FD_FIXNUMP(elts[0])) ) ?
+      (FD_FIX2INT(elts[0])) : (-1);
+    u8_string type = ( (len>1) && (FD_STRINGP(elts[1])) ) ?
+      (FD_CSTRING(elts[1])) : (NULL);
+    u8_string label = ( (len>3) && (FD_STRINGP(elts[3])) ) ?
+      (FD_CSTRING(elts[3])) : (NULL);
+    lispval op = (len > 2) ? (elts[2]) : (FD_VOID);
+    if (type == NULL) type = "?";
+    if (label == NULL) label = "*";
+    u8_printf(out,"%lld:%s:%s %q",depth,type,label,op);}
+  else fd_pprint(out,entry,0,0,0,111);
+}
+
+static void compact_stack_entry(u8_output out,lispval entry)
+{
+  if (FD_COMPOUND_TYPEP(entry,stack_entry_symbol)) {
+    size_t    len = FD_COMPOUND_LENGTH(entry);
+    lispval *elts = FD_COMPOUND_ELTS(entry);
+    long long depth = ( (len>0) && (FD_FIXNUMP(elts[0])) ) ?
+      (FD_FIX2INT(elts[0])) : (-1);
+    u8_string type = ( (len>1) && (FD_STRINGP(elts[1])) ) ?
+      (FD_CSTRING(elts[1])) : (NULL);
+    u8_string label = ( (len>3) && (FD_STRINGP(elts[3])) ) ?
+      (FD_CSTRING(elts[3])) : (NULL);
+    if (type == NULL) type = "?";
+    if (label == NULL) label = "*";
+    u8_printf(out,"%lld:%s:%s",depth,type,label);}
+  else {}
 }
 
 FD_EXPORT
@@ -295,90 +340,53 @@ void fd_log_errstack(u8_exception ex,int loglevel,int w_irritant)
       u8_log(loglevel,ex->u8x_cond,"%q @%s %s",
              irritant,ex->u8x_context,
              U8ALT(ex->u8x_details,""));
-    else {
-      lispval backtrace = FD_U8X_STACK(ex);
-      if (!(FD_VOIDP(backtrace))) {
-        U8_STATIC_OUTPUT(tmp,1000);
-        fd_pprint(tmpout,backtrace,NULL,0,0,111);
-        if (tmp.u8_outbuf[0])
-          u8_log(loglevel,ex->u8x_cond,"%s",tmp.u8_outbuf);
-        u8_close_output(tmpout);}}
+    else u8_log(loglevel,ex->u8x_cond,"@%s %s\n    %Q",
+                ex->u8x_context,U8ALT(ex->u8x_details,""),
+                irritant);
     ex=ex->u8x_prev;}
 }
 
-int sum_exception(U8_OUTPUT *out,u8_exception ex,u8_exception bg)
+FD_EXPORT void fd_compact_backtrace(u8_output out,lispval stack,int limit)
 {
-  if (!(ex)) return 0;
-  else {
-    u8_condition cond = ex->u8x_cond;
-    u8_context context = ex->u8x_context;
-    u8_string details = ex->u8x_details;
-    lispval irritant = fd_get_irritant(ex);
-    if (bg) {
-      if ( (cond) && (bg->u8x_cond == cond) ) cond = NULL;
-      if ( (context) &&
-           ( (bg->u8x_context == context) ||
-             ( (bg->u8x_context) &&
-               ( strcmp(bg->u8x_context,context) == 0 )) ) )
-        context = NULL;
-      if ( (details) && (bg->u8x_details) &&
-           ( (bg->u8x_details == details) ||
-             (strcmp(bg->u8x_details,details)==0)) )
-        details = NULL;
-      if ( (!(VOIDP(irritant))) &&
-           ( irritant == ((lispval)(bg->u8x_xdata)) ) )
-        irritant=VOID;}
-    if ((cond) && (context) && (details))
-      u8_printf(out,"%m @%s (%s)",cond,context,details);
-    else if ((cond) && (context))
-      u8_printf(out,"%m @%s",cond,context);
-    else if ((cond) && (details))
-      u8_printf(out,"%m (%s)",cond,details);
-    else if ((context) && (details))
-      u8_printf(out,"@%s (%s)",context,details);
-    else if (cond)
-      u8_printf(out,"%m",cond);
-    else if (context)
-      u8_printf(out,"@%s",context);
-    else if (details)
-      u8_printf(out,"(%s)",details);
-    else return 0;
-    if (!(VOIDP(irritant))) {
-      u8_byte buf[max_irritant_len+1];
-      u8_sprintf(buf,max_irritant_len,"%Q",irritant);
-      if ( (strchr(buf,'\n')) || (strlen(buf)>42) )
-        u8_printf(out,"\n  %s",buf);
-      else u8_printf(out,"  %s",buf);}
-    return 1;}
+  if (FD_VECTORP(stack)) {
+    int i = 0, len = FD_VECTOR_LENGTH(stack), count = 0;
+    if ( (limit > 0) && (len > limit) ) {
+      int head_limit = limit-(limit/2);
+      while (i < head_limit) {
+        lispval stack_entry = FD_VECTOR_REF(stack,i);
+        compact_stack_entry(out,stack_entry);
+        count++; i++;
+        if ( (i < head_limit) && ((count%4) == 0) )
+          u8_puts(out,"\n  ");}
+      u8_printf(out,"\n... %d/%d calls ...\n",len-limit*2,len);
+      i = len-(limit/2);
+      while (i < len) {
+        lispval stack_entry = FD_VECTOR_REF(stack,i);
+        compact_stack_entry(out,stack_entry);
+        count++; i++;
+        if ( (i < len) && ((count%4) == 0) )
+          u8_puts(out,"\n  ");}}
+    else while (i < len) {
+        lispval stack_entry = FD_VECTOR_REF(stack,i);
+        compact_stack_entry(out,stack_entry);
+        count++; i++;
+        if ( (i < len) && ((count%4) == 0) )
+          u8_puts(out,"\n  ");}}
 }
-
-FD_EXPORT void fd_compact_backtrace(u8_output out,lispval backtrace)
-{
-  lispval scan = backtrace; int depth = 0;
-  u8_puts(out,"\n\t");
-  while (PAIRP(scan)) {
-    lispval car=FD_CAR(scan); scan=FD_CDR(scan);
-    if (STRINGP(car)) {
-      if (depth) u8_puts(out,"// ");
-      u8_puts(out,CSTRING(car));
-      depth++;
-      if ((depth%7)==0)
-        u8_puts(out," //...\n;;* ...");
-      else u8_putc(out,' ');}}
-}
-
 
 FD_EXPORT
 void fd_sum_exception(U8_OUTPUT *out,u8_exception ex)
 {
   u8_exception scan = ex, prev = NULL;
   while (scan) {
-    sum_exception(out,scan,prev); u8_puts(out,"\n");
-    lispval backtrace = FD_U8X_STACK(scan);
-    if (!(FD_VOIDP(backtrace)))
-      fd_compact_backtrace(out,backtrace);
+    u8_puts(out,";; !! ");
+    sum_exception(out,scan);
+    lispval stack = FD_U8X_STACK(scan);
+    if (!(FD_VOIDP(stack)))
+      fd_compact_backtrace(out,stack,fd_sum_stack_max);
     prev=scan;
-    scan=prev->u8x_prev;}
+    scan=prev->u8x_prev;
+    u8_putc(out,'\n');}
 }
 
 FD_EXPORT u8_string fd_errstring(u8_exception ex)
@@ -386,10 +394,10 @@ FD_EXPORT u8_string fd_errstring(u8_exception ex)
   struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
   if (ex == NULL) ex = u8_current_exception;
   if (ex == NULL) return NULL;
-  sum_exception(&out,ex,NULL);
+  sum_exception(&out,ex);
   lispval backtrace = FD_U8X_STACK(ex);
   if (!(FD_VOIDP(backtrace)))
-    fd_compact_backtrace(&out,backtrace);
+    fd_compact_backtrace(&out,backtrace,fd_sum_stack_max);
   return out.u8_outbuf;
 }
 
@@ -636,124 +644,6 @@ static int unparse_exception(struct U8_OUTPUT *out,lispval x)
   return 1;
 }
 
-/* Converting signals to exceptions */
-
-struct sigaction sigaction_raise, sigaction_abort;
-struct sigaction sigaction_exit, sigaction_default;
-static sigset_t sigcatch_set, sigexit_set, sigdefault_set, sigabort_set;
-
-static sigset_t default_sigmask;
-sigset_t *fd_default_sigmask = &default_sigmask;
-
-struct sigaction *fd_sigaction_raise = &sigaction_raise;
-struct sigaction *fd_sigaction_abort = &sigaction_abort;
-struct sigaction *fd_sigaction_exit = &sigaction_exit;
-struct sigaction *fd_sigaction_default = &sigaction_default;
-
-static void siginfo_raise(int signum,siginfo_t *info,void *stuff)
-{
-  u8_contour c = u8_dynamic_contour;
-  u8_condition ex = u8_signal_name(signum);
-  if (!(c)) {
-    u8_log(LOG_CRIT,ex,"Unexpected signal");
-    exit(1);}
-  else {
-    u8_raise(ex,c->u8c_label,NULL);}
-  exit(1);
-}
-
-static void siginfo_exit(int signum,siginfo_t *info,void *stuff)
-{
-  fd_signal_doexit(signum);
-  exit(0);
-}
-
-static void siginfo_abort(int signum,siginfo_t *info,void *stuff)
-{
-  abort();
-}
-
-/* Signal handling configs */
-
-static lispval sigmask2dtype(sigset_t *mask)
-{
-  lispval result = EMPTY;
-  int sig = 1; while (sig<32) {
-    if (sigismember(mask,sig)) {
-      CHOICE_ADD(result,fd_intern(u8_signal_name(sig)));}
-    sig++;}
-  return result;
-}
-
-static int arg2signum(lispval arg)
-{
-  long long sig = -1;
-  if (FIXNUMP(arg))
-    sig = FIX2INT(arg);
-  else if (SYMBOLP(arg))
-    sig = u8_name2signal(SYM_NAME(arg));
-  else if (STRINGP(arg))
-    sig = u8_name2signal(CSTRING(arg));
-  else sig = -1;
-  if ((sig>1)&&(sig<32))
-    return sig;
-  else {
-    fd_seterr(fd_TypeError,"arg2signum",NULL,arg);
-    return -1;}
-}
-
-static lispval sigconfig_getfn(lispval var,void *data)
-{
-  sigset_t *mask = (sigset_t *)data;
-  return sigmask2dtype(mask);
-}
-
-static int sigconfig_setfn(lispval var,lispval val,
-                           sigset_t *mask,
-                           struct sigaction *action,
-                           u8_string caller)
-{
-  int sig = arg2signum(val);
-  if (sig<0) return sig;
-  if (sigismember(mask,sig))
-    return 0;
-  else {
-    sigaction(sig,action,NULL);
-    sigaddset(mask,sig);
-    if (mask!= &sigcatch_set) sigdelset(&sigcatch_set,sig);
-    if (mask!= &sigexit_set) sigdelset(&sigexit_set,sig);
-    if (mask!= &sigabort_set) sigdelset(&sigabort_set,sig);
-    if (mask!= &sigdefault_set) sigdelset(&sigdefault_set,sig);
-    return 1;}
-}
-
-static int sigconfig_catch_setfn(lispval var,lispval val,void *data)
-{
-  sigset_t *mask = (sigset_t *)data;
-  return sigconfig_setfn(var,val,mask,&sigaction_raise,
-                         "sigconfig_catch_setfn");
-}
-
-static int sigconfig_exit_setfn(lispval var,lispval val,void *data)
-{
-  sigset_t *mask = (sigset_t *)data;
-  return sigconfig_setfn(var,val,mask,&sigaction_exit,
-                         "sigconfig_exit_setfn");
-}
-
-static int sigconfig_abort_setfn(lispval var,lispval val,void *data)
-{
-  sigset_t *mask = (sigset_t *)data;
-  return sigconfig_setfn(var,val,mask,&sigaction_abort,
-                         "sigconfig_abort_setfn");
-}
-static int sigconfig_default_setfn(lispval var,lispval val,void *data)
-{
-  sigset_t *mask = (sigset_t *)data;
-  return sigconfig_setfn(var,val,mask,&sigaction_default,
-                         "sigconfig_default_setfn");
-}
-
 void fd_init_err_c()
 {
   u8_register_source_file(_FILEINFO);
@@ -764,90 +654,7 @@ void fd_init_err_c()
   if (fd_unparsers[fd_exception_type]==NULL)
     fd_unparsers[fd_exception_type]=unparse_exception;
 
-  stacktrace_symbol=fd_intern("%%STACK");
-
-  /* Setup sigaction handler */
-
-  memset(&sigaction_raise,0,sizeof(struct sigaction));
-  memset(&sigaction_abort,0,sizeof(struct sigaction));
-  memset(&sigaction_exit,0,sizeof(struct sigaction));
-  memset(&sigaction_default,0,sizeof(struct sigaction));
-
-  sigemptyset(&sigcatch_set);
-  sigemptyset(&sigexit_set);
-  sigemptyset(&sigabort_set);
-  sigemptyset(&sigdefault_set);
-
-  /* Setup sigaction for converting signals to u8_raise (longjmp or exit) */
-  sigaction_raise.sa_sigaction = siginfo_raise;
-  sigaction_raise.sa_flags = SA_SIGINFO;
-  sigemptyset(&(sigaction_raise.sa_mask));
-
-  /* Setup sigaction for default action */
-  sigaction_default.sa_handler = SIG_DFL;
-  sigemptyset(&(sigaction_default.sa_mask));
-
-  /* Setup sigaction for exit action */
-  sigaction_exit.sa_sigaction = siginfo_exit;
-  sigaction_exit.sa_flags = SA_SIGINFO;
-  sigemptyset(&(sigaction_exit.sa_mask));
-
-  /* Setup sigaction for exit action */
-  sigaction_abort.sa_sigaction = siginfo_abort;
-  sigaction_abort.sa_flags = SA_SIGINFO;
-  sigemptyset(&(sigaction_abort.sa_mask));
-
-  /* Default exit actions */
-
-  sigaddset(&(sigaction_abort.sa_mask),SIGSEGV);
-  sigaction(SIGSEGV,&(sigaction_abort),NULL);
-
-  sigaddset(&(sigaction_abort.sa_mask),SIGILL);
-  sigaction(SIGILL,&(sigaction_abort),NULL);
-
-  sigaddset(&(sigaction_abort.sa_mask),SIGFPE);
-  sigaction(SIGFPE,&(sigaction_abort),NULL);
-
-  sigaddset(&(sigaction_exit.sa_mask),SIGTERM);
-  sigaction(SIGTERM,&(sigaction_exit),NULL);
-
-  sigaddset(&(sigaction_abort.sa_mask),SIGQUIT);
-  sigaction(SIGQUIT,&(sigaction_abort),NULL);
-
-  sigaddset(&(sigaction_abort.sa_mask),SIGINT);
-  sigaction(SIGINT,&(sigaction_abort),NULL);
-
-#ifdef SIGBUS
-  sigaddset(&(sigaction_abort.sa_mask),SIGBUS);
-  sigaction(SIGBUS,&(sigaction_abort),NULL);
-#endif
-
-  /* The default sigmask is masking everything but synchronous
-     signals */
-  sigfillset(&default_sigmask);
-  sigdelset(&default_sigmask,SIGSEGV);
-  sigdelset(&default_sigmask,SIGILL);
-  sigdelset(&default_sigmask,SIGFPE);
-#ifdef SIGBUS
-  sigaddset(&default_sigmask,SIGBUS);
-#endif
-
-  fd_register_config
-    ("SIGRAISE",_("SIGNALS to catch and return as errors"),
-     sigconfig_getfn,sigconfig_catch_setfn,
-     &sigcatch_set);
-  fd_register_config
-    ("SIGEXIT",_("Signals to trigger exits"),
-     sigconfig_getfn,sigconfig_exit_setfn,
-     &sigexit_set);
-  fd_register_config
-    ("SIGABORT",_("Signals to trigger exits"),
-     sigconfig_getfn,sigconfig_abort_setfn,
-     &sigabort_set);
-  fd_register_config
-    ("SIGDEFAULT",_("Signals to trigger exits"),
-     sigconfig_getfn,sigconfig_default_setfn,
-     &sigexit_set);
+  stack_entry_symbol=fd_intern("%%STACK");
 
 }
 

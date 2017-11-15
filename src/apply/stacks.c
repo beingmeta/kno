@@ -109,40 +109,27 @@ lispval fd_get_backtrace(struct FD_STACK *stack)
 {
   if (stack == NULL) stack=fd_stackptr;
   if (stack == NULL) return FD_EMPTY_LIST;
-  int n = stack->stack_depth+1, i = stack->stack_depth;
+  int n = stack->stack_depth+1, i = 0;
   lispval result = fd_make_vector(n,NULL);
   while (stack) {
     lispval entry = stack2lisp(stack);
-    FD_VECTOR_SET(result,i,entry);
+    if (i < n) {
+      FD_VECTOR_SET(result,i,entry);}
+    else u8_log(LOG_CRIT,"BacktraceOverflow",
+                "Inconsistent depth %d",n-1);
     stack=stack->stack_caller;
-    i--;}
+    i++;}
   return result;
 }
 
 FD_EXPORT
-void fd_sum_backtrace(u8_output out,lispval backtrace)
+void fd_sum_backtrace(u8_output out,lispval stacktrace)
 {
-  if (fd_stacktracep(backtrace)) {
-    lispval scan=backtrace;
-    int n=0; while (PAIRP(scan)) {
-      lispval entry = FD_CAR(scan);
-      if ((VECTORP(entry)) && (VEC_LEN(entry)>=7)) {
-        lispval type=VEC_REF(entry,1);
-        lispval label=VEC_REF(entry,2);
-        lispval status=VEC_REF(entry,3);
-        if (n) u8_puts(out," ⇒ ");
-        if (STRINGP(label)) u8_puts(out,CSTRING(label));
-        else u8_putc(out,'?');
-        if (STRINGP(type)) {
-          u8_putc(out,'.');
-          u8_puts(out,CSTRING(type));}
-        else u8_puts(out,".?");
-        if (STRINGP(status)) {
-          u8_putc(out,'(');
-          u8_puts(out,CSTRING(status));
-          u8_putc(out,')');}
-        n++;}
-      else if (FD_COMPOUND_TYPEP(entry,stack_entry_symbol)) {
+  if (FD_VECTORP(stacktrace)) {
+    int i = 0, len = FD_VECTOR_LENGTH(stacktrace), n = 0;
+    while (i<len) {
+      lispval entry = FD_VECTOR_REF(stacktrace,i);
+      if (FD_COMPOUND_TYPEP(entry,stack_entry_symbol)) {
         lispval type=FD_COMPOUND_REF(entry,1);
         lispval label=FD_COMPOUND_REF(entry,2);
         lispval status=FD_COMPOUND_REF(entry,3);
@@ -158,8 +145,7 @@ void fd_sum_backtrace(u8_output out,lispval backtrace)
           u8_puts(out,CSTRING(status));
           u8_putc(out,')');}
         n++;}
-      else {}
-      scan=FD_CDR(scan);}}
+      i++;}}
 }
 
 void fd_init_stacks_c()

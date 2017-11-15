@@ -64,7 +64,7 @@ LISP_HEADERS=\
  include/framerd/fdsource.h                          \
  include/framerd/config.h                            \
  include/framerd/common.h                            \
- include/framerd/exceptions.h                        \
+ include/framerd/lisperrs.h                        \
  include/framerd/defines.h                           \
  include/framerd/support.h                           \
  include/framerd/numbers.h                           \
@@ -134,10 +134,10 @@ LISP_OBJS=\
 
 SUPPORT_OBJS=						\
 	src/support/buildinfo.o src/support/support.o	\
-	src/support/config.o src/support/err.o		\
+	src/support/config.o src/support/lisperrs.o	\
 	src/support/logging.o src/support/getopt.o	\
 	src/support/startup.o src/support/fluid.o 	\
-	src/support/posix.o
+	src/support/signals.o src/support/posix.o
 
 APPLY_OBJS=\
 	src/apply/apply.o src/apply/stacks.o 			\
@@ -371,8 +371,8 @@ FRAMERD_SOURCES=\
 	src/lisp/parse.c src/lisp/unparse.c src/lisp/lisp.c \
 	src/support/buildinfo.c \
 	src/support/support.c src/support/config.c src/support/posix.c	\
-	src/support/err.c src/support/logging.c src/support/getopt.c		\
-	src/support/startup.c src/support/fluid.c				\
+	src/support/lisperrs.c src/support/logging.c src/support/getopt.c		\
+	src/support/startup.c src/support/fluid.c src/support/signals.c				\
 	src/apply/apply.c src/apply/stacks.c src/apply/lexenv.c \
 	src/apply/ffi.c       	\
 	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c	\

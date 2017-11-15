@@ -12,9 +12,10 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/support.h"
-#include "framerd/exceptions.h"
+#include "framerd/lisperrs.h"
 #include "framerd/eval.h"
 #include "framerd/ports.h"
+#include "framerd/sequences.h"
 
 static u8_condition SchemeError=_("Undistinguished Scheme Error");
 
@@ -306,13 +307,34 @@ static lispval exception_has_irritant(lispval x)
   else return FD_TRUE;
 }
 
-static lispval exception_stack(lispval x)
+static lispval exception_stack(lispval x,lispval arg1,lispval arg2)
 {
   struct FD_EXCEPTION *xo=
     fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
-  if (FD_VOIDP(xo->ex_stack))
-    return FD_FALSE;
-  else return fd_incref(xo->ex_stack);
+  if (!(FD_VECTORP(xo->ex_stack)))
+    return FD_FALSE; /* Warn? */
+  else {
+    struct FD_VECTOR *stack = (fd_vector) (xo->ex_stack);
+    size_t    stack_len   = stack->vec_length;
+    if (FD_VOIDP(arg1))
+      return fd_incref(xo->ex_stack);
+    else if (FD_VOIDP(arg2)) {
+      long long off = FD_FIX2INT(arg1);
+      if (off < 0) off = stack_len+off;
+      if (off < 0) off = 0;
+      else if (off >= stack_len) off = stack_len-1;
+      lispval entry = FD_VECTOR_REF(xo->ex_stack,off);
+      return fd_incref(entry);}
+    else {
+      long long len = FD_FIX2INT(arg1);
+      if (len<0)
+        return fd_err(fd_RangeError,"exception_stack(len)",NULL,arg1);
+      long long start = (FD_FIXNUMP(arg2)) ? (FD_FIX2INT(arg2)) :
+        (FD_FALSEP(arg2)) ? (0) : (-1);
+      if (start < 0) start = stack_len+(start+1);
+      long long end = start + len;
+      if (end >= stack_len) end = stack_len;
+      return fd_slice(xo->ex_stack,start,end);}}
 }
 
 static lispval exception_summary(lispval x,lispval with_irritant)
@@ -579,10 +601,10 @@ FD_EXPORT void fd_init_errors_c()
             "and has an 'irritant'",
             fd_exception_type,VOID);
 
-  fd_idefn1(fd_scheme_module,"EXCEPTION-STACK",exception_stack,1,
-            "(EXCEPTION-STACK *ex*) returns the call stack when the "
-            "exception object *ex* occured",
-            fd_exception_type,VOID);
+  fd_idefn3(fd_scheme_module,"EXCEPTION-STACK",exception_stack,1,
+            "(EXCEPTION-STACK *ex* [*len*] [*start*]) returns the call stack "
+            "(or a slice of it) where exception object *ex* occurred",
+            fd_exception_type,VOID,fd_fixnum_type,FD_VOID,-1,FD_VOID);
   fd_defalias(fd_scheme_module,"EX/STACK","EXCEPTION-STACK");
   fd_idefn2(fd_scheme_module,"EXCEPTION-SUMMARY",exception_summary,1,
             "Returns a shortened backtrace for an exception",

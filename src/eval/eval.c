@@ -33,6 +33,7 @@
 
 #include <libu8/u8timefns.h>
 #include <libu8/u8filefns.h>
+#include <libu8/u8pathfns.h>
 #include <libu8/u8printf.h>
 
 #include <math.h>
@@ -51,6 +52,8 @@ u8_string fd_ndevalstack_type="ndeval";
 int fd_optimize_tail_calls = 1;
 
 fd_lexenv fd_app_env=NULL;
+
+u8_string fd_bugdir = NULL;
 
 lispval fd_scheme_module, fd_xscheme_module;
 
@@ -1973,7 +1976,7 @@ FD_EXPORT lispval _fd_dbg(lispval x)
     return result;}
 }
 
-void (*fd_dump_backtrace)(lispval bt);
+int (*fd_dump_exception)(lispval ex);
 
 static lispval dbg_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
 {
@@ -1993,6 +1996,57 @@ static lispval dbg_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
     fd_decref(msg);}
   return _fd_dbg(arg);
 }
+
+/* Recording bugs */
+
+FD_EXPORT int fd_record_bug(lispval ex)
+{
+  if (fd_bugdir == NULL) return 0;
+  u8_string bugdir = u8_abspath(fd_bugdir,NULL);
+  long long pid = getpid();
+  long long tid = u8_threadid();
+  long long now = time(NULL);
+  u8_string appid = u8_appid();
+  u8_string filename = ( pid == tid ) ?
+    (u8_mkstring("%s-%lld-%lld.exdtype",appid,now,pid)) :
+    (u8_mkstring("%s-%lld-%lld-%lld.exdtype",appid,now,pid,tid));
+  u8_string full_path = u8_mkpath(bugdir,filename);
+  int rv = fd_write_dtype_to_file(ex,filename);
+  if (rv<0)
+    u8_log(LOG_CRIT,"RecordBug",
+           "Couldn't write exception object to %s",full_path);
+  else u8_log(LOG_WARN,"RecordBug",
+              "Wrote exception to %s",full_path);
+  u8_free(bugdir);
+  u8_free(filename);
+  u8_free(full_path);
+  return rv;
+}
+
+static int config_bugdir(lispval var,lispval val,void *state)
+{
+  if ( ( fd_dump_exception == NULL ) ||
+       ( fd_dump_exception == fd_record_bug ) ) {
+    if (FD_FALSEP(val)) {
+      fd_dump_exception = NULL;
+      u8_free(fd_bugdir);
+      fd_bugdir = NULL;
+      return 0;}
+    else if (FD_STRINGP(val)) {
+      u8_string old = fd_bugdir;
+      fd_bugdir = u8_strdup(FD_CSTRING(val));
+      if (old) u8_free(old);
+      fd_dump_exception = fd_record_bug;
+      return 1;}
+    else {
+      fd_seterr(fd_TypeError,"config_bugdir",u8_strdup("pathstring"),val);
+      return -1;}}
+  else {
+    u8_seterr("ExistingBugHandler","config_bugdir",NULL);
+    return -1;}
+}
+
+/* Helpful forms and functions */
 
 static lispval void_prim(int n,lispval *args)
 {
@@ -2541,6 +2595,12 @@ static void init_localfns()
   fd_register_config
     ("TAILCALL","Enable/disable tail recursion in the Scheme evaluator",
      fd_boolconfig_get,fd_boolconfig_set,&fd_optimize_tail_calls);
+
+  fd_register_config
+    ("BUGDIR","Save exceptions to this directory",
+     fd_sconfig_get,config_bugdir,&fd_bugdir);
+
+
 }
 
 FD_EXPORT void fd_init_errors_c(void);

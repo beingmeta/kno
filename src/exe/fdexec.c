@@ -324,37 +324,7 @@ int do_main(int argc,char **argv,
     fd_unparse_maxelts = old_maxelts; fd_unparse_maxchars = old_maxchars;
     fputs(out.u8_outbuf,stderr); fputc('\n',stderr);
 
-    lispval irritant = (e->u8x_free_xdata == fd_decref_u8x_xdata ) ?
-      ((lispval) (e->u8x_xdata)) : (VOID);
-    lispval stacktrace   = (fd_stacktracep(irritant)) ? (irritant) : (VOID);
-    if (!(VOIDP(stacktrace))) {
-      struct U8_XOUTPUT xout;
-      u8_output out=(u8_output)&xout;
-      u8_init_xoutput(&xout,2,NULL);
-      FD_DOLIST(entry,stacktrace) {
-        u8_puts(out,";; ");
-        if (STRINGP(entry))
-          u8_puts(out,CSTRING(entry));
-        else {
-          u8_puts(out," ");
-          fd_pprint(out,entry,";; ",2,5,100);}
-        u8_putc(out,'\n');}
-      u8_flush_xoutput(&xout);
-      u8_close_xoutput(&xout);}
-
-#if 0
-    lispval irritant = (e->u8x_free_xdata == fd_decref_u8x_xdata ) ?
-      ((lispval) (e->u8x_xdata)) : (VOID);
-    lispval stacktrace   = (fd_stacktracep(irritant)) ? (irritant) : (VOID);
-    double elapsed      = u8_elapsed_time();
-    int msecs           = floor(elapsed*1000);
-    u8_string dumpfile  = u8_mkstring("_stack%d-%d.dtype",getpid(),msecs);
-    fd_write_dtype_to_file(stacktrace,dumpfile);
-    out.u8_write=out.u8_outbuf;
-    u8_printf(&out,";; Complete stacktrace written to %s\n",dumpfile);
-    fputs(out.u8_outbuf,stderr);
-    u8_free(dumpfile);
-#endif
+    /* Write out the exception object somehow */
 
     u8_free(out.u8_outbuf);
     u8_free_exception(e,1);

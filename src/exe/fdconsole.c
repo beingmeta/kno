@@ -1048,6 +1048,7 @@ int main(int argc,char **argv)
           if (save_backtrace)
             u8_fprintf(stderr,";; The exception was saved in ##%d\n",
                        fd_histpush(exo));
+          if (fd_dump_exception) fd_dump_exception(exo);
           /* Note that u8_free_exception will decref exo, so we don't
              need to do so. */
           u8_free_exception(ex,1);}}

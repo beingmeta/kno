@@ -755,13 +755,15 @@ setup_target
 definefileinfo
 versionsh
 archflags
+servlet_bugjar
 servlet_logdir
 servlet_rundir
-bugjar
+daemon_bugjar
 daemon_logdir
 daemon_rundir
 framerd_logdir
 framerd_rundir
+bugjar
 logdir
 rundir
 fdaemoninstall
@@ -3115,6 +3117,8 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
+
 
 
 

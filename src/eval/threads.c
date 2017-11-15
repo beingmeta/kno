@@ -426,17 +426,18 @@ static void *thread_main(void *data)
                 u8_threadid(),tstruct->applydata.fn);
     fd_log_errstack(ex,LOG_WARN,1);
     if (fd_thread_backtrace) {
-      lispval backtrace = FD_U8X_STACK(ex);
-      if (!(FD_VOIDP(backtrace))) {
-        U8_STATIC_OUTPUT(tmp,8000);
-        fd_sum_backtrace(tmpout,backtrace);
-        u8_log(LOG_WARN,ThreadBacktrace,"%s",tmp.u8_outbuf);
-        if (fd_dump_backtrace) fd_dump_backtrace(backtrace);
-        u8_close_output(tmpout);}}
+      U8_STATIC_OUTPUT(tmp,8000);
+      fd_sum_exception(tmpout,ex);
+      u8_log(LOG_WARN,ThreadBacktrace,"%s",tmp.u8_outbuf);
+      if (fd_dump_exception) {
+        lispval exo = fd_get_exception(ex);
+        fd_dump_exception(exo);}
+      u8_close_output(tmpout);}
     lispval exception = fd_get_exception(ex);
     if (FD_VOIDP(exception))
       exception = fd_wrap_exception(ex);
     else fd_incref(exception);
+    if (fd_dump_exception) fd_dump_exception(exception);
     tstruct->result = exception;
     if (tstruct->resultptr) {
       fd_incref(exception);
