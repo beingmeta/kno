@@ -1124,6 +1124,26 @@ static lispval make_leveldb_pool_prim(lispval path,lispval base,lispval cap,
   return fd_pool2lisp(pool);
 }
 
+/* Table functions */
+
+static lispval leveldb_table_get(lispval db,lispval key,lispval dflt)
+{
+  lispval rv = leveldb_get_prim(db,key,FD_FALSE);
+  if (FD_EMPTYP(rv))
+    return fd_incref(dflt);
+  else return rv;
+}
+
+static int leveldb_table_store(lispval db,lispval key,lispval val)
+{
+  lispval rv = leveldb_put_prim(db,key,val,FD_FALSE);
+  if (FD_ABORTP(rv))
+    return -1;
+  else {
+    fd_decref(rv);
+    return 1;}
+}
+
 /* Initialization */
 
 FD_EXPORT int fd_init_leveldb()
@@ -1138,9 +1158,15 @@ FD_EXPORT int fd_init_leveldb()
   leveldb_writeoptions_set_sync(sync_writeopts,1);
 
   fd_leveldb_type = fd_register_cons_type("leveldb");
+
   fd_unparsers[fd_leveldb_type]=unparse_leveldb;
   fd_recyclers[fd_leveldb_type]=recycle_leveldb;
   fd_type_names[fd_leveldb_type]="LevelDB";
+
+  /* Table functions for leveldbs */
+  fd_tablefns[fd_leveldb_type]=u8_alloc(struct FD_TABLEFNS);
+  fd_tablefns[fd_leveldb_type]->get = leveldb_table_get;
+  fd_tablefns[fd_leveldb_type]->store = leveldb_table_store;
 
   module = fd_new_module("LEVELDB",0);
 
