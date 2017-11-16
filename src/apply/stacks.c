@@ -41,13 +41,6 @@ struct FD_STACK *fd_stackptr=NULL;
 
 static lispval stack_entry_symbol;
 
-static lispval stringval(u8_string s)
-{
-  if (s==NULL)
-    return FD_FALSE;
-  else return lispval_string(s);
-}
-
 /* Stacks are rendered into LISP as vectors as follows:
    1. depth  (integer, increasing with calls)
    2. type   (apply, eval, load, other)

@@ -1145,7 +1145,8 @@ static int bigpool_commit(fd_pool p,fd_commit_phase phase,
         u8_logf(LOG_WARN,"PoolCleanupFailed",
                 "Couldn't remove file %s for %s",commit,fname);}}
     if (commits->commit_stream) release_commit_stream(p,commits);
-    u8_free(rollback); u8_free(commit);
+    u8_free(rollback);
+    u8_free(commit);
     return 0;}
   default:
     return 0;
