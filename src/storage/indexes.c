@@ -1401,7 +1401,9 @@ FD_EXPORT int fd_index_save(fd_index ix,
   commits.commit_stores   = (fd_const_keyvals) stores;
   commits.commit_n_stores = n_stores;
 
+  u8_lock_mutex(&(ix->index_commit_lock));
   int saved = index_docommit(ix,&commits);
+  u8_unlock_mutex(&(ix->index_commit_lock));
 
   if (free_adds) {
     fd_free_keyvals(adds,n_adds);
