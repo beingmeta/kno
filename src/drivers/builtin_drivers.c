@@ -62,6 +62,7 @@ FD_EXPORT int fd_init_drivers()
   fd_init_file_pool_c();
   fd_init_oidpool_c();
   fd_init_bigpool_c();
+  fd_init_netpool_c();
 
   fd_init_fileindex_c();
   fd_init_hashindex_c();
