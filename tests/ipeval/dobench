@@ -1,0 +1,857 @@
+#!/usr/bin/env fdexec
+;;; -*- Mode: scheme; -*-
+
+;;; Init stuff
+
+(cond ((file-exists? (get-component "local.cfg"))
+       (load-config (get-component "local.cfg")))
+      ((file-exists? (get-component "default.cfg"))
+       (load-config (get-component "default.cfg"))))
+
+(use-module '{gnosys brico brico/lookup reflection optimize})
+
+(message "Using BRICO pool " brico-pool) 
+
+(define imagedb
+  (config 'imagedb (stringout "dvodb@" (config 'server "beingmeta.com"))))
+(define image-pool (use-pool imagedb))
+(define image-index (open-index imagedb))
+(message "Using image pool " image-pool) 
+(message "Using image index " image-index)
+
+; (define timedb (use-pool "timedb@gemini.beingmeta.com"))
+; (message "Using document pool " timedb) 
+
+;;; Operations over ipeval records
+
+(define testflush #f)
+;(define (testflush) (system "dtcall bground@gemini swapout"))
+(define trialflush #f)
+
+(define (get-total-fetches records)
+  (let ((sum 0))
+    (doseq (record records)
+      (set! sum (+ sum (first record))))
+    sum))
+(define (get-total-exec-time records)
+  (let ((sum 0))
+    (doseq (record records)
+      (set! sum (+ sum (second record))))
+    sum))
+(define (get-final-exec-time records)
+  (second (elt records (1- (length records)))))
+(define (get-total-fetch-time records)
+  (let ((sum 0))
+    (doseq (record records)
+      (set! sum (+ sum (third record))))
+    sum))
+
+;;; 100% speedup is twice as fast or half the time
+;;; 200% speedup is three times as fast or 1/3 the time
+;;; queries/second 1/wo 1/with
+(define (compute-percent-speedup with without)
+  (* 100.0 (/ (- (/ 1 with) (/ 1 without))
+	      (/ 1 without))))
+
+;;; Running an ipeval test
+
+(define (ipevaltest fcn arg)
+  (if testflush (testflush))
+  (let ((v1 (fcn arg))
+	(t1 0) (times1 {})
+	(t2 0) (times2 {}))
+    (dotimes (i (config 'trialcount 3))
+      (clearcaches)
+      (if trialflush (trialflush))
+      (set+! times1 (%timeval (fcn arg))))
+    (set! t1 (getmedian second (qc times1)))
+    (dotimes (i (config 'trialcount 3))
+      (clearcaches)
+      (if trialflush (trialflush))
+      (set+! times2 (%timeval (ipeval (fcn arg)))))
+    (set! t2 (getmedian second (qc times2)))
+    (clearcaches)
+    (if trialflush (trialflush))
+    (let ((track-record (third (track-ipeval (fcn arg)))))
+      (vector ;; 0:wo 1:w 2:speedup
+	      t1 t2 (compute-percent-speedup t2 t1)
+	      ;; 3:input 4:outputsize 5:output
+	      arg (choice-size v1) (qc v1)
+	      (length track-record) ; 6:niterations
+	      (get-total-fetches track-record)  ; 7
+	      (get-total-exec-time track-record) ; 8
+	      (get-total-fetch-time track-record) ; 9
+	      (get-final-exec-time track-record)))))
+
+(define (comparefcn fcn1 fcn2 arg)
+  (if testflush (testflush))
+  (let ((v1 (fcn1 arg))
+	(t1 0) (times1 {})
+	(t2 0) (times2 {}))
+    (dotimes (i (config 'trialcount 3))
+      (clearcaches)
+      (if trialflush (trialflush))
+      (set+! times1 (%timeval (fcn1 arg))))
+    (set! t1 (getmedian second (qc times1)))
+    (dotimes (i (config 'trialcount 3))
+      (clearcaches)
+      (if trialflush (trialflush))
+      (set+! times2 (%timeval (fcn2 arg))))
+    (set! t2 (getmedian second (qc times2)))
+    (clearcaches)
+    (if trialflush (trialflush))
+    (let ((track-record (third (track-ipeval (fcn1 arg)))))
+      (vector t1 t2 (compute-percent-speedup t2 t1)
+	      arg (choice-size v1) (qc v1)
+	      (length track-record)
+	      (get-total-fetches track-record)
+	      (get-total-exec-time track-record)
+	      (get-total-fetch-time track-record)
+	      (get-final-exec-time track-record)))))
+
+;;;; Accessing test result fields
+
+;;; This is a really long comment, who knows what I'm going to say, but
+;;; the big trick is that it gets really long and I hope that it gets
+;;; to keep its prefix strings when it gets ground.  Also, what
+;;; happens automatically.
+
+(define (wo/ipeval-time rec) (elt rec 0))
+(define (w/ipeval-time rec) (elt rec 1))
+(define (ipeval-speedup rec) (elt rec 2))
+(define (trial-input rec) (elt rec 3))
+(define (trial-output-size rec) (elt rec 4))
+(define (trial-output rec) (elt rec 5))
+(define (ipeval-cycles rec) (elt rec 6))
+(define (ipeval-fetches rec) (elt rec 7))
+(define (ipeval-exec-time rec) (elt rec 8))
+(define (ipeval-fetch-time rec) (elt rec 9))
+(define (ipeval-final-exec-time rec) (elt rec 10))
+(define (query-logic-time rec) (elt rec 10))
+
+(define (wo/fetch-time rec)
+  (- (wo/ipeval-time rec) (ipeval-final-exec-time rec)))
+
+;;; Running a set of tests
+
+(define (ipevaltests fcn args)
+  (let ((samples {})
+	(speedup-sum 0)
+	(speedup-max #f)
+	(speedup-min #f)
+	(n 0))
+    (doseq (item args i)
+      (let ((sample (ipevaltest fcn item)))
+	(set+! samples sample)
+	(lineout i "\t" ; 1
+		 (trial-output-size sample) "\t" ; 2
+		 (ipeval-fetches sample) "\t" ; 3
+		 (ipeval-cycles sample) "\t" ; 4
+		 (* 1000.0 (wo/ipeval-time sample)) "\t" ; 5
+		 (* 1000.0 (w/ipeval-time sample)) "\t" ; 6
+		 (ipeval-speedup sample) "\t" ; 7
+		 (/ (* 1000.0 (wo/ipeval-time sample))
+		    (ipeval-fetches sample)) "\t" ; 8
+		 (/ (* 1000.0 (w/ipeval-time sample))
+		    (ipeval-fetches sample)) "\t" ; 9
+		 (* 1000.0 (ipeval-exec-time sample)) "\t" ; 10
+		 (* 1000.0 (ipeval-fetch-time sample)) "\t" ; 11
+		 (* 1000.0 (ipeval-final-exec-time sample)) "\t" ; 12
+		 (if (sequence? (trial-input sample))
+		     (length (trial-input sample))
+		   1) "\t" ; 13
+		 (trial-input sample))
+	(let ((speedup (ipeval-speedup sample)))
+	  (set! speedup-sum (+ speedup-sum speedup))
+	  (if (or (not speedup-max) (> speedup speedup-max))
+	      (set! speedup-max speedup))
+	  (if (or (not speedup-min) (< speedup speedup-min))
+	      (set! speedup-min speedup)))
+	(set! n (+ n 1))))
+    (lineout "## Speedup mean=" (/ speedup-sum n)
+	     "%; max=" speedup-max
+	     "%; min=" speedup-min
+	     "%; count=" n)
+    (failure-analysis (qc samples))
+    (show-stats "Database references" ipeval-fetches (qc samples))
+    (show-stats "Query logic time" ipeval-final-exec-time (qc samples) secs)
+    (show-stats "Database fetch time" ipeval-fetch-time (qc samples) secs)
+    (show-stats "Unassisted query time" wo/ipeval-time (qc samples) secs)
+    (show-stats "Assisted query time" w/ipeval-time (qc samples) secs)
+    (show-stats "Unassisted fetch time" wo/fetch-time (qc samples) secs)
+    (show-stats "IPEVAL cycles" ipeval-cycles (qc samples))
+    samples))
+
+(define (comparefcns fcn1 fcn2 args)
+  (let ((samples {})
+	(speedup-sum 0)
+	(speedup-max #f)
+	(speedup-min #f)
+	(n 0))
+    (doseq (item args i)
+      (let ((sample (comparefcn fcn1 fcn2 item)))
+	(set+! samples sample)
+	(lineout i "\t" ; 1
+		 (trial-output-size sample) "\t" ; 2
+		 (ipeval-fetches sample) "\t" ; 3
+		 (ipeval-cycles sample) "\t" ; 4
+		 (* 1000.0 (wo/ipeval-time sample)) "\t" ; 5
+		 (* 1000.0 (w/ipeval-time sample)) "\t" ; 6
+		 (ipeval-speedup sample) "\t" ; 7
+		 (/ (* 1000.0 (wo/ipeval-time sample))
+		    (ipeval-fetches sample)) "\t" ; 8
+		 (/ (* 1000.0 (w/ipeval-time sample))
+		    (ipeval-fetches sample)) "\t" ; 9
+		 (* 1000.0 (ipeval-exec-time sample)) "\t" ; 10
+		 (* 1000.0 (ipeval-fetch-time sample)) "\t" ; 11
+		 (* 1000.0 (ipeval-final-exec-time sample)) "\t" ; 12
+		 (if (sequence? (trial-input sample))
+		     (length (trial-input sample))
+		   1) "\t" ; 13
+		 (trial-input sample))
+	(let ((speedup (ipeval-speedup sample)))
+	  (set! speedup-sum (+ speedup-sum speedup))
+	  (if (or (not speedup-max) (> speedup speedup-max))
+	      (set! speedup-max speedup))
+	  (if (or (not speedup-min) (< speedup speedup-min))
+	      (set! speedup-min speedup)))
+	(set! n (+ n 1))))
+    (lineout "## Mean speedup=" (/ speedup-sum n))
+    (lineout "## Max speedup=" speedup-max)
+    (lineout "## Min speedup=" speedup-min)
+    samples))
+
+;;; Descent tests
+
+(define (hyponyms x (seen (make-hashset)))
+  (tryif (not (hashset-get seen x))
+	 (begin (hashset-add! seen x)
+		(choice x (hyponyms (get x 'hyponym) seen)))))
+(define (getspecls x (seen (make-hashset)))
+  (tryif (not (hashset-get seen x))
+	 (begin (hashset-add! seen x)
+		(choice x (getspecls (get x @?specls) seen)))))
+
+(define (hyponyms2 x) (get* x 'hyponym))
+(define (getspecls2 x) (get* x @?specls))
+
+(define (getspecls3 x) (get x @?specls*))
+
+;;; Diambiguation tests
+
+(define corpus-index #f)
+(define corpus-slotid @?refterms)
+
+;;(set! corpus-index (open-index "dvodb@gemini"))
+;;(set! corpus-slotid @?gn/concepts)
+
+;;; This computes scores across the image database given all the
+;;; possible meanings of all the keywords in the query.  It does so by
+;;; giving each image one point for matching a possible meaning of one
+;;; of the keywords.
+(define (get-corpus-scores keylist) 
+  (let* ((corpus-scores (make-hashtable 65536))) 
+    (dolist (keyword keylist)
+      (do-choices (meaning (?? @?english keyword))
+	(hashtable-increment! corpus-scores
+	    (find-frames corpus-index corpus-slotid meaning)
+	  4)
+	(hashtable-increment! corpus-scores
+	    (find-frames corpus-index
+	      corpus-slotid (get meaning {@?implies* @?partof*})))))
+    corpus-scores))
+
+;;; This computes scores for every possible meaning of the keywords in
+;;; the keylist.  It does this by taking the corpus scores and adding
+;;; together the corpus scores for all images
+(define (get-meaning-scores keylist)
+  (let* ((corpus-scores (cachepoint get-corpus-scores keylist))
+	 (meaning-scores (make-hashtable 1024))
+	 (n-meanings 0))
+    (dolist (keyword keylist)
+      (do-choices (meaning (?? @?english keyword))
+	(do-choices (instance
+		     (find-frames corpus-index
+		       corpus-slotid meaning))
+	  (hashtable-increment! meaning-scores meaning
+	    (get corpus-scores instance)))))
+    meaning-scores))
+
+(define (disambig keylist)
+  (let ((scores (get-meaning-scores keylist)))
+    (map (lambda (keyword)
+	   (cons keyword (largest (?? @?english keyword) scores)))
+	 keylist)))
+
+;;; Optimized with IPEVAL
+
+(define (iget-corpus-scores keylist)
+  (ipeval (get-corpus-scores keylist)))
+
+(define (iget-meaning-scores keylist)
+  (let* ((corpus-scores (iget-corpus-scores keylist))
+	 (meaning-scores (make-hashtable 1024))
+	 (n-meanings 0))
+    (dolist (keyword keylist)
+      (do-choices (meaning (?? @?english keyword))
+	(do-choices (instance (find-frames corpus-index corpus-slotid meaning))
+	  (hashtable-increment! meaning-scores meaning
+	    (get corpus-scores instance)))))
+    meaning-scores))
+
+(define (idisambig keylist)
+  (let ((scores (iget-meaning-scores keylist)))
+    (map (lambda (keyword)
+	   (cons keyword (largest (?? @?english keyword) scores)))
+	 keylist)))
+(define (idisambigo keylist)
+  (ipeval (disambig keylist)))
+
+;;; GETRELATED
+
+(define (getrefref concept)
+  (intersection (get concept @?refterms) (?? @?refterms concept)))
+
+(define (getrelated concept)
+  (choice (intersection (get concept @?refterms) (?? @?refterms concept))
+	  (try
+	   (getrefref (get concept @?partof))
+	   (getrefref (get (get concept @?partof) @?partof))
+	   (getrelated (get concept @?isa)))))
+
+;;; GETDTERM
+
+(define (dterm-lookup3 language term1 term2 term3)
+  (?? language term1
+      partof* (?? language term2)
+      implies (?? language term3)))
+
+(define (dterm-lookup2 language term1 term2)
+  (choice (?? language term1
+	      partof* (?? language term2))
+	  (?? language term1
+	      implies (?? language term2))))
+(define (dterm-lookup1 language term1)
+  (?? language term1))
+
+(define (probe-dterm1 concept language term1)
+  (if (identical? concept (dterm-lookup1 language term1))
+      (vector term1)
+      (fail)))
+
+(define (probe-dterm2 concept language term1 term2)
+  (if (identical? concept (dterm-lookup2 language term1 term2))
+      (vector term1 term2)
+      (fail)))
+
+(define (probe-dterm3 concept language term1 term2 term3)
+  (if (identical? concept (dterm-lookup3 language term1 term2 term3))
+      (vector term1 term2 term3)
+      (fail)))
+
+(define (makedterm concept (language english))
+  (try (probe-dterm1 concept language (get-norm concept language))
+       (probe-dterm2 concept language
+		     (get-norm concept language)
+		     (get-norm (get concept @?implies) language))
+       (probe-dterm2 concept language
+		     (get-norm concept language)
+		     (get-norm (get concept @?partof) language))
+       (probe-dterm3 concept language
+		     (get-norm concept language)
+		     (get-norm (get concept @?partof) language)
+		     (get-norm (get concept @?implies) language))
+       (probe-dterm2 concept language
+		     (get concept language)
+		     (get-norm (get concept @?partof) language))
+       (probe-dterm3 concept language
+		     (get concept language)
+		     (get-norm (get concept @?partof) language)
+		     (get-norm (get concept @?implies) language))))
+
+;;; REFANALYZE
+
+(define doc/parsed @/gnosys/4{DOC/PARSED})
+(define gn/concepts @?gn/concepts)
+(define gn/proper-names @?gn/proper-names)
+(define gn/noun-phrases @?gn/noun-phrases)
+
+(define (phase1-resolve-name name)
+  ;; (lineout "name=" name)
+  (let ((candidates (choice (?? 'names (stdstring name)))))
+    (try (singleton candidates)
+	 (singleton (get-basis candidates @?genls))
+	 (singleton (get-basis candidates @?specls)))))
+(define (phase1 passage)
+  ;; (lineout "phase1 " node)
+  (let ((names (phase1-resolve-name (get passage @?gn/proper-names))))
+    (choice names (get names @?isa))))
+
+(define (phase2-resolve-name name context)
+  ;; (lineout "name=" name "; slotid=" slotid "; context=" context)
+  (try (intersection (?? 'names (stdstring name)) context)
+       (let ((candidates
+	      (choice (?? 'names (stdstring name) @?part-of* context)
+		      (?? 'names (stdstring name) @?isa context))))
+	 (try (intersection candidates context)
+	      (singleton candidates)
+	      (singleton (get-basis candidates @?genls))
+	      (singleton (get-basis candidates @?specls))))))
+(define (phase2 passage context)
+  (phase2-resolve-name (get passage @?gn/proper-names) (qc context)))
+
+(define (getrefs passages)
+  (let ((context {}))
+    (doseq (passage passages) (set+! context (phase1 passage)))
+    (doseq (passage passages)
+      (set+! context (phase2 passage (qc context)))) context))
+
+(define (igetrefs passages)
+  (let ((context {}))
+    (doseq (passage passages)
+      (let ((new-referents (ipeval (phase1 passage))))
+	(set+! context (choice context new-referents))))
+    (doseq (passage passages)
+      (let ((new-referents (ipeval (phase2 passage (qc context)))))
+	(set+! context new-referents)))
+    context))
+
+;;; Generating sample data
+
+(define (generate-descent-samples)
+  (dtype->file (?? 'has 'hyponym) "descent.samples"))
+
+(define (generate-fake-query image n)
+  (map (lambda (x) (pick-one (get x english)))
+       (choice->list (pick-n (get image gn/concepts) n))))
+
+(define (random-image)
+  (let ((image (random-oid image-pool)))
+    (until (exists? (get image gn/concepts))
+      (set! image (random-oid image-pool)))
+    image))
+
+(define (generate-disambig-samples)
+  (let ((queries {}))
+    (dotimes (i 100)
+      (let ((q (generate-fake-query (random-image) 2)))
+	(lineout q)
+	(set+! queries q)))
+    (dotimes (i 100)
+      (let ((q (generate-fake-query (random-image) 3)))
+	(lineout q)
+	(set+! queries q)))
+    (dotimes (i 100)
+      (let ((q (generate-fake-query (random-image) 4)))
+	(lineout q)
+	(set+! queries q)))
+    (dotimes (i 100)
+      (let ((q (generate-fake-query (random-image) 5)))
+	(lineout q)
+	(set+! queries q)))
+    (dtype->file queries "disambig.samples")))
+
+(define (generate-getrefs-samples (n 500))
+  (use-pool (config-get 'timeinc "timeinc@beingmeta.com"))
+  (dtype->file (get (pick-n (pool-elts (->pool "pubs.timeinc.com")) n)
+		    @?doc/parsed) 
+	       "refanalyze.samples"))
+
+;;; Generating IPEVAL sample timelines
+
+(define (generate-timeline records)
+  (let ((time 0.0))
+    (doseq (record records i)
+      (set! time (+ time (second record)))
+      (lineout i "\t"
+	       (+ time (/ (third record) 2)) "\t"
+	       (first record) "\t"
+	       (second record) "\t"
+	       (third record))
+      (set! time (+ time (third record))))
+    (printout)))
+
+(define (timeline fcn arg)
+  (clearcaches)
+  (let ((tracking (track-ipeval (fcn arg))))
+    (generate-timeline (third tracking))
+    (first tracking)))
+
+(define timeline-samples (make-hashtable))
+
+(define (write-timeline filename fcn (arg))
+  (unless (bound? arg)
+    (set! arg (try (get timeline-samples fcn)
+		   (get timeline-samples (procedure-name fcn)))))
+  (clearcaches)
+  (let ((tracking (track-ipeval (fcn arg))))
+    (fileout filename (generate-timeline (third tracking)))))
+
+(define descent-sample
+  @/brico/6b2(VERB.CHANGE "change form" "change shape" "deform"))
+(add! timeline-samples "GETSPECLS" descent-sample)
+(add! timeline-samples "HYPONYMS" descent-sample)
+
+(define disambig-sample
+  (list "wine" "glass" "party"))
+(add! timeline-samples "DISAMBIG" disambig-sample)
+
+(define getrefs-sample
+  '(@3f5bfb9a/1439b01"You know the routine by now: Artist or band s
+..."
+    @3f5bfb9a/1439b02"The latest sensation to adhere to this
+career ..."
+    @3f5bfb9a/1439b03"To her credit, Stefani isn't blowing
+smoke th ..."
+    @3f5bfb9a/1439b04"While hardly reinventing any type of
+wheel, m ..."
+    @3f5bfb9a/1439b0f"If the band itself has discovered its
+inner B ..."
+    @3f5bfb9a/1439b16"Before this devolves into a
+rock-as-poetry di ..."))
+
+;;; Simple data analysis
+
+(define (getmax fcn over)
+  (let ((max #f))
+    (do-choices (x over)
+      (let ((v (fcn x)))
+	(if (not max) (set! max v)
+	  (if (> v max) (set! max v)))))
+    max))
+
+(define (getmin fcn over)
+  (let ((min #f))
+    (do-choices (x over)
+      (let ((v (fcn x)))
+	(if (not min) (set! min v)
+	  (if (< v min) (set! min v)))))
+    min))
+
+(define (getmedian fcn over)
+  (let* ((vec (sorted over fcn))
+	 (n (length vec)))
+    (if (= (remainder n 2) 0)
+	(if (= n 2)
+	    (/ (+ (fcn (elt vec 0)) (fcn (elt vec 1))) 2)
+	    (/ (+ (fcn (elt vec (quotient n 2)))
+		  (fcn (elt vec (+ 1 (quotient n 2)))))
+	       2))
+	(fcn (elt vec (quotient n 2))))))
+
+(define (getmean fcn over)
+  (if (empty? over) 0
+    (let ((sum 0))
+      (do-choices (x over)
+	(set! sum (+ sum (fcn x))))
+      (/ sum (choice-size over)))))
+
+(define (getsigma fcn over)
+  (if (empty? over) 0
+    (let ((sum 0)
+	  (mean (getmean fcn (qc over))))
+      (do-choices (x over)
+	(let ((d (- (fcn x) mean)))
+	  (set! sum (+ sum (* d d)))))
+      (sqrt (/ sum (1- (choice-size over)))))))
+
+(define (getsum fcn over)
+  (let ((sum 0))
+    (do-choices (x over)
+      (set! sum (+ sum (fcn x))))
+    sum))
+
+(define (speedup-to-multiplier p)
+  (/ 1 (if (< p 0) (+ 1 (- (/ (- p) 100))) (+ 1 (/ p 100)))))
+
+(define (keep-digits num digits)
+  (let* ((as-string (stringout num))
+	 (dot (position #\. as-string)))
+    (if dot
+	(if (> dot digits) (subseq as-string 0 dot)
+	  (if (> (+ dot digits 1) (length as-string))
+	      as-string
+	    (subseq as-string 0 (+ dot digits 1))))
+      as-string)))
+(define (keep-digits num digits)
+  (let* ((as-string (stringout num))
+	 (dot (position #\. as-string)))
+    (if dot
+	(if (> dot digits)
+	    (subseq as-string 0 dot)
+	  (if (> (+ dot digits 1) (length as-string)) as-string
+	    (if (= dot digits)
+		(subseq as-string 0 digits)
+	      (subseq as-string 0 (+ digits 1)))))
+      as-string)))
+
+(define (failure-analysis records)
+  (let* ((slowdowns (filter-choices (record records)
+		      (< (ipeval-speedup record) 0)))
+	 (speedups (filter-choices (record records)
+		     (> (ipeval-speedup record) 0)))
+	 (non-trivial
+	  (filter-choices (record records)
+	    (> (ipeval-fetches record) 3))))
+    (if (empty? slowdowns)
+	(lineout "## No calls were slowed down by the method")
+      (lineout "## " (choice-size slowdowns) " of " (choice-size records)
+	       " queries (" (* 100.0 (/ (choice-size slowdowns)
+					(choice-size records)))
+	       "%) had reduced performance averaging "
+	       (getmean ipeval-speedup (qc slowdowns))
+	       "% (" (speedup-to-multiplier
+		      (getmean ipeval-speedup (qc slowdowns))) "x)"
+		      " with a worst case of "
+		      (smallest (ipeval-speedup slowdowns))
+		      "% (" (speedup-to-multiplier (smallest (ipeval-speedup slowdowns))) "x)"))
+    (lineout "## " (choice-size speedups) " of " (choice-size records)
+	     " queries (" (* 100.0 (/ (choice-size speedups)
+				      (choice-size records)))
+	     "%) had improved performance averaging "
+	     (getmean ipeval-speedup (qc speedups))
+	     "% (" (speedup-to-multiplier
+		   (getmean ipeval-speedup (qc speedups))) "x)"
+	     " with a best case of "
+	     (largest (ipeval-speedup speedups))
+	     "% (" (speedup-to-multiplier (largest (ipeval-speedup speedups))) "x)")
+    (lineout "## " (choice-size non-trivial) " of " (choice-size records)
+	     " queries (" (* 100.0 (/ (choice-size non-trivial)
+				      (choice-size records)))
+	     "%) involved more than 3 database references.  "
+	     "These queries had an average speedup of "
+	     (getmean ipeval-speedup (qc non-trivial))
+	     "% (" (speedup-to-multiplier
+		   (getmean ipeval-speedup (qc non-trivial)))
+	     "x)")))
+
+(define (identity x) x)
+
+(define (show-stats label fcn over (showval #f))
+  (unless showval (set! showval identity))
+  (lineout "## " label ":"
+	   " total=" (showval (getsum fcn (qc over)))
+	   "; mean=" (showval (getmean fcn (qc over)))
+	   "; median=" (showval (getmedian fcn (qc over)))
+	   "; min=" (showval (getmin fcn (qc over)))
+	   "; max=" (getmax fcn (qc over))))
+
+;;;; Generate table row
+
+(define (f0 n) (keep-digits (round n) 0))
+(define (f2 n) (keep-digits n 2))
+(define (secs n)
+  (cond ((> n 1.0) (stringout (keep-digits n 3) "s"))
+	((> n 0.001) (stringout (keep-digits (* n 1000) 3) "ms"))
+	(else (stringout (keep-digits (* n 1000000) 3) "us"))))
+
+(define (generate-row label filename)
+  (let ((data (file->dtype filename)))
+    (lineout "<row>"
+	     "<entry>" label "</entry>"
+	     "<entry>" (choice-size data) "</entry>")
+    (lineout "     "
+	     "<entry>" (f2 (getmean ipeval-speedup (qc data))) "%"
+	     " [" (f2 (getmin ipeval-speedup (qc data))) "%"
+	     ":" (f2 (getmax ipeval-speedup (qc data))) "%]"
+	     "</entry>")
+    (lineout "     "
+	     "<entry>"
+	     (secs (getmean wo/ipeval-time (qc data))) 
+	     " [" (secs (getmin wo/ipeval-time (qc data))) 
+	     ":" (secs (getmax wo/ipeval-time (qc data))) "]"
+	     "</entry>")
+    (lineout "     "    
+	     "<entry>"
+	     (secs (getmean w/ipeval-time (qc data)))
+	     " [" (secs (getmin w/ipeval-time (qc data))) 
+	     ":" (secs (getmax w/ipeval-time (qc data))) "]"
+	     "</entry>")
+    (lineout "     "
+	     "<entry>"
+	     (f0 (getmean ipeval-fetches (qc data))) 
+	     " [" (f0 (getmin ipeval-fetches (qc data))) 
+	     ":" (f0 (getmax ipeval-fetches (qc data))) "]"
+	      "</entry>")
+    (lineout "     "
+	     "<entry>"
+	     (secs (getmean query-logic-time (qc data)))
+	     " [" (secs (getmin query-logic-time (qc data))) 
+	     ":" (secs (getmax query-logic-time (qc data))) "]"
+	     "</entry>"
+	     "</row>")))
+
+(define (generate-datarow label dir)
+  (let* ((datafile (mkpath dir "raw"))
+	 (sgmlfile (mkpath dir "row.xml"))
+	 (data (file->dtype datafile)))
+    (fileout sgmlfile
+	     "<row rowsep='0'>\n"
+	     "<entry>" label "</entry>\n"
+	     "<entry>" (choice-size data) "</entry>\n"
+	     "<entry>" (f2 (getmean ipeval-speedup (qc data))) "%" "</entry>\n"
+	     "<entry>" (secs (getmean wo/ipeval-time (qc data))) "</entry>\n"
+	     "<entry>" (secs (getmean w/ipeval-time (qc data))) "</entry>\n"
+	     "<entry>"  (f0 (getmean ipeval-fetches (qc data))) "</entry>\n"
+	     "<entry>" (secs (getmean query-logic-time (qc data))) "</entry>\n"
+	     "</row>\n"
+	     "<row rowsep='0'>\n"
+	     "<entry morerows='1'>" "</entry>\n"
+	     "<entry>min " (f2 (getmin ipeval-speedup (qc data))) "</entry>\n"
+	     "<entry>min " (secs (getmin wo/ipeval-time (qc data))) "</entry>\n"
+	     "<entry>min " (secs (getmin w/ipeval-time (qc data))) "</entry>\n"
+	     "<entry>min " (f0 (getmin ipeval-fetches (qc data))) "</entry>\n"
+	     "<entry>min " (secs (getmin query-logic-time (qc data))) "</entry>\n"
+	     "</row>\n"
+	     "<row>\n"
+	     "<entry morerows='1'>" "</entry>\n"
+	     "<entry>max " (f2 (getmax ipeval-speedup (qc data))) "</entry>\n"
+	     "<entry>max " (secs (getmax wo/ipeval-time (qc data))) "</entry>\n"
+	     "<entry>max " (secs (getmax w/ipeval-time (qc data))) "</entry>\n"
+	     "<entry>max " (f0 (getmax ipeval-fetches (qc data))) "</entry>\n"
+	     "<entry>max " (secs (getmax query-logic-time (qc data))) "</entry>\n"
+	     "</row>")))
+
+(define (get-speedups samples)
+  (filter-choices (sample samples)
+    (> (ipeval-speedup sample) 0)))
+
+(define (get-raw-data dir) (file->dtype (append dir "/raw")))
+
+(define (generate-comparison sgmlfile label data)
+  (let* ((n-speedups (choice-size (get-speedups data)))
+	 (n-samples (choice-size data)))
+    (fileout sgmlfile
+	     "<row>"
+	     "<entry>" label "</entry>"
+	     "<entry>" (f0 (/ (* 100.0 n-speedups) n-samples)) "%</entry>"
+	     "<entry><emphasis role='strong'>"
+	     (f2 (getmean ipeval-speedup (qc data))) "%"
+	     "</emphasis></entry>"
+	     "<entry>" (f2 (getmin ipeval-speedup (qc data))) "%" "</entry>"
+	     "<entry>" (f2 (getmax ipeval-speedup (qc data))) "%" "</entry>"
+	     "<entry><emphasis role='strong'>"
+	     (secs (getmean wo/ipeval-time (qc data)))
+	     "</emphasis></entry>"
+	     "<entry>" (secs (getmin wo/ipeval-time (qc data))) "</entry>"
+	     "<entry>" (secs (getmax wo/ipeval-time (qc data))) "</entry>"
+	     "<entry><emphasis role='strong'>"
+	     (secs (getmean w/ipeval-time (qc data)))
+	     "</emphasis></entry>"
+	     "<entry>" (secs (getmin w/ipeval-time (qc data))) "</entry>"
+	     "<entry>" (secs (getmax w/ipeval-time (qc data))) "</entry>"
+	     "</row>\n")
+    (lineout label ":\n\t"
+	     "speedup="
+	     (f2 (getmean ipeval-speedup (qc data))) "% ["
+	     (f2 (getmin ipeval-speedup (qc data))) "%:"
+	     (f2 (getmax ipeval-speedup (qc data))) "%]\n\t"
+	     "time/wo="
+	     (secs (getmean wo/ipeval-time (qc data))) " ["
+	     (secs (getmin wo/ipeval-time (qc data))) ":"
+	     (secs (getmax wo/ipeval-time (qc data))) "]\n\t"
+	     "time/w="
+	     (secs (getmean w/ipeval-time (qc data))) " ["
+	     (secs (getmin w/ipeval-time (qc data))) ":"
+	     (secs (getmax w/ipeval-time (qc data))) "]\n\t"
+	     "refs="
+	     (f2 (getmean ipeval-fetches (qc data))) " ["
+	     (f2 (getmin ipeval-fetches (qc data))) ":"
+	     (f2 (getmax ipeval-fetches (qc data))) "]\n\t"
+	     "qlogic="
+	     (secs (getmean query-logic-time (qc data))) " ["
+	     (secs (getmin query-logic-time (qc data))) ":"
+	     (secs (getmax query-logic-time (qc data))) "] ")))
+
+(define (generate-task-summary label dir)
+  (let* ((datafile (mkpath dir "raw"))
+	 (sgmlfile (mkpath dir "summary"))
+	 (data (file->dtype datafile)))
+    (fileout sgmlfile
+	     "<row>"
+	     "<entry>" label "</entry>"
+	     "<entry>" (choice-size data) "</entry>"
+	     "<entry><emphasis role='strong'>"
+	     (secs (getmean wo/ipeval-time (qc data)))
+	     "</emphasis></entry>"
+	     "<entry>" (secs (getmin wo/ipeval-time (qc data))) "</entry>"
+	     "<entry>" (secs (getmax wo/ipeval-time (qc data))) "</entry>"
+	     "<entry><emphasis role='strong'>"
+	     (f0 (getmean ipeval-fetches (qc data)))
+	     "</emphasis></entry>"
+	     "<entry>"  (f0 (getmin ipeval-fetches (qc data))) "</entry>"
+	     "<entry>"  (f0 (getmax ipeval-fetches (qc data))) "</entry>"
+	     "<entry><emphasis role='strong'>"
+	     (secs (getmean query-logic-time (qc data)))
+	     "</emphasis></entry>"
+	     "<entry>" (secs (getmin query-logic-time (qc data))) "</entry>"
+	     "<entry>" (secs (getmax query-logic-time (qc data))) "</entry>"
+	     "</row>\n")))
+
+(define (generate-graph-data label dir)
+  (let* ((datafile (stringout dir "/raw"))
+	 (data (file->dtype datafile)))
+    (fileout
+     (stringout dir "/data")
+     (do-choices (sample data i)
+       (lineout i "\t" ; 1
+		(trial-output-size sample) "\t" ; 2
+		(ipeval-fetches sample) "\t" ; 3
+		(ipeval-cycles sample) "\t" ; 4
+		(* 1000.0 (wo/ipeval-time sample)) "\t" ; 5
+		(* 1000.0 (w/ipeval-time sample)) "\t" ; 6
+		(ipeval-speedup sample) "\t" ; 7
+		(/ (* 1000.0 (wo/ipeval-time sample))
+		   (ipeval-fetches sample)) "\t" ; 8
+		   (/ (* 1000.0 (w/ipeval-time sample))
+		      (ipeval-fetches sample)) "\t" ; 9
+		      (* 1000.0 (ipeval-exec-time sample)) "\t" ; 10
+		      (* 1000.0 (ipeval-fetch-time sample)) "\t" ; 11
+		      (* 1000.0 (ipeval-final-exec-time sample)) "\t" ; 12
+		      (if (sequence? (trial-input sample))
+			  (length (trial-input sample))
+			1) "\t" ; 13
+			(trial-input sample))))))
+
+(define (read-inputs file (n #f))
+  (let* ((in (open-dtype-file file))
+	 (input (read-dtype in))
+	 (inputs '())
+	 (i 0))
+    (while (and (< i n) (exists? input) input (not (eof-object? input)))
+      (set! inputs (cons input inputs))
+      (set! input (read-dtype in))
+      (set! i (1+ i)))
+    (reverse (->vector inputs))))
+
+;;; The main event
+
+(define (main fcname trials infile (outfile #f))
+  (optimize! hyponyms getspecls hyponyms2 getspecls2 getspecls3 getrelated)
+  (optimize! get-corpus-scores get-meaning-scores disambig)
+  (optimize! getrelated getrefref)
+  (optimize! dterm-lookup3 dterm-lookup2 dterm-lookup1
+	     probe-dterm1 probe-dterm2 probe-dterm3
+	     makedterm)
+  (if (string? fcname)
+      (let* ((split (position #\: fcname))
+	     (fcname1 (string->lisp (subseq fcname 0 split)))
+	     (fcname2 (string->lisp (subseq fcname (1+ split))))
+	     (fcn1 (eval fcname1))
+	     (fcn2 (eval fcname2)))
+	(let* ((inputs (read-inputs infile trials))
+	       (samples (comparefcns fcn1 fcn2 inputs)))
+	  (when outfile
+	    (dtype->file samples outfile)
+	    (write-timeline (mkpath (dirname outfile) "sample")
+			    fcn1))
+	  #t))
+    (let* ((inputs (read-inputs infile trials))
+	   (fcn (eval fcname))
+	   (samples (ipevaltests fcn inputs)))
+      (when outfile
+	(dtype->file samples outfile)
+	(write-timeline (mkpath (dirname outfile) "sample")
+			fcn))
+      #f)))
+
