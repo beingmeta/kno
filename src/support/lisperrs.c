@@ -128,6 +128,18 @@ FD_EXPORT lispval fd_get_exception(u8_exception ex)
   else return FD_VOID;
 }
 
+/* This gets the 'actual' irritant from a u8_exception, extracting it
+   from the underlying u8_condition (if that's an irritant) */
+FD_EXPORT struct FD_EXCEPTION *fd_exception_object(u8_exception ex)
+{
+  if (ex->u8x_free_xdata == fd_decref_embedded_exception) {
+    lispval irritant = (lispval) ex->u8x_xdata;
+    if (FD_EXCEPTIONP(irritant))
+      return (fd_exception) irritant;
+    else return NULL;}
+  else return NULL;
+}
+
 FD_EXPORT void fd_raise
   (u8_condition c,u8_context cxt,u8_string details,lispval irritant)
 {

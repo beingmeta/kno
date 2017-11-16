@@ -20,6 +20,7 @@ FD_EXPORT void fd_decref_embedded_exception(void *ptr);
 
 FD_EXPORT lispval fd_get_irritant(u8_exception ex);
 FD_EXPORT lispval fd_get_exception(u8_exception ex);
+FD_EXPORT struct FD_EXCEPTION *fd_exception_object(u8_exception ex);
 
 FD_EXPORT lispval fd_err(u8_condition,u8_context,u8_string,lispval);
 
