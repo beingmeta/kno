@@ -302,7 +302,7 @@ static int load_dynamic_module(lispval spec,int safe,void *data)
                    "Failed to load module file %s for %q",
                    module_filename,spec);}
           else if (trace_dload) {
-            u8_log(LOG_NOTICE,_("DynamicLoad"),
+            u8_log(LOGF_NOTICE,_("DynamicLoad"),
                    "Loaded module %q from %s",spec,module_filename);}
           else {}
           if (errno) {
