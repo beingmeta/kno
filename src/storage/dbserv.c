@@ -12,7 +12,8 @@
 #define FD_INLINE_POOLS 1
 #define FD_INLINE_CHOICES 1
 #define FD_INLINE_IPEVAL 1
-#include "framerd/components/storage_layer.h"
+static int dbserv_loglevel;
+#define U8_LOGLEVEL dbserv_loglevel
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
@@ -31,6 +32,7 @@ static fd_pool served_pools[FD_DBSERV_MAX_POOLS];
 static int n_served_pools = 0;
 struct FD_COMPOUND_INDEX *primary_index = NULL;
 static int read_only = 0, locking = 1;
+static int dbserv_loglevel = LOG_NOTICE;
 
 u8_condition fd_PrivateOID=_("private OID");
 
@@ -746,7 +748,7 @@ static int serve_pool(lispval var,lispval val,void *data)
       fd_seterr(_("too many pools to serve"),"serve_pool",NULL,val);
       return -1;}
     else {
-      u8_logf(LOG_INFO,"SERVE_POOL","Serving objects from %s",p->poolid);
+      u8_logf(LOG_NOTICE,"SERVE_POOL","Serving objects from %s",p->poolid);
       served_pools[n_served_pools++]=p;
       return n_served_pools;}
   else return fd_reterr(fd_NotAPool,"serve_pool",NULL,val);
@@ -796,7 +798,8 @@ static int serve_index(lispval var,lispval val,void *data)
   else if (val == FD_TRUE)
     if (fd_background) ix = (fd_index)fd_background;
     else {
-      u8_logf(LOG_WARN,_("No background"),"No current background index");
+      u8_logf(LOG_WARN,_("No background"),
+              "No current background index to serve");
       return 0;}
   else {}
   if (ix) {
@@ -895,6 +898,10 @@ void fd_init_dbserv_c()
                      get_served_indexes,
                      serve_index,
                      NULL);
+  fd_register_config("DBSERV:LOGLEVEL","the dbserv loglevel",
+                     fd_intconfig_get,
+                     fd_loglevelconfig_set,
+                     &dbserv_loglevel);
   fd_register_config("LOCKSFILE","location of the persistent locks file",
                      config_get_locksfile,
                      config_set_locksfile,

@@ -9,6 +9,9 @@
 #define _FILEINFO __FILE__
 #endif
 
+static int fdserver_loglevel;
+#define U8_LOGLEVEL fdserver_loglevel
+
 #include "framerd/fdsource.h"
 #include "framerd/defines.h"
 #include "framerd/dtype.h"
@@ -54,6 +57,8 @@
 FD_EXPORT int fd_update_file_modules(int force);
 
 #include "main.c"
+
+static int fdserver_loglevel = LOG_NOTIFY;
 
 static int daemonize = 0, foreground = 0, pidwait = 1;
 
@@ -498,58 +503,52 @@ static int dtypeserver(u8_client ucl)
                     (((client->n_trans)%logtrans)==0)));
     int trans_id = client->n_trans, sock = client->socket;
     double xstart = (u8_elapsed_time()), elapsed = -1.0;
-    if (logeval)
-      u8_log(LOG_INFO,Incoming,"%s[%d/%d]: > %q",
+    if (fdserver_loglevel >= LOG_DEBUG)
+      u8_log(-LOG_DEBUG,Incoming,"%s[%d/%d]: > %q",
              client->idstring,sock,trans_id,expr);
-    else if (logtrans)
-      u8_log(LOG_INFO,Incoming,
+    else if (fdserver_loglevel >= LOG_INFO)
+      u8_log(-LOG_INFO,Incoming,
              "%s[%d/%d]: Received request for execution",
              client->idstring,sock,trans_id);
     value = fd_eval(expr,client->env);
     elapsed = u8_elapsed_time()-xstart;
     if (FD_ABORTP(value)) {
-      u8_exception ex = u8_erreify(), root = u8_exception_root(ex);
-      lispval irritant = fd_exception_xdata(root);
-      if (TYPEP(irritant,fd_exception_type)) {
-        struct FD_EXCEPTION *exo = (fd_exception) irritant;
-        value = fd_incref(irritant);
-        irritant = exo->ex_irritant;}
-      if ((logeval) || (logerrs) || (tracethis)) {
-        if ((root->u8x_details) && (!(FD_VOIDP(irritant))))
-          u8_log(LOG_ERR,Outgoing,
-                 "%s[%d/%d]: %m@%s (%s) %q returned in %fs",
-                 client->idstring,sock,trans_id,
-                 root->u8x_cond,root->u8x_context,
-                 root->u8x_details,irritant,
-                 elapsed);
-        else if (root->u8x_details)
-          u8_log(LOG_ERR,Outgoing,
-                 "%s[%d/%d]: %m@%s (%s) returned in %fs",
-                 client->idstring,sock,trans_id,
-                 root->u8x_cond,root->u8x_context,root->u8x_details,elapsed);
-        else if (!(FD_VOIDP(irritant)))
-          u8_log(LOG_ERR,Outgoing,
-                 "%s[%d/%d]: %m@%s -- %q returned in %fs",
-                 client->idstring,sock,trans_id,
-                 root->u8x_cond,root->u8x_context,irritant,elapsed);
-        else u8_log(LOG_ERR,Outgoing,
+      u8_exception ex = u8_erreify();
+      while (ex) {
+        struct FD_EXCEPTION *exo = fd_exception_object(ex);
+        lispval irritant = (exo) ? (exo->ex_irritant) : (FD_VOID);
+        if ( (fdserver_loglevel >= LOG_ERR) || (tracethis) ) {
+          if ((ex->u8x_details) && (!(FD_VOIDP(irritant))))
+            u8_logf(LOG_ERR,Outgoing,
+                    "%s[%d/%d]: %m@%s (%s) %q returned in %fs",
+                    client->idstring,sock,trans_id,
+                    ex->u8x_cond,ex->u8x_context,
+                    ex->u8x_details,irritant,
+                    elapsed);
+          else if (ex->u8x_details)
+            u8_logf(LOG_ERR,Outgoing,
+                    "%s[%d/%d]: %m@%s (%s) returned in %fs",
+                    client->idstring,sock,trans_id,
+                    ex->u8x_cond,ex->u8x_context,ex->u8x_details,elapsed);
+          else if (!(FD_VOIDP(irritant)))
+            u8_logf(LOG_ERR,Outgoing,
                     "%s[%d/%d]: %m@%s -- %q returned in %fs",
                     client->idstring,sock,trans_id,
-                    root->u8x_cond,root->u8x_context,elapsed);
-        if (logbacktrace) {
-          struct U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,1024);
-          out.u8_write = out.u8_outbuf; out.u8_outbuf[0]='\0';
-          fd_print_backtrace(&out,ex,backtrace_width);
-          u8_logger(LOG_ERR,Outgoing,out.u8_outbuf);
-          if ((out.u8_streaminfo)&(U8_STREAM_OWNS_BUF))
-            u8_free(out.u8_outbuf);}}
+                    ex->u8x_cond,ex->u8x_context,irritant,elapsed);
+          else u8_logf(LOG_ERR,Outgoing,
+                       "%s[%d/%d]: %m@%s -- %q returned in %fs",
+                       client->idstring,sock,trans_id,
+                       ex->u8x_cond,ex->u8x_context,elapsed);
+          if ( (exo) && (fd_dump_exception) )
+            fd_dump_exception((lispval)exo);}
+        ex = ex->u8x_prev;}
       u8_free_exception(ex,1);}
-    else if (logeval)
-      u8_log(LOG_INFO,Outgoing,
+    else if (fdserver_loglevel >= LOG_DEBUG)
+      u8_log(-LOG_DEBUG,Outgoing,
              "%s[%d/%d]: < %q in %f",
              client->idstring,sock,trans_id,value,elapsed);
-    else if (tracethis)
-      u8_log(LOG_INFO,Outgoing,"%s[%d/%d]: Request executed in %fs",
+    else if ( (fdserver_loglevel >= LOG_INFO) || (tracethis) )
+      u8_log(-LOG_INFO,Outgoing,"%s[%d/%d]: Request executed in %fs",
              client->idstring,sock,trans_id,elapsed);
     client->elapsed = client->elapsed+elapsed;
     /* Currently, fd_write_dtype writes the whole thing at once,
@@ -1091,6 +1090,9 @@ int main(int argc,char **argv)
 
 static void init_configs()
 {
+  fd_register_config
+    ("FDSERVER:LOGLEVEL",_("Loglevel for fdserver itself"),
+     fd_intconfig_get,fd_loglevelconfig_set,&fdserver_loglevel);
   fd_register_config
     ("FOREGROUND",_("Whether to run in the foreground"),
      fd_boolconfig_get,fd_boolconfig_set,&foreground);
