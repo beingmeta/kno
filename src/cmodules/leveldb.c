@@ -266,9 +266,11 @@ static int unparse_leveldb(struct U8_OUTPUT *out,lispval x)
 static void recycle_leveldb(struct FD_RAW_CONS *c)
 {
   struct FD_LEVELDB *db = (fd_leveldb)c;
-  u8_free(db->leveldb.path); db->leveldb.path = NULL;
+  fd_close_leveldb(&(db->leveldb));
+  if (db->leveldb.path) {
+    u8_free(db->leveldb.path);
+    db->leveldb.path = NULL;}
   fd_decref(db->leveldb.opts);
-  leveldb_close(db->leveldb.dbptr);
   leveldb_options_destroy(db->leveldb.optionsptr);
   u8_free(c);
 }
@@ -297,7 +299,7 @@ static lispval leveldbp_prim(lispval arg)
 static lispval leveldb_close_prim(lispval leveldb)
 {
   struct FD_LEVELDB *db = (fd_leveldb)leveldb;
-  leveldb_close(db->leveldb.dbptr);
+  fd_close_leveldb(&(db->leveldb));
   return FD_TRUE;
 }
 
