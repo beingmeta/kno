@@ -607,7 +607,8 @@ fd_pool fd_use_leveldb_pool(u8_string path,lispval opts)
 }
 
 FD_EXPORT
-fd_pool fd_make_leveldb_pool(u8_string path,lispval base,lispval cap,lispval opts)
+fd_pool fd_make_leveldb_pool(u8_string path,lispval base,lispval cap,
+                             lispval opts)
 {
   struct FD_LEVELDB_POOL *pool = u8_alloc(struct FD_LEVELDB_POOL);
 
@@ -627,7 +628,14 @@ fd_pool fd_make_leveldb_pool(u8_string path,lispval base,lispval cap,lispval opt
     lispval given_load = get_prop(dbptr,"\377LOAD",FD_VOID);
     lispval cur_label = get_prop(dbptr,"\377LABEL",FD_VOID);
     lispval cur_metadata = get_prop(dbptr,"\377METADATA",FD_VOID);
+    lispval ctime_val = fd_getopt(opts,fd_intern("CTIME"),FD_VOID);
+    lispval mtime_val = fd_getopt(opts,fd_intern("MTIME"),FD_VOID);
+    lispval generation_val = fd_getopt(opts,fd_intern("GENERATION"),FD_VOID);
+
     u8_string rname = u8_realpath(path,NULL);
+    time_t now=time(NULL), ctime, mtime;
+    int generation = 0;
+
     if (!((FD_VOIDP(given_base))||(FD_EQUALP(base,given_base)))) {
       u8_free(pool); u8_free(rname);
       fd_seterr("Conflicting base OIDs",
@@ -641,10 +649,13 @@ fd_pool fd_make_leveldb_pool(u8_string path,lispval base,lispval cap,lispval opt
     if (!(FD_VOIDP(label))) {
       if (!(FD_EQUALP(label,cur_label)))
         set_prop(dbptr,"\377LABEL",label,sync_writeopts);}
+
     set_prop(dbptr,"\377BASE",base,sync_writeopts);
     set_prop(dbptr,"\377CAPACITY",cap,sync_writeopts);
+
     if (FD_VOIDP(given_load))
       set_prop(dbptr,"\377LOAD",load,sync_writeopts);
+
     if (! (FD_VOIDP(metadata)) ) {
       if (FD_VOIDP(cur_metadata))
         set_prop(dbptr,"\377METADATA",metadata,sync_writeopts);
@@ -652,6 +663,35 @@ fd_pool fd_make_leveldb_pool(u8_string path,lispval base,lispval cap,lispval opt
         set_prop(dbptr,"\377METADATA",metadata,sync_writeopts);
       else u8_log(LOG_WARN,"ExistingMetadata",
                   "Not overwriting existing metatdata in leveldb pool %s",path);}
+
+    if (FD_FIXNUMP(ctime_val))
+      ctime = (time_t) FD_FIX2INT(ctime_val);
+    else if (FD_PRIM_TYPEP(ctime_val,fd_timestamp_type)) {
+      struct FD_TIMESTAMP *moment = (fd_timestamp) ctime_val;
+      ctime = moment->u8xtimeval.u8_tick;}
+    else ctime=now;
+    fd_decref(ctime_val);
+    ctime_val = fd_time2timestamp(ctime);
+    set_prop(dbptr,"\377CTIME",ctime_val,sync_writeopts);
+
+    if (FD_FIXNUMP(mtime_val))
+      mtime = (time_t) FD_FIX2INT(mtime_val);
+    else if (FD_PRIM_TYPEP(ctime_val,fd_timestamp_type)) {
+      struct FD_TIMESTAMP *moment = (fd_timestamp) mtime_val;
+      mtime = moment->u8xtimeval.u8_tick;}
+    else mtime=now;
+    fd_decref(mtime_val);
+    mtime_val = fd_time2timestamp(mtime);
+    set_prop(dbptr,"\377MTIME",mtime_val,sync_writeopts);
+
+    if (FD_FIXNUMP(generation_val))
+      generation=FD_FIX2INT(generation_val);
+    else generation=0;
+    fd_decref(generation_val);
+    set_prop(dbptr,"\377GENERATION",FD_INT(generation),sync_writeopts);
+
+
+
     fd_init_pool((fd_pool)pool,
                  FD_OID_ADDR(base),FD_FIX2INT(cap),
                  &leveldb_pool_handler,
@@ -930,13 +970,7 @@ static fd_pool leveldb_pool_create(u8_string spec,void *type_data,
   lispval capacity_arg = fd_getopt(opts,fd_intern("CAPACITY"),VOID);
   lispval load_arg = fd_getopt(opts,fd_intern("LOAD"),VOID);
   lispval metadata = fd_getopt(opts,fd_intern("METADATA"),VOID);
-  lispval ctime_opt = fd_getopt(opts,fd_intern("CTIME"),FD_VOID);
-  lispval mtime_opt = fd_getopt(opts,fd_intern("MTIME"),FD_VOID);
-  lispval generation_opt = fd_getopt(opts,fd_intern("GENERATION"),FD_VOID);
-  time_t now=time(NULL), ctime, mtime;
-  long long generation=1;
-  unsigned int flags = 0;
-  unsigned int capacity, load;
+  unsigned int capacity;
   fd_pool dbpool = NULL;
   int rv = 0;
   if (u8_file_existsp(spec)) {
@@ -965,31 +999,12 @@ static fd_pool leveldb_pool_create(u8_string spec,void *type_data,
     else if (loadval > capacity) {
       fd_seterr(fd_PoolOverflow,"bigpool_create",spec,load_arg);
       rv = -1;}
-    else load = loadval;}
+    else NO_ELSE;}
   else if ( (FALSEP(load_arg)) || (EMPTYP(load_arg)) ||
-            (VOIDP(load_arg)) || (load_arg == FD_DEFAULT_VALUE))
-    load=0;
+            (VOIDP(load_arg)) || (load_arg == FD_DEFAULT_VALUE)) {}
   else {
     fd_seterr("Not a valid load","bigpool_create",spec,load_arg);
     rv = -1;}
-
-  if (FD_FIXNUMP(ctime_opt))
-    ctime = (time_t) FD_FIX2INT(ctime_opt);
-  else if (FD_PRIM_TYPEP(ctime_opt,fd_timestamp_type)) {
-    struct FD_TIMESTAMP *moment = (fd_timestamp) ctime_opt;
-    ctime = moment->u8xtimeval.u8_tick;}
-  else ctime=now;
-
-  if (FD_FIXNUMP(mtime_opt))
-    mtime = (time_t) FD_FIX2INT(mtime_opt);
-  else if (FD_PRIM_TYPEP(ctime_opt,fd_timestamp_type)) {
-    struct FD_TIMESTAMP *moment = (fd_timestamp) mtime_opt;
-    mtime = moment->u8xtimeval.u8_tick;}
-  else mtime=now;
-
-  if (FD_FIXNUMP(generation_opt))
-    generation=FD_FIX2INT(generation_opt);
-  else generation=0;
 
   if (rv>=0)
     dbpool = fd_make_leveldb_pool(spec,FD_OID_ADDR(base_oid),capacity,opts);
@@ -999,9 +1014,6 @@ static fd_pool leveldb_pool_create(u8_string spec,void *type_data,
   fd_decref(load_arg);
   fd_decref(load_arg);
   fd_decref(metadata);
-  fd_decref(ctime_opt);
-  fd_decref(mtime_opt);
-  fd_decref(generation_opt);
 
   if (rv>=0) {
     fd_set_file_opts(spec,opts);
@@ -1021,7 +1033,8 @@ static struct FD_POOL_HANDLER leveldb_pool_handler={
   leveldb_pool_lock, /* lock */
   leveldb_pool_unlock, /* release */
   leveldb_pool_commit, /* commit */
-  NULL, /* create */
+  NULL, /* swapout */
+  leveldb_pool_create, /* create */
   NULL,  /* walk */
   NULL, /* recycle */
   NULL  /* poolctl */
