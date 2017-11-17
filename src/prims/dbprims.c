@@ -1075,7 +1075,7 @@ static lispval pool_fetchn_prim(lispval pool,lispval oids)
 {
   fd_pool p = fd_lisp2pool(pool);
   if (!(p))
-    return fd_type_error("pool","pool_storen_prim",pool);
+    return fd_type_error("pool","pool_fetchn_prim",pool);
 
   return fd_pool_fetchn(p,oids);
 }

@@ -300,24 +300,6 @@ void fd_output_errstack(u8_output out,u8_exception ex)
     ex=ex->u8x_prev;}
 }
 
-static void output_stack_entry(u8_output out,lispval entry)
-{
-  if (FD_COMPOUND_TYPEP(entry,stack_entry_symbol)) {
-    ssize_t    len = FD_COMPOUND_LENGTH(entry);
-    lispval *elts = FD_COMPOUND_ELTS(entry);
-    long long depth = ( (len>0) && (FD_FIXNUMP(elts[0])) ) ?
-      (FD_FIX2INT(elts[0])) : (-1);
-    u8_string type = ( (len>1) && (FD_STRINGP(elts[1])) ) ?
-      (FD_CSTRING(elts[1])) : (NULL);
-    u8_string label = ( (len>3) && (FD_STRINGP(elts[3])) ) ?
-      (FD_CSTRING(elts[3])) : (NULL);
-    lispval op = (len > 2) ? (elts[2]) : (FD_VOID);
-    if (type == NULL) type = "?";
-    if (label == NULL) label = "*";
-    u8_printf(out,"%lld:%s:%s %q",depth,type,label,op);}
-  else fd_pprint(out,entry,0,0,0,111);
-}
-
 static void compact_stack_entry(u8_output out,lispval entry)
 {
   if (FD_COMPOUND_TYPEP(entry,stack_entry_symbol)) {
