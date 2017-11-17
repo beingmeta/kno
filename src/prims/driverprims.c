@@ -122,6 +122,30 @@ static lispval dbctl_prim(int n,lispval *args)
 }
 
 
+/* ALCOR bindings */
+
+static lispval alcor_save_prim(lispval source,lispval head,lispval size_arg)
+{
+  ssize_t size = FD_FIX2INT(size_arg);
+  ssize_t rv = fd_save_head(FD_CSTRING(source),FD_CSTRING(head),size);
+  if (rv<0)
+    return FD_ERROR;
+  else return FD_INT(rv);
+}
+
+static lispval alcor_apply_prim(lispval head,lispval source,
+                                lispval trunc_arg)
+{
+  ssize_t rv;
+  if (FD_FIXNUMP(trunc_arg))
+    rv = fd_apply_head(FD_CSTRING(source),FD_CSTRING(head),
+                       FD_FIX2INT(trunc_arg));
+  else rv = fd_apply_head(FD_CSTRING(source),FD_CSTRING(head),-1);
+  if (rv<0)
+    return FD_ERROR;
+  else return FD_INT(rv);
+}
+
 /* The init function */
 
 static int scheme_driverfns_initialized = 0;
@@ -168,6 +192,21 @@ FD_EXPORT void fd_init_driverfns_c()
   fd_idefn(driverfns_module,fd_make_cprim1("HASH-DTYPE1",lisphash1,1));
 
   fd_idefn(driverfns_module,fd_make_cprim1("HASH-DTYPE-REP",lisphashdtype,1));
+
+  fd_idefn3(driverfns_module,"ALCOR/SAVE!",alcor_save_prim,3,
+            "(ALCOR/SAVE! src head len) copies the first *len* bytes "
+            "of *src* into *head*",
+            fd_string_type,FD_VOID,fd_string_type,FD_VOID,
+            fd_fixnum_type,FD_VOID);
+  fd_idefn3(driverfns_module,"ALCOR/APPLY!",alcor_apply_prim,2,
+            "(ALCOR/APPLY! head src [trunc]) copies *head* into the "
+            "beginning of *src*; *trunc* if provided, is used as the "
+            "an offset containing an 8-byte size to which *src* is "
+            "truncated.",
+            fd_string_type,FD_VOID,fd_string_type,FD_VOID,
+            fd_fixnum_type,FD_VOID);
+
+
 
   fd_finish_module(driverfns_module);
 }
