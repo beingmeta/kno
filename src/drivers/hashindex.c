@@ -368,7 +368,7 @@ static fd_index recover_hashindex(u8_string fname,fd_storage_flags open_flags,
       u8_graberrno("recover_hashindex",recovery_file);
       return NULL;}
     else if (rv == 0)
-      u8_logf(LOG_CRIT,"Corrupted hashindex",
+      u8_logf(LOG_CRIT,CorruptedHashIndex,
               "The hashindex file %s has a corrupted recovery file %s",
               fname,recovery_file);
     else {
@@ -384,7 +384,7 @@ static fd_index recover_hashindex(u8_string fname,fd_storage_flags open_flags,
         u8_logf(LOG_ERR,"RecoveryFailed",
                 "Recovering %s using %s failed",fname,recovery_file);
         u8_removefile(recovery_file);}}}
-  else u8_logf(LOG_CRIT,"Corrupted hashindex",
+  else u8_logf(LOG_CRIT,CorruptedHashIndex,
                "The hashindex file %s doesn't have a recovery file %s",
                fname,recovery_file);
   if (fd_testopt(opts,fd_intern("FIXUP"),FD_VOID)) {
@@ -2237,9 +2237,10 @@ static int hashindex_save(struct FD_INDEX *ix,
   struct BUCKET_REF *bucket_locs;
   fd_offset_type offtype = hx->index_offtype;
   if (!((offtype == FD_B32)||(offtype = FD_B40)||(offtype = FD_B64))) {
-    u8_logf(LOG_WARN,"Corrupted hashindex (in memory)",
+    u8_logf(LOG_WARN,CorruptedHashIndex,
             "Bad offset type code=%d for %s",(int)offtype,hx->indexid);
-    u8_seterr("CorruptedHashIndex","hashindex_save",u8_strdup(ix->indexid));
+    u8_seterr(CorruptedHashIndex,"hashindex_save/offtype",
+              u8_strdup(ix->indexid));
     fd_unlock_index(hx);
     return -1;}
 
