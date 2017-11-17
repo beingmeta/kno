@@ -3,7 +3,7 @@
 
 (in-module 'storage/hashindex)
 
-(use-module '{reflection logger logctl mttools})
+(use-module '{reflection logger logctl stringfmts mttools})
 
 (module-export! '{repack-index! index-bucketmap})
 
