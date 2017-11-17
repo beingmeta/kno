@@ -192,7 +192,7 @@
 	       result)))))
 
 (define (good-frame? oid (v))
-  (default! v (oid-value oid))
+  (default! v (onerror (oid-value oid) #f))
   (and (bound? v) (not (bad? v)) (exists? v)
        (or (slotmap? v) (schemap? v))))
 
@@ -251,15 +251,6 @@
 				'%created (timestamp)
 				slotid value))
 	      existing)))
-
-(defambda (good-frame existing (value))
-  (when (ambiguous? existing)
-    (set! existing (pick existing valid-oid?))
-    (set! existing (for-choices (e existing) 
-		     (tryif (exists? (oid-value e)) e))))
-  (try (singleton existing) (smallest existing)))
-
-
 
 ;;; Going from pools and indexes to registries
 
