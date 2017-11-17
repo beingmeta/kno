@@ -100,6 +100,7 @@ static void update_filetime(struct FD_BIGPOOL *fp);
 
 static struct FD_POOL_HANDLER bigpool_handler;
 
+static u8_condition CorruptBigpool=_("Corrupt bigpool");
 static u8_condition InvalidOffset=_("Invalid offset in BIGPOOL");
 
 /* BIGPOOLs are the next generation of object pool data file.  While
@@ -331,8 +332,9 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,lispval 
     fd_setpos(stream,slotids_loc);
     while (i<n_slotids) {
       lispval slotid = fd_read_dtype(instream);
-      if (!( (FD_SYMBOLP(slotid)) || (FD_OIDP(slotid)) )) {
-        fd_seterr("CorruptBigpool","open_bigpool","bad slotid",FD_VOID);
+      if (!( (FD_SYMBOLP(slotid)) || (FD_OIDP(slotid)) ||
+             (FD_EMPTYP(slotid)) || (FD_VOIDP(slotid)) )) {
+        fd_seterr(CorruptBigpool,"open_bigpool/slotid_init",fname,slotid);
         fd_close_stream(stream,0);
         u8_free(pool);
         return NULL;}
@@ -408,7 +410,7 @@ static fd_pool recover_bigpool(u8_string fname,fd_storage_flags open_flags,
               rollback_file);
     return NULL;}
   else {
-    u8_logf(LOG_CRIT,"Corrupted Bigpool",
+    u8_logf(LOG_CRIT,CorruptBigpool,
             "The bigpool file %s doesn't have a rollback file %s",
             fname,rollback_file);
     u8_free(rollback_file);
@@ -1527,9 +1529,10 @@ static ssize_t write_offdata
   fd_offset_type offtype = bp->pool_offtype;
   unsigned int *offdata=NULL;
   if (!((offtype == FD_B32)||(offtype = FD_B40)||(offtype = FD_B64))) {
-    u8_logf(LOG_WARN,"Corrupted bigpool struct",
-            "Bad offset type code (%d) for %s",(int)offtype,bp->poolid);
-    u8_seterr("CorruptedBigpoolStruct","bigpool:write_offdata",
+    u8_logf(LOG_WARN,CorruptBigpool,
+            "Bad offset type code (%d) for %s",
+            (int)offtype,bp->poolid);
+    u8_seterr(CorruptBigpool,"bigpool:write_offdata:bad_offtype",
               u8_strdup(bp->poolid));
     u8_big_free(saveinfo);
     return -1;}
@@ -1840,7 +1843,8 @@ static void bigpool_setcache(fd_bigpool p,int level)
   fd_bigpool bp = (fd_bigpool)p;
   int chunk_ref_size = get_chunk_ref_size(bp);
   if (chunk_ref_size<0) {
-    u8_logf(LOG_WARN,fd_CorruptedPool,"Pool structure invalid: %s",p->poolid);
+    u8_logf(LOG_WARN,CorruptBigpool,
+            "Pool structure invalid: %s",p->poolid);
     return;}
   fd_stream stream = &(bp->pool_stream);
   size_t bufsize  = fd_stream_bufsize(stream);
