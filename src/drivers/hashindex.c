@@ -2718,6 +2718,11 @@ static int update_hashindex_ondisk
   if (FD_SLOTMAPP(metadata))
     update_hashindex_metadata(hx,metadata,stream,head);
 
+  fd_flush_stream(stream);
+  fsync(stream->stream_fileno);
+  size_t end_pos = fd_endpos(stream);
+  fd_write_8bytes_at(head,end_pos,256-8);
+
   /* Write any changed flags */
   fd_write_4bytes_at(head,flags,8);
   fd_write_4bytes_at(head,cur_keys,16);

@@ -299,7 +299,6 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,lispval 
       fd_seterr(fd_BadFilePoolLabel,"open_bigpool","bad label loc",
                 FD_INT(label_loc));
       fd_close_stream(stream,0);
-      u8_free(rname);
       u8_free(pool);
       return NULL;}}
 
@@ -332,6 +331,11 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,lispval 
     fd_setpos(stream,slotids_loc);
     while (i<n_slotids) {
       lispval slotid = fd_read_dtype(instream);
+      if (!( (FD_SYMBOLP(slotid)) || (FD_OIDP(slotid)) )) {
+        fd_seterr("CorruptBigpool","open_bigpool","bad slotid",FD_VOID);
+        fd_close_stream(stream,0);
+        u8_free(pool);
+        return NULL;}
       slotids[i]=slotid;
       fd_hashtable_store(slotcodes,slotid,FD_INT(i));
       i++;}
@@ -1104,7 +1108,8 @@ static int bigpool_storen(fd_pool p,int n,
   fd_lock_pool_struct(p,1);
 
   if (update_bigpool(bp,stream,head_stream,load,n,saveinfo,metadata)<0) {
-    u8_logf(LOG_CRIT,"Couldn't update bigpool %s",bp->poolid);
+    u8_logf(LOG_CRIT,"BigpoolUpdateFailed",
+            "Couldn't update bigpool %s",bp->poolid);
 
     /* Unlock the pool */
     fd_unlock_pool_struct(p);
@@ -1142,20 +1147,23 @@ static int bigpool_commit(fd_pool p,fd_commit_phase phase,
               u8_strdup(p->poolid));
     return -1;
   case fd_commit_start: {
-    size_t recovery_size = 256+(chunk_ref_size*p->pool_capacity);
+    size_t cap = p->pool_capacity;
+    size_t recovery_size = 256+(chunk_ref_size*cap);
     u8_string rollback = u8_mkstring("%s.rollback",fname);
     int rv= fd_save_head(fname,rollback,recovery_size);
     u8_free(rollback);
     return rv;}
   case fd_commit_save: {
-    size_t recovery_size = 256+(chunk_ref_size*p->pool_capacity);
+    size_t cap = p->pool_capacity;
+    size_t recovery_size = 256+(chunk_ref_size*cap);
     u8_string commit = u8_mkstring("%s.commit",fname);
     int head_saved = fd_save_head(fname,commit,recovery_size);
     struct FD_STREAM *head_stream = (head_saved>=0) ?
       (fd_init_file_stream(NULL,commit,FD_FILE_MODIFY,-1,-1)) : (NULL);
-    u8_free(commit);
-    if (head_stream == NULL)
-      return -1;
+    if (head_stream == NULL) {
+      u8_seterr("CantOpenCommitFile","bigpool_commit",commit);
+      return -1;}
+    else u8_free(commit);
     int rv = bigpool_storen
       (p,commits->commit_count,
        commits->commit_oids,
@@ -1484,8 +1492,12 @@ static int update_bigpool(fd_bigpool bp,fd_stream stream,fd_stream head_stream,
   if (saveinfo) {
     if (rv>=0) rv=write_offdata(bp,head_stream,n_saved,new_load,saveinfo);
     if (rv>=0) rv=bump_bigpool_nblocks(bp,n_saved,head_stream);}
-  if ( (rv>=0) && (!(FD_VOIDP(metadata))) )
+  if ( (rv>=0) && (FD_SLOTMAPP(metadata)) )
     rv=write_bigpool_metadata(bp,metadata,stream,head_stream);
+  fd_flush_stream(stream);
+  fsync(stream->stream_fileno);
+  size_t end_pos = fd_endpos(stream);
+  fd_write_8bytes_at(head_stream,end_pos,256-8);
   if (rv>=0) rv=write_bigpool_load(bp,new_load,head_stream);
   return rv;
 }
