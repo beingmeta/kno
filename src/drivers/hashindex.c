@@ -940,6 +940,18 @@ static FD_CHUNK_REF read_value_block
     FD_INIT_INBUF(&instream,usebuf,HX_VALBUF_SIZE,FD_HEAP_BUFFER);}
   else {}
   fd_inbuf vblock = fd_open_block(stream,&instream,vblock_off,vblock_size,1);
+  if (vblock == NULL) {
+    if (hx->index_flags & FD_STORAGE_REPAIR) {
+      u8_log(LOG_WARN,"BadBlockRef",
+             "Couldn't open value block (%d/%d) at %lld+%lld in %s for %q",
+             n_read,n_values,vblock_off,vblock_size,hx->index_source,key);
+      result.off=0; result.size=0;
+      return result;}
+    else {
+      u8_seterr("BadBlockRef","read_value_block/hashindex",
+                u8_mkstring("Couldn't open value block (%d/%d) at %lld+%lld in %s for %q",
+                            n_read,n_values,vblock_off,vblock_size,hx->index_source,key));
+      return result;}}
   fd_off_t next_off;
   ssize_t next_size=-1;
   int i=0, atomicp = 1;
@@ -1050,7 +1062,8 @@ static int hashindex_fetchsize(fd_index ix,lispval key)
     struct FD_INBUF keystream={0};
     struct FD_INBUF *opened=
       fd_open_block(stream,&keystream,keyblock.off,keyblock.size,1);
-    if (opened==NULL) return -1;
+    if (opened==NULL)
+      return -1;
     n_keys = fd_read_zint(&keystream);
     i = 0; while (i<n_keys) {
       int key_len = fd_read_zint(&keystream);
@@ -1220,8 +1233,25 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
       fd_size_t blocksize = ksched[j].ksched_chunk.size;
       if (ksched[j].ksched_bucket != bucket) {
         /* If we're in a new bucket, open it as input */
-        fd_open_block(stream,&keyblock,blockpos,blocksize,1);
-        bucket=ksched[j].ksched_bucket;
+        if (fd_open_block(stream,&keyblock,blockpos,blocksize,1) == NULL) {
+          if (hx->index_flags & FD_STORAGE_REPAIR) {
+            u8_log(LOG_WARN,"BadBlockRef",
+                   "Couldn't open bucket %d at %lld+%lld in %s for %q",
+                   bucket,blockpos,blocksize,hx->index_source,
+                   ksched[j].ksched_key);
+            bucket=ksched[j].ksched_bucket;
+            while (ksched[j].ksched_bucket == bucket) j++;
+            continue;}
+          else {
+            u8_seterr("BadBlockRef","hashindex_fetchn",u8_mkstring
+                      ("Couldn't open bucket %d at %lld+%lld in %s for %q",
+                       bucket,blockpos,blocksize,hx->index_source,
+                       ksched[j].ksched_key));
+            fd_close_inbuf(&keyblock);
+            u8_big_free(ksched);
+            u8_big_free(vsched);
+            fd_close_outbuf(&keysbuf);
+            return NULL;}}
         keyblock_start = keyblock.bufread;
         /* And initialize bucket position and limit */
         k=0; n_keys = fd_read_zint(&keyblock);
@@ -1648,7 +1678,7 @@ static void hashindex_setcache(struct FD_HASHINDEX *hx,int level)
       return;
     else {
       fd_stream s = &(hx->index_stream);
-      unsigned int n_buckets = hx->index_n_buckets;
+      size_t n_buckets = hx->index_n_buckets;
       unsigned int *buckets, *newmmap;
 #if HAVE_MMAP
       newmmap=
@@ -2224,7 +2254,7 @@ static int hashindex_save(struct FD_INDEX *ix,
   int new_keyblocks = 0, new_valueblocks = 0;
   ssize_t endpos, maxpos = get_maxpos(hx);
   double started = u8_elapsed_time();
-  unsigned int n_buckets = hx->index_n_buckets;
+  size_t n_buckets = hx->index_n_buckets;
   unsigned int *offdata = hx->index_offdata;
   schedule_max = n_adds + n_drops + n_stores;
   bucket_locs = u8_big_alloc_n(schedule_max,struct BUCKET_REF);
@@ -2430,6 +2460,7 @@ static int hashindex_commit(fd_index ix,fd_commit_phase phase,
 {
   struct FD_HASHINDEX *hx = (fd_hashindex) ix;
   int ref_size = get_chunk_ref_size(hx);
+  size_t n_buckets = hx->index_n_buckets;
   fd_stream stream = get_commit_stream(ix,commits);
   u8_string source = ix->index_source;
   if (stream == NULL)
@@ -2441,14 +2472,16 @@ static int hashindex_commit(fd_index ix,fd_commit_phase phase,
     return -1;
   case fd_commit_start: {
     u8_string rollback_file = u8_string_append(source,".rollback",NULL);
-    size_t rollback_size = 256+(ref_size*hx->index_n_buckets);
-    int rv = fd_save_head(source,rollback_file,rollback_size);
+    size_t rollback_size = 256+(ref_size*n_buckets);
+    ssize_t rv = fd_save_head(source,rollback_file,rollback_size);
     u8_free(rollback_file);
-    return rv;}
+    if (rv<0)
+      return -1;
+    else return 1;}
   case fd_commit_save: {
-    size_t recovery_size = 256+(ref_size*hx->index_n_buckets);
+    size_t recovery_size = 256+(ref_size*n_buckets);
     u8_string commit_file = u8_mkstring("%s.commit",source);
-    int head_saved = fd_save_head(source,commit_file,recovery_size);
+    ssize_t head_saved = fd_save_head(source,commit_file,recovery_size);
     struct FD_STREAM *head_stream = (head_saved>=0) ?
       (fd_init_file_stream(NULL,commit_file,FD_FILE_MODIFY,-1,-1)) :
       (NULL);
@@ -2466,7 +2499,7 @@ static int hashindex_commit(fd_index ix,fd_commit_phase phase,
     u8_string source = ix->index_source;
     u8_string rollback_file = u8_string_append(source,".rollback",NULL);
     if (u8_file_existsp(rollback_file)) {
-      int rv = fd_apply_head(source,rollback_file,256-8);
+      ssize_t rv = fd_apply_head(source,rollback_file,256-8);
       u8_free(rollback_file);
       return rv;}
     else {
@@ -2477,9 +2510,11 @@ static int hashindex_commit(fd_index ix,fd_commit_phase phase,
       return -1;}}
   case fd_commit_finish: {
     u8_string commit_file = u8_mkstring("%s.commit",source);
-    int rv = fd_apply_head(source,commit_file,-1);
+    ssize_t rv = fd_apply_head(source,commit_file,-1);
     u8_free(commit_file);
-    return rv;}
+    if (rv<0)
+      return -1;
+    else return 1;}
   case fd_commit_cleanup: {
     u8_string source = ix->index_source;
     if (commits->commit_stream) release_commit_stream(ix,commits);
@@ -2554,7 +2589,7 @@ static int update_hashindex_ondisk
   struct FD_OUTBUF *outstream = fd_writebuf(head);
   int i = 0;
   unsigned int *offdata = NULL;
-  unsigned int n_buckets = hx->index_n_buckets;
+  size_t n_buckets = hx->index_n_buckets;
   unsigned int chunk_ref_size = get_chunk_ref_size(hx);
   ssize_t offdata_byte_length = n_buckets*chunk_ref_size;
 #if HAVE_MMAP
@@ -2705,7 +2740,7 @@ static void reload_offdata(struct FD_INDEX *ix)
     return;
   else offdata=hx->index_offdata;
   fd_stream stream = &(hx->index_stream);
-  unsigned int n_buckets = hx->index_n_buckets;
+  size_t n_buckets = hx->index_n_buckets;
   unsigned int chunk_ref_size = get_chunk_ref_size(hx);
   fd_setpos(s,256);
   int retval = fd_read_ints(stream,int_len,offdata);
@@ -2723,13 +2758,14 @@ static void hashindex_close(fd_index ix)
   struct FD_HASHINDEX *hx = (struct FD_HASHINDEX *)ix;
   unsigned int chunk_ref_size = get_chunk_ref_size(hx);
   unsigned int *offdata = hx->index_offdata;
+  size_t n_buckets = hx->index_n_buckets;
   u8_logf(LOG_DEBUG,"HASHINDEX","Closing hash index %s",ix->indexid);
   fd_lock_index(hx);
   fd_close_stream(&(hx->index_stream),0);
   if (offdata) {
 #if HAVE_MMAP
     int retval=
-      munmap(offdata-64,(chunk_ref_size*hx->index_n_buckets)+256);
+      munmap(offdata-64,(chunk_ref_size*n_buckets)+256);
     if (retval<0) {
       u8_logf(LOG_WARN,u8_strerror(errno),
               "hashindex_close:munmap %s",hx->index_source);
@@ -3016,9 +3052,9 @@ static lispval hashbucket_info(struct FD_HASHINDEX *hx,lispval bucket_nums)
     FD_DO_CHOICES(bucket,bucket_nums) {
       if (FD_FIXNUMP(bucket)) {
         long long bucket_val = FD_FIX2INT(bucket);
-        if ( (bucket_val>=0) && (bucket_val<n_buckets) ) {
+        if ( (bucket_val >= 0) && (bucket_val < n_buckets) ) {
           FD_CHUNK_REF ref =
-            fd_get_chunk_ref(offdata,offtype,bucket_val,hx->index_n_buckets);
+            fd_get_chunk_ref(offdata,offtype,bucket_val,n_buckets);
           if (ref.size>0) {
             bucket_no[n_refs]=i;
             buckets[n_refs]=ref;
@@ -3027,7 +3063,7 @@ static lispval hashbucket_info(struct FD_HASHINDEX *hx,lispval bucket_nums)
     FD_DO_CHOICES(bucket,bucket_nums) {
       if (FD_FIXNUMP(bucket)) {
         long long bucket_val = FD_FIX2INT(bucket);
-        if ( (bucket_val>=0) && (bucket_val<n_buckets) ) {
+        if ( (bucket_val >= 0) && (bucket_val < n_buckets) ) {
           FD_CHUNK_REF ref =
             fd_fetch_chunk_ref(s,256,offtype,bucket_val,1);
           if (ref.size>0) {

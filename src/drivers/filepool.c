@@ -159,7 +159,10 @@ static int read_file_pool_load(fd_file_pool fp)
   fd_stream stream = &(fp->pool_stream);
   if (FD_POOLSTREAM_LOCKEDP(fp)) {
     return fp->pool_load;}
-  if (fd_streamctl(stream,fd_stream_lockfile,NULL)<0) return -1;
+  else if (fp->pool_load == fp->pool_capacity)
+    return fp->pool_load;
+  else if (fd_streamctl(stream,fd_stream_lockfile,NULL)<0)
+    return -1;
   load = fd_read_4bytes_at(stream,16,FD_ISLOCKED);
   if (load<0) {
     fd_streamctl(stream,fd_stream_unlockfile,NULL);

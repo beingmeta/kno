@@ -617,6 +617,8 @@ static int bigpool_load(fd_pool p)
   if (FD_POOLSTREAM_LOCKEDP(bp))
     /* If we have the file locked, the stored load is good. */
     return bp->pool_load;
+  else if (bp->pool_load == bp->pool_capacity)
+    return bp->pool_load;
   else if (bp->pool_stream.stream_fileno >= 0) {
     struct stat info;
     int rv = fstat(bp->pool_stream.stream_fileno,&info);
@@ -726,7 +728,7 @@ static lispval read_oid_value(fd_bigpool bp,
 }
 
 static lispval read_oid_value_at
-(fd_bigpool bp,fd_inbuf fetchbuf,FD_CHUNK_REF ref,u8_context cxt)
+(fd_bigpool bp,lispval oid,fd_inbuf fetchbuf,FD_CHUNK_REF ref,u8_context cxt)
 {
   fd_stream stream=&(bp->pool_stream);
   if (ref.off == 0)
@@ -737,12 +739,34 @@ static lispval read_oid_value_at
             (ref.size > fetchbuf->buflen) ) {
     struct FD_INBUF _in={0}, *in =
       fd_open_block(stream,&_in,ref.off,ref.size,0);
-    lispval value = read_oid_value(bp,in,cxt);
-    fd_close_inbuf(in);
-    return value;}
+    if (in) {
+      lispval value = read_oid_value(bp,in,cxt);
+      fd_close_inbuf(in);
+      return value;}
+    else if (bp->pool_flags & FD_STORAGE_REPAIR) {
+      FD_OID addr = FD_OID_ADDR(oid);
+      u8_log(LOG_WARN,"BadBlockRef",
+             "Couldn't read OID %llx/%llx from %lld+%lld in %s",
+             FD_OID_HI(addr),FD_OID_LO(addr),
+             ref.off,ref.size,
+             bp->pool_source);
+      fd_clear_errors(1);
+      return FD_EMPTY_CHOICE;}
+    else return FD_ERROR_VALUE;}
   else {
-    fd_open_block(stream,fetchbuf,ref.off,ref.size,0);
-    return read_oid_value(bp,fetchbuf,cxt);}
+    struct FD_INBUF *in = fd_open_block(stream,fetchbuf,ref.off,ref.size,0);
+    if (in)
+      return read_oid_value(bp,in,cxt);
+    else if (bp->pool_flags & FD_STORAGE_REPAIR) {
+      FD_OID addr = FD_OID_ADDR(oid);
+      u8_log(LOG_WARN,"BadBlockRef",
+             "Couldn't read OID %llx/%llx from %lld+%lld in %s",
+             FD_OID_HI(addr),FD_OID_LO(addr),
+             ref.off,ref.size,
+             bp->pool_source);
+      fd_clear_errors(1);
+      return FD_EMPTY_CHOICE;}
+    else return FD_ERROR_VALUE;}
 }
 
 static int bigpool_locked_load(fd_pool p)
@@ -792,7 +816,7 @@ static lispval bigpool_fetch(fd_pool p,lispval oid)
     unsigned char buf[FETCHBUF_SIZE];
     if (ref.size < FETCHBUF_SIZE)
       FD_INIT_INBUF(&in,buf,FETCHBUF_SIZE,0);
-    result=read_oid_value_at(bp,&in,ref,"bigpool_fetch");
+    result=read_oid_value_at(bp,oid,&in,ref,"bigpool_fetch");
     fd_close_inbuf(&in);}
   bigpool_finished(bp);
   return result;
@@ -874,14 +898,35 @@ static lispval *bigpool_fetchn(fd_pool p,int n,lispval *oids)
                                     0);
         if (in == NULL) {
           if (bp->pool_flags & FD_STORAGE_REPAIR) {
+            int value_at = schedule[i].value_at;
+            lispval oid = oids[value_at];
+            FD_OID addr = FD_OID_ADDR(oid);
+            u8_log(LOG_WARN,"FatchFailed",
+                   "Couldn't read block for %llx/%llx at %lld+%lld from %s",
+                   FD_OID_HI(addr),FD_OID_LO(addr),
+                   schedule[i].location.off,
+                   schedule[i].location.size,
+                   bp->poolid);
+            fd_clear_errors(1);
             values[schedule[i].value_at]=FD_VOID;
-            i++; continue;}
+            i++;
+            continue;}
           else break;}
         lispval value = read_oid_value(bp,in,"bigpool_fetchn");
         if (FD_ABORTP(value)) {
           if (bp->pool_flags & FD_STORAGE_REPAIR) {
+            int value_at = schedule[i].value_at;
+            lispval oid = oids[value_at];
+            FD_OID addr = FD_OID_ADDR(oid);
+            u8_log(LOG_WARN,"FatchFailed",
+                   "Couldn't read value for %llx/%llx at %lld+%lld from %s",
+                   FD_OID_HI(addr),FD_OID_LO(addr),
+                   schedule[i].location.off,
+                   schedule[i].location.size,
+                   bp->poolid);
             values[schedule[i].value_at]=FD_VOID;
-            i++; continue;}
+            i++;
+            continue;}
           else break;}
         else values[schedule[i].value_at]=value;}
       i++;}

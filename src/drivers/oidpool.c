@@ -478,7 +478,10 @@ static int read_oidpool_load(fd_oidpool op)
   fd_stream stream = &(op->pool_stream);
   if (FD_POOLSTREAM_LOCKEDP(op)) {
     return op->pool_load;}
-  if (fd_streamctl(stream,fd_stream_lockfile,NULL)<0) return -1;
+  else if (op->pool_load == op->pool_capacity)
+    return op->pool_load;
+  else if (fd_streamctl(stream,fd_stream_lockfile,NULL)<0)
+    return -1;
   load = fd_read_4bytes_at(stream,16,FD_ISLOCKED);
   if (load<0) {
     fd_streamctl(stream,fd_stream_unlockfile,NULL);
