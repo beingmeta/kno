@@ -51,6 +51,7 @@ FD_EXPORT ssize_t fd_save_head(u8_string source,u8_string dest,size_t head_len)
     return in;
   else rv=u8_lock_fd(in,0);
   if (rv<0) {
+    u8_graberrno("fd_save_head/lock",u8_strdup(source));
     u8_seterr("LockFailed","fd_save_head",u8_strdup(source));
     u8_free(dst);
     close(in);
@@ -66,6 +67,7 @@ FD_EXPORT ssize_t fd_save_head(u8_string source,u8_string dest,size_t head_len)
     bytes_read += delta;}
   rv=u8_unlock_fd(in);
   if (rv<0) {
+    u8_graberrno("fd_save_head/unlock",u8_strdup(source));
     u8_seterr("UnlockFailed","fd_save_head",u8_strdup(source));
     if ( (close(in)) < 0 )
       u8_seterr("CloseFailed","fd_save_head",u8_strdup(source));}
@@ -139,6 +141,7 @@ FD_EXPORT ssize_t fd_apply_head(u8_string dest,u8_string source,ssize_t trunc)
       return delta;}
     bytes_read += delta;}
   if ((rv=u8_unlock_fd(in))<0) {
+    u8_graberrno("fd_apply_head/unlock",u8_strdup(source));
     u8_big_free(buf);
     u8_free(dst);
     close(in);
@@ -174,19 +177,22 @@ FD_EXPORT ssize_t fd_apply_head(u8_string dest,u8_string source,ssize_t trunc)
     if (restore_len>head_len)
       rv=ftruncate(out,restore_len);}
   if (rv<0) {
+    u8_graberrno("fd_apply_head/truncate",u8_strdup(source));
     u8_unlock_fd(out);
     close(out);
     u8_big_free(buf);
     return rv;}
   else rv=u8_unlock_fd(out);
   if (rv<0) {
+    u8_graberrno("fd_apply_head/unlock",u8_strdup(source));
     close(out);
     u8_big_free(buf);
     return rv;}
   else rv=close(out);
   u8_big_free(buf);
-  if (rv<0)
-    return rv;
+  if (rv<0) {
+    u8_graberrno("fd_apply_head/close",u8_strdup(source));
+    return rv;}
   else return head_len;
 }
 

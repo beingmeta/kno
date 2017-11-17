@@ -392,8 +392,8 @@ typedef long long fd_ll;
 FD_FASTOP
 FD_CHUNK_REF fd_get_chunk_ref(unsigned int *offsets,
                               fd_offset_type offtype,
-                              unsigned int offset,
-                              unsigned int offmax)
+                              size_t offset,
+                              size_t offmax)
 {
   struct FD_CHUNK_REF result;
   if (offset>=offmax) {
