@@ -300,6 +300,30 @@ void fd_output_errstack(u8_output out,u8_exception ex)
     ex=ex->u8x_prev;}
 }
 
+FD_EXPORT
+void fd_log_errstack(u8_exception ex,int loglevel,int w_irritant)
+{
+  if (ex==NULL) ex=u8_current_exception;
+  while (ex) {
+    lispval irritant = fd_get_irritant(ex);
+    if (VOIDP(irritant))
+      u8_log(loglevel,ex->u8x_cond,"@%s %s",ex->u8x_context,
+             U8ALT(ex->u8x_details,""));
+    else if ( (w_irritant) ||
+              (FD_IMMEDIATEP(irritant)) ||
+              (NUMBERP(irritant)) ||
+              (TYPEP(irritant,fd_timestamp_type)) ||
+              (TYPEP(irritant,fd_uuid_type)) ||
+              (TYPEP(irritant,fd_regex_type)) )
+      u8_log(loglevel,ex->u8x_cond,"%q @%s %s",
+             irritant,ex->u8x_context,
+             U8ALT(ex->u8x_details,""));
+    else u8_log(loglevel,ex->u8x_cond,"@%s %s\n    %Q",
+                ex->u8x_context,U8ALT(ex->u8x_details,""),
+                irritant);
+    ex=ex->u8x_prev;}
+}
+
 static void compact_stack_entry(u8_output out,lispval entry)
 {
   if (FD_COMPOUND_TYPEP(entry,stack_entry_symbol)) {
@@ -315,29 +339,6 @@ static void compact_stack_entry(u8_output out,lispval entry)
     if (label == NULL) label = "*";
     u8_printf(out,"%lld:%s:%s",depth,type,label);}
   else {}
-}
-
-FD_EXPORT
-void fd_log_errstack(u8_exception ex,int loglevel,int w_irritant)
-{
-  if (ex==NULL) ex=u8_current_exception;
-  while (ex) {
-    lispval irritant = fd_get_irritant(ex);
-    if (VOIDP(irritant))
-      u8_log(loglevel,ex->u8x_cond,"@%s %s",ex->u8x_context,
-             U8ALT(ex->u8x_details,""));
-    else if ( (FD_IMMEDIATEP(irritant)) ||
-              (NUMBERP(irritant)) ||
-              (TYPEP(irritant,fd_timestamp_type)) ||
-              (TYPEP(irritant,fd_uuid_type)) ||
-              (TYPEP(irritant,fd_regex_type)) )
-      u8_log(loglevel,ex->u8x_cond,"%q @%s %s",
-             irritant,ex->u8x_context,
-             U8ALT(ex->u8x_details,""));
-    else u8_log(loglevel,ex->u8x_cond,"@%s %s\n    %Q",
-                ex->u8x_context,U8ALT(ex->u8x_details,""),
-                irritant);
-    ex=ex->u8x_prev;}
 }
 
 FD_EXPORT void fd_compact_backtrace(u8_output out,lispval stack,int limit)
@@ -363,6 +364,52 @@ FD_EXPORT void fd_compact_backtrace(u8_output out,lispval stack,int limit)
     else while (i < len) {
         lispval stack_entry = FD_VECTOR_REF(stack,i);
         compact_stack_entry(out,stack_entry);
+        count++; i++;
+        if ( (i < len) && ((count%4) == 0) )
+          u8_puts(out,"\n  ");}}
+}
+
+static void output_stack_entry(u8_output out,lispval entry)
+{
+  if (FD_COMPOUND_TYPEP(entry,stack_entry_symbol)) {
+    ssize_t    len = FD_COMPOUND_LENGTH(entry);
+    lispval *elts = FD_COMPOUND_ELTS(entry);
+    long long depth = ( (len>0) && (FD_FIXNUMP(elts[0])) ) ?
+      (FD_FIX2INT(elts[0])) : (-1);
+    u8_string type = ( (len>1) && (FD_STRINGP(elts[1])) ) ?
+      (FD_CSTRING(elts[1])) : (NULL);
+    u8_string label = ( (len>3) && (FD_STRINGP(elts[3])) ) ?
+      (FD_CSTRING(elts[3])) : (NULL);
+    lispval op = (len > 2) ? (elts[2]) : (FD_VOID);
+    if (type == NULL) type = "?";
+    if (label == NULL) label = "*";
+    u8_printf(out,"%lld:%s:%s %q",depth,type,label,op);}
+  else fd_pprint(out,entry,0,0,0,111);
+}
+
+FD_EXPORT void fd_output_backtrace(u8_output out,lispval stack,int limit)
+{
+  if (FD_VECTORP(stack)) {
+    int i = 0, len = FD_VECTOR_LENGTH(stack), count = 0;
+    if ( (limit > 0) && (len > limit) ) {
+      int head_limit = limit-(limit/2);
+      while (i < head_limit) {
+        lispval stack_entry = FD_VECTOR_REF(stack,i);
+        output_stack_entry(out,stack_entry);
+        count++; i++;
+        if ( (i < head_limit) && ((count%4) == 0) )
+          u8_puts(out,"\n  ");}
+      u8_printf(out,"\n... %d/%d calls ...\n",len-limit*2,len);
+      i = len-(limit/2);
+      while (i < len) {
+        lispval stack_entry = FD_VECTOR_REF(stack,i);
+        output_stack_entry(out,stack_entry);
+        count++; i++;
+        if ( (i < len) && ((count%4) == 0) )
+          u8_puts(out,"\n  ");}}
+    else while (i < len) {
+        lispval stack_entry = FD_VECTOR_REF(stack,i);
+        output_stack_entry(out,stack_entry);
         count++; i++;
         if ( (i < len) && ((count%4) == 0) )
           u8_puts(out,"\n  ");}}
