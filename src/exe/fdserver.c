@@ -651,6 +651,18 @@ static void run_shutdown_procs()
       if (normal_exit) shutval = FD_FALSE; else shutval = FD_TRUE;
       u8_log(LOG_WARN,ServerShutdown,"Calling shutdown procedure %q",proc);
       value = fd_apply(proc,1,&shutval);
+      if (FD_ABORTP(value)) {
+        u8_log(LOG_CRIT,ServerShutdown,
+               "Error from shutdown procedure %q",proc);
+        fd_clear_errors(1);}
+      else if (FD_CONSP(value)) {
+        U8_FIXED_OUTPUT(val,1000);
+        fd_unparse(valout,value);
+        u8_log(LOG_WARN,ServerShutdown,
+               "Finished shutdown procedure %q => %s",
+               proc,val.u8_outbuf);}
+      else u8_log(LOG_WARN,ServerShutdown,
+                  "Finished shutdown procedure %q => %q",proc,value);
       fd_decref(value);}
     else u8_log(LOG_WARN,"BadShutdownProc",
                 "The value %q isn't applicable",proc);}
