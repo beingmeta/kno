@@ -44,7 +44,7 @@ typedef int (*fd_cleanupfn)(void *);
 
 typedef struct FD_STACK {
   FD_CONS_HEADER; /* We're not using this right now */
-  u8_string stack_type, stack_label, stack_status;
+  u8_string stack_type, stack_label, stack_status, stack_src;
   long long threadid;
   int stack_depth;
   unsigned int stack_errflags;
@@ -62,7 +62,7 @@ typedef struct FD_STACK {
   struct FD_LEXENV *stack_env;
   unsigned int stack_live:1;
   unsigned int stack_retvoid:1, stack_ndcall:1, stack_tail:1;
-  unsigned int stack_free_label:1, stack_free_status:1;
+  unsigned int stack_free_label:1, stack_free_status:1, stack_free_src:1;
   unsigned int stack_decref_op:1;
   struct FD_STACK_CLEANUP _cleanups[FD_STACK_CLEANUP_QUANTUM];
   struct FD_STACK_CLEANUP *cleanups;
@@ -106,6 +106,9 @@ FD_EXPORT __thread struct FD_STACK *fd_stackptr;
   if (caller)                                           \
     _ ## name.stack_errflags = caller->stack_errflags;  \
   else _ ## name.stack_errflags = FD_STACK_ERR_DEFAULT; \
+  if (caller)                                           \
+    _ ## name.stack_src = caller->stack_src;            \
+  else _ ## name.stack_src = NULL;                      \
   _ ## name.stack_caller=caller;                        \
   _ ## name.stack_type=type;                            \
   _ ## name.stack_label=label;                          \
@@ -180,6 +183,11 @@ FD_FASTOP void fd_free_stack(struct FD_STACK *stack)
     u8_free(stack->stack_status);
     stack->stack_status=NULL;
     stack->stack_free_status=0;}
+
+  if ( (stack->stack_free_src) && (stack->stack_src) ) {
+    u8_free(stack->stack_src);
+    stack->stack_src=NULL;
+    stack->stack_free_src=0;}
 
   if (stack->n_cleanups) {
     struct FD_STACK_CLEANUP *cleanups = stack->cleanups;

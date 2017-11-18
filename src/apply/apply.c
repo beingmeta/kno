@@ -604,6 +604,9 @@ FD_EXPORT lispval fd_dcall(struct FD_STACK *_stack,
   if (stackcheck()) {
     lispval result=VOID;
     FD_APPLY_STACK(apply_stack,fname,fn);
+    if (f) {
+      apply_stack->stack_src      = f->fcn_filename;
+      apply_stack->stack_free_src = 0;}
     apply_stack->stack_args=argvec;
     apply_stack->n_args=n;
     U8_WITH_CONTOUR(fname,0)
@@ -791,7 +794,8 @@ FD_EXPORT lispval fd_ndcall(struct FD_STACK *_stack,
                ((n <= (f->fcn_arity)) &&
                 (n >= (f->fcn_min_arity)))) {
         FD_PUSH_STACK(ndstack,fd_ndcallstack_type,f->fcn_name,handler);
-        lispval d_args[n]; /* *d_args=fd_alloca(n); */
+        ndstack->stack_src = f->fcn_filename;
+        ndstack->stack_free_src = 0;        lispval d_args[n]; /* *d_args=fd_alloca(n); */
         lispval retval, results = EMPTY;
         /* Initialize the d_args vector */
         if (n==1)
@@ -832,7 +836,8 @@ static lispval qchoice_dcall
 FD_EXPORT lispval fd_call(struct FD_STACK *_stack,
                          lispval fp,int n,lispval *args)
 {
-  struct FD_FUNCTION *f = FD_DTYPE2FCN(fp); lispval result;
+  lispval result;
+  struct FD_FUNCTION *f = FD_DTYPE2FCN(fp);
   if (f->fcn_ndcall)
     if (!(PRED_FALSE(contains_qchoicep(n,args))))
       result = fd_dcall(_stack,(lispval)f,n,args);
