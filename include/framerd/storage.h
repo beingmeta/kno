@@ -113,6 +113,8 @@ struct FD_COMMIT_TIMES {
 
 FD_EXPORT lispval fd_commit_phases[6];
 
+FD_EXPORT fd_storage_flags fd_get_dbflags(lispval,fd_storage_flags);
+
 /* IPEVAL stuff */
 
 #if FD_IPEVAL_ENABLED

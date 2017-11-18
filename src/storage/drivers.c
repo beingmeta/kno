@@ -163,6 +163,7 @@ fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,lispval opts)
 {
   struct FD_POOL_TYPEINFO *ptype;
   CHECK_ERRNO();
+  if (flags<0) flags = fd_get_dbflags(opts,FD_STORAGE_ISPOOL);
   ptype = pool_typeinfo; while (ptype) {
     if (ptype->matcher) {
       u8_string use_spec = ptype->matcher(spec,ptype->type_data);
@@ -344,6 +345,7 @@ fd_index fd_open_index(u8_string spec,fd_storage_flags flags,lispval opts)
 {
   struct FD_INDEX_TYPEINFO *ixtype;
   CHECK_ERRNO();
+  if (flags<0) flags = fd_get_dbflags(opts,FD_STORAGE_ISINDEX);
   ixtype = index_typeinfo; while (ixtype) {
     if (ixtype->matcher) {
       u8_string use_spec = ixtype->matcher(spec,ixtype->type_data);

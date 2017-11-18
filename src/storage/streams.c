@@ -644,7 +644,11 @@ FD_EXPORT void fd_close_stream(fd_stream s,int flags)
     if (buf->buffer) {
       if (s->stream_flags&FD_STREAM_MMAPPED)
         release_mmap(s);
-      else u8_free(buf->buffer);
+      else if ( (BUFIO_ALLOC(buf)) == FD_HEAP_BUFFER )
+        u8_free(buf->buffer);
+      else if ( (BUFIO_ALLOC(buf)) == FD_BIGALLOC_BUFFER )
+        u8_big_free(buf->buffer);
+      else {}
       buf->buffer = buf->bufpoint = buf->buflim = NULL;}
     fd_unlock_stream(s);
     u8_destroy_mutex(&(s->stream_lock));}

@@ -85,43 +85,6 @@ static int testopt(lispval opts,lispval sym,int dflt)
     return 1;}
 }
 
-static fd_storage_flags getdbflags(lispval opts,fd_storage_flags init_flags)
-{
-  if (FIXNUMP(opts)) {
-    long long val=FIX2INT(opts);
-    if (val<0) return val;
-    else if (val>0xFFFFFFFF)
-      return -1;
-    else return val;}
-  else if (TABLEP(opts)) {
-    lispval flags_val=fd_getopt(opts,flags_symbol,VOID);
-    fd_storage_flags flags =
-      ( (FIXNUMP(flags_val)) ? (FIX2INT(flags_val)) : (0) ) |
-      (init_flags);
-    int is_index = (flags&FD_STORAGE_ISINDEX);
-    if (testopt(opts,readonly_symbol,0))
-      flags |= FD_STORAGE_READ_ONLY;
-    if (testopt(opts,phased_symbol,0))
-      flags |= FD_STORAGE_PHASED;
-    if (!(testopt(opts,register_symbol,1)))
-      flags |= FD_STORAGE_UNREGISTERED;
-    if (testopt(opts,repair_symbol,0))
-      flags |= FD_STORAGE_REPAIR;
-    if ( (is_index) && (testopt(opts,background_symbol,0)) )
-      flags |= FD_INDEX_IN_BACKGROUND;
-    if ( (!(is_index)) && (testopt(opts,adjunct_symbol,0)) )
-      flags |= FD_POOL_ADJUNCT | FD_POOL_SPARSE;
-    if ( (!(is_index)) && (testopt(opts,sparse_symbol,0)) )
-      flags |= FD_POOL_SPARSE;
-    fd_decref(flags_val);
-    return flags;}
-  else if (FALSEP(opts))
-    if (init_flags&FD_STORAGE_ISPOOL)
-      return (init_flags & (~(FD_STORAGE_UNREGISTERED)));
-    else return (init_flags | FD_STORAGE_UNREGISTERED);
-  else return init_flags;
-}
-
 /* Finding frames, etc. */
 
 static lispval find_frames_lexpr(int n,lispval *args)
@@ -316,8 +279,7 @@ static lispval adjunct_pool(lispval arg1,lispval opts)
   else if (!(STRINGP(arg1)))
     return fd_type_error(_("string"),"adjunct_pool",arg1);
   else {
-    fd_storage_flags flags=
-      getdbflags(opts,FD_STORAGE_ISPOOL) |
+    fd_storage_flags flags = fd_get_dbflags(opts,FD_STORAGE_ISPOOL) |
       FD_POOL_ADJUNCT |
       FD_POOL_SPARSE;
     fd_pool p = fd_get_pool(CSTRING(arg1),flags,opts);
@@ -357,7 +319,7 @@ static lispval use_index(lispval arg,lispval opts)
       u8_byte *start = copy, *end = strchr(start,';');
       *end='\0'; while (start) {
         fd_index ix = fd_use_index(start,
-                                   getdbflags(opts,FD_STORAGE_ISINDEX),
+                                   fd_get_dbflags(opts,FD_STORAGE_ISINDEX),
                                    opts);
         if (ix) {
           lispval ixv = index_ref(ix);
@@ -373,7 +335,7 @@ static lispval use_index(lispval arg,lispval opts)
       u8_free(copy);
       return results;}
     else ixresult = fd_use_index
-           (CSTRING(arg),getdbflags(opts,FD_STORAGE_ISINDEX),opts);
+           (CSTRING(arg),fd_get_dbflags(opts,FD_STORAGE_ISINDEX),opts);
   else return fd_type_error(_("index spec"),"use_index",arg);
   if (ixresult)
     return index_ref(ixresult);
@@ -382,7 +344,7 @@ static lispval use_index(lispval arg,lispval opts)
 
 static lispval open_index_helper(lispval arg,lispval opts,int registered)
 {
-  fd_storage_flags flags = getdbflags(opts,FD_STORAGE_ISINDEX);
+  fd_storage_flags flags = fd_get_dbflags(opts,FD_STORAGE_ISINDEX);
   fd_index ix = NULL;
   if (registered == 0)
     flags |= FD_STORAGE_UNREGISTERED;
@@ -440,7 +402,7 @@ static lispval make_pool(lispval path,lispval opts)
 {
   fd_pool p = NULL;
   lispval type = fd_getopt(opts,FDSYM_TYPE,VOID);
-  fd_storage_flags flags = getdbflags(opts,FD_STORAGE_ISPOOL);
+  fd_storage_flags flags = fd_get_dbflags(opts,FD_STORAGE_ISPOOL);
   if (VOIDP(type))
     p = fd_make_pool(CSTRING(path),NULL,flags,opts);
   else if (SYMBOLP(type))
@@ -457,7 +419,7 @@ static lispval make_pool(lispval path,lispval opts)
 
 static lispval open_pool(lispval path,lispval opts)
 {
-  fd_storage_flags flags = getdbflags(opts,FD_STORAGE_ISPOOL);
+  fd_storage_flags flags = fd_get_dbflags(opts,FD_STORAGE_ISPOOL);
   fd_pool p = fd_open_pool(CSTRING(path),flags,opts);
   if (p)
     return pool2lisp(p);
@@ -471,7 +433,7 @@ static lispval make_index(lispval path,lispval opts)
   fd_storage_flags flags =
     (FIXNUMP(opts)) ?
     (FD_STORAGE_ISINDEX) :
-    (getdbflags(opts,FD_STORAGE_ISINDEX)) ;
+    (fd_get_dbflags(opts,FD_STORAGE_ISINDEX)) ;
   if (VOIDP(type))
     ix = fd_make_index(CSTRING(path),NULL,flags,opts);
   else if (SYMBOLP(type))
