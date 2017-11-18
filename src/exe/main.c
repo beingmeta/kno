@@ -175,6 +175,8 @@ static void _concise_stack_frame(struct FD_STACK *stack)
       lispval var=schema[i++];
       if (SYMBOLP(var))
         fprintf(stderr," %s",SYM_NAME(var));}}
+  if (stack->stack_src)
+    fprintf(stderr," // src='%s'",stack->stack_src);
   fprintf(stderr,"\n");
 }
 

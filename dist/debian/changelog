@@ -1,3 +1,9 @@
+framerd (4.2.7-12) unstable; urgency=medium
+
+  * Various updates, added stack_src field to stack frames
+
+ -- Ken Haase <kh@beingmeta.com>  Sat, 18 Nov 2017 12:33:31 -0500
+
 framerd (4.2.6-11) stable; urgency=medium
 
   * Switch to using u8_uid/u8_gid
