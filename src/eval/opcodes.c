@@ -930,7 +930,9 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
         lispval err = fd_err(fd_SyntaxError,"opcode_dispatch",NULL,expr);
         return err;}
       else expr = code;
-      if (FD_VOIDP(_stack->stack_source))
+      if ( (FD_NULLP(_stack->stack_source)) ||
+           (FD_VOIDP(_stack->stack_source)) ||
+           (_stack->stack_source == expr) )
         _stack->stack_source=source;
       lispval realop = FD_CAR(code);
       if (!(FD_OPCODEP(realop))) {
