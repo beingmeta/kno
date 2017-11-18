@@ -226,7 +226,7 @@
 		     (printout "badframe"))))
 	     "\nsession=" (write session))
 	   ;; (when (exists? (pick correct '%session session)) (dbg (pick correct '%session session)))
-	   (drop! index (cons slotid value) (difference existing winner))
+	   (drop! index {(cons slotid value) value} (difference existing winner))
 	   (do-choices (bad (difference existing good winner))
 	     (set-oid-value! bad 
 			     (frame-create #f 'type 'badreg slotid value
