@@ -34,6 +34,7 @@
 #include <math.h>
 #include <pthread.h>
 #include <errno.h>
+#include <time.h>
 
 static u8_condition ThreadReturnError=_("ThreadError");
 static u8_condition ThreadExit=_("ThreadExit");
@@ -42,7 +43,7 @@ static u8_condition ThreadVOID=_("ThreadVoidResult");
 
 static int thread_loglevel = LOG_NOTICE;
 static int thread_log_exit = 1;
-static lispval logexit_symbol = VOID;
+static lispval logexit_symbol = VOID, timeout_symbol = VOID;
 
 #ifndef U8_STRING_ARG
 #define U8_STRING_ARG(s) (((s) == NULL)?((u8_string)""):((u8_string)(s)))
@@ -644,18 +645,77 @@ static lispval thread_result(lispval thread_arg)
   else return EMPTY;
 }
 
+static int get_thread_wait(lispval opts,struct timespec *wait)
+{
+  if (FD_VOIDP(opts))
+    return 0;
+  else if (FD_FALSEP(opts))
+    return -1;
+  else if (wait == NULL)
+    return 0;
+  else if ( (FD_FIXNUMP(opts)) || (FD_BIGINTP(opts))) {
+    long long ival = fd_getint(opts);
+    int rv = clock_gettime(CLOCK_REALTIME,wait);
+    if (rv < 0) {
+      int e = errno; errno=0;
+      u8_log(LOG_CRIT,"clock_gettime","Failed with errno=%d:%s",
+             e,u8_strerror(e));
+      return -1;}
+    else if (ival < 0)
+      return -1;
+    else if (ival > wait->tv_sec)
+      wait->tv_sec = ival;
+    else wait->tv_sec += ival;
+    return 1;}
+  else if (FD_FLONUMP(opts)) {
+    double delta = FD_FLONUM(opts);
+    long long secs = (long long) floor(delta);
+    long long nsecs = (long long) floor(1000000000*(delta-secs));
+    int rv = clock_gettime(CLOCK_REALTIME,wait);
+    if (rv < 0) {
+      int e = errno; errno=0;
+      u8_log(LOG_CRIT,"clock_gettime","Failed with errno=%d:%s",
+             e,u8_strerror(e));
+      return -1;}
+    wait->tv_sec += secs;
+    wait->tv_nsec += nsecs;
+    return 1;}
+  else if (FD_TYPEP(opts,fd_timestamp_type)) {
+    struct FD_TIMESTAMP *t = (fd_timestamp) opts;
+    wait->tv_sec = t->u8xtimeval.u8_tick;
+    wait->tv_nsec = t->u8xtimeval.u8_nsecs;
+    return 1;}
+  else if ( (FD_TABLEP(opts)) && (fd_testopt(opts,timeout_symbol,FD_VOID)) ) {
+    lispval v = fd_getopt(opts,timeout_symbol,FD_VOID);
+    int rv = get_thread_wait(v,wait);
+    fd_decref(v);
+    return rv;}
+  else return 0;
+}
+
 static lispval threadjoin_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
 {
-  lispval results = EMPTY;
   {DO_CHOICES(thread,threads)
      if (!(TYPEP(thread,fd_thread_type)))
        return fd_type_error(_("thread"),"threadjoin_prim",thread);}
+
+  lispval results = EMPTY;
+  struct timespec until;
+  int waiting = get_thread_wait(opts,&until);
+
   {DO_CHOICES(thread,threads) {
     struct FD_THREAD_STRUCT *tstruct = (fd_thread_struct)thread;
-    int retval = pthread_join(tstruct->tid,NULL);
-    if (retval==0) {
-      /* If the result wasn't put somewhere else, add it to
-         the results */
+    int retval = (tstruct->finished >= 0) ? (0) :
+      (waiting == 0) ? (pthread_join(tstruct->tid,NULL)) :
+      (waiting < 0) ? (pthread_tryjoin_np(tstruct->tid,NULL)) :
+      (pthread_timedjoin_np(tstruct->tid,NULL,&until));
+    if (retval == EINVAL) {
+      u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
+             retval,strerror(retval),thread);
+      continue;}
+    /* If the result wasn't put somewhere else, add it to the
+       results */
+    if (retval == 0) {
       if ( (tstruct->resultptr == NULL) ||
            ((tstruct->resultptr) == &(tstruct->result)) ) {
         if (VOIDP(tstruct->result))
@@ -664,61 +724,85 @@ static lispval threadjoin_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
                  thread);
         else  {
           fd_incref(tstruct->result);
-          CHOICE_ADD(results,tstruct->result);}}}
-    else u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
-                 retval,strerror(retval),thread);}}
+          CHOICE_ADD(results,tstruct->result);}}}}}
+
   return results;
 }
 
 static lispval threadwait_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
 {
+  struct timespec until;
+  int waiting = get_thread_wait(opts,&until);
+
   {DO_CHOICES(thread,threads)
      if (!(TYPEP(thread,fd_thread_type)))
        return fd_type_error(_("thread"),"threadjoin_prim",thread);}
   {DO_CHOICES(thread,threads) {
     struct FD_THREAD_STRUCT *tstruct = (fd_thread_struct)thread;
-    int retval = pthread_join(tstruct->tid,NULL);
-    if (retval)
+    int retval = (tstruct->finished >= 0) ? (0) :
+      (waiting == 0) ? (pthread_join(tstruct->tid,NULL)) :
+      (waiting < 0) ? (pthread_tryjoin_np(tstruct->tid,NULL)) :
+      (pthread_timedjoin_np(tstruct->tid,NULL,&until));
+    if (retval == EINVAL)
       u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
              retval,strerror(retval),thread);}}
+
   return fd_incref(threads);
 }
 
 static lispval threadfinish_prim(lispval args,lispval U8_MAYBE_UNUSED opts)
 {
   lispval results = EMPTY;
+  struct timespec until;
+  int waiting = get_thread_wait(opts,&until);
+
   {DO_CHOICES(arg,args)
       if (TYPEP(arg,fd_thread_type)) {
-        struct FD_THREAD_STRUCT *thread = (fd_thread_struct)arg;
-        if (thread->finished<0) {
-          int retval = pthread_join(thread->tid,NULL);
-          if (retval) {
-            u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
-                   retval,strerror(retval),thread);
-            if (FD_VOIDP(thread->result))
-              thread->result = fd_init_exception
+        struct FD_THREAD_STRUCT *tstruct = (fd_thread_struct)arg;
+        if (tstruct->finished<0) {
+          int retval = (waiting == 0) ? (pthread_join(tstruct->tid,NULL)) :
+            (waiting < 0) ? (pthread_tryjoin_np(tstruct->tid,NULL)) :
+            (pthread_timedjoin_np(tstruct->tid,NULL,&until));
+          if (retval == EINVAL) {
+            u8_log(LOG_WARN,ThreadReturnError,
+                   "Bad return code %d (%s) from %q",
+                   retval,strerror(retval),arg);}
+          else if (retval == 0) {
+            if (FD_VOIDP(tstruct->result))
+              tstruct->result = fd_init_exception
                 (NULL,ThreadReturnError,"threadfinish_prim",
                  u8_mkstring("%d:%s",retval,strerror(retval)),
                  VOID,VOID,VOID,
-                 NULL,u8_elapsed_time(),thread->threadid,
-                 u8_elapsed_base());}}
-        lispval result = thread->result;
-        fd_incref(result);
-        CHOICE_ADD(results,result);}
-      else {
-        FD_ADD_TO_CHOICE(results,arg);
-        fd_incref(arg);}}
+                 NULL,u8_elapsed_time(),tstruct->threadid,
+                 u8_elapsed_base());
+            else {
+              lispval result = tstruct->result;
+              fd_incref(result);
+              CHOICE_ADD(results,result);}}
+          else {
+            fd_incref(arg);
+            FD_ADD_TO_CHOICE(results,arg);}}
+        else {
+          lispval result = tstruct->result;
+          fd_incref(result);
+          CHOICE_ADD(results,result);}}}
+
   return results;
 }
 
 static lispval threadwaitbang_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
 {
+  struct timespec until;
+  int waiting = get_thread_wait(opts,&until);
+
   {DO_CHOICES(thread,threads)
      if (!(TYPEP(thread,fd_thread_type)))
        return fd_type_error(_("thread"),"threadjoin_prim",thread);}
   {DO_CHOICES(thread,threads) {
     struct FD_THREAD_STRUCT *tstruct = (fd_thread_struct)thread;
-    int retval = pthread_join(tstruct->tid,NULL);
+    int retval = (waiting == 0) ? (pthread_join(tstruct->tid,NULL)) :
+      (waiting < 0) ? (pthread_tryjoin_np(tstruct->tid,NULL)) :
+      (pthread_timedjoin_np(tstruct->tid,NULL,&until));
     if (retval)
       u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
              retval,strerror(retval),thread);}}
@@ -887,7 +971,7 @@ FD_EXPORT void fd_init_threads_c()
             "(THREAD/JOIN *threads* [*opts*]) waits for all of *threads* to finish and "
             "returns all of their non VOID results (as a choice), logging "
             "when a VOID result is returned. *opts is currently ignored.",
-            -1,FD_VOID,-1,FD_FALSE);
+            -1,FD_VOID,-1,FD_VOID);
   fd_defalias(fd_scheme_module,"THREADJOIN","THREAD/JOIN");
 
   fd_idefn2(fd_scheme_module,"THREAD/WAIT",threadwait_prim,
@@ -895,20 +979,20 @@ FD_EXPORT void fd_init_threads_c()
             "(THREAD/WAIT *threads* [*opts*]) waits for all of *threads* "
             "to return, returning the thread objects. "
             "*opts is currently ignored.",
-            -1,FD_VOID,-1,FD_FALSE);
+            -1,FD_VOID,-1,FD_VOID);
 
   fd_idefn2(fd_scheme_module,"THREAD/FINISH",threadfinish_prim,
             FD_NEEDS_1_ARG|FD_NDCALL,
             "(THREAD/FINISH *args* [*opts*]) waits for all of threads in *args* "
             "to return, returning the non-VOID thread results together "
             "with any non-thread *args*. *opts is currently ignored.",
-            -1,FD_VOID,-1,FD_FALSE);
+            -1,FD_VOID,-1,FD_VOID);
 
   fd_idefn2(fd_scheme_module,"THREAD/WAIT!",threadwaitbang_prim,
             FD_NEEDS_1_ARG|FD_NDCALL,
             "(THREAD/WAIT! *threads*) waits for all of *threads* to return, "
             "and returns VOID. *opts is currently ignored.",
-            -1,FD_VOID,-1,FD_FALSE);
+            -1,FD_VOID,-1,FD_VOID);
 
   fd_idefn1(fd_scheme_module,"FIND-THREAD",findthread_prim,0,
             "(FIND-THREAD [*id*]) returns the thread object for "
@@ -936,6 +1020,7 @@ FD_EXPORT void fd_init_threads_c()
             "wait for the result, use THREAD/JOIN.",
             fd_thread_type,VOID);
 
+  timeout_symbol = fd_intern("TIMEOUT");
   logexit_symbol = fd_intern("LOGEXIT");
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("MAKE-CONDVAR",make_condvar));
