@@ -200,6 +200,24 @@ void _show_stack_frame(void *arg)
     _show_env(stack->stack_env,-1);
 }
 
+lispval _get_stack_arg(void *arg,int n)
+{
+  struct FD_STACK *stack=_get_stack_frame(arg);
+  if (stack->stack_args)
+    if ( (n>=0) && (n < (stack->n_args) ) )
+      return stack->stack_args[n];
+    else return FD_NULL;
+  else return FD_NULL;
+}
+lispval _get_stack_var(void *arg,u8_string varname)
+{
+  struct FD_STACK *stack=_get_stack_frame(arg);
+  if (stack->stack_env) {
+    lispval sym = fd_intern(varname);
+    return fd_symeval(sym,stack->stack_env);}
+  else return FD_NULL;
+}
+
 static U8_MAYBE_UNUSED void _show_stack(void *arg,int limit)
 {
   int count=0;
