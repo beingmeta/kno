@@ -71,20 +71,6 @@ static lispval pool2lisp(fd_pool p)
 
 #define FALSE_ARGP(x) ( ((x)==FD_VOID) || ((x)==FD_FALSE) || ((x)==FD_FIXZERO) )
 
-static int testopt(lispval opts,lispval sym,int dflt)
-{
-  if (!(FD_TABLEP(opts)))
-    return dflt;
-  lispval val = fd_getopt(opts,sym,FD_VOID);
-  if ( (val == FD_VOID) || (val == FD_DEFAULT_VALUE) )
-    return dflt;
-  else if ( (val == FD_FALSE) || (val == FD_FIXZERO) )
-    return 0;
-  else {
-    fd_decref(val);
-    return 1;}
-}
-
 /* Finding frames, etc. */
 
 static lispval find_frames_lexpr(int n,lispval *args)
