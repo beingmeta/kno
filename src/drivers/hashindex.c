@@ -2476,9 +2476,7 @@ static int hashindex_commit(fd_index ix,fd_commit_phase phase,
     size_t rollback_size = 256+(ref_size*n_buckets);
     ssize_t rv = fd_save_head(source,rollback_file,rollback_size);
     u8_free(rollback_file);
-    if (rv<0)
-      return -1;
-    else return 1;}
+    if (rv<0) return -1; else return 1;}
   case fd_commit_save: {
     size_t recovery_size = 256+(ref_size*n_buckets);
     u8_string commit_file = u8_mkstring("%s.commit",source);
@@ -2502,7 +2500,7 @@ static int hashindex_commit(fd_index ix,fd_commit_phase phase,
     if (u8_file_existsp(rollback_file)) {
       ssize_t rv = fd_apply_head(source,rollback_file,256-8);
       u8_free(rollback_file);
-      return rv;}
+      if (rv<0) return -1; else return 1;}
     else {
       u8_logf(LOG_CRIT,"NoRollbackFile",
               "The rollback file %s for %s doesn't exist",
@@ -2513,9 +2511,7 @@ static int hashindex_commit(fd_index ix,fd_commit_phase phase,
     u8_string commit_file = u8_mkstring("%s.commit",source);
     ssize_t rv = fd_apply_head(source,commit_file,-1);
     u8_free(commit_file);
-    if (rv<0)
-      return -1;
-    else return 1;}
+    if (rv<0) return -1; else return 1;}
   case fd_commit_cleanup: {
     u8_string source = ix->index_source;
     if (commits->commit_stream) release_commit_stream(ix,commits);

@@ -140,7 +140,12 @@ static lispval write_png_packet(QRcode *qrcode,lispval opts)
 
     u8_free(row);
 
-    return fd_init_packet(NULL,buf.bufwrite-buf.buffer,buf.buffer);}
+    if ( (BUFIO_ALLOC(&buf)) == FD_HEAP_BUFFER )
+      return fd_init_packet(NULL,buf.bufwrite-buf.buffer,buf.buffer);
+    else {
+      lispval packet = fd_make_packet(NULL,buf.bufwrite-buf.buffer,buf.buffer);
+      fd_close_outbuf(&buf);
+      return packet;}}
 }
 
 static lispval qrencode_prim(lispval string,lispval opts)

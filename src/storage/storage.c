@@ -55,10 +55,67 @@ int fd_dbconn_init_default = FD_DBCONN_INIT_DEFAULT;
 
 lispval fd_commit_phases[6];
 
-static lispval id_symbol;
+static lispval id_symbol, flags_symbol, background_symbol,
+  readonly_symbol, repair_symbol, adjunct_symbol,
+  sparse_symbol, register_symbol, phased_symbol;
+
 static lispval lookupfns = EMPTY;
 
 static int fdstorage_initialized = 0;
+
+static int testopt(lispval opts,lispval sym,int dflt)
+{
+  if (!(FD_TABLEP(opts)))
+    return dflt;
+  lispval val = fd_getopt(opts,sym,FD_VOID);
+  if ( (val == FD_VOID) || (val == FD_DEFAULT_VALUE) )
+    return dflt;
+  else if ( (val == FD_FALSE) || (val == FD_FIXZERO) )
+    return 0;
+  else {
+    fd_decref(val);
+    return 1;}
+}
+
+/* Getting storage flags */
+
+FD_EXPORT fd_storage_flags
+fd_get_dbflags(lispval opts,fd_storage_flags init_flags)
+{
+  if (FIXNUMP(opts)) {
+    long long val=FIX2INT(opts);
+    if (val<0) return val;
+    else if (val>0xFFFFFFFF)
+      return -1;
+    else return val;}
+  else if (TABLEP(opts)) {
+    lispval flags_val=fd_getopt(opts,flags_symbol,VOID);
+    fd_storage_flags flags =
+      ( (FIXNUMP(flags_val)) ? (FIX2INT(flags_val)) : (0) ) |
+      (init_flags);
+    int is_index = (flags&FD_STORAGE_ISINDEX);
+    if (testopt(opts,readonly_symbol,0))
+      flags |= FD_STORAGE_READ_ONLY;
+    if (testopt(opts,phased_symbol,0))
+      flags |= FD_STORAGE_PHASED;
+    if (!(testopt(opts,register_symbol,1)))
+      flags |= FD_STORAGE_UNREGISTERED;
+    if (testopt(opts,repair_symbol,0))
+      flags |= FD_STORAGE_REPAIR;
+    if ( (is_index) && (testopt(opts,background_symbol,0)) )
+      flags |= FD_INDEX_IN_BACKGROUND;
+    if ( (!(is_index)) && (testopt(opts,adjunct_symbol,0)) )
+      flags |= FD_POOL_ADJUNCT | FD_POOL_SPARSE;
+    if ( (!(is_index)) && (testopt(opts,sparse_symbol,0)) )
+      flags |= FD_POOL_SPARSE;
+    fd_decref(flags_val);
+    return flags;}
+  else if (FALSEP(opts))
+    if (init_flags&FD_STORAGE_ISPOOL)
+      return (init_flags & (~(FD_STORAGE_UNREGISTERED)));
+    else return (init_flags | FD_STORAGE_UNREGISTERED);
+  else return init_flags;
+}
 
 static lispval better_parse_oid(u8_string start,int len)
 {
@@ -595,6 +652,15 @@ FD_EXPORT int fd_init_storage()
   fd_init_methods_c();
 
   id_symbol = fd_intern("%ID");
+  flags_symbol = fd_intern("FLAGS");
+  background_symbol = fd_intern("BACKGROUND");
+  readonly_symbol = fd_intern("READONLY");
+  repair_symbol = fd_intern("READONLY");
+  adjunct_symbol = fd_intern("ADJUNCT");
+  sparse_symbol = fd_intern("SPARSE");
+  register_symbol = fd_intern("REGISTER");
+  phased_symbol = fd_intern("PHASED");
+
   fd_set_oid_parser(better_parse_oid);
   fd_unparsers[fd_oid_type]=better_unparse_oid;
   oid_name_slotids = fd_make_list(2,fd_intern("%ID"),fd_intern("OBJ-NAME"));

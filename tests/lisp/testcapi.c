@@ -19,7 +19,7 @@ static int write_dtype_to_file(lispval object,FILE *f)
   FD_INIT_BYTE_OUTPUT(&out,1024);
   retval = fd_write_dtype(&out,object);
   retval = fwrite(out.buffer,1,out.bufwrite-out.buffer,f);
-  u8_free(out.buffer);
+  fd_close_outbuf(&out);
   return retval;
 }
 
@@ -33,8 +33,8 @@ int main(int argc,char **argv)
   lispval string2 = fd_init_string(u8_alloc(struct FD_STRING),3,u8_strdup("bar"));
   lispval compound=
     fd_init_compound(NULL,
-		     fd_probe_symbol("QUOTE",5),0,1,
-		     fd_make_pair(FD_INT(5),FD_TRUE));
+                     fd_probe_symbol("QUOTE",5),0,1,
+                     fd_make_pair(FD_INT(5),FD_TRUE));
   lispval vec = fd_make_nvector(3,fix1,dbl1,string1);
   lispval lst = fd_make_list(4,vec,string2,dbl2,compound);
   u8_string as_string = fd_lisp2string(lst);

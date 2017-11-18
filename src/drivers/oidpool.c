@@ -859,13 +859,13 @@ static int oidpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
     if (n_bytes<0) {
       u8_free(zbuf);
       u8_big_free(saveinfo);
-      u8_free(tmpout.buffer);
+      fd_close_outbuf(&tmpout);
       UNLOCK_POOLSTREAM(op);
       return n_bytes;}
     if ((endpos+n_bytes)>=maxpos) {
       u8_free(zbuf);
       u8_big_free(saveinfo);
-      u8_free(tmpout.buffer);
+      fd_close_outbuf(&tmpout);
       u8_seterr(fd_DataFileOverflow,"oidpool_storen",
                 u8_strdup(p->poolid));
       UNLOCK_POOLSTREAM(op);
@@ -879,7 +879,7 @@ static int oidpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
 
     endpos = endpos+n_bytes;
     i++;}
-  u8_free(tmpout.buffer);
+  fd_close_outbuf(&tmpout);
   u8_free(zbuf);
 
   fd_lock_pool_struct(p,1);
@@ -909,10 +909,10 @@ static int oidpool_commit(fd_pool p,fd_commit_phase phase,
   case fd_commit_start: {
     u8_string source = p->pool_source;
     u8_string rollback_file = u8_mkstring("%s.rollback",source);
-    int rv = fd_save_head(source,rollback_file,
-                          256+(chunk_ref_size*p->pool_capacity));
+    ssize_t rv = fd_save_head(source,rollback_file,
+                              256+(chunk_ref_size*p->pool_capacity));
     u8_free(rollback_file);
-    return rv;}
+    if (rv<0) return -1; else return 1;}
   case fd_commit_save: {
     return oidpool_storen(p,commits->commit_count,
                           commits->commit_oids,
@@ -939,9 +939,9 @@ static int oidpool_commit(fd_pool p,fd_commit_phase phase,
     u8_string source = p->pool_source;
     u8_string rollback_file = u8_mkstring("%s.rollback",source);
     if (u8_file_existsp(rollback_file)) {
-      int rv = fd_apply_head(source,rollback_file,-1);
+      ssize_t rv = fd_apply_head(source,rollback_file,-1);
       u8_free(rollback_file);
-      return rv;}
+      if (rv<0) return -1; else return 1;}
     else {
       u8_logf(LOG_CRIT,"NoRollbackFile",
               "The rollback file %s for %s doesn't exist",

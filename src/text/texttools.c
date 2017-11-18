@@ -2301,7 +2301,7 @@ static lispval md5_prim(lispval input)
     struct FD_OUTBUF out; FD_INIT_BYTE_OUTPUT(&out,1024);
     fd_write_dtype(&out,input);
     digest = u8_md5(out.buffer,out.bufwrite-out.buffer,NULL);
-    u8_free(out.buffer);}
+    fd_close_outbuf(&out);}
   if (digest == NULL)
     return FD_ERROR;
   else return fd_init_packet(NULL,16,digest);
@@ -2319,7 +2319,7 @@ static lispval sha1_prim(lispval input)
     struct FD_OUTBUF out; FD_INIT_BYTE_OUTPUT(&out,1024);
     fd_write_dtype(&out,input);
     digest = u8_sha1(out.buffer,out.bufwrite-out.buffer,NULL);
-    u8_free(out.buffer);}
+    fd_close_outbuf(&out);}
   if (digest == NULL)
     return FD_ERROR;
   else return fd_init_packet(NULL,20,digest);
@@ -2337,7 +2337,7 @@ static lispval sha256_prim(lispval input)
     struct FD_OUTBUF out; FD_INIT_BYTE_OUTPUT(&out,1024);
     fd_write_dtype(&out,input);
     digest = u8_sha256(out.buffer,out.bufwrite-out.buffer,NULL);
-    u8_free(out.buffer);}
+    fd_close_outbuf(&out);}
   if (digest == NULL)
     return FD_ERROR;
   else return fd_init_packet(NULL,32,digest);
@@ -2355,7 +2355,7 @@ static lispval sha384_prim(lispval input)
     struct FD_OUTBUF out; FD_INIT_BYTE_OUTPUT(&out,1024);
     fd_write_dtype(&out,input);
     digest = u8_sha384(out.buffer,out.bufwrite-out.buffer,NULL);
-    u8_free(out.buffer);}
+    fd_close_outbuf(&out);}
   if (digest == NULL)
     return FD_ERROR;
   else return fd_init_packet(NULL,48,digest);
@@ -2373,7 +2373,7 @@ static lispval sha512_prim(lispval input)
     struct FD_OUTBUF out; FD_INIT_BYTE_OUTPUT(&out,1024);
     fd_write_dtype(&out,input);
     digest = u8_sha512(out.buffer,out.bufwrite-out.buffer,NULL);
-    u8_free(out.buffer);}
+    fd_close_outbuf(&out);}
   if (digest == NULL)
     return FD_ERROR;
   else return fd_init_packet(NULL,64,digest);

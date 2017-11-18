@@ -20,7 +20,7 @@ static int write_dtype_to_file(lispval object,FILE *f)
   FD_INIT_BYTE_OUTPUT(&out,1024);
   fd_write_dtype(&out,object);
   n = fwrite(out.buffer,1,out.bufwrite-out.buffer,f);
-  u8_free(out.buffer);
+  fd_close_outbuf(&out);
   return n;
 }
 
@@ -56,7 +56,7 @@ int main(int argc,char **argv)
   else object = fd_parse(argv[2]);
   write_dtype_to_file(object,f);
   u8_fprintf(stdout,"Dumped the %s %q\n",
-	     fd_type_names[FD_PTR_TYPE(object)],object);
+             fd_type_names[FD_PTR_TYPE(object)],object);
   fd_decref(object); object = FD_VOID;
   fclose(f);
   exit(0);

@@ -3730,8 +3730,8 @@ static int hashset_test_add(struct FD_HASHSET *h,lispval key)
   int hash = fd_hash_lisp(key), bucket = hash%n_slots;
   lispval contents = slots[bucket];
   if (FD_EMPTYP(contents)) {
-    slots[bucket] = key;
     fd_incref(key);
+    slots[bucket] = key;
     return 1;}
   else if (contents == key)
     return 0;
@@ -3739,21 +3739,21 @@ static int hashset_test_add(struct FD_HASHSET *h,lispval key)
     if (choice_containsp(key,(fd_choice)contents))
       return 0;
     else {
-      FD_ADD_TO_CHOICE(slots[bucket],key);
       fd_incref(key);
+      FD_ADD_TO_CHOICE(slots[bucket],key);
       return 1;}}
   else if (FD_PRECHOICEP(contents)) {
     if (fd_choice_containsp(contents,key))
       return 0;
     else {
-      FD_ADD_TO_CHOICE(slots[bucket],key);
       fd_incref(key);
+      FD_ADD_TO_CHOICE(slots[bucket],key);
       return 1;}}
   else if (FD_EQUALP(contents,key))
     return 0;
   else {
-    FD_ADD_TO_CHOICE(slots[bucket],key);
     fd_incref(key);
+    FD_ADD_TO_CHOICE(slots[bucket],key);
     return 1;}
 }
 

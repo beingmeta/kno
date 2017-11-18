@@ -726,7 +726,8 @@ FD_EXPORT lispval fd_zread_dtype(struct FD_INBUF *in)
   tmp.buf_flags = FD_HEAP_BUFFER;
   tmp.buflim = tmp.buffer+dbytes;
   result = fd_read_dtype(&tmp);
-  u8_free(bytes); u8_free(tmp.buffer);
+  u8_free(bytes);
+  u8_free(tmp.buffer);
   return result;
 }
 /* File initialization */

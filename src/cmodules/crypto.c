@@ -99,8 +99,8 @@ static lispval decrypt_prim(lispval data,lispval key,lispval cipher,lispval iv)
   else {ivdata = NULL; iv_len = 0;}
   payload = FD_PACKET_DATA(data); payload_len = FD_PACKET_LENGTH(data);
   outbuf = u8_decrypt(payload,payload_len,(char *)ciphername,
-                    FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
-                    ivdata,iv_len,&outlen);
+                      FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
+                      ivdata,iv_len,&outlen);
   if (outbuf)
     return fd_init_packet(NULL,outlen,outbuf);
   else return FD_ERROR_VALUE;

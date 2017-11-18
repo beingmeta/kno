@@ -1084,9 +1084,9 @@ static int fileindex_commit(fd_index ix,fd_commit_phase phase,
       u8_graberrno("fileindex_commit",u8_strdup(source));
       return -1;}
     u8_string rollback_file = u8_string_append(source,".rollback",NULL);
-    int rv = fd_save_head(source,rollback_file,8+(4*fx->index_n_slots));
+    ssize_t rv = fd_save_head(source,rollback_file,8+(4*fx->index_n_slots));
     u8_free(rollback_file);
-    return rv;}
+    if (rv<0) return -1; else return 1;}
   case fd_commit_save: {
     return fileindex_save(ix,
                           (struct FD_CONST_KEYVAL *)commit->commit_adds,
@@ -1102,9 +1102,9 @@ static int fileindex_commit(fd_index ix,fd_commit_phase phase,
     u8_string source = ix->index_source;
     u8_string rollback_file = u8_string_append(source,".rollback",NULL);
     if (u8_file_existsp(rollback_file)) {
-      int rv = fd_apply_head(source,rollback_file,-1);
+      ssize_t rv = fd_apply_head(source,rollback_file,-1);
       u8_free(rollback_file);
-      return rv;}
+      if (rv<0) return -1; else return 1;}
     else {
       u8_logf(LOG_CRIT,"NoRollbackFile",
               "The rollback file %s for %s doesn't exist",

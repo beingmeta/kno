@@ -677,7 +677,9 @@ FD_EXPORT lispval fd_bytes2packet
     if (data == NULL) memset(bytes,0,len);
     else memcpy(bytes,data,len);}
   FD_INIT_CONS(ptr,fd_packet_type);
-  ptr->str_bytelen = len; ptr->str_bytes = bytes; ptr->str_freebytes = freedata;
+  ptr->str_bytelen = len;
+  ptr->str_bytes = bytes;
+  ptr->str_freebytes = freedata;
   if (freedata) u8_free(data);
   return LISP_CONS(ptr);
 }

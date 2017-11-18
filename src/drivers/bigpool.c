@@ -1087,8 +1087,8 @@ static int bigpool_storen(fd_pool p,int n,
       /* Check for file format overflow */
       if ((endpos+n_bytes)>=maxpos) {
         u8_free(zbuf);
-        u8_free(saveinfo);
-        u8_free(tmpout.buffer);
+        u8_big_free(saveinfo);
+        fd_close_outbuf(&tmpout);
         return file_format_overflow(p,stream);}
 
       if (n_bytes) {
@@ -1103,9 +1103,8 @@ static int bigpool_storen(fd_pool p,int n,
       endpos = endpos+n_bytes;
 
       i++;}
-    u8_free(tmpout.buffer);
-    u8_free(zbuf);
-  }
+    fd_close_outbuf(&tmpout);
+    u8_free(zbuf);}
 
   fd_lock_pool_struct(p,1);
 
@@ -1152,20 +1151,21 @@ static int bigpool_commit(fd_pool p,fd_commit_phase phase,
     size_t cap = p->pool_capacity;
     size_t recovery_size = 256+(chunk_ref_size*cap);
     u8_string rollback = u8_mkstring("%s.rollback",fname);
-    int rv= fd_save_head(fname,rollback,recovery_size);
+    ssize_t rv= fd_save_head(fname,rollback,recovery_size);
     u8_free(rollback);
-    return rv;}
+    if (rv<0)
+      return -1;
+    else return 1;}
   case fd_commit_save: {
     size_t cap = p->pool_capacity;
     size_t recovery_size = 256+(chunk_ref_size*cap);
     u8_string commit = u8_mkstring("%s.commit",fname);
-    int head_saved = fd_save_head(fname,commit,recovery_size);
+    ssize_t head_saved = fd_save_head(fname,commit,recovery_size);
     struct FD_STREAM *head_stream = (head_saved>=0) ?
       (fd_init_file_stream(NULL,commit,FD_FILE_MODIFY,-1,-1)) : (NULL);
     if (head_stream == NULL) {
       u8_seterr("CantOpenCommitFile","bigpool_commit",commit);
       return -1;}
-    else u8_free(commit);
     int rv = bigpool_storen
       (p,commits->commit_count,
        commits->commit_oids,
@@ -1174,20 +1174,21 @@ static int bigpool_commit(fd_pool p,fd_commit_phase phase,
        stream,head_stream);
     fd_close_stream(head_stream,FD_STREAM_FREEDATA);
     u8_free(head_stream);
+    u8_free(commit);
     return rv;}
   case fd_commit_rollback: {
     u8_string rollback = u8_mkstring("%s.rollback",fname);
-    int rv = fd_apply_head(fname,rollback,256-8);
+    ssize_t rv = fd_apply_head(fname,rollback,256-8);
     u8_free(rollback);
-    return rv;}
+    if (rv<0) return -1; else return 1;}
   case fd_commit_finish: {
     u8_string commit = u8_mkstring("%s.commit",fname);
-    int rv = fd_apply_head(fname,commit,-1);
+    ssize_t rv = fd_apply_head(fname,commit,-1);
     u8_free(commit);
     if (rv >= 0) {
       update_offdata_cache(bp,p->pool_cache_level,chunk_ref_size);
-      return rv;}
-    else return rv;}
+      return 1;}
+    else return -1;}
   case fd_commit_cleanup: {
     u8_string rollback = u8_mkstring("%s.rollback",fname);
     u8_string commit = u8_mkstring("%s.commit",fname);

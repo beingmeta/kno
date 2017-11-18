@@ -33,8 +33,10 @@ int main(int argc,char **argv)
   fd_write_dtype(&out,svalue);
   retval = fwrite(out.buffer,1,out.bufwrite-out.buffer,f);
   if (retval<0) exit(1);
-  fd_decref(value); fd_decref(svalue); u8_free(out.buffer);
-  value = FD_VOID; svalue = FD_VOID;
+  fd_decref(value); fd_decref(svalue);
+  fd_close_outbuf(&out);
+  value = FD_VOID;
+  svalue = FD_VOID;
   exit(0);
 }
 

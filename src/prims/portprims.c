@@ -120,8 +120,15 @@ static lispval lisp2packet(lispval object,lispval initsize)
   struct FD_OUTBUF out;
   FD_INIT_BYTE_OUTPUT(&out,size);
   int bytes = fd_write_dtype(&out,object);
-  if (bytes<0) return FD_ERROR;
-  else return fd_init_packet(NULL,bytes,out.buffer);
+  if (bytes<0)
+    return FD_ERROR;
+  else if ( (BUFIO_ALLOC(&out)) == FD_HEAP_BUFFER )
+    return fd_init_packet(NULL,bytes,out.buffer);
+  else {
+    lispval packet = fd_make_packet
+      (NULL,out.bufwrite-out.buffer,out.buffer);
+    fd_close_outbuf(&out);
+    return packet;}
 }
 
 /* Output strings */
@@ -728,7 +735,8 @@ static lispval gzip_prim(lispval arg,lispval filename,lispval comment)
       ((STRINGP(arg))?(CSTRING(arg)):(FD_PACKET_DATA(arg)));
     unsigned int data_len=
       ((STRINGP(arg))?(STRLEN(arg)):(FD_PACKET_LENGTH(arg)));
-    struct FD_OUTBUF out; int flags = 0; /* FDPP_FHCRC */
+    struct FD_OUTBUF out;
+    int flags = 0; /* FDPP_FHCRC */
     time_t now = time(NULL); u8_int4 crc, intval;
     FD_INIT_BYTE_OUTPUT(&out,1024); memset(out.buffer,0,1024);
     fd_write_byte(&out,31); fd_write_byte(&out,139);
@@ -790,12 +798,17 @@ static lispval gzip_prim(lispval arg,lispval filename,lispval comment)
       u8_free(cbuf);}
     if (error) {
       fd_seterr(error,"x2zipfile",NULL,VOID);
-      u8_free(out.buffer);
+      fd_close_outbuf(&out);
       return FD_ERROR;}
     crc = u8_crc32(0,data,data_len);
     intval = fd_flip_word(crc); fd_write_4bytes(&out,intval);
     intval = fd_flip_word(data_len); fd_write_4bytes(&out,intval);
-    return fd_init_packet(NULL,out.bufwrite-out.buffer,out.buffer);}
+    if ( (BUFIO_ALLOC(&out)) == FD_HEAP_BUFFER )
+      return fd_init_packet(NULL,out.bufwrite-out.buffer,out.buffer);
+    else {
+      lispval packet = fd_make_packet(NULL,out.bufwrite-out.buffer,out.buffer);
+      fd_close_outbuf(&out);
+      return packet;}}
 }
 
 /* Port type operations */

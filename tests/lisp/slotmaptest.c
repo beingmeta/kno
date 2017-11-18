@@ -28,7 +28,7 @@ static lispval read_dtype_from_file(FILE *f)
     else fd_write_bytes(&out,buf,delta);}
   FD_INIT_BYTE_INPUT(&in,out.buffer,(out.bufwrite-out.buffer));
   object = fd_read_dtype(&in);
-  u8_free(out.buffer);
+  fd_close_outbuf(&out);
   return object;
 }
 
@@ -38,7 +38,7 @@ static int write_dtype_to_file(lispval object,FILE *f)
   FD_INIT_BYTE_OUTPUT(&out,1024);
   fd_write_dtype(&out,object);
   retval = fwrite(out.buffer,1,out.bufwrite-out.buffer,f);
-  u8_free(out.buffer);
+  fd_close_outbuf(&out);
   return retval;
 }
 

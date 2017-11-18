@@ -500,9 +500,9 @@ static int file_pool_commit(fd_pool p,fd_commit_phase phase,
       else {
         commits->commit_stream = &(fp->pool_stream);}}
     u8_string rollback_file = u8_mkstring("%s.rollback",source);
-    int rv = fd_save_head(source,rollback_file,24+(4*p->pool_capacity));
+    ssize_t rv = fd_save_head(source,rollback_file,24+(4*p->pool_capacity));
     u8_free(rollback_file);
-    return rv;}
+    if (rv<0) return -1; else return 1;}
   case fd_commit_save: {
     return file_pool_storen(p,commits->commit_count,
                             commits->commit_oids,
@@ -531,9 +531,9 @@ static int file_pool_commit(fd_pool p,fd_commit_phase phase,
     u8_string source = p->pool_source;
     u8_string rollback_file = u8_mkstring("%s.rollback",source);
     if (u8_file_existsp(rollback_file)) {
-      int rv= fd_apply_head(source,rollback_file,-1);
+      ssize_t rv= fd_apply_head(source,rollback_file,-1);
       u8_free(rollback_file);
-      return rv;}
+      if (rv<0) return -1; else return 1;}
     else {
       u8_logf(LOG_CRIT,"NoRollbackFile",
               "The rollback file %s for %s doesn't exist",
