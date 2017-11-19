@@ -517,6 +517,35 @@ static lispval leveldb_getn_prim(lispval leveldb,lispval keys,lispval opts)
   return results;
 }
 
+#if 0
+static lispval leveldb_prefix_get(lispval leveldb,lispval prefix,lispval opts)
+{
+  struct FD_LEVELDB *dbcons = (fd_leveldb)leveldb;
+  struct FRAMERD_LEVELDB *db = &(dbcons->leveldb);
+  leveldb_readoptions_t *readopts = get_read_options(db,opts);
+  unsigned char *bytes = FD_PACKET_DATA(prefix);
+  size_t n_bytes       = FD_PACKET_LENGTH(prefix);
+  leveldb_iterator_t *iterator = leveldb_create_iterator(db->dbptr,readopts);
+  lispval results = FD_EMPTY;
+  leveldb_iter_seek(iterator,bytes,n_bytes);
+  unsigned char *key_bytes, *val_bytes;
+  size_t key_len, val_len;
+  while (leveldb_iter_valid(iterator)) {
+    key_bytes = leveldb_iter_key(iterator,&key_len);
+    val_bytes = leveldb_iter_value(iterator,&val_len);
+    if ( (key_len < n_bytes) ||
+         (memcmp(key_bytes,bytes,n_bytes)) )
+      break;
+    lispval key_packet = fd_make_packet(NULL,key_len,key_bytes);
+    lispval val_packet = fd_make_packet(NULL,val_len,val_bytes);
+    lispval pair = fd_init_pair(NULL,key_packet,val_packet);
+    FD_ADD_TO_CHOICE(results,pair);
+    rv = leveldb_iter_next(iterator);}
+  leveldb_iter_destroy(iterator);
+  return results;
+}
+#endif
+
 static leveldb_readoptions_t *default_readopts;
 static leveldb_writeoptions_t *default_writeopts;
 static leveldb_writeoptions_t *sync_writeopts;
