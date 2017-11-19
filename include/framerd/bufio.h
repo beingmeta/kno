@@ -355,14 +355,16 @@ FD_FASTOP int fd_write_zint(struct FD_OUTBUF *s,fd_8bytes n)
     return 9;}
 }
 
-#define fd_get_byte(membuf) (*(membuf))
-#define fd_get_4bytes(membuf)             \
-  ((*(membuf))<<24|(*(membuf+1))<<16|   \
-   (*(membuf+2))<<8|(*(membuf+3)))
+#define fd_get_byte(membuf) ((unsigned long long)(*(membuf)))
 #define _getbyte(base,off,lsb) \
-  ((unsigned long long)(((unsigned long long)(base[off]))<<(lsb)))
+  (((unsigned long long)(base[off]))<<(lsb))
 #define fd_get_bytes(bytes,membuf,len)          \
    memcpy(bytes,membuf,len)
+FD_FASTOP fd_8bytes fd_get_4bytes(const unsigned char *membuf)
+{
+  return _getbyte(membuf,0,24)|_getbyte(membuf,1,16)|
+    _getbyte(membuf,2,8)|_getbyte(membuf,3,0);
+}
 FD_FASTOP fd_8bytes fd_get_8bytes(const unsigned char *membuf)
 {
   return _getbyte(membuf,0,56)|_getbyte(membuf,1,48)|

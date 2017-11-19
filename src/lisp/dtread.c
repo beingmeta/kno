@@ -69,7 +69,8 @@ static ssize_t validate_dtype(int pos,const unsigned char *ptr,
         int i = 0, len = ptr[pos+1];
         while (i<len) {
           int i = 0, len = ptr[pos+1], npos = pos+2;
-          while ((i < len) && (npos > 0)) npos = validate_dtype(npos,ptr,lim);
+          while ((i < len) && (npos > 0))
+            npos = validate_dtype(npos,ptr,lim);
           return npos;}}
     case dt_symbol: case dt_packet: case dt_string: case dt_zstring:
       if (ptr+pos+5 >= lim) return -1;
@@ -80,17 +81,20 @@ static ssize_t validate_dtype(int pos,const unsigned char *ptr,
       if (ptr+pos+5 >= lim) return -1;
       else {
         int i = 0, len = fd_get_4bytes(ptr+pos+1), npos = pos+5;
-        while ((i < len) && (npos > 0)) npos = validate_dtype(npos,ptr,lim);
+        while ((i < len) && (npos > 0))
+          npos = validate_dtype(npos,ptr,lim);
         return npos;}
     default:
       if ((code > 0x40) && (ptr+pos+2 < lim)) {
         int subcode = *(ptr+pos+1), len, npos;
         if (subcode&0x40)
           if (ptr+pos+6 < lim) {
-            npos = pos+6; len = fd_get_4bytes(ptr+pos+2);}
+            npos = pos+6;
+            len = fd_get_4bytes(ptr+pos+2);}
           else return -1;
         else if (ptr+pos+3 < lim) {
-          npos = pos+3; len = fd_get_byte(ptr+pos+2);}
+          npos = pos+3;
+          len = fd_get_byte(ptr+pos+2);}
         else return -1;
         if (subcode&0x80) {
           int i = 0; while ((i < len) && (npos > 0)) {
@@ -122,7 +126,8 @@ static lispval *read_dtypes(int n,struct FD_INBUF *in,
     lispval *vec = ((into)?(into):(u8_alloc_n(n,lispval)));
     int i = 0; while (i < n) {
       lispval v = fd_read_dtype(in);
-      if (FD_COOLP(v)) vec[i++]=v;
+      if (FD_COOLP(v))
+        vec[i++]=v;
       else {
         int j = 0; while (j<i) {fd_decref(vec[j]); j++;}
         u8_free(vec); *why_not = v;
@@ -155,7 +160,8 @@ FD_EXPORT lispval fd_read_dtype(struct FD_INBUF *in)
       else return FD_FALSE;
     case dt_fixnum:
       if (havebytes(in,4)) {
-        int intval = fd_get_4bytes(in->bufread); in->bufread = in->bufread+4;
+        int intval = fd_get_4bytes(in->bufread);
+        in->bufread = in->bufread+4;
         return FD_INT(intval);}
       else return fd_return_errcode(FD_EOD);
     case dt_flonum: {
@@ -204,7 +210,8 @@ FD_EXPORT lispval fd_read_dtype(struct FD_INBUF *in)
                          car,NIL);
           int dtcode = fd_read_byte(in);
           if (dtcode<0) {
-            fd_decref(head); fd_decref(new_pair);
+            fd_decref(head);
+            fd_decref(new_pair);
             return unexpected_eod();}
           *tail = new_pair;
           tail = &(FD_CDR(new_pair));
@@ -353,9 +360,8 @@ FD_EXPORT lispval fd_read_dtype(struct FD_INBUF *in)
             while (write<limit) {
               lispval v=fd_read_dtype(in);
               if (FD_ABORTP(v)) {
-                lispval *scan=(lispval *)FD_XCHOICE_DATA(ch);
-                while (scan<write) {
-                  lispval v=*scan++; fd_decref(v);}
+                lispval *elts=(lispval *)FD_XCHOICE_DATA(ch);
+                fd_decref_vec(elts,write-elts);
                 u8_big_free(ch);
                 return v;}
               else *write++=v;}
@@ -409,7 +415,8 @@ FD_EXPORT lispval fd_read_dtype(struct FD_INBUF *in)
                 u8_big_free(keyvals);
                 return value;}
               else if ( (EMPTYP(value)) || (EMPTYP(key)) ) {
-                fd_decref(key); fd_decref(value);}
+                fd_decref(key);
+                fd_decref(value);}
               else {
                 keyvals[n_read].kv_key = key;
                 keyvals[n_read].kv_val = value;
@@ -434,8 +441,7 @@ FD_EXPORT lispval fd_read_dtype(struct FD_INBUF *in)
           while (i<len) {
             lispval v=fd_read_dtype(in);
             if (FD_ABORTP(v)) {
-              int j=0; while (j<i) {
-                lispval elt=data[i++]; fd_decref(elt);}
+              fd_decref_vec(data,i);
               u8_free(data);
               return v;}
             else data[i++]=fd_read_dtype(in);}
