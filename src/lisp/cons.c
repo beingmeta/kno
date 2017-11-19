@@ -1049,6 +1049,10 @@ void fd_init_cons_c()
   fd_add_hashname("#universe",FD_INT(42));
   fd_add_hashname("#everything",FD_INT(42));
 
+  fd_add_hashname("#kib",FD_INT(1024));
+  fd_add_hashname("#mib",FD_INT((1024*1024)));
+  fd_add_hashname("#gib",FD_INT((1024*1024*1024)));
+
 }
 
 /* Emacs local variables

@@ -3738,6 +3738,11 @@ void fd_init_numbers_c()
 
   bigint_magic_modulus = fd_long_to_bigint(256001281);
 
+#define ONEK ((unsigned long long)1024)
+
+  fd_add_hashname("#tib",FD_INT((ONEK)*(ONEK)*(ONEK)*(ONEK)));
+  fd_add_hashname("#pib",FD_INT((ONEK)*(ONEK)*(ONEK)*(ONEK)*(ONEK)));
+
   u8_register_source_file(_FILEINFO);
 }
 
