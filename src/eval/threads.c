@@ -696,6 +696,33 @@ static int get_thread_wait(lispval opts,struct timespec *wait)
   else return 0;
 }
 
+static int join_thread(struct FD_THREAD_STRUCT *tstruct,int waiting,
+                       struct timespec *ts,
+                       void **vptr)
+{
+  if (tstruct->finished > 0)
+    return 0;
+  else if (waiting == 0) 
+    return pthread_join(tstruct->tid,vptr);
+  else if (waiting < 0) {
+#if HAVE_PTHREAD_TRYJOIN_NP
+    return pthread_tryjoin_np(tstruct->tid,vptr);
+#else
+  u8_log(LOG_WARN,"NotImplemented",
+         "No pthread_tryjoin_np support");
+  return 0;
+#endif
+  } else {
+#if HAVE_PTHREAD_TIMEDJOIN_NP
+    return pthread_timedjoin_np(tstruct->tid,vptr,ts);
+#else
+    u8_log(LOG_WARN,"NotImplemented",
+           "No pthread_timedjoin_np support");
+  return 0;
+#endif    
+  }
+}
+
 static lispval threadjoin_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
 {
   {DO_CHOICES(thread,threads)
@@ -708,10 +735,7 @@ static lispval threadjoin_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
 
   {DO_CHOICES(thread,threads) {
       struct FD_THREAD_STRUCT *tstruct = (fd_thread_struct)thread;
-      int retval = (tstruct->finished > 0) ? (0) :
-        (waiting == 0) ? (pthread_join(tstruct->tid,NULL)) :
-        (waiting < 0) ? (pthread_tryjoin_np(tstruct->tid,NULL)) :
-        (pthread_timedjoin_np(tstruct->tid,NULL,&until));
+      int retval = join_thread(tstruct,waiting,&until,NULL);
       if (retval == EINVAL)
         u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
                retval,strerror(retval),thread);
@@ -740,10 +764,7 @@ static lispval threadwait_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
        return fd_type_error(_("thread"),"threadjoin_prim",thread);}
   {DO_CHOICES(thread,threads) {
     struct FD_THREAD_STRUCT *tstruct = (fd_thread_struct)thread;
-    int retval = (tstruct->finished > 0) ? (0) :
-      (waiting == 0) ? (pthread_join(tstruct->tid,NULL)) :
-      (waiting < 0) ? (pthread_tryjoin_np(tstruct->tid,NULL)) :
-      (pthread_timedjoin_np(tstruct->tid,NULL,&until));
+    int retval = join_thread(tstruct,waiting,&until,NULL);
     if (retval == EINVAL)
       u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
              retval,strerror(retval),thread);}}
@@ -760,10 +781,7 @@ static lispval threadfinish_prim(lispval args,lispval U8_MAYBE_UNUSED opts)
   {DO_CHOICES(arg,args)
       if (TYPEP(arg,fd_thread_type)) {
         struct FD_THREAD_STRUCT *tstruct = (fd_thread_struct)arg;
-        int retval = (tstruct->finished) ? (0) :
-          (waiting == 0) ? (pthread_join(tstruct->tid,NULL)) :
-          (waiting < 0) ? (pthread_tryjoin_np(tstruct->tid,NULL)) :
-          (pthread_timedjoin_np(tstruct->tid,NULL,&until));
+        int retval = join_thread(tstruct,waiting,&until,NULL);
         if (retval == EINVAL) {
           u8_log(LOG_WARN,ThreadReturnError,
                  "Bad return code %d (%s) from %q",
@@ -802,9 +820,7 @@ static lispval threadwaitbang_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
        return fd_type_error(_("thread"),"threadjoin_prim",thread);}
   {DO_CHOICES(thread,threads) {
     struct FD_THREAD_STRUCT *tstruct = (fd_thread_struct)thread;
-    int retval = (waiting == 0) ? (pthread_join(tstruct->tid,NULL)) :
-      (waiting < 0) ? (pthread_tryjoin_np(tstruct->tid,NULL)) :
-      (pthread_timedjoin_np(tstruct->tid,NULL,&until));
+    int retval = join_thread(tstruct,waiting,&until,NULL);
     if (retval)
       u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
              retval,strerror(retval),thread);}}

@@ -1065,6 +1065,8 @@ AC_CHECK_FUNCS(seteuid setuid setgid setegid)
 AC_CHECK_FUNCS(getpwnam_r getpwnam)
 AC_CHECK_FUNCS(getgrnam getgrnam_r)
 
+AC_CHECK_FUNCS(pthread_tryjoin_np pthread_timedjoin_np)
+
 # This gets it in the library list
 AC_CHECK_LIB(m,floor)
 AC_CHECK_LIB(z,compress2)

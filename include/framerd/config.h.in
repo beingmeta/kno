@@ -44,6 +44,10 @@
 /* Define if you have the <pthread.h> header file.  */
 #undef HAVE_PTHREAD_H
 
+/* Check some non portable pthread functions */
+#undef HAVE_PTHREAD_TRYJOIN_NP
+#undef HAVE_PTHREAD_TIMEDJOIN_NP
+
 /* Define if you might need to set a crypto locking fallback (for multi-threaded CURL https) */
 #undef HAVE_CRYPTO_SET_LOCKING_CALLBACK
 
