@@ -431,6 +431,9 @@
 #undef FD_ENABLE_FFI
 
 /* Whether we have the FFI headers */
+#undef HAVE_FFI_FFI_H
+
+/* Whether we have the FFI headers */
 #undef HAVE_FFI_H
 
 /* Whether we have the libffi library */

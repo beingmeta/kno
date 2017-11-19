@@ -36,7 +36,11 @@ static lispval lispref_symbol, strcpy_symbol, void_symbol;
 static lispval byte_symbol, basetype_symbol;
 
 #if FD_ENABLE_FFI
+#if HAVE_FFI_FFI_H
+#include <ffi/ffi.h>
+#elif HAVE_FFI_H
 #include <ffi.h>
+#endif
 
 #ifndef u8_xfree
 #define u8_xfree(ptr) if (ptr) free((char *)ptr); else ptr = ptr;

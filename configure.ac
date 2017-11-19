@@ -832,13 +832,15 @@ fi
 AC_ARG_ENABLE(ffi,--enable-ffi enable the FFI interface,enable_ffi=$enableval,enable_ffi="yes")
 
 if test "${enable_ffi}" == "yes"; then
+   AC_CHECK_HEADERS(ffi/ffi.h)
    AC_CHECK_HEADERS(ffi.h)
    AC_CHECK_LIB(ffi,ffi_prep_cif)
 fi
 
 if test "${enable_ffi}" != "yes"; then
    manually_disabled="ffi ${manually_disabled}"
-elif test "${ac_cv_header_ffi_h}" != "yes";  then
+elif test ! "${ac_cv_header_ffi_h}" != "yes" &&
+     test ! "${ac_cv_header_ffi_ffi_h}" != "yes";  then
    enable_ffi="no";
    auto_disabled="ffi ${auto_disabled}";
 elif test "${ac_cv_lib_ffi_ffi_prep_cif}" != "yes"; then

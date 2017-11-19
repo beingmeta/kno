@@ -7003,6 +7003,18 @@ fi
 
 
 if test "${enable_ffi}" == "yes"; then
+   for ac_header in ffi/ffi.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "ffi/ffi.h" "ac_cv_header_ffi_ffi_h" "$ac_includes_default"
+if test "x$ac_cv_header_ffi_ffi_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_FFI_FFI_H 1
+_ACEOF
+
+fi
+
+done
+
    for ac_header in ffi.h
 do :
   ac_fn_c_check_header_mongrel "$LINENO" "ffi.h" "ac_cv_header_ffi_h" "$ac_includes_default"
@@ -7064,7 +7076,8 @@ fi
 
 if test "${enable_ffi}" != "yes"; then
    manually_disabled="ffi ${manually_disabled}"
-elif test "${ac_cv_header_ffi_h}" != "yes";  then
+elif test ! "${ac_cv_header_ffi_h}" != "yes" &&
+     test ! "${ac_cv_header_ffi_ffi_h}" != "yes";  then
    enable_ffi="no";
    auto_disabled="ffi ${auto_disabled}";
 elif test "${ac_cv_lib_ffi_ffi_prep_cif}" != "yes"; then
