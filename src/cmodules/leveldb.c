@@ -10,6 +10,7 @@
 #endif
 
 #define U8_INLINE_IO 1
+#define FD_INLINE_BUFIO 1
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
@@ -23,6 +24,7 @@
 #include "framerd/pools.h"
 #include "framerd/indexes.h"
 #include "framerd/drivers.h"
+#include "framerd/bufio.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8pathfns.h>
@@ -49,6 +51,10 @@ static int default_compression = 0;
 FD_EXPORT int fd_init_leveldb(void) FD_LIBINIT_FN;
 
 static long long int leveldb_initialized = 0;
+
+static leveldb_readoptions_t *default_readopts;
+static leveldb_writeoptions_t *default_writeopts;
+static leveldb_writeoptions_t *sync_writeopts;
 
 /* Getting various LevelDB option objects */
 
@@ -517,38 +523,209 @@ static lispval leveldb_getn_prim(lispval leveldb,lispval keys,lispval opts)
   return results;
 }
 
-#if 0
-static lispval leveldb_prefix_get(lispval leveldb,lispval prefix,lispval opts)
+struct BYTEVEC {
+  size_t n_bytes;
+  const unsigned char *bytes;};
+typedef int (*leveldb_prefix_iterfn)(lispval key,struct BYTEVEC *prefix,
+                                     struct BYTEVEC *keybuf,
+                                     struct BYTEVEC *valbuf,
+                                     void *state);
+
+static int leveldb_for_prefix(struct FRAMERD_LEVELDB *db,
+                              lispval key,lispval opts,
+                              leveldb_prefix_iterfn iterfn,
+                              void *state)
+{
+  leveldb_readoptions_t *readopts = get_read_options(db,opts);
+  struct FD_OUTBUF keyout = {0};
+  struct BYTEVEC prefix;
+  int rv = 0;
+  if (FD_PACKETP(key)) {
+    prefix.bytes =   FD_PACKET_DATA(key);
+    prefix.n_bytes = FD_PACKET_LENGTH(key);}
+  else {
+    FD_INIT_BYTE_OUTPUT(&keyout,1000);
+    ssize_t n_bytes = fd_write_dtype(&keyout,key);
+    if (n_bytes < 0) {
+      fd_close_outbuf(&keyout);
+      return -1;}
+    else if ( n_bytes != (keyout.bufwrite-keyout.buffer) ) {
+      u8_seterr("Inconsistent DTYPE size for key","leveldb_prefix_iter",NULL);
+      return -1;}
+    else {
+      prefix.bytes   = keyout.buffer;
+      prefix.n_bytes = n_bytes;}}
+  leveldb_iterator_t *iterator = leveldb_create_iterator(db->dbptr,readopts);
+  leveldb_iter_seek(iterator,prefix.bytes,prefix.n_bytes);
+  while (leveldb_iter_valid(iterator)) {
+    struct BYTEVEC keybuf, valbuf;
+    keybuf.bytes = leveldb_iter_key(iterator,&(keybuf.n_bytes));
+    valbuf.bytes = leveldb_iter_value(iterator,&(valbuf.n_bytes));
+    if ( (keybuf.n_bytes >= prefix.n_bytes) ||
+         (memcmp(keybuf.bytes,prefix.bytes,prefix.n_bytes) == 0) ) {
+      valbuf.bytes = leveldb_iter_value(iterator,&(valbuf.n_bytes));
+      rv = iterfn(key,&prefix,&keybuf,&valbuf,state);
+      u8_free(keybuf.bytes); u8_free(valbuf.bytes);
+      if (rv <= 0) break;}
+    else {
+      u8_free(keybuf.bytes);
+      break;}
+    leveldb_iter_next(iterator);}
+  fd_close_outbuf(&keyout);
+  leveldb_iter_destroy(iterator);
+  return rv;
+}
+
+/* Index functions */
+
+struct KEY_VALUES {
+  size_t allocated, used;
+  lispval *vec;};
+
+static int add_values(struct KEY_VALUES *values,int n,const lispval *add)
+{
+  if ( (values->used+n) >= values->allocated ) {
+    if (values->allocated==0) {
+      size_t new_size = 2*(1+(n/2));
+      values->vec = u8_alloc_n(n,lispval);
+      values->allocated = new_size;
+      values->used = 0;}
+    else {
+      size_t need_size = values->used+n;
+      size_t new_size = 2*(values->allocated);
+      while (new_size < need_size) new_size=new_size*2;
+      lispval *new_vec = u8_realloc(values->vec,sizeof(lispval)*new_size);
+      if (new_vec) {
+        values->vec = new_vec;
+        values->allocated = new_size;}
+      else return -1;}}
+  memcpy(values->vec+(values->used),add,sizeof(lispval)*n);
+  values->used += n;
+  return n;
+}
+
+static int index_get_iterfn(lispval key,
+                            struct BYTEVEC *prefix,
+                            struct BYTEVEC *keybuf,
+                            struct BYTEVEC *valbuf,
+                            void *vptr)
+{
+  struct KEY_VALUES *values = vptr;
+  if (valbuf->n_bytes == 0) return 1;
+  if (valbuf->bytes[0] == 0xFF) {}
+  else {
+    struct FD_INBUF in;
+    FD_INIT_BYTE_INPUT(&in,valbuf->bytes,valbuf->n_bytes);
+    lispval v = fd_read_dtype(&in);
+    if (FD_ABORTP(v))
+      return -1;
+    if (FD_EMPTY_CHOICEP(v)) return 1;
+    if (FD_CHOICEP(v)) {
+      int rv = add_values(values,FD_CHOICE_SIZE(v),FD_CHOICE_DATA(v));
+      struct FD_CHOICE *ch = (fd_choice) v;
+      /* The elements are now pointed to by *values, so we just free the choice
+         object */
+      u8_free(ch);
+      return rv;}
+    else return add_values(values,1,&v);}
+}
+
+static lispval leveldb_index_get_prim(lispval leveldb,lispval key,lispval opts)
 {
   struct FD_LEVELDB *dbcons = (fd_leveldb)leveldb;
   struct FRAMERD_LEVELDB *db = &(dbcons->leveldb);
-  leveldb_readoptions_t *readopts = get_read_options(db,opts);
-  unsigned char *bytes = FD_PACKET_DATA(prefix);
-  size_t n_bytes       = FD_PACKET_LENGTH(prefix);
-  leveldb_iterator_t *iterator = leveldb_create_iterator(db->dbptr,readopts);
-  lispval results = FD_EMPTY;
-  leveldb_iter_seek(iterator,bytes,n_bytes);
-  unsigned char *key_bytes, *val_bytes;
-  size_t key_len, val_len;
-  while (leveldb_iter_valid(iterator)) {
-    key_bytes = leveldb_iter_key(iterator,&key_len);
-    val_bytes = leveldb_iter_value(iterator,&val_len);
-    if ( (key_len < n_bytes) ||
-         (memcmp(key_bytes,bytes,n_bytes)) )
-      break;
-    lispval key_packet = fd_make_packet(NULL,key_len,key_bytes);
-    lispval val_packet = fd_make_packet(NULL,val_len,val_bytes);
-    lispval pair = fd_init_pair(NULL,key_packet,val_packet);
-    FD_ADD_TO_CHOICE(results,pair);
-    rv = leveldb_iter_next(iterator);}
-  leveldb_iter_destroy(iterator);
-  return results;
+  struct KEY_VALUES accumulator;
+  int rv = leveldb_for_prefix(db,key,opts,index_get_iterfn,&accumulator);
+  if (rv<0) {
+    fd_decref_vec(accumulator.vec,accumulator.used);
+    u8_free(accumulator.vec);
+    return FD_ERROR_VALUE;}
+  else return fd_init_choice(NULL,accumulator.used,accumulator.vec,-1);
 }
-#endif
 
-static leveldb_readoptions_t *default_readopts;
-static leveldb_writeoptions_t *default_writeopts;
-static leveldb_writeoptions_t *sync_writeopts;
+static ssize_t leveldb_add_helper(struct FRAMERD_LEVELDB *db,
+                                  leveldb_writebatch_t *batch,
+                                  lispval key,lispval values,
+                                  lispval opts)
+{
+  struct FD_OUTBUF keyout, valout, countbuf;
+  struct BYTEVEC keybuf = {0}, valbuf = {0};
+  leveldb_readoptions_t *readopts = get_read_options(db,opts);
+  char *errmsg=NULL;
+  long long n_keys=0, n_blocks=0, header_type = 1;
+  FD_INIT_BYTE_OUTPUT(&keyout,1000); fd_write_dtype(&keyout,key);
+  FD_INIT_BYTE_OUTPUT(&valout,1000);
+  keybuf.n_bytes = keyout.bufwrite-keyout.buffer;
+  keybuf.bytes   = keyout.buffer;
+  valbuf.bytes   = leveldb_get
+    (db->dbptr,readopts,keybuf.bytes,keybuf.n_bytes,&valbuf.n_bytes,&errmsg);
+  if (readopts != db->readopts) leveldb_readoptions_destroy(readopts);
+  if (errmsg) {
+    fd_seterr("LevelDBError","leveldb_add_helper",errmsg,FD_VOID);
+    fd_close_outbuf(&keyout);
+    fd_close_outbuf(&valout);
+    return -1;}
+  if (valbuf.bytes == NULL) {
+    fd_write_dtype(&valout,values);
+    leveldb_writebatch_put
+      (batch,keybuf.bytes,keybuf.n_bytes,
+       valout.buffer,valout.bufwrite-valout.buffer);
+    fd_close_outbuf(&valout);
+    fd_close_outbuf(&keyout);
+    return FD_CHOICE_SIZE(values);}
+  struct FD_INBUF curbuf;
+  FD_INIT_BYTE_INPUT(&curbuf,valbuf.bytes,valbuf.n_bytes);
+  if (valbuf.bytes[0] == 0xFF) {
+    header_type = fd_read_4bytes(&curbuf);
+    n_blocks = fd_read_8bytes(&curbuf);
+    n_keys   = fd_read_8bytes(&curbuf);
+    if (FD_CHOICEP(values))
+      n_keys += FD_CHOICE_SIZE(values);
+    else n_keys++;
+    n_blocks++;
+    fd_write_dtype(&valout,values);}
+  else {
+      lispval combined = fd_read_dtype(&curbuf);
+      FD_ADD_TO_CHOICE(combined,values);
+      combined = fd_simplify_choice(combined);
+      n_keys = FD_CHOICE_SIZE(combined);
+      n_blocks = 1;
+      fd_write_dtype(&valout,combined);}
+  unsigned char count_bytes[17];
+  FD_INIT_OUTBUF(&countbuf,count_bytes,32,0);
+  fd_write_byte(&countbuf,0xFF);
+  fd_write_4bytes((&countbuf),header_type);
+  fd_write_8bytes((&countbuf),n_blocks);
+  fd_write_8bytes((&countbuf),n_keys);
+  leveldb_writebatch_put
+    (batch,keybuf.bytes,keybuf.n_bytes,
+     countbuf.buffer,countbuf.bufwrite-countbuf.buffer);
+  fd_write_8bytes(&keyout,n_blocks);
+  leveldb_writebatch_put
+    (batch,keybuf.bytes,keybuf.n_bytes,
+     valout.buffer,valout.bufwrite-valout.buffer);
+  fd_close_inbuf(&curbuf);
+  fd_close_outbuf(&keyout);
+  fd_close_outbuf(&valout);
+  return n_keys;
+}
+
+static ssize_t leveldb_adder(struct FRAMERD_LEVELDB *db,lispval key,
+                             lispval values,lispval opts)
+{
+  leveldb_writebatch_t *batch = leveldb_writebatch_create();
+  int added = leveldb_add_helper(db,batch,key,values,opts);
+  char *errmsg = NULL;
+  leveldb_write(db->dbptr,sync_writeopts,batch,&errmsg);
+  if (errmsg)
+    fd_seterr("LevelDBError","leveldb_add_helper",errmsg,FD_VOID);
+  leveldb_writebatch_destroy(batch);
+  if (errmsg)
+    return -1;
+  else return added;
+}
+
+/* Accessing various metadata fields */
 
 static lispval get_prop(leveldb_t *dbptr,char *key,lispval dflt)
 {
