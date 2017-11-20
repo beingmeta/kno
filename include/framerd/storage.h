@@ -48,7 +48,7 @@ FD_EXPORT u8_mutex fd_swapcheck_lock;
    remaining 12 bits are for flags for particular implementations.
 */
 
-typedef unsigned int fd_storage_flags;
+typedef int fd_storage_flags;
 
 #define FD_STORAGE_ISPOOL                  0x001
 #define FD_STORAGE_ISINDEX                 0x002
