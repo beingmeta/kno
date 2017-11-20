@@ -612,7 +612,8 @@ static int index_get_iterfn(lispval key,
 {
   struct KEY_VALUES *values = vptr;
   if (valbuf->n_bytes == 0) return 1;
-  if (valbuf->bytes[0] == 0xFF) {}
+  if (valbuf->bytes[0] == 0xFF) {
+    return 0;}
   else {
     struct FD_INBUF in;
     FD_INIT_BYTE_INPUT(&in,valbuf->bytes,valbuf->n_bytes);

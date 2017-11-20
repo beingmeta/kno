@@ -34,6 +34,8 @@ static lispval poolopt(lispval opts,u8_string name)
   return fd_getopt(opts,fd_intern(name),VOID);
 }
 
+#define NO_METHODP(x) ( (FD_NULLP(x)) || (FD_VOIDP(x)) )
+
 FD_EXPORT
 fd_pool fd_make_procpool(FD_OID base,
                          unsigned int cap,unsigned int load,
@@ -49,7 +51,33 @@ fd_pool fd_make_procpool(FD_OID base,
     return NULL;}
 
   struct FD_PROCPOOL *pp = u8_alloc(struct FD_PROCPOOL);
+  struct FD_PROCPOOL_METHODS *methods;
   unsigned int flags = FD_STORAGE_ISPOOL | FD_STORAGE_VIRTUAL;
+  lispval pool_type = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
+  struct FD_POOL_TYPEINFO *typeinfo =
+    (FD_STRINGP(pool_type)) ? 
+    (fd_get_pool_typeinfo(FD_CSTRING(pool_type))) :
+    (FD_SYMBOLP(pool_type)) ? 
+    (fd_get_pool_typeinfo(FD_SYMBOL_NAME(pool_type))) :
+    (NULL);
+
+  if ( (typeinfo) && (typeinfo->type_data) )
+    methods = (struct FD_PROCPOOL_METHODS *) (typeinfo->type_data);
+  else {
+    methods = u8_alloc(struct FD_PROCPOOL_METHODS);
+    memset(methods,0,sizeof(struct FD_PROCPOOL_METHODS));
+    methods->allocfn = poolopt(opts,"ALLOC");
+    methods->getloadfn = poolopt(opts,"GETLOAD");
+    methods->fetchfn = poolopt(opts,"FETCH");
+    methods->fetchnfn = poolopt(opts,"FETCHN");
+    methods->lockfn = poolopt(opts,"LOCKOIDS");
+    methods->releasefn = poolopt(opts,"RELEASEOIDS");
+    methods->commitfn = poolopt(opts,"COMMIT");
+    methods->metadatafn = poolopt(opts,"METADATA");
+    methods->createfn = poolopt(opts,"CREATE");
+    methods->closefn = poolopt(opts,"CLOSE");
+    methods->ctlfn = poolopt(opts,"POOLCTL");}
+
   memset(pp,0,sizeof(struct FD_PROCPOOL));
   lispval source_opt = FD_VOID;
 
@@ -84,23 +112,13 @@ fd_pool fd_make_procpool(FD_OID base,
   flags |= FD_POOL_SPARSE;
 
   pp->pool_flags = flags;
-  pp->pool_opts = fd_getopt(opts,fd_intern("OPTS"),FD_FALSE);
+  pp->pool_opts  = fd_getopt(opts,fd_intern("OPTS"),FD_FALSE);
+
+  pp->pool_methods = methods;
+  pp->pool_state   = state; fd_incref(state);
+  pp->pool_label = u8_strdup(label);
 
   fd_register_pool((fd_pool)pp);
-  pp->allocfn = poolopt(opts,"ALLOC");
-  pp->getloadfn = poolopt(opts,"GETLOAD");
-  pp->fetchfn = poolopt(opts,"FETCH");
-  pp->fetchnfn = poolopt(opts,"FETCHN");
-  pp->lockfn = poolopt(opts,"LOCKOIDS");
-  pp->releasefn = poolopt(opts,"RELEASEOIDS");
-  pp->commitfn = poolopt(opts,"COMMIT");
-  pp->metadatafn = poolopt(opts,"METADATA");
-  pp->createfn = poolopt(opts,"CREATE");
-  pp->closefn = poolopt(opts,"CLOSE");
-  pp->ctlfn = poolopt(opts,"POOLCTL");
-  pp->pool_state = state;
-  fd_incref(state);
-  pp->pool_label = u8_strdup(label);
 
   if (fd_testopt(opts,fd_intern("TYPEID"),VOID)) {
     lispval idval = poolopt(opts,"TYPEID");
@@ -127,15 +145,16 @@ static lispval procpool_fetch(fd_pool p,lispval oid)
   struct FD_PROCPOOL *pp = (fd_procpool)p;
   lispval lp = fd_pool2lisp(p);
   lispval args[]={lp,pp->pool_state,oid};
-  if (VOIDP(pp->fetchfn)) return VOID;
-  else return fd_dapply(pp->fetchfn,3,args);
+  if (NO_METHODP(pp->pool_methods->fetchfn))
+    return VOID;
+  else return fd_dapply(pp->pool_methods->fetchfn,3,args);
 }
 
 static lispval *procpool_fetchn(fd_pool p,int n,lispval *oids)
 {
   struct FD_PROCPOOL *pp = (fd_procpool)p;
   lispval lp = fd_pool2lisp(p);
-  if (VOIDP(pp->fetchnfn)) {
+  if (NO_METHODP(pp->pool_methods->fetchnfn)) {
     lispval *vals = u8_big_alloc_n(n,lispval);
     int i = 0; while (i<n) {
       lispval oid = oids[i];
@@ -149,7 +168,7 @@ static lispval *procpool_fetchn(fd_pool p,int n,lispval *oids)
   else {
     lispval oidvec = fd_make_vector(n,oids);
     lispval args[]={lp,pp->pool_state,oidvec};
-    lispval result = fd_dapply(pp->fetchnfn,3,args);
+    lispval result = fd_dapply(pp->pool_methods->fetchnfn,3,args);
     fd_decref(oidvec);
     if (VECTORP(result)) {
       lispval *vals = u8_alloc_n(n,lispval);
@@ -168,11 +187,11 @@ static int procpool_lock(fd_pool p,lispval oid)
 {
   struct FD_PROCPOOL *pp = (fd_procpool)p;
   lispval lp = fd_pool2lisp(p);
-  if (VOIDP(pp->lockfn))
+  if (NO_METHODP(pp->pool_methods->lockfn))
     return 0;
   else {
     lispval args[]={lp,pp->pool_state,oid};
-    lispval result = fd_dapply(pp->lockfn,3,args);
+    lispval result = fd_dapply(pp->pool_methods->lockfn,3,args);
     if (FIXNUMP(result)) return result;
     else if (FD_TRUEP(result)) return 1;
     else if (FALSEP(result)) return 0;
@@ -184,11 +203,11 @@ static int procpool_swapout(fd_pool p,lispval oid)
 {
   struct FD_PROCPOOL *pp = (fd_procpool)p;
   lispval lp = fd_pool2lisp(p);
-  if (VOIDP(pp->swapoutfn))
+  if (NO_METHODP(pp->pool_methods->swapoutfn))
     return 0;
   else {
     lispval args[]={lp,pp->pool_state,oid};
-    lispval result = fd_dapply(pp->swapoutfn,3,args);
+    lispval result = fd_dapply(pp->pool_methods->swapoutfn,3,args);
     if (FIXNUMP(result)) return result;
     else if (FD_TRUEP(result)) return 1;
     else if (FALSEP(result)) return 0;
@@ -202,19 +221,20 @@ static lispval procpool_alloc(fd_pool p,int n)
   lispval lp = fd_pool2lisp(p);
   lispval n_arg = FD_INT(n);
   lispval args[3]={lp,pp->pool_state,n_arg};
-  if (VOIDP(pp->fetchfn)) return VOID;
-  else return fd_dapply(pp->allocfn,3,args);
+  if (NO_METHODP(pp->pool_methods->fetchfn))
+    return VOID;
+  else return fd_dapply(pp->pool_methods->allocfn,3,args);
 }
 
 static int procpool_release(fd_pool p,lispval oid)
 {
   struct FD_PROCPOOL *pp = (fd_procpool)p;
   lispval lp = fd_pool2lisp(p);
-  if (VOIDP(pp->releasefn))
+  if (NO_METHODP(pp->pool_methods->releasefn))
     return 0;
   else {
     lispval args[3]={lp,pp->pool_state,oid};
-    lispval result = fd_dapply(pp->releasefn,3,args);
+    lispval result = fd_dapply(pp->pool_methods->releasefn,3,args);
     if (FIXNUMP(result)) return fd_getint(result);
     else if (FD_TRUEP(result)) return 1;
     else if (FALSEP(result)) return 0;
@@ -225,7 +245,7 @@ static int procpool_commit(fd_pool p,fd_commit_phase phase,
                            struct FD_POOL_COMMITS *commits)
 {
   struct FD_PROCPOOL *pp = (fd_procpool)p;
-  if (FD_VOIDP(pp->commitfn))
+  if (NO_METHODP(pp->pool_methods->commitfn))
     return 0;
   else {
     lispval lp = fd_pool2lisp(p);
@@ -242,7 +262,7 @@ static int procpool_commit(fd_pool p,fd_commit_phase phase,
                         ( (FD_VOIDP(commits->commit_metadata)) ? 
                           (FD_FALSE) :
                           (commits->commit_metadata) ) };
-    lispval result = fd_apply(pp->commitfn,6,args);
+    lispval result = fd_apply(pp->pool_methods->commitfn,6,args);
     if (FIXNUMP(result))
       return FD_INT(result);
     else if (FALSEP(result))
@@ -260,10 +280,11 @@ static void procpool_close(fd_pool p)
 {
   struct FD_PROCPOOL *pp = (fd_procpool)p;
   lispval lp = fd_pool2lisp(p);
-  if (VOIDP(pp->closefn)) return;
+  if (NO_METHODP(pp->pool_methods->closefn))
+    return;
   else {
     lispval args[2]={lp,pp->pool_state};
-    lispval result = fd_dapply(pp->closefn,2,args);
+    lispval result = fd_dapply(pp->pool_methods->closefn,2,args);
     fd_decref(result);
     return;}
 }
@@ -272,11 +293,11 @@ static int procpool_getload(fd_pool p)
 {
   struct FD_PROCPOOL *pp = (fd_procpool)p;
   lispval lp = fd_pool2lisp(p);
-  if ((VOIDP(pp->getloadfn)) || (FD_NULLP(pp->getloadfn)))
+  if (NO_METHODP(pp->pool_methods->getloadfn))
     return 0;
   else {
     lispval args[2]={lp,pp->pool_state};
-    lispval result = fd_dapply(pp->getloadfn,2,args);
+    lispval result = fd_dapply(pp->pool_methods->getloadfn,2,args);
     if (FD_UINTP(result))
       return FIX2INT(result);
     else {
@@ -288,18 +309,18 @@ static lispval procpool_ctl(fd_pool p,lispval opid,int n,lispval *args)
 {
   struct FD_PROCPOOL *pp = (fd_procpool)p;
   lispval lp = fd_pool2lisp(p);
-  if (VOIDP(pp->ctlfn))
+  if (NO_METHODP(pp->pool_methods->ctlfn))
     return fd_default_poolctl(p,opid,n,args);
   else {
     lispval _argbuf[32], *argbuf=_argbuf;
-    if (n+3>32) argbuf = u8_alloc_n(n+3,lispval);
+    if ((n+3) > 32) argbuf = u8_alloc_n(n+3,lispval);
     argbuf[0]=lp; argbuf[1]=pp->pool_state;
     argbuf[2]=opid;
     memcpy(argbuf+3,args,LISPVEC_BYTELEN(n));
     if (argbuf==_argbuf)
-      return fd_dapply(pp->ctlfn,n+3,argbuf);
+      return fd_dapply(pp->pool_methods->ctlfn,n+3,argbuf);
     else {
-      lispval result = fd_dapply(pp->ctlfn,n+3,argbuf);
+      lispval result = fd_dapply(pp->pool_methods->ctlfn,n+3,argbuf);
       u8_free(argbuf);
       return result;}}
 }
@@ -308,19 +329,67 @@ static void recycle_procpool(fd_pool p)
 {
   struct FD_PROCPOOL *pp = (fd_procpool)p;
   fd_decref(pp->pool_state);
-  fd_decref(pp->allocfn);
-  fd_decref(pp->fetchfn);
-  fd_decref(pp->fetchnfn);
-  fd_decref(pp->lockfn);
-  fd_decref(pp->releasefn);
-  fd_decref(pp->getloadfn);
-  fd_decref(pp->swapoutfn);
-  fd_decref(pp->commitfn);
-  fd_decref(pp->metadatafn);
-  fd_decref(pp->createfn);
-  fd_decref(pp->closefn);
-  fd_decref(pp->ctlfn);
+  fd_decref(pp->pool_methods->allocfn);
+  fd_decref(pp->pool_methods->fetchfn);
+  fd_decref(pp->pool_methods->fetchnfn);
+  fd_decref(pp->pool_methods->lockfn);
+  fd_decref(pp->pool_methods->releasefn);
+  fd_decref(pp->pool_methods->getloadfn);
+  fd_decref(pp->pool_methods->swapoutfn);
+  fd_decref(pp->pool_methods->commitfn);
+  fd_decref(pp->pool_methods->metadatafn);
+  fd_decref(pp->pool_methods->createfn);
+  fd_decref(pp->pool_methods->closefn);
+  fd_decref(pp->pool_methods->ctlfn);
+  u8_free(pp->pool_methods);
+  pp->pool_methods = NULL;
 }
+
+static fd_pool open_procpool(u8_string source,fd_storage_flags flags,lispval opts)
+{
+  lispval pool_type = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
+  struct FD_POOL_TYPEINFO *typeinfo =
+    (FD_STRINGP(pool_type)) ? 
+    (fd_get_pool_typeinfo(FD_CSTRING(pool_type))) :
+    (FD_SYMBOLP(pool_type)) ? 
+    (fd_get_pool_typeinfo(FD_SYMBOL_NAME(pool_type))) :
+    (NULL);
+  struct FD_PROCPOOL_METHODS *methods = 
+    (struct FD_PROCPOOL_METHODS *) (typeinfo->type_data);
+  lispval source_arg = lispval_string(source);
+  lispval args[] = { source_arg, opts };
+  lispval lp = fd_apply(methods->openfn,2,args);
+  if (FD_POOLP(lp))
+    return fd_lisp2pool(lp);
+  return NULL;
+}
+
+FD_EXPORT void fd_register_procpool(u8_string typename,lispval handlers)
+{
+  lispval typesym = fd_symbolize(typename);
+  struct FD_PROCPOOL_METHODS *methods = u8_alloc(struct FD_PROCPOOL_METHODS);
+  
+  memset(methods,0,sizeof(struct FD_PROCPOOL_METHODS));
+  methods->allocfn = poolopt(handlers,"ALLOC");
+  methods->getloadfn = poolopt(handlers,"GETLOAD");
+  methods->fetchfn = poolopt(handlers,"FETCH");
+  methods->fetchnfn = poolopt(handlers,"FETCHN");
+  methods->lockfn = poolopt(handlers,"LOCKOIDS");
+  methods->releasefn = poolopt(handlers,"RELEASEOIDS");
+  methods->commitfn = poolopt(handlers,"COMMIT");
+  methods->metadatafn = poolopt(handlers,"METADATA");
+  methods->createfn = poolopt(handlers,"CREATE");
+  methods->closefn = poolopt(handlers,"CLOSE");
+  methods->ctlfn = poolopt(handlers,"POOLCTL");
+
+  fd_register_pool_type(FD_SYMBOL_NAME(typesym),
+                        &fd_procpool_handler,
+                        open_procpool,
+                        NULL,
+                        methods);
+}
+
+/* The default procpool handler */
 
 struct FD_POOL_HANDLER fd_procpool_handler={
   "procpool", 1, sizeof(struct FD_PROCPOOL), 12,

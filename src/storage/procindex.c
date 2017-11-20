@@ -37,7 +37,31 @@ fd_index fd_make_procindex(lispval opts,lispval state,
                            u8_string source,
                            u8_string typeid)
 {
+  struct FD_PROCINDEX_METHODS *methods;
+  lispval pool_type = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
+  struct FD_POOL_TYPEINFO *typeinfo =
+    (FD_STRINGP(pool_type)) ? 
+    (fd_get_pool_typeinfo(FD_CSTRING(pool_type))) :
+    (FD_SYMBOLP(pool_type)) ? 
+    (fd_get_pool_typeinfo(FD_SYMBOL_NAME(pool_type))) :
+    (NULL);
 
+  if ( (typeinfo) && (typeinfo->type_data) )
+    methods = (struct FD_PROCINDEX_METHODS *) (typeinfo->type_data);
+  else {
+    methods = (struct FD_PROCINDEX_METHODS *) (typeinfo->type_data);
+    memset(methods,0,sizeof(struct FD_PROCINDEX_METHODS));
+    methods->fetchfn = indexopt(opts,"FETCH");
+    methods->fetchsizefn = indexopt(opts,"FETCHSIZE");
+    methods->fetchnfn = indexopt(opts,"FETCHN");
+    methods->prefetchfn = indexopt(opts,"PREFETCH");
+    methods->fetchkeysfn = indexopt(opts,"FETCHKEYS");
+    methods->fetchinfofn = indexopt(opts,"FETCHINFO");
+    methods->batchaddfn = indexopt(opts,"BATCHADD");
+    methods->ctlfn = indexopt(opts,"INDEXCTL");
+    methods->commitfn = indexopt(opts,"COMMIT");
+    methods->closefn = indexopt(opts,"CLOSE");}
+  
   struct FD_PROCINDEX *pix = u8_alloc(struct FD_PROCINDEX);
   unsigned int flags = FD_STORAGE_ISINDEX | FD_STORAGE_VIRTUAL;
   memset(pix,0,sizeof(struct FD_PROCINDEX));
@@ -79,16 +103,6 @@ fd_index fd_make_procindex(lispval opts,lispval state,
   pix->index_cache_level = cache_level;
 
   fd_register_index((fd_index)pix);
-  pix->fetchfn = indexopt(opts,"FETCH");
-  pix->fetchsizefn = indexopt(opts,"FETCHSIZE");
-  pix->fetchnfn = indexopt(opts,"FETCHN");
-  pix->prefetchfn = indexopt(opts,"PREFETCH");
-  pix->fetchkeysfn = indexopt(opts,"FETCHKEYS");
-  pix->fetchinfofn = indexopt(opts,"FETCHINFO");
-  pix->batchaddfn = indexopt(opts,"BATCHADD");
-  pix->ctlfn = indexopt(opts,"INDEXCTL");
-  pix->commitfn = indexopt(opts,"COMMIT");
-  pix->closefn = indexopt(opts,"CLOSE");
   pix->index_state = state; fd_incref(state);
   pix->index_typeid = u8_strdup(typeid);
 
@@ -102,8 +116,9 @@ static lispval procindex_fetch(fd_index ix,lispval key)
   struct FD_PROCINDEX *pix = (fd_procindex)ix;
   lispval lp = fd_index2lisp(ix);
   lispval args[]={lp,pix->index_state,key};
-  if (VOIDP(pix->fetchfn)) return VOID;
-  else return fd_dapply(pix->fetchfn,3,args);
+  if (VOIDP(pix->index_methods->fetchfn))
+    return VOID;
+  else return fd_dapply(pix->index_methods->fetchfn,3,args);
 }
 
 static int procindex_fetchsize(fd_index ix,lispval key)
@@ -111,15 +126,15 @@ static int procindex_fetchsize(fd_index ix,lispval key)
   struct FD_PROCINDEX *pix = (fd_procindex)ix;
   lispval lp = fd_index2lisp(ix);
   lispval args[]={lp,pix->index_state,key};
-  if (VOIDP(pix->fetchsizefn)) {
-    lispval v = fd_dapply(pix->fetchfn,3,args);
+  if (VOIDP(pix->index_methods->fetchsizefn)) {
+    lispval v = fd_dapply(pix->index_methods->fetchfn,3,args);
     if (FD_ABORTP(v))
       return -1;
     int size = FD_CHOICE_SIZE(v);
     fd_decref(v);
     return size;}
   else {
-    lispval size_value = fd_dapply(pix->fetchsizefn,3,args);
+    lispval size_value = fd_dapply(pix->index_methods->fetchsizefn,3,args);
     if (FD_ABORTP(size_value))
       return -1;
     else {
@@ -132,7 +147,7 @@ static lispval *procindex_fetchn(fd_index ix,int n,const lispval *keys)
 {
   struct FD_PROCINDEX *pix = (fd_procindex)ix;
   lispval lp = fd_index2lisp(ix);
-  if (VOIDP(pix->fetchnfn)) {
+  if (VOIDP(pix->index_methods->fetchnfn)) {
     lispval *vals = u8_big_alloc_n(n,lispval);
     int i = 0; while (i<n) {
       lispval key = keys[i];
@@ -151,7 +166,7 @@ static lispval *procindex_fetchn(fd_index ix,int n,const lispval *keys)
     vec.vec_elts= (lispval *) keys;
     lispval keyvec = (lispval) &vec;
     lispval args[]={lp,pix->index_state,keyvec};
-    lispval result = fd_dapply(pix->fetchnfn,3,args);
+    lispval result = fd_dapply(pix->index_methods->fetchnfn,3,args);
 
     if (VECTORP(result)) {
       lispval *vals = u8_alloc_n(n,lispval);
@@ -170,11 +185,11 @@ static lispval *procindex_fetchkeys(fd_index ix,int *n_keys)
 {
   struct FD_PROCINDEX *pix = (fd_procindex)ix;
   lispval lp = fd_index2lisp(ix);
-  if (VOIDP(pix->fetchnfn))
+  if (VOIDP(pix->index_methods->fetchnfn))
     return NULL;
   else {
     lispval args[]={lp,pix->index_state};
-    lispval result = fd_dapply(pix->fetchkeysfn,2,args);
+    lispval result = fd_dapply(pix->index_methods->fetchkeysfn,2,args);
     if (FD_PRECHOICEP(result))
       result=fd_simplify_choice(result);
 
@@ -228,13 +243,13 @@ struct FD_KEY_SIZE *procindex_fetchinfo
 {
   struct FD_PROCINDEX *pix = (fd_procindex)ix;
   lispval lp = fd_index2lisp(ix);
-  if (VOIDP(pix->fetchinfofn)) {
+  if (VOIDP(pix->index_methods->fetchinfofn)) {
     *n_ptr = -1;
     return NULL;}
   else {
     int key_count = 0;
     lispval args[]={lp,pix->index_state};
-    lispval result = fd_dapply(pix->fetchinfofn,2,args);
+    lispval result = fd_dapply(pix->index_methods->fetchinfofn,2,args);
     if (VECTORP(result)) {
       int n = FD_VECTOR_LENGTH(result);
       struct FD_KEY_SIZE *info = u8_alloc_n(n,struct FD_KEY_SIZE);
@@ -258,7 +273,7 @@ static int procindex_commit(fd_index ix,fd_commit_phase phase,
 {
   struct FD_PROCINDEX *pix = (fd_procindex)ix;
   lispval lx = fd_index2lisp(ix);
-  if (VOIDP(pix->commitfn))
+  if (VOIDP(pix->index_methods->commitfn))
     return 0;
   else {
     struct FD_SLOTMAP add_table, drop_table, store_table;
@@ -280,7 +295,7 @@ static int procindex_commit(fd_index ix,fd_commit_phase phase,
                      ( (FD_VOIDP(commits->commit_metadata)) ? 
                        (FD_FALSE) :
                        (commits->commit_metadata) )};
-    lispval result = fd_dapply(pix->commitfn,7,args);
+    lispval result = fd_dapply(pix->index_methods->commitfn,7,args);
     if (FD_ABORTP(result))
       return -1;
     else {
@@ -301,11 +316,11 @@ static void procindex_close(fd_index ix)
 {
   struct FD_PROCINDEX *pix = (fd_procindex)ix;
   lispval lp = fd_index2lisp(ix);
-  if (VOIDP(pix->closefn))
+  if (VOIDP(pix->index_methods->closefn))
     return;
   else {
     lispval args[2]={lp,pix->index_state};
-    lispval result = fd_dapply(pix->closefn,2,args);
+    lispval result = fd_dapply(pix->index_methods->closefn,2,args);
     fd_decref(result);
     return;}
 }
@@ -314,14 +329,14 @@ static lispval procindex_ctl(fd_index ix,lispval opid,int n,lispval *args)
 {
   struct FD_PROCINDEX *pix = (fd_procindex)ix;
   lispval lx = fd_index2lisp(ix);
-  if (VOIDP(pix->ctlfn))
+  if (VOIDP(pix->index_methods->ctlfn))
     return fd_default_indexctl(ix,opid,n,args);
   else {
     lispval argbuf[n+3];
     argbuf[0]=lx; argbuf[1]=pix->index_state;
     argbuf[2]=opid;
     memcpy(argbuf+3,args,LISPVEC_BYTELEN(n));
-    lispval result = fd_dapply(pix->ctlfn,n+3,argbuf);
+    lispval result = fd_dapply(pix->index_methods->ctlfn,n+3,argbuf);
     if (result == FD_DEFAULT_VALUE)
       return fd_default_indexctl(ix,opid,n,args);
     else return result;}
@@ -330,22 +345,73 @@ static lispval procindex_ctl(fd_index ix,lispval opid,int n,lispval *args)
 static void recycle_procindex(fd_index ix)
 {
   struct FD_PROCINDEX *pix = (fd_procindex)ix;
-  fd_decref(pix->fetchfn);
-  fd_decref(pix->fetchsizefn);
-  fd_decref(pix->fetchnfn);
-  fd_decref(pix->prefetchfn);
-  fd_decref(pix->fetchkeysfn);
-  fd_decref(pix->fetchinfofn);
-  fd_decref(pix->batchaddfn);
-  fd_decref(pix->ctlfn);
-  fd_decref(pix->commitfn);
-  fd_decref(pix->closefn);
+  fd_decref(pix->index_methods->fetchfn);
+  fd_decref(pix->index_methods->fetchsizefn);
+  fd_decref(pix->index_methods->fetchnfn);
+  fd_decref(pix->index_methods->prefetchfn);
+  fd_decref(pix->index_methods->fetchkeysfn);
+  fd_decref(pix->index_methods->fetchinfofn);
+  fd_decref(pix->index_methods->batchaddfn);
+  fd_decref(pix->index_methods->ctlfn);
+  fd_decref(pix->index_methods->commitfn);
+  fd_decref(pix->index_methods->closefn);
   fd_decref(pix->index_state);
 
   if (pix->index_typeid) u8_free(pix->index_typeid);
   if (pix->index_source) u8_free(pix->index_source);
   if (pix->indexid) u8_free(pix->indexid);
 }
+
+/* Opening procindexs */
+
+static fd_index open_procindex(u8_string source,fd_storage_flags flags,lispval opts)
+{
+  lispval index_type = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
+  struct FD_INDEX_TYPEINFO *typeinfo =
+    (FD_STRINGP(index_type)) ? 
+    (fd_get_index_typeinfo(FD_CSTRING(index_type))) :
+    (FD_SYMBOLP(index_type)) ? 
+    (fd_get_index_typeinfo(FD_SYMBOL_NAME(index_type))) :
+    (NULL);
+  struct FD_PROCINDEX_METHODS *methods = 
+    (struct FD_PROCINDEX_METHODS *) (typeinfo->type_data);
+  lispval source_arg = lispval_string(source);
+  lispval args[] = { source_arg, opts };
+  lispval lp = fd_apply(methods->openfn,2,args);
+  fd_decref(source_arg);
+  if (FD_ABORTP(lp))
+    return NULL;
+  else if (FD_INDEXP(lp))
+    return fd_lisp2index(lp);
+  else return NULL;
+}
+
+FD_EXPORT void fd_register_procindex(u8_string typename,lispval handlers)
+{
+  lispval typesym = fd_symbolize(typename);
+  struct FD_PROCINDEX_METHODS *methods = u8_alloc(struct FD_PROCINDEX_METHODS);
+  
+  memset(methods,0,sizeof(struct FD_PROCINDEX_METHODS));
+
+  methods->fetchfn = indexopt(handlers,"FETCH");
+  methods->fetchsizefn = indexopt(handlers,"FETCHSIZE");
+  methods->fetchnfn = indexopt(handlers,"FETCHN");
+  methods->prefetchfn = indexopt(handlers,"PREFETCH");
+  methods->fetchkeysfn = indexopt(handlers,"FETCHKEYS");
+  methods->fetchinfofn = indexopt(handlers,"FETCHINFO");
+  methods->batchaddfn = indexopt(handlers,"BATCHADD");
+  methods->ctlfn = indexopt(handlers,"INDEXCTL");
+  methods->commitfn = indexopt(handlers,"COMMIT");
+  methods->closefn = indexopt(handlers,"CLOSE");
+
+  fd_register_index_type(FD_SYMBOL_NAME(typesym),
+                         &fd_procindex_handler,
+                         open_procindex,
+                         NULL,
+                         methods);
+}
+
+/* The default procindex handler */
 
 struct FD_INDEX_HANDLER fd_procindex_handler={
   "procindex", 1, sizeof(struct FD_PROCINDEX), 14,

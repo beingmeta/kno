@@ -49,6 +49,7 @@ struct FD_POOL_TYPEINFO {
   void *type_data;
   struct FD_POOL_TYPEINFO *next_type;};
 typedef struct FD_POOL_TYPEINFO *fd_pool_typeinfo;
+struct FD_POOL_TYPEINFO *fd_get_pool_typeinfo(u8_string string);
 
 FD_EXPORT
 void fd_register_pool_type
@@ -78,6 +79,7 @@ struct FD_INDEX_TYPEINFO {
   void *type_data;
   struct FD_INDEX_TYPEINFO *next_type;};
 typedef struct FD_INDEX_TYPEINFO *fd_index_typeinfo;
+struct FD_INDEX_TYPEINFO *fd_get_index_typeinfo(u8_string string);
 
 FD_EXPORT
 void fd_register_index_type

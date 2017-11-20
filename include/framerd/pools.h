@@ -433,14 +433,17 @@ typedef struct FD_GPOOL *fd_gpool;
 
 /* Proc pools */
 
-typedef struct FD_PROCPOOL {
-  FD_POOL_FIELDS;
-  lispval pool_state;
-  lispval allocfn, getloadfn,
+struct FD_PROCPOOL_METHODS {
+  lispval openfn, allocfn, getloadfn,
     fetchfn, fetchnfn, swapoutfn,
     lockfn, releasefn,
     commitfn, metadatafn,
-    createfn, closefn, ctlfn;}
+    createfn, closefn, ctlfn;};
+
+typedef struct FD_PROCPOOL {
+  FD_POOL_FIELDS;
+  struct FD_PROCPOOL_METHODS *pool_methods;
+  lispval pool_state;}
   FD_PROCPOOL;
 typedef struct FD_PROCPOOL *fd_procpool;
 
@@ -450,6 +453,7 @@ fd_pool fd_make_procpool(FD_OID base,
                          lispval opts,lispval state,
                          u8_string label,
                          u8_string source);
+FD_EXPORT void fd_register_procpool(u8_string typename,lispval handler);
 
 FD_EXPORT struct FD_POOL_HANDLER fd_procpool_handler;
 

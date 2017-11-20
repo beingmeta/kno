@@ -137,7 +137,8 @@ FD_EXPORT void fd_register_pool_type
   u8_unlock_mutex(&pool_typeinfo_lock);
 }
 
-static fd_pool_typeinfo get_pool_typeinfo(u8_string name)
+FD_EXPORT
+fd_pool_typeinfo fd_get_pool_typeinfo(u8_string name)
 {
   struct FD_POOL_TYPEINFO *ptype = pool_typeinfo;
   if (name == NULL)
@@ -151,7 +152,7 @@ static fd_pool_typeinfo get_pool_typeinfo(u8_string name)
 
 FD_EXPORT fd_pool_typeinfo fd_set_default_pool_type(u8_string id)
 {
-  fd_pool_typeinfo info = (id) ?  (get_pool_typeinfo(id)) :
+  fd_pool_typeinfo info = (id) ?  (fd_get_pool_typeinfo(id)) :
     (default_pool_type);
   if (info)
     default_pool_type = info;
@@ -193,9 +194,9 @@ fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,lispval opts)
   CHECK_ERRNO();
   lispval pool_typeid = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
   struct FD_POOL_TYPEINFO *ptype = (FD_STRINGP(pool_typeid)) ?
-    (get_pool_typeinfo(FD_CSTRING(pool_typeid))) :
+    (fd_get_pool_typeinfo(FD_CSTRING(pool_typeid))) :
     (FD_SYMBOLP(pool_typeid)) ? 
-    (get_pool_typeinfo(FD_SYMBOL_NAME(pool_typeid))) :
+    (fd_get_pool_typeinfo(FD_SYMBOL_NAME(pool_typeid))) :
     (NULL);
   if (flags<0) flags = fd_get_dbflags(opts,FD_STORAGE_ISPOOL);
   if (ptype) {
@@ -243,7 +244,7 @@ fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,lispval opts)
 FD_EXPORT
 fd_pool_handler fd_get_pool_handler(u8_string name)
 {
-  struct FD_POOL_TYPEINFO *ptype = get_pool_typeinfo(name);
+  struct FD_POOL_TYPEINFO *ptype = fd_get_pool_typeinfo(name);
   if (ptype)
     return ptype->handler;
   else return NULL;
@@ -297,7 +298,7 @@ fd_pool fd_make_pool(u8_string spec,
                      fd_storage_flags flags,
                      lispval opts)
 {
-  fd_pool_typeinfo ptype = get_pool_typeinfo(pooltype);
+  fd_pool_typeinfo ptype = fd_get_pool_typeinfo(pooltype);
   if (ptype == NULL) {
     fd_seterr3(fd_UnknownPoolType,"fd_make_pool",pooltype);
     return NULL;}
@@ -358,7 +359,7 @@ FD_EXPORT void fd_register_index_type
   u8_unlock_mutex(&index_typeinfo_lock);
 }
 
-static fd_index_typeinfo get_index_typeinfo(u8_string name)
+FD_EXPORT fd_index_typeinfo fd_get_index_typeinfo(u8_string name)
 {
   struct FD_INDEX_TYPEINFO *ixtype = index_typeinfo;
   if (name == NULL)
@@ -372,7 +373,7 @@ static fd_index_typeinfo get_index_typeinfo(u8_string name)
 
 FD_EXPORT fd_index_typeinfo fd_set_default_index_type(u8_string id)
 {
-  fd_index_typeinfo info = (id) ? (get_index_typeinfo(id)) :
+  fd_index_typeinfo info = (id) ? (fd_get_index_typeinfo(id)) :
     (default_index_type);
   if (info)
     default_index_type=info;
@@ -401,9 +402,9 @@ fd_index fd_open_index(u8_string spec,fd_storage_flags flags,lispval opts)
   CHECK_ERRNO();
   lispval index_typeid = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
   struct FD_INDEX_TYPEINFO *ixtype = (FD_STRINGP(index_typeid)) ?
-    (get_index_typeinfo(FD_CSTRING(index_typeid))) :
+    (fd_get_index_typeinfo(FD_CSTRING(index_typeid))) :
     (FD_SYMBOLP(index_typeid)) ? 
-    (get_index_typeinfo(FD_SYMBOL_NAME(index_typeid))) :
+    (fd_get_index_typeinfo(FD_SYMBOL_NAME(index_typeid))) :
     (NULL);
   if (flags<0) flags = fd_get_dbflags(opts,FD_STORAGE_ISINDEX);
   if (ixtype) {
@@ -453,7 +454,7 @@ fd_index fd_make_index(u8_string spec,
                        fd_storage_flags flags,
                        lispval opts)
 {
-  fd_index_typeinfo ixtype = get_index_typeinfo(indextype);
+  fd_index_typeinfo ixtype = fd_get_index_typeinfo(indextype);
   if (ixtype == NULL) {
     fd_seterr3(_("UnknownIndexType"),"fd_make_index",indextype);
     return NULL;}

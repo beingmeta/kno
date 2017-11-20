@@ -3197,6 +3197,32 @@ static lispval bloom_error(lispval filter)
   return fd_make_double(bloom->error);
 }
 
+/* Registering procpools and procindexes */
+
+static lispval register_procpool(lispval typesym,lispval handlers)
+{
+  if (!(FD_TABLEP(handlers)))
+    return fd_err(fd_TypeError,"register_procpool",
+                  "not a handler table",handlers);
+  else if (FD_SYMBOLP(typesym))
+    fd_register_procpool(FD_SYMBOL_NAME(typesym),handlers);
+  else if (FD_STRINGP(typesym))
+    fd_register_procpool(FD_CSTRING(typesym),handlers);
+  else return fd_err(fd_TypeError,"register_procpool",NULL,typesym);
+}
+
+static lispval register_procindex(lispval typesym,lispval handlers)
+{
+  if (!(FD_TABLEP(handlers)))
+    return fd_err(fd_TypeError,"register_procpool",
+                  "not a handler table",handlers);
+  else if (FD_SYMBOLP(typesym))
+    fd_register_procindex(FD_SYMBOL_NAME(typesym),handlers);
+  else if (FD_STRINGP(typesym))
+    fd_register_procindex(FD_CSTRING(typesym),handlers);
+  else return fd_err(fd_TypeError,"register_procpool",NULL,typesym);
+}
+
 /* Initializing */
 
 FD_EXPORT void fd_init_dbprims_c()
@@ -3421,6 +3447,15 @@ FD_EXPORT void fd_init_dbprims_c()
             "Returns a pool implemented by userspace functions",
             fd_string_type,FD_VOID,-1,FD_VOID,-1,FD_VOID,
             fd_string_type,FD_VOID,fd_string_type,FD_VOID);
+
+  fd_idefn2(fd_scheme_module,"REGISTER-PROCPOOL!",register_procpool,2,
+            "Registers handles for a procpool",
+            -1,FD_VOID,-1,FD_VOID);
+  fd_idefn2(fd_scheme_module,"REGISTER-PROCINDEX!",register_procindex,2,
+            "Registers handles for a procindex",
+            -1,FD_VOID,-1,FD_VOID);
+
+
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim9x("MAKE-EXTPOOL",make_extpool,4,
