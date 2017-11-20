@@ -1433,12 +1433,15 @@ install-module-data: $(DESTDIR)@builtin_module_dir@
 	  $(SYSINSTALL) @install_file_opts@ $${src_dir}/* $${install_dir};	\
 	done
 
-install-safe-modules: $(DESTDIR)@builtin_safe_module_dir@ install-standard-modules
-	@$(ECHO) Linking 'safe' Scheme modules from @builtin_module_dir@ 	\
-			to @builtin_safe_module_dir@
-	@for safe_link in $(BUILD)/src/extmods/safe/*; do 			\
-          $(SUINSTALL) ln -sf `readlink $${safe_link}` 				\
-		          $(DESTDIR)@builtin_safe_module_dir@; 			\
+install-safe-modules: $(DESTDIR)@builtin_safe_module_dir@ \
+		install-standard-modules
+	@$(ECHO) Linking 'safe' Scheme modules \
+		 from @builtin_module_dir@ to @builtin_safe_module_dir@
+	@for safe_link in $(BUILD)/src/extmods/safe/*; do	\
+	  if test -f "${safe_link}"; then			\
+            $(SUINSTALL) ln -sf `readlink $${safe_link}`	\
+		          $(DESTDIR)@builtin_safe_module_dir@;	\
+	 fi; 							\
 	 done
 
 install-support: $(DESTDIR)@share_dir@
