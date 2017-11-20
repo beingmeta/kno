@@ -158,13 +158,53 @@ FD_EXPORT fd_pool_typeinfo fd_set_default_pool_type(u8_string id)
   return info;
 }
 
+static fd_pool open_pool(fd_pool_typeinfo ptype,u8_string spec,
+                         fd_storage_flags flags,lispval opts)
+{
+  fd_pool found = (flags&FD_STORAGE_UNREGISTERED) ? (NULL) :
+    (fd_find_pool_by_source(spec));
+  fd_pool opened = (found) ? (found) :
+    (ptype->opener(spec,flags,opts));
+  if (opened==NULL) {
+    fd_seterr(fd_CantOpenPool,"fd_open_pool",spec,opts);
+    return opened;}
+  else if (fd_testopt(opts,adjuncts_symbol,VOID)) {
+    lispval adjuncts=fd_getopt(opts,adjuncts_symbol,EMPTY);
+    int rv=fd_set_adjuncts(opened,adjuncts);
+    fd_decref(adjuncts);
+    if (rv<0) {
+      if (flags & FD_STORAGE_NOERR) {
+        u8_logf(LOG_CRIT,fd_AdjunctError,
+                "Opening pool '%s' with opts=%q",
+                opened->poolid,opts);
+        fd_clear_errors(1);}
+      else {
+        fd_seterr(fd_AdjunctError,"fd_open_pool",spec,opts);
+        return NULL;}}}
+  lispval old_opts=opened->pool_opts;
+  opened->pool_opts=fd_incref(opts);
+  fd_decref(old_opts);
+  return opened;
+}
+
 FD_EXPORT
 fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,lispval opts)
 {
-  struct FD_POOL_TYPEINFO *ptype;
   CHECK_ERRNO();
+  lispval pool_typeid = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
+  struct FD_POOL_TYPEINFO *ptype = (FD_STRINGP(pool_typeid)) ?
+    (get_pool_typeinfo(FD_CSTRING(pool_typeid))) :
+    (FD_SYMBOLP(pool_typeid)) ? 
+    (get_pool_typeinfo(FD_SYMBOL_NAME(pool_typeid))) :
+    (NULL);
   if (flags<0) flags = fd_get_dbflags(opts,FD_STORAGE_ISPOOL);
-  ptype = pool_typeinfo; while (ptype) {
+  if (ptype) {
+    u8_string use_spec = 
+      (ptype->matcher) ? (ptype->matcher(spec,ptype->type_data)) : (spec);
+    fd_pool p = open_pool(ptype,use_spec,flags,opts);
+    if (use_spec != spec) u8_free(use_spec);
+    return p;}
+  else ptype = pool_typeinfo; while (ptype) {
     if (ptype->matcher) {
       u8_string use_spec = ptype->matcher(spec,ptype->type_data);
       if (use_spec) {
@@ -193,9 +233,8 @@ fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,lispval opts)
         opened->pool_opts=fd_incref(opts);
         fd_decref(old_opts);
         return opened;}
-      else ptype = ptype->next_type;
       CHECK_ERRNO();}
-    else ptype = ptype->next_type;}
+    ptype = ptype->next_type;}
   if (!(flags & FD_STORAGE_NOERR))
     fd_seterr(fd_CantFindPool,"fd_open_pool",spec,opts);
   return NULL;
@@ -245,7 +284,8 @@ static int fix_pool_opts(u8_string spec,lispval opts)
               "Rounding up the capacity of %s from %llu to 0x%llx",
               spec,(ull)capacity,(ull)new_capacity);
       if (FD_PAIRP(opts)) opt_root=FD_CAR(opts);
-      int rv=fd_store(opt_root,fd_intern("CAPACITY"),FD_INT(new_capacity));
+      int rv=fd_store(opt_root,fd_intern("CAPACITY"),
+                      FD_INT(new_capacity));
       return rv;}
     /* TODO: Add more checks for non-spanning pools */
     else return 1;}
@@ -340,13 +380,39 @@ FD_EXPORT fd_index_typeinfo fd_set_default_index_type(u8_string id)
 }
 
 
+static fd_index open_index(fd_index_typeinfo ixtype,u8_string spec,
+                           fd_storage_flags flags,lispval opts)
+{
+  fd_index found = (flags&FD_STORAGE_UNREGISTERED) ? (NULL) :
+    (fd_find_index_by_source(spec));
+  fd_index opened = (found) ? (found) : (ixtype->opener(spec,flags,opts));
+  if (opened==NULL) {
+    fd_seterr(fd_CantOpenIndex,"fd_open_index",spec,opts);
+    return opened;}
+  lispval old_opts=opened->index_opts;
+  opened->index_opts=fd_incref(opts);
+  fd_decref(old_opts);
+  return opened;
+}
+
 FD_EXPORT
 fd_index fd_open_index(u8_string spec,fd_storage_flags flags,lispval opts)
 {
-  struct FD_INDEX_TYPEINFO *ixtype;
   CHECK_ERRNO();
+  lispval index_typeid = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
+  struct FD_INDEX_TYPEINFO *ixtype = (FD_STRINGP(index_typeid)) ?
+    (get_index_typeinfo(FD_CSTRING(index_typeid))) :
+    (FD_SYMBOLP(index_typeid)) ? 
+    (get_index_typeinfo(FD_SYMBOL_NAME(index_typeid))) :
+    (NULL);
   if (flags<0) flags = fd_get_dbflags(opts,FD_STORAGE_ISINDEX);
-  ixtype = index_typeinfo; while (ixtype) {
+  if (ixtype) {
+    u8_string use_spec = 
+      (ixtype->matcher) ? (ixtype->matcher(spec,ixtype->type_data)) : (spec);
+    fd_index ix = open_index(ixtype,use_spec,flags,opts);
+    if (use_spec != spec) u8_free(use_spec);
+    return ix;}
+  else ixtype = index_typeinfo; while (ixtype) {
     if (ixtype->matcher) {
       u8_string use_spec = ixtype->matcher(spec,ixtype->type_data);
       if (use_spec) {
