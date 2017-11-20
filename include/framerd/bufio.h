@@ -270,14 +270,14 @@ FD_EXPORT int _fd_write_8bytes(struct FD_OUTBUF *,fd_8bytes);
 #define fd_write_8bytes(s,w)                         \
   ((FD_EXPECT_FALSE(FD_ISREADING(s))) ? (fd_isreadbuf(s)) :     \
    ((FD_EXPECT_TRUE(((s)->bufwrite)+8<(s)->buflim)) ?           \
-    ((*(s->bufwrite++) = (((_ull(w))>>56)&0xFF)),                       \
-     (*(s->bufwrite++) = (((_ull(w))>>48)&0xFF)),                       \
-     (*(s->bufwrite++) = (((_ull(w))>>40)&0xFF)),                       \
-     (*(s->bufwrite++) = (((_ull(w))>>32)&0xFF)),                       \
-     (*(s->bufwrite++) = (((_ull(w))>>24)&0xFF)),                       \
-     (*(s->bufwrite++) = (((_ull(w))>>16)&0xFF)),                       \
-     (*(s->bufwrite++) = (((_ull(w))>>8)&0xFF)),                        \
-     (*(s->bufwrite++) = (((_ull(w))>>0)&0xFF))) :              \
+    ((*((s)->bufwrite++) = (((_ull(w))>>56)&0xFF)),                       \
+     (*((s)->bufwrite++) = (((_ull(w))>>48)&0xFF)),                       \
+     (*((s)->bufwrite++) = (((_ull(w))>>40)&0xFF)),                       \
+     (*((s)->bufwrite++) = (((_ull(w))>>32)&0xFF)),                       \
+     (*((s)->bufwrite++) = (((_ull(w))>>24)&0xFF)),                       \
+     (*((s)->bufwrite++) = (((_ull(w))>>16)&0xFF)),                       \
+     (*((s)->bufwrite++) = (((_ull(w))>>8)&0xFF)),                        \
+     (*((s)->bufwrite++) = (((_ull(w))>>0)&0xFF))) :              \
     (_fd_write_8bytes((s),(_ull(w))))))
 
 #define fd_write_bytes(buf,bvec,len)  \
@@ -389,7 +389,7 @@ FD_EXPORT int _fd_grow_inbuf(struct FD_INBUF *b,size_t delta);
   ((U8_EXPECT_FALSE(FD_ISWRITING(buf))) ? (fd_iswritebuf(buf)) :        \
    (FD_EXPECT_TRUE((buf)->bufread+n <= (buf)->buflim)) ? (1) :          \
    ((buf)->buf_fillfn) ?                                                \
-   ((((buf)->buf_fillfn)(((fd_inbuf)buf),n,buf->buf_data)),             \
+   ((((buf)->buf_fillfn)(((fd_inbuf)buf),n,(buf)->buf_data)),           \
     (FD_EXPECT_TRUE((buf)->bufread+n <= (buf)->buflim))):               \
    (0))
 #define fd_request_bytes(buf,n) \
@@ -435,7 +435,7 @@ FD_FASTOP size_t fd_close_outbuf(struct FD_OUTBUF *buf)
 #if FD_INLINE_BUFIO
 #define fd_read_byte(buf) \
   ((FD_EXPECT_FALSE(FD_ISWRITING(buf))) ? (fd_iswritebuf(buf)) :        \
-   ((fd_request_bytes(buf,1)) ? (*(buf->bufread++))                     \
+   ((fd_request_bytes(buf,1)) ? (*((buf)->bufread++))                   \
     : (-1)))
 #define fd_probe_byte(buf) \
   ((FD_EXPECT_FALSE(FD_ISWRITING(buf))) ? (fd_iswritebuf(buf)) :        \
