@@ -657,9 +657,11 @@ FD_EXPORT lispval fd_init_slotmap
   (struct FD_SLOTMAP *ptr,
    int len,struct FD_KEYVAL *data)
 {
-  if (ptr == NULL) ptr=u8_alloc(struct FD_SLOTMAP);
-  FD_INIT_STRUCT(ptr,struct FD_SLOTMAP);
-  FD_INIT_CONS(ptr,fd_slotmap_type);
+  if (ptr == NULL) {
+    ptr=u8_alloc(struct FD_SLOTMAP);
+    FD_INIT_FRESH_CONS(ptr,fd_slotmap_type);}
+  else {
+    FD_SET_CONS_TYPE(ptr,fd_slotmap_type);}
   ptr->n_allocd=len;
   if (data) {
     ptr->sm_keyvals=data;
@@ -1163,9 +1165,11 @@ FD_EXPORT lispval fd_init_schemap
   (struct FD_SCHEMAP *ptr, short size, struct FD_KEYVAL *init)
 {
   int i=0; lispval *news, *newv;
-  if (ptr == NULL) ptr=u8_alloc(struct FD_SCHEMAP);
-  FD_INIT_STRUCT(ptr,struct FD_SCHEMAP);
-  FD_INIT_CONS(ptr,fd_schemap_type);
+  if (ptr == NULL) {
+    ptr=u8_alloc(struct FD_SCHEMAP);
+    FD_INIT_FRESH_CONS(ptr,fd_schemap_type);}
+  else {
+    FD_SET_CONS_TYPE(ptr,fd_schemap_type);}
   news=u8_alloc_n(size,lispval);
   ptr->schema_values=newv=u8_alloc_n(size,lispval);
   ptr->schema_length=size;
