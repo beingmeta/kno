@@ -39,11 +39,14 @@
 
 ;;; Opening typeindexes
 
-(define (typeindex/open filename (opts #f))
+(define (typeindex/open filename (opts #f) (create))
+  (default! create (getopt opts 'create))
   (try (get typeindexes filename)
        (let ((keyinfo (if (file-exists? filename)
 			  (file->dtype filename)
-			  (init-typeindex filename)))
+			  (if (getopt opts 'create)
+			      (init-typeindex filename)
+			      (irritant filename |NoSuchFile|))))
 	     (prefix (textsubst (basename filename) #("." (not> "/") (eos)) ""))
 	     (filecount 0))
 	 (do-choices (key (getkeys keyinfo))
@@ -54,7 +57,37 @@
 		 (irritant v |InvalidKeyInfo|))))
 	 (let* ((typeindex (cons-typeindex filename prefix opts keyinfo filecount))
 		(index (make-procindex (realpath filename)
-				       (make-typeindex-opts opts)
+				       (cons #[type typeindex] opts)
+				       typeindex
+				       filename
+				       "TYPEINDEX")))
+	   (store! typeindex-data index typeindex)
+	   (store! typeindexes filename index)
+	   index))))
+
+(define (typeindex/create filename (opts #f))
+  (try (get typeindexes filename)
+       (if (file-exists? filename) (typeindex/open filename opts)
+	   (let ((dir (dirname (realpath filename))))
+	     (when (file-directory? filename) (set! filename (mkpath filename "keys.table")))
+	     (unless (file-directory? dir) (mkdirs (mkpath dir "")))
+	     (typeindex/open filename opts #t)))
+       (let ((keyinfo (if (file-exists? filename)
+			  (file->dtype filename)
+			  (if (getopt opts 'create)
+			      (init-typeindex filename)
+			      (irritant filename |NoSuchFile|))))
+	     (prefix (textsubst (basename filename) #("." (not> "/") (eos)) ""))
+	     (filecount 0))
+	 (do-choices (key (getkeys keyinfo))
+	   (let ((v (get keyinfo key)))
+	     (if (and (test v 'serial) (number? (get v 'serial)))
+		 (if (> (get v'serial) filecount) 
+		     (set! filecount (get v 'serial)))
+		 (irritant v |InvalidKeyInfo|))))
+	 (let* ((typeindex (cons-typeindex filename prefix opts keyinfo filecount))
+		(index (make-procindex (realpath filename)
+				       (cons #[type typeindex] opts)
 				       typeindex
 				       filename
 				       "TYPEINDEX")))
@@ -66,12 +99,6 @@
   (let ((keyinfo (make-hashtable)))
     (dtype->file keyinfo filename)
     keyinfo))
-
-(define (make-typeindex-opts opts)
-  (cons `#[fetch ,typeindex-fetch
-	   fetchkeys ,typeindex-fetchkeys
-	   commit ,typeindex-commit] 
-	opts))
 
 ;;; Adding a key
 
@@ -183,7 +210,12 @@
 	   (if stores (table-size stores) 0)))
       #f))
 
-
+(defpooltype 'typeindex
+  #[open ,typeindex/open
+    create ,typeindex/create
+    fetch ,typeindex-fetch
+    fetchkeys ,typeindex-fetchkeys
+    commit ,typeindex-commit])
 
 
 

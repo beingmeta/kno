@@ -46,13 +46,17 @@
 	(mkpath (textsubst stripped #("." (isalnum+) (eos)) "")
 		stripped))))
 
+(define (get-partition-type opts)
+  (getopt opts 'partition-type 'bigpool))
+
 ;;; Flexpool records
 
 (define (flexpool->string f)
   (stringout "#<FLEXPOOL " (flexpool-filename f) " " 
     (oid->string (flexpool-base f)) "+" 
     (flexpool/partcount f) "*" (flexpool-partsize f) " "
-    (flex/load f) (flexpool-capacity f) ">"))
+    ;; (flex/load f)
+    (flexpool-capacity f) ">"))
 
 (defrecord (flexpool mutable opaque `(stringfn . flexpool->string))
   filename prefix base capacity (partsize default-partsize) 
@@ -239,7 +243,7 @@
 		capacity ,partsize
 		load ,(min load partsize)
 		adjunct ,(getopt opts 'adjunct)
-		type ,(getopt opts 'type 'bigpool)
+		type ,(get-partition-type opts)
 		metadata 
 		,(make-partition-metadata start-ref opts flexbase flexcap partsize 0)
 		label ,(glom (basename prefix) "." (make-string padlen #\0))]))
@@ -319,9 +323,7 @@
 			 load ,(min adjusted-load partsize)
 			 capacity ,partsize
 			 adjunct ,(getopt opts 'adjunct)
-			 type ,(if (testopt opts 'type 'flexpool) 
-				   'bigpool
-				   (getopt opts 'type 'bigpool))
+			 type ,(get-partition-type opts)
 			 metadata
 			 ,(make-partition-metadata 
 			   file opts flexbase flexcap
@@ -357,9 +359,7 @@
 				front start-pool last))
 	  (flex-opts `#[adjunct #t 
 			register #t
-			alloc ,flexpool-alloc
-			getload ,flexpool-load
-			fetch ,flexpool-fetch
+			type flexpool
 			source ,filename
 			cachelevel 0]))
       (let ((pool (make-procpool 
@@ -397,6 +397,7 @@
 	 (serial (quotient (oid-offset base flexbase) partsize))
 	 (relpath (glom prefix "." (padnum serial padlen 16) ".pool"))
 	 (opts `#[base ,base load 0 capacity ,partsize
+		  type ,(get-partition-type (flexpool-opts fp))
 		  metadata
 		  ,(make-partition-metadata
 		    relpath (flexpool-opts fp) base (flexpool-capacity fp)
@@ -765,4 +766,11 @@
       (oid-offset (oid-plus (pool-base front) (pool-load front))
 		  (pool-base pool))
       0))
+
+(defpooltype 'flexpool
+  `#[open ,flexpool/open
+     create ,flexpool/make
+     alloc ,flexpool-alloc
+     getload ,flexpool-load
+     fetch ,flexpool-fetch])
 
