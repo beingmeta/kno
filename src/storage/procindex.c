@@ -38,18 +38,18 @@ fd_index fd_make_procindex(lispval opts,lispval state,
                            u8_string typeid)
 {
   struct FD_PROCINDEX_METHODS *methods;
-  lispval pool_type = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
-  struct FD_POOL_TYPEINFO *typeinfo =
-    (FD_STRINGP(pool_type)) ? 
-    (fd_get_pool_typeinfo(FD_CSTRING(pool_type))) :
-    (FD_SYMBOLP(pool_type)) ? 
-    (fd_get_pool_typeinfo(FD_SYMBOL_NAME(pool_type))) :
+  lispval index_type = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
+  struct FD_INDEX_TYPEINFO *typeinfo =
+    (FD_STRINGP(index_type)) ? 
+    (fd_get_index_typeinfo(FD_CSTRING(index_type))) :
+    (FD_SYMBOLP(index_type)) ? 
+    (fd_get_index_typeinfo(FD_SYMBOL_NAME(index_type))) :
     (NULL);
 
   if ( (typeinfo) && (typeinfo->type_data) )
     methods = (struct FD_PROCINDEX_METHODS *) (typeinfo->type_data);
   else {
-    methods = (struct FD_PROCINDEX_METHODS *) (typeinfo->type_data);
+    methods = u8_alloc(struct FD_PROCINDEX_METHODS);
     memset(methods,0,sizeof(struct FD_PROCINDEX_METHODS));
     methods->fetchfn = indexopt(opts,"FETCH");
     methods->fetchsizefn = indexopt(opts,"FETCHSIZE");
@@ -101,6 +101,7 @@ fd_index fd_make_procindex(lispval opts,lispval state,
 
   pix->index_opts = fd_getopt(opts,fd_intern("OPTS"),FD_FALSE);
   pix->index_cache_level = cache_level;
+  pix->index_methods     = methods;
 
   fd_register_index((fd_index)pix);
   pix->index_state = state; fd_incref(state);
@@ -117,7 +118,7 @@ static lispval procindex_fetch(fd_index ix,lispval key)
   lispval lp = fd_index2lisp(ix);
   lispval args[]={lp,pix->index_state,key};
   if (VOIDP(pix->index_methods->fetchfn))
-    return VOID;
+    return FD_EMPTY;
   else return fd_dapply(pix->index_methods->fetchfn,3,args);
 }
 
@@ -378,10 +379,10 @@ static fd_index open_procindex(u8_string source,fd_storage_flags flags,lispval o
   lispval source_arg = lispval_string(source);
   lispval args[] = { source_arg, opts };
   lispval lp = fd_apply(methods->openfn,2,args);
-  fd_decref(source_arg);
+  fd_decref(args[0]);
   if (FD_ABORTP(lp))
     return NULL;
-  else if (FD_INDEXP(lp))
+  else if ( (FD_INDEXP(lp)) || (FD_TYPEP(lp,fd_consed_index_type)) )
     return fd_lisp2index(lp);
   else return NULL;
 }
