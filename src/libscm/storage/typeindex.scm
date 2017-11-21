@@ -1,4 +1,4 @@
-;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
+;;; -*- mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2017 beingmeta, inc.  All rights reserved.
 
 (in-module 'storage/typeindex)
@@ -18,7 +18,7 @@
 (use-module '{storage/adjuncts storage/filenames})
 (use-module '{storage/flex})
 
-(define-init %loglevel %notify%)
+(define-init %loglevel %warn%)
 
 (module-export! '{typeindex/open})
 
@@ -44,7 +44,7 @@
   (try (get typeindexes filename)
        (let ((keyinfo (if (file-exists? filename)
 			  (file->dtype filename)
-			  (if (getopt opts 'create)
+			  (if create
 			      (init-typeindex filename)
 			      (irritant filename |NoSuchFile|))))
 	     (prefix (textsubst (basename filename) #("." (not> "/") (eos)) ""))
@@ -55,7 +55,8 @@
 		 (if (> (get v'serial) filecount) 
 		     (set! filecount (get v 'serial)))
 		 (irritant v |InvalidKeyInfo|))))
-	 (let* ((typeindex (cons-typeindex filename prefix opts keyinfo filecount))
+	 (let* ((typeindex (cons-typeindex (realpath filename)
+					   prefix opts keyinfo filecount))
 		(index (make-procindex (realpath filename)
 				       (cons #[type typeindex] opts)
 				       typeindex
@@ -71,29 +72,7 @@
 	   (let ((dir (dirname (realpath filename))))
 	     (when (file-directory? filename) (set! filename (mkpath filename "keys.table")))
 	     (unless (file-directory? dir) (mkdirs (mkpath dir "")))
-	     (typeindex/open filename opts #t)))
-       (let ((keyinfo (if (file-exists? filename)
-			  (file->dtype filename)
-			  (if (getopt opts 'create)
-			      (init-typeindex filename)
-			      (irritant filename |NoSuchFile|))))
-	     (prefix (textsubst (basename filename) #("." (not> "/") (eos)) ""))
-	     (filecount 0))
-	 (do-choices (key (getkeys keyinfo))
-	   (let ((v (get keyinfo key)))
-	     (if (and (test v 'serial) (number? (get v 'serial)))
-		 (if (> (get v'serial) filecount) 
-		     (set! filecount (get v 'serial)))
-		 (irritant v |InvalidKeyInfo|))))
-	 (let* ((typeindex (cons-typeindex filename prefix opts keyinfo filecount))
-		(index (make-procindex (realpath filename)
-				       (cons #[type typeindex] opts)
-				       typeindex
-				       filename
-				       "TYPEINDEX")))
-	   (store! typeindex-data index typeindex)
-	   (store! typeindexes filename index)
-	   index))))
+	     (typeindex/open filename opts #t)))))
 
 (define (init-typeindex filename)
   (let ((keyinfo (make-hashtable)))
@@ -116,7 +95,7 @@
 	       (info (frame-create #f
 		       'key key 'count (choice-size init-value)
 		       'file valuepath)))
-	  (logwarn |InitValue|
+	  (loginfo |InitValue|
 	    "Writing " ($num (choice-size init-value)) " values "
 	    "to " valuepath " for " key)
 	  (dtypes->file+ init-value fullpath)
@@ -172,9 +151,10 @@
 	(when stores
 	  (do-choices (key (getkeys stores))
 	    (if (test keyinfo key)
-		(let ((filename (mkpath savedir (get keyinfo 'file))))
+		(let ((filename (mkpath savedir (get (get keyinfo key) 'file))))
 		  (ftruncate filename 0)
-		  (dtype->file+ (get stores key) filename))
+		  (logdebug |Store| "Saving store for " key " to " filename)
+		  (dtype->file (get stores key) filename))
 		(typeindex/add! typeindex key (get stores key)))))
 	(when drops
 	  (do-choices (key (getkeys drops))
@@ -184,10 +164,11 @@
 		     (fullpath (mkpath savedir file))
 		     (current (tryif (file-exists? fullpath)
 				(file->dtypes fullpath))))
+		(logdebug |Drop| "Saving edited value of " key " to " file)
 		(move-file fullpath (glom fullpath ".bak"))
-		(dtypes->file+ (difference (choice current (get adds key))
-					   (get drop(mkpath savedir file)s key))
-			       fullpath)))))
+		(dtype->file (difference (choice current (get adds key))
+					 (get drops key))
+			     fullpath)))))
 	(when adds
 	  (do-choices (key (difference (getkeys adds) (tryif drops (getkeys drops))))
 	    (if (test keyinfo key)
@@ -210,17 +191,9 @@
 	   (if stores (table-size stores) 0)))
       #f))
 
-(defpooltype 'typeindex
-  #[open ,typeindex/open
-    create ,typeindex/create
-    fetch ,typeindex-fetch
-    fetchkeys ,typeindex-fetchkeys
-    commit ,typeindex-commit])
-
-
-
-
-
-
-
-
+(defindextype 'typeindex
+  `#[open ,typeindex/open
+     create ,typeindex/create
+     fetch ,typeindex-fetch
+     fetchkeys ,typeindex-fetchkeys
+     commit ,typeindex-commit])
