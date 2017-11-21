@@ -192,20 +192,8 @@ FD_EXPORT
 fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,lispval opts)
 {
   CHECK_ERRNO();
-  lispval pool_typeid = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
-  struct FD_POOL_TYPEINFO *ptype = (FD_STRINGP(pool_typeid)) ?
-    (fd_get_pool_typeinfo(FD_CSTRING(pool_typeid))) :
-    (FD_SYMBOLP(pool_typeid)) ? 
-    (fd_get_pool_typeinfo(FD_SYMBOL_NAME(pool_typeid))) :
-    (NULL);
   if (flags<0) flags = fd_get_dbflags(opts,FD_STORAGE_ISPOOL);
-  if (ptype) {
-    u8_string use_spec = 
-      (ptype->matcher) ? (ptype->matcher(spec,ptype->type_data)) : (spec);
-    fd_pool p = open_pool(ptype,use_spec,flags,opts);
-    if (use_spec != spec) u8_free(use_spec);
-    return p;}
-  else ptype = pool_typeinfo; while (ptype) {
+  struct FD_POOL_TYPEINFO *ptype = pool_typeinfo; while (ptype) {
     if (ptype->matcher) {
       u8_string use_spec = ptype->matcher(spec,ptype->type_data);
       if (use_spec) {
@@ -236,6 +224,18 @@ fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,lispval opts)
         return opened;}
       CHECK_ERRNO();}
     ptype = ptype->next_type;}
+  lispval pool_typeid = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
+  ptype = (FD_STRINGP(pool_typeid)) ?
+    (fd_get_pool_typeinfo(FD_CSTRING(pool_typeid))) :
+    (FD_SYMBOLP(pool_typeid)) ?
+    (fd_get_pool_typeinfo(FD_SYMBOL_NAME(pool_typeid))) :
+    (NULL);
+  if (ptype) {
+    u8_string use_spec =
+      (ptype->matcher) ? (ptype->matcher(spec,ptype->type_data)) : (spec);
+    fd_pool p = open_pool(ptype,use_spec,flags,opts);
+    if (use_spec != spec) u8_free(use_spec);
+    return p;}
   if (!(flags & FD_STORAGE_NOERR))
     fd_seterr(fd_CantFindPool,"fd_open_pool",spec,opts);
   return NULL;
@@ -400,20 +400,9 @@ FD_EXPORT
 fd_index fd_open_index(u8_string spec,fd_storage_flags flags,lispval opts)
 {
   CHECK_ERRNO();
-  lispval index_typeid = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
-  struct FD_INDEX_TYPEINFO *ixtype = (FD_STRINGP(index_typeid)) ?
-    (fd_get_index_typeinfo(FD_CSTRING(index_typeid))) :
-    (FD_SYMBOLP(index_typeid)) ? 
-    (fd_get_index_typeinfo(FD_SYMBOL_NAME(index_typeid))) :
-    (NULL);
+  struct FD_INDEX_TYPEINFO *ixtype = index_typeinfo;
   if (flags<0) flags = fd_get_dbflags(opts,FD_STORAGE_ISINDEX);
-  if (ixtype) {
-    u8_string use_spec = 
-      (ixtype->matcher) ? (ixtype->matcher(spec,ixtype->type_data)) : (spec);
-    fd_index ix = open_index(ixtype,use_spec,flags,opts);
-    if (use_spec != spec) u8_free(use_spec);
-    return ix;}
-  else ixtype = index_typeinfo; while (ixtype) {
+  while (ixtype) {
     if (ixtype->matcher) {
       u8_string use_spec = ixtype->matcher(spec,ixtype->type_data);
       if (use_spec) {
@@ -432,6 +421,18 @@ fd_index fd_open_index(u8_string spec,fd_storage_flags flags,lispval opts)
       else ixtype = ixtype->next_type;
       CHECK_ERRNO();}
     else ixtype = ixtype->next_type;}
+  lispval index_typeid = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
+  ixtype = (FD_STRINGP(index_typeid)) ?
+    (fd_get_index_typeinfo(FD_CSTRING(index_typeid))) :
+    (FD_SYMBOLP(index_typeid)) ?
+    (fd_get_index_typeinfo(FD_SYMBOL_NAME(index_typeid))) :
+    (NULL);
+  if (ixtype) {
+    u8_string use_spec =
+      (ixtype->matcher) ? (ixtype->matcher(spec,ixtype->type_data)) : (spec);
+    fd_index ix = open_index(ixtype,use_spec,flags,opts);
+    if (use_spec != spec) u8_free(use_spec);
+    return ix;}
   if (!(flags & FD_STORAGE_NOERR))
     fd_seterr(fd_CantOpenIndex,"fd_open_index",spec,opts);
   return NULL;
