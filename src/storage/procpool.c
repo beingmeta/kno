@@ -359,6 +359,7 @@ static fd_pool open_procpool(u8_string source,fd_storage_flags flags,lispval opt
   lispval source_arg = lispval_string(source);
   lispval args[] = { source_arg, opts };
   lispval lp = fd_apply(methods->openfn,2,args);
+  fd_decref(args[0]);
   if (FD_POOLP(lp))
     return fd_lisp2pool(lp);
   return NULL;
