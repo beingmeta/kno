@@ -1053,14 +1053,17 @@ static void free_commits(struct FD_INDEX_COMMITS *commits)
   if (adds) {
     fd_free_keyvals(adds,commits->commit_n_adds);
     commits->commit_adds=NULL;
+    commits->commit_n_adds=0;
     u8_big_free(adds);}
   if (drops) {
     fd_free_keyvals(drops,commits->commit_n_drops);
     commits->commit_drops=NULL;
+    commits->commit_n_drops=0;
     u8_big_free(drops);}
   if (stores) {
     fd_free_keyvals(stores,commits->commit_n_stores);
     commits->commit_stores=NULL;
+    commits->commit_n_stores=0;
     u8_big_free(stores);}
 }
 
