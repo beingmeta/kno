@@ -39,7 +39,6 @@ FD_EXPORT int fd_init_builtindbs_c()
   return builtindbs_c_initialized;
 }
 
-int fd_init_htindex_c(void);
 int fd_init_netindex_c(void);
 int fd_init_fileindex_c(void);
 int fd_init_hashindex_c(void);
@@ -67,7 +66,6 @@ FD_EXPORT int fd_init_drivers()
   fd_init_fileindex_c();
   fd_init_hashindex_c();
 
-  fd_init_htindex_c();
   fd_init_netindex_c();
   fd_init_memindex_c();
 
