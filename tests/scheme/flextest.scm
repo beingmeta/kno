@@ -12,18 +12,14 @@
 (define testpool #f)
 
 (define (main (poolfile poolfile) (reset (config 'reset #f config:boolean)))
-  (%watch "MAIN" poolfile reset)
   (when (and reset (file-exists? poolfile))
     (flexpool/delete! poolfile))
   (let* ((existing (file-exists? poolfile))
-	 (opts `#[type ,pooltype compression ,compression])
-	 (fp (if existing 
-		 (flexpool/open poolfile #f)
-		 (flexpool/make poolfile 
-				`#[prefix ,(strip-suffix poolfile ".flexpool")
-				   base @99/0
-				   capacity 1024
-				   partsize 16]))))
+	 (opts `#[base @99/0 capacity 1024 partsize 16 type flexpool
+		  prefix ,(strip-suffix poolfile ".flexpool")
+		  compression ,compression
+		  partition-type bigpool])
+	 (fp ((if existing open-pool make-pool) poolfile opts)))
     (set! testpool fp)
     (unless existing
       (logwarn |Initializing| testpool)
