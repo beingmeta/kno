@@ -449,8 +449,8 @@ static lispval file_readlink(lispval arg,lispval abs,lispval err)
 {
   u8_string result;
   if (FALSEP(abs))
-    result = u8_readlink(CSTRING(arg),0);
-  else result = u8_readlink(CSTRING(arg),1);
+    result = u8_getlink(CSTRING(arg),0);
+  else result = u8_getlink(CSTRING(arg),1);
   if (result) return fd_lispstring(result);
   else if (FD_TRUEP(err))
     return FD_ERROR;
