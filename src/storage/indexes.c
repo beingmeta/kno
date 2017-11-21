@@ -1095,7 +1095,7 @@ static int index_dosave(fd_index ix,struct FD_INDEX_COMMITS *commits)
       u8_seterr("IndexRollbackFailed","index_dcommit/rollback",
                 u8_strdup(ix->indexid));}}
   else {
-    u8_logf(LOG_NOTICE,fd_IndexCommit,
+    u8_logf(LOG_INFO,fd_IndexCommit,
             _("Saved %d %supdated keys to %s in %f secs"),saved,
             ((FD_VOIDP(commits->commit_metadata)) ? ("") : ("(and metadata) ") ),
             ix->indexid,u8_elapsed_time()-start_time);
@@ -1794,14 +1794,14 @@ FD_EXPORT int fd_execute_index_delays(fd_index ix,void *data)
     /* u8_unlock_mutex(&(fd_ipeval_lock)); */
 #if FD_TRACE_IPEVAL
     if (fd_trace_ipeval>1)
-      u8_logf(LOG_NOTICE,ipeval_ixfetch,"Fetching %d keys from %s: %q",
+      u8_logf(LOG_INFO,ipeval_ixfetch,"Fetching %d keys from %s: %q",
               FD_CHOICE_SIZE(todo),ix->indexid,todo);
     else
 #endif
       retval = fd_index_prefetch(ix,todo);
 #if FD_TRACE_IPEVAL
     if (fd_trace_ipeval)
-      u8_logf(LOG_NOTICE,ipeval_ixfetch,"Fetched %d keys from %s",
+      u8_logf(LOG_INFO,ipeval_ixfetch,"Fetched %d keys from %s",
               FD_CHOICE_SIZE(todo),ix->indexid);
 #endif
     if (retval<0) return retval;

@@ -1112,7 +1112,7 @@ static int pool_docommit(fd_pool p,lispval oids,
       u8_logf(LOG_CRIT,"CleanupFailed","Cleanup for %s failed",p->poolid);}
 
     if (saved>0)
-      u8_logf(LOG_NOTICE,"Pool/Commit/Complete",
+      u8_logf(LOG_INFO,"Pool/Commit/Complete",
               "Saved %d OIDs%s to %s in %f secs",
               commits.commit_count,
               ((FD_VOIDP(commits.commit_metadata)) ? ("") : (" and metadata") ),
@@ -2072,16 +2072,16 @@ FD_EXPORT int fd_execute_pool_delays(fd_pool p,void *data)
     /* u8_unlock_mutex(&(fd_ipeval_lock)); */
 #if FD_TRACE_IPEVAL
     if (fd_trace_ipeval>1)
-      u8_logf(LOG_NOTICE,ipeval_objfetch,"Fetching %d oids from %s: %q",
+      u8_logf(LOG_INFO,ipeval_objfetch,"Fetching %d oids from %s: %q",
               FD_CHOICE_SIZE(todo),p->poolid,todo);
     else if (fd_trace_ipeval)
-      u8_logf(LOG_NOTICE,ipeval_objfetch,"Fetching %d oids from %s",
+      u8_logf(LOG_INFO,ipeval_objfetch,"Fetching %d oids from %s",
               FD_CHOICE_SIZE(todo),p->poolid);
 #endif
     fd_pool_prefetch(p,todo);
 #if FD_TRACE_IPEVAL
     if (fd_trace_ipeval)
-      u8_logf(LOG_NOTICE,ipeval_objfetch,"Fetched %d oids from %s",
+      u8_logf(LOG_INFO,ipeval_objfetch,"Fetched %d oids from %s",
               FD_CHOICE_SIZE(todo),p->poolid);
 #endif
     return 0;}
