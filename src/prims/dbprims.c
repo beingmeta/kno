@@ -332,6 +332,13 @@ static lispval open_index_helper(lispval arg,lispval opts,int registered)
 {
   fd_storage_flags flags = fd_get_dbflags(opts,FD_STORAGE_ISINDEX);
   fd_index ix = NULL;
+  lispval modules = fd_getopt(opts,FDSYM_MODULE,FD_VOID);
+  lispval mod = (FD_VOIDP(modules)) ? (FD_VOID) :
+    (fd_get_module(modules,0));
+  fd_decref(modules);
+  if (FD_ABORTP(mod))
+    return mod;
+  else fd_decref(mod);
   if (registered == 0)
     flags |= FD_STORAGE_UNREGISTERED;
   else if (registered>0)
@@ -360,7 +367,8 @@ static lispval open_index_helper(lispval arg,lispval opts,int registered)
       u8_free(copy);
       return results;}
     else return index_ref(fd_get_index(CSTRING(arg),flags,opts));}
-  else if (FD_INDEXP(arg)) return arg;
+  else if (FD_INDEXP(arg))
+    return arg;
   else if (TYPEP(arg,fd_consed_index_type))
     return fd_incref(arg);
   else fd_seterr(fd_TypeError,"use_index",NULL,fd_incref(arg));
@@ -406,6 +414,13 @@ static lispval make_pool(lispval path,lispval opts)
 static lispval open_pool(lispval path,lispval opts)
 {
   fd_storage_flags flags = fd_get_dbflags(opts,FD_STORAGE_ISPOOL);
+  lispval modules = fd_getopt(opts,FDSYM_MODULE,FD_VOID);
+  lispval mod = (FD_VOIDP(modules)) ? (FD_VOID) :
+    (fd_get_module(modules,0));
+  fd_decref(modules);
+  if (FD_ABORTP(mod))
+    return mod;
+  else fd_decref(mod);
   fd_pool p = fd_open_pool(CSTRING(path),flags,opts);
   if (p)
     return pool2lisp(p);
@@ -1418,7 +1433,7 @@ static lispval prefetch_keys(lispval arg1,lispval arg2)
     else return VOID;}
   else {
     DO_CHOICES(arg,arg1) {
-      if ((FD_INDEXP(arg))||(TYPEP(arg,fd_consed_index_type))) {
+      if (indexp(arg)) {
         fd_index ix = fd_indexptr(arg);
         if (fd_index_prefetch(ix,arg2)<0) {
           FD_STOP_DO_CHOICES;
@@ -1430,7 +1445,7 @@ static lispval prefetch_keys(lispval arg1,lispval arg2)
 static lispval index_prefetch_keys(lispval ix_arg,lispval keys)
 {
   DO_CHOICES(arg,ix_arg) {
-    if ((FD_INDEXP(arg))||(TYPEP(arg,fd_consed_index_type))) {
+    if (indexp(arg)) {
       fd_index ix = fd_indexptr(arg);
       if (fd_index_prefetch(ix,keys)<0) {
         FD_STOP_DO_CHOICES;
@@ -1467,7 +1482,7 @@ static lispval cache_load(lispval db)
     fd_pool p = fd_lisp2pool(db);
     int n_keys = p->pool_cache.table_n_keys;
     return FD_INT(n_keys);}
-  else if ( (FD_INDEXP(db)) || (TYPEP(db,fd_consed_index_type) ) ) {
+  else if (indexp(db)) {
     fd_index ix = fd_lisp2index(db);
     int n_keys = ix->index_cache.table_n_keys;
     return FD_INT(n_keys);}
@@ -1480,7 +1495,7 @@ static lispval change_load(lispval db)
     fd_pool p = fd_lisp2pool(db);
     int n_pending = p->pool_changes.table_n_keys;
     return FD_INT(n_pending);}
-  else if ( (FD_INDEXP(db)) || (TYPEP(db,fd_consed_index_type) ) ) {
+  else if (indexp(db)) {
     fd_index ix = fd_lisp2index(db);
     int n_pending = ix->index_adds.table_n_keys +
       ix->index_drops.table_n_keys +
@@ -2995,7 +3010,7 @@ static lispval dbloadedp(lispval arg1,lispval arg2)
     else if (fd_hashtable_probe(&(fd_background->index_cache),arg1))
       return FD_TRUE;
     else return FD_FALSE;
-  else if ((FD_INDEXP(arg2))||(TYPEP(arg2,fd_consed_index_type))) {
+  else if (indexp(arg2)) {
     fd_index ix = fd_indexptr(arg2);
     if (ix == NULL)
       return fd_type_error("index","loadedp",arg2);
@@ -3064,7 +3079,7 @@ static lispval dbmodifiedp(lispval arg1,lispval arg2)
       if (p->pool_changes.table_n_keys)
         return FD_TRUE;
       else return FD_FALSE;}
-    else if ((FD_INDEXP(arg1))||(TYPEP(arg1,fd_consed_index_type))) {
+    else if (indexp(arg1)) {
       fd_index ix = fd_lisp2index(arg1);
       if ((ix->index_adds.table_n_keys) ||
           (ix->index_drops.table_n_keys) ||
@@ -3079,7 +3094,7 @@ static lispval dbmodifiedp(lispval arg1,lispval arg2)
         else return FD_FALSE;}
       else return FD_FALSE;}
     else return FD_FALSE;
-  else if ((FD_INDEXP(arg2))||(TYPEP(arg2,fd_consed_index_type))) {
+  else if (indexp(arg2)) {
     fd_index ix = fd_indexptr(arg2);
     if (ix == NULL)
       return fd_type_error("index","loadedp",arg2);
