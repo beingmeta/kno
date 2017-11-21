@@ -393,6 +393,7 @@ FD_EXPORT void fd_register_procindex(u8_string typename,lispval handlers)
   
   memset(methods,0,sizeof(struct FD_PROCINDEX_METHODS));
 
+  methods->openfn = indexopt(handlers,"OPEN");
   methods->fetchfn = indexopt(handlers,"FETCH");
   methods->fetchsizefn = indexopt(handlers,"FETCHSIZE");
   methods->fetchnfn = indexopt(handlers,"FETCHN");

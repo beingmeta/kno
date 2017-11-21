@@ -370,6 +370,7 @@ FD_EXPORT void fd_register_procpool(u8_string typename,lispval handlers)
   struct FD_PROCPOOL_METHODS *methods = u8_alloc(struct FD_PROCPOOL_METHODS);
   
   memset(methods,0,sizeof(struct FD_PROCPOOL_METHODS));
+  methods->openfn = poolopt(handlers,"OPEN");
   methods->allocfn = poolopt(handlers,"ALLOC");
   methods->getloadfn = poolopt(handlers,"GETLOAD");
   methods->fetchfn = poolopt(handlers,"FETCH");
