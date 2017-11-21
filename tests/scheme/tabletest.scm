@@ -1,5 +1,9 @@
 (load-component "common.scm")
 
+(when (and (config 'indextype) 
+	   (equal? (downcase (config 'indextype)) "typeindex"))
+  (get-module 'storage/typeindex))
+
 ;;;; Random object generation
 
 (define random-super-pools
@@ -193,15 +197,13 @@
 	 (make-index file `#[type ,indextype slots 1000000
 			     offtype ,(config 'offtype 'b40)]))
 	(else (make-hashtable))))
-(define (table-from file)
-  (if (or (has-suffix file ".index")
-	  (has-suffix file ".hashindex"))
-      (open-index file)
+(define (table-from file (indextype (config 'indextype 'fileindex)))
+  (if (has-suffix file ".index")
+      (open-index file `#[TYPE ,indextype])
     (file->dtype file)))
 
 (define (save-table table file)
-  (if (or (has-suffix file ".index")
-	  (has-suffix file ".hashindex"))
+  (if (has-suffix file ".index")
       (begin (commit table) (swapout table) table)
     (begin (dtype->file table file)
 	   (file->dtype file))))
@@ -211,7 +213,8 @@
 
 (define (count-objects x (size 0) (pair #f) (sum 0))
   (cond ((ambiguous? x)
-	 (do-choices (elt x) (set! size (count-objects elt size)))
+	 (do-choices (elt x)
+	   (set! size (count-objects elt size)))
 	 (1+ size))
 	((null? x) size)
 	((pair? x)
@@ -245,6 +248,8 @@
       (let ((table (table-from filename))
 	    (in (file->dtype editfile))
 	    (worked #t))
+	(%watch (get table '%xitems) (test table '%items in)
+		(overlaps? in (get table '%items)))
 	(message "Testing edits with " in)
 	(when (test table '%items in)
 	  (message "Drop didn't work")
@@ -263,7 +268,7 @@
 	(message "Dropping item " (write drop))
 	(drop! table '%items drop)
 	(dtype->file drop editfile)
-	(commit))))
+	(commit table))))
 
 (define (tablecheckfn table atomicp)
   (unless (check-table table atomicp)
