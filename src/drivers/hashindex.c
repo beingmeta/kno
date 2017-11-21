@@ -2516,15 +2516,20 @@ static int hashindex_commit(fd_index ix,fd_commit_phase phase,
     u8_string source = ix->index_source;
     if (commits->commit_stream) release_commit_stream(ix,commits);
     u8_string rollback_file = u8_string_append(source,".rollback",NULL);
-    if (u8_file_existsp(rollback_file)) {
-      int rv = u8_removefile(rollback_file);
-      u8_free(rollback_file);
-      return rv;}
-    else {
-      u8_logf(LOG_WARN,"MissingRollbackFile",
-              "Rollback file %s was deleted",rollback_file);
-      u8_free(rollback_file);
-      return 0;}}
+    u8_string commit_file = u8_string_append(source,".commit",NULL);
+    int rollback_cleanup = 0, commit_cleanup = 0;
+    if (u8_file_existsp(rollback_file))
+      rollback_cleanup = u8_removefile(rollback_file);
+    else u8_logf(LOG_WARN,"MissingRollbackFile",
+                 "Rollback file %s was deleted",rollback_file);
+    if (u8_file_existsp(commit_file))
+      commit_cleanup = u8_removefile(commit_file);
+    else u8_logf(LOG_WARN,"MissingRollbackFile",
+                 "Commit file %s was deleted",commit_file);
+    u8_free(rollback_file); u8_free(commit_file);
+    if ( ( rollback_cleanup < 0) || ( commit_cleanup < 0) )
+      return -1;
+    else return 1;}
   default: {
     u8_logf(LOG_WARN,"NoPhasedCommit",
             "The index %s doesn't support phased commits",
