@@ -486,16 +486,20 @@ static lispval add_dtypes2file(lispval object,lispval filename)
     if (u8_file_existsp(CSTRING(filename)))
       stream = fd_open_file(CSTRING(filename),FD_FILE_MODIFY);
     else stream = fd_open_file(CSTRING(filename),FD_FILE_CREATE);
-    if (stream == NULL) return FD_ERROR;
+    if (stream == NULL)
+      return FD_ERROR;
     ssize_t bytes = write_dtypes(object,stream);
     fd_close_stream(stream,FD_STREAM_CLOSE_FULL);
-    if (bytes<0) return FD_ERROR;
+    u8_free(stream);
+    if (bytes<0)
+      return FD_ERROR;
     else return FD_INT(bytes);}
   else if (TYPEP(filename,fd_stream_type)) {
     struct FD_STREAM *stream=
       fd_consptr(struct FD_STREAM *,filename,fd_stream_type);
     ssize_t bytes=write_dtypes(object,stream);
-    if (bytes<0) return FD_ERROR;
+    if (bytes<0)
+      return FD_ERROR;
     else return FD_INT(bytes);}
   else return fd_type_error(_("string"),"add_dtypes2file",filename);
 }
