@@ -704,9 +704,9 @@ static lispval streampos_prim(lispval stream_arg,lispval pos)
 static lispval ftruncate_prim(lispval arg,lispval offset)
 {
   off_t new_len = -1;
-  if (! ( (FD_FIXNUMP(new_len)) || (FD_BIGINTP(new_len))) )
+  if (! ( (FD_FIXNUMP(offset)) || (FD_BIGINTP(offset))) )
     return fd_type_error("integer","ftruncate_prim",offset);
-  else if (fd_numcompare(new_len,FD_FIXZERO)<0)
+  else if (fd_numcompare(offset,FD_FIXZERO)<0)
     return fd_type_error("positive integer","ftruncate_prim",offset);
   else if ( (FD_BIGINTP(new_len)) &&
             ( ! (fd_bigint_fits_in_word_p((fd_bigint)arg,sizeof(new_len),1)) ) )
@@ -883,7 +883,7 @@ FD_EXPORT void fd_init_streamprims_c()
   fd_idefn2(streamprims_module,"FTRUNCATE",ftruncate_prim,2,
             "(FTRUNCATE *nameorstream* *newsize*) truncates "
             "a file (name or stream) to a particular length",
-            fd_stream_type,VOID,-1,VOID);
+            -1,VOID,-1,VOID);
 
   fd_finish_module(streamprims_module);
 }
