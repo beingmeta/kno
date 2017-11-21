@@ -599,7 +599,7 @@ static lispval watchcall(lispval expr,fd_lexenv env,int with_proc)
   rail = u8_alloc_n(n_args,lispval);
   U8_INIT_OUTPUT(&out,1024);
   u8_printf(&out,"Watched call %q",watch);
-  u8_logger(-10,label,out.u8_outbuf);
+  u8_logger(U8_LOG_MSG,label,out.u8_outbuf);
   out.u8_write = out.u8_outbuf;
   while (i<n_args) {
     lispval arg = fd_get_arg(watch,i);
@@ -610,18 +610,18 @@ static lispval watchcall(lispval expr,fd_lexenv env,int with_proc)
       i--; while (i>=0) {fd_decref(rail[i]); i--;}
       u8_free(rail);
       u8_printf(&out,"\t%q !!!> %s",arg,errstring);
-      u8_logger(-10,arglabel,out.u8_outbuf);
+      u8_logger(U8_LOG_MSG,arglabel,out.u8_outbuf);
       if (label!=dflt_label) {u8_free(label); u8_free(arglabel);}
       u8_free(out.u8_outbuf); u8_free(errstring);
       return val;}
     if ((i==0)&&(with_proc==0)&&(SYMBOLP(arg))) {}
     else if ((PAIRP(arg))||(SYMBOLP(arg))) {
       u8_printf(&out,"%q ==> %q",arg,val);
-      u8_logger(-10,arglabel,out.u8_outbuf);
+      u8_logger(U8_LOG_MSG,arglabel,out.u8_outbuf);
       out.u8_write = out.u8_outbuf;}
     else {
       u8_printf(&out,"%q",arg);
-      u8_logger(-10,arglabel,out.u8_outbuf);
+      u8_logger(U8_LOG_MSG,arglabel,out.u8_outbuf);
       out.u8_write = out.u8_outbuf;}
     rail[i++]=val;}
   if (CHOICEP(rail[0])) {
@@ -642,7 +642,7 @@ static lispval watchcall(lispval expr,fd_lexenv env,int with_proc)
     u8_printf(&out,"%q !!!> %s",watch,errstring);
     u8_free(errstring);}
   else u8_printf(&out,"%q ===> %q",watch,result);
-  u8_logger(-10,label,out.u8_outbuf);
+  u8_logger(U8_LOG_MSG,label,out.u8_outbuf);
   i--; while (i>=0) {fd_decref(rail[i]); i--;}
   u8_free(rail);
   if (label!=dflt_label) {u8_free(label); u8_free(arglabel);}
@@ -782,7 +782,7 @@ static lispval watched_eval_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
           oneout = 1;}
         off = check_line_length(&out,off,50);
         fd_decref(wval); wval = VOID;}}
-    u8_logger(-10,label,out.u8_outbuf);
+    u8_logger(U8_LOG_MSG,label,out.u8_outbuf);
     u8_free(out.u8_outbuf);}
   start = u8_elapsed_time();
   if (SYMBOLP(toeval))

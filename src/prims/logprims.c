@@ -221,7 +221,7 @@ static lispval logif_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
         return value;}
       body = FD_CDR(body);}
     u8_set_default_output(stream);
-    u8_logger(-10,condition,out->u8_outbuf);
+    u8_logger(U8_LOG_MSG,condition,out->u8_outbuf);
     u8_close_output(out);
     return VOID;}
 }
