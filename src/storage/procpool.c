@@ -364,11 +364,34 @@ static fd_pool open_procpool(u8_string source,fd_storage_flags flags,lispval opt
   return NULL;
 }
 
+static fd_pool procpool_create(u8_string spec,void *type_data,
+                               fd_storage_flags storage_flags,
+                               lispval opts)
+{
+  lispval spec_arg = lispval_string(spec);
+  struct FD_PROCPOOL_METHODS *methods =
+    (struct FD_PROCPOOL_METHODS *) type_data;
+  lispval args[] = { spec_arg, opts };
+  lispval result = fd_apply(methods->createfn,2,args);
+  if (FD_VOIDP(result)) {
+    fd_pool opened = open_procpool(spec,storage_flags,opts);
+    fd_decref(args[0]);
+    return opened;}
+  else fd_decref(args[0]);
+  if (FD_ABORTP(result))
+    return NULL;
+  else if ( (FD_POOLP(result)) || (FD_TYPEP(result,fd_consed_pool_type)) )
+    return fd_lisp2pool(result);
+  else {
+    fd_seterr("NotAPool","procpool_create",spec,result);
+    return NULL;}
+}
+
 FD_EXPORT void fd_register_procpool(u8_string typename,lispval handlers)
 {
   lispval typesym = fd_symbolize(typename);
   struct FD_PROCPOOL_METHODS *methods = u8_alloc(struct FD_PROCPOOL_METHODS);
-  
+
   memset(methods,0,sizeof(struct FD_PROCPOOL_METHODS));
   methods->openfn = poolopt(handlers,"OPEN");
   methods->allocfn = poolopt(handlers,"ALLOC");
@@ -403,7 +426,7 @@ struct FD_POOL_HANDLER fd_procpool_handler={
   procpool_release, /* release */
   procpool_commit, /* commit */
   procpool_swapout, /* swapout */
-  NULL, /* create */
+  procpool_create, /* create */
   NULL,  /* walk */
   recycle_procpool, /* recycle */
   procpool_ctl  /* poolctl */

@@ -209,7 +209,7 @@ FD_EXPORT struct FD_INDEX_HANDLER fd_extindex_handler;
 struct FD_PROCINDEX_METHODS {
   lispval openfn, fetchfn, fetchsizefn, fetchnfn, prefetchfn,
     fetchkeysfn, fetchinfofn,
-    batchaddfn, ctlfn, commitfn, closefn;};
+    batchaddfn, ctlfn, commitfn, createfn, closefn;};
 
 typedef struct FD_PROCINDEX {
   FD_INDEX_FIELDS;

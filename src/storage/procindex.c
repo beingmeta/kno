@@ -386,14 +386,37 @@ static fd_index open_procindex(u8_string source,fd_storage_flags flags,lispval o
   else return NULL;
 }
 
+static fd_index procindex_create(u8_string spec,void *type_data,
+                                 fd_storage_flags storage_flags,
+                                 lispval opts)
+{
+  lispval spec_arg = lispval_string(spec);
+  struct FD_PROCINDEX_METHODS *methods =
+    (struct FD_PROCINDEX_METHODS *) type_data;
+  lispval args[] = { spec_arg, opts };
+  lispval result = fd_apply(methods->createfn,2,args);
+  fd_decref(spec_arg);
+  if (FD_ABORTP(result))
+    return NULL;
+  else if (FD_VOIDP(result))
+    return open_procindex(spec,storage_flags,opts);
+  else if ( (FD_INDEXP(result)) ||
+            (FD_TYPEP(result,fd_consed_index_type)) )
+    return fd_lisp2index(result);
+  else {
+    fd_seterr("NotAnIndex","procindex_create",spec,result);
+    return NULL;}
+}
+
 FD_EXPORT void fd_register_procindex(u8_string typename,lispval handlers)
 {
   lispval typesym = fd_symbolize(typename);
   struct FD_PROCINDEX_METHODS *methods = u8_alloc(struct FD_PROCINDEX_METHODS);
-  
+
   memset(methods,0,sizeof(struct FD_PROCINDEX_METHODS));
 
   methods->openfn = indexopt(handlers,"OPEN");
+  methods->createfn = indexopt(handlers,"CREATE");
   methods->fetchfn = indexopt(handlers,"FETCH");
   methods->fetchsizefn = indexopt(handlers,"FETCHSIZE");
   methods->fetchnfn = indexopt(handlers,"FETCHN");
@@ -425,7 +448,7 @@ struct FD_INDEX_HANDLER fd_procindex_handler={
   procindex_fetchkeys, /* fetchkeys */
   procindex_fetchinfo, /* fetchinfo */
   NULL, /* batchadd */
-  NULL, /* create */
+  procindex_create, /* create */
   NULL, /* walk */
   recycle_procindex, /* recycle */
   procindex_ctl /* indexctl */

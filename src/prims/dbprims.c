@@ -3199,27 +3199,31 @@ static lispval bloom_error(lispval filter)
 
 /* Registering procpools and procindexes */
 
-static lispval register_procpool(lispval typesym,lispval handlers)
+static lispval def_procpool(lispval typesym,lispval handlers)
 {
   if (!(FD_TABLEP(handlers)))
     return fd_err(fd_TypeError,"register_procpool",
                   "not a handler table",handlers);
-  else if (FD_SYMBOLP(typesym))
+  else if (FD_SYMBOLP(typesym)) {
     fd_register_procpool(FD_SYMBOL_NAME(typesym),handlers);
-  else if (FD_STRINGP(typesym))
+    return fd_incref(handlers);}
+  else if (FD_STRINGP(typesym)) {
     fd_register_procpool(FD_CSTRING(typesym),handlers);
+    return fd_incref(handlers);}
   else return fd_err(fd_TypeError,"register_procpool",NULL,typesym);
 }
 
-static lispval register_procindex(lispval typesym,lispval handlers)
+static lispval def_procindex(lispval typesym,lispval handlers)
 {
   if (!(FD_TABLEP(handlers)))
     return fd_err(fd_TypeError,"register_procpool",
                   "not a handler table",handlers);
-  else if (FD_SYMBOLP(typesym))
+  else if (FD_SYMBOLP(typesym)) {
     fd_register_procindex(FD_SYMBOL_NAME(typesym),handlers);
-  else if (FD_STRINGP(typesym))
+    return fd_incref(handlers);}
+  else if (FD_STRINGP(typesym)) {
     fd_register_procindex(FD_CSTRING(typesym),handlers);
+    return fd_incref(handlers);}
   else return fd_err(fd_TypeError,"register_procpool",NULL,typesym);
 }
 
@@ -3448,11 +3452,11 @@ FD_EXPORT void fd_init_dbprims_c()
             fd_string_type,FD_VOID,-1,FD_VOID,-1,FD_VOID,
             fd_string_type,FD_VOID,fd_string_type,FD_VOID);
 
-  fd_idefn2(fd_scheme_module,"REGISTER-PROCPOOL!",register_procpool,2,
-            "Registers handles for a procpool",
+  fd_idefn2(fd_scheme_module,"DEFPOOLTYPE",def_procpool,2,
+            "Registers handlers for a procpool",
             -1,FD_VOID,-1,FD_VOID);
-  fd_idefn2(fd_scheme_module,"REGISTER-PROCINDEX!",register_procindex,2,
-            "Registers handles for a procindex",
+  fd_idefn2(fd_scheme_module,"DEFINDEXTYPE",def_procindex,2,
+            "Registers handlers for a procindex",
             -1,FD_VOID,-1,FD_VOID);
 
 
