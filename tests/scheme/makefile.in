@@ -400,6 +400,9 @@ fileindexes fileindex:
 memindexes memindex:
 	@make TESTBASE=memfile.index RUNCONF="INDEXTYPE=memindex" indextest
 
+typeindexes typeindex:
+	@make TESTBASE=temp/typekeys.index RUNCONF="INDEXTYPE=typeindex MODULE=storage/typeindex" indextest
+
 hashindex32:
 	@make TESTBASE=tmphash32.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B32" indextest
 hashindex40:
