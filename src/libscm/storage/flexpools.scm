@@ -37,10 +37,10 @@
 (define partition-suffix
   #("." (isxdigit+) ".pool" (eos)))
 (define pool-suffix
-  #("." (opt #((isxdigit+) ".")) "pool" (eos)))
+  {#(".flexpool" (eos)) #("." (opt #((isxdigit+) ".")) "pool" (eos))})
 	    
 (define (get-partition-prefix filename)
-  (let ((stripped (textsubst filename pool-suffix "")))
+  (let ((stripped (textsubst filename (qc pool-suffix) "")))
     (if (position #\/ stripped)
 	stripped
 	(mkpath (textsubst stripped #("." (isalnum+) (eos)) "")
@@ -208,10 +208,11 @@
 	 (flexdir  (dirname filename))
 	 (start-ref (glom prefix "." (padnum 0 padlen 16) ".pool"))
 	 (start-file (realpath (mkpath flexdir start-ref)))
-	 (partition-opts (cons (if (getopt opts 'adjunct)
-				   `#[adjuncts {} adjunct ,(getopt opts 'adjunct)]
-				   #[adjuncts {}])
-			       opts))
+	 (partition-opts
+	  (cons (if (getopt opts 'adjunct)
+		    `#[adjuncts {} adjunct ,(getopt opts 'adjunct)]
+		    #[adjuncts {}])
+		opts))
 	 (start-pool (tryif (file-exists? start-file)
 		       (if (getopt opts 'adjunct)
 			   (open-pool start-file partition-opts)
@@ -224,7 +225,6 @@
 	 (adjopts (getopt opts 'adjopts
 			  (frame-create #f
 			    'adjunct #t
-			    'adjuncts #f
 			    'cachelevel (getopt opts 'cachelevel {})
 			    'loglevel (getopt opts 'loglevel {})
 			    'readonly (getopt opts 'readonly {})
@@ -244,6 +244,7 @@
 		load ,(min load partsize)
 		adjunct ,(getopt opts 'adjunct)
 		type ,(get-partition-type opts)
+		adjuncts #f
 		metadata 
 		,(make-partition-metadata start-ref opts flexbase flexcap partsize 0)
 		label ,(glom (basename prefix) "." (make-string padlen #\0))]))
