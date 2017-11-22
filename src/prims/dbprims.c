@@ -41,6 +41,9 @@ static lispval slotidp(lispval arg)
   else return FD_FALSE;
 }
 
+#define INDEXP(x) ( (FD_INDEXP(x)) || (TYPEP((x),fd_consed_index_type)) )
+#define POOLP(x)  ( (FD_POOLP(x))  || (TYPEP((x),fd_consed_pool_type)) )
+
 /* These are called when the lisp version of its pool/index argument
    is being returned and needs to be incref'd if it is consed. */
 FD_FASTOP lispval index2lisp(fd_index ix)
@@ -187,13 +190,16 @@ static lispval index_frame_prim
 
 static lispval poolp(lispval arg)
 {
-  if (FD_POOLP(arg)) return FD_TRUE; else return FD_FALSE;
+  if (POOLP(arg))
+    return FD_TRUE;
+  else return FD_FALSE;
 }
 
 static lispval indexp(lispval arg)
 {
-  if ((FD_INDEXP(arg))||(TYPEP(arg,fd_consed_index_type)))
-    return FD_TRUE; else return FD_FALSE;
+  if (INDEXP(arg))
+    return FD_TRUE;
+  else return FD_FALSE;
 }
 
 static lispval getpool(lispval arg)
@@ -236,7 +242,7 @@ static lispval set_cache_level(lispval arg,lispval level)
     if (p) fd_pool_setcache(p,FIX2INT(level));
     else return FD_ERROR;
     return VOID;}
-  else if ((FD_INDEXP(arg))||(TYPEP(arg,fd_consed_index_type))) {
+  else if (INDEXP(arg)) {
     fd_index ix = fd_indexptr(arg);
     if (ix) fd_index_setcache(ix,FIX2INT(level));
     else return fd_type_error("index","index_frame_prim",arg);
@@ -291,7 +297,7 @@ static lispval use_pool(lispval arg1,lispval opts)
 static lispval use_index(lispval arg,lispval opts)
 {
   fd_index ixresult = NULL;
-  if ( (FD_INDEXP(arg)) || (TYPEP(arg,fd_consed_index_type)) ) {
+  if (INDEXP(arg)) {
     ixresult = fd_indexptr(arg);
     if (ixresult) fd_add_to_background(ixresult);
     else return fd_type_error("index","index_frame_prim",arg);
@@ -535,13 +541,12 @@ static lispval make_compound_index(int n,lispval *args)
     DO_CHOICES(source,args[i]) {
       fd_index ix = NULL;
       if (STRINGP(source)) ix = fd_get_index(fd_strdata(source),0,VOID);
-      else if (FD_INDEXP(source)) ix = fd_indexptr(source);
-      else if (TYPEP(source,fd_consed_index_type)) ix = fd_indexptr(source);
+      else if (INDEXP(source)) ix = fd_indexptr(source);
       else if (SYMBOLP(source)) {
         lispval val = fd_config_get(SYM_NAME(source));
         if (STRINGP(val)) ix = fd_get_index(fd_strdata(val),0,VOID);
-        else if (FD_INDEXP(val)) ix = fd_indexptr(source);
-        else if (TYPEP(val,fd_consed_index_type)) ix = fd_indexptr(val);}
+        else if (INDEXP(val)) ix = fd_indexptr(val);
+        else NO_ELSE;}
       else {}
       if (ix) {
         if (n_sources>=max_sources) {
@@ -559,6 +564,7 @@ static lispval make_compound_index(int n,lispval *args)
 static lispval add_to_compound_index(lispval lcx,lispval aix)
 {
   if (FD_INDEXP(lcx)) {
+    /* Only registered indexes can be added to compound indexes */
     fd_index ix = fd_indexptr(lcx);
     if (PRED_FALSE(ix == NULL))
       return fd_type_error("index","add_to_compound_index",lcx);
@@ -877,9 +883,7 @@ static lispval swapout_lexpr(int n,lispval *args)
         if (OIDP(e)) {CHOICE_ADD(oids,e);}
         else if (FD_POOLP(e))
           rv = fd_pool_swapout(fd_lisp2pool(e),VOID);
-        else if (FD_INDEXP(e))
-          fd_index_swapout(fd_indexptr(e),VOID);
-        else if (TYPEP(e,fd_consed_index_type))
+        else if (INDEXP(e))
           fd_index_swapout(fd_indexptr(e),VOID);
         else if (TYPEP(arg,fd_consed_pool_type))
           rv = fd_pool_swapout((fd_pool)arg,VOID);
@@ -1433,7 +1437,7 @@ static lispval prefetch_keys(lispval arg1,lispval arg2)
     else return VOID;}
   else {
     DO_CHOICES(arg,arg1) {
-      if (indexp(arg)) {
+      if (INDEXP(arg)) {
         fd_index ix = fd_indexptr(arg);
         if (fd_index_prefetch(ix,arg2)<0) {
           FD_STOP_DO_CHOICES;
@@ -1445,7 +1449,7 @@ static lispval prefetch_keys(lispval arg1,lispval arg2)
 static lispval index_prefetch_keys(lispval ix_arg,lispval keys)
 {
   DO_CHOICES(arg,ix_arg) {
-    if (indexp(arg)) {
+    if (INDEXP(arg)) {
       fd_index ix = fd_indexptr(arg);
       if (fd_index_prefetch(ix,keys)<0) {
         FD_STOP_DO_CHOICES;
@@ -1462,7 +1466,8 @@ static lispval cached_oids(lispval pool)
     return fd_cached_oids(NULL);
   else {
     fd_pool p = fd_lisp2pool(pool);
-    if (p) return fd_cached_oids(p);
+    if (p)
+      return fd_cached_oids(p);
     else return fd_type_error(_("pool"),"cached_oids",pool);}
 }
 
@@ -1472,7 +1477,8 @@ static lispval cached_keys(lispval index)
     return fd_cached_keys(NULL);
   else {
     fd_index ix = fd_indexptr(index);
-    if (ix) return fd_cached_keys(ix);
+    if (ix)
+      return fd_cached_keys(ix);
     else return fd_type_error(_("index"),"cached_keys",index);}
 }
 
@@ -1482,7 +1488,7 @@ static lispval cache_load(lispval db)
     fd_pool p = fd_lisp2pool(db);
     int n_keys = p->pool_cache.table_n_keys;
     return FD_INT(n_keys);}
-  else if (indexp(db)) {
+  else if (INDEXP(db)) {
     fd_index ix = fd_lisp2index(db);
     int n_keys = ix->index_cache.table_n_keys;
     return FD_INT(n_keys);}
@@ -1495,7 +1501,7 @@ static lispval change_load(lispval db)
     fd_pool p = fd_lisp2pool(db);
     int n_pending = p->pool_changes.table_n_keys;
     return FD_INT(n_pending);}
-  else if (indexp(db)) {
+  else if (INDEXP(db)) {
     fd_index ix = fd_lisp2index(db);
     int n_pending = ix->index_adds.table_n_keys +
       ix->index_drops.table_n_keys +
@@ -3010,7 +3016,7 @@ static lispval dbloadedp(lispval arg1,lispval arg2)
     else if (fd_hashtable_probe(&(fd_background->index_cache),arg1))
       return FD_TRUE;
     else return FD_FALSE;
-  else if (indexp(arg2)) {
+  else if (INDEXP(arg2)) {
     fd_index ix = fd_indexptr(arg2);
     if (ix == NULL)
       return fd_type_error("index","loadedp",arg2);
@@ -3079,7 +3085,7 @@ static lispval dbmodifiedp(lispval arg1,lispval arg2)
       if (p->pool_changes.table_n_keys)
         return FD_TRUE;
       else return FD_FALSE;}
-    else if (indexp(arg1)) {
+    else if (INDEXP(arg1)) {
       fd_index ix = fd_lisp2index(arg1);
       if ((ix->index_adds.table_n_keys) ||
           (ix->index_drops.table_n_keys) ||
@@ -3094,7 +3100,7 @@ static lispval dbmodifiedp(lispval arg1,lispval arg2)
         else return FD_FALSE;}
       else return FD_FALSE;}
     else return FD_FALSE;
-  else if (indexp(arg2)) {
+  else if (INDEXP(arg2)) {
     fd_index ix = fd_indexptr(arg2);
     if (ix == NULL)
       return fd_type_error("index","loadedp",arg2);
