@@ -97,6 +97,20 @@ static void remove_thread(struct FD_THREAD_STRUCT *thread)
     u8_unlock_mutex(&thread_ring_lock);}
 }
 
+static lispval threadp_prim(lispval arg)
+{
+  if (FD_TYPEP(arg,fd_thread_type))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static lispval synchronizerp_prim(lispval arg)
+{
+  if (FD_TYPEP(arg,fd_condvar_type))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
 static lispval findthread_prim(lispval threadid_arg)
 {
   long long threadid =
@@ -966,6 +980,15 @@ FD_EXPORT void fd_init_threads_c()
   fd_def_evalfn(fd_scheme_module,"PARALLEL","",parallel_evalfn);
   fd_def_evalfn(fd_scheme_module,"SPAWN","",threadeval_evalfn);
 
+  fd_idefn1(fd_scheme_module,"THREAD?",threadp_prim,1,
+            "(THREAD? *arg*) returns #t if *arg* is a thread object",
+            -1,FD_VOID);
+  fd_idefn1(fd_scheme_module,"SYNCHRONIZER?",synchronizerp_prim,1,
+            "(SYNCHRONIZER? *arg*) returns #t if *arg* is a "
+            "synchronizer (condvar)",
+            -1,FD_VOID);
+
+
   fd_idefnN(fd_scheme_module,"THREAD/CALL",threadcall_prim,
             FD_NEEDS_1_ARG,
             "(THREAD/CALL *opts* *fcn* *args*...) applies *fcn* "
@@ -986,9 +1009,10 @@ FD_EXPORT void fd_init_threads_c()
 
   fd_idefn2(fd_scheme_module,"THREAD/JOIN",threadjoin_prim,
             FD_NEEDS_1_ARG|FD_NDCALL,
-            "(THREAD/JOIN *threads* [*opts*]) waits for all of *threads* to finish and "
-            "returns all of their non VOID results (as a choice), logging "
-            "when a VOID result is returned. *opts is currently ignored.",
+            "(THREAD/JOIN *threads* [*opts*]) waits for all of *threads* "
+            "to finish and returns all of their non VOID results "
+            "(as a choice), logging when a VOID result is returned. "
+            "*opts is currently ignored.",
             -1,FD_VOID,-1,FD_VOID);
   fd_defalias(fd_scheme_module,"THREADJOIN","THREAD/JOIN");
 
