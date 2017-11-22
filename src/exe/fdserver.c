@@ -675,6 +675,18 @@ static void shutdown_server(u8_string why)
   u8_server_shutdown(&dtype_server,shutdown_grace);
 }
 
+static lispval fdserver_shutdown_prim(lispval why)
+{
+  if (shutdown_reason)
+    return FD_FALSE;
+  if (FD_SYMBOLP(why))
+    shutdown_server(FD_SYMBOL_NAME(why));
+  else if (FD_STRINGP(why))
+    shutdown_server(FD_CSTRING(why));
+  else shutdown_server("FDSERVER/SHUTDOWN");
+  return FD_TRUE;
+}
+
 static void shutdown_dtypeserver_onexit()
 {
   shutdown_server("ONEXIT");
@@ -1325,6 +1337,9 @@ static int init_server_env(u8_string server_spec,fd_lexenv core_env)
             exit(fd_interr(result));}
           else fd_decref(result);}}}}
   else server_env = exposed_lexenv;
+  fd_idefn1((lispval)working_env,"FDSERVER/SHUTDOWN!",fdserver_shutdown_prim,0,
+            "Shuts down the running FDSERVER",
+            -1,FD_VOID);
   return 1;
 }
 
