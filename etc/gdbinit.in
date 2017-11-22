@@ -352,44 +352,44 @@ end
 # Commands for the new stack
 define stackframe
   if ($argc == 1)
-    call _show_stack_frame($arg0)
+    call _fdbg_show_stack_frame($arg0)
   else
-   call _show_stack_frame((void *)0)
+   call _fdbg_show_stack_frame((void *)0)
   end
 end
 
 define showstack
   if ($argc == 0)
-   call _show_stack((void *)0,-1)
+   call _fdbg_show_stack((void *)0,-1)
   end
   if ($argc == 1)
-    call _show_stack_frame($arg0)
+    call _fdbg_show_stack_frame($arg0)
   end
   if ($argc == 2)
-   call _show_stack($arg1,$arg0)
+   call _fdbg_show_stack($arg1,$arg0)
   end
 end
 
 define stackarg
-  print/x _get_stack_arg($arg0,$arg1)
+  print/x _fdbg_get_stack_arg($arg0,$arg1)
   printf "type of 0x%llx is 0x%x: %s\n",((lispval)$),(((($)&0x03)==2)?(fd_fixnum_type):((($)&0x3)==3)?(fd_oid_type):((($)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($))->conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($)>>25)&0x7f)+0x04))),fd_type_names[(((($)&0x03)==2)?(fd_fixnum_type):((($)&0x3)==3)?(fd_oid_type):((($)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($))->conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($)>>25)&0x7f)+0x04)))]
 end
 
 define stackvar
-  print/x _get_stack_var($arg0,"$arg1")
+  print/x _fdbg_get_stack_var($arg0,"$arg1")
   printf "type of 0x%llx is 0x%x: %s\n",((lispval)$),(((($)&0x03)==2)?(fd_fixnum_type):((($)&0x3)==3)?(fd_oid_type):((($)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($))->conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($)>>25)&0x7f)+0x04))),fd_type_names[(((($)&0x03)==2)?(fd_fixnum_type):((($)&0x3)==3)?(fd_oid_type):((($)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($))->conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($)>>25)&0x7f)+0x04)))]
 end
 
 
 define lexenv
-  call _show_env($arg0,20)
+  call _fdbg_show_env($arg0,20)
 end
 define lexvals
-  call _show_env($arg0,-1)
+  call _fdbg_show_env($arg0,-1)
 end
 
 define stackenv
-  call _show_stack_env($arg0,20)
+  call _fdbg_show_stack_env($arg0,20)
 end
 
 # Init some tracing configurations

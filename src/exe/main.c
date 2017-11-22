@@ -43,40 +43,6 @@ void write_cmd_file(u8_string cmd_file,u8_condition label,int argc,char **argv)
   close(fd);
 }
 
-/* Environment debugging */
-
-FD_EXPORT void _show_env(fd_lexenv start,int limit)
-{
-  lispval moduleid = fd_intern("%MODULEID");
-  int depth = 0;
-  fd_lexenv env=start;
-  if (limit<0)  {
-    lispval bindings = env->env_bindings;
-    lispval keys = fd_getkeys(bindings);
-    u8_byte buf[128];
-    FD_DO_CHOICES(key,keys) {
-      if (FD_SYMBOLP(key)) {
-        lispval val=fd_get(bindings,key,FD_VOID);
-        u8_string vstring=u8_sprintf(buf,128,"%q",val);
-        fprintf(stderr,"  %s\t=\t%s\n",FD_SYMBOL_NAME(key),vstring);
-        fd_decref(val);}}
-    fd_decref(keys);}
-  else while ( (env) && (depth < limit) ) {
-      lispval bindings = env->env_bindings;
-      fd_ptr_type btype = FD_PTR_TYPE(bindings);
-      lispval name = fd_get(bindings,moduleid,FD_VOID);
-      if (FD_VOIDP(name)) {
-        lispval keys = fd_getkeys(bindings);
-        u8_fprintf(stderr,"  env#%d %q\t\t\t(%s[%d]) 0x%llx/0x%llx\n",
-                   depth,keys,fd_type_names[btype],FD_CHOICE_SIZE(keys),
-                   bindings,env);
-        fd_decref(keys);}
-      else u8_fprintf(stderr,"  env#%d module %q\t\t0x%llx\n",depth,name,env);
-      fd_decref(name);
-      env=env->env_parent;
-      depth++;}
-}
-
 /* Exename tweaking */
 
 static char **exenamep, *exename;
@@ -137,6 +103,37 @@ static void stack_frame_label(u8_output out,struct FD_STACK *stack)
     u8_printf(out,".%s",stack->stack_type);
 }
 
+FD_EXPORT void _fdbg_show_env(fd_lexenv start,int limit)
+{
+  lispval moduleid = fd_intern("%MODULEID");
+  int depth = 0;
+  fd_lexenv env=start;
+  if (limit<0)  {
+    lispval bindings = env->env_bindings;
+    lispval keys = fd_getkeys(bindings);
+    u8_byte buf[128];
+    FD_DO_CHOICES(key,keys) {
+      if (FD_SYMBOLP(key)) {
+        lispval val=fd_get(bindings,key,FD_VOID);
+        u8_string vstring=u8_sprintf(buf,128,"%q",val);
+        fprintf(stderr,"  %s\t=\t%s\n",FD_SYMBOL_NAME(key),vstring);
+        fd_decref(val);}}
+    fd_decref(keys);}
+  else while ( (env) && (depth < limit) ) {
+      lispval bindings = env->env_bindings;
+      fd_ptr_type btype = FD_PTR_TYPE(bindings);
+      lispval name = fd_get(bindings,moduleid,FD_VOID);
+      if (FD_VOIDP(name)) {
+        lispval keys = fd_getkeys(bindings);
+        u8_fprintf(stderr,"  env#%d %q\t\t\t(%s[%d]) 0x%llx/0x%llx\n",
+                   depth,keys,fd_type_names[btype],FD_CHOICE_SIZE(keys),
+                   bindings,env);
+        fd_decref(keys);}
+      else u8_fprintf(stderr,"  env#%d module %q\t\t0x%llx\n",depth,name,env);
+      fd_decref(name);
+      env=env->env_parent;
+      depth++;}
+}
 
 static void _concise_stack_frame(struct FD_STACK *stack)
 {
@@ -180,11 +177,11 @@ static void _concise_stack_frame(struct FD_STACK *stack)
   fprintf(stderr,"\n");
 }
 
-void _show_stack_frame(void *arg)
+FD_EXPORT void _fdbg_show_stack_frame(void *arg)
 {
   struct FD_STACK *stack=_get_stack_frame(arg);
   _concise_stack_frame(stack);
-  if (stack->stack_env) _show_env(stack->stack_env,20);
+  if (stack->stack_env) _fdbg_show_env(stack->stack_env,20);
   if (PAIRP(stack->stack_op))
     u8_fprintf(stderr,"%Q",stack->stack_op);
   else if (FD_APPLICABLEP(stack->stack_op)) {
@@ -199,10 +196,10 @@ void _show_stack_frame(void *arg)
         i++;}}}
   fputs("\n",stderr);
   if (stack->stack_env)
-    _show_env(stack->stack_env,-1);
+    _fdbg_show_env(stack->stack_env,-1);
 }
 
-lispval _get_stack_arg(void *arg,int n)
+FD_EXPORT lispval _fdbg_get_stack_arg(void *arg,int n)
 {
   struct FD_STACK *stack=_get_stack_frame(arg);
   if (stack->stack_args)
@@ -211,16 +208,17 @@ lispval _get_stack_arg(void *arg,int n)
     else return FD_NULL;
   else return FD_NULL;
 }
-lispval _get_stack_var(void *arg,u8_string varname)
+
+FD_EXPORT lispval _fdbg_get_stack_var(void *arg,u8_string varname)
 {
   struct FD_STACK *stack=_get_stack_frame(arg);
   if (stack->stack_env) {
-    lispval sym = fd_intern(varname);
+    lispval sym = fd_symbolize(varname);
     return fd_symeval(sym,stack->stack_env);}
   else return FD_NULL;
 }
 
-static U8_MAYBE_UNUSED void _show_stack(void *arg,int limit)
+FD_EXPORT void _fdbg_show_stack(void *arg,int limit)
 {
   int count=0;
   struct FD_STACK *stack=_get_stack_frame(arg);
@@ -234,7 +232,7 @@ static U8_MAYBE_UNUSED void _show_stack(void *arg,int limit)
     if ( (limit > 0) && (count >= limit) ) break;}
 }
 
-static U8_MAYBE_UNUSED void _show_stack_env(void *arg)
+FD_EXPORT void _fdbg_show_stack_env(void *arg)
 {
   struct FD_STACK *stack=_get_stack_frame(arg);
   if (stack==NULL) {
@@ -242,7 +240,7 @@ static U8_MAYBE_UNUSED void _show_stack_env(void *arg)
     return;}
   _concise_stack_frame(stack);
   if (stack->stack_env)
-    _show_env(stack->stack_env,-1);
+    _fdbg_show_env(stack->stack_env,-1);
   else fprintf(stderr,"!! No env\n");
 }
 
