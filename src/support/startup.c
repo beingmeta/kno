@@ -970,6 +970,10 @@ void fd_init_startup_c()
 
   fd_register_config("ATEXIT",_("Procedures to call on exit"),
                      config_atexit_get,config_atexit_set,NULL);
+
+  fd_register_config("EXITING",_("Whether this process is exiting"),
+                     fd_boolconfig_get,fd_boolconfig_set,&fd_exiting);
+
 }
 
 /* Emacs local variables
