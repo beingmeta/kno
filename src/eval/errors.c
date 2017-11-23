@@ -295,7 +295,9 @@ static lispval exception_irritant(lispval x)
 {
   struct FD_EXCEPTION *xo=
     fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
-  return fd_incref(xo->ex_irritant);
+  if (FD_VOIDP(xo->ex_irritant))
+    return FD_FALSE;
+  else return fd_incref(xo->ex_irritant);
 }
 
 static lispval exception_has_irritant(lispval x)
