@@ -180,7 +180,7 @@
 		  ((getopt opts 'aliasfns aliasfns-default)
 		   value)
 		  (else
-		   `(,(try (tryif use-opcodes #OP_SYMREF)
+		   `(,(try (tryif (use-opcodes? opts) #OP_SYMREF)
 			   (tryif (use-fcnrefs? opts)
 			     (force-fcnid %modref))
 			   %modref)
@@ -509,7 +509,7 @@
 	     expr)
 	   expr)
 	  ((exists special-form? headvalue)
-	   (loginfo |SpecialForm| "Optimizing reference to " headvalue)
+	   (loginfo |SpecialForm| "Optimizing " headvalue " form")
 	   (let* ((optimizer
 		   (try (get special-form-optimizers headvalue)
 			(get special-form-optimizers
@@ -586,7 +586,7 @@
 		 (optimize-args (cdr expr) env bound opts)
 		 (cdr expr)))
 	 (optimize-args expr env bound opts))
-      expr))
+	(else expr)))
 
 (defambda (optimize-args expr env bound opts)
   (forseq (arg expr)
@@ -672,8 +672,9 @@
 (define (optimize-get-module spec)
   (onerror (get-module spec)
     (lambda (ex) 
-      (irritant+ spec |GetModuleFailed| optimize-module
-		 "Couldn't load module " spec))))
+      (irritant spec
+	  |GetModuleFailed| optimize-module
+	  "Couldn't load module for " spec))))
 
 (define (optimize-module! module (opts #f))
   (loginfo |OptimizeModule| module)
@@ -1142,18 +1143,19 @@
 		 ,@(optimize-body (cddr expr)))))
 
 (define (optimize-logif+ handler expr env bound opts)
-  (if (or (symbol? (caddr expr))  (number? (caddr expr)))
-      (if (or (symbol? (cadr (cddr expr))) (number? (cadr (cddr expr))))
-	  `(,handler ,(optimize (cadr expr) env bound opts)
-		     ,(caddr expr)
-		     ,(cadr (cddr expr))
-		     ,@(optimize-body (cdr (cdddr expr))))
-	  `(,handler ,(optimize (cadr expr) env bound opts)
-		     ,(caddr expr)
-		     ,@(optimize-body (cdddr expr))))
-      `(,handler ,(optimize (cadr expr) env bound opts)
-		 ,@(optimize-body (cddr expr)))))
-
+  (let ((test (second expr))
+	(level (third expr))
+	(condition (fourth expr)))
+    (if (or (symbol? level) (number? level))
+	(if (symbol? condition)
+	    `(,handler ,(optimize test env bound opts)
+		       ,level ,condition
+		       ,@(optimize-body (cdr (cdddr expr))))
+	    `(,handler ,(optimize test env bound opts)
+		       ,level ,@(optimize-body (cdddr expr))))
+	`(,handler ,(optimize test env bound opts)
+		   ,@(optimize-body (cddr expr))))))
+						 
 ;;; Optimizing XHTML expressions
 
 ;; This doesn't handle mixed alist ((x y)) and plist (x y) attribute lists
