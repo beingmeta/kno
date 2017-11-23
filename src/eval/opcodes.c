@@ -306,8 +306,9 @@ static lispval d1_dispatch(lispval opcode,lispval arg1)
     lispval cdr = FD_CDR(arg1);
     if (PAIRP(cdr)) {
       lispval cddr = FD_CDR(cdr);
-      if (PAIRP(cddr)) return fd_incref(FD_CDR(cdr));
-      else return fd_err(fd_RangeError,"FD_DDDR",NULL,arg1);}
+      if (PAIRP(cddr))
+        return fd_incref(FD_CDR(cddr));
+      else return fd_err(fd_RangeError,"FD_CDDR",NULL,arg1);}
     else return fd_err(fd_RangeError,"FD_CDDDR",NULL,arg1);}
   case FD_FIRST_OPCODE:
     return first_opcode(arg1);
