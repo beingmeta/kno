@@ -1029,7 +1029,9 @@
 (define (old-optimize-cond handler expr env bound opts)
   (cons handler 
 	(forseq (clause (cdr expr))
-	  (cond ((eq? (car clause) 'else)
+	  (cond ((not (pair? clause))
+		 (codewarning (list 'BADCLAUSE expr clause)))
+		((eq? (car clause) 'else)
 		 `(ELSE ,@(optimize-body (cdr clause))))
 		((and (pair? (cdr clause)) (eq? (cadr clause) '=>))
 		 `(,(optimize (car clause) env bound opts)
@@ -1045,7 +1047,10 @@
       (convert-cond (cdr expr) env bound opts)
       (cons handler 
 	    (forseq (clause (cdr expr))
-	      (cond ((eq? (car clause) 'else)
+	      (cond #|((not (pair? clause))
+		     (codewarning (list 'BADCLAUSE expr clause))
+		     clause)|#
+		    ((eq? (car clause) 'else)
 		     `(ELSE ,@(optimize-body (cdr clause))))
 		    ((and (pair? (cdr clause)) 
 			  (identical? (cadr clause) '=>))
