@@ -2048,8 +2048,14 @@ static int config_bugdir(lispval var,lispval val,void *state)
 
 /* Helpful forms and functions */
 
-static lispval void_prim(int n,lispval *args)
+static lispval void_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
+  lispval body = FD_CDR(expr);
+  FD_DOLIST(subex,body) {
+    lispval v = fd_stack_eval(subex,env,_stack,0);
+    if (FD_ABORTP(v))
+      return v;
+    else fd_decref(v);}
   return VOID;
 }
 
@@ -2542,7 +2548,7 @@ static void init_localfns()
   fd_def_evalfn(fd_scheme_module,"EVALTEST","",evaltest_evalfn);
 
   fd_def_evalfn(fd_scheme_module,"DBG","",dbg_evalfn);
-  fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprimn("VOID",void_prim,0)));
+  fd_def_evalfn(fd_scheme_module,"VOID","",void_evalfn);
   fd_def_evalfn(fd_scheme_module,"DEFAULT","",default_evalfn);
 
   fd_idefn(fd_scheme_module,fd_make_cprimn("CHECK-VERSION",check_version_prim,1));
