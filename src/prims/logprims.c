@@ -234,16 +234,19 @@ static lispval logifplus_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     return fd_reterr(fd_SyntaxError,"logif_evalfn",
                      _("LOGIF condition expression cannot be a string"),expr);
   else value = fast_eval(test_expr,env);
-  if (FD_ABORTP(value)) return value;
+  if (FD_ABORTP(value))
+    return value;
   else if ((FALSEP(value)) || (VOIDP(value)) ||
            (EMPTYP(value)) || (NILP(value)))
     return VOID;
-  else loglevel_arg = fd_eval(fd_get_arg(expr,2),env);
-  if (FD_ABORTP(loglevel_arg)) return loglevel_arg;
+  fd_decref(value);
+  loglevel_arg = fd_eval(fd_get_arg(expr,2),env);
+  if (FD_ABORTP(loglevel_arg))
+    return loglevel_arg;
   else if (VOIDP(loglevel_arg))
     return fd_reterr(fd_SyntaxError,"logif_plus_evalfn",
                      _("LOGIF+ loglevel invalid"),expr);
-  else if (!(FD_INTP(loglevel_arg)))
+  else if (!(FD_FIXNUMP(loglevel_arg)))
     return fd_reterr(fd_TypeError,"logif_plus_evalfn",
                      _("LOGIF+ loglevel invalid"),loglevel_arg);
   else {
@@ -266,7 +269,7 @@ static lispval logifplus_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
         fd_decref(condition_name);}
       else {}
       body = FD_CDR(body);}
-    fd_decref(value); u8_set_default_output(out);
+    u8_set_default_output(out);
     while (PAIRP(body)) {
       lispval value = fast_eval(FD_CAR(body),env);
       if (printout_helper(out,value)) fd_decref(value);
