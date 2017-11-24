@@ -7,7 +7,7 @@
 (use-module '{storage/adjuncts storage/filenames})
 (use-module '{storage/flex})
 
-(module-export! '{flexpool/open flexpool/make 
+(module-export! '{flexpool/open flexpool/make flexpool?
 		  flexpool/ref flexpool/record 
 		  flexpool/zero flexpool/front flexpool/last flexpool/info
 		  flexpool/partitions flexpool/partcount
@@ -61,7 +61,9 @@
     ;; (flex/load f)
     (flexpool-capacity f) ">"))
 
-(defrecord (flexpool mutable opaque `(stringfn . flexpool->string))
+(defrecord (flexpool mutable opaque 
+		     #[predicate isflexpool?] 
+		     `(stringfn . flexpool->string))
   filename prefix base capacity (partsize default-partsize) 
   (opts) (basemap (make-hashtable)) (partitions {})
   (front #f) (zero #f) (last #f)
@@ -70,22 +72,27 @@
 (define-init flexdata (make-hashtable))
 (define-init flexpools (make-hashtable))
 
+(define (flexpool? arg)
+  (or (isflexpool? arg) 
+      (and (test flexdata arg)
+	   (exists isflexpool? (get flexdata arg)))))
+
 (define (flexpool/zero fp)
-  (cond ((flexpool? fp) (flexpool-zero fp))
+  (cond ((isflexpool? fp) (flexpool-zero fp))
 	((test flexdata fp)
 	 (flexpool-zero (get flexdata fp)))
 	(else #f)))
 (define (flex/zero fp) (flexpool/zero fp))
 
 (define (flexpool/front fp)
-  (cond ((flexpool? fp) (flexpool-front fp))
+  (cond ((isflexpool? fp) (flexpool-front fp))
 	((test flexdata fp)
 	 (flexpool-front (get flexdata fp)))
 	(else #f)))
 (define (flex/front fp) (flexpool/front fp))
 
 (define (flexpool/last fp)
-  (cond ((flexpool? fp) 
+  (cond ((isflexpool? fp) 
 	 (or (flexpool-last fp) (flexpool-front fp)
 	     (flexpool-zero fp)))
 	((test flexdata fp)
@@ -94,7 +101,7 @@
 (define (flex/last fp) (flexpool/last fp))
 
 (define (flexpool/record fp)
-  (cond ((flexpool? fp) fp)
+  (cond ((isflexpool? fp) fp)
 	((test flexdata fp) (get flexdata fp))
 	(else #f)))
 
@@ -440,12 +447,12 @@
 
 (define (flexpool/partitions fp)
   (let ((info (get flexdata fp)))
-    (if (and (exists? info) (flexpool? info))
+    (if (and (exists? info) (isflexpool? info))
 	(flexpool-partitions info)
 	(irritant fp |UnknownFlexPool| flexpool/partitions))))
 (define (flexpool/partcount fp)
-  (let ((info (if (flexpool? fp) fp (get flexdata fp))))
-    (if (and (exists? info) (flexpool? info))
+  (let ((info (if (isflexpool? fp) fp (get flexdata fp))))
+    (if (and (exists? info) (isflexpool? info))
 	(choice-size (flexpool-partitions info))
 	(irritant fp |UnknownFlexPool| flexpool/partitions))))
 (define (flex/load flexpool (front))
@@ -458,7 +465,7 @@
 ;;; Deleting flexpools
 
 (define (flexpool/delete! file (opts #f))
-  (cond ((flexpool? file)
+  (cond ((isflexpool? file)
 	 (set! file (abspath (flexpool-filename file))))
 	((test flexdata file)
 	 (set! file (abspath (flexpool-filename (get flexdata file)))))
@@ -525,7 +532,7 @@
 ;;; Resetting flexpools
 
 (define (flexpool/reset! file (opts #f))
-  (cond ((flexpool? file)
+  (cond ((isflexpool? file)
 	 (set! file (abspath (flexpool-filename file))))
 	((test flexdata file)
 	 (set! file (abspath (flexpool-filename (get flexdata file)))))
@@ -673,7 +680,7 @@
 			 (has-suffix (get adjspec 'pool) ".flexpool"))))
 	(let* ((name (if (string? adjspec) adjspec
 			 (try (get adjspec 'pool) (get adjspec 'source))))
-	       (cur (and (file-exists? name) (file->dtype cur)))
+	       (cur (and (file-exists? name) (file->dtype name)))
 	       (adj-prefix (mkpath (dirname prefix) (strip-suffix name {".flexpool" ".pool"})))
 	       (flexdef (frame-create #f
 			  'base base 'capacity cap
