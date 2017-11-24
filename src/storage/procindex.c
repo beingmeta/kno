@@ -99,6 +99,12 @@ fd_index fd_make_procindex(lispval opts,lispval state,
                 &fd_procindex_handler,
                 id,u8_strdup(source),flags);
 
+  lispval init_metadata = fd_getopt(opts,FDSYM_METADATA,FD_VOID);
+  if (FD_SLOTMAPP(init_metadata)) {
+    struct FD_SLOTMAP *index_metadata = &(pix->index_metadata);
+    fd_copy_slotmap((fd_slotmap)init_metadata,index_metadata);}
+  fd_decref(init_metadata);
+
   pix->index_opts = fd_getopt(opts,fd_intern("OPTS"),FD_FALSE);
   pix->index_cache_level = cache_level;
   pix->index_methods     = methods;

@@ -73,7 +73,7 @@ fd_pool fd_make_procpool(FD_OID base,
     methods->lockfn = poolopt(opts,"LOCKOIDS");
     methods->releasefn = poolopt(opts,"RELEASEOIDS");
     methods->commitfn = poolopt(opts,"COMMIT");
-    methods->metadatafn = poolopt(opts,"METADATA");
+    methods->metadatafn = poolopt(opts,"GETMETADATA");
     methods->createfn = poolopt(opts,"CREATE");
     methods->closefn = poolopt(opts,"CLOSE");
     methods->ctlfn = poolopt(opts,"POOLCTL");}
@@ -117,6 +117,12 @@ fd_pool fd_make_procpool(FD_OID base,
   pp->pool_methods = methods;
   pp->pool_state   = state; fd_incref(state);
   pp->pool_label = u8_strdup(label);
+
+  lispval init_metadata = fd_getopt(opts,FDSYM_METADATA,FD_VOID);
+  if (FD_SLOTMAPP(init_metadata)) {
+    struct FD_SLOTMAP *pool_metadata = &(pp->pool_metadata);
+    fd_copy_slotmap((fd_slotmap)init_metadata,pool_metadata);}
+  fd_decref(init_metadata);
 
   fd_register_pool((fd_pool)pp);
 
