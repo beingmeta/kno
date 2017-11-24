@@ -53,7 +53,7 @@
 	   (fields (cddr expr))
 	   (field-names (map fieldname fields))
 	   (cons-method-name (string->symbol (stringout "CONS-" name)))
-	   (predicate-method-name (string->symbol (stringout name "?"))))
+	   (predicate-method-name (getopt defspec 'predicate (string->symbol (stringout name "?")))))
       `(begin (bind-default! %rewrite {})
 	 (defambda (,cons-method-name ,@fields)
 	   (,(if ismutable
