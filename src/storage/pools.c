@@ -2350,6 +2350,39 @@ FD_EXPORT lispval fd_default_poolctl(fd_pool p,lispval op,int n,lispval *args)
       else return fd_incref(args[1]);}
     else return fd_err(fd_TooManyArgs,"fd_pool_ctl/metadata",
                        FD_SYMBOL_NAME(op),fd_pool2lisp(p));}
+  else if (op == adjuncts_slot) {
+    if (n == 0) {
+      if (p->pool_n_adjuncts) {
+        int i=0, n=p->pool_n_adjuncts;
+        struct FD_ADJUNCT *adjuncts=p->pool_adjuncts;
+        lispval adjuncts_table=fd_make_slotmap(n,0,NULL);
+        while (i<n) {
+          fd_store(adjuncts_table,
+                   adjuncts[i].slotid,
+                   adjuncts[i].table);
+          i++;}
+        return adjuncts_table;}
+      else return fd_empty_slotmap();}
+    else if (n == 1) {
+      if (p->pool_n_adjuncts) {
+        lispval slotid = args[0];
+        struct FD_ADJUNCT *adjuncts=p->pool_adjuncts;
+        int i=0, n = p->pool_n_adjuncts;
+        while (i<n) {
+          if (adjuncts[i].slotid == slotid)
+            return fd_incref(adjuncts[i].table);
+          i++;}
+        return FD_FALSE;}
+      else return FD_FALSE;}
+    else if (n == 2) {
+      lispval slotid = args[0];
+      lispval adjunct = args[1];
+      int rv = fd_set_adjunct(p,slotid,adjunct);
+      if (rv<0)
+        return FD_ERROR_VALUE;
+      else return adjunct;}
+    else return fd_err(fd_TooManyArgs,"fd_pool_ctl/adjuncts",
+                       FD_SYMBOL_NAME(op),fd_pool2lisp(p));}
   else if (op == FDSYM_PROPS) {
     lispval props = (lispval) &(p->pool_props);
     lispval slotid = (n>0) ? (args[0]) : (FD_VOID);
@@ -2362,7 +2395,7 @@ FD_EXPORT lispval fd_default_poolctl(fd_pool p,lispval op,int n,lispval *args)
       if (rv<0)
         return FD_ERROR_VALUE;
       else return fd_incref(args[1]);}
-    else return fd_err(fd_TooManyArgs,"fd_pool_ctl/metadata",
+    else return fd_err(fd_TooManyArgs,"fd_pool_ctl/props",
                        FD_SYMBOL_NAME(op),fd_pool2lisp(p));}
   else if (op == fd_capacity_op)
     return FD_INT(p->pool_capacity);
