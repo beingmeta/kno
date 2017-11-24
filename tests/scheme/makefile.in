@@ -342,8 +342,8 @@ oidpools oidpooltests: oidpooltest oidpool32test oidpool64test
 
 flexpools flexpooltests:
 	@${header} "■■■■■■■■ Running flexpool tests, ${TESTBASE} ${TESTSIZE} ${RUNCONF}";
-	@${RUN} ${FDX} flextest.scm ${TESTBASE}.flexpool RESET=yes ${RUNCONF};
-	@${RUN} ${FDX} flextest.scm ${TESTBASE}.flexpool ${RUNCONF};
+	@${RUN} ${FDX} flextest.scm flex${TESTBASE}.flexpool RESET=yes ${RUNCONF};
+	@${RUN} ${FDX} flextest.scm flex${TESTBASE}.flexpool ${RUNCONF};
 
 pooltests pools: filepooltest oidpooltests bigpooltests flexpooltests
 
