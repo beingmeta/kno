@@ -27,11 +27,11 @@
 			       'rootdir (dirname (pool-source pool))
 			       'cachelevel (getopt opts 'cachelevel {})
 			       'loglevel (getopt opts 'loglevel {})))))
+      (info%watch "ADJUNCTS/INIT!" pool adjuncts cur open-opts)
       (do-choices (slotid (getkeys adjuncts))
 	(cond ((not (test cur slotid))
 	       (let ((usedb (db/ref (get adjuncts slotid) open-opts)))
-		 (cond ((exists? usedb)
-			(adjunct! pool slotid usedb))
+		 (cond ((exists? usedb) (adjunct! pool slotid usedb))
 		       ((getopt opts 'require_adjuncts)
 			(irritant (get adjuncts slotid) |MissingAdjunct|
 			  "for pool " pool))
@@ -147,12 +147,12 @@
     (irritant adjopts |InvalidAdjunct|))
   (adjunct! pool slotid 
 	    (ref-adjunct pool
-			 (cons* `#[adjunct ,slotid
-				   base ,(pool-base pool) 
-				   capacity ,(pool-capacity pool)
-				   load #f make #t
-				   metadata #[adjunct ,slotid adjuncts #[]]] 
-				adjopts opts))))
+			 (cons `#[adjunct ,slotid
+				  base ,(pool-base pool) 
+				  capacity ,(pool-capacity pool)
+				  metadata #[adjunct ,slotid adjuncts #[]]
+				  make #t] 
+			       adjopts))))
 
 (define (ref-adjunct pool opts)
   (if (or (getopt opts 'index)
@@ -169,7 +169,7 @@
 	      (abspath (textsubst (getopt opts 'pool) 
 				  (qc dbfile-suffix) source-suffix)
 		       (dirname (pool-source pool)))))
-	;; (%watch "ADJUNCT" (pool-source pool) filename)
+	(info%watch "REF-ADJUNCT" (pool-source pool) filename)
 	(cond ((file-exists? filename) (open-pool filename opts))
 	      ((getopt opts 'make) (make-pool filename opts))
 	      ((getopt opts 'err #t)
