@@ -8,7 +8,9 @@
 (use-module '{storage/flexpools storage/flexindexes 
 	      storage/adjuncts})
 
-(module-export! '{pool/ref index/ref db/ref pool/copy flex/save!})
+(module-export! '{pool/ref index/ref db/ref pool/copy flex/partitions flex/save!})
+
+(module-export! '{flex/container  flex/container!})
 
 (define-init %loglevel %notice%)
 
@@ -30,6 +32,11 @@
 	((textmatch network-source arg) arg)
 	((not rootdir) (abspath arg))
 	(else (mkpath rootdir arg))))
+
+(define (flex/partitions arg)
+  (cond ((flexpool? arg) (flexpool/partitions arg))
+	((pool? arg) (flexpool/partitions arg))
+	(else (fail))))
 
 (define (w/adjuncts pool)
   (unless (or (adjunct? pool) (exists? (poolctl pool 'props 'adjuncts)))
