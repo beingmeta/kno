@@ -173,6 +173,9 @@
 	      " for " filename)
 	    (mkdirs (dirname prefix)))
 	  (dtype->file saved filename)
+	  (when (test metadata 'adjuncts)
+	    (init-adjunct-flexpools (get metadata 'adjuncts) 
+				    prefix base cap partsize opts))
 	  (unique-flexpool (if (readlink filename)
 			       (abspath filename)
 			       (realpath filename)) 
@@ -250,7 +253,6 @@
 		load ,(min load partsize)
 		adjunct ,(getopt opts 'adjunct)
 		type ,(get-partition-type opts)
-		adjuncts #f
 		metadata 
 		,(make-partition-metadata start-ref opts flexbase flexcap partsize 0)
 		label ,(glom (basename prefix) "." (make-string padlen #\0))]))
@@ -262,26 +264,6 @@
 	  "Created initial pool partition " (write start-file))
 	(logdebug |PartitionOpts|
 	  "For " (write start-file) "\n" (pprint zero-opts))
-	;; Create an flexpool file for the adjunct
-	(when (exists? (getkeys (get (get zero-opts 'metadata) 'adjuncts)))
-	  (let* ((metadata (get zero-opts 'metadata))
-		 (zero-adjuncts (get metadata 'adjuncts)))
-	    (do-choices (adjslot (getkeys zero-adjuncts))
-	      (let ((adjinfo (get zero-adjuncts adjslot)))
-		(when (and (slotmap? adjinfo)
-			   (test adjinfo 'pool)
-			   (string? (get adjinfo 'pool)))
-		  (let ((adj-flexinfo
-			 (frame-create #f 
-			   'base flexbase 'capacity flexcap 'partsize partsize
-			   'created (gmtimestamp) 'init (config 'sessionid)
-			   'prefix (glom (dirname prefix)
-				     (try (get adjinfo 'prefix)
-					  (textsubst (get adjinfo 'pool)
-						     partition-suffix ""))))))
-		    (dtype->file adj-flexinfo 
-				 (textsubst (get adjinfo 'pool) 
-					    partition-suffix ".flexpool"))))))))
 	(set! pools start-pool)
 	(set! last start-pool)))
 
@@ -390,6 +372,7 @@
 		  (strip-suffix prefix ".pool")
 		  (glom (strip-suffix prefix ".pool") ".pool")})
 		pool)
+	;;(when (poolctl pool 'metadata 'adjuncts) (adjuncts/init! pool))
 	pool))))
 
 ;;; Getting the 'next' flexpool (creates a new partition)
@@ -657,7 +640,7 @@
 		       (label (glom (or speclabel (getopt opts 'label (basename name)))
 				"." (padnum serial padlen 16)))
 		       (adjbase (glom name "." (padnum serial padlen 16) ".pool"))
-		       (adjpath (glom (basename prefix) "." name
+		       (adjpath (glom name ;; (basename prefix) "."
 				  "." (padnum serial padlen 16) ".pool")))
 		  (if (string? adjspec)
 		      (set! adjspec `#[pool ,adjpath])
@@ -680,6 +663,34 @@
 	(store! metadata 'adjuncts converted)))
     (debug%watch "MAKE-PARTITION-METADATA" filename prefix metadata)
     metadata))
+
+(define (init-adjunct-flexpools adjuncts prefix base cap partsize opts)
+  (do-choices (adjslot (getkeys adjuncts))
+    (let ((adjspec (get adjuncts adjslot)))
+      (when (if (string? adjspec) (has-suffix adjspec ".flexpool")
+		(or (test adjspec 'type 'flexpool)
+		    (and (test adjspec 'pool) (string? (get adjspec 'pool))
+			 (has-suffix (get adjspec 'pool) ".flexpool"))))
+	(let* ((name (if (string? adjspec) adjspec
+			 (try (get adjspec 'pool) (get adjspec 'source))))
+	       (cur (and (file-exists? name) (file->dtype cur)))
+	       (adj-prefix (mkpath (dirname prefix) (strip-suffix name {".flexpool" ".pool"})))
+	       (flexdef (frame-create #f
+			  'base base 'capacity cap
+			  'metadata `#[adjunct ,adjslot partopts ,(getopt opts 'partopts #[])]
+			  'partsize partsize 
+			  'prefix adj-prefix
+			  'init (config 'sessionid)
+			  'created (gmtimestamp))))
+	  (when cur
+	    (unless (and (test cur 'base base)
+			 (test cur 'capacity cap)
+			 (test cur 'partsize partsize)
+			 (test (get cur 'metadata) 'adjunct adjslot)
+			 (or (not (test cur 'prefix))
+			     (test cur 'prefix adj-prefix)))
+	      (irritant cur "Inconsitent adjunct flexpool")))
+	  (when (not cur) (dtype->file flexdef name)))))))
 
 ;;; Splitting existing pools into smaller flexpools
 
