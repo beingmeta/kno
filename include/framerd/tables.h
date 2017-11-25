@@ -86,7 +86,7 @@ FD_EXPORT void fd_display_table(u8_output out,lispval table,lispval keys);
 #define FD_INIT_SMAP_SIZE 7
 #define FD_INIT_HASH_SIZE 73
 
-FD_EXPORT short fd_init_smap_size;
+FD_EXPORT int   fd_init_smap_size;
 FD_EXPORT int   fd_init_hash_size;
 
 /* Slotmaps */
@@ -107,8 +107,8 @@ typedef int (*fd_kvfn)(struct FD_KEYVAL *,void *);
 
 typedef struct FD_SLOTMAP {
   FD_CONS_HEADER;
-  short n_slots;
-  short n_allocd;
+  int n_slots;
+  int n_allocd;
   unsigned int table_readonly:1;
   unsigned int table_modified:1;
   unsigned int table_finished:1;
@@ -321,7 +321,7 @@ FD_EXPORT lispval fd_blist_to_slotmap(lispval binding_list);
 
 typedef struct FD_SCHEMAP {
   FD_CONS_HEADER;
-  short schema_length;
+  int schema_length;
   unsigned int table_readonly:1;
   unsigned int table_modified:1;
   unsigned int table_finished:1;
@@ -383,10 +383,10 @@ typedef struct FD_SCHEMAP *fd_schemap;
   FD_XSCHEMAP_CLEAR_FINISHED(FD_XSCHEMAP(x))
 
 FD_EXPORT lispval fd_make_schemap
-  (struct FD_SCHEMAP *ptr,short n_slots,short flags,
+  (struct FD_SCHEMAP *ptr,int n_slots,int flags,
    lispval *schema,lispval *values);
 FD_EXPORT lispval fd_init_schemap
-  (struct FD_SCHEMAP *ptr,short n_keyvals,
+  (struct FD_SCHEMAP *ptr,int n_keyvals,
    struct FD_KEYVAL *init);
 FD_EXPORT void fd_reset_schemap(struct FD_SCHEMAP *ptr);
 

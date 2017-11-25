@@ -64,7 +64,7 @@ FD_FASTOP int numcompare(lispval x,lispval y)
   else return fd_numcompare(x,y);
 }
 
-short fd_init_smap_size = FD_INIT_SMAP_SIZE;
+int   fd_init_smap_size = FD_INIT_SMAP_SIZE;
 int   fd_init_hash_size = FD_INIT_HASH_SIZE;
 
 unsigned int fd_hash_bigthresh = FD_HASH_BIGTHRESH;
@@ -270,7 +270,7 @@ FD_EXPORT struct FD_KEYVAL *fd_sortvec_insert
 static int slotmap_fail(struct FD_SLOTMAP *sm,u8_context caller)
 {
   char dbuf[64];
-  short size = sm->n_slots, space = sm->n_allocd;
+  int size = sm->n_slots, space = sm->n_allocd;
   if (space >= SHRT_MAX)
     fd_seterr("SlotmapOverflow",caller,
               u8_sprintf(dbuf,64,"%d:%d>%d",size,space,SHRT_MAX),
@@ -1039,7 +1039,7 @@ FD_EXPORT lispval fd_blist_to_slotmap(lispval blist)
 /* Schema maps */
 
 FD_EXPORT lispval fd_make_schemap
-  (struct FD_SCHEMAP *ptr,short size,short flags,
+  (struct FD_SCHEMAP *ptr,int size,int flags,
    lispval *schema,lispval *values)
 {
   int i=0;
@@ -1162,7 +1162,7 @@ static lispval copy_schemap(lispval schemap,int flags)
 }
 
 FD_EXPORT lispval fd_init_schemap
-  (struct FD_SCHEMAP *ptr, short size, struct FD_KEYVAL *init)
+  (struct FD_SCHEMAP *ptr, int size, struct FD_KEYVAL *init)
 {
   int i=0; lispval *news, *newv;
   if (ptr == NULL) {
