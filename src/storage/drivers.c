@@ -584,7 +584,7 @@ FD_EXPORT void fd_recycle_oidcoder(struct FD_OIDCODER *oc)
 
 /* Slot codes */
 
-FD_EXPORT lispval _fd_slot_decode(struct FD_SLOTCODER *sc,unsigned int code)
+FD_EXPORT lispval _fd_code2slotid(struct FD_SLOTCODER *sc,unsigned int code)
 {
   if (sc->slotids == NULL)
     return FD_VOID;
@@ -593,7 +593,7 @@ FD_EXPORT lispval _fd_slot_decode(struct FD_SLOTCODER *sc,unsigned int code)
   else return -1;
 }
 
-FD_EXPORT int _fd_slot_encode(struct FD_SLOTCODER *sc,lispval slotid)
+FD_EXPORT int _fd_slotid2code(struct FD_SLOTCODER *sc,lispval slotid)
 {
   if (sc->n_slotcodes <= 0)
     return -1;
@@ -621,7 +621,7 @@ static int cmp_slotkeys(const void *vx,const void *vy)
 
 FD_EXPORT int fd_add_slotcode(struct FD_SLOTCODER *sc,lispval slotid)
 {
-  int probe = fd_slot_encode(sc,slotid);
+  int probe = fd_slotid2code(sc,slotid);
   if (probe>=0)
     return probe;
   return -1;

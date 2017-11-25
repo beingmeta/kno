@@ -613,7 +613,7 @@ FD_FASTOP ssize_t write_zkey(fd_hashindex hx,fd_outbuf out,lispval key)
   if (PAIRP(key)) {
     lispval car = FD_CAR(key);
     if ((OIDP(car)) || (SYMBOLP(car))) {
-      slotid_index = fd_slot_encode(&(hx->index_slotcodes),car);
+      slotid_index = fd_slotid2code(&(hx->index_slotcodes),car);
       if (slotid_index<0)
         retval = fd_write_byte(out,0)+fd_write_dtype(out,key);
       else retval = fd_write_zint(out,slotid_index+1)+
@@ -693,7 +693,7 @@ FD_FASTOP lispval read_key(fd_hashindex hx,fd_inbuf in)
   if (code==0)
     return fast_read_dtype(in);
   else {
-    lispval slotid = fd_slot_decode(&(hx->index_slotcodes),code-1);
+    lispval slotid = fd_code2slotid(&(hx->index_slotcodes),code-1);
     if ( (FD_SYMBOLP(slotid)) || (FD_OIDP(slotid)) ) {
       lispval cdr = fast_read_dtype(in);
       if (FD_ABORTP(cdr))
@@ -784,7 +784,7 @@ static lispval hashindex_fetch(fd_index ix,lispval key)
   if ((!((hx->storage_xformat)&(FD_HASHINDEX_ODDKEYS))) && (PAIRP(key))) {
     lispval slotid = FD_CAR(key);
     if ((SYMBOLP(slotid)) || (OIDP(slotid))) {
-      int code = fd_slot_encode(&(hx->index_slotcodes),slotid);
+      int code = fd_slotid2code(&(hx->index_slotcodes),slotid);
       if (code < 0) {
 #if FD_DEBUG_HASHINDEXES
         u8_message("The slotid %q isn't indexed in %s, returning {}",
@@ -1107,7 +1107,7 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
     if ((!oddkeys) && (PAIRP(key))) {
       lispval slotid = FD_CAR(key);
       if ((SYMBOLP(slotid)) || (OIDP(slotid))) {
-        int code = fd_slot_encode(&(hx->index_slotcodes),slotid);
+        int code = fd_slotid2code(&(hx->index_slotcodes),slotid);
         if (code < 0) {
         values[i++]=EMPTY;
         continue;}}}
@@ -1875,7 +1875,7 @@ static int process_adds(struct FD_HASHINDEX *hx,
     if ((oddkeys==0) && (PAIRP(key)) &&
         ((OIDP(FD_CAR(key))) || (SYMBOLP(FD_CAR(key))))) {
       lispval slotid = FD_CAR(key);
-      int code = fd_slot_encode(&(hx->index_slotcodes),slotid);
+      int code = fd_slotid2code(&(hx->index_slotcodes),slotid);
       if (code < 0) oddkeys = 1;}
     s[i].commit_key     = key;
     if (PRECHOICEP(val)) {

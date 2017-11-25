@@ -115,14 +115,14 @@ typedef struct FD_SLOTCODER {
   struct FD_VECTOR *slotids;
   struct FD_SLOTMAP *lookup;} *fd_slotcoder;
 
-FD_EXPORT int _fd_slot_encode(struct FD_SLOTCODER *,lispval slot);
-FD_EXPORT lispval _fd_slot_decode(struct FD_SLOTCODER *,unsigned int code);
+FD_EXPORT int _fd_slotid2code(struct FD_SLOTCODER *,lispval slot);
+FD_EXPORT lispval _fd_code2slotid(struct FD_SLOTCODER *,unsigned int code);
 FD_EXPORT int fd_add_slotcode(struct FD_SLOTCODER *,lispval slot);
 FD_EXPORT int fd_init_slotcoder(struct FD_SLOTCODER *,int,lispval *);
 FD_EXPORT void fd_recycle_slotcoder(struct FD_SLOTCODER *);
 
 #if (FRAMERD_SOURCE || FD_DRIVER_SOURCE)
-FD_FASTOP lispval fd_slot_decode(struct FD_SLOTCODER *sc,unsigned int code)
+FD_FASTOP lispval fd_code2slotid(struct FD_SLOTCODER *sc,unsigned int code)
 {
   if (sc->slotids == NULL)
     return FD_VOID;
@@ -131,7 +131,7 @@ FD_FASTOP lispval fd_slot_decode(struct FD_SLOTCODER *sc,unsigned int code)
   else return -1;
 }
 
-FD_FASTOP int fd_slot_encode(struct FD_SLOTCODER *sc,lispval slotid)
+FD_FASTOP int fd_slotid2code(struct FD_SLOTCODER *sc,lispval slotid)
 {
   if (sc->n_slotcodes <= 0)
     return -1;
@@ -146,8 +146,8 @@ FD_FASTOP int fd_slot_encode(struct FD_SLOTCODER *sc,lispval slotid)
     else return -1;}
 }
 #else
-#define fd_slot_encode _fd_slot_encode
-#define fd_slot_decode _fd_slot_decode
+#define fd_slotid2code _fd_slotid2code
+#define fd_code2slotid _fd_code2slotid
 #endif
 
 /* Coding OIDs */
