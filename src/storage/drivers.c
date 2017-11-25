@@ -529,22 +529,133 @@ FD_EXPORT int fd_add_oidcode(struct FD_OIDCODER *map,lispval oid)
   return code;
 }
 
-FD_EXPORT void fd_init_oidcode_map(struct FD_OIDCODER *oidmap)
+FD_EXPORT void fd_init_oidcoder(struct FD_OIDCODER *oidmap,
+                                int n_oids,lispval *oids)
 {
-  lispval *baseoids = u8_alloc_n(4,lispval);
-  unsigned int *oidcodes = u8_alloc_n(4,unsigned int);
-  int i=0; while (i<4) {
-    baseoids[i]=FD_FALSE;
-    oidcodes[i]=-1;
-    i++;}
-  oidmap->baseoids   = baseoids;
-  oidmap->oids_len   = 4;
-  oidmap->n_oids     = 0;
-  oidmap->oidcodes   = oidcodes;
-  oidmap->codes_len  = 4;
-  oidmap->max_baseid = -1;
+  if (n_oids == 0) {
+    lispval *baseoids = u8_alloc_n(4,lispval);
+    unsigned int *oidcodes = u8_alloc_n(4,unsigned int);
+    int i=0; while (i<4) {
+      baseoids[i]=FD_FALSE;
+      oidcodes[i]=-1;
+      i++;}
+    oidmap->baseoids   = baseoids;
+    oidmap->oids_len   = 4;
+    oidmap->n_oids     = 0;
+    oidmap->oidcodes   = oidcodes;
+    oidmap->codes_len  = 4;
+    oidmap->max_baseid = -1;}
+  else {
+    int i = 0, codes_len = 1024, max_baseid=-1, last_oid = 0;
+    lispval *baseoids = u8_alloc_n(n_oids,lispval);
+    while (codes_len < fd_n_base_oids)
+      codes_len = codes_len*2;
+    unsigned int *codes = u8_alloc_n(codes_len,unsigned int);
+    i = 0; while (i<codes_len) codes[i++]= -1;
+    i = 0; while (i<n_oids) {
+      lispval baseoid = oids[i];
+      if (FD_OIDP(baseoid)) {
+        int baseid    = FD_OID_BASE_ID(baseoid);
+        baseoids[i]   = baseoid;
+        if (codes[baseid] != -1) {
+          FD_OID addr = FD_OID_ADDR(baseoid);
+          u8_log(LOG_WARN,"Duplicate baseoid",
+                 "The baseoid @%llx/%llx (baseid=%d) is coded at %d and %d",
+                 FD_OID_LO(addr),FD_OID_HI(addr),baseid,
+                 i,codes[baseid]);}
+        codes[baseid] = i;
+        if (baseid > max_baseid) max_baseid = baseid;
+        last_oid = i;}
+      i++;}
+    oidmap->n_oids     = last_oid;
+    oidmap->baseoids   = baseoids;
+    oidmap->oidcodes   = codes;
+    oidmap->oids_len   = n_oids;
+    oidmap->codes_len  = codes_len;
+    oidmap->max_baseid = max_baseid;}
 }
 
+FD_EXPORT void fd_recycle_oidcoder(struct FD_OIDCODER *oc)
+{
+  u8_free(oc->baseoids);
+  u8_free(oc->oidcodes);
+  memset(oc,0,sizeof(struct FD_OIDCODER));
+}
+
+/* Slot codes */
+
+FD_EXPORT lispval _fd_slot_decode(struct FD_SLOTCODER *sc,unsigned int code)
+{
+  if (sc->slotids == NULL)
+    return FD_VOID;
+  else if (code < sc->n_slotcodes)
+    return sc->slotids->vec_elts[code];
+  else return -1;
+}
+
+FD_EXPORT int _fd_slot_encode(struct FD_SLOTCODER *sc,lispval slotid)
+{
+  if (sc->n_slotcodes <= 0)
+    return -1;
+  else {
+    struct FD_KEYVAL *kv =
+      fd_sortvec_get(slotid,sc->lookup->sm_keyvals,sc->lookup->n_slots);
+    if (kv) {
+      lispval v = kv->kv_val;
+      if (FD_FIXNUMP(v))
+        return FD_FIX2INT(v);
+      else return -1;}
+    else return -1;}
+}
+
+static int cmp_slotkeys(const void *vx,const void *vy)
+{
+  const struct FD_KEYVAL *kvx = vx;
+  const struct FD_KEYVAL *kvy = vy;
+  if (kvx->kv_key < kvy->kv_key)
+    return -1;
+  else if (kvx->kv_key == kvy->kv_key)
+    return 0;
+  else return 1;
+}
+
+FD_EXPORT int fd_add_slotcode(struct FD_SLOTCODER *sc,lispval slotid)
+{
+  int probe = fd_slot_encode(sc,slotid);
+  if (probe>=0)
+    return probe;
+  return -1;
+}
+
+FD_EXPORT int fd_init_slotcoder(struct FD_SLOTCODER *sc,
+                                int n_slotids,lispval *slotids)
+{
+  if (n_slotids) {
+    struct FD_KEYVAL *keyvals = u8_alloc_n(n_slotids,struct FD_KEYVAL);
+    sc->n_slotcodes = n_slotids;
+    sc->slotids = (fd_vector) fd_make_vector(n_slotids,slotids);
+    int i = 0; while (i < n_slotids) {
+      lispval slotid = slotids[i];
+      keyvals[i].kv_key = slotid;
+      keyvals[i].kv_val = FD_INT2FIX(i);
+      i++;}
+    qsort(keyvals,n_slotids,FD_KEYVAL_LEN,cmp_slotkeys);
+    sc->lookup = (fd_slotmap) fd_make_slotmap(n_slotids,n_slotids,keyvals);
+    u8_free(keyvals);
+    return n_slotids;}
+  else {
+    sc->n_slotcodes = 0;
+    sc->slotids = (fd_vector)  fd_empty_vector(16);
+    sc->lookup  = (fd_slotmap) fd_make_slotmap(16,0,NULL);
+    return 0;}
+}
+
+FD_EXPORT void fd_recycle_slotcoder(struct FD_SLOTCODER *sc)
+{
+  fd_decref(((lispval)(sc->slotids)));
+  fd_decref(((lispval)(sc->lookup)));
+  memset(sc,0,sizeof(struct FD_SLOTCODER));
+}
 
 /* Getting compression type from options */
 

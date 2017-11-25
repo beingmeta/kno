@@ -41,11 +41,7 @@ typedef struct FD_HASHINDEX {
   unsigned int storage_xformat, index_custom, table_n_keys;
   fd_offset_type index_offtype;
 
-  /* This is used to store compressed keys and values. */
-  int index_n_slotids, index_new_slotids;
-  lispval *index_slotids;
-  struct FD_SLOTID_LOOKUP *slotid_lookup;
-
+  struct FD_SLOTCODER index_slotcodes;
   struct FD_OIDCODER index_oidcodes;
 
   /* Pointers to keyblocks for the hashtable */

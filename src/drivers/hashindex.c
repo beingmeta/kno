@@ -215,11 +215,6 @@ FD_FASTOP lispval read_dtype_at_pos(fd_stream s,fd_off_t off)
 
 /* Opening a hash index */
 
-static int init_slotids
-(struct FD_HASHINDEX *hx,int n_slotids,lispval *slotids_init);
-static int init_baseoids
-(struct FD_HASHINDEX *hx,int n_baseoids,lispval *baseoids_init);
-
 static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
                                lispval opts)
 {
@@ -287,42 +282,35 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
   if (slotids_size) {
     lispval slotids_vector = read_dtype_at_pos(stream,slotids_pos);
     if (VOIDP(slotids_vector)) {
-      index->index_n_slotids = 0;
-      index->index_new_slotids = 0;
-      index->index_slotids = NULL;
-      index->slotid_lookup = NULL;}
+      fd_init_slotcoder(&(index->index_slotcodes),0,NULL);}
     else if (VECTORP(slotids_vector)) {
-      init_slotids(index,
-                   VEC_LEN(slotids_vector),
-                   VEC_DATA(slotids_vector));
+      fd_init_slotcoder(&(index->index_slotcodes),
+                        VEC_LEN(slotids_vector),
+                        VEC_DATA(slotids_vector));
       fd_decref(slotids_vector);}
     else {
       fd_seterr("Bad SLOTIDS data","open_hashindex",fname,VOID);
       fd_free_stream(stream);
       u8_free(index);
       return NULL;}}
-  else {
-    index->index_n_slotids = 0;
-    index->index_new_slotids = 0;
-    index->index_slotids = NULL;
-    index->slotid_lookup = NULL;}
+  else fd_init_slotcoder(&(index->index_slotcodes),0,NULL);
 
   /* Initialize the baseoids field used for compressed OID values */
   if (baseoids_size) {
     lispval baseoids_vector = read_dtype_at_pos(stream,baseoids_pos);
     if (VOIDP(baseoids_vector))
-      fd_init_oidcode_map(&(index->index_oidcodes));
+      fd_init_oidcoder(&(index->index_oidcodes),0,NULL);
     else if (VECTORP(baseoids_vector)) {
-      init_baseoids(index,
-                    VEC_LEN(baseoids_vector),
-                    VEC_DATA(baseoids_vector));
+      fd_init_oidcoder(&(index->index_oidcodes),
+                       VEC_LEN(baseoids_vector),
+                       VEC_DATA(baseoids_vector));
       fd_decref(baseoids_vector);}
     else {
       fd_seterr("Bad BASEOIDS data","open_hashindex",fname,VOID);
       fd_free_stream(stream);
       u8_free(index);
       return NULL;}}
-  else fd_init_oidcode_map(&(index->index_oidcodes));
+  else fd_init_oidcoder(&(index->index_oidcodes),0,NULL);
 
   lispval metadata=FD_VOID;
   if ( (metadata_size) && (metadata_loc) ) {
@@ -413,67 +401,6 @@ static fd_index recover_hashindex(u8_string fname,fd_storage_flags open_flags,
       return open_hashindex(fname,open_flags,opts);}
     else u8_seterr("FailedRecovery","recover_hashindex",recovery_file);}
   return NULL;
-}
-
-static int sort_by_slotid(const void *p1,const void *p2)
-{
-  const fd_slotid_lookup l1 = (fd_slotid_lookup)p1, l2 = (fd_slotid_lookup)p2;
-  if (l1->slotid<l2->slotid) return -1;
-  else if (l1->slotid>l2->slotid) return 1;
-  else return 0;
-}
-
-static int init_slotids(fd_hashindex hx,int n_slotids,lispval *slotids_init)
-{
-  struct FD_SLOTID_LOOKUP *lookup; int i = 0;
-  lispval *slotids, slotids_choice = EMPTY;
-  hx->index_slotids = slotids = u8_alloc_n(n_slotids,lispval);
-  hx->slotid_lookup = lookup = u8_alloc_n(n_slotids,FD_SLOTID_LOOKUP);
-  hx->index_n_slotids = n_slotids;
-  hx->index_new_slotids = 0;
-  if ((hx->storage_xformat)&(FD_HASHINDEX_ODDKEYS))
-    slotids_choice = VOID;
-  while (i<n_slotids) {
-    lispval slotid = slotids_init[i];
-    if (VOIDP(slotids_choice)) {}
-    else if (ATOMICP(slotid)) {
-      CHOICE_ADD(slotids_choice,slotid);}
-    else {
-      fd_decref(slotids_choice); slotids_choice = VOID;}
-    slotids[i]=slotid;
-    lookup[i].zindex = i;
-    lookup[i].slotid = fd_incref(slotid);
-    i++;}
-  qsort(lookup,n_slotids,sizeof(FD_SLOTID_LOOKUP),sort_by_slotid);
-  if (!(VOIDP(slotids_choice)))
-    hx->index_covers_slotids = fd_simplify_choice(slotids_choice);
-  return 0;
-}
-
-static int init_baseoids(fd_hashindex hx,int n_baseoids,lispval *baseoids_init)
-{
-  int i = 0, codes_len = 4096, max_baseid=-1, last_oid = 0;
-  lispval *baseoids = u8_alloc_n(n_baseoids,lispval);
-  while (codes_len < fd_n_base_oids)
-    codes_len = codes_len*2;
-  unsigned int *codes = u8_alloc_n(codes_len,unsigned int);
-  i = 0; while (i<codes_len) codes[i++]= -1;
-  i = 0; while (i<n_baseoids) {
-    lispval baseoid = baseoids_init[i];
-    if (FD_OIDP(baseoid)) {
-      int baseid    = FD_OID_BASE_ID(baseoid);
-      baseoids[i]   = baseoid;
-      codes[baseid] = i;
-      if (baseid > max_baseid) max_baseid = baseid;
-      last_oid = i;}
-    i++;}
-  hx->index_oidcodes.n_oids     = last_oid;
-  hx->index_oidcodes.baseoids   = baseoids;
-  hx->index_oidcodes.oidcodes   = codes;
-  hx->index_oidcodes.oids_len   = n_baseoids;
-  hx->index_oidcodes.codes_len  = codes_len;
-  hx->index_oidcodes.max_baseid = max_baseid;
-  return 0;
 }
 
 /* Making a hash index */
@@ -638,22 +565,6 @@ FD_FASTOP unsigned int hash_bytes(const unsigned char *start,int len)
 
 /* ZKEYs */
 
-FD_FASTOP int get_slotid_index(fd_hashindex hx,lispval slotid)
-{
-  const int size = hx->index_n_slotids;
-  fd_slotid_lookup bottom = hx->slotid_lookup, middle = bottom+size/2;
-  fd_slotid_lookup hard_top = bottom+size, top = hard_top;
-  while (top>bottom) {
-    if (slotid == middle->slotid) return middle->zindex;
-    else if (slotid<middle->slotid) {
-      top = middle-1; middle = bottom+(top-bottom)/2;}
-    else {
-      bottom = middle+1; middle = bottom+(top-bottom)/2;}
-    if ((middle) && (middle<hard_top) && (slotid == middle->slotid))
-      return middle->zindex;}
-  return -1;
-}
-
 static int fast_write_dtype(fd_outbuf out,lispval key)
 {
   int v2 = ((out->buf_flags)&FD_USE_DTYPEV2);
@@ -702,7 +613,7 @@ FD_FASTOP ssize_t write_zkey(fd_hashindex hx,fd_outbuf out,lispval key)
   if (PAIRP(key)) {
     lispval car = FD_CAR(key);
     if ((OIDP(car)) || (SYMBOLP(car))) {
-      slotid_index = get_slotid_index(hx,car);
+      slotid_index = fd_slot_encode(&(hx->index_slotcodes),car);
       if (slotid_index<0)
         retval = fd_write_byte(out,0)+fd_write_dtype(out,key);
       else retval = fd_write_zint(out,slotid_index+1)+
@@ -779,12 +690,16 @@ static lispval fast_read_dtype(fd_inbuf in)
 FD_FASTOP lispval read_key(fd_hashindex hx,fd_inbuf in)
 {
   int code = fd_read_zint(in);
-  if (code==0) return fast_read_dtype(in);
-  else if ((code-1)<hx->index_n_slotids) {
-    lispval cdr = fast_read_dtype(in);
-    if (FD_ABORTP(cdr)) return cdr;
-    else return fd_conspair(hx->index_slotids[code-1],cdr);}
-  else return fd_err(CorruptedHashIndex,"read_key",NULL,VOID);
+  if (code==0)
+    return fast_read_dtype(in);
+  else {
+    lispval slotid = fd_slot_decode(&(hx->index_slotcodes),code-1);
+    if ( (FD_SYMBOLP(slotid)) || (FD_OIDP(slotid)) ) {
+      lispval cdr = fast_read_dtype(in);
+      if (FD_ABORTP(cdr))
+        return cdr;
+      else return fd_conspair(slotid,cdr);}
+    else return fd_err(CorruptedHashIndex,"read_key",NULL,VOID);}
 }
 
 FD_EXPORT ssize_t hashindex_bucket(struct FD_HASHINDEX *hx,lispval key,
@@ -868,14 +783,15 @@ static lispval hashindex_fetch(fd_index ix,lispval key)
      whose slotid isn't in the slotids, the key isn't in the table. */
   if ((!((hx->storage_xformat)&(FD_HASHINDEX_ODDKEYS))) && (PAIRP(key))) {
     lispval slotid = FD_CAR(key);
-    if (((SYMBOLP(slotid)) || (OIDP(slotid))) &&
-        (get_slotid_index(hx,slotid)<0)) {
+    if ((SYMBOLP(slotid)) || (OIDP(slotid))) {
+      int code = fd_slot_encode(&(hx->index_slotcodes),slotid);
+      if (code < 0) {
 #if FD_DEBUG_HASHINDEXES
-      u8_message("The slotid %q isn't indexed in %s, returning {}",
-                 slotid,hx->indexid);
+        u8_message("The slotid %q isn't indexed in %s, returning {}",
+                   slotid,hx->indexid);
 #endif
-      fd_close_outbuf(&out);
-      return EMPTY;}}
+        fd_close_outbuf(&out);
+        return EMPTY;}}}
   if ((hx->storage_xformat)&(FD_HASHINDEX_DTYPEV2))
     out.buf_flags |= FD_USE_DTYPEV2;
   dtype_len = write_zkey(hx,&out,key);
@@ -1190,10 +1106,11 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
        whose slotid isn't in the slotids, the key isn't in the table. */
     if ((!oddkeys) && (PAIRP(key))) {
       lispval slotid = FD_CAR(key);
-      if (((SYMBOLP(slotid)) || (OIDP(slotid))) &&
-          (get_slotid_index(hx,slotid)<0)) {
+      if ((SYMBOLP(slotid)) || (OIDP(slotid))) {
+        int code = fd_slot_encode(&(hx->index_slotcodes),slotid);
+        if (code < 0) {
         values[i++]=EMPTY;
-        continue;}}
+        continue;}}}
     ksched[n_entries].ksched_i = i;
     ksched[n_entries].ksched_key = key;
     ksched[n_entries].ksched_keyoff = dt_start;
@@ -1957,7 +1874,9 @@ static int process_adds(struct FD_HASHINDEX *hx,
     lispval val = adds[add_i].kv_val;
     if ((oddkeys==0) && (PAIRP(key)) &&
         ((OIDP(FD_CAR(key))) || (SYMBOLP(FD_CAR(key))))) {
-      if (get_slotid_index(hx,key)<0) oddkeys = 1;}
+      lispval slotid = FD_CAR(key);
+      int code = fd_slot_encode(&(hx->index_slotcodes),slotid);
+      if (code < 0) oddkeys = 1;}
     s[i].commit_key     = key;
     if (PRECHOICEP(val)) {
       s[i].commit_values  = fd_make_simple_choice(val);
@@ -2848,6 +2767,15 @@ static void hashindex_close(fd_index ix)
   fd_unlock_index(hx);
 }
 
+static void hashindex_recycle(fd_index ix)
+{
+  struct FD_HASHINDEX *hx = (struct FD_HASHINDEX *)ix;
+  if ( (hx->index_offdata) || (hx->index_stream.stream_fileno > 0) )
+    hashindex_close(ix);
+  fd_recycle_slotcoder(&(hx->index_slotcodes));
+  fd_recycle_oidcoder(&(hx->index_oidcodes));
+}
+
 /* Creating a hash ksched_i handler */
 
 static int interpret_hashindex_flags(lispval opts)
@@ -2937,7 +2865,7 @@ static lispval hashindex_stats(struct FD_HASHINDEX *hx)
   fd_add(result,fd_intern("NBUCKETS"),FD_INT(hx->index_n_buckets));
   fd_add(result,fd_intern("NKEYS"),FD_INT(hx->table_n_keys));
   fd_add(result,fd_intern("NBASEOIDS"),FD_INT((hx->index_oidcodes.n_oids)));
-  fd_add(result,fd_intern("NSLOTIDS"),FD_INT(hx->index_n_slotids));
+  fd_add(result,fd_intern("NSLOTIDS"),FD_INT(hx->index_slotcodes.n_slotcodes));
   hashindex_getstats(hx,&n_filled,&maxk,&n_singles,&n2sum);
   fd_add(result,fd_intern("NFILLED"),FD_INT(n_filled));
   fd_add(result,fd_intern("NSINGLES"),FD_INT(n_singles));
@@ -3319,7 +3247,7 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
     else return fd_err(fd_TooManyArgs,"hashindex_ctl",hx->indexid,op);}
   else if ( (op == fd_metadata_op) && (n == 0) ) {
     lispval base = fd_index_base_metadata(ix);
-    int n_slotids = hx->index_n_slotids+hx->index_new_slotids;
+    int n_slotids = hx->index_slotcodes.n_slotcodes;
     int n_baseoids = hx->index_oidcodes.n_oids;
     fd_store(base,slotids_symbol,FD_INT(n_slotids));
     fd_store(base,baseoids_symbol,FD_INT(n_baseoids));
@@ -3330,10 +3258,8 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
     fd_add(base,FDSYM_READONLY,buckets_symbol);
     fd_add(base,FDSYM_READONLY,nkeys_symbol);
     return base;}
-  else if ( (op == fd_metadata_op) && (n == 1) && (args[0]==slotids_symbol) ) {
-    fd_incref_vec(hx->index_slotids,hx->index_n_slotids+hx->index_new_slotids);
-    return fd_make_vector(hx->index_n_slotids+hx->index_new_slotids,
-                          hx->index_slotids);}
+  else if ( (op == fd_metadata_op) && (n == 1) && (args[0]==slotids_symbol) )
+    return fd_deep_copy((lispval)(hx->index_slotcodes.slotids));
   else if (op == fd_stats_op)
     return hashindex_stats(hx);
   else if (op == fd_reload_op) {
@@ -3341,10 +3267,14 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
     fd_index_swapout(ix,((n==0)?(FD_VOID):(args[0])));
     return FD_TRUE;}
   else if (op == fd_slotids_op) {
-    lispval *elts = u8_alloc_n(hx->index_n_slotids,lispval);
-    lispval *slotids = hx->index_slotids;
-    int i = 0, n = hx->index_n_slotids;
-    while (i< n) {elts[i]=slotids[i]; i++;}
+    int n_slotcodes = hx->index_slotcodes.n_slotcodes;
+    lispval *elts = u8_alloc_n(n_slotcodes,lispval);
+    lispval *slotids = hx->index_slotcodes.slotids->vec_elts;
+    int i = 0;
+    while (i< n_slotcodes) {
+      lispval slotid = slotids[i];
+      elts[i]=slotid; fd_incref(slotid);
+      i++;}
     return fd_wrap_vector(n,elts);}
   else if (op == fd_baseoids_op) {
     int n_baseoids=hx->index_oidcodes.n_oids;
@@ -3405,7 +3335,7 @@ static struct FD_INDEX_HANDLER hashindex_handler={
   NULL, /* batchadd */
   hashindex_create, /* create */
   NULL, /* walk */
-  NULL, /* recycle */
+  hashindex_recycle, /* recycle */
   hashindex_ctl /* indexctl */
 };
 

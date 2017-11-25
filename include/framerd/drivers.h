@@ -108,7 +108,49 @@ unsigned int fd_hash_lisp2(lispval x);
 unsigned int fd_hash_lisp3(lispval x);
 unsigned int fd_hash_dtype_rep(lispval x);
 
-/* BASEOID ids */
+/* Coding slotids */
+
+typedef struct FD_SLOTCODER {
+  int n_slotcodes;
+  struct FD_VECTOR *slotids;
+  struct FD_SLOTMAP *lookup;} *fd_slotcoder;
+
+FD_EXPORT int _fd_slot_encode(struct FD_SLOTCODER *,lispval slot);
+FD_EXPORT lispval _fd_slot_decode(struct FD_SLOTCODER *,unsigned int code);
+FD_EXPORT int fd_add_slotcode(struct FD_SLOTCODER *,lispval slot);
+FD_EXPORT int fd_init_slotcoder(struct FD_SLOTCODER *,int,lispval *);
+FD_EXPORT void fd_recycle_slotcoder(struct FD_SLOTCODER *);
+
+#if (FRAMERD_SOURCE || FD_DRIVER_SOURCE)
+FD_FASTOP lispval fd_slot_decode(struct FD_SLOTCODER *sc,unsigned int code)
+{
+  if (sc->slotids == NULL)
+    return FD_VOID;
+  else if (code < sc->n_slotcodes)
+    return sc->slotids->vec_elts[code];
+  else return -1;
+}
+
+FD_FASTOP int fd_slot_encode(struct FD_SLOTCODER *sc,lispval slotid)
+{
+  if (sc->n_slotcodes <= 0)
+    return -1;
+  else {
+    struct FD_KEYVAL *kv =
+      fd_sortvec_get(slotid,sc->lookup->sm_keyvals,sc->lookup->n_slots);
+    if (kv) {
+      lispval v = kv->kv_val;
+      if (FD_FIXNUMP(v))
+        return FD_FIX2INT(v);
+      else return -1;}
+    else return -1;}
+}
+#else
+#define fd_slot_encode _fd_slot_encode
+#define fd_slot_decode _fd_slot_decode
+#endif
+
+/* Coding OIDs */
 
 typedef struct FD_OIDCODER {
   unsigned char modified:1;
@@ -120,9 +162,10 @@ typedef struct FD_OIDCODER {
 FD_EXPORT lispval _fd_get_baseoid(struct FD_OIDCODER *map,unsigned int code);
 FD_EXPORT int _fd_get_oidcode(struct FD_OIDCODER *map,int oidbaseid);
 FD_EXPORT int fd_add_oidcode(struct FD_OIDCODER *map,lispval oid);
-FD_EXPORT void fd_init_oidcode_map(struct FD_OIDCODER *oidmap);
+FD_EXPORT void fd_init_oidcoder(struct FD_OIDCODER *,int,lispval *);
+FD_EXPORT void fd_recycle_oidcoder(struct FD_OIDCODER *);
 
-#if FRAMERD_SOURCE
+#if (FRAMERD_SOURCE || FD_DRIVER_SOURCE)
 FD_FASTOP lispval fd_get_baseoid(struct FD_OIDCODER *map,unsigned int code)
 {
   if (code > map->n_oids)
