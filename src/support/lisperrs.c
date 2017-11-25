@@ -671,16 +671,16 @@ static int unparse_exception(struct U8_OUTPUT *out,lispval x)
   u8_puts(out,"#<!EXCEPTION");
   if (condition) u8_printf(out," %s",condition);
   else u8_puts(out," missingCondition");
-  if (caller) u8_printf(out," @%s",caller);
+  if (caller) u8_printf(out," <%s>",caller);
   if (details) u8_printf(out," (%s)",details);
   if (!(VOIDP(irritant))) {
     if (max_irritant_len==0) {}
     else if (max_irritant_len<0)
-      u8_printf(out," %q",irritant);
+      u8_printf(out," =%q",irritant);
     else {
       u8_byte buf[max_irritant_len+1];
       u8_sprintf(buf,max_irritant_len,"%q",irritant);
-      u8_printf(out," %s...",buf);}}
+      u8_printf(out," =%s...",buf);}}
   u8_printf(out,"!>");
   return 1;
 }
