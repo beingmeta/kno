@@ -290,7 +290,8 @@ FD_EXPORT int _fd_write_8bytes(struct FD_OUTBUF *,fd_8bytes);
 
 FD_FASTOP int fd_write_zint(struct FD_OUTBUF *s,fd_8bytes n)
 {
-  if (FD_EXPECT_FALSE(FD_ISREADING(s))) return fd_isreadbuf(s);
+  if (FD_EXPECT_FALSE(FD_ISREADING(s)))
+    return fd_isreadbuf(s);
   else if (n < (((fd_8bytes)1)<<7)) {
     return fd_write_byte(s,n);}
   else if (n < (((fd_8bytes)1)<<14)) {

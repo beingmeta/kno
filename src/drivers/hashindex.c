@@ -310,11 +310,8 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
   /* Initialize the baseoids field used for compressed OID values */
   if (baseoids_size) {
     lispval baseoids_vector = read_dtype_at_pos(stream,baseoids_pos);
-    if (VOIDP(baseoids_vector)) {
-      index->index_n_baseoids = 0;
-      index->index_new_baseoids = 0;
-      index->index_baseoid_ids = NULL;
-      index->index_ids2baseoids = NULL;}
+    if (VOIDP(baseoids_vector))
+      fd_init_oidcode_map(&(index->index_oidcodes));
     else if (VECTORP(baseoids_vector)) {
       init_baseoids(index,
                     VEC_LEN(baseoids_vector),
@@ -325,14 +322,10 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
       fd_free_stream(stream);
       u8_free(index);
       return NULL;}}
-  else {
-    index->index_n_baseoids = 0;
-    index->index_new_baseoids = 0;
-    index->index_baseoid_ids = NULL;
-    index->index_ids2baseoids = NULL;}
+  else fd_init_oidcode_map(&(index->index_oidcodes));
 
   lispval metadata=FD_VOID;
-  if (metadata_size) {
+  if ( (metadata_size) && (metadata_loc) ) {
     if (fd_setpos(stream,metadata_loc)>0) {
       fd_inbuf in = fd_readbuf(stream);
       metadata = fd_read_dtype(in);}
@@ -343,13 +336,26 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
     if (! ( (FD_FALSEP(metadata)) || (FD_SLOTMAPP(metadata)) ) ) {
       u8_logf(LOG_WARN,"BadMetaData","Ignoring bad metadata stored for %s",fname);
       metadata=FD_FALSE;}}
-  if (FD_SLOTMAPP(metadata)) {
+  else if ( (metadata_size) || (metadata_loc) )
+    u8_log(LOG_WARN,"BadMetadata",
+           "Bad metadata location informat for %s @%lld+%lld",
+           fname,metadata_loc,metadata_size);
+  else NO_ELSE;
+
+  if (FD_VOIDP(metadata)) {}
+  else if (FD_SLOTMAPP(metadata)) {
     struct FD_SLOTMAP *from_struct = &(index->index_metadata);
     struct FD_SLOTMAP *from_disk = (fd_slotmap) metadata;
     if (from_struct->sm_keyvals) u8_free(from_struct->sm_keyvals);
     memcpy(from_struct,from_disk,FD_SLOTMAP_LEN);
     u8_free(from_disk);
+    metadata = FD_VOID;
     from_struct->table_modified=0;}
+  else {
+    u8_log(LOG_WARN,"BadMetadata",
+           "Bad metadata for %s @%lld+%lld: %q",
+           fname,metadata_loc,metadata_size,metadata);
+    fd_decref(metadata);}
 
   u8_init_mutex(&(index->index_lock));
 
@@ -446,20 +452,27 @@ static int init_slotids(fd_hashindex hx,int n_slotids,lispval *slotids_init)
 
 static int init_baseoids(fd_hashindex hx,int n_baseoids,lispval *baseoids_init)
 {
-  int i = 0;
-  unsigned int *index_baseoid_ids = u8_alloc_n(n_baseoids,unsigned int);
-  short *index_ids2baseoids = u8_alloc_n(1024,short);
-  memset(index_baseoid_ids,0,SIZEOF_INT*n_baseoids);
-  i = 0; while (i<1024) index_ids2baseoids[i++]= -1;
-  hx->index_n_baseoids = n_baseoids;
-  hx->index_new_baseoids = 0;
-  hx->index_baseoid_ids = index_baseoid_ids;
-  hx->index_ids2baseoids = index_ids2baseoids;
+  int i = 0, codes_len = 4096, max_baseid=-1, last_oid = 0;
+  lispval *baseoids = u8_alloc_n(n_baseoids,lispval);
+  while (codes_len < fd_n_base_oids)
+    codes_len = codes_len*2;
+  unsigned int *codes = u8_alloc_n(codes_len,unsigned int);
+  i = 0; while (i<codes_len) codes[i++]= -1;
   i = 0; while (i<n_baseoids) {
     lispval baseoid = baseoids_init[i];
-    index_baseoid_ids[i]=FD_OID_BASE_ID(baseoid);
-    index_ids2baseoids[FD_OID_BASE_ID(baseoid)]=i;
+    if (FD_OIDP(baseoid)) {
+      int baseid    = FD_OID_BASE_ID(baseoid);
+      baseoids[i]   = baseoid;
+      codes[baseid] = i;
+      if (baseid > max_baseid) max_baseid = baseid;
+      last_oid = i;}
     i++;}
+  hx->index_oidcodes.n_oids     = last_oid;
+  hx->index_oidcodes.baseoids   = baseoids;
+  hx->index_oidcodes.oidcodes   = codes;
+  hx->index_oidcodes.oids_len   = n_baseoids;
+  hx->index_oidcodes.codes_len  = codes_len;
+  hx->index_oidcodes.max_baseid = max_baseid;
   return 0;
 }
 
@@ -794,21 +807,28 @@ FD_EXPORT ssize_t hashindex_bucket(struct FD_HASHINDEX *hx,lispval key,
 
 /* ZVALUEs */
 
-FD_FASTOP lispval write_zvalue(fd_hashindex hx,fd_outbuf out,lispval value)
+FD_FASTOP int write_zvalue(fd_hashindex hx,fd_outbuf out,lispval value)
 {
-  if ((OIDP(value))&&(hx->index_ids2baseoids)) {
+  if (OIDP(value)) { /* (&&(hx->index_oidcodes.n_oids)) */
     int base = FD_OID_BASE_ID(value);
-    short baseoid_index = hx->index_ids2baseoids[base];
-    if (baseoid_index<0) {
+    int oidcode = fd_get_oidcode(&(hx->index_oidcodes),base);
+    if ( (oidcode<0) && (hx->index_oidcodes.n_oids < hx->index_oidcodes.oids_len) )
+      oidcode = fd_add_oidcode(&(hx->index_oidcodes),value);
+    if (oidcode<0) {
       int bytes_written; fd_write_byte(out,0);
       bytes_written = fd_write_dtype(out,value);
-      if (bytes_written<0) return FD_ERROR;
+      if (bytes_written<0)
+        return FD_ERROR;
       else return bytes_written+1;}
     else {
       int offset = FD_OID_BASE_OFFSET(value), bytes_written;
-      bytes_written = fd_write_zint(out,baseoid_index+1);
-      if (bytes_written<0) return FD_ERROR;
-      bytes_written = bytes_written+fd_write_zint(out,offset);
+      bytes_written = fd_write_zint(out,oidcode+1);
+      if (bytes_written<0)
+        return FD_ERROR;
+      int more = fd_write_zint(out,offset);
+      if (more<0)
+        return FD_ERROR;
+      else bytes_written = bytes_written+more;
       return bytes_written;}}
   else {
     int bytes_written; fd_write_byte(out,0);
@@ -822,7 +842,8 @@ FD_FASTOP lispval read_zvalue(fd_hashindex hx,fd_inbuf in)
   if (prefix==0)
     return fd_read_dtype(in);
   else {
-    unsigned int base = hx->index_baseoid_ids[prefix-1];
+    lispval baseoid = fd_get_baseoid(&(hx->index_oidcodes),(prefix-1));
+    unsigned int base = FD_OID_BASE_ID(baseoid);
     unsigned int offset = fd_read_zint(in);
     return FD_CONSTRUCT_OID(base,offset);}
 }
@@ -2582,6 +2603,44 @@ static int update_hashindex_metadata(fd_hashindex hx,
   else return 1;
 }
 
+static int update_hashindex_baseoids(fd_hashindex hx,
+                                     struct FD_STREAM *stream,
+                                     struct FD_STREAM *head)
+{
+  int error=0;
+  u8_logf(LOG_WARN,"WriteOIDMap",
+          "Writing modified hashindex oidmap for %s",hx->indexid);
+  ssize_t baseoids_pos = fd_endpos(stream);
+  if (baseoids_pos>0) {
+    fd_outbuf outbuf = fd_writebuf(stream);
+    int len = hx->index_oidcodes.oids_len;
+    struct FD_VECTOR vec;
+    FD_INIT_STATIC_CONS(&vec,fd_vector_type);
+    vec.vec_length = len;
+    vec.vec_free_elts = vec.vec_bigalloc = vec.vec_bigalloc_elts =0;
+    vec.vec_elts = hx->index_oidcodes.baseoids;
+    ssize_t new_baseoids_size = fd_write_dtype(outbuf,(lispval)&vec);
+    ssize_t baseoids_end = fd_getpos(stream);
+    if (new_baseoids_size<0)
+      error=1;
+    else {
+      if ((baseoids_end-baseoids_pos) != new_baseoids_size) {
+        u8_logf(LOG_CRIT,"BaseOidsSizeIconsistency",
+                "There was an inconsistency writing the base oids for %s",
+                hx->indexid);}
+      fd_write_8bytes_at(head,baseoids_pos,FD_HASHINDEX_BASEOIDS_POS);
+      fd_write_4bytes_at(head,baseoids_end-baseoids_pos,
+                         (FD_HASHINDEX_BASEOIDS_POS+8));}}
+  else error=1;
+  if (error)
+    u8_logf(LOG_CRIT,"BaseOIDsWriteError",
+            "There was an inconsistency writing the metadata for %s",
+            hx->indexid);
+  if (error)
+    return -1;
+  else return 1;
+}
+
 static int update_hashindex_ondisk
 (fd_hashindex hx,lispval metadata,
  unsigned int flags,unsigned int cur_keys,
@@ -2719,6 +2778,9 @@ static int update_hashindex_ondisk
 
   if (FD_SLOTMAPP(metadata))
     update_hashindex_metadata(hx,metadata,stream,head);
+
+  if (hx->index_oidcodes.modified)
+    update_hashindex_baseoids(hx,stream,head);
 
   fd_flush_stream(stream);
   fsync(stream->stream_fileno);
@@ -2874,7 +2936,7 @@ static lispval hashindex_stats(struct FD_HASHINDEX *hx)
   int n_filled = 0, maxk = 0, n_singles = 0, n2sum = 0;
   fd_add(result,fd_intern("NBUCKETS"),FD_INT(hx->index_n_buckets));
   fd_add(result,fd_intern("NKEYS"),FD_INT(hx->table_n_keys));
-  fd_add(result,fd_intern("NBASEOIDS"),FD_INT(hx->index_n_baseoids));
+  fd_add(result,fd_intern("NBASEOIDS"),FD_INT((hx->index_oidcodes.n_oids)));
   fd_add(result,fd_intern("NSLOTIDS"),FD_INT(hx->index_n_slotids));
   hashindex_getstats(hx,&n_filled,&maxk,&n_singles,&n2sum);
   fd_add(result,fd_intern("NFILLED"),FD_INT(n_filled));
@@ -3258,7 +3320,7 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
   else if ( (op == fd_metadata_op) && (n == 0) ) {
     lispval base = fd_index_base_metadata(ix);
     int n_slotids = hx->index_n_slotids+hx->index_new_slotids;
-    int n_baseoids = hx->index_n_baseoids+hx->index_new_baseoids;
+    int n_baseoids = hx->index_oidcodes.n_oids;
     fd_store(base,slotids_symbol,FD_INT(n_slotids));
     fd_store(base,baseoids_symbol,FD_INT(n_baseoids));
     fd_store(base,buckets_symbol,FD_INT(hx->index_n_buckets));
@@ -3285,12 +3347,12 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
     while (i< n) {elts[i]=slotids[i]; i++;}
     return fd_wrap_vector(n,elts);}
   else if (op == fd_baseoids_op) {
-    int n_baseoids=hx->index_n_baseoids+hx->index_new_baseoids;
-    unsigned int *baseids=hx->index_baseoid_ids;
+    int n_baseoids=hx->index_oidcodes.n_oids;
+    lispval *baseoids=hx->index_oidcodes.baseoids;
     lispval result=fd_make_vector(n_baseoids,NULL);
     int i=0; while (i<n_baseoids) {
-      int baseid=baseids[i];
-      FD_VECTOR_SET(result,i,fd_make_oid(fd_base_oids[baseid]));
+      lispval baseoid = baseoids[i];
+      FD_VECTOR_SET(result,i,baseoid);
       i++;}
     return result;}
   else if (op == fd_capacity_op)

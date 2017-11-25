@@ -476,6 +476,76 @@ fd_index fd_make_index(u8_string spec,
     else return ixtype->handler->create(spec,ixtype->type_data,flags,opts);}
 }
 
+/* OIDCODE maps */
+
+FD_EXPORT lispval _fd_get_baseoid(struct FD_OIDCODER *map,unsigned int oidcode)
+{
+  if (oidcode > map->n_oids)
+    return FD_VOID;
+  else return map->baseoids[oidcode];
+}
+
+FD_EXPORT int _fd_get_oidcode(struct FD_OIDCODER *map,int oidbaseid)
+{
+  if (oidbaseid > map->max_baseid)
+    return -1;
+  else return map->oidcodes[oidbaseid];
+}
+
+FD_EXPORT int fd_add_oidcode(struct FD_OIDCODER *map,lispval oid)
+{
+  int baseid = FD_OID_BASE_ID(oid);
+  if (baseid <= map->max_baseid) {
+    int v = map->oidcodes[baseid];
+    if (v>0) return v;}
+  if (baseid >= map->codes_len) {
+    int new_len = map->codes_len;
+    while (baseid >= new_len) new_len = new_len*2;
+    unsigned int *new_codes =
+      u8_realloc(map->oidcodes,sizeof(unsigned int)*new_len);
+    if (new_codes) {
+      int i = map->codes_len;
+      while (i<new_len) new_codes[i++]=-1;
+      map->oidcodes = new_codes;
+      map->codes_len = new_len;}
+    else return -1;}
+  if (map->n_oids >= map->oids_len) {
+    unsigned int len = map->oids_len, new_len = len*2;
+    lispval *cur_oids = map->baseoids;
+    lispval *new_oids = u8_malloc(sizeof(lispval)*new_len);
+    memcpy(new_oids,cur_oids,sizeof(lispval)*len);
+    int i = len; while (i<new_len) {
+      new_oids[i++]=FD_FALSE;}
+    if (new_oids) {
+      map->baseoids = new_oids;
+      map->oids_len = new_len;}
+    else return -1;}
+  int code = map->n_oids++;
+  map->baseoids[code]     = oid;
+  map->oidcodes[baseid]  = code;
+  if (baseid > map->max_baseid)
+    map->max_baseid=baseid;
+  map->modified = 1;
+  return code;
+}
+
+FD_EXPORT void fd_init_oidcode_map(struct FD_OIDCODER *oidmap)
+{
+  lispval *baseoids = u8_alloc_n(4,lispval);
+  unsigned int *oidcodes = u8_alloc_n(4,unsigned int);
+  int i=0; while (i<4) {
+    baseoids[i]=FD_FALSE;
+    oidcodes[i]=-1;
+    i++;}
+  oidmap->baseoids   = baseoids;
+  oidmap->oids_len   = 4;
+  oidmap->n_oids     = 0;
+  oidmap->oidcodes   = oidcodes;
+  oidmap->codes_len  = 4;
+  oidmap->max_baseid = -1;
+}
+
+
 /* Getting compression type from options */
 
 static lispval compression_symbol, snappy_symbol, none_symbol, no_symbol;

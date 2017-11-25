@@ -45,9 +45,8 @@ typedef struct FD_HASHINDEX {
   int index_n_slotids, index_new_slotids;
   lispval *index_slotids;
   struct FD_SLOTID_LOOKUP *slotid_lookup;
-  int index_n_baseoids, index_new_baseoids;
-  unsigned int *index_baseoid_ids;
-  short *index_ids2baseoids;
+
+  struct FD_OIDCODER index_oidcodes;
 
   /* Pointers to keyblocks for the hashtable */
   unsigned int *index_offdata;

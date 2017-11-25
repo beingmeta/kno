@@ -108,6 +108,39 @@ unsigned int fd_hash_lisp2(lispval x);
 unsigned int fd_hash_lisp3(lispval x);
 unsigned int fd_hash_dtype_rep(lispval x);
 
+/* BASEOID ids */
+
+typedef struct FD_OIDCODER {
+  unsigned char modified:1;
+  unsigned int n_oids, oids_len;
+  lispval *baseoids;
+  int max_baseid, codes_len;
+  unsigned int *oidcodes;} *fd_oidcoder;
+
+FD_EXPORT lispval _fd_get_baseoid(struct FD_OIDCODER *map,unsigned int code);
+FD_EXPORT int _fd_get_oidcode(struct FD_OIDCODER *map,int oidbaseid);
+FD_EXPORT int fd_add_oidcode(struct FD_OIDCODER *map,lispval oid);
+FD_EXPORT void fd_init_oidcode_map(struct FD_OIDCODER *oidmap);
+
+#if FRAMERD_SOURCE
+FD_FASTOP lispval fd_get_baseoid(struct FD_OIDCODER *map,unsigned int code)
+{
+  if (code > map->n_oids)
+    return FD_VOID;
+  else return map->baseoids[code];
+}
+
+FD_FASTOP int fd_get_oidcode(struct FD_OIDCODER *map,int baseid)
+{
+  if (baseid > map->max_baseid)
+    return -1;
+  else return map->oidcodes[baseid];
+}
+#else
+#define fd_get_baseoid _fd_get_baseoid
+#define fd_get_oidcode _fd_get_oidcode
+#endif
+
 /* Functional arguments */
 
 #define FD_ISFUNARG(fn) \
