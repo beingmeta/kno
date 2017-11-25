@@ -630,6 +630,8 @@ FD_EXPORT int fd_add_slotcode(struct FD_SLOTCODER *sc,lispval slotid)
 FD_EXPORT int fd_init_slotcoder(struct FD_SLOTCODER *sc,
                                 int n_slotids,lispval *slotids)
 {
+  memset(sc,0,sizeof(struct FD_SLOTCODER));
+  u8_init_rwlock(&(sc->rwlock));
   if (n_slotids) {
     struct FD_KEYVAL *keyvals = u8_alloc_n(n_slotids,struct FD_KEYVAL);
     sc->n_slotcodes = n_slotids;
@@ -641,17 +643,20 @@ FD_EXPORT int fd_init_slotcoder(struct FD_SLOTCODER *sc,
       i++;}
     qsort(keyvals,n_slotids,FD_KEYVAL_LEN,cmp_slotkeys);
     sc->lookup = (fd_slotmap) fd_make_slotmap(n_slotids,n_slotids,keyvals);
+    sc->lookup->sm_sort_keyvals = 1;
     u8_free(keyvals);
     return n_slotids;}
   else {
     sc->n_slotcodes = 0;
     sc->slotids = (fd_vector)  fd_empty_vector(16);
     sc->lookup  = (fd_slotmap) fd_make_slotmap(16,0,NULL);
+    sc->lookup->sm_sort_keyvals = 1;
     return 0;}
 }
 
 FD_EXPORT void fd_recycle_slotcoder(struct FD_SLOTCODER *sc)
 {
+  u8_destroy_rwlock(&(sc->rwlock));
   fd_decref(((lispval)(sc->slotids)));
   fd_decref(((lispval)(sc->lookup)));
   memset(sc,0,sizeof(struct FD_SLOTCODER));

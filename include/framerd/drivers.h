@@ -111,7 +111,8 @@ unsigned int fd_hash_dtype_rep(lispval x);
 /* Coding slotids */
 
 typedef struct FD_SLOTCODER {
-  int n_slotcodes;
+  U8_RWLOCK_DECL(rwlock);
+  int n_slotcodes, modified;
   struct FD_VECTOR *slotids;
   struct FD_SLOTMAP *lookup;} *fd_slotcoder;
 
