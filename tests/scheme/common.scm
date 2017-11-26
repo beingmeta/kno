@@ -1,4 +1,11 @@
-(use-module '{reflection optimize logger})
+(use-module '{reflection varconfig optimize logger})
+
+(define started (elapsed-time))
+(define logtime-file #f)
+(varconfig! LOGTIME logtime-file)
+(define (save-elapsed-atexit)
+  (when logtime-file (fileout logtime-file (elapsed-time started))))
+(config! 'atexit save-elapsed-atexit)
 
 (define (optimization-leaks)
   (when (and (config 'testoptimized) 

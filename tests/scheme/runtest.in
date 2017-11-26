@@ -6,6 +6,7 @@ if test $# -eq 0; then
 fi
 PROGNAME=$1; shift;
 LOGFILE=$$.log
+LOGTIME=t$$.elapsed
 
 if test ! -z ${PREAMBLE}; then
    echo "TEST: " ${PROGNAME} $*;
@@ -13,8 +14,11 @@ fi;
 
 . ./runenv.sh
 
-if @test_env@ ${PROGNAME} $* > ${LOGFILE}; then
-   echo "SUCCESS:" ${PROGNAME} $*;
+if @test_env@ ${PROGNAME} $* LOGTIME=${LOGTIME} > ${LOGFILE}; then
+    if test -f ${LOGTIME}; then
+	echo "SUCCESS:" ${PROGNAME} $* "("$(cat ${LOGTIME})"s)";
+	rm ${LOGTIME};
+    else echo "SUCCESS:" ${PROGNAME} $*; fi
    cat ${LOGFILE} >> success.log
    rm ${LOGFILE};
    exit 0

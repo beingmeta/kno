@@ -1,5 +1,7 @@
 (use-module '{fileio logger varconfig})
 
+(load-component "common.scm")
+
 (config! 'CHECKDTSIZE #t)
 
 (define dbsource #f)

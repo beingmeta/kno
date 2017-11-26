@@ -1,4 +1,5 @@
 (use-module '{logger optimize})
+(load-component "common.scm")
 (config! 'optalltest #t)
 (config! 'traceload #t)
 ;(config! 'optimize:checkusage #f)

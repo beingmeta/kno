@@ -1,3 +1,5 @@
+(load-component "common.scm")
+
 (use-module '{storage/flex storage/flexpools texttools varconfig logger logctl})
 
 (logctl! 'storage/flexpools %debug%)
