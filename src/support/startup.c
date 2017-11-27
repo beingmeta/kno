@@ -144,7 +144,8 @@ FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
       else i++;
       if ((eq!=NULL) && (eq>arg) && (*(eq-1)!='\\')) {
         int retval = (arg!=NULL) ? (fd_config_assignment(arg)) : (-1);
-        FD_VECTOR_SET(config_args,config_i,lispval_string(arg)); config_i++;
+        FD_VECTOR_SET(config_args,config_i,lispval_string(arg));
+        config_i++;
         if (retval<0) {
           u8_log(LOG_CRIT,"FailedConfig",
                  "Couldn't handle the config argument `%s`",
@@ -158,7 +159,8 @@ FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
          string */
       lisp_arg = fd_parse_arg(arg);
       if (return_args) {
-        return_args[n]=lisp_arg; fd_incref(lisp_arg);}
+        return_args[n]=lisp_arg;
+        fd_incref(lisp_arg);}
       _fd_argv[n]=lisp_arg; fd_incref(lisp_arg);
       FD_VECTOR_SET(lisp_args,n,lisp_arg);
       FD_VECTOR_SET(string_args,n,string_arg);
@@ -168,7 +170,7 @@ FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
     lisp_argv = lisp_args;
     set_vector_length(string_args,n);
     string_argv = string_args;
-    set_vector_length(config_args,n);
+    set_vector_length(config_args,config_i);
     config_argv = config_args;
     raw_argv = raw_args;
     app_argc = n;
@@ -302,6 +304,7 @@ FD_EXPORT void fd_doexit(lispval arg)
         fd_clear_errors(1);}
       else fd_decref(result);
       fd_decref(handler);
+      scan->exitfn_handler = FD_VOID;
       tmp = scan;
       scan = scan->exitfn_next;
       u8_free(tmp);}}

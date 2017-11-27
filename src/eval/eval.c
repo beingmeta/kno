@@ -2268,15 +2268,15 @@ static lispval with_log_context_evalfn(lispval expr,fd_lexenv env,fd_stack _stac
 static int app_cleanup_started=0;
 static u8_mutex app_cleanup_lock;
 
-static void cleanup_app_env()
+static lispval cleanup_app_env()
 {
-  if (fd_app_env==NULL) return;
-  if (app_cleanup_started) return;
-  if ( (fd_exiting) && (fd_fast_exit) ) return;
+  if (fd_app_env==NULL) return FD_VOID;
+  if (app_cleanup_started) return FD_VOID;
+  if ( (fd_exiting) && (fd_fast_exit) ) return FD_VOID;
   u8_lock_mutex(&app_cleanup_lock);
   if (app_cleanup_started) {
     u8_unlock_mutex(&app_cleanup_lock);
-    return;}
+    return FD_VOID;}
   else app_cleanup_started=1;
   fd_lexenv env=fd_app_env; fd_app_env=NULL;
   /* Hollow out the environment, which should let it be reclaimed.
@@ -2290,6 +2290,15 @@ static void cleanup_app_env()
     if (HASHTABLEP(env->env_bindings))
       fd_reset_hashtable((fd_hashtable)(env->env_bindings),0,1);}
   u8_unlock_mutex(&app_cleanup_lock);
+  return FD_VOID;
+}
+
+static void setup_app_env()
+{
+  lispval exit_handler =
+    fd_make_cprim0("APPENV/ATEXIT",cleanup_app_env);
+  fd_config_set("ATEXIT",exit_handler);
+  fd_decref(exit_handler);
 }
 
 FD_EXPORT void fd_set_app_env(fd_lexenv env)
@@ -2705,7 +2714,6 @@ FD_EXPORT int fd_init_scheme()
     init_eval_core();
 
     u8_init_mutex(&app_cleanup_lock);
-    atexit(cleanup_app_env);
 
     return scheme_initialized;}
 }
