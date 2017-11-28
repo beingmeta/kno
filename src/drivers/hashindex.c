@@ -631,7 +631,7 @@ FD_FASTOP ssize_t write_zkey(fd_hashindex hx,fd_outbuf out,lispval key)
   int slotid_index = -1; size_t retval = -1;
   int natsort = out->buf_flags&FD_NATSORT_VALUES;
   out->buf_flags |= FD_NATSORT_VALUES;
-  if (PAIRP(key)) {
+  if ( (PAIRP(key)) && (hx->index_slotcodes.slotids) ) {
     lispval car = FD_CAR(key);
     if ((OIDP(car)) || (SYMBOLP(car))) {
       fd_use_slotcodes(& hx->index_slotcodes );
@@ -652,7 +652,7 @@ FD_FASTOP ssize_t write_zkey_wsc(fd_slotcoder sc,fd_outbuf out,lispval key)
   int slotid_index = -1; size_t retval = -1;
   int natsort = out->buf_flags&FD_NATSORT_VALUES;
   out->buf_flags |= FD_NATSORT_VALUES;
-  if (PAIRP(key)) {
+  if ( (PAIRP(key)) && (sc->slotids) ) {
     lispval car = FD_CAR(key);
     if ((OIDP(car)) || (SYMBOLP(car))) {
       slotid_index = fd_slotid2code(sc,car);
@@ -736,14 +736,15 @@ FD_FASTOP lispval read_key(fd_hashindex hx,fd_inbuf in)
   int code = fd_read_zint(in);
   if (code==0)
     return fast_read_dtype(in);
-  else {
+  else if (hx->index_slotcodes.slotids) {
     lispval slotid = fd_code2slotid(&(hx->index_slotcodes),code-1);
     if ( (FD_SYMBOLP(slotid)) || (FD_OIDP(slotid)) ) {
       lispval cdr = fast_read_dtype(in);
       if (FD_ABORTP(cdr))
-        return cdr;
+        return fd_err(CorruptedHashIndex,"read_key/dtype",hx->indexid,VOID);
       else return fd_conspair(slotid,cdr);}
-    else return fd_err(CorruptedHashIndex,"read_key",NULL,VOID);}
+    else return fd_err(CorruptedHashIndex,"read_key/slotcode",hx->indexid,VOID);}
+  else return fd_err(CorruptedHashIndex,"read_key/slotcode",hx->indexid,VOID);
 }
 
 FD_EXPORT ssize_t hashindex_bucket(struct FD_HASHINDEX *hx,lispval key,
@@ -2919,8 +2920,10 @@ static fd_index hashindex_create(u8_string spec,void *typedata,
 {
   int rv = 0;
   lispval metadata_init = fd_getopt(opts,fd_intern("METADATA"),FD_VOID);
-  lispval slotids_init = fd_getopt(opts,fd_intern("SLOTIDS"),VOID);
-  lispval baseoids_init = fd_getopt(opts,fd_intern("BASEOIDS"),VOID);
+  lispval slotids_arg=FD_VOID, slotids_init =
+    fd_getopt(opts,fd_intern("SLOTIDS"),VOID);
+  lispval baseoids_arg=FD_VOID, baseoids_init =
+    fd_getopt(opts,fd_intern("BASEOIDS"),VOID);
   lispval nbuckets_arg = fd_getopt(opts,fd_intern("SLOTS"),
                                    fd_getopt(opts,FDSYM_SIZE,
                                              FD_INT(hashindex_default_size)));
@@ -2928,27 +2931,37 @@ static fd_index hashindex_create(u8_string spec,void *typedata,
   if (!(FD_UINTP(nbuckets_arg))) {
     fd_seterr("InvalidBucketCount","hashindex_create",spec,nbuckets_arg);
     rv = -1;}
-  else if (!(good_initval(baseoids_init))) {
-    fd_seterr("InvalidBaseOIDs","hashindex_create",spec,baseoids_init);
-    rv = -1;}
-  else if (!(good_initval(slotids_init))) {
-    fd_seterr("InvalidSlotIDs","hashindex_create",spec,slotids_init);
-    rv = -1;}
   else if (!(FD_INTEGERP(hashconst))) {
     fd_seterr("InvalidHashConst","hashindex_create",spec,hashconst);
     rv = -1;}
-  else {}
+  else {
+    baseoids_arg = fd_baseoids_arg(baseoids_init);
+    if (FD_ABORTP(baseoids_arg)) {
+      fd_seterr("BadBaseOIDs","hashindex_create",spec,baseoids_init);
+      rv = -1;}
+    else {
+      slotids_arg = fd_slotids_arg(slotids_init);
+      if (FD_ABORTP(slotids_arg)) {
+        fd_seterr("BadSlotids","hashindex_create",spec,slotids_init);
+        fd_decref(baseoids_arg);
+        rv=-1;}}}
+
+  fd_decref(slotids_init);
+  fd_decref(baseoids_init);
+
   if (rv<0)
     return NULL;
   else rv = make_hashindex
          (spec,FIX2INT(nbuckets_arg),
           interpret_hashindex_flags(opts),
           FD_INT(hashconst),
-          metadata_init,slotids_init,baseoids_init,-1,-1);
+          metadata_init,
+          slotids_arg,
+          baseoids_arg,-1,-1);
 
   fd_decref(metadata_init);
-  fd_decref(slotids_init);
-  fd_decref(baseoids_init);
+  fd_decref(baseoids_arg);
+  fd_decref(slotids_arg);
   fd_decref(nbuckets_arg);
   fd_decref(hashconst);
 
@@ -3293,6 +3306,62 @@ static lispval hashrange_info(struct FD_HASHINDEX *hx,
   return keyinfo;
 }
 
+static lispval set_slotids(struct FD_HASHINDEX *hx,lispval arg)
+{
+  if (hx->index_slotcodes.n_slotcodes > 0) {
+    u8_log(LOG_WARN,"ExistingSlotcodes",
+           "The index %s already has slotcodes: %q",
+           hx->indexid,(lispval)(hx->index_slotcodes.slotids));
+    return FD_FALSE;}
+  else {
+    int rv = 0;
+    struct FD_SLOTCODER *slotcodes = & hx->index_slotcodes;
+    if ( (FD_FIXNUMP(arg)) && ( (FD_FIX2INT(arg)) >= 0) )
+      rv = fd_init_slotcoder(slotcodes,FD_FIX2INT(arg),NULL);
+    else if ( FD_VECTORP(arg) )
+      rv = fd_init_slotcoder(slotcodes,
+                             FD_VECTOR_LENGTH(arg),
+                             FD_VECTOR_ELTS(arg));
+    else {
+      fd_seterr("BadSlotIDs","hashindex_ctl/slotids",hx->indexid,arg);
+      return FD_ERROR_VALUE;}
+    u8_lock_mutex(& hx->index_commit_lock );
+    struct FD_STREAM _stream = {0}, *stream = fd_init_file_stream
+      (&_stream,hx->index_source,FD_FILE_MODIFY,0,8192);
+    update_hashindex_slotids(hx,slotcodes,stream,stream);
+    fd_close_stream(stream,FD_STREAM_FREEDATA);
+    u8_unlock_mutex(& hx->index_commit_lock );
+    return FD_TRUE;}
+}
+
+static lispval set_baseoids(struct FD_HASHINDEX *hx,lispval arg)
+{
+  if (hx->index_oidcodes.n_oids > 0) {
+    u8_log(LOG_WARN,"ExistingBaseOIDs",
+           "The index %s already has baseoids",
+           hx->indexid);
+    return FD_FALSE;}
+  else {
+    int rv = 0;
+    struct FD_OIDCODER *oidcodes = & hx->index_oidcodes;
+    if ( (FD_FIXNUMP(arg)) && ( (FD_FIX2INT(arg)) >= 0) )
+      fd_init_oidcoder(oidcodes,FD_FIX2INT(arg),NULL);
+    else if ( FD_VECTORP(arg) )
+      fd_init_oidcoder(oidcodes,
+                       FD_VECTOR_LENGTH(arg),
+                       FD_VECTOR_ELTS(arg));
+    else {
+      fd_seterr("BadSlotIDs","hashindex_ctl/slotids",hx->indexid,arg);
+      return FD_ERROR_VALUE;}
+    u8_lock_mutex(& hx->index_commit_lock );
+    struct FD_STREAM _stream = {0}, *stream = fd_init_file_stream
+      (&_stream,hx->index_source,FD_FILE_MODIFY,0,8192);
+    update_hashindex_baseoids(hx,oidcodes,stream,stream);
+    fd_close_stream(stream,FD_STREAM_FREEDATA);
+    u8_unlock_mutex(& hx->index_commit_lock );
+    return FD_TRUE;}
+}
+
 /* The control function */
 
 static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
@@ -3376,24 +3445,32 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
     fd_index_swapout(ix,((n==0)?(FD_VOID):(args[0])));
     return FD_TRUE;}
   else if (op == fd_slotids_op) {
-    int n_slotcodes = hx->index_slotcodes.n_slotcodes;
-    lispval *elts = u8_alloc_n(n_slotcodes,lispval);
-    lispval *slotids = hx->index_slotcodes.slotids->vec_elts;
-    int i = 0;
-    while (i< n_slotcodes) {
-      lispval slotid = slotids[i];
-      elts[i]=slotid; fd_incref(slotid);
-      i++;}
-    return fd_wrap_vector(n,elts);}
+    if (n == 0) {
+      int n_slotcodes = hx->index_slotcodes.n_slotcodes;
+      lispval *elts = u8_alloc_n(n_slotcodes,lispval);
+      lispval *slotids = hx->index_slotcodes.slotids->vec_elts;
+      int i = 0;
+      while (i< n_slotcodes) {
+        lispval slotid = slotids[i];
+        elts[i]=slotid; fd_incref(slotid);
+        i++;}
+      return fd_wrap_vector(n,elts);}
+    else if (n == 1)
+      return set_slotids(hx,args[0]);
+    else return fd_err(fd_TooManyArgs,"hashindex_ctl/slotids",hx->indexid,FD_VOID);}
   else if (op == fd_baseoids_op) {
-    int n_baseoids=hx->index_oidcodes.n_oids;
-    lispval *baseoids=hx->index_oidcodes.baseoids;
-    lispval result=fd_make_vector(n_baseoids,NULL);
-    int i=0; while (i<n_baseoids) {
-      lispval baseoid = baseoids[i];
-      FD_VECTOR_SET(result,i,baseoid);
-      i++;}
-    return result;}
+    if (n == 0) {
+      int n_baseoids=hx->index_oidcodes.n_oids;
+      lispval *baseoids=hx->index_oidcodes.baseoids;
+      lispval result=fd_make_vector(n_baseoids,NULL);
+      int i=0; while (i<n_baseoids) {
+        lispval baseoid = baseoids[i];
+        FD_VECTOR_SET(result,i,baseoid);
+        i++;}
+      return result;}
+    else if (n == 1)
+      return set_baseoids(hx,args[0]);
+    else return fd_err(fd_TooManyArgs,"hashindex_ctl/slotids",hx->indexid,FD_VOID);}
   else if (op == fd_capacity_op)
     return FD_INT(hx->index_n_buckets);
   else if (op == fd_load_op)

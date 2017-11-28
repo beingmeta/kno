@@ -145,6 +145,7 @@ FD_FASTOP int fd_get_oidcode(struct FD_OIDCODER *map,int baseid)
 
 FD_EXPORT struct FD_OIDCODER fd_copy_oidcodes(fd_oidcoder src);
 FD_EXPORT void fd_update_oidcodes(fd_oidcoder dest,fd_oidcoder src);
+FD_EXPORT lispval fd_baseoids_arg(lispval arg);
 
 /* Coding slotids */
 
@@ -201,6 +202,7 @@ static void fd_release_slotcodes(struct FD_SLOTCODER *sc)
 
 FD_EXPORT void fd_update_slotcodes(fd_slotcoder dest,fd_slotcoder src);
 FD_EXPORT struct FD_SLOTCODER fd_copy_slotcodes(fd_slotcoder src);
+FD_EXPORT lispval fd_slotids_arg(lispval arg);
 
 /* Functional arguments */
 
