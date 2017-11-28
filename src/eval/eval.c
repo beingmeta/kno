@@ -1874,25 +1874,35 @@ static lispval applytest(int n,lispval *args)
       fd_decref(value);
       return FD_TRUE;}
     else {
-      u8_string s = fd_lisp2string(args[0]);
-      lispval err = fd_err(TestFailed,"applytest",s,value);
-      u8_free(s); fd_decref(value);
+      struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
+      u8_printf(&out,"Unexpected result from %q",args[1]);
+      int i=2; while (i<n) {
+        u8_printf(&out," %q",args[i]); i++;}
+      u8_printf(&out,"\n   Expected: %q",args[0]);
+      if (FD_ABORTP(value))
+        u8_printf(&out,"\n   %s","Got an error");
+      else u8_printf(&out,"\n        Got: %q",value);
+      lispval err = fd_err(TestFailed,"applytest",out.u8_outbuf,value);
+      u8_close_output(&out);
+      fd_decref(value);
       return err;}}
   else if (n==2) {
     if (FD_EQUAL(args[1],args[0]))
       return FD_TRUE;
     else {
-      u8_string s = fd_lisp2string(args[0]);
+      u8_string s = u8_mkstring("%q ≭ %q",args[0],args[1]);
       lispval err = fd_err(TestFailed,"applytest",s,args[1]);
       u8_free(s);
       return err;}}
-  else if (FD_EQUAL(args[2],args[0]))
-    return FD_TRUE;
-  else {
-    u8_string s = fd_lisp2string(args[0]);
-    lispval err = fd_err(TestFailed,"applytest",s,args[2]);
-    u8_free(s);
-    return err;}
+  else if (n == 3) {
+    if (FD_EQUAL(args[2],args[0]))
+      return FD_TRUE;
+    else {
+      u8_string s = u8_mkstring("%q: %q ≭ %q",args[1],args[0],args[2]);
+      lispval err = fd_err(TestFailed,"applytest",s,args[2]);
+      u8_free(s);
+      return err;}}
+  else return fd_err(fd_TooManyArgs,"applytest",NULL,VOID);
 }
 
 static lispval evaltest_evalfn(lispval expr,fd_lexenv env,fd_stack s)
@@ -1905,16 +1915,20 @@ static lispval evaltest_evalfn(lispval expr,fd_lexenv env,fd_stack s)
   else {
     lispval value = fd_eval(testexpr,env);
     if (FD_ABORTED(value)) {
-      fd_decref(expected);
-      return value;}
+      u8_string msg = u8_mkstring("%q should have yielded %q, got %q",
+                                  testexpr,expected,value);
+      lispval err = fd_err(TestFailed,"evaltest",msg,value);
+      fd_decref(expected); u8_free(msg);
+      return err;}
     else if (FD_EQUAL(value,expected)) {
       fd_decref(expected);
       fd_decref(value);
       return FD_TRUE;}
     else {
-      u8_string s = fd_lisp2string(expected);
-      lispval err = fd_err(TestFailed,"applytest",s,value);
-      u8_free(s); fd_decref(value); fd_decref(expected);
+      u8_string msg = u8_mkstring("%q should have yielded %q, got %q",
+                                  testexpr,expected,value);
+      lispval err = fd_err(TestFailed,"evaltest",msg,value);
+      u8_free(msg); fd_decref(value); fd_decref(expected);
       return err;}}
 }
 
