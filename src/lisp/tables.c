@@ -212,7 +212,7 @@ FD_EXPORT struct FD_KEYVAL *fd_sortvec_insert
    int freedata)
 {
   struct FD_KEYVAL *keyvals=*kvp;
-  int size=*sizep, space=((spacep)?(*spacep):(0)), found=0;
+  int size=*sizep, space=((spacep)?(*spacep):(0)), dir=0;
   struct FD_KEYVAL *bottom=keyvals, *top=bottom+size-1;
   struct FD_KEYVAL *limit=bottom+size, *middle=bottom+size/2;
   if (keyvals == NULL) {
@@ -224,47 +224,57 @@ FD_EXPORT struct FD_KEYVAL *fd_sortvec_insert
     if (sizep) *sizep=1;
     if (spacep) *spacep=1;
     return keyvals;}
-  if (ATOMICP(key))
+  else if (size == 0) {
+    middle = keyvals; dir=-1;}
+  else if (ATOMICP(key))
     while (top>=bottom) {
       middle=bottom+(top-bottom)/2;
       if (middle>=limit) break;
-      else if (key==middle->kv_key) {found=1; break;}
-      else if (CONSP(middle->kv_key)) top=middle-1;
-      else if (key<middle->kv_key) top=middle-1;
-      else bottom=middle+1;}
+      else if (key==middle->kv_key) {
+        dir=0; break;}
+      else if (CONSP(middle->kv_key)) {
+        top=middle-1; dir = -1;}
+      else if (key<middle->kv_key) {
+        top=middle-1; dir = -1;}
+      else {
+        bottom=middle+1;
+        dir = 1;}}
   else while (top>=bottom) {
-    int comparison;
-    middle=bottom+(top-bottom)/2;
-    if (middle>=limit) break;
-    comparison=cons_compare(key,middle->kv_key);
-    if (comparison==0) {found=1; break;}
-    else if (comparison<0) top=middle-1;
-    else bottom=middle+1;}
-  if (found)
+      middle=bottom+(top-bottom)/2;
+      if (middle>=limit) break;
+      int comparison = cons_compare(key,middle->kv_key);
+      if (comparison==0) {
+        dir=0; break;}
+      else if (comparison<0) {
+        top=middle-1; dir = -1;}
+      else {
+        bottom=middle+1;
+        dir = 1;}}
+  if (dir == 0)
     return middle;
-  else if (size+1<space) {
-    struct FD_KEYVAL *insert_point=&(keyvals[size+1]);
-    *sizep=size+1;
-    insert_point->kv_key=fd_getref(key);
-    insert_point->kv_val=EMPTY;
-    sort_keyvals(keyvals,size+1);
-    return insert_point;}
-  else if (space < max_space) {
-    int mpos=(middle-keyvals), dir=(bottom>middle), ipos=mpos+dir;
-    struct FD_KEYVAL *insert_point;
+  if (size >= space) {
+    /* Make sure there's space */
+    int mpos=(middle-keyvals);
+    int new_space = space+1;
     struct FD_KEYVAL *new_keyvals=
-      ((freedata)?(u8_realloc_n(keyvals,size+1,struct FD_KEYVAL)):
-       (u8_extalloc(keyvals,((size+1)*FD_KEYVAL_LEN),
-                    (size*FD_KEYVAL_LEN))));
-    if (new_keyvals==NULL) return NULL;
-    *kvp=new_keyvals; *sizep=size+1; *spacep=size+1;
-    insert_point=new_keyvals+ipos;
-    memmove(insert_point+1,insert_point,
-            FD_KEYVAL_LEN*(size-ipos));
-    insert_point->kv_key=fd_getref(key);
-    insert_point->kv_val=EMPTY;
-    return insert_point;}
-  else return NULL;
+      ( (freedata) ? (u8_realloc_n(keyvals,new_space,struct FD_KEYVAL)) :
+        (u8_extalloc(keyvals,(new_space*FD_KEYVAL_LEN),(space*FD_KEYVAL_LEN))));
+    if ( new_keyvals == NULL )
+      return NULL;
+    keyvals = *kvp = new_keyvals;
+    space   = *spacep = new_space;
+    bottom = new_keyvals;
+    middle = new_keyvals+mpos;
+    top = new_keyvals+size;}
+  /* Now, insert the value */
+  struct FD_KEYVAL *insert_point = (dir<0) ? (middle) : (middle+1);
+  int ipos = insert_point-keyvals;
+  size_t bytes_to_move = (size-ipos)*FD_KEYVAL_LEN;
+  memmove(insert_point+1,insert_point,bytes_to_move);
+  insert_point->kv_key=fd_getref(key);
+  insert_point->kv_val=EMPTY;
+  *sizep=size+1;
+  return insert_point;
 }
 
 static int slotmap_fail(struct FD_SLOTMAP *sm,u8_context caller)
