@@ -17,7 +17,7 @@
 #define FD_HASHINDEX_FN_MASK       0x0F
 #define FD_HASHINDEX_OFFTYPE_MASK  0x30
 #define FD_HASHINDEX_DTYPEV2       0x40
-#define FD_HASHINDEX_ODDKEYS       (FD_HASHINDEX_DTYPEV2<<1)
+#define FD_HASHINDEX_ODDKEYS       0x80
 
 /* Used to generate hash codes */
 #define MAGIC_MODULUS 16777213 /* 256000001 */
@@ -41,7 +41,10 @@ typedef struct FD_HASHINDEX {
   unsigned int storage_xformat, index_custom, table_n_keys;
   fd_offset_type index_offtype;
 
+  fd_off_t hx_metadata_pos;
+  fd_off_t hx_slotcodes_pos;
   struct FD_SLOTCODER index_slotcodes;
+  fd_off_t hx_oidcodes_pos;
   struct FD_OIDCODER index_oidcodes;
 
   /* Pointers to keyblocks for the hashtable */

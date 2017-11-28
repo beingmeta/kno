@@ -108,13 +108,51 @@ unsigned int fd_hash_lisp2(lispval x);
 unsigned int fd_hash_lisp3(lispval x);
 unsigned int fd_hash_dtype_rep(lispval x);
 
+/* Coding OIDs */
+
+typedef struct FD_OIDCODER {
+  unsigned int modified:1;
+  unsigned int n_oids, oids_len;
+  int max_baseid, codes_len;
+  lispval *baseoids;
+  unsigned int *oidcodes;
+  U8_RWLOCK_DECL(rwlock);} *fd_oidcoder;
+
+FD_EXPORT lispval _fd_get_baseoid(struct FD_OIDCODER *map,unsigned int code);
+FD_EXPORT int _fd_get_oidcode(struct FD_OIDCODER *map,int oidbaseid);
+FD_EXPORT int fd_add_oidcode(struct FD_OIDCODER *map,lispval oid);
+FD_EXPORT void fd_init_oidcoder(struct FD_OIDCODER *,int,lispval *);
+FD_EXPORT void fd_recycle_oidcoder(struct FD_OIDCODER *);
+
+#if (FRAMERD_SOURCE || FD_DRIVER_SOURCE)
+FD_FASTOP lispval fd_get_baseoid(struct FD_OIDCODER *map,unsigned int code)
+{
+  if (code > map->n_oids)
+    return FD_VOID;
+  else return map->baseoids[code];
+}
+
+FD_FASTOP int fd_get_oidcode(struct FD_OIDCODER *map,int baseid)
+{
+  if (baseid > map->max_baseid)
+    return -1;
+  else return map->oidcodes[baseid];
+}
+#else
+#define fd_get_baseoid _fd_get_baseoid
+#define fd_get_oidcode _fd_get_oidcode
+#endif
+
+FD_EXPORT struct FD_OIDCODER fd_copy_oidcodes(fd_oidcoder src);
+FD_EXPORT void fd_update_oidcodes(fd_oidcoder dest,fd_oidcoder src);
+
 /* Coding slotids */
 
 typedef struct FD_SLOTCODER {
-  U8_RWLOCK_DECL(rwlock);
   int n_slotcodes, modified;
   struct FD_VECTOR *slotids;
-  struct FD_SLOTMAP *lookup;} *fd_slotcoder;
+  struct FD_SLOTMAP *lookup;
+  U8_RWLOCK_DECL(rwlock);} *fd_slotcoder;
 
 FD_EXPORT int _fd_slotid2code(struct FD_SLOTCODER *,lispval slot);
 FD_EXPORT lispval _fd_code2slotid(struct FD_SLOTCODER *,unsigned int code);
@@ -151,39 +189,18 @@ FD_FASTOP int fd_slotid2code(struct FD_SLOTCODER *sc,lispval slotid)
 #define fd_code2slotid _fd_code2slotid
 #endif
 
-/* Coding OIDs */
-
-typedef struct FD_OIDCODER {
-  unsigned char modified:1;
-  unsigned int n_oids, oids_len;
-  lispval *baseoids;
-  int max_baseid, codes_len;
-  unsigned int *oidcodes;} *fd_oidcoder;
-
-FD_EXPORT lispval _fd_get_baseoid(struct FD_OIDCODER *map,unsigned int code);
-FD_EXPORT int _fd_get_oidcode(struct FD_OIDCODER *map,int oidbaseid);
-FD_EXPORT int fd_add_oidcode(struct FD_OIDCODER *map,lispval oid);
-FD_EXPORT void fd_init_oidcoder(struct FD_OIDCODER *,int,lispval *);
-FD_EXPORT void fd_recycle_oidcoder(struct FD_OIDCODER *);
-
-#if (FRAMERD_SOURCE || FD_DRIVER_SOURCE)
-FD_FASTOP lispval fd_get_baseoid(struct FD_OIDCODER *map,unsigned int code)
+static void fd_use_slotcodes(struct FD_SLOTCODER *sc)
 {
-  if (code > map->n_oids)
-    return FD_VOID;
-  else return map->baseoids[code];
+  u8_read_lock(&(sc->rwlock));
 }
 
-FD_FASTOP int fd_get_oidcode(struct FD_OIDCODER *map,int baseid)
+static void fd_release_slotcodes(struct FD_SLOTCODER *sc)
 {
-  if (baseid > map->max_baseid)
-    return -1;
-  else return map->oidcodes[baseid];
+  u8_rw_unlock(&(sc->rwlock));
 }
-#else
-#define fd_get_baseoid _fd_get_baseoid
-#define fd_get_oidcode _fd_get_oidcode
-#endif
+
+FD_EXPORT void fd_update_slotcodes(fd_slotcoder dest,fd_slotcoder src);
+FD_EXPORT struct FD_SLOTCODER fd_copy_slotcodes(fd_slotcoder src);
 
 /* Functional arguments */
 

@@ -181,41 +181,6 @@ static u8_condition BadHashFn=_("hashindex has unknown hash function");
 static lispval set_symbol, drop_symbol, keycounts_symbol;
 static lispval slotids_symbol, baseoids_symbol, buckets_symbol, nkeys_symbol;
 
-static struct FD_SLOTCODER *use_slotcodes(struct FD_HASHINDEX *hx)
-{
-  u8_read_lock(&(hx->index_slotcodes.rwlock));
-  return &(hx->index_slotcodes);
-}
-
-static void release_slotcodes(struct FD_HASHINDEX *hx)
-{
-  u8_rw_unlock(&(hx->index_slotcodes.rwlock));
-}
-
-static struct FD_SLOTCODER copy_slotcodes(struct FD_HASHINDEX *hx)
-{
-  u8_read_lock(&(hx->index_slotcodes.rwlock));
-  struct FD_SLOTCODER sc = hx->index_slotcodes;
-  sc.slotids = (fd_vector) fd_copy((lispval)sc.slotids);
-  sc.lookup = (fd_slotmap) fd_copy((lispval)sc.lookup);
-  u8_rw_unlock(&(hx->index_slotcodes.rwlock));
-  return sc;
-}
-
-static void update_slotcodes(struct FD_HASHINDEX *hx,
-                             struct FD_SLOTCODER *codes)
-{
-  struct FD_SLOTCODER *cur = &(hx->index_slotcodes);
-  u8_write_lock(&(hx->index_slotcodes.rwlock));
-  struct FD_VECTOR *cur_vec = cur->slotids;
-  struct FD_SLOTMAP *cur_map = cur->lookup;
-  cur->slotids = codes->slotids;
-  cur->lookup = codes->lookup;
-  u8_rw_unlock(&(hx->index_slotcodes.rwlock));
-  fd_decref((lispval)cur_vec);
-  fd_decref((lispval)cur_map);
-}
-
 /* Utilities for DTYPE I/O */
 
 #define nobytes(in,nbytes) (PRED_FALSE(!(fd_request_bytes(in,nbytes))))
@@ -250,15 +215,15 @@ FD_FASTOP lispval read_dtype_at_pos(fd_stream s,fd_off_t off)
 
 /* Opening a hash index */
 
+static int load_header(struct FD_HASHINDEX *index,struct FD_STREAM *stream);
+
 static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
                                lispval opts)
 {
   struct FD_HASHINDEX *index = u8_alloc(struct FD_HASHINDEX);
   int read_only = U8_BITP(flags,FD_STORAGE_READ_ONLY);
 
-  unsigned int magicno, n_keys;
-  fd_off_t slotids_pos, baseoids_pos, metadata_loc, metadata_size;
-  fd_size_t slotids_size, baseoids_size;
+  unsigned int magicno;
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
   int stream_flags =
@@ -302,16 +267,40 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
   index->index_custom = fd_read_4bytes_at(stream,12,FD_ISLOCKED);
 
   /* Currently ignored */
-  index->table_n_keys = n_keys = fd_read_4bytes_at(stream,16,FD_ISLOCKED);
+  index->table_n_keys = fd_read_4bytes_at(stream,16,FD_ISLOCKED);
 
-  slotids_pos = fd_read_8bytes_at(stream,0x14,FD_ISLOCKED,NULL);
-  slotids_size = fd_read_4bytes_at(stream,0x1c,FD_ISLOCKED);
+  struct FD_SLOTCODER *sc = &(index->index_slotcodes);
+  struct FD_OIDCODER *oc = &(index->index_oidcodes);
+  memset(sc,0,sizeof(struct FD_SLOTCODER));
+  memset(oc,0,sizeof(struct FD_OIDCODER));
+  u8_init_rwlock(&(sc->rwlock));
 
-  baseoids_pos = fd_read_8bytes_at(stream,0x20,FD_ISLOCKED,NULL);
-  baseoids_size = fd_read_4bytes_at(stream,0x28,FD_ISLOCKED);
+  int rv = load_header(index,stream);
 
-  metadata_loc  = fd_read_8bytes_at(stream,0x30,FD_ISLOCKED,NULL);
-  metadata_size = fd_read_4bytes_at(stream,0x38,FD_ISLOCKED);
+  if (rv < 0) {
+    fd_free_stream(stream);
+    u8_free(index);
+    return NULL;}
+
+  u8_init_mutex(&(index->index_lock));
+
+  fd_register_index((fd_index)index);
+
+  return (fd_index)index;
+}
+
+static int load_header(struct FD_HASHINDEX *index,struct FD_STREAM *stream)
+{
+  u8_string fname = index->index_source;
+
+  fd_off_t slotids_pos = fd_read_8bytes_at(stream,0x14,FD_ISLOCKED,NULL);
+  ssize_t slotids_size = fd_read_4bytes_at(stream,0x1c,FD_ISLOCKED);
+
+  fd_off_t baseoids_pos = fd_read_8bytes_at(stream,0x20,FD_ISLOCKED,NULL);
+  ssize_t baseoids_size = fd_read_4bytes_at(stream,0x28,FD_ISLOCKED);
+
+  fd_off_t metadata_loc  = fd_read_8bytes_at(stream,0x30,FD_ISLOCKED,NULL);
+  ssize_t metadata_size = fd_read_4bytes_at(stream,0x38,FD_ISLOCKED);
 
   /* Initialize the slotids field used for storing feature keys */
   if (slotids_size) {
@@ -325,9 +314,8 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
       fd_decref(slotids_vector);}
     else {
       fd_seterr("Bad SLOTIDS data","open_hashindex",fname,VOID);
-      fd_free_stream(stream);
-      u8_free(index);
-      return NULL;}}
+      return -1;}
+    index->hx_slotcodes_pos = slotids_pos;}
   else fd_init_slotcoder(&(index->index_slotcodes),0,NULL);
 
   /* Initialize the baseoids field used for compressed OID values */
@@ -342,9 +330,8 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
       fd_decref(baseoids_vector);}
     else {
       fd_seterr("Bad BASEOIDS data","open_hashindex",fname,VOID);
-      fd_free_stream(stream);
-      u8_free(index);
-      return NULL;}}
+      return -1;}
+    index->hx_oidcodes_pos = baseoids_pos;}
   else fd_init_oidcoder(&(index->index_oidcodes),0,NULL);
 
   lispval metadata=FD_VOID;
@@ -373,18 +360,17 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
     memcpy(from_struct,from_disk,FD_SLOTMAP_LEN);
     u8_free(from_disk);
     metadata = FD_VOID;
-    from_struct->table_modified=0;}
+    from_struct->table_modified=0;
+    index->hx_metadata_pos = baseoids_pos;}
   else {
     u8_log(LOG_WARN,"BadMetadata",
            "Bad metadata for %s @%lld+%lld: %q",
            fname,metadata_loc,metadata_size,metadata);
     fd_decref(metadata);}
 
-  u8_init_mutex(&(index->index_lock));
+  index->table_n_keys = fd_read_4bytes_at(stream,16,FD_ISLOCKED);
 
-  fd_register_index((fd_index)index);
-
-  return (fd_index)index;
+  return 1;
 }
 
 static fd_index recover_hashindex(u8_string fname,fd_storage_flags open_flags,
@@ -648,9 +634,9 @@ FD_FASTOP ssize_t write_zkey(fd_hashindex hx,fd_outbuf out,lispval key)
   if (PAIRP(key)) {
     lispval car = FD_CAR(key);
     if ((OIDP(car)) || (SYMBOLP(car))) {
-      use_slotcodes(hx);
+      fd_use_slotcodes(& hx->index_slotcodes );
       slotid_index = fd_slotid2code(&(hx->index_slotcodes),car);
-      release_slotcodes(hx);
+      fd_release_slotcodes(& hx->index_slotcodes );
       if (slotid_index<0)
         retval = fd_write_byte(out,0)+fd_write_dtype(out,key);
       else retval = fd_write_zint(out,slotid_index+1)+
@@ -670,7 +656,9 @@ FD_FASTOP ssize_t write_zkey_wsc(fd_slotcoder sc,fd_outbuf out,lispval key)
     lispval car = FD_CAR(key);
     if ((OIDP(car)) || (SYMBOLP(car))) {
       slotid_index = fd_slotid2code(sc,car);
-      if (slotid_index<0)
+      if (slotid_index < 0 )
+        slotid_index = fd_add_slotcode(sc,car);
+      if (slotid_index < 0)
         retval = fd_write_byte(out,0)+fd_write_dtype(out,key);
       else retval = fd_write_zint(out,slotid_index+1)+
              fast_write_dtype(out,FD_CDR(key));}
@@ -778,13 +766,16 @@ FD_EXPORT ssize_t hashindex_bucket(struct FD_HASHINDEX *hx,lispval key,
 
 /* ZVALUEs */
 
-FD_FASTOP int write_zvalue(fd_hashindex hx,fd_outbuf out,lispval value)
+FD_FASTOP int write_zvalue(fd_hashindex hx,fd_outbuf out,
+                           fd_oidcoder oc,lispval value)
 {
   if (OIDP(value)) { /* (&&(hx->index_oidcodes.n_oids)) */
     int base = FD_OID_BASE_ID(value);
-    int oidcode = fd_get_oidcode(&(hx->index_oidcodes),base);
-    if ( (oidcode<0) && (hx->index_oidcodes.n_oids < hx->index_oidcodes.oids_len) )
-      oidcode = fd_add_oidcode(&(hx->index_oidcodes),value);
+    int oidcode = fd_get_oidcode(oc,base);
+    if (oidcode < 0) {
+      if (oc->n_oids < oc->oids_len)
+        oidcode = fd_add_oidcode(oc,value);
+      else {}}
     if (oidcode<0) {
       int bytes_written; fd_write_byte(out,0);
       bytes_written = fd_write_dtype(out,value);
@@ -1140,7 +1131,8 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
   size_t vbuf_size=0;
   int oddkeys = ((hx->storage_xformat)&(FD_HASHINDEX_ODDKEYS));
   fd_stream stream = &(hx->index_stream);
-  struct FD_SLOTCODER *sc = use_slotcodes(hx);
+  struct FD_SLOTCODER *sc = & hx->index_slotcodes;
+  fd_use_slotcodes(& hx->index_slotcodes);
 #if FD_DEBUG_HASHINDEXES
   u8_message("Reading %d keys from %s",n,hx->indexid);
 #endif
@@ -1171,7 +1163,7 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
     ksched[n_entries].ksched_i = i;
     ksched[n_entries].ksched_key = key;
     ksched[n_entries].ksched_keyoff = dt_start;
-    write_zkey_wsc(sc,&keysbuf,key);
+    write_zkey(hx,&keysbuf,key);
     dt_size = (keysbuf.bufwrite-keysbuf.buffer)-dt_start;
     ksched[n_entries].ksched_dtsize = dt_size;
     ksched[n_entries].ksched_bucket = bucket=
@@ -1193,7 +1185,7 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
     else n_entries++;
     i++;}
   keyreps=keysbuf.buffer;
-  release_slotcodes(hx);
+  fd_release_slotcodes(& hx->index_slotcodes );
   if (offdata == NULL) {
     int write_at = 0;
     /* When fetching bucket references, we sort the schedule first, so that
@@ -1247,7 +1239,7 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
             u8_big_free(ksched);
             u8_big_free(vsched);
             fd_close_outbuf(&keysbuf);
-            release_slotcodes(hx);
+            fd_release_slotcodes(& hx->index_slotcodes );
             return NULL;}}
         keyblock_start = keyblock.bufread;
         /* And initialize bucket position and limit */
@@ -1974,9 +1966,10 @@ FD_FASTOP void parse_keybucket(fd_hashindex hx,struct KEYBUCKET *kb,
 }
 
 FD_FASTOP FD_CHUNK_REF write_value_block
-(struct FD_HASHINDEX *hx,fd_stream stream,
+(struct FD_HASHINDEX *hx,fd_stream stream,fd_oidcoder oc,
  lispval values,lispval extra,
- fd_off_t cont_off,fd_off_t cont_size,fd_off_t startpos)
+ fd_off_t cont_off,fd_off_t cont_size,
+ fd_off_t startpos)
 {
   struct FD_OUTBUF *outstream = fd_writebuf(stream);
   FD_CHUNK_REF retval; fd_off_t endpos = startpos;
@@ -1984,16 +1977,16 @@ FD_FASTOP FD_CHUNK_REF write_value_block
     int full_size = FD_CHOICE_SIZE(values)+((VOIDP(extra))?0:1);
     endpos = endpos+fd_write_zint(outstream,full_size);
     if (!(VOIDP(extra)))
-      endpos = endpos+write_zvalue(hx,outstream,extra);
+      endpos = endpos+write_zvalue(hx,outstream,oc,extra);
     {DO_CHOICES(value,values)
-        endpos = endpos+write_zvalue(hx,outstream,value);}}
+        endpos = endpos+write_zvalue(hx,outstream,oc,value);}}
   else if (VOIDP(extra)) {
     endpos = endpos+fd_write_zint(outstream,1);
-    endpos = endpos+write_zvalue(hx,outstream,values);}
+    endpos = endpos+write_zvalue(hx,outstream,oc,values);}
   else {
     endpos = endpos+fd_write_zint(outstream,2);
-    endpos = endpos+write_zvalue(hx,outstream,extra);
-    endpos = endpos+write_zvalue(hx,outstream,values);}
+    endpos = endpos+write_zvalue(hx,outstream,oc,extra);
+    endpos = endpos+write_zvalue(hx,outstream,oc,values);}
   endpos = endpos+fd_write_zint(outstream,cont_size);
   if (cont_size)
     endpos = endpos+fd_write_zint(outstream,cont_off);
@@ -2004,7 +1997,8 @@ FD_FASTOP FD_CHUNK_REF write_value_block
 /* This adds new entries to a keybucket, writing value blocks to the
    file where neccessary (more than one value). */
 FD_FASTOP fd_off_t extend_keybucket
-(fd_hashindex hx,fd_stream stream,fd_slotcoder sc,
+(fd_hashindex hx,fd_stream stream,
+ fd_slotcoder sc,fd_oidcoder oc,
  struct KEYBUCKET *kb,
  struct COMMIT_SCHEDULE *schedule,int i,int j,
  fd_outbuf newkeys,int *new_valueblocksp,
@@ -2054,7 +2048,8 @@ FD_FASTOP fd_off_t extend_keybucket
         else {
           ke[key_i].ke_values = VOID;
           ke[key_i].ke_vref=
-            write_value_block(hx,stream,schedule[k].commit_values,VOID,
+            write_value_block(hx,stream,oc,
+                              schedule[k].commit_values,VOID,
                               0,0,endpos);
           (*new_valueblocksp)++;
           endpos = ke[key_i].ke_vref.off+ke[key_i].ke_vref.size;}
@@ -2089,7 +2084,8 @@ FD_FASTOP fd_off_t extend_keybucket
              write_value_block.  */
           lispval current = ke[key_i].ke_values;
           ke[key_i].ke_vref=
-            write_value_block(hx,stream,schedule[k].commit_values,
+            write_value_block(hx,stream,oc,
+                              schedule[k].commit_values,
                               current,0,0,endpos);
           endpos = ke[key_i].ke_vref.off+ke[key_i].ke_vref.size;
           /* We void this because it's now on disk */
@@ -2097,7 +2093,8 @@ FD_FASTOP fd_off_t extend_keybucket
           ke[key_i].ke_values = VOID;}
         else {
           ke[key_i].ke_vref=
-            write_value_block(hx,stream,schedule[k].commit_values,VOID,
+            write_value_block(hx,stream,oc,
+                              schedule[k].commit_values,VOID,
                               ke[key_i].ke_vref.off,ke[key_i].ke_vref.size,
                               endpos);
           if (ke[key_i].ke_values!=VOID)
@@ -2129,7 +2126,8 @@ FD_FASTOP fd_off_t extend_keybucket
       else {
         ke[n_keys].ke_values = VOID;
         ke[n_keys].ke_vref=
-          write_value_block(hx,stream,schedule[k].commit_values,VOID,
+          write_value_block(hx,stream,oc,
+                            schedule[k].commit_values,VOID,
                             0,0,endpos);
         endpos = ke[key_i].ke_vref.off+ke[key_i].ke_vref.size;
         if (endpos>=maxpos) {
@@ -2146,8 +2144,7 @@ FD_FASTOP fd_off_t extend_keybucket
 }
 
 FD_FASTOP fd_off_t write_keybucket
-(fd_hashindex hx,
- fd_stream stream,
+(fd_hashindex hx,fd_stream stream,fd_oidcoder oc,
  struct KEYBUCKET *kb,
  fd_off_t endpos,fd_off_t maxpos)
 {
@@ -2162,7 +2159,7 @@ FD_FASTOP fd_off_t write_keybucket
     endpos = endpos+fd_write_zint(outstream,n_values);
     if (n_values==0) {}
     else if (n_values==1) {
-      endpos = endpos+write_zvalue(hx,outstream,ke[i].ke_values);
+      endpos = endpos+write_zvalue(hx,outstream,oc,ke[i].ke_values);
       fd_decref(ke[i].ke_values);
       ke[i].ke_values = VOID;}
     else {
@@ -2213,8 +2210,10 @@ FD_FASTOP struct KEYBUCKET *read_keybucket
 static int update_hashindex_ondisk
 (fd_hashindex hx,lispval metadata,
  unsigned int flags,unsigned int new_keys,
- unsigned int changed_buckets,struct BUCKET_REF *bucket_locs,
+ unsigned int changed_buckets,
+ struct BUCKET_REF *bucket_locs,
  struct FD_SLOTCODER *sc,
+ struct FD_OIDCODER *oc,
  struct FD_STREAM *stream,
  struct FD_STREAM *head);
 static int update_hashindex_metadata(fd_hashindex,lispval,fd_stream,fd_stream);
@@ -2231,7 +2230,8 @@ static int hashindex_save(struct FD_INDEX *ix,
 {
   struct FD_HASHINDEX *hx = (struct FD_HASHINDEX *)ix;
   u8_string fname=hx->index_source;
-  struct FD_SLOTCODER sc = copy_slotcodes(hx);
+  struct FD_SLOTCODER sc = fd_copy_slotcodes(&(hx->index_slotcodes));
+  struct FD_OIDCODER oc = fd_copy_oidcodes(&(hx->index_oidcodes));
   if (!(u8_file_writablep(fname))) {
     fd_seterr("CantWriteFile","hashindex_save",fname,FD_VOID);
     return -1;}
@@ -2357,7 +2357,7 @@ static int hashindex_save(struct FD_INDEX *ix,
     assert(bucket == kb->kb_bucketno);
     while ((j<schedule_size) && (schedule[j].commit_bucket == bucket)) j++;
     /* This may write values to disk, so we use the returned endpos */
-    endpos = extend_keybucket(hx,stream,&sc,kb,schedule,sched_i,j,
+    endpos = extend_keybucket(hx,stream,&sc,&oc,kb,schedule,sched_i,j,
                               &newkeys,&new_valueblocks,
                               endpos,maxpos);
     CHECK_POS(endpos,stream);
@@ -2365,7 +2365,7 @@ static int hashindex_save(struct FD_INDEX *ix,
     {
       fd_off_t startpos = endpos;
       /* This writes the keybucket itself. */
-      endpos = write_keybucket(hx,stream,kb,endpos,maxpos);
+      endpos = write_keybucket(hx,stream,&oc,kb,endpos,maxpos);
       new_keyblocks++;
       if (endpos<0) {
         u8_big_free(bucket_locs);
@@ -2404,9 +2404,10 @@ static int hashindex_save(struct FD_INDEX *ix,
     (hx,changed_metadata,
      hx->storage_xformat,total_keys,
      changed_buckets,bucket_locs,
-     &sc,stream,head);
+     &sc,&oc,stream,head);
 
-  update_slotcodes(hx,&sc);
+  fd_update_slotcodes(&(hx->index_slotcodes),&sc);
+  fd_update_oidcodes(&(hx->index_oidcodes),&oc);
 
   /* Free the bucket locations */
   u8_big_free(bucket_locs);
@@ -2515,7 +2516,10 @@ static int hashindex_commit(fd_index ix,fd_commit_phase phase,
     u8_string commit_file = u8_mkstring("%s.commit",source);
     ssize_t rv = fd_apply_head(source,commit_file,-1);
     u8_free(commit_file);
-    if (rv<0) return -1; else return 1;}
+    load_header(hx,stream);
+    if (rv<0)
+      return -1;
+    else return 1;}
   case fd_commit_cleanup: {
     u8_string source = ix->index_source;
     if (commits->commit_stream) release_commit_stream(ix,commits);
@@ -2586,7 +2590,7 @@ static int update_hashindex_metadata(fd_hashindex hx,
   else return 1;
 }
 
-static int update_hashindex_baseoids(fd_hashindex hx,
+static int update_hashindex_baseoids(fd_hashindex hx,fd_oidcoder oc,
                                      struct FD_STREAM *stream,
                                      struct FD_STREAM *head)
 {
@@ -2596,12 +2600,12 @@ static int update_hashindex_baseoids(fd_hashindex hx,
   ssize_t baseoids_pos = fd_endpos(stream);
   if (baseoids_pos>0) {
     fd_outbuf outbuf = fd_writebuf(stream);
-    int len = hx->index_oidcodes.oids_len;
+    int len = oc->oids_len;
     struct FD_VECTOR vec;
     FD_INIT_STATIC_CONS(&vec,fd_vector_type);
     vec.vec_length = len;
     vec.vec_free_elts = vec.vec_bigalloc = vec.vec_bigalloc_elts =0;
-    vec.vec_elts = hx->index_oidcodes.baseoids;
+    vec.vec_elts = oc->baseoids;
     ssize_t new_baseoids_size = fd_write_dtype(outbuf,(lispval)&vec);
     ssize_t baseoids_end = fd_getpos(stream);
     if (new_baseoids_size<0)
@@ -2635,7 +2639,6 @@ static int update_hashindex_slotids(fd_hashindex hx,
   ssize_t slotids_pos = fd_endpos(stream);
   if (slotids_pos>0) {
     fd_outbuf outbuf = fd_writebuf(stream);
-    int len = sc->slotids->vec_length;
     ssize_t new_slotids_size = fd_write_dtype(outbuf,(lispval)(sc->slotids));
     ssize_t slotids_end = fd_getpos(stream);
     if (new_slotids_size<0)
@@ -2664,6 +2667,7 @@ static int update_hashindex_ondisk
  unsigned int changed_buckets,
  struct BUCKET_REF *bucket_locs,
  struct FD_SLOTCODER *sc,
+ struct FD_OIDCODER *oc,
  struct FD_STREAM *stream,
  struct FD_STREAM *head)
 {
@@ -2673,8 +2677,8 @@ static int update_hashindex_ondisk
   if (sc->modified)
     update_hashindex_slotids(hx,sc,stream,head);
 
-  if (hx->index_oidcodes.modified)
-    update_hashindex_baseoids(hx,stream,head);
+  if (oc->modified)
+    update_hashindex_baseoids(hx,oc,stream,head);
 
   struct FD_OUTBUF *outstream = fd_writebuf(head);
 
