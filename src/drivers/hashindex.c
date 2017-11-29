@@ -129,7 +129,7 @@ static int hashindex_loglevel = -1;
 #define DONT_LOCK_STREAM 0
 
 #if FD_DEBUG_HASHINDEXES
-#define CHECK_POS(pos,stream)                                      \
+#define CHECK_POS(pos,stream)                                       \
   if ((pos)!=(fd_getpos(stream)))                                   \
     u8_logf(LOG_CRIT,"FILEPOS error","position mismatch %ld/%ld",   \
             pos,fd_getpos(stream));                                 \
@@ -179,7 +179,7 @@ static u8_condition CorruptedHashIndex=_("Corrupted hashindex file");
 static u8_condition BadHashFn=_("hashindex has unknown hash function");
 
 static lispval set_symbol, drop_symbol, keycounts_symbol;
-static lispval slotids_symbol, baseoids_symbol, buckets_symbol, nkeys_symbol;
+static lispval slotcodes_symbol, oidcodes_symbol, buckets_symbol, nkeys_symbol;
 
 /* Utilities for DTYPE I/O */
 
@@ -305,8 +305,8 @@ static int load_header(struct FD_HASHINDEX *index,struct FD_STREAM *stream)
   /* Initialize the slotids field used for storing feature keys */
   if (slotids_size) {
     lispval slotids_vector = read_dtype_at_pos(stream,slotids_pos);
-    if (VOIDP(slotids_vector)) {
-      fd_init_slotcoder(&(index->index_slotcodes),0,NULL);}
+    if ( (VOIDP(slotids_vector)) || (FD_FALSEP(slotids_vector)) ) {
+      fd_init_slotcoder(&(index->index_slotcodes),-1,NULL);}
     else if (VECTORP(slotids_vector)) {
       fd_init_slotcoder(&(index->index_slotcodes),
                         VEC_LEN(slotids_vector),
@@ -316,13 +316,13 @@ static int load_header(struct FD_HASHINDEX *index,struct FD_STREAM *stream)
       fd_seterr("Bad SLOTIDS data","open_hashindex",fname,VOID);
       return -1;}
     index->hx_slotcodes_pos = slotids_pos;}
-  else fd_init_slotcoder(&(index->index_slotcodes),0,NULL);
+  else fd_init_slotcoder(&(index->index_slotcodes),-1,NULL);
 
   /* Initialize the baseoids field used for compressed OID values */
   if (baseoids_size) {
     lispval baseoids_vector = read_dtype_at_pos(stream,baseoids_pos);
-    if (VOIDP(baseoids_vector))
-      fd_init_oidcoder(&(index->index_oidcodes),0,NULL);
+    if ( (VOIDP(baseoids_vector)) || (FD_FALSEP(baseoids_vector)) )
+      fd_init_oidcoder(&(index->index_oidcodes),-1,NULL);
     else if (VECTORP(baseoids_vector)) {
       fd_init_oidcoder(&(index->index_oidcodes),
                        VEC_LEN(baseoids_vector),
@@ -332,7 +332,7 @@ static int load_header(struct FD_HASHINDEX *index,struct FD_STREAM *stream)
       fd_seterr("Bad BASEOIDS data","open_hashindex",fname,VOID);
       return -1;}
     index->hx_oidcodes_pos = baseoids_pos;}
-  else fd_init_oidcoder(&(index->index_oidcodes),0,NULL);
+  else fd_init_oidcoder(&(index->index_oidcodes),-1,NULL);
 
   lispval metadata=FD_VOID;
   if ( (metadata_size) && (metadata_loc) ) {
@@ -1132,7 +1132,6 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
   size_t vbuf_size=0;
   int oddkeys = ((hx->storage_xformat)&(FD_HASHINDEX_ODDKEYS));
   fd_stream stream = &(hx->index_stream);
-  struct FD_SLOTCODER *sc = & hx->index_slotcodes;
   fd_use_slotcodes(& hx->index_slotcodes);
 #if FD_DEBUG_HASHINDEXES
   u8_message("Reading %d keys from %s",n,hx->indexid);
@@ -1159,8 +1158,8 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
       if ((SYMBOLP(slotid)) || (OIDP(slotid))) {
         int code = fd_slotid2code(&(hx->index_slotcodes),slotid);
         if (code < 0) {
-        values[i++]=EMPTY;
-        continue;}}}
+          values[i++]=EMPTY;
+          continue;}}}
     ksched[n_entries].ksched_i = i;
     ksched[n_entries].ksched_key = key;
     ksched[n_entries].ksched_keyoff = dt_start;
@@ -2591,13 +2590,13 @@ static int update_hashindex_metadata(fd_hashindex hx,
   else return 1;
 }
 
-static int update_hashindex_baseoids(fd_hashindex hx,fd_oidcoder oc,
+static int update_hashindex_oidcodes(fd_hashindex hx,fd_oidcoder oc,
                                      struct FD_STREAM *stream,
                                      struct FD_STREAM *head)
 {
   int error=0;
-  u8_logf(LOG_WARN,"WriteOIDMap",
-          "Writing modified hashindex oidmap for %s",hx->indexid);
+  u8_logf(LOG_NOTICE,"WriteOIDMap",
+          "Writing modified hashindex oidcodes for %s",hx->indexid);
   ssize_t baseoids_pos = fd_endpos(stream);
   if (baseoids_pos>0) {
     fd_outbuf outbuf = fd_writebuf(stream);
@@ -2629,13 +2628,13 @@ static int update_hashindex_baseoids(fd_hashindex hx,fd_oidcoder oc,
   else return 1;
 }
 
-static int update_hashindex_slotids(fd_hashindex hx,
-                                    struct FD_SLOTCODER *sc,
-                                    struct FD_STREAM *stream,
-                                    struct FD_STREAM *head)
+static int update_hashindex_slotcodes(fd_hashindex hx,
+                                      struct FD_SLOTCODER *sc,
+                                      struct FD_STREAM *stream,
+                                      struct FD_STREAM *head)
 {
   int error=0;
-  u8_logf(LOG_INFO,"WriteOIDMap",
+  u8_logf(LOG_NOTICE,"WriteOIDMap",
           "Writing modified hashindex slotcodes for %s",hx->indexid);
   ssize_t slotids_pos = fd_endpos(stream);
   if (slotids_pos>0) {
@@ -2675,11 +2674,11 @@ static int update_hashindex_ondisk
   if (FD_SLOTMAPP(metadata))
     update_hashindex_metadata(hx,metadata,stream,head);
 
-  if (sc->modified)
-    update_hashindex_slotids(hx,sc,stream,head);
+  if (sc->n_slotcodes > sc->init_n_slotcodes)
+    update_hashindex_slotcodes(hx,sc,stream,head);
 
-  if (oc->modified)
-    update_hashindex_baseoids(hx,oc,stream,head);
+  if (oc->n_oids > oc->init_n_oids)
+    update_hashindex_oidcodes(hx,oc,stream,head);
 
   struct FD_OUTBUF *outstream = fd_writebuf(head);
 
@@ -2907,12 +2906,6 @@ static int interpret_hashindex_flags(lispval opts)
     flags |= FD_HASHINDEX_DTYPEV2;
 
   return flags;
-}
-
-static int good_initval(lispval val)
-{
-  return ((VOIDP(val))||(FALSEP(val))||(FD_DEFAULTP(val))||
-          (VECTORP(val)));
 }
 
 static fd_index hashindex_create(u8_string spec,void *typedata,
@@ -3328,10 +3321,12 @@ static lispval set_slotids(struct FD_HASHINDEX *hx,lispval arg)
     u8_lock_mutex(& hx->index_commit_lock );
     struct FD_STREAM _stream = {0}, *stream = fd_init_file_stream
       (&_stream,hx->index_source,FD_FILE_MODIFY,0,8192);
-    update_hashindex_slotids(hx,slotcodes,stream,stream);
+    update_hashindex_slotcodes(hx,slotcodes,stream,stream);
     fd_close_stream(stream,FD_STREAM_FREEDATA);
     u8_unlock_mutex(& hx->index_commit_lock );
-    return FD_TRUE;}
+    if (rv<0)
+      return FD_ERROR;
+    else return FD_TRUE;}
 }
 
 static lispval set_baseoids(struct FD_HASHINDEX *hx,lispval arg)
@@ -3342,7 +3337,6 @@ static lispval set_baseoids(struct FD_HASHINDEX *hx,lispval arg)
            hx->indexid);
     return FD_FALSE;}
   else {
-    int rv = 0;
     struct FD_OIDCODER *oidcodes = & hx->index_oidcodes;
     if ( (FD_FIXNUMP(arg)) && ( (FD_FIX2INT(arg)) >= 0) )
       fd_init_oidcoder(oidcodes,FD_FIX2INT(arg),NULL);
@@ -3356,7 +3350,7 @@ static lispval set_baseoids(struct FD_HASHINDEX *hx,lispval arg)
     u8_lock_mutex(& hx->index_commit_lock );
     struct FD_STREAM _stream = {0}, *stream = fd_init_file_stream
       (&_stream,hx->index_source,FD_FILE_MODIFY,0,8192);
-    update_hashindex_baseoids(hx,oidcodes,stream,stream);
+    update_hashindex_oidcodes(hx,oidcodes,stream,stream);
     fd_close_stream(stream,FD_STREAM_FREEDATA);
     u8_unlock_mutex(& hx->index_commit_lock );
     return FD_TRUE;}
@@ -3427,16 +3421,16 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
     lispval base = fd_index_base_metadata(ix);
     int n_slotids = hx->index_slotcodes.n_slotcodes;
     int n_baseoids = hx->index_oidcodes.n_oids;
-    fd_store(base,slotids_symbol,FD_INT(n_slotids));
-    fd_store(base,baseoids_symbol,FD_INT(n_baseoids));
+    fd_store(base,slotcodes_symbol,FD_INT(n_slotids));
+    fd_store(base,oidcodes_symbol,FD_INT(n_baseoids));
     fd_store(base,buckets_symbol,FD_INT(hx->index_n_buckets));
     fd_store(base,nkeys_symbol,FD_INT(hx->table_n_keys));
-    fd_add(base,FDSYM_READONLY,slotids_symbol);
-    fd_add(base,FDSYM_READONLY,baseoids_symbol);
+    fd_add(base,FDSYM_READONLY,slotcodes_symbol);
+    fd_add(base,FDSYM_READONLY,oidcodes_symbol);
     fd_add(base,FDSYM_READONLY,buckets_symbol);
     fd_add(base,FDSYM_READONLY,nkeys_symbol);
     return base;}
-  else if ( (op == fd_metadata_op) && (n == 1) && (args[0]==slotids_symbol) )
+  else if ( (op == fd_metadata_op) && (n == 1) && (args[0]==slotcodes_symbol) )
     return fd_deep_copy((lispval)(hx->index_slotcodes.slotids));
   else if (op == fd_stats_op)
     return hashindex_stats(hx);
@@ -3444,7 +3438,7 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
     reload_offdata(ix);
     fd_index_swapout(ix,((n==0)?(FD_VOID):(args[0])));
     return FD_TRUE;}
-  else if (op == fd_slotids_op) {
+  else if (op == fd_slotcodes_op) {
     if (n == 0) {
       int n_slotcodes = hx->index_slotcodes.n_slotcodes;
       lispval *elts = u8_alloc_n(n_slotcodes,lispval);
@@ -3458,7 +3452,7 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
     else if (n == 1)
       return set_slotids(hx,args[0]);
     else return fd_err(fd_TooManyArgs,"hashindex_ctl/slotids",hx->indexid,FD_VOID);}
-  else if (op == fd_baseoids_op) {
+  else if (op == fd_oidcodes_op) {
     if (n == 0) {
       int n_baseoids=hx->index_oidcodes.n_oids;
       lispval *baseoids=hx->index_oidcodes.baseoids;
@@ -3532,8 +3526,8 @@ FD_EXPORT void fd_init_hashindex_c()
   set_symbol = fd_intern("SET");
   drop_symbol = fd_intern("DROP");
   keycounts_symbol = fd_intern("KEYCOUNTS");
-  slotids_symbol = fd_intern("SLOTIDS");
-  baseoids_symbol = fd_intern("BASEOIDS");
+  slotcodes_symbol = fd_intern("SLOTIDS");
+  oidcodes_symbol = fd_intern("OIDCODES");
   buckets_symbol = fd_intern("BUCKETS");
   nkeys_symbol = fd_intern("KEYS");
 

@@ -24,7 +24,7 @@ FD_EXPORT fd_compress_type fd_compression_type(lispval,fd_compress_type);
 FD_EXPORT lispval fd_cachelevel_op, fd_bufsize_op, fd_mmap_op, fd_preload_op;
 FD_EXPORT lispval fd_metadata_op, fd_raw_metadata_op, fd_reload_op;
 FD_EXPORT lispval fd_stats_op, fd_label_op, fd_populate_op, fd_swapout_op;
-FD_EXPORT lispval fd_getmap_op, fd_slotids_op, fd_baseoids_op, fd_keys_op;
+FD_EXPORT lispval fd_getmap_op, fd_slotcodes_op, fd_oidcodes_op, fd_keys_op;
 FD_EXPORT lispval fd_load_op, fd_capacity_op;
 
 FD_EXPORT u8_condition fd_InvalidOffsetType;
@@ -111,8 +111,7 @@ unsigned int fd_hash_dtype_rep(lispval x);
 /* Coding OIDs */
 
 typedef struct FD_OIDCODER {
-  unsigned int modified:1;
-  unsigned int n_oids, oids_len;
+  unsigned int n_oids, oids_len, init_n_oids;
   int max_baseid, codes_len;
   lispval *baseoids;
   unsigned int *oidcodes;
@@ -150,7 +149,7 @@ FD_EXPORT lispval fd_baseoids_arg(lispval arg);
 /* Coding slotids */
 
 typedef struct FD_SLOTCODER {
-  int n_slotcodes, modified;
+  int n_slotcodes, init_n_slotcodes;
   struct FD_VECTOR *slotids;
   struct FD_SLOTMAP *lookup;
   U8_RWLOCK_DECL(rwlock);} *fd_slotcoder;
@@ -165,10 +164,10 @@ FD_EXPORT void fd_recycle_slotcoder(struct FD_SLOTCODER *);
 FD_FASTOP lispval fd_code2slotid(struct FD_SLOTCODER *sc,unsigned int code)
 {
   if (sc->slotids == NULL)
-    return FD_VOID;
+    return FD_ERROR;
   else if (code < sc->n_slotcodes)
     return sc->slotids->vec_elts[code];
-  else return -1;
+  else return FD_ERROR;
 }
 
 FD_FASTOP int fd_slotid2code(struct FD_SLOTCODER *sc,lispval slotid)
@@ -190,11 +189,13 @@ FD_FASTOP int fd_slotid2code(struct FD_SLOTCODER *sc,lispval slotid)
 #define fd_code2slotid _fd_code2slotid
 #endif
 
+U8_MAYBE_UNUSED
 static void fd_use_slotcodes(struct FD_SLOTCODER *sc)
 {
   u8_read_lock(&(sc->rwlock));
 }
 
+U8_MAYBE_UNUSED
 static void fd_release_slotcodes(struct FD_SLOTCODER *sc)
 {
   u8_rw_unlock(&(sc->rwlock));

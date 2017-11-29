@@ -58,7 +58,7 @@ static lispval index_slotids(lispval index_arg)
   struct FD_INDEX *ix = fd_lisp2index(index_arg);
   if (ix == NULL)
     return FD_ERROR;
-  else return fd_index_ctl(ix,fd_slotids_op,0,NULL);
+  else return fd_index_ctl(ix,fd_slotcodes_op,0,NULL);
 }
 
 static lispval indexctl_prim(int n,lispval *args)

@@ -135,8 +135,8 @@
       (make-index filename #[type fileindex size ,size])
       (make-index filename 
 		  `#[type hashindex size ,size
-		     slotids ,(compute-slotids keyvec)
-		     baseoids ,(sorted baseoids)
+		     slotcodes ,(compute-slotids keyvec)
+		     oidcodes ,(sorted baseoids)
 		     metadata ,(get-metadata)]))
   (open-index filename))
 

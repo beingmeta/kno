@@ -35,10 +35,12 @@
 		    base @b001/0 
 		    capacity 100000
 		    metadata #[status fresh]
-		    offtype ,(config 'offtype 'B40)])
+		    offtype ,(config 'offtype 'B40)
+		    slotcodes ,(config 'slotcodes 16)])
 		(p (make-pool poolfile (cons make-opts opts)))
 		(a (make-pool (string-subst poolfile ".pool" ".adjunct.pool") 
-			      (cons* #[adjunct #t] make-opts opts))))
+			      (cons* #[adjunct #t slotcodes #f]
+				     make-opts opts))))
 	   (adjunct! p 'adjslot a)
 	   (set! testpool p)
 	   (set! adjpool a)

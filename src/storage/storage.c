@@ -57,7 +57,8 @@ lispval fd_commit_phases[6];
 
 static lispval id_symbol, flags_symbol, background_symbol,
   readonly_symbol, repair_symbol, adjunct_symbol,
-  sparse_symbol, register_symbol, phased_symbol;
+  sparse_symbol, register_symbol, phased_symbol,
+  oidcodes_symbol, slotcodes_symbol;
 
 static lispval lookupfns = EMPTY;
 
@@ -660,6 +661,8 @@ FD_EXPORT int fd_init_storage()
   sparse_symbol = fd_intern("SPARSE");
   register_symbol = fd_intern("REGISTER");
   phased_symbol = fd_intern("PHASED");
+  slotcodes_symbol = fd_intern("SLOTCODES");
+  oidcodes_symbol = fd_intern("OIDCODES");
 
   fd_set_oid_parser(better_parse_oid);
   fd_unparsers[fd_oid_type]=better_unparse_oid;

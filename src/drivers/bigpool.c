@@ -209,7 +209,7 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,lispval 
 {
   FD_OID base = FD_NULL_OID_INIT;
   unsigned int hi, lo, magicno, capacity, load, n_slotids, bigpool_format = 0;
-  fd_off_t label_loc, metadata_loc, slotids_loc;
+  fd_off_t label_loc, metadata_loc, slotids_loc, slotids_size;
   lispval label;
   struct FD_BIGPOOL *pool = u8_alloc(struct FD_BIGPOOL);
   int read_only = U8_BITP(open_flags,FD_STORAGE_READ_ONLY) ||
@@ -285,7 +285,7 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,lispval 
   n_slotids = fd_read_4bytes(instream);
   /* Read and initialize the slotids_loc */
   slotids_loc = fd_read_8bytes(instream);
-  fd_read_4bytes(instream); /* Ignore size */
+  slotids_size = fd_read_4bytes(instream);
 
   /* Read the number of blocks stored in the pool */
   pool->pool_nblocks = fd_read_8bytes(instream);
@@ -322,32 +322,27 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,lispval 
     pool->pool_metadata.table_modified=0;
     fd_decref(metadata);}
 
-  if ((n_slotids)&&(slotids_loc)) {
-    int slotids_length = (n_slotids>256)?(n_slotids*2):(256);
+  if (slotids_loc) {
+    int slotids_length = (n_slotids>256)?((1+(n_slotids/2))*2):(256);
     lispval *slotids = u8_alloc_n(slotids_length,lispval);
-    struct FD_HASHTABLE *slotcodes = &(pool->slotcodes);
+    struct FD_INBUF _in = {0}, *in =
+      fd_open_block(stream,&_in,slotids_loc,slotids_size,1);
     int i = 0;
-    fd_init_hashtable(slotcodes,n_slotids,NULL);
-    FD_SET_CONS_TYPE(&(pool->slotcodes),fd_hashtable_type);
     fd_setpos(stream,slotids_loc);
-    while (i<n_slotids) {
-      lispval slotid = fd_read_dtype(instream);
+    while (_in.bufread < _in.buflim ) {
+      lispval slotid = fd_read_dtype(in);
       if (!( (FD_SYMBOLP(slotid)) || (FD_OIDP(slotid)) ||
-             (FD_EMPTYP(slotid)) || (FD_VOIDP(slotid)) )) {
+             (FD_EMPTYP(slotid)) || (FD_VOIDP(slotid)) ||
+             (FD_FALSEP(slotid)) )) {
         fd_seterr(CorruptBigpool,"open_bigpool/slotid_init",fname,slotid);
         fd_close_stream(stream,0);
         u8_free(pool);
         return NULL;}
-      slotids[i]=slotid;
-      fd_hashtable_store(slotcodes,slotid,FD_INT(i));
-      i++;}
-    pool->bigpool_slotids = slotids;
-    pool->bigpool_n_slotids = n_slotids;
-    pool->bigpool_slotids_length = slotids_length;}
-  else {
-    pool->bigpool_slotids = u8_alloc_n(256,lispval);
-    pool->bigpool_n_slotids = 0; pool->bigpool_slotids_length = 256;
-    fd_init_hashtable(&(pool->slotcodes),256,NULL);}
+      slotids[i++]=slotid;}
+    fd_close_inbuf(in);
+    fd_init_slotcoder(& pool->pool_slotcodes, i, slotids);
+    u8_free(slotids);}
+  else fd_init_slotcoder(& pool->pool_slotcodes, -1, NULL);
   pool->pool_offdata = NULL;
   pool->pool_offlen = 0;
   if (read_only)
@@ -478,13 +473,13 @@ static int make_bigpool
 (u8_string fname,u8_string label,
  FD_OID base,unsigned int capacity,unsigned int load,
  unsigned int flags,
- lispval metadata,lispval slotids_init,
+ lispval metadata_init,lispval slotcodes_init,
  time_t ctime,time_t mtime,
  int n_repacks)
 {
   time_t now = time(NULL);
-  fd_off_t slotids_pos = 0, metadata_pos = 0, label_pos = 0;
-  size_t slotids_size = 0, metadata_size = 0, label_size = 0;
+  fd_off_t slotcodes_pos = 0, metadata_pos = 0, label_pos = 0;
+  size_t slotcodes_size = 0, metadata_size = 0, label_size = 0;
   if (load>capacity) {
     u8_seterr(fd_PoolOverflow,"make_bigpool",
               u8_sprintf(NULL,256,
@@ -544,12 +539,18 @@ static int make_bigpool
   fd_write_4bytes(outstream,0);
   fd_write_4bytes(outstream,n_repacks);
 
-  /* Write number of slotids (if any) */
-  if (VECTORP(slotids_init))
-    fd_write_4bytes(outstream,VEC_LEN(slotids_init));
+  /* Write number of slotcodes (if any) */
+  if (VECTORP(slotcodes_init)) {
+    int real_len = 0; int i =0, lim = VEC_LEN(slotcodes_init);
+    while (i<lim) {
+      lispval slotid = VEC_REF(slotcodes_init,i);
+      if ( (FD_OIDP(slotid)) || (FD_SYMBOLP(slotid)) )
+        real_len++;
+      else break;}
+    fd_write_4bytes(outstream,real_len);}
   else fd_write_4bytes(outstream,0);
-  fd_write_8bytes(outstream,0); /* slotids offset (may be changed) */
-  fd_write_4bytes(outstream,0); /* slotids dtype length (may be changed) */
+  fd_write_8bytes(outstream,0); /* slotcodes offset (may be changed) */
+  fd_write_4bytes(outstream,0); /* slotcodes dtype length (may be changed) */
 
   /* Fill the rest of the space. */
   {
@@ -580,18 +581,26 @@ static int make_bigpool
     label_size = fd_getpos(stream)-label_pos;}
 
   /* Write the schemas */
-  if (VECTORP(slotids_init)) {
-    int i = 0, len = VEC_LEN(slotids_init);
-    slotids_pos = fd_getpos(stream);
+  if (VECTORP(slotcodes_init)) {
+    int i = 0, len = VEC_LEN(slotcodes_init);
+    slotcodes_pos = fd_getpos(stream);
     while (i<len) {
-      lispval slotid = VEC_REF(slotids_init,i);
+      lispval slotid = VEC_REF(slotcodes_init,i);
       fd_write_dtype(outstream,slotid);
       i++;}
-    slotids_size = fd_getpos(stream)-slotids_pos;}
+    slotcodes_size = fd_getpos(stream)-slotcodes_pos;}
+  else if (FD_FIXNUMP(slotcodes_init)) {
+    long long i=0, len = FD_FIX2INT(slotcodes_init);
+    slotcodes_pos = fd_getpos(stream);
+    while (i<len) {
+      fd_write_dtype(outstream,FD_FALSE);
+      i++;}
+    slotcodes_size = fd_getpos(stream)-slotcodes_pos;}
+  else NO_ELSE;
 
-  if (FD_TABLEP(metadata)) {
+  if (FD_TABLEP(metadata_init)) {
     metadata_pos = fd_getpos(stream);
-    fd_write_dtype(outstream,metadata);
+    fd_write_dtype(outstream,metadata_init);
     metadata_size = fd_getpos(stream)-metadata_pos;}
 
   if (label_pos) {
@@ -604,10 +613,10 @@ static int make_bigpool
     fd_write_8bytes(outstream,metadata_pos);
     fd_write_4bytes(outstream,metadata_size);}
 
-  if (slotids_pos) {
-    fd_setpos(stream,FD_BIGPOOL_SLOTIDS_POS);
-    fd_write_8bytes(outstream,slotids_pos);
-    fd_write_4bytes(outstream,slotids_size);}
+  if (slotcodes_pos) {
+    fd_setpos(stream,FD_BIGPOOL_SLOTCODES_POS);
+    fd_write_8bytes(outstream,slotcodes_pos);
+    fd_write_4bytes(outstream,slotcodes_size);}
 
   fd_flush_stream(stream);
   fd_unlock_stream(stream);
@@ -710,12 +719,13 @@ static lispval read_oid_value(fd_bigpool bp,
       int slot_byte0 = fd_probe_byte(in);
       if (slot_byte0==0xE0) {
         long long slotcode = (fd_read_byte(in), fd_read_zint(in));
-        if ((slotcode>=0)&&(slotcode<bp->bigpool_n_slotids))
-          kvals[i].kv_key = bp->bigpool_slotids[slotcode];
-        else {
+        lispval slotid = (slotcode < 0) ? (FD_ERROR) :
+          fd_code2slotid( & bp->pool_slotcodes, slotcode );
+        if (FD_TROUBLEP(slotid)) {
           fd_seterr(_("BadSlotCode"),cxt,bp->poolid,VOID);
           fd_decref((lispval)sm);
-          return FD_ERROR;}}
+          return FD_ERROR;}
+        else kvals[i].kv_key = slotid;}
       else kvals[i].kv_key = key = fd_read_dtype(in);
       if (FD_ABORTP(key)) {
         FD_SLOTMAP_NSLOTS(sm) = i;
@@ -1209,59 +1219,6 @@ static int bigpool_commit(fd_pool p,fd_commit_phase phase,
   }
 }
 
-/* Maintaining slotcodes */
-
-static int grow_slotcodes(struct FD_BIGPOOL *bp)
-{
-  lispval *slotids = bp->bigpool_slotids;
-  size_t cur_length = bp->bigpool_slotids_length;
-  size_t new_length = cur_length*2;
-  lispval *newslotids = u8_alloc_n(new_length,lispval);
-  if (newslotids == NULL) return -1;
-  else {
-    memcpy(newslotids,slotids,LISPVEC_BYTELEN(cur_length));
-    if (bp->bigpool_old_slotids) u8_free(bp->bigpool_old_slotids);
-    bp->bigpool_slotids_length = new_length;
-    bp->bigpool_old_slotids = slotids;
-    bp->bigpool_slotids = newslotids;
-    return 1;}
-}
-
-static int add_slotcode(struct FD_BIGPOOL *bp,lispval slotid)
-{
-  struct FD_HASHTABLE *slotcodes = &(bp->slotcodes);
-  u8_write_lock(&(slotcodes->table_rwlock)); {
-    lispval *slotids = bp->bigpool_slotids;
-    lispval v = fd_hashtable_get_nolock(slotcodes,slotid,VOID);
-    if (FD_UINTP(v)) {
-      /* Another thread got here first */
-      u8_rw_unlock(&(slotcodes->table_rwlock));
-      return FIX2INT(v);}
-    else {
-      if (bp->bigpool_n_slotids>=bp->bigpool_slotids_length) {
-        if (grow_slotcodes(bp)<0) {
-          u8_rw_unlock(&(slotcodes->table_rwlock));
-          /* This keeps lookup from trying again */
-          fd_hashtable_store(slotcodes,slotid,FD_INT(-1));
-          return -1;}
-        else slotids = bp->bigpool_slotids;}
-      int use_code = bp->bigpool_n_slotids++;
-      slotids[use_code]=slotid;
-      bp->bigpool_added_slotids++;
-      fd_hashtable_op_nolock(slotcodes,fd_table_store,slotid,FD_INT(use_code));
-      u8_rw_unlock(&(slotcodes->table_rwlock));
-      return use_code;}}
-}
-
-FD_FASTOP int get_slotcode(struct FD_BIGPOOL *bp,lispval slotid)
-{
-  struct FD_HASHTABLE *slotcodes = &(bp->slotcodes);
-  lispval v = fd_hashtable_get(slotcodes,slotid,VOID);
-  if (FIXNUMP(v)) return FIX2INT(v);
-  else if (CONSP(slotid)) return -1;
-  else return add_slotcode(bp,slotid);
-}
-
 /* Writing OID values */
 
 static ssize_t bigpool_write_value(fd_bigpool p,lispval value,
@@ -1281,16 +1238,23 @@ static ssize_t bigpool_write_value(fd_bigpool p,lispval value,
     fd_write_zint(tmpout,size);
     while (i<size) {
       lispval slotid = schema[i], value = values[i];
-      int slotcode = get_slotcode(p,slotid);
-      if (slotcode<0) {
-        if (fd_write_dtype(tmpout,slotid)<0)
-          return -1;}
-      else {
-        fd_write_byte(tmpout,0xE0);
-        fd_write_zint(tmpout,slotcode);}
+      if ( ( (FD_SYMBOLP(slotid)) || (FD_OIDP(slotid)) ) &&
+           (p->pool_slotcodes.slotids) ) {
+        int slotcode = fd_slotid2code( & p->pool_slotcodes , slotid );
+        if (slotcode < 0)
+          slotcode = fd_add_slotcode( & p->pool_slotcodes , slotid );
+        if (slotcode>=0) {
+          fd_write_byte(tmpout,0xE0);
+          fd_write_zint(tmpout,slotcode);}
+        else if (fd_write_dtype(tmpout,slotid)<0)
+          return -1;
+        else NO_ELSE;}
+      else if (fd_write_dtype(tmpout,slotid)<0)
+        return -1;
+      else NO_ELSE;
       if (fd_write_dtype(tmpout,value)<0)
         return -1;
-      i++;}}
+      else i++;}}
   else if (SLOTMAPP(value)) {
     struct FD_SLOTMAP *sm = (fd_slotmap)value;
     struct FD_KEYVAL *keyvals = sm->sm_keyvals;
@@ -1299,17 +1263,24 @@ static ssize_t bigpool_write_value(fd_bigpool p,lispval value,
     fd_write_zint(tmpout,size);
     while (i<size) {
       lispval slotid = keyvals[i].kv_key;
-      lispval value = keyvals[i].kv_val;
-      int slotcode = get_slotcode(p,slotid);
-      if (slotcode<0) {
-        if (fd_write_dtype(tmpout,slotid)<0)
-          return -1;}
-      else {
-        fd_write_byte(tmpout,0xE0);
-        fd_write_zint(tmpout,slotcode);}
+      lispval value  = keyvals[i].kv_val;
+      if ( ( (FD_SYMBOLP(slotid)) || (FD_OIDP(slotid)) ) &&
+           (p->pool_slotcodes.slotids) ) {
+        int slotcode = fd_slotid2code( & p->pool_slotcodes , slotid );
+        if (slotcode < 0)
+          slotcode = fd_add_slotcode( & p->pool_slotcodes , slotid );
+        if (slotcode>=0) {
+          fd_write_byte(tmpout,0xE0);
+          fd_write_zint(tmpout,slotcode);}
+        else if (fd_write_dtype(tmpout,slotid)<0)
+          return -1;
+        else NO_ELSE;}
+      else if (fd_write_dtype(tmpout,slotid)<0)
+        return -1;
+      else NO_ELSE;
       if (fd_write_dtype(tmpout,value)<0)
         return -1;
-      i++;}}
+      else i++;}}
   else if (fd_write_dtype(tmpout,value)<0)
     return -1;
   if (p->pool_compression) {
@@ -1441,12 +1412,12 @@ static int set_bigpool_label(fd_bigpool bp,u8_string label)
 /* These assume that the pool itself is locked */
 static int write_bigpool_slotids(fd_bigpool bp,fd_stream stream,fd_stream head_stream)
 {
-  if (bp->bigpool_added_slotids) {
-    lispval *slotids = bp->bigpool_slotids;
-    unsigned int n_slotids = bp->bigpool_n_slotids;
+  if (bp->pool_slotcodes.n_slotcodes > bp->pool_slotcodes.init_n_slotcodes ) {
+    lispval *slotids = bp->pool_slotcodes.slotids->vec_elts;
+    unsigned int n_slotids = bp->pool_slotcodes.n_slotcodes;
     off_t start_pos = fd_endpos(stream), end_pos = start_pos;
     fd_outbuf out = fd_writebuf(stream);
-    int i = 0, lim = bp->bigpool_n_slotids; while (i<lim) {
+    int i = 0, lim = bp->pool_slotcodes.n_slotcodes; while (i<lim) {
       lispval slotid = slotids[i++];
       ssize_t size = fd_write_dtype(out,slotid);
       if (size<0) return -1;
@@ -1454,7 +1425,6 @@ static int write_bigpool_slotids(fd_bigpool bp,fd_stream stream,fd_stream head_s
     fd_write_4bytes_at(head_stream,n_slotids,0x50);
     fd_write_8bytes_at(head_stream,start_pos,0x54);
     fd_write_4bytes_at(head_stream,end_pos-start_pos,0x5c);
-    bp->bigpool_added_slotids = 0;
     return 1;}
   else return 0;
 }
@@ -2020,16 +1990,10 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
       bigpool_setbuf(p,FIX2INT(args[0]));
       return FD_INT(bp->pool_stream.buf.raw.buflen);}
     else return fd_type_error("buffer size","bigpool_op/bufsize",args[0]);}
-  else if (op == fd_slotids_op) {
-    int n_slotids=bp->bigpool_n_slotids;
-    lispval result=fd_make_vector(n_slotids,NULL);
-    lispval *slotids=bp->bigpool_slotids;
-    int i=0; while (i<n) {
-      lispval slotid=slotids[i];
-      FD_VECTOR_SET(result,i,slotid);
-      fd_incref(slotid);
-      i++;}
-    return result;}
+  else if (op == fd_slotcodes_op) {
+    if (bp->pool_slotcodes.slotids)
+      return fd_deep_copy((lispval)(bp->pool_slotcodes.slotids));
+    else return fd_empty_vector(0);}
   else if (op == fd_label_op) {
     if (n == 0) {
       if (p->pool_label)
@@ -2065,8 +2029,9 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
   else if ( (op == fd_metadata_op) && (n == 0) ) {
     lispval base=fd_pool_base_metadata(p);
     lispval slotids_vec =
-      fd_make_vector(bp->bigpool_n_slotids,
-                     bp->bigpool_slotids);
+      (bp->pool_slotcodes.slotids) ?
+      fd_deep_copy((lispval)(bp->pool_slotcodes.slotids)) :
+      fd_empty_vector(0);
     fd_store(base,load_symbol,FD_INT(bp->pool_load));
     fd_store(base,slotids_symbol,slotids_vec);
     if ( bp->pool_offtype == FD_B32)
@@ -2159,7 +2124,7 @@ static fd_pool bigpool_create(u8_string spec,void *type_data,
   lispval capacity_arg = fd_getopt(opts,fd_intern("CAPACITY"),VOID);
   lispval load_arg = fd_getopt(opts,fd_intern("LOAD"),FD_FIXZERO);
   lispval label = fd_getopt(opts,FDSYM_LABEL,VOID);
-  lispval slotids = fd_getopt(opts,fd_intern("SLOTIDS"),VOID);
+  lispval slotcodes = fd_getopt(opts,fd_intern("SLOTCODES"),VOID);
   lispval metadata = fd_getopt(opts,fd_intern("METADATA"),VOID);
   lispval ctime_opt = fd_getopt(opts,fd_intern("CTIME"),FD_VOID);
   lispval mtime_opt = fd_getopt(opts,fd_intern("MTIME"),FD_VOID);
@@ -2225,13 +2190,13 @@ static fd_pool bigpool_create(u8_string spec,void *type_data,
   else rv = make_bigpool(spec,
                          ((STRINGP(label)) ? (CSTRING(label)) : (spec)),
                          FD_OID_ADDR(base_oid),capacity,load,flags,
-                         metadata,slotids,
+                         metadata,slotcodes,
                          ctime,mtime,generation);
   fd_decref(base_oid);
   fd_decref(capacity_arg);
   fd_decref(load_arg);
   fd_decref(label);
-  fd_decref(slotids);
+  fd_decref(slotcodes);
   fd_decref(metadata);
   fd_decref(ctime_opt);
   fd_decref(mtime_opt);
