@@ -135,6 +135,7 @@ void grabmagickerr(u8_context cxt,MagickWand *wand)
 {
   ExceptionType severity;
   char *description = MagickGetException(wand,&severity);
+  if (errno) u8_graberrno(cxt,NULL);
   u8_seterr(MagickWandError,cxt,u8_strdup(description));
   MagickRelinquishMemory(description);
   MagickClearException(wand);
@@ -166,7 +167,9 @@ lispval file2imagick(lispval arg)
     grabmagickerr("file2imagick",wand);
     u8_free(wand); u8_free(fdwand);
     return FD_ERROR_VALUE;}
-  else return (lispval)fdwand;
+  else {
+    U8_CLEAR_ERRNO();
+    return (lispval)fdwand;}
 }
 
 lispval packet2imagick(lispval arg)
@@ -182,7 +185,9 @@ lispval packet2imagick(lispval arg)
     grabmagickerr("file2imagick",wand);
     u8_free(wand); u8_free(fdwand);
     return FD_ERROR_VALUE;}
-  else return (lispval)fdwand;
+  else {
+    U8_CLEAR_ERRNO();
+    return (lispval)fdwand;}
 }
 
 lispval imagick2file(lispval fdwand,lispval filename)
@@ -195,7 +200,9 @@ lispval imagick2file(lispval fdwand,lispval filename)
   if (retval == MagickFalse) {
     grabmagickerr("imagick2file",wand);
     return FD_ERROR_VALUE;}
-  else return fd_incref(fdwand);
+  else {
+    U8_CLEAR_ERRNO();
+    return fd_incref(fdwand);}
 }
 
 lispval imagick2packet(lispval fdwand)
@@ -212,6 +219,7 @@ lispval imagick2packet(lispval fdwand)
   else {
     lispval packet = fd_make_packet(NULL,n_bytes,data);
     MagickRelinquishMemory(data);
+    U8_CLEAR_ERRNO();
     return packet;}
 }
 
@@ -223,6 +231,7 @@ lispval imagick2imagick(lispval fdwand)
   MagickWand *wand = CloneMagickWand(wrapper->wand);
   FD_INIT_FRESH_CONS(fresh,fd_imagick_type);
   fresh->wand = wand;
+  U8_CLEAR_ERRNO();
   return (lispval)fresh;
 }
 
@@ -249,10 +258,14 @@ static lispval imagick_table_get(lispval fdwand,lispval field,lispval dflt)
 #endif
   else if (FD_EQ(field,interlace)) {
     InterlaceType it = MagickGetInterlaceScheme(wand);
-    if (it == NoInterlace) return FD_FALSE;
-    else if (it == LineInterlace) return line_interlace;
-    else if (it == PlaneInterlace) return plane_interlace;
-    else if (it == PartitionInterlace) return partition_interlace;
+    if (it == NoInterlace)
+      return FD_FALSE;
+    else if (it == LineInterlace)
+      return line_interlace;
+    else if (it == PlaneInterlace)
+      return plane_interlace;
+    else if (it == PartitionInterlace)
+      return partition_interlace;
     else return FD_EMPTY_CHOICE;}
   else if (FD_EQ(field,size)) {
     size_t w = MagickGetImageWidth(wand);
@@ -339,7 +352,9 @@ static lispval imagick_fit(lispval fdwand,lispval w_arg,lispval h_arg,
   if (retval == MagickFalse) {
     grabmagickerr("imagick_fit",wand);
     return FD_ERROR_VALUE;}
-  else return fd_incref(fdwand);
+  else {
+    U8_CLEAR_ERRNO();
+    return fd_incref(fdwand);}
 }
 
 static lispval imagick_interlace(lispval fdwand,lispval scheme)
@@ -360,7 +375,9 @@ static lispval imagick_interlace(lispval fdwand,lispval scheme)
   if (retval == MagickFalse) {
     grabmagickerr("imagick_fit",wand);
     return FD_ERROR_VALUE;}
-  else return fd_incref(fdwand);
+  else {
+    U8_CLEAR_ERRNO();
+    return fd_incref(fdwand);}
 }
 
 static lispval imagick_extend(lispval fdwand,lispval w_arg,lispval h_arg,
@@ -386,7 +403,9 @@ static lispval imagick_extend(lispval fdwand,lispval w_arg,lispval h_arg,
   if (retval == MagickFalse) {
     grabmagickerr("imagick_extend",wand);
     return FD_ERROR_VALUE;}
-  else return fd_incref(fdwand);
+  else {
+    U8_CLEAR_ERRNO();
+    return fd_incref(fdwand);}
 }
 
 static lispval imagick_charcoal(lispval fdwand,lispval radius,lispval sigma)
@@ -400,7 +419,9 @@ static lispval imagick_charcoal(lispval fdwand,lispval radius,lispval sigma)
   if (retval == MagickFalse) {
     grabmagickerr("imagick_charcoal",wand);
     return FD_ERROR_VALUE;}
-  else return fd_incref(fdwand);
+  else {
+    U8_CLEAR_ERRNO();
+    return fd_incref(fdwand);}
 }
 
 static lispval imagick_emboss(lispval fdwand,lispval radius,lispval sigma)
@@ -414,7 +435,9 @@ static lispval imagick_emboss(lispval fdwand,lispval radius,lispval sigma)
   if (retval == MagickFalse) {
     grabmagickerr("imagick_emboss",wand);
     return FD_ERROR_VALUE;}
-  else return fd_incref(fdwand);
+  else {
+    U8_CLEAR_ERRNO();
+    return fd_incref(fdwand);}
 }
 
 static lispval imagick_blur(lispval fdwand,lispval radius,lispval sigma)
@@ -428,7 +451,9 @@ static lispval imagick_blur(lispval fdwand,lispval radius,lispval sigma)
   if (retval == MagickFalse) {
     grabmagickerr("imagick_blur",wand);
     return FD_ERROR_VALUE;}
-  else return fd_incref(fdwand);
+  else {
+    U8_CLEAR_ERRNO();
+    return fd_incref(fdwand);}
 }
 
 static lispval imagick_edge(lispval fdwand,lispval radius)
@@ -442,7 +467,9 @@ static lispval imagick_edge(lispval fdwand,lispval radius)
   if (retval == MagickFalse) {
     grabmagickerr("imagick_edge",wand);
     return FD_ERROR_VALUE;}
-  else return fd_incref(fdwand);
+  else {
+    U8_CLEAR_ERRNO();
+    return fd_incref(fdwand);}
 }
 
 
@@ -460,7 +487,9 @@ static lispval imagick_crop(lispval fdwand,
   if (retval == MagickFalse) {
     grabmagickerr("imagick_crop",wand);
     return FD_ERROR_VALUE;}
-  else return fd_incref(fdwand);
+  else {
+    U8_CLEAR_ERRNO();
+    return fd_incref(fdwand);}
 }
 
 static lispval imagick_flip(lispval fdwand)
@@ -473,7 +502,9 @@ static lispval imagick_flip(lispval fdwand)
   if (retval == MagickFalse) {
     grabmagickerr("imagick_flip",wand);
     return FD_ERROR_VALUE;}
-  else return fd_incref(fdwand);
+  else {
+    U8_CLEAR_ERRNO();
+    return fd_incref(fdwand);}
 }
 
 static lispval imagick_flop(lispval fdwand)
@@ -486,7 +517,9 @@ static lispval imagick_flop(lispval fdwand)
   if (retval == MagickFalse) {
     grabmagickerr("imagick_flop",wand);
     return FD_ERROR_VALUE;}
-  else return fd_incref(fdwand);
+  else {
+    U8_CLEAR_ERRNO();
+    return fd_incref(fdwand);}
 }
 
 static lispval imagick_equalize(lispval fdwand)
@@ -499,7 +532,9 @@ static lispval imagick_equalize(lispval fdwand)
   if (retval == MagickFalse) {
     grabmagickerr("imagick_equalize",wand);
     return FD_ERROR_VALUE;}
-  else return fd_incref(fdwand);
+  else {
+    U8_CLEAR_ERRNO();
+    return fd_incref(fdwand);}
 }
 
 static lispval imagick_despeckle(lispval fdwand)
@@ -512,7 +547,9 @@ static lispval imagick_despeckle(lispval fdwand)
   if (retval == MagickFalse) {
     grabmagickerr("imagick_despeckle",wand);
     return FD_ERROR_VALUE;}
-  else return fd_incref(fdwand);
+  else {
+    U8_CLEAR_ERRNO();
+    return fd_incref(fdwand);}
 }
 
 static lispval imagick_enhance(lispval fdwand)
@@ -525,7 +562,9 @@ static lispval imagick_enhance(lispval fdwand)
   if (retval == MagickFalse) {
     grabmagickerr("imagick_enhance",wand);
     return FD_ERROR_VALUE;}
-  else return fd_incref(fdwand);
+  else {
+    U8_CLEAR_ERRNO();
+    return fd_incref(fdwand);}
 }
 
 static lispval imagick_deskew(lispval fdwand,lispval threshold)
@@ -539,7 +578,9 @@ static lispval imagick_deskew(lispval fdwand,lispval threshold)
   if (retval == MagickFalse) {
     grabmagickerr("imagick_deskew",wand);
     return FD_ERROR_VALUE;}
-  else return fd_incref(fdwand);
+  else {
+    U8_CLEAR_ERRNO();
+    return fd_incref(fdwand);}
 }
 
 static lispval imagick_display(lispval fdwand,lispval display_name)
@@ -554,7 +595,9 @@ static lispval imagick_display(lispval fdwand,lispval display_name)
   if (retval == MagickFalse) {
     grabmagickerr("imagick_display",wand);
     return FD_ERROR_VALUE;}
-  else return fd_incref(fdwand);
+  else {
+    U8_CLEAR_ERRNO();
+    return fd_incref(fdwand);}
 }
 
 static lispval imagick_get(lispval fdwand,lispval property,lispval dflt)
