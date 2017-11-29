@@ -195,7 +195,9 @@
 	((has-suffix file ".table") (make-hashtable))
 	((has-suffix file ".index")
 	 (make-index file `#[type ,indextype slots 1000000
-			     offtype ,(config 'offtype 'b40)]))
+			     offtype ,(config 'offtype 'b40)
+			     baseoids ,(config 'baseoids #f)
+			     slotids ,(config 'slotids #f)]))
 	(else (make-hashtable))))
 (define (table-from file (indextype (config 'indextype 'fileindex)))
   (if (has-suffix file ".index")

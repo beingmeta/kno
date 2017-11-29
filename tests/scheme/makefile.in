@@ -409,8 +409,10 @@ hashindex40:
 	@make TESTBASE=tmphash40.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B40" indextest
 hashindex64:
 	@make TESTBASE=tmphash64.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B64" indextest
+hashindex40x:
+	@make TESTBASE=tmphash40.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B40 SLOTIDS=4 BASEOIDS=4" indextest
 
-hashindexes hashindex: hashindex32 hashindex40 hashindex64
+hashindexes hashindex: hashindex32 hashindex40 hashindex40x hashindex64
 
 indextests indexes: fileindexes hashindexes memindexes
 
