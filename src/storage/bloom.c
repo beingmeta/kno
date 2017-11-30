@@ -182,6 +182,66 @@ fd_init_bloom_filter(struct FD_BLOOM *use_bloom,int entries,double error)
   return bloom;
 }
 
+FD_EXPORT struct FD_BLOOM *
+fd_import_bloom_filter(struct FD_BLOOM *use_bloom,
+                       int entries,double error,
+                       const unsigned char *bytes,
+                       size_t n_bytes)
+{
+  struct FD_BLOOM *bloom = NULL;
+  if (entries < 1) {
+    fd_seterr(fd_TypeError,"fd_bloom_init","bad n_entries arg",FD_INT(entries));
+    return NULL;}
+  else if (error <= 0) {
+    fd_seterr(fd_TypeError,"fd_bloom_init","bad allowed error value",
+              fd_make_double(error));
+    return NULL;}
+  else if (use_bloom == NULL)
+    bloom = u8_alloc(struct FD_BLOOM);
+  else bloom = use_bloom;
+
+  if (use_bloom) {
+    FD_SET_CONS_TYPE(bloom,fd_bloom_filter_type);}
+  else FD_INIT_CONS(bloom,fd_bloom_filter_type);
+
+  bloom->entries = entries;
+  bloom->error = error;
+
+  double num = log(bloom->error);
+  double denom = 0.480453013918201; // ln(2)^2
+  bloom->bpe = -(num / denom);
+
+  double dentries = (double)entries;
+  bloom->bits = (int)(dentries * bloom->bpe);
+
+  if (bloom->bits % 8) {
+    bloom->bytes = (bloom->bits / 8) + 1;
+  } else {
+    bloom->bytes = bloom->bits / 8;
+  }
+
+  if (bloom->bytes != n_bytes) {
+    u8_seterr("Bloom/BadLength","fd_import_bloom_filter",
+              u8_mkstring("Inconsistent length %lld ≠ %lld (e=%f,n=%lld)",
+                          (size_t)n_bytes,(size_t)bloom->bytes,
+                          error,(long long)entries));
+    if (use_bloom == NULL) u8_free(bloom);
+    return NULL;}
+
+
+  bloom->hashes = (int)ceil(0.693147180559945 * bloom->bpe);  // ln(2)
+
+  if (bytes) 
+    bloom->bf = u8_memdup(bloom->bytes,bytes);
+  else bloom->bf = u8_zmalloc(bloom->bytes);
+  if (bloom->bf == NULL) {
+    u8_graberrno("fd_bloom_init:mallocbytes",NULL);
+    if (use_bloom == NULL) u8_free(bloom);
+    return NULL;}
+
+  return bloom;
+}
+
 /* Adding and checking primitives */
 
 int bloom_check_add_dtype(struct FD_BLOOM *bloom,lispval key,
@@ -274,12 +334,67 @@ void recycle_bloom(struct FD_RAW_CONS *c)
     u8_free(bloom);}
 }
 
+static ssize_t dtype_bloom(struct FD_OUTBUF *out,lispval x)
+{
+  struct FD_BLOOM * bloom = (struct FD_BLOOM *)x;
+  fd_write_byte(out,dt_compound);
+  fd_write_byte(out,dt_symbol);
+  fd_write_4bytes(out,11);
+  fd_write_bytes(out,"bloomfilter",11);
+  lispval len_val = FD_INT(bloom->bytes);
+  lispval entries_val = FD_INT(bloom->entries);
+  struct FD_FLONUM err; memset(&err,0,sizeof(FD_FLONUM));
+  FD_INIT_STATIC_CONS(&err,fd_flonum_type);
+  err.floval = bloom->error;
+  unsigned char buf[100];
+  struct FD_OUTBUF header; FD_INIT_BYTE_OUTBUF(&header,buf,100);
+  fd_write_dtype(&header,len_val);
+  fd_write_dtype(&header,entries_val);
+  fd_write_dtype(&header,(lispval)&err);
+  fd_decref(len_val); fd_decref(entries_val);
+  size_t header_len = header.bufwrite-header.buffer;
+  size_t packet_len = header_len + bloom->bytes;
+  fd_write_byte(out,dt_packet);
+  fd_write_4bytes(out,header_len+bloom->bytes);
+  fd_write_bytes(out,header.buffer,header_len);
+  fd_write_bytes(out,bloom->bf,bloom->bytes);
+  return 1 + 1 + 4 + 11 + 1 + 4 + header_len + bloom->bytes;
+}
+
+static lispval restore_bloom(lispval tag,lispval x,fd_compound_typeinfo e)
+{
+  if (FD_PACKETP(x)) {
+    struct FD_INBUF in; 
+    FD_INIT_INBUF(&in,FD_PACKET_DATA(x),FD_PACKET_LENGTH(x),0);
+    lispval len_val = fd_read_dtype(&in);
+    lispval entries_val = fd_read_dtype(&in);
+    lispval err_val = fd_read_dtype(&in);
+    if ( (FIXNUMP(len_val)) && (FIXNUMP(entries_val)) && (FD_FLONUMP(err_val)) ) {
+      long long len = fd_getint(len_val);
+      long long entries = fd_getint(entries_val);
+      double err = FD_FLONUM(err_val);
+      if ( (len > 0) && (entries > 0) && 
+           ( len == (in.buflim-in.bufread) ) ) {
+        struct FD_BLOOM *filter =
+          fd_import_bloom_filter(NULL,entries,err,in.bufread,len);
+        if (filter == NULL)
+          return FD_ERROR_VALUE;
+        else return (lispval) filter;}
+      else return fd_err(fd_DTypeError,"bad bloom filter data",NULL,x);}
+    else return fd_err(fd_DTypeError,"bad bloom filter data",NULL,x);}
+  else return fd_err(fd_DTypeError,"bad bloom filter data",NULL,x);
+}
 
 void fd_init_bloom_c()
 {
   fd_unparsers[fd_bloom_filter_type]=unparse_bloom;
   fd_recyclers[fd_bloom_filter_type]=recycle_bloom;
+  fd_dtype_writers[fd_bloom_filter_type]=dtype_bloom;
 
+  lispval bloom_tag = fd_intern("bloomfilter");
+
+  struct FD_COMPOUND_TYPEINFO *e=fd_register_compound(bloom_tag,NULL,NULL);
+  e->compound_restorefn = restore_bloom;
 }
 
 /* Original headers and license information */

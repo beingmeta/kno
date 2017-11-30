@@ -274,7 +274,8 @@ void fd_init_misctypes_c()
 
   uuid_symbol = fd_intern("UUID");
   {
-    struct FD_COMPOUND_TYPEINFO *e = fd_register_compound(uuid_symbol,NULL,NULL);
+    struct FD_COMPOUND_TYPEINFO *e = 
+      fd_register_compound(uuid_symbol,NULL,NULL);
     e->compound_dumpfn = uuid_dump;
     e->compound_restorefn = uuid_restore;}
 

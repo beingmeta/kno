@@ -66,11 +66,48 @@ struct FD_BLOOM
  *
  * Return:
  * -------
- *     0 - on success
- *     1 - on failure
+ *     bloom filter objects - on success
+ *     NULL - on failure
  *
  */
 struct FD_BLOOM *fd_init_bloom_filter(struct FD_BLOOM * bloom, int entries, double error);
+
+/** ***************************************************************************
+ * Initialize the bloom filter for use.
+ *
+ * The filter is initialized with a bit field and number of hash functions
+ * according to the computations from the wikipedia entry:
+ *     http://en.wikipedia.org/wiki/Bloom_filter
+ *
+ * Optimal number of bits is:
+ *     bits = (entries * ln(error)) / ln(2)^2
+ *
+ * Optimal number of hash functions is:
+ *     hashes = bpe * ln(2)
+ *
+ * Parameters:
+ * -----------
+ *     bloom   - Pointer to an allocated struct bloom (see above).
+ *     entries - The expected number of entries which will be inserted.
+ *     error   - Probability of collision (as long as entries are not
+ *               exceeded).
+ *     bytes   - bytes representing a bloom filter
+ *     n_bytes - number of bytes in *data*
+ *
+ * Return:
+ * -------
+ *     bloom filter objects - on success
+ *     NULL - on failure
+ *
+ * Errors:
+ *  If n_bytes don't correspond to the filter specified by the parameters.
+ */
+FD_EXPORT
+struct FD_BLOOM *
+fd_import_bloom_filter(struct FD_BLOOM *use_bloom,
+                       int entries,double error,
+                       const unsigned char *bytes,
+                       size_t n_bytes);
 
 
 /** ***************************************************************************

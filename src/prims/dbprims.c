@@ -3218,6 +3218,12 @@ static lispval bloom_error(lispval filter)
   return fd_make_double(bloom->error);
 }
 
+static lispval bloom_data(lispval filter)
+{
+  struct FD_BLOOM *bloom = (struct FD_BLOOM *)filter;
+  return fd_bytes2packet(NULL,bloom->bytes,bloom->bf);
+}
+
 /* Registering procpools and procindexes */
 
 static lispval def_procpool(lispval typesym,lispval handlers)
@@ -3732,15 +3738,18 @@ FD_EXPORT void fd_init_dbprims_c()
             "errors are just considered misses and ignored.",
             fd_bloom_filter_type,VOID,-1,VOID,-1,FD_FALSE,-1,FD_FALSE);
 
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("BLOOM-SIZE",bloom_size,1,
-                           fd_bloom_filter_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("BLOOM-COUNT",bloom_count,1,
-                           fd_bloom_filter_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("BLOOM-ERROR",bloom_error,1,
-                           fd_bloom_filter_type,VOID));
+  fd_idefn1(fd_scheme_module,"BLOOM-SIZE",bloom_size,1,
+            "Returns the size (in bytes) of a bloom filter ",
+            fd_bloom_filter_type,VOID);
+  fd_idefn1(fd_scheme_module,"BLOOM-COUNT",bloom_count,1,
+            "Returns the number of objects added to a bloom filter",
+            fd_bloom_filter_type,VOID);
+  fd_idefn1(fd_scheme_module,"BLOOM-ERROR",bloom_error,1,
+            "Returns the error threshold (a flonum) for the filter",
+            fd_bloom_filter_type,VOID);
+  fd_idefn1(fd_scheme_module,"BLOOM-DATA",bloom_data,1,
+            "Returns the bytes of the filter as a packet",
+            fd_bloom_filter_type,VOID);
 
 
   id_symbol = fd_intern("%ID");
