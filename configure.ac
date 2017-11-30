@@ -676,11 +676,6 @@ fi
 
 AC_ARG_WITH(malloc,--with-malloc Use custom malloc,with_malloc=$withval,with_malloc=$default_malloc)
 
-if test "$with_duma" != "no" && test "$with_malloc" != "libc"; then
-   echo error;
-   exit;
-fi
-
 AC_MSG_CHECKING(malloc library)
 
 if test -z "$with_malloc" || 
@@ -689,6 +684,9 @@ if test -z "$with_malloc" ||
    AC_MSG_RESULT(libc default)
    custom_malloc="";
    using_malloc="libc"
+elif test "$with_duma" != "no"; then
+   AC_MSG_ERROR(DUMA can only be used with libc malloc)
+   exit;
 elif test "$with_malloc" = "tcmalloc"; then
   gperftools="yes";
   custom_malloc="tcmalloc"
@@ -1186,7 +1184,6 @@ else
 fi;
 
 AC_ARG_WITH(sudo,--with[out]-sudo use sudo with install,,with_sudo="$SUDO")
-echo with_sudo=$with_sudo
 
 if test "$with_sudo" == "yes"; then
    SUINSTALL="${SUDO} ";

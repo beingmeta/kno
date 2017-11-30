@@ -6423,11 +6423,6 @@ else
 fi
 
 
-if test "$with_duma" != "no" && test "$with_malloc" != "libc"; then
-   echo error;
-   exit;
-fi
-
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking malloc library" >&5
 $as_echo_n "checking malloc library... " >&6; }
 
@@ -6438,6 +6433,9 @@ if test -z "$with_malloc" ||
 $as_echo "libc default" >&6; }
    custom_malloc="";
    using_malloc="libc"
+elif test "$with_duma" != "no"; then
+   as_fn_error $? "DUMA can only be used with libc malloc" "$LINENO" 5
+   exit;
 elif test "$with_malloc" = "tcmalloc"; then
   gperftools="yes";
   custom_malloc="tcmalloc"
@@ -10096,7 +10094,6 @@ else
   with_sudo="$SUDO"
 fi
 
-echo with_sudo=$with_sudo
 
 if test "$with_sudo" == "yes"; then
    SUINSTALL="${SUDO} ";
