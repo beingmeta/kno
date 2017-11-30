@@ -340,15 +340,17 @@ static int load_header(struct FD_HASHINDEX *index,struct FD_STREAM *stream)
       fd_inbuf in = fd_readbuf(stream);
       metadata = fd_read_dtype(in);}
     else {
-      fd_seterr("BadMetaData","open_hashindex","BadLocation",
-                FD_INT(metadata_loc));
+      fd_seterr("BadMetaData","open_hashindex",
+                "BadMetadataLocation",FD_INT(metadata_loc));
       metadata=FD_ERROR_VALUE;}
     if (! ( (FD_FALSEP(metadata)) || (FD_SLOTMAPP(metadata)) ) ) {
-      u8_logf(LOG_WARN,"BadMetaData","Ignoring bad metadata stored for %s",fname);
+      u8_logf(LOG_WARN,"BadMetaData",
+              "Ignoring bad metadata stored for %s: %q",
+              fname,metadata);
       metadata=FD_FALSE;}}
   else if ( (metadata_size) || (metadata_loc) )
     u8_log(LOG_WARN,"BadMetadata",
-           "Bad metadata location informat for %s @%lld+%lld",
+           "Bad metadata location for %s @%lld+%lld",
            fname,metadata_loc,metadata_size);
   else NO_ELSE;
 
@@ -2579,8 +2581,8 @@ static int update_hashindex_metadata(fd_hashindex hx,
         u8_logf(LOG_CRIT,"MetadataSizeIconsistency",
                 "There was an inconsistency writing the metadata for %s",
                 hx->indexid);}
-      fd_write_8bytes_at(head,metadata_pos,0x30);
-      fd_write_4bytes_at(head,metadata_end-metadata_pos,0x38);}}
+      fd_write_8bytes_at(head,metadata_pos,FD_HASHINDEX_METADATA_POS);
+      fd_write_4bytes_at(head,metadata_end-metadata_pos,FD_HASHINDEX_METADATA_POS+8);}}
   else error=1;
   if (error)
     u8_logf(LOG_CRIT,"MetaDataWriteError",
