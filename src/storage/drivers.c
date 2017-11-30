@@ -548,11 +548,10 @@ FD_EXPORT void fd_init_oidcoder(struct FD_OIDCODER *oidmap,
     if (oidmap->baseoids)
       u8_free(oidmap->baseoids);
     if (oidmap->oidcodes) u8_free(oidmap->oidcodes);}
-  if (oids_len == 0) {
+  if (oids_len < 0) {
     oidmap->baseoids    = NULL;
     oidmap->n_oids      = 0;
     oidmap->oids_len    = 0;
-    oidmap->init_n_oids = 0;
     oidmap->oidcodes    = NULL;
     oidmap->codes_len   = 0;
     oidmap->max_baseid  = -1;
