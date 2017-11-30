@@ -494,7 +494,10 @@ FD_EXPORT lispval fd_cons_vector(struct FD_VECTOR *ptr,
                                  lispval *data)
 {
   lispval *elts; int free_data = 1; int big_alloc = 0;
-  if ((ptr == NULL)&&(data == NULL)) {
+  if (len<0) {
+    fd_seterr("NegativeLength","fd_cons_vector",NULL,FD_INT(len));
+    return FD_ERROR;}
+  else if ((ptr == NULL)&&(data == NULL)) {
     int i = 0;
     if ( len > fd_bigvec_threshold) {
       ptr = u8_big_alloc(FD_VECTOR_LEN+(LISPVEC_BYTELEN(len)));
@@ -535,10 +538,23 @@ FD_EXPORT lispval fd_wrap_vector(int len,lispval *data)
   return fd_cons_vector(NULL,len,0,data);
 }
 
+FD_EXPORT lispval fd_fill_vector(int len,lispval init_elt)
+{
+  lispval vec = fd_cons_vector(NULL,len,0,NULL);
+  int i = 0; while (i < len) {
+    FD_VECTOR_SET(vec,i,init_elt);
+    fd_incref(init_elt);
+    i++;}
+  return vec;
+}
+
 FD_EXPORT lispval fd_make_nvector(int len,...)
 {
   va_list args; int i = 0;
   lispval result, *elts;
+  if (len<0) {
+    fd_seterr("NegativeLength","fd_make_nvector",NULL,FD_INT(len));
+    return FD_ERROR;}
   va_start(args,len);
   result = fd_empty_vector(len);
   elts = FD_VECTOR_ELTS(result);
@@ -550,6 +566,9 @@ FD_EXPORT lispval fd_make_nvector(int len,...)
 FD_EXPORT lispval fd_make_vector(int len,lispval *data)
 {
   int i = 0;
+  if (len<0) {
+    fd_seterr("NegativeLength","fd_make_vector",NULL,FD_INT(len));
+    return FD_ERROR;}
   int use_big_alloc = (len > fd_bigvec_threshold);
   struct FD_VECTOR *ptr =
     (use_big_alloc) ?
@@ -572,6 +591,9 @@ FD_EXPORT lispval fd_make_vector(int len,lispval *data)
 FD_EXPORT lispval fd_init_code(struct FD_VECTOR *ptr,int len,lispval *data)
 {
   lispval *elts; int i = 0, freedata = 1;
+  if (len<0) {
+    fd_seterr("NegativeLength","fd_init_code",NULL,FD_INT(len));
+    return FD_ERROR;}
   if ((ptr == NULL)&&(data == NULL)) {
     ptr = u8_malloc(FD_VECTOR_LEN+(LISPVEC_BYTELEN(len)));
     elts = ((lispval *)(((unsigned char *)ptr)+FD_VECTOR_LEN));
@@ -598,6 +620,9 @@ FD_EXPORT lispval fd_init_code(struct FD_VECTOR *ptr,int len,lispval *data)
 FD_EXPORT lispval fd_make_nrail(int len,...)
 {
   va_list args; int i = 0;
+  if (len<0) {
+    fd_seterr("NegativeLength","fd_init_code",NULL,FD_INT(len));
+    return FD_ERROR;}
   lispval result = fd_init_code(NULL,len,NULL);
   lispval *elts = FD_CODE_ELTS(result);
   va_start(args,len);
@@ -609,8 +634,10 @@ FD_EXPORT lispval fd_make_nrail(int len,...)
 FD_EXPORT lispval fd_make_code(int len,lispval *data)
 {
   int i = 0;
-  struct FD_VECTOR *ptr = u8_malloc
-    (FD_VECTOR_LEN+(LISPVEC_BYTELEN(len)));
+  if (len<0) {
+    fd_seterr("NegativeLength","fd_init_code",NULL,FD_INT(len));
+    return FD_ERROR;}
+  struct FD_VECTOR *ptr = u8_malloc(FD_VECTOR_LEN+(LISPVEC_BYTELEN(len)));
   lispval *elts = ((lispval *)(((unsigned char *)ptr)+FD_VECTOR_LEN));
   FD_INIT_CONS(ptr,fd_code_type);
   ptr->vec_length = len;
@@ -626,7 +653,10 @@ FD_EXPORT lispval fd_make_code(int len,lispval *data)
 FD_EXPORT lispval fd_init_packet
   (struct FD_STRING *ptr,int len,const unsigned char *data)
 {
-  if ((ptr == NULL)&&(data == NULL))
+  if (len<0) {
+    fd_seterr("NegativeLength","fd_init_packet",NULL,FD_INT(len));
+    return FD_ERROR;}
+  else if ((ptr == NULL)&&(data == NULL))
     return fd_make_packet(ptr,len,data);
   if (ptr == NULL) {
     ptr = u8_alloc(struct FD_STRING);
@@ -644,7 +674,10 @@ FD_EXPORT lispval fd_make_packet
   (struct FD_STRING *ptr,int len,const unsigned char *data)
 {
   u8_byte *bytes = NULL; int freedata = 1;
-  if (ptr == NULL) {
+  if (len<0) {
+    fd_seterr("NegativeLength","fd_make_packet",NULL,FD_INT(len));
+    return FD_ERROR;}
+  else if (ptr == NULL) {
     ptr = u8_malloc(FD_STRING_LEN+len+1);
     bytes = ((u8_byte *)ptr)+FD_STRING_LEN;
     if (data) {
@@ -664,7 +697,10 @@ FD_EXPORT lispval fd_bytes2packet
   (struct FD_STRING *ptr,int len,const unsigned char *data)
 {
   u8_byte *bytes = NULL; int freedata = (data!=NULL);
-  if (ptr == NULL) {
+  if (len<0) {
+    fd_seterr("NegativeLength","fd_bytes2packet",NULL,FD_INT(len));
+    return FD_ERROR;}
+  else if (ptr == NULL) {
     ptr = u8_malloc(FD_STRING_LEN+len+1);
     bytes = ((u8_byte *)ptr)+FD_STRING_LEN;
     if (data) {
@@ -690,6 +726,9 @@ FD_EXPORT lispval fd_init_compound
   (struct FD_COMPOUND *p,lispval tag,int ismutable,int n,...)
 {
   va_list args; int i = 0; lispval *write, *limit, initfn = FD_FALSE;
+  if (n<0) {
+    fd_seterr("NegativeLength","fd_init_compound",NULL,FD_INT(n));
+    return FD_ERROR;}
   if (PRED_FALSE((n<0)||(n>=256))) {
     /* Consume the arguments, just in case the implementation is a
        little flaky. */

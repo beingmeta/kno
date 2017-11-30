@@ -32,7 +32,7 @@ static lispval adjuncts_symbol;
 lispval fd_cachelevel_op, fd_bufsize_op, fd_mmap_op, fd_preload_op;
 lispval fd_metadata_op, fd_raw_metadata_op, fd_reload_op;
 lispval fd_stats_op, fd_label_op, fd_populate_op, fd_swapout_op;
-lispval fd_getmap_op, fd_slotids_op, fd_baseoids_op;
+lispval fd_getmap_op, fd_slotcodes_op, fd_oidcodes_op;
 lispval fd_load_op, fd_capacity_op;
 lispval fd_keys_op;
 
@@ -235,10 +235,12 @@ fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,lispval opts)
     (fd_get_pool_typeinfo(FD_SYMBOL_NAME(pool_typeid))) :
     (NULL);
   if (ptype) {
-    u8_string use_spec =
-      (ptype->matcher) ? (ptype->matcher(spec,ptype->type_data)) : (spec);
-    fd_pool p = open_pool(ptype,use_spec,flags,opts);
-    if (use_spec != spec) u8_free(use_spec);
+    u8_string open_spec = spec;
+    if (ptype->matcher) {
+      open_spec = ptype->matcher(spec,ptype->type_data);
+      if (open_spec==NULL) return NULL;}
+    fd_pool p = open_pool(ptype,open_spec,flags,opts);
+    if (open_spec != spec) u8_free(open_spec);
     return p;}
   if (!(flags & FD_STORAGE_NOERR))
     fd_seterr(fd_CantFindPool,"fd_open_pool",spec,opts);
@@ -432,10 +434,13 @@ fd_index fd_open_index(u8_string spec,fd_storage_flags flags,lispval opts)
     (fd_get_index_typeinfo(FD_SYMBOL_NAME(index_typeid))) :
     (NULL);
   if (ixtype) {
-    u8_string use_spec =
-      (ixtype->matcher) ? (ixtype->matcher(spec,ixtype->type_data)) : (spec);
-    fd_index ix = open_index(ixtype,use_spec,flags,opts);
-    if (use_spec != spec) u8_free(use_spec);
+    u8_string open_spec = spec;
+    if (ixtype->matcher) {
+      open_spec = ixtype->matcher(spec,ixtype->type_data);
+      if (open_spec == NULL)
+        return NULL;}
+    fd_index ix = open_index(ixtype,open_spec,flags,opts);
+    if (open_spec != spec) u8_free(open_spec);
     return ix;}
   if (!(flags & FD_STORAGE_NOERR))
     fd_seterr(fd_CantOpenIndex,"fd_open_index",spec,opts);
@@ -531,12 +536,11 @@ FD_EXPORT int fd_add_oidcode(struct FD_OIDCODER *map,lispval oid)
   map->oidcodes[baseid]  = code;
   if (baseid > map->max_baseid)
     map->max_baseid=baseid;
-  map->modified = 1;
   return code;
 }
 
 FD_EXPORT void fd_init_oidcoder(struct FD_OIDCODER *oidmap,
-                                int n_oids,lispval *oids)
+                                int oids_len,lispval *oids)
 {
   lispval *baseoids;
   unsigned int *codes;
@@ -544,20 +548,20 @@ FD_EXPORT void fd_init_oidcoder(struct FD_OIDCODER *oidmap,
     if (oidmap->baseoids)
       u8_free(oidmap->baseoids);
     if (oidmap->oidcodes) u8_free(oidmap->oidcodes);}
-  if (n_oids == 0) {
-    oidmap->baseoids   = NULL;
-    oidmap->oids_len   = 0;
-    oidmap->n_oids     = 0;
-    oidmap->oidcodes   = NULL;
-    oidmap->codes_len  = 0;
-    oidmap->max_baseid = -1;
+  if (oids_len < 0) {
+    oidmap->baseoids    = NULL;
+    oidmap->n_oids      = 0;
+    oidmap->oids_len    = 0;
+    oidmap->oidcodes    = NULL;
+    oidmap->codes_len   = 0;
+    oidmap->max_baseid  = -1;
     return;}
   else if (oids == NULL) {
-    baseoids = u8_alloc_n(n_oids,lispval);
-    int i=0; while (i<n_oids) oids[i++]=FD_FALSE;}
+    baseoids = u8_alloc_n(oids_len,lispval);
+    int i=0; while (i<oids_len) oids[i++]=FD_FALSE;}
   else {
-    baseoids = u8_alloc_n(n_oids,lispval);
-    int i=0; while (i<n_oids) {
+    baseoids = u8_alloc_n(oids_len,lispval);
+    int i=0; while (i<oids_len) {
       lispval init = oids[i];
       if ( (init) && (FD_OIDP(init)) )
         baseoids[i++] = init;
@@ -566,7 +570,7 @@ FD_EXPORT void fd_init_oidcoder(struct FD_OIDCODER *oidmap,
   while (codes_len < fd_n_base_oids) codes_len = codes_len*2;
   codes = u8_alloc_n(codes_len,unsigned int);
   i = 0; while (i<codes_len) codes[i++]= -1;
-  i = 0; while (i<n_oids) {
+  i = 0; while (i<oids_len) {
       lispval baseoid = baseoids[i];
       if (FD_OIDP(baseoid)) {
         int baseid    = FD_OID_BASE_ID(baseoid);
@@ -581,12 +585,13 @@ FD_EXPORT void fd_init_oidcoder(struct FD_OIDCODER *oidmap,
         if (baseid > max_baseid) max_baseid = baseid;
         last_oid = i;}
       i++;}
-  oidmap->n_oids     = last_oid;
-  oidmap->baseoids   = baseoids;
-  oidmap->oidcodes   = codes;
-  oidmap->oids_len   = n_oids;
-  oidmap->codes_len  = codes_len;
-  oidmap->max_baseid = max_baseid;
+  oidmap->n_oids      = last_oid;
+  oidmap->init_n_oids = last_oid;
+  oidmap->baseoids    = baseoids;
+  oidmap->oidcodes    = codes;
+  oidmap->oids_len    = oids_len;
+  oidmap->codes_len   = codes_len;
+  oidmap->max_baseid  = max_baseid;
 }
 
 FD_EXPORT struct FD_OIDCODER fd_copy_oidcodes(fd_oidcoder src)
@@ -670,10 +675,10 @@ FD_EXPORT lispval fd_baseoids_arg(lispval arg)
 FD_EXPORT lispval _fd_code2slotid(struct FD_SLOTCODER *sc,unsigned int code)
 {
   if (sc->slotids == NULL)
-    return FD_VOID;
+    return FD_ERROR;
   else if (code < sc->n_slotcodes)
     return sc->slotids->vec_elts[code];
-  else return -1;
+  else return FD_ERROR;
 }
 
 FD_EXPORT int _fd_slotid2code(struct FD_SLOTCODER *sc,lispval slotid)
@@ -740,13 +745,12 @@ FD_EXPORT int fd_add_slotcode(struct FD_SLOTCODER *sc,lispval slotid)
     int new_code = sc->n_slotcodes++;
     FD_VECTOR_SET(vec,new_code,slotid);
     fd_slotmap_store(map,slotid,FD_INT2FIX(new_code));
-    sc->modified = 1;
     return new_code;}
   return -1;
 }
 
 FD_EXPORT int fd_init_slotcoder(struct FD_SLOTCODER *sc,
-                                int n_slotids,
+                                int slotids_len,
                                 lispval *slotids)
 {
   if (sc->slotids) {
@@ -755,11 +759,11 @@ FD_EXPORT int fd_init_slotcoder(struct FD_SLOTCODER *sc,
   if (sc->lookup) {
     fd_decref((lispval)(sc->lookup));
     sc->lookup = NULL;}
-  if (n_slotids) {
-    lispval slot_vec = fd_make_vector(n_slotids,slotids);
-    lispval lookup = fd_make_slotmap(n_slotids,0,NULL);
+  if ( (slotids_len>=0) || (slotids) ) {
+    lispval slot_vec = fd_make_vector(slotids_len,slotids);
+    lispval lookup = fd_make_slotmap(slotids_len,0,NULL);
     struct FD_KEYVAL *keyvals = FD_SLOTMAP_KEYVALS(lookup);
-    int i = 0, j = 0; while (i < n_slotids) {
+    int i = 0, j = 0; while (i < slotids_len) {
       lispval slotid = (slotids) ? (slotids[i]) : (FD_FALSE);
       if ( (FD_SYMBOLP(slotid)) || (FD_OIDP(slotid)) ) {
         keyvals[j].kv_key = slotid;
@@ -773,9 +777,11 @@ FD_EXPORT int fd_init_slotcoder(struct FD_SLOTCODER *sc,
     sc->lookup->sm_sort_keyvals = 1;
     qsort(keyvals,j,FD_KEYVAL_LEN,cmp_slotkeys);
     sc->n_slotcodes = j;
-    return n_slotids;}
+    sc->init_n_slotcodes = j;
+    return slotids_len;}
   else {
     sc->n_slotcodes = 0;
+    sc->init_n_slotcodes = 0;
     sc->slotids = (fd_vector)  NULL;
     sc->lookup  = (fd_slotmap) NULL;
     return 0;}
@@ -801,6 +807,7 @@ FD_EXPORT void fd_update_slotcodes(fd_slotcoder dest,fd_slotcoder src)
   u8_write_lock(&(dest->rwlock));
   struct FD_VECTOR *old_vec = dest->slotids;
   struct FD_SLOTMAP *old_map = dest->lookup;
+  dest->n_slotcodes = src->n_slotcodes;
   dest->slotids = src->slotids;
   dest->lookup = src->lookup;
   u8_rw_unlock(& dest->rwlock);
@@ -1047,8 +1054,8 @@ FD_EXPORT int fd_init_drivers_c()
   fd_label_op=fd_intern("LABEL");
   fd_populate_op=fd_intern("POPULATE");
   fd_getmap_op=fd_intern("GETMAP");
-  fd_slotids_op=fd_intern("SLOTIDS");
-  fd_baseoids_op=fd_intern("BASEOIDS");
+  fd_slotcodes_op=fd_intern("SLOTCODES");
+  fd_oidcodes_op=fd_intern("OIDCODES");
   fd_load_op=fd_intern("LOAD");
   fd_capacity_op=fd_intern("CAPACITY");
   fd_metadata_op=fd_intern("METADATA");

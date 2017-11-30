@@ -603,6 +603,7 @@ FD_EXPORT lispval fd_wrap_vector(int len,lispval *data);
 FD_EXPORT lispval fd_empty_vector(int len);
 FD_EXPORT lispval fd_make_vector(int len,lispval *elts);
 FD_EXPORT lispval fd_make_nvector(int len,...);
+FD_EXPORT lispval fd_fill_vector(int len,lispval init_elt);
 
 #define FD_XVECTOR(x) (fd_consptr(struct FD_VECTOR *,x,fd_vector_type))
 

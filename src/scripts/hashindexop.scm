@@ -135,8 +135,8 @@
       (make-index filename #[type fileindex size ,size])
       (make-index filename 
 		  `#[type hashindex size ,size
-		     slotids ,(compute-slotids keyinfo)
-		     baseoids ,(sorted baseoids)
+		     slotcodes ,(compute-slotids keyinfo)
+		     oidcodes ,(sorted baseoids)
 		     metadata ,(get-metadata)]))
   (lognotice |NewIndex| 
     "Created new index with " ($num size) " buckets in " filename)

@@ -33,6 +33,7 @@
 			    'type (config 'pooltype 'filepool)
 			    'base @17/0 'capacity 65000
 			    'offtype (config 'pooloff (config 'offtype {}))
+			    'slotcodes (config 'slotcodes 16)
 			    'readonly #f)
 			  opts)))))
 
@@ -49,6 +50,8 @@
 			     'type (config 'indextype 'hashindex)
 			     'slots 65000
 			     'offtype (config 'indexoff (config 'offtype {}))
+			     'slotcodes (config 'slotcodes 16)
+			     'oidcodes (config 'oidcodes 16)
 			     'readonly #f)
 			   opts)))))
 

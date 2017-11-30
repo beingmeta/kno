@@ -336,8 +336,11 @@ bigpoolsnappytest:
 	@make TESTBASE=bigpoolsnappy RUNCONF="${BIGPOOL} ${SNAPPY} ${RUNCONF}" pooltest
 bigpoolzlibtest:
 	@make TESTBASE=bigpoolzlib RUNCONF="${BIGPOOL} ${ZPOOL} ${RUNCONF}" pooltest
+# This doesn't do any slotcoding to check those code paths
+bigpooltest_nx:
+	@make TESTBASE=bigpool_nx RUNCONF="SLOTCODES=#f ${BIGPOOL} ${RUNCONF}" pooltest
 
-bigpools bigpooltests: bigpooltest bigpool32test bigpool64test bigpoolsnappytest bigpoolzlibtest
+bigpools bigpooltests: bigpooltest bigpool32test bigpool64test bigpooltest_nx bigpoolsnappytest bigpoolzlibtest
 oidpools oidpooltests: oidpooltest oidpool32test oidpool64test
 
 flexpools flexpooltests:
@@ -410,7 +413,7 @@ hashindex40:
 hashindex64:
 	@make TESTBASE=tmphash64.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B64" indextest
 hashindex40x:
-	@make TESTBASE=tmphash40.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B40 SLOTIDS=4 BASEOIDS=4" indextest
+	@make TESTBASE=tmphash40x.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B40 SLOTCODES=4 OIDCODES=4" indextest
 
 hashindexes hashindex: hashindex32 hashindex40 hashindex40x hashindex64
 

@@ -24,7 +24,7 @@
 
 #define FD_BIGPOOL_LABEL_POS             0x18
 #define FD_BIGPOOL_METADATA_POS          0x24
-#define FD_BIGPOOL_SLOTIDS_POS           0x54
+#define FD_BIGPOOL_SLOTCODES_POS         0x54
 
 #define FD_BIGPOOL_FETCHBUF_SIZE 8000
 
@@ -45,14 +45,9 @@ typedef struct FD_BIGPOOL {
   fd_offset_type pool_offtype;
   unsigned int *pool_offdata;
   unsigned int pool_offlen;
-  lispval *bigpool_slotids;
-  lispval *bigpool_old_slotids;
-  unsigned int bigpool_n_slotids;
-  unsigned int bigpool_slotids_length;
-  unsigned int bigpool_added_slotids;
   unsigned int bigpool_format;
   ssize_t pool_nblocks;
-  struct FD_HASHTABLE slotcodes;} FD_BIGPOOL;
+  struct FD_SLOTCODER pool_slotcodes;} FD_BIGPOOL;
 typedef struct FD_BIGPOOL *fd_bigpool;
 
 struct BIGPOOL_FETCH_SCHEDULE {
