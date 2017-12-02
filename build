@@ -2,6 +2,8 @@
 
 CONFIG_ARGS=
 MAKE_ARGS=
+BUILD=$(pwd)
+SRC=$(dirname $(pwd))
 doclean=1;
 
 while [ $# -gt 0 ]; do
@@ -14,8 +16,11 @@ while [ $# -gt 0 ]; do
 	    doclean=1;
 	    ;;
 	dev)
-	    CONFIG_ARGS="--with-libscm=$(pwd)/src/libscm/ ${CONFIG_ARGS}";
-	    CONFIG_ARGS="--with-loadpath=$(dirname $(pwd))/fdmodules ${CONFIG_ARGS}";
+	    CONFIG_ARGS="--with-libscm=${BUILD}/src/libscm/ ${CONFIG_ARGS}";
+	    CONFIG_ARGS="--with-loadpath=${SRC}/fdmodules ${CONFIG_ARGS}";
+	    ;;
+	ipeval)
+	    CONFIG_ARGS="--with-ipeval ${CONFIG_ARGS}";
 	    ;;
 	libc|tcmalloc|jemalloc|asan|asan_noleak|tcmalloc_debug|tcmalloc_minimal|gperftools|asan_thread)
 	    CONFIG_ARGS="--with-malloc=${arg} ${CONFIG_ARGS}"; 
