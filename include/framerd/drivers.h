@@ -126,14 +126,18 @@ FD_EXPORT void fd_recycle_oidcoder(struct FD_OIDCODER *);
 #if (FRAMERD_SOURCE || FD_DRIVER_SOURCE)
 FD_FASTOP lispval fd_get_baseoid(struct FD_OIDCODER *map,unsigned int code)
 {
-  if (code > map->n_oids)
+  if (map->baseoids == NULL)
+    return FD_VOID;
+  else if (code > map->n_oids)
     return FD_VOID;
   else return map->baseoids[code];
 }
 
 FD_FASTOP int fd_get_oidcode(struct FD_OIDCODER *map,int baseid)
 {
-  if (baseid > map->max_baseid)
+  if (map->oidcodes == NULL)
+    return -1;
+  else if (baseid > map->max_baseid)
     return -1;
   else return map->oidcodes[baseid];
 }
