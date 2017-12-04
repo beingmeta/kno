@@ -355,7 +355,7 @@ static ssize_t dtype_bloom(struct FD_OUTBUF *out,lispval x)
   size_t header_len = header.bufwrite-header.buffer;
   size_t packet_len = header_len + bloom->bytes;
   fd_write_byte(out,dt_packet);
-  fd_write_4bytes(out,header_len+bloom->bytes);
+  fd_write_4bytes(out,packet_len);
   fd_write_bytes(out,header.buffer,header_len);
   fd_write_bytes(out,bloom->bf,bloom->bytes);
   return 1 + 1 + 4 + 11 + 1 + 4 + header_len + bloom->bytes;
