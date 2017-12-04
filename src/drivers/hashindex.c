@@ -293,14 +293,20 @@ static int load_header(struct FD_HASHINDEX *index,struct FD_STREAM *stream)
 {
   u8_string fname = index->index_source;
 
-  fd_off_t slotids_pos = fd_read_8bytes_at(stream,0x14,FD_ISLOCKED,NULL);
-  ssize_t slotids_size = fd_read_4bytes_at(stream,0x1c,FD_ISLOCKED);
+  fd_off_t slotids_pos =
+    fd_read_8bytes_at(stream,FD_HASHINDEX_SLOTIDS_POS,FD_ISLOCKED,NULL);
+  ssize_t slotids_size =
+    fd_read_4bytes_at(stream,FD_HASHINDEX_SLOTIDS_POS+8,FD_ISLOCKED);
 
-  fd_off_t baseoids_pos = fd_read_8bytes_at(stream,0x20,FD_ISLOCKED,NULL);
-  ssize_t baseoids_size = fd_read_4bytes_at(stream,0x28,FD_ISLOCKED);
+  fd_off_t baseoids_pos =
+    fd_read_8bytes_at(stream,FD_HASHINDEX_BASEOIDS_POS,FD_ISLOCKED,NULL);
+  ssize_t baseoids_size =
+    fd_read_4bytes_at(stream,FD_HASHINDEX_BASEOIDS_POS+8,FD_ISLOCKED);
 
-  fd_off_t metadata_loc  = fd_read_8bytes_at(stream,0x30,FD_ISLOCKED,NULL);
-  ssize_t metadata_size = fd_read_4bytes_at(stream,0x38,FD_ISLOCKED);
+  fd_off_t metadata_loc  = fd_read_8bytes_at
+    (stream,FD_HASHINDEX_METADATA_POS,FD_ISLOCKED,NULL);
+  ssize_t metadata_size = fd_read_4bytes_at
+    (stream,FD_HASHINDEX_METADATA_POS+8,FD_ISLOCKED);
 
   /* Initialize the slotids field used for storing feature keys */
   if (slotids_size) {
@@ -2916,9 +2922,9 @@ static fd_index hashindex_create(u8_string spec,void *typedata,
   int rv = 0;
   lispval metadata_init = fd_getopt(opts,fd_intern("METADATA"),FD_VOID);
   lispval slotids_arg=FD_VOID, slotids_init =
-    fd_getopt(opts,fd_intern("SLOTIDS"),VOID);
+    fd_getopt(opts,fd_intern("SLOTCODES"),VOID);
   lispval baseoids_arg=FD_VOID, baseoids_init =
-    fd_getopt(opts,fd_intern("BASEOIDS"),VOID);
+    fd_getopt(opts,fd_intern("OIDCODES"),VOID);
   lispval nbuckets_arg = fd_getopt(opts,fd_intern("SLOTS"),
                                    fd_getopt(opts,FDSYM_SIZE,
                                              FD_INT(hashindex_default_size)));
