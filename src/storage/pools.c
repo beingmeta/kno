@@ -361,27 +361,32 @@ FD_EXPORT int fd_register_pool(fd_pool p)
 
 static void register_pool_label(fd_pool p)
 {
-  u8_string base = u8_string_subst(p->pool_label,"/","_");
-  u8_byte *dot = strchr(base,'.');
-  lispval pkey = VOID, probe = VOID;
-  if (dot) {
-    pkey = fd_substring(base,dot);
-    probe = fd_hashtable_get(&poolid_table,pkey,EMPTY);
-    if (EMPTYP(probe)) {
-      fd_hashtable_store(&poolid_table,pkey,fd_pool2lisp(p));}
-    else {
-      fd_decref(pkey);
-      pkey = fd_substring(base,NULL);}}
-  else pkey = fd_substring(base,NULL);
-  probe = fd_hashtable_get(&poolid_table,pkey,EMPTY);
-  if (EMPTYP(probe)) {
-    fd_hashtable_store(&poolid_table,pkey,fd_pool2lisp(p));
-    if (p->pool_prefix == NULL)
-      p->pool_prefix = u8_strdup(CSTRING(pkey));}
-  fd_decref(pkey);
+  u8_string base = u8_string_subst(p->pool_label,"/","_"), dot;
+  lispval full = lispval_string(base);
+  lispval lisp_arg = fd_pool2lisp(p);
+  lispval probe = fd_hashtable_get(&poolid_table,full,EMPTY);
+  if (EMPTYP(probe))
+    fd_hashtable_store(&poolid_table,full,fd_pool2lisp(p));
+  else {
+    fd_pool conflict = fd_lisp2pool(probe);
+    if (conflict != p) {
+      u8_log(LOG_WARN,"PoolLabelConflict",
+             "The label '%s' is already associated "
+             "with the pool\n    %q\n rather than %q",
+             base,conflict,lisp_arg);}
+    fd_decref(full); fd_decref(probe); u8_free(base);
+    return;}
+  if ((dot=strchr(base,'.'))) {
+    lispval prefix = fd_substring(base,dot);
+    lispval prefix_probe = fd_hashtable_get(&poolid_table,prefix,EMPTY);
+    if (EMPTYP(prefix_probe)) {
+      fd_hashtable_store(&poolid_table,prefix,fd_pool2lisp(p));}
+    fd_decref(prefix);
+    fd_decref(prefix_probe);}
+  fd_decref(full);
+  fd_decref(probe);
   u8_free(base);
 }
-
 
 static struct FD_GLUEPOOL *make_gluepool(FD_OID base)
 {
