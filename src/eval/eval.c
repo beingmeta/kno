@@ -2729,6 +2729,12 @@ FD_EXPORT int fd_init_scheme()
 
     u8_init_mutex(&app_cleanup_lock);
 
+    /* This sets up the fd_atexit handler for recycling the
+       application environment. Consequently, it needs to be called
+       before setting up any fd_atexit handlers which might use the
+       application environment. */
+    setup_app_env();
+
     return scheme_initialized;}
 }
 
