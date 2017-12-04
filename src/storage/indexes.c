@@ -204,8 +204,10 @@ static void init_cache_level(fd_index ix)
 FD_EXPORT void fd_register_index(fd_index ix)
 {
   if (ix->index_metadata.n_slots) {
-    lispval keyslotid = fd_slotmap_get(&(ix->index_metadata),FDSYM_KEYSLOT,FD_VOID);
-    if ( (FD_SYMBOLP(keyslotid)) || (FD_OIDP(keyslotid)) )
+    lispval keyslotid =
+      fd_slotmap_get(&(ix->index_metadata),FDSYM_KEYSLOT,FD_VOID);
+    if (FD_VOIDP(keyslotid)) {}
+    else if ( (FD_SYMBOLP(keyslotid)) || (FD_OIDP(keyslotid)) )
       ix->index_keyslot=keyslotid;
     else u8_logf(LOG_WARN,"BadKeySlot",
                  "Ignoring invalid keyslot from metadata: %q",keyslotid);
