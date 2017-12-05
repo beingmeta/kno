@@ -25,6 +25,10 @@
 	   (tryif (config 'ZLIB9 #f) 'ZLIB9)
 	   (tryif (config 'SNAPPY #f) 'SNAPPY))))
 
+(define (domove from to)
+  (onerror (move-file from to)
+      (lambda (ex) (system "mv " from " " to))))
+
 (define (symbolize s)
   (if (or (symbol? s)  (number? s)) s
       (if (string? s) (string->symbol (upcase s))
@@ -47,9 +51,14 @@
 			   isadjunct ,(config 'ISADJUNCT (test metadata 'flags 'isadjunct) config:boolean)
 			   register #t])))
 
+(define code-slots #default)
+(varconfig! codeslots code-slots config:boolean)
+
 (define (get-slotids metadata type (current) (added (config 'slotids {})))
   (set! current (getopt metadata 'slotids #f))
-  (and (or (vector? current) (exists? added))
+  (and (if (eq? code-slots #default)
+	   (or (vector? current) (exists? added))
+	   code-slots)
        (let ((cur (or current #())))
 	 (append cur (choice->vector (difference added (elts cur)))))))
 (define (get-compression metadata type)
@@ -178,11 +187,8 @@
       (let ((new (make-new-pool tmpfile old)))
 	(copy-oids old new)
 	(commit new)))
-    (when inplace
-      (onerror (move-file from bakfile)
-	  (lambda (ex) (system "mv " from " " bakfile))))
-    (onerror (move-file tmpfile to)
-	  (lambda (ex) (system "mv " tmpfile " " to)))))
+    (when inplace (domove from bakfile))
+    (domove tmpfile to)))
 
 (define (copy-pool from to)
   (let* ((base (basename from)))

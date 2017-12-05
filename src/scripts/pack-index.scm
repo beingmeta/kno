@@ -32,6 +32,10 @@
   (cond ((< (elapsed-time last-log) log-freq) #f)
 	(else (set! last-log (elapsed-time)) #t)))
 
+(define (domove from to)
+  (onerror (move-file from to)
+      (lambda (ex) (system "mv " from " " to))))
+
 ;;; MT/MAP
 
 (define (mt-iterfn fn vec args indexfn)
@@ -140,9 +144,11 @@
     (index-source old))
   (if (eq? type 'stdindex)
       (make-index filename `#[type fileindex size ,size
+			      keyslot ,(->lisp (config 'keyslot #f))
 			      metadata ,(get-metadata old)])
       (make-index filename 
 		  `#[type hashindex size ,size
+		     keyslot ,(->lisp (config 'keyslot #f))
 		     slotids
 		     ,(and (config 'codeslots (vector? (indexctl old 'slotids)) config:boolean)
 			   (compute-slotids keyvec))
@@ -273,6 +279,7 @@
     " in " (secs->string (elapsed-time start))))
 
 (define (main from (to #f))
+  (config! 'appid (glom "pack(" (basename from) ")"))
   (cond ((not to) (repack-index from))
 	((not (file-exists? from))
 	 (logcrit |PackIndex| "Can't locate source " from))
@@ -282,10 +289,12 @@
 	 (when (file-exists? to) (remove-file to))
 	 (lognotice |PackIndex| "Copying index " from " into " to)
 	 (let* ((old (open-index from))
+		(part (glom to ".part"))
 		(keyv (index-keysvec old))
-		(new (make-new-index to old keyv)))
+		(new (make-new-index part old keyv)))
 	   (copy-all-keys keyv old new #f)
 	   (commit new)
+	   (domove part to)
 	   new))))
 
 (define (repack-index from)
@@ -304,10 +313,8 @@
 	   (new (make-new-index tmpfile old keyv)))
       (copy-all-keys keyv old new)
       (commit new))
-    (onerror (move-file from bakfile)
-	     (lambda (ex) (system "mv " from " " bakfile)))
-    (onerror (move-file tmpfile from)
-	     (lambda (ex) (system "mv " tmpfile " " from)))))
+    (domove from bakfile)
+    (domove tmpfile from)))
 
 (optimize!)
 
