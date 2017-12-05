@@ -402,6 +402,7 @@ FD_EXPORT int _fd_grow_inbuf(struct FD_INBUF *b,size_t delta);
 #define fd_has_bytes(buf,n)  (FD_EXPECT_TRUE(_fd_has_bytes(buf,n)))
 
 FD_EXPORT int _fd_read_byte(struct FD_INBUF *buf);
+FD_EXPORT int _fd_probe_byte(struct FD_INBUF *buf);
 FD_EXPORT int _fd_unread_byte(struct FD_INBUF *buf,int byte);
 FD_EXPORT long long _fd_read_4bytes(struct FD_INBUF *buf);
 FD_EXPORT fd_8bytes _fd_read_8bytes(struct FD_INBUF *buf);
@@ -499,6 +500,7 @@ FD_FASTOP fd_8bytes fd_read_zint(struct FD_INBUF *s)
 }
 #else /*  FD_INLINE_BUFIO */
 #define fd_read_byte   _fd_read_byte
+#define fd_probe_byte   _fd_probe_byte
 #define fd_unread_byte _fd_unread_byte
 #define fd_read_4bytes _fd_read_4bytes
 #define fd_read_bytes  _fd_read_bytes
