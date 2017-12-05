@@ -524,7 +524,7 @@ FD_EXPORT int fd_add_oidcode(struct FD_OIDCODER *map,lispval oid)
     else return -1;}
   if (map->n_oids >= map->oids_len) {
     /* Grow the base OIDs table */
-    unsigned int len = map->oids_len, new_len = len*2;
+    unsigned int len = map->oids_len, new_len = (len<4) ? (len*2) : (8);
     lispval *cur_oids = map->baseoids;
     lispval *new_oids = u8_malloc(sizeof(lispval)*new_len);
     memcpy(new_oids,cur_oids,sizeof(lispval)*len);
@@ -719,7 +719,7 @@ FD_EXPORT int fd_add_slotcode(struct FD_SLOTCODER *sc,lispval slotid)
     return probe;
   if (sc->n_slotcodes >= sc->slotids->vec_length) {
     size_t len = sc->slotids->vec_length;
-    size_t new_len = (len<8) ? (16) : len*2;
+    size_t new_len = (len<8) ? (16) : (len*2);
     lispval new_vec = fd_make_vector(new_len,NULL);
     lispval new_lookup = fd_make_slotmap(new_len,len,NULL);
     lispval *slotids = FD_VECTOR_ELTS(((lispval)(sc->slotids)));
