@@ -164,6 +164,10 @@ FD_EXPORT int fd_add_slotcode(struct FD_SLOTCODER *,lispval slot);
 FD_EXPORT int fd_init_slotcoder(struct FD_SLOTCODER *,int,lispval *);
 FD_EXPORT void fd_recycle_slotcoder(struct FD_SLOTCODER *);
 
+FD_EXPORT lispval fd_decode_slotmap(struct FD_INBUF *in,struct FD_SLOTCODER *slotcodes);
+FD_EXPORT ssize_t fd_encode_slotmap
+(struct FD_OUTBUF *out,lispval value,struct FD_SLOTCODER *slotcodes);
+
 #if (FRAMERD_SOURCE || FD_DRIVER_SOURCE)
 FD_FASTOP lispval fd_code2slotid(struct FD_SLOTCODER *sc,unsigned int code)
 {

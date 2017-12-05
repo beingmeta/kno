@@ -13,6 +13,8 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
+#include "framerd/bufio.h"
+#include "framerd/streams.h"
 #include "framerd/storage.h"
 #include "framerd/pools.h"
 #include "framerd/indexes.h"
@@ -817,6 +819,12 @@ FD_EXPORT void fd_update_slotcodes(fd_slotcoder dest,fd_slotcoder src)
   if (old_map) fd_decref((lispval)old_map);
 }
 
+#define DTOUT(lenvar,out) \
+  if ((lenvar)>=0) {      \
+    ssize_t _outlen = out; \
+    if (_outlen<0) lenvar = -1; \
+    else lenvar += _outlen;}
+
 FD_EXPORT void fd_recycle_slotcoder(struct FD_SLOTCODER *sc)
 {
   u8_destroy_rwlock(&(sc->rwlock));
@@ -859,6 +867,67 @@ FD_EXPORT lispval fd_slotids_arg(lispval arg)
       else return FD_ERROR_VALUE;}
     return fd_make_vector(n,(lispval *) elts);}
   else return FD_ERROR_VALUE;
+}
+
+FD_EXPORT ssize_t fd_encode_slotmap(struct FD_OUTBUF *out,
+                                    lispval value,
+                                    struct FD_SLOTCODER *slotcodes)
+{
+  if ( (slotcodes) && (slotcodes->slotids) && (FD_SLOTMAPP(value)) ) {
+    ssize_t dtype_len = 0;
+    struct FD_SLOTMAP *map = (fd_slotmap) value;
+    int n_slots = map->n_slots;
+    struct FD_KEYVAL *kv = map->sm_keyvals;
+    DTOUT(dtype_len,fd_write_byte(out,0xFF));
+    DTOUT(dtype_len,fd_write_zint(out,n_slots));
+    int i=0; while (i<n_slots) {
+      lispval key = kv[i].kv_key;
+      lispval val = kv[i].kv_val;
+      int code = -1;
+      if ( (FD_SYMBOLP(key)) || (FD_OIDP(key)) ) {
+        code = fd_slotid2code(slotcodes,key);
+        if (code<0)
+          code = fd_add_slotcode(slotcodes,key);}
+      if (code<0) {
+        DTOUT(dtype_len,fd_write_dtype(out,key));
+        DTOUT(dtype_len,fd_write_dtype(out,val));}
+      else {
+        DTOUT(dtype_len,fd_write_byte(out,0xFE));
+        DTOUT(dtype_len,fd_write_zint(out,code));
+        DTOUT(dtype_len,fd_write_dtype(out,val));}
+      i++;}
+    return dtype_len;}
+  else return fd_write_dtype(out,value);
+}
+
+FD_EXPORT lispval fd_decode_slotmap(struct FD_INBUF *in,struct FD_SLOTCODER *slotcodes)
+{
+  if ( (slotcodes) && (slotcodes->slotids) ) {
+    int byte = fd_probe_byte(in);
+    if (byte == 0xFF) {
+      fd_read_byte(in); /* Already checked */ 
+      int n_slots = fd_read_zint(in);
+      lispval result = fd_make_slotmap(n_slots,n_slots,NULL);
+      if (FD_ABORTP(result)) return result;
+      struct FD_SLOTMAP *map = (fd_slotmap) result;
+      struct FD_KEYVAL *kv = map->sm_keyvals;
+      int i = 0; while (i<n_slots) {
+        lispval key, val;
+        if (fd_probe_byte(in) == 0xFE) {
+          fd_read_byte(in); /* Already checked */ 
+          int code = fd_read_zint(in);
+          key = fd_code2slotid(slotcodes,code);}
+        else key = fd_read_dtype(in);
+        if (FD_ABORTP(key)) {
+          fd_decref(result); return key;}
+        else kv[i].kv_key=key;
+        val = fd_read_dtype(in);
+        if (FD_ABORTP(val)) {
+          fd_decref(result); return val;}
+        else kv[i].kv_val = val;
+        i++;}
+      return result;}}
+  return fd_read_dtype(in);
 }
 
 /* Getting compression type from options */
