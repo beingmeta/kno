@@ -24,7 +24,7 @@ FD_EXPORT fd_compress_type fd_compression_type(lispval,fd_compress_type);
 FD_EXPORT lispval fd_cachelevel_op, fd_bufsize_op, fd_mmap_op, fd_preload_op;
 FD_EXPORT lispval fd_metadata_op, fd_raw_metadata_op, fd_reload_op;
 FD_EXPORT lispval fd_stats_op, fd_label_op, fd_populate_op, fd_swapout_op;
-FD_EXPORT lispval fd_getmap_op, fd_slotcodes_op, fd_oidcodes_op, fd_keys_op;
+FD_EXPORT lispval fd_getmap_op, fd_slotids_op, fd_baseoids_op, fd_keys_op;
 FD_EXPORT lispval fd_load_op, fd_capacity_op;
 
 FD_EXPORT u8_condition fd_InvalidOffsetType;

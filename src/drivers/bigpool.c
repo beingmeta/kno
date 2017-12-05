@@ -1990,7 +1990,7 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
       bigpool_setbuf(p,FIX2INT(args[0]));
       return FD_INT(bp->pool_stream.buf.raw.buflen);}
     else return fd_type_error("buffer size","bigpool_op/bufsize",args[0]);}
-  else if (op == fd_slotcodes_op) {
+  else if (op == fd_slotids_op) {
     if (bp->pool_slotcodes.slotids)
       return fd_deep_copy((lispval)(bp->pool_slotcodes.slotids));
     else return fd_empty_vector(0);}
@@ -2124,7 +2124,7 @@ static fd_pool bigpool_create(u8_string spec,void *type_data,
   lispval capacity_arg = fd_getopt(opts,fd_intern("CAPACITY"),VOID);
   lispval load_arg = fd_getopt(opts,fd_intern("LOAD"),FD_FIXZERO);
   lispval label = fd_getopt(opts,FDSYM_LABEL,VOID);
-  lispval slotcodes = fd_getopt(opts,fd_intern("SLOTCODES"),VOID);
+  lispval slotcodes = fd_getopt(opts,fd_intern("SLOTIDS"),VOID);
   lispval metadata = fd_getopt(opts,fd_intern("METADATA"),VOID);
   lispval ctime_opt = fd_getopt(opts,fd_intern("CTIME"),FD_VOID);
   lispval mtime_opt = fd_getopt(opts,fd_intern("MTIME"),FD_VOID);

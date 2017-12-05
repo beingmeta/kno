@@ -34,7 +34,7 @@ static lispval adjuncts_symbol;
 lispval fd_cachelevel_op, fd_bufsize_op, fd_mmap_op, fd_preload_op;
 lispval fd_metadata_op, fd_raw_metadata_op, fd_reload_op;
 lispval fd_stats_op, fd_label_op, fd_populate_op, fd_swapout_op;
-lispval fd_getmap_op, fd_slotcodes_op, fd_oidcodes_op;
+lispval fd_getmap_op, fd_slotids_op, fd_baseoids_op;
 lispval fd_load_op, fd_capacity_op;
 lispval fd_keys_op;
 
@@ -1125,8 +1125,8 @@ FD_EXPORT int fd_init_drivers_c()
   fd_label_op=fd_intern("LABEL");
   fd_populate_op=fd_intern("POPULATE");
   fd_getmap_op=fd_intern("GETMAP");
-  fd_slotcodes_op=fd_intern("SLOTCODES");
-  fd_oidcodes_op=fd_intern("OIDCODES");
+  fd_slotids_op=fd_intern("SLOTIDS");
+  fd_baseoids_op=fd_intern("BASEOIDS");
   fd_load_op=fd_intern("LOAD");
   fd_capacity_op=fd_intern("CAPACITY");
   fd_metadata_op=fd_intern("METADATA");

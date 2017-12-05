@@ -179,7 +179,7 @@ static u8_condition CorruptedHashIndex=_("Corrupted hashindex file");
 static u8_condition BadHashFn=_("hashindex has unknown hash function");
 
 static lispval set_symbol, drop_symbol, keycounts_symbol;
-static lispval slotcodes_symbol, oidcodes_symbol, buckets_symbol, nkeys_symbol;
+static lispval slotids_symbol, baseoids_symbol, buckets_symbol, nkeys_symbol;
 
 /* Utilities for DTYPE I/O */
 
@@ -2922,9 +2922,9 @@ static fd_index hashindex_create(u8_string spec,void *typedata,
   int rv = 0;
   lispval metadata_init = fd_getopt(opts,fd_intern("METADATA"),FD_VOID);
   lispval slotids_arg=FD_VOID, slotids_init =
-    fd_getopt(opts,fd_intern("SLOTCODES"),VOID);
+    fd_getopt(opts,fd_intern("SLOTIDS"),VOID);
   lispval baseoids_arg=FD_VOID, baseoids_init =
-    fd_getopt(opts,fd_intern("OIDCODES"),VOID);
+    fd_getopt(opts,fd_intern("BASEOIDS"),VOID);
   lispval nbuckets_arg = fd_getopt(opts,fd_intern("SLOTS"),
                                    fd_getopt(opts,FDSYM_SIZE,
                                              FD_INT(hashindex_default_size)));
@@ -3429,16 +3429,16 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
     lispval base = fd_index_base_metadata(ix);
     int n_slotids = hx->index_slotcodes.n_slotcodes;
     int n_baseoids = hx->index_oidcodes.n_oids;
-    fd_store(base,slotcodes_symbol,FD_INT(n_slotids));
-    fd_store(base,oidcodes_symbol,FD_INT(n_baseoids));
+    fd_store(base,slotids_symbol,FD_INT(n_slotids));
+    fd_store(base,baseoids_symbol,FD_INT(n_baseoids));
     fd_store(base,buckets_symbol,FD_INT(hx->index_n_buckets));
     fd_store(base,nkeys_symbol,FD_INT(hx->table_n_keys));
-    fd_add(base,FDSYM_READONLY,slotcodes_symbol);
-    fd_add(base,FDSYM_READONLY,oidcodes_symbol);
+    fd_add(base,FDSYM_READONLY,slotids_symbol);
+    fd_add(base,FDSYM_READONLY,baseoids_symbol);
     fd_add(base,FDSYM_READONLY,buckets_symbol);
     fd_add(base,FDSYM_READONLY,nkeys_symbol);
     return base;}
-  else if ( (op == fd_metadata_op) && (n == 1) && (args[0]==slotcodes_symbol) )
+  else if ( (op == fd_metadata_op) && (n == 1) && (args[0]==slotids_symbol) )
     return fd_deep_copy((lispval)(hx->index_slotcodes.slotids));
   else if (op == fd_stats_op)
     return hashindex_stats(hx);
@@ -3446,7 +3446,7 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
     reload_offdata(ix);
     fd_index_swapout(ix,((n==0)?(FD_VOID):(args[0])));
     return FD_TRUE;}
-  else if (op == fd_slotcodes_op) {
+  else if (op == fd_slotids_op) {
     if (n == 0) {
       int n_slotcodes = hx->index_slotcodes.n_slotcodes;
       lispval *elts = u8_alloc_n(n_slotcodes,lispval);
@@ -3456,11 +3456,11 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
         lispval slotid = slotids[i];
         elts[i]=slotid; fd_incref(slotid);
         i++;}
-      return fd_wrap_vector(n_elts,elts);}
+      return fd_wrap_vector(n_slotcodes,elts);}
     else if (n == 1)
       return set_slotids(hx,args[0]);
     else return fd_err(fd_TooManyArgs,"hashindex_ctl/slotids",hx->indexid,FD_VOID);}
-  else if (op == fd_oidcodes_op) {
+  else if (op == fd_baseoids_op) {
     if (n == 0) {
       int n_baseoids=hx->index_oidcodes.n_oids;
       lispval *baseoids=hx->index_oidcodes.baseoids;
@@ -3534,8 +3534,8 @@ FD_EXPORT void fd_init_hashindex_c()
   set_symbol = fd_intern("SET");
   drop_symbol = fd_intern("DROP");
   keycounts_symbol = fd_intern("KEYCOUNTS");
-  slotcodes_symbol = fd_intern("SLOTIDS");
-  oidcodes_symbol = fd_intern("OIDCODES");
+  slotids_symbol = fd_intern("SLOTIDS");
+  baseoids_symbol = fd_intern("BASEOIDS");
   buckets_symbol = fd_intern("BUCKETS");
   nkeys_symbol = fd_intern("KEYS");
 

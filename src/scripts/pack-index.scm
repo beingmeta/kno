@@ -143,11 +143,11 @@
 			      metadata ,(get-metadata old)])
       (make-index filename 
 		  `#[type hashindex size ,size
-		     slotcodes 
-		     ,(and (config 'slotcodes (vector? (indexctl old 'slotcodes)) config:boolean)
+		     slotids
+		     ,(and (config 'codeslots (vector? (indexctl old 'slotids)) config:boolean)
 			   (compute-slotids keyvec))
-		     oidcodes 
-		     ,(and (config 'oidcodes (vector? (indexctl old 'slotcodes)) config:boolean)
+		     baseoids
+		     ,(and (config 'codeoids (vector? (indexctl old 'baseoids)) config:boolean)
 			   (rsorted baseoids oid-addr))
 		     metadata ,(get-metadata old)]))
   (open-index filename))
