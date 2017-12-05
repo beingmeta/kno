@@ -82,8 +82,11 @@
 (config-def! 'slotid
 	     (slambda (var val)
 	       (if (bound? val)
-		   (if slotids (set! slotids (append slotids (list val)))
-		       (set! slotids (list val)))
+		   (if (or (symbol? val) (oid? val))
+		       (if slotids
+			   (set! slotids (append slotids (list val)))
+			   (set! slotids (list val)))
+		       (logwarn |BadSlotID| "Can't slotcode " val))
 		   slotids)))
 
 (define (count-slotid key table)
@@ -116,28 +119,37 @@
       (if (string? s) (string->symbol (upcase s))
 	  (irritant s |NotStringOrSymbol|))))
 
-(define (get-new-size nkeys)
-  (config 'newsize (inexact->exact (* (config 'loadfactor 2) nkeys))))
+(define (get-new-size index nkeys (minsize (config 'minsize 1024)))
+  (when (config 'keepsize config:boolean)
+    (when (number? (indexctl index 'hash))
+      (set! minsize (indexctl index 'hash))))
+  (config 'newsize 
+	  (max (inexact->exact (* (config 'loadfactor 2) nkeys))
+	       minsize)))
 
-(define (get-metadata base)
-  (and (config 'metadata #f) (file->dtype (config 'metadata #f))))
-
-(define (get-metadata)
-  (and (config 'metadata #f) (file->dtype (config 'metadata #f))))
+(define (get-metadata old)
+  (or (and (config 'metadata #f)
+	   (file->dtype (config 'metadata #f)))
+      (indexctl old 'metadata)))
 
 (define (make-new-index filename old keyvec (size) (type))
   (default! type (symbolize (config 'type 'hashindex)))
-  (default! size (get-new-size (length keyvec)))
+  (default! size (get-new-size old (length keyvec)))
   (lognotice |NewIndex|
     "Constructing new index " (write filename) " based on "
     (index-source old))
   (if (eq? type 'stdindex)
-      (make-index filename #[type fileindex size ,size])
+      (make-index filename `#[type fileindex size ,size
+			      metadata ,(get-metadata old)])
       (make-index filename 
 		  `#[type hashindex size ,size
-		     slotcodes ,(compute-slotids keyvec)
-		     oidcodes ,(sorted baseoids)
-		     metadata ,(get-metadata)]))
+		     slotcodes 
+		     ,(and (config 'slotcodes (vector? (indexctl old 'slotcodes)) config:boolean)
+			   (compute-slotids keyvec))
+		     oidcodes 
+		     ,(and (config 'oidcodes (vector? (indexctl old 'slotcodes)) config:boolean)
+			   (rsorted baseoids oid-addr))
+		     metadata ,(get-metadata old)]))
   (open-index filename))
 
 (defambda (copy-all-keys keyv old new (opts #f) (start (elapsed-time)))

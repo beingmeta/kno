@@ -25,51 +25,12 @@
 	   (tryif (config 'ZLIB9 #f) 'ZLIB9)
 	   (tryif (config 'SNAPPY #f) 'SNAPPY))))
 
-(define default-schematize #t)
-
-(define (get-schemas old)
-  (and (or (and default-schematize (not (config 'NOSCHEMAS #f)))
-	   (config 'SCHEMAS #f) (config 'SCHEMATIZE #f))
-       (if (and (config 'schemafile #f)
-		(string? (config 'schemafile #f))
-		(file-exists? (config 'schemafile #f)))
-	   (begin
-	     (message "Using existing schemas from " (config 'schemafile #f))
-	     (file->dtype (config 'schemafile #f)))
-	   (let ((table (make-hashtable)))
-	     (message "Identifying schemas from " (pool-load old) " OIDs "
-	       "in " (or (pool-source old) old))
-	     (do-choices-mt (f (pool-elts old) 
-			       (mt/threadcount (config 'nthreads 0.7))
-			       (lambda (oids done)
-				 (when done (clearcaches))
-				 (unless done (prefetch-oids! old oids)))
-			       (config 'blocksize (quotient (pool-load old) 10))
-			       (mt/custom-progress "Identifying schemas"))
-	       (hashtable-increment! table (sorted (getkeys (get old f)))))
-	     (let* ((default-threshold (max (quotient (table-maxval table) 4) 2))
-		    (threshold (config 'schemathresh default-threshold))
-		    (schemas (getkeys table))
-		    (picked (table-skim table threshold))
-		    (sum (reduce-choice + picked 0 table)))
-	       (message "Identified " (choice-size picked) 
-		 " repeated schemas covering " sum " objects out of "
-		 (choice-size schemas) " overall")
-	       (if (config 'schemafile #t)
-		   (let ((schemas (rsorted (getkeys table) table)))
-		     (when (and (config 'schemafile #f)
-				(string? (config 'schemafile #f)))
-		       (message "Writing schemas to " (config 'schemafile #f))
-		       (dtype->file schemas (config 'schemafile #t)))
-		     schemas)
-		   (rsorted picked table)))))))
-
 (define (symbolize s)
   (if (or (symbol? s)  (number? s)) s
       (if (string? s) (string->symbol (upcase s))
 	  (irritant s |NotStringOrSymbol|))))
 
-(define ztype-map
+(define compression-type-map
   #[bigpool snappy oidpool zlib filepool #f])
 
 (define (make-new-pool filename old 
@@ -80,17 +41,18 @@
 			   capacity ,(config 'newcap (pool-capacity old))
 			   load ,(config 'newload (pool-load old))
 			   label ,(config 'label (pool-label old))
-			   slotids ,(get-slotids metadata type)
+			   slotcodes ,(get-slotcodes metadata type)
 			   compression ,(get-compression metadata type)
 			   dtypev2 ,(or dtypev2 (test metadata 'flags 'dtypev2))
 			   isadjunct ,(config 'ISADJUNCT (test metadata 'flags 'isadjunct) config:boolean)
 			   register #t])))
 
-(define (get-slotids metadata type (current) (added (config 'slotids {})))
-  (set! current (getopt metadata 'slotids #()))
-  (append current (choice->vector (difference added (elts current)))))
+(define (get-slotcodes metadata type (current) (added (config 'slotcodes {})))
+  (set! current (getopt metadata 'slotcodes (getopt metadata 'slotids #f)))
+  (and (or (vector? current) (exists? added))
+       (append current (choice->vector (difference added (elts current))))))
 (define (get-compression metadata type)
-  (symbolize (config 'compression (try (get ztype-map type) #f))))
+  (symbolize (config 'compression (try (get compression-type-map type) #f))))
 
 (define (get-batchsize n)
   (cond ((and (config 'batchsize) (< (config 'batchsize) 1))
