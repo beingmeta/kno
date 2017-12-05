@@ -541,39 +541,42 @@ static lispval leveldb_getn_prim(lispval leveldb,lispval keys,lispval opts)
 
 static int leveldb_scanner(struct FRAMERD_LEVELDB *db,lispval opts,
                            leveldb_iterator_t *use_iterator,
-                           lispval key,leveldb_prefix_iterfn iterfn,
+                           lispval key,struct BYTEVEC *prefix,
+                           leveldb_prefix_iterfn iterfn,
                            void *state)
 {
   leveldb_readoptions_t *readopts = get_read_options(db,opts);
   struct FD_OUTBUF keyout = {0};
-  struct BYTEVEC prefix;
+  struct BYTEVEC _prefix;
   int rv = 0;
-  if (FD_PACKETP(key)) {
-    prefix.bytes =   FD_PACKET_DATA(key);
-    prefix.n_bytes = FD_PACKET_LENGTH(key);}
-  else {
-    FD_INIT_BYTE_OUTPUT(&keyout,1000);
-    ssize_t n_bytes = fd_write_dtype(&keyout,key);
-    if (n_bytes < 0) {
-      fd_close_outbuf(&keyout);
-      return -1;}
-    else if ( n_bytes != (keyout.bufwrite-keyout.buffer) ) {
-      u8_seterr("Inconsistent DTYPE size for key","leveldb_scanner",NULL);
-      return -1;}
+  if (prefix == NULL) {
+    prefix = &_prefix;
+    if (FD_PACKETP(key)) {
+      _prefix.bytes =   FD_PACKET_DATA(key);
+      _prefix.n_bytes = FD_PACKET_LENGTH(key);}
     else {
-      prefix.bytes   = keyout.buffer;
-      prefix.n_bytes = n_bytes;}}
+      FD_INIT_BYTE_OUTPUT(&keyout,1000);
+      ssize_t n_bytes = fd_write_dtype(&keyout,key);
+      if (n_bytes < 0) {
+        fd_close_outbuf(&keyout);
+        return -1;}
+      else if ( n_bytes != (keyout.bufwrite-keyout.buffer) ) {
+        u8_seterr("Inconsistent DTYPE size for key","leveldb_scanner",NULL);
+        return -1;}
+      else {
+        _prefix.bytes   = keyout.buffer;
+        _prefix.n_bytes = n_bytes;}}}
   leveldb_iterator_t *iterator = (use_iterator) ? (use_iterator) :
     (leveldb_create_iterator(db->dbptr,readopts));
-  leveldb_iter_seek(iterator,prefix.bytes,prefix.n_bytes);
+  leveldb_iter_seek(iterator,prefix->bytes,prefix->n_bytes);
   while (leveldb_iter_valid(iterator)) {
     struct BYTEVEC keybuf, valbuf;
     keybuf.bytes = leveldb_iter_key(iterator,&(keybuf.n_bytes));
     valbuf.bytes = leveldb_iter_value(iterator,&(valbuf.n_bytes));
-    if ( (keybuf.n_bytes >= prefix.n_bytes) &&
-         (memcmp(keybuf.bytes,prefix.bytes,prefix.n_bytes) == 0) ) {
+    if ( (keybuf.n_bytes >= prefix->n_bytes) &&
+         (memcmp(keybuf.bytes,prefix->bytes,prefix->n_bytes) == 0) ) {
       valbuf.bytes = leveldb_iter_value(iterator,&(valbuf.n_bytes));
-      rv = iterfn(key,&prefix,&keybuf,&valbuf,state);
+      rv = iterfn(key,prefix,&keybuf,&valbuf,state);
       /* u8_free(keybuf.bytes); u8_free(valbuf.bytes); */
       if (rv <= 0) break;}
     else {
@@ -607,7 +610,7 @@ static lispval leveldb_prefix_get_prim(lispval leveldb,lispval key,lispval opts)
   struct FD_LEVELDB *dbcons = (fd_leveldb)leveldb;
   struct FRAMERD_LEVELDB *db = &(dbcons->leveldb);
   lispval results = FD_EMPTY;
-  int rv = leveldb_scanner(db,opts,NULL,key,prefix_get_iterfn,&results);
+  int rv = leveldb_scanner(db,opts,NULL,key,NULL,prefix_get_iterfn,&results);
   if (rv<0) {
     fd_decref(results);
     return FD_ERROR;}
@@ -638,7 +641,8 @@ static lispval leveldb_prefix_getn_prim(lispval leveldb,lispval keys,lispval opt
     lispval key = prefixes[i].key;
     int pos = prefixes[i].keypos;
     FD_VECTOR_SET(result,pos,FD_EMPTY);
-    int rv = leveldb_scanner(db,opts,iterator,key,prefix_get_iterfn,&(elts[pos]));
+    int rv = leveldb_scanner(db,opts,iterator,key,NULL,
+                             prefix_get_iterfn,&(elts[pos]));
     if (rv<0) {
       int j=0; while (j < n_keys) {
         u8_free(prefixes[j].encoded.bytes); j++;}
@@ -711,7 +715,7 @@ static lispval leveldb_index_get_prim(lispval leveldb,lispval key,lispval opts)
   struct FD_LEVELDB *dbcons = (fd_leveldb)leveldb;
   struct FRAMERD_LEVELDB *db = &(dbcons->leveldb);
   struct KEY_VALUES accumulator = {0};
-  int rv = leveldb_scanner(db,opts,NULL,key,index_get_iterfn,&accumulator);
+  int rv = leveldb_scanner(db,opts,NULL,key,NULL,index_get_iterfn,&accumulator);
   if (rv<0) {
     fd_decref_vec(accumulator.vec,accumulator.used);
     u8_free(accumulator.vec);
@@ -863,6 +867,7 @@ fd_pool fd_use_leveldb_pool(u8_string path,lispval opts)
     lispval cap = get_prop(dbptr,"\377CAPACITY",FD_VOID);
     lispval load = get_prop(dbptr,"\377LOAD",FD_VOID);
     lispval metadata = get_prop(dbptr,"\377METADATA",FD_VOID);
+    lispval slotcodes = get_prop(dbptr,"\377SLOTCODES",FD_VOID);
     if ((FD_OIDP(base)) && (FD_UINTP(cap)) && (FD_UINTP(load))) {
       u8_string rname = u8_realpath(path,NULL);
       lispval adjunct_opt = fd_getopt(opts,SYM("ADJUNCT"),FD_VOID);
@@ -888,6 +893,11 @@ fd_pool fd_use_leveldb_pool(u8_string path,lispval opts)
         fd_copy_slotmap((fd_slotmap)metadata,
                         &(pool->pool_metadata));
         fd_set_modified(((lispval)(&(pool->pool_metadata))),0);}
+      if (FD_VECTORP(slotcodes)) 
+        fd_init_slotcoder(&(pool->slotcodes),
+                          FD_VECTOR_LENGTH(slotcodes),
+                          FD_VECTOR_ELTS(slotcodes));
+      else fd_init_slotcoder(&(pool->slotcodes),0,NULL);
       fd_decref(adjunct_opt); fd_decref(read_only_opt);
       fd_decref(metadata); fd_decref(label);
       fd_decref(base); fd_decref(cap); fd_decref(load);
@@ -927,6 +937,7 @@ fd_pool fd_make_leveldb_pool(u8_string path,lispval base,lispval cap,
     lispval ctime_val = fd_getopt(opts,fd_intern("CTIME"),FD_VOID);
     lispval mtime_val = fd_getopt(opts,fd_intern("MTIME"),FD_VOID);
     lispval generation_val = fd_getopt(opts,fd_intern("GENERATION"),FD_VOID);
+    lispval slotcodes = fd_getopt(opts,fd_intern("SLOTCODES"),FD_VOID);
 
     u8_string rname = u8_realpath(path,NULL);
     time_t now=time(NULL), ctime, mtime;
@@ -952,14 +963,39 @@ fd_pool fd_make_leveldb_pool(u8_string path,lispval base,lispval cap,
     if (FD_VOIDP(given_load))
       set_prop(dbptr,"\377LOAD",load,sync_writeopts);
 
-    if (! (FD_VOIDP(metadata)) ) {
-      if (FD_VOIDP(cur_metadata))
-        set_prop(dbptr,"\377METADATA",metadata,sync_writeopts);
-      else if (fd_testopt(opts,SYM("FORCE"),FD_VOID))
-        set_prop(dbptr,"\377METADATA",metadata,sync_writeopts);
-      else u8_log(LOG_WARN,"ExistingMetadata",
-                  "Not overwriting existing metatdata in leveldb pool %s",path);}
+    fd_init_pool((fd_pool)pool,
+                 FD_OID_ADDR(base),FD_FIX2INT(cap),
+                 &leveldb_pool_handler,
+                 u8_strdup(path),rname);
 
+    if (FD_SLOTMAPP(metadata)) {
+      if ( (FD_VOIDP(cur_metadata)) || (fd_testopt(opts,SYM("FORCE"),FD_VOID)) ) {
+        set_prop(dbptr,"\377METADATA",metadata,sync_writeopts);
+        fd_copy_slotmap((fd_slotmap)metadata,
+                        &(pool->pool_metadata));
+        pool->pool_metadata.table_modified=0;}
+      else u8_log(LOG_WARN,"ExistingMetadata",
+                  "Not overwriting existing metatdata in leveldb pool %s:",
+                  path,cur_metadata);}
+
+    if (FD_VECTORP(slotcodes)) {
+      set_prop(dbptr,"\377SLOTCODES",slotcodes,sync_writeopts);
+      fd_init_slotcoder(&(pool->slotcodes),
+                        FD_VECTOR_LENGTH(slotcodes),
+                        FD_VECTOR_ELTS(slotcodes));
+      fd_decref(slotcodes); slotcodes=FD_VOID;}
+    else if (FD_UINTP(slotcodes)) {
+      lispval tmp = fd_fill_vector(FD_FIX2INT(slotcodes),FD_FALSE);
+      set_prop(dbptr,"\377SLOTCODES",tmp,sync_writeopts);
+      fd_init_slotcoder(&(pool->slotcodes),
+                        FD_VECTOR_LENGTH(tmp),
+                        FD_VECTOR_ELTS(tmp));
+      fd_decref(tmp); fd_decref(slotcodes);}
+    else {
+      fd_init_slotcoder(&(pool->slotcodes),0,NULL);
+      if (! ( (FD_VOIDP(slotcodes)) || (FD_FALSEP(slotcodes)) ) )
+        u8_log(LOG_WARN,"BadSlotcodes","%q",slotcodes);}
+      
     if (FD_FIXNUMP(ctime_val))
       ctime = (time_t) FD_FIX2INT(ctime_val);
     else if (FD_PRIM_TYPEP(ctime_val,fd_timestamp_type)) {
@@ -981,17 +1017,10 @@ fd_pool fd_make_leveldb_pool(u8_string path,lispval base,lispval cap,
     set_prop(dbptr,"\377MTIME",mtime_val,sync_writeopts);
 
     if (FD_FIXNUMP(generation_val))
-      generation=FD_FIX2INT(generation_val);
-    else generation=0;
+      set_prop(dbptr,"\377GENERATION",generation_val,sync_writeopts);
+    else set_prop(dbptr,"\377GENERATION",FD_INT(0),sync_writeopts);
     fd_decref(generation_val);
-    set_prop(dbptr,"\377GENERATION",FD_INT(generation),sync_writeopts);
 
-
-
-    fd_init_pool((fd_pool)pool,
-                 FD_OID_ADDR(base),FD_FIX2INT(cap),
-                 &leveldb_pool_handler,
-                 u8_strdup(path),rname);
     u8_free(rname);
     pool->pool_flags &= ~FD_STORAGE_READ_ONLY;
     pool->pool_load = FD_FIX2INT(load);
@@ -1008,14 +1037,16 @@ fd_pool fd_make_leveldb_pool(u8_string path,lispval base,lispval cap,
 
 static lispval read_oid_value(fd_leveldb_pool p,struct FD_INBUF *in)
 {
-  return fd_read_dtype(in);
+  return fd_decode_slotmap(in,&(p->slotcodes));
 }
 
-static int write_oid_value(fd_leveldb_pool p,
-                           struct FD_OUTBUF *out,
-                           lispval value)
+static ssize_t write_oid_value(fd_leveldb_pool p,
+                               struct FD_OUTBUF *out,
+                               lispval value)
 {
-  return fd_write_dtype(out,value);
+  if (FD_SLOTMAPP(value))
+    return fd_encode_slotmap(out,value,&(p->slotcodes));
+  else return fd_write_dtype(out,value);
 }
 
 static lispval get_oid_value(fd_leveldb_pool ldp,unsigned int offset)
@@ -1270,36 +1301,36 @@ static fd_pool leveldb_pool_create(u8_string spec,void *type_data,
   fd_pool dbpool = NULL;
   int rv = 0;
   if (u8_file_existsp(spec)) {
-    fd_seterr(_("FileAlreadyExists"),"bigpool_create",spec,VOID);
+    fd_seterr(_("FileAlreadyExists"),"leveldb_pool_create",spec,VOID);
     return NULL;}
   else if (!(OIDP(base_oid))) {
-    fd_seterr("Not a base oid","bigpool_create",spec,base_oid);
+    fd_seterr("Not a base oid","leveldb_pool_create",spec,base_oid);
     rv = -1;}
   else if (FD_ISINT(capacity_arg)) {
     int capval = fd_getint(capacity_arg);
     if (capval<=0) {
-      fd_seterr("Not a valid capacity","bigpool_create",
+      fd_seterr("Not a valid capacity","leveldb_pool_create",
                 spec,capacity_arg);
       rv = -1;}
     else capacity = capval;}
   else {
-    fd_seterr("Not a valid capacity","bigpool_create",
+    fd_seterr("Not a valid capacity","leveldb_pool_create",
               spec,capacity_arg);
     rv = -1;}
   if (rv<0) {}
   else if (FD_ISINT(load_arg)) {
     int loadval = fd_getint(load_arg);
     if (loadval<0) {
-      fd_seterr("Not a valid load","bigpool_create",spec,load_arg);
+      fd_seterr("Not a valid load","leveldb_pool_create",spec,load_arg);
       rv = -1;}
     else if (loadval > capacity) {
-      fd_seterr(fd_PoolOverflow,"bigpool_create",spec,load_arg);
+      fd_seterr(fd_PoolOverflow,"leveldb_pool_create",spec,load_arg);
       rv = -1;}
     else NO_ELSE;}
   else if ( (FALSEP(load_arg)) || (EMPTYP(load_arg)) ||
             (VOIDP(load_arg)) || (load_arg == FD_DEFAULT_VALUE)) {}
   else {
-    fd_seterr("Not a valid load","bigpool_create",spec,load_arg);
+    fd_seterr("Not a valid load","leveldb_pool_create",spec,load_arg);
     rv = -1;}
 
   if (rv>=0)
@@ -1316,6 +1347,13 @@ static fd_pool leveldb_pool_create(u8_string spec,void *type_data,
     return fd_open_pool(spec,storage_flags,opts);}
   else return NULL;
 }
+
+static fd_pool leveldb_pool_open(u8_string spec,fd_storage_flags storage_flags,
+                                 lispval opts)
+{
+  return fd_use_leveldb_pool(spec,opts);
+}
+
 
 /* The LevelDB pool handler */
 
@@ -1348,12 +1386,51 @@ fd_index fd_open_leveldb_index(u8_string path,fd_storage_flags flags,lispval opt
     leveldb_t *dbptr = index->leveldb.dbptr;
     u8_string rname = u8_realpath(path,NULL);
     lispval label = get_prop(dbptr,"\377LABEL",FD_VOID);
+    lispval metadata = get_prop(dbptr,"\377METADATA",FD_VOID);
+    lispval slotcodes = get_prop(dbptr,"\377SLOTCODES",FD_VOID);
+    lispval oidcodes = get_prop(dbptr,"\377OIDCODES",FD_VOID);
+
     fd_init_index((fd_index)index,
                   &leveldb_index_handler,
                   (FD_STRINGP(label)) ? (FD_CSTRING(label)) : (path),
                   rname,
                   0);
+
+    if (FD_VOIDP(metadata)) {}
+    else if (FD_SLOTMAPP(metadata)) {}
+    else u8_log(LOG_WARN,"LevelDB/Index/BadMetadata",
+                "Bad metadata for level db index %s: %q",path,metadata);
+
+    if (FD_VECTORP(slotcodes)) 
+      fd_init_slotcoder(&(index->slotcodes),
+                        FD_VECTOR_LENGTH(slotcodes),
+                        FD_VECTOR_ELTS(slotcodes));
+    else if (FD_UINTP(slotcodes)) {
+      lispval tmp = fd_fill_vector(FD_FIX2INT(slotcodes),FD_FALSE);
+      fd_init_slotcoder(&(index->slotcodes),
+                        FD_VECTOR_LENGTH(tmp),
+                        FD_VECTOR_ELTS(tmp));
+      fd_decref(tmp);}
+    else u8_log(LOG_WARN,"LevelDB/Index/BadSlotCodes",
+                "Bad slotcodes for level db index %s: %q",path,slotcodes);
+
+    if (FD_VECTORP(oidcodes)) 
+      fd_init_oidcoder(&(index->oidcodes),
+                        FD_VECTOR_LENGTH(oidcodes),
+                        FD_VECTOR_ELTS(oidcodes));
+    else if (FD_UINTP(oidcodes)) {
+      lispval tmp = fd_fill_vector(FD_FIX2INT(oidcodes),FD_FALSE);
+      fd_init_oidcoder(&(index->oidcodes),
+                        FD_VECTOR_LENGTH(tmp),
+                        FD_VECTOR_ELTS(tmp));
+      fd_decref(tmp);}
+    else u8_log(LOG_WARN,"LevelDB/Index/BadOidcodes",
+                "Bad oidcodes for level db index %s: %q",path,oidcodes);
+
     fd_decref(label);
+    fd_decref(metadata);
+    fd_decref(slotcodes);
+    fd_decref(oidcodes);
     if (fd_testopt(opts,SYM("READONLY"),FD_VOID))
       index->index_flags |= FD_STORAGE_READ_ONLY;
     index->index_flags = flags;
@@ -1369,6 +1446,9 @@ fd_index fd_make_leveldb_index(u8_string path,lispval opts)
 {
   struct FD_LEVELDB_INDEX *index = u8_alloc(struct FD_LEVELDB_INDEX);
   lispval label = fd_getopt(opts,SYM("LABEL"),FD_VOID);
+  lispval metadata = fd_getopt(opts,SYM("METADATA"),FD_VOID);
+  lispval slotcodes = fd_getopt(opts,SYM("SLOTCODES"),FD_VOID);
+  lispval oidcodes = fd_getopt(opts,SYM("SLOTCODES"),FD_VOID);
   if (fd_setup_leveldb(&(index->leveldb),path,opts)) {
     leveldb_t *dbptr = index->leveldb.dbptr;
     lispval cur_label = get_prop(dbptr,"\377LABEL",FD_VOID);
@@ -1376,6 +1456,43 @@ fd_index fd_make_leveldb_index(u8_string path,lispval opts)
     if (!(FD_VOIDP(label))) {
       if (!(FD_EQUALP(label,cur_label)))
         set_prop(dbptr,"\377LABEL",label,sync_writeopts);}
+    if (FD_VOIDP(metadata)) {}
+    else if (FD_SLOTMAPP(metadata))
+      set_prop(dbptr,"\377METADATA",metadata,sync_writeopts);
+    else u8_log(LOG_WARN,"LevelDB/Index/InvalidMetadata",
+                "For %s: %q",path,metadata);
+
+    if (FD_VECTORP(slotcodes)) {
+      set_prop(dbptr,"\377SLOTCODES",slotcodes,sync_writeopts);
+      fd_init_slotcoder(&(index->slotcodes),
+                        FD_VECTOR_LENGTH(slotcodes),
+                        FD_VECTOR_ELTS(slotcodes));}
+    else if (FD_UINTP(slotcodes)) {
+      lispval tmp = fd_fill_vector(FD_FIX2INT(slotcodes),FD_FALSE);
+      set_prop(dbptr,"\377SLOTCODES",tmp,sync_writeopts);
+      fd_init_slotcoder(&(pool->slotcodes),
+                        FD_VECTOR_LENGTH(tmp),
+                        FD_VECTOR_ELTS(tmp));
+      fd_decref(tmp);}
+    else u8_log(LOG_WARN,"LevelDB/Index/InvalidSlotcodes",
+                "For %s: %q",path,slotcodes);
+
+
+    if (FD_VECTORP(oidcodes)) {
+      set_prop(dbptr,"\377OIDCODES",oidcodes,sync_writeopts);
+      fd_init_slotcoder(&(index->oidcodes),
+                        FD_VECTOR_LENGTH(oidcodes),
+                        FD_VECTOR_ELTS(oidcodes));}
+    else if (FD_UINTP(slotcodes)) {
+      lispval tmp = fd_fill_vector(FD_FIX2INT(oidcodes),FD_FALSE);
+      set_prop(dbptr,"\377OIDCODES",tmp,sync_writeopts);
+      fd_init_slotcoder(&(index->oidcodes),
+                        FD_VECTOR_LENGTH(tmp),
+                        FD_VECTOR_ELTS(tmp));
+      fd_decref(tmp);}
+    else u8_log(LOG_WARN,"LevelDB/Index/InvalidOIDCodes",
+                "For %s: %q",path,slotcodes);
+
     fd_init_index((fd_index)index,
                   &leveldb_index_handler,
                   (FD_STRINGP(label)) ? (FD_CSTRING(label)) : (rname),
@@ -1383,6 +1500,9 @@ fd_index fd_make_leveldb_index(u8_string path,lispval opts)
                   0);
     index->index_flags &= ~FD_STORAGE_READ_ONLY;
     fd_register_index((fd_index)index);
+    fd_decref(metadata);
+    fd_decref(oidcodes);
+    fd_decref(slotcodes);
     return (fd_index)index;}
   else {
     u8_free(index);
@@ -1393,6 +1513,88 @@ static void leveldb_index_close(fd_index ix)
 {
   struct FD_LEVELDB_INDEX *ldbx = (struct FD_LEVELDB_INDEX *)ix;
   fd_close_leveldb(&(ldbx->leveldb));
+}
+
+static ssize_t leveldb_write_zkey(struct FD_OUTBUF *out,lispval key,
+                                  struct FD_SLOTCODER *slotcodes)
+{
+  if ( (slotcodes) && (slotcodes->slotids) && 
+       (FD_PAIRP(key)) && 
+       ( (FD_OIDP(FD_CAR(key))) || (FD_SYMBOLP(FD_CAR(key))) ) ) {
+    lispval slotid = FD_CAR(key);
+
+    int code = fd_slotid2code(slotcodes,slotid);
+    if (code<0) code = fd_add_slotcode(slotcodes,slotid);
+
+    if (code<0)
+      return fd_write_dtype(out,key);
+    else {
+      ssize_t key_len = 0;
+      DTOUT(key_len,fd_write_zint(out,(code+1)));
+      DTOUT(key_len,fd_write_dtype(out,FD_CDR(key)));
+      return key_len;}}
+  else return fd_write_dtype(out,key);
+}
+
+static lispval leveldb_read_zvalue(struct FD_INBUF *in,struct FD_SLOTCODER *oidcodes)
+{
+  if ( (oidcodes) && (oidcodes->n_oids) &&
+       (fd_probe_byte(in) == 0xFF) ) {
+    fd_read_byte(in);
+    size_t n_values = fd_read_zint(in);
+    lispval results = FD_EMPTY_CHOICE;
+    int err=0, i = 0; while (i<n_values) {
+      int code = fd_read_zint(in);
+      if (code<0) { err=1; break;}
+      if (code == 0) {
+        lispval elt = fd_read_dtype(in);
+        if (FD_ABORTP(elt)) { err=1; break; }
+        else {FD_ADD_TO_CHOICE(results,elt);}}
+      else {
+        lispval baseoid = fd_get_baseoid(oidcodes,code-1);
+        if (FD_ABORTP(baseoid)) { err=1; break;}
+        int baseid = FD_OID_BASE_ID(baseoid);
+        int off = fd_read_zint(in);
+        if (off < 0) { err=1; break;}
+        lispval elt = FD_CONSTRUCT_OID(base_id,off);
+        FD_ADD_TO_CHOICE(results,elt);}
+      i++;}
+    if (err) {
+      fd_seterr("BadOIDCode","leveldb_read_zvalue",NULL,FD_VOID);
+      fd_decref(results);
+      return FD_ERROR_VALUE;}
+    else return fd_simplify_choice(results);}
+  else return fd_read_dtype(in);
+}
+
+static ssize_t leveldb_write_zvalue(struct FD_OUTBUF *out,lispval val,
+                                    struct FD_SLOTCODER *oidcodes)
+{
+  if ( (oidcodes) && (oidcodes->n_oids) ) {
+    int all_oids = 1; size_t n_vals = 0;
+    FD_DO_CHOICES(elt,val) {
+      if (!(FD_OIDP(elt))) {
+        all_oids=0; FD_STOP_DO_CHOICES; break;}
+      else n_vals++;}
+    if (all_oids) {
+      ssize_t dtype_len = 0;
+      DTOUT(dtype_len,fd_write_byte(out,0xFE));
+      DTOUT(dtype_len,fd_write_zint(out,n_vals));
+      FD_DO_CHOICES(elt,val) {
+        int base = FD_OID_BASE_ID(elt);
+        int oidcode = fd_get_oidcode(oc,base);
+        if (oidcode<0) {
+          if (oc->n_oids < oc->oids_len)
+            oidcode = fd_add_oidcode(oc,value);}
+        if (oidcode<0) {
+          DTOUT(dtype_len,fd_write_dtype(out,elt));}
+        else {
+          int offset = FD_OID_BASE_OFFSET(value);
+          DTOUT(dtype_len,fd_write_zint(out,oidcode+1));
+          DTOUT(dtype_len,fd_write_zint(out,offset));}}
+      return dtype_len;}
+    else return fd_write_dtype(out,val);}
+  else return fd_write_dtype(out,val);
 }
 
 
@@ -1416,7 +1618,6 @@ static struct FD_INDEX_HANDLER leveldb_index_handler={
 };
 
 #endif
-
 
 /* Scheme primitives */
 
@@ -1544,7 +1745,6 @@ FD_EXPORT int fd_init_leveldb()
                            fd_fixnum_type,FD_VOID,
                            -1,FD_VOID));
 
-
   fd_register_config("LEVELDB:WRITEBUF",
                      "Default writebuf size for leveldb",
                      fd_sizeconfig_get,fd_sizeconfig_set,
@@ -1569,6 +1769,11 @@ FD_EXPORT int fd_init_leveldb()
                      "The restart interval for leveldb",
                      fd_intconfig_get,fd_intconfig_set,
                      &default_restart_interval);
+
+  fd_register_pool_type
+    ("leveldb/pool",
+     &leveldb_pool_handler,
+     leveldb_pool_open,NULL,NULL);
 
   fd_finish_module(module);
 

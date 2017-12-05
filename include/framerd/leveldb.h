@@ -29,17 +29,17 @@ typedef struct FD_LEVELDB_POOL {
   FD_POOL_FIELDS;
   unsigned int pool_load; time_t pool_mtime;
   unsigned int locked:1;
-  lispval *pool_slots; ssize_t n_pool_slots;
-  struct FD_HASHTABLE slot_table;
-  struct FD_SCHEMA_ENTRY *pool_schemas;
-  struct FD_SCHEMA_LOOKUP *pool_schbyval;
+  struct FD_SLOTCODER slotcodes;
   struct FRAMERD_LEVELDB leveldb;} FD_LEVELDB_POOL;
 typedef struct FD_LEVELDB_POOL *fd_leveldb_pool;
 
 typedef struct FD_LEVELDB_INDEX {
   FD_INDEX_FIELDS;
   unsigned int locked:1;
-  lispval *index_slotids; ssize_t n_index_slotids;
+  
+  struct FD_SLOTCODER slotcodes;
+  struct FD_OIDCODER oidcodes;
+
   struct FD_HASHTABLE slotids_table;
   struct FRAMERD_LEVELDB leveldb;} FD_LEVELDB_INDEX;
 typedef struct FD_LEVELDB_INDEX *fd_leveldb_index;
