@@ -524,7 +524,7 @@ FD_EXPORT int fd_add_oidcode(struct FD_OIDCODER *map,lispval oid)
     else return -1;}
   if (map->n_oids >= map->oids_len) {
     /* Grow the base OIDs table */
-    unsigned int len = map->oids_len, new_len = (len<4) ? (len*2) : (8);
+    unsigned int len = map->oids_len, new_len = (len<4) ? (8) : (len*2);
     lispval *cur_oids = map->baseoids;
     lispval *new_oids = u8_malloc(sizeof(lispval)*new_len);
     memcpy(new_oids,cur_oids,sizeof(lispval)*len);

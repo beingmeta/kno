@@ -782,7 +782,7 @@ FD_FASTOP int write_zvalue(fd_hashindex hx,fd_outbuf out,
     int base = FD_OID_BASE_ID(value);
     int oidcode = fd_get_oidcode(oc,base);
     if (oidcode < 0) {
-      if (oc->n_oids < oc->oids_len)
+      if (oc->oidcodes)
         oidcode = fd_add_oidcode(oc,value);
       else {}}
     if (oidcode<0) {
