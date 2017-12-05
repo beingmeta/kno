@@ -3456,7 +3456,7 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
         lispval slotid = slotids[i];
         elts[i]=slotid; fd_incref(slotid);
         i++;}
-      return fd_wrap_vector(n,elts);}
+      return fd_wrap_vector(n_elts,elts);}
     else if (n == 1)
       return set_slotids(hx,args[0]);
     else return fd_err(fd_TooManyArgs,"hashindex_ctl/slotids",hx->indexid,FD_VOID);}
