@@ -937,7 +937,7 @@ fd_pool fd_make_leveldb_pool(u8_string path,lispval base,lispval cap,
     lispval ctime_val = fd_getopt(opts,fd_intern("CTIME"),FD_VOID);
     lispval mtime_val = fd_getopt(opts,fd_intern("MTIME"),FD_VOID);
     lispval generation_val = fd_getopt(opts,fd_intern("GENERATION"),FD_VOID);
-    lispval slotcodes = fd_getopt(opts,fd_intern("SLOTCODES"),FD_VOID);
+    lispval slotids = fd_getopt(opts,fd_intern("SLOTIDS"),FD_VOID);
 
     u8_string rname = u8_realpath(path,NULL);
     time_t now=time(NULL), ctime, mtime;
@@ -978,24 +978,23 @@ fd_pool fd_make_leveldb_pool(u8_string path,lispval base,lispval cap,
                   "Not overwriting existing metatdata in leveldb pool %s:",
                   path,cur_metadata);}
 
-    if (FD_VECTORP(slotcodes)) {
-      set_prop(dbptr,"\377SLOTCODES",slotcodes,sync_writeopts);
+    if (FD_VECTORP(slotids)) {
+      set_prop(dbptr,"\377SLOTIDS",slotids,sync_writeopts);
       fd_init_slotcoder(&(pool->slotcodes),
-                        FD_VECTOR_LENGTH(slotcodes),
-                        FD_VECTOR_ELTS(slotcodes));
-      fd_decref(slotcodes); slotcodes=FD_VOID;}
-    else if (FD_UINTP(slotcodes)) {
-      lispval tmp = fd_fill_vector(FD_FIX2INT(slotcodes),FD_FALSE);
+                        FD_VECTOR_LENGTH(slotids),
+                        FD_VECTOR_ELTS(slotids));}
+    else if (FD_UINTP(slotids)) {
+      lispval tmp = fd_fill_vector(FD_FIX2INT(slotids),FD_FALSE);
       set_prop(dbptr,"\377SLOTCODES",tmp,sync_writeopts);
       fd_init_slotcoder(&(pool->slotcodes),
                         FD_VECTOR_LENGTH(tmp),
                         FD_VECTOR_ELTS(tmp));
-      fd_decref(tmp); fd_decref(slotcodes);}
+      fd_decref(tmp);}
     else {
       fd_init_slotcoder(&(pool->slotcodes),0,NULL);
-      if (! ( (FD_VOIDP(slotcodes)) || (FD_FALSEP(slotcodes)) ) )
-        u8_log(LOG_WARN,"BadSlotcodes","%q",slotcodes);}
-      
+      if (! ( (FD_VOIDP(slotids)) || (FD_FALSEP(slotids)) ) )
+        u8_log(LOG_WARN,"BadSlotIDs","%q",slotids);}
+
     if (FD_FIXNUMP(ctime_val))
       ctime = (time_t) FD_FIX2INT(ctime_val);
     else if (FD_PRIM_TYPEP(ctime_val,fd_timestamp_type)) {
@@ -1019,14 +1018,23 @@ fd_pool fd_make_leveldb_pool(u8_string path,lispval base,lispval cap,
     if (FD_FIXNUMP(generation_val))
       set_prop(dbptr,"\377GENERATION",generation_val,sync_writeopts);
     else set_prop(dbptr,"\377GENERATION",FD_INT(0),sync_writeopts);
-    fd_decref(generation_val);
 
-    u8_free(rname);
     pool->pool_flags &= ~FD_STORAGE_READ_ONLY;
     pool->pool_load = FD_FIX2INT(load);
+
     if (FD_STRINGP(label)) {
       pool->pool_label = u8_strdup(FD_CSTRING(label));}
+
+    fd_decref(metadata);
+    fd_decref(slotids);
+    fd_decref(metadata);
+    fd_decref(generation_val);
+    fd_decref(ctime_val);
+    fd_decref(mtime_val);
+    u8_free(rname);
+
     fd_register_pool((fd_pool)pool);
+
     return (fd_pool)pool;}
   else  {
     fd_close_leveldb(&(pool->leveldb));
@@ -1447,8 +1455,8 @@ fd_index fd_make_leveldb_index(u8_string path,lispval opts)
   struct FD_LEVELDB_INDEX *index = u8_alloc(struct FD_LEVELDB_INDEX);
   lispval label = fd_getopt(opts,SYM("LABEL"),FD_VOID);
   lispval metadata = fd_getopt(opts,SYM("METADATA"),FD_VOID);
-  lispval slotcodes = fd_getopt(opts,SYM("SLOTCODES"),FD_VOID);
-  lispval oidcodes = fd_getopt(opts,SYM("SLOTCODES"),FD_VOID);
+  lispval slotids = fd_getopt(opts,SYM("SLOTIDS"),FD_VOID);
+  lispval baseoids = fd_getopt(opts,SYM("SLOTIDS"),FD_VOID);
   if (fd_setup_leveldb(&(index->leveldb),path,opts)) {
     leveldb_t *dbptr = index->leveldb.dbptr;
     lispval cur_label = get_prop(dbptr,"\377LABEL",FD_VOID);
@@ -1462,47 +1470,58 @@ fd_index fd_make_leveldb_index(u8_string path,lispval opts)
     else u8_log(LOG_WARN,"LevelDB/Index/InvalidMetadata",
                 "For %s: %q",path,metadata);
 
-    if (FD_VECTORP(slotcodes)) {
-      set_prop(dbptr,"\377SLOTCODES",slotcodes,sync_writeopts);
+    if ( (FD_VOIDP(slotids)) || (FD_FALSEP(slotids)) )
+      fd_init_slotcoder(&(index->slotcodes),0,NULL);
+    else if (FD_VECTORP(slotids)) {
+      set_prop(dbptr,"\377SLOTIDS",slotids,sync_writeopts);
       fd_init_slotcoder(&(index->slotcodes),
-                        FD_VECTOR_LENGTH(slotcodes),
-                        FD_VECTOR_ELTS(slotcodes));}
-    else if (FD_UINTP(slotcodes)) {
-      lispval tmp = fd_fill_vector(FD_FIX2INT(slotcodes),FD_FALSE);
-      set_prop(dbptr,"\377SLOTCODES",tmp,sync_writeopts);
-      fd_init_slotcoder(&(pool->slotcodes),
+                        FD_VECTOR_LENGTH(slotids),
+                        FD_VECTOR_ELTS(slotids));}
+    else if (FD_UINTP(slotids)) {
+      lispval tmp = fd_fill_vector(FD_FIX2INT(slotids),FD_FALSE);
+      set_prop(dbptr,"\377SLOTIDS",tmp,sync_writeopts);
+      fd_init_slotcoder(&(index->slotcodes),
                         FD_VECTOR_LENGTH(tmp),
                         FD_VECTOR_ELTS(tmp));
       fd_decref(tmp);}
-    else u8_log(LOG_WARN,"LevelDB/Index/InvalidSlotcodes",
-                "For %s: %q",path,slotcodes);
+    else {
+      fd_init_slotcoder(&(index->slotids),0,NULL);
+      u8_log(LOG_WARN,"LevelDB/Index/InvalidSlotids",
+             "For %s: %q",path,slotids);}
 
-
-    if (FD_VECTORP(oidcodes)) {
-      set_prop(dbptr,"\377OIDCODES",oidcodes,sync_writeopts);
-      fd_init_slotcoder(&(index->oidcodes),
-                        FD_VECTOR_LENGTH(oidcodes),
-                        FD_VECTOR_ELTS(oidcodes));}
-    else if (FD_UINTP(slotcodes)) {
-      lispval tmp = fd_fill_vector(FD_FIX2INT(oidcodes),FD_FALSE);
-      set_prop(dbptr,"\377OIDCODES",tmp,sync_writeopts);
-      fd_init_slotcoder(&(index->oidcodes),
-                        FD_VECTOR_LENGTH(tmp),
-                        FD_VECTOR_ELTS(tmp));
+    if ( (FD_VOIDP(baseoids)) || (FD_FALSEP(baseoids)) ) 
+      fd_init_oidcoder(&(index->oidcodes),0,NULL);
+    else if (FD_VECTORP(baseoids)) {
+      set_prop(dbptr,"\377BASEOIDS",baseoids,sync_writeopts);
+      fd_init_oidcoder(&(index->oidcodes),
+                       FD_VECTOR_LENGTH(baseoids),
+                       FD_VECTOR_ELTS(baseoids));}
+    else if (FD_UINTP(baseoids)) {
+      lispval tmp = fd_fill_vector(FD_FIX2INT(baseoids),FD_FALSE);
+      set_prop(dbptr,"\377BASEOIDS",tmp,sync_writeopts);
+      fd_init_oidcoder(&(index->oidcodes),
+                       FD_VECTOR_LENGTH(tmp),
+                       FD_VECTOR_ELTS(tmp));
       fd_decref(tmp);}
-    else u8_log(LOG_WARN,"LevelDB/Index/InvalidOIDCodes",
-                "For %s: %q",path,slotcodes);
+    else {
+      fd_init_oidcoder(&(index->oidcoes),0,NULL);
+      u8_log(LOG_WARN,"LevelDB/Index/InvalidBaseOIDs",
+             "For %s: %q",path,baseoids);}
 
     fd_init_index((fd_index)index,
                   &leveldb_index_handler,
                   (FD_STRINGP(label)) ? (FD_CSTRING(label)) : (rname),
                   rname,
                   0);
+
     index->index_flags &= ~FD_STORAGE_READ_ONLY;
-    fd_register_index((fd_index)index);
+
     fd_decref(metadata);
-    fd_decref(oidcodes);
-    fd_decref(slotcodes);
+    fd_decref(baseoids);
+    fd_decref(slotids);
+
+    fd_register_index((fd_index)index);
+
     return (fd_index)index;}
   else {
     u8_free(index);
