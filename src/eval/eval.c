@@ -923,7 +923,8 @@ lispval fd_stack_eval(lispval expr,fd_lexenv env,
           result=EMPTY;
         else result=fd_err(fd_NotAFunction,NULL,NULL,headval);}
       if (!tail) {
-        if (FD_TAILCALLP(result)) result=fd_finish_call(result);
+        if (FD_TAILCALLP(result))
+          result=fd_finish_call(result);
         else {}}
       fd_pop_stack(eval_stack);
       return result;}}

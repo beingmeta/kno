@@ -74,6 +74,28 @@ static lispval pool2lisp(fd_pool p)
 
 #define FALSE_ARGP(x) ( ((x)==FD_VOID) || ((x)==FD_FALSE) || ((x)==FD_FIXZERO) )
 
+static int load_db_module(lispval opts,u8_context context)
+{
+  if ( (FD_VOIDP(opts)) || (FD_EMPTYP(opts)) ||
+       (FD_FALSEP(opts)) || (FD_DEFAULTP(opts)) )
+    return 0;
+  else {
+    lispval modules = fd_getopt(opts,FDSYM_MODULE,FD_VOID);
+    if (FD_VOIDP(modules))
+      return 0;
+    else {
+      lispval mod = fd_find_module(modules,0,1);
+      fd_decref(modules);
+      if (FD_ABORTP(mod)) {
+        fd_seterr("MissingDBModule",context,
+                  ((FD_SYMBOLP(modules)) ? (FD_SYMBOL_NAME(modules)) : (NULL)),
+                  modules);
+        return -1;}
+      else {
+        fd_decref(mod);
+        return 1;}}}
+}
+
 /* Finding frames, etc. */
 
 static lispval find_frames_lexpr(int n,lispval *args)
@@ -252,7 +274,9 @@ static lispval set_cache_level(lispval arg,lispval level)
 
 static lispval try_pool(lispval arg1,lispval opts)
 {
-  if ( (FD_POOLP(arg1)) || (TYPEP(arg1,fd_consed_pool_type)) )
+  if (load_db_module(opts,"try_pool")<0)
+    return FD_ERROR;
+  else  if ( (FD_POOLP(arg1)) || (TYPEP(arg1,fd_consed_pool_type)) )
     return fd_incref(arg1);
   else if (!(STRINGP(arg1)))
     return fd_type_error(_("string"),"load_pool",arg1);
@@ -265,7 +289,9 @@ static lispval try_pool(lispval arg1,lispval opts)
 
 static lispval adjunct_pool(lispval arg1,lispval opts)
 {
-  if ( (FD_POOLP(arg1)) || (TYPEP(arg1,fd_consed_pool_type)) )
+  if (load_db_module(opts,"adjunct_pool")<0)
+    return FD_ERROR;
+  else if ( (FD_POOLP(arg1)) || (TYPEP(arg1,fd_consed_pool_type)) )
     // TODO: Should check it's really adjunct, if that's the right thing?
     return fd_incref(arg1);
   else if (!(STRINGP(arg1)))
@@ -282,7 +308,9 @@ static lispval adjunct_pool(lispval arg1,lispval opts)
 
 static lispval use_pool(lispval arg1,lispval opts)
 {
-  if ( (FD_POOLP(arg1)) || (TYPEP(arg1,fd_consed_pool_type)) )
+  if (load_db_module(opts,"use_pool")<0)
+    return FD_ERROR;
+  else if ( (FD_POOLP(arg1)) || (TYPEP(arg1,fd_consed_pool_type)) )
     // TODO: Should check to make sure that it's in the background
     return fd_incref(arg1);
   else if (!(STRINGP(arg1)))
@@ -297,7 +325,9 @@ static lispval use_pool(lispval arg1,lispval opts)
 static lispval use_index(lispval arg,lispval opts)
 {
   fd_index ixresult = NULL;
-  if (INDEXP(arg)) {
+  if (load_db_module(opts,"use_index")<0)
+    return FD_ERROR;
+  else if (INDEXP(arg)) {
     ixresult = fd_indexptr(arg);
     if (ixresult) fd_add_to_background(ixresult);
     else return fd_type_error("index","index_frame_prim",arg);
@@ -385,21 +415,28 @@ static lispval open_index_helper(lispval arg,lispval opts,int registered)
 
 static lispval open_index(lispval arg,lispval opts)
 {
-  return open_index_helper(arg,opts,-1);
+  if (load_db_module(opts,"open_index")<0)
+    return FD_ERROR;
+  else return open_index_helper(arg,opts,-1);
 }
 
 static lispval register_index(lispval arg,lispval opts)
 {
-  return open_index_helper(arg,opts,1);
+  if (load_db_module(opts,"register_index")<0)
+    return FD_ERROR;
+  else return open_index_helper(arg,opts,1);
 }
 
 static lispval temp_index(lispval arg,lispval opts)
 {
-  return open_index_helper(arg,opts,0);
+  if (load_db_module(opts,"temp_index")<0)
+    return FD_ERROR;
+  else return open_index_helper(arg,opts,0);
 }
 
 static lispval make_pool(lispval path,lispval opts)
 {
+  if (load_db_module(opts,"make_pool")<0) return FD_ERROR;
   fd_pool p = NULL;
   lispval type = fd_getopt(opts,FDSYM_TYPE,VOID);
   fd_storage_flags flags = fd_get_dbflags(opts,FD_STORAGE_ISPOOL);
@@ -419,14 +456,8 @@ static lispval make_pool(lispval path,lispval opts)
 
 static lispval open_pool(lispval path,lispval opts)
 {
+  if (load_db_module(opts,"open_pool")<0) return FD_ERROR;
   fd_storage_flags flags = fd_get_dbflags(opts,FD_STORAGE_ISPOOL);
-  lispval modules = fd_getopt(opts,FDSYM_MODULE,FD_VOID);
-  lispval mod = (FD_VOIDP(modules)) ? (FD_VOID) :
-    (fd_get_module(modules,0));
-  fd_decref(modules);
-  if (FD_ABORTP(mod))
-    return mod;
-  else fd_decref(mod);
   fd_pool p = fd_open_pool(CSTRING(path),flags,opts);
   if (p)
     return pool2lisp(p);
@@ -435,6 +466,7 @@ static lispval open_pool(lispval path,lispval opts)
 
 static lispval make_index(lispval path,lispval opts)
 {
+  if (load_db_module(opts,"make_index")<0) return FD_ERROR;
   fd_index ix = NULL;
   lispval type = fd_getopt(opts,FDSYM_TYPE,VOID);
   fd_storage_flags flags =
@@ -609,6 +641,7 @@ static lispval make_procpool(lispval label,
                              lispval opts,lispval state,
                              lispval load)
 {
+  if (load_db_module(opts,"make_procpool")<0) return FD_ERROR;
   if (!(FD_UINTP(cap)))
     return fd_type_error("uint","make_procpool",cap);
   if (FD_VOIDP(load))
@@ -686,6 +719,7 @@ static lispval make_procindex(lispval id,
                               lispval opts,lispval state,
                               lispval source,lispval typeid)
 {
+  if (load_db_module(opts,"make_procindex")<0) return FD_ERROR;
   fd_index ix = fd_make_procindex
     (opts,state,FD_CSTRING(id),
      ((FD_VOIDP(source)) ? (NULL) : (FD_CSTRING(source))),
