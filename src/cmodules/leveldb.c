@@ -1940,6 +1940,52 @@ static int leveldb_index_commit(fd_index ix,fd_commit_phase phase,
   }
 }
 
+static lispval *leveldb_index_fetchkeys(fd_index ix,int *nptr)
+{
+  struct FD_LEVELDB_INDEX *lx = (fd_leveldb_index)ix;
+  struct FRAMERD_LEVELDB *db = &(lx->leveldb);
+  lispval results = FD_EMPTY_CHOICE;
+  leveldb_iterator_t *iterator=
+    leveldb_create_iterator(lx->leveldb.dbptr,lx->leveldb.readopts);
+  unsigned char *prefix = NULL; ssize_t prefix_len = -1;
+  struct BYTEVEC keybuf;
+  keybuf.bytes = leveldb_iter_key(iterator,&(keybuf.n_bytes));
+  while (leveldb_iter_valid(iterator)) {
+    struct FD_INBUF keystream;
+    FD_INIT_BYTE_INPUT(&keystream,keybuf.bytes,keybuf.n_bytes);
+    lispval key = FD_VOID; /* leveldb_read_zkey(&keystream,& lx->slotcodes); */
+    FD_ADD_TO_CHOICE(results,key);
+    if (prefix) u8_free(prefix);
+    prefix = u8_memdup(keybuf.n_bytes,keybuf.bytes);
+    prefix_len = keybuf.n_bytes;
+    leveldb_iter_next(iterator);
+    while (leveldb_iter_valid(iterator)) {
+      keybuf.bytes = leveldb_iter_key(iterator,&(keybuf.n_bytes));
+      if (memcmp(keybuf.bytes,prefix,prefix_len) == 0)
+        leveldb_iter_next(iterator);
+      else break;}}
+  results = fd_simplify_choice(results);
+  if (FD_CHOICEP(results)) {
+    int n = FD_CHOICE_SIZE(results);
+    if (FD_CONS_REFCOUNT(results) == 1) {
+      lispval *keys = 
+        u8_memdup(sizeof(lispval)*n,FD_CHOICE_ELTS(results));
+      *nptr = n;
+      fd_free_choice((fd_choice)results);
+      return keys;}
+    else {
+      lispval *elts = (lispval *) FD_CHOICE_ELTS(results);
+      lispval *keys = fd_copy_vec(elts,n,NULL,0);
+      *nptr = n;
+      fd_decref(results);
+      return keys;}}
+  else {
+    lispval *one = u8_alloc_n(1,lispval);
+    *one = results;
+    *nptr = 1;
+    return one;}
+}
+
 static fd_index leveldb_index_open(u8_string spec,fd_storage_flags flags,
                                    lispval opts)
 {
@@ -1964,7 +2010,7 @@ static struct FD_INDEX_HANDLER leveldb_index_handler={
   leveldb_index_fetchsize, /* fetchsize */
   NULL, /* prefetch */
   leveldb_index_fetchn, /* fetchn */
-  NULL, /* fetchkeys */
+  leveldb_index_fetchkeys, /* fetchkeys */
   NULL, /* fetchinfo */
   NULL, /* batchadd */
   NULL, /* create */
