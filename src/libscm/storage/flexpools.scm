@@ -7,6 +7,8 @@
 (use-module '{storage/adjuncts storage/filenames})
 (use-module '{storage/flex})
 
+(message "Loading live")
+
 (module-export! '{flexpool/open flexpool/make flexpool?
 		  flexpool/ref flexpool/record 
 		  flexpool/zero flexpool/front flexpool/last flexpool/info
@@ -155,12 +157,14 @@
 		      (irritant opts |BadFlexpoolData|))))))))
 
 (define (make-flexpool filename opts)
+  (%watch "MAKE-FLEXPOOL" filename opts)
   (let ((base (getopt opts 'base))
 	(cap (getopt opts 'capacity))
 	(prefix (getopt opts 'prefix (get-partition-prefix filename)))
 	(partsize (getopt opts 'partsize (getopt opts 'step default-partsize))))
     (if (and (exists? prefix) (exists? base) (exists? cap) (exists? partsize))
 	(let* ((metadata (getopt opts 'metadata {}))
+	       (absprefix (mkpath (dirname (abspath filename)) prefix))
 	       (saved (frame-create #f
 			'created (timestamp)
 			'init (config 'sessionid)
@@ -173,12 +177,12 @@
 	  (drop! metadata '{%slotids readonly opts props})
 	  (store! metadata 'flags 
 		  (intersection (get metadata 'flags) '{isadjunct adjunct sparse}))
-	  (unless (and (file-exists? (dirname prefix))
-		       (file-directory? (dirname prefix)))
+	  (unless (and (file-exists? (dirname absprefix))
+		       (file-directory? (dirname absprefix)))
 	    (logwarn |FlexpoolDir| 
-	      "Creating a partitions directory " (write (dirname prefix))
+	      "Creating a partitions directory " (write (dirname absprefix))
 	      " for " filename)
-	    (mkdirs (dirname prefix)))
+	    (mkdirs (dirname absprefix)))
 	  (dtype->file saved filename)
 	  (when (test metadata 'adjuncts)
 	    (init-adjunct-flexpools (get metadata 'adjuncts) 
