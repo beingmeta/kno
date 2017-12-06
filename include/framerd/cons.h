@@ -253,20 +253,24 @@ FD_EXPORT void fd_decref_vec(lispval *vec,size_t n);
 #if ( FD_INLINE_REFCOUNTS && FD_LOCKFREE_REFCOUNTS )
 FD_INLINE_FCN lispval _fd_incref(struct FD_REF_CONS *x)
 {
-  fd_consbits cb = atomic_load(&(x->conshead));
-  if (cb>0xFFFFFF80) {
-    u8_raise(fd_UsingFreedCons,"fd_incref",NULL);
-    return (lispval)NULL;}
-  else if ((cb&(~0x7F)) == 0) {
-    /* Static cons */
-    return (lispval) x;}
+  if (FD_EXPECT_FALSE(x == NULL))
+    return FD_BADPTR;
   else {
-    atomic_fetch_add(&(x->conshead),0x80);
-    return (lispval) x;}
+    fd_consbits cb = atomic_load(&(x->conshead));
+    if (cb>0xFFFFFF80) {
+      u8_raise(fd_UsingFreedCons,"fd_incref",NULL);
+      return (lispval)NULL;}
+    else if ((cb&(~0x7F)) == 0) {
+      /* Static cons */
+      return (lispval) x;}
+    else {
+      atomic_fetch_add(&(x->conshead),0x80);
+      return (lispval) x;}}
 }
 
 FD_INLINE_FCN void _fd_decref(struct FD_REF_CONS *x)
 {
+  if (FD_EXPECT_FALSE(x == NULL)) return;
   fd_consbits cb = atomic_load(&(x->conshead));
   if (cb>=0xFFFFFF80) {
     u8_raise(fd_DoubleGC,"fd_decref",NULL);}
