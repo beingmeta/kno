@@ -178,7 +178,8 @@
 	  ((file-exists? tmpfile)
 	   (remove-file tmpfile))
 	  (else))
-    (let ((old (open-pool from #[register #t adjunct #t cachelevel 2])))
+    (let ((old (open-pool from `#[register #t adjunct #t cachelevel 2
+				  repair ,(config 'repair #f config:boolean)])))
       (lognotice |Repack| 
 	"Repacking " ($num (pool-load old)) "/" ($num (pool-capacity old)) " "
 	"OIDs " (if (pool-label old) (glom "for " (pool-label old)))
@@ -196,7 +197,8 @@
     (when (not (writable? to))
       (logcrit |NotWritable| "Can't write output file " (write to))
       (exit))
-    (let ((old (open-pool from #[register #t adjunct #t cachelevel 2]))
+    (let ((old (open-pool from `#[register #t adjunct #t cachelevel 2
+				  repair ,(config 'repair #f config:boolean)]))
 	  (new (open-pool to #[register #t adjunct #t cachelevel 2])))
       (lognotice |Copy| 
 	"Copying " ($num (pool-load old)) "/" ($num (pool-capacity old)) " "

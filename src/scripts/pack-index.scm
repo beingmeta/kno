@@ -288,7 +288,7 @@
 	(else
 	 (when (file-exists? to) (remove-file to))
 	 (lognotice |PackIndex| "Copying index " from " into " to)
-	 (let* ((old (open-index from))
+	 (let* ((old (open-index from `#[repair ,(config 'repair #f config:boolean)]))
 		(part (glom to ".part"))
 		(keyv (index-keysvec old))
 		(new (make-new-index part old keyv)))
@@ -308,7 +308,7 @@
     (lognotice |PackIndex| 
       "Repacking the index " from " using " tmpfile 
       " and saving original in " bakfile)
-    (let* ((old (open-index from))
+    (let* ((old (open-index from `#[repair ,(config 'repair #f config:boolean)]))
 	   (keyv (index-keysvec old))
 	   (new (make-new-index tmpfile old keyv)))
       (copy-all-keys keyv old new)
