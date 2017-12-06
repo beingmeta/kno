@@ -1450,7 +1450,8 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
       i++;}
     fd_unlock_stream(s);}
   if (n_to_fetch > total_keys) {
-    results = u8_realloc_n(results,n_to_fetch,lispval);
+    /* If total_keys is wrong, resize results to n_to_fetch */
+    results = u8_big_realloc_n(results,n_to_fetch,lispval);
     results_len = n_to_fetch;}
   qsort(buckets,n_to_fetch,sizeof(FD_CHUNK_REF),sort_blockrefs_by_off);
   unsigned char keyblock_buf[HX_KEYBUF_SIZE];
@@ -1460,6 +1461,7 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
     int j = 0, n_keys;
     if (!fd_open_block(s,&keyblock,buckets[i].off,buckets[i].size,1)) {
       fd_unlock_stream(s);
+      fd_free_elts(results,key_count);
       u8_big_free(buckets);
       u8_big_free(results);
       fd_close_inbuf(&keyblock);
@@ -1468,14 +1470,33 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
     n_keys = fd_read_zint(&keyblock);
     while (j<n_keys) {
       lispval key; int n_vals;
-      fd_read_zint(&keyblock); /* IGNORE size */
-      key = read_key(hx,&keyblock);
-      n_vals = fd_read_zint(&keyblock);
-      if (key_count >= results_len) {
-        results=u8_big_realloc(results,LISPVEC_BYTELEN(results_len*2));
-        results_len = results_len * 2;}
-      results[key_count++]=key;
-      if (n_vals==0) {}
+      ssize_t dtype_len = fd_read_zint(&keyblock); /* IGNORE size */
+      if (dtype_len<0) {
+        fd_seterr(fd_UnexpectedEOD,"",hx->indexid,FD_VOID);
+        key=FD_ERROR_VALUE;}
+      else {
+        const unsigned char *key_end = keyblock.bufread+dtype_len;
+        key = read_key(hx,&keyblock);
+        if (FD_ABORTP(key)) keyblock.bufread=key_end;}
+      if ( (n_vals = fd_read_zint(&keyblock)) < 0) {
+        fd_seterr(fd_UnexpectedEOD,"",hx->indexid,FD_VOID);
+        key=FD_ERROR_VALUE;}
+      if (!(FD_TROUBLEP(key))) {
+        if (key_count >= results_len) {
+          results=u8_big_realloc(results,LISPVEC_BYTELEN(results_len*2));
+          results_len = results_len * 2;
+          if (results == NULL) {
+            fd_unlock_stream(s);
+            u8_seterr(u8_MallocFailed,"hashindex_fetchkeys",hx->indexid);
+            fd_free_elts(results,key_count);
+            u8_big_free(buckets);
+            u8_big_free(results);
+            fd_close_inbuf(&keyblock);
+            *n=-1;
+            return NULL;}}
+        results[key_count++]=key;}
+      if (n_vals<0) {}
+      else if (n_vals==0) {}
       else if (n_vals==1) {
         int code = fd_read_zint(&keyblock);
         if (code==0) {
@@ -1485,14 +1506,183 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
       else {
         fd_read_zint(&keyblock);
         fd_read_zint(&keyblock);}
-      j++;}
+      if (FD_ABORTP(key)) {
+        if ( hx->index_flags & FD_STORAGE_REPAIR ) {
+          fd_clear_errors(0);
+          u8_log(LOG_CRIT,"CorruptedHashIndex",
+                 "Error reading %d keys @%lld+%lld in %s",
+                 n_keys,buckets[i].off,buckets[i].size,hx->index_source);
+          j=n_keys;}
+        else {
+          lispval off_pair = fd_init_pair(NULL,FD_INT(buckets[i].off),
+                                          FD_INT(buckets[i].size));
+          fd_seterr("CorruptedHashIndex","hashindex_fetchkeys",
+                    hx->indexid,off_pair);
+          fd_decref(off_pair);
+          fd_close_inbuf(&keyblock);
+          u8_big_free(buckets);
+          fd_free_elts(results,key_count);
+          u8_big_free(results);
+          *n = -1;
+          return NULL;}}
+      else j++;}
     i++;}
   fd_close_inbuf(&keyblock);
   u8_big_free(buckets);
-  *n = total_keys;
+  *n = key_count;
   return results;
 }
 
+static void free_keysizes(struct FD_KEY_SIZE *sizes,int n)
+{
+  int i=0; while (i<n) {
+    lispval key = sizes[i++].keysize_key;
+    fd_decref(key);}
+}
+
+static struct FD_KEY_SIZE *hashindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
+{
+  struct FD_KEY_SIZE *sizes = NULL;
+  struct FD_HASHINDEX *hx = (struct FD_HASHINDEX *)ix;
+  fd_stream s = &(hx->index_stream);
+  unsigned int *offdata = hx->index_offdata;
+  fd_offset_type offtype = hx->index_offtype;
+  int i = 0, n_buckets = (hx->index_n_buckets), n_to_fetch = 0;
+  int total_keys = 0, key_count = 0, buckets_len, sizes_len;
+  FD_CHUNK_REF *buckets;
+  fd_lock_stream(s);
+  total_keys = fd_read_4bytes(fd_start_read(s,16));
+  if (total_keys==0) {
+    fd_unlock_stream(s);
+    *n = 0;
+    return NULL;}
+  buckets = u8_big_alloc_n(total_keys,FD_CHUNK_REF);
+  buckets_len=total_keys;
+  if (buckets == NULL)
+    return NULL;
+  else {
+    sizes = u8_big_alloc_n(total_keys,FD_KEY_SIZE);
+    sizes_len=total_keys;}
+  if (sizes == NULL) {
+    fd_unlock_stream(s);
+    u8_big_free(buckets);
+    u8_seterr(fd_MallocFailed,"hashindex_fetchinfo",NULL);
+    return NULL;}
+  /* If we have chunk offsets in memory, we don't need to keep the
+     stream locked while we get them. */
+  if (offdata) {
+    fd_unlock_stream(s);
+    while (i<n_buckets) {
+      FD_CHUNK_REF ref =
+        fd_get_chunk_ref(offdata,offtype,i,hx->index_n_buckets);
+      if (ref.size>0) {
+        if (n_to_fetch >= buckets_len) {
+          u8_logf(LOG_WARN,"BadKeyCount",
+                  "Bad key count in %s: %d",ix->indexid,total_keys);
+          buckets=u8_big_realloc_n(buckets,n_buckets,FD_CHUNK_REF);
+          buckets_len=n_buckets;}
+        buckets[n_to_fetch++]=ref;}
+      i++;}}
+  else {
+    while (i<n_buckets) {
+      FD_CHUNK_REF ref = fd_fetch_chunk_ref(s,256,offtype,i,1);
+      if (ref.size>0) {
+        if (n_to_fetch >= buckets_len) {
+          u8_logf(LOG_WARN,"BadKeyCount",
+                  "Bad key count in %s: %d",ix->indexid,total_keys);
+          buckets=u8_big_realloc_n(buckets,n_buckets,FD_CHUNK_REF);
+          buckets_len=n_buckets;}
+        buckets[n_to_fetch++]=ref;}
+      i++;}
+    fd_unlock_stream(s);}
+  if (n_to_fetch > total_keys) {
+    /* If total_keys is wrong, resize results to n_to_fetch */
+    sizes = u8_big_realloc_n(sizes,n_to_fetch,struct FD_KEY_SIZE);
+    sizes_len = n_to_fetch;}
+  qsort(buckets,n_to_fetch,sizeof(FD_CHUNK_REF),sort_blockrefs_by_off);
+  unsigned char keyblock_buf[HX_KEYBUF_SIZE];
+  struct FD_INBUF keyblock={0};
+  FD_INIT_INBUF(&keyblock,keyblock_buf,HX_KEYBUF_SIZE,0);
+  i = 0; while (i<n_to_fetch) {
+    int j = 0, n_keys;
+    if (!fd_open_block(s,&keyblock,buckets[i].off,buckets[i].size,1)) {
+      fd_unlock_stream(s);
+      u8_big_free(buckets);
+      free_keysizes(sizes,key_count);
+      u8_big_free(sizes);
+      fd_close_inbuf(&keyblock);
+      *n=-1;
+      return NULL;}
+    n_keys = fd_read_zint(&keyblock);
+    while (j<n_keys) {
+      lispval key; int n_vals;
+      ssize_t dtype_len = fd_read_zint(&keyblock); /* IGNORE size */
+      if (dtype_len<0) {
+        fd_seterr(fd_UnexpectedEOD,"",hx->indexid,FD_VOID);
+        key=FD_ERROR_VALUE;}
+      else {
+        const unsigned char *key_end = keyblock.bufread+dtype_len;
+        key = read_key(hx,&keyblock);
+        if (FD_ABORTP(key)) keyblock.bufread=key_end;}
+      if ( (n_vals = fd_read_zint(&keyblock)) < 0) {
+        fd_seterr(fd_UnexpectedEOD,"",hx->indexid,FD_VOID);
+        key=FD_ERROR_VALUE;}
+      if ( (!(FD_TROUBLEP(key))) &&
+           ( (filter == NULL) || (fast_choice_containsp(key,filter)) ) ) {
+        if (key_count >= sizes_len) {
+          sizes=u8_big_realloc(sizes,2*sizes_len*sizeof(struct FD_KEY_SIZE));
+          sizes_len = sizes_len * 2;}
+        if (sizes == NULL) {
+          fd_unlock_stream(s);
+          u8_big_free(buckets);
+          free_keysizes(sizes,key_count);
+          u8_big_free(sizes);
+          fd_close_inbuf(&keyblock);
+          *n=-1;
+          u8_seterr(u8_MallocFailed,"hashindex_fetchinfo",hx->indexid);
+          return NULL;}
+        sizes[key_count].keysize_key = key;
+        sizes[key_count].keysize_count = n_vals;
+        key_count++;}
+      if (n_vals<0) {}
+      else if (n_vals==0) {}
+      else if (n_vals==1) {
+        int code = fd_read_zint(&keyblock);
+        if (code==0) {
+          lispval val = fd_read_dtype(&keyblock);
+          fd_decref(val);}
+        else fd_read_zint(&keyblock);}
+      else {
+        fd_read_zint(&keyblock);
+        fd_read_zint(&keyblock);}
+      if (FD_ABORTP(key)) {
+        if ( hx->index_flags & FD_STORAGE_REPAIR ) {
+          fd_clear_errors(0);
+          u8_log(LOG_CRIT,"CorruptedHashIndex",
+                 "Error reading key @%lld+%lld in %s",
+                 buckets[i].off,buckets[i].size,hx->index_source);
+          j=n_keys;}
+        else {
+          lispval off_pair = fd_init_pair(NULL,FD_INT(buckets[i].off),
+                                          FD_INT(buckets[i].size));
+          fd_seterr("CorruptedHashIndex","hashindex_fetchinfo",
+                    hx->indexid,off_pair);
+          fd_decref(off_pair);
+          fd_close_inbuf(&keyblock);
+          u8_big_free(buckets);
+          free_keysizes(sizes,key_count);
+          u8_big_free(sizes);
+          *n = -1;
+          return NULL;}}
+      else j++;}
+    i++;}
+  fd_close_inbuf(&keyblock);
+  u8_big_free(buckets);
+  *n = key_count;
+  return sizes;
+}
+
+#if 0
 static
 struct FD_KEY_SIZE *hashindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
 {
@@ -1591,6 +1781,7 @@ struct FD_KEY_SIZE *hashindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
   *n=key_count;
   return sizes;
 }
+#endif
 
 static void hashindex_getstats(struct FD_HASHINDEX *hx,
                                int *nf,int *max,int *singles,int *n2sum)
