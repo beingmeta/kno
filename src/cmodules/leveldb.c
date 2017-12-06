@@ -1579,7 +1579,7 @@ fd_index fd_make_leveldb_index(u8_string path,lispval opts)
                         FD_VECTOR_ELTS(tmp));
       fd_decref(tmp);}
     else {
-      fd_init_slotcoder(&(index->slotids),0,NULL);
+      fd_init_slotcoder(&(index->slotcodes),0,NULL);
       u8_log(LOG_WARN,"LevelDB/Index/InvalidSlotids",
              "For %s: %q",path,slotids);}
 
@@ -1598,7 +1598,7 @@ fd_index fd_make_leveldb_index(u8_string path,lispval opts)
                        FD_VECTOR_ELTS(tmp));
       fd_decref(tmp);}
     else {
-      fd_init_oidcoder(&(index->oidcoes),0,NULL);
+      fd_init_oidcoder(&(index->oidcodes),0,NULL);
       u8_log(LOG_WARN,"LevelDB/Index/InvalidBaseOIDs",
              "For %s: %q",path,baseoids);}
 
