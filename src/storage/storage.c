@@ -656,7 +656,7 @@ FD_EXPORT int fd_init_storage()
   flags_symbol = fd_intern("FLAGS");
   background_symbol = fd_intern("BACKGROUND");
   readonly_symbol = fd_intern("READONLY");
-  repair_symbol = fd_intern("READONLY");
+  repair_symbol = fd_intern("REPAIR");
   adjunct_symbol = fd_intern("ADJUNCT");
   sparse_symbol = fd_intern("SPARSE");
   register_symbol = fd_intern("REGISTER");
