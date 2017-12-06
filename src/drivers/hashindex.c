@@ -2419,7 +2419,7 @@ static int update_hashindex_metadata(fd_hashindex,lispval,fd_stream,fd_stream);
 
 static void free_keybuckets(int n,struct KEYBUCKET **keybuckets);
 
-static int hashindex_save(struct FD_INDEX *ix,
+static int hashindex_save(struct FD_HASHINDEX *hx,
                           struct FD_STREAM *stream,
                           struct FD_STREAM *head,
                           struct FD_CONST_KEYVAL *adds,int n_adds,
@@ -2427,7 +2427,6 @@ static int hashindex_save(struct FD_INDEX *ix,
                           struct FD_CONST_KEYVAL *stores,int n_stores,
                           lispval changed_metadata)
 {
-  struct FD_HASHINDEX *hx = (struct FD_HASHINDEX *)ix;
   u8_string fname=hx->index_source;
   struct FD_SLOTCODER sc = fd_copy_slotcodes(&(hx->index_slotcodes));
   struct FD_OIDCODER oc = fd_copy_oidcodes(&(hx->index_oidcodes));
@@ -2441,7 +2440,7 @@ static int hashindex_save(struct FD_INDEX *ix,
     u8_logf(LOG_WARN,CorruptedHashIndex,
             "Bad offset type code=%d for %s",(int)offtype,hx->indexid);
     u8_seterr(CorruptedHashIndex,"hashindex_save/offtype",
-              u8_strdup(ix->indexid));
+              u8_strdup(hx->indexid));
     fd_unlock_index(hx);
     return -1;}
 
@@ -2619,7 +2618,7 @@ static int hashindex_save(struct FD_INDEX *ix,
   else u8_logf(LOG_INFO,"HashIndexCommit",
                "Saved mappings for %d keys (%d/%d new/total) to %s in %f secs",
                n_keys,new_keys,total_keys,
-               ix->indexid,u8_elapsed_time()-started);
+               hx->indexid,u8_elapsed_time()-started);
 
   if (final_rv<0)
     return final_rv;
@@ -2690,7 +2689,7 @@ static int hashindex_commit(fd_index ix,fd_commit_phase phase,
       (NULL);
     u8_free(commit_file);
     int rv = hashindex_save
-      (ix,stream,head_stream,
+      ((struct FD_HASHINDEX *)ix,stream,head_stream,
        (struct FD_CONST_KEYVAL *)commits->commit_adds,commits->commit_n_adds,
        (struct FD_CONST_KEYVAL *)commits->commit_drops,commits->commit_n_drops,
        (struct FD_CONST_KEYVAL *)commits->commit_stores,commits->commit_n_stores,
