@@ -95,6 +95,12 @@ typedef enum BUFIO_ALLOC {
   (buf)->buf_flags = \
     ( ( ((buf)->buf_flags) & (~(FD_BUFFER_ALLOC)) ) | ( (v) & FD_BUFFER_ALLOC) );
 
+#define DT_BUILD(len,step) \
+  if ((len)>=0) {      \
+    ssize_t _outlen = step; \
+    if (_outlen<0) len = -1; \
+    else len += _outlen;}
+
 /* Freeing the buffer */
 
 FD_FASTOP void _BUFIO_FREE(struct FD_RAWBUF *buf)
