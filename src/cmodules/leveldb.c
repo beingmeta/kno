@@ -58,7 +58,9 @@ typedef int (*leveldb_prefix_iterfn)(lispval key,struct BYTEVEC *prefix,
                                      struct BYTEVEC *keybuf,
                                      struct BYTEVEC *valbuf,
                                      void *state);
-
+typedef int (*leveldb_prefix_key_iterfn)(lispval key,struct BYTEVEC *prefix,
+                                         struct BYTEVEC *keybuf,
+                                         void *state);
 
 /* Initialization */
 
@@ -539,43 +541,52 @@ static lispval leveldb_getn_prim(lispval leveldb,lispval keys,lispval opts)
   return results;
 }
 
+static struct BYTEVEC *write_prefix(struct BYTEVEC *prefix,lispval key)
+{
+  struct FD_OUTBUF keyout;
+  FD_INIT_BYTE_OUTPUT(&keyout,1000);
+  ssize_t n_bytes = fd_write_dtype(&keyout,key);
+  if (n_bytes < 0) {
+    fd_close_outbuf(&keyout);
+    return NULL;}
+  else if ( n_bytes != (keyout.bufwrite-keyout.buffer) ) {
+    u8_seterr("Inconsistent DTYPE size for key","leveldb_scanner",NULL);
+    return NULL;}
+  else {
+    prefix->bytes   = keyout.buffer;
+    prefix->n_bytes = n_bytes;}
+  return prefix;
+}
+
 static int leveldb_scanner(struct FRAMERD_LEVELDB *db,lispval opts,
                            leveldb_iterator_t *use_iterator,
-                           lispval key,struct BYTEVEC *prefix,
+                           lispval key,struct BYTEVEC *use_prefix,
                            leveldb_prefix_iterfn iterfn,
                            void *state)
 {
   leveldb_readoptions_t *readopts = get_read_options(db,opts);
   struct FD_OUTBUF keyout = {0};
-  struct BYTEVEC _prefix;
-  int rv = 0;
-  if (prefix == NULL) {
-    prefix = &_prefix;
-    if (FD_PACKETP(key)) {
-      _prefix.bytes =   FD_PACKET_DATA(key);
-      _prefix.n_bytes = FD_PACKET_LENGTH(key);}
-    else {
-      FD_INIT_BYTE_OUTPUT(&keyout,1000);
-      ssize_t n_bytes = fd_write_dtype(&keyout,key);
-      if (n_bytes < 0) {
-        fd_close_outbuf(&keyout);
-        return -1;}
-      else if ( n_bytes != (keyout.bufwrite-keyout.buffer) ) {
-        u8_seterr("Inconsistent DTYPE size for key","leveldb_scanner",NULL);
-        return -1;}
-      else {
-        _prefix.bytes   = keyout.buffer;
-        _prefix.n_bytes = n_bytes;}}}
+  struct BYTEVEC _prefix = {0}, *prefix;
+  int rv = 0, free_prefix=0;
+  if (use_prefix)
+    prefix=use_prefix;
+  else if (FD_PACKETP(key)) {
+    _prefix.bytes =   FD_PACKET_DATA(key);
+    _prefix.n_bytes = FD_PACKET_LENGTH(key);
+    prefix = &_prefix;}
+  else {
+    prefix = write_prefix(&_prefix,key);
+    free_prefix=1;}
+  if (prefix == NULL) return -1;
   leveldb_iterator_t *iterator = (use_iterator) ? (use_iterator) :
     (leveldb_create_iterator(db->dbptr,readopts));
   leveldb_iter_seek(iterator,prefix->bytes,prefix->n_bytes);
   while (leveldb_iter_valid(iterator)) {
     struct BYTEVEC keybuf, valbuf;
     keybuf.bytes = leveldb_iter_key(iterator,&(keybuf.n_bytes));
-    valbuf.bytes = leveldb_iter_value(iterator,&(valbuf.n_bytes));
     if ( (keybuf.n_bytes >= prefix->n_bytes) &&
          (memcmp(keybuf.bytes,prefix->bytes,prefix->n_bytes) == 0) ) {
-      valbuf.bytes = leveldb_iter_value(iterator,&(valbuf.n_bytes));
+      valbuf.bytes = leveldb_iter_key(iterator,&(valbuf.n_bytes));
       rv = iterfn(key,prefix,&keybuf,&valbuf,state);
       /* u8_free(keybuf.bytes); u8_free(valbuf.bytes); */
       if (rv <= 0) break;}
@@ -583,7 +594,88 @@ static int leveldb_scanner(struct FRAMERD_LEVELDB *db,lispval opts,
       /* u8_free(keybuf.bytes); */
       break;}
     leveldb_iter_next(iterator);}
-  fd_close_outbuf(&keyout);
+  if (free_prefix) u8_free(prefix->bytes);
+  if (use_iterator == NULL) leveldb_iter_destroy(iterator);
+  return rv;
+}
+
+static int leveldb_key_scanner(struct FRAMERD_LEVELDB *db,lispval opts,
+                               leveldb_iterator_t *use_iterator,
+                               lispval key,struct BYTEVEC *use_prefix,
+                               leveldb_prefix_key_iterfn iterfn,
+                               void *state)
+{
+  leveldb_readoptions_t *readopts = get_read_options(db,opts);
+  struct FD_OUTBUF keyout = {0};
+  struct BYTEVEC _prefix = {0}, *prefix;
+  int rv = 0, free_prefix=0;
+  if (use_prefix)
+    prefix=use_prefix;
+  else if (FD_PACKETP(key)) {
+    _prefix.bytes =   FD_PACKET_DATA(key);
+    _prefix.n_bytes = FD_PACKET_LENGTH(key);
+    prefix = &_prefix;}
+  else {
+    prefix = write_prefix(&_prefix,key);
+    free_prefix=1;}
+  if (prefix == NULL) return -1;
+  leveldb_iterator_t *iterator = (use_iterator) ? (use_iterator) :
+    (leveldb_create_iterator(db->dbptr,readopts));
+  leveldb_iter_seek(iterator,prefix->bytes,prefix->n_bytes);
+  while (leveldb_iter_valid(iterator)) {
+    struct BYTEVEC keybuf;
+    keybuf.bytes = leveldb_iter_key(iterator,&(keybuf.n_bytes));
+    if ( (keybuf.n_bytes >= prefix->n_bytes) &&
+         (memcmp(keybuf.bytes,prefix->bytes,prefix->n_bytes) == 0) ) {
+      rv = iterfn(key,prefix,&keybuf,state);
+      /* u8_free(keybuf.bytes); u8_free(valbuf.bytes); */
+      if (rv <= 0) break;}
+    else {
+      /* u8_free(keybuf.bytes); */
+      break;}
+    leveldb_iter_next(iterator);}
+  if (free_prefix) u8_free(prefix->bytes);
+  if (use_iterator == NULL) leveldb_iter_destroy(iterator);
+  return rv;
+}
+
+static int leveldb_editor(struct FRAMERD_LEVELDB *db,lispval opts,
+                          leveldb_iterator_t *use_iterator,
+                          leveldb_writebatch_t *batch,
+                          lispval key,struct BYTEVEC *use_prefix,
+                          struct BYTEVEC *value)
+{
+  leveldb_readoptions_t *readopts = get_read_options(db,opts);
+  struct FD_OUTBUF keyout = {0};
+  struct BYTEVEC _prefix = { 0 }, *prefix;
+  int rv = 0, free_prefix=0;
+  if (use_prefix)
+    prefix=use_prefix;
+  else if (FD_PACKETP(key)) {
+    _prefix.bytes =   FD_PACKET_DATA(key);
+    _prefix.n_bytes = FD_PACKET_LENGTH(key);
+    prefix = &_prefix;}
+  else {
+    prefix = write_prefix(&_prefix,key);
+    free_prefix=1;}
+  if (prefix == NULL) return -1;
+  leveldb_iterator_t *iterator = (use_iterator) ? (use_iterator) :
+    (leveldb_create_iterator(db->dbptr,readopts));
+  leveldb_iter_seek(iterator,prefix->bytes,prefix->n_bytes);
+  while (leveldb_iter_valid(iterator)) {
+    struct BYTEVEC keybuf;
+    keybuf.bytes = leveldb_iter_key(iterator,&(keybuf.n_bytes));
+    if ( (keybuf.n_bytes >= prefix->n_bytes) &&
+         (memcmp(keybuf.bytes,prefix->bytes,prefix->n_bytes) == 0) ) {
+      if (keybuf.n_bytes == prefix->n_bytes)
+        leveldb_writebatch_put
+          (batch,prefix->bytes,prefix->n_bytes,value->bytes,value->n_bytes);
+      else leveldb_writebatch_delete(batch,keybuf.bytes,keybuf.n_bytes);}
+    else {
+      /* u8_free(keybuf.bytes); */
+      break;}
+    leveldb_iter_next(iterator);}
+  if (free_prefix) u8_free(prefix->bytes);
   if (use_iterator == NULL) leveldb_iter_destroy(iterator);
   return rv;
 }
@@ -858,7 +950,7 @@ static ssize_t set_prop(leveldb_t *dbptr,char *key,lispval value,
 static struct FD_POOL_HANDLER leveldb_pool_handler;
 
 FD_EXPORT
-fd_pool fd_use_leveldb_pool(u8_string path,lispval opts)
+fd_pool fd_open_leveldb_pool(u8_string path,fd_storage_flags flags,lispval opts)
 {
   struct FD_LEVELDB_POOL *pool = u8_alloc(struct FD_LEVELDB_POOL);
   if (fd_setup_leveldb(&(pool->leveldb),path,opts)) {
@@ -1348,12 +1440,10 @@ static fd_pool leveldb_pool_create(u8_string spec,void *type_data,
   else return NULL;
 }
 
-static fd_pool leveldb_pool_open(u8_string spec,fd_storage_flags storage_flags,
-                                 lispval opts)
+static fd_pool leveldb_pool_open(u8_string spec,fd_storage_flags flags,lispval opts)
 {
-  return fd_use_leveldb_pool(spec,opts);
+  return fd_open_leveldb_pool(spec,flags,opts);
 }
-
 
 /* The LevelDB pool handler */
 
@@ -1374,8 +1464,12 @@ static struct FD_POOL_HANDLER leveldb_pool_handler={
   NULL  /* poolctl */
 };
 
-#if 0
 /* LevelDB indexes */
+
+/* Indexes use leveldb in a particular way, based on prefixes to the
+   stored keys and values.
+
+*/
 
 static struct FD_INDEX_HANDLER leveldb_index_handler;
 
@@ -1470,7 +1564,7 @@ fd_index fd_make_leveldb_index(u8_string path,lispval opts)
     else if (FD_UINTP(slotcodes)) {
       lispval tmp = fd_fill_vector(FD_FIX2INT(slotcodes),FD_FALSE);
       set_prop(dbptr,"\377SLOTCODES",tmp,sync_writeopts);
-      fd_init_slotcoder(&(pool->slotcodes),
+      fd_init_slotcoder(&(index->slotcodes),
                         FD_VECTOR_LENGTH(tmp),
                         FD_VECTOR_ELTS(tmp));
       fd_decref(tmp);}
@@ -1480,13 +1574,13 @@ fd_index fd_make_leveldb_index(u8_string path,lispval opts)
 
     if (FD_VECTORP(oidcodes)) {
       set_prop(dbptr,"\377OIDCODES",oidcodes,sync_writeopts);
-      fd_init_slotcoder(&(index->oidcodes),
+      fd_init_slotcoder(&(index->slotcodes),
                         FD_VECTOR_LENGTH(oidcodes),
                         FD_VECTOR_ELTS(oidcodes));}
     else if (FD_UINTP(slotcodes)) {
       lispval tmp = fd_fill_vector(FD_FIX2INT(oidcodes),FD_FALSE);
       set_prop(dbptr,"\377OIDCODES",tmp,sync_writeopts);
-      fd_init_slotcoder(&(index->oidcodes),
+      fd_init_slotcoder(&(index->slotcodes),
                         FD_VECTOR_LENGTH(tmp),
                         FD_VECTOR_ELTS(tmp));
       fd_decref(tmp);}
@@ -1509,14 +1603,9 @@ fd_index fd_make_leveldb_index(u8_string path,lispval opts)
     return (fd_index) NULL;}
 }
 
-static void leveldb_index_close(fd_index ix)
-{
-  struct FD_LEVELDB_INDEX *ldbx = (struct FD_LEVELDB_INDEX *)ix;
-  fd_close_leveldb(&(ldbx->leveldb));
-}
-
 static ssize_t leveldb_write_zkey(struct FD_OUTBUF *out,lispval key,
-                                  struct FD_SLOTCODER *slotcodes)
+                                  struct FD_SLOTCODER *slotcodes,
+                                  int addcode)
 {
   if ( (slotcodes) && (slotcodes->slotids) && 
        (FD_PAIRP(key)) && 
@@ -1524,19 +1613,22 @@ static ssize_t leveldb_write_zkey(struct FD_OUTBUF *out,lispval key,
     lispval slotid = FD_CAR(key);
 
     int code = fd_slotid2code(slotcodes,slotid);
-    if (code<0) code = fd_add_slotcode(slotcodes,slotid);
+    if (code<0) {
+      if (addcode)
+        code = fd_add_slotcode(slotcodes,slotid);
+      else return 0;}
 
     if (code<0)
       return fd_write_dtype(out,key);
     else {
       ssize_t key_len = 0;
-      DTOUT(key_len,fd_write_zint(out,(code+1)));
-      DTOUT(key_len,fd_write_dtype(out,FD_CDR(key)));
+      DT_BUILD(key_len,fd_write_zint(out,(code+1)));
+      DT_BUILD(key_len,fd_write_dtype(out,FD_CDR(key)));
       return key_len;}}
   else return fd_write_dtype(out,key);
 }
 
-static lispval leveldb_read_zvalue(struct FD_INBUF *in,struct FD_SLOTCODER *oidcodes)
+static lispval leveldb_read_zvalue(struct FD_INBUF *in,struct FD_OIDCODER *oidcodes)
 {
   if ( (oidcodes) && (oidcodes->n_oids) &&
        (fd_probe_byte(in) == 0xFF) ) {
@@ -1556,7 +1648,7 @@ static lispval leveldb_read_zvalue(struct FD_INBUF *in,struct FD_SLOTCODER *oidc
         int baseid = FD_OID_BASE_ID(baseoid);
         int off = fd_read_zint(in);
         if (off < 0) { err=1; break;}
-        lispval elt = FD_CONSTRUCT_OID(base_id,off);
+        lispval elt = FD_CONSTRUCT_OID(baseid,off);
         FD_ADD_TO_CHOICE(results,elt);}
       i++;}
     if (err) {
@@ -1568,9 +1660,9 @@ static lispval leveldb_read_zvalue(struct FD_INBUF *in,struct FD_SLOTCODER *oidc
 }
 
 static ssize_t leveldb_write_zvalue(struct FD_OUTBUF *out,lispval val,
-                                    struct FD_SLOTCODER *oidcodes)
+                                    struct FD_OIDCODER *oc)
 {
-  if ( (oidcodes) && (oidcodes->n_oids) ) {
+  if ( (oc) && (oc->n_oids) ) {
     int all_oids = 1; size_t n_vals = 0;
     FD_DO_CHOICES(elt,val) {
       if (!(FD_OIDP(elt))) {
@@ -1578,36 +1670,300 @@ static ssize_t leveldb_write_zvalue(struct FD_OUTBUF *out,lispval val,
       else n_vals++;}
     if (all_oids) {
       ssize_t dtype_len = 0;
-      DTOUT(dtype_len,fd_write_byte(out,0xFE));
-      DTOUT(dtype_len,fd_write_zint(out,n_vals));
+      DT_BUILD(dtype_len,fd_write_byte(out,0xFE));
+      DT_BUILD(dtype_len,fd_write_zint(out,n_vals));
       FD_DO_CHOICES(elt,val) {
         int base = FD_OID_BASE_ID(elt);
         int oidcode = fd_get_oidcode(oc,base);
+        lispval baseoid = FD_CONSTRUCT_OID(base,0);
         if (oidcode<0) {
           if (oc->n_oids < oc->oids_len)
-            oidcode = fd_add_oidcode(oc,value);}
+            oidcode = fd_add_oidcode(oc,baseoid);}
         if (oidcode<0) {
-          DTOUT(dtype_len,fd_write_dtype(out,elt));}
+          DT_BUILD(dtype_len,fd_write_dtype(out,elt));}
         else {
-          int offset = FD_OID_BASE_OFFSET(value);
-          DTOUT(dtype_len,fd_write_zint(out,oidcode+1));
-          DTOUT(dtype_len,fd_write_zint(out,offset));}}
+          int offset = FD_OID_BASE_OFFSET(elt);
+          DT_BUILD(dtype_len,fd_write_zint(out,oidcode+1));
+          DT_BUILD(dtype_len,fd_write_zint(out,offset));}}
       return dtype_len;}
     else return fd_write_dtype(out,val);}
   else return fd_write_dtype(out,val);
 }
 
+/* index driver methods */
+
+struct LEVELDB_INDEX_RESULTS {
+  lispval results;
+  fd_index index;
+  struct FD_OIDCODER *oidcodes;};
+struct LEVELDB_INDEX_COUNT {
+  ssize_t count;
+  fd_index index;
+  struct FD_OIDCODER *oidcodes;};
+
+static int leveldb_index_gather(lispval key,
+                                struct BYTEVEC *prefix,
+                                struct BYTEVEC *keybuf,
+                                struct BYTEVEC *valbuf,
+                                void *vptr)
+{
+  struct LEVELDB_INDEX_RESULTS *state = vptr;
+  if (valbuf->n_bytes == 0) return 1;
+  if (valbuf->bytes[0] == 0xFF) return 1;
+  struct FD_INBUF valstream;
+  FD_INIT_BYTE_INPUT(&valstream,valbuf->bytes,valbuf->n_bytes);
+  lispval value = leveldb_read_zvalue(&valstream,state->oidcodes);
+  FD_ADD_TO_CHOICE((state->results),value);
+  return 1;
+}
+
+static int leveldb_index_count(lispval key,
+                               struct BYTEVEC *prefix,
+                               struct BYTEVEC *keybuf,
+                               struct BYTEVEC *valbuf,
+                               void *vptr)
+{
+  struct LEVELDB_INDEX_COUNT *state = vptr;
+  if (valbuf->n_bytes == 0) return 1;
+  struct FD_INBUF valstream;
+  FD_INIT_BYTE_INPUT(&valstream,valbuf->bytes,valbuf->n_bytes);
+  if ( (keybuf->n_bytes == prefix->n_bytes) &&
+       (valbuf->bytes[0] == 0xFF) ) {
+    long long header_type = fd_read_4bytes(&valstream);
+    if (header_type != 1) {
+      fd_seterr("BadLeveDBIndexHeader","leveldb_index_count",
+                state->index->indexid,key);
+      return -1;}
+    ssize_t n_blocks = fd_read_8bytes(&valstream);
+    ssize_t n_keys = fd_read_8bytes(&valstream);
+    if (n_keys>=0) {
+      state->count=n_keys;
+      return 0;}
+    else {
+      fd_seterr("BadLeveDBIndexHeader","leveldb_index_count",
+                state->index->indexid,key);
+      return -1;}}
+  else {
+    lispval values = leveldb_read_zvalue(&valstream,state->oidcodes);
+    if (FD_ABORTP(values)) return -1;
+    else state->count += FD_CHOICE_SIZE(values);
+    fd_decref(values);
+    return 1;}
+}
+
+static lispval leveldb_index_fetch(fd_index ix,lispval key)
+{
+  struct FD_LEVELDB_INDEX *lx = (fd_leveldb_index)ix;
+  struct FRAMERD_LEVELDB *db = &(lx->leveldb);
+  FD_DECL_OUTBUF(keybuf,1000);
+  fd_write_byte(&keybuf,0xFE);
+  ssize_t len = leveldb_write_zkey(&keybuf,key,&(lx->slotcodes),1);
+  if (len == 0) {
+    /* This means the key is a pair whose CAR doesn't have a slot
+       code, so its not in the index at all */
+    return FD_EMPTY;}
+  else {
+    struct LEVELDB_INDEX_RESULTS state = 
+      { FD_EMPTY, ix, &(lx->oidcodes) };
+    struct BYTEVEC prefix = { keybuf.bufwrite-keybuf.buffer, keybuf.buffer };
+    int rv =leveldb_scanner(db,lx->index_opts,NULL,key,&prefix,
+                            leveldb_index_gather,&state);
+    if (rv<0)
+      return FD_ERROR_VALUE;
+    else return state.results;}
+}
+
+static int leveldb_index_fetchsize(fd_index ix,lispval key)
+{
+  struct FD_LEVELDB_INDEX *lx = (fd_leveldb_index)ix;
+  struct FRAMERD_LEVELDB *db = &(lx->leveldb);
+  FD_DECL_OUTBUF(keybuf,1000);
+  ssize_t len = leveldb_write_zkey(&keybuf,key,&(lx->slotcodes),1);
+  if (len == 0) {
+    /* This means the key is a pair whose CAR doesn't have a slot
+       code. */
+    return FD_EMPTY;}
+  else {
+    struct LEVELDB_INDEX_COUNT state = 
+      { FD_EMPTY, ix, &(lx->oidcodes) };
+    struct BYTEVEC prefix = { keybuf.bufwrite-keybuf.buffer, keybuf.buffer };
+    int rv = leveldb_scanner(db,lx->index_opts,NULL,key,&prefix,
+                             leveldb_index_gather,&state);
+    if (rv<0)
+      return rv;
+    else return state.count;}
+}
+
+static lispval *leveldb_index_fetchn(fd_index ix,int n,const lispval *keys)
+{
+  struct FD_LEVELDB_INDEX *lx = (fd_leveldb_index)ix;
+  struct FRAMERD_LEVELDB *db = &(lx->leveldb);
+  struct LEVELDB_KEYBUF *keybufs = u8_alloc_n(n,struct LEVELDB_KEYBUF);
+  struct LEVELDB_INDEX_RESULTS *states =
+    u8_alloc_n(n,struct LEVELDB_INDEX_RESULTS);
+  int i=0, to_fetch=0;
+  while (i<n) {
+    lispval key = keys[i];
+    FD_DECL_OUTBUF(keyout,100);
+    int rv = leveldb_write_zkey(&keyout,key,&(lx->slotcodes),0);
+    states[i].results=FD_EMPTY;
+    states[i].index=ix;
+    states[i].oidcodes=&(lx->oidcodes);
+    if (rv) {
+      keybufs[to_fetch].key = key;
+      keybufs[to_fetch].keypos = i;
+      keybufs[to_fetch].dtype = 1;
+      keybufs[to_fetch].encoded.bytes = keyout.buffer;
+      keybufs[to_fetch].encoded.n_bytes = keyout.bufwrite-keyout.buffer;
+      to_fetch++;}
+    i++;}
+  qsort(keybufs,n,sizeof(struct LEVELDB_KEYBUF),cmp_keybufs);
+  
+  leveldb_iterator_t *iterator = leveldb_create_iterator(db->dbptr,db->readopts);
+  i=0; while (i<n) {
+    int keypos = keybufs[i].keypos;
+    int rv =leveldb_scanner(db,lx->index_opts,iterator,
+                            keybufs[i].key,
+                            & keybufs[i].encoded,
+                            leveldb_index_gather,
+                            & states[keypos]);
+    u8_free(keybufs[i].encoded.bytes);
+    i++;}
+  u8_free(keybufs);
+  lispval *results = u8_alloc_n(n,lispval);
+  i=0; while (i<n) {
+    results[i] = states[i].results;
+    i++;}
+  u8_free(states);
+  return results;
+}
+
+static int leveldb_index_save(fd_leveldb_index lx,
+                              struct FD_INDEX_COMMITS *commits)
+{
+  /* Just handling ADDS now */
+  struct FRAMERD_LEVELDB *db = &(lx->leveldb);
+  leveldb_writebatch_t *batch = leveldb_writebatch_create();
+  ssize_t n_stores = commits->commit_n_stores;
+  ssize_t n_drops = commits->commit_n_drops;
+  if (n_stores+n_drops) {
+    struct FD_CONST_KEYVAL *stores = commits->commit_stores;
+    struct FD_CONST_KEYVAL *drops = commits->commit_drops;
+    size_t store_i = 0, drop_i = 0;
+    leveldb_iterator_t *iterator = 
+      leveldb_create_iterator(db->dbptr,db->readopts);
+    FD_DECL_OUTBUF(keybuf,100);
+    FD_DECL_OUTBUF(valbuf,1000);
+    if (n_stores) {
+      while (store_i < n_stores) {
+        lispval key = stores[store_i].kv_key;
+        lispval val = stores[store_i].kv_val;
+        ssize_t key_rv = leveldb_write_zkey(&keybuf,key,& lx->slotcodes,1);
+        ssize_t val_rv = leveldb_write_zvalue(&valbuf,val,& lx->oidcodes);
+        struct BYTEVEC keyv = { keybuf.bufwrite-keybuf.buffer, keybuf.buffer };
+        struct BYTEVEC valv = { valbuf.bufwrite-valbuf.buffer, valbuf.buffer };
+        int edit_rv = leveldb_editor(db,lx->index_opts,iterator,batch,
+                                     key,&keyv,&valv);
+        keybuf.bufwrite = keybuf.buffer;
+        valbuf.bufwrite = valbuf.buffer;
+        store_i++;}}
+    if (n_drops) {
+      lispval *drop_keys = u8_alloc_n(n_drops,lispval);
+      int drop_i = 0; while (drop_i<n_drops) {
+        drop_keys[drop_i] = drops[drop_i].kv_key;
+        drop_i++;}
+      lispval *drop_vals = 
+        leveldb_index_fetchn((fd_index)lx,n_drops,drop_keys);
+      drop_i = 0; while (drop_i < n_drops) {
+        lispval key = drop_keys[drop_i];
+        lispval cur = drop_vals[drop_i];
+        lispval drop = drops[drop_i].kv_val;
+        lispval diff = fd_difference(cur,drop);
+        ssize_t key_rv = leveldb_write_zkey(&keybuf,key,& lx->slotcodes,0);
+        struct BYTEVEC keyv = { keybuf.bufwrite-keybuf.buffer, keybuf.buffer };
+        struct BYTEVEC valv = { 0 };
+        if (!(FD_EMPTYP(diff))) {
+          ssize_t val_rv = leveldb_write_zvalue(&valbuf,diff,& lx->oidcodes);
+          valv.n_bytes = valbuf.bufwrite-valbuf.buffer;
+          valv.bytes = valbuf.buffer;}
+        int edit_rv = leveldb_editor(db,lx->index_opts,iterator,batch,
+                                     key,&keyv,&valv);
+        keybuf.bufwrite = keybuf.buffer;
+        valbuf.bufwrite = valbuf.buffer;
+        drop_i++;}
+      u8_free(drop_keys);
+      fd_free_elts(drop_vals,n_drops);
+      u8_free(drop_vals);}
+    leveldb_iter_destroy(iterator);
+    fd_close_outbuf(&keybuf);
+    fd_close_outbuf(&valbuf);}
+
+  struct FD_CONST_KEYVAL *adds = commits->commit_adds;
+      char *errmsg = NULL;
+  ssize_t n_adds = commits->commit_n_adds;
+  size_t i = 0; while (i<n_adds) {
+    int rv = leveldb_add_helper(db,batch,adds[i].kv_key,adds[i].kv_val,
+                                lx->index_opts);
+    if (rv<0) {
+      leveldb_writebatch_destroy(batch);
+      return -1;}
+    else i++;}
+  leveldb_write(db->dbptr,sync_writeopts,batch,&errmsg);
+  if (errmsg)
+    return -1;
+  else return 1;
+}
+
+static int leveldb_index_commit(fd_index ix,fd_commit_phase phase,
+                                struct FD_INDEX_COMMITS *commits)
+{
+  struct FD_LEVELDB_INDEX *lx = (fd_leveldb_index)ix;
+  struct FRAMERD_LEVELDB *db = &(lx->leveldb);
+  switch (phase) {
+  case fd_no_commit:
+    u8_seterr("BadCommitPhase(commit_none)","hashindex_commit",
+              u8_strdup(ix->indexid));
+    return -1;
+  case fd_commit_start: {
+    return 1;}
+  case fd_commit_save: {
+    return leveldb_index_save(lx,commits);}
+  case fd_commit_rollback: {
+    return 1;}
+  case fd_commit_cleanup: {
+    return 1;}
+  default: {
+    u8_logf(LOG_WARN,"NoPhasedCommit",
+            "The index %s doesn't support phased commits",
+            ix->indexid);
+    return -1;}
+  }
+}
+
+static fd_index leveldb_index_open(u8_string spec,fd_storage_flags flags,
+                                   lispval opts)
+{
+  return fd_open_leveldb_index(spec,flags,opts);
+}
+
+
+static void leveldb_index_close(fd_index ix)
+{
+  struct FD_LEVELDB_INDEX *ldbx = (struct FD_LEVELDB_INDEX *)ix;
+  fd_close_leveldb(&(ldbx->leveldb));
+}
+
 
-/* Initializing the driver module */
+/* Initializing the index driver */
 
 static struct FD_INDEX_HANDLER leveldb_index_handler={
   "leveldb_index", 1, sizeof(struct FD_LEVELDB_INDEX), 14,
   leveldb_index_close, /* close */
-  NULL, /* commit */
-  NULL, /* fetch */
-  NULL, /* fetchsize */
+  leveldb_index_commit, /* commit */
+  leveldb_index_fetch, /* fetch */
+  leveldb_index_fetchsize, /* fetchsize */
   NULL, /* prefetch */
-  NULL, /* fetchn */
+  leveldb_index_fetchn, /* fetchn */
   NULL, /* fetchkeys */
   NULL, /* fetchinfo */
   NULL, /* batchadd */
@@ -1617,13 +1973,11 @@ static struct FD_INDEX_HANDLER leveldb_index_handler={
   NULL /* indexctl */
 };
 
-#endif
-
 /* Scheme primitives */
 
 static lispval use_leveldb_pool_prim(lispval path,lispval opts)
 {
-  fd_pool pool = fd_use_leveldb_pool(FD_CSTRING(path),opts);
+  fd_pool pool = fd_open_leveldb_pool(FD_CSTRING(path),-1,opts);
   return fd_pool2lisp(pool);
 }
 
@@ -1771,9 +2125,14 @@ FD_EXPORT int fd_init_leveldb()
                      &default_restart_interval);
 
   fd_register_pool_type
-    ("leveldb/pool",
+    ("leveldb",
      &leveldb_pool_handler,
      leveldb_pool_open,NULL,NULL);
+
+  fd_register_index_type
+    ("leveldb",
+     &leveldb_index_handler,
+     leveldb_index_open,NULL,NULL);
 
   fd_finish_module(module);
 
