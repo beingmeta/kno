@@ -232,6 +232,10 @@ fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,lispval opts)
       CHECK_ERRNO();}
     ptype = ptype->next_type;}
   lispval pool_typeid = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
+  /* MODULE is an alias for type and 'may' have the additional
+     semantics of being auto-loaded. */
+  if (FD_VOIDP(pool_typeid))
+    pool_typeid = fd_getopt(opts,FDSYM_MODULE,FD_VOID);
   ptype = (FD_STRINGP(pool_typeid)) ?
     (fd_get_pool_typeinfo(FD_CSTRING(pool_typeid))) :
     (FD_SYMBOLP(pool_typeid)) ?
@@ -432,6 +436,10 @@ fd_index fd_open_index(u8_string spec,fd_storage_flags flags,lispval opts)
       CHECK_ERRNO();}
     else ixtype = ixtype->next_type;}
   lispval index_typeid = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
+  /* MODULE is an alias for type and 'may' have the additional
+     semantics of being auto-loaded. */
+  if (FD_VOIDP(index_typeid))
+    index_typeid = fd_getopt(opts,FDSYM_MODULE,FD_VOID);
   ixtype = (FD_STRINGP(index_typeid)) ?
     (fd_get_index_typeinfo(FD_CSTRING(index_typeid))) :
     (FD_SYMBOLP(index_typeid)) ?

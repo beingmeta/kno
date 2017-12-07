@@ -440,6 +440,7 @@ static lispval make_pool(lispval path,lispval opts)
   fd_pool p = NULL;
   lispval type = fd_getopt(opts,FDSYM_TYPE,VOID);
   fd_storage_flags flags = fd_get_dbflags(opts,FD_STORAGE_ISPOOL);
+  if (FD_VOIDP(type)) type = fd_getopt(opts,FDSYM_MODULE,VOID);
   if (VOIDP(type))
     p = fd_make_pool(CSTRING(path),NULL,flags,opts);
   else if (SYMBOLP(type))
@@ -473,6 +474,7 @@ static lispval make_index(lispval path,lispval opts)
     (FIXNUMP(opts)) ?
     (FD_STORAGE_ISINDEX) :
     (fd_get_dbflags(opts,FD_STORAGE_ISINDEX)) ;
+  if (FD_VOIDP(type)) type = fd_getopt(opts,FDSYM_MODULE,VOID);
   if (VOIDP(type))
     ix = fd_make_index(CSTRING(path),NULL,flags,opts);
   else if (SYMBOLP(type))
