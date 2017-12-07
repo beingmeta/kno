@@ -157,7 +157,6 @@
 		      (irritant opts |BadFlexpoolData|))))))))
 
 (define (make-flexpool filename opts)
-  (%watch "MAKE-FLEXPOOL" filename opts)
   (let ((base (getopt opts 'base))
 	(cap (getopt opts 'capacity))
 	(prefix (getopt opts 'prefix (get-partition-prefix filename)))
@@ -165,6 +164,7 @@
     (if (and (exists? prefix) (exists? base) (exists? cap) (exists? partsize))
 	(let* ((metadata (getopt opts 'metadata {}))
 	       (absprefix (mkpath (dirname (abspath filename)) prefix))
+	       (adjuncts (getopt opts 'adjuncts (get metadata 'adjuncts)))
 	       (saved (frame-create #f
 			'created (timestamp)
 			'init (config 'sessionid)
@@ -175,6 +175,7 @@
 			'metadata metadata)))
 	  (drop! metadata '{cachelevel poolid source cached locked registered load})
 	  (drop! metadata '{%slotids readonly opts props})
+	  (when (exists? adjuncts) (store! metadata 'adjuncts adjuncts))
 	  (store! metadata 'flags 
 		  (intersection (get metadata 'flags) '{isadjunct adjunct sparse}))
 	  (unless (and (file-exists? (dirname absprefix))
@@ -184,7 +185,7 @@
 	      " for " filename)
 	    (mkdirs (dirname absprefix)))
 	  (dtype->file saved filename)
-	  (when (test metadata 'adjuncts)
+	  (when (exists? adjuncts)
 	    (init-adjunct-flexpools (get metadata 'adjuncts) 
 				    prefix base cap partsize opts))
 	  (unique-flexpool (if (readlink filename)
