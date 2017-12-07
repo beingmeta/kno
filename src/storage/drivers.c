@@ -168,8 +168,12 @@ FD_EXPORT fd_pool_typeinfo fd_set_default_pool_type(u8_string id)
 static fd_pool open_pool(fd_pool_typeinfo ptype,u8_string spec,
                          fd_storage_flags flags,lispval opts)
 {
+  u8_string search_spec = spec;
+  if ( (strchr(search_spec,'@')==NULL) || (strchr(search_spec,':')==NULL) )
+    search_spec = u8_realpath(spec,NULL);
   fd_pool found = (flags&FD_STORAGE_UNREGISTERED) ? (NULL) :
     (fd_find_pool_by_source(spec));
+  if (spec != search_spec) u8_free(search_spec);
   fd_pool opened = (found) ? (found) :
     (ptype->opener(spec,flags,opts));
   if (opened==NULL) {
@@ -397,9 +401,13 @@ FD_EXPORT fd_index_typeinfo fd_set_default_index_type(u8_string id)
 static fd_index open_index(fd_index_typeinfo ixtype,u8_string spec,
                            fd_storage_flags flags,lispval opts)
 {
+  u8_string search_spec = spec;
+  if ( (strchr(search_spec,'@')==NULL) || (strchr(search_spec,':')==NULL) )
+    search_spec = u8_realpath(spec,NULL);
   fd_index found = (flags&FD_STORAGE_UNREGISTERED) ? (NULL) :
-    (fd_find_index_by_source(spec));
+    (fd_find_index_by_source(search_spec));
   fd_index opened = (found) ? (found) : (ixtype->opener(spec,flags,opts));
+  if (search_spec != spec) u8_free(search_spec);
   if (opened==NULL) {
     if (! ( flags & FD_STORAGE_NOERR) )
       fd_seterr(fd_CantOpenPool,"fd_open_pool",spec,opts);
@@ -579,7 +587,7 @@ FD_EXPORT void fd_init_oidcoder(struct FD_OIDCODER *oidmap,
       if ( (init) && (FD_OIDP(init)) )
         baseoids[i++] = init;
       else baseoids[i++] = FD_FALSE;}}
-  int i = 0, codes_len = 1024, max_baseid=-1, last_oid = 0;
+  int i = 0, codes_len = 1024, max_baseid=-1, last_oid = -1;
   while (codes_len < fd_n_base_oids) codes_len = codes_len*2;
   codes = u8_alloc_n(codes_len,unsigned int);
   i = 0; while (i<codes_len) codes[i++]= -1;
@@ -598,8 +606,8 @@ FD_EXPORT void fd_init_oidcoder(struct FD_OIDCODER *oidmap,
         if (baseid > max_baseid) max_baseid = baseid;
         last_oid = i;}
       i++;}
-  oidmap->n_oids      = last_oid;
-  oidmap->init_n_oids = last_oid;
+  oidmap->n_oids      = last_oid+1;
+  oidmap->init_n_oids = last_oid+1;
   oidmap->baseoids    = baseoids;
   oidmap->oidcodes    = codes;
   oidmap->oids_len    = oids_len;

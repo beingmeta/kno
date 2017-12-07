@@ -291,8 +291,8 @@ FD_EXPORT u8_string fd_locate_index(u8_string spec)
 
 static int match_index_source(fd_index ix,u8_string source)
 {
-  return ((source)&&(ix->index_source)&&
-          (strcmp(ix->index_source,source) == 0));
+  return ( (source) && (ix->index_source) &&
+           (strcmp(ix->index_source,source) == 0));
 }
 
 static int match_index_id(fd_index ix,u8_string id)
