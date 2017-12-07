@@ -7,6 +7,11 @@
   (when logtime-file (fileout logtime-file (elapsed-time started))))
 (config! 'atexit save-elapsed-atexit)
 
+(define pooltype 'bigpool)
+(varconfig! pooltype pooltype #t)
+(define indextype 'hashindex)
+(varconfig! indextype indextype #t)
+
 (define (optimization-leaks)
   (when (and (config 'testoptimized) 
 	     (or (getenv "MEMCHECKING") (getenv "HEAPCHECK")))

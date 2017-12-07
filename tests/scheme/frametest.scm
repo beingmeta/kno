@@ -30,7 +30,8 @@
 	(else
 	 (make-pool (add-suffix source ".pool")
 		    (cons (frame-create #f
-			    'type (config 'pooltype 'filepool)
+			    'type pooltype
+			    'module (config 'poolmod {} #t)
 			    'base @17/0 'capacity 65000
 			    'offtype (config 'pooloff (config 'offtype {}))
 			    'slotcodes (config 'slotcodes 16)
@@ -47,8 +48,9 @@
 	(else
 	 (make-index (add-suffix source ".index")
 		     (cons (frame-create #f
-			     'type (config 'indextype 'hashindex)
-			     'slots 65000
+			     'type indextype
+			     'module (config 'indexmod {} #t)
+			     'size 65000
 			     'offtype (config 'indexoff (config 'offtype {}))
 			     'slotcodes (config 'slotcodes 16)
 			     'oidcodes (config 'oidcodes 16)

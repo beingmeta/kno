@@ -1,9 +1,5 @@
 (load-component "common.scm")
 
-(when (and (config 'indextype) 
-	   (equal? (downcase (config 'indextype)) "typeindex"))
-  (get-module 'storage/typeindex))
-
 ;;;; Random object generation
 
 (define random-super-pools
@@ -190,18 +186,23 @@
 
 ;;; Top level
 
-(define (table-for file (consed #f) (indextype (config 'indextype 'fileindex)))
+(define (table-for file (consed #f) (indextype indextype))
   (cond ((has-suffix file ".slotmap") (frame-create #f))
 	((has-suffix file ".table") (make-hashtable))
 	((has-suffix file ".index")
-	 (make-index file `#[type ,indextype slots 1000000
-			     offtype ,(config 'offtype 'b40)
-			     oidcodes ,(config 'oidcodes #f)
-			     slotcodes ,(config 'slotcodes #f)]))
+	 (make-index file (frame-create #f 
+			    'type indextype
+			    'module (config 'indexmod {} #t)
+			    'size 1000000
+			    'offtype (config 'offtype 'b40)
+			    'oidcodes (config 'oidcodes #f)
+			    'slotcodes (config 'slotcodes #f))))
 	(else (make-hashtable))))
-(define (table-from file (indextype (config 'indextype 'fileindex)))
+(define (table-from file (indextype indextype))
   (if (has-suffix file ".index")
-      (open-index file `#[TYPE ,indextype])
+      (open-index file (frame-create #f 
+			 'type indextype
+			 'module (config 'indexmod {} #t)))
     (file->dtype file)))
 
 (define (save-table table file)

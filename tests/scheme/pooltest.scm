@@ -7,10 +7,8 @@
 (config! 'CHECKDTSIZE #t)
 
 (define poolfile "test.pool")
-(define pooltype 'bigpool)
 (define compression #f)
 (varconfig! poolfile poolfile)
-(varconfig! pooltype pooltype #t)
 (varconfig! compression compression #t)
 
 (define testpool #f)
@@ -30,13 +28,15 @@
 	   p))
 	(else
 	 (let* ((make-opts 
-		 `#[type ,pooltype
-		    compression ,compression
-		    base @b001/0 
-		    capacity 100000
-		    metadata #[status fresh]
-		    offtype ,(config 'offtype 'B40)
-		    slotcodes ,(config 'slotcodes 16)])
+		 (frame-create 
+		     'type pooltype
+		     'module (config 'poolmod {} #t)
+		     'compression compression
+		     'base @b001/0 
+		     'capacity 100000
+		     'metadata #[status fresh]
+		     'offtype (config 'offtype 'B40)
+		     'slotcodes (config 'slotcodes 16)))
 		(p (make-pool poolfile (cons make-opts opts)))
 		(a (make-pool (string-subst poolfile ".pool" ".adjunct.pool") 
 			      (cons* #[adjunct #t slotcodes #f]
