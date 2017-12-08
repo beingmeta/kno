@@ -2031,7 +2031,7 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
       fd_deep_copy((lispval)(bp->pool_slotcodes.slotids)) :
       fd_empty_vector(0);
     fd_store(base,load_symbol,FD_INT(bp->pool_load));
-    fd_store(base,slotids_symbol,slotids_vec);
+    fd_store(base,slotids_symbol,FD_INT(bp->pool_slotcodes.n_slotcodes));
     if ( bp->pool_offtype == FD_B32)
       fd_store(base,offmode_symbol,fd_intern("B32"));
     else if ( bp->pool_offtype == FD_B40)
