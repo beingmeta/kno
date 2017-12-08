@@ -14,6 +14,7 @@ typedef struct FRAMERD_ROCKSDB {
   struct rocksdb_options_t *optionsptr;
   struct rocksdb_readoptions_t *readopts;
   struct rocksdb_writeoptions_t *writeopts;
+  rocksdb_block_based_table_options_t *blockopts;
   struct rocksdb_cache_t *cacheptr;
   struct rocksdb_env_t *envptr;} *framerd_rocksdb;
 

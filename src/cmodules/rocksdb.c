@@ -87,34 +87,35 @@ static rocksdb_writeoptions_t *sync_writeopts;
 
 /* Getting various Rocksdb option objects */
 
-static rocksdb_options_t *get_rocksdb_options(lispval opts)
+static rocksdb_options_t *get_rocksdb_options(lispval opts,
+                                              rocksdb_env_t *env,
+                                              rocksdb_cache_t *cache)
 {
-  rocksdb_options_t *ldbopts =
-    rocksdb_options_create();
-  rocksdb_block_based_table_options_t *blockopts =
-    rocksdb_block_based_options_create();
+  rocksdb_options_t *options = rocksdb_options_create();
+  rocksdb_block_based_table_options_t *blockopts = rocksdb_block_based_options_create();
   lispval bufsize_spec = fd_getopt(opts,SYM("WRITEBUF"),FD_VOID);
   lispval maxfiles_spec = fd_getopt(opts,SYM("MAXFILES"),FD_VOID);
   lispval blocksize_spec = fd_getopt(opts,SYM("BLOCKSIZE"),FD_VOID);
   lispval restart_spec = fd_getopt(opts,SYM("RESTART"),FD_VOID);
   lispval compress_spec = fd_getopt(opts,SYM("COMPRESS"),FD_VOID);
+  if (env) rocksdb_options_set_env(options,env);
   if (fd_testopt(opts,SYM("INIT"),FD_VOID)) {
-    rocksdb_options_set_create_if_missing(ldbopts,1);
-    rocksdb_options_set_error_if_exists(ldbopts,1);}
+    rocksdb_options_set_create_if_missing(options,1);
+    rocksdb_options_set_error_if_exists(options,1);}
   else if (!(fd_testopt(opts,SYM("READ"),FD_VOID))) {
-    rocksdb_options_set_create_if_missing(ldbopts,1);}
+    rocksdb_options_set_create_if_missing(options,1);}
   else {}
   if (fd_testopt(opts,SYM("PARANOID"),FD_VOID)) {
-    rocksdb_options_set_paranoid_checks(ldbopts,1);}
+    rocksdb_options_set_paranoid_checks(options,1);}
   if (FD_UINTP(bufsize_spec))
-    rocksdb_options_set_write_buffer_size(ldbopts,FD_FIX2INT(bufsize_spec));
+    rocksdb_options_set_write_buffer_size(options,FD_FIX2INT(bufsize_spec));
   else if (default_writebuf_size>0)
-    rocksdb_options_set_write_buffer_size(ldbopts,default_writebuf_size);
+    rocksdb_options_set_write_buffer_size(options,default_writebuf_size);
   else {}
   if (FD_UINTP(maxfiles_spec))
-    rocksdb_options_set_max_open_files(ldbopts,FD_FIX2INT(maxfiles_spec));
+    rocksdb_options_set_max_open_files(options,FD_FIX2INT(maxfiles_spec));
   else if (default_maxfiles>0)
-    rocksdb_options_set_max_open_files(ldbopts,default_maxfiles);
+    rocksdb_options_set_max_open_files(options,default_maxfiles);
   else {}
   if (FD_UINTP(blocksize_spec))
     rocksdb_block_based_options_set_block_size(blockopts,FD_FIX2INT(blocksize_spec));
@@ -129,17 +130,17 @@ static rocksdb_options_t *get_rocksdb_options(lispval opts)
       (blockopts,default_restart_interval);
   else {}
   if (FD_TRUEP(compress_spec))
-    rocksdb_options_set_compression(ldbopts,rocksdb_snappy_compression);
+    rocksdb_options_set_compression(options,rocksdb_snappy_compression);
   else if (default_compression)
-    rocksdb_options_set_compression(ldbopts,rocksdb_snappy_compression);
-  else rocksdb_options_set_compression(ldbopts,rocksdb_no_compression);
-  rocksdb_options_set_block_based_table_factory(ldbopts,blockopts);
+    rocksdb_options_set_compression(options,rocksdb_snappy_compression);
+  else rocksdb_options_set_compression(options,rocksdb_no_compression);
+  if (cache) rocksdb_block_based_options_set_block_cache(blockopts,cache);
+  rocksdb_options_set_block_based_table_factory(options,blockopts);
   rocksdb_block_based_options_destroy(blockopts);
-  return ldbopts;
+  return options;
 }
 
-static rocksdb_cache_t *get_rocksdb_cache(rocksdb_options_t *ldbopts,
-                                          lispval opts)
+static rocksdb_cache_t *get_rocksdb_cache(lispval opts)
 {
   rocksdb_cache_t *cache = NULL;
   lispval cache_size = fd_getopt(opts,SYM("CACHESIZE"),FD_VOID);
@@ -148,20 +149,18 @@ static rocksdb_cache_t *get_rocksdb_cache(rocksdb_options_t *ldbopts,
   else if (default_cache_size>0)
       cache = rocksdb_cache_create_lru(default_cache_size);
   else cache = NULL;
-  /* if (cache) rocksdb_options_set_cache(ldbopts,cache); */
   return cache;
 }
 
-static rocksdb_env_t *get_rocksdb_env(rocksdb_options_t *ldbopts,lispval opts)
+static rocksdb_env_t *get_rocksdb_env(lispval opts)
 {
   if ((FD_VOIDP(opts))||(FD_FALSEP(opts)))
     return NULL;
   else {
     rocksdb_env_t *env = rocksdb_create_default_env(); int needed = 0;
     /* Setup env from opts and other defaults */
-    if (needed) {
-      rocksdb_options_set_env(ldbopts,env);
-      return env;}
+    if (needed)
+      return env;
     else {
       rocksdb_env_destroy(env);
       return NULL;}}
@@ -217,9 +216,10 @@ struct FRAMERD_ROCKSDB *fd_setup_rocksdb
   memset(db,0,sizeof(struct FRAMERD_ROCKSDB));
   db->path = u8_strdup(path);
   db->opts = fd_incref(opts);
-  rocksdb_options_t *options = get_rocksdb_options(opts);
-  rocksdb_cache_t *cache = get_rocksdb_cache(options,opts);
-  rocksdb_env_t *env = get_rocksdb_env(options,opts);
+  rocksdb_env_t *env = get_rocksdb_env(opts);
+  rocksdb_cache_t *cache = get_rocksdb_cache(opts);
+  rocksdb_options_t *options = get_rocksdb_options(opts,env,cache);
+  if (env) rocksdb_options_set_env(options,env);
   rocksdb_readoptions_t *readopts = get_read_options(db,opts);
   rocksdb_writeoptions_t *writeopts = get_write_options(db,opts);
   enum rocksdb_status status = db->dbstatus;
