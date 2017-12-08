@@ -694,13 +694,14 @@ FD_EXPORT lispval fd_make_packet
 }
 
 FD_EXPORT lispval fd_bytes2packet
-  (struct FD_STRING *ptr,int len,const unsigned char *data)
+  (struct FD_STRING *use_ptr,int len,const unsigned char *data)
 {
+  struct FD_STRING *ptr = NULL;
   u8_byte *bytes = NULL; int freedata = (data!=NULL);
   if (len<0) {
     fd_seterr("NegativeLength","fd_bytes2packet",NULL,FD_INT(len));
     return FD_ERROR;}
-  else if (ptr == NULL) {
+  else if (use_ptr == NULL) {
     ptr = u8_malloc(FD_STRING_LEN+len+1);
     bytes = ((u8_byte *)ptr)+FD_STRING_LEN;
     if (data) {
@@ -709,6 +710,7 @@ FD_EXPORT lispval fd_bytes2packet
     else memset(bytes,0,len+1);
     freedata = 0;}
   else {
+    ptr = use_ptr;
     bytes = u8_malloc(len);
     if (data == NULL) memset(bytes,0,len);
     else memcpy(bytes,data,len);}
@@ -716,7 +718,6 @@ FD_EXPORT lispval fd_bytes2packet
   ptr->str_bytelen = len;
   ptr->str_bytes = bytes;
   ptr->str_freebytes = freedata;
-  if (freedata) u8_free(data);
   return LISP_CONS(ptr);
 }
 
