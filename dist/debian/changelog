@@ -1,3 +1,9 @@
+framerd (4.2.7-13) stable; urgency=medium
+
+  * Added framerd-rocksdb, fixed dependencies for framerd-leveldb
+
+ -- Ken Haase <kh@beingmeta.com>  Fri, 08 Dec 2017 15:14:48 -0500
+
 framerd (4.2.7-12) unstable; urgency=medium
 
   * Various updates, added stack_src field to stack frames

@@ -99,7 +99,7 @@ Description: This package contains the debugging symbols for framerd-mongodb
 
 Package: framerd-leveldb
 Architecture: any
-Depends: framerd-core (= ${binary:Version}), libbson-dev, libmongoc-dev
+Depends: framerd-core (= ${binary:Version}), libleveldb1v5
 Description: Leveldb interface for FramerD
 
 Package: framerd-leveldb-dbg
@@ -108,10 +108,26 @@ Section: debug
 Depends: 
     framerd-core-dbg (= ${binary:Version}),
     framerd-leveldb (= ${binary:Version}),
-    libmongoc-dev,
-    libbson-dev,
+    libleveldb-dev,
+    libleveldb1v5-dbg,
     ${misc:Depends}
 Description: This package contains the debugging symbols for framerd-leveldb
+
+Package: framerd-rocksdb
+Architecture: any
+Depends: framerd-core (= ${binary:Version}), librocksdb4.5 | librocksdb4.1
+Description: Rocksdb interface for FramerD
+
+Package: framerd-rocksdb-dbg
+Architecture: any
+Section: debug
+Depends: 
+    framerd-core-dbg (= ${binary:Version}),
+    framerd-rocksdb (= ${binary:Version}),
+    librocksdb-dev,
+    librocksdb4.5-dbg | librocksdb4.1-dbg,
+    ${misc:Depends}
+Description: This package contains the debugging symbols for framerd-rocksdb
 
 Package: framerd-imagetools
 Architecture: any
