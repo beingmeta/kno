@@ -207,7 +207,7 @@ FD_EXPORT
 struct FRAMERD_LEVELDB *fd_setup_leveldb
    (struct FRAMERD_LEVELDB *db,u8_string path,lispval opts)
 {
-  char *errmsg;
+  char *errmsg = NULL;
   memset(db,0,sizeof(struct FRAMERD_LEVELDB));
   db->path = u8_strdup(path);
   db->opts = fd_incref(opts);
@@ -260,7 +260,7 @@ int fd_close_leveldb(framerd_leveldb db)
       db->dbstatus = leveldb_closing;
       leveldb_close(db->dbptr);
       db->dbstatus = leveldb_closed;
-      leveldb_free(db->dbptr);
+      /* if (db->dbptr) leveldb_free(db->dbptr); */
       db->dbptr = NULL;
       closed = 1;}
     u8_unlock_mutex(&(db->leveldb_lock));}
@@ -993,7 +993,7 @@ fd_pool fd_open_leveldb_pool(u8_string path,fd_storage_flags flags,lispval opts)
       fd_init_pool((fd_pool)pool,
                    FD_OID_ADDR(base),FD_FIX2INT(cap),
                    &leveldb_pool_handler,
-                   u8_strdup(path),rname);
+                   path,rname);
       u8_free(rname);
       if (FD_VOIDP(read_only_opt))
         read_only_opt = get_prop(dbptr,"\377READONLY",FD_VOID);
@@ -1010,7 +1010,7 @@ fd_pool fd_open_leveldb_pool(u8_string path,fd_storage_flags flags,lispval opts)
         fd_copy_slotmap((fd_slotmap)metadata,
                         &(pool->pool_metadata));
         fd_set_modified(((lispval)(&(pool->pool_metadata))),0);}
-      if (FD_VECTORP(slotcodes)) 
+      if (FD_VECTORP(slotcodes))
         fd_init_slotcoder(&(pool->slotcodes),
                           FD_VECTOR_LENGTH(slotcodes),
                           FD_VECTOR_ELTS(slotcodes));
@@ -1018,10 +1018,12 @@ fd_pool fd_open_leveldb_pool(u8_string path,fd_storage_flags flags,lispval opts)
       fd_decref(adjunct_opt); fd_decref(read_only_opt);
       fd_decref(metadata); fd_decref(label);
       fd_decref(base); fd_decref(cap); fd_decref(load);
+      fd_decref(slotcodes);
       fd_register_pool((fd_pool)pool);
       return (fd_pool)pool;}
     else  {
       fd_decref(base); fd_decref(cap); fd_decref(load);
+      fd_decref(slotcodes); fd_decref(metadata);
       fd_close_leveldb(&(pool->leveldb));
       u8_free(pool);
       fd_seterr("NotAPoolDB","fd_leveldb_pool",NULL,FD_VOID);
@@ -1030,19 +1032,21 @@ fd_pool fd_open_leveldb_pool(u8_string path,fd_storage_flags flags,lispval opts)
 }
 
 FD_EXPORT
-fd_pool fd_make_leveldb_pool(u8_string path,lispval base,lispval cap,
+fd_pool fd_make_leveldb_pool(u8_string path,
+                             lispval base,
+                             lispval cap,
                              lispval opts)
 {
-  struct FD_LEVELDB_POOL *pool = u8_alloc(struct FD_LEVELDB_POOL);
-
   lispval load = fd_getopt(opts,SYM("LOAD"),FD_FIXZERO);
 
   if ((!(FD_OIDP(base)))||(!(FD_UINTP(cap)))||(!(FD_UINTP(load)))) {
-    u8_free(pool);
     fd_seterr("Not enough information to create a pool",
               "fd_make_leveldb_pool",path,opts);
     return (fd_pool)NULL;}
-  else if (fd_setup_leveldb(&(pool->leveldb),path,opts)) {
+
+  struct FD_LEVELDB_POOL *pool = u8_alloc(struct FD_LEVELDB_POOL);
+
+  if (fd_setup_leveldb(&(pool->leveldb),path,opts)) {
     leveldb_t *dbptr = pool->leveldb.dbptr;
     lispval label = fd_getopt(opts,SYM("LABEL"),FD_VOID);
     lispval metadata = fd_getopt(opts,SYM("METADATA"),FD_VOID);
@@ -1082,7 +1086,7 @@ fd_pool fd_make_leveldb_pool(u8_string path,lispval base,lispval cap,
     fd_init_pool((fd_pool)pool,
                  FD_OID_ADDR(base),FD_FIX2INT(cap),
                  &leveldb_pool_handler,
-                 u8_strdup(path),rname);
+                 path,rname);
 
     if (FD_SLOTMAPP(metadata)) {
       if ( (FD_VOIDP(cur_metadata)) || (fd_testopt(opts,SYM("FORCE"),FD_VOID)) ) {
@@ -1123,7 +1127,7 @@ fd_pool fd_make_leveldb_pool(u8_string path,lispval base,lispval cap,
 
     if (FD_FIXNUMP(mtime_val))
       mtime = (time_t) FD_FIX2INT(mtime_val);
-    else if (FD_PRIM_TYPEP(ctime_val,fd_timestamp_type)) {
+    else if (FD_PRIM_TYPEP(mtime_val,fd_timestamp_type)) {
       struct FD_TIMESTAMP *moment = (fd_timestamp) mtime_val;
       mtime = moment->u8xtimeval.u8_tick;}
     else mtime=now;
@@ -1135,13 +1139,13 @@ fd_pool fd_make_leveldb_pool(u8_string path,lispval base,lispval cap,
       set_prop(dbptr,"\377GENERATION",generation_val,sync_writeopts);
     else set_prop(dbptr,"\377GENERATION",FD_INT(0),sync_writeopts);
 
+    pool->pool_flags = fd_get_dbflags(opts,FD_STORAGE_ISPOOL);
     pool->pool_flags &= ~FD_STORAGE_READ_ONLY;
     pool->pool_load = FD_FIX2INT(load);
 
     if (FD_STRINGP(label)) {
       pool->pool_label = u8_strdup(FD_CSTRING(label));}
 
-    fd_decref(metadata);
     fd_decref(slotids);
     fd_decref(metadata);
     fd_decref(generation_val);
@@ -1293,7 +1297,7 @@ static lispval *leveldb_pool_fetchn(fd_pool p,int n,lispval *oids)
   struct OFFSET_ENTRY *entries = u8_alloc_n(n,struct OFFSET_ENTRY);
   leveldb_readoptions_t *readopts = pool->leveldb.readopts;
   unsigned int largest_offset = 0, offsets_sorted = 1;
-  lispval *values = u8_alloc_n(n,lispval);
+  lispval *values = u8_big_alloc_n(n,lispval);
   FD_OID base = p->pool_base;
   int i = 0; while (i<n) {
     FD_OID addr = FD_OID_ADDR(oids[i]);
@@ -1362,37 +1366,51 @@ static int leveldb_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
   struct FD_LEVELDB_POOL *pool = (struct FD_LEVELDB_POOL *)p;
   leveldb_t *dbptr = pool->leveldb.dbptr;
   int i = 0, errval = 0;
-  if (n>7) {
-    char *errmsg = NULL;
-    leveldb_writebatch_t *batch = leveldb_writebatch_create();
-    ssize_t n_bytes = 0;
-    while (i<n) {
-      lispval oid = oids[i], value = values[i];
-      FD_OID addr = FD_OID_ADDR(oid);
-      unsigned int offset = FD_OID_DIFFERENCE(addr,pool->pool_base);
-      ssize_t len = queue_oid_value(pool,offset,value,batch);
-      if (len<0) {errval = len; break;}
-      else {n_bytes+=len; i++;}}
+  char *errmsg = NULL;
+  leveldb_writebatch_t *batch = leveldb_writebatch_create();
+  ssize_t n_bytes = 0;
+  while (i<n) {
+    lispval oid = oids[i], value = values[i];
+    FD_OID addr = FD_OID_ADDR(oid);
+    unsigned int offset = FD_OID_DIFFERENCE(addr,pool->pool_base);
+    if (offset >= pool->pool_load) {
+      if ( (pool->pool_flags) & FD_POOL_ADJUNCT )
+        pool->pool_load = offset+1;
+      else {
+        fd_seterr("Saving unallocated OID","leveldb_pool_storen",
+                  p->poolid,oid);
+        errval=-1; break;}}
+    ssize_t len = queue_oid_value(pool,offset,value,batch);
+    if (len<0) {errval = len; break;}
+    else {n_bytes+=len; i++;}}
+  if (errval>=0) {
+    fd_lock_pool_struct(p,1); {
+      struct FD_OUTBUF dtout; unsigned char intbuf[5];
+      int load = pool->pool_load;
+      intbuf[0]= dt_fixnum;
+      intbuf[1]= (load>>24)&0xFF;
+      intbuf[2]= (load>>16)&0xFF;
+      intbuf[3]= (load>>8)&0xFF;
+      intbuf[4]= load&0xFF;
+      leveldb_writebatch_put(batch,"\377LOAD",strlen("\377LOAD"),intbuf,5);
+      if (pool->slotcodes.n_slotcodes != pool->slotcodes.init_n_slotcodes) {
+        FD_INIT_BYTE_OUTPUT( &dtout, ((pool->slotcodes.n_slotcodes) * 16) );
+        ssize_t len = fd_write_dtype(&dtout, (lispval) (pool->slotcodes.slotids) );
+        if (len>0)
+          leveldb_writebatch_put(batch,"\377SLOTIDS",strlen("\377SLOTIDS"),
+                                 dtout.buffer,len);
+        else {
+          fd_seterr("LevelDB/FailedSaveSlotids","leveldb_pool_storen",
+                    p->poolid,FD_VOID);
+          errval=-1;}
+        fd_close_outbuf( &dtout );}}
+    fd_unlock_pool_struct(p);
     if (errval>=0) {
       leveldb_write(dbptr,sync_writeopts,batch,&errmsg);
       if (errmsg) {
         u8_seterr("LevelDBError","leveldb_pool_storen",errmsg);
         errval = -1;}}
     leveldb_writebatch_destroy(batch);}
-  else while (i<n) {
-    lispval oid = oids[i], value = values[i];
-    FD_OID addr = FD_OID_ADDR(oid);
-    unsigned int offset = FD_OID_DIFFERENCE(addr,pool->pool_base);
-    if ((errval = set_oid_value(pool,offset,value,sync_writeopts))<0)
-      break;
-    else i++;}
-  if (errval>=0) {
-    fd_lock_pool_struct(p,1); {
-      lispval loadval = FD_INT(pool->pool_load);
-      int retval = set_prop(dbptr,"\377LOAD",loadval,sync_writeopts);
-      fd_decref(loadval);
-      fd_unlock_pool_struct(p);
-      if (retval<0) return retval;}}
   if (errval<0)
     return errval;
   else return n;
@@ -1402,11 +1420,19 @@ static int leveldb_pool_commit(fd_pool p,fd_commit_phase phase,
                                struct FD_POOL_COMMITS *commits)
 {
   switch (phase) {
+  case fd_commit_start:
+    return 0;
   case fd_commit_save:
     return leveldb_pool_storen(p,commits->commit_count,
                                commits->commit_oids,
                                commits->commit_vals);
-  default: 
+  case fd_commit_finish:
+    return 0;
+  case fd_commit_rollback:
+    return 0;
+  case fd_commit_cleanup:
+    return 0;
+  default:
     return 0;
   }
 }
@@ -1458,11 +1484,12 @@ static fd_pool leveldb_pool_create(u8_string spec,void *type_data,
     rv = -1;}
 
   if (rv>=0)
-    dbpool = fd_make_leveldb_pool(spec,FD_OID_ADDR(base_oid),capacity,opts);
+    dbpool = fd_make_leveldb_pool(spec,base_oid,capacity_arg,opts);
+
   if (dbpool == NULL) rv=-1;
+
   fd_decref(base_oid);
   fd_decref(capacity_arg);
-  fd_decref(load_arg);
   fd_decref(load_arg);
   fd_decref(metadata);
 
@@ -1654,6 +1681,7 @@ fd_index fd_make_leveldb_index(u8_string path,lispval opts)
                   rname,
                   0);
 
+    index->index_flags = fd_get_dbflags(opts,FD_STORAGE_ISINDEX);
     index->index_flags &= ~FD_STORAGE_READ_ONLY;
 
     fd_decref(metadata);
