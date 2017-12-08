@@ -172,7 +172,7 @@ static fd_pool open_pool(fd_pool_typeinfo ptype,u8_string spec,
   if ( (strchr(search_spec,'@')==NULL) || (strchr(search_spec,':')==NULL) )
     search_spec = u8_realpath(spec,NULL);
   fd_pool found = (flags&FD_STORAGE_UNREGISTERED) ? (NULL) :
-    (fd_find_pool_by_source(spec));
+    (fd_find_pool_by_source(search_spec));
   if (spec != search_spec) u8_free(search_spec);
   fd_pool opened = (found) ? (found) :
     (ptype->opener(spec,flags,opts));
