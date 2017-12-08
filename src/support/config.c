@@ -156,7 +156,7 @@ static lispval file_config_lookup(lispval symbol,void *pathdata)
     int n_bytes; lispval result;
     unsigned char *content = u8_filedata(filename,&n_bytes);
     if (content[0]==0) {
-      struct FD_INBUF in;
+      struct FD_INBUF in = { 0 };
       in.buffer = in.bufread = content+1; in.buflim = in.buffer+n_bytes;
       in.buf_fillfn = NULL;
       result = fd_read_dtype(&in);}

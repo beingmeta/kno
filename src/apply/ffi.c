@@ -392,7 +392,7 @@ static ssize_t write_ffi_dtype(struct FD_OUTBUF *out,lispval x)
   int n_elts=0;
   struct FD_FFI_PROC *fcn = (struct FD_FFI_PROC *)x;
   unsigned char buf[200], *tagname="%FFI";
-  struct FD_OUTBUF tmp;
+  struct FD_OUTBUF tmp = { 0 };
   FD_INIT_OUTBUF(&tmp,buf,100,0);
   fd_write_byte(&tmp,dt_compound);
   fd_write_byte(&tmp,dt_symbol);

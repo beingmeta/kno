@@ -33,7 +33,7 @@ static lispval doencrypt(lispval data,lispval key,
                         u8_string ciphername,lispval iv,
                         int dtype)
 {
-  struct FD_OUTBUF tmp;
+  struct FD_OUTBUF tmp = { 0 };
   const unsigned char *payload; size_t payload_len; int free_payload = 0;
   const unsigned char *ivdata; size_t iv_len;
   unsigned char *outbuf; size_t outlen;
@@ -150,7 +150,8 @@ static lispval decrypt2dtype_prim(lispval data,lispval key,lispval cipher,lispva
                     FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
                     ivdata,iv_len,&outlen);
   if (outbuf) {
-    struct FD_INBUF in; lispval result;
+    struct FD_INBUF in = { 0 };
+    lispval result;
     FD_INIT_BYTE_INPUT(&in,outbuf,outlen);
     result = fd_read_dtype(&in);
     u8_free(outbuf);

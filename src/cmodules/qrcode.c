@@ -91,7 +91,7 @@ static lispval write_png_packet(QRcode *qrcode,lispval opts)
     png_destroy_write_struct(&png_ptr, &info_ptr);
     return fd_err("PNG problem","write_png_packet",NULL,FD_VOID);}
   else {
-    struct FD_OUTBUF buf;
+    struct FD_OUTBUF buf = { 0 };
     int qrwidth = qrcode->width, qrheight = qrwidth;
     int fullwidth = (qrwidth+(margin*2))*dotsize;
     int rowlen = (fullwidth+7)/8;

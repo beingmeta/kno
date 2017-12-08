@@ -588,13 +588,13 @@ static lispval read_oid_value_at(fd_oidpool op,
       return FD_ERROR;}
     else if (op->oidpool_compression == FD_NOCOMPRESS)
       if (free_buf) {
-        FD_INBUF in;
+        FD_INBUF in = { 0 };
         FD_INIT_BYTE_INPUT(&in,buf,ref.size);
         lispval result = read_oid_value(op,&in,cxt);
         u8_free(buf);
         return result;}
       else {
-        FD_INBUF in;
+        FD_INBUF in = { 0 };
         FD_INIT_BYTE_INPUT(&in,buf,ref.size);
         return read_oid_value(op,&in,cxt);}
     else {
@@ -616,14 +616,14 @@ static lispval read_oid_value_at(fd_oidpool op,
         if (ubuf!=_ubuf) u8_free(ubuf);
         return FD_ERROR;}
       else if ((free_buf) || (ubuf!=_ubuf)) {
-        FD_INBUF in; lispval result;
+        FD_INBUF in = { 0 }; lispval result;
         FD_INIT_BYTE_INPUT(&in,ubuf,ubuf_size);
         result = read_oid_value(op,&in,cxt);
         if (free_buf) u8_free(buf);
         if (ubuf!=_ubuf) u8_free(ubuf);
         return result;}
       else {
-        FD_INBUF in;
+        FD_INBUF in = { 0 };
         FD_INIT_BYTE_INPUT(&in,ubuf,ubuf_size);
         return read_oid_value(op,&in,cxt);}}}
 }
@@ -839,7 +839,7 @@ static int oidpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
           "Storing %d oid values in oidpool %s",n,p->poolid);
   struct OIDPOOL_SAVEINFO *saveinfo=
     u8_big_alloc_n(n,struct OIDPOOL_SAVEINFO);
-  struct FD_OUTBUF tmpout;
+  struct FD_OUTBUF tmpout = { 0 };
   unsigned char *zbuf = u8_malloc(FD_INIT_ZBUF_SIZE);
   unsigned int i = 0, zbuf_size = FD_INIT_ZBUF_SIZE;
   unsigned int init_buflen = 2048*n;

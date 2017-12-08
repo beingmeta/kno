@@ -15,7 +15,8 @@
 
 static int write_dtype_to_file(lispval object,FILE *f)
 {
-  struct FD_OUTBUF out; int retval;
+  struct FD_OUTBUF out = { 0 };
+  int retval;
   FD_INIT_BYTE_OUTPUT(&out,1024);
   retval = fd_write_dtype(&out,object);
   retval = fwrite(out.buffer,1,out.bufwrite-out.buffer,f);

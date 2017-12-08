@@ -347,7 +347,7 @@ static ssize_t dtype_bloom(struct FD_OUTBUF *out,lispval x)
   FD_INIT_STATIC_CONS(&err,fd_flonum_type);
   err.floval = bloom->error;
   unsigned char buf[100];
-  struct FD_OUTBUF header; FD_INIT_BYTE_OUTBUF(&header,buf,100);
+  struct FD_OUTBUF header = { 0 }; FD_INIT_BYTE_OUTBUF(&header,buf,100);
   fd_write_dtype(&header,len_val);
   fd_write_dtype(&header,entries_val);
   fd_write_dtype(&header,(lispval)&err);
@@ -364,7 +364,7 @@ static ssize_t dtype_bloom(struct FD_OUTBUF *out,lispval x)
 static lispval restore_bloom(lispval tag,lispval x,fd_compound_typeinfo e)
 {
   if (FD_PACKETP(x)) {
-    struct FD_INBUF in; 
+    struct FD_INBUF in = { 0 };
     FD_INIT_INBUF(&in,FD_PACKET_DATA(x),FD_PACKET_LENGTH(x),0);
     lispval len_val = fd_read_dtype(&in);
     lispval entries_val = fd_read_dtype(&in);

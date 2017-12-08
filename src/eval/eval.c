@@ -134,7 +134,7 @@ static ssize_t write_lexref_dtype(struct FD_OUTBUF *out,lispval x)
   int code = FD_GET_IMMEDIATE(x,fd_lexref_type);
   int up = code/32, across = code%32;
   unsigned char buf[100], *tagname="%LEXREF";
-  struct FD_OUTBUF tmp;
+  struct FD_OUTBUF tmp = { 0 };
   FD_INIT_OUTBUF(&tmp,buf,100,0);
   fd_write_byte(&tmp,dt_compound);
   fd_write_byte(&tmp,dt_symbol);
@@ -177,7 +177,7 @@ static ssize_t write_coderef_dtype(struct FD_OUTBUF *out,lispval x)
 {
   int offset = FD_GET_IMMEDIATE(x,fd_coderef_type);
   unsigned char buf[100], *tagname="%CODEREF";
-  struct FD_OUTBUF tmp;
+  struct FD_OUTBUF tmp = { 0 };
   FD_INIT_OUTBUF(&tmp,buf,100,0);
   fd_write_byte(&tmp,dt_compound);
   fd_write_byte(&tmp,dt_symbol);
@@ -1585,7 +1585,7 @@ static ssize_t write_evalfn_dtype(struct FD_OUTBUF *out,lispval x)
   ssize_t file_len=(filename) ? (strlen(filename)) : (-1);
   int n_elts = (file_len<0) ? (1) : (0);
   unsigned char buf[100], *tagname="%EVALFN";
-  struct FD_OUTBUF tmp;
+  struct FD_OUTBUF tmp = { 0 };
   FD_INIT_OUTBUF(&tmp,buf,100,0);
   fd_write_byte(&tmp,dt_compound);
   fd_write_byte(&tmp,dt_symbol);

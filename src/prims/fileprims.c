@@ -157,7 +157,7 @@ static lispval writefile_prim(lispval filename,lispval object,lispval enc)
   else if (PACKETP(object)) {
     bytes = FD_PACKET_DATA(object); len = FD_PACKET_LENGTH(object);}
   else if ((FALSEP(enc)) || (VOIDP(enc))) {
-    struct FD_OUTBUF out;
+    struct FD_OUTBUF out = { 0 };
     FD_INIT_BYTE_OUTPUT(&out,1024);
     fd_write_dtype(&out,object);
     bytes = out.buffer; len = out.bufwrite-out.buffer;

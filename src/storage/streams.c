@@ -1168,7 +1168,7 @@ FD_EXPORT long long fd_read_4bytes_at(fd_stream s,fd_off_t off,int locked)
   unsigned char bytes[4];
   int rv = pread(s->stream_fileno,bytes,4,off);
   if (rv==4) {
-    struct FD_INBUF tmp;
+    struct FD_INBUF tmp = { 0 };
     FD_INIT_INBUF(&tmp,bytes,4,0);
     return fd_read_4bytes(&tmp);}
 #endif
@@ -1205,7 +1205,7 @@ FD_EXPORT fd_8bytes fd_read_8bytes_at(fd_stream s,fd_off_t off,int locked,int *e
   unsigned char bytes[8];
   int rv = pread(s->stream_fileno,bytes,8,off);
   if (rv==8) {
-    struct FD_INBUF tmp;
+    struct FD_INBUF tmp = { 0 };
     FD_INIT_INBUF(&tmp,bytes,8,0);
     return fd_read_8bytes(&tmp);}
 #endif

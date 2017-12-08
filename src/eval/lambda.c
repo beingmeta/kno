@@ -857,7 +857,7 @@ static ssize_t write_lambda_dtype(struct FD_OUTBUF *out,lispval x)
   int n_elts=1; /* Always include some source */
   struct FD_LAMBDA *fcn = (struct FD_LAMBDA *)x;
   unsigned char buf[200], *tagname="%LAMBDA";
-  struct FD_OUTBUF tmp;
+  struct FD_OUTBUF tmp = { 0 };
   FD_INIT_OUTBUF(&tmp,buf,200,0);
   fd_write_byte(&tmp,dt_compound);
   fd_write_byte(&tmp,dt_symbol);

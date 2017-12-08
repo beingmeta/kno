@@ -125,7 +125,7 @@ static lispval write_dtype(lispval object,lispval stream,
   unsigned char *bytes = NULL;
   ssize_t n_bytes = -1, init_len = (byte_len>0) ? (byte_len) : (1000);
   unsigned char *bytebuf =  u8_big_alloc(init_len);
-  FD_OUTBUF out;
+  FD_OUTBUF out = { 0 };
   FD_INIT_OUTBUF(&out,bytebuf,init_len,FD_BIGALLOC_BUFFER);
   n_bytes    = fd_write_dtype(&out,object);
   bytebuf    = out.buffer;
@@ -430,7 +430,8 @@ static ssize_t write_dtypes(lispval dtypes,struct FD_STREAM *out)
   ssize_t bytes=0, rv=0;
   fd_off_t start= fd_endpos(out);
   if ( start != out->stream_maxpos ) start=-1;
-  struct FD_OUTBUF tmp; unsigned char tmpbuf[1000];
+  struct FD_OUTBUF tmp = { 0 };
+  unsigned char tmpbuf[1000];
   FD_INIT_BYTE_OUTBUF(&tmp,tmpbuf,1000);
   if ((CHOICEP(dtypes))||(PRECHOICEP(dtypes))) {
     /* This writes out the objects sequentially, writing into memory
@@ -517,7 +518,8 @@ static lispval add_lisp2zipfile(lispval object,lispval filename)
     fd_close_stream(out,FD_STREAM_CLOSE_FULL);
     return FD_INT(bytes);}
   else if (TYPEP(filename,fd_stream_type)) {
-    struct FD_OUTBUF tmp; unsigned char tmpbuf[1000];
+    struct FD_OUTBUF tmp = { 0 };
+    unsigned char tmpbuf[1000];
     FD_INIT_BYTE_OUTBUF(&tmp,tmpbuf,1000);
     struct FD_STREAM *stream=
       fd_consptr(struct FD_STREAM *,filename,fd_stream_type);

@@ -87,7 +87,7 @@ static ssize_t cprim_dtype(struct FD_OUTBUF *out,lispval x)
   int n_elts=0;
   struct FD_FUNCTION *fcn = (struct FD_FUNCTION *)x;
   unsigned char buf[200], *tagname="%CPRIM";
-  struct FD_OUTBUF tmp;
+  struct FD_OUTBUF tmp = { 0 };
   FD_INIT_OUTBUF(&tmp,buf,200,0);
   fd_write_byte(&tmp,dt_compound);
   fd_write_byte(&tmp,dt_symbol);

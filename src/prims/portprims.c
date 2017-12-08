@@ -107,7 +107,7 @@ static lispval eofp(lispval x)
 static lispval packet2dtype(lispval packet)
 {
   lispval object;
-  struct FD_INBUF in;
+  struct FD_INBUF in = { 0 };
   FD_INIT_BYTE_INPUT(&in,FD_PACKET_DATA(packet),
                      FD_PACKET_LENGTH(packet));
   object = fd_read_dtype(&in);
@@ -117,7 +117,7 @@ static lispval packet2dtype(lispval packet)
 static lispval lisp2packet(lispval object,lispval initsize)
 {
   size_t size = FIX2INT(initsize);
-  struct FD_OUTBUF out;
+  struct FD_OUTBUF out = { 0 };
   FD_INIT_BYTE_OUTPUT(&out,size);
   int bytes = fd_write_dtype(&out,object);
   if (bytes<0)
@@ -735,7 +735,7 @@ static lispval gzip_prim(lispval arg,lispval filename,lispval comment)
       ((STRINGP(arg))?(CSTRING(arg)):(FD_PACKET_DATA(arg)));
     unsigned int data_len=
       ((STRINGP(arg))?(STRLEN(arg)):(FD_PACKET_LENGTH(arg)));
-    struct FD_OUTBUF out;
+    struct FD_OUTBUF out = { 0 };
     int flags = 0; /* FDPP_FHCRC */
     time_t now = time(NULL); u8_int4 crc, intval;
     FD_INIT_BYTE_OUTPUT(&out,1024); memset(out.buffer,0,1024);

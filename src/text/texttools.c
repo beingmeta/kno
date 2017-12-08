@@ -2298,7 +2298,8 @@ static lispval md5_prim(lispval input)
   else if (PACKETP(input))
     digest = u8_md5(FD_PACKET_DATA(input),FD_PACKET_LENGTH(input),NULL);
   else {
-    struct FD_OUTBUF out; FD_INIT_BYTE_OUTPUT(&out,1024);
+    struct FD_OUTBUF out = { 0 };
+    FD_INIT_BYTE_OUTPUT(&out,1024);
     fd_write_dtype(&out,input);
     digest = u8_md5(out.buffer,out.bufwrite-out.buffer,NULL);
     fd_close_outbuf(&out);}
@@ -2316,7 +2317,8 @@ static lispval sha1_prim(lispval input)
   else if (PACKETP(input))
     digest = u8_sha1(FD_PACKET_DATA(input),FD_PACKET_LENGTH(input),NULL);
   else {
-    struct FD_OUTBUF out; FD_INIT_BYTE_OUTPUT(&out,1024);
+    struct FD_OUTBUF out = { 0 };
+    FD_INIT_BYTE_OUTPUT(&out,1024);
     fd_write_dtype(&out,input);
     digest = u8_sha1(out.buffer,out.bufwrite-out.buffer,NULL);
     fd_close_outbuf(&out);}
@@ -2334,7 +2336,8 @@ static lispval sha256_prim(lispval input)
   else if (PACKETP(input))
     digest = u8_sha256(FD_PACKET_DATA(input),FD_PACKET_LENGTH(input),NULL);
   else {
-    struct FD_OUTBUF out; FD_INIT_BYTE_OUTPUT(&out,1024);
+    struct FD_OUTBUF out = { 0 };
+    FD_INIT_BYTE_OUTPUT(&out,1024);
     fd_write_dtype(&out,input);
     digest = u8_sha256(out.buffer,out.bufwrite-out.buffer,NULL);
     fd_close_outbuf(&out);}
@@ -2352,7 +2355,8 @@ static lispval sha384_prim(lispval input)
   else if (PACKETP(input))
     digest = u8_sha384(FD_PACKET_DATA(input),FD_PACKET_LENGTH(input),NULL);
   else {
-    struct FD_OUTBUF out; FD_INIT_BYTE_OUTPUT(&out,1024);
+    struct FD_OUTBUF out = { 0 };
+    FD_INIT_BYTE_OUTPUT(&out,1024);
     fd_write_dtype(&out,input);
     digest = u8_sha384(out.buffer,out.bufwrite-out.buffer,NULL);
     fd_close_outbuf(&out);}
@@ -2370,7 +2374,8 @@ static lispval sha512_prim(lispval input)
   else if (PACKETP(input))
     digest = u8_sha512(FD_PACKET_DATA(input),FD_PACKET_LENGTH(input),NULL);
   else {
-    struct FD_OUTBUF out; FD_INIT_BYTE_OUTPUT(&out,1024);
+    struct FD_OUTBUF out = { 0 };
+    FD_INIT_BYTE_OUTPUT(&out,1024);
     fd_write_dtype(&out,input);
     digest = u8_sha512(out.buffer,out.bufwrite-out.buffer,NULL);
     fd_close_outbuf(&out);}
@@ -2389,7 +2394,7 @@ static lispval hmac_sha1_prim(lispval key,lispval input)
   else if (PACKETP(input)) {
     data = FD_PACKET_DATA(input); data_len = FD_PACKET_LENGTH(input);}
   else {
-    struct FD_OUTBUF out;
+    struct FD_OUTBUF out = { 0 };
     FD_INIT_BYTE_OUTPUT(&out,1024);
     fd_write_dtype(&out,input);
     data = out.buffer; data_len = out.bufwrite-out.buffer; free_data = 1;}
@@ -2398,7 +2403,7 @@ static lispval hmac_sha1_prim(lispval key,lispval input)
   else if (PACKETP(key)) {
     keydata = FD_PACKET_DATA(key); key_len = FD_PACKET_LENGTH(key);}
   else {
-    struct FD_OUTBUF out;
+    struct FD_OUTBUF out = { 0 };
     FD_INIT_BYTE_OUTPUT(&out,1024);
     fd_write_dtype(&out,key);
     keydata = out.buffer; key_len = out.bufwrite-out.buffer; free_key = 1;}
@@ -2419,7 +2424,7 @@ static lispval hmac_sha256_prim(lispval key,lispval input)
   else if (PACKETP(input)) {
     data = FD_PACKET_DATA(input); data_len = FD_PACKET_LENGTH(input);}
   else {
-    struct FD_OUTBUF out;
+    struct FD_OUTBUF out = { 0 };
     FD_INIT_BYTE_OUTPUT(&out,1024);
     fd_write_dtype(&out,input);
     data = out.buffer; data_len = out.bufwrite-out.buffer; free_data = 1;}
@@ -2428,7 +2433,7 @@ static lispval hmac_sha256_prim(lispval key,lispval input)
   else if (PACKETP(key)) {
     keydata = FD_PACKET_DATA(key); key_len = FD_PACKET_LENGTH(key);}
   else {
-    struct FD_OUTBUF out;
+    struct FD_OUTBUF out = { 0 };
     FD_INIT_BYTE_OUTPUT(&out,1024);
     fd_write_dtype(&out,key);
     keydata = out.buffer; key_len = out.bufwrite-out.buffer; free_key = 1;}
@@ -2449,7 +2454,7 @@ static lispval hmac_sha384_prim(lispval key,lispval input)
   else if (PACKETP(input)) {
     data = FD_PACKET_DATA(input); data_len = FD_PACKET_LENGTH(input);}
   else {
-    struct FD_OUTBUF out;
+    struct FD_OUTBUF out = { 0 };
     FD_INIT_BYTE_OUTPUT(&out,1024);
     fd_write_dtype(&out,input);
     data = out.buffer; data_len = out.bufwrite-out.buffer; free_data = 1;}
@@ -2458,7 +2463,7 @@ static lispval hmac_sha384_prim(lispval key,lispval input)
   else if (PACKETP(key)) {
     keydata = FD_PACKET_DATA(key); key_len = FD_PACKET_LENGTH(key);}
   else {
-    struct FD_OUTBUF out;
+    struct FD_OUTBUF out = { 0 };
     FD_INIT_BYTE_OUTPUT(&out,1024);
     fd_write_dtype(&out,key);
     keydata = out.buffer; key_len = out.bufwrite-out.buffer; free_key = 1;}
@@ -2479,7 +2484,7 @@ static lispval hmac_sha512_prim(lispval key,lispval input)
   else if (PACKETP(input)) {
     data = FD_PACKET_DATA(input); data_len = FD_PACKET_LENGTH(input);}
   else {
-    struct FD_OUTBUF out;
+    struct FD_OUTBUF out = { 0 };
     FD_INIT_BYTE_OUTPUT(&out,1024);
     fd_write_dtype(&out,input);
     data = out.buffer; data_len = out.bufwrite-out.buffer; free_data = 1;}
@@ -2488,7 +2493,7 @@ static lispval hmac_sha512_prim(lispval key,lispval input)
   else if (PACKETP(key)) {
     keydata = FD_PACKET_DATA(key); key_len = FD_PACKET_LENGTH(key);}
   else {
-    struct FD_OUTBUF out;
+    struct FD_OUTBUF out = { 0 };
     FD_INIT_BYTE_OUTPUT(&out,1024);
     fd_write_dtype(&out,key);
     keydata = out.buffer; key_len = out.bufwrite-out.buffer; free_key = 1;}

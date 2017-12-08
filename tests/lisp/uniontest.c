@@ -51,7 +51,7 @@ static lispval read_choice(char *file)
 static int write_dtype_to_file(lispval x,char *file)
 {
   FILE *f = fopen(file,"wb"); int retval;
-  struct FD_OUTBUF out;
+  struct FD_OUTBUF out = { 0 };
   FD_INIT_BYTE_OUTPUT(&out,1024);
   fd_write_dtype(&out,x);
   retval = fwrite(out.buffer,out.bufwrite-out.buffer,1,f);

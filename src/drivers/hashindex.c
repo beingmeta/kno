@@ -758,7 +758,7 @@ FD_FASTOP lispval read_key(fd_hashindex hx,fd_inbuf in)
 FD_EXPORT ssize_t hashindex_bucket(struct FD_HASHINDEX *hx,lispval key,
                                    ssize_t modulate)
 {
-  struct FD_OUTBUF out; unsigned char buf[1024];
+  struct FD_OUTBUF out = { 0 }; unsigned char buf[1024];
   unsigned int hashval; int dtype_len;
   FD_INIT_BYTE_OUTBUF(&out,buf,1024);
   if ((hx->storage_xformat)&(FD_HASHINDEX_DTYPEV2))
@@ -827,7 +827,7 @@ static lispval hashindex_fetch(fd_index ix,lispval key)
   struct FD_STREAM *stream=&(hx->index_stream);
   unsigned int *offdata=hx->index_offdata;
   unsigned char buf[HX_KEYBUF_SIZE];
-  struct FD_OUTBUF out;
+  struct FD_OUTBUF out = { 0 };
   unsigned int hashval, bucket, n_keys, i, dtype_len, n_values;
   fd_off_t vblock_off; size_t vblock_size;
   FD_CHUNK_REF keyblock;
@@ -1033,7 +1033,7 @@ static int hashindex_fetchsize(fd_index ix,lispval key)
   fd_hashindex hx = (fd_hashindex)ix;
   fd_stream stream = &(hx->index_stream);
   unsigned int *offdata=hx->index_offdata;
-  struct FD_OUTBUF out; unsigned char buf[64];
+  struct FD_OUTBUF out = { 0 }; unsigned char buf[64];
   unsigned int hashval, bucket, n_keys, i, dtype_len, n_values;
   FD_CHUNK_REF keyblock;
   FD_INIT_BYTE_OUTBUF(&out,buf,64);
@@ -1121,7 +1121,7 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
   lispval *values = u8_big_alloc_n(n,lispval);
   /* This is a buffer where we write keybuf representations of all of the
      keys, which let's use do memcmp to match them to on-disk data */
-  struct FD_OUTBUF keysbuf;
+  struct FD_OUTBUF keysbuf = { 0 };
   /* This is used to fetch information about keys, sorted to be linear */
   struct KEY_SCHEDULE *ksched = u8_big_alloc_n(n,struct KEY_SCHEDULE);
   /* This is used to fetch the chained values in the table, also
@@ -2386,7 +2386,7 @@ FD_FASTOP struct KEYBUCKET *read_keybucket
     if (read_result<0)
       return NULL;
     else {
-      struct FD_INBUF keystream;
+      struct FD_INBUF keystream = { 0 };
       FD_INIT_INBUF(&keystream,keybuf,ref.size,0);
       n_keys = fd_read_zint(&keystream);
       kb = (struct KEYBUCKET *)
@@ -2467,7 +2467,7 @@ static int hashindex_save(struct FD_HASHINDEX *hx,
     u8_big_alloc_n(schedule_max,struct COMMIT_SCHEDULE);
   struct KEYBUCKET **keybuckets=
     u8_big_alloc_n(schedule_max,struct KEYBUCKET *);
-  struct FD_OUTBUF out, newkeys;
+  struct FD_OUTBUF out = { 0 }, newkeys = { 0 };
 
   /* Get all the keys we need to write.  */
   schedule_size = process_stores(hx,stores,n_stores,schedule,schedule_size);

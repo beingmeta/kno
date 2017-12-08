@@ -723,11 +723,10 @@ FD_EXPORT lispval fd_zread_dtype(struct FD_INBUF *in)
   ssize_t n_bytes = fd_read_zint(in), dbytes;
   unsigned char *bytes = u8_malloc(n_bytes);
   int retval = fd_read_bytes(bytes,in,n_bytes);
-  struct FD_INBUF tmp;
+  struct FD_INBUF tmp = { 0 };
   if (retval<n_bytes) {
     u8_free(bytes);
     return FD_ERROR;}
-  memset(&tmp,0,sizeof(tmp));
   tmp.bufread = tmp.buffer = do_uncompress(bytes,n_bytes,&dbytes,NULL,-1);
   tmp.buf_flags = FD_HEAP_BUFFER;
   tmp.buflim = tmp.buffer+dbytes;

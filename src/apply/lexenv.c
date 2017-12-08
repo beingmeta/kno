@@ -200,7 +200,7 @@ static ssize_t lexenv_dtype(struct FD_OUTBUF *out,lispval x)
       else if (STRINGP(id))
         modfile=CSTRING(id);
       else {}}}
-  u8_byte buf[200]; struct FD_OUTBUF tmp;
+  u8_byte buf[200]; struct FD_OUTBUF tmp = { 0 };
   FD_INIT_OUTBUF(&tmp,buf,200,0);
   if ((modname)||(modfile)) {
     u8_byte *tagname="%MODULE";

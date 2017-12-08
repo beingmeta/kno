@@ -669,7 +669,7 @@ static lispval read_oid_value(fd_bigpool bp,
       ssize_t ubuf_size = -1;
       snappy_status size_rv=
         snappy_uncompressed_length(in->bufread,data_len,&ubuf_size);
-      struct FD_INBUF inflated;
+      struct FD_INBUF inflated = { 0 };
       unsigned char *ubuf = (size_rv == SNAPPY_OK)?
         ((ubuf_size>FD_INIT_ZBUF_SIZE*3) ?
          (u8_malloc(ubuf_size)) : (&(_ubuf)) ) :
@@ -690,7 +690,7 @@ static lispval read_oid_value(fd_bigpool bp,
     case FD_ZLIB: {
       unsigned char _ubuf[FD_INIT_ZBUF_SIZE*3], *ubuf=_ubuf;
       size_t ubuf_size = FD_INIT_ZBUF_SIZE*3;
-      struct FD_INBUF inflated;
+      struct FD_INBUF inflated = { 0 };
       if (data_len>FD_INIT_ZBUF_SIZE)
         ubuf = do_zuncompress(in->bufread,data_len,&ubuf_size,NULL);
       else ubuf = do_zuncompress(in->bufread,data_len,&ubuf_size,_ubuf);
@@ -828,10 +828,10 @@ static lispval bigpool_fetch(fd_pool p,lispval oid)
   if (ref.off < 0) result=FD_ERROR;
   else if (ref.off == 0) result=EMPTY;
   else {
-    struct FD_INBUF in;
+    struct FD_INBUF in = { 0 };
     unsigned char buf[FETCHBUF_SIZE];
-    if (ref.size < FETCHBUF_SIZE)
-      FD_INIT_INBUF(&in,buf,FETCHBUF_SIZE,0);
+    if (ref.size < FETCHBUF_SIZE) {
+      FD_INIT_INBUF(&in,buf,FETCHBUF_SIZE,0);}
     result=read_oid_value_at(bp,oid,&in,ref,"bigpool_fetch");
     fd_close_inbuf(&in);}
   bigpool_finished(bp);
@@ -1053,7 +1053,7 @@ static int bigpool_storen(fd_pool p,int n,
 
     /* These are used repeatedly for rendering objects to dtypes or to
        compressed dtypes. */
-    struct FD_OUTBUF tmpout;
+    struct FD_OUTBUF tmpout = { 0 };
     unsigned char *zbuf = u8_malloc(FD_INIT_ZBUF_SIZE);
     unsigned int zbuf_size = FD_INIT_ZBUF_SIZE;
     unsigned int init_buflen = 2048*n;

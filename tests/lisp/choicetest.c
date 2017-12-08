@@ -16,7 +16,8 @@
 
 int main(int argc,char **argv)
 {
-  struct FD_OUTBUF out; FILE *f = fopen(argv[1],"wb");
+  struct FD_OUTBUF out = { 0 };
+  FILE *f = fopen(argv[1],"wb");
   lispval value = FD_EMPTY_CHOICE, svalue, tval; int i = 2, retval;
   FD_INIT_BYTE_OUTPUT(&out,1024);
   FD_DO_LIBINIT(fd_init_lisp_types);
