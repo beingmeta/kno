@@ -28,15 +28,15 @@
 	   p))
 	(else
 	 (let* ((make-opts 
-		 (frame-create 
-		     'type pooltype
-		     'module (config 'poolmod {} #t)
-		     'compression compression
-		     'base @b001/0 
-		     'capacity 100000
-		     'metadata #[status fresh]
-		     'offtype (config 'offtype 'B40)
-		     'slotcodes (config 'slotcodes 16)))
+		 (frame-create #f
+		   'type pooltype
+		   'module (config 'poolmod {} #t)
+		   'compression compression
+		   'base @b001/0 
+		   'capacity 100000
+		   'metadata #[status fresh]
+		   'offtype (config 'offtype 'B40)
+		   'slotcodes (config 'slotcodes 16)))
 		(p (make-pool poolfile (cons make-opts opts)))
 		(a (make-pool (string-subst poolfile ".pool" ".adjunct.pool") 
 			      (cons* #[adjunct #t slotcodes #f]
@@ -114,7 +114,9 @@
     (when (file-exists? (adjfile poolfile))
       (remove-file (adjfile poolfile))))
   (let* ((init (not (file-exists? poolfile)))
-	 (pool (get-pool poolfile `#[readonly ,(not init)])))
+	 (pool (get-pool poolfile (frame-create #f
+				    'type pooltype 'readonly (not init)
+				    'module (config 'poolmod {} #t)))))
     (if init
 	(logwarn |FreshPool| pool)
 	(logwarn |ExistingPool| pool))
@@ -154,7 +156,7 @@
     (logwarn |PoolTests3| "Passed prefetch tests on " pool)
     (logwarn |AdjPoolTests| 
       "Checking adjunct pool load")
-    (applytest 41 pool-load adjpool)))
+    (applytest 42 pool-load adjpool)))
 
 
 
