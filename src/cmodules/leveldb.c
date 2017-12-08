@@ -83,7 +83,6 @@ FD_EXPORT int fd_init_leveldb(void) FD_LIBINIT_FN;
 static long long int leveldb_initialized = 0;
 
 static leveldb_readoptions_t *default_readopts;
-static leveldb_writeoptions_t *default_writeopts;
 static leveldb_writeoptions_t *sync_writeopts;
 
 /* Getting various LevelDB option objects */
@@ -168,14 +167,14 @@ static leveldb_readoptions_t *get_read_options(framerd_leveldb db,lispval opts_a
        (FD_DEFAULTP(opts_arg)) )
     return db->readopts;
   else {
-    int real = 0, free_opts = 0;
+    int modified = 0, free_opts = 0;
     lispval opts = (FD_VOIDP(opts_arg)) ? (db->opts) :
       (FD_VOIDP(db->opts)) ? (opts_arg) :
       (free_opts = 1,fd_make_pair(opts_arg,db->opts));
     leveldb_readoptions_t *readopts = leveldb_readoptions_create();
     /* Set up readopts based on opts */
     if (free_opts) fd_decref(opts);
-    if (real)
+    if (modified)
       return readopts;
     else {
       leveldb_readoptions_destroy(readopts);
@@ -187,18 +186,18 @@ static leveldb_writeoptions_t *get_write_options(framerd_leveldb db,lispval opts
   if ((FD_VOIDP(opts_arg))||(FD_FALSEP(opts_arg))||(FD_DEFAULTP(opts_arg)))
     return NULL;
   else {
-    int real = 0, free_opts = 0;
+    int modified = 0, free_opts = 0;
     lispval opts = (FD_VOIDP(opts_arg)) ? (db->opts) :
       (FD_VOIDP(db->opts)) ? (opts_arg) :
       (free_opts = 1,fd_make_pair(opts_arg,db->opts));
     leveldb_writeoptions_t *writeopts = leveldb_writeoptions_create();
     /* Set up writeopts based on opts */
     if (free_opts) fd_decref(opts);
-    if (real)
+    if (modified)
       return writeopts;
     else {
       leveldb_writeoptions_destroy(writeopts);
-      return NULL;}}
+      return db->writeopts;}}
 }
 
 /* Initializing FRAMERD_LEVELDB structs */
@@ -307,6 +306,8 @@ static void recycle_leveldb(struct FD_RAW_CONS *c)
     u8_free(db->leveldb.path);
     db->leveldb.path = NULL;}
   fd_decref(db->leveldb.opts);
+  if (db->leveldb.writeopts)
+    leveldb_writeoptions_destroy(db->leveldb.writeopts);
   leveldb_options_destroy(db->leveldb.optionsptr);
   u8_free(c);
 }
@@ -366,8 +367,10 @@ static lispval leveldb_get_prim(lispval leveldb,lispval key,lispval opts)
                   &binary_size,&errmsg);
     if (readopts!=fdldb->readopts)
       leveldb_readoptions_destroy(readopts);
-    if (binary_data)
-      return fd_bytes2packet(NULL,binary_size,binary_data);
+    if (binary_data) {
+      lispval result = fd_bytes2packet(NULL,binary_size,binary_data);
+      u8_free(binary_data);
+      return result;}
     else if (errmsg)
       return fd_err("LevelDBError","leveldb_get_prim",errmsg,FD_VOID);
     else return FD_EMPTY_CHOICE;}
@@ -449,7 +452,7 @@ static lispval leveldb_drop_prim(lispval leveldb,lispval key,lispval opts)
   struct FD_LEVELDB *db = (fd_leveldb)leveldb;
   struct FRAMERD_LEVELDB *fdldb = &(db->leveldb);
   leveldb_writeoptions_t *useopts = get_write_options(fdldb,opts);
-  leveldb_writeoptions_t *writeopts = get_write_options(fdldb,opts);
+  leveldb_writeoptions_t *writeopts = (useopts)?(useopts):(fdldb->writeopts);
   if (FD_PACKETP(key)) {
     leveldb_delete(db->leveldb.dbptr,writeopts,
                    FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
@@ -462,6 +465,7 @@ static lispval leveldb_drop_prim(lispval leveldb,lispval key,lispval opts)
     struct FD_OUTBUF keyout; FD_INIT_BYTE_OUTPUT(&keyout,1024);
     if (fd_write_dtype(&keyout,key)<0) {
       fd_close_outbuf(&keyout);
+      if (useopts) leveldb_writeoptions_destroy(useopts);
       return FD_ERROR_VALUE;}
     else {
       leveldb_delete(db->leveldb.dbptr,writeopts,
@@ -838,7 +842,8 @@ static ssize_t leveldb_add_helper(struct FRAMERD_LEVELDB *db,
   struct BYTEVEC keybuf = {0}, valbuf = {0};
   leveldb_readoptions_t *readopts = get_read_options(db,opts);
   char *errmsg=NULL;
-  long long n_vals=0, n_blocks=0, header_type = 1;
+  long long n_vals=0, n_blocks=0;
+  unsigned int header_type = 1;
   FD_INIT_BYTE_OUTPUT(&keyout,1000);
   if (slotcodes)
     leveldb_encode_key(&keyout,key,slotcodes,1);
@@ -904,6 +909,7 @@ static ssize_t leveldb_add_helper(struct FRAMERD_LEVELDB *db,
   fd_close_inbuf(&curbuf);
   fd_close_outbuf(&keyout);
   fd_close_outbuf(&valout);
+  u8_free(valbuf.bytes);
   return n_vals;
 }
 
@@ -1504,6 +1510,20 @@ static fd_pool leveldb_pool_open(u8_string spec,fd_storage_flags flags,lispval o
   return fd_open_leveldb_pool(spec,flags,opts);
 }
 
+static void recycle_leveldb_pool(fd_pool p)
+{
+  struct FD_LEVELDB_POOL *db = (fd_leveldb_pool) p;
+  fd_close_leveldb(&(db->leveldb));
+  if (db->leveldb.path) {
+    u8_free(db->leveldb.path);
+    db->leveldb.path = NULL;}
+  fd_decref(db->leveldb.opts);
+  if (db->leveldb.writeopts)
+    leveldb_writeoptions_destroy(db->leveldb.writeopts);
+  leveldb_options_destroy(db->leveldb.optionsptr);
+
+}
+
 /* The LevelDB pool handler */
 
 static struct FD_POOL_HANDLER leveldb_pool_handler={
@@ -1519,7 +1539,7 @@ static struct FD_POOL_HANDLER leveldb_pool_handler={
   NULL, /* swapout */
   leveldb_pool_create, /* create */
   NULL,  /* walk */
-  NULL, /* recycle */
+  recycle_leveldb_pool, /* recycle */
   NULL  /* poolctl */
 };
 
@@ -1831,16 +1851,19 @@ static int leveldb_index_gather(lispval key,
                                 void *vptr)
 {
   struct LEVELDB_INDEX_RESULTS *state = vptr;
-  if (valbuf->n_bytes == 0) return 1;
-  if (valbuf->bytes[0] == 0xFF) return 1;
-  struct FD_INBUF valstream;
-  FD_INIT_BYTE_INPUT(&valstream,valbuf->bytes,valbuf->n_bytes);
-  lispval value = leveldb_decode_value(&valstream,state->oidcodes);
-  if (FD_ABORTP(value))
-    return -1;
+  if (valbuf->n_bytes == 0)
+    return 1;
+  else if (valbuf->bytes[0] == LEVELDB_KEYINFO)
+    return 1;
   else {
-    FD_ADD_TO_CHOICE((state->results),value);
-    return 1;}
+    struct FD_INBUF valstream;
+    FD_INIT_BYTE_INPUT(&valstream,valbuf->bytes,valbuf->n_bytes);
+    lispval value = leveldb_decode_value(&valstream,state->oidcodes);
+    if (FD_ABORTP(value))
+      return -1;
+    else {
+      FD_ADD_TO_CHOICE((state->results),value);
+      return 1;}}
 }
 
 static int leveldb_index_count(lispval key,
@@ -1886,12 +1909,14 @@ static lispval leveldb_index_fetch(fd_index ix,lispval key)
   if (len == 0) {
     /* This means the key is a pair whose CAR doesn't have a slot
        code, so its not in the index at all */
+    fd_close_outbuf(&keybuf);
     return FD_EMPTY;}
   else {
     struct LEVELDB_INDEX_RESULTS state = { FD_EMPTY, ix, &(lx->oidcodes) };
     struct BYTEVEC prefix = { keybuf.bufwrite-keybuf.buffer, keybuf.buffer };
     int rv =leveldb_scanner(db,lx->index_opts,NULL,key,&prefix,
                             leveldb_index_gather,&state);
+    fd_close_outbuf(&keybuf);
     if (rv<0)
       return FD_ERROR_VALUE;
     else return state.results;}
@@ -2203,6 +2228,20 @@ static fd_index leveldb_index_create(u8_string spec,void *typedata,
   return fd_make_leveldb_index(spec,opts);
 }
 
+static void recycle_leveldb_index(fd_index ix)
+{
+  struct FD_LEVELDB_INDEX *db = (fd_leveldb_index) ix;
+  fd_close_leveldb(&(db->leveldb));
+  if (db->leveldb.path) {
+    u8_free(db->leveldb.path);
+    db->leveldb.path = NULL;}
+  fd_decref(db->leveldb.opts);
+  if (db->leveldb.writeopts)
+    leveldb_writeoptions_destroy(db->leveldb.writeopts);
+  leveldb_options_destroy(db->leveldb.optionsptr);
+
+}
+
 
 /* Initializing the index driver */
 
@@ -2219,7 +2258,7 @@ static struct FD_INDEX_HANDLER leveldb_index_handler={
   NULL, /* batchadd */
   leveldb_index_create, /* create */
   NULL, /* walk */
-  NULL, /* recycle */
+  recycle_leveldb_index, /* recycle */
   NULL /* indexctl */
 };
 
@@ -2267,7 +2306,6 @@ FD_EXPORT int fd_init_leveldb()
   leveldb_initialized = u8_millitime();
 
   default_readopts = leveldb_readoptions_create();
-  default_writeopts = leveldb_writeoptions_create();
   sync_writeopts = leveldb_writeoptions_create();
   leveldb_writeoptions_set_sync(sync_writeopts,1);
 
