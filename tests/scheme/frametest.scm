@@ -21,41 +21,39 @@
       (glom file suffix)))
 
 (define (sourcepool source (opts #f))
-  (cond ((position #\@ source)
-	 (use-pool source opts))
-	((file-exists? (add-suffix source ".pool"))
-	 (use-pool (add-suffix source ".pool") opts))
-	((file-exists? source)
-	 (use-pool (add-suffix source ".pool") opts))
-	(else
-	 (make-pool (add-suffix source ".pool")
-		    (cons (frame-create #f
-			    'type pooltype
-			    'module (config 'poolmod {} #t)
-			    'base @17/0 'capacity 65000
-			    'offtype (config 'pooloff (config 'offtype {}))
-			    'slotcodes (config 'slotcodes 16)
-			    'readonly #f)
-			  opts)))))
+  (if (position #\@ source)
+      (use-pool source opts)
+      (let ((xopts (cons (frame-create #f
+			   'type pooltype
+			   'module (config 'poolmod {} #t)
+			   'base @17/0 'capacity 65000
+			   'offtype (config 'pooloff (config 'offtype {}))
+			   'slotcodes (config 'slotcodes 16)
+			   'readonly #f)
+			 opts)))
+	(cond ((file-exists? (add-suffix source ".pool"))
+	       (use-pool (add-suffix source ".pool") xopts))
+	      ((file-exists? source)
+	       (use-pool (add-suffix source ".pool") xopts))
+	      (else (make-pool (add-suffix source ".pool") xopts))))))
 
 (define (sourceindex source (opts #f))
-  (cond ((position #\@ source)
-	 (open-index source opts))
-	((file-exists? (add-suffix source ".index"))
-	 (open-index (add-suffix source ".index") opts))
-	((file-exists? source)
-	 (open-index source opts))
-	(else
-	 (make-index (add-suffix source ".index")
-		     (cons (frame-create #f
-			     'type indextype
-			     'module (config 'indexmod {} #t)
-			     'size 65000
-			     'offtype (config 'indexoff (config 'offtype {}))
-			     'slotcodes (config 'slotcodes 16)
-			     'oidcodes (config 'oidcodes 16)
-			     'readonly #f)
-			   opts)))))
+  (if (position #\@ source)
+      (open-index source opts)
+      (let ((xopts (cons (frame-create #f
+			   'type indextype
+			   'module (config 'indexmod {} #t)
+			   'size 65000
+			   'offtype (config 'indexoff (config 'offtype {}))
+			   'slotcodes (config 'slotcodes 16)
+			   'oidcodes (config 'oidcodes 16)
+			   'readonly #f)
+			 opts)))
+	(cond ((file-exists? (add-suffix source ".index"))
+	       (open-index (add-suffix source ".index") xopts))
+	      ((file-exists? source) (open-index source xopts))
+	      (else
+	       (make-index (add-suffix source ".index") xopts))))))
 
 (define (initdb source (opts #f))
   (set! testpool (sourcepool source opts))
@@ -290,11 +288,20 @@
   (message "Successfully checked " count " expressions")
   (message "Finished checking database integrity"))
 
+(define (doremove file)
+  (cond ((not (file-exists? file)))
+	((file-directory? file)
+	 (let ((contents (getfiles file))
+	       (subdirs (getdirs file)))
+	   (remove-file! contents)
+	   (doremove subdirs))
+	 (rmdir file))
+	(else (remove-file! file))))
+
 (define (setup)
-  (remove-file
-   (append "dbtest" {".pool" ".index"
-		     "-symbols.dtype" "-files.dtype"
-		     "-numbers.dtype"}))
+  (doremove (append "dbtest" {".pool" ".index"
+			      "-symbols.dtype" "-files.dtype"
+			      "-numbers.dtype"}))
   (initdb "dbtest" #[readonly #f])
   (makedb testpool testindex
 	  '("r4rs.scm" "misctest.scm" "seqtest.scm" "choicetest.scm")))
@@ -304,7 +311,7 @@
 	((position #\@ source)
 	 (unless (zero? (pool-load (use-pool (add-suffix source ".pool"))))
 	   (message "Doing init on non-virgin pool")))
-	(else (remove-file
+	(else (doremove
 	       (append source {".pool" ".index"
 			       "-symbols.dtype" "-files.dtype"
 			       "-numbers.dtype"}))))
@@ -318,6 +325,7 @@
   (swapout)
   (checkdb (config 'COUNT 1000) testpool testindex)
   (swapout))
+
 
 
 

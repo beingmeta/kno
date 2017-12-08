@@ -157,10 +157,10 @@ clean: testclean
 	rm -rf mongodb/dbdata;
 
 testclean cleantests cleantest:
-	rm -f *.log *.err *.done *.finished *.pid *.died
-	rm -f tmp* utf8-temp* memoization.index test.dtype
-	rm -f *.pool *.index *.flexpool *.flexindex
-	rm -f logfile thirty2fifty thirtythree 
+	rm -rf *.log *.err *.done *.finished *.pid *.died
+	rm -rf tmp* utf8-temp* memoization.index test.dtype
+	rm -rf *.pool *.index *.flexpool *.flexindex
+	rm -rf logfile thirty2fifty thirtythree 
 
 # Static lib targets
 
@@ -310,7 +310,7 @@ storage: storagebase pooltest indextest frametest
 
 pooltest:
 	@${header} "■■■■■■■■ Running pool tests ${TESTBASE} ${RUNCONF}"
-	@rm -f ${TESTBASE}.pool ${TESTBASE}.adjunct.pool
+	@rm -rf ${TESTBASE}.pool ${TESTBASE}.adjunct.pool
 	${RUN} ${FDX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool ${RUNCONF}
 	${RUN} ${FDX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool CACHELEVEL=1 ${RUNCONF}
 	${RUN} ${FDX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool CACHELEVEL=2 ${RUNCONF}
@@ -340,6 +340,9 @@ bigpoolzlibtest:
 bigpooltest_nx:
 	@make TESTBASE=bigpool_nx RUNCONF="SLOTCODES=#f ${BIGPOOL} ${RUNCONF}" pooltest
 
+lvldbpools lvldbpooltests:
+	@make TESTBASE=ldbpool RUNCONF="SLOTCODES=#f POOLTYPE=leveldb POOLMOD=leveldb ${RUNCONF}" pooltest
+
 bigpools bigpooltests: bigpooltest bigpool32test bigpool64test bigpooltest_nx bigpoolsnappytest bigpoolzlibtest
 oidpools oidpooltests: oidpooltest oidpool32test oidpool64test
 
@@ -356,8 +359,22 @@ pooltests pools: filepooltest oidpooltests bigpooltests flexpooltests
 
 indextest:
 	@${header} "■■■■■■■■ Running index tests ${TESTBASE} ${RUNCONF}"
-	@rm -f *.edit.dtype ${TESTBASE}
-	@# Build with the offsets cache off
+	@rm -rf *.edit.dtype ${TESTBASE}
+	@${header} Build with the offsets cache off
+	@${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} ${RUNCONF} && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${RUNCONF}             && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} CACHELEVEL=2  ${RUNCONF} && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} CACHELEVEL=3  ${RUNCONF} && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} CONSINDEX=yes  ${RUNCONF} && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${RUNCONF} CACHELEVEL=2 CONSINDEX=yes && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF} && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF}
+	@${header} "■■■■■■■■ Finished index tests ${TESTBASE} ${RUNCONF}"
+
+fileindextest:
+	@${header} "■■■■■■■■ Running file index tests ${TESTBASE} ${RUNCONF}"
+	@rm -rf *.edit.dtype ${TESTBASE}
+	@${header} Build with the offsets cache off
 	@${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${RUNCONF}             && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} CACHELEVEL=2  ${RUNCONF} && \
@@ -367,25 +384,25 @@ indextest:
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF} && \
 	rm ${TESTBASE}
-	@# Build with the offsets cache on
+	@${header} Build with the offsets cache on
 	@${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} CACHELEVEL=2 ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} CACHELEVEL=2 ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF} && \
 	rm ${TESTBASE}
-	@# Build and edit with the offsets cache on
+	@${header} Build and edit with the offsets cache on
 	@${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} CACHELEVEL=2 ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} CACHELEVEL=2 ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF} CACHELEVEL=2 && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF} CACHELEVEL=2 && \
 	rm ${TESTBASE}
-	@# Build and edit with the offsets cache and memorymapping on
+	@${header} Build and edit with the offsets cache and memorymapping on
 	@${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} CACHELEVEL=3 ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} CACHELEVEL=3 ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF} CACHELEVEL=3 && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF} CACHELEVEL=3 && \
 	rm ${TESTBASE}
-	@# Build with both cache and consindices
+	@${header} Build with both cache and consindices
 	@${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} \
 		${RUNCONF} CACHELEVEL=2 CONSINDEX=yes && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} \
@@ -394,17 +411,19 @@ indextest:
 		${RUNCONF} CACHELEVEL=2 CONSINDEX=yes && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype \
 		${RUNCONF} && \
-	rm -f ${TESTBASE} *.edit.dtype
-	@${header} "■■■■■■■■ Finished index tests ${TESTBASE} ${RUNCONF}"
+	rm -rf ${TESTBASE} *.edit.dtype
+	@${header} "■■■■■■■■ Finished file index tests ${TESTBASE} ${RUNCONF}"
 
 fileindexes fileindex:
-	@make TESTBASE=tmpfile.index RUNCONF="INDEXTYPE=fileindex" indextest
+	@make TESTBASE=tmpfile.index RUNCONF="INDEXTYPE=fileindex" fileindextest
 
 memindexes memindex:
 	@make TESTBASE=memfile.index RUNCONF="INDEXTYPE=memindex" indextest
 
 typeindexes typeindex:
-	@make TESTBASE=temp/typekeys.index RUNCONF="INDEXTYPE=typeindex MODULE=storage/typeindex" indextest
+	@make TESTBASE=temp/typekeys.index RUNCONF="INDEXTYPE=typeindex INDEXMOD=storage/typeindex" indextest
+lvldbindexes lvldbindex:
+	@make TESTBASE=templdb.index RUNCONF="INDEXTYPE=leveldb INDEXMOD=leveldb" indextest
 
 hashindex32:
 	@make TESTBASE=tmphash32.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B32" indextest
@@ -425,7 +444,7 @@ indextests indexes: fileindexes hashindexes memindexes
 
 frametest:
 	@${header} "■■■■■■■■ Running frame/database tests, ${TESTBASE} ${TESTSIZE} ${RUNCONF}";
-	rm -f ${TESTBASE}db.pool ${TESTBASE}db.index
+	rm -rf ${TESTBASE}db.pool ${TESTBASE}db.index
 	@${RUN} ${FDX} frametest.scm ${TESTBASE}db init \
 		COUNT=${TESTSIZE} ${FRAMETEST_FILES} \
 		${RUNCONF};
@@ -462,6 +481,9 @@ frametest_memindex:
 frametest_base:
 	@make TESTBASE=testdb RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40}" frametest
 
+lvldbframes lvldbframetest:
+	@make TESTBASE=lvldb RUNCONF="POOLTYPE=leveldb INDEXTYPE=leveldb INDEXMOD=leveldb POOLMOD=leveldb" frametest
+
 frametests dbtest dbtests db: frametest_base frametest_oidpool32 frametest_oidpool40 frametest_oidpool64 \
 	frametest_bigpool32 frametest_bigpool40 frametest_bigpool64 \
 	frametest_fileindex frametest_memindex
@@ -476,6 +498,8 @@ randomtests:
 	@${header} "■■■■■■■■ Finished alltests with a really random seed"
 
 .PHONY: randomtests xml xmltests crypto cryptotests
+
+leveldbtests: lvldbframes lvldbpools lvldbindexes
 
 # Scripting tests
 
@@ -509,17 +533,17 @@ fdbatch_normal:
 	@if (test ! -f _countup.pid); then \
 	   ./batchfail fdbatch _countup.pid NOT CREATED; fi;
 	@sleep 12;
-	@# This was written by fdbatch itself
+	@${header} This was written by fdbatch itself
 	@if (test ! -f _countup.done); then \
 	   ./batchfail fdbatch _countup.done MISSING; fi;
-	@# This was written by the script
+	@${header} This was written by the script
 	@if (test ! -f _countup.finished); then \
            ./batchfail fdbatch _countup.finished MISSING; fi;
 	@if (test ! -f _countup.err); then \
 	    ./batchfail fdbatch _countup.err MISSING; fi;
 	@if (test ! -f _countup.log); then \
 	   ./batchfail fdbatch _countup.log MISSING; fi;
-	@# These should have been deleted on successful exit
+	@${header} These should have been deleted on successful exit
 	@if (test -f _countup.died); then \
 	   ./batchfail fdbatch _countup.died CREATED; fi;
 	@if (test -f _countup.pid); then \
@@ -533,12 +557,12 @@ fdbatch_error: fdbatch_normal
 	@${header} "■■■■■■■■ "Starting fdbatch error test""
 	@@test_env@ ./fdbatch countup.scm ERROR=yes "_countup.finished" 10 1 QUIET=yes LOGLEVEL=3;
 	@sleep 12;
-	@# This should have been deleted by the watch process
+	@${header} This should have been deleted by the watch process
 	@if (test -f _countup.pid); then \
 	   ./batchfail fdbatch/errtest _countup.pid still exists; fi;
 	@if (test -f _countup.done); then \
 	   ./batchfail fdbatch/errtest _countup.done created; fi
-	@# This should have been created at exit
+	@${header} This should have been created at exit
 	@if (test ! -f _countup.died); then 		\
 	   ./batchfail fdbatch/errtest countup.died not created; fi
 	@rm -f _countup.done _countup.finished _countup.died
@@ -552,13 +576,13 @@ fdbatch_signal: fdbatch_error
 	@@test_env@ ./fdbatch countup.scm "_countup.killed" 10 1 QUIET=yes LOGLEVEL=3;
 	@sleep 3;
 	@kill -9 `cat _countup.pid`; sleep 12
-	@# This should have been deleted by the watch process
+	@${header} This should have been deleted by the watch process
 	@if (test -f _countup.pid); then \
 	   ./batchfail fdbatch/killtest _countup.pid still exists; fi;
-	@# This should have been deleted by the watch process
+	@${header} This should have been deleted by the watch process
 	@if (test -f _countup.done); then \
 	   ./batchfail fdbatch/killtest _countup.done exists; fi;
-	@# This should have been created at exit by the watch process
+	@${header} This should have been created at exit by the watch process
 	@if (test ! -f _countup.died); then \
 	   ./batchfail fdbatch/killtest _countup.died missing; fi;
 	@if test -f batchscripts.failed; then 	\
