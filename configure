@@ -922,6 +922,7 @@ with_libu8
 with_sudo
 with_fastcgi
 enable_leveldb
+enable_rocksdb
 enable_imagick
 enable_ziptools
 enable_mongodb
@@ -1591,6 +1592,7 @@ Optional Features:
 --endisable-dtblock DTBlock dtype for net I/O
 --endisable-lockfree Enables lock-free reference counting
 --endisable-leveldb Build and install LevelDB module
+--endisable-rocksdb Build and install Rocksdb module
 --endisable-imagick Build and install imagemagick module
 --with-ziptools Build and install ziptools
 --endisable-mongodb Build and install MongoDB module
@@ -10362,6 +10364,90 @@ fi
    fi;
 else
    manually_disabled="leveldb ${auto_disabled}";
+fi
+
+# Check whether --enable-rocksdb was given.
+if test "${enable_rocksdb+set}" = set; then :
+  enableval=$enable_rocksdb;
+else
+  enable_rocksdb="yes"
+fi
+
+
+if test "${enable_rocksdb}" = "yes" ||
+   test "${enable_rocksdb}" = "force"; then
+   for ac_header in rocksdb/c.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "rocksdb/c.h" "ac_cv_header_rocksdb_c_h" "$ac_includes_default"
+if test "x$ac_cv_header_rocksdb_c_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_ROCKSDB_C_H 1
+_ACEOF
+
+fi
+
+done
+
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for rocksdb_open in -lrocksdb" >&5
+$as_echo_n "checking for rocksdb_open in -lrocksdb... " >&6; }
+if ${ac_cv_lib_rocksdb_rocksdb_open+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lrocksdb  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char rocksdb_open ();
+int
+main ()
+{
+return rocksdb_open ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_rocksdb_rocksdb_open=yes
+else
+  ac_cv_lib_rocksdb_rocksdb_open=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_rocksdb_rocksdb_open" >&5
+$as_echo "$ac_cv_lib_rocksdb_rocksdb_open" >&6; }
+if test "x$ac_cv_lib_rocksdb_rocksdb_open" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBROCKSDB 1
+_ACEOF
+
+  LIBS="-lrocksdb $LIBS"
+
+fi
+
+   if test "${enable_rocksdb}" = "yes" &&
+      test "${ac_cv_header_rocksdb_c_h}" = "yes" &&
+      test "${ac_cv_lib_rocksdb_rocksdb_open}" = "yes"; then
+     CMODULES="lib/framerd/rocksdb.${shared_suffix} ${CMODULES}";
+     INSTALLCMODULES="install-rocksdb ${INSTALLCMODULES}";
+   elif test "${enable_rocksdb}" = "force"; then
+     CMODULES="lib/framerd/rocksdb.${shared_suffix} ${CMODULES}";
+     INSTALLCMODULES="install-rocksdb ${INSTALLCMODULES}";
+     force_enabled="rocksdb ${force_enabled}";
+   else
+     auto_disabled="rocksdb ${auto_disabled}";
+     enable_rocksdb="no";
+   fi;
+else
+   manually_disabled="rocksdb ${auto_disabled}";
 fi
 
 # Check whether --enable-imagick was given.

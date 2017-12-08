@@ -341,7 +341,9 @@ bigpooltest_nx:
 	@make TESTBASE=bigpool_nx RUNCONF="SLOTCODES=#f ${BIGPOOL} ${RUNCONF}" pooltest
 
 lvldbpools lvldbpooltests:
-	@make TESTBASE=ldbpool RUNCONF="SLOTCODES=#f POOLTYPE=leveldb POOLMOD=leveldb ${RUNCONF}" pooltest
+	@make TESTBASE=lvldbpool RUNCONF="SLOTCODES=#f POOLTYPE=leveldb POOLMOD=leveldb ${RUNCONF}" pooltest
+rckdbpools rckdbpooltests:
+	@make TESTBASE=rckdbpool RUNCONF="SLOTCODES=#f POOLTYPE=rocksdb POOLMOD=rocksdb ${RUNCONF}" pooltest
 
 bigpools bigpooltests: bigpooltest bigpool32test bigpool64test bigpooltest_nx bigpoolsnappytest bigpoolzlibtest
 oidpools oidpooltests: oidpooltest oidpool32test oidpool64test
@@ -423,7 +425,9 @@ memindexes memindex:
 typeindexes typeindex:
 	@make TESTBASE=temp/typekeys.index RUNCONF="INDEXTYPE=typeindex INDEXMOD=storage/typeindex" indextest
 lvldbindexes lvldbindex:
-	@make TESTBASE=templdb.index RUNCONF="INDEXTYPE=leveldb INDEXMOD=leveldb" indextest
+	@make TESTBASE=templvl.index RUNCONF="INDEXTYPE=leveldb INDEXMOD=leveldb" indextest
+rckdbindexes rckdbindex:
+	@make TESTBASE=temprck.index RUNCONF="INDEXTYPE=rocksdb INDEXMOD=rocksdb" indextest
 
 hashindex32:
 	@make TESTBASE=tmphash32.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B32" indextest
@@ -483,6 +487,8 @@ frametest_base:
 
 lvldbframes lvldbframetest:
 	@make TESTBASE=lvldb RUNCONF="POOLTYPE=leveldb INDEXTYPE=leveldb INDEXMOD=leveldb POOLMOD=leveldb" frametest
+rckdbframes rckdbframetest:
+	@make TESTBASE=rckdb RUNCONF="POOLTYPE=rocksdb INDEXTYPE=rocksdb INDEXMOD=rocksdb POOLMOD=rocksdb" frametest
 
 frametests dbtest dbtests db: frametest_base frametest_oidpool32 frametest_oidpool40 frametest_oidpool64 \
 	frametest_bigpool32 frametest_bigpool40 frametest_bigpool64 \
@@ -500,6 +506,7 @@ randomtests:
 .PHONY: randomtests xml xmltests crypto cryptotests
 
 leveldbtests: lvldbframes lvldbpools lvldbindexes
+rocksdbtests: rckdbframes rckdbpools rckdbindexes
 
 # Scripting tests
 

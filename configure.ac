@@ -1234,6 +1234,29 @@ else
    manually_disabled="leveldb ${auto_disabled}";
 fi
 
+AC_ARG_ENABLE(rocksdb,--en[dis]able-rocksdb Build and install Rocksdb module,,enable_rocksdb="yes")
+
+if test "${enable_rocksdb}" = "yes" ||
+   test "${enable_rocksdb}" = "force"; then
+   AC_CHECK_HEADERS(rocksdb/c.h)
+   AC_CHECK_LIB(rocksdb,rocksdb_open)
+   if test "${enable_rocksdb}" = "yes" &&
+      test "${ac_cv_header_rocksdb_c_h}" = "yes" &&
+      test "${ac_cv_lib_rocksdb_rocksdb_open}" = "yes"; then
+     CMODULES="lib/framerd/rocksdb.${shared_suffix} ${CMODULES}";
+     INSTALLCMODULES="install-rocksdb ${INSTALLCMODULES}";
+   elif test "${enable_rocksdb}" = "force"; then
+     CMODULES="lib/framerd/rocksdb.${shared_suffix} ${CMODULES}";
+     INSTALLCMODULES="install-rocksdb ${INSTALLCMODULES}";
+     force_enabled="rocksdb ${force_enabled}";
+   else
+     auto_disabled="rocksdb ${auto_disabled}";
+     enable_rocksdb="no";
+   fi;
+else
+   manually_disabled="rocksdb ${auto_disabled}";
+fi
+
 AC_ARG_ENABLE(imagick,--en[dis]able-imagick Build and install imagemagick module,,enable_imagick="yes")
 
 if test "$enable_imagick" = "yes" &&
