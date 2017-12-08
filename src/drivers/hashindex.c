@@ -3628,8 +3628,6 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
     fd_add(base,FDSYM_READONLY,buckets_symbol);
     fd_add(base,FDSYM_READONLY,nkeys_symbol);
     return base;}
-  else if ( (op == fd_metadata_op) && (n == 1) && (args[0]==slotids_symbol) )
-    return fd_deep_copy((lispval)(hx->index_slotcodes.slotids));
   else if (op == fd_stats_op)
     return hashindex_stats(hx);
   else if (op == fd_reload_op) {
