@@ -250,10 +250,8 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,lispval 
 
   pool->pool_offtype =
     (fd_offset_type)((bigpool_format)&(FD_BIGPOOL_OFFMODE));
-  pool->pool_compression=
-    fd_compression_type(opts,
-                        (fd_compress_type)
-                        (((bigpool_format)&(FD_BIGPOOL_COMPRESSION))>>3));
+  fd_compress_type cmptype = (((bigpool_format)&(FD_BIGPOOL_COMPRESSION))>>3);
+  pool->pool_compression = fd_compression_type(opts,cmptype);
   fd_init_pool((fd_pool)pool,base,capacity,&bigpool_handler,fname,rname);
 
   if ((U8_BITP(bigpool_format,FD_BIGPOOL_ADJUNCT))&&

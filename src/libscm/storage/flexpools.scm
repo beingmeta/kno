@@ -232,6 +232,7 @@
 		    'adjunct (getopt opts 'adjunct)
 		    'cachelevel (getopt opts 'cachelevel {})
 		    'loglevel (getopt opts 'loglevel {})
+		    'compression (getopt opts 'compression {})
 		    'readonly (getopt opts 'readonly {})
 		    'make (getopt opts 'make))))
 	 (start-pool (tryif (file-exists? start-file)
@@ -263,6 +264,7 @@
 	     `#[base ,flexbase
 		capacity ,partsize
 		load ,(min load partsize)
+		compression ,(getopt opts 'compression #default)
 		adjunct ,(getopt opts 'adjunct)
 		type ,(get-partition-type opts)
 		metadata 
@@ -325,6 +327,7 @@
 			 capacity ,partsize
 			 adjunct ,(getopt opts 'adjunct)
 			 type ,(get-partition-type opts)
+			 compression ,(getopt opts 'compression #default)
 			 metadata
 			 ,(make-partition-metadata 
 			   file opts flexbase flexcap
