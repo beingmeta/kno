@@ -1362,6 +1362,33 @@ static lispval voidp_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
       return FD_FALSE;}}
 }
 
+static lispval defaultp_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+{
+  lispval to_eval = fd_get_arg(expr,1);
+  if (FD_SYMBOLP(to_eval)) {
+    lispval v = fd_symeval(to_eval,env);
+    if (v == FD_DEFAULT)
+      return FD_TRUE;
+    else if ( ( v == VOID ) || ( v == FD_UNBOUND ) )
+      return fd_err(fd_UnboundIdentifier,"defaultp_evalfn",NULL,to_eval);
+    else if  (v == FD_NULL)
+      return fd_err(fd_BadPtr,"defaultp_evalfn","NULL pointer",to_eval);
+    else {
+      fd_decref(v);
+      return FD_FALSE;}}
+  else {
+    lispval v = fd_eval(to_eval,env);
+    if  (v == FD_NULL)
+      return fd_err(fd_BadPtr,"defaultp_evalfn","NULL pointer",to_eval);
+    else if (FD_ABORTP(v))
+      return v;
+    else if (v == FD_DEFAULT)
+      return FD_TRUE;
+    else {
+      fd_decref(v);
+      return FD_FALSE;}}
+}
+
 static lispval badp_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   lispval to_eval = fd_get_arg(expr,1);
@@ -2429,6 +2456,7 @@ static void init_localfns()
   fd_def_evalfn(fd_scheme_module,"EVAL","",eval_evalfn);
   fd_def_evalfn(fd_scheme_module,"BOUND?","",boundp_evalfn);
   fd_def_evalfn(fd_scheme_module,"VOID?","",voidp_evalfn);
+  fd_def_evalfn(fd_scheme_module,"DEFAULT?","",default_evalfn);
   fd_def_evalfn(fd_scheme_module,"BAD?","",badp_evalfn);
   fd_def_evalfn(fd_scheme_module,"QUOTE","",quote_evalfn);
   fd_def_evalfn(fd_scheme_module,"%ENV","",env_evalfn);
