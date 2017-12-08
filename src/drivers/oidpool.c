@@ -871,7 +871,7 @@ static int oidpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
       UNLOCK_POOLSTREAM(op);
       return -1;}
 
-    if ( (isadjunct) && (offset>new_load) ) new_load=offset;
+    if ( (isadjunct) && (offset >= new_load) ) new_load=offset+1;
 
     saveinfo[i].chunk.off = endpos;
     saveinfo[i].chunk.size = n_bytes;

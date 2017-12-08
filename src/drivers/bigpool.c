@@ -580,7 +580,7 @@ static int make_bigpool
     fd_write_bytes(outstream,label,len);
     label_size = fd_getpos(stream)-label_pos;}
 
-  /* Write the schemas */
+  /* Write the slotcodes */
   if (VECTORP(slotcodes_init)) {
     int i = 0, len = VEC_LEN(slotcodes_init);
     slotcodes_pos = fd_getpos(stream);
@@ -1091,7 +1091,7 @@ static int bigpool_storen(fd_pool p,int n,
       /* We keep track of value blocks in the file so we can determine
          how much space is being wasted. */
       if (n_bytes) {
-        if ( (isadjunct) && (offset > load) ) load=offset;
+        if ( (isadjunct) && (offset >= load) ) load=offset+1;
         new_blocks++;}
 
       /* Check for file format overflow */

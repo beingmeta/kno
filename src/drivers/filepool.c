@@ -394,7 +394,7 @@ static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
                 "file_pool_storen",fp->poolid,
                 oids[i]);
       retcode = -1; break;}
-    if ( (isadjunct) && (oid_off > load) ) load = oid_off;
+    if ( (isadjunct) && (oid_off >= load) ) load = oid_off+1;
     changed_offsets[i]=endpos;
     endpos = endpos+delta;
     i++;}
