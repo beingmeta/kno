@@ -1,6 +1,6 @@
 echo "Test run ./fdexec" $*
 . ./runenv.sh
-FD_LOADPATH=../../src/scheme/%/module.scm:../../src/scheme/%.scm:
+FD_LOADPATH=../../src/extmods/%/module.scm:../../src/extmods/%.scm:
 export FD_LOADPATH
 FD_DLOADPATH=../../lib/framerd
 export FD_DLOADPATH
