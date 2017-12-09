@@ -1319,7 +1319,23 @@ static lispval boundp_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     return fd_err(fd_SyntaxError,"boundp_evalfn",NULL,fd_incref(expr));
   else {
     lispval val = fd_symeval(symbol,env);
-    if ((VOIDP(val))||(val == FD_DEFAULT_VALUE))
+    if (VOIDP(val))
+      return FD_FALSE;
+    else if (val == FD_UNBOUND)
+      return FD_FALSE;
+    else {
+      fd_decref(val);
+      return FD_TRUE;}}
+}
+
+static lispval definedp_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+{
+  lispval symbol = fd_get_arg(expr,1);
+  if (!(SYMBOLP(symbol)))
+    return fd_err(fd_SyntaxError,"definedp_evalfn",NULL,fd_incref(expr));
+  else {
+    lispval val = fd_symeval(symbol,env);
+    if ( (VOIDP(val)) || (val == FD_DEFAULT_VALUE) )
       return FD_FALSE;
     else if (val == FD_UNBOUND)
       return FD_FALSE;
@@ -1420,7 +1436,7 @@ static lispval env_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 static lispval symbol_boundp_prim(lispval symbol,lispval envarg)
 {
   if (!(SYMBOLP(symbol)))
-    return fd_type_error(_("symbol"),"boundp_prim",symbol);
+    return fd_type_error(_("symbol"),"symbol_boundp_prim",symbol);
   else if (FD_LEXENVP(envarg)) {
     fd_lexenv env = (fd_lexenv)envarg;
     lispval val = fd_symeval(symbol,env);
@@ -2106,9 +2122,9 @@ static lispval default_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   lispval symbol = fd_get_arg(expr,1);
   lispval default_expr = fd_get_arg(expr,2);
   if (!(SYMBOLP(symbol)))
-    return fd_err(fd_SyntaxError,"boundp_evalfn",NULL,fd_incref(expr));
+    return fd_err(fd_SyntaxError,"default_evalfn",NULL,fd_incref(expr));
   else if (VOIDP(default_expr))
-    return fd_err(fd_SyntaxError,"boundp_evalfn",NULL,fd_incref(expr));
+    return fd_err(fd_SyntaxError,"default_evalfn",NULL,fd_incref(expr));
   else {
     lispval val = fd_symeval(symbol,env);
     if (VOIDP(val))
@@ -2455,8 +2471,9 @@ static void init_localfns()
 {
   fd_def_evalfn(fd_scheme_module,"EVAL","",eval_evalfn);
   fd_def_evalfn(fd_scheme_module,"BOUND?","",boundp_evalfn);
+  fd_def_evalfn(fd_scheme_module,"DEFINED?","",definedp_evalfn);
   fd_def_evalfn(fd_scheme_module,"VOID?","",voidp_evalfn);
-  fd_def_evalfn(fd_scheme_module,"DEFAULT?","",default_evalfn);
+  fd_def_evalfn(fd_scheme_module,"DEFAULT?","",defaultp_evalfn);
   fd_def_evalfn(fd_scheme_module,"BAD?","",badp_evalfn);
   fd_def_evalfn(fd_scheme_module,"QUOTE","",quote_evalfn);
   fd_def_evalfn(fd_scheme_module,"%ENV","",env_evalfn);
