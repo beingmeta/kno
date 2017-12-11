@@ -266,7 +266,8 @@ FD_EXPORT lispval fd_pool_base_metadata(fd_pool p);
 
 FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
                             struct FD_POOL_HANDLER *h,
-                            u8_string id,u8_string source);
+                            u8_string id,u8_string source,
+                            lispval opts);
 FD_EXPORT void fd_set_pool_namefn(fd_pool p,lispval namefn);
 
 FD_EXPORT int fd_for_pools(int (*fcn)(fd_pool,void *),void *data);
@@ -471,7 +472,8 @@ fd_pool fd_make_extpool
   (u8_string label,FD_OID base,unsigned int cap,
    lispval fetchfn,lispval savefn,
    lispval lockfn,lispval allocfn,
-   lispval state);
+   lispval state,
+   lispval opts);
 FD_EXPORT int fd_extpool_cache_value(fd_pool p,lispval oid,lispval value);
 
 FD_EXPORT struct FD_POOL_HANDLER fd_extpool_handler;
@@ -485,8 +487,9 @@ typedef struct FD_MEMPOOL {
 typedef struct FD_MEMPOOL *fd_mempool;
 
 FD_EXPORT fd_pool fd_make_mempool
-  (u8_string label,FD_OID base,unsigned int cap,unsigned int load,
-   unsigned int noswap);
+  (u8_string label,FD_OID base,unsigned int cap,
+   unsigned int load,unsigned int noswap,
+   lispval opts);
 FD_EXPORT fd_pool fd_get_mempool(u8_string label);
 
 /* Removes deadwood */

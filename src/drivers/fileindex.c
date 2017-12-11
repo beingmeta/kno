@@ -70,7 +70,7 @@ static fd_index open_fileindex(u8_string fname,fd_storage_flags flags,lispval op
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
   fd_init_index((fd_index)index,&fileindex_handler,
                 fname,u8_realpath(fname,NULL),
-                consed);
+                flags,opts);
   struct FD_STREAM *s = fd_init_file_stream
     (&(index->index_stream),fname,mode,
      ((read_only)?(FD_DEFAULT_FILESTREAM_FLAGS|FD_STREAM_READ_ONLY):

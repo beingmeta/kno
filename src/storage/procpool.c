@@ -88,7 +88,8 @@ fd_pool fd_make_procpool(FD_OID base,
 
   fd_init_pool((fd_pool)pp,base,cap,
                &fd_procpool_handler,
-               label,source);
+               label,source,
+               opts);
 
   if (fd_testopt(opts,FDSYM_CACHELEVEL,FD_VOID)) {
     lispval v = fd_getopt(opts,FDSYM_CACHELEVEL,FD_VOID);

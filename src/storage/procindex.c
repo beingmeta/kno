@@ -97,7 +97,8 @@ fd_index fd_make_procindex(lispval opts,lispval state,
 
   fd_init_index((fd_index)pix,
                 &fd_procindex_handler,
-                id,u8_strdup(source),flags);
+                id,u8_strdup(source),flags,
+                opts);
 
   lispval init_metadata = fd_getopt(opts,FDSYM_METADATA,FD_VOID);
   if (FD_SLOTMAPP(init_metadata)) {

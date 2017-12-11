@@ -370,6 +370,207 @@ FD_EXPORT lispval fd_new_cprim9
   return LISP_CONS(f);
 }
 
+FD_EXPORT lispval fd_new_cprim10
+(u8_string name,u8_string filename,u8_string doc,
+ fd_cprim10 fn,int min_arity,int ndcall,int xcall,
+ int type0,lispval dflt0,
+ int type1,lispval dflt1,int type2,lispval dflt2,
+ int type3,lispval dflt3,int type4,lispval dflt4,
+ int type5,lispval dflt5,int type6,lispval dflt6,
+ int type7,lispval dflt7,int type8,lispval dflt8,
+ int type9,lispval dflt9)
+{
+  struct FD_FUNCTION *f=(struct FD_FUNCTION *)
+    new_cprim(name,filename,doc,10,min_arity,ndcall,xcall);
+  int *types=u8_alloc_n(10,int);
+  lispval *defaults=u8_alloc_n(10,lispval);
+  f->fcn_typeinfo = types;
+  f->fcn_defaults = defaults;
+  types[0]=type0; defaults[0]=dflt0;
+  types[1]=type1; defaults[1]=dflt1;
+  types[2]=type2; defaults[2]=dflt2;
+  types[3]=type3; defaults[3]=dflt3;
+  types[4]=type4; defaults[4]=dflt4;
+  types[5]=type5; defaults[5]=dflt5;
+  types[6]=type6; defaults[6]=dflt6;
+  types[7]=type7; defaults[7]=dflt7;
+  types[8]=type8; defaults[8]=dflt8;
+  types[9]=type9; defaults[9]=dflt9;
+  f->fcn_handler.call10 = fn;
+  return LISP_CONS(f);
+}
+
+FD_EXPORT lispval fd_new_cprim11
+(u8_string name,u8_string filename,u8_string doc,
+ fd_cprim11 fn,int min_arity,int ndcall,int xcall,
+ int type0,lispval dflt0,
+ int type1,lispval dflt1,int type2,lispval dflt2,
+ int type3,lispval dflt3,int type4,lispval dflt4,
+ int type5,lispval dflt5,int type6,lispval dflt6,
+ int type7,lispval dflt7,int type8,lispval dflt8,
+ int type9,lispval dflt9,int type10,lispval dflt10)
+{
+  struct FD_FUNCTION *f=(struct FD_FUNCTION *)
+    new_cprim(name,filename,doc,11,min_arity,ndcall,xcall);
+  int *types=u8_alloc_n(11,int);
+  lispval *defaults=u8_alloc_n(11,lispval);
+  f->fcn_typeinfo = types;
+  f->fcn_defaults = defaults;
+  types[0]=type0; defaults[0]=dflt0;
+  types[1]=type1; defaults[1]=dflt1;
+  types[2]=type2; defaults[2]=dflt2;
+  types[3]=type3; defaults[3]=dflt3;
+  types[4]=type4; defaults[4]=dflt4;
+  types[5]=type5; defaults[5]=dflt5;
+  types[6]=type6; defaults[6]=dflt6;
+  types[7]=type7; defaults[7]=dflt7;
+  types[8]=type8; defaults[8]=dflt8;
+  types[9]=type9; defaults[9]=dflt9;
+  types[10]=type10; defaults[10]=dflt10;
+  f->fcn_handler.call11 = fn;
+  return LISP_CONS(f);
+}
+
+FD_EXPORT lispval fd_new_cprim12
+(u8_string name,u8_string filename,u8_string doc,
+ fd_cprim12 fn,int min_arity,int ndcall,int xcall,
+ int type0,lispval dflt0,
+ int type1,lispval dflt1,int type2,lispval dflt2,
+ int type3,lispval dflt3,int type4,lispval dflt4,
+ int type5,lispval dflt5,int type6,lispval dflt6,
+ int type7,lispval dflt7,int type8,lispval dflt8,
+ int type9,lispval dflt9,int type10,lispval dflt10,
+ int type11,lispval dflt11)
+{
+  struct FD_FUNCTION *f=(struct FD_FUNCTION *)
+    new_cprim(name,filename,doc,12,min_arity,ndcall,xcall);
+  int *types=u8_alloc_n(12,int);
+  lispval *defaults=u8_alloc_n(12,lispval);
+  f->fcn_typeinfo = types;
+  f->fcn_defaults = defaults;
+  types[0]=type0; defaults[0]=dflt0;
+  types[1]=type1; defaults[1]=dflt1;
+  types[2]=type2; defaults[2]=dflt2;
+  types[3]=type3; defaults[3]=dflt3;
+  types[4]=type4; defaults[4]=dflt4;
+  types[5]=type5; defaults[5]=dflt5;
+  types[6]=type6; defaults[6]=dflt6;
+  types[7]=type7; defaults[7]=dflt7;
+  types[8]=type8; defaults[8]=dflt8;
+  types[9]=type9; defaults[9]=dflt9;
+  types[10]=type10; defaults[10]=dflt10;
+  types[11]=type11; defaults[11]=dflt11;
+  f->fcn_handler.call12 = fn;
+  return LISP_CONS(f);
+}
+
+FD_EXPORT lispval fd_new_cprim13
+(u8_string name,u8_string filename,u8_string doc,
+ fd_cprim13 fn,int min_arity,int ndcall,int xcall,
+ int type0,lispval dflt0,
+ int type1,lispval dflt1,int type2,lispval dflt2,
+ int type3,lispval dflt3,int type4,lispval dflt4,
+ int type5,lispval dflt5,int type6,lispval dflt6,
+ int type7,lispval dflt7,int type8,lispval dflt8,
+ int type9,lispval dflt9,int type10,lispval dflt10,
+ int type11,lispval dflt11,int type12,lispval dflt12)
+{
+  struct FD_FUNCTION *f=(struct FD_FUNCTION *)
+    new_cprim(name,filename,doc,13,min_arity,ndcall,xcall);
+  int *types=u8_alloc_n(13,int);
+  lispval *defaults=u8_alloc_n(13,lispval);
+  f->fcn_typeinfo = types;
+  f->fcn_defaults = defaults;
+  types[0]=type0; defaults[0]=dflt0;
+  types[1]=type1; defaults[1]=dflt1;
+  types[2]=type2; defaults[2]=dflt2;
+  types[3]=type3; defaults[3]=dflt3;
+  types[4]=type4; defaults[4]=dflt4;
+  types[5]=type5; defaults[5]=dflt5;
+  types[6]=type6; defaults[6]=dflt6;
+  types[7]=type7; defaults[7]=dflt7;
+  types[8]=type8; defaults[8]=dflt8;
+  types[9]=type9; defaults[9]=dflt9;
+  types[10]=type10; defaults[10]=dflt10;
+  types[11]=type11; defaults[11]=dflt11;
+  types[12]=type12; defaults[12]=dflt12;
+  f->fcn_handler.call13 = fn;
+  return LISP_CONS(f);
+}
+
+FD_EXPORT lispval fd_new_cprim14
+(u8_string name,u8_string filename,u8_string doc,
+ fd_cprim14 fn,int min_arity,int ndcall,int xcall,
+ int type0,lispval dflt0,
+ int type1,lispval dflt1,int type2,lispval dflt2,
+ int type3,lispval dflt3,int type4,lispval dflt4,
+ int type5,lispval dflt5,int type6,lispval dflt6,
+ int type7,lispval dflt7,int type8,lispval dflt8,
+ int type9,lispval dflt9,int type10,lispval dflt10,
+ int type11,lispval dflt11,int type12,lispval dflt12,
+ int type13,lispval dflt13)
+{
+  struct FD_FUNCTION *f=(struct FD_FUNCTION *)
+    new_cprim(name,filename,doc,14,min_arity,ndcall,xcall);
+  int *types=u8_alloc_n(14,int);
+  lispval *defaults=u8_alloc_n(14,lispval);
+  f->fcn_typeinfo = types;
+  f->fcn_defaults = defaults;
+  types[0]=type0; defaults[0]=dflt0;
+  types[1]=type1; defaults[1]=dflt1;
+  types[2]=type2; defaults[2]=dflt2;
+  types[3]=type3; defaults[3]=dflt3;
+  types[4]=type4; defaults[4]=dflt4;
+  types[5]=type5; defaults[5]=dflt5;
+  types[6]=type6; defaults[6]=dflt6;
+  types[7]=type7; defaults[7]=dflt7;
+  types[8]=type8; defaults[8]=dflt8;
+  types[9]=type9; defaults[9]=dflt9;
+  types[10]=type10; defaults[10]=dflt10;
+  types[11]=type11; defaults[11]=dflt11;
+  types[12]=type12; defaults[12]=dflt12;
+  types[13]=type13; defaults[13]=dflt13;
+  f->fcn_handler.call14 = fn;
+  return LISP_CONS(f);
+}
+
+FD_EXPORT lispval fd_new_cprim15
+(u8_string name,u8_string filename,u8_string doc,
+ fd_cprim15 fn,int min_arity,int ndcall,int xcall,
+ int type0,lispval dflt0,
+ int type1,lispval dflt1,int type2,lispval dflt2,
+ int type3,lispval dflt3,int type4,lispval dflt4,
+ int type5,lispval dflt5,int type6,lispval dflt6,
+ int type7,lispval dflt7,int type8,lispval dflt8,
+ int type9,lispval dflt9,int type10,lispval dflt10,
+ int type11,lispval dflt11,int type12,lispval dflt12,
+ int type13,lispval dflt13,int type14,lispval dflt14)
+{
+  struct FD_FUNCTION *f=(struct FD_FUNCTION *)
+    new_cprim(name,filename,doc,15,min_arity,ndcall,xcall);
+  int *types=u8_alloc_n(15,int);
+  lispval *defaults=u8_alloc_n(15,lispval);
+  f->fcn_typeinfo = types;
+  f->fcn_defaults = defaults;
+  types[0]=type0; defaults[0]=dflt0;
+  types[1]=type1; defaults[1]=dflt1;
+  types[2]=type2; defaults[2]=dflt2;
+  types[3]=type3; defaults[3]=dflt3;
+  types[4]=type4; defaults[4]=dflt4;
+  types[5]=type5; defaults[5]=dflt5;
+  types[6]=type6; defaults[6]=dflt6;
+  types[7]=type7; defaults[7]=dflt7;
+  types[8]=type8; defaults[8]=dflt8;
+  types[9]=type9; defaults[9]=dflt9;
+  types[10]=type10; defaults[10]=dflt10;
+  types[11]=type11; defaults[11]=dflt11;
+  types[12]=type12; defaults[12]=dflt12;
+  types[13]=type13; defaults[13]=dflt13;
+  types[14]=type14; defaults[15]=dflt14;
+  f->fcn_handler.call15 = fn;
+  return LISP_CONS(f);
+}
+
 #if 0
 FD_EXPORT lispval fd_make_cprimn(u8_string name,fd_cprimn fn,int min_arity)
 {

@@ -252,7 +252,7 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,lispval 
     (fd_offset_type)((bigpool_format)&(FD_BIGPOOL_OFFMODE));
   fd_compress_type cmptype = (((bigpool_format)&(FD_BIGPOOL_COMPRESSION))>>3);
   pool->pool_compression = fd_compression_type(opts,cmptype);
-  fd_init_pool((fd_pool)pool,base,capacity,&bigpool_handler,fname,rname);
+  fd_init_pool((fd_pool)pool,base,capacity,&bigpool_handler,fname,rname,opts);
 
   if ((U8_BITP(bigpool_format,FD_BIGPOOL_ADJUNCT))&&
       (!(fd_testopt(opts,FDSYM_ISADJUNCT,FD_FALSE))))

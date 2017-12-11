@@ -1547,7 +1547,8 @@ FD_EXPORT lispval fd_index_base_metadata(fd_index ix)
 FD_EXPORT void fd_init_index(fd_index ix,
                              struct FD_INDEX_HANDLER *h,
                              u8_string id,u8_string src,
-                             fd_storage_flags flags)
+                             fd_storage_flags flags,
+                             lispval opts)
 {
   U8_SETBITS(flags,FD_STORAGE_ISINDEX);
   if (U8_BITP(flags,FD_STORAGE_UNREGISTERED)) {
@@ -1567,7 +1568,28 @@ FD_EXPORT void fd_init_index(fd_index ix,
   fd_make_hashtable(&(ix->index_stores),0);
   FD_INIT_STATIC_CONS(&(ix->index_metadata),fd_slotmap_type);
   FD_INIT_STATIC_CONS(&(ix->index_props),fd_slotmap_type);
-  fd_init_slotmap(&(ix->index_metadata),17,NULL);
+
+  if (fd_testopt(opts,FDSYM_METADATA,VOID)) {
+    lispval init_metadata = fd_testopt(opts,FDSYM_METADATA,VOID);
+    if (FD_SLOTMAPP(init_metadata))
+      fd_copy_slotmap((fd_slotmap)init_metadata,
+                      &(ix->index_metadata));
+    else if (FD_TABLEP(init_metadata)) {
+      lispval keys = fd_getkeys(init_metadata);
+      fd_init_slotmap(&(ix->index_metadata),FD_CHOICE_SIZE(keys),NULL);
+      FD_DO_CHOICES( slot, keys ) {
+        lispval v = fd_get(init_metadata,slot,FD_VOID);
+        if (!(VOIDP(v)))
+          fd_slotmap_store(&(ix->index_metadata),slot,v);
+        fd_decref(v);}
+      fd_decref(keys);}
+    else {
+      u8_log(LOG_WARN,"BadIndexMetadata",
+             "Invalid metadata for %s: %q",
+             id,init_metadata);
+      fd_init_slotmap(&(ix->index_metadata),17,NULL);}}
+  else fd_init_slotmap(&(ix->index_metadata),17,NULL);
+
   fd_init_slotmap(&(ix->index_props),17,NULL);
   ix->index_handler = h;
   /* This was what was specified */
@@ -1575,10 +1597,29 @@ FD_EXPORT void fd_init_index(fd_index ix,
   /* Don't copy this one */
   ix->index_source = src;
   ix->index_typeid = NULL;
-  ix->index_keyslot = VOID;
+  ix->index_keyslot = fd_getopt(opts,FDSYM_KEYSLOT,VOID);
   ix->index_covers_slotids = VOID;
-  ix->index_opts = FD_FALSE;
-  ix->index_loglevel = -1;
+
+  if (FD_VOIDP(opts))
+    ix->index_opts = FD_FALSE;
+  else ix->index_opts = fd_incref(opts);
+
+  if (FD_VOIDP(opts)) 
+    ix->index_opts = FD_FALSE;
+  else ix->index_opts = fd_incref(opts);
+
+  lispval ll = fd_getopt(opts,FDSYM_LOGLEVEL,FD_VOID);
+  if (FD_VOIDP(ll))
+    ix->index_loglevel = fd_storage_loglevel;
+  else if ( (FD_FIXNUMP(ll)) && ( (FD_FIX2INT(ll)) >= 0 ) &&
+       ( (FD_FIX2INT(ll)) < U8_MAX_LOGLEVEL ) )
+    ix->index_loglevel = FD_FIX2INT(ll);
+  else {
+    u8_log(LOG_WARN,"BadLogLevel",
+           "Invalid loglevel %q for pool %s",ll,id);
+    ix->index_loglevel = fd_storage_loglevel;}
+  fd_decref(ll);
+
   u8_init_mutex(&(ix->index_commit_lock));
 }
 

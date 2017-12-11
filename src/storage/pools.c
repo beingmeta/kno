@@ -1893,7 +1893,8 @@ lispval fd_changed_oids(fd_pool p)
 FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
                             unsigned int capacity,
                             struct FD_POOL_HANDLER *h,
-                            u8_string id,u8_string source)
+                            u8_string id,u8_string source,
+                            lispval opts)
 {
   FD_INIT_CONS(p,fd_consed_pool_type);
   p->pool_base = base;
@@ -1903,7 +1904,6 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
   p->pool_typeid = NULL;
   p->pool_handler = h;
   p->pool_flags = 0;
-  p->pool_opts = FD_FALSE;
   p->pool_serialno = -1; p->pool_cache_level = -1;
   p->pool_adjuncts = NULL;
   p->pool_adjuncts_len = 0;
@@ -1912,7 +1912,45 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
   p->pool_prefix = NULL;
   p->pool_namefn = VOID;
 
-  p->pool_loglevel = fd_storage_loglevel;
+  if (fd_testopt(opts,FDSYM_METADATA,VOID)) {
+    lispval init_metadata = fd_testopt(opts,FDSYM_METADATA,VOID);
+    if (FD_SLOTMAPP(init_metadata)) {
+      if (fd_copy_slotmap((fd_slotmap)init_metadata,&(p->pool_metadata))<0) {
+        u8_log(LOG_WARN,"BadIndexMetadata",
+               "Invalid metadata for %s: %q",
+               id,init_metadata);
+        fd_init_slotmap(&(p->pool_metadata),17,NULL);}}
+    else if (FD_TABLEP(init_metadata)) {
+      lispval keys = fd_getkeys(init_metadata);
+      fd_init_slotmap(&(p->pool_metadata),FD_CHOICE_SIZE(keys),NULL);
+      FD_DO_CHOICES( slot, keys ) {
+        lispval v = fd_get(init_metadata,slot,FD_VOID);
+        if (!(VOIDP(v)))
+          fd_slotmap_store(&(p->pool_metadata),slot,v);
+        fd_decref(v);}
+      fd_decref(keys);}
+    else {
+      u8_log(LOG_WARN,"BadIndexMetadata",
+             "Invalid metadata for %s: %q",
+             id,init_metadata);
+      fd_init_slotmap(&(p->pool_metadata),17,NULL);}}
+  else fd_init_slotmap(&(p->pool_metadata),17,NULL);
+
+  if (FD_VOIDP(opts)) 
+    p->pool_opts = FD_FALSE;
+  else p->pool_opts = fd_incref(opts);
+
+  lispval ll = fd_getopt(opts,FDSYM_LOGLEVEL,FD_VOID);
+  if (FD_VOIDP(ll))
+    p->pool_loglevel = fd_storage_loglevel;
+  else if ( (FD_FIXNUMP(ll)) && ( (FD_FIX2INT(ll)) >= 0 ) &&
+       ( (FD_FIX2INT(ll)) < U8_MAX_LOGLEVEL ) )
+    p->pool_loglevel = FD_FIX2INT(ll);
+  else {
+    u8_log(LOG_WARN,"BadLogLevel",
+           "Invalid loglevel %q for pool %s",ll,id);
+    p->pool_loglevel = fd_storage_loglevel;}
+  fd_decref(ll);
 
   /* Data tables */
   FD_INIT_STATIC_CONS(&(p->pool_cache),fd_hashtable_type);

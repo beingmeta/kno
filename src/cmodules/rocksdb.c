@@ -1012,7 +1012,8 @@ fd_pool fd_open_rocksdb_pool(u8_string path,fd_storage_flags flags,lispval opts)
       fd_init_pool((fd_pool)pool,
                    FD_OID_ADDR(base),FD_FIX2INT(cap),
                    &rocksdb_pool_handler,
-                   path,rname);
+                   path,rname,
+                   opts);
       u8_free(rname);
       if (FD_VOIDP(read_only_opt))
         read_only_opt = get_prop(dbptr,"\377READONLY",FD_VOID);
@@ -1105,7 +1106,8 @@ fd_pool fd_make_rocksdb_pool(u8_string path,
     fd_init_pool((fd_pool)pool,
                  FD_OID_ADDR(base),FD_FIX2INT(cap),
                  &rocksdb_pool_handler,
-                 path,rname);
+                 path,rname,
+                 opts);
 
     if (FD_SLOTMAPP(metadata)) {
       if ( (FD_VOIDP(cur_metadata)) || (fd_testopt(opts,SYM("FORCE"),FD_VOID)) ) {
@@ -1582,8 +1584,7 @@ fd_index fd_open_rocksdb_index(u8_string path,fd_storage_flags flags,lispval opt
     fd_init_index((fd_index)index,
                   &rocksdb_index_handler,
                   (FD_STRINGP(label)) ? (FD_CSTRING(label)) : (path),
-                  rname,
-                  0);
+                  rname,0,opts);
 
     if (FD_VOIDP(metadata)) {}
     else if (FD_SLOTMAPP(metadata)) {}
@@ -1714,8 +1715,7 @@ fd_index fd_make_rocksdb_index(u8_string path,lispval opts)
     fd_init_index((fd_index)index,
                   &rocksdb_index_handler,
                   (FD_STRINGP(label)) ? (FD_CSTRING(label)) : (rname),
-                  rname,
-                  0);
+                  rname,0,opts);
 
     index->index_flags = fd_get_dbflags(opts,FD_STORAGE_ISINDEX);
     index->index_flags &= ~FD_STORAGE_READ_ONLY;

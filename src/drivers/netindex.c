@@ -48,7 +48,9 @@ static int server_supportsp(struct FD_NETWORK_INDEX *ni,lispval operation)
   else {fd_decref(response); return 1;}
 }
 
-FD_EXPORT fd_index fd_open_network_index(u8_string spec,fd_storage_flags flags,lispval opts)
+FD_EXPORT fd_index fd_open_network_index(u8_string spec,
+                                         fd_storage_flags flags,
+                                         lispval opts)
 {
   struct FD_NETWORK_INDEX *ix;
   lispval writable_response; u8_string xid = NULL;
@@ -57,7 +59,7 @@ FD_EXPORT fd_index fd_open_network_index(u8_string spec,fd_storage_flags flags,l
                                     fd_dbconn_init_default);
   if (cp == NULL) return NULL;
   ix = u8_alloc(struct FD_NETWORK_INDEX); memset(ix,0,sizeof(*ix));
-  fd_init_index((fd_index)ix,&netindex_handler,spec,xid,flags);
+  fd_init_index((fd_index)ix,&netindex_handler,spec,xid,flags,opts);
   ix->index_connpool = cp; ix->xname = VOID;
   writable_response = fd_dtcall(ix->index_connpool,1,iserver_writable);
   if ((FD_ABORTP(writable_response))||

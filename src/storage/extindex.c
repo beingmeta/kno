@@ -26,7 +26,8 @@ lispval set_symbol, drop_symbol;
 
 FD_EXPORT
 fd_index fd_make_extindex
-(u8_string name,lispval fetchfn,lispval commitfn,lispval state,int reg)
+(u8_string name,lispval fetchfn,lispval commitfn,lispval state,
+ int reg,lispval opts)
 {
   if (!(PRED_TRUE(FD_APPLICABLEP(fetchfn)))) {
     fd_seterr(fd_TypeError,"fd_make_extindex","fetch function",
@@ -40,7 +41,7 @@ fd_index fd_make_extindex
     struct FD_EXTINDEX *fetchix = u8_alloc(struct FD_EXTINDEX);
     FD_INIT_STRUCT(fetchix,struct FD_EXTINDEX);
     fd_init_index((fd_index)fetchix,&fd_extindex_handler,
-                  name,NULL,(!(reg)));
+                  name,NULL,(!(reg)),opts);
     fetchix->index_cache_level = 1;
     if (VOIDP(commitfn))
       U8_SETBITS(fetchix->index_flags,FD_STORAGE_READ_ONLY);

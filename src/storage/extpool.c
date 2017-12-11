@@ -34,7 +34,8 @@ fd_pool fd_make_extpool(u8_string label,
                         FD_OID base,unsigned int cap,
                         lispval fetchfn,lispval savefn,
                         lispval lockfn,lispval allocfn,
-                        lispval state)
+                        lispval state,
+                        lispval opts)
 {
   if (!(PRED_TRUE(FD_APPLICABLEP(fetchfn)))) {
     fd_seterr(fd_TypeError,"fd_make_extpool","fetch function",
@@ -55,7 +56,8 @@ fd_pool fd_make_extpool(u8_string label,
   else {
     struct FD_EXTPOOL *xp = u8_alloc(struct FD_EXTPOOL);
     memset(xp,0,sizeof(struct FD_EXTPOOL));
-    fd_init_pool((fd_pool)xp,base,cap,&fd_extpool_handler,label,label);
+    fd_init_pool((fd_pool)xp,base,cap,&fd_extpool_handler,
+                 label,label,opts);
     /* We currently use the OID value as a cache for stored values, so
        we don't make it read-only. But there's probably a better
        solution. */

@@ -610,7 +610,7 @@ static lispval add_to_compound_index(lispval lcx,lispval aix)
 }
 
 static lispval make_mempool(lispval label,lispval base,lispval cap,
-                           lispval load,lispval noswap)
+                            lispval load,lispval noswap,lispval opts)
 {
   if (!(FD_UINTP(cap))) return fd_type_error("uint","make_mempool",cap);
   if (!(FD_UINTP(load))) return fd_type_error("uint","make_mempool",load);
@@ -618,7 +618,8 @@ static lispval make_mempool(lispval label,lispval base,lispval cap,
     (CSTRING(label),FD_OID_ADDR(base),
      FIX2INT(cap),
      FIX2INT(load),
-     (!(FALSEP(noswap))));
+     (!(FALSEP(noswap))),
+     opts);
   if (p == NULL)
     return FD_ERROR;
   else return pool2lisp(p);
@@ -659,14 +660,15 @@ return pool2lisp(p);
 }
 
 static lispval make_extpool(lispval label,lispval base,lispval cap,
-                           lispval fetchfn,lispval savefn,
-                           lispval lockfn,lispval allocfn,
-                           lispval state,lispval cache)
+                            lispval fetchfn,lispval savefn,
+                            lispval lockfn,lispval allocfn,
+                            lispval state,lispval cache,
+                            lispval opts)
 {
   if (!(FD_UINTP(cap))) return fd_type_error("uint","make_mempool",cap);
   fd_pool p = fd_make_extpool
     (CSTRING(label),FD_OID_ADDR(base),FIX2INT(cap),
-     fetchfn,savefn,lockfn,allocfn,state);
+     fetchfn,savefn,lockfn,allocfn,state,opts);
   if (FALSEP(cache)) fd_pool_setcache(p,0);
   return pool2lisp(p);
 }
@@ -732,27 +734,30 @@ static lispval make_procindex(lispval id,
 /* External indexes */
 
 static lispval make_extindex(lispval label,lispval fetchfn,lispval commitfn,
-                            lispval state,lispval usecache)
+                             lispval state,lispval usecache,
+                             lispval opts)
 {
   fd_index ix = fd_make_extindex
     (CSTRING(label),
      ((FALSEP(fetchfn))?(VOID):(fetchfn)),
      ((FALSEP(commitfn))?(VOID):(commitfn)),
      ((FALSEP(state))?(VOID):(state)),
-     1);
+     1,
+     opts);
   if (FALSEP(usecache)) fd_index_setcache(ix,0);
   return index2lisp(ix);
 }
 
 static lispval cons_extindex(lispval label,lispval fetchfn,lispval commitfn,
-                            lispval state,lispval usecache)
+                             lispval state,lispval usecache,lispval opts)
 {
   fd_index ix = fd_make_extindex
     (CSTRING(label),
      ((FALSEP(fetchfn))?(VOID):(fetchfn)),
      ((FALSEP(commitfn))?(VOID):(commitfn)),
      ((FALSEP(state))?(VOID):(state)),
-     0);
+     0,
+     opts);
   if (FALSEP(usecache)) fd_index_setcache(ix,0);
   if (ix->index_serialno>=0) return index_ref(ix);
   else return (lispval)ix;
@@ -3494,12 +3499,12 @@ FD_EXPORT void fd_init_dbprims_c()
 
 
   fd_idefn(fd_scheme_module,
-           fd_make_cprim5x("MAKE-MEMPOOL",make_mempool,2,
+           fd_make_cprim6x("MAKE-MEMPOOL",make_mempool,2,
                            fd_string_type,VOID,
                            fd_oid_type,VOID,
                            fd_fixnum_type,(FD_INT(1024*1024)),
                            fd_fixnum_type,(FD_INT(0)),
-                           -1,FD_FALSE));
+                           -1,FD_FALSE,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,
            fd_make_cprim1("CLEAN-MEMPOOL",clean_mempool,1));
   fd_idefn(fd_scheme_module,
@@ -3525,13 +3530,14 @@ FD_EXPORT void fd_init_dbprims_c()
 
 
   fd_idefn(fd_scheme_module,
-           fd_make_cprim9x("MAKE-EXTPOOL",make_extpool,4,
-                           fd_string_type,VOID,
-                           fd_oid_type,VOID,
-                           fd_fixnum_type,VOID,
-                           -1,VOID,-1,VOID,
-                           -1,VOID,-1,VOID,
-                           -1,VOID,-1,FD_TRUE));
+           fd_make_cprim10x("MAKE-EXTPOOL",make_extpool,4,
+                            fd_string_type,VOID,
+                            fd_oid_type,VOID,
+                            fd_fixnum_type,VOID,
+                            -1,VOID,-1,VOID,
+                            -1,VOID,-1,VOID,
+                            -1,VOID,-1,FD_TRUE,
+                            -1,FD_FALSE));
   fd_idefn(fd_scheme_module,
            fd_make_cprim3x("EXTPOOL-CACHE!",extpool_setcache,3,
                            fd_pool_type,VOID,fd_oid_type,VOID,
@@ -3550,15 +3556,15 @@ FD_EXPORT void fd_init_dbprims_c()
                            fd_pool_type,VOID));
 
   fd_idefn(fd_scheme_module,
-           fd_make_cprim5x("MAKE-EXTINDEX",make_extindex,2,
+           fd_make_cprim6x("MAKE-EXTINDEX",make_extindex,2,
                            fd_string_type,VOID,
                            -1,VOID,-1,VOID,-1,VOID,
-                           -1,FD_TRUE));
+                           -1,FD_TRUE,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,
-           fd_make_cprim5x("CONS-EXTINDEX",cons_extindex,2,
+           fd_make_cprim6x("CONS-EXTINDEX",cons_extindex,2,
                            fd_string_type,VOID,
                            -1,VOID,-1,VOID,-1,VOID,
-                           -1,FD_TRUE));
+                           -1,FD_TRUE,-1,FD_FALSE));
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("EXTINDEX-DECACHE!",extindex_decache,1,

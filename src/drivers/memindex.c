@@ -273,12 +273,14 @@ static ssize_t load_memindex(struct FD_MEMINDEX *memidx)
 
 static lispval preload_opt;
 
-static fd_index open_memindex(u8_string file,fd_storage_flags flags,lispval opts)
+static fd_index open_memindex(u8_string file,fd_storage_flags flags,
+                              lispval opts)
 {
   struct FD_MEMINDEX *memidx = u8_alloc(struct FD_MEMINDEX);
   fd_init_index((fd_index)memidx,&memindex_handler,
                 file,u8_realpath(file,NULL),
-                flags|FD_STORAGE_NOSWAP);
+                flags|FD_STORAGE_NOSWAP,
+                opts);
   struct FD_STREAM *stream=
     fd_init_file_stream(&(memidx->index_stream),file,
                         FD_FILE_MODIFY,-1,
