@@ -76,6 +76,9 @@
 	(else {})))
 
 (define (db/ref spec (opts #f))
+  (when (and (table? spec) (not (or (pool? spec) (index? spec))))
+    (if opts (set! opts (cons opts spec)) (set! opts spec))
+    (set! spec (getopt opts 'index (getopt opts 'pool (getopt opts 'source #f)))))
   (cond ((pool? spec) (w/adjuncts spec))
 	((or (index? spec) (hashtable? spec)) spec)
 	(else (let* ((opts
@@ -96,8 +99,8 @@
 ;;; Pool ref
 
 (define (pool/ref spec (opts #f))
-  (when (and (table? spec) (not (pool? spec)) (not opts))
-    (set! opts spec)
+  (when (and (table? spec) (not (or (pool? spec) (index? spec))))
+    (if opts (set! opts (cons opts spec)) (set! opts spec))
     (set! spec (getopt opts 'pool (getopt opts 'source #f))))
   (cond ((pool? spec)
 	 (w/adjuncts spec))
@@ -133,8 +136,8 @@
 (define (index/ref spec (opts #f))
   (if (index? spec) spec
       (begin
-	(when (and (table? spec) (not opts))
-	  (set! opts spec)
+	(when (and (table? spec) (not (or (pool? spec) (index? spec))))
+	  (if opts (set! opts (cons opts spec)) (set! opts spec))
 	  (set! spec (getopt opts 'index (getopt opts 'source #f))))
 	(cond ((index? spec) spec)
 	      ((not (string? spec)) (irritant spec |InvalidIndexSpec|))
