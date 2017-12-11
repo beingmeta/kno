@@ -153,7 +153,9 @@
 			   (exists? base) base
 			   (exists? cap) cap
 			   (exists? partsize) partsize)
-		      (unique-flexpool (realpath filename) prefix base cap partsize opts)
+		      (let ((pool (unique-flexpool (realpath filename) prefix base cap partsize opts)))
+			(adjuncts/init! pool)
+			pool)
 		      (irritant opts |BadFlexpoolData|))))))))
 
 (define (make-flexpool filename opts)
@@ -173,9 +175,10 @@
 			'load (getopt opts 'load {})
 			'partitions (getopt opts 'partitions {})
 			'metadata metadata)))
+	  (when (and (exists? adjuncts) (not (test metadata 'adjuncts)))
+	    (store! metadata 'adjuncts adjuncts))
 	  (drop! metadata '{cachelevel poolid source cached locked registered load})
 	  (drop! metadata '{%slotids readonly opts props})
-	  (when (exists? adjuncts) (store! metadata 'adjuncts adjuncts))
 	  (store! metadata 'flags 
 		  (intersection (get metadata 'flags) '{isadjunct adjunct sparse}))
 	  (unless (and (file-exists? (dirname absprefix))
@@ -188,10 +191,13 @@
 	  (when (exists? adjuncts)
 	    (init-adjunct-flexpools (get metadata 'adjuncts) 
 				    prefix base cap partsize opts))
-	  (unique-flexpool (if (readlink filename)
-			       (abspath filename)
-			       (realpath filename)) 
-			   prefix base cap partsize opts))
+	  (let ((pool (unique-flexpool (if (readlink filename)
+					   (abspath filename)
+					   (realpath filename)) 
+				       prefix base cap partsize opts)))
+	    (adjuncts/setup! pool)
+	    (adjuncts/init! pool)
+	    pool))
 	(irritant opts |IncompleteFlexpoolDef|))))
 
 (define (flexpool/make filename opts)
@@ -369,7 +375,6 @@
 		  (strip-suffix prefix ".pool")
 		  (glom (strip-suffix prefix ".pool") ".pool")})
 		pool)
-	;;(when (poolctl pool 'metadata 'adjuncts) (adjuncts/init! pool))
 	pool))))
 
 ;;; Getting the 'next' flexpool (creates a new partition)
@@ -687,12 +692,14 @@
 		    (and (test adjspec 'pool) (string? (get adjspec 'pool))
 			 (has-suffix (get adjspec 'pool) ".flexpool"))))
 	(let* ((name (if (string? adjspec) adjspec
-			 (try (get adjspec 'pool) (get adjspec 'source))))
+			 (getopt adjspec 'pool (get adjspec 'source 
+						    (glom (downcase adjslot) ".flexpool")))))
 	       (cur (and (file-exists? name) (file->dtype name)))
 	       (adj-prefix (mkpath (dirname prefix) (strip-suffix name {".flexpool" ".pool"})))
 	       (flexdef (frame-create #f
 			  'base base 'capacity cap
 			  'metadata `#[adjunct ,adjslot partopts ,(getopt opts 'partopts #[])]
+			  'adjunct adjslot
 			  'partsize partsize 
 			  'prefix adj-prefix
 			  'init (config 'sessionid)
