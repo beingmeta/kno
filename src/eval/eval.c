@@ -673,49 +673,72 @@ static u8_string get_label(lispval arg,u8_byte *buf,size_t buflen)
   else return NULL;
 }
 
-static lispval watchptr_prim(lispval val,lispval label_arg)
+static void log_ptr(lispval val,lispval label_arg,lispval expr)
 {
   u8_byte buf[64];
   u8_string label = get_label(label_arg,buf,64);
+  u8_string src_string = (FD_VOIDP(expr)) ? (NULL) :
+    (fd_lisp2string(expr));
   if (FD_IMMEDIATEP(val)) {
     unsigned long long itype = FD_IMMEDIATE_TYPE(val);
     unsigned long long data = FD_IMMEDIATE_DATA(val);
     u8_string type_name = fd_type2name(itype);;
-    u8_log(U8_LOG_MSG,"Immediate pointer",
-           "%s%s%s0x%llx [ T0x%llx(%s) data=%llu ] == %q",
+    u8_log(U8_LOG_MSG,"Pointer/Immediate",
+           "%s%s%s0x%llx [ T0x%llx(%s) data=%llu ] == %q%s%s%s",
            U8OPTSTR("",label,": "),
-           ((unsigned long long)val),itype,type_name,data,val);}
+           ((unsigned long long)val),
+           itype,type_name,data,val,
+           U8OPTSTR(" <== ",src_string,""));}
   else if (FIXNUMP(val))
-    u8_log(U8_LOG_MSG,"%s%s%sFixnum","0x%llx == %d",
+    u8_log(U8_LOG_MSG,"Pointer/Fixnum",
+           "%s%s%sFixnum","0x%llx == %d%s%s%s",
            U8OPTSTR("",label,": "),
-           ((unsigned long long)val),FIX2INT(val));
+           ((unsigned long long)val),FIX2INT(val),
+           U8OPTSTR(" <== ",src_string,""));
   else if (OIDP(val)) {
     FD_OID addr = FD_OID_ADDR(val);
-    u8_log(U8_LOG_MSG,"OID",
-           "%s%s%s0x%llx [ base=%llx off=%llx ] == %llx/%llx",
+    u8_log(U8_LOG_MSG,"Pointer/OID",
+           "%s%s%s0x%llx [ base=%llx off=%llx ] == %llx/%llx%s%s%s",
            U8OPTSTR("",label,": "),
            ((unsigned long long)val),
            (FD_OID_BASE_ID(val)),(FD_OID_BASE_OFFSET(val)),
-           FD_OID_HI(addr),FD_OID_LO(addr));}
+           FD_OID_HI(addr),FD_OID_LO(addr),
+           U8OPTSTR(" <== ",src_string,""));}
   else if (FD_STATICP(val)) {
     fd_ptr_type ptype = FD_CONS_TYPE((fd_cons)val);
     u8_string type_name = fd_ptr_typename(ptype);
-    u8_log(U8_LOG_MSG,"Static pointer",
-           "%s%s%s0x%llx [ T0x%llx(%s) ] == %q",
+    u8_log(U8_LOG_MSG,"Pointer/Static",
+           "%s%s%s0x%llx [ T0x%llx(%s) ] == %q%s%s%s",
            U8OPTSTR("",label,": "),
            ((unsigned long long)val),
-           ptype,type_name,val);}
+           ptype,type_name,val,
+           U8OPTSTR(" <== ",src_string,""));}
   else if (CONSP(val)) {
     fd_cons c = (fd_cons) val;
     fd_ptr_type ptype = FD_CONS_TYPE(c);
     u8_string type_name = fd_ptr_typename(ptype);
     unsigned int refcount = FD_CONS_REFCOUNT(c);
-    u8_log(U8_LOG_MSG,"Consed pointer",
-           "%s%s%s0x%llx [ T0x%llx(%s) refs=%d ] == %q",
+    u8_log(U8_LOG_MSG,"Pointer/Consed",
+           "%s%s%s0x%llx [ T0x%llx(%s) refs=%d ] == %q%s%s%s",
            U8OPTSTR("",label,": "),
            ((unsigned long long)val),
-           ptype,type_name,refcount,val);}
+           ptype,type_name,refcount,val,
+           U8OPTSTR(" <== ",src_string,""));}
   else {}
+  if (src_string) u8_free(src_string);
+}
+
+static lispval watchptr_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+{
+  lispval val_expr = fd_get_arg(expr,1);
+  lispval value = fd_stack_eval(val_expr,env,_stack,0);
+  log_ptr(value,FD_VOID,val_expr);
+  return value;
+}
+
+static lispval watchptr_prim(lispval val,lispval label_arg)
+{
+  log_ptr(val,label_arg,FD_VOID);
   return fd_incref(val);
 }
 
@@ -2591,8 +2614,9 @@ static void init_localfns()
 
   fd_def_evalfn(fd_scheme_module,"TIMEVAL","",timed_eval_evalfn);
   fd_def_evalfn(fd_scheme_module,"%TIMEVAL","",timed_evalx_evalfn);
+  fd_def_evalfn(fd_scheme_module,"%WATCHPTR","",watchptr_evalfn);
   fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim2("%WATCHPTR",watchptr_prim,1)));
+           fd_make_ndprim(fd_make_cprim2("%WATCHPTRVAL",watchptr_prim,1)));
   fd_def_evalfn(fd_scheme_module,"%WATCH","",watched_eval_evalfn);
   fd_def_evalfn(fd_scheme_module,"PROFILE","",profiled_eval_evalfn);
   fd_def_evalfn(fd_scheme_module,"%WATCHCALL","",watchcall_evalfn);
