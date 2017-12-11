@@ -609,14 +609,15 @@
   (let* ((base (oid-plus flexbase (* serial partsize)))
 	 (padlen (flexpool/padlen flexcap partsize))
 	 (load (flexpool/getload flexload partsize serial)))
-    `#[base ,base
-       load ,(if (> load partsize) partsize load)
-       capacity ,partsize
-       adjunct ,(getopt opts 'adjunct)
-       type ,(get-partition-type opts)
-       compression ,(getopt opts 'compression #default)
-       metadata ,(make-partition-metadata file opts flexbase flexcap partsize serial)
-       label ,(glom (getopt opts 'prefix) "." (padnum serial padlen 16))]))
+    (let ((metadata (make-partition-metadata file opts flexbase flexcap partsize serial)))
+      `#[base ,base
+	 load ,(if (> load partsize) partsize load)
+	 capacity ,partsize
+	 adjunct ,(getopt opts 'adjunct (getopt metadata 'adjunct))
+	 type ,(get-partition-type opts)
+	 compression ,(getopt opts 'compression #default)
+	 metadata ,metadata
+	 label ,(glom (getopt opts 'prefix) "." (padnum serial padlen 16))])))
 
 (define (make-partition-metadata filename opts flexbase flexcap partsize serial)
   (let* ((flex-metadata (getopt opts 'metadata #[]))
