@@ -735,8 +735,8 @@ elif test "$with_malloc" = "asan"; then
    install_static=""
    custom_malloc="asan"
    using_malloc="asan"
-   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=malloc_context_size=20 $test_env";
-   leaktester_env="ASAN_OPTIONS=malloc_context_size=20 ${leaktester_env}";
+   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=malloc_context_size=20 LSAN_OPTIONS=report_objects=1 $test_env";
+   leaktester_env="ASAN_OPTIONS=malloc_context_size=20 LSAN_OPTIONS=report_objects=1 ${leaktester_env}";
    asan="yes"
    test_size=64
    AC_MSG_RESULT(ASAN)
@@ -749,7 +749,7 @@ elif test "$with_malloc" = "asan_noleak"; then
    custom_malloc="asan"
    using_malloc="asan"
    test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=0:malloc_context_size=20 $test_env";
-   leaktester_env="ASAN_OPTIONS=malloc_context_size=20:detect_leaks=1 ${leaktester_env}";
+   leaktester_env="ASAN_OPTIONS=malloc_context_size=20:detect_leaks=1 LSAN_OPTIONS=report_objects=1 ${leaktester_env}";
    asan="yes"
    test_size=64
    AC_MSG_RESULT(ASAN)
