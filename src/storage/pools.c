@@ -2369,6 +2369,15 @@ FD_EXPORT lispval fd_default_poolctl(fd_pool p,lispval op,int n,lispval *args)
         return FD_FALSE;
       else return lispval_string(p->pool_label);}
     else return FD_FALSE;}
+  else if (op == FDSYM_OPTS)  {
+    lispval opts = p->pool_opts;
+    if (n > 1)
+      return fd_err(fd_TooManyArgs,"fd_default_indexctl",p->poolid,VOID);
+    else if ( (opts == FD_NULL) || (VOIDP(opts) ) )
+      return FD_FALSE;
+    else if ( n == 1 )
+      return fd_getopt(opts,args[0],FD_FALSE);
+    else return fd_incref(opts);}
   else if (op == fd_metadata_op) {
     lispval metadata = (lispval) &(p->pool_metadata);
     lispval slotid = (n>0) ? (args[0]) : (FD_VOID);

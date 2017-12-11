@@ -1538,7 +1538,6 @@ FD_EXPORT lispval fd_index_base_metadata(fd_index ix)
   fd_add(metadata,FDSYM_READONLY,FDSYM_PROPS);
   fd_add(metadata,FDSYM_READONLY,opts_slot);
 
-
   return metadata;
 }
 
@@ -1885,6 +1884,15 @@ FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args
     return fd_err("BadIndexOpCall","fd_default_indexctl",ix->indexid,VOID);
   else if (n<0)
     return fd_err("BadIndexOpCall","fd_default_indexctl",ix->indexid,VOID);
+  else if (op == FDSYM_OPTS)  {
+    lispval opts = ix->index_opts;
+    if (n > 1)
+      return fd_err(fd_TooManyArgs,"fd_default_indexctl",ix->indexid,VOID);
+    else if ( (opts == FD_NULL) || (VOIDP(opts) ) )
+      return FD_FALSE;
+    else if ( n == 1 )
+      return fd_getopt(opts,args[0],FD_FALSE);
+    else return fd_incref(opts);}
   else if (op == fd_metadata_op) {
     lispval metadata = ((lispval)&(ix->index_metadata));
     lispval slotid = (n>0) ? (args[0]) : (FD_VOID);
