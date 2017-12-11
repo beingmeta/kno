@@ -1769,7 +1769,7 @@ static lispval rocksdb_decode_key(struct FD_INBUF *in,struct FD_SLOTCODER *slotc
         u8_seterr("BadEncodedKey","rocksdb_decode_key",NULL);
         return FD_ERROR;}
       lispval slotid = fd_code2slotid(slotcodes,code);
-      if (slotid < 0) {
+      if (FD_ABORTP(slotid)) {
         u8_seterr("BadSlotCode","rocksdb_decode_key",
                   u8_mkstring("%d",code));
         return FD_ERROR;}
