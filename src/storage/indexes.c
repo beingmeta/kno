@@ -1570,7 +1570,7 @@ FD_EXPORT void fd_init_index(fd_index ix,
   FD_INIT_STATIC_CONS(&(ix->index_props),fd_slotmap_type);
 
   if (fd_testopt(opts,FDSYM_METADATA,VOID)) {
-    lispval init_metadata = fd_testopt(opts,FDSYM_METADATA,VOID);
+    lispval init_metadata = fd_getopt(opts,FDSYM_METADATA,VOID);
     if (FD_SLOTMAPP(init_metadata))
       fd_copy_slotmap((fd_slotmap)init_metadata,
                       &(ix->index_metadata));

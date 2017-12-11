@@ -1913,7 +1913,7 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
   p->pool_namefn = VOID;
 
   if (fd_testopt(opts,FDSYM_METADATA,VOID)) {
-    lispval init_metadata = fd_testopt(opts,FDSYM_METADATA,VOID);
+    lispval init_metadata = fd_getopt(opts,FDSYM_METADATA,VOID);
     if (FD_SLOTMAPP(init_metadata)) {
       if (fd_copy_slotmap((fd_slotmap)init_metadata,&(p->pool_metadata))<0) {
         u8_log(LOG_WARN,"BadIndexMetadata",
@@ -1930,7 +1930,7 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
         fd_decref(v);}
       fd_decref(keys);}
     else {
-      u8_log(LOG_WARN,"BadIndexMetadata",
+      u8_log(LOG_WARN,"BadPoolMetadata",
              "Invalid metadata for %s: %q",
              id,init_metadata);
       fd_init_slotmap(&(p->pool_metadata),17,NULL);}}
