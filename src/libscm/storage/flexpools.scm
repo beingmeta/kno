@@ -40,7 +40,7 @@
   #("." (isxdigit+) ".pool" (eos)))
 (define pool-suffix
   {#(".flexpool" (eos)) #("." (opt #((isxdigit+) ".")) "pool" (eos))})
-	    
+
 (define (get-partition-prefix filename)
   (let ((stripped (textsubst filename (qc pool-suffix) "")))
     (if (position #\/ stripped)
@@ -252,7 +252,7 @@
 			    'readonly (getopt opts 'readonly {})
 			    'make (getopt opts 'make))))
 	 (basemap (make-hashtable))
-	 (load (getopt opts 'load 0))
+	 (flexload (getopt opts 'load 0))
 	 (pools start-pool)
 	 (front #f)
 	 (last start-pool))
@@ -261,7 +261,7 @@
 
     (unless (exists? start-pool)
       (let ((zero-opts
-	     (flexpool/makeopts start-file flexbase flexcap partsize 0
+	     (flexpool/makeopts start-file flexbase flexload flexcap partsize 0
 				(cons `#[prefix ,prefix] opts))))
 	(set! start-pool 
 	  (if (getopt opts 'adjunct)
@@ -306,16 +306,15 @@
 		   (oid-addr (pool-base last)))
 	    (set! last pool)))))
 
-    (when (testopt opts 'load)
-      (let ((load (getopt opts 'load 0))
-	    (serial 1))
-	(while (> load (* serial partsize))
+    (when (> flexload 0)
+      (let ((serial 1))
+	(while (> flexload (* serial partsize))
 	  (let* ((filebase (glom prefix "." (padnum serial padlen 16) ".pool"))
 		 (file (mkpath (dirname filename) filebase)))
 	    (unless (file-exists? file)
 	      (let* ((adjusted-load (- load (* serial partsize)))
 		     (make-opts
-		      (flexpool/makeopts file flexbase flexcap partsize serial
+		      (flexpool/makeopts file flexbase flexload flexcap partsize serial
 					 (cons `#[prefix ,prefix] opts)))
 		     (pool (make-pool file (cons make-opts partition-opts))))
 		(lognotice |NewPartition| "Created pool partition " (write file))
@@ -338,7 +337,7 @@
 			 (oid-addr (pool-base last)))
 		  (set! last pool)))))
 	  (set! serial (1+ serial)))))
-				
+    
     (when (not front) (set! front last))
 
     (let ((state (cons-flexpool filename prefix flexbase flexcap partsize
@@ -387,8 +386,8 @@
 	 (serial (quotient (oid-offset base flexbase) partsize))
 	 (relpath (glom prefix "." (padnum serial padlen 16) ".pool"))
 	 (path (mkpath (dirname (flexpool-filename fp)) relpath))
-	 (opts (flexpool/makeopts path flexbase flexcap partsize 0
-				  (cons `#[prefix ,prefix] 
+	 (opts (flexpool/makeopts path flexbase 0 flexcap partsize serial
+				  (cons `#[prefix ,prefix]
 					(flexpool-opts fp)))))
     (let ((new (if (file-exists? path)
 		   (use-pool path (cons opts (flexpool-opts fp)))
@@ -597,10 +596,14 @@
       (set! n (* n 16)))
     digits))
 
-(define (flexpool/makeopts file flexbase flexcap partsize serial opts)
+(define (flexpool/getload flexload partsize serial (load))
+  (default! load (- flexload (* partsize serial)))
+  (if (<= load 0) 0 (if (> load partsize) partsize load)))
+
+(define (flexpool/makeopts file flexbase flexload flexcap partsize serial opts)
   (let* ((base (oid-plus flexbase (* serial partsize)))
 	 (padlen (flexpool/padlen flexcap partsize))
-	 (load (oid- (oid+ flexbase (getopt opts 'load 0)) base)))
+	 (load (flexpool/getload flexload partsize serial)))
     `#[base ,base
        load ,(if (> load partsize) partsize load)
        capacity ,partsize
