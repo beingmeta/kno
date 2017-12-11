@@ -113,7 +113,6 @@ fd_pool fd_make_procpool(FD_OID base,
   flags |= FD_POOL_SPARSE;
 
   pp->pool_flags = flags;
-  pp->pool_opts  = fd_getopt(opts,fd_intern("OPTS"),FD_FALSE);
 
   pp->pool_methods = methods;
   pp->pool_state   = state; fd_incref(state);

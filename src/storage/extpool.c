@@ -74,6 +74,12 @@ fd_pool fd_make_extpool(u8_string label,
     xp->state = state;
     xp->pool_label = u8_strdup(label);
     xp->pool_flags = xp->pool_flags|FD_POOL_SPARSE;
+
+    lispval metadata = fd_getopt(opts,FDSYM_METADATA,FD_VOID);
+    if (FD_SLOTMAPP(metadata))
+      fd_copy_slotmap((fd_slotmap)metadata,&(xp->pool_metadata));
+    fd_decref(metadata);
+
     return (fd_pool)xp;}
 }
 
