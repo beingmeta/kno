@@ -252,6 +252,7 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,lispval 
     (fd_offset_type)((bigpool_format)&(FD_BIGPOOL_OFFMODE));
   fd_compress_type cmptype = (((bigpool_format)&(FD_BIGPOOL_COMPRESSION))>>3);
   pool->pool_compression = fd_compression_type(opts,cmptype);
+
   fd_init_pool((fd_pool)pool,base,capacity,&bigpool_handler,fname,rname,opts);
 
   if ((U8_BITP(bigpool_format,FD_BIGPOOL_ADJUNCT))&&
@@ -1928,6 +1929,23 @@ static void bigpool_setbuf(fd_pool p,ssize_t bufsize)
   fd_unlock_pool_struct(p);
 }
 
+static int bigpool_set_compression(fd_bigpool bp,fd_compress_type cmptype)
+{
+  struct FD_STREAM _stream, *stream = fd_init_file_stream
+    (&_stream,bp->pool_source,FD_FILE_MODIFY,-1,-1);
+  if (stream == NULL) return -1;
+  unsigned int format = fd_read_4bytes_at(stream,FD_BIGPOOL_FORMAT_POS,FD_STREAM_ISLOCKED);
+  format = format & (~(FD_BIGPOOL_COMPRESSION));
+  format = format | (cmptype<<3);
+  size_t v = fd_write_4bytes_at(stream,format,FD_BIGPOOL_FORMAT_POS);
+  if (v>=0) {
+    fd_lock_pool_struct((fd_pool)bp,1);
+    bp->pool_compression = cmptype;}
+  fd_close_stream(stream,FD_STREAM_FREEDATA);
+  if (v<0) return v;
+  else return FD_INT(cmptype);
+}
+
 static lispval bigpool_getoids(fd_bigpool bp)
 {
   if (bp->pool_cache_level<0) {
@@ -2056,6 +2074,34 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
     return base;}
   else if ( (op == fd_load_op) && (n == 0) )
     return FD_INT(bp->pool_load);
+  else if ( ( op == compression_symbol ) && (n == 0) ) {
+    if ( bp->pool_compression == FD_NOCOMPRESS )
+      return FD_FALSE;
+    else if ( bp->pool_compression == FD_ZLIB )
+      return fd_intern("ZLIB");
+    else if ( bp->pool_compression == FD_ZLIB9 )
+      return fd_intern("ZLIB9");
+    else if ( bp->pool_compression == FD_SNAPPY )
+      return fd_intern("SNAPPY");
+    else {
+      fd_seterr("BadCompressionType","bigpool_ctl",bp->poolid,FD_VOID);
+      return FD_ERROR;}}
+  else if ( ( op == compression_symbol ) && (n == 1) ) {
+    lispval arg = args[0]; int rv = 0;
+    if (FD_FALSEP(arg))
+      rv = bigpool_set_compression(bp,FD_NOCOMPRESS);
+    else if (arg == (fd_intern("ZLIB")))
+      rv = bigpool_set_compression(bp,FD_ZLIB);
+    else if ( (arg == (fd_intern("ZLIB9"))) || (arg == (FD_INT(9))) )
+      rv = bigpool_set_compression(bp,FD_ZLIB9);
+    else if (arg == (fd_intern("SNAPPY")))
+      rv = bigpool_set_compression(bp,FD_SNAPPY);
+    else if (FD_TRUEP(arg))
+      rv = bigpool_set_compression(bp,FD_SNAPPY);
+    else if (FD_DEFAULTP(arg)) {}
+    else {}
+    if (rv<0) return FD_ERROR;
+    else return FD_TRUE;}
   else if (op == fd_load_op) {
     lispval loadval = args[0];
     if (FD_UINTP(loadval)) {
