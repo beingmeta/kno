@@ -1102,7 +1102,7 @@ static int fileindex_commit(fd_index ix,fd_commit_phase phase,
     u8_string source = ix->index_source;
     u8_string rollback_file = u8_string_append(source,".rollback",NULL);
     if (u8_file_existsp(rollback_file)) {
-      ssize_t rv = fd_apply_head(source,rollback_file,-1);
+      ssize_t rv = fd_apply_head(rollback_file,source);
       u8_free(rollback_file);
       if (rv<0) return -1; else return 1;}
     else {

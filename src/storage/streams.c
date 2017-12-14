@@ -1196,7 +1196,7 @@ FD_EXPORT int fd_write_8bytes_at(fd_stream s,fd_8bytes w,fd_off_t off)
   *(out->bufwrite++) = ((w>>8)&0xFF);
   *(out->bufwrite++) = ((w>>0)&0xFF);
   fd_flush_stream(s);
-  return 4;
+  return 8;
 }
 
 FD_EXPORT fd_8bytes fd_read_8bytes_at(fd_stream s,fd_off_t off,int locked,int *err)

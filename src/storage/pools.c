@@ -1953,10 +1953,6 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
 FD_EXPORT int fd_pool_init_metadata(fd_pool p,lispval metadata)
 {
   if (FD_SLOTMAPP(metadata)) {
-    if (p->pool_metadata.n_slots) {
-      u8_seterr("metadata already initialized","fd_pool_init_metadata",
-                u8_strdup(p->poolid));
-      return -1;}
     if (p->pool_metadata.n_allocd) {
       struct FD_SLOTMAP *sm = & p->pool_metadata;
       if ( (sm->sm_free_keyvals) && (sm->sm_keyvals) )
@@ -1967,6 +1963,7 @@ FD_EXPORT int fd_pool_init_metadata(fd_pool p,lispval metadata)
     FD_INIT_STATIC_CONS(&(p->pool_metadata),fd_slotmap_type);
     fd_init_slotmap(&(p->pool_metadata),17,NULL);}
   p->pool_metadata.table_modified = 0;
+  return 0;
 }
 
 FD_EXPORT void fd_set_pool_namefn(fd_pool p,lispval namefn)

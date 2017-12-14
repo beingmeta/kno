@@ -223,6 +223,8 @@ FD_EXPORT lispval fd_slotids_arg(lispval arg);
 FD_EXPORT u8_string fd_match_pool_file(u8_string spec,void *data);
 FD_EXPORT u8_string fd_match_index_file(u8_string spec,void *data);
 
+FD_EXPORT int fd_remove_suffix(u8_string base,u8_string suffix);
+
 /* Setting file options */
 
 FD_EXPORT int fd_set_file_opts(u8_string filename,lispval opts);

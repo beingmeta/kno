@@ -345,19 +345,35 @@ static int load_header(struct FD_HASHINDEX *index,struct FD_STREAM *stream)
     if (fd_setpos(stream,metadata_loc)>0) {
       fd_inbuf in = fd_readbuf(stream);
       metadata = fd_read_dtype(in);}
+    else if ( index->index_flags & FD_STORAGE_REPAIR ) {
+      u8_log(LOG_WARN,"BadMetaData","open_hashindex",
+             "Bad metadata location for %s @%lld+%lld",
+             fname,metadata_loc,metadata_size);
+      metadata=FD_VOID;}
     else {
       fd_seterr("BadMetaData","open_hashindex",
                 "BadMetadataLocation",FD_INT(metadata_loc));
-      metadata=FD_ERROR_VALUE;}
-    if (! ( (FD_FALSEP(metadata)) || (FD_SLOTMAPP(metadata)) ) ) {
-      u8_logf(LOG_WARN,"BadMetaData",
-              "Ignoring bad metadata stored for %s: %q",
-              fname,metadata);
-      metadata=FD_FALSE;}}
-  else if ( (metadata_size) || (metadata_loc) )
-    u8_log(LOG_WARN,"BadMetadata",
-           "Bad metadata location for %s @%lld+%lld",
-           fname,metadata_loc,metadata_size);
+      return -1;}
+    if (FD_FALSEP(metadata))
+      metadata = FD_VOID;
+    else if (FD_VOIDP(metadata)) {}
+    else if (FD_SLOTMAPP(metadata)) {}
+    else if ( index->index_flags & FD_STORAGE_REPAIR ) {
+      if (FD_ABORTP(metadata)) {
+        fd_clear_errors(1);
+        metadata=FD_VOID;}
+      else {
+        u8_log(LOG_WARN,"BadMetadata",
+               "Bad metadata for %s @%lld+%lld = %q",
+               fname,metadata_loc,metadata_size,metadata);
+        metadata=FD_VOID;}}
+    else if (FD_ABORTP(metadata)) {
+      fd_seterr("BadMetadata","open_hashindex",fname,FD_VOID);
+      return -1;}
+    else {
+      fd_seterr("BadMetadata","open_hashindex",fname,metadata);
+      fd_decref(metadata);
+      return -1;}}
   else NO_ELSE;
 
   if (FD_VOIDP(metadata)) {}
@@ -381,7 +397,7 @@ static fd_index recover_hashindex(u8_string fname,fd_storage_flags open_flags,
 {
   u8_string recovery_file=u8_string_append(fname,".rollback",NULL);
   if (u8_file_existsp(recovery_file)) {
-    ssize_t rv=fd_restore_head(recovery_file,fname,256-8);
+    ssize_t rv=fd_restore_head(recovery_file,fname);
     if (rv<0) {
       u8_graberrno("recover_hashindex",recovery_file);
       return NULL;}
@@ -462,6 +478,10 @@ FD_EXPORT int make_hashindex
   u8_logf(LOG_INFO,"CreateHashIndex",
           "Creating a hashindex '%s' with %ld buckets",
           fname,n_buckets);
+
+  /* Remove leftover files */
+  fd_remove_suffix(fname,".commit");
+  fd_remove_suffix(fname,".rollback");
 
   fd_setpos(stream,0);
   fd_write_4bytes(outstream,FD_HASHINDEX_MAGIC_NUMBER);
@@ -2689,6 +2709,10 @@ static int hashindex_commit(fd_index ix,fd_commit_phase phase,
        (struct FD_CONST_KEYVAL *)commits->commit_drops,commits->commit_n_drops,
        (struct FD_CONST_KEYVAL *)commits->commit_stores,commits->commit_n_stores,
        commits->commit_metadata);
+    fd_flush_stream(stream);
+    size_t stream_end = fd_endpos(stream);
+    size_t head_end = fd_endpos(head_stream);
+    fd_write_8bytes_at(head_stream,stream_end,head_end-8);
     fd_close_stream(head_stream,FD_STREAM_FREEDATA);
     u8_free(head_stream);
     return rv;}
@@ -2696,7 +2720,7 @@ static int hashindex_commit(fd_index ix,fd_commit_phase phase,
     u8_string source = ix->index_source;
     u8_string rollback_file = u8_string_append(source,".rollback",NULL);
     if (u8_file_existsp(rollback_file)) {
-      ssize_t rv = fd_apply_head(source,rollback_file,256-8);
+      ssize_t rv = fd_apply_head(rollback_file,source);
       u8_free(rollback_file);
       if (rv<0) return -1; else return 1;}
     else {
@@ -2707,7 +2731,7 @@ static int hashindex_commit(fd_index ix,fd_commit_phase phase,
       return -1;}}
   case fd_commit_finish: {
     u8_string commit_file = u8_mkstring("%s.commit",source);
-    ssize_t rv = fd_apply_head(source,commit_file,-1);
+    ssize_t rv = fd_apply_head(commit_file,source);
     u8_free(commit_file);
     load_header(hx,stream);
     if (rv<0)
@@ -2894,6 +2918,7 @@ static int update_hashindex_ondisk
 #else
   size_t offdata_length = n_buckets*chunk_ref_size;
   offdata = u8_big_alloc(offdata_length);
+  fd_setpos(head,256);
   int rv = fd_read_ints(head,offdata_length/4,offdata);
   if (rv<0) {
     u8_graberrno("update_hashindex_ondisk:fd_read_ints",u8_strdup(hx->indexid));

@@ -981,6 +981,19 @@ fd_compress_type fd_compression_type(lispval opts,fd_compress_type dflt)
   else return dflt;
 }
 
+/* Cleaning up dbfiles */
+
+FD_EXPORT int fd_remove_suffix(u8_string base,u8_string suffix)
+{
+  size_t base_len = strlen(base);
+  size_t full_len = base_len + strlen(suffix) + 1;
+  unsigned char buf[full_len];
+  strcpy(buf,base); strcpy(buf+base_len,suffix);
+  if (u8_file_existsp(buf))
+    return u8_removefile(buf);
+  else return 0;
+}
+
 /* Matching file pools/indexes */
 
 FD_EXPORT u8_string fd_match_pool_file(u8_string spec,void *data)

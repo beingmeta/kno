@@ -133,14 +133,9 @@ static lispval alcor_save_prim(lispval source,lispval head,lispval size_arg)
   else return FD_INT(rv);
 }
 
-static lispval alcor_apply_prim(lispval head,lispval source,
-                                lispval trunc_arg)
+static lispval alcor_apply_prim(lispval head,lispval source)
 {
-  ssize_t rv;
-  if (FD_FIXNUMP(trunc_arg))
-    rv = fd_apply_head(FD_CSTRING(source),FD_CSTRING(head),
-                       FD_FIX2INT(trunc_arg));
-  else rv = fd_apply_head(FD_CSTRING(source),FD_CSTRING(head),-1);
+  ssize_t rv = fd_apply_head(FD_CSTRING(head),FD_CSTRING(source));
   if (rv<0)
     return FD_ERROR;
   else return FD_INT(rv);
@@ -198,13 +193,12 @@ FD_EXPORT void fd_init_driverfns_c()
             "of *src* into *head*",
             fd_string_type,FD_VOID,fd_string_type,FD_VOID,
             fd_fixnum_type,FD_VOID);
-  fd_idefn3(driverfns_module,"ALCOR/APPLY!",alcor_apply_prim,2,
-            "(ALCOR/APPLY! head src [trunc]) copies *head* into the "
-            "beginning of *src*; *trunc* if provided, is used as the "
-            "an offset containing an 8-byte size to which *src* is "
-            "truncated.",
-            fd_string_type,FD_VOID,fd_string_type,FD_VOID,
-            fd_fixnum_type,FD_VOID);
+  fd_idefn2(driverfns_module,"ALCOR/APPLY!",alcor_apply_prim,2,
+            "(ALCOR/APPLY! head src) copies *head* into the "
+            "beginning of *src* (all but the last 8 bytes) and "
+            "truncates *src* to the length specified in the last "
+            "eight bytes of *head*",
+            fd_string_type,FD_VOID,fd_string_type,FD_VOID);
 
 
 

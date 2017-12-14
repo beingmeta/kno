@@ -1610,10 +1610,6 @@ FD_EXPORT void fd_init_index(fd_index ix,
 FD_EXPORT int fd_index_init_metadata(fd_index ix,lispval metadata)
 {
   if (FD_SLOTMAPP(metadata)) {
-    if (ix->index_metadata.n_slots) {
-      u8_seterr("metadata already initialized","fd_index_init_metadata",
-                u8_strdup(ix->indexid));
-      return -1;}
     fd_copy_slotmap((fd_slotmap)metadata,&(ix->index_metadata));
     ix->index_keyslot = fd_get(metadata,FDSYM_KEYSLOT,VOID);}
   else {
@@ -1621,6 +1617,7 @@ FD_EXPORT int fd_index_init_metadata(fd_index ix,lispval metadata)
     fd_init_slotmap(&(ix->index_metadata),17,NULL);
     ix->index_keyslot = VOID;}
   ix->index_metadata.table_modified = 0;
+  return 0;
 }
 
 FD_EXPORT void fd_reset_index_tables
