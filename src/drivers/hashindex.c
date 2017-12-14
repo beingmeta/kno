@@ -362,19 +362,14 @@ static int load_header(struct FD_HASHINDEX *index,struct FD_STREAM *stream)
 
   if (FD_VOIDP(metadata)) {}
   else if (FD_SLOTMAPP(metadata)) {
-    struct FD_SLOTMAP *from_struct = &(index->index_metadata);
-    struct FD_SLOTMAP *from_disk = (fd_slotmap) metadata;
-    if (from_struct->sm_keyvals) u8_free(from_struct->sm_keyvals);
-    memcpy(from_struct,from_disk,FD_SLOTMAP_LEN);
-    u8_free(from_disk);
-    metadata = FD_VOID;
-    from_struct->table_modified=0;
-    index->hx_metadata_pos = baseoids_pos;}
+    fd_index_init_metadata((fd_index)index,metadata);
+    index->hx_metadata_pos = metadata_loc;}
   else {
     u8_log(LOG_WARN,"BadMetadata",
            "Bad metadata for %s @%lld+%lld: %q",
-           fname,metadata_loc,metadata_size,metadata);
-    fd_decref(metadata);}
+           fname,metadata_loc,metadata_size,metadata);}
+  fd_decref(metadata);
+  metadata = FD_VOID;
 
   index->table_n_keys = fd_read_4bytes_at(stream,16,FD_ISLOCKED);
 
@@ -1754,11 +1749,9 @@ struct FD_KEY_SIZE *hashindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
       return NULL;}
     n_keys = fd_read_zint(&keyblkstrm);
     while (j<n_keys) {
-      lispval key; int n_vals;
       /* size = */ fd_read_zint(&keyblkstrm);
-      key = read_key(hx,&keyblkstrm);
-      n_vals = fd_read_zint(&keyblkstrm);
-      assert(key!=0);
+      lipsval key = read_key(hx,&keyblkstrm);
+      int n_vals = fd_read_zint(&keyblkstrm);
       if ( (filter == NULL) || (fast_choice_containsp(key,filter)) ) {
         sizes[key_count].keysize_key = key;
         sizes[key_count].keysize_count = n_vals;
@@ -1992,7 +1985,7 @@ static int sort_br_by_off(const void *p1,const void *p2)
    number. This allows us to march along them in parallel and operate
    on a keybucket together with all its changing keys.
 
-   We extend each keybucket (using 'extend_keybucket') with the
+   We extend each keybucket (using 'update_keybucket') with the
    additional keys or new values. This is where the actual values are
    written and the corresponding chunk locations stored in the
    KEYENTRY structs for each key. When a key has only a single value,
@@ -2189,13 +2182,14 @@ FD_FASTOP FD_CHUNK_REF write_value_block
   endpos = endpos+fd_write_zint(outstream,cont_size);
   if (cont_size)
     endpos = endpos+fd_write_zint(outstream,cont_off);
+  CHECK_POS(endpos,stream);
   retval.off = startpos; retval.size = endpos-startpos;
   return retval;
 }
 
 /* This adds new entries to a keybucket, writing value blocks to the
    file where neccessary (more than one value). */
-FD_FASTOP fd_off_t extend_keybucket
+FD_FASTOP fd_off_t update_keybucket
 (fd_hashindex hx,fd_stream stream,
  fd_slotcoder sc,fd_oidcoder oc,
  struct KEYBUCKET *kb,
@@ -2256,7 +2250,7 @@ FD_FASTOP fd_off_t extend_keybucket
           if (free_keyvecs) {
             u8_big_free(keyoffs);
             u8_big_free(keysizes);
-            u8_seterr(fd_DataFileOverflow,"extend_keybucket",
+            u8_seterr(fd_DataFileOverflow,"update_keybucket",
                       u8_mkstring("%s: %lld >= %lld",
                                   hx->indexid,endpos,maxpos));
             return -1;}}
@@ -2305,7 +2299,7 @@ FD_FASTOP fd_off_t extend_keybucket
           if (free_keyvecs) {
             u8_big_free(keyoffs);
             u8_big_free(keysizes);
-            u8_seterr(fd_DataFileOverflow,"extend_keybucket",
+            u8_seterr(fd_DataFileOverflow,"update_keybucket",
                       u8_mkstring("%s: %lld >= %lld",
                                   hx->indexid,endpos,maxpos));
             return -1;}}
@@ -2333,7 +2327,7 @@ FD_FASTOP fd_off_t extend_keybucket
           if (free_keyvecs) {
             u8_big_free(keyoffs);
             u8_big_free(keysizes);
-            u8_seterr(fd_DataFileOverflow,"extend_keybucket",
+            u8_seterr(fd_DataFileOverflow,"update_keybucket",
                       u8_mkstring("%s: %lld >= %lld",
                                   hx->indexid,endpos,maxpos));
             return -1;}}}
@@ -2465,28 +2459,25 @@ static int hashindex_save(struct FD_HASHINDEX *hx,
   int schedule_size = 0;
   struct COMMIT_SCHEDULE *schedule=
     u8_big_alloc_n(schedule_max,struct COMMIT_SCHEDULE);
-  struct KEYBUCKET **keybuckets=
-    u8_big_alloc_n(schedule_max,struct KEYBUCKET *);
-  struct FD_OUTBUF out = { 0 }, newkeys = { 0 };
 
-  /* Get all the keys we need to write.  */
-  schedule_size = process_stores(hx,stores,n_stores,schedule,schedule_size);
-  schedule_size = process_drops(hx,drops,n_drops,schedule,schedule_size);
-  schedule_size = process_adds(hx,adds,n_adds,schedule,schedule_size);
-
-  /* The commit schedule is now filled and we start generating a
-     bucket schedule for reading the buckets to determine what goes
-     where. */
   /* We're going to write DTYPE representations of keys and values,
-     so we create streams to buffer them */
+     so we create streams where they'll all be written to one big buffer
+     (which we free at the end). */
+  struct FD_OUTBUF out = { 0 }, newkeys = { 0 };
   FD_INIT_BYTE_OUTPUT(&out,1024);
   FD_INIT_BYTE_OUTPUT(&newkeys,schedule_max*16);
   if ((hx->storage_xformat)&(FD_HASHINDEX_DTYPEV2)) {
     out.buf_flags |= FD_USE_DTYPEV2;
     newkeys.buf_flags |= FD_USE_DTYPEV2;}
 
-  /* Compute the hashes and the buckets for all of the keys
-     in the commit schedule. */
+  /* Get all the keys we need to write and put then in the commit
+     schedule */
+  schedule_size = process_stores(hx,stores,n_stores,schedule,schedule_size);
+  schedule_size = process_drops(hx,drops,n_drops,schedule,schedule_size);
+  schedule_size = process_adds(hx,adds,n_adds,schedule,schedule_size);
+
+  /* The commit schedule is now filled and we determine the bucket for
+     each key. */
   sched_i = 0; while (sched_i<schedule_size) {
     lispval key = schedule[sched_i].commit_key; int bucket;
     out.bufwrite = out.buffer;
@@ -2495,35 +2486,30 @@ static int hashindex_save(struct FD_HASHINDEX *hx,
       hash_bytes(out.buffer,out.bufwrite-out.buffer)%n_buckets;
     sched_i++;}
 
-  /* Get all the bucket locations.  It may be that we can fold this
-     into the phase above when we have the offsets table in
-     memory. */
+  /* Get all the bucket locations, sorting the schedule to avoid
+     multiple lookups */
   qsort(schedule,schedule_size,sizeof(struct COMMIT_SCHEDULE),
         sort_cs_by_bucket);
   sched_i = 0; bucket_i = 0; while (sched_i<schedule_size) {
     int bucket = schedule[sched_i].commit_bucket;
-    int bucket_first_key = sched_i;
     int bucket_last_key = sched_i;
     bucket_locs[changed_buckets].bucketno = bucket;
-    bucket_locs[changed_buckets].bck_ref = (offdata) ?
+    bucket_locs[changed_buckets].bck_ref = (offdata) ? /* location on disk */
       (fd_get_chunk_ref(offdata,offtype,bucket,hx->index_n_buckets)):
       (fd_fetch_chunk_ref(stream,256,offtype,bucket,1));
+    int keys_in_bucket = 1;
+    /* Scan over all committed keys in the same bucket */
     while ( (bucket_last_key<schedule_size) &&
-            (schedule[bucket_last_key].commit_bucket == bucket) )
-      bucket_last_key++;
-    bucket_locs[changed_buckets].max_new=
-      bucket_last_key-bucket_first_key;
+            (schedule[bucket_last_key].commit_bucket == bucket) ) {
+      bucket_last_key++; keys_in_bucket++;}
+    bucket_locs[changed_buckets].max_new = keys_in_bucket;
     sched_i = bucket_last_key;
     changed_buckets++;}
 
   /* Now we have all the bucket locations, which we'll read in
      order. */
-
-  /* Process all of the buckets in order, reading each keyblock.  We
-     may be able to combine this with extending the bucket below,
-     but that would entail moving the writing of values out of the
-     bucket extension (since both want to get at the file) Could we
-     have two pointers into the file?  */
+  struct KEYBUCKET **keybuckets=
+    u8_big_alloc_n(changed_buckets,struct KEYBUCKET *);
   qsort(bucket_locs,changed_buckets,sizeof(struct BUCKET_REF),
         sort_br_by_off);
   bucket_i = 0; while (bucket_i<changed_buckets) {
@@ -2536,26 +2522,34 @@ static int hashindex_save(struct FD_HASHINDEX *hx,
 
   /* Now all the keybuckets have been read and buckets have been
      created for keys that didn't have buckets before. */
+  /* schedule is already sorted by bucket ? */
+#if 0
   qsort(schedule,schedule_size,sizeof(struct COMMIT_SCHEDULE),
         sort_cs_by_bucket);
+#endif
   qsort(keybuckets,changed_buckets,sizeof(struct KEYBUCKET *),
         sort_kb_by_bucket);
-  /* bucket_locs is currently sorted by offset */
+  /* bucket_locs is currently sorted by offset, so we resort it by
+     bucket because we're going to iterate by bucket and write the new
+     bucket locations into it. */
   qsort(bucket_locs,changed_buckets,sizeof(struct BUCKET_REF),
         sort_br_by_bucket);
 
   /* March along the commit schedule (keys) and keybuckets (buckets)
-     in parallel, extending each bucket.  This is where values are
+     in parallel, updating each bucket.  This is where values are
      written out and their new offsets stored in the schedule. */
   sched_i = 0; bucket_i = 0; endpos = fd_endpos(stream);
   while (sched_i<schedule_size) {
     struct KEYBUCKET *kb = keybuckets[bucket_i];
     int bucket = schedule[sched_i].commit_bucket;
     int j = sched_i, cur_keys = kb->kb_n_keys;
-    assert(bucket == kb->kb_bucketno);
+    if (FD_EXPECT_FALSE(bucket != kb->kb_bucketno)) {
+      u8_log(LOG_CRIT,"HashIndexError",
+             "Bucket at sched_i=%d/%d was %d != %d (expected) in %s",
+             sched_i,schedule_size,bucket,kb->kb_bucketno,hx->indexid);}
     while ((j<schedule_size) && (schedule[j].commit_bucket == bucket)) j++;
     /* This may write values to disk, so we use the returned endpos */
-    endpos = extend_keybucket(hx,stream,&sc,&oc,kb,schedule,sched_i,j,
+    endpos = update_keybucket(hx,stream,&sc,&oc,kb,schedule,sched_i,j,
                               &newkeys,&new_valueblocks,
                               endpos,maxpos);
     CHECK_POS(endpos,stream);
@@ -2577,7 +2571,8 @@ static int hashindex_save(struct FD_HASHINDEX *hx,
       CHECK_POS(endpos,stream);
       bucket_locs[bucket_i].bck_ref.off = startpos;
       bucket_locs[bucket_i].bck_ref.size = endpos-startpos;}
-    sched_i = j; bucket_i++;}
+    sched_i = j;
+    bucket_i++;}
   fd_flush_stream(stream);
 
   /* Free all the keybuckets */
@@ -3107,7 +3102,8 @@ static int interpret_hashindex_flags(lispval opts)
 }
 
 static fd_index hashindex_create(u8_string spec,void *typedata,
-                                 fd_storage_flags flags,lispval opts)
+                                 fd_storage_flags flags,
+                                 lispval opts)
 {
   int rv = 0;
   lispval metadata_init = fd_getopt(opts,fd_intern("METADATA"),FD_VOID);
@@ -3139,6 +3135,19 @@ static fd_index hashindex_create(u8_string spec,void *typedata,
 
   fd_decref(slotids_init);
   fd_decref(baseoids_init);
+
+  lispval keyslot = fd_getopt(opts,FDSYM_KEYSLOT,FD_VOID);
+
+  if ( (FD_VOIDP(keyslot)) || (FD_FALSEP(keyslot)) ) {}
+  else if ( (FD_SYMBOLP(keyslot)) || (FD_OIDP(keyslot)) ) {
+    if (FD_SLOTMAPP(metadata_init))
+      fd_store(metadata_init,FDSYM_KEYSLOT,keyslot);
+    else {
+      metadata_init = fd_empty_slotmap();
+      fd_store(metadata_init,FDSYM_KEYSLOT,keyslot);}}
+  else u8_log(LOG_WARN,"InvalidKeySlot",
+              "Not initializing keyslot of %s to %q",spec,keyslot);
+
 
   if (rv<0)
     return NULL;
