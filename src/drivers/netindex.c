@@ -59,7 +59,7 @@ FD_EXPORT fd_index fd_open_network_index(u8_string spec,
                                     fd_dbconn_init_default);
   if (cp == NULL) return NULL;
   ix = u8_alloc(struct FD_NETWORK_INDEX); memset(ix,0,sizeof(*ix));
-  fd_init_index((fd_index)ix,&netindex_handler,spec,xid,flags,opts);
+  fd_init_index((fd_index)ix,&netindex_handler,spec,xid,flags,FD_VOID,opts);
   ix->index_connpool = cp; ix->xname = VOID;
   writable_response = fd_dtcall(ix->index_connpool,1,iserver_writable);
   if ((FD_ABORTP(writable_response))||

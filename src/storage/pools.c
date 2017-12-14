@@ -1894,6 +1894,7 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
                             unsigned int capacity,
                             struct FD_POOL_HANDLER *h,
                             u8_string id,u8_string source,
+                            lispval metadata,
                             lispval opts)
 {
   FD_INIT_CONS(p,fd_consed_pool_type);
@@ -1935,12 +1936,37 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
   fd_make_hashtable(&(p->pool_changes),fd_pool_lock_init);
 
   /* Metadata tables */
-  FD_INIT_STATIC_CONS(&(p->pool_metadata),fd_slotmap_type);
   FD_INIT_STATIC_CONS(&(p->pool_props),fd_slotmap_type);
-  fd_init_slotmap(&(p->pool_metadata),17,NULL);
   fd_init_slotmap(&(p->pool_props),17,NULL);
+
+  FD_INIT_STATIC_CONS(&(p->pool_metadata),fd_slotmap_type);
+  if (FD_SLOTMAPP(metadata)) {
+    fd_copy_slotmap((fd_slotmap)metadata,&(p->pool_metadata));}
+  else {
+    fd_init_slotmap(&(p->pool_metadata),17,NULL);}
+  p->pool_metadata.table_modified = 0;
+
   u8_init_rwlock(&(p->pool_struct_lock));
   u8_init_mutex(&(p->pool_commit_lock));
+}
+
+FD_EXPORT int fd_pool_init_metadata(fd_pool p,lispval metadata)
+{
+  if (FD_SLOTMAPP(metadata)) {
+    if (p->pool_metadata.n_slots) {
+      u8_seterr("metadata already initialized","fd_pool_init_metadata",
+                u8_strdup(p->poolid));
+      return -1;}
+    if (p->pool_metadata.n_allocd) {
+      struct FD_SLOTMAP *sm = & p->pool_metadata;
+      if ( (sm->sm_free_keyvals) && (sm->sm_keyvals) )
+        u8_free(sm->sm_keyvals);
+      u8_destroy_rwlock(&(sm->table_rwlock));}
+    fd_copy_slotmap((fd_slotmap)metadata,&(p->pool_metadata));}
+  else {
+    FD_INIT_STATIC_CONS(&(p->pool_metadata),fd_slotmap_type);
+    fd_init_slotmap(&(p->pool_metadata),17,NULL);}
+  p->pool_metadata.table_modified = 0;
 }
 
 FD_EXPORT void fd_set_pool_namefn(fd_pool p,lispval namefn)

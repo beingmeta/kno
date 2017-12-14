@@ -1547,6 +1547,7 @@ FD_EXPORT void fd_init_index(fd_index ix,
                              struct FD_INDEX_HANDLER *h,
                              u8_string id,u8_string src,
                              fd_storage_flags flags,
+                             lispval metadata,
                              lispval opts)
 {
   U8_SETBITS(flags,FD_STORAGE_ISINDEX);
@@ -1565,17 +1566,26 @@ FD_EXPORT void fd_init_index(fd_index ix,
   fd_make_hashtable(&(ix->index_adds),0);
   fd_make_hashtable(&(ix->index_drops),0);
   fd_make_hashtable(&(ix->index_stores),0);
-  FD_INIT_STATIC_CONS(&(ix->index_metadata),fd_slotmap_type);
-  FD_INIT_STATIC_CONS(&(ix->index_props),fd_slotmap_type);
 
+  FD_INIT_STATIC_CONS(&(ix->index_props),fd_slotmap_type);
   fd_init_slotmap(&(ix->index_props),17,NULL);
+
   ix->index_handler = h;
+
+  FD_INIT_STATIC_CONS(&(ix->index_metadata),fd_slotmap_type);
+  if (FD_SLOTMAPP(metadata)) {
+    fd_copy_slotmap((fd_slotmap)metadata,&(ix->index_metadata));
+    ix->index_keyslot = fd_get(metadata,FDSYM_KEYSLOT,VOID);}
+  else {
+    fd_init_slotmap(&(ix->index_metadata),17,NULL);
+    ix->index_keyslot = VOID;}
+  ix->index_metadata.table_modified = 0;
+
   /* This was what was specified */
   ix->indexid = u8_strdup(id);
   /* Don't copy this one */
   ix->index_source = src;
   ix->index_typeid = NULL;
-  ix->index_keyslot = fd_getopt(opts,FDSYM_KEYSLOT,VOID);
   ix->index_covers_slotids = VOID;
 
   if ( (FD_VOIDP(opts)) || (FD_FALSEP(opts)) )
@@ -1595,6 +1605,22 @@ FD_EXPORT void fd_init_index(fd_index ix,
   fd_decref(ll);
 
   u8_init_mutex(&(ix->index_commit_lock));
+}
+
+FD_EXPORT int fd_index_init_metadata(fd_index ix,lispval metadata)
+{
+  if (FD_SLOTMAPP(metadata)) {
+    if (ix->index_metadata.n_slots) {
+      u8_seterr("metadata already initialized","fd_index_init_metadata",
+                u8_strdup(ix->indexid));
+      return -1;}
+    fd_copy_slotmap((fd_slotmap)metadata,&(ix->index_metadata));
+    ix->index_keyslot = fd_get(metadata,FDSYM_KEYSLOT,VOID);}
+  else {
+    FD_INIT_STATIC_CONS(&(ix->index_metadata),fd_slotmap_type);
+    fd_init_slotmap(&(ix->index_metadata),17,NULL);
+    ix->index_keyslot = VOID;}
+  ix->index_metadata.table_modified = 0;
 }
 
 FD_EXPORT void fd_reset_index_tables

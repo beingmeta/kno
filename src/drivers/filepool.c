@@ -83,7 +83,8 @@ static fd_pool open_file_pool(u8_string fname,fd_storage_flags flags,lispval opt
   FD_SET_OID_HI(base,hi); FD_SET_OID_LO(base,lo);
   capacity = fd_read_4bytes_at(s,12,FD_ISLOCKED);
 
-  fd_init_pool((fd_pool)pool,base,capacity,&file_pool_handler,fname,rname,opts);
+  fd_init_pool((fd_pool)pool,base,capacity,&file_pool_handler,
+               fname,rname,VOID,opts);
   u8_free(rname);
 
   if (magicno == FD_FILE_POOL_TO_RECOVER) {

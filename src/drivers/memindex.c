@@ -280,6 +280,7 @@ static fd_index open_memindex(u8_string file,fd_storage_flags flags,
   fd_init_index((fd_index)memidx,&memindex_handler,
                 file,u8_realpath(file,NULL),
                 flags|FD_STORAGE_NOSWAP,
+                VOID,
                 opts);
   struct FD_STREAM *stream=
     fd_init_file_stream(&(memidx->index_stream),file,

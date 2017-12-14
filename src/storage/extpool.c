@@ -57,7 +57,7 @@ fd_pool fd_make_extpool(u8_string label,
     struct FD_EXTPOOL *xp = u8_alloc(struct FD_EXTPOOL);
     memset(xp,0,sizeof(struct FD_EXTPOOL));
     fd_init_pool((fd_pool)xp,base,cap,&fd_extpool_handler,
-                 label,label,opts);
+                 label,label,FD_VOID,opts);
     /* We currently use the OID value as a cache for stored values, so
        we don't make it read-only. But there's probably a better
        solution. */

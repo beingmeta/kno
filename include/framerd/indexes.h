@@ -136,7 +136,9 @@ FD_EXPORT void fd_init_index
    struct FD_INDEX_HANDLER *h,
    u8_string id,u8_string src,
    fd_storage_flags flags,
+   lispval metadata,
    lispval opts);
+FD_EXPORT int fd_index_init_metadata(fd_index ix,lispval metadata);
 FD_EXPORT void fd_reset_index_tables
   (fd_index ix,ssize_t cache,ssize_t edits,ssize_t adds);
 

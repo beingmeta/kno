@@ -159,6 +159,7 @@
 		      (irritant opts |BadFlexpoolData|))))))))
 
 (define (make-flexpool filename opts)
+  (%watch "MAKE-FLEXPOOL" filename opts)
   (let ((base (getopt opts 'base))
 	(cap (getopt opts 'capacity))
 	(prefix (getopt opts 'prefix (get-partition-prefix filename)))
@@ -190,7 +191,9 @@
 	  (dtype->file saved filename)
 	  (when (exists? adjuncts)
 	    (init-adjunct-flexpools (get metadata 'adjuncts) 
-				    prefix base cap partsize opts))
+				    prefix base cap partsize
+				    (dirname filename)
+				    opts))
 	  (let ((pool (unique-flexpool (if (readlink filename)
 					   (abspath filename)
 					   (realpath filename)) 
@@ -360,7 +363,7 @@
 	(lognotice |Flexpool|
 	  "Using " ($count (choice-size pools) "partition" "partitions") 
 	  " of " ($num partsize) " OIDs"
-	  " for " (write (pool-id pool)) 
+	  " for" (if (getopt opts 'adjunct) " adjunct" )" flexpool " (write (pool-id pool)) 
 	  "\n    " pool)
 	(store! flexdata pool state)
 	(store! flexdata
@@ -685,7 +688,8 @@
     (debug%watch "MAKE-PARTITION-METADATA" filename prefix metadata)
     metadata))
 
-(define (init-adjunct-flexpools adjuncts prefix base cap partsize opts)
+(define (init-adjunct-flexpools adjuncts prefix base cap partsize dir opts)
+  (%watch "init-adjunct-flexpools" prefix base cap partsize adjuncts dir)
   (do-choices (adjslot (getkeys adjuncts))
     (let ((adjspec (get adjuncts adjslot)))
       (when (if (string? adjspec) (has-suffix adjspec ".flexpool")
@@ -693,10 +697,13 @@
 		    (and (test adjspec 'pool) (string? (get adjspec 'pool))
 			 (has-suffix (get adjspec 'pool) ".flexpool"))))
 	(let* ((name (if (string? adjspec) adjspec
-			 (getopt adjspec 'pool (get adjspec 'source 
-						    (glom (downcase adjslot) ".flexpool")))))
-	       (cur (and (file-exists? name) (file->dtype name)))
-	       (adj-prefix (mkpath (dirname prefix) (strip-suffix name {".flexpool" ".pool"})))
+			 (getopt adjspec 'pool 
+				 (getopt adjspec 'source 
+					 (glom (downcase adjslot) ".flexpool")))))
+	       (path (mkpath dir name))
+	       (cur (and (file-exists? path) (file->dtype path)))
+	       (adj-prefix (mkpath (dirname (mkpath dir prefix))
+				   (strip-suffix name {".flexpool" ".pool"})))
 	       (flexdef (frame-create #f
 			  'base base 'capacity cap
 			  'metadata `#[adjunct ,adjslot partopts ,(getopt opts 'partopts #[])]
@@ -705,7 +712,9 @@
 			  'prefix adj-prefix
 			  'init (config 'sessionid)
 			  'created (gmtimestamp))))
+	  (%watch name dir prefix base cap partsize adjslot adj-prefix)
 	  (when cur
+	    (%watch name cur)
 	    (unless (and (test cur 'base base)
 			 (test cur 'capacity cap)
 			 (test cur 'partsize partsize)
@@ -713,7 +722,7 @@
 			 (or (not (test cur 'prefix))
 			     (test cur 'prefix adj-prefix)))
 	      (irritant cur "Inconsitent adjunct flexpool")))
-	  (when (not cur) (dtype->file flexdef name)))))))
+	  (when (not cur) (dtype->file flexdef path)))))))
 
 ;;; Splitting existing pools into smaller flexpools
 

@@ -249,7 +249,8 @@ static fd_pool open_oidpool(u8_string fname,
   pool->oidpool_compression=
     (fd_compress_type)(((oidpool_format)&(FD_OIDPOOL_COMPRESSION))>>3);
 
-  fd_init_pool((fd_pool)pool,base,capacity,&oidpool_handler,fname,rname,opts);
+  fd_init_pool((fd_pool)pool,base,capacity,&oidpool_handler,fname,rname,
+               FD_VOID,opts);
   pool->pool_flags=open_flags;
   u8_free(rname); /* Done with this */
 

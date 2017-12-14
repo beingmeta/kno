@@ -54,6 +54,7 @@ fd_pool fd_make_procpool(FD_OID base,
   struct FD_PROCPOOL_METHODS *methods;
   unsigned int flags = FD_STORAGE_ISPOOL | FD_STORAGE_VIRTUAL;
   lispval pool_type = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
+  lispval metadata = fd_getopt(opts,FDSYM_METADATA,FD_VOID);
   struct FD_POOL_TYPEINFO *typeinfo =
     (FD_STRINGP(pool_type)) ? 
     (fd_get_pool_typeinfo(FD_CSTRING(pool_type))) :
@@ -89,6 +90,7 @@ fd_pool fd_make_procpool(FD_OID base,
   fd_init_pool((fd_pool)pp,base,cap,
                &fd_procpool_handler,
                label,source,
+               metadata,
                opts);
 
   if (fd_testopt(opts,FDSYM_CACHELEVEL,FD_VOID)) {

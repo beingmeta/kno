@@ -1012,8 +1012,7 @@ fd_pool fd_open_rocksdb_pool(u8_string path,fd_storage_flags flags,lispval opts)
       fd_init_pool((fd_pool)pool,
                    FD_OID_ADDR(base),FD_FIX2INT(cap),
                    &rocksdb_pool_handler,
-                   path,rname,
-                   opts);
+                   path,rname,metadata,opts);
       u8_free(rname);
       if (FD_VOIDP(read_only_opt))
         read_only_opt = get_prop(dbptr,"\377READONLY",FD_VOID);
@@ -1103,21 +1102,19 @@ fd_pool fd_make_rocksdb_pool(u8_string path,
     if (FD_VOIDP(given_load))
       set_prop(dbptr,"\377LOAD",load,sync_writeopts);
 
+    if (FD_SLOTMAPP(metadata)) {
+      if ( (FD_VOIDP(cur_metadata)) || (fd_testopt(opts,SYM("FORCE"),FD_VOID)) ) {
+        set_prop(dbptr,"\377METADATA",metadata,sync_writeopts);}
+      else u8_log(LOG_WARN,"ExistingMetadata",
+                  "Not overwriting existing metatdata in rocksdb pool %s:",
+                  path,cur_metadata);}
+
     fd_init_pool((fd_pool)pool,
                  FD_OID_ADDR(base),FD_FIX2INT(cap),
                  &rocksdb_pool_handler,
                  path,rname,
+                 metadata,
                  opts);
-
-    if (FD_SLOTMAPP(metadata)) {
-      if ( (FD_VOIDP(cur_metadata)) || (fd_testopt(opts,SYM("FORCE"),FD_VOID)) ) {
-        set_prop(dbptr,"\377METADATA",metadata,sync_writeopts);
-        fd_copy_slotmap((fd_slotmap)metadata,
-                        &(pool->pool_metadata));
-        pool->pool_metadata.table_modified=0;}
-      else u8_log(LOG_WARN,"ExistingMetadata",
-                  "Not overwriting existing metatdata in rocksdb pool %s:",
-                  path,cur_metadata);}
 
     if (FD_VECTORP(slotids)) {
       set_prop(dbptr,"\377SLOTIDS",slotids,sync_writeopts);
@@ -1584,7 +1581,7 @@ fd_index fd_open_rocksdb_index(u8_string path,fd_storage_flags flags,lispval opt
     fd_init_index((fd_index)index,
                   &rocksdb_index_handler,
                   (FD_STRINGP(label)) ? (FD_CSTRING(label)) : (path),
-                  rname,0,opts);
+                  rname,0,metadata,opts);
 
     if (FD_VOIDP(metadata)) {}
     else if (FD_SLOTMAPP(metadata)) {}
@@ -1643,6 +1640,18 @@ fd_index fd_make_rocksdb_index(u8_string path,lispval opts)
   lispval metadata = fd_getopt(opts,SYM("METADATA"),FD_VOID);
   lispval slotids = fd_getopt(opts,SYM("SLOTIDS"),FD_VOID);
   lispval baseoids = fd_getopt(opts,SYM("BASEOIDS"),FD_VOID);
+  lispval keyslot = fd_getopt(opts,FDSYM_KEYSLOT,FD_VOID);
+
+  if ( (FD_VOIDP(keyslot)) || (FD_FALSEP(keyslot)) ) {}
+  else if ( (FD_SYMBOLP(keyslot)) || (FD_OIDP(keyslot)) ) {
+    if (FD_SLOTMAPP(metadata))
+      fd_store(metadata,FDSYM_KEYSLOT,keyslot);
+    else {
+      metadata = fd_empty_slotmap();
+      fd_store(metadata,FDSYM_KEYSLOT,keyslot);}}
+  else u8_log(LOG_WARN,"InvalidKeySlot",
+              "Not initializing keyslot of %s to %q",path,keyslot);
+
   if (fd_setup_rocksdb(&(index->rocksdb),path,opts)) {
     rocksdb_t *dbptr = index->rocksdb.dbptr;
     lispval cur_label = get_prop(dbptr,"\377LABEL",FD_VOID);
@@ -1715,7 +1724,7 @@ fd_index fd_make_rocksdb_index(u8_string path,lispval opts)
     fd_init_index((fd_index)index,
                   &rocksdb_index_handler,
                   (FD_STRINGP(label)) ? (FD_CSTRING(label)) : (rname),
-                  rname,0,opts);
+                  rname,0,metadata,opts);
 
     index->index_flags = fd_get_dbflags(opts,FD_STORAGE_ISINDEX);
     index->index_flags &= ~FD_STORAGE_READ_ONLY;

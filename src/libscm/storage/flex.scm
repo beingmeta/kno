@@ -200,22 +200,44 @@
 
 ;;; Generic DB saving
 
+(define (flex/mods arg)
+  (cond ((registry? arg) (pick arg registry/modified?))
+	((flexpool/record arg) (pick (flexpool/partitions arg) modified?))
+	((exists? (db->registry arg)) (pick (db->registry arg) registry/modified?))
+	((or (pool? arg) (index? arg)) (pick arg modified?))
+	((and (applicable? arg) (zero? (procedure-min-arity arg))) arg)
+	((and (pair? arg) (applicable? (car arg))) arg)
+	(else (logwarn |CantSave| "No method for saving " arg) {})))
+
+
+(define (flex/commit arg)
+  (onerror (cond ((registry? arg) (save-registry arg))
+		 ((flexpool/record arg)
+		  (thread/wait 
+		   (thread/call safe-commit (pick (flexpool/partitions arg) modified?))))
+		 ((or (pool? arg) (index? arg)) (commit arg))
+		 ((and (applicable? arg) (zero? (procedure-min-arity arg))) (arg))
+		 ((and (pair? arg) (applicable? (car arg)))
+		  (apply (car arg) (cdr arg)))
+		 (else (logwarn |CantSave| "No method for saving " arg)))
+      (lambda (ex)
+	(logwarn |CommitError| "Error committing " arg ": " ex)
+	#f)))
+
 (defambda (flex/save! . args)
   (dolist (arg args)
-    (cond ((ambiguous? arg) (thread/wait (thread/call flex/save! arg)))
-	  ((registry? arg) (save-registry arg))
-	  ((flexpool/record arg)
-	   (thread/wait 
-	    (thread/call safe-commit (pick (flexpool/partitions arg) modified?))))
-	  ((exists? (db->registry arg))
-	   (begin (save-registry (db->registry arg))
-	     (safe-commit arg)))
-	  ((or (pool? arg) (index? arg)) (safe-commit arg))
-	  ((and (applicable? arg) (zero? (procedure-min-arity arg))) (arg))
-
-	  ((and (pair? arg) (applicable? (car arg)))
-	   (apply (car arg) (cdr arg)))
-	  (else (logwarn |CantSave| "No method for saving " arg)))))
+    (let ((dbs (flex/mods arg))
+	  (started (elapsed-time)))
+      (cond ((exists? dbs)
+	     (lognotice |Saving|
+	       "Saving " (choice-size dbs) " data stores:"
+	       (do-choices (db dbs) (printout "\n    " db)))
+	     (let ((threads (thread/call flex/commit dbs)))
+	       (thread/wait! threads)
+	       (lognotice |Saved|
+		 "Saved " (choice-size dbs) " data stores in "
+		 (secs->string (elapsed-time started)))
+	       (thread/result threads)))))))
 
 (define (safe-commit arg)
   (when (modified? arg)

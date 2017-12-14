@@ -267,7 +267,9 @@ FD_EXPORT lispval fd_pool_base_metadata(fd_pool p);
 FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
                             struct FD_POOL_HANDLER *h,
                             u8_string id,u8_string source,
+                            lispval metadata,
                             lispval opts);
+FD_EXPORT int fd_pool_init_metadata(fd_pool p,lispval metadata);
 FD_EXPORT void fd_set_pool_namefn(fd_pool p,lispval namefn);
 
 FD_EXPORT int fd_for_pools(int (*fcn)(fd_pool,void *),void *data);

@@ -12,6 +12,7 @@
 (module-export! '{registry register registry/ref
 		  registry/check registry/errors
 		  registry/repair!
+		  registry/modified?
 		  registry/save!})
 
 (module-export! '{registry-slotid registry-spec
@@ -153,6 +154,25 @@
 			(do-choices (db (pick dbs modified?)) (commit dbs))
 			(lognotice |RegistrySaved| 
 			  "Saved registry " r " in " (secs-since started)))))))))
+
+(define (registry/modified? r)
+  (when (and (or (symbol? r) (oid? r)) (test registries r))
+    (set! r (get registries r)))
+  (cond ((ambiguous? r) (pick r registry/modified?))
+	((registry-server r)
+	 (logwarn |RemoteRegistry|
+	   "No need to save a remote registry")
+	 (fail))
+	(else (let* ((pools (choice (pick (registry-pool r) pool?)
+				    (flexpool/partitions
+				     (pick (pick (registry-pool r) pool?)
+					   flexpool/record))))
+		     (indexes (pick (registry-index r) index?))
+		     (adjuncts-map (get-adjuncts pools))
+		     (adjuncts (get adjuncts-map (getkeys adjuncts-map)))
+		     (dbs (pick {pools indexes adjuncts} {pool? index?}))
+		     (tosave (pick dbs modified?)))
+		(exists? tosave)))))
 
 ;;; The meat of it
 

@@ -253,17 +253,11 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,lispval 
   fd_compress_type cmptype = (((bigpool_format)&(FD_BIGPOOL_COMPRESSION))>>3);
   pool->pool_compression = fd_compression_type(opts,cmptype);
 
-  fd_init_pool((fd_pool)pool,base,capacity,&bigpool_handler,fname,rname,opts);
-
   if ((U8_BITP(bigpool_format,FD_BIGPOOL_ADJUNCT))&&
       (!(fd_testopt(opts,FDSYM_ISADJUNCT,FD_FALSE))))
     open_flags |= FD_POOL_ADJUNCT;
   if (U8_BITP(bigpool_format,FD_BIGPOOL_SPARSE))
     open_flags |= FD_POOL_SPARSE;
-
-  pool->pool_flags=open_flags;
-
-  u8_free(rname); /* Done with this */
 
   fd_setpos(stream,FD_BIGPOOL_LABEL_POS);
   /* Get the label location */
@@ -289,19 +283,6 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,lispval 
   /* Read the number of blocks stored in the pool */
   pool->pool_nblocks = fd_read_8bytes(instream);
 
-  if (label_loc) {
-    if (fd_setpos(stream,label_loc)>0) {
-      label = fd_read_dtype(instream);
-      if (STRINGP(label)) pool->pool_label = u8_strdup(CSTRING(label));
-      else u8_logf(LOG_WARN,fd_BadFilePoolLabel,fd_lisp2string(label));
-      fd_decref(label);}
-    else {
-      fd_seterr(fd_BadFilePoolLabel,"open_bigpool","bad label loc",
-                FD_INT(label_loc));
-      fd_close_stream(stream,0);
-      u8_free(pool);
-      return NULL;}}
-
   lispval metadata=FD_VOID;
   if (metadata_loc) {
     if (fd_setpos(stream,metadata_loc)>0) {
@@ -315,11 +296,26 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,lispval 
       u8_logf(LOG_WARN,"BadMetaData",
               "Ignoring bad metadata stored for %s",fname);
       metadata=FD_FALSE;}}
-  if (FD_SLOTMAPP(metadata)) {
-    fd_copy_slotmap((fd_slotmap)metadata,
-                    &(pool->pool_metadata));
-    pool->pool_metadata.table_modified=0;
-    fd_decref(metadata);}
+
+  fd_init_pool((fd_pool)pool,base,capacity,&bigpool_handler,fname,rname,
+               metadata,opts);
+  pool->pool_flags=open_flags;
+  fd_decref(metadata);
+  u8_free(rname);
+
+  if (label_loc) {
+    if (fd_setpos(stream,label_loc)>0) {
+      label = fd_read_dtype(instream);
+      if (STRINGP(label))
+        pool->pool_label = u8_strdup(CSTRING(label));
+      else u8_logf(LOG_WARN,fd_BadFilePoolLabel,fd_lisp2string(label));
+      fd_decref(label);}
+    else {
+      fd_seterr(fd_BadFilePoolLabel,"open_bigpool","bad label loc",
+                FD_INT(label_loc));
+      fd_close_stream(stream,0);
+      u8_free(pool);
+      return NULL;}}
 
   if (slotids_loc) {
     int slotids_length = (n_slotids>256)?((1+(n_slotids/2))*2):(256);

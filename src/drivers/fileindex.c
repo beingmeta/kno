@@ -63,14 +63,14 @@ static lispval fileindex_fetch(fd_index ix,lispval key);
 static fd_index open_fileindex(u8_string fname,fd_storage_flags flags,lispval opts)
 {
   struct FD_FILEINDEX *index = u8_alloc(struct FD_FILEINDEX);
+  fd_init_index((fd_index)index,&fileindex_handler,
+                fname,u8_realpath(fname,NULL),
+                flags,VOID,opts);
   int read_only = U8_BITP(flags,FD_STORAGE_READ_ONLY);
   int consed = U8_BITP(flags,FD_STORAGE_UNREGISTERED);
   unsigned int magicno;
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
-  fd_init_index((fd_index)index,&fileindex_handler,
-                fname,u8_realpath(fname,NULL),
-                flags,opts);
   struct FD_STREAM *s = fd_init_file_stream
     (&(index->index_stream),fname,mode,
      ((read_only)?(FD_DEFAULT_FILESTREAM_FLAGS|FD_STREAM_READ_ONLY):
