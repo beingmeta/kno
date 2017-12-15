@@ -672,6 +672,8 @@ FD_EXPORT lispval fd_register_constant(u8_string name);
 #define FD_CONSTANTP(x) \
   ((FD_IMMEDIATEP(x)) && ((FD_IMMEDIATE_TYPE(x))==0))
 
+#define FD_NIL (FD_EMPTY_LIST)
+
 /* Characters */
 
 #define FD_CHARACTERP(x) \
