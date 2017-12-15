@@ -378,7 +378,7 @@ static int load_header(struct FD_HASHINDEX *index,struct FD_STREAM *stream)
 
   if (FD_VOIDP(metadata)) {}
   else if (FD_SLOTMAPP(metadata)) {
-    fd_index_init_metadata((fd_index)index,metadata);
+    fd_index_set_metadata((fd_index)index,metadata);
     index->hx_metadata_pos = metadata_loc;}
   else {
     u8_log(LOG_WARN,"BadMetadata",

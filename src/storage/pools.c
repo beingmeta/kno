@@ -1890,10 +1890,11 @@ lispval fd_changed_oids(fd_pool p)
 
 /* Common pool initialization stuff */
 
-FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
-                            unsigned int capacity,
+FD_EXPORT void fd_init_pool(fd_pool p,
+                            FD_OID base,unsigned int capacity,
                             struct FD_POOL_HANDLER *h,
                             u8_string id,u8_string source,
+                            fd_storage_flags flags,
                             lispval metadata,
                             lispval opts)
 {
@@ -1904,7 +1905,7 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
   p->poolid = u8_strdup(id);
   p->pool_typeid = NULL;
   p->pool_handler = h;
-  p->pool_flags = 0;
+  p->pool_flags = fd_get_dbflags(opts,flags);
   p->pool_serialno = -1; p->pool_cache_level = -1;
   p->pool_adjuncts = NULL;
   p->pool_adjuncts_len = 0;
@@ -1941,6 +1942,10 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
 
   FD_INIT_STATIC_CONS(&(p->pool_metadata),fd_slotmap_type);
   if (FD_SLOTMAPP(metadata)) {
+    lispval adj = fd_get(metadata,FDSYM_ADJUNCT,FD_VOID);
+    if ( (FD_OIDP(adj)) || (FD_TRUEP(adj)) || (FD_SYMBOLP(adj)) )
+      p->pool_flags |= FD_POOL_ADJUNCT;
+    else fd_decref(adj);
     fd_copy_slotmap((fd_slotmap)metadata,&(p->pool_metadata));}
   else {
     fd_init_slotmap(&(p->pool_metadata),17,NULL);}
@@ -1950,7 +1955,7 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
   u8_init_mutex(&(p->pool_commit_lock));
 }
 
-FD_EXPORT int fd_pool_init_metadata(fd_pool p,lispval metadata)
+FD_EXPORT int fd_pool_set_metadata(fd_pool p,lispval metadata)
 {
   if (FD_SLOTMAPP(metadata)) {
     if (p->pool_metadata.n_allocd) {
@@ -1958,6 +1963,10 @@ FD_EXPORT int fd_pool_init_metadata(fd_pool p,lispval metadata)
       if ( (sm->sm_free_keyvals) && (sm->sm_keyvals) )
         u8_free(sm->sm_keyvals);
       u8_destroy_rwlock(&(sm->table_rwlock));}
+    lispval adj = fd_get(metadata,FDSYM_ADJUNCT,FD_VOID);
+    if ( (FD_OIDP(adj)) || (FD_TRUEP(adj)) || (FD_SYMBOLP(adj)) )
+      p->pool_flags |= FD_POOL_ADJUNCT;
+    else fd_decref(adj);
     fd_copy_slotmap((fd_slotmap)metadata,&(p->pool_metadata));}
   else {
     FD_INIT_STATIC_CONS(&(p->pool_metadata),fd_slotmap_type);
@@ -2280,6 +2289,8 @@ static void mdstring(lispval md,lispval slot,u8_string s)
   fd_decref(v);
 }
 
+static lispval metadata_readonly_props = FD_VOID;
+
 FD_EXPORT lispval fd_pool_base_metadata(fd_pool p)
 {
   int flags=p->pool_flags;
@@ -2316,8 +2327,11 @@ FD_EXPORT lispval fd_pool_base_metadata(fd_pool p)
   if (U8_BITP(flags,FD_POOL_NOLOCKS))
     fd_add(metadata,flags_slot,nolocks_flag);
 
+  if (fd_testopt(metadata,FDSYM_ADJUNCT,FD_VOID))
+    fd_add(metadata,flags_slot,FDSYM_ISADJUNCT);
+
   if (U8_BITP(flags,FD_POOL_ADJUNCT))
-    fd_add(metadata,flags_slot,adjunct_flag);
+    fd_add(metadata,flags_slot,FDSYM_ADJUNCT);
 
   lispval props_copy = fd_copier(((lispval)&(p->pool_props)),0);
   fd_store(metadata,FDSYM_PROPS,props_copy);
@@ -2338,20 +2352,23 @@ FD_EXPORT lispval fd_pool_base_metadata(fd_pool p)
   if (FD_TABLEP(p->pool_opts))
     fd_store(metadata,opts_slot,p->pool_opts);
 
-  fd_add(metadata,FDSYM_READONLY,FDSYM_TYPE);
-  fd_add(metadata,FDSYM_READONLY,base_slot);
-  fd_add(metadata,FDSYM_READONLY,capacity_slot);
-  fd_add(metadata,FDSYM_READONLY,cachelevel_slot);
-  fd_add(metadata,FDSYM_READONLY,poolid_slot);
-  fd_add(metadata,FDSYM_READONLY,label_slot);
-  fd_add(metadata,FDSYM_READONLY,source_slot);
-  fd_add(metadata,FDSYM_READONLY,locked_slot);
-  fd_add(metadata,FDSYM_READONLY,cached_slot);
-  fd_add(metadata,FDSYM_READONLY,flags_slot);
+  if (FD_VOIDP(metadata_readonly_props))
+    metadata_readonly_props = fd_intern("_READONLY_PROPS");
 
-  fd_add(metadata,FDSYM_READONLY,FDSYM_PROPS);
-  fd_add(metadata,FDSYM_READONLY,opts_slot);
-  fd_add(metadata,FDSYM_READONLY,core_slot);
+  fd_add(metadata,metadata_readonly_props,FDSYM_TYPE);
+  fd_add(metadata,metadata_readonly_props,base_slot);
+  fd_add(metadata,metadata_readonly_props,capacity_slot);
+  fd_add(metadata,metadata_readonly_props,cachelevel_slot);
+  fd_add(metadata,metadata_readonly_props,poolid_slot);
+  fd_add(metadata,metadata_readonly_props,label_slot);
+  fd_add(metadata,metadata_readonly_props,source_slot);
+  fd_add(metadata,metadata_readonly_props,locked_slot);
+  fd_add(metadata,metadata_readonly_props,cached_slot);
+  fd_add(metadata,metadata_readonly_props,flags_slot);
+
+  fd_add(metadata,metadata_readonly_props,FDSYM_PROPS);
+  fd_add(metadata,metadata_readonly_props,opts_slot);
+  fd_add(metadata,metadata_readonly_props,core_slot);
 
   return metadata;
 }
@@ -2672,7 +2689,6 @@ FD_EXPORT void fd_init_pools_c()
   noerr_flag=fd_intern("NOERR");
   phased_flag=fd_intern("PHASED");
   sparse_flag=fd_intern("SPARSE");
-  adjunct_flag=FDSYM_ISADJUNCT;
   background_flag=fd_intern("BACKGROUND");
   virtual_flag=fd_intern("VIRTUAL");
   nolocks_flag=fd_intern("NOLOCKS");

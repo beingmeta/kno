@@ -254,8 +254,7 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,
   fd_compress_type cmptype = (((bigpool_format)&(FD_BIGPOOL_COMPRESSION))>>3);
   pool->pool_compression = fd_compression_type(opts,cmptype);
 
-  if ((U8_BITP(bigpool_format,FD_BIGPOOL_ADJUNCT))&&
-      (!(fd_testopt(opts,FDSYM_ISADJUNCT,FD_FALSE))))
+  if (U8_BITP(bigpool_format,FD_BIGPOOL_ADJUNCT))
     open_flags |= FD_POOL_ADJUNCT;
   if (U8_BITP(bigpool_format,FD_BIGPOOL_SPARSE))
     open_flags |= FD_POOL_SPARSE;
@@ -306,9 +305,11 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,
         u8_free(pool);
         return NULL;}}}
 
-  fd_init_pool((fd_pool)pool,base,capacity,&bigpool_handler,fname,rname,
-               metadata,opts);
-  pool->pool_flags=open_flags;
+  fd_init_pool((fd_pool)pool,base,capacity,
+               &bigpool_handler,
+               fname,rname,
+               open_flags,metadata,opts);
+  open_flags = pool->pool_flags;
   fd_decref(metadata);
   u8_free(rname);
 
@@ -2171,12 +2172,8 @@ static unsigned int get_bigpool_format(fd_storage_flags sflags,lispval opts)
        (fd_testopt(opts,FDSYM_READONLY,VOID)) )
     flags |= FD_BIGPOOL_READ_ONLY;
 
-  if ( (fd_testopt(opts,fd_intern("ISADJUNCT"),VOID)) ||
-       (fd_testopt(opts,fd_intern("FLAGS"),FDSYM_ISADJUNCT)) ||
-       (fd_testopt(opts,fd_intern("FLAGS"),FDSYM_ADJUNCT)) ||
-       ( ( (sflags) & (FD_POOL_ADJUNCT) ) &&
-         (fd_testopt(opts,FDSYM_ADJUNCT,FD_VOID)) &&
-         (!(fd_testopt(opts,FDSYM_ADJUNCT,FD_TRUE))) ) )
+  if ( (fd_testopt(opts,FDSYM_ISADJUNCT,VOID)) ||
+       (fd_testopt(opts,FDSYM_FLAGS,FDSYM_ISADJUNCT)) )
     flags |= FD_BIGPOOL_ADJUNCT;
 
   if ( (sflags) & (FD_POOL_ADJUNCT) ||

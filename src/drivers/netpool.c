@@ -59,7 +59,7 @@ static void init_network_pool
   addr = FD_OID_ADDR(FD_CAR(scan)); scan = FD_CDR(scan);
   capacity = fd_getint(FD_CAR(scan)); scan = FD_CDR(scan);
   fd_init_pool((fd_pool)p,addr,capacity,&netpool_handler,spec,source,
-               FD_VOID,opts);
+               flags,FD_VOID,opts);
   /* Network pool specific stuff */
   if (FALSEP(FD_CAR(scan)))
     p->pool_flags |= FD_STORAGE_READ_ONLY;

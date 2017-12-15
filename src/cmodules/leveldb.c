@@ -1006,6 +1006,7 @@ fd_pool fd_open_leveldb_pool(u8_string path,fd_storage_flags flags,lispval opts)
                    FD_OID_ADDR(base),FD_FIX2INT(cap),
                    &leveldb_pool_handler,
                    path,rname,
+                   FD_STORAGE_ISPOOL,
                    metadata,
                    opts);
       u8_free(rname);
@@ -1107,6 +1108,7 @@ fd_pool fd_make_leveldb_pool(u8_string path,
                  FD_OID_ADDR(base),FD_FIX2INT(cap),
                  &leveldb_pool_handler,
                  path,rname,
+                 FD_STORAGE_ISPOOL,
                  metadata,
                  opts);
 

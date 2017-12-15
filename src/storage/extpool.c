@@ -55,14 +55,14 @@ fd_pool fd_make_extpool(u8_string label,
     return NULL;}
   else {
     struct FD_EXTPOOL *xp = u8_alloc(struct FD_EXTPOOL);
+    fd_storage_flags flags = FD_STORAGE_ISPOOL | FD_POOL_VIRTUAL;
+    if (VOIDP(savefn)) flags |= FD_STORAGE_READ_ONLY;
     memset(xp,0,sizeof(struct FD_EXTPOOL));
     fd_init_pool((fd_pool)xp,base,cap,&fd_extpool_handler,
-                 label,label,FD_VOID,opts);
+                 label,label,flags,FD_VOID,opts);
     /* We currently use the OID value as a cache for stored values, so
        we don't make it read-only. But there's probably a better
        solution. */
-    if (VOIDP(savefn)) xp->pool_flags |= FD_STORAGE_READ_ONLY;
-    xp->pool_flags |= FD_POOL_VIRTUAL;
     fd_register_pool((fd_pool)xp);
     fd_incref(fetchfn); fd_incref(savefn);
     fd_incref(lockfn); fd_incref(allocfn);

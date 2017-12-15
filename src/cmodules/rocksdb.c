@@ -1012,7 +1012,7 @@ fd_pool fd_open_rocksdb_pool(u8_string path,fd_storage_flags flags,lispval opts)
       fd_init_pool((fd_pool)pool,
                    FD_OID_ADDR(base),FD_FIX2INT(cap),
                    &rocksdb_pool_handler,
-                   path,rname,metadata,opts);
+                   path,rname,FD_STORAGE_ISPOOL,metadata,opts);
       u8_free(rname);
       if (FD_VOIDP(read_only_opt))
         read_only_opt = get_prop(dbptr,"\377READONLY",FD_VOID);
@@ -1113,6 +1113,7 @@ fd_pool fd_make_rocksdb_pool(u8_string path,
                  FD_OID_ADDR(base),FD_FIX2INT(cap),
                  &rocksdb_pool_handler,
                  path,rname,
+                 FD_STORAGE_ISPOOL,
                  metadata,
                  opts);
 

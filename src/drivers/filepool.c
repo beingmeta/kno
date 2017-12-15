@@ -84,7 +84,7 @@ static fd_pool open_file_pool(u8_string fname,fd_storage_flags flags,lispval opt
   capacity = fd_read_4bytes_at(s,12,FD_ISLOCKED);
 
   fd_init_pool((fd_pool)pool,base,capacity,&file_pool_handler,
-               fname,rname,VOID,opts);
+               fname,rname,flags,VOID,opts);
   u8_free(rname);
 
   if (magicno == FD_FILE_POOL_TO_RECOVER) {
@@ -116,7 +116,6 @@ static fd_pool open_file_pool(u8_string fname,fd_storage_flags flags,lispval opt
       u8_free(pool);
       return NULL;}}
   pool->pool_load = load;
-  pool->pool_flags = flags;
   pool->pool_offdata = NULL;
   pool->pool_offdata_size = 0;
   if (read_only)

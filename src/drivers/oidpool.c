@@ -238,8 +238,7 @@ static fd_pool open_oidpool(u8_string fname,
     fd_setpos(stream,FD_OIDPOOL_LABEL_POS);
     open_flags |= FD_STORAGE_READ_ONLY;}
 
-  if ((U8_BITP(oidpool_format,FD_OIDPOOL_ADJUNCT))&&
-      (!(fd_testopt(opts,FDSYM_ISADJUNCT,FD_FALSE))))
+  if (U8_BITP(oidpool_format,FD_OIDPOOL_ADJUNCT))
     open_flags |= FD_POOL_ADJUNCT;
   if (U8_BITP(oidpool_format,FD_OIDPOOL_SPARSE))
     open_flags |= FD_POOL_SPARSE;
@@ -250,7 +249,7 @@ static fd_pool open_oidpool(u8_string fname,
     (fd_compress_type)(((oidpool_format)&(FD_OIDPOOL_COMPRESSION))>>3);
 
   fd_init_pool((fd_pool)pool,base,capacity,&oidpool_handler,fname,rname,
-               FD_VOID,opts);
+               FD_STORAGE_ISPOOL,FD_VOID,opts);
   pool->pool_flags=open_flags;
   u8_free(rname); /* Done with this */
 
@@ -1397,11 +1396,7 @@ static unsigned int get_oidpool_format(fd_storage_flags sflags,lispval opts)
     flags |= FD_OIDPOOL_READ_ONLY;
 
   if ( (fd_testopt(opts,FDSYM_ISADJUNCT,VOID)) ||
-       (fd_testopt(opts,fd_intern("FLAGS"),FDSYM_ISADJUNCT)) ||
-       (fd_testopt(opts,fd_intern("FLAGS"),FDSYM_ADJUNCT)) ||
-       ( ( (sflags) & (FD_POOL_ADJUNCT) ) &&
-         (fd_testopt(opts,FDSYM_ADJUNCT,FD_VOID)) &&
-         (!(fd_testopt(opts,FDSYM_ADJUNCT,FD_TRUE))) ) )
+       (fd_testopt(opts,FDSYM_FLAGS,FDSYM_ISADJUNCT)) )
     flags |= FD_OIDPOOL_ADJUNCT;
 
   if ( (sflags) & (FD_POOL_ADJUNCT) ||

@@ -1481,6 +1481,8 @@ static void mdstring(lispval md,lispval slot,u8_string s)
   fd_decref(v);
 }
 
+static lispval metadata_readonly_props = FD_VOID;
+
 FD_EXPORT lispval fd_index_base_metadata(fd_index ix)
 {
   int flags=ix->index_flags;
@@ -1524,19 +1526,22 @@ FD_EXPORT lispval fd_index_base_metadata(fd_index ix)
   if (FD_TABLEP(ix->index_opts))
     fd_add(metadata,opts_slot,ix->index_opts);
 
-  fd_add(metadata,FDSYM_READONLY,cachelevel_slot);
-  fd_add(metadata,FDSYM_READONLY,indexid_slot);
-  fd_add(metadata,FDSYM_READONLY,source_slot);
-  fd_add(metadata,FDSYM_READONLY,FDSYM_TYPE);
-  fd_add(metadata,FDSYM_READONLY,edits_slot);
-  fd_add(metadata,FDSYM_READONLY,adds_slot);
-  fd_add(metadata,FDSYM_READONLY,drops_slot);
-  fd_add(metadata,FDSYM_READONLY,replaced_slot);
-  fd_add(metadata,FDSYM_READONLY,cached_slot);
-  fd_add(metadata,FDSYM_READONLY,flags_slot);
+  if (FD_VOIDP(metadata_readonly_props))
+    metadata_readonly_props = fd_intern("_READONLY_PROPS");
 
-  fd_add(metadata,FDSYM_READONLY,FDSYM_PROPS);
-  fd_add(metadata,FDSYM_READONLY,opts_slot);
+  fd_add(metadata,metadata_readonly_props,cachelevel_slot);
+  fd_add(metadata,metadata_readonly_props,indexid_slot);
+  fd_add(metadata,metadata_readonly_props,source_slot);
+  fd_add(metadata,metadata_readonly_props,FDSYM_TYPE);
+  fd_add(metadata,metadata_readonly_props,edits_slot);
+  fd_add(metadata,metadata_readonly_props,adds_slot);
+  fd_add(metadata,metadata_readonly_props,drops_slot);
+  fd_add(metadata,metadata_readonly_props,replaced_slot);
+  fd_add(metadata,metadata_readonly_props,cached_slot);
+  fd_add(metadata,metadata_readonly_props,flags_slot);
+
+  fd_add(metadata,metadata_readonly_props,FDSYM_PROPS);
+  fd_add(metadata,metadata_readonly_props,opts_slot);
 
   return metadata;
 }
@@ -1607,7 +1612,7 @@ FD_EXPORT void fd_init_index(fd_index ix,
   u8_init_mutex(&(ix->index_commit_lock));
 }
 
-FD_EXPORT int fd_index_init_metadata(fd_index ix,lispval metadata)
+FD_EXPORT int fd_index_set_metadata(fd_index ix,lispval metadata)
 {
   if (FD_SLOTMAPP(metadata)) {
     fd_copy_slotmap((fd_slotmap)metadata,&(ix->index_metadata));

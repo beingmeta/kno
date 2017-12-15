@@ -138,7 +138,7 @@ FD_EXPORT void fd_init_index
    fd_storage_flags flags,
    lispval metadata,
    lispval opts);
-FD_EXPORT int fd_index_init_metadata(fd_index ix,lispval metadata);
+FD_EXPORT int fd_index_set_metadata(fd_index ix,lispval metadata);
 FD_EXPORT void fd_reset_index_tables
   (fd_index ix,ssize_t cache,ssize_t edits,ssize_t adds);
 

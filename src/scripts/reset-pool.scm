@@ -14,7 +14,9 @@
 		  (tryif (config 'B40 #f) 'B40)
 		  (tryif (config 'B64 #f) 'B64)
 		  (tryif (config 'ZLIB #f) 'ZLIB)
-		  (tryif (config 'SNAPPY #f) 'SNAPPY)))
+		  (tryif (config 'SNAPPY #f) 'SNAPPY)
+		  (tryif (config 'ADJUNCT #f) 'ISADJUNCT)
+		  (tryif (config 'ISADJUNCT #f) 'ISADJUNCT)))
 	 (choice configured
 		 (difference current
 			     (tryif (overlaps? configured '{B32 B40 B64})
@@ -22,7 +24,8 @@
 			     (tryif (overlaps? configured '{zlib snappy})
 			       '{zlib snappy})
 			     (tryif (overlaps? configured 'dtypev2)
-			       'dtypev2))))))
+			       'dtypev2)
+			     (tryif (config 'noadjunct) '{adjunct isadjunct}))))))
 
 (define (writable? file)
   (if (file-exists? file)
@@ -67,10 +70,10 @@
 		(system "mv " bakfile " " poolfile)))))))
 
 (define (usage)
-  (lineout "Usage: pack-pool <from> [to]")
-  (lineout "    Repacks the file pool stored in <from>.  The new file ")
-  (lineout "    pool is either replace <from> or is written into [to].")
-  (lineout "    [to] if specified must not exist unless OVERWRITE=yes.")
+  (lineout "Usage: reset-pool <from> [to]")
+  (lineout "    Empties (resets) the pool stored in <from>.  The new file ")
+  (lineout "    pool either replaces <from> or is written into [to].")
+  (lineout "    if specified, [to] must not exist unless OVERWRITE=yes.")
   (lineout "    POOLTYPE=bigpool|oidpool|filepool"))
 
 (optimize!)
