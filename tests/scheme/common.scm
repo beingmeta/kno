@@ -7,6 +7,8 @@
   (when logtime-file (fileout logtime-file (elapsed-time started))))
 (config! 'atexit save-elapsed-atexit)
 
+(config! 'log:threadid #t)
+
 (define pooltype 'bigpool)
 (varconfig! pooltype pooltype #t)
 (define indextype 'hashindex)
