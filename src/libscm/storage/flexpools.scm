@@ -482,7 +482,7 @@
 	  (append #(".")
 		  (make-vector (flexpool/padlen (get info 'capacity) (get info 'partsize))
 			       '(isxdigit))
-		  #(".pool")))
+		  #(".pool" {"" ".commit" ".rollback"})))
 	 (metadata (get info 'metadata))
 	 (adjuncts (get metadata 'adjuncts))
 	 (patterns `#(,(abspath prefix (dirname file)) ,partition-suffix))
