@@ -5,7 +5,7 @@
 
 (use-module '{ezrecords stringfmts logger texttools reflection})
 (use-module '{storage/adjuncts storage/registry storage/filenames})
-(use-module '{storage/flexpools storage/flexindexes 
+(use-module '{storage/flexpool storage/flexindexes 
 	      storage/adjuncts})
 
 (module-export! '{pool/ref index/ref db/ref pool/copy flex/wrap flex/partitions flex/save!})

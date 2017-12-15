@@ -5,7 +5,7 @@
 
 ;;; Maintaining registries of objects (OIDs) with unique IDs
 
-(use-module '{ezrecords logger stringfmts varconfig storage/flexpools})
+(use-module '{ezrecords logger stringfmts varconfig storage/flexpool})
 
 (define %used_modules 'ezrecords)
 
