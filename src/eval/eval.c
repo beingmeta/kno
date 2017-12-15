@@ -2080,40 +2080,50 @@ static lispval dbg_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
 
 /* Recording bugs */
 
+FD_EXPORT int fd_dump_bug(lispval ex,u8_string into)
+{
+  u8_string bugpath;
+  if (into == NULL)
+    return 0;
+  else if (u8_directoryp(into)) {
+    u8_string bugdir = u8_abspath(into,NULL);
+    long long pid = getpid();
+    long long tid = u8_threadid();
+    long long now = time(NULL);
+    u8_string appid = u8_appid();
+    u8_string filename = ( pid == tid ) ?
+      (u8_mkstring("%s-%lld-%lld.whoops",appid,now,pid)) :
+      (u8_mkstring("%s-%lld-%lld-%lld.whoops",appid,now,pid,tid));
+    bugpath = u8_mkpath(bugdir,filename);
+    u8_free(bugdir);
+    u8_free(filename);}
+  else bugpath = u8_strdup(into);
+  int rv = fd_write_dtype_to_file(ex,bugpath);
+  if (rv<0)
+    u8_log(LOG_CRIT,"RecordBug",
+           "Couldn't write exception object to %s",bugpath);
+  else u8_log(LOG_WARN,"RecordBug",
+              "Wrote exception to %s",bugpath);
+  u8_free(bugpath);
+  return rv;
+}
+
 FD_EXPORT int fd_record_bug(lispval ex)
 {
   if (fd_bugdir == NULL) return 0;
-  u8_string bugdir = u8_abspath(fd_bugdir,NULL);
-  long long pid = getpid();
-  long long tid = u8_threadid();
-  long long now = time(NULL);
-  u8_string appid = u8_appid();
-  u8_string filename = ( pid == tid ) ?
-    (u8_mkstring("%s-%lld-%lld.exdtype",appid,now,pid)) :
-    (u8_mkstring("%s-%lld-%lld-%lld.exdtype",appid,now,pid,tid));
-  u8_string full_path = u8_mkpath(bugdir,filename);
-  int rv = fd_write_dtype_to_file(ex,filename);
-  if (rv<0)
-    u8_log(LOG_CRIT,"RecordBug",
-           "Couldn't write exception object to %s",full_path);
-  else u8_log(LOG_WARN,"RecordBug",
-              "Wrote exception to %s",full_path);
-  u8_free(bugdir);
-  u8_free(filename);
-  u8_free(full_path);
-  return rv;
+  else return fd_dump_bug(ex,fd_bugdir);
 }
 
 static int config_bugdir(lispval var,lispval val,void *state)
 {
-  if ( ( fd_dump_exception == NULL ) ||
-       ( fd_dump_exception == fd_record_bug ) ) {
-    if (FD_FALSEP(val)) {
-      fd_dump_exception = NULL;
-      u8_free(fd_bugdir);
-      fd_bugdir = NULL;
-      return 0;}
-    else if (FD_STRINGP(val)) {
+  if (FD_FALSEP(val)) {
+    fd_dump_exception = NULL;
+    u8_free(fd_bugdir);
+    fd_bugdir = NULL;
+    return 0;}
+  else if ( ( fd_dump_exception == NULL ) ||
+            ( fd_dump_exception == fd_record_bug ) ) {
+    if (FD_STRINGP(val)) {
       u8_string old = fd_bugdir;
       fd_bugdir = u8_strdup(FD_CSTRING(val));
       if (old) u8_free(old);

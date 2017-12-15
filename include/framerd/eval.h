@@ -371,6 +371,7 @@ FD_EXPORT lispval fd_opcode_dispatch
 
 /* Recording bugs */
 
+FD_EXPORT int fd_dump_bug(lispval ex,u8_string dir);
 FD_EXPORT int fd_record_bug(lispval ex);
 
 FD_EXPORT u8_string fd_bugdir;

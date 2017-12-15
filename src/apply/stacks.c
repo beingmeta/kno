@@ -39,7 +39,124 @@ __thread struct FD_STACK *fd_stackptr=NULL;
 struct FD_STACK *fd_stackptr=NULL;
 #endif
 
-static lispval stack_entry_symbol;
+static lispval stack_entry_symbol, stack_target_symbol;
+
+static int source_find(lispval expr,lispval target);
+
+static int source_test(lispval expr,lispval target)
+{
+  if ( expr == target)
+    return 1;
+  else if (! (FD_CONSP(expr)) )
+    return 0;
+  else return source_find(expr,target);
+}
+
+static int source_find(lispval expr,lispval target)
+{
+  if ( expr == target )
+    return 1;
+  else if (! (FD_CONSP(expr)) )
+    return 0;
+  else {
+    fd_ptr_type type = FD_PTR_TYPE(expr);
+    switch (type) {
+    case fd_pair_type:
+      if (source_test(FD_CAR(expr),target))
+        return 1;
+      else return (source_test(FD_CDR(expr),target));
+    case fd_vector_type: case fd_code_type: {
+      struct FD_VECTOR *vec = (fd_vector) expr;
+      lispval *elts = vec->vec_elts;
+      int i=0, n=vec->vec_length; while (i<n) {
+        if (source_test(elts[i],target))
+          return 1;
+        else i++;}
+      return 0;}
+    case fd_choice_type: {
+      FD_DO_CHOICES(elt,expr) {
+        if (source_test(elt,target)) {
+          FD_STOP_DO_CHOICES;
+          return 1;}}
+      return 0;}
+    case fd_slotmap_type: {
+      struct FD_SLOTMAP *smap = (fd_slotmap) expr;
+      struct FD_KEYVAL *kvals = smap->sm_keyvals;
+      int i=0, n = smap->n_slots; while (i<n) {
+        if (source_test(kvals[i].kv_key,target))
+          return 1;
+        else if (source_test(kvals[i].kv_val,target))
+          return 1;
+        else i++;}
+      return 0;}
+    default:
+      return 0;}}
+}
+
+static lispval source_annotate(lispval expr,lispval target);
+
+static lispval source_subst(lispval expr,lispval target)
+{
+  if ( expr == target ) {
+    fd_incref(target);
+    return fd_conspair(stack_target_symbol,fd_conspair(target,FD_NIL));}
+  else if (! (FD_CONSP(expr)) )
+    return expr;
+  else if (!(source_find(expr,target)))
+    return fd_incref(expr);
+  else return source_annotate(expr,target);
+}
+
+static lispval source_annotate(lispval expr,lispval target)
+{
+  if ( expr == target ) {
+    fd_incref(target);
+    return fd_conspair(stack_target_symbol,fd_conspair(target,FD_NIL));}
+  else if (! (FD_CONSP(expr)) )
+    return expr;
+  else if (!(source_find(expr,target)))
+    return fd_incref(expr);
+  else {
+    fd_ptr_type type = FD_PTR_TYPE(expr);
+    switch (type) {
+    case fd_pair_type: {
+      lispval car = source_subst(FD_CAR(expr),target);
+      lispval cdr = source_subst(FD_CDR(expr),target);
+      return fd_init_pair(NULL,car,cdr);}
+    case fd_vector_type: case fd_code_type: {
+      struct FD_VECTOR *vec = (fd_vector) expr;
+      lispval *elts = vec->vec_elts;
+      int i=0, n=vec->vec_length;
+      lispval newvec = fd_init_vector(NULL,n,NULL);
+      FD_SET_CONS_TYPE(newvec,type);
+      while (i<n) {
+        lispval old = elts[i], new = source_subst(old,target);
+        FD_VECTOR_SET(newvec,i,new);
+        i++;}
+      return newvec;}
+    case fd_choice_type: {
+      lispval results = FD_EMPTY_CHOICE;
+      FD_DO_CHOICES(elt,expr) {
+        lispval new_elt = source_subst(elt,target);
+        FD_ADD_TO_CHOICE(results,new_elt);}
+      return results;}
+    case fd_slotmap_type: {
+      struct FD_SLOTMAP *smap = (fd_slotmap) expr;
+      int n_slots = smap->n_slots;
+      struct FD_SLOTMAP *newsmap = (fd_slotmap)
+        fd_make_slotmap(n_slots,n_slots,NULL);
+      struct FD_KEYVAL *kvals = smap->sm_keyvals;
+      struct FD_KEYVAL *new_kvals = newsmap->sm_keyvals;
+      int i=0, n = smap->n_slots; while (i<n) {
+        lispval new_key = source_subst(kvals[i].kv_key,target);
+        lispval new_val = source_subst(kvals[i].kv_val,target);
+        new_kvals[i].kv_key = source_subst(kvals[i].kv_key,target);
+        new_kvals[i].kv_val = source_subst(kvals[i].kv_val,target);
+        i++;}
+      return (lispval) newsmap;}
+    default:
+      return expr;}}
+}
 
 /* Stacks are rendered into LISP as vectors as follows:
    1. depth  (integer, increasing with calls)
@@ -52,7 +169,7 @@ static lispval stack_entry_symbol;
    8. source (the original source code for the call, if available)
  */
 
-static lispval stack2lisp(struct FD_STACK *stack)
+static lispval stack2lisp(struct FD_STACK *stack,struct FD_STACK *prev)
 {
   int n = 8;
   lispval depth = FD_INT(stack->stack_depth);
@@ -62,7 +179,15 @@ static lispval stack2lisp(struct FD_STACK *stack)
   if (stack->stack_type) type = fd_intern(stack->stack_type);
   if (stack->stack_label) label = lispval_string(stack->stack_label);
   if (stack->stack_status) status = lispval_string(stack->stack_status);
-  if (FD_VOIDP(op)) op = FD_FALSE; else fd_incref(op);
+  if (FD_VOIDP(op)) op = FD_FALSE;
+  else if ( (FD_PAIRP(op)) || (FD_CODEP(op)) ) {
+    if ( (prev) &&
+         (!(FD_NULLP(prev->stack_op))) &&
+         (FD_CONSP(prev->stack_op)) &&
+         (source_find(op,prev->stack_op)) ) {
+      op = source_annotate(op,prev->stack_op);}
+    else fd_incref(op);}
+  else fd_incref(op);
   if ( stack->stack_args ) {
     lispval n=stack->n_args, i=0;
     lispval *args=stack->stack_args;
@@ -72,9 +197,15 @@ static lispval stack2lisp(struct FD_STACK *stack)
     lispval bindings = stack->stack_env->env_bindings;
     if ( (SLOTMAPP(bindings)) || (SCHEMAPP(bindings)) ) {
       env = fd_copy(bindings);}}
-  if (!((FD_NULLP(stack->stack_source))||(VOIDP(stack->stack_source)))) {
-    source = stack->stack_source;
-    fd_incref(source);}
+  if (!((FD_NULLP(stack->stack_source)) ||
+        (VOIDP(stack->stack_source)))) {
+    if ( (prev) && (!(FD_NULLP(prev->stack_source))) &&
+         (FD_CONSP(prev->stack_source)) &&
+         (source_find(stack->stack_source,prev->stack_source)) ) {
+      source = source_annotate(stack->stack_source,prev->stack_source);}
+    else {
+      source = stack->stack_source;
+      fd_incref(source);}}
   if (FD_FALSEP(status)) {
     n--; if (FD_FALSEP(env)) { n--; if (FD_FALSEP(source)) {
         n--; if (FD_FALSEP(argvec)) {
@@ -104,12 +235,14 @@ lispval fd_get_backtrace(struct FD_STACK *stack)
   if (stack == NULL) return FD_EMPTY_LIST;
   int n = stack->stack_depth+1, i = 0;
   lispval result = fd_make_vector(n,NULL);
+  struct FD_STACK *prev = NULL;
   while (stack) {
-    lispval entry = stack2lisp(stack);
+    lispval entry = stack2lisp(stack,prev);
     if (i < n) {
       FD_VECTOR_SET(result,i,entry);}
     else u8_log(LOG_CRIT,"BacktraceOverflow",
                 "Inconsistent depth %d",n-1);
+    prev=stack;
     stack=stack->stack_caller;
     i++;}
   return result;
@@ -151,7 +284,7 @@ void fd_init_stacks_c()
 #endif
 
   stack_entry_symbol = fd_intern("%STACK");
-
+  stack_target_symbol = fd_intern("$=>$");
 }
 
 /* Emacs local variables

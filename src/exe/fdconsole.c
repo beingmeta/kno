@@ -77,6 +77,7 @@ static int set_prompt(lispval ignored,lispval v,void *vptr)
 #include "main.c"
 
 static u8_string stop_file=NULL;
+static u8_string console_bugdir=NULL;
 
 static int use_editline = 0;
 
@@ -671,6 +672,35 @@ static lispval loadfile_config_get(lispval var,void *d)
   return fd_incref(loadfile_list);
 }
 
+static int bugdir_config_set(lispval var,lispval val,void *d)
+{
+  u8_string *bugdir = (u8_string *) d;
+  u8_string old_dir = *bugdir;
+  if (FD_FALSEP(val)) {
+    *bugdir=NULL;
+    if (old_dir) u8_free(old_dir);
+    return 0;}
+  else if (FD_TRUEP(val)) {
+    *bugdir = u8_getcwd();
+    if (old_dir) u8_free(old_dir);
+    return 1;}
+  else if ( (FD_STRINGP(val)) && (FD_STRLEN(val) == 0) ) {
+    *bugdir = u8_strdup("");
+    if (old_dir) u8_free(old_dir);
+    return 1;}
+  else if ( (FD_STRINGP(val)) &&
+            (u8_directoryp(FD_CSTRING(val))) ) {
+    *bugdir = u8_abspath(FD_CSTRING(val),NULL);
+    if (old_dir) u8_free(old_dir);
+    return 1;}
+  else if (FD_STRINGP(val)) {
+    fd_seterr("BadConsoleBugDir","bugdir_config_set",FD_CSTRING(val),val);
+    return -1;}
+  else {
+    fd_seterr("BadConsoleBugDir","bugdir_config_set",NULL,val);
+    return -1;}
+}
+
 /* Load dot files into the console */
 
 static void dotloader(u8_string file,fd_lexenv env)
@@ -810,6 +840,10 @@ int main(int argc,char **argv)
   fd_register_config
     ("DOTLOAD",_("Whether load .fdconsole or other dot files"),
      fd_boolconfig_get,fd_boolconfig_set,&dotload);
+  fd_register_config
+    ("BUGLOG",_("Where to dump console errors"),
+     fd_sconfig_get,bugdir_config_set,&console_bugdir);
+
 
   /* Initialize console streams */
   inconsole = in;
@@ -1048,7 +1082,11 @@ int main(int argc,char **argv)
           if (save_backtrace)
             u8_fprintf(stderr,";; The exception was saved in ##%d\n",
                        fd_histpush(exo));
-          if (fd_dump_exception) fd_dump_exception(exo);
+          if (console_bugdir) {
+            if (*console_bugdir) fd_dump_bug(exo,console_bugdir);}
+          else if (fd_dump_exception)
+            fd_dump_exception(exo);
+          else NO_ELSE;
           /* Note that u8_free_exception will decref exo, so we don't
              need to do so. */
           u8_free_exception(ex,1);}}
