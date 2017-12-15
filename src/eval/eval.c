@@ -869,88 +869,7 @@ lispval fd_stack_eval(lispval expr,fd_lexenv env,
     else {
       u8_string label=(SYMBOLP(head)) ? (SYM_NAME(head)) : (NULL);
       FD_PUSH_STACK(eval_stack,fd_evalstack_type,label,expr);
-      lispval result = VOID, headval = VOID;
-      int gc_head=0;
-      if (FD_LEXREFP(head)) {
-        headval=fd_lexref(head,env);
-        if (FD_CONSP(headval)) gc_head=1;}
-      else if (FD_FCNIDP(head)) {
-        headval=fd_fcnid_ref(head);
-        if (PRECHOICEP(headval)) {
-          headval=fd_make_simple_choice(headval);
-          gc_head=1;}}
-      else if ( (SYMBOLP(head)) || (PAIRP(head)) ||
-                (FD_CODEP(head)) || (CHOICEP(head)) ) {
-        headval=stack_eval(head,env,eval_stack);
-        if (PRECHOICEP(headval)) headval=fd_simplify_choice(headval);
-        gc_head=1;}
-      else headval=head;
-      if (FD_FCNIDP(headval)) {
-        headval=fd_fcnid_ref(headval);
-        if (PRECHOICEP(headval)) {
-          headval=fd_make_simple_choice(headval);
-          gc_head=1;}
-        else gc_head=0;}
-      int headtype = FD_PTR_TYPE(headval);
-      if (gc_head) fd_push_cleanup(eval_stack,FD_DECREF,headval,NULL);
-      switch (headtype) {
-      case fd_cprim_type: case fd_lambda_type: {
-        struct FD_FUNCTION *f = (struct FD_FUNCTION *) headval;
-        if (f->fcn_name) eval_stack->stack_label=f->fcn_name;
-        result=call_function(f->fcn_name,headval,expr,env,
-                             eval_stack,tail);
-        break;}
-      case fd_evalfn_type: {
-        /* These are evalfns which do all the evaluating themselves */
-        struct FD_EVALFN *handler = (fd_evalfn)headval;
-        if (handler->evalfn_name)
-          eval_stack->stack_label=handler->evalfn_name;
-        result=handler->evalfn_handler(expr,env,eval_stack);
-        break;}
-      case fd_macro_type: {
-        /* These expand into expressions which are
-           then evaluated. */
-        struct FD_MACRO *macrofn=
-          fd_consptr(struct FD_MACRO *,headval,fd_macro_type);
-        eval_stack->stack_type="macro";
-        lispval xformer = macrofn->macro_transformer;
-        lispval new_expr = fd_call(eval_stack,xformer,1,&expr);
-        if (FD_ABORTED(new_expr))
-          result = fd_err(fd_SyntaxError,
-                          _("macro expansion"),NULL,new_expr);
-        else result = fd_stack_eval(new_expr,env,eval_stack,tail);
-        fd_decref(new_expr);
-        break;}
-      case fd_choice_type: {
-        int applicable = applicable_choicep(headval);
-        eval_stack->stack_type="ndhandler";
-        if (applicable)
-          result=call_function("fnchoice",headval,expr,env,eval_stack,tail);
-        else result=fd_err(fd_SyntaxError,"fd_stack_eval",
-                           "not applicable or evalfn",
-                           headval);
-        break;}
-      default:
-        if ( (fd_functionp[headtype]) || (fd_applyfns[headtype]) ) {
-          struct FD_FUNCTION *f = (struct FD_FUNCTION *) headval;
-          result=call_function(f->fcn_name,headval,expr,env,
-                               eval_stack,tail);}
-        else if (FD_ABORTED(headval)) {
-          result=headval;}
-        else if (VOIDP(headval)) {
-          result=fd_err(fd_UnboundIdentifier,"for function",
-                        ((SYMBOLP(head))?(SYM_NAME(head)):
-                         (NULL)),
-                        head);}
-        else if (EMPTYP(headval) )
-          result=EMPTY;
-        else result=fd_err(fd_NotAFunction,NULL,NULL,headval);}
-      if (!tail) {
-        if (FD_TAILCALLP(result))
-          result=fd_finish_call(result);
-        else {}}
-      fd_pop_stack(eval_stack);
-      return result;}}
+      return fd_eval_pair(head,expr,env,eval_stack,tail);}}
   case fd_slotmap_type:
     return fd_deep_copy(expr);
   case fd_choice_type: {
@@ -988,6 +907,95 @@ lispval fd_stack_eval(lispval expr,fd_lexenv env,
       return result;}}
   default:
     return fd_incref(expr);}
+}
+
+FD_EXPORT
+lispval fd_eval_pair(lispval head,lispval expr,fd_lexenv env,
+                     struct FD_STACK *eval_stack,
+                     int tail)
+{
+  lispval result = VOID, headval = VOID;
+  int gc_head=0;
+  if (FD_LEXREFP(head)) {
+    headval=fd_lexref(head,env);
+    if (FD_CONSP(headval)) gc_head=1;}
+  else if (FD_FCNIDP(head)) {
+    headval=fd_fcnid_ref(head);
+    if (PRECHOICEP(headval)) {
+      headval=fd_make_simple_choice(headval);
+      gc_head=1;}}
+  else if ( (SYMBOLP(head)) || (PAIRP(head)) ||
+            (FD_CODEP(head)) || (CHOICEP(head)) ) {
+    headval=stack_eval(head,env,eval_stack);
+    if (PRECHOICEP(headval)) headval=fd_simplify_choice(headval);
+    gc_head=1;}
+  else headval=head;
+  if (FD_FCNIDP(headval)) {
+    headval=fd_fcnid_ref(headval);
+    if (PRECHOICEP(headval)) {
+      headval=fd_make_simple_choice(headval);
+      gc_head=1;}
+    else gc_head=0;}
+  int headtype = FD_PTR_TYPE(headval);
+  if (gc_head) fd_push_cleanup(eval_stack,FD_DECREF,headval,NULL);
+  switch (headtype) {
+  case fd_cprim_type: case fd_lambda_type: {
+    struct FD_FUNCTION *f = (struct FD_FUNCTION *) headval;
+    if (f->fcn_name) eval_stack->stack_label=f->fcn_name;
+    result=call_function(f->fcn_name,headval,expr,env,
+                         eval_stack,tail);
+    break;}
+  case fd_evalfn_type: {
+    /* These are evalfns which do all the evaluating themselves */
+    struct FD_EVALFN *handler = (fd_evalfn)headval;
+    if (handler->evalfn_name)
+      eval_stack->stack_label=handler->evalfn_name;
+    result=handler->evalfn_handler(expr,env,eval_stack);
+    break;}
+  case fd_macro_type: {
+    /* These expand into expressions which are
+       then evaluated. */
+    struct FD_MACRO *macrofn=
+      fd_consptr(struct FD_MACRO *,headval,fd_macro_type);
+    eval_stack->stack_type="macro";
+    lispval xformer = macrofn->macro_transformer;
+    lispval new_expr = fd_call(eval_stack,xformer,1,&expr);
+    if (FD_ABORTED(new_expr))
+      result = fd_err(fd_SyntaxError,
+                      _("macro expansion"),NULL,new_expr);
+    else result = fd_stack_eval(new_expr,env,eval_stack,tail);
+    fd_decref(new_expr);
+    break;}
+  case fd_choice_type: {
+    int applicable = applicable_choicep(headval);
+    eval_stack->stack_type="ndhandler";
+    if (applicable)
+      result=call_function("fnchoice",headval,expr,env,eval_stack,tail);
+    else result=fd_err(fd_SyntaxError,"fd_stack_eval",
+                       "not applicable or evalfn",
+                       headval);
+    break;}
+  default:
+    if ( (fd_functionp[headtype]) || (fd_applyfns[headtype]) ) {
+      struct FD_FUNCTION *f = (struct FD_FUNCTION *) headval;
+      result=call_function(f->fcn_name,headval,expr,env,
+                           eval_stack,tail);}
+    else if (FD_ABORTED(headval)) {
+      result=headval;}
+    else if (VOIDP(headval)) {
+      result=fd_err(fd_UnboundIdentifier,"for function",
+                    ((SYMBOLP(head))?(SYM_NAME(head)):
+                     (NULL)),
+                    head);}
+    else if (EMPTYP(headval) )
+      result=EMPTY;
+    else result=fd_err(fd_NotAFunction,NULL,NULL,headval);}
+  if (!tail) {
+    if (FD_TAILCALLP(result))
+      result=fd_finish_call(result);
+    else {}}
+  fd_pop_stack(eval_stack);
+  return result;
 }
 
 static int applicable_choicep(lispval headvals)

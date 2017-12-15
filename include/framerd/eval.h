@@ -43,6 +43,8 @@ FD_EXPORT int fd_choice_evalp(lispval x);
     (FD_PAIRP(x))   || (FD_CODEP(x))   ||       \
     ( (FD_AMBIGP(x)) && (fd_choice_evalp(x)) ) )
 
+FD_EXPORT u8_string fd_evalstack_type, fd_ndevalstack_type;
+
 /* Constants */
 
 #define FD_STACK_ARGS 6
@@ -212,6 +214,10 @@ lispval fd_stack_eval(lispval expr,fd_lexenv env,
                      struct FD_STACK *stack,
                      int tail);
 #define fd_tail_eval(expr,env) (fd_stack_eval(expr,env,fd_stackptr,1))
+FD_EXPORT
+lispval fd_eval_pair(lispval head,lispval expr,fd_lexenv env,
+                     struct FD_STACK *eval_stack,
+                     int tail);
 
 FD_EXPORT lispval fd_eval_exprs(lispval exprs,fd_lexenv env);
 

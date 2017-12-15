@@ -935,14 +935,21 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
            (FD_VOIDP(_stack->stack_source)) ||
            (_stack->stack_source == expr) )
         _stack->stack_source=source;
+      lispval old_op = _stack->stack_op;
+      fd_incref(code); _stack->stack_op=code;
+      if (_stack->stack_decref_op) fd_decref(old_op);
+      _stack->stack_decref_op = 1;
       lispval realop = FD_CAR(code);
       if (!(FD_OPCODEP(realop))) {
-        opcode = FD_VOID;
+        opcode = realop;
         break;}
       opcode=realop;
       expr = code;}
-    if (! (FD_OPCODEP(opcode)) )
-      return _fd_fast_eval(expr,env,_stack,tail);}
+    if (! (FD_OPCODEP(opcode)) ) {
+      _stack->stack_type = fd_evalstack_type;
+      if (FD_PAIRP(expr))
+        return fd_eval_pair(opcode,expr,env,_stack,tail);
+      else return _fd_fast_eval(expr,env,_stack,tail);}}
   lispval args = FD_CDR(expr);
   switch (opcode) {
   case FD_NOT_OPCODE: {

@@ -158,6 +158,8 @@ static lispval source_annotate(lispval expr,lispval target)
       return expr;}}
 }
 
+#define IS_EVAL_EXPR(x) ( (!(FD_NULLP(x))) && ((FD_PAIRP(x)) || (FD_CODEP(x))) )
+
 /* Stacks are rendered into LISP as vectors as follows:
    1. depth  (integer, increasing with calls)
    2. type   (apply, eval, load, other)
@@ -169,7 +171,7 @@ static lispval source_annotate(lispval expr,lispval target)
    8. source (the original source code for the call, if available)
  */
 
-static lispval stack2lisp(struct FD_STACK *stack,struct FD_STACK *prev)
+static lispval stack2lisp(struct FD_STACK *stack,struct FD_STACK *inner)
 {
   int n = 8;
   lispval depth = FD_INT(stack->stack_depth);
@@ -180,12 +182,12 @@ static lispval stack2lisp(struct FD_STACK *stack,struct FD_STACK *prev)
   if (stack->stack_label) label = lispval_string(stack->stack_label);
   if (stack->stack_status) status = lispval_string(stack->stack_status);
   if (FD_VOIDP(op)) op = FD_FALSE;
-  else if ( (FD_PAIRP(op)) || (FD_CODEP(op)) ) {
-    if ( (prev) &&
-         (!(FD_NULLP(prev->stack_op))) &&
-         (FD_CONSP(prev->stack_op)) &&
-         (source_find(op,prev->stack_op)) ) {
-      op = source_annotate(op,prev->stack_op);}
+  else if (IS_EVAL_EXPR(op)) {
+    if ( (inner) &&
+         (IS_EVAL_EXPR(inner->stack_op)) &&
+         (op != inner->stack_op) &&
+         (source_find(op,inner->stack_op)) ) {
+      op = source_annotate(op,inner->stack_op);}
     else fd_incref(op);}
   else fd_incref(op);
   if ( stack->stack_args ) {
@@ -197,15 +199,17 @@ static lispval stack2lisp(struct FD_STACK *stack,struct FD_STACK *prev)
     lispval bindings = stack->stack_env->env_bindings;
     if ( (SLOTMAPP(bindings)) || (SCHEMAPP(bindings)) ) {
       env = fd_copy(bindings);}}
-  if (!((FD_NULLP(stack->stack_source)) ||
-        (VOIDP(stack->stack_source)))) {
-    if ( (prev) && (!(FD_NULLP(prev->stack_source))) &&
-         (FD_CONSP(prev->stack_source)) &&
-         (source_find(stack->stack_source,prev->stack_source)) ) {
-      source = source_annotate(stack->stack_source,prev->stack_source);}
+
+  if ( (IS_EVAL_EXPR(stack->stack_source)) ) {
+    if ( (inner) && (IS_EVAL_EXPR(inner->stack_source)) &&
+         (source_find(stack->stack_source,inner->stack_source)) ) {
+      source = source_annotate(stack->stack_source,inner->stack_source);}
     else {
       source = stack->stack_source;
       fd_incref(source);}}
+  else NO_ELSE;
+
+  if ( (FD_FALSEP(argvec)) && (FD_CONSP(source)) ) argvec=FD_NIL;
   if (FD_FALSEP(status)) {
     n--; if (FD_FALSEP(env)) { n--; if (FD_FALSEP(source)) {
         n--; if (FD_FALSEP(argvec)) {
@@ -218,13 +222,13 @@ static lispval stack2lisp(struct FD_STACK *stack,struct FD_STACK *prev)
                             depth,type,op,label,argvec);
   case 6:
     return fd_init_compound(NULL,stack_entry_symbol,0,6,
-                            depth,type,op,label,argvec,source);
+                            depth,type,source,label,argvec,op);
   case 7:
     return fd_init_compound(NULL,stack_entry_symbol,0,7,
-                            depth,type,op,label,argvec,source,env);
+                            depth,type,source,label,argvec,op,env);
   default:
     return fd_init_compound(NULL,stack_entry_symbol,0,8,
-                            depth,type,op,label,argvec,source,env,status);
+                            depth,type,source,label,argvec,op,env,status);
   }
 }
 
