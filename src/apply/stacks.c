@@ -148,8 +148,6 @@ static lispval source_annotate(lispval expr,lispval target)
       struct FD_KEYVAL *kvals = smap->sm_keyvals;
       struct FD_KEYVAL *new_kvals = newsmap->sm_keyvals;
       int i=0, n = smap->n_slots; while (i<n) {
-        lispval new_key = source_subst(kvals[i].kv_key,target);
-        lispval new_val = source_subst(kvals[i].kv_val,target);
         new_kvals[i].kv_key = source_subst(kvals[i].kv_key,target);
         new_kvals[i].kv_val = source_subst(kvals[i].kv_val,target);
         i++;}
