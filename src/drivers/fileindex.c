@@ -63,10 +63,22 @@ static lispval fileindex_fetch(fd_index ix,lispval key);
 static fd_index open_fileindex(u8_string fname,fd_storage_flags flags,lispval opts)
 {
   struct FD_FILEINDEX *index = u8_alloc(struct FD_FILEINDEX);
+  int read_only = U8_BITP(flags,FD_STORAGE_READ_ONLY);
+
+  if ( (read_only == 0) && (u8_file_writablep(fname)) ) {
+    if (fd_check_rollback("open_fileindex",fname)<0) {
+      /* If we can't apply the rollback, open the file read-only */
+      u8_log(LOG_WARN,"RollbackFailed",
+             "Opening fileindex %s as read-only due to failed rollback",
+             fname);
+      fd_clear_errors(1);
+      read_only=1;}}
+  else read_only=1;
+
   fd_init_index((fd_index)index,&fileindex_handler,
                 fname,u8_realpath(fname,NULL),
                 flags,VOID,opts);
-  int read_only = U8_BITP(flags,FD_STORAGE_READ_ONLY);
+
   int consed = U8_BITP(flags,FD_STORAGE_UNREGISTERED);
   unsigned int magicno;
   fd_stream_mode mode=
@@ -1083,10 +1095,8 @@ static int fileindex_commit(fd_index ix,fd_commit_phase phase,
     if (lock_rv <= 0) {
       u8_graberrno("fileindex_commit",u8_strdup(source));
       return -1;}
-    u8_string rollback_file = u8_string_append(source,".rollback",NULL);
-    ssize_t rv = fd_save_head(source,rollback_file,8+(4*fx->index_n_slots));
-    u8_free(rollback_file);
-    if (rv<0) return -1; else return 1;}
+    return fd_write_rollback("fileindex_commit",ix->indexid,source,
+                             8+(4*(fx->index_n_slots)));}
   case fd_commit_save: {
     return fileindex_save(ix,
                           (struct FD_CONST_KEYVAL *)commit->commit_adds,

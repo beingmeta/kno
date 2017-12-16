@@ -57,9 +57,19 @@ static int recover_file_pool(struct FD_FILE_POOL *);
 static fd_pool open_file_pool(u8_string fname,fd_storage_flags flags,lispval opts)
 {
   struct FD_FILE_POOL *pool = u8_alloc(struct FD_FILE_POOL);
+  int read_only = U8_BITP(flags,FD_STORAGE_READ_ONLY);
+
+  if ( (read_only == 0) && (u8_file_writablep(fname)) ) {
+    if (fd_check_rollback("open_file_pool",fname)<0) {
+      /* If we can't apply the rollback, open the file read-only */
+      u8_log(LOG_WARN,"RollbackFailed",
+             "Opening filepool %s as read-only due to failed rollback",
+             fname);
+      fd_clear_errors(1);
+      read_only=1;}}
+  else read_only=1;
+
   FD_OID base = FD_NULL_OID_INIT;
-  int read_only = U8_BITP(flags,FD_STORAGE_READ_ONLY) ||
-    (!(u8_file_writablep(fname)));
   unsigned int hi, lo, magicno, capacity, load;
   fd_off_t label_loc; lispval label;
   u8_string rname = u8_realpath(fname,NULL);
@@ -499,16 +509,27 @@ static int file_pool_commit(fd_pool p,fd_commit_phase phase,
         return -1;}
       else {
         commits->commit_stream = &(fp->pool_stream);}}
-    u8_string rollback_file = u8_mkstring("%s.rollback",source);
-    ssize_t rv = fd_save_head(source,rollback_file,24+(4*p->pool_capacity));
-    u8_free(rollback_file);
-    if (rv<0) return -1; else return 1;}
+    return fd_write_rollback("filepool_commit",p->poolid,source,
+                             (24+(4*p->pool_capacity)));}
   case fd_commit_save: {
     return file_pool_storen(p,commits->commit_count,
                             commits->commit_oids,
                             commits->commit_vals);}
   case fd_commit_finish:
     return 0;
+  case fd_commit_rollback: {
+    u8_string source = p->pool_source;
+    u8_string rollback_file = u8_mkstring("%s.rollback",source);
+    if (u8_file_existsp(rollback_file)) {
+      ssize_t rv= fd_apply_head(rollback_file,source);
+      u8_free(rollback_file);
+      if (rv<0) return -1; else return 1;}
+    else {
+      u8_logf(LOG_CRIT,"NoRollbackFile",
+              "The rollback file %s for %s doesn't exist",
+              rollback_file,p->poolid);
+      u8_free(rollback_file);
+      return -1;}}
   case fd_commit_cleanup: {
     u8_string source = p->pool_source;
     u8_string rollback_file = u8_mkstring("%s.rollback",source);
@@ -525,19 +546,6 @@ static int file_pool_commit(fd_pool p,fd_commit_phase phase,
       return rv;}
     else {
       u8_logf(LOG_WARN,"Rollback file %s was deleted",rollback_file);
-      u8_free(rollback_file);
-      return -1;}}
-  case fd_commit_rollback: {
-    u8_string source = p->pool_source;
-    u8_string rollback_file = u8_mkstring("%s.rollback",source);
-    if (u8_file_existsp(rollback_file)) {
-      ssize_t rv= fd_apply_head(rollback_file,source);
-      u8_free(rollback_file);
-      if (rv<0) return -1; else return 1;}
-    else {
-      u8_logf(LOG_CRIT,"NoRollbackFile",
-              "The rollback file %s for %s doesn't exist",
-              rollback_file,p->poolid);
       u8_free(rollback_file);
       return -1;}}
   default: {

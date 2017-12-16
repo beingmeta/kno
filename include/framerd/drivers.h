@@ -225,6 +225,11 @@ FD_EXPORT u8_string fd_match_index_file(u8_string spec,void *data);
 
 FD_EXPORT int fd_remove_suffix(u8_string base,u8_string suffix);
 
+FD_EXPORT int fd_write_rollback(u8_context caller,
+                                u8_string id,u8_string source,
+                                size_t size);
+FD_EXPORT int fd_check_rollback(u8_context caller,u8_string source);
+
 /* Setting file options */
 
 FD_EXPORT int fd_set_file_opts(u8_string filename,lispval opts);

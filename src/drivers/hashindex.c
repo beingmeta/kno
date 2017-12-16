@@ -223,6 +223,16 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
   struct FD_HASHINDEX *index = u8_alloc(struct FD_HASHINDEX);
   int read_only = U8_BITP(flags,FD_STORAGE_READ_ONLY);
 
+  if ( (read_only == 0) && (u8_file_writablep(fname)) ) {
+    if (fd_check_rollback("open_hashindex",fname)<0) {
+      /* If we can't apply the rollback, open the file read-only */
+      u8_log(LOG_WARN,"RollbackFailed",
+             "Opening hashindex %s as read-only due to failed rollback",
+             fname);
+      fd_clear_errors(1);
+      read_only=1;}}
+  else read_only=1;
+
   unsigned int magicno;
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
@@ -2689,12 +2699,9 @@ static int hashindex_commit(fd_index ix,fd_commit_phase phase,
     u8_seterr("BadCommitPhase(commit_none)","hashindex_commit",
               u8_strdup(ix->indexid));
     return -1;
-  case fd_commit_start: {
-    u8_string rollback_file = u8_string_append(source,".rollback",NULL);
-    size_t rollback_size = 256+(ref_size*n_buckets);
-    ssize_t rv = fd_save_head(source,rollback_file,rollback_size);
-    u8_free(rollback_file);
-    if (rv<0) return -1; else return 1;}
+  case fd_commit_start:
+    return fd_write_rollback("hashindex_commit",ix->indexid,source,
+                             256+(ref_size*n_buckets));
   case fd_commit_save: {
     size_t recovery_size = 256+(ref_size*n_buckets);
     u8_string commit_file = u8_mkstring("%s.commit",source);

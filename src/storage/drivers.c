@@ -983,6 +983,47 @@ fd_compress_type fd_compression_type(lispval opts,fd_compress_type dflt)
 
 /* Cleaning up dbfiles */
 
+FD_EXPORT int fd_write_rollback(u8_context caller,
+                                u8_string id,u8_string source,
+                                size_t size)
+{
+  u8_string rollback_file = u8_mkstring("%s.rollback",source);
+  if (u8_file_existsp(rollback_file)) {
+    if (u8_file_writablep(rollback_file)) {
+      u8_log(LOG_CRIT,"LeftoverRollback",
+             "(%s) Removing leftover rollback file %s for %s",
+             caller,rollback_file,id);
+      int rv = u8_removefile(rollback_file);
+      if (rv < 0) {
+        u8_seterr("LeftoverRollback",caller,rollback_file);
+        return -1;}}
+    else {
+      u8_seterr("LeftoverRollback",caller,
+                u8_mkstring("Can't remove/overwrite rollback file %s for %s",
+                            rollback_file,id));
+      return -1;}}
+  ssize_t rv= fd_save_head(source,rollback_file,size);
+  if (rv<0) {
+    u8_seterr("CantSaveRollback",caller,rollback_file);
+    return -1;}
+  u8_free(rollback_file);
+  return 1;
+}
+
+FD_EXPORT int fd_check_rollback(u8_context caller,u8_string source)
+{
+  u8_string rollback_file = u8_mkstring("%s.rollback",source);
+  if (u8_file_existsp(rollback_file)) {
+    int rv = fd_apply_head(rollback_file,source);
+    if (rv<0) {
+      if (errno) u8_graberrno(caller,source);
+      u8_seterr("RollbackError",caller,source);}
+    u8_free(rollback_file);
+    return rv;}
+  u8_free(rollback_file);
+  return 0;
+}
+
 FD_EXPORT int fd_remove_suffix(u8_string base,u8_string suffix)
 {
   size_t base_len = strlen(base);

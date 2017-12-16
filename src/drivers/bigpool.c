@@ -213,8 +213,16 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,
   fd_off_t label_loc, metadata_loc, slotids_loc, slotids_size;
   lispval label;
   struct FD_BIGPOOL *pool = u8_alloc(struct FD_BIGPOOL);
-  int read_only = U8_BITP(open_flags,FD_STORAGE_READ_ONLY) ||
-    (!(u8_file_writablep(fname)));
+  int read_only = U8_BITP(open_flags,FD_STORAGE_READ_ONLY);
+  if ( (read_only == 0) && (u8_file_writablep(fname)) ) {
+    if (fd_check_rollback("open_hashindex",fname)<0) {
+      /* If we can't apply the rollback, open the file read-only */
+      u8_log(LOG_WARN,"RollbackFailed",
+             "Opening bigpool %s as read-only due to failed rollback",
+             fname);
+      fd_clear_errors(1);
+      read_only=1;}}
+  else read_only=1;
   u8_string rname = u8_realpath(fname,NULL);
   int stream_flags =
     FD_STREAM_CAN_SEEK | FD_STREAM_NEEDS_LOCK | FD_STREAM_READ_ONLY;
@@ -1181,12 +1189,7 @@ static int bigpool_commit(fd_pool p,fd_commit_phase phase,
   case fd_commit_start: {
     size_t cap = p->pool_capacity;
     size_t recovery_size = 256+(chunk_ref_size*cap);
-    u8_string rollback = u8_mkstring("%s.rollback",fname);
-    ssize_t rv= fd_save_head(fname,rollback,recovery_size);
-    u8_free(rollback);
-    if (rv<0)
-      return -1;
-    else return 1;}
+    return fd_write_rollback("bigpool_commit",p->poolid,fname,recovery_size);}
   case fd_commit_save: {
     size_t cap = p->pool_capacity;
     size_t recovery_size = 256+(chunk_ref_size*cap);
