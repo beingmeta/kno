@@ -915,6 +915,7 @@ enable_shared
 enable_async
 enable_dtblock
 with_i18n
+with_mmap
 enable_lockfree
 with_nptrlocks
 with_editline
@@ -1657,6 +1658,7 @@ Optional Packages:
 --with-dload-path location
 --with-boot-config configstring
 --without-i18n built and install message catalogs
+--without-mmap build without using mmap
 --with-nptrlocks Sets the number of pointer hash locks to use
 --without-editline Use the editline with fdconsole
 --without-libu8 Use libu8 includes
@@ -9907,6 +9909,19 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
+
+
+# Check whether --with-mmap was given.
+if test "${with_mmap+set}" = set; then :
+  withval=$with_mmap;
+else
+  with_mmap="yes"
+fi
+
+if test $with_mmap == "no"; then
+   $as_echo "#define FD_WITHOUT_MMAP 1" >>confdefs.h
+
+fi
 
 for ac_header in stdatomic.h
 do :

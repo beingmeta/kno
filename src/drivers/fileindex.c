@@ -31,7 +31,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 
-#if (HAVE_MMAP)
+#if (FD_USE_MMAP)
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -39,7 +39,7 @@
 #define MMAP_FLAGS MAP_SHARED
 #endif
 
-#if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
+#if ((FD_USE_MMAP) && (!(WORDS_BIGENDIAN)))
 #define offget(offvec,offset) (fd_flip_word((offvec)[offset]))
 #define set_offset(offvec,offset,v) (offvec)[offset]=(fd_flip_word(v))
 #else
@@ -138,7 +138,7 @@ static void fileindex_setcache(fd_index ix,int level)
       if (fx->index_offsets) {
         fd_unlock_index(fx);
         return;}
-#if HAVE_MMAP
+#if FD_USE_MMAP
       newmmap=
         mmap(NULL,(fx->index_n_slots*SLOTSIZE)+8,
              PROT_READ,MMAP_FLAGS,s->stream_fileno,0);
@@ -161,7 +161,7 @@ static void fileindex_setcache(fd_index ix,int level)
     else {
       int retval;
       fd_lock_index(fx);
-#if HAVE_MMAP
+#if FD_USE_MMAP
       retval = munmap(fx->index_offsets-2,(fx->index_n_slots*SLOTSIZE)+8);
       if (retval<0) {
         u8_logf(LOG_CRIT,u8_strerror(errno),
@@ -996,7 +996,7 @@ static int fileindex_save(struct FD_INDEX *ix,
   if (n_adds+n_drops+n_stores) {
     int kdata_i = 0, kdata_edits=0, n_changes = n_adds+n_drops+n_stores;
     fd_lock_index(fx);
-#if HAVE_MMAP
+#if FD_USE_MMAP
     if (fx->index_offsets) {
       int i = 0, n = fx->index_n_slots;
       /* We have to copy these if they're MMAPd, because
@@ -1152,7 +1152,7 @@ static void fileindex_close(fd_index ix)
   fd_lock_index(fx);
   fd_close_stream(&(fx->index_stream),0);
   if (fx->index_offsets) {
-#if HAVE_MMAP
+#if FD_USE_MMAP
     int retval = munmap(fx->index_offsets-2,(SLOTSIZE*fx->index_n_slots)+8);
     if (retval<0) {
       u8_logf(LOG_CRIT,u8_strerror(errno),

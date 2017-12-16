@@ -21,6 +21,18 @@
 #define FD_INLINE 0
 #endif
 
+#ifndef FD_USE_MMAP
+#if HAVE_MMAP
+#if FD_WITHOUT_MMAP
+#define FD_USE_MMAP 0
+#else
+#define FD_USE_MMAP 1
+#endif
+#else
+#define FD_USE_MMAP 0
+#endif
+#endif
+
 #ifndef WORDS_BIGENDIAN
 #define WORDS_BIGENDIAN 0
 #endif

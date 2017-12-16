@@ -163,6 +163,9 @@
 /* Define if you have the flock function.  */
 #undef HAVE_MMAP
 
+/* Define to specify whether file locking works  */
+#undef FD_WITHOUT_MMAP
+
 /* Define if you have the mkstemp function.  */
 #undef HAVE_MKSTEMP
 

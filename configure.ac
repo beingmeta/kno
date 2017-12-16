@@ -1138,6 +1138,11 @@ fi
 AX_PTHREAD
 AX_PTHREAD(threads_default="yes",threads_default="no")
 
+AC_ARG_WITH(mmap,--with[out]-mmap build without using mmap,,with_mmap="yes")
+if test $with_mmap == "no"; then
+   AC_DEFINE(FD_WITHOUT_MMAP,1)
+fi
+
 AC_CHECK_HEADERS(stdatomic.h)
 
 AC_ARG_ENABLE(lockfree,--en[dis]able-lockfree Enables lock-free reference counting,,enable_lockfree="yes")

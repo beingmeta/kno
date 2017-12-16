@@ -57,7 +57,7 @@ typedef int fd_stream_flags;
 #define FD_DEFAULT_FILESTREAM_FLAGS \
   (FD_STREAM_CAN_SEEK|FD_STREAM_OWNS_FILENO)
 
-#if HAVE_MMAP
+#if FD_USE_MMAP
 #define FD_STREAM_USEMMAP (FD_STREAM_MMAPPED)
 #else
 #define FD_STREAM_USEMMAP (0)
@@ -77,7 +77,7 @@ typedef struct FD_STREAM {
     struct FD_OUTBUF out;
     struct FD_RAWBUF raw;} buf;
   long long stream_locker;
-#if HAVE_MMAP
+#if FD_USE_MMAP
   struct timespec mmap_time;
   u8_rwlock mmap_lock;
 #endif
@@ -401,7 +401,7 @@ FD_CHUNK_REF fd_get_chunk_ref(unsigned int *offsets,
     return result;}
   else switch (offtype) {
   case FD_B32: {
-#if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
+#if ((FD_USE_MMAP) && (!(WORDS_BIGENDIAN)))
     unsigned int word1 = fd_flip_word((offsets)[offset*2]);
     unsigned int word2 = fd_flip_word((offsets)[offset*2+1]);
 #else
@@ -411,7 +411,7 @@ FD_CHUNK_REF fd_get_chunk_ref(unsigned int *offsets,
     result.off = word1; result.size = word2;
     break;}
   case FD_B40: {
-#if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
+#if ((FD_USE_MMAP) && (!(WORDS_BIGENDIAN)))
     unsigned int word1 = fd_flip_word((offsets)[offset*2]);
     unsigned int word2 = fd_flip_word((offsets)[offset*2+1]);
 #else
@@ -422,7 +422,7 @@ FD_CHUNK_REF fd_get_chunk_ref(unsigned int *offsets,
     result.size = ((word2)&(0x00FFFFFF));
     break;}
   case FD_B64: {
-#if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
+#if ((FD_USE_MMAP) && (!(WORDS_BIGENDIAN)))
     unsigned int word1 = fd_flip_word((offsets)[offset*3]);
     unsigned int word2 = fd_flip_word((offsets)[offset*3+1]);
     unsigned int word3 = fd_flip_word((offsets)[offset*3+2]);

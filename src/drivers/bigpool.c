@@ -35,7 +35,7 @@ static int bigpool_loglevel = -1;
 
 #include <zlib.h>
 
-#if (HAVE_MMAP)
+#if (FD_USE_MMAP)
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -935,7 +935,7 @@ static lispval *bigpool_fetchn(fd_pool p,int n,lispval *oids)
       else {
         fd_inbuf usebuf =
           ( schedule[i].location.size < FETCHBUF_SIZE ) ? (&sbuf) :
-          (HAVE_MMAP) ? (&mbuf) : (&sbuf);
+          (FD_USE_MMAP) ? (&mbuf) : (&sbuf);
         fd_inbuf in = fd_open_block(stream,usebuf,
                                     schedule[i].location.off,
                                     schedule[i].location.size,
@@ -1541,7 +1541,7 @@ static ssize_t write_offdata
       if (oidoff<min_off) min_off = oidoff;}
 
   if (bp->pool_cache_level >= 2) {
-#if HAVE_MMAP
+#if FD_USE_MMAP
     ssize_t result=
       mmap_write_offdata(bp,stream,n,saveinfo,min_off,max_off);
     if (result>=0) {
@@ -1751,7 +1751,7 @@ static int bigpool_unlock(fd_pool p,lispval oids)
 
 /* Setting the cache level */
 
-#if HAVE_MMAP
+#if FD_USE_MMAP
 static int update_offdata_cache(fd_bigpool bp,int level,int chunk_ref_size)
 {
   unsigned int *offdata = bp->pool_offdata;
@@ -1898,7 +1898,7 @@ static void reload_bigpool(fd_bigpool bp,int is_locked)
   /* Make it NULL while we're messing with it */
   else bp->pool_offdata=NULL;
   double start = u8_elapsed_time();
-#if HAVE_MMAP
+#if FD_USE_MMAP
   /* When we have MMAP, the offlen is always the whole cache */
 #else
   fd_stream stream = &(bp->pool_stream);
@@ -1933,7 +1933,7 @@ static void bigpool_close(fd_pool p)
     /* TODO: Be more careful about freeing/unmapping the
        offdata. Users might get a seg fault rather than a "file not
        open error". */
-#if HAVE_MMAP
+#if FD_USE_MMAP
     size_t offdata_length = 256+((bp->pool_capacity)*get_chunk_ref_size(bp));
     /* Since we were just reading, the buffer was only as big
        as the load, not the capacity. */

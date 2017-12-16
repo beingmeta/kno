@@ -24,7 +24,7 @@ u8_condition fd_IsWriteBuf, fd_IsReadBuf;
 FD_EXPORT size_t fd_zlib_level;
 FD_EXPORT size_t fd_bigbuf_threshold;
 
-#if HAVE_MMAP
+#if FD_USE_MMAP
 #include <sys/mman.h>
 #endif
 
@@ -114,7 +114,7 @@ FD_FASTOP void _BUFIO_FREE(struct FD_RAWBUF *buf)
   case FD_HEAP_BUFFER: u8_free(curbuf); return;
   case FD_BIGALLOC_BUFFER: u8_big_free(curbuf); return;
   case FD_MMAP_BUFFER: {
-#if HAVE_MMAP
+#if FD_USE_MMAP
     int rv = munmap(curbuf,curlen);
     if (rv == 0) return;
     u8_log(LOG_WARN,"BufferUnmapFailed","errno=%d (%s)",

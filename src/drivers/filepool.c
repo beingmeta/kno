@@ -31,7 +31,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 
-#if (HAVE_MMAP)
+#if (FD_USE_MMAP)
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -39,7 +39,7 @@
 #define MMAP_FLAGS (MAP_SHARED|MAP_NORESERVE)
 #endif
 
-#if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
+#if ((FD_USE_MMAP) && (!(WORDS_BIGENDIAN)))
 #define offget(offvec,offset) (fd_flip_word((offvec)[offset]))
 #define set_offset(offvec,offset,v) (offvec)[offset]=(fd_flip_word(v))
 #else
@@ -416,7 +416,7 @@ static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
     old_size = fp->pool_offdata_size;
     tmp_offsets = u8_big_alloc_n(load,unsigned int);
     /* Initialize tmp_offsets from the current offsets */
-    if (HAVE_MMAP) {
+    if (FD_USE_MMAP) {
       /* If we're mmapped, the latest values are there. */
       while (i<old_size) {
         tmp_offsets[i]=offget(old_offsets,i); i++;}
@@ -467,7 +467,7 @@ static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
     else fd_flush_stream(stream);
     /* Update the offsets, if you have any */
     if (fp->pool_offdata == NULL) {}
-    else if (HAVE_MMAP) {
+    else if (FD_USE_MMAP) {
       int retval = munmap((fp->pool_offdata)-6,4*old_size+24);
       unsigned int *newmmap;
       if (retval<0) {
@@ -637,7 +637,7 @@ static void file_pool_setcache(fd_pool p,int level)
       if (fp->pool_offdata) {
         fd_unlock_pool_struct(p);
         return;}
-#if HAVE_MMAP
+#if FD_USE_MMAP
       newmmap=
         /* When allocating an offset buffer to read, we only have to make it as
            big as the file pools load. */
@@ -666,7 +666,7 @@ static void file_pool_setcache(fd_pool p,int level)
     else {
       int retval;
       fd_lock_pool_struct(p,1);
-#if HAVE_MMAP
+#if FD_USE_MMAP
       /* Since we were just reading, the buffer was only as big
          as the load, not the capacity. */
       retval = munmap((fp->pool_offdata)-6,4*fp->pool_load+24);
@@ -683,7 +683,7 @@ static void file_pool_setcache(fd_pool p,int level)
 
 static void reload_file_pool_cache(struct FD_FILE_POOL *fp,int lock)
 {
-#if HAVE_MMAP
+#if FD_USE_MMAP
   /* This should grow the offsets if the load has changed. */
 #else
   fd_stream s = &(fp->pool_stream);
@@ -723,7 +723,7 @@ static void file_pool_close(fd_pool p)
   */
   fd_close_stream(&(fp->pool_stream),0);
   if (fp->pool_offdata) {
-#if HAVE_MMAP
+#if FD_USE_MMAP
     /* Since we were just reading, the buffer was only as big
        as the load, not the capacity. */
     int retval = munmap((fp->pool_offdata)-6,4*fp->pool_offdata_size+24);

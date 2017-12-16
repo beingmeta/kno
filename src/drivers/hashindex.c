@@ -101,7 +101,7 @@ static int hashindex_loglevel = -1;
 #include <math.h>
 #include <sys/stat.h>
 
-#if (HAVE_MMAP)
+#if (FD_USE_MMAP)
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -953,7 +953,7 @@ static FD_CHUNK_REF read_value_block
   unsigned char stackbuf[HX_VALBUF_SIZE];
   if ( vblock_size < HX_VALBUF_SIZE ) {
     FD_INIT_INBUF(&instream,stackbuf,HX_VALBUF_SIZE,0);}
-  else if (! HAVE_MMAP) {
+  else if (! FD_USE_MMAP) {
     unsigned char *usebuf = u8_malloc(vblock_size);
     FD_INIT_INBUF(&instream,usebuf,HX_VALBUF_SIZE,FD_HEAP_BUFFER);}
   else {}
@@ -1350,7 +1350,7 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
         off_t off = vsched[i].vsched_chunk.off;
         size_t size = vsched[i].vsched_chunk.size;
         fd_inbuf valstream =
-          ( (HAVE_MMAP) && (size > vblock.buflen) &&
+          ( (FD_USE_MMAP) && (size > vblock.buflen) &&
             (size > fd_bigbuf_threshold) ) ?
           ( fd_open_block(stream,&bigvblock,off,size,1) ) :
           ( fd_open_block(stream,&vblock,off,size,1) );
@@ -1891,7 +1891,7 @@ static void hashindex_setcache(struct FD_HASHINDEX *hx,int level)
       fd_stream s = &(hx->index_stream);
       size_t n_buckets = hx->index_n_buckets;
       unsigned int *buckets, *newmmap;
-#if HAVE_MMAP
+#if FD_USE_MMAP
       newmmap=
         mmap(NULL,(n_buckets*chunk_ref_size)+256,
              PROT_READ,MMAP_FLAGS,s->stream_fileno,0);
@@ -1927,7 +1927,7 @@ static void hashindex_setcache(struct FD_HASHINDEX *hx,int level)
     else hx->index_offdata=NULL;
     /* TODO: We should be more careful before unmapping or freeing
        this, since somebody could still have a pointer to it. */
-#if HAVE_MMAP
+#if FD_USE_MMAP
     retval = munmap(offdata-64,((hx->index_n_buckets)*chunk_ref_size)+256);
     if (retval<0) {
       u8_logf(LOG_WARN,u8_strerror(errno),
@@ -2911,7 +2911,7 @@ static int update_hashindex_ondisk
   size_t n_buckets = hx->index_n_buckets;
   unsigned int chunk_ref_size = get_chunk_ref_size(hx);
   ssize_t offdata_byte_length = n_buckets*chunk_ref_size;
-#if HAVE_MMAP
+#if FD_USE_MMAP
   unsigned int *memblock=
     mmap(NULL,256+offdata_byte_length,
          PROT_READ|PROT_WRITE,
@@ -2939,7 +2939,7 @@ static int update_hashindex_ondisk
       word1 = (((bucket_locs[i].bck_ref.off)>>32)&(0xFFFFFFFF));
       word2 = (((bucket_locs[i].bck_ref.off))&(0xFFFFFFFF));
       word3 = (bucket_locs[i].bck_ref.size);
-#if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
+#if ((FD_USE_MMAP) && (!(WORDS_BIGENDIAN)))
       offdata[bucket*3]=fd_flip_word(word1);
       offdata[bucket*3+1]=fd_flip_word(word2);
       offdata[bucket*3+2]=fd_flip_word(word3);
@@ -2954,7 +2954,7 @@ static int update_hashindex_ondisk
       unsigned int word1, word2, bucket = bucket_locs[i].bucketno;
       word1 = ((bucket_locs[i].bck_ref.off)&(0xFFFFFFFF));
       word2 = (bucket_locs[i].bck_ref.size);
-#if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
+#if ((FD_USE_MMAP) && (!(WORDS_BIGENDIAN)))
       offdata[bucket*2]=fd_flip_word(word1);
       offdata[bucket*2+1]=fd_flip_word(word2);
 #else
@@ -2966,7 +2966,7 @@ static int update_hashindex_ondisk
     while (i<changed_buckets) {
       unsigned int word1 = 0, word2 = 0, bucket = bucket_locs[i].bucketno;
       fd_convert_FD_B40_ref(bucket_locs[i].bck_ref,&word1,&word2);
-#if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
+#if ((FD_USE_MMAP) && (!(WORDS_BIGENDIAN)))
       offdata[bucket*2]=fd_flip_word(word1);
       offdata[bucket*2+1]=fd_flip_word(word2);
 #else
@@ -3011,7 +3011,7 @@ static int update_hashindex_ondisk
       i++;}}
   /* The offsets have now been updated in memory */
   if (offdata) {
-#if (HAVE_MMAP)
+#if (FD_USE_MMAP)
     /* If you have MMAP, make them unwritable which swaps them out to
        the file. */
     int retval = msync(offdata-64,
@@ -3051,7 +3051,7 @@ static int update_hashindex_ondisk
 }
 
 static void reload_offdata(struct FD_INDEX *ix)
-#if HAVE_MMAP
+#if FD_USE_MMAP
 {
 }
 #else
@@ -3085,7 +3085,7 @@ static void hashindex_close(fd_index ix)
   fd_lock_index(hx);
   fd_close_stream(&(hx->index_stream),0);
   if (offdata) {
-#if HAVE_MMAP
+#if FD_USE_MMAP
     int retval=
       munmap(offdata-64,(chunk_ref_size*n_buckets)+256);
     if (retval<0) {

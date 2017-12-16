@@ -31,7 +31,7 @@
 
 #include <zlib.h>
 
-#if (HAVE_MMAP)
+#if (FD_USE_MMAP)
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -987,7 +987,7 @@ static ssize_t write_offdata
       if (oidoff<min_off) min_off = oidoff;}
 
   if (op->pool_offdata) {
-#if HAVE_MMAP
+#if FD_USE_MMAP
     ssize_t result=mmap_write_offdata(op,stream,n,saveinfo,min_off,max_off);
     if (result>=0) return result;
 #endif
@@ -1210,7 +1210,7 @@ static void oidpool_setcache(fd_pool p,int level)
        ( (level==2) && ( op->pool_offdata != NULL ) ) ) {
     fd_unlock_pool_struct((fd_pool)op);
     return;}
-#if (!(HAVE_MMAP))
+#if (!(FD_USE_MMAP))
   if (level < 2) {
     if (op->pool_offdata) {
       u8_big_free(op->pool_offdata);
@@ -1235,7 +1235,7 @@ static void oidpool_setcache(fd_pool p,int level)
       UNLOCK_POOLSTREAM(op);}
     fd_unlock_pool_struct((fd_pool)op);
     return;}
-#else /* HAVE_MMAP */
+#else /* FD_USE_MMAP */
   int stream_flags=op->pool_stream.stream_flags;
 
   if ( (level < 3) && (U8_BITP(stream_flags,FD_STREAM_MMAPPED)) )
@@ -1291,10 +1291,10 @@ static void oidpool_setcache(fd_pool p,int level)
 
   UNLOCK_POOLSTREAM(op);
   fd_unlock_pool_struct((fd_pool)op);
-#endif /* HAVE_MMAP */
+#endif /* FD_USE_MMAP */
 }
 
-#if HAVE_MMAP
+#if FD_USE_MMAP
 static void reload_offdata(fd_oidpool op,int lock) {}
 #else
 static void reload_offdata(fd_oidpool op)
@@ -1338,7 +1338,7 @@ static void oidpool_close(fd_pool p)
     /* TODO: Be more careful about freeing/unmapping the
        offdata. Users might get a seg fault rather than a "file not
        open error". */
-#if HAVE_MMAP
+#if FD_USE_MMAP
     /* Since we were just reading, the buffer was only as big
        as the load, not the capacity. */
     int retval = munmap(offdata-64,offdata_length);

@@ -44,7 +44,7 @@ static int stream_loglevel;
 #include <sys/socket.h>
 #endif
 
-#if HAVE_MMAP
+#if FD_USE_MMAP
 #include <sys/mman.h>
 #endif
 
@@ -390,7 +390,7 @@ FD_EXPORT struct FD_STREAM *fd_init_stream(fd_stream stream,
   stream->stream_filepos = -1;
   stream->stream_maxpos = -1;
   stream->stream_flags = flags;
-#if HAVE_MMAP
+#if FD_USE_MMAP
   u8_init_rwlock(&(stream->mmap_lock));
   if (U8_BITP(flags,FD_STREAM_MMAPPED)) {
     if (U8_BITP(flags,FD_STREAM_READ_ONLY)) {
@@ -608,7 +608,7 @@ FD_EXPORT void fd_close_stream(fd_stream s,int flags)
 
   /* Flush data */
   if (!(flush)) {}
-#if HAVE_MMAP
+#if FD_USE_MMAP
   else if ((U8_BITP(s->stream_flags,FD_STREAM_MMAPPED))&&
            (!((U8_BITP(s->stream_flags,FD_STREAM_READ_ONLY))))) {
     ssize_t rv = mmap_write_update(s,-1);
@@ -755,7 +755,7 @@ FD_EXPORT ssize_t fd_setbufsize(fd_stream s,ssize_t bufsize)
 
 static ssize_t set_mmapped(fd_stream s,ssize_t bufsize,int unlock)
 {
-#if HAVE_MMAP
+#if FD_USE_MMAP
   if (U8_BITP(s->stream_flags,FD_STREAM_MMAPPED))
     return 0;
   else if (!(U8_BITP(s->stream_flags,FD_STREAM_READ_ONLY))) {
@@ -1091,7 +1091,7 @@ FD_EXPORT fd_inbuf fd_open_block(fd_stream s,fd_inbuf in,
     in->bufread=in->buffer+offset;
     in->buflim=in->buffer+offset+len;
     return in;}
-#if HAVE_MMAP
+#if FD_USE_MMAP
   /* If the input stream doesn't have a buffer or it already has an
      MMAPPed buffer, use MMAP */
   if ( (in->buffer == NULL) || (BUFIO_ALLOC(in) == FD_MMAP_BUFFER) ) {
@@ -1502,7 +1502,7 @@ FD_EXPORT lispval fd_read_dtype_from_file(u8_string filename)
                           FD_FILE_READ,
                           FD_STREAM_IS_CONSED|
                           FD_STREAM_READ_ONLY|
-                          ( (HAVE_MMAP) ? (FD_STREAM_MMAPPED) : (0)),
+                          ( (FD_USE_MMAP) ? (FD_STREAM_MMAPPED) : (0)),
                           fd_filestream_bufsize);
     if (opened) {
       lispval result = VOID;
