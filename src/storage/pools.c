@@ -2273,7 +2273,7 @@ static lispval base_slot, capacity_slot, cachelevel_slot,
 
 static lispval read_only_flag, unregistered_flag, registered_flag,
   noswap_flag, noerr_flag, phased_flag, sparse_flag, background_flag,
-  adjunct_flag, virtual_flag, nolocks_flag;
+  virtual_flag, nolocks_flag;
 
 static void mdstore(lispval md,lispval slot,lispval v)
 {
