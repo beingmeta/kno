@@ -2156,19 +2156,23 @@ static unsigned int get_bigpool_format(fd_storage_flags sflags,lispval opts)
   unsigned int flags = 0;
   lispval offtype = fd_intern("OFFTYPE");
   if ( fd_testopt(opts,offtype,fd_intern("B64"))  ||
-       fd_testopt(opts,offtype,FD_INT(64)))
+       fd_testopt(opts,offtype,FD_INT(64))        ||
+       fd_testopt(opts,FDSYM_FLAGS,fd_intern("B64")))
     flags |= FD_B64;
   else if ( fd_testopt(opts,offtype,fd_intern("B40"))  ||
-            fd_testopt(opts,offtype,FD_INT(40)))
+            fd_testopt(opts,offtype,FD_INT(40))        ||
+            fd_testopt(opts,FDSYM_FLAGS,fd_intern("B40")) )
     flags |= FD_B40;
   else if ( fd_testopt(opts,offtype,fd_intern("B32"))  ||
-            fd_testopt(opts,offtype,FD_INT(32)))
+            fd_testopt(opts,offtype,FD_INT(32))        ||
+            fd_testopt(opts,FDSYM_FLAGS,fd_intern("B40")) )
     flags |= FD_B32;
   else flags |= FD_B40;
 
   flags |= ((fd_compression_type(opts,FD_NOCOMPRESS))<<3);
 
-  if (fd_testopt(opts,fd_intern("DTYPEV2"),VOID))
+  if ( fd_testopt(opts,fd_intern("DTYPEV2"),VOID) ||
+       fd_testopt(opts,FDSYM_FLAGS,fd_intern("DTYPEV2")) )
     flags |= FD_BIGPOOL_DTYPEV2;
 
   if ( ( (sflags) & (FD_STORAGE_READ_ONLY) ) ||
