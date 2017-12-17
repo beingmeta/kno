@@ -7,25 +7,8 @@
 (config! 'optlevel 4)
 (config! 'logprocinfo #t)
 
-(defambda (newflags (current {}))
-  (let* ((configured
-	  (choice (tryif (config 'dtypev2 #f) 'dtypev2)
-		  (tryif (config 'B32 #f) 'B32)
-		  (tryif (config 'B40 #f) 'B40)
-		  (tryif (config 'B64 #f) 'B64)
-		  (tryif (config 'ZLIB #f) 'ZLIB)
-		  (tryif (config 'SNAPPY #f) 'SNAPPY)
-		  (tryif (config 'ADJUNCT #f) 'ISADJUNCT)
-		  (tryif (config 'ISADJUNCT #f) 'ISADJUNCT)))
-	 (choice configured
-		 (difference current
-			     (tryif (overlaps? configured '{B32 B40 B64})
-			       '{B32 B40 B64})
-			     (tryif (overlaps? configured '{zlib snappy})
-			       '{zlib snappy})
-			     (tryif (overlaps? configured 'dtypev2)
-			       'dtypev2)
-			     (tryif (config 'noadjunct) '{adjunct isadjunct}))))))
+(define newflags {})
+(varconfig! FLAGS newflags #t choice)
 
 (define (writable? file)
   (if (file-exists? file)
@@ -47,11 +30,11 @@
   (let* ((opts (frame-create #f
 		 'adjunct #t 'register #f
 		 'type (config 'pooltype (config 'type {}))
-		 'module (config 'module {})))
-	 (pool (onerror (open-pool poolfile opts)) #f)))
-    (cond (pool #t)
-	  (else (logcrit |BadPool| "Couldn't open the pool " poolfile)
-		(exit 1))))
+		 'module (config 'dbmodule {}))))
+    (onerror (begin (open-pool poolfile opts) #t)
+	(lambda (ex)
+	  (logcrit |BadPool| "Couldn't open the pool " poolfile ": " ex)
+	  (exit 1)))))
 
 (define (reset-pool poolfile)
   (let* ((bakfile (config 'BAKFILE (CONFIG 'BACKUP (glom poolfile ".bak")))))
@@ -65,18 +48,23 @@
 	    (logwarn |MoveFailed| "Falling back to shell 'mv " poolfile " " bakfile "'")
 	    (system "mv " poolfile " " bakfile)))
       (onerror
-	  (let* ((opts (frame-create #f
-			 'adjunct #t
-			 'type (config 'pooltype (config 'type {}))
-			 'module (config 'module {})))
-		 (old (open-pool bakfile opts))
+	  (let* ((read-opts (frame-create #f
+			      'adjunct #t
+			      'type (config 'pooltype (config 'type {}))
+			      'module (config 'dbmodule {})))
+		 (old (open-pool bakfile read-opts))
 		 (pooltype (config 'NEWTYPE (try (poolctl old 'metadata 'type) 'bigpool)))
 		 (base (pool-base old))
 		 (capacity (config 'NEWCAP (pool-capacity old)))
-		 (opts `#[base ,base capacity ,capacity type ,pooltype load 0
-			  metadata ,(poolctl old 'metadata)
-			  flags ,(newflags (poolctl old 'metadata 'flags))]))
-	    (make-pool poolfile opts))
+		 (old-metadata (poolctl old 'metadata))
+		 (make-opts (frame-create #f
+			      'base base 'capacity capacity 'type pooltype 'load 0
+			      'metadata old-metadata
+			      'compression (config 'compression (poolctl old 'metadata 'compression) #t)
+			      'offtype (config 'offtype (poolctl old 'metadata 'offmode) #t)
+			      'dtypev2 (config 'dtypev2 (get (poolctl old 'metadata 'opts) 'dtypev2)))))
+	    (drop! old-metadata (get old-metadata '_READONLY_PROPS))
+	    (make-pool poolfile make-opts))
 	  (lambda (ex)
 	    (logcrit |MakePoolFailed| "With exception " ex "\n  Restoring original from backup")
 	    (onerror (move-file bakfile poolfile)
