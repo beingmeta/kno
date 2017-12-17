@@ -107,16 +107,17 @@ static ssize_t apply_head(int in,int out,size_t head_len)
     mmap(NULL,head_len,PROT_READ|PROT_WRITE,MAP_SHARED,out,0);
   if (! ( (outbuf == NULL) || (outbuf == MAP_FAILED) ) ) {
     struct FD_INBUF buf;
+    ssize_t copy_len = head_len - 8;
     ssize_t trunc_len = -1;
-    if (memcpy(outbuf,inbuf,head_len) == outbuf) {
-      FD_INIT_INBUF(&buf,inbuf+head_len,8,0);
+    if (memcpy(outbuf,inbuf,copy_len) == outbuf) {
+      FD_INIT_INBUF(&buf,inbuf+copy_len,8,0);
       trunc_len = fd_read_8bytes(&buf);}
     if (trunc_len>=0) {
       if (msync(outbuf,head_len,MS_SYNC) < 0) ok=0;}
     else ok = 0;
     if (munmap(outbuf,head_len) < 0) ok=0;
     if (ok) {
-      if ( trunc_len >= head_len ) {
+      if ( trunc_len >= copy_len ) {
         int rv = ftruncate(out,trunc_len);
         if (rv < 0) {
           graberrno("apply_head/truncate",NULL);
@@ -134,8 +135,8 @@ static ssize_t apply_head(int in,int out,size_t head_len)
 {
   ssize_t bufsize = FD_ALCOR_BUFSIZE;
   unsigned char *buf = u8_malloc(bufsize);
-  ssize_t bytes_copied = 0;
-  while (bytes_copied < head_len) {
+  ssize_t to_copy = head_len - 8, bytes_copied = 0;
+  while (bytes_copied < to_copy) {
     ssize_t needed = head_len - bytes_copied;
     ssize_t to_read = (needed < bufsize) ? (needed) : (bufsize);
     ssize_t delta = read(in,buf,to_read);
@@ -144,7 +145,7 @@ static ssize_t apply_head(int in,int out,size_t head_len)
     if (delta<=0) return -1;
     else bytes_copied += delta;}
   u8_free(buf);
-  if (bytes_copied == head_len) {
+  if (bytes_copied == to_copy) {
     unsigned char trunc_data[8];
     ssize_t trunc_read = read(in,trunc_data,8);
     if (trunc_read == 8) {
@@ -228,9 +229,8 @@ FD_EXPORT ssize_t fd_apply_head(u8_string head,u8_string tofile)
     return -1;}
   else NO_ELSE;
   ssize_t rv = -1;
-  if (fstat(in,&info)>=0) {
-    ssize_t head_len = info.st_size - 8;
-    rv = apply_head(in,out,head_len);}
+  if (fstat(in,&info)>=0)
+    rv = apply_head(in,out,info.st_size);
   else u8_graberr(errno,"fd_apply_head",u8_strdup("fstat failed"));
   if (rv<0)
     u8_seterr("ApplyHeadFailed","fd_apply_head",
