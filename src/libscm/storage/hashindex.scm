@@ -3,9 +3,9 @@
 
 (in-module 'storage/hashindex)
 
-(use-module '{reflection logger logctl stringfmts mttools})
+(use-module '{reflection logger logctl stringfmts mttools engine})
 
-(module-export! '{repack-index! index-bucketmap})
+(module-export! '{repack-index! index-bucketmap copy-buckets repack-hashindex!})
 
 (define %loglevel %info%)
 
@@ -58,23 +58,98 @@
   (rsorted (getkeys table) table))
 
 (define (repack-index! infile outfile (opts #f))
-  (let* ((in (open-index infile #[register #t cachelevel 3])))
+  (let* ((in (open-index infile #[register #t cachelevel 2])))
     (logwarn |RepackIndex| "Extracting keys from " in)
     (let ((keys (getkeys in)))
-      (let ((newsize (get-output-size in (choice-size keys) opts))
-	    (slotids (get-index-slotids keys)))
+      (let ((newsize (get-output-size in (choice-size keys) opts)))
 	(unless (file-exists? outfile)
 	  (logwarn |NewIndex| 
-	    "Creating new hash index " outfile " with "
-	    newsize " slots and coded for " (length slotids) "slotids")
+	    "Creating new hash index " outfile " with " newsize " slots")
 	  (make-index outfile
 		      `#[type hashindex register #t cachelevel 2
-			 size ,newsize
-			 slotids ,slotids]))
+			 size ,newsize]))
 	(let ((out (open-index outfile #[register #t cachelevel 2])))
 	  (logwarn |Copying keys|
 	    "Copying values for " (choice-size keys) " keys "
 	    "from " in " to " out)
 	  (let ((bucketmap (index-bucketmap in out #t keys)))
 	    (copy-keys in out keys bucketmap)))))))
+
+(define (repack-hashindex! infile outfile (opts #f))
+  (let* ((in (open-index infile #[register #t cachelevel 2]))
+	 (restart (getopt opts 'restart (CONFIG 'RESTART #f))))
+    (logwarn |RepackIndex| "Extracting keys from " in)
+    (let* ((keys (getkeys in))
+	   (buckets (indexctl in 'buckets))
+	   (newsize (get-output-size in (choice-size keys) opts)))
+      (when (and restart (file-exists? outfile))
+	(remove-file outfile))
+      (unless (file-exists? outfile)
+	(logwarn |NewIndex| 
+	  "Creating new hash index " outfile " with " newsize " slots for "
+	  (choice-size keys) " keys, reading " (choice-size buckets) " "
+	  "buckets from " infile)
+	(make-index outfile
+		    `#[type hashindex register #t cachelevel 2
+		       size ,newsize]))
+      (let ((out (open-index outfile #[register #t cachelevel 2])))
+	(engine/run copy-buckets buckets
+		    `#[loop #[from ,in to ,out]
+		       batchsize ,(getopt opts 'batchsize (config 'BATCHSIZE 10000))
+		       batchrange ,(getopt opts 'batchrange (config 'BATCHRANGE 8))
+		       nthreads ,(getopt opts 'nthreads (config 'NTHREADS (rusage 'ncpus)))
+		       checkfreq 60
+		       checktests ,(engine/interval 180)
+		       checkstate ,out
+		       logfreq 30
+		       checkfreq ,(getopt 'checkfreq 120)])))))
+
+(define (repack-hashindex! infile outfile (opts #f))
+  (let* ((in (open-index infile #[register #t cachelevel 2]))
+	 (restart (getopt opts 'restart (CONFIG 'RESTART #f))))
+    (logwarn |RepackIndex| "Extracting keys from " in)
+    (let* ((keys (getkeys in))
+	   (newsize (get-output-size in (choice-size keys) opts)))
+      (when (and restart (file-exists? outfile))
+	(remove-file outfile))
+      (unless (file-exists? outfile)
+	(logwarn |NewIndex| 
+	  "Creating new hash index " outfile " with " newsize " slots for "
+	  (choice-size keys) " keys")
+	(make-index outfile
+		    `#[type hashindex register #t cachelevel 2
+		       size ,newsize]))
+      (let ((out (open-index outfile #[register #t cachelevel 2])))
+	(engine/run copy-keyvals keys
+		    `#[loop #[from ,in to ,out]
+		       batchsize ,(getopt opts 'batchsize (config 'BATCHSIZE 10000))
+		       batchrange ,(getopt opts 'batchrange (config 'BATCHRANGE 8))
+		       nthreads ,(getopt opts 'nthreads (config 'NTHREADS (rusage 'ncpus)))
+		       checkfreq 60
+		       checktests ,(engine/interval 180)
+		       checkstate ,out
+		       logfreq 30
+		       checkfreq ,(getopt 'checkfreq 120)])))))
+
+(defambda (copy-buckets buckets batch-state loop-state task-state)
+  (let* ((from (get loop-state 'from))
+	 (to (get loop-state 'to))
+	 (info (indexctl from 'buckets buckets))
+	 (table (make-hashtable))
+	 (keys (get info 'key)))
+    (index-prefetch! from keys)
+    (do-choices (key keys)
+      (store! table key (get from key)))
+    (index-merge! to table)
+    (swapout from keys)))
+
+(defambda (copy-keyvals keys batch-state loop-state task-state)
+  (let* ((from (get loop-state 'from))
+	 (to (get loop-state 'to))
+	 (table (make-hashtable)))
+    (index-prefetch! from keys)
+    (do-choices (key keys)
+      (store! table key (get from key)))
+    (index-merge! to table)
+    (swapout from keys)))
 
