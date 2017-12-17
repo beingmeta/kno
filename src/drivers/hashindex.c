@@ -2088,25 +2088,23 @@ static int process_drops(struct FD_HASHINDEX *hx,
   lispval *to_fetch = u8_big_alloc_n(n_drops,lispval); int n_fetches = 0;
   int *fetch_scheds = u8_big_alloc_n(n_drops,unsigned int);
   int oddkeys = ((hx->storage_xformat)&(FD_HASHINDEX_ODDKEYS));
+
+  /* For all of the drops, we need to fetch their values to do the
+     drop, so we accumulate them in to_fetch[]. We're not checking the
+     cache for those values (which could be there), because the cache
+     might have additional changes made before the commit. (Got
+     that?) */
   int drop_i = 0; while ( drop_i < n_drops) {
     lispval key = drops[drop_i].kv_key, val = drops[drop_i].kv_val;
-    lispval cached = fd_hashtable_get(cache,key,VOID);
 
     s[sched_i].commit_key = key;
-
-    if (!(FD_VOIDP(cached))) {
-      s[sched_i].commit_values = fd_difference(cached,val);
-      s[sched_i].free_values = 1;
-      fd_decref(cached);}
-    else {
-      /* We temporarily store the dropped values in the
-         schedule. We'll replace them with the call to fd_difference
-         below. */
-      s[sched_i].commit_values = val;
-      s[sched_i].free_values   = 0;
-      to_fetch[n_fetches]      = key;
-      fetch_scheds[n_fetches]  = sched_i;
-      n_fetches++;}
+    /* We temporarily store the dropped values in the
+       schedule. We'll replace them with the call to fd_difference
+       below. */
+    s[sched_i].commit_values = val;
+    s[sched_i].free_values   = 0;
+    to_fetch[n_fetches]      = key;
+    fetch_scheds[n_fetches++]  = sched_i;
     s[sched_i].commit_replace = 1;
     drop_i++;
     sched_i++;}
@@ -3117,17 +3115,21 @@ static int interpret_hashindex_flags(lispval opts)
   int flags = 0;
   lispval offtype = fd_intern("OFFTYPE");
   if ( fd_testopt(opts,offtype,fd_intern("B64"))  ||
-       fd_testopt(opts,offtype,FD_INT(64)))
+       fd_testopt(opts,offtype,FD_INT(64))        ||
+       fd_testopt(opts,FDSYM_FLAGS,fd_intern("B64")))
     flags |= (FD_B64<<4);
   else if ( fd_testopt(opts,offtype,fd_intern("B40"))  ||
-            fd_testopt(opts,offtype,FD_INT(40)))
+            fd_testopt(opts,offtype,FD_INT(40))        ||
+            fd_testopt(opts,FDSYM_FLAGS,fd_intern("B40")) )
     flags |= (FD_B40<<4);
   else if ( fd_testopt(opts,offtype,fd_intern("B32"))  ||
-            fd_testopt(opts,offtype,FD_INT(32)))
+            fd_testopt(opts,offtype,FD_INT(32))        ||
+            fd_testopt(opts,FDSYM_FLAGS,fd_intern("B32")))
     flags |= (FD_B32<<4);
   else flags |= (FD_B40<<4);
 
-  if (fd_testopt(opts,fd_intern("DTYPEV2"),VOID))
+  if ( fd_testopt(opts,fd_intern("DTYPEV2"),VOID) ||
+       fd_testopt(opts,FDSYM_FLAGS,fd_intern("DTYPEV2")) )
     flags |= FD_HASHINDEX_DTYPEV2;
 
   return flags;
