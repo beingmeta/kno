@@ -38,7 +38,7 @@
 
 u8_condition TruncatedHead=_("The head file has no data");
 
-#define graberrno(context,details) u8_graberrno(context,u8_strdup(details))
+#define graberrno(context,details) u8_graberrno(context,((details) ? (u8_strdup(details)) : (NULL)))
 
 #if USE_MMAP
 static ssize_t save_head(int in,int out,size_t head_len,size_t source_len)
@@ -123,7 +123,7 @@ static ssize_t apply_head(int in,int out,size_t head_len)
     if (ok) {
       int rv = ftruncate(out,trunc_len);
       if (rv < 0) {
-        graberrno("apply_head/truncate",NULL);
+        u8_graberrno("apply_head/truncate",NULL);
         u8_seterr("TruncateFailed","apply_head",NULL);
         ok=0;}}}
   else ok=0;
