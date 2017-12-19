@@ -2216,7 +2216,8 @@ FD_FASTOP FD_CHUNK_REF write_value_block
   if (cont_size)
     endpos = endpos+fd_write_zint(outstream,cont_off);
   CHECK_POS(endpos,stream);
-  retval.off = startpos; retval.size = endpos-startpos;
+  retval.off  = startpos;
+  retval.size = endpos-startpos;
   return retval;
 }
 
@@ -2323,9 +2324,10 @@ FD_FASTOP fd_off_t update_keybucket
                               schedule[k].commit_values,VOID,
                               ke[key_i].ke_vref.off,ke[key_i].ke_vref.size,
                               endpos);
-          if (ke[key_i].ke_values!=VOID)
+          if ( (ke[key_i].ke_values != VOID) &&
+               (ke[key_i].ke_values != EMPTY) )
             u8_logf(LOG_WARN,"NotVoid",
-                    "This value for key %d is %q, not VOID as expected",
+                    "This value for key %d is %q, not VOID/EMPTY as expected",
                     key_i,ke[key_i].ke_values);
           endpos = ke[key_i].ke_vref.off+ke[key_i].ke_vref.size;}
         if (endpos>=maxpos) {
