@@ -788,6 +788,7 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in		\
 		src/eval/*.c src/prims/*.c     				\
 		src/text/*.c src/web/*.c 				\
 		src/cmodules/*.c 					\
+		src/libscm/*.scm src/libscm/*/*.scm			\
 		etc/*.in ${SRC_HEADERS} 				\
 		tests/scheme/.gdbinit.in tests/scheme/*.scm 
 	@echo Building TAGS file
@@ -801,6 +802,8 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in		\
 	@etags -o TAGS -a src/web/*.c src/text/*.c;
 	@etags -o TAGS -a tests/lisp/*.c tests/storage/*.c;
 	@etags -o TAGS -a tests/scheme/*.c tests/scheme/*.scm;
+	@etags -o TAGS -a src/libscm/*.scm src/libscm/storage/*.scm;
+	@etags -o TAGS -a src/libscm/optimize/optimize.scm src/libscm/bugjar/bugjar.scm;
 	@etags -o TAGS -a src/cmodules/*.c;
 
 CTAGS: makefile.in configure.ac include/framerd/config.h.in	\

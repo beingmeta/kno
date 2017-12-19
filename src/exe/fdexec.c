@@ -51,12 +51,24 @@ static int debug_maxelts = 32, debug_maxchars = 80;
 
 static char *configs[MAX_CONFIGS], *exe_arg = NULL, *file_arg = NULL;
 static int n_configs = 0;
+static int no_stdin = 0;
 
 static u8_condition FileWait=_("FILEWAIT");
 
 static void exit_fdexec()
 {
   if (!(fd_be_vewy_quiet)) fd_log_status("Exit(fdexec)");
+}
+
+static lispval load_stdin(fd_lexenv env)
+{
+  static U8_XINPUT u8stdin;
+  u8_string cwd = u8_getcwd();
+  u8_init_xinput(&u8stdin,0,NULL);
+  lispval v = fd_load_stream((u8_input)&u8stdin,env,cwd);
+  u8_close_input((u8_input)&u8stdin);
+  u8_free(cwd);
+  return v;
 }
 
 typedef char *charp;
@@ -152,14 +164,7 @@ static lispval *handle_argv(int argc,char **argv,size_t *arglenp,
       file_arg = argv[i++];
       source_file = u8_fromlibc(file_arg);}}
 
-  if (source_file == NULL) {
-    int i = 0;
-    fprintf(stderr,"argc=%d\n",argc);
-    while (i<argc) {
-      fprintf(stderr,"argv[%d]=%s\n",i,argv[i]);
-      i++;}
-    fprintf(stderr,"Usage: %s filename [config = val]*\n",exe_name);
-    exit(EXIT_FAILURE);}
+  if (source_file == NULL) {}
   else if (source_filep) {
     *source_filep = source_file;}
   else {}
@@ -227,6 +232,12 @@ int do_main(int argc,char **argv,
      _("File to wait to exist before starting"),
      fd_sconfig_get,fd_sconfig_set,
      &stop_file);
+  fd_register_config
+    ("NOSTDIN",
+     _("Don't read source from STDIN when needed"),
+     fd_boolconfig_get,fd_boolconfig_set,
+     &no_stdin);
+
 
   setlocale(LC_ALL,"");
   /* Process command line arguments */
@@ -291,10 +302,15 @@ int do_main(int argc,char **argv,
 
     fd_decref(src);
     source_file = NULL;}
-  else {
-    fprintf(stderr,
-            "Usage: fdexec [conf = val]* source_file (arg | [conf = val])*\n");
-    return 1;}
+  else if (no_stdin) {
+    int i = 0;
+    fprintf(stderr,"argc=%d\n",argc);
+    while (i<argc) {
+      fprintf(stderr,"argv[%d]=%s\n",i,argv[i]);
+      i++;}
+    fprintf(stderr,"Usage: %s filename [config = val]*\n",exe_name);
+    exit(EXIT_FAILURE);}
+  else result = load_stdin(env);
 
   if (!(fd_be_vewy_quiet)) {
     double startup_time = u8_elapsed_time()-fd_load_start;

@@ -31,7 +31,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 
-#if (HAVE_MMAP)
+#if (FD_USE_MMAP)
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -39,7 +39,7 @@
 #define MMAP_FLAGS (MAP_SHARED|MAP_NORESERVE)
 #endif
 
-#if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
+#if ((FD_USE_MMAP) && (!(WORDS_BIGENDIAN)))
 #define offget(offvec,offset) (fd_flip_word((offvec)[offset]))
 #define set_offset(offvec,offset,v) (offvec)[offset]=(fd_flip_word(v))
 #else
@@ -57,9 +57,19 @@ static int recover_file_pool(struct FD_FILE_POOL *);
 static fd_pool open_file_pool(u8_string fname,fd_storage_flags flags,lispval opts)
 {
   struct FD_FILE_POOL *pool = u8_alloc(struct FD_FILE_POOL);
+  int read_only = U8_BITP(flags,FD_STORAGE_READ_ONLY);
+
+  if ( (read_only == 0) && (u8_file_writablep(fname)) ) {
+    if (fd_check_rollback("open_file_pool",fname)<0) {
+      /* If we can't apply the rollback, open the file read-only */
+      u8_log(LOG_WARN,"RollbackFailed",
+             "Opening filepool %s as read-only due to failed rollback",
+             fname);
+      fd_clear_errors(1);
+      read_only=1;}}
+  else read_only=1;
+
   FD_OID base = FD_NULL_OID_INIT;
-  int read_only = U8_BITP(flags,FD_STORAGE_READ_ONLY) ||
-    (!(u8_file_writablep(fname)));
   unsigned int hi, lo, magicno, capacity, load;
   fd_off_t label_loc; lispval label;
   u8_string rname = u8_realpath(fname,NULL);
@@ -83,7 +93,8 @@ static fd_pool open_file_pool(u8_string fname,fd_storage_flags flags,lispval opt
   FD_SET_OID_HI(base,hi); FD_SET_OID_LO(base,lo);
   capacity = fd_read_4bytes_at(s,12,FD_ISLOCKED);
 
-  fd_init_pool((fd_pool)pool,base,capacity,&file_pool_handler,fname,rname);
+  fd_init_pool((fd_pool)pool,base,capacity,&file_pool_handler,
+               fname,rname,flags,VOID,opts);
   u8_free(rname);
 
   if (magicno == FD_FILE_POOL_TO_RECOVER) {
@@ -115,7 +126,6 @@ static fd_pool open_file_pool(u8_string fname,fd_storage_flags flags,lispval opt
       u8_free(pool);
       return NULL;}}
   pool->pool_load = load;
-  pool->pool_flags = flags;
   pool->pool_offdata = NULL;
   pool->pool_offdata_size = 0;
   if (read_only)
@@ -406,7 +416,7 @@ static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
     old_size = fp->pool_offdata_size;
     tmp_offsets = u8_big_alloc_n(load,unsigned int);
     /* Initialize tmp_offsets from the current offsets */
-    if (HAVE_MMAP) {
+    if (FD_USE_MMAP) {
       /* If we're mmapped, the latest values are there. */
       while (i<old_size) {
         tmp_offsets[i]=offget(old_offsets,i); i++;}
@@ -457,7 +467,7 @@ static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
     else fd_flush_stream(stream);
     /* Update the offsets, if you have any */
     if (fp->pool_offdata == NULL) {}
-    else if (HAVE_MMAP) {
+    else if (FD_USE_MMAP) {
       int retval = munmap((fp->pool_offdata)-6,4*old_size+24);
       unsigned int *newmmap;
       if (retval<0) {
@@ -499,16 +509,27 @@ static int file_pool_commit(fd_pool p,fd_commit_phase phase,
         return -1;}
       else {
         commits->commit_stream = &(fp->pool_stream);}}
-    u8_string rollback_file = u8_mkstring("%s.rollback",source);
-    ssize_t rv = fd_save_head(source,rollback_file,24+(4*p->pool_capacity));
-    u8_free(rollback_file);
-    if (rv<0) return -1; else return 1;}
+    return fd_write_rollback("filepool_commit",p->poolid,source,
+                             (24+(4*p->pool_capacity)));}
   case fd_commit_save: {
     return file_pool_storen(p,commits->commit_count,
                             commits->commit_oids,
                             commits->commit_vals);}
   case fd_commit_finish:
     return 0;
+  case fd_commit_rollback: {
+    u8_string source = p->pool_source;
+    u8_string rollback_file = u8_mkstring("%s.rollback",source);
+    if (u8_file_existsp(rollback_file)) {
+      ssize_t rv= fd_apply_head(rollback_file,source);
+      u8_free(rollback_file);
+      if (rv<0) return -1; else return 1;}
+    else {
+      u8_logf(LOG_CRIT,"NoRollbackFile",
+              "The rollback file %s for %s doesn't exist",
+              rollback_file,p->poolid);
+      u8_free(rollback_file);
+      return -1;}}
   case fd_commit_cleanup: {
     u8_string source = p->pool_source;
     u8_string rollback_file = u8_mkstring("%s.rollback",source);
@@ -525,19 +546,6 @@ static int file_pool_commit(fd_pool p,fd_commit_phase phase,
       return rv;}
     else {
       u8_logf(LOG_WARN,"Rollback file %s was deleted",rollback_file);
-      u8_free(rollback_file);
-      return -1;}}
-  case fd_commit_rollback: {
-    u8_string source = p->pool_source;
-    u8_string rollback_file = u8_mkstring("%s.rollback",source);
-    if (u8_file_existsp(rollback_file)) {
-      ssize_t rv= fd_apply_head(source,rollback_file,-1);
-      u8_free(rollback_file);
-      if (rv<0) return -1; else return 1;}
-    else {
-      u8_logf(LOG_CRIT,"NoRollbackFile",
-              "The rollback file %s for %s doesn't exist",
-              rollback_file,p->poolid);
       u8_free(rollback_file);
       return -1;}}
   default: {
@@ -629,7 +637,7 @@ static void file_pool_setcache(fd_pool p,int level)
       if (fp->pool_offdata) {
         fd_unlock_pool_struct(p);
         return;}
-#if HAVE_MMAP
+#if FD_USE_MMAP
       newmmap=
         /* When allocating an offset buffer to read, we only have to make it as
            big as the file pools load. */
@@ -658,7 +666,7 @@ static void file_pool_setcache(fd_pool p,int level)
     else {
       int retval;
       fd_lock_pool_struct(p,1);
-#if HAVE_MMAP
+#if FD_USE_MMAP
       /* Since we were just reading, the buffer was only as big
          as the load, not the capacity. */
       retval = munmap((fp->pool_offdata)-6,4*fp->pool_load+24);
@@ -675,7 +683,7 @@ static void file_pool_setcache(fd_pool p,int level)
 
 static void reload_file_pool_cache(struct FD_FILE_POOL *fp,int lock)
 {
-#if HAVE_MMAP
+#if FD_USE_MMAP
   /* This should grow the offsets if the load has changed. */
 #else
   fd_stream s = &(fp->pool_stream);
@@ -715,7 +723,7 @@ static void file_pool_close(fd_pool p)
   */
   fd_close_stream(&(fp->pool_stream),0);
   if (fp->pool_offdata) {
-#if HAVE_MMAP
+#if FD_USE_MMAP
     /* Since we were just reading, the buffer was only as big
        as the load, not the capacity. */
     int retval = munmap((fp->pool_offdata)-6,4*fp->pool_offdata_size+24);

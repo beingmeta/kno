@@ -119,38 +119,27 @@ static lispval loading_symbol;
 
 #define LOAD_CONTEXT_SIZE 40
 
-FD_EXPORT lispval fd_load_source_with_date
-  (u8_string sourceid,fd_lexenv env,u8_string enc_name,time_t *modtime)
+FD_EXPORT lispval fd_load_stream(u8_input loadstream,fd_lexenv env,
+                                 u8_string sourcebase)
 {
-  struct U8_INPUT stream;
-  lispval postload = VOID;
-  u8_string sourcebase = NULL, outer_sourcebase;
-  u8_string encoding = ((enc_name)?(enc_name):((u8_string)("auto")));
-  u8_string content = fd_get_source(sourceid,encoding,&sourcebase,modtime);
-  const u8_byte *input = content;
+  u8_string outer_sourcebase = bind_sourcebase(sourcebase);
   double start = u8_elapsed_time();
   struct FD_STACK *_stack = fd_stackptr;
-  if (content == NULL) return FD_ERROR;
-  else outer_sourcebase = bind_sourcebase(sourcebase);
+  lispval postload = VOID;
   if (errno) {
     u8_log(LOG_WARN,u8_UnexpectedErrno,
            "Dangling errno value %d (%s) before loading %s",
-           errno,u8_strerror(errno),sourceid);
+           errno,u8_strerror(errno),sourcebase);
     errno = 0;}
-  if ((trace_load) || (trace_load_eval))
-    u8_log(LOG_NOTICE,FileLoad,
-           "Loading %s (%d bytes)",sourcebase,u8_strlen(content));
-  FD_PUSH_STACK(load_stack,"loadsource",u8_strdup(sourceid),VOID);
+  FD_PUSH_STACK(load_stack,"loadsource",u8_strdup(sourcebase),VOID);
   load_stack->stack_free_label=1;
-  if ((input[0]=='#') && (input[1]=='!')) input = strchr(input,'\n');
-  U8_INIT_STRING_INPUT((&stream),-1,input);
   {
     /* This does a read/eval loop. */
     u8_byte context_buf[LOAD_CONTEXT_SIZE+1];
     lispval result = VOID;
     lispval expr = VOID, last_expr = VOID;
     double start_time;
-    fd_skip_whitespace(&stream);
+    fd_skip_whitespace(loadstream);
     load_stack->stack_status=context_buf; context_buf[0]='\0';
     while (!((FD_ABORTP(expr)) || (FD_EOFP(expr)))) {
       fd_decref(result);
@@ -174,8 +163,6 @@ FD_EXPORT lispval fd_load_source_with_date
                  ((ex->u8x_details)?(ex->u8x_details):((u8_string)"")),
                  sourcebase,expr);}
         restore_sourcebase(outer_sourcebase);
-        u8_free(sourcebase);
-        u8_free(content);
         fd_decref(last_expr); last_expr = VOID;
         fd_decref(expr);
         fd_pop_stack(load_stack);
@@ -192,11 +179,11 @@ FD_EXPORT lispval fd_load_source_with_date
           errno = 0;}}
       else {}
       fd_decref(last_expr); last_expr = expr;
-      fd_skip_whitespace(&stream);
-      if (stream.u8_inlim == stream.u8_read)
+      fd_skip_whitespace(loadstream);
+      if (loadstream->u8_inlim == loadstream->u8_read)
         context_buf[0]='\0';
-      else u8_string2buf(stream.u8_read,context_buf,LOAD_CONTEXT_SIZE);
-      expr = fd_parse_expr(&stream);}
+      else u8_string2buf(loadstream->u8_read,context_buf,LOAD_CONTEXT_SIZE);
+      expr = fd_parse_expr(loadstream);}
     if (expr == FD_EOF) {
       fd_decref(last_expr);
       last_expr = VOID;}
@@ -231,8 +218,6 @@ FD_EXPORT lispval fd_load_source_with_date
                   postload);}
     fd_decref(postload);
     restore_sourcebase(outer_sourcebase);
-    u8_free(sourcebase);
-    u8_free(content);
     if (last_expr == expr) {
       fd_decref(last_expr);
       last_expr = VOID;}
@@ -244,10 +229,31 @@ FD_EXPORT lispval fd_load_source_with_date
     if (errno) {
       u8_log(LOG_WARN,"UnexpectedErrno",
              "Dangling errno value %d (%s) after loading %s",
-             errno,u8_strerror(errno),sourceid);
+             errno,u8_strerror(errno),sourcebase);
       errno = 0;}
     fd_pop_stack(load_stack);
     return result;}
+}
+
+FD_EXPORT lispval fd_load_source_with_date
+  (u8_string sourceid,fd_lexenv env,u8_string enc_name,time_t *modtime)
+{
+  struct U8_INPUT stream;
+  u8_string sourcebase = NULL;
+  u8_string encoding = ((enc_name)?(enc_name):((u8_string)("auto")));
+  u8_string content = fd_get_source(sourceid,encoding,&sourcebase,modtime);
+  if (content == NULL)
+    return FD_ERROR;
+  const u8_byte *input = content;
+  if ((trace_load) || (trace_load_eval))
+    u8_log(LOG_NOTICE,FileLoad,
+           "Loading %s (%d bytes)",sourcebase,u8_strlen(content));
+  if ((input[0]=='#') && (input[1]=='!')) input = strchr(input,'\n');
+  U8_INIT_STRING_INPUT((&stream),-1,input);
+  lispval result = fd_load_stream(&stream,env,sourcebase);
+  if (sourcebase) u8_free(sourcebase);
+  u8_free(content);
+  return result;
 }
 
 FD_EXPORT lispval fd_load_source

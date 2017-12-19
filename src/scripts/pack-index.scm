@@ -136,19 +136,20 @@
 	   (file->dtype (config 'metadata #f)))
       (indexctl old 'metadata)))
 
-(define (make-new-index filename old keyvec (size) (type))
+(define (make-new-index filename old keyvec (size) (type) (keyslot))
   (default! type (symbolize (config 'type 'hashindex)))
   (default! size (get-new-size old (length keyvec)))
+  (default! keyslot (->lisp (config 'keyslot #f)))
   (lognotice |NewIndex|
     "Constructing new index " (write filename) " based on "
     (index-source old))
   (if (eq? type 'stdindex)
       (make-index filename `#[type fileindex size ,size
-			      keyslot ,(->lisp (config 'keyslot #f))
+			      keyslot ,keyslot
 			      metadata ,(get-metadata old)])
       (make-index filename 
 		  `#[type hashindex size ,size
-		     keyslot ,(->lisp (config 'keyslot #f))
+		     keyslot ,keyslot
 		     slotids
 		     ,(and (config 'codeslots (vector? (indexctl old 'slotids)) config:boolean)
 			   (compute-slotids keyvec))

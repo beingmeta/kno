@@ -45,7 +45,7 @@ int fd_oid_display_level = 2;
 int fd_storage_loglevel = LOG_NOTICE;
 int *fd_storage_loglevel_ptr = &fd_storage_loglevel;
 int fd_prefetch = FD_PREFETCHING_ENABLED;
-int fd_require_mmap = HAVE_MMAP;
+int fd_require_mmap = FD_USE_MMAP;
 
 size_t fd_network_bufsize = FD_NETWORK_BUFSIZE;
 

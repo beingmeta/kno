@@ -1481,6 +1481,8 @@ static void mdstring(lispval md,lispval slot,u8_string s)
   fd_decref(v);
 }
 
+static lispval metadata_readonly_props = FD_VOID;
+
 FD_EXPORT lispval fd_index_base_metadata(fd_index ix)
 {
   int flags=ix->index_flags;
@@ -1524,20 +1526,22 @@ FD_EXPORT lispval fd_index_base_metadata(fd_index ix)
   if (FD_TABLEP(ix->index_opts))
     fd_add(metadata,opts_slot,ix->index_opts);
 
-  fd_add(metadata,FDSYM_READONLY,cachelevel_slot);
-  fd_add(metadata,FDSYM_READONLY,indexid_slot);
-  fd_add(metadata,FDSYM_READONLY,source_slot);
-  fd_add(metadata,FDSYM_READONLY,FDSYM_TYPE);
-  fd_add(metadata,FDSYM_READONLY,edits_slot);
-  fd_add(metadata,FDSYM_READONLY,adds_slot);
-  fd_add(metadata,FDSYM_READONLY,drops_slot);
-  fd_add(metadata,FDSYM_READONLY,replaced_slot);
-  fd_add(metadata,FDSYM_READONLY,cached_slot);
-  fd_add(metadata,FDSYM_READONLY,flags_slot);
+  if (FD_VOIDP(metadata_readonly_props))
+    metadata_readonly_props = fd_intern("_READONLY_PROPS");
 
-  fd_add(metadata,FDSYM_READONLY,FDSYM_PROPS);
-  fd_add(metadata,FDSYM_READONLY,opts_slot);
+  fd_add(metadata,metadata_readonly_props,cachelevel_slot);
+  fd_add(metadata,metadata_readonly_props,indexid_slot);
+  fd_add(metadata,metadata_readonly_props,source_slot);
+  fd_add(metadata,metadata_readonly_props,FDSYM_TYPE);
+  fd_add(metadata,metadata_readonly_props,edits_slot);
+  fd_add(metadata,metadata_readonly_props,adds_slot);
+  fd_add(metadata,metadata_readonly_props,drops_slot);
+  fd_add(metadata,metadata_readonly_props,replaced_slot);
+  fd_add(metadata,metadata_readonly_props,cached_slot);
+  fd_add(metadata,metadata_readonly_props,flags_slot);
 
+  fd_add(metadata,metadata_readonly_props,FDSYM_PROPS);
+  fd_add(metadata,metadata_readonly_props,opts_slot);
 
   return metadata;
 }
@@ -1547,7 +1551,9 @@ FD_EXPORT lispval fd_index_base_metadata(fd_index ix)
 FD_EXPORT void fd_init_index(fd_index ix,
                              struct FD_INDEX_HANDLER *h,
                              u8_string id,u8_string src,
-                             fd_storage_flags flags)
+                             fd_storage_flags flags,
+                             lispval metadata,
+                             lispval opts)
 {
   U8_SETBITS(flags,FD_STORAGE_ISINDEX);
   if (U8_BITP(flags,FD_STORAGE_UNREGISTERED)) {
@@ -1565,21 +1571,58 @@ FD_EXPORT void fd_init_index(fd_index ix,
   fd_make_hashtable(&(ix->index_adds),0);
   fd_make_hashtable(&(ix->index_drops),0);
   fd_make_hashtable(&(ix->index_stores),0);
-  FD_INIT_STATIC_CONS(&(ix->index_metadata),fd_slotmap_type);
+
   FD_INIT_STATIC_CONS(&(ix->index_props),fd_slotmap_type);
-  fd_init_slotmap(&(ix->index_metadata),17,NULL);
   fd_init_slotmap(&(ix->index_props),17,NULL);
+
   ix->index_handler = h;
+
+  FD_INIT_STATIC_CONS(&(ix->index_metadata),fd_slotmap_type);
+  if (FD_SLOTMAPP(metadata)) {
+    fd_copy_slotmap((fd_slotmap)metadata,&(ix->index_metadata));
+    ix->index_keyslot = fd_get(metadata,FDSYM_KEYSLOT,VOID);}
+  else {
+    fd_init_slotmap(&(ix->index_metadata),17,NULL);
+    ix->index_keyslot = VOID;}
+  ix->index_metadata.table_modified = 0;
+
   /* This was what was specified */
   ix->indexid = u8_strdup(id);
   /* Don't copy this one */
   ix->index_source = src;
   ix->index_typeid = NULL;
-  ix->index_keyslot = VOID;
   ix->index_covers_slotids = VOID;
-  ix->index_opts = FD_FALSE;
-  ix->index_loglevel = -1;
+
+  if ( (FD_VOIDP(opts)) || (FD_FALSEP(opts)) )
+    ix->index_opts = FD_FALSE;
+  else ix->index_opts = fd_incref(opts);
+
+  lispval ll = fd_getopt(opts,FDSYM_LOGLEVEL,FD_VOID);
+  if (FD_VOIDP(ll))
+    ix->index_loglevel = fd_storage_loglevel;
+  else if ( (FD_FIXNUMP(ll)) && ( (FD_FIX2INT(ll)) >= 0 ) &&
+       ( (FD_FIX2INT(ll)) < U8_MAX_LOGLEVEL ) )
+    ix->index_loglevel = FD_FIX2INT(ll);
+  else {
+    u8_log(LOG_WARN,"BadLogLevel",
+           "Invalid loglevel %q for pool %s",ll,id);
+    ix->index_loglevel = fd_storage_loglevel;}
+  fd_decref(ll);
+
   u8_init_mutex(&(ix->index_commit_lock));
+}
+
+FD_EXPORT int fd_index_set_metadata(fd_index ix,lispval metadata)
+{
+  if (FD_SLOTMAPP(metadata)) {
+    fd_copy_slotmap((fd_slotmap)metadata,&(ix->index_metadata));
+    ix->index_keyslot = fd_get(metadata,FDSYM_KEYSLOT,VOID);}
+  else {
+    FD_INIT_STATIC_CONS(&(ix->index_metadata),fd_slotmap_type);
+    fd_init_slotmap(&(ix->index_metadata),17,NULL);
+    ix->index_keyslot = VOID;}
+  ix->index_metadata.table_modified = 0;
+  return 0;
 }
 
 FD_EXPORT void fd_reset_index_tables
@@ -1844,6 +1887,15 @@ FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args
     return fd_err("BadIndexOpCall","fd_default_indexctl",ix->indexid,VOID);
   else if (n<0)
     return fd_err("BadIndexOpCall","fd_default_indexctl",ix->indexid,VOID);
+  else if (op == FDSYM_OPTS)  {
+    lispval opts = ix->index_opts;
+    if (n > 1)
+      return fd_err(fd_TooManyArgs,"fd_default_indexctl",ix->indexid,VOID);
+    else if ( (opts == FD_NULL) || (VOIDP(opts) ) )
+      return FD_FALSE;
+    else if ( n == 1 )
+      return fd_getopt(opts,args[0],FD_FALSE);
+    else return fd_incref(opts);}
   else if (op == fd_metadata_op) {
     lispval metadata = ((lispval)&(ix->index_metadata));
     lispval slotid = (n>0) ? (args[0]) : (FD_VOID);

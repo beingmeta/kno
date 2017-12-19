@@ -5,12 +5,12 @@
 
 (use-module '{ezrecords stringfmts logger texttools reflection})
 (use-module '{storage/adjuncts storage/registry storage/filenames})
-(use-module '{storage/flexpools storage/flexindexes 
+(use-module '{storage/flexpool storage/flexindexes 
 	      storage/adjuncts})
 
-(module-export! '{pool/ref index/ref db/ref pool/copy flex/partitions flex/save!})
+(module-export! '{pool/ref index/ref db/ref pool/copy flex/wrap flex/partitions flex/save!})
 
-(module-export! '{flex/container  flex/container!})
+(module-export! '{flex/container flex/container!})
 
 (define-init %loglevel %notice%)
 
@@ -21,6 +21,11 @@
 
 (define network-host
   `#((+ #((isalnum+) ".")) ,tld))
+
+(define (make-opts opts)
+  (if (table? (getopt opts 'make))
+      (cons (getopt opts 'make) opts)
+      opts))
 
 (define network-source 
   `{#((label host,network-host) ":" (label port (isdigit+)))
@@ -38,7 +43,7 @@
 	((pool? arg) (flexpool/partitions arg))
 	(else (fail))))
 
-(define (w/adjuncts pool)
+(define (flex/wrap pool)
   (unless (or (adjunct? pool) (exists? (poolctl pool 'props 'adjuncts)))
     (adjuncts/init! pool))
   pool)
@@ -55,14 +60,14 @@
 		    (testopt opts 'pool))
 		(if (testopt opts 'adjunct)
 		    (open-pool source opts)
-		    (w/adjuncts (use-pool source opts))))
+		    (flex/wrap (use-pool source opts))))
 	       (else {})))
 	((or (has-suffix source ".pool")
 	     (testopt opts 'pool)
 	     (testopt opts 'type 'pool))
 	 (if (getopt opts 'adjunct)
 	     (open-pool source opts)
-	     (w/adjuncts (use-pool source opts))))
+	     (flex/wrap (use-pool source opts))))
 	((or (has-suffix source ".flexpool")
 	     (testopt opts 'flexpool)
 	     (testopt opts 'type 'flexpool))
@@ -76,7 +81,10 @@
 	(else {})))
 
 (define (db/ref spec (opts #f))
-  (cond ((pool? spec) (w/adjuncts spec))
+  (when (and (table? spec) (not (or (pool? spec) (index? spec))))
+    (if opts (set! opts (cons opts spec)) (set! opts spec))
+    (set! spec (getopt opts 'index (getopt opts 'pool (getopt opts 'source #f)))))
+  (cond ((pool? spec) (flex/wrap spec))
 	((or (index? spec) (hashtable? spec)) spec)
 	(else (let* ((opts
 		      (cond ((and opts (table? spec)) (cons spec opts))
@@ -96,18 +104,18 @@
 ;;; Pool ref
 
 (define (pool/ref spec (opts #f))
-  (when (and (table? spec) (not (pool? spec)) (not opts))
-    (set! opts spec)
+  (when (and (table? spec) (not (or (pool? spec) (index? spec))))
+    (if opts (set! opts (cons opts spec)) (set! opts spec))
     (set! spec (getopt opts 'pool (getopt opts 'source #f))))
   (cond ((pool? spec)
-	 (w/adjuncts spec))
+	 (flex/wrap spec))
 	((not (string? spec)) (irritant spec |InvalidPoolSpec|))
 	((or (position #\@ spec) (position #\: spec))
-	 (w/adjuncts (if (getopt opts 'adjunct)
+	 (flex/wrap (if (getopt opts 'adjunct)
 			 (open-pool spec opts)
 			 (use-pool spec opts))))
 	((and (file-exists? spec) (has-suffix spec ".pool"))
-	 (w/adjuncts (if (getopt opts 'adjunct)
+	 (flex/wrap (if (getopt opts 'adjunct)
 			 (open-pool spec opts)
 			 (use-pool spec opts))))
 	((and (file-exists? spec) (has-suffix spec ".flexpool")) 
@@ -115,26 +123,26 @@
 	((file-exists? (glom spec ".flexpool"))
 	 (flexpool/ref (glom spec ".flexpool") opts))
 	((file-exists? (glom spec ".pool"))
-	 (w/adjuncts (open-pool (glom spec ".pool") opts)))
+	 (flex/wrap (open-pool (glom spec ".pool") opts)))
 	((not (or (getopt opts 'create) (getopt opts 'make)))
 	 #f)
 	((has-suffix spec ".flexpool")
 	 (flexpool/make spec opts))
 	((has-suffix spec ".pool")
-	 (w/adjuncts (make-pool spec opts)))
+	 (flex/wrap (make-pool spec (make-opts opts))))
 	((or (test opts 'flexpool) 
 	     (test opts 'type 'flexpool)
 	     (test opts '{flexpool step flexstep partsize partition}))
 	 (flexpool/make spec opts))
-	(else (w/adjuncts (make-pool spec opts)))))
+	(else (flex/wrap (make-pool spec (make-opts opts))))))
 
 ;;; Index refs
 
 (define (index/ref spec (opts #f))
   (if (index? spec) spec
       (begin
-	(when (and (table? spec) (not opts))
-	  (set! opts spec)
+	(when (and (table? spec) (not (or (pool? spec) (index? spec))))
+	  (if opts (set! opts (cons opts spec)) (set! opts spec))
 	  (set! spec (getopt opts 'index (getopt opts 'source #f))))
 	(cond ((index? spec) spec)
 	      ((not (string? spec)) (irritant spec |InvalidIndexSpec|))
@@ -147,7 +155,6 @@
 			(count 1))
 		   (while (file-exists? next)
 		     (set+! indexes (ref-index next opts))
-		     (flexpool/open next opts)
 		     (set! count (1+ count))
 		     (set! next (glom (textsubst source flexindex-suffix "")
 				  "." (padnum count 3 16) ".index")))
@@ -162,7 +169,7 @@
   (if (file-exists? path)
       (open-index path opts)
       (begin (lognotice |NewIndex| "Creating new index file " path)
-	(make-index path opts))))
+	(make-index path (make-opts opts)))))
 
 ;;; Copying OIDs between pools
 
@@ -193,22 +200,44 @@
 
 ;;; Generic DB saving
 
+(define (flex/mods arg)
+  (cond ((registry? arg) (pick arg registry/modified?))
+	((flexpool/record arg) (pick (flexpool/partitions arg) modified?))
+	((exists? (db->registry arg)) (pick (db->registry arg) registry/modified?))
+	((or (pool? arg) (index? arg)) (pick arg modified?))
+	((and (applicable? arg) (zero? (procedure-min-arity arg))) arg)
+	((and (pair? arg) (applicable? (car arg))) arg)
+	(else (logwarn |CantSave| "No method for saving " arg) {})))
+
+
+(define (flex/commit arg)
+  (onerror (cond ((registry? arg) (save-registry arg))
+		 ((flexpool/record arg)
+		  (thread/wait 
+		   (thread/call safe-commit (pick (flexpool/partitions arg) modified?))))
+		 ((or (pool? arg) (index? arg)) (commit arg))
+		 ((and (applicable? arg) (zero? (procedure-min-arity arg))) (arg))
+		 ((and (pair? arg) (applicable? (car arg)))
+		  (apply (car arg) (cdr arg)))
+		 (else (logwarn |CantSave| "No method for saving " arg)))
+      (lambda (ex)
+	(logwarn |CommitError| "Error committing " arg ": " ex)
+	#f)))
+
 (defambda (flex/save! . args)
   (dolist (arg args)
-    (cond ((ambiguous? arg) (thread/wait (thread/call flex/save! arg)))
-	  ((registry? arg) (save-registry arg))
-	  ((flexpool/record arg)
-	   (thread/wait 
-	    (thread/call safe-commit (pick (flexpool/partitions arg) modified?))))
-	  ((exists? (db->registry arg))
-	   (begin (save-registry (db->registry arg))
-	     (safe-commit arg)))
-	  ((or (pool? arg) (index? arg)) (safe-commit arg))
-	  ((and (applicable? arg) (zero? (procedure-min-arity arg))) (arg))
-
-	  ((and (pair? arg) (applicable? (car arg)))
-	   (apply (car arg) (cdr arg)))
-	  (else (logwarn |CantSave| "No method for saving " arg)))))
+    (let ((dbs (flex/mods arg))
+	  (started (elapsed-time)))
+      (cond ((exists? dbs)
+	     (lognotice |Saving|
+	       "Saving " (choice-size dbs) " data stores:"
+	       (do-choices (db dbs) (printout "\n    " db)))
+	     (let ((threads (thread/call flex/commit dbs)))
+	       (thread/wait! threads)
+	       (lognotice |Saved|
+		 "Saved " (choice-size dbs) " data stores in "
+		 (secs->string (elapsed-time started)))
+	       (thread/result threads)))))))
 
 (define (safe-commit arg)
   (when (modified? arg)

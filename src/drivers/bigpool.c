@@ -35,7 +35,7 @@ static int bigpool_loglevel = -1;
 
 #include <zlib.h>
 
-#if (HAVE_MMAP)
+#if (FD_USE_MMAP)
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -205,15 +205,24 @@ static size_t get_maxpos(fd_bigpool p)
 
 /* Making and opening bigpools */
 
-static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,lispval opts)
+static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,
+                            lispval opts)
 {
   FD_OID base = FD_NULL_OID_INIT;
   unsigned int hi, lo, magicno, capacity, load, n_slotids, bigpool_format = 0;
   fd_off_t label_loc, metadata_loc, slotids_loc, slotids_size;
   lispval label;
   struct FD_BIGPOOL *pool = u8_alloc(struct FD_BIGPOOL);
-  int read_only = U8_BITP(open_flags,FD_STORAGE_READ_ONLY) ||
-    (!(u8_file_writablep(fname)));
+  int read_only = U8_BITP(open_flags,FD_STORAGE_READ_ONLY);
+  if ( (read_only == 0) && (u8_file_writablep(fname)) ) {
+    if (fd_check_rollback("open_hashindex",fname)<0) {
+      /* If we can't apply the rollback, open the file read-only */
+      u8_log(LOG_WARN,"RollbackFailed",
+             "Opening bigpool %s as read-only due to failed rollback",
+             fname);
+      fd_clear_errors(1);
+      read_only=1;}}
+  else read_only=1;
   u8_string rname = u8_realpath(fname,NULL);
   int stream_flags =
     FD_STREAM_CAN_SEEK | FD_STREAM_NEEDS_LOCK | FD_STREAM_READ_ONLY;
@@ -250,21 +259,13 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,lispval 
 
   pool->pool_offtype =
     (fd_offset_type)((bigpool_format)&(FD_BIGPOOL_OFFMODE));
-  pool->pool_compression=
-    fd_compression_type(opts,
-                        (fd_compress_type)
-                        (((bigpool_format)&(FD_BIGPOOL_COMPRESSION))>>3));
-  fd_init_pool((fd_pool)pool,base,capacity,&bigpool_handler,fname,rname);
+  fd_compress_type cmptype = (((bigpool_format)&(FD_BIGPOOL_COMPRESSION))>>3);
+  pool->pool_compression = fd_compression_type(opts,cmptype);
 
-  if ((U8_BITP(bigpool_format,FD_BIGPOOL_ADJUNCT))&&
-      (!(fd_testopt(opts,FDSYM_ISADJUNCT,FD_FALSE))))
+  if (U8_BITP(bigpool_format,FD_BIGPOOL_ADJUNCT))
     open_flags |= FD_POOL_ADJUNCT;
   if (U8_BITP(bigpool_format,FD_BIGPOOL_SPARSE))
     open_flags |= FD_POOL_SPARSE;
-
-  pool->pool_flags=open_flags;
-
-  u8_free(rname); /* Done with this */
 
   fd_setpos(stream,FD_BIGPOOL_LABEL_POS);
   /* Get the label location */
@@ -290,19 +291,6 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,lispval 
   /* Read the number of blocks stored in the pool */
   pool->pool_nblocks = fd_read_8bytes(instream);
 
-  if (label_loc) {
-    if (fd_setpos(stream,label_loc)>0) {
-      label = fd_read_dtype(instream);
-      if (STRINGP(label)) pool->pool_label = u8_strdup(CSTRING(label));
-      else u8_logf(LOG_WARN,fd_BadFilePoolLabel,fd_lisp2string(label));
-      fd_decref(label);}
-    else {
-      fd_seterr(fd_BadFilePoolLabel,"open_bigpool","bad label loc",
-                FD_INT(label_loc));
-      fd_close_stream(stream,0);
-      u8_free(pool);
-      return NULL;}}
-
   lispval metadata=FD_VOID;
   if (metadata_loc) {
     if (fd_setpos(stream,metadata_loc)>0) {
@@ -313,15 +301,51 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,lispval 
                 FD_INT(metadata_loc));
       metadata=FD_ERROR_VALUE;}
     if (! ( (FD_FALSEP(metadata)) || (FD_SLOTMAPP(metadata)) ) ) {
-      u8_logf(LOG_WARN,"BadMetaData",
-              "Ignoring bad metadata stored for %s",fname);
-      metadata=FD_FALSE;}}
-  if (FD_SLOTMAPP(metadata)) {
-    fd_copy_slotmap((fd_slotmap)metadata,
-                    &(pool->pool_metadata));
-    pool->pool_metadata.table_modified=0;
-    fd_decref(metadata);}
+      if ( open_flags & FD_STORAGE_REPAIR ) {
+        u8_logf(LOG_WARN,"BadMetaData",
+                "Ignoring bad metadata stored for %s",fname);
+        metadata=FD_FALSE;}
+      else {
+        if (FD_ABORTP(metadata))
+          fd_seterr("BadPoolMetadata","open_bigpool",fname,FD_INT(metadata_loc));
+        else fd_seterr("BadPoolMetadata","open_bigpool",fname,metadata);
+        fd_close_stream(stream,0);
+        u8_free(pool);
+        return NULL;}}}
 
+  fd_init_pool((fd_pool)pool,base,capacity,
+               &bigpool_handler,
+               fname,rname,
+               open_flags,metadata,opts);
+  open_flags = pool->pool_flags;
+  fd_decref(metadata);
+  u8_free(rname);
+
+  if (label_loc) {
+    if (fd_setpos(stream,label_loc)>0) {
+      label = fd_read_dtype(instream);
+      if (STRINGP(label))
+        pool->pool_label = u8_strdup(CSTRING(label));
+      else if (SYMBOLP(label))
+        pool->pool_label = u8_strdup(FD_SYMBOL_NAME(label));
+      else if (open_flags & FD_STORAGE_REPAIR) {
+        u8_logf(LOG_WARN,fd_BadFilePoolLabel,
+                "Invalid pool label for %s: %q",fname,label);
+        label = FD_VOID;}
+      else {
+        fd_seterr(fd_BadFilePoolLabel,"open_bigpool","bad label value",label);
+        fd_decref(label);
+        fd_close_stream(stream,0);
+        u8_free(pool);
+        return NULL;}
+      fd_decref(label);}
+    else {
+      fd_seterr(fd_BadFilePoolLabel,"open_bigpool","bad label loc",
+                FD_INT(label_loc));
+      fd_close_stream(stream,0);
+      u8_free(pool);
+      return NULL;}}
+ 
   if (slotids_loc) {
     int slotids_length = (n_slotids>256)?((1+(n_slotids/2))*2):(256);
     lispval *slotids = u8_alloc_n(slotids_length,lispval);
@@ -368,7 +392,7 @@ static fd_pool recover_bigpool(u8_string fname,fd_storage_flags open_flags,
   if (u8_file_existsp(rollback_file)) {
     u8_logf(LOG_WARN,"Rollback",
             "Applying rollback file %s to %s",rollback_file,fname);
-    ssize_t rv=fd_restore_head(rollback_file,fname,256-8);
+    ssize_t rv=fd_restore_head(rollback_file,fname);
     if (rv<0) {
       u8_graberrno("recover_bigpool",rollback_file);
       return NULL;}
@@ -501,6 +525,10 @@ static int make_bigpool
     fd_seterr3(fd_CantWrite,"fd_make_bigpool",fname);
     fd_free_stream(stream);
     return -1;}
+
+  /* Remove leftover files */
+  fd_remove_suffix(fname,".commit");
+  fd_remove_suffix(fname,".rollback");
 
   u8_logf(LOG_INFO,"CreateBigPool",
           "Creating a bigpool '%s' for %u OIDs based at %x/%x",
@@ -907,7 +935,7 @@ static lispval *bigpool_fetchn(fd_pool p,int n,lispval *oids)
       else {
         fd_inbuf usebuf =
           ( schedule[i].location.size < FETCHBUF_SIZE ) ? (&sbuf) :
-          (HAVE_MMAP) ? (&mbuf) : (&sbuf);
+          (FD_USE_MMAP) ? (&mbuf) : (&sbuf);
         fd_inbuf in = fd_open_block(stream,usebuf,
                                     schedule[i].location.off,
                                     schedule[i].location.size,
@@ -1148,6 +1176,7 @@ static int bigpool_commit(fd_pool p,fd_commit_phase phase,
 {
   fd_bigpool bp = (fd_bigpool) p;
   fd_stream stream = get_commit_stream(p,commits);
+  bigpool_setcache(bp,-1);
   if (stream == NULL)
     return -1;
   u8_string fname = p->pool_source;
@@ -1160,12 +1189,7 @@ static int bigpool_commit(fd_pool p,fd_commit_phase phase,
   case fd_commit_start: {
     size_t cap = p->pool_capacity;
     size_t recovery_size = 256+(chunk_ref_size*cap);
-    u8_string rollback = u8_mkstring("%s.rollback",fname);
-    ssize_t rv= fd_save_head(fname,rollback,recovery_size);
-    u8_free(rollback);
-    if (rv<0)
-      return -1;
-    else return 1;}
+    return fd_write_rollback("bigpool_commit",p->poolid,fname,recovery_size);}
   case fd_commit_save: {
     size_t cap = p->pool_capacity;
     size_t recovery_size = 256+(chunk_ref_size*cap);
@@ -1182,18 +1206,23 @@ static int bigpool_commit(fd_pool p,fd_commit_phase phase,
        commits->commit_vals,
        commits->commit_metadata,
        stream,head_stream);
+    fd_flush_stream(stream);
+    fd_flush_stream(head_stream);
+    size_t stream_end = fd_endpos(stream);
+    size_t head_end = fd_endpos(head_stream);
+    fd_write_8bytes_at(head_stream,stream_end,head_end-8);
     fd_close_stream(head_stream,FD_STREAM_FREEDATA);
     u8_free(head_stream);
     u8_free(commit);
     return rv;}
   case fd_commit_rollback: {
     u8_string rollback = u8_mkstring("%s.rollback",fname);
-    ssize_t rv = fd_apply_head(fname,rollback,256-8);
+    ssize_t rv = fd_apply_head(rollback,fname);
     u8_free(rollback);
     if (rv<0) return -1; else return 1;}
   case fd_commit_finish: {
     u8_string commit = u8_mkstring("%s.commit",fname);
-    ssize_t rv = fd_apply_head(fname,commit,-1);
+    ssize_t rv = fd_apply_head(commit,fname);
     u8_free(commit);
     if (rv >= 0) {
       update_offdata_cache(bp,p->pool_cache_level,chunk_ref_size);
@@ -1498,7 +1527,6 @@ static ssize_t write_offdata
 {
   unsigned int min_off=load,  max_off=0, i=0;
   fd_offset_type offtype = bp->pool_offtype;
-  unsigned int *offdata=NULL;
   if (!((offtype == FD_B32)||(offtype = FD_B40)||(offtype = FD_B64))) {
     u8_logf(LOG_WARN,CorruptBigpool,
             "Bad offset type code (%d) for %s",
@@ -1507,20 +1535,20 @@ static ssize_t write_offdata
               u8_strdup(bp->poolid));
     u8_big_free(saveinfo);
     return -1;}
-  else if ( (offdata=bp->pool_offdata) )
-    while (i<n) {
+  else while (i<n) {
       unsigned int oidoff = saveinfo[i++].oidoff;
       if (oidoff>max_off) max_off = oidoff;
       if (oidoff<min_off) min_off = oidoff;}
 
-  if (offdata) {
-#if HAVE_MMAP
+  if (bp->pool_cache_level >= 2) {
+#if FD_USE_MMAP
     ssize_t result=
       mmap_write_offdata(bp,stream,n,saveinfo,min_off,max_off);
     if (result>=0) {
       return result;}
 #endif
-    result=cache_write_offdata(bp,stream,n,saveinfo,offdata,min_off,max_off);
+    result=cache_write_offdata(bp,stream,n,saveinfo,bp->pool_offdata,
+                               min_off,max_off);
     if (result>=0) {
       fd_clear_errors(0);
       return result;}}
@@ -1548,7 +1576,6 @@ static ssize_t mmap_write_offdata
     u8_logf(LOG_CRIT,u8_strerror(errno),
             "Failed MMAP of %lld bytes of offdata for bigpool %s",
             256+(byte_length),bp->poolid);
-    U8_CLEAR_ERRNO();
     u8_graberrno("bigpool_write_offdata",u8_strdup(bp->poolid));
     return -1;}
   else offdata = memblock+64;
@@ -1724,7 +1751,7 @@ static int bigpool_unlock(fd_pool p,lispval oids)
 
 /* Setting the cache level */
 
-#if HAVE_MMAP
+#if FD_USE_MMAP
 static int update_offdata_cache(fd_bigpool bp,int level,int chunk_ref_size)
 {
   unsigned int *offdata = bp->pool_offdata;
@@ -1821,6 +1848,8 @@ static void bigpool_setcache(fd_bigpool p,int level)
   size_t bufsize  = fd_stream_bufsize(stream);
   size_t use_bufsize = fd_getfixopt(bp->pool_opts,"BUFSIZE",fd_driver_bufsize);
 
+  if (level < 0) level = fd_default_cache_level;
+
   /* Update the bufsize */
   if (bufsize < use_bufsize)
     fd_setbufsize(stream,use_bufsize);
@@ -1869,7 +1898,7 @@ static void reload_bigpool(fd_bigpool bp,int is_locked)
   /* Make it NULL while we're messing with it */
   else bp->pool_offdata=NULL;
   double start = u8_elapsed_time();
-#if HAVE_MMAP
+#if FD_USE_MMAP
   /* When we have MMAP, the offlen is always the whole cache */
 #else
   fd_stream stream = &(bp->pool_stream);
@@ -1904,7 +1933,7 @@ static void bigpool_close(fd_pool p)
     /* TODO: Be more careful about freeing/unmapping the
        offdata. Users might get a seg fault rather than a "file not
        open error". */
-#if HAVE_MMAP
+#if FD_USE_MMAP
     size_t offdata_length = 256+((bp->pool_capacity)*get_chunk_ref_size(bp));
     /* Since we were just reading, the buffer was only as big
        as the load, not the capacity. */
@@ -1928,6 +1957,23 @@ static void bigpool_setbuf(fd_pool p,ssize_t bufsize)
   fd_lock_pool_struct(p,1);
   fd_setbufsize(&(bp->pool_stream),(size_t)bufsize);
   fd_unlock_pool_struct(p);
+}
+
+static int bigpool_set_compression(fd_bigpool bp,fd_compress_type cmptype)
+{
+  struct FD_STREAM _stream, *stream = fd_init_file_stream
+    (&_stream,bp->pool_source,FD_FILE_MODIFY,-1,-1);
+  if (stream == NULL) return -1;
+  unsigned int format = fd_read_4bytes_at(stream,FD_BIGPOOL_FORMAT_POS,FD_STREAM_ISLOCKED);
+  format = format & (~(FD_BIGPOOL_COMPRESSION));
+  format = format | (cmptype<<3);
+  size_t v = fd_write_4bytes_at(stream,format,FD_BIGPOOL_FORMAT_POS);
+  if (v>=0) {
+    fd_lock_pool_struct((fd_pool)bp,1);
+    bp->pool_compression = cmptype;}
+  fd_close_stream(stream,FD_STREAM_FREEDATA);
+  if (v<0) return v;
+  else return FD_INT(cmptype);
 }
 
 static lispval bigpool_getoids(fd_bigpool bp)
@@ -2033,7 +2079,7 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
       fd_deep_copy((lispval)(bp->pool_slotcodes.slotids)) :
       fd_empty_vector(0);
     fd_store(base,load_symbol,FD_INT(bp->pool_load));
-    fd_store(base,slotids_symbol,slotids_vec);
+    fd_store(base,slotids_symbol,FD_INT(bp->pool_slotcodes.n_slotcodes));
     if ( bp->pool_offtype == FD_B32)
       fd_store(base,offmode_symbol,fd_intern("B32"));
     else if ( bp->pool_offtype == FD_B40)
@@ -2058,6 +2104,34 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
     return base;}
   else if ( (op == fd_load_op) && (n == 0) )
     return FD_INT(bp->pool_load);
+  else if ( ( op == compression_symbol ) && (n == 0) ) {
+    if ( bp->pool_compression == FD_NOCOMPRESS )
+      return FD_FALSE;
+    else if ( bp->pool_compression == FD_ZLIB )
+      return fd_intern("ZLIB");
+    else if ( bp->pool_compression == FD_ZLIB9 )
+      return fd_intern("ZLIB9");
+    else if ( bp->pool_compression == FD_SNAPPY )
+      return fd_intern("SNAPPY");
+    else {
+      fd_seterr("BadCompressionType","bigpool_ctl",bp->poolid,FD_VOID);
+      return FD_ERROR;}}
+  else if ( ( op == compression_symbol ) && (n == 1) ) {
+    lispval arg = args[0]; int rv = 0;
+    if (FD_FALSEP(arg))
+      rv = bigpool_set_compression(bp,FD_NOCOMPRESS);
+    else if (arg == (fd_intern("ZLIB")))
+      rv = bigpool_set_compression(bp,FD_ZLIB);
+    else if ( (arg == (fd_intern("ZLIB9"))) || (arg == (FD_INT(9))) )
+      rv = bigpool_set_compression(bp,FD_ZLIB9);
+    else if (arg == (fd_intern("SNAPPY")))
+      rv = bigpool_set_compression(bp,FD_SNAPPY);
+    else if (FD_TRUEP(arg))
+      rv = bigpool_set_compression(bp,FD_SNAPPY);
+    else if (FD_DEFAULTP(arg)) {}
+    else {}
+    if (rv<0) return FD_ERROR;
+    else return FD_TRUE;}
   else if (op == fd_load_op) {
     lispval loadval = args[0];
     if (FD_UINTP(loadval)) {
@@ -2082,31 +2156,31 @@ static unsigned int get_bigpool_format(fd_storage_flags sflags,lispval opts)
   unsigned int flags = 0;
   lispval offtype = fd_intern("OFFTYPE");
   if ( fd_testopt(opts,offtype,fd_intern("B64"))  ||
-       fd_testopt(opts,offtype,FD_INT(64)))
+       fd_testopt(opts,offtype,FD_INT(64))        ||
+       fd_testopt(opts,FDSYM_FLAGS,fd_intern("B64")))
     flags |= FD_B64;
   else if ( fd_testopt(opts,offtype,fd_intern("B40"))  ||
-            fd_testopt(opts,offtype,FD_INT(40)))
+            fd_testopt(opts,offtype,FD_INT(40))        ||
+            fd_testopt(opts,FDSYM_FLAGS,fd_intern("B40")) )
     flags |= FD_B40;
   else if ( fd_testopt(opts,offtype,fd_intern("B32"))  ||
-            fd_testopt(opts,offtype,FD_INT(32)))
+            fd_testopt(opts,offtype,FD_INT(32))        ||
+            fd_testopt(opts,FDSYM_FLAGS,fd_intern("B40")) )
     flags |= FD_B32;
   else flags |= FD_B40;
 
   flags |= ((fd_compression_type(opts,FD_NOCOMPRESS))<<3);
 
-  if (fd_testopt(opts,fd_intern("DTYPEV2"),VOID))
+  if ( fd_testopt(opts,fd_intern("DTYPEV2"),VOID) ||
+       fd_testopt(opts,FDSYM_FLAGS,fd_intern("DTYPEV2")) )
     flags |= FD_BIGPOOL_DTYPEV2;
 
   if ( ( (sflags) & (FD_STORAGE_READ_ONLY) ) ||
        (fd_testopt(opts,FDSYM_READONLY,VOID)) )
     flags |= FD_BIGPOOL_READ_ONLY;
 
-  if ( (fd_testopt(opts,fd_intern("ISADJUNCT"),VOID)) ||
-       (fd_testopt(opts,fd_intern("FLAGS"),FDSYM_ISADJUNCT)) ||
-       (fd_testopt(opts,fd_intern("FLAGS"),FDSYM_ADJUNCT)) ||
-       ( ( (sflags) & (FD_POOL_ADJUNCT) ) &&
-         (fd_testopt(opts,FDSYM_ADJUNCT,FD_VOID)) &&
-         (!(fd_testopt(opts,FDSYM_ADJUNCT,FD_TRUE))) ) )
+  if ( (fd_testopt(opts,FDSYM_ISADJUNCT,VOID)) ||
+       (fd_testopt(opts,FDSYM_FLAGS,FDSYM_ISADJUNCT)) )
     flags |= FD_BIGPOOL_ADJUNCT;
 
   if ( (sflags) & (FD_POOL_ADJUNCT) ||

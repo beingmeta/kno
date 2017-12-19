@@ -16,6 +16,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/streams.h"
+#include "framerd/storage.h"
 
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
@@ -29,176 +30,233 @@
 #include <errno.h>
 #include <zlib.h>
 
+#ifndef FD_ALCOR_BUFSIZE
+#define FD_ALCOR_BUFSIZE (2*1024*1024)
+#endif
+
+#define USE_MMAP FD_USE_MMAP
+
 u8_condition TruncatedHead=_("The head file has no data");
+
+#define graberrno(context,details) u8_graberrno(context,u8_strdup(details))
+
+#if USE_MMAP
+static ssize_t save_head(int in,int out,size_t head_len,size_t source_len)
+{
+  int error = 0;
+  int trunc_rv = ftruncate(out,head_len+8);
+  if (trunc_rv<0) {
+    u8_graberrno("save_head/trunc/grow",NULL);
+    return -1;}
+  unsigned char *inbuf = mmap(NULL,head_len,PROT_READ,MAP_SHARED,in,0);
+  if ( (inbuf == NULL) || (inbuf == MAP_FAILED) ) {
+    u8_graberrno("save_head",NULL);
+    return -1;}
+  unsigned char *outbuf =
+    mmap(NULL,head_len+8,PROT_READ|PROT_WRITE,MAP_SHARED,out,0);
+  if (! ( (outbuf == NULL) || (outbuf == MAP_FAILED) ) ) {
+    struct FD_OUTBUF buf;
+    if (memcpy(outbuf,inbuf,head_len) == outbuf) {
+      FD_INIT_OUTBUF(&buf,outbuf+head_len,8,0);
+      fd_write_8bytes(&buf,source_len);
+      if (msync(outbuf,head_len+8,MS_SYNC) < 0) error=1;}
+    else error = 1;
+    if (munmap(outbuf,head_len+8) < 0) error=1;}
+  else error=1;
+  if (munmap(inbuf,head_len) < 0) error=1;
+  if (error)
+    return -1;
+  else return head_len+8;
+}
+#else
+static ssize_t save_head(int in,int out,size_t head_len,size_t source_len)
+{
+  ssize_t bufsize = FD_ALCOR_BUFSIZE;
+  unsigned char *buf = u8_malloc(bufsize);
+  ssize_t bytes_copied = 0;
+  while (bytes_copied < head_len) {
+    ssize_t needed = head_len - bytes_copied;
+    ssize_t to_read = (needed < bufsize) ? (needed) : (bufsize);
+    ssize_t delta = read(in,buf,to_read);
+    if (delta<=0) return delta;
+    else delta = write(out,buf,delta);
+    if (delta<=0) return delta;
+    else bytes_copied += delta;}
+  u8_free(buf);
+  fsync(out);
+  if (bytes_copied == head_len) {
+    FD_DECL_OUTBUF(tmpbuf,8);
+    fd_write_8bytes(&tmpbuf,source_len);
+    ssize_t buffered = tmpbuf.bufwrite-tmpbuf.buffer;
+    ssize_t rv = u8_writeall(out,tmpbuf.buffer,buffered);
+    if (rv<0) return rv;
+    else return head_len + buffered;}
+  else return -1;
+}
+#endif
+
+#if USE_MMAP
+static ssize_t apply_head(int in,int out,size_t head_len)
+{
+  int ok = 1;
+  unsigned char *inbuf = mmap(NULL,head_len,PROT_READ,MAP_SHARED,in,0);
+  if ( (inbuf == NULL) || (inbuf == MAP_FAILED) ) {
+    u8_graberrno("apply_head",NULL);
+    return -1;}
+  unsigned char *outbuf =
+    mmap(NULL,head_len,PROT_READ|PROT_WRITE,MAP_SHARED,out,0);
+  if (! ( (outbuf == NULL) || (outbuf == MAP_FAILED) ) ) {
+    ssize_t copy_len = head_len - 8;
+    struct FD_INBUF buf;
+    FD_INIT_INBUF(&buf,inbuf+copy_len,8,0);
+    ssize_t trunc_len = fd_read_8bytes(&buf);
+    if ( trunc_len < copy_len ) {
+      u8_seterr("MalformedHeadFile","apply_head",NULL);
+      ok = 0;}
+    else if (memcpy(outbuf,inbuf,copy_len) != outbuf) {
+      u8_graberrno("apply_head",NULL);
+      ok = 0;}
+    else if (msync(outbuf,head_len,MS_SYNC) < 0)
+      ok=0;
+    else {}
+    if (munmap(outbuf,head_len) < 0) ok=0;
+    if (ok) {
+      int rv = ftruncate(out,trunc_len);
+      if (rv < 0) {
+        graberrno("apply_head/truncate",NULL);
+        u8_seterr("TruncateFailed","apply_head",NULL);
+        ok=0;}}}
+  else ok=0;
+  if (ok)
+    return head_len;
+  else return -1;
+}
+#else
+static ssize_t read_trunc_len(int in)
+{
+  ssize_t cur_pos = lseek(in,0,SEEK_CUR);
+  ssize_t rv = lseek(in,to_copy,SEEK_SET);
+  ssize_t trunc_len = -1;
+  unsigned char trunc_data[8];
+  if (rv<0) {
+    u8_graberrno("apply_head/read_trunclen/lseek",NULL);
+    return -1;}
+  ssize_t trunc_read = read(in,trunc_data,8);
+  if (trunc_read == 8) {
+    struct FD_INBUF inbuf;
+    FD_INIT_BYTE_INPUT(&inbuf,trunc_data,8);
+    trunc_len = fd_read_8bytes(&inbuf);}
+  else u8_graberrno("apply_head/read_trunclen/lseek",NULL);
+  if (lseek(in,0,SEEK_SET)<0)
+    u8_graberrno("apply_head/read_trunclen",NULL);
+  return trunc_len;
+}
+static ssize_t apply_head(int in,int out,size_t head_len)
+{
+  ssize_t bufsize = FD_ALCOR_BUFSIZE;
+  ssize_t to_copy = head_len - 8, bytes_copied = 0;
+  ssize_t trunc_len = read_trunc_len(in);
+  if ( trunc_len < copy_len ) {
+    u8_seterr(InvalidHeadFile,"apply_head",NULL);
+    return -1;}
+  unsigned char *buf = u8_malloc(bufsize);
+  while (bytes_copied < to_copy) {
+    ssize_t needed = head_len - bytes_copied;
+    ssize_t to_read = (needed < bufsize) ? (needed) : (bufsize);
+    ssize_t delta = read(in,buf,to_read);
+    if (delta=<0) {
+      if (delta<0) u8_graberrno("apply_head/read",NULL);
+      else u8_seterr("ReadFailed","apply_head",NULL);
+      return -1;}
+    else delta = write(out,buf,delta);
+    if (delta=<0) {
+      if (delta<0) u8_graberrno("apply_head/write",NULL);
+      else u8_seterr("WriteFailed","apply_head",NULL);
+      return -1;}
+    else bytes_copied += delta;}
+  u8_free(buf);
+  int rv = ftruncate(out,trunc_len);
+  if (rv < 0) {
+    graberrno("fd_apply_head/truncate",NULL);
+    u8_seterr("TruncateFailed","apply_head",NULL);
+    return -1;}
+  else return head_len+8;
+}
+#endif
 
 FD_EXPORT ssize_t fd_save_head(u8_string source,u8_string dest,size_t head_len)
 {
-  struct stat info={0};
-  char *src=u8_tolibc(source), *dst=u8_tolibc(dest);
-  if ( (src==NULL) || (dst==NULL) )
-    return -1;
-  else if (stat(src,&info)<0) {
-    u8_free(src); u8_free(dst);
-    return -1;}
-  else if (info.st_size<head_len) {
-    u8_seterr(_("Source smaller than head length"),"fd_save_head",
-              u8_strdup(source));
-    u8_free(src); u8_free(dst);
-    return -1;}
-  int in=open(src,O_RDONLY), rv=0;
-  u8_free(src);
-  if (in<0)
-    return in;
-  else rv=u8_lock_fd(in,0);
-  if (rv<0) {
-    u8_graberrno("fd_save_head/lock",u8_strdup(source));
-    u8_seterr("LockFailed","fd_save_head",u8_strdup(source));
-    u8_free(dst);
-    close(in);
-    return rv;}
-  unsigned char *buf=u8_big_alloc(head_len);
-  size_t bytes_read=0;
-  while (bytes_read<head_len) {
-    ssize_t delta=read(in,buf+bytes_read,head_len-bytes_read);
-    if (delta<=0) {
-      u8_big_free(buf);
-      close(in);
-      return delta;}
-    bytes_read += delta;}
-  rv=u8_unlock_fd(in);
-  if (rv<0) {
-    u8_graberrno("fd_save_head/unlock",u8_strdup(source));
-    u8_seterr("UnlockFailed","fd_save_head",u8_strdup(source));
-    if ( (close(in)) < 0 )
-      u8_seterr("CloseFailed","fd_save_head",u8_strdup(source));}
-  else if ((rv=close(in)) < 0)
-    u8_seterr("CloseFailed","fd_save_head",u8_strdup(source));
-  else {}
-  if (rv<0) {
-    u8_big_free(buf);
-    return rv;}
-  int out=open(dst,O_WRONLY|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
-  u8_free(dst);
-  if (out<0) {
-    u8_big_free(buf);
-    return out;}
-  else rv=u8_lock_fd(out,1);
-  if (rv<0) {
-    close(out);
-    u8_big_free(buf);
-    return rv;}
-  size_t bytes_written=0;
-  while (bytes_written<head_len) {
-    ssize_t delta=write(out,buf+bytes_written,head_len-bytes_written);
-    if (delta<=0) {
-      close(out);
-      u8_big_free(buf);
-      return delta;}
-    bytes_written += delta;}
-  u8_big_free(buf);
-  rv=u8_unlock_fd(out);
-  if (rv<0) {
-    u8_logf(LOG_WARN,"RecoveryFileUnlockFailed",
-            "Unlocking %s failed (errno=%d:%s)",
-            dest,errno,u8_strerror(errno));
-    errno=0;
-    close(out);
-    return rv;}
-  else rv=close(out);
-  if (rv<0)
-    return rv;
-  else return head_len;
-}
-
-FD_EXPORT ssize_t fd_apply_head(u8_string dest,u8_string source,ssize_t trunc)
-{
-  char *src=u8_tolibc(source), *dst=u8_tolibc(dest);
-  if ( (src==NULL) || (dst==NULL) )
-    return -1;
-  struct stat info={0};
-  ssize_t head_len=-1;
-  int rv;
-  if ((rv=stat(src,&info))<0) {
-    u8_free(src); u8_free(dst);
-    return rv;}
-  int in=open(src,O_RDONLY);
+  int in = u8_open_fd(source,O_RDONLY,0644);
   if (in<0) {
-    u8_free(src); u8_free(dst);
-    return in;}
-  else if ((rv=u8_lock_fd(in,0))<0) {
-    u8_free(src); u8_free(dst);
-    return rv;}
-  else head_len=info.st_size;
-  unsigned char *buf=u8_big_alloc(head_len);
-  u8_free(src);
-  size_t bytes_read=0;
-  while (bytes_read < head_len) {
-    ssize_t delta=read(in,buf+bytes_read,head_len-bytes_read);
-    if (delta<=0) {
-      u8_big_free(buf);
-      u8_free(dst);
-      close(in);
-      return delta;}
-    bytes_read += delta;}
-  if ((rv=u8_unlock_fd(in))<0) {
-    u8_graberrno("fd_apply_head/unlock",u8_strdup(source));
-    u8_big_free(buf);
-    u8_free(dst);
-    close(in);
-    return rv;}
-  else rv=close(in);
-  if (rv<0) {
-    u8_big_free(buf);
-    u8_free(dst);
-    return rv;}
-  int out=open(dst,O_RDWR);
-  u8_free(dst);
+    graberrno("fd_save_head/open",source);
+    return -1;}
+  else if (u8_lock_fd(in,0)<0) {
+    graberrno("fd_save_head/lock",source);
+    u8_close_fd(in);
+    return -1;}
+  else NO_ELSE;
+  int out = u8_open_fd(dest,O_RDWR|O_EXCL|O_CREAT,0644);
   if (out<0) {
-    u8_big_free(buf);
-    return out;}
-  rv=u8_lock_fd(out,1);
-  if (rv<0) {
-    close(out);
-    u8_big_free(buf);
-    return rv;}
-  size_t bytes_written=0;
-  while (bytes_written<head_len) {
-    ssize_t delta=write(out,buf+bytes_written,head_len-bytes_written);
-    if (delta<=0) {
-      close(out);
-      u8_big_free(buf);
-      return delta;}
-    bytes_written += delta;}
-  if ( (trunc >= 0) && ( (trunc+8) < head_len )) {
-    unsigned char bytes[8];
-    memcpy(bytes,buf+trunc,8);
-    size_t *trunc_ptr=(size_t *)&bytes;
-    size_t restore_len=*trunc_ptr;
-    if (restore_len>head_len)
-      rv=ftruncate(out,restore_len);}
-  if (rv<0) {
-    u8_graberrno("fd_apply_head/truncate",u8_strdup(source));
-    u8_unlock_fd(out);
-    close(out);
-    u8_big_free(buf);
-    return rv;}
-  else rv=u8_unlock_fd(out);
-  if (rv<0) {
-    u8_graberrno("fd_apply_head/unlock",u8_strdup(source));
-    close(out);
-    u8_big_free(buf);
-    return rv;}
-  else rv=close(out);
-  u8_big_free(buf);
-  if (rv<0) {
-    u8_graberrno("fd_apply_head/close",u8_strdup(source));
-    return rv;}
-  else return head_len;
+    graberrno("fd_save_head",source);
+    u8_close_fd(in);
+    return -1;}
+  else if (u8_lock_fd(out,1)<0) {
+    graberrno("fd_save_head/lock",dest);
+    u8_close_fd(in);
+    u8_close_fd(out);
+    return -1;}
+  else NO_ELSE;
+  struct stat info={0};
+  ssize_t rv = -1;
+  if (fstat(in,&info)>=0) {
+    ssize_t in_size = info.st_size;
+    rv = save_head(in,out,head_len,in_size);
+    if (rv<0) graberrno("fd_save_head",dest);}
+  u8_unlock_fd(in); u8_unlock_fd(out);
+  u8_close_fd(in);
+  u8_close_fd(out);
+  if (rv<0) u8_removefile(dest);
+  return rv;
 }
 
-FD_EXPORT ssize_t fd_restore_head(u8_string source,u8_string dest,ssize_t trunc_loc)
+FD_EXPORT ssize_t fd_apply_head(u8_string head,u8_string tofile)
 {
-  return fd_apply_head(dest,source,trunc_loc);
+  struct stat info={0};
+  int in = u8_open_fd(head,O_RDONLY,0644);
+  if (in<0) {
+    graberrno("fd_apply_head/open",head);
+    return -1;}
+  else if (u8_lock_fd(in,0)<0) {
+    graberrno("fd_apply_head/lock",head);
+    u8_close_fd(in);
+    return -1;}
+  else NO_ELSE;
+  int out = u8_open_fd(tofile,O_RDWR,0644);
+  if (out<0) {
+    graberrno("fd_apply_head/open",tofile);
+    u8_close_fd(in);
+    return -1;}
+  else if (u8_lock_fd(out,1)<0) {
+    graberrno("fd_apply_head/lock",tofile);
+    u8_close_fd(in);
+    u8_close_fd(out);
+    return -1;}
+  else NO_ELSE;
+  ssize_t rv = -1;
+  if (fstat(in,&info)>=0)
+    rv = apply_head(in,out,info.st_size);
+  else u8_graberr(errno,"fd_apply_head",u8_strdup("fstat failed"));
+  if (rv<0)
+    u8_seterr("ApplyHeadFailed","fd_apply_head",
+              u8_mkstring("%s->%s",head,tofile));
+  u8_unlock_fd(in); u8_unlock_fd(out);
+  u8_close_fd(in); u8_close_fd(out);
+  return rv;
+}
+
+FD_EXPORT ssize_t fd_restore_head(u8_string source,u8_string dest)
+{
+  return fd_apply_head(dest,source);
 }
 
 FD_EXPORT void fd_init_alcor_c()

@@ -31,7 +31,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 
-#if (HAVE_MMAP)
+#if (FD_USE_MMAP)
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -39,7 +39,7 @@
 #define MMAP_FLAGS MAP_SHARED
 #endif
 
-#if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
+#if ((FD_USE_MMAP) && (!(WORDS_BIGENDIAN)))
 #define offget(offvec,offset) (fd_flip_word((offvec)[offset]))
 #define set_offset(offvec,offset,v) (offvec)[offset]=(fd_flip_word(v))
 #else
@@ -64,13 +64,25 @@ static fd_index open_fileindex(u8_string fname,fd_storage_flags flags,lispval op
 {
   struct FD_FILEINDEX *index = u8_alloc(struct FD_FILEINDEX);
   int read_only = U8_BITP(flags,FD_STORAGE_READ_ONLY);
+
+  if ( (read_only == 0) && (u8_file_writablep(fname)) ) {
+    if (fd_check_rollback("open_fileindex",fname)<0) {
+      /* If we can't apply the rollback, open the file read-only */
+      u8_log(LOG_WARN,"RollbackFailed",
+             "Opening fileindex %s as read-only due to failed rollback",
+             fname);
+      fd_clear_errors(1);
+      read_only=1;}}
+  else read_only=1;
+
+  fd_init_index((fd_index)index,&fileindex_handler,
+                fname,u8_realpath(fname,NULL),
+                flags,VOID,opts);
+
   int consed = U8_BITP(flags,FD_STORAGE_UNREGISTERED);
   unsigned int magicno;
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
-  fd_init_index((fd_index)index,&fileindex_handler,
-                fname,u8_realpath(fname,NULL),
-                consed);
   struct FD_STREAM *s = fd_init_file_stream
     (&(index->index_stream),fname,mode,
      ((read_only)?(FD_DEFAULT_FILESTREAM_FLAGS|FD_STREAM_READ_ONLY):
@@ -126,7 +138,7 @@ static void fileindex_setcache(fd_index ix,int level)
       if (fx->index_offsets) {
         fd_unlock_index(fx);
         return;}
-#if HAVE_MMAP
+#if FD_USE_MMAP
       newmmap=
         mmap(NULL,(fx->index_n_slots*SLOTSIZE)+8,
              PROT_READ,MMAP_FLAGS,s->stream_fileno,0);
@@ -149,7 +161,7 @@ static void fileindex_setcache(fd_index ix,int level)
     else {
       int retval;
       fd_lock_index(fx);
-#if HAVE_MMAP
+#if FD_USE_MMAP
       retval = munmap(fx->index_offsets-2,(fx->index_n_slots*SLOTSIZE)+8);
       if (retval<0) {
         u8_logf(LOG_CRIT,u8_strerror(errno),
@@ -984,7 +996,7 @@ static int fileindex_save(struct FD_INDEX *ix,
   if (n_adds+n_drops+n_stores) {
     int kdata_i = 0, kdata_edits=0, n_changes = n_adds+n_drops+n_stores;
     fd_lock_index(fx);
-#if HAVE_MMAP
+#if FD_USE_MMAP
     if (fx->index_offsets) {
       int i = 0, n = fx->index_n_slots;
       /* We have to copy these if they're MMAPd, because
@@ -1083,10 +1095,8 @@ static int fileindex_commit(fd_index ix,fd_commit_phase phase,
     if (lock_rv <= 0) {
       u8_graberrno("fileindex_commit",u8_strdup(source));
       return -1;}
-    u8_string rollback_file = u8_string_append(source,".rollback",NULL);
-    ssize_t rv = fd_save_head(source,rollback_file,8+(4*fx->index_n_slots));
-    u8_free(rollback_file);
-    if (rv<0) return -1; else return 1;}
+    return fd_write_rollback("fileindex_commit",ix->indexid,source,
+                             8+(4*(fx->index_n_slots)));}
   case fd_commit_save: {
     return fileindex_save(ix,
                           (struct FD_CONST_KEYVAL *)commit->commit_adds,
@@ -1102,7 +1112,7 @@ static int fileindex_commit(fd_index ix,fd_commit_phase phase,
     u8_string source = ix->index_source;
     u8_string rollback_file = u8_string_append(source,".rollback",NULL);
     if (u8_file_existsp(rollback_file)) {
-      ssize_t rv = fd_apply_head(source,rollback_file,-1);
+      ssize_t rv = fd_apply_head(rollback_file,source);
       u8_free(rollback_file);
       if (rv<0) return -1; else return 1;}
     else {
@@ -1142,7 +1152,7 @@ static void fileindex_close(fd_index ix)
   fd_lock_index(fx);
   fd_close_stream(&(fx->index_stream),0);
   if (fx->index_offsets) {
-#if HAVE_MMAP
+#if FD_USE_MMAP
     int retval = munmap(fx->index_offsets-2,(SLOTSIZE*fx->index_n_slots)+8);
     if (retval<0) {
       u8_logf(LOG_CRIT,u8_strerror(errno),

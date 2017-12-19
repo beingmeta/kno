@@ -977,7 +977,7 @@ u8_condition get_pointer_exception(lispval x)
     else switch (ptype) {
       case fd_symbol_type: return _("BadSymbol");
       case fd_constant_type: return _("BadConstant");
-      case fd_fcnid_type: return _("BadFCNId");
+      case fd_fcnid_type: return _("BadFcnId");
       case fd_opcode_type: return _("BadOpcode");
       case fd_lexref_type: return _("BadLexref");
       default:

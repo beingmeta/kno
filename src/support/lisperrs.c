@@ -512,7 +512,6 @@ static ssize_t write_exception_dtype(struct FD_OUTBUF *out,lispval x)
   double moment = xo->ex_moment;
   int veclen = (FD_VOIDP(irritant)) ? (8) : (9);
   lispval vector = fd_empty_vector(veclen);
-  ssize_t n_bytes;
   FD_VECTOR_SET(vector,0,fd_intern(condition));
   if (caller) {
     FD_VECTOR_SET(vector,1,fd_intern(caller));}
@@ -531,9 +530,11 @@ static ssize_t write_exception_dtype(struct FD_OUTBUF *out,lispval x)
     FD_VECTOR_SET(vector,8,fd_incref(context));
   else FD_VECTOR_SET(vector,8,FD_FALSE);
   fd_write_byte(out,dt_exception);
-  n_bytes = 1+fd_write_dtype(out,vector);
+  ssize_t base_len = fd_write_dtype(out,vector);
   fd_decref(vector);
-  return n_bytes;
+  if (base_len<0)
+    return -1;
+  return 1+base_len;
 }
 
 FD_EXPORT lispval fd_restore_exception_dtype(lispval content)

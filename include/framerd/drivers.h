@@ -33,6 +33,7 @@ FD_EXPORT u8_condition fd_MMAPError, fd_MUNMAPError;
 FD_EXPORT u8_condition fd_RecoveryRequired;
 
 FD_EXPORT u8_condition fd_PoolDriverError, fd_IndexDriverError;
+FD_EXPORT u8_condition fd_UnknownPoolType, fd_UnknownIndexType;
 FD_EXPORT u8_condition fd_CantOpenPool, fd_CantOpenIndex;
 FD_EXPORT u8_condition fd_CantFindPool, fd_CantFindIndex;
 FD_EXPORT u8_condition fd_PoolFileSizeOverflow, fd_FileIndexSizeOverflow;
@@ -222,6 +223,13 @@ FD_EXPORT lispval fd_slotids_arg(lispval arg);
 
 FD_EXPORT u8_string fd_match_pool_file(u8_string spec,void *data);
 FD_EXPORT u8_string fd_match_index_file(u8_string spec,void *data);
+
+FD_EXPORT int fd_remove_suffix(u8_string base,u8_string suffix);
+
+FD_EXPORT int fd_write_rollback(u8_context caller,
+                                u8_string id,u8_string source,
+                                size_t size);
+FD_EXPORT int fd_check_rollback(u8_context caller,u8_string source);
 
 /* Setting file options */
 

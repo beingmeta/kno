@@ -27,7 +27,6 @@
 #include <libu8/u8netfns.h>
 #include <libu8/u8printf.h>
 
-u8_condition fd_UnknownPoolType=_("Unknown pool type");
 u8_condition fd_PoolConflict=("Pool conflict");
 u8_condition fd_CantLockOID=_("Can't lock OID");
 u8_condition fd_CantUnlockOID=_("Can't unlock OID");
@@ -1890,10 +1889,13 @@ lispval fd_changed_oids(fd_pool p)
 
 /* Common pool initialization stuff */
 
-FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
-                            unsigned int capacity,
+FD_EXPORT void fd_init_pool(fd_pool p,
+                            FD_OID base,unsigned int capacity,
                             struct FD_POOL_HANDLER *h,
-                            u8_string id,u8_string source)
+                            u8_string id,u8_string source,
+                            fd_storage_flags flags,
+                            lispval metadata,
+                            lispval opts)
 {
   FD_INIT_CONS(p,fd_consed_pool_type);
   p->pool_base = base;
@@ -1902,8 +1904,7 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
   p->poolid = u8_strdup(id);
   p->pool_typeid = NULL;
   p->pool_handler = h;
-  p->pool_flags = 0;
-  p->pool_opts = FD_FALSE;
+  p->pool_flags = fd_get_dbflags(opts,flags);
   p->pool_serialno = -1; p->pool_cache_level = -1;
   p->pool_adjuncts = NULL;
   p->pool_adjuncts_len = 0;
@@ -1912,7 +1913,21 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
   p->pool_prefix = NULL;
   p->pool_namefn = VOID;
 
-  p->pool_loglevel = fd_storage_loglevel;
+  lispval ll = fd_getopt(opts,FDSYM_LOGLEVEL,FD_VOID);
+  if (FD_VOIDP(ll))
+    p->pool_loglevel = fd_storage_loglevel;
+  else if ( (FD_FIXNUMP(ll)) && ( (FD_FIX2INT(ll)) >= 0 ) &&
+       ( (FD_FIX2INT(ll)) < U8_MAX_LOGLEVEL ) )
+    p->pool_loglevel = FD_FIX2INT(ll);
+  else {
+    u8_log(LOG_WARN,"BadLogLevel",
+           "Invalid loglevel %q for pool %s",ll,id);
+    p->pool_loglevel = fd_storage_loglevel;}
+  fd_decref(ll);
+
+  if ( (FD_VOIDP(opts)) || (FD_FALSEP(opts)) )
+    p->pool_opts = FD_FALSE;
+  else p->pool_opts = fd_incref(opts);
 
   /* Data tables */
   FD_INIT_STATIC_CONS(&(p->pool_cache),fd_hashtable_type);
@@ -1921,12 +1936,42 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
   fd_make_hashtable(&(p->pool_changes),fd_pool_lock_init);
 
   /* Metadata tables */
-  FD_INIT_STATIC_CONS(&(p->pool_metadata),fd_slotmap_type);
   FD_INIT_STATIC_CONS(&(p->pool_props),fd_slotmap_type);
-  fd_init_slotmap(&(p->pool_metadata),17,NULL);
   fd_init_slotmap(&(p->pool_props),17,NULL);
+
+  FD_INIT_STATIC_CONS(&(p->pool_metadata),fd_slotmap_type);
+  if (FD_SLOTMAPP(metadata)) {
+    lispval adj = fd_get(metadata,FDSYM_ADJUNCT,FD_VOID);
+    if ( (FD_OIDP(adj)) || (FD_TRUEP(adj)) || (FD_SYMBOLP(adj)) )
+      p->pool_flags |= FD_POOL_ADJUNCT;
+    else fd_decref(adj);
+    fd_copy_slotmap((fd_slotmap)metadata,&(p->pool_metadata));}
+  else {
+    fd_init_slotmap(&(p->pool_metadata),17,NULL);}
+  p->pool_metadata.table_modified = 0;
+
   u8_init_rwlock(&(p->pool_struct_lock));
   u8_init_mutex(&(p->pool_commit_lock));
+}
+
+FD_EXPORT int fd_pool_set_metadata(fd_pool p,lispval metadata)
+{
+  if (FD_SLOTMAPP(metadata)) {
+    if (p->pool_metadata.n_allocd) {
+      struct FD_SLOTMAP *sm = & p->pool_metadata;
+      if ( (sm->sm_free_keyvals) && (sm->sm_keyvals) )
+        u8_free(sm->sm_keyvals);
+      u8_destroy_rwlock(&(sm->table_rwlock));}
+    lispval adj = fd_get(metadata,FDSYM_ADJUNCT,FD_VOID);
+    if ( (FD_OIDP(adj)) || (FD_TRUEP(adj)) || (FD_SYMBOLP(adj)) )
+      p->pool_flags |= FD_POOL_ADJUNCT;
+    else fd_decref(adj);
+    fd_copy_slotmap((fd_slotmap)metadata,&(p->pool_metadata));}
+  else {
+    FD_INIT_STATIC_CONS(&(p->pool_metadata),fd_slotmap_type);
+    fd_init_slotmap(&(p->pool_metadata),17,NULL);}
+  p->pool_metadata.table_modified = 0;
+  return 0;
 }
 
 FD_EXPORT void fd_set_pool_namefn(fd_pool p,lispval namefn)
@@ -2227,7 +2272,7 @@ static lispval base_slot, capacity_slot, cachelevel_slot,
 
 static lispval read_only_flag, unregistered_flag, registered_flag,
   noswap_flag, noerr_flag, phased_flag, sparse_flag, background_flag,
-  adjunct_flag, virtual_flag, nolocks_flag;
+  virtual_flag, nolocks_flag;
 
 static void mdstore(lispval md,lispval slot,lispval v)
 {
@@ -2242,6 +2287,8 @@ static void mdstring(lispval md,lispval slot,u8_string s)
   fd_store(md,slot,v);
   fd_decref(v);
 }
+
+static lispval metadata_readonly_props = FD_VOID;
 
 FD_EXPORT lispval fd_pool_base_metadata(fd_pool p)
 {
@@ -2279,8 +2326,11 @@ FD_EXPORT lispval fd_pool_base_metadata(fd_pool p)
   if (U8_BITP(flags,FD_POOL_NOLOCKS))
     fd_add(metadata,flags_slot,nolocks_flag);
 
+  if (fd_testopt(metadata,FDSYM_ADJUNCT,FD_VOID))
+    fd_add(metadata,flags_slot,FDSYM_ISADJUNCT);
+
   if (U8_BITP(flags,FD_POOL_ADJUNCT))
-    fd_add(metadata,flags_slot,adjunct_flag);
+    fd_add(metadata,flags_slot,FDSYM_ADJUNCT);
 
   lispval props_copy = fd_copier(((lispval)&(p->pool_props)),0);
   fd_store(metadata,FDSYM_PROPS,props_copy);
@@ -2301,20 +2351,23 @@ FD_EXPORT lispval fd_pool_base_metadata(fd_pool p)
   if (FD_TABLEP(p->pool_opts))
     fd_store(metadata,opts_slot,p->pool_opts);
 
-  fd_add(metadata,FDSYM_READONLY,FDSYM_TYPE);
-  fd_add(metadata,FDSYM_READONLY,base_slot);
-  fd_add(metadata,FDSYM_READONLY,capacity_slot);
-  fd_add(metadata,FDSYM_READONLY,cachelevel_slot);
-  fd_add(metadata,FDSYM_READONLY,poolid_slot);
-  fd_add(metadata,FDSYM_READONLY,label_slot);
-  fd_add(metadata,FDSYM_READONLY,source_slot);
-  fd_add(metadata,FDSYM_READONLY,locked_slot);
-  fd_add(metadata,FDSYM_READONLY,cached_slot);
-  fd_add(metadata,FDSYM_READONLY,flags_slot);
+  if (FD_VOIDP(metadata_readonly_props))
+    metadata_readonly_props = fd_intern("_READONLY_PROPS");
 
-  fd_add(metadata,FDSYM_READONLY,FDSYM_PROPS);
-  fd_add(metadata,FDSYM_READONLY,opts_slot);
-  fd_add(metadata,FDSYM_READONLY,core_slot);
+  fd_add(metadata,metadata_readonly_props,FDSYM_TYPE);
+  fd_add(metadata,metadata_readonly_props,base_slot);
+  fd_add(metadata,metadata_readonly_props,capacity_slot);
+  fd_add(metadata,metadata_readonly_props,cachelevel_slot);
+  fd_add(metadata,metadata_readonly_props,poolid_slot);
+  fd_add(metadata,metadata_readonly_props,label_slot);
+  fd_add(metadata,metadata_readonly_props,source_slot);
+  fd_add(metadata,metadata_readonly_props,locked_slot);
+  fd_add(metadata,metadata_readonly_props,cached_slot);
+  fd_add(metadata,metadata_readonly_props,flags_slot);
+
+  fd_add(metadata,metadata_readonly_props,FDSYM_PROPS);
+  fd_add(metadata,metadata_readonly_props,opts_slot);
+  fd_add(metadata,metadata_readonly_props,core_slot);
 
   return metadata;
 }
@@ -2331,6 +2384,15 @@ FD_EXPORT lispval fd_default_poolctl(fd_pool p,lispval op,int n,lispval *args)
         return FD_FALSE;
       else return lispval_string(p->pool_label);}
     else return FD_FALSE;}
+  else if (op == FDSYM_OPTS)  {
+    lispval opts = p->pool_opts;
+    if (n > 1)
+      return fd_err(fd_TooManyArgs,"fd_default_indexctl",p->poolid,VOID);
+    else if ( (opts == FD_NULL) || (VOIDP(opts) ) )
+      return FD_FALSE;
+    else if ( n == 1 )
+      return fd_getopt(opts,args[0],FD_FALSE);
+    else return fd_incref(opts);}
   else if (op == fd_metadata_op) {
     lispval metadata = (lispval) &(p->pool_metadata);
     lispval slotid = (n>0) ? (args[0]) : (FD_VOID);
@@ -2626,7 +2688,6 @@ FD_EXPORT void fd_init_pools_c()
   noerr_flag=fd_intern("NOERR");
   phased_flag=fd_intern("PHASED");
   sparse_flag=fd_intern("SPARSE");
-  adjunct_flag=FDSYM_ISADJUNCT;
   background_flag=fd_intern("BACKGROUND");
   virtual_flag=fd_intern("VIRTUAL");
   nolocks_flag=fd_intern("NOLOCKS");

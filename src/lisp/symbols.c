@@ -16,18 +16,25 @@ lispval *fd_symbol_names;
 int fd_n_symbols = 0, fd_max_symbols = 0, fd_initial_symbols = 1024;
 struct FD_SYMBOL_TABLE fd_symbol_table;
 
-lispval FDSYM_TYPE, FDSYM_SIZE, FDSYM_LABEL, FDSYM_NAME,
-  FDSYM_BUFSIZE, FDSYM_BLOCKSIZE, FDSYM_CACHESIZE, FDSYM_DEFAULT,
-  FDSYM_MERGE, FDSYM_SORT, FDSYM_SORTED, FDSYM_LAZY, FDSYM_VERSION,
-  FDSYM_QUOTE, FDSYM_PLUS, FDSYM_STAR, FDSYM_OPT, FDSYM_OPTS,
-  FDSYM_DOT, FDSYM_MINUS, FDSYM_EQUALS, FDSYM_QMARK,
-  FDSYM_PREFIX, FDSYM_SUFFIX, FDSYM_SEP, FDSYM_TAG, FDSYM_METADATA,
-  FDSYM_TEXT, FDSYM_CONTENT, FDSYM_LENGTH, FDSYM_PROPS,
-  FDSYM_READONLY, FDSYM_ISADJUNCT, FDSYM_ADJUNCT, FDSYM_CACHELEVEL,
-  FDSYM_NO, FDSYM_NONE, FDSYM_ALWAYS, FDSYM_ALL, FDSYM_FLAGS,
-  FDSYM_STRING, FDSYM_CONS, FDSYM_SOURCE, FDSYM_CREATE,
-  FDSYM_FILE, FDSYM_FILENAME, FDSYM_INPUT, FDSYM_OUTPUT,
-  FDSYM_KEYSLOT, FDSYM_MAIN, FDSYM_TEST, FDSYM_MODULE;
+lispval FDSYM_ADJUNCT, FDSYM_ALL, FDSYM_ALWAYS;
+lispval FDSYM_BLOCKSIZE, FDSYM_BUFSIZE;
+lispval FDSYM_CACHELEVEL, FDSYM_CACHESIZE;
+lispval FDSYM_CONS, FDSYM_CONTENT, FDSYM_CREATE;
+lispval FDSYM_DEFAULT, FDSYM_DOT, FDSYM_EQUALS;
+lispval FDSYM_FILE, FDSYM_FILENAME;
+lispval FDSYM_FLAGS, FDSYM_INPUT;
+lispval FDSYM_ISADJUNCT, FDSYM_KEYSLOT;
+lispval FDSYM_LABEL, FDSYM_LAZY, FDSYM_LENGTH, FDSYM_LOGLEVEL;
+lispval FDSYM_MAIN, FDSYM_MERGE, FDSYM_METADATA;
+lispval FDSYM_MINUS, FDSYM_MODULE;
+lispval FDSYM_NAME, FDSYM_NO, FDSYM_NONE;
+lispval FDSYM_OPT, FDSYM_OPTS, FDSYM_OUTPUT;
+lispval FDSYM_PLUS, FDSYM_PREFIX, FDSYM_PROPS;
+lispval FDSYM_QMARK, FDSYM_QUOTE, FDSYM_READONLY, FDSYM_SEP;
+lispval FDSYM_SIZE, FDSYM_SORT, FDSYM_SORTED;
+lispval FDSYM_SOURCE, FDSYM_STAR, FDSYM_STRING, FDSYM_SUFFIX;
+lispval FDSYM_TAG, FDSYM_TEST, FDSYM_TEXT, FDSYM_TYPE;
+lispval FDSYM_VERSION;
 
 u8_rwlock fd_symbol_lock;
 
@@ -74,58 +81,60 @@ static void init_symbol_tables()
 
 static void init_builtin_symbols()
 {
-  FDSYM_TYPE = fd_intern("TYPE");
-  FDSYM_SIZE = fd_intern("SIZE");
-  FDSYM_LABEL = fd_intern("LABEL");
-  FDSYM_NAME = fd_intern("NAME");
-  FDSYM_BUFSIZE = fd_intern("BUFSIZE");
+  FDSYM_ADJUNCT = fd_intern("ADJUNCT");
+  FDSYM_ALL = fd_intern("ALL");
+  FDSYM_ALWAYS = fd_intern("ALWAYS");
   FDSYM_BLOCKSIZE = fd_intern("BLOCKSIZE");
+  FDSYM_BUFSIZE = fd_intern("BUFSIZE");
+  FDSYM_CACHELEVEL = fd_intern("CACHELEVEL");
   FDSYM_CACHESIZE = fd_intern("CACHESIZE");
+  FDSYM_CONS = fd_intern("CONS");
+  FDSYM_CONTENT = fd_intern("CONTENT");
+  FDSYM_CREATE = fd_intern("CREATE");
+  FDSYM_CREATE = fd_intern("FILE");
   FDSYM_DEFAULT = fd_intern("DEFAULT");
+  FDSYM_DOT = fd_intern(".");
+  FDSYM_EQUALS = fd_intern("=");
+  FDSYM_FILE = fd_intern("FILE");
+  FDSYM_FILENAME = fd_intern("FILENAME");
+  FDSYM_FLAGS = fd_intern("FLAGS");
+  FDSYM_INPUT = fd_intern("INPUT");
+  FDSYM_ISADJUNCT = fd_intern("ISADJUNCT");
+  FDSYM_KEYSLOT = fd_intern("KEYSLOT");
+  FDSYM_LABEL = fd_intern("LABEL");
+  FDSYM_LAZY = fd_intern("LAZY");
+  FDSYM_LENGTH = fd_intern("LENGTH");
+  FDSYM_LOGLEVEL = fd_intern("LOGLEVEL");
+  FDSYM_MAIN = fd_intern("MAIN");
+  FDSYM_MERGE = fd_intern("MERGE");
   FDSYM_METADATA = fd_intern("METADATA");
+  FDSYM_MINUS = fd_intern("-");
+  FDSYM_MODULE = fd_intern("MODULE");
+  FDSYM_NAME = fd_intern("NAME");
   FDSYM_NO = fd_intern("NO");
   FDSYM_NONE = fd_intern("NONE");
-  FDSYM_MERGE = fd_intern("MERGE");
-  FDSYM_SORTED = fd_intern("SORTED");
-  FDSYM_SORT = fd_intern("SORT");
-  FDSYM_LAZY = fd_intern("LAZY");
-  FDSYM_VERSION = fd_intern("VERSION");
-  FDSYM_QUOTE = fd_intern("QUOTE");
   FDSYM_OPT = fd_intern("OPT");
   FDSYM_OPTS = fd_intern("OPTS");
-  FDSYM_TEXT = fd_intern("TEXT");
-  FDSYM_CONTENT = fd_intern("CONTENT");
-  FDSYM_LENGTH = fd_intern("LENGTH");
-  FDSYM_PROPS = fd_intern("PROPS");
-  FDSYM_STAR = fd_intern("*");
-  FDSYM_PLUS = fd_intern("+");
-  FDSYM_MINUS = fd_intern("-");
-  FDSYM_EQUALS = fd_intern("=");
-  FDSYM_DOT = fd_intern(".");
-  FDSYM_QMARK = fd_intern("?");
-  FDSYM_PREFIX = fd_intern("PREFIX");
-  FDSYM_SUFFIX = fd_intern("SUFFIX");
-  FDSYM_SEP = fd_intern("SEP");
-  FDSYM_TAG = fd_intern("TAG");
-  FDSYM_CONS = fd_intern("CONS");
-  FDSYM_STRING = fd_intern("STRING");
-  FDSYM_READONLY = fd_intern("READONLY");
-  FDSYM_ADJUNCT = fd_intern("ADJUNCT");
-  FDSYM_ALWAYS = fd_intern("ALWAYS");
-  FDSYM_ISADJUNCT = fd_intern("ISADJUNCT");
-  FDSYM_CACHELEVEL = fd_intern("CACHELEVEL");
-  FDSYM_SOURCE = fd_intern("SOURCE");
-  FDSYM_ALL = fd_intern("ALL");
-  FDSYM_CREATE = fd_intern("CREATE");
-  FDSYM_FLAGS = fd_intern("FLAGS");
-  FDSYM_CREATE = fd_intern("FILE");
-  FDSYM_FILENAME = fd_intern("FILENAME");
-  FDSYM_INPUT = fd_intern("INPUT");
   FDSYM_OUTPUT = fd_intern("OUTPUT");
-  FDSYM_KEYSLOT = fd_intern("KEYSLOT");
+  FDSYM_PLUS = fd_intern("+");
+  FDSYM_PREFIX = fd_intern("PREFIX");
+  FDSYM_PROPS = fd_intern("PROPS");
+  FDSYM_QMARK = fd_intern("?");
+  FDSYM_QUOTE = fd_intern("QUOTE");
+  FDSYM_READONLY = fd_intern("READONLY");
+  FDSYM_SEP = fd_intern("SEP");
+  FDSYM_SIZE = fd_intern("SIZE");
+  FDSYM_SORT = fd_intern("SORT");
+  FDSYM_SORTED = fd_intern("SORTED");
+  FDSYM_SOURCE = fd_intern("SOURCE");
+  FDSYM_STAR = fd_intern("*");
+  FDSYM_STRING = fd_intern("STRING");
+  FDSYM_SUFFIX = fd_intern("SUFFIX");
+  FDSYM_TAG = fd_intern("TAG");
   FDSYM_TEST = fd_intern("TEST");
-  FDSYM_MAIN = fd_intern("MAIN");
-  FDSYM_MODULE = fd_intern("MODULE");
+  FDSYM_TEXT = fd_intern("TEXT");
+  FDSYM_TYPE = fd_intern("TYPE");
+  FDSYM_VERSION = fd_intern("VERSION");
 }
 
 static void grow_symbol_tables()

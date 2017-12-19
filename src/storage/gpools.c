@@ -49,7 +49,10 @@ fd_pool fd_make_gpool(FD_OID base,int cap,u8_string id,
   if (!(FIXNUMP(loadval)))
     return fd_type_error("fd_make_gpool","pool load (fixnum)",loadval);
   else load = FIX2INT(loadval);
-  fd_init_pool((fd_pool)gp,base,cap,&gpool_handler,id,id);
+  fd_init_pool((fd_pool)gp,base,cap,
+               &gpool_handler,
+               id,id,
+               FD_STORAGE_ISPOOL,FD_FALSE,FD_FALSE);
   gp->pool_load = load;
   fd_incref(fetchfn); fd_incref(loadfn);
   fd_incref(allocfn); fd_incref(savefn);

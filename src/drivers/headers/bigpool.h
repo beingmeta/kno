@@ -22,6 +22,7 @@
 
 #define FD_BIGPOOL_LOAD_POS      0x10
 
+#define FD_BIGPOOL_FORMAT_POS            0x14
 #define FD_BIGPOOL_LABEL_POS             0x18
 #define FD_BIGPOOL_METADATA_POS          0x24
 #define FD_BIGPOOL_SLOTCODES_POS         0x54

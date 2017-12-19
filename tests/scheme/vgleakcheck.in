@@ -1,6 +1,6 @@
 EXE=$1; shift;
 echo "Running Valgrind heap test for " ${EXE} $1;
-FD_LOADPATH=../../src/scheme/%/module.scm:../../src/scheme/%.scm: \
+FD_LOADPATH=../../src/extmods/%/module.scm:../../src/extmods/%.scm: \
 	   LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib    \
 	   FD_DLOADPATH=../../lib/framerd FD_DLOAD:TRACE=yes        \
 	   FD_SKIP_DOTLOAD=yes FD_SHOWTIME=0.0                      \

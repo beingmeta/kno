@@ -28,7 +28,8 @@ static struct FD_POOL_HANDLER mempool_handler;
 
 FD_EXPORT fd_pool fd_make_mempool(u8_string label,FD_OID base,
                                   unsigned int cap,unsigned int load,
-                                  unsigned int noswap)
+                                  unsigned int noswap,
+                                  lispval opts)
 {
   fd_pool p=fd_get_mempool(label);
   if (p) {
@@ -57,7 +58,10 @@ FD_EXPORT fd_pool fd_make_mempool(u8_string label,FD_OID base,
     return NULL;}
   else {
     struct FD_MEMPOOL *mp = u8_alloc(struct FD_MEMPOOL);
-    fd_init_pool((fd_pool)mp,base,cap,&mempool_handler,label,label);
+    fd_init_pool((fd_pool)mp,base,cap,
+                 &mempool_handler,
+                 label,label,
+                 FD_STORAGE_ISPOOL,FD_VOID,opts);
     mp->pool_label = u8_strdup(label);
     mp->pool_load = load; mp->noswap = noswap;
     u8_init_rwlock(&(mp->pool_struct_lock));

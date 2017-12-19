@@ -34,7 +34,8 @@ fd_pool fd_make_extpool(u8_string label,
                         FD_OID base,unsigned int cap,
                         lispval fetchfn,lispval savefn,
                         lispval lockfn,lispval allocfn,
-                        lispval state)
+                        lispval state,
+                        lispval opts)
 {
   if (!(PRED_TRUE(FD_APPLICABLEP(fetchfn)))) {
     fd_seterr(fd_TypeError,"fd_make_extpool","fetch function",
@@ -54,13 +55,14 @@ fd_pool fd_make_extpool(u8_string label,
     return NULL;}
   else {
     struct FD_EXTPOOL *xp = u8_alloc(struct FD_EXTPOOL);
+    fd_storage_flags flags = FD_STORAGE_ISPOOL | FD_POOL_VIRTUAL;
+    if (VOIDP(savefn)) flags |= FD_STORAGE_READ_ONLY;
     memset(xp,0,sizeof(struct FD_EXTPOOL));
-    fd_init_pool((fd_pool)xp,base,cap,&fd_extpool_handler,label,label);
+    fd_init_pool((fd_pool)xp,base,cap,&fd_extpool_handler,
+                 label,label,flags,FD_VOID,opts);
     /* We currently use the OID value as a cache for stored values, so
        we don't make it read-only. But there's probably a better
        solution. */
-    if (VOIDP(savefn)) xp->pool_flags |= FD_STORAGE_READ_ONLY;
-    xp->pool_flags |= FD_POOL_VIRTUAL;
     fd_register_pool((fd_pool)xp);
     fd_incref(fetchfn); fd_incref(savefn);
     fd_incref(lockfn); fd_incref(allocfn);
@@ -72,6 +74,12 @@ fd_pool fd_make_extpool(u8_string label,
     xp->state = state;
     xp->pool_label = u8_strdup(label);
     xp->pool_flags = xp->pool_flags|FD_POOL_SPARSE;
+
+    lispval metadata = fd_getopt(opts,FDSYM_METADATA,FD_VOID);
+    if (FD_SLOTMAPP(metadata))
+      fd_copy_slotmap((fd_slotmap)metadata,&(xp->pool_metadata));
+    fd_decref(metadata);
+
     return (fd_pool)xp;}
 }
 

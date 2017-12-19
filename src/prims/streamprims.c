@@ -221,7 +221,7 @@ static lispval read_bytes(lispval stream,lispval n,lispval pos)
       return FD_ERROR_VALUE;}}
   if (to_read==0)
     return fd_init_packet(NULL,n_bytes,bytes);
-#elif HAVE_MMAP
+#elif FD_USE_MMAP
   ssize_t page_off = (filepos/512)*512;
   ssize_t map_len  = (pos+n_bytes)-page_off;
   ssize_t buf_off  = filepos - pos;

@@ -31,7 +31,7 @@
 
 #include <zlib.h>
 
-#if (HAVE_MMAP)
+#if (FD_USE_MMAP)
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -238,8 +238,7 @@ static fd_pool open_oidpool(u8_string fname,
     fd_setpos(stream,FD_OIDPOOL_LABEL_POS);
     open_flags |= FD_STORAGE_READ_ONLY;}
 
-  if ((U8_BITP(oidpool_format,FD_OIDPOOL_ADJUNCT))&&
-      (!(fd_testopt(opts,FDSYM_ISADJUNCT,FD_FALSE))))
+  if (U8_BITP(oidpool_format,FD_OIDPOOL_ADJUNCT))
     open_flags |= FD_POOL_ADJUNCT;
   if (U8_BITP(oidpool_format,FD_OIDPOOL_SPARSE))
     open_flags |= FD_POOL_SPARSE;
@@ -249,7 +248,8 @@ static fd_pool open_oidpool(u8_string fname,
   pool->oidpool_compression=
     (fd_compress_type)(((oidpool_format)&(FD_OIDPOOL_COMPRESSION))>>3);
 
-  fd_init_pool((fd_pool)pool,base,capacity,&oidpool_handler,fname,rname);
+  fd_init_pool((fd_pool)pool,base,capacity,&oidpool_handler,fname,rname,
+               FD_STORAGE_ISPOOL,FD_VOID,opts);
   pool->pool_flags=open_flags;
   u8_free(rname); /* Done with this */
 
@@ -906,13 +906,10 @@ static int oidpool_commit(fd_pool p,fd_commit_phase phase,
   struct FD_OIDPOOL *op = (fd_oidpool) p;
   int chunk_ref_size = get_chunk_ref_size(op);
   switch (phase) {
-  case fd_commit_start: {
-    u8_string source = p->pool_source;
-    u8_string rollback_file = u8_mkstring("%s.rollback",source);
-    ssize_t rv = fd_save_head(source,rollback_file,
-                              256+(chunk_ref_size*p->pool_capacity));
-    u8_free(rollback_file);
-    if (rv<0) return -1; else return 1;}
+  case fd_commit_start:
+    return fd_write_rollback("oidpool_commit",
+                             p->poolid,p->pool_source,
+                             (256+(chunk_ref_size*p->pool_capacity)));
   case fd_commit_save: {
     return oidpool_storen(p,commits->commit_count,
                           commits->commit_oids,
@@ -939,7 +936,7 @@ static int oidpool_commit(fd_pool p,fd_commit_phase phase,
     u8_string source = p->pool_source;
     u8_string rollback_file = u8_mkstring("%s.rollback",source);
     if (u8_file_existsp(rollback_file)) {
-      ssize_t rv = fd_apply_head(source,rollback_file,-1);
+      ssize_t rv = fd_apply_head(rollback_file,source);
       u8_free(rollback_file);
       if (rv<0) return -1; else return 1;}
     else {
@@ -990,7 +987,7 @@ static ssize_t write_offdata
       if (oidoff<min_off) min_off = oidoff;}
 
   if (op->pool_offdata) {
-#if HAVE_MMAP
+#if FD_USE_MMAP
     ssize_t result=mmap_write_offdata(op,stream,n,saveinfo,min_off,max_off);
     if (result>=0) return result;
 #endif
@@ -1213,7 +1210,7 @@ static void oidpool_setcache(fd_pool p,int level)
        ( (level==2) && ( op->pool_offdata != NULL ) ) ) {
     fd_unlock_pool_struct((fd_pool)op);
     return;}
-#if (!(HAVE_MMAP))
+#if (!(FD_USE_MMAP))
   if (level < 2) {
     if (op->pool_offdata) {
       u8_big_free(op->pool_offdata);
@@ -1238,7 +1235,7 @@ static void oidpool_setcache(fd_pool p,int level)
       UNLOCK_POOLSTREAM(op);}
     fd_unlock_pool_struct((fd_pool)op);
     return;}
-#else /* HAVE_MMAP */
+#else /* FD_USE_MMAP */
   int stream_flags=op->pool_stream.stream_flags;
 
   if ( (level < 3) && (U8_BITP(stream_flags,FD_STREAM_MMAPPED)) )
@@ -1294,10 +1291,10 @@ static void oidpool_setcache(fd_pool p,int level)
 
   UNLOCK_POOLSTREAM(op);
   fd_unlock_pool_struct((fd_pool)op);
-#endif /* HAVE_MMAP */
+#endif /* FD_USE_MMAP */
 }
 
-#if HAVE_MMAP
+#if FD_USE_MMAP
 static void reload_offdata(fd_oidpool op,int lock) {}
 #else
 static void reload_offdata(fd_oidpool op)
@@ -1341,7 +1338,7 @@ static void oidpool_close(fd_pool p)
     /* TODO: Be more careful about freeing/unmapping the
        offdata. Users might get a seg fault rather than a "file not
        open error". */
-#if HAVE_MMAP
+#if FD_USE_MMAP
     /* Since we were just reading, the buffer was only as big
        as the load, not the capacity. */
     int retval = munmap(offdata-64,offdata_length);
@@ -1396,11 +1393,7 @@ static unsigned int get_oidpool_format(fd_storage_flags sflags,lispval opts)
     flags |= FD_OIDPOOL_READ_ONLY;
 
   if ( (fd_testopt(opts,FDSYM_ISADJUNCT,VOID)) ||
-       (fd_testopt(opts,fd_intern("FLAGS"),FDSYM_ISADJUNCT)) ||
-       (fd_testopt(opts,fd_intern("FLAGS"),FDSYM_ADJUNCT)) ||
-       ( ( (sflags) & (FD_POOL_ADJUNCT) ) &&
-         (fd_testopt(opts,FDSYM_ADJUNCT,FD_VOID)) &&
-         (!(fd_testopt(opts,FDSYM_ADJUNCT,FD_TRUE))) ) )
+       (fd_testopt(opts,FDSYM_FLAGS,FDSYM_ISADJUNCT)) )
     flags |= FD_OIDPOOL_ADJUNCT;
 
   if ( (sflags) & (FD_POOL_ADJUNCT) ||

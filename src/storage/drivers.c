@@ -44,9 +44,13 @@ u8_condition fd_CorruptedPool=_("Corrupted file pool");
 u8_condition fd_InvalidOffsetType=_("Invalid offset type");
 u8_condition fd_RecoveryRequired=_("RECOVERY");
 
+u8_condition fd_UnknownPoolType=_("Unknown pool type");
+u8_condition fd_UnknownIndexType=_("Unknown pool type");
+
 u8_condition fd_CantOpenPool=_("Can't open pool");
-u8_condition fd_CantFindPool=_("Can't find pool");
 u8_condition fd_CantOpenIndex=_("Can't open index");
+
+u8_condition fd_CantFindPool=_("Can't find pool");
 u8_condition fd_CantFindIndex=_("Can't find index");
 
 u8_condition fd_IndexDriverError=_("Internal error with index file");
@@ -249,12 +253,17 @@ fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,lispval opts)
     u8_string open_spec = spec;
     if (ptype->matcher) {
       open_spec = ptype->matcher(spec,ptype->type_data);
-      if (open_spec==NULL) return NULL;}
+      if (open_spec==NULL) {
+        unsigned char buf[200];
+        fd_seterr(fd_CantOpenPool,"fd_open_pool",
+                  u8_sprintf(buf,200,"(%s)%s",ptype->pool_typename,spec),
+                  opts);
+        return NULL;}}
     fd_pool p = open_pool(ptype,open_spec,flags,opts);
     if (open_spec != spec) u8_free(open_spec);
     return p;}
   if (!(flags & FD_STORAGE_NOERR))
-    fd_seterr(fd_CantFindPool,"fd_open_pool",spec,opts);
+    fd_seterr(fd_UnknownPoolType,"fd_open_pool",spec,opts);
   return NULL;
 }
 
@@ -410,7 +419,7 @@ static fd_index open_index(fd_index_typeinfo ixtype,u8_string spec,
   if (search_spec != spec) u8_free(search_spec);
   if (opened==NULL) {
     if (! ( flags & FD_STORAGE_NOERR) )
-      fd_seterr(fd_CantOpenPool,"fd_open_pool",spec,opts);
+      fd_seterr(fd_CantOpenIndex,"fd_open_index",spec,opts);
     return opened;}
   lispval old_opts=opened->index_opts;
   opened->index_opts=fd_incref(opts);
@@ -457,13 +466,17 @@ fd_index fd_open_index(u8_string spec,fd_storage_flags flags,lispval opts)
     u8_string open_spec = spec;
     if (ixtype->matcher) {
       open_spec = ixtype->matcher(spec,ixtype->type_data);
-      if (open_spec == NULL)
-        return NULL;}
+      if (open_spec == NULL) {
+        unsigned char buf[200];
+        fd_seterr(fd_CantOpenIndex,"fd_open_index",
+                  u8_sprintf(buf,200,"(%s)%s",ixtype->index_typename,spec),
+                  opts);
+        return NULL;}}
     fd_index ix = open_index(ixtype,open_spec,flags,opts);
     if (open_spec != spec) u8_free(open_spec);
     return ix;}
   if (!(flags & FD_STORAGE_NOERR))
-    fd_seterr(fd_CantOpenIndex,"fd_open_index",spec,opts);
+    fd_seterr(fd_UnknownIndexType,"fd_open_index",spec,opts);
   return NULL;
 }
 
@@ -979,6 +992,110 @@ fd_compress_type fd_compression_type(lispval opts,fd_compress_type dflt)
       return dflt;
     else return DEFAULT_COMPRESSION;}
   else return dflt;
+}
+
+/* Cleaning up dbfiles */
+
+static int try_remove(u8_string file,u8_condition cond,u8_context caller)
+{
+  int rv = 0;
+  if (u8_file_existsp(file)) {
+    if (u8_file_writablep(file)) {
+      u8_log(LOG_WARN,cond,"Removing leftover file %s (%s)",
+             file,caller);
+      rv = u8_removefile(file);
+      if (rv < 0)
+        u8_seterr("FailedRemove",caller,
+                  u8_mkstring("Can't remove/overwrite file %s for %s",
+                              file,cond));}
+    else {
+      u8_seterr("FailedRemove",caller,
+                u8_mkstring("Can't remove/overwrite file %s for %s",
+                            file,cond));
+      rv = -1;}}
+  return rv;
+}
+
+FD_EXPORT int fd_write_rollback(u8_context caller,
+                                u8_string id,u8_string source,
+                                size_t size)
+{
+  u8_string rollback_file = u8_mkstring("%s.rollback",source);
+  u8_string commit_file = u8_mkstring("%s.commit",source);
+  int rv = try_remove(rollback_file,"LeftoverRollback","fd_write_rollback");
+  if (rv<0) try_remove(commit_file,"LeftoverCommit","fd_write_rollback");
+  else rv = try_remove(commit_file,"LeftoverCommit","fd_write_rollback");
+  if (rv>=0) {
+    ssize_t save_rv = fd_save_head(source,rollback_file,size);
+    if (save_rv<0) {
+      u8_seterr("CantSaveRollback",caller,rollback_file);
+      rollback_file = NULL;
+      rv = -1;}
+    else rv=1;}
+  if (commit_file) u8_free(commit_file);
+  if (rollback_file) u8_free(rollback_file);
+  return 1;
+}
+
+FD_EXPORT int fd_check_rollback(u8_context caller,u8_string source)
+{
+  u8_string rollback_file = u8_mkstring("%s.rollback",source);
+  if (u8_file_existsp(rollback_file)) {
+    int source_fd = u8_open_fd(source,O_RDWR,S_IWUSR|S_IRUSR);
+    if (source_fd >= 0) {
+      int lock_rv = u8_lock_fd(source_fd,1);
+      if (lock_rv<0) {
+        u8_close_fd(source_fd);
+        u8_seterr("RollbackLockFailed","fd_check_rollback",u8_strdup(source));
+        return -1;}
+      u8_log(LOG_WARN,"Rollback",
+             "Applying rollback file %s to %s (%s)",
+             rollback_file,source,caller);
+      int rv = fd_apply_head(rollback_file,source);
+      if (rv<0) {
+        if (errno) u8_graberrno(caller,source);
+        u8_string err_file = u8_string_append(rollback_file,".bad",NULL);
+        int move_rv = u8_movefile(rollback_file,err_file);
+        if (move_rv<0) {
+          u8_graberrno("fd_check_rollback/cleanup",rollback_file);
+          u8_log(LOG_CRIT,"RollbackCleanupFailed",
+                 "Couldn't move %s to %s",rollback_file,err_file);}
+        u8_seterr("RollbackError",caller,u8_strdup(source));
+        return -1;}
+      else {
+        u8_log(LOG_NOTICE,"Rollback",
+               "Finished applying rollback file %s to %s (%s)",
+               rollback_file,source,caller);
+        u8_string applied_file = u8_mkstring("%s.applied",rollback_file);
+        u8_string commit_file = u8_mkstring("%s.commit",source);
+        if (u8_file_existsp(applied_file)) {
+          int rm_rv = u8_removefile(applied_file);
+          if (rm_rv<0) fd_clear_errors(1);}
+        if (u8_file_existsp(commit_file)) {
+          int rm_rv = u8_removefile(commit_file);
+          if (rm_rv<0) fd_clear_errors(1);}
+        int mv_rv = u8_movefile(rollback_file,applied_file);
+        if (mv_rv<0) fd_clear_errors(1);
+        u8_free(commit_file);
+        u8_free(applied_file);}
+      u8_free(rollback_file);
+      u8_unlock_fd(source_fd);
+      u8_close_fd(source_fd);
+      return rv;}
+    else return 0;}
+  u8_free(rollback_file);
+  return 0;
+}
+
+FD_EXPORT int fd_remove_suffix(u8_string base,u8_string suffix)
+{
+  size_t base_len = strlen(base);
+  size_t full_len = base_len + strlen(suffix) + 1;
+  unsigned char buf[full_len];
+  strcpy(buf,base); strcpy(buf+base_len,suffix);
+  if (u8_file_existsp(buf))
+    return u8_removefile(buf);
+  else return 0;
 }
 
 /* Matching file pools/indexes */

@@ -39,6 +39,7 @@ fd_index fd_make_procindex(lispval opts,lispval state,
 {
   struct FD_PROCINDEX_METHODS *methods;
   lispval index_type = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
+  lispval metadata = fd_getopt(opts,FDSYM_METADATA,FD_VOID);
   struct FD_INDEX_TYPEINFO *typeinfo =
     (FD_STRINGP(index_type)) ? 
     (fd_get_index_typeinfo(FD_CSTRING(index_type))) :
@@ -97,7 +98,9 @@ fd_index fd_make_procindex(lispval opts,lispval state,
 
   fd_init_index((fd_index)pix,
                 &fd_procindex_handler,
-                id,u8_strdup(source),flags);
+                id,u8_strdup(source),flags,
+                metadata,
+                opts);
 
   lispval init_metadata = fd_getopt(opts,FDSYM_METADATA,FD_VOID);
   if (FD_SLOTMAPP(init_metadata)) {

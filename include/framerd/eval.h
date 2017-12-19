@@ -43,6 +43,8 @@ FD_EXPORT int fd_choice_evalp(lispval x);
     (FD_PAIRP(x))   || (FD_CODEP(x))   ||       \
     ( (FD_AMBIGP(x)) && (fd_choice_evalp(x)) ) )
 
+FD_EXPORT u8_string fd_evalstack_type, fd_ndevalstack_type;
+
 /* Constants */
 
 #define FD_STACK_ARGS 6
@@ -192,10 +194,13 @@ FD_EXPORT void fd_register_sourcefn
 
 FD_EXPORT int fd_load_config(u8_string sourceid);
 FD_EXPORT int fd_load_default_config(u8_string sourceid);
-FD_EXPORT lispval fd_load_source_with_date
-  (u8_string sourceid,fd_lexenv env,u8_string enc_name,time_t *modtime);
+FD_EXPORT lispval fd_load_stream
+  (u8_input loadstream,fd_lexenv env,u8_string sourcebase);
 FD_EXPORT lispval fd_load_source
   (u8_string sourceid,fd_lexenv env,u8_string enc_name);
+FD_EXPORT lispval fd_load_source_with_date
+  (u8_string sourceid,fd_lexenv env,u8_string enc_name,time_t *modtime);
+
 FD_EXPORT u8_string fd_sourcebase();
 FD_EXPORT u8_string fd_get_component(u8_string spec);
 FD_EXPORT u8_string fd_bind_sourcebase(u8_string sourcebase);
@@ -212,6 +217,10 @@ lispval fd_stack_eval(lispval expr,fd_lexenv env,
                      struct FD_STACK *stack,
                      int tail);
 #define fd_tail_eval(expr,env) (fd_stack_eval(expr,env,fd_stackptr,1))
+FD_EXPORT
+lispval fd_eval_pair(lispval head,lispval expr,fd_lexenv env,
+                     struct FD_STACK *eval_stack,
+                     int tail);
 
 FD_EXPORT lispval fd_eval_exprs(lispval exprs,fd_lexenv env);
 
@@ -371,6 +380,7 @@ FD_EXPORT lispval fd_opcode_dispatch
 
 /* Recording bugs */
 
+FD_EXPORT int fd_dump_bug(lispval ex,u8_string dir);
 FD_EXPORT int fd_record_bug(lispval ex);
 
 FD_EXPORT u8_string fd_bugdir;

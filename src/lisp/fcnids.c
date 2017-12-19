@@ -186,7 +186,7 @@ static int unparse_fcnid(u8_output out,lispval x)
 
 FD_EXPORT void fd_init_fcnids_c()
 {
-  fd_type_names[fd_fcnid_type]=_("persistent pointer");
+  fd_type_names[fd_fcnid_type]=_("function identifier");
   fd_unparsers[fd_fcnid_type]=unparse_fcnid;
   u8_init_mutex(&_fd_fcnid_lock);
   u8_register_source_file(_FILEINFO);

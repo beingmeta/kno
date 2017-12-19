@@ -135,7 +135,10 @@ FD_EXPORT void fd_init_index
   (fd_index ix,
    struct FD_INDEX_HANDLER *h,
    u8_string id,u8_string src,
-   fd_storage_flags flags);
+   fd_storage_flags flags,
+   lispval metadata,
+   lispval opts);
+FD_EXPORT int fd_index_set_metadata(fd_index ix,lispval metadata);
 FD_EXPORT void fd_reset_index_tables
   (fd_index ix,ssize_t cache,ssize_t edits,ssize_t adds);
 
@@ -200,7 +203,8 @@ typedef struct FD_EXTINDEX {
 typedef struct FD_EXTINDEX *fd_extindex;
 
 FD_EXPORT fd_index fd_make_extindex
-  (u8_string name,lispval fetchfn,lispval commitfn,lispval state,int reg);
+  (u8_string name,lispval fetchfn,lispval commitfn,
+   lispval state,int reg,lispval opts);
 
 FD_EXPORT struct FD_INDEX_HANDLER fd_extindex_handler;
 

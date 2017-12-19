@@ -17,6 +17,6 @@ fi;
 
 . ./runenv.sh
 
-exec ${PROGNAME} $*
+@test_env@ exec ${PROGNAME} $*
 
 

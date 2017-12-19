@@ -51,13 +51,15 @@ static int server_supportsp(struct FD_NETWORK_POOL *np,lispval operation)
 
 static void init_network_pool
 (struct FD_NETWORK_POOL *p,lispval netinfo,
- u8_string spec,u8_string source,fd_storage_flags flags)
+ u8_string spec,u8_string source,fd_storage_flags flags,
+ lispval opts)
 {
   lispval scan = netinfo;
   FD_OID addr; unsigned int capacity; u8_string label;
   addr = FD_OID_ADDR(FD_CAR(scan)); scan = FD_CDR(scan);
   capacity = fd_getint(FD_CAR(scan)); scan = FD_CDR(scan);
-  fd_init_pool((fd_pool)p,addr,capacity,&netpool_handler,spec,source);
+  fd_init_pool((fd_pool)p,addr,capacity,&netpool_handler,spec,source,
+               flags,FD_VOID,opts);
   /* Network pool specific stuff */
   if (FALSEP(FD_CAR(scan)))
     p->pool_flags |= FD_STORAGE_READ_ONLY;
@@ -97,7 +99,9 @@ static lispval get_pool_data(u8_string spec,u8_string *xid)
   return result;
 }
 
-FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,fd_storage_flags flags,lispval opts)
+FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,
+                                       fd_storage_flags flags,
+                                       lispval opts)
 {
   struct FD_NETWORK_POOL *np = u8_alloc(struct FD_NETWORK_POOL);
   u8_string xid = NULL;
@@ -134,11 +138,11 @@ FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,fd_storage_flags flags,lis
       struct FD_NETWORK_POOL *p; lispval pd = *scan++;
       if (n_pools==0) p = np;
       else p = u8_alloc(struct FD_NETWORK_POOL);
-      init_network_pool(p,pd,spec,cid,flags);
+      init_network_pool(p,pd,spec,cid,flags,opts);
       p->pool_source = xid;
       p->pool_connpool = np->pool_connpool;
       n_pools++;}}
-  else init_network_pool(np,pooldata,spec,cid,flags);
+  else init_network_pool(np,pooldata,spec,cid,flags,opts);
   u8_free(cid);
   np->bulk_commitp = server_supportsp(np,bulk_commit_symbol);
   fd_decref(pooldata);

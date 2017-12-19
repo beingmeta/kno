@@ -725,7 +725,7 @@ static lispval servlet_status()
 static int output_content(fd_webconn ucl,lispval content)
 {
   if (STRINGP(content)) {
-    int rv = u8_writeall(ucl->socket,CSTRING(content),STRLEN(content));
+    ssize_t rv = u8_writeall(ucl->socket,CSTRING(content),STRLEN(content));
     if (rv<0) {
       u8_log(LOG_CRIT,fdservWriteError,
              "Unexpected error writing %ld bytes to mod_fdserv",
@@ -733,7 +733,7 @@ static int output_content(fd_webconn ucl,lispval content)
       return rv;}
     return STRLEN(content);}
   else if (FD_PACKETP(content)) {
-    int rv = u8_writeall(ucl->socket,FD_PACKET_DATA(content),FD_PACKET_LENGTH(content));
+    ssize_t rv = u8_writeall(ucl->socket,FD_PACKET_DATA(content),FD_PACKET_LENGTH(content));
     if (rv<0) {
       u8_log(LOG_CRIT,fdservWriteError,
              "Unexpected error writing %ld bytes to mod_fdserv",
@@ -814,13 +814,12 @@ static int webservefn(u8_client ucl)
   fd_lexenv base_env = NULL;
   fd_webconn client = (fd_webconn)ucl;
   u8_server server = client->server;
-  int write_headers = 1, close_html = 0;
+  int write_headers = 1, close_html = 0, forcelog = 0;
   double start_time, setup_time, parse_time, exec_time, write_time;
   struct FD_THREAD_CACHE *threadcache = NULL;
   struct rusage start_usage, end_usage;
   double start_load[]={-1,-1,-1}, end_load[]={-1,-1,-1};
-  int forcelog = 0, retval = 0;
-  size_t http_len = 0, head_len = 0, content_len = 0;
+  ssize_t retval = 0, http_len = 0, head_len = 0, content_len = 0;
   fd_stream stream = &(client->in);
   fd_inbuf inbuf = fd_readbuf(stream);
   u8_output outstream = &(client->out);

@@ -59,6 +59,18 @@ define wh
   end
   where $arg0
 end
+define x64
+  x/64xb $arg0
+end
+define x32
+  x/32xb $arg0
+end
+define x16
+  x/16xb $arg0
+end
+define xx
+  x/16xb $arg0
+end
 define freeze
   set scheduler on
 end
