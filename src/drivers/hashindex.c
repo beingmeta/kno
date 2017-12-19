@@ -2084,7 +2084,6 @@ static int process_drops(struct FD_HASHINDEX *hx,
                          struct COMMIT_SCHEDULE *s,
                          int sched_i)
 {
-  fd_hashtable cache = &(hx->index_cache);
   lispval *to_fetch = u8_big_alloc_n(n_drops,lispval); int n_fetches = 0;
   int *fetch_scheds = u8_big_alloc_n(n_drops,unsigned int);
   int oddkeys = ((hx->storage_xformat)&(FD_HASHINDEX_ODDKEYS));
@@ -2143,7 +2142,10 @@ static int process_adds(struct FD_HASHINDEX *hx,
   while ( add_i < n_adds ) {
     lispval key = adds[add_i].kv_key;
     lispval val = adds[add_i].kv_val;
-    if ((oddkeys==0) && (PAIRP(key)) &&
+    if (FD_EMPTYP(val)) {
+      add_i++;
+      continue;}
+    else if ((oddkeys==0) && (PAIRP(key)) &&
         ((OIDP(FD_CAR(key))) || (SYMBOLP(FD_CAR(key))))) {
       lispval slotid = FD_CAR(key);
       int code = fd_slotid2code(&(hx->index_slotcodes),slotid);
@@ -2175,9 +2177,12 @@ FD_FASTOP void parse_keybucket(fd_hashindex hx,struct KEYBUCKET *kb,
     entry->ke_dtstart    = in->bufread;
     in->bufread          = in->bufread+dt_size;
     entry->ke_nvals      = n_values = fd_read_zint(in);
-    if (n_values==0) entry->ke_values = EMPTY;
-    else if (n_values==1)
-      entry->ke_values = read_zvalue(hx,in);
+    if (n_values==0)
+      entry->ke_values = EMPTY;
+    else if (n_values==1) {
+      lispval v = read_zvalue(hx,in);
+      entry->ke_values = v;
+      if (FD_EMPTYP(v)) entry->ke_nvals = 0;}
     else {
       entry->ke_values    = VOID;
       entry->ke_vref.off  = fd_read_zint(in);
@@ -2405,8 +2410,10 @@ FD_FASTOP struct KEYBUCKET *read_keybucket
   if (ref.size>0) {
     unsigned char *keybuf=u8_malloc(ref.size);
     ssize_t read_result=fd_read_block(stream,keybuf,ref.size,ref.off,1);
-    if (read_result<0)
-      return NULL;
+    if (read_result<0) {
+      fd_seterr("FailedBucketRead","read_keybucket/hashindex",
+                hx->indexid,FD_INT(bucket));
+      return NULL;}
     else {
       struct FD_INBUF keystream = { 0 };
       FD_INIT_INBUF(&keystream,keybuf,ref.size,0);
@@ -2707,55 +2714,77 @@ static int hashindex_commit(fd_index ix,fd_commit_phase phase,
     struct FD_STREAM *head_stream = (head_saved>=0) ?
       (fd_init_file_stream(NULL,commit_file,FD_FILE_MODIFY,-1,-1)) :
       (NULL);
-    u8_free(commit_file);
     int rv = hashindex_save
       ((struct FD_HASHINDEX *)ix,stream,head_stream,
        (struct FD_CONST_KEYVAL *)commits->commit_adds,commits->commit_n_adds,
        (struct FD_CONST_KEYVAL *)commits->commit_drops,commits->commit_n_drops,
        (struct FD_CONST_KEYVAL *)commits->commit_stores,commits->commit_n_stores,
        commits->commit_metadata);
-    fd_flush_stream(stream);
-    size_t stream_end = fd_endpos(stream);
-    size_t head_end = fd_endpos(head_stream);
-    fd_write_8bytes_at(head_stream,stream_end,head_end-8);
+    if (rv<0)
+      u8_seterr("HashIndexSaveFailed","hashindex_commit",u8_strdup(ix->indexid));
+    else {
+      fd_flush_stream(stream);
+      size_t stream_end = fd_endpos(stream);
+      size_t head_end = fd_endpos(head_stream);
+      fd_write_8bytes_at(head_stream,stream_end,head_end-8);}
     fd_close_stream(head_stream,FD_STREAM_FREEDATA);
     u8_free(head_stream);
+    if (rv<0) {
+      if (u8_removefile(commit_file)<0)
+        u8_log(LOG_CRIT,"RemoveFileFailed",
+               "Couldn't remove file %s for %s",
+               commit_file,ix->indexid);}
+    u8_free(commit_file);
     return rv;}
   case fd_commit_rollback: {
-    u8_string source = ix->index_source;
     u8_string rollback_file = u8_string_append(source,".rollback",NULL);
     if (u8_file_existsp(rollback_file)) {
       ssize_t rv = fd_apply_head(rollback_file,source);
+      if (rv<0) {
+        u8_log(LOG_CRIT,"RollbackFailed",
+               "Couldn't apply rollback %s to %s for %s",
+               rollback_file,source,ix->indexid);
+        u8_free(rollback_file);
+        return -1; }
       u8_free(rollback_file);
-      if (rv<0) return -1; else return 1;}
+      return 1;}
     else {
-      u8_logf(LOG_CRIT,"NoRollbackFile",
-              "The rollback file %s for %s doesn't exist",
-              rollback_file,ix->indexid);
+      u8_seterr("RollbackFailed","hashindex_commit",
+                u8_mkstring("The rollback file %s for %s doesn't exist",
+                            rollback_file,ix->indexid));
       u8_free(rollback_file);
       return -1;}}
   case fd_commit_finish: {
     u8_string commit_file = u8_mkstring("%s.commit",source);
     ssize_t rv = fd_apply_head(commit_file,source);
-    u8_free(commit_file);
-    load_header(hx,stream);
-    if (rv<0)
-      return -1;
-    else return 1;}
+    if (rv<0) {
+      u8_seterr("FinishCommitFailed","hashindex_commit",
+                u8_mkstring("Couldn't apply commit file %s to %s for %s",
+                            commit_file,source,ix->indexid));
+      u8_free(commit_file);
+      return -1;}
+    else {
+      u8_free(commit_file);
+      int rv = load_header(hx,stream);
+      if (rv<0) {
+        u8_seterr("FinishCommitFailed","hashindex_commit",
+                  u8_mkstring("Couldn't reload header for restored %s (%s)",
+                              source,ix->indexid));
+        return -1;}
+      else return 1;}}
   case fd_commit_cleanup: {
-    u8_string source = ix->index_source;
     if (commits->commit_stream) release_commit_stream(ix,commits);
     u8_string rollback_file = u8_string_append(source,".rollback",NULL);
     u8_string commit_file = u8_string_append(source,".commit",NULL);
     int rollback_cleanup = 0, commit_cleanup = 0;
     if (u8_file_existsp(rollback_file))
       rollback_cleanup = u8_removefile(rollback_file);
-    else u8_logf(LOG_WARN,"MissingRollbackFile",
-                 "Rollback file %s was deleted",rollback_file);
+    else u8_log(LOG_WARN,"MissingRollbackFile",
+                "Rollback file %s went missing",rollback_file);
     if (u8_file_existsp(commit_file))
       commit_cleanup = u8_removefile(commit_file);
     else u8_logf(LOG_WARN,"MissingRollbackFile",
-                 "Commit file %s was deleted",commit_file);
+                 "Commit file %s went missing",commit_file);
     u8_free(rollback_file); u8_free(commit_file);
     if ( ( rollback_cleanup < 0) || ( commit_cleanup < 0) )
       return -1;
@@ -2803,12 +2832,10 @@ static int update_hashindex_metadata(fd_hashindex hx,
       fd_write_8bytes_at(head,metadata_pos,FD_HASHINDEX_METADATA_POS);
       fd_write_4bytes_at(head,metadata_end-metadata_pos,FD_HASHINDEX_METADATA_POS+8);}}
   else error=1;
-  if (error)
-    u8_logf(LOG_CRIT,"MetaDataWriteError",
-            "There was an inconsistency writing the metadata for %s",
-            hx->indexid);
-  if (error)
-    return -1;
+  if (error) {
+    u8_seterr("MetaDataWriteError","update_hashindex_metadata/endpos",
+              u8_strdup(hx->index_source));
+    return -1;}
   else return 1;
 }
 
@@ -2841,12 +2868,10 @@ static int update_hashindex_oidcodes(fd_hashindex hx,fd_oidcoder oc,
       fd_write_4bytes_at(head,baseoids_end-baseoids_pos,
                          (FD_HASHINDEX_BASEOIDS_POS+8));}}
   else error=1;
-  if (error)
-    u8_logf(LOG_CRIT,"BaseOIDsWriteError",
-            "There was an inconsistency writing the metadata for %s",
-            hx->indexid);
-  if (error)
-    return -1;
+  if (error) {
+    u8_seterr("MetaDataWriteError","update_hashindex_baseoids/endpos",
+              u8_strdup(hx->index_source));
+    return -1;}
   else return 1;
 }
 
@@ -2874,12 +2899,10 @@ static int update_hashindex_slotcodes(fd_hashindex hx,
       fd_write_4bytes_at(head,slotids_end-slotids_pos,
                          (FD_HASHINDEX_SLOTIDS_POS+8));}}
   else error=1;
-  if (error)
-    u8_logf(LOG_CRIT,"SlotIDsWriteError",
-            "There was an inconsistency saving the slotcodes for %s",
-            hx->indexid);
-  if (error)
-    return -1;
+  if (error) {
+    u8_seterr("MetaDataWriteError","update_hashindex_slotocdes/endpos",
+              u8_strdup(hx->index_source));
+    return -1;}
   else return 1;
 }
 
@@ -3559,12 +3582,13 @@ static lispval set_slotids(struct FD_HASHINDEX *hx,lispval arg)
     else {
       fd_seterr("BadSlotIDs","hashindex_ctl/slotids",hx->indexid,arg);
       return FD_ERROR_VALUE;}
-    u8_lock_mutex(& hx->index_commit_lock );
-    struct FD_STREAM _stream = {0}, *stream = fd_init_file_stream
-      (&_stream,hx->index_source,FD_FILE_MODIFY,0,8192);
-    update_hashindex_slotcodes(hx,slotcodes,stream,stream);
-    fd_close_stream(stream,FD_STREAM_FREEDATA);
-    u8_unlock_mutex(& hx->index_commit_lock );
+    if (rv>=0) {
+      u8_lock_mutex(& hx->index_commit_lock );
+      struct FD_STREAM _stream = {0}, *stream = fd_init_file_stream
+        (&_stream,hx->index_source,FD_FILE_MODIFY,0,8192);
+      rv=update_hashindex_slotcodes(hx,slotcodes,stream,stream);
+      fd_close_stream(stream,FD_STREAM_FREEDATA);
+      u8_unlock_mutex(& hx->index_commit_lock );}
     if (rv<0)
       return FD_ERROR;
     else return FD_TRUE;}
@@ -3572,6 +3596,7 @@ static lispval set_slotids(struct FD_HASHINDEX *hx,lispval arg)
 
 static lispval set_baseoids(struct FD_HASHINDEX *hx,lispval arg)
 {
+  int rv = 0;
   if (hx->index_oidcodes.n_oids > 0) {
     u8_log(LOG_WARN,"ExistingBaseOIDs",
            "The index %s already has baseoids",
@@ -3591,10 +3616,12 @@ static lispval set_baseoids(struct FD_HASHINDEX *hx,lispval arg)
     u8_lock_mutex(& hx->index_commit_lock );
     struct FD_STREAM _stream = {0}, *stream = fd_init_file_stream
       (&_stream,hx->index_source,FD_FILE_MODIFY,0,8192);
-    update_hashindex_oidcodes(hx,oidcodes,stream,stream);
+    rv = update_hashindex_oidcodes(hx,oidcodes,stream,stream);
     fd_close_stream(stream,FD_STREAM_FREEDATA);
     u8_unlock_mutex(& hx->index_commit_lock );
-    return FD_TRUE;}
+    if (rv<0)
+      return FD_ERROR_VALUE;
+    else return FD_TRUE;}
 }
 
 /* The control function */
