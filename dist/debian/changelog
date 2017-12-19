@@ -1,6 +1,13 @@
+framerd (4.2.8-15) stable; urgency=medium
+
+  * Got pools and indexes for rocksdb/leveldb to work, various refinements
+    and fixes to driver logic
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 19 Dec 2017 22:39:04 +0000
+
 framerd (4.2.7-14) stable; urgency=medium
 
-  * Fix dependences for framerd-mysql
+  * Fix dependencies for framerd-mysql
 
  -- Ken Haase <kh@beingmeta.com>  Fri, 08 Dec 2017 17:09:39 -0500
 
