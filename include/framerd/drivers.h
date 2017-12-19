@@ -33,6 +33,7 @@ FD_EXPORT u8_condition fd_MMAPError, fd_MUNMAPError;
 FD_EXPORT u8_condition fd_RecoveryRequired;
 
 FD_EXPORT u8_condition fd_PoolDriverError, fd_IndexDriverError;
+FD_EXPORT u8_condition fd_UnknownPoolType, fd_UnknownIndexType;
 FD_EXPORT u8_condition fd_CantOpenPool, fd_CantOpenIndex;
 FD_EXPORT u8_condition fd_CantFindPool, fd_CantFindIndex;
 FD_EXPORT u8_condition fd_PoolFileSizeOverflow, fd_FileIndexSizeOverflow;

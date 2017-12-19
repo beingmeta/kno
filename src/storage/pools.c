@@ -27,7 +27,6 @@
 #include <libu8/u8netfns.h>
 #include <libu8/u8printf.h>
 
-u8_condition fd_UnknownPoolType=_("Unknown pool type");
 u8_condition fd_PoolConflict=("Pool conflict");
 u8_condition fd_CantLockOID=_("Can't lock OID");
 u8_condition fd_CantUnlockOID=_("Can't unlock OID");

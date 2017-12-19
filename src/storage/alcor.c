@@ -106,67 +106,81 @@ static ssize_t apply_head(int in,int out,size_t head_len)
   unsigned char *outbuf =
     mmap(NULL,head_len,PROT_READ|PROT_WRITE,MAP_SHARED,out,0);
   if (! ( (outbuf == NULL) || (outbuf == MAP_FAILED) ) ) {
-    struct FD_INBUF buf;
     ssize_t copy_len = head_len - 8;
-    ssize_t trunc_len = -1;
-    if (memcpy(outbuf,inbuf,copy_len) == outbuf) {
-      FD_INIT_INBUF(&buf,inbuf+copy_len,8,0);
-      trunc_len = fd_read_8bytes(&buf);}
-    if (trunc_len>=0) {
-      if (msync(outbuf,head_len,MS_SYNC) < 0) ok=0;}
-    else ok = 0;
+    struct FD_INBUF buf;
+    FD_INIT_INBUF(&buf,inbuf+copy_len,8,0);
+    ssize_t trunc_len = fd_read_8bytes(&buf);
+    if ( trunc_len < copy_len ) {
+      u8_seterr("MalformedHeadFile","apply_head",NULL);
+      ok = 0;}
+    else if (memcpy(outbuf,inbuf,copy_len) != outbuf) {
+      u8_graberrno("apply_head",NULL);
+      ok = 0;}
+    else if (msync(outbuf,head_len,MS_SYNC) < 0)
+      ok=0;
+    else {}
     if (munmap(outbuf,head_len) < 0) ok=0;
     if (ok) {
-      if ( trunc_len >= copy_len ) {
-        int rv = ftruncate(out,trunc_len);
-        if (rv < 0) {
-          graberrno("apply_head/truncate",NULL);
-          u8_seterr("TruncateFailed","apply_head",NULL);
-          ok=0;}}
-      else {
-        u8_seterr("BadTruncData","apply_head",NULL);
+      int rv = ftruncate(out,trunc_len);
+      if (rv < 0) {
+        graberrno("apply_head/truncate",NULL);
+        u8_seterr("TruncateFailed","apply_head",NULL);
         ok=0;}}}
+  else ok=0;
   if (ok)
     return head_len;
   else return -1;
 }
 #else
+static ssize_t read_trunc_len(int in)
+{
+  ssize_t cur_pos = lseek(in,0,SEEK_CUR);
+  ssize_t rv = lseek(in,to_copy,SEEK_SET);
+  ssize_t trunc_len = -1;
+  unsigned char trunc_data[8];
+  if (rv<0) {
+    u8_graberrno("apply_head/read_trunclen/lseek",NULL);
+    return -1;}
+  ssize_t trunc_read = read(in,trunc_data,8);
+  if (trunc_read == 8) {
+    struct FD_INBUF inbuf;
+    FD_INIT_BYTE_INPUT(&inbuf,trunc_data,8);
+    trunc_len = fd_read_8bytes(&inbuf);}
+  else u8_graberrno("apply_head/read_trunclen/lseek",NULL);
+  if (lseek(in,0,SEEK_SET)<0)
+    u8_graberrno("apply_head/read_trunclen",NULL);
+  return trunc_len;
+}
 static ssize_t apply_head(int in,int out,size_t head_len)
 {
   ssize_t bufsize = FD_ALCOR_BUFSIZE;
-  unsigned char *buf = u8_malloc(bufsize);
   ssize_t to_copy = head_len - 8, bytes_copied = 0;
+  ssize_t trunc_len = read_trunc_len(in);
+  if ( trunc_len < copy_len ) {
+    u8_seterr(InvalidHeadFile,"apply_head",NULL);
+    return -1;}
+  unsigned char *buf = u8_malloc(bufsize);
   while (bytes_copied < to_copy) {
     ssize_t needed = head_len - bytes_copied;
     ssize_t to_read = (needed < bufsize) ? (needed) : (bufsize);
     ssize_t delta = read(in,buf,to_read);
-    if (delta<=0) return -1;
+    if (delta=<0) {
+      if (delta<0) u8_graberrno("apply_head/read",NULL);
+      else u8_seterr("ReadFailed","apply_head",NULL);
+      return -1;}
     else delta = write(out,buf,delta);
-    if (delta<=0) return -1;
+    if (delta=<0) {
+      if (delta<0) u8_graberrno("apply_head/write",NULL);
+      else u8_seterr("WriteFailed","apply_head",NULL);
+      return -1;}
     else bytes_copied += delta;}
   u8_free(buf);
-  if (bytes_copied == to_copy) {
-    unsigned char trunc_data[8];
-    ssize_t trunc_read = read(in,trunc_data,8);
-    if (trunc_read == 8) {
-      struct FD_INBUF inbuf;
-      FD_INIT_BYTE_INPUT(&inbuf,trunc_data,8);
-      ssize_t trunc_len = fd_read_8bytes(&inbuf);
-      if ( trunc_len >= head_len ) {
-        int rv = ftruncate(out,trunc_len);
-        if (rv < 0) {
-          graberrno("fd_apply_head/truncate",NULL);
-          u8_seterr("TruncateFailed","apply_head",NULL);
-          return -1;}}
-      else {
-        u8_seterr("BadTruncData","apply_head",NULL);
-        return -1;}}
-    else {
-      u8_seterr("NoTruncData","apply_head",NULL);
-      return -1;}
-    return head_len+8;}
-  u8_seterr("CopyFailed","apply_head",NULL);
-  return -1;
+  int rv = ftruncate(out,trunc_len);
+  if (rv < 0) {
+    graberrno("fd_apply_head/truncate",NULL);
+    u8_seterr("TruncateFailed","apply_head",NULL);
+    return -1;}
+  else return head_len+8;
 }
 #endif
 
@@ -237,7 +251,7 @@ FD_EXPORT ssize_t fd_apply_head(u8_string head,u8_string tofile)
               u8_mkstring("%s->%s",head,tofile));
   u8_unlock_fd(in); u8_unlock_fd(out);
   u8_close_fd(in); u8_close_fd(out);
-    return rv;
+  return rv;
 }
 
 FD_EXPORT ssize_t fd_restore_head(u8_string source,u8_string dest)
