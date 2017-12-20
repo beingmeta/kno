@@ -925,7 +925,7 @@ FD_EXPORT void fd_init_lambdas_c()
   fd_def_evalfn(fd_scheme_module,"DEFAMB",
                 "Returns a named non-determinstic lambda procedure",
                 defamb_evalfn);
-  fd_def_evalfn(fd_scheme_module,"DEFAMB",
+  fd_def_evalfn(fd_scheme_module,"DEFSYNC",
                 "Returns a named synchronized lambda procedure",
                 defsync_evalfn);
 
