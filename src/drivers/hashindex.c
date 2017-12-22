@@ -350,45 +350,37 @@ static int load_header(struct FD_HASHINDEX *index,struct FD_STREAM *stream)
     index->hx_oidcodes_pos = baseoids_pos;}
   else fd_init_oidcoder(&(index->index_oidcodes),-1,NULL);
 
+  int modified_metadata = 0;
   lispval metadata=FD_VOID;
   if ( (metadata_size) && (metadata_loc) ) {
     if (fd_setpos(stream,metadata_loc)>0) {
       fd_inbuf in = fd_readbuf(stream);
       metadata = fd_read_dtype(in);}
-    else if ( index->index_flags & FD_STORAGE_REPAIR ) {
-      u8_log(LOG_WARN,"BadMetaData","open_hashindex",
-             "Bad metadata location for %s @%lld+%lld",
-             fname,metadata_loc,metadata_size);
-      metadata=FD_VOID;}
     else {
       fd_seterr("BadMetaData","open_hashindex",
                 "BadMetadataLocation",FD_INT(metadata_loc));
-      return -1;}
-    if (FD_FALSEP(metadata))
-      metadata = FD_VOID;
-    else if (FD_VOIDP(metadata)) {}
-    else if (FD_SLOTMAPP(metadata)) {}
-    else if ( index->index_flags & FD_STORAGE_REPAIR ) {
-      if (FD_ABORTP(metadata)) {
-        fd_clear_errors(1);
-        metadata=FD_VOID;}
-      else {
-        u8_log(LOG_WARN,"BadMetadata",
-               "Bad metadata for %s @%lld+%lld = %q",
+      metadata=FD_ERROR_VALUE;}}
+  else metadata=FD_FALSE;
+
+  if (FD_FALSEP(metadata))
+    metadata = FD_VOID;
+  else if (FD_VOIDP(metadata)) {}
+  else if (FD_SLOTMAPP(metadata)) {}
+  else if ( index->index_flags & FD_STORAGE_REPAIR ) {
+    u8_log(LOG_WARN,"BadMetadata",
+               "Repairing bad metadata for %s @%lld+%lld = %q",
                fname,metadata_loc,metadata_size,metadata);
-        metadata=FD_VOID;}}
-    else if (FD_ABORTP(metadata)) {
-      fd_seterr("BadMetadata","open_hashindex",fname,FD_VOID);
-      return -1;}
-    else {
-      fd_seterr("BadMetadata","open_hashindex",fname,metadata);
-      fd_decref(metadata);
-      return -1;}}
-  else NO_ELSE;
+    if (FD_ABORTP(metadata)) fd_clear_errors(1);
+    fd_decref(metadata);
+    metadata=fd_empty_slotmap();
+    modified_metadata=1;}
+  else return -1;
 
   if (FD_VOIDP(metadata)) {}
   else if (FD_SLOTMAPP(metadata)) {
     fd_index_set_metadata((fd_index)index,metadata);
+    if (modified_metadata)
+      index->index_metadata.table_modified = 1;
     index->hx_metadata_pos = metadata_loc;}
   else {
     u8_log(LOG_WARN,"BadMetadata",

@@ -291,35 +291,41 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,
   /* Read the number of blocks stored in the pool */
   pool->pool_nblocks = fd_read_8bytes(instream);
 
+  int metadata_modified = 0;
   lispval metadata=FD_VOID;
   if (metadata_loc) {
     if (fd_setpos(stream,metadata_loc)>0) {
       fd_inbuf in = fd_readbuf(stream);
       metadata = fd_read_dtype(in);}
     else {
-      fd_seterr("BadMetaData","open_bigpool","BadLocation",
-                FD_INT(metadata_loc));
       metadata=FD_ERROR_VALUE;}
-    if (! ( (FD_FALSEP(metadata)) || (FD_SLOTMAPP(metadata)) ) ) {
-      if ( open_flags & FD_STORAGE_REPAIR ) {
-        u8_logf(LOG_WARN,"BadMetaData",
-                "Ignoring bad metadata stored for %s",fname);
-        metadata=FD_FALSE;}
-      else {
-        if (FD_ABORTP(metadata))
-          fd_seterr("BadPoolMetadata","open_bigpool",fname,FD_INT(metadata_loc));
-        else fd_seterr("BadPoolMetadata","open_bigpool",fname,metadata);
-        fd_close_stream(stream,0);
-        u8_free(pool);
-        return NULL;}}}
+
+    if ( (FD_FALSEP(metadata)) || (FD_VOIDP(metadata)) )
+      metadata = FD_VOID;
+    else if (FD_SLOTMAPP(metadata)) {}
+    else if ( open_flags & FD_STORAGE_REPAIR ) {
+      u8_logf(LOG_WARN,"BadMetaData",
+              "Ignoring bad metadata stored for %s",fname);
+      metadata = fd_empty_slotmap();
+      metadata_modified = 1;}
+    else {
+      if (FD_ABORTP(metadata))
+        fd_seterr("BadPoolMetadata","open_bigpool",fname,FD_INT(metadata_loc));
+      else fd_seterr("BadPoolMetadata","open_bigpool",fname,metadata);
+      fd_close_stream(stream,0);
+      u8_free(pool);
+      return NULL;}}
 
   fd_init_pool((fd_pool)pool,base,capacity,
                &bigpool_handler,
                fname,rname,
                open_flags,metadata,opts);
+
   open_flags = pool->pool_flags;
   fd_decref(metadata);
   u8_free(rname);
+  if (metadata_modified)
+    pool->pool_metadata.table_modified = 1;
 
   if (label_loc) {
     if (fd_setpos(stream,label_loc)>0) {
