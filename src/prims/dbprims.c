@@ -81,7 +81,7 @@ static int load_db_module(lispval opts,u8_context context)
     return 0;
   else {
     lispval modules = fd_getopt(opts,FDSYM_MODULE,FD_VOID);
-    if (FD_VOIDP(modules))
+    if ( (FD_VOIDP(modules)) || (FD_FALSEP(modules)) || (FD_EMPTYP(modules)) )
       return 0;
     else {
       lispval mod = fd_find_module(modules,0,1);
