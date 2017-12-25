@@ -40,7 +40,7 @@ fd_ptr_type fd_rocksdb_type;
 static ssize_t default_writebuf_size = -1;
 static ssize_t default_cache_size = -1;
 static ssize_t default_block_size = -1;
-static int default_maxfiles = 256;
+static int default_maxfiles = -1;
 static int default_restart_interval = -1;
 static int default_compression = 0;
 
