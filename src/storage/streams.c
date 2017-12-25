@@ -492,7 +492,8 @@ FD_EXPORT fd_stream fd_init_file_stream
     u8_free(localname);
     return stream;}
   else {
-    fd_seterr3(u8_CantOpenFile,"fd_init_file_stream",localname);
+    u8_graberrno("open",u8_fromlibc(localname));
+    fd_seterr3(u8_CantOpenFile,"fd_init_file_stream",fname);
     u8_free(localname);
     return NULL;}
 }
@@ -520,7 +521,8 @@ FD_EXPORT fd_stream fd_reopen_file_stream
   stream_flags |= FD_STREAM_OWNS_FILENO;
   int fd, open_flags = POSIX_OPEN_FLAGS;
   int needs_lock=0, read_only=0;
-  char *localname = u8_localpath(stream->streamid);
+  u8_string fname = stream->streamid;
+  char *localname = u8_localpath(fname);
   if (mode<0) {
     if ( (stream_flags) & (FD_STREAM_READ_ONLY) )
       mode=FD_FILE_READ;
@@ -588,7 +590,8 @@ FD_EXPORT fd_stream fd_reopen_file_stream
     u8_free(localname);
     return stream;}
   else {
-    fd_seterr3(u8_CantOpenFile,"fd_init_file_stream",stream->streamid);
+    u8_graberrno("open",u8_fromlibc(localname));
+    fd_seterr3(u8_CantOpenFile,"fd_init_file_stream",fname);
     u8_free(localname);
     return NULL;}
 }
