@@ -806,6 +806,73 @@ FD_EXPORT int fd_boot_message()
   return 1;
 }
 
+/* STDIO redirects */
+
+u8_string stdin_filename = NULL;
+u8_string stdout_filename = NULL;
+u8_string stderr_filename = NULL;
+
+static int stdout_config_set(lispval var,lispval val,void *data)
+{
+  if (FD_STRINGP(val)) {
+    u8_string filename = FD_CSTRING(val);
+    int fd = (filename[0] == '+') ?
+      (open(filename+1,O_WRONLY|O_APPEND|O_CREAT,0664)) :
+      (open(filename,O_WRONLY|O_TRUNC|O_CREAT,0664));
+    if (fd<0) u8_graberrno("stdout_config_set/open",u8_strdup(filename));
+    int rv = dup2(fd,STDOUT_FILENO);
+    if (rv<0) {
+      u8_graberrno("stdout_config_set/dup",u8_strdup(filename));
+      close(fd);}
+    return rv;}
+  else {
+    fd_seterr("Not a filename","stdout_config_set",NULL,val);
+    return -1;}
+}
+
+static int stderr_config_set(lispval var,lispval val,void *data)
+{
+  if (FD_STRINGP(val)) {
+    u8_string filename = FD_CSTRING(val);
+    u8_string *save_filename = data;
+    int fd = (filename[0] == '+') ?
+      (open(filename+1,O_WRONLY|O_APPEND|O_CREAT,0664)) :
+      (open(filename,O_WRONLY|O_TRUNC|O_CREAT,0664));
+    if (fd<0) u8_graberrno("stderr_config_set/open",u8_strdup(filename));
+    int rv = dup2(fd,STDERR_FILENO);
+    if (rv<0) {
+      u8_graberrno("stderr_config_set/dup",u8_strdup(filename));
+      close(fd);}
+    else if (filename[0] == '+')
+      *save_filename = u8_strdup(filename+1);
+    else *save_filename = u8_strdup(filename);
+    return rv;}
+  else {
+    fd_seterr("Not a filename","stderr_config_set",NULL,val);
+    return -1;}
+}
+
+static int stdin_config_set(lispval var,lispval val,void *data)
+{
+  if (FD_STRINGP(val)) {
+    u8_string filename = FD_CSTRING(val);
+    if (!(u8_file_existsp(filename))) {
+      fd_seterr("MissingFile","stdin_config_set",filename,FD_VOID);
+      return -1;}
+    else {
+      int fd = open(filename,O_RDONLY,0664), rv=0;
+      if (fd<0) {
+        u8_graberrno("stdin_config_set/open",u8_strdup(filename));}
+      else rv = dup2(fd,STDIN_FILENO);
+      if (rv<0) {
+        u8_graberrno("stdin_config_set/dup",u8_strdup(filename));
+        close(fd);}
+      return rv;}}
+  else {
+    fd_seterr("Not a filename","stdin_config_set",NULL,val);
+    return -1;}
+}
+
 /* Full startup */
 
 void fd_init_startup_c()
@@ -871,6 +938,13 @@ void fd_init_startup_c()
 
   fd_register_config("RUNBASE",_("Path prefix for program state files"),
                      config_getrunbase,config_setrunbase,NULL);
+
+  fd_register_config("STDOUT",_("Redirect standard output to file"),
+                     fd_sconfig_get,stdout_config_set,&stdout_filename);
+  fd_register_config("STDOUT",_("Redirect standard output to file"),
+                     fd_sconfig_get,stderr_config_set,&stderr_filename);
+  fd_register_config("STDIN",_("Redirect standard input to file"),
+                     fd_sconfig_get,stdin_config_set,&stdin_filename);
 
 #if HAVE_SYS_RESOURCE_H
 #ifdef RLIMIT_CPU
