@@ -138,9 +138,13 @@ FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
       FD_VECTOR_SET(raw_args,i,lispval_string(arg));
       /* Don't include argv[0] in the arglists */
       if (i==0) {
-        i++; u8_free(arg); continue;}
+        u8_free(arg);
+        i++;
+        continue;}
       else if ( ( n < 32 ) && ( ( (arg_mask) & (1<<i)) !=0 ) ) {
-        i++; u8_free(arg); continue;}
+        u8_free(arg);
+        i++;
+        continue;}
       else i++;
       if ((eq!=NULL) && (eq>arg) && (*(eq-1)!='\\')) {
         int retval = (arg!=NULL) ? (fd_config_assignment(arg)) : (-1);
@@ -941,7 +945,7 @@ void fd_init_startup_c()
 
   fd_register_config("STDOUT",_("Redirect standard output to file"),
                      fd_sconfig_get,stdout_config_set,&stdout_filename);
-  fd_register_config("STDOUT",_("Redirect standard output to file"),
+  fd_register_config("STDERR",_("Redirect standard output to file"),
                      fd_sconfig_get,stderr_config_set,&stderr_filename);
   fd_register_config("STDIN",_("Redirect standard input to file"),
                      fd_sconfig_get,stdin_config_set,&stdin_filename);
