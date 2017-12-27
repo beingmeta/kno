@@ -116,10 +116,8 @@ int lispval_compare(lispval x,lispval y,fd_compare_flags flags)
         while (i < lim) {
           int cmp = DOCOMPARE(xdata[i],ydata[i]);
           if (cmp) return cmp; else i++;}
-        if (quick)
-          if (xlen>ylen) return 1;
-          else if (xlen<ylen) return -1;
-          else return 0;
+        if (xlen>ylen) return 1;
+        else if (xlen<ylen) return -1;
         else return 0;}
       case fd_choice_type: {
         struct FD_CHOICE *xc = fd_consptr(struct FD_CHOICE *,x,fd_choice_type);
