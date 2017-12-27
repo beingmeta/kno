@@ -244,6 +244,19 @@ int lispval_equal(lispval x,lispval y)
       while (i < len)
         if (LISP_EQUAL(xdata[i],ydata[i])) i++; else return 0;
       return 1;}
+  else if ( (CHOICEP(x)) && (CHOICEP(y)) ) {
+    struct FD_CHOICE *cx = (fd_choice) x, *cy = (fd_choice) y;
+    if (cx->choice_size != cy->choice_size) return 0;
+    else {
+      int i = 0, len = cx->choice_size;
+      const lispval *xdata = FD_CHOICE_ELTS(x), *ydata = FD_CHOICE_ELTS(y);
+      while (i<len) {
+        if (LISP_EQUAL(xdata[i],ydata[i]))
+          i++;
+        else return 0;}
+      return 1;}}
+  else if ( (CHOICEP(x)) || (CHOICEP(y)) )
+    return 0;
   else {
     fd_ptr_type ctype = FD_CONS_TYPE(FD_CONS_DATA(x));
     if (fd_comparators[ctype])
