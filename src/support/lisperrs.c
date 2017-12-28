@@ -529,9 +529,17 @@ static ssize_t write_exception_dtype(struct FD_OUTBUF *out,lispval x)
   if (!(VOIDP(context)))
     FD_VECTOR_SET(vector,8,fd_incref(context));
   else FD_VECTOR_SET(vector,8,FD_FALSE);
-  fd_write_byte(out,dt_exception);
-  ssize_t base_len = fd_write_dtype(out,vector);
+
+  struct FD_OUTBUF tmpbuf;
+  unsigned char bytes[16000];
+  FD_INIT_OUTBUF(&tmpbuf,bytes,16000,
+                 FD_IS_WRITING|FD_BUFFER_NO_FLUSH|FD_STATIC_BUFFER|
+                 FD_USE_DTYPEV2|FD_WRITE_OPAQUE);
+  fd_write_byte(&tmpbuf,dt_exception);
+  ssize_t base_len = fd_write_dtype(&tmpbuf,vector);
   fd_decref(vector);
+  fd_write_bytes(out,tmpbuf.buffer,tmpbuf.bufwrite-tmpbuf.buffer);
+  fd_close_outbuf(&tmpbuf);
   if (base_len<0)
     return -1;
   return 1+base_len;

@@ -285,7 +285,7 @@ void fd_init_stacks_c()
   fd_stackptr=NULL;
 #endif
 
-  stack_entry_symbol = fd_intern("%STACK");
+  stack_entry_symbol = fd_intern("_STACK");
   stack_target_symbol = fd_intern("$=>$");
 }
 
