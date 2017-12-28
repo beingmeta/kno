@@ -950,6 +950,17 @@ FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_lookup_compound(lispval symbol)
   return NULL;
 }
 
+FD_EXPORT
+int fd_compound_unparser(u8_string pname,fd_compound_unparsefn fn)
+{
+  lispval sym = fd_intern(pname);
+  struct FD_COMPOUND_TYPEINFO *typeinfo = fd_register_compound(sym,NULL,NULL);
+  if (typeinfo) {
+    typeinfo->compound_unparser = fn;
+    return 1;}
+  else return 0;
+}
+
 /* Utility functions (for debugging) */
 
 FD_EXPORT fd_cons fd_cons_data(lispval x)

@@ -662,7 +662,9 @@ FD_EXPORT lispval fd_make_nrail(int len,...);
 typedef struct FD_COMPOUND {
   FD_CONS_HEADER;
   lispval compound_typetag;
-  u8_byte compound_ismutable, compound_isopaque, compound_length;
+  short compound_length;
+  unsigned int compound_ismutable:1;
+  unsigned int compound_isopaque:1;
   u8_mutex compound_lock;
   lispval compound_0;} FD_COMPOUND;
 typedef struct FD_COMPOUND *fd_compound;
@@ -915,7 +917,8 @@ typedef lispval (*fd_compound_restorefn)(lispval,lispval,fd_compound_typeinfo);
 
 typedef struct FD_COMPOUND_TYPEINFO {
   lispval compound_typetag, compound_metadata;
-  int compound_corelen;
+  short compound_corelen;
+  short compound_isopaque;
   fd_compound_parsefn compound_parser;
   fd_compound_unparsefn compound_unparser;
   fd_compound_dumpfn compound_dumpfn;
@@ -928,6 +931,8 @@ FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_compound_entries;
 FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_lookup_compound(lispval);
 FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_declare_compound(lispval,lispval,int);
 FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_register_compound(lispval,lispval *,int *);
+FD_EXPORT int fd_compound_unparser(u8_string pname,fd_compound_unparsefn fn);
+
 
 /* Cons compare */
 

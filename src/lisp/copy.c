@@ -178,14 +178,16 @@ static lispval copy_compound(lispval x,int flags)
 {
   struct FD_COMPOUND *xc = fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);
   if (xc->compound_isopaque) {
-    fd_incref(x); return x;}
+    fd_incref(x);
+    return x;}
   else {
     int i = 0, n = xc->compound_length;
     struct FD_COMPOUND *nc = u8_malloc(sizeof(FD_COMPOUND)+(n-1)*LISPVAL_LEN);
     lispval *data = &(xc->compound_0), *write = &(nc->compound_0);
     FD_INIT_CONS(nc,fd_compound_type);
     if (xc->compound_ismutable) u8_init_mutex(&(nc->compound_lock));
-    nc->compound_ismutable = xc->compound_ismutable; nc->compound_isopaque = 1;
+    nc->compound_ismutable = xc->compound_ismutable;
+    nc->compound_isopaque = xc->compound_isopaque;
     nc->compound_typetag = fd_incref(xc->compound_typetag);
     nc->compound_length = xc->compound_length;
     if (flags)

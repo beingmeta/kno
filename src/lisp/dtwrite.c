@@ -73,13 +73,34 @@ static ssize_t write_opaque(struct FD_OUTBUF *out,lispval x)
   int slen = strlen(srep);
   fd_output_byte(out,dt_compound);
   fd_output_byte(out,dt_symbol);
-  fd_output_4bytes(out,11);
-  fd_output_bytes(out,"OPAQUEDTYPE",11);
+  fd_output_4bytes(out,7);
+  fd_output_bytes(out,"%OPAQUE",7);
   fd_output_byte(out,dt_string);
-  fd_output_4bytes(out,slen);  /* 22 bytes up to here */
+  fd_output_4bytes(out,slen);  /* 18 bytes up to here */
   fd_output_bytes(out,srep,slen);
   u8_free(srep);
-  return 22+slen;
+  return 18+slen;
+}
+
+static int opaque_unparser(u8_output out,lispval val,
+                               fd_compound_typeinfo info)
+{
+  struct FD_COMPOUND *compound = (fd_compound) val;
+  if ( (compound->compound_length > 0) &&
+       (FD_STRINGP(compound->compound_0)) ) {
+    lispval srep = compound->compound_0;
+    u8_string str = FD_CSTRING(srep);
+    u8_puts(out,"#<<");
+    if (str[0] != '#')
+      u8_putn(out,str,FD_STRLEN(srep));
+    else if (strncmp(str,"#<<",3)==0)
+      u8_putn(out,str,(FD_STRLEN(srep)-2));
+    else if (strncmp(str,"#<",2)==0)
+      u8_putn(out,str+1,FD_STRLEN(srep)-1);
+    else u8_putn(out,str,FD_STRING_LENGTH(srep));
+    u8_puts(out,">>");
+    return 1;}
+  else return 0;
 }
 
 static ssize_t write_choice_dtype(fd_outbuf out,fd_choice ch)
@@ -592,6 +613,8 @@ FD_EXPORT void fd_init_dtwrite_c()
   fd_dtype_writers[fd_compound_type]=dtype_compound;
 
   error_symbol = fd_intern("%ERROR");
+
+  fd_compound_unparser("%OPAQUE",opaque_unparser);
 
   fd_register_config
     ("USEDTBLOCK",_("Use the DTBLOCK dtype code when appropriate"),

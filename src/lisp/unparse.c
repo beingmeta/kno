@@ -423,12 +423,19 @@ static int unparse_compound(struct U8_OUTPUT *out,lispval x)
     int retval = entry->compound_unparser(out,x,entry);
     if (retval<0) return retval;
     else if (retval) return retval;}
+  u8_string tagstring = (FD_SYMBOLP(tag)) ? (FD_SYMBOL_NAME(tag)) :
+    (FD_STRINGP(tag)) ? (FD_CSTRING(tag)) : (NULL);
+  int opaque = (xc->compound_isopaque) ? (1) :
+    (entry) ? (entry->compound_isopaque) :
+    ( (tagstring) && (tagstring[0]=='%') );
   {
     lispval *data = &(xc->compound_0);
     int i = 0, n = xc->compound_length;
     if ((entry)&&(entry->compound_corelen>0)&&(entry->compound_corelen<n))
       n = entry->compound_corelen;
-    u8_printf(out,"#%%(%q",xc->compound_typetag);
+    if (opaque)
+      u8_printf(out,"#<<%q",xc->compound_typetag);
+    else u8_printf(out,"#%%(%q",xc->compound_typetag);
     while (i<n) {
       lispval elt = data[i++];
       if (0) { /* (PACKETP(elt)) */
@@ -438,7 +445,9 @@ static int unparse_compound(struct U8_OUTPUT *out,lispval x)
         u8_puts(out," ");
         fd_unparse_packet(out,bytes,n_bytes,16);}
       else u8_printf(out," %q",elt);}
-    u8_printf(out,")");
+    if (opaque)
+      u8_puts(out,">>");
+    else u8_puts(out,")");
     return 1;}
 }
 

@@ -61,6 +61,7 @@ int fd_interpret_pointers = 1;
 
 static lispval quote_symbol, histref_symbol, comment_symbol;
 static lispval quasiquote_symbol, unquote_symbol, unquotestar_symbol;
+static lispval opaque_tag;
 
 static int skip_whitespace(u8_input s)
 {
@@ -577,6 +578,33 @@ static lispval make_regex(u8_string src_arg,u8_string opts)
     ptr->rxflags = cflags; ptr->rxsrc = src;
     u8_init_mutex(&(ptr->rx_lock)); ptr->rxactive = 1;
     return LISP_CONS(ptr);}
+}
+
+static lispval parse_opaque(U8_INPUT *in)
+{
+  struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,500);
+  int c = u8_getc(in), opaque=0;
+  if (c=='<') { c=u8_getc(in); opaque=1;}
+  while (c>0) {
+    if (c == '\\') c=u8_getc(in);
+    else if (c == '>') break;
+    else NO_ELSE;
+    u8_putc(&out,c);
+    c=u8_getc(in);}
+  if (c<0) {
+    u8_log(LOG_WARN,"BadOpaqueExpr",
+           "No missing close char in: #<<%s",
+           out.u8_outbuf);}
+  else if (opaque) {
+    int nextc = u8_getc(in);
+    if (nextc != '>') {
+      u8_ungetc(in,nextc);
+      u8_log(LOG_WARN,"BadOpaqueExpr",
+             "Missing close in: #<<%s>%c",
+             out.u8_outbuf,nextc);}}
+  else NO_ELSE;
+  lispval string = fd_stream2string(&out);
+  return fd_init_compound(NULL,opaque_tag,0,1,string);
 }
 
 /* Packet parsing functions */
@@ -1172,8 +1200,7 @@ lispval fd_parser(u8_input in)
     case 'X': case 'x': case '@': case '"':
       return parse_packet(in,ch);
     case '/': return parse_regex(in);
-    case '<':
-      return fd_err(fd_ParseError,"fd_parser",NULL,VOID);
+    case '<': return parse_opaque(in);
     case ';': {
       lispval content = fd_parser(in);
       if (FD_ABORTP(content)) return content;
@@ -1421,6 +1448,7 @@ FD_EXPORT void fd_init_parse_c()
   unquotestar_symbol = fd_intern("UNQUOTE*");
   histref_symbol = fd_intern("%HISTREF");
   comment_symbol = fd_intern("COMMENT");
+  opaque_tag = fd_intern("%OPAQUE");
 }
 
 /* Emacs local variables
