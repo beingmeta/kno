@@ -2094,14 +2094,24 @@ FD_EXPORT int fd_dump_bug(lispval ex,u8_string into)
   if (into == NULL)
     return 0;
   else if (u8_directoryp(into)) {
+    struct U8_XTIME now;
     u8_string bugdir = u8_abspath(into,NULL);
     long long pid = getpid();
     long long tid = u8_threadid();
-    long long now = time(NULL);
     u8_string appid = u8_appid();
+    u8_now(&now);
     u8_string filename = ( pid == tid ) ?
-      (u8_mkstring("%s-%lld-%lld.whoops",appid,now,pid)) :
-      (u8_mkstring("%s-%lld-%lld-%lld.whoops",appid,now,pid,tid));
+      (u8_mkstring("%s-p%lld-%4d-%02d-%02dT%02d:%02d:%02f.err",
+                   appid,pid,
+                   now.u8_year,now.u8_mon+1,now.u8_mday,
+                   now.u8_hour,now.u8_min,
+                   (1.0*now.u8_sec)+(now.u8_nsecs/1000000000.0))) :
+      (u8_mkstring("%s-p%lld-%4d-%02d-%02dT%02d:%02d:%02f-t%lld.err",
+                   appid,pid,
+                   now.u8_year,now.u8_mon+1,now.u8_mday,
+                   now.u8_hour,now.u8_min,
+                   (1.0*now.u8_sec)+(now.u8_nsecs/1000000000.0),
+                   pid,tid));
     bugpath = u8_mkpath(bugdir,filename);
     u8_free(bugdir);
     u8_free(filename);}
