@@ -951,7 +951,9 @@ int main(int argc,char **argv)
     dotloader("~/.fdconfig",NULL);
     if (not_in_kansas) dotloader(".fdconfig",NULL);
     dotloader("~/.fdconsole",env);
-    if (not_in_kansas) dotloader(".fdconsole",env);}
+    if (not_in_kansas) dotloader(".fdconsole",env);
+    u8_free(home_config);
+    u8_free(cwd_config);}
   else u8_message("Warning: .fdconfig/.fdconsole files are suppressed");
 
 #if USING_EDITLINE
