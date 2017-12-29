@@ -1973,7 +1973,7 @@ static int bigpool_set_compression(fd_bigpool bp,fd_compress_type cmptype)
   unsigned int format = fd_read_4bytes_at(stream,FD_BIGPOOL_FORMAT_POS,FD_STREAM_ISLOCKED);
   format = format & (~(FD_BIGPOOL_COMPRESSION));
   format = format | (cmptype<<3);
-  size_t v = fd_write_4bytes_at(stream,format,FD_BIGPOOL_FORMAT_POS);
+  ssize_t v = fd_write_4bytes_at(stream,format,FD_BIGPOOL_FORMAT_POS);
   if (v>=0) {
     fd_lock_pool_struct((fd_pool)bp,1);
     bp->pool_compression = cmptype;}
