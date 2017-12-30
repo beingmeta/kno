@@ -51,6 +51,8 @@ u8_condition fd_ExitException=_("Unhandled exception at exit");
 
 static u8_mutex atexit_handlers_lock;
 
+static u8_string pid_file = NULL;
+
 int fd_in_doexit = 0;
 int fd_exiting = 0;
 int fd_exited = 0;
@@ -312,9 +314,18 @@ FD_EXPORT void fd_doexit(lispval arg)
       tmp = scan;
       scan = scan->exitfn_next;
       u8_free(tmp);}}
-  else  {
-    u8_log(LOG_DEBUG,"fd_doexit","No FramerD exit handlers!");
-    return;}
+  else u8_log(LOG_DEBUG,"fd_doexit","No FramerD exit handlers!");
+  if (pid_file) {
+    int rv = u8_removefile(pid_file);
+    if (rv<0) {
+      if (errno)
+        u8_log(LOG_CRIT,"PIDFile",
+               "Couldn't remove PID file %s (%s)",
+               pid_file,u8_strerror(errno));
+      else u8_log(LOG_CRIT,"PIDFile",
+                  "Couldn't remove PID file %s",pid_file);}
+    u8_free(pid_file);
+    pid_file=NULL;}
   if (fd_argv) {
     int i = 0, n = fd_argc; while (i<n) {
       lispval elt = fd_argv[i++]; fd_decref(elt);}
@@ -877,6 +888,36 @@ static int stdin_config_set(lispval var,lispval val,void *data)
     return -1;}
 }
 
+/* Setting a pid file */
+
+#define PID_OPEN_FLAGS O_WRONLY|O_CREAT|O_EXCL
+
+static int pidfile_config_set(lispval var,lispval val,void *data)
+{
+  u8_string filename=NULL, *sptr = (u8_string *) data;
+  if (FD_STRINGP(val))
+    filename=u8_strdup(FD_CSTRING(val));
+  else if (FD_TRUEP(val)) {
+    u8_string basename = u8_string_append(u8_appid(),".pid",NULL);
+    filename=u8_abspath(basename,NULL);
+    u8_free(basename);}
+  else filename = NULL;
+  if (filename == NULL) {
+    fd_seterr("BadPIDFilename","pid_config_set",NULL,val);
+    return -1;}
+  int fd = u8_open_fd(filename,PID_OPEN_FLAGS,0644);
+  if (fd<0) {
+    u8_graberrno("pid_config_set",filename);
+    return -1;}
+  else {
+    pid_t pid = getpid();
+    char buf[32], *pidstring = u8_uitoa10(pid,buf);
+    int rv = u8_writeall(fd,pidstring,strlen(pidstring));
+    if (rv<0) u8_graberrno("pid_config_set/write",filename);
+    close(fd);
+    return rv;}
+}
+
 /* Full startup */
 
 void fd_init_startup_c()
@@ -949,6 +990,8 @@ void fd_init_startup_c()
                      fd_sconfig_get,stderr_config_set,&stderr_filename);
   fd_register_config("STDIN",_("Redirect standard input to file"),
                      fd_sconfig_get,stdin_config_set,&stdin_filename);
+  fd_register_config("PIDFILE",_("Write PID to file, delete on exit"),
+                     fd_sconfig_get,pidfile_config_set,&stdin_filename);
 
 #if HAVE_SYS_RESOURCE_H
 #ifdef RLIMIT_CPU
