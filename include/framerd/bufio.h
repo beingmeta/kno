@@ -130,9 +130,10 @@ FD_FASTOP void _BUFIO_FREE(struct FD_RAWBUF *buf)
 }
 #define BUFIO_FREE(buf) _BUFIO_FREE((fd_rawbuf)buf)
 
-/* Initializing macros */
+#define BUFIO_POINT(buf) ((((fd_rawbuf)(buf))->bufpoint)-((buf)->buffer))
+#define BUFIO_LIMIT(buf) ((((fd_rawbuf)(buf))->buflim)-((buf)->buffer))
 
-/* These are for input or output */
+/* Initializing macros */
 
 FD_FASTOP void _FD_INIT_OUTBUF
 (struct FD_OUTBUF *bo,unsigned char *buf,size_t sz,int flags)
