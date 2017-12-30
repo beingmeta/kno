@@ -2116,20 +2116,70 @@ FD_EXPORT int fd_dump_bug(lispval ex,u8_string into)
     u8_free(bugdir);
     u8_free(filename);}
   else bugpath = u8_strdup(into);
+  struct FD_EXCEPTION *exo = (fd_exception) ex;
   int rv = fd_write_dtype_to_file(ex,bugpath);
   if (rv<0)
     u8_log(LOG_CRIT,"RecordBug",
            "Couldn't write exception object to %s",bugpath);
+  else if (exo->ex_details)
+    u8_log(LOG_WARN,"RecordBug",
+           "Wrote exception %m <%s> (%s) to %s",
+           exo->ex_condition,exo->ex_caller,exo->ex_details,
+           bugpath);
   else u8_log(LOG_WARN,"RecordBug",
-              "Wrote exception to %s",bugpath);
+              "Wrote exception %m <%s> to %s",
+              exo->ex_condition,exo->ex_caller,bugpath);
   u8_free(bugpath);
   return rv;
 }
 
 FD_EXPORT int fd_record_bug(lispval ex)
 {
-  if (fd_bugdir == NULL) return 0;
+  if (fd_bugdir == NULL)
+    return 0;
   else return fd_dump_bug(ex,fd_bugdir);
+}
+
+FD_EXPORT lispval dumpbug_prim(lispval ex,lispval where)
+{
+  if (FD_TRUEP(where)) {
+    struct FD_OUTBUF bugout; FD_INIT_BYTE_OUTPUT(&bugout,16000);
+    int rv = fd_write_dtype(&bugout,ex);
+    if (rv<0) {
+      fd_close_outbuf(&bugout);
+      return FD_ERROR;}
+    else {
+      lispval packet = fd_make_packet(NULL,BUFIO_POINT(&bugout),bugout.buffer);
+      fd_close_outbuf(&bugout);
+      return packet;}}
+  else if ( (FD_VOIDP(where)) || (FD_FALSEP(where)) || (FD_DEFAULTP(where)) ) {
+    u8_string bugdir = fd_bugdir;
+    if (bugdir == NULL) {
+      u8_string cwd = u8_getcwd();
+      u8_string errpath = u8_mkpath(cwd,"_bugjar");
+      if ( (u8_directoryp(errpath)) && (u8_file_writablep(errpath)) ) {
+        bugdir = errpath;
+        u8_free(cwd);}
+      else if ( (u8_directoryp(cwd)) && (u8_file_writablep(cwd)) ) {
+        bugdir = cwd;
+        u8_free(errpath);}
+      else bugdir = u8_strdup("/tmp/");
+      u8_free(errpath);
+      u8_free(cwd);}
+    int rv = fd_dump_bug(ex,bugdir);
+    if (rv<0)
+      fd_seterr("RECORD-BUG failed","record_bug",NULL,where);
+    if (bugdir != fd_bugdir) u8_free(bugdir);
+    if (rv<0) return FD_ERROR;
+    else return FD_TRUE;}
+  else if (FD_STRINGP(where)) {
+    int rv = fd_dump_bug(ex,FD_CSTRING(where));
+    if (rv<0) {
+      fd_seterr("RECORD-BUG failed","record_bug",
+                FD_CSTRING(where),ex);
+      return FD_ERROR;}
+    else return FD_TRUE;}
+  else return fd_type_error("filename","record_bug",where);
 }
 
 static int config_bugdir(lispval var,lispval val,void *state)
@@ -2143,7 +2193,18 @@ static int config_bugdir(lispval var,lispval val,void *state)
             ( fd_dump_exception == fd_record_bug ) ) {
     if (FD_STRINGP(val)) {
       u8_string old = fd_bugdir;
-      fd_bugdir = u8_strdup(FD_CSTRING(val));
+      u8_string new = FD_CSTRING(val);
+      if (u8_directoryp(new)) {}
+      else if (u8_file_existsp(new)) {
+        fd_seterr("not a directory","config_bugdir",u8_strdup(new),VOID);
+        return -1;}
+      else {
+        int rv = u8_mkdirs(new,0664);
+        if (rv<0) {
+          u8_graberrno("config_bugdir/mkdir",u8_strdup(new));
+          u8_seterr(_("missing directory"),"config_bugdir",u8_strdup(new));
+          return -1;}}
+      fd_bugdir = u8_strdup(new);
       if (old) u8_free(old);
       fd_dump_exception = fd_record_bug;
       return 1;}
@@ -2151,7 +2212,7 @@ static int config_bugdir(lispval var,lispval val,void *state)
       fd_seterr(fd_TypeError,"config_bugdir",u8_strdup("pathstring"),val);
       return -1;}}
   else {
-    u8_seterr("ExistingBugHandler","config_bugdir",NULL);
+    u8_seterr("existing bug handler","config_bugdir",NULL);
     return -1;}
 }
 
@@ -2551,6 +2612,13 @@ static void init_localfns()
             "is a lexref (lexical reference)",
             -1,FD_VOID);
 
+  fd_idefn2(fd_scheme_module,"DUMP-BUG",dumpbug_prim,1,
+            "(DUMP-BUG *err* [*to*]) writes a DType representation of *err* "
+            "to either *to* or the configured BUGDIR. If *err* is #t, "
+            "returns a packet of the representation. Without *to* or "
+            "if *to* is #f or #default, writes the exception into either "
+            "'./errors/' or './'",
+            fd_exception_type,FD_VOID,-1,FD_VOID);
 
   fd_idefn1(fd_scheme_module,"%CODEREF",coderef_prim,1,
             "(%CODEREF *nelts*) returns a 'coderef' (a relative position) value",

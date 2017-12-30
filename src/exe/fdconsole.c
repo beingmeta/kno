@@ -844,6 +844,8 @@ int main(int argc,char **argv)
     ("BUGLOG",_("Where to dump console errors"),
      fd_sconfig_get,bugdir_config_set,&console_bugdir);
 
+  if ( (console_bugdir == NULL) && (u8_directoryp("./_bugjar")) )
+    console_bugdir = u8_abspath("./_bugjar",NULL);
 
   /* Initialize console streams */
   inconsole = in;
