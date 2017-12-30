@@ -914,8 +914,9 @@ static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
       q = out.bson_doc;}
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
       u8_logf(LOG_DETAIL,"MongoDB/get","Matches to %q in %q",query,arg);
-    if (q) cursor = mongoc_collection_find_with_opts
-             (collection,q,findopts,rp);
+    if (q) 
+      cursor = mongoc_collection_find_with_opts(collection,q,findopts,rp);
+    else cursor=NULL;
     if ((cursor)&&(mongoc_cursor_next(cursor,&doc))) {
       result = fd_bson2dtype((bson_t *)doc,flags,opts);}
     if (cursor) mongoc_cursor_destroy(cursor);
