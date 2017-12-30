@@ -919,7 +919,7 @@ static lispval set_file_access_prim(lispval filename,
                                     lispval mode_arg)
 {
   mode_t mode = (FD_FIXNUMP(mode_arg)) ? (FD_FIX2INT(mode_arg)) : -1;
-  u8_uid uid; u8_gid gid;
+  u8_uid uid; u8_gid gid=-1;
   if (FD_FIXNUMP(owner))
     uid = FD_FIX2INT(owner);
   else if (FD_STRINGP(owner)) {
@@ -930,8 +930,8 @@ static lispval set_file_access_prim(lispval filename,
                 VOID);
       return FD_ERROR;}}
   else return fd_type_error("username","set_file_access_prim",owner);
-  if (FD_FIXNUMP(owner))
-    uid = FD_FIX2INT(owner);
+  if (FD_FIXNUMP(group))
+    gid = FD_FIX2INT(group);
   else if (FD_STRINGP(group)) {
     gid = u8_getgid(FD_CSTRING(group));
     if (gid<0) {
