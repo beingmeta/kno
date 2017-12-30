@@ -195,7 +195,9 @@ FD_EXPORT ssize_t fd_save_head(u8_string source,u8_string dest,size_t head_len)
     u8_close_fd(in);
     return -1;}
   else NO_ELSE;
-  int out = u8_open_fd(dest,O_RDWR|O_EXCL|O_CREAT,0644);
+  u8_byte tmp_dest[strlen(dest)+6];
+  strcpy(tmp_dest,dest); strcat(tmp_dest,".part");
+  int out = u8_open_fd(tmp_dest,O_RDWR|O_EXCL|O_CREAT,0644);
   if (out<0) {
     graberrno("fd_save_head",source);
     u8_close_fd(in);
@@ -211,11 +213,14 @@ FD_EXPORT ssize_t fd_save_head(u8_string source,u8_string dest,size_t head_len)
   if (fstat(in,&info)>=0) {
     ssize_t in_size = info.st_size;
     rv = save_head(in,out,head_len,in_size);
-    if (rv<0) graberrno("fd_save_head",dest);}
+    if (rv<0) graberrno("fd_save_head",tmp_dest);}
   u8_unlock_fd(in); u8_unlock_fd(out);
   u8_close_fd(in);
   u8_close_fd(out);
-  if (rv<0) u8_removefile(dest);
+  if (rv<0) u8_removefile(tmp_dest);
+  else {
+    rv = u8_movefile(tmp_dest,dest);
+    if (rv<0) graberrno("fd_save_head/rename",dest);}
   return rv;
 }
 
