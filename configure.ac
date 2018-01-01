@@ -887,7 +887,7 @@ AC_CHECK_SIZEOF(size_t,8)
 AC_CHECK_TYPES(uchar)
 
 # Check whether to use an architecture specific library directory
-if test "${libdir}" != "\${exec_prefix}/ib"; then
+if test "${libdir}" != "\${exec_prefix}/lib"; then
   echo Checking libdir, using explicit libdir ${libdir};
 elif test ${ac_cv_sizeof_long} -eq 4 && test -d ${prefix}/lib32; then
   libdir=${prefix}/lib32;
