@@ -144,7 +144,7 @@ typedef lispval (*fd_xprimn)(fd_function,int n,lispval *);
   lispval fcn_attribs;                                                  \
   int *fcn_typeinfo;                                                    \
   lispval *fcn_defaults;                                                \
-  double fcn_profile_time;                                              \
+  long long fcn_profile_nsecs;                                          \
   long long fcn_profile_count;                                          \
   union {                                                               \
     fd_cprim0 call0; fd_cprim1 call1; fd_cprim2 call2;                  \

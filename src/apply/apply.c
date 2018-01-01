@@ -30,6 +30,15 @@
 #include <unistd.h>
 #endif
 
+#if TIME_WITH_SYS_TIME
+#include <time.h>
+#include <sys/time.h>
+#elif HAVE_TIME_H
+#include <time.h>
+#elif HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
+
 #include <stdarg.h>
 
 lispval fd_default_stackspec = VOID;
@@ -545,8 +554,8 @@ FD_FASTOP lispval dcall(u8_string fname,fd_function f,int n,lispval *args)
 }
 
 FD_FASTOP lispval apply_fcn(struct FD_STACK *stack,
-                           u8_string name,fd_function f,int n,
-                           lispval *argvec)
+                            u8_string name,fd_function f,int n,
+                            lispval *argvec)
 {
   lispval fnptr = (lispval)f; int arity=f->fcn_arity;
   if (PRED_FALSE(n<0))
@@ -610,9 +619,22 @@ FD_EXPORT lispval fd_dcall(struct FD_STACK *_stack,
     apply_stack->stack_args=argvec;
     apply_stack->n_args=n;
     U8_WITH_CONTOUR(fname,0)
-      if (f)
+      if (f) {
+#if 1
+        int profile = f->fcn_profile;
+        struct timespec start, end;
+        if (profile) clock_gettime(CLOCK_MONOTONIC,&start);
         result=apply_fcn(apply_stack,fname,f,n,argvec);
-      else result=fd_applyfns[ftype](fn,n,argvec);
+        if (profile) {
+          clock_gettime(CLOCK_MONOTONIC,&end);
+          long long nsecs = ((end.tv_sec*1000000000)+(end.tv_nsec)) -
+            ((start.tv_sec*1000000000)+(start.tv_nsec));
+          atomic_fetch_add(&(f->fcn_profile_count),1);
+          atomic_fetch_add(&(f->fcn_profile_nsecs),nsecs);}
+#else
+        result=apply_fcn(apply_stack,fname,f,n,argvec);
+#endif
+      } else result=fd_applyfns[ftype](fn,n,argvec);
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
       result = FD_ERROR;}
