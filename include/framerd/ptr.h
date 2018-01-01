@@ -626,7 +626,7 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
 #define FD_ERROR_VALUE            FD_CONSTANT(13)
 #define FD_BADPTR                 FD_CONSTANT(14)
 #define FD_THROW_VALUE            FD_CONSTANT(15)
-#define FD_EXCEPTION_TAG          FD_CONSTANT(16)
+#define FD_LOOP_RETURN            FD_CONSTANT(16)
 #define FD_UNBOUND                FD_CONSTANT(17)
 #define FD_NEVERSEEN              FD_CONSTANT(18)
 #define FD_LOCKHOLDER             FD_CONSTANT(19)
@@ -658,7 +658,7 @@ FD_EXPORT lispval fd_register_constant(u8_string name);
 #define FD_ABORTP(x) \
   (((FD_TYPEP(x,fd_constant_type)) && \
     (FD_GET_IMMEDIATE(x,fd_constant_type)>6) && \
-    (FD_GET_IMMEDIATE(x,fd_constant_type)<=15)))
+    (FD_GET_IMMEDIATE(x,fd_constant_type)<=16)))
 #define FD_ERRORP(x) \
   (((FD_TYPEP(x,fd_constant_type)) && \
     (FD_GET_IMMEDIATE(x,fd_constant_type)>6) && \

@@ -55,9 +55,9 @@ ssize_t fd_max_strlen = -1;
 int fd_check_utf8 = 0;
 
 const char *fd_constant_names[256]={
-  "#?","#f","#t","{}","()","#eof","#eod","#eox",
+  "#void","#f","#t","{}","()","#eof","#eod","#eox",
   "#bad_dtype","#bad_parse","#oom","#type_error","#range_error",
-  "#error","#badptr","#throw","#exception_tag","#unbound",
+  "#error","#badptr","#throw","#loop_return","#unbound",
   "#neverseen","#lockholder","#default","#preoid", /* 22 */
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL, /* 30 */
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
