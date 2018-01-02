@@ -10,3 +10,10 @@
 (applytest 'bench/miscfns procedure-module fibi)
 (applytest 'scheme procedure-module if)
 (applytest 'ezrecords procedure-module defrecord)
+
+(applytest "FACTR" procedure-name factr)
+(applytest 1 procedure-arity factr)
+
+(applytest 'FACTR procedure-symbol factr)
+(applytest 'if procedure-symbol if)
+(applytest 'defrecord procedure-symbol defrecord)
