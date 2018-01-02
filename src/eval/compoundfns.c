@@ -354,7 +354,7 @@ static lispval compound_set_stringfn_prim(lispval tag,lispval stringfn)
 
 /* Initializing common functions */
 
-FD_EXPORT void fd_init_compounds_c()
+FD_EXPORT void fd_init_compoundfns_c()
 {
   u8_register_source_file(_FILEINFO);
 

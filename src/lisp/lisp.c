@@ -133,6 +133,7 @@ FD_EXPORT void fd_init_compare_c(void);
 FD_EXPORT void fd_init_recycle_c(void);
 FD_EXPORT void fd_init_copy_c(void);
 FD_EXPORT void fd_init_compare_c(void);
+FD_EXPORT void fd_init_compounds_c(void);
 FD_EXPORT void fd_init_misctypes_c(void);
 FD_EXPORT void fd_init_oids_c(void);
 FD_EXPORT void fd_init_textio_c(void);
@@ -216,6 +217,7 @@ FD_EXPORT int fd_init_lisp_types()
   fd_init_recycle_c();
   fd_init_copy_c();
   fd_init_compare_c();
+  fd_init_compounds_c();
   fd_init_misctypes_c();
   fd_init_oids_c();
   fd_init_unparse_c();

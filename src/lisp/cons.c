@@ -44,8 +44,6 @@ fd_compare_fn fd_comparators[FD_TYPE_MAX];
 static u8_mutex constant_registry_lock;
 int fd_n_constants = FD_N_BUILTIN_CONSTANTS;
 
-lispval fd_compound_descriptor_type;
-
 #ifndef FD_BIGVEC_THRESHOLD
 #define FD_BIGVEC_THRESHOLD 10000
 #endif
@@ -734,93 +732,6 @@ FD_EXPORT lispval fd_bytes2packet
   return LISP_CONS(ptr);
 }
 
-/* Compounds */
-
-FD_EXPORT lispval fd_init_compound
-  (struct FD_COMPOUND *p,lispval tag,int ismutable,int n,...)
-{
-  va_list args; int i = 0; lispval *write, *limit, initfn = FD_FALSE;
-  if (n<0) {
-    fd_seterr("NegativeLength","fd_init_compound",NULL,FD_INT(n));
-    return FD_ERROR;}
-  if (PRED_FALSE((n<0)||(n>=256))) {
-    /* Consume the arguments, just in case the implementation is a
-       little flaky. */
-    va_start(args,n);
-    while (i<n) {va_arg(args,lispval); i++;}
-    return fd_type_error
-      (_("positive byte"),"fd_init_compound",FD_SHORT2DTYPE(n));}
-  else if (p == NULL) {
-    if (n==0) p = u8_malloc(sizeof(struct FD_COMPOUND));
-    else p = u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*LISPVAL_LEN);}
-  FD_INIT_CONS(p,fd_compound_type);
-  if (ismutable) u8_init_mutex(&(p->compound_lock));
-  p->compound_typetag = fd_incref(tag);
-  p->compound_ismutable = ismutable;
-  p->compound_isopaque = 0;
-  p->compound_length = n;
-  if (n>0) {
-    write = &(p->compound_0); limit = write+n;
-    va_start(args,n);
-    while (write<limit) {
-      lispval value = va_arg(args,lispval);
-      *write = value; write++;}
-    va_end(args);
-    if (FD_ABORTP(initfn)) {
-      write = &(p->compound_0);
-      while (write<limit) {fd_decref(*write); write++;}
-      return initfn;}
-    else return LISP_CONS(p);}
-  else return LISP_CONS(p);
-}
-
-FD_EXPORT lispval fd_init_compound_from_elts
-  (struct FD_COMPOUND *p,lispval tag,int ismutable,int n,lispval *elts)
-{
-  lispval *write, *limit, *read = elts, initfn = FD_FALSE;
-  if (PRED_FALSE((n<0) || (n>=256)))
-    return fd_type_error(_("positive byte"),"fd_init_compound_from_elts",
-                         FD_SHORT2DTYPE(n));
-  else if (p == NULL) {
-    if (n==0)
-      p = u8_malloc(sizeof(struct FD_COMPOUND));
-    else p = u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*LISPVAL_LEN);}
-  FD_INIT_CONS(p,fd_compound_type);
-  if (ismutable) u8_init_mutex(&(p->compound_lock));
-  p->compound_typetag = fd_incref(tag);
-  p->compound_ismutable = ismutable;
-  p->compound_length = n;
-  p->compound_isopaque = 0;
-  if (n>0) {
-    write = &(p->compound_0); limit = write+n;
-    while (write<limit) {
-      *write = *read++; write++;}
-    if (FD_ABORTP(initfn)) {
-      write = &(p->compound_0);
-      while (write<limit) {fd_decref(*write); write++;}
-      return initfn;}
-    else return LISP_CONS(p);}
-  else return LISP_CONS(p);
-}
-
-FD_EXPORT lispval fd_compound_ref(lispval arg,lispval tag,int off,lispval dflt)
-{
-  struct FD_COMPOUND *tvec = (struct FD_COMPOUND *) arg;
-  if (! ( (FD_VOIDP(tag)) || (tvec->compound_typetag == tag) ) ) {
-    U8_STATIC_OUTPUT(details,512);
-    fd_unparse(&details,tag);
-    lispval errval =
-      fd_err(fd_TypeError,"fd_compound_ref",details.u8_outbuf,arg);
-    u8_close_output(&details);
-    return errval;}
-  else if (off >= tvec->compound_length)
-    return fd_incref(dflt);
-  else {
-    lispval v = FD_COMPOUND_VREF(tvec,off);
-    fd_incref(v);
-    return v;}
-}
-
 /* Registering new primitive types */
 
 static u8_mutex type_registry_lock;
@@ -857,108 +768,6 @@ FD_EXPORT int fd_register_immediate_type(char *name,fd_checkfn fn)
   fd_type_names[typecode]=name;
   u8_unlock_mutex(&type_registry_lock);
   return typecode;
-}
-
-/* Compound type information */
-
-struct FD_COMPOUND_TYPEINFO *fd_compound_entries = NULL;
-static u8_mutex compound_registry_lock;
-
-FD_EXPORT
-struct FD_COMPOUND_TYPEINFO
-*fd_register_compound(lispval symbol,lispval *datap,int *corep)
-{
-  struct FD_COMPOUND_TYPEINFO *scan, *newrec;
-  u8_lock_mutex(&compound_registry_lock);
-  scan = fd_compound_entries;
-  while (scan)
-    if (FD_EQ(scan->compound_typetag,symbol)) {
-      if (datap) {
-        lispval data = *datap;
-        if (VOIDP(scan->compound_metadata)) {
-          scan->compound_metadata = data;
-          fd_incref(data);}
-        else {
-          lispval data = *datap; fd_decref(data);
-          data = scan->compound_metadata;
-          fd_incref(data);
-          *datap = data;}}
-      if (corep) {
-        if (scan->compound_corelen<0)
-          scan->compound_corelen = *corep;
-        else *corep = scan->compound_corelen;}
-      u8_unlock_mutex(&compound_registry_lock);
-      return scan;}
-    else scan = scan->compound_nextinfo;
-  newrec = u8_alloc(struct FD_COMPOUND_TYPEINFO);
-  memset(newrec,0,sizeof(struct FD_COMPOUND_TYPEINFO));
-  if (datap) {
-    lispval data = *datap;
-    fd_incref(data);
-    newrec->compound_metadata = data;}
-  else newrec->compound_metadata = VOID;
-  newrec->compound_corelen = ((corep)?(*corep):(-1));
-  newrec->compound_nextinfo = fd_compound_entries;
-  newrec->compound_typetag = symbol;
-  newrec->compound_parser = NULL;
-  newrec->compound_dumpfn = NULL;
-  newrec->compound_restorefn = NULL;
-  newrec->compund_tablefns = NULL;
-  fd_compound_entries = newrec;
-  u8_unlock_mutex(&compound_registry_lock);
-  return newrec;
-}
-
-FD_EXPORT struct FD_COMPOUND_TYPEINFO
-*fd_declare_compound(lispval symbol,lispval data,int core_slots)
-{
-  struct FD_COMPOUND_TYPEINFO *scan, *newrec;
-  u8_lock_mutex(&compound_registry_lock);
-  scan = fd_compound_entries;
-  while (scan)
-    if (FD_EQ(scan->compound_typetag,symbol)) {
-      if (!(VOIDP(data))) {
-        lispval old_data = scan->compound_metadata;
-        scan->compound_metadata = fd_incref(data);
-        fd_decref(old_data);}
-      if (core_slots>0) scan->compound_corelen = core_slots;
-      u8_unlock_mutex(&compound_registry_lock);
-      return scan;}
-    else scan = scan->compound_nextinfo;
-  newrec = u8_alloc(struct FD_COMPOUND_TYPEINFO);
-  memset(newrec,0,sizeof(struct FD_COMPOUND_TYPEINFO));
-  newrec->compound_metadata = data;
-  newrec->compound_corelen = core_slots;
-  newrec->compound_typetag = symbol;
-  newrec->compound_nextinfo = fd_compound_entries;
-  newrec->compound_parser = NULL;
-  newrec->compound_dumpfn = NULL;
-  newrec->compound_restorefn = NULL;
-  newrec->compund_tablefns = NULL;
-  fd_compound_entries = newrec;
-  u8_unlock_mutex(&compound_registry_lock);
-  return newrec;
-}
-
-FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_lookup_compound(lispval symbol)
-{
-  struct FD_COMPOUND_TYPEINFO *scan = fd_compound_entries;
-  while (scan)
-    if (FD_EQ(scan->compound_typetag,symbol)) {
-      return scan;}
-    else scan = scan->compound_nextinfo;
-  return NULL;
-}
-
-FD_EXPORT
-int fd_compound_unparser(u8_string pname,fd_compound_unparsefn fn)
-{
-  lispval sym = fd_intern(pname);
-  struct FD_COMPOUND_TYPEINFO *typeinfo = fd_register_compound(sym,NULL,NULL);
-  if (typeinfo) {
-    typeinfo->compound_unparser = fn;
-    return 1;}
-  else return 0;
 }
 
 /* Utility functions (for debugging) */
@@ -1050,7 +859,6 @@ void fd_init_cons_c()
   u8_register_source_file(_FILEINFO);
 
   u8_init_mutex(&constant_registry_lock);
-  u8_init_mutex(&compound_registry_lock);
   u8_init_mutex(&type_registry_lock);
 
   i = 0; while (i < FD_TYPE_MAX) fd_type_names[i++]=NULL;

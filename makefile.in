@@ -127,7 +127,7 @@ LISP_OBJS=\
 	src/lisp/compare.o src/lisp/walk.o			\
 	src/lisp/tables.o src/lisp/sequences.o			\
 	src/lisp/choices.o src/lisp/numbers.o 			\
-	src/lisp/misctypes.o 					\
+	src/lisp/compounds.o src/lisp/misctypes.o		\
 	src/lisp/parse.o src/lisp/unparse.o			\
 	src/lisp/bufio.o src/lisp/pprint.o			\
 	src/lisp/dtread.o src/lisp/dtwrite.o			\
@@ -187,7 +187,7 @@ SCHEME_OBJS=\
 	src/eval/load.o \
 	src/eval/history.o \
 	src/eval/reflection.o \
-	src/eval/compounds.o \
+	src/eval/compoundfns.o \
 	src/eval/choiceops.o \
 	src/eval/coreops.o \
 	src/eval/arith.o \
@@ -363,43 +363,43 @@ FRAMERD_HEADERS= \
 	$(APPLY_HEADERS) $(DRIVERS_H) $(SRC_HEADERS)
 
 FRAMERD_SOURCES=\
-	src/lisp/cons.c src/lisp/oids.c src/lisp/symbols.c           	\
-	src/lisp/copy.c src/lisp/recycle.c src/lisp/misctypes.c       	\
-        src/lisp/compare.c src/lisp/walk.c src/lisp/fcnids.c		\
-	src/lisp/choices.c src/lisp/sequences.c				\
-	src/lisp/tables.c \
-        src/lisp/bufio.c src/lisp/dtread.c src/lisp/dtread.c 		\
-	src/lisp/parse.c src/lisp/unparse.c src/lisp/lisp.c \
-	src/support/buildinfo.c \
-	src/support/support.c src/support/config.c src/support/posix.c	\
-	src/support/lisperrs.c src/support/logging.c src/support/getopt.c		\
-	src/support/startup.c src/support/fluid.c src/support/signals.c				\
-	src/apply/apply.c src/apply/stacks.c src/apply/lexenv.c \
-	src/apply/ffi.c       	\
+	src/lisp/cons.c src/lisp/oids.c src/lisp/symbols.c           		\
+	src/lisp/copy.c src/lisp/recycle.c src/lisp/misctypes.c       		\
+        src/lisp/compare.c src/lisp/walk.c src/lisp/fcnids.c			\
+	src/lisp/choices.c src/lisp/sequences.c					\
+	src/lisp/tables.c src/lisp/compounds.c 					\
+        src/lisp/bufio.c src/lisp/dtread.c src/lisp/dtread.c 			\
+	src/lisp/parse.c src/lisp/unparse.c src/lisp/lisp.c 			\
+	src/support/buildinfo.c 						\
+	src/support/support.c src/support/config.c src/support/posix.c		\
+	src/support/lisperrs.c src/support/logging.c src/support/getopt.c	\
+	src/support/startup.c src/support/fluid.c src/support/signals.c		\
+	src/apply/apply.c src/apply/stacks.c src/apply/lexenv.c 		\
+	src/apply/ffi.c								\
 	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c	\
 	src/storage/drivers.c src/storage/indexes.c src/storage/pools.c		\
 	src/storage/oidstore.c src/storage/cachecall.c src/storage/bloom.c	\
 	src/storage/compoundindexes.c src/storage/alcor.c			\
 	src/storage/threadcache.c src/storage/frames.c src/storage/methods.c	\
 	src/storage/dtproc.c src/storage/dtcall.c				\
-	src/storage/ipeval.c 	       					\
-	src/drivers/builtin_drivers.c  					\
-	src/drivers/filepool.c src/drivers/oidpool.c 			\
-	src/drivers/bigpool.c 						\
-	src/drivers/fileindex.c src/drivers/hashindex.c			\
-	src/storage/extindex.c				\
+	src/storage/ipeval.c 	       						\
+	src/drivers/builtin_drivers.c  						\
+	src/drivers/filepool.c src/drivers/oidpool.c 				\
+	src/drivers/bigpool.c 							\
+	src/drivers/fileindex.c src/drivers/hashindex.c				\
+	src/storage/extindex.c							\
 	src/storage/mempool.c src/storage/extpool.c				\
-	src/drivers/netpool.c src/drivers/netindex.c 			\
+	src/drivers/netpool.c src/drivers/netindex.c 				\
 	src/storage/procpool.c src/storage/procindex.c 				\
-	src/drivers/memindex.c						\
-	src/drivers/netpool.c src/drivers/netindex.c			\
-	src/eval/eval.c src/eval/opcodes.c 				\
-	src/eval/binders.c src/eval/lambda.c 				\
-	src/eval/macros.c src/eval/errors.c     			\
-	src/eval/conditionals.c src/eval/iterators.c               	\
+	src/drivers/memindex.c							\
+	src/drivers/netpool.c src/drivers/netindex.c				\
+	src/eval/eval.c src/eval/opcodes.c 					\
+	src/eval/binders.c src/eval/lambda.c 					\
+	src/eval/macros.c src/eval/errors.c     				\
+	src/eval/conditionals.c src/eval/iterators.c               		\
         src/eval/threads.c src/eval/quasiquote.c               		\
 	src/eval/modules.c src/eval/load.c src/eval/reflection.c 	\
-	src/eval/compounds.c 						\
+	src/eval/compoundfns.c 						\
 	src/eval/coreops.c                  				\
 	src/eval/arith.c src/eval/side-effects.c              		\
 	src/prims/dbprims.c 						\
