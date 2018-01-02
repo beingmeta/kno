@@ -874,21 +874,6 @@ void fd_init_cons_c()
 
   fd_immediate_checkfns[fd_constant_type]=validate_constant;
 
-  fd_compound_descriptor_type=
-    fd_init_compound
-    (NULL,VOID,1,9,
-     fd_intern("COMPOUNDTYPE"),0,FD_INT(9),
-     fd_make_nvector(9,FDSYM_TAG,FDSYM_LENGTH,
-                     fd_intern("FIELDS"),fd_intern("INITFN"),
-                     fd_intern("FREEFN"),fd_intern("COMPAREFN"),
-                     fd_intern("STRINGFN"),fd_intern("DUMPFN"),
-                     fd_intern("RESTOREFN")),
-     FD_FALSE,FD_FALSE,FD_FALSE,FD_FALSE,
-     FD_FALSE,FD_FALSE);
-  ((fd_compound)fd_compound_descriptor_type)
-    ->compound_typetag = fd_compound_descriptor_type;
-  fd_incref(fd_compound_descriptor_type);
-
   i=0; while (i<256) {
     if (fd_constant_names[i]) {
       fd_add_hashname(fd_constant_names[i],FD_CONSTANT(i));}
