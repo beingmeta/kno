@@ -1205,8 +1205,12 @@ static int webservefn(u8_client ucl)
       write_string(client->socket,"Status: 307\r\nLocation: ");
       write_string(client->socket,CSTRING(errorpage));
       write_string(client->socket,"\r\n\r\n");
-      u8_printf(&tmpout,"<html>\n<head>\n<title>Sorry, redirecting...</title>\n</head>\n<body>\n");
-      u8_printf(&tmpout,"<p>Redirecting to <a href='%s'>%s</a></p>\n</body>\n</html>\n",errorpage,errorpage);
+      u8_printf(&tmpout,"<html>\n"
+                "<head>\n<title>Sorry, redirecting...</title>\n</head>\n"
+                "<body>\n");
+      u8_printf(&tmpout,"<p>Redirecting to <a href='%s'>%s</a></p>"
+                "\n</body>\n</html>\n",
+                errorpage,errorpage);
       write_string(client->socket,tmpout.u8_outbuf);
       u8_free(tmpout.u8_outbuf);}
     else if (STRINGP(errorpage)) {

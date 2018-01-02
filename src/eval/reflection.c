@@ -661,8 +661,8 @@ static lispval profile_reset_prim(lispval fcn)
   if (FD_FUNCTIONP(fcn)) {
     struct FD_FUNCTION *f = (fd_function) fcn;
     f->fcn_profile = 1;
-    f->fcn_profile_count = 0;
-    f->fcn_profile_nsecs = 0;
+    f->fcn_profile_count = ATOMIC_VAR_INIT(0);
+    f->fcn_profile_nsecs = ATOMIC_VAR_INIT(0);
     return FD_TRUE;}
   else return fd_type_error("function","profile_fcn",fcn);
 }

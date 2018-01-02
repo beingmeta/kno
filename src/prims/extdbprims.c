@@ -210,9 +210,16 @@ static lispval extdb_makeproc(int n,lispval *args)
       return fd_type_error("string","extdb_makeproc",query);
     else if ((extdb->extdb_handler->makeproc) == NULL)
       return fd_err(NoMakeProc,"extdb_makeproc",NULL,dbspec);
-    else return extdb->extdb_handler->makeproc
-           (extdb,CSTRING(query),STRLEN(query),
-            colinfo,((n>3) ? (n-3) : (0)),((n>3)? (args+3) : (NULL)));}
+    else {
+      lispval proc =
+        extdb->extdb_handler->makeproc
+        (extdb,CSTRING(query),STRLEN(query),
+         colinfo,((n>3) ? (n-3) : (0)),((n>3)? (args+3) : (NULL)));
+      if (FD_FUNCTIONP(proc)) {
+        struct FD_FUNCTION *fcn = (fd_function) proc;
+        fcn->fcn_profile_count = _ATOMIC_INIT(0);
+        fcn->fcn_profile_nsecs = _ATOMIC_INIT(0);}
+      return proc;}}
   else if (!(FD_PRIM_TYPEP(args[0],fd_extdb_type)))
     return fd_type_error("extdb","extdb_makeproc",args[0]);
   else if  (!(STRINGP(args[1])))

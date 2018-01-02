@@ -244,7 +244,7 @@ FD_EXPORT lispval fd_badptr_err(lispval badx,u8_context cxt,u8_string details);
 
 typedef unsigned int fd_consbits;
 
-#if FD_INLINE_REFCOUNTS && FD_LOCKFREE_REFCOUNTS
+#if FD_INLINE_REFCOUNTS && FD_LOCKFREE_REFCOUNTS && FD_USE_ATOMIC
 #define FD_ATOMIC_CONSHEAD _Atomic
 #else
 #define FD_ATOMIC_CONSHEAD

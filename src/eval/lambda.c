@@ -181,7 +181,7 @@ _make_lambda(u8_string name,
   int i = 0, n_vars = 0, min_args = 0;
   lispval scan = arglist, *schema = NULL, attribs=FD_VOID;
   struct FD_LAMBDA *s = u8_alloc(struct FD_LAMBDA);
-  FD_INIT_FRESH_CONS(s,fd_lambda_type);
+  FD_INIT_FUNCTION(s,fd_lambda_type,struct FD_LAMBDA);
   s->fcn_name = ((name) ? (u8_strdup(name)) : (NULL));
   while (PAIRP(scan)) {
     lispval argspec = FD_CAR(scan);
@@ -404,7 +404,7 @@ FD_EXPORT lispval copy_lambda(struct FD_CONS *c,int flags)
     memcpy(fresh,lambda,sizeof(struct FD_LAMBDA));
 
     /* This sets a new reference count or declares it static */
-    FD_INIT_FRESH_CONS(fresh,fd_lambda_type);
+    FD_INIT_FUNCTION(fresh,fd_lambda_type,struct FD_LAMBDA);
 
     if (lambda->fcn_name) fresh->fcn_name = u8_strdup(lambda->fcn_name);
     if (lambda->fcn_filename)
