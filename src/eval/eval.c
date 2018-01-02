@@ -1072,7 +1072,8 @@ static lispval call_function(u8_string fname,lispval headval,
     else if (PRED_FALSE((min_arity>=0) && (n_args<min_arity)))
       return fd_err(fd_TooFewArgs,"call_function",fcn->fcn_name,expr);
     else {}
-    d_prim=(fcn->fcn_ndcall==0);}
+    d_prim=(fcn->fcn_ndcall==0);
+    if (fcn->fcn_notail) tail = 0;}
   int i=0; while (i<argbuf_len) argbuf[i++]=VOID;
   /* Now we evaluate each of the subexpressions to fill the arg
      vector */
@@ -1089,7 +1090,7 @@ static lispval call_function(u8_string fname,lispval headval,
         gc_args = 1;}
       else {}
       argbuf[arg_count++]=argval;}}
-  if ((tail) && (fd_optimize_tail_calls) && (FD_LAMBDAP(fn)))
+  if ((tail) && (fd_optimize_tail_calls))
     result=fd_tail_call(fn,arg_count,argbuf);
   else if ((CHOICEP(fn)) ||
            (PRECHOICEP(fn)) ||

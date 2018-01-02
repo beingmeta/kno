@@ -261,9 +261,9 @@ _make_lambda(u8_string name,
       struct FD_KEYVAL kv;
       kv.kv_key = flags_symbol;
       kv.kv_val = FD_CAR(scan);
-      attribs = fd_init_slotmap(NULL,1,&kv);}
+      s->fcn_attribs = attribs = fd_init_slotmap(NULL,1,&kv);}
     else if (len%2) {
-      attribs = fd_make_slotmap(len/2,0,NULL);
+      s->fcn_attribs = attribs = fd_make_slotmap(len/2,0,NULL);
       while ( FD_PAIRP(scan) ) {
         lispval key = FD_CAR(scan);
         lispval value = FD_CADR(scan);

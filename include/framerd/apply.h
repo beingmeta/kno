@@ -133,12 +133,12 @@ typedef lispval (*fd_xprim15)(fd_function,
                               lispval,lispval,lispval);
 typedef lispval (*fd_xprimn)(fd_function,int n,lispval *);
 
-#define FD_FUNCTION_FIELDS                                              \
-  FD_CONS_HEADER;                                                       \
-  u8_string fcn_name, fcn_filename;                                     \
-  u8_string fcn_documentation;                                          \
-  unsigned int fcn_ndcall:1, fcn_xcall:1, fcn_wrap_calls:1;             \
-  unsigned int fcn_profile:1, fcn_break:1, fcn_trace:3;                 \
+#define FD_FUNCTION_FIELDS                                                \
+  FD_CONS_HEADER;                                                         \
+  u8_string fcn_name, fcn_filename;                                       \
+  u8_string fcn_documentation;                                            \
+  unsigned int fcn_ndcall:1, fcn_xcall:1, fcn_wrap_calls:1, fcn_notail:1; \
+  unsigned int fcn_profile:1, fcn_break:1, fcn_trace:3;                   \
   lispval fcnid;                                                        \
   short fcn_arity, fcn_min_arity;                                       \
   lispval fcn_attribs;                                                  \

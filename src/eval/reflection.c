@@ -31,31 +31,36 @@ static lispval macrop(lispval x)
 
 static lispval compound_procedurep(lispval x)
 {
-  if (FD_LAMBDAP(x)) return FD_TRUE;
+  if (FD_LAMBDAP(x))
+    return FD_TRUE;
   else return FD_FALSE;
 }
 
 static lispval applicablep(lispval x)
 {
-  if (FD_APPLICABLEP(x)) return FD_TRUE;
+  if (FD_APPLICABLEP(x))
+    return FD_TRUE;
   else return FD_FALSE;
 }
 
 static lispval evalfnp(lispval x)
 {
-  if (TYPEP(x,fd_evalfn_type)) return FD_TRUE;
+  if (TYPEP(x,fd_evalfn_type))
+    return FD_TRUE;
   else return FD_FALSE;
 }
 
 static lispval primitivep(lispval x)
 {
-  if (TYPEP(x,fd_cprim_type)) return FD_TRUE;
+  if (TYPEP(x,fd_cprim_type))
+    return FD_TRUE;
   else return FD_FALSE;
 }
 
 static lispval procedurep(lispval x)
 {
-  if (FD_FUNCTIONP(x)) return FD_TRUE;
+  if (FD_FUNCTIONP(x))
+    return FD_TRUE;
   else return FD_FALSE;
 }
 
@@ -143,8 +148,31 @@ static lispval set_procedure_documentation(lispval x,lispval doc)
     if (sf->evalfn_documentation) u8_free(sf->evalfn_documentation);
     sf->evalfn_documentation = CSTRING(doc);
     return VOID;}
-  else return fd_err("Not Handled","set_procedure_documentation",
-                     NULL,x);
+  else return fd_err("Not Handled","set_procedure_documentation",NULL,x);
+}
+
+static lispval procedure_tailablep(lispval x)
+{
+  lispval proc = (FD_FCNIDP(x)) ? (fd_fcnid_ref(x)) : (x);
+  fd_ptr_type proctype = FD_PTR_TYPE(proc);
+  if (fd_functionp[proctype]) {
+    struct FD_FUNCTION *f = FD_DTYPE2FCN(x);
+    if (f->fcn_notail)
+      return FD_FALSE;
+    else return FD_TRUE;}
+  else return fd_err("Not Handled","procedure_tailablep",NULL,x);
+}
+static lispval set_procedure_tailable(lispval x,lispval bool)
+{
+  lispval proc = (FD_FCNIDP(x)) ? (fd_fcnid_ref(x)) : (x);
+  fd_ptr_type proctype = FD_PTR_TYPE(proc);
+  if (fd_functionp[proctype]) {
+    struct FD_FUNCTION *f = FD_DTYPE2FCN(x);
+    if (FD_FALSEP(bool))
+      f->fcn_notail = 1;
+    else f->fcn_notail = 0;
+    return VOID;}
+  else return fd_err("Not Handled","set_procedure_tailable",NULL,x);
 }
 
 static lispval procedure_arity(lispval x)
@@ -702,6 +730,13 @@ FD_EXPORT void fd_init_reflection_c()
             procedure_documentation,1,
             "",
             -1,VOID);
+  fd_idefn1(module,"PROCEDURE-TAILABLE?",
+            procedure_tailablep,1,
+            "`(PROCEDURE-TAILABLE? *fcn*)` "
+            "Returns true if *fcn* can be tail called, and "
+            "false otherwise. By default, all procedures "
+            "are tailable when called deterministically.",
+            -1,VOID);
   fd_idefn1(module,"PROCEDURE-ID",procedure_id,1,
             "",
             -1,VOID);
@@ -735,6 +770,10 @@ FD_EXPORT void fd_init_reflection_c()
             set_procedure_documentation,2,
             "",
             -1,VOID,fd_string_type,VOID);
+  fd_idefn2(module,"SET-PROCEDURE-TAILABLE!",
+            set_procedure_tailable,2,
+            "",
+            -1,VOID,-1,VOID);
 
   fd_idefn2(module,"SET-PROCEDURE-BODY!",set_compound_procedure_body,2,
             "",fd_lambda_type,VOID,-1,VOID);
