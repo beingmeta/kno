@@ -79,6 +79,9 @@ __thread ssize_t fd_stack_limit = -1;
 ssize_t fd_stack_limit = -1;
 #endif
 
+/* Whether to always profile */
+int fd_profiling = 0;
+
 /* Stack checking */
 
 int fd_wrap_apply = FD_WRAP_APPLY_DEFAULT;
@@ -620,8 +623,8 @@ FD_EXPORT lispval fd_dcall(struct FD_STACK *_stack,
     apply_stack->n_args=n;
     U8_WITH_CONTOUR(fname,0)
       if (f) {
-#if 1
-        int profile = f->fcn_profile;
+#if HAVE_CLOCK_GETTIME
+        int profile = (fd_profiling) || (f->fcn_profile);
         struct timespec start, end;
         if (profile) clock_gettime(CLOCK_MONOTONIC,&start);
         result=apply_fcn(apply_stack,fname,f,n,argvec);
@@ -1155,6 +1158,10 @@ FD_EXPORT void fd_init_apply_c()
     ("STACKLIMIT",
      _("Size of the stack (in bytes or as a factor of the current size)"),
      fd_sizeconfig_get,fd_sizeconfig_set,&fd_default_stackspec);
+
+  fd_register_config
+    ("PROFILING",_("Whether to profile function applications by default"),
+     fd_boolconfig_get,fd_boolconfig_set,&fd_profiling);
 
   u8_register_threadinit(init_thread_stack_limit);
 
