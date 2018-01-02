@@ -34,8 +34,8 @@
 
 ;(defrecord tag field1 (field2 opt) field3)
 (define defrecord
-  (macro expr
-    (let* ((defspec (cadr expr))
+  (macro defrecord
+    (let* ((defspec (cadr defrecord))
 	   (name (if (symbol? defspec) defspec
 		     (if (and (pair? defspec) (symbol? (car defspec)))
 			 (car defspec)
@@ -50,7 +50,7 @@
 	   (corelen (getopt defspec 'corelen))
 	   (consfn (getopt defspec 'consfn))
 	   (stringfn (getopt defspec 'stringfn))
-	   (fields (cddr expr))
+	   (fields (cddr defrecord))
 	   (field-names (map fieldname fields))
 	   (cons-method-name (string->symbol (stringout "CONS-" name)))
 	   (predicate-method-name (getopt defspec 'predicate (string->symbol (stringout name "?")))))
