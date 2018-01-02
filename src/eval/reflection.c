@@ -587,6 +587,53 @@ static lispval getmodules_evalfn(lispval expr,fd_lexenv call_env,fd_stack _stack
   return modules;
 }
 
+/* Profiling */
+
+static lispval profile_fcn_prim(lispval fcn,lispval bool)
+{
+  if (FD_FUNCTIONP(fcn)) {
+    struct FD_FUNCTION *f = (fd_function) fcn;
+    if (FD_FALSEP(bool))
+      f->fcn_profile = 0;
+    else f->fcn_profile = 1;
+    return FD_TRUE;}
+  else return fd_type_error("function","profile_fcn",fcn);
+}
+
+static lispval profile_reset_prim(lispval fcn)
+{
+  if (FD_FUNCTIONP(fcn)) {
+    struct FD_FUNCTION *f = (fd_function) fcn;
+    f->fcn_profile = 1;
+    f->fcn_profile_count = 0;
+    f->fcn_profile_nsecs = 0;
+    return FD_TRUE;}
+  else return fd_type_error("function","profile_fcn",fcn);
+}
+
+static lispval profiledp_prim(lispval fcn)
+{
+  if (FD_FUNCTIONP(fcn)) {
+    struct FD_FUNCTION *f = (fd_function) fcn;
+    if (f->fcn_profile)
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else return FD_FALSE;
+}
+
+static lispval getcalls_prim(lispval fcn)
+{
+  if (FD_FUNCTIONP(fcn)) {
+    struct FD_FUNCTION *f = (fd_function) fcn;
+    double exec_time =
+      ((double)((f->fcn_profile_nsecs)|(f->fcn_profile_count)))/1000000000.0;
+    fd_incref(fcn);
+    return fd_make_nvector
+      (4,f,fd_make_flonum(exec_time),
+       FD_INT(f->fcn_profile_nsecs),FD_INT(f->fcn_profile_count));}
+  else return fd_type_error("function","profile_fcn",fcn);
+}
+
 /* Getting all modules */
 
 static lispval get_all_modules_prim()
@@ -725,6 +772,27 @@ FD_EXPORT void fd_init_reflection_c()
             "(SAFE-MODULES) "
             "Returns all 'safe' loaded modules as an alist"
             "of module names and modules");
+
+  fd_idefn2(module,"REFLECT/PROFILE!",profile_fcn_prim,1,
+            "`(REFLECT/PROFILE! *fcn* *boolean*)`"
+            "Enables profiling for the function *fcn* or "
+            "if *boolean* is false, disable profiling for *fcn*",
+            -1,FD_VOID,-1,FD_TRUE);
+  fd_idefn1(module,"REFLECT/PROFILED?",profiledp_prim,1,
+            "`(REFLECT/PROFILED? *arg*)`Returns true if *arg* is being profiled, "
+            "and false otherwise. It also returns false if the argument is "
+            "not a function or not a function which supports profiling.",
+            -1,FD_VOID);
+  fd_idefn1(module,"REFLECT/GETCALLS",getcalls_prim,1,
+            "`(REFLECT/GETCALLS *fcn*)`Returns the profile information for "
+            "*fcn*, a vector of *fcn*, the number of calls, the number of "
+            "nanoseconds spent in *fcn*",
+            -1,FD_VOID);
+  fd_idefn1(module,"REFLECT/PROFILE-RESET!",profile_reset_prim,1,
+            "`(REFLECT/PROFILE-RESET! *fcn*)` resets the profile counts "
+            "for *fcn*",
+            -1,FD_VOID);
+
 
   fd_def_evalfn(module,"%ENV","",thisenv_evalfn);
   fd_def_evalfn(module,"%BINDINGS","",local_bindings_evalfn);

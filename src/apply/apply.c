@@ -1132,6 +1132,32 @@ void fd_init_stacks_c(void);
 void fd_init_lexenv_c(void);
 void fd_init_ffi_c(void);
 
+/* PROFILED config */
+
+static lispval profiled_fcns = FD_EMPTY;
+static u8_mutex profiled_lock;
+
+static int config_add_profiled(lispval var,lispval val,void *data)
+{
+  if (FD_FUNCTIONP(val)) {
+    struct FD_FUNCTION *fcn = (fd_function) val;
+    if (fcn->fcn_profile)
+      return 0;
+    u8_lock_mutex(&profiled_lock);
+    lispval *ptr = (lispval *) data;
+    lispval cur = *ptr;
+    fd_incref(val);
+    FD_ADD_TO_CHOICE(cur,val);
+    fcn->fcn_profile=1;
+    *ptr = cur;
+    return 1;}
+  else {
+    fd_seterr("Not a function","config_add_profiled",NULL,val);
+    return -1;}
+}
+
+/* Initializations */
+
 FD_EXPORT void fd_init_apply_c()
 {
   int i = 0; while (i < FD_TYPE_MAX) fd_applyfns[i++]=NULL;
@@ -1153,6 +1179,8 @@ FD_EXPORT void fd_init_apply_c()
   fd_type_names[fd_tailcall_type]="tailcall";
 
   u8_register_threadinit(init_thread_stack_limit);
+  u8_init_mutex(&profiled_lock);
+
 
   fd_register_config
     ("STACKLIMIT",
@@ -1162,6 +1190,10 @@ FD_EXPORT void fd_init_apply_c()
   fd_register_config
     ("PROFILING",_("Whether to profile function applications by default"),
      fd_boolconfig_get,fd_boolconfig_set,&fd_profiling);
+
+  fd_register_config
+    ("PROFILED",_("Functions declared for profiling"),
+     fd_lconfig_get,config_add_profiled,&profiled_fcns);
 
   u8_register_threadinit(init_thread_stack_limit);
 
