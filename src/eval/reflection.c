@@ -131,6 +131,11 @@ static lispval procedure_symbol(lispval x)
     if (sf->evalfn_name)
       return fd_intern(sf->evalfn_name);
     else return FD_FALSE;}
+  else if (TYPEP(x,fd_macro_type)) {
+    struct FD_MACRO *m = (fd_macro) x;
+    if (m->macro_name)
+      return fd_intern(m->macro_name);
+    else return FD_FALSE;}
   else return fd_type_error(_("function"),"procedure_symbol",x);
 }
 
