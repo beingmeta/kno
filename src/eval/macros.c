@@ -62,6 +62,7 @@ FD_EXPORT void recycle_macro(struct FD_RAW_CONS *c)
   struct FD_MACRO *mproc = (struct FD_MACRO *)c;
   if (mproc->macro_name) u8_free(mproc->macro_name);
   if (mproc->macro_filename) u8_free(mproc->macro_filename);
+  if (mproc->macro_moduleid) fd_decref(mproc->macro_moduleid);
   fd_decref(mproc->macro_transformer);
   if (FD_MALLOCD_CONSP(c)) u8_free(mproc);
 }

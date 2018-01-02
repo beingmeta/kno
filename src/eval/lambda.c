@@ -578,8 +578,9 @@ static void init_definition(lispval fcn,lispval expr,fd_lexenv env)
     if (sourcebase) f->fcn_filename = u8_strdup(sourcebase);}
   if ( (fd_record_source) && (FD_LAMBDAP(fcn)) )  {
     struct FD_LAMBDA *l = (fd_lambda) fcn;
-    l->lambda_source=expr;
-    fd_incref(expr);}
+    if ( (FD_NULLP(l->lambda_source)) || (FD_VOIDP(l->lambda_source)) ) {
+      l->lambda_source=expr;
+      fd_incref(expr);}}
 }
 
 static lispval define_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
@@ -593,7 +594,8 @@ static lispval define_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
       return fd_err(fd_TooFewExpressions,"DEFINE",NULL,expr);
     else {
       lispval value = fd_eval(val_expr,env);
-      if (FD_ABORTED(value)) return value;
+      if (FD_ABORTED(value))
+        return value;
       else if (fd_bind_value(var,value,env)>=0) {
         lispval fvalue = (FD_FCNIDP(value))?(fd_fcnid_ref(value)):(value);
         if (FD_FUNCTIONP(fvalue)) init_definition(fvalue,expr,env);
