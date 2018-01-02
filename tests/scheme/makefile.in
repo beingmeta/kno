@@ -286,6 +286,9 @@ crypto:
 	@${RUN} ${FDX} cryptotest.scm ${RUNCONF}
 	@${header} "■■■■ Completed crypto tests ${RUNCONF}"
 
+temptest:
+	@${RUN} ${FDX} temptest.scm ${RUNCONF}
+	@${header} "■■■■ Completed misc tests ${RUNCONF}"
 
 # Table tests
 
