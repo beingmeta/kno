@@ -35,6 +35,9 @@ FD_EXPORT int unparse_primitive(u8_output out,lispval x)
   struct FD_FUNCTION *fcn = (fd_function)x;
   u8_string name = fcn->fcn_name;
   u8_string filename = fcn->fcn_filename, space;
+  lispval moduleid = fcn->fcn_moduleid;
+  u8_string modname =
+    (FD_SYMBOLP(moduleid)) ? (FD_SYMBOL_NAME(moduleid)) : (NULL);
   u8_byte arity[64]=""; u8_byte codes[64]="";
   u8_byte tmpbuf[32], numbuf[32];
   if ((filename)&&(filename[0]=='\0'))
@@ -63,7 +66,11 @@ FD_EXPORT int unparse_primitive(u8_output out,lispval x)
     strcat(arity,"-");
     strcat(arity,u8_itoa10(fcn->fcn_arity,numbuf));
     strcat(arity,"]");}
-  if (name)
+  if ( (name) && (modname) )
+    u8_printf(out,"#<Φ%s%s%s %s %s%s%s>",
+              codes,name,arity,modname,
+              U8OPTSTR(" '",filename,"'"));
+  else if (name)
     u8_printf(out,"#<Φ%s%s%s%s%s%s>",
               codes,name,arity,
               U8OPTSTR(" '",filename,"'"));
@@ -79,6 +86,7 @@ static void recycle_primitive(struct FD_RAW_CONS *c)
   if (fn->fcn_typeinfo) u8_free(fn->fcn_typeinfo);
   if (fn->fcn_defaults) u8_free(fn->fcn_defaults);
   if (fn->fcn_attribs) fd_decref(fn->fcn_attribs);
+  if (fn->fcn_moduleid) fd_decref(fn->fcn_moduleid);
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
@@ -127,6 +135,7 @@ static struct FD_FUNCTION *new_cprim(u8_string name,
   f->fcn_name = name;
   f->fcn_filename = filename;
   f->fcn_documentation = doc;
+  f->fcn_moduleid = FD_VOID;
   if (non_deterministic)
     f->fcn_ndcall = 1;
   else f->fcn_ndcall = 0;

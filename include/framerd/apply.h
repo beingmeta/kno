@@ -137,31 +137,32 @@ typedef lispval (*fd_xprimn)(fd_function,int n,lispval *);
   FD_CONS_HEADER;                                                         \
   u8_string fcn_name, fcn_filename;                                       \
   u8_string fcn_documentation;                                            \
+  lispval fcn_moduleid;                                                   \
   unsigned int fcn_ndcall:1, fcn_xcall:1, fcn_wrap_calls:1, fcn_notail:1; \
   unsigned int fcn_profile:1, fcn_break:1, fcn_trace:3;                   \
-  lispval fcnid;                                                        \
-  short fcn_arity, fcn_min_arity;                                       \
-  lispval fcn_attribs;                                                  \
-  int *fcn_typeinfo;                                                    \
-  lispval *fcn_defaults;                                                \
-  long long fcn_profile_nsecs;                                          \
-  long long fcn_profile_count;                                          \
-  union {                                                               \
-    fd_cprim0 call0; fd_cprim1 call1; fd_cprim2 call2;                  \
-    fd_cprim3 call3; fd_cprim4 call4; fd_cprim5 call5;                  \
-    fd_cprim6 call6; fd_cprim7 call7; fd_cprim8 call8;                  \
-    fd_cprim9 call9; fd_cprim10 call10; fd_cprim11 call11;              \
-    fd_cprim12 call12; fd_cprim13 call13; fd_cprim14 call14;            \
-    fd_cprim15 call15;                                                  \
-    fd_cprimn calln;                                                    \
-    fd_xprim0 xcall0; fd_xprim1 xcall1; fd_xprim2 xcall2;               \
-    fd_xprim3 xcall3; fd_xprim4 xcall4; fd_xprim5 xcall5;               \
-    fd_xprim6 xcall6; fd_xprim7 xcall7; fd_xprim8 xcall8;               \
-    fd_xprim9 xcall9; fd_xprim10 xcall10; fd_xprim11 xcall11;           \
-    fd_xprim12 xcall12; fd_xprim13 xcall13; fd_xprim14 xcall14;         \
-    fd_xprim15 xcall15;                                                 \
-    fd_xprimn xcalln;                                                   \
-    void *fnptr;}                                                       \
+  lispval fcnid;                                                          \
+  short fcn_arity, fcn_min_arity;                                         \
+  lispval fcn_attribs;                                                    \
+  int *fcn_typeinfo;                                                      \
+  lispval *fcn_defaults;                                                  \
+  long long fcn_profile_nsecs;                                            \
+  long long fcn_profile_count;                                            \
+  union {                                                                 \
+    fd_cprim0 call0; fd_cprim1 call1; fd_cprim2 call2;                    \
+    fd_cprim3 call3; fd_cprim4 call4; fd_cprim5 call5;                    \
+    fd_cprim6 call6; fd_cprim7 call7; fd_cprim8 call8;                    \
+    fd_cprim9 call9; fd_cprim10 call10; fd_cprim11 call11;                \
+    fd_cprim12 call12; fd_cprim13 call13; fd_cprim14 call14;              \
+    fd_cprim15 call15;                                                    \
+    fd_cprimn calln;                                                      \
+    fd_xprim0 xcall0; fd_xprim1 xcall1; fd_xprim2 xcall2;                 \
+    fd_xprim3 xcall3; fd_xprim4 xcall4; fd_xprim5 xcall5;                 \
+    fd_xprim6 xcall6; fd_xprim7 xcall7; fd_xprim8 xcall8;                 \
+    fd_xprim9 xcall9; fd_xprim10 xcall10; fd_xprim11 xcall11;             \
+    fd_xprim12 xcall12; fd_xprim13 xcall13; fd_xprim14 xcall14;           \
+    fd_xprim15 xcall15;                                                   \
+    fd_xprimn xcalln;                                                     \
+    void *fnptr;}                                                         \
     fcn_handler
 
 struct FD_FUNCTION {

@@ -79,6 +79,8 @@ __thread ssize_t fd_stack_limit = -1;
 ssize_t fd_stack_limit = -1;
 #endif
 
+static lispval moduleid_symbol;
+
 /* Whether to always profile */
 int fd_profiling = 0;
 
@@ -1094,6 +1096,9 @@ FD_EXPORT void fd_defn(lispval table,lispval fcn)
   struct FD_FUNCTION *f = fd_consptr(struct FD_FUNCTION *,fcn,fd_cprim_type);
   if (fd_store(table,fd_intern(f->fcn_name),fcn)<0)
     u8_raise(DefnFailed,"fd_defn",NULL);
+  if ( (FD_NULLP(f->fcn_moduleid)) || (FD_VOIDP(f->fcn_moduleid)) ) {
+    lispval moduleid = fd_get(table,moduleid_symbol,FD_VOID);
+    if (!(FD_VOIDP(moduleid))) f->fcn_moduleid=moduleid;}
 }
 
 FD_EXPORT void fd_idefn(lispval table,lispval fcn)
@@ -1101,6 +1106,9 @@ FD_EXPORT void fd_idefn(lispval table,lispval fcn)
   struct FD_FUNCTION *f = fd_consptr(struct FD_FUNCTION *,fcn,fd_cprim_type);
   if (fd_store(table,fd_intern(f->fcn_name),fcn)<0)
     u8_raise(DefnFailed,"fd_defn",NULL);
+  if ( (FD_NULLP(f->fcn_moduleid)) || (FD_VOIDP(f->fcn_moduleid)) ) {
+    lispval moduleid = fd_get(table,moduleid_symbol,FD_VOID);
+    if (!(FD_VOIDP(moduleid))) f->fcn_moduleid=moduleid;}
   fd_decref(fcn);
 }
 
@@ -1162,6 +1170,8 @@ FD_EXPORT void fd_init_apply_c()
 {
   int i = 0; while (i < FD_TYPE_MAX) fd_applyfns[i++]=NULL;
   i = 0; while (i < FD_TYPE_MAX) fd_functionp[i++]=0;
+
+  moduleid_symbol = fd_intern("%MODULEID");
 
   fd_functionp[fd_fcnid_type]=1;
 

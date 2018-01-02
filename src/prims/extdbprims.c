@@ -155,8 +155,12 @@ static void recycle_extdb_proc(struct FD_RAW_CONS *c)
   struct FD_EXTDB_PROC *dbproc = (struct FD_EXTDB_PROC *)c;
   if (dbproc->extdb_handler == NULL)
     u8_log(LOG_WARN,_("recycle failed"),"Bad extdb proc");
-  else if (dbproc->extdb_handler->recycle_proc)
+  else if (dbproc->extdb_handler->recycle_proc) {
     dbproc->extdb_handler->recycle_proc(dbproc);
+    if (dbproc->fcn_typeinfo) u8_free(dbproc->fcn_typeinfo);
+    if (dbproc->fcn_defaults) u8_free(dbproc->fcn_defaults);
+    if (dbproc->fcn_attribs) fd_decref(dbproc->fcn_attribs);
+    if (dbproc->fcn_moduleid) fd_decref(dbproc->fcn_moduleid);}
   else u8_log(LOG_WARN,_("recycle failed"),
               _("No recycle method for %s database procs"),
               dbproc->extdb_handler->name);

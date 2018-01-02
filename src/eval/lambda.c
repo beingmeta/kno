@@ -306,6 +306,7 @@ FD_EXPORT void recycle_lambda(struct FD_RAW_CONS *c)
   if (lambda->fcn_defaults) u8_free(lambda->fcn_defaults);
   if (lambda->fcn_documentation) u8_free(lambda->fcn_documentation);
   if (lambda->fcn_attribs) fd_decref(lambda->fcn_attribs);
+  if (lambda->fcn_moduleid) fd_decref(lambda->fcn_moduleid);
   fd_decref(lambda->lambda_arglist);
   fd_decref(lambda->lambda_body);
   fd_decref(lambda->lambda_source);
@@ -332,6 +333,9 @@ static int unparse_lambda(u8_output out,lispval x)
   struct FD_LAMBDA *lambda = fd_consptr(fd_lambda,x,fd_lambda_type);
   lispval arglist = lambda->lambda_arglist;
   unsigned long long addr = (unsigned long long) lambda;
+  lispval moduleid = lambda->fcn_moduleid;
+  u8_string modname =
+    (FD_SYMBOLP(moduleid)) ? (FD_SYMBOL_NAME(moduleid)) : (NULL);
   u8_string codes=
     (((lambda->lambda_synchronized)&&(lambda->fcn_ndcall))?("∀∥"):
      (lambda->lambda_synchronized)?("∥"):
@@ -364,6 +368,9 @@ static int unparse_lambda(u8_output out,lispval x)
   else u8_printf(out,"(…%q…)",arglist);
   if (!(lambda->fcn_name))
     u8_printf(out," #!0x%llx",(unsigned long long)lambda);
+  if (modname) {
+    u8_putc(out,' ');
+    u8_puts(out,modname);}
   if (lambda->fcn_filename) {
     u8_string filename=lambda->fcn_filename;
     /* Elide information after the filename (such as time/size/hash) */
@@ -559,6 +566,22 @@ static lispval thunk_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 
 /* DEFINE */
 
+static void init_definition(lispval fcn,lispval expr,fd_lexenv env)
+{
+  struct FD_FUNCTION *f = (fd_function) fcn;
+  if ( (FD_NULLP(f->fcn_moduleid)) || (FD_VOIDP(f->fcn_moduleid)) ) {
+    lispval moduleid = fd_get(env->env_bindings,moduleid_symbol,FD_VOID);
+    if (!(FD_VOIDP(moduleid)))
+      f->fcn_moduleid = moduleid;}
+  if (f->fcn_filename == NULL) {
+    u8_string sourcebase = fd_sourcebase();
+    if (sourcebase) f->fcn_filename = u8_strdup(sourcebase);}
+  if ( (fd_record_source) && (FD_LAMBDAP(fcn)) )  {
+    struct FD_LAMBDA *l = (fd_lambda) fcn;
+    l->lambda_source=expr;
+    fd_incref(expr);}
+}
+
 static lispval define_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   lispval var = fd_get_arg(expr,1);
@@ -573,11 +596,12 @@ static lispval define_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
       if (FD_ABORTED(value)) return value;
       else if (fd_bind_value(var,value,env)>=0) {
         lispval fvalue = (FD_FCNIDP(value))?(fd_fcnid_ref(value)):(value);
-        if (FD_LAMBDAP(fvalue)) {
-          struct FD_LAMBDA *s = (fd_lambda) fvalue;
-          if (s->fcn_filename == NULL) {
-            u8_string sourcebase = fd_sourcebase();
-            if (sourcebase) s->fcn_filename = u8_strdup(sourcebase);}}
+        if (FD_FUNCTIONP(fvalue)) init_definition(fvalue,expr,env);
+        if (FD_MACROP(fvalue)) {
+          struct FD_MACRO *macro = (fd_macro) fvalue;
+          if (FD_VOIDP(macro->macro_moduleid)) {
+            macro->macro_moduleid =
+              fd_get(env->env_bindings,moduleid_symbol,FD_VOID);}}
         fd_decref(value);
         return VOID;}
       else {
@@ -590,17 +614,16 @@ static lispval define_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
       return fd_err(fd_NotAnIdentifier,"DEFINE",NULL,fn_name);
     else {
       lispval value = make_lambda(SYM_NAME(fn_name),args,body,env,0,0);
-      if (FD_ABORTED(value)) return value;
+      if (FD_ABORTED(value))
+        return value;
       else if (fd_bind_value(fn_name,value,env)>=0) {
         lispval fvalue = (FD_FCNIDP(value))?(fd_fcnid_ref(value)):(value);
-        if (FD_LAMBDAP(fvalue)) {
-          struct FD_LAMBDA *s = (fd_lambda)fvalue;
-          if (s->fcn_filename == NULL) {
-            u8_string sourcebase = fd_sourcebase();
-            if (sourcebase) s->fcn_filename = u8_strdup(sourcebase);}
-          if (fd_record_source) {
-            s->lambda_source=expr;
-            fd_incref(expr);}}
+        if (FD_FUNCTIONP(fvalue)) init_definition(fvalue,expr,env);
+        if (FD_MACROP(fvalue)) {
+          struct FD_MACRO *macro = (fd_macro) fvalue;
+          if (FD_VOIDP(macro->macro_moduleid)) {
+            macro->macro_moduleid =
+              fd_get(env->env_bindings,moduleid_symbol,FD_VOID);}}
         fd_decref(value);
         return VOID;}
       else {
@@ -627,14 +650,7 @@ static lispval defslambda_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
         return value;
       else if (fd_bind_value(fn_name,value,env)>=0) {
         lispval opvalue = (FD_FCNIDP(value))?(fd_fcnid_ref(value)):(value);
-        if (FD_LAMBDAP(opvalue)) {
-          struct FD_LAMBDA *s = (fd_lambda)opvalue;
-          if (s->fcn_filename == NULL) {
-            u8_string sourcebase = fd_sourcebase();
-            if (sourcebase) s->fcn_filename = u8_strdup(sourcebase);}
-          if (fd_record_source) {
-            s->lambda_source=expr;
-            fd_incref(expr);}}
+        if (FD_FUNCTIONP(opvalue)) init_definition(opvalue,expr,env);
         fd_decref(value);
         return VOID;}
       else {
@@ -661,14 +677,7 @@ static lispval defambda_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
       if (FD_ABORTED(value)) return value;
       else if (fd_bind_value(fn_name,value,env)>=0) {
         lispval opvalue = fd_fcnid_ref(value);
-        if (FD_LAMBDAP(opvalue)) {
-          struct FD_LAMBDA *s = (fd_lambda)opvalue;
-          if (s->fcn_filename == NULL) {
-            u8_string sourcebase = fd_sourcebase();
-            if (sourcebase) s->fcn_filename = u8_strdup(sourcebase);}
-          if (fd_record_source) {
-            s->lambda_source=expr;
-            fd_incref(expr);}}
+        if (FD_FUNCTIONP(opvalue)) init_definition(opvalue,expr,env);
         fd_decref(value);
         return VOID;}
       else {

@@ -96,6 +96,29 @@ static lispval procedure_filename(lispval x)
   else return fd_type_error(_("function"),"procedure_filename",x);
 }
 
+static lispval procedure_moduleid(lispval x)
+{
+  if (FD_FUNCTIONP(x)) {
+    struct FD_FUNCTION *f = FD_XFUNCTION(x);
+    lispval id = f->fcn_moduleid;
+    if ( (FD_NULLP(id)) || (FD_VOIDP(id)) )
+      return FD_FALSE;
+    else return fd_incref(id);}
+  else if (TYPEP(x,fd_evalfn_type)) {
+    struct FD_EVALFN *sf = GETEVALFN(x);
+    lispval id = sf->evalfn_moduleid;
+    if ( (FD_NULLP(id)) || (FD_VOIDP(id)) )
+      return FD_FALSE;
+    else return fd_incref(id);}
+  else if (TYPEP(x,fd_macro_type)) {
+    struct FD_MACRO *m = (fd_macro) x;
+    lispval id = m->macro_moduleid;
+    if ( (FD_NULLP(id)) || (FD_VOIDP(id)) )
+      return FD_FALSE;
+    else return fd_incref(id);}
+  else return fd_type_error(_("function"),"procedure_module",x);
+}
+
 static lispval procedure_symbol(lispval x)
 {
   if (FD_APPLICABLEP(x)) {
@@ -466,7 +489,7 @@ static lispval macroexpand(lispval expander,lispval expr)
         if (FD_ABORTP(new_expr))
           return fd_err(fd_SyntaxError,_("macro expansion"),NULL,new_expr);
         else return new_expr;}
-      else return fd_err(fd_InvalidMacro,NULL,macrofn->fd_macro_name,expr);}
+      else return fd_err(fd_InvalidMacro,NULL,macrofn->macro_name,expr);}
     else return fd_type_error("macro","macroexpand",expander);}
   else return fd_incref(expr);
 }
@@ -715,6 +738,9 @@ FD_EXPORT void fd_init_reflection_c()
             "",
             -1,VOID);
   fd_idefn1(module,"PROCEDURE-FILENAME",procedure_filename,1,
+            "",
+            -1,VOID);
+  fd_idefn1(module,"PROCEDURE-MODULE",procedure_moduleid,1,
             "",
             -1,VOID);
   fd_idefn1(module,"PROCEDURE-ARITY",procedure_arity,1,

@@ -196,7 +196,7 @@ all_tests alltests: libtests cmdtests optimize_modules
 libtests: scheme optscheme slotmaps tables pools indexes db
 cmdtests: execscripts chainscripts batchscripts chained_batchscripts
 
-schemetest schemetests scheme: r4rs exceptions choices sequences numvecs hashsets \
+schemetest schemetests scheme: r4rs exceptions choices sequences numvecs reflect hashsets \
 	picktest cachecall texttools fdweb timefns threads i18n misc gctests \
 	xml crypto
 optscheme:
@@ -205,6 +205,7 @@ optscheme:
 	@${RUN} ${FDX} TESTOPTIMIZED=yes choicetest.scm ${RUNCONF}
 	@${RUN} ${FDX} TESTOPTIMIZED=yes seqtest.scm ${RUNCONF}
 	@${RUN} ${FDX} TESTOPTIMIZED=yes misctest.scm ${RUNCONF}
+	@${RUN} ${FDX} TESTOPTIMIZED=yes reflect.scm ${RUNCONF}
 	@${RUN} ${FDX} TESTOPTIMIZED=yes exceptions.scm ${RUNCONF}
 	@${RUN} ${FDX} TESTOPTIMIZED=yes picktest.scm ${RUNCONF}
 	@${RUN} ${FDX} TESTOPTIMIZED=yes cachecall.scm ${RUNCONF}
@@ -265,6 +266,9 @@ timefns:
 	@${header} "■■■■ Completed timefns tests ${RUNCONF}"
 threads:
 	@${RUN} ${FDX} threadtest.scm ${RUNCONF}
+	@${header} "■■■■ Completed threads tests ${RUNCONF}"
+reflect:
+	@${RUN} ${FDX} reflect.scm ${RUNCONF}
 	@${header} "■■■■ Completed threads tests ${RUNCONF}"
 i18n:
 	@${RUN} ${FDX} i18n.scm ${RUNCONF}

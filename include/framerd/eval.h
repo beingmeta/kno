@@ -72,15 +72,12 @@ typedef struct FD_EVALFN {
   FD_CONS_HEADER;
   u8_string evalfn_name, evalfn_filename;
   u8_string evalfn_documentation;
+  lispval evalfn_moduleid;
   fd_eval_handler evalfn_handler;} FD_EVALFN;
 typedef struct FD_EVALFN *fd_evalfn;
 
 FD_EXPORT lispval fd_make_evalfn(u8_string name,fd_eval_handler fn);
 FD_EXPORT void fd_defspecial(lispval mod,u8_string name,fd_eval_handler fn);
-FD_EXPORT void fd_new_evalfn(lispval mod,u8_string name,
-                             u8_string filename,
-                             u8_string doc,
-                             fd_eval_handler fn);
 FD_EXPORT void fd_new_evalfn(lispval mod,u8_string name,
                              u8_string filename,
                              u8_string doc,
@@ -91,9 +88,13 @@ FD_EXPORT void fd_new_evalfn(lispval mod,u8_string name,
 
 typedef struct FD_MACRO {
   FD_CONS_HEADER;
-  u8_string fd_macro_name;
+  u8_string macro_name;
+  u8_string macro_filename;
+  lispval macro_moduleid;
   lispval macro_transformer;} FD_MACRO;
 typedef struct FD_MACRO *fd_macro;
+
+#define FD_MACROP(x) (FD_TYPEP((x),fd_macro_type))
 
 /* These should probably get their own header file */
 
@@ -170,13 +171,15 @@ FD_EXPORT int fd_record_source;
   else {}
 
 FD_EXPORT lispval fd_apply_lambda(struct FD_STACK *,struct FD_LAMBDA *fn,
-                                int n,lispval *args);
+                                  int n,lispval *args);
 FD_EXPORT lispval fd_xapply_lambda
-  (struct FD_LAMBDA *fn,void *data,lispval (*getval)(void *,lispval));
+(struct FD_LAMBDA *fn,void *data,lispval (*getval)(void *,lispval));
 
 FD_EXPORT lispval fd_make_lambda(u8_string name,
-                               lispval arglist,lispval body,fd_lexenv env,
-                               int nd,int sync);
+                                 lispval arglist,lispval body,fd_lexenv env,
+                                 int nd,int sync);
+
+
 
 /* Loading files and config data */
 

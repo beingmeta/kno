@@ -1316,6 +1316,7 @@ FD_EXPORT void fd_defspecial(lispval mod,u8_string name,fd_eval_handler fn)
   f->evalfn_handler = fn;
   f->evalfn_filename = NULL;
   fd_store(mod,fd_intern(name),LISP_CONS(f));
+  f->evalfn_moduleid = fd_get(mod,moduleid_symbol,FD_VOID);
   fd_decref(LISP_CONS(f));
 }
 
@@ -1330,6 +1331,7 @@ FD_EXPORT void fd_new_evalfn(lispval mod,u8_string name,
   f->evalfn_filename = filename;
   f->evalfn_documentation = doc;
   fd_store(mod,fd_intern(name),LISP_CONS(f));
+  f->evalfn_moduleid = fd_get(mod,moduleid_symbol,FD_VOID);
   fd_decref(LISP_CONS(f));
 }
 
@@ -1636,6 +1638,9 @@ static int unparse_evalfn(u8_output out,lispval x)
 {
   struct FD_EVALFN *s=
     fd_consptr(struct FD_EVALFN *,x,fd_evalfn_type);
+  lispval moduleid = s->evalfn_moduleid;
+  u8_string modname =
+    (FD_SYMBOLP(moduleid)) ? (FD_SYMBOL_NAME(moduleid)) : (NULL);
   if (s->evalfn_filename) {
     u8_string filename = s->evalfn_filename;
     size_t len = strlen(filename);
@@ -1645,8 +1650,12 @@ static int unparse_evalfn(u8_output out,lispval x)
       strcpy(buf,filename);
       buf[space_break-filename]='\0';
       filename=buf;}
-    u8_printf(out,"#<EvalFN %s '%s'>",s->evalfn_name,filename);}
-  else u8_printf(out,"#<EvalFN %s>",s->evalfn_name);
+    u8_printf(out,"#<EvalFN %s %s%s%s%s%s%s>",
+              s->evalfn_name,
+              U8OPTSTR(" ",modname,""),
+              U8OPTSTR(" '",buf,"'"));}
+  else u8_printf(out,"#<EvalFN %s%s%s%s>",s->evalfn_name,
+                 U8OPTSTR(" ",modname,""));
   return 1;
 }
 

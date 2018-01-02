@@ -285,7 +285,8 @@ static int restart_connection(struct FD_MYSQL *dbp)
        reinitialized. */
     while (i<n) {
       struct FD_MYSQL_PROC *proc = procs[i++];
-      proc->mysqlproc_needs_init = 1; proc->mysqlproc_stmt = NULL;}
+      proc->mysqlproc_needs_init = 1;
+      proc->mysqlproc_stmt = NULL;}
 
     /* Some connection parameters may be reset, so we set them again */
     setup_connection(dbp);
@@ -792,7 +793,9 @@ static int init_stmt_results
     mysql_free_result(metadata); /* Hope this frees FIELDS */
     return n_cols;}
   else {
-    *outboundptr = NULL; *mysqlproc_colnamesptr = NULL;  *isnullbuf = NULL;
+    *outboundptr = NULL;
+    *mysqlproc_colnamesptr = NULL;
+    *isnullbuf = NULL;
     return n_cols;}
 }
 
@@ -806,7 +809,9 @@ static lispval mysqlexec(struct FD_MYSQL *dbp,lispval string,
                         lispval colinfo_arg,int reconn)
 {
   MYSQL *db = dbp->mysqldb;
-  MYSQL_BIND *outbound = NULL; lispval *mysqlproc_colnames = NULL; my_bool *isnullbuf = NULL;
+  MYSQL_BIND *outbound = NULL;
+  lispval *mysqlproc_colnames = NULL;
+  my_bool *isnullbuf = NULL;
   lispval colinfo = merge_colinfo(dbp,colinfo_arg), results = FD_VOID;
   int retval, n_cols = 0, i = 0; unsigned int mysqlerrno = 0;
   MYSQL_STMT *stmt;
