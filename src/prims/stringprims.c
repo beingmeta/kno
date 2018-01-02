@@ -1448,8 +1448,6 @@ FD_EXPORT void fd_init_stringprims_c()
            fd_make_cprim1x("PHRASE-LENGTH",string_phrase_length,1,
                            fd_string_type,VOID));
   fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("COMPOUND?",string_compoundp,1,-1,VOID));
-  fd_idefn(fd_scheme_module,
            fd_make_cprim2x("STDSPACE",string_stdspace,1,
                            fd_string_type,VOID,-1,VOID));
   fd_idefn(fd_scheme_module,

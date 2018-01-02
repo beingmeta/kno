@@ -361,8 +361,8 @@ FD_EXPORT void fd_init_compoundfns_c()
   consfn_symbol = fd_intern("CONS");
   stringfn_symbol = fd_intern("STRINGIFY");
 
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2("COMPOUND-TYPE?",compoundp,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim2("COMPOUND?",compoundp,1));
+  fd_defalias(fd_scheme_module,"COMPOUND-TYPE?","COMPOUND?");
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("COMPOUND-TAG",compound_tag,1,
                            fd_compound_type,VOID));
