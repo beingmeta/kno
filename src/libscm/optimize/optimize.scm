@@ -55,7 +55,7 @@
 (define-init persist-default #f)
 (varconfig! optimize:persist persist-default)
 
-(define-init keep-source-default #t)
+(define-init keep-source-default #f)
 (varconfig! optimize:keepsource keep-source-default)
 
 
