@@ -407,4 +407,4 @@ end
 # Init some tracing configurations
 set env FD_DLOAD:TRACE=yes
 # This is for OS X > Sierra
-set startup-with-shell off
+# set startup-with-shell off
