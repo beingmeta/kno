@@ -4,7 +4,11 @@
 (define logtime-file #f)
 (varconfig! LOGTIME logtime-file)
 (define (save-elapsed-atexit)
-  (when logtime-file (fileout logtime-file (elapsed-time started))))
+  (when logtime-file 
+    (fileout logtime-file 
+      (config 'ppid)
+      "\t" (elapsed-time started)
+      "\t" (doseq (arg (config 'argv)) (printout " " arg)))))
 (config! 'atexit save-elapsed-atexit)
 
 (config! 'log:threadid #t)

@@ -7,6 +7,9 @@ fi
 PROGNAME=$1; shift;
 LOGFILE=$$.log
 LOGTIME=t$$.elapsed
+KEEPTIMES=yes
+KEEPLOGS=no
+COMBOLOG=success.log
 
 if test ! -z ${PREAMBLE}; then
    echo "TEST: " ${PROGNAME} $*;
@@ -15,17 +18,36 @@ fi;
 . ./runenv.sh
 
 if @test_env@ ${PROGNAME} $* LOGTIME=${LOGTIME} > ${LOGFILE}; then
-    if test -f ${LOGTIME}; then
-	echo "SUCCESS:" ${PROGNAME} $* "("$(cat ${LOGTIME})"s)";
-	rm ${LOGTIME};
-    else echo "SUCCESS:" ${PROGNAME} $*; fi
-   cat ${LOGFILE} >> success.log
-   rm ${LOGFILE};
-   exit 0
+    MSG="SUCCESS"
+    SUCCESS=yes
 else
-    echo "FAILURE:" ${PROGNAME} $*;
-    echo Log file in ${LOGFILE};
-    cat ${LOGFILE} >> failure.log
-    exit 1
+    MSG="FAILURE"
+    COMBINED=failure.log
+    SUCCESS=no
 fi;
 
+if test -f ${LOGTIME}; then
+    TIMING=$(awk '{ print $2}' ${LOGTIME});
+    cat ${LOGTIME} >> timing.log
+    if [ "${KEEPTIMES}" = "no" ]; then
+	rm ${LOGTIME};
+    fi;
+else
+    TIMING=untimed;
+fi;
+
+# Save the log file
+printf "# TEST: %s\t(t%d) (%ssecs)\n" "${PROGNAME} $*" "$$" "${TIMING}" >> ${COMBOLOG}
+cat ${LOGFILE} >> ${COMBOLOG}
+
+# Output the result message
+printf "%s: (%s) (t%d)\t%s\n" "$MSG" "$TIMING" "$$" "${PROGNAME} $*";
+
+# Deal with the log file
+if [ "$SUCCESS" = "no" ]; then
+    printf "Log file in %s\n" "${LOGFILE}";
+elif [ "$KEEPLOGS" = "no" ]; then
+    rm ${LOGFILE};
+fi;
+
+    

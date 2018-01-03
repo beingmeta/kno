@@ -150,17 +150,18 @@ webcommon.h: ../../src/exe/webcommon.h
 
 # Clean targets
 
-clean: testclean
+clean: tidy
 	rm -f $(TESTBIN)
 	find . -name "vgcore.*" | xargs rm -f
 	find . -name "*.pid" | xargs rm -f
 	rm -rf mongodb/dbdata;
 
-testclean cleantests cleantest:
-	rm -rf *.log *.err *.done *.finished *.pid *.died
+tidy testclean cleantests cleantest:
+	rm -rf *.log *.err *.done *.finished *.pid *.died *.elapsed
 	rm -rf tmp* utf8-temp* memoization.index test.dtype
 	rm -rf *.pool *.index *.flexpool *.flexindex
 	rm -rf logfile thirty2fifty thirtythree 
+	rm -rf success.log failure.log timing.log
 
 # Static lib targets
 
@@ -190,7 +191,8 @@ fdcgiexec: ../../src/exe/webcommon.h
 
 # Test targets
 
-all_tests alltests: libtests cmdtests optimize_modules
+all_tests alltests: tidy
+	make libtests cmdtests optimize_modules
 	@${header} "■■■■■■■■ Done with alltests"
 
 libtests: scheme optscheme slotmaps tables pools indexes db
@@ -443,7 +445,7 @@ hashindex40:
 hashindex64:
 	@make TESTBASE=tmphash64.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B64" indextest
 hashindex40x:
-	@make TESTBASE=tmphash40x.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B40 SLOTCODES=4 OIDCODES=4" indextest
+	@make TESTBASE=tmphash40x.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B40 SLOTCODES=yes OIDCODES=yes" indextest
 
 hashindexes hashindex: hashindex32 hashindex40 hashindex40x hashindex64
 
