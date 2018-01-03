@@ -28,7 +28,7 @@ fi;
 
 if test -f ${LOGTIME}; then
     TIMING=$(awk '{ print $2}' ${LOGTIME});
-    cat ${LOGTIME} >> timing.log
+    printf "%f\t %s\n" ${TIMING} "${PROGNAME} $*" >> timing.log
     if [ "${KEEPTIMES}" = "no" ]; then
 	rm ${LOGTIME};
     fi;
