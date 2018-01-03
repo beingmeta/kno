@@ -894,7 +894,7 @@ static int stdin_config_set(lispval var,lispval val,void *data)
 
 static int pidfile_config_set(lispval var,lispval val,void *data)
 {
-  u8_string filename=NULL, *sptr = (u8_string *) data;
+  u8_string filename=NULL;
   if (FD_STRINGP(val))
     filename=u8_strdup(FD_CSTRING(val));
   else if (FD_TRUEP(val)) {

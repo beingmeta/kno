@@ -11,6 +11,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/eval.h"
+#include "framerd/profiles.h"
 
 #include "libu8/u8streamio.h"
 #include "libu8/u8printf.h"
@@ -649,9 +650,16 @@ static lispval profile_fcn_prim(lispval fcn,lispval bool)
 {
   if (FD_FUNCTIONP(fcn)) {
     struct FD_FUNCTION *f = (fd_function) fcn;
-    if (FD_FALSEP(bool))
-      f->fcn_profile = 0;
-    else f->fcn_profile = 1;
+    if (FD_FALSEP(bool)) {
+      struct FD_PROFILE *profile = f->fcn_profile;
+      if (profile)
+        return FD_FALSE;
+      else {
+        f->fcn_profile = NULL;
+        u8_free(profile);}}
+    else {
+      struct FD_PROFILE *profile = fd_make_profile(f->fcn_name);
+      f->fcn_profile = fd_make_profile(f->fcn_name);}
     return FD_TRUE;}
   else return fd_type_error("function","profile_fcn",fcn);
 }
@@ -660,9 +668,19 @@ static lispval profile_reset_prim(lispval fcn)
 {
   if (FD_FUNCTIONP(fcn)) {
     struct FD_FUNCTION *f = (fd_function) fcn;
-    f->fcn_profile = 1;
-    f->fcn_profile_count = ATOMIC_VAR_INIT(0);
-    f->fcn_profile_nsecs = ATOMIC_VAR_INIT(0);
+    struct FD_PROFILE *profile = f->fcn_profile;
+    if (profile == NULL) return FD_FALSE;
+#if HAVE_STDATOMIC_H
+    profile->prof_calls = ATOMIC_VAR_INIT(0);
+    profile->prof_items = ATOMIC_VAR_INIT(0);
+    profile->prof_nsecs = ATOMIC_VAR_INIT(0);
+#else
+    u8_lock_mutex(&(profile->prof_lock));
+    profile->prof_calls = 0;
+    profile->prof_items = 0;
+    profile->prof_nsecs = 0;
+    u8_unlock_mutex(&(profile->prof_lock));
+#endif
     return FD_TRUE;}
   else return fd_type_error("function","profile_fcn",fcn);
 }
@@ -681,12 +699,14 @@ static lispval getcalls_prim(lispval fcn)
 {
   if (FD_FUNCTIONP(fcn)) {
     struct FD_FUNCTION *f = (fd_function) fcn;
+    struct FD_PROFILE *p = f->fcn_profile;
     double exec_time =
-      ((double)((f->fcn_profile_nsecs)|(f->fcn_profile_count)))/1000000000.0;
+      ((double)((p->prof_nsecs)|(p->prof_calls)))/1000000000.0;
     fd_incref(fcn);
     return fd_make_nvector
-      (4,f,fd_make_flonum(exec_time),
-       FD_INT(f->fcn_profile_nsecs),FD_INT(f->fcn_profile_count));}
+      (5,f,fd_make_flonum(exec_time),
+       FD_INT(p->prof_nsecs),FD_INT(p->prof_calls),
+       FD_INT(p->prof_items));}
   else return fd_type_error("function","profile_fcn",fcn);
 }
 

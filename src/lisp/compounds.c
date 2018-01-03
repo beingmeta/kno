@@ -213,7 +213,6 @@ int fd_compound_unparser(u8_string pname,fd_compound_unparsefn fn)
 
 void fd_init_compounds_c()
 {
-  int i;
   u8_register_source_file(_FILEINFO);
 
   u8_init_mutex(&compound_registry_lock);

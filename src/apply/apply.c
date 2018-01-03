@@ -18,6 +18,7 @@
 #include "framerd/dtype.h"
 #include "framerd/lexenv.h"
 #include "framerd/stacks.h"
+#include "framerd/profiles.h"
 #include "framerd/apply.h"
 
 #include <libu8/u8printf.h>
@@ -617,6 +618,7 @@ FD_EXPORT lispval fd_dcall(struct FD_STACK *_stack,
   /* Make the call */
   if (stackcheck()) {
     lispval result=VOID;
+    struct FD_PROFILE *profile = (f) ? (f->fcn_profile) : (NULL);
     FD_APPLY_STACK(apply_stack,fname,fn);
     if (f) {
       apply_stack->stack_src      = f->fcn_filename;
@@ -624,22 +626,26 @@ FD_EXPORT lispval fd_dcall(struct FD_STACK *_stack,
     apply_stack->stack_args=argvec;
     apply_stack->n_args=n;
     U8_WITH_CONTOUR(fname,0)
-      if (f) {
+      if ( (f) && (profile) ) {
+        long long nsecs = 0;
 #if HAVE_CLOCK_GETTIME
-        int profile = (fd_profiling) || (f->fcn_profile);
         struct timespec start, end;
-        if (profile) clock_gettime(CLOCK_MONOTONIC,&start);
-        result=apply_fcn(apply_stack,fname,f,n,argvec);
-        if (profile) {
-          clock_gettime(CLOCK_MONOTONIC,&end);
-          long long nsecs = ((end.tv_sec*1000000000)+(end.tv_nsec)) -
-            ((start.tv_sec*1000000000)+(start.tv_nsec));
-          atomic_fetch_add(&(f->fcn_profile_count),1);
-          atomic_fetch_add(&(f->fcn_profile_nsecs),nsecs);}
-#else
-        result=apply_fcn(apply_stack,fname,f,n,argvec);
+        clock_gettime(CLOCK_MONOTONIC,&start);
 #endif
-      } else result=fd_applyfns[ftype](fn,n,argvec);
+        result=apply_fcn(apply_stack,fname,f,n,argvec);
+        if ( (FD_TAILCALLP(result)) && (f->fcn_notail) )
+          result=fd_finish_call(result);
+#if HAVE_CLOCK_GETTIME
+        clock_gettime(CLOCK_MONOTONIC,&end);
+        nsecs = ((end.tv_sec*1000000000)+(end.tv_nsec)) -
+          ((start.tv_sec*1000000000)+(start.tv_nsec));
+#endif
+        fd_profile_call(profile,nsecs,0);}
+      else if (f) {
+        result=apply_fcn(apply_stack,fname,f,n,argvec);
+        if ( (FD_TAILCALLP(result)) && (f->fcn_notail) )
+          result=fd_finish_call(result);}
+      else result=fd_applyfns[ftype](fn,n,argvec);
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
       result = FD_ERROR;}
@@ -1152,11 +1158,12 @@ static int config_add_profiled(lispval var,lispval val,void *data)
     if (fcn->fcn_profile)
       return 0;
     u8_lock_mutex(&profiled_lock);
+    struct FD_PROFILE *profile = fd_make_profile(fcn->fcn_name);
     lispval *ptr = (lispval *) data;
     lispval cur = *ptr;
     fd_incref(val);
     FD_ADD_TO_CHOICE(cur,val);
-    fcn->fcn_profile=1;
+    fcn->fcn_profile=profile;
     *ptr = cur;
     return 1;}
   else {

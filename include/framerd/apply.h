@@ -11,7 +11,7 @@
 #define FRAMERD_APPLY_H_INFO "include/framerd/apply.h"
 #endif
 
-#if HAVE_ATOMIC_H
+#if HAVE_STDATOMIC_H
 #define _ATOMIC_DECL _Atomic
 #define _ATOMIC_INIT(x) ATOMIC_VAR_INIT(x)
 #else
@@ -147,14 +147,13 @@ typedef lispval (*fd_xprimn)(fd_function,int n,lispval *);
   u8_string fcn_documentation;                                            \
   lispval fcn_moduleid;                                                   \
   unsigned int fcn_ndcall:1, fcn_xcall:1, fcn_wrap_calls:1, fcn_notail:1; \
-  unsigned int fcn_profile:1, fcn_break:1, fcn_trace:3;                   \
+  unsigned int fcn_break:1, fcn_trace:3;                                  \
   lispval fcnid;                                                          \
   short fcn_arity, fcn_min_arity;                                         \
   lispval fcn_attribs;                                                    \
   int *fcn_typeinfo;                                                      \
   lispval *fcn_defaults;                                                  \
-  _ATOMIC_DECL long long fcn_profile_nsecs;                               \
-  _ATOMIC_DECL long long fcn_profile_count;                               \
+  struct FD_PROFILE *fcn_profile;                                         \
   union {                                                                 \
     fd_cprim0 call0; fd_cprim1 call1; fd_cprim2 call2;                    \
     fd_cprim3 call3; fd_cprim4 call4; fd_cprim5 call5;                    \
@@ -176,12 +175,6 @@ typedef lispval (*fd_xprimn)(fd_function,int n,lispval *);
 struct FD_FUNCTION {
   FD_FUNCTION_FIELDS;
 };
-
-#define FD_INIT_FUNCTION(fcn,type,td)       \
-  memset(fcn,0,sizeof(td));                 \
-  FD_INIT_FRESH_CONS(fcn,type);             \
-  fcn->fcn_profile_count = _ATOMIC_INIT(0); \
-  fcn->fcn_profile_nsecs = _ATOMIC_INIT(0)
 
 /* This maps types to whether they have function (FD_FUNCTION_FIELDS) header. */
 FD_EXPORT short fd_functionp[];

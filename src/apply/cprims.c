@@ -131,7 +131,7 @@ static struct FD_FUNCTION *new_cprim(u8_string name,
                                      int extended_call)
 {
   struct FD_FUNCTION *f = u8_alloc(struct FD_FUNCTION);
-  FD_INIT_FUNCTION(f,fd_cprim_type,struct FD_FUNCTION);
+  FD_INIT_FRESH_CONS(f,fd_cprim_type);
   f->fcn_name = name;
   f->fcn_filename = filename;
   f->fcn_documentation = doc;
