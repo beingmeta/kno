@@ -700,13 +700,21 @@ static lispval getcalls_prim(lispval fcn)
   if (FD_FUNCTIONP(fcn)) {
     struct FD_FUNCTION *f = (fd_function) fcn;
     struct FD_PROFILE *p = f->fcn_profile;
-    double exec_time =
-      ((double)((p->prof_nsecs)|(p->prof_calls)))/1000000000.0;
+    if (p==NULL) return FD_FALSE;
+#if HAVE_STDATOMIC_H
+    long long nsecs = atomic_load(&(p->prof_nsecs));
+    long long calls = atomic_load(&(p->prof_calls));
+    long long items = atomic_load(&(p->prof_items));
+#else
+    long long nsecs = p->prof_nsecs;
+    long long calls = p->prof_calls;
+    long long items = p->prof_items;
+#endif
+    double exec_time = ((double)((nsecs)|(calls)))/1000000000.0;
     fd_incref(fcn);
     return fd_make_nvector
       (5,f,fd_make_flonum(exec_time),
-       FD_INT(p->prof_nsecs),FD_INT(p->prof_calls),
-       FD_INT(p->prof_items));}
+       FD_INT(nsecs),FD_INT(calls),FD_INT(items));}
   else return fd_type_error("function","profile_fcn",fcn);
 }
 

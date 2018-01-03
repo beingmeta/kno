@@ -158,6 +158,14 @@
 #endif
 #endif
 
+#ifndef FD_USE_ATOMIC
+#if HAVE_STDATOMIC_H
+#define FD_USE_ATOMIC 1
+#else
+#define FD_USE_ATOMIC 0
+#endif
+#endif
+
 #if (HAVE_OFF_T)
 #if ((FD_LARGEFILES_ENABLED)&&(SIZEOF_OFF_T==8))
 typedef off_t fd_off_t;
