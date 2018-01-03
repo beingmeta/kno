@@ -649,7 +649,7 @@ static lispval getmodules_evalfn(lispval expr,fd_lexenv call_env,fd_stack _stack
 static lispval profile_fcn_prim(lispval fcn,lispval bool)
 {
   if (FD_FUNCTIONP(fcn)) {
-    struct FD_FUNCTION *f = (fd_function) fcn;
+    struct FD_FUNCTION *f = FD_XFUNCTION(fcn);
     if (FD_FALSEP(bool)) {
       struct FD_PROFILE *profile = f->fcn_profile;
       if (profile)
@@ -667,7 +667,7 @@ static lispval profile_fcn_prim(lispval fcn,lispval bool)
 static lispval profile_reset_prim(lispval fcn)
 {
   if (FD_FUNCTIONP(fcn)) {
-    struct FD_FUNCTION *f = (fd_function) fcn;
+    struct FD_FUNCTION *f = FD_XFUNCTION(fcn);
     struct FD_PROFILE *profile = f->fcn_profile;
     if (profile == NULL) return FD_FALSE;
 #if HAVE_STDATOMIC_H
@@ -688,7 +688,7 @@ static lispval profile_reset_prim(lispval fcn)
 static lispval profiledp_prim(lispval fcn)
 {
   if (FD_FUNCTIONP(fcn)) {
-    struct FD_FUNCTION *f = (fd_function) fcn;
+    struct FD_FUNCTION *f = FD_XFUNCTION(fcn);
     if (f->fcn_profile)
       return FD_TRUE;
     else return FD_FALSE;}
@@ -698,7 +698,7 @@ static lispval profiledp_prim(lispval fcn)
 static lispval getcalls_prim(lispval fcn)
 {
   if (FD_FUNCTIONP(fcn)) {
-    struct FD_FUNCTION *f = (fd_function) fcn;
+    struct FD_FUNCTION *f = FD_XFUNCTION(fcn);
     struct FD_PROFILE *p = f->fcn_profile;
     if (p==NULL) return FD_FALSE;
 #if HAVE_STDATOMIC_H
