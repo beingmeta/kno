@@ -337,7 +337,7 @@ SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig etc/fdconfig \
 	etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall \
 	etc/fd_start_daemons etc/fd_start_servlets etc/fd_stop_jobs \
 	etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog  \
-	etc/fdrestart etc/fdctl etc/fdgdb \
+	etc/fdrestart etc/fdctl etc/fdgdb etc/fdbgexec \
 	etc/fdcleanup
 SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
 	       exe/scripts/hashindexop exe/scripts/reset-pool \
