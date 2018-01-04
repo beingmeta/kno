@@ -688,10 +688,13 @@ static lispval until_opcode(lispval expr,fd_lexenv env,fd_stack stack)
   if (VOIDP(test_expr))
     return fd_err(fd_SyntaxError,"FD_LOOP_OPCODE",NULL,expr);
   lispval test_val = op_eval(test_expr,env,stack,0);
-  if (FD_ABORTED(test_val)) return test_val;
+  if (FD_ABORTED(test_val))
+    return test_val;
   else while (FALSEP(test_val)) {
       lispval body_result=op_eval_body(loop_body,env,stack,0);
-      if (FD_ABORTED(body_result))
+      if (FD_BROKEP(body_result))
+        return FD_FALSE;
+      else if (FD_ABORTED(body_result))
         return body_result;
       else fd_decref(body_result);
       test_val = op_eval(test_expr,env,stack,0);
@@ -895,7 +898,7 @@ static lispval bindop(lispval op,
                       int tail)
 {
   int i=0, n=VEC_LEN(vars);
-  FD_PUSH_STACK(bind_stack,"bindop",NULL,op);
+  FD_PUSH_STACK(bind_stack,"bindop","opframe",op);
   INIT_STACK_SCHEMA(bind_stack,bound,env,n,VEC_DATA(vars));
   lispval *values=bound_bindings.schema_values;
   lispval *exprs=VEC_DATA(inits);
