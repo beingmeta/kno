@@ -1275,6 +1275,10 @@
 (add! special-form-optimizers logif optimize-logif)
 (add! special-form-optimizers logif+ optimize-logif+)
 
+(add! special-form-optimizers
+      with-log-context
+      optimize-block)
+
 ;; Don't optimize these because they look at the symbol that is the head
 ;; of the expression to get their tag name.
 (add! special-form-optimizers {"markupblock" "ANCHOR"} optimize-markup)
