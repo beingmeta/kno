@@ -657,9 +657,7 @@ static lispval profile_fcn_prim(lispval fcn,lispval bool)
       else {
         f->fcn_profile = NULL;
         u8_free(profile);}}
-    else {
-      struct FD_PROFILE *profile = fd_make_profile(f->fcn_name);
-      f->fcn_profile = fd_make_profile(f->fcn_name);}
+    else f->fcn_profile = fd_make_profile(f->fcn_name);
     return FD_TRUE;}
   else return fd_type_error("function","profile_fcn",fcn);
 }
@@ -713,7 +711,7 @@ static lispval getcalls_prim(lispval fcn)
     double exec_time = ((double)((nsecs)|(calls)))/1000000000.0;
     fd_incref(fcn);
     return fd_make_nvector
-      (5,f,fd_make_flonum(exec_time),
+      (5,fcn,fd_make_flonum(exec_time),
        FD_INT(nsecs),FD_INT(calls),FD_INT(items));}
   else return fd_type_error("function","profile_fcn",fcn);
 }
