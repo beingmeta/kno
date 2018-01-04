@@ -2,7 +2,10 @@
 
 (load-component "common.scm")
 
-(use-module 'reflection)
+(use-module '{reflection varconfig})
+
+(define configured-value #f)
+(varconfig! confvar configured-value #t)
 
 (optimization-leaks)
 
@@ -425,9 +428,19 @@
 ;;; Testing use-binding and %use-binding
 
 (define $num (get-binding 'stringfmts '$num))
+(define $num2 (importvar 'stringfmts '$num))
 
 (evaltest "3" (stringout ($num 3)))
 (evaltest "186,000" (stringout ($num 186000)))
+
+(evaltest "3" (stringout ($num2 3)))
+(evaltest "186,000" (stringout ($num2 186000)))
+
+;;; Check for config setting
+
+(evaltest 88 configured-value)
+(evaltest "quux" (config 'foo))
+(evaltest "baz" (config 'xconf))
 
 ;;; Gather errors
 

@@ -206,7 +206,7 @@ optscheme:
 	@${RUN} ${FDX} TESTOPTIMIZED=yes r4rs.scm ${RUNCONF}
 	@${RUN} ${FDX} TESTOPTIMIZED=yes choicetest.scm ${RUNCONF}
 	@${RUN} ${FDX} TESTOPTIMIZED=yes seqtest.scm ${RUNCONF}
-	@${RUN} ${FDX} TESTOPTIMIZED=yes misctest.scm ${RUNCONF}
+	@${RUN} ${FDX} TESTOPTIMIZED=yes misctest.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz"
 	@${RUN} ${FDX} TESTOPTIMIZED=yes reflect.scm ${RUNCONF}
 	@${RUN} ${FDX} TESTOPTIMIZED=yes exceptions.scm ${RUNCONF}
 	@${RUN} ${FDX} TESTOPTIMIZED=yes picktest.scm ${RUNCONF}
@@ -279,7 +279,7 @@ i18n:
 	@${RUN} ${FDX} i18n.scm ${RUNCONF}
 	@${header} "■■■■ Completed i18n tests ${RUNCONF}"
 misc misctest:
-	@${RUN} ${FDX} misctest.scm ${RUNCONF}
+	@${RUN} ${FDX} misctest.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz"
 	@${header} "■■■■ Completed misc tests ${RUNCONF}"
 gctests:
 	@${RUN} ${FDX} gctests.scm ${RUNCONF}

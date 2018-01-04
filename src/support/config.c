@@ -347,20 +347,43 @@ FD_EXPORT lispval fd_all_configs(int with_docs)
 /* This takes a string of the form var = value */
 FD_EXPORT int fd_config_assignment(u8_string assignment)
 {
-  u8_byte *equals;
+  u8_byte *equals, *semi;
   if ((equals = (strchr(assignment,'=')))) {
-    u8_byte _namebuf[64], *namebuf;
-    int namelen = equals-assignment, retval;
-    lispval value = fd_parse_arg(equals+1);
-    if (FD_ABORTP(value))
-      return fd_interr(value);
-    if (namelen+1>64)
-      namebuf = u8_malloc(namelen+1);
-    else namebuf=_namebuf;
-    strncpy(namebuf,assignment,namelen); namebuf[namelen]='\0';
-    retval = fd_set_config_consed(namebuf,value);
-    if (namebuf!=_namebuf) u8_free(namebuf);
-    return retval;}
+    if (semi=strchr(assignment,';')) {
+      ssize_t len = strlen(assignment);
+      int count = 0, rv = 0;
+      u8_byte copied[len+1], *start = copied;
+      strncpy(copied,assignment,len+1);
+      while (semi=strchr(start,';')) {
+        if ( (semi>start) && (semi[-1] == '\\') ) {
+          semi = strchr(semi+1,';');
+          continue;}
+        *semi = '\0';
+        int rv = fd_config_assignment(start);
+        if (rv<0) {
+          u8_seterr("BadConfig","fd_config_assigment",u8_strdup(start));
+          return rv;}
+        start=semi+1;
+        count++;}
+      if (*start) {
+        rv = fd_config_assignment(start);
+        if (rv>=0) count++;}
+      if (rv<0)
+        return -(count+1);
+      else return count;}
+    else {
+      u8_byte _namebuf[64], *namebuf;
+      int namelen = equals-assignment, retval;
+      lispval value = fd_parse_arg(equals+1);
+      if (FD_ABORTP(value))
+        return fd_interr(value);
+      if (namelen+1>64)
+        namebuf = u8_malloc(namelen+1);
+      else namebuf=_namebuf;
+      strncpy(namebuf,assignment,namelen); namebuf[namelen]='\0';
+      retval = fd_set_config_consed(namebuf,value);
+      if (namebuf!=_namebuf) u8_free(namebuf);
+      return retval;}}
   else return -1;
 }
 
