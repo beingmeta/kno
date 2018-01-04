@@ -338,6 +338,14 @@ static lispval begin_evalfn(lispval begin_expr,fd_lexenv env,fd_stack _stack)
   return eval_body("BEGIN",NULL,begin_expr,1,env,_stack);
 }
 
+static lispval onbreak_evalfn(lispval begin_expr,fd_lexenv env,fd_stack _stack)
+{
+  lispval result = eval_body("ONBREAK",NULL,begin_expr,2,env,_stack);
+  if (FD_BREAKP(result))
+    result = fast_stack_eval(fd_get_arg(begin_expr,1),env,_stack);
+  return result;
+}
+
 static lispval prog1_evalfn(lispval prog1_expr,fd_lexenv env,fd_stack _stack)
 {
   lispval arg1 = fd_get_arg(prog1_expr,1);
@@ -381,6 +389,7 @@ FD_EXPORT void fd_init_iterators_c()
   fd_def_evalfn(fd_scheme_module,"PROG1","",prog1_evalfn);
   fd_def_evalfn(fd_scheme_module,"COMMENT","",comment_evalfn);
   fd_defalias(fd_scheme_module,"*******","COMMENT");
+  fd_def_evalfn(fd_scheme_module,"ONBREAK","",onbreak_evalfn);
 
 }
 

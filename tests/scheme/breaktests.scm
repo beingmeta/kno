@@ -51,3 +51,5 @@
 
 (evaltest 3 (choice-size (pick-some tenchoice 3)))
 (evaltest 8 (choice-size (pick-some tenchoice 8)))
+
+(evaltest 33 (onbreak (* 3 11) 8 9 (* 88 9) #break (+ 17 5)))

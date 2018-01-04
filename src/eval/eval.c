@@ -318,7 +318,8 @@ static lispval getopt_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
             FD_STOP_DO_CHOICES;}
           else if (!(VOIDP(v))) {CHOICE_ADD(results,v);}}
         if (FD_ABORTED(results)) {FD_STOP_DO_CHOICES;}}
-      fd_decref(keys); fd_decref(opts);
+      fd_decref(keys);
+      fd_decref(opts);
       if (FD_ABORTED(results)) {
         return results;}
       else if (EMPTYP(results)) {
@@ -1467,6 +1468,15 @@ static lispval env_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   return (lispval)fd_copy_env(env);
 }
 
+static lispval env_reset_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+{
+  if ( (env->env_copy) && (env != env->env_copy) ) {
+    lispval tofree = (lispval) env;
+    env->env_copy=NULL;
+    fd_decref(tofree);}
+  return VOID;
+}
+
 static lispval symbol_boundp_prim(lispval symbol,lispval envarg)
 {
   if (!(SYMBOLP(symbol)))
@@ -2613,6 +2623,13 @@ static void init_localfns()
   fd_def_evalfn(fd_scheme_module,"QUOTE","",quote_evalfn);
   fd_def_evalfn(fd_scheme_module,"%ENV","",env_evalfn);
   fd_def_evalfn(fd_scheme_module,"%MODREF","",modref_evalfn);
+
+  fd_def_evalfn(fd_scheme_module,"%ENV/RESET!",
+                "Resets the cached dynamic copy of the current "
+                "environment (if any). This means that procedures "
+                "closed in the current environment will not be "
+                "effected by future changes",
+                env_reset_evalfn);
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim1("DOCUMENTATION",get_documentation,1));

@@ -1,6 +1,7 @@
 static lispval moduleid_symbol;
 
 #define fast_eval(x,env) (_fd_fast_eval(x,env,_stack,0))
+#define fast_stack_eval(x,env,stack) (_fd_fast_eval(x,env,stack,0))
 #define fast_tail_eval(x,env) (_fd_fast_eval(x,env,_stack,1))
 #define stack_eval(x,env,s) (_fd_fast_eval(x,env,s,0))
 #define stack_tail_eval(x,env,s) (_fd_fast_eval(x,env,s,1))
