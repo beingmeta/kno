@@ -27,7 +27,7 @@ typedef struct FD_PROFILE {
 #endif
 
 #if HAVE_STDATOMIC_H
-static void fd_profile_call
+U8_MAYBE_UNUSED static void fd_profile_call
 (struct FD_PROFILE *p,long long nsecs,long long items)
 {
   if (items) atomic_fetch_add(&(p->prof_items),items);
