@@ -64,7 +64,6 @@ typedef struct FD_STACK {
   unsigned int stack_retvoid:1, stack_ndcall:1, stack_tail:1;
   unsigned int stack_free_label:1, stack_free_status:1, stack_free_src:1;
   unsigned int stack_decref_op:1;
-  unsigned int stack_inloop:1, stack_exit_loop:1;
   struct FD_STACK_CLEANUP _cleanups[FD_STACK_CLEANUP_QUANTUM];
   struct FD_STACK_CLEANUP *cleanups;
   short n_cleanups;} *fd_stack;

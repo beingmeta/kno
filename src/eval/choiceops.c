@@ -85,7 +85,9 @@ static lispval dochoices_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     {lispval steps = fd_get_body(expr,2);
       FD_DOLIST(step,steps) {
         lispval val = fast_eval(step,dochoices);
-        if (FD_ABORTED(val)) {
+        if (FD_BROKEP(val))
+          _return FD_VOID;
+        else if (FD_ABORTED(val)) {
           _return val;}
         else fd_decref(val);}}
     reset_env(dochoices);
@@ -124,7 +126,10 @@ static lispval trychoices_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     FD_DOLIST(step,steps) {
       fd_decref(val);
       val = fast_eval(step,trychoices);
-      if (FD_ABORTED(val)) _return val;}
+      if (FD_BROKEP(val))
+        _return EMPTY;
+      else if (FD_ABORTED(val))
+        _return val;}
     reset_env(trychoices);
     fd_decref(trychoices_vals[0]);
     trychoices_vals[0]=VOID;
@@ -164,7 +169,11 @@ static lispval forchoices_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     FD_DOLIST(step,steps) {
       fd_decref(val);
       val = fast_eval(step,forchoices);
-      if (FD_ABORTED(val)) _return val;}
+      if (FD_BROKEP(val)) {
+        lispval result = fd_simplify_choice(results);
+        _return result;}
+      else if (FD_ABORTED(val))
+        _return val;}
     CHOICE_ADD(results,val);
     reset_env(forchoices);
     fd_decref(forchoices_vals[0]);
@@ -204,7 +213,11 @@ static lispval filterchoices_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     FD_DOLIST(step,steps) {
       fd_decref(val);
       val = fast_eval(step,filterchoices);
-      if (FD_ABORTED(val)) _return val;}
+      if (FD_BROKEP(val)) {
+        lispval result = fd_simplify_choice(results);
+        _return result;}
+      else if (FD_ABORTED(val))
+        _return val;}
     if (!(FALSEP(val))) {
       CHOICE_ADD(results,elt);
       fd_incref(elt);}
@@ -281,7 +294,9 @@ static lispval dosubsets_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     {lispval body = fd_get_body(expr,2);
       FD_DOLIST(subexpr,body) {
         lispval val = fast_eval(subexpr,dosubsets);
-        if (FD_ABORTED(val))
+        if (FD_BROKEP(val)) {
+          _return VOID;}
+        else if (FD_ABORTED(val))
           _return val;
         else fd_decref(val);}}
     reset_env(dosubsets);

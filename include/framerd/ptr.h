@@ -626,7 +626,7 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
 #define FD_ERROR_VALUE            FD_CONSTANT(13)
 #define FD_BADPTR                 FD_CONSTANT(14)
 #define FD_THROW_VALUE            FD_CONSTANT(15)
-#define FD_LOOP_RETURN            FD_CONSTANT(16)
+#define FD_BREAK                  FD_CONSTANT(16)
 #define FD_UNBOUND                FD_CONSTANT(17)
 #define FD_NEVERSEEN              FD_CONSTANT(18)
 #define FD_LOCKHOLDER             FD_CONSTANT(19)
@@ -652,7 +652,7 @@ FD_EXPORT lispval fd_register_constant(u8_string name);
 #define FD_EOXP(x) ((x) == (FD_EOX))
 
 #define FD_AGNOSTICP(x) ( (FD_VOIDP(x)) || (FD_DEFAULTP(x)) )
-
+#define FD_BREAKP(result) ((result) == (FD_BREAK))
 #define FD_THROWP(result) ((result) == (FD_THROW_VALUE))
 
 #define FD_ABORTP(x) \
@@ -666,6 +666,7 @@ FD_EXPORT lispval fd_register_constant(u8_string name);
 #define FD_TROUBLEP(x) (FD_EXPECT_FALSE(FD_ERRORP(x)))
 #define FD_COOLP(x) (!(FD_TROUBLEP(x)))
 
+#define FD_BROKEP(x) (FD_EXPECT_FALSE(FD_BREAKP(x)))
 #define FD_ABORTED(x) (FD_EXPECT_FALSE(FD_ABORTP(x)))
 #define FD_INTERRUPTED() (FD_EXPECT_FALSE(u8_current_exception!=(NULL)))
 

@@ -37,7 +37,9 @@ static lispval while_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
            (testeval(test_expr,env,&result,_stack))) {
       FD_DOLIST(iter_expr,body) {
         lispval val = fast_eval(iter_expr,env);
-        if (FD_ABORTED(val))
+        if (FD_BROKEP(val))
+          return FD_VOID;
+        else if (FD_ABORTED(val))
           return val;
         fd_decref(val);}}}
   if (FD_ABORTED(result))
@@ -57,7 +59,10 @@ static lispval until_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
            (!(testeval(test_expr,env,&result,_stack)))) {
       FD_DOLIST(iter_expr,body) {
         lispval val = fast_eval(iter_expr,env);
-        if (FD_ABORTED(val)) return val;
+        if (FD_BROKEP(val))
+          return FD_VOID;
+        else if (FD_ABORTED(val))
+          return val;
         else fd_decref(val);}}}
   if (FD_ABORTED(result))
     return result;
@@ -112,7 +117,9 @@ static lispval dotimes_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     dotimes_vals[0]=FD_INT(i);
     {FD_DOLIST(subexpr,body) {
         lispval val = fast_eval(subexpr,dotimes);
-        if ( (FD_THROWP(val)) || (FD_ABORTED(val)) )
+        if (FD_BROKEP(val))
+          _return VOID;
+        else if (FD_ABORTED(val))
           _return val;
         else fd_decref(val);}}
     reset_env(dotimes);
@@ -154,7 +161,9 @@ static lispval doseq_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     doseq_vals[1]=FD_INT(i);
     {FD_DOLIST(subexpr,body) {
         lispval val = fast_eval(subexpr,doseq);
-        if (PRED_FALSE (FD_ABORTP(val)) )
+        if (FD_BROKEP(val))
+          _return FD_VOID;
+        else if (PRED_FALSE (FD_ABORTP(val)) )
           _return val;
         else fd_decref(val);}}
     reset_env(doseq);
@@ -196,6 +205,9 @@ static lispval forseq_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     forseq_vals[1]=FD_FIXZERO;}
   else forseq_bindings.schema_length=1;
   results = fd_init_elts(NULL,lim,VOID);
+  /* Extra increfs could be avoided if fd_makeseq could
+     be told to not bother increfing the values. This would
+     also require changing this line here. */
   fd_push_cleanup(_stack,FD_FREE_VEC,results,&lim);
   while ( i < lim ) {
     lispval elt = (islist) ? (fd_refcar(pairscan)) : (fd_seq_elt(seq,i));
@@ -205,7 +217,10 @@ static lispval forseq_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     {FD_DOLIST(subexpr,body) {
         fd_decref(val);
         val = fast_eval(subexpr,forseq);
-        if (PRED_FALSE (FD_ABORTP(val)) )
+        if (FD_BROKEP(val)) {
+          result=fd_makeseq(FD_PTR_TYPE(seq),i,results);
+          _return result;}
+        else if (PRED_FALSE (FD_ABORTP(val)) )
           _return val;}}
     results[i]=val;
     reset_env(forseq);
@@ -256,7 +271,9 @@ static lispval tryseq_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     {FD_DOLIST(subexpr,body) {
         fd_decref(val);
         val = fast_eval(subexpr,tryseq);
-        if (PRED_FALSE (FD_ABORTP(val)) )
+        if (FD_BROKEP(val))
+          _return EMPTY;
+        else if (FD_ABORTED(val))
           _return val;}}
     reset_env(tryseq);
     fd_decref(tryseq_vals[0]);
@@ -300,7 +317,9 @@ static lispval dolist_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     dolist_vals[1]=FD_INT(i);
     {FD_DOLIST(subexpr,body) {
         lispval val = fast_eval(subexpr,dolist);
-        if (PRED_FALSE (FD_ABORTP(val)) )
+        if (FD_BROKEP(val))
+          _return FD_VOID;
+        else if (FD_ABORTED(val))
           _return val;
         else fd_decref(val);}}
     reset_env(dolist);

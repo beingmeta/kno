@@ -34,6 +34,11 @@
 /* Common macros, functions and declarations */
 
 #define PARSE_ERRORP(x) ((x == FD_EOX) || (x == FD_PARSE_ERROR) || (x == FD_OOM))
+#define PARSE_ABORTP(x)                                                 \
+  (FD_EXPECT_FALSE(((FD_TYPEP(x,fd_constant_type)) &&                   \
+                    (FD_GET_IMMEDIATE(x,fd_constant_type)>6) &&         \
+                    (FD_GET_IMMEDIATE(x,fd_constant_type)<16))))
+
 
 #define odigitp(c) ((c>='0')&&(c<='8'))
 #define spacecharp(c) ((c>0) && (c<128) && (isspace(c)))
@@ -465,7 +470,8 @@ static lispval parse_oid(U8_INPUT *in)
   else if (oid_parser)
     result = oid_parser(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
   else result = default_parse_oid(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
-  if (FD_ABORTP(result)) return result;
+  if (FD_ABORTP(result))
+      return result;
   if (strchr("({\"",c)) {
     /* If an object starts immediately after the OID (no whitespace)
        it is the OID's label, so we read it and discard it. */
@@ -828,14 +834,15 @@ static lispval *parse_vec(u8_input in,char end_char,int *size)
   int ch = skip_whitespace(in);
   while ((ch>=0) && (ch != end_char) && (!(iscloser(ch)))) {
     lispval elt = fd_parser(in);
-    if (FD_ABORTP(elt)) {
+    if (PARSE_ABORTP(elt)) {
       int i = 0; while (i < n_elts) {
         fd_decref(elts[i]); i++;}
       u8_free(elts);
       if (elt == FD_EOX) *size = -1;
       else if (elt == FD_PARSE_ERROR) *size = -2;
       else *size = -3;
-      if (FD_ABORTP(elt)) fd_interr(elt);
+      if (PARSE_ABORTP(elt))
+        fd_interr(elt);
       return NULL;}
     else if (n_elts == max_elts) {
       lispval *new_elts = u8_realloc_n(elts,max_elts*2,lispval);
@@ -883,7 +890,7 @@ static lispval parse_list(U8_INPUT *in)
        iterate in the CDR direction to avoid growing the stack. */
     struct FD_PAIR *scan;
     lispval car = fd_parser(in), head;
-    if (FD_ABORTP(car))
+    if (PARSE_ABORTP(car))
       return car;
     else {
       scan = u8_alloc(struct FD_PAIR);
@@ -900,7 +907,7 @@ static lispval parse_list(U8_INPUT *in)
         if (u8_isspace(probed)) break;
         else u8_ungetc(in,nextch);}
       list_elt = fd_parser(in);
-      if (FD_ABORTP(list_elt)) {
+      if (PARSE_ABORTP(list_elt)) {
         fd_decref(head); return list_elt;}
       new_pair = u8_alloc(struct FD_PAIR);
       if (new_pair) {
@@ -920,8 +927,9 @@ static lispval parse_list(U8_INPUT *in)
     else {
       lispval tail;
       tail = fd_parser(in);
-      if (FD_ABORTP(tail)) {
-        fd_decref(head); return tail;}
+      if (PARSE_ABORTP(tail)) {
+        fd_decref(head);
+        return tail;}
       skip_whitespace(in); ch = u8_getc(in);
       if (ch == ')') {scan->cdr = tail; return head;}
       fd_decref(head); fd_decref(tail);
@@ -946,7 +954,7 @@ static lispval parse_bracket_list(U8_INPUT *in)
        iterate in the CDR direction to avoid growing the stack. */
     struct FD_PAIR *scan;
     lispval car = fd_parser(in), head;
-    if (FD_ABORTP(car))
+    if (PARSE_ABORTP(car))
       return car;
     else {
       scan = u8_alloc(struct FD_PAIR);
@@ -963,8 +971,9 @@ static lispval parse_bracket_list(U8_INPUT *in)
         if (u8_isspace(probed)) break;
         else u8_ungetc(in,nextch);}
       list_elt = fd_parser(in);
-      if (FD_ABORTP(list_elt)) {
-        fd_decref(head); return list_elt;}
+      if (PARSE_ABORTP(list_elt)) {
+        fd_decref(head);
+        return list_elt;}
       new_pair = u8_alloc(struct FD_PAIR);
       if (new_pair) {
         scan->cdr = fd_init_pair(new_pair,list_elt,NIL);
@@ -983,8 +992,9 @@ static lispval parse_bracket_list(U8_INPUT *in)
     else {
       lispval tail;
       tail = fd_parser(in);
-      if (FD_ABORTP(tail)) {
-        fd_decref(head); return tail;}
+      if (PARSE_ABORTP(tail)) {
+        fd_decref(head);
+        return tail;}
       skip_whitespace(in); ch = u8_getc(in);
       if (ch == ')') {scan->cdr = tail; return head;}
       fd_decref(head); fd_decref(tail);
@@ -1143,20 +1153,23 @@ lispval fd_parser(u8_input in)
     lispval content;
     u8_getc(in); /* Skip the quote mark */
     content = fd_parser(in);
-    if (FD_ABORTP(content)) return content;
+    if (PARSE_ABORTP(content))
+      return content;
     else return fd_make_list(2,quote_symbol,content);}
   case '`': {
     lispval content;
     u8_getc(in); /* Skip the quote mark */
     content = fd_parser(in);
-    if (FD_ABORTP(content)) return content;
+    if (PARSE_ABORTP(content))
+      return content;
     else return fd_make_list(2,quasiquote_symbol,content);}
   case ',': {
     lispval content; int c = u8_getc(in); c = u8_getc(in);
     /* Skip the quote mark and check for an atsign. */
     if (c != '@') u8_ungetc(in,c);
     content = fd_parser(in);
-    if (FD_ABORTP(content)) return content;
+    if (PARSE_ABORTP(content))
+      return content;
     else if (c == '@')
       return fd_make_list(2,unquotestar_symbol,content);
     else return fd_make_list(2,unquote_symbol,content);}
@@ -1203,7 +1216,8 @@ lispval fd_parser(u8_input in)
     case '<': return parse_opaque(in);
     case ';': {
       lispval content = fd_parser(in);
-      if (FD_ABORTP(content)) return content;
+      if (PARSE_ABORTP(content))
+        return content;
       else return fd_conspair(comment_symbol,
                               fd_conspair(content,NIL));}
     case '%': {
@@ -1316,7 +1330,7 @@ lispval fd_parse_arg(u8_string arg)
     if (arg[1]=='\0') return lispval_string(arg);
     else {
       lispval val = fd_parse(arg+1);
-      if (FD_ABORTP(val)) {
+      if (PARSE_ABORTP(val)) {
         u8_log(LOG_WARN,fd_ParseArgError,"Bad colon spec arg '%s'",arg);
         fd_clear_errors(1);
         return lispval_string(arg);}
@@ -1335,7 +1349,7 @@ lispval fd_parse_arg(u8_string arg)
     struct U8_INPUT stream;
     U8_INIT_STRING_INPUT((&stream),-1,arg);
     result = fd_parser(&stream);
-    if (FD_ABORTP(result)) {
+    if (PARSE_ABORTP(result)) {
       fd_clear_errors(1);
       return lispval_string(arg);}
     else if (fd_skip_whitespace(&stream)>0) {
@@ -1375,7 +1389,7 @@ lispval fd_read_arg(u8_input in)
       char buf[2]="a"; buf[0]=c;
       return lispval_string(buf);}
     lispval val=fd_parser(in);
-    if (FD_ABORTP(val)) {
+    if (PARSE_ABORTP(val)) {
       fd_clear_errors(1);
       return FD_FALSE;}
     else return val;}
@@ -1386,7 +1400,7 @@ lispval fd_read_arg(u8_input in)
   else if (strchr("@{#(\"|0123456789",c)) {
     u8_string start=in->u8_read;
     lispval result=fd_parser(in);
-    if (FD_ABORTP(result)) {
+    if (PARSE_ABORTP(result)) {
       fd_clear_errors(1);
       if ( (start>=in->u8_inbuf) && (start<=in->u8_read) )
         return lispval_string(start);
@@ -1424,7 +1438,7 @@ lispval fd_parse_arg(u8_string arg)
     struct U8_INPUT stream;
     U8_INIT_STRING_INPUT((&stream),-1,arg);
     result = fd_read_arg(&stream);
-    if (FD_ABORTP(result)) {
+    if (PARSE_ABORTP(result)) {
       fd_clear_errors(1);
       return lispval_string(arg);}
     else if (fd_skip_whitespace(&stream)>0) {

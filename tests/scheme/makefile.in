@@ -198,7 +198,7 @@ all_tests alltests: tidy
 libtests: scheme optscheme slotmaps tables pools indexes db
 cmdtests: execscripts chainscripts batchscripts chained_batchscripts
 
-schemetest schemetests scheme: r4rs exceptions choices sequences numvecs reflect hashsets \
+schemetest schemetests scheme: r4rs exceptions choices sequences breaks numvecs reflect hashsets \
 	picktest cachecall texttools fdweb timefns threads i18n misc gctests profiling \
 	xml crypto
 optscheme:
@@ -239,10 +239,10 @@ r4rs:
 exceptions:
 	@${RUN} ${FDX} exceptions.scm ${RUNCONF}
 	@${header} "■■■■ Completed exceptions tests ${RUNCONF}"
-choices:
+choices choicetest:
 	@${RUN} ${FDX} choicetest.scm ${RUNCONF}
 	@${header} "■■■■ Completed choices tests ${RUNCONF}"
-sequences:
+sequences seqtest:
 	@${RUN} ${FDX} seqtest.scm ${RUNCONF}
 	@${header} "■■■■ Completed sequences tests ${RUNCONF}"
 numvecs:
@@ -251,43 +251,46 @@ numvecs:
 hashsets:
 	@${RUN} ${FDX} hashsets.scm ${RUNCONF}
 	@${header} "■■■■ Completed numvecs tests ${RUNCONF}"
-picktest:
+pick picktest:
 	@${RUN} ${FDX} picktest.scm ${RUNCONF}
 	@${header} "■■■■ Completed picktest tests ${RUNCONF}"
 cachecall:
 	@${RUN} ${FDX} cachecall.scm ${RUNCONF}
 	@${header} "■■■■ Completed cachecall tests ${RUNCONF}"
-texttools:
+texttools texttest:
 	@${RUN} ${FDX} texttest.scm ${RUNCONF}
 	@${header} "■■■■ Completed texttools tests ${RUNCONF}"
-fdweb:
+fdweb fdwebtest:
 	@${RUN} ${FDX} fdwebtest.scm ${RUNCONF}
 	@${header} "■■■■ Completed fdweb tests ${RUNCONF}"
 timefns:
 	@${RUN} ${FDX} timefns.scm ${RUNCONF}
 	@${header} "■■■■ Completed timefns tests ${RUNCONF}"
-threads:
+threads threadtest:
 	@${RUN} ${FDX} threadtest.scm ${RUNCONF}
 	@${header} "■■■■ Completed threads tests ${RUNCONF}"
 reflect:
 	@${RUN} ${FDX} reflect.scm ${RUNCONF}
-	@${header} "■■■■ Completed threads tests ${RUNCONF}"
+	@${header} "■■■■ Completed reflection tests ${RUNCONF}"
+breaks breaktests:
+	@${RUN} ${FDX} breaktests.scm ${RUNCONF}
+	@${header} "■■■■ Completed breaks tests ${RUNCONF}"
 i18n:
 	@${RUN} ${FDX} i18n.scm ${RUNCONF}
 	@${header} "■■■■ Completed i18n tests ${RUNCONF}"
-misc:
+misc misctest:
 	@${RUN} ${FDX} misctest.scm ${RUNCONF}
 	@${header} "■■■■ Completed misc tests ${RUNCONF}"
 gctests:
 	@${RUN} ${FDX} gctests.scm ${RUNCONF}
 	@${header} "■■■■ Completed GC tests ${RUNCONF}"
-profiling:
+profiling profiletest:
 	@${RUN} ${FDX} profiletest.scm ${RUNCONF}
 	@${header} "■■■■ Completed GC tests ${RUNCONF}"
-xml:
+xml xmltest:
 	@${RUN} ${FDX} xmltest.scm ${RUNCONF}
 	@${header} "■■■■ Completed xml tests ${RUNCONF}"
-crypto:
+crypto cryptotest:
 	@${RUN} ${FDX} cryptotest.scm ${RUNCONF}
 	@${header} "■■■■ Completed crypto tests ${RUNCONF}"
 

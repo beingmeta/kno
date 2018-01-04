@@ -2239,6 +2239,19 @@ static lispval void_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   return VOID;
 }
 
+static lispval break_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+{
+  lispval body = FD_CDR(expr);
+  FD_DOLIST(subex,body) {
+    lispval v = fd_stack_eval(subex,env,_stack,0);
+    if (FD_BREAKP(v))
+      return FD_BREAK;
+    else if (FD_ABORTP(v))
+      return v;
+    else fd_decref(v);}
+  return FD_BREAK;
+}
+
 static lispval default_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   lispval symbol = fd_get_arg(expr,1);
@@ -2748,6 +2761,7 @@ static void init_localfns()
 
   fd_def_evalfn(fd_scheme_module,"DBG","",dbg_evalfn);
   fd_def_evalfn(fd_scheme_module,"VOID","",void_evalfn);
+  fd_def_evalfn(fd_scheme_module,"BREAK","",break_evalfn);
   fd_def_evalfn(fd_scheme_module,"DEFAULT","",default_evalfn);
 
   fd_idefn(fd_scheme_module,fd_make_cprimn("CHECK-VERSION",check_version_prim,1));
