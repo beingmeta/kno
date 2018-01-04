@@ -134,7 +134,7 @@ static lispval irritant_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
       if (SYMBOLP(op))
         cxt=FD_SYMBOL_NAME(op);
       else if (FD_FUNCTIONP(op)) {
-        struct FD_FUNCTION *fcn=(fd_function)op;
+        struct FD_FUNCTION *fcn=FD_XFUNCTION(op);
         if (fcn->fcn_name)
           cxt=fcn->fcn_name;
         else if (fcn->fcn_documentation)
@@ -380,7 +380,7 @@ static int thunkp(lispval x)
 {
   if (!(FD_APPLICABLEP(x))) return 0;
   else {
-    struct FD_FUNCTION *f = (fd_function)x;
+    struct FD_FUNCTION *f = FD_XFUNCTION(x);
     if (f->fcn_arity==0) return 1;
     else if ((f->fcn_arity<0) && (f->fcn_min_arity==0)) return 1;
     else return 0;}

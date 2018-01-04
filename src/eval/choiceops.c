@@ -651,7 +651,7 @@ static lispval forall_lexpr(int n,lispval *nd_args)
   d_args = u8_alloc_n(n-1,lispval);
   {DO_CHOICES(fcn,nd_args[0])
      if (FD_APPLICABLEP(fcn)) {
-       struct FD_FUNCTION *f = (fd_function)fcn;
+       struct FD_FUNCTION *f = FD_XFUNCTION(fcn);
        int retval = test_forall(f,0,n-1,nd_args+1,d_args);
        if (retval<0) return FD_ERROR;
        else if (retval) {

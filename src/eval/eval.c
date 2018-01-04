@@ -1064,7 +1064,7 @@ static lispval call_function(u8_string fname,lispval headval,
   lispval argbuf[n_args]; /* *argv=fd_alloca(argv_length); */
   lispval fn = (FD_FCNIDP(headval)) ? (fd_fcnid_ref(headval)) : (headval);
   if (FD_FUNCTIONP(fn)) {
-    struct FD_FUNCTION *fcn=(fd_function)fn;
+    struct FD_FUNCTION *fcn=FD_XFUNCTION(fn);
     int max_arity = fcn->fcn_arity, min_arity = fcn->fcn_min_arity;
     if (max_arity<0) {}
     else if (PRED_FALSE(n_args>max_arity))

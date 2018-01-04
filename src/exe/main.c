@@ -154,7 +154,7 @@ static void _concise_stack_frame(struct FD_STACK *stack)
   if (FD_SYMBOLP(op))
     fprintf(stderr,", op=%s",SYM_NAME(op));
   else if (FD_FUNCTIONP(op)) {
-    struct FD_FUNCTION *fn=(fd_function)op;
+    struct FD_FUNCTION *fn=FD_XFUNCTION(op);
     if (fn->fcn_name)
       fprintf(stderr,", op=%s",fn->fcn_name);}
   else if (TYPEP(op,fd_evalfn_type)) {

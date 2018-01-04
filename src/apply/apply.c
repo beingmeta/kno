@@ -1154,7 +1154,7 @@ static u8_mutex profiled_lock;
 static int config_add_profiled(lispval var,lispval val,void *data)
 {
   if (FD_FUNCTIONP(val)) {
-    struct FD_FUNCTION *fcn = (fd_function) val;
+    struct FD_FUNCTION *fcn = FD_XFUNCTION(val);
     if (fcn->fcn_profile)
       return 0;
     u8_lock_mutex(&profiled_lock);
