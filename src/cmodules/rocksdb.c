@@ -2147,7 +2147,7 @@ static int rocksdb_index_save(fd_rocksdb_index lx,
 
   if (errmsg)
     return -1;
-  else return 1;
+  else return n_adds+n_stores+n_drops;
 }
 
 static int rocksdb_index_commit(fd_index ix,fd_commit_phase phase,
