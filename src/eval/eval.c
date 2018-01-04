@@ -2333,9 +2333,13 @@ static lispval require_version_prim(int n,lispval *args)
     return result;
   else {
     u8_byte buf[50];
+    int i = 0; while (i<n) {
+      if (!(FD_FIXNUMP(args[i])))
+        return fd_type_error("version number(integer)","require_version_prim",args[i]);
+      else i++;}
     fd_seterr("VersionError","require_version_prim",
               u8_sprintf(buf,50,"Version is %s",FRAMERD_REVISION),
-              /* We know that args are all fixnums or we would have had an error. */
+              /* We don't need to incref *args* because they're all fixnums */
               fd_make_vector(n,args));
     return FD_ERROR;}
 }
