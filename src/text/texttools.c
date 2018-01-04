@@ -36,12 +36,15 @@ static int egetc(u8_string *s)
   if (**s=='\0') return -1;
   else if (**s<0x80)
     if (**s=='&')
-      if (strncmp(*s,"&nbsp;",6)==0) {*s = *s+6; return ' ';}
+      if (strncmp(*s,"&nbsp;",6)==0) {
+        *s = *s+6;
+        return 0xa0;}
       else {
         const u8_byte *end = NULL;
         int code = u8_parse_entity((*s)+1,&end);
         if (code>0) {
-          *s = end; return code;}
+          *s = end;
+          return code;}
         else {(*s)++; return '&';}}
     else {
       int c = **s; (*s)++; return c;}
@@ -168,7 +171,9 @@ static lispval decode_entities_prim(lispval input)
 {
   if (STRLEN(input)==0) return fd_incref(input);
   else if (strchr(CSTRING(input),'&')) {
-    struct U8_OUTPUT out; u8_string scan = CSTRING(input); int c = egetc(&scan);
+    struct U8_OUTPUT out;
+    u8_string scan = CSTRING(input);
+    int c = egetc(&scan);
     U8_INIT_OUTPUT(&out,STRLEN(input));
     while (c>=0) {
       u8_putc(&out,c); c = egetc(&scan);}
