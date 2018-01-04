@@ -347,23 +347,32 @@ FD_EXPORT lispval fd_all_configs(int with_docs)
 /* This takes a string of the form var = value */
 FD_EXPORT int fd_config_assignment(u8_string assignment)
 {
-  u8_byte *equals, *semi;
+  u8_byte *equals;
   if ((equals = (strchr(assignment,'=')))) {
-    if (semi=strchr(assignment,';')) {
+    int sep = -1;
+    u8_byte *semi = strchr(assignment,';');
+    u8_byte *comma = strchr(assignment,',');
+    if ( (comma) && (semi) ) {
+      if (comma>semi) sep=';';
+      else sep = ',';}
+    else if (semi) sep=';';
+    else if (comma) sep=',';
+    else sep = -1;
+    if (sep>0) {
       ssize_t len = strlen(assignment);
       int count = 0, rv = 0;
-      u8_byte copied[len+1], *start = copied;
+      u8_byte copied[len+1], *start = copied, *scan;
       strncpy(copied,assignment,len+1);
-      while (semi=strchr(start,';')) {
-        if ( (semi>start) && (semi[-1] == '\\') ) {
-          semi = strchr(semi+1,';');
+      while ((scan=strchr(start,sep))) {
+        if ( (scan>start) && (scan[-1] == '\\') ) {
+          scan = strchr(scan+1,sep);
           continue;}
-        *semi = '\0';
+        *scan = '\0';
         int rv = fd_config_assignment(start);
         if (rv<0) {
           u8_seterr("BadConfig","fd_config_assigment",u8_strdup(start));
           return rv;}
-        start=semi+1;
+        start=scan+1;
         count++;}
       if (*start) {
         rv = fd_config_assignment(start);
