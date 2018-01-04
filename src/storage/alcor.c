@@ -213,7 +213,7 @@ FD_EXPORT ssize_t fd_save_head(u8_string source,u8_string dest,size_t head_len)
   if (fstat(in,&info)>=0) {
     ssize_t in_size = info.st_size;
     rv = save_head(in,out,head_len,in_size);
-    if (rv<0) graberrno("fd_save_head",tmp_dest);}
+    if (rv<0) u8_graberrno("fd_save_head",u8_strdup(tmp_dest));}
   u8_unlock_fd(in); u8_unlock_fd(out);
   u8_close_fd(in);
   u8_close_fd(out);
