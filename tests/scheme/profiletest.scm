@@ -4,7 +4,7 @@
 
 (use-module '{reflection bench/miscfns optimize})
 
-(define fib-iter (within-module 'bench/miscfns fib-iter))
+(define fib-iter (importvar 'bench/miscfns 'fib-iter))
 (define profiled {fibi + fibr fib-iter})
 
 (do-choices (fn profiled) (config! 'profiled fn))

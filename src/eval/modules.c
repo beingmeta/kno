@@ -817,7 +817,8 @@ static int config_use_module(lispval var,lispval val,void *data)
 
 static lispval
 get_binding_helper(lispval modarg,lispval symbol,lispval dflt,
-                   int safe,int export_only,u8_context caller)
+                   int safe,int export_only,int symeval,
+                   u8_context caller)
 {
   lispval module = (FD_HASHTABLEP(modarg)) ? (modarg) :
     (FD_LEXENVP(modarg)) ? (modarg) :
@@ -838,7 +839,14 @@ get_binding_helper(lispval modarg,lispval symbol,lispval dflt,
     else return fd_incref(dflt);}
   else if (FD_LEXENVP(module)) {
     fd_lexenv env = (fd_lexenv) module;
-    if (TABLEP(env->env_exports)) {
+    if (symeval) {
+      lispval val = fd_symeval(symbol,env);
+      if ( (FD_VOIDP(val)) || (val == FD_UNBOUND) ) {
+        if (FD_VOIDP(dflt))
+          return fd_err(fd_UnboundIdentifier,caller,SYMBOL_NAME(symbol),module);
+        else return fd_incref(dflt);}
+      else return val;}
+    else if (TABLEP(env->env_exports)) {
       lispval expval = fd_get(env->env_exports,symbol,VOID);
       if (!(VOIDP(expval))) {
         if (module != modarg) fd_decref(module);
@@ -869,24 +877,28 @@ get_binding_helper(lispval modarg,lispval symbol,lispval dflt,
 static lispval get_binding_prim
 (lispval mod_arg,lispval symbol,lispval dflt)
 {
-  return get_binding_helper(mod_arg,symbol,dflt,0,1,
+  return get_binding_helper(mod_arg,symbol,dflt,0,1,0,
                             "get_binding_prim");
 }
 
 static lispval safe_get_binding_prim
 (lispval mod_arg,lispval symbol,lispval dflt)
 {
-  return get_binding_helper(mod_arg,symbol,dflt,1,1,
+  return get_binding_helper(mod_arg,symbol,dflt,1,1,0,
                             "safe_get_binding_prim");
 }
 
 static lispval get_internal_binding_prim
 (lispval mod_arg,lispval symbol,lispval dflt)
 {
-  return get_binding_helper(mod_arg,symbol,dflt,0,0,
+  return get_binding_helper(mod_arg,symbol,dflt,0,0,0,
                             "get_internal_binding_prim");
 }
 
+static lispval import_var_prim(lispval mod_arg,lispval symbol,lispval dflt)
+{
+  return get_binding_helper(mod_arg,symbol,dflt,0,0,1,"import_var_prim");
+}
 
 /* Initialization */
 
@@ -951,6 +963,12 @@ FD_EXPORT void fd_init_modules_c()
             "(internal or external). On failure returns "
             "*default* (if provided) or errs if none is provided.",
             -1,VOID,fd_symbol_type,VOID,-1,VOID);
+  fd_idefn3(fd_xscheme_module,"IMPORTVAR",import_var_prim,2,
+            "(importvar *module* *symbol* [*default*])\n"
+            "Gets *module*'s binding of *symbol* "
+            "(internal, external, or inherhited). On failure returns "
+            "*default*, if provided, or errors (if not).",
+            -1,VOID,fd_symbol_type,VOID,-1,FD_VOID);
 
   fd_def_evalfn(fd_xscheme_module,"IN-MODULE","",in_module_evalfn);
   fd_def_evalfn(fd_xscheme_module,"WITHIN-MODULE","",within_module_evalfn);
