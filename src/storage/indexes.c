@@ -1180,6 +1180,16 @@ static int index_docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
       fd_write_lock_table(stores_table);
       unlock_stores=1;}
 
+    u8_logf(LOG_INFO,fd_IndexCommit,_("Saving %d changes (+%d-%d=%d%s) to %s"),
+            adds_table->table_n_keys+
+            drops_table->table_n_keys+
+            stores_table->table_n_keys,
+            adds_table->table_n_keys,
+            drops_table->table_n_keys,
+            stores_table->table_n_keys,
+            (FD_SLOTMAPP(commits.commit_metadata)) ? (" w/metadata") : (""),
+            ix->indexid);
+
     /* Copy them */
     struct FD_KEYVAL *adds = hashtable_keyvals(adds_table,&n_adds,0);
     struct FD_KEYVAL *drops = hashtable_keyvals(drops_table,&n_drops,0);
@@ -1222,6 +1232,14 @@ static int index_docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
     commits.commit_n_drops = n_drops;
     commits.commit_stores   = (fd_const_keyvals) stores;
     commits.commit_n_stores = n_stores;}
+  else {
+    int n_changes =
+      commits.commit_n_adds + commits.commit_n_drops + commits.commit_n_stores;
+    u8_logf(LOG_INFO,fd_IndexCommit,_("Saving %d changes (+%d-%d=%d%s) to %s"),
+            n_changes,commits.commit_n_adds,
+            commits.commit_n_drops,commits.commit_n_stores,
+            (FD_SLOTMAPP(commits.commit_metadata)) ? (" w/metadata") : (""),
+            ix->indexid);}
   record_elapsed(commits.commit_times.setup);
 
   int n_keys = commits.commit_n_adds + commits.commit_n_stores +
@@ -1229,13 +1247,6 @@ static int index_docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
   int n_changes = n_keys + (FD_SLOTMAPP(commits.commit_metadata));
 
   if (n_keys) init_cache_level(ix);
-  if (n_changes)
-    u8_logf(LOG_INFO,fd_IndexCommit,
-            _("Saving %d changes (+%d-%d=%d%s) to %s"),
-            n_changes,commits.commit_n_adds,
-            commits.commit_n_stores,commits.commit_n_drops,
-            (FD_SLOTMAPP(commits.commit_metadata)) ? (" w/metadata") : (""),
-            ix->indexid);
 
   int saved = index_dosave(ix,&commits);
   
