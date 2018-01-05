@@ -1464,8 +1464,11 @@ install-support: $(DESTDIR)@share_dir@
 
 LIBSCM_DIRS=optimize bugjar storage
 install-libscm:
-	if [ ! $$(realpath ${DESTDIR}${LIBSCM}) = $(realpath ./src/libscm) ]; then \
-	  make really-install-libscm; fi
+	if [ ! -f ${DESTDIR}${LIBSCM} ]; then 						\
+	  make really-install-libscm; 							\
+	elif [ ! $$(realpath ${DESTDIR}${LIBSCM}) = $(realpath ./src/libscm) ]; then 	\
+	  make really-install-libscm; 							\
+	fi;
 really-install-libscm:
 	$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM};
 	$(SYSINSTALL) @install_file_opts@ src/libscm/*.scm $(DESTDIR)${LIBSCM};
