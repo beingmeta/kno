@@ -964,7 +964,7 @@ FD_EXPORT lispval fd_decode_slotmap(struct FD_INBUF *in,struct FD_SLOTCODER *slo
 /* Getting compression type from options */
 
 static lispval compression_symbol, snappy_symbol, none_symbol, no_symbol;
-static lispval zlib_symbol, zlib9_symbol;
+static lispval zlib_symbol, zlib9_symbol, zstd_symbol;
 
 #define DEFAULT_COMPRESSION FD_ZLIB
 
@@ -973,10 +973,10 @@ fd_compress_type fd_compression_type(lispval opts,fd_compress_type dflt)
 {
   if (fd_testopt(opts,compression_symbol,FD_FALSE))
     return FD_NOCOMPRESS;
-#if HAVE_SNAPPYC_H
   else if (fd_testopt(opts,compression_symbol,snappy_symbol))
     return FD_SNAPPY;
-#endif
+  else if (fd_testopt(opts,compression_symbol,zstd_symbol))
+    return FD_ZSTD;
   else if (fd_testopt(opts,compression_symbol,zlib_symbol))
     return FD_ZLIB;
   else if ( (fd_testopt(opts,compression_symbol,zlib9_symbol)) ||
@@ -1246,6 +1246,7 @@ FD_EXPORT int fd_init_drivers_c()
   snappy_symbol = fd_intern("SNAPPY");
   zlib_symbol = fd_intern("ZLIB");
   zlib9_symbol = fd_intern("ZLIB9");
+  zstd_symbol = fd_intern("ZSTD");
   no_symbol = fd_intern("NO");
   none_symbol = fd_intern("NONE");
   adjuncts_symbol = fd_intern("ADJUNCTS");

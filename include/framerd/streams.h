@@ -363,8 +363,16 @@ typedef enum FD_COMPRESS_TYPE {
   FD_NOCOMPRESS = 0,
   FD_ZLIB = 1,
   FD_ZLIB9 = 2,
-  FD_SNAPPY = 3}
+  FD_SNAPPY = 3,
+  FD_ZSTD = 4}
   fd_compress_type;
+
+FD_EXPORT unsigned char *fd_compress(fd_compress_type,ssize_t *,
+                                     const unsigned char *,size_t,
+                                     void *);
+FD_EXPORT unsigned char *fd_uncompress(fd_compress_type,ssize_t *,
+                                       const unsigned char *,size_t,
+                                       void *);
 
 /* Full sized chunk refs, usually passed and returned but not
    directly stored on disk. */

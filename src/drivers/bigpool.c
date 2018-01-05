@@ -147,6 +147,10 @@ static u8_condition InvalidOffset=_("Invalid offset in BIGPOOL");
 
    0x60 XXXX     number of value blocks written  (8 bytes)
    0x64 XXXX      (64 bits)
+
+   0x68 XXXX     location of compression dictionary (8 bytes)
+   0x70 XXXX      size of compression data(64 bits)
+
    0xa0 XXXX     end of valid data (8 bytes)
    XXXX
 
@@ -162,6 +166,7 @@ static u8_condition InvalidOffset=_("Invalid offset in BIGPOOL");
    1= libz compression (level 6)
    2= libz compression (level 9)
    3= snappy compression
+   4= ZSTD compression
    4-7 reserved for future use
    0x0020      Read Only: set if this pool is intended to be read-only
    0x0040      Phased: set if this pool should implement phased commits
@@ -694,55 +699,19 @@ static lispval read_oid_value(fd_bigpool bp,
     else if (fd_request_bytes(in,data_len)<0) {
       u8_seterr("UnableToGetBytes",cxt,u8_strdup(bp->poolid));
       return FD_EOD;}
-    switch (zmethod) {
-    case FD_NOCOMPRESS:
+    if (zmethod == FD_NOCOMPRESS)
       return read_oid_value(bp,in,cxt);
-#if HAVE_SNAPPYC_H
-    case FD_SNAPPY: {
-      unsigned char _ubuf[FD_INIT_ZBUF_SIZE*3];
-      ssize_t ubuf_size = -1;
-      snappy_status size_rv=
-        snappy_uncompressed_length(in->bufread,data_len,&ubuf_size);
-      struct FD_INBUF inflated = { 0 };
-      unsigned char *ubuf = (size_rv == SNAPPY_OK)?
-        ((ubuf_size>FD_INIT_ZBUF_SIZE*3) ?
-         (u8_malloc(ubuf_size)) : (&(_ubuf)) ) :
-        (NULL);
-      snappy_status inflate_rv=
-        snappy_uncompress(in->bufread,data_len,ubuf,&ubuf_size);
-      if (inflate_rv == SNAPPY_OK) {
-        FD_INIT_BYTE_INPUT(&inflated,ubuf,ubuf_size);
-        if (ubuf==_ubuf)
-          return read_oid_value(bp,&inflated,cxt);
-        else {
-          lispval result = read_oid_value(bp,&inflated,cxt);
-          u8_free(ubuf);
-          return result;}}
-      else return fd_err("SnappyUncompressFailed",cxt,
-                         bp->poolid,VOID);}
-#endif
-    case FD_ZLIB: {
-      unsigned char _ubuf[FD_INIT_ZBUF_SIZE*3], *ubuf=_ubuf;
-      size_t ubuf_size = FD_INIT_ZBUF_SIZE*3;
-      struct FD_INBUF inflated = { 0 };
-      if (data_len>FD_INIT_ZBUF_SIZE)
-        ubuf = do_zuncompress(in->bufread,data_len,&ubuf_size,NULL);
-      else ubuf = do_zuncompress(in->bufread,data_len,&ubuf_size,_ubuf);
-      if (ubuf == NULL) {
-        if (cxt)
-          u8_seterr("ZLIB/DecompressionFailed",cxt,u8_strdup(bp->poolid));
-        else u8_seterr("ZLIB/DecompressionFailed","read_oid_value",u8_strdup(bp->poolid));
-        return FD_ERROR;}
-      FD_INIT_BYTE_INPUT(&inflated,ubuf,ubuf_size);
-      if (ubuf==_ubuf)
-        return read_oid_value(bp,&inflated,cxt);
-      else {
-        lispval result = read_oid_value(bp,&inflated,cxt);
-        u8_free(ubuf);
-        return result;}
-      default:
-        fd_seterr("Invalid compression code",cxt,bp->poolid,FD_INT(zmethod));
-        return FD_ERROR;}}}
+    else {
+      ssize_t uncompressed_len = 0;
+      unsigned char *uncompressed =
+        fd_uncompress(zmethod,&uncompressed_len,in->bufread,data_len,NULL);
+      if (uncompressed) {
+        struct FD_INBUF inflated = { 0 };
+        FD_INIT_BYTE_INPUT(&inflated,uncompressed,uncompressed_len);
+        lispval oid_value = read_oid_value(bp,&inflated,cxt);
+        u8_big_free(uncompressed);
+        return oid_value;}
+      else return fd_err("UncompressFailed",cxt,bp->poolid,VOID);}}
   else if (byte0==0xF0) {
     /* Encoded slotmap/schemap */
     unsigned int n_slots = (fd_read_byte(in), fd_read_zint(in));
@@ -1319,49 +1288,26 @@ static ssize_t bigpool_write_value(fd_bigpool p,lispval value,
   else if (fd_write_dtype(tmpout,value)<0)
     return -1;
   if (p->pool_compression) {
-    unsigned char _zbuf[FD_INIT_ZBUF_SIZE];
-    unsigned char *zbuf=_zbuf, *zbufout = NULL;
-    size_t raw_length = tmpout->bufwrite-tmpout->buffer;
-    size_t compressed_length = FD_INIT_ZBUF_SIZE;
-    switch (p->pool_compression) {
-    case FD_SNAPPY: {
-      size_t max_compressed_length = snappy_max_compressed_length(raw_length);
-      if (max_compressed_length>FD_INIT_ZBUF_SIZE)
-        zbuf = u8_malloc(max_compressed_length);
-      snappy_status compress_rv=
-        snappy_compress(tmpout->buffer,raw_length,zbuf,&compressed_length);
-      if (compress_rv == SNAPPY_OK)
-        zbufout = zbuf;
-      else {
-        if (zbuf!=_zbuf) u8_free(zbuf);
-        zbuf = NULL;}}
-      break;
-    case FD_ZLIB:
-      zbufout = do_zcompress
-        (tmpout->buffer,raw_length,&compressed_length,zbuf,6);
-      break;
-    case FD_ZLIB9:
-      zbufout = do_zcompress
-        (tmpout->buffer,raw_length,&compressed_length,zbuf,9);
-      break;
-    default:
-      u8_logf(LOG_CRIT,"BadCompressionType",
-              "The compression type code, %d, was invalid",
-              (int)(p->pool_compression));
-    }
-    if (zbufout) {
-      int header = 1;
+    size_t source_length = tmpout->bufwrite-tmpout->buffer;
+    size_t compressed_length = 0;
+    unsigned char *compressed =
+      fd_compress(p->pool_compression,&compressed_length,
+                  tmpout->buffer,source_length,NULL);
+    if (compressed) {
+      size_t header = 1;
       fd_write_byte(outstream,0xFF);
       header+=fd_write_zint(outstream,(int)p->pool_compression);
       header+=fd_write_zint(outstream,compressed_length);
-      fd_write_bytes(outstream,zbufout,compressed_length);
-      if (zbuf!=_zbuf) u8_free(zbuf);
+      fd_write_bytes(outstream,compressed,compressed_length);
+      u8_big_free(compressed);
       return header+compressed_length;}
-    if (zbuf!=_zbuf) u8_free(zbuf);}
+    else {
+      u8_log(LOG_CRIT,"CompressionFailed",
+             "Couldn't write compressed value to %s",
+             p->poolid);}}
   /* If you can't compress (for whatever reason), fall through to here
      and just output directly */
-  fd_write_bytes(outstream,tmpout->buffer,
-                 tmpout->bufwrite-tmpout->buffer);
+  fd_write_bytes(outstream,tmpout->buffer,tmpout->bufwrite-tmpout->buffer);
   return tmpout->bufwrite-tmpout->buffer;
 }
 

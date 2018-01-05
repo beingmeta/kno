@@ -78,6 +78,7 @@ OIDPOOL		= POOLTYPE=oidpool
 BIGPOOL		= POOLTYPE=bigpool
 SNAPPY		= COMPRESSION=snappy
 ZPOOL		= COMPRESSION=zlib
+ZSTDPOOL	= COMPRESSION=zstd
 FILEPOOL	= POOLTYPE=filepool
 FILEINDEX	= INDEXTYPE=fileindex
 HASHINDEX	= INDEXTYPE=hashindex
@@ -351,6 +352,8 @@ bigpoolsnappytest:
 	@make TESTBASE=bigpoolsnappy RUNCONF="${BIGPOOL} ${SNAPPY} ${RUNCONF}" pooltest
 bigpoolzlibtest:
 	@make TESTBASE=bigpoolzlib RUNCONF="${BIGPOOL} ${ZPOOL} ${RUNCONF}" pooltest
+bigpoolzstdtest:
+	@make TESTBASE=bigpoolzlib RUNCONF="${BIGPOOL} ${ZSTDPOOL} ${RUNCONF}" pooltest
 # This doesn't do any slotcoding to check those code paths
 bigpooltest_nx:
 	@make TESTBASE=bigpool_nx RUNCONF="SLOTCODES=#f ${BIGPOOL} ${RUNCONF}" pooltest
