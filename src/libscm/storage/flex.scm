@@ -230,7 +230,7 @@
 	  (started (elapsed-time)))
       (cond ((exists? dbs)
 	     (lognotice |Saving|
-	       "Saving " (choice-size dbs) " data stores:"
+	       "Saving " (choice-size dbs) " data stores in separate threads:"
 	       (do-choices (db dbs) (printout "\n    " db)))
 	     (let ((threads (thread/call flex/commit dbs)))
 	       (thread/wait! threads)
