@@ -1014,8 +1014,8 @@ static int pool_docommit(fd_pool p,lispval oids,
       u8_unlock_mutex(&(p->pool_commit_lock));
       return started;}
     if (commits.commit_count) {
-      u8_logf(LOG_INFO,"PoolCommit/Explicit",
-              "Starting to commit %d explicit commits %sto %s",
+      u8_logf(LOG_DEBUG,"PoolCommit/custom",
+              "Starting to commit %d explicit changes %sto %s",
               commits.commit_count,
               ((FD_VOIDP(commits.commit_metadata)) ? ("") :
                ("(and metadata) ")),
@@ -1029,19 +1029,19 @@ static int pool_docommit(fd_pool p,lispval oids,
     else if ((FALSEP(oids))||(VOIDP(oids))) {
       pick_modified(p,0,&commits);
       if (commits.commit_count)
-        u8_logf(LOG_INFO,"PoolCommit/modified",
+        u8_logf(LOG_DEBUG,"PoolCommit/modified",
                 "%d modified OIDs to commit to %s",
                 commits.commit_count,p->poolid);}
     else if ((OIDP(oids))||(CHOICEP(oids))||(PRECHOICEP(oids))) {
       pick_writes(p,oids,&commits);
       if (commits.commit_count)
-        u8_logf(LOG_INFO,"PoolCommit/passed",
+        u8_logf(LOG_DEBUG,"PoolCommit/specified",
                 "%d/%d modified OIDs to commit to %s",
                 commits.commit_count,FD_CHOICE_SIZE(oids),p->poolid);}
     else if (FD_TRUEP(oids)) {
       pick_modified(p,1,&commits);
       if (commits.commit_count)
-        u8_logf(LOG_INFO,"PoolCommit/finished",
+        u8_logf(LOG_DEBUG,"PoolCommit/finished",
                 "%d modified+finished OIDs to commit to %s",
                 commits.commit_count,p->poolid);}
     else {
@@ -1123,9 +1123,9 @@ static int pool_docommit(fd_pool p,lispval oids,
               p->poolid,u8_elapsed_time()-start_time);
 
     u8_logf(LOG_INFO,"Pool/Commit/Timing",
-            "for '%s'\n  total=%f, start=%f, setup=%f, save=%f, "
+            "for %d OIDs in '%s'\n  total=%f, start=%f, setup=%f, save=%f, "
             "finalize=%f, apply=%f, cleanup=%f",
-            p->poolid,
+            commits.commit_count,p->poolid,
             u8_elapsed_time()-commits.commit_times.base,
             commits.commit_times.start,
             commits.commit_times.setup,
@@ -1915,14 +1915,14 @@ FD_EXPORT void fd_init_pool(fd_pool p,
 
   lispval ll = fd_getopt(opts,FDSYM_LOGLEVEL,FD_VOID);
   if (FD_VOIDP(ll))
-    p->pool_loglevel = fd_storage_loglevel;
+    p->pool_loglevel = -1;
   else if ( (FD_FIXNUMP(ll)) && ( (FD_FIX2INT(ll)) >= 0 ) &&
        ( (FD_FIX2INT(ll)) < U8_MAX_LOGLEVEL ) )
     p->pool_loglevel = FD_FIX2INT(ll);
   else {
     u8_log(LOG_WARN,"BadLogLevel",
            "Invalid loglevel %q for pool %s",ll,id);
-    p->pool_loglevel = fd_storage_loglevel;}
+    p->pool_loglevel = -1;}
   fd_decref(ll);
 
   if ( (FD_VOIDP(opts)) || (FD_FALSEP(opts)) )
@@ -2466,7 +2466,23 @@ FD_EXPORT lispval fd_default_poolctl(fd_pool p,lispval op,int n,lispval *args)
                        FD_SYMBOL_NAME(op),fd_pool2lisp(p));}
   else if (op == fd_capacity_op)
     return FD_INT(p->pool_capacity);
-  else return FD_FALSE;
+  else if (op == FDSYM_LOGLEVEL) {
+    if (n == 0) {
+      if (p->pool_loglevel < 0)
+        return FD_FALSE;
+      else return FD_INT(p->pool_loglevel);}
+    else if (n == 1) {
+      if (FIXNUMP(args[0])) {
+        long long level = FD_FIX2INT(args[0]);
+        if ((level<0) || (level > 128))
+          return fd_err(fd_RangeError,"fd_default_poolctl",p->poolid,args[0]);
+        else p->pool_loglevel = level;}
+      else return fd_type_error("loglevel","fd_default_poolctl",args[0]);}
+    else return fd_err(fd_TooManyArgs,"fd_default_poolctl",p->poolid,VOID);}
+  else {
+    u8_log(LOG_WARN,"Unhandled POOLCTL op",
+           "Couldn't handle %q for %s",op,p->poolid);
+    return FD_FALSE;}
 }
 
 static lispval copy_consed_pool(lispval x,int deep)

@@ -1610,14 +1610,14 @@ FD_EXPORT void fd_init_index(fd_index ix,
 
   lispval ll = fd_getopt(opts,FDSYM_LOGLEVEL,FD_VOID);
   if (FD_VOIDP(ll))
-    ix->index_loglevel = fd_storage_loglevel;
+    ix->index_loglevel = -1;
   else if ( (FD_FIXNUMP(ll)) && ( (FD_FIX2INT(ll)) >= 0 ) &&
        ( (FD_FIX2INT(ll)) < U8_MAX_LOGLEVEL ) )
     ix->index_loglevel = FD_FIX2INT(ll);
   else {
     u8_log(LOG_WARN,"BadLogLevel",
            "Invalid loglevel %q for pool %s",ll,id);
-    ix->index_loglevel = fd_storage_loglevel;}
+    ix->index_loglevel = -1;}
   fd_decref(ll);
 
   u8_init_mutex(&(ix->index_commit_lock));
@@ -1967,6 +1967,19 @@ FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args
                                 defslot);}
     else return fd_err(fd_TooManyArgs,"fd_index_ctl/keyslot",
                        FD_SYMBOL_NAME(op),fd_index2lisp(ix));}
+  else if (op == FDSYM_LOGLEVEL) {
+    if (n == 0) {
+      if (ix->index_loglevel < 0)
+        return FD_FALSE;
+      else return FD_INT(ix->index_loglevel);}
+    else if (n == 1) {
+      if (FIXNUMP(args[0])) {
+        long long level = FD_FIX2INT(args[0]);
+        if ((level<0) || (level > 128))
+          return fd_err(fd_RangeError,"fd_default_indexctl",ix->indexid,args[0]);
+        else ix->index_loglevel = level;}
+      else return fd_type_error("loglevel","fd_default_indexctl",args[0]);}
+    else return fd_err(fd_TooManyArgs,"fd_default_indexctl",ix->indexid,VOID);}
   else return FD_FALSE;
 }
 
