@@ -520,11 +520,23 @@
 /* Whether we have the wait4 function */
 #undef HAVE_WAIT4
 
+/* Whether we have the zlib c header file */
+#undef HAVE_ZLIB_H
+
+/* Whether we have the libz compression library */
+#undef HAVE_LIBZ
+
 /* Whether we have the libsnappy c header file */
 #undef HAVE_SNAPPYC_H
 
-/* Whether we have the libsnappy c header file */
+/* Whether we have the snappy library */
 #undef HAVE_LIBSNAPPY
+
+/* Whether we have the zlib c header file */
+#undef HAVE_ZSTD_H
+
+/* Whether we have the zstd library */
+#undef HAVE_LIBZSTD
 
 /* Whether we have the libzip library */
 #undef HAVE_LIBZIP
@@ -537,6 +549,9 @@
 
 /* Whether we have the libzip set_compression function */
 #undef HAVE_ZIP_SET_FILE_COMPRESSION
+
+/* Whether we have the zstd c header file */
+#undef HAVE_ZSTD_H
 
 /* Whether to assume async support in servers (by default) */
 #undef FD_USE_DTBLOCK
