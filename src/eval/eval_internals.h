@@ -79,8 +79,12 @@ FD_FASTOP lispval eval_body(u8_context cxt,u8_string label,
       if (FD_TYPEP(result,fd_tailcall_type))
         result=_fd_finish_call(result);
       if (FD_ABORTP(result)) {
-        if (FD_THROWP(result)) return result;
-        else if ( (u8_current_exception)->u8x_cond == fd_StackOverflow )
+        if (FD_BREAKP(result))
+          return result;
+        else if (FD_THROWP(result))
+          return result;
+        else if ( (u8_current_exception) &&
+                  ( (u8_current_exception)->u8x_cond == fd_StackOverflow ) )
           return result;
         else return result;}
       else {fd_decref(result);}
