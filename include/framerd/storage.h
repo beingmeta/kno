@@ -12,7 +12,7 @@
 #endif
 
 #ifndef FD_STORAGE_DRIVER_BUFSIZE
-#define FD_STORAGE_DRIVER_BUFSIZE 100000
+#define FD_STORAGE_DRIVER_BUFSIZE 262144
 #endif
 
 #include "streams.h"
