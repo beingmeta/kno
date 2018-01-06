@@ -1055,6 +1055,8 @@ lib/framerd/crypto.dylib: src/cmodules/crypto.o
 lib/framerd/odbc.o: src/cmodules/odbc.c
 lib/framerd/odbc.so: src/cmodules/odbc.o ${MODULE_SO}
 lib/framerd/odbc.dylib: src/cmodules/odbc.o
+lib/framerd/odbc.so : MODLIBS="@ODBC_LIBS@"
+lib/framerd/odbc.dylib : MODLIBS="@ODBC_LIBS@"
 
 lib/framerd/sqlite.o: src/cmodules/sqlite.c
 lib/framerd/sqlite.so: src/cmodules/sqlite.o ${MODULE_SO}

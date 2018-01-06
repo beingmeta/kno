@@ -344,6 +344,7 @@ AC_SUBST(CHGRP)
 AC_SUBST(CODENAME)
 AC_SUBST(BINPATH)
 AC_SUBST(LIBSCM)
+AC_SUBST(ODBC_LIBS)
 
 AC_ARG_VAR(RPMDIR,"Location for writing built RPMs")
 AC_ARG_VAR(RPMFLAGS,"Default flags for building RPMs")
@@ -888,15 +889,15 @@ AC_CHECK_TYPES(uchar)
 
 # Check whether to use an architecture specific library directory
 if test "${libdir}" != "\${exec_prefix}/lib"; then
-  echo Checking libdir, using explicit libdir ${libdir};
+  echo checking libdir, using explicit libdir ${libdir};
 elif test ${ac_cv_sizeof_long} -eq 4 && test -d ${prefix}/lib32; then
   libdir=${prefix}/lib32;
-  echo Checking libdir, using 32-bit libdir ${libdir};
+  echo checking libdir, using 32-bit libdir ${libdir};
 elif test ${ac_cv_sizeof_long} -eq 8 && test -d ${prefix}/lib64; then
   libdir=${prefix}/lib64;
-  echo Checking libdir, using 64-bit libdir ${libdir};
+  echo checking libdir, using 64-bit libdir ${libdir};
 else
-  echo Checking libdir, using default libdir ${libdir};
+  echo checking libdir, using default libdir ${libdir};
 fi
 
 AC_HEADER_STDC
@@ -1205,7 +1206,7 @@ if test "$with_fastcgi" != "no"; then
   AC_CHECK_LIB(fcgi,FCGX_Init)
 fi
 
-AC_CHECK_HEADERS(sqlite3.h sql.h)
+AC_CHECK_HEADERS(sql.h)
 
 AC_CHECK_PROGS(mysql_config,mysql_config /usr/local/bin/mysql_config /opt/bin/mysql_config /opt/local/bin/mysql_config ,"na")
 AC_CHECK_PROGS(pkg_config,pkg-config /usr/local/bin/pkg-config /opt/bin/pkg-config /opt/local/bin/pkg-config ,"na")
@@ -1217,14 +1218,15 @@ else
 fi
 
 AC_ARG_ENABLE(leveldb,--en[dis]able-leveldb Build and install LevelDB module,,enable_leveldb="yes")
+leveldb_ok="no"
 
 if test "${enable_leveldb}" = "yes" ||
    test "${enable_leveldb}" = "force"; then
    AC_CHECK_HEADERS(leveldb/c.h)
-   AC_CHECK_LIB(leveldb,leveldb_open)
+   AC_CHECK_LIB(leveldb,leveldb_open,leveldb_ok="yes")
    if test "${enable_leveldb}" = "yes" &&
       test "${ac_cv_header_leveldb_c_h}" = "yes" &&
-      test "${ac_cv_lib_leveldb_leveldb_open}" = "yes"; then
+      test "${leveldb_ok}" = "yes"; then
      CMODULES="lib/framerd/leveldb.${shared_suffix} ${CMODULES}";
      INSTALLCMODULES="install-leveldb ${INSTALLCMODULES}";
    elif test "${enable_leveldb}" = "force"; then
@@ -1240,14 +1242,15 @@ else
 fi
 
 AC_ARG_ENABLE(rocksdb,--en[dis]able-rocksdb Build and install Rocksdb module,,enable_rocksdb="yes")
+rocksdb_ok="no"
 
 if test "${enable_rocksdb}" = "yes" ||
    test "${enable_rocksdb}" = "force"; then
    AC_CHECK_HEADERS(rocksdb/c.h)
-   AC_CHECK_LIB(rocksdb,rocksdb_open)
-   if test "${enable_rocksdb}" = "yes" &&
-      test "${ac_cv_header_rocksdb_c_h}" = "yes" &&
-      test "${ac_cv_lib_rocksdb_rocksdb_open}" = "yes"; then
+   AC_CHECK_LIB(rocksdb,rocksdb_open,rocksdb_ok="yes")
+   if test "${enable_rocksdb}" = "yes" && 
+      test "${ac_cv_header_rocksdb_c_h}" = "yes";
+      test "${rocksdb_ok}" = "yes"; then
      CMODULES="lib/framerd/rocksdb.${shared_suffix} ${CMODULES}";
      INSTALLCMODULES="install-rocksdb ${INSTALLCMODULES}";
    elif test "${enable_rocksdb}" = "force"; then
@@ -1286,7 +1289,6 @@ AC_ARG_ENABLE(ziptools,--with-ziptools Build and install ziptools,,enable_ziptoo
 if test "$enable_ziptools" = "yes" ||
    test "$enable_ziptools" = "force"; then
   AC_CHECK_HEADER(zip.h,have_zip_h="yes",have_zip_h="no")
-  AC_CHECK_LIB(zip,zip_add)
   AC_CHECK_LIB(zip,zip_add,have_libzip="yes",have_libzip="no")
   AC_CHECK_FUNCS(zip_set_file_compression zip_set_file_comment zip_set_file_extra)
   if test $pkg_config != "na" &&
@@ -1354,29 +1356,36 @@ if test "$with_mysql" != "no"; then
 fi
 
 AC_ARG_ENABLE(odbc,--en[dis]able-odbc Build odbc modules,,enable_odbc="yes")
+ODBC_LIBS=
 
 if test "$enable_odbc" = "yes"; then
-AC_CHECK_HEADER(sql.h,have_sql_h="yes",have_sql_h="no")
-if test "$have_sql_h" = "yes"; then
-  AC_CHECK_LIB(iodbc,SQLNumResultCols)
-  CMODULES="lib/framerd/odbc.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-odbc ${INSTALLCMODULES}"
-fi
-fi
+   AC_CHECK_HEADER(sql.h,have_sql_h="yes",have_sql_h="no")
+   if test "$have_sql_h" = "yes"; then
+     AC_CHECK_LIB(iodbc,SQLNumResultCols,ODBC_LIBS="-liodbc")
+     if test ! -z "${ODBC_LIBS}"; then
+       CMODULES="lib/framerd/odbc.$shared_suffix ${CMODULES}"
+       INSTALLCMODULES="install-odbc ${INSTALLCMODULES}"
+     fi;
+   fi;
+fi;
 
 if test "$have_sql_h" = "yes"; then
   AC_CHECK_LIB(odbc,SQLNumResultCols)
 fi
 
 AC_CHECK_HEADER(sqlite3.h,have_sqlite3_h="yes",have_sqlite3_h="no")
+sqlite3_ok="no"
+
 if test $have_sqlite3_h = "yes"; then
-  AC_CHECK_LIB(sqlite3,sqlite3_open)
+  AC_CHECK_LIB(sqlite3,sqlite3_open,sqlite3_ok="yes")
   AC_CHECK_FUNCS(sqlite3_open_v2)
   AC_CHECK_FUNCS(sqlite3_close_v2)
   AC_CHECK_FUNCS(sqlite3_prepare_v2)
   AC_CHECK_FUNCS(sqlite3_errstr)
-  CMODULES="lib/framerd/sqlite.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-sqlite ${INSTALLCMODULES}"
+  if test "$sqlite3_ok" = "yes"; then
+    CMODULES="lib/framerd/sqlite.$shared_suffix ${CMODULES}";
+    INSTALLCMODULES="install-sqlite ${INSTALLCMODULES}";
+  fi;
 fi
 
 AC_CHECK_HEADER(regex.h,have_regex_h="yes",have_regex_h="no")
@@ -1400,7 +1409,7 @@ fi
 AC_CHECK_HEADER(zlib.h,have_zlib_h="yes",have_zlib_h="no")
 if test "${have_zlib_h}" = "yes"; then
    AC_CHECK_LIB(zlib,uncompress)
-   AC_DEFINE(HAVE_SNAPPYC_H,1)
+   AC_DEFINE(HAVE_ZLIB_H,1)
 fi;
 
 AC_CHECK_HEADER(snappy-c.h,have_snappyc_h="yes",have_snappyc_h="no")
@@ -1408,6 +1417,8 @@ if test "${have_snappyc_h}" = "yes"; then
    AC_CHECK_LIB(snappy,snappy_compress)
    AC_DEFINE(HAVE_SNAPPYC_H,1)
 fi;
+LIBS="${LIBS} -lsnappy"
+
 
 AC_CHECK_HEADER(zstd.h,have_zstd_h="yes",have_zstd_h="no")
 if test "${have_zstd_h}" = "yes"; then
@@ -1423,15 +1434,16 @@ if test "$enable_tidy" = "yes"; then
 fi
 
 AC_ARG_ENABLE(hyphenate,--en[dis]able-hyphenate Build and install the hyphenate module,,enable_hyphenate="yes")
+hyphen_ok="no"
 
 if test "$enable_hyphenate" = "yes"; then
   AC_CHECK_HEADERS(hyphen.h)
-  AC_CHECK_LIB(hyphen,hnj_hyphen_hyphenate2)
+  AC_CHECK_LIB(hyphen,hnj_hyphen_hyphenate2,hyphen_ok="yes")
 fi
 
 if test "$enable_hyphenate" = "yes" &&
    test "$ac_cv_header_hyphen_h" = "yes" &&
-   test "$ac_cv_lib_hyphen_hnj_hyphen_hyphenate2" = "yes"; then
+   test "$hyphen_ok" = "yes"; then
   CMODULES="lib/framerd/hyphenate.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-hyphenate ${INSTALLCMODULES}"
   DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
@@ -1672,12 +1684,17 @@ AC_CHECK_HEADER(png.h,have_png_h="yes",have_png_h="no")
 AC_CHECK_HEADER(qrencode.h,have_qrencode_h="yes",have_qrencode_h="no")
 
 AC_ARG_WITH(qrcode,--with[out]-qrcode Create qrcode binary module,,with_qrcode="yes")
+libpng_ok="no"
+qrcode_ok="no"
 
-if (test "$with_qrcode" = "yes") && (test "$have_png_h" = "yes") && (test "$have_qrencode_h" = "yes"); then
-  AC_CHECK_LIB(png,png_create_write_struct)
-  AC_CHECK_LIB(qrencode,QRcode_encodeString8bit)
-  CMODULES="lib/framerd/qrcode.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-qrcode ${INSTALLCMODULES}"
+if (test "$with_qrcode" = "yes"); then
+  AC_CHECK_LIB(png,png_create_write_struct,libpng_ok="yes")
+  AC_CHECK_LIB(qrencode,QRcode_encodeString8bit,qrcode_ok="yes")
+  if (test "$have_png_h" = "yes") && (test "$have_qrencode_h" = "yes") &&
+     (test "$libpng_ok" = "yes") && (test "qrcode_ok" = "yes"); then
+    CMODULES="lib/framerd/qrcode.$shared_suffix ${CMODULES}"
+    INSTALLCMODULES="install-qrcode ${INSTALLCMODULES}"
+  fi;
 fi
 
 if test -d /etc/systemd; then
