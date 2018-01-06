@@ -994,25 +994,28 @@ static int file_format_overflow(fd_pool p,fd_stream stream)
   return -1;
 }
 
-static fd_stream get_commit_stream(fd_pool p,struct FD_POOL_COMMITS *commit)
+static fd_stream get_commit_stream(fd_bigpool bp,struct FD_POOL_COMMITS *commit)
 {
   if (commit->commit_stream)
     return commit->commit_stream;
-  else if (u8_file_writablep(p->pool_source)) {
+  else if (u8_file_writablep(bp->pool_source)) {
+    ssize_t buf_size =
+      fd_getfixopt(bp->pool_opts,"WRITESIZE",
+                   fd_getfixopt(bp->pool_opts,"BUFSIZE",fd_driver_bufsize));
     struct FD_STREAM *new_stream =
-      fd_init_file_stream(NULL,p->pool_source,FD_FILE_MODIFY,-1,-1);
+      fd_init_file_stream(NULL,bp->pool_source,FD_FILE_MODIFY,-1,buf_size);
     /* Lock the file descriptor */
     if (fd_streamctl(new_stream,fd_stream_lockfile,NULL)<0) {
       fd_close_stream(new_stream,FD_STREAM_FREEDATA);
       u8_free(new_stream);
       fd_seterr("CantLockFile","get_commit_stream/bigpool",
-                p->pool_source,FD_VOID);
+                bp->pool_source,FD_VOID);
       return NULL;}
     commit->commit_stream = new_stream;
     return new_stream;}
   else {
     fd_seterr("CantWriteFile","get_commit_stream/bigpool",
-              p->pool_source,FD_VOID);
+              bp->pool_source,FD_VOID);
     return NULL;}
 }
 
@@ -1150,7 +1153,7 @@ static int bigpool_commit(fd_pool p,fd_commit_phase phase,
                           struct FD_POOL_COMMITS *commits)
 {
   fd_bigpool bp = (fd_bigpool) p;
-  fd_stream stream = get_commit_stream(p,commits);
+  fd_stream stream = get_commit_stream(bp,commits);
   bigpool_setcache(bp,-1);
   if (stream == NULL)
     return -1;
