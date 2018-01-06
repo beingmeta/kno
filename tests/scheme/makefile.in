@@ -1,54 +1,29 @@
 # -*- Mode: Makefile; -*-
 # Copyright (C) 2004-2017 beingmeta, inc.
 # This file is a part of beingmeta's FramerD implementation
-
-MAKEFLAGS = -s
-FD_INIT_DLOADPATH=../../lib/framerd/%..@shared_suffix@:../../../tagger/c/%..@shared_suffix@:@prefix@/lib/framerd/%.@shared_suffix@
-export FD_INIT_LOADPATH
-FD_INIT_LOADPATH=../../src/libscm/%/module.scm:../../src/libscm/safe/%.scm:../../src/extmods/%.scm:../../src/extmods/%/module.scm:@default_module_path@
-export FD_INIT_LOADPATH
-FD_INIT_SAFELOADPATH=../../src/libscm/%.scm:../../src/libscm/safe/%/module.scm:../../src/extmods/safe/%.scm:../../src/extmods/safe/%/module.scm:@default_safe_module_path@
-export FD_INIT_SAFELOADPATH
-FD_LOADPATH=../../src/libscm/%/module.scm:../../src/libscm/safe/%.scm:../../src/extmods/%/module.scm:../../src/extmods/%.scm:
-export FD_LOADPATH
-FD_DLOADPATH=../../lib/framerd
-export FD_DLOADPATH
-LD_LIBRARY_PATH=../../lib
-export LD_LIBRARY_PATH
-DYLD_LIBRARY_PATH=../../lib
-export DYLD_LIBRARY_PATH
-PPROF_PATH      = @GOOGLE_PPROF@
-export PPROF_PATH
-FD_QUIET        = yes
-export FD_QUIET
-FD_HYPHENDICT=../../src/cmodules/hyph_en_US.dic
-export FD_HYPHENDICT
-
 # Change this to echo to output test headers. Note that these aren't
 # much use when running tests with -j
 header          = $(shell echo "\#")
 
-CC	= @CC@
-XCFLAGS=  
-CFLAGS=-I../../include @CFLAGS@ @PROFILING@ @DREENTRANT@ @dynamic_cflag@ \
-       -DFD_TESTCONFIG=1 -I../../include $(XCFLAGS)
-LDFLAGS=-L../../lib @LDFLAGS@ $(EFENCE) @TESTLDFLAGS@ -L../../lib
-RPATH   = @rpath@
-RPATHFLAGS = @RPATHFLAGS@
-BASELIBS=@LIBS@ -lm -lz
-BMLIBS=-lu8io -lu8data -lu8
-XLIBS=
-LIBS=$(XLIBS) $(BMLIBS) $(BASELIBS)
-EXECLDFLAGS = @EXECLDFLAGS@
-EXECLIBS = @EXECLIBS@
-CORE_LIBS	= ../../lib/libfdscheme@suffix@.a       \
-	  	  	../../lib/libfddbserv@suffix@.a  \
-	 		../../lib/libfddrivers@suffix@.a \
-			../../lib/libfdstorage@suffix@.a     \
-			../../lib/libfdcore@suffix@.a
-EXTRA_LIBS	= ../../lib/libtexttools@suffix@.a \
-		  ../../lib/libfdweb@suffix@.a
-
+CC	   	= @CC@
+XCFLAGS    	=  
+CFLAGS     	=-I../../include @CFLAGS@ @PROFILING@ @DREENTRANT@ @dynamic_cflag@ \
+                 -DFD_TESTCONFIG=1 -I../../include $(XCFLAGS)
+LDFLAGS    	= -L../../lib @LDFLAGS@ $(EFENCE) @TESTLDFLAGS@ -L../../lib
+RPATH      	= @rpath@
+RPATHFLAGS 	= @RPATHFLAGS@
+BASELIBS   	= @LIBS@ -lm -lz
+BMLIBS     	= -lu8io -lu8data -lu8
+XLIBS      	=
+LIBS       	= $(XLIBS) $(BMLIBS) $(BASELIBS)
+EXECLDFLAGS	= @EXECLDFLAGS@
+EXECLIBS   	= @EXECLIBS@
+CORE_LIBS  	= ../../lib/libfdscheme@suffix@.a       \
+	          ../../lib/libfddbserv@suffix@.a  \
+	          ../../lib/libfddrivers@suffix@.a \
+	          ../../lib/libfdstorage@suffix@.a     \
+	          ../../lib/libfdcore@suffix@.a
+EXTRA_LIBS 	= ../../lib/libtexttools@suffix@.a ../../lib/libfdweb@suffix@.a
 DESTDIR		=
 prefix		= @prefix@
 exec_prefix	= @exec_prefix@
