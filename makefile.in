@@ -4,8 +4,8 @@
 
 CC	      = @CC@
 XCFLAGS       =
-OPTFLAGS      = @OPTFLAGS@
-XOPTFLAGS      = @XOPTFLAGS@
+OPTFLAGS      = "@OPTFLAGS@"
+XOPTFLAGS     = "@XOPTFLAGS@"
 ARCHFLAGS     = @archflags@
 EXECFLAGS     = @CFLAGS@ ${OPTFLAGS} @MALLOC_FLAGS@ @PROFILING@ @DREENTRANT@ -I./include $(XCFLAGS) $(ARCHFLAGS)
 DYNAMIC_CFLAG = @dynamic_cflag@
@@ -1734,8 +1734,7 @@ include/framerd/revision.h: $(FRAMERD_SOURCES) $(FRAMERD_HEADERS) makefile
 	  mv $@ etc/old_revision.h; 					\
 	  mv etc/use_revision.h $@;					\
 	fi;
-
-# Depending on the buildmode
+### Depending on the buildmode
 $(EXECUTABLES) $(STATIC_EXECUTABLES): buildmode $(REVISION_H)
 $(LISP_OBJS): $(LISP_HEADERS) $(REVISION_H)
 $(SUPPORT_OBJS): $(LISP_HEADERS) $(REVISION_H)

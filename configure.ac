@@ -430,11 +430,11 @@ AC_CHECK_DECL(__clang__,CLANG=yes)
 if test "${CLANG}" = "yes"; then
    CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb"
    OPTFLAGS="-O2"
-   XOPTFLAGS="-O3"
+   XOPTFLAGS="-O3 -funroll-loops"
 elif test "${GCC}" = "yes"; then
    CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb"
    OPTFLAGS="-O2"
-   XOPTFLAGS="-O3"
+   XOPTFLAGS="-O3 -funroll-loops"
    gcc_version=`gcc -dumpversion`;
    dynamic_cflag="-rdynamic";
 fi;
