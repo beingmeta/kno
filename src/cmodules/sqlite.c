@@ -96,13 +96,13 @@ static void close_fdsqliteproc(struct FD_SQLITE_PROC *dbp);
 
 static lispval sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,lispval colinfo);
 
-#if HAVE_SQLITE3_CLOSE_V2
+#if HAVE_SQLITE3_V2
 #define closedb sqlite3_close_v2
 #else
 #define closedb sqlite3_close
 #endif
 
-#if HAVE_SQLITE3_PREPARE_V2
+#if HAVE_SQLITE3_V2
 #define newstmt(db,q,len,sptr) sqlite3_prepare_v2(db,q,len,sptr,NULL)
 #else
 #define newstmt(db,q,len,sptr) sqlite3_prepare(db,q,len,sptr,NULL)
@@ -124,7 +124,7 @@ static int open_fdsqlite(struct FD_SQLITE *fdsqlptr)
     return 0;}
   else {
     sqlite3 *db = NULL; int retval;
-#if HAVE_SQLITE3_OPEN_V2
+#if HAVE_SQLITE3_V2
     int flags = getv2flags(fdsqlptr->extdb_options,fdsqlptr->sqlitefile);
     if (flags<0) return flags;
     retval = sqlite3_open_v2(fdsqlptr->sqlitefile,&db,flags,fdsqlptr->sqlitevfs);
@@ -158,7 +158,12 @@ static lispval sqlite_open_prim(lispval filename,lispval colinfo,lispval options
   struct FD_SQLITE *sqlcons; int retval;
   lispval vfs_spec = fd_getopt(options,vfs_symbol,FD_VOID);
   u8_string vfs = NULL;
-#if HAVE_SQLITE3_OPEN_V2
+  if (FD_VOIDP(vfs_spec)) {}
+  else if (FD_STRINGP(vfs_spec)) vfs = u8_strdup(FD_CSTRING(vfs_spec));
+  else if (FD_SYMBOLP(vfs_spec)) vfs = u8_downcase(FD_SYMBOL_NAME(vfs_spec));
+  else return fd_type_error(_("string or symbol"),"sqlite_open_prim/VFS",vfs_spec);
+
+#if HAVE_SQLITE3_V2
   int flags = getv2flags(options,FD_CSTRING(filename));
   if (flags<0) {
     return FD_ERROR_VALUE;}
@@ -178,14 +183,11 @@ static lispval sqlite_open_prim(lispval filename,lispval colinfo,lispval options
     u8_seterr(fd_NoSuchFile,"opensqlite",u8_strdup(FD_CSTRING(filename)));
     return FD_ERROR_VALUE;}
 
-  if (!(FD_VOIDP(vfs)))
+  if (vfs)
     u8_log(LOG_WARN,"sqlite_open",
            "the sqlite3_open_v2 vfs methods are not available");
 #endif
-  if (FD_VOIDP(vfs_spec)) {}
-  else if (FD_STRINGP(vfs_spec)) vfs = u8_strdup(FD_CSTRING(vfs_spec));
-  else if (FD_SYMBOLP(vfs_spec)) vfs = u8_downcase(FD_SYMBOL_NAME(vfs_spec));
-  else return fd_type_error(_("string or symbol"),"sqlite_open_prim/VFS",vfs_spec);
+
   sqlcons = u8_alloc(struct FD_SQLITE);
   FD_INIT_FRESH_CONS(sqlcons,fd_extdb_type);
   sqlcons->extdb_handler = &sqlite_handler;
@@ -251,7 +253,7 @@ static void recycle_fdsqlite(struct FD_EXTDB *c)
     u8_destroy_mutex(&(dbp->sqlite_lock));}
 }
 
-#if HAVE_SQLITE3_OPEN_V2
+#if HAVE_SQLITE3_V2
 static int getv2flags(lispval options,u8_string filename)
 {
   int readonly = getboolopt(options,readonly_symbol,0);
@@ -700,7 +702,7 @@ static lispval sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,lispval colinfo)
         results = result;
         break;}}}
   if (retval!=SQLITE_DONE) {
-#if HAVE_SQLITE3_ERRSTR
+#if HAVE_SQLITE3_V2
     const char *msg = sqlite3_errstr(retval);
     fd_seterr(SQLiteError,"sqlite_step3",msg,FD_VOID);
 #endif

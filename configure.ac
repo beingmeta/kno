@@ -1375,16 +1375,18 @@ fi
 
 AC_CHECK_HEADER(sqlite3.h,have_sqlite3_h="yes",have_sqlite3_h="no")
 sqlite3_ok="no"
+sqlite3v2_ok="no"
 
 if test $have_sqlite3_h = "yes"; then
+  AC_DEFINE(HAVE_SQLITE3_H,1)
   AC_CHECK_LIB(sqlite3,sqlite3_open,sqlite3_ok="yes")
-  AC_CHECK_FUNCS(sqlite3_open_v2)
-  AC_CHECK_FUNCS(sqlite3_close_v2)
-  AC_CHECK_FUNCS(sqlite3_prepare_v2)
-  AC_CHECK_FUNCS(sqlite3_errstr)
+  AC_CHECK_LIB(sqlite3,sqlite3_open_v2,sqlite3v2_ok="yes")
   if test "$sqlite3_ok" = "yes"; then
     CMODULES="lib/framerd/sqlite.$shared_suffix ${CMODULES}";
     INSTALLCMODULES="install-sqlite ${INSTALLCMODULES}";
+    if test "${sqlite3v2_ok}" == "yes"; then
+      AC_DEFINE(HAVE_SQLITE3_V2,1)
+    fi;
   fi;
 fi
 
