@@ -3,12 +3,14 @@
 
 (in-module 'storage/flex)
 
-(use-module '{ezrecords stringfmts logger texttools reflection})
+(use-module '{ezrecords stringfmts logger texttools fifo mttools reflection})
 (use-module '{storage/adjuncts storage/registry storage/filenames})
 (use-module '{storage/flexpool storage/flexindexes 
 	      storage/adjuncts})
 
-(module-export! '{pool/ref index/ref db/ref pool/copy flex/wrap flex/partitions flex/save!})
+(module-export! '{pool/ref index/ref db/ref pool/copy 
+		  flex/wrap flex/partitions
+		  flex/save! flex/commit!})
 
 (module-export! '{flex/container flex/container!})
 
@@ -209,46 +211,84 @@
 	((and (pair? arg) (applicable? (car arg))) arg)
 	(else (logwarn |CantSave| "No method for saving " arg) {})))
 
+(define (flex/modified? arg)
+  (cond ((registry? arg) (registry/modified? arg))
+	((flexpool/record arg) (exists? (pick (flexpool/partitions arg) modified?)))
+	((pool? arg) (modified? arg))
+	((index? arg) (modified? arg))
+	((and (applicable? arg) (zero? (procedure-min-arity arg))) #t)
+	((and (pair? arg) (applicable? (car arg))) #t)
+	(else #f)))
 
-(define (flex/commit arg)
-  (onerror (cond ((registry? arg) (save-registry arg))
-		 ((flexpool/record arg)
-		  (thread/wait 
-		   (thread/call safe-commit (pick (flexpool/partitions arg) modified?))))
-		 ((or (pool? arg) (index? arg)) (commit arg))
-		 ((and (applicable? arg) (zero? (procedure-min-arity arg))) (arg))
-		 ((and (pair? arg) (applicable? (car arg)))
-		  (apply (car arg) (cdr arg)))
-		 (else (logwarn |CantSave| "No method for saving " arg)))
-      (lambda (ex)
-	(logwarn |CommitError| "Error committing " arg ": " ex)
-	#f)))
+(define (get-modified arg)
+  (cond ((registry? arg) (tryif (registry/modified? arg) arg))
+	((flexpool/record arg) (pick (flexpool/partitions arg) modified?))
+	((pool? arg) (tryif (modified? arg) arg))
+	((index? arg) (tryif (modified? arg) arg))
+	((and (applicable? arg) (zero? (procedure-min-arity arg))) arg)
+	((and (pair? arg) (applicable? (car arg))) arg)
+	(else {})))
+
+(define commit-threads #t)
+
+(defambda (flex/commit! dbs (opts #f))
+  (let ((modified (get-modified dbs))
+	(started (elapsed-time)))
+    (when (exists? modified)
+      (let ((timings (make-hashtable))
+	    (fifo (fifo/make modified))
+	    (n-threads (mt/threadcount (getopt opts 'threads commit-threads)
+				       (choice-size modified))))
+	(loginfo |FLEX/Commit|
+	  "Saving " (choice-size modified) " dbs using " (or n-threads "no") " threads:"
+	  (do-choices (db modified) (printout "\n\t" db)))
+	(cond ((not n-threads)
+	       (do-choices (db modified) (commit-db db opts timings)))
+	      ((>= n-threads (choice-size modified))
+	       (set! n-threads (choice-size modified))
+	       (let ((threads (thread/call commit-db modified opts timings)))
+		 (thread/wait! threads)))
+	      (else
+	       (let ((threads {}))
+		 (dotimes (i n-threads)
+		   (set+! threads (thread/call commit-queued fifo opts timings)))
+		 (thread/wait! threads))))
+	(lognotice |Flex/Commit|
+	  "Committed " (choice-size (getkeys timings)) " dbs "
+	  "in " (secs->string (elapsed-time started)) " "
+	  "using " (or n-threads "no") " threads: "
+	  (do-choices (db (getkeys timings))
+	    (let ((time (get timings db)))
+	      (if (>= time 0)
+		  (printout "\n\t" ($num time 1) "secs \t" db)
+		  (printout "\n\tFAILED after " ($num time 1) "secs:\t" db)))))))))
 
 (defambda (flex/save! . args)
   (dolist (arg args)
-    (let ((dbs (flex/mods arg))
-	  (started (elapsed-time)))
-      (cond ((exists? dbs)
-	     (lognotice |Saving|
-	       "Saving " (choice-size dbs) " data stores in separate threads:"
-	       (do-choices (db dbs) (printout "\n    " db)))
-	     (let ((threads (thread/call flex/commit dbs)))
-	       (thread/wait! threads)
-	       (lognotice |Saved|
-		 "Saved " (choice-size dbs) " data stores in "
-		 (secs->string (elapsed-time started)))
-	       (thread/result threads)))))))
+    (flex/commit! arg)))
 
-(define (safe-commit arg)
-  (when (modified? arg)
-    (onerror (commit arg)
-	(lambda (ex)
-	  (logwarn |CommitError| "Error committing " arg ": " ex)
-	  #f))))
-(define (save-registry arg)
-  (onerror (registry/save! arg)
+(define (inner-commit arg timings start)
+  (cond ((registry? arg) (registry/save! arg))
+	((pool? arg) (commit arg))
+	((index? arg) (commit arg))
+	((and (applicable? arg) (zero? (procedure-min-arity arg))) (arg))
+	((and (pair? arg) (applicable? (car arg)))
+	 (apply (car arg) (cdr arg)))
+	(else (logwarn |CantSave| "No method for saving " arg) #f))
+  (store! timings arg (elapsed-time start))
+  arg)
+
+(define (commit-db arg opts timings (start (elapsed-time)))
+  (onerror (inner-commit arg timings start)
       (lambda (ex)
-	(logwarn |CommitError| "Error saving registry " arg ": " ex)
-	#f)))
+	(store! timings arg (- (elapsed-time start)))
+	(logwarn |CommitError| "Error committing " arg ": " ex)
+	ex)))
+
+(define (commit-queued fifo opts timings)
+  (let ((db (fifo/pop fifo)))
+    (commit-db db opts timings)))
+
+
 
 
