@@ -2001,7 +2001,12 @@ FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args
         long long level = FD_FIX2INT(args[0]);
         if ((level<0) || (level > 128))
           return fd_err(fd_RangeError,"fd_default_indexctl",ix->indexid,args[0]);
-        else ix->index_loglevel = level;}
+        else {
+          int old_loglevel = ix->index_loglevel;
+          ix->index_loglevel = level;
+          if (old_loglevel<0)
+            return FD_FALSE;
+          else return FD_INT(old_loglevel);}}
       else return fd_type_error("loglevel","fd_default_indexctl",args[0]);}
     else return fd_err(fd_TooManyArgs,"fd_default_indexctl",ix->indexid,VOID);}
   else return FD_FALSE;
