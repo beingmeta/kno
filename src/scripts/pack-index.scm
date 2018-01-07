@@ -36,27 +36,6 @@
   (onerror (move-file from to)
       (lambda (ex) (system "mv " from " " to))))
 
-;;; MT/MAP
-
-(define (mt-iterfn fn vec args indexfn)
-  (let ((vec-i (indexfn)))
-    (while vec-i
-      (if (null? args)
-	  (fn (elt vec vec-i))
-	  (apply fn (elt vec vec-i) args))
-      (set! vec-i (indexfn)))))
-
-(define (mt/iter threadcount fcn vec . args)
-  (let ((i 0) (len (length vec)))
-    (let ((getindex
-	   (slambda ()
-	     (and (< i len) (prog1 i (set! i (1+ i))))))
-	  (nthreads (mt/threadcount threadcount))
-	  (threads {}))
-      (dotimes (i nthreads)
-	(set+! threads (thread/call mt-iterfn fcn vec args getindex)))
-      (thread/wait threads))))
-
 ;;; Computing baseoids 
 
 (define (get-baseoids-from-pool pool)
@@ -93,6 +72,7 @@
 		       (logwarn |BadSlotID| "Can't slotcode " val))
 		   slotids)))
 
+#|
 (define (count-slotid key table)
   (when (pair? key) (hashtable-increment! table (car key))))
 
@@ -107,7 +87,6 @@
 	    "Computing slotids based on " ($num (length keyvec)) " keys")
 	  (doseq (key keyvec)
 	    (when (pair? key) (hashtable-increment! table (car key))))
-	  ;; (mt/iter 3 count-slotid keyvec table)
 	  (lognotice |PackIndex/slotids|
 	    "Found " ($num (choice-size (getkeys table)))
 	    " slotids across " ($num (length keyvec)) " keys in "
@@ -115,7 +94,21 @@
 	  (if slotids (drop! table (elts slotids)))
 	  (append (if slotids (->vector slotids) #())
 		  (rsorted (getkeys table) table))))))
-  
+|#
+
+(define (extend-slotids old keyvec)
+  (let* ((old (or (indexctl old 'slotids) #()))
+	 (filed (if (and (config 'slotids #f)
+			 (file-exists? (config 'slotids #f)))
+		    (file->dtype (config 'slotids #f))
+		    #()))
+	 (config (if slotids (->vector slotids) #()))
+	 (seen (make-hashset)))
+    (remove #f (map (lambda (slotid) 
+		      (if (hashset-get seen slotid) #f
+			  (begin (hashset-add! seen slotid) slotid)))
+		    (append old filed config)))))
+
 ;;; Other features
 
 (define (symbolize s)
@@ -123,7 +116,7 @@
       (if (string? s) (string->symbol (upcase s))
 	  (irritant s |NotStringOrSymbol|))))
 
-(define (get-new-size index nkeys (minsize (config 'minsize 1024)))
+(define (get-new-size index nkeys (minsize (config 'minsize 8000)))
   (when (config 'keepsize config:boolean)
     (when (number? (indexctl index 'hash))
       (set! minsize (indexctl index 'hash))))
@@ -139,7 +132,7 @@
 (define (make-new-index filename old keyvec (size) (type) (keyslot))
   (default! type (symbolize (config 'type 'hashindex)))
   (default! size (get-new-size old (length keyvec)))
-  (default! keyslot (->lisp (config 'keyslot #f)))
+  (default! keyslot (->lisp (config 'keyslot (indexctl old 'keyslot))))
   (lognotice |NewIndex|
     "Constructing new index " (write filename) " based on "
     (index-source old))
@@ -150,9 +143,7 @@
       (make-index filename 
 		  `#[type hashindex size ,size
 		     keyslot ,keyslot
-		     slotids
-		     ,(and (config 'codeslots (vector? (indexctl old 'slotids)) config:boolean)
-			   (compute-slotids keyvec))
+		     slotids ,(and (config 'codeslots) (extend-slotids old))
 		     baseoids
 		     ,(and (config 'codeoids (vector? (indexctl old 'baseoids)) config:boolean)
 			   (rsorted baseoids oid-addr))
@@ -255,7 +246,7 @@
 		(n (get status 'nkeys)))
 	    (lognotice |Overall|
 	      "Processed " ($num count) " keys" " (" (show% count n) ") "
-	      " in " (secs->string (get status 'time))
+	      "in " (secs->string (get status 'time))
 	      (unless (zero? (- count dropped modified))
 		(printout ", copying " ($num (- count dropped modified)) " keys"))
 	      (unless (zero? dropped)
