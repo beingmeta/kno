@@ -2007,11 +2007,14 @@ FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args
     else return fd_err(fd_TooManyArgs,"fd_index_ctl/props",
                        FD_SYMBOL_NAME(op),fd_index2lisp(ix));}
   else if (op == FDSYM_KEYSLOT) {
-    if (n == 0)
-      return ix->index_keyslot;
+    if (n == 0) {
+      if ( (FD_NULLP(ix->index_keyslot)) || (FD_VOIDP(ix->index_keyslot)) )
+        return FD_FALSE;
+      else return ix->index_keyslot;}
     else if (n == 1) {
       lispval defslot = args[0];
-      if (!(FD_VOIDP(ix->index_keyslot))) {
+      if (!( (FD_NULLP(ix->index_keyslot)) ||
+             (FD_VOIDP(ix->index_keyslot)) )) {
         if (defslot == ix->index_keyslot) {
           u8_logf(LOG_NOTICE,"KeySlotOK",
                   "The keyslot of %s is already %q",ix->indexid,defslot);
