@@ -1692,12 +1692,14 @@ qrcode_ok="no"
 if (test "$with_qrcode" = "yes"); then
   AC_CHECK_LIB(png,png_create_write_struct,libpng_ok="yes")
   AC_CHECK_LIB(qrencode,QRcode_encodeString8bit,qrcode_ok="yes")
-  if (test "$have_png_h" = "yes") && (test "$have_qrencode_h" = "yes") &&
-     (test "$libpng_ok" = "yes") && (test "qrcode_ok" = "yes"); then
+  if ( (test "$have_png_h" = "yes") && (test "$have_qrencode_h" = "yes") &&
+       (test "$libpng_ok" = "yes") && (test "$qrcode_ok" = "yes") ); then
     CMODULES="lib/framerd/qrcode.$shared_suffix ${CMODULES}"
     INSTALLCMODULES="install-qrcode ${INSTALLCMODULES}"
   fi;
 fi
+
+echo "with_qrcode=$with_qrcode have_png_h=$have_png_h have_qrencode_h=$have_qrencode_h libpng_ok=$libpng_ok qrcode_ok=$qrcode_ok"
 
 if test -d /etc/systemd; then
   default_bootsystem="systemd";
