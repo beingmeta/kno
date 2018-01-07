@@ -238,7 +238,7 @@ static int network_pool_commit(fd_pool p,fd_commit_phase phase,
                                struct FD_POOL_COMMITS *commits)
 {
   switch (phase) {
-  case fd_commit_save:
+  case fd_commit_write:
     return network_pool_storen(p,commits->commit_count,
                                commits->commit_oids,
                                commits->commit_vals);

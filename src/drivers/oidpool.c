@@ -910,11 +910,11 @@ static int oidpool_commit(fd_pool p,fd_commit_phase phase,
     return fd_write_rollback("oidpool_commit",
                              p->poolid,p->pool_source,
                              (256+(chunk_ref_size*p->pool_capacity)));
-  case fd_commit_save: {
+  case fd_commit_write: {
     return oidpool_storen(p,commits->commit_count,
                           commits->commit_oids,
                           commits->commit_vals);}
-  case fd_commit_finish:
+  case fd_commit_sync:
     return 0;
   case fd_commit_cleanup: {
     u8_string source = p->pool_source;

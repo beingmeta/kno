@@ -170,7 +170,7 @@ static int extindex_commit(fd_index ix,fd_commit_phase phase,
                            struct FD_INDEX_COMMITS *commit)
 {
   switch (phase) {
-  case fd_commit_save: {
+  case fd_commit_write: {
     return extindex_save(ix,
                          (struct FD_CONST_KEYVAL *)commit->commit_adds,
                          commit->commit_n_adds,

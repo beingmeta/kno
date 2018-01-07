@@ -511,11 +511,11 @@ static int file_pool_commit(fd_pool p,fd_commit_phase phase,
         commits->commit_stream = &(fp->pool_stream);}}
     return fd_write_rollback("filepool_commit",p->poolid,source,
                              (24+(4*p->pool_capacity)));}
-  case fd_commit_save: {
+  case fd_commit_write: {
     return file_pool_storen(p,commits->commit_count,
                             commits->commit_oids,
                             commits->commit_vals);}
-  case fd_commit_finish:
+  case fd_commit_sync:
     return 0;
   case fd_commit_rollback: {
     u8_string source = p->pool_source;

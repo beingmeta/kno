@@ -202,15 +202,18 @@ static int memindex_commit(fd_index ix,fd_commit_phase phase,
                            struct FD_INDEX_COMMITS *commit)
 {
   switch (phase) {
-  case fd_commit_save: {
-    return memindex_save(ix,
-                         (struct FD_CONST_KEYVAL *)commit->commit_adds,
-                         commit->commit_n_adds,
-                         (struct FD_CONST_KEYVAL *)commit->commit_drops,
-                         commit->commit_n_drops,
-                         (struct FD_CONST_KEYVAL *)commit->commit_stores,
-                         commit->commit_n_stores,
-                         commit->commit_metadata);}
+  case fd_commit_write: {
+    int rv = memindex_save(ix,
+                           (struct FD_CONST_KEYVAL *)commit->commit_adds,
+                           commit->commit_n_adds,
+                           (struct FD_CONST_KEYVAL *)commit->commit_drops,
+                           commit->commit_n_drops,
+                           (struct FD_CONST_KEYVAL *)commit->commit_stores,
+                           commit->commit_n_stores,
+                           commit->commit_metadata);
+    if (rv<0) commit->commit_phase = fd_commit_rollback;
+    else commit->commit_phase = fd_commit_flush;
+    return rv;}
   default: {
     u8_logf(LOG_INFO,"NoPhasedCommit",
             "The index %s doesn't support phased commits",

@@ -1097,7 +1097,7 @@ static int fileindex_commit(fd_index ix,fd_commit_phase phase,
       return -1;}
     return fd_write_rollback("fileindex_commit",ix->indexid,source,
                              8+(4*(fx->index_n_slots)));}
-  case fd_commit_save: {
+  case fd_commit_write: {
     return fileindex_save(ix,
                           (struct FD_CONST_KEYVAL *)commit->commit_adds,
                           commit->commit_n_adds,
@@ -1106,7 +1106,7 @@ static int fileindex_commit(fd_index ix,fd_commit_phase phase,
                           (struct FD_CONST_KEYVAL *)commit->commit_stores,
                           commit->commit_n_stores,
                           commit->commit_metadata);}
-  case fd_commit_finish:
+  case fd_commit_sync:
     return 0;
   case fd_commit_rollback: {
     u8_string source = ix->index_source;

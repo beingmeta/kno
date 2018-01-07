@@ -62,6 +62,8 @@ typedef struct FD_INDEX *fd_index;
 
 typedef struct FD_INDEX_COMMITS {
   fd_index commit_index;
+  fd_commit_phase commit_phase;
+  unsigned int commit_2phase:1;
   ssize_t commit_n_adds, commit_n_drops, commit_n_stores;
   struct FD_CONST_KEYVAL *commit_adds;
   struct FD_CONST_KEYVAL *commit_drops;
