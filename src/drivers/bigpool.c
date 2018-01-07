@@ -2071,6 +2071,8 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
       fd_store(base,compression_symbol,fd_intern("ZLIB9"));
     else if ( bp->pool_compression == FD_SNAPPY )
       fd_store(base,compression_symbol,fd_intern("SNAPPY"));
+    else if ( bp->pool_compression == FD_ZSTD )
+      fd_store(base,compression_symbol,fd_intern("ZSTD"));
     else fd_store(base,compression_symbol,fd_intern("!!INVALID!!"));
     fd_add(base,FDSYM_READONLY,load_symbol);
     fd_add(base,FDSYM_READONLY,slotids_symbol);
