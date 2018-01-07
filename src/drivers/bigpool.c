@@ -994,25 +994,28 @@ static int file_format_overflow(fd_pool p,fd_stream stream)
   return -1;
 }
 
-static fd_stream get_commit_stream(fd_pool p,struct FD_POOL_COMMITS *commit)
+static fd_stream get_commit_stream(fd_bigpool bp,struct FD_POOL_COMMITS *commit)
 {
   if (commit->commit_stream)
     return commit->commit_stream;
-  else if (u8_file_writablep(p->pool_source)) {
+  else if (u8_file_writablep(bp->pool_source)) {
+    ssize_t buf_size =
+      fd_getfixopt(bp->pool_opts,"WRITESIZE",
+                   fd_getfixopt(bp->pool_opts,"BUFSIZE",fd_driver_bufsize));
     struct FD_STREAM *new_stream =
-      fd_init_file_stream(NULL,p->pool_source,FD_FILE_MODIFY,-1,-1);
+      fd_init_file_stream(NULL,bp->pool_source,FD_FILE_MODIFY,-1,buf_size);
     /* Lock the file descriptor */
     if (fd_streamctl(new_stream,fd_stream_lockfile,NULL)<0) {
       fd_close_stream(new_stream,FD_STREAM_FREEDATA);
       u8_free(new_stream);
       fd_seterr("CantLockFile","get_commit_stream/bigpool",
-                p->pool_source,FD_VOID);
+                bp->pool_source,FD_VOID);
       return NULL;}
     commit->commit_stream = new_stream;
     return new_stream;}
   else {
     fd_seterr("CantWriteFile","get_commit_stream/bigpool",
-              p->pool_source,FD_VOID);
+              bp->pool_source,FD_VOID);
     return NULL;}
 }
 
@@ -1028,13 +1031,16 @@ static void release_commit_stream(fd_pool p,struct FD_POOL_COMMITS *commit)
   u8_free(stream);
 }
 
-static int bigpool_storen(fd_pool p,int n,
-                          lispval *oids,lispval *values,
-                          lispval metadata,
-                          fd_stream stream,
-                          fd_stream head_stream)
+static int bigpool_storen(fd_pool p,struct FD_POOL_COMMITS *commits,
+                          fd_stream stream,fd_stream head_stream)
 {
   fd_bigpool bp = (fd_bigpool)p;
+  int n = commits->commit_count;
+  lispval *oids = commits->commit_oids;
+  lispval *values = commits->commit_vals;
+  lispval metadata = commits->commit_metadata;
+  double started = u8_elapsed_time();
+
   u8_string fname=bp->pool_source;
   if (!(u8_file_writablep(fname))) {
     fd_seterr("CantWriteFile","bigpool_storen",fname,FD_VOID);
@@ -1043,7 +1049,6 @@ static int bigpool_storen(fd_pool p,int n,
   struct FD_OUTBUF *outstream = fd_writebuf(stream);
   unsigned int load = bp->pool_load;
 
-  double started = u8_elapsed_time();
   struct BIGPOOL_SAVEINFO *saveinfo= (n>0) ?
     (u8_big_alloc_n(n,struct BIGPOOL_SAVEINFO)) :
     (NULL);
@@ -1119,6 +1124,10 @@ static int bigpool_storen(fd_pool p,int n,
     fd_close_outbuf(&tmpout);
     u8_free(zbuf);}
 
+  double apply_started = u8_elapsed_time();
+  if (head_stream == stream)
+    commits->commit_times.write = apply_started-started;
+
   fd_lock_pool_struct(p,1);
 
   if (update_bigpool(bp,stream,head_stream,load,n,saveinfo,metadata)<0) {
@@ -1131,10 +1140,11 @@ static int bigpool_storen(fd_pool p,int n,
     return -1;}
 
   u8_big_free(saveinfo);
-  fd_start_write(head_stream,0);
-  fd_write_4bytes(outstream,FD_BIGPOOL_MAGIC_NUMBER);
-  fd_flush_stream(head_stream);
+
   fsync(stream->stream_fileno);
+
+  fd_write_4bytes_at(head_stream,FD_BIGPOOL_MAGIC_NUMBER,0);
+  fd_flush_stream(head_stream);
 
   u8_logf(LOG_INFO,"BigpoolStore",
           "Stored %d oid values in bigpool %s in %f seconds",
@@ -1143,6 +1153,10 @@ static int bigpool_storen(fd_pool p,int n,
   /* Unlock the pool */
   fd_unlock_pool_struct(p);
 
+  if (head_stream != stream)
+    commits->commit_times.write = u8_elapsed_time()-started;
+  else commits->commit_times.sync = u8_elapsed_time()-apply_started;
+
   return n;
 }
 
@@ -1150,7 +1164,7 @@ static int bigpool_commit(fd_pool p,fd_commit_phase phase,
                           struct FD_POOL_COMMITS *commits)
 {
   fd_bigpool bp = (fd_bigpool) p;
-  fd_stream stream = get_commit_stream(p,commits);
+  fd_stream stream = get_commit_stream(bp,commits);
   bigpool_setcache(bp,-1);
   if (stream == NULL)
     return -1;
@@ -1164,38 +1178,40 @@ static int bigpool_commit(fd_pool p,fd_commit_phase phase,
   case fd_commit_start: {
     size_t cap = p->pool_capacity;
     size_t recovery_size = 256+(chunk_ref_size*cap);
-    return fd_write_rollback("bigpool_commit",p->poolid,fname,recovery_size);}
-  case fd_commit_save: {
-    size_t cap = p->pool_capacity;
-    size_t recovery_size = 256+(chunk_ref_size*cap);
-    u8_string commit = u8_mkstring("%s.commit",fname);
-    ssize_t head_saved = fd_save_head(fname,commit,recovery_size);
-    struct FD_STREAM *head_stream = (head_saved>=0) ?
-      (fd_init_file_stream(NULL,commit,FD_FILE_MODIFY,-1,-1)) : (NULL);
-    if (head_stream == NULL) {
-      u8_seterr("CantOpenCommitFile","bigpool_commit",commit);
-      return -1;}
-    int rv = bigpool_storen
-      (p,commits->commit_count,
-       commits->commit_oids,
-       commits->commit_vals,
-       commits->commit_metadata,
-       stream,head_stream);
-    fd_flush_stream(stream);
-    fd_flush_stream(head_stream);
-    size_t stream_end = fd_endpos(stream);
-    size_t head_end = fd_endpos(head_stream);
-    fd_write_8bytes_at(head_stream,stream_end,head_end-8);
-    fd_close_stream(head_stream,FD_STREAM_FREEDATA);
-    u8_free(head_stream);
-    u8_free(commit);
+    int rv = fd_write_rollback("bigpool_commit",p->poolid,fname,recovery_size);
+    if (rv>=0) commits->commit_phase = fd_commit_write;
     return rv;}
-  case fd_commit_rollback: {
-    u8_string rollback = u8_mkstring("%s.rollback",fname);
-    ssize_t rv = fd_apply_head(rollback,fname);
-    u8_free(rollback);
-    if (rv<0) return -1; else return 1;}
-  case fd_commit_finish: {
+  case fd_commit_write: {
+    struct FD_STREAM *head_stream = NULL;
+    if (commits->commit_2phase) {
+      size_t cap = p->pool_capacity;
+      size_t commit_size = 256+(chunk_ref_size*cap);
+      u8_string commit_file = u8_mkstring("%s.commit",fname);
+      ssize_t head_saved = fd_save_head(fname,commit_file,commit_size);
+      head_stream = (head_saved>=0) ?
+        (fd_init_file_stream(NULL,commit_file,FD_FILE_MODIFY,-1,-1)) :
+        (NULL);
+      if (head_stream == NULL) {
+        u8_seterr("CantOpenCommitFile","bigpool_commit",commit_file);
+        return -1;}
+      else u8_free(commit_file);}
+    else head_stream=stream;
+    int rv = bigpool_storen(p,commits,stream,head_stream);
+    fd_flush_stream(stream);
+    if (head_stream != stream) {
+      size_t endpos = fd_endpos(stream);
+      size_t head_endpos = fd_endpos(head_stream);
+      fd_write_8bytes_at(head_stream,endpos,head_endpos);
+      fd_flush_stream(head_stream);
+      fd_close_stream(head_stream,FD_STREAM_FREEDATA);
+      u8_free(head_stream);}
+    if (rv<0)
+      commits->commit_phase = fd_commit_rollback;
+    else if (commits->commit_2phase)
+      commits->commit_phase = fd_commit_sync;
+    else commits->commit_phase = fd_commit_flush;
+    return rv;}
+  case fd_commit_sync: {
     u8_string commit = u8_mkstring("%s.commit",fname);
     ssize_t rv = fd_apply_head(commit,fname);
     u8_free(commit);
@@ -1203,20 +1219,28 @@ static int bigpool_commit(fd_pool p,fd_commit_phase phase,
       update_offdata_cache(bp,p->pool_cache_level,chunk_ref_size);
       return 1;}
     else return -1;}
-  case fd_commit_cleanup: {
+  case fd_commit_rollback: {
     u8_string rollback = u8_mkstring("%s.rollback",fname);
-    u8_string commit = u8_mkstring("%s.commit",fname);
+    ssize_t rv = fd_apply_head(rollback,fname);
+    u8_free(rollback);
+    if (rv<0) return -1; else return 1;}
+  case fd_commit_flush: {
+    return 1;}
+  case fd_commit_cleanup: {
+    if (commits->commit_stream) release_commit_stream(p,commits);
+    u8_string rollback = u8_mkstring("%s.rollback",fname);
     if (u8_file_existsp(rollback)) {
       if ( (u8_removefile(rollback)) < 0) {
         u8_logf(LOG_WARN,"PoolCleanupFailed",
                 "Couldn't remove file %s for %s",rollback,fname);}}
-    if (u8_file_existsp(commit)) {
-      if ( (u8_removefile(commit)) < 0) {
-        u8_logf(LOG_WARN,"PoolCleanupFailed",
-                "Couldn't remove file %s for %s",commit,fname);}}
-    if (commits->commit_stream) release_commit_stream(p,commits);
     u8_free(rollback);
-    u8_free(commit);
+    if (commits->commit_2phase) {
+      u8_string commit = u8_mkstring("%s.commit",fname);
+      if (u8_file_existsp(commit)) {
+        if ( (u8_removefile(commit)) < 0) {
+          u8_logf(LOG_WARN,"PoolCleanupFailed",
+                  "Couldn't remove file %s for %s",commit,fname);}}
+      u8_free(commit);}
     return 0;}
   default:
     return 0;

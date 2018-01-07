@@ -12,7 +12,7 @@
 #endif
 
 #ifndef FD_STORAGE_DRIVER_BUFSIZE
-#define FD_STORAGE_DRIVER_BUFSIZE 100000
+#define FD_STORAGE_DRIVER_BUFSIZE 262144
 #endif
 
 #include "streams.h"
@@ -104,14 +104,18 @@ FD_EXPORT void fd_fast_swapout_all(void);
 
 typedef enum FD_COMMIT_PHASE {
   fd_no_commit = 0,
-  fd_commit_start = 1, fd_commit_save = 2,
-  fd_commit_rollback = 3, fd_commit_finish = 4,
-  fd_commit_cleanup = 5 } fd_commit_phase;
+  fd_commit_start = 1,
+  fd_commit_write = 2,
+  fd_commit_sync = 3,
+  fd_commit_rollback = 4,
+  fd_commit_flush = 5,
+  fd_commit_cleanup = 6,
+  fd_commit_done = 7 } fd_commit_phase;
 
 struct FD_COMMIT_TIMES {
-  double base, start, setup, save, finalize,  apply, cleanup; };
+  double base, start, setup, write, sync, flush, cleanup; };
 
-FD_EXPORT lispval fd_commit_phases[6];
+FD_EXPORT lispval fd_commit_phases[8];
 
 FD_EXPORT fd_storage_flags fd_get_dbflags(lispval,fd_storage_flags);
 

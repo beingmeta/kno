@@ -4,8 +4,8 @@
 
 CC	      = @CC@
 XCFLAGS       =
-OPTFLAGS      = @OPTFLAGS@
-XOPTFLAGS      = @XOPTFLAGS@
+OPTFLAGS      = "@OPTFLAGS@"
+XOPTFLAGS     = "@XOPTFLAGS@"
 ARCHFLAGS     = @archflags@
 EXECFLAGS     = @CFLAGS@ ${OPTFLAGS} @MALLOC_FLAGS@ @PROFILING@ @DREENTRANT@ -I./include $(XCFLAGS) $(ARCHFLAGS)
 DYNAMIC_CFLAG = @dynamic_cflag@
@@ -1055,6 +1055,8 @@ lib/framerd/crypto.dylib: src/cmodules/crypto.o
 lib/framerd/odbc.o: src/cmodules/odbc.c
 lib/framerd/odbc.so: src/cmodules/odbc.o ${MODULE_SO}
 lib/framerd/odbc.dylib: src/cmodules/odbc.o
+lib/framerd/odbc.so : MODLIBS="@ODBC_LIBS@"
+lib/framerd/odbc.dylib : MODLIBS="@ODBC_LIBS@"
 
 lib/framerd/sqlite.o: src/cmodules/sqlite.c
 lib/framerd/sqlite.so: src/cmodules/sqlite.o ${MODULE_SO}
@@ -1464,15 +1466,15 @@ install-support: $(DESTDIR)@share_dir@
 
 LIBSCM_DIRS=optimize bugjar storage
 install-libscm:
-	if [ ! -f ${DESTDIR}${LIBSCM} ]; then 						\
+	@if [ ! -d ${DESTDIR}${LIBSCM} ]; then 						\
 	  make really-install-libscm; 							\
-	elif [ ! $$(realpath ${DESTDIR}${LIBSCM}) = $(realpath ./src/libscm) ]; then 	\
+	elif [ "$(realpath ${DESTDIR}${LIBSCM})" != "$(realpath ./src/libscm)" ]; then 	\
 	  make really-install-libscm; 							\
 	fi;
 really-install-libscm:
-	$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM};
-	$(SYSINSTALL) @install_file_opts@ src/libscm/*.scm $(DESTDIR)${LIBSCM};
-	for dir in ${LIBSCM_DIRS}; do 						\
+	@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM};
+	@$(SYSINSTALL) @install_file_opts@ src/libscm/*.scm $(DESTDIR)${LIBSCM};
+	@for dir in ${LIBSCM_DIRS}; do 						\
 	  $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM}/$$dir;		\
 	  $(SYSINSTALL) @install_file_opts@ src/libscm/$$dir/*.scm 		\
 	    $(DESTDIR)${LIBSCM}/$$dir; done;
@@ -1734,8 +1736,7 @@ include/framerd/revision.h: $(FRAMERD_SOURCES) $(FRAMERD_HEADERS) makefile
 	  mv $@ etc/old_revision.h; 					\
 	  mv etc/use_revision.h $@;					\
 	fi;
-
-# Depending on the buildmode
+### Depending on the buildmode
 $(EXECUTABLES) $(STATIC_EXECUTABLES): buildmode $(REVISION_H)
 $(LISP_OBJS): $(LISP_HEADERS) $(REVISION_H)
 $(SUPPORT_OBJS): $(LISP_HEADERS) $(REVISION_H)

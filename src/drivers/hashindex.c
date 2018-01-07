@@ -2443,13 +2443,17 @@ static int update_hashindex_metadata(fd_hashindex,lispval,fd_stream,fd_stream);
 static void free_keybuckets(int n,struct KEYBUCKET **keybuckets);
 
 static int hashindex_save(struct FD_HASHINDEX *hx,
+                          struct FD_INDEX_COMMITS *commits,
                           struct FD_STREAM *stream,
-                          struct FD_STREAM *head,
-                          struct FD_CONST_KEYVAL *adds,int n_adds,
-                          struct FD_CONST_KEYVAL *drops,int n_drops,
-                          struct FD_CONST_KEYVAL *stores,int n_stores,
-                          lispval changed_metadata)
+                          struct FD_STREAM *head)
 {
+  struct FD_CONST_KEYVAL *adds = commits->commit_adds;
+  int n_adds = commits->commit_n_adds;
+  struct FD_CONST_KEYVAL *drops = commits->commit_drops;
+  int n_drops = commits->commit_n_drops;
+  struct FD_CONST_KEYVAL *stores = commits->commit_stores;
+  int n_stores = commits->commit_n_stores;
+  lispval changed_metadata = commits->commit_metadata;
   u8_string fname=hx->index_source;
   struct FD_SLOTCODER sc = fd_copy_slotcodes(&(hx->index_slotcodes));
   struct FD_OIDCODER oc = fd_copy_oidcodes(&(hx->index_oidcodes));
@@ -2701,34 +2705,38 @@ static int hashindex_commit(fd_index ix,fd_commit_phase phase,
   case fd_commit_start:
     return fd_write_rollback("hashindex_commit",ix->indexid,source,
                              256+(ref_size*n_buckets));
-  case fd_commit_save: {
-    size_t recovery_size = 256+(ref_size*n_buckets);
-    u8_string commit_file = u8_mkstring("%s.commit",source);
-    ssize_t head_saved = fd_save_head(source,commit_file,recovery_size);
-    struct FD_STREAM *head_stream = (head_saved>=0) ?
-      (fd_init_file_stream(NULL,commit_file,FD_FILE_MODIFY,-1,-1)) :
-      (NULL);
-    int rv = hashindex_save
-      ((struct FD_HASHINDEX *)ix,stream,head_stream,
-       (struct FD_CONST_KEYVAL *)commits->commit_adds,commits->commit_n_adds,
-       (struct FD_CONST_KEYVAL *)commits->commit_drops,commits->commit_n_drops,
-       (struct FD_CONST_KEYVAL *)commits->commit_stores,commits->commit_n_stores,
-       commits->commit_metadata);
-    if (rv<0)
-      u8_seterr("HashIndexSaveFailed","hashindex_commit",u8_strdup(ix->indexid));
-    else {
-      fd_flush_stream(stream);
-      size_t stream_end = fd_endpos(stream);
-      size_t head_end = fd_endpos(head_stream);
-      fd_write_8bytes_at(head_stream,stream_end,head_end-8);}
-    fd_close_stream(head_stream,FD_STREAM_FREEDATA);
-    u8_free(head_stream);
+  case fd_commit_write: {
+    struct FD_STREAM *head_stream = NULL;
+    if (commits->commit_2phase) {
+      size_t recovery_size = 256+(ref_size*n_buckets);
+      u8_string commit_file = u8_mkstring("%s.commit",source);
+      ssize_t head_saved = fd_save_head(source,commit_file,recovery_size);
+      head_stream = (head_saved>=0) ?
+        (fd_init_file_stream(NULL,commit_file,FD_FILE_MODIFY,-1,-1)) :
+        (NULL);
+      if (head_stream == NULL) {
+        u8_seterr("CantOpenCommitFile","bigpool_commit",commit_file);
+        return -1;}
+      else u8_free(commit_file);}
+    else head_stream=stream;
+    int rv = hashindex_save((struct FD_HASHINDEX *)ix,commits,stream,head_stream);
     if (rv<0) {
+      u8_string commit_file = u8_mkstring("%s.commit",source);
+      u8_seterr("HashIndexSaveFailed","hashindex_commit",u8_strdup(ix->indexid));
       if (u8_removefile(commit_file)<0)
-        u8_log(LOG_CRIT,"RemoveFileFailed",
-               "Couldn't remove file %s for %s",
-               commit_file,ix->indexid);}
-    u8_free(commit_file);
+        u8_log(LOG_CRIT,"RemoveFileFailed","Couldn't remove file %s for %s",
+               commit_file,ix->indexid);
+      u8_free(commit_file);}
+    else if (head_stream != stream) {
+      size_t endpos = fd_endpos(stream);
+      size_t head_endpos = fd_endpos(head_stream);
+      fd_write_8bytes_at(head_stream,endpos,head_endpos);
+      fd_flush_stream(head_stream);
+      fd_close_stream(head_stream,FD_STREAM_FREEDATA);
+      u8_free(head_stream);
+      head_stream=NULL;
+      commits->commit_phase = fd_commit_sync;}
+    else commits->commit_phase = fd_commit_flush;
     return rv;}
   case fd_commit_rollback: {
     u8_string rollback_file = u8_string_append(source,".rollback",NULL);
@@ -2748,7 +2756,7 @@ static int hashindex_commit(fd_index ix,fd_commit_phase phase,
                             rollback_file,ix->indexid));
       u8_free(rollback_file);
       return -1;}}
-  case fd_commit_finish: {
+  case fd_commit_sync: {
     u8_string commit_file = u8_mkstring("%s.commit",source);
     ssize_t rv = fd_apply_head(commit_file,source);
     if (rv<0) {
@@ -2766,20 +2774,24 @@ static int hashindex_commit(fd_index ix,fd_commit_phase phase,
                               source,ix->indexid));
         return -1;}
       else return 1;}}
+  case fd_commit_flush: {
+    return 1;}
   case fd_commit_cleanup: {
     if (commits->commit_stream) release_commit_stream(ix,commits);
     u8_string rollback_file = u8_string_append(source,".rollback",NULL);
-    u8_string commit_file = u8_string_append(source,".commit",NULL);
     int rollback_cleanup = 0, commit_cleanup = 0;
     if (u8_file_existsp(rollback_file))
       rollback_cleanup = u8_removefile(rollback_file);
     else u8_log(LOG_WARN,"MissingRollbackFile",
                 "Rollback file %s went missing",rollback_file);
-    if (u8_file_existsp(commit_file))
-      commit_cleanup = u8_removefile(commit_file);
-    else u8_logf(LOG_WARN,"MissingRollbackFile",
-                 "Commit file %s went missing",commit_file);
-    u8_free(rollback_file); u8_free(commit_file);
+    if (commits->commit_2phase) {
+      u8_string commit_file = u8_string_append(source,".commit",NULL);
+      if (u8_file_existsp(commit_file))
+        commit_cleanup = u8_removefile(commit_file);
+      else u8_logf(LOG_WARN,"MissingRollbackFile",
+                   "Commit file %s went missing",commit_file);
+      u8_free(commit_file);}
+    u8_free(rollback_file);
     if ( ( rollback_cleanup < 0) || ( commit_cleanup < 0) )
       return -1;
     else return 1;}

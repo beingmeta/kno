@@ -797,7 +797,7 @@ FD_EXPORT int fd_pool_swapout(fd_pool p,lispval oids)
     if ((p->pool_flags)&(FD_STORAGE_KEEP_CACHESIZE))
       fd_reset_hashtable(cache,-1,1);
     else fd_reset_hashtable(cache,fd_pool_cache_init,1);}
-  u8_logf(LOG_INFO,"SwapPool",
+  u8_logf(LOG_DEBUG,"SwapPool",
           "Swapped out %d oids from pool '%s' in %f",
           rv,p->poolid,u8_elapsed_time()-started);
   return rv;
@@ -964,6 +964,22 @@ FD_EXPORT int fd_pool_finish(fd_pool p,lispval oids)
   return finished;
 }
 
+static int rollback_commits(fd_pool p,struct FD_POOL_COMMITS *commits)
+{
+  u8_logf(LOG_ERR,"Rollback","commit of %d OIDs%s to %s",
+          commits->commit_count,
+          ((FD_VOIDP(commits->commit_metadata)) ? ("") : (" and metadata") ),
+          p->poolid);
+  int rv = p->pool_handler->commit(p,fd_commit_rollback,commits);
+  if (rv<0)
+    u8_logf(LOG_CRIT,"Rollback/Failed","commit of %d OIDs%s to %s",
+            commits->commit_count,
+            ((FD_VOIDP(commits->commit_metadata)) ? ("") : (" and metadata") ),
+            p->poolid);
+  commits->commit_phase = fd_commit_flush;
+  return rv;
+}
+
 /* Timing */
 
 #define record_elapsed(loc) \
@@ -974,7 +990,7 @@ FD_EXPORT int fd_pool_finish(fd_pool p,lispval oids)
 static int pick_writes(fd_pool p,lispval oids,struct FD_POOL_COMMITS *commits);
 static int pick_modified(fd_pool p,int finished,struct FD_POOL_COMMITS *commits);
 static void abort_commit(fd_pool p,struct FD_POOL_COMMITS *commits);
-static void finish_commit(fd_pool p,struct FD_POOL_COMMITS *commits);
+static int finish_commit(fd_pool p,struct FD_POOL_COMMITS *commits);
 
 static int pool_docommit(fd_pool p,lispval oids,
                          struct FD_POOL_COMMITS *use_commits)
@@ -986,15 +1002,17 @@ static int pool_docommit(fd_pool p,lispval oids,
   if ( (use_commits == NULL) &&
        (locks->table_n_keys==0) &&
        (! (metadata_changed(p)) )) {
-    u8_logf(LOG_INFO,fd_PoolCommit,"No locked oids in %s",p->poolid);
+    u8_logf(LOG_DEBUG,fd_PoolCommit,"No locked oids in %s",p->poolid);
     return 0;}
   else if (p->pool_handler->commit == NULL) {
-    u8_logf(LOG_INFO,fd_PoolCommit,"Unlocking OIDs in %s",p->poolid);
+    u8_logf(LOG_INFO,fd_PoolCommit,
+            "No commit handler, just unlocking OIDs in %s",p->poolid);
     int rv = fd_pool_unlock(p,oids,leave_modified);
     return rv;}
   else {
     int free_commits = 1;
     struct FD_POOL_COMMITS commits = { 0 };
+
     u8_lock_mutex(&(p->pool_commit_lock));
     if (use_commits) {
       memcpy(&commits,use_commits,sizeof(struct FD_POOL_COMMITS));
@@ -1002,136 +1020,178 @@ static int pool_docommit(fd_pool p,lispval oids,
         fd_incref_vec(commits.commit_vals,commits.commit_count);
       free_commits=0;}
     else commits.commit_pool = p;
+
     double start_time = u8_elapsed_time(), mark = start_time;
     commits.commit_times.base = start_time;
-    u8_logf(LOG_DEBUG,"PoolCommit/Start","Starting to commit %s",p->poolid);
+
+    u8_logf(LOG_DETAIL,"PoolCommit/Start","Starting to commit %s",p->poolid);
     int started = p->pool_handler->commit(p,fd_commit_start,&commits);
     record_elapsed(commits.commit_times.start);
+
     if ( (started < 0) || (commits.commit_count < 0) ) {
       u8_graberrno("pool_commit",u8_strdup(p->poolid));
       u8_logf(LOG_WARN,"PoolCommit/Start",
               "Failed starting to commit %s",p->poolid);
       u8_unlock_mutex(&(p->pool_commit_lock));
       return started;}
+
     if (commits.commit_count) {
-      u8_logf(LOG_DEBUG,"PoolCommit/custom",
-              "Starting to commit %d explicit changes %sto %s",
-              commits.commit_count,
-              ((FD_VOIDP(commits.commit_metadata)) ? ("") :
-               ("(and metadata) ")),
-              p->poolid);
       /* Either use_commits or fd_commit_start initialized the
          commit_count, so we won't touch it. */}
     else if (! (locks->table_n_keys) ) {
-      u8_logf(LOG_DEBUG,"PoolCommit/NoOIDs",
-              "No locked OIDs to commit to %s",p->poolid);
-      /* No locked OIDs to commit */}
+      /* No locked OIDs to commit */
+      u8_logf(LOG_DETAIL,"PoolCommit/Nada",
+              "No locked OIDs to commit to %s",p->poolid);}
     else if ((FALSEP(oids))||(VOIDP(oids))) {
+      /* Commit all the modified OIDS */
       pick_modified(p,0,&commits);
       if (commits.commit_count)
-        u8_logf(LOG_DEBUG,"PoolCommit/modified",
+        u8_logf(LOG_DETAIL,"PoolCommit/modified",
                 "%d modified OIDs to commit to %s",
                 commits.commit_count,p->poolid);}
     else if ((OIDP(oids))||(CHOICEP(oids))||(PRECHOICEP(oids))) {
+      /* Commit the designated OIDs (if modified) */
       pick_writes(p,oids,&commits);
       if (commits.commit_count)
-        u8_logf(LOG_DEBUG,"PoolCommit/specified",
+        u8_logf(LOG_DETAIL,"PoolCommit/specified",
                 "%d/%d modified OIDs to commit to %s",
-                commits.commit_count,FD_CHOICE_SIZE(oids),p->poolid);}
+                commits.commit_count,FD_CHOICE_SIZE(oids),
+                p->poolid);}
     else if (FD_TRUEP(oids)) {
+      /* Commit all the modified OIDs which are also 'finished,' which
+         means they've been marked readonly. */
       pick_modified(p,1,&commits);
       if (commits.commit_count)
-        u8_logf(LOG_DEBUG,"PoolCommit/finished",
+        u8_logf(LOG_DETAIL,"PoolCommit/finalized",
                 "%d modified+finished OIDs to commit to %s",
                 commits.commit_count,p->poolid);}
-    else {
-      pick_writes(p,EMPTY,&commits);}
+    else pick_writes(p,EMPTY,&commits);
 
     if (use_commits) {
+      /* Fix a NULL metadata slot if you've been handled it. */
       if (commits.commit_metadata == FD_NULL)
         commits.commit_metadata = FD_VOID;}
+    /* Otherwise, copy the current metadata if it's been modified. */
     else if (metadata_changed(p))
       commits.commit_metadata = fd_deep_copy((lispval)&(p->pool_metadata));
     else commits.commit_metadata = FD_VOID;
 
+    /* We've now figured out everything we're going to save */
     record_elapsed(commits.commit_times.setup);
 
-    int saved = 0;
+    int w_metadata = FD_SLOTMAPP(commits.commit_metadata);
+    int commit_count = commits.commit_count;
+    int written, synced, rollback = 0;
 
     if ( (commits.commit_count == 0) &&
          (FD_VOIDP(commits.commit_metadata)) ) {
-      commits.commit_times.save     = 0;
-      commits.commit_times.finalize = 0;
-      commits.commit_times.apply    = 0;}
+      /* There's nothing to do */
+      commits.commit_times.write     = 0;
+      commits.commit_times.sync = 0;
+      commits.commit_times.flush    = 0;
+      written = 0;}
     else {
-      u8_logf(LOG_DEBUG,"PoolCommit/Save",
-              "Saving %d OIDs%s to %s",
-              commits.commit_count,
-              ((FD_VOIDP(commits.commit_metadata)) ? ("") : (" and metadata") ),
-              p->poolid);
-      saved = p->pool_handler->commit(p,fd_commit_save,&commits);
-      record_elapsed(commits.commit_times.save);
-      if (saved >= 0) {
-        u8_logf(LOG_INFO,"PoolCommit/Finish",
-                "Saved %d OIDs%s to %s, 'finishing' commit...",
-                commits.commit_count,
-                ((FD_VOIDP(commits.commit_metadata)) ? ("") : (" and metadata") ),
-                p->poolid);
-        int finish = p->pool_handler->commit(p,fd_commit_finish,&commits);
-        record_elapsed(commits.commit_times.finalize);
-        if (finish < 0) {
-          u8_logf(LOG_CRIT,"FinishFailed",
-                  "Couldn't finish commit for %s",p->poolid);
-          u8_seterr("FinishFailed","pool_commit",u8_strdup(p->poolid));
-          saved = -1;}
-        else {
-          finish_commit(p,&commits);
-          record_elapsed(commits.commit_times.apply);}}
-      else {
-        u8_logf(LOG_CRIT,"PoolCommit/Failed",
-                "Failed saving %d OIDs%s to %s, rolling back...",
-                commits.commit_count,
-                ((FD_VOIDP(commits.commit_metadata)) ? ("") : (" and metadata") ),
-                p->poolid);
-        int rollback = p->pool_handler->commit(p,fd_commit_rollback,&commits);
-        record_elapsed(commits.commit_times.finalize);
-        if (rollback < 0) {
-          u8_logf(LOG_CRIT,"RollbackFailed",
-                  "Couldn't rollback failed commit for %s",p->poolid);
-          u8_seterr("FinishFailed","pool_commit",u8_strdup(p->poolid));}
-        abort_commit(p,&commits);
-        record_elapsed(commits.commit_times.apply);}}
+      written = p->pool_handler->commit(p,fd_commit_write,&commits);}
 
-    u8_logf(LOG_DEBUG,"PoolCommit/Cleanup",
+    if (written >= 0)
+      u8_logf(LOG_DETAIL,"PoolCommit/Written","%d OIDs%s to %s",
+              commit_count,((w_metadata) ? (" and metadata") : ("") ),
+              p->poolid);
+
+    if (written < 0) {
+      u8_logf(LOG_ERR,"PoolCommit/WriteFailed",
+              "Couldn't write %d OIDs%s to %s, rolling back any changes",
+              commit_count,((w_metadata) ? (" and metadata") : ("") ),
+              p->poolid);
+      rollback = rollback_commits(p,&commits);
+      synced = -1;}
+    else if (commits.commit_phase == fd_commit_sync) {
+      synced = p->pool_handler->commit(p,fd_commit_sync,&commits);
+      if (synced < 0) {
+        u8_logf(LOG_ERR,"PoolCommit/SyncFailed",
+                "Couldn't sync %d commits%s to %s",
+                commit_count,((w_metadata) ? (" and metadata") : ("") ),
+                p->poolid);
+        rollback = rollback_commits(p,&commits);}
+      else u8_logf(LOG_DETAIL,"PoolCommit/Synced","%d OIDs%s to %s",
+                   commit_count,((w_metadata) ? (" and metadata") : ("") ),
+                   p->poolid);}
+    else synced = 0;
+    record_elapsed(commits.commit_times.sync);
+
+    if (rollback<0)
+      u8_logf(LOG_CRIT,"Rollback/Failed",
+              _("Couldn't rollback %d changes%s to %s"),
+              commit_count,((w_metadata) ? (" and metadata") : ("") ),
+              p->poolid);
+
+    if (use_commits == NULL)
+      u8_logf(LOG_DETAIL,"PoolCommit/Flushing",
+              "local changes for %d OIDs%s written to %s",
+              commit_count,((w_metadata) ? (" and metadata") : ("") ),
+              p->poolid);
+    int flushed = p->pool_handler->commit(p,fd_commit_flush,&commits);
+    if (flushed<0)
+      u8_logf(LOG_WARN,"PoolCommit/Flush/Failed",
+              "Couldn't flush DB state for %d OIDs%s written to %s",
+              commit_count,((w_metadata) ? (" and metadata") : ("") ),
+              p->poolid);
+    else u8_logf(LOG_DETAILS,"PoolCommit/Flushed",
+                 "DB state for %d OIDs%s written to %s",
+                 commit_count,((w_metadata) ? (" and metadata") : ("") ),
+                 p->poolid);
+
+    if (use_commits == NULL) {
+      int finished=0;
+      if (synced < 0)
+        abort_commit(p,&commits);
+      else {
+        u8_logf(LOG_DETAIL,"PoolCommit/Unlocking",
+                "Unlocking and flushing changes for %d OIDs%s written to %s",
+                commit_count,((w_metadata) ? (" and metadata") : ("") ),
+                p->poolid);
+        finished = finish_commit(p,&commits);}
+      if (finished < 0)
+        u8_logf(LOG_WARN,"PoolCommit/Unlock/Failure",
+                "couldn't unlock changes for %d OIDs%s written to %s",
+                commit_count,((w_metadata) ? (" and metadata") : ("") ),
+                p->poolid);
+      else u8_logf(LOG_DETAIL,"PoolCommit/Unlocked",
+                   "Unlocked and flushed changes for %d OIDs%s written to %s",
+                   commit_count,((w_metadata) ? (" and metadata") : ("") ),
+                   p->poolid);}
+    record_elapsed(commits.commit_times.flush);
+
+    u8_logf(LOG_DETAIL,"PoolCommit/Cleanup",
             "Cleaning up after saving %d OIDs%s to %s",
-            commits.commit_count,
-            ((FD_VOIDP(commits.commit_metadata)) ? ("") : (" and metadata") ),
+            commit_count,((w_metadata) ? (" and metadata") : ("") ),
             p->poolid);
     int cleanup = p->pool_handler->commit(p,fd_commit_cleanup,&commits);
-
     record_elapsed(commits.commit_times.cleanup);
 
     if (cleanup < 0) {
       u8_seterr("CleanupFailed","pool_commit",u8_strdup(p->poolid));
-      u8_logf(LOG_CRIT,"CleanupFailed","Cleanup for %s failed",p->poolid);}
+      u8_logf(LOG_WARN,"CleanupFailed","Cleanup for %s failed",p->poolid);}
 
-    if (saved>0)
-      u8_logf(LOG_INFO,"Pool/Commit/Complete",
-              "Saved %d OIDs%s to %s in %f secs",
-              commits.commit_count,
-              ((FD_VOIDP(commits.commit_metadata)) ? ("") : (" and metadata") ),
+    if (synced < 0)
+      u8_logf(LOG_WARN,"Pool/Commit/Failed",
+              "Couldn't commit %d OIDs%s to %s after %f secs",
+              commit_count,((w_metadata) ? (" and metadata") : ("") ),
               p->poolid,u8_elapsed_time()-start_time);
-
-    u8_logf(LOG_INFO,"Pool/Commit/Timing",
+    else u8_logf(LOG_INFO,"Pool/Commit/Complete",
+                 "Committed %d OIDs%s to %s in %f secs",
+                 commit_count,((w_metadata) ? (" and metadata") : ("") ),
+                 p->poolid,u8_elapsed_time()-start_time);
+    u8_logf(LOG_DEBUG,"Pool/Commit/Timing",
             "for %d OIDs in '%s'\n  total=%f, start=%f, setup=%f, save=%f, "
             "finalize=%f, apply=%f, cleanup=%f",
             commits.commit_count,p->poolid,
             u8_elapsed_time()-commits.commit_times.base,
             commits.commit_times.start,
             commits.commit_times.setup,
-            commits.commit_times.save,
-            commits.commit_times.finalize,
-            commits.commit_times.apply,
+            commits.commit_times.write,
+            commits.commit_times.sync,
+            commits.commit_times.flush,
             commits.commit_times.cleanup);
 
     if (free_commits) {
@@ -1153,7 +1213,7 @@ static int pool_docommit(fd_pool p,lispval oids,
 
     u8_unlock_mutex(&(p->pool_commit_lock));
 
-    return saved;}
+    return written;}
 }
 
 FD_EXPORT int fd_commit_pool(fd_pool p,lispval oids)
@@ -1185,7 +1245,7 @@ static void abort_commit(fd_pool p,struct FD_POOL_COMMITS *commits)
   commits->commit_vals = NULL;
 }
 
-static void finish_commit(fd_pool p,struct FD_POOL_COMMITS *commits)
+static int finish_commit(fd_pool p,struct FD_POOL_COMMITS *commits)
 {
   fd_hashtable changes = &(p->pool_changes);
   int i = 0, n = commits->commit_count, unlock_count=0;
@@ -1240,9 +1300,12 @@ static void finish_commit(fd_pool p,struct FD_POOL_COMMITS *commits)
               "Error unlocking pool %s, all %d values saved "
               "but up to %d OIDs may still be locked",
               p->poolid,n,unlock_count);
-      fd_clear_errors(1);}
+      fd_decref(to_unlock);
+      fd_clear_errors(1);
+      return retval;}
     fd_decref(to_unlock);}
   fd_devoid_hashtable(changes,0);
+  return unlock_count;
 }
 
 /* Support for committing OIDs */
@@ -2476,7 +2539,12 @@ FD_EXPORT lispval fd_default_poolctl(fd_pool p,lispval op,int n,lispval *args)
         long long level = FD_FIX2INT(args[0]);
         if ((level<0) || (level > 128))
           return fd_err(fd_RangeError,"fd_default_poolctl",p->poolid,args[0]);
-        else p->pool_loglevel = level;}
+        else {
+          int old_loglevel = p->pool_loglevel;
+          p->pool_loglevel = level;
+          if (old_loglevel<0)
+            return FD_FALSE;
+          else return FD_INT(old_loglevel);}}
       else return fd_type_error("loglevel","fd_default_poolctl",args[0]);}
     else return fd_err(fd_TooManyArgs,"fd_default_poolctl",p->poolid,VOID);}
   else {

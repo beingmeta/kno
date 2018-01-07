@@ -214,6 +214,8 @@ FD_FASTOP void fd_unlock_pool_struct(fd_pool p)
 
 typedef struct FD_POOL_COMMITS {
   fd_pool commit_pool;
+  fd_commit_phase commit_phase;
+  unsigned int commit_2phase:1;
   ssize_t commit_count;
   lispval *commit_oids;
   lispval *commit_vals;

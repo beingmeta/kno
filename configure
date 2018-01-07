@@ -683,6 +683,7 @@ APTREPO
 GPG
 RPMFLAGS
 RPMDIR
+ODBC_LIBS
 LIBSCM
 BINPATH
 CODENAME
@@ -3270,6 +3271,7 @@ ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd
 
 
 
+
 # Extract the first word of "env", so it can be a program name with args.
 set dummy env; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
@@ -5639,11 +5641,11 @@ fi
 if test "${CLANG}" = "yes"; then
    CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb"
    OPTFLAGS="-O2"
-   XOPTFLAGS="-O3"
+   XOPTFLAGS="-O3 -funroll-loops"
 elif test "${GCC}" = "yes"; then
    CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb"
    OPTFLAGS="-O2"
-   XOPTFLAGS="-O3"
+   XOPTFLAGS="-O3 -funroll-loops"
    gcc_version=`gcc -dumpversion`;
    dynamic_cflag="-rdynamic";
 fi;
@@ -7726,15 +7728,15 @@ fi
 
 # Check whether to use an architecture specific library directory
 if test "${libdir}" != "\${exec_prefix}/lib"; then
-  echo Checking libdir, using explicit libdir ${libdir};
+  echo checking libdir, using explicit libdir ${libdir};
 elif test ${ac_cv_sizeof_long} -eq 4 && test -d ${prefix}/lib32; then
   libdir=${prefix}/lib32;
-  echo Checking libdir, using 32-bit libdir ${libdir};
+  echo checking libdir, using 32-bit libdir ${libdir};
 elif test ${ac_cv_sizeof_long} -eq 8 && test -d ${prefix}/lib64; then
   libdir=${prefix}/lib64;
-  echo Checking libdir, using 64-bit libdir ${libdir};
+  echo checking libdir, using 64-bit libdir ${libdir};
 else
-  echo Checking libdir, using default libdir ${libdir};
+  echo checking libdir, using default libdir ${libdir};
 fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ANSI C header files" >&5
@@ -10190,13 +10192,12 @@ fi
 
 fi
 
-for ac_header in sqlite3.h sql.h
+for ac_header in sql.h
 do :
-  as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
-ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
-if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+  ac_fn_c_check_header_mongrel "$LINENO" "sql.h" "ac_cv_header_sql_h" "$ac_includes_default"
+if test "x$ac_cv_header_sql_h" = xyes; then :
   cat >>confdefs.h <<_ACEOF
-#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
+#define HAVE_SQL_H 1
 _ACEOF
 
 fi
@@ -10304,6 +10305,7 @@ else
   enable_leveldb="yes"
 fi
 
+leveldb_ok="no"
 
 if test "${enable_leveldb}" = "yes" ||
    test "${enable_leveldb}" = "force"; then
@@ -10356,17 +10358,12 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_leveldb_leveldb_open" >&5
 $as_echo "$ac_cv_lib_leveldb_leveldb_open" >&6; }
 if test "x$ac_cv_lib_leveldb_leveldb_open" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBLEVELDB 1
-_ACEOF
-
-  LIBS="-lleveldb $LIBS"
-
+  leveldb_ok="yes"
 fi
 
    if test "${enable_leveldb}" = "yes" &&
       test "${ac_cv_header_leveldb_c_h}" = "yes" &&
-      test "${ac_cv_lib_leveldb_leveldb_open}" = "yes"; then
+      test "${leveldb_ok}" = "yes"; then
      CMODULES="lib/framerd/leveldb.${shared_suffix} ${CMODULES}";
      INSTALLCMODULES="install-leveldb ${INSTALLCMODULES}";
    elif test "${enable_leveldb}" = "force"; then
@@ -10388,6 +10385,7 @@ else
   enable_rocksdb="yes"
 fi
 
+rocksdb_ok="no"
 
 if test "${enable_rocksdb}" = "yes" ||
    test "${enable_rocksdb}" = "force"; then
@@ -10440,17 +10438,12 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_rocksdb_rocksdb_open" >&5
 $as_echo "$ac_cv_lib_rocksdb_rocksdb_open" >&6; }
 if test "x$ac_cv_lib_rocksdb_rocksdb_open" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBROCKSDB 1
-_ACEOF
-
-  LIBS="-lrocksdb $LIBS"
-
+  rocksdb_ok="yes"
 fi
 
    if test "${enable_rocksdb}" = "yes" &&
-      test "${ac_cv_header_rocksdb_c_h}" = "yes" &&
-      test "${ac_cv_lib_rocksdb_rocksdb_open}" = "yes"; then
+      test "${ac_cv_header_rocksdb_c_h}" = "yes";
+      test "${rocksdb_ok}" = "yes"; then
      CMODULES="lib/framerd/rocksdb.${shared_suffix} ${CMODULES}";
      INSTALLCMODULES="install-rocksdb ${INSTALLCMODULES}";
    elif test "${enable_rocksdb}" = "force"; then
@@ -10507,51 +10500,6 @@ else
   have_zip_h="no"
 fi
 
-
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for zip_add in -lzip" >&5
-$as_echo_n "checking for zip_add in -lzip... " >&6; }
-if ${ac_cv_lib_zip_zip_add+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lzip  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char zip_add ();
-int
-main ()
-{
-return zip_add ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_zip_zip_add=yes
-else
-  ac_cv_lib_zip_zip_add=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_zip_zip_add" >&5
-$as_echo "$ac_cv_lib_zip_zip_add" >&6; }
-if test "x$ac_cv_lib_zip_zip_add" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBZIP 1
-_ACEOF
-
-  LIBS="-lzip $LIBS"
-
-fi
 
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for zip_add in -lzip" >&5
 $as_echo_n "checking for zip_add in -lzip... " >&6; }
@@ -10691,9 +10639,10 @@ else
   enable_odbc="yes"
 fi
 
+ODBC_LIBS=
 
 if test "$enable_odbc" = "yes"; then
-ac_fn_c_check_header_mongrel "$LINENO" "sql.h" "ac_cv_header_sql_h" "$ac_includes_default"
+   ac_fn_c_check_header_mongrel "$LINENO" "sql.h" "ac_cv_header_sql_h" "$ac_includes_default"
 if test "x$ac_cv_header_sql_h" = xyes; then :
   have_sql_h="yes"
 else
@@ -10701,8 +10650,8 @@ else
 fi
 
 
-if test "$have_sql_h" = "yes"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SQLNumResultCols in -liodbc" >&5
+   if test "$have_sql_h" = "yes"; then
+     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SQLNumResultCols in -liodbc" >&5
 $as_echo_n "checking for SQLNumResultCols in -liodbc... " >&6; }
 if ${ac_cv_lib_iodbc_SQLNumResultCols+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -10739,18 +10688,15 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_iodbc_SQLNumResultCols" >&5
 $as_echo "$ac_cv_lib_iodbc_SQLNumResultCols" >&6; }
 if test "x$ac_cv_lib_iodbc_SQLNumResultCols" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBIODBC 1
-_ACEOF
-
-  LIBS="-liodbc $LIBS"
-
+  ODBC_LIBS="-liodbc"
 fi
 
-  CMODULES="lib/framerd/odbc.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-odbc ${INSTALLCMODULES}"
-fi
-fi
+     if test ! -z "${ODBC_LIBS}"; then
+       CMODULES="lib/framerd/odbc.$shared_suffix ${CMODULES}"
+       INSTALLCMODULES="install-odbc ${INSTALLCMODULES}"
+     fi;
+   fi;
+fi;
 
 if test "$have_sql_h" = "yes"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SQLNumResultCols in -lodbc" >&5
@@ -10808,7 +10754,12 @@ else
 fi
 
 
+sqlite3_ok="no"
+sqlite3v2_ok="no"
+
 if test $have_sqlite3_h = "yes"; then
+  $as_echo "#define HAVE_SQLITE3_H 1" >>confdefs.h
+
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for sqlite3_open in -lsqlite3" >&5
 $as_echo_n "checking for sqlite3_open in -lsqlite3... " >&6; }
 if ${ac_cv_lib_sqlite3_sqlite3_open+:} false; then :
@@ -10846,60 +10797,57 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_sqlite3_sqlite3_open" >&5
 $as_echo "$ac_cv_lib_sqlite3_sqlite3_open" >&6; }
 if test "x$ac_cv_lib_sqlite3_sqlite3_open" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBSQLITE3 1
-_ACEOF
-
-  LIBS="-lsqlite3 $LIBS"
-
+  sqlite3_ok="yes"
 fi
 
-  for ac_func in sqlite3_open_v2
-do :
-  ac_fn_c_check_func "$LINENO" "sqlite3_open_v2" "ac_cv_func_sqlite3_open_v2"
-if test "x$ac_cv_func_sqlite3_open_v2" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_SQLITE3_OPEN_V2 1
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for sqlite3_open_v2 in -lsqlite3" >&5
+$as_echo_n "checking for sqlite3_open_v2 in -lsqlite3... " >&6; }
+if ${ac_cv_lib_sqlite3_sqlite3_open_v2+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lsqlite3  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char sqlite3_open_v2 ();
+int
+main ()
+{
+return sqlite3_open_v2 ();
+  ;
+  return 0;
+}
 _ACEOF
-
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_sqlite3_sqlite3_open_v2=yes
+else
+  ac_cv_lib_sqlite3_sqlite3_open_v2=no
 fi
-done
-
-  for ac_func in sqlite3_close_v2
-do :
-  ac_fn_c_check_func "$LINENO" "sqlite3_close_v2" "ac_cv_func_sqlite3_close_v2"
-if test "x$ac_cv_func_sqlite3_close_v2" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_SQLITE3_CLOSE_V2 1
-_ACEOF
-
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
 fi
-done
-
-  for ac_func in sqlite3_prepare_v2
-do :
-  ac_fn_c_check_func "$LINENO" "sqlite3_prepare_v2" "ac_cv_func_sqlite3_prepare_v2"
-if test "x$ac_cv_func_sqlite3_prepare_v2" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_SQLITE3_PREPARE_V2 1
-_ACEOF
-
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_sqlite3_sqlite3_open_v2" >&5
+$as_echo "$ac_cv_lib_sqlite3_sqlite3_open_v2" >&6; }
+if test "x$ac_cv_lib_sqlite3_sqlite3_open_v2" = xyes; then :
+  sqlite3v2_ok="yes"
 fi
-done
 
-  for ac_func in sqlite3_errstr
-do :
-  ac_fn_c_check_func "$LINENO" "sqlite3_errstr" "ac_cv_func_sqlite3_errstr"
-if test "x$ac_cv_func_sqlite3_errstr" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_SQLITE3_ERRSTR 1
-_ACEOF
+  if test "$sqlite3_ok" = "yes"; then
+    CMODULES="lib/framerd/sqlite.$shared_suffix ${CMODULES}";
+    INSTALLCMODULES="install-sqlite ${INSTALLCMODULES}";
+    if test "${sqlite3v2_ok}" == "yes"; then
+      $as_echo "#define HAVE_SQLITE3_V2 1" >>confdefs.h
 
-fi
-done
-
-  CMODULES="lib/framerd/sqlite.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-sqlite ${INSTALLCMODULES}"
+    fi;
+  fi;
 fi
 
 ac_fn_c_check_header_mongrel "$LINENO" "regex.h" "ac_cv_header_regex_h" "$ac_includes_default"
@@ -11076,7 +11024,7 @@ _ACEOF
 
 fi
 
-   $as_echo "#define HAVE_SNAPPYC_H 1" >>confdefs.h
+   $as_echo "#define HAVE_ZLIB_H 1" >>confdefs.h
 
 fi;
 
@@ -11137,6 +11085,8 @@ fi
    $as_echo "#define HAVE_SNAPPYC_H 1" >>confdefs.h
 
 fi;
+LIBS="${LIBS} -lsnappy"
+
 
 ac_fn_c_check_header_mongrel "$LINENO" "zstd.h" "ac_cv_header_zstd_h" "$ac_includes_default"
 if test "x$ac_cv_header_zstd_h" = xyes; then :
@@ -11216,6 +11166,7 @@ else
   enable_hyphenate="yes"
 fi
 
+hyphen_ok="no"
 
 if test "$enable_hyphenate" = "yes"; then
   for ac_header in hyphen.h
@@ -11267,19 +11218,14 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_hyphen_hnj_hyphen_hyphenate2" >&5
 $as_echo "$ac_cv_lib_hyphen_hnj_hyphen_hyphenate2" >&6; }
 if test "x$ac_cv_lib_hyphen_hnj_hyphen_hyphenate2" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBHYPHEN 1
-_ACEOF
-
-  LIBS="-lhyphen $LIBS"
-
+  hyphen_ok="yes"
 fi
 
 fi
 
 if test "$enable_hyphenate" = "yes" &&
    test "$ac_cv_header_hyphen_h" = "yes" &&
-   test "$ac_cv_lib_hyphen_hnj_hyphen_hyphenate2" = "yes"; then
+   test "$hyphen_ok" = "yes"; then
   CMODULES="lib/framerd/hyphenate.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-hyphenate ${INSTALLCMODULES}"
   DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
@@ -12273,8 +12219,10 @@ else
   with_qrcode="yes"
 fi
 
+libpng_ok="no"
+qrcode_ok="no"
 
-if (test "$with_qrcode" = "yes") && (test "$have_png_h" = "yes") && (test "$have_qrencode_h" = "yes"); then
+if (test "$with_qrcode" = "yes"); then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for png_create_write_struct in -lpng" >&5
 $as_echo_n "checking for png_create_write_struct in -lpng... " >&6; }
 if ${ac_cv_lib_png_png_create_write_struct+:} false; then :
@@ -12312,12 +12260,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_png_png_create_write_struct" >&5
 $as_echo "$ac_cv_lib_png_png_create_write_struct" >&6; }
 if test "x$ac_cv_lib_png_png_create_write_struct" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBPNG 1
-_ACEOF
-
-  LIBS="-lpng $LIBS"
-
+  libpng_ok="yes"
 fi
 
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for QRcode_encodeString8bit in -lqrencode" >&5
@@ -12357,16 +12300,14 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_qrencode_QRcode_encodeString8bit" >&5
 $as_echo "$ac_cv_lib_qrencode_QRcode_encodeString8bit" >&6; }
 if test "x$ac_cv_lib_qrencode_QRcode_encodeString8bit" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBQRENCODE 1
-_ACEOF
-
-  LIBS="-lqrencode $LIBS"
-
+  qrcode_ok="yes"
 fi
 
-  CMODULES="lib/framerd/qrcode.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-qrcode ${INSTALLCMODULES}"
+  if (test "$have_png_h" = "yes") && (test "$have_qrencode_h" = "yes") &&
+     (test "$libpng_ok" = "yes") && (test "qrcode_ok" = "yes"); then
+    CMODULES="lib/framerd/qrcode.$shared_suffix ${CMODULES}"
+    INSTALLCMODULES="install-qrcode ${INSTALLCMODULES}"
+  fi;
 fi
 
 if test -d /etc/systemd; then

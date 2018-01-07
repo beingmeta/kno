@@ -418,17 +418,8 @@
 /* Whether we've got SQLITE3 headers */
 #undef HAVE_SQLITE3_H
 
-/* Whether we've got the v2 open function headers */
-#undef HAVE_SQLITE3_OPEN_V2
-
-/* Whether we've got the v2 prepare function headers */
-#undef HAVE_SQLITE3_PREPARE_V2
-
-/* Whether we've got the v2 open function headers */
-#undef HAVE_SQLITE3_CLOSE_V2
-
-/* Whether we've got the sqlite3_errstr function (introduced 2012) */
-#undef HAVE_SQLITE3_ERRSTR
+/* Whether we've got the v2 functions */
+#undef HAVE_SQLITE3_V2
 
 /* Whether you can use the stdatomic.h header file */
 #undef FD_ENABLE_FFI

@@ -1424,11 +1424,11 @@ static int leveldb_pool_commit(fd_pool p,fd_commit_phase phase,
   switch (phase) {
   case fd_commit_start:
     return 0;
-  case fd_commit_save:
+  case fd_commit_write:
     return leveldb_pool_storen(p,commits->commit_count,
                                commits->commit_oids,
                                commits->commit_vals);
-  case fd_commit_finish:
+  case fd_commit_sync:
     return 0;
   case fd_commit_rollback:
     return 0;
@@ -2153,11 +2153,11 @@ static int leveldb_index_commit(fd_index ix,fd_commit_phase phase,
     return -1;
   case fd_commit_start: {
     return 1;}
-  case fd_commit_save: {
+  case fd_commit_write: {
     return leveldb_index_save(lx,commits);}
   case fd_commit_rollback: {
     return 1;}
-  case fd_commit_finish: {
+  case fd_commit_sync: {
     return 1;}
   case fd_commit_cleanup: {
     return 1;}
