@@ -143,7 +143,7 @@
       (make-index filename 
 		  `#[type hashindex size ,size
 		     keyslot ,keyslot
-		     slotids ,(and (config 'codeslots) (extend-slotids old))
+		     slotids ,(and (config 'codeslots) (extend-slotids old keyvec))
 		     baseoids
 		     ,(and (config 'codeoids (vector? (indexctl old 'baseoids)) config:boolean)
 			   (rsorted baseoids oid-addr))
