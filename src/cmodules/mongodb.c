@@ -433,7 +433,7 @@ static mongoc_uri_t *setup_mongoc_uri(mongoc_uri_t *info,lispval opts)
     if (FD_VOIDP(ctimeout))
       set_uri_opt(info,MONGOC_URI_CONNECTTIMEOUTMS,timeout);
     if (FD_VOIDP(stimeout))
-      set_uri_opt(info,MONGOC_URI_SELECTIMTEOUT,timeout);}
+      set_uri_opt(info,MONGOC_URI_SERVERSELECTIONTIMEOUTMS,timeout);}
   if (!(FD_VOIDP(ctimeout)))
     set_uri_opt(info,MONGOC_URI_CONNECTTIMEOUTMS,ctimeout);
   if (!(FD_VOIDP(stimeout)))
