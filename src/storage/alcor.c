@@ -197,7 +197,7 @@ FD_EXPORT ssize_t fd_save_head(u8_string source,u8_string dest,size_t head_len)
   else NO_ELSE;
   u8_byte tmp_dest[strlen(dest)+6];
   strcpy(tmp_dest,dest); strcat(tmp_dest,".part");
-  int out = u8_open_fd(tmp_dest,O_RDWR|O_EXCL|O_CREAT,0644);
+  int out = u8_open_fd(tmp_dest,O_RDWR|O_CREAT,0644);
   if (out<0) {
     graberrno("fd_save_head",source);
     u8_close_fd(in);
@@ -207,7 +207,12 @@ FD_EXPORT ssize_t fd_save_head(u8_string source,u8_string dest,size_t head_len)
     u8_close_fd(in);
     u8_close_fd(out);
     return -1;}
-  else NO_ELSE;
+  else {
+    int rv = ftruncate(out,0);
+    if (rv<0) {
+      graberrno("fd_save_head/truncate",dest);
+      u8_close_fd(in);
+      u8_close_fd(out);}}
   struct stat info={0};
   ssize_t rv = -1;
   if (fstat(in,&info)>=0) {
