@@ -969,9 +969,18 @@ lispval fd_eval_pair(lispval head,lispval expr,fd_lexenv env,
     break;}
   case fd_choice_type: {
     int applicable = applicable_choicep(headval);
-    eval_stack->stack_type="ndhandler";
-    if (applicable)
-      result=call_function("fnchoice",headval,expr,env,eval_stack,tail);
+    eval_stack->stack_type="ndapply";
+    if (applicable) {
+      result = FD_EMPTY;
+      FD_DO_CHOICES(hv,headval) {
+        lispval add =
+          call_function("fnchoice",hv,expr,env,eval_stack,0);
+        if (FD_ABORTP(add)) {
+          FD_STOP_DO_CHOICES;
+          fd_decref(result);
+          result=add;
+          break;}
+        CHOICE_ADD(result,add);}}
     else result=fd_err(fd_SyntaxError,"fd_stack_eval",
                        "not applicable or evalfn",
                        headval);
