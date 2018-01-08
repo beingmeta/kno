@@ -260,8 +260,8 @@
 	  (do-choices (db (getkeys timings))
 	    (let ((time (get timings db)))
 	      (if (>= time 0)
-		  (printout "\n\t" ($num time 1) "secs \t" db)
-		  (printout "\n\tFAILED after " ($num time 1) "secs:\t" db)))))))))
+		  (printout "\n\t" ($num time 1) "s \t" db)
+		  (printout "\n\tFAILED after " ($num time 1) "s:\t" db)))))))))
 
 (defambda (flex/save! . args)
   (dolist (arg args)
