@@ -41,7 +41,7 @@ u8_condition fd_BSON_Compound_Overflow=_("BSON/FramerD compound overflow");
 
 static lispval sslsym;
 static int default_ssl = 0;
-static int mongodb_loglevel = LOG_INFO;
+static int mongodb_loglevel = LOG_NOTICE;
 static int logops = 0;
 
 static lispval dbname_symbol, username_symbol, auth_symbol, fdtag_symbol;
