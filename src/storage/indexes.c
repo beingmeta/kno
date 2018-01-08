@@ -1200,7 +1200,7 @@ static int index_doflush(fd_index ix,struct FD_INDEX_COMMITS *commits)
 
 static void log_timings(fd_index ix,struct FD_INDEX_COMMITS *commits)
 {
-  u8_logf(LOG_INFO,"Index/Commit/Timing",
+  u8_logf(LOG_DEBUG,"Index/Commit/Timing",
           "for '%s'\n  total=%f, start=%f, setup=%f, save=%f, "
           "finalize=%f, apply=%f, cleanup=%f",
           ix->indexid,
