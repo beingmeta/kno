@@ -35,7 +35,7 @@
 
 static int max_irritant_len=256;
 
-static lispval stack_entry_symbol;
+static lispval stack_entry_symbol, exception_stack_symbol;
 
 int fd_log_stack_max = 500;
 int fd_sum_stack_max = 200;
@@ -54,6 +54,30 @@ FD_EXPORT void fd_decref_embedded_exception(void *ptr)
   fd_decref(v);
 }
 
+static lispval get_exception_context(u8_exception ex)
+{
+  if (ex == NULL)
+    return FD_VOID;
+  else {
+    int depth = 0; u8_exception scan = ex;
+    while (scan) {
+      scan = scan->u8x_prev;
+      depth++;}
+    lispval stack_vec = fd_make_vector(depth,NULL);
+    int i=0; scan = ex; while (scan) {
+      lispval irritant = fd_get_irritant(scan);
+      lispval entry = fd_init_exception
+        (NULL,scan->u8x_cond,scan->u8x_context,
+         u8_strdup(scan->u8x_details),fd_incref(irritant),
+         FD_FALSE,FD_VOID,
+         NULL,-1,-1,-1);
+      FD_VECTOR_SET(stack_vec,i,entry);
+      scan = scan->u8x_prev;
+      i++;}
+    struct FD_KEYVAL init_kv = { exception_stack_symbol, stack_vec};
+    return fd_make_slotmap(4,1,&init_kv);}
+}
+
 /* This stores the details and irritant arguments directly,
    so they should be dup'd or incref'd by the caller. */
 FD_EXPORT void fd_seterr
@@ -63,9 +87,10 @@ FD_EXPORT void fd_seterr
   u8_condition condition = (c) ? (c) : (ex) ? (ex->u8x_cond) :
     ((u8_condition)"Unknown (NULL) error");
   lispval backtrace = fd_get_backtrace(fd_stackptr);
+  lispval context = (ex) ? (get_exception_context(ex)) : (FD_VOID);
   lispval exception = fd_init_exception
     (NULL,condition,caller,u8_strdup(details),
-     irritant,backtrace,VOID,
+     irritant,backtrace,context,
      NULL,u8_elapsed_time(),u8_threadid(),
      u8_elapsed_base());
   fd_incref(irritant);
@@ -705,7 +730,7 @@ void fd_init_err_c()
     fd_unparsers[fd_exception_type]=unparse_exception;
 
   stack_entry_symbol=fd_intern("%%STACK");
-
+  exception_stack_symbol = fd_intern("EXCEPTION-STACK");
 }
 
 /* Emacs local variables

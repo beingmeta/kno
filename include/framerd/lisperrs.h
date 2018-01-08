@@ -18,6 +18,7 @@ FD_EXPORT lispval fd_wrap_exception(u8_exception ex);
 FD_EXPORT void fd_decref_u8x_xdata(void *ptr);
 FD_EXPORT void fd_decref_embedded_exception(void *ptr);
 
+FD_EXPORT lispval fd_raw_irritant(u8_exception ex);
 FD_EXPORT lispval fd_get_irritant(u8_exception ex);
 FD_EXPORT lispval fd_get_exception(u8_exception ex);
 FD_EXPORT struct FD_EXCEPTION *fd_exception_object(u8_exception ex);

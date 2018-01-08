@@ -300,6 +300,15 @@ static lispval exception_irritant(lispval x)
   else return fd_incref(xo->ex_irritant);
 }
 
+static lispval exception_context(lispval x)
+{
+  struct FD_EXCEPTION *xo=
+    fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
+  if (FD_VOIDP(xo->ex_context))
+    return FD_FALSE;
+  else return fd_incref(xo->ex_context);
+}
+
 static lispval exception_has_irritant(lispval x)
 {
   struct FD_EXCEPTION *xo=
@@ -597,6 +606,9 @@ FD_EXPORT void fd_init_errors_c()
             fd_exception_type,VOID);
   fd_idefn1(fd_scheme_module,"EXCEPTION-IRRITANT",exception_irritant,1,
             "Returns the LISP object (if any) which 'caused' the exception",
+            fd_exception_type,VOID);
+  fd_idefn1(fd_scheme_module,"EXCEPTION-CONTEXT",exception_context,1,
+            "Returns aspects of where the error occured",
             fd_exception_type,VOID);
   fd_idefn1(fd_scheme_module,"EXCEPTION-IRRITANT?",exception_has_irritant,1,
             "(EXCEPTION-IRRITANT? *ex*) Returns true if *ex* is an exception "
