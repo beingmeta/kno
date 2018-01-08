@@ -377,12 +377,12 @@ FD_EXPORT int fd_add_to_background(fd_index ix)
   if (fd_background)
     fd_add_to_compound_index(fd_background,ix);
   else {
-    fd_index *indexes = u8_alloc_n(1,fd_index);
-    indexes[0]=ix;
-    fd_background=
-      (struct FD_COMPOUND_INDEX *)fd_make_compound_index(1,indexes);
-    u8_string old_id=fd_background->indexid;
-    fd_background->indexid=u8_strdup("background");
+    fd_index *indexes = u8_alloc_n(32,fd_index);
+    indexes[0] = ix;
+    fd_background = (struct FD_COMPOUND_INDEX *)
+      fd_make_compound_index(32,1,indexes);
+    u8_string old_id = fd_background->indexid;
+    fd_background->indexid = u8_strdup("background");
     if (old_id) u8_free(old_id);}
   u8_unlock_mutex(&background_lock);
   return 1;
@@ -1083,33 +1083,66 @@ static void free_commits(struct FD_INDEX_COMMITS *commits)
 
 static int index_dowrite(fd_index ix,struct FD_INDEX_COMMITS *commits)
 {
+  double started = u8_elapsed_time();
   int fd_storage_loglevel = index_loglevel(ix);
   int n_changes =
-    commits->commit_n_adds + commits->commit_n_drops + commits->commit_n_stores;
+    commits->commit_n_adds +
+    commits->commit_n_drops +
+    commits->commit_n_stores;
   if (!(FD_VOIDP(commits->commit_metadata))) n_changes++;
 
-  return ix->index_handler->commit(ix,fd_commit_write,commits);
+  u8_logf(LOG_DETAIL,"IndexCommit/Write",
+          "Writing %d edits to %s",n_changes,ix->indexid);
+
+  int rv =ix->index_handler->commit(ix,fd_commit_write,commits);
+
+  if (rv<0) {
+    u8_exception ex = u8_current_exception;
+    if (ex)
+      u8_logf(LOG_CRIT,"Failed/IndexCommit/Write",
+              "(after %fsecs) writing %d edits to %s: %m %s %s%s%s",
+              elapsed_time(started),n_changes,ix->indexid,
+              ex->u8x_cond,ex->u8x_context,
+              U8OPTSTR("(",ex->u8x_details,")"));
+    else u8_logf(LOG_CRIT,"Failed/IndexCommit/Write",
+                 "(after %fsecs) writing %d edits to %s",
+                 n_changes,ix->indexid,elapsed_time(started));}
+  else u8_logf(LOG_DETAIL,"Finished/IndexCommit/Write",
+               "(after %fsecs) writing %d edits to %s",
+               elapsed_time(started),n_changes,ix->indexid);
+
+  return rv;
 }
 
 static int index_rollback(fd_index ix,struct FD_INDEX_COMMITS *commits)
 {
+  double started = u8_elapsed_time();
   int fd_storage_loglevel = index_loglevel(ix);
   int n_changes =
     commits->commit_n_adds + commits->commit_n_drops + commits->commit_n_stores;
   if (!(FD_VOIDP(commits->commit_metadata))) n_changes++;
 
+  u8_logf(LOG_DETAIL,"IndexRollback",
+          "Rolling back %d edits to %s",n_changes,ix->indexid);
+
   int rollback = ix->index_handler->commit(ix,fd_commit_rollback,commits);
   if (rollback < 0) {
-    u8_logf(LOG_CRIT,"IndexRollbackFailed",
-            "Couldn't rollback failed save to %s",ix->indexid);
+    u8_logf(LOG_CRIT,"Failed/IndexRollback",
+            "(after %fs) Couldn't rollback failed save of %d edits to %s",
+            elapsed_time(started),ix->indexid);
     u8_seterr("IndexRollbackFailed","index_dcommit/rollback",
-              u8_strdup(ix->indexid));
-    return -1;}
-  else return -1;
+              u8_strdup(ix->indexid));}
+  else u8_logf(LOG_DETAIL,"Finished/IndexRollback",
+               "Rolled back %d edits to %s in %f seconds",
+               n_changes,ix->indexid,
+               elapsed_time(started));
+
+  return -1;
 }
 
 static int index_dosync(fd_index ix,struct FD_INDEX_COMMITS *commits)
 {
+  double started = u8_elapsed_time();
   int fd_storage_loglevel = index_loglevel(ix);
   int n_changes =
     commits->commit_n_adds + commits->commit_n_drops + commits->commit_n_stores;
@@ -1118,32 +1151,49 @@ static int index_dosync(fd_index ix,struct FD_INDEX_COMMITS *commits)
   u8_logf(LOG_DETAIL,"IndexWrite/Sync",
           _("Syncing %d changes to %s"),n_changes,ix->indexid);
 
-  double start_sync = u8_elapsed_time();
-
   int synced = ix->index_handler->commit(ix,fd_commit_sync,commits);
 
   if (synced < 0) {
     u8_seterr("IndexSync/Error","index_dosync",u8_strdup(ix->indexid));
     u8_logf(LOG_ERR,"IndexSync/Error",
-            _("Error syncing %d changes to %s taking %f secs, rolling back"),
-            n_changes,ix->indexid,elapsed_time(start_sync));
+            _("(after %fs) syncing %d changes to %s, rolling back"),
+            elapsed_time(started),n_changes,ix->indexid);
     index_rollback(ix,commits);}
   else u8_logf(LOG_DETAIL,"IndexWrite/Synced",
                _("Synced %d changes to %s in %f secs"),
-               n_changes,ix->indexid,elapsed_time(start_sync));
+               n_changes,ix->indexid,elapsed_time(started));
 
   return synced;
 }
 
 static int index_doflush(fd_index ix,struct FD_INDEX_COMMITS *commits)
 {
+  double started = u8_elapsed_time();
   int fd_storage_loglevel = index_loglevel(ix);
-
   int n_changes =
     commits->commit_n_adds + commits->commit_n_drops + commits->commit_n_stores;
   if (!(FD_VOIDP(commits->commit_metadata))) n_changes++;
 
+  u8_logf(LOG_DETAIL,"IndexCommit/Flush",
+          "Flushing %d cached edits from %s",n_changes,ix->indexid);
+
   int rv= ix->index_handler->commit(ix,fd_commit_flush,commits);
+
+  if (rv<0) {
+    u8_exception ex = u8_current_exception;
+    if (ex)
+      u8_logf(LOG_CRIT,"Failed/IndexCommit/Write",
+              "(after %fs) flushing %d cached edits from %s: %m %s %s%s%s",
+              elapsed_time(started),n_changes,ix->indexid,
+              ex->u8x_cond,ex->u8x_context,
+              U8OPTSTR("(",ex->u8x_details,")"));
+    else u8_logf(LOG_CRIT,"Failed/IndexCommit/Write",
+                 "(after %fs) flushing %d cached edits from %s",
+                 elapsed_time(started),n_changes,ix->indexid);}
+  else u8_logf(LOG_DETAIL,"Finished/IndexCommit/Flush",
+               "Flushed %d cached edits from %s in %f secons",
+               n_changes,ix->indexid,
+               elapsed_time(started));
 
   return rv;
 }
@@ -1269,7 +1319,7 @@ static int index_docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
 
   if (n_keys) init_cache_level(ix);
 
-  int written = index_dowrite(ix,&commits), synced = 0, rollback = 0;
+  int written = index_dowrite(ix,&commits), synced = 0;
   record_elapsed(commits.commit_times.write);
 
   if (written >= 0)
@@ -1283,10 +1333,9 @@ static int index_docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
             _("Error writing %d changes to %s after %f secs, rolling back"),
             n_changes,ix->indexid,u8_elapsed_time()-start_time);
     synced = -1;
-    rollback = index_rollback(ix,&commits);
+    index_rollback(ix,&commits);
     commits.commit_phase = fd_commit_flush;}
   else if (commits.commit_phase == fd_commit_sync) {
-    double start_sync = u8_elapsed_time();
     synced = index_dosync(ix,&commits);
     commits.commit_phase = fd_commit_flush;}
   else {
@@ -1294,7 +1343,9 @@ static int index_docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
     commits.commit_phase = fd_commit_flush;}
   record_elapsed(commits.commit_times.sync);
 
-  int flushed = index_doflush(ix,&commits);
+  /* If this returns < 0, it will have generated a warning and it doesn't require us to abort
+     because the state has been saved, it's just still in memory. */
+  index_doflush(ix,&commits);
 
   if (synced<0) {
     /* If there was an error, just leave the edits in the index hashtables */
@@ -1597,9 +1648,6 @@ FD_EXPORT lispval fd_index_base_metadata(fd_index ix)
 
   if (FD_TABLEP(ix->index_opts))
     fd_add(metadata,opts_slot,ix->index_opts);
-
-  if (FD_VOIDP(metadata_readonly_props))
-    metadata_readonly_props = fd_intern("_READONLY_PROPS");
 
   fd_add(metadata,metadata_readonly_props,cachelevel_slot);
   fd_add(metadata,metadata_readonly_props,indexid_slot);
@@ -2146,6 +2194,7 @@ FD_EXPORT void fd_init_indexes_c()
   set_symbol = fd_make_symbol("SET",3);
   drop_symbol = fd_make_symbol("DROP",4);
   fd_unparsers[fd_index_type]=unparse_index;
+  metadata_readonly_props = fd_intern("_READONLY_PROPS");
 
   u8_init_mutex(&indexes_lock);
   u8_init_mutex(&background_lock);

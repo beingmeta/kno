@@ -2414,9 +2414,6 @@ FD_EXPORT lispval fd_pool_base_metadata(fd_pool p)
   if (FD_TABLEP(p->pool_opts))
     fd_store(metadata,opts_slot,p->pool_opts);
 
-  if (FD_VOIDP(metadata_readonly_props))
-    metadata_readonly_props = fd_intern("_READONLY_PROPS");
-
   fd_add(metadata,metadata_readonly_props,FDSYM_TYPE);
   fd_add(metadata,metadata_readonly_props,base_slot);
   fd_add(metadata,metadata_readonly_props,capacity_slot);
@@ -2775,6 +2772,8 @@ FD_EXPORT void fd_init_pools_c()
   background_flag=fd_intern("BACKGROUND");
   virtual_flag=fd_intern("VIRTUAL");
   nolocks_flag=fd_intern("NOLOCKS");
+
+  metadata_readonly_props = fd_intern("_READONLY_PROPS");
 
   memset(&fd_top_pools,0,sizeof(fd_top_pools));
   memset(&fd_pools_by_serialno,0,sizeof(fd_top_pools));

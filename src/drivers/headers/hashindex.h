@@ -18,6 +18,7 @@
 #define FD_HASHINDEX_OFFTYPE_MASK  0x30
 #define FD_HASHINDEX_DTYPEV2       0x40
 #define FD_HASHINDEX_ODDKEYS       0x80
+#define FD_HASHINDEX_READ_ONLY     0x100
 
 /* Used to generate hash codes */
 #define MAGIC_MODULUS 16777213 /* 256000001 */
@@ -28,6 +29,9 @@
 #define FD_HASHINDEX_SLOTIDS_POS 20
 #define FD_HASHINDEX_BASEOIDS_POS 32
 #define FD_HASHINDEX_METADATA_POS 44
+#define FD_HASHINDEX_NBUCKETS_POS 4
+#define FD_HASHINDEX_FORMAT_POS 8
+#define FD_HASHINDEX_NKEYS_POS 16
 
 /* The hash index structure */
 
@@ -38,7 +42,7 @@ typedef struct FD_HASHINDEX {
   /* flags controls hash functions, compression, etc.
      hxcustom is a placeholder for a value to customize
      the hash function. */
-  unsigned int storage_xformat, index_custom, table_n_keys;
+  unsigned int hashindex_format, index_custom, table_n_keys;
   fd_offset_type index_offtype;
 
   fd_off_t hx_metadata_pos;

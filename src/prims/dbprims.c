@@ -592,7 +592,7 @@ static lispval make_compound_index(int n,lispval *args)
         u8_free(sources);
         return fd_type_error("index","make_compound_index",source);}}
     i++;}
-  return index2lisp(fd_make_compound_index(n_sources,sources));
+  return index2lisp(fd_make_compound_index(n_sources,n_sources,sources));
 }
 
 static lispval add_to_compound_index(lispval lcx,lispval aix)

@@ -406,7 +406,8 @@ static lispval config_get_background(lispval var,void *data)
   else {
     int i = 0, n; fd_index *indexes;
     u8_lock_mutex(&(fd_background->index_lock));
-    n = fd_background->n_indexes; indexes = fd_background->indexes;
+    n = fd_background->cx_n_indexes;
+    indexes = fd_background->cx_indexes;
     while (i<n) {
       lispval lix = fd_index_ref(indexes[i]); i++;
       CHOICE_ADD(results,lix);}

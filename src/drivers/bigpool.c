@@ -1046,7 +1046,6 @@ static int bigpool_storen(fd_pool p,struct FD_POOL_COMMITS *commits,
     fd_seterr("CantWriteFile","bigpool_storen",fname,FD_VOID);
     return -1;}
 
-  struct FD_OUTBUF *outstream = fd_writebuf(stream);
   unsigned int load = bp->pool_load;
 
   struct BIGPOOL_SAVEINFO *saveinfo= (n>0) ?
@@ -1952,6 +1951,25 @@ static int bigpool_set_compression(fd_bigpool bp,fd_compress_type cmptype)
   else return FD_INT(cmptype);
 }
 
+static int bigpool_set_read_only(fd_bigpool bp,int read_only)
+{
+  struct FD_STREAM _stream, *stream = fd_init_file_stream
+    (&_stream,bp->pool_source,FD_FILE_MODIFY,-1,-1);
+  if (stream == NULL) return -1;
+  unsigned int format = fd_read_4bytes_at(stream,FD_BIGPOOL_FORMAT_POS,FD_STREAM_ISLOCKED);
+  if (read_only)
+    format = format | (FD_BIGPOOL_READ_ONLY);
+  else format = format & (~(FD_BIGPOOL_READ_ONLY));
+  ssize_t v = fd_write_4bytes_at(stream,format,FD_BIGPOOL_FORMAT_POS);
+  if (v>=0) {
+    fd_lock_pool_struct((fd_pool)bp,1);
+    if (read_only)
+      bp->pool_flags |=  FD_STORAGE_READ_ONLY;
+    else bp->pool_flags &=  (~(FD_STORAGE_READ_ONLY));}
+  fd_close_stream(stream,FD_STREAM_FREEDATA);
+  return v;
+}
+
 static lispval bigpool_getoids(fd_bigpool bp)
 {
   if (bp->pool_cache_level<0) {
@@ -1981,6 +1999,8 @@ static lispval bigpool_getoids(fd_bigpool bp)
 }
 
 /* Bigpool ops */
+
+static lispval metadata_readonly_props = FD_VOID;
 
 static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
 {
@@ -2056,6 +2076,8 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
       fd_empty_vector(0);
     fd_store(base,load_symbol,FD_INT(bp->pool_load));
     fd_store(base,slotids_symbol,FD_INT(bp->pool_slotcodes.n_slotcodes));
+    if ( bp->bigpool_format & FD_BIGPOOL_READ_ONLY )
+      fd_store(base,FDSYM_READONLY,FD_TRUE);
     if ( bp->pool_offtype == FD_B32)
       fd_store(base,offmode_symbol,fd_intern("B32"));
     else if ( bp->pool_offtype == FD_B40)
@@ -2074,15 +2096,17 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
     else if ( bp->pool_compression == FD_ZSTD )
       fd_store(base,compression_symbol,fd_intern("ZSTD"));
     else fd_store(base,compression_symbol,fd_intern("!!INVALID!!"));
-    fd_add(base,FDSYM_READONLY,load_symbol);
-    fd_add(base,FDSYM_READONLY,slotids_symbol);
-    fd_add(base,FDSYM_READONLY,compression_symbol);
-    fd_add(base,FDSYM_READONLY,offmode_symbol);
+    fd_add(base,metadata_readonly_props,load_symbol);
+    fd_add(base,metadata_readonly_props,slotids_symbol);
+    fd_add(base,metadata_readonly_props,compression_symbol);
+    fd_add(base,metadata_readonly_props,offmode_symbol);
     fd_decref(slotids_vec);
     return base;}
   else if ( (op == fd_load_op) && (n == 0) )
     return FD_INT(bp->pool_load);
-  else if ( ( op == compression_symbol ) && (n == 0) ) {
+  else if ( ( ( op == compression_symbol ) && (n == 0) ) ||
+            ( ( op == fd_metadata_op ) && (n == 1) &&
+              ( args[1] == compression_symbol ) ) ) {
     if ( bp->pool_compression == FD_NOCOMPRESS )
       return FD_FALSE;
     else if ( bp->pool_compression == FD_ZLIB )
@@ -2094,8 +2118,26 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
     else {
       fd_seterr("BadCompressionType","bigpool_ctl",bp->poolid,FD_VOID);
       return FD_ERROR;}}
-  else if ( ( op == compression_symbol ) && (n == 1) ) {
-    lispval arg = args[0]; int rv = 0;
+  else if ( ( ( op == FDSYM_READONLY ) && (n == 0) ) ||
+            ( ( op == fd_metadata_op ) && (n == 1) &&
+              ( args[1] == FDSYM_READONLY ) ) ) {
+    if ( (bp->pool_flags) & (FD_STORAGE_READ_ONLY) )
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else if ( ( ( op == FDSYM_READONLY ) && (n == 1) ) ||
+            ( ( op == fd_metadata_op ) && (n == 2) &&
+              ( args[1] == FDSYM_READONLY ) ) ) {
+    lispval arg = ( op == FDSYM_READONLY ) ? (args[0]) : (args[1]);
+    int rv = (FD_FALSEP(arg)) ? (bigpool_set_read_only(bp,0)) :
+      (bigpool_set_read_only(bp,1));
+    if (rv<0)
+      return FD_ERROR;
+    else return fd_incref(arg);}
+  else if ( ( ( op == compression_symbol ) && (n == 1) ) ||
+            ( ( op == fd_metadata_op ) && (n == 2) &&
+              ( args[1] == compression_symbol ) ) ) {
+    lispval arg = (op == compression_symbol) ? (args[0]) : (args[1]);
+    int rv = 0;
     if (FD_FALSEP(arg))
       rv = bigpool_set_compression(bp,FD_NOCOMPRESS);
     else if (arg == (fd_intern("ZLIB")))
@@ -2302,6 +2344,7 @@ FD_EXPORT void fd_init_bigpool_c()
   slotids_symbol=fd_intern("SLOTIDS");
   compression_symbol=fd_intern("COMPRESSION");
   offmode_symbol=fd_intern("OFFMODE");
+  metadata_readonly_props = fd_intern("_READONLY_PROPS");
 
   fd_register_config("BIGPOOL:LOGLEVEL",
                      "The default loglevel for bigpools",

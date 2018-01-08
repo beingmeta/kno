@@ -907,7 +907,7 @@ void fd_init_dbserv_c()
                      config_set_locksfile,
                      NULL);
 
-  primary_index = (fd_compound_index)fd_make_compound_index(0,NULL);
+  primary_index = (fd_compound_index)fd_make_compound_index(32,0,NULL);
 
   fd_dbserv_module = module;
 }

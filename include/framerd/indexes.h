@@ -237,12 +237,15 @@ FD_EXPORT void fd_register_procindex(u8_string typename,lispval handler);
 
 typedef struct FD_COMPOUND_INDEX {
   FD_INDEX_FIELDS;
-  unsigned int n_indexes; fd_index *indexes;
+  unsigned int cx_n_indexes, cx_n_allocd;
+  fd_index *cx_indexes;
+  fd_index cx_front;
+  struct U8_MEMLIST *cx_oldvecs;
   U8_MUTEX_DECL(index_lock);} FD_COMPOUND_INDEX;
 typedef struct FD_COMPOUND_INDEX *fd_compound_index;
 
 FD_EXPORT int fd_add_to_compound_index(fd_compound_index ix,fd_index add);
-FD_EXPORT fd_index fd_make_compound_index(int n_indexes,fd_index *indexes);
+FD_EXPORT fd_index fd_make_compound_index(int n_allocd,int n_indexes,fd_index *indexes);
 
 FD_EXPORT struct FD_COMPOUND_INDEX *fd_background;
 

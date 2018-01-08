@@ -261,23 +261,28 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
     fd_close_stream(stream,FD_STREAM_FREEDATA|FD_STREAM_NOFLUSH);
     return NULL;}
 
-  index->index_n_buckets = fd_read_4bytes_at(stream,4,FD_ISLOCKED);
+  index->index_n_buckets =
+    fd_read_4bytes_at(stream,FD_HASHINDEX_NBUCKETS_POS,FD_ISLOCKED);
   index->index_offdata = NULL;
-  index->storage_xformat = fd_read_4bytes_at(stream,8,FD_ISLOCKED);
-  if (read_only)
-    U8_SETBITS(index->index_flags,FD_STORAGE_READ_ONLY);
-  if (((index->storage_xformat)&(FD_HASHINDEX_FN_MASK))!=0) {
+  index->hashindex_format =
+    fd_read_4bytes_at(stream,FD_HASHINDEX_FORMAT_POS,FD_ISLOCKED);
+  if (read_only) {
+    U8_SETBITS(index->index_flags,FD_STORAGE_READ_ONLY);}
+  else if ((index->hashindex_format) & (FD_HASHINDEX_READ_ONLY) ) {
+    U8_SETBITS(index->index_flags,FD_STORAGE_READ_ONLY);}
+  else NO_ELSE;
+
+  if (((index->hashindex_format)&(FD_HASHINDEX_FN_MASK))!=0) {
     u8_free(index);
     fd_seterr3(BadHashFn,"open_hashindex",NULL);
     return NULL;}
 
   index->index_offtype = (fd_offset_type)
-    (((index->storage_xformat)&(FD_HASHINDEX_OFFTYPE_MASK))>>4);
+    (((index->hashindex_format)&(FD_HASHINDEX_OFFTYPE_MASK))>>4);
 
   index->index_custom = fd_read_4bytes_at(stream,12,FD_ISLOCKED);
 
-  /* Currently ignored */
-  index->table_n_keys = fd_read_4bytes_at(stream,16,FD_ISLOCKED);
+  index->table_n_keys = fd_read_4bytes_at(stream,FD_HASHINDEX_NKEYS_POS,FD_ISLOCKED);
 
   struct FD_SLOTCODER *sc = &(index->index_slotcodes);
   struct FD_OIDCODER *oc = &(index->index_oidcodes);
@@ -778,7 +783,7 @@ FD_EXPORT ssize_t hashindex_bucket(struct FD_HASHINDEX *hx,lispval key,
   struct FD_OUTBUF out = { 0 }; unsigned char buf[1024];
   unsigned int hashval; int dtype_len;
   FD_INIT_BYTE_OUTBUF(&out,buf,1024);
-  if ((hx->storage_xformat)&(FD_HASHINDEX_DTYPEV2))
+  if ((hx->hashindex_format)&(FD_HASHINDEX_DTYPEV2))
     out.buf_flags = out.buf_flags|FD_USE_DTYPEV2;
   dtype_len = write_zkey(hx,&out,key);
   hashval = hash_bytes(out.buffer,dtype_len);
@@ -854,7 +859,7 @@ static lispval hashindex_fetch(fd_index ix,lispval key)
 #endif
   /* If the index doesn't have oddkeys and you're looking up some feature (pair)
      whose slotid isn't in the slotids, the key isn't in the table. */
-  if ((!((hx->storage_xformat)&(FD_HASHINDEX_ODDKEYS))) && (PAIRP(key))) {
+  if ((!((hx->hashindex_format)&(FD_HASHINDEX_ODDKEYS))) && (PAIRP(key))) {
     lispval slotid = FD_CAR(key);
     if ((SYMBOLP(slotid)) || (OIDP(slotid))) {
       int code = fd_slotid2code(&(hx->index_slotcodes),slotid);
@@ -865,7 +870,7 @@ static lispval hashindex_fetch(fd_index ix,lispval key)
 #endif
         fd_close_outbuf(&out);
         return EMPTY;}}}
-  if ((hx->storage_xformat)&(FD_HASHINDEX_DTYPEV2))
+  if ((hx->hashindex_format)&(FD_HASHINDEX_DTYPEV2))
     out.buf_flags |= FD_USE_DTYPEV2;
   dtype_len = write_zkey(hx,&out,key); {}
   hashval = hash_bytes(out.buffer,dtype_len);
@@ -1054,7 +1059,7 @@ static int hashindex_fetchsize(fd_index ix,lispval key)
   unsigned int hashval, bucket, n_keys, i, dtype_len, n_values;
   FD_CHUNK_REF keyblock;
   FD_INIT_BYTE_OUTBUF(&out,buf,64);
-  if ((hx->storage_xformat)&(FD_HASHINDEX_DTYPEV2))
+  if ((hx->hashindex_format)&(FD_HASHINDEX_DTYPEV2))
     out.buf_flags = out.buf_flags|FD_USE_DTYPEV2;
   dtype_len = write_zkey(hx,&out,key);
   hashval = hash_bytes(out.buffer,dtype_len);
@@ -1155,7 +1160,7 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
   unsigned char *keyreps;
   int i = 0, n_entries = 0, vsched_size = 0;
   size_t vbuf_size=0;
-  int oddkeys = ((hx->storage_xformat)&(FD_HASHINDEX_ODDKEYS));
+  int oddkeys = ((hx->hashindex_format)&(FD_HASHINDEX_ODDKEYS));
   fd_stream stream = &(hx->index_stream);
   fd_use_slotcodes(& hx->index_slotcodes);
 #if FD_DEBUG_HASHINDEXES
@@ -1163,7 +1168,7 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
 #endif
   /* Initialize sized based on assuming 32 bytes per key */
   FD_INIT_BYTE_OUTPUT(&keysbuf,n*32);
-  if ((hx->storage_xformat)&(FD_HASHINDEX_DTYPEV2))
+  if ((hx->hashindex_format)&(FD_HASHINDEX_DTYPEV2))
     keysbuf.buf_flags = keysbuf.buf_flags|FD_USE_DTYPEV2;
   /* Fill out a fetch schedule, computing hashes and buckets for each
      key.  If we have an offsets table, we compute the offsets during
@@ -2055,7 +2060,7 @@ static int process_stores(struct FD_HASHINDEX *hx,
                           struct COMMIT_SCHEDULE *s,
                           int i)
 {
-  int oddkeys = ((hx->storage_xformat)&(FD_HASHINDEX_ODDKEYS));
+  int oddkeys = ((hx->hashindex_format)&(FD_HASHINDEX_ODDKEYS));
   int store_i = 0; while ( store_i < n_stores) {
     lispval key = stores[store_i].kv_key, val = stores[store_i].kv_val;
     s[i].commit_key     = key;
@@ -2066,7 +2071,7 @@ static int process_stores(struct FD_HASHINDEX *hx,
     i++;}
 
   /* Record if there were any odd keys */
-  if (oddkeys) hx->storage_xformat |= (FD_HASHINDEX_ODDKEYS);
+  if (oddkeys) hx->hashindex_format |= (FD_HASHINDEX_ODDKEYS);
 
   return i;
 }
@@ -2078,7 +2083,7 @@ static int process_drops(struct FD_HASHINDEX *hx,
 {
   lispval *to_fetch = u8_big_alloc_n(n_drops,lispval); int n_fetches = 0;
   int *fetch_scheds = u8_big_alloc_n(n_drops,unsigned int);
-  int oddkeys = ((hx->storage_xformat)&(FD_HASHINDEX_ODDKEYS));
+  int oddkeys = ((hx->hashindex_format)&(FD_HASHINDEX_ODDKEYS));
 
   /* For all of the drops, we need to fetch their values to do the
      drop, so we accumulate them in to_fetch[]. We're not checking the
@@ -2101,7 +2106,7 @@ static int process_drops(struct FD_HASHINDEX *hx,
     sched_i++;}
 
   /* Record if there were any odd (non (slotid . val)) keys */
-  if (oddkeys) hx->storage_xformat |= (FD_HASHINDEX_ODDKEYS);
+  if (oddkeys) hx->hashindex_format |= (FD_HASHINDEX_ODDKEYS);
 
   /* Get the current values of all the keys you're dropping, to turn
      the drops into stores. */
@@ -2130,7 +2135,7 @@ static int process_adds(struct FD_HASHINDEX *hx,
                         int i)
 {
   int add_i = 0;
-  int oddkeys = ((hx->storage_xformat)&(FD_HASHINDEX_ODDKEYS));
+  int oddkeys = ((hx->hashindex_format)&(FD_HASHINDEX_ODDKEYS));
   while ( add_i < n_adds ) {
     lispval key = adds[add_i].kv_key;
     lispval val = adds[add_i].kv_val;
@@ -2153,7 +2158,7 @@ static int process_adds(struct FD_HASHINDEX *hx,
     add_i++;
     i++;}
   if (oddkeys)
-    hx->storage_xformat |= (FD_HASHINDEX_ODDKEYS);
+    hx->hashindex_format |= (FD_HASHINDEX_ODDKEYS);
   return i;
 }
 
@@ -2499,7 +2504,7 @@ static int hashindex_save(struct FD_HASHINDEX *hx,
   struct FD_OUTBUF out = { 0 }, newkeys = { 0 };
   FD_INIT_BYTE_OUTPUT(&out,1024);
   FD_INIT_BYTE_OUTPUT(&newkeys,schedule_max*16);
-  if ((hx->storage_xformat)&(FD_HASHINDEX_DTYPEV2)) {
+  if ((hx->hashindex_format)&(FD_HASHINDEX_DTYPEV2)) {
     out.buf_flags |= FD_USE_DTYPEV2;
     newkeys.buf_flags |= FD_USE_DTYPEV2;}
 
@@ -2628,7 +2633,7 @@ static int hashindex_save(struct FD_HASHINDEX *hx,
 
   int final_rv = update_hashindex_ondisk
     (hx,changed_metadata,
-     hx->storage_xformat,total_keys,
+     hx->hashindex_format,total_keys,
      changed_buckets,bucket_locs,
      &sc,&oc,stream,head);
 
@@ -3630,7 +3635,32 @@ static lispval set_baseoids(struct FD_HASHINDEX *hx,lispval arg)
     else return FD_TRUE;}
 }
 
+/* Modifying readonly status */
+
+static int hashindex_set_read_only(fd_hashindex hx,int read_only)
+{
+  struct FD_STREAM _stream, *stream = fd_init_file_stream
+    (&_stream,hx->index_source,FD_FILE_MODIFY,-1,-1);
+  if (stream == NULL) return -1;
+  fd_lock_index(hx);
+  unsigned int format =
+    fd_read_4bytes_at(stream,FD_HASHINDEX_FORMAT_POS,FD_STREAM_ISLOCKED);
+  if (read_only)
+    format = format | (FD_HASHINDEX_READ_ONLY);
+  else format = format & (~(FD_HASHINDEX_READ_ONLY));
+  ssize_t v = fd_write_4bytes_at(stream,format,FD_HASHINDEX_FORMAT_POS);
+  if (v>=0) {
+    if (read_only)
+      hx->index_flags |=  FD_STORAGE_READ_ONLY;
+    else hx->index_flags &=  (~(FD_STORAGE_READ_ONLY));}
+  fd_close_stream(stream,FD_STREAM_FREEDATA);
+  fd_unlock_index(hx);
+  return v;
+}
+
 /* The control function */
+
+static lispval metadata_readonly_props = FD_VOID;
 
 static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
 {
@@ -3695,15 +3725,33 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
     lispval base = fd_index_base_metadata(ix);
     int n_slotids = hx->index_slotcodes.n_slotcodes;
     int n_baseoids = hx->index_oidcodes.n_oids;
+    if ( hx->hashindex_format & FD_HASHINDEX_READ_ONLY )
+      fd_store(base,FDSYM_READONLY,FD_TRUE);
     fd_store(base,slotids_symbol,FD_INT(n_slotids));
     fd_store(base,baseoids_symbol,FD_INT(n_baseoids));
     fd_store(base,buckets_symbol,FD_INT(hx->index_n_buckets));
     fd_store(base,nkeys_symbol,FD_INT(hx->table_n_keys));
-    fd_add(base,FDSYM_READONLY,slotids_symbol);
-    fd_add(base,FDSYM_READONLY,baseoids_symbol);
-    fd_add(base,FDSYM_READONLY,buckets_symbol);
-    fd_add(base,FDSYM_READONLY,nkeys_symbol);
+    fd_add(base,metadata_readonly_props,slotids_symbol);
+    fd_add(base,metadata_readonly_props,baseoids_symbol);
+    fd_add(base,metadata_readonly_props,buckets_symbol);
+    fd_add(base,metadata_readonly_props,nkeys_symbol);
     return base;}
+  else if ( ( ( op == FDSYM_READONLY ) && (n == 0) ) ||
+            ( ( op == fd_metadata_op ) && (n == 1) &&
+              ( args[1] == FDSYM_READONLY ) ) ) {
+    if ( (ix->index_flags) & (FD_STORAGE_READ_ONLY) )
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else if ( ( ( op == FDSYM_READONLY ) && (n == 1) ) ||
+            ( ( op == fd_metadata_op ) && (n == 2) &&
+              ( args[1] == FDSYM_READONLY ) ) ) {
+    lispval arg = ( op == FDSYM_READONLY ) ? (args[0]) : (args[1]);
+    int rv = (FD_FALSEP(arg)) ? (hashindex_set_read_only(hx,0)) :
+      (hashindex_set_read_only(hx,1));
+    if (rv<0)
+      return FD_ERROR;
+    else return fd_incref(arg);}
+
   else if (op == fd_stats_op)
     return hashindex_stats(hx);
   else if (op == fd_reload_op) {
@@ -3802,6 +3850,8 @@ FD_EXPORT void fd_init_hashindex_c()
   baseoids_symbol = fd_intern("BASEOIDS");
   buckets_symbol = fd_intern("BUCKETS");
   nkeys_symbol = fd_intern("KEYS");
+
+  metadata_readonly_props = fd_intern("_READONLY_PROPS");
 
   keyinfo_schema[0] = fd_intern("KEY");
   keyinfo_schema[1] = fd_intern("COUNT");
