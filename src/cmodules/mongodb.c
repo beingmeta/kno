@@ -30,6 +30,7 @@ static int mongodb_loglevel;
 #include "framerd/mongodb.h"
 
 #include <mongoc-ssl.h>
+#include <math.h>
 
 /* Initialization */
 
@@ -39,7 +40,7 @@ u8_condition fd_MongoDB_Warning=_("MongoDB warning");
 u8_condition fd_BSON_Input_Error=_("BSON input error");
 u8_condition fd_BSON_Compound_Overflow=_("BSON/FramerD compound overflow");
 
-static lispval sslsym;
+static lispval sslsym, smoketest_sym;
 static int default_ssl = 0;
 static int mongodb_loglevel = LOG_NOTICE;
 static int logops = 0;
@@ -70,8 +71,7 @@ static lispval mongovec_symbol;
 
 static void grab_mongodb_error(bson_error_t *error,u8_string caller)
 {
-  u8_condition cond = u8_strerror(error->code);
-  u8_seterr(cond,caller,u8_strdup(error->message));
+  u8_seterr(fd_MongoDB_Error,caller,u8_strdup(error->message));
 }
 
 /*#define HAVE_MONGOC_OPTS_FUNCTIONS (MONGOC_CHECK_VERSION(1,7,0)) */
@@ -84,11 +84,11 @@ static mongoc_client_t *get_client(FD_MONGODB_DATABASE *server,int block)
 {
   mongoc_client_t *client;
   if (block) {
-    u8_logf(LOG_INFO,_("MongoDB/getclient"),
+    u8_logf(LOG_DEBUG,_("MongoDB/getclient"),
             "Getting client from server %llx (%s)",server->dbclients,server->dbspec);
     client = mongoc_client_pool_pop(server->dbclients);}
   else client = mongoc_client_pool_try_pop(server->dbclients);
-  u8_logf(LOG_INFO,_("MongoDB/gotclient"),
+  u8_logf(LOG_DEBUG,_("MongoDB/gotclient"),
           "Got client %llx from server %llx (%s)",
           client,server->dbclients,server->dbspec);
   return client;
@@ -96,7 +96,7 @@ static mongoc_client_t *get_client(FD_MONGODB_DATABASE *server,int block)
 
 static void release_client(FD_MONGODB_DATABASE *server,mongoc_client_t *client)
 {
-  u8_logf(LOG_INFO,_("MongoDB/freeclient"),
+  u8_logf(LOG_DEBUG,_("MongoDB/freeclient"),
           "Releasing client %llx to server %llx (%s)",
           client,server->dbclients,server->dbspec);
   mongoc_client_pool_push(server->dbclients,client);
@@ -342,26 +342,87 @@ static int mongodb_getflags(lispval mongodb);
 
 static u8_string get_connection_spec(mongoc_uri_t *info);
 static int setup_ssl(mongoc_ssl_opt_t *,mongoc_uri_t *,lispval);
-static u8_string modify_ssl(u8_string uri,int add);
+
+static int set_uri_opt(mongoc_uri_t *uri,const char *option,lispval val)
+{
+  if (FD_FALSEP(val))
+    return mongoc_uri_set_option_as_bool(uri,option,0);
+  if (FD_TRUEP(val))
+    return mongoc_uri_set_option_as_bool(uri,option,1);
+  else if (FD_STRINGP(val))
+    return mongoc_uri_set_option_as_utf8(uri,option,FD_CSTRING(val));
+  else if (FD_SYMBOLP(val))
+    return mongoc_uri_set_option_as_utf8(uri,option,FD_SYMBOL_NAME(val));
+  else if (FD_UINTP(val))
+    return mongoc_uri_set_option_as_int32(uri,option,FD_FIX2INT(val));
+  else if (FD_FLONUMP(val)) {
+    long long msecs = (int) floor(FD_FLONUM(val)*1000.0);
+    if (msecs > 0) {
+      if (msecs > INT_MAX) msecs=INT_MAX;
+      return mongoc_uri_set_option_as_int32(uri,option,msecs);}}
+  else NO_ELSE;
+  fd_seterr("BadOptionValue","mongodb/set_uri_opt",option,val);
+  return -1;
+}
+
+static void setup_mongoc_uri(mongoc_uri_t *info,lispval opts)
+{
+  lispval appname = fd_getopt(opts,fd_intern("APPNAME"),FD_VOID);
+  lispval timeout = fd_getopt(opts,fd_intern("TIMEOUT"),FD_VOID);
+  lispval ctimeout = fd_getopt(opts,fd_intern("CTIMEOUT"),FD_VOID);
+  lispval maxpool = fd_getopt(opts,fd_intern("MAXPOOL"),FD_VOID);
+  if (!(FD_VOIDP(timeout))) {
+    set_uri_opt(info,MONGOC_URI_SOCKETTIMEOUTMS,timeout);
+    if (FD_VOIDP(ctimeout))
+      set_uri_opt(info,MONGOC_URI_CONNECTTIMEOUTMS,timeout);}
+  if (!(FD_VOIDP(ctimeout)))
+    set_uri_opt(info,MONGOC_URI_CONNECTTIMEOUTMS,ctimeout);
+  if (!(FD_VOIDP(maxpool)))
+    set_uri_opt(info,MONGOC_URI_MAXPOOLSIZE,ctimeout);
+  if ( (FD_STRINGP(appname)) || (FD_SYMBOLP(appname)) )
+    set_uri_opt(info,MONGOC_URI_APPNAME,appname);
+  else mongoc_uri_set_option_as_utf8(info,MONGOC_URI_APPNAME,u8_appid());
+  if (boolopt(opts,sslsym,default_ssl))
+    mongoc_uri_set_option_as_bool(info,MONGOC_URI_SSL,1);
+  fd_decref(appname);
+  fd_decref(timeout);
+  fd_decref(ctimeout);
+  fd_decref(maxpool);
+}
+
+static u8_string mongodb_check(mongoc_client_pool_t *client_pool)
+{
+  mongoc_client_t *probe = mongoc_client_pool_pop(client_pool);
+  if (probe) {
+    bson_t *command = BCON_NEW("ping",BCON_INT32(1)), reply;
+    bson_error_t error;
+    bool rv = mongoc_client_command_simple(probe,"admin",command,NULL,&reply,&error);
+    mongoc_client_pool_push(client_pool,probe);
+    bson_destroy(command);
+    if (! rv )
+      return u8_strdup(error.message);
+    else {
+      bson_destroy(&reply);
+      return NULL;}}
+  else return u8_strdup("mongoc_client_pool_pop failed");
+}
 
 /* This returns a MongoDB server object which wraps a MongoDB client
    pool. */
 static lispval mongodb_open(lispval arg,lispval opts)
 {
   mongoc_client_pool_t *client_pool; int flags;
-  mongoc_uri_t *info; u8_string uri;
+  mongoc_uri_t *info;
   mongoc_ssl_opt_t ssl_opts={ 0 };
-  int add_ssl = boolopt(opts,sslsym,default_ssl);
+  int smoke_test = boolopt(opts,smoketest_sym,1);
   if ((FD_STRINGP(arg))||(FD_TYPEP(arg,fd_secret_type))) {
-    uri = modify_ssl(FD_CSTRING(arg),add_ssl);
-    info = mongoc_uri_new(uri);}
+    info = mongoc_uri_new(FD_CSTRING(arg));}
   else if (FD_SYMBOLP(arg)) {
     lispval conf_val = fd_config_get(FD_SYMBOL_NAME(arg));
     if (FD_VOIDP(conf_val))
       return fd_type_error("MongoDB URI config","mongodb_open",arg);
     else if ((FD_STRINGP(conf_val))||
              (FD_TYPEP(conf_val,fd_secret_type))) {
-      uri = modify_ssl(FD_CSTRING(conf_val),add_ssl);
       info = mongoc_uri_new(FD_CSTRING(conf_val));
       fd_decref(conf_val);}
     else return fd_type_error("MongoDB URI config val",
@@ -369,39 +430,55 @@ static lispval mongodb_open(lispval arg,lispval opts)
   else return fd_type_error("MongoDB URI","mongodb_open",arg);
   if (!(info))
     return fd_type_error("MongoDB client URI","mongodb_open",arg);
+  else setup_mongoc_uri(info,opts);
   flags = getflags(opts,mongodb_defaults);
+
   client_pool = mongoc_client_pool_new(info);
-  if (client_pool) {
-    struct FD_MONGODB_DATABASE *srv = u8_alloc(struct FD_MONGODB_DATABASE);
-    u8_string dbname = mongoc_uri_get_database(info);
-    lispval poolmax = fd_getopt(opts,poolmaxsym,FD_VOID);
-    lispval poolmin = fd_getopt(opts,poolminsym,FD_VOID);
-    if ((mongoc_uri_get_ssl(info))&&
-        (setup_ssl(&ssl_opts,info,opts)))
-      mongoc_client_pool_set_ssl_opts(client_pool,&ssl_opts);
-    if (FD_UINTP(poolmax)) {
-      int pmax = FD_FIX2INT(poolmax);
-      mongoc_client_pool_max_size(client_pool,pmax);}
-    if (FD_UINTP(poolmin)) {
-      int pmin = FD_FIX2INT(poolmin);
-      mongoc_client_pool_min_size(client_pool,pmin);}
-    fd_decref(poolmax); fd_decref(poolmin);
-    FD_INIT_CONS(srv,fd_mongoc_server);
-    srv->dburi = uri;
-    if (dbname == NULL)
-      srv->dbname = NULL;
-    else srv->dbname = u8_strdup(dbname);
-    srv->dbspec = get_connection_spec(info);
-    srv->dburi_info = info; srv->dbclients = client_pool;
-    srv->dbopts = opts; fd_incref(opts);
-    srv->dbflags = flags;
-    if ((logops)||(flags&FD_MONGODB_LOGOPS))
-      u8_logf(LOG_INFO,"MongoDB/open",
-              "Opened %s with %s",dbname,srv->dbspec);
-    return (lispval)srv;}
-  else {
-    mongoc_uri_destroy(info); fd_decref(opts); u8_free(uri);
+
+  if (client_pool == NULL) {
+    mongoc_uri_destroy(info);
     return fd_type_error("MongoDB client URI","mongodb_open",arg);}
+  else if ((mongoc_uri_get_ssl(info))&&
+           (setup_ssl(&ssl_opts,info,opts)))
+    mongoc_client_pool_set_ssl_opts(client_pool,&ssl_opts);
+  else NO_ELSE;
+
+  if (smoke_test) {
+    u8_string errmsg = mongodb_check(client_pool);
+    if (errmsg) {
+      fd_seterr("MongoDB/ConnectFailed","mongodb_open",errmsg,
+                fd_lispstring(mongoc_uri_get_string(info)));
+      mongoc_client_pool_destroy(client_pool);
+      mongoc_uri_destroy(info);
+      u8_free(errmsg);
+      return FD_ERROR;}}
+
+  u8_string uri = u8_strdup(mongoc_uri_get_string(info));
+  struct FD_MONGODB_DATABASE *srv = u8_alloc(struct FD_MONGODB_DATABASE);
+  u8_string dbname = mongoc_uri_get_database(info);
+  lispval poolmax = fd_getopt(opts,poolmaxsym,FD_VOID);
+  lispval poolmin = fd_getopt(opts,poolminsym,FD_INT(1));
+  if (FD_UINTP(poolmax)) {
+    int pmax = FD_FIX2INT(poolmax);
+    mongoc_client_pool_max_size(client_pool,pmax);}
+  if (FD_UINTP(poolmin)) {
+    int pmin = FD_FIX2INT(poolmin);
+    mongoc_client_pool_min_size(client_pool,pmin);}
+  fd_decref(poolmax); fd_decref(poolmin);
+  FD_INIT_CONS(srv,fd_mongoc_server);
+  srv->dburi = uri;
+  if (dbname == NULL)
+    srv->dbname = NULL;
+  else srv->dbname = u8_strdup(dbname);
+  srv->dbspec = get_connection_spec(info);
+  srv->dburi_info = info;
+  srv->dbclients = client_pool;
+  srv->dbopts = fd_incref(opts);
+  srv->dbflags = flags;
+  if ((logops)||(flags&FD_MONGODB_LOGOPS))
+    u8_logf(LOG_INFO,"MongoDB/open",
+            "Opened %s with %s",dbname,srv->dbspec);
+  return (lispval)srv;
 }
 static void recycle_server(struct FD_RAW_CONS *c)
 {
@@ -425,16 +502,6 @@ static u8_string get_connection_spec(mongoc_uri_t *info)
   U8_INIT_OUTPUT(&out,256);
   u8_printf(&out,"%s@%s",mongoc_uri_get_username(info),hosts->host_and_port);
   return out.u8_outbuf;
-}
-
-static u8_string modify_ssl(u8_string uri,int add)
-{
-  if ((add)&&((strstr(uri,"?ssl=") == NULL)&&(strstr(uri,"&ssl=") == NULL))) {
-    if (strchr(uri,'?'))
-      return u8_string_append(uri,"&ssl = true",NULL);
-    else return u8_string_append(uri,"?ssl = true",NULL);}
-  else return u8_strdup(uri);
-
 }
 
 static lispval pemsym, pempwd, cafilesym, cadirsym, crlsym;
@@ -584,7 +651,8 @@ static lispval mongodb_insert(lispval arg,lispval obj,lispval opts_arg)
     mongoc_client_t *client = NULL; bool retval;
     mongoc_collection_t *collection = open_collection(domain,&client,flags);
     if (collection) {
-      bson_t reply; bson_error_t error;
+      bson_t reply;
+      bson_error_t error;
       mongoc_write_concern_t *wc = get_write_concern(opts);
       if ((logops)||(flags&FD_MONGODB_LOGOPS))
         u8_logf(LOG_DETAIL,"MongoDB/insert",
@@ -2470,6 +2538,7 @@ FD_EXPORT int fd_init_mongodb()
   softfailsym = fd_intern("SOFTFAIL");
 
   sslsym = fd_intern("SSL");
+  smoketest_sym = fd_intern("SMOKETEST");
   pemsym = fd_intern("PEMFILE");
   pempwd = fd_intern("PEMPWD");
   cafilesym = fd_intern("CAFILE");
