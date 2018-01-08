@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2017 beingmeta, inc.
+/* Copyright (C) 2004-2018 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -813,7 +813,7 @@ FD_EXPORT int fd_boot_message()
          u8_appid(),(unsigned long long)getpid(),
          fd_getrevision(),u8_getrevision());
   u8_log(U8_LOG_MSG,NULL,
-         _("Copyright (C) beingmeta 2004-2017, all rights reserved"));
+         _("Copyright (C) beingmeta 2004-2018, all rights reserved"));
   u8_log(U8_LOG_MSG,NULL,_("%-s@%-s:%-s (%s)"),
          u8_username(uid),u8_gethostname(),u8_getcwd(),
          curtime.u8_outbuf);
