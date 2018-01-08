@@ -135,6 +135,20 @@ static u8_string stropt(lispval opts,lispval key,u8_string dflt)
   else return u8_strdup(dflt);
 }
 
+static void escape_uri(u8_output out,u8_string s,int len)
+{
+  u8_string lim = ((len<0)?(NULL):(s+len));
+  while ((lim)?(s<lim):(*s))
+    if (((*s)>=0x80)||(isspace(*s))||
+        (*s=='+')||(*s=='%')||(*s=='=')||
+        (*s=='&')||(*s=='#')||(*s==';')||
+        (!((isalnum(*s))||(strchr("-_.~",*s)!=NULL)))) {
+      char buf[8];
+      sprintf(buf,"%%%02x",*s);
+      u8_puts(out,buf); s++;}
+    else {u8_putc(out,*s); s++;}
+}
+
 U8_MAYBE_UNUSED static bson_t *get_projection(lispval opts,int flags)
 {
   lispval projection = fd_getopt(opts,returnsym,FD_VOID);
@@ -343,6 +357,7 @@ static int mongodb_getflags(lispval mongodb);
 static u8_string get_connection_spec(mongoc_uri_t *info);
 static int setup_ssl(mongoc_ssl_opt_t *,mongoc_uri_t *,lispval);
 
+#if MONGOC_CHECK_VERSION(1,6,0)
 static int set_uri_opt(mongoc_uri_t *uri,const char *option,lispval val)
 {
   if (FD_FALSEP(val))
@@ -364,19 +379,65 @@ static int set_uri_opt(mongoc_uri_t *uri,const char *option,lispval val)
   fd_seterr("BadOptionValue","mongodb/set_uri_opt",option,val);
   return -1;
 }
+#else
+static u8_string add_to_query(u8_string qstring,const char *option,lispval val)
+{
+  u8_string result = qstring;
+ size_t option_len = strlen(option);
+  char optbuf[option_len+2];
+  strcpy(optbuf,option); strcat(optbuf,"=");
+  u8_string poss_start = strstr(qstring,optbuf);
+  if ( (poss_start) && (poss_start>qstring) &&
+       ( (poss_start[-1] == '?') || (poss_start[-1] == '&') ) )
+    return qstring;
+  if (FD_FALSEP(val))
+    result = u8_mkstring("%s&%s=false&",qstring,option);
+  else if (FD_TRUEP(val))
+    result = u8_mkstring("%s&%s=true&",qstring,option);
+  else if (FD_STRINGP(val)) {
+    struct U8_OUTPUT out; unsigned char buf[200];
+    U8_INIT_OUTPUT_BUF(&out,200,buf);
+    escape_uri(&out,FD_CSTRING(val),FD_STRLEN(val));
+    result = u8_mkstring("%s&%s=%s&",qstring,out.u8_outbuf);
+    u8_close_output(&out);}
+  else if (FD_SYMBOLP(val)) {
+    struct U8_OUTPUT out; unsigned char buf[200];
+    u8_string pname = FD_SYMBOL_NAME(val);
+    U8_INIT_OUTPUT_BUF(&out,200,buf);
+    escape_uri(&out,pname,strlen(pname));
+    result = u8_mkstring("%s&%s=%s&",qstring,out.u8_outbuf);
+    u8_close_output(&out);}
+  else if (FD_UINTP(val))
+    result = u8_mkstring("%s&%s=%d&",qstring,FD_FIX2INT(val));
+  else if (FD_FLONUMP(val)) {
+    long long msecs = (int) floor(FD_FLONUM(val)*1000.0);
+    if (msecs > 0) {
+      if (msecs > INT_MAX) msecs=INT_MAX;
+      result  = u8_mkstring("%s&%s=%lld&",qstring,msecs);}}
+  else NO_ELSE;
+  if (result != qstring) u8_free(qstring);
+  return result;
+}
+#endif
 
-static void setup_mongoc_uri(mongoc_uri_t *info,lispval opts)
+static mongoc_uri_t *setup_mongoc_uri(mongoc_uri_t *info,lispval opts)
 {
   lispval appname = fd_getopt(opts,fd_intern("APPNAME"),FD_VOID);
   lispval timeout = fd_getopt(opts,fd_intern("TIMEOUT"),FD_VOID);
   lispval ctimeout = fd_getopt(opts,fd_intern("CTIMEOUT"),FD_VOID);
+  lispval stimeout = fd_getopt(opts,fd_intern("STIMEOUT"),FD_VOID);
   lispval maxpool = fd_getopt(opts,fd_intern("MAXPOOL"),FD_VOID);
+#if MONGOC_CHECK_VERSION(1,6,0)
   if (!(FD_VOIDP(timeout))) {
     set_uri_opt(info,MONGOC_URI_SOCKETTIMEOUTMS,timeout);
     if (FD_VOIDP(ctimeout))
-      set_uri_opt(info,MONGOC_URI_CONNECTTIMEOUTMS,timeout);}
+      set_uri_opt(info,MONGOC_URI_CONNECTTIMEOUTMS,timeout);
+    if (FD_VOIDP(stimeout))
+      set_uri_opt(info,MONGOC_URI_SELECTIMTEOUT,timeout);}
   if (!(FD_VOIDP(ctimeout)))
     set_uri_opt(info,MONGOC_URI_CONNECTTIMEOUTMS,ctimeout);
+  if (!(FD_VOIDP(stimeout)))
+    set_uri_opt(info,MONGOC_URI_SERVERSELECTIONTIMEOUTMS,stimeout);
   if (!(FD_VOIDP(maxpool)))
     set_uri_opt(info,MONGOC_URI_MAXPOOLSIZE,ctimeout);
   if ( (FD_STRINGP(appname)) || (FD_SYMBOLP(appname)) )
@@ -384,10 +445,38 @@ static void setup_mongoc_uri(mongoc_uri_t *info,lispval opts)
   else mongoc_uri_set_option_as_utf8(info,MONGOC_URI_APPNAME,u8_appid());
   if (boolopt(opts,sslsym,default_ssl))
     mongoc_uri_set_option_as_bool(info,MONGOC_URI_SSL,1);
+#else
+  u8_string uri = mongoc_uri_get_string(info);
+  u8_string qmark = strchr(uri,'?');
+  u8_string qstring = (qmark) ? (u8_strdup(qmark)) : (u8_strdup("?"));
+  if (!(FD_VOIDP(timeout))) {
+    qstring = add_to_query(qstring,"socketTimeoutMS",timeout);
+    if (FD_VOIDP(ctimeout))
+      qstring = add_to_query(qstring,"connectTimeoutMS",timeout);
+    if (FD_VOIDP(stimeout))
+      qstring = add_to_query(qstring,"serverSelectionTimeoutMS",timeout);}
+  if (!(FD_VOIDP(ctimeout)))
+    qstring = add_to_query(qstring,"connectTimeoutMS",ctimeout);
+  if (!(FD_VOIDP(stimeout)))
+    qstring = add_to_query(qstring,"serverSelectionTimeoutMS",stimeout);
+  if (!(FD_VOIDP(maxpool)))
+    qstring = add_to_query(qstring,"maxPoolSize",ctimeout);
+
+  if (boolopt(opts,sslsym,default_ssl))
+    qstring = add_to_query(qstring,"ssl",FD_TRUE);
+  size_t base_len = (qmark==NULL) ? (strlen(uri)) : (qmark-uri);
+  unsigned char newbuf[base_len+strlen(qstring)+1];
+  strcpy(newbuf,uri);
+  strcpy(newbuf+base_len,qstring);
+  mongoc_uri_t *new_info = mongoc_uri_new(newbuf);
+  mongoc_uri_destroy(info);
+  info = new_info;
+#endif
   fd_decref(appname);
   fd_decref(timeout);
   fd_decref(ctimeout);
   fd_decref(maxpool);
+  return info;
 }
 
 static u8_string mongodb_check(mongoc_client_pool_t *client_pool)
@@ -430,7 +519,7 @@ static lispval mongodb_open(lispval arg,lispval opts)
   else return fd_type_error("MongoDB URI","mongodb_open",arg);
   if (!(info))
     return fd_type_error("MongoDB client URI","mongodb_open",arg);
-  else setup_mongoc_uri(info,opts);
+  else info = setup_mongoc_uri(info,opts);
   flags = getflags(opts,mongodb_defaults);
 
   client_pool = mongoc_client_pool_new(info);
