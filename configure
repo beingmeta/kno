@@ -893,6 +893,7 @@ with_duma
 with_malloc
 enable_ffi
 with_arch
+with_extended_profiling
 with_suffix
 with_extlib
 with_share_dir
@@ -1641,6 +1642,7 @@ Optional Packages:
 --with-duma Build with Detect Unintended Memory Access
 --with-malloc Use custom malloc
 --without-arch build with particular --arch flags
+--enable-rusage-profiling use extended profiling information
 --with-suffix string
   --with-extlib[=DIR]       use additional lib dir
 --with-share-dir location
@@ -8161,6 +8163,34 @@ _ACEOF
 
 fi
 
+ac_fn_c_check_decl "$LINENO" "RUSAGE_THREAD" "ac_cv_have_decl_RUSAGE_THREAD" "#include <sys/resource.h>
+"
+if test "x$ac_cv_have_decl_RUSAGE_THREAD" = xyes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL_RUSAGE_THREAD $ac_have_decl
+_ACEOF
+
+
+
+# Check whether --with-extended_profiling was given.
+if test "${with_extended_profiling+set}" = set; then :
+  withval=$with_extended_profiling; with_extended_profiling=$withval
+else
+  with_extended_profiling="no"
+fi
+
+if test "${with_extended_profiling}" != "no"; then
+   $as_echo "#define FD_EXTENDED_PROFILING 1" >>confdefs.h
+
+else
+   $as_echo "#define FD_EXTENDED_PROFILING 0" >>confdefs.h
+
+fi;
 
 
 

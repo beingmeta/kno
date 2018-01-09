@@ -693,6 +693,8 @@ static lispval profiledp_prim(lispval fcn)
   else return FD_FALSE;
 }
 
+static lispval call_profile_symbol;
+
 static lispval getcalls_prim(lispval fcn)
 {
   if (FD_FUNCTIONP(fcn)) {
@@ -700,20 +702,118 @@ static lispval getcalls_prim(lispval fcn)
     struct FD_PROFILE *p = f->fcn_profile;
     if (p==NULL) return FD_FALSE;
 #if HAVE_STDATOMIC_H
-    long long nsecs = atomic_load(&(p->prof_nsecs));
     long long calls = atomic_load(&(p->prof_calls));
     long long items = atomic_load(&(p->prof_items));
+    long long nsecs = atomic_load(&(p->prof_nsecs));
+    long long user_nsecs = atomic_load(&(p->prof_nsecs_user));
+    long long system_nsecs = atomic_load(&(p->prof_nsecs_system));
+    long long n_waits = atomic_load(&(p->prof_n_waits));
+    long long n_contests = atomic_load(&(p->prof_n_contests));
+    long long n_faults = atomic_load(&(p->prof_n_faults));
 #else
-    long long nsecs = p->prof_nsecs;
     long long calls = p->prof_calls;
     long long items = p->prof_items;
+    long long nsecs = p->prof_nsecs;
+    long long user_nsecs = p->prof_nsecs_user;
+    long long system_nsecs = p->prof_nsecs_system;
+    long long n_waits = prof_n_waits;
+    long long n_contests = prof_n_waits;
+    long long n_faults = p->prof_n_faults;
 #endif
     double exec_time = ((double)((nsecs)|(calls)))/1000000000.0;
+    double user_time = ((double)((user_nsecs)|(calls)))/1000000000.0;
+    double system_time = ((double)((system_nsecs)|(calls)))/1000000000.0;
     fd_incref(fcn);
-    return fd_make_nvector
-      (5,fcn,fd_make_flonum(exec_time),
+    return fd_init_compound
+      (NULL,call_profile_symbol,0,10,
+       fcn,fd_make_flonum(exec_time),
+       FD_INT(user_time),FD_INT(system_time),
+       FD_INT(n_waits),FD_INT(n_contests),FD_INT(n_faults),
        FD_INT(nsecs),FD_INT(calls),FD_INT(items));}
   else return fd_type_error("function","profile_fcn",fcn);
+}
+
+/* Accessors */
+
+static lispval profile_getfcn(lispval profile)
+{
+  if (FD_COMPOUND_TYPEP(profile,call_profile_symbol)) {
+    struct FD_COMPOUND *p = (fd_compound) profile;
+    lispval v = FD_COMPOUND_VREF(p,0);
+    return fd_incref(v);}
+  else return fd_type_error("call profile","profile_getfcn",profile);
+}
+static lispval profile_gettime(lispval profile)
+{
+  if (FD_COMPOUND_TYPEP(profile,call_profile_symbol)) {
+    struct FD_COMPOUND *p = (fd_compound) profile;
+    lispval v = FD_COMPOUND_VREF(p,1);
+    return fd_incref(v);}
+  else return fd_type_error("call profile","profile_gettime",profile);
+}
+static lispval profile_getutime(lispval profile)
+{
+  if (FD_COMPOUND_TYPEP(profile,call_profile_symbol)) {
+    struct FD_COMPOUND *p = (fd_compound) profile;
+    lispval v = FD_COMPOUND_VREF(p,2);
+    return fd_incref(v);}
+  else return fd_type_error("call profile","profile_getutime",profile);
+}
+static lispval profile_getstime(lispval profile)
+{
+  if (FD_COMPOUND_TYPEP(profile,call_profile_symbol)) {
+    struct FD_COMPOUND *p = (fd_compound) profile;
+    lispval v = FD_COMPOUND_VREF(p,3);
+    return fd_incref(v);}
+  else return fd_type_error("call profile","profile_getstime",profile);
+}
+static lispval profile_getwaits(lispval profile)
+{
+  if (FD_COMPOUND_TYPEP(profile,call_profile_symbol)) {
+    struct FD_COMPOUND *p = (fd_compound) profile;
+    lispval v = FD_COMPOUND_VREF(p,4);
+    return fd_incref(v);}
+  else return fd_type_error("call profile","profile_getwaits",profile);
+}
+static lispval profile_getcontests(lispval profile)
+{
+  if (FD_COMPOUND_TYPEP(profile,call_profile_symbol)) {
+    struct FD_COMPOUND *p = (fd_compound) profile;
+    lispval v = FD_COMPOUND_VREF(p,5);
+    return fd_incref(v);}
+  else return fd_type_error("call profile","profile_getcontests",profile);
+}
+static lispval profile_getfaults(lispval profile)
+{
+  if (FD_COMPOUND_TYPEP(profile,call_profile_symbol)) {
+    struct FD_COMPOUND *p = (fd_compound) profile;
+    lispval v = FD_COMPOUND_VREF(p,6);
+    return fd_incref(v);}
+  else return fd_type_error("call profile","profile_getfaults",profile);
+}
+static lispval profile_nsecs(lispval profile)
+{
+  if (FD_COMPOUND_TYPEP(profile,call_profile_symbol)) {
+    struct FD_COMPOUND *p = (fd_compound) profile;
+    lispval v = FD_COMPOUND_VREF(p,7);
+    return fd_incref(v);}
+  else return fd_type_error("call profile","profile_nsecs",profile);
+}
+static lispval profile_ncalls(lispval profile)
+{
+  if (FD_COMPOUND_TYPEP(profile,call_profile_symbol)) {
+    struct FD_COMPOUND *p = (fd_compound) profile;
+    lispval v = FD_COMPOUND_VREF(p,8);
+    return fd_incref(v);}
+  else return fd_type_error("call profile","profile_ncalls",profile);
+}
+static lispval profile_nitems(lispval profile)
+{
+  if (FD_COMPOUND_TYPEP(profile,call_profile_symbol)) {
+    struct FD_COMPOUND *p = (fd_compound) profile;
+    lispval v = FD_COMPOUND_VREF(p,9);
+    return fd_incref(v);}
+  else return fd_type_error("call profile","profile_nitems",profile);
 }
 
 /* Getting all modules */
@@ -734,6 +834,7 @@ FD_EXPORT void fd_init_reflection_c()
   fd_defn(fd_scheme_module,apropos_cprim);
 
   moduleid_symbol = fd_intern("%MODULEID");
+  call_profile_symbol = fd_intern("%CALLPROFILE");
 
   fd_idefn1(module,"MACRO?",macrop,1,
             "Returns true if its argument is an evaluator macro",
@@ -879,14 +980,60 @@ FD_EXPORT void fd_init_reflection_c()
             "and false otherwise. It also returns false if the argument is "
             "not a function or not a function which supports profiling.",
             -1,FD_VOID);
-  fd_idefn1(module,"REFLECT/GETCALLS",getcalls_prim,1,
-            "`(REFLECT/GETCALLS *fcn*)`Returns the profile information for "
+  fd_idefn1(module,"PROFILE/GETCALLS",getcalls_prim,1,
+            "`(PROFILE/GETCALLS *fcn*)`Returns the profile information for "
             "*fcn*, a vector of *fcn*, the number of calls, the number of "
             "nanoseconds spent in *fcn*",
             -1,FD_VOID);
-  fd_idefn1(module,"REFLECT/PROFILE-RESET!",profile_reset_prim,1,
+  fd_idefn1(module,"PROFILE/RESET!",profile_reset_prim,1,
             "`(REFLECT/PROFILE-RESET! *fcn*)` resets the profile counts "
             "for *fcn*",
+            -1,FD_VOID);
+
+  fd_idefn1(module,"PROFILE/FCN",profile_getfcn,1,
+            "`(PROFILE/FCN *profile*)` returns the function a profile describes",
+            -1,FD_VOID);
+  fd_idefn1(module,"PROFILE/TIME",profile_gettime,1,
+            "`(PROFILE/TIME *profile*)` returns the number of seconds "
+            "spent in the profiled function",
+            -1,FD_VOID);
+  fd_idefn1(module,"PROFILE/UTIME",profile_getutime,1,
+            "`(PROFILE/ *profile*)` returns the number of seconds "
+            "of user time spent in the profiled function",
+            -1,FD_VOID);
+  fd_idefn1(module,"PROFILE/STIME",profile_getutime,1,
+            "`(PROFILE/STIME *profile*)` returns the number of seconds "
+            "of system time spent in the profiled function",
+            -1,FD_VOID);
+  fd_idefn1(module,"PROFILE/STIME",profile_getstime,1,
+            "`(PROFILE/STIME *profile*)` returns the number of seconds "
+            "of system time spent in the profiled function",
+            -1,FD_VOID);
+  fd_idefn1(module,"PROFILE/WAITS",profile_getwaits,1,
+            "`(PROFILE/WAITS *profile*)` returns the number of voluntary "
+            "context switches (usually when waiting for something) "
+            "during the execution of the profiled function",
+            -1,FD_VOID);
+  fd_idefn1(module,"PROFILE/CONTESTS",profile_getcontests,1,
+            "`(PROFILE/CONTESTS *profile*)` returns the number of involuntary "
+            "context switches (often indicating contested resources) during "
+            "the execution of the profiled function",
+            -1,FD_VOID);
+  fd_idefn1(module,"PROFILE/FAULTS",profile_getfaults,1,
+            "`(PROFILE/FAULTS *profile*)` returns the number of page "
+            "faults during the execution of the profiled function",
+            -1,FD_VOID);
+  fd_idefn1(module,"PROFILE/NSECS",profile_nsecs,1,
+            "`(PROFILE/FAULTS *profile*)` returns the number of calls "
+            "to the profiled function",
+            -1,FD_VOID);
+  fd_idefn1(module,"PROFILE/NCALLS",profile_ncalls,1,
+            "`(PROFILE/FAULTS *profile*)` returns the number of calls "
+            "to the profiled function",
+            -1,FD_VOID);
+  fd_idefn1(module,"PROFILE/NITEMS",profile_nitems,1,
+            "`(PROFILE/FAULTS *profile*)` returns the number of items "
+            "noted as processed by the profiled function",
             -1,FD_VOID);
 
 

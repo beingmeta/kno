@@ -40,6 +40,7 @@
 #include <sys/time.h>
 #endif
 
+#include <sys/resource.h>
 #include <stdarg.h>
 
 lispval fd_default_stackspec = VOID;
@@ -628,6 +629,12 @@ FD_EXPORT lispval fd_dcall(struct FD_STACK *_stack,
     U8_WITH_CONTOUR(fname,0)
       if ( (f) && (profile) ) {
         long long nsecs = 0;
+        long long stime = 0, utime = 0;
+        long long n_waits = 0, n_contests = 0, n_faults = 0;
+#if ( (FD_EXTENDED_PROFILING) && (HAVE_DECL_RUSAGE_THREAD) )
+        struct rusage before = { 0 }, after = { 0 };
+        getrusage(RUSAGE_THREAD,&before);
+#endif
 #if HAVE_CLOCK_GETTIME
         struct timespec start, end;
         clock_gettime(CLOCK_MONOTONIC,&start);
@@ -640,7 +647,25 @@ FD_EXPORT lispval fd_dcall(struct FD_STACK *_stack,
         nsecs = ((end.tv_sec*1000000000)+(end.tv_nsec)) -
           ((start.tv_sec*1000000000)+(start.tv_nsec));
 #endif
-        fd_profile_call(profile,nsecs,0);}
+#if ( (FD_EXTENDED_PROFILING) && (HAVE_DECL_RUSAGE_THREAD) )
+        getrusage(RUSAGE_THREAD,&after);
+        utime = (after.ru_utime.tv_sec*1000000000+after.ru_utime.tv_usec*1000)-
+          (before.ru_utime.tv_sec*1000000000+before.ru_utime.tv_usec*1000);
+        stime = (after.ru_stime.tv_sec*1000000000+after.ru_stime.tv_usec*1000)-
+          (before.ru_stime.tv_sec*1000000000+before.ru_stime.tv_usec*1000);
+#if HAVE_STRUCT_RUSAGE_RU_NVCSW
+        n_waits = after.ru_nvcsw - before.ru_nvcsw;
+#endif
+#if HAVE_STRUCT_RUSAGE_RU_MAJFLT
+        n_faults = after.ru_majflt - before.ru_majflt;
+#endif
+#if HAVE_STRUCT_RUSAGE_RU_NIVCSW
+        n_faults = after.ru_nivcsw - before.ru_nivcsw;
+#endif
+#endif
+
+        fd_profile_record(profile,0,nsecs,utime,stime,
+                          n_waits,n_contests,n_faults);}
       else if (f) {
         result=apply_fcn(apply_stack,fname,f,n,argvec);
         if ( (FD_TAILCALLP(result)) && (f->fcn_notail) )

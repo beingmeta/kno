@@ -928,6 +928,14 @@ AC_CHECK_MEMBERS([struct rusage.ru_inblock, struct rusage.ru_nvcsw, struct rusag
 AC_CHECK_MEMBERS([struct rusage.ru_majflt, struct rusage.ru_nswap],[],[],[#include <sys/resource.h>])
 AC_CHECK_MEMBERS([struct rusage.ru_inblock, struct rusage.ru_nvcsw, struct rusage.ru_nivcsw],[],[],[#include <sys/resource.h>])
 AC_CHECK_MEMBERS([struct stat.st_mtim, struct stat.st_mtimespec],[],[],[#include <sys/stat.h>])
+AC_CHECK_DECLS([RUSAGE_THREAD],[],[],[#include <sys/resource.h>])
+
+AC_ARG_WITH(extended_profiling,--enable-rusage-profiling use extended profiling information,with_extended_profiling=$withval,with_extended_profiling="no")
+if test "${with_extended_profiling}" != "no"; then
+   AC_DEFINE(FD_EXTENDED_PROFILING,1)
+else
+   AC_DEFINE(FD_EXTENDED_PROFILING,0)
+fi;
 
 dnl Various directory/path configuration options
 
