@@ -135,20 +135,6 @@ static u8_string stropt(lispval opts,lispval key,u8_string dflt)
   else return u8_strdup(dflt);
 }
 
-static void escape_uri(u8_output out,u8_string s,int len)
-{
-  u8_string lim = ((len<0)?(NULL):(s+len));
-  while ((lim)?(s<lim):(*s))
-    if (((*s)>=0x80)||(isspace(*s))||
-        (*s=='+')||(*s=='%')||(*s=='=')||
-        (*s=='&')||(*s=='#')||(*s==';')||
-        (!((isalnum(*s))||(strchr("-_.~",*s)!=NULL)))) {
-      char buf[8];
-      sprintf(buf,"%%%02x",*s);
-      u8_puts(out,buf); s++;}
-    else {u8_putc(out,*s); s++;}
-}
-
 U8_MAYBE_UNUSED static bson_t *get_projection(lispval opts,int flags)
 {
   lispval projection = fd_getopt(opts,returnsym,FD_VOID);
@@ -380,6 +366,7 @@ static int set_uri_opt(mongoc_uri_t *uri,const char *option,lispval val)
   return -1;
 }
 #else
+static void escape_uri(u8_output out,u8_string s,int len);
 static u8_string add_to_query(u8_string qstring,const char *option,lispval val)
 {
   u8_string result = qstring;
@@ -417,6 +404,19 @@ static u8_string add_to_query(u8_string qstring,const char *option,lispval val)
   else NO_ELSE;
   if (result != qstring) u8_free(qstring);
   return result;
+}
+static void escape_uri(u8_output out,u8_string s,int len)
+{
+  u8_string lim = ((len<0)?(NULL):(s+len));
+  while ((lim)?(s<lim):(*s))
+    if (((*s)>=0x80)||(isspace(*s))||
+        (*s=='+')||(*s=='%')||(*s=='=')||
+        (*s=='&')||(*s=='#')||(*s==';')||
+        (!((isalnum(*s))||(strchr("-_.~",*s)!=NULL)))) {
+      char buf[8];
+      sprintf(buf,"%%%02x",*s);
+      u8_puts(out,buf); s++;}
+    else {u8_putc(out,*s); s++;}
 }
 #endif
 
