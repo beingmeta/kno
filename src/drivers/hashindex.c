@@ -1483,7 +1483,7 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
     int j = 0, n_keys;
     if (!fd_open_block(s,&keyblock,buckets[i].off,buckets[i].size,1)) {
       fd_unlock_stream(s);
-      fd_free_elts(results,key_count);
+      fd_decref_elts(results,key_count);
       u8_big_free(buckets);
       u8_big_free(results);
       fd_close_inbuf(&keyblock);
@@ -1510,7 +1510,7 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
           if (results == NULL) {
             fd_unlock_stream(s);
             u8_seterr(u8_MallocFailed,"hashindex_fetchkeys",hx->indexid);
-            fd_free_elts(results,key_count);
+            fd_decref_elts(results,key_count);
             u8_big_free(buckets);
             u8_big_free(results);
             fd_close_inbuf(&keyblock);
@@ -1543,7 +1543,7 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
           fd_decref(off_pair);
           fd_close_inbuf(&keyblock);
           u8_big_free(buckets);
-          fd_free_elts(results,key_count);
+          fd_decref_elts(results,key_count);
           u8_big_free(results);
           *n = -1;
           return NULL;}}
