@@ -969,18 +969,8 @@ lispval fd_eval_pair(lispval head,lispval expr,fd_lexenv env,
     break;}
   case fd_choice_type: {
     int applicable = applicable_choicep(headval);
-    eval_stack->stack_type="ndapply";
-    if (applicable) {
-      result = FD_EMPTY;
-      FD_DO_CHOICES(hv,headval) {
-        lispval add =
-          call_function("fnchoice",hv,expr,env,eval_stack,0);
-        if (FD_ABORTP(add)) {
-          FD_STOP_DO_CHOICES;
-          fd_decref(result);
-          result=add;
-          break;}
-        CHOICE_ADD(result,add);}}
+    if (applicable)
+      result = call_function("fnchoice",headval,expr,env,eval_stack,0);
     else result=fd_err(fd_SyntaxError,"fd_stack_eval",
                        "not applicable or evalfn",
                        headval);
@@ -1063,17 +1053,19 @@ FD_FASTOP int commentp(lispval arg)
       (FD_EQ(FD_CAR(arg),comment_symbol))));
 }
 
-static lispval call_function(u8_string fname,lispval headval,
-                            lispval expr,fd_lexenv env,
-                            struct FD_STACK *stack,
-                            int tail)
+ static lispval call_function(u8_string fname,lispval headval,
+                              lispval expr,fd_lexenv env,
+                              struct FD_STACK *stack,
+                              int tail)
 {
   lispval arg_exprs = fd_get_body(expr,1), result=VOID;
   int n_args = count_args(arg_exprs), arg_count = 0;
   int gc_args = 0, nd_args = 0, d_prim = 0, argbuf_len=0;
   lispval argbuf[n_args]; /* *argv=fd_alloca(argv_length); */
   lispval fn = (FD_FCNIDP(headval)) ? (fd_fcnid_ref(headval)) : (headval);
-  if (FD_FUNCTIONP(fn)) {
+  if (FD_AMBIGP(fn))
+    tail=0;
+  else if (FD_FUNCTIONP(fn)) {
     struct FD_FUNCTION *fcn=FD_XFUNCTION(fn);
     int max_arity = fcn->fcn_arity, min_arity = fcn->fcn_min_arity;
     if (max_arity<0) {}
@@ -1084,6 +1076,7 @@ static lispval call_function(u8_string fname,lispval headval,
     else {}
     d_prim=(fcn->fcn_ndcall==0);
     if (fcn->fcn_notail) tail = 0;}
+  else NO_ELSE;
   int i=0; while (i<argbuf_len) argbuf[i++]=VOID;
   /* Now we evaluate each of the subexpressions to fill the arg
      vector */
