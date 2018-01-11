@@ -1,0 +1,11 @@
+#!/bin/sh
+FILE=$1
+shift;
+BASE=$(basename ${FILE} .scm)
+FULLPATH=$(realpath ${FILE})
+RUNDIR=$(dirname ${FULLPATH})
+FDEXEC=@BINDIR@/fdexec
+PIDFILE=${RUNDIR}/${BASE}.pid
+LOGFILE=${RUNDIR}/${BASE}.log
+ERRFILE=${RUNDIR}/${BASE}.err
+exec u8run +daemon ${FDEXEC} STDOUT=+${LOGFILE} STDERR=+{ERRFILE} PIDFILE=${PIDFILE} ${FILE} $*

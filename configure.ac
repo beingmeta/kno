@@ -1780,6 +1780,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   tests/scheme/gheaptest
 	   src/scripts/fdpkg.scm
 	   etc/OSXStartupItem/FramerD
+	   etc/fdjob
 	   etc/logrotate
 	   etc/framerd-rc.d
 	   etc/framerd.conf
