@@ -154,7 +154,7 @@ static int check_for_injection()
     u8_string temp_file = u8_string_append(inject_file,".loading",NULL);
     int rv = u8_movefile(inject_file,temp_file);
     if (rv<0) {
-      u8_log(LOG_WARN,"FDServlet/InjectionIgnored",
+      u8_log(LOG_WARN,"FDServer/InjectionIgnored",
              "Can't stage injection file %s to %s",
              inject_file,temp_file);
       fd_clear_errors(1);
@@ -163,43 +163,43 @@ static int check_for_injection()
     else {
       u8_string content = u8_filestring(temp_file,NULL);
       if (content == NULL)  {
-        u8_log(LOG_WARN,"FDServlet/InjectionCantRead",
+        u8_log(LOG_WARN,"FDServer/InjectionCantRead",
                "Can't read %s",temp_file);
         fd_clear_errors(1);
         u8_free(temp_file);
         return -1;}
       else {
         lispval result;
-        u8_log(LOG_WARN,"FDServlet/InjectLoad",
+        u8_log(LOG_WARN,"FDServer/InjectLoad",
                "From %s\n\"%s\"",temp_file,content);
         result = fd_load_source(temp_file,working_env,NULL);
         if (FD_ABORTP(result)) {
           u8_exception ex = u8_current_exception;
           if (!(ex)) {
-            u8_log(LOG_CRIT,"FDServlet/InjectError",
+            u8_log(LOG_CRIT,"FDServer/InjectError",
                    "Unknown error processing injection from %s: \"%s\"",
                    inject_file,content);}
           else if ((ex->u8x_context!=NULL)&&
                    (ex->u8x_details!=NULL))
-            u8_log(LOG_CRIT,"FDServlet/InjectionError",
+            u8_log(LOG_CRIT,"FDServer/InjectionError",
                    "Error %s (%s) processing injection %s: %s\n\"%s\"",
                    ex->u8x_cond,ex->u8x_context,inject_file,
                    ex->u8x_details,content);
           else if (ex->u8x_context!=NULL)
-            u8_log(LOG_CRIT,"FDServlet/InjectionError",
+            u8_log(LOG_CRIT,"FDServer/InjectionError",
                    "Error %s (%s) processing injection %s\n\"%s\"",
                    ex->u8x_cond,ex->u8x_context,inject_file,content);
-          else u8_log(LOG_CRIT,"FDServlet/InjectionError",
+          else u8_log(LOG_CRIT,"FDServer/InjectionError",
                       "Error %s processing injection %s\n\"%s\"",
                       ex->u8x_cond,inject_file,content);
           fd_clear_errors(1);
           return -1;}
         else {
-          u8_log(LOG_WARN,"FDServlet/InjectionDone",
+          u8_log(LOG_WARN,"FDServer/InjectionDone",
                  "Finished from %s",inject_file);}
         rv = u8_removefile(temp_file);
         if (rv<0) {
-          u8_log(LOG_CRIT,"FDServlet/InjectionCleanup",
+          u8_log(LOG_CRIT,"FDServer/InjectionCleanup",
                  "Error removing %s",temp_file);
           fd_clear_errors(1);}
         fd_decref(result);
