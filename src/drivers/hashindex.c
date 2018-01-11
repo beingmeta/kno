@@ -3489,7 +3489,7 @@ static lispval hashbucket_info(struct FD_HASHINDEX *hx,lispval bucket_nums)
       else {
         fd_read_zint(&keyblkstrm);
         fd_read_zint(&keyblkstrm);}
-      lispval sm = fd_make_schemap(NULL,4,0,keyinfo_schema,keyinfo_values);
+      lispval sm = fd_make_schemap(NULL,n_slots,0,keyinfo_schema,keyinfo_values);
       FD_ADD_TO_CHOICE(keyinfo,sm);
       j++;}
     i++;}
@@ -3564,7 +3564,7 @@ static lispval hashrange_info(struct FD_HASHINDEX *hx,
       else {
         fd_read_zint(&keyblkstrm);
         fd_read_zint(&keyblkstrm);}
-      lispval sm = fd_make_schemap(NULL,4,0,keyinfo_schema,keyinfo_values);
+      lispval sm = fd_make_schemap(NULL,n_slots,0,keyinfo_schema,keyinfo_values);
       FD_ADD_TO_CHOICE(keyinfo,sm);
       j++;}
     i++;}
