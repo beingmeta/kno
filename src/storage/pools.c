@@ -1649,7 +1649,7 @@ FD_EXPORT int fd_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
 
 FD_EXPORT lispval fd_pool_fetchn(fd_pool p,lispval oids_arg)
 {
-  if (p==NULL) return 0;
+  if (p==NULL) return FD_EMPTY;
   else if ((p->pool_handler) && (p->pool_handler->fetchn)) {
     lispval oids = fd_make_simple_choice(oids_arg);
     if (FD_VECTORP(oids)) {
@@ -1681,8 +1681,8 @@ FD_EXPORT lispval fd_pool_fetchn(fd_pool p,lispval oids_arg)
         return table;}}}
   else if (p->pool_handler) {
     u8_seterr("NoHandler","fd_pool_fetchn",u8_strdup(p->poolid));
-    return -1;}
-  else return 0;
+    return FD_ERROR;}
+  else return FD_EMPTY;
 }
 
 /* Pools to lisp and vice versa */

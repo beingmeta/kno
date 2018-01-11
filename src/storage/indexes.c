@@ -614,6 +614,44 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,lispval keys)
   return rv;
 }
 
+FD_EXPORT lispval fd_index_fetchn(fd_index ix,lispval keys_arg)
+{
+  if (ix==NULL) return FD_EMPTY;
+  else if ((ix->index_handler) && (ix->index_handler->fetchn)) {
+    lispval keys = fd_make_simple_choice(keys_arg);
+    if (FD_VECTORP(keys)) {
+      int n = FD_VECTOR_LENGTH(keys);
+      lispval *keyv = FD_VECTOR_ELTS(keys);
+      lispval *values = ix->index_handler->fetchn(ix,n,keyv);
+      fd_decref(keys);
+      return fd_cons_vector(NULL,n,1,values);}
+    else {
+      int n = FD_CHOICE_SIZE(keys);
+      if (n==0)
+        return fd_make_hashtable(NULL,8);
+      else if (n==1) {
+        lispval table=fd_make_hashtable(NULL,16);
+        lispval value = fd_index_fetch(ix,keys);
+        fd_store(table,keys,value);
+        fd_decref(value);
+        fd_decref(keys);
+        return table;}
+      else {
+        init_cache_level(ix);
+        const lispval *keyv=FD_CHOICE_DATA(keys);
+        const lispval *values=ix->index_handler->fetchn(ix,n,(lispval *)keyv);
+        lispval table=fd_make_hashtable(NULL,n*2);
+        fd_hashtable_iter((fd_hashtable)table,fd_table_store_noref,n,
+                          keyv,values);
+        u8_big_free((lispval *)values);
+        fd_decref(keys);
+        return table;}}}
+  else if (ix->index_handler) {
+    u8_seterr("NoHandler","fd_index_fetchn",u8_strdup(ix->indexid));
+    return -1;}
+  else return 0;
+}
+
 static int add_key_fn(lispval key,lispval val,void *data)
 {
   lispval **write = (lispval **)data;
@@ -1444,7 +1482,7 @@ FD_EXPORT int fd_index_save(fd_index ix,
   if (ix == NULL)
     return -1;
 
-  int free_adds = 0, free_drops =0, free_stores = 0;
+  int free_adds = 0, free_drops =0, free_stores = 0, free_adds_vec = 0;
   int n_adds = 0, n_drops =0, n_stores = 0;
   struct FD_KEYVAL *adds=NULL, *drops=NULL, *stores=NULL;
 
@@ -1457,6 +1495,29 @@ FD_EXPORT int fd_index_save(fd_index ix,
   else if (FD_HASHTABLEP(toadd)) {
     adds = hashtable_keyvals((fd_hashtable)toadd,&n_adds,0);
     free_adds = 1;}
+  else if ( (FD_PAIRP(toadd)) &&
+            (FD_VECTORP(FD_CAR(toadd))) &&
+            (FD_VECTORP(FD_CDR(toadd)))) {
+    lispval keys = FD_CAR(toadd), vals = FD_CDR(toadd);
+    size_t keys_len = FD_VECTOR_LENGTH(keys);
+    size_t vals_len = FD_VECTOR_LENGTH(vals);
+    if (keys_len != vals_len)
+      return fd_err("KeyVec/ValVec mismatch","fd_index_save",ix->indexid,toadd);
+    adds = u8_big_alloc_n(keys_len,struct FD_KEYVAL);
+    long i=0, n=0; while (i<keys_len) {
+      lispval key = FD_VECTOR_REF(keys,i);
+      lispval val = FD_VECTOR_REF(vals,i);
+      if ( (FD_EMPTYP(key)) || (FD_EMPTYP(val)) ||
+           (FD_VOIDP(key)) || (FD_VOIDP(val)) ||
+           (FD_NULLP(key)) || (FD_NULLP(val)) )
+        i++;
+      else {
+        adds[n].kv_key = key;
+        adds[n].kv_val = val;
+        i++; n++;}}
+      free_adds = 0;
+      free_adds_vec = 1;
+      n_adds = n;}
   else if (FD_TABLEP(toadd)) {
     lispval keys = fd_getkeys(toadd);
     int i=0, n = FD_CHOICE_SIZE(keys);
@@ -1471,7 +1532,7 @@ FD_EXPORT int fd_index_save(fd_index ix,
     free_adds = 1;
     toadd=i;}
 
-  if (FD_VOIDP(toadd)) {}
+  if (FD_VOIDP(todrop)) {}
   else if (FD_SLOTMAPP(todrop))
     drops = FD_SLOTMAP_KEYVALS(todrop);
   else if (FD_HASHTABLEP(todrop)) {
@@ -1540,9 +1601,14 @@ FD_EXPORT int fd_index_save(fd_index ix,
   if (free_adds) {
     fd_free_keyvals(adds,n_adds);
     u8_big_free(adds);}
+  else if (free_adds_vec)
+    u8_big_free(adds);
+  else NO_ELSE;
+
   if (free_drops) {
     fd_free_keyvals(drops,n_drops);
     u8_big_free(drops);}
+
   if (free_stores) {
     fd_free_keyvals(stores,n_stores);
     u8_big_free(stores);}

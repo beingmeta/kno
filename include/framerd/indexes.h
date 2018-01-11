@@ -151,6 +151,7 @@ FD_EXPORT int fd_index_drop(fd_index ix,lispval key,lispval value);
 FD_EXPORT int fd_index_merge(fd_index ix,fd_hashtable table);
 FD_EXPORT int fd_commit_index(fd_index ix);
 FD_EXPORT int fd_index_save(fd_index ix,lispval,lispval,lispval,lispval);
+FD_EXPORT lispval fd_index_fetchn(fd_index ix,lispval);
 FD_EXPORT void fd_index_close(fd_index ix);
 FD_EXPORT fd_index _fd_indexptr(lispval x);
 FD_EXPORT lispval _fd_index_get(fd_index ix,lispval key);

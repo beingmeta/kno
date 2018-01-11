@@ -1952,6 +1952,14 @@ static lispval index_save_prim(lispval index,
   else return FD_INT(rv);
 }
 
+static lispval index_fetchn_prim(lispval index,lispval keys)
+{
+  fd_index ix = fd_lisp2index(index);
+  if (!(ix))
+    return fd_type_error("index","index_fetchn_prim",index);
+
+  return fd_index_fetchn(ix,keys);
+}
 
 
 static lispval suggest_hash_size(lispval size)
@@ -3643,6 +3651,9 @@ FD_EXPORT void fd_init_dbprims_c()
   fd_idefn2(fd_scheme_module,"INDEX-PREFETCH!",index_prefetch_keys,
             (FD_NEEDS_2_ARGS|FD_NDCALL),"(INDEX-PREFETCH! *index* *keys*)",
             -1,FD_VOID,-1,FD_VOID);
+  fd_idefn2(fd_xscheme_module,"INDEX/FETCHN",index_fetchn_prim,2|FD_NDCALL,
+            "Fetches values from an index, skipping the index cache",
+            -1,VOID,-1,VOID);
   fd_idefn5(fd_scheme_module,"INDEX/SAVE!",index_save_prim,FD_NEEDS_2_ARGS,
             "(INDEX-PREFETCH! *index* *keys*)",
             -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID);
