@@ -292,21 +292,20 @@ static int better_unparse_oid(u8_output out,lispval x)
     return 1;}
   else {
     fd_pool p = fd_oid2pool(x);
-    if ((p == NULL) || (p->pool_prefix == NULL) || (fd_numeric_oids) ) {
-      FD_OID addr = FD_OID_ADDR(x); char buf[128];
-      unsigned int hi = FD_OID_HI(addr), lo = FD_OID_LO(addr);
+    FD_OID addr = FD_OID_ADDR(x); char buf[128];
+    unsigned int hi = FD_OID_HI(addr), lo = FD_OID_LO(addr);
+    if ((p == NULL) || (p->pool_prefix == NULL) ||
+        (fd_numeric_oids) || (hi == 0) )
       sprintf(buf,"@%x/%x",hi,lo);
-      u8_puts(out,buf);}
     else {
-      FD_OID addr = FD_OID_ADDR(x); char buf[128];
       unsigned int off = FD_OID_DIFFERENCE(addr,p->pool_base);
-      sprintf(buf,"@/%s/%x",p->pool_prefix,off);
-      u8_puts(out,buf);}
+      sprintf(buf,"@/%s/%x",p->pool_prefix,off);}
+    u8_puts(out,buf);
     if (p == NULL)
       return 1;
     else if (fd_oid_display_level<2)
       return 1;
-    else if ((fd_oid_display_level<3) &&
+    else if ((hi>0) && (fd_oid_display_level<3) &&
              (!(fd_hashtable_probe_novoid(&(p->pool_cache),x))) &&
              (!(fd_hashtable_probe_novoid(&(p->pool_changes),x))))
       return 1;
