@@ -64,7 +64,7 @@ LISP_HEADERS=\
  include/framerd/fdsource.h                          \
  include/framerd/config.h                            \
  include/framerd/common.h                            \
- include/framerd/lisperrs.h                        \
+ include/framerd/lisperrs.h                          \
  include/framerd/defines.h                           \
  include/framerd/support.h                           \
  include/framerd/numbers.h                           \
@@ -715,7 +715,7 @@ exe/fdcgiexec@suffix@ exe/fdserver@suffix@ exe/fdservlet@suffix@: \
 exe/fdcgiexec@suffix@ exe/fdservlet@suffix@: src/exe/webcommon.h
 
 # Custom rules for making include files with CSS headers
-src/web/htmlout.o: src/web/backtrace_css.h src/web/backtrace_js.h
+src/web/htmlout.o: src/web/backtrace_css.h src/web/backtrace_js.h src/web/backtrace.css src/web/backtrace.js
 src/web/backtrace_css.h: src/web/backtrace.css etc/text2include
 	@echo Generating $@ from text in $<
 	@./etc/text2include FD_BACKTRACE_CSS $< $@
@@ -792,11 +792,13 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in		\
 		src/text/*.c src/web/*.c 				\
 		src/cmodules/*.c 					\
 		src/libscm/*.scm src/libscm/*/*.scm			\
+		include/framerd/components/*.h				\
 		etc/*.in ${SRC_HEADERS} 				\
 		tests/scheme/.gdbinit.in tests/scheme/*.scm 
 	@echo Building TAGS file
 	@etags makefile.in configure.ac include/framerd/config.h.in     \
 	        tests/*/*.in etc/*.in include/framerd/*.h 		\
+		include/framerd/components/*.h				\
 		${SRC_HEADERS};
 	@etags -o TAGS -a src/exe/*.c src/exe/*.h 
 	@etags -o TAGS -a src/lisp/*.c src/support/*.c src/apply/*.c 
@@ -814,6 +816,7 @@ CTAGS: makefile.in configure.ac include/framerd/config.h.in	\
 	src/lisp/*.c src/support/*.c src/apply/*.c src/storage/*.c 		\
 	src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c 	\
 	include/framerd/*.h ${SRC_HEADERS} etc/*.in 		\
+	include/framerd/components/*.h				\
 	src/exe/*.c src/cmodules/*.c
 	@echo Building C TAGS file
 	@etags -o CTAGS 
@@ -823,7 +826,9 @@ CTAGS: makefile.in configure.ac include/framerd/config.h.in	\
 	      src/lisp/*.c src/support/*.c src/storage/*.c src/eval/*.c src/prims/*.c 	\
 	      src/web/*.c src/text/*.c 					\
 	      src/cmodules/*.c src/cmodules/*.h				\
-	      include/framerd/*.h ${SRC_HEADERS} etc/*.in 
+	      include/framerd/*.h etc/*.in 				\
+	      include/framerd/components/*.h				\
+	      ${SRC_HEADERS}
 
 CSOURCETAGS: src/lisp/*.c src/support/*.c src/apply/*.c src/storage/*.c	\
 	src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c 	\
