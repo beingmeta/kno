@@ -1,6 +1,6 @@
 ;;; -*- Mode: Scheme -*-
 
-(use-module '{optimize mttools logger stringfmts fifo varconfig})
+(use-module '{optimize mttools logger stringfmts fifo varconfig storage/hashindex})
 
 (config! 'cachelevel 2)
 (config! 'optlevel 4)
