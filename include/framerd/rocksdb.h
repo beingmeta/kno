@@ -1,4 +1,4 @@
-typedef struct FRAMERD_ROCKSDB {
+typedef struct FD_ROCKSDB {
   u8_string path; lispval opts;
   unsigned int readonly:1;
   enum rocksdb_status {
@@ -18,9 +18,9 @@ typedef struct FRAMERD_ROCKSDB {
   struct rocksdb_cache_t *cacheptr;
   struct rocksdb_env_t *envptr;} *framerd_rocksdb;
 
-typedef struct FD_ROCKSDB {
+typedef struct FD_ROCKSDB_CONS {
   FD_CONS_HEADER;
-  struct FRAMERD_ROCKSDB rocksdb;} *fd_rocksdb;
+  struct FD_ROCKSDB rocksdb;} *fd_rocksdb;
 
 FD_EXPORT fd_ptr_type fd_rocksdb_type;
 
@@ -31,7 +31,7 @@ typedef struct FD_ROCKSDB_POOL {
   unsigned int pool_load; time_t pool_mtime;
   unsigned int locked:1;
   struct FD_SLOTCODER slotcodes;
-  struct FRAMERD_ROCKSDB rocksdb;} FD_ROCKSDB_POOL;
+  struct FD_ROCKSDB rocksdb;} FD_ROCKSDB_POOL;
 typedef struct FD_ROCKSDB_POOL *fd_rocksdb_pool;
 
 typedef struct FD_ROCKSDB_INDEX {
@@ -42,6 +42,6 @@ typedef struct FD_ROCKSDB_INDEX {
   struct FD_OIDCODER oidcodes;
 
   struct FD_HASHTABLE slotids_table;
-  struct FRAMERD_ROCKSDB rocksdb;} FD_ROCKSDB_INDEX;
+  struct FD_ROCKSDB rocksdb;} FD_ROCKSDB_INDEX;
 typedef struct FD_ROCKSDB_INDEX *fd_rocksdb_index;
 

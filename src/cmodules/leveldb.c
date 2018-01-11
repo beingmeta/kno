@@ -200,14 +200,14 @@ static leveldb_writeoptions_t *get_write_options(framerd_leveldb db,lispval opts
       return db->writeopts;}}
 }
 
-/* Initializing FRAMERD_LEVELDB structs */
+/* Initializing FD_LEVELDB structs */
 
 FD_EXPORT
-struct FRAMERD_LEVELDB *fd_setup_leveldb
-   (struct FRAMERD_LEVELDB *db,u8_string path,lispval opts)
+struct FD_LEVELDB *fd_setup_leveldb
+   (struct FD_LEVELDB *db,u8_string path,lispval opts)
 {
   char *errmsg = NULL;
-  memset(db,0,sizeof(struct FRAMERD_LEVELDB));
+  memset(db,0,sizeof(struct FD_LEVELDB));
   db->path = u8_strdup(path);
   db->opts = fd_incref(opts);
   leveldb_options_t *options = get_leveldb_options(opts);
@@ -294,13 +294,13 @@ framerd_leveldb fd_open_leveldb(framerd_leveldb db)
 
 static int unparse_leveldb(struct U8_OUTPUT *out,lispval x)
 {
-  struct FD_LEVELDB *db = (fd_leveldb)x;
+  struct FD_LEVELDB_CONS *db = (fd_leveldb)x;
   u8_printf(out,"#<LevelDB %s>",db->leveldb.path);
   return 1;
 }
 static void recycle_leveldb(struct FD_RAW_CONS *c)
 {
-  struct FD_LEVELDB *db = (fd_leveldb)c;
+  struct FD_LEVELDB_CONS *db = (fd_leveldb)c;
   fd_close_leveldb(&(db->leveldb));
   if (db->leveldb.path) {
     u8_free(db->leveldb.path);
@@ -316,7 +316,7 @@ static void recycle_leveldb(struct FD_RAW_CONS *c)
 
 static lispval leveldb_open_prim(lispval path,lispval opts)
 {
-  struct FD_LEVELDB *db = u8_alloc(struct FD_LEVELDB);
+  struct FD_LEVELDB_CONS *db = u8_alloc(struct FD_LEVELDB_CONS);
   fd_setup_leveldb(&(db->leveldb),FD_CSTRING(path),opts);
   if (db->leveldb.dbptr) {
     FD_INIT_CONS(db,fd_leveldb_type);
@@ -335,15 +335,15 @@ static lispval leveldbp_prim(lispval arg)
 
 static lispval leveldb_close_prim(lispval leveldb)
 {
-  struct FD_LEVELDB *db = (fd_leveldb)leveldb;
+  struct FD_LEVELDB_CONS *db = (fd_leveldb)leveldb;
   fd_close_leveldb(&(db->leveldb));
   return FD_TRUE;
 }
 
 static lispval leveldb_reopen_prim(lispval leveldb)
 {
-  struct FD_LEVELDB *db = (fd_leveldb)leveldb;
-  struct FRAMERD_LEVELDB *reopened = fd_open_leveldb(&(db->leveldb));
+  struct FD_LEVELDB_CONS *db = (fd_leveldb)leveldb;
+  struct FD_LEVELDB *reopened = fd_open_leveldb(&(db->leveldb));
   if (reopened) {
     fd_incref(leveldb);
     return leveldb;}
@@ -354,8 +354,8 @@ static lispval leveldb_reopen_prim(lispval leveldb)
 
 static lispval leveldb_get_prim(lispval leveldb,lispval key,lispval opts)
 {
-  struct FD_LEVELDB *db = (fd_leveldb)leveldb;
-  struct FRAMERD_LEVELDB *fdldb = &(db->leveldb);
+  struct FD_LEVELDB_CONS *db = (fd_leveldb)leveldb;
+  struct FD_LEVELDB *fdldb = &(db->leveldb);
   char *errmsg = NULL;
   leveldb_readoptions_t *readopts = get_read_options(fdldb,opts);
   if (FD_PACKETP(key)) {
@@ -408,8 +408,8 @@ static lispval leveldb_put_prim(lispval leveldb,lispval key,lispval value,
                                lispval opts)
 {
   char *errmsg = NULL;
-  struct FD_LEVELDB *db = (fd_leveldb)leveldb;
-  struct FRAMERD_LEVELDB *fdldb = &(db->leveldb);
+  struct FD_LEVELDB_CONS *db = (fd_leveldb)leveldb;
+  struct FD_LEVELDB *fdldb = &(db->leveldb);
   if ((FD_PACKETP(key))&&(FD_PACKETP(value))) {
     leveldb_writeoptions_t *useopts = get_write_options(fdldb,opts);
     leveldb_writeoptions_t *writeopts = (useopts)?(useopts):(fdldb->writeopts);
@@ -452,8 +452,8 @@ static lispval leveldb_put_prim(lispval leveldb,lispval key,lispval value,
 static lispval leveldb_drop_prim(lispval leveldb,lispval key,lispval opts)
 {
   char *errmsg = NULL;
-  struct FD_LEVELDB *db = (fd_leveldb)leveldb;
-  struct FRAMERD_LEVELDB *fdldb = &(db->leveldb);
+  struct FD_LEVELDB_CONS *db = (fd_leveldb)leveldb;
+  struct FD_LEVELDB *fdldb = &(db->leveldb);
   leveldb_writeoptions_t *useopts = get_write_options(fdldb,opts);
   leveldb_writeoptions_t *writeopts = (useopts)?(useopts):(fdldb->writeopts);
   if (FD_PACKETP(key)) {
@@ -498,7 +498,7 @@ static int cmp_keybufs(const void *vx,const void *vy)
   else return 1;
 }
 
-static struct LEVELDB_KEYBUF *fetchn(struct FRAMERD_LEVELDB *db,int n,
+static struct LEVELDB_KEYBUF *fetchn(struct FD_LEVELDB *db,int n,
                                      struct LEVELDB_KEYBUF *keys,
                                      leveldb_readoptions_t *readopts)
 {
@@ -518,8 +518,8 @@ static struct LEVELDB_KEYBUF *fetchn(struct FRAMERD_LEVELDB *db,int n,
 
 static lispval leveldb_getn_prim(lispval leveldb,lispval keys,lispval opts)
 {
-  struct FD_LEVELDB *dbcons = (fd_leveldb)leveldb;
-  struct FRAMERD_LEVELDB *db = &(dbcons->leveldb);
+  struct FD_LEVELDB_CONS *dbcons = (fd_leveldb)leveldb;
+  struct FD_LEVELDB *db = &(dbcons->leveldb);
   leveldb_readoptions_t *readopts = get_read_options(db,opts);
   int i = 0, n = FD_VECTOR_LENGTH(keys);
   lispval results = fd_empty_vector(n);
@@ -581,7 +581,7 @@ static struct BYTEVEC *write_prefix(struct BYTEVEC *prefix,lispval key)
   return prefix;
 }
 
-static int leveldb_scanner(struct FRAMERD_LEVELDB *db,lispval opts,
+static int leveldb_scanner(struct FD_LEVELDB *db,lispval opts,
                            leveldb_iterator_t *use_iterator,
                            lispval key,struct BYTEVEC *use_prefix,
                            leveldb_prefix_iterfn iterfn,
@@ -621,7 +621,7 @@ static int leveldb_scanner(struct FRAMERD_LEVELDB *db,lispval opts,
   return rv;
 }
 
-static int leveldb_key_scanner(struct FRAMERD_LEVELDB *db,lispval opts,
+static int leveldb_key_scanner(struct FD_LEVELDB *db,lispval opts,
                                leveldb_iterator_t *use_iterator,
                                lispval key,struct BYTEVEC *use_prefix,
                                leveldb_prefix_key_iterfn iterfn,
@@ -660,7 +660,7 @@ static int leveldb_key_scanner(struct FRAMERD_LEVELDB *db,lispval opts,
   return rv;
 }
 
-static int leveldb_editor(struct FRAMERD_LEVELDB *db,lispval opts,
+static int leveldb_editor(struct FD_LEVELDB *db,lispval opts,
                           leveldb_iterator_t *use_iterator,
                           leveldb_writebatch_t *batch,
                           lispval key,struct BYTEVEC *use_prefix,
@@ -719,8 +719,8 @@ static int prefix_get_iterfn(lispval key,
 
 static lispval leveldb_prefix_get_prim(lispval leveldb,lispval key,lispval opts)
 {
-  struct FD_LEVELDB *dbcons = (fd_leveldb)leveldb;
-  struct FRAMERD_LEVELDB *db = &(dbcons->leveldb);
+  struct FD_LEVELDB_CONS *dbcons = (fd_leveldb)leveldb;
+  struct FD_LEVELDB *db = &(dbcons->leveldb);
   lispval results = FD_EMPTY;
   int rv = leveldb_scanner(db,opts,NULL,key,NULL,prefix_get_iterfn,&results);
   if (rv<0) {
@@ -731,8 +731,8 @@ static lispval leveldb_prefix_get_prim(lispval leveldb,lispval key,lispval opts)
 
 static lispval leveldb_prefix_getn_prim(lispval leveldb,lispval keys,lispval opts)
 {
-  struct FD_LEVELDB *dbcons = (fd_leveldb)leveldb;
-  struct FRAMERD_LEVELDB *db = &(dbcons->leveldb);
+  struct FD_LEVELDB_CONS *dbcons = (fd_leveldb)leveldb;
+  struct FD_LEVELDB *db = &(dbcons->leveldb);
   leveldb_readoptions_t *readopts = get_read_options(db,opts);
   int n_keys = FD_VECTOR_LENGTH(keys);
   lispval result = fd_make_vector(n_keys,NULL);
@@ -826,8 +826,8 @@ static int index_get_iterfn(lispval key,
 
 static lispval leveldb_index_get_prim(lispval leveldb,lispval key,lispval opts)
 {
-  struct FD_LEVELDB *dbcons = (fd_leveldb)leveldb;
-  struct FRAMERD_LEVELDB *db = &(dbcons->leveldb);
+  struct FD_LEVELDB_CONS *dbcons = (fd_leveldb)leveldb;
+  struct FD_LEVELDB *db = &(dbcons->leveldb);
   struct KEY_VALUES accumulator = {0};
   int rv = leveldb_scanner(db,opts,NULL,key,NULL,index_get_iterfn,&accumulator);
   if (rv<0) {
@@ -837,7 +837,7 @@ static lispval leveldb_index_get_prim(lispval leveldb,lispval key,lispval opts)
   else return fd_init_choice(NULL,accumulator.used,accumulator.vec,-1);
 }
 
-static ssize_t leveldb_add_helper(struct FRAMERD_LEVELDB *db,
+static ssize_t leveldb_add_helper(struct FD_LEVELDB *db,
                                   struct FD_SLOTCODER *slotcodes,
                                   struct FD_OIDCODER *oidcodes,
                                   leveldb_writebatch_t *batch,
@@ -933,7 +933,7 @@ static ssize_t leveldb_add_helper(struct FRAMERD_LEVELDB *db,
   else return n_vals;
 }
 
-static ssize_t leveldb_adder(struct FRAMERD_LEVELDB *db,lispval key,
+static ssize_t leveldb_adder(struct FD_LEVELDB *db,lispval key,
                              lispval values,lispval opts)
 {
   leveldb_writebatch_t *batch = leveldb_writebatch_create();
@@ -953,8 +953,8 @@ static ssize_t leveldb_adder(struct FRAMERD_LEVELDB *db,lispval key,
 static lispval leveldb_index_add_prim(lispval leveldb,lispval key,
                                       lispval values,lispval opts)
 {
-  struct FD_LEVELDB *dbcons = (fd_leveldb)leveldb;
-  struct FRAMERD_LEVELDB *db = &(dbcons->leveldb);
+  struct FD_LEVELDB_CONS *dbcons = (fd_leveldb)leveldb;
+  struct FD_LEVELDB *db = &(dbcons->leveldb);
   ssize_t rv = leveldb_adder(db,key,values,opts);
   if (rv<0)
     return FD_ERROR_VALUE;
@@ -1912,7 +1912,7 @@ static int leveldb_index_count(lispval key,
 static lispval leveldb_index_fetch(fd_index ix,lispval key)
 {
   struct FD_LEVELDB_INDEX *lx = (fd_leveldb_index)ix;
-  struct FRAMERD_LEVELDB *db = &(lx->leveldb);
+  struct FD_LEVELDB *db = &(lx->leveldb);
   FD_DECL_OUTBUF(keybuf,1000);
   ssize_t len = leveldb_encode_key(&keybuf,key,&(lx->slotcodes),0);
   if (len<0) {
@@ -1937,7 +1937,7 @@ static lispval leveldb_index_fetch(fd_index ix,lispval key)
 static int leveldb_index_fetchsize(fd_index ix,lispval key)
 {
   struct FD_LEVELDB_INDEX *lx = (fd_leveldb_index)ix;
-  struct FRAMERD_LEVELDB *db = &(lx->leveldb);
+  struct FD_LEVELDB *db = &(lx->leveldb);
   FD_DECL_OUTBUF(keybuf,1000);
   ssize_t len = leveldb_encode_key(&keybuf,key,&(lx->slotcodes),1);
   if (len<0) {
@@ -1960,7 +1960,7 @@ static int leveldb_index_fetchsize(fd_index ix,lispval key)
 static lispval *leveldb_index_fetchn(fd_index ix,int n,const lispval *keys)
 {
   struct FD_LEVELDB_INDEX *lx = (fd_leveldb_index)ix;
-  struct FRAMERD_LEVELDB *db = &(lx->leveldb);
+  struct FD_LEVELDB *db = &(lx->leveldb);
   struct LEVELDB_KEYBUF *keybufs = u8_alloc_n(n,struct LEVELDB_KEYBUF);
   struct FD_OUTBUF keyreps = { 0 };
   /* Pre-allocated for 60 bytes per key */
@@ -2029,7 +2029,7 @@ static lispval *leveldb_index_fetchn(fd_index ix,int n,const lispval *keys)
 static int leveldb_index_save(fd_leveldb_index lx,
                               struct FD_INDEX_COMMITS *commits)
 {
-  struct FRAMERD_LEVELDB *db = &(lx->leveldb);
+  struct FD_LEVELDB *db = &(lx->leveldb);
   leveldb_writebatch_t *batch = leveldb_writebatch_create();
   ssize_t n_stores = commits->commit_n_stores;
   ssize_t n_drops = commits->commit_n_drops;

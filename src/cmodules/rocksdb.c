@@ -206,14 +206,14 @@ static rocksdb_writeoptions_t *get_write_options(framerd_rocksdb db,lispval opts
       return db->writeopts;}}
 }
 
-/* Initializing FRAMERD_ROCKSDB structs */
+/* Initializing FD_ROCKSDB structs */
 
 FD_EXPORT
-struct FRAMERD_ROCKSDB *fd_setup_rocksdb
-   (struct FRAMERD_ROCKSDB *db,u8_string path,lispval opts)
+struct FD_ROCKSDB *fd_setup_rocksdb
+   (struct FD_ROCKSDB *db,u8_string path,lispval opts)
 {
   char *errmsg = NULL;
-  memset(db,0,sizeof(struct FRAMERD_ROCKSDB));
+  memset(db,0,sizeof(struct FD_ROCKSDB));
   db->path = u8_strdup(path);
   db->opts = fd_incref(opts);
   rocksdb_env_t *env = get_rocksdb_env(opts);
@@ -301,13 +301,13 @@ framerd_rocksdb fd_open_rocksdb(framerd_rocksdb db)
 
 static int unparse_rocksdb(struct U8_OUTPUT *out,lispval x)
 {
-  struct FD_ROCKSDB *db = (fd_rocksdb)x;
+  struct FD_ROCKSDB_CONS *db = (fd_rocksdb)x;
   u8_printf(out,"#<Rocksdb %s>",db->rocksdb.path);
   return 1;
 }
 static void recycle_rocksdb(struct FD_RAW_CONS *c)
 {
-  struct FD_ROCKSDB *db = (fd_rocksdb)c;
+  struct FD_ROCKSDB_CONS *db = (fd_rocksdb)c;
   fd_close_rocksdb(&(db->rocksdb));
   if (db->rocksdb.path) {
     u8_free(db->rocksdb.path);
@@ -323,7 +323,7 @@ static void recycle_rocksdb(struct FD_RAW_CONS *c)
 
 static lispval rocksdb_open_prim(lispval path,lispval opts)
 {
-  struct FD_ROCKSDB *db = u8_alloc(struct FD_ROCKSDB);
+  struct FD_ROCKSDB_CONS *db = u8_alloc(struct FD_ROCKSDB_CONS);
   fd_setup_rocksdb(&(db->rocksdb),FD_CSTRING(path),opts);
   if (db->rocksdb.dbptr) {
     FD_INIT_CONS(db,fd_rocksdb_type);
@@ -342,15 +342,15 @@ static lispval rocksdbp_prim(lispval arg)
 
 static lispval rocksdb_close_prim(lispval rocksdb)
 {
-  struct FD_ROCKSDB *db = (fd_rocksdb)rocksdb;
+  struct FD_ROCKSDB_CONS *db = (fd_rocksdb)rocksdb;
   fd_close_rocksdb(&(db->rocksdb));
   return FD_TRUE;
 }
 
 static lispval rocksdb_reopen_prim(lispval rocksdb)
 {
-  struct FD_ROCKSDB *db = (fd_rocksdb)rocksdb;
-  struct FRAMERD_ROCKSDB *reopened = fd_open_rocksdb(&(db->rocksdb));
+  struct FD_ROCKSDB_CONS *db = (fd_rocksdb)rocksdb;
+  struct FD_ROCKSDB *reopened = fd_open_rocksdb(&(db->rocksdb));
   if (reopened) {
     fd_incref(rocksdb);
     return rocksdb;}
@@ -361,8 +361,8 @@ static lispval rocksdb_reopen_prim(lispval rocksdb)
 
 static lispval rocksdb_get_prim(lispval rocksdb,lispval key,lispval opts)
 {
-  struct FD_ROCKSDB *db = (fd_rocksdb)rocksdb;
-  struct FRAMERD_ROCKSDB *fdldb = &(db->rocksdb);
+  struct FD_ROCKSDB_CONS *db = (fd_rocksdb)rocksdb;
+  struct FD_ROCKSDB *fdldb = &(db->rocksdb);
   char *errmsg = NULL;
   rocksdb_readoptions_t *readopts = get_read_options(fdldb,opts);
   if (FD_PACKETP(key)) {
@@ -415,8 +415,8 @@ static lispval rocksdb_put_prim(lispval rocksdb,lispval key,lispval value,
                                lispval opts)
 {
   char *errmsg = NULL;
-  struct FD_ROCKSDB *db = (fd_rocksdb)rocksdb;
-  struct FRAMERD_ROCKSDB *fdldb = &(db->rocksdb);
+  struct FD_ROCKSDB_CONS *db = (fd_rocksdb)rocksdb;
+  struct FD_ROCKSDB *fdldb = &(db->rocksdb);
   if ((FD_PACKETP(key))&&(FD_PACKETP(value))) {
     rocksdb_writeoptions_t *useopts = get_write_options(fdldb,opts);
     rocksdb_writeoptions_t *writeopts = (useopts)?(useopts):(fdldb->writeopts);
@@ -459,8 +459,8 @@ static lispval rocksdb_put_prim(lispval rocksdb,lispval key,lispval value,
 static lispval rocksdb_drop_prim(lispval rocksdb,lispval key,lispval opts)
 {
   char *errmsg = NULL;
-  struct FD_ROCKSDB *db = (fd_rocksdb)rocksdb;
-  struct FRAMERD_ROCKSDB *fdldb = &(db->rocksdb);
+  struct FD_ROCKSDB_CONS *db = (fd_rocksdb)rocksdb;
+  struct FD_ROCKSDB *fdldb = &(db->rocksdb);
   rocksdb_writeoptions_t *useopts = get_write_options(fdldb,opts);
   rocksdb_writeoptions_t *writeopts = (useopts)?(useopts):(fdldb->writeopts);
   if (FD_PACKETP(key)) {
@@ -505,7 +505,7 @@ static int cmp_keybufs(const void *vx,const void *vy)
   else return 1;
 }
 
-static struct ROCKSDB_KEYBUF *fetchn(struct FRAMERD_ROCKSDB *db,int n,
+static struct ROCKSDB_KEYBUF *fetchn(struct FD_ROCKSDB *db,int n,
                                      struct ROCKSDB_KEYBUF *keys,
                                      rocksdb_readoptions_t *readopts)
 {
@@ -525,8 +525,8 @@ static struct ROCKSDB_KEYBUF *fetchn(struct FRAMERD_ROCKSDB *db,int n,
 
 static lispval rocksdb_getn_prim(lispval rocksdb,lispval keys,lispval opts)
 {
-  struct FD_ROCKSDB *dbcons = (fd_rocksdb)rocksdb;
-  struct FRAMERD_ROCKSDB *db = &(dbcons->rocksdb);
+  struct FD_ROCKSDB_CONS *dbcons = (fd_rocksdb)rocksdb;
+  struct FD_ROCKSDB *db = &(dbcons->rocksdb);
   rocksdb_readoptions_t *readopts = get_read_options(db,opts);
   int i = 0, n = FD_VECTOR_LENGTH(keys);
   lispval results = fd_empty_vector(n);
@@ -588,7 +588,7 @@ static struct BYTEVEC *write_prefix(struct BYTEVEC *prefix,lispval key)
   return prefix;
 }
 
-static int rocksdb_scanner(struct FRAMERD_ROCKSDB *db,lispval opts,
+static int rocksdb_scanner(struct FD_ROCKSDB *db,lispval opts,
                            rocksdb_iterator_t *use_iterator,
                            lispval key,struct BYTEVEC *use_prefix,
                            rocksdb_prefix_iterfn iterfn,
@@ -628,7 +628,7 @@ static int rocksdb_scanner(struct FRAMERD_ROCKSDB *db,lispval opts,
   return rv;
 }
 
-static int rocksdb_key_scanner(struct FRAMERD_ROCKSDB *db,lispval opts,
+static int rocksdb_key_scanner(struct FD_ROCKSDB *db,lispval opts,
                                rocksdb_iterator_t *use_iterator,
                                lispval key,struct BYTEVEC *use_prefix,
                                rocksdb_prefix_key_iterfn iterfn,
@@ -667,7 +667,7 @@ static int rocksdb_key_scanner(struct FRAMERD_ROCKSDB *db,lispval opts,
   return rv;
 }
 
-static int rocksdb_editor(struct FRAMERD_ROCKSDB *db,lispval opts,
+static int rocksdb_editor(struct FD_ROCKSDB *db,lispval opts,
                           rocksdb_iterator_t *use_iterator,
                           rocksdb_writebatch_t *batch,
                           lispval key,struct BYTEVEC *use_prefix,
@@ -726,8 +726,8 @@ static int prefix_get_iterfn(lispval key,
 
 static lispval rocksdb_prefix_get_prim(lispval rocksdb,lispval key,lispval opts)
 {
-  struct FD_ROCKSDB *dbcons = (fd_rocksdb)rocksdb;
-  struct FRAMERD_ROCKSDB *db = &(dbcons->rocksdb);
+  struct FD_ROCKSDB_CONS *dbcons = (fd_rocksdb)rocksdb;
+  struct FD_ROCKSDB *db = &(dbcons->rocksdb);
   lispval results = FD_EMPTY;
   int rv = rocksdb_scanner(db,opts,NULL,key,NULL,prefix_get_iterfn,&results);
   if (rv<0) {
@@ -738,8 +738,8 @@ static lispval rocksdb_prefix_get_prim(lispval rocksdb,lispval key,lispval opts)
 
 static lispval rocksdb_prefix_getn_prim(lispval rocksdb,lispval keys,lispval opts)
 {
-  struct FD_ROCKSDB *dbcons = (fd_rocksdb)rocksdb;
-  struct FRAMERD_ROCKSDB *db = &(dbcons->rocksdb);
+  struct FD_ROCKSDB_CONS *dbcons = (fd_rocksdb)rocksdb;
+  struct FD_ROCKSDB *db = &(dbcons->rocksdb);
   rocksdb_readoptions_t *readopts = get_read_options(db,opts);
   int n_keys = FD_VECTOR_LENGTH(keys);
   lispval result = fd_make_vector(n_keys,NULL);
@@ -833,8 +833,8 @@ static int index_get_iterfn(lispval key,
 
 static lispval rocksdb_index_get_prim(lispval rocksdb,lispval key,lispval opts)
 {
-  struct FD_ROCKSDB *dbcons = (fd_rocksdb)rocksdb;
-  struct FRAMERD_ROCKSDB *db = &(dbcons->rocksdb);
+  struct FD_ROCKSDB_CONS *dbcons = (fd_rocksdb)rocksdb;
+  struct FD_ROCKSDB *db = &(dbcons->rocksdb);
   struct KEY_VALUES accumulator = {0};
   int rv = rocksdb_scanner(db,opts,NULL,key,NULL,index_get_iterfn,&accumulator);
   if (rv<0) {
@@ -844,7 +844,7 @@ static lispval rocksdb_index_get_prim(lispval rocksdb,lispval key,lispval opts)
   else return fd_init_choice(NULL,accumulator.used,accumulator.vec,-1);
 }
 
-static ssize_t rocksdb_add_helper(struct FRAMERD_ROCKSDB *db,
+static ssize_t rocksdb_add_helper(struct FD_ROCKSDB *db,
                                   struct FD_SLOTCODER *slotcodes,
                                   struct FD_OIDCODER *oidcodes,
                                   rocksdb_writebatch_t *batch,
@@ -940,7 +940,7 @@ static ssize_t rocksdb_add_helper(struct FRAMERD_ROCKSDB *db,
   else return n_vals;
 }
 
-static ssize_t rocksdb_adder(struct FRAMERD_ROCKSDB *db,lispval key,
+static ssize_t rocksdb_adder(struct FD_ROCKSDB *db,lispval key,
                              lispval values,lispval opts)
 {
   rocksdb_writebatch_t *batch = rocksdb_writebatch_create();
@@ -960,8 +960,8 @@ static ssize_t rocksdb_adder(struct FRAMERD_ROCKSDB *db,lispval key,
 static lispval rocksdb_index_add_prim(lispval rocksdb,lispval key,
                                       lispval values,lispval opts)
 {
-  struct FD_ROCKSDB *dbcons = (fd_rocksdb)rocksdb;
-  struct FRAMERD_ROCKSDB *db = &(dbcons->rocksdb);
+  struct FD_ROCKSDB_CONS *dbcons = (fd_rocksdb)rocksdb;
+  struct FD_ROCKSDB *db = &(dbcons->rocksdb);
   ssize_t rv = rocksdb_adder(db,key,values,opts);
   if (rv<0)
     return FD_ERROR_VALUE;
@@ -1914,7 +1914,7 @@ static int rocksdb_index_count(lispval key,
 static lispval rocksdb_index_fetch(fd_index ix,lispval key)
 {
   struct FD_ROCKSDB_INDEX *lx = (fd_rocksdb_index)ix;
-  struct FRAMERD_ROCKSDB *db = &(lx->rocksdb);
+  struct FD_ROCKSDB *db = &(lx->rocksdb);
   FD_DECL_OUTBUF(keybuf,1000);
   ssize_t len = rocksdb_encode_key(&keybuf,key,&(lx->slotcodes),0);
   if (len<0) {
@@ -1939,7 +1939,7 @@ static lispval rocksdb_index_fetch(fd_index ix,lispval key)
 static int rocksdb_index_fetchsize(fd_index ix,lispval key)
 {
   struct FD_ROCKSDB_INDEX *lx = (fd_rocksdb_index)ix;
-  struct FRAMERD_ROCKSDB *db = &(lx->rocksdb);
+  struct FD_ROCKSDB *db = &(lx->rocksdb);
   FD_DECL_OUTBUF(keybuf,1000);
   ssize_t len = rocksdb_encode_key(&keybuf,key,&(lx->slotcodes),1);
   if (len < 0) {
@@ -1962,7 +1962,7 @@ static int rocksdb_index_fetchsize(fd_index ix,lispval key)
 static lispval *rocksdb_index_fetchn(fd_index ix,int n,const lispval *keys)
 {
   struct FD_ROCKSDB_INDEX *lx = (fd_rocksdb_index)ix;
-  struct FRAMERD_ROCKSDB *db = &(lx->rocksdb);
+  struct FD_ROCKSDB *db = &(lx->rocksdb);
   struct ROCKSDB_KEYBUF *keybufs = u8_alloc_n(n,struct ROCKSDB_KEYBUF);
   struct FD_OUTBUF keyreps = { 0 };
   /* Pre-allocated for 60 bytes per key */
@@ -2031,7 +2031,7 @@ static lispval *rocksdb_index_fetchn(fd_index ix,int n,const lispval *keys)
 static int rocksdb_index_save(fd_rocksdb_index lx,
                               struct FD_INDEX_COMMITS *commits)
 {
-  struct FRAMERD_ROCKSDB *db = &(lx->rocksdb);
+  struct FD_ROCKSDB *db = &(lx->rocksdb);
   rocksdb_writebatch_t *batch = rocksdb_writebatch_create();
   ssize_t n_stores = commits->commit_n_stores;
   ssize_t n_drops = commits->commit_n_drops;

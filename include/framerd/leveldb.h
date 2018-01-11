@@ -1,4 +1,4 @@
-typedef struct FRAMERD_LEVELDB {
+typedef struct FD_LEVELDB {
   u8_string path; lispval opts;
   unsigned int readonly:1;
   enum leveldb_status {
@@ -17,9 +17,9 @@ typedef struct FRAMERD_LEVELDB {
   struct leveldb_cache_t *cacheptr;
   struct leveldb_env_t *envptr;} *framerd_leveldb;
 
-typedef struct FD_LEVELDB {
+typedef struct FD_LEVELDB_CONS {
   FD_CONS_HEADER;
-  struct FRAMERD_LEVELDB leveldb;} *fd_leveldb;
+  struct FD_LEVELDB leveldb;} *fd_leveldb;
 
 FD_EXPORT fd_ptr_type fd_leveldb_type;
 
@@ -30,7 +30,7 @@ typedef struct FD_LEVELDB_POOL {
   unsigned int pool_load; time_t pool_mtime;
   unsigned int locked:1;
   struct FD_SLOTCODER slotcodes;
-  struct FRAMERD_LEVELDB leveldb;} FD_LEVELDB_POOL;
+  struct FD_LEVELDB leveldb;} FD_LEVELDB_POOL;
 typedef struct FD_LEVELDB_POOL *fd_leveldb_pool;
 
 typedef struct FD_LEVELDB_INDEX {
@@ -41,6 +41,6 @@ typedef struct FD_LEVELDB_INDEX {
   struct FD_OIDCODER oidcodes;
 
   struct FD_HASHTABLE slotids_table;
-  struct FRAMERD_LEVELDB leveldb;} FD_LEVELDB_INDEX;
+  struct FD_LEVELDB leveldb;} FD_LEVELDB_INDEX;
 typedef struct FD_LEVELDB_INDEX *fd_leveldb_index;
 
