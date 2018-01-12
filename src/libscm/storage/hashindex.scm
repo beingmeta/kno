@@ -144,7 +144,7 @@
 			  checktests ,(engine/interval (getopt opts 'savefreq (config 'savefreq 60)))
 			  ;; checktests ,(engine/usage 'memusage (* 10 #gib))
 			  loglevel ,%info%
-			  nthreads ,(getopt opts 'nthreads (config 'NTHREADS (rusage 'ncpus)))
+			  nthreads ,(getopt opts 'nthreads (config 'NTHREADS 4))
 			  ;; nthreads 3
 			  logchecks #t
 			  logfns ,engine/log
@@ -206,9 +206,11 @@
 
 ;;; Repacking the hashindex
 
+(define default-method hashindex/repack-mapkeys)
+
 (define (hashindex/repack! infile (outfile #f) (opts #f) (method) (rarefile) (in #f))
-  (default! method (getopt opts 'method hashindex/repack-mapkeys))
-  (when (symbol? method) (set! method (getopt method-names method hashindex/repack-mapkeys)))
+  (default! method (getopt opts 'method default-method))
+  (when (symbol? method) (set! method (getopt method-names method default-method)))
   (set! rarefile (getopt opts 'rare (config 'RARE #f)))
   (when (index? infile)
     (set! in infile)
@@ -233,7 +235,7 @@
 	 (irritant rarefile |Unwritable| hashindex/repack!))
 	(else))
   (dorepack method 
-	    (or in (open-index infile #[readonly #t]))
+	    (or in (open-index infile #[readonly #t cachelevel 2]))
 	    infile
 	    (or outfile infile)
 	    rarefile
@@ -264,14 +266,14 @@
 		   " and installing " (write raretmp) " into " (write rarefile))))
 	     (move-file! infile bakfile)
 	     (move-file! tmpfile infile)
-	     (move-file! raretmp rarefile)
+	     (when raretmp (move-file! raretmp rarefile))
 	     (close-index in))
 	    (else (logwarn |Installing| outfile " from " tmpfile
 			   (when rare
 			     (printout 
 			       " and " (write raretmp) " into " (write rarefile))))
 		  (move-file! tmpfile outfile)
-		  (move-file! raretmp rarefile))))))
+		  (when raretmp (move-file! raretmp rarefile)))))))
 
 (define method-names
   `#[keys ,hashindex/repack-keys
