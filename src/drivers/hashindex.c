@@ -3365,7 +3365,10 @@ FD_EXPORT lispval fd_hashindex_keyinfo(lispval lix,
         keyinfo_values[1] = FD_INT(n_vals);
         keyinfo_values[2] = FD_INT(bucket_no[i]);
         keyinfo_values[3] = FD_INT(hashval);
-        lispval sm = fd_make_schemap(NULL,4,0,keyinfo_schema,keyinfo_values);
+        lispval sm =
+          fd_make_schemap(NULL,4,
+                          FD_SCHEMAP_FIXED|FD_SCHEMAP_READONLY,
+                          keyinfo_schema,keyinfo_values);
         elts[key_count++]=(lispval)sm;}
       else fd_decref(key);
       if (n_vals==0) {}
@@ -3489,7 +3492,10 @@ static lispval hashbucket_info(struct FD_HASHINDEX *hx,lispval bucket_nums)
       else {
         fd_read_zint(&keyblkstrm);
         fd_read_zint(&keyblkstrm);}
-      lispval sm = fd_make_schemap(NULL,n_slots,0,keyinfo_schema,keyinfo_values);
+      lispval sm =
+        fd_make_schemap(NULL,n_slots,
+                        FD_SCHEMAP_FIXED|FD_SCHEMAP_READONLY,
+                        keyinfo_schema,keyinfo_values);
       FD_ADD_TO_CHOICE(keyinfo,sm);
       j++;}
     i++;}
@@ -3564,7 +3570,10 @@ static lispval hashrange_info(struct FD_HASHINDEX *hx,
       else {
         fd_read_zint(&keyblkstrm);
         fd_read_zint(&keyblkstrm);}
-      lispval sm = fd_make_schemap(NULL,n_slots,0,keyinfo_schema,keyinfo_values);
+      lispval sm = fd_make_schemap
+        (NULL,n_slots,
+         FD_SCHEMAP_FIXED|FD_SCHEMAP_READONLY,
+         keyinfo_schema,keyinfo_values);
       FD_ADD_TO_CHOICE(keyinfo,sm);
       j++;}
     i++;}
