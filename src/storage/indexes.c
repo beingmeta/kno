@@ -1424,7 +1424,7 @@ static int index_docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
     if (unlock_stores) fd_unlock_table(&(ix->index_stores));
 
     free_commits(&commits);}
-  else free_commits(&commits);
+  else NO_ELSE;
   record_elapsed(commits.commit_times.flush);
   commits.commit_phase = fd_commit_cleanup;
 
