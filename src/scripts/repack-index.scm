@@ -69,7 +69,7 @@
 	     "Just copied +" nkeys "/" total " keys (" nvals " values) in "
 	     (short-interval-string elapsed) )))
 
-(define (repack-index from to (fudge 3.0))
+(define (repack-index from to (fudge 2.0))
   (let* ((in (open-index from))
 	 (sizes (rsorted (index-sizes in) cdr))
 	 (newsize (fudgeit (length sizes) fudge))
