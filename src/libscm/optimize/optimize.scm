@@ -101,7 +101,7 @@
 
 ;;; What we export
 
-(module-export! '{optimize! optimized optimized?
+(module-export! '{optimize! optimized optimized? use+
 		  optimize-procedure! optimize-module!
 		  reoptimize! optimize-bindings!
 		  deoptimize! 
@@ -800,6 +800,78 @@
 		(if (module-arg? x)
 		    `(,optimize-get-module ,x)
 		    x))))))
+
+(define use!
+  (macro expr
+    (let ((modarg (if (and (pair? (cadr expr))
+			   (eq? (car (cadr expr)) 'quote))
+		      (cadr expr)
+		      (list 'quote (cadr expr))))) 
+      `(begin
+	(use-module ,modarg)
+	(optimize! ,modarg)
+	(do-choices (modname ,modarg)
+	  (let ((syms (difference (%ls modname) '%moduleid))
+		(width (config 'consolewidth 80))
+		(column (+ (length (symbol->string modname)) 5)))
+	    (when (exists? syms)
+	      (lineout ";; " modname ":"
+		(do-choices (sym syms)
+		  (when (> column width)
+		    (printout "\n;;   ")
+		    (set! column 5))
+		  (printout " " sym)
+		  (set! column (+ column 1 (length (symbol->string sym)))))))))))))
+
+(define (convert-modarg args)
+  (if (null? args) '()
+      (let ((result (convert-modarg (cdr args))))
+	(if (ambiguous? (car args))
+	    (do-choices (spec (car args))
+	      (if (symbol? spec)
+		  (set! result (cons `',spec result))
+		  (set! result (cons spec result))))
+	    (if (symbol? (car args))
+		(set! result (cons `',(car args) result))
+		(if (and (pair? (car args)) (eq? (caar args) 'quote))
+		    (do-choices (spec (cadr (car args)))
+		      (if (symbol? spec)
+			  (set! result (cons `',spec result))
+			  (set! result (cons spec result))))
+		    (set! result (cons (car args) result)))))
+	result)))
+
+(define (handle-module modname)
+  (let ((module (get-module modname)))
+    (let ((syms (difference (%ls modname) '%moduleid))
+	  (width (config 'consolewidth 80))
+	  (column (+ (length (symbol->string modname)) 5)))
+      (when (exists? syms)
+	(lineout ";; " modname ":"
+	  (do-choices (sym syms)
+	    (when (> column width)
+	      (printout "\n;;   ")
+	      (set! column 5))
+	    (printout " " sym)
+	    (set! column (+ column 1 (length (symbol->string sym))))))))
+    (optimize! module)
+    module))
+
+(define (convert-arg arg)
+  (if (symbol? arg)
+      (list 'quote arg)
+      (if (pair? arg)
+	  (if (and (pair? (car arg)) (eq? (caar arg) 'quote))
+	      (convert-arg (cadr (car arg)))
+	      arg)
+	  {})))
+
+(define use+
+  (macro expr
+    `(use-module
+      (choice
+       ,@(forseq (spec (map convert-arg (cdr expr)))
+	   `(,handle-module ,spec))))))
 
 (defambda (reoptimize! modules)
   (reload-module modules)
