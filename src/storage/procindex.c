@@ -391,7 +391,7 @@ static fd_index open_procindex(u8_string source,fd_storage_flags flags,lispval o
   fd_decref(args[0]);
   if (FD_ABORTP(lp))
     return NULL;
-  else if ( (FD_INDEXP(lp)) || (FD_TYPEP(lp,fd_consed_index_type)) )
+  else if (FD_INDEXP(lp))
     return fd_lisp2index(lp);
   else return NULL;
 }
@@ -410,8 +410,7 @@ static fd_index procindex_create(u8_string spec,void *type_data,
     return NULL;
   else if (FD_VOIDP(result))
     return open_procindex(spec,storage_flags,opts);
-  else if ( (FD_INDEXP(result)) ||
-            (FD_TYPEP(result,fd_consed_index_type)) )
+  else if (FD_INDEXP(result))
     return fd_lisp2index(result);
   else {
     fd_seterr("NotAnIndex","procindex_create",spec,result);

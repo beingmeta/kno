@@ -119,7 +119,7 @@ static int drop_consed_index(fd_index ix)
   return 0;
 }
 
-struct FD_COMPOUND_INDEX *fd_background = NULL;
+struct FD_AGGREGATE_INDEX *fd_background = NULL;
 static u8_mutex background_lock;
 
 #if FD_GLOBAL_IPEVAL
@@ -173,7 +173,7 @@ static void clear_bg_cache(lispval key)
 
 FD_EXPORT lispval *fd_get_index_delays() { return get_index_delays(); }
 
-static lispval set_symbol, drop_symbol;
+static lispval set_symbol, drop_symbol, front_symbol;
 
 static u8_mutex indexes_lock;
 
@@ -375,12 +375,12 @@ FD_EXPORT int fd_add_to_background(fd_index ix)
   u8_lock_mutex(&background_lock);
   ix->index_flags = ix->index_flags|FD_INDEX_IN_BACKGROUND;
   if (fd_background)
-    fd_add_to_compound_index(fd_background,ix);
+    fd_add_to_aggregate_index(fd_background,ix);
   else {
     fd_index *indexes = u8_alloc_n(32,fd_index);
     indexes[0] = ix;
-    fd_background = (struct FD_COMPOUND_INDEX *)
-      fd_make_compound_index(32,1,indexes);
+    fd_background = (struct FD_AGGREGATE_INDEX *)
+      fd_make_aggregate_index(32,1,indexes);
     u8_string old_id = fd_background->indexid;
     fd_background->indexid = u8_strdup("background");
     if (old_id) u8_free(old_id);}
@@ -839,8 +839,23 @@ FD_EXPORT int _fd_index_add(fd_index ix,lispval key,lispval value)
   if ( (EMPTYP(value)) || (EMPTYP(key)) )
     return 0;
   else if (U8_BITP(ix->index_flags,FD_STORAGE_READ_ONLY)) {
-    fd_seterr(fd_ReadOnlyIndex,"_fd_index_add",ix->indexid,VOID);
-    return -1;}
+    lispval front = fd_slotmap_get(&(ix->index_props),front_symbol,FD_VOID);
+    if (FD_INDEXP(front)) {
+      fd_index use_front = fd_indexptr(front);
+      if (!(U8_BITP(use_front->index_flags,FD_STORAGE_READ_ONLY))) {
+        if (FD_CONSP(front)) {
+          int rv =  _fd_index_add(use_front,key,value);
+          fd_decref(front);
+          return rv;}
+        else return _fd_index_add(use_front,key,value);}
+      else {
+        fd_seterr(fd_ReadOnlyIndex,"_fd_index_add/front",
+                  use_front->indexid,VOID);
+        fd_decref(front);
+        return -1;}}
+    else {
+      fd_seterr(fd_ReadOnlyIndex,"_fd_index_add",ix->indexid,VOID);
+      return -1;}}
   else init_cache_level(ix);
 
   int decref_key = 0;
@@ -890,9 +905,6 @@ FD_EXPORT int fd_index_drop(fd_index ix,lispval key,lispval value)
 
   if ( (EMPTYP(key)) || (EMPTYP(value)) )
     return 0;
-  else if (U8_BITP(ix->index_flags,FD_STORAGE_READ_ONLY)) {
-    fd_seterr(fd_ReadOnlyIndex,"_fd_index_add",ix->indexid,VOID);
-    return -1;}
   else init_cache_level(ix);
 
   int decref_key = 0;
@@ -2261,6 +2273,7 @@ FD_EXPORT void fd_init_indexes_c()
 
   set_symbol = fd_make_symbol("SET",3);
   drop_symbol = fd_make_symbol("DROP",4);
+  front_symbol = fd_make_symbol("FRONT",4);
   fd_unparsers[fd_index_type]=unparse_index;
   metadata_readonly_props = fd_intern("_READONLY_PROPS");
 

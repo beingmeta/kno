@@ -236,19 +236,20 @@ FD_EXPORT void fd_register_procindex(u8_string typename,lispval handler);
 
 /* Compound indexes */
 
-typedef struct FD_COMPOUND_INDEX {
+typedef struct FD_AGGREGATE_INDEX {
   FD_INDEX_FIELDS;
-  unsigned int cx_n_indexes, cx_n_allocd;
-  fd_index *cx_indexes;
-  fd_index cx_front;
-  struct U8_MEMLIST *cx_oldvecs;
-  U8_MUTEX_DECL(index_lock);} FD_COMPOUND_INDEX;
-typedef struct FD_COMPOUND_INDEX *fd_compound_index;
+  unsigned int ax_n_indexes, ax_n_allocd;
+  fd_index *ax_indexes;
+  struct U8_MEMLIST *ax_oldvecs;
+  U8_MUTEX_DECL(index_lock);} FD_AGGREGATE_INDEX;
+typedef struct FD_AGGREGATE_INDEX *fd_aggregate_index;
 
-FD_EXPORT int fd_add_to_compound_index(fd_compound_index ix,fd_index add);
-FD_EXPORT fd_index fd_make_compound_index(int n_allocd,int n_indexes,fd_index *indexes);
+FD_EXPORT int fd_add_to_aggregate_index(fd_aggregate_index ix,fd_index add);
+FD_EXPORT fd_index fd_make_aggregate_index(int n_allocd,int n_indexes,fd_index *indexes);
+FD_EXPORT int fd_aggregate_indexp(fd_index ix);
 
-FD_EXPORT struct FD_COMPOUND_INDEX *fd_background;
+
+FD_EXPORT struct FD_AGGREGATE_INDEX *fd_background;
 
 /* Inline index adds */
 

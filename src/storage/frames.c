@@ -683,7 +683,7 @@ FD_EXPORT lispval fd_prim_find(lispval indexes,lispval slotids,lispval values)
   if (CHOICEP(indexes)) {
     lispval combined = EMPTY;
     DO_CHOICES(index,indexes) {
-      if ((FD_INDEXP(index))||(TYPEP(index,fd_consed_index_type))) {
+      if (FD_INDEXP(index)) {
         fd_index ix = fd_indexptr(index);
         lispval indexed = index_prim_find(ix,slotids,values);
         if (FD_ABORTP(indexed)) {
@@ -704,7 +704,7 @@ FD_EXPORT lispval fd_prim_find(lispval indexes,lispval slotids,lispval values)
         fd_decref(combined);
         return fd_type_error(_("index"),"fd_prim_find",index);}}
     return combined;}
-  else if ((FD_INDEXP(indexes))||(TYPEP(indexes,fd_consed_index_type)))
+  else if (FD_INDEXP(indexes))
     return index_prim_find(fd_indexptr(indexes),slotids,values);
   else if (TABLEP(indexes)) {
     lispval combined = EMPTY;

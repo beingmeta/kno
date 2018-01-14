@@ -403,9 +403,9 @@ static lispval open_index_helper(lispval arg,lispval opts,int registered)
       u8_free(copy);
       return results;}
     else return index_ref(fd_get_index(CSTRING(arg),flags,opts));}
-  else if (FD_INDEXP(arg))
+  else if (FD_ETERNAL_INDEXP(arg))
     return arg;
-  else if (TYPEP(arg,fd_consed_index_type))
+  else if (FD_CONSED_INDEXP(arg))
     return fd_incref(arg);
   else fd_seterr(fd_TypeError,"use_index",NULL,fd_incref(arg));
   if (ix)
@@ -567,7 +567,7 @@ static lispval unlockoids(lispval oids,lispval commitp)
     else return FD_INT(retval);}
 }
 
-static lispval make_compound_index(int n,lispval *args)
+static lispval make_aggregate_index(int n,lispval *args)
 {
   fd_index *sources = u8_alloc_n(8,fd_index);
   int n_sources = 0, max_sources = 8;
@@ -590,23 +590,30 @@ static lispval make_compound_index(int n,lispval *args)
         sources[n_sources++]=ix;}
       else {
         u8_free(sources);
-        return fd_type_error("index","make_compound_index",source);}}
+        return fd_type_error("index","make_aggregate_index",source);}}
     i++;}
-  return index2lisp(fd_make_compound_index(n_sources,n_sources,sources));
+  return index2lisp(fd_make_aggregate_index(n_sources,n_sources,sources));
 }
 
-static lispval add_to_compound_index(lispval lcx,lispval aix)
+static lispval add_to_aggregate_index(lispval into_arg,lispval partition_arg)
 {
-  if (FD_INDEXP(lcx)) {
-    /* Only registered indexes can be added to compound indexes */
-    fd_index ix = fd_indexptr(lcx);
-    if (PRED_FALSE(ix == NULL))
-      return fd_type_error("index","add_to_compound_index",lcx);
-    else if (fd_add_to_compound_index((struct FD_COMPOUND_INDEX *)ix,
-                                      fd_indexptr(aix))<0)
-      return FD_ERROR;
-    else return VOID;}
-  else return fd_type_error(_("index"),"add_to_compound_index",lcx);
+  fd_index into = fd_indexptr(into_arg);
+  fd_index partition = fd_indexptr(partition_arg);
+  if (fd_aggregate_indexp(into)) {
+    fd_aggregate_index aggregate = (fd_aggregate_index) into;
+    if (partition) {
+      if (partition->index_serialno < 0) fd_register_index(partition);
+      if (partition->index_serialno > 0) {
+        if (fd_add_to_aggregate_index(aggregate,partition)<0)
+          return FD_ERROR;
+        else return VOID;}
+      else return fd_type_error(_("eternal (not-ephemeral) index"),
+                                "add_to_aggregate_index",
+                                partition_arg);}
+    else return fd_type_error
+           (_("index"),"add_to_aggregate_index",partition_arg);}
+  else return fd_type_error(_("aggregate index"),"add_to_aggregate_index",
+                            into_arg);
 }
 
 static lispval make_mempool(lispval label,lispval base,lispval cap,
@@ -3678,10 +3685,10 @@ FD_EXPORT void fd_init_dbprims_c()
 
   fd_idefn(fd_xscheme_module,
            fd_make_ndprim
-           (fd_make_cprimn("MAKE-COMPOUND-INDEX",make_compound_index,1)));
+           (fd_make_cprimn("MAKE-AGGREGATE-INDEX",make_aggregate_index,1)));
 
   fd_idefn(fd_xscheme_module,
-           fd_make_cprim2("ADD-TO-COMPOUND-INDEX!",add_to_compound_index,2));
+           fd_make_cprim2("ADD-TO-AGGREGATE-INDEX!",add_to_aggregate_index,2));
 
   fd_idefn(fd_xscheme_module,
            fd_make_ndprim(fd_make_cprim4("INDEX-FRAME",index_frame_prim,3)));

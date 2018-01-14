@@ -30,7 +30,7 @@ static int dbserv_loglevel;
 static fd_pool primary_pool = NULL;
 static fd_pool served_pools[FD_DBSERV_MAX_POOLS];
 static int n_served_pools = 0;
-struct FD_COMPOUND_INDEX *primary_index = NULL;
+struct FD_AGGREGATE_INDEX *primary_index = NULL;
 static int read_only = 0, locking = 1;
 static int dbserv_loglevel = LOG_NOTICE;
 
@@ -651,7 +651,7 @@ static lispval iserver_writablep()
 
 static lispval ixserver_get(lispval index,lispval key)
 {
-  if ((FD_INDEXP(index))||(TYPEP(index,fd_consed_index_type)))
+  if (FD_INDEXP(index))
     return fd_index_get(fd_indexptr(index),key);
   else if (TABLEP(index))
     return fd_get(index,key,EMPTY);
@@ -659,7 +659,7 @@ static lispval ixserver_get(lispval index,lispval key)
 }
 static lispval ixserver_bulk_get(lispval index,lispval keys)
 {
-  if ((FD_INDEXP(index))||(TYPEP(index,fd_consed_index_type)))
+  if (FD_INDEXP(index))
     if (VECTORP(keys)) {
       fd_index ix = fd_indexptr(index);
       int i = 0, n = VEC_LEN(keys);
@@ -687,7 +687,7 @@ static lispval ixserver_bulk_get(lispval index,lispval keys)
 }
 static lispval ixserver_get_size(lispval index,lispval key)
 {
-  if ((FD_INDEXP(index))||(TYPEP(index,fd_consed_index_type))) {
+  if (FD_INDEXP(index)) {
     lispval value = fd_index_get(fd_indexptr(index),key);
     int size = FD_CHOICE_SIZE(value);
     fd_decref(value);
@@ -701,7 +701,7 @@ static lispval ixserver_get_size(lispval index,lispval key)
 }
 static lispval ixserver_keys(lispval index)
 {
-  if ((FD_INDEXP(index))||(TYPEP(index,fd_consed_index_type)))
+  if (FD_INDEXP(index))
     return fd_index_keys(fd_indexptr(index));
   else if (TABLEP(index))
     return fd_getkeys(index);
@@ -709,7 +709,7 @@ static lispval ixserver_keys(lispval index)
 }
 static lispval ixserver_sizes(lispval index)
 {
-  if ((FD_INDEXP(index))||(TYPEP(index,fd_consed_index_type)))
+  if (FD_INDEXP(index))
     return fd_index_sizes(fd_indexptr(index));
   else if (TABLEP(index)) {
     lispval results = EMPTY, keys = fd_getkeys(index);
@@ -792,7 +792,8 @@ static int serve_index(lispval var,lispval val,void *data)
       int retval = serve_index(var,v,data);
       if (retval<0) return retval;}
     return 1;}
-  else if (FD_INDEXP(val)) ix = fd_indexptr(val);
+  else if (FD_INDEXP(val))
+    ix = fd_indexptr(val);
   else if (STRINGP(val))
     ix = fd_get_index(CSTRING(val),0,VOID);
   else if (val == FD_TRUE)
@@ -804,7 +805,7 @@ static int serve_index(lispval var,lispval val,void *data)
   else {}
   if (ix) {
     u8_logf(LOG_NOTICE,"SERVE_INDEX","Serving index %s",ix->indexid);
-    fd_add_to_compound_index(primary_index,ix);
+    fd_add_to_aggregate_index(primary_index,ix);
     return 1;}
   else return fd_reterr(fd_BadIndexSpec,"serve_index",NULL,val);
 }
@@ -907,7 +908,7 @@ void fd_init_dbserv_c()
                      config_set_locksfile,
                      NULL);
 
-  primary_index = (fd_compound_index)fd_make_compound_index(32,0,NULL);
+  primary_index = (fd_aggregate_index)fd_make_aggregate_index(32,0,NULL);
 
   fd_dbserv_module = module;
 }

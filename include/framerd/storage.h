@@ -93,8 +93,13 @@ FD_EXPORT int fd_dbconn_init_default;
 FD_EXPORT fd_ptr_type fd_consed_index_type;
 FD_EXPORT fd_ptr_type fd_consed_pool_type;
 
-#define FD_INDEXP(x) (FD_TYPEP(x,fd_index_type))
-#define FD_POOLP(x) (FD_TYPEP(x,fd_pool_type))
+#define FD_ETERNAL_INDEXP(x) (FD_TYPEP(x,fd_index_type))
+#define FD_CONSED_INDEXP(x) (FD_TYPEP(x,fd_consed_index_type))
+#define FD_INDEXP(x) ( (FD_ETERNAL_INDEXP(x)) || (FD_CONSED_INDEXP(x)) )
+
+#define FD_ETERNAL_POOLP(x) (FD_TYPEP(x,fd_pool_type))
+#define FD_CONSED_POOLP(x) (FD_TYPEP(x,fd_consed_pool_type))
+#define FD_POOLP(x) ( (FD_ETERNAL_POOLP(x)) || (FD_CONSED_POOLP(x)) )
 
 FD_EXPORT int fd_commit_all(void);
 FD_EXPORT void fd_swapout_all(void);
