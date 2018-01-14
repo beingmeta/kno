@@ -84,12 +84,12 @@
     (DEBUG . 7) (DBG . 7)
     (INFO . 6) (STATUS . 6) (INFORMATION . 6)
     (NOTICE . 5) (NOTE . 5) (NOTIFY . 5)
-    (WARN 4) (WARNING 4)
-    (ERROR 3) (ERR 3)
-    (ERROR 3) (ERR 3)
-    (CRITICAL 2) (DANGER 2) (CRIT 2)
-    (ALERT 1) (ATTENTION 1)
-    (EMERGENCY 0) (EMERG 0) (PANIC 0)})
+    (WARN . 4) (WARNING . 4)
+    (ERROR . 3) (ERR . 3)
+    (ERROR . 3) (ERR . 3)
+    (CRITICAL . 2) (DANGER . 2) (CRIT . 2)
+    (ALERT . 1) (ATTENTION . 1)
+    (EMERGENCY . 0) (EMERG . 0) (PANIC . 0)})
 
 (define loglevel-table
   (let ((table (make-hashtable)))
