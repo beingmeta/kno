@@ -182,7 +182,7 @@ static lispval compound_modify(lispval x,lispval offset,
           new_value = fd_apply(modifier,1,&old_value);
         else {
           lispval args[2] = { old_value, value };
-          new_value = fd_apply(modifier,1,&old_value);}}
+          new_value = fd_apply(modifier,2,args);}}
       else if (modifier == FDSYM_ADD) {
         new_value = old_value; fd_incref(value);
         CHOICE_ADD(new_value,value);}
