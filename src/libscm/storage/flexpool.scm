@@ -7,8 +7,6 @@
 (use-module '{storage/adjuncts storage/filenames})
 (use-module '{storage/flex})
 
-(message "Loading live")
-
 (module-export! '{flexpool/open flexpool/make flexpool?
 		  flexpool/ref flexpool/record 
 		  flexpool/zero flexpool/front flexpool/last flexpool/info
