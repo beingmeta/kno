@@ -84,7 +84,8 @@ static lispval assign_default_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
       fd_decref(value);
       return VOID;}
     else {
-      fd_decref(val); return VOID;}}
+      fd_decref(val);
+      return VOID;}}
 }
 
 static lispval assign_false_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)

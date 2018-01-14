@@ -1091,7 +1091,7 @@
 		((overlaps? handler set+!)
 		 `(#OP_ASSIGN ,loc ,optval #OP_UNION))
 		((overlaps? handler default!) 
-		 `(#OP_ASSIGN ,loc ,optval  #t))
+		 `(#OP_ASSIGN ,loc ,optval #t))
 		(else `(,handler ,var ,optval)))
 	  `(,handler ,var ,optval)))))
 

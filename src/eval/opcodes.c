@@ -787,21 +787,17 @@ static lispval tableop(lispval opcode,lispval arg1,lispval arg2,lispval arg3)
       return VOID;}}
 }
 
+#define CURRENT_VALUEP(x) \
+  (! ((cur == FD_DEFAULT_VALUE) || (cur == FD_UNBOUND) || \
+      (cur == VOID) || (cur == FD_NULL)))
+
 static lispval combine_values(lispval combiner,lispval cur,lispval value)
 {
-  int use_cur=((FD_ABORTP(cur)) ||
-               (!((cur == FD_DEFAULT_VALUE) ||
-                  (cur == FD_UNBOUND) ||
-                  (cur == VOID) ||
-                  (cur == FD_NULL))));
+  int use_cur=((FD_ABORTP(cur)) || (CURRENT_VALUEP(cur)));
   switch (combiner) {
   case VOID: case FD_FALSE:
     return value;
-  case FD_DEFAULT_VALUE:
-    if (use_cur)
-      return cur;
-    else return value;
-  case FD_TRUE:
+  case FD_TRUE: case FD_DEFAULT_VALUE:
     if (use_cur)
       return cur;
     else return value;
@@ -824,10 +820,7 @@ static lispval combine_values(lispval combiner,lispval cur,lispval value)
 static lispval assignop(fd_stack stack,fd_lexenv env,
                         lispval var,lispval expr,lispval combiner)
 {
-  lispval value = op_eval(expr,env,stack,0);
-  if (FD_ABORTED(value))
-    return value;
-  else if (FD_LEXREFP(var)) {
+  if (FD_LEXREFP(var)) {
     int up = FD_LEXREF_UP(var);
     int across = FD_LEXREF_ACROSS(var);
     fd_lexenv scan = ( (env->env_copy) ? (env->env_copy) : (env) );
@@ -845,21 +838,30 @@ static lispval assignop(fd_stack stack,fd_lexenv env,
         if (PRED_TRUE( across < map_len )) {
           lispval *values = map->schema_values;
           lispval cur     = values[across];
-          if ( (combiner == FD_FALSE) || (combiner == VOID) ) {
-            values[across]=value;
-            fd_decref(cur);}
-          else if (combiner == FD_UNION_OPCODE) {
-            if ((cur==VOID)||(cur==FD_UNBOUND)||(cur==EMPTY))
-              values[across]=value;
-            else {
-              CHOICE_ADD(values[across],value);}
-            return FD_VOID;}
+          if ( ( (combiner == FD_TRUE) || (combiner == FD_DEFAULT) ) &&
+               ( (CURRENT_VALUEP(cur)) || (FD_ABORTP(cur)) ) )
+            return VOID;
           else {
-            lispval newv=combine_values(combiner,cur,value);
-            values[across]=newv;
-            if (cur != newv) fd_decref(cur);
-            if (value != newv) fd_decref(value);}
-          return VOID;}}}
+            lispval value = op_eval(expr,env,stack,0);
+            if (FD_ABORTED(value))
+              return value;
+            else if ( (combiner == FD_FALSE) || (combiner == VOID) ) {
+              /* Replace the currnet value */
+              values[across]=value;
+              fd_decref(cur);}
+            else if (combiner == FD_UNION_OPCODE) {
+              if (FD_ABORTED(value)) return value;
+              if ((CURRENT_VALUEP(cur))||(cur==EMPTY))
+                values[across]=value;
+              else {CHOICE_ADD(values[across],value);}}
+            else {
+              lispval newv=combine_values(combiner,cur,value);
+              if (cur != newv) {
+                values[across]=newv;
+                fd_decref(cur);
+                if (newv != value) fd_decref(value);}
+              else fd_decref(value);}
+            return VOID;}}}}
     u8_string lexref=u8_mkstring("up%d/across%d",up,across);
     lispval env_copy=(lispval)fd_copy_env(env);
     return fd_err("BadLexref","ASSIGN_OPCODE",lexref,env_copy);}
@@ -868,6 +870,7 @@ static lispval assignop(fd_stack stack,fd_lexenv env,
            (TABLEP(FD_CDR(var)))) {
     int rv=-1;
     lispval table=FD_CDR(var), sym=FD_CAR(var);
+    lispval value = op_eval(expr,env,stack,0);
     if ( (combiner == FD_FALSE) || (combiner == VOID) ) {
       if (FD_LEXENVP(table))
         rv=fd_assign_value(sym,value,(fd_lexenv)table);
@@ -882,8 +885,8 @@ static lispval assignop(fd_stack stack,fd_lexenv env,
       if (FD_ABORTED(newv))
         rv=-1;
       else rv=fd_store(table,sym,newv);
-      if (newv!=cur) fd_decref(cur);
-      if (newv!=value) fd_decref(newv);}
+      fd_decref(cur);
+      fd_decref(newv);}
     fd_decref(value);
     if (rv<0) {
       fd_seterr("AssignFailed","ASSIGN_OPCODE",NULL,expr);
