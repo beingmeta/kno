@@ -94,15 +94,23 @@
 	 (let ((keycount (or (get-keycount old) default-index-size)))
 	   (->exact (ceiling (* keycount specified)))))
      minimum)))
+(define (get-new-type old opts)
+  (getopt opts 'type
+	  (config 'NEWTYPE 
+		  (config 'TYPE 
+			  (or (indexctl old 'metadata 'type)
+			      'hashindex)))))
 
 (define (get-new-index filename old opts)
-  (if (file-exists? filename)
+  (if (and (file-exists? filename)
+	   (not (equal? (realpath filename) 
+			(realpath (index-source old)))))
       (begin (logwarn |Existing|
 	       "Using existing output file index " filename)
 	(open-index filename (get-write-opts opts)))
       (let* ((n-keys (indexctl old 'keycount))
 	     (size (get-new-size old opts))
-	     (type (getopt opts 'type (config 'NEWTYPE (CONFIG 'TYPE 'hashindex))))
+	     (type (get-new-type old opts))
 	     (new-opts (frame-create #f
 			 'type type 'size size
 			 'register (getopt opts 'register #t)
