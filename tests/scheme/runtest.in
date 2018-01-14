@@ -46,6 +46,7 @@ printf "%s: (%s) (t%d)\t%s\n" "$MSG" "$TIMING" "$$" "${PROGNAME} $*";
 # Deal with the log file
 if [ "$SUCCESS" = "no" ]; then
     printf "Log file in %s\n" "${LOGFILE}";
+    exit 17
 elif [ "$KEEPLOGS" = "no" ]; then
     rm ${LOGFILE};
 fi;
