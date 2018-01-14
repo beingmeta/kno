@@ -573,8 +573,10 @@ static lispval use_module_helper(lispval expr,fd_lexenv env,int safe)
     return fd_err(fd_TooFewExpressions,"USE-MODULE",NULL,expr);
   else {
     DO_CHOICES(module_name,module_names) {
-      lispval module;
-      module = fd_find_module(module_name,safe,1);
+      lispval module =
+        (FD_HASHTABLEP(module_name)) ? (fd_incref(module_name)) :
+        (FD_LEXENVP(module_name)) ? (fd_incref(module_name)) :
+        (fd_find_module(module_name,safe,1));
       if (FD_ABORTP(module))
         return module;
       else if (VOIDP(module))
