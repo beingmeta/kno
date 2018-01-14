@@ -340,8 +340,12 @@ static lispval with_lock_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     struct FD_LAMBDA *sp = fd_consptr(fd_lambda,lck,fd_lambda_type);
     if (sp->lambda_synchronized) {
       uselock = &(sp->lambda_lock);}
-    else return fd_type_error("lockable","synchro_lock",lck);}
-  else return fd_type_error("lockable","synchro_unlock",lck);
+    else {
+      fd_decref(lck);
+      return fd_type_error("lockable","synchro_lock",lck);}}
+  else {
+    fd_decref(lck);
+    return fd_type_error("lockable","synchro_unlock",lck);}
   {U8_WITH_CONTOUR("WITH-LOCK",0) {
       u8_lock_mutex(uselock);
       FD_DOLIST(elt_expr,FD_CDDR(expr)) {
@@ -353,6 +357,7 @@ static lispval with_lock_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
       value = FD_ERROR;}
     U8_END_EXCEPTION;}
   u8_unlock_mutex(uselock);
+  fd_decref(lck);
   return value;
 }
 
