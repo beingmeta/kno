@@ -165,6 +165,39 @@ slot of the loop state.
 		  (getopt loop-state 'opts) optname
 		  default)))
 
+(define (thread-error ex batch-state loop-state (handler) (now (timestamp)) (saved #f))
+  (default! handler (get loop-state 'onerror))
+  (store! batch-state 'error ex)
+  (logwarn |EngineError| 
+    "Unexpected error on " (get loop-state 'fifo) ": "
+    (exception-condition ex) " @" (exception-caller ex)
+    (when (exception-details ex) (printout " (" (exception-details ex) ")"))
+    (when saved (printout " exception dumped to " (write saved))))
+  (when (exception-irritant? ex)
+    (loginfo |EngineError/irritant| 
+      "For " (get loop-state 'fifo) " "
+      (exception-condition ex) " @" (exception-caller ex) ":\n  "
+      (pprint (exception-irritant ex))))
+  (cond ((or (fail? handler) (overlaps? handler '{stopall stop}))
+	 (add! loop-state 'errors ex)
+	 (store! loop-state 'stopped now)
+	 (store! batch-state 'aborted now)
+	 #f)
+	((or (not handler) (overlaps? handler '{continue ignore}))
+	 (add! loop-state 'errors ex)
+	 #f)
+	((applicable? handler)
+	 (let ((hv (handler ex batch-state loop-state)))
+	   (thread-error ex batch-state loop-state hv)))
+	(else
+	 (add! loop-state 'errors ex)
+	 (store! loop-state 'stopped now)
+	 (store! batch-state 'aborted now)
+	 #f)))
+
+(define (thread-error-handler batch-state loop-state)
+  (lambda (ex) (thread-error ex batch-state loop-state)))
+
 (define (engine-threadfn iterfn fifo opts loop-state state
 			 beforefn afterfn
 			 monitors
@@ -179,43 +212,47 @@ slot of the loop state.
       (when (and (exists? beforefn) beforefn)
 	(beforefn (qc batch) batch-state loop-state state))
       (set! proc-time (elapsed-time))
-      (cond ((singleton? batch)
-	     (cond ((= (procedure-arity iterfn) 1) (iterfn batch))
-		   ((= (procedure-arity iterfn) 2) (iterfn batch batch-state))
-		   ((= (procedure-arity iterfn) 4) (iterfn batch batch-state loop-state state))
-		   (else (iterfn batch))))
-	    ((and (getopt opts 'batchcall (non-deterministic? iterfn))
-		  (non-deterministic? iterfn))
-	     (cond ((= (procedure-arity iterfn) 1) (iterfn batch))
-		   ((= (procedure-arity iterfn) 2) (iterfn batch batch-state))
-		   ((= (procedure-arity iterfn) 4) (iterfn batch batch-state loop-state state))
-		   (else (iterfn batch))))
-	    ((getopt opts 'batchcall (non-deterministic? iterfn))
-	     (cond ((= (procedure-arity iterfn) 1) (iterfn (qc batch)))
-		   ((= (procedure-arity iterfn) 2) (iterfn (qc batch) batch-state))
-		   ((= (procedure-arity iterfn) 4) (iterfn (qc batch) batch-state loop-state state))
-		   (else (iterfn (qc batch)))))
-	    (else
-	     (cond ((= (procedure-arity iterfn) 1)
-		    (do-choices (item batch) (iterfn item)))
-		   ((= (procedure-arity iterfn) 2)
-		    (do-choices (item batch) (iterfn item batch-state)))
-		   ((= (procedure-arity iterfn) 4)
-		    (do-choices (item batch) (iterfn item batch-state loop-state state)))
-		   (else (do-choices (item batch) (iterfn item))))))
+      (onerror
+	  (cond ((singleton? batch)
+		 (cond ((= (procedure-arity iterfn) 1) (iterfn batch))
+		       ((= (procedure-arity iterfn) 2) (iterfn batch batch-state))
+		       ((= (procedure-arity iterfn) 4) (iterfn batch batch-state loop-state state))
+		       (else (iterfn batch))))
+		((and (getopt opts 'batchcall (non-deterministic? iterfn))
+		      (non-deterministic? iterfn))
+		 (cond ((= (procedure-arity iterfn) 1) (iterfn batch))
+		       ((= (procedure-arity iterfn) 2) (iterfn batch batch-state))
+		       ((= (procedure-arity iterfn) 4) (iterfn batch batch-state loop-state state))
+		       (else (iterfn batch))))
+		((getopt opts 'batchcall (non-deterministic? iterfn))
+		 (cond ((= (procedure-arity iterfn) 1) (iterfn (qc batch)))
+		       ((= (procedure-arity iterfn) 2) (iterfn (qc batch) batch-state))
+		       ((= (procedure-arity iterfn) 4) (iterfn (qc batch) batch-state loop-state state))
+		       (else (iterfn (qc batch)))))
+		(else
+		 (cond ((= (procedure-arity iterfn) 1)
+			(do-choices (item batch) (iterfn item)))
+		       ((= (procedure-arity iterfn) 2)
+			(do-choices (item batch) (iterfn item batch-state)))
+		       ((= (procedure-arity iterfn) 4)
+			(do-choices (item batch) (iterfn item batch-state loop-state state)))
+		       (else (do-choices (item batch) (iterfn item))))))
+	  (engine-error-handler batch-state loop-state))
       (set! proc-time (elapsed-time proc-time))
-      (when (and  (exists? afterfn) afterfn)
-	(afterfn (qc batch) batch-state loop-state state))
-      (bump-loop-state batch-state loop-state 
-		       (choice-size batch)
-		       proc-time
-		       (elapsed-time start))
-      (when (dolog? loop-state fifo)
-	(engine-logger (qc batch) proc-time (elapsed-time start)
-		       batch-state loop-state state))
+      (unless (test batch-state 'aborted)
+	(when (and  (exists? afterfn) afterfn)
+	  (afterfn (qc batch) batch-state loop-state state))
+	(bump-loop-state batch-state loop-state
+			 (choice-size batch)
+			 proc-time
+			 (elapsed-time start))
+	(when (dolog? loop-state fifo)
+	  (engine-logger (qc batch) proc-time (elapsed-time start)
+			 batch-state loop-state state)))
       ;; Free some stuff up, maybe
       (set! batch {})
-      (let ((stopval (or (test loop-state 'stopped)
+      (let ((stopval (or (try (get batch-state 'error) #f)
+			 (test loop-state 'stopped)
 			 (and (exists? stopfn) stopfn (exists stopfn loop-state)))))
 	(cond ((and (exists? stopval) stopval)
 	       (store! loop-state 'stopped (timestamp))
@@ -293,6 +330,7 @@ slot of the loop state.
 		       'checkpoint (getopt opts 'checkpoint {})
 		       'checksync (getopt opts 'checksync {})
 		       'monitors (getopt opts 'monitors {})
+		       'onerror (getopt opts 'onerror 'stopall)
 		       'logfns logfns
 		       'logcounters (getopt opts 'logcounters {})
 		       'logrates (getopt opts 'logrates {})
@@ -378,6 +416,12 @@ slot of the loop state.
 	  (engine-logger (qc) 0 (elapsed-time (get loop-state 'started))
 			 #[] loop-state state)))
 
+    (when (and (exists? (get loop-state 'errors))
+	       (overlaps? (get loop-state 'onerror) 'signal))
+      (irritant (get loop-state 'errors)
+	  |EngineErrors| engine/run
+	  (stringout ($num (choice-size (get loop-state 'errors)))
+	    " errors occurred running " fifo)))
     loop-state))
 
 (define (init-state opts)

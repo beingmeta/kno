@@ -165,6 +165,7 @@
 			  unique ,(getopt opts 'unique)
 			  maxvals ,(getopt opts 'maxvals)
 			  minvals ,(getopt opts 'minvals)]
+		   onerror {stopall signal}
 		   counters {copied rarekeys uniquekeys values}
 		   logrates {copied rarekeys uniquekeys values}
 		   batchsize ,(if span 1 (getopt opts 'batchsize (config 'BATCHSIZE 10000)))

@@ -48,11 +48,13 @@
 		       ((getopt opts 'copier) (getopt opts 'copier))
 		       ((equal? (indexctl in 'metadata 'type) "hashindex")
 			hashindex/copy-keys!)
-		       (else index/copy-keys!))))
-    (copier in out copy-opts)
-    (index/install! out outfile)
-    (when rare (index/install! rare rarefile))
-    (when unique (index/install! unique uniquefile))))
+		       (else index/copy-keys!)))
+	 (ok #f))
+    (onerror (begin (copier in out copy-opts) (set! ok #t)))
+    (when ok
+      (index/install! out outfile)
+      (when rare (index/install! rare rarefile))
+      (when unique (index/install! unique uniquefile)))))
 
 (define (index/install! index into)
   (close-index index)
@@ -114,12 +116,14 @@
 (define (get-read-opts opts)
   `(#[readonly #t
       cachelevel ,(getopt opts 'cachelevel (config 'force:cachelevel 2))
-      register ,(getopt opts 'register #t)]
+      register ,(getopt opts 'register #t)
+      repair (getopt opts 'repair (config 'repair #f))]
     . ,opts))
 (define (get-write-opts opts)
   `(#[readonly #f
       cachelevel ,(getopt opts 'cachelevel (config 'force:cachelevel 2))
-      register ,(getopt opts 'register #t)]
+      register ,(getopt opts 'register #t)
+      repair (getopt opts 'repair (config 'repair #f))]
     . ,opts))
 
 ;;; Default key copier, uses fetchn
@@ -195,6 +199,7 @@
 			  unique ,(getopt opts 'unique)
 			  maxvals ,(getopt opts 'maxvals)
 			  minvals ,(getopt opts 'minvals)]
+		   onerror {stopall signal}
 		   counters {copied rarekeys uniquekeys values}
 		   logrates {copied rarekeys uniquekeys values}
 		   batchsize ,(getopt opts 'batchsize (config 'BATCHSIZE 10000))

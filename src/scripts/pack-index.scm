@@ -25,7 +25,8 @@
 		'newsize (config 'newsize {})
 		'keyslot (string->symbol (upcase (config 'keyslot {})))
 		'rarefile (config 'rare {})
-		'uniquefile (config 'unique {}))))
+		'uniquefile (config 'unique {})
+		'repair (config 'repair #f))))
     (when (and out (file-exists? out) (not overwrite))
       (logwarn |FileExists|
 	"The output file " (write out) " already exists.\n  "
