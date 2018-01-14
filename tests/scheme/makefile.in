@@ -187,7 +187,7 @@ all_tests alltests: tidy
 	@${header} "■■■■■■■■ Done with alltests"
 
 libtests: scheme optscheme slotmaps tables pools indexes db
-cmdtests: execscripts chainscripts batchscripts chained_batchscripts
+cmdtests: execscripts chainscripts batchscripts chained_batchscripts utilscripts
 
 schemetest schemetests scheme: r4rs exceptions choices sequences breaks numvecs reflect hashsets \
 	picktest cachecall texttools fdweb timefns threads i18n misc gctests profiling \
@@ -518,7 +518,7 @@ rocksdbtests: rckdbframes rckdbpools rckdbindexes
 
 # Scripting tests
 
-scripts: chainscripts batchscripts atexit_tests util-scripts
+scripts: chainscripts batchscripts atexit_tests utilscripts
 
 execscripts:
 	@${header} "■■■■■■■■ Running exec tests ■■■■■■■■"
@@ -660,12 +660,17 @@ atexit_kill: atexit_normal
 
 # Builtin script tests
 
-util-scripts: repack-index
+utilscripts: repack-index split-index
 
 repack-index:
 	@${header} "■■■■■■■■ Testing repack index"
-	@rm -f packed.index unique.index split.index
-	@${RUN} ${FDX} ${PACKINDEX} ../data/misc.index packed.index ${RUNCONF} TESTLOAD=common.scm NTHREADS=1;
+	@rm -f packed.index
+	@${RUN} ${FDX} ${PACKINDEX} ../data/misc.index packed.index ${RUNCONF} TESTLOAD=common.scm;
+	@${RUN} ${FDX} indexcompare.scm ../data/misc.index packed.index ${RUNCONF} TESTLOAD=common.scm;
+
+split-index:
+	@${header} "■■■■■■■■ Testing split index"
+	@rm -f unique.index split.index
 	@${RUN} ${FDX} ${PACKINDEX} ../data/misc.index split.index UNIQUE=unique.index TESTLOAD=common.scm ${RUNCONF};
 
 .PHONY: chained_batchscripts batchscripts chainscripts execscripts atexit
