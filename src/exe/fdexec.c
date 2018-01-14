@@ -366,6 +366,10 @@ int main(int argc,char **argv)
 
   FD_INIT_STACK();
 
+#if FD_TESTCONFIG
+  fd_autoload_config("TESTMODS","TESTLOAD");
+#endif
+
   args = handle_argv(argc,argv,&n_args,&exe_name,&source_file,NULL);
 
   FD_NEW_STACK(((struct FD_STACK *)NULL),"fdexec",NULL,VOID);

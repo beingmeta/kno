@@ -62,6 +62,9 @@ FD_EXPORT fd_lexenv fd_app_env;
 
 FD_EXPORT void fd_set_app_env(fd_lexenv env);
 
+FD_EXPORT void fd_autoload_config
+(u8_string module_autoload,u8_string file_autoload);
+
 /* Eval functions (for special forms, FEXPRs, whatever) */
 
 typedef lispval (*fd_eval_handler)(lispval expr,

@@ -548,130 +548,6 @@ static lispval backtrace_prim(lispval arg)
   return VOID;
 }
 
-/* Module and loading config */
-
-static lispval module_list = NIL;
-
-static u8_string get_next(u8_string pt,u8_string seps);
-
-static lispval parse_module_spec(u8_string s)
-{
-  if (*s) {
-    u8_string brk = get_next(s," ,;");
-    if (brk) {
-      u8_string elt = u8_slice(s,brk);
-      lispval parsed = fd_parse(elt);
-      if (FD_ABORTP(parsed)) {
-        u8_free(elt);
-        return parsed;}
-      else return fd_init_pair(NULL,parsed,
-                               parse_module_spec(brk+1));}
-    else {
-      lispval parsed = fd_parse(s);
-      if (FD_ABORTP(parsed)) return parsed;
-      else return fd_init_pair(NULL,parsed,NIL);}}
-  else return NIL;
-}
-
-static u8_string get_next(u8_string pt,u8_string seps)
-{
-  u8_string closest = NULL;
-  while (*seps) {
-    u8_string brk = strchr(pt,*seps);
-    if ((brk) && ((brk<closest) || (closest == NULL)))
-      closest = brk;
-    seps++;}
-  return closest;
-}
-
-static int module_config_set(lispval var,lispval vals,void *d)
-{
-  int loads = 0; DO_CHOICES(val,vals) {
-    lispval modname = ((SYMBOLP(val))?(val):
-                    (STRINGP(val))?
-                    (parse_module_spec(CSTRING(val))):
-                    (VOID));
-    lispval module = VOID, used;
-    if (VOIDP(modname)) {
-      fd_seterr(fd_TypeError,"module_config_set","module",val);
-      return -1;}
-    else if (PAIRP(modname)) {
-      int n_loaded = 0;
-      FD_DOLIST(elt,modname) {
-        if (!(SYMBOLP(elt))) {
-          u8_log(LOG_WARN,fd_TypeError,"module_config_set",
-                 "Not a valid module name: %q",elt);}
-        else {
-          lispval each_module = fd_find_module(elt,0,0);
-          if (VOIDP(each_module)) {
-            u8_log(LOG_WARN,fd_NoSuchModule,"module_config_set",
-                   "No module found for %q",modname);}
-          else {
-            used = fd_use_module(fd_app_env,each_module);
-            if (FD_ABORTP(used)) {
-              u8_log(LOG_WARN,"LoadModuleError",
-                     "Error loading module %q",each_module);
-              fd_clear_errors(1);}
-            else {
-              n_loaded++;
-              fd_decref(used);}
-            used = VOID;}}}
-      fd_decref(modname);
-      return n_loaded;}
-    else if (!(SYMBOLP(modname))) {
-      fd_seterr(fd_TypeError,"module_config_set","module name",val);
-      fd_decref(modname);
-      return -1;}
-    module = fd_find_module(modname,0,0);
-    if (VOIDP(module)) {
-      fd_seterr(fd_NoSuchModule,"module_config_set",
-                FD_SYMBOL_NAME(modname),val);
-      fd_decref(modname);
-      return -1;}
-    used = fd_use_module(fd_app_env,module);
-    if (FD_ABORTP(used)) {
-      fd_decref(modname); fd_decref(module); fd_decref(used);
-      return -1;}
-    else {
-      module_list = fd_conspair(modname,module_list);
-      fd_decref(module); fd_decref(used);
-      loads++;}}
-  return loads;
-}
-
-static lispval module_config_get(lispval var,void *d)
-{
-  return fd_incref(module_list);
-}
-
-static lispval loadfile_list = NIL;
-
-static int loadfile_config_set(lispval var,lispval vals,void *d)
-{
-  int loads = 0; DO_CHOICES(val,vals) {
-    u8_string loadpath; lispval loadval;
-    if (!(STRINGP(val))) {
-      fd_seterr(fd_TypeError,"loadfile_config_set","filename",val);
-      return -1;}
-    else if (!(strchr(CSTRING(val),':')))
-      loadpath = u8_abspath(CSTRING(val),NULL);
-    else loadpath = u8_strdup(CSTRING(val));
-    loadval = fd_load_source(loadpath,fd_app_env,NULL);
-    if (FD_ABORTP(loadval)) {
-      fd_seterr(_("load error"),"loadfile_config_set",loadpath,val);
-      return -1;}
-    else {
-      loadfile_list = fd_conspair(fdstring(loadpath),loadfile_list);
-      u8_free(loadpath);
-      loads++;}}
-  return loads;
-}
-
-static lispval loadfile_config_get(lispval var,void *d)
-{
-  return fd_incref(loadfile_list);
-}
-
 static int bugdir_config_set(lispval var,lispval val,void *d)
 {
   u8_string *bugdir = (u8_string *) d;
@@ -853,12 +729,7 @@ int main(int argc,char **argv)
   errconsole = err;
   atexit(exit_fdconsole);
 
-  fd_register_config
-    ("MODULES",_("Which modules to load"),
-     module_config_get,module_config_set,&module_list);
-  fd_register_config
-    ("LOADFILE",_("Which files to load"),
-     loadfile_config_get,loadfile_config_set,&loadfile_list);
+  fd_autoload_config("LOADMOD","LOADFILE");
 
   if (u8_has_suffix(argv[0],"/fdconsole",0))
     u8_default_appid("fdconsole");

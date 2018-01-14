@@ -61,7 +61,7 @@ static void U8_MAYBE_UNUSED tweak_exename(char *str,int off,char altc)
     *exenamep = exename;}
 }
 
-/* Identifing configs */
+/* Identifying configs */
 
 static int isconfig(char *arg)
 {

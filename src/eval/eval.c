@@ -52,6 +52,8 @@ u8_string fd_ndevalstack_type="ndeval";
 int fd_optimize_tail_calls = 1;
 
 fd_lexenv fd_app_env=NULL;
+static lispval module_list = NIL;
+static lispval loadfile_list = NIL;
 
 u8_string fd_bugdir = NULL;
 
@@ -2504,19 +2506,53 @@ static lispval cleanup_app_env()
 
 static void setup_app_env()
 {
-  lispval exit_handler =
-    fd_make_cprim0("APPENV/ATEXIT",cleanup_app_env);
+  lispval exit_handler = fd_make_cprim0("APPENV/ATEXIT",cleanup_app_env);
   fd_config_set("ATEXIT",exit_handler);
   fd_decref(exit_handler);
 }
 
 FD_EXPORT void fd_set_app_env(fd_lexenv env)
 {
-  if (env==fd_app_env) return;
+  if (env==fd_app_env)
+    return;
   else if (fd_app_env) {
-    fd_lexenv old_env=fd_app_env; fd_app_env=NULL;
+    fd_lexenv old_env=fd_app_env;
+    fd_app_env=NULL;
     fd_decref((lispval)old_env);}
   fd_app_env=env;
+  if (env) {
+    int modules_loaded = 0, files_loaded = 0;
+    int modules_failed = 0, files_failed = 0;
+    lispval modules = module_list;
+    {FD_DOLIST(modname,modules) {
+        lispval module = fd_find_module(modname,0,0);
+        if (FD_ABORTP(module)) {
+          u8_log(LOG_WARN,"LoadModuleError","Error loading module %q",modname);
+          fd_clear_errors(1);
+          modules_failed++;}
+        else {
+          lispval used = fd_use_module(fd_app_env,module);
+          if (FD_ABORTP(used)) {
+            u8_log(LOG_WARN,"UseModuleError","Error using module %q",module);
+            fd_clear_errors(1);
+            modules_failed++;}
+          else modules_loaded++;
+          fd_decref(module);
+          fd_decref(used);}}}
+    lispval files = loadfile_list;
+    {FD_DOLIST(file,files) {
+        lispval loadval = fd_load_source(FD_CSTRING(file),fd_app_env,NULL);
+        if (FD_ABORTP(loadval)) {
+          u8_log(LOG_WARN,"LoadError","fd_set_app_end",
+                 "Error loading %s into the application environment",
+                 FD_CSTRING(file));
+          fd_clear_errors(1);
+          files_failed++;}
+        else files_loaded++;
+        fd_decref(loadval);}}
+    u8_log(LOG_INFO,"AppEnvLoad",
+           "%d:%d modules:files loaded, %d:%d modules:files failed",
+           modules_loaded,files_loaded,modules_failed,files_failed);}
 }
 
 /* MTrace */
@@ -2573,6 +2609,147 @@ static lispval list9(lispval arg1,lispval arg2,
                       fd_incref(arg5),fd_incref(arg6),
                       fd_incref(arg7),fd_incref(arg8),
                       fd_incref(arg9));
+}
+
+/* Module and loading config */
+
+static u8_string get_next(u8_string pt,u8_string seps);
+
+static lispval parse_module_spec(u8_string s)
+{
+  if (*s) {
+    u8_string brk = get_next(s," ,;");
+    if (brk) {
+      u8_string elt = u8_slice(s,brk);
+      lispval parsed = fd_parse(elt);
+      if (FD_ABORTP(parsed)) {
+        u8_free(elt);
+        return parsed;}
+      else return fd_init_pair(NULL,parsed,
+                               parse_module_spec(brk+1));}
+    else {
+      lispval parsed = fd_parse(s);
+      if (FD_ABORTP(parsed)) return parsed;
+      else return fd_init_pair(NULL,parsed,NIL);}}
+  else return NIL;
+}
+
+static u8_string get_next(u8_string pt,u8_string seps)
+{
+  u8_string closest = NULL;
+  while (*seps) {
+    u8_string brk = strchr(pt,*seps);
+    if ((brk) && ((brk<closest) || (closest == NULL)))
+      closest = brk;
+    seps++;}
+  return closest;
+}
+
+static int add_modname(lispval modname)
+{
+  if (fd_app_env) {
+    lispval module = fd_find_module(modname,0,0);
+    if (FD_ABORTP(module))
+      return -1;
+    else if (FD_VOIDP(module)) {
+      u8_log(LOG_WARN,fd_NoSuchModule,"module_config_set",
+             "No module found for %q",modname);
+      return -1;}
+    lispval used = fd_use_module(fd_app_env,module);
+    if (FD_ABORTP(used)) {
+      u8_log(LOG_WARN,"LoadModuleError",
+             "Error using module %q",module);
+      fd_clear_errors(1);
+      fd_decref(module);
+      fd_decref(used);
+      return -1;}
+    module_list = fd_conspair(modname,module_list);
+    fd_incref(modname);
+    fd_decref(module);
+    fd_decref(used);
+    return 1;}
+  else {
+    module_list = fd_conspair(modname,module_list);
+    fd_incref(modname);
+    return 0;}
+}
+
+static int module_config_set(lispval var,lispval vals,void *d)
+{
+  int loads = 0; DO_CHOICES(val,vals) {
+    lispval modname = ((SYMBOLP(val))?(val):
+                       (STRINGP(val))?
+                       (parse_module_spec(CSTRING(val))):
+                       (VOID));
+    if (VOIDP(modname)) {
+      fd_seterr(fd_TypeError,"module_config_set","module",val);
+      return -1;}
+    else if (PAIRP(modname)) {
+      FD_DOLIST(elt,modname) {
+        if (!(SYMBOLP(elt))) {
+          u8_log(LOG_WARN,fd_TypeError,"module_config_set",
+                 "Not a valid module name: %q",elt);}
+        else {
+          int added = add_modname(elt);
+          if (added>0) loads++;}}
+      fd_decref(modname);}
+    else if (!(SYMBOLP(modname))) {
+      fd_seterr(fd_TypeError,"module_config_set","module name",val);
+      fd_decref(modname);
+      return -1;}
+    else {
+      int added = add_modname(modname);
+      if (added > 0) loads++;}}
+  return loads;
+}
+
+static lispval module_config_get(lispval var,void *d)
+{
+  return fd_incref(module_list);
+}
+
+static int loadfile_config_set(lispval var,lispval vals,void *d)
+{
+  int loads = 0; DO_CHOICES(val,vals) {
+    if (!(STRINGP(val))) {
+      fd_seterr(fd_TypeError,"loadfile_config_set","filename",val);
+      return -1;}}
+  if (fd_app_env == NULL) {
+    FD_DO_CHOICES(val,vals) {
+      u8_string loadpath = (!(strchr(CSTRING(val),':'))) ?
+        (u8_abspath(CSTRING(val),NULL)) :
+        (u8_strdup(CSTRING(val)));
+      loadfile_list = fd_conspair(fd_lispstring(loadpath),loadfile_list);}}
+  else {
+    FD_DO_CHOICES(val,vals) {
+      u8_string loadpath = (!(strchr(CSTRING(val),':'))) ?
+        (u8_abspath(CSTRING(val),NULL)) :
+        (u8_strdup(CSTRING(val)));
+      lispval loadval = fd_load_source(loadpath,fd_app_env,NULL);
+      if (FD_ABORTP(loadval)) {
+        fd_seterr(_("load error"),"loadfile_config_set",loadpath,val);
+        return -1;}
+      else {
+        loadfile_list = fd_conspair(fdstring(loadpath),loadfile_list);
+        u8_free(loadpath);
+        loads++;}}}
+  return loads;
+}
+
+static lispval loadfile_config_get(lispval var,void *d)
+{
+  return fd_incref(loadfile_list);
+}
+
+FD_EXPORT
+void fd_autoload_config(u8_string module_autoload,u8_string file_autoload)
+{
+  fd_register_config
+    (module_autoload,_("Which modules to load"),
+     module_config_get,module_config_set,&module_list);
+  fd_register_config
+    (file_autoload,_("Which files to load"),
+     loadfile_config_get,loadfile_config_set,&loadfile_list);
 }
 
 /* Initialization */
