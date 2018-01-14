@@ -165,7 +165,8 @@ slot of the loop state.
 		  (getopt loop-state 'opts) optname
 		  default)))
 
-(define (thread-error ex batch-state loop-state (handler) (now (timestamp)) (saved #f))
+(define (thread-error ex batch-state loop-state (handler)
+		      (now (timestamp)) (saved #f))
   (default! handler (get loop-state 'onerror))
   (store! batch-state 'error ex)
   (logwarn |EngineError| 
@@ -195,7 +196,7 @@ slot of the loop state.
 	 (store! batch-state 'aborted now)
 	 #f)))
 
-(define (thread-error-handler batch-state loop-state)
+(define (engine-error-handler batch-state loop-state)
   (lambda (ex) (thread-error ex batch-state loop-state)))
 
 (define (engine-threadfn iterfn fifo opts loop-state state
