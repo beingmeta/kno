@@ -839,10 +839,26 @@ static lispval assignop(fd_stack stack,fd_lexenv env,
           lispval *values = map->schema_values;
           lispval cur     = values[across];
           if ( ( (combiner == FD_TRUE) || (combiner == FD_DEFAULT) ) &&
-               ( (CURRENT_VALUEP(cur)) || (FD_ABORTP(cur)) ) )
-            return VOID;
+               ( (CURRENT_VALUEP(cur)) || (FD_ABORTED(cur)) ) ) {
+            if (FD_ABORTED(cur))
+              return cur;
+            else return VOID;}
           else {
             lispval value = op_eval(expr,env,stack,0);
+            /* This gnarly bit of code handles the case where
+               evaluating 'expr' changed the environment structure,
+               by, for instance, creating a lambda which made a
+               dynamic environment copy. If so, we need to change the
+               value of 'values' so that we store any resulting values
+               in the right place. */
+            if ( (scan->env_copy) && (scan->env_copy != scan) ) {
+              lispval new_bindings = scan->env_copy->env_bindings;
+              if ( (new_bindings != bindings) &&
+                   (PRED_TRUE(SCHEMAPP(bindings))) ) {
+                struct FD_SCHEMAP *new_map =
+                  (struct FD_SCHEMAP *) new_bindings;
+                values = new_map->schema_values;
+                cur = values[across];}}
             if (FD_ABORTED(value))
               return value;
             else if ( (combiner == FD_FALSE) || (combiner == VOID) ) {
@@ -851,7 +867,7 @@ static lispval assignop(fd_stack stack,fd_lexenv env,
               fd_decref(cur);}
             else if (combiner == FD_UNION_OPCODE) {
               if (FD_ABORTED(value)) return value;
-              if ((CURRENT_VALUEP(cur))||(cur==EMPTY))
+              if ((cur==VOID)||(cur==FD_UNBOUND)||(cur==EMPTY))
                 values[across]=value;
               else {CHOICE_ADD(values[across],value);}}
             else {
