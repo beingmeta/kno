@@ -74,6 +74,8 @@ MEMINDEX	= INDEXTYPE=memindex
 OFFB40		= OFFTYPE=B40
 OFFB64		= OFFTYPE=B64
 OFFB32		= OFFTYPE=B32
+PACKINDEX	= ../../src/scripts/pack-index.scm
+
 
 TESTBIN=fdeval fdconsole fdexec fdbatch fdserver fdservlet fdcgiexec # fdsh
 
@@ -516,7 +518,7 @@ rocksdbtests: rckdbframes rckdbpools rckdbindexes
 
 # Scripting tests
 
-scripts: chainscripts batchscripts atexit_tests
+scripts: chainscripts batchscripts atexit_tests util-scripts
 
 execscripts:
 	@${header} "■■■■■■■■ Running exec tests ■■■■■■■■"
@@ -655,6 +657,16 @@ atexit_kill: atexit_normal
 	else \
 	  ./batchfail "ATEXIT handler run on SIGKILL"; \
 	fi;
+
+# Builtin script tests
+
+util-scripts: repack-index
+
+repack-index:
+	@${header} "■■■■■■■■ Testing repack index"
+	@rm -f packed.index unique.index split.index
+	@${RUN} ${FDX} ${PACKINDEX} ../data/misc.index packed.index ${RUNCONF} TESTLOAD=common.scm NTHREADS=1;
+	@${RUN} ${FDX} ${PACKINDEX} ../data/misc.index split.index UNIQUE=unique.index TESTLOAD=common.scm ${RUNCONF};
 
 .PHONY: chained_batchscripts batchscripts chainscripts execscripts atexit
 
