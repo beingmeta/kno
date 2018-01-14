@@ -11,6 +11,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
+#include "framerd/numbers.h"
 #include "framerd/support.h"
 #include "framerd/eval.h"
 #include "framerd/ports.h"
@@ -150,6 +151,77 @@ static lispval compound_set(lispval x,lispval offset,lispval value,lispval tag)
   }
 }
 
+static lispval compound_modify(lispval x,lispval offset,
+                               lispval modifier,lispval value,
+                               lispval tag)
+{
+  if (EMPTYP(x)) return EMPTY;
+  else if (CHOICEP(x)) {
+    DO_CHOICES(eachx,x)
+      if (FD_COMPOUNDP(eachx)) {
+        lispval result = compound_modify(eachx,offset,modifier,value,tag);
+        if (FD_ABORTP(result)) {
+          FD_STOP_DO_CHOICES;
+          return result;}
+        else fd_decref(result);}
+      else return fd_type_error("compound","compound_set",eachx);
+    return VOID;}
+  else {
+    struct FD_COMPOUND *compound = (struct FD_COMPOUND *)x;
+    if (!(FD_UINTP(offset)))
+      return fd_type_error("unsigned int","compound_ref",offset);
+    unsigned int off = FIX2INT(offset), len = compound->compound_length;
+    if ((compound->compound_ismutable) &&
+        ((compound->compound_typetag == tag) || (VOIDP(tag))) &&
+        (off<len)) {
+      lispval *valuep = ((&(compound->compound_0))+off), old_value, new_value;
+      u8_lock_mutex(&(compound->compound_lock));
+      old_value = *valuep;
+      if (FD_APPLICABLEP(modifier)) {
+        if (FD_VOIDP(value))
+          new_value = fd_apply(modifier,1,&old_value);
+        else {
+          lispval args[2] = { old_value, value };
+          new_value = fd_apply(modifier,1,&old_value);}}
+      else if (modifier == FDSYM_ADD) {
+        new_value = old_value; fd_incref(value);
+        CHOICE_ADD(new_value,value);}
+      else if (modifier == FDSYM_DROP)
+        new_value = fd_difference(old_value,value);
+      else if (modifier == FDSYM_STORE)
+        new_value = fd_incref(value);
+      else if (modifier == FDSYM_PLUS)
+        new_value = fd_plus(old_value,value);
+      else if (modifier == FDSYM_MINUS)
+        new_value = fd_subtract(old_value,value);
+      else new_value = fd_err("BadCompoundModifier","compound_modify",NULL,
+                              modifier);
+      if (FD_ABORTP(new_value)) {
+        u8_unlock_mutex(&(compound->compound_lock));
+        return new_value;}
+      *valuep = new_value;
+      fd_decref(old_value);
+      u8_unlock_mutex(&(compound->compound_lock));
+      return VOID;}
+    /* Unlock and figure out the details of the error */
+    u8_unlock_mutex(&(compound->compound_lock));
+    if (compound->compound_ismutable==0) {
+      fd_seterr(_("Immutable record"),"set_compound",NULL,x);
+      return FD_ERROR;}
+    else if ((compound->compound_typetag!=tag) && (!(VOIDP(tag)))) {
+      u8_string type_string = fd_lisp2string(tag);
+      fd_seterr(fd_TypeError,"compound_ref",type_string,x);
+      return FD_ERROR;}
+    else if (!(VOIDP(tag))) {
+      u8_string type_string = fd_lisp2string(tag);
+      fd_seterr(fd_RangeError,"compound_ref",type_string,off);
+      return FD_ERROR;}
+    else {
+      fd_seterr(fd_RangeError,"compound_ref",NULL,off);
+      return FD_ERROR;}
+  }
+}
+
 static lispval make_compound(int n,lispval *args)
 {
   struct FD_COMPOUND *compound=
@@ -183,7 +255,9 @@ static lispval make_mutable_compound(int n,lispval *args)
     u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*LISPVAL_LEN));
   int i = 1; lispval *write = &(compound->compound_0);
   FD_INIT_FRESH_CONS(compound,fd_compound_type);
-  compound->compound_typetag = fd_incref(args[0]); compound->compound_length = n-1; compound->compound_ismutable = 1;
+  compound->compound_typetag = fd_incref(args[0]);
+  compound->compound_length = n-1;
+  compound->compound_ismutable = 1;
   u8_init_mutex(&(compound->compound_lock));
   while (i<n) {
     fd_incref(args[i]); *write++=args[i]; i++;}
@@ -197,7 +271,8 @@ static lispval make_opaque_mutable_compound(int n,lispval *args)
   int i = 1; lispval *write = &(compound->compound_0);
   FD_INIT_FRESH_CONS(compound,fd_compound_type);
   compound->compound_typetag = fd_incref(args[0]);
-  compound->compound_length = n-1; compound->compound_ismutable = 1;
+  compound->compound_length = n-1;
+  compound->compound_ismutable = 1;
   compound->compound_isopaque = 1;
   u8_init_mutex(&(compound->compound_lock));
   while (i<n) {
@@ -383,6 +458,12 @@ FD_EXPORT void fd_init_compoundfns_c()
            (fd_make_cprim4x("COMPOUND-SET!",compound_set,3,
                             -1,VOID,-1,VOID,
                             -1,VOID,-1,VOID)));
+  fd_idefn(fd_scheme_module,
+           fd_make_ndprim
+           (fd_make_cprim5x("COMPOUND-MODIFY!",compound_modify,4,
+                            -1,VOID,-1,VOID,
+                            -1,VOID,-1,VOID,
+                            -1,VOID)));
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("MAKE-COMPOUND",make_compound,1)));
   fd_idefn(fd_scheme_module,

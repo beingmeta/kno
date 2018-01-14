@@ -14,12 +14,18 @@
 	 (get-method-name (string->symbol (stringout prefix "-" field-name))))
     `(define (,get-method-name ,name)
        (,compound-ref ,name ,(position field fields) ,tag-expr))))
-(define (make-modifier-def name field tag-expr prefix fields)
+(define (make-setter-def name field tag-expr prefix fields)
   (let* ((field-name (if (pair? field) (car field) field))
 	 (set-method-name
 	  (string->symbol (stringout "SET-" prefix "-" field-name "!"))))
     `(defambda (,set-method-name ,name _value)
        (,compound-set! ,name ,(position field fields) _value ,tag-expr))))
+(define (make-modifier-def name field tag-expr prefix fields)
+  (let* ((field-name (if (pair? field) (car field) field))
+	 (modify-method-name
+	  (string->symbol (stringout "MODIFY-" prefix "-" field-name "!"))))
+    `(defambda (,modify-method-name ,name _modifier _value)
+       (,compound-modify! ,name ,(position field fields) _modifier _value ,tag-expr))))
 (define (make-accessor-subst name field tag-expr prefix fields)
   (let* ((field-name (if (pair? field) (car field) field))
 	 (get-method-name (string->symbol (stringout prefix "-" field-name))))
@@ -66,6 +72,10 @@
 	     (make-accessor-def name field tag-expr prefix fields))
 	 ,@(forseq (field fields)
 	     (make-accessor-subst name field tag-expr prefix fields))
+	 ,@(if ismutable
+	       (forseq (field fields)
+		 (make-setter-def name field tag-expr prefix fields))
+	       '())
 	 ,@(if ismutable
 	       (forseq (field fields)
 		 (make-modifier-def name field tag-expr prefix fields))
