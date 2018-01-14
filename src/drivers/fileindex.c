@@ -1220,6 +1220,8 @@ static lispval fileindex_ctl(fd_index ix,lispval op,int n,lispval *args)
       else return FD_INT(hash%(flx->index_n_slots));}}
   else if (op == fd_capacity_op)
     return FD_INT(flx->index_n_slots);
+  else if (op == fd_keycount_op)
+    return FD_INT(flx->index_n_slots);
   else if (op == fd_load_op)
     return EMPTY;
   else return fd_default_indexctl(ix,op,n,args);

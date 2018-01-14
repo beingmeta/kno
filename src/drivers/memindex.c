@@ -343,6 +343,9 @@ static lispval memindex_ctl(fd_index ix,lispval op,int n,lispval *args)
   else if (op == fd_load_op) {
     if (mix->mix_loaded == 0) load_memindex(mix);
     return FD_INT(mix->mix_map.table_n_keys);}
+  else if (op == fd_keycount_op) {
+    if (mix->mix_loaded == 0) load_memindex(mix);
+    return FD_INT(mix->mix_map.table_n_keys);}
   else return fd_default_indexctl(ix,op,n,args);
 }
 

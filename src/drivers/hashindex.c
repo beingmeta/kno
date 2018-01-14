@@ -3760,7 +3760,6 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
     if (rv<0)
       return FD_ERROR;
     else return fd_incref(arg);}
-
   else if (op == fd_stats_op)
     return hashindex_stats(hx);
   else if (op == fd_reload_op) {
@@ -3797,6 +3796,8 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
   else if (op == fd_capacity_op)
     return FD_INT(hx->index_n_buckets);
   else if (op == fd_load_op)
+    return FD_INT(hx->table_n_keys);
+  else if (op == fd_keycount_op)
     return FD_INT(hx->table_n_keys);
   else if (op == keycounts_symbol) {
     int n_keys=0;

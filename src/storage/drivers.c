@@ -35,8 +35,8 @@ lispval fd_cachelevel_op, fd_bufsize_op, fd_mmap_op, fd_preload_op;
 lispval fd_metadata_op, fd_raw_metadata_op, fd_reload_op;
 lispval fd_stats_op, fd_label_op, fd_populate_op, fd_swapout_op;
 lispval fd_getmap_op, fd_slotids_op, fd_baseoids_op;
-lispval fd_load_op, fd_capacity_op;
-lispval fd_keys_op;
+lispval fd_load_op, fd_capacity_op, fd_keycount_op;
+lispval fd_keys_op, fd_keycount_op;
 
 u8_condition fd_MMAPError=_("MMAP Error");
 u8_condition fd_MUNMAPError=_("MUNMAP Error");
@@ -45,7 +45,7 @@ u8_condition fd_InvalidOffsetType=_("Invalid offset type");
 u8_condition fd_RecoveryRequired=_("RECOVERY");
 
 u8_condition fd_UnknownPoolType=_("Unknown pool type");
-u8_condition fd_UnknownIndexType=_("Unknown pool type");
+u8_condition fd_UnknownIndexType=_("Unknown index type");
 
 u8_condition fd_CantOpenPool=_("Can't open pool");
 u8_condition fd_CantOpenIndex=_("Can't open index");
@@ -53,8 +53,8 @@ u8_condition fd_CantOpenIndex=_("Can't open index");
 u8_condition fd_CantFindPool=_("Can't find pool");
 u8_condition fd_CantFindIndex=_("Can't find index");
 
+u8_condition fd_PoolDriverError=_("Internal error with pool file");
 u8_condition fd_IndexDriverError=_("Internal error with index file");
-u8_condition fd_PoolDriverError=_("Internal error with index file");
 
 u8_condition fd_PoolFileSizeOverflow=_("file pool overflowed file size");
 u8_condition fd_FileIndexSizeOverflow=_("file index overflowed file size");
@@ -1268,6 +1268,7 @@ FD_EXPORT int fd_init_drivers_c()
   fd_metadata_op=fd_intern("METADATA");
   fd_raw_metadata_op=fd_intern("%METADATA");
   fd_keys_op=fd_intern("KEYS");
+  fd_keycount_op=fd_intern("KEYCOUNT");
 
   u8_init_mutex(&pool_typeinfo_lock);
   u8_init_mutex(&index_typeinfo_lock);

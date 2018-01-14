@@ -2163,6 +2163,8 @@ FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args
           else return FD_INT(old_loglevel);}}
       else return fd_type_error("loglevel","fd_default_indexctl",args[0]);}
     else return fd_err(fd_TooManyArgs,"fd_default_indexctl",ix->indexid,VOID);}
+  else if (op == fd_keys_op)
+    return fd_index_keys(ix);
   else return FD_FALSE;
 }
 
