@@ -29,7 +29,7 @@
 #include <stdio.h>
 
 static lispval rev_symbol, gentime_symbol, packtime_symbol, modtime_symbol;
-static lispval adjuncts_symbol;
+static lispval adjuncts_symbol, pooltype_symbol, indextype_symbol;
 
 lispval fd_cachelevel_op, fd_bufsize_op, fd_mmap_op, fd_preload_op;
 lispval fd_metadata_op, fd_raw_metadata_op, fd_reload_op;
@@ -239,7 +239,9 @@ fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,lispval opts)
         return opened;}
       CHECK_ERRNO();}
     ptype = ptype->next_type;}
-  lispval pool_typeid = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
+  lispval pool_typeid = fd_getopt(opts,pooltype_symbol,FD_VOID);
+  if (FD_VOIDP(pool_typeid))
+    pool_typeid = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
   /* MODULE is an alias for type and 'may' have the additional
      semantics of being auto-loaded. */
   if (FD_VOIDP(pool_typeid))
@@ -452,7 +454,9 @@ fd_index fd_open_index(u8_string spec,fd_storage_flags flags,lispval opts)
       else ixtype = ixtype->next_type;
       CHECK_ERRNO();}
     else ixtype = ixtype->next_type;}
-  lispval index_typeid = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
+  lispval index_typeid = fd_getopt(opts,indextype_symbol,FD_VOID);
+  if (FD_VOIDP(index_typeid))
+    index_typeid = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
   /* MODULE is an alias for type and 'may' have the additional
      semantics of being auto-loaded. */
   if (FD_VOIDP(index_typeid))
@@ -1272,6 +1276,8 @@ FD_EXPORT int fd_init_drivers_c()
   fd_raw_metadata_op=fd_intern("%METADATA");
   fd_keys_op=fd_intern("KEYS");
   fd_keycount_op=fd_intern("KEYCOUNT");
+  pooltype_symbol=fd_intern("POOLTYPE");
+  indextype_symbol=fd_intern("INDEXTYPE");
 
   u8_init_mutex(&pool_typeinfo_lock);
   u8_init_mutex(&index_typeinfo_lock);
