@@ -569,30 +569,30 @@ static lispval unlockoids(lispval oids,lispval commitp)
 
 static lispval make_aggregate_index(int n,lispval *args)
 {
-  fd_index *sources = u8_alloc_n(8,fd_index);
-  int n_sources = 0, max_sources = 8;
-  int i = 0; while (i<n) {
-    DO_CHOICES(source,args[i]) {
+  int n_sources = 0, source_i = 0;
+  int args_i = 0; while (args_i < n) {
+    lispval arg = args[args_i++];
+    n_sources += FD_CHOICE_SIZE(arg);}
+  fd_index sources[n_sources];
+  args_i = 0; while (args_i<n) {
+    DO_CHOICES(source,args[args_i]) {
       fd_index ix = NULL;
-      if (STRINGP(source)) ix = fd_get_index(fd_strdata(source),0,VOID);
-      else if (INDEXP(source)) ix = fd_indexptr(source);
+      if (STRINGP(source))
+        ix = fd_get_index(fd_strdata(source),0,VOID);
+      else if (INDEXP(source))
+        ix = fd_indexptr(source);
       else if (SYMBOLP(source)) {
         lispval val = fd_config_get(SYM_NAME(source));
         if (STRINGP(val)) ix = fd_get_index(fd_strdata(val),0,VOID);
         else if (INDEXP(val)) ix = fd_indexptr(val);
         else NO_ELSE;}
       else {}
-      if (ix) {
-        if (n_sources>=max_sources) {
-          sources = u8_realloc_n(sources,max_sources+8,fd_index);
-          max_sources = max_sources+8;}
-        if (ix->index_serialno<0) {lispval lix = (lispval)ix; fd_incref(lix);}
-        sources[n_sources++]=ix;}
+      if (ix)
+        sources[source_i++]=ix;
       else {
-        u8_free(sources);
         return fd_type_error("index","make_aggregate_index",source);}}
-    i++;}
-  return index2lisp(fd_make_aggregate_index(n_sources,n_sources,sources));
+    args_i++;}
+  return index2lisp(fd_make_aggregate_index(n_sources,source_i,sources));
 }
 
 static lispval add_to_aggregate_index(lispval into_arg,lispval partition_arg)
