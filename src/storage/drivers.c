@@ -1217,11 +1217,12 @@ FD_EXPORT int fd_set_file_opts(u8_string filename,lispval opts)
 
 /* Initialization */
 
-int fd_init_mempool_c(void);
-int fd_init_extpool_c(void);
-int fd_init_extindex_c(void);
-int fd_init_procpool_c(void);
-int fd_init_procindex_c(void);
+void fd_init_mempool_c(void);
+void fd_init_extpool_c(void);
+void fd_init_extindex_c(void);
+void fd_init_procpool_c(void);
+void fd_init_procindex_c(void);
+void fd_init_aggregates_c(void);
 
 static int drivers_c_initialized = 0;
 
@@ -1237,6 +1238,8 @@ FD_EXPORT int fd_init_drivers_c()
   fd_init_extpool_c();
   fd_init_procpool_c();
   fd_init_procindex_c();
+  fd_init_aggregates_c();
+
 
   rev_symbol = fd_intern("REV");
   gentime_symbol = fd_intern("GENTIME");
