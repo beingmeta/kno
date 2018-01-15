@@ -377,13 +377,16 @@ FD_EXPORT int fd_add_to_background(fd_index ix)
   if (fd_background)
     fd_add_to_aggregate_index(fd_background,ix);
   else {
-    fd_index *indexes = u8_alloc_n(32,fd_index);
-    indexes[0] = ix;
     fd_background = (struct FD_AGGREGATE_INDEX *)
-      fd_make_aggregate_index(32,1,indexes);
+      fd_make_aggregate_index(32,1,&ix);
     u8_string old_id = fd_background->indexid;
     fd_background->indexid = u8_strdup("background");
     if (old_id) u8_free(old_id);}
+  u8_string old_id = fd_background->indexid;
+  fd_background->indexid =
+    u8_mkstring("background+%d",fd_background->ax_n_indexes);
+  if (old_id) u8_free(old_id);
+
   u8_unlock_mutex(&background_lock);
   return 1;
 }

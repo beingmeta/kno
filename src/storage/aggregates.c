@@ -174,20 +174,20 @@ static lispval *aggregate_fetchkeys(fd_index ix,int *n)
   }
 }
 
-FD_EXPORT fd_index fd_make_aggregate_index
-(int n_allocd,int cx_n_indexes,fd_index *indexes)
+FD_EXPORT fd_index fd_make_aggregate_index(int n_allocd,int n,fd_index *indexes)
 {
   struct FD_AGGREGATE_INDEX *aix = u8_alloc(struct FD_AGGREGATE_INDEX);
   fd_init_index((fd_index)aix,&aggregate_index_handler,
                 "new-aggregate",NULL,
                 FD_STORAGE_ISINDEX|FD_STORAGE_READ_ONLY,
                 FD_VOID,FD_VOID);
+  if (n_allocd < n) n_allocd = n;
   u8_init_mutex(&(aix->index_lock));
-  aix->ax_n_allocd = ((cx_n_indexes/8)+1)*8;
+  aix->ax_n_allocd = n_allocd;
   aix->ax_n_indexes = 0;
-  aix->ax_indexes = NULL;
+  aix->ax_indexes = u8_alloc_n(n_allocd,fd_index);
   aix->ax_oldvecs = NULL;
-  int i = 0; while (i<cx_n_indexes) {
+  int i = 0; while (i < n) {
     fd_index add = indexes[i++];
     if (add) fd_add_to_aggregate_index(aix,add);}
   fd_register_index((fd_index)aix);
@@ -238,11 +238,12 @@ FD_EXPORT int fd_add_to_aggregate_index(fd_aggregate_index aix,fd_index add)
       fd_incref(alix);}
 
     u8_string old_source = aix->index_source;
-    u8_string old_id = aix->indexid;
 
-    aix->indexid = (aix->ax_n_indexes) ?
-      (u8_mkstring("%s+%d",aix->ax_indexes[0]->indexid,(aix->ax_n_indexes))) :
-      (u8_strdup("empty aggregate"));
+    u8_string old_id = aix->indexid;
+    aix->indexid = u8_mkstring("%s+%d",
+                               aix->ax_indexes[0]->indexid,
+                               (aix->ax_n_indexes));
+    if (old_id) u8_free(old_id);
 
     struct U8_OUTPUT sourceout;
     U8_INIT_OUTPUT(&sourceout,128);
