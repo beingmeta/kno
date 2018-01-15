@@ -251,6 +251,7 @@ fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,lispval opts)
     (FD_SYMBOLP(pool_typeid)) ?
     (fd_get_pool_typeinfo(FD_SYMBOL_NAME(pool_typeid))) :
     (NULL);
+  fd_decref(pool_typeid);
   if (ptype) {
     u8_string open_spec = spec;
     if (ptype->matcher) {
@@ -466,6 +467,7 @@ fd_index fd_open_index(u8_string spec,fd_storage_flags flags,lispval opts)
     (FD_SYMBOLP(index_typeid)) ?
     (fd_get_index_typeinfo(FD_SYMBOL_NAME(index_typeid))) :
     (NULL);
+  fd_decref(index_typeid);
   if (ixtype) {
     u8_string open_spec = spec;
     if (ixtype->matcher) {
