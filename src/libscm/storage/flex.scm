@@ -5,10 +5,11 @@
 
 (use-module '{ezrecords stringfmts logger texttools fifo mttools reflection})
 (use-module '{storage/adjuncts storage/registry storage/filenames})
-(use-module '{storage/flexpool storage/flexindexes 
-	      storage/adjuncts})
+(use-module '{storage/flexpool storage/flexindex storage/adjuncts})
 
-(module-export! '{pool/ref index/ref db/ref pool/copy 
+(module-export! '{pool/ref index/ref pool/copy 
+		  flex/dbref db/ref flex/db flex/ref
+		  flex/make
 		  flex/wrap flex/partitions
 		  flex/save! flex/commit!})
 
@@ -43,6 +44,8 @@
 (define (flex/partitions arg)
   (cond ((flexpool? arg) (flexpool/partitions arg))
 	((pool? arg) (flexpool/partitions arg))
+	((index? arg) (indexctl arg 'partitions))
+	((string? arg) (flex/partition-files arg))
 	(else (fail))))
 
 (define (flex/wrap pool)
@@ -67,22 +70,37 @@
 	((or (has-suffix source ".pool")
 	     (testopt opts 'pool)
 	     (testopt opts 'type 'pool))
-	 (if (getopt opts 'adjunct)
-	     (open-pool source opts)
-	     (flex/wrap (use-pool source opts))))
+	 (if (file-exists? source)
+	     (if (getopt opts 'adjunct)
+		 (open-pool source opts)
+		 (flex/wrap (use-pool source opts)))
+	     (if (not (getopt opts 'create))
+		 (irritant source |NoSuchPool| flex/dbref)
+		 (make-pool source opts))))
+	((or (has-suffix source ".index")
+	     (testopt opts 'index)
+	     (testopt opts 'indextype))
+	 (if (file-exists? source)
+	     (if (getopt opts 'adjunct)
+		 (open-index source opts)
+		 (use-index source opts))
+	     (if (not (getopt opts 'create))
+		 (irritant source |NoSuchIndex| flex/dbref)
+		 (make-index source opts))))
 	((or (has-suffix source ".flexpool")
 	     (testopt opts 'flexpool)
 	     (testopt opts 'type 'flexpool))
 	 (flexpool/ref source opts))
-	((or (has-suffix source ".index")
-	     (testopt opts 'index)
-	     (testopt opts 'type 'index))
-	 (flex/index source opts))
-	((exists? (flex/file source "index"))
-	 (flex/index source opts))
+	((or (has-suffix source ".flexindex")
+	     (getopt opts 'flexindex)
+	     (identical? (downcase (getopt opts 'type {})) "flexindex")
+	     (textsearch #("." (isdigit+) ".index") source))
+	 (flex/open-index source opts))
+	((exists? (flex/partition-files source "index"))
+	 (flex/open-index source opts))
 	(else {})))
 
-(define (db/ref spec (opts #f))
+(define (flex/dbref spec (opts #f))
   (when (and (table? spec) (not (or (pool? spec) (index? spec))))
     (if opts (set! opts (cons opts spec)) (set! opts spec))
     (set! spec (getopt opts 'index (getopt opts 'pool (getopt opts 'source #f)))))
@@ -101,7 +119,12 @@
 				#f))
 		       opts)))
 		(resolve-dbref source opts)))))
-(define flex/db db/ref)
+(define flex/db flex/dbref)
+(define flex/ref flex/dbref)
+(define db/ref flex/dbref)
+
+(define (flex/make spec (opts #f))
+  (flex/dbref spec (if opts (cons #[create #t] opts) #[create #t])))
 
 ;;; Pool ref
 
@@ -148,30 +171,17 @@
 	  (set! spec (getopt opts 'index (getopt opts 'source #f))))
 	(cond ((index? spec) spec)
 	      ((not (string? spec)) (irritant spec |InvalidIndexSpec|))
-	      (else
-	       (let ((baseindex (ref-index spec opts)))
-		 (let* ((source (index-source baseindex))
-			(next (glom (textsubst source flexindex-suffix "")
-				".001.index"))
-			(indexes {})
-			(count 1))
-		   (while (file-exists? next)
-		     (set+! indexes (ref-index next opts))
-		     (set! count (1+ count))
-		     (set! next (glom (textsubst source flexindex-suffix "")
-				  "." (padnum count 3 16) ".index")))
-		   (if (> count 1)
-		       (lognotice |FlexIndex| "Found " count " indexes based at " baseindex)
-		       (loginfo |FlexIndex| "Found one index based at " baseindex))
-		   (indexctl baseindex 'props 'seealso indexes)
-		   (indexctl indexes 'props 'base baseindex))
-		 baseindex))))))
-
-(define (ref-index path opts)
-  (if (file-exists? path)
-      (open-index path opts)
-      (begin (lognotice |NewIndex| "Creating new index file " path)
-	(make-index path (make-opts opts)))))
+	      ((or (identical? (downcase (getopt opts 'type)) "flexindex")
+		   (textsearch #("." (isdigit+) ".index") spec)
+		   (has-suffix spec ".flexindex"))
+	       (flex/open-index spec opts))
+	      ((or (position #\@ spec) (position #\: spec)
+		   (file-exists? spec))
+	       (if (testopt opts 'background)
+		   (use-index spec opts)
+		   (open-index spec opts)))
+	      ((getopt opts 'create)
+	       (make-index spec opts))))))
 
 ;;; Copying OIDs between pools
 
