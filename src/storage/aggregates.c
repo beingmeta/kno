@@ -174,33 +174,22 @@ static lispval *aggregate_fetchkeys(fd_index ix,int *n)
   }
 }
 
-static u8_string get_aggregate_id(int n,fd_index *indexes)
-{
-  if (n) {
-    struct U8_OUTPUT out; int i = 0;
-    U8_INIT_OUTPUT(&out,80);
-    while (i < n) {
-      if (i) u8_puts(&out,"|"); else u8_puts(&out,"{");
-      u8_puts(&out,indexes[i]->indexid); i++;}
-    u8_puts(&out,"}");
-    return out.u8_outbuf;}
-  else return u8_strdup("aggregate");
-}
-
 FD_EXPORT fd_index fd_make_aggregate_index
 (int n_allocd,int cx_n_indexes,fd_index *indexes)
 {
   struct FD_AGGREGATE_INDEX *aix = u8_alloc(struct FD_AGGREGATE_INDEX);
-  u8_string cid = get_aggregate_id(cx_n_indexes,indexes);
-  fd_init_index((fd_index)aix,&aggregate_index_handler,cid,NULL,
+  fd_init_index((fd_index)aix,&aggregate_index_handler,
+                "new-aggregate",NULL,
                 FD_STORAGE_ISINDEX|FD_STORAGE_READ_ONLY,
                 FD_VOID,FD_VOID);
   u8_init_mutex(&(aix->index_lock));
-  u8_free(cid);
-  aix->ax_n_allocd = n_allocd;
-  aix->ax_n_indexes = cx_n_indexes;
-  aix->ax_indexes = indexes;
+  aix->ax_n_allocd = ((cx_n_indexes/8)+1)*8;
+  aix->ax_n_indexes = 0;
+  aix->ax_indexes = NULL;
   aix->ax_oldvecs = NULL;
+  int i = 0; while (i<cx_n_indexes) {
+    fd_index add = indexes[i++];
+    if (add) fd_add_to_aggregate_index(aix,add);}
   fd_register_index((fd_index)aix);
   return (fd_index) aix;
 }
@@ -250,19 +239,24 @@ FD_EXPORT int fd_add_to_aggregate_index(fd_aggregate_index aix,fd_index add)
 
     u8_string old_source = aix->index_source;
     u8_string old_id = aix->indexid;
-    aix->index_source = get_aggregate_id(aix->ax_n_indexes,aix->ax_indexes);
-    if ( ( old_source ) && ( old_source != old_id) )
-      u8_free(old_source);
-    if (old_id) {
-      u8_byte *brace=strchr(old_id,'{');
-      if (brace) {
-        size_t prefix_len=brace-old_id;
-        u8_byte buf[prefix_len+1];
-        strncpy(buf,old_id,prefix_len); buf[prefix_len]='\0';
-        aix->indexid = u8_mkstring("%s%s",buf,aix->index_source);}
-      else aix->indexid = u8_mkstring("%s%s",old_id,aix->index_source);
-      u8_free(old_id);}
-    else aix->indexid = u8_mkstring("aggregate%s",aix->index_source);
+
+    aix->indexid = (aix->ax_n_indexes) ?
+      (u8_mkstring("%s+%d",aix->ax_indexes[0]->indexid,(aix->ax_n_indexes))) :
+      (u8_strdup("empty aggregate"));
+
+    struct U8_OUTPUT sourceout;
+    U8_INIT_OUTPUT(&sourceout,128);
+    int j = 0; while (j < aix->ax_n_indexes) {
+      fd_index each = aix->ax_indexes[j];
+      if (j>0) u8_putc(&sourceout,'\n');
+      if (each->index_source)
+        u8_puts(&sourceout,each->index_source);
+      else if (each->indexid)
+        u8_puts(&sourceout,each->indexid);
+      else NO_ELSE;
+      j++;}
+    aix->index_source=sourceout.u8_outbuf;
+    if (old_source) u8_free(old_source);
 
     /* Invalidate the cache now that there's a new source */
     fd_reset_hashtable(&(aix->index_cache),-1,1);
