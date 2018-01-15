@@ -1844,7 +1844,6 @@ FD_EXPORT void fd_reset_index_tables
 
 }
 
-
 static void display_index(u8_output out,fd_index ix,lispval lix)
 {
   u8_byte edits[64];
@@ -1853,7 +1852,7 @@ static void display_index(u8_output out,fd_index ix,lispval lix)
     ((ix->index_handler) && (ix->index_handler->name)) ?
     (ix->index_handler->name) : ((u8_string)("notype"));
   u8_string id     = ix->indexid;
-  u8_string source = (ix->index_source) ? (ix->index_source) : (id);
+  u8_string source = ix->index_source;
   u8_string useid  =
     ( (strchr(id,':')) || (strchr(id,'@')) ) ? (id) :
     (u8_strchr(id,'/',1)) ? ((u8_strchr(id,'/',-1))+1) :
@@ -1863,11 +1862,19 @@ static void display_index(u8_output out,fd_index ix,lispval lix)
   int dropped = ix->index_drops.table_n_keys;
   int replaced = ix->index_stores.table_n_keys;
   strcpy(edits,"~"); u8_itoa10(replaced+dropped,edits+1);
-  if ((source) && (strcmp(source,useid)))
-    u8_printf(out,_("#<%s %s (%s) cx=%d+%d%s #!%lx \"%s\">"),
+  if ( (source) && (strchr(source,'\n')) ) {
+    u8_string eol = strchr(source,'\n');
+    size_t prefix_len = eol-source;
+    u8_byte buf[prefix_len+1];
+    strncpy(buf,source,prefix_len);
+    buf[prefix_len]='\0';
+    u8_printf(out,_("#<%s %s (%s) cx=%d+%d%s #!%llx \"%s...\">"),
+              tag,type,useid,cached,added,edits,lix,buf);}
+  else if (source)
+    u8_printf(out,_("#<%s %s (%s) cx=%d+%d%s #!%llx \"%s\">"),
               tag,type,useid,cached,added,edits,lix,source);
-  else u8_printf(out,_("#<%s %s (%s) cx=%d+%d%s #!%lx>"),
-                 tag,useid,type,cached,added,edits,lix);
+  else u8_printf(out,_("#<%s %s (%s) cx=%d+%d%s #!%llx>"),
+                 tag,type,useid,cached,added,edits,lix);
 }
 static int unparse_index(u8_output out,lispval x)
 {
@@ -2139,6 +2146,12 @@ FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args
       else return ix->index_keyslot;}
     else if (n == 1) {
       lispval defslot = args[0];
+      if (FD_FALSEP(defslot)) {
+        lispval old = ix->index_keyslot;
+        ix->index_keyslot = FD_VOID;
+        if (FD_VOIDP(old))
+          return FD_FALSE;
+        else return old;}
       if (!( (FD_NULLP(ix->index_keyslot)) ||
              (FD_VOIDP(ix->index_keyslot)) )) {
         if (defslot == ix->index_keyslot) {
