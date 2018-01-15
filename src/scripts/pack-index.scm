@@ -26,6 +26,8 @@
 	 (opts (frame-create #f
 		 'newsize (config 'newsize {})
 		 'keyslot (string->symbol (upcase (config 'keyslot {})))
+		 'mincount (config 'mincount {})
+		 'maxcount (config 'maxcount {})
 		 'rarefile (config 'rare {})
 		 'uniquefile (config 'unique {})
 		 'repair (config 'repair #f)

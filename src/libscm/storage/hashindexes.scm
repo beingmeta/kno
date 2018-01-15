@@ -80,8 +80,8 @@
 ;;; Repacking an index using hashindex/mapkeys
 
 (defambda (hashindex-copier buckets batch-state loop-state task-state)
-  (let* ((minval (get loop-state 'minvals))
-	 (maxval (get loop-state 'maxvals))
+  (let* ((mincount (get loop-state 'mincount))
+	 (maxcount (get loop-state 'maxcount))
 	 (unique (try (get loop-state 'unique) #f))
 	 (rare   (try (get loop-state 'rare) #f))
 	 (input  (get loop-state 'input))
@@ -103,24 +103,24 @@
 			       (reject buckets 'key stopkeys)
 			       buckets))
 	(if (test keyinfo 'value)
-	    (when (or uniquehash (not minval) (< minval 1))
+	    (when (or uniquehash (not mincount) (< mincount 1))
 	      (add! (or uniquehash rarehash outhash)
 		    (get keyinfo 'key)
 		    (get keyinfo 'value))
 	      (set! copy-count (1+ copy-count))
-	      (when minval (set! rare-count (1+ rare-count)))
+	      (when mincount (set! rare-count (1+ rare-count)))
 	      (set! unique-count (1+ unique-count))
 	      (set! value-count (1+ value-count)))
 	    (let ((key (get keyinfo 'key))
 		  (nvals (get keyinfo 'count)))
-	      (if (and minval (< nvals minval))
+	      (if (and mincount (< nvals mincount))
 		  (begin
 		    (set! rare-count (1+ rare-count))
 		    (when rarehash 
 		      (set! rarefetch (cons (get keyinfo 'key) rarefetch))
 		      (set! copy-count (1+ copy-count))
 		      (set! value-count (+ value-count (get keyinfo 'count)))))
-		  (unless (and maxval (> nvals maxval))
+		  (unless (and maxcount (> nvals maxcount))
 		    (set! tofetch (cons (get keyinfo 'key) tofetch))
 		    (set! copy-count (1+ copy-count))
 		    (set! value-count (+ value-count (get keyinfo 'count)))))))))
@@ -163,8 +163,8 @@
 		`#[loop #[input ,index output ,output
 			  rare ,(getopt opts 'rare)
 			  unique ,(getopt opts 'unique)
-			  maxvals ,(getopt opts 'maxvals)
-			  minvals ,(getopt opts 'minvals)]
+			  maxcount ,(getopt opts 'maxcount)
+			  mincount ,(getopt opts 'mincount)]
 		   onerror {stopall signal}
 		   counters {copied rarekeys uniquekeys values}
 		   logrates {copied rarekeys uniquekeys values}

@@ -137,8 +137,8 @@
 ;;; Default key copier, uses fetchn
 
 (define (key-copier keys batch-state loop-state task-state)
-  (let* ((minval (get loop-state 'minvals))
-	 (maxval (get loop-state 'maxvals))
+  (let* ((mincount (get loop-state 'mincount))
+	 (maxcount (get loop-state 'maxcount))
 	 (unique (try (get loop-state 'unique) #f))
 	 (rare   (try (get loop-state 'rare) #f))
 	 (input  (get loop-state 'input))
@@ -153,7 +153,7 @@
 	 (value-count 0))
     (let* ((keyvec (choice->vector (difference keys stopkeys)))
 	   (keyvals (index/fetchn input keyvec)))
-      (if (and (not minval) (not maxval) (not unique) (not rare))
+      (if (and (not mincount) (not maxcount) (not unique) (not rare))
 	  (let ((i 0) (nkeys (length keyvec)))
 	    (while (< i nkeys)
 	      (add! output (elt keyvec i) (elt keyvals i))
@@ -169,17 +169,17 @@
 	      (if (= nvals 1)
 		  (if uniquehash
 		      (add! uniquehash key vals)
-		      (if (and minval (< minval 1))
+		      (if (and mincount (< mincount 1))
 			  (begin (if rarehash (add! rarehash key vals))
 			    (set! rare-count (1+ rare-count)))
-			  (if (or (not minval) (< minval 1))
+			  (if (or (not mincount) (< mincount 1))
 			      (add! outhash key vals)
 			      (set! copied #f))))
-		  (if (and minval (< nvals minval))
+		  (if (and mincount (< nvals mincount))
 		      (begin (if rarehash (add! rarehash key vals))
 			(set! rare-count (1+ rare-count)))
-		      (if (and (or (not minval) (>= nvals minval))
-			       (or (not maxval) (<= nvals maxval)))
+		      (if (and (or (not mincount) (>= nvals mincount))
+			       (or (not maxcount) (<= nvals maxcount)))
 			  (add! outhash key vals)
 			  (set! copied #f))))
 	      (when copied
@@ -205,8 +205,8 @@
 		`#[loop #[input ,in output ,out
 			  rare ,(getopt opts 'rare)
 			  unique ,(getopt opts 'unique)
-			  maxvals ,(getopt opts 'maxvals)
-			  minvals ,(getopt opts 'minvals)]
+			  maxcount ,(getopt opts 'maxcount)
+			  mincount ,(getopt opts 'mincount)]
 		   onerror {stopall signal}
 		   counters {copied rarekeys uniquekeys values}
 		   logrates {copied rarekeys uniquekeys values}
