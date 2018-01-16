@@ -668,14 +668,20 @@ FD_EXPORT lispval fd_dcall(struct FD_STACK *_stack,
                           n_waits,n_contests,n_faults);}
       else if (f) {
         result=apply_fcn(apply_stack,fname,f,n,argvec);
-        if ( (FD_TAILCALLP(result)) && (f->fcn_notail) )
+        if (!(PRED_TRUE(FD_CHECK_PTR(result))))
+          return fd_badptr_err(result,"fd_deterministic_apply",fname);
+        else if ( (FD_TAILCALLP(result)) && (f->fcn_notail) )
           result=fd_finish_call(result);}
       else result=fd_applyfns[ftype](fn,n,argvec);
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
       result = FD_ERROR;}
     U8_END_EXCEPTION;
-    if ((errno)&&(!(FD_TROUBLEP(result)))) {
+    if (!(PRED_TRUE(FD_CHECK_PTR(result)))) {
+      if (errno) {u8_graberrno("fd_apply",fname);}
+      fd_pop_stack(apply_stack);
+      return fd_badptr_err(result,"fd_deterministic_apply",fname);}
+    else if ( (errno) && (!(FD_TROUBLEP(result)))) {
       u8_string cond=u8_strerror(errno);
       u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) after %s",
              errno,cond,U8ALT(fname,"primcall"));
@@ -683,10 +689,7 @@ FD_EXPORT lispval fd_dcall(struct FD_STACK *_stack,
     if ( (FD_TROUBLEP(result)) &&  (u8_current_exception==NULL) ) {
       if (errno) {u8_graberrno("fd_apply",fname);}
       else fd_seterr(fd_UnknownError,"fd_apply",fname,VOID);}
-    fd_pop_stack(apply_stack);
-    if (PRED_TRUE(FD_CHECK_PTR(result)))
-      return result;
-    else return fd_badptr_err(result,"fd_deterministic_apply",fname);}
+    return result;}
   else {
     u8_string limit=u8_mkstring("%lld",fd_stack_limit);
     lispval depth=FD_INT2DTYPE(u8_stack_depth());
@@ -827,7 +830,8 @@ FD_EXPORT lispval fd_ndcall(struct FD_STACK *_stack,
                            lispval fp,int n,lispval *args)
 {
   lispval handler = (FD_FCNIDP(fp) ? (fd_fcnid_ref(fp)) : (fp));
-  if (EMPTYP(handler)) return EMPTY;
+  if (EMPTYP(handler))
+    return EMPTY;
   else if (CHOICEP(handler)) {
     FD_APPLY_STACK(ndapply_stack,"fnchoices",handler);
     lispval results=EMPTY;
@@ -853,7 +857,8 @@ FD_EXPORT lispval fd_ndcall(struct FD_STACK *_stack,
                 (n >= (f->fcn_min_arity)))) {
         FD_PUSH_STACK(ndstack,fd_ndcallstack_type,f->fcn_name,handler);
         ndstack->stack_src = f->fcn_filename;
-        ndstack->stack_free_src = 0;        lispval d_args[n]; /* *d_args=fd_alloca(n); */
+        ndstack->stack_free_src = 0;
+        lispval d_args[n];
         lispval retval, results = EMPTY;
         /* Initialize the d_args vector */
         if (n==1)
