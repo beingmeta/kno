@@ -3531,7 +3531,8 @@ FD_EXPORT int fd_hashset_get(struct FD_HASHSET *h,lispval key)
 
 static lispval hashset_probe(struct FD_HASHSET *h,lispval key)
 {
-  if (h->hs_n_elts==0) return 0;
+  if (h->hs_n_elts==0)
+    return FD_EMPTY;
   int hash = fd_hash_lisp(key), unlock=0;
   if (h->table_uselock) {
     fd_read_lock_table(h);
@@ -3556,7 +3557,6 @@ static lispval hashset_probe(struct FD_HASHSET *h,lispval key)
 
 static lispval hashset_intern(struct FD_HASHSET *h,lispval key)
 {
-  if (h->hs_n_elts==0) return 0;
   int hash = fd_hash_lisp(key), unlock = 0;
   if (h->table_uselock) {
     fd_read_lock_table(h);
