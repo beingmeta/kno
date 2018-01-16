@@ -22,29 +22,22 @@
 		yfile  "(" (choice-size ykeys) " keys), "
 		"sharing " (choice-size (intersection xkeys ykeys)) " keys"))))
 
-(define (different! x y (how #f))
-  (lognotice |IndexesDiffer| (summarize-key-differences xfile )
-    (index-source x) " and " (index-source x)
-    (if how (printout "(" how ")")))
-  (lineout "Indexes differ")
-  (exit 42))
-
 (define (compare-indexes x y (nkeys #f))
   (if (not (number? nkeys)) (set! nkeys #f))
   (let ((xkeys (getkeys x))
 	(ykeys (getkeys y)))
     (unless (identical? xkeys ykeys)
       (let ((x-y (difference xkeys ykeys))
-	    (y-x (difference ykeys xkeys))))
-      (when (exists? x-y)
-	(loginfo |IndexesDiffer/Keys|
-	  "Only in " (index-source x) ": \n"
-	  (do-choices (key x-y) (printout "  " key))))
-      (when (exists? y-x)
-	(loginfo |IndexesDiffer/Keys|
-	  "Only in " (index-source y) ": \n"
-	  (do-choices (key y-x) (printout "  " key))))
-      (lognotice |IndexesDiffer| (get-key-summary xfile xkeys yfile ykeys))
+	    (y-x (difference ykeys xkeys)))
+	(when (exists? x-y)
+	  (loginfo |IndexesDiffer/Keys|
+	    "Only in " (index-source x) ": \n"
+	    (do-choices (key x-y) (printout "  " key))))
+	(when (exists? y-x)
+	  (loginfo |IndexesDiffer/Keys|
+	    "Only in " (index-source y) ": \n"
+	    (do-choices (key y-x) (printout "  " key)))))
+      (lognotice |IndexesDiffer| (get-key-summary x xkeys y ykeys))
       (lineout "Indexes differ")
       (exit 42))
     (let ((compare-keys (if (and (number? nkeys) (>= nkeys 0))
