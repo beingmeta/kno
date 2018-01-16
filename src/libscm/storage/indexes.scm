@@ -104,7 +104,8 @@
 (define (get-new-index filename old opts)
   (if (and (file-exists? filename)
 	   (not (equal? (realpath filename) 
-			(realpath (index-source old)))))
+			(realpath (index-source old))))
+	   (not (getopt opts 'overwrite)))
       (begin (logwarn |Existing|
 	       "Using existing output file index " filename)
 	(open-index filename (get-write-opts opts)))
