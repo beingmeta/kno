@@ -29,12 +29,8 @@
 
 #include <zlib.h>
 
-#ifndef FD_DTREAD_SIZE
-#define FD_DTREAD_SIZE 2000
-#endif
-
 #ifndef FD_DTWRITE_SIZE
-#define FD_DTWRITE_SIZE 2000
+#define FD_DTWRITE_SIZE 10000
 #endif
 
 static lispval read_dtype(lispval stream,lispval pos,lispval len)
@@ -577,19 +573,24 @@ static lispval file2dtypes(lispval filename)
        (u8_has_suffix(CSTRING(filename),".gz",1)))) {
     return zipfile2dtypes(filename);}
   else if (STRINGP(filename)) {
-    struct FD_STREAM *in = fd_open_file(CSTRING(filename),FD_FILE_READ);
+    struct FD_STREAM _in, *in =
+      fd_init_file_stream(&_in,CSTRING(filename),FD_FILE_READ,
+                          ( (FD_USE_MMAP) ? (FD_STREAM_MMAPPED) : (0)),
+                          ( (FD_USE_MMAP) ? (0) : (fd_filestream_bufsize)));
     lispval results = EMPTY, object = VOID;
-    if (in == NULL) return FD_ERROR;
+    if (in == NULL)
+      return FD_ERROR;
     else {
       fd_inbuf inbuf = fd_readbuf(in);
       object = fd_read_dtype(inbuf);
       while (!(FD_EODP(object))) {
         if (FD_ABORTP(object)) {
           fd_decref(results);
+          fd_close_stream(in,FD_STREAM_FREEDATA);
           return object;}
         CHOICE_ADD(results,object);
         object = fd_read_dtype(inbuf);}
-      fd_free_stream(in);
+      fd_close_stream(in,FD_STREAM_FREEDATA);
       return results;}}
   else return fd_type_error(_("string"),"file2dtypes",filename);
 }
