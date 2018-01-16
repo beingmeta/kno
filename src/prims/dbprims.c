@@ -450,6 +450,7 @@ static lispval make_pool(lispval path,lispval opts)
   else if (STRINGP(path))
     return fd_err(_("BadPoolType"),"make_pool",CSTRING(path),type);
   else return fd_err(_("BadPoolType"),"make_pool",NULL,type);
+  fd_decref(type);
   if (p)
     return pool2lisp(p);
   else return FD_ERROR;
@@ -484,6 +485,7 @@ static lispval make_index(lispval path,lispval opts)
   else if (STRINGP(path))
     return fd_err(_("BadIndexType"),"make_index",CSTRING(path),type);
   else return fd_err(_("BadIndexType"),"make_index",NULL,type);
+  fd_decref(type);
   if (ix)
     return index_ref(ix);
   else return FD_ERROR;
