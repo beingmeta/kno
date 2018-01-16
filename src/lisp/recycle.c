@@ -17,8 +17,9 @@
 
 static void recycle_string(struct FD_STRING *s)
 {
-  if ((s->str_bytes)&&(s->str_freebytes)) u8_free(s->str_bytes);
-  if (!(FD_STATIC_CONSP(s))) u8_free(s);
+  if ((s->str_bytes)&&(s->str_freebytes))
+    u8_free(s->str_bytes);
+  u8_free(s);
 }
 
 static void recycle_vector(struct FD_VECTOR *v)
@@ -51,7 +52,7 @@ static void recycle_choice(struct FD_CHOICE *cv)
 static void recycle_qchoice(struct FD_QCHOICE *qc)
 {
   fd_decref(qc->qchoiceval);
-  if (!(FD_STATIC_CONSP(qc))) u8_free(qc);
+  u8_free(qc);
 }
 
 /* Recycling pairs directly */
@@ -60,7 +61,7 @@ static void recycle_pair(struct FD_PAIR *pair)
 {
   lispval car = pair->car, cdr = pair->cdr;
   fd_decref(car); fd_decref(cdr);
-  if (!(FD_STATIC_CONSP(pair))) u8_free(pair);
+  u8_free(pair);
 }
 
 /* Recycling pairs iteratively CDR-wise */
@@ -116,7 +117,7 @@ static void recycle_list(struct FD_PAIR *pair)
 
 static void recycle_uuid(struct FD_RAW_CONS *c)
 {
-  if (!(FD_STATIC_CONSP(c))) u8_free(c);
+  u8_free(c);
 }
 
 static void recycle_exception(struct FD_RAW_CONS *c)
@@ -126,12 +127,12 @@ static void recycle_exception(struct FD_RAW_CONS *c)
   fd_decref(exo->ex_irritant);
   fd_decref(exo->ex_stack);
   fd_decref(exo->ex_context);
-  if (!(FD_STATIC_CONSP(exo))) u8_free(exo);
+  u8_free(exo);
 }
 
 static void recycle_timestamp(struct FD_RAW_CONS *c)
 {
-  if (!(FD_STATIC_CONSP(c))) u8_free(c);
+  u8_free(c);
 }
 
 static void recycle_regex(struct FD_RAW_CONS *c)
@@ -139,7 +140,7 @@ static void recycle_regex(struct FD_RAW_CONS *c)
   struct FD_REGEX *rx = (struct FD_REGEX *)c;
   regfree(&(rx->rxcompiled));
   u8_destroy_mutex(&(rx->rx_lock));
-  if (!(FD_STATIC_CONSP(c))) u8_free(c);
+  u8_free(c);
 }
 
 static void recycle_rawptr(struct FD_RAW_CONS *c)
@@ -158,7 +159,7 @@ static void recycle_compound(struct FD_RAW_CONS *c)
   while (i<n) {fd_decref(data[i]); i++;}
   fd_decref(compound->compound_typetag);
   if (compound->compound_ismutable) u8_destroy_mutex(&(compound->compound_lock));
-  if (FD_MALLOCD_CONSP(c)) u8_free(c);
+  u8_free(c);
 }
 
 static void recycle_mystery(struct FD_RAW_CONS *c)
@@ -167,7 +168,7 @@ static void recycle_mystery(struct FD_RAW_CONS *c)
   if (myst->myst_dtcode&0x80)
     u8_free(myst->mystery_payload.elts);
   else u8_free(myst->mystery_payload.bytes);
-  if (!(FD_STATIC_CONSP(myst))) u8_free(myst);
+  u8_free(myst);
 }
 
 /* The main function */
