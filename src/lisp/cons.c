@@ -801,7 +801,9 @@ FD_EXPORT void _fd_bad_pointer(lispval badx,u8_context cxt)
 
 u8_condition get_pointer_exception(lispval x)
 {
-  if (OIDP(x)) return _("BadOIDPtr");
+  if (FD_NULLP(x))
+    return _("NullPointer");
+  else if (OIDP(x)) return _("BadOIDPtr");
   else if (CONSP(x)) return _("BadCONSPtr");
   else if (FD_IMMEDIATEP(x)) {
     int ptype = FD_IMMEDIATE_TYPE(x);
@@ -818,7 +820,8 @@ u8_condition get_pointer_exception(lispval x)
   else return fd_BadPtr;
 }
 
-FD_EXPORT lispval fd_badptr_err(lispval result,u8_context cxt,u8_string details)
+FD_EXPORT lispval fd_badptr_err(lispval result,u8_context cxt,
+                                u8_string details)
 {
   fd_seterr( get_pointer_exception(result), cxt,
              details, FD_UINT2DTYPE(result) );
