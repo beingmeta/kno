@@ -3746,7 +3746,7 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
     fd_add(base,metadata_readonly_props,nkeys_symbol);
     return base;}
   else if ( ( ( op == FDSYM_READONLY ) && (n == 0) ) ||
-            ( ( op == fd_metadata_op ) && (n == 1) &&
+            ( ( op == fd_metadata_op ) && (n == 2) &&
               ( args[1] == FDSYM_READONLY ) ) ) {
     if ( (ix->index_flags) & (FD_STORAGE_READ_ONLY) )
       return FD_TRUE;
