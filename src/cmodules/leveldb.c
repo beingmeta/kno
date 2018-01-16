@@ -2,7 +2,7 @@
 
 /* leveldb.c
    This implements FramerD bindings to leveldb.
-   Copyright (C) 2007-2017 beingmeta, inc.
+   Copyright (C) 2007-2018 beingmeta, inc.
 */
 
 #ifndef _FILEINFO
