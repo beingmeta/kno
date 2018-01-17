@@ -51,7 +51,7 @@
     (- (fifo-end fifo) (fifo-start fifo)) "/" (length (fifo-queue fifo)) 
     "-" (choice-size (fifo-running fifo)) "-" (choice-size (fifo-waiting fifo)) " "
     (or (fifo-name fifo) (glom "0x" (number->string (hashptr fifo) 16))) 
-    (if (not (fifo-live? fifo)) " (dead)")
+    (if (not (fifo-live? fifo)) " (exhausted)")
     (if (fifo-debug fifo) " (debug)")
     ">"))
 

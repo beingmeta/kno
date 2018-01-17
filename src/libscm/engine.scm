@@ -29,7 +29,7 @@
 (define log-frequency 60)
 (varconfig! engine:logfreq log-frequency)
 
-(define check-frequency 300)
+(define check-frequency 15)
 (varconfig! engine:checkfreq check-frequency)
 
 (define check-spacing 60)
