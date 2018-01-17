@@ -288,23 +288,36 @@ slot of the loop state.
 	       (set! batch-state
 		 `#[loop ,loop-state started ,start batchno ,batchno])))))))
 
+(define (pick-spacing opts nthreads)
+ (let ((spacing (getopt opts 'spacing 0.1)))
+   (and spacing
+	(if (number? spacing)
+	    spacing
+	    (and nthreads 
+		 (> nthreads 1)
+		 (/~ nthreads (ilog nthreads)))))))
+
+(defambda (pick-batchsize items opts)
+  (let ((n-items (if (vector? items) (length items)
+		     (choice-size items))))
+    (if (number? (getopt opts 'nbatches))
+	(1+ (quotient n-items (getopt opts 'nbatches)))
+	(if (number? (getopt opts 'nthreads))
+	    (1+ (quotient n-items (* 4 (getopt opts 'nthreads))))
+	    (->exact (ceiling (sqrt n-items)))))))
+
 (defambda (engine/run fcn items (opts #f))
-  (let* ((batchsize (getopt opts 'batchsize (config 'batchsize 1024)))
+  (let* ((vector-items (and (singleton? items) (vector? items)))
+	 (n-items (if vector-items (length items) (choice-size items)))
+	 (batchsize (getopt opts 'batchsize (pick-batchsize items opts)))
 	 (nthreads (mt/threadcount (getopt opts 'nthreads (config 'nthreads #t))))
-	 (vector-items  (and (singleton? items) (vector? items)))
-	 (spacing (getopt opts 'spacing 
-			  (and nthreads (> nthreads 1)
-			       (/~ nthreads (ilog nthreads)))))
-	 (batchrange (getopt opts 'batchrange 
-			     (config 'batchrange (if nthreads
-						     (max nthreads (ilog nthreads))
-						     '(1 . 2)))))
+	 (spacing (pick-spacing opts nthreads))
+	 (batchrange (getopt opts 'batchrange (config 'batchrange 3)))
 	 (batches (if (or (not batchsize) (< batchsize 2))
 		      (if vector-items items (choice->vector items))
 		      (if vector-items
 			  (batchup-vector items batchsize batchrange)
 			  (batchup items batchsize batchrange))))
-	 (n-items (if vector-items (length items) (choice-size items)))
 	 (rthreads (if (and nthreads (> nthreads (length batches))) (length batches) nthreads))
 	 (fifo (fifo/make batches
 			  `#[fillfn ,(getopt opts 'fillfn fifo/exhausted!) 
@@ -322,7 +335,10 @@ slot of the loop state.
 		       'counters counters
 		       'started (getopt opts 'started (elapsed-time))
 		       'total n-items
+		       'batchsize batchsize
+		       'batchrange batchsize
 		       'n-batches (length batches)
+		       'nthreads rthreads
 		       '%loglevel (getopt opts 'loglevel {})
 		       'logfreq (getopt opts 'logfreq log-frequency)
 		       'checkfreq (getopt opts 'checkfreq check-frequency)
@@ -433,7 +449,8 @@ slot of the loop state.
 		    #[])))
     (do-choices (counter {(getopt opts 'counters) (get state 'counters)
 			  'items 'batches 'cycles})
-      (unless (test state counter) (store! state counter 0)))
+      (unless (or (not counter) (test state counter))
+	(store! state counter 0)))
     (unless (test state 'started) (store! state 'started (timestamp)))
     (when (getopt opts 'statefile)
       (store! state 'statefile (getopt opts 'statefile))
