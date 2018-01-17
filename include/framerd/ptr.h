@@ -987,9 +987,9 @@ FD_EXPORT int fd_check_immediate(lispval);
    (fd_check_immediate(x))))
 
 #if FD_FULL_CHECK_PTR
-#define FD_CHECK_PTR FD_CHECK_CONS_PTR
+#define FD_CHECK_PTR(p) (PRED_TRUE(FD_CHECK_CONS_PTR(p)))
 #else
-#define FD_CHECK_PTR FD_CHECK_ATOMIC_PTR
+#define FD_CHECK_PTR(p) (PRED_TRUE(FD_CHECK_ATOMIC_PTR(p)))
 #endif
 
 #ifdef FD_PTR_DEBUG_LEVEL

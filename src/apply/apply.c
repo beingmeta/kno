@@ -677,11 +677,10 @@ FD_EXPORT lispval fd_dcall(struct FD_STACK *_stack,
       U8_CLEAR_CONTOUR();
       result = FD_ERROR;}
     U8_END_EXCEPTION;
-    if (!(PRED_TRUE(FD_CHECK_PTR(result)))) {
+    if (!(FD_CHECK_PTR(result))) {
       if (errno) {u8_graberrno("fd_apply",fname);}
-      fd_pop_stack(apply_stack);
-      return fd_badptr_err(result,"fd_deterministic_apply",fname);}
-    else if ( (errno) && (!(FD_TROUBLEP(result)))) {
+      result = fd_badptr_err(result,"fd_deterministic_apply",fname);}
+    if ( (errno) && (!(FD_TROUBLEP(result)))) {
       u8_string cond=u8_strerror(errno);
       u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) after %s",
              errno,cond,U8ALT(fname,"primcall"));
@@ -689,6 +688,7 @@ FD_EXPORT lispval fd_dcall(struct FD_STACK *_stack,
     if ( (FD_TROUBLEP(result)) &&  (u8_current_exception==NULL) ) {
       if (errno) {u8_graberrno("fd_apply",fname);}
       else fd_seterr(fd_UnknownError,"fd_apply",fname,VOID);}
+    fd_pop_stack(apply_stack);
     return result;}
   else {
     u8_string limit=u8_mkstring("%lld",fd_stack_limit);
@@ -855,11 +855,11 @@ FD_EXPORT lispval fd_ndcall(struct FD_STACK *_stack,
                (n >= (f->fcn_min_arity)) :
                ((n <= (f->fcn_arity)) &&
                 (n >= (f->fcn_min_arity)))) {
+        lispval d_args[n];
+        lispval retval, results = EMPTY;
         FD_PUSH_STACK(ndstack,fd_ndcallstack_type,f->fcn_name,handler);
         ndstack->stack_src = f->fcn_filename;
         ndstack->stack_free_src = 0;
-        lispval d_args[n];
-        lispval retval, results = EMPTY;
         /* Initialize the d_args vector */
         if (n==1)
           return ndapply1(ndstack,handler,args[0]);

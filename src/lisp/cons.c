@@ -823,6 +823,7 @@ u8_condition get_pointer_exception(lispval x)
 FD_EXPORT lispval fd_badptr_err(lispval result,u8_context cxt,
                                 u8_string details)
 {
+  if (errno) u8_graberrno(cxt,u8_strdup(details));
   fd_seterr( get_pointer_exception(result), cxt,
              details, FD_UINT2DTYPE(result) );
   return FD_ERROR;

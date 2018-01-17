@@ -202,7 +202,6 @@ FD_EXPORT int fd_add_to_aggregate_index(fd_aggregate_index aix,fd_index add)
       if (aix->ax_indexes[i] == add)
         return 0;
       else i++;
-    int read_only = FD_INDEX_READONLYP(add);
     fd_lock_index(aix);
     if ( (aix->ax_n_allocd == 0) || (aix->ax_indexes == NULL) ) {
       int size = 4;
