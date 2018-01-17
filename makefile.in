@@ -1279,13 +1279,18 @@ apt-upload upload-apt upload-deb: update-remote-apt-repo
 
 # Installation targets
 
-install: install-core install-cmodules install-libscm install-modules @setup_target@
-install-bin: install-static install-shared install-exe\
-	install-headers install-scripts install-support
+install-status:
+	@if test -f .malloc && test -f buildmode; then \
+	  echo "Installing" $(shell cat buildmode) "build linked with" $(shell cat .malloc); \
+	fi;
+install: install-status install-core install-cmodules install-libscm install-modules @setup_target@
+	@if test -f .malloc && test -f buildmode; then \
+	  echo "Installed" $(shell cat buildmode) "build linked with" $(shell cat .malloc); \
+	fi;
+install-bin: install-static install-shared install-exe
+install-text: install-headers install-scripts install-support
 install-core: confdirs workdirs @INSTALLI18N@           \
-	 install-static install-shared install-headers  \
-         install-exe install-scripts install-data 	\
-	 install-support
+	 install-bin install-text install-data
 
 $(INCINSTALLDIR):
 	@$(SYSINSTALL) @install_dir_opts@ $(INCINSTALLDIR)
@@ -1302,7 +1307,7 @@ $(DESTDIR)@local_config@ $(DESTDIR)@shared_config@:
 $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets: $(DESTDIR)@config_dir@
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 
-install-static: static-libs $(LIBINSTALLDIR)
+install-static:  static-libs $(LIBINSTALLDIR)
 	make $(LIBINSTALLDIR)/libfdcore@suffix@.a        \
 		$(LIBINSTALLDIR)/libfdstorage@suffix@.a       \
 		$(LIBINSTALLDIR)/libfddrivers@suffix@.a   \
@@ -1310,7 +1315,7 @@ install-static: static-libs $(LIBINSTALLDIR)
 		$(LIBINSTALLDIR)/libfdscheme@suffix@.a   \
 		$(LIBINSTALLDIR)/libfdweb@suffix@.a      \
 		$(LIBINSTALLDIR)/libtexttools@suffix@.a
-install-shared: shared-libs $(LIBINSTALLDIR) 				\
+install-shared: install-status shared-libs $(LIBINSTALLDIR) 				\
     $(LIBINSTALLDIR)/libfdcore@suffix@.@vshared_suffix@			\
     $(LIBINSTALLDIR)/libfdcore@suffix@.@mmshared_suffix@		\
     $(LIBINSTALLDIR)/libfdcore@suffix@.@mshared_suffix@			\
