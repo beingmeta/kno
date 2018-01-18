@@ -386,7 +386,12 @@ slot of the loop state.
       "Processing " ($count n-items) " " count-term " "
       (when (and batchsize (> batchsize 1))
 	(printout "in " ($count (length batches)) " batches "))
-      "using " rthreads " threads with " fcn)
+      "using " rthreads " threads with "
+      (if (procedure-name fcn)
+	  (printout (procedure-name fcn)
+	    (if (procedure-filename fcn)
+		(printout ":" (procedure-filename fcn))))
+	  fcn))
 
     (if (and rthreads (> rthreads 1))
 	(let ((threads {}))

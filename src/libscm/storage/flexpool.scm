@@ -157,7 +157,6 @@
 		      (irritant opts |BadFlexpoolData|))))))))
 
 (define (make-flexpool filename opts)
-  (%watch "MAKE-FLEXPOOL" filename opts)
   (let ((base (getopt opts 'base))
 	(cap (getopt opts 'capacity))
 	(prefix (getopt opts 'prefix (get-partition-prefix filename)))
@@ -687,7 +686,6 @@
     metadata))
 
 (define (init-adjunct-flexpools adjuncts prefix base cap partsize dir opts)
-  (%watch "init-adjunct-flexpools" prefix base cap partsize adjuncts dir)
   (do-choices (adjslot (getkeys adjuncts))
     (let ((adjspec (get adjuncts adjslot)))
       (when (if (string? adjspec) (has-suffix adjspec ".flexpool")
@@ -710,9 +708,7 @@
 			  'prefix adj-prefix
 			  'init (config 'sessionid)
 			  'created (gmtimestamp))))
-	  (%watch name dir prefix base cap partsize adjslot adj-prefix)
 	  (when cur
-	    (%watch name cur)
 	    (unless (and (test cur 'base base)
 			 (test cur 'capacity cap)
 			 (test cur 'partsize partsize)
