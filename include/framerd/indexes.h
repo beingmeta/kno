@@ -330,7 +330,7 @@ FD_FASTOP int fd_index_add(fd_index ix_arg,lispval key,lispval value)
     else NO_ELSE;}
   else if (FD_PRECHOICEP(key)) {
     lispval normchoice = fd_make_simple_choice(key);
-    const lispval *keys = FD_CHOICE_DATA(key);
+    const lispval *keys = FD_CHOICE_DATA(normchoice);
     unsigned int n = FD_CHOICE_SIZE(key);
     rv = fd_hashtable_iterkeys(adds,fd_table_add,n,keys,value);
     if (rv<0) return rv;

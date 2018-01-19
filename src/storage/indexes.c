@@ -1035,7 +1035,7 @@ FD_EXPORT int fd_index_merge(fd_index ix,fd_hashtable table)
 
 FD_EXPORT int fd_batch_add(fd_index ix_arg,lispval table)
 {
-  fd_index ix = fd_get_writable_index(ix);
+  fd_index ix = fd_get_writable_index(ix_arg);
   if (ix == NULL) {
     fd_seterr(fd_ReadOnlyIndex,"_fd_index_store",ix->indexid,VOID);
     fd_free_writable(ix,ix_arg);

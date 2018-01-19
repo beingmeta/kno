@@ -10,6 +10,7 @@
 #endif
 
 #define FD_INLINE_POOLS 1
+#define FD_INLINE_INDEXES 1
 #define FD_INLINE_TABLES 1
 #define FD_INLINE_CHOICES 1
 #define FD_INLINE_IPEVAL 1
@@ -825,57 +826,33 @@ int fd_find_prefetch(fd_index ix,lispval slotids,lispval values)
 FD_EXPORT
 int fd_index_frame(fd_index ix,lispval frames,lispval slotids,lispval values)
 {
-  lispval keyslot = ix->index_keyslot;
-  if (VOIDP(values)) {
-    int rv = 0, sum = 0;
-    DO_CHOICES(f,frames) {
-      lispval frame_features = EMPTY;
-      DO_CHOICES(slotid,slotids) {
-        lispval values = fd_frame_get(f,slotid);
-        if (FD_ABORTP(values)) {
-          fd_decref(frame_features);
-          frame_features = values; rv = -1;
-          /* break from iterating over slotids */
-          FD_LOOP_BREAK();}
-        else if (EMPTYP(values)) {}
-        else if (slotid == keyslot) {
-          CHOICE_ADD(frame_features,values);}
-        else {
-          lispval features = make_features(slotid,values);
-          CHOICE_ADD(frame_features,features);
-          fd_decref(values);}}
-      if (rv>=0) {
-        rv = fd_index_add(ix,frame_features,f);
-        if (rv>0) sum = sum+rv;}
-      fd_decref(frame_features);}
-    if (rv<0) return rv;
-    else return sum;}
-  else if (EMPTYP(values))
-    return 0;
-  else {
-    int rv = 0, sum = 0;
-    lispval features = EMPTY;
-    FD_DO_CHOICES(slotid,slotids) {
-      if (slotid == keyslot) {
-        CHOICE_ADD(features,values);
-        fd_incref(values);}
+  int rv = 0;
+  DO_CHOICES(slotid,slotids) {
+    fd_index write_index = ix;
+    if (fd_aggregate_indexp(ix)) {}
+    lispval keyslot = write_index->index_keyslot;
+    DO_CHOICES(frame,frames) {
+      int add_rv = 0;
+      lispval use_values = (FD_VOIDP(values)) ?
+        (fd_frame_get(frame,slotid)) : (values);
+      if (FD_ABORTP(use_values)) add_rv = -1;
+      else if (FD_EMPTYP(use_values)) {}
+      else if (slotid == keyslot)
+        add_rv = fd_index_add(write_index,use_values,frame);
       else {
-        lispval slot_features = make_features(slotid,values);
-        CHOICE_ADD(features,slot_features);}}
-    if (CHOICEP(frames)) {
-      DO_CHOICES(f,frames) {
-        rv = fd_index_add(ix,features,f);
-        if (rv<0) {
-          FD_LOOP_BREAK();}
-        else sum = sum+rv;}}
-    else {
-      rv = fd_index_add(ix,features,frames);
-      if (rv>0) sum = rv;}
-    fd_decref(features);
-    if (rv<0) return rv;
-    else return sum;}
+        lispval features = FD_EMPTY;
+        FD_DO_CHOICES(value,use_values) {
+          lispval feature = fd_init_pair(NULL,slotid,value);
+          fd_incref(slotid); fd_incref(value);
+          CHOICE_ADD(features,feature);}
+        add_rv = fd_index_add(write_index,features,frame);
+        fd_decref(features);}
+      if (use_values != values) fd_decref(use_values);
+      if (add_rv < 0) { rv = -1; FD_LOOP_BREAK();}
+      else rv += add_rv;}
+    if (rv<0) { FD_LOOP_BREAK(); }}
+  return rv;
 }
-
 
 /* Background searching */
 
