@@ -7,6 +7,8 @@
 (define dbsource #f)
 (define testpool #f)
 (define testindex #f)
+(define sepindex {})
+(varconfig! sepindex sepindex #t choice)
 
 (define threaded #f)
 (varconfig! THREADED threaded)
@@ -49,11 +51,18 @@
 			   'oidcodes (config 'oidcodes 16)
 			   'readonly #f)
 			 opts)))
-	(cond ((file-exists? (add-suffix source ".index"))
-	       (open-index (add-suffix source ".index") xopts))
-	      ((file-exists? source) (open-index source xopts))
-	      (else
-	       (make-index (add-suffix source ".index") xopts))))))
+	(combine-indexes
+	 (for-choices (slot {#f sepindex})
+	   (let ((file (stringout source (if slot (printout "_" (downcase slot)))
+			 ".index"))
+		 (opts (if slot `(#[keyslot ,slot] . ,xopts) xopts)))
+	     (if (file-exists? file) 
+		 (open-index file opts)
+		 (make-index file opts))))))))
+
+(defambda (combine-indexes indexes)
+  (if (< (choice-size indexes) 2) indexes
+      (make-aggregate-index indexes)))
 
 (define (initdb source (opts #f))
   (set! testpool (sourcepool source opts))

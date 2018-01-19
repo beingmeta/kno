@@ -132,7 +132,6 @@ FD_EXPORT int fd_pop_opstack(struct FD_FRAMEOP_STACK *op,int normal)
   return 1;
 }
 
-
 /* Slot caches */
 
 /* How it works:
@@ -635,7 +634,6 @@ FD_EXPORT lispval fd_new_frame(lispval pool_spec,lispval initval,int copyflags)
     return oid;}
 }
 
-
 /* Searching */
 
 static lispval make_features(lispval slotids,lispval values)
@@ -651,8 +649,13 @@ static lispval make_features(lispval slotids,lispval values)
     return results;}
 }
 
+static lispval aggregate_prim_find
+(fd_aggregate_index ax,lispval slotids,lispval values);
+
 static lispval index_prim_find(fd_index ix,lispval slotids,lispval values)
 {
+  if (fd_aggregate_indexp(ix))
+    return aggregate_prim_find((fd_aggregate_index)ix,slotids,values);
   lispval combined = FD_EMPTY_CHOICE;
   lispval keyslot = ix->index_keyslot;
   DO_CHOICES(slotid,slotids) {
@@ -676,6 +679,22 @@ static lispval index_prim_find(fd_index ix,lispval slotids,lispval values)
           return result;}
         CHOICE_ADD(combined,result);
         fd_decref(key);}}}
+  return combined;
+}
+
+static lispval aggregate_prim_find
+(fd_aggregate_index ax,lispval slotids,lispval values)
+{
+  lispval combined = FD_EMPTY;
+  int i = 0, n =ax->ax_n_indexes;
+  fd_index *indexes = ax->ax_indexes;
+  while (i<n) {
+    fd_index ex = indexes[i++];
+    lispval v = index_prim_find(ex,slotids,values);
+    if (FD_ABORTP(v)) {
+      fd_decref(combined);
+      return v;}
+    CHOICE_ADD(combined,v);}
   return combined;
 }
 
@@ -823,13 +842,50 @@ int fd_find_prefetch(fd_index ix,lispval slotids,lispval values)
 
 #define FD_LOOP_BREAK() FD_STOP_DO_CHOICES; break
 
+static fd_index get_writable_slotindex(fd_index ix,lispval slotid)
+{
+  if (fd_aggregate_indexp(ix)) {
+    fd_index writable = NULL, generic = NULL;
+    struct FD_AGGREGATE_INDEX *aix = (fd_aggregate_index) ix;
+    fd_index *indexes = aix->ax_indexes;
+    int i = 0, n = aix->ax_n_indexes; while (i<n) {
+      fd_index possible = indexes[i++];
+      fd_index use_front = fd_get_writable_index(possible);
+      if (use_front) {
+        if (possible->index_keyslot == slotid) {
+          lispval ptr = fd_index2lisp(use_front);
+          if (FD_ABORTP(ptr))
+            return NULL;
+          else {
+            if (FD_CONSP(ptr)) {fd_incref(ptr);}
+            return (fd_index) possible;}}
+        else if ( (FD_VOIDP(use_front->index_keyslot)) ||
+                  (FD_FALSEP(use_front->index_keyslot)) ||
+                  (FD_EMPTYP(use_front->index_keyslot)) ) {
+          if (generic == NULL) generic = use_front;
+          if (writable) writable = use_front;}
+        else if (writable == NULL)
+          writable = use_front;
+        else NO_ELSE;}}
+    if (generic) {
+      lispval ptr = fd_index2lisp(generic);
+      if (FD_CONSP(ptr)) fd_incref(ptr);
+      return generic;}
+    else if (writable) {
+      lispval ptr = fd_index2lisp(writable);
+      if (FD_CONSP(ptr)) fd_incref(ptr);
+      return writable;}
+    else return NULL;}
+  else return fd_get_writable_index(ix);
+}
+
+
 FD_EXPORT
 int fd_index_frame(fd_index ix,lispval frames,lispval slotids,lispval values)
 {
   int rv = 0;
   DO_CHOICES(slotid,slotids) {
-    fd_index write_index = ix;
-    if (fd_aggregate_indexp(ix)) {}
+    fd_index write_index = get_writable_slotindex(ix,slotid);
     lispval keyslot = write_index->index_keyslot;
     DO_CHOICES(frame,frames) {
       int add_rv = 0;
@@ -850,6 +906,8 @@ int fd_index_frame(fd_index ix,lispval frames,lispval slotids,lispval values)
       if (use_values != values) fd_decref(use_values);
       if (add_rv < 0) { rv = -1; FD_LOOP_BREAK();}
       else rv += add_rv;}
+    lispval ptr = fd_index2lisp(write_index);
+    fd_decref(ptr);
     if (rv<0) { FD_LOOP_BREAK(); }}
   return rv;
 }
