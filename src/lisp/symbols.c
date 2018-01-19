@@ -16,12 +16,12 @@ lispval *fd_symbol_names;
 int fd_n_symbols = 0, fd_max_symbols = 0, fd_initial_symbols = 1024;
 struct FD_SYMBOL_TABLE fd_symbol_table;
 
-lispval FDSYM_ADJUNCT, FDSYM_ALL, FDSYM_ALWAYS;
+lispval FDSYM_ADD, FDSYM_ADJUNCT, FDSYM_ALL, FDSYM_ALWAYS;
 lispval FDSYM_BLOCKSIZE, FDSYM_BUFSIZE;
 lispval FDSYM_CACHELEVEL, FDSYM_CACHESIZE;
 lispval FDSYM_CONS, FDSYM_CONTENT, FDSYM_CREATE;
-lispval FDSYM_DEFAULT, FDSYM_DOT, FDSYM_EQUALS;
-lispval FDSYM_FILE, FDSYM_FILENAME;
+lispval FDSYM_DEFAULT, FDSYM_DOT, FDSYM_DROP, FDSYM_EQUALS;
+lispval FDSYM_FILE, FDSYM_FILENAME, FDSYM_FRONT;
 lispval FDSYM_FLAGS, FDSYM_INPUT;
 lispval FDSYM_ISADJUNCT, FDSYM_KEYSLOT;
 lispval FDSYM_LABEL, FDSYM_LAZY, FDSYM_LENGTH, FDSYM_LOGLEVEL;
@@ -31,10 +31,9 @@ lispval FDSYM_NAME, FDSYM_NO, FDSYM_NONE;
 lispval FDSYM_OPT, FDSYM_OPTS, FDSYM_OUTPUT;
 lispval FDSYM_PLUS, FDSYM_PREFIX, FDSYM_PROPS;
 lispval FDSYM_QMARK, FDSYM_QUOTE, FDSYM_READONLY, FDSYM_SEP;
-lispval FDSYM_SIZE, FDSYM_SORT, FDSYM_SORTED;
-lispval FDSYM_SOURCE, FDSYM_STAR, FDSYM_STRING, FDSYM_SUFFIX;
+lispval FDSYM_SET, FDSYM_SIZE, FDSYM_SORT, FDSYM_SORTED;
+lispval FDSYM_SOURCE, FDSYM_STAR, FDSYM_STORE, FDSYM_STRING, FDSYM_SUFFIX;
 lispval FDSYM_TAG, FDSYM_TEST, FDSYM_TEXT, FDSYM_TYPE;
-lispval FDSYM_ADD, FDSYM_DROP, FDSYM_STORE;
 lispval FDSYM_VERSION;
 
 u8_rwlock fd_symbol_lock;
@@ -82,6 +81,7 @@ static void init_symbol_tables()
 
 static void init_builtin_symbols()
 {
+  FDSYM_ADD = fd_intern("ADD");
   FDSYM_ADJUNCT = fd_intern("ADJUNCT");
   FDSYM_ALL = fd_intern("ALL");
   FDSYM_ALWAYS = fd_intern("ALWAYS");
@@ -95,10 +95,12 @@ static void init_builtin_symbols()
   FDSYM_CREATE = fd_intern("FILE");
   FDSYM_DEFAULT = fd_intern("DEFAULT");
   FDSYM_DOT = fd_intern(".");
+  FDSYM_DROP = fd_intern("DROP");
   FDSYM_EQUALS = fd_intern("=");
   FDSYM_FILE = fd_intern("FILE");
   FDSYM_FILENAME = fd_intern("FILENAME");
   FDSYM_FLAGS = fd_intern("FLAGS");
+  FDSYM_FRONT = fd_intern("FRONT");
   FDSYM_INPUT = fd_intern("INPUT");
   FDSYM_ISADJUNCT = fd_intern("ISADJUNCT");
   FDSYM_KEYSLOT = fd_intern("KEYSLOT");
@@ -124,20 +126,19 @@ static void init_builtin_symbols()
   FDSYM_QUOTE = fd_intern("QUOTE");
   FDSYM_READONLY = fd_intern("READONLY");
   FDSYM_SEP = fd_intern("SEP");
+  FDSYM_SET = fd_intern("SET");
   FDSYM_SIZE = fd_intern("SIZE");
   FDSYM_SORT = fd_intern("SORT");
   FDSYM_SORTED = fd_intern("SORTED");
   FDSYM_SOURCE = fd_intern("SOURCE");
   FDSYM_STAR = fd_intern("*");
+  FDSYM_STORE = fd_intern("STORE");
   FDSYM_STRING = fd_intern("STRING");
   FDSYM_SUFFIX = fd_intern("SUFFIX");
   FDSYM_TAG = fd_intern("TAG");
   FDSYM_TEST = fd_intern("TEST");
   FDSYM_TEXT = fd_intern("TEXT");
   FDSYM_TYPE = fd_intern("TYPE");
-  FDSYM_ADD = fd_intern("ADD");
-  FDSYM_DROP = fd_intern("DROP");
-  FDSYM_STORE = fd_intern("STORE");
   FDSYM_VERSION = fd_intern("VERSION");
 }
 
