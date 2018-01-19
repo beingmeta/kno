@@ -77,16 +77,51 @@ static lispval aggregate_prim_find
 (fd_aggregate_index ax,lispval slotids,lispval values)
 {
   lispval combined = FD_EMPTY;
+  lispval keyslot = ax->index_keyslot;
   int i = 0, n =ax->ax_n_indexes;
   fd_index *indexes = ax->ax_indexes;
-  while (i<n) {
-    fd_index ex = indexes[i++];
-    lispval v = index_prim_find(ex,slotids,values);
-    if (FD_ABORTP(v)) {
-      fd_decref(combined);
-      return v;}
-    CHOICE_ADD(combined,v);}
-  return combined;
+  if ( (FD_SYMBOLP(keyslot)) || (FD_OIDP(keyslot)) ) {
+    if (fd_choice_containsp(keyslot,slotids)) {
+      fd_index_prefetch((fd_index)ax,values);
+      DO_CHOICES(value,values) {
+	lispval v = fd_index_get((fd_index)ax,value);
+	CHOICE_ADD(combined,v);}}
+    return combined;}
+  else {
+    fd_hashtable cache = &(ax->index_cache);
+    lispval features = make_features(slotids,values);
+    lispval fetch_features = FD_EMPTY;
+    {DO_CHOICES(feature,features) {
+	lispval cached = fd_hashtable_get(cache,feature,FD_VOID);
+	if (!(FD_VOIDP(cached))) {CHOICE_ADD(combined,cached);}
+	else {CHOICE_ADD(fetch_features,feature); fd_incref(feature);}}}
+    if (!(FD_EMPTYP(fetch_features))) {
+      i=0; while (i < n) {
+	fd_index ex = indexes[i++];
+	lispval ekeyslot = ex->index_keyslot;
+	if ( (SYMBOLP(ekeyslot)) || (OIDP(ekeyslot)) ) {
+	  if (fd_choice_containsp(ekeyslot,slotids)) {
+	    lispval fetch_values = FD_EMPTY;
+	    DO_CHOICES(feature,fetch_features) {
+	      if (FD_CAR(feature) == ekeyslot) {
+		lispval v = FD_CDR(feature); fd_incref(v);
+		CHOICE_ADD(fetch_values,v);}}
+	    fd_index_prefetch((fd_index)ex,fetch_values);
+	    fd_decref(fetch_values);}}
+	else {
+	  fd_index_prefetch((fd_index)ex,fetch_features);
+	  ekeyslot = FD_VOID;}
+	int j=0, n_features = FD_CHOICE_SIZE(features);
+	lispval *keyvec = u8_alloc_n(n_features,lispval);
+	lispval *valvec = u8_alloc_n(n_features,lispval);
+	DO_CHOICES(feature,features) {
+	  lispval key = (FD_VOIDP(ekeyslot)) ? (feature) : (FD_CDR(feature));
+	  lispval v = fd_index_get((fd_index)ex,key);
+	  keyvec[j] = feature;
+	  valvec[j] = v;
+	  CHOICE_ADD(combined,v);}
+	fd_hashtable_iter(cache,fd_table_add,n_features,keyvec,valvec);}}
+    return combined;}
 }
 
 FD_EXPORT lispval fd_prim_find(lispval indexes,lispval slotids,lispval values)
