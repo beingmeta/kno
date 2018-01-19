@@ -361,7 +361,7 @@ flexpools flexpooltests:
 	@${RUN} ${FDX} flextest.scm flex${TESTBASE}.flexpool RESET=yes ${RUNCONF};
 	@${RUN} ${FDX} flextest.scm flex${TESTBASE}.flexpool ${RUNCONF};
 
-pooltests pools: filepooltest oidpooltests bigpooltests flexpooltests
+pooltests pools: filepooltest bigpooltests flexpooltests
 
 .PHONY: pooltests pool
 
@@ -474,12 +474,10 @@ frametest:
 		 ${RUNCONF} CACHELEVEL=3;
 	@${header} "■■■■■■■■ Finished frame/database tests, ${TESTBASE} ${TESTSIZE} ${RUNCONF} ■■■■■■■■■■■■■■■■";
 
-frametest_oidpool32:
-	@make TESTBASE=tmpoidpool32 RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB32}" frametest
-frametest_oidpool40:
-	@make TESTBASE=tmpoidpool40 RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB40}" frametest
-frametest_oidpool64:
-	@make TESTBASE=tmpoidpool64 RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB64}" frametest
+frametest_base:
+	@make TESTBASE=testdb RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40}" frametest
+frametest_aggregate:
+	@make TESTBASE=aggdb RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40} SEPINDEX=FILENAME" frametest
 frametest_bigpool32:
 	@make TESTBASE=tmpbigpool32 RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB32}" frametest
 frametest_bigpool40:
@@ -490,17 +488,21 @@ frametest_fileindex:
 	@make TESTBASE=tmpfileindex RUNCONF="${BIGPOOL} ${FILEINDEX} ${OFFB40}" frametest
 frametest_memindex:
 	@make TESTBASE=tmpmemindex RUNCONF="${BIGPOOL} ${MEMINDEX} ${OFFB40}" frametest
-frametest_base:
-	@make TESTBASE=testdb RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40}" frametest
+frametest_oidpool32:
+	@make TESTBASE=tmpoidpool32 RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB32}" frametest
+frametest_oidpool40:
+	@make TESTBASE=tmpoidpool40 RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB40}" frametest
+frametest_oidpool64:
+	@make TESTBASE=tmpoidpool64 RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB64}" frametest
 
 lvldbframes lvldbframetest:
 	@make TESTBASE=lvldb RUNCONF="POOLTYPE=leveldb INDEXTYPE=leveldb INDEXMOD=leveldb POOLMOD=leveldb" frametest
 rckdbframes rckdbframetest:
 	@make TESTBASE=rckdb RUNCONF="POOLTYPE=rocksdb INDEXTYPE=rocksdb INDEXMOD=rocksdb POOLMOD=rocksdb" frametest
 
-frametests dbtest dbtests db: frametest_base frametest_oidpool32 frametest_oidpool40 frametest_oidpool64 \
+frametests dbtest dbtests db: frametest_base \
 	frametest_bigpool32 frametest_bigpool40 frametest_bigpool64 \
-	frametest_fileindex frametest_memindex
+	frametest_fileindex frametest_memindex frametest_aggregate
 
 .PHONY: frametests frametest dbtest dbtests db
 
