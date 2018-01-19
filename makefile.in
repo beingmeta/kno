@@ -161,7 +161,7 @@ STORAGE_OBJS=\
 	src/storage/extindex.o src/storage/extpool.o		\
 	src/storage/procpool.o src/storage/procindex.o		\
 	src/storage/mempool.o src/storage/drivers.o		\
-	@ipevalo@ src/storage/frames.o
+	@ipevalo@ src/storage/frames.o src/storage/slotindexes.o
 
 DRIVER_OBJS=\
 	src/drivers/builtin_drivers.o			\
@@ -381,10 +381,10 @@ FRAMERD_SOURCES=\
 	src/apply/ffi.c								\
 	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c	\
 	src/storage/drivers.c src/storage/indexes.c src/storage/pools.c		\
-	src/storage/oidstore.c src/storage/cachecall.c src/storage/bloom.c	\
-	src/storage/aggregates.c src/storage/alcor.c src/storage/compress.c     \
-	src/storage/threadcache.c src/storage/frames.c src/storage/methods.c	\
-	src/storage/dtproc.c src/storage/dtcall.c				\
+	src/storage/oidstore.c  src/storage/frames.c src/storage/slotindexes.c  \
+	src/storage/aggregates.c src/storage/cachecall.c src/storage/methods.c	\
+	src/storage/alcor.c src/storage/compress.c src/storage/threadcache.c  	\
+	src/storage/bloom.c src/storage/dtproc.c src/storage/dtcall.c      	\
 	src/storage/ipeval.c 	       						\
 	src/drivers/builtin_drivers.c  						\
 	src/drivers/filepool.c src/drivers/oidpool.c 				\
@@ -400,30 +400,30 @@ FRAMERD_SOURCES=\
 	src/eval/binders.c src/eval/lambda.c 					\
 	src/eval/macros.c src/eval/errors.c     				\
 	src/eval/conditionals.c src/eval/iterators.c               		\
-        src/eval/threads.c src/eval/quasiquote.c               		\
-	src/eval/modules.c src/eval/load.c src/eval/reflection.c 	\
-	src/eval/compoundfns.c 						\
-	src/eval/coreops.c                  				\
-	src/eval/arith.c src/eval/side-effects.c              		\
-	src/prims/dbprims.c 						\
-	src/prims/logprims.c						\
-	src/prims/portprims.c						\
-	src/prims/streamprims.c                    			\
-	src/prims/tableprims.c src/eval/choiceops.c               	\
-	src/prims/seqprims.c src/prims/stringprims.c                 	\
-	src/prims/fileprims.c src/prims/driverprims.c                	\
-	src/eval/loader.c                                            	\
-	src/prims/timeprims.c src/prims/sysprims.c 			\
-	src/prims/extdbprims.c                    			\
-	src/eval/reqstate.c                                          	\
-	src/web/fdweb.c src/web/json.c src/web/ldns.c            	\
-	src/web/xmloutput.c src/web/htmlout.c src/web/xmlinput.c src/web/xmldata.c 	\
-	src/web/xmleval.c src/web/cgiexec.c src/web/uriprims.c		\
-	src/web/mime.c src/web/email.c src/web/curl.c            	\
-	src/text/texttools.c src/text/match.c                	\
-	src/text/porter.c src/text/phonetic.c                	\
-	src/exe/fdconsole.c                                            	\
-	src/exe/fdexec.c src/exe/fdbatch.c                             	\
+        src/eval/threads.c src/eval/quasiquote.c               			\
+	src/eval/modules.c src/eval/load.c src/eval/reflection.c 		\
+	src/eval/compoundfns.c 							\
+	src/eval/coreops.c                  					\
+	src/eval/arith.c src/eval/side-effects.c              			\
+	src/prims/dbprims.c 							\
+	src/prims/logprims.c							\
+	src/prims/portprims.c							\
+	src/prims/streamprims.c                    				\
+	src/prims/tableprims.c src/eval/choiceops.c               		\
+	src/prims/seqprims.c src/prims/stringprims.c                 		\
+	src/prims/fileprims.c src/prims/driverprims.c                		\
+	src/eval/loader.c                                            		\
+	src/prims/timeprims.c src/prims/sysprims.c 				\
+	src/prims/extdbprims.c                    				\
+	src/eval/reqstate.c                                          		\
+	src/web/fdweb.c src/web/json.c src/web/ldns.c            		\
+	src/web/xmloutput.c src/web/xmlinput.c src/web/xmldata.c 		\
+	src/web/xmleval.c src/web/cgiexec.c src/web/htmlout.c 			\
+	src/web/uriprims.c src/web/mime.c src/web/email.c src/web/curl.c	\
+	src/text/texttools.c src/text/match.c                			\
+	src/text/porter.c src/text/phonetic.c                			\
+	src/exe/fdconsole.c                                            		\
+	src/exe/fdexec.c src/exe/fdbatch.c                             		\
 	src/exe/fdservlet.c src/exe/fdcgiexec.c src/exe/fdserver.c
 
 CMODULE_SOURCES=\
