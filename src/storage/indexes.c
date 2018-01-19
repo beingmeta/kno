@@ -486,7 +486,7 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,lispval keys)
   // FDTC *fdtc = ((FD_USE_THREADCACHE)?(fd_threadcache):(NULL));
   struct FD_HASHTABLE *cache = &(ix->index_cache);
   struct FD_HASHTABLE *adds = &(ix->index_adds);
-  struct FD_HASHTABLE *drops = &(ix->index_adds);
+  struct FD_HASHTABLE *drops = &(ix->index_drops);
   struct FD_HASHTABLE *stores = &(ix->index_stores);
   int n_fetched = 0, cachelevel = 0, rv =0;
   int read_only = (ix->index_flags & (FD_STORAGE_READ_ONLY) );
@@ -605,16 +605,16 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,lispval keys)
       rv = n_fetched+n_to_fetch;}
     else rv = -1;}
   else {
-    lispval *vals = ix->index_handler->fetchn(ix,1,&needed);
-    if (vals) {
-      lispval val = vals[0];
+    lispval val = edit_result(needed,
+                              ix->index_handler->fetch(ix,needed),
+                              adds,drops);
+    if (!(FD_ABORTED(val))) {
       fd_hashtable_store(cache,needed,val);
       /* fdtc_store(ix,needed,val); */
       fd_decref(val);
-      u8_big_free(vals);
       rv = n_fetched+1;}
     else rv=-1;}
-  if (reduced) {cleanup_tmpchoice(reduced); reduced=NULL;}
+    if (reduced) {cleanup_tmpchoice(reduced); reduced=NULL;}
   if (decref_keys) fd_decref(keys);
   return rv;
 }
