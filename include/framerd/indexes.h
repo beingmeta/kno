@@ -34,6 +34,7 @@ FD_EXPORT int fd_index_adds_init;
 #define FD_INDEX_DROP_CAPABILITY (FD_INDEX_FLAG(2))
 #define FD_INDEX_SET_CAPABILITY  (FD_INDEX_FLAG(3))
 #define FD_INDEX_IN_BACKGROUND   (FD_INDEX_FLAG(4))
+#define FD_INDEX_ONESLOT         (FD_INDEX_FLAG(5))
 
 #define FD_N_PRIMARY_INDEXES 1024
 
@@ -184,7 +185,6 @@ FD_EXPORT long fd_index_cache_load(void);
 FD_EXPORT lispval fd_cached_keys(fd_index p);
 
 FD_EXPORT fd_index fd_lisp2index(lispval lp);
-FD_EXPORT lispval fd_index2lisp(fd_index ix);
 FD_EXPORT lispval fd_index_ref(fd_index ix);
 
 FD_EXPORT int fd_add_to_background(fd_index ix);
@@ -251,6 +251,9 @@ FD_EXPORT int fd_aggregate_indexp(fd_index ix);
 
 FD_EXPORT struct FD_AGGREGATE_INDEX *fd_background;
 
+FD_EXPORT fd_index _fd_indexptr(lispval lp);
+FD_EXPORT lispval _fd_index2lisp(fd_index ix);
+
 #if FD_INLINE_INDEXES
 FD_FASTOP U8_MAYBE_UNUSED fd_index fd_indexptr(lispval x)
 {
@@ -266,6 +269,14 @@ FD_FASTOP U8_MAYBE_UNUSED fd_index fd_indexptr(lispval x)
     return (fd_index)x;
   else return (fd_index)NULL;
 }
+FD_FASTOP U8_MAYBE_UNUSED lispval fd_index2lisp(fd_index ix)
+{
+  if (ix == NULL)
+    return FD_ERROR;
+  else if (ix->index_serialno>=0)
+    return LISPVAL_IMMEDIATE(fd_index_type,ix->index_serialno);
+  else return (lispval)ix;
+}
 U8_MAYBE_UNUSED static fd_index fd_get_writable_index(fd_index ix)
 {
   if (U8_BITP(ix->index_flags,FD_STORAGE_READ_ONLY)) {
@@ -277,11 +288,17 @@ U8_MAYBE_UNUSED static fd_index fd_get_writable_index(fd_index ix)
         return NULL;}
       else return front;}
     else return NULL;}
-  else return ix;
+  else {
+    lispval ptr = fd_index2lisp(ix);
+    if (FD_CONSP(ptr)) fd_incref(ptr);
+    return ix;}
 }
 #define fd_free_writable(ix,ix_arg) \
   if ( ((ix) != (ix_arg)) && (FD_CONSP((lispval)ix)) ) { \
     fd_decref((lispval)ix);}
+#else
+#define fd_indexptr _fd_indexptr
+#define fd_index2lisp _fd_index2lisp
 #endif
 
 /* Inline index adds */
@@ -364,24 +381,23 @@ FD_FASTOP int fd_index_add(fd_index ix_arg,lispval key,lispval value)
       rv = fd_hashtable_iterkeys(bgcache,fd_table_replace,n,keys,FD_VOID);}
     else rv = fd_hashtable_op(bgcache,fd_table_replace,key,FD_VOID);}
 
-  if (rv<0) {
-    fd_free_writable(ix,ix_arg);
-    return rv;}
-
-  if ((!(FD_VOIDP(ix->index_covers_slotids))) &&
-      (FD_EXPECT_TRUE(FD_PAIRP(key))) &&
-      (FD_EXPECT_TRUE((FD_OIDP(FD_CAR(key))) ||
-                      (FD_SYMBOLP(FD_CAR(key)))))) {
+  if (rv<0) {}
+  else if ((!(FD_VOIDP(ix->index_covers_slotids))) &&
+           (FD_EXPECT_TRUE(FD_PAIRP(key))) &&
+           (FD_EXPECT_TRUE((FD_OIDP(FD_CAR(key))) ||
+                           (FD_SYMBOLP(FD_CAR(key)))))) {
     if (!(atomic_choice_containsp(FD_CAR(key),ix->index_covers_slotids))) {
       fd_decref(ix->index_covers_slotids);
       ix->index_covers_slotids = FD_VOID;}}
+  else NO_ELSE;
+
+  fd_decref((lispval)ix);
 
   return rv;
 }
 #else
 #define fd_index_get(ix,key) _fd_index_get(ix,key)
 #define fd_index_add(ix,key,val) _fd_index_add(ix,key,val)
-#define fd_indexptr(ix) _fd_indexptr(ix)
 #endif
 
 /* IPEVAL delays */

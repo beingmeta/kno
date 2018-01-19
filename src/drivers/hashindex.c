@@ -272,7 +272,12 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
     U8_SETBITS(index->index_flags,FD_STORAGE_READ_ONLY);}
   else NO_ELSE;
 
-  if (((index->hashindex_format)&(FD_HASHINDEX_FN_MASK))!=0) {
+  if ((flags) & (FD_INDEX_ONESLOT) ) {}
+  else if ((index->hashindex_format) & (FD_HASHINDEX_ONESLOT) ) {
+    U8_SETBITS(index->index_flags,FD_INDEX_ONESLOT);}
+  else NO_ELSE;
+
+  if (((index->hashindex_format)&(FD_HASHINDEX_FN_MASK))!=0)  {
     u8_free(index);
     fd_seterr3(BadHashFn,"open_hashindex",NULL);
     return NULL;}

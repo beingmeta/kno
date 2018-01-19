@@ -19,6 +19,7 @@
 #define FD_HASHINDEX_DTYPEV2       0x40
 #define FD_HASHINDEX_ODDKEYS       0x80
 #define FD_HASHINDEX_READ_ONLY     0x100
+#define FD_HASHINDEX_ONESLOT       0x200
 
 /* Used to generate hash codes */
 #define MAGIC_MODULUS 16777213 /* 256000001 */
