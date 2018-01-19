@@ -251,6 +251,39 @@ FD_EXPORT int fd_aggregate_indexp(fd_index ix);
 
 FD_EXPORT struct FD_AGGREGATE_INDEX *fd_background;
 
+#if FD_INLINE_INDEXES
+FD_FASTOP U8_MAYBE_UNUSED fd_index fd_indexptr(lispval x)
+{
+  if (FD_IMMEDIATEP(x)) {
+    int serial = FD_GET_IMMEDIATE(x,fd_index_type);
+    if (serial<0) return NULL;
+    else if (serial<FD_N_PRIMARY_INDEXES)
+      return fd_primary_indexes[serial];
+    else if (serial<(FD_N_PRIMARY_INDEXES+fd_n_secondary_indexes))
+      return fd_secondary_indexes[serial-FD_N_PRIMARY_INDEXES];
+    else return NULL;}
+  else if ((FD_CONSP(x))&&(FD_TYPEP(x,fd_consed_index_type)))
+    return (fd_index)x;
+  else return (fd_index)NULL;
+}
+U8_MAYBE_UNUSED static fd_index fd_get_writable_index(fd_index ix)
+{
+  if (U8_BITP(ix->index_flags,FD_STORAGE_READ_ONLY)) {
+    lispval front_val = fd_slotmap_get(&(ix->index_props),FDSYM_FRONT,FD_VOID);
+    if (FD_INDEXP(front_val)) {
+      fd_index front = fd_indexptr(front_val);
+      if (U8_BITP(front->index_flags,FD_STORAGE_READ_ONLY)) {
+        fd_decref(front_val);
+        return NULL;}
+      else return front;}
+    else return NULL;}
+  else return ix;
+}
+#define fd_free_writable(ix,ix_arg) \
+  if ( ((ix) != (ix_arg)) && (FD_CONSP((lispval)ix)) ) { \
+    fd_decref((lispval)ix);}
+#endif
+
 /* Inline index adds */
 
 #if FD_INLINE_INDEXES
@@ -277,22 +310,24 @@ FD_FASTOP lispval fd_index_get(fd_index ix,lispval key)
 #endif
   return cached;
 }
-FD_FASTOP int fd_index_add(fd_index ix,lispval key,lispval value)
+FD_FASTOP int fd_index_add(fd_index ix_arg,lispval key,lispval value)
 {
   int rv = -1;
   FDTC *fdtc = (FD_WRITETHROUGH_THREADCACHE)?(fd_threadcache):(NULL);
+  fd_index ix = fd_get_writable_index(ix_arg);
+  if (ix == NULL) return _fd_index_add(ix,key,value);
+
   fd_hashtable adds = &(ix->index_adds);
   fd_hashtable cache = &(ix->index_cache);
-  if (U8_BITP(ix->index_flags,FD_STORAGE_READ_ONLY))
-    /* This will signal an error */
-    return _fd_index_add(ix,key,value);
-  else if (FD_CHOICEP(key)) {
+
+  if (FD_CHOICEP(key)) {
     const lispval *keys = FD_CHOICE_DATA(key);
     unsigned int n = FD_CHOICE_SIZE(key);
     rv = fd_hashtable_iterkeys(adds,fd_table_add,n,keys,value);
-    if (rv<0) return rv;
+    if (rv<0) {}
     else if (ix->index_cache_level>0)
-      rv = fd_hashtable_iterkeys(cache,fd_table_add_if_present,n,keys,value);}
+      rv = fd_hashtable_iterkeys(cache,fd_table_add_if_present,n,keys,value);
+    else NO_ELSE;}
   else if (FD_PRECHOICEP(key)) {
     lispval normchoice = fd_make_simple_choice(key);
     const lispval *keys = FD_CHOICE_DATA(key);
@@ -301,13 +336,16 @@ FD_FASTOP int fd_index_add(fd_index ix,lispval key,lispval value)
     if (rv<0) return rv;
     else if (ix->index_cache_level>0)
       rv = fd_hashtable_iterkeys(cache,fd_table_add_if_present,n,keys,value);
+    else NO_ELSE;
     fd_decref(normchoice);}
   else {
     rv = fd_hashtable_add(adds,key,value);
-    if (rv<0) return rv;
-    rv = fd_hashtable_op(cache,fd_table_add_if_present,key,value);}
-  if (rv<0) return rv;
-  if ( (fdtc) && (fdtc->indexes.table_n_keys) ) {
+    if (rv<0) {}
+    else if (ix->index_cache_level>0)
+      rv = fd_hashtable_op(cache,fd_table_add_if_present,key,value);
+    else NO_ELSE;}
+
+  if ( (rv>=0) && (fdtc) && (fdtc->indexes.table_n_keys) ) {
     FD_DO_CHOICES(akey,key) {
       struct FD_PAIR tempkey;
       FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
@@ -315,7 +353,8 @@ FD_FASTOP int fd_index_add(fd_index ix,lispval key,lispval value)
       if (fd_hashtable_probe(&fdtc->indexes,(lispval)&tempkey)) {
         fd_hashtable_add(&fdtc->indexes,(lispval)&tempkey,value);}}}
 
-  if ((ix->index_flags&FD_INDEX_IN_BACKGROUND) &&
+  if ((rv >= 0) &&
+      (ix->index_flags&FD_INDEX_IN_BACKGROUND) &&
       (fd_background->index_cache.table_n_keys)) {
     fd_hashtable bgcache = (&(fd_background->index_cache));
     if (FD_CHOICEP(key)) {
@@ -325,7 +364,9 @@ FD_FASTOP int fd_index_add(fd_index ix,lispval key,lispval value)
       rv = fd_hashtable_iterkeys(bgcache,fd_table_replace,n,keys,FD_VOID);}
     else rv = fd_hashtable_op(bgcache,fd_table_replace,key,FD_VOID);}
 
-  if (rv<0) return rv;
+  if (rv<0) {
+    fd_free_writable(ix,ix_arg);
+    return rv;}
 
   if ((!(FD_VOIDP(ix->index_covers_slotids))) &&
       (FD_EXPECT_TRUE(FD_PAIRP(key))) &&
@@ -336,20 +377,6 @@ FD_FASTOP int fd_index_add(fd_index ix,lispval key,lispval value)
       ix->index_covers_slotids = FD_VOID;}}
 
   return rv;
-}
-FD_FASTOP U8_MAYBE_UNUSED fd_index fd_indexptr(lispval x)
-{
-  if (FD_IMMEDIATEP(x)) {
-    int serial = FD_GET_IMMEDIATE(x,fd_index_type);
-    if (serial<0) return NULL;
-    else if (serial<FD_N_PRIMARY_INDEXES)
-      return fd_primary_indexes[serial];
-    else if (serial<(FD_N_PRIMARY_INDEXES+fd_n_secondary_indexes))
-      return fd_secondary_indexes[serial-FD_N_PRIMARY_INDEXES];
-    else return NULL;}
-  else if ((FD_CONSP(x))&&(FD_TYPEP(x,fd_consed_index_type)))
-    return (fd_index)x;
-  else return (fd_index)NULL;
 }
 #else
 #define fd_index_get(ix,key) _fd_index_get(ix,key)
