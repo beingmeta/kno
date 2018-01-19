@@ -241,7 +241,7 @@ FD_EXPORT int fd_add_to_aggregate_index(fd_aggregate_index aix,fd_index add)
     u8_string old_id = aix->indexid;
     aix->indexid = u8_mkstring("%s+%d",
                                aix->ax_indexes[0]->indexid,
-                               (aix->ax_n_indexes));
+                               (aix->ax_n_indexes-1));
     if (old_id) u8_free(old_id);
 
     struct U8_OUTPUT sourceout;
