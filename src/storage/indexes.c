@@ -1499,6 +1499,11 @@ FD_EXPORT int fd_commit_index(fd_index ix)
               (ix->index_stores.table_n_keys) ||
               (fd_modifiedp((lispval)&(ix->index_metadata)))) )
     return 0;
+  else if (ix->index_handler->commit == NULL) {
+    u8_seterr("NoCommitMethod","fd_commit_index",u8_strdup(ix->indexid));
+    return -1;}
+  else NO_ELSE;
+
   u8_lock_mutex(&(ix->index_commit_lock));
   int rv = index_docommit(ix,NULL);
   u8_unlock_mutex(&(ix->index_commit_lock));
@@ -1515,6 +1520,9 @@ FD_EXPORT int fd_index_save(fd_index ix,
 
   if (ix == NULL)
     return -1;
+  else if (ix->index_handler->commit == NULL) {
+    u8_seterr("NoCommitMethod","fd_index_save",u8_strdup(ix->indexid));
+    return -1;}
 
   int free_adds = 0, free_drops =0, free_stores = 0, free_adds_vec = 0;
   int n_adds = 0, n_drops =0, n_stores = 0;
@@ -2184,8 +2192,11 @@ FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args
                            "fd_default_indexctl/keyslot",
                            ix->indexid,ix->index_keyslot);}
       else if ((FD_OIDP(defslot)) || (FD_SYMBOLP(defslot))) {
-        lispval metadata = ((lispval)&(ix->index_metadata));
-        fd_store(metadata,FDSYM_KEYSLOT,defslot);
+        if (ix->index_handler->commit) {
+          /* If the index persists itself (has a commit method),
+             add the new keyslot to the metadata. */
+          lispval metadata = ((lispval)&(ix->index_metadata));
+          fd_store(metadata,FDSYM_KEYSLOT,defslot);}
         ix->index_keyslot=defslot;
         return defslot;}
       else return fd_type_error("slotid","fd_default_indexctl/keyslot",
