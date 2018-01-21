@@ -1971,6 +1971,7 @@ FD_EXPORT lispval fd_get_all_indexes()
     int j = 0; while (j<n_consed_indexes) {
       fd_index ix = consed_indexes[j++];
       lispval lindex = index2lisp(ix);
+      fd_incref(lindex);
       CHOICE_ADD(results,lindex);}
     u8_unlock_mutex(&consed_indexes_lock);}
 
