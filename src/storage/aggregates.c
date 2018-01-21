@@ -316,17 +316,18 @@ static lispval aggregate_ctl(fd_index ix,lispval op,int n,lispval *args)
 static void recycle_aggregate_index(fd_index ix)
 {
   if (ix->index_serialno>=0) return;
-  struct FD_AGGREGATE_INDEX *cx = (struct FD_AGGREGATE_INDEX *) ix;
-  fd_index *indexes = cx->ax_indexes;
-  int i = 0, n = cx->ax_n_indexes;
+  struct FD_AGGREGATE_INDEX *agg = (struct FD_AGGREGATE_INDEX *) ix;
+  fd_index *indexes = agg->ax_indexes;
+  int i = 0, n = agg->ax_n_indexes;
   while (i < n) {
     fd_index each = indexes[i++];
     if (each->index_serialno<0) {
       lispval lix = (lispval) each;
       fd_decref(lix);}}
-  cx->ax_indexes = NULL;
-  cx->ax_n_indexes = cx->ax_n_allocd = 0;
-  if (cx->ax_oldvecs) u8_free_list(cx->ax_oldvecs);
+  u8_free(agg->ax_indexes);
+  agg->ax_indexes = NULL;
+  agg->ax_n_indexes = agg->ax_n_allocd = 0;
+  if (agg->ax_oldvecs) u8_free_list(agg->ax_oldvecs);
 }
 
 static struct FD_INDEX_HANDLER aggregate_index_handler={

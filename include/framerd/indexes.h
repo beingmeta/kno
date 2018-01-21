@@ -76,7 +76,6 @@ typedef struct FD_INDEX_COMMITS {
 /* Lookup tables */
 
 FD_EXPORT fd_index fd_primary_indexes[FD_N_PRIMARY_INDEXES];
-FD_EXPORT fd_index *fd_secondary_indexes;
 FD_EXPORT int fd_n_primary_indexes, fd_n_secondary_indexes;
 
 typedef struct FD_KEY_SIZE {
@@ -134,6 +133,7 @@ struct FD_INDEX_HANDLER some_handler={
 #endif
 
 FD_EXPORT int fd_for_indexes(int (*fcn)(fd_index,void *),void *data);
+FD_EXPORT lispval fd_get_all_indexes(void);
 
 FD_EXPORT void fd_init_index
   (fd_index ix,
@@ -274,7 +274,7 @@ FD_FASTOP U8_MAYBE_UNUSED fd_index fd_indexptr(lispval x)
     else if (serial<FD_N_PRIMARY_INDEXES)
       return fd_primary_indexes[serial];
     else if (serial<(FD_N_PRIMARY_INDEXES+fd_n_secondary_indexes))
-      return fd_secondary_indexes[serial-FD_N_PRIMARY_INDEXES];
+      return fd_lisp2index(x);
     else return NULL;}
   else if ((FD_CONSP(x))&&(FD_TYPEP(x,fd_consed_index_type)))
     return (fd_index)x;

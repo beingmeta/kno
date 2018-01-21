@@ -376,17 +376,7 @@ static int config_use_pool(lispval var,lispval spec,void *data)
 
 static lispval config_get_indexes(lispval var,void *data)
 {
-  lispval results = EMPTY;
-  int i = 0; while (i < fd_n_primary_indexes) {
-    lispval lindex = fd_index_ref(fd_primary_indexes[i]);
-    CHOICE_ADD(results,lindex);
-    i++;}
-  if (i>=fd_n_primary_indexes) return results;
-  i = 0; while (i < fd_n_secondary_indexes) {
-    lispval lindex = fd_index_ref(fd_secondary_indexes[i]);
-    CHOICE_ADD(results,lindex);
-    i++;}
-  return results;
+  return fd_get_all_indexes();
 }
 static int config_open_index(lispval var,lispval spec,void *data)
 {

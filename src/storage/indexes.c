@@ -70,10 +70,12 @@ int fd_index_adds_init     = FD_INDEX_ADDS_INIT;
 int fd_index_drops_init    = FD_INDEX_DROPS_INIT;
 int fd_index_replace_init  = FD_INDEX_REPLACE_INIT;
 
+static u8_rwlock indexes_lock;
 fd_index fd_primary_indexes[FD_N_PRIMARY_INDEXES];
 int fd_n_primary_indexes = 0;
-fd_index *fd_secondary_indexes = NULL;
 int fd_n_secondary_indexes = 0;
+static int secondary_indexes_len = 0;
+static fd_index *secondary_indexes = NULL;
 
 static fd_index *consed_indexes = NULL;
 ssize_t n_consed_indexes = 0, consed_indexes_len=0;
@@ -173,8 +175,6 @@ static void clear_bg_cache(lispval key)
 
 FD_EXPORT lispval *fd_get_index_delays() { return get_index_delays(); }
 
-static u8_mutex indexes_lock;
-
 /* Index ops */
 
 FD_EXPORT lispval fd_index_ctl(fd_index x,lispval indexop,int n,lispval *args)
@@ -222,22 +222,22 @@ FD_EXPORT void fd_register_index(fd_index ix)
   if (ix->index_flags&FD_STORAGE_UNREGISTERED)
     return;
   else if (ix->index_serialno<0) {
-    u8_lock_mutex(&indexes_lock);
+    u8_write_lock(&indexes_lock);
     if (ix->index_serialno>=0) { /* Handle race condition */
-      u8_unlock_mutex(&indexes_lock); return;}
+      u8_rw_unlock(&indexes_lock);
+      return;}
     if (fd_n_primary_indexes<FD_N_PRIMARY_INDEXES) {
       ix->index_serialno = fd_n_primary_indexes;
       fd_primary_indexes[fd_n_primary_indexes++]=ix;}
     else {
-      if (fd_secondary_indexes)
-        fd_secondary_indexes = u8_realloc_n
-          (fd_secondary_indexes,fd_n_secondary_indexes+1,fd_index);
-      else fd_secondary_indexes = u8_alloc_n(1,fd_index);
-      ix->index_serialno = fd_n_secondary_indexes+FD_N_PRIMARY_INDEXES;
-      fd_secondary_indexes[fd_n_secondary_indexes++]=ix;}
-    /* Make it a static cons */
-   FD_SET_REFCOUNT(ix,0);
-    u8_unlock_mutex(&indexes_lock);}
+      if (fd_n_secondary_indexes >= secondary_indexes_len) {
+        secondary_indexes_len = secondary_indexes_len*2;
+        secondary_indexes = u8_realloc_n
+          (secondary_indexes,secondary_indexes_len,fd_index);}
+      secondary_indexes[fd_n_secondary_indexes++]=ix;}
+    FD_SET_REFCOUNT(ix,0);}
+  /* Make it a static cons */
+  u8_rw_unlock(&indexes_lock);
   if ((ix->index_flags)&(FD_INDEX_IN_BACKGROUND))
     fd_add_to_background(ix);
 }
@@ -265,11 +265,20 @@ FD_EXPORT lispval fd_index_ref(fd_index ix)
 }
 FD_EXPORT fd_index fd_lisp2index(lispval lix)
 {
-  if (FD_ABORTP(lix)) return NULL;
+  if (FD_ABORTP(lix))
+    return NULL;
   else if (TYPEP(lix,fd_index_type)) {
     int serial = FD_GET_IMMEDIATE(lix,fd_index_type);
-    if (serial<FD_N_PRIMARY_INDEXES) return fd_primary_indexes[serial];
-    else return fd_secondary_indexes[serial-FD_N_PRIMARY_INDEXES];}
+    if (serial<FD_N_PRIMARY_INDEXES)
+      return fd_primary_indexes[serial];
+    else if ( (fd_n_secondary_indexes == 0) ||
+              (serial >= (fd_n_secondary_indexes+FD_N_PRIMARY_INDEXES)) )
+      return NULL;
+    else {
+      u8_read_lock(&indexes_lock);
+      fd_index index = secondary_indexes[serial-FD_N_PRIMARY_INDEXES];
+      u8_rw_unlock(&indexes_lock);
+      return index;}}
   else if (TYPEP(lix,fd_consed_index_type))
     return (fd_index) lix;
   else {
@@ -315,31 +324,43 @@ static int match_index_id(fd_index ix,u8_string id)
 FD_EXPORT fd_index fd_find_index_by_id(u8_string id)
 {
   int i = 0;
-  if (id == NULL) return NULL;
+  if (id == NULL)
+    return NULL;
   else while (i<fd_n_primary_indexes)
          if (match_index_id(fd_primary_indexes[i],id))
            return fd_primary_indexes[i];
          else i++;
-  if (fd_secondary_indexes == NULL) return NULL;
+  if (secondary_indexes == NULL)
+    return NULL;
+  u8_read_lock(&indexes_lock);
   i = 0; while (i<fd_n_secondary_indexes)
-           if (match_index_id(fd_secondary_indexes[i],id))
-             return fd_secondary_indexes[i];
+           if (match_index_id(secondary_indexes[i],id)) {
+             fd_index ix = secondary_indexes[i];
+             u8_rw_unlock(&indexes_lock);
+             return ix;}
            else i++;
+  u8_rw_unlock(&indexes_lock);
   return NULL;
 }
 FD_EXPORT fd_index fd_find_index_by_source(u8_string source)
 {
   int i = 0;
-  if (source == NULL) return NULL;
+  if (source == NULL)
+    return NULL;
   else while (i<fd_n_primary_indexes)
          if (match_index_source(fd_primary_indexes[i],source))
            return fd_primary_indexes[i];
          else i++;
-  if (fd_secondary_indexes == NULL) return NULL;
+  if (secondary_indexes == NULL)
+    return NULL;
+  u8_read_lock(&indexes_lock);
   i = 0; while (i<fd_n_secondary_indexes)
-           if (match_index_source(fd_secondary_indexes[i],source))
-             return fd_secondary_indexes[i];
+           if (match_index_source(secondary_indexes[i],source)) {
+             fd_index ix = secondary_indexes[i];
+             u8_rw_unlock(&indexes_lock);
+             return ix;}
            else i++;
+  u8_rw_unlock(&indexes_lock);
   return NULL;
 }
 
@@ -1919,38 +1940,59 @@ static lispval index_parsefn(int n,lispval *args,fd_compound_typeinfo e)
 
 /* Operations over all indexes */
 
-FD_EXPORT int fd_for_indexes(int (*fcn)(fd_index ix,void *),void *data)
+static lispval index2lisp(fd_index ix)
 {
-  int total=0;
-  int i = 0; while (i < fd_n_primary_indexes) {
-    int retval = fcn(fd_primary_indexes[i],data);
-    total++;
-    if (retval<0) return retval;
-    else if (retval) break;
-    else i++;}
-  if (i<fd_n_primary_indexes)
-    return total;
+  if (ix->index_serialno>=0)
+    return LISPVAL_IMMEDIATE(fd_index_type,ix->index_serialno);
+  else {
+    lispval v = (lispval) ix;
+    fd_incref(v);
+    return v;}
+}
 
-  i = 0; while (i < fd_n_secondary_indexes) {
-    int retval = fcn(fd_secondary_indexes[i],data);
-    total++;
-    if (retval<0) return retval;
-    else if (retval) break;
-    else i++;}
-  if (i<fd_n_secondary_indexes)
-    return total;
+FD_EXPORT lispval fd_get_all_indexes()
+{
+  lispval results = EMPTY;
+  int i = 0; while (i < fd_n_primary_indexes) {
+    lispval lindex = index2lisp(fd_primary_indexes[i]);
+    CHOICE_ADD(results,lindex);
+    i++;}
+
+  if (i>=fd_n_primary_indexes) {
+    u8_read_lock(&indexes_lock);
+    i = 0; while (i < fd_n_secondary_indexes) {
+      lispval lindex = index2lisp(secondary_indexes[i]);
+      CHOICE_ADD(results,lindex);
+      i++;}
+    u8_rw_unlock(&indexes_lock);}
 
   if (n_consed_indexes) {
     u8_lock_mutex(&consed_indexes_lock);
     int j = 0; while (j<n_consed_indexes) {
       fd_index ix = consed_indexes[j++];
-      int retval = fcn(ix,data);
-      total++;
-      if (retval) u8_unlock_mutex(&consed_indexes_lock);
-      if (retval<0) return retval;
-      else if (retval) break;
-      else j++;}}
+      lispval lindex = index2lisp(ix);
+      CHOICE_ADD(results,lindex);}
+    u8_unlock_mutex(&consed_indexes_lock);}
 
+  return results;
+}
+
+FD_EXPORT int fd_for_indexes(int (*fcn)(fd_index ix,void *),void *data)
+{
+  int total = 0;
+  lispval all_indexes = fd_get_all_indexes();
+  DO_CHOICES(lindex,all_indexes) {
+    fd_index ix = fd_lisp2index(lindex);
+    int retval = fcn(ix,data);
+    total++;
+    if (retval<0) {
+      FD_STOP_DO_CHOICES;
+      fd_decref(all_indexes);
+      return retval;}
+    else if (retval) {
+      FD_STOP_DO_CHOICES;
+      break;}}
+  fd_decref(all_indexes);
   return total;
 }
 
@@ -2225,11 +2267,11 @@ static int check_index(lispval x)
     if (fd_primary_indexes[serial])
       return 1;
     else return 0;
-  else if (fd_secondary_indexes) {
+  else if (secondary_indexes) {
     int second_off=serial-FD_N_PRIMARY_INDEXES;
     if ( (second_off < 0) || (second_off  > fd_n_secondary_indexes) )
       return 0;
-    else return (fd_secondary_indexes[second_off]!=NULL);}
+    else return (secondary_indexes[second_off]!=NULL);}
   else return 0;
 }
 
@@ -2248,6 +2290,9 @@ FD_EXPORT void fd_init_indexes_c()
   u8_init_mutex(&consed_indexes_lock);
   consed_indexes = u8_malloc(64*sizeof(fd_index));
   consed_indexes_len=64;
+
+  secondary_indexes     = u8_malloc(64*sizeof(fd_index));
+  secondary_indexes_len = 64;
 
   fd_index_hashop=fd_intern("HASH");
   fd_index_slotsop=fd_intern("SLOTIDS");
@@ -2302,7 +2347,7 @@ FD_EXPORT void fd_init_indexes_c()
   fd_unparsers[fd_index_type]=unparse_index;
   metadata_readonly_props = fd_intern("_READONLY_PROPS");
 
-  u8_init_mutex(&indexes_lock);
+  u8_init_rwlock(&indexes_lock);
   u8_init_mutex(&background_lock);
 
 #if (FD_USE_TLS)

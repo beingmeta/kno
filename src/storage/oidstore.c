@@ -235,21 +235,30 @@ FD_EXPORT lispval fd_get_adjuncts(fd_pool p)
 
 static fd_index l2x(lispval lix)
 {
-  int serial = FD_GET_IMMEDIATE(lix,fd_index_type);
-  if (serial<FD_N_PRIMARY_INDEXES) return fd_primary_indexes[serial];
-  else return fd_secondary_indexes[serial-FD_N_PRIMARY_INDEXES];
+  if (FD_ETERNAL_INDEXP(lix)) {
+    int serial = FD_GET_IMMEDIATE(lix,fd_index_type);
+    if (serial<FD_N_PRIMARY_INDEXES)
+      return fd_primary_indexes[serial];
+    else return fd_lisp2index(lix);}
+  else if (FD_TYPEP(lix,fd_consed_index_type))
+    return (fd_index) lix;
+  else return NULL;
 }
 
 static fd_pool l2p(lispval lp)
 {
-  int serial = FD_GET_IMMEDIATE(lp,fd_pool_type);
-  if (serial<fd_n_pools)
-    return fd_pools_by_serialno[serial];
-  else {
-    char buf[64];
-    fd_seterr3(fd_InvalidPoolPtr,"fd_lisp2pool",
-               u8_sprintf(buf,64,"serial = 0x%x",serial));
-    return NULL;}
+  if (FD_ETERNAL_POOLP(lp)) {
+    int serial = FD_GET_IMMEDIATE(lp,fd_pool_type);
+    if (serial<fd_n_pools)
+      return fd_pools_by_serialno[serial];
+    else {
+      char buf[64];
+      fd_seterr3(fd_InvalidPoolPtr,"fd_lisp2pool",
+                 u8_sprintf(buf,64,"serial = 0x%x",serial));
+      return NULL;}}
+  else if (FD_CONSED_POOLP(lp))
+    return (fd_pool) lp;
+  else return NULL;
 }
 
 static lispval adjunct_fetch(fd_adjunct adj,lispval frame,lispval dflt)
