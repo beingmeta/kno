@@ -107,6 +107,7 @@ FD_EXPORT lispval fd_index_ctl(fd_index p,lispval op,int n,lispval *args);
 
 FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args);
 FD_EXPORT lispval fd_index_base_metadata(fd_index ix);
+FD_EXPORT void fd_recycle_index(struct FD_INDEX *ix);
 
 FD_EXPORT lispval fd_index_hashop, fd_index_slotsop, fd_index_bucketsop;
 
@@ -189,6 +190,16 @@ FD_EXPORT lispval fd_index_ref(fd_index ix);
 
 FD_EXPORT int fd_add_to_background(fd_index ix);
 
+/* Temp indexes */
+
+typedef struct FD_TEMPINDEX {
+  FD_INDEX_FIELDS;} FD_TEMPINDEX;
+typedef struct FD_TEMP_INDEX *fd_tempindex;
+
+FD_EXPORT fd_index fd_make_tempindex
+(u8_string name,fd_storage_flags flags,lispval opts);
+FD_EXPORT int fd_tempindexp(fd_index ix);
+
 /* Network indexes */
 
 /* Server capabilities */
@@ -245,9 +256,9 @@ typedef struct FD_AGGREGATE_INDEX {
 typedef struct FD_AGGREGATE_INDEX *fd_aggregate_index;
 
 FD_EXPORT int fd_add_to_aggregate_index(fd_aggregate_index ix,fd_index add);
-FD_EXPORT fd_index fd_make_aggregate_index(int n_allocd,int n_indexes,fd_index *indexes);
+FD_EXPORT fd_aggregate_index fd_make_aggregate_index
+(lispval opts,int n_allocd,int n_indexes,fd_index *indexes);
 FD_EXPORT int fd_aggregate_indexp(fd_index ix);
-
 
 FD_EXPORT struct FD_AGGREGATE_INDEX *fd_background;
 
@@ -288,14 +299,8 @@ U8_MAYBE_UNUSED static fd_index fd_get_writable_index(fd_index ix)
         return NULL;}
       else return front;}
     else return NULL;}
-  else {
-    lispval ptr = fd_index2lisp(ix);
-    if (FD_CONSP(ptr)) fd_incref(ptr);
-    return ix;}
+  else return ix;
 }
-#define fd_free_writable(ix,ix_arg) \
-  if ( ((ix) != (ix_arg)) && (FD_CONSP((lispval)ix)) ) { \
-    fd_decref((lispval)ix);}
 #else
 #define fd_indexptr _fd_indexptr
 #define fd_index2lisp _fd_index2lisp

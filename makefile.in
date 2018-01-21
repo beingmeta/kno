@@ -160,8 +160,10 @@ STORAGE_OBJS=\
 	src/storage/cachecall.o src/storage/threadcache.o	\
 	src/storage/extindex.o src/storage/extpool.o		\
 	src/storage/procpool.o src/storage/procindex.o		\
-	src/storage/mempool.o src/storage/drivers.o		\
-	@ipevalo@ src/storage/frames.o src/storage/slotindexes.o
+	src/storage/mempool.o src/storage/tempindex.o		\
+	src/storage/frames.o src/storage/slotindexes.o 		\
+	src/storage/drivers.o					\
+	@ipevalo@ 
 
 DRIVER_OBJS=\
 	src/drivers/builtin_drivers.o			\
@@ -390,7 +392,7 @@ FRAMERD_SOURCES=\
 	src/drivers/filepool.c src/drivers/oidpool.c 				\
 	src/drivers/bigpool.c 							\
 	src/drivers/fileindex.c src/drivers/hashindex.c				\
-	src/storage/extindex.c							\
+	src/storage/extindex.c src/storage/tempindex.c				\
 	src/storage/mempool.c src/storage/extpool.c				\
 	src/drivers/netpool.c src/drivers/netindex.c 				\
 	src/storage/procpool.c src/storage/procindex.c 				\

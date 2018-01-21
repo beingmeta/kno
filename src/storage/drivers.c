@@ -1229,6 +1229,7 @@ void fd_init_extindex_c(void);
 void fd_init_procpool_c(void);
 void fd_init_procindex_c(void);
 void fd_init_aggregates_c(void);
+void fd_init_tempindex_c(void);
 
 static int drivers_c_initialized = 0;
 
@@ -1245,7 +1246,7 @@ FD_EXPORT int fd_init_drivers_c()
   fd_init_procpool_c();
   fd_init_procindex_c();
   fd_init_aggregates_c();
-
+  fd_init_tempindex_c();
 
   rev_symbol = fd_intern("REV");
   gentime_symbol = fd_intern("GENTIME");
