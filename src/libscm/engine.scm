@@ -345,6 +345,7 @@ slot of the loop state.
 		       'checkspace (getopt opts 'checkspace check-spacing)
 		       'checktests (getopt opts 'checktests {})
 		       'checkpoint (getopt opts 'checkpoint {})
+		       'checkpause (getopt opts 'checkpause {})
 		       'checksync (getopt opts 'checksync {})
 		       'monitors (getopt opts 'monitors {})
 		       'onerror (getopt opts 'onerror 'stopall)
@@ -664,7 +665,7 @@ slot of the loop state.
 	    (begin 
 	      (logdebug |Engine/Checkpoint| 
 		"For " fifo " loop state=\n  " (void (pprint loop-state)))
-	      (when fifo
+	      (when (and fifo (getopt loop-state 'checkpause #t))
 		(fifo/pause! fifo 'readwrite)
 		(when (and (not force)
 			   (getopt loop-state 'checksync)
@@ -681,7 +682,7 @@ slot of the loop state.
 			       #[] loop-state (get loop-state 'state)))
 	      (if (test loop-state 'stopped)
 		  (lognotice |Engine/Checkpoint| "Starting final checkpoint for " fifo)
-		  (loginfo |Engine/Checkpoint| "Starting incremental checkpoint for " fifo))
+		  (lognotice |Engine/Checkpoint| "Starting incremental checkpoint for " fifo))
 	      (flex/save! (get loop-state 'checkpoint))
 	      (when state (update-task-state loop-state))
 	      (when (and state (testopt (get loop-state 'opts) 'statefile))
