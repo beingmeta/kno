@@ -856,9 +856,10 @@ FD_EXPORT void fd_free_keyvals(struct FD_KEYVAL *kvals,int n_kvals)
     i++;}
 }
 
-FD_EXPORT void fd_recycle_slotmap(struct FD_SLOTMAP *c)
+FD_EXPORT void fd_free_slotmap(struct FD_SLOTMAP *c)
 {
-  struct FD_SLOTMAP *sm=(struct FD_SLOTMAP *)c; int unlock=0;
+  struct FD_SLOTMAP *sm=(struct FD_SLOTMAP *)c;
+  int unlock=0;
   if (sm->table_uselock) {
     fd_write_lock_table(sm);
     unlock=1;}
@@ -873,8 +874,16 @@ FD_EXPORT void fd_recycle_slotmap(struct FD_SLOTMAP *c)
   if (unlock) fd_unlock_table(sm);
   u8_destroy_rwlock(&(sm->table_rwlock));
   memset(sm,0,FD_SLOTMAP_LEN);
+}
+
+
+static void recycle_slotmap(struct FD_RAW_CONS *c)
+{
+  struct FD_SLOTMAP *sm=(struct FD_SLOTMAP *)c;
+  fd_free_slotmap(sm);
   u8_free(sm);
 }
+
 static int unparse_slotmap(u8_output out,lispval x)
 {
   int unlock = 0;
@@ -2273,7 +2282,8 @@ static int do_hashtable_op(struct FD_HASHTABLE *ht,fd_tableop op,
     else {CHOICE_ADD(result->kv_val,value);}
     break;
   case fd_table_add_noref: case fd_table_add_empty_noref:
-    if (VOIDP(result->kv_val)) result->kv_val=value;
+    if (VOIDP(result->kv_val))
+      result->kv_val=value;
     else {CHOICE_ADD(result->kv_val,value);}
     break;
   case fd_table_drop: {
@@ -4492,26 +4502,26 @@ void fd_init_tables_c()
   u8_register_source_file(_FILEINFO);
 
   /* SLOTMAP */
-  fd_recyclers[fd_slotmap_type]= (fd_recycle_fn) fd_recycle_slotmap;
-  fd_unparsers[fd_slotmap_type]=unparse_slotmap;
-  fd_copiers[fd_slotmap_type]=copy_slotmap;
-  fd_comparators[fd_slotmap_type]=compare_slotmaps;
+  fd_recyclers[fd_slotmap_type]   = recycle_slotmap;
+  fd_unparsers[fd_slotmap_type]   = unparse_slotmap;
+  fd_copiers[fd_slotmap_type]     = copy_slotmap;
+  fd_comparators[fd_slotmap_type] =compare_slotmaps;
 
   /* SCHEMAP */
-  fd_recyclers[fd_schemap_type]=recycle_schemap;
-  fd_unparsers[fd_schemap_type]=unparse_schemap;
-  fd_copiers[fd_schemap_type]=copy_schemap;
-  fd_comparators[fd_schemap_type]=compare_schemaps;
+  fd_recyclers[fd_schemap_type]   = recycle_schemap;
+  fd_unparsers[fd_schemap_type]   = unparse_schemap;
+  fd_copiers[fd_schemap_type]     = copy_schemap;
+  fd_comparators[fd_schemap_type] = compare_schemaps;
 
   /* HASHTABLE */
-  fd_recyclers[fd_hashtable_type]=recycle_hashtable;
-  fd_unparsers[fd_hashtable_type]=unparse_hashtable;
-  fd_copiers[fd_hashtable_type]=copy_hashtable;
+  fd_recyclers[fd_hashtable_type] = recycle_hashtable;
+  fd_unparsers[fd_hashtable_type] = unparse_hashtable;
+  fd_copiers[fd_hashtable_type]   = copy_hashtable;
 
   /* HASHSET */
-  fd_recyclers[fd_hashset_type]=recycle_hashset;
-  fd_unparsers[fd_hashset_type]=unparse_hashset;
-  fd_copiers[fd_hashset_type]=copy_hashset;
+  fd_recyclers[fd_hashset_type]   = recycle_hashset;
+  fd_unparsers[fd_hashset_type]   = unparse_hashset;
+  fd_copiers[fd_hashset_type]     = copy_hashset;
 
   memset(fd_tablefns,0,sizeof(fd_tablefns));
 
