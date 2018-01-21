@@ -363,7 +363,7 @@ static U8_MAYBE_UNUSED int atomic_choice_containsp(lispval x,lispval ch)
 /* This does a simple binary search of a sorted choice vector,
    looking for a particular element. Once more, we separate out the
    atomic case because it just requires pointer comparisons.  */
-static int fast_choice_containsp(lispval x,struct FD_CHOICE *choice)
+static U8_MAYBE_UNUSED int fast_choice_containsp(lispval x,struct FD_CHOICE *choice)
 {
   int size = FD_XCHOICE_SIZE(choice);
   const lispval *bottom = FD_XCHOICE_DATA(choice), *top = bottom+(size-1);
