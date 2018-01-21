@@ -71,7 +71,8 @@ static int aggregate_prefetch(fd_index ix,lispval keys)
     int j = 0; fd_index each = aix->ax_indexes[i];
     lispval *values=each->index_handler->fetchn(each,n_fetches,keyv);
     if (values == NULL) {
-      u8_big_free(keyv); u8_big_free(valuev);
+      u8_big_free(keyv);
+      u8_big_free(valuev);
       fd_unlock_index(aix);
       return -1;}
     while (j<n_fetches) {
@@ -79,10 +80,10 @@ static int aggregate_prefetch(fd_index ix,lispval keys)
     u8_big_free(values);
     i++;}
   fd_unlock_index(aix);
-  i = 0; while (i<n_fetches)
+  i = 0; while (i<n_fetches) {
            if (PRECHOICEP(valuev[i])) {
-             valuev[i]=fd_simplify_choice(valuev[i]); i++;}
-           else i++;
+             valuev[i]=fd_simplify_choice(valuev[i]);}
+           i++;}
   /* The operation fd_table_add_empty_noref will create an entry even
      if the value is the empty choice. */
   fd_hashtable_iter(&(aix->index_cache),fd_table_add_empty_noref,
@@ -109,7 +110,8 @@ static lispval *aggregate_fetchn(fd_index ix,int n,const lispval *keys)
       n_fetches++;}
     else valuev[scan-keys]=fd_hashtable_get(&(aix->index_cache),key,EMPTY);}
   if (n_fetches==0) {
-    u8_big_free(keyv); u8_big_free(posmap);
+    u8_big_free(keyv);
+    u8_big_free(posmap);
     return valuev;}
   fd_lock_index(aix);
   lim = aix->ax_n_indexes;
@@ -123,17 +125,19 @@ static lispval *aggregate_fetchn(fd_index ix,int n,const lispval *keys)
       fd_unlock_index(aix);
       return NULL;}
     while (j<n_fetches) {
-      CHOICE_ADD(valuev[posmap[j]],values[j]); j++;}
+      CHOICE_ADD(valuev[posmap[j]],values[j]);
+      j++;}
     u8_big_free(values);
     i++;}
   fd_unlock_index(aix);
-  i = 0; while (i<n_fetches)
+  i = 0; while (i<n_fetches) {
            if (PRECHOICEP(valuev[i])) {
-             valuev[i]=fd_simplify_choice(valuev[i]); i++;}
-           else i++;
+             valuev[i]=fd_simplify_choice(valuev[i]);}
+           i++;}
   /* The operation fd_table_add_empty_noref will create an entry even
      if the value is the empty choice. */
-  u8_big_free(keyv); u8_big_free(posmap);
+  u8_big_free(keyv);
+  u8_big_free(posmap);
   return valuev;
 }
 
@@ -156,31 +160,44 @@ static lispval *aggregate_fetchkeys(fd_index ix,int *n)
   fd_unlock_index(aix);
   {
     lispval simple = fd_simplify_choice(combined);
-    int j = 0, n_elts = FD_CHOICE_SIZE(simple);
-    lispval *results = ((n>0) ? (u8_alloc_n(n_elts,lispval)) : (NULL));
+    int n_elts = FD_CHOICE_SIZE(simple);
+    lispval *results = ((n>0) ? (u8_big_alloc_n(n_elts,lispval)) : (NULL));
     if (n_elts==0) {
-      *n = 0; return results;}
+      *n = 0;
+      return results;}
     else if (n_elts==1) {
-      results[0]=simple; *n = 1;
+      results[0]=simple;
+      *n = 1;
       return results;}
     else if (FD_CONS_REFCOUNT((fd_cons)simple)==1) {
-      DO_CHOICES(key,simple) {results[j]=key;}
+      int j=0;
+      DO_CHOICES(key,simple) {
+        results[j]=key;
+        j++;}
       fd_free_choice((fd_choice)simple);
-      *n = n_elts; return results;}
+      *n = j;
+      return results;}
     else {
-      DO_CHOICES(key,simple) {results[j]=fd_incref(key);}
+      int j=0;
+      DO_CHOICES(key,simple) {
+        results[j]=fd_incref(key);
+        j++;}
       fd_decref(simple);
-      *n = n_elts; return results;}
+      *n = j;
+      return results;}
   }
 }
 
-FD_EXPORT fd_index fd_make_aggregate_index(int n_allocd,int n,fd_index *indexes)
+FD_EXPORT fd_aggregate_index fd_make_aggregate_index
+(lispval opts,int n_allocd,int n,fd_index *indexes)
 {
   struct FD_AGGREGATE_INDEX *aix = u8_alloc(struct FD_AGGREGATE_INDEX);
+  lispval metadata = fd_getopt(opts,FDSYM_METADATA,FD_VOID);
+  fd_storage_flags flags =
+    fd_get_dbflags(opts,FD_STORAGE_ISINDEX|FD_STORAGE_READ_ONLY);
   fd_init_index((fd_index)aix,&aggregate_index_handler,
-                "new-aggregate",NULL,
-                FD_STORAGE_ISINDEX|FD_STORAGE_READ_ONLY,
-                FD_VOID,FD_VOID);
+                "new-aggregate",NULL,flags,
+                opts,metadata);
   if (n_allocd < n) n_allocd = n;
   u8_init_mutex(&(aix->index_lock));
   aix->ax_n_allocd = n_allocd;
@@ -191,7 +208,7 @@ FD_EXPORT fd_index fd_make_aggregate_index(int n_allocd,int n,fd_index *indexes)
     fd_index add = indexes[i++];
     if (add) fd_add_to_aggregate_index(aix,add);}
   fd_register_index((fd_index)aix);
-  return (fd_index) aix;
+  return aix;
 }
 
 FD_EXPORT int fd_add_to_aggregate_index(fd_aggregate_index aix,fd_index add)
@@ -331,9 +348,7 @@ static struct FD_INDEX_HANDLER aggregate_index_handler={
 
 FD_EXPORT int fd_aggregate_indexp(fd_index ix)
 {
-  if ( (ix) && (ix->index_handler == &aggregate_index_handler) )
-    return 1;
-  else return 0;
+  return ( (ix) && (ix->index_handler == &aggregate_index_handler) );
 }
 
 FD_EXPORT void fd_init_aggregates_c()

@@ -569,32 +569,40 @@ static lispval unlockoids(lispval oids,lispval commitp)
     else return FD_INT(retval);}
 }
 
-static lispval make_aggregate_index(int n,lispval *args)
+static lispval make_aggregate_index(lispval sources,lispval opts)
 {
-  int n_sources = 0, source_i = 0;
-  int args_i = 0; while (args_i < n) {
-    lispval arg = args[args_i++];
-    n_sources += FD_CHOICE_SIZE(arg);}
-  fd_index sources[n_sources];
-  args_i = 0; while (args_i<n) {
-    DO_CHOICES(source,args[args_i]) {
-      fd_index ix = NULL;
-      if (STRINGP(source))
-        ix = fd_get_index(fd_strdata(source),0,VOID);
-      else if (INDEXP(source))
-        ix = fd_indexptr(source);
-      else if (SYMBOLP(source)) {
-        lispval val = fd_config_get(SYM_NAME(source));
-        if (STRINGP(val)) ix = fd_get_index(fd_strdata(val),0,VOID);
-        else if (INDEXP(val)) ix = fd_indexptr(val);
-        else NO_ELSE;}
-      else {}
-      if (ix)
-        sources[source_i++]=ix;
-      else {
-        return fd_type_error("index","make_aggregate_index",source);}}
-    args_i++;}
-  return index2lisp(fd_make_aggregate_index(n_sources,source_i,sources));
+  int n_sources = FD_CHOICE_SIZE(sources), n_partitions=0;
+  if (n_sources == 0)
+    return index2lisp((fd_index)fd_make_aggregate_index(opts,8,0,NULL));
+  fd_index partitions[n_sources];
+  FD_DO_CHOICES(source,sources) {
+    fd_index ix = NULL;
+    if (STRINGP(source))
+      ix = fd_get_index(fd_strdata(source),0,VOID);
+    else if (INDEXP(source))
+      ix = fd_indexptr(source);
+    else if (SYMBOLP(source)) {
+      lispval val = fd_config_get(SYM_NAME(source));
+      if (STRINGP(val)) ix = fd_get_index(FD_CSTRING(val),0,VOID);
+      else if (INDEXP(val)) ix = fd_indexptr(val);
+      else NO_ELSE;}
+    else if ( (FD_PAIRP(source)) || (FD_SLOTMAPP(source)) ) {
+      lispval spec = fd_getopt(source,FDSYM_SOURCE,FD_VOID);
+      if (FD_STRINGP(spec))
+        ix = fd_open_index(FD_CSTRING(spec),-1,source);
+      fd_decref(spec);}
+    else {}
+    if (ix)
+      partitions[n_partitions++] = ix;
+    else {
+      FD_STOP_DO_CHOICES;
+      return fd_type_error("index","make_aggregate_index",source);}}
+  int n_alloc = 8;
+  while (n_partitions > n_alloc)
+    n_alloc=n_alloc*2;
+  fd_aggregate_index aggregate =
+    fd_make_aggregate_index(opts,n_alloc,n_partitions,partitions);
+  return index2lisp((fd_index)aggregate);
 }
 
 static lispval add_to_aggregate_index(lispval into_arg,lispval partition_arg)
@@ -1917,6 +1925,18 @@ static lispval index_merge(lispval ixarg,lispval addstable)
     int rv = fd_index_merge(ix,(fd_hashtable)addstable);
     return FD_INT(rv);}
 }
+
+static lispval slotindex_merge(lispval ixarg,lispval add)
+{
+  fd_index ix = fd_indexptr(ixarg);
+  if (ix == NULL)
+    return fd_type_error("index","index_merge",ixarg);
+  else {
+    int rv = fd_slotindex_merge(ix,add);
+    return FD_INT(rv);}
+}
+
+
 
 static lispval index_source(lispval ix_arg)
 {
@@ -3685,9 +3705,10 @@ FD_EXPORT void fd_init_dbprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("INDEX-SOURCE",index_source_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("INDEX-ID",index_id,1));
 
-  fd_idefn(fd_xscheme_module,
-           fd_make_ndprim
-           (fd_make_cprimn("MAKE-AGGREGATE-INDEX",make_aggregate_index,1)));
+  fd_idefn2(fd_xscheme_module,"MAKE-AGGREGATE-INDEX",make_aggregate_index,
+            FD_NDCALL|FD_NEEDS_1_ARG,
+            "Creates an aggregate index from a collection of other indexes",
+            -1,FD_VOID,-1,FD_FALSE);
 
   fd_idefn(fd_xscheme_module,
            fd_make_cprim2("ADD-TO-AGGREGATE-INDEX!",add_to_aggregate_index,2));
@@ -3701,9 +3722,16 @@ FD_EXPORT void fd_init_dbprims_c()
   fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-KEYSVEC",index_keysvec,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim2("INDEX-SIZES",index_sizes,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-SOURCE",index_source,1));
-  fd_idefn(fd_xscheme_module,
-           fd_make_cprim2x("INDEX-MERGE!",index_merge,2,-1,VOID,
-                           fd_hashtable_type,VOID));
+  fd_idefn2(fd_xscheme_module,"INDEX/MERGE!",index_merge,2,
+            "Merges a hashtable into the ADDS of an index "
+            "as a batch operation",
+            -1,VOID,-1,VOID);
+  fd_defalias(fd_xscheme_module,"INDEX-MERGE!","INDEX/MERGE!");
+  fd_idefn2(fd_xscheme_module,"SLOTINDEX/MERGE!",slotindex_merge,2,
+            "Merges a hashtable or temporary index into the ADDS of an index "
+            "as a batch operation, trying to handle conversions between "
+            "slotkeys if needed.",
+            -1,VOID,-1,VOID);
   fd_idefn1(fd_xscheme_module,"CLOSE-INDEX",close_index_prim,1,
             "(INDEX-CLOSE *index*) closes any resources associated with *index*",
             -1,VOID);

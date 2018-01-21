@@ -446,11 +446,18 @@ hashindex64:
 hashindex40x:
 	@make TESTBASE=tmphash40x.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B40 SLOTCODES=yes OIDCODES=yes" indextest
 
+aggindex:
+	@make TESTBASE=aggindex.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B40 AGGINDEX=yes" indextest
+aggindex_consed:
+	@make TESTBASE=aggindex.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B40 CONSINDEX=yes AGGINDEX=yes" indextest
+aggindexes: aggindex aggindex_consed
+
+
 hashindexes hashindex: hashindex32 hashindex40 hashindex40x hashindex64
 
 indextests indexes: fileindexes hashindexes memindexes
 
-.PHONY: indexes indextests fileindexes hashindexes memindexes
+.PHONY: indexes indextests fileindexes hashindexes memindexes aggindexes
 
 # Database/frames test
 
@@ -477,7 +484,9 @@ frametest:
 frametest_base:
 	@make TESTBASE=testdb RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40}" frametest
 frametest_aggregate:
-	@make TESTBASE=aggdb RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40} SEPINDEX=FILENAME" frametest
+	@make TESTBASE=agg RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40} AGGINDEX=yes" frametest
+frametest_slotindex:
+	@make TESTBASE=slotindex RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40} SEPINDEX=FILENAME" frametest
 frametest_bigpool32:
 	@make TESTBASE=tmpbigpool32 RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB32}" frametest
 frametest_bigpool40:
@@ -502,7 +511,8 @@ rckdbframes rckdbframetest:
 
 frametests dbtest dbtests db: frametest_base \
 	frametest_bigpool32 frametest_bigpool40 frametest_bigpool64 \
-	frametest_fileindex frametest_memindex frametest_aggregate
+	frametest_aggregate frametest_slotindex \
+	frametest_fileindex frametest_memindex \
 
 .PHONY: frametests frametest dbtest dbtests db
 

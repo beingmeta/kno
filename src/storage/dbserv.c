@@ -908,7 +908,7 @@ void fd_init_dbserv_c()
                      config_set_locksfile,
                      NULL);
 
-  primary_index = (fd_aggregate_index)fd_make_aggregate_index(32,0,NULL);
+  primary_index = fd_make_aggregate_index(FD_FALSE,32,0,NULL);
 
   fd_dbserv_module = module;
 }

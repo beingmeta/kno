@@ -85,16 +85,18 @@ static lispval aggregate_prim_find
       fd_index_prefetch((fd_index)ax,values);
       DO_CHOICES(value,values) {
 	lispval v = fd_index_get((fd_index)ax,value);
-	CHOICE_ADD(combined,v);}}
-    return combined;}
+	CHOICE_ADD(combined,v);}}}
   else {
     fd_hashtable cache = &(ax->index_cache);
     lispval features = make_features(slotids,values);
     lispval fetch_features = FD_EMPTY;
     {DO_CHOICES(feature,features) {
 	lispval cached = fd_hashtable_get(cache,feature,FD_VOID);
-	if (!(FD_VOIDP(cached))) {CHOICE_ADD(combined,cached);}
-	else {CHOICE_ADD(fetch_features,feature); fd_incref(feature);}}}
+	if (!(FD_VOIDP(cached))) {
+	  CHOICE_ADD(combined,cached);}
+	else {
+	  fd_incref(feature);
+	  CHOICE_ADD(fetch_features,feature);}}}
     if (!(FD_EMPTYP(fetch_features))) {
       i=0; while (i < n) {
 	fd_index ex = indexes[i++];
@@ -119,9 +121,14 @@ static lispval aggregate_prim_find
 	  lispval v = fd_index_get((fd_index)ex,key);
 	  keyvec[j] = feature;
 	  valvec[j] = v;
-	  CHOICE_ADD(combined,v);}
-	fd_hashtable_iter(cache,fd_table_add,n_features,keyvec,valvec);}}
-    return combined;}
+	  CHOICE_ADD(combined,v);
+	  j++;}
+	fd_hashtable_iter(cache,fd_table_add,j,keyvec,valvec);
+	u8_free(keyvec);
+	u8_free(valvec);}}
+    fd_decref(fetch_features);
+    fd_decref(features);}
+  return combined;
 }
 
 FD_EXPORT lispval fd_prim_find(lispval indexes,lispval slotids,lispval values)
@@ -184,6 +191,7 @@ FD_EXPORT lispval fd_finder(lispval indexes,int n,lispval *slotvals)
       int j = 0; while (j<i) {fd_decref(conjuncts[j]); j++;}
       return EMPTY;}
     i++;}
+  if (n_conjuncts == 1) return conjuncts[0];
   result = fd_intersection(conjuncts,n_conjuncts);
   i = 0; while (i < n_conjuncts) {
     lispval cj=_conjuncts[i++]; fd_decref(cj);}
@@ -332,10 +340,82 @@ int fd_index_frame(fd_index ix,lispval frames,lispval slotids,lispval values)
       if (use_values != values) fd_decref(use_values);
       if (add_rv < 0) { rv = -1; FD_LOOP_BREAK();}
       else rv += add_rv;}
-    lispval ptr = fd_index2lisp(write_index);
-    fd_decref(ptr);
     if (rv<0) { FD_LOOP_BREAK(); }}
   return rv;
+}
+
+struct KEYSLOT_STATE { fd_hashtable adds; lispval keyslot; };
+
+static int merge_keys_with_slotid(struct FD_KEYVAL *kv,void *data)
+{
+  struct KEYSLOT_STATE *state = data;
+  struct FD_PAIR pair;
+  FD_INIT_STATIC_CONS(&pair,fd_pair_type);
+  pair.car = state->keyslot;
+  pair.cdr = kv->kv_key;
+  fd_hashtable_op_nolock(state->adds,fd_table_add,(lispval)&pair,kv->kv_val);
+  return 0;
+}
+
+static int merge_keys_without_slotid(struct FD_KEYVAL *kv,void *data)
+{
+  struct KEYSLOT_STATE *state = data;
+  lispval key = kv->kv_key;
+  if (FD_PAIRP(key)) {
+    if ((FD_CAR(key)) == state->keyslot )
+      fd_hashtable_op_nolock(state->adds,fd_table_add,FD_CDR(key),kv->kv_val);
+    return 0;}
+  else return 0;
+}
+
+FD_EXPORT int fd_slotindex_merge(fd_index into,lispval from)
+{
+  lispval keyslot = into->index_keyslot;
+  if (FD_VOIDP(keyslot)) {
+    if (FD_HASHTABLEP(from))
+      return fd_index_merge(into,(fd_hashtable)from);
+    else if (FD_INDEXP(from)) {
+	fd_index ix = fd_indexptr(from);
+	if (fd_tempindexp(ix)) {
+	  if (FD_VOIDP(ix->index_keyslot))
+	    return fd_index_merge(into,&(ix->index_adds));
+	  else {
+	    struct KEYSLOT_STATE state = { &ix->index_adds, ix->index_keyslot };
+	    int rv = fd_for_hashtable_kv
+	      (&(into->index_adds),merge_keys_with_slotid,&state,0);
+	    return rv;}}
+	else {
+	  fd_seterr("Not a hashtable or tempindex","fd_slotindex_merge",
+		    into->indexid,from);
+	  return -1;}}
+    else {
+      fd_seterr("Not a hashtable or tempindex","fd_slotindex_merge",
+		into->indexid,from);
+      return -1;}}
+  else if (FD_HASHTABLEP(from)) {
+    struct KEYSLOT_STATE state = { (fd_hashtable)from, keyslot };
+    int rv = fd_for_hashtable_kv
+      ((fd_hashtable)from,merge_keys_without_slotid,&state,0);
+    return rv;}
+  else if (FD_INDEXP(from)) {
+    fd_index ix = fd_indexptr(from);
+    if (fd_tempindexp(ix)) {
+      if (FD_VOIDP(ix->index_keyslot)) {
+	struct KEYSLOT_STATE state = { &ix->index_adds, keyslot };
+	int rv = fd_for_hashtable_kv
+	  (&(into->index_adds),merge_keys_without_slotid,&state,0);
+	return rv;}
+      else if ( ix->index_keyslot == keyslot )
+	return fd_index_merge(into,&(ix->index_adds));
+      else return 0;}
+    else {
+      fd_seterr("Not a hashtable or tempindex","fd_slotindex_merge",
+		into->indexid,from);
+      return -1;}}
+  else {
+    fd_seterr("Not a hashtable or tempindex","fd_slotindex_merge",
+	      into->indexid,from);
+    return -1;}
 }
 
 /* Background searching */
@@ -348,12 +428,14 @@ FD_EXPORT lispval fd_bg_get(lispval slotid,lispval value)
     if ((fd_prefetch) && (fd_ipeval_status()==0) &&
 	(CHOICEP(features)) &&
 	(fd_index_prefetch((fd_index)fd_background,features)<0)) {
-      fd_decref(features); return FD_ERROR;}
+      fd_decref(features);
+      return FD_ERROR;}
     else {
       DO_CHOICES(feature,features) {
 	lispval result = fd_index_get((fd_index)fd_background,feature);
 	if (FD_ABORTP(result)) {
-	  fd_decref(results); fd_decref(features);
+	  fd_decref(results);
+	  fd_decref(features);
 	  return result;}
 	else {CHOICE_ADD(results,result);}}
       fd_decref(features);}

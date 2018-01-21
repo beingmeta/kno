@@ -716,12 +716,15 @@ static lispval intersection_lexpr(int n,lispval *args)
 static lispval difference_lexpr(int n,lispval *args)
 {
   lispval result = fd_incref(args[0]); int i = 1;
-  if (EMPTYP(result)) return result;
+  if (EMPTYP(result))
+    return result;
   else while (i<n) {
     lispval new = fd_difference(result,args[i]);
     if (EMPTYP(new)) {
-      fd_decref(result); return EMPTY;}
-    else {fd_decref(result); result = new;}
+      fd_decref(result);
+      return EMPTY;}
+    else {fd_decref(result);
+      result = new;}
     i++;}
   return fd_simplify_choice(result);
 }

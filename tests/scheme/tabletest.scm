@@ -1,5 +1,9 @@
 (load-component "common.scm")
 
+(define aggindex #f)
+(varconfig! aggindex aggindex config:boolean)
+(define-init aggindex-cache (make-hashtable))
+
 ;;;; Random object generation
 
 (define random-super-pools
@@ -138,7 +142,10 @@
       (let ((components (if atomicp
 			    (get-atomic-components item)
 			    (get-components item))))
-	(add! table components item)))))
+	(add! (if aggindex 
+		  (pick-one (indexctl table 'partitions))
+		  table)
+	      components item)))))
 
 (define bad-maps {})
 (define missed-maps {})
@@ -186,30 +193,80 @@
 
 ;;; Top level
 
-(define (table-for file (consed #f) (indextype indextype))
+(define (table-for file (consed (config 'consindex)) (indextype indextype))
   (cond ((has-suffix file ".slotmap") (frame-create #f))
 	((has-suffix file ".table") (make-hashtable))
 	((has-suffix file ".index")
 	 (make-index file (frame-create #f 
 			    'type indextype
 			    'module (config 'indexmod {} #t)
+			    'register (not consed)
 			    'size 1000000
 			    'offtype (config 'offtype 'b40)
 			    'oidcodes (config 'oidcodes #f)
 			    'slotcodes (config 'slotcodes #f))))
+	((has-suffix file ".aggindex")
+	 (make-aggindex file consed indextype))
 	(else (make-hashtable))))
-(define (table-from file (indextype indextype))
+(define (table-from file (consed (config 'consindex)) (indextype indextype))
   (if (has-suffix file ".index")
       (open-index file (frame-create #f 
 			 'type indextype
+			 'register (not consed)
 			 'module (config 'indexmod {} #t)))
-    (file->dtype file)))
+      (if (has-suffix file ".aggindex")
+	  (open-aggindex file consed indextype)
+	  (file->dtype file))))
+
+(define (make-aggindex file consed indextype)
+  (let* ((part-opts (frame-create #f 
+		      'type indextype
+		      'register (not consed)
+		      'module (config 'indexmod {} #t)
+		      'size 1000000
+		      'offtype (config 'offtype 'b40)
+		      'oidcodes (config 'oidcodes #f)
+		      'slotcodes (config 'slotcodes #f)))
+	 (base (strip-suffix file ".aggindex"))
+	 (aindex (make-index (glom base "-a") part-opts))
+	 (bindex (make-index (glom base "-b") part-opts))
+	 (agg (make-aggregate-index {aindex bindex}
+				    (frame-create #f 
+				      'type indextype
+				      'module (config 'indexmod {} #t)
+				      'size 1000000
+				      'offtype (config 'offtype 'b40)
+				      'oidcodes (config 'oidcodes #f)
+				      'slotcodes (config 'slotcodes #f)))))
+    (indexctl agg 'props 'front aindex)
+    (store! aggindex-cache (sorted {aindex bindex}) agg)
+    (set! aggindex #t)
+    agg))
+
+(define (open-aggindex file consed indextype)
+  (let* ((part-opts (frame-create #f 
+		      'type indextype
+		      'register (not consed)
+		      'module (config 'indexmod {} #t)
+		      'size 1000000
+		      'offtype (config 'offtype 'b40)
+		      'oidcodes (config 'oidcodes #f)
+		      'slotcodes (config 'slotcodes #f)))
+	 (base (strip-suffix file ".aggindex"))
+	 (aindex (make-index (glom base "-a") part-opts))
+	 (bindex (make-index (glom base "-b") part-opts)))
+    (try (get aggindex-cache (sorted {aindex bindex}))
+	 (let ((agg (make-aggregate-index {aindex bindex} #[])))
+	   (indexctl agg 'props 'front aindex)
+	   (store! aggindex-cache (sorted {aindex bindex}) agg)
+	   (set! aggindex #t)
+	   agg))))
 
 (define (save-table table file)
-  (if (has-suffix file ".index")
+  (if (has-suffix file {".index" ".aggindex"})
       (begin (commit table) (swapout table) table)
-    (begin (dtype->file table file)
-	   (file->dtype file))))
+      (begin (dtype->file table file)
+	(file->dtype file))))
 
 (define intable #f)
 (define outtable #f)
@@ -248,7 +305,7 @@
 
 (define (edit-tests filename editfile)
   (if (file-exists? editfile)
-      (let ((table (table-from filename))
+      (let ((table (table-from filename (CONFIG 'consindex)))
 	    (in (file->dtype editfile))
 	    (worked #t))
 	(message "Testing edits with " in)
@@ -261,7 +318,7 @@
 	(if worked
 	    (message "Drop and store worked")
 	    (exit 1)))
-      (let* ((table (table-from filename))
+      (let* ((table (table-from filename (CONFIG 'consindex)))
 	     (items (get table '%items))
 	     (drop (try (pick-one (pick items {vector? slotmap? pair?}))
 			(pick-one items))))
@@ -317,7 +374,7 @@
 	(message "Table is consistent, saving...")
 	(save-table table filename)
 	(message "Table saved, reopening...")
- 	(set! table (table-from filename))
+ 	(set! table (table-from filename (config 'consindex)))
 	(set! outtable table)
 	(unless (config 'noreport) (table-report table "Reloaded table"))
 	(message "Checking consistency of reopened table...")
@@ -332,7 +389,7 @@
       (if size
 	  (begin (edit-tests filename size)
 		 (clearcaches))
-	  (let* ((table (table-from filename))
+	  (let* ((table (table-from filename (config 'consindex)))
 		 (atomicp (has-suffix filename ".slotmap"))
 		 (objectcount (count-objects table)))
 	    (message "Opened table with " (table-size table) " keys")

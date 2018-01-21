@@ -379,8 +379,7 @@ FD_EXPORT int fd_add_to_background(fd_index ix)
   if (fd_background)
     fd_add_to_aggregate_index(fd_background,ix);
   else {
-    fd_background = (struct FD_AGGREGATE_INDEX *)
-      fd_make_aggregate_index(32,1,&ix);
+    fd_background = fd_make_aggregate_index(FD_FALSE,32,1,&ix);
     u8_string old_id = fd_background->indexid;
     fd_background->indexid = u8_strdup("background");
     if (old_id) u8_free(old_id);}
@@ -844,22 +843,11 @@ FD_EXPORT int _fd_index_add(fd_index ix,lispval key,lispval value)
   if ( (EMPTYP(value)) || (EMPTYP(key)) )
     return 0;
   else if (U8_BITP(ix->index_flags,FD_STORAGE_READ_ONLY)) {
-    lispval front = fd_slotmap_get(&(ix->index_props),FDSYM_FRONT,FD_VOID);
-    if (FD_INDEXP(front)) {
-      fd_index use_front = fd_indexptr(front);
-      if (!(U8_BITP(use_front->index_flags,FD_STORAGE_READ_ONLY))) {
-        if (FD_CONSP(front)) {
-          int rv =  _fd_index_add(use_front,key,value);
-          fd_decref(front);
-          return rv;}
-        else return _fd_index_add(use_front,key,value);}
-      else {
-        fd_seterr(fd_ReadOnlyIndex,"_fd_index_add/front",
-                  use_front->indexid,VOID);
-        fd_decref(front);
-        return -1;}}
+    fd_index front = fd_get_writable_index(ix);
+    if (front)
+      return fd_index_add(front,key,value);
     else {
-      fd_seterr(fd_ReadOnlyIndex,"_fd_index_add",ix->indexid,VOID);
+      fd_seterr(fd_ReadOnlyIndex,"_fd_index_add/front",front->indexid,VOID);
       return -1;}}
   else init_cache_level(ix);
 
@@ -939,7 +927,6 @@ FD_EXPORT int fd_index_drop(fd_index ix_arg,lispval key,lispval value)
 
   if (ix->index_flags&FD_INDEX_IN_BACKGROUND) clear_bg_cache(key);
 
-  fd_decref((lispval)ix);
   if (decref_key) fd_decref(key);
 
   return 1;
@@ -996,8 +983,6 @@ FD_EXPORT int fd_index_store(fd_index ix_arg,lispval key,lispval value)
 
   if (ix->index_flags&FD_INDEX_IN_BACKGROUND) clear_bg_cache(key);
   if (decref_key) fd_decref(key);
-
-  fd_decref((lispval)ix);
 
   return 1;
 }
@@ -1750,10 +1735,6 @@ FD_EXPORT lispval fd_index_base_metadata(fd_index ix)
   if (U8_BITP(flags,FD_INDEX_SET_CAPABILITY))
     fd_add(metadata,flags_slot,canset_flag);
 
-  lispval props_copy = fd_copier(((lispval)&(ix->index_props)),0);
-  fd_store(metadata,FDSYM_PROPS,props_copy);
-  fd_decref(props_copy);
-
   if (FD_TABLEP(ix->index_opts))
     fd_add(metadata,opts_slot,ix->index_opts);
 
@@ -1783,7 +1764,9 @@ FD_EXPORT void fd_init_index(fd_index ix,
                              lispval metadata,
                              lispval opts)
 {
-  U8_SETBITS(flags,FD_STORAGE_ISINDEX);
+  if (flags<0)
+    flags = fd_get_dbflags(opts,FD_STORAGE_ISINDEX);
+  else {U8_SETBITS(flags,FD_STORAGE_ISINDEX);}
   if (U8_BITP(flags,FD_STORAGE_UNREGISTERED)) {
     FD_INIT_CONS(ix,fd_consed_index_type);
     add_consed_index(ix);}
@@ -1999,6 +1982,7 @@ static int commit_each_index(fd_index ix,void *data)
   /* Phased indexes shouldn't be committed by themselves */
   if ( (ix->index_flags) & (FD_STORAGE_PHASED) ) return 0;
   int *count = (int *) data;
+  if (ix->index_handler->commit==NULL) return 0;
   int retval = fd_commit_index(ix);
   if (retval<0)
     return retval;
@@ -2088,9 +2072,8 @@ FD_EXPORT int fd_execute_index_delays(fd_index ix,void *data)
     else return 0;}
 }
 
-static void recycle_consed_index(struct FD_RAW_CONS *c)
+FD_EXPORT void fd_recycle_index(struct FD_INDEX *ix)
 {
-  struct FD_INDEX *ix = (struct FD_INDEX *)c;
   struct FD_INDEX_HANDLER *handler = ix->index_handler;
   drop_consed_index(ix);
   if (handler->recycle) handler->recycle(ix);
@@ -2102,13 +2085,17 @@ static void recycle_consed_index(struct FD_RAW_CONS *c)
   if (ix->index_source) u8_free(ix->index_source);
   if (ix->index_typeid) u8_free(ix->index_typeid);
 
-  fd_recycle_slotmap(&(ix->index_metadata));
-  fd_recycle_slotmap(&(ix->index_props));
+  fd_free_slotmap(&(ix->index_metadata));
+  fd_free_slotmap(&(ix->index_props));
 
   fd_decref(ix->index_covers_slotids);
   fd_decref(ix->index_opts);
+}
 
-  if (!(FD_STATIC_CONSP(c))) u8_free(c);
+static void recycle_consed_index(struct FD_RAW_CONS *c)
+{
+  fd_recycle_index((fd_index)c);
+  u8_free(c);
 }
 
 static lispval copy_consed_index(lispval x,int deep)

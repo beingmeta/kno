@@ -294,11 +294,14 @@ U8_MAYBE_UNUSED static fd_index fd_get_writable_index(fd_index ix)
     lispval front_val = fd_slotmap_get(&(ix->index_props),FDSYM_FRONT,FD_VOID);
     if (FD_INDEXP(front_val)) {
       fd_index front = fd_indexptr(front_val);
+      /* This isn't the exactly right thing, because PROPS could change */
+      fd_decref(front_val);
       if (U8_BITP(front->index_flags,FD_STORAGE_READ_ONLY)) {
-        fd_decref(front_val);
         return NULL;}
       else return front;}
-    else return NULL;}
+    else {
+      fd_incref(front_val);
+      return NULL;}}
   else return ix;
 }
 #else
@@ -395,8 +398,6 @@ FD_FASTOP int fd_index_add(fd_index ix_arg,lispval key,lispval value)
       fd_decref(ix->index_covers_slotids);
       ix->index_covers_slotids = FD_VOID;}}
   else NO_ELSE;
-
-  fd_decref((lispval)ix);
 
   return rv;
 }

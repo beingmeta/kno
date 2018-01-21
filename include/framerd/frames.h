@@ -69,6 +69,7 @@ FD_EXPORT int fd_find_prefetch(fd_index ix,lispval slotids,lispval values);
 FD_EXPORT
 int fd_index_frame(fd_index ix,lispval frame,lispval slotid,lispval values);
 
+FD_EXPORT int fd_slotindex_merge(fd_index into,lispval from);
 
 #endif /* FRAMERD_FRAMES_H */
 
