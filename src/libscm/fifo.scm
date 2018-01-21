@@ -49,7 +49,7 @@
 (define (fifo->string fifo)
   (stringout "#<FIFO "
     (- (fifo-end fifo) (fifo-start fifo)) "/" (length (fifo-queue fifo)) 
-    "-" (choice-size (fifo-running fifo)) "-" (choice-size (fifo-waiting fifo)) " "
+    "-r" (choice-size (fifo-running fifo)) "-w" (choice-size (fifo-waiting fifo)) " "
     (or (fifo-name fifo) (glom "0x" (number->string (hashptr fifo) 16))) 
     (if (not (fifo-live? fifo)) " (exhausted)")
     (if (fifo-debug fifo) " (debug)")
