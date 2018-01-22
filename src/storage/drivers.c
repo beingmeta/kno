@@ -36,7 +36,7 @@ lispval fd_metadata_op, fd_raw_metadata_op, fd_reload_op;
 lispval fd_stats_op, fd_label_op, fd_populate_op, fd_swapout_op;
 lispval fd_getmap_op, fd_slotids_op, fd_baseoids_op;
 lispval fd_load_op, fd_capacity_op, fd_keycount_op;
-lispval fd_keys_op, fd_keycount_op;
+lispval fd_keys_op, fd_keycount_op, fd_partitions_op;
 
 u8_condition fd_MMAPError=_("MMAP Error");
 u8_condition fd_MUNMAPError=_("MUNMAP Error");
@@ -1279,6 +1279,7 @@ FD_EXPORT int fd_init_drivers_c()
   fd_raw_metadata_op=fd_intern("%METADATA");
   fd_keys_op=fd_intern("KEYS");
   fd_keycount_op=fd_intern("KEYCOUNT");
+  fd_partitions_op=fd_intern("PARTITIONS");
   pooltype_symbol=fd_intern("POOLTYPE");
   indextype_symbol=fd_intern("INDEXTYPE");
 

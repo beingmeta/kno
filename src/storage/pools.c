@@ -2544,6 +2544,8 @@ FD_EXPORT lispval fd_default_poolctl(fd_pool p,lispval op,int n,lispval *args)
           else return FD_INT(old_loglevel);}}
       else return fd_type_error("loglevel","fd_default_poolctl",args[0]);}
     else return fd_err(fd_TooManyArgs,"fd_default_poolctl",p->poolid,VOID);}
+  else if (op == fd_partitions_op)
+    return FD_EMPTY;
   else {
     u8_log(LOG_WARN,"Unhandled POOLCTL op",
            "Couldn't handle %q for %s",op,p->poolid);
