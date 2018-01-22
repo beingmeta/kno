@@ -263,9 +263,22 @@ FD_EXPORT int fd_aggregate_indexp(fd_index ix);
 FD_EXPORT struct FD_AGGREGATE_INDEX *fd_background;
 
 FD_EXPORT fd_index _fd_indexptr(lispval lp);
+FD_EXPORT fd_index _fd_ref2index(lispval indexval);
 FD_EXPORT lispval _fd_index2lisp(fd_index ix);
 
 #if FD_INLINE_INDEXES
+FD_FASTOP U8_MAYBE_UNUSED fd_index fd_ref2index(lispval x)
+{
+  if (FD_ETERNAL_INDEXP(x)) {
+    int serial = FD_GET_IMMEDIATE(x,fd_index_type);
+    if (serial<0) return NULL;
+    else if (serial<FD_N_PRIMARY_INDEXES)
+      return fd_primary_indexes[serial];
+    else if (serial<(FD_N_PRIMARY_INDEXES+fd_n_secondary_indexes))
+      return _fd_ref2index(x);
+    else return NULL;}
+  else return NULL;
+}
 FD_FASTOP U8_MAYBE_UNUSED fd_index fd_indexptr(lispval x)
 {
   if (FD_IMMEDIATEP(x)) {
@@ -274,7 +287,7 @@ FD_FASTOP U8_MAYBE_UNUSED fd_index fd_indexptr(lispval x)
     else if (serial<FD_N_PRIMARY_INDEXES)
       return fd_primary_indexes[serial];
     else if (serial<(FD_N_PRIMARY_INDEXES+fd_n_secondary_indexes))
-      return fd_lisp2index(x);
+      return _fd_ref2index(x);
     else return NULL;}
   else if ((FD_CONSP(x))&&(FD_TYPEP(x,fd_consed_index_type)))
     return (fd_index)x;

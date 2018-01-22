@@ -61,13 +61,14 @@ static struct FD_KEY_SIZE *tempindex_fetchinfo(fd_index ix,fd_choice filter,int 
 static fd_index open_tempindex(u8_string name,fd_storage_flags flags,lispval opts)
 {
   struct FD_TEMPINDEX *tempindex = u8_alloc(struct FD_TEMPINDEX);
+  lispval metadata = fd_getopt(opts,FDSYM_METADATA,FD_VOID);
   fd_init_index((fd_index)tempindex,&tempindex_handler,
                 name,u8_strdup(name),
                 flags|FD_STORAGE_NOSWAP,
-                VOID,
+                metadata,
                 opts);
-  if (!(U8_BITP(tempindex->index_flags,FD_STORAGE_UNREGISTERED)))
-    fd_register_index((fd_index)tempindex);
+  fd_register_index((fd_index)tempindex);
+  fd_decref(metadata);
   return (fd_index)tempindex;
 }
 

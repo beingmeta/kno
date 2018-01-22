@@ -25,6 +25,16 @@
 
 static u8_condition OddFindFramesArgs=_("Odd number of args to find frames");
 
+static lispval index2lisp(fd_index ix)
+{
+  if (ix->index_serialno>=0)
+    return LISPVAL_IMMEDIATE(fd_index_type,ix->index_serialno);
+  else {
+    lispval v = (lispval) ix;
+    fd_incref(v);
+    return v;}
+}
+
 /* Searching */
 
 static lispval make_features(lispval slotids,lispval values)
@@ -320,6 +330,12 @@ int fd_index_frame(fd_index ix,lispval frames,lispval slotids,lispval values)
   int rv = 0;
   DO_CHOICES(slotid,slotids) {
     fd_index write_index = get_writable_slotindex(ix,slotid);
+    if (write_index == NULL) {
+      lispval irritant = fd_index2lisp(ix);
+      fd_seterr("Read-only index","fd_index_frame",
+		ix->indexid,irritant);
+      fd_decref(irritant);
+      return -1;}
     lispval keyslot = write_index->index_keyslot;
     DO_CHOICES(frame,frames) {
       int add_rv = 0;
@@ -384,8 +400,28 @@ FD_EXPORT int fd_slotindex_merge(fd_index into,lispval from)
 	    int rv = fd_for_hashtable_kv
 	      (&(into->index_adds),merge_keys_with_slotid,&state,0);
 	    return rv;}}
+	else if (fd_aggregate_indexp(ix)) {
+	  int merged = 0;
+	  struct FD_AGGREGATE_INDEX *agg = (fd_aggregate_index) from;
+	  fd_index *indexes = agg->ax_indexes;
+	  int i=0, n=agg->ax_n_indexes; while (i<n) {
+	    fd_index partition = indexes[i++];
+	    if (partition->index_adds.table_n_keys == 0)
+	      continue;
+	    if ( ! ( (FD_VOIDP(keyslot)) ||
+		     (keyslot == partition->index_keyslot) ) )
+	      continue;
+	    lispval partition_ptr = index2lisp(partition);
+	    merged=fd_slotindex_merge(into,partition_ptr);
+	    if (merged<0) {
+	      fd_seterr("IndexMergeError","fd_slotindex_merge",
+			into->indexid,partition_ptr);
+	      fd_decref(partition_ptr);
+	      break;}
+	    else fd_decref(partition_ptr);}
+	  return merged;}
 	else {
-	  fd_seterr("Not a hashtable or tempindex","fd_slotindex_merge",
+	  fd_seterr("IndexMergeError","fd_slotindex_merge",
 		    into->indexid,from);
 	  return -1;}}
     else {

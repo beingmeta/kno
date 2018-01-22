@@ -210,7 +210,7 @@ static void init_cache_level(fd_index ix)
 
 FD_EXPORT void fd_register_index(fd_index ix)
 {
-  if (ix->index_metadata.n_slots) {
+  if ( (FD_VOIDP(ix->index_keyslot)) && (ix->index_metadata.n_slots) ) {
     lispval keyslotid =
       fd_slotmap_get(&(ix->index_metadata),FDSYM_KEYSLOT,FD_VOID);
     if (FD_VOIDP(keyslotid)) {}
@@ -284,6 +284,25 @@ FD_EXPORT fd_index fd_lisp2index(lispval lix)
   else {
     fd_seterr(fd_TypeError,_("not an index"),NULL,lix);
     return NULL;}
+}
+
+FD_EXPORT fd_index _fd_ref2index(lispval indexval)
+{
+  if (FD_ABORTP(indexval))
+    return NULL;
+  else if (TYPEP(indexval,fd_index_type)) {
+    int serial = FD_GET_IMMEDIATE(indexval,fd_index_type);
+    if (serial<FD_N_PRIMARY_INDEXES)
+      return fd_primary_indexes[serial];
+    else if ( (fd_n_secondary_indexes == 0) ||
+              (serial >= (fd_n_secondary_indexes+FD_N_PRIMARY_INDEXES)) )
+      return NULL;
+    else {
+      u8_read_lock(&indexes_lock);
+      fd_index index = secondary_indexes[serial-FD_N_PRIMARY_INDEXES];
+      u8_rw_unlock(&indexes_lock);
+      return index;}}
+  else return NULL;
 }
 
 /* Finding indexes by ids/sources/etc */
@@ -1809,14 +1828,17 @@ FD_EXPORT void fd_init_index(fd_index ix,
 
   ix->index_handler = h;
 
+  lispval keyslot = fd_getopt(opts,FDSYM_KEYSLOT,VOID);
   FD_INIT_STATIC_CONS(&(ix->index_metadata),fd_slotmap_type);
   if (FD_SLOTMAPP(metadata)) {
     fd_copy_slotmap((fd_slotmap)metadata,&(ix->index_metadata));
-    ix->index_keyslot = fd_get(metadata,FDSYM_KEYSLOT,VOID);}
+    if (FD_VOIDP(keyslot)) keyslot=fd_get(metadata,FDSYM_KEYSLOT,VOID);}
   else {
     fd_init_slotmap(&(ix->index_metadata),17,NULL);
     ix->index_keyslot = VOID;}
   ix->index_metadata.table_modified = 0;
+  ix->index_keyslot = keyslot;
+
 
   /* This was what was specified */
   ix->indexid = u8_strdup(id);
@@ -1970,9 +1992,11 @@ FD_EXPORT lispval fd_get_all_indexes()
     u8_lock_mutex(&consed_indexes_lock);
     int j = 0; while (j<n_consed_indexes) {
       fd_index ix = consed_indexes[j++];
-      lispval lindex = index2lisp(ix);
-      fd_incref(lindex);
-      CHOICE_ADD(results,lindex);}
+      if (ix) {
+        lispval lindex = index2lisp(ix);
+        fd_incref(lindex);
+        CHOICE_ADD(results,lindex);}
+      else _fd_debug(results);}
     u8_unlock_mutex(&consed_indexes_lock);}
 
   return results;
@@ -2253,6 +2277,8 @@ FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args
     else return fd_err(fd_TooManyArgs,"fd_default_indexctl",ix->indexid,VOID);}
   else if (op == fd_keys_op)
     return fd_index_keys(ix);
+  else if (op == fd_partitions_op)
+    return FD_EMPTY;
   else return FD_FALSE;
 }
 
