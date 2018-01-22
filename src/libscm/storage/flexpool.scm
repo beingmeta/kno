@@ -813,16 +813,23 @@
 		  (pool-base pool))
       0))
 
+(define (flexpool-ctl pool flexpool op . args)
+  (cond ((and (eq? op 'partitions) (null? args))
+	 (flexpool-partitions flexpool))
+	(else (apply poolctl/default pool op args))))
+
 (defpooltype 'flexpool
   `#[open ,flexpool/open
      create ,flexpool/make
      alloc ,flexpool-alloc
      getload ,flexpool-load
-     fetch ,flexpool-fetch])
+     fetch ,flexpool-fetch
+     poolctl ,flexpool-ctl])
 (defpooltype 'storage/flexpool
   `#[open ,flexpool/open
      create ,flexpool/make
      alloc ,flexpool-alloc
      getload ,flexpool-load
-     fetch ,flexpool-fetch])
+     fetch ,flexpool-fetch
+     poolctl ,flexpool-ctl])
 
