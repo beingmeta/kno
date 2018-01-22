@@ -863,13 +863,16 @@ static int unparse_extended_fcnid(u8_output out,lispval x)
   return 1;
 }
 
+#define BUFOUT_FLAGS \
+  (FD_IS_WRITING|FD_BUFFER_NO_FLUSH|FD_USE_DTYPEV2|FD_WRITE_OPAQUE)
+
 static ssize_t write_lambda_dtype(struct FD_OUTBUF *out,lispval x)
 {
   int n_elts=1; /* Always include some source */
   struct FD_LAMBDA *fcn = (struct FD_LAMBDA *)x;
   unsigned char buf[200], *tagname="%LAMBDA";
   struct FD_OUTBUF tmp = { 0 };
-  FD_INIT_OUTBUF(&tmp,buf,200,0);
+  FD_INIT_OUTBUF(&tmp,buf,200,((out->buf_flags)&(BUFOUT_FLAGS)));
   fd_write_byte(&tmp,dt_compound);
   fd_write_byte(&tmp,dt_symbol);
   fd_write_4bytes(&tmp,strlen(tagname));
