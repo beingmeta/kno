@@ -14,7 +14,7 @@
 (define-init flex-indexes (make-hashtable))
 
 (define flex-suffix
-  #("." (label serial (isdigit+) #t) "index" (eos)))
+  #("." (label serial (isdigit+) #t) ".index" (eos)))
 
 (define (get-serial arg)
   (if (string? arg)
@@ -112,8 +112,8 @@
 	"Couldn't create a new flexindex partition " (write path)))
     (when index
       (logwarn |NewPartition|
-	"Created new flexindex partition " index " "
-	"for flexindex at " fullpath))
+	"Created new flexindex partition " index
+	"\n\tfor flexindex at " fullpath))
     (tryif index index)))
 
 (define (get-make-opts path model opts)
