@@ -1,10 +1,10 @@
-;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
+;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2018 beingmeta, inc.  All rights reserved.
 
 (in-module 'engine)
 
 (use-module '{fifo varconfig mttools stringfmts reflection logger})
-(use-module '{storage/flex})
+(use-module '{storage/flex storage/registry})
 
 (define %loglevel %notice%)
 
@@ -22,7 +22,9 @@
 		  engine/savepool engine/saveindex engine/savetable})
 
 (module-export! '{engine/stopfn engine/callif
-		  engine/interval engine/maxitems engine/usage})
+		  engine/interval engine/maxitems
+		  engine/usage
+		  engine/delta})
 
 ;;;; Configurable
 
@@ -131,15 +133,18 @@ slot of the loop state.
 	(set! start (+ start step))))
     (reverse (->vector batchlist))))
 
-(define (batchup-vector items batchsize (batchrange 1))
+(define (batchup-vector items batchsize (batchrange 1) (vecbatches #t))
   (let ((n (length items))
 	(batchlist '())
 	(start 0))
     (while (< start n)
-      (let ((step (* (batch-factor batchrange) batchsize)))
-	(set! batchlist (cons (slice items start (+ start step)) batchlist))
+      (let* ((step (* (batch-factor batchrange) batchsize))
+	     (limit (min (+ start step) n)))
+	(set! batchlist (cons (slice items start limit) batchlist))
 	(set! start (+ start step))))
-    (reverse (->vector batchlist))))
+    (if vecbatches
+	(reverse (->vector batchlist))
+	(map elts (reverse (->vector batchlist))))))
 
 ;;; We make this handler unique right now, but it could be engine specific.
 (define-init bump-loop-state
@@ -208,6 +213,8 @@ slot of the loop state.
 	 (start (get batch-state 'started))
 	 (proc-time #f)
 	 (batchno 1))
+
+    
     (while (and (exists? batch) batch)
       (loginfo |GotBatch| "Processing batch of " ($num (choice-size batch)) " items")
       (when (and (exists? beforefn) beforefn)
@@ -298,26 +305,34 @@ slot of the loop state.
 		 (/~ nthreads (ilog nthreads)))))))
 
 (defambda (pick-batchsize items opts)
-  (let ((n-items (if (vector? items) (length items)
-		     (choice-size items))))
+  (let ((n-items (length items)))
     (if (number? (getopt opts 'nbatches))
 	(1+ (quotient n-items (getopt opts 'nbatches)))
 	(if (number? (getopt opts 'nthreads))
 	    (1+ (quotient n-items (* 4 (getopt opts 'nthreads))))
 	    (->exact (ceiling (sqrt n-items)))))))
 
-(defambda (engine/run fcn items (opts #f))
-  (let* ((vector-items (and (singleton? items) (vector? items)))
-	 (n-items (if vector-items (length items) (choice-size items)))
+(defambda (get-items-vec items opts (max))
+  (set! max (getopt opts 'maxitems (config 'maxitems)))
+  (let ((vec (if (and (singleton? items) (vector? items)) 
+		 items
+		 (choice->vector items))))
+    (if (or (not max) (>= max (length vec)))
+	vec
+	(slice vec 0 max))))
+
+(defambda (engine/run fcn items-arg (opts #f))
+  (let* ((items (get-items-vec items-arg opts))
+	 (n-items (length items))
 	 (batchsize (getopt opts 'batchsize (pick-batchsize items opts)))
 	 (nthreads (mt/threadcount (getopt opts 'nthreads (config 'nthreads #t))))
 	 (spacing (pick-spacing opts nthreads))
 	 (batchrange (getopt opts 'batchrange (config 'batchrange 3)))
-	 (batches (if (or (not batchsize) (< batchsize 2))
-		      (if vector-items items (choice->vector items))
-		      (if vector-items
-			  (batchup-vector items batchsize batchrange)
-			  (batchup items batchsize batchrange))))
+	 (batches (if (and batchsize (> batchsize 1))
+		      (batchup-vector items batchsize batchrange
+				      (and (singleton? items-arg)
+					   (vector? items-arg)))
+		      items))
 	 (rthreads (if (and nthreads (> nthreads (length batches))) (length batches) nthreads))
 	 (fifo (fifo/make batches
 			  `#[fillfn ,(getopt opts 'fillfn fifo/exhausted!) 
@@ -365,6 +380,7 @@ slot of the loop state.
 	(unless (test loop-state key)
 	  (add! loop-state key (get loop-init key)))))
   
+    ;;; Check arguments
     (do-choices fcn
       (unless (and (applicable? fcn) (overlaps? (procedure-arity fcn) {1 2 4}))
 	(irritant fcn |ENGINE/InvalidLoopFn| engine/run)))
@@ -429,7 +445,7 @@ slot of the loop state.
     (if (getopt opts 'finalcheck #t)
 	(begin
 	  (engine/checkpoint loop-state fifo #t)
-	  (commit))
+	  (when (getopt opts 'finalcommit #f) (commit)))
 	(begin
 	  (lognotice |Engine| "Skipping final checkpoint for ENGINE/RUN")
 	  (do-choices (counter counters)
@@ -593,12 +609,12 @@ slot of the loop state.
     (printout "cpu=" ($num (get usage 'cpu%) 2) "%; "
       "mem=" ($bytes (memusage)) ", vmem=" ($bytes (vmemusage)) ";\n    "
       "load: " (first load) " · " (second load) " · " (third load) "; "
-      "utime=" ($num (get usage 'utime) 2) "secs; "
-      "stime=" ($num (get usage 'stime) 2) "secs; "
+      "utime=" (compact-interval-string (get usage 'utime)) "; "
+      "stime=" (compact-interval-string (get usage 'stime)) "; "
       "elapsed=" (secs->string (get usage 'clock)))))
 
 (define (engine/logrusage batch proctime time batch-state loop-state state)
-  (loginfo |Engine/Resources| (engine/showrusage)))
+  (lognotice |Engine/Resources| (engine/showrusage)))
 
 ;;; Checkpointing
 
@@ -642,6 +658,13 @@ slot of the loop state.
 	  (store! loop-state 'checkstart (elapsed-time))
 	  #t))))
 
+(define (get-check-state loop-state (copy (frame-create #f)))
+  (do-choices (slot (choice (get loop-state 'counters) 
+			    '{items batches vproctime}))
+    (when (exists? (get loop-state slot))
+      (store! copy slot (get loop-state slot))))
+  copy)
+
 (define (update-task-state loop-state)
   (let ((state (get loop-state 'state))
 	(init (get loop-state 'init))
@@ -680,10 +703,10 @@ slot of the loop state.
 	      (when (getopt (get loop-state 'opts) 'logchecks #f)
 		(engine-logger (qc) 0 (elapsed-time (get loop-state 'started)) 
 			       #[] loop-state (get loop-state 'state)))
-	      (if (test loop-state 'stopped)
-		  (lognotice |Engine/Checkpoint| "Starting final checkpoint for " fifo)
-		  (lognotice |Engine/Checkpoint| "Starting incremental checkpoint for " fifo))
-	      (flex/save! (get loop-state 'checkpoint))
+	      (store! loop-state 'lastcheck (get-check-state loop-state))
+
+	      (engine-commit loop-state (get loop-state 'checkpoint))
+
 	      (when state (update-task-state loop-state))
 	      (when (and state (testopt (get loop-state 'opts) 'statefile))
 		(dtype->file (get loop-state 'state)
@@ -703,6 +726,81 @@ slot of the loop state.
 	(logwarn |BadCheck| 
 	  "Declining to checkpoint because check/start! failed: state =\n  "
 	  (pprint loop-state)))))
+
+;;; Saving databases
+
+(define (get-modified arg)
+  (cond ((registry? arg) (tryif (registry/modified? arg) arg))
+	((pool? arg) 
+	 (choice (tryif (modified? arg) arg)
+		 (get-modified (poolctl arg 'partitions))))
+	((index? arg)
+	 (choice (tryif (modified? arg) arg)
+		 (get-modified (indexctl arg 'partitions))))
+	((and (applicable? arg) (zero? (procedure-min-arity arg))) arg)
+	((and (pair? arg) (applicable? (car arg))) arg)
+	(else {})))
+
+(define commit-threads #t)
+
+(defambda (engine-commit loop-state dbs (opts))
+  (default! opts (getopt loop-state 'opts))
+  (let ((modified (get-modified dbs))
+	(%loglevel (getopt loop-state 'loglevel %loglevel))
+	(started (elapsed-time)))
+    (when (exists? modified)
+      (let ((timings (make-hashtable))
+	    (fifo (fifo/make (qc modified)))
+	    (n-threads (mt/threadcount (getopt opts 'threads commit-threads)
+				       (choice-size modified))))
+	(lognotice |Engine/Checkpoint/Start|
+	  (if (test loop-state 'stopped) "Final " "Incremental ")
+	  "checkpoint of " (choice-size modified) " modified dbs "
+	  "using " (if n-threads n-threads "no") " threads "
+	  "for " (get loop-state 'fifo)
+	  (when (>= %loglevel %info%) (do-choices (db modified) (printout "\n\t" db))))
+	(cond ((not n-threads)
+	       (do-choices (db modified) (commit-db db opts timings)))
+	      ((>= n-threads (choice-size modified))
+	       (set! n-threads (choice-size modified))
+	       (let ((threads (thread/call commit-db modified opts timings)))
+		 (thread/wait! threads)))
+	      (else
+	       (let ((threads {}))
+		 (dotimes (i n-threads)
+		   (set+! threads (thread/call commit-queued fifo opts timings)))
+		 (thread/wait! threads))))
+	(lognotice |Engine/Checkpoint|
+	  "Committed " (choice-size (getkeys timings)) " dbs "
+	  "in " (secs->string (elapsed-time started)) " "
+	  "using " (or n-threads "no") " threads: "
+	  (do-choices (db (getkeys timings))
+	    (let ((time (get timings db)))
+	      (if (>= time 0)
+		  (printout "\n\t" ($num time 1) "s \t" db)
+		  (printout "\n\tFAILED after " ($num time 1) "s:\t" db)))))))))
+
+(define (inner-commit arg timings start)
+  (cond ((registry? arg) (registry/save! arg))
+	((pool? arg) (commit arg))
+	((index? arg) (commit arg))
+	((and (applicable? arg) (zero? (procedure-min-arity arg))) (arg))
+	((and (pair? arg) (applicable? (car arg)))
+	 (apply (car arg) (cdr arg)))
+	(else (logwarn |CantSave| "No method for saving " arg) #f))
+  (store! timings arg (elapsed-time start))
+  arg)
+
+(define (commit-db arg opts timings (start (elapsed-time)))
+  (onerror (inner-commit arg timings start)
+      (lambda (ex)
+	(store! timings arg (- (elapsed-time start)))
+	(logwarn |CommitError| "Error committing " arg ": " ex)
+	ex)))
+
+(define (commit-queued fifo opts timings)
+  (let ((db (fifo/pop fifo)))
+    (commit-db db opts timings)))
 
 ;;;; Utility functions
 
@@ -853,14 +951,17 @@ slot of the loop state.
       (and (test-clause sysinfo loop-state (car tests))
 	   (looptest sysinfo loop-state (cdr tests)))))
 
-(define (engine/test . spec-args)
+(defambda (engine/test . spec-args)
   (let ((tests '()) (spec spec-args) (clause #f))
     (while (and (pair? spec) (pair? (cdr spec)))
       (cond ((applicable? (car spec))
-	     (set! tests (cons (car spec) (cadr spec)))
+	     (unless (fail? (cadr spec))
+	       (set! tests (cons (car spec) (cadr spec))))
 	     (set! spec (cddr spec)))
 	    ((not (symbol? (car spec)))
 	     (irritant spec-args |BadTestSpec| engine/looptest))
+	    ((fail? (cadr spec))
+	     (set! spec (cddr spec)))
 	    ((not (applicable? (cadr spec)))
 	     (set! tests (cons (cons (car spec) (cadr spec)) tests))
 	     (set! spec (cddr spec)))
@@ -874,6 +975,17 @@ slot of the loop state.
 	     (set! spec (cdddr spec)))))
     (unless (null? spec) (irritant spec-args |BadTestSpec| engine/test))
     (def (engine/tester (loop-state #[]))
-      (looptest (rusage) loop-state tests))))
+	 (looptest (rusage) loop-state tests))))
+
+(define (engine/delta slot . test)
+  (lambda ((loop-state #f))
+    (let ((v (get loop-state slot))
+	  (past (try (get (get loop-state 'lastcheck) slot) 0)))
+      (and (exists? v) (exists? past)
+	   (if (applicable? (car test))
+	       (apply (car test) (- v past) (cdr test))
+	       (if (number? (car test))
+		   (> (- v past) (car test))
+		   #f))))))
 
 
