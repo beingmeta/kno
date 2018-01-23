@@ -747,12 +747,12 @@ slot of the loop state.
   (default! opts (getopt loop-state 'opts))
   (let ((modified (get-modified dbs))
 	(%loglevel (getopt loop-state 'loglevel %loglevel))
-	(started (elapsed-time)))
+	(started (elapsed-time))
+	(spec-threads (mt/threadcount (getopt opts 'threads commit-threads))))
     (when (exists? modified)
       (let ((timings (make-hashtable))
 	    (fifo (fifo/make (qc modified)))
-	    (n-threads (mt/threadcount (getopt opts 'threads commit-threads)
-				       (choice-size modified))))
+	    (n-threads (and spec-threads (min spec-threads (choice-size modified)))))
 	(lognotice |Engine/Checkpoint/Start|
 	  (if (test loop-state 'stopped) "Final " "Incremental ")
 	  "checkpoint of " (choice-size modified) " modified dbs "
