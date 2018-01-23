@@ -398,7 +398,7 @@ FD_EXPORT int fd_slotindex_merge(fd_index into,lispval from)
 	  else {
 	    struct KEYSLOT_STATE state = { &ix->index_adds, ix->index_keyslot };
 	    int rv = fd_for_hashtable_kv
-	      (&(into->index_adds),merge_keys_with_slotid,&state,0);
+	      (&(into->index_adds),merge_keys_with_slotid,&state,1);
 	    return rv;}}
 	else if (fd_aggregate_indexp(ix)) {
 	  int merged = 0;
@@ -431,7 +431,7 @@ FD_EXPORT int fd_slotindex_merge(fd_index into,lispval from)
   else if (FD_HASHTABLEP(from)) {
     struct KEYSLOT_STATE state = { (fd_hashtable)from, keyslot };
     int rv = fd_for_hashtable_kv
-      ((fd_hashtable)from,merge_keys_without_slotid,&state,0);
+      ((fd_hashtable)from,merge_keys_without_slotid,&state,1);
     return rv;}
   else if (FD_INDEXP(from)) {
     fd_index ix = fd_indexptr(from);
@@ -439,7 +439,7 @@ FD_EXPORT int fd_slotindex_merge(fd_index into,lispval from)
       if (FD_VOIDP(ix->index_keyslot)) {
 	struct KEYSLOT_STATE state = { &ix->index_adds, keyslot };
 	int rv = fd_for_hashtable_kv
-	  (&(into->index_adds),merge_keys_without_slotid,&state,0);
+	  (&(into->index_adds),merge_keys_without_slotid,&state,1);
 	return rv;}
       else if ( ix->index_keyslot == keyslot )
 	return fd_index_merge(into,&(ix->index_adds));
