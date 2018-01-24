@@ -170,7 +170,7 @@
 	  (set! spec (getopt opts 'index (getopt opts 'source #f))))
 	(cond ((index? spec) spec)
 	      ((not (string? spec)) (irritant spec |InvalidIndexSpec|))
-	      ((or (identical? (downcase (getopt opts 'type)) "flexindex")
+	      ((or (identical? (downcase (getopt opts 'type {})) "flexindex")
 		   (textsearch #("." (isdigit+) ".index") spec)
 		   (has-suffix spec ".flexindex"))
 	       (flex/open-index spec opts))
