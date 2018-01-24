@@ -205,13 +205,17 @@ static int output_markup_attrib
   else if (STRINGP(name_expr)) attrib_name = CSTRING(name_expr);
   else if ((env) && (PAIRP(name_expr))) {
     free_name = fd_eval(name_expr,env);
-    if (SYMBOLP(free_name)) attrib_name = SYM_NAME(free_name);
+    if (FD_ABORTED(free_name)) return free_name;
+    else if (SYMBOLP(free_name)) attrib_name = SYM_NAME(free_name);
     else if (STRINGP(free_name)) attrib_name = CSTRING(free_name);
     else attrib_name = NULL;}
   else attrib_name = NULL;
   if (attrib_name) {
     if ((env)&&(FD_NEED_EVALP(value_expr))) {
       free_value = fd_eval(value_expr,env);
+      if (FD_ABORTED(free_value)) {
+        fd_decref(free_name);
+        return free_value;}
       attrib_val = free_value;}
     else attrib_val = value_expr;}
   if (attrib_name) {
@@ -435,6 +439,7 @@ static lispval xmlentry_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   u8_byte tagbuf[128]; u8_string tagname;
   if ((PAIRP(head)))  head = fd_eval(head,env);
   else head = fd_incref(head);
+  if (FD_ABORTED(head)) return head;
   tagname = get_tagname(head,tagbuf,128);
   if (tagname == NULL) {
     fd_decref(head);
@@ -456,6 +461,7 @@ static lispval xmlstart_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   u8_byte tagbuf[128]; u8_string tagname;
   if ((PAIRP(head)))  head = fd_eval(head,env);
   else head = fd_incref(head);
+  if (FD_ABORTED(head)) return head;
   tagname = get_tagname(head,tagbuf,128);
   if (tagname == NULL) {
     fd_decref(head);
@@ -499,7 +505,7 @@ static lispval doxmlblock(lispval expr,fd_lexenv env,
   else {
     body = fd_get_body(expr,2);
     tagspec = fd_eval(tagspec,env);
-    if (FD_ABORTP(tagspec)) {
+    if (FD_ABORTED(tagspec)) {
       fd_decref(xmloidfn);
       return tagspec;}
     else if (SYMBOLP(tagspec)) attribs = NIL;
@@ -528,7 +534,7 @@ static lispval doxmlblock(lispval expr,fd_lexenv env,
   if (newline) u8_putc(out,'\n');
   while (PAIRP(body)) {
     lispval value = fast_eval(FD_CAR(body),env);
-    if (FD_ABORTP(value)) {
+    if (FD_ABORTED(value)) {
       fd_decref(xmloidfn);
       close_markup(out,tagname);
       return value;}
@@ -584,7 +590,7 @@ static lispval handle_markup(lispval expr,fd_lexenv env,fd_stack _stack,
     if (block) u8_printf(out,"\n");
     while (PAIRP(body)) {
       lispval value = fast_eval(FD_CAR(body),env);
-      if (FD_ABORTP(value)) {
+      if (FD_ABORTED(value)) {
         close_markup(out,tagname);
         if (block) u8_printf(out,"\n");
         fd_decref(xmloidfn);
@@ -766,7 +772,9 @@ static lispval doanchor_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   lispval target = fd_eval(fd_get_arg(expr,1),env), xmloidfn;
   lispval body = fd_get_body(expr,2);
   u8_byte buf[128]; U8_INIT_STATIC_OUTPUT_BUF(tmpout,128,buf);
-  if (VOIDP(target))
+  if (FD_ABORTED(target))
+    return target;
+  else if (VOIDP(target))
     return fd_err(fd_SyntaxError,"doanchor",NULL,VOID);
   else if (NILP(body))
     return fd_err(fd_SyntaxError,"doanchor",NULL,VOID);
@@ -791,7 +799,7 @@ static lispval doanchor_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   xmloidfn = fd_symeval(xmloidfn_symbol,env);
   while (PAIRP(body)) {
     lispval value = fast_eval(FD_CAR(body),env);
-    if (FD_ABORTP(value)) {
+    if (FD_ABORTED(value)) {
       fd_decref(xmloidfn); fd_decref(target);
       return value;}
     else if (fd_xmlout_helper(out,&tmpout,value,xmloidfn,env))
@@ -828,7 +836,9 @@ static lispval doanchor_star_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   lispval attribs = fd_get_arg(expr,2);
   lispval body = fd_get_body(expr,3);
   u8_byte buf[128]; U8_INIT_STATIC_OUTPUT_BUF(tmpout,128,buf);
-  if (VOIDP(target))
+  if (FD_ABORTED(target))
+    return target;
+  else if (VOIDP(target))
     return fd_err(fd_SyntaxError,"doanchor",NULL,VOID);
   else if (NILP(body))
     return fd_err(fd_SyntaxError,"doanchor",NULL,VOID);
@@ -862,7 +872,7 @@ static lispval doanchor_star_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     return FD_ERROR;}
   while (PAIRP(body)) {
     lispval value = fast_eval(FD_CAR(body),env);
-    if (FD_ABORTP(value)) {
+    if (FD_ABORTED(value)) {
       fd_decref(attribs); fd_decref(xmloidfn); fd_decref(target);
       return value;}
     else if (fd_xmlout_helper(out,&tmpout,value,xmloidfn,env))
@@ -923,30 +933,32 @@ static lispval xmleval_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
       return VOID;}
     else {
       lispval xml = fd_eval(xmlarg,env);
+      if (FD_ABORTED(xml)) return xml;
       lispval env_arg = fd_eval(fd_get_arg(expr,2),env);
+      if (FD_ABORTED(env_arg)) { fd_decref(xml); return env_arg;}
       lispval xml_env_arg = fd_eval(fd_get_arg(expr,3),env);
-      if (FD_ABORTP(xml)) {
-        fd_decref(env_arg); fd_decref(xml_env_arg);
-        return xml;}
-      else if (FD_ABORTP(env_arg)) {
-        fd_decref(xml); fd_decref(xml_env_arg);
-        return env_arg;}
-      else if (FD_ABORTP(xml_env_arg)) {
-        fd_decref(env_arg); fd_decref(xml);
+      if (FD_ABORTED(xml_env_arg)) {
+        fd_decref(env_arg);
+        fd_decref(xml);
         return xml_env_arg;}
-      else if (!((VOIDP(env_arg)) || (FALSEP(env_arg)) ||
-                 (FD_TRUEP(env_arg)) || (FD_LEXENVP(env_arg)) ||
-                 (TABLEP(env_arg)))) {
+      if (!((VOIDP(env_arg)) || (FALSEP(env_arg)) ||
+            (FD_TRUEP(env_arg)) || (FD_LEXENVP(env_arg)) ||
+            (TABLEP(env_arg)))) {
         lispval err = fd_type_error("SCHEME environment","xmleval_evalfn",env_arg);
-        fd_decref(xml); fd_decref(xml_env_arg);
+        fd_decref(xml);
+        fd_decref(env_arg);
+        fd_decref(xml_env_arg);
         return err;}
       else if (!((VOIDP(xml_env_arg)) || (FALSEP(xml_env_arg)) ||
                  (FD_LEXENVP(xml_env_arg)) || (TABLEP(xml_env_arg)))) {
-        fd_decref(xml); fd_decref(env_arg);
+        fd_decref(xml);
+        fd_decref(env_arg);
         return fd_type_error("environment","xmleval_evalfn",xml_env_arg);}
       else {
         lispval result = fd_xmleval_with(out,xml,env_arg,xml_env_arg);
-        fd_decref(xml); fd_decref(env_arg); fd_decref(xml_env_arg);
+        fd_decref(xml);
+        fd_decref(env_arg);
+        fd_decref(xml_env_arg);
         return result;}
     }
   }
@@ -980,7 +992,8 @@ static lispval xmlopen_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     return fd_err(fd_SyntaxError,"xmleval_evalfn",NULL,VOID);
   else {
     lispval node = fd_eval(FD_CADR(expr),env);
-    if (FD_ABORTP(node)) return node;
+    if (FD_ABORTED(node))
+      return node;
     else if (TABLEP(node)) {
       lispval result = fd_open_xml(node,env);
       fd_decref(node);
@@ -1011,7 +1024,9 @@ static lispval output_javascript(u8_output out,lispval args,fd_lexenv env)
   else {
     int i = 0;
     lispval head_expr = FD_CAR(args), head = fd_eval(head_expr,env), body = FD_CDR(args);
-    if (!(STRINGP(head)))
+    if (FD_ABORTED(head))
+      return head;
+    else if (!(STRINGP(head)))
       return fd_type_error(_("javascript function name"),
                            "output_javascript",head);
     else u8_printf(out,"%s(",CSTRING(head));
@@ -1022,7 +1037,9 @@ static lispval output_javascript(u8_output out,lispval args,fd_lexenv env)
         if (FD_NEED_EVALP(elt))
           val = fd_eval(elt,env);
         else val = fd_incref(elt);
-        if (VOIDP(val)) {}
+        if (FD_ABORTED(val))
+          return val;
+        else if (VOIDP(val)) {}
         else if (FIXNUMP(val))
           u8_printf(out,"%lld",FIX2INT(val));
         else if (FD_FLONUMP(val))
@@ -1106,6 +1123,7 @@ static lispval soapenvelope_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     lispval value;
     u8_puts(out,soapheaderopen);
     value = fd_eval(header_arg,env);
+    if (FD_ABORTED(value)) return value;
     if (STRINGP(value)) u8_puts(out,CSTRING(value));
     fd_decref(value);
     u8_puts(out,soapheaderclose);}

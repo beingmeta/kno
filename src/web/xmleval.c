@@ -154,7 +154,7 @@ static int output_attribval(u8_output out,
       if (VOIDP(value))
         value = fd_req_get(expr,VOID);}
     else value = fd_eval(expr,scheme_env);
-    if (FD_ABORTP(value)) return fd_interr(value);
+    if (FD_ABORTED(value)) return fd_interr(value);
     else if ((VOIDP(value))&&(SYMBOLP(expr)))
       as_string = u8_strdup("");
     else if ((VOIDP(value))||(EMPTYP(value))) {
@@ -185,7 +185,7 @@ static int output_attribval(u8_output out,
   else if (SLOTMAPP(val)) {
     lispval value = fd_xmlevalout(NULL,val,scheme_env,xml_env);
     u8_string as_string;
-    if (FD_ABORTP(value)) return fd_interr(value);
+    if (FD_ABORTED(value)) return fd_interr(value);
     else if ((name)&&(EMPTYP(value))) return 0;
     else as_string = fd_lisp2string(value);
     if (name) start_attrib(out,name);
@@ -244,7 +244,7 @@ static lispval get_markup_string(lispval xml,
   U8_INIT_OUTPUT(&out,32);
   if (fd_test(xml,rawtag_symbol,VOID)) {
     lispval rawname = fd_get(xml,rawtag_symbol,VOID);
-    if (FD_ABORTP(rawname)) return rawname;
+    if (FD_ABORTED(rawname)) return rawname;
     else if (rawname == pblank_symbol) {
       u8_free(out.u8_outbuf);
       return rawname;}
@@ -380,7 +380,7 @@ static int test_if(lispval xml,fd_lexenv scheme_env,fd_lexenv xml_env)
   else if (PAIRP(test)) {
     lispval value = fd_eval(test,scheme_env);
     fd_decref(test);
-    if (FD_ABORTP(value)) return fd_interr(value);
+    if (FD_ABORTED(value)) return fd_interr(value);
     else if (VOIDP(value)) return 0;
     else if ((FALSEP(value))||(EMPTYP(value)))
       return 0;
@@ -432,9 +432,9 @@ lispval fd_xmlout(u8_output out,lispval xml,
     else {
       lispval markup = get_markup_string(xml,scheme_env,xml_env);
       lispval content = fd_get(xml,content_slotid,VOID);
-      if (FD_ABORTP(markup)) {
+      if (FD_ABORTED(markup)) {
         fd_decref(content); return markup;}
-      else if (FD_ABORTP(content)) {
+      else if (FD_ABORTED(content)) {
         fd_decref(markup); return content;}
       else if ((VOIDP(content)) ||
                (EMPTYP(content)) ||
@@ -452,7 +452,7 @@ lispval fd_xmlout(u8_output out,lispval xml,
             u8_putn(out,CSTRING(item),STRLEN(item));
           else result = fd_xmlevalout(out,item,scheme_env,xml_env);
           if (VOIDP(result)) {}
-          else if (FD_ABORTP(result)) {
+          else if (FD_ABORTED(result)) {
             fd_decref(content);
             return result;}
           else if ((TABLEP(result)) &&
@@ -532,12 +532,20 @@ FD_EXPORT lispval fdxml_get(lispval xml,lispval sym,fd_lexenv env)
           if  ((FD_EQ(FD_CAR(value),xmleval_tag)) ||
                (FD_EQ(FD_CAR(value),xmleval2expr_tag))) {
             lispval result = fd_eval(FD_CDR(value),env);
+            if (FD_ABORTED(result)) {
+              fd_decref(results);
+              FD_STOP_DO_CHOICES;
+              return result;}
             CHOICE_ADD(results,result);}
           else {
             fd_incref(value);
             CHOICE_ADD(results,value);}
         else if (TABLEP(value)) {
           lispval result = fd_xmleval(NULL,value,env);
+          if (FD_ABORTED(result)) {
+            fd_decref(results);
+            FD_STOP_DO_CHOICES;
+            return result;}
           CHOICE_ADD(results,result);}
         else {
           fd_incref(value);
@@ -583,7 +591,7 @@ static lispval xmlapply(u8_output out,lispval fn,lispval xml,
 
   result = fd_finish_call(result);
 
-  if (FD_ABORTP(result))
+  if (FD_ABORTED(result))
     return result;
   else if (VOIDP(bind)) return result;
   else if (SYMBOLP(bind)) {
@@ -699,7 +707,7 @@ FD_EXPORT int fd_xmleval_attribfn
                   (quote>0) ? (xmlevalify(val)) :
                   (xmldtypify(val)));
   lispval attrib_entry = VOID;
-  if ((FD_ABORTP(slotval))||(VOIDP(slotval))||
+  if ((FD_ABORTED(slotval))||(VOIDP(slotval))||
       (FD_EOFP(slotval))||(FD_EODP(slotval))||
       (FD_EOXP(slotval)))
     slotval = lispval_string(val);
@@ -1006,7 +1014,7 @@ static FD_XML *handle_fdxml_pi
       U8_INIT_STRING_INPUT(&in,len,xcontent);
       expr = fd_parse_expr(&in);
       while (1) {
-        if (FD_ABORTP(expr)) {
+        if (FD_ABORTED(expr)) {
           fd_decref(insert);
           return NULL;}
         else if ((FD_EOFP(expr)) || (FD_EOXP(expr))) break;
@@ -1044,7 +1052,7 @@ static FD_XML *handle_eval_pi(u8_input in,FD_XML *xml,u8_string content,int len)
     U8_INIT_STRING_INPUT(&in,len,xcontent);
     expr = fd_parse_expr(&in);
     while (1) {
-      if (FD_ABORTP(expr)) {
+      if (FD_ABORTED(expr)) {
         fd_decref(insert);
         return NULL;}
       else if ((FD_EOFP(expr)) || (FD_EOXP(expr))) break;
@@ -1073,7 +1081,7 @@ lispval fd_xmlevalout(u8_output out,lispval xml,
       else {
         fd_decref(value);
         value = fd_xmlevalout(out,elt,scheme_env,xml_env);
-        if (FD_ABORTP(value)) return value;}}
+        if (FD_ABORTED(value)) return value;}}
     return value;}
   if (FD_NEED_EVALP(xml)) {
     lispval result;
@@ -1097,7 +1105,7 @@ lispval fd_xmlevalout(u8_output out,lispval xml,
       /* If the call returns an XML object, unparse it */
       fd_unparse_xml(out,result,scheme_env);
       fd_decref(result);}
-    else if (FD_ABORTP(result)) {
+    else if (FD_ABORTED(result)) {
       fd_clear_errors(1);
       return VOID;}
     else if (STRINGP(result)) {
@@ -1178,7 +1186,7 @@ lispval fd_open_xml(lispval xml,fd_lexenv env)
     lispval markup; fd_lexenv xml_env = read_xml_env(env);
     if (xml_env) markup = get_markup_string(xml,env,xml_env);
     else markup = FD_ERROR;
-    if (FD_ABORTP(markup)) return markup;
+    if (FD_ABORTED(markup)) return markup;
     else if (STRINGP(markup)) {
       if ((!(fd_test(xml,content_slotid,VOID)))||
           (fd_test(xml,content_slotid,EMPTY))||
@@ -1331,7 +1339,7 @@ static lispval do_body(lispval expr,fd_lexenv env)
   if ((PAIRP(body))||(VECTORP(body))) {
     FD_DOELTS(elt,body,count) {
       lispval value = fd_xmleval(out,elt,env);
-      if (FD_ABORTP(value)) {
+      if (FD_ABORTED(value)) {
         fd_decref(body);
         return value;}
       else {
@@ -1361,7 +1369,7 @@ static lispval fdxml_try(lispval expr,fd_lexenv env,fd_stack _stack)
       else {
         lispval value = fd_xmleval(out,elt,env);
         if (EMPTYP(result)) {}
-        else if (FD_ABORTP(value)) {
+        else if (FD_ABORTED(value)) {
           fd_decref(body);
           return value;}
         else {
@@ -1381,7 +1389,7 @@ static lispval fdxml_union(lispval expr,fd_lexenv env,fd_stack _stack)
       else {
         lispval value = fd_xmleval(out,elt,env);
         if (EMPTYP(result)) {}
-        else if (FD_ABORTP(value)) {
+        else if (FD_ABORTED(value)) {
           fd_decref(body);
           return value;}
         else {
@@ -1408,7 +1416,7 @@ static lispval fdxml_intersection(lispval expr,fd_lexenv env,fd_stack _stack)
       if (STRINGP(elt)) {}
       else {
         lispval value = fd_xmleval(out,elt,env);
-        if ((EMPTYP(result)) || (FD_ABORTP(value))) {
+        if ((EMPTYP(result)) || (FD_ABORTED(value))) {
           while (i<n) {fd_decref(v[i]); i++;}
           if (v!=_v) u8_free(v);
           return result;}
@@ -1450,7 +1458,7 @@ static lispval fdxml_binding(lispval expr,fd_lexenv env,fd_stack _stack)
         entify(out,CSTRING(elt),STRLEN(elt));
       else {
         lispval value = fd_xmleval(out,elt,inner_env);
-        if (FD_ABORTP(value)) {
+        if (FD_ABORTED(value)) {
           fd_recycle_lexenv(inner_env);
           fd_decref(result);
           return value;}
@@ -1534,7 +1542,7 @@ static lispval fdxml_seq_loop(lispval var,lispval count_var,lispval xpr,fd_lexen
       if (iterval) *iterval = FD_INT(i);}
     {FD_DOELTS(expr,body,count) {
       lispval val = fd_xmleval(out,expr,&envstruct);
-      if (FD_ABORTP(val)) {
+      if (FD_ABORTED(val)) {
         u8_destroy_rwlock(&(bindings.table_rwlock));
         if (envstruct.env_copy) fd_recycle_lexenv(envstruct.env_copy);
         fd_decref(elt); fd_decref(seq);
@@ -1558,8 +1566,8 @@ static lispval fdxml_choice_loop(lispval var,lispval count_var,lispval xpr,fd_le
   lispval *vloc = NULL, *iloc = NULL;
   lispval vars[2], vals[2];
   struct FD_SCHEMAP bindings; struct FD_LEXENV envstruct;
-  if (FD_ABORTP(var)) return var;
-  else if (FD_ABORTP(choices)) return choices;
+  if (FD_ABORTED(var)) return var;
+  else if (FD_ABORTED(choices)) return choices;
   FD_INIT_STATIC_CONS(&envstruct,fd_lexenv_type);
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   if (VOIDP(count_var)) {
@@ -1577,7 +1585,7 @@ static lispval fdxml_choice_loop(lispval var,lispval count_var,lispval xpr,fd_le
   envstruct.env_bindings = (lispval)(&bindings); envstruct.env_exports = VOID;
   envstruct.env_copy = NULL;
   if (EMPTYP(choices)) return VOID;
-  else if (FD_ABORTP(choices))
+  else if (FD_ABORTED(choices))
     return choices;
   else {
     int i = 0; DO_CHOICES(elt,choices) {
@@ -1590,7 +1598,7 @@ static lispval fdxml_choice_loop(lispval var,lispval count_var,lispval xpr,fd_le
         if (iloc) *iloc = FD_INT(i);}
       {FD_DOELTS(expr,body,count) {
         lispval val = fd_xmleval(out,expr,&envstruct);
-        if (FD_ABORTP(val)) {
+        if (FD_ABORTED(val)) {
           fd_decref(choices);
           if (envstruct.env_copy)
             fd_recycle_lexenv(envstruct.env_copy);
@@ -1614,7 +1622,7 @@ static lispval fdxml_range_loop(lispval var,lispval count_var,
   lispval body = fd_get(xpr,content_slotid,EMPTY);
   lispval vars[2], vals[2];
   struct FD_SCHEMAP bindings; struct FD_LEXENV envstruct;
-  if (FD_ABORTP(var)) return var;
+  if (FD_ABORTED(var)) return var;
   else if (!(FD_UINTP(limit_val)))
     return fd_type_error("fixnum","dotimes_handler",limit_val);
   else limit = FIX2INT(limit_val);
@@ -1635,7 +1643,7 @@ static lispval fdxml_range_loop(lispval var,lispval count_var,
     else vals[0]=FD_INT(i);
     {FD_DOELTS(expr,body,count) {
       lispval val = fd_xmleval(out,expr,&envstruct);
-      if (FD_ABORTP(val)) {
+      if (FD_ABORTED(val)) {
         u8_destroy_rwlock(&(bindings.table_rwlock));
         if (envstruct.env_copy) fd_recycle_lexenv(envstruct.env_copy);
         return val;}
