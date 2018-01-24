@@ -248,11 +248,11 @@
   (let ((modified (get-modified dbs))
 	(started (elapsed-time)))
     (when (exists? modified)
-      (let ((timings (make-hashtable))
-	    (fifo (fifo/make modified))
-	    (n-threads (mt/threadcount (getopt opts 'threads commit-threads)
-				       (choice-size modified))))
-	(loginfo |FLEX/Commit|
+      (let* ((timings (make-hashtable))
+	     (fifo (fifo/make modified))
+	     (spec-threads (mt/threadcount (getopt opts 'threads commit-threads)))
+	     (n-threads (and spec-threads (min spec-threads (choice-size modified)))))
+	(lognotice |FLEX/Commit|
 	  "Saving " (choice-size modified) " dbs using " (or n-threads "no") " threads:"
 	  (do-choices (db modified) (printout "\n\t" db)))
 	(cond ((not n-threads)
