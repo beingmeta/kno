@@ -151,7 +151,7 @@
 			   (exists? base) base
 			   (exists? cap) cap
 			   (exists? partsize) partsize)
-		      (let ((pool (unique-flexpool (realpath filename) prefix base cap partsize opts)))
+		      (let ((pool (unique-flexpool filename prefix base cap partsize opts)))
 			(adjuncts/init! pool)
 			pool)
 		      (irritant opts |BadFlexpoolData|))))))))
@@ -191,9 +191,7 @@
 				    prefix base cap partsize
 				    (dirname filename)
 				    opts))
-	  (let ((pool (unique-flexpool (if (readlink filename)
-					   (abspath filename)
-					   (realpath filename)) 
+	  (let ((pool (unique-flexpool (abspath filename) 
 				       prefix base cap partsize opts)))
 	    (adjuncts/setup! pool)
 	    (adjuncts/init! pool)
@@ -229,9 +227,9 @@
     (set! filename (abspath filename)))
   (let* ((prefix (textsubst file-prefix pool-suffix ""))
 	 (padlen (flexpool/padlen flexcap partsize))
-	 (flexdir  (dirname filename))
+	 (flexdir (dirname filename))
 	 (start-ref (glom prefix "." (padnum 0 padlen 16) ".pool"))
-	 (start-file (realpath (mkpath flexdir start-ref)))
+	 (start-file (mkpath flexdir start-ref))
 	 (partition-opts
 	  (getopt opts 'partopts 
 		  (frame-create #f

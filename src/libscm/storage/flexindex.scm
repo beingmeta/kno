@@ -35,7 +35,7 @@
 			    has-prefix fullpath)
 		      has-suffix ".index"))
 	 (serials (get-serial files))
-	 (refpath (textsubst (realpath files) flex-suffix ""))
+	 (refpath (textsubst files flex-suffix ""))
 	 (metadata (frame-create #f))
 	 (partition-opts
 	  `(,(frame-create #f
