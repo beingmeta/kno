@@ -61,7 +61,7 @@
   (when (file-exists? into)
     (if (config 'unsafe #f)
 	(remove-file into)
-	(move-file! into into (glom into ".bak"))))
+	(move-file! into (glom into ".bak"))))
   (onerror
       (move-file! (index-source index) into)
       (lambda (x)
