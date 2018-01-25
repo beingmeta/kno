@@ -63,7 +63,7 @@ static fd_index open_tempindex(u8_string name,fd_storage_flags flags,lispval opt
   struct FD_TEMPINDEX *tempindex = u8_alloc(struct FD_TEMPINDEX);
   lispval metadata = fd_getopt(opts,FDSYM_METADATA,FD_VOID);
   fd_init_index((fd_index)tempindex,&tempindex_handler,
-                name,u8_strdup(name),
+                name,name,name,
                 flags|FD_STORAGE_NOSWAP,
                 metadata,
                 opts);

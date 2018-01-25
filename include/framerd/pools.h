@@ -150,7 +150,8 @@ typedef struct FD_ADJUNCT *fd_adjunct;
 #define FD_POOL_FIELDS \
   FD_CONS_HEADER;                                       \
   int pool_serialno;                                    \
-  u8_string poolid, pool_source, pool_label;            \
+  u8_string poolid, pool_label;                         \
+  u8_string pool_source, canonical_source;              \
   u8_string pool_typeid;                                \
   FD_OID pool_base;                                     \
   unsigned int pool_capacity;                           \
@@ -268,7 +269,7 @@ FD_EXPORT lispval fd_pool_base_metadata(fd_pool p);
 
 FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
                             struct FD_POOL_HANDLER *h,
-                            u8_string id,u8_string source,
+                            u8_string id,u8_string source,u8_string csource,
                             fd_storage_flags flags,
                             lispval metadata,
                             lispval opts);

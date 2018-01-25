@@ -58,7 +58,8 @@ static void init_network_pool
   FD_OID addr; unsigned int capacity; u8_string label;
   addr = FD_OID_ADDR(FD_CAR(scan)); scan = FD_CDR(scan);
   capacity = fd_getint(FD_CAR(scan)); scan = FD_CDR(scan);
-  fd_init_pool((fd_pool)p,addr,capacity,&netpool_handler,spec,source,
+  fd_init_pool((fd_pool)p,addr,capacity,&netpool_handler,
+               spec,source,source,
                flags,FD_VOID,opts);
   /* Network pool specific stuff */
   if (FALSEP(FD_CAR(scan)))

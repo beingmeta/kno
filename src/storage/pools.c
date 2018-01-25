@@ -1784,8 +1784,10 @@ static int match_pool_id(fd_pool p,u8_string id)
 
 static int match_pool_source(fd_pool p,u8_string source)
 {
-  return ((source)&&(p->pool_source)&&
-          (strcmp(p->pool_source,source)==0));
+  return ( ((source)&&(p->canonical_source)&&
+            (strcmp(p->canonical_source,source)==0) ) ||
+           ((source)&&(p->pool_source)&&
+            (strcmp(p->pool_source,source)==0) ) );
 }
 
 FD_EXPORT fd_pool fd_find_pool_by_id(u8_string id)
@@ -1955,7 +1957,7 @@ lispval fd_changed_oids(fd_pool p)
 FD_EXPORT void fd_init_pool(fd_pool p,
                             FD_OID base,unsigned int capacity,
                             struct FD_POOL_HANDLER *h,
-                            u8_string id,u8_string source,
+                            u8_string id,u8_string source,u8_string csource,
                             fd_storage_flags flags,
                             lispval metadata,
                             lispval opts)
@@ -1964,6 +1966,7 @@ FD_EXPORT void fd_init_pool(fd_pool p,
   p->pool_base = base;
   p->pool_capacity = capacity;
   p->pool_source = u8_strdup(source);
+  p->canonical_source = u8_strdup(csource);
   p->poolid = u8_strdup(id);
   p->pool_typeid = NULL;
   p->pool_handler = h;

@@ -40,7 +40,7 @@ FD_EXPORT int fd_index_adds_init;
 
 #define FD_INDEX_FIELDS \
   FD_CONS_HEADER;                                                  \
-  u8_string indexid, index_source;                                 \
+  u8_string indexid, index_source, canonical_source;               \
   u8_string index_typeid;                                          \
   struct FD_INDEX_HANDLER *index_handler;                          \
   fd_storage_flags index_flags, modified_flags;                    \
@@ -138,7 +138,7 @@ FD_EXPORT lispval fd_get_all_indexes(void);
 FD_EXPORT void fd_init_index
   (fd_index ix,
    struct FD_INDEX_HANDLER *h,
-   u8_string id,u8_string src,
+   u8_string id,u8_string src,u8_string csrc,
    fd_storage_flags flags,
    lispval metadata,
    lispval opts);

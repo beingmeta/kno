@@ -75,8 +75,11 @@ static fd_index open_fileindex(u8_string fname,fd_storage_flags flags,lispval op
       read_only=1;}}
   else read_only=1;
 
+  u8_string abspath = u8_abspath(fname,NULL);
+  u8_string realpath = u8_realpath(fname,NULL);
+
   fd_init_index((fd_index)index,&fileindex_handler,
-                fname,u8_realpath(fname,NULL),
+                fname,abspath,realpath,
                 flags,VOID,opts);
 
   int consed = U8_BITP(flags,FD_STORAGE_UNREGISTERED);
@@ -84,14 +87,14 @@ static fd_index open_fileindex(u8_string fname,fd_storage_flags flags,lispval op
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
   struct FD_STREAM *s = fd_init_file_stream
-    (&(index->index_stream),fname,mode,
+    (&(index->index_stream),abspath,mode,
      ((read_only)?(FD_DEFAULT_FILESTREAM_FLAGS|FD_STREAM_READ_ONLY):
       (FD_DEFAULT_FILESTREAM_FLAGS)),
      fd_driver_bufsize);
+  u8_free(abspath); u8_free(realpath);
 
   if (s == NULL) {
     u8_free(index);
-    u8_free(realpath);
     fd_seterr3(u8_CantOpenFile,"open_fileindex",fname);
     return NULL;}
 

@@ -194,7 +194,8 @@ static fd_pool open_oidpool(u8_string fname,
   int stream_flags = FD_STREAM_CAN_SEEK | FD_STREAM_NEEDS_LOCK |
     ( (read_only) ? (FD_STREAM_READ_ONLY) : (0) ) |
     ( (cache_level>=3) ? (FD_STREAM_USEMMAP) : (0) );
-  u8_string rname = u8_realpath(fname,NULL);
+  u8_string realpath = u8_realpath(fname,NULL);
+  u8_string abspath = u8_abspath(fname,NULL);
   struct FD_STREAM *stream=
     fd_init_file_stream(&(pool->pool_stream),fname,
                         mode,stream_flags,fd_driver_bufsize);
@@ -248,10 +249,12 @@ static fd_pool open_oidpool(u8_string fname,
   pool->oidpool_compression=
     (fd_compress_type)(((oidpool_format)&(FD_OIDPOOL_COMPRESSION))>>3);
 
-  fd_init_pool((fd_pool)pool,base,capacity,&oidpool_handler,fname,rname,
+  fd_init_pool((fd_pool)pool,base,capacity,&oidpool_handler,
+               fname,abspath,realpath,
                FD_STORAGE_ISPOOL,FD_VOID,opts);
   pool->pool_flags=open_flags;
-  u8_free(rname); /* Done with this */
+  u8_free(realpath);
+  u8_free(abspath);
 
   /* Get the label */
   label_loc = fd_read_8bytes(instream);
@@ -272,7 +275,6 @@ static fd_pool open_oidpool(u8_string fname,
       fd_seterr(fd_BadFilePoolLabel,"open_oidpool","bad label loc",
                 FD_INT(label_loc));
       fd_close_stream(stream,0);
-      u8_free(rname);
       u8_free(pool);
       return NULL;}}
   if (schemas_loc) {

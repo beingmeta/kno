@@ -233,6 +233,8 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
       read_only=1;}}
   else read_only=1;
 
+  u8_string abspath = u8_abspath(fname,NULL);
+  u8_string realpath = u8_realpath(fname,NULL);
   unsigned int magicno;
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
@@ -240,11 +242,12 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
     FD_STREAM_CAN_SEEK | FD_STREAM_NEEDS_LOCK | FD_STREAM_READ_ONLY;
 
   fd_init_index((fd_index)index,&hashindex_handler,
-                fname,u8_realpath(fname,NULL),
+                fname,abspath,realpath,
                 flags,FD_VOID,opts);
 
   fd_stream stream=
-    fd_init_file_stream(&(index->index_stream),fname,mode,stream_flags,-1);
+    fd_init_file_stream(&(index->index_stream),abspath,mode,stream_flags,-1);
+  u8_free(abspath); u8_free(realpath);
 
   if (stream == NULL) {
     u8_free(index);

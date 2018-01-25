@@ -173,8 +173,9 @@ static fd_pool open_pool(fd_pool_typeinfo ptype,u8_string spec,
                          fd_storage_flags flags,lispval opts)
 {
   u8_string search_spec = spec;
-  if ( (strchr(search_spec,'@')==NULL) || (strchr(search_spec,':')==NULL) )
-    search_spec = u8_realpath(spec,NULL);
+  if ( (strchr(search_spec,'@')==NULL) || (strchr(search_spec,':')==NULL) ) {
+    if (u8_file_existsp(search_spec))
+      search_spec = u8_realpath(spec,NULL);}
   fd_pool found = (flags&FD_STORAGE_UNREGISTERED) ? (NULL) :
     (fd_find_pool_by_source(search_spec));
   if (spec != search_spec) u8_free(search_spec);
@@ -414,8 +415,9 @@ static fd_index open_index(fd_index_typeinfo ixtype,u8_string spec,
                            fd_storage_flags flags,lispval opts)
 {
   u8_string search_spec = spec;
-  if ( (strchr(search_spec,'@')==NULL) || (strchr(search_spec,':')==NULL) )
-    search_spec = u8_realpath(spec,NULL);
+  if ( (strchr(search_spec,'@')==NULL) || (strchr(search_spec,':')==NULL) ) {
+    if (u8_file_existsp(search_spec))
+      search_spec = u8_realpath(spec,NULL);}
   fd_index found = (flags&FD_STORAGE_UNREGISTERED) ? (NULL) :
     (fd_find_index_by_source(search_spec));
   fd_index opened = (found) ? (found) : (ixtype->opener(spec,flags,opts));
@@ -1108,17 +1110,17 @@ FD_EXPORT int fd_remove_suffix(u8_string base,u8_string suffix)
 
 FD_EXPORT u8_string fd_match_pool_file(u8_string spec,void *data)
 {
-  u8_string rpath=u8_realpath(spec,NULL);
-  if ((u8_file_existsp(rpath)) &&
-      (fd_match4bytes(rpath,data)))
-    return rpath;
+  u8_string abspath=u8_abspath(spec,NULL);
+  if ((u8_file_existsp(abspath)) &&
+      (fd_match4bytes(abspath,data)))
+    return abspath;
   else if (u8_has_suffix(spec,".pool",1)) {
-    u8_free(rpath);
+    u8_free(abspath);
     return NULL;}
   else {
     u8_string new_spec = u8_mkstring("%s.pool",spec);
-    u8_string variation = u8_realpath(new_spec,NULL);
-    u8_free(rpath); u8_free(new_spec);
+    u8_string variation = u8_abspath(new_spec,NULL);
+    u8_free(abspath); u8_free(new_spec);
     if ((u8_file_existsp(variation))&&
         (fd_match4bytes(variation,data))) {
       return variation;}
@@ -1129,17 +1131,17 @@ FD_EXPORT u8_string fd_match_pool_file(u8_string spec,void *data)
 
 FD_EXPORT u8_string fd_match_index_file(u8_string spec,void *data)
 {
-  u8_string rpath=u8_realpath(spec,NULL);
-  if ((u8_file_existsp(rpath)) &&
-      (fd_match4bytes(rpath,data)))
-    return rpath;
+  u8_string abspath=u8_abspath(spec,NULL);
+  if ((u8_file_existsp(abspath)) &&
+      (fd_match4bytes(abspath,data)))
+    return abspath;
   else if (u8_has_suffix(spec,".index",1)) {
-    u8_free(rpath);
+    u8_free(abspath);
     return NULL;}
   else {
     u8_string new_spec = u8_mkstring("%s.index",spec);
-    u8_string variation = u8_realpath(new_spec,NULL);
-    u8_free(rpath); u8_free(new_spec);
+    u8_string variation = u8_abspath(new_spec,NULL);
+    u8_free(abspath); u8_free(new_spec);
     if ((u8_file_existsp(variation))&&
         (fd_match4bytes(variation,data))) {
       return variation;}

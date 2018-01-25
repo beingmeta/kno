@@ -41,7 +41,8 @@ fd_index fd_make_extindex
     struct FD_EXTINDEX *fetchix = u8_alloc(struct FD_EXTINDEX);
     FD_INIT_STRUCT(fetchix,struct FD_EXTINDEX);
     fd_init_index((fd_index)fetchix,&fd_extindex_handler,
-                  name,NULL,(!(reg)),FD_VOID,opts);
+                  name,NULL,NULL,
+                  (!(reg)),FD_VOID,opts);
     fetchix->index_cache_level = 1;
     if (VOIDP(commitfn))
       U8_SETBITS(fetchix->index_flags,FD_STORAGE_READ_ONLY);

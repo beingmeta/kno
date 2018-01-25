@@ -228,7 +228,8 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,
       fd_clear_errors(1);
       read_only=1;}}
   else read_only=1;
-  u8_string rname = u8_realpath(fname,NULL);
+  u8_string realpath = u8_realpath(fname,NULL);
+  u8_string abspath = u8_abspath(fname,NULL);
   int stream_flags =
     FD_STREAM_CAN_SEEK | FD_STREAM_NEEDS_LOCK | FD_STREAM_READ_ONLY;
   struct FD_STREAM *stream=
@@ -236,12 +237,16 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,
   struct FD_INBUF *instream = (stream) ? (fd_readbuf(stream)) : (NULL);
   if (instream == NULL) {
     u8_raise(fd_FileNotFound,"open_bigpool",u8_strdup(fname));
+    u8_free(realpath);
+    u8_free(abspath);
     return NULL;}
 
   stream->stream_flags &= ~FD_STREAM_IS_CONSED;
   magicno = fd_read_4bytes(instream);
   if (magicno!=FD_BIGPOOL_MAGIC_NUMBER) {
     fd_seterr(_("Not a bigpool"),"open_bigpool",fname,VOID);
+    u8_free(realpath);
+    u8_free(abspath);
     return NULL;}
   /* Read POOL base etc. */
   hi = fd_read_4bytes(instream); lo = fd_read_4bytes(instream);
@@ -318,17 +323,20 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,
         fd_seterr("BadPoolMetadata","open_bigpool",fname,FD_INT(metadata_loc));
       else fd_seterr("BadPoolMetadata","open_bigpool",fname,metadata);
       fd_close_stream(stream,0);
+      u8_free(realpath);
+      u8_free(abspath);
       u8_free(pool);
       return NULL;}}
 
   fd_init_pool((fd_pool)pool,base,capacity,
                &bigpool_handler,
-               fname,rname,
+               fname,abspath,realpath,
                open_flags,metadata,opts);
+  u8_free(realpath);
+  u8_free(abspath);
 
   open_flags = pool->pool_flags;
   fd_decref(metadata);
-  u8_free(rname);
   if (metadata_modified)
     pool->pool_metadata.table_modified = 1;
 

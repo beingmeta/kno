@@ -89,7 +89,7 @@ fd_pool fd_make_procpool(FD_OID base,
 
   fd_init_pool((fd_pool)pp,base,cap,
                &fd_procpool_handler,
-               label,source,
+               label,source,source,
                flags,
                metadata,
                opts);

@@ -98,7 +98,8 @@ fd_index fd_make_procindex(lispval opts,lispval state,
 
   fd_init_index((fd_index)pix,
                 &fd_procindex_handler,
-                id,u8_strdup(source),flags,
+                id,source,source,
+                flags,
                 metadata,
                 opts);
 

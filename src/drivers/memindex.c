@@ -280,16 +280,19 @@ static fd_index open_memindex(u8_string file,fd_storage_flags flags,
                               lispval opts)
 {
   struct FD_MEMINDEX *memidx = u8_alloc(struct FD_MEMINDEX);
+  u8_string abspath = u8_abspath(file,NULL);
+  u8_string realpath = u8_realpath(file,NULL);
   fd_init_index((fd_index)memidx,&memindex_handler,
-                file,u8_realpath(file,NULL),
+                file,abspath,realpath,
                 flags|FD_STORAGE_NOSWAP,
                 VOID,
                 opts);
   struct FD_STREAM *stream=
-    fd_init_file_stream(&(memidx->index_stream),file,
+    fd_init_file_stream(&(memidx->index_stream),abspath,
                         FD_FILE_MODIFY,-1,
                         fd_driver_bufsize);
   lispval preload = fd_getopt(opts,preload_opt,FD_TRUE);
+  u8_free(abspath); u8_free(realpath);
   if (!(stream)) return NULL;
   stream->stream_flags &= ~FD_STREAM_IS_CONSED;
   unsigned int magic_no = fd_read_4bytes(fd_readbuf(stream));

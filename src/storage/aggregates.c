@@ -196,8 +196,8 @@ FD_EXPORT fd_aggregate_index fd_make_aggregate_index
   fd_storage_flags flags =
     fd_get_dbflags(opts,FD_STORAGE_ISINDEX|FD_STORAGE_READ_ONLY);
   fd_init_index((fd_index)aix,&aggregate_index_handler,
-                "new-aggregate",NULL,flags,
-                opts,metadata);
+                "new-aggregate",NULL,NULL,
+                flags,opts,metadata);
   if (n_allocd < n) n_allocd = n;
   u8_init_mutex(&(aix->index_lock));
   aix->ax_n_allocd = n_allocd;

@@ -1013,18 +1013,20 @@ fd_pool fd_open_leveldb_pool(u8_string path,fd_storage_flags flags,lispval opts)
     lispval metadata = get_prop(dbptr,"\377METADATA",FD_VOID);
     lispval slotcodes = get_prop(dbptr,"\377SLOTIDS",FD_VOID);
     if ((FD_OIDP(base)) && (FD_UINTP(cap)) && (FD_UINTP(load))) {
-      u8_string rname = u8_realpath(path,NULL);
+      u8_string abspath = u8_abspath(path,NULL);
+      u8_string realpath = u8_realpath(path,NULL);
       lispval adjunct_opt = fd_getopt(opts,SYM("ADJUNCT"),FD_VOID);
       lispval read_only_opt = fd_getopt(opts,SYM("READONLY"),FD_VOID);
       lispval label = get_prop(dbptr,"\377LABEL",FD_VOID);
       fd_init_pool((fd_pool)pool,
                    FD_OID_ADDR(base),FD_FIX2INT(cap),
                    &leveldb_pool_handler,
-                   path,rname,
+                   path,abspath,realpath,
                    FD_STORAGE_ISPOOL,
                    metadata,
                    opts);
-      u8_free(rname);
+      u8_free(abspath);
+      u8_free(realpath);
       if (FD_VOIDP(read_only_opt))
         read_only_opt = get_prop(dbptr,"\377READONLY",FD_VOID);
       if (FD_VOIDP(read_only_opt))
@@ -1090,16 +1092,17 @@ fd_pool fd_make_leveldb_pool(u8_string path,
     lispval generation_val = fd_getopt(opts,fd_intern("GENERATION"),FD_VOID);
     lispval slotids = fd_getopt(opts,fd_intern("SLOTIDS"),FD_VOID);
 
-    u8_string rname = u8_realpath(path,NULL);
+    u8_string realpath = u8_realpath(path,NULL);
+    u8_string abspath = u8_abspath(path,NULL);
     time_t now=time(NULL), ctime, mtime;
 
     if (!((FD_VOIDP(given_base))||(FD_EQUALP(base,given_base)))) {
-      u8_free(pool); u8_free(rname);
+      u8_free(pool); u8_free(abspath); u8_free(realpath);
       fd_seterr("Conflicting base OIDs",
                 "fd_make_leveldb_pool",path,opts);
       return NULL;}
     if (!((FD_VOIDP(given_cap))||(FD_EQUALP(cap,given_cap)))) {
-      u8_free(pool); u8_free(rname);
+      u8_free(pool); u8_free(abspath); u8_free(realpath);
       fd_seterr("Conflicting pool capacities",
                 "fd_make_leveldb_pool",path,opts);
       return NULL;}
@@ -1122,7 +1125,7 @@ fd_pool fd_make_leveldb_pool(u8_string path,
     fd_init_pool((fd_pool)pool,
                  FD_OID_ADDR(base),FD_FIX2INT(cap),
                  &leveldb_pool_handler,
-                 path,rname,
+                 path,abspath,realpath,
                  FD_STORAGE_ISPOOL,
                  metadata,
                  opts);
@@ -1180,7 +1183,8 @@ fd_pool fd_make_leveldb_pool(u8_string path,
     fd_decref(generation_val);
     fd_decref(ctime_val);
     fd_decref(mtime_val);
-    u8_free(rname);
+    u8_free(realpath);
+    u8_free(abspath);
 
     fd_register_pool((fd_pool)pool);
 
@@ -1553,7 +1557,8 @@ fd_index fd_open_leveldb_index(u8_string path,fd_storage_flags flags,lispval opt
   struct FD_LEVELDB_INDEX *index = u8_alloc(struct FD_LEVELDB_INDEX);
   if (fd_setup_leveldb(&(index->leveldb),path,opts)) {
     leveldb_t *dbptr = index->leveldb.dbptr;
-    u8_string rname = u8_realpath(path,NULL);
+    u8_string abspath = u8_abspath(path,NULL);
+    u8_string realpath = u8_realpath(path,NULL);
     lispval label = get_prop(dbptr,"\377LABEL",FD_VOID);
     lispval metadata = get_prop(dbptr,"\377METADATA",FD_VOID);
     lispval slotcodes = get_prop(dbptr,"\377SLOTIDS",FD_VOID);
@@ -1562,7 +1567,9 @@ fd_index fd_open_leveldb_index(u8_string path,fd_storage_flags flags,lispval opt
     fd_init_index((fd_index)index,
                   &leveldb_index_handler,
                   (FD_STRINGP(label)) ? (FD_CSTRING(label)) : (path),
-                  rname,0,metadata,opts);
+                  abspath,realpath,
+                  0,metadata,opts);
+    u8_free(abspath); u8_free(realpath);
 
     if (FD_VOIDP(metadata)) {}
     else if (FD_SLOTMAPP(metadata)) {}
@@ -1637,7 +1644,8 @@ fd_index fd_make_leveldb_index(u8_string path,lispval opts)
   if (fd_setup_leveldb(&(index->leveldb),path,opts)) {
     leveldb_t *dbptr = index->leveldb.dbptr;
     lispval cur_label = get_prop(dbptr,"\377LABEL",FD_VOID);
-    u8_string rname = u8_realpath(path,NULL);
+    u8_string abspath = u8_abspath(path,NULL);
+    u8_string realpath = u8_realpath(path,NULL);
     if (!(FD_VOIDP(label))) {
       if (!(FD_EQUALP(label,cur_label)))
         set_prop(dbptr,"\377LABEL",label,sync_writeopts);}
@@ -1705,8 +1713,10 @@ fd_index fd_make_leveldb_index(u8_string path,lispval opts)
 
     fd_init_index((fd_index)index,
                   &leveldb_index_handler,
-                  (FD_STRINGP(label)) ? (FD_CSTRING(label)) : (rname),
-                  rname,0,metadata,opts);
+                  (FD_STRINGP(label)) ? (FD_CSTRING(label)) : (abspath),
+                  abspath,realpath,
+                  0,metadata,opts);
+    u8_free(abspath); u8_free(realpath);
 
     index->index_flags = fd_get_dbflags(opts,FD_STORAGE_ISINDEX);
     index->index_flags &= ~FD_STORAGE_READ_ONLY;

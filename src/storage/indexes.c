@@ -319,7 +319,7 @@ FD_EXPORT fd_index fd_find_index(u8_string spec)
 }
 FD_EXPORT u8_string fd_locate_index(u8_string spec)
 {
-  fd_index ix=fd_find_index_by_source(spec);
+  fd_index ix = fd_find_index_by_source(spec);
   if (ix) return u8_strdup(ix->index_source);
   else if ((ix=fd_find_index_by_id(spec)))
     return u8_strdup(ix->index_source);
@@ -330,8 +330,10 @@ FD_EXPORT u8_string fd_locate_index(u8_string spec)
 
 static int match_index_source(fd_index ix,u8_string source)
 {
-  return ( (source) && (ix->index_source) &&
-           (strcmp(ix->index_source,source) == 0));
+  return ( ( (source) && (ix->canonical_source) &&
+             (strcmp(ix->canonical_source,source) == 0) ) ||
+           ( (source) && (ix->index_source) &&
+             (strcmp(ix->index_source,source) == 0) ) );
 }
 
 static int match_index_id(fd_index ix,u8_string id)
@@ -1715,7 +1717,7 @@ FD_EXPORT void fd_index_close(fd_index ix)
     ix->index_handler->close(ix);
 }
 
-static lispval cachelevel_slot, indexid_slot, source_slot,
+static lispval cachelevel_slot, indexid_slot, source_slot, realpath_slot,
   cached_slot, adds_slot, edits_slot, flags_slot, registered_slot,
   opts_slot, drops_slot, replaced_slot;
 
@@ -1746,6 +1748,7 @@ FD_EXPORT lispval fd_index_base_metadata(fd_index ix)
   mdstore(metadata,cachelevel_slot,FD_INT(ix->index_cache_level));
   mdstring(metadata,indexid_slot,ix->indexid);
   mdstring(metadata,source_slot,ix->index_source);
+  mdstring(metadata,realpath_slot,ix->canonical_source);
   mdstore(metadata,cached_slot,FD_INT(ix->index_cache.table_n_keys));
   mdstore(metadata,adds_slot,FD_INT(ix->index_adds.table_n_keys));
   mdstore(metadata,drops_slot,FD_INT(ix->index_drops.table_n_keys));
@@ -1780,6 +1783,7 @@ FD_EXPORT lispval fd_index_base_metadata(fd_index ix)
 
   fd_add(metadata,metadata_readonly_props,cachelevel_slot);
   fd_add(metadata,metadata_readonly_props,indexid_slot);
+  fd_add(metadata,metadata_readonly_props,realpath_slot);
   fd_add(metadata,metadata_readonly_props,source_slot);
   fd_add(metadata,metadata_readonly_props,FDSYM_TYPE);
   fd_add(metadata,metadata_readonly_props,edits_slot);
@@ -1799,7 +1803,7 @@ FD_EXPORT lispval fd_index_base_metadata(fd_index ix)
 
 FD_EXPORT void fd_init_index(fd_index ix,
                              struct FD_INDEX_HANDLER *h,
-                             u8_string id,u8_string src,
+                             u8_string id,u8_string src,u8_string csrc,
                              fd_storage_flags flags,
                              lispval metadata,
                              lispval opts)
@@ -1843,7 +1847,8 @@ FD_EXPORT void fd_init_index(fd_index ix,
   /* This was what was specified */
   ix->indexid = u8_strdup(id);
   /* Don't copy this one */
-  ix->index_source = src;
+  ix->index_source = u8_strdup(src);
+  ix->canonical_source = u8_strdup(csrc);
   ix->index_typeid = NULL;
   ix->index_covers_slotids = VOID;
 
@@ -2328,6 +2333,7 @@ FD_EXPORT void fd_init_indexes_c()
   cachelevel_slot=fd_intern("CACHELEVEL");
   indexid_slot=fd_intern("INDEXID");
   source_slot=fd_intern("SOURCE");
+  realpath_slot=fd_intern("REALPATH");
   cached_slot=fd_intern("CACHED");
   adds_slot=fd_intern("ADDS");
   edits_slot=fd_intern("EDITS");

@@ -72,7 +72,8 @@ static fd_pool open_file_pool(u8_string fname,fd_storage_flags flags,lispval opt
   FD_OID base = FD_NULL_OID_INIT;
   unsigned int hi, lo, magicno, capacity, load;
   fd_off_t label_loc; lispval label;
-  u8_string rname = u8_realpath(fname,NULL);
+  u8_string realpath = u8_realpath(fname,NULL);
+  u8_string abspath = u8_abspath(fname,NULL);
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
   fd_stream s = fd_init_file_stream
@@ -84,6 +85,8 @@ static fd_pool open_file_pool(u8_string fname,fd_storage_flags flags,lispval opt
 
   if (s==NULL) {
     u8_seterr(fd_FileNotFound,"open_file_pool",u8dup(fname));
+    u8_free(realpath);
+    u8_free(abspath);
     return NULL;}
 
   s->stream_flags &= ~FD_STREAM_IS_CONSED;
@@ -94,8 +97,9 @@ static fd_pool open_file_pool(u8_string fname,fd_storage_flags flags,lispval opt
   capacity = fd_read_4bytes_at(s,12,FD_ISLOCKED);
 
   fd_init_pool((fd_pool)pool,base,capacity,&file_pool_handler,
-               fname,rname,flags,VOID,opts);
-  u8_free(rname);
+               fname,abspath,realpath,flags,VOID,opts);
+  u8_free(realpath);
+  u8_free(abspath);
 
   if (magicno == FD_FILE_POOL_TO_RECOVER) {
     u8_logf(LOG_WARN,fd_RecoveryRequired,"Recovering the file pool %s",fname);
@@ -122,7 +126,6 @@ static fd_pool open_file_pool(u8_string fname,fd_storage_flags flags,lispval opt
       fd_seterr(fd_BadFilePoolLabel,"open_file_pool","bad label loc",
                 FD_INT(label_loc));
       fd_close_stream(&(pool->pool_stream),0);
-      u8_free(rname);
       u8_free(pool);
       return NULL;}}
   pool->pool_load = load;
