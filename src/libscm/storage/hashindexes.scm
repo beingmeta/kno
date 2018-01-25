@@ -152,7 +152,7 @@
 
 (define (hashindex/copy-keys! index output opts (rare))
   (let* ((started (elapsed-time))
-	 (span (getopt opts 'span))
+	 (span (getopt opts 'span 1000))
 	 (buckets (if span
 		      (get-spans (indexctl index 'hash) span)
 		      (indexctl index 'buckets)))
@@ -168,7 +168,7 @@
 		   onerror {stopall signal}
 		   counters {copied rarekeys uniquekeys values}
 		   logrates {copied rarekeys uniquekeys values}
-		   batchsize ,(if span 1 (getopt opts 'batchsize (config 'BATCHSIZE 10000)))
+		   batchsize ,(if span 1 (getopt opts 'batchsize (config 'BATCHSIZE 100)))
 		   batchrange ,(if span 1 (getopt opts 'batchrange (config 'BATCHRANGE 8)))
 		   nthreads ,(getopt opts 'nthreads (config 'NTHREADS (rusage 'ncpus)))
 		   checktests ,(engine/interval (getopt opts 'savefreq (config 'savefreq 60)))

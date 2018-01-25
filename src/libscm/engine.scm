@@ -333,7 +333,9 @@ slot of the loop state.
 				      (and (singleton? items-arg)
 					   (vector? items-arg)))
 		      items))
-	 (rthreads (if (and nthreads (> nthreads (length batches))) (length batches) nthreads))
+	 (rthreads (if (and nthreads (> nthreads (length batches)))
+		       (length batches)
+		       nthreads))
 	 (fifo (fifo/make batches
 			  `#[fillfn ,(getopt opts 'fillfn fifo/exhausted!) 
 			     name ,(getopt opts 'name (or (procedure-name fcn) {}))]))
