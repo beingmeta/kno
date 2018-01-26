@@ -95,17 +95,26 @@ static u8_output get_output_port(lispval portarg)
 
 /* Opening files */
 
-static lispval open_output_file(lispval fname,lispval encid,lispval escape_char)
+static lispval open_output_file(lispval fname,lispval opts,lispval escape_char)
 {
+  struct U8_XOUTPUT *f;
   u8_string filename = fd_strdata(fname);
-  u8_encoding enc; struct U8_XOUTPUT *f;
+  lispval encid = FD_VOID;
+  u8_encoding enc = NULL;
+  int open_flags = O_EXCL|O_CREAT|O_WRONLY;
+  if (FD_OPTIONSP(opts)) {
+    encid = fd_getopt(opts,FDSYM_ENCODING,FD_VOID);}
+  else if ( (FD_SYMBOLP(opts)) || (FD_STRINGP(opts)) )
+    encid = opts;
+  else NO_ELSE;
   if (VOIDP(encid)) enc = NULL;
   else if (STRINGP(encid))
     enc = u8_get_encoding(CSTRING(encid));
   else if (SYMBOLP(encid))
     enc = u8_get_encoding(SYM_NAME(encid));
   else return fd_err(fd_UnknownEncoding,"OPEN-OUTPUT-FILE",NULL,encid);
-  f = u8_open_output_file(filename,enc,0,0);
+  f = u8_open_output_file(filename,enc,open_flags,0);
+  if (encid != opts) fd_decref(encid);
   if (f == NULL)
     return fd_err(u8_CantOpenFile,"OPEN-OUTPUT-FILE",NULL,fname);
   if (FD_CHARACTERP(escape_char)) {
@@ -114,11 +123,20 @@ static lispval open_output_file(lispval fname,lispval encid,lispval escape_char)
   return make_port(NULL,(u8_output)f,u8_strdup(filename));
 }
 
-static lispval extend_output_file(lispval fname,lispval encid,lispval escape_char)
+static lispval extend_output_file(lispval fname,lispval opts,lispval escape_char)
 {
+  struct U8_XOUTPUT *f;
   u8_string filename = fd_strdata(fname);
-  u8_encoding enc; struct U8_XOUTPUT *f;
-  if (VOIDP(encid)) enc = NULL;
+  lispval encid = FD_VOID;
+  u8_encoding enc = NULL;
+  int open_flags = O_APPEND|O_CREAT|O_WRONLY;
+  if (FD_OPTIONSP(opts)) {
+    encid = fd_getopt(opts,FDSYM_ENCODING,FD_VOID);}
+  else if ( (FD_SYMBOLP(opts)) || (FD_STRINGP(opts)) )
+    encid = opts;
+  else NO_ELSE;
+  if (VOIDP(encid))
+    enc = NULL;
   else if (STRINGP(encid))
     enc = u8_get_encoding(CSTRING(encid));
   else if (SYMBOLP(encid))
@@ -133,17 +151,26 @@ static lispval extend_output_file(lispval fname,lispval encid,lispval escape_cha
   return make_port(NULL,(u8_output)f,u8_strdup(filename));
 }
 
-static lispval open_input_file(lispval fname,lispval encid)
+static lispval open_input_file(lispval fname,lispval opts)
 {
+  struct U8_XINPUT *f;
   u8_string filename = fd_strdata(fname);
-  u8_encoding enc; U8_INPUT *f;
-  if (VOIDP(encid)) enc = NULL;
+  lispval encid = FD_VOID;
+  u8_encoding enc = NULL;
+  int open_flags = O_RDONLY;
+  if (FD_OPTIONSP(opts)) {
+    encid = fd_getopt(opts,FDSYM_ENCODING,FD_VOID);}
+  else if ( (FD_SYMBOLP(opts)) || (FD_STRINGP(opts)) )
+    encid = opts;
+  else NO_ELSE;
+  if (VOIDP(encid))
+    enc = NULL;
   else if (STRINGP(encid))
     enc = u8_get_encoding(CSTRING(encid));
   else if (SYMBOLP(encid))
     enc = u8_get_encoding(SYM_NAME(encid));
   else return fd_err(fd_UnknownEncoding,"OPEN-INPUT_FILE",NULL,encid);
-  f = (u8_input)u8_open_input_file(filename,enc,0,0);
+  f = u8_open_input_file(filename,enc,open_flags,0);
   if (f == NULL)
     return fd_err(u8_CantOpenFile,"OPEN-INPUT-FILE",NULL,fname);
   else return make_port((u8_input)f,NULL,u8_strdup(filename));
@@ -153,14 +180,17 @@ static lispval writefile_prim(lispval filename,lispval object,lispval enc)
 {
   int len = 0; const unsigned char *bytes; int free_bytes = 0;
   if (STRINGP(object)) {
-    bytes = CSTRING(object); len = STRLEN(object);}
+    bytes = CSTRING(object);
+    len = STRLEN(object);}
   else if (PACKETP(object)) {
-    bytes = FD_PACKET_DATA(object); len = FD_PACKET_LENGTH(object);}
+    bytes = FD_PACKET_DATA(object);
+    len = FD_PACKET_LENGTH(object);}
   else if ((FALSEP(enc)) || (VOIDP(enc))) {
     struct FD_OUTBUF out = { 0 };
     FD_INIT_BYTE_OUTPUT(&out,1024);
     fd_write_dtype(&out,object);
-    bytes = out.buffer; len = out.bufwrite-out.buffer;
+    bytes = out.buffer;
+    len = out.bufwrite-out.buffer;
     free_bytes = 1;}
   else {
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);
@@ -224,7 +254,9 @@ static lispval simple_fileout_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   if (FD_ABORTP(filename_val)) return filename_val;
   else if (FD_PORTP(filename_val)) {
     FD_PORT *port = fd_consptr(FD_PORT *,filename_val,fd_port_type);
-    if (port->fd_outport) {f = port->fd_outport; doclose = 0;}
+    if (port->fd_outport) {
+      f = port->fd_outport;
+      doclose = 0;}
     else {
       fd_decref(filename_val);
       return fd_type_error(_("output port"),"simple_fileout",filename_val);}}
@@ -1547,14 +1579,31 @@ FD_EXPORT void fd_init_fileprims_c()
 
   u8_set_global_output((u8_output)&u8stdout);
 
-  fd_idefn(fileio_module,
-           fd_make_cprim3("OPEN-OUTPUT-FILE",open_output_file,1));
-  fd_idefn(fileio_module,
-           fd_make_cprim3("EXTEND-OUTPUT-FILE",extend_output_file,1));
-  fd_idefn(fileio_module,
-           fd_make_cprim2("OPEN-INPUT-FILE",open_input_file,1));
-  fd_idefn(fileio_module,fd_make_cprim3x("SETBUF!",setbuf_prim,2,
-                                         -1,VOID,-1,FD_FALSE,-1,FD_FALSE));
+  fd_idefn3(fileio_module,"OPEN-OUTPUT-FILE",open_output_file,1,
+            "`(open-output-file *filename* [*encoding*] [*escape*])` "
+            "returns an output port, writing to the beginning of the "
+            "text file *filename* using *encoding*. If *escape* is "
+            "specified, it can be the character & or \\, which causes "
+            "special characters to be output as either entity escaped or "
+            "unicode escaped sequences.",
+            fd_string_type,FD_VOID,-1,FD_VOID,fd_character_type,FD_VOID);
+  fd_idefn3(fileio_module,"EXTEND-OUTPUT-FILE",extend_output_file,1,
+            "`(extend-output-file *filename* [*encoding*] [*escape*])` "
+            "returns an output port, writing to the end of the "
+            "text file *filename* using *encoding*. If *escape* is "
+            "specified, it can be the character & or \\, which causes "
+            "special characters to be output as either entity escaped or "
+            "unicode escaped sequences.",
+            fd_string_type,FD_VOID,-1,FD_VOID,fd_character_type,FD_VOID);
+  fd_idefn2(fileio_module,"OPEN-INPUT-FILE",open_input_file,1,
+            "`(open-input-file *filename* [*encoding*])` returns an input port "
+            "for the text file *filename*, translating from *encoding*. If "
+            "*encoding* is not specified, the file is opened as a UTF-8 file.",
+            fd_string_type,FD_VOID,-1,FD_VOID);
+  fd_idefn3(fileio_module,"SETBUF!",setbuf_prim,2,
+            "`(SETBUF! *port/stream* *insize* *outsize*)` sets the "
+            "input and output buffer sizes for a port or stream.",
+            -1,VOID,-1,FD_FALSE,-1,FD_FALSE);
   fd_defalias(fileio_module,"SETBUF","SETBUF!");
 
   fd_idefn(fileio_module,
