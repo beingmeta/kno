@@ -75,8 +75,8 @@ FD_EXPORT int fd_read_default_config(u8_input in);
 
 FD_EXPORT int fd_argv_config(int argc,char **argv) U8_DEPRECATED;
 FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
-				 unsigned int parse_mask,
-				 size_t *arglen_ptr);
+                                 unsigned int parse_mask,
+                                 size_t *arglen_ptr);
 
 FD_EXPORT lispval *fd_argv;
 FD_EXPORT int fd_argc;
@@ -147,6 +147,9 @@ FD_EXPORT void fd_setapp(u8_string spec,u8_string dir);
 FD_EXPORT u8_string fd_runbase_filename(u8_string suffix);
 
 /* Handling options */
+
+#define FD_OPTIONSP(opts) \
+  ( (FD_SLOTMAPP(opts)) ||  (FD_SCHEMAPP(opts)) || (FD_PAIRP(opts)) )
 
 FD_EXPORT lispval fd_getopt(lispval opts,lispval key,lispval dflt);
 FD_EXPORT int fd_testopt(lispval opts,lispval key,lispval val);
