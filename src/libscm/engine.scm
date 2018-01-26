@@ -753,7 +753,7 @@ slot of the loop state.
 	(spec-threads (mt/threadcount (getopt opts 'threads commit-threads))))
     (when (exists? modified)
       (let ((timings (make-hashtable))
-	    (fifo (fifo/make (qc modified)))
+	    (fifo (fifo/make (qc modified) `#[fillfn ,fifo/exhausted!]))
 	    (n-threads (and spec-threads (min spec-threads (choice-size modified)))))
 	(lognotice |Engine/Checkpoint/Start|
 	  (if (test loop-state 'stopped) "Final " "Incremental ")
