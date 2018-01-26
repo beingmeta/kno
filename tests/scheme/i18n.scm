@@ -10,6 +10,10 @@
 (applytest string-data
 	   filestring  (get-component "../data/i18n/UTF-8.text") "utf-8")
 
+;; Remove it if it exists
+(when (file-exists? (get-component "utf8-temp.text"))
+  (remove-file (get-component "utf8-temp.text")))
+
 (display string-data
 	 (open-output-file (get-component "utf8-temp.text") "utf8"))
 (dtype->file string-data (get-component "utf8-temp.dtype"))
