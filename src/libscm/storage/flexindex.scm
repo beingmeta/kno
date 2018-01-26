@@ -70,7 +70,9 @@
 					 (if (fail? serials) 0 (1+ (largest serials)))
 					 (try (largest indexes get-serial) #f)
 					 partition-opts)))
-		    (aggregate (make-aggregate-index (choice indexes front))))
+		    (aggregate
+		     (make-aggregate-index (choice indexes front)
+					   `#[register #t])))
 	       (when keyslot (indexctl aggregate 'keyslot keyslot))
 	       (if (and (exists? front) front)
 		   (indexctl aggregate 'props 'front front)
@@ -118,9 +120,9 @@
 
 (define (get-make-opts path model opts)
   (let* ((type (getopt opts 'type (and model (indexctl model 'metadata 'type))))
-	 (capacity (getopt opts 'capacity
-			   (and model (indexctl model 'capacity))))
-	 (make-opts (frame-create #f 'type type 'capacity capacity))
+	 (size (getopt opts 'size
+		       (and model (indexctl model 'size))))
+	 (make-opts (frame-create #f 'type type 'size size))
 	 (maxsize (getopt opts 'maxsize
 			  (and model (indexctl model 'metadata 'maxsize))))
 	 (maxkeys (getopt opts 'maxkeys
@@ -131,11 +133,11 @@
 	"Can't determine type for new index " (write path) ", "
 	"using " 'hashindex)
       (store! make-opts 'type 'hashindex))
-    (unless capacity
-      (logwarn |MissingIndexCapacity|
+    (unless size
+      (logwarn |MissingIndexSize|
 	"Can't determine capacity for new index " (write path) ", "
 	"using " ($num 100000))
-      (store! make-opts 'capacity 100000))
+      (store! make-opts 'size 100000))
     (when (or maxsize maxkeys)
       (unless (getopt new-opts 'metadata) (store! make-opts 'metadata #[]))
       (when maxsize (store! (getopt new-opts 'metadata) 'maxsize maxsize))
