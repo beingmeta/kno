@@ -888,8 +888,6 @@ void fd_init_config_c()
   u8_init_mutex(&config_lookup_lock);
   u8_init_mutex(&config_register_lock);
 
-  fd_register_config_lookup(getenv_config_lookup,NULL);
-
   fd_register_config
     ("FDVERSION",_("Get the FramerD version string"),
      fdversion_config_get,fd_readonly_config_set,NULL);
@@ -918,6 +916,8 @@ void fd_init_config_c()
      fd_sconfig_get,fd_sconfig_set,&configdata_path);
   fd_register_config_lookup(file_config_lookup,NULL);
 #endif
+
+  fd_register_config_lookup(getenv_config_lookup,NULL);
 
   fd_register_config
     ("CWD",_("Get/set the current working directory"),
