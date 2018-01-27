@@ -1126,6 +1126,7 @@ typedef struct FD_CONST_KEYVAL *const_keyvals;
 static struct FD_KEYVAL *
 hashtable_keyvals(fd_hashtable ht,int *sizep,int keep_empty)
 {
+  /* We assume that the table is locked */
   struct FD_KEYVAL *results, *rscan;
   if (ht->table_n_keys == 0) {
     *sizep=0;
@@ -1144,6 +1145,8 @@ hashtable_keyvals(fd_hashtable ht,int *sizep,int keep_empty)
         while (kvscan<kvlimit) {
           lispval key = kvscan->kv_key, val = kvscan->kv_val;
           if ( (EXISTSP(val)) || (keep_empty) ) {
+            if (FD_PRECHOICEP(val)) {
+              val = kvscan->kv_val = fd_simplify_choice(val);}
             rscan->kv_key=key; fd_incref(key);
             rscan->kv_val=val; fd_incref(val);
             rscan++; size++;}
@@ -2166,8 +2169,15 @@ FD_EXPORT void fd_recycle_index(struct FD_INDEX *ix)
 
 static void recycle_consed_index(struct FD_RAW_CONS *c)
 {
-  fd_recycle_index((fd_index)c);
-  u8_free(c);
+  fd_index ix = (fd_index) c;
+  if (ix->index_serialno >= 0) {
+    u8_log(LOG_WARN,"RecylingEternalIndex",
+           "There was an attempt to free the index %s, supposedly eternal",
+           ix->indexid);
+    return;}
+  else {
+    fd_recycle_index(ix);
+    u8_free(c);}
 }
 
 static lispval copy_consed_index(lispval x,int deep)
