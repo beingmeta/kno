@@ -180,7 +180,9 @@
 		   (use-index spec opts)
 		   (open-index spec opts)))
 	      ((getopt opts 'create)
-	       (make-index spec opts))))))
+	       (make-index spec opts))
+	      ((getopt opts 'err) (irritant spec |IndexRefFailed|))
+	      (else #f)))))
 
 ;;; Copying OIDs between pools
 
