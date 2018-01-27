@@ -286,9 +286,10 @@ slot of the loop state.
 	       ;; handle it.
 	       (set! batch {}))
 	      (else
-	       (when (or (test loop-state 'checknow) (docheck? loop-state fifo))
-		 (when (or (test loop-state 'checknow) (check/save? loop-state))
-		   (thread/wait! (thread/call engine/checkpoint loop-state fifo))))
+	       (when (exists? (get loop-state 'checkpoint))
+		 (when (or (test loop-state 'checknow) (docheck? loop-state fifo))
+		   (when (or (test loop-state 'checknow) (check/save? loop-state))
+		     (thread/wait! (thread/call engine/checkpoint loop-state fifo)))))
 	       (set! batch (fifo/pop fifo))
 	       (set! batchno (1+ batchno))
 	       (set! start (elapsed-time))
