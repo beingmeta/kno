@@ -3210,6 +3210,23 @@ FD_EXPORT int fd_hashtable_stats
   return n_keys;
 }
 
+static void copy_keyval(struct FD_KEYVAL *dest,struct FD_KEYVAL *src)
+{
+  lispval key = src->kv_key, val = src->kv_val;
+  if (FD_CONSP(key)) {
+    if (FD_STATIC_CONSP(key))
+      key = fd_deep_copy(key);
+    else fd_incref(key);}
+  if (FD_CONSP(val)) {
+    if (FD_PRECHOICEP(val))
+      val = fd_make_simple_choice(val);
+    else if (FD_STATIC_CONSP(key))
+      val = fd_deep_copy(val);
+    else fd_incref(val);}
+  dest->kv_key = key;
+  dest->kv_val = val;
+}
+
 FD_EXPORT struct FD_HASHTABLE *
 fd_copy_hashtable(FD_HASHTABLE *dest_arg,
                   FD_HASHTABLE *src,
@@ -3251,10 +3268,7 @@ fd_copy_hashtable(FD_HASHTABLE *dest_arg,
       kvwrite = &(newhe->kv_val0);
       newhe->bucket_len=n; kvlimit=kvread+n;
       while (kvread<kvlimit) {
-        lispval key=kvread->kv_key;
-        lispval val=kvread->kv_val;
-        kvwrite->kv_key=fd_getref(key);
-        kvwrite->kv_val=fd_getref(val);
+        copy_keyval(kvwrite,kvread);
         kvread++;
         kvwrite++;
         copied_keys++;}}}
@@ -3382,8 +3396,7 @@ FD_EXPORT struct FD_KEYVAL *fd_hashtable_keyvals
         struct FD_KEYVAL *kvscan=&(e->kv_val0);
         struct FD_KEYVAL *kvlimit=kvscan+bucket_len;
         while (kvscan<kvlimit) {
-          rscan->kv_key=fd_getref(kvscan->kv_key);
-          rscan->kv_val=fd_getref(kvscan->kv_val);
+          copy_keyval(rscan,kvscan);
           kvscan++;
           rscan++;}
         scan++;}
