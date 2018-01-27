@@ -479,9 +479,13 @@ update: buildmode
 	@+make -s `cat buildmode`
 normal:
 	@echo Building NORMAL configuration
+	@if test -f .malloc; then \
+	  echo With $(shell cat .malloc) malloc; fi;
 	@+make -s testbin exe cmodules etc @TAGS@
 debugging:
 	@echo Building DEBUGGING configuration
+	@if test -f .malloc; then \
+	  echo With $(cat .malloc) malloc; fi;
 	@+make -s XCFLAGS="@debugcflags@ -O0 -Wall $(XCFLAGS)"	\
 	          XLDFLAGS="@debugldflags@ $(XLDFLAGS)"		\
 	          XOPTFLAGS="-O0" OPTFLAGS="-O0" 		\
@@ -489,9 +493,13 @@ debugging:
 	  testbin exe cmodules etc @TAGS@
 optimizing:
 	@echo Building OPTIMIZING configuration
+	@if test -f .malloc; then \
+	  echo With $(cat .malloc) malloc; fi;
 	@+make -s XCFLAGS="-O3" testbin exe cmodules etc @TAGS@
 nitpicking:
 	@echo Building NITPICKING configuration
+	@if test -f .malloc; then \
+	  echo With $(cat .malloc) malloc; fi;
 	@+make -s XCFLAGS="-Wall" testbin exe cmodules etc @TAGS@
 
 all: testbin exe cmodules etc i18n @TAGS@
