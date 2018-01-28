@@ -976,8 +976,8 @@ static lispval strmatchp_prim(lispval pat,lispval string,lispval ef)
   else {
     if (TYPEP(pat,fd_regex_type)) {
       int off = fd_regex_op(rx_search,pat,
-                          CSTRING(string),STRLEN(string),
-                          FIX2INT(ef));
+                            CSTRING(string),STRLEN(string),
+                            FIX2INT(ef));
       if (off>=0) return FD_TRUE;
       else return FD_FALSE;}
     else if (STRINGP(pat)) {
@@ -988,8 +988,8 @@ static lispval strmatchp_prim(lispval pat,lispval string,lispval ef)
       DO_CHOICES(p,pat) {
         if (TYPEP(pat,fd_regex_type)) {
           int off = fd_regex_op(rx_search,p,
-                              CSTRING(string),STRLEN(string),
-                              FIX2INT(ef));
+                                CSTRING(string),STRLEN(string),
+                                FIX2INT(ef));
           if (off>=0) {
             FD_STOP_DO_CHOICES;
             return FD_TRUE;}}

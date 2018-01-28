@@ -127,7 +127,8 @@ FD_EXPORT ssize_t fd_regex_op(enum FD_REGEX_OP op,lispval pat,
   else u8_unlock_mutex(&(ptr->rx_lock));
   if (results[0].rm_so<0) return -1;
   else switch (op) {
-    case rx_search: return u8_charoffset(s,results[0].rm_so);
+    case rx_search:
+      return results[0].rm_so;
     case rx_exactmatch:
       if ((results[0].rm_so==0)&&(results[0].rm_eo == len))
         return 1;
@@ -135,7 +136,7 @@ FD_EXPORT ssize_t fd_regex_op(enum FD_REGEX_OP op,lispval pat,
     case rx_matchlen:
       if ((results[0].rm_so==0)&&
           (results[0].rm_eo<len))
-        return u8_charoffset(s,results[0].rm_eo);
+        return results[0].rm_eo;
       else return -1;
     case rx_matchstring: {
       fd_seterr(fd_RegexBadOp,"fd_regex_op","rx_matchstring",pat);
