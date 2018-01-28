@@ -487,10 +487,10 @@ lispval fd_text_domatch
     return fd_text_matcher(txc->fd_txpattern,txc->fd_txenv,string,off,lim,flags);}
   else if (TYPEP(pat,fd_regex_type)) {
     int retval = fd_regex_op(rx_matchlen,pat,string+off,lim-off,0);
-    if (retval<-1) 
+    if (retval<-1)
       return fd_err(fd_InternalMatchError,"fd_text_domatch",NULL,pat);
     else if ((retval>lim)||(retval<0)) return EMPTY;
-    else return FD_INT(retval);}
+    else return FD_INT(retval+off);}
   else return fd_err(fd_MatchSyntaxError,"fd_text_domatch",NULL,pat);
 }
 
@@ -3795,7 +3795,7 @@ u8_byteoff fd_text_search
   else if (TYPEP(pat,fd_regex_type))  {
     int retval = fd_regex_op(rx_search,pat,string+off,lim-off,0);
     if (retval<0) return retval;
-    else return retval;}
+    else return retval+off;}
   else {
     fd_seterr(fd_MatchSyntaxError,"fd_text_search",NULL,fd_incref(pat));
     return -2;}
