@@ -263,6 +263,7 @@ set overload-resolution off
 
 break u8_log_break
 break u8_new_exception
+break u8_utf8_warning
 break _fd_debug
 break _u8_dbg
 break u8_raise
