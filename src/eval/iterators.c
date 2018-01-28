@@ -170,7 +170,7 @@ static lispval doseq_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
         lispval val = fast_eval(subexpr,doseq);
         if (FD_BROKEP(val))
           _return FD_VOID;
-        else if (PRED_FALSE (FD_ABORTP(val)) )
+        else if (FD_ABORTED(val))
           _return val;
         else fd_decref(val);}}
     reset_env(doseq);
@@ -230,7 +230,7 @@ static lispval forseq_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
         if (FD_BROKEP(val)) {
           result=fd_makeseq(FD_PTR_TYPE(seq),i,results);
           _return result;}
-        else if (PRED_FALSE (FD_ABORTP(val)) )
+        else if (FD_ABORTED(val))
           _return val;}}
     results[i]=val;
     reset_env(forseq);

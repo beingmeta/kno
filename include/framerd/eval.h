@@ -224,7 +224,7 @@ lispval fd_stack_eval(lispval expr,fd_lexenv env,
                      int tail);
 #define fd_tail_eval(expr,env) (fd_stack_eval(expr,env,fd_stackptr,1))
 FD_EXPORT
-lispval fd_eval_pair(lispval head,lispval expr,fd_lexenv env,
+lispval fd_pair_eval(lispval head,lispval expr,fd_lexenv env,
                      struct FD_STACK *eval_stack,
                      int tail);
 

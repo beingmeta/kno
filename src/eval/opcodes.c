@@ -970,7 +970,7 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
     if (! (FD_OPCODEP(opcode)) ) {
       _stack->stack_type = fd_evalstack_type;
       if (FD_PAIRP(expr))
-        return fd_eval_pair(opcode,expr,env,_stack,tail);
+        return fd_pair_eval(opcode,expr,env,_stack,tail);
       else return _fd_fast_eval(expr,env,_stack,tail);}}
   lispval args = FD_CDR(expr);
   switch (opcode) {
