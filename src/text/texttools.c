@@ -536,7 +536,8 @@ static lispval seq2phrase_ndhelper
       u8_puts(&out,base);
       if (dospace) u8_putc(&out,' ');
       u8_puts(&out,CSTRING(s));
-      result = seq2phrase_ndhelper(out.u8_outbuf,seq,start+1,end,1);
+      result = seq2phrase_ndhelper
+        (out.u8_outbuf,seq,forward_char(base,start),end,1);
       if (FD_ABORTP(result)) {
         fd_decref(elt); fd_decref(results);
         u8_free(out.u8_outbuf);
@@ -1464,7 +1465,7 @@ static lispval string_ends_with_test(lispval string,lispval pattern,
           FD_STOP_DO_CHOICES;
           return 1;}
       fd_decref(matches);}
-    start = fd_text_search(pattern,NULL,data,start+1,lim,0);
+    start = fd_text_search(pattern,NULL,data,forward_char(data,start),lim,0);
     if (start<-1) return -1;}
   return 0;
 }
@@ -1741,7 +1742,7 @@ static lispval textslice(lispval string,lispval sep,lispval keep_arg,
            search from one character past the current end.  This
            keeps match/search weirdness from leading to infinite
            loops. */
-        scan = fd_text_search(sep,NULL,data,scan+1,len,0);
+        scan = fd_text_search(sep,NULL,data,forward_char(data,scan),len,0);
       else scan = fd_text_search(sep,NULL,data,end,len,0);
       /* Push it onto the list. */
       if (!(VOIDP(substring))) {
@@ -1865,13 +1866,13 @@ static int match_end(lispval sep,u8_string data,int off,int lim)
   if (FD_ABORTP(matches))
     return -1;
   else if (EMPTYP(matches))
-    return off+1;
+    return forward_char(data,off);
   else if (FD_UINTP(matches))
     return FIX2INT(matches);
   else if (FIXNUMP(matches))
-    return off+1;
+    return forward_char(data,off);
   else {
-    int max = off+1;
+    int max = forward_char(data,off);
     DO_CHOICES(match,matches) {
       int matchlen = ((FD_UINTP(match))?(FIX2INT(match)):(-1));
       if (matchlen>max) max = matchlen;}
@@ -2187,7 +2188,10 @@ static lispval findsep_prim(lispval string,lispval sep,
       if (pos == start)
         return FD_INT(u8_charoffset(str,(pos-str)));
       else if (*(pos-1) == e) {
-        pos++; u8_sgetc(&pos); scan = pos; pos = strchr(scan,c);}
+        pos++;
+        u8_sgetc(&pos);
+        scan = pos;
+        pos = strchr(scan,c);}
       else return FD_INT(u8_charoffset(str,(pos-str)));}
     return FD_FALSE;}
 }
