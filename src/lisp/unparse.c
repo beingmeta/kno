@@ -492,8 +492,8 @@ static int unparse_regex(struct U8_OUTPUT *out,lispval x)
   struct FD_REGEX *rx = (struct FD_REGEX *)x;
   u8_printf(out,"#/%s/%s%s%s%s",rx->rxsrc,
             (((rx->rxflags)&REG_EXTENDED)?"e":""),
+            (((rx->rxflags)&REG_NEWLINE)?"m":""),
             (((rx->rxflags)&REG_ICASE)?"i":""),
-            (((rx->rxflags)&REG_ICASE)?"l":""),
             (((rx->rxflags)&REG_NOSUB)?"s":""));
   return 1;
 }

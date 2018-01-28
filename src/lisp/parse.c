@@ -549,7 +549,8 @@ static lispval parse_regex(U8_INPUT *in)
     else {
       int mc = u8_getc(in);
       while ((mc<128)&&(u8_isalpha(mc))) {
-        if (strchr("eils",mc)) *optwrite++=(char)mc;
+        if (strchr("icme",mc))
+          *optwrite++=(char)mc;
         else {
           fd_seterr(fd_ParseError,"parse_regex",src.u8_outbuf,VOID);
           return FD_PARSE_ERROR;}
@@ -569,11 +570,17 @@ static lispval make_regex(u8_string src_arg,u8_string opts)
   int retval, cflags = REG_EXTENDED;
   u8_string src = u8_strdup(src_arg);
   FD_INIT_FRESH_CONS(ptr,fd_regex_type);
+
   if (strchr(opts,'i')) cflags |= REG_ICASE;
   else if (strchr(opts,'c')) cflags &= ~REG_ICASE;
-  else if (strchr(opts,'m')) cflags |= REG_NEWLINE;
-  else {}
+
+  if (strchr(opts,'m')) cflags |= REG_NEWLINE;
+  else if (strchr(opts,'l')) cflags &= ~ REG_NEWLINE;
+
+  if (strchr(opts,'s')) cflags |= ~REG_NOSUB;
+
   retval = regcomp(&(ptr->rxcompiled),src,cflags);
+
   if (retval) {
     u8_byte buf[512];
     regerror(retval,&(ptr->rxcompiled),buf,512);
