@@ -146,6 +146,12 @@ slot of the loop state.
 	(reverse (->vector batchlist))
 	(map elts (reverse (->vector batchlist))))))
 
+(define (checkpointing? loop-state)
+  (getopt (get loop-state 'opts) 'checkpointing
+	  (or (and (exists? (get loop-state 'checkpoint)) (get loop-state 'checkpoint))
+	      (and (exists? (getopt (get loop-state 'opts) 'statefile))
+		   (getopt (get loop-state 'opts) 'statefile)))))
+
 ;;; We make this handler unique right now, but it could be engine specific.
 (define-init bump-loop-state
   (slambda (batch-state loop-state (count #f) (proc-time #f) (thread-time #f))
@@ -286,7 +292,7 @@ slot of the loop state.
 	       ;; handle it.
 	       (set! batch {}))
 	      (else
-	       (when (exists? (get loop-state 'checkpoint))
+	       (when (checkpointing? loop-state)
 		 (when (or (test loop-state 'checknow) (docheck? loop-state fifo))
 		   (when (or (test loop-state 'checknow) (check/save? loop-state))
 		     (thread/wait! (thread/call engine/checkpoint loop-state fifo)))))
@@ -447,7 +453,8 @@ slot of the loop state.
 
     (if (getopt opts 'finalcheck #t)
 	(begin
-	  (engine/checkpoint loop-state fifo #t)
+	  (when (checkpointing? loop-state)
+	    (engine/checkpoint loop-state fifo #t))
 	  (when (getopt opts 'finalcommit #f) (commit)))
 	(begin
 	  (lognotice |Engine| "Skipping final checkpoint for ENGINE/RUN")
@@ -628,8 +635,7 @@ slot of the loop state.
 (define (docheck? loop-state (fifo) (freq) (space))
   (default! fifo (get loop-state 'fifo))
   (default! freq (try (get loop-state 'checkfreq) #f))
-  (and (exists? (get loop-state 'checkpoint))
-       (get loop-state 'checkpoint)
+  (and (checkpointing? loop-state)
        (not (test loop-state 'checkthread))
        (with-lock (fifo-condvar fifo)
 	 (cond ((not freq) #t)
