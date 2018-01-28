@@ -388,11 +388,50 @@ static lispval testopt_prim(lispval opts,lispval key,lispval val)
   if (fd_testopt(opts,key,val)) return FD_TRUE;
   else return FD_FALSE;
 }
-static lispval optplus_prim(lispval opts,lispval key,lispval val)
+
+static int optionsp(lispval arg)
 {
-  if (VOIDP(val))
-    return fd_conspair(key,fd_incref(opts));
-  else return fd_conspair(fd_conspair(key,fd_incref(val)),fd_incref(opts));
+  if ( (FD_FALSEP(arg)) || (FD_NILP(arg)) || (FD_EMPTYP(arg)) )
+    return 1;
+  else if (FD_AMBIGP(arg)) {
+    FD_DO_CHOICES(elt,arg) {
+      if (! (optionsp(elt)) ) {
+        FD_STOP_DO_CHOICES;
+        return 0;}}}
+  else if (FD_PAIRP(arg)) {
+    if (optionsp(FD_CAR(arg)))
+      return optionsp(FD_CDR(arg));
+    else return 0;}
+  else if ( (FD_TABLEP(arg)) &&
+            (!(FD_POOLP(arg))) &&
+            (!(FD_INDEXP(arg))) )
+    return 1;
+  else return 0;
+}
+static lispval optionsp_prim(lispval opts)
+{
+  if (optionsp(opts))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+static lispval opts_plus_prim(lispval opts,lispval key,lispval val)
+{
+  lispval back = opts, front; fd_incref(back);
+  if (VOIDP(val)) {
+    front = key;
+    fd_incref(key);}
+  else {
+    fd_incref(key); fd_incref(val);
+    front = fd_conspair(key,val);}
+  if ( (FD_FALSEP(front)) ||
+       (FD_EMPTYP(front)) ||
+       (FD_NILP(front)) )
+    return fd_incref(back);
+  else if ( (FD_FALSEP(back)) ||
+            (FD_EMPTYP(back)) ||
+            (FD_NILP(back)) )
+    return fd_incref(front);
+  else return fd_conspair(front,back);
 }
 
 /* Quote */
@@ -2862,18 +2901,18 @@ static void init_localfns()
 
 
   fd_idefn3(fd_scheme_module,"GET-ARG",get_arg_prim,2,
-            "(GET-ARG *expression* *i* [*default*]) "
+            "`(GET-ARG *expression* *i* [*default*])` "
             "returns the *i*'th parameter in *expression*, "
             "or *default* (otherwise)",
             -1,FD_VOID,fd_fixnum_type,FD_VOID,-1,FD_VOID);
   fd_def_evalfn(fd_scheme_module,"GETOPT",
-                "(GETOPT *opts* *name* [*default*=#f]) returns any *name* "
+                "`(GETOPT *opts* *name* [*default*=#f])` returns any *name* "
                 "option defined in *opts* or *default* otherwise. "
                 "If *opts* or *name* are choices, this only returns *default* "
                 "if none of the alternatives yield results.",
                  getopt_evalfn);
   fd_def_evalfn(fd_scheme_module,"TRYOPT",
-                "(TRYOPT *opts* *name* [*default*=#f]) returns any *name* "
+                "`(TRYOPT *opts* *name* [*default*=#f])` returns any *name* "
                 "option defined in *opts* or *default* otherwise. Any errors "
                 "during option resolution are ignored. "
                 "If *opts* or *name* are choices, this only returns *default* "
@@ -2881,22 +2920,27 @@ static void init_localfns()
                 "*default*, if evaluated, may signal an error.",
                 tryopt_evalfn);
   fd_idefn3(fd_scheme_module,"%GETOPT",getopt_prim,FD_NEEDS_2_ARGS|FD_NDCALL,
-            "(%GETOPT *opts* *name* [*default*=#f]) gets any *name* option "
+            "`(%GETOPT *opts* *name* [*default*=#f])` gets any *name* option "
             "from opts, returning *default* if there isn't any. This is a real "
             "procedure (unlike `GETOPT`) so that *default* will be evaluated even "
-            "if an option is returned.",
+            "if the option exists and is returned.",
             -1,VOID,fd_symbol_type,VOID,
             -1,FD_FALSE);
   fd_idefn3(fd_scheme_module,"TESTOPT",testopt_prim,2,
-            "(TESTOPT *opts* *name* [*value*]) returns true if "
+            "`(TESTOPT *opts* *name* [*value*])` returns true if "
             "the option *name* is specified in *opts* and it includes "
             "*value* (if provided).",
             -1,VOID,fd_symbol_type,VOID,
             -1,VOID);
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim3x("OPT+",optplus_prim,2,
-                           -1,VOID,fd_symbol_type,VOID,
-                           -1,VOID));
+  fd_idefn1(fd_scheme_module,"OPTS?",optionsp_prim,FD_NEEDS_1_ARG|FD_NDCALL,
+            "`(OPTS? *opts*)` returns true if *opts* is a valid options "
+            "object.",
+            -1,VOID);
+  fd_idefn3(fd_scheme_module,"OPTS+",opts_plus_prim,FD_NEEDS_2_ARGS|FD_NDCALL,
+            "`(OPTS+ *add* *opts*)` or `(OPTS+ *optname* *value* *opts*) "
+            "returns a new options object (a pair).",
+            -1,VOID,-1,FD_VOID,-1,FD_VOID);
+  fd_defalias(fd_scheme_module,"OPT+","OPTS+");
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("APPLY",apply_lexpr,1)));
