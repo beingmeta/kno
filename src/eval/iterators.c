@@ -93,8 +93,10 @@ static lispval parse_control_spec
       return fd_err(fd_SyntaxError,
                     _("identifier is not a symbol"),NULL,control_expr);
     val = fast_eval(val_expr,env);
-    if (FD_ABORTED(val)) return val;
-    *varp = var; if (count_var) *count_var = ivar;
+    if (FD_ABORTED(val))
+      return val;
+    *varp = var;
+    if (count_var) *count_var = ivar;
     return val;}
 }
 
@@ -106,7 +108,10 @@ static lispval dotimes_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   lispval var, limit_val=
     parse_control_spec(expr,&var,NULL,env,_stack);;
   lispval body = fd_get_body(expr,2);
-  if (FD_ABORTED(var)) return var;
+  if (FD_ABORTED(var))
+    return var;
+  else if (FD_ABORTED(limit_val))
+    return limit_val;
   else if (!(FD_UINTP(limit_val)))
     return fd_type_error("fixnum","dotimes_evalfn",limit_val);
   else limit = FIX2INT(limit_val);
@@ -138,6 +143,8 @@ static lispval doseq_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   lispval pairscan = VOID;
   if (FD_ABORTED(var))
     return var;
+  else if (FD_ABORTED(seq))
+    return seq;
   else if (EMPTYP(seq))
     return VOID;
   else if (!(FD_SEQUENCEP(seq)))
@@ -183,7 +190,10 @@ static lispval forseq_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   lispval var, count_var = VOID, *results, result=VOID;
   lispval seq = parse_control_spec(expr,&var,&count_var,env,_stack);
   lispval body = fd_get_body(expr,2), pairscan=VOID;
-  if (FD_ABORTED(var)) return var;
+  if (FD_ABORTED(var))
+    return var;
+  else if (FD_ABORTED(seq))
+    return seq;
   else if (EMPTYP(seq))
     return EMPTY;
   else if (NILP(seq))
@@ -243,6 +253,8 @@ static lispval tryseq_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   lispval body = fd_get_body(expr,2), pairscan=VOID;
   if (FD_ABORTED(var))
     return var;
+  else if (FD_ABORTED(seq))
+    return seq;
   else if (EMPTYP(seq))
     return EMPTY;
   else if (NILP(seq))
@@ -298,6 +310,8 @@ static lispval dolist_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   lispval pairscan = VOID;
   if (FD_ABORTED(var))
     return var;
+  else if (FD_ABORTED(seq))
+    return seq;
   else if (EMPTYP(seq))
     return VOID;
   else if (NILP(seq))

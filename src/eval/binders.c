@@ -57,8 +57,7 @@ static lispval assign_plus_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   else if (VOIDP(val_expr))
     return fd_err(fd_TooFewExpressions,"SET+!",NULL,expr);
   value = fast_eval(val_expr,env);
-  if (FD_ABORTED(value))
-    return value;
+  if (FD_ABORTED(value)) return value;
   else if (fd_add_value(var,value,env)>0) {}
   else if (fd_bind_value(var,value,env)>=0) {}
   else return fd_err(fd_BindError,"SET+!",SYM_NAME(var),var);

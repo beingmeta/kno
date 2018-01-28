@@ -69,8 +69,7 @@ static lispval dochoices_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   lispval var, count_var, choices=
     parse_control_spec(expr,&var,&count_var,env,_stack);
   if (FD_ABORTED(var)) return var;
-  else if (FD_ABORTED(choices))
-    return choices;
+  else if (FD_ABORTED(choices)) return choices;
   else if (EMPTYP(choices))
     return VOID;
   fd_push_cleanup(_stack,FD_DECREF,choices,NULL);
@@ -108,8 +107,7 @@ static lispval trychoices_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   lispval var, count_var, choices=
     parse_control_spec(expr,&var,&count_var,env,_stack);
   if (FD_ABORTED(var)) return var;
-  else if (FD_ABORTED(choices))
-    return choices;
+  else if (FD_ABORTED(choices)) return choices;
   else if (EMPTYP(choices))
     return EMPTY;
   fd_push_cleanup(_stack,FD_DECREF,choices,NULL);
@@ -576,6 +574,7 @@ static lispval qchoicep_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     return fd_err(fd_SyntaxError,"qchoice_evalfn",NULL,expr);
   else {
     lispval val = fd_eval(FD_CADR(expr),env);
+    if (FD_ABORTED(val)) return val;
     if (QCHOICEP(val)) {
       fd_decref(val);
       return FD_TRUE;}
@@ -653,7 +652,8 @@ static lispval whenexists_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   if (VOIDP(to_eval))
     return fd_err(fd_SyntaxError,"whenexists_evalfn",NULL,expr);
   else value = fd_eval(to_eval,env);
-  if (EMPTYP(value)) return VOID;
+  if (FD_ABORTED(value)) return VOID;
+  else if (EMPTYP(value)) return VOID;
   else return value;
 }
 
@@ -687,8 +687,8 @@ static int test_forall(struct FD_FUNCTION *fn,int i,int n,lispval *nd_args,lispv
       return 0;
     else if (EMPTYP(val))
       return 1;
-    else if (FD_ABORTED(val)) {
-      return fd_interr(val);}
+    else if (FD_ABORTED(val))
+      return fd_interr(val);
     fd_decref(val);
     return 1;}
   else if ((CHOICEP(nd_args[i])) || (PRECHOICEP(nd_args[i]))) {
@@ -738,7 +738,9 @@ static lispval choicevec_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     return fd_err(fd_SyntaxError,"choicevec_evalfn",NULL,expr);
   else {
     lispval result = fd_stack_eval(sub_expr,env,_stack,0);
-    if (FD_CHOICEP(result)) {
+    if (FD_ABORTED(result))
+      return result;
+    else if (FD_CHOICEP(result)) {
       struct FD_CHOICE *ch = (fd_choice) result;
       const lispval *elts = FD_XCHOICE_ELTS(ch);
       int size = ch->choice_size;

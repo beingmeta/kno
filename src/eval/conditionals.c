@@ -51,7 +51,8 @@ static lispval ifstar_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     lispval val = VOID;
     lispval alt_body = fd_get_body(expr,3);
     FD_DOLIST(alt,alt_body) {
-      fd_decref(val); val = fd_eval(alt,env);}
+      fd_decref(val); val = fd_eval(alt,env);
+      if (FD_ABORTED(val)) return val;}
     return val;}
   else {
     fd_decref(test_result);
@@ -72,7 +73,8 @@ static lispval ifelse_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     lispval val = VOID;
     lispval alt_body = fd_get_body(expr,3);
     FD_DOLIST(alt,alt_body) {
-      fd_decref(val); val = fd_eval(alt,env);}
+      fd_decref(val); val = fd_eval(alt,env);
+      if (FD_ABORTED(val)) return val;}
     return val;}
   else {
     fd_decref(test_result);
@@ -88,8 +90,7 @@ static lispval tryif_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   if ((VOIDP(test_expr)) || (VOIDP(first_consequent)))
     return fd_err(fd_TooFewExpressions,"TRYIF",NULL,expr);
   test_result = fd_eval(test_expr,env);
-  if (FD_ABORTED(test_result))
-    return test_result;
+  if (FD_ABORTED(test_result)) return test_result;
   else if ((FALSEP(test_result))||(EMPTYP(test_result)))
     return EMPTY;
   else {
@@ -97,8 +98,7 @@ static lispval tryif_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     {lispval try_clauses = fd_get_body(expr,2);
       FD_DOLIST(clause,try_clauses) {
         fd_decref(value); value = fd_eval(clause,env);
-        if (FD_ABORTED(value))
-          return value;
+        if (FD_ABORTED(value)) return value;
         else if (VOIDP(value)) {
           fd_seterr(fd_VoidArgument,"tryif_evalfn",NULL,clause);
           return FD_ERROR;}
