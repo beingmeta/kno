@@ -332,7 +332,8 @@ static lispval with_lock_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   if (VOIDP(lock_expr))
     return fd_err(fd_SyntaxError,"with_lock_evalfn",NULL,expr);
   else lck = fd_eval(lock_expr,env);
-  if (TYPEP(lck,fd_condvar_type)) {
+  if (FD_ABORTED(lck)) return lck;
+  else if (TYPEP(lck,fd_condvar_type)) {
     struct FD_CONDVAR *cv=
       fd_consptr(struct FD_CONDVAR *,lck,fd_condvar_type);
     uselock = &(cv->fd_cvlock);}
@@ -350,7 +351,11 @@ static lispval with_lock_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
       u8_lock_mutex(uselock);
       FD_DOLIST(elt_expr,FD_CDDR(expr)) {
         fd_decref(value);
-        value = fd_eval(elt_expr,env);}}
+        value = fd_eval(elt_expr,env);
+        if (FD_ABORTED(value)) {
+          u8_unlock_mutex(uselock);
+          fd_decref(lck);
+          return value;}}}
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
       fd_decref(value);
@@ -481,7 +486,7 @@ static void *thread_main(void *data)
 
 FD_EXPORT
 fd_thread_struct fd_thread_call(lispval *resultptr,
-                                lispval fn,int n,lispval *rail,
+                                lispval fn,int n,lispval *args,
                                 int flags)
 {
   struct FD_THREAD_STRUCT *tstruct = u8_alloc(struct FD_THREAD_STRUCT);
@@ -489,6 +494,8 @@ fd_thread_struct fd_thread_call(lispval *resultptr,
     u8_seterr(u8_MallocFailed,"fd_thread_call",NULL);
     return NULL;}
   FD_INIT_FRESH_CONS(tstruct,fd_thread_type);
+  lispval *rail = u8_alloc_n(n,lispval);
+  int i=0; while (i<n) {rail[i]=args[i]; i++;}
   if (resultptr) {
     tstruct->resultptr = resultptr;
     *resultptr = FD_NULL;
@@ -545,14 +552,19 @@ static lispval threadcall_prim(int n,lispval *args)
 {
   lispval fn = args[0];
   if (FD_APPLICABLEP(fn)) {
-    lispval *call_args = u8_alloc_n(n,lispval), thread;
+    fd_thread_struct thread = NULL;
+    lispval call_args[n];
     int i = 1; while (i<n) {
       lispval call_arg = args[i];
       fd_incref(call_arg);
       call_args[i-1]=call_arg;
       i++;}
-    thread = (lispval)fd_thread_call(NULL,args[0],n-1,call_args,0);
-    return thread;}
+    thread = fd_thread_call(NULL,fn,n-1,call_args,0);
+    if (thread == NULL) {
+      u8_log(LOG_WARN,"ThreadLaunchFailed",
+             "Failed to launch thread calling %q",args[0]);
+      return FD_EMPTY;}
+    else return (lispval) thread;}
   else if (VOIDP(fn))
     return fd_err(fd_TooFewArgs,"threadcall_prim",NULL,VOID);
   else {
@@ -579,15 +591,20 @@ static lispval threadcallx_prim(int n,lispval *args)
   lispval opts = args[0];
   lispval fn   = args[1];
   if (FD_APPLICABLEP(fn)) {
-    lispval *call_args = u8_alloc_n(n-2,lispval), thread;
+    fd_thread_struct thread = NULL;
+    lispval call_args[n];
     int flags = threadopts(opts);
     int i = 2; while (i<n) {
       lispval call_arg = args[i];
       fd_incref(call_arg);
       call_args[i-2]=call_arg;
       i++;}
-    thread = (lispval)fd_thread_call(NULL,fn,n-2,call_args,flags);
-    return thread;}
+    thread = fd_thread_call(NULL,fn,n-2,call_args,0);
+    if (thread == NULL) {
+      u8_log(LOG_WARN,"ThreadLaunchFailed",
+             "Failed to launch thread calling %q",args[0]);
+      return FD_EMPTY;}
+    else return (lispval) thread;}
   else if (VOIDP(fn))
     return fd_err(fd_TooFewArgs,"threadcallx_prim",NULL,VOID);
   else {
@@ -599,7 +616,11 @@ static lispval threadeval_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   lispval to_eval = fd_get_arg(expr,1);
   lispval env_arg = fd_eval(fd_get_arg(expr,2),env);
+  if (FD_ABORTED(env_arg)) return env_arg;
   lispval opts_arg = fd_eval(fd_get_arg(expr,3),env);
+  if (FD_ABORTED(opts_arg)) {
+    fd_decref(env_arg);
+    return opts_arg;}
   lispval opts=
     ((VOIDP(opts_arg))&&
      (!(FD_LEXENVP(env_arg)))&&
@@ -621,8 +642,13 @@ static lispval threadeval_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     fd_lexenv env_copy = fd_copy_env(use_env);
     lispval results = EMPTY, envptr = (lispval)env_copy;
     DO_CHOICES(thread_expr,to_eval) {
-      lispval thread = (lispval)fd_thread_eval(NULL,thread_expr,env_copy,flags);
-      CHOICE_ADD(results,thread);}
+      fd_thread_struct thread = fd_thread_eval(NULL,thread_expr,env_copy,flags);
+      if ( thread == NULL ) {
+        u8_log(LOG_WARN,"ThreadLaunchFailed",
+               "Error evaluating %q in its own thread, ignoring",thread_expr);}
+      else {
+        lispval thread_val = (lispval) thread;
+        CHOICE_ADD(results,thread_val);}}
     fd_decref(envptr);
     fd_decref(env_arg);
     fd_decref(opts_arg);
@@ -860,9 +886,17 @@ static lispval parallel_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   else {results=_results; threads=_threads;}
   /* Start up the threads and store the pointers. */
   scan = FD_CDR(expr); while (PAIRP(scan)) {
-    threads[i]=fd_thread_eval(&results[i],FD_CAR(scan),env,
-                              FD_EVAL_THREAD|FD_THREAD_QUIET_EXIT);
-    scan = FD_CDR(scan); i++;}
+    lispval thread_expr = FD_CAR(scan);
+    fd_thread_struct thread =
+      fd_thread_eval(&results[i],thread_expr,env,FD_EVAL_THREAD|FD_THREAD_QUIET_EXIT);
+    if (thread == NULL) {
+      u8_log(LOG_WARN,"ThreadLaunchFailed",
+             "Unable to launch a thread evaluating %q",thread_expr);
+      scan = FD_CDR(scan);}
+    else {
+      threads[i]=thread;
+      scan = FD_CDR(scan);
+      i++;}}
   /* Now wait for them to finish, accumulating values. */
   i = 0; while (i<n_exprs) {
     pthread_join(threads[i]->tid,NULL);
