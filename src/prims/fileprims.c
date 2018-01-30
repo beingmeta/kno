@@ -142,7 +142,7 @@ static lispval extend_output_file(lispval fname,lispval opts,lispval escape_char
   else if (SYMBOLP(encid))
     enc = u8_get_encoding(SYM_NAME(encid));
   else return fd_err(fd_UnknownEncoding,"EXTEND-OUTPUT-FILE",NULL,encid);
-  f = u8_open_output_file(filename,enc,O_APPEND|O_CREAT|O_WRONLY,0);
+  f = u8_open_output_file(filename,enc,open_flags,0);
   if (f == NULL)
     return fd_err(u8_CantOpenFile,"EXTEND-OUTPUT-FILE",NULL,fname);
   if (FD_CHARACTERP(escape_char)) {
