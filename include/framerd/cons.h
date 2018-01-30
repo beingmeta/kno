@@ -662,9 +662,10 @@ FD_EXPORT lispval fd_make_nrail(int len,...);
 typedef struct FD_COMPOUND {
   FD_CONS_HEADER;
   lispval compound_typetag;
-  short compound_length;
+  int compound_length;
   unsigned int compound_ismutable:1;
   unsigned int compound_isopaque:1;
+  char compound_off;
   u8_mutex compound_lock;
   lispval compound_0;} FD_COMPOUND;
 typedef struct FD_COMPOUND *fd_compound;
@@ -684,6 +685,20 @@ typedef struct FD_COMPOUND *fd_compound;
   ((&((fd_consptr(struct FD_COMPOUND *,x,fd_compound_type))->compound_0))[i])
 #define FD_COMPOUND_VREF(x,i) ((&((x)->compound_0))[i])
 #define FD_XCOMPOUND(x) (fd_consptr(struct FD_COMPOUND *,x,fd_compound_type))
+#define FD_2COMPOUND(x) ((fd_compound)(x))
+
+#define FD_COMPOUND_VECTORP(x) \
+  ( (FD_PTR_TYPE(x) == fd_compound_type) && ((FD_2COMPOUND(x))->compound_off>=0) )
+#define FD_COMPOUND_OFFSET(x) \
+  ((fd_consptr(struct FD_COMPOUND *,x,fd_compound_type))->compound_off)
+#define FD_COMPOUND_VECLEN(x) \
+  ( ( (FD_PTR_TYPE(x) == fd_compound_type) && ((FD_2COMPOUND(x))->compound_off>=0) ) ? \
+    (((FD_XCOMPOUND(x))->compound_length)-((FD_2COMPOUND(x))->compound_off)) : (-1) )
+#define FD_COMPOUND_VECELTS(x) \
+  ( ( (FD_PTR_TYPE(x) == fd_compound_type) && ((FD_2COMPOUND(x))->compound_off>=0) ) ? \
+    ((&(((FD_2COMPOUND(x))->compound_0)))+((FD_2COMPOUND(x))->compound_off)) : (NULL) )
+#define FD_XCOMPOUND_VECREF(x,i)                                            \
+  ( (&((FD_XCOMPOUND(x))->compound_0))[(i)+((FD_2COMPOUND(x))->compound_off)])
 
 FD_EXPORT lispval fd_init_compound
   (struct FD_COMPOUND *ptr,lispval tag,int mutable,int n,...);

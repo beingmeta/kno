@@ -44,6 +44,7 @@ FD_EXPORT lispval fd_init_compound
   p->compound_typetag = fd_incref(tag);
   p->compound_ismutable = ismutable;
   p->compound_isopaque = 0;
+  p->compound_off = 0;
   p->compound_length = n;
   if (n>0) {
     write = &(p->compound_0); limit = write+n;
@@ -76,6 +77,7 @@ FD_EXPORT lispval fd_init_compound_from_elts
   p->compound_typetag = fd_incref(tag);
   p->compound_ismutable = ismutable;
   p->compound_length = n;
+  p->compound_off = 0;
   p->compound_isopaque = 0;
   if (n>0) {
     write = &(p->compound_0); limit = write+n;

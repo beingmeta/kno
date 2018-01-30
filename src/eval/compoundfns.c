@@ -229,7 +229,10 @@ static lispval make_compound(int n,lispval *args)
   int i = 1; lispval *write = &(compound->compound_0);
   FD_INIT_FRESH_CONS(compound,fd_compound_type);
   compound->compound_typetag = fd_incref(args[0]);
-  compound->compound_length = n-1; compound->compound_ismutable = 0; compound->compound_isopaque = 0;
+  compound->compound_length = n-1;
+  compound->compound_ismutable = 0;
+  compound->compound_isopaque = 0;
+  compound->compound_off = 0;
   while (i<n) {
     fd_incref(args[i]); *write++=args[i]; i++;}
   return LISP_CONS(compound);
@@ -242,8 +245,10 @@ static lispval make_opaque_compound(int n,lispval *args)
   int i = 1; lispval *write = &(compound->compound_0);
   FD_INIT_FRESH_CONS(compound,fd_compound_type);
   compound->compound_typetag = fd_incref(args[0]);
-  compound->compound_length = n-1; compound->compound_ismutable = 0;
+  compound->compound_length = n-1;
+  compound->compound_ismutable = 0;
   compound->compound_isopaque = 1;
+  compound->compound_off = -1;
   while (i<n) {
     fd_incref(args[i]); *write++=args[i]; i++;}
   return LISP_CONS(compound);
@@ -258,6 +263,7 @@ static lispval make_mutable_compound(int n,lispval *args)
   compound->compound_typetag = fd_incref(args[0]);
   compound->compound_length = n-1;
   compound->compound_ismutable = 1;
+  compound->compound_off = 0;
   u8_init_mutex(&(compound->compound_lock));
   while (i<n) {
     fd_incref(args[i]); *write++=args[i]; i++;}
@@ -274,6 +280,7 @@ static lispval make_opaque_mutable_compound(int n,lispval *args)
   compound->compound_length = n-1;
   compound->compound_ismutable = 1;
   compound->compound_isopaque = 1;
+  compound->compound_off = -1;
   u8_init_mutex(&(compound->compound_lock));
   while (i<n) {
     fd_incref(args[i]); *write++=args[i]; i++;}
@@ -281,25 +288,41 @@ static lispval make_opaque_mutable_compound(int n,lispval *args)
 }
 
 static lispval vector2compound(lispval vector,lispval tag,
-                              lispval mutable,lispval opaque)
+                               lispval mutable,lispval opaque,
+                               lispval offset)
 {
   int i = 0, n = VEC_LEN(vector);
   struct FD_COMPOUND *compound=
     u8_malloc(sizeof(struct FD_COMPOUND)+((n-1)*LISPVAL_LEN));
   lispval *write = &(compound->compound_0);
   FD_INIT_FRESH_CONS(compound,fd_compound_type);
-  compound->compound_typetag = fd_incref(tag); compound->compound_length = n;
+  compound->compound_typetag = fd_incref(tag);
+  compound->compound_length = n;
   if (FALSEP(mutable)) compound->compound_ismutable = 0;
   else {
     compound->compound_ismutable = 1;
     u8_init_mutex(&(compound->compound_lock));}
-  if (FALSEP(opaque)) compound->compound_isopaque = 0;
+  if (FALSEP(opaque)) {
+    compound->compound_isopaque = 0;
+    compound->compound_off = 0;}
   else {
-    compound->compound_isopaque = 1;}
+    compound->compound_isopaque = 1;
+    compound->compound_off = -1;}
   while (i<n) {
     lispval elt = VEC_REF(vector,i);
     fd_incref(elt);
     *write++=elt; i++;}
+  if (FD_FALSEP(offset))
+    compound->compound_off = -1;
+  else {
+    if (FD_FIXNUMP(offset)) {
+      long long off = FD_FIX2INT(offset);
+      if ( (off>=0) && (off<128) )
+        compound->compound_off = off;
+      else {
+        fd_seterr("BadCompoundVectorOffset","vector2compound",NULL,offset);
+        return FD_ERROR_VALUE;}}
+    else compound->compound_off = 0;}
   return LISP_CONS(compound);
 }
 
@@ -475,10 +498,12 @@ FD_EXPORT void fd_init_compoundfns_c()
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("MAKE-OPAQUE-MUTABLE-COMPOUND",
                                          make_opaque_mutable_compound,1)));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim4x("VECTOR->COMPOUND",vector2compound,2,
-                           fd_vector_type,VOID,-1,VOID,
-                           -1,FD_FALSE,-1,FD_FALSE));
+  fd_idefn5(fd_scheme_module,"VECTOR->COMPOUND",vector2compound,2,
+            "`(VECTOR->COMPOUND *vec* *tag* *mutable* *opaque* *reserve*)` "
+            "creates a compound object out of *vec*, tagged with *tag*. "
+            "If *reserve* is #f, the returned compound won't be a sequence",
+            fd_vector_type,VOID,-1,VOID,
+            -1,FD_FALSE,-1,FD_FALSE,-1,FD_TRUE);
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("UNPACK-COMPOUND",unpack_compound,1,
                            fd_compound_type,VOID,-1,VOID));

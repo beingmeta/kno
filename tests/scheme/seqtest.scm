@@ -68,6 +68,8 @@
 (applytest #(a b c "d" 3 3.1 g h i j k '(l m) n)
 	   append #(a b c "d" 3) #(3.1 g h i j k '(l m) n))
 (applytest #(a b c "d" 3 3.1 g h i j k '(l m) n)
+	   append #%(TYPE1 a b c "d" 3) #%(TYPE2 3.1 g h i j k '(l m) n))
+(applytest #(a b c "d" 3 3.1 g h i j k '(l m) n)
 	   append #(a b c "d" 3) '(3.1 g h i j k '(l m) n))
 (applytest '(a b c "d" 3 3.1 g h i j k '(l m) n)
 	   append '(a b c "d" 3) '(3.1 g h i j k '(l m) n))
@@ -91,6 +93,7 @@
 (applytest 3 search '#(d e f) '(a b c d e f g h i j))
 (applytest 5 search '("d" "e" "f") '("a" "b" "c" 3 #f "d" "e" "f" "g" "h" "i" "j"))
 (applytest 5 search '#("d" "e" "f") '#("a" "b" "c" #f 3 "d" "e" "f" "g" "h" "i" "j"))
+(applytest 5 search '#("d" "e" "f") '#%(FOO "a" "b" "c" #f 3 "d" "e" "f" "g" "h" "i" "j"))
 (applytest 5 search '("d" "e" "f") '#("a" "b" #t 9 "c" "d" "e" "f" "g" "h" "i" "j"))
 (applytest 5 search '#("d" "e" "f") '("a" "b" #f 8 "c" "d" "e" "f" "g" "h" "i" "j"))
 (applytest #f search '("b" "c" "d") '("a" "b" "c" 3 #f "d" "e" "f" "g" "h" "i" "j"))
@@ -125,10 +128,26 @@
      #"abc def gh\aa jkl"
      #\u45ab {} {A |aBc| "b" C 3} {} {C A 3 "b"} {"A"}
      #((test) "te \" \" st" "" test #() b c)))
+(define mixed-compound
+  '#%(TESTING
+      "b\u00c0ar"
+      #[foo 3 bar 8] 
+      "alpha" 
+      "real\vlylongst\aring\nreallylong\nstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstrin\fgreal\rlylon\bgstri\tngreallylongstring"
+      #"reallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstring"
+      #"ab\003cd\004qnno\377kk\315"
+      #t #f #\a () 9739 -3 3.1415 -2.7127
+      715919103 -715919103 2415919103 -2415919103 12345678987654321 -12345678987654321
+      #"abc def gh\aa jkl"
+      #\u45ab {} {A |aBc| "b" C 3} {} {C A 3 "b"} {"A"}
+      #((test) "te \" \" st" "" test #() b c)))
 
 (applytest mixed-list deep-copy mixed-list)
 (applytest mixed-vector ->vector mixed-list)
+(applytest mixed-vector ->vector mixed-compound)
 (applytest mixed-list ->list mixed-vector)
+(applytest mixed-list ->list mixed-compound)
+(applytest mixed-compound vector->compound mixed-vector 'testing)
 
 (define numsum 9742.000000)
 (evaltest numsum
@@ -309,6 +328,11 @@
 (applytest #f parsefail "#@“M/8=”")
 (applytest #t parsefail "#@“M/_8=”")
 (applytest #t parsefail "#@“_M/8=”")
+
+;;; Some simple test for non vector compounds
+
+(define not-sequence (make-opaque-compound 'noelts 1 2 3 4))
+(evaltest #f (onerror (elt not-sequence 1) #f))
 
 (test-finished "SEQTEST")
 

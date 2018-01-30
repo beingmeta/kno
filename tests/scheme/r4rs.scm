@@ -55,10 +55,10 @@
 
 (SECTION 3 4)
 (define disjoint-type-functions
-  (list boolean? char? null? number? pair? procedure? string? symbol? vector?))
+  (list boolean? char? null? number? pair? procedure? string? symbol? vector? compound?))
 (define type-examples
   (list
-   #t #f #\a '() 9739 '(applytest) SECTION "test" "" 'test '#() '#(a b c) ))
+   #t #f #\a '() 9739 '(applytest) SECTION "test" "" 'test '#() '#(a b c) #%(RECORD 1 2 c)))
 (define i 1)
 (for-each (lambda (x) (display (make-string i #\ ))
 		  (set! i (+ 3 i))

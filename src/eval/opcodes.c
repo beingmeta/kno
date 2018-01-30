@@ -235,6 +235,10 @@ static lispval first_opcode(lispval arg1)
     if (VEC_LEN(arg1)>0)
       return fd_incref(VEC_REF(arg1,0));
     else return fd_err(fd_RangeError,"FD_FIRST_OPCODE",NULL,arg1);
+  else if (COMPOUND_VECTORP(arg1))
+    if (COMPOUND_VECLEN(arg1) > 0)
+      return fd_incref(XCOMPOUND_VEC_REF(arg1,1));
+    else return fd_err(fd_RangeError,"FD_FIRST_OPCODE",NULL,arg1);
   else if (STRINGP(arg1)) {
     u8_string data = CSTRING(arg1); int c = u8_sgetc(&data);
     if (c<0) return fd_err(fd_RangeError,"FD_FIRST_OPCODE",NULL,arg1);
@@ -245,8 +249,12 @@ static lispval first_opcode(lispval arg1)
 static lispval eltn_opcode(lispval arg1,int n,u8_context opname)
 {
   if (VECTORP(arg1))
-    if (VEC_LEN(arg1)>n)
+    if (VEC_LEN(arg1) < n)
       return fd_incref(VEC_REF(arg1,n));
+    else return fd_err(fd_RangeError,opname,NULL,arg1);
+  else if (COMPOUND_VECTORP(arg1))
+    if (COMPOUND_VECLEN(arg1) < n)
+      return fd_incref(XCOMPOUND_VEC_REF(arg1,n));
     else return fd_err(fd_RangeError,opname,NULL,arg1);
   else return fd_seq_elt(arg1,n);
 }

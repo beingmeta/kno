@@ -39,12 +39,30 @@ static lispval make_short_vector(int n,lispval *from_elts);
 static lispval make_int_vector(int n,lispval *from_elts);
 static lispval make_long_vector(int n,lispval *from_elts);
 
-struct FD_SEQFNS *fd_seqfns[FD_TYPE_MAX];
-FD_EXPORT int fd_seq_length(lispval x)
+static lispval *compound2vector(lispval x,int *lenp)
+{
+  struct FD_COMPOUND *compound = (fd_compound) x;
+  if ((compound->compound_off)<0) {
+    *lenp = -1;
+    return NULL;}
+  else {
+    int off = compound->compound_off;
+    int len = (compound->compound_length)-off;
+    *lenp = len;
+    return (&(compound->compound_0))+off;}
+}
+
+FD_FASTOP int seq_length(lispval x)
 {
   int ctype = FD_PTR_TYPE(x);
   switch (ctype) {
   case fd_vector_type:
+    return VEC_LEN(x);
+  case fd_compound_type: {
+    struct FD_COMPOUND *compound = (fd_compound) x;
+    if ((compound->compound_off)<0)
+      return -1;
+    else return (compound->compound_length)-(compound->compound_off);}
     return VEC_LEN(x);
   case fd_code_type:
     return FD_CODE_LENGTH(x);
@@ -52,18 +70,24 @@ FD_EXPORT int fd_seq_length(lispval x)
     return FD_PACKET_LENGTH(x);
   case fd_numeric_vector_type:
     return FD_NUMVEC_LENGTH(x);
+  case fd_string_type:
+    return u8_strlen_x(CSTRING(x),FD_STRING_LENGTH(x));
   case fd_pair_type: {
     int i = 0; lispval scan = x;
     while (PAIRP(scan)) {i++; scan = FD_CDR(scan);}
     return i;}
-  case fd_string_type:
-    return u8_strlen_x(CSTRING(x),FD_STRING_LENGTH(x));
   default:
     if (NILP(x)) return 0;
     else if ((fd_seqfns[ctype]) && (fd_seqfns[ctype]->len) &&
              ((fd_seqfns[ctype]->len) != fd_seq_length))
       return (fd_seqfns[ctype]->len)(x);
     else return -1;}
+}
+
+struct FD_SEQFNS *fd_seqfns[FD_TYPE_MAX];
+FD_EXPORT int fd_seq_length(lispval x)
+{
+  return seq_length(x);
 }
 
 FD_EXPORT lispval fd_seq_elt(lispval x,int i)
@@ -83,6 +107,14 @@ FD_EXPORT lispval fd_seq_elt(lispval x,int i)
       else {
         int val = FD_PACKET_DATA(x)[i];
         return FD_INT(val);}
+    case fd_compound_type: {
+      int len; lispval *elts = compound2vector(x,&len);
+      if (elts == NULL) {
+        fd_seterr("NotACompoundVector","fd_seq_elt",NULL,x);
+        return FD_ERROR_VALUE;}
+      else if (i>=len)
+        return FD_RANGE_ERROR;
+      else return fd_incref(elts[i]);}
     case fd_numeric_vector_type:
       if (i>=FD_NUMVEC_LENGTH(x))
         return FD_RANGE_ERROR;
@@ -213,15 +245,29 @@ FD_EXPORT lispval fd_slice(lispval x,int start,int end)
 
 FD_EXPORT int fd_position(lispval key,lispval seq,int start,int limit)
 {
-  int ctype = FD_PTR_TYPE(seq), len = fd_seq_length(seq);
+  int ctype = FD_PTR_TYPE(seq), len = seq_length(seq);
+  if (len<0) {
+    fd_seterr("NotASequence","fd_position",NULL,seq);
+    return -1;}
   int end = (limit<0)?(len+limit+1):(limit>len)?(len):(limit);
   int delta = (start<end)?(1):(-1);
   int min = ((start<end)?(start):(end)), max = ((start<end)?(end):(start));
-  if ((start<0)||(end<0)) return -2;
-  else if (start>end) return -1;
+  if ( (start<0) || (end<0) )
+    return -2;
+  else if (start>end)
+    return -1;
   else switch (ctype) {
     case fd_vector_type: case fd_code_type: {
       lispval *data = FD_VECTOR_ELTS(seq);
+      int i = start; while (i!=end) {
+        if (LISP_EQUAL(key,data[i])) return i;
+        else if (CHOICEP(data[i]))
+          if (fd_overlapp(key,data[i])) return i;
+          else i = i+delta;
+        else i = i+delta;}
+      return -1;}
+    case fd_compound_type: {
+      lispval *data = FD_COMPOUND_VECELTS(seq);
       int i = start; while (i!=end) {
         if (LISP_EQUAL(key,data[i])) return i;
         else if (CHOICEP(data[i]))
@@ -299,38 +345,47 @@ FD_EXPORT int fd_rposition(lispval key,lispval x,int start,int end)
       else return -1;
     else return -1;}
   else switch (FD_PTR_TYPE(x)) {
-  case fd_vector_type: case fd_code_type: {
-    lispval *data = VEC_DATA(x);
-    int len = VEC_LEN(x);
-    if (end<0) end = len;
-    if ((start<0) || (end<start) || (start>len) || (end>len))
-      return -2;
-    else while (start<end--)
-           if (LISP_EQUAL(key,data[end])) return end;
-    return -1;}
-  case fd_packet_type: case fd_secret_type: {
-    const unsigned char *data = FD_PACKET_DATA(x);
-    int len = FD_PACKET_LENGTH(x), keyval;
-    if (end<0) end = len;
-    if (FIXNUMP(key)) keyval = FIX2INT(key); else return -1;
-    if ((keyval<0) || (keyval>255)) return -1;
-    else if ((start<0) || (end<start) || (start>len) || (end>len))
-      return -2;
-    else while (start<end--) {
-        if (keyval == data[end]) return start;}
-    return -1;}
-  default: {
-    int last = -1, pos;
-    while ((start<end) &&
-           (pos = fd_position(key,x,start,end))>=0) {
-      last = pos; start = pos+1;}
-    return last;}}
+    case fd_vector_type: case fd_code_type: {
+      lispval *data = VEC_DATA(x);
+      int len = VEC_LEN(x);
+      if (end<0) end = len;
+      if ((start<0) || (end<start) || (start>len) || (end>len))
+        return -2;
+      else while (start<end--)
+             if (LISP_EQUAL(key,data[end])) return end;
+      return -1;}
+    case fd_compound_type: {
+      lispval *data = FD_COMPOUND_VECELTS(x);
+      int len = FD_COMPOUND_VECLEN(x);
+      if (end<0) end = len;
+      if ((start<0) || (end<start) || (start>len) || (end>len))
+        return -2;
+      else while (start<end--)
+             if (LISP_EQUAL(key,data[end])) return end;
+      return -1;}
+    case fd_packet_type: case fd_secret_type: {
+      const unsigned char *data = FD_PACKET_DATA(x);
+      int len = FD_PACKET_LENGTH(x), keyval;
+      if (end<0) end = len;
+      if (FIXNUMP(key)) keyval = FIX2INT(key); else return -1;
+      if ((keyval<0) || (keyval>255)) return -1;
+      else if ((start<0) || (end<start) || (start>len) || (end>len))
+        return -2;
+      else while (start<end--) {
+          if (keyval == data[end]) return start;}
+      return -1;}
+    default: {
+      int last = -1, pos;
+      while ((start<end) &&
+             (pos = fd_position(key,x,start,end))>=0) {
+        last = pos; start = pos+1;}
+      return last;}}
 }
 
 /* Generic position */
 FD_EXPORT int fd_generic_position(lispval key,lispval x,int start,int end)
 {
-  int len = fd_seq_length(x);
+  int len = seq_length(x);
   if (end<0) end = len+end;
   else if (end<start)  {
     int tmp = start; start = end; end = tmp;}
@@ -389,9 +444,9 @@ FD_EXPORT int fd_search(lispval subseq,lispval seq,int start,int end)
 FD_EXPORT int fd_generic_search(lispval subseq,lispval seq,int start,int end)
 {
   /* Generic implementation */
-  int subseqlen = fd_seq_length(subseq), pos = start;
+  int subseqlen = seq_length(subseq), pos = start;
   lispval subseqstart = fd_seq_elt(subseq,0);
-  if (end<0) end = fd_seq_length(seq);
+  if (end<0) end = seq_length(seq);
   while ((pos = fd_position(subseqstart,seq,pos,pos-subseqlen))>=0) {
     int i = 1, j = pos+1;
     while (i < subseqlen) {
@@ -456,7 +511,7 @@ static int vector_search(lispval key,lispval x,int start,int end)
      are ints. */
 lispval *fd_elts(lispval seq,int *n)
 {
-  int len = fd_seq_length(seq);
+  int len = seq_length(seq);
   if (len==0) {*n = 0; return NULL;}
   else {
     fd_ptr_type ctype = FD_PTR_TYPE(seq);
@@ -488,6 +543,18 @@ lispval *fd_elts(lispval seq,int *n)
         *limit = scan+VEC_LEN(seq);
       while (scan<limit) {
         vec[i]=fd_incref(*scan); i++; scan++;}
+      break;}
+    case fd_compound_type: {
+      int i = 0, len; lispval *elts = compound2vector(seq,&len);
+      if (elts == NULL) {
+        fd_seterr("NotACompoundVector","fd_seq_elt",NULL,seq);
+        *n = -1;
+        return NULL;}
+      while (i<len) {
+        lispval v = elts[i];
+        vec[i] = fd_incref(v);
+        i++;}
+      *n = len;
       break;}
     case fd_numeric_vector_type: {
       int i = 0;
@@ -539,6 +606,7 @@ FD_EXPORT
   Creates a sequence of the designated type out of the given elements. */
 lispval fd_makeseq(fd_ptr_type ctype,int n,lispval *v)
 {
+  if (ctype == fd_compound_type) ctype = fd_vector_type;
   switch (ctype) {
   case fd_string_type: {
     struct U8_OUTPUT out; int i = 0;
@@ -683,7 +751,7 @@ FD_EXPORT lispval fd_remove(lispval item,lispval sequence)
     return fd_type_error("sequence","fd_remove",sequence);
   else if (NILP(sequence)) return sequence;
   else {
-    int i = 0, j = 0, removals = 0, len = fd_seq_length(sequence);
+    int i = 0, j = 0, removals = 0, len = seq_length(sequence);
     fd_ptr_type result_type = FD_PTR_TYPE(sequence);
     lispval *results = u8_alloc_n(len,lispval), result;
     while (i < len) {
@@ -854,6 +922,14 @@ static struct FD_SEQFNS secret_seqfns={
   NULL,
   NULL,
   makesecret};
+static struct FD_SEQFNS compound_seqfns={
+  fd_seq_length,
+  fd_seq_elt,
+  NULL,
+  fd_position,
+  fd_search,
+  fd_elts,
+  NULL};
 
 
 FD_EXPORT void fd_init_sequences_c()
@@ -865,6 +941,7 @@ FD_EXPORT void fd_init_sequences_c()
   fd_seqfns[fd_packet_type]= &packet_seqfns;
   fd_seqfns[fd_secret_type]= &secret_seqfns;
   fd_seqfns[fd_vector_type]= &vector_seqfns;
+  fd_seqfns[fd_compound_type]= &compound_seqfns;
   fd_seqfns[fd_code_type]= &code_seqfns;
   fd_seqfns[fd_numeric_vector_type]= &numeric_vector_seqfns;
 

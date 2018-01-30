@@ -958,6 +958,10 @@ FD_EXPORT void lispval_sort(lispval *v,size_t n,fd_compare_flags flags);
 #define PRED_FALSE(x)  (FD_EXPECT_FALSE(x))
 #define PRED_TRUE(x)  (FD_EXPECT_TRUE(x))
 #define SYMBOL_NAME(x) (FD_SYMBOL_NAME(x))
+#define COMPOUND_VECTORP(x) (FD_COMPOUND_VECTORP(x))
+#define COMPOUND_VECLEN(x)  (FD_COMPOUND_VECLEN(x))
+#define COMPOUND_VECELTS(x)  (FD_COMPOUND_VECELTS(x))
+#define XCOMPOUND_VEC_REF(x,i) (FD_XCOMPOUND_VECREF((x),(i)))
 #endif
 
 /* Debugging support */

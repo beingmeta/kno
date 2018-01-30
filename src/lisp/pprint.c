@@ -246,6 +246,49 @@ int fd_pprinter(u8_output out,lispval x,int indent,int col,int depth,
           u8_putc(out,' ');}
       u8_putc(out,')');
       return col+1;}}
+  else if (FD_COMPOUND_VECTORP(x)) {
+    struct FD_COMPOUND *comp = (fd_compound) x;
+    int len = FD_COMPOUND_VECLEN(x);
+    int vec_max = pprint_max3(vector_max,maxelts,ppcxt);
+    U8_OUTPUT tmpout; u8_byte buf[200];
+    U8_INIT_OUTPUT_BUF(&tmpout,200,buf);
+    u8_printf(&tmpout,"#%%(%q)",comp->compound_typetag);
+    size_t head_len = tmpout.u8_write-tmpout.u8_outbuf;
+    if (len==0) {
+      u8_putn(out,tmpout.u8_outbuf,head_len);
+      if (tmpout.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpout.u8_outbuf);
+      return col+head_len;}
+    else {
+      int eltno = 0;
+      /* Default indent is 3 */
+      u8_putn(out,tmpout.u8_outbuf,head_len-1); /* head_len-1 skips the close paren */
+      if (tmpout.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpout.u8_outbuf);
+      col=col+(head_len-1);
+      while (eltno<len) {
+        int last_col = col;
+        if (OVERFLOWP(eltno,vec_max)) {
+          if ( (eltno+1 == len) && (vec_max>3) ) {
+            /* If there's one more item and the vector is 'short',
+               just display it */}
+          else {
+            U8_STATIC_OUTPUT(ellipsis,80);
+            int remaining=len-eltno;
+            u8_printf(&ellipsis,"#|…%d more elements…|#",remaining);
+            size_t ellipsis_len = ellipsis.u8_write-ellipsis.u8_outbuf;
+            if ( ( (col+ellipsis_len) > maxcol ) &&
+                 ( col > (indent+margin_len)) )
+              col=do_indent(out,margin,indent,-1);
+            u8_putn(out,ellipsis.u8_outbuf,ellipsis_len);
+            col=col+ellipsis_len;
+            break;}}
+        col = fd_pprinter(out,FD_XCOMPOUND_VECREF(x,eltno),indent+3,col,depth+1,
+                          customfn,customdata,
+                          ppcxt);
+        eltno++;
+        if ( (eltno < len) && (col > last_col) )
+          u8_putc(out,' ');}
+      u8_putc(out,')');
+      return col+1;}}
   else if (QCHOICEP(x)) {
     struct FD_QCHOICE *qc = FD_XQCHOICE(x);
     int n_elts=0, choice_max = pprint_max3(choice_max,maxelts,ppcxt);

@@ -397,7 +397,8 @@ static int optionsp(lispval arg)
     FD_DO_CHOICES(elt,arg) {
       if (! (optionsp(elt)) ) {
         FD_STOP_DO_CHOICES;
-        return 0;}}}
+        return 0;}}
+    return 1;}
   else if (FD_PAIRP(arg)) {
     if (optionsp(FD_CAR(arg)))
       return optionsp(FD_CDR(arg));
