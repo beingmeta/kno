@@ -599,7 +599,7 @@ static lispval threadcallx_prim(int n,lispval *args)
       fd_incref(call_arg);
       call_args[i-2]=call_arg;
       i++;}
-    thread = fd_thread_call(NULL,fn,n-2,call_args,0);
+    thread = fd_thread_call(NULL,fn,n-2,call_args,flags);
     if (thread == NULL) {
       u8_log(LOG_WARN,"ThreadLaunchFailed",
              "Failed to launch thread calling %q",args[0]);
