@@ -329,7 +329,7 @@ static lispval exception_stack(lispval x,lispval arg1,lispval arg2)
     size_t    stack_len   = stack->vec_length;
     if (FD_VOIDP(arg1))
       return fd_incref(xo->ex_stack);
-    else if (FD_VOIDP(arg2)) {
+    else if ( (FD_VOIDP(arg2)) && ((FD_FIX2INT(arg1)) > 0) ) {
       long long off = FD_FIX2INT(arg1);
       if (off < 0) off = stack_len+off;
       if (off < 0) off = 0;
@@ -337,15 +337,35 @@ static lispval exception_stack(lispval x,lispval arg1,lispval arg2)
       lispval entry = FD_VECTOR_REF(xo->ex_stack,off);
       return fd_incref(entry);}
     else {
-      long long len = FD_FIX2INT(arg1);
-      if (len<0)
-        return fd_err(fd_RangeError,"exception_stack(len)",NULL,arg1);
-      long long start = (FD_FIXNUMP(arg2)) ? (FD_FIX2INT(arg2)) :
-        (FD_FALSEP(arg2)) ? (0) : (-1);
-      if (start < 0) start = stack_len+(start+1);
-      long long end = start + len;
-      if (end >= stack_len) end = stack_len;
-      return fd_slice(xo->ex_stack,start,end);}}
+      long long start, end;
+      if (FD_VOIDP(arg2)) {
+        end = -(FD_FIX2INT(arg1));
+        start = 0;}
+      else {
+        start = FD_FIX2INT(arg1);
+        if (FD_FIXNUMP(arg1))
+          end = FD_FIX2INT(arg2);
+        else end = stack_len;}
+      if (start<0) start = stack_len-start;
+      if (end<0) end = stack_len+end;
+      if (start < 0) start = 0;
+      else if (start >= stack_len)
+        start = stack_len;
+      else NO_ELSE;
+      if (end < 0) end = 0;
+      else if (end >= stack_len)
+        end = stack_len;
+      else NO_ELSE;
+      if (start == end) {
+        lispval entry = FD_VECTOR_REF(xo->ex_stack,start);
+        return fd_incref(entry);}
+      else if (end > start)
+        return fd_slice(xo->ex_stack,start,end);
+      else {
+        lispval slice = fd_slice(xo->ex_stack,end,start);
+        lispval reversed = fd_reverse(slice);
+        fd_decref(slice);
+        return reversed;}}}
 }
 
 static lispval exception_summary(lispval x,lispval with_irritant)
