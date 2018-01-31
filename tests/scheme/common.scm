@@ -36,20 +36,30 @@
 	       (error 'tests-failed))
 	     (message ,name " successfuly completed"))))))
   
+(define (temp-arglist n (arglist '()))
+  (if (= n 0)
+      (reverse arglist)
+      (temp-arglist (-1+ n)
+		    (cons (string->symbol (glom "_ARG_" n))
+			  arglist))))
+
 (when (config 'testoptimized #f)
   (use-module 'optimize)
   (define applytester
     (macro expr
-      `(let ((fcn (lambda () (,applytest ,@(map qc-wrap (cdr expr))))))
-	 (optimize-procedure! fcn)
-	 (fcn)
-	 (deoptimize-procedure! fcn))))
+      (let* ((result-form (second expr))
+	     (fn-form (third expr))
+	     (args-forms (slice expr 3))
+	     (n-args (length args-forms))
+	     (arglist (temp-arglist n-args)))
+	`(let ((fcn (ambda ,arglist (,fn-form ,@arglist))))
+	   (applytest ,result-form fcn ,@args-forms)))))
   (define evaltester
     (macro expr
-      `(let ((fcn (lambda () (,evaltest ,@(cdr expr)))))
+      `(let ((fcn (lambda () ,(third expr))))
 	 (optimize-procedure! fcn)
-	 (fcn)
-	 (deoptimize-procedure! fcn))))
+	 (pprint (procedure-body fcn))
+	 (,evaltest ,(second expr) (fcn)))))
   (define define-tester
     (macro expr
       (if (pair? (cadr expr))
@@ -64,9 +74,11 @@
 	  `(defambda ,@(cdr expr)))))
   (define test-optimize! optimize!))
 
-(unless (config 'testoptimized #f)
+(when (config 'testoptimized #f)
   (config! 'optimize:rails #t)
-  (config! 'optimize:level 4)
+  (config! 'optimize:level 4))
+
+(unless (config 'testoptimized #f)
   (define applytester applytest)
   (define evaltester evaltest)
   (define define-tester define)

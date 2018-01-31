@@ -1169,6 +1169,9 @@
 	{})
       (optimize-block handler expr env bound opts)))
 
+(define (optimize-evaltest handler expr env bound opts)
+  `(,evaltest ,(second expr) ,(optimize-expr (third expr) env bound opts)))
+
 (define (optimize-case handler expr env bound opts)
   `(,handler 
     ,(optimize (cadr expr) env bound opts)
@@ -1319,6 +1322,7 @@
 	(choice ipeval tipeval)
 	optimize-block))
 (add! special-form-optimizers case optimize-case)
+(add! special-form-optimizers evaltest optimize-evaltest)
 (add! special-form-optimizers cond optimize-cond)
 (add! special-form-optimizers do-subsets optimize-dosubsets)
 (when (bound? parallel)
