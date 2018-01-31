@@ -35,7 +35,7 @@ lispval FDSYM_QMARK, FDSYM_QUOTE, FDSYM_READONLY, FDSYM_SEP;
 lispval FDSYM_SET, FDSYM_SIZE, FDSYM_SORT, FDSYM_SORTED;
 lispval FDSYM_SOURCE, FDSYM_STAR, FDSYM_STORE, FDSYM_STRING, FDSYM_SUFFIX;
 lispval FDSYM_TAG, FDSYM_TEST, FDSYM_TEXT, FDSYM_TYPE;
-lispval FDSYM_VERSION;
+lispval FDSYM_VERSION, FDSYM_VOID;
 
 u8_rwlock fd_symbol_lock;
 
@@ -142,6 +142,7 @@ static void init_builtin_symbols()
   FDSYM_TEXT = fd_intern("TEXT");
   FDSYM_TYPE = fd_intern("TYPE");
   FDSYM_VERSION = fd_intern("VERSION");
+  FDSYM_VOID = fd_intern("VOID");
 }
 
 static void grow_symbol_tables()
