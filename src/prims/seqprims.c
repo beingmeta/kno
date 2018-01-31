@@ -435,18 +435,33 @@ static lispval check_empty_list_range
   return VOID;
 }
 
-static int interpret_range_args(int len,int *startp,int *endp,int *deltap)
+static int interpret_range_args(int len,u8_context caller,
+                                lispval start_arg,lispval end_arg,
+                                int *startp,int *endp,int *deltap)
 {
-  int start = ((*startp)>0) ? (start) : (len+start);
-  int end   = ((*endp)>0) ? (end) : (len+end);
-  if ( (start<0) || (end<0) )
+  int start, end;
+  if (FD_VOIDP(start_arg)) {
+    *startp=0; *endp=len; *deltap=1;
+    return len;}
+  else if (FD_FIXNUMP(start_arg))
+    start = FD_FIX2INT(start_arg);
+  else if (FD_FALSEP(start_arg))
+    start = 0;
+  else return -1;
+  if (start<0) start = len+start;
+  if ( (FD_VOIDP(end_arg)) || (FD_FALSEP(end_arg)) )
+    end = len;
+  else if (FD_FIXNUMP(end_arg)) {
+    end = FD_FIX2INT(end_arg);
+    if (end<0) end = len-start;}
+  else return -1;
+  if ( (start<0) || (end<0) || (start > len) || (end > len) )
     return -1;
   else {
-    if (start > len) start = len;
-    if (end > len) end = len;}
-  *startp = start; *endp = end;
-  *deltap = (end<start) ? (-1) : (1);
-  return len;
+    *startp = start;
+    *endp = end;
+    *deltap = (end<start) ? (-1) : (1);
+    return len;}
 }
 
 static lispval check_range(u8_string prim,lispval seq,
@@ -679,13 +694,14 @@ static lispval range_error(u8_context caller,lispval seq,int len,int start,int e
 lispval position_if_prim(lispval test,lispval seq,lispval start_arg,
                          lispval end_arg)
 {
-  int start = FD_FIX2INT(start_arg), end;
+  int end, start = (FD_FIXNUMP(start_arg)) ? (FD_FIX2INT(start_arg)) : (0);
   int ctype = FD_PTR_TYPE(seq);
   switch (ctype) {
   case fd_vector_type: case fd_code_type: {
     int len = FD_VECTOR_LENGTH(seq), delta = 1;
     if (FD_FIXNUMP(end_arg)) end = FD_FIX2INT(end_arg); else end = len;
-    int ok = interpret_range_args(len,&start,&end,&delta);
+    int ok = interpret_range_args
+      (len,"position_if_prim",start_arg,end_arg,&start,&end,&delta);
     if (ok<0) return range_error("position_if_prim",seq,len,start,end);
     lispval *data = FD_VECTOR_ELTS(seq);
     int i = start; while (i!=end) {
@@ -700,7 +716,8 @@ lispval position_if_prim(lispval test,lispval seq,lispval start_arg,
       int len = FD_COMPOUND_VECLEN(seq), delta = 1;
       if (FD_FIXNUMP(end_arg)) end = FD_FIX2INT(end_arg); else end = len;
       lispval *data = FD_COMPOUND_VECELTS(seq);
-      int ok = interpret_range_args(len,&start,&end,&delta);
+      int ok = interpret_range_args
+        (len,"position_if_prim",start_arg,end_arg,&start,&end,&delta);
       if (ok<0) return range_error("position_if_prim",seq,len,start,end);
       int i = start; while (i!=end) {
         lispval v = fd_apply(test,1,data+i);
@@ -722,7 +739,8 @@ lispval position_if_prim(lispval test,lispval seq,lispval start_arg,
         else if ((FD_FIX2INT(end_arg))<0)
           end = len + FD_FIX2INT(end_arg);
         else end = FD_FIX2INT(end_arg);
-        int ok = interpret_range_args(len,&start,&end,&delta);
+        int ok = interpret_range_args
+          (len,"position_if_prim",start_arg,end_arg,&start,&end,&delta);
         if (ok<0) return range_error("position_if_prim",seq,len,start,end);}
       else end = FD_FIX2INT(end_arg);
       while (FD_PAIRP(scan)) {
@@ -751,7 +769,8 @@ lispval position_if_prim(lispval test,lispval seq,lispval start_arg,
         fd_seterr("UnenumerableSequence","position_if_prim",NULL,seq);
         return FD_ERROR_VALUE;}
       if (FD_FIXNUMP(end_arg)) end = FD_FIX2INT(end_arg); else end = len;
-      int ok = interpret_range_args(len,&start,&end,&delta);
+      int ok = interpret_range_args
+        (len,"position_if_prim",start_arg,end_arg,&start,&end,&delta);
       if (ok<0) return range_error("position_if_prim",seq,len,start,end);
       int i = start; while (i!=end) {
         lispval v = fd_apply(test,1,data+i);
@@ -768,6 +787,316 @@ lispval position_if_prim(lispval test,lispval seq,lispval start_arg,
       fd_decref_vec(data,len);
       u8_free(data);
       return FD_FALSE;}
+  }
+}
+
+lispval position_if_not_prim(lispval test,lispval seq,lispval start_arg,
+                             lispval end_arg)
+{
+  int start = FD_FIX2INT(start_arg), end;
+  int ctype = FD_PTR_TYPE(seq);
+  switch (ctype) {
+  case fd_vector_type: case fd_code_type: {
+    int len = FD_VECTOR_LENGTH(seq), delta = 1;
+    if (FD_FIXNUMP(end_arg)) end = FD_FIX2INT(end_arg); else end = len;
+    int ok = interpret_range_args
+      (len,"position_if_not_prim",start_arg,end_arg,&start,&end,&delta);
+    if (ok<0) return range_error("position_if_prim",seq,len,start,end);
+    lispval *data = FD_VECTOR_ELTS(seq);
+    int i = start; while (i!=end) {
+      lispval v = fd_apply(test,1,data+i);
+      if (FD_ABORTP(v)) return v;
+      else if (FD_FALSEP(v)) {
+        return FD_INT(i);}
+      else {
+        fd_decref(v);
+        i += delta;}}
+    return FD_FALSE;}
+  case fd_compound_type: {
+      int len = FD_COMPOUND_VECLEN(seq), delta = 1;
+      if (FD_FIXNUMP(end_arg)) end = FD_FIX2INT(end_arg); else end = len;
+      lispval *data = FD_COMPOUND_VECELTS(seq);
+      int ok = interpret_range_args
+        (len,"position_if_not_prim",start_arg,end_arg,&start,&end,&delta);
+      if (ok<0) return range_error("position_if_prim",seq,len,start,end);
+      int i = start; while (i!=end) {
+        lispval v = fd_apply(test,1,data+i);
+        if (FD_ABORTP(v)) return v;
+        else if (FD_FALSEP(v))
+          return FD_INT(i);
+        else {
+          fd_decref(v);
+          i += delta;}
+        return FD_FALSE;}}
+  case fd_pair_type: {
+    int i = 0, pos = -1, len = -1, delta = 1;
+    lispval scan = seq;
+    if ( (start<0) || (!(FD_FIXNUMP(end_arg))) ||
+         ( (FD_FIX2INT(end_arg)) < 0) ) {
+      len = fd_list_length(seq);
+      if (start<0) start = start+len;
+      if (!(FD_FIXNUMP(end_arg)))
+          end = len;
+        else if ((FD_FIX2INT(end_arg))<0)
+          end = len + FD_FIX2INT(end_arg);
+        else end = FD_FIX2INT(end_arg);
+        int ok = interpret_range_args
+          (len,"position_if_not_prim",start_arg,end_arg,&start,&end,&delta);
+        if (ok<0) return range_error("position_if_prim",seq,len,start,end);}
+      else end = FD_FIX2INT(end_arg);
+      while (FD_PAIRP(scan)) {
+        lispval elt = FD_CAR(scan);
+        if (i < start) {
+          i++; scan=FD_CDR(scan);
+          continue;}
+        else if (i > end) break;
+        lispval v = fd_apply(test,1,&elt);
+        if (FD_ABORTP(v)) return v;
+        else if (FD_FALSEP(v)) {
+          if (start>end) pos=i;
+          else return FD_INT(i);}
+        else {
+          fd_decref(v);
+          scan = FD_CDR(scan);
+          i++;}}
+      if (pos<0) return FD_FALSE;
+      else return FD_INT(pos);}
+  default: {
+      if (NILP(seq))
+        return FD_FALSE;
+      int len = 0, delta = 1;
+      lispval *data = fd_elts(seq,&len);
+      if (data == NULL) {
+        fd_seterr("UnenumerableSequence","position_if_prim",NULL,seq);
+        return FD_ERROR_VALUE;}
+      if (FD_FIXNUMP(end_arg)) end = FD_FIX2INT(end_arg); else end = len;
+      int ok = interpret_range_args
+        (len,"position_if_not_prim",start_arg,end_arg,&start,&end,&delta);
+      if (ok<0) return range_error("position_if_prim",seq,len,start,end);
+      int i = start; while (i!=end) {
+        lispval v = fd_apply(test,1,data+i);
+        if (FD_ABORTP(v)) {
+          fd_decref_vec(data,len);
+          u8_free(data);
+          return v;}
+        else if (FD_FALSEP(v)) {
+          fd_decref_vec(data,len);
+          u8_free(data);
+          return FD_INT(i);}
+        else {
+          fd_decref(v);
+          i += delta;}}
+      fd_decref_vec(data,len);
+      u8_free(data);
+      return FD_FALSE;}
+  }
+}
+
+lispval find_if_prim(lispval test,lispval seq,lispval start_arg,
+                     lispval end_arg,lispval fail_val)
+{
+  int end, start = (FD_FIXNUMP(start_arg)) ? (FD_FIX2INT(start_arg)) : (0);
+  int ctype = FD_PTR_TYPE(seq);
+  switch (ctype) {
+  case fd_vector_type: case fd_code_type: {
+    int len = FD_VECTOR_LENGTH(seq), delta = 1;
+    if (FD_FIXNUMP(end_arg)) end = FD_FIX2INT(end_arg); else end = len;
+    int ok = interpret_range_args
+      (len,"find_if_prim",start_arg,end_arg,&start,&end,&delta);
+    if (ok<0) return range_error("find_if_prim",seq,len,start,end);
+    lispval *data = FD_VECTOR_ELTS(seq);
+    int i = start; while (i!=end) {
+      lispval v = fd_apply(test,1,data+i);
+      if (FD_ABORTP(v)) return v;
+      else if (!(FD_FALSEP(v))) {
+        fd_decref(v);
+        return fd_incref(data[i]);}
+      else i += delta;}
+    return fd_incref(fail_val);}
+  case fd_compound_type: {
+      int len = FD_COMPOUND_VECLEN(seq), delta = 1;
+      if (FD_FIXNUMP(end_arg)) end = FD_FIX2INT(end_arg); else end = len;
+      lispval *data = FD_COMPOUND_VECELTS(seq);
+      int ok = interpret_range_args
+        (len,"find_if_prim",start_arg,end_arg,&start,&end,&delta);
+      if (ok<0) return range_error("find_if_prim",seq,len,start,end);
+      int i = start; while (i!=end) {
+        lispval v = fd_apply(test,1,data+i);
+        if (FD_ABORTP(v)) return v;
+        else if (!(FD_FALSEP(v))) {
+          fd_decref(v);
+          return fd_incref(data[i]);}
+        else i += delta;}
+      return fd_incref(fail_val);}
+    case fd_pair_type: {
+      int i = 0, pos = -1, len = -1, delta = 1;
+      lispval scan = seq, pos_elt = FD_VOID;
+      if ( (start<0) || (!(FD_FIXNUMP(end_arg))) ||
+           ( (FD_FIX2INT(end_arg)) < 0) ) {
+        len = fd_list_length(seq);
+        if (start<0) start = start+len;
+        if (!(FD_FIXNUMP(end_arg)))
+          end = len;
+        else if ((FD_FIX2INT(end_arg))<0)
+          end = len + FD_FIX2INT(end_arg);
+        else end = FD_FIX2INT(end_arg);
+        int ok = interpret_range_args
+          (len,"find_if_prim",start_arg,end_arg,&start,&end,&delta);
+        if (ok<0) return range_error("find_if_prim",seq,len,start,end);}
+      else end = FD_FIX2INT(end_arg);
+      while (FD_PAIRP(scan)) {
+        lispval elt = FD_CAR(scan);
+        if (i < start) {
+          i++; scan=FD_CDR(scan);
+          continue;}
+        else if (i > end) break;
+        lispval v = fd_apply(test,1,&elt);
+        if (FD_ABORTP(v)) return v;
+        else if (!(FD_FALSEP(v))) {
+          fd_decref(v);
+          if (start>end) {
+            pos=i; pos_elt = elt;}
+          else return fd_incref(elt);}
+        else {
+          scan = FD_CDR(scan);
+          i++;}}
+      if (pos<0)
+        return fd_incref(fail_val);
+      else return fd_incref(pos_elt);}
+  default: {
+      if (NILP(seq))
+        return fd_incref(fail_val);
+      int len = 0, delta = 1;
+      lispval *data = fd_elts(seq,&len);
+      if (data == NULL) {
+        fd_seterr("UnenumerableSequence","find_if_prim",NULL,seq);
+        return FD_ERROR_VALUE;}
+      if (FD_FIXNUMP(end_arg)) end = FD_FIX2INT(end_arg); else end = len;
+      int ok = interpret_range_args
+        (len,"find_if_prim",start_arg,end_arg,&start,&end,&delta);
+      if (ok<0) return range_error("find_if_prim",seq,len,start,end);
+      int i = start; while (i!=end) {
+        lispval v = fd_apply(test,1,data+i);
+        if (FD_ABORTP(v)) {
+          fd_decref_vec(data,len);
+          u8_free(data);
+          return v;}
+        else if (!(FD_FALSEP(v))) {
+          lispval elt = data[i]; fd_incref(elt);
+          fd_decref(v);
+          fd_decref_vec(data,len);
+          u8_free(data);
+          return elt;}
+        else i += delta;}
+      fd_decref_vec(data,len);
+      u8_free(data);
+      return fd_incref(fail_val);}
+  }
+}
+
+lispval find_if_not_prim(lispval test,lispval seq,lispval start_arg,
+                         lispval end_arg,
+                         lispval fail_val)
+{
+  int start = FD_FIX2INT(start_arg), end;
+  int ctype = FD_PTR_TYPE(seq);
+  switch (ctype) {
+  case fd_vector_type: case fd_code_type: {
+    int len = FD_VECTOR_LENGTH(seq), delta = 1;
+    if (FD_FIXNUMP(end_arg)) end = FD_FIX2INT(end_arg); else end = len;
+    int ok = interpret_range_args
+      (len,"find_if_not_prim",start_arg,end_arg,&start,&end,&delta);
+    if (ok<0) return range_error("find_if_prim",seq,len,start,end);
+    lispval *data = FD_VECTOR_ELTS(seq);
+    int i = start; while (i!=end) {
+      lispval v = fd_apply(test,1,data+i);
+      if (FD_ABORTP(v)) return v;
+      else if (FD_FALSEP(v)) {
+        return fd_incref(data[i]);}
+      else {
+        fd_decref(v);
+        i += delta;}}
+    return fd_incref(fail_val);}
+  case fd_compound_type: {
+      int len = FD_COMPOUND_VECLEN(seq), delta = 1;
+      if (FD_FIXNUMP(end_arg)) end = FD_FIX2INT(end_arg); else end = len;
+      lispval *data = FD_COMPOUND_VECELTS(seq);
+      int ok = interpret_range_args
+        (len,"find_if_not_prim",start_arg,end_arg,&start,&end,&delta);
+      if (ok<0) return range_error("find_if_prim",seq,len,start,end);
+      int i = start; while (i!=end) {
+        lispval v = fd_apply(test,1,data+i);
+        if (FD_ABORTP(v)) return v;
+        else if (FD_FALSEP(v))
+          return fd_incref(data[i]);
+        else {
+          fd_decref(v);
+          i += delta;}
+        return fd_incref(fail_val);}}
+  case fd_pair_type: {
+    int i = 0, pos = -1, len = -1, delta = 1;
+    lispval scan = seq, pos_elt = FD_VOID;
+    if ( (start<0) || (!(FD_FIXNUMP(end_arg))) ||
+         ( (FD_FIX2INT(end_arg)) < 0) ) {
+      len = fd_list_length(seq);
+      if (start<0) start = start+len;
+      if (!(FD_FIXNUMP(end_arg)))
+          end = len;
+        else if ((FD_FIX2INT(end_arg))<0)
+          end = len + FD_FIX2INT(end_arg);
+        else end = FD_FIX2INT(end_arg);
+        int ok = interpret_range_args
+          (len,"find_if_not_prim",start_arg,end_arg,&start,&end,&delta);
+        if (ok<0) return range_error("find_if_prim",seq,len,start,end);}
+      else end = FD_FIX2INT(end_arg);
+      while (FD_PAIRP(scan)) {
+        lispval elt = FD_CAR(scan);
+        if (i < start) {
+          i++; scan=FD_CDR(scan);
+          continue;}
+        else if (i > end) break;
+        lispval v = fd_apply(test,1,&elt);
+        if (FD_ABORTP(v)) return v;
+        else if (FD_FALSEP(v)) {
+          if (start>end) {
+            pos=i; pos_elt=elt;}
+          else return fd_incref(elt);}
+        else {
+          fd_decref(v);
+          scan = FD_CDR(scan);
+          i++;}}
+      if (pos<0)
+        return fd_incref(fail_val);
+      else fd_incref(pos_elt);}
+  default: {
+      if (NILP(seq))
+        return fd_incref(fail_val);
+      int len = 0, delta = 1;
+      lispval *data = fd_elts(seq,&len);
+      if (data == NULL) {
+        fd_seterr("UnenumerableSequence","find_if_prim",NULL,seq);
+        return FD_ERROR_VALUE;}
+      if (FD_FIXNUMP(end_arg)) end = FD_FIX2INT(end_arg); else end = len;
+      int ok = interpret_range_args
+        (len,"find_if_not_prim",start_arg,end_arg,&start,&end,&delta);
+      if (ok<0) return range_error("find_if_prim",seq,len,start,end);
+      int i = start; while (i!=end) {
+        lispval v = fd_apply(test,1,data+i);
+        if (FD_ABORTP(v)) {
+          fd_decref_vec(data,len);
+          u8_free(data);
+          return v;}
+        else if (FD_FALSEP(v)) {
+          lispval elt = data[i]; fd_incref(elt);
+          fd_decref_vec(data,len);
+          u8_free(data);
+          return elt;}
+        else {
+          fd_decref(v);
+          i += delta;}}
+      fd_decref_vec(data,len);
+      u8_free(data);
+      return fd_incref(fail_val);}
   }
 }
 
@@ -1744,18 +2073,15 @@ FD_EXPORT void fd_init_seqprims_c()
   fd_idefn(fd_scheme_module,
            fd_make_cprim1("LENGTH>1",has_length_gt_one_prim,1));
   fd_defalias(fd_scheme_module,"LENGTH<=","LENGTH=<");
+
   fd_idefn(fd_scheme_module,fd_make_cprim2("ELT",seqelt_prim,2));
+
   fd_idefn(fd_scheme_module,
            fd_make_cprim3x("SLICE",slice_prim,2,
                            -1,VOID,-1,VOID,
                            -1,FD_FALSE));
   fd_defalias(fd_scheme_module,"SUBSEQ","SLICE");
-  /*
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim3x("SUBSEQ",slice_prim,2,
-                           -1,VOID,-1,VOID,
-                           -1,FD_FALSE));
-  */
+
   fd_idefn(fd_scheme_module,
            fd_make_cprim4x("POSITION",position_prim,2,
                            -1,VOID,-1,VOID,
@@ -1783,11 +2109,50 @@ FD_EXPORT void fd_init_seqprims_c()
                            -1,VOID,-1,VOID,
                            fd_fixnum_type,FD_INT(0)));
 
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim4x("POSITION-IF",position_if_prim,2,
-                           -1,VOID,-1,VOID,
-                           -1,FD_INT(0),
-                           -1,FD_FALSE));
+  fd_idefn4(fd_scheme_module,"POSITION-IF",position_if_prim,2,
+            "`(POSITION-IF *test* *sequence* [*start*] [*end*])` "
+            "returns the position of element of *sequence* for which "
+            "*test* returns true. POSITION-IF searches between "
+            "between *start* and *end*, which default to "
+            "zero and the length of the sequence. if *start* > *end*, this "
+            "returns the last position in the range, otherwise it returns "
+            "the first. If either *start* or *end* are negative, "
+            "they are taken as offsets from the end of the sequence.",
+            -1,VOID,-1,VOID,-1,FD_INT(0),-1,FD_FALSE);
+
+  fd_idefn4(fd_scheme_module,"POSITION-IF-NOT",position_if_not_prim,2,
+            "`(POSITION-IF-NOT *test* *sequence* [*start*] [*end*])` "
+            "returns the position of element of *sequence* for which "
+            "*test* returns false. POSITION-IF-NOT searches between "
+            "between *start* and *end*, which default to "
+            "zero and the length of the sequence. if *start* > *end*, this "
+            "returns the last position in the range, otherwise it returns "
+            "the first. If either *start* or *end* are negative, "
+            "they are taken as offsets from the end of the sequence.",
+            -1,VOID,-1,VOID,-1,FD_INT(0),-1,FD_FALSE);
+
+  fd_idefn5(fd_scheme_module,"FIND-IF",find_if_prim,2,
+            "`(FIND-IF *test* *sequence* [*start*] [*end*] [*noneval*])` "
+            "returns an element of *sequence* for which *test* returns true "
+            "or *noneval* otherwise."
+            "FIND-IF searches between between *start* and *end*, defaulting "
+            "to zero and the length of the sequence. if *start* > *end*, this "
+            "returns the last occurrence in the range, otherwise it returns "
+            "the first. If either *start* or *end* are negative, "
+            "they are taken as offsets from the end of the sequence.",
+            -1,VOID,-1,VOID,-1,FD_INT(0),-1,FD_FALSE,-1,FD_FALSE);
+
+  fd_idefn5(fd_scheme_module,"FIND-IF-NOT",find_if_not_prim,2,
+            "`(FIND-IF-NOT *test* *sequence* [*start*] [*end*] [*noneval*])` "
+            "returns an element of *sequence* for which *test* returns false "
+            "or *noneval* otherwise."
+            "FIND-IF_NOT searches between between *start* and *end*, which "
+            "default to zero and the length of the sequence. "
+            "if *start* > *end*, this returns the last occurrence "
+            "in the range, otherwise it returns the first. "
+            "If either *start* or *end* are negative, they are "
+            "taken as offsets from the end of the sequence.",
+            -1,VOID,-1,VOID,-1,FD_INT(0),-1,FD_FALSE,-1,FD_FALSE);
 
   /* Initial sequence functions */
   fd_idefn(fd_scheme_module,fd_make_cprim1("FIRST",first,1));

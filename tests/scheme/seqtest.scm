@@ -339,5 +339,68 @@
 (define not-sequence (make-opaque-compound 'noelts 1 2 3 4))
 (evaltest #f (onerror (elt not-sequence 1) #f))
 
+;;; Check the if/if-not methods
+
+(define (even-string? s) (even? (string->number s)))
+(define (odd-string? s) (odd? (string->number s)))
+
+(define vec #("1" "2" "3" "4" "5" "6" "7"))
+(define vec2 #("a" "b" "c" "d" "e" "f"))
+
+(applytest 1 position-if even-string? vec)
+(applytest 0 position-if odd-string? vec)
+(applytest 0 position-if-not even-string? vec)
+(applytest 1 position-if-not odd-string? vec)
+(applytest #f position-if even-string? vec2)
+(applytest #f position-if odd-string? vec2)
+
+(applytest 3 position-if even-string? vec 2)
+(applytest 2 position-if odd-string? vec 2)
+(applytest 2 position-if-not even-string? vec 2)
+(applytest 3 position-if-not odd-string? vec 2)
+(applytest #f position-if even-string? vec2)
+(applytest #f position-if odd-string? vec2)
+
+(applytest #f position-if even-string? vec 2 2)
+(applytest #f position-if even-string? vec 2 3)
+(applytest 2 position-if odd-string? vec 2 3)
+(applytest #f position-if even-string? vec2 1 3)
+(applytest #f position-if odd-string? vec2 1 3)
+
+(applytest 5 position-if even-string? vec -1 0)
+(applytest 6 position-if odd-string? vec -1 0)
+(applytest 6 position-if-not even-string? vec -1 0)
+(applytest 5 position-if-not odd-string? vec -1 0)
+(applytest #f position-if even-string? vec2 -1 0)
+(applytest #f position-if odd-string? vec2 -1 0)
+
+(applytest "2" find-if even-string? vec)
+(applytest "1" find-if odd-string? vec)
+(applytest "1" find-if-not even-string? vec)
+(applytest "2" find-if-not odd-string? vec)
+(applytest #f find-if even-string? vec2)
+(applytest #f find-if odd-string? vec2)
+
+(applytest "4" find-if even-string? vec 2)
+(applytest "3" find-if odd-string? vec 2)
+(applytest "3" find-if-not even-string? vec 2)
+(applytest "4" find-if-not odd-string? vec 2)
+(applytest #f find-if even-string? vec2)
+(applytest #f find-if odd-string? vec2)
+
+(applytest #f find-if even-string? vec 2 2)
+
+(applytest #f find-if even-string? vec 2 3)
+(applytest "3" find-if odd-string? vec 2 3)
+(applytest #f find-if even-string? vec2 1 3)
+(applytest #f find-if odd-string? vec2 1 3)
+
+(applytest "6" find-if even-string? vec -1 0)
+(applytest "7" find-if odd-string? vec -1 0)
+(applytest "7" find-if-not even-string? vec -1 0)
+(applytest "6" find-if-not odd-string? vec -1 0)
+(applytest #f find-if even-string? vec2 -1 0)
+(applytest #f find-if odd-string? vec2 -1 0)
+
 (test-finished "SEQTEST")
 
