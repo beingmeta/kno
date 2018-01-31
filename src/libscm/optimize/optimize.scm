@@ -670,49 +670,57 @@
 	   (exists procedure-optimized? (get arg (getkeys arg))))))
 
 (define (optimize-get-module spec)
-  (onerror (get-module spec)
+  (onerror (or (get-module spec)
+	       (irritant spec
+		   |GetModuleFailed| optimize-module
+		   "Couldn't load module for " spec))
     (lambda (ex) 
       (irritant spec
 	  |GetModuleFailed| optimize-module
 	  "Couldn't load module for " spec))))
 
-(define (optimize-module! module (opts #f))
-  (loginfo |OptimizeModule| module)
+(define (optimize-module! module (opts #f) (module))
   (when (symbol? module)
     (set! module (optimize-get-module module)))
+  (loginfo |OptimizeModule| module)
   (set! opts
 	(if opts
 	    (try (cons (get module '%optimize_options) opts)
 		 opts)
 	    (try (get module '%optimize_options) #f)))
-  (let ((bindings (module-bindings module))
+  (let ((bindings (and module (module-bindings module)))
 	(usefcnrefs (use-fcnrefs? opts))
 	(count 0))
-    (do-choices (var bindings)
-      (let ((value (get module var)))
-	(when (and (exists? value) (compound-procedure? value))
-	  (loginfo |OptimizeModule|
-	    "Optimizing procedure " var " in " module)
-	  (set! count (1+ count))
-	  (optimize-procedure! value opts))
-	(when (and usefcnrefs (exists? value) (applicable? value))
-	  (update-fcnid! var module value))))
-    (when (exists symbol? (get module '%moduleid))
-      (let* ((referenced-modules (get module '%modrefs))
-	     (used-modules
-	      (eval `(within-module
-		      ',(pick (get module '%moduleid) symbol?)
-		      (,getmodules))))
-	     (unused (difference used-modules referenced-modules
-				 standard-modules
-				 (get module '%moduleid))))
-	(when (and check-module-usage (exists? unused))
-	  (logwarn |UnusedModules|
-	    "Module " (try (pick (get module '%moduleid) symbol?)
-			   (get module '%moduleid))
-	    " declares " (choice-size unused) " possibly unused modules: "
-	    (do-choices (um unused i)
-	      (printout (if (> i 0) ", ") um))))))
+    (when bindings
+      (do-choices (var bindings)
+	(let ((value (get module var)))
+	  (when (and (exists? value) (compound-procedure? value))
+	    (loginfo |OptimizeModule|
+	      "Optimizing procedure " var " in " module)
+	    (set! count (1+ count))
+	    (optimize-procedure! value opts))
+	  (when (and usefcnrefs (exists? value) (applicable? value))
+	    (update-fcnid! var module value)))))
+    (cond ((hashtable? module)
+	   (logwarn |OpaqueModule| 
+	     "Not optimizing opaque module " (get module '%moduleid)))
+	  ((exists symbol? (get module '%moduleid))
+	   (let* ((referenced-modules (get module '%modrefs))
+		  (used-modules
+		   (eval `(within-module
+			   ',(pick (get module '%moduleid) symbol?)
+			   (,getmodules))))
+		  (unused (difference used-modules referenced-modules
+				      standard-modules
+				      (get module '%moduleid))))
+	     (when (and check-module-usage (exists? unused))
+	       (logwarn |UnusedModules|
+		 "Module " (try (pick (get module '%moduleid) symbol?)
+				(get module '%moduleid))
+		 " declares " (choice-size unused) " possibly unused modules: "
+		 (do-choices (um unused i)
+		   (printout (if (> i 0) ", ") um))))))
+	  (else))
     count))
 
 (define (deoptimize-module! module)
