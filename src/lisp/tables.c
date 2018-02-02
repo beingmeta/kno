@@ -898,11 +898,13 @@ static int unparse_slotmap(u8_output out,lispval x)
     u8_puts(out,"#[");
     if (scan<limit) {
       fd_unparse(out,scan->kv_key); u8_putc(out,' ');
-      fd_unparse(out,scan->kv_val); scan++;}
+      fd_unparse(out,scan->kv_val);
+      scan++;}
     while (scan< limit) {
       u8_putc(out,' ');
       fd_unparse(out,scan->kv_key); u8_putc(out,' ');
-      fd_unparse(out,scan->kv_val); scan++;}
+      fd_unparse(out,scan->kv_val);
+      scan++;}
     u8_puts(out,"]");
   }
   if (unlock) fd_unlock_table(sm);
