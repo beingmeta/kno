@@ -367,7 +367,7 @@ int main(int argc,char **argv)
   FD_INIT_STACK();
 
 #if FD_TESTCONFIG
-  fd_autoload_config("TESTMODS","TESTLOAD");
+  fd_autoload_config("TESTMODS","TESTLOAD","TESTINIT");
 #endif
 
   args = handle_argv(argc,argv,&n_args,&exe_name,&source_file,NULL);

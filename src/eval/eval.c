@@ -52,6 +52,7 @@ u8_string fd_ndevalstack_type="ndeval";
 int fd_optimize_tail_calls = 1;
 
 fd_lexenv fd_app_env=NULL;
+static lispval init_list = NIL;
 static lispval module_list = NIL;
 static lispval loadfile_list = NIL;
 
@@ -2688,6 +2689,32 @@ static void setup_app_env()
   fd_decref(exit_handler);
 }
 
+static int run_init(lispval init,fd_lexenv env)
+{
+  lispval v = FD_VOID;
+  if (FD_APPLICABLEP(init)) {
+    if (FD_FUNCTIONP(init)) {
+      struct FD_FUNCTION *f = (fd_function) init;
+      v = (f->fcn_arity == 0) ?
+        (fd_apply(init,0,NULL)) :
+        (fd_apply(init,1,(lispval *)(&env)));}
+    else v = fd_apply(init,0,NULL);}
+  else if (FD_PAIRP(init))
+    v = fd_eval(init,env);
+  else NO_ELSE;
+  if (FD_ABORTP(v)) {
+    u8_exception ex = u8_erreify();
+    u8_log(LOGCRIT,"InitFailed",
+           "Failed to apply init %q: %m <%s> %s%s%s",
+           init,ex->u8x_cond,ex->u8x_context,
+           U8OPTSTR(" (",ex->u8x_details,")"));
+    u8_free_exception(ex,1);
+    return -1;}
+  else {
+    fd_decref(v);
+    return 1;}
+}
+
 FD_EXPORT void fd_set_app_env(fd_lexenv env)
 {
   if (env==fd_app_env)
@@ -2700,7 +2727,8 @@ FD_EXPORT void fd_set_app_env(fd_lexenv env)
   if (env) {
     int modules_loaded = 0, files_loaded = 0;
     int modules_failed = 0, files_failed = 0;
-    lispval modules = module_list;
+    int inits_run = 0, inits_failed = 0;
+    lispval modules = fd_reverse(module_list);
     {FD_DOLIST(modname,modules) {
         lispval module = fd_find_module(modname,0,0);
         if (FD_ABORTP(module)) {
@@ -2716,7 +2744,8 @@ FD_EXPORT void fd_set_app_env(fd_lexenv env)
           else modules_loaded++;
           fd_decref(module);
           fd_decref(used);}}}
-    lispval files = loadfile_list;
+    fd_decref(modules); modules=FD_VOID;
+    lispval files = fd_reverse(loadfile_list);
     {FD_DOLIST(file,files) {
         lispval loadval = fd_load_source(FD_CSTRING(file),fd_app_env,NULL);
         if (FD_ABORTP(loadval)) {
@@ -2727,9 +2756,26 @@ FD_EXPORT void fd_set_app_env(fd_lexenv env)
           files_failed++;}
         else files_loaded++;
         fd_decref(loadval);}}
+    fd_decref(files); files=FD_VOID;
+    lispval inits = init_list;
+    {FD_DOLIST(init,inits) {
+        int rv = run_init(init,env);
+        if (rv > 0) inits_run++;
+        else if (rv<0) inits_failed++;
+        else NO_ELSE;}}
+    fd_decref(inits); inits=FD_VOID;
     u8_log(LOG_INFO,"AppEnvLoad",
-           "%d:%d modules:files loaded, %d:%d modules:files failed",
-           modules_loaded,files_loaded,modules_failed,files_failed);}
+           "%d:%d:%d modules:files:inits loaded/run, "
+           "%d:%d:%d modules:files:init failed",
+           modules_loaded,files_loaded,inits_run,
+           modules_failed,files_failed,inits_failed);}
+}
+
+static lispval appenv_prim()
+{
+  if (fd_app_env)
+    return (lispval)fd_copy_env(fd_app_env);
+  else return FD_FALSE;
 }
 
 /* MTrace */
@@ -2918,15 +2964,43 @@ static lispval loadfile_config_get(lispval var,void *d)
   return fd_incref(loadfile_list);
 }
 
+static lispval inits_config_get(lispval var,void *d)
+{
+  return fd_incref(init_list);
+}
+
+static int inits_config_set(lispval var,lispval inits,void *d)
+{
+  int run_count = 0;
+  if (fd_app_env == NULL) {
+    FD_DO_CHOICES(init,inits) {
+      fd_incref(init);
+      init_list = fd_conspair(init,init_list);}}
+  else {
+    FD_DO_CHOICES(init,inits) {
+      int rv = run_init(init,fd_app_env);
+      if (rv > 0) {
+        fd_incref(init);
+        init_list = fd_conspair(init,init_list);
+        run_count++;}}}
+  return run_count;
+}
+
 FD_EXPORT
-void fd_autoload_config(u8_string module_autoload,u8_string file_autoload)
+void fd_autoload_config(u8_string module_inits,
+                        u8_string file_inits,
+                        u8_string run_inits)
 {
   fd_register_config
-    (module_autoload,_("Which modules to load"),
+    (module_inits,_("Which modules to load into the application environment"),
      module_config_get,module_config_set,&module_list);
   fd_register_config
-    (file_autoload,_("Which files to load"),
+    (file_inits,_("Which files to load into the application environment"),
      loadfile_config_get,loadfile_config_set,&loadfile_list);
+  fd_register_config
+    (run_inits,_("Which functions/forms to execute to set up "
+                 "the application environment"),
+     inits_config_get,inits_config_set,&init_list);
 }
 
 /* Initialization */
@@ -3011,6 +3085,9 @@ static void init_localfns()
             "(%LEXREF? *val*) returns true if it's argument "
             "is a lexref (lexical reference)",
             -1,FD_VOID);
+  fd_idefn0(fd_scheme_module,"%APPENV",0,
+            "Returns the base 'application environment' for the "
+            "current instance");
 
   fd_idefn2(fd_scheme_module,"DUMP-BUG",dumpbug_prim,1,
             "(DUMP-BUG *err* [*to*]) writes a DType representation of *err* "

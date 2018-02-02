@@ -729,7 +729,7 @@ int main(int argc,char **argv)
   errconsole = err;
   atexit(exit_fdconsole);
 
-  fd_autoload_config("LOADMOD","LOADFILE");
+  fd_autoload_config("LOADMOD","LOADFILE","INITS");
 
   if (u8_has_suffix(argv[0],"/fdconsole",0))
     u8_default_appid("fdconsole");
