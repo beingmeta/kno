@@ -1,0 +1,8 @@
+etc
+etc/apache2
+etc/apache2/mods-available
+usr
+usr/lib
+usr/lib/apache2
+usr/lib/apache2/modules
+
