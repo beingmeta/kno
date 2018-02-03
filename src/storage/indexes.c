@@ -100,6 +100,7 @@ static int add_consed_index(fd_index ix)
       u8_seterr(fd_MallocFailed,"add_consed_index",u8dup(ix->indexid));
       u8_unlock_mutex(&consed_indexes_lock);
       return -1;}}
+  fd_incref((lispval)ix);
   consed_indexes[n_consed_indexes++]=ix;
   u8_unlock_mutex(&consed_indexes_lock);
   return 1;
