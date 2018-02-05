@@ -343,9 +343,10 @@ slot of the loop state.
 	 (rthreads (if (and nthreads (> nthreads (length batches)))
 		       (length batches)
 		       nthreads))
-	 (fifo (fifo/make batches
-			  `#[fillfn ,(getopt opts 'fillfn fifo/exhausted!) 
-			     name ,(getopt opts 'name (or (procedure-name fcn) {}))]))
+	 (fifo-opts 
+	  `#[fillfn ,(getopt opts 'fillfn fifo/exhausted!) 
+	     name ,(getopt opts 'name (or (procedure-name fcn) {}))])
+	 (fifo (->fifo batches fifo-opts))
 	 (before (getopt opts 'before #f))
 	 (after (getopt opts 'after #f))
 	 (stop (getopt opts 'stopfn #f))
@@ -757,17 +758,19 @@ slot of the loop state.
   (let ((modified (get-modified dbs))
 	(%loglevel (getopt loop-state 'loglevel %loglevel))
 	(started (elapsed-time))
-	(spec-threads (mt/threadcount (getopt opts 'threads commit-threads))))
+	(spec-threads 
+	 (mt/threadcount (getopt opts 'threads commit-threads))))
     (when (exists? modified)
       (let ((timings (make-hashtable))
-	    (fifo (fifo/make (qc modified) `#[fillfn ,fifo/exhausted!]))
-	    (n-threads (and spec-threads (min spec-threads (choice-size modified)))))
+	    (n-threads (and spec-threads
+			    (min spec-threads (choice-size modified)))))
 	(lognotice |Engine/Checkpoint/Start|
 	  (if (test loop-state 'stopped) "Final " "Incremental ")
 	  "checkpoint of " (choice-size modified) " modified dbs "
 	  "using " (if n-threads n-threads "no") " threads "
 	  "for " (get loop-state 'fifo)
-	  (when (>= %loglevel %info%) (do-choices (db modified) (printout "\n\t" db))))
+	  (when (>= %loglevel %info%)
+	    (do-choices (db modified) (printout "\n\t" db))))
 	(cond ((not n-threads)
 	       (do-choices (db modified) (commit-db db opts timings)))
 	      ((>= n-threads (choice-size modified))
@@ -775,9 +778,14 @@ slot of the loop state.
 	       (let ((threads (thread/call commit-db modified opts timings)))
 		 (thread/wait! threads)))
 	      (else
-	       (let ((threads {}))
+	       (let ((threads {})
+		     (commit-queue
+		      (fifo/make (choice->vector modified)
+				 `#[fillfn ,fifo/exhausted!])))
 		 (dotimes (i n-threads)
-		   (set+! threads (thread/call commit-queued fifo opts timings)))
+		   (set+! threads 
+		     (thread/call commit-queued commit-queue
+		       opts timings)))
 		 (thread/wait! threads))))
 	(lognotice |Engine/Checkpoint|
 	  "Committed " (choice-size (getkeys timings)) " dbs "
@@ -809,7 +817,9 @@ slot of the loop state.
 
 (define (commit-queued fifo opts timings)
   (let ((db (fifo/pop fifo)))
-    (commit-db db opts timings)))
+    (while (and (exists? db) db)
+      (commit-db db opts timings)
+      (set! db (fifo/pop fifo)))))
 
 ;;;; Utility functions
 
