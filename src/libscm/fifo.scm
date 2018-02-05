@@ -9,7 +9,7 @@
 (define %used_modules 'ezrecords)
 
 (module-export!
- '{fifo/make fifo/close!
+ '{->fifo fifo/make fifo/close!
    fifo/pop fifo/remove!
    fifo/push!
    fifo/push/n!
@@ -126,7 +126,10 @@
 	       live? #f 0 0 debug)))
 (define (make-fifo (size 64)) (fifo/make size))
 
-(defambda (->fifo items opts) (fifo/make (choice->vector items) opts))
+(defambda (->fifo items (opts #f))
+  (fifo/make (if (vector? items) items
+		 (choice->vector items))
+	     opts))
 
 (define (compact-queue queue)
   "Moves all the non #f items in QUEUE (a vector) towards "
