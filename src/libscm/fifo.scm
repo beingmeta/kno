@@ -103,9 +103,7 @@
       (unless size 
 	(set! size (getopt opts 'size (if data (length data) 64))))
       (set! debug (getopt opts 'debug #f))
-      (set! fillfn
-	(getopt opts 'fillfn 
-		(and (getopt opts 'static) fifo/exhausted!)))
+      (set! fillfn (getopt opts 'fillfn fifo/exhausted!))
       (set! live? (getopt opts 'live? live?)))
     (if (getopt opts 'nodups #t)
 	(set! items (make-hashset))
@@ -127,6 +125,8 @@
 	       opts fillfn items
 	       live? #f 0 0 debug)))
 (define (make-fifo (size 64)) (fifo/make size))
+
+(defambda (->fifo items opts) (fifo/make (choice->vector items) opts))
 
 (define (compact-queue queue)
   "Moves all the non #f items in QUEUE (a vector) towards "
