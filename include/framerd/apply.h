@@ -456,7 +456,7 @@ FD_EXPORT lispval _fd_finish_call(lispval);
 
 FD_INLINE_FCN lispval fd_finish_call(lispval pt)
 {
-  if (!(PRED_TRUE(FD_CHECK_PTR(pt))))
+  if (!(FD_EXPECT_TRUE(FD_CHECK_PTR(pt))))
     return fd_badptr_err(pt,"fd_finish_call",NULL);
   else if (FD_TAILCALLP(pt))
     return _fd_finish_call(pt);
