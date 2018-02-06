@@ -1763,21 +1763,22 @@ fi;
 
 AC_OUTPUT([makefile etc/version etc/makefile.include
            tests/lisp/makefile tests/storage/makefile
-	   tests/scheme/makefile DIY/makefile 
+	   tests/makefile DIY/makefile 
            etc/gdbinit
-	   exe/.gdbinit tests/lisp/.gdbinit
-	   tests/storage/.gdbinit tests/scheme/.gdbinit tests/scheme/.valgrind
+	   exe/.gdbinit
+	   tests/.gdbinit tests/.lldbinit tests/.valgrind
+	   tests/lisp/.gdbinit tests/storage/.gdbinit
 	   etc/fd_start_servlets etc/fd_start_daemons etc/fd_stop_jobs
 	   etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup
 	   etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog 
 	   etc/fdreload etc/fdrestart etc/fdctl etc/fdgdb etc/fdbgexec
 	   etc/fdsetconfig etc/fdgetconfig etc/fdconfig
-	   tests/scheme/vgleaktest tests/scheme/vgmemtest
-	   tests/scheme/runenv.sh tests/scheme/xtest
-	   tests/scheme/runtest tests/scheme/memtest
-	   tests/scheme/leaktest tests/scheme/fdexectest
-	   tests/scheme/tcdebug tests/scheme/vgdebug
-	   tests/scheme/gheaptest
+	   tests/vgleaktest tests/vgmemtest
+	   tests/runenv.sh tests/xtest
+	   tests/runtest tests/memtest
+	   tests/leaktest tests/fdexectest
+	   tests/tcdebug tests/vgdebug
+	   tests/gheaptest
 	   src/scripts/fdpkg.scm
 	   etc/OSXStartupItem/FramerD
 	   etc/fdjob
@@ -1792,7 +1793,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/fdserv.load
 	   etc/install-script 
 	   dist/framerd-4.2.spec],
-	   [chmod a+x etc/fd* tests/scheme/*test tests/scheme/*debug])
+	   [chmod a+x etc/fd* tests/*test tests/*debug])
 
 echo "Built with malloc=$using_malloc";
 echo $using_malloc > ./.malloc;

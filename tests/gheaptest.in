@@ -1,0 +1,9 @@
+#!/bin/bash
+CMD=$1; shift; ARGS=$*;
+echo "Running test for ${CMD} given ${ARGS}";
+. ./runenv.sh
+HEAPCHECK=normal exec ${CMD}                           \
+	     DLOADPATH=../lib/framerd DLOAD:TRACE=yes  \
+	     DISPLAYMAXELTS=36 DISPLAYMAXCHARS=1024    \
+	     SKIP_DOTLOAD=yes SHOWTIME=0.0             \
+	     ${ARGS}

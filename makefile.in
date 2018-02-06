@@ -550,13 +550,13 @@ tests/lisp/makefile: tests/lisp/makefile.in ./configure
 	./configure
 tests/storage/makefile: tests/storage/makefile.in ./configure
 	./configure
-tests/scheme/makefile: tests/scheme/makefile.in ./configure
+tests/makefile: tests/makefile.in ./configure
 	./configure
 tests/lisp/.gdbinit: tests/lisp/.gdbinit.in ./configure
 	./configure
 tests/storage/.gdbinit: tests/storage/.gdbinit.in ./configure
 	./configure
-tests/scheme/.gdbinit: tests/scheme/.gdbinit.in ./configure
+tests/.gdbinit: tests/.gdbinit.in ./configure
 	./configure
 exe/.gdbinit: exe/.gdbinit.in ./configure
 	./configure
@@ -585,7 +585,7 @@ etc/install-script: etc/install-script.in ./configure
 
 etc: etc/logrotate etc/install-script etc/framerd-rc.d \
 	etc/fdsetconfig etc/fdgetconfig etc/fdconfig \
-	tests/lisp/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit \
+	tests/lisp/.gdbinit tests/storage/.gdbinit tests/.gdbinit \
 	exe/.gdbinit
 
 # Fileinfo gets version-related information about a file to pass in
@@ -752,9 +752,9 @@ constestbin: libs tests/lisp/makefile tests/lisp/.gdbinit
 dbtestbin: libs tests/storage/makefile tests/storage/.gdbinit
 	@make -s  XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
 		-C tests/storage
-schemetestbin: libs tests/scheme/makefile tests/scheme/.gdbinit src/exe/main.h
+schemetestbin: libs tests/makefile tests/.gdbinit src/exe/main.h
 	@make -s  XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
-		-C tests/scheme testbin
+		-C tests testbin
 cmodules: @CMODULES@
 
 # Uninstall
@@ -794,7 +794,7 @@ uninstall: uninstall-core
 # Utility targets
 
 TAGS: makefile.in configure.ac include/framerd/config.h.in		\
-		tests/lisp/*.c tests/storage/*.c tests/scheme/*.c 	\
+		tests/lisp/*.c tests/storage/*.c tests/*.c 	\
 		src/exe/*.c src/exe/*.h include/framerd/*.h 		\
 		src/lisp/*.c src/support/*.c src/apply/*.c		\
 		src/storage/*.c src/drivers/*.c 			\
@@ -804,7 +804,7 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in		\
 		src/libscm/*.scm src/libscm/*/*.scm			\
 		include/framerd/components/*.h				\
 		etc/*.in ${SRC_HEADERS} 				\
-		tests/scheme/.gdbinit.in tests/scheme/*.scm 
+		tests/.gdbinit.in tests/*.scm 
 	@echo Building TAGS file
 	@etags makefile.in configure.ac include/framerd/config.h.in     \
 	        tests/*/*.in etc/*.in include/framerd/*.h 		\
@@ -816,13 +816,13 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in		\
 	@etags -o TAGS -a src/eval/*.c src/prims/*.c
 	@etags -o TAGS -a src/web/*.c src/text/*.c;
 	@etags -o TAGS -a tests/lisp/*.c tests/storage/*.c;
-	@etags -o TAGS -a tests/scheme/*.c tests/scheme/*.scm;
+	@etags -o TAGS -a tests/*.c tests/*.scm;
 	@etags -o TAGS -a src/libscm/*.scm src/libscm/storage/*.scm;
 	@etags -o TAGS -a src/libscm/optimize/optimize.scm src/libscm/bugjar/bugjar.scm;
 	@etags -o TAGS -a src/cmodules/*.c;
 
 CTAGS: makefile.in configure.ac include/framerd/config.h.in	\
-	tests/lisp/*.c tests/storage/*.c tests/scheme/*.c	\
+	tests/lisp/*.c tests/storage/*.c tests/*.c	\
 	src/lisp/*.c src/support/*.c src/apply/*.c src/storage/*.c 		\
 	src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c 	\
 	include/framerd/*.h ${SRC_HEADERS} etc/*.in 		\
@@ -891,8 +891,8 @@ clean: tidy
 	find . -name "*.dSYM" | xargs rm -rf
 distclean: clean
 	rm -f makefile config.log config.status config.cache
-	rm -f tests/lisp/makefile tests/storage/makefile tests/scheme/makefile
-	rm -f tests/lisp/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit
+	rm -f tests/lisp/makefile tests/storage/makefile tests/makefile
+	rm -f tests/lisp/.gdbinit tests/storage/.gdbinit tests/.gdbinit
 	rm -f etc/fdgetconfig etc/fdsetconfig etc/framerd-rc.d
 	rm -f exe/.gdbinit include/framerd/config.h include/framerd/revision.h
 
@@ -1672,53 +1672,53 @@ update-fdserv: src/apache2/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 
 # Test targets
 
-tests/tests.log: tests/scheme/fdexec tests/scheme/makefile.in
+tests/tests.log: tests/fdexec tests/makefile.in
 	@echo "#### Running tests scripts, output in" $@
 	@echo "#### Note that killed/exited messages for the 'countup' scripts are normal"
-	@make -s -C tests/scheme testclean 2>&1 > tests/testclean.log
-	@make -s -C tests/scheme -k -j 2>&1 > tests/tests.log && \
+	@make -s -C tests testclean 2>&1 > tests/testclean.log
+	@make -s -C tests -k -j 2>&1 > tests/tests.log && \
 	cp tests/tests.log tests/tests-`date +%d%b%yT%T`.log;
 tests: tests/tests.log
 
-tests/libtests.log: tests/scheme/fdexec tests/scheme/makefile.in
+tests/libtests.log: tests/fdexec tests/makefile.in
 	@echo "#### Running libtests, output in" $@
-	@make -s -C tests/scheme testclean 2>&1 > tests/testclean.log
-	@make -s -C tests/scheme -k -j libtests optmods 2>&1 > tests/libtests.log && \
+	@make -s -C tests testclean 2>&1 > tests/testclean.log
+	@make -s -C tests -k -j libtests optmods 2>&1 > tests/libtests.log && \
 	cp tests/libtests.log tests/libtests-`date +%d%b%yT%T`.log;
 libtests: tests/libtests.log
 
-tests/memtests.log: tests/scheme/fdexec tests/scheme/makefile.in
+tests/memtests.log: tests/fdexec tests/makefile.in
 	@echo "#### Running scheme tests, output in" $@
-	@make -s -C tests/scheme testclean 2>&1 > tests/testclean.log
-	@make -s -C tests/scheme -k -j memtests 2>&1 > tests/memtests.log && \
+	@make -s -C tests testclean 2>&1 > tests/testclean.log
+	@make -s -C tests -k -j memtests 2>&1 > tests/memtests.log && \
 	cp tests/memtests.log tests/memtests-`date +%d%b%yT%T`.log;
 memtests: tests/memtests.log
 
-tests/leaktests.log: tests/scheme/fdexec tests/scheme/makefile.in
+tests/leaktests.log: tests/fdexec tests/makefile.in
 	@echo "#### Running scheme tests, output in" $@
-	@make -s -C tests/scheme testclean 2>&1 > tests/testclean.log
-	@make -s -C tests/scheme -k -j leaktests 2>&1 > tests/leaktests.log && \
+	@make -s -C tests testclean 2>&1 > tests/testclean.log
+	@make -s -C tests -k -j leaktests 2>&1 > tests/leaktests.log && \
 	cp tests/leaktests.log tests/leaktests-`date +%d%b%yT%T`.log;
 leaktests: tests/leaktests.log
 
-tests/schemetests.log: tests/scheme/fdexec tests/scheme/makefile.in
+tests/schemetests.log: tests/fdexec tests/makefile.in
 	@echo "#### Running scheme tests, output in" $@
-	@make -s -C tests/scheme testclean 2>&1 > tests/testclean.log
-	@make -s -C tests/scheme -k -j schemetests 2>&1 > tests/schemetests.log && \
+	@make -s -C tests testclean 2>&1 > tests/testclean.log
+	@make -s -C tests -k -j schemetests 2>&1 > tests/schemetests.log && \
 	cp tests/schemtests.log tests/schemetests-`date +%d%b%yT%T`.log;
 schemetests: tests/schemetests.log
 
-tests/cmdtests.log: tests/scheme/fdexec tests/scheme/makefile.in
+tests/cmdtests.log: tests/fdexec tests/makefile.in
 	@echo "#### Running scheme tests, output in" $@
-	@make -s -C tests/scheme testclean 2>&1 > tests/testclean.log
-	@make -s -C tests/scheme -k -j cmdtests 2>&1 > tests/cmdtests.log && \
+	@make -s -C tests testclean 2>&1 > tests/testclean.log
+	@make -s -C tests -k -j cmdtests 2>&1 > tests/cmdtests.log && \
 	cp tests/cmdtests.log tests/cmdtests-`date +%d%b%yT%T`.log;
 cmdtests: tests/cmdtests.log
 
-tests/dbtests.log: tests/scheme/fdexec tests/scheme/makefile.in
+tests/dbtests.log: tests/fdexec tests/makefile.in
 	@echo "#### Running scheme tests, output in" $@
-	@make -s -C tests/scheme testclean 2>&1 > tests/testclean.log
-	@make -s -C tests/scheme -k -j dbtests 2>&1 > tests/dbtests.log && \
+	@make -s -C tests testclean 2>&1 > tests/testclean.log
+	@make -s -C tests -k -j dbtests 2>&1 > tests/dbtests.log && \
 	cp tests/dbtests.log tests/dbtests-`date +%d%b%yT%T`.log;
 dbtests: tests/dbtests.log
 

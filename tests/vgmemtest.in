@@ -1,0 +1,7 @@
+EXE=$1; shift;
+echo "Running Valgrind memory integrity test for ${EXE} $1 +++";
+. ./runenv.sch
+exec valgrind --tool=memcheck --num-callers=24	    	\
+     ${EXE} INVALGRIND=yes MEMCHECKING=yes $* 	    	\
+     DLOAD:TRACE=yes DISPLAYMAXELTS=36 DISPLAYMAXCHARS=1024
+
