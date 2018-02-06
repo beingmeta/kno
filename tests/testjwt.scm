@@ -11,9 +11,9 @@
 (define hs256-jwt 
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ")
 (define jwt.pem
-  (pem->packet (filestring (get-component "../data/crypto/testjwt.pem"))))
+  (pem->packet (filestring (get-component "./data/crypto/testjwt.pem"))))
 (define jwt.pub
-  (pem->packet (filestring (get-component "../data/crypto/testjwt.pub"))))
+  (pem->packet (filestring (get-component "./data/crypto/testjwt.pub"))))
 (define jwt.secret "secret")
 
 

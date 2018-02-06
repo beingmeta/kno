@@ -64,20 +64,20 @@
 
 ;;; RSA tests
 
-(define rsa.pem (pem->packet (filestring (get-component "../data/crypto/rsa.pem"))))
-(define rsa.pub (pem->packet (filestring (get-component "../data/crypto/rsa.pub"))))
+(define rsa.pem (pem->packet (filestring (get-component "./data/crypto/rsa.pem"))))
+(define rsa.pub (pem->packet (filestring (get-component "./data/crypto/rsa.pub"))))
 
-(define sample.rsa (filedata (get-component "../data/crypto/sample.rsa")))
-(define sample.rsapub (filedata (get-component "../data/crypto/sample.rsapub")))
+(define sample.rsa (filedata (get-component "./data/crypto/sample.rsa")))
+(define sample.rsapub (filedata (get-component "./data/crypto/sample.rsapub")))
 
 (applytest #"foobar" decrypt
-	   (filedata (get-component "../data/crypto/foobar.rsa"))
+	   (filedata (get-component "./data/crypto/foobar.rsa"))
 	   rsa.pub "RSAPUB")
 (applytest sample-packet decrypt
-	   (filedata (get-component "../data/crypto/sample.rsa"))
+	   (filedata (get-component "./data/crypto/sample.rsa"))
 	   rsa.pem "RSA")
 (applytest sample-packet decrypt
-	   (filedata (get-component "../data/crypto/sample.rsapub"))
+	   (filedata (get-component "./data/crypto/sample.rsapub"))
 	   rsa.pem "RSA")
 (applytest sample-packet decrypt (encrypt sample rsa.pub "RSAPUB")
 	   rsa.pem "RSA")

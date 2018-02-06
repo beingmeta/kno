@@ -837,7 +837,6 @@ infodir
 docdir
 oldincludedir
 includedir
-runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -1001,7 +1000,6 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
-runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE}'
@@ -1254,15 +1252,6 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
-  -runstatedir | --runstatedir | --runstatedi | --runstated \
-  | --runstate | --runstat | --runsta | --runst | --runs \
-  | --run | --ru | --r)
-    ac_prev=runstatedir ;;
-  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
-  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
-  | --run=* | --ru=* | --r=*)
-    runstatedir=$ac_optarg ;;
-
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1400,7 +1389,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir runstatedir
+		libdir localedir mandir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1553,7 +1542,6 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
-  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -12410,7 +12398,7 @@ if (test ! -f src/scheme/gpath.scm); then
    fi;
 fi;
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/scheme/makefile DIY/makefile etc/gdbinit exe/.gdbinit tests/lisp/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit tests/scheme/.valgrind etc/fd_start_servlets etc/fd_start_daemons etc/fd_stop_jobs etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl etc/fdgdb etc/fdbgexec etc/fdsetconfig etc/fdgetconfig etc/fdconfig tests/scheme/vgleaktest tests/scheme/vgmemtest tests/scheme/runenv.sh tests/scheme/xtest tests/scheme/runtest tests/scheme/memtest tests/scheme/leaktest tests/scheme/fdexectest tests/scheme/tcdebug tests/scheme/vgdebug tests/scheme/gheaptest src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/fdjob etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/fdaemons.service etc/fdweb.service etc/framerd.service etc/FramerD.plist etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-4.2.spec"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/makefile DIY/makefile etc/gdbinit exe/.gdbinit tests/.gdbinit tests/.lldbinit tests/.valgrind tests/lisp/.gdbinit tests/storage/.gdbinit etc/fd_start_servlets etc/fd_start_daemons etc/fd_stop_jobs etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl etc/fdgdb etc/fdbgexec etc/fdsetconfig etc/fdgetconfig etc/fdconfig tests/vgleaktest tests/vgmemtest tests/runenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/fdexectest tests/tcdebug tests/vgdebug tests/gheaptest src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/fdjob etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/fdaemons.service etc/fdweb.service etc/framerd.service etc/FramerD.plist etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-4.2.spec"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -13116,14 +13104,15 @@ do
     "etc/makefile.include") CONFIG_FILES="$CONFIG_FILES etc/makefile.include" ;;
     "tests/lisp/makefile") CONFIG_FILES="$CONFIG_FILES tests/lisp/makefile" ;;
     "tests/storage/makefile") CONFIG_FILES="$CONFIG_FILES tests/storage/makefile" ;;
-    "tests/scheme/makefile") CONFIG_FILES="$CONFIG_FILES tests/scheme/makefile" ;;
+    "tests/makefile") CONFIG_FILES="$CONFIG_FILES tests/makefile" ;;
     "DIY/makefile") CONFIG_FILES="$CONFIG_FILES DIY/makefile" ;;
     "etc/gdbinit") CONFIG_FILES="$CONFIG_FILES etc/gdbinit" ;;
     "exe/.gdbinit") CONFIG_FILES="$CONFIG_FILES exe/.gdbinit" ;;
+    "tests/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/.gdbinit" ;;
+    "tests/.lldbinit") CONFIG_FILES="$CONFIG_FILES tests/.lldbinit" ;;
+    "tests/.valgrind") CONFIG_FILES="$CONFIG_FILES tests/.valgrind" ;;
     "tests/lisp/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/lisp/.gdbinit" ;;
     "tests/storage/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/storage/.gdbinit" ;;
-    "tests/scheme/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/scheme/.gdbinit" ;;
-    "tests/scheme/.valgrind") CONFIG_FILES="$CONFIG_FILES tests/scheme/.valgrind" ;;
     "etc/fd_start_servlets") CONFIG_FILES="$CONFIG_FILES etc/fd_start_servlets" ;;
     "etc/fd_start_daemons") CONFIG_FILES="$CONFIG_FILES etc/fd_start_daemons" ;;
     "etc/fd_stop_jobs") CONFIG_FILES="$CONFIG_FILES etc/fd_stop_jobs" ;;
@@ -13144,17 +13133,17 @@ do
     "etc/fdsetconfig") CONFIG_FILES="$CONFIG_FILES etc/fdsetconfig" ;;
     "etc/fdgetconfig") CONFIG_FILES="$CONFIG_FILES etc/fdgetconfig" ;;
     "etc/fdconfig") CONFIG_FILES="$CONFIG_FILES etc/fdconfig" ;;
-    "tests/scheme/vgleaktest") CONFIG_FILES="$CONFIG_FILES tests/scheme/vgleaktest" ;;
-    "tests/scheme/vgmemtest") CONFIG_FILES="$CONFIG_FILES tests/scheme/vgmemtest" ;;
-    "tests/scheme/runenv.sh") CONFIG_FILES="$CONFIG_FILES tests/scheme/runenv.sh" ;;
-    "tests/scheme/xtest") CONFIG_FILES="$CONFIG_FILES tests/scheme/xtest" ;;
-    "tests/scheme/runtest") CONFIG_FILES="$CONFIG_FILES tests/scheme/runtest" ;;
-    "tests/scheme/memtest") CONFIG_FILES="$CONFIG_FILES tests/scheme/memtest" ;;
-    "tests/scheme/leaktest") CONFIG_FILES="$CONFIG_FILES tests/scheme/leaktest" ;;
-    "tests/scheme/fdexectest") CONFIG_FILES="$CONFIG_FILES tests/scheme/fdexectest" ;;
-    "tests/scheme/tcdebug") CONFIG_FILES="$CONFIG_FILES tests/scheme/tcdebug" ;;
-    "tests/scheme/vgdebug") CONFIG_FILES="$CONFIG_FILES tests/scheme/vgdebug" ;;
-    "tests/scheme/gheaptest") CONFIG_FILES="$CONFIG_FILES tests/scheme/gheaptest" ;;
+    "tests/vgleaktest") CONFIG_FILES="$CONFIG_FILES tests/vgleaktest" ;;
+    "tests/vgmemtest") CONFIG_FILES="$CONFIG_FILES tests/vgmemtest" ;;
+    "tests/runenv.sh") CONFIG_FILES="$CONFIG_FILES tests/runenv.sh" ;;
+    "tests/xtest") CONFIG_FILES="$CONFIG_FILES tests/xtest" ;;
+    "tests/runtest") CONFIG_FILES="$CONFIG_FILES tests/runtest" ;;
+    "tests/memtest") CONFIG_FILES="$CONFIG_FILES tests/memtest" ;;
+    "tests/leaktest") CONFIG_FILES="$CONFIG_FILES tests/leaktest" ;;
+    "tests/fdexectest") CONFIG_FILES="$CONFIG_FILES tests/fdexectest" ;;
+    "tests/tcdebug") CONFIG_FILES="$CONFIG_FILES tests/tcdebug" ;;
+    "tests/vgdebug") CONFIG_FILES="$CONFIG_FILES tests/vgdebug" ;;
+    "tests/gheaptest") CONFIG_FILES="$CONFIG_FILES tests/gheaptest" ;;
     "src/scripts/fdpkg.scm") CONFIG_FILES="$CONFIG_FILES src/scripts/fdpkg.scm" ;;
     "etc/OSXStartupItem/FramerD") CONFIG_FILES="$CONFIG_FILES etc/OSXStartupItem/FramerD" ;;
     "etc/fdjob") CONFIG_FILES="$CONFIG_FILES etc/fdjob" ;;
@@ -13725,7 +13714,7 @@ $as_echo "$as_me: executing $ac_file commands" >&6;}
 
 
   case $ac_file$ac_mode in
-    "default":C) chmod a+x etc/fd* tests/scheme/*test tests/scheme/*debug ;;
+    "default":C) chmod a+x etc/fd* tests/*test tests/*debug ;;
 
   esac
 done # for ac_tag

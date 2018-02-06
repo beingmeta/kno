@@ -5,10 +5,10 @@
 (use-module 'texttools)
 
 (define string-data
-  (file->dtype (get-component "../data/i18n/UTF-8.dtype")))
+  (file->dtype (get-component "./data/i18n/UTF-8.dtype")))
 
 (applytest string-data
-	   filestring  (get-component "../data/i18n/UTF-8.text") "utf-8")
+	   filestring  (get-component "./data/i18n/UTF-8.text") "utf-8")
 
 ;; Remove it if it exists
 (when (file-exists? (get-component "utf8-temp.text"))
@@ -23,7 +23,7 @@
 
 (message "Anti-Warning: Expect a lot of UTF-8 error warnings")
 (define stress-string
-  (filestring (get-component "../data/i18n/stress-UTF-8.text")
+  (filestring (get-component "./data/i18n/stress-UTF-8.text")
 	      "UTF8"))
 (define stress-lines
   (subseq (segment stress-string "\n") 60 -1))
