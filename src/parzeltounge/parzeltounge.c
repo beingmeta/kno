@@ -1054,12 +1054,12 @@ static void initframerdmodule()
 
   fd_applyfns[python_object_type]=pyapply;
 
-  fd_idefn1(pymodule,"PYEXEC",pyexec,1,
+  fd_idefn1(pymodule,"PY/EXEC",pyexec,1,
 	    "Executes a Python expression",
 	    fd_string_type,FD_VOID);
-  fd_idefnN(pymodule,"PYCALL",pycall,1,
+  fd_idefnN(pymodule,"PY/CALL",pycall,1,
 	    "Calls a python function on some arguments");
-  fd_idefn2(pymodule,"PYMETHOD",pyfn,2,
+  fd_idefn2(pymodule,"PY/METHOD",pyfn,2,
 	    "Returns a python method object",
 	    fd_string_type,FD_VOID,
 	    fd_string_type,FD_VOID);
@@ -1077,9 +1077,9 @@ static void initpythonmodule()
   python_init_done=1;
 }
 
-void fd_initialize_parzeltounge(void) FD_LIBINIT_FN;
+void fd_init_parzeltounge(void) FD_LIBINIT_FN;
 
-void fd_initialize_parzeltounge() 
+void fd_init_parzeltounge()
 {
   if (!(Py_IsInitialized())) Py_Initialize();
   initframerdmodule();
@@ -1088,6 +1088,6 @@ void fd_initialize_parzeltounge()
 
 void initparzeltounge(void)
 {
-  fd_initialize_parzeltounge();
+  fd_init_parzeltounge();
 }
 
