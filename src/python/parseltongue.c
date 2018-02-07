@@ -1046,7 +1046,7 @@ static void initframerdmodule()
   fd_init_texttools();
   fd_init_fdweb();
 #endif
-  pymodule=fd_new_module("PARZELTOUNGE",0);
+  pymodule=fd_new_module("PARSELTONGUE",0);
   python_object_type=fd_register_cons_type("python");
   default_env=fd_working_lexenv();
   fd_recyclers[python_object_type]=recycle_python_object;
@@ -1070,24 +1070,24 @@ static void initpythonmodule()
 {
   PyObject *m, *d;
   if (python_init_done) return;
-  m=Py_InitModule("parzeltounge",framerd_methods);
-  framerd_error=PyErr_NewException("parzeltounge.error",NULL,NULL);
+  m=Py_InitModule("parseltongue",framerd_methods);
+  framerd_error=PyErr_NewException("parseltongue.error",NULL,NULL);
   Py_INCREF(framerd_error);
   PyModule_AddObject(m,"error",framerd_error);
   python_init_done=1;
 }
 
-void fd_init_parzeltounge(void) FD_LIBINIT_FN;
+void fd_init_parseltongue(void) FD_LIBINIT_FN;
 
-void fd_init_parzeltounge()
+void fd_init_parseltongue()
 {
   if (!(Py_IsInitialized())) Py_Initialize();
   initframerdmodule();
   initpythonmodule();
 }
 
-void initparzeltounge(void)
+void initparseltongue(void)
 {
-  fd_init_parzeltounge();
+  fd_init_parseltongue();
 }
 

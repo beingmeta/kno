@@ -16,10 +16,10 @@ case ${option} in
 	echo sharedconfig "\t\t\t(Shared config directory)";
 	echo cflags "\t\t\t\t(Compiler flags for building executables)";
 	echo ldflags "\t\t\t(Linker flags for building libraries)";
-	echo ldflags "\t\t\t(Linker flags for building libraries)";
 	echo include "\t\t\t(Include directory for FramerD)";
 	echo libdir "\t\t\t\t(Directory where FramerD libraries are installed)";
-	echo libs "\t\t\t\t(Libraries which FramerD is linked against)";
+	echo deplibs "\t\t\t\t(Libraries which FramerD is linked against)";
+	echo libs "\t\t\t\t(Libraries refs for the FramerD core)";
 	echo bin "\t\t\t\t(Where FramerD executables are installed)";
 	echo libsuffix "\t\t\t(The suffix for shared objects)";
 	echo loadpath "\t\t\t(The path used to search for source modules)";

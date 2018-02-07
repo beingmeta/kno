@@ -442,6 +442,7 @@ fi;
 
 m4_include([etc/ax_pthread.m4])
 m4_include([etc/ax_check_link_flag.m4])
+m4_include([etc/ax_python.m4])
 
 AC_CHECK_LIB(pthread,pthread_rwlock_wrlock)
 
@@ -1649,6 +1650,16 @@ if test $with_global_ipeval = "yes"; then
   AC_DEFINE(FD_GLOBAL_IPEVAL,1)
 else
   AC_DEFINE(FD_GLOBAL_IPEVAL,0)
+fi
+
+dnl check for building with parseltongue
+AC_ARG_WITH(parseltongue,--with[out]-parseltongue Build parseltongue libraries for connecting FramerD and Python)
+if test "$with_parseltongue" = "yes"; then
+   AX_PYTHON2
+fi;
+if test "$with_parseltongue" = "yes" &&  test ! -z "${ax_python2_lib}"; then
+   CMODULES="lib/framerd/parseltongue.$shared_suffix ${CMODULES}"
+   INSTALLCMODULES="install-parseltongue ${INSTALLCMODULES}"
 fi
 
 dnl Build with primitives accessing libcurl, if it is available
