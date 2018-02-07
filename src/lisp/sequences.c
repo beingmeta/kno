@@ -547,7 +547,7 @@ lispval *fd_elts(lispval seq,int *n)
     case fd_compound_type: {
       int i = 0, len; lispval *elts = compound2vector(seq,&len);
       if (elts == NULL) {
-        fd_seterr("NotACompoundVector","fd_seq_elt",NULL,seq);
+        fd_seterr("NotACompoundVector","fd_elts",NULL,seq);
         *n = -1;
         return NULL;}
       while (i<len) {
@@ -586,7 +586,7 @@ lispval *fd_elts(lispval seq,int *n)
         scan=FD_CDR(scan);
         vec[i++]=elt;}
       if (!(FD_EMPTY_LISTP(scan))) {
-        fd_seterr("ImproperList","fd_seq_elts",NULL,seq);
+        fd_seterr("ImproperList","fd_elts",NULL,seq);
         fd_decref_vec(vec,len);
         u8_free(vec);
         vec=NULL;
