@@ -1540,6 +1540,19 @@ static lispval elts_prim(lispval x,lispval start_arg,lispval end_arg)
         lispval v = *read++; fd_incref(v);
         CHOICE_ADD(results,v);}
       return results;}
+    case fd_compound_type: {
+      struct FD_COMPOUND *compound = (fd_compound) x;
+      int off = compound->compound_off;
+      int len = (compound->compound_length)-off;
+      if (off < 0)
+        return fd_err("NotACompoundSequence","elts_prim",NULL,x);
+      lispval *scan = (&(compound->compound_0))+off+start;
+      lispval *limit = scan+(end-start);
+      while (scan<limit) {
+        lispval v = fd_incref(*scan);
+        CHOICE_ADD(results,v);
+        scan++;}
+      return results;}
     case fd_packet_type: case fd_secret_type: {
       const unsigned char *read = FD_PACKET_DATA(x), *lim = read+end;
       while (read<lim) {
@@ -1611,9 +1624,10 @@ static lispval elts_prim(lispval x,lispval start_arg,lispval end_arg)
           return EMPTY;
         else return FD_RANGE_ERROR;
       else if ((fd_seqfns[ctype]) && (fd_seqfns[ctype]->elt)) {
-        int scan = start; while (start<end) {
+        int scan = start; while (scan<end) {
           lispval elt = (fd_seqfns[ctype]->elt)(x,scan);
-          CHOICE_ADD(results,elt); scan++;}
+          CHOICE_ADD(results,elt);
+          scan++;}
         return results;}
       else if (fd_seqfns[ctype]==NULL)
         return fd_type_error(_("sequence"),"elts_prim",x);
