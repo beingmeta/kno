@@ -626,23 +626,27 @@
 (define (optimize-procedure! proc (opts #f))
   (threadset! 'codewarnings #{})
   (unless (reflect/get proc 'optimized)
-    (onerror
+    (if (getopt opts 'err #f)
 	(inner-optimize-procedure! proc opts)
-	(lambda (ex) 
-	  (logwarn |OptimizationError|
-	    "While optimizing "
-	    (or (procedure-name proc) proc) ", got "
-	    (error-condition ex) " in " (error-context ex) 
-	    (if (error-details ex) (printout " (" (error-details ex) ")"))
-	    (when (error-irritant? ex)
-	      (printout "\n" (pprint (error-irritant ex)))))
-	  (if persist-default #f ex)))))
+	(onerror
+	    (inner-optimize-procedure! proc opts)
+	    (lambda (ex) 
+	      (logwarn |OptimizationError|
+		"While optimizing "
+		(or (procedure-name proc) proc) ", got "
+		(error-condition ex) " in " (error-context ex) 
+		(if (error-details ex) (printout " (" (error-details ex) ")"))
+		(when (error-irritant? ex)
+		  (printout "\n" (pprint (error-irritant ex)))))
+	      (if persist-default #f ex))))))
 
 (define (optimize-arglist arglist env opts)
   (if (pair? arglist)
       (cons
        (if (and (pair? (car arglist)) (pair? (cdr (car arglist)))
-		(singleton? (cadr (car arglist))))
+		(singleton? (cadr (car arglist)))
+		(or (pair? (cadr (car arglist))) (symbol? (cadr (car arglist)))
+		    (code? (cadr (car arglist)))))
 	   `(,(caar arglist) 
 	     ,(optimize (cadr (car arglist)) env '() opts))
 	   (car arglist))
@@ -702,7 +706,7 @@
 	  (when (and usefcnrefs (exists? value) (applicable? value))
 	    (update-fcnid! var module value)))))
     (cond ((hashtable? module)
-	   (logwarn |OpaqueModule| 
+	   (lognotice |OpaqueModule| 
 	     "Not optimizing opaque module " (get module '%moduleid)))
 	  ((exists symbol? (get module '%moduleid))
 	   (let* ((referenced-modules (get module '%modrefs))
