@@ -757,7 +757,8 @@ dbtestbin: libs tests/storage/makefile tests/storage/.gdbinit
 schemetestbin: libs tests/makefile tests/.gdbinit src/exe/main.h
 	@make -s  XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
 		-C tests testbin
-cmodules: @CMODULES@
+cmodules: dbmodules @CMODULES@
+dbmodules: @DBMODULES@
 
 # Uninstall
 
@@ -1316,7 +1317,8 @@ install-status:
 	@if test -f .malloc && test -f buildmode; then \
 	  echo "Installing" $(shell cat buildmode) "build linked with" $(shell cat .malloc); \
 	fi;
-install: install-status install-core install-cmodules install-libscm install-modules @setup_target@
+install: install-status install-core install-cmodules install-dbmodules \
+		install-libscm install-modules @setup_target@
 	@if test -f .malloc && test -f buildmode; then \
 	  echo "Installed" $(shell cat buildmode) "build linked with" $(shell cat .malloc); \
 	fi;
@@ -1413,6 +1415,7 @@ $(BININSTALLDIR)/fdcgiexec@suffix@:
 	@$(SYSINSTALL) -p @install_exe_opts@ exe/fdcgiexec@suffix@ $(BININSTALLDIR)
 
 install-cmodules: @INSTALLCMODULES@
+install-dbmodules: @INSTALLDBMODULES@
 install-odbc: ${CMODULES}/odbc.@shared_suffix@ ${CMODULES}/odbc.@vshared_suffix@
 install-sqlite: ${CMODULES}/sqlite.@shared_suffix@ ${CMODULES}/sqlite.@vshared_suffix@
 install-crypto: ${CMODULES}/crypto.@shared_suffix@ ${CMODULES}/crypto.@vshared_suffix@

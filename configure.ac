@@ -115,6 +115,8 @@ safe_module_path=""
 source_dir=""
 CMODULES=""
 INSTALLCMODULES=""
+DBMODULES=""
+INSTALLDBMODULES=""
 DATAFILES="etc/version"
 SUDO=""
 SUINSTALL=
@@ -317,9 +319,11 @@ AC_SUBST(SUDO)
 AC_SUBST(SUINSTALL)
 AC_SUBST(WWWUSER)
 AC_SUBST(CMODULES)
+AC_SUBST(DBMODULES)
 AC_SUBST(DATAFILES)
 AC_SUBST(BOOTSETUP)
 AC_SUBST(INSTALLCMODULES)
+AC_SUBST(INSTALLDBMODULES)
 AC_SUBST(MALLOC_FLAGS)
 AC_SUBST(MYSQL_CFLAGS)
 AC_SUBST(MYSQL_LDFLAGS)
@@ -1236,11 +1240,11 @@ if test "${enable_leveldb}" = "yes" ||
    if test "${enable_leveldb}" = "yes" &&
       test "${ac_cv_header_leveldb_c_h}" = "yes" &&
       test "${leveldb_ok}" = "yes"; then
-     CMODULES="lib/framerd/leveldb.${shared_suffix} ${CMODULES}";
-     INSTALLCMODULES="install-leveldb ${INSTALLCMODULES}";
+     DBCMODULES="${DBMODULES} lib/framerd/leveldb.${shared_suffix}";
+     INSTALLDBMODULES="${INSTALLDBMODULES} install-leveldb";
    elif test "${enable_leveldb}" = "force"; then
-     CMODULES="lib/framerd/leveldb.${shared_suffix} ${CMODULES}";
-     INSTALLCMODULES="install-leveldb ${INSTALLCMODULES}";
+     DBMODULES="lib/framerd/leveldb.${shared_suffix} ${DBMODULES}";
+     INSTALLDBMODULES="${INSTALLDBMODULES} install-leveldb";
      force_enabled="leveldb ${force_enabled}";
    else
      auto_disabled="leveldb ${auto_disabled}";
@@ -1260,11 +1264,11 @@ if test "${enable_rocksdb}" = "yes" ||
    if test "${enable_rocksdb}" = "yes" && 
       test "${ac_cv_header_rocksdb_c_h}" = "yes";
       test "${rocksdb_ok}" = "yes"; then
-     CMODULES="lib/framerd/rocksdb.${shared_suffix} ${CMODULES}";
-     INSTALLCMODULES="install-rocksdb ${INSTALLCMODULES}";
+     DBMODULES="lib/framerd/rocksdb.${shared_suffix} ${DBMODULES}";
+     INSTALLDBMODULES="install-rocksdb ${INSTALLDBMODULES}";
    elif test "${enable_rocksdb}" = "force"; then
-     CMODULES="lib/framerd/rocksdb.${shared_suffix} ${CMODULES}";
-     INSTALLCMODULES="install-rocksdb ${INSTALLCMODULES}";
+     DBMODULES="lib/framerd/rocksdb.${shared_suffix} ${DBMODULES}";
+     INSTALLDBMODULES="install-rocksdb ${INSTALLDBMODULES}";
      force_enabled="rocksdb ${force_enabled}";
    else
      auto_disabled="rocksdb ${auto_disabled}";
@@ -1333,12 +1337,12 @@ if test "$enable_mongodb" = "yes" ||
      $pkg_config --exists libmongoc-1.0; then
     MONGODB_CFLAGS=`$pkg_config libmongoc-1.0 --cflags` 
     MONGODB_LDFLAGS=`$pkg_config libmongoc-1.0 --libs` 
-    CMODULES="lib/framerd/mongodb.$shared_suffix ${CMODULES}";
-    INSTALLCMODULES="install-mongodb ${INSTALLCMODULES}";
+    DBMODULES="lib/framerd/mongodb.$shared_suffix ${DBMODULES}";
+    INSTALLDBMODULES="install-mongodb ${INSTALLDBMODULES}";
   elif test "$enable_mongodb" = "force"; then
     force_enabled="mongodb ${force_enabled}";
-    CMODULES="lib/framerd/mongodb.$shared_suffix ${CMODULES}";
-    INSTALLCMODULES="install-mongodb ${INSTALLCMODULES}";
+    DBMODULES="lib/framerd/mongodb.$shared_suffix ${DBMODULES}";
+    INSTALLDBMODULES="install-mongodb ${INSTALLDBMODULES}";
   else
     auto_disabled="mongodb ${auto_disabled}";
   fi;
@@ -1360,8 +1364,8 @@ elif test "$with_mysql" != "no"; then
 fi
 
 if test "$with_mysql" != "no"; then
-  CMODULES="lib/framerd/mysql.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-mysql ${INSTALLCMODULES}"
+  DBMODULES="lib/framerd/mysql.$shared_suffix ${DBMODULES}"
+  INSTALLDBMODULES="install-mysql ${INSTALLDBMODULES}"
 fi
 
 AC_ARG_ENABLE(odbc,--en[dis]able-odbc Build odbc modules,,enable_odbc="yes")
@@ -1372,8 +1376,8 @@ if test "$enable_odbc" = "yes"; then
    if test "$have_sql_h" = "yes"; then
      AC_CHECK_LIB(iodbc,SQLNumResultCols,ODBC_LIBS="-liodbc")
      if test ! -z "${ODBC_LIBS}"; then
-       CMODULES="lib/framerd/odbc.$shared_suffix ${CMODULES}"
-       INSTALLCMODULES="install-odbc ${INSTALLCMODULES}"
+       DBMODULES="lib/framerd/odbc.$shared_suffix ${DBMODULES}"
+       INSTALLDBMODULES="install-odbc ${INSTALLDBMODULES}"
      fi;
    fi;
 fi;
@@ -1391,8 +1395,8 @@ if test $have_sqlite3_h = "yes"; then
   AC_CHECK_LIB(sqlite3,sqlite3_open,sqlite3_ok="yes")
   AC_CHECK_LIB(sqlite3,sqlite3_open_v2,sqlite3v2_ok="yes")
   if test "$sqlite3_ok" = "yes"; then
-    CMODULES="lib/framerd/sqlite.$shared_suffix ${CMODULES}";
-    INSTALLCMODULES="install-sqlite ${INSTALLCMODULES}";
+    DBMODULES="lib/framerd/sqlite.$shared_suffix ${DBMODULES}";
+    INSTALLDBMODULES="install-sqlite ${INSTALLDBMODULES}";
     if test "${sqlite3v2_ok}" == "yes"; then
       AC_DEFINE(HAVE_SQLITE3_V2,1)
     fi;

@@ -5,6 +5,11 @@ MAKE_ARGS=
 BUILD=$(pwd)
 SRC=$(dirname $(pwd))
 doclean=1;
+if test -f ./.with_parseltongue; then
+    with_parseltongue=yes
+else
+    with_parseltongue=no
+fi;
 
 while [ $# -gt 0 ]; do
     arg=$1
@@ -30,6 +35,12 @@ while [ $# -gt 0 ]; do
 	    ;;
 	tests|memtests|leaktests|libtests|schemetests|dbtests|cmdtests)
 	    MAKE_ARGS="${MAKE_ARGS} ${arg}";
+	    ;;
+	python|parseltongue)
+	    with_parseltongue = yes
+	    ;;
+	nopython|noparseltongue)
+	    with_parseltongue = no
 	    ;;
 	-[a-zA-Z])
 	    MAKE_ARGS="${arg} ${MAKE_ARGS}"; 
@@ -68,6 +79,10 @@ while [ $# -gt 0 ]; do
     esac;
     shift;
 done;
+
+if [ "${with_parseltongue}" == "yes" ]; then
+    CONFIG_ARGS = "--with-parseltongue ${CONFIG_ARGS}"
+fi;
 
 # Check if the branch is current, if so make the value "use_current_branch"
 # This simplifies the doclean/noclean logic below
