@@ -763,9 +763,9 @@ lispval position_if_prim(lispval test,lispval seq,lispval start_arg,
   default: {
       if (NILP(seq))
         return FD_FALSE;
-      int len = 0, delta = 1;
-      lispval *data = fd_elts(seq,&len);
-      if (data == NULL) {
+      int len = -1, delta = 1;
+      lispval *data = fd_seq_elts(seq,&len);
+      if (len < 0) {
         fd_seterr("UnenumerableSequence","position_if_prim",NULL,seq);
         return FD_ERROR_VALUE;}
       if (FD_FIXNUMP(end_arg)) end = FD_FIX2INT(end_arg); else end = len;
@@ -864,9 +864,9 @@ lispval position_if_not_prim(lispval test,lispval seq,lispval start_arg,
   default: {
       if (NILP(seq))
         return FD_FALSE;
-      int len = 0, delta = 1;
-      lispval *data = fd_elts(seq,&len);
-      if (data == NULL) {
+      int len = -1, delta = 1;
+      lispval *data = fd_seq_elts(seq,&len);
+      if (len < 0) {
         fd_seterr("UnenumerableSequence","position_if_prim",NULL,seq);
         return FD_ERROR_VALUE;}
       if (FD_FIXNUMP(end_arg)) end = FD_FIX2INT(end_arg); else end = len;
@@ -966,9 +966,9 @@ lispval find_if_prim(lispval test,lispval seq,lispval start_arg,
   default: {
       if (NILP(seq))
         return fd_incref(fail_val);
-      int len = 0, delta = 1;
-      lispval *data = fd_elts(seq,&len);
-      if (data == NULL) {
+      int len = -1, delta = 1;
+      lispval *data = fd_seq_elts(seq,&len);
+      if (len < 0) {
         fd_seterr("UnenumerableSequence","find_if_prim",NULL,seq);
         return FD_ERROR_VALUE;}
       if (FD_FIXNUMP(end_arg)) end = FD_FIX2INT(end_arg); else end = len;
@@ -1071,9 +1071,9 @@ lispval find_if_not_prim(lispval test,lispval seq,lispval start_arg,
   default: {
       if (NILP(seq))
         return fd_incref(fail_val);
-      int len = 0, delta = 1;
-      lispval *data = fd_elts(seq,&len);
-      if (data == NULL) {
+      int len = -1, delta = 1;
+      lispval *data = fd_seq_elts(seq,&len);
+      if (len < 0) {
         fd_seterr("UnenumerableSequence","find_if_prim",NULL,seq);
         return FD_ERROR_VALUE;}
       if (FD_FIXNUMP(end_arg)) end = FD_FIX2INT(end_arg); else end = len;
@@ -1348,12 +1348,14 @@ static lispval seq2vector(lispval seq)
   if (NILP(seq))
     return fd_empty_vector(0);
   else if (FD_SEQUENCEP(seq)) {
-    int n; lispval *data = fd_elts(seq,&n);
-    if (data) {
+    int n = -1; lispval *data = fd_seq_elts(seq,&n);
+    if (n>=0) {
       lispval result = fd_make_vector(n,data);
       u8_free(data);
       return result;}
-    else return FD_ERROR_VALUE;}
+    else {
+      fd_seterr("NonEnumerableSequence","seq2vector",NULL,seq);
+      return FD_ERROR_VALUE;}}
   else return fd_type_error(_("sequence"),"seq2vector",seq);
 }
 
@@ -1396,7 +1398,11 @@ static lispval seq2rail(lispval seq)
   if (NILP(seq))
     return fd_make_code(0,NULL);
   else if (FD_SEQUENCEP(seq)) {
-    int n; lispval *data = fd_elts(seq,&n);
+    int n = -1;
+    lispval *data = fd_seq_elts(seq,&n);
+    if (n < 0) {
+      fd_seterr("NonEnumerableSequence","seq2vector",NULL,seq);
+      return FD_ERROR;}
     lispval result = fd_make_code(n,data);
     u8_free(data);
     return result;}
@@ -1407,7 +1413,11 @@ static lispval seq2list(lispval seq)
 {
   if (NILP(seq)) return NIL;
   else if (FD_SEQUENCEP(seq)) {
-    int n; lispval *data = fd_elts(seq,&n), result = NIL;
+    int n = -1;
+    lispval *data = fd_seq_elts(seq,&n), result = NIL;
+    if (n < 0) {
+      fd_seterr("NonEnumerableSequence","seq2vector",NULL,seq);
+      return FD_ERROR;}
     n--; while (n>=0) {
       result = fd_conspair(data[n],result); n--;}
     u8_free(data);
@@ -1420,9 +1430,12 @@ static lispval seq2packet(lispval seq)
   if (NILP(seq))
     return fd_init_packet(NULL,0,NULL);
   else if (FD_SEQUENCEP(seq)) {
-    int i = 0, n;
+    int i = 0, n = -1;
     lispval result = VOID;
-    lispval *data = fd_elts(seq,&n);
+    lispval *data = fd_seq_elts(seq,&n);
+    if (n < 0) {
+      fd_seterr("NonEnumerableSequence","seq2vector",NULL,seq);
+      return FD_ERROR;}
     unsigned char *bytes = u8_malloc(n);
     while (i<n) {
       if (FD_BYTEP(data[i])) {
@@ -1453,8 +1466,11 @@ static lispval x2string(lispval seq)
   else if (STRINGP(seq)) return fd_incref(seq);
   else if (FD_SEQUENCEP(seq)) {
     U8_OUTPUT out;
-    int i = 0, n;
-    lispval *data = fd_elts(seq,&n);
+    int i = 0, n = -1;
+    lispval *data = fd_seq_elts(seq,&n);
+    if (n < 0) {
+      fd_seterr("NonEnumerableSequence","seq2vector",NULL,seq);
+      return FD_ERROR;}
     U8_INIT_OUTPUT(&out,n*2);
     while (i<n) {
       if (FIXNUMP(data[i])) {
@@ -1478,12 +1494,12 @@ static lispval x2string(lispval seq)
   else return fd_type_error(_("sequence"),"x2string",seq);
 }
 
-FD_EXPORT lispval fd_seq_elts(lispval x)
+FD_EXPORT lispval fd_seq2choice(lispval x)
 {
   if (CHOICEP(x)) {
     lispval results = EMPTY;
     DO_CHOICES(e,x) {
-      lispval subelts = fd_seq_elts(e);
+      lispval subelts = fd_seq2choice(e);
       CHOICE_ADD(results,subelts);}
     return results;}
   else {
@@ -1543,7 +1559,6 @@ static lispval elts_prim(lispval x,lispval start_arg,lispval end_arg)
     case fd_compound_type: {
       struct FD_COMPOUND *compound = (fd_compound) x;
       int off = compound->compound_off;
-      int len = (compound->compound_length)-off;
       if (off < 0)
         return fd_err("NotACompoundSequence","elts_prim",NULL,x);
       lispval *scan = (&(compound->compound_0))+off+start;
@@ -1596,7 +1611,7 @@ static lispval elts_prim(lispval x,lispval start_arg,lispval end_arg)
           CHOICE_ADD(results,elt);}
         break;}
       default: {
-        fd_seterr(_("Corrputed numerical vector"),"fd_seq_elts",NULL,x);
+        fd_seterr(_("Corrputed numerical vector"),"fd_seq2choice",NULL,x);
         fd_incref(x); fd_decref(results);
         results = FD_ERROR;}}
       break;}
@@ -1881,7 +1896,11 @@ static lispval seq2shortvec(lispval arg)
   else if (NILP(arg))
     return fd_make_short_vector(0,NULL);
   else if (FD_SEQUENCEP(arg)) {
-    int n; lispval *data = fd_elts(arg,&n);
+    int n = -1;
+    lispval *data = fd_seq_elts(arg,&n);
+    if (n < 0) {
+      fd_seterr("NonEnumerableSequence","seq2vector",NULL,arg);
+      return FD_ERROR;}
     lispval result = make_short_vector(n,data);
     u8_free(data);
     return result;}
@@ -1916,7 +1935,11 @@ static lispval seq2intvec(lispval arg)
   else if (NILP(arg))
     return fd_make_int_vector(0,NULL);
   else if (FD_SEQUENCEP(arg)) {
-    int n; lispval *data = fd_elts(arg,&n);
+    int n = -1;
+    lispval *data = fd_seq_elts(arg,&n);
+    if (FD_EXPECT_FALSE(n < 0)) {
+      fd_seterr("NonEnumerableSequence","seq2vector",NULL,arg);
+      return FD_ERROR;}
     lispval result = make_int_vector(n,data);
     u8_free(data);
     return result;}
@@ -1950,7 +1973,11 @@ static lispval seq2longvec(lispval arg)
   else if (NILP(arg))
     return fd_make_long_vector(0,NULL);
   else if (FD_SEQUENCEP(arg)) {
-    int n; lispval *data = fd_elts(arg,&n);
+    int n = -1;
+    lispval *data = fd_seq_elts(arg,&n);
+    if (FD_EXPECT_TRUE(n < 0)) {
+      fd_seterr("NonEnumerableSequence","seq2vector",NULL,arg);
+      return FD_ERROR;}
     lispval result = make_long_vector(n,data);
     u8_free(data);
     return result;}
@@ -1984,7 +2011,11 @@ static lispval seq2floatvec(lispval arg)
   else if (NILP(arg))
     return fd_make_float_vector(0,NULL);
   else if (FD_SEQUENCEP(arg)) {
-    int n; lispval *data = fd_elts(arg,&n);
+    int n = -1;
+    lispval *data = fd_seq_elts(arg,&n);
+    if (FD_EXPECT_TRUE(n < 0)) {
+      fd_seterr("NonEnumerableSequence","seq2vector",NULL,arg);
+      return FD_ERROR;}
     lispval result = make_float_vector(n,data);
     u8_free(data);
     return result;}
@@ -2018,7 +2049,11 @@ static lispval seq2doublevec(lispval arg)
   else if (NILP(arg))
     return fd_make_double_vector(0,NULL);
   else if (FD_SEQUENCEP(arg)) {
-    int n; lispval *data = fd_elts(arg,&n);
+    int n = -1;
+    lispval *data = fd_seq_elts(arg,&n);
+    if (FD_EXPECT_TRUE(n < 0)) {
+      fd_seterr("NonEnumerableSequence","seq2vector",NULL,arg);
+      return FD_ERROR;}
     lispval result = make_double_vector(n,data);
     u8_free(data);
     return result;}

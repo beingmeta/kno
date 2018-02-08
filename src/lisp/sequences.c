@@ -503,13 +503,13 @@ static int vector_search(lispval key,lispval x,int start,int end)
 
 /* Creating and extracting data */
 
-/* fd_elts:
+/* fd_seq_elts:
      Arguments: a lisp sequence and a pointer to an int
      Returns: a C vector of dtype pointers
    This returns a vector of dtype pointers representing the elements
      of the sequence.  For strings these are characters, for packets, they
      are ints. */
-lispval *fd_elts(lispval seq,int *n)
+lispval *fd_seq_elts(lispval seq,int *n)
 {
   int len = seq_length(seq);
   if (len==0) {*n = 0; return NULL;}
@@ -547,7 +547,7 @@ lispval *fd_elts(lispval seq,int *n)
     case fd_compound_type: {
       int i = 0, len; lispval *elts = compound2vector(seq,&len);
       if (elts == NULL) {
-        fd_seterr("NotACompoundVector","fd_elts",NULL,seq);
+        fd_seterr("NotACompoundVector","fd_seq_elts",NULL,seq);
         *n = -1;
         return NULL;}
       while (i<len) {
@@ -586,7 +586,7 @@ lispval *fd_elts(lispval seq,int *n)
         scan=FD_CDR(scan);
         vec[i++]=elt;}
       if (!(FD_EMPTY_LISTP(scan))) {
-        fd_seterr("ImproperList","fd_elts",NULL,seq);
+        fd_seterr("ImproperList","fd_seq_elts",NULL,seq);
         fd_decref_vec(vec,len);
         u8_free(vec);
         vec=NULL;
@@ -667,7 +667,7 @@ FD_EXPORT lispval fd_reverse(lispval sequence)
   else if (FD_PAIRP(sequence))
     return fd_reverse_list(sequence);
   else {
-    int i, j, len; lispval *elts = fd_elts(sequence,&len), result;
+    int i, j, len; lispval *elts = fd_seq_elts(sequence,&len), result;
     lispval *tmp = ((len) ? (u8_alloc_n(len,lispval)) : (NULL));
     if (len) {
       i = 0; j = len-1; while (i < len) {tmp[j]=elts[i]; i++; j--;}}
@@ -723,7 +723,7 @@ FD_EXPORT lispval fd_append(int n,lispval *sequences)
       else if (FD_PTR_TYPE(seq) != result_type)
         result_type = fd_vector_type;
       else {}
-      elts[i]=fd_elts(seq,&(lengths[i]));
+      elts[i]=fd_seq_elts(seq,&(lengths[i]));
       total_length = total_length+lengths[i];
       if (lengths[i]==0) i++;
       else if (elts[i]==NULL)  {
@@ -872,7 +872,7 @@ static struct FD_SEQFNS pair_seqfns={
   fd_slice,
   fd_position,
   fd_search,
-  fd_elts,
+  fd_seq_elts,
   makepair};
 static struct FD_SEQFNS string_seqfns={
   fd_seq_length,
@@ -880,7 +880,7 @@ static struct FD_SEQFNS string_seqfns={
   fd_slice,
   fd_position,
   fd_search,
-  fd_elts,
+  fd_seq_elts,
   makestring};
 static struct FD_SEQFNS packet_seqfns={
   fd_seq_length,
@@ -888,7 +888,7 @@ static struct FD_SEQFNS packet_seqfns={
   fd_slice,
   fd_position,
   fd_search,
-  fd_elts,
+  fd_seq_elts,
   makepacket};
 static struct FD_SEQFNS vector_seqfns={
   fd_seq_length,
@@ -896,7 +896,7 @@ static struct FD_SEQFNS vector_seqfns={
   fd_slice,
   fd_position,
   fd_search,
-  fd_elts,
+  fd_seq_elts,
   makevector};
 static struct FD_SEQFNS numeric_vector_seqfns={
   fd_seq_length,
@@ -904,7 +904,7 @@ static struct FD_SEQFNS numeric_vector_seqfns={
   fd_slice,
   fd_position,
   fd_search,
-  fd_elts,
+  fd_seq_elts,
   makevector};
 static struct FD_SEQFNS code_seqfns={
   fd_seq_length,
@@ -912,7 +912,7 @@ static struct FD_SEQFNS code_seqfns={
   fd_slice,
   fd_position,
   fd_search,
-  fd_elts,
+  fd_seq_elts,
   makerail};
 static struct FD_SEQFNS secret_seqfns={
   fd_seq_length,
@@ -928,7 +928,7 @@ static struct FD_SEQFNS compound_seqfns={
   NULL,
   fd_position,
   fd_search,
-  fd_elts,
+  fd_seq_elts,
   NULL};
 
 
