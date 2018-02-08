@@ -104,6 +104,17 @@ FD_EXPORT fd_index fd_make_tempindex
   return open_tempindex(name,flags,opts);
 }
 
+static lispval register_symbol = FD_VOID;
+
+static fd_index create_tempindex(u8_string spec,void *data,
+                                 fd_storage_flags flags,lispval opts)
+{
+  lispval registered = fd_getopt(opts,register_symbol,FD_VOID);
+  if (FD_VOIDP(registered))
+    flags |= FD_STORAGE_UNREGISTERED;
+  return open_tempindex(spec,flags,opts);
+}
+
 /* Initializing the driver module */
 
 static struct FD_INDEX_HANDLER tempindex_handler={
@@ -117,7 +128,7 @@ static struct FD_INDEX_HANDLER tempindex_handler={
   tempindex_fetchkeys, /* fetchkeys */
   tempindex_fetchinfo, /* fetchinfo */
   NULL, /* batchadd */
-  NULL, /* create */
+  create_tempindex, /* create */
   NULL, /* walk */
   NULL, /* recycle */
   tempindex_ctl  /* indexctl */
@@ -130,6 +141,7 @@ FD_EXPORT void fd_init_tempindex_c()
                          open_tempindex,
                          NULL,
                          NULL);
+  register_symbol = fd_intern("REGISTER");
 
   u8_register_source_file(_FILEINFO);
 }
