@@ -73,8 +73,8 @@ static int add_autodocp(u8_string s)
 
 FD_FASTOP
 lispval call_lambda(struct FD_STACK *_stack,
-                  struct FD_LAMBDA *fn,
-                  int n,lispval *args)
+                    struct FD_LAMBDA *fn,
+                    int n,lispval *args)
 {
   lispval result = VOID;
   lispval *proc_vars=fn->lambda_vars;
@@ -105,12 +105,14 @@ lispval call_lambda(struct FD_STACK *_stack,
   struct FD_LEXENV stack_env;
   lispval vals[n_vars];
 
+  /*
   if  (direct_call) {
     fd_make_schemap(&_bindings,n_vars,0,proc_vars,args);
     _bindings.schemap_stackvals=1;}
-  else {
-    fd_init_elts(vals,n_vars,VOID);
-    fd_make_schemap(&_bindings,n_vars,0,proc_vars,vals);}
+    else { } */
+  fd_init_elts(vals,n_vars,VOID);
+  fd_make_schemap(&_bindings,n_vars,0,proc_vars,vals);
+  _bindings.schemap_stackvals = direct_call;
 
   /* Make it static */
   FD_SET_REFCOUNT(bindings,0);
@@ -122,7 +124,9 @@ lispval call_lambda(struct FD_STACK *_stack,
 
   if (_stack) _stack->stack_env = call_env = &stack_env;
 
-  if (!(direct_call)) {
+  if (direct_call)
+    memcpy(vals,args,sizeof(lispval)*n_vars);
+  else {
     lispval arglist = fn->lambda_arglist;
     int i = 0; while (PAIRP(arglist)) {
       lispval arg = (i<n) ? (args[i]) : (FD_DEFAULT_VALUE);
