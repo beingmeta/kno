@@ -3145,9 +3145,8 @@ static int oidmodifiedp(fd_pool p,lispval oid)
       else modified = 0;}
     else {}
     fd_decref(v);
-    if (modified) return FD_TRUE;
-    else return FD_FALSE;}
-  else return FD_FALSE;
+    return modified;}
+  else return 0;
 }
 
 static lispval dbmodifiedp(lispval arg1,lispval arg2)
