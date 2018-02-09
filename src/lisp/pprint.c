@@ -185,8 +185,7 @@ int fd_pprinter(u8_output out,lispval x,int indent,int col,int depth,
           else indent = indent + rel_indent;}
         else {}}
       n_elts++;
-      if ( (PAIRP(scan)) && (col>base_col))
-        u8_putc(out,' ');}
+      if ( (PAIRP(scan)) && (col>base_col)) { u8_putc(out,' '); col++; }}
     if (NILP(scan)) {
       u8_putc(out,')');
       return col+1;}
@@ -218,11 +217,9 @@ int fd_pprinter(u8_output out,lispval x,int indent,int col,int depth,
       u8_puts(out,"#()");
       return col+3;}
     else {
-      int eltno = 0;
-      /* Default indent is 2 */
-      u8_puts(out,"#("); col=col+2;
+      int eltno = 0, base_col = col = col+2;
+      u8_puts(out,"#(");
       while (eltno<len) {
-        int last_col = col;
         if (OVERFLOWP(eltno,vec_max)) {
           if ( (eltno+1 == len) && (vec_max>3) ) {
             /* If there's one more item and the vector is 'short',
@@ -238,12 +235,12 @@ int fd_pprinter(u8_output out,lispval x,int indent,int col,int depth,
             u8_putn(out,ellipsis.u8_outbuf,ellipsis_len);
             col=col+ellipsis_len;
             break;}}
+        if (col > base_col) {
+          u8_putc(out,' '); col++;}
         col = fd_pprinter(out,VEC_REF(x,eltno),indent+2,col,depth+1,
                           customfn,customdata,
                           ppcxt);
-        eltno++;
-        if ( (eltno < len) && (col > last_col) )
-          u8_putc(out,' ');}
+        eltno++;}
       u8_putc(out,')');
       return col+1;}}
   else if (FD_COMPOUND_VECTORP(x)) {
@@ -259,13 +256,11 @@ int fd_pprinter(u8_output out,lispval x,int indent,int col,int depth,
       if (tmpout.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpout.u8_outbuf);
       return col+head_len;}
     else {
-      int eltno = 0;
-      /* Default indent is 3 */
+      int eltno = 0, base_col = col+4;
       u8_putn(out,tmpout.u8_outbuf,head_len-1); /* head_len-1 skips the close paren */
       if (tmpout.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpout.u8_outbuf);
-      col=col+(head_len-1);
+      col=col+head_len;
       while (eltno<len) {
-        int last_col = col;
         if (OVERFLOWP(eltno,vec_max)) {
           if ( (eltno+1 == len) && (vec_max>3) ) {
             /* If there's one more item and the vector is 'short',
@@ -281,12 +276,14 @@ int fd_pprinter(u8_output out,lispval x,int indent,int col,int depth,
             u8_putn(out,ellipsis.u8_outbuf,ellipsis_len);
             col=col+ellipsis_len;
             break;}}
-        col = fd_pprinter(out,FD_XCOMPOUND_VECREF(x,eltno),indent+3,col,depth+1,
+        if (col > base_col) {
+          u8_putc(out,' '); col++;}
+        col = fd_pprinter(out,FD_XCOMPOUND_VECREF(x,eltno),indent+4,col,depth+1,
                           customfn,customdata,
                           ppcxt);
         eltno++;
-        if ( (eltno < len) && (col > last_col) )
-          u8_putc(out,' ');}
+        if (eltno < len) {
+          u8_putc(out,' '); col++;}}
       u8_putc(out,')');
       return col+1;}}
   else if (QCHOICEP(x)) {
@@ -296,22 +293,25 @@ int fd_pprinter(u8_output out,lispval x,int indent,int col,int depth,
       u8_puts(out,"#{}");
       return col+3;}
     else {
+      int base_col = col = col+2;
+      u8_puts(out,"#{");
       DO_CHOICES(elt,qc->qchoiceval) {
-        if (n_elts==0) u8_puts(out,"#{");
-        else {u8_putc(out,' '); col++;}
-        if (OVERFLOWP(n_elts,choice_max)) {} else {}
-        col = fd_pprinter(out,elt,indent+2,col+2,depth+1,
-                          customfn,customdata,
-                          ppcxt);
+        if ( (n_elts > 0) && (col > base_col) ) {
+          u8_putc(out,' '); col++;}
+        if (OVERFLOWP(n_elts,choice_max)) {}
+        else col = fd_pprinter(out,elt,indent+2,col+2,depth+1,
+                               customfn,customdata,
+                               ppcxt);
         n_elts++;}
       u8_putc(out,'}');
       return col+1;}}
   else if (FD_CHOICEP(x)) {
     int choice_max = pprint_max3(choice_max,maxelts,ppcxt);
     int n_elts = 0, n_choices=FD_CHOICE_SIZE(x);
+    int base_col = col = col+1;
+    u8_putc(out,'{');
     DO_CHOICES(elt,x) {
-      if (n_elts == 0) u8_putc(out,'{');
-      else {u8_putc(out,' '); col++;}
+      if (col > base_col) u8_putc(out,' ');
       if (OVERFLOWP(n_elts,choice_max)) {
         if (n_elts+1 == n_choices)  {
           /* If there's one more item and the vector is 'short',
