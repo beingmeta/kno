@@ -3085,7 +3085,7 @@ static void init_localfns()
             "(%LEXREF? *val*) returns true if it's argument "
             "is a lexref (lexical reference)",
             -1,FD_VOID);
-  fd_idefn0(fd_scheme_module,"%APPENV",0,
+  fd_idefn0(fd_scheme_module,"%APPENV",appenv_prim,
             "Returns the base 'application environment' for the "
             "current instance");
 
