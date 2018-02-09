@@ -1244,6 +1244,9 @@ FD_EXPORT int fd_schemap_store
   size=FD_XSCHEMAP_SIZE(sm);
   slotno=_fd_get_slotno(key,sm->table_schema,size,sm->schemap_sorted);
   if (slotno>=0) {
+    if (sm->schemap_stackvals) {
+      fd_incref_vec(sm->schema_values,size);
+      sm->schemap_stackvals = 0;}
     fd_decref(sm->schema_values[slotno]);
     sm->schema_values[slotno]=fd_incref(value);
     FD_XSCHEMAP_MARK_MODIFIED(sm);
@@ -1281,6 +1284,9 @@ FD_EXPORT int fd_schemap_add
   slotno=_fd_get_slotno(key,sm->table_schema,size,sm->schemap_sorted);
   if (slotno>=0) {
     fd_incref(value);
+    if (sm->schemap_stackvals) {
+      fd_incref_vec(sm->schema_values,size);
+      sm->schemap_stackvals = 0;}
     CHOICE_ADD(sm->schema_values[slotno],value);
     FD_XSCHEMAP_MARK_MODIFIED(sm);
     if (unlock) fd_unlock_table(sm);
@@ -1316,10 +1322,14 @@ FD_EXPORT int fd_schemap_drop
   size=FD_XSCHEMAP_SIZE(sm);
   slotno=_fd_get_slotno(key,sm->table_schema,size,sm->schemap_sorted);
   if (slotno>=0) {
+    if (sm->schemap_stackvals) {
+      fd_incref_vec(sm->schema_values,size);
+      sm->schemap_stackvals = 0;}
     lispval oldval=sm->schema_values[slotno];
     lispval newval=((VOIDP(value)) ? (EMPTY) :
                    (fd_difference(oldval,value)));
-    if (newval == oldval) fd_decref(newval);
+    if (newval == oldval)
+      fd_decref(newval);
     else {
       FD_XSCHEMAP_MARK_MODIFIED(sm);
       fd_decref(oldval);

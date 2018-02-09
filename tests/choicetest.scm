@@ -135,6 +135,33 @@
 
 (set! fnlist '())
 
+;;; QCHOICE GC regressions
+
+;;; This addresses a bug where the binding of an argument is modified
+;;; during a call. The issue was that lambdas don't copy their args
+;;; into the environment, so modifying a value (at least in a way
+;;; which causes the existing value to be freed) ends up freeing that
+;;; value twice: once on modify and once when the call ends and the
+;;; arguments are freed. The fix was indirect; making schemap
+;;; modifications (which are used for environments) be careful when
+;;; the schemap has schemap_stackvals==1.
+
+(define (getcars values)
+  (set! values (car values))
+  (cons 'car values))
+
+(define (qc-wrapper1)
+  (let* ((vals (cons '{y z} '{a b}))
+	 (carred (getcars vals)))
+    (pprint carred)))
+(define (qc-wrapper2)
+  (let* ((vals (cons '{y z} '{a b}))
+	 (carred (getcars (qc vals))))
+    (pprint carred)))
+
+(qc-wrapper1)
+(qc-wrapper2)
+
 ;;; Pick tests
 
 (applytest {10 11 12} pick> (choice 5 6 7 10 11 12) 9)

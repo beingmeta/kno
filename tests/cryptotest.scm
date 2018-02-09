@@ -60,7 +60,7 @@
 (test-algorithm "DES" key8)
 (test-algorithm "DES3" key24)
 (test-algorithm "AES256" key32 16)
-(test-algorithm "AES128" key16 16)
+;; (test-algorithm "AES128" key16 16)
 
 ;;; RSA tests
 
