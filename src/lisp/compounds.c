@@ -23,15 +23,21 @@ lispval fd_compound_descriptor_type;
 /* Compounds */
 
 FD_EXPORT lispval fd_init_compound
-  (struct FD_COMPOUND *p,lispval tag,int ismutable,int n,...)
+  (struct FD_COMPOUND *p,lispval tag,int flags,int n,...)
 {
-  va_list args; int i = 0; lispval *write, *limit, initfn = FD_FALSE;
+  lispval *write, *limit, initfn = FD_FALSE;
+  int ismutable = (flags&(FD_COMPOUND_MUTABLE));
+  int isopaque  = (flags&(FD_COMPOUND_OPAQUE));
+  int incref    = (flags&(FD_COMPOUND_INCREF));
+  int decref    = (flags&(FD_COMPOUND_USEREF));
+  int header    = FD_COMPOUND_HEADER_LENGTH(flags);
+  va_list args; int i = 0;
   if (n<0) {
     fd_seterr("NegativeLength","fd_init_compound",NULL,FD_INT(n));
     return FD_ERROR;}
   if (PRED_FALSE((n<0)||(n>=256))) {
-    /* Consume the arguments, just in case the implementation is a
-       little flaky. */
+    /* Consume the arguments on error, just in case the vararg
+       implementation is a little flaky. */
     va_start(args,n);
     while (i<n) {va_arg(args,lispval); i++;}
     return fd_type_error
@@ -43,27 +49,36 @@ FD_EXPORT lispval fd_init_compound
   if (ismutable) u8_init_mutex(&(p->compound_lock));
   p->compound_typetag = fd_incref(tag);
   p->compound_ismutable = ismutable;
-  p->compound_isopaque = 0;
-  p->compound_off = 0;
+  p->compound_isopaque = isopaque;
+  p->compound_off = header;
   p->compound_length = n;
-  if (n>0) {
-    write = &(p->compound_0); limit = write+n;
+  if (n > 0) {
+    write = &(p->compound_0);
+    limit = write+n;
     va_start(args,n);
     while (write<limit) {
       lispval value = va_arg(args,lispval);
-      *write = value; write++;}
+      if (incref) fd_incref(value);
+      *write = value;
+      write++;}
     va_end(args);
     if (FD_ABORTP(initfn)) {
-      write = &(p->compound_0);
-      while (write<limit) {fd_decref(*write); write++;}
+      lispval *scan = &(p->compound_0);
+      if ( (incref) || (decref) ) {
+	while (scan<write) {fd_decref(*scan); scan++;}}
       return initfn;}
     else return LISP_CONS(p);}
   else return LISP_CONS(p);
 }
 
 FD_EXPORT lispval fd_init_compound_from_elts
-  (struct FD_COMPOUND *p,lispval tag,int ismutable,int n,lispval *elts)
+  (struct FD_COMPOUND *p,lispval tag,int flags,int n,lispval *elts)
 {
+  int ismutable = (flags&(FD_COMPOUND_MUTABLE));
+  int isopaque  = (flags&(FD_COMPOUND_OPAQUE));
+  int incref    = (flags&(FD_COMPOUND_INCREF));
+  int decref    = (flags&(FD_COMPOUND_USEREF));
+  int header    = FD_COMPOUND_HEADER_LENGTH(flags);
   lispval *write, *limit, *read = elts, initfn = FD_FALSE;
   if (PRED_FALSE((n<0) || (n>=256)))
     return fd_type_error(_("positive byte"),"fd_init_compound_from_elts",
@@ -76,16 +91,19 @@ FD_EXPORT lispval fd_init_compound_from_elts
   if (ismutable) u8_init_mutex(&(p->compound_lock));
   p->compound_typetag = fd_incref(tag);
   p->compound_ismutable = ismutable;
+  p->compound_isopaque = isopaque;
+  p->compound_off = header;
   p->compound_length = n;
-  p->compound_off = 0;
-  p->compound_isopaque = 0;
   if (n>0) {
     write = &(p->compound_0); limit = write+n;
     while (write<limit) {
-      *write = *read++; write++;}
+      lispval v = *read++;
+      if (incref) fd_incref(v);
+      *write++ = v;}
     if (FD_ABORTP(initfn)) {
-      write = &(p->compound_0);
-      while (write<limit) {fd_decref(*write); write++;}
+      lispval *scan = &(p->compound_0);
+      if ( (incref) || (decref) ) {
+	while (scan<write) {fd_decref(*scan); scan++;}}
       return initfn;}
     else return LISP_CONS(p);}
   else return LISP_CONS(p);
@@ -221,7 +239,7 @@ void fd_init_compounds_c()
 
   fd_compound_descriptor_type=
     fd_init_compound
-    (NULL,VOID,1,9,
+    (NULL,VOID,FD_COMPOUND_MUTABLE,9,
      fd_intern("COMPOUNDTYPE"),0,FD_INT(9),
      fd_make_nvector(9,FDSYM_TAG,FDSYM_LENGTH,
 		     fd_intern("FIELDS"),fd_intern("INITFN"),

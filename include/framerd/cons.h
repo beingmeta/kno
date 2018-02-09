@@ -701,12 +701,18 @@ typedef struct FD_COMPOUND *fd_compound;
   ( (&((FD_XCOMPOUND(x))->compound_0))[(i)+((FD_2COMPOUND(x))->compound_off)])
 
 FD_EXPORT lispval fd_init_compound
-  (struct FD_COMPOUND *ptr,lispval tag,int mutable,int n,...);
+  (struct FD_COMPOUND *ptr,lispval tag,int flags,int n,...);
 FD_EXPORT lispval fd_init_compound_from_elts
-  (struct FD_COMPOUND *p,lispval tag,int mutable,int n,lispval *elts);
+  (struct FD_COMPOUND *p,lispval tag,int flags,int n,lispval *elts);
 FD_EXPORT lispval fd_compound_ref(lispval arg,lispval tag,int off,lispval dflt);
 
+#define FD_COMPOUND_MUTABLE 0x01
+#define FD_COMPOUND_OPAQUE  0x02
+#define FD_COMPOUND_INCREF  0x04
+#define FD_COMPOUND_USEREF  0x08
 
+#define FD_COMPOUND_HEADER(n) (((n)&0x8f)<<8)
+#define FD_COMPOUND_HEADER_LENGTH(flags) (((n)>>8)&0x8f)
 
 FD_EXPORT lispval fd_compound_descriptor_type;
 

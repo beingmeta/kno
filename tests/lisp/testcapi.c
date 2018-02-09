@@ -34,7 +34,7 @@ int main(int argc,char **argv)
   lispval string2 = fd_init_string(u8_alloc(struct FD_STRING),3,u8_strdup("bar"));
   lispval compound=
     fd_init_compound(NULL,
-                     fd_probe_symbol("QUOTE",5),0,1,
+                     fd_probe_symbol("QUOTE",5),FD_COMPOUND_USEREF,1,
                      fd_make_pair(FD_INT(5),FD_TRUE));
   lispval vec = fd_make_nvector(3,fix1,dbl1,string1);
   lispval lst = fd_make_list(4,vec,string2,dbl2,compound);

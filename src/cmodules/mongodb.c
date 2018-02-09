@@ -2145,7 +2145,8 @@ static void bson_read_step(FD_BSON_INPUT b,lispval into,lispval *loc)
           else {
             struct FD_COMPOUND *c=
               u8_malloc(sizeof(struct FD_COMPOUND)+(n*LISPVAL_LEN));
-            lispval *cdata = &(c->compound_0); fd_init_compound(c,tag,0,0);
+            lispval *cdata = &(c->compound_0);
+            fd_init_compound(c,tag,0,0);
             c->compound_length = n;
             memcpy(cdata,fields,n);
             compound = LISP_CONS(c);}
@@ -2256,20 +2257,16 @@ FD_EXPORT lispval fd_bson2dtype(bson_t *in,int flags,lispval opts)
 
 static lispval mongovec_lexpr(int n,lispval *values)
 {
-  int i = 0; while (i<n) {
-    lispval value = values[i++];
-    fd_incref(value);}
-  return fd_init_compound_from_elts(NULL,mongovec_symbol,0,n,values);
+  return fd_init_compound_from_elts
+    (NULL,mongovec_symbol,FD_COMPOUND_INCREF,n,values);
 }
 
 static lispval make_mongovec(lispval vec)
 {
   lispval *elts = FD_VECTOR_ELTS(vec);
-  int n = FD_VECTOR_LENGTH(vec), i = 0;
-  while (i<n) {
-    lispval v = elts[i++];
-    fd_incref(v);}
-  return fd_init_compound_from_elts(NULL,mongovec_symbol,0,n,elts);
+  int n = FD_VECTOR_LENGTH(vec);
+  return fd_init_compound_from_elts
+    (NULL,mongovec_symbol,FD_COMPOUND_INCREF,n,elts);
 }
 
 static lispval mongovecp(lispval arg)

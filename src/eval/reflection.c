@@ -725,7 +725,7 @@ static lispval getcalls_prim(lispval fcn)
     double system_time = ((double)((system_nsecs)|(calls)))/1000000000.0;
     fd_incref(fcn);
     return fd_init_compound
-      (NULL,call_profile_symbol,0,10,
+      (NULL,call_profile_symbol,FD_COMPOUND_USEREF,10,
        fcn,fd_make_flonum(exec_time),
        FD_INT(user_time),FD_INT(system_time),
        FD_INT(n_waits),FD_INT(n_contests),FD_INT(n_faults),

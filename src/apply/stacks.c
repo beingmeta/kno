@@ -169,6 +169,8 @@ static lispval source_annotate(lispval expr,lispval target)
    8. source (the original source code for the call, if available)
  */
 
+#define STACK_CREATE_OPTS FD_COMPOUND_USEREF
+
 static lispval stack2lisp(struct FD_STACK *stack,struct FD_STACK *inner)
 {
   int n = 8;
@@ -214,19 +216,23 @@ static lispval stack2lisp(struct FD_STACK *stack,struct FD_STACK *inner)
           n--;}}}}
   switch (n) {
   case 4:
-    return fd_init_compound(NULL,stack_entry_symbol,0,4,depth,type,op,label);
+    return fd_init_compound(NULL,stack_entry_symbol,
+                            STACK_CREATE_OPTS,4,depth,type,op,label);
   case 5:
-    return fd_init_compound(NULL,stack_entry_symbol,0,5,
-                            depth,type,op,label,argvec);
+    return fd_init_compound(NULL,stack_entry_symbol,
+                            STACK_CREATE_OPTS,5,depth,type,op,label,argvec);
   case 6:
-    return fd_init_compound(NULL,stack_entry_symbol,0,6,
-                            depth,type,source,label,argvec,op);
+    return fd_init_compound(NULL,stack_entry_symbol,
+                            STACK_CREATE_OPTS,6,depth,type,source,label,
+                            argvec,op);
   case 7:
-    return fd_init_compound(NULL,stack_entry_symbol,0,7,
-                            depth,type,source,label,argvec,op,env);
+    return fd_init_compound(NULL,stack_entry_symbol,
+                            STACK_CREATE_OPTS,7,depth,type,source,label,
+                            argvec,op,env);
   default:
-    return fd_init_compound(NULL,stack_entry_symbol,0,8,
-                            depth,type,source,label,argvec,op,env,status);
+    return fd_init_compound(NULL,stack_entry_symbol,
+                            STACK_CREATE_OPTS,8,depth,type,source,label,
+                            argvec,op,env,status);
   }
 }
 

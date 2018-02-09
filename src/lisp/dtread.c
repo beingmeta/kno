@@ -246,13 +246,16 @@ FD_EXPORT lispval fd_read_dtype(struct FD_INBUF *in)
           struct FD_VECTOR *vec = (struct FD_VECTOR *)cdr;
           short n_elts = (short)(vec->vec_length);
           lispval result=
-            fd_init_compound_from_elts(NULL,car,0,n_elts,vec->vec_elts);
+            fd_init_compound_from_elts
+            (NULL,car,FD_COMPOUND_USEREF,
+             n_elts,vec->vec_elts);
           /* Note that the incref'd values are now stored in the compound,
              so we don't decref them ourselves. */
           u8_free(vec);
           return result;}
         else return fd_init_compound
-               (u8_alloc(struct FD_COMPOUND),car,1,1,cdr);}
+               (u8_alloc(struct FD_COMPOUND),car,
+                FD_COMPOUND_MUTABLE|FD_COMPOUND_USEREF,1,cdr);}
       case dt_rational:
         return _fd_make_rational(car,cdr);
       case dt_complex:

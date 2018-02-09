@@ -617,7 +617,7 @@ static lispval parse_opaque(U8_INPUT *in)
              out.u8_outbuf,nextc);}}
   else NO_ELSE;
   lispval string = fd_stream2string(&out);
-  return fd_init_compound(NULL,opaque_tag,0,1,string);
+  return fd_init_compound(NULL,opaque_tag,FD_COMPOUND_USEREF,1,string);
 }
 
 /* Packet parsing functions */
@@ -1103,7 +1103,8 @@ static lispval recreate_record(int n,lispval *v)
   {
     struct FD_COMPOUND *c=
       u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*LISPVAL_LEN);
-    lispval *data = &(c->compound_0); fd_init_compound(c,v[0],0,0);
+    lispval *data = &(c->compound_0);
+    fd_init_compound(c,v[0],0,0);
     c->compound_length = n-1;
     i = 1; while (i<n) {data[i-1]=v[i]; i++;}
     if (v) u8_free(v);

@@ -234,7 +234,9 @@ static lispval make_compound(int n,lispval *args)
   compound->compound_isopaque = 0;
   compound->compound_off = 0;
   while (i<n) {
-    fd_incref(args[i]); *write++=args[i]; i++;}
+    fd_incref(args[i]);
+    *write++=args[i];
+    i++;}
   return LISP_CONS(compound);
 }
 
@@ -250,7 +252,9 @@ static lispval make_opaque_compound(int n,lispval *args)
   compound->compound_isopaque = 1;
   compound->compound_off = -1;
   while (i<n) {
-    fd_incref(args[i]); *write++=args[i]; i++;}
+    fd_incref(args[i]);
+    *write++=args[i];
+    i++;}
   return LISP_CONS(compound);
 }
 
@@ -266,7 +270,9 @@ static lispval make_mutable_compound(int n,lispval *args)
   compound->compound_off = 0;
   u8_init_mutex(&(compound->compound_lock));
   while (i<n) {
-    fd_incref(args[i]); *write++=args[i]; i++;}
+    fd_incref(args[i]);
+    *write++=args[i];
+    i++;}
   return LISP_CONS(compound);
 }
 
@@ -283,7 +289,9 @@ static lispval make_opaque_mutable_compound(int n,lispval *args)
   compound->compound_off = -1;
   u8_init_mutex(&(compound->compound_lock));
   while (i<n) {
-    fd_incref(args[i]); *write++=args[i]; i++;}
+    fd_incref(args[i]);
+    *write++=args[i];
+    i++;}
   return LISP_CONS(compound);
 }
 
@@ -387,8 +395,9 @@ static lispval cons_compound(int n,lispval *args,fd_compound_typeinfo e)
       fd_decref(method);
       return result;}}
   else {
-    int i = 0; while (i<n) {lispval elt = args[i++]; fd_incref(elt);}
-    return fd_init_compound_from_elts(NULL,e->compound_typetag,1,n,args);}
+    return fd_init_compound_from_elts(NULL,e->compound_typetag,
+                                      FD_COMPOUND_INCREF,
+                                      n,args);}
 }
 
 static int stringify_compound(u8_output out,lispval compound,fd_compound_typeinfo e)
