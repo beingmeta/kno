@@ -398,7 +398,8 @@ static U8_MAYBE_UNUSED int fast_choice_containsp(lispval x,struct FD_CHOICE *cho
    else if (FD_EMPTY_CHOICEP(_val)) { \
      _scan=_singlev+1; _limit=_scan;}  \
    else if (FD_QCHOICEP(_val)) { \
-     _singlev[0]=FD_XQCHOICE(_val)->qchoiceval; \
+     _singlev[0] = FD_XQCHOICE(_val)->qchoiceval; \
+     _val = _singlev[0]; fd_incref(_val); _need_gc = 1; \
      _scan=_singlev; _limit=_scan+1;}\
    else {\
      _singlev[0]=_val; _scan=_singlev; _limit=_scan+1;} \
