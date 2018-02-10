@@ -2358,15 +2358,14 @@ FD_EXPORT lispval dumpbug_prim(lispval ex,lispval where)
     if (bugdir == NULL) {
       u8_string cwd = u8_getcwd();
       u8_string errpath = u8_mkpath(cwd,"_bugjar");
-      if ( (u8_directoryp(errpath)) && (u8_file_writablep(errpath)) ) {
+      if ( (u8_directoryp(errpath)) && (u8_file_writablep(errpath)) )
         bugdir = errpath;
-        u8_free(cwd);}
-      else if ( (u8_directoryp(cwd)) && (u8_file_writablep(cwd)) ) {
+      else if ( (u8_directoryp(cwd)) && (u8_file_writablep(cwd)) )
         bugdir = cwd;
-        u8_free(errpath);}
       else bugdir = u8_strdup("/tmp/");
-      u8_free(errpath);
-      u8_free(cwd);}
+      if (bugdir != errpath) u8_free(errpath);
+      if (bugdir != cwd) u8_free(cwd);}
+    else NO_ELSE; /* got bugdir already */
     int rv = fd_dump_bug(ex,bugdir);
     if (rv<0)
       fd_seterr("RECORD-BUG failed","record_bug",NULL,where);
