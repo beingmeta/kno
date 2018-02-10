@@ -12,6 +12,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/numbers.h"
+#include "framerd/sequences.h"
 #include "framerd/support.h"
 #include "framerd/eval.h"
 #include "framerd/ports.h"
@@ -295,18 +296,25 @@ static lispval make_opaque_mutable_compound(int n,lispval *args)
   return LISP_CONS(compound);
 }
 
-static lispval vector2compound(lispval vector,lispval tag,
-                               lispval mutable,lispval opaque,
-                               lispval offset)
+static lispval seq2compound(lispval seq,lispval tag,
+                            lispval mutable,lispval opaque,
+                            lispval offset)
 {
-  int i = 0, n = VEC_LEN(vector);
-  struct FD_COMPOUND *compound=
-    u8_malloc(sizeof(struct FD_COMPOUND)+((n-1)*LISPVAL_LEN));
-  lispval *write = &(compound->compound_0);
+  lispval *read; int len;
+  if (FD_VECTORP(seq)) {
+    len = VEC_LEN(seq);
+    read = FD_VECTOR_ELTS(seq);}
+  else read = fd_seq_elts(seq,&len);
+  if ( (read == NULL) && (len < 0) )
+    return FD_ERROR_VALUE;
+  int extra_elts = (len) ? (len-1) : (0);
+  struct FD_COMPOUND *compound =
+    u8_malloc(sizeof(struct FD_COMPOUND)+((extra_elts)*LISPVAL_LEN));
   FD_INIT_FRESH_CONS(compound,fd_compound_type);
   compound->compound_typetag = fd_incref(tag);
-  compound->compound_length = n;
-  if (FALSEP(mutable)) compound->compound_ismutable = 0;
+  compound->compound_length = len;
+  if ( (len==0) || (FALSEP(mutable)) )
+    compound->compound_ismutable = 0;
   else {
     compound->compound_ismutable = 1;
     u8_init_mutex(&(compound->compound_lock));}
@@ -316,22 +324,28 @@ static lispval vector2compound(lispval vector,lispval tag,
   else {
     compound->compound_isopaque = 1;
     compound->compound_off = -1;}
-  while (i<n) {
-    lispval elt = VEC_REF(vector,i);
+  lispval *write = &(compound->compound_0);
+  int i = 0, n = len; while (i<n) {
+    lispval elt = read[i++];
     fd_incref(elt);
-    *write++=elt; i++;}
+    *write++=elt;}
   if (FD_FALSEP(offset))
     compound->compound_off = -1;
   else {
     if (FD_FIXNUMP(offset)) {
       long long off = FD_FIX2INT(offset);
-      if ( (off>=0) && (off<128) )
+      if ( (off>=0) && (off<128) && (off < len) )
         compound->compound_off = off;
       else {
         fd_seterr("BadCompoundVectorOffset","vector2compound",NULL,offset);
         return FD_ERROR_VALUE;}}
     else compound->compound_off = 0;}
-  return LISP_CONS(compound);
+  if (FD_VECTORP(seq))
+    return LISP_CONS(compound);
+  else {
+    fd_decref_vec(read,len);
+    u8_free(read);
+    return LISP_CONS(compound);}
 }
 
 /* Setting various compound properties */
@@ -507,7 +521,13 @@ FD_EXPORT void fd_init_compoundfns_c()
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("MAKE-OPAQUE-MUTABLE-COMPOUND",
                                          make_opaque_mutable_compound,1)));
-  fd_idefn5(fd_scheme_module,"VECTOR->COMPOUND",vector2compound,2,
+  fd_idefn5(fd_scheme_module,"SEQUENCE->COMPOUND",seq2compound,2,
+            "`(SEQUENCE->COMPOUND *seq* *tag* *mutable* *opaque* *reserve*)` "
+            "creates a compound object out of *seq*, tagged with *tag*. "
+            "If *reserve* is #f, the returned compound won't be a sequence",
+            -1,VOID,-1,VOID,
+            -1,FD_FALSE,-1,FD_FALSE,-1,FD_TRUE);
+  fd_idefn5(fd_scheme_module,"VECTOR->COMPOUND",seq2compound,2,
             "`(VECTOR->COMPOUND *vec* *tag* *mutable* *opaque* *reserve*)` "
             "creates a compound object out of *vec*, tagged with *tag*. "
             "If *reserve* is #f, the returned compound won't be a sequence",

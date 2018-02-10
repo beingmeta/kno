@@ -542,7 +542,9 @@ lispval *fd_seq_elts(lispval seq,int *n)
       lispval *scan = VEC_DATA(seq),
         *limit = scan+VEC_LEN(seq);
       while (scan<limit) {
-        vec[i]=fd_incref(*scan); i++; scan++;}
+        vec[i]=fd_incref(*scan);
+        scan++;
+        i++;}
       break;}
     case fd_compound_type: {
       int i = 0, len; lispval *elts = compound2vector(seq,&len);
