@@ -99,6 +99,8 @@ FD_EXPORT int fd_skip_whitespace(u8_input s)
   return skip_whitespace(s);
 }
 
+static lispval parse_histref(u8_input in);
+
 /* Tables */
 
 static u8_string character_constant_names[]={
@@ -1234,6 +1236,7 @@ lispval fd_parser(u8_input in)
       else return FD_PARSE_ERROR;}
     case '\\': return parse_character(in);
     case '#': return fd_make_list(2,histref_symbol,fd_parser(in));
+    case '.': return parse_histref(in);
     case 'U': return parse_atom(in,inchar,ch); /* UUID */
     case 'T': return parse_atom(in,inchar,ch); /* TIMESTAMP */
     case '!': return parse_atom(in,inchar,ch); /* pointer reference */
@@ -1281,6 +1284,46 @@ static lispval parse_atom(u8_input in,int ch1,int ch2)
   else result = fd_parse_atom(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
   if (tmpbuf.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpbuf.u8_outbuf);
   return result;
+}
+
+static lispval parse_histref(u8_input in)
+{
+  /* Parse an atom, i.e. a printed representation which doesn't
+     contain any special spaces or other special characters */
+  struct U8_OUTPUT tmpbuf;
+  lispval elts = fd_init_pair(NULL,histref_symbol,FD_EMPTY_LIST);
+  lispval *tail = &(FD_CDR(elts));
+  char buf[128];
+  int c = u8_getc(in);
+  U8_INIT_STATIC_OUTPUT_BUF(tmpbuf,128,buf);
+  while (c >= 0) {
+    if (u8_isalnum(c)) { u8_putc(&tmpbuf,c); }
+    else if (c == '.') {
+      lispval elt = fd_parse(tmpbuf.u8_outbuf);
+      lispval new_tail = fd_init_pair(NULL,elt,FD_EMPTY_LIST);
+      *tail = new_tail;
+      tail = &(FD_CDR(new_tail));
+      tmpbuf.u8_write = tmpbuf.u8_outbuf;
+      tmpbuf.u8_outbuf[0] = '\0';}
+    else if (c == '=') {
+      lispval elt = fd_parse(tmpbuf.u8_outbuf);
+      lispval new_tail = fd_make_list(2,elt,FDSYM_EQUALS);
+      lispval new_cdr = FD_CDR(new_tail);
+      *tail = new_tail;
+      tail = &(FD_CDR(new_cdr));
+      tmpbuf.u8_write = tmpbuf.u8_outbuf;
+      tmpbuf.u8_outbuf[0] = '\0';}
+    else break;
+    c = u8_getc(in);}
+  if (tmpbuf.u8_write>tmpbuf.u8_outbuf) {
+      lispval elt = fd_parse(tmpbuf.u8_outbuf);
+      lispval new_tail = fd_init_pair(NULL,elt,FD_EMPTY_LIST);
+      *tail = new_tail;
+      tail = &(FD_CDR(new_tail));
+      tmpbuf.u8_write = tmpbuf.u8_outbuf;
+      tmpbuf.u8_outbuf[0] = '\0';}
+  if (c>0) u8_ungetc(in,c);
+  return elts;
 }
 
 FD_EXPORT
