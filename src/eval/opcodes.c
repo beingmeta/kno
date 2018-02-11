@@ -846,6 +846,9 @@ static lispval assignop(fd_stack stack,fd_lexenv env,
         if (PRED_TRUE( across < map_len )) {
           lispval *values = map->schema_values;
           lispval cur     = values[across];
+          if ( map->schemap_stackvals ) {
+            fd_incref_vec(values,map_len);
+            map->schemap_stackvals = 0;}
           if ( ( (combiner == FD_TRUE) || (combiner == FD_DEFAULT) ) &&
                ( (CURRENT_VALUEP(cur)) || (FD_ABORTED(cur)) ) ) {
             if (FD_ABORTED(cur))
