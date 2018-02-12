@@ -93,29 +93,23 @@ static int source_find(lispval expr,lispval target)
       return 0;}}
 }
 
-static lispval source_annotate(lispval expr,lispval target);
+static lispval annotate_source(lispval expr,lispval target);
 
 static lispval source_subst(lispval expr,lispval target)
 {
-  if ( expr == target ) {
-    fd_incref(target);
-    return fd_conspair(stack_target_symbol,fd_conspair(target,FD_NIL));}
+  if ( expr == target )
+    return stack_target_symbol;
   else if (! (FD_CONSP(expr)) )
     return expr;
-  else if (!(source_find(expr,target)))
-    return fd_incref(expr);
-  else return source_annotate(expr,target);
+  else return annotate_source(expr,target);
 }
 
-static lispval source_annotate(lispval expr,lispval target)
+static lispval annotate_source(lispval expr,lispval target)
 {
-  if ( expr == target ) {
-    fd_incref(target);
-    return fd_conspair(stack_target_symbol,fd_conspair(target,FD_NIL));}
+  if ( expr == target )
+    return stack_target_symbol;
   else if (! (FD_CONSP(expr)) )
     return expr;
-  else if (!(source_find(expr,target)))
-    return fd_incref(expr);
   else {
     fd_ptr_type type = FD_PTR_TYPE(expr);
     switch (type) {
@@ -176,7 +170,10 @@ static lispval stack2lisp(struct FD_STACK *stack,struct FD_STACK *inner)
   int n = 8;
   lispval depth = FD_INT(stack->stack_depth);
   lispval type = FD_FALSE, label = FD_FALSE, status = FD_FALSE;
-  lispval op = stack->stack_op, argvec = FD_FALSE, env = FD_FALSE;
+  lispval op = stack->stack_op, env = FD_FALSE;
+  lispval argvec = ( stack->stack_args ) ?
+    (fd_make_vector(stack->n_args,NULL)) :
+    (FD_FALSE);
   lispval source = FD_FALSE;
   if (stack->stack_type) type = fd_intern(stack->stack_type);
   if (stack->stack_label) label = lispval_string(stack->stack_label);
@@ -187,23 +184,25 @@ static lispval stack2lisp(struct FD_STACK *stack,struct FD_STACK *inner)
          (IS_EVAL_EXPR(inner->stack_op)) &&
          (op != inner->stack_op) &&
          (source_find(op,inner->stack_op)) ) {
-      op = source_annotate(op,inner->stack_op);}
+      op = annotate_source(op,inner->stack_op);}
     else fd_incref(op);}
   else fd_incref(op);
   if ( stack->stack_args ) {
     lispval n=stack->n_args, i=0;
     lispval *args=stack->stack_args;
-    argvec=fd_make_vector(n,args);
-    while (i<n) {lispval elt=args[i++]; fd_incref(elt);}}
+    lispval *copy=FD_VECTOR_ELTS(argvec);
+    while (i<n) {
+      copy[i]=fd_copier(args[i],FD_FULL_COPY);
+      i++;}}
   if (stack->stack_env) {
     lispval bindings = stack->stack_env->env_bindings;
     if ( (SLOTMAPP(bindings)) || (SCHEMAPP(bindings)) ) {
-      env = fd_copy(bindings);}}
+      env = fd_copier(bindings,FD_FULL_COPY);}}
 
   if ( (IS_EVAL_EXPR(stack->stack_source)) ) {
     if ( (inner) && (IS_EVAL_EXPR(inner->stack_source)) &&
          (source_find(stack->stack_source,inner->stack_source)) ) {
-      source = source_annotate(stack->stack_source,inner->stack_source);}
+      source = annotate_source(stack->stack_source,inner->stack_source);}
     else {
       source = stack->stack_source;
       fd_incref(source);}}
@@ -292,7 +291,7 @@ void fd_init_stacks_c()
 #endif
 
   stack_entry_symbol = fd_intern("_STACK");
-  stack_target_symbol = fd_intern("$=>$");
+  stack_target_symbol = fd_intern("$<<===*eval*===>>$");
 }
 
 /* Emacs local variables
