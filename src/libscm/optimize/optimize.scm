@@ -58,7 +58,6 @@
 (define-init keep-source-default #f)
 (varconfig! optimize:keepsource keep-source-default)
 
-
 (define (optmode-macro optname thresh varname)
   (macro expr
     `(getopt ,(cadr expr) ',optname
@@ -241,18 +240,17 @@
 
 (define-init opcode-map (make-hashtable))
 
-(define (map-opcode value (opts #f) (length #f))
+(define (get-headop value head arity env bound opts)
   (if (use-opcodes? opts)
-      (try (tryif length (get opcode-map (cons value length)))
-	   (tryif (and length (procedure? value)
-		       (procedure-name value)) 
-	     (get opcode-map (cons (procedure-name value) length)))
+      (try (tryif length (get opcode-map (cons value arity)))
+	   (tryif (and arity (procedure? value) (procedure-name value)) 
+	     (get opcode-map (cons (procedure-name value) arity)))
 	   (get opcode-map value)
 	   (get opcode-map value)
 	   (tryif (and (procedure? value) (procedure-name value)) 
 	     (get opcode-map (procedure-name value)))
-	   value)
-      value))
+	   (fcnref value head env opts))
+      (fcnref value head env opts)))
 
 (define name2op
   (and (bound? name->opcode) name->opcode))
@@ -550,11 +548,8 @@
 		  (cond ((or (not from) (fail? headvalue)
 			     (test from '%nosubst head))
 			 head)
-			((test from '%volatile head)
-			 `(#OP_SYMREF ,from ,head))
-			((map-opcode headvalue opts n-exprs)
-			 (map-opcode headvalue opts n-exprs))
-			(else (fcnref headvalue head env opts)))
+			((test from '%volatile head) `(#OP_SYMREF ,from ,head))
+			(else (get-headop headvalue head n-exprs env bound opts)))
 		  (optimize-args (cdr expr) env bound opts))
 		 expr opts)))
 	  ((%lexref? headvalue)
@@ -921,7 +916,7 @@
 ;;;; Special form handlers
 
 (define (optimize-block handler expr env bound opts)
-  (cons (map-opcode handler opts (length (cdr expr)))
+  (cons (get-headop handler (car expr) (length (cdr expr)) env bound opts)
 	(optimize-body (cdr expr))))
 
 (define (optimize-quote handler expr env bound opts)
