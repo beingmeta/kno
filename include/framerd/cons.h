@@ -242,6 +242,7 @@ FD_EXPORT void fd_decref_vec(lispval *vec,size_t n);
 #define FD_FULL_COPY 4   /* Copy non-static objects */
 #define FD_STRICT_COPY 8 /* Require methods for all objects */
 #define FD_STATIC_COPY 16 /* Declare all copied objects static (this leaks) */
+#define FD_COPY_TERMINALS 32 /* Copy even terminal objects */
 
 /* The consheader is a 32 bit value:
    The lower 7 bits are a cons typecode

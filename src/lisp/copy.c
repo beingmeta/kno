@@ -18,7 +18,36 @@
 #define FD_FULL_COPY 4   /* Copy non-static objects */
 #define FD_STRICT_COPY 8 /* Require methods for all objects */
 #define FD_STATIC_COPY 16 /* Declare all copied objects static (this leaks) */
+#define FD_COPY_TERMINALS 32 /* Copy even terminal objects */
 #endif
+
+FD_FASTOP lispval copy_elt(lispval elt,int flags)
+{
+  if (FD_CONSP(elt)) {
+    if (FD_STATIC_CONSP(elt))
+      return fd_copier(elt,flags);
+    else if (((flags)&&(FD_FULL_COPY)) == 0)
+      return fd_incref(elt);
+    else {
+      struct FD_CONS *cons = (fd_cons) elt;
+      fd_ptr_type cons_type = FD_CONS_TYPE(cons);
+      switch (cons_type) {
+      case fd_packet_type: case fd_string_type:
+      case fd_secret_type: case fd_bigint_type:
+      case fd_cprim_type: case fd_evalfn_type:
+      case fd_macro_type: case fd_dtproc_type:
+      case fd_ffi_type: case fd_timestamp_type:
+      case fd_uuid_type: case fd_mystery_type:
+      case fd_rawptr_type: case fd_regex_type:
+      case fd_port_type: case fd_stream_type:
+      case fd_dtserver_type: case fd_bloom_filter_type:
+        if ( (flags) && (FD_COPY_TERMINALS) )
+          return fd_copier(elt,flags);
+        else return fd_incref(elt);
+      default:
+        return fd_copier(elt,flags);}}}
+  else return elt;
+}
 
 
 FD_EXPORT
@@ -43,13 +72,7 @@ lispval fd_copier(lispval x,int flags)
         lispval car = p->car;
         FD_INIT_CONS(newpair,fd_pair_type);
         if (static_copy) {FD_MAKE_STATIC(result);}
-        if (CONSP(car)) {
-          struct FD_CONS *c = (struct FD_CONS *)car;
-          if ( U8_BITP(flags,FD_FULL_COPY) || FD_STATIC_CONSP(c) )
-            newpair->car = fd_copier(car,flags);
-          else {fd_incref(car); newpair->car = car;}}
-        else {
-          fd_incref(car); newpair->car = car;}
+        newpair->car = copy_elt(car,flags);
         *tail = (lispval)newpair;
         tail = &(newpair->cdr);
         scan = p->cdr;}
@@ -66,13 +89,8 @@ lispval fd_copier(lispval x,int flags)
                         (fd_init_code(NULL,len,NULL)));
       lispval *newdata = FD_VECTOR_ELTS(result);
       while (i<len) {
-          lispval v = olddata[i], newv = v;
-          if (CONSP(v)) {
-            struct FD_CONS *c = (struct FD_CONS *)newv;
-            if ((flags&FD_FULL_COPY)||(FD_STATIC_CONSP(c)))
-              newv = fd_copier(newv,flags);
-            else fd_incref(newv);}
-          newdata[i++]=newv;}
+        lispval v = olddata[i];
+        newdata[i++]=copy_elt(v,flags);}
       if (static_copy) {FD_MAKE_STATIC(result);}
       return result;}
     case fd_string_type: {
@@ -101,17 +119,9 @@ lispval fd_copier(lispval x,int flags)
       lispval result;
       if (FD_ATOMIC_CHOICEP(x))
         memcpy(write,read,LISPVEC_BYTELEN(n));
-      else if (flags&FD_FULL_COPY) while (read<limit) {
-          lispval v = *read++, c = fd_copier(v,flags);
-          *write++=c;}
       else while (read<limit) {
-          lispval v = *read++, newv = v;
-          if (CONSP(newv)) {
-            struct FD_CONS *c = (struct FD_CONS *)newv;
-            if (FD_STATIC_CONSP(c))
-              newv = fd_copier(newv,flags);
-            else fd_incref(newv);}
-          *write++=newv;}
+          lispval v = *read++, c = copy_elt(v,flags);
+          *write++=c;}
       result = fd_init_choice(copy,n,NULL,flags);
       if (static_copy) {FD_MAKE_STATIC(result);}
       return result;}
