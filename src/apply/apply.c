@@ -47,7 +47,7 @@ lispval fd_default_stackspec = VOID;
 u8_string fd_ndcallstack_type = "ndapply";
 u8_string fd_callstack_type   = "apply";
 
-#define FD_APPLY_STACK(name,fname,fn) \
+#define FD_APPLY_STACK(name,fname,fn)                   \
   FD_PUSH_STACK(name,fd_callstack_type,fname,fn)
 
 fd_applyfn fd_applyfns[FD_TYPE_MAX];
@@ -123,8 +123,8 @@ FD_EXPORT ssize_t fd_stack_setsize(ssize_t limit)
       fd_set_stack_limit(limit);
       return old;}
     else {
-#if ( (HAVE_PTHREAD_SELF) && \
-      (HAVE_PTHREAD_GETATTR_NP) && \
+#if ( (HAVE_PTHREAD_SELF) &&       \
+      (HAVE_PTHREAD_GETATTR_NP) &&              \
       (HAVE_PTHREAD_ATTR_SETSTACKSIZE) )
       pthread_t self = pthread_self();
       pthread_attr_t attr;
@@ -310,8 +310,8 @@ static lispval dcall7(struct FD_FUNCTION *f,
 }
 
 static lispval dcall8(struct FD_FUNCTION *f,
-                     lispval arg1,lispval arg2,lispval arg3,lispval arg4,
-                     lispval arg5,lispval arg6,lispval arg7,lispval arg8)
+                      lispval arg1,lispval arg2,lispval arg3,lispval arg4,
+                      lispval arg5,lispval arg6,lispval arg7,lispval arg8)
 {
   if (PRED_FALSE(f->fcn_xcall))
     return f->fcn_handler.xcall8(f,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8);
@@ -319,9 +319,9 @@ static lispval dcall8(struct FD_FUNCTION *f,
 }
 
 static lispval dcall9(struct FD_FUNCTION *f,
-                     lispval arg1,lispval arg2,lispval arg3,lispval arg4,
-                     lispval arg5,lispval arg6,lispval arg7,lispval arg8,
-                     lispval arg9)
+                      lispval arg1,lispval arg2,lispval arg3,lispval arg4,
+                      lispval arg5,lispval arg6,lispval arg7,lispval arg8,
+                      lispval arg9)
 {
   if (PRED_FALSE(f->fcn_xcall))
     return f->fcn_handler.xcall9(f,arg1,arg2,arg3,
@@ -333,10 +333,10 @@ static lispval dcall9(struct FD_FUNCTION *f,
 }
 
 static lispval dcall10(struct FD_FUNCTION *f,
-                      lispval arg1,lispval arg2,lispval arg3,
-                      lispval arg4,lispval arg5,lispval arg6,
-                      lispval arg7,lispval arg8,lispval arg9,
-                      lispval arg10)
+                       lispval arg1,lispval arg2,lispval arg3,
+                       lispval arg4,lispval arg5,lispval arg6,
+                       lispval arg7,lispval arg8,lispval arg9,
+                       lispval arg10)
 {
   if (PRED_FALSE(f->fcn_xcall))
     return f->fcn_handler.xcall10(f,arg1,arg2,arg3,
@@ -350,10 +350,10 @@ static lispval dcall10(struct FD_FUNCTION *f,
 }
 
 static lispval dcall11(struct FD_FUNCTION *f,
-                      lispval arg1,lispval arg2,lispval arg3,
-                      lispval arg4,lispval arg5,lispval arg6,
-                      lispval arg7,lispval arg8,lispval arg9,
-                      lispval arg10,lispval arg11)
+                       lispval arg1,lispval arg2,lispval arg3,
+                       lispval arg4,lispval arg5,lispval arg6,
+                       lispval arg7,lispval arg8,lispval arg9,
+                       lispval arg10,lispval arg11)
 {
   if (PRED_FALSE(f->fcn_xcall))
     return f->fcn_handler.xcall11(f,arg1,arg2,arg3,
@@ -367,10 +367,10 @@ static lispval dcall11(struct FD_FUNCTION *f,
 }
 
 static lispval dcall12(struct FD_FUNCTION *f,
-                      lispval arg1,lispval arg2,lispval arg3,
-                      lispval arg4,lispval arg5,lispval arg6,
-                      lispval arg7,lispval arg8,lispval arg9,
-                      lispval arg10,lispval arg11,lispval arg12)
+                       lispval arg1,lispval arg2,lispval arg3,
+                       lispval arg4,lispval arg5,lispval arg6,
+                       lispval arg7,lispval arg8,lispval arg9,
+                       lispval arg10,lispval arg11,lispval arg12)
 {
   if (PRED_FALSE(f->fcn_xcall))
     return f->fcn_handler.xcall12(f,arg1,arg2,arg3,
@@ -384,11 +384,11 @@ static lispval dcall12(struct FD_FUNCTION *f,
 }
 
 static lispval dcall13(struct FD_FUNCTION *f,
-                      lispval arg1,lispval arg2,lispval arg3,
-                      lispval arg4,lispval arg5,lispval arg6,
-                      lispval arg7,lispval arg8,lispval arg9,
-                      lispval arg10,lispval arg11,lispval arg12,
-                      lispval arg13)
+                       lispval arg1,lispval arg2,lispval arg3,
+                       lispval arg4,lispval arg5,lispval arg6,
+                       lispval arg7,lispval arg8,lispval arg9,
+                       lispval arg10,lispval arg11,lispval arg12,
+                       lispval arg13)
 {
   if (PRED_FALSE(f->fcn_xcall))
     return f->fcn_handler.xcall13(f,arg1,arg2,arg3,
@@ -404,11 +404,11 @@ static lispval dcall13(struct FD_FUNCTION *f,
 }
 
 static lispval dcall14(struct FD_FUNCTION *f,
-                      lispval arg1,lispval arg2,lispval arg3,
-                      lispval arg4,lispval arg5,lispval arg6,
-                      lispval arg7,lispval arg8,lispval arg9,
-                      lispval arg10,lispval arg11,lispval arg12,
-                      lispval arg13,lispval arg14)
+                       lispval arg1,lispval arg2,lispval arg3,
+                       lispval arg4,lispval arg5,lispval arg6,
+                       lispval arg7,lispval arg8,lispval arg9,
+                       lispval arg10,lispval arg11,lispval arg12,
+                       lispval arg13,lispval arg14)
 {
   if (PRED_FALSE(f->fcn_xcall))
     return f->fcn_handler.xcall14(f,arg1,arg2,arg3,
@@ -424,11 +424,11 @@ static lispval dcall14(struct FD_FUNCTION *f,
 }
 
 static lispval dcall15(struct FD_FUNCTION *f,
-                      lispval arg1,lispval arg2,lispval arg3,
-                      lispval arg4,lispval arg5,lispval arg6,
-                      lispval arg7,lispval arg8,lispval arg9,
-                      lispval arg10,lispval arg11,lispval arg12,
-                      lispval arg13,lispval arg14,lispval arg15)
+                       lispval arg1,lispval arg2,lispval arg3,
+                       lispval arg4,lispval arg5,lispval arg6,
+                       lispval arg7,lispval arg8,lispval arg9,
+                       lispval arg10,lispval arg11,lispval arg12,
+                       lispval arg13,lispval arg14,lispval arg15)
 {
   if (PRED_FALSE(f->fcn_xcall))
     return f->fcn_handler.xcall15(f,arg1,arg2,arg3,
@@ -445,54 +445,95 @@ static lispval dcall15(struct FD_FUNCTION *f,
 
 /* Generic calling function */
 
-FD_FASTOP int check_typeinfo(struct FD_FUNCTION *f,int n,lispval *args)
+#define BAD_PTRP(x) (!(FD_EXPECT_TRUE(FD_CHECK_CONS_PTR(x))))
+
+static int bad_arg(u8_context cxt,struct FD_FUNCTION *f,int i,lispval v)
+{
+  u8_byte buf[128];
+  u8_string details =
+    ((f->fcn_name) ?
+     (u8_sprintf(buf,128,"%s[%d]",f->fcn_name,i)) :
+     (u8_sprintf(buf,128,"#!%llx[%d]",(long long)f,i)));
+  if (cxt)
+    fd_seterr(fd_TypeError,cxt,details,v);
+  else {
+    u8_byte addr_buf[64];
+    u8_string addr = u8_sprintf(addr_buf,64,"#!%llx",v);
+    fd_seterr(fd_TypeError,cxt,details,fdstring(addr));}
+  return -1;
+}
+
+FD_FASTOP int check_args(struct FD_FUNCTION *f,int n,
+                         lispval *argbuf,lispval *argvec)
 {
   /* Check typeinfo */
   int *typeinfo = f->fcn_typeinfo; int i = 0;
   if (typeinfo) while (i<n) {
-      lispval arg = args[i];
-      int argtype = typeinfo[i];
-      if (argtype<0) i++;
-      else if (TYPEP(arg,argtype)) i++;
-      else if ( (VOIDP(arg)) || (FD_DEFAULTP(arg))) i++;
-      else {
-        u8_string type_name = fd_type2name(argtype);
-        fd_seterr(fd_TypeError,type_name,f->fcn_name,args[i]);
-        return -1;}}
-  return 0;
+      lispval arg = argvec[i];
+      if (BAD_PTRP(arg))
+        return bad_arg(NULL,f,i,arg);
+      else if (FD_QCHOICEP(arg))
+        arg = FD_XQCHOICE(arg)->qchoiceval;
+      else NO_ELSE;
+      int expect_type = typeinfo[i], arg_type = FD_PTR_TYPE(arg);
+      if ( (VOIDP(arg)) || (FD_DEFAULTP(arg))) {}
+      else if (FD_EXPECT_FALSE( (expect_type >= 0) &&
+                                ( arg_type != expect_type )))
+        return bad_arg(fd_type2name(arg_type),f,i,arg);
+      else if (FD_QCHOICEP(arg))
+        arg = FD_XQCHOICE(arg)->qchoiceval;
+      else NO_ELSE;
+      argbuf[i++]=arg;}
+  else while (i < n) {
+      lispval arg = argvec[i];
+      if (BAD_PTRP(arg))
+        return bad_arg(NULL,f,i,arg);
+      else if (FD_QCHOICEP(arg))
+        arg = FD_XQCHOICE(arg)->qchoiceval;
+      else NO_ELSE;
+      argbuf[i++]=arg;}
+  return i;
 }
 
-FD_FASTOP lispval *prepare_argbuf(struct FD_FUNCTION *f,int n,
-                                 lispval *argbuf,
-                                 lispval *argvec)
+FD_FASTOP int fill_arbguf(struct FD_FUNCTION *f,int n,
+                          lispval *argbuf,
+                          lispval *argvec)
 {
   int arity = f->fcn_arity, min_arity = f->fcn_min_arity;
   lispval fptr = (lispval)f;
   if ((min_arity>0) && (n<min_arity)) {
     fd_seterr(fd_TooFewArgs,"fd_dapply",f->fcn_name,fptr);
-    return NULL;}
+    return -1;}
   else if ((arity>=0) && (n>arity)) {
     fd_seterr(fd_TooManyArgs,"fd_dapply",f->fcn_name,fptr);
-    return NULL;}
+    return -1;}
   else if ((arity<0)||(arity == n))
-    return argvec;
+    return check_args(f,n,argbuf,argvec);
   else {
+    int *typeinfo = f->fcn_typeinfo;
     lispval *defaults = f->fcn_defaults;
     int i=0; while (i<n) {
-      lispval v = argvec[i];
+      lispval arg = argvec[i]; int incref = 0;
+      int expect_type = (typeinfo) ? (typeinfo[i]) : (-1);
       if ( (defaults) &&
-           ( (v == VOID) ||
-             (v == FD_DEFAULT_VALUE) ) ) {
-        argbuf[i]=defaults[i];
-        fd_incref(defaults[i]);}
-      else if (v==FD_NULL)
-        argbuf[i]=VOID;
-      else argbuf[i]=v;
-      i++;}
+           ( (arg == VOID) ||
+             (arg == FD_DEFAULT_VALUE) ) ) {
+        arg=defaults[i]; incref=1;}
+      if (BAD_PTRP(arg))
+        return bad_arg(NULL,f,i,arg);
+      int arg_type = FD_PTR_TYPE(arg);
+      if (FD_EXPECT_FALSE( (expect_type >= 0) &&
+                           ( arg_type != expect_type )))
+        return bad_arg(fd_type2name(expect_type),f,i,arg);
+      else if (arg_type == fd_qchoice_type)
+        arg = FD_XQCHOICE(arg)->qchoiceval;
+      else NO_ELSE;
+      if (incref) fd_incref(arg);
+      argbuf[i++] = arg;}
     if (defaults)
       while (i<arity) { argbuf[i]=defaults[i]; i++;}
     else while (i<arity) { argbuf[i++]=VOID; }
-    return argbuf;}
+    return i;}
 }
 
 FD_FASTOP lispval dcall(u8_string fname,fd_function f,int n,lispval *args)
@@ -570,33 +611,34 @@ FD_FASTOP lispval apply_fcn(struct FD_STACK *stack,
   else if (arity<0) { /* Is a LEXPR */
     if (n<(f->fcn_min_arity))
       return fd_err(fd_TooFewArgs,"apply_fcn",f->fcn_name,fnptr);
+    lispval argbuf[n];
+    if (FD_EXPECT_FALSE(check_args(f,n,argbuf,argvec)<0))
+      return FD_ERROR;
     else if ( (f->fcn_xcall) && (f->fcn_handler.xcalln) )
-      return f->fcn_handler.xcalln(f,n,argvec);
+      return f->fcn_handler.xcalln(f,n,argbuf);
     else if (f->fcn_handler.calln)
-      return f->fcn_handler.calln(n,argvec);
+      return f->fcn_handler.calln(n,argbuf);
     else {
       /* There's no explicit method on this function object, so we use
          the method on the type (if there is one) */
       int ctype = FD_CONS_TYPE(f);
       if (fd_applyfns[ctype])
-        return fd_applyfns[ctype]((lispval)f,n,argvec);
+        return fd_applyfns[ctype]((lispval)f,n,argbuf);
       else return fd_err("NotApplicable","apply_fcn",f->fcn_name,fnptr);}}
   else if (n==arity) {
-    if (check_typeinfo(f,n,argvec)<0)
+    lispval argbuf[arity];
+    if (FD_EXPECT_FALSE(check_args(f,n,argbuf,argvec)<0))
       return FD_ERROR;
-    else return dcall(name,f,n,argvec);}
+    else return dcall(name,f,n,argbuf);}
   else {
     lispval argbuf[arity];
-    lispval *args = prepare_argbuf(f,n,argbuf,argvec);
-    if (args == NULL)
+    if (FD_EXPECT_FALSE(fill_arbguf(f,n,argbuf,argvec)<0))
       return FD_ERROR;
-    else if (check_typeinfo(f,n,args)<0)
-      return FD_ERROR;
-    else return dcall(name,f,n,args);}
+    else return dcall(name,f,n,argbuf);}
 }
 
-FD_EXPORT lispval fd_dcall(struct FD_STACK *_stack,
-                          lispval fn,int n,lispval *argvec)
+FD_EXPORT lispval fd_dcall(struct FD_STACK *_stack,lispval fn,
+                           int n,lispval *argvec)
 {
   u8_byte namebuf[60]="", numbuf[32];
   u8_string fname="apply";
@@ -698,19 +740,19 @@ FD_EXPORT lispval fd_dcall(struct FD_STACK *_stack,
 
 /* Calling non-deterministically */
 
-#define FD_ADD_RESULT(to,result)                \
-  if (to == EMPTY) to = result;           \
+#define FD_ADD_RESULT(to,result)          \
+  if (to == EMPTY) to = result;                 \
   else {                                        \
-    if (TYPEP(to,fd_tailcall_type))          \
+    if (TYPEP(to,fd_tailcall_type))               \
       to = fd_finish_call(to);                    \
-    if (TYPEP(result,fd_tailcall_type))      \
+    if (TYPEP(result,fd_tailcall_type))           \
       result = fd_finish_call(result);            \
-  CHOICE_ADD(to,result);}
+    CHOICE_ADD(to,result);}
 
 static lispval ndcall_loop
-  (struct FD_STACK *_stack,
-   struct FD_FUNCTION *f,lispval *results,int *typeinfo,
-   int i,int n,lispval *nd_args,lispval *d_args)
+(struct FD_STACK *_stack,
+ struct FD_FUNCTION *f,lispval *results,int *typeinfo,
+ int i,int n,lispval *nd_args,lispval *d_args)
 {
   lispval retval=VOID;
   if (i == n) {
@@ -721,13 +763,10 @@ static lispval ndcall_loop
       value = fd_finish_call(value);
       if (FD_ABORTP(value)) return value;
       FD_ADD_RESULT(*results,value);}}
-  else if (TYPEP(nd_args[i],fd_qchoice_type)) {
-    d_args[i]=FD_XQCHOICE(nd_args[i])->qchoiceval;
-    return ndcall_loop(_stack,f,results,typeinfo,i+1,n,nd_args,d_args);}
   else if ((!(CHOICEP(nd_args[i]))) ||
            ((typeinfo)&&(typeinfo[i]==fd_choice_type))) {
     d_args[i]=nd_args[i];
-    retval = ndcall_loop(_stack,f,results,typeinfo,i+1,n,nd_args,d_args);}
+    return ndcall_loop(_stack,f,results,typeinfo,i+1,n,nd_args,d_args);}
   else {
     DO_CHOICES(elt,nd_args[i]) {
       d_args[i]=elt;
@@ -796,9 +835,9 @@ static lispval ndapply3(fd_stack _stack,lispval fp,lispval args0,lispval args1,l
 }
 
 static lispval ndapply4(fd_stack _stack,
-                       lispval fp,
-                       lispval args0,lispval args1,
-                       lispval args2,lispval args3)
+                        lispval fp,
+                        lispval args0,lispval args1,
+                        lispval args2,lispval args3)
 {
   lispval results = EMPTY;
   DO_CHOICES(arg0,args0) {
@@ -827,7 +866,7 @@ static lispval ndapply4(fd_stack _stack,
 }
 
 FD_EXPORT lispval fd_ndcall(struct FD_STACK *_stack,
-                           lispval fp,int n,lispval *args)
+                            lispval fp,int n,lispval *args)
 {
   lispval handler = (FD_FCNIDP(fp) ? (fd_fcnid_ref(fp)) : (fp));
   if (EMPTYP(handler))
@@ -897,7 +936,7 @@ static lispval qchoice_dcall
 (fd_stack stack,lispval fp,int n,lispval *args);
 
 FD_EXPORT lispval fd_call(struct FD_STACK *_stack,
-                         lispval fp,int n,lispval *args)
+                          lispval fp,int n,lispval *args)
 {
   lispval result;
   struct FD_FUNCTION *f = FD_DTYPE2FCN(fp);
@@ -994,15 +1033,9 @@ FD_EXPORT lispval fd_tail_call(lispval fcn,int n,lispval *vec)
     while (write<write_limit) {
       lispval v = *read++;
       if (CONSP(v)) {
+        if (CHOICEP(v)) nd = 1;
         atomic = 0;
-        if (QCHOICEP(v)) {
-          struct FD_QCHOICE *qc = (fd_qchoice)v;
-          lispval cv = qc->qchoiceval;
-          fd_incref(cv);
-          *write++=cv;}
-        else {
-          if (CHOICEP(v)) nd = 1;
-          *write++=fd_incref(v);}}
+        *write++=fd_incref(v);}
       else *write++=v;}
     if (atomic) tc->tailcall_flags |= FD_TAILCALL_ATOMIC_ARGS;
     if (nd) tc->tailcall_flags |= FD_TAILCALL_ND_ARGS;
