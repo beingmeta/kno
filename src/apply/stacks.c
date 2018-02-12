@@ -39,59 +39,9 @@ __thread struct FD_STACK *fd_stackptr=NULL;
 struct FD_STACK *fd_stackptr=NULL;
 #endif
 
-static lispval stack_entry_symbol, stack_target_symbol;
+static lispval stack_entry_symbol, stack_target_symbol, opaque_symbol;
 
-static int source_find(lispval expr,lispval target);
-
-static int source_test(lispval expr,lispval target)
-{
-  if ( expr == target)
-    return 1;
-  else if (! (FD_CONSP(expr)) )
-    return 0;
-  else return source_find(expr,target);
-}
-
-static int source_find(lispval expr,lispval target)
-{
-  if ( expr == target )
-    return 1;
-  else if (! (FD_CONSP(expr)) )
-    return 0;
-  else {
-    fd_ptr_type type = FD_PTR_TYPE(expr);
-    switch (type) {
-    case fd_pair_type:
-      if (source_test(FD_CAR(expr),target))
-        return 1;
-      else return (source_test(FD_CDR(expr),target));
-    case fd_vector_type: case fd_code_type: {
-      struct FD_VECTOR *vec = (fd_vector) expr;
-      lispval *elts = vec->vec_elts;
-      int i=0, n=vec->vec_length; while (i<n) {
-        if (source_test(elts[i],target))
-          return 1;
-        else i++;}
-      return 0;}
-    case fd_choice_type: {
-      FD_DO_CHOICES(elt,expr) {
-        if (source_test(elt,target)) {
-          FD_STOP_DO_CHOICES;
-          return 1;}}
-      return 0;}
-    case fd_slotmap_type: {
-      struct FD_SLOTMAP *smap = (fd_slotmap) expr;
-      struct FD_KEYVAL *kvals = smap->sm_keyvals;
-      int i=0, n = smap->n_slots; while (i<n) {
-        if (source_test(kvals[i].kv_key,target))
-          return 1;
-        else if (source_test(kvals[i].kv_val,target))
-          return 1;
-        else i++;}
-      return 0;}
-    default:
-      return 0;}}
-}
+static int tidy_stack_frames = 1;
 
 static lispval annotate_source(lispval expr,lispval target);
 
@@ -146,8 +96,11 @@ static lispval annotate_source(lispval expr,lispval target)
         new_kvals[i].kv_val = source_subst(kvals[i].kv_val,target);
         i++;}
       return (lispval) newsmap;}
-    default:
-      return expr;}}
+    default: {
+      u8_string string = fd_lisp2string(expr);
+      return fd_init_compound(NULL,opaque_symbol,0,1,
+                              fd_init_string(NULL,-1,string));}
+    }}
 }
 
 #define IS_EVAL_EXPR(x) ( (!(FD_NULLP(x))) && ((FD_PAIRP(x)) || (FD_CODEP(x))) )
@@ -174,19 +127,22 @@ static lispval stack2lisp(struct FD_STACK *stack,struct FD_STACK *inner)
   lispval argvec = ( stack->stack_args ) ?
     (fd_make_vector(stack->n_args,NULL)) :
     (FD_FALSE);
-  lispval source = FD_FALSE;
+  lispval source = stack->stack_source;
   if (stack->stack_type) type = fd_intern(stack->stack_type);
   if (stack->stack_label) label = lispval_string(stack->stack_label);
   if (stack->stack_status) status = lispval_string(stack->stack_status);
-  if (FD_VOIDP(op)) op = FD_FALSE;
-  else if (IS_EVAL_EXPR(op)) {
-    if ( (inner) &&
-         (IS_EVAL_EXPR(inner->stack_op)) &&
-         (op != inner->stack_op) &&
-         (source_find(op,inner->stack_op)) ) {
-      op = annotate_source(op,inner->stack_op);}
-    else fd_incref(op);}
+  if ( (tidy_stack_frames) &&
+       (IS_EVAL_EXPR(source)) &&
+       (IS_EVAL_EXPR(stack->stack_source)) ) {
+    if ( (inner) && (IS_EVAL_EXPR(inner->stack_source)) )
+      op = annotate_source(stack->stack_source,inner->stack_source);
+    else op = fd_incref(stack->stack_source);}
+  else if ( (inner) &&
+            (IS_EVAL_EXPR(op)) &&
+            (IS_EVAL_EXPR(stack->stack_op)) )
+    op = annotate_source(stack->stack_op,inner->stack_op);
   else fd_incref(op);
+
   if ( stack->stack_args ) {
     lispval n=stack->n_args, i=0;
     lispval *args=stack->stack_args;
@@ -199,14 +155,15 @@ static lispval stack2lisp(struct FD_STACK *stack,struct FD_STACK *inner)
     if ( (SLOTMAPP(bindings)) || (SCHEMAPP(bindings)) ) {
       env = fd_copier(bindings,FD_FULL_COPY);}}
 
-  if ( (IS_EVAL_EXPR(stack->stack_source)) ) {
-    if ( (inner) && (IS_EVAL_EXPR(inner->stack_source)) &&
-         (source_find(stack->stack_source,inner->stack_source)) ) {
-      source = annotate_source(stack->stack_source,inner->stack_source);}
-    else {
-      source = stack->stack_source;
-      fd_incref(source);}}
-  else NO_ELSE;
+  if (FD_VOIDP(op)) op = FD_FALSE;
+  if (FD_VOIDP(source))
+    source = FD_FALSE;
+  else if (FD_EQUALP(op,source))
+    source = FD_FALSE;
+  else if ( (inner) && (IS_EVAL_EXPR(source)) &&
+            (IS_EVAL_EXPR(inner->stack_source)) )
+    source = annotate_source(stack->stack_source,inner->stack_source);
+  else fd_incref(source);
 
   if ( (FD_FALSEP(argvec)) && (FD_CONSP(source)) ) argvec=FD_NIL;
   if (FD_FALSEP(status)) {
@@ -222,16 +179,16 @@ static lispval stack2lisp(struct FD_STACK *stack,struct FD_STACK *inner)
                             STACK_CREATE_OPTS,5,depth,type,op,label,argvec);
   case 6:
     return fd_init_compound(NULL,stack_entry_symbol,
-                            STACK_CREATE_OPTS,6,depth,type,source,label,
-                            argvec,op);
+                            STACK_CREATE_OPTS,6,depth,type,op,label,
+                            argvec,source);
   case 7:
     return fd_init_compound(NULL,stack_entry_symbol,
-                            STACK_CREATE_OPTS,7,depth,type,source,label,
-                            argvec,op,env);
+                            STACK_CREATE_OPTS,7,depth,type,op,label,
+                            argvec,source,env);
   default:
     return fd_init_compound(NULL,stack_entry_symbol,
-                            STACK_CREATE_OPTS,8,depth,type,source,label,
-                            argvec,op,env,status);
+                            STACK_CREATE_OPTS,8,depth,type,op,label,
+                            argvec,source,env,status);
   }
 }
 
@@ -290,8 +247,14 @@ void fd_init_stacks_c()
   fd_stackptr=NULL;
 #endif
 
+  fd_register_config
+    ("TIDYSTACKS",
+     _("Whether to include raw ops in stacks when source is available"),
+     fd_boolconfig_get,fd_boolconfig_set,&tidy_stack_frames);
+
+  opaque_symbol = fd_intern("%OPAQUE");
   stack_entry_symbol = fd_intern("_STACK");
-  stack_target_symbol = fd_intern("$<<===*eval*===>>$");
+  stack_target_symbol = fd_intern("$<<*eval*>>$");
 }
 
 /* Emacs local variables
