@@ -3232,7 +3232,7 @@ static void copy_keyval(struct FD_KEYVAL *dest,struct FD_KEYVAL *src)
   if (FD_CONSP(val)) {
     if (FD_PRECHOICEP(val))
       val = fd_make_simple_choice(val);
-    else if (FD_STATIC_CONSP(key))
+    else if (FD_STATIC_CONSP(val))
       val = fd_deep_copy(val);
     else fd_incref(val);}
   dest->kv_key = key;
