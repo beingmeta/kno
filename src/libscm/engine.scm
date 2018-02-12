@@ -185,7 +185,7 @@ slot of the loop state.
     (exception-condition ex) " @" (exception-caller ex)
     (when (exception-details ex) (printout " (" (exception-details ex) ")"))
     (when saved (printout " exception dumped to " (write saved))))
-  ;; (dump-bug ex)
+  (dump-bug ex)
   (when (exception-irritant? ex)
     (loginfo |EngineError/irritant| 
       "For " (get loop-state 'fifo) " "
