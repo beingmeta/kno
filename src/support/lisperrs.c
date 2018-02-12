@@ -544,7 +544,7 @@ static ssize_t write_exception_dtype(struct FD_OUTBUF *out,lispval x)
   if (details) {
     FD_VECTOR_SET(vector,2,lispval_string(details));}
   else {FD_VECTOR_SET(vector,2,FD_FALSE);}
-  FD_VECTOR_SET(vector,3,irritant);
+  FD_VECTOR_SET(vector,3,fd_incref(irritant));
   if (!(VOIDP(backtrace)))
     FD_VECTOR_SET(vector,4,fd_incref(backtrace));
   else FD_VECTOR_SET(vector,4,FD_FALSE);
