@@ -21,6 +21,7 @@
 #include "framerd/eval.h"
 #include "framerd/ports.h"
 #include "framerd/fdweb.h"
+#include "framerd/pprint.h"
 #include "framerd/support.h"
 
 /* If you  edit this file, you probably also want to edit bugjar.css */
@@ -121,7 +122,26 @@ void fd_xhtmldebugpage(u8_output s,u8_exception ex)
     u8_puts(s,"<div class='backtrace'>\n");
     fd_html_backtrace(s,backtrace);
     u8_puts(s,"</div>\n");}
-
+  else if (FD_VECTORP(backtrace)) {
+    int i = 0, len = FD_VECTOR_LENGTH(backtrace);
+    u8_puts(s,"<pre class='backtrace'>\n");
+    struct U8_OUTPUT btbuf; U8_INIT_OUTPUT(&btbuf,10000);
+    while (i < len) {
+      lispval entry = FD_VECTOR_REF(backtrace,i);
+      fd_pprint_x(&btbuf,entry,NULL,2,2,0,NULL,NULL);
+      fd_emit_xmlcontent(s,btbuf.u8_outbuf);
+      u8_putc(s,'\n');
+      btbuf.u8_write = btbuf.u8_outbuf;
+      i++;}
+    u8_close_output(&btbuf);
+    u8_puts(s,"\n</pre>\n");}
+  else {
+    u8_puts(s,"<pre class='backtrace'>\n");
+    struct U8_OUTPUT btbuf; U8_INIT_OUTPUT(&btbuf,100000);
+    fd_pprint_x(&btbuf,backtrace,NULL,0,0,0,NULL,NULL);
+    fd_emit_xmlcontent(s,btbuf.u8_outbuf);
+    u8_close_output(&btbuf);
+    u8_puts(s,"</pre>\n");}
   u8_puts(s,"</body>\n</html>\n");
 }
 

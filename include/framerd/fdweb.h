@@ -124,17 +124,17 @@ FD_EXPORT int fd_lisp2xml(u8_output out,lispval x,fd_lexenv env);
 FD_EXPORT void fd_xmloid(u8_output out,lispval oid_arg);
 FD_EXPORT lispval fd_xmleval(u8_output out,lispval xml,fd_lexenv env);
 FD_EXPORT lispval fd_xmlevalout(u8_output out,lispval xml,
-			       fd_lexenv scheme_env,fd_lexenv xml_env);
+                               fd_lexenv scheme_env,fd_lexenv xml_env);
 FD_EXPORT lispval fd_xmleval_with(u8_output out,lispval xml,lispval,lispval);
 
 FD_EXPORT lispval fd_open_xml(lispval xml,fd_lexenv env);
 FD_EXPORT lispval fd_close_xml(lispval xml);
 FD_EXPORT lispval fd_unparse_xml(u8_output out,lispval xml,fd_lexenv env);
 FD_EXPORT lispval fd_xmlout(u8_output out,lispval xml,
-			   fd_lexenv scheme_env,
-			   fd_lexenv xml_env);
+                           fd_lexenv scheme_env,
+                           fd_lexenv xml_env);
 FD_EXPORT int fd_xmlout_helper(U8_OUTPUT *out,U8_OUTPUT *tmp,lispval x,
-			       lispval xmloidfn,fd_lexenv env);
+                               lispval xmloidfn,fd_lexenv env);
 
 FD_EXPORT struct FD_XML *fd_load_fdxml(u8_input in,int bits);
 FD_EXPORT struct FD_XML *fd_read_fdxml(u8_input in,int bits);
@@ -171,13 +171,14 @@ FD_EXPORT int fd_output_xhtml_preface(U8_OUTPUT *out,lispval cgidata);
 FD_EXPORT int fd_output_xml_preface(U8_OUTPUT *out,lispval cgidata);
 FD_EXPORT int fd_output_http_headers(U8_OUTPUT *out,lispval cgidata);
 
+FD_EXPORT int fd_output_http_headers(U8_OUTPUT *out,lispval cgidata);
+
 FD_EXPORT int fd_cache_markup;
 
 /* URI parsing stuff */
 
 FD_EXPORT lispval fd_parse_uri(u8_string uri,lispval base);
 FD_EXPORT lispval fd_parse_uri(u8_string uri,lispval base);
-
 
 /* MIME parsing stuff */
 
@@ -206,7 +207,7 @@ FD_EXPORT void fd_init_json_c(void);
   "Content-type: text/html; charset = utf-8;"
 #define DEFAULT_DOCTYPE \
   "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\"\
-	       \"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">"
+               \"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">"
 #define DEFAULT_XMLPI \
   "<?xml version='1.0' charset='utf-8' ?>"
 
