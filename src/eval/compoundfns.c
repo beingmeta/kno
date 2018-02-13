@@ -20,11 +20,16 @@
 static lispval compoundp(lispval x,lispval tag)
 {
   if (VOIDP(tag))
-    if (FD_COMPOUNDP(x)) return FD_TRUE;
+    if (FD_COMPOUNDP(x))
+      return fd_incref(x);
     else return FD_FALSE;
   else if (FD_COMPOUNDP(x))
-    if (FD_COMPOUND_TAG(x) == tag)
-      return FD_TRUE;
+    if (FD_AMBIGP(tag)) {
+      if (fd_choice_containsp(FD_COMPOUND_TAG(x),tag))
+        return fd_incref(x);
+      else return FD_FALSE;}
+    else if (FD_COMPOUND_TAG(x) == tag)
+      return fd_incref(x);
     else return FD_FALSE;
   else return FD_FALSE;
 }
@@ -482,7 +487,11 @@ FD_EXPORT void fd_init_compoundfns_c()
   consfn_symbol = fd_intern("CONS");
   stringfn_symbol = fd_intern("STRINGIFY");
 
-  fd_idefn(fd_scheme_module,fd_make_cprim2("COMPOUND?",compoundp,1));
+  fd_idefn2(fd_scheme_module,"COMPOUND?",compoundp,1,
+            "`(COMPOUND? *arg* [*tags*])` returns *arg* if it is "
+            "a compound and (when specified) if it's typetag "
+            "is any of *tags*.",
+            -1,FD_VOID,-1,FD_VOID);
   fd_defalias(fd_scheme_module,"COMPOUND-TYPE?","COMPOUND?");
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("COMPOUND-TAG",compound_tag,1,
