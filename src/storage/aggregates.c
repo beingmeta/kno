@@ -63,7 +63,8 @@ static int aggregate_prefetch(fd_index ix,lispval keys)
       valuev[n_fetches]=EMPTY;
       n_fetches++;}
   if (n_fetches==0) {
-    u8_free(keyv); u8_free(valuev);
+    u8_big_free(keyv);
+    u8_big_free(valuev);
     return 0;}
   fd_lock_index(aix);
   lim = aix->ax_n_indexes;
