@@ -1,5 +1,5 @@
 ;;; -*- Mode: emacs-lisp; lexical-binding: t; -*-
-;;; fdconsole.el --- emacs mode for the FramerD console  
+;;; fdconsole.el --- emacs mode for the FramerD console
 
 ;; Copyright (C) 2001-2016  beingmeta, inc
 
@@ -25,10 +25,9 @@
 (make-variable-buffer-local 'fdconsole-startup)
 ;; The fdconsole command line
 (make-variable-buffer-local 'fdconsole-cmdline)
-;; Whether to make the buffer output read only
-(make-variable-buffer-local 'comint-read-only-output)
 
-(defvar comint-read-only-output nil)
+(defvar comint-prompt-read-only t)
+(defvar comint-output-read-only t)
 
 (defvar *framerd-keywords*
   '("\\<do-choices-mt\\>" "\\<do-vector-mt\\>" "\\<for-choices-mt\\>"
@@ -39,8 +38,14 @@
     "\\<while\\>" "\\<until\\>" "\\<onerror>\\" "\\<set+!>\\"
     "\\<find-frames\\>" "\\<pick\\>" "\\<reject\\>"
     "\\<div\\>" "\\<p\\>" "\\<p*\\>" "\\<form\\>"
-    "\\<try-choices>\\" "\\<tryseq>\\" "\\<extdb/proc>\\" 
+    "\\<try-choices>\\" "\\<tryseq>\\" "\\<extdb/proc>\\"
     "\\<cond>\\" "\\<if>\\" "\\<and>\\" "\\<or>\\"
+    "\\<xmlout>\\" "\\<printout>\\" "\\<fileout>\\"
+    "\\<stringout>\\" "\\choice\\" "\\when\\"
+    "\\unless\\" "\\begin\\" "\\let\\" "\\let*\\"
+    "\\while\\" "\\until\\" "\\not\\"
+    "\\union\\" "\\intersection\\" "\\difference\\"
+    "\\pick\\" "\\reject\\"
     "\\<error>\\" "\\<irritant>\\"))
 
 ;; This gets #[ and #( to do block indents
@@ -112,7 +117,8 @@
 
 (put 'set! 'scheme-indent-function 1)
 (put 'set+! 'scheme-indent-function 1)
-
+(put 'store! 'scheme-indent-function 1)
+(put 'add! 'scheme-indent-function 1)
 
 (put 'irritant 'scheme-indent-function 2)
 (put 'begin 'scheme-indent-function 'block-indenter)
@@ -141,8 +147,6 @@
 (put 'onerror 'scheme-indent-function 2)
 (put 'prog1 'scheme-indent-function 1)
 
-(put 'index-frame 'scheme-indent-function 2)
-
 (put 'hashtable-increment! 'scheme-indent-function 2)
 (put 'hashtable-increment-existing! 'scheme-indent-function 2)
 (put 'table-increment! 'scheme-indent-function 2)
@@ -160,6 +164,8 @@
 (put 'printout 'scheme-indent-function 'block-indenter)
 (put 'message 'scheme-indent-function 'block-indenter)
 (put 'lineout 'scheme-indent-function 'block-indenter)
+(put 'stringout 'scheme-indent-function 'block-indenter)
+(put 'glom 'scheme-indent-function 'block-indenter)
 (put 'fileout 'scheme-indent-function 1)
 (put 'writeout 'scheme-indent-function 1)
 (put 'writeout/type 'scheme-indent-function 2)
@@ -172,8 +178,6 @@
 (put 's3/write! 'scheme-indent-function 2)
 (put 's3/copy! 'scheme-indent-function 2)
 (put 'ses/call 'scheme-indent-function 1)
-(put 'stringout 'scheme-indent-function 'block-indenter)
-(put 'glom 'scheme-indent-function 'block-indenter)
 (put 'logif 'scheme-indent-function 1)
 (put 'logger 'scheme-indent-function 1)
 (put 'logpanic 'scheme-indent-function 1)
@@ -215,6 +219,12 @@
 (put 'with-output-to-string 'scheme-indent-function 'block-indenter)
 (put 'string-subst* 'scheme-indent-function 1)
 
+(put 'make-pool 'scheme-indent-function 1)
+(put 'make-index 'scheme-indent-function 1)
+(put 'open-pool 'scheme-indent-function 1)
+(put 'open-index 'scheme-indent-function 1)
+(put 'engine/run 'scheme-indent-function 2)
+
 ;;; XML/HTML generation
 (put 'xmlout 'scheme-indent-function 'block-indenter)
 (put 'xmlblock 'scheme-indent-function 2)
@@ -249,8 +259,13 @@
 (put 'vistoggle 'scheme-indent-function 1)
 (put 'form 'scheme-indent-function 1)
 
+(put 'pick 'scheme-indent-function 1)
+(put 'reject 'scheme-indent-function 1)
+(put 'modify-frame 'scheme-indent-function 1)
+(put 'frame-update 'scheme-indent-function 1)
 (put 'find-frames 'scheme-indent-function 1)
 (put 'frame-create 'scheme-indent-function 1)
+(put 'index-frame 'scheme-indent-function 2)
 
 (put '%watch 'scheme-indent-function 1)
 (put 'deluge%watch 'scheme-indent-function 1)
@@ -335,10 +350,11 @@
 
 (defun make-output-read-only (text)
   "Add to comint-output-filter-functions to make stdout read only"
-  (when comint-read-only-output
+  (when comint-output-read-only
     (let ((inhibit-read-only t)
 	  (output-end (process-mark (get-buffer-process (current-buffer)))))
       (put-text-property comint-last-output-start output-end 'read-only t))))
+(add-hook 'comint-output-filter-functions 'make-output-read-only)
 
 ;;; Running an fdconsole
 
@@ -382,6 +398,9 @@ run). \(Type \\[describe-mode] in the process buffer for a list of commands.)"
     (setq scheme-buffer bufname)
     (setq fdconsole-cmdline cmd)
     (pop-to-buffer bufname)
+    (setq-local comint-output-read-only t)
+    (setq-local comint-prompt-read-only t)
+    (setq-local kill-read-only-ok t)
     (setq comint-prompt-regexp "^#|[^>]+>|")
     ;; (message "Sending '%s'" fdconsole-startup)
     (when fdconsole-startup
@@ -397,9 +416,10 @@ run). \(Type \\[describe-mode] in the process buffer for a list of commands.)"
   (interactive)
   (local-set-key "\e\C-m" 'fdconsole-sender)
   (setq undo-limit 32)
-  (font-lock-add-keywords 'scheme-mode *framerd-keywords*))
+  (font-lock-add-keywords 'scheme-mode *framerd-keywords*)
+  (setq comint-output-read-only t)
+  (setq comint-prompt-read-only t))
 (add-hook 'scheme-mode-hook 'fdconsole-scheme-mode-hook)
-
 
 (provide 'fdconsole)
 ;;; fdconsole.el ends here
