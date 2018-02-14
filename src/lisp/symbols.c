@@ -12,6 +12,8 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 
+#include "libu8/u8memlist.h"
+
 lispval *fd_symbol_names;
 int fd_n_symbols = 0, fd_max_symbols = 0, fd_initial_symbols = 1024;
 struct FD_SYMBOL_TABLE fd_symbol_table;
@@ -38,6 +40,7 @@ lispval FDSYM_TAG, FDSYM_TEST, FDSYM_TEXT, FDSYM_TYPE;
 lispval FDSYM_VERSION, FDSYM_VOID;
 
 u8_rwlock fd_symbol_lock;
+static u8_memlist old_symbol_data = NULL;
 
 #define MYSTERIOUS_MULTIPLIER 2654435769U
 #define MYSTERIOUS_MODULUS 256001281
@@ -162,19 +165,22 @@ static void grow_symbol_tables()
         struct FD_SYMBOL_ENTRY *entry = old_entries[i];
         int probe=
           mult_hash_bytes(entry->sym_pname.str_bytes,
-                           entry->sym_pname.str_bytelen)%new_size;
+                          entry->sym_pname.str_bytelen)%new_size;
         while (PRED_TRUE(new_entries[probe]!=NULL))
-          if (probe >= new_size) probe = 0; else probe = (probe+1)%new_size;
+          if (probe >= new_size)
+            probe = 0;
+          else probe = (probe+1)%new_size;
         new_entries[probe]=entry;
         i++;}
-    u8_free(old_entries);
+    old_symbol_data = u8_cons_list(old_entries,old_symbol_data,0);
     fd_symbol_table.fd_symbol_entries = new_entries;
     fd_symbol_table.table_size = new_size;}
   {
     int i = 0, lim = fd_n_symbols; lispval *old_symbol_names;
     while (i < lim) {new_symbol_names[i]=fd_symbol_names[i]; i++;}
-    old_symbol_names = fd_symbol_names; fd_symbol_names = new_symbol_names;
-    u8_free(old_symbol_names);}
+    old_symbol_names = fd_symbol_names;
+    fd_symbol_names = new_symbol_names;
+    old_symbol_data = u8_cons_list(old_symbol_names,old_symbol_data,0);}
   fd_max_symbols = new_max;
 }
 
