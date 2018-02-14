@@ -17,6 +17,15 @@
 
 (require 'cmuscheme)
 
+(let ((st scheme-mode-syntax-table))
+  (modify-syntax-entry ?\[ "(]" )
+  (modify-syntax-entry ?\] ")[" scheme-mode-syntax-table)
+  (modify-syntax-entry ?{ "(}" scheme-mode-syntax-table)
+  (modify-syntax-entry ?} "){" scheme-mode-syntax-table)
+  (modify-syntax-entry ?( "()" scheme-mode-syntax-table)
+  (modify-syntax-entry ?) ")(" scheme-mode-syntax-table))
+
+
 ;; We do this because we don't want console windows to have infinite undo
 (make-variable-buffer-local 'undo-limit)
 ;; The name of the FramerD scheme module for a particular buffer
@@ -25,9 +34,6 @@
 (make-variable-buffer-local 'fdconsole-startup)
 ;; The fdconsole command line
 (make-variable-buffer-local 'fdconsole-cmdline)
-
-(defvar comint-prompt-read-only t)
-(defvar comint-output-read-only t)
 
 (defvar *framerd-keywords*
   '("\\<do-choices-mt\\>" "\\<do-vector-mt\\>" "\\<for-choices-mt\\>"
@@ -48,7 +54,8 @@
     "\\pick\\" "\\reject\\"
     "\\<error>\\" "\\<irritant>\\"))
 
-;; This gets #[ and #( to do block indents
+(defvar calculate-lisp-indent-last-sexp)
+
 (defun scheme-indent-function (indent-point state)
   (let ((normal-indent (current-column)))
     (goto-char (1+ (elt state 1)))
@@ -66,7 +73,7 @@
         ;; car of form doesn't seem to be a symbol
         (progn
           (if (not (> (save-excursion (forward-line 1) (point))
-                      calculate-lisp-indent-last-sexp))
+		      calculate-lisp-indent-last-sexp))
               (progn (goto-char calculate-lisp-indent-last-sexp)
                      (beginning-of-line)
                      (parse-partial-sexp (point)
@@ -348,6 +355,9 @@
 		 (split-command-line (substring string pos
 						(length string)))))))))
 
+(defvar comint-prompt-read-only nil)
+(defvar comint-output-read-only nil)
+
 (defun make-output-read-only (text)
   "Add to comint-output-filter-functions to make stdout read only"
   (when comint-output-read-only
@@ -362,6 +372,8 @@
 (defvar fdconsole-startup nil)
 (defvar fdconsole-cmdline nil)
 
+(defvar fdconsole-mode-hooks '())
+
 (autoload 'comint-check-proc "comint")
 
 (defun fdconsole (cmd)
@@ -375,7 +387,7 @@ run). \(Type \\[describe-mode] in the process buffer for a list of commands.)"
 	     (read-string "Run fdconsole: "
 			  (or fdconsole-cmdline
 			      fdconsole-program))
-	   (or fdconsole-cmdline 
+	   (or fdconsole-cmdline
 	       fdconsole-program))))
   (let ((bufname (or (and scheme-buffer
 			  (get-buffer-window scheme-buffer)
@@ -398,10 +410,8 @@ run). \(Type \\[describe-mode] in the process buffer for a list of commands.)"
     (setq scheme-buffer bufname)
     (setq fdconsole-cmdline cmd)
     (pop-to-buffer bufname)
-    (setq-local comint-output-read-only t)
-    (setq-local comint-prompt-read-only t)
-    (setq-local kill-read-only-ok t)
     (setq comint-prompt-regexp "^#|[^>]+>|")
+    (run-hooks 'fdconsole-mode-hooks)
     ;; (message "Sending '%s'" fdconsole-startup)
     (when fdconsole-startup
       (comint-send-string (scheme-proc) (format "%s\n" fdconsole-startup)))))
@@ -416,9 +426,7 @@ run). \(Type \\[describe-mode] in the process buffer for a list of commands.)"
   (interactive)
   (local-set-key "\e\C-m" 'fdconsole-sender)
   (setq undo-limit 32)
-  (font-lock-add-keywords 'scheme-mode *framerd-keywords*)
-  (setq comint-output-read-only t)
-  (setq comint-prompt-read-only t))
+  (font-lock-add-keywords 'scheme-mode *framerd-keywords*))
 (add-hook 'scheme-mode-hook 'fdconsole-scheme-mode-hook)
 
 (provide 'fdconsole)
