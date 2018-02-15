@@ -1784,10 +1784,8 @@ static int match_pool_id(fd_pool p,u8_string id)
 
 static int match_pool_source(fd_pool p,u8_string source)
 {
-  return ( ((source)&&(p->canonical_source)&&
-            (strcmp(p->canonical_source,source)==0) ) ||
-           ((source)&&(p->pool_source)&&
-            (strcmp(p->pool_source,source)==0) ) );
+  return (fd_same_sourcep(source,p->canonical_source)) ||
+    (fd_same_sourcep(source,p->pool_source));
 }
 
 FD_EXPORT fd_pool fd_find_pool_by_id(u8_string id)

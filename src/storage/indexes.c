@@ -331,10 +331,8 @@ FD_EXPORT u8_string fd_locate_index(u8_string spec)
 
 static int match_index_source(fd_index ix,u8_string source)
 {
-  return ( ( (source) && (ix->canonical_source) &&
-             (strcmp(ix->canonical_source,source) == 0) ) ||
-           ( (source) && (ix->index_source) &&
-             (strcmp(ix->index_source,source) == 0) ) );
+  return ( (fd_same_sourcep(source,ix->index_source)) ||
+           (fd_same_sourcep(source,ix->canonical_source)) );
 }
 
 static int match_index_id(fd_index ix,u8_string id)

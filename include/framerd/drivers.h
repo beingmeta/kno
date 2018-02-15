@@ -41,6 +41,8 @@ FD_EXPORT u8_condition fd_CorruptedPool, fd_CorruptedIndex;
 
 FD_EXPORT u8_string fd_match4bytes(u8_string file,void *data);
 FD_EXPORT u8_string fd_netspecp(u8_string file,void *data);
+FD_EXPORT int fd_same_sourcep(u8_string ref,u8_string source);
+
 
 struct FD_POOL_TYPEINFO {
   u8_string pool_typename;
