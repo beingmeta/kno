@@ -110,7 +110,7 @@ lispval fd_copier(lispval x,int flags)
       return result;}
     case fd_choice_type: {
       int n = FD_CHOICE_SIZE(x);
-      int flags = (FD_ATOMIC_CHOICEP(x))?
+      int choice_flags = (FD_ATOMIC_CHOICEP(x))?
         (FD_CHOICE_ISATOMIC):
         (FD_CHOICE_ISCONSES);
       struct FD_CHOICE *copy = fd_alloc_choice(n);
@@ -122,7 +122,7 @@ lispval fd_copier(lispval x,int flags)
       else while (read<limit) {
           lispval v = *read++, c = copy_elt(v,flags);
           *write++=c;}
-      result = fd_init_choice(copy,n,NULL,flags);
+      result = fd_init_choice(copy,n,NULL,choice_flags);
       if (static_copy) {FD_MAKE_STATIC(result);}
       return result;}
     default:
