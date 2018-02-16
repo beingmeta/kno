@@ -875,6 +875,7 @@ tidy: profile-clean
 	@for dir in ${CLEANDIRS}; do \
 	  rm -f $${dir}/*~ $${dir}/*.o; \
 	done
+	make testclean
 	rm -f config.log
 clean: tidy
 	rm -f buildmode
@@ -1698,54 +1699,62 @@ update-fdserv: src/apache2/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 
 # Test targets
 
-tests/tests.log: tests/fdexec tests/makefile.in
+testclean:
+	@make -s -C tests testclean 2>&1 > tests/testclean.log
+tests.log: tests/fdexec tests/makefile.in makefile
 	@echo "#### Running tests scripts, output in" $@
 	@echo "#### Note that killed/exited messages for the 'countup' scripts are normal"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
-	@make -s -C tests -k -j 2>&1 > tests/tests.log && \
-	cp tests/tests.log tests/tests-`date +%d%b%yT%T`.log;
-tests: tests/tests.log
+	@DATE=`date +%d%b%yT%T`; make -s -C tests -k -j 2>&1 > tests.log && \
+	 cp tests.log tests/logs/tests-$${DATE}.log; \
+	 sort tests/timing.log -k 2 > tests/logs/timing-$${DATE}.log;
+tests: tests.log
 
-tests/libtests.log: tests/fdexec tests/makefile.in
+libtests.log: tests/fdexec tests/makefile.in
 	@echo "#### Running libtests, output in" $@
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
-	@make -s -C tests -k -j libtests optmods 2>&1 > tests/libtests.log && \
-	cp tests/libtests.log tests/libtests-`date +%d%b%yT%T`.log;
-libtests: tests/libtests.log
+	@DATE=`date +%d%b%yT%T`; \
+	 make -s -C tests -k -j libtests loadmods optmods 2>&1 > libtests.log && \
+	 cp libtests.log tests/logs/libtests-$${DATE}.log;
+libtests: libtests.log
 
 tests/memtests.log: tests/fdexec tests/makefile.in
 	@echo "#### Running scheme tests, output in" $@
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
-	@make -s -C tests -k -j memtests 2>&1 > tests/memtests.log && \
-	cp tests/memtests.log tests/memtests-`date +%d%b%yT%T`.log;
-memtests: tests/memtests.log
+	@DATE=`date +%d%b%yT%T`; \
+	 make -s -C tests -k -j memtests 2>&1 > memtests.log && \
+	 cp memtests.log tests/logs/memtests-`date +%d%b%yT%T`.log;
+memtests: memtests.log
 
 tests/leaktests.log: tests/fdexec tests/makefile.in
 	@echo "#### Running scheme tests, output in" $@
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
-	@make -s -C tests -k -j leaktests 2>&1 > tests/leaktests.log && \
-	cp tests/leaktests.log tests/leaktests-`date +%d%b%yT%T`.log;
-leaktests: tests/leaktests.log
+	@DATE=`date +%d%b%yT%T`; make -s -C tests -k -j leaktests 2>&1 > leaktests.log && \
+	cp leaktests.log tests/logs/leaktests-`date +%d%b%yT%T`.log;
+leaktests: leaktests.log
 
 tests/schemetests.log: tests/fdexec tests/makefile.in
 	@echo "#### Running scheme tests, output in" $@
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
-	@make -s -C tests -k -j schemetests 2>&1 > tests/schemetests.log && \
-	cp tests/schemtests.log tests/schemetests-`date +%d%b%yT%T`.log;
-schemetests: tests/schemetests.log
+	@DATE=`date +%d%b%yT%T`; \
+	 make -s -C tests -k -j schemetests 2>&1 > schemetests.log && \
+	 cp schemtests.log tests/logs/schemetests-`date +%d%b%yT%T`.log;
+schemetests: schemetests.log
 
 tests/cmdtests.log: tests/fdexec tests/makefile.in
 	@echo "#### Running scheme tests, output in" $@
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
-	@make -s -C tests -k -j cmdtests 2>&1 > tests/cmdtests.log && \
-	cp tests/cmdtests.log tests/cmdtests-`date +%d%b%yT%T`.log;
+	@DATE=`date +%d%b%yT%T`; \
+	 make -s -C tests -k -j cmdtests 2>&1 > tests/cmdtests.log && \
+	 cp tests/cmdtests.log tests/logs/cmdtests-`date +%d%b%yT%T`.log;
 cmdtests: tests/cmdtests.log
 
 tests/dbtests.log: tests/fdexec tests/makefile.in
 	@echo "#### Running scheme tests, output in" $@
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
-	@make -s -C tests -k -j dbtests 2>&1 > tests/dbtests.log && \
-	cp tests/dbtests.log tests/dbtests-`date +%d%b%yT%T`.log;
+	@DATE=`date +%d%b%yT%T`; \
+	 make -s -C tests -k -j dbtests 2>&1 > dbtests.log && \
+	 cp dbtests.log tests/logs/dbtests-`date +%d%b%yT%T`.log;
 dbtests: tests/dbtests.log
 
 .PHONY: tests libtests schemetests dbtests cmtdtests memtests leaktests
