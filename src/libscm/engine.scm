@@ -184,8 +184,10 @@ slot of the loop state.
     "Unexpected error on " (get loop-state 'fifo) ": "
     (exception-condition ex) " @" (exception-caller ex)
     (when (exception-details ex) (printout " (" (exception-details ex) ")"))
+    (when (exception-irritant? ex)
+      (printout "\n" (void (pprint (exception-irritant ex)))))
     (when saved (printout " exception dumped to " (write saved))))
-  (dump-bug ex)
+  ;;(dump-bug ex)
   (when (exception-irritant? ex)
     (loginfo |EngineError/irritant| 
       "For " (get loop-state 'fifo) " "
@@ -730,10 +732,12 @@ slot of the loop state.
 	    (store! loop-state 'checkdone (elapsed-time))
 	    (if success
 		(lognotice |Engine/Checkpoint| 
-		  "Saved state in " (secs->string (elapsed-time started)) " for " fifo)
+		  "Saved task state in " (secs->string (elapsed-time started)) " for " fifo)
 		(logwarn |Engine/Checkpoint/Failed| 
 		  "After " (secs->string (elapsed-time started)) " for " fifo))
-	    (when fifo (fifo/pause! fifo #f))))
+	    (when fifo (fifo/pause! fifo #f))
+	    (when (getopt (getopt loop-state 'opts) 'checkclear (config 'checkclear))
+	      (engine-clearcaches loop-state))))
 	(logwarn |BadCheck| 
 	  "Declining to checkpoint because check/start! failed: state =\n  "
 	  (pprint loop-state)))))
@@ -799,6 +803,27 @@ slot of the loop state.
 	      (if (>= time 0)
 		  (printout "\n\t" ($num time 1) "s \t" db)
 		  (printout "\n\tFAILED after " ($num time 1) "s:\t" db)))))))))
+
+(defambda (engine-clearcaches loop-state)
+  (let ((started (elapsed-time))
+	(dbs (getopt loop-state 'caches
+		     (getopt (get loop-state 'opts) 'caches))))
+    (cond ((not dbs)
+	   (loginfo |EngineClearCaches| 
+	     "Clearing cached data for " (get loop-state 'fifo))
+	   (clearcaches)
+	   (lognotice |EngineClearCaches| 
+	     "Cleared cached data in " (secs->string (elapsed-time started)) " "
+	     "for " (get loop-state 'fifo)))
+	  (else (loginfo |EngineClearCaches| 
+		  "Clearing cached data from "
+		  ($count (choice-size dbs) " databases ")
+		  "for " (get loop-state 'fifo))
+		(do-choices (db dbs) (swapout db))
+		(lognotice |EngineClearCaches| 
+		  "Cleared cached data in " (secs->string (elapsed-time started))  " "
+		  "from " ($count (choice-size dbs) " databases ")
+		  "for " (get loop-state 'fifo))))))
 
 (define (inner-commit arg timings start)
   (cond ((registry? arg) (registry/save! arg))
