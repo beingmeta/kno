@@ -747,7 +747,9 @@ static lispval tableop(lispval opcode,lispval arg1,lispval arg2,lispval arg3)
     int rv=0;
     switch (opcode) {
     case FD_PRIMGET_OPCODE:
-      return fd_get(arg1,arg2,arg3);
+      if (FD_VOIDP(arg3))
+        return fd_get(arg1,arg2,FD_EMPTY);
+      else return fd_get(arg1,arg2,arg3);
     case FD_PRIMTEST_OPCODE:
       rv=fd_test(arg1,arg2,arg3);
       if (rv<0) return FD_ERROR_VALUE;
