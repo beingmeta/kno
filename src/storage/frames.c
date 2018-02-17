@@ -193,6 +193,8 @@ FD_EXPORT void fd_clear_slotcache_entry(lispval frame,lispval slotid)
   /* Need to do this more selectively. */
   if (HASHTABLEP(testcache))
     fd_hashtable_op(FD_XHASHTABLE(testcache),fd_table_replace,frame,VOID);
+  fd_decref(slotcache);
+  fd_decref(testcache);
 }
 
 FD_EXPORT void fd_clear_testcache_entry(lispval frame,lispval slotid,lispval value)
@@ -206,8 +208,50 @@ FD_EXPORT void fd_clear_testcache_entry(lispval frame,lispval slotid,lispval val
       if (PAIRP(cache)) {
         fd_hashset_drop((fd_hashset)FD_CAR(cache),value);
         fd_hashset_drop((fd_hashset)FD_CDR(cache),value);}}}
+  fd_decref(testcache);
 }
 
+
+static struct FD_HASHTABLE *get_slot_cache(lispval slotid)
+{
+  lispval cachev = fd_hashtable_get(&slot_caches,slotid,FD_VOID);
+  if (FD_VOIDP(cachev))
+    return make_slot_cache(slotid);
+  else if (FD_HASHTABLEP(cachev))
+    return (fd_hashtable) cachev;
+  else {
+    fd_decref(cachev);
+    return NULL;}
+}
+
+static struct FD_PAIR *get_test_cache(lispval f,lispval slotid)
+{
+  lispval cachev = fd_hashtable_get(&test_caches,slotid,FD_VOID);
+  struct FD_HASHTABLE *cache = NULL;
+  if (FD_VOIDP(cachev)) {
+    cache = make_test_cache(slotid);
+    cachev = (lispval) cache;}
+  else if (FD_HASHTABLEP(cachev))
+    cache = (fd_hashtable) cachev;
+  else {
+    fd_decref(cachev);
+    cache = NULL;
+    return NULL;}
+  lispval inout = fd_hashtable_get(cache,f,FD_VOID);
+  if (FD_PAIRP(inout)) {
+    fd_decref(cachev);
+    return (fd_pair) inout;}
+  else if (FD_VOIDP(inout)) {
+    inout = fd_init_pair(NULL,fd_make_hashset(),fd_make_hashset());
+    if (fd_hashtable_op(cache,fd_table_default,f,inout) == 0) {
+      fd_decref(inout);
+      inout = fd_hashtable_get(cache,f,FD_VOID);}
+    fd_decref(cachev);
+    return (fd_pair) inout;}
+  else {
+    fd_decref(cachev);
+    return NULL;}
+}
 
 /* Dependency maintenance */
 
@@ -382,17 +426,12 @@ FD_EXPORT lispval fd_frame_get(lispval f,lispval slotid)
     if (fd_in_progressp(&fop)) return EMPTY;
     else {
       int ipestate = fd_ipeval_status();
-      struct FD_HASHTABLE *cache;
-      lispval methods, cachev, cached, computed = EMPTY;
-      cachev = fd_hashtable_get(&slot_caches,slotid,VOID);
-      if (VOIDP(cachev)) {
-        cache = make_slot_cache(slotid);
-        cached = VOID; cachev = (lispval)cache;}
-      else if (EMPTYP(cachev)) {
-        cache = NULL; cached = VOID;}
-      else {
-        cache = FD_XHASHTABLE(cachev);
-        cached = fd_hashtable_get(cache,f,VOID);}
+      struct FD_HASHTABLE *cache = get_slot_cache(slotid);
+      lispval methods, cached, computed = EMPTY;
+      if (cache) {
+        cached = fd_hashtable_get(cache,f,VOID);
+        fd_decref(((lispval)cache));
+        cache = NULL;}
       if (!(VOIDP(cached)))
         return cached;
       methods = get_slotid_methods(slotid,get_methods);
@@ -406,10 +445,11 @@ FD_EXPORT lispval fd_frame_get(lispval f,lispval slotid)
         if (EMPTYP(value))
           methods = get_slotid_methods(slotid,compute_methods);
         else return value;}
-      if (VOIDP(methods)) return EMPTY;
-      else if (FD_ABORTP(methods)) {
-        fd_decref(cachev);
-        return methods;}
+      if (VOIDP(methods))
+        return EMPTY;
+      else if (FD_ABORTP(methods))
+        return methods;
+      else NO_ELSE;
       /* At this point, we're computing the slot value */
       fd_push_opstack(&fop);
       init_dependencies(&fop);
@@ -419,20 +459,23 @@ FD_EXPORT lispval fd_frame_get(lispval f,lispval slotid)
             lispval args[2], value; args[0]=f; args[1]=slotid;
             value = fd_finish_call(fd_dapply((lispval)fn,2,args));
             if (FD_ABORTP(value)) {
-              fd_decref(computed); fd_decref(methods);
+              fd_decref(computed);
+              fd_decref(methods);
               fd_pop_opstack(&fop,0);
-              fd_decref(cachev);
               return value;}
             CHOICE_ADD(computed,value);}}}
       computed = fd_simplify_choice(computed);
       fd_decref(methods);
-      if ((cache) && ((fd_ipeval_status() == ipestate))) {
-        lispval factoid = fd_conspair(fd_incref(f),fd_incref(slotid));
-        record_dependencies(&fop,factoid); fd_decref(factoid);
-        fd_hashtable_store(cache,f,computed);
-        fd_pop_opstack(&fop,1);}
+      if (fd_ipeval_status() == ipestate) {
+        if ((cache = get_slot_cache(slotid))) {
+          lispval factoid = fd_conspair(fd_incref(f),fd_incref(slotid));
+          record_dependencies(&fop,factoid);
+          fd_decref(factoid);
+          fd_hashtable_store(cache,f,computed);
+          fd_decref(((lispval)cache));
+          fd_pop_opstack(&fop,1);}
+        else fd_pop_opstack(&fop,1);}
       else fd_pop_opstack(&fop,0);
-      fd_decref(cachev);
       return computed;}}
   else if (EMPTYP(f)) return EMPTY;
   else {
@@ -456,33 +499,21 @@ FD_EXPORT int fd_frame_test(lispval f,lispval slotid,lispval value)
         return 0;
       else return 1;}
     else {
-      struct FD_HASHTABLE *cache; int result = 0;
-      lispval cachev = fd_hashtable_get(&test_caches,slotid,VOID);
-      lispval cached, methods;
-      if (VOIDP(cachev)) {
-        cache = make_test_cache(slotid); cachev = (lispval)cache;
-        cached = fd_conspair(fd_make_hashset(),fd_make_hashset());
-        fd_hashtable_store(cache,f,cached);}
-      else if (EMPTYP(cachev)) {
-        cache = NULL; cached = VOID;}
-      else {
-        cache = FD_XHASHTABLE(cachev);
-        cached = fd_hashtable_get(cache,f,VOID);
-        if (VOIDP(cached)) {
-          cached = fd_conspair(fd_make_hashset(),fd_make_hashset());
-          fd_hashtable_store(cache,f,cached);}}
-      if (PAIRP(cached)) {
-        lispval in = FD_CAR(cached), out = FD_CDR(cached);
+      int result = 0;
+      struct FD_PAIR *inout = get_test_cache(f,slotid);
+      lispval methods = EMPTY;
+      if (inout) {
+        lispval in = inout->car, out = inout->cdr;
         if (fd_hashset_get(FD_XHASHSET(in),value)) {
-          fd_decref(cached); fd_decref(cachev);
+          fd_decref(((lispval)inout));
           return 1;}
         else if (fd_hashset_get(FD_XHASHSET(out),value)) {
-          fd_decref(cached); fd_decref(cachev);
+          fd_decref(((lispval)inout));
           return 0;}
         else methods = get_slotid_methods(slotid,test_methods);}
       else methods = get_slotid_methods(slotid,test_methods);
       if (VOIDP(methods)) {
-        fd_decref(cached); fd_decref(cachev);
+        if (inout) fd_decref(((lispval)inout));
         return 0;}
       else if (EMPTYP(methods)) {
         lispval values = fd_frame_get(f,slotid);
@@ -499,22 +530,28 @@ FD_EXPORT int fd_frame_test(lispval f,lispval slotid,lispval value)
             if (fn) {
               lispval v = fd_apply((lispval)fn,3,args);
               if (FD_ABORTP(v)) {
-                fd_decref(methods); fd_decref(cachev);
+                fd_decref(methods);
+                if (inout) fd_decref(((lispval)inout));
                 fd_pop_opstack(&fop,0);
                 return fd_interr(v);}
               else if (FD_TRUEP(v)) {
-                result = 1; fd_decref(v); break;}
+                result = 1;
+                fd_decref(v);
+                break;}
               else {}}}}
-        if ((cache) && (!(fd_ipeval_failp()))) {
+        if (!(fd_ipeval_failp())) {
           lispval factoid = fd_make_list(3,fd_incref(f),
                                          fd_incref(slotid),
                                          fd_incref(value));
-          record_dependencies(&fop,factoid); fd_decref(factoid);
+          record_dependencies(&fop,factoid);
+          fd_decref(factoid);
           fd_pop_opstack(&fop,0);}
         else fd_pop_opstack(&fop,0);}
-      if (result) fd_hashset_add(FD_XHASHSET(FD_CAR(cached)),value);
-      else fd_hashset_add(FD_XHASHSET(FD_CDR(cached)),value);
-      fd_decref(cached); fd_decref(cachev);
+      if (inout==NULL) {}
+      else if (result)
+        fd_hashset_add(FD_XHASHSET(inout->car),value);
+      else fd_hashset_add(FD_XHASHSET(inout->cdr),value);
+      if (inout) fd_decref(((lispval)inout));
       return result;}}
   else if (EMPTYP(f)) return 0;
   else {

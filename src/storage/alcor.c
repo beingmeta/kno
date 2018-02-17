@@ -50,11 +50,17 @@ static ssize_t save_head(int in,int out,size_t head_len,size_t source_len)
     return -1;}
   unsigned char *inbuf = mmap(NULL,head_len,PROT_READ,MAP_SHARED,in,0);
   if ( (inbuf == NULL) || (inbuf == MAP_FAILED) ) {
-    u8_graberrno("save_head",NULL);
+    u8_graberrno("save_head/inbuf",NULL);
     return -1;}
   unsigned char *outbuf =
-    mmap(NULL,head_len+8,PROT_READ|PROT_WRITE,MAP_SHARED,out,0);
-  if (! ( (outbuf == NULL) || (outbuf == MAP_FAILED) ) ) {
+    mmap(NULL,head_len+8,PROT_READ|PROT_WRITE,
+         MAP_PRIVATE|MAP_POPULATE,
+         out,0);
+  if ( (outbuf == NULL) || (outbuf == MAP_FAILED) ) {
+    u8_graberrno("save_head/outbuf",NULL);
+    munmap(inbuf,head_len); errno=0;
+    return -1;}
+  else {
     struct FD_OUTBUF buf;
     if (memcpy(outbuf,inbuf,head_len) == outbuf) {
       FD_INIT_OUTBUF(&buf,outbuf+head_len,8,0);
@@ -62,7 +68,6 @@ static ssize_t save_head(int in,int out,size_t head_len,size_t source_len)
       if (msync(outbuf,head_len+8,MS_SYNC) < 0) error=1;}
     else error = 1;
     if (munmap(outbuf,head_len+8) < 0) error=1;}
-  else error=1;
   if (munmap(inbuf,head_len) < 0) error=1;
   if (error)
     return -1;

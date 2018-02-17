@@ -101,6 +101,26 @@ u8_string fd_netspecp(u8_string spec,void *ignored)
   else return spec;
 }
 
+FD_EXPORT
+int fd_same_sourcep(u8_string ref,u8_string source)
+{
+  if ( (source == NULL) || (ref == NULL) )
+    return 0;
+  else if (strcmp(ref,source) == 0)
+    return 1;
+  else if ( (strchr(source,'@')) || (strchr(source,':')) ||
+            (strchr(ref,'@')) || (strchr(ref,':')) )
+    return 0;
+  else if ( (u8_file_existsp(source)) && (u8_file_existsp(ref)) ) {
+    u8_string real_source = u8_realpath(source,NULL);
+    u8_string ref_source = u8_realpath(ref,NULL);
+    int rv = (strcmp(real_source,ref_source)==0);
+    u8_free(real_source);
+    u8_free(ref_source);
+    return rv;}
+  else return 0;
+}
+
 /* Opening pools */
 
 static struct FD_POOL_TYPEINFO *pool_typeinfo;

@@ -3972,17 +3972,25 @@ struct FD_TABLEFNS *fd_tablefns[FD_TYPE_MAX];
   if (PRED_FALSE((!(FD_CHECK_PTR(arg))))) \
     _fd_bad_pointer(arg,cxt); else {}
 
-#define NOT_TABLEP(arg,argtype,cxt)                     \
-  (PRED_FALSE((fd_tablefns[argtype]==NULL))) ?     \
-  (fd_seterr(NotATable,cxt,NULL,arg), 1 ) :             \
-  (0)
+static int bad_table_call(lispval arg,fd_ptr_type type,void *handler,
+                          u8_context cxt)
+{
+  if (handler)
+    return 0;
+  else if (PRED_FALSE(fd_tablefns[type]==NULL)) {
+    fd_seterr(NotATable,cxt,NULL,arg);
+    return 1;}
+  else {
+    fd_seterr(fd_NoMethod,cxt,NULL,arg);
+    return 1;}
+}
 
-#define BAD_TABLEP(arg,type,meth,cxt)                   \
-  (PRED_FALSE((fd_tablefns[type]==NULL))) ?        \
-  (fd_seterr(NotATable,cxt,NULL,arg), 1 ) :             \
-  (PRED_FALSE(fd_tablefns[type]->meth==NULL)) ?    \
-  (fd_seterr(fd_NoMethod,cxt,NULL,arg), 1 ) :           \
-  (0)
+#define BAD_TABLEP(arg,type,meth,cxt) \
+  (bad_table_call(arg,type,\
+                  ((fd_tablefns[type]) ? ((fd_tablefns[type])->meth) : (NULL)), \
+                  cxt))
+#define NOT_TABLEP(arg,type,cxt) \
+  ( (fd_tablefns[type] == NULL) && (bad_table_call(arg,type,NULL,cxt)) )
 
 FD_EXPORT lispval fd_get(lispval arg,lispval key,lispval dflt)
 {
