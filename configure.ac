@@ -1800,6 +1800,8 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/logrotate
 	   etc/framerd-rc.d
 	   etc/framerd.conf
+	   etc/ex_servlet.service
+	   etc/ex_daemon.service
 	   etc/fdaemons.service
 	   etc/fdweb.service
 	   etc/framerd.service

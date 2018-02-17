@@ -1,0 +1,22 @@
+[Unit]
+Description=Start daemon %%NAME%%
+Requires=network.target local-fs.target
+After=fdaemons.service upsource.target
+
+[Service]
+Type=simple
+RemainAfterExit=true
+User=www-data
+Group=framerd
+Environment=FD_LAUNCHER=%%NAME%%.service RUNUSER=@fdaemon@ RUNGROUP=@admin_group@ RUNDIR=@rundir@/framerd/daemons/ LOGDIR=@logdir@/framerd/daemons/
+PassEnvironment=FD_LAUNCHER RUNUSER RUNGROUP
+TimeoutStartSec=900
+TimeoutStopSec=300
+ExecStartPre=/bin/mkdir -p /var/run/framerd/daemons /var/log/framerd/daemons
+ExecStartPre=/bin/chown www-data /var/run/framerd/daemons /var/log/framerd/daemons
+ExecStartPre=/bin/chgrp framerd /var/run/framerd/daemons /var/log/framerd/daemons
+ExecStartPre=/bin/chmod g+rwx /var/run/framerd/daemons /var/log/framerd/daemons
+ExecStart=@prefix/fdserver %%CTL%%
+
+[Install]
+WantedBy=default.target
