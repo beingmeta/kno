@@ -552,7 +552,7 @@ slot of the loop state.
 	(secs->string (elapsed-time (get batch-state 'started)) 1) " or ~"
 	($showrate (/~ (choice-size batch) (elapsed-time (get batch-state 'started))))
 	" " count-term "/second for this batch and thread."))
-    ;; (%watch "ENGINE/LOG" loop-state)
+    (debug%watch "ENGINE/LOG" loop-state)
     (lognotice |Engine/Progress|
       "Processed " ($num (getopt loop-state 'items 0)) " " count-term
       (when loopmax
