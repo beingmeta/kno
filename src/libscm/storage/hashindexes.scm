@@ -92,7 +92,7 @@
 	 (stopkeys (indexctl output 'metadata 'stopkeys))
 	 (tofetch '())
 	 (rarefetch '())
-	 (copy-count 0)
+	 (key-count 0)
 	 (unique-count 0)
 	 (rare-count 0)
 	 (value-count 0))
@@ -107,7 +107,7 @@
 	      (add! (or uniquehash rarehash outhash)
 		    (get keyinfo 'key)
 		    (get keyinfo 'value))
-	      (set! copy-count (1+ copy-count))
+	      (set! key-count (1+ key-count))
 	      (when mincount (set! rare-count (1+ rare-count)))
 	      (set! unique-count (1+ unique-count))
 	      (set! value-count (1+ value-count)))
@@ -118,11 +118,11 @@
 		    (set! rare-count (1+ rare-count))
 		    (when rarehash 
 		      (set! rarefetch (cons (get keyinfo 'key) rarefetch))
-		      (set! copy-count (1+ copy-count))
+		      (set! key-count (1+ key-count))
 		      (set! value-count (+ value-count (get keyinfo 'count)))))
 		  (unless (and maxcount (> nvals maxcount))
 		    (set! tofetch (cons (get keyinfo 'key) tofetch))
-		    (set! copy-count (1+ copy-count))
+		    (set! key-count (1+ key-count))
 		    (set! value-count (+ value-count (get keyinfo 'count)))))))))
     (unless (null? tofetch)
       (let* ((keyvec (->vector tofetch))
@@ -145,7 +145,7 @@
     ;; (%watch output (modified? output) (indexctl output 'metadata))
     (when unique (index-merge! unique uniquehash))
     (when rare (index-merge! rare rarehash))
-    (table-increment! batch-state 'copied copy-count)
+    (table-increment! batch-state 'keys key-count)
     (table-increment! batch-state 'rarekeys rare-count)
     (table-increment! batch-state 'uniquekeys unique-count)
     (table-increment! batch-state 'values value-count)))
@@ -165,9 +165,10 @@
 			  unique ,(getopt opts 'unique)
 			  maxcount ,(getopt opts 'maxcount)
 			  mincount ,(getopt opts 'mincount)]
+		   count-term "buckets"
 		   onerror {stopall signal}
-		   counters {copied rarekeys uniquekeys values}
-		   logrates {copied rarekeys uniquekeys values}
+		   counters {keys rarekeys uniquekeys values}
+		   logrates {keys rarekeys uniquekeys values}
 		   batchsize ,(if span 1 (getopt opts 'batchsize (config 'BATCHSIZE 100)))
 		   batchrange ,(if span 1 (getopt opts 'batchrange (config 'BATCHRANGE 8)))
 		   nthreads ,(getopt opts 'nthreads (config 'NTHREADS (rusage 'ncpus)))
@@ -175,5 +176,6 @@
 		   checkpoint {,output ,(or unique {}) ,(or rare {})}
 		   logfreq ,(getopt opts 'logfreq (config 'LOGFREQ 30))
 		   checkfreq ,(getopt opts 'checkfreq (config 'checkfreq 15))
+		   checklog #t
 		   started ,started])))
 

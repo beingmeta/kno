@@ -208,6 +208,7 @@
 			  unique ,(getopt opts 'unique)
 			  maxcount ,(getopt opts 'maxcount)
 			  mincount ,(getopt opts 'mincount)]
+		   count-term "keys"
 		   onerror {stopall signal}
 		   counters {copied rarekeys uniquekeys values}
 		   logrates {copied rarekeys uniquekeys values}
@@ -218,4 +219,5 @@
 		   checkpoint {,out ,unique ,rare}
 		   logfreq ,(getopt opts 'logfreq (config 'LOGFREQ 30))
 		   checkfreq ,(getopt opts 'checkfreq (config 'checkfreq 15))
+		   checklog #t
 		   started ,started])))
