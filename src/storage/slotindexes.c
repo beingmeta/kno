@@ -296,29 +296,17 @@ static fd_index get_writable_slotindex(fd_index ix,lispval slotid)
       fd_index possible = indexes[i++];
       fd_index use_front = fd_get_writable_index(possible);
       if (use_front) {
-	if (possible->index_keyslot == slotid) {
-	  lispval ptr = fd_index2lisp(use_front);
-	  if (FD_ABORTP(ptr))
-	    return NULL;
-	  else {
-	    if (FD_CONSP(ptr)) {fd_incref(ptr);}
-	    return (fd_index) possible;}}
+	if (possible->index_keyslot == slotid)
+	  return use_front;
 	else if ( (FD_VOIDP(use_front->index_keyslot)) ||
 		  (FD_FALSEP(use_front->index_keyslot)) ||
 		  (FD_EMPTYP(use_front->index_keyslot)) ) {
-	  if (generic == NULL) generic = use_front;
-	  if (writable) writable = use_front;}
-	else if (writable == NULL)
-	  writable = use_front;
-	else NO_ELSE;}}
-    if (generic) {
-      lispval ptr = fd_index2lisp(generic);
-      if (FD_CONSP(ptr)) fd_incref(ptr);
-      return generic;}
-    else if (writable) {
-      lispval ptr = fd_index2lisp(writable);
-      if (FD_CONSP(ptr)) fd_incref(ptr);
-      return writable;}
+	  if (generic == NULL) generic = use_front;}
+	else if (FD_INDEX_CONSEDP(use_front)) {
+	  fd_decref(LISPVAL(use_front));}
+	else {}}}
+    if (generic)
+      return generic;
     else return NULL;}
   else return fd_get_writable_index(ix);
 }

@@ -303,18 +303,21 @@ FD_FASTOP U8_MAYBE_UNUSED lispval fd_index2lisp(fd_index ix)
 }
 U8_MAYBE_UNUSED static fd_index fd_get_writable_index(fd_index ix)
 {
-  if (U8_BITP(ix->index_flags,FD_STORAGE_READ_ONLY)) {
+  if (ix == NULL) return ix;
+  else if (U8_BITP(ix->index_flags,FD_STORAGE_READ_ONLY)) {
     lispval front_val = fd_slotmap_get(&(ix->index_props),FDSYM_FRONT,FD_VOID);
     if (FD_INDEXP(front_val)) {
       fd_index front = fd_indexptr(front_val);
-      /* This isn't the exactly right thing, because PROPS could change */
-      fd_decref(front_val);
       if (U8_BITP(front->index_flags,FD_STORAGE_READ_ONLY)) {
         return NULL;}
       else return front;}
     else {
       fd_incref(front_val);
       return NULL;}}
+  else if (ix->index_serialno < 0) {
+    lispval ix_ptr = fd_index2lisp(ix);
+    fd_incref(ix_ptr);
+    return ix;}
   else return ix;
 }
 #else
@@ -353,7 +356,12 @@ FD_FASTOP int fd_index_add(fd_index ix_arg,lispval key,lispval value)
   int rv = -1;
   FDTC *fdtc = (FD_WRITETHROUGH_THREADCACHE)?(fd_threadcache):(NULL);
   fd_index ix = fd_get_writable_index(ix_arg);
-  if (ix == NULL) return _fd_index_add(ix,key,value);
+  lispval using_index = FD_VOID;
+  if (ix == NULL)
+    return _fd_index_add(ix_arg,key,value);
+  else if (ix->index_serialno < 0)
+    using_index = (lispval) ix;
+  else NO_ELSE;
 
   fd_hashtable adds = &(ix->index_adds);
   fd_hashtable cache = &(ix->index_cache);
@@ -371,7 +379,7 @@ FD_FASTOP int fd_index_add(fd_index ix_arg,lispval key,lispval value)
     const lispval *keys = FD_CHOICE_DATA(normchoice);
     unsigned int n = FD_CHOICE_SIZE(key);
     rv = fd_hashtable_iterkeys(adds,fd_table_add,n,keys,value);
-    if (rv<0) return rv;
+    if (rv<0) {}
     else if (ix->index_cache_level>0)
       rv = fd_hashtable_iterkeys(cache,fd_table_add_if_present,n,keys,value);
     else NO_ELSE;
@@ -411,6 +419,8 @@ FD_FASTOP int fd_index_add(fd_index ix_arg,lispval key,lispval value)
       fd_decref(ix->index_covers_slotids);
       ix->index_covers_slotids = FD_VOID;}}
   else NO_ELSE;
+
+  fd_incref(using_index);
 
   return rv;
 }

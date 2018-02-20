@@ -881,14 +881,22 @@ FD_EXPORT int _fd_index_add(fd_index ix,lispval key,lispval value)
   fd_hashtable adds = &(ix->index_adds), cache = &(ix->index_cache);
   fd_hashtable drops = &(ix->index_drops);
 
-  if ( (EMPTYP(value)) || (EMPTYP(key)) )
+  if (ix == NULL) {
+    fd_seterr("Not an index","_fd_index_add",NULL,FD_VOID);
+    return -1;}
+  else if ( (EMPTYP(value)) || (EMPTYP(key)) )
     return 0;
   else if (U8_BITP(ix->index_flags,FD_STORAGE_READ_ONLY)) {
     fd_index front = fd_get_writable_index(ix);
-    if (front)
+    if (FD_INDEX_CONSEDP(front)) {
+      lispval using_index = (lispval) front;
+      int rv = fd_index_add(front,key,value);
+      fd_decref(using_index);
+      return rv;}
+    else if (front)
       return fd_index_add(front,key,value);
     else {
-      fd_seterr(fd_ReadOnlyIndex,"_fd_index_add/front",front->indexid,VOID);
+      fd_seterr(fd_ReadOnlyIndex,"_fd_index_add/front",ix->indexid,FD_VOID);
       return -1;}}
   else init_cache_level(ix);
 
@@ -937,7 +945,7 @@ FD_EXPORT int fd_index_drop(fd_index ix_arg,lispval key,lispval value)
 
   fd_index ix = fd_get_writable_index(ix_arg);
   if (ix == NULL) {
-    fd_seterr(fd_ReadOnlyIndex,"_fd_index_add",ix->indexid,VOID);
+    fd_seterr(fd_ReadOnlyIndex,"_fd_index_drop",ix_arg->indexid,VOID);
     return -1;}
   else init_cache_level(ix);
 
@@ -970,6 +978,8 @@ FD_EXPORT int fd_index_drop(fd_index ix_arg,lispval key,lispval value)
 
   if (decref_key) fd_decref(key);
 
+  if (FD_INDEX_CONSEDP(ix)) fd_decref(((lispval)ix));
+
   return 1;
 }
 static int table_indexdrop(lispval ixarg,lispval key,lispval value)
@@ -986,15 +996,16 @@ FD_EXPORT int fd_index_store(fd_index ix_arg,lispval key,lispval value)
   if (EMPTYP(key)) return 0;
 
   fd_index ix = fd_get_writable_index(ix_arg);
-  fd_hashtable cache = &(ix->index_cache);
-  fd_hashtable adds = &(ix->index_adds);
-  fd_hashtable drops = &(ix->index_drops);
-  fd_hashtable stores = &(ix->index_stores);
 
   if (ix == NULL) {
     fd_seterr(fd_ReadOnlyIndex,"_fd_index_store",ix_arg->indexid,VOID);
     return -1;}
   else init_cache_level(ix);
+
+  fd_hashtable cache = &(ix->index_cache);
+  fd_hashtable adds = &(ix->index_adds);
+  fd_hashtable drops = &(ix->index_drops);
+  fd_hashtable stores = &(ix->index_stores);
 
   int decref_key = 0;
   if (FD_PRECHOICEP(key)) {
@@ -1024,6 +1035,8 @@ FD_EXPORT int fd_index_store(fd_index ix_arg,lispval key,lispval value)
 
   if (ix->index_flags&FD_INDEX_IN_BACKGROUND) clear_bg_cache(key);
   if (decref_key) fd_decref(key);
+
+  if (FD_INDEX_CONSEDP(ix)) fd_decref(((lispval)ix));
 
   return 1;
 }
@@ -1059,7 +1072,7 @@ FD_EXPORT int fd_index_merge(fd_index ix,fd_hashtable table)
   fd_unlock_table(table);
   fd_unlock_table(adds);
 
-  fd_decref((lispval)ix);
+  if (FD_INDEX_CONSEDP(into_index)) fd_decref(LISPVAL(into_index));
 
   return 1;
 }
@@ -1068,12 +1081,12 @@ FD_EXPORT int fd_batch_add(fd_index ix_arg,lispval table)
 {
   fd_index ix = fd_get_writable_index(ix_arg);
   if (ix == NULL) {
-    fd_seterr(fd_ReadOnlyIndex,"_fd_index_store",ix->indexid,VOID);
+    fd_seterr(fd_ReadOnlyIndex,"_fd_batch_add",ix_arg->indexid,VOID);
     return -1;}
   else init_cache_level(ix);
   if (HASHTABLEP(table)) {
     int rv = fd_index_merge(ix,(fd_hashtable)table);
-    fd_decref((lispval)ix);
+    if (FD_INDEX_CONSEDP(ix)) fd_decref(LISPVAL(ix));
     return rv;}
   else if (TABLEP(table)) {
     fd_hashtable adds = &(ix->index_adds);
@@ -1091,11 +1104,11 @@ FD_EXPORT int fd_batch_add(fd_index ix_arg,lispval table)
     u8_big_free(keys);
     u8_big_free(values);
     fd_decref(allkeys);
-    fd_decref((lispval)ix);
+    if (FD_INDEX_CONSEDP(ix)) fd_decref(LISPVAL(ix));
     return i;}
   else {
     fd_seterr(fd_TypeError,"fd_batch_add","Not a table",table);
-    fd_decref((lispval)ix);
+    if (FD_INDEX_CONSEDP(ix)) fd_decref(LISPVAL(ix));
     return -1;}
 }
 
