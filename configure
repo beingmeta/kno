@@ -747,6 +747,8 @@ test_size
 leaktest_config
 memtest_config
 test_config
+MEMTEST_CMD
+LEAKTEST_CMD
 LEAKTESTER
 MEMTESTER
 TESTER
@@ -3072,11 +3074,13 @@ auto_disabled=""
 force_enabled=""
 
 test_env=
-memtest_env=""
+memtest_env="MALLOC_CHECK_=3 "
 leaktester_env=""
 TESTER=./runtest
 MEMTESTER=./memtest
 LEAKTESTER=./leaktest
+MEMTEST_CMD=
+LEAKTEST_CMD=
 test_config="TESTSIZE=64"
 memtest_config=
 leaktester_config=
@@ -3133,6 +3137,8 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
+
 
 
 
@@ -6581,6 +6587,8 @@ fi
     using_malloc="jemalloc"
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: jemalloc" >&5
 $as_echo "jemalloc" >&6; }
+    memtest_env="junk:true,tcache:false"
+    leaktest_env="prof_leak:true,lg_prof_sample:0,prof_final:true"
   else
     as_fn_error $? "jemalloc can't be found" "$LINENO" 5
     exit;
@@ -7075,8 +7083,8 @@ done
 fi
 
 if test "${VALGRIND}" != "none" && test -z "${custom_malloc}"; then
-  MEMTESTER="./vgmemtest "
-  LEAKTESTER="./vgleaktest "
+  MEMTEST_CMD="FD_INVALGRIND=yes valgrind --tool=memcheck --num-callers=24"
+  LEAKTESTER="FD_INVALGRIND=yes valgrind --tool=memcheck --leak-check=full --num-callers=24"
 fi
 
 # Check whether --enable-ffi was given.
@@ -12653,7 +12661,7 @@ if (test ! -f src/scheme/gpath.scm); then
    fi;
 fi;
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/makefile DIY/makefile etc/gdbinit exe/.gdbinit tests/.gdbinit tests/.lldbinit tests/.valgrind tests/lisp/.gdbinit tests/storage/.gdbinit etc/fd_start_servlets etc/fd_start_daemons etc/fd_stop_jobs etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl etc/fdgdb etc/fdbgexec etc/fdsetconfig etc/fdgetconfig etc/fdconfig tests/vgleaktest tests/vgmemtest tests/runenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/fdexectest tests/tcdebug tests/vgdebug tests/gheaptest src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/fdjob etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/ex_servlet.service etc/ex_daemon.service etc/fdaemons.service etc/fdweb.service etc/framerd.service etc/FramerD.plist etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-4.2.spec"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/makefile DIY/makefile etc/gdbinit exe/.gdbinit debug/runenv.sh debug/.gdbinit debug/.lldbinit tests/.valgrind tests/lisp/.gdbinit tests/storage/.gdbinit etc/fd_start_servlets etc/fd_start_daemons etc/fd_stop_jobs etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl etc/fdgdb etc/fdbgexec etc/fdsetconfig etc/fdgetconfig etc/fdconfig tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/fdexectest src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/fdjob etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/ex_servlet.service etc/ex_daemon.service etc/fdaemons.service etc/fdweb.service etc/framerd.service etc/FramerD.plist etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-4.2.spec"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -13363,8 +13371,9 @@ do
     "DIY/makefile") CONFIG_FILES="$CONFIG_FILES DIY/makefile" ;;
     "etc/gdbinit") CONFIG_FILES="$CONFIG_FILES etc/gdbinit" ;;
     "exe/.gdbinit") CONFIG_FILES="$CONFIG_FILES exe/.gdbinit" ;;
-    "tests/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/.gdbinit" ;;
-    "tests/.lldbinit") CONFIG_FILES="$CONFIG_FILES tests/.lldbinit" ;;
+    "debug/runenv.sh") CONFIG_FILES="$CONFIG_FILES debug/runenv.sh" ;;
+    "debug/.gdbinit") CONFIG_FILES="$CONFIG_FILES debug/.gdbinit" ;;
+    "debug/.lldbinit") CONFIG_FILES="$CONFIG_FILES debug/.lldbinit" ;;
     "tests/.valgrind") CONFIG_FILES="$CONFIG_FILES tests/.valgrind" ;;
     "tests/lisp/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/lisp/.gdbinit" ;;
     "tests/storage/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/storage/.gdbinit" ;;
@@ -13388,17 +13397,12 @@ do
     "etc/fdsetconfig") CONFIG_FILES="$CONFIG_FILES etc/fdsetconfig" ;;
     "etc/fdgetconfig") CONFIG_FILES="$CONFIG_FILES etc/fdgetconfig" ;;
     "etc/fdconfig") CONFIG_FILES="$CONFIG_FILES etc/fdconfig" ;;
-    "tests/vgleaktest") CONFIG_FILES="$CONFIG_FILES tests/vgleaktest" ;;
-    "tests/vgmemtest") CONFIG_FILES="$CONFIG_FILES tests/vgmemtest" ;;
-    "tests/runenv.sh") CONFIG_FILES="$CONFIG_FILES tests/runenv.sh" ;;
+    "tests/testenv.sh") CONFIG_FILES="$CONFIG_FILES tests/testenv.sh" ;;
     "tests/xtest") CONFIG_FILES="$CONFIG_FILES tests/xtest" ;;
     "tests/runtest") CONFIG_FILES="$CONFIG_FILES tests/runtest" ;;
     "tests/memtest") CONFIG_FILES="$CONFIG_FILES tests/memtest" ;;
     "tests/leaktest") CONFIG_FILES="$CONFIG_FILES tests/leaktest" ;;
     "tests/fdexectest") CONFIG_FILES="$CONFIG_FILES tests/fdexectest" ;;
-    "tests/tcdebug") CONFIG_FILES="$CONFIG_FILES tests/tcdebug" ;;
-    "tests/vgdebug") CONFIG_FILES="$CONFIG_FILES tests/vgdebug" ;;
-    "tests/gheaptest") CONFIG_FILES="$CONFIG_FILES tests/gheaptest" ;;
     "src/scripts/fdpkg.scm") CONFIG_FILES="$CONFIG_FILES src/scripts/fdpkg.scm" ;;
     "etc/OSXStartupItem/FramerD") CONFIG_FILES="$CONFIG_FILES etc/OSXStartupItem/FramerD" ;;
     "etc/fdjob") CONFIG_FILES="$CONFIG_FILES etc/fdjob" ;;
@@ -13971,7 +13975,7 @@ $as_echo "$as_me: executing $ac_file commands" >&6;}
 
 
   case $ac_file$ac_mode in
-    "default":C) chmod a+x etc/fd* tests/*test tests/*debug ;;
+    "default":C) chmod a+x etc/fd* tests/*test ;;
 
   esac
 done # for ac_tag

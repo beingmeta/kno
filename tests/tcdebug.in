@@ -1,6 +1,0 @@
-export LD_PRELOAD_PATH=@tcdebuglib@
-export TCMALLOC_DEBUG=5
-. ./runenv.sh
-echo "Running $1 with tcmalloc_debug"
-exec "$@"
-

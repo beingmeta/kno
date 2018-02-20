@@ -1,3 +1,4 @@
 echo "Test run ./fdexec" $*
-. ./runenv.sh
+. ../debug/runenv.sh
+. ./testenv.sh
 @test_env@ exec ./fdexec $*  DLOAD_TRACE=yes SHOWTIME=1.0 DISPLAYMAXELTS=36 DISPLAYMAXCHARS=1024

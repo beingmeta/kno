@@ -8,9 +8,10 @@ fi
 PROGNAME=$1; shift;
 LOGFILE=$$.log
 
-. ./runenv.sh
+. ../debug/runenv.sh
+. ./testenv.sh
 
-if @test_env@ @leaktest_env@ ${PROGNAME} $* > ${LOGFILE}; then
+if @test_env@ @leaktest_env@ @LEAKTEST_CMD@ ${PROGNAME} $* > ${LOGFILE}; then
    echo "SUCCESS:" ${PROGNAME} $*;
    cat ${LOGFILE} >> success.log
    rm ${LOGFILE};

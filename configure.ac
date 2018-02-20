@@ -176,11 +176,13 @@ auto_disabled=""
 force_enabled=""
 
 test_env=
-memtest_env=""
+memtest_env="MALLOC_CHECK_=3 "
 leaktester_env=""
 TESTER=./runtest
 MEMTESTER=./memtest
 LEAKTESTER=./leaktest
+MEMTEST_CMD=
+LEAKTEST_CMD=
 test_config="TESTSIZE=64"
 memtest_config=
 leaktester_config=
@@ -286,6 +288,8 @@ AC_SUBST(leaktest_env)
 AC_SUBST(TESTER)
 AC_SUBST(MEMTESTER)
 AC_SUBST(LEAKTESTER)
+AC_SUBST(LEAKTEST_CMD)
+AC_SUBST(MEMTEST_CMD)
 AC_SUBST(test_config)
 AC_SUBST(memtest_config)
 AC_SUBST(leaktest_config)
@@ -719,6 +723,8 @@ elif test "$with_malloc" = "jemalloc"; then
     custom_malloc="jemalloc"
     using_malloc="jemalloc"
     AC_MSG_RESULT(jemalloc)
+    memtest_env="junk:true,tcache:false"
+    leaktest_env="prof_leak:true,lg_prof_sample:0,prof_final:true"
   else
     AC_MSG_ERROR(jemalloc can't be found)
     exit;
@@ -829,8 +835,8 @@ elif test "$with_duma" != "no"; then
 fi
 
 if test "${VALGRIND}" != "none" && test -z "${custom_malloc}"; then
-  MEMTESTER="./vgmemtest "
-  LEAKTESTER="./vgleaktest "
+  MEMTEST_CMD="FD_INVALGRIND=yes valgrind --tool=memcheck --num-callers=24"
+  LEAKTESTER="FD_INVALGRIND=yes valgrind --tool=memcheck --leak-check=full --num-callers=24"
 fi
 
 AC_ARG_ENABLE(ffi,--enable-ffi enable the FFI interface,enable_ffi=$enableval,enable_ffi="yes")
@@ -1781,19 +1787,17 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   tests/makefile DIY/makefile 
            etc/gdbinit
 	   exe/.gdbinit
-	   tests/.gdbinit tests/.lldbinit tests/.valgrind
+	   debug/runenv.sh debug/.gdbinit debug/.lldbinit 
+	   tests/.valgrind
 	   tests/lisp/.gdbinit tests/storage/.gdbinit
 	   etc/fd_start_servlets etc/fd_start_daemons etc/fd_stop_jobs
 	   etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup
 	   etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog 
 	   etc/fdreload etc/fdrestart etc/fdctl etc/fdgdb etc/fdbgexec
 	   etc/fdsetconfig etc/fdgetconfig etc/fdconfig
-	   tests/vgleaktest tests/vgmemtest
-	   tests/runenv.sh tests/xtest
+	   tests/testenv.sh tests/xtest
 	   tests/runtest tests/memtest
 	   tests/leaktest tests/fdexectest
-	   tests/tcdebug tests/vgdebug
-	   tests/gheaptest
 	   src/scripts/fdpkg.scm
 	   etc/OSXStartupItem/FramerD
 	   etc/fdjob
@@ -1810,7 +1814,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/fdserv.load
 	   etc/install-script 
 	   dist/framerd-4.2.spec],
-	   [chmod a+x etc/fd* tests/*test tests/*debug])
+	   [chmod a+x etc/fd* tests/*test])
 
 echo "Built with malloc=$using_malloc";
 echo $using_malloc > ./.malloc;

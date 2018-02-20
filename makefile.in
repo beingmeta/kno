@@ -9,14 +9,20 @@ XOPTFLAGS     = "@XOPTFLAGS@"
 ARCHFLAGS     = @archflags@
 EXECFLAGS     = @CFLAGS@ ${OPTFLAGS} @MALLOC_FLAGS@ @PROFILING@ @DREENTRANT@ -I./include $(XCFLAGS) $(ARCHFLAGS)
 DYNAMIC_CFLAG = @dynamic_cflag@
-CFLAGS        = -I./include @CFLAGS@ ${OPTFLAGS} @MALLOC_FLAGS@ @PROFILING@ @DREENTRANT@ @PTHREAD_LIBS@ \
-		$(DYNAMIC_CFLAG) -I./include $(XCFLAGS)  $(ARCHFLAGS)
+CFLAGS        = -I./include @CFLAGS@ ${OPTFLAGS} \
+		@MALLOC_FLAGS@ @PROFILING@ @DREENTRANT@ \
+		@PTHREAD_LIBS@ $(DYNAMIC_CFLAG) \
+		-I./include $(XCFLAGS)  $(ARCHFLAGS)
 RPATH         = @rpath@
 RPATHFLAGS    = @RPATHFLAGS@
 LDFLAGS       = -L./ -L./lib @LDFLAGS@ @PTHREAD_LIBS@ $(XLDFLAGS)
 DYLIB_FLAGS   = -compatibility_version @FDMAJOR@.0.0 -current_version @FDMAJOR@.@FDMINOR@.@FDRELEASE@
 EXECLDFLAGS   = @EXECLDFLAGS@
 EXECLIBS      = @EXECLIBS@
+STATIC_CFLAGS = -I./include @CFLAGS@ @PROFILING@ @DREENTRANT@ $(DYNAMIC_CFLAG) -I./include $(XCFLAGS)
+TEST_CFLAGS   = -DFD_TESTCONFIG=1 ${STATIC_CFLAGS}
+STATIC_LDFLAGS= -L./lib @LDFLAGS@ $(EFENCE) @TESTLDFLAGS@ -L./lib
+TEST_LDFLAGS  = ${STATIC_LDFLAGS}
 XLIBS         =
 LIBS          = $(XLIBS) @LIBS@
 PATH          = @BINPATH@
@@ -338,6 +344,8 @@ EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ exe/fdbatch@suffix@  \
 STATIC_EXECUTABLES=static/fdexec@suffix@ static/fdconsole@suffix@ \
 	static/fdbatch@suffix@ \
 	static/fdservlet@suffix@ static/fdserver@suffix@
+DEBUG_EXECUTABLES=debug/fdexec debug/fdconsole \
+	debug/fdbatch debug/fdservlet debug/fdserver
 SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig etc/fdconfig \
 	etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall \
 	etc/fd_start_daemons etc/fd_start_servlets etc/fd_stop_jobs \
@@ -435,20 +443,23 @@ CMODULE_SOURCES=\
 	src/cmodules/tidy.c src/cmodules/imagick.c               	\
 	src/cmodules/hyphenate.c src/cmodules/sundown.c
 
-STATIC_LIBS=lib/libfdcore@suffix@.a lib/libfdstorage@suffix@.a      \
-        lib/libfddbserv@suffix@.a lib/libfddrivers@suffix@.a  \
-	lib/libfdscheme@suffix@.a \
-	lib/libfdweb@suffix@.a lib/libtexttools@suffix@.a
+STATIC_LIBS=lib/libfdcore@suffix@.a 	\
+	lib/libfdstorage@suffix@.a	\
+        lib/libfddbserv@suffix@.a 	\
+	lib/libfddrivers@suffix@.a  	\
+	lib/libfdscheme@suffix@.a 	\
+	lib/libfdweb@suffix@.a 		\
+	lib/libtexttools@suffix@.a
 
 SHARED_LIBS=lib/libfdcore@suffix@.@shared_suffix@  		\
-	lib/libfdstorage@suffix@.@shared_suffix@        		\
+	lib/libfdstorage@suffix@.@shared_suffix@        	\
         lib/libfddrivers@suffix@.@shared_suffix@    		\
 	lib/libfddbserv@suffix@.@shared_suffix@     		\
 	lib/libfdscheme@suffix@.@shared_suffix@    		\
 	lib/libfdweb@suffix@.@shared_suffix@       		\
 	lib/libtexttools@suffix@.@shared_suffix@		\
 	lib/libfdcore@suffix@.@mshared_suffix@  		\
-	lib/libfdstorage@suffix@.@mshared_suffix@        		\
+	lib/libfdstorage@suffix@.@mshared_suffix@        	\
         lib/libfddrivers@suffix@.@mshared_suffix@    		\
 	lib/libfddbserv@suffix@.@mshared_suffix@     		\
 	lib/libfdscheme@suffix@.@mshared_suffix@    		\
@@ -504,7 +515,7 @@ nitpicking:
 	  echo With $(shell cat .malloc) malloc; fi;
 	@+make -s XCFLAGS="-Wall" testbin exe cmodules etc @TAGS@
 
-all: testbin exe cmodules etc i18n @TAGS@
+all: testbin debug-exe exe cmodules etc i18n @TAGS@
 packaged: exe cmodules etc i18n
 
 fresh: clean
@@ -558,7 +569,7 @@ tests/lisp/.gdbinit: tests/lisp/.gdbinit.in ./configure
 	./configure
 tests/storage/.gdbinit: tests/storage/.gdbinit.in ./configure
 	./configure
-tests/.gdbinit: tests/.gdbinit.in ./configure
+debug/.gdbinit: debug/.gdbinit.in ./configure
 	./configure
 exe/.gdbinit: exe/.gdbinit.in ./configure
 	./configure
@@ -587,7 +598,7 @@ etc/install-script: etc/install-script.in ./configure
 
 etc: etc/logrotate etc/install-script etc/framerd-rc.d \
 	etc/fdsetconfig etc/fdgetconfig etc/fdconfig \
-	tests/lisp/.gdbinit tests/storage/.gdbinit tests/.gdbinit \
+	tests/lisp/.gdbinit tests/storage/.gdbinit debug/.gdbinit \
 	exe/.gdbinit
 
 # Fileinfo gets version-related information about a file to pass in
@@ -642,10 +653,16 @@ lib/framerd/%.dylib: src/cmodules/%.o ${CMODULE_DEPENDS}
 lib/framerd/%.@FDMAJOR@.dylib: lib/framerd/%.dylib
 	@ln -sf $(*F).dylib $@
 
+debug/%: src/exe/%.c $(STATIC_LIBS)
+	@echo MKEXE_DEBUG $@
+	$(CC) $(TEST_CFLAGS) -o $@ $^ $(TEST_LDFLAGS) -lu8stdio -lu8syslog $(LIBS) $(EXECLIBS)
+debug/%: ${REVISION_H} ${CONFIG_H}
+
 # We can selectively link some executables statically to avoid 
 # library dependencies with programs which will typicall run as daemons
 static/%@suffix@: src/exe/%.c $(STATIC_LIBS) ${REVISION_H} ${CONFIG_H}
-	@$(CC) $(EXECFLAGS) -o $@ $^ $(EXECLDFLAGS) -lu8stdio -lu8syslog $(LIBS) $(EXECLIBS)
+	@echo MKEXE_STATIC $@
+	$(CC) $(STATIC_CFLAGS) -o $@ $^ $(STATIC_LDFLAGS) -lu8stdio -lu8syslog $(LIBS) $(EXECLIBS)
 	@$(MSG) MKEXE_STATIC $@
 
 lib/%@suffix@.a:
@@ -746,17 +763,15 @@ shared-libs: $(SHARED_LIBS)
 
 exe: $(EXECUTABLES) exe/.gdbinit
 static-exe: $(STATIC_EXECUTABLES)
+debug-exe: $(DEBUG_EXECUTABLES) debug/.gdbinit
 
-testbin: constestbin dbtestbin schemetestbin etc/usememory
+testbin: constestbin dbtestbin debug-exe etc/usememory
 constestbin: libs tests/lisp/makefile tests/lisp/.gdbinit
 	@make -s XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
 		-C tests/lisp
 dbtestbin: libs tests/storage/makefile tests/storage/.gdbinit
 	@make -s  XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
 		-C tests/storage
-schemetestbin: libs tests/makefile tests/.gdbinit src/exe/main.h
-	@make -s  XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
-		-C tests testbin
 cmodules: dbmodules @CMODULES@
 dbmodules: @DBMODULES@
 
@@ -797,7 +812,7 @@ uninstall: uninstall-core
 # Utility targets
 
 TAGS: makefile.in configure.ac include/framerd/config.h.in		\
-		tests/lisp/*.c tests/storage/*.c tests/*.c 	\
+		tests/lisp/*.c tests/storage/*.c  			\
 		src/exe/*.c src/exe/*.h include/framerd/*.h 		\
 		src/lisp/*.c src/support/*.c src/apply/*.c		\
 		src/storage/*.c src/drivers/*.c 			\
@@ -807,7 +822,7 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in		\
 		src/libscm/*.scm src/libscm/*/*.scm			\
 		include/framerd/components/*.h				\
 		etc/*.in ${SRC_HEADERS} 				\
-		tests/.gdbinit.in tests/*.scm 
+		debug/.gdbinit.in tests/*.scm 
 	@echo Building TAGS file
 	@etags makefile.in configure.ac include/framerd/config.h.in     \
 	        tests/*/*.in etc/*.in include/framerd/*.h 		\

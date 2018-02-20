@@ -1,5 +1,0 @@
-EXE=$1; shift;
-echo "Running Valgrind heap test for " ${EXE} $1;
-. ./runenv.sh
-exec valgrind --tool=memcheck --leak-check=full --num-callers=24 \
-     ${EXE} INVALGRIND=yes MEMCHECKING=yes $*

@@ -15,7 +15,8 @@ if test ! -z ${PREAMBLE}; then
    echo "TEST: " ${PROGNAME} $*;
 fi;
 
-. ./runenv.sh
+. ../debug/runenv.sh
+. ./testenv.sh
 
 @test_env@ exec ${PROGNAME} $*
 
