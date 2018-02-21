@@ -61,7 +61,7 @@ LEAKTEST	= ${TEST_ENV} ${LEAKTEST_ENV} ${LEAKTESTER:-${TESTPROG}}
 FRAMETEST_FILES	= r4rs.scm misctest.scm seqtest.scm choicetest.scm frametest.scm
 TESTBASE	= tmptest
 TESTFILE	= ${TESTBASE}.file
-FDX		= ../debug/fdexec
+FDX		= ../dbg/fdexec
 OIDPOOL		= POOLTYPE=oidpool
 BIGPOOL		= POOLTYPE=bigpool
 SNAPPY		= COMPRESSION=snappy
@@ -473,7 +473,7 @@ fdbatch_normal:
 	@${header} "■■■■■■■■ Testing fdbatch execution success and cleanliness"
 	@rm -f _countup.log _countup.err _countup.done
 	@rm -f  _countup.finished _countup.died _countup.pid batchscripts.log
-	@@test_env@ ../debug/fdbatch countup.scm "_countup.finished" 10 1 QUIET=yes LOGLEVEL=3;
+	@@test_env@ ../dbg/fdbatch countup.scm "_countup.finished" 10 1 QUIET=yes LOGLEVEL=3;
 	@sleep 3
 	@if (test ! -f _countup.pid); then \
 	   ./batchfail fdbatch _countup.pid NOT CREATED; fi;
@@ -500,7 +500,7 @@ fdbatch_normal:
 
 fdbatch_error: fdbatch_normal
 	@${header} "■■■■■■■■ "Starting fdbatch error test""
-	@@test_env@ ../debug/fdbatch countup.scm ERROR=yes "_countup.finished" 10 1 QUIET=yes LOGLEVEL=3;
+	@@test_env@ ../dbg/fdbatch countup.scm ERROR=yes "_countup.finished" 10 1 QUIET=yes LOGLEVEL=3;
 	@sleep 12;
 	@${header} This should have been deleted by the watch process
 	@if (test -f _countup.pid); then \
@@ -518,7 +518,7 @@ fdbatch_error: fdbatch_normal
 
 fdbatch_signal: fdbatch_error
 	@${header} "■■■■■■■■ "Starting fdbatch kill test""
-	@@test_env@ ../debug/fdbatch countup.scm "_countup.killed" 10 1 QUIET=yes LOGLEVEL=3;
+	@@test_env@ ../dbg/fdbatch countup.scm "_countup.killed" 10 1 QUIET=yes LOGLEVEL=3;
 	@sleep 3;
 	@kill -9 `cat _countup.pid`; sleep 12
 	@${header} This should have been deleted by the watch process
@@ -541,7 +541,7 @@ batchscripts: fdbatch_signal
 chained_batchscripts:
 	@${header} "■■■■■■■■ Testing batch scripts which call CHAIN"
 	@rm -f _chaintest.*
-	@@test_env@ ../debug/fdbatch chaintest.scm
+	@@test_env@ ../dbg/fdbatch chaintest.scm
 	@${header} "■■■■■■■■ Done testing batch scripts which call CHAIN"
 
 # ATEXIT tests

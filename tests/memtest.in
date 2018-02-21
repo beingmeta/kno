@@ -8,7 +8,7 @@ fi
 PROGNAME=$1; shift;
 LOGFILE=$$.log
 
-. ../debug/runenv.sh
+. ../dbg/runenv.sh
 . ./testenv.sh
 
 if @test_env@ @memtest_env@ @MEMTEST_CMD@ ${PROGNAME} $* > ${LOGFILE}; then

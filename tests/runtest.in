@@ -15,7 +15,7 @@ if test ! -z ${PREAMBLE}; then
    echo "TEST: " ${PROGNAME} $*;
 fi;
 
-. ../debug/runenv.sh
+. ../dbg/runenv.sh
 . ./testenv.sh
 
 if @test_env@ ${PROGNAME} $* LOGTIME=${LOGTIME} > ${LOGFILE}; then

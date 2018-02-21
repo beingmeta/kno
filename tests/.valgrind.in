@@ -1,8 +1,8 @@
 export VG_ENV="\
-        LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib    	  \
+        LD_LIBRARY_lib DYLD_LIBRARY_PATH=../lib				  \
 	MEMCHECKING=yes UNDERGDB=yes			  		  \
-	FD_LOADPATH=../../src/scheme/%/module.scm:../../src/scheme/%.scm: \
-	FD_DLOADPATH=../../lib/framerd			    		  \
+	FD_LOADPATH=../src/scheme/%/module.scm:../src/scheme/%.scm: \
+	FD_DLOADPATH=../lib/framerd			    		  \
 	FD_INVALGRIND=yes FD_MEMCHECKING=yes 				  \
 	FD_DISPLAYMAXELTS=36 FD_DISPLAYMAXCHARS=2048			  \
 	FD_SKIP_DOTLOAD=yes FD_SHOWTIME=0.0 FD_DLOADTRACE=yes 		  \

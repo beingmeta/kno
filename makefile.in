@@ -344,8 +344,8 @@ EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ exe/fdbatch@suffix@  \
 STATIC_EXECUTABLES=static/fdexec@suffix@ static/fdconsole@suffix@ \
 	static/fdbatch@suffix@ \
 	static/fdservlet@suffix@ static/fdserver@suffix@
-DEBUG_EXECUTABLES=debug/fdexec debug/fdconsole \
-	debug/fdbatch debug/fdservlet debug/fdserver
+DEBUG_EXECUTABLES=dbg/fdexec dbg/fdconsole \
+	dbg/fdbatch dbg/fdservlet dbg/fdserver
 SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig etc/fdconfig \
 	etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall \
 	etc/fd_start_daemons etc/fd_start_servlets etc/fd_stop_jobs \
@@ -569,7 +569,7 @@ tests/lisp/.gdbinit: tests/lisp/.gdbinit.in ./configure
 	./configure
 tests/storage/.gdbinit: tests/storage/.gdbinit.in ./configure
 	./configure
-debug/.gdbinit: debug/.gdbinit.in ./configure
+dbg/.gdbinit: dbg/.gdbinit.in ./configure
 	./configure
 exe/.gdbinit: exe/.gdbinit.in ./configure
 	./configure
@@ -598,7 +598,7 @@ etc/install-script: etc/install-script.in ./configure
 
 etc: etc/logrotate etc/install-script etc/framerd-rc.d \
 	etc/fdsetconfig etc/fdgetconfig etc/fdconfig \
-	tests/lisp/.gdbinit tests/storage/.gdbinit debug/.gdbinit \
+	tests/lisp/.gdbinit tests/storage/.gdbinit dbg/.gdbinit \
 	exe/.gdbinit
 
 # Fileinfo gets version-related information about a file to pass in
@@ -640,7 +640,7 @@ exe/%@suffix@: src/exe/%.c ${CONFIG_HDRS}
 
 src/cmodules/%.o: src/cmodules/%.c ${CONFIG_HDRS}
 	@$(CC) $(CFLAGS) -o $@ -c $< ${MODLIBS}
-	@$(MSG) CC  $@ $<
+	@$(MSG) CC_MODULE  $@ $<
 lib/framerd/%.so: src/cmodules/%.o ${CMODULE_DEPENDS}
 	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS}
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
@@ -653,10 +653,10 @@ lib/framerd/%.dylib: src/cmodules/%.o ${CMODULE_DEPENDS}
 lib/framerd/%.@FDMAJOR@.dylib: lib/framerd/%.dylib
 	@ln -sf $(*F).dylib $@
 
-debug/%: src/exe/%.c $(STATIC_LIBS)
+dbg/%: src/exe/%.c $(STATIC_LIBS)
 	@echo MKEXE_DEBUG $@
 	$(CC) $(TEST_CFLAGS) -o $@ $^ $(TEST_LDFLAGS) -lu8stdio -lu8syslog $(LIBS) $(EXECLIBS)
-debug/%: ${REVISION_H} ${CONFIG_H}
+dbg/%: ${REVISION_H} ${CONFIG_H}
 
 # We can selectively link some executables statically to avoid 
 # library dependencies with programs which will typicall run as daemons
@@ -763,7 +763,7 @@ shared-libs: $(SHARED_LIBS)
 
 exe: $(EXECUTABLES) exe/.gdbinit
 static-exe: $(STATIC_EXECUTABLES)
-debug-exe: $(DEBUG_EXECUTABLES) debug/.gdbinit
+debug-exe: $(DEBUG_EXECUTABLES) dbg/.gdbinit
 
 testbin: constestbin dbtestbin debug-exe etc/usememory
 constestbin: libs tests/lisp/makefile tests/lisp/.gdbinit
@@ -822,7 +822,7 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in		\
 		src/libscm/*.scm src/libscm/*/*.scm			\
 		include/framerd/components/*.h				\
 		etc/*.in ${SRC_HEADERS} 				\
-		debug/.gdbinit.in tests/*.scm 
+		dbg/.gdbinit.in tests/*.scm 
 	@echo Building TAGS file
 	@etags makefile.in configure.ac include/framerd/config.h.in     \
 	        tests/*/*.in etc/*.in include/framerd/*.h 		\
@@ -1162,8 +1162,12 @@ lib/framerd/parseltongue.dylib: src/python/parseltongue.o ${CMODULE_DEPENDS}
 lib/framerd/parseltongue.@FDMAJOR@.dylib: lib/framerd/parseltongue.dylib
 	@ln -sf $(*F).dylib $@
 
-src/python/parseltongue.o : XCFLAGS="-I@PYTHON2_INCLUDE_DIR@"
-src/python/parseltongue.dylib : LDFLAGS="${LDFLAGS} -l@PYTHON2_LIB@"
+src/python/parseltongue.o: src/python/parseltongue.c
+	$(CC) "-I@PYTHON2_INCLUDE_DIR@" $(CFLAGS) -o $@ -c $< ${MODLIBS}
+	@$(MSG) CC_PYTHON $@ $<
+
+
+parseltongue: lib/framerd/parseltongue.@shared_suffix@
 
 install-parseltongue: ${CMODULES}/parseltongue.@shared_suffix@ \
 	${CMODULES}/parseltongue.@vshared_suffix@
