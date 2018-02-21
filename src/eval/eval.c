@@ -1124,12 +1124,18 @@ FD_FASTOP int commentp(lispval arg)
                               int tail)
 {
   lispval arg_exprs = fd_get_body(expr,1), result=VOID;
-  int n_args = count_args(arg_exprs), arg_count = 0;
+  int n_args = count_args(arg_exprs), arg_count = 0, lambda = 0;
   int gc_args = 0, nd_args = 0, d_prim = 0, argbuf_len=0;
   lispval argbuf[n_args]; /* *argv=fd_alloca(argv_length); */
   lispval fn = (FD_FCNIDP(headval)) ? (fd_fcnid_ref(headval)) : (headval);
-  if (FD_AMBIGP(fn))
-    tail=0;
+  if (FD_AMBIGP(fn)) {
+    FD_DO_CHOICES(f,fn) {
+      if (!(FD_APPLICABLEP(f))) {
+        FD_STOP_DO_CHOICES;
+        return fd_err("NotApplicable","call_function/eval",NULL,f);}}
+    tail=0;}
+  else if (!(FD_APPLICABLEP(fn)))
+    return fd_err("NotApplicable","call_function/eval",NULL,fn);
   else if (FD_FUNCTIONP(fn)) {
     struct FD_FUNCTION *fcn=FD_XFUNCTION(fn);
     int max_arity = fcn->fcn_arity, min_arity = fcn->fcn_min_arity;
@@ -1140,7 +1146,8 @@ FD_FASTOP int commentp(lispval arg)
       return fd_err(fd_TooFewArgs,"call_function",fcn->fcn_name,expr);
     else {}
     d_prim=(fcn->fcn_ndcall==0);
-    if (fcn->fcn_notail) tail = 0;}
+    if (fcn->fcn_notail) tail = 0;
+    lambda = FD_LAMBDAP(fn);}
   else NO_ELSE;
   int i=0; while (i<argbuf_len) argbuf[i++]=VOID;
   /* Now we evaluate each of the subexpressions to fill the arg
@@ -1158,7 +1165,7 @@ FD_FASTOP int commentp(lispval arg)
         gc_args = 1;}
       else {}
       argbuf[arg_count++]=argval;}}
-  if ((tail) && (fd_optimize_tail_calls))
+  if ((tail) && (lambda) && (fd_optimize_tail_calls)  )
     result=fd_tail_call(fn,arg_count,argbuf);
   else if ((CHOICEP(fn)) ||
            (PRECHOICEP(fn)) ||
