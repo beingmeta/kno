@@ -1197,7 +1197,7 @@ static lispval pycall(int n,lispval *args)
   return pyapply(args[0],n-1,args+1);
 }
 
-static lispval pymethod(lispval modname,lispval fname)
+static lispval pyfcn(lispval modname,lispval fname)
 {
   PyObject *o;
   if (FD_STRINGP(modname)) {
@@ -1257,7 +1257,7 @@ static void initframerdmodule()
 	    "Calls a python function on some arguments");
   fd_idefnN(pymodule,"PY/HANDLE",pyhandle,2,
 	    "Calls a method on a Python object");
-  fd_idefn2(pymodule,"PY/METHOD",pymethod,2,
+  fd_idefn2(pymodule,"PY/FCN",pyfcn,2,
 	    "Returns a python method object",
 	    -1,FD_VOID,
 	    fd_string_type,FD_VOID);
