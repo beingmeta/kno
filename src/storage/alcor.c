@@ -34,6 +34,10 @@
 #define FD_ALCOR_BUFSIZE (2*1024*1024)
 #endif
 
+#ifndef MAP_POPULATE
+#define MAP_POPULATE 0
+#endif
+
 #define USE_MMAP FD_USE_MMAP
 
 u8_condition TruncatedHead=_("The head file has no data");

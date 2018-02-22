@@ -26,7 +26,7 @@ FD_FASTOP lispval copy_elt(lispval elt,int flags)
   if (FD_CONSP(elt)) {
     if (FD_STATIC_CONSP(elt))
       return fd_copier(elt,flags);
-    else if (((flags)&&(FD_FULL_COPY)) == 0)
+    else if (! ( (flags) & (FD_FULL_COPY) ) )
       return fd_incref(elt);
     else {
       struct FD_CONS *cons = (fd_cons) elt;
@@ -41,7 +41,7 @@ FD_FASTOP lispval copy_elt(lispval elt,int flags)
       case fd_rawptr_type: case fd_regex_type:
       case fd_port_type: case fd_stream_type:
       case fd_dtserver_type: case fd_bloom_filter_type:
-        if ( (flags) && (FD_COPY_TERMINALS) )
+        if ( (flags) & (FD_COPY_TERMINALS) )
           return fd_copier(elt,flags);
         else return fd_incref(elt);
       default:
@@ -128,7 +128,7 @@ lispval fd_copier(lispval x,int flags)
     default:
       if (fd_copiers[ctype]) {
         lispval copy = (fd_copiers[ctype])(x,flags);
-        if ((static_copy)&&(copy!=x)) {FD_MAKE_STATIC(copy);}
+        if ((static_copy) && (copy!=x)) {FD_MAKE_STATIC(copy);}
         return copy;}
       else if (!(FD_MALLOCD_CONSP((fd_cons)x)))
         return fd_err(fd_NoMethod,"fd_copier/static",
@@ -202,9 +202,13 @@ static lispval copy_compound(lispval x,int flags)
     nc->compound_length = xc->compound_length;
     if (flags)
       while (i<n) {
-        *write = fd_copier(data[i],flags); i++; write++;}
+        *write = fd_copier(data[i],flags);
+        write++;
+        i++;}
     else while (i<n) {
-        *write = fd_incref(data[i]); i++; write++;}
+        *write = fd_incref(data[i]);
+        write++;
+        i++;}
     return LISP_CONS(nc);}
 }
 
