@@ -733,7 +733,7 @@ slot of the loop state.
 	    (if success
 		(lognotice |Engine/Checkpoint| 
 		  "Saved task state in " (secs->string (elapsed-time started)) " for " fifo)
-		(logwarn |Engine/Checkpoint/Failed| 
+		(logwarn |Checkpoint/Failed| 
 		  "After " (secs->string (elapsed-time started)) " for " fifo))
 	    (when fifo (fifo/pause! fifo #f))
 	    (when (getopt (getopt loop-state 'opts) 'checkclear (config 'checkclear))
@@ -771,7 +771,7 @@ slot of the loop state.
       (let ((timings (make-hashtable))
 	    (n-threads (and spec-threads
 			    (min spec-threads (choice-size modified)))))
-	(lognotice |Engine/Checkpoint/Start|
+	(lognotice |Checkpoint/Start|
 	  (if (test loop-state 'stopped) "Final " "Incremental ")
 	  "checkpoint of " (choice-size modified) " modified dbs "
 	  "using " (if n-threads n-threads "no") " threads "
@@ -812,15 +812,15 @@ slot of the loop state.
 	   (loginfo |EngineClearCaches| 
 	     "Clearing cached data for " (get loop-state 'fifo))
 	   (clearcaches)
-	   (lognotice |EngineClearCaches| 
+	   (lognotice |Engine/ClearCaches| 
 	     "Cleared cached data in " (secs->string (elapsed-time started)) " "
 	     "for " (get loop-state 'fifo)))
-	  (else (loginfo |EngineClearCaches| 
+	  (else (loginfo |Engine/ClearCaches| 
 		  "Clearing cached data from "
 		  ($count (choice-size dbs) " databases ")
 		  "for " (get loop-state 'fifo))
 		(do-choices (db dbs) (swapout db))
-		(lognotice |EngineClearCaches| 
+		(lognotice |Engine/ClearCaches| 
 		  "Cleared cached data in " (secs->string (elapsed-time started))  " "
 		  "from " ($count (choice-size dbs) " databases ")
 		  "for " (get loop-state 'fifo))))))
@@ -832,7 +832,7 @@ slot of the loop state.
 	((and (applicable? arg) (zero? (procedure-min-arity arg))) (arg))
 	((and (pair? arg) (applicable? (car arg)))
 	 (apply (car arg) (cdr arg)))
-	(else (logwarn |CantSave| "No method for saving " arg) #f))
+	(else (logwarn |Engine/CantSave| "No method for saving " arg) #f))
   (store! timings arg (elapsed-time start))
   arg)
 
@@ -840,7 +840,7 @@ slot of the loop state.
   (onerror (inner-commit arg timings start)
       (lambda (ex)
 	(store! timings arg (- (elapsed-time start)))
-	(logwarn |CommitError| "Error committing " arg ": " ex)
+	(logwarn |Engine/CommitError| "Error committing " arg ": " ex)
 	ex)))
 
 (define (commit-queued fifo opts timings)
