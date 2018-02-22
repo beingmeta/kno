@@ -176,6 +176,6 @@
 		   checkpoint {,output ,(or unique {}) ,(or rare {})}
 		   logfreq ,(getopt opts 'logfreq (config 'LOGFREQ 30))
 		   checkfreq ,(getopt opts 'checkfreq (config 'checkfreq 15))
-		   checklog #t
+		   logchecks #t
 		   started ,started])))
 
