@@ -833,8 +833,7 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in		\
 	@etags -o TAGS -a src/storage/*.c src/drivers/*.c src/drivers/headers/*.h
 	@etags -o TAGS -a src/eval/*.c src/prims/*.c
 	@etags -o TAGS -a src/web/*.c src/text/*.c;
-	@etags -o TAGS -a tests/lisp/*.c tests/storage/*.c;
-	@etags -o TAGS -a tests/*.c tests/*.scm;
+	@etags -o TAGS -a tests/lisp/*.c tests/storage/*.c tests/*.scm;
 	@etags -o TAGS -a src/libscm/*.scm src/libscm/storage/*.scm;
 	@etags -o TAGS -a src/libscm/optimize/optimize.scm src/libscm/bugjar/bugjar.scm;
 	@etags -o TAGS -a src/cmodules/*.c;
