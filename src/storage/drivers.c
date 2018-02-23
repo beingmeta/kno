@@ -989,39 +989,6 @@ FD_EXPORT lispval fd_decode_slotmap(struct FD_INBUF *in,struct FD_SLOTCODER *slo
   return fd_read_dtype(in);
 }
 
-/* Getting compression type from options */
-
-static lispval compression_symbol, snappy_symbol, none_symbol, no_symbol;
-static lispval zlib_symbol, zlib9_symbol, zstd_symbol;
-
-#define DEFAULT_COMPRESSION FD_ZLIB
-
-FD_EXPORT
-fd_compress_type fd_compression_type(lispval opts,fd_compress_type dflt)
-{
-  if (fd_testopt(opts,compression_symbol,FD_FALSE))
-    return FD_NOCOMPRESS;
-  else if (fd_testopt(opts,compression_symbol,snappy_symbol))
-    return FD_SNAPPY;
-  else if (fd_testopt(opts,compression_symbol,zstd_symbol))
-    return FD_ZSTD;
-  else if (fd_testopt(opts,compression_symbol,zlib_symbol))
-    return FD_ZLIB;
-  else if ( (fd_testopt(opts,compression_symbol,zlib9_symbol)) ||
-            (fd_testopt(opts,compression_symbol,FD_INT(9))) )
-    return FD_ZLIB9;
-  else if ( (fd_testopt(opts,compression_symbol,FDSYM_NO)) ||
-            (fd_testopt(opts,compression_symbol,FD_INT(0))) )
-    return FD_NOCOMPRESS;
-  else if ( (fd_testopt(opts,compression_symbol,FD_TRUE)) ||
-            (fd_testopt(opts,compression_symbol,FD_DEFAULT_VALUE)) ||
-            (fd_testopt(opts,compression_symbol,FDSYM_DEFAULT)) ) {
-    if (dflt)
-      return dflt;
-    else return DEFAULT_COMPRESSION;}
-  else return dflt;
-}
-
 /* Cleaning up dbfiles */
 
 static int try_remove(u8_string file,u8_condition cond,u8_context caller)
@@ -1274,13 +1241,6 @@ FD_EXPORT int fd_init_drivers_c()
   gentime_symbol = fd_intern("GENTIME");
   packtime_symbol = fd_intern("PACKTIME");
   modtime_symbol = fd_intern("MODTIME");
-  compression_symbol = fd_intern("COMPRESSION");
-  snappy_symbol = fd_intern("SNAPPY");
-  zlib_symbol = fd_intern("ZLIB");
-  zlib9_symbol = fd_intern("ZLIB9");
-  zstd_symbol = fd_intern("ZSTD");
-  no_symbol = fd_intern("NO");
-  none_symbol = fd_intern("NONE");
   adjuncts_symbol = fd_intern("ADJUNCTS");
 
   fd_cachelevel_op=fd_intern("CACHELEVEL");

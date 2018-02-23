@@ -2145,19 +2145,7 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
             ( ( op == fd_metadata_op ) && (n == 2) &&
               ( args[1] == compression_symbol ) ) ) {
     lispval arg = (op == compression_symbol) ? (args[0]) : (args[1]);
-    int rv = 0;
-    if (FD_FALSEP(arg))
-      rv = bigpool_set_compression(bp,FD_NOCOMPRESS);
-    else if (arg == (fd_intern("ZLIB")))
-      rv = bigpool_set_compression(bp,FD_ZLIB);
-    else if ( (arg == (fd_intern("ZLIB9"))) || (arg == (FD_INT(9))) )
-      rv = bigpool_set_compression(bp,FD_ZLIB9);
-    else if (arg == (fd_intern("SNAPPY")))
-      rv = bigpool_set_compression(bp,FD_SNAPPY);
-    else if (FD_TRUEP(arg))
-      rv = bigpool_set_compression(bp,FD_SNAPPY);
-    else if (FD_DEFAULTP(arg)) {}
-    else {}
+    int rv = bigpool_set_compression(bp,fd_compression_type(arg,FD_NOCOMPRESS));
     if (rv<0) return FD_ERROR;
     else return FD_TRUE;}
   else if (op == fd_load_op) {

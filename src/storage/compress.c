@@ -44,6 +44,59 @@
 #define FD_DEFAULT_ZSTDLEVEL 17
 #endif
 
+/* Getting compression type from options */
+
+static lispval compression_symbol, snappy_symbol, none_symbol, no_symbol;
+static lispval libz_symbol, zlib_symbol, zlib9_symbol, zstd_symbol;
+
+#define DEFAULT_COMPRESSION FD_ZLIB
+
+FD_EXPORT
+fd_compress_type fd_compression_type(lispval opts,fd_compress_type dflt)
+{
+  if (FD_SYMBOLP(opts)) {
+    if (opts == snappy_symbol)
+    return FD_SNAPPY;
+  else if (opts == zstd_symbol)
+    return FD_ZSTD;
+  else if ( (opts == zlib_symbol) || (opts == libz_symbol) )
+    return FD_ZLIB;
+  else if ( (opts == zlib9_symbol) ||
+	    (opts == FD_INT(9)) )
+    return FD_ZLIB9;
+  else if ( (opts == FDSYM_NO) || (opts == FD_INT(0)) )
+    return FD_NOCOMPRESS;
+  else if (opts == snappy_symbol)
+    return FD_SNAPPY;
+  else return dflt;}
+  else if (fd_testopt(opts,compression_symbol,FD_FALSE))
+    return FD_NOCOMPRESS;
+  else if (fd_testopt(opts,compression_symbol,snappy_symbol))
+    return FD_SNAPPY;
+  else if ( (fd_testopt(opts,compression_symbol,FD_TRUE)) ||
+	    (fd_testopt(opts,compression_symbol,FD_DEFAULT_VALUE)) ||
+	    (fd_testopt(opts,compression_symbol,FDSYM_DEFAULT)) )
+    return dflt;
+  else if (fd_testopt(opts,compression_symbol,zstd_symbol))
+    return FD_ZSTD;
+  else if ( (fd_testopt(opts,compression_symbol,zlib_symbol)) ||
+	    (fd_testopt(opts,compression_symbol,libz_symbol)) )
+    return FD_ZLIB;
+  else if ( (fd_testopt(opts,compression_symbol,zlib9_symbol)) ||
+	    (fd_testopt(opts,compression_symbol,FD_INT(9))) )
+    return FD_ZLIB9;
+  else if ( (fd_testopt(opts,compression_symbol,FDSYM_NO)) ||
+	    (fd_testopt(opts,compression_symbol,FD_INT(0))) )
+    return FD_NOCOMPRESS;
+  else if ( (fd_testopt(opts,compression_symbol,FD_TRUE)) ||
+	    (fd_testopt(opts,compression_symbol,FD_DEFAULT_VALUE)) ||
+	    (fd_testopt(opts,compression_symbol,FDSYM_DEFAULT)) ) {
+    if (dflt)
+      return dflt;
+    else return DEFAULT_COMPRESSION;}
+  else return dflt;
+}
+
 /* no compression */
 
 static unsigned char *just_copy
@@ -281,4 +334,25 @@ FD_EXPORT unsigned char *fd_uncompress
   default:
     u8_seterr("BadCompressMethod","fd_compress",NULL);
     return NULL;}
+}
+
+/* Initialization */
+
+static time_t compress_c_initialized = 0;
+
+FD_EXPORT void fd_init_compress_c()
+{
+  if (compress_c_initialized) return;
+  else compress_c_initialized = time(NULL);
+
+  compression_symbol = fd_intern("COMPRESSION");
+  snappy_symbol = fd_intern("SNAPPY");
+  zlib_symbol = fd_intern("ZLIB");
+  zlib9_symbol = fd_intern("ZLIB9");
+  libz_symbol = fd_intern("LIBZ");
+  zstd_symbol = fd_intern("ZSTD");
+  no_symbol = fd_intern("NO");
+  none_symbol = fd_intern("NONE");
+
+  u8_register_source_file(_FILEINFO);
 }

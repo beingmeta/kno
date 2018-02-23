@@ -605,6 +605,7 @@ FD_EXPORT void fd_init_alcor_c(void);
 FD_EXPORT void fd_init_hashdtype_c(void);
 FD_EXPORT void fd_init_threadcache_c(void);
 FD_EXPORT void fd_init_pools_c(void);
+FD_EXPORT void fd_init_compress_c(void);
 FD_EXPORT void fd_init_indexes_c(void);
 FD_EXPORT void fd_init_dtcall_c(void);
 FD_EXPORT void fd_init_oidobj_c(void);
@@ -630,6 +631,7 @@ FD_EXPORT int fd_init_storage()
   fd_init_hashdtype_c();
   fd_init_oidobj_c();
   fd_init_cachecall_c();
+  fd_init_compress_c();
   fd_init_bloom_c();
   fd_init_pools_c();
   fd_init_indexes_c();

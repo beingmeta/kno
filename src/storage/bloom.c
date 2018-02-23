@@ -395,6 +395,8 @@ void fd_init_bloom_c()
 
   struct FD_COMPOUND_TYPEINFO *e=fd_register_compound(bloom_tag,NULL,NULL);
   e->compound_restorefn = restore_bloom;
+
+  u8_register_source_file(_FILEINFO);
 }
 
 /* Original headers and license information */
