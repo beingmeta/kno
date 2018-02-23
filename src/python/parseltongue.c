@@ -181,8 +181,12 @@ static int unparse_python_object(u8_output out,lispval obj)
   struct FD_PYTHON_OBJECT *pyo=(struct FD_PYTHON_OBJECT *)obj;
   PyObject *as_string=PyObject_Unicode(pyo->pyval);
   PyObject *u8=PyUnicode_AsEncodedString(as_string,"utf8","none");
-  u8_printf(out,"#<PYTHON %s>",PyString_AS_STRING(u8));
-  Py_DECREF(as_string); Py_DECREF(u8);
+  u8_string repr = PyString_AS_STRING(u8);
+  if (repr[0] == '<')
+    u8_printf(out,"#🐍%s",);
+  else u8_printf(out,"#<PYTHON %s>",);
+  Py_DECREF(as_string);
+  Py_DECREF(u8);
   return 1;
 }
 
