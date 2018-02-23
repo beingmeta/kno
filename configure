@@ -733,8 +733,8 @@ FDMINOR
 FDMAJOR
 FDVERSION
 RPATHFLAGS
-EXECLIBS
-EXECLDFLAGS
+EXELIBS
+EXEFLAGS
 TESTLIBS
 TESTLDFLAGS
 SHARED_LIBV
@@ -844,7 +844,6 @@ infodir
 docdir
 oldincludedir
 includedir
-runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -1009,7 +1008,6 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
-runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE}'
@@ -1262,15 +1260,6 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
-  -runstatedir | --runstatedir | --runstatedi | --runstated \
-  | --runstate | --runstat | --runsta | --runst | --runs \
-  | --run | --ru | --r)
-    ac_prev=runstatedir ;;
-  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
-  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
-  | --run=* | --ru=* | --r=*)
-    runstatedir=$ac_optarg ;;
-
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1408,7 +1397,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir runstatedir
+		libdir localedir mandir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1561,7 +1550,6 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
-  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -2929,6 +2917,7 @@ else
 fi
 
 
+CC=${CC}
 DEFAULTMAKETARGET=update
 threads_default="yes"
 shared_default="yes"
@@ -2977,8 +2966,8 @@ DREENTRANT="-D_REENTRANT"
 MKSTATIC="ld -r -o"
 TESTLIBS=
 TESTLDFLAGS=
-EXECLDFLAGS=
-EXECLIBS=
+EXEFLAGS=
+EXELIBS=
 BINPATH=${PATH}
 RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
@@ -4281,7 +4270,7 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 if test -n "$ac_tool_prefix"; then
-  for ac_prog in cc gcc clang
+  for ac_prog in ${CC} cc gcc clang
   do
     # Extract the first word of "$ac_tool_prefix$ac_prog", so it can be a program name with args.
 set dummy $ac_tool_prefix$ac_prog; ac_word=$2
@@ -4325,7 +4314,7 @@ fi
 fi
 if test -z "$CC"; then
   ac_ct_CC=$CC
-  for ac_prog in cc gcc clang
+  for ac_prog in ${CC} cc gcc clang
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -5530,7 +5519,7 @@ fi
 
 
 if test "$rpath" != "none" && test "$rpath" != "/usr" && test "$rpath" != "/usr/local"; then
-  EXECLDFLAGS=" $EXECLDFLAGS \$(RPATHFLAGS) "
+  EXEFLAGS=" $EXEFLAGS \$(RPATHFLAGS) "
 fi
 
 
@@ -6579,7 +6568,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_jemalloc_malloc" >&5
 $as_echo "$ac_cv_lib_jemalloc_malloc" >&6; }
 if test "x$ac_cv_lib_jemalloc_malloc" = xyes; then :
-  EXECLIBS="-ljemalloc $EXECLIBS"
+  EXELIBS="-ljemalloc $EXELIBS"
 fi
 
   if test "${ac_cv_lib_jemalloc_malloc}" = "yes"; then
@@ -6631,7 +6620,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_dmalloc_malloc" >&5
 $as_echo "$ac_cv_lib_dmalloc_malloc" >&6; }
 if test "x$ac_cv_lib_dmalloc_malloc" = xyes; then :
-  EXECLIBS="-ldmalloc $EXECLIBS"
+  EXELIBS="-ldmalloc $EXELIBS"
 fi
 
   if test "${ac_cv_lib_dmalloc_malloc}" = "yes"; then
@@ -6788,7 +6777,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_debug_malloc" >&5
 $as_echo "$ac_cv_lib_tcmalloc_debug_malloc" >&6; }
 if test "x$ac_cv_lib_tcmalloc_debug_malloc" = xyes; then :
-  EXECLIBS="-ltcmalloc_debug $EXECLIBS"
+  EXELIBS="-ltcmalloc_debug $EXELIBS"
 fi
 
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ProfilerStart in -lprofiler" >&5
@@ -6828,7 +6817,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_profiler_ProfilerStart" >&5
 $as_echo "$ac_cv_lib_profiler_ProfilerStart" >&6; }
 if test "x$ac_cv_lib_profiler_ProfilerStart" = xyes; then :
-  EXECLIBS="-lprofiler $EXECLIBS"
+  EXELIBS="-lprofiler $EXELIBS"
 fi
 
   elif test "$gperftools" = "profile"; then
@@ -6869,7 +6858,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_malloc" >&5
 $as_echo "$ac_cv_lib_tcmalloc_malloc" >&6; }
 if test "x$ac_cv_lib_tcmalloc_malloc" = xyes; then :
-  EXECLIBS="-ltcmalloc $EXECLIBS"
+  EXELIBS="-ltcmalloc $EXELIBS"
 fi
 
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ProfilerStart in -lprofiler" >&5
@@ -6909,7 +6898,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_profiler_ProfilerStart" >&5
 $as_echo "$ac_cv_lib_profiler_ProfilerStart" >&6; }
 if test "x$ac_cv_lib_profiler_ProfilerStart" = xyes; then :
-  EXECLIBS="-lprofiler $EXECLIBS"
+  EXELIBS="-lprofiler $EXELIBS"
 fi
 
   elif test "$gperftools" = "minimal"; then
@@ -6950,7 +6939,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_minimal_malloc" >&5
 $as_echo "$ac_cv_lib_tcmalloc_minimal_malloc" >&6; }
 if test "x$ac_cv_lib_tcmalloc_minimal_malloc" = xyes; then :
-  EXECLIBS="-ltcmalloc_minimal $EXECLIBS"
+  EXELIBS="-ltcmalloc_minimal $EXELIBS"
 fi
 
   else
@@ -10158,7 +10147,7 @@ fi
 if test "$with_libu8" != ""; then
   CFLAGS="-I$with_libu8/include $CFLAGS"
   LDFLAGS="-L$with_libu8/lib $LDFLAGS"
-  EXECLDFLAGS="$EXECLDFLAGS -L$with_libu8/lib"
+  EXEFLAGS="$EXEFLAGS -L$with_libu8/lib"
 fi
 
 for ac_prog in sudo

@@ -31,6 +31,7 @@ AC_MSG_CHECKING([for group $1])
 # Override the default value for localstatedir
 AC_ARG_WITH(statedir,--with-statedir where to keep local state e.g. /var,localstatedir=$withval,localstatedir="/var")
 
+CC=${CC}
 DEFAULTMAKETARGET=update
 threads_default="yes"
 shared_default="yes"
@@ -79,8 +80,8 @@ DREENTRANT="-D_REENTRANT"
 MKSTATIC="ld -r -o"
 TESTLIBS=
 TESTLDFLAGS=
-EXECLDFLAGS=
-EXECLIBS=
+EXEFLAGS=
+EXELIBS=
 BINPATH=${PATH}
 RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
@@ -304,8 +305,8 @@ AC_SUBST(SHARED_LIBV)
 AC_SUBST(test_env)
 AC_SUBST(TESTLDFLAGS)
 AC_SUBST(TESTLIBS)
-AC_SUBST(EXECLDFLAGS)
-AC_SUBST(EXECLIBS)
+AC_SUBST(EXEFLAGS)
+AC_SUBST(EXELIBS)
 AC_SUBST(RPATHFLAGS)
 AC_SUBST(FDVERSION)
 AC_SUBST(FDMAJOR)
@@ -407,7 +408,7 @@ DEFAULTMAKETARGET=$with_make_target
 
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
-AC_PROG_CC([cc gcc clang])
+AC_PROG_CC([${CC} cc gcc clang])
 AC_USE_SYSTEM_EXTENSIONS
 
 AC_PROG_INSTALL
@@ -418,7 +419,7 @@ CFLAGS="-I$prefix/include/$host/ $CFLAGS"
 AC_ARG_WITH(rpath,--with-rpath dir,rpath=$withval,rpath=$rpath_default)
 
 if test "$rpath" != "none" && test "$rpath" != "/usr" && test "$rpath" != "/usr/local"; then
-  EXECLDFLAGS=" $EXECLDFLAGS \$(RPATHFLAGS) "
+  EXEFLAGS=" $EXEFLAGS \$(RPATHFLAGS) "
 fi
 
 AC_ARG_WITH(fileinfo,--with[out]-fileinfo record fileinfo,,with_fileinfo="yes")
@@ -718,7 +719,7 @@ elif test "$with_malloc" = "tcmalloc_minimal"; then
   using_malloc="tcmalloc_minimal"
   AC_MSG_RESULT(tcmalloc minimal)
 elif test "$with_malloc" = "jemalloc"; then
-  AC_CHECK_LIB(jemalloc,malloc,EXECLIBS="-ljemalloc $EXECLIBS")
+  AC_CHECK_LIB(jemalloc,malloc,EXELIBS="-ljemalloc $EXELIBS")
   if test "${ac_cv_lib_jemalloc_malloc}" = "yes"; then
     custom_malloc="jemalloc"
     using_malloc="jemalloc"
@@ -730,7 +731,7 @@ elif test "$with_malloc" = "jemalloc"; then
     exit;
   fi;
 elif test "$with_malloc" = "dmalloc"; then
-  AC_CHECK_LIB(dmalloc,malloc,EXECLIBS="-ldmalloc $EXECLIBS")
+  AC_CHECK_LIB(dmalloc,malloc,EXELIBS="-ldmalloc $EXELIBS")
   if test "${ac_cv_lib_dmalloc_malloc}" = "yes"; then
     custom_malloc="dmalloc"
     using_malloc="dmalloc"
@@ -797,13 +798,13 @@ else
   AC_CHECK_HEADERS(gperftools/heap-checker.h)
   AC_CHECK_HEADERS(gperftools/malloc_extension_c.h)
   if test "$gperftools" = "debug"; then
-    AC_CHECK_LIB(tcmalloc_debug,malloc,EXECLIBS="-ltcmalloc_debug $EXECLIBS")
-    AC_CHECK_LIB(profiler,ProfilerStart,EXECLIBS="-lprofiler $EXECLIBS")
+    AC_CHECK_LIB(tcmalloc_debug,malloc,EXELIBS="-ltcmalloc_debug $EXELIBS")
+    AC_CHECK_LIB(profiler,ProfilerStart,EXELIBS="-lprofiler $EXELIBS")
   elif test "$gperftools" = "profile"; then
-    AC_CHECK_LIB(tcmalloc,malloc,EXECLIBS="-ltcmalloc $EXECLIBS")
-    AC_CHECK_LIB(profiler,ProfilerStart,EXECLIBS="-lprofiler $EXECLIBS")
+    AC_CHECK_LIB(tcmalloc,malloc,EXELIBS="-ltcmalloc $EXELIBS")
+    AC_CHECK_LIB(profiler,ProfilerStart,EXELIBS="-lprofiler $EXELIBS")
   elif test "$gperftools" = "minimal"; then
-    AC_CHECK_LIB(tcmalloc_minimal,malloc,EXECLIBS="-ltcmalloc_minimal $EXECLIBS")
+    AC_CHECK_LIB(tcmalloc_minimal,malloc,EXELIBS="-ltcmalloc_minimal $EXELIBS")
   else
     AC_CHECK_LIB(tcmalloc,malloc)
   fi;
@@ -1197,7 +1198,7 @@ AC_ARG_WITH(libu8,--with[out]-libu8 Use libu8 includes,,with_libu8="")
 if test "$with_libu8" != ""; then
   CFLAGS="-I$with_libu8/include $CFLAGS"
   LDFLAGS="-L$with_libu8/lib $LDFLAGS"
-  EXECLDFLAGS="$EXECLDFLAGS -L$with_libu8/lib"
+  EXEFLAGS="$EXEFLAGS -L$with_libu8/lib"
 fi
 
 dnl Use sudo for installations in makefile

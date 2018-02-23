@@ -13,18 +13,19 @@ export DYLD_LIBRARY_PATH
 PPROF_PATH      = @GOOGLE_PPROF@
 export PPROF_PATH
 
-CC	= @CC@
-XCFLAGS=
-CFLAGS= -I../../include @CFLAGS@ @PROFILING@ @DREENTRANT@ @dynamic_cflag@ \
-	-I../../include $(XCFLAGS)
-LDFLAGS =-L../../lib @LDFLAGS@ $(EFENCE) @TESTLDFLAGS@ -L../../lib
-RPATH   = @rpath@
-RPATHFLAGS = @RPATHFLAGS@
-BASELIBS=@LIBS@ -lm -lz
-BMLIBS=-lu8stdio -lu8io -lu8data -lu8
-LIBS=$(BASELIBS) $(BMLIBS)
-EXECLDFLAGS = @EXECLDFLAGS@
-EXECLBIS = @EXECLIBS@
+CC		= @CC@
+XCFLAGS		=
+CFLAGS          = -I../../include @CFLAGS@ @PROFILING@ 	\
+		  @DREENTRANT@ @dynamic_cflag@ 		\
+		  -I../../include $(XCFLAGS)
+LDFLAGS         =-L../../lib @LDFLAGS@ $(EFENCE) @TESTLDFLAGS@ -L../../lib 
+RPATH           = @rpath@
+RPATHFLAGS      = @RPATHFLAGS@
+BASELIBS        = @LIBS@ -lm -lz
+BMLIBS          = -lu8stdio -lu8io -lu8data -lu8
+LIBS            = $(BASELIBS) $(BMLIBS)
+EXEFLAGS        = @EXEFLAGS@
+EXELIBS         = @EXELIBS@
 
 DESTDIR		=
 prefix		= @prefix@
@@ -68,14 +69,14 @@ $(TESTBIN): ../../lib/libfddrivers@suffix@.a 	\
 	../../lib/libfdstorage@suffix@.a 		\
 	../../lib/libfdcore@suffix@.a
 	@echo MKTEST_STATIC $@
-	@$(CC) $(CFLAGS) $(EXECLDFLAGS) $(LDFLAGS) $(EXECLIBS) -o $@ $^ \
-		$(LIBS) $(EXECLIBS)
+	@$(CC) $(CFLAGS) $(EXEFLAGS) $(LDFLAGS) $(EXELIBS) -o $@ $^ \
+		$(LIBS) $(EXELIBS)
 
 # This is for making shared (dynamically linked) versions of the test programs
 %.shared: %.c
 	@echo MKTEST_SHARED $@
-	@$(CC) $(CFLAGS) $(EXECLDFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) $(EXECLIBS) \
-		-lfdcore@suffix@ -lfdstorage@suffix@ -lfddrivers@suffix@ $(LIBS) $(EXECLIBS)
+	@$(CC) $(CFLAGS) $(EXEFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) $(EXELIBS) \
+		-lfdcore@suffix@ -lfdstorage@suffix@ -lfddrivers@suffix@ $(LIBS) $(EXELIBS)
 ../../lib/libfdcore@suffix@.a:
 	cd ../..; make lib/libfdcore@suffix@.a
 ../../lib/libfdstorage@suffix@.a:

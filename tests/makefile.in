@@ -29,8 +29,8 @@ BASELIBS   	= @LIBS@ -lm -lz
 BMLIBS     	= -lu8io -lu8data -lu8
 XLIBS      	=
 LIBS       	= $(XLIBS) $(BMLIBS) $(BASELIBS)
-EXECLDFLAGS	= @EXECLDFLAGS@
-EXECLIBS   	= @EXECLIBS@
+EXEFLAGS	= @EXEFLAGS@
+EXELIBS   	= @EXELIBS@
 CORE_LIBS  	= ../lib/libfdscheme@suffix@.a       \
 	          ../lib/libfddbserv@suffix@.a  \
 	          ../lib/libfddrivers@suffix@.a \

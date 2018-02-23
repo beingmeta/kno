@@ -7,7 +7,8 @@ XCFLAGS       =
 OPTFLAGS      = "@OPTFLAGS@"
 XOPTFLAGS     = "@XOPTFLAGS@"
 ARCHFLAGS     = @archflags@
-EXECFLAGS     = @CFLAGS@ ${OPTFLAGS} @MALLOC_FLAGS@ @PROFILING@ @DREENTRANT@ -I./include $(XCFLAGS) $(ARCHFLAGS)
+EXECFLAGS     = @CFLAGS@ ${OPTFLAGS} @MALLOC_FLAGS@ @PROFILING@ @DREENTRANT@ \
+		-I./include $(XCFLAGS) $(ARCHFLAGS)
 DYNAMIC_CFLAG = @dynamic_cflag@
 CFLAGS        = -I./include @CFLAGS@ ${OPTFLAGS} \
 		@MALLOC_FLAGS@ @PROFILING@ @DREENTRANT@ \
@@ -16,17 +17,21 @@ CFLAGS        = -I./include @CFLAGS@ ${OPTFLAGS} \
 RPATH         = @rpath@
 RPATHFLAGS    = @RPATHFLAGS@
 LDFLAGS       = -L./ -L./lib @LDFLAGS@ @PTHREAD_LIBS@ $(XLDFLAGS)
-DYLIB_FLAGS   = -compatibility_version @FDMAJOR@.0.0 -current_version @FDMAJOR@.@FDMINOR@.@FDRELEASE@
-EXECLDFLAGS   = @EXECLDFLAGS@
-EXECLIBS      = @EXECLIBS@
-STATIC_CFLAGS = -I./include @CFLAGS@ @PROFILING@ @DREENTRANT@ $(DYNAMIC_CFLAG) -I./include $(XCFLAGS)
+DYLIB_FLAGS   = -compatibility_version @FDMAJOR@.0.0 \
+		-current_version @FDMAJOR@.@FDMINOR@.@FDRELEASE@
+EXEFLAGS      = @EXEFLAGS@
+EXELIBS       = @EXELIBS@
+STATIC_CFLAGS = -I./include @CFLAGS@ @PROFILING@ @DREENTRANT@ \
+		$(DYNAMIC_CFLAG) -I./include $(XCFLAGS)
 TEST_CFLAGS   = -DFD_TESTCONFIG=1 ${STATIC_CFLAGS}
 STATIC_LDFLAGS= -L./lib @LDFLAGS@ $(EFENCE) @TESTLDFLAGS@ -L./lib
 TEST_LDFLAGS  = ${STATIC_LDFLAGS}
+TEST_EXEFLAGS = @EXEFLAGS@
 XLIBS         =
 LIBS          = $(XLIBS) @LIBS@
 PATH          = @BINPATH@
-INDENTOPTS    = -br -ce -psl -Tfdtype -Tu8_string -Tfd_stream -Tfd_inbuf -Tfd_outbuf -Tfd_rawbuf -Tfd_function -Tfd_pair -Tfd_choice
+INDENTOPTS    = -br -ce -psl -Tfdtype -Tu8_string -Tfd_stream -Tfd_inbuf \
+		-Tfd_outbuf -Tfd_rawbuf -Tfd_function -Tfd_pair -Tfd_choice
 
 DESTDIR		=
 prefix		= @prefix@
@@ -629,13 +634,13 @@ exe/scripts/%: src/scripts/%.scm
 	@$(MSG) MAKESCRIPT $@ $<
 
 exe/%@suffix@: src/exe/%.c ${CONFIG_HDRS}
-	$(CC) $(CFLAGS) $(LDFLAGS) $(EXECLDFLAGS)                  \
+	$(CC) $(CFLAGS) $(LDFLAGS) $(EXEFLAGS)                  \
 		-o $@ $<                                           \
 		-lfddbserv@suffix@                 	 	   \
 		@xdynamic_scheme_libs@                             \
 		-ltexttools@suffix@ -lfdscheme@suffix@ \
 		-lfddrivers@suffix@ -lfdstorage@suffix@ -lfdcore@suffix@ \
-	        -lu8stdio $(LIBS) $(EXECLIBS)
+	        -lu8stdio $(LIBS) $(EXELIBS)
 	@$(MSG) MKEXE $@ $<
 
 src/cmodules/%.o: src/cmodules/%.c ${CONFIG_HDRS}
@@ -655,14 +660,17 @@ lib/framerd/%.@FDMAJOR@.dylib: lib/framerd/%.dylib
 
 dbg/%: src/exe/%.c $(STATIC_LIBS)
 	@echo MKEXE_DEBUG $@
-	$(CC) $(TEST_CFLAGS) -o $@ $^ $(TEST_LDFLAGS) -lu8stdio -lu8syslog $(LIBS) $(EXECLIBS)
+	$(CC) $(TEST_CFLAGS) -o $@ $^ 		\
+	      $(TEST_LDFLAGS) $(TEST_EXEFLAGS) 	\
+	      -lu8stdio -lu8syslog 		\
+	      $(LIBS) $(EXELIBS)
 dbg/%: ${REVISION_H} ${CONFIG_H}
 
 # We can selectively link some executables statically to avoid 
 # library dependencies with programs which will typicall run as daemons
 static/%@suffix@: src/exe/%.c $(STATIC_LIBS) ${REVISION_H} ${CONFIG_H}
 	@echo MKEXE_STATIC $@
-	$(CC) $(STATIC_CFLAGS) -o $@ $^ $(STATIC_LDFLAGS) -lu8stdio -lu8syslog $(LIBS) $(EXECLIBS)
+	$(CC) $(STATIC_CFLAGS) -o $@ $^ $(STATIC_LDFLAGS) -lu8stdio -lu8syslog $(LIBS) $(EXELIBS)
 	@$(MSG) MKEXE_STATIC $@
 
 lib/%@suffix@.a:
@@ -824,18 +832,22 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in		\
 		etc/*.in ${SRC_HEADERS} 				\
 		dbg/.gdbinit.in tests/*.scm 
 	@echo Building TAGS file
-	@etags makefile.in configure.ac include/framerd/config.h.in     \
-	        tests/*/*.in etc/*.in include/framerd/*.h 		\
-		include/framerd/components/*.h				\
+	@etags makefile.in configure.ac 		\
+		include/framerd/config.h.in     	\
+	        tests/*/*.in tests/*.in dbg/*.in 	\
+		etc/*.in include/framerd/*.h 		\
+		include/framerd/components/*.h		\
 		${SRC_HEADERS};
 	@etags -o TAGS -a src/exe/*.c src/exe/*.h 
 	@etags -o TAGS -a src/lisp/*.c src/support/*.c src/apply/*.c 
-	@etags -o TAGS -a src/storage/*.c src/drivers/*.c src/drivers/headers/*.h
+	@etags -o TAGS -a src/storage/*.c
+	@etags -o TAGS -a src/drivers/*.c src/drivers/headers/*.h
 	@etags -o TAGS -a src/eval/*.c src/prims/*.c
 	@etags -o TAGS -a src/web/*.c src/text/*.c;
 	@etags -o TAGS -a tests/lisp/*.c tests/storage/*.c tests/*.scm;
 	@etags -o TAGS -a src/libscm/*.scm src/libscm/storage/*.scm;
-	@etags -o TAGS -a src/libscm/optimize/optimize.scm src/libscm/bugjar/bugjar.scm;
+	@etags -o TAGS -a src/libscm/optimize/optimize.scm
+	@etags -o TAGS -a src/libscm/bugjar/bugjar.scm;
 	@etags -o TAGS -a src/cmodules/*.c;
 
 CTAGS: makefile.in configure.ac include/framerd/config.h.in	\
@@ -848,18 +860,19 @@ CTAGS: makefile.in configure.ac include/framerd/config.h.in	\
 	@echo Building C TAGS file
 	@etags -o CTAGS 
 	      makefile.in configure.ac include/framerd/config.h.in      \
-	      tests/lisp/*.c tests/apply/*.c tests/storage/*.c 	\
+	      tests/lisp/*.c tests/apply/*.c tests/storage/*.c 		\
 	      tests/eval/*.c tests/prims/*.c src/exe/*.c src/exe/*.h	\
-	      src/lisp/*.c src/support/*.c src/storage/*.c src/eval/*.c src/prims/*.c 	\
-	      src/web/*.c src/text/*.c 					\
+	      src/lisp/*.c src/support/*.c src/storage/*.c 		\
+	      src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c	\
 	      src/cmodules/*.c src/cmodules/*.h				\
 	      include/framerd/*.h etc/*.in 				\
 	      include/framerd/components/*.h				\
 	      ${SRC_HEADERS}
 
-CSOURCETAGS: src/lisp/*.c src/support/*.c src/apply/*.c src/storage/*.c	\
-	src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c 	\
-	src/drivers/*.c src/drivers/headers/*.h 		\
+CSOURCETAGS: src/lisp/*.c src/support/*.c src/apply/*.c	\
+	src/storage/*.c src/eval/*.c src/prims/*.c 	\
+	src/web/*.c src/text/*.c 			\
+	src/drivers/*.c src/drivers/headers/*.h		\
 	src/exe/*.c src/exe/*.h
 	@echo Building FRAMERD_SOURCE TAGS file
 	@etags -o $@ $^
@@ -911,6 +924,7 @@ distclean: clean
 	rm -f makefile config.log config.status config.cache
 	rm -f tests/lisp/makefile tests/storage/makefile tests/makefile
 	rm -f tests/lisp/.gdbinit tests/storage/.gdbinit tests/.gdbinit
+	rm -f dbg/gdbinit
 	rm -f etc/fdgetconfig etc/fdsetconfig etc/framerd-rc.d
 	rm -f exe/.gdbinit include/framerd/config.h include/framerd/revision.h
 

@@ -13,17 +13,19 @@ export DYLD_LIBRARY_PATH
 PPROF_PATH      = @GOOGLE_PPROF@
 export PPROF_PATH
 
-CC	= @CC@
-XCFLAGS=
-CFLAGS= -I../../include @CFLAGS@ @PROFILING@ @DREENTRANT@ @dynamic_cflag@ \
-	-I../../include $(XCFLAGS)
-LDFLAGS=-L../../lib @LDFLAGS@ $(EFENCE) @TESTLDFLAGS@ -L../../lib 
-RPATH   = @rpath@
-RPATHFLAGS = @RPATHFLAGS@
-LIBS=-lu8stdio -lu8data -lu8io -lu8 @LIBS@ -lz -lm
-EXECLDFLAGS = @EXECLDFLAGS@
-EXECLIBS = @EXECLIBS@
-
+CC		= @CC@
+XCFLAGS		=
+CFLAGS          = -I../../include @CFLAGS@ @PROFILING@ 	\
+		  @DREENTRANT@ @dynamic_cflag@ 		\
+		  -I../../include $(XCFLAGS)
+LDFLAGS         =-L../../lib @LDFLAGS@ $(EFENCE) @TESTLDFLAGS@ -L../../lib 
+RPATH           = @rpath@
+RPATHFLAGS      = @RPATHFLAGS@
+BASELIBS        = @LIBS@ -lm -lz
+BMLIBS          = -lu8stdio -lu8io -lu8data -lu8
+LIBS            = $(BASELIBS) $(BMLIBS)
+EXEFLAGS        = @EXEFLAGS@
+EXELIBS         = @EXELIBS@
 DESTDIR		=
 prefix		= @prefix@
 exec_prefix	= @exec_prefix@
@@ -276,14 +278,14 @@ bigbricotests: ../data/brico.dump
 $(TESTBIN): ../../src/storage/streams.o ../../lib/libfdcore@suffix@.a
 %: %.c
 	@echo MKTEST_STATIC $@
-	@$(CC) $(CFLAGS) $(EXECLDFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) $(EXECLIBS)
+	@$(CC) $(CFLAGS) $(EXEFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) $(EXELIBS)
 
 # This is for making shared (dynamically linked) versions of the test programs
 %.shared: %.c
 	@echo MKTEST_SHARED $@
-	@$(CC) $(CFLAGS) $(EXECLDFLAGS) $(LDFLAGS) -o $@ $^ \
+	@$(CC) $(CFLAGS) $(EXEFLAGS) $(LDFLAGS) -o $@ $^ \
 		../../src/storage/streams.o $(LIBS) -lfdcore@suffix@ \
-		$(LIBS) $(EXECLIBS)
+		$(LIBS) $(EXELIBS)
 
 ../../lib/libfdcore@suffix@.a:
 	cd ../..; make lib/libfdcore.a
