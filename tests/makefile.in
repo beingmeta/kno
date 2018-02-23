@@ -295,8 +295,8 @@ indextest:
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} CACHELEVEL=3  ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} CONSINDEX=yes  ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${RUNCONF} CACHELEVEL=2 CONSINDEX=yes && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF} && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF}
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} +${TESTBASE}.edit.dtype ${RUNCONF} && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} ?${TESTBASE}.edit.dtype ${RUNCONF}
 	@${header} "■■■■■■■■ Finished index tests ${TESTBASE} ${RUNCONF}"
 
 fileindextest:
@@ -309,35 +309,35 @@ fileindextest:
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} CACHELEVEL=3  ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} CONSINDEX=yes  ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${RUNCONF} CACHELEVEL=2 CONSINDEX=yes && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF} && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF} && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} +${TESTBASE}.edit.dtype ${RUNCONF} && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} ?${TESTBASE}.edit.dtype ${RUNCONF} && \
 	rm ${TESTBASE}
 	@${header} Build with the offsets cache on
 	@${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} CACHELEVEL=2 ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} CACHELEVEL=2 ${RUNCONF} && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF} && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF} && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} +${TESTBASE}.edit.dtype ${RUNCONF} && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} ?${TESTBASE}.edit.dtype ${RUNCONF} && \
 	rm ${TESTBASE}
 	@${header} Build and edit with the offsets cache on
 	@${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} CACHELEVEL=2 ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} CACHELEVEL=2 ${RUNCONF} && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF} CACHELEVEL=2 && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF} CACHELEVEL=2 && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} +${TESTBASE}.edit.dtype ${RUNCONF} CACHELEVEL=2 && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} ?${TESTBASE}.edit.dtype ${RUNCONF} CACHELEVEL=2 && \
 	rm ${TESTBASE}
 	@${header} Build and edit with the offsets cache and memorymapping on
 	@${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} CACHELEVEL=3 ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} CACHELEVEL=3 ${RUNCONF} && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF} CACHELEVEL=3 && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF} CACHELEVEL=3 && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} +${TESTBASE}.edit.dtype ${RUNCONF} CACHELEVEL=3 && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} ?${TESTBASE}.edit.dtype ${RUNCONF} CACHELEVEL=3 && \
 	rm ${TESTBASE}
 	@${header} Build with both cache and consindices
 	@${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} \
 		${RUNCONF} CACHELEVEL=2 CONSINDEX=yes && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} \
 		${RUNCONF} CACHELEVEL=2 CONSINDEX=yes && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} +${TESTBASE}.edit.dtype \
 		${RUNCONF} CACHELEVEL=2 CONSINDEX=yes && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} ?${TESTBASE}.edit.dtype \
 		${RUNCONF} && \
 	rm -rf ${TESTBASE} *.edit.dtype
 	@${header} "■■■■■■■■ Finished file index tests ${TESTBASE} ${RUNCONF}"
