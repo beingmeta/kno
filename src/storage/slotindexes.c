@@ -127,12 +127,13 @@ static lispval aggregate_prim_find
 	lispval *keyvec = u8_alloc_n(n_features,lispval);
 	lispval *valvec = u8_alloc_n(n_features,lispval);
 	DO_CHOICES(feature,features) {
-	  lispval key = (FD_VOIDP(ekeyslot)) ? (feature) : (FD_CDR(feature));
-	  lispval v = fd_index_get((fd_index)ex,key);
-	  keyvec[j] = feature;
-	  valvec[j] = v;
-	  CHOICE_ADD(combined,v);
-	  j++;}
+	  if ( (FD_VOIDP(ekeyslot)) || (ekeyslot == FD_CAR(feature)) ) {
+	    lispval key = (FD_VOIDP(ekeyslot)) ? (feature) :  (FD_CDR(feature));
+	    lispval v = fd_index_get((fd_index)ex,key);
+	    keyvec[j] = feature;
+	    valvec[j] = v;
+	    CHOICE_ADD(combined,v);
+	    j++;}}
 	fd_hashtable_iter(cache,fd_table_add,j,keyvec,valvec);
 	u8_free(keyvec);
 	u8_free(valvec);}}
@@ -446,66 +447,46 @@ FD_EXPORT int fd_slotindex_merge(fd_index into,lispval from)
 
 FD_EXPORT lispval fd_bg_get(lispval slotid,lispval value)
 {
-  if (fd_background) {
-    lispval results = EMPTY;
-    lispval features = make_features(slotid,value);
-    if ((fd_prefetch) && (fd_ipeval_status()==0) &&
-	(CHOICEP(features)) &&
-	(fd_index_prefetch((fd_index)fd_background,features)<0)) {
-      fd_decref(features);
-      return FD_ERROR;}
-    else {
-      DO_CHOICES(feature,features) {
-	lispval result = fd_index_get((fd_index)fd_background,feature);
-	if (FD_ABORTP(result)) {
-	  fd_decref(results);
-	  fd_decref(features);
-	  return result;}
-	else {CHOICE_ADD(results,result);}}
-      fd_decref(features);}
-    return fd_simplify_choice(results);}
+  if (fd_background)
+    return aggregate_prim_find(fd_background,slotid,value);
   else return EMPTY;
 }
 
 FD_EXPORT lispval fd_bgfinder(int n,lispval *slotvals)
 {
-  int i = 0, n_conjuncts = n/2;
-  lispval _conjuncts[6], *conjuncts=_conjuncts, result;
-  if (fd_background == NULL) return EMPTY;
-  if (n_conjuncts>6) conjuncts = u8_alloc_n(n_conjuncts,lispval);
-  while (i < n_conjuncts) {
-    _conjuncts[i]=fd_bg_get(slotvals[i*2],slotvals[i*2+1]); i++;}
-  result = fd_intersection(conjuncts,n_conjuncts);
-  i = 0; while (i < n_conjuncts) {
-    lispval cj=_conjuncts[i++]; fd_decref(cj);}
-  if (_conjuncts != conjuncts) u8_free(conjuncts);
-  return result;
+  if (fd_background)
+    return fd_finder(index2lisp((fd_index)fd_background),n,slotvals);
+  else return FD_EMPTY;
 }
 
 FD_EXPORT lispval fd_bgfind(lispval slotid,lispval values,...)
 {
-  lispval _slotvals[64], *slotvals=_slotvals, val;
-  int n_slotvals = 0, max_slotvals = 64; va_list args;
-  va_start(args,values); val = va_arg(args,lispval);
-  slotvals[n_slotvals++]=slotid; slotvals[n_slotvals++]=values;
-  while (!(VOIDP(val))) {
-    if (n_slotvals>=max_slotvals) {
-      if (max_slotvals == 64) {
-	lispval *newsv = u8_alloc_n(128,lispval); int i = 0;
-	while (i<64) {newsv[i]=slotvals[i]; i++;}
-	slotvals = newsv; max_slotvals = 128;}
-      else {
-	slotvals = u8_realloc_n(slotvals,max_slotvals*2,lispval);
-	max_slotvals = max_slotvals*2;}}
-    slotvals[n_slotvals++]=val; val = va_arg(args,lispval);}
-  if (n_slotvals%2) {
-    if (slotvals != _slotvals) u8_free(slotvals);
-    return fd_err(OddFindFramesArgs,"fd_bgfind",NULL,VOID);}
-  if (slotvals != _slotvals) {
-    lispval result = fd_bgfinder(n_slotvals,slotvals);
-    u8_free(slotvals);
-    return result;}
-  else return fd_bgfinder(n_slotvals,slotvals);
+  if (fd_background) {
+    int n_args = 2;
+    va_list args, scan; va_start(args,values);
+    lispval arg = va_arg(args,lispval);
+    while (!(VOIDP(arg))) {
+      n_args++;
+      arg = va_arg(args,lispval);}
+    if (n_args == 0) {
+      lispval slotvals[2] = {slotid,values};
+      return fd_bgfinder(2,slotvals);}
+    else if (n_args%2)
+      return fd_err(OddFindFramesArgs,"fd_bgfind",NULL,VOID);
+    else {
+      lispval slotvals[n_args], val;
+      int i = 2;
+      slotvals[0] = slotid; slotvals[1] = values;
+      /* Start over */
+      va_start(scan,values);
+      val = va_arg(scan,lispval);
+      while (!(VOIDP(val))) {
+	val = va_arg(scan,lispval);
+	slotvals[i++]=val;
+	val = va_arg(scan,lispval);
+	slotvals[i++]=val;}
+      return fd_bgfinder(n_args,slotvals);}}
+  else return FD_EMPTY;
 }
 
 FD_EXPORT int fd_bg_prefetch(lispval keys)
