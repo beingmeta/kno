@@ -860,13 +860,13 @@ elif test "${ac_cv_lib_ffi_ffi_prep_cif}" != "yes"; then
 fi
 
 # This cmodule isn't actually implemented yet
-#AC_CHECK_HEADERS(archive.h)
-#AC_CHECK_LIB(archive,archive_read_new)
-#if test "${ac_cv_header_archive_h}" == "yes" && \
-#   test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
-#  CMODULES="lib/framerd/libarchive.${shared_suffix} ${CMODULES}"
-#  INSTALLCMODULES="install-libarchive ${INSTALLCMODULES}"
-#fi
+AC_CHECK_HEADERS(archive.h)
+AC_CHECK_LIB(archive,archive_read_new)
+if test "${ac_cv_header_archive_h}" == "yes" && \
+   test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
+  CMODULES="lib/framerd/libarchive.${shared_suffix} ${CMODULES}"
+  INSTALLCMODULES="install-libarchive ${INSTALLCMODULES}"
+fi
 
 DEFAULT_DLOADPATH="${prefix}/lib/framerd/%.${vshared_suffix}:${prefix}/lib/%.${vshared_suffix}:${prefix}/lib/lib%.${vshared_suffix}:${prefix}/lib/framerd/%.${mmshared_suffix}:${prefix}/lib/%.${mmshared_suffix}:${prefix}/lib/lib%.${mmshared_suffix}:${prefix}/lib/framerd/%.${mshared_suffix}:${prefix}/lib/%.${mshared_suffix}:${prefix}/lib/lib%.${mshared_suffix}:${prefix}/lib/framerd/%.${shared_suffix}:${prefix}/lib/%.${shared_suffix}:${prefix}/lib/lib%.${shared_suffix}:"
 
