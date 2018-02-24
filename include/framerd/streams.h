@@ -81,7 +81,8 @@ typedef struct FD_STREAM {
   struct timespec mmap_time;
   u8_rwlock mmap_lock;
 #endif
-  u8_mutex stream_lock;} FD_STREAM;
+  u8_mutex stream_lock;
+  lispval stream_lisprefs;} FD_STREAM;
 typedef struct FD_STREAM *fd_stream;
 
 typedef enum FD_STREAM_MODE {
@@ -358,7 +359,8 @@ FD_FASTOP int fd_unlock_stream(fd_stream s)
 
 FD_EXPORT u8_condition fd_InvalidOffsetType;
 
-typedef enum FD_OFFSET_TYPE { FD_B32 = 0, FD_B40 = 1, FD_B64 = 2 } fd_offset_type;
+typedef enum FD_OFFSET_TYPE { FD_B32 = 0, FD_B40 = 1, FD_B64 = 2 }
+  fd_offset_type;
 typedef enum FD_COMPRESS_TYPE {
   FD_NOCOMPRESS = 0,
   FD_ZLIB = 1,

@@ -390,6 +390,7 @@ FD_EXPORT struct FD_STREAM *fd_init_stream(fd_stream stream,
   stream->stream_filepos = -1;
   stream->stream_maxpos = -1;
   stream->stream_flags = flags;
+  stream->stream_lisprefs = FD_EMPTY;
 #if FD_USE_MMAP
   u8_init_rwlock(&(stream->mmap_lock));
   if (U8_BITP(flags,FD_STREAM_MMAPPED)) {
@@ -795,6 +796,8 @@ static void recycle_stream(struct FD_RAW_CONS *c)
 {
   struct FD_STREAM *stream = (struct FD_STREAM *)c;
   fd_close_stream(stream,FD_STREAM_FREEDATA);
+  if (stream->stream_lisprefs != FD_NULL)
+    fd_decref(stream->stream_lisprefs);
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
