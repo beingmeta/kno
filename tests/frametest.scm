@@ -29,9 +29,11 @@
 			   'type pooltype
 			   'module (config 'poolmod {} #t)
 			   'base @17/0 'capacity 65000
-			   'offtype (config 'pooloff (config 'offtype {}))
-			   'slotcodes (config 'slotcodes 16)
-			   'readonly #f)
+			   'offtype (getopt opts 'offtype (config 'pooloff (config 'offtype {})))
+			   'compression (getopt opts 'compression (config 'compression 'zstd))
+			   'register (getopt opts 'register
+					     (not (config 'conspool (config 'consdb #f config:boolean))))
+			   'slotcodes (config 'slotcodes 16))
 			 opts)))
 	(cond ((file-exists? (add-suffix source ".pool"))
 	       (use-pool (add-suffix source ".pool") xopts))
@@ -46,10 +48,11 @@
 			   'type indextype
 			   'module (config 'indexmod {} #t)
 			   'size 65000
-			   'offtype (config 'indexoff (config 'offtype {}))
+			   'register (getopt opts 'register
+					     (not (config 'consindex (config 'consdb #f config:boolean))))
+			   'offtype (getopt opts 'offtype (config 'pooloff (config 'offtype {})))
 			   'slotcodes (config 'slotcodes 16)
-			   'oidcodes (config 'oidcodes 16)
-			   'readonly #f)
+			   'oidcodes (config 'oidcodes 16))
 			 opts)))
 	(combine-indexes
 	 (for-choices (slot {#f sepindex})
@@ -65,9 +68,13 @@
       (make-aggregate-index indexes)))
 
 (define (initdb source (opts #f))
-  (set! testpool (sourcepool source opts))
-  (set! testindex (sourceindex source opts))
-  (set! dbsource source)
+  (unless testpool
+    (set! testpool (sourcepool source opts))
+    (use-pool testpool))
+  (unless testindex
+    (set! testindex (sourceindex source opts))
+    (use-index testindex))
+  (unless dbsource (set! dbsource source))
   (logwarn |Pool| testpool)
   (logwarn |Index| testindex))
 
@@ -162,7 +169,8 @@
 	 (numbers-oid (allocate-oids pool))
 	 (files-oid (allocate-oids pool))
 	 (noslots-oid (frame-create pool))
-	 (allsyms (allsymbols)))
+	 (allsyms (allsymbols))
+	 (ixrefs (refcount index)))
     ;; For the non-frame OIDs, we store values in two places
     ;; and compare.
 
@@ -197,6 +205,8 @@
     (index-frame index files-oid '%id 'files)
     (index-frame index noslots-oid '%id 'noslots)
     
+    (applytest ixrefs (refcount index))
+
     ;; Analyze the specified files
     (if threaded
 	(begin (thread/wait (thread/call analyze+commit
@@ -307,11 +317,11 @@
 	 (rmdir file))
 	(else (remove-file! file))))
 
-(define (setup)
+(define (setup (source (or dbsource "testdb")) (opts #f))
   (doremove (append "dbtest" {".pool" ".index"
 			      "-symbols.dtype" "-files.dtype"
 			      "-numbers.dtype"}))
-  (initdb "dbtest" #[readonly #f])
+  (initdb source (opts+ opts #[readonly #f]))
   (makedb testpool testindex
 	  '("r4rs.scm" "misctest.scm" "seqtest.scm" "choicetest.scm")))
 
