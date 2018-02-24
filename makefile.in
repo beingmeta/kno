@@ -339,7 +339,7 @@ CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
 	     src/cmodules/rocksdb.o src/cmodules/leveldb.o \
 	     src/cmodules/crypto.o src/cmodules/zlib.o \
 	     src/cmodules/qrcode.o src/cmodules/exif.o \
-	     src/cmodules/imagick.o \
+	     src/cmodules/imagick.o src/cmodules/libarchive.o \
 	     src/cmodules/ziptools.o \
 	     src/cmodules/hyphenate.o \
 	     ${SUNDOWN_OBJS} ${TIDY_OBJECTS}
@@ -442,8 +442,8 @@ FRAMERD_SOURCES=\
 	src/exe/fdservlet.c src/exe/fdcgiexec.c src/exe/fdserver.c
 
 CMODULE_SOURCES=\
-	src/cmodules/odbc.c src/cmodules/sqlite.c \
-	src/cmodules/crypto.c src/cmodules/mysql.c  \
+	src/cmodules/odbc.c src/cmodules/sqlite.c src/libarchive.c 	\
+	src/cmodules/crypto.c src/cmodules/mysql.c  			\
 	src/cmodules/qrcode.c src/cmodules/ziptools.c                   \
 	src/cmodules/tidy.c src/cmodules/imagick.c               	\
 	src/cmodules/hyphenate.c src/cmodules/sundown.c
@@ -1084,6 +1084,21 @@ lib/framerd/ziptools.dylib: src/cmodules/ziptools.o ${CMODULE_DEPENDS}
 		-o $@ $<
 	@$(MSG) MACLIBTOOL "(ZIPTOOLS)" $@
 
+src/cmodules/libarchive.o: src/cmodules/libarchive.c ${CONFIG_HDRS}
+	@$(CC) $(CFLAGS) @LIBZIP_CFLAGS@ -o $@ -c $<
+	@$(MSG) CC "(LIBARCHIVE)"  $@ $<
+lib/framerd/libarchive.so: src/cmodules/libarchive.o ${CMODULE_DEPENDS}
+	@$(MKSO) -L./ -L./lib \
+		-o $@ $< ${CMODULE_DEPENDS} -larchive
+	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
+	@$(MSG) MKSO "(LIBARCHIVE)"  $@ $<
+lib/framerd/libarchive.dylib: src/cmodules/libarchive.o ${CMODULE_DEPENDS}
+	@$(MACLIBTOOL) -install_name \
+		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
+		$(DYLIB_FLAGS) \
+		-o $@ $<
+	@$(MSG) MACLIBTOOL "(LIBARCHIVE)" $@
+
 lib/framerd/exif.so: src/cmodules/exif.o ${CMODULE_DEPENDS}
 	@$(MKSO) -L./ -L./lib -o $@ $^ ${CMODULE_DEPENDS} $(MODLIBS) -lexif
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
@@ -1108,6 +1123,10 @@ lib/framerd/odbc.dylib : MODLIBS="@ODBC_LIBS@"
 lib/framerd/sqlite.o: src/cmodules/sqlite.c
 lib/framerd/sqlite.so: src/cmodules/sqlite.o ${CMODULE_DEPENDS}
 lib/framerd/sqlite.dylib: src/cmodules/sqlite.o ${CMODULE_DEPENDS}
+
+lib/framerd/libarchive.o: src/cmodules/libarchive.c
+lib/framerd/libarchive.so: src/cmodules/libarchive.o ${CMODULE_DEPENDS}
+lib/framerd/libarchive.dylib: src/cmodules/libarchive.o ${CMODULE_DEPENDS}
 
 lib/framerd/qrcode.so lib/framerd/qrcode.dylib : MODLIBS=-lqrencode -lpng
 lib/framerd/qrcode.o: src/cmodules/qrcode.c
