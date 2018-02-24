@@ -38,9 +38,10 @@ static lispval make_port(U8_INPUT *in,U8_OUTPUT *out,u8_string id)
 {
   struct FD_PORT *port = u8_alloc(struct FD_PORT);
   FD_INIT_CONS(port,fd_port_type);
-  port->fd_inport = in;
-  port->fd_outport = out;
-  port->fd_portid = id;
+  port->port_input = in;
+  port->port_output = out;
+  port->port_id = id;
+  port->port_lisprefs = FD_EMPTY;
   return LISP_CONS(port);
 }
 
@@ -51,7 +52,7 @@ static u8_output get_output_port(lispval portarg)
   else if (FD_PORTP(portarg)) {
     struct FD_PORT *p=
       fd_consptr(struct FD_PORT *,portarg,fd_port_type);
-    return p->fd_outport;}
+    return p->port_output;}
   else return NULL;
 }
 
@@ -62,7 +63,7 @@ static u8_input get_input_port(lispval portarg)
   else if (FD_PORTP(portarg)) {
     struct FD_PORT *p=
       fd_consptr(struct FD_PORT *,portarg,fd_port_type);
-    return p->fd_inport;}
+    return p->port_input;}
   else return NULL;
 }
 
@@ -78,7 +79,7 @@ static lispval input_portp(lispval arg)
   if (FD_PORTP(arg)) {
     struct FD_PORT *p=
       fd_consptr(struct FD_PORT *,arg,fd_port_type);
-    if (p->fd_inport)
+    if (p->port_input)
       return FD_TRUE;
     else return FD_FALSE;}
   else return FD_FALSE;
@@ -89,7 +90,7 @@ static lispval output_portp(lispval arg)
   if (FD_PORTP(arg)) {
     struct FD_PORT *p=
       fd_consptr(struct FD_PORT *,arg,fd_port_type);
-    if (p->fd_outport)
+    if (p->port_output)
       return FD_TRUE;
     else return FD_FALSE;}
   else return FD_FALSE;
@@ -154,7 +155,8 @@ static lispval portid(lispval port_arg)
 {
   if (FD_PORTP(port_arg)) {
     struct FD_PORT *port = (struct FD_PORT *)port_arg;
-    if (port->fd_portid) return lispval_string(port->fd_portid);
+    if (port->port_id)
+      return lispval_string(port->port_id);
     else return FD_FALSE;}
   else return fd_type_error(_("port"),"portid",port_arg);
 }
@@ -163,9 +165,9 @@ static lispval portdata(lispval port_arg)
 {
   if (FD_PORTP(port_arg)) {
     struct FD_PORT *port = (struct FD_PORT *)port_arg;
-    if (port->fd_outport)
-      return fd_substring(port->fd_outport->u8_outbuf,port->fd_outport->u8_write);
-    else return fd_substring(port->fd_outport->u8_outbuf,port->fd_outport->u8_outlim);}
+    if (port->port_output)
+      return fd_substring(port->port_output->u8_outbuf,port->port_output->u8_write);
+    else return fd_substring(port->port_output->u8_outbuf,port->port_output->u8_outlim);}
   else return fd_type_error(_("port"),"portdata",port_arg);
 }
 
@@ -818,16 +820,16 @@ static lispval gzip_prim(lispval arg,lispval filename,lispval comment)
 static int unparse_port(struct U8_OUTPUT *out,lispval x)
 {
   struct FD_PORT *p = fd_consptr(fd_port,x,fd_port_type);
-  if ((p->fd_inport) && (p->fd_outport) && (p->fd_portid))
-    u8_printf(out,"#<I/O Port (%s) #!%x>",p->fd_portid,x);
-  else if ((p->fd_inport) && (p->fd_outport))
+  if ((p->port_input) && (p->port_output) && (p->port_id))
+    u8_printf(out,"#<I/O Port (%s) #!%x>",p->port_id,x);
+  else if ((p->port_input) && (p->port_output))
     u8_printf(out,"#<I/O Port #!%x>",x);
-  else if ((p->fd_inport)&&(p->fd_portid))
-    u8_printf(out,"#<Input Port (%s) #!%x>",p->fd_portid,x);
-  else if (p->fd_inport)
+  else if ((p->port_input)&&(p->port_id))
+    u8_printf(out,"#<Input Port (%s) #!%x>",p->port_id,x);
+  else if (p->port_input)
     u8_printf(out,"#<Input Port #!%x>",x);
-  else if (p->fd_portid)
-    u8_printf(out,"#<Output Port (%s) #!%x>",p->fd_portid,x);
+  else if (p->port_id)
+    u8_printf(out,"#<Output Port (%s) #!%x>",p->port_id,x);
   else u8_printf(out,"#<Output Port #!%x>",x);
   return 1;
 }
@@ -835,11 +837,12 @@ static int unparse_port(struct U8_OUTPUT *out,lispval x)
 static void recycle_port(struct FD_RAW_CONS *c)
 {
   struct FD_PORT *p = (struct FD_PORT *)c;
-  if (p->fd_inport) {
-    u8_close_input(p->fd_inport);}
-  if (p->fd_outport) {
-    u8_close_output(p->fd_outport);}
-  if (p->fd_portid) u8_free(p->fd_portid);
+  if (p->port_input) {
+    u8_close_input(p->port_input);}
+  if (p->port_output) {
+    u8_close_output(p->port_output);}
+  if (p->port_id) u8_free(p->port_id);
+  if (p->port_lisprefs != FD_NULL) fd_decref(p->port_lisprefs);
  if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 

@@ -187,7 +187,7 @@ static lispval debugpage2html_prim(lispval exception,lispval where)
     return fd_init_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);}
   else if (FD_PORTP(where)) {
     struct FD_PORT *port = (fd_port) where;
-    fd_xhtmldebugpage(port->fd_outport,ex);
+    fd_xhtmldebugpage(port->port_output,ex);
     return FD_TRUE;}
   else return FD_FALSE;
 }

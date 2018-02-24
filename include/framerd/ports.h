@@ -17,16 +17,17 @@
 
 typedef struct FD_PORT {
   FD_CONS_HEADER;
-  u8_string fd_portid;
-  u8_input fd_inport;
-  u8_output fd_outport;} FD_PORT;
+  u8_string port_id;
+  u8_input port_input;
+  u8_output port_output;
+  lispval port_lisprefs;} FD_PORT;
 typedef struct FD_PORT *fd_port;
 
 FD_EXPORT u8_condition fd_UnknownEncoding;
 
 FD_EXPORT void fd_print_backtrace(U8_OUTPUT *out,u8_exception ex,int width);
 FD_EXPORT void fd_log_backtrace(u8_exception ex,int loglevel,
-				u8_condition label,int width);
+                                u8_condition label,int width);
 FD_EXPORT void fd_summarize_backtrace(U8_OUTPUT *out,u8_exception ex);
 
 #endif

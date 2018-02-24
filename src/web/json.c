@@ -369,7 +369,7 @@ static lispval jsonparseprim(lispval in,lispval flags_arg,lispval fieldmap)
   unsigned int flags = get_json_flags(flags_arg);
   if (FD_PORTP(in)) {
     struct FD_PORT *p = fd_consptr(struct FD_PORT *,in,fd_port_type);
-    U8_INPUT *in = p->fd_inport;
+    U8_INPUT *in = p->port_input;
     return json_parse(in,flags,fieldmap);}
   else if (STRINGP(in)) {
     struct U8_INPUT inport;

@@ -76,9 +76,9 @@ static lispval make_port(U8_INPUT *in,U8_OUTPUT *out,u8_string id)
 {
   struct FD_PORT *port = u8_alloc(struct FD_PORT);
   FD_INIT_CONS(port,fd_port_type);
-  port->fd_inport = in;
-  port->fd_outport = out;
-  port->fd_portid = id;
+  port->port_input = in;
+  port->port_output = out;
+  port->port_id = id;
   return LISP_CONS(port);
 }
 
@@ -89,7 +89,7 @@ static u8_output get_output_port(lispval portarg)
   else if (FD_PORTP(portarg)) {
     struct FD_PORT *p=
       fd_consptr(struct FD_PORT *,portarg,fd_port_type);
-    return p->fd_outport;}
+    return p->port_output;}
   else return NULL;
 }
 
@@ -254,8 +254,8 @@ static lispval simple_fileout_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   if (FD_ABORTP(filename_val)) return filename_val;
   else if (FD_PORTP(filename_val)) {
     FD_PORT *port = fd_consptr(FD_PORT *,filename_val,fd_port_type);
-    if (port->fd_outport) {
-      f = port->fd_outport;
+    if (port->port_output) {
+      f = port->port_output;
       doclose = 0;}
     else {
       fd_decref(filename_val);
@@ -1066,7 +1066,7 @@ static lispval close_prim(lispval portarg)
   else if (FD_PORTP(portarg)) {
     struct FD_PORT *p=
       fd_consptr(struct FD_PORT *,portarg,fd_port_type);
-    U8_OUTPUT *out = p->fd_outport; U8_INPUT *in = p->fd_inport; int closed = -1;
+    U8_OUTPUT *out = p->port_output; U8_INPUT *in = p->port_input; int closed = -1;
     if (out) {
       u8_flush(out);
       if (out->u8_streaminfo&U8_STREAM_OWNS_SOCKET) {
@@ -1120,12 +1120,12 @@ static lispval setbuf_prim(lispval portarg,lispval insize,lispval outsize)
     struct FD_PORT *p=
       fd_consptr(struct FD_PORT *,portarg,fd_port_type);
     if (FIXNUMP(insize)) {
-      U8_INPUT *in = p->fd_inport;
+      U8_INPUT *in = p->port_input;
       if ((in) && (in->u8_streaminfo&U8_STREAM_OWNS_XBUF)) {
         u8_xinput_setbuf((struct U8_XINPUT *)in,FIX2INT(insize));}}
 
     if (FIXNUMP(outsize)) {
-      U8_OUTPUT *out = p->fd_outport;
+      U8_OUTPUT *out = p->port_output;
       if ((out) && (out->u8_streaminfo&U8_STREAM_OWNS_XBUF)) {
         u8_xoutput_setbuf((struct U8_XOUTPUT *)out,FIX2INT(outsize));}}
     return VOID;}
@@ -1138,10 +1138,10 @@ static lispval getpos_prim(lispval portarg)
     struct FD_PORT *p=
       fd_consptr(struct FD_PORT *,portarg,fd_port_type);
     fd_off_t result = -1;
-    if (p->fd_inport)
-      result = u8_getpos((struct U8_STREAM *)(p->fd_inport));
-    else if (p->fd_outport)
-      result = u8_getpos((struct U8_STREAM *)(p->fd_outport));
+    if (p->port_input)
+      result = u8_getpos((struct U8_STREAM *)(p->port_input));
+    else if (p->port_output)
+      result = u8_getpos((struct U8_STREAM *)(p->port_output));
     else return fd_type_error(_("port"),"getpos_prim",portarg);
     if (result<0)
       return FD_ERROR;
@@ -1163,10 +1163,10 @@ static lispval endpos_prim(lispval portarg)
     struct FD_PORT *p=
       fd_consptr(struct FD_PORT *,portarg,fd_port_type);
     fd_off_t result = -1;
-    if (p->fd_inport)
-      result = u8_endpos((struct U8_STREAM *)(p->fd_inport));
-    else if (p->fd_outport)
-      result = u8_endpos((struct U8_STREAM *)(p->fd_outport));
+    if (p->port_input)
+      result = u8_endpos((struct U8_STREAM *)(p->port_input));
+    else if (p->port_output)
+      result = u8_endpos((struct U8_STREAM *)(p->port_output));
     else return fd_type_error(_("port"),"getpos_prim",portarg);
     if (result<0)
       return FD_ERROR;
@@ -1187,10 +1187,10 @@ static lispval file_progress_prim(lispval portarg)
   double result = -1.0;
   struct FD_PORT *p=
     fd_consptr(struct FD_PORT *,portarg,fd_port_type);
-  if (p->fd_inport)
-    result = u8_getprogress((struct U8_STREAM *)(p->fd_inport));
-  else if (p->fd_outport)
-    result = u8_getprogress((struct U8_STREAM *)(p->fd_outport));
+  if (p->port_input)
+    result = u8_getprogress((struct U8_STREAM *)(p->port_input));
+  else if (p->port_output)
+    result = u8_getprogress((struct U8_STREAM *)(p->port_output));
   else return fd_type_error(_("port"),"file_progress_prim",portarg);
   if (result<0)
     return FD_ERROR;
@@ -1211,10 +1211,10 @@ static lispval setpos_prim(lispval portarg,lispval off_arg)
     off = (fd_off_t)fd_bigint_to_long((fd_bigint)off_arg);
 #endif
     else return fd_type_error(_("offset"),"setpos_prim",off_arg);
-    if (p->fd_inport)
-      result = u8_setpos((struct U8_STREAM *)(p->fd_inport),off);
-    else if (p->fd_outport)
-      result = u8_setpos((struct U8_STREAM *)(p->fd_outport),off);
+    if (p->port_input)
+      result = u8_setpos((struct U8_STREAM *)(p->port_input),off);
+    else if (p->port_output)
+      result = u8_setpos((struct U8_STREAM *)(p->port_output),off);
     else return fd_type_error(_("port"),"setpos_prim",portarg);
     if (result<0)
       return FD_ERROR;

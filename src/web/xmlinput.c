@@ -1084,7 +1084,7 @@ static lispval xmlparse_core(lispval input,int flags)
   if (flags<0) return FD_ERROR;
   if (FD_PORTP(input)) {
     struct FD_PORT *p = fd_consptr(struct FD_PORT *,input,fd_port_type);
-    in = p->fd_inport;}
+    in = p->port_input;}
   else if (STRINGP(input)) {
     U8_INIT_STRING_INPUT(&_in,STRLEN(input),CSTRING(input));
     in = &_in;}
@@ -1150,7 +1150,7 @@ static lispval fdxml_load(lispval input,lispval sloppy)
   if (flags<0) return FD_ERROR;
   if (FD_PORTP(input)) {
     struct FD_PORT *p = fd_consptr(struct FD_PORT *,input,fd_port_type);
-    in = p->fd_inport;}
+    in = p->port_input;}
   else if (STRINGP(input)) {
     U8_INIT_STRING_INPUT(&_in,STRLEN(input),CSTRING(input));
     in = &_in;}
@@ -1180,7 +1180,7 @@ static lispval fdxml_read(lispval input,lispval sloppy)
   if (flags<0) return FD_ERROR;
   if (FD_PORTP(input)) {
     struct FD_PORT *p = fd_consptr(struct FD_PORT *,input,fd_port_type);
-    in = p->fd_inport;}
+    in = p->port_input;}
   else if ((STRINGP(input))&&(strchr(CSTRING(input),'<') == NULL))
     return fdxml_load(input,sloppy);
  else if (STRINGP(input)) {
