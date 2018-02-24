@@ -290,7 +290,7 @@ int fd_find_prefetch(fd_index ix,lispval slotids,lispval values)
 static fd_index get_writable_slotindex(fd_index ix,lispval slotid)
 {
   if (fd_aggregate_indexp(ix)) {
-    fd_index writable = NULL, generic = NULL;
+    fd_index generic = NULL;
     struct FD_AGGREGATE_INDEX *aix = (fd_aggregate_index) ix;
     fd_index *indexes = aix->ax_indexes;
     int i = 0, n = aix->ax_n_indexes; while (i<n) {
@@ -302,7 +302,11 @@ static fd_index get_writable_slotindex(fd_index ix,lispval slotid)
 	else if ( (FD_VOIDP(use_front->index_keyslot)) ||
 		  (FD_FALSEP(use_front->index_keyslot)) ||
 		  (FD_EMPTYP(use_front->index_keyslot)) ) {
-	  if (generic == NULL) generic = use_front;}
+	  if (generic == NULL)
+	    generic = use_front;
+	  else if (FD_INDEX_CONSEDP(use_front)) {
+	    fd_decref(LISPVAL(use_front));}
+	  else NO_ELSE;}
 	else if (FD_INDEX_CONSEDP(use_front)) {
 	  fd_decref(LISPVAL(use_front));}
 	else {}}}
@@ -345,6 +349,7 @@ int fd_index_frame(fd_index ix,lispval frames,lispval slotids,lispval values)
       if (use_values != values) fd_decref(use_values);
       if (add_rv < 0) { rv = -1; FD_LOOP_BREAK();}
       else rv += add_rv;}
+    if (FD_INDEX_CONSEDP(write_index)) fd_decref(LISPVAL(write_index));
     if (rv<0) { FD_LOOP_BREAK(); }}
   return rv;
 }

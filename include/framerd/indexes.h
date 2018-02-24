@@ -356,12 +356,8 @@ FD_FASTOP int fd_index_add(fd_index ix_arg,lispval key,lispval value)
   int rv = -1;
   FDTC *fdtc = (FD_WRITETHROUGH_THREADCACHE)?(fd_threadcache):(NULL);
   fd_index ix = fd_get_writable_index(ix_arg);
-  lispval using_index = FD_VOID;
   if (ix == NULL)
     return _fd_index_add(ix_arg,key,value);
-  else if (ix->index_serialno < 0)
-    using_index = (lispval) ix;
-  else NO_ELSE;
 
   fd_hashtable adds = &(ix->index_adds);
   fd_hashtable cache = &(ix->index_cache);
@@ -420,7 +416,7 @@ FD_FASTOP int fd_index_add(fd_index ix_arg,lispval key,lispval value)
       ix->index_covers_slotids = FD_VOID;}}
   else NO_ELSE;
 
-  fd_incref(using_index);
+  if (FD_INDEX_CONSEDP(ix)) {fd_decref(LISPVAL(ix));}
 
   return rv;
 }

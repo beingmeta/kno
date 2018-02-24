@@ -889,9 +889,8 @@ FD_EXPORT int _fd_index_add(fd_index ix,lispval key,lispval value)
   else if (U8_BITP(ix->index_flags,FD_STORAGE_READ_ONLY)) {
     fd_index front = fd_get_writable_index(ix);
     if (FD_INDEX_CONSEDP(front)) {
-      lispval using_index = (lispval) front;
       int rv = fd_index_add(front,key,value);
-      fd_decref(using_index);
+      fd_decref(LISPVAL(front));
       return rv;}
     else if (front)
       return fd_index_add(front,key,value);
@@ -2014,12 +2013,11 @@ FD_EXPORT lispval fd_get_all_indexes()
       fd_index ix = consed_indexes[j++];
       if (ix) {
         lispval lindex = index2lisp(ix);
-        fd_incref(lindex);
         CHOICE_ADD(results,lindex);}
       else _fd_debug(results);}
     u8_unlock_mutex(&consed_indexes_lock);}
 
-  return results;
+  return fd_simplify_choice(results);
 }
 
 FD_EXPORT int fd_for_indexes(int (*fcn)(fd_index ix,void *),void *data)
