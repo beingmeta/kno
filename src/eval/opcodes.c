@@ -39,6 +39,9 @@
 #include <pthread.h>
 #include <errno.h>
 
+#define simplify_value(v) \
+  ( (FD_PRECHOICEP(v)) ? (fd_simplify_choice(v)) : (v) )
+
 static lispval op_eval(lispval x,fd_lexenv env,fd_stack stack,int tail);
 
 FD_FASTOP lispval op_eval_body(lispval body,fd_lexenv env,
@@ -1169,7 +1172,7 @@ static lispval opcode_dispatch(lispval opcode,lispval expr,
 {
   FD_NEW_STACK(caller,"opcode",opcode_name(opcode),expr);
   lispval result = opcode_dispatch_inner(opcode,expr,env,_stack,tail);
-  _return result;
+  _return simplify_value(result);
 }
 
 FD_FASTOP lispval op_eval(lispval x,fd_lexenv env,

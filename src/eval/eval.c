@@ -85,6 +85,9 @@ u8_condition
   fd_CantBind=_("can't add binding to environment"),
   fd_ReadOnlyEnv=_("Read only environment");
 
+#define simplify_value(v) \
+  ( (FD_PRECHOICEP(v)) ? (fd_simplify_choice(v)) : (v) )
+
 /* Environment functions */
 
 static int bound_in_envp(lispval symbol,fd_lexenv env)
@@ -657,7 +660,7 @@ static lispval watchcall(lispval expr,fd_lexenv env,int with_proc)
   while (i<n_args) {
     lispval arg = fd_get_arg(watch,i);
     lispval val = fd_eval(arg,env);
-    val = fd_simplify_choice(val);
+    val = simplify_value(val);
     if (FD_ABORTED(val)) {
       u8_string errstring = fd_errstring(NULL);
       i--; while (i>=0) {fd_decref(rail[i]); i--;}
@@ -893,9 +896,9 @@ static lispval watched_eval_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
 /* The evaluator itself */
 
 static lispval call_function(u8_string fname,lispval f,
-                            lispval expr,fd_lexenv env,
-                            fd_stack s,
-                            int tail);
+                             lispval expr,fd_lexenv env,
+                             fd_stack s,
+                             int tail);
 static int applicable_choicep(lispval choice);
 
 FD_EXPORT
@@ -914,7 +917,7 @@ lispval fd_stack_eval(lispval expr,fd_lexenv env,
     if (PRED_FALSE(VOIDP(val)))
       return fd_err(fd_UnboundIdentifier,"fd_eval",
                     SYM_NAME(expr),expr);
-    else return val;}
+    else return simplify_value(val);}
   case fd_pair_type: {
     lispval head = (FD_CAR(expr));
     if (FD_OPCODEP(head))
@@ -946,7 +949,7 @@ lispval fd_stack_eval(lispval expr,fd_lexenv env,
         return r;}
       else {CHOICE_ADD(result,r);}}
     fd_pop_stack(eval_stack);
-    return result;}
+    return simplify_value(result);}
   case fd_prechoice_type: {
     lispval exprs = fd_make_simple_choice(expr);
     FD_PUSH_STACK(eval_stack,fd_evalstack_type,NULL,expr);
@@ -961,7 +964,7 @@ lispval fd_stack_eval(lispval expr,fd_lexenv env,
         else {CHOICE_ADD(results,result);}}
       fd_decref(exprs);
       fd_pop_stack(eval_stack);
-      return results;}
+      return simplify_value(results);}
     else {
       lispval result = fd_stack_eval(exprs,env,eval_stack,tail);
       fd_decref(exprs);
@@ -989,7 +992,7 @@ lispval fd_pair_eval(lispval head,lispval expr,fd_lexenv env,
   else if ( (SYMBOLP(head)) || (PAIRP(head)) ||
             (FD_CODEP(head)) || (CHOICEP(head)) ) {
     headval=stack_eval(head,env,eval_stack);
-    if (PRECHOICEP(headval)) headval=fd_simplify_choice(headval);
+    headval=simplify_value(headval);
     gc_head=1;}
   else headval=head;
   if (FD_ABORTED(headval)) {
@@ -1059,7 +1062,7 @@ lispval fd_pair_eval(lispval head,lispval expr,fd_lexenv env,
       result=fd_finish_call(result);
     else {}}
   fd_pop_stack(eval_stack);
-  return result;
+  return simplify_value(result);
 }
 
 static int applicable_choicep(lispval headvals)
@@ -1103,9 +1106,7 @@ static lispval process_arg(lispval arg,fd_lexenv env,
     return fd_err(fd_VoidArgument,"call_function/process_arg",NULL,arg);
   else if (FD_ABORTED(argval))
     return argval;
-  else if ((CONSP(argval))&&(PRECHOICEP(argval)))
-    return fd_simplify_choice(argval);
-  else return argval;
+  else return simplify_value(argval);
 }
 
 #define ND_ARGP(v) ((CHOICEP(v))||(QCHOICEP(v)))

@@ -458,8 +458,13 @@ FD_INLINE_FCN lispval fd_finish_call(lispval pt)
 {
   if (!(FD_EXPECT_TRUE(FD_CHECK_PTR(pt))))
     return fd_badptr_err(pt,"fd_finish_call",NULL);
-  else if (FD_TAILCALLP(pt))
-    return _fd_finish_call(pt);
+  else if (FD_TAILCALLP(pt)) {
+    lispval v = _fd_finish_call(pt);
+    if (FD_PRECHOICEP(v))
+      return fd_simplify_choice(v);
+    else return v;}
+  else if (FD_PRECHOICEP(pt))
+    return fd_simplify_choice(pt);
   else return pt;
 }
 
