@@ -347,6 +347,7 @@ static struct FD_INDEX_HANDLER aggregate_index_handler={
   recycle_aggregate_index, /* recycle */
   aggregate_ctl /* indexctl */
 };
+struct FD_INDEX_HANDLER *fd_aggregate_index_handler=&aggregate_index_handler;
 
 FD_EXPORT int fd_aggregate_indexp(fd_index ix)
 {
@@ -357,6 +358,17 @@ FD_EXPORT void fd_init_aggregates_c()
 {
   u8_register_source_file(_FILEINFO);
   partitions_symbol = fd_intern("PARTITIONS");
+
+  fd_init_index(((fd_index)fd_background),
+                &aggregate_index_handler,
+                "background",NULL,NULL,
+                FD_STORAGE_ISINDEX|FD_STORAGE_READ_ONLY,
+                FD_FALSE,FD_FALSE);
+  fd_background->ax_n_allocd = 64;
+  fd_background->ax_n_indexes = 0;
+  fd_background->ax_indexes = u8_alloc_n(64,fd_index);
+  fd_background->ax_oldvecs = NULL;
+  fd_register_index(((fd_index)fd_background));
 }
 
 /* Emacs local variables

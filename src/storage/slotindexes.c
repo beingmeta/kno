@@ -452,21 +452,16 @@ FD_EXPORT int fd_slotindex_merge(fd_index into,lispval from)
 
 FD_EXPORT lispval fd_bg_get(lispval slotid,lispval value)
 {
-  if (fd_background)
-    return aggregate_prim_find(fd_background,slotid,value);
-  else return EMPTY;
+  return aggregate_prim_find(fd_background,slotid,value);
 }
 
 FD_EXPORT lispval fd_bgfinder(int n,lispval *slotvals)
 {
-  if (fd_background)
-    return fd_finder(index2lisp((fd_index)fd_background),n,slotvals);
-  else return FD_EMPTY;
+  return fd_finder(index2lisp((fd_index)fd_background),n,slotvals);
 }
 
 FD_EXPORT lispval fd_bgfind(lispval slotid,lispval values,...)
 {
-  if (fd_background) {
     int n_args = 2;
     va_list args, scan; va_start(args,values);
     lispval arg = va_arg(args,lispval);
@@ -490,15 +485,12 @@ FD_EXPORT lispval fd_bgfind(lispval slotid,lispval values,...)
 	slotvals[i++]=val;
 	val = va_arg(scan,lispval);
 	slotvals[i++]=val;}
-      return fd_bgfinder(n_args,slotvals);}}
-  else return FD_EMPTY;
+      return fd_bgfinder(n_args,slotvals);}
 }
 
 FD_EXPORT int fd_bg_prefetch(lispval keys)
 {
-  if (fd_background)
-    return fd_index_prefetch((fd_index)fd_background,keys);
-  else return 0;
+  return fd_index_prefetch((fd_index)fd_background,keys);
 }
 
 FD_EXPORT void fd_init_slotindexes_c()

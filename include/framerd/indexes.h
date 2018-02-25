@@ -260,6 +260,8 @@ FD_EXPORT fd_aggregate_index fd_make_aggregate_index
 (lispval opts,int n_allocd,int n_indexes,fd_index *indexes);
 FD_EXPORT int fd_aggregate_indexp(fd_index ix);
 
+FD_EXPORT struct FD_INDEX_HANDLER *fd_aggregate_index_handler;
+
 FD_EXPORT struct FD_AGGREGATE_INDEX *fd_background;
 
 FD_EXPORT fd_index _fd_indexptr(lispval lp);
