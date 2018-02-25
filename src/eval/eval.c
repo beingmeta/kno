@@ -422,24 +422,39 @@ static lispval optionsp_prim(lispval opts)
     return FD_TRUE;
   else return FD_FALSE;
 }
-static lispval opts_plus_prim(lispval opts,lispval key,lispval val)
+#define nulloptsp(v) ( (v == FD_FALSE) || (v == FD_DEFAULT) )
+static lispval opts_plus_prim(int n,lispval *args)
 {
-  lispval back = opts, front; fd_incref(back);
-  if (VOIDP(val)) {
-    front = key;
-    fd_incref(key);}
-  else {
-    fd_incref(key); fd_incref(val);
-    front = fd_conspair(key,val);}
-  if ( (FD_FALSEP(front)) ||
-       (FD_EMPTYP(front)) ||
-       (FD_NILP(front)) )
-    return fd_incref(back);
-  else if ( (FD_FALSEP(back)) ||
-            (FD_EMPTYP(back)) ||
-            (FD_NILP(back)) )
-    return fd_incref(front);
-  else return fd_conspair(front,back);
+  int i = 0;
+  lispval back = FD_FALSE, front = FD_VOID;
+  if (n == 0)
+    return fd_make_slotmap(3,0,NULL);
+  while (i < n) {
+    lispval arg = args[i++];
+    if (FD_TABLEP(arg)) {
+      fd_incref(arg);
+      if (FD_FALSEP(back))
+        back = arg;
+      else {
+        if (!(FD_VOIDP(front))) {
+          back = fd_init_pair(NULL,front,back);
+          front=FD_VOID;}
+        back = fd_init_pair(NULL,arg,back);}}
+    else if ( (nulloptsp(arg)) || (FD_EMPTYP(arg)) ) {}
+    else {
+      if (FD_VOIDP(front)) front = fd_make_slotmap(n,0,NULL);
+      if (i < n) {
+        lispval optval = args[i++];
+        if (FD_QCHOICEP(optval)) {
+          struct FD_QCHOICE *qc = (fd_qchoice) optval;
+          fd_add(front,arg,qc->qchoiceval);}
+        else fd_add(front,arg,optval);}
+      else fd_store(front,arg,FD_TRUE);}}
+  if (FD_VOIDP(front))
+    return back;
+  else if (FD_FALSEP(back))
+    return front;
+  else return fd_init_pair(NULL,front,back);
 }
 
 /* Quote */
@@ -3158,10 +3173,9 @@ static void init_localfns()
             "`(OPTS? *opts*)` returns true if *opts* is a valid options "
             "object.",
             -1,VOID);
-  fd_idefn3(fd_scheme_module,"OPTS+",opts_plus_prim,FD_NEEDS_2_ARGS|FD_NDCALL,
+  fd_idefnN(fd_scheme_module,"OPTS+",opts_plus_prim,FD_NDCALL,
             "`(OPTS+ *add* *opts*)` or `(OPTS+ *optname* *value* *opts*) "
-            "returns a new options object (a pair).",
-            -1,VOID,-1,FD_VOID,-1,FD_VOID);
+            "returns a new options object (a pair).");
   fd_defalias(fd_scheme_module,"OPT+","OPTS+");
 
   fd_idefn(fd_scheme_module,
