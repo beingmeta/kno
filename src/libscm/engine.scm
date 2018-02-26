@@ -736,8 +736,8 @@ slot of the loop state.
 		(logwarn |Checkpoint/Failed| 
 		  "After " (secs->string (elapsed-time started)) " for " fifo))
 	    (when fifo (fifo/pause! fifo #f))
-	    (when (getopt (getopt loop-state 'opts) 'checkclear (config 'checkclear))
-	      (engine-clearcaches loop-state))))
+	    (when (getopt (getopt loop-state 'opts) 'swapout (config 'swapout))
+	      (engine-swapout loop-state))))
 	(logwarn |BadCheck| 
 	  "Declining to checkpoint because check/start! failed: state =\n  "
 	  (pprint loop-state)))))
@@ -804,23 +804,23 @@ slot of the loop state.
 		  (printout "\n\t" ($num time 1) "s \t" db)
 		  (printout "\n\tFAILED after " ($num time 1) "s:\t" db)))))))))
 
-(defambda (engine-clearcaches loop-state)
+(defambda (engine-swapout loop-state)
   (let ((started (elapsed-time))
 	(dbs (getopt loop-state 'caches
 		     (getopt (get loop-state 'opts) 'caches))))
     (cond ((not dbs)
-	   (loginfo |EngineClearCaches| 
+	   (loginfo |EngineSwapout| 
 	     "Clearing cached data for " (get loop-state 'fifo))
-	   (clearcaches)
-	   (lognotice |Engine/ClearCaches| 
+	   (swapout)
+	   (lognotice |Engine/Swapout| 
 	     "Cleared cached data in " (secs->string (elapsed-time started)) " "
 	     "for " (get loop-state 'fifo)))
-	  (else (loginfo |Engine/ClearCaches| 
+	  (else (loginfo |Engine/Swapout| 
 		  "Clearing cached data from "
 		  ($count (choice-size dbs) " databases ")
 		  "for " (get loop-state 'fifo))
 		(do-choices (db dbs) (swapout db))
-		(lognotice |Engine/ClearCaches| 
+		(lognotice |Engine/Swapout| 
 		  "Cleared cached data in " (secs->string (elapsed-time started))  " "
 		  "from " ($count (choice-size dbs) " databases ")
 		  "for " (get loop-state 'fifo))))))
