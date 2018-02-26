@@ -18,6 +18,7 @@
 #include "framerd/frames.h"
 #include "framerd/numbers.h"
 #include "framerd/support.h"
+#include "framerd/ports.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8filefns.h>
@@ -38,9 +39,18 @@ typedef struct FD_ARCHIVE {
   u8_string archive_spec;
   struct archive *fd_archive;
   u8_mutex archive_lock;
-  lispval archive_opts, archive_source;} *fd_archive;
+  lispval archive_cur;
+  lispval archive_opts;
+  lispval archive_source;
+  lispval archive_refs;} *fd_archive;
 
-static lispval open_archive(lispval spec,lispval opts)
+typedef struct FD_ARCHIVE_INPUT {
+  U8_INPUT_FIELDS;
+  unsigned int archive_owned;
+  u8_string archive_eltname, archive_id;
+  struct archive *inport_archive;} *fd_archive_input;
+
+static lispval new_archive(lispval spec,lispval opts)
 {
   int status = -1;
   u8_string use_spec = NULL;
@@ -71,22 +81,34 @@ static lispval open_archive(lispval spec,lispval opts)
     struct FD_ARCHIVE *obj = u8_alloc(struct FD_ARCHIVE);
     FD_INIT_FRESH_CONS(obj,fd_libarchive_type);
     u8_init_mutex(&(obj->archive_lock));
+    obj->archive_spec   = use_spec;
+    obj->fd_archive     = archive;
     obj->archive_source = spec; fd_incref(spec);
-    obj->archive_opts = opts; fd_incref(opts);
-    obj->archive_spec = use_spec;
-    obj->fd_archive = archive;
+    obj->archive_opts   = opts; fd_incref(opts);
+    obj->archive_cur    = FD_FALSE;
+    obj->archive_refs   = FD_EMPTY_CHOICE;
     return (lispval) obj;}
 }
 
 static int unparse_archive(struct U8_OUTPUT *out,lispval x)
 {
   struct FD_ARCHIVE *fdarchive = (struct FD_ARCHIVE *)x;
-  if (fdarchive->archive_spec)
-    u8_printf(out,"#<FileArchive %s #!0x%llx>",
-              fdarchive->archive_spec,
-              (unsigned long long)fdarchive);
-  else u8_printf(out,"#<FileArchive #!0x%llx>",
-                 (unsigned long long)fdarchive);
+  u8_string format = archive_format_name(fdarchive->fd_archive);
+  int n_filters = archive_filter_count(fdarchive->fd_archive);
+  u8_puts(out,"#<FileArchive ");
+  if (fdarchive->archive_spec) {
+    u8_puts(out,fdarchive->archive_spec);
+    u8_puts(out," (");}
+  int i =0; while (i<n_filters) {
+    u8_string filter = archive_filter_name(fdarchive->fd_archive,i);
+    if (i>0) u8_putc(out,'|');
+    u8_puts(out,filter);
+    i++;}
+  u8_putc(out,'|');
+
+  if (format) u8_puts(out,format);
+  else u8_puts(out,"badformat");
+  u8_printf(out,"#!0x%llx>",(unsigned long long)fdarchive);
   return 1;
 }
 static void recycle_archive(struct FD_RAW_CONS *c)
@@ -99,6 +121,105 @@ static void recycle_archive(struct FD_RAW_CONS *c)
   archive_read_close(a->fd_archive);
   u8_free(a->archive_spec);
 }
+
+/* Archive input */
+
+static int close_archive_input(struct U8_INPUT *raw_input)
+{
+  struct FD_ARCHIVE_INPUT *in = (fd_archive_input) raw_input;
+  if (in->archive_owned) archive_read_close(in->inport_archive);
+  if (in->u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(in->u8_inbuf);
+  if (in->u8_streaminfo&U8_STREAM_MALLOCD) u8_free(in);
+  return 1;
+}
+
+static int read_from_archive(struct U8_INPUT *raw_input)
+{
+  struct FD_ARCHIVE_INPUT *in = (fd_archive_input) raw_input;
+  struct archive *archive = in->inport_archive;
+  ssize_t space = in->u8_inlim - in->u8_inbuf;
+  ssize_t rv = archive_read_data(archive,in->u8_read,space);
+  int tries = 0; double last_wait = 0, wait = 0.1;
+  while ( (rv == ARCHIVE_RETRY) && (tries < 42) ) {
+    double next_wait = wait+last_wait;
+    u8_sleep(wait);
+    rv = archive_read_data(archive,in->u8_read,space);}
+  if (rv >= 0) {
+    in->u8_inlim = in->u8_read+rv;
+    return rv;}
+  else {
+    if (rv == ARCHIVE_FATAL) {
+      u8_seterr("ArchiveError","read_from_archive",
+                u8_mkstring("%s@%s:%s",
+                            archive_error_string(archive),
+                            in->archive_eltname,
+                            in->archive_id));
+      return -1;}
+    else if (rv == ARCHIVE_WARN) {
+      u8_log(LOG_WARN,"ArchiveRead","%s from %s",
+             archive_error_string(archive),
+             u8_mkstring("%s@%s:%s",
+                         archive_error_string(archive),
+                         in->archive_eltname,
+                         in->archive_id));
+      return space;}
+    else if (rv == ARCHIVE_RETRY) {
+      u8_seterr("ArchiveTimeout","read_from_archive",
+                u8_mkstring("%s@%s:%s",
+                            archive_error_string(archive),
+                            in->archive_eltname,
+                            in->archive_id));
+      return -1;}
+    else {
+      u8_seterr("BadArchiveReturnValue","read_from_archive",
+                u8_mkstring("%s@%s:%s",
+                            archive_error_string(archive),
+                            in->archive_eltname,
+                            in->archive_id));
+      return -1;}}
+}
+
+static fd_port open_archive_input(struct archive *archive,
+                                  u8_string archive_id,
+                                  u8_string eltname)
+{
+  struct FD_ARCHIVE_INPUT *in = u8_alloc(struct FD_ARCHIVE_INPUT);
+  U8_INIT_INPUT_X((u8_input)in,30000,NULL,U8_STREAM_MALLOCD);
+  in->archive_id = u8_strdup(archive_id);
+  in->archive_eltname = u8_strdup(eltname);
+  in->inport_archive = archive;
+  in->u8_fillfn = read_from_archive;
+  in->u8_closefn = close_archive_input;
+  struct FD_PORT *port = u8_alloc(struct FD_PORT);
+  FD_INIT_CONS(port,fd_port_type);
+  port->port_input = (u8_input)in;
+  port->port_output = NULL;
+  port->port_id = u8_mkstring("%s..%s",archive_id,eltname);
+  port->port_lisprefs = FD_EMPTY;
+  return port;
+}
+
+/* Top level functions */
+
+static lispval open_archive(lispval spec,lispval path,lispval opts)
+{
+  if ( (FD_STRINGP(opts)) && (FD_TABLEP(path)) ) {
+    lispval swap = path; path=opts; opts=swap;}
+  if (FD_STRINGP(path)) { 
+    lispval archive_ptr = (FD_TYPEP(spec,fd_libarchive_type)) ?
+      (fd_incref(spec)) :
+      (new_archive(spec,opts));
+    struct FD_ARCHIVE *archive = (fd_archive) archive_ptr;
+    fd_port inport =
+      open_archive_input(archive->fd_archive,
+                         archive->archive_spec,
+                         FD_CSTRING(path));
+    FD_ADD_TO_CHOICE(inport->port_lisprefs,archive_ptr);
+    return LISPVAL(inport);}
+  else return new_archive(spec,opts);
+}
+
+/* Archive entries */
 
 static void set_time_prop(lispval tbl,u8_string slotname,time_t t)
 {
@@ -163,7 +284,7 @@ static  int archive_seek(struct FD_ARCHIVE *archive,lispval seek,
       fd_seterr("BadSeekSpec","archive_seek",archive->archive_spec,seek);
       return -1;}
     rv = archive_read_next_header(archive->fd_archive,&entry);}
-  if (rv == ARCHIVE_OK)
+  if (rv == ARCHIVE_OK) {}
     return 0;
   fd_seterr("ArchiveError","archive_find",
             archive_error_string(archive->fd_archive),
@@ -175,14 +296,24 @@ static lispval archive_find(lispval obj,lispval seek)
 {
   struct FD_ARCHIVE *archive = (struct FD_ARCHIVE *) obj;
   struct archive_entry *entry;
-  if (! ( (FD_VOIDP(seek)) || (FD_FALSEP(seek)) ||
+  if (! ( (FD_VOIDP(seek)) || (FD_FALSEP(seek)) || (FD_TRUEP(seek)) ||
           (FD_STRINGP(seek)) || (FD_TYPEP(seek,fd_regex_type)) ) )
     return fd_err("InvalidArchivePathSpec","archive_find",NULL,seek);
+  if (FD_TRUEP(seek)) {
+    if (FD_VOIDP(archive->archive_cur))
+      return FD_FALSE;
+    else return fd_incref(archive->archive_cur);}
   int rv = archive_seek(archive,seek,&entry);
   if (rv < 0)
     return FD_ERROR_VALUE;
-  else if (rv)
-    return entry_info(entry);
+  else if (rv) {
+    ssize_t header_pos = archive_read_header_position(archive->fd_archive);
+    lispval info = entry_info(entry);
+    set_int_prop(info,"POS",FD_INT(header_pos));
+    fd_decref(archive->archive_cur);
+    archive->archive_cur = info;
+    fd_incref(info);
+    return info;}
   else return FD_FALSE;
 }
 
@@ -199,9 +330,9 @@ FD_EXPORT int fd_init_libarchive()
   fd_unparsers[fd_libarchive_type] = unparse_archive;
   fd_recyclers[fd_libarchive_type] = recycle_archive;
 
-  fd_idefn2(module,"OPEN-ARCHIVE",open_archive,1,
+  fd_idefn3(module,"OPEN-ARCHIVE",open_archive,1,
             "Opens an archive file",
-            -1,FD_VOID,-1,FD_FALSE);
+            -1,FD_VOID,-1,FD_FALSE,-1,FD_FALSE);
   fd_idefn2(module,"ARCHIVE/FIND",archive_find,1,
             "Get the next archive entry (possibly matching a string or regex)",
             fd_libarchive_type,FD_VOID,-1,FD_FALSE);

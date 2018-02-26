@@ -122,7 +122,8 @@ static int drop_consed_index(fd_index ix)
   return 0;
 }
 
-struct FD_AGGREGATE_INDEX *fd_background = NULL;
+static struct FD_AGGREGATE_INDEX _background;
+struct FD_AGGREGATE_INDEX *fd_background = &_background;
 static u8_mutex background_lock;
 
 #if FD_GLOBAL_IPEVAL
@@ -417,13 +418,7 @@ FD_EXPORT int fd_add_to_background(fd_index ix)
     fd_incref(lix);}
   u8_lock_mutex(&background_lock);
   ix->index_flags = ix->index_flags|FD_INDEX_IN_BACKGROUND;
-  if (fd_background)
-    fd_add_to_aggregate_index(fd_background,ix);
-  else {
-    fd_background = fd_make_aggregate_index(FD_FALSE,32,1,&ix);
-    u8_string old_id = fd_background->indexid;
-    fd_background->indexid = u8_strdup("background");
-    if (old_id) u8_free(old_id);}
+  fd_add_to_aggregate_index(fd_background,ix);
   u8_string old_id = fd_background->indexid;
   fd_background->indexid =
     u8_mkstring("background+%d",fd_background->ax_n_indexes);
