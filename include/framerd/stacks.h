@@ -96,6 +96,11 @@ FD_EXPORT __thread struct FD_STACK *fd_stackptr;
 #define set_call_stack(s) fd_stackptr = s
 #endif
 
+#define FD_CHECK_STACK_ORDER(stack,caller)                      \
+  ( (caller == NULL) ||                                         \
+    ( (u8_stack_direction > 0) ? ( (stack) > (caller) ) :       \
+      ( (stack) < (caller) ) ) )
+
 #define FD_SETUP_NAMED_STACK(name,caller,type,label,op) \
   struct FD_STACK _ ## name, *name=&_ ## name;          \
   memset(&_ ## name,0,sizeof(struct FD_STACK));         \
@@ -106,9 +111,12 @@ FD_EXPORT __thread struct FD_STACK *fd_stackptr;
   if (caller)                                           \
     _ ## name.stack_errflags = caller->stack_errflags;  \
   else _ ## name.stack_errflags = FD_STACK_ERR_DEFAULT; \
-  if (caller)                                           \
+  if (caller)                                          \
     _ ## name.stack_src = caller->stack_src;            \
   else _ ## name.stack_src = NULL;                      \
+  if (!(FD_CHECK_STACK_ORDER(name,caller)))             \
+    u8_raise("StackCorruption","FD_SETUP_NAMED_STACK",  \
+             label);                                    \
   _ ## name.stack_caller=caller;                        \
   _ ## name.stack_type=type;                            \
   _ ## name.stack_label=label;                          \
