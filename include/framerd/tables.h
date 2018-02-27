@@ -273,7 +273,12 @@ static U8_MAYBE_UNUSED lispval fd_slotmap_get
   size = FD_XSLOTMAP_NUSED(sm);
   result = fd_keyvec_get(key,sm->sm_keyvals,size);
   if (result) {
-    lispval v = fd_incref(result->kv_val);
+    lispval v = result->kv_val;
+    if (FD_PRECHOICEP(v))
+      v = fd_make_simple_choice(v);
+    else if (FD_CONSP(v))
+      v = fd_incref(v);
+    else NO_ELSE;
     if (unlock) u8_rw_unlock(&sm->table_rwlock);
     return v;}
   else {
@@ -441,7 +446,12 @@ static U8_MAYBE_UNUSED lispval fd_schemap_get
   sorted = FD_XSCHEMAP_SORTEDP(sm);
   slotno=_fd_get_slotno(key,sm->table_schema,size,sorted);
   if (slotno>=0) {
-    lispval v = fd_incref(sm->schema_values[slotno]);
+    lispval v = sm->schema_values[slotno];
+    if (FD_PRECHOICEP(v))
+      v = fd_make_simple_choice(v);
+    else if (FD_CONSP(v))
+      v = fd_incref(v);
+    else NO_ELSE;
     if (unlock) u8_rw_unlock(&(sm->table_rwlock));
     return v;}
   else {

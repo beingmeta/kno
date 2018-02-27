@@ -335,7 +335,7 @@ static lispval getopt_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
         lispval dflt_expr = fd_get_arg(expr,3);
         if (VOIDP(dflt_expr)) return FD_FALSE;
         else return fd_stack_eval(dflt_expr,env,_stack,0);}
-      else return results;}}
+      else return simplify_value(results);}}
 }
 static lispval tryopt_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
@@ -377,7 +377,7 @@ static lispval tryopt_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
         else if (!(FD_EVALP(dflt_expr)))
           return fd_incref(dflt_expr);
         else return fd_stack_eval(dflt_expr,env,_stack,0);}
-      else return results;}}
+      else return simplify_value(results);}}
 }
 static lispval getopt_prim(lispval opts,lispval keys,lispval dflt)
 {
@@ -388,11 +388,12 @@ static lispval getopt_prim(lispval opts,lispval keys,lispval dflt)
       if (!(VOIDP(v))) {CHOICE_ADD(results,v);}}}
   if (EMPTYP(results)) {
     fd_incref(dflt); return dflt;}
-  else return results;
+  else return simplify_value(results);
 }
 static lispval testopt_prim(lispval opts,lispval key,lispval val)
 {
-  if (fd_testopt(opts,key,val)) return FD_TRUE;
+  if (fd_testopt(opts,key,val))
+    return FD_TRUE;
   else return FD_FALSE;
 }
 
@@ -718,7 +719,7 @@ static lispval watchcall(lispval expr,fd_lexenv env,int with_proc)
   u8_free(rail);
   if (label!=dflt_label) {u8_free(label); u8_free(arglabel);}
   u8_free(out.u8_outbuf);
-  return result;
+  return simplify_value(result);
 }
 
 static lispval watchcall_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
@@ -1713,7 +1714,7 @@ static lispval apply_lexpr(int n,lispval *args)
       if (FD_ABORTED(results)) {
         FD_STOP_DO_CHOICES;
         return results;}}
-    return results;
+    return simplify_value(results);
   }
 }
 
