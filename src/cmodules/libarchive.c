@@ -22,6 +22,7 @@
 
 #include <libu8/libu8io.h>
 #include <libu8/u8filefns.h>
+#include <libu8/u8pathfns.h>
 
 #include <errno.h>
 #include <math.h>
@@ -59,9 +60,10 @@ static lispval new_archive(lispval spec,lispval opts)
   archive_read_support_format_all(archive);
   if (FD_STRINGP(spec)) {
     long long bufsz = fd_getfixopt(opts,"BUFSIZE",16000);
-    status = archive_read_open_filename(archive,FD_CSTRING(spec),bufsz);
+    u8_string abspath = u8_abspath(FD_CSTRING(spec),NULL);
+    status = archive_read_open_filename(archive,abspath,bufsz);
     if (status == ARCHIVE_OK)
-      use_spec = u8_strdup(FD_CSTRING(spec));}
+      use_spec = abspath;}
   else if (FD_PACKETP(spec)) {
     status = archive_read_open_memory
       (archive,FD_PACKET_DATA(spec),FD_PACKET_LENGTH(spec));
@@ -88,6 +90,37 @@ static lispval new_archive(lispval spec,lispval opts)
     obj->archive_cur    = FD_FALSE;
     obj->archive_refs   = FD_EMPTY_CHOICE;
     return (lispval) obj;}
+}
+
+static  int archive_seek(struct FD_ARCHIVE *archive,lispval seek,
+                         struct archive_entry **entryp)
+{
+  struct archive_entry *entry;
+  int rv = archive_read_next_header(archive->fd_archive,&entry);
+  while (rv == ARCHIVE_OK) {
+    if ( (FD_VOIDP(seek)) || (FD_FALSEP(seek)) || (FD_DEFAULTP(seek)) ) {
+      if (entryp) *entryp = entry;
+      return 1;}
+    else if (FD_STRINGP(seek)) {
+      if (strcmp(FD_CSTRING(seek),archive_entry_pathname_utf8(entry)) == 0) {
+        if (entryp) *entryp = entry;
+        return 1;}}
+    else if (FD_TYPEP(seek,fd_regex_type)) {
+      u8_string name = archive_entry_pathname_utf8(entry);
+      ssize_t match = fd_regex_op(match,seek,name,strlen(name),0);
+      if (match>0) {
+        if (entryp) *entryp = entry;
+        return 1;}}
+    else {
+      fd_seterr("BadSeekSpec","archive_seek",archive->archive_spec,seek);
+      return -1;}
+    rv = archive_read_next_header(archive->fd_archive,&entry);}
+  if (rv == ARCHIVE_OK) {}
+    return 0;
+  fd_seterr("ArchiveError","archive_find",
+            archive_error_string(archive->fd_archive),
+            seek);
+  return -1;
 }
 
 static int unparse_archive(struct U8_OUTPUT *out,lispval x)
@@ -137,13 +170,14 @@ static int read_from_archive(struct U8_INPUT *raw_input)
 {
   struct FD_ARCHIVE_INPUT *in = (fd_archive_input) raw_input;
   struct archive *archive = in->inport_archive;
-  ssize_t space = in->u8_inlim - in->u8_inbuf;
+  ssize_t space = in->u8_bufsz - (in->u8_inlim-in->u8_inbuf);
   ssize_t rv = archive_read_data(archive,in->u8_read,space);
   int tries = 0; double last_wait = 0, wait = 0.1;
   while ( (rv == ARCHIVE_RETRY) && (tries < 42) ) {
     double next_wait = wait+last_wait;
     u8_sleep(wait);
-    rv = archive_read_data(archive,in->u8_read,space);}
+    rv = archive_read_data(archive,in->u8_read,space);
+    wait = next_wait;}
   if (rv >= 0) {
     in->u8_inlim = in->u8_read+rv;
     return rv;}
@@ -205,11 +239,20 @@ static lispval open_archive(lispval spec,lispval path,lispval opts)
 {
   if ( (FD_STRINGP(opts)) && (FD_TABLEP(path)) ) {
     lispval swap = path; path=opts; opts=swap;}
-  if (FD_STRINGP(path)) { 
+  if (FD_STRINGP(path)) {
     lispval archive_ptr = (FD_TYPEP(spec,fd_libarchive_type)) ?
       (fd_incref(spec)) :
       (new_archive(spec,opts));
+    if (FD_ABORTP(path)) return path;
     struct FD_ARCHIVE *archive = (fd_archive) archive_ptr;
+    int rv = archive_seek(archive,path,NULL);
+    if (rv<0) return FD_ERROR_VALUE;
+    else if (rv == 0) {
+      if (fd_testopt(opts,FDSYM_DROP,FD_TRUE)) {
+        fd_seterr("NotFound","open_archive",archive->archive_spec,path);
+        fd_decref(spec);
+        return FD_ERROR;}
+      else return FD_FALSE;}
     fd_port inport =
       open_archive_input(archive->fd_archive,
                          archive->archive_spec,
@@ -259,37 +302,6 @@ static lispval entry_info(struct archive_entry *entry)
   set_string_prop(tbl,"FLAGS",archive_entry_fflags_text(entry));
   set_int_prop(tbl,"SIZE",archive_entry_size(entry));
   return tbl;
-}
-
-static  int archive_seek(struct FD_ARCHIVE *archive,lispval seek,
-                         struct archive_entry **entryp)
-{
-  struct archive_entry *entry;
-  int rv = archive_read_next_header(archive->fd_archive,&entry);
-  while (rv == ARCHIVE_OK) {
-    if ( (FD_VOIDP(seek)) || (FD_FALSEP(seek)) || (FD_DEFAULTP(seek)) ) {
-      *entryp = entry;
-      return 1;}
-    else if (FD_STRINGP(seek)) {
-      if (strcmp(FD_CSTRING(seek),archive_entry_pathname_utf8(entry)) == 0) {
-        *entryp = entry;
-        return 1;}}
-    else if (FD_TYPEP(seek,fd_regex_type)) {
-      u8_string name = archive_entry_pathname_utf8(entry);
-      ssize_t match = fd_regex_op(match,seek,name,strlen(name),0);
-      if (match>0) {
-        *entryp = entry;
-        return 1;}}
-    else {
-      fd_seterr("BadSeekSpec","archive_seek",archive->archive_spec,seek);
-      return -1;}
-    rv = archive_read_next_header(archive->fd_archive,&entry);}
-  if (rv == ARCHIVE_OK) {}
-    return 0;
-  fd_seterr("ArchiveError","archive_find",
-            archive_error_string(archive->fd_archive),
-            seek);
-  return -1;
 }
 
 static lispval archive_find(lispval obj,lispval seek)
