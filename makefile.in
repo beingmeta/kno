@@ -442,11 +442,13 @@ FRAMERD_SOURCES=\
 	src/exe/fdservlet.c src/exe/fdcgiexec.c src/exe/fdserver.c
 
 CMODULE_SOURCES=\
-	src/cmodules/odbc.c src/cmodules/sqlite.c src/libarchive.c 	\
-	src/cmodules/crypto.c src/cmodules/mysql.c  			\
-	src/cmodules/qrcode.c src/cmodules/ziptools.c                   \
-	src/cmodules/tidy.c src/cmodules/imagick.c               	\
-	src/cmodules/hyphenate.c src/cmodules/sundown.c
+	src/cmodules/odbc.c src/cmodules/sqlite.c 				\
+	src/cmodules/mysql.c src/cmodules/mongodb.c  				\
+	src/cmodules/leveldb.c src/cmodules/rocksdb.c  				\
+	src/cmodules/ziptools.c src/cmodules/libarchive.c			\
+	src/cmodules/tidy.c src/cmodules/sundown.c src/cmodules/hyphenate.c 	\
+	src/cmodules/qrcode.c src/cmodules/exif.c src/cmodules/imagick.c	\
+	src/cmodules/crypto.c
 
 STATIC_LIBS=lib/libfdcore@suffix@.a 	\
 	lib/libfdstorage@suffix@.a	\
