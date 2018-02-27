@@ -164,9 +164,9 @@ static double showtime_threshold = 1.0;
 static u8_string stats_message=
   _(";; Done in %f seconds, with %d/%d object/index loads\n");
 static u8_string stats_message_w_history=
-   _(";; ##%d computed in %f seconds, %d/%d object/index loads\n");
+   _(";; %s computed in %f seconds, %d/%d object/index loads\n");
 static u8_string stats_message_w_history_and_sym=
-   _(";; ##%d (%ls) computed in %f seconds, %d/%d object/index loads\n");
+   _(";; %s (%ls) computed in %f seconds, %d/%d object/index loads\n");
 
 static double run_start = -1.0;
 
@@ -174,21 +174,22 @@ static int console_width = 80, quiet_console = 0, show_elts = 5;
 static double time_startup = 1;
 
 
-static void output_element(u8_output out,lispval elt)
+static void output_element(u8_output out,lispval elt,u8_string histref,int path)
 {
   if (OIDP(elt)) {
+    /* Fetch OID values which you display */
     lispval val = fd_oid_value(elt);
     if (FD_ABORTP(val)) fd_clear_errors(0);
     fd_decref(val);}
 
-  if ((historicp(elt))||(STRINGP(elt))) {
+  if ( (histref >= 0) && (path >= 0) ) {
     U8_STATIC_OUTPUT(tmp,1000);
     fd_unparse(tmpout,elt);
     if ((tmp.u8_write-tmp.u8_outbuf)<console_width) {
-      u8_printf(out,"\n  %s ;=##%d",tmp.u8_outbuf,fd_histpush(elt));
+      u8_printf(out,"\n  %s ;=%s.%d",tmp.u8_outbuf,histref,path);
       u8_close_output(tmpout);
       return;}
-    u8_printf(out,"\n  ;; ##%d=\n  ",fd_histpush(elt),elt);
+    u8_printf(out,"\n  ;; %s.%d=\n  ",histref,path);
     tmp.u8_write=tmp.u8_outbuf; tmp.u8_outbuf[0]='\0';
     fd_pprint(tmpout,elt,NULL,3,3,console_width);
     u8_puts(out,tmp.u8_outbuf);
@@ -233,7 +234,7 @@ static lispval bind_random_symbol(lispval result,fd_lexenv env)
 }
 
 static int output_result(u8_output out,lispval result,
-                         int histref,int showall)
+                         u8_string histref,int showall)
 {
   if (OIDP(result)) {
     lispval v = fd_oid_value(result);
@@ -268,54 +269,54 @@ static int output_result(u8_output out,lispval result,
       max_elts = show_elts;
     else max_elts = n_elts;
 
-    if (max_elts<n_elts) {
-      if (histref<0)
-        u8_printf(out,_("%s ;; (%d/%d items)"),start_with,max_elts,n_elts);
-      else u8_printf(out,_("%s ;; ##%d = (%d/%d items)"),
-                     start_with,histref,max_elts,n_elts);}
-    else if (histref<0)
-      u8_printf(out,_("%s ;; (%d items)"),start_with,n_elts);
-    else u8_printf(out,_("%s ;; ##%d = (%d items)"),start_with,histref,n_elts);
+    if ( (max_elts<n_elts) && (histref) )
+      u8_printf(out,_("%s ;; %s = (%d/%d items)"),start_with,histref,max_elts,n_elts);
+    else if (max_elts<n_elts)
+      u8_printf(out,_("%s ;; %s = (%d/%d items)"),start_with,histref,max_elts,n_elts);
+    else if (histref)
+      u8_printf(out,_("%s ;; %s = (%d items)"),start_with,histref,n_elts);
+    else u8_printf(out,_("%s ;; (%d items)"),start_with,max_elts,n_elts);
 
     if (CHOICEP(result)) {
       FD_DO_CHOICES(elt,result) {
         if ((max_elts>0) && (count<max_elts)) {
-          output_element(out,elt);
+          output_element(out,elt,histref,count);
           count++;}
         else {FD_STOP_DO_CHOICES; break;}}}
     else if (VECTORP(result)) {
       lispval *elts = VEC_DATA(result);
       while (count<max_elts) {
-        output_element(out,elts[count]);
+        output_element(out,elts[count],histref,count);
         count++;}}
     else if (PAIRP(result)) {
       lispval scan = result;
       while (count<max_elts)
         if (PAIRP(scan)) {
-          output_element(out,FD_CAR(scan));
+          output_element(out,FD_CAR(scan),histref,count);
           count++; scan = FD_CDR(scan);}
         else {
           u8_printf(out,"\n  . ;; improper list");
-          output_element(out,scan);
+          output_element(out,scan,NULL,count);
           count++; scan = VOID;
           break;}}
     else {}
 
-    if (max_elts<n_elts) {
+    if (max_elts<n_elts)
       u8_printf(out,"\n  ;; ....... %d more items .......",n_elts-max_elts);
-      if (histref<0)
-        u8_printf(out,"\n%s ;; (%d/%d items)\n",end_with,max_elts,n_elts);
-      else u8_printf(out,"\n%s ;; ==##%d (%d/%d items)\n",
-                     end_with,histref,max_elts,n_elts);}
-    else if (histref<0)
-      u8_printf(out,"\n%s ;; (%d items)\n",end_with,n_elts);
-    else u8_printf(out,"\n%s ;; ==##%d (%d items)\n",end_with,histref,n_elts);
+    if ( (max_elts<n_elts) && (histref) )
+      u8_printf(out,"\n%s ;; ==%s (%d/%d items)\n",
+                end_with,histref,max_elts,n_elts);
+    else if (max_elts<n_elts)
+      u8_printf(out,"\n%s ;; (%d/%d items)\n",end_with,max_elts,n_elts);
+    else if (histref)
+      u8_printf(out,"\n%s ;; ==%s(%d items)\n",end_with,histref,n_elts);
+    else u8_printf(out,"\n%s ;; (%d items)\n",end_with,n_elts);
     return 1;
   } else {
-    if (histref<0)
+    if (histref == NULL)
       u8_printf(out,"%Q\n",result);
     else if (console_width<=0)
-      u8_printf(out,"%q\n;; =##%d\n",result,histref);
+      u8_printf(out,"%q\n;; =%s\n",result,histref);
     else {
       struct U8_OUTPUT tmpout;
       U8_INIT_STATIC_OUTPUT(tmpout,500);
@@ -855,6 +856,7 @@ int main(int argc,char **argv)
     int start_ocache, finish_ocache;
     double start_time, finish_time;
     int histref = -1, stat_line = 0, is_histref = 0;
+    u8_byte histref_buf[100];
     start_ocache = fd_object_cache_load();
     start_icache = fd_index_cache_load();
     u8_flush(out);
@@ -925,13 +927,17 @@ int main(int argc,char **argv)
            (FD_TRUEP(result)) || (FALSEP(result)) ||
            (FD_ABORTP(result)) || (FIXNUMP(result))))) {
       int ref = fd_histpush(result);
-      if (ref>=0) histref = ref;}
+      if (ref>=0) {
+        histref = ref;
+        u8_sprintf(histref_buf,100,"##%d",ref);}}
     else if ((SYMBOLP(expr))&&
              ((CHOICEP(result))||
               (VECTORP(result))||
               (PAIRP(result)))) {
       int ref = fd_histpush(result);
-      if (ref>=0) histref = ref;}
+      if (ref>=0) {
+        histref = ref;
+        u8_sprintf(histref_buf,100,"##%d",ref);}}
     else {}
     if (FD_ABORTP(result)) stat_line = 0;
     else if ((showtime_threshold >= 0.0) &&
@@ -968,12 +974,12 @@ int main(int argc,char **argv)
       else fprintf(stderr,
                    ";;; The expression generated a mysterious error!!!!\n");}
     else if (stat_line)
-      output_result(out,result,histref,is_histref);
+      output_result(out,result,histref_buf,is_histref);
     else if (VOIDP(result)) {}
     else if (histref<0)
-      stat_line = output_result(out,result,histref,is_histref);
+      stat_line = output_result(out,result,histref_buf,is_histref);
     else {
-      output_result(out,result,histref,is_histref);
+      output_result(out,result,histref_buf,is_histref);
       stat_line = 1;}
     if (errno) {
       u8_log(LOG_WARN,u8_strerror(errno),"Unexpected errno after output");
@@ -988,11 +994,11 @@ int main(int argc,char **argv)
         lispval sym = bind_random_symbol(result,env);
         if (VOIDP(sym))
           u8_printf(out,stats_message_w_history,
-                    histref,(finish_time-start_time),
+                    histref_buf,(finish_time-start_time),
                     finish_ocache-start_ocache,
                     finish_icache-start_icache);
         else u8_printf(out,stats_message_w_history_and_sym,
-                       histref,SYM_NAME(sym),
+                       histref_buf,SYM_NAME(sym),
                        (finish_time-start_time),
                        finish_ocache-start_ocache,
                        finish_icache-start_icache);}}

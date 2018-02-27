@@ -343,7 +343,6 @@ lispval fd_parse_atom(u8_string start,int len)
   else if (start[0]=='#') { /* Look it up */
     lispval value = lookup_hashname(start,-1,1);
     if (value != FD_NULL) return value;
-    /* This is where we would handle history refs */
     /* Number syntaxes */
     if (strchr("XxOoBbEeIiDd",start[1])) {
       lispval result=_fd_parse_number(start,-1);
@@ -1235,8 +1234,7 @@ lispval fd_parser(u8_input in)
       if (c=='(') return parse_record(in);
       else return FD_PARSE_ERROR;}
     case '\\': return parse_character(in);
-    case '#': return fd_make_list(2,histref_symbol,fd_parser(in));
-    case '.': return parse_histref(in);
+    case '#': return parse_histref(in);
     case 'U': return parse_atom(in,inchar,ch); /* UUID */
     case 'T': return parse_atom(in,inchar,ch); /* TIMESTAMP */
     case '!': return parse_atom(in,inchar,ch); /* pointer reference */
