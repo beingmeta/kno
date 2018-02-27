@@ -258,6 +258,7 @@ typedef struct FD_QCHOICE {
 typedef struct FD_QCHOICE *fd_qchoice;
 
 FD_EXPORT lispval fd_init_qchoice(struct FD_QCHOICE *ptr,lispval choice);
+FD_EXPORT lispval fd_make_qchoice(lispval val);
 
 #define FD_QCHOICEP(x) (FD_TYPEP(x,fd_qchoice_type))
 #define FD_EMPTY_QCHOICEP(x) \

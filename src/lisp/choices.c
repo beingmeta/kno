@@ -778,6 +778,25 @@ lispval fd_init_qchoice(struct FD_QCHOICE *ptr,lispval choice)
   return LISP_CONS(ptr);
 }
 
+FD_EXPORT
+/* fd_init_qchoice:
+      Arguments: a pointer to a FD_QCHOICE struct and a dtype pointer
+      Returns: a dtype pointer
+  Initializes the structure with the qchoice.
+ */
+lispval fd_make_qchoice(lispval val)
+{
+  if (FD_CHOICEP(val)) {
+    fd_incref(val);
+    return fd_init_qchoice(NULL,val);}
+  else if (FD_PRECHOICEP(val)) {
+    lispval norm = fd_make_simple_choice(val);
+    if (FD_CHOICEP(norm))
+      return fd_init_qchoice(NULL,norm);
+    else return norm;}
+  else return fd_incref(val);
+}
+
 static ssize_t write_qchoice_dtype(struct FD_OUTBUF *s,lispval x)
 {
   struct FD_QCHOICE *qc = FD_XQCHOICE(x);
