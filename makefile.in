@@ -789,6 +789,7 @@ dbg/fdservlet.webuser: dbg/fdservlet
 	@echo "Making" $@
 	@cp dbg/fdservlet dbg/fdservlet.webuser
 	@sudo chown @webuser@:@admin_group@ dbg/fdservlet.webuser
+	@sudo chmod ug+s dbg/fdservlet.webuser
 
 # Uninstall
 
