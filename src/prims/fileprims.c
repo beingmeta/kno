@@ -319,6 +319,9 @@ static lispval open_socket_prim(lispval spec,lispval opts)
     lispval nodelay = fd_getopt(opts,nodelay_symbol,FD_FALSE);
     u8_xinput in = u8_open_xinput(conn,NULL);
     u8_xoutput out = u8_open_xoutput(conn,NULL);
+    if ( (in == NULL) || (out == NULL) ) {
+      close(conn);
+      return FD_ERROR_VALUE;}
     if (!(FALSEP(noblock))) u8_set_blocking(conn,0);
     if (!(FALSEP(nodelay))) u8_set_nodelay(conn,1);
     return make_port((u8_input)in,(u8_output)out,u8_strdup(CSTRING(spec)));}

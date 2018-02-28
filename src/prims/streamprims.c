@@ -335,8 +335,7 @@ static lispval lisp2file(lispval object,lispval filename,lispval bufsiz)
     return lisp2zipfile(object,filename,bufsiz);}
   else if (STRINGP(filename)) {
     u8_string temp_name = u8_mkstring("%s.part",CSTRING(filename));
-    struct FD_STREAM *out=
-      fd_open_file(temp_name,FD_FILE_CREATE);
+    struct FD_STREAM *out = fd_open_file(temp_name,FD_FILE_CREATE);
     struct FD_OUTBUF *outstream = NULL;
     ssize_t bytes;
     if (out == NULL) return FD_ERROR;
@@ -381,8 +380,7 @@ static lispval lisp2zipfile(lispval object,lispval filename,lispval bufsiz)
 {
   if (STRINGP(filename)) {
     u8_string temp_name = u8_mkstring("%s.part",CSTRING(filename));
-    struct FD_STREAM *stream=
-      fd_open_file(temp_name,FD_FILE_CREATE);
+    struct FD_STREAM *stream = fd_open_file(temp_name,FD_FILE_CREATE);
     fd_outbuf out = NULL;
     int bytes;
     if (stream == NULL) {
@@ -598,11 +596,11 @@ static lispval file2dtypes(lispval filename)
 static lispval zipfile2dtypes(lispval filename)
 {
   if (STRINGP(filename)) {
-    struct FD_STREAM *in=
-      fd_open_file(CSTRING(filename),FD_FILE_READ);
+    struct FD_STREAM *in = fd_open_file(CSTRING(filename),FD_FILE_READ);
     lispval results = EMPTY, object = VOID;
     if (in == NULL) return FD_ERROR;
     else {
+      U8_CLEAR_ERRNO();
       fd_inbuf inbuf = fd_readbuf(in);
       object = fd_zread_dtype(inbuf);
       while (!(FD_EODP(object))) {
@@ -635,18 +633,26 @@ static lispval open_dtype_input_file(lispval fname)
   if (!(u8_file_existsp(filename))) {
     fd_seterr(fd_FileNotFound,"open_dtype_input_file",filename,VOID);
     return FD_ERROR;}
-  else return (lispval)
-         fd_open_file(filename,FD_STREAM_READ_ONLY);
+  else {
+    struct FD_STREAM *stream = fd_open_file(filename,FD_STREAM_READ_ONLY);
+    if (stream) {
+      U8_CLEAR_ERRNO();
+      return (lispval) stream;}
+    else return FD_ERROR_VALUE;}
 }
 
 static lispval extend_dtype_file(lispval fname)
 {
   u8_string filename = CSTRING(fname);
+  struct FD_STREAM *stream = NULL;
   if (u8_file_existsp(filename))
-    return (lispval)
-      fd_open_file(filename,FD_FILE_MODIFY);
-  else return (lispval)
-         fd_open_file(filename,FD_FILE_CREATE);
+    stream = fd_open_file(filename,FD_FILE_MODIFY);
+  else stream = fd_open_file(filename,FD_FILE_CREATE);
+  if (stream == NULL)
+    return FD_ERROR_VALUE;
+  else {
+    U8_CLEAR_ERRNO();
+    return (lispval) stream;}
 }
 
 static lispval streamp(lispval arg)
