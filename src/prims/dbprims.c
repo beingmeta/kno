@@ -281,7 +281,9 @@ static lispval try_pool(lispval arg1,lispval opts)
   else if (!(STRINGP(arg1)))
     return fd_type_error(_("string"),"load_pool",arg1);
   else {
-    fd_pool p = fd_get_pool(CSTRING(arg1),FD_STORAGE_NOERR,opts);
+    fd_storage_flags flags = fd_get_dbflags(opts,FD_STORAGE_ISPOOL) | 
+      FD_STORAGE_NOERR;
+    fd_pool p = fd_get_pool(CSTRING(arg1),flags,opts);
     if (p)
       return pool2lisp(p);
     else return FD_FALSE;}
@@ -316,7 +318,7 @@ static lispval use_pool(lispval arg1,lispval opts)
   else if (!(STRINGP(arg1)))
     return fd_type_error(_("string"),"use_pool",arg1);
   else {
-    fd_pool p = fd_get_pool(CSTRING(arg1),0,opts);
+    fd_pool p = fd_get_pool(CSTRING(arg1),-1,opts);
     if (p) return pool2lisp(p);
     else return fd_err(fd_NoSuchPool,"use_pool",
                        CSTRING(arg1),VOID);}
