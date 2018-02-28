@@ -1759,6 +1759,13 @@ update-fdserv: src/apache2/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 
 testclean:
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
+tests: testclean
+	@echo "#### Running tests scripts"
+	@echo "#### Note that killed/exited messages for the 'countup' scripts are normal"
+	@DATE=`date +%d%b%yT%T`; make -s -C tests -k -j && \
+	 cp tests.log tests/logs/tests-$${DATE}.log; \
+	 sort tests/timing.log -k 2 > tests/logs/timing-$${DATE}.log;
+
 tests.log: tests/fdexec tests/makefile.in makefile
 	@echo "#### Running tests scripts, output in" $@
 	@echo "#### Note that killed/exited messages for the 'countup' scripts are normal"
@@ -1766,7 +1773,6 @@ tests.log: tests/fdexec tests/makefile.in makefile
 	@DATE=`date +%d%b%yT%T`; make -s -C tests -k -j 2>&1 > tests.log && \
 	 cp tests.log tests/logs/tests-$${DATE}.log; \
 	 sort tests/timing.log -k 2 > tests/logs/timing-$${DATE}.log;
-tests: tests.log
 
 libtests.log: tests/fdexec tests/makefile.in
 	@echo "#### Running libtests, output in" $@
@@ -1814,6 +1820,21 @@ tests/dbtests.log: tests/fdexec tests/makefile.in
 	 make -s -C tests -k -j dbtests 2>&1 > dbtests.log && \
 	 cp dbtests.log tests/logs/dbtests-`date +%d%b%yT%T`.log;
 dbtests: tests/dbtests.log
+
+private_files: tests/data/private.text tests/data/private.dtype tests/data/private
+
+tests/data/private.text: tests/data/testobj.text
+	@@SUDO@ cp $< $@
+	@@SUDO@ chown nobody $@
+	@@SUDO@ chmod og-rwx $@
+tests/data/private.dtype: tests/data/testobj.dtype
+	@@SUDO@ cp $< $@
+	@@SUDO@ chown nobody $@
+	@@SUDO@ chmod og-rwx $@
+tests/data/private:
+	@@SUDO@ mkdir $@
+	@@SUDO@ chown nobody $@
+	@@SUDO@ chmod og-rwx $@
 
 .PHONY: tests libtests schemetests dbtests cmtdtests memtests leaktests
 
