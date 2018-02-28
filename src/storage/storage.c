@@ -60,7 +60,7 @@ static lispval id_symbol, flags_symbol, background_symbol,
   sparse_symbol, register_symbol, phased_symbol,
   oidcodes_symbol, slotcodes_symbol;
 
-static lispval lookupfns = EMPTY;
+static lispval lookupfns = FD_NIL;
 
 static int fdstorage_initialized = 0;
 
