@@ -785,6 +785,11 @@ dbtestbin: libs tests/storage/makefile tests/storage/.gdbinit
 cmodules: dbmodules @CMODULES@
 dbmodules: @DBMODULES@
 
+dbg/fdservlet.webuser: dbg/fdservlet
+	@echo "Making" $@
+	@cp dbg/fdservlet dbg/fdservlet.webuser
+	@sudo chown @webuser@:@admin_group@ dbg/fdservlet.webuser
+
 # Uninstall
 
 LIBBASE=libfdcore libfdstorage libfddrivers libfddbserv \
