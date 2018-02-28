@@ -424,7 +424,60 @@ static lispval define_init_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   else return fd_err(fd_NotAnIdentifier,"DEFINE_INIT",NULL,var);
 }
 
-/* Extend fcnid parsing to incluce functional compounds */
+/* DEFINE-INIT */
+
+/* This defines an identifier in the local environment only if
+   it is not currently defined. */
+static lispval define_import_evalfn(lispval expr,fd_lexenv env,fd_stack _stack,int safe)
+{
+  lispval var = fd_get_arg(expr,1);
+  lispval module_expr = fd_get_arg(expr,2);
+  lispval import_name = fd_get_arg(expr,3);
+  if (VOIDP(var))
+    return fd_err(fd_TooFewExpressions,"DEFINE-IMPORT",NULL,expr);
+  else if (VOIDP(module_expr))
+    return fd_err(fd_TooFewExpressions,"DEFINE-IMPORT",NULL,expr);
+  else if (!(FD_SYMBOLP(var)))
+    return fd_err(fd_SyntaxError,"DEFINE-IMPORT/VAR",NULL,expr);
+
+  if (FD_VOIDP(import_name)) import_name = var;
+
+  lispval module_spec = fd_stack_eval(module_expr,env,_stack,0);
+  if (FD_ABORTP(module_spec)) return module_spec;
+
+  lispval module = ( (FD_HASHTABLEP(module_spec)) || (FD_LEXENVP(module_spec)) ) ?
+    (fd_incref(module_spec)) : (fd_find_module(module_spec,safe,0));
+  if (FD_ABORTP(module)) {
+    fd_decref(module_spec);
+    return module;}
+  else if (FD_TABLEP(module)) {
+    lispval import_value = fd_get(module,import_name,FD_VOID);
+    if (FD_ABORTP(import_value)) {
+      fd_decref(module); fd_decref(module_spec);
+      return import_value;}
+    else if (FD_VOIDP(import_value)) {
+      fd_decref(module); fd_decref(module_spec);
+      return fd_err("UndefinedImport","define_import",
+                    FD_SYMBOL_NAME(import_name),
+                    module);}
+    fd_bind_value(var,import_value,env);
+    fd_decref(module);
+    fd_decref(import_value);
+    return FD_VOID;}
+  else {
+    fd_decref(module_spec);
+    return fd_err("NotAModule","define_import_evalfn",NULL,module);}
+}
+
+static lispval define_import(lispval expr,fd_lexenv env,fd_stack _stack)
+{
+  return define_import_evalfn(expr,env,_stack,0);
+}
+
+static lispval safe_define_import(lispval expr,fd_lexenv env,fd_stack _stack)
+{
+  return define_import_evalfn(expr,env,_stack,1);
+}
 
 /* Initialization */
 
@@ -450,6 +503,15 @@ FD_EXPORT void fd_init_binders_c()
   fd_def_evalfn(fd_scheme_module,"DEFAULT!","",assign_default_evalfn);
   fd_def_evalfn(fd_scheme_module,"SETFALSE!","",assign_false_evalfn);
   fd_def_evalfn(fd_scheme_module,"BIND-DEFAULT!","",bind_default_evalfn);
+
+  fd_def_evalfn(fd_xscheme_module,"DEFINE-IMPORT",
+                "Defines a local binding for a value in another module",
+                define_import);
+  fd_def_evalfn(fd_scheme_module,"DEFINE-IMPORT",
+                "Defines a local binding for a value in another module",
+                safe_define_import);
+  fd_defalias(fd_xscheme_module,"DEFIMPORT","DEFINE-IMPORT");
+  fd_defalias(fd_scheme_module,"DEFIMPORT","DEFINE-IMPORT");
 
 }
 
