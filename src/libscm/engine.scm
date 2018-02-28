@@ -37,7 +37,7 @@
 (define check-spacing 60)
 (varconfig! engine:checkspace check-spacing)
 
-(define fifo-condvar (within-module 'fifo fifo-condvar))
+(define-import fifo-condvar 'fifo)
 
 (define ($showrate rate)
   (if (> rate 50)
