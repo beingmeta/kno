@@ -109,7 +109,7 @@ cmdtests: execscripts chainscripts batchscripts chained_batchscripts utilscripts
 
 schemetest schemetests scheme: r4rs exceptions choices sequences breaks numvecs reflect hashsets \
 	picktest cachecall texttools fdweb timefns threads i18n misc gctests profiling \
-	xml crypto
+	fileprims xml crypto
 optscheme:
 	@${header} "■■■■■■■■ Running optimized scheme tests ${RUNCONF}"
 	@${RUN} ${FDX} TESTOPTIMIZED=yes r4rs.scm ${RUNCONF}
@@ -122,6 +122,7 @@ optscheme:
 	@${RUN} ${FDX} TESTOPTIMIZED=yes cachecall.scm ${RUNCONF}
 	@${RUN} ${FDX} TESTOPTIMIZED=yes timefns.scm ${RUNCONF}
 	@${RUN} ${FDX} TESTOPTIMIZED=yes i18n.scm ${RUNCONF}
+	@${RUN} ${FDX} TESTOPTIMIZED=yes fileprims.scm ${RUNCONF}
 	@${RUN} ${FDX} TESTOPTIMIZED=yes numvecs.scm ${RUNCONF}
 	@${RUN} ${FDX} TESTOPTIMIZED=yes threadtest.scm ${RUNCONF}
 	@${RUN} ${FDX} TESTOPTIMIZED=yes gctests.scm ${RUNCONF}
@@ -187,6 +188,9 @@ breaks breaktests:
 i18n:
 	@${RUN} ${FDX} i18n.scm ${RUNCONF}
 	@${header} "■■■■ Completed i18n tests ${RUNCONF}"
+fileprims fileprimtest fileprimstest:
+	@${RUN} ${FDX} fileprimtest.scm ${RUNCONF}
+	@${header} "■■■■ Completed fileprim tests ${RUNCONF}"
 misc misctest:
 	@${RUN} ${FDX} misctest.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz"
 	@${header} "■■■■ Completed misc tests ${RUNCONF}"

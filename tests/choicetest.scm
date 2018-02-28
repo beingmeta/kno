@@ -1,3 +1,5 @@
+;;; -*- Mode: scheme; text-encoding: utf-8; -*-
+
 (load-component "common.scm")
 
 (optimization-leaks)
