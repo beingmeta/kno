@@ -1794,10 +1794,13 @@ FD_EXPORT lispval fd_hashtable_get
         result=fd_hashvec_get(key,ht->ht_buckets,ht->ht_n_buckets);
         if (FD_PRECHOICEP(result->kv_val)) {
           lispval v = fd_simplify_choice(result->kv_val);
-          result->kv_val= v; fd_incref(v);
+          result->kv_val = v; fd_incref(v);
           fd_unlock_table(ht);
           return v;}
-        else return rv;}
+        else {
+          lispval v = fd_incref(result->kv_val);
+          fd_unlock_table(ht);
+          return v;}}
       else return fd_simplify_choice(rv);}
     else {
       if (unlock) fd_unlock_table(ht);
