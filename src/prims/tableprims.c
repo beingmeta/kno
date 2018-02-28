@@ -919,20 +919,12 @@ static lispval hashsetp(lispval x)
   else return FD_FALSE;
 }
 
-static lispval hashsetget(lispval hs,lispval key)
-{
-  int retval = fd_hashset_get((fd_hashset)hs,key);
-  if (retval<0) return FD_ERROR;
-  else if (retval) return FD_TRUE;
-  else return FD_FALSE;
-}
-
-static lispval hashsetadd(lispval hs,lispval key)
+static lispval hashset_add(lispval hs,lispval key)
 {
   if ((CHOICEP(hs))||(PRECHOICEP(hs))) {
     lispval results = EMPTY;
     DO_CHOICES(h,hs) {
-      lispval value = hashsetadd(h,key);
+      lispval value = hashset_add(h,key);
       CHOICE_ADD(results,value);}
     return results;}
   else {
@@ -949,7 +941,7 @@ static lispval hashsetplus(lispval hs,lispval values)
   return  hs;
 }
 
-static lispval hashsetdrop(lispval hs,lispval key)
+static lispval hashset_drop(lispval hs,lispval key)
 {
   int retval = fd_hashset_drop((fd_hashset)hs,key);
   if (retval<0) return FD_ERROR;
@@ -957,18 +949,38 @@ static lispval hashsetdrop(lispval hs,lispval key)
   else return FD_FALSE;
 }
 
-static lispval hashsettest(lispval hs,lispval key)
+static lispval hashset_get(lispval hs,lispval key)
+{
+  int retval = fd_hashset_get((fd_hashset)hs,key);
+  if (retval<0) return FD_ERROR;
+  else if (retval) return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static lispval hashset_test(lispval hs,lispval keys)
 {
   DO_CHOICES(hset,hs) {
     if (!(TYPEP(hset,fd_hashset_type)))
-      return fd_type_error(_("hashset"),"hashsettest",hset);
-    else if (fd_hashset_get((fd_hashset)hs,key)) {
-      FD_STOP_DO_CHOICES;
-      return FD_TRUE;}}
-  return FD_FALSE;
+      return fd_type_error(_("hashset"),"hashsettest",hset);}
+  if ( (FD_CHOICEP(keys)) ) {
+    DO_CHOICES(hset,hs) {
+      DO_CHOICES(key,keys) {
+        if (fd_hashset_get((fd_hashset)hs,key)) {
+          FD_STOP_DO_CHOICES;
+          return FD_TRUE;}}}
+    return FD_FALSE;}
+  else if (FD_CHOICEP(hs)) {
+    DO_CHOICES(hset,hs) {
+      if (fd_hashset_get((fd_hashset)hs,keys)) {
+        FD_STOP_DO_CHOICES;
+        return FD_TRUE;}}
+    return FD_FALSE;}
+  else if (fd_hashset_get((fd_hashset)hs,keys))
+    return FD_TRUE;
+  else return FD_FALSE;
 }
 
-static lispval hashsetelts(lispval hs,lispval clean)
+static lispval hashset_elts(lispval hs,lispval clean)
 {
   if (FALSEP(clean))
     return fd_hashset_elts((fd_hashset)hs,0);
@@ -985,12 +997,14 @@ static lispval reset_hashset(lispval hs)
   else return FD_FALSE;
 }
 
-static lispval choice2hashset(lispval arg)
+static lispval choices2hashset(int n,lispval *args)
 {
   struct FD_HASHSET *h = u8_alloc(struct FD_HASHSET);
-  int size = 3*FD_CHOICE_SIZE(arg);
-  fd_init_hashset(h,((size<17) ? (17) : (size)),FD_MALLOCD_CONS);
-  fd_hashset_add(h,arg);
+  int size = 0; int i = 0; while (i<n) {
+    size += FD_CHOICE_SIZE(args[i]); i++;}
+  fd_init_hashset(h,((size<17) ? (17) : (size*3)),FD_MALLOCD_CONS);
+  i=0; while (i<n) {
+    fd_hashset_add(h,args[i]); i++;}
   return LISP_CONS(h);
 }
 
@@ -1182,25 +1196,29 @@ FD_EXPORT void fd_init_tableprims_c()
            fd_make_ndprim(fd_make_cprim3("MAP->TABLE",map2table,2)));
 
 
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim
-           (fd_make_cprim1("CHOICE->HASHSET",choice2hashset,1)));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("HASHSET?",hashsetp,1));
+  fd_idefnN(fd_scheme_module,"CHOICE->HASHSET",choices2hashset,0,
+            "Returns a hashset containing all of *elts*.");
+  fd_idefn1(fd_scheme_module,"HASHSET?",hashsetp,1,
+            "`(HASHSET? *arg*) returns #t if *arg* is a hashset",
+            -1,FD_VOID);
 
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim2("HASHSET-TEST",hashsettest,2)));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("HASHSET-GET",hashsetget,2,
-                           fd_hashset_type,VOID,
-                           -1,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim2x("HASHSET-ADD!",hashsetadd,2,
-                                          fd_hashset_type,VOID,
-                                          -1,VOID)));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("HASHSET-DROP!",hashsetdrop,2,
-                           fd_hashset_type,VOID,
-                           -1,VOID));
+  fd_idefn2(fd_scheme_module,"HASHSET-TEST",hashset_test,2|FD_NDCALL,
+            "`(HASHSET-TEST *hashset* *keys*)` returns true if "
+            "*keys* are in any of *hashsets*",
+            -1,FD_VOID,-1,FD_VOID);
+  fd_idefn2(fd_scheme_module,"HASHSET-ADD!",hashset_add,2|FD_NDCALL,
+            "`(HASHSET-ADD! *hashset* *keys*)` returns true if "
+            "*keys* are in any of *hashsets*",
+            -1,FD_VOID,-1,FD_VOID);
+
+  fd_idefn2(fd_scheme_module,"HASHSET-GET",hashset_get,2,
+            "`(HASHSET-GET *hashset* *key*)` returns true if "
+            "*key* is in *hashsets*",
+            -1,VOID,-1,VOID);
+  fd_idefn2(fd_scheme_module,"HASHSET-DROP!",hashset_drop,2,
+            "`(HASHSET-DROP! *hashset* *keys*)` returns true if "
+            "*keys* are in any of *hashsets*",
+            fd_hashset_type,VOID,-1,VOID);
 
   fd_idefn2(fd_scheme_module,"HASHSET/PROBE",hashset_probe,2,
             "(HASHSET/PROBE *hashset* *key*)\n"
@@ -1218,7 +1236,7 @@ FD_EXPORT void fd_init_tableprims_c()
            fd_make_ndprim(fd_make_cprim2x("HASHSET+",hashsetplus,2,
                                           fd_hashset_type,VOID,
                                           -1,VOID)));
-  fd_idefn2(fd_scheme_module,"HASHSET-ELTS",hashsetelts,1,
+  fd_idefn2(fd_scheme_module,"HASHSET-ELTS",hashset_elts,1,
             "Returns the elements of a hashset.\n"
             "With a non-false second argument, resets "
             "the hashset (removing all values)",
