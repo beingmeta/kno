@@ -30,6 +30,18 @@
 #include <archive.h>
 #include <archive_entry.h>
 
+#if (ARCHIVE_VERSION_NUMBER > 3002000)
+#define entry_pathname archive_entry_pathname_utf8
+#define entry_uname archive_entry_uname_utf8
+#define entry_gname archive_entry_gname_utf8
+#define entry_symlink archive_entry_symlink_utf8
+#else
+#define entry_pathname archive_entry_pathname
+#define entry_uname archive_entry_uname
+#define entry_gname archive_entry_gname
+#define entry_symlink archive_entry_symlink
+#endif
+
 fd_ptr_type fd_libarchive_type;
 FD_EXPORT int fd_init_libarchive(void) FD_LIBINIT_FN;
 
@@ -66,7 +78,7 @@ static lispval new_archive(lispval spec,lispval opts)
       use_spec = abspath;}
   else if (FD_PACKETP(spec)) {
     status = archive_read_open_memory
-      (archive,FD_PACKET_DATA(spec),FD_PACKET_LENGTH(spec));
+      (archive,((void *)FD_PACKET_DATA(spec)),FD_PACKET_LENGTH(spec));
     if (status == ARCHIVE_OK)
       use_spec = u8_mkstring("%lldB@0x%llx",
                              FD_PACKET_LENGTH(spec),
@@ -102,11 +114,11 @@ static  int archive_seek(struct FD_ARCHIVE *archive,lispval seek,
       if (entryp) *entryp = entry;
       return 1;}
     else if (FD_STRINGP(seek)) {
-      if (strcmp(FD_CSTRING(seek),archive_entry_pathname_utf8(entry)) == 0) {
+      if (strcmp(FD_CSTRING(seek),entry_pathname(entry)) == 0) {
         if (entryp) *entryp = entry;
         return 1;}}
     else if (FD_TYPEP(seek,fd_regex_type)) {
-      u8_string name = archive_entry_pathname_utf8(entry);
+      u8_string name = entry_pathname(entry);
       ssize_t match = fd_regex_op(match,seek,name,strlen(name),0);
       if (match>0) {
         if (entryp) *entryp = entry;
@@ -294,11 +306,11 @@ static lispval entry_info(struct archive_entry *entry)
   set_time_prop(tbl,"CTIME",archive_entry_ctime(entry));
   set_time_prop(tbl,"MTIME",archive_entry_mtime(entry));
   set_string_prop(tbl,"MODE",archive_entry_strmode(entry));
-  set_string_prop(tbl,"UID",archive_entry_uname_utf8(entry));
-  set_string_prop(tbl,"GID",archive_entry_gname_utf8(entry));
-  set_string_prop(tbl,"SYMLINK",archive_entry_symlink_utf8(entry));
-  set_string_prop(tbl,"PATH",archive_entry_pathname_utf8(entry));
-  set_string_prop(tbl,"PATH",archive_entry_pathname_utf8(entry));
+  set_string_prop(tbl,"UID",archive_entry_uname(entry));
+  set_string_prop(tbl,"GID",archive_entry_gname(entry));
+  set_string_prop(tbl,"SYMLINK",archive_entry_symlink(entry));
+  set_string_prop(tbl,"PATH",entry_pathname(entry));
+  set_string_prop(tbl,"PATH",entry_pathname(entry));
   set_string_prop(tbl,"FLAGS",archive_entry_fflags_text(entry));
   set_int_prop(tbl,"SIZE",archive_entry_size(entry));
   return tbl;
