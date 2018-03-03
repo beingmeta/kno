@@ -68,6 +68,8 @@ static lispval quote_symbol, histref_symbol, comment_symbol;
 static lispval quasiquote_symbol, unquote_symbol, unquotestar_symbol;
 static lispval opaque_tag;
 
+fd_history_resolvefn fd_resolve_histref = NULL;
+
 static int skip_whitespace(u8_input s)
 {
   int c = u8_getc(s);
@@ -1321,6 +1323,14 @@ static lispval parse_histref(u8_input in)
       tmpbuf.u8_write = tmpbuf.u8_outbuf;
       tmpbuf.u8_outbuf[0] = '\0';}
   if (c>0) u8_ungetc(in,c);
+  if (fd_resolve_histref) {
+    lispval resolved = fd_resolve_histref(elts);
+    if (FD_ABORTP(resolved))
+      fd_clear_errors(1);
+    else if (FD_VOIDP(resolved)) {}
+    else {
+      fd_decref(elts);
+      return resolved;}}
   return elts;
 }
 

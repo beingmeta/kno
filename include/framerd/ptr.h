@@ -858,7 +858,9 @@ typedef ssize_t (*fd_dtype_fn)(struct FD_OUTBUF *,lispval);
 typedef int (*fd_compare_fn)(lispval,lispval,fd_compare_flags);
 typedef lispval (*fd_copy_fn)(lispval,int);
 typedef int (*fd_walker)(lispval,void *);
+
 typedef int (*fd_walk_fn)(fd_walker,lispval,void *,fd_walk_flags,int);
+typedef lispval (*fd_history_resolvefn)(lispval);
 
 FD_EXPORT fd_recycle_fn fd_recyclers[FD_TYPE_MAX];
 FD_EXPORT fd_unparse_fn fd_unparsers[FD_TYPE_MAX];
