@@ -11,8 +11,6 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/apply.h"
-#include "framerd/eval.h"
 #include "framerd/sequences.h"
 #include "framerd/history.h"
 
@@ -26,16 +24,16 @@ static lispval history_symbol, histref_symbol;
 */
 
 int unpack_history(lispval history,lispval *roots,lispval *vals,lispval *refs,
-                   lispval *root_refs)
+		   lispval *root_refs)
 {
   if (FD_COMPOUND_TYPEP(history,history_symbol)) {
     int top = -1;
     if (FD_FIXNUMP(FD_COMPOUND_REF(history,0)))
       top = FD_FIX2INT(FD_COMPOUND_REF(history,0));
     if ( (top >= 0) &&
-         (FD_COMPOUND_LENGTH(history)>=4) &&
-         (FD_HASHTABLEP(FD_COMPOUND_REF(history,1))) &&
-         (FD_HASHTABLEP(FD_COMPOUND_REF(history,2)))) {
+	 (FD_COMPOUND_LENGTH(history)>=4) &&
+	 (FD_HASHTABLEP(FD_COMPOUND_REF(history,1))) &&
+	 (FD_HASHTABLEP(FD_COMPOUND_REF(history,2)))) {
     if (roots) *roots = FD_COMPOUND_REF(history,1);
     if (vals) *vals = FD_COMPOUND_REF(history,2);
     if (refs) *refs = FD_COMPOUND_REF(history,3);
@@ -84,12 +82,12 @@ static int better_refp(lispval ref,lispval best)
   else if (FD_FIXNUMP(best))
     return 1;
   else if ( (FD_COMPOUND_TYPEP(ref,histref_symbol)) &&
-            (FD_COMPOUND_TYPEP(best,histref_symbol)) ) {
+	    (FD_COMPOUND_TYPEP(best,histref_symbol)) ) {
     lispval ref_root = FD_COMPOUND_REF(ref,0);
     lispval best_root = FD_COMPOUND_REF(best,0);
-    if  (named_rootp(ref_root)) {
+    if	(named_rootp(ref_root)) {
       if (!(named_rootp(best_root)))
-        return 1;}
+	return 1;}
     if (named_rootp(best_root))
       return 0;
     else return ( (FD_COMPOUND_LENGTH(ref)) < (FD_COMPOUND_LENGTH(best)) );}
@@ -103,14 +101,14 @@ FD_EXPORT lispval fd_history_add(lispval history,lispval val,lispval ref)
   if (top<0)
     return FD_ERROR_VALUE;
   else if ( (FD_SYMBOLP(val)) ||
-            ( (FD_STRINGP(val)) && ( (FD_STRLEN(val)) < 40 ) ) ||
-            ( (FD_NUMBERP(val)) ) )
+	    ( (FD_STRINGP(val)) && ( (FD_STRLEN(val)) < 40 ) ) ||
+	    ( (FD_NUMBERP(val)) ) )
     return FD_VOID;
   lispval val_key = ( (FD_CHOICEP(val)) || (FD_PRECHOICEP(val)) ) ?
     (fd_make_qchoice(val)) : (val);
   if (!( (FD_VOIDP(ref)) || (FD_FALSEP(ref)) ) ) {
     if ( ! ( (FD_FIXNUMP(ref)) || (FD_STRINGP(ref)) || (FD_SYMBOLP(ref)) ||
-             (FD_COMPOUND_TYPEP(ref,histref_symbol)) ) )
+	     (FD_COMPOUND_TYPEP(ref,histref_symbol)) ) )
       return fd_err("InvalidHistRef","fd_history_add",NULL,ref);
     lispval overwrite = fd_hashtable_get((fd_hashtable)refs,ref,FD_VOID);
     if ( (!(FD_VOIDP(overwrite))) && (overwrite != val) ) {
@@ -118,9 +116,9 @@ FD_EXPORT lispval fd_history_add(lispval history,lispval val,lispval ref)
       fd_add(vals,val_key,ref);
       fd_store(refs,ref,val);
       if ( (FD_FIXNUMP(ref)) || (FD_STRINGP(ref)) || (FD_SYMBOLP(ref)) )
-        fd_store(roots,ref,val);
+	fd_store(roots,ref,val);
       else if (FD_COMPOUND_TYPEP(ref,histref_symbol))
-        fd_add(root_refs,FD_COMPOUND_REF(ref,0),ref);
+	fd_add(root_refs,FD_COMPOUND_REF(ref,0),ref);
       else NO_ELSE;}}
   else if (! (fd_test(vals,val_key,FD_VOID)) ) {
     struct FD_COMPOUND *histdata = (fd_compound) history;
@@ -193,12 +191,12 @@ FD_EXPORT void fd_histinit(int size)
       size = 128;}}
   if (VOIDP(history)) {
     history = fd_init_compound(NULL,history_symbol,
-                               FD_COMPOUND_USEREF,5,
-                               FD_INT(1),
-                               fd_make_hashtable(NULL,size),
-                               fd_make_hashtable(NULL,size),
-                               fd_make_hashtable(NULL,size),
-                               fd_make_hashtable(NULL,size));
+			       FD_COMPOUND_USEREF,5,
+			       FD_INT(1),
+			       fd_make_hashtable(NULL,size),
+			       fd_make_hashtable(NULL,size),
+			       fd_make_hashtable(NULL,size),
+			       fd_make_hashtable(NULL,size));
     fd_thread_set(history_symbol,history);}
   fd_decref(history);
 }
@@ -209,111 +207,22 @@ FD_EXPORT void fd_histclear(int size)
   fd_histinit(size);
 }
 
-static lispval histref_prim(int n,lispval *args)
-{
-  lispval history = fd_thread_get(history_symbol);
-  if (FD_ABORTP(history))
-    return history;
-  else if (VOIDP(history)) {
-    fd_seterr("NoActiveHistory","histref_prim",NULL,FD_VOID);
-    return -1;}
-  else NO_ELSE;
-  lispval root = args[0];
-  lispval val = fd_history_ref(history,root);
-  if (FD_ABORTP(val))
-    return val;
-  else if (FD_VOIDP(val)) {
-    fd_seterr("No reference","histref_prim",NULL,root);
-    fd_decref(history);
-    return FD_EMPTY;}
-  else fd_decref(history);
-  lispval scan = fd_incref(val);
-  int i = 1; while ( (i < n) && (!(FD_VOIDP(scan))) ) {
-    lispval path = args[i];
-    if (FD_FIXNUMP(path)) {
-      int rel_off = FD_FIX2INT(path);
-      if (FD_CHOICEP(scan)) {
-        ssize_t n_choices = FD_CHOICE_SIZE(scan);
-        size_t off = (rel_off>=0) ?  (rel_off) : (n_choices + rel_off);
-        if ( (off < 0) || (off > n_choices) )
-          return fd_err(fd_RangeError,"histref_prim",NULL,path);
-        else {
-          lispval new_scan = FD_CHOICE_ELTS(scan)[off];
-          fd_incref(new_scan); fd_decref(scan);
-          scan=new_scan;}}
-      else if (FD_SEQUENCEP(scan)) {
-        ssize_t n_elts = fd_seq_length(scan);
-        size_t off = (rel_off>=0) ?  (rel_off) : (n_elts + rel_off);
-        if ( (off < 0) || (off > n_elts) )
-          return fd_err(fd_RangeError,"histref_prim",NULL,path);
-        else {
-          lispval new_scan = fd_seq_elt(scan,off);
-          fd_decref(scan);
-          scan=new_scan;}}
-      else scan = FD_VOID;}
-    else if (FD_STRINGP(path)) {
-      if (FD_TABLEP(scan)) {
-        lispval v = fd_get(scan,path,FD_VOID);
-        if (FD_VOIDP(v)) {
-          u8_string upper = u8_upcase(FD_CSTRING(scan));
-          lispval sym = fd_probe_symbol(upper,-1);
-          if (FD_SYMBOLP(sym))
-            v = fd_get(scan,sym,FD_VOID);}
-        if (FD_VOIDP(v))
-          fd_seterr("NoSuchKey","histref_prim",FD_CSTRING(path),scan);
-        scan = v;}
-      else scan = FD_VOID;}
-    else if (FD_SYMBOLP(path)) {
-      if (FD_TABLEP(scan)) {
-        lispval v = fd_get(scan,path,FD_VOID);
-        if (FD_VOIDP(v))
-          fd_seterr("NoSuchKey","histref_prim",FD_CSTRING(path),scan);
-        fd_decref(scan);
-        scan = v;}
-      else scan = FD_VOID;}
-    else scan = FD_VOID;
-    i++;}
-  if (FD_VOIDP(scan)) {
-    fd_seterr("InvalidHistRef","histref_prim",NULL,root);
-    fd_decref(root);
-    return FD_ERROR;}
-  else {
-    fd_incref(scan);
-    fd_decref(val);
-    return scan;}
-}
-
-static lispval history_prim()
-{
-  return fd_thread_get(history_symbol);
-}
-
 static int scheme_history_initialized = 0;
 
 FD_EXPORT void fd_init_history_c()
 {
-  lispval history_module;
   if (scheme_history_initialized) return;
   else scheme_history_initialized = 1;
-  fd_init_scheme();
-  history_module = fd_new_module("HISTORY",(FD_MODULE_DEFAULT));
   u8_register_source_file(_FILEINFO);
-
-  fd_idefnN(history_module,"%HISTREF",histref_prim,1,
-            "Returns a history reference, possibly "
-            "following a number/string path");
-  fd_idefn(history_module,fd_make_cprim0("%HISTORY",history_prim));
 
   history_symbol = fd_intern("%HISTORY");
   histref_symbol = fd_intern("%HISTREF");
 
-  fd_finish_module(history_module);
-
 }
 
 /* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debug;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
+   ;;;	Local variables: ***
+   ;;;	compile-command: "make -C ../.. debug;" ***
+   ;;;	indent-tabs-mode: nil ***
+   ;;;	End: ***
 */

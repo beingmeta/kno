@@ -150,13 +150,87 @@ static void close_consoles()
     console_env = NULL;}
 }
 
-/* Returns 1 if x is worth adding to the history. */
-static int historicp(lispval x)
+/* History primitives */
+
+static lispval history_symbol, histref_symbol;
+
+static lispval histref_prim(int n,lispval *args)
 {
-  if ((STRINGP(x)) && (FD_STRING_LENGTH(x)<32)) return 0;
-  else if ((SYMBOLP(x)) || (FD_CHARACTERP(x))) return 0;
-  else if (FIXNUMP(x)) return 0;
-  else return 1;
+  lispval history = fd_thread_get(history_symbol);
+  if (FD_ABORTP(history))
+    return history;
+  else if (VOIDP(history)) {
+    fd_seterr("NoActiveHistory","histref_prim",NULL,FD_VOID);
+    return -1;}
+  else NO_ELSE;
+  lispval root = args[0];
+  lispval val = fd_history_ref(history,root);
+  if (FD_ABORTP(val))
+    return val;
+  else if (FD_VOIDP(val)) {
+    fd_seterr("No reference","histref_prim",NULL,root);
+    fd_decref(history);
+    return FD_EMPTY;}
+  else fd_decref(history);
+  lispval scan = fd_incref(val);
+  int i = 1; while ( (i < n) && (!(FD_VOIDP(scan))) ) {
+    lispval path = args[i];
+    if (FD_FIXNUMP(path)) {
+      int rel_off = FD_FIX2INT(path);
+      if (FD_CHOICEP(scan)) {
+	ssize_t n_choices = FD_CHOICE_SIZE(scan);
+	size_t off = (rel_off>=0) ?  (rel_off) : (n_choices + rel_off);
+	if ( (off < 0) || (off > n_choices) )
+	  return fd_err(fd_RangeError,"histref_prim",NULL,path);
+	else {
+	  lispval new_scan = FD_CHOICE_ELTS(scan)[off];
+	  fd_incref(new_scan); fd_decref(scan);
+	  scan=new_scan;}}
+      else if (FD_SEQUENCEP(scan)) {
+	ssize_t n_elts = fd_seq_length(scan);
+	size_t off = (rel_off>=0) ?  (rel_off) : (n_elts + rel_off);
+	if ( (off < 0) || (off > n_elts) )
+	  return fd_err(fd_RangeError,"histref_prim",NULL,path);
+	else {
+	  lispval new_scan = fd_seq_elt(scan,off);
+	  fd_decref(scan);
+	  scan=new_scan;}}
+      else scan = FD_VOID;}
+    else if (FD_STRINGP(path)) {
+      if (FD_TABLEP(scan)) {
+	lispval v = fd_get(scan,path,FD_VOID);
+	if (FD_VOIDP(v)) {
+	  u8_string upper = u8_upcase(FD_CSTRING(scan));
+	  lispval sym = fd_probe_symbol(upper,-1);
+	  if (FD_SYMBOLP(sym))
+	    v = fd_get(scan,sym,FD_VOID);}
+	if (FD_VOIDP(v))
+	  fd_seterr("NoSuchKey","histref_prim",FD_CSTRING(path),scan);
+	scan = v;}
+      else scan = FD_VOID;}
+    else if (FD_SYMBOLP(path)) {
+      if (FD_TABLEP(scan)) {
+	lispval v = fd_get(scan,path,FD_VOID);
+	if (FD_VOIDP(v))
+	  fd_seterr("NoSuchKey","histref_prim",FD_CSTRING(path),scan);
+	fd_decref(scan);
+	scan = v;}
+      else scan = FD_VOID;}
+    else scan = FD_VOID;
+    i++;}
+  if (FD_VOIDP(scan)) {
+    fd_seterr("InvalidHistRef","histref_prim",NULL,root);
+    fd_decref(root);
+    return FD_ERROR;}
+  else {
+    fd_incref(scan);
+    fd_decref(val);
+    return scan;}
+}
+
+static lispval history_prim()
+{
+  return fd_thread_get(history_symbol);
 }
 
 static double showtime_threshold = 1.0;
@@ -802,6 +876,14 @@ int main(int argc,char **argv)
 
   fd_idefn((lispval)env,fd_make_cprim1("BACKTRACE",backtrace_prim,0));
   fd_defalias((lispval)env,"%","BACKTRACE");
+
+  fd_idefnN((lispval)env,"%HISTREF",histref_prim,1,
+            "Returns a history reference, possibly "
+            "following a number/string path");
+  fd_idefn0((lispval)env,"%HISTORY",history_prim,
+            "Returns the current history object");
+  history_symbol = fd_intern("%HISTORY");
+  histref_symbol = fd_intern("%HISTREF");
 
   fd_set_config("BOOTED",fd_time2timestamp(boot_time));
   run_start = u8_elapsed_time();

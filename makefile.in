@@ -149,7 +149,8 @@ SUPPORT_OBJS=						\
 	src/support/config.o src/support/lisperrs.o	\
 	src/support/logging.o src/support/getopt.o	\
 	src/support/startup.o src/support/fluid.o 	\
-	src/support/signals.o src/support/posix.o
+	src/support/signals.o src/support/posix.o	\
+	src/support/history.o
 
 APPLY_OBJS=\
 	src/apply/apply.o src/apply/stacks.o 			\
@@ -201,7 +202,6 @@ SCHEME_OBJS=\
 	$(CORE_SCHEME_OBJS) \
 	src/eval/modules.o \
 	src/eval/load.o \
-	src/eval/history.o \
 	src/eval/reflection.o \
 	src/eval/compoundfns.o \
 	src/eval/choiceops.o \

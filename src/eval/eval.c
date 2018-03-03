@@ -3334,7 +3334,6 @@ FD_EXPORT void fd_init_sysprims_c(void);
 FD_EXPORT void fd_init_arith_c(void);
 FD_EXPORT void fd_init_side_effects_c(void);
 FD_EXPORT void fd_init_reflection_c(void);
-FD_EXPORT void fd_init_history_c(void);
 FD_EXPORT void fd_init_opcodes_c(void);
 FD_EXPORT void fd_init_reqstate_c(void);
 FD_EXPORT void fd_init_regex_c(void);
@@ -3364,7 +3363,6 @@ static void init_eval_core()
   fd_init_reqstate_c();
 
   fd_init_regex_c();
-  fd_init_history_c();
 
   fd_init_coreprims_c();
   fd_init_stringprims_c();
