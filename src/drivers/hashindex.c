@@ -2287,8 +2287,8 @@ FD_FASTOP fd_off_t update_keybucket
           endpos = ke[key_i].ke_vref.off+ke[key_i].ke_vref.size;}
         if (endpos>=maxpos) {
           if (free_keyvecs) {
-            u8_big_free(keyoffs);
-            u8_big_free(keysizes);
+            u8_free(keyoffs);
+            u8_free(keysizes);
             u8_seterr(fd_DataFileOverflow,"update_keybucket",
                       u8_mkstring("%s: %lld >= %lld",
                                   hx->indexid,endpos,maxpos));
@@ -2337,12 +2337,12 @@ FD_FASTOP fd_off_t update_keybucket
           endpos = ke[key_i].ke_vref.off+ke[key_i].ke_vref.size;}
         if (endpos>=maxpos) {
           if (free_keyvecs) {
-            u8_big_free(keyoffs);
-            u8_big_free(keysizes);
-            u8_seterr(fd_DataFileOverflow,"update_keybucket",
-                      u8_mkstring("%s: %lld >= %lld",
-                                  hx->indexid,endpos,maxpos));
-            return -1;}}
+            u8_free(keyoffs);
+            u8_free(keysizes);}
+          u8_seterr(fd_DataFileOverflow,"update_keybucket",
+                    u8_mkstring("%s: %lld >= %lld",
+                                hx->indexid,endpos,maxpos));
+          return -1;}
         break;}}
     /* This is the case where we are adding a new key to the bucket. */
     if (key_i == n_keys) { /* This should always be true */
@@ -2365,14 +2365,17 @@ FD_FASTOP fd_off_t update_keybucket
         endpos = ke[key_i].ke_vref.off+ke[key_i].ke_vref.size;
         if (endpos>=maxpos) {
           if (free_keyvecs) {
-            u8_big_free(keyoffs);
-            u8_big_free(keysizes);
-            u8_seterr(fd_DataFileOverflow,"update_keybucket",
-                      u8_mkstring("%s: %lld >= %lld",
-                                  hx->indexid,endpos,maxpos));
-            return -1;}}}
+            u8_free(keyoffs);
+            u8_free(keysizes);}
+          u8_seterr(fd_DataFileOverflow,"update_keybucket",
+                    u8_mkstring("%s: %lld >= %lld",
+                                hx->indexid,endpos,maxpos));
+          return -1;}}
       kb->kb_n_keys++;}
     k++;}
+  if (free_keyvecs) {
+    u8_free(keyoffs);
+    u8_free(keysizes);}
   return endpos;
 }
 
