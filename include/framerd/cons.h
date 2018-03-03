@@ -107,6 +107,10 @@ FD_EXPORT u8_condition fd_DoubleGC, fd_UsingFreedCons, fd_FreeingNonHeapCons;
    ((typecast)(u8_raise(fd_TypeError,fd_type2name(typecode),NULL),  \
                 NULL)))
 
+#ifndef FD_MAX_REFCOUNT
+#define FD_MAX_REFCOUNT 0xFFFFFF
+#endif
+
 /* External functions */
 
 FD_EXPORT void _fd_decref_fn(lispval);
@@ -264,6 +268,12 @@ FD_INLINE_FCN lispval _fd_incref(struct FD_REF_CONS *x)
     else if ((cb&(~0x7F)) == 0) {
       /* Static cons */
       return (lispval) x;}
+#if FD_MAX_REFCOUNT
+    else if ((cb>>7) > FD_MAX_REFCOUNT) {
+      atomic_fetch_add(&(x->conshead),0x80);
+      _fd_debug((lispval)x);
+      return (lispval) x;}
+#endif
     else {
       atomic_fetch_add(&(x->conshead),0x80);
       return (lispval) x;}}
