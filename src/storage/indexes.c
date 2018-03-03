@@ -570,8 +570,8 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,lispval keys)
       FD_DO_CHOICES(key,keys) {
         if (! (fd_hashtable_probe(cache,key)) ) {
           if (fd_hashtable_probe(stores,key)) {
-            lispval local_value =
-              edit_result(key,fd_hashtable_get(stores,key,EMPTY),adds,drops);
+            lispval stored = fd_hashtable_get(stores,key,EMPTY);
+            lispval local_value = edit_result(key,stored,adds,drops);
             fd_hashtable_op(cache,fd_table_store_noref,key,local_value);
             /* Not really fetched, but we count it anyway */
             n_fetched++;}
@@ -640,9 +640,8 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,lispval keys)
       rv = n_fetched+n_to_fetch;}
     else rv = -1;}
   else {
-    lispval val = edit_result(needed,
-                              ix->index_handler->fetch(ix,needed),
-                              adds,drops);
+    lispval fetched = ix->index_handler->fetch(ix,needed);
+    lispval val = edit_result(needed,fetched,adds,drops);
     if (!(FD_ABORTED(val))) {
       fd_hashtable_store(cache,needed,val);
       /* fdtc_store(ix,needed,val); */
