@@ -2453,7 +2453,7 @@ static int do_hashtable_op(struct FD_HASHTABLE *ht,fd_tableop op,
     break;}
   }
   ht->table_modified=1;
-  if ( ( result ) && (was_prechoice==0) && (PRECHOICEP(result->kv_val))) {
+  if (0) { /* ( ( result ) && (was_prechoice==0) && (PRECHOICEP(result->kv_val))) */
     /* If we didn't have an prechoice before and we do now, that means
        a new prechoice was created with a mutex and everything.  We can
        safely destroy it and set the choice to not use locking, since

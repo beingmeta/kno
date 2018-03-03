@@ -298,7 +298,8 @@ static void _prechoice_add(struct FD_PRECHOICE *ch,lispval v)
     ch->prechoice_write=ch->prechoice_data+write_off;
     ch->prechoice_limit=ch->prechoice_data+new_size;}
   *(ch->prechoice_write++)=nv;
-  fd_decref(ch->prechoice_normalized); ch->prechoice_normalized=VOID;
+  fd_decref(ch->prechoice_normalized);
+  ch->prechoice_normalized=VOID;
   if (comparison>0) ch->prechoice_muddled=1;
   if (FD_CHOICEP(nv)) {
     ch->prechoice_nested++;
