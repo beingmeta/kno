@@ -184,6 +184,7 @@ slot of the loop state.
     "Unexpected error on " (get loop-state 'fifo) ": "
     (exception-condition ex) " @" (exception-caller ex)
     (when (exception-details ex) (printout " (" (exception-details ex) ")"))
+    (when handler (printout " (handling with " handler ") "))
     (when (exception-irritant? ex)
       (printout "\n" (void (pprint (exception-irritant ex)))))
     (when saved (printout " exception dumped to " (write saved))))
@@ -192,7 +193,7 @@ slot of the loop state.
     (loginfo |EngineError/irritant| 
       "For " (get loop-state 'fifo) " "
       (exception-condition ex) " @" (exception-caller ex) ":\n  "
-      (pprint (exception-irritant ex))))
+      (void (pprint (exception-irritant ex)))))
   (cond ((or (fail? handler) (overlaps? handler '{stopall stop}))
 	 (add! loop-state 'errors ex)
 	 (store! loop-state 'stopped now)
@@ -201,6 +202,7 @@ slot of the loop state.
 	((or (not handler) (overlaps? handler '{continue ignore}))
 	 (add! loop-state 'errors ex)
 	 #f)
+	((overlaps? handler 'reraise) (reraise ex))
 	((applicable? handler)
 	 (let ((hv (handler ex batch-state loop-state)))
 	   (thread-error ex batch-state loop-state hv)))
@@ -223,7 +225,6 @@ slot of the loop state.
 	 (proc-time #f)
 	 (batchno 1))
 
-    
     (while (and (exists? batch) batch)
       (loginfo |GotBatch| "Processing batch of " ($num (choice-size batch)) " items")
       (when (and (exists? beforefn) beforefn)
@@ -335,7 +336,7 @@ slot of the loop state.
   (let* ((items (get-items-vec items-arg opts))
 	 (n-items (length items))
 	 (batchsize (getopt opts 'batchsize (pick-batchsize items opts)))
-	 (nthreads (mt/threadcount (getopt opts 'nthreads (config 'nthreads #t))))
+	 (nthreads (mt/threadcount (getopt opts 'nthreads (config 'engine:threads (config 'nthreads #t)))))
 	 (spacing (pick-spacing opts nthreads))
 	 (batchrange (getopt opts 'batchrange (config 'batchrange 3)))
 	 (batches (if (and batchsize (> batchsize 1))
@@ -416,7 +417,7 @@ slot of the loop state.
       "Processing " ($count n-items) " " count-term " "
       (when (and batchsize (> batchsize 1))
 	(printout "in " ($count (length batches)) " batches "))
-      "using " rthreads " threads with "
+      "using " (or rthreads "no") " threads with "
       (if (procedure-name fcn)
 	  (printout (procedure-name fcn)
 	    (if (procedure-filename fcn)
@@ -774,7 +775,7 @@ slot of the loop state.
 	(lognotice |Checkpoint/Start|
 	  (if (test loop-state 'stopped) "Final " "Incremental ")
 	  "checkpoint of " (choice-size modified) " modified dbs "
-	  "using " (if n-threads n-threads "no") " threads "
+	  "using " (or n-threads "no") " threads "
 	  "for " (get loop-state 'fifo)
 	  (when (>= %loglevel %info%)
 	    (do-choices (db modified) (printout "\n\t" db))))
