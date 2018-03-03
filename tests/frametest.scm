@@ -241,10 +241,11 @@
 	       oid-value numbers-oid)
     (applytest (file->dtypes (stringout dbsource "-files.dtype"))
 	       oid-value files-oid)
-    (add! noslots-oid 'firstslot 1)
-    (add! noslots-oid 'firstslot "one")
-    (add! noslots-oid 'firstslot 'one)
-    (set-oid-value! noslots-oid (frame-create #f)))
+    (when (equal? (config 'OP)  "init")
+      (add! noslots-oid 'firstslot 1)
+      (add! noslots-oid 'firstslot "one")
+      (add! noslots-oid 'firstslot 'one)
+      (set-oid-value! noslots-oid (frame-create #f))))
   (message "Done testing basic OID functionality for " pool))
 
 (define (checkfilename frame pool index)
@@ -326,6 +327,7 @@
 	  '("r4rs.scm" "misctest.scm" "seqtest.scm" "choicetest.scm")))
 
 (define (main source (operation "test") . files)
+  (config! 'OP operation)
   (cond ((not (equal? operation "init")))
 	((position #\@ source)
 	 (unless (zero? (pool-load (use-pool (add-suffix source ".pool"))))
@@ -344,8 +346,3 @@
   (swapout)
   (checkdb (config 'COUNT 1000) testpool testindex)
   (swapout))
-
-
-
-
-
