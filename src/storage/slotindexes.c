@@ -188,26 +188,23 @@ FD_EXPORT lispval fd_prim_find(lispval indexes,lispval slotids,lispval values)
 
 FD_EXPORT lispval fd_finder(lispval indexes,int n,lispval *slotvals)
 {
-  int i = 0, n_conjuncts = n/2;
-  lispval _conjuncts[6], *conjuncts=_conjuncts, result;
   if (EMPTYP(indexes)) return EMPTY;
-  if (n_conjuncts>6) conjuncts = u8_alloc_n(n_conjuncts,lispval);
+  int i = 0, n_conjuncts = n/2;
+  lispval conjuncts[n_conjuncts], result;
   while (i < n_conjuncts) {
     conjuncts[i]=fd_prim_find(indexes,slotvals[i*2],slotvals[i*2+1]);
     if (FD_ABORTP(conjuncts[i])) {
       lispval error = conjuncts[i];
-      int j = 0; while (j<i) {fd_decref(conjuncts[j]); j++;}
-      if (conjuncts != _conjuncts) u8_free(conjuncts);
+      fd_decref_vec(conjuncts,i);
       return error;}
     if (EMPTYP(conjuncts[i])) {
-      int j = 0; while (j<i) {fd_decref(conjuncts[j]); j++;}
+      fd_decref_vec(conjuncts,i);
       return EMPTY;}
     i++;}
-  if (n_conjuncts == 1) return conjuncts[0];
+  if (n_conjuncts == 1)
+    return conjuncts[0];
   result = fd_intersection(conjuncts,n_conjuncts);
-  i = 0; while (i < n_conjuncts) {
-    lispval cj=_conjuncts[i++]; fd_decref(cj);}
-  if (_conjuncts != conjuncts) u8_free(conjuncts);
+  fd_decref_vec(conjuncts,n_conjuncts);
   return result;
 }
 
