@@ -1793,7 +1793,8 @@ FD_EXPORT lispval fd_hashtable_get
         /* Get the keyval again, just in case */
         result=fd_hashvec_get(key,ht->ht_buckets,ht->ht_n_buckets);
         if (FD_PRECHOICEP(result->kv_val)) {
-          lispval v = fd_simplify_choice(result->kv_val);
+          rv = result->kv_val;
+          lispval v = fd_simplify_choice(rv);
           result->kv_val = v; fd_incref(v);
           fd_unlock_table(ht);
           return v;}
@@ -1801,7 +1802,9 @@ FD_EXPORT lispval fd_hashtable_get
           lispval v = fd_incref(result->kv_val);
           fd_unlock_table(ht);
           return v;}}
-      else return fd_simplify_choice(rv);}
+      else {
+        lispval v = result->kv_val = fd_simplify_choice(rv);
+        return fd_incref(v);}}
     else {
       if (unlock) fd_unlock_table(ht);
       return rv;}}
@@ -2030,7 +2033,8 @@ FD_EXPORT int fd_hashtable_store(fd_hashtable ht,lispval key,lispval value)
     if (unlock) fd_unlock_table(ht);
     return fd_interr(newv);}
   else {
-    result->kv_val=newv; fd_decref(oldv);}
+    result->kv_val=newv;
+    fd_decref(oldv);}
   if (unlock) fd_unlock_table(ht);
   if (PRED_FALSE(hashtable_needs_resizep(ht))) {
     /* We resize when n_keys/n_buckets < loading/4;
@@ -2468,7 +2472,9 @@ static int do_hashtable_op(struct FD_HASHTABLE *ht,fd_tableop op,
        safely destroy it and set the choice to not use locking, since
        the value will be protected by the hashtable's lock. */
     struct FD_PRECHOICE *ch=FD_XPRECHOICE(result->kv_val);
-    if (ch->prechoice_uselock) ch->prechoice_uselock=0;}
+    if (ch->prechoice_uselock) {
+      u8_destroy_mutex(&(ch->prechoice_lock));
+      ch->prechoice_uselock=0;}}
   return added;
 }
 
@@ -3116,7 +3122,9 @@ FD_EXPORT int fd_remove_deadwood(struct FD_HASHTABLE *ptr,
                 cval=(struct FD_CONS *)
                   (val=kvscan->kv_val=fd_simplify_choice(val));
               if (FD_CONS_REFCOUNT(cval)==1) {
-                n_cleared++; kvscan->kv_val=VOID; fd_decref(val);}}
+                kvscan->kv_val=VOID;
+                fd_decref(val);
+                n_cleared++;}}
             /* ??? In the future, this should probably scan CHOICES
                to remove deadwood as well.  */
             kvscan++;}}

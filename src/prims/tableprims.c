@@ -178,7 +178,8 @@ static lispval lispadd(lispval table,lispval key,lispval val)
 {
   if (EMPTYP(table)) return VOID;
   else if (EMPTYP(key)) return VOID;
-  else if (fd_add(table,key,val)<0) return FD_ERROR;
+  else if (fd_add(table,key,val)<0)
+    return FD_ERROR;
   else return VOID;
 }
 static lispval lispdrop(lispval table,lispval key,lispval val)
