@@ -554,7 +554,7 @@ FD_EXPORT lispval fd_locked_oid_value(fd_pool p,lispval oid)
         fd_hashtable_store(&(p->pool_changes),oid,v);
         return v;}
       else return fd_err(fd_CantLockOID,"fd_locked_oid_value",
-                         u8_strdup(p->pool_source),oid);}
+                         p->pool_source,oid);}
     else if (smap == FD_LOCKHOLDER) {
       lispval v = fd_fetch_oid(p,oid);
       if (FD_ABORTP(v)) {
