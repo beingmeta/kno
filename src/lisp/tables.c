@@ -2160,7 +2160,8 @@ FD_EXPORT int fd_hashtable_drop
   return 0;
 }
 
-static lispval restore_hashtable(lispval tag,lispval alist,fd_compound_typeinfo e)
+static lispval restore_hashtable(lispval tag,lispval alist,
+                                 fd_compound_typeinfo e)
 {
   lispval *keys, *vals; int n=0; struct FD_HASHTABLE *new;
   if (PAIRP(alist)) {
@@ -3052,7 +3053,8 @@ static int resize_hashtable(struct FD_HASHTABLE *ptr,int n_buckets,
       struct FD_KEYVAL *kvscan=&(e->kv_val0);
       struct FD_KEYVAL *kvlimit=kvscan+bucket_len;
       while (kvscan<kvlimit) {
-        struct FD_KEYVAL *nkv=hashvec_insert(kvscan->kv_key,new_buckets,n_buckets,NULL);
+        struct FD_KEYVAL *nkv =
+          hashvec_insert(kvscan->kv_key,new_buckets,n_buckets,NULL);
         nkv->kv_val=kvscan->kv_val; kvscan->kv_val=VOID;
         fd_decref(kvscan->kv_key); kvscan++;}
       u8_free(e);}
@@ -3156,7 +3158,8 @@ FD_EXPORT int fd_devoid_hashtable(struct FD_HASHTABLE *ptr,int locked)
           fd_decref(kvscan->kv_key);
           kvscan++;}
         else {
-          struct FD_KEYVAL *nkv=hashvec_insert(kvscan->kv_key,new_buckets,n_buckets,NULL);
+          struct FD_KEYVAL *nkv =
+            hashvec_insert(kvscan->kv_key,new_buckets,n_buckets,NULL);
           nkv->kv_val=kvscan->kv_val;
           kvscan->kv_val=VOID;
           fd_decref(kvscan->kv_key);
@@ -3993,9 +3996,10 @@ static int bad_table_call(lispval arg,fd_ptr_type type,void *handler,
 }
 
 #define BAD_TABLEP(arg,type,meth,cxt) \
-  (bad_table_call(arg,type,\
-                  ((fd_tablefns[type]) ? ((fd_tablefns[type])->meth) : (NULL)), \
-                  cxt))
+  (bad_table_call                                                       \
+   (arg,type,                                                           \
+    ((fd_tablefns[type]) ? ((fd_tablefns[type])->meth) : (NULL)),       \
+    cxt))
 #define NOT_TABLEP(arg,type,cxt) \
   ( (fd_tablefns[type] == NULL) && (bad_table_call(arg,type,NULL,cxt)) )
 
