@@ -506,7 +506,7 @@ debugging:
 	@echo Building DEBUGGING configuration
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
-	@+make -s XCFLAGS="@debugcflags@ -O0 -Wall $(XCFLAGS)"	\
+	@+make -s XCFLAGS="@debugcflags@ -O0 -Wall -Wno-unknown-pragmas $(XCFLAGS)"	\
 	          XLDFLAGS="@debugldflags@ $(XLDFLAGS)"		\
 	          XOPTFLAGS="-O0" OPTFLAGS="-O0" 		\
 		  XLIBS="@debuglibs@ $(XLIBS)" 			\
@@ -520,7 +520,7 @@ nitpicking:
 	@echo Building NITPICKING configuration
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
-	@+make -s XCFLAGS="-Wall" testbin exe cmodules etc @TAGS@
+	@+make -s XCFLAGS="-Wall -Wno-unknown-pragmas ${XCFLAGS}" testbin exe cmodules etc @TAGS@
 
 all: testbin debug-exe exe cmodules etc i18n @TAGS@
 packaged: exe cmodules etc i18n
