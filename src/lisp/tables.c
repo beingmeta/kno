@@ -1786,25 +1786,10 @@ FD_EXPORT lispval fd_hashtable_get
       if (unlock) fd_unlock_table(ht);
       return fd_incref(dflt);}
     else if (PRECHOICEP(rv)) {
-      if (unlock) {
-        fd_decref(rv);
-        fd_unlock_table(ht);
-        fd_write_lock_table(ht);
-        /* Get the keyval again, just in case */
-        result=fd_hashvec_get(key,ht->ht_buckets,ht->ht_n_buckets);
-        if (FD_PRECHOICEP(result->kv_val)) {
-          rv = result->kv_val;
-          lispval v = fd_simplify_choice(rv);
-          result->kv_val = v; fd_incref(v);
-          fd_unlock_table(ht);
-          return v;}
-        else {
-          lispval v = fd_incref(result->kv_val);
-          fd_unlock_table(ht);
-          return v;}}
-      else {
-        lispval v = result->kv_val = fd_simplify_choice(rv);
-        return fd_incref(v);}}
+      lispval norm = fd_make_simple_choice(rv);
+      fd_decref(rv);
+      if (unlock) fd_unlock_table(ht);
+      return norm;}
     else {
       if (unlock) fd_unlock_table(ht);
       return rv;}}
@@ -1825,11 +1810,13 @@ FD_EXPORT lispval fd_hashtable_get_nolock
   else result=fd_hashvec_get(key,ht->ht_buckets,ht->ht_n_buckets);
   if (result) {
     lispval rv=fd_incref(result->kv_val);
-    lispval v=((VOIDP(rv))?(fd_incref(dflt),dflt):
-              (PRECHOICEP(rv)) ?
-              (fd_simplify_choice(rv)) :
-              (rv));
-    return v;}
+    if (FD_VOIDP(rv))
+      return fd_incref(dflt);
+    else if (PRECHOICEP(rv)) {
+      lispval norm = fd_make_simple_choice(rv);
+      fd_decref(rv);
+      return norm;}
+    else return rv;}
   else {
     return fd_incref(dflt);}
 }
@@ -1853,17 +1840,17 @@ FD_EXPORT lispval fd_hashtable_get_noref
     return dflt;}
   else result=fd_hashvec_get(key,ht->ht_buckets,ht->ht_n_buckets);
   if (result) {
-    lispval rv=result->kv_val;
-    if (VOIDP(rv)) {
+    lispval rv = fd_incref(result->kv_val);
+    if (PRECHOICEP(rv)) {
+      lispval norm = fd_make_simple_choice(rv);
+      fd_decref(rv);
       if (unlock) fd_unlock_table(ht);
-      return dflt;}
-    else if (PRECHOICEP(rv)) {
-      rv=result->kv_val=fd_simplify_choice(rv);
-      if (unlock) fd_unlock_table(ht);
-      return rv;}
+      return norm;}
     else {
       if (unlock) fd_unlock_table(ht);
-      return rv;}}
+      if (FD_VOIDP(rv))
+        return fd_incref(dflt);
+      else return rv;}}
   else {
     if (unlock) fd_unlock_table(ht);
     return dflt;}
@@ -1882,9 +1869,8 @@ FD_EXPORT lispval fd_hashtable_get_nolockref
   if (result) {
     lispval rv=result->kv_val;
     if (VOIDP(rv)) return dflt;
-    else if (PRECHOICEP(rv)) {
-      result->kv_val=fd_simplify_choice(rv);
-      return result->kv_val;}
+    else if (PRECHOICEP(rv))
+      return fd_make_simple_choice(rv);
     else return rv;}
   else return dflt;
 }
@@ -2070,7 +2056,7 @@ static int add_to_hashtable(fd_hashtable ht,lispval key,lispval value)
   /* If the value is an prechoice, it doesn't need to be locked because
      it will be protected by the hashtable's lock.  However this requires
      that we always normalize the choice when we return it.  */
-  if (PRECHOICEP(result->kv_val)) {
+  if (0) { /* (PRECHOICEP(result->kv_val)) */
     struct FD_PRECHOICE *ch=FD_XPRECHOICE(result->kv_val);
     if (ch->prechoice_uselock) ch->prechoice_uselock=0;}
   return added;
