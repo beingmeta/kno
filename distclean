@@ -12,15 +12,15 @@ rmconf () {
 
 for x in *.in */*.in */*/*.in */*/*/*.in; do rmconf ${x}; done
 
-find . -name "*~" -exec rm '{}' \;
-find . -name "#*#" -exec rm '{}' \;
-find . -name "*.o" -exec rm '{}' \;
+find . -name "*~" -writable -exec rm '{}' \;
+find . -name "#*#" -writable -exec rm '{}' \;
+find . -name "*.o" -writable -exec rm '{}' \;
 
 # Miscellaneous files
-find . -name "*.dSYM" | xargs rm -rf;
+find . -name "*.dSYM" -writable | xargs rm -rf;
 
 for pat in *.gcda *.gcno *.gcov *.bb *.bbg *.da gmon.out *.heap; do
-    find -name ${pat} -exec rm '{}' \; ;
+    find -name ${pat} -writable -exec rm '{}' \; ;
 done;
 
 rm -f config.log config.status buildmode;

@@ -87,8 +87,8 @@ fresh: clean
 
 clean: tidy
 	rm -f $(TESTBIN)
-	find . -name "vgcore.*" | xargs rm -f
-	find . -name "*.pid" | xargs rm -f
+	find . -name "vgcore.*" -writable | xargs rm -f
+	find . -name "*.pid" -writable | xargs rm -f
 	rm -rf mongodb/dbdata;
 
 tidy testclean cleantests cleantest:

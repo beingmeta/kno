@@ -890,22 +890,22 @@ SCHEMETAGS: ${SCHEME_MODULES}
 	@rm -f SCHEMETAGS
 	@# We skip module.scm files because they are always links
 	@#  to other files (with more distinctive names)
-	@find src/libscm -name "*.scm" | \
+	@find src/libscm -name "*.scm" -readable | \
 		grep -v module.scm | \
 		xargs etags -o SCHEMETAGS -a
-	@find src/extmods -name "*.scm" | \
+	@find src/extmods -name "*.scm" -readable | \
 		grep -v module.scm | \
 		xargs etags -o SCHEMETAGS -a
 	@ls -l SCHEMETAGS
 
 profile-clean:
-	@find . -name "*.gcda" | xargs rm -f
-	@find . -name "*.gcno" | xargs rm -f
-	@find . -name "*.gcov" | xargs rm -f
-	@find . -name "*.bb" | xargs rm -f
-	@find . -name "*.bbg" | xargs rm -f
-	@find . -name "*.da" | xargs rm -f
-	@find . -name "gmon.out" | xargs rm -f
+	@find . -name "*.gcda" -writable | xargs rm -f
+	@find . -name "*.gcno" -writable | xargs rm -f
+	@find . -name "*.gcov" -writable | xargs rm -f
+	@find . -name "*.bb" -writable | xargs rm -f
+	@find . -name "*.bbg" -writable | xargs rm -f
+	@find . -name "*.da" -writable | xargs rm -f
+	@find . -name "gmon.out" -writable | xargs rm -f
 tidy: profile-clean
 	@for dir in ${CLEANDIRS}; do \
 	  rm -f $${dir}/*~ $${dir}/*.o; \
@@ -927,7 +927,7 @@ clean: tidy
 	cd tests/lisp; make -s clean
 	cd tests/storage; make -s clean
 	cd tests; make -s clean
-	find . -name "*.dSYM" | xargs rm -rf
+	find . -name "*.dSYM" -writable | xargs rm -rf
 distclean: clean
 	rm -f makefile config.log config.status config.cache
 	rm -f tests/lisp/makefile tests/storage/makefile tests/makefile
@@ -1239,7 +1239,7 @@ cleandist cleanrpms cleandeb rpmclean debclean:
 	rm -rf dist/rpms.done dist/rpms.ready
 	rm -f dist/debs.signed dist/debs.built dist/debs.done
 	rm -f dist/*.deb dist/*.tar dist/*.gz dist/*.dsc dist/*.changes
-	find dist -name "*.rpm" | xargs -r rm
+	find dist -name "*.rpm" -writable | xargs -r rm
 	rm -rf staging/framerd*
 
 debfresh freshdeb:
@@ -1835,7 +1835,7 @@ tests/data/private.dtype: tests/data/testobj.dtype
 tests/data/private:
 	@@SUDO@ mkdir $@
 	@@SUDO@ chown nobody $@
-	@@SUDO@ chmod og-rwx $@
+	@@SUDO@ chmod og-w $@
 
 .PHONY: tests libtests schemetests dbtests cmtdtests memtests leaktests
 
