@@ -461,7 +461,8 @@ static lispval normalize_choice(lispval x,int free_prechoice)
     return fd_init_choice(nch,n,NULL,flags);}
   else if (ch->prechoice_nested==0) {
     /* If it's not nested, we can mostly just call fd_make_choice. */
-    int flags = 0, n_elts = ch->prechoice_write-ch->prechoice_data; lispval result;
+    int flags = 0, n_elts = ch->prechoice_write-ch->prechoice_data;
+    lispval result;
     if (ch->prechoice_atomic) flags = flags|FD_CHOICE_ISATOMIC; else {
       /* Incref everything */
       const lispval *scan = ch->prechoice_data, *write = ch->prechoice_write;

@@ -301,7 +301,8 @@ static void _prechoice_add(struct FD_PRECHOICE *ch,lispval v)
   fd_decref(ch->prechoice_normalized); ch->prechoice_normalized=VOID;
   if (comparison>0) ch->prechoice_muddled=1;
   if (FD_CHOICEP(nv)) {
-    ch->prechoice_nested++; ch->prechoice_muddled=1;
+    ch->prechoice_nested++;
+    ch->prechoice_muddled=1;
     if (ch->prechoice_atomic)
       if (!(FD_ATOMIC_CHOICEP(nv))) ch->prechoice_atomic=0;
     ch->prechoice_size=ch->prechoice_size+FD_CHOICE_SIZE(nv);}
@@ -326,7 +327,8 @@ static U8_MAYBE_UNUSED lispval _add_to_choice(lispval current,lispval new)
       else return new;
     else return new;
   else if (current==new) {
-    fd_decref(new); return current;}
+    fd_decref(new);
+    return current;}
   else if (FD_PRECHOICEP(current)) {
     _prechoice_add((struct FD_PRECHOICE *)current,new);
     return current;}

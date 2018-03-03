@@ -132,9 +132,10 @@ static lispval aggregate_prim_find
 	    lispval v = fd_index_get((fd_index)ex,key);
 	    keyvec[j] = feature;
 	    valvec[j] = v;
-	    CHOICE_ADD(combined,v);
+	    fd_incref(v); CHOICE_ADD(combined,v);
 	    j++;}}
 	fd_hashtable_iter(cache,fd_table_add,j,keyvec,valvec);
+	fd_decref_vec(valvec,j);
 	u8_free(keyvec);
 	u8_free(valvec);}}
     fd_decref(fetch_features);
