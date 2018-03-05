@@ -1197,7 +1197,7 @@ FD_EXPORT void fd_init_tableprims_c()
            fd_make_ndprim(fd_make_cprim3("MAP->TABLE",map2table,2)));
 
 
-  fd_idefnN(fd_scheme_module,"CHOICE->HASHSET",choices2hashset,0,
+  fd_idefnN(fd_scheme_module,"CHOICE->HASHSET",choices2hashset,FD_NDCALL,
             "Returns a hashset containing all of *elts*.");
   fd_idefn1(fd_scheme_module,"HASHSET?",hashsetp,1,
             "`(HASHSET? *arg*) returns #t if *arg* is a hashset",
