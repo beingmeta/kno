@@ -529,10 +529,10 @@ static lispval match_sequence
 
 /** Extraction **/
 
-static lispval textract
+FD_FASTOP lispval textract
   (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags);
-static lispval extract_sequence
+FD_FASTOP lispval extract_sequence
   (lispval pat,int pat_elt,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags);
 static lispval lists_to_vectors(lispval lists);
@@ -685,7 +685,8 @@ static lispval textract
           lispval extraction=
             fd_conspair(l,fd_substring(string+off,string+fd_getint(l)));
           CHOICE_ADD(answers,extraction);}
-        fd_decref(lengths); fd_decref(v);
+        fd_decref(lengths);
+        fd_decref(v);
         return answers;}}}
   else if (TYPEP(pat,fd_txclosure_type)) {
     struct FD_TXCLOSURE *txc = (fd_txclosure)pat;
@@ -1271,7 +1272,8 @@ static lispval expand_subst_args(lispval args,fd_lexenv env)
       return conses;}
     else if ((FD_EQUAL(carchoices,FD_CAR(args)))&&
              (FD_EQUAL(cdrchoices,FD_CDR(args)))) {
-      fd_decref(carchoices); fd_decref(cdrchoices);
+      fd_decref(carchoices);
+      fd_decref(cdrchoices);
       return fd_incref(args);}
     else return fd_conspair(carchoices,cdrchoices);}
   else if (CHOICEP(args)) {

@@ -115,7 +115,8 @@ static u8_string skip_nonwhitespace(u8_string s)
 static lispval whitespace_segment(u8_string s)
 {
   lispval result = NIL, *lastp = &result;
-  const u8_byte *start = skip_whitespace(s), *end = skip_nonwhitespace(start);
+  const u8_byte *start = skip_whitespace(s);
+  const u8_byte *end = skip_nonwhitespace(start);
   while (start) {
     lispval newcons=
       fd_conspair(fd_substring(start,end),NIL);
@@ -208,7 +209,8 @@ static lispval encode_entities(lispval input,int nonascii,
     return fd_incref(input);}
 }
 
-static lispval encode_entities_prim(lispval input,lispval chars,lispval nonascii)
+static lispval encode_entities_prim(lispval input,lispval chars,
+                                    lispval nonascii)
 {
   int na = (!((VOIDP(nonascii))||(FALSEP(nonascii))));
   if (STRLEN(input)==0) return fd_incref(input);
@@ -299,7 +301,8 @@ static u8_string skip_word(u8_string start)
   else return NULL;
 }
 
-typedef enum FD_TEXTSPAN_TYPE { spacespan, punctspan, wordspan, nullspan } textspantype;
+typedef enum FD_TEXTSPAN_TYPE { spacespan, punctspan, wordspan, nullspan }
+  textspantype;
 
 static u8_string skip_span(u8_string start,enum FD_TEXTSPAN_TYPE *type)
 {
@@ -323,9 +326,11 @@ FD_EXPORT lispval fd_words2list(u8_string string,int keep_punct)
     if (spantype == spacespan) {
       if (scan == NULL) break;
       last = scan; scan = skip_span(last,&spantype);}
-    else if (((spantype == punctspan) && (keep_punct))||(spantype == wordspan)) {
+    else if (((spantype == punctspan) && (keep_punct)) ||
+             (spantype == wordspan)) {
       lispval newcons;
-      lispval extraction = ((scan) ? (fd_substring(last,scan)) : (lispval_string(last)));
+      lispval extraction = 
+        ((scan) ? (fd_substring(last,scan)) : (lispval_string(last)));
       newcons = fd_conspair(extraction,NIL);
       *lastp = newcons; lastp = &(FD_CDR(newcons));
       if (scan == NULL) break;
@@ -346,7 +351,8 @@ FD_EXPORT lispval fd_words2vector(u8_string string,int keep_punct)
     if (spantype == spacespan) {
       if (scan == NULL) break;
       last = scan; scan = skip_span(last,&spantype);}
-    else if (((spantype == punctspan) && (keep_punct))||(spantype == wordspan)) {
+    else if (((spantype == punctspan) && (keep_punct)) ||
+             (spantype == wordspan)) {
       if (n>=max) {
         if (wordsv==_buf) {
           lispval *newv = u8_alloc_n(max*2,lispval);
@@ -868,7 +874,7 @@ static lispval textsearch(lispval pattern,lispval string,
 }
 
 static lispval textract(lispval pattern,lispval string,
-                       lispval offset,lispval limit)
+                        lispval offset,lispval limit)
 {
   lispval results = EMPTY;
   u8_byteoff off, lim;
@@ -883,7 +889,8 @@ static lispval textract(lispval pattern,lispval string,
     else {
       DO_CHOICES(extraction,extract_results) {
         if (FD_ABORTP(extraction)) {
-          fd_decref(results); fd_incref(extraction);
+          fd_decref(results);
+          fd_incref(extraction);
           fd_decref(extract_results);
           return extraction;}
         else if (PAIRP(extraction))

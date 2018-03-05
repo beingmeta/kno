@@ -375,8 +375,10 @@ static fd_lexenv become_module
     if (menv != env) {
       fd_decref(((lispval)(env->env_parent)));
       env->env_parent = (fd_lexenv)fd_incref((lispval)menv->env_parent);
-      fd_decref(env->env_bindings); env->env_bindings = fd_incref(menv->env_bindings);
-      fd_decref(env->env_exports); env->env_exports = fd_incref(menv->env_exports);}}
+      fd_decref(env->env_bindings);
+      env->env_bindings = fd_incref(menv->env_bindings);
+      fd_decref(env->env_exports);
+      env->env_exports = fd_incref(menv->env_exports);}}
   else if (VOIDP(module)) {
     if (!(HASHTABLEP(env->env_exports)))
       env->env_exports = fd_make_hashtable(NULL,0);
@@ -391,7 +393,8 @@ static fd_lexenv become_module
   else {
     fd_seterr(fd_NotAModule,"use_module",NULL,module_spec);
     return NULL;}
-  fd_decref(module); fd_decref(module_spec);
+  fd_decref(module);
+  fd_decref(module_spec);
   return env;
 }
 
