@@ -1786,10 +1786,17 @@ FD_EXPORT lispval fd_hashtable_get
       if (unlock) fd_unlock_table(ht);
       return fd_incref(dflt);}
     else if (PRECHOICEP(rv)) {
-      lispval norm = fd_make_simple_choice(rv);
-      fd_decref(rv);
-      if (unlock) fd_unlock_table(ht);
-      return norm;}
+      if (unlock) fd_unlock_table(ht); fd_decref(rv);
+      if (unlock) fd_write_lock_table(ht);
+      result=fd_hashvec_get(key,ht->ht_buckets,ht->ht_n_buckets);
+      if (result) {
+        rv = result->kv_val;
+        if (FD_PRECHOICEP(rv)) {
+          lispval norm = fd_make_simple_choice(result->kv_val);
+          if (unlock) fd_unlock_table(ht);
+          return norm;}
+        else return fd_incref(rv);}
+      else return FD_EMPTY;}
     else {
       if (unlock) fd_unlock_table(ht);
       return rv;}}
@@ -2047,16 +2054,18 @@ static int add_to_hashtable(fd_hashtable ht,lispval key,lispval value)
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
   if (ht->ht_n_buckets == 0) setup_hashtable(ht,fd_init_hash_size);
   n_keys=ht->table_n_keys;
-  result=hashvec_insert(key,ht->ht_buckets,ht->ht_n_buckets,&(ht->table_n_keys));
+  result=hashvec_insert(key,ht->ht_buckets,ht->ht_n_buckets,
+                        &(ht->table_n_keys));
   if (ht->table_n_keys>n_keys) added=1;
   ht->table_modified=1;
   if (VOIDP(result->kv_val))
     result->kv_val=value;
   else {CHOICE_ADD(result->kv_val,value);}
-  /* If the value is an prechoice, it doesn't need to be locked because
-     it will be protected by the hashtable's lock.  However this requires
-     that we always normalize the choice when we return it.  */
-  if (0) { /* (PRECHOICEP(result->kv_val)) */
+  /* If the value is an prechoice, it doesn't need to be locked
+     because it will be protected by the hashtable's lock.  However
+     this requires that we always normalize the choice inside of the
+     lock (and before we return it).  */
+  if ( (result) && (PRECHOICEP(result->kv_val)) ) {
     struct FD_PRECHOICE *ch=FD_XPRECHOICE(result->kv_val);
     if (ch->prechoice_uselock) ch->prechoice_uselock=0;}
   return added;
@@ -2277,7 +2286,7 @@ static int do_hashtable_op(struct FD_HASHTABLE *ht,fd_tableop op,
        (op == fd_table_minimize_if_present) ||
        (op == fd_table_increment_if_present)))
     return 0;
-  if ((result)&&(PRECHOICEP(result->kv_val)))
+  if ( (result) && (PRECHOICEP(result->kv_val)) )
     was_prechoice=1;
   switch (op) {
   case fd_table_replace_novoid:
@@ -2453,11 +2462,7 @@ static int do_hashtable_op(struct FD_HASHTABLE *ht,fd_tableop op,
     break;}
   }
   ht->table_modified=1;
-  if (0) { /* ( ( result ) && (was_prechoice==0) && (PRECHOICEP(result->kv_val))) */
-    /* If we didn't have an prechoice before and we do now, that means
-       a new prechoice was created with a mutex and everything.  We can
-       safely destroy it and set the choice to not use locking, since
-       the value will be protected by the hashtable's lock. */
+  if ( (result) && (PRECHOICEP(result->kv_val)) ) {
     struct FD_PRECHOICE *ch=FD_XPRECHOICE(result->kv_val);
     if (ch->prechoice_uselock) {
       u8_destroy_mutex(&(ch->prechoice_lock));
