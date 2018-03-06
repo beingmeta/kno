@@ -1,11 +1,18 @@
 #!/bin/sh
 FILE=$1
 shift;
+function abspath() {
+    file=$1
+    dir=$(dirname $1)
+    absdir=$(\cd ${dir}; pwd)
+    base=$(basename ${file})
+    echo ${absdir}/${base};
+}
 BASE=$(basename ${FILE} .scm)
-FULLPATH=$(realpath ${FILE})
+FULLPATH=$(abspath ${FILE})
 RUNDIR=$(dirname ${FULLPATH})
 FDEXEC=@BINDIR@/fdexec
 PIDFILE=${RUNDIR}/${BASE}.pid
 LOGFILE=${RUNDIR}/${BASE}.log
 ERRFILE=${RUNDIR}/${BASE}.err
-exec u8run +daemon ${FDEXEC} STDOUT=+${LOGFILE} STDERR=+${ERRFILE} PIDFILE=${PIDFILE} ${FILE} $*
+exec u8run +daemon ${BASE} ${FDEXEC} STDOUT=+${LOGFILE} STDERR=+${ERRFILE} PIDFILE=${PIDFILE} ${FILE} $*
