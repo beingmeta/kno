@@ -828,7 +828,8 @@ static lispval extract_repeatedly
   lispval choices = EMPTY;
   lispval top = textract(pat,next,env,string,off,lim,flags);
   if (EMPTYP(top))
-    if (zero_ok) return fd_conspair(FD_INT(off),NIL);
+    if (zero_ok)
+      return fd_conspair(FD_INT(off),NIL);
     else return EMPTY;
   else if (FD_ABORTP(top)) return top;
   else {
@@ -843,8 +844,7 @@ static lispval extract_repeatedly
           fd_decref(choices);
           return remainders;}
         else if (EMPTYP(remainders)) {
-          lispval last_item=
-            fd_conspair(fd_incref(extraction),NIL);
+          lispval last_item = fd_conspair(fd_incref(extraction),NIL);
           lispval with_size = fd_conspair(size,last_item);
           CHOICE_ADD(choices,with_size);}
         else {
@@ -947,7 +947,8 @@ static lispval extract_plus
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"extract_plus",NULL,pat);
   else {
-    lispval extractions = extract_repeatedly(pat_arg,next,env,string,off,lim,flags,0);
+    lispval extractions =
+      extract_repeatedly(pat_arg,next,env,string,off,lim,flags,0);
     lispval answer = EMPTY;
     DO_CHOICES(extraction,extractions) {
       lispval size = FD_CAR(extraction), data = FD_CDR(extraction);
