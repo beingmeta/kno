@@ -1,9 +1,9 @@
 #!/bin/sh
 FILE=$1
 shift;
-function abspath() {
+abspath( ) {
     file=$1
-    dir=$(dirname $1)
+    dir=$(dirname ${file})
     absdir=$(\cd ${dir}; pwd)
     base=$(basename ${file})
     echo ${absdir}/${base};
