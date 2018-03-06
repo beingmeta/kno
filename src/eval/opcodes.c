@@ -1183,8 +1183,9 @@ FD_FASTOP lispval op_eval(lispval x,fd_lexenv env,
   case fd_oid_ptr_type: case fd_fixnum_ptr_type:
     return x;
   case fd_immediate_ptr_type:
-    if (TYPEP(x,fd_lexref_type))
-      return fd_lexref(x,env);
+    if (TYPEP(x,fd_lexref_type)) {
+      lispval v = fd_lexref(x,env);
+      return simplify_value(v);}
     else if (FD_SYMBOLP(x)) {
       lispval val = fd_symeval(x,env);
       if (PRED_FALSE(VOIDP(val)))
