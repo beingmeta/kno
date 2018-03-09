@@ -8,11 +8,13 @@ abspath( ) {
     base=$(basename ${file})
     echo ${absdir}/${base};
 }
-BASE=$(basename ${FILE} .scm)
-FULLPATH=$(abspath ${FILE})
-RUNDIR=$(dirname ${FULLPATH})
 FDEXEC=@BINDIR@/fdexec
+BASE=_$(basename ${FILE} .scm)
+FULLPATH=$(abspath ${FILE})
+RUNDIR=${RUNDIR:-$(dirname ${FULLPATH})}
+PPIDFILE=${RUNDIR}/${BASE}.ppid
 PIDFILE=${RUNDIR}/${BASE}.pid
-LOGFILE=${RUNDIR}/${BASE}.log
-ERRFILE=${RUNDIR}/${BASE}.err
-exec u8run +daemon ${BASE} ${FDEXEC} STDOUT=+${LOGFILE} STDERR=+${ERRFILE} PIDFILE=${PIDFILE} ${FILE} $*
+LOGDIR=${LOGDIR:-${RUNDIR}}
+LOGFILE=${LOGDIR}/${BASE}.log
+ERRFILE=${LOGDIR}/${BASE}.err
+exec u8run +daemon ${BASE} PPIDFILE=${PPIDFILE} ${FDEXEC} STDOUT=+${LOGFILE} STDERR=+${ERRFILE} RUNDIR=${RUNDIR} PIDFILE=${PIDFILE} ${FILE} $*

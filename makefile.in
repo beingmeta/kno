@@ -566,47 +566,26 @@ include/framerd/fdsource.h: include/framerd/fdsource.h.in
 	if test -x ./config.status; then ./config.status; fi
 	touch $@
 
-tests/lisp/makefile: tests/lisp/makefile.in ./configure
-	./configure
-tests/storage/makefile: tests/storage/makefile.in ./configure
-	./configure
-tests/makefile: tests/makefile.in ./configure
-	./configure
-tests/lisp/.gdbinit: tests/lisp/.gdbinit.in ./configure
-	./configure
-tests/storage/.gdbinit: tests/storage/.gdbinit.in ./configure
-	./configure
-dbg/.gdbinit: dbg/.gdbinit.in ./configure
-	./configure
-exe/.gdbinit: exe/.gdbinit.in ./configure
-	./configure
-etc/fdsignal: etc/fdsignal.in ./configure
-	./configure
-etc/fdgetconfig: etc/fdgetconfig.in ./configure
-	./configure
-etc/fdsetconfig: etc/fdsetconfig.in ./configure
-	./configure
-etc/fdconfig: etc/fdconfig.in ./configure
-	./configure
-etc/framerd-rc.d: etc/framerd-rc.d.in ./configure
-	./configure
-etc/OSXStartupItem/FramerD: etc/OSXStartupItem/FramerD.in ./configure
-	./configure
-etc/fdserv.conf: etc/fdserv.conf.in ./configure
-	./configure
-etc/fdserv.uniconf: etc/fdserv.uniconf.in ./configure
-	./configure
-etc/fdserv.load: etc/fdserv.load.in ./configure
-	./configure
-etc/logrotate: etc/logrotate.in ./configure
-	./configure
-etc/install-script: etc/install-script.in ./configure
-	./configure
+tests/lisp/makefile: tests/lisp/makefile.in ./config.status
+	./config.status
+tests/storage/makefile: tests/storage/makefile.in ./config.status
+	./config.status
+tests/makefile: tests/makefile.in ./config.status
+	./config.status
+tests/lisp/.gdbinit: tests/lisp/.gdbinit.in ./config.status
+	./config.status
+tests/storage/.gdbinit: tests/storage/.gdbinit.in ./config.status
+	./config.status
+dbg/.gdbinit: dbg/.gdbinit.in ./config.status
+	./config.status
+exe/.gdbinit: exe/.gdbinit.in ./config.status
+	./config.status
 
-etc: etc/logrotate etc/install-script etc/framerd-rc.d \
-	etc/fdsetconfig etc/fdgetconfig etc/fdconfig \
-	tests/lisp/.gdbinit tests/storage/.gdbinit dbg/.gdbinit \
-	exe/.gdbinit
+etc: etc/logrotate etc/install-script etc/framerd-rc.d etc/logrotate    \
+        etc/fdconfig etc/fdsetconfig etc/fdgetconfig                    \
+        etc/fdjob etc/fdsignal etc/fdsignal                             \
+        tests/lisp/.gdbinit tests/storage/.gdbinit dbg/.gdbinit         \
+        exe/.gdbinit
 
 # Fileinfo gets version-related information about a file to pass in
 # with -D
@@ -667,6 +646,10 @@ dbg/%: src/exe/%.c $(STATIC_LIBS)
 	      -lu8stdio -lu8syslog 		\
 	      $(LIBS) $(EXELIBS)
 dbg/%: ${REVISION_H} ${CONFIG_H}
+
+etc/%: etc/%.in ./config.status
+	@echo "Configuring $@"
+	@./config.status
 
 # We can selectively link some executables statically to avoid 
 # library dependencies with programs which will typicall run as daemons
