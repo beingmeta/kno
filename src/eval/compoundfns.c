@@ -239,7 +239,7 @@ static lispval make_compound(int n,lispval *args)
   compound->compound_length = n-1;
   compound->compound_ismutable = 0;
   compound->compound_isopaque = 0;
-  compound->compound_off = 0;
+  compound->compound_off = -1;
   while (i<n) {
     fd_incref(args[i]);
     *write++=args[i];
@@ -274,7 +274,7 @@ static lispval make_mutable_compound(int n,lispval *args)
   compound->compound_typetag = fd_incref(args[0]);
   compound->compound_length = n-1;
   compound->compound_ismutable = 1;
-  compound->compound_off = 0;
+  compound->compound_off = -1;
   u8_init_mutex(&(compound->compound_lock));
   while (i<n) {
     fd_incref(args[i]);
