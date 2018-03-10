@@ -85,6 +85,7 @@ LISP_HEADERS=\
  include/framerd/pprint.h    			     \
  include/framerd/ptr.h				     \
  include/framerd/cons.h        			     \
+ include/framerd/compounds.h			     \
  include/framerd/choices.h			     \
  include/framerd/tables.h  			     \
  include/framerd/sequences.h  			     \

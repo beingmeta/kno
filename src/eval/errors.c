@@ -11,6 +11,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
+#include "framerd/compounds.h"
 #include "framerd/support.h"
 #include "framerd/lisperrs.h"
 #include "framerd/eval.h"
@@ -318,6 +319,128 @@ static lispval exception_has_irritant(lispval x)
   else return FD_TRUE;
 }
 
+static lispval exception_session(lispval x)
+{
+  struct FD_EXCEPTION *xo=
+    fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
+  if (xo->ex_session)
+    return lispval_string(xo->ex_session);
+  else return FD_TRUE;
+}
+
+static lispval exception_moment(lispval x)
+{
+  struct FD_EXCEPTION *xo=
+    fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
+  if (xo->ex_moment >= 0)
+    return fd_make_flonum(xo->ex_moment);
+  else return FD_FALSE;
+}
+
+static lispval exception_threadno(lispval x)
+{
+  struct FD_EXCEPTION *xo=
+    fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
+  if (xo->ex_thread >= 0)
+    return FD_INT(xo->ex_thread);
+  else return FD_FALSE;
+}
+
+static lispval exception_timebase(lispval x)
+{
+  struct FD_EXCEPTION *xo=
+    fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
+  if (xo->ex_timebase >= 0)
+    return fd_time2timestamp(xo->ex_timebase);
+  else return FD_FALSE;
+}
+
+static lispval exception_sessionid(lispval x)
+{
+  struct FD_EXCEPTION *xo=
+    fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
+  if (xo->ex_session >= 0)
+    return lispval_string(xo->ex_session);
+  else return FD_FALSE;
+}
+
+static lispval condition_symbol, caller_symbol, timebase_symbol, moment_symbol,
+  thread_symbol, details_symbol, session_symbol, context_symbol,
+  irritant_symbol, stack_symbol, env_tag, args_tag;
+
+
+static lispval exception2slotmap(lispval x,lispval with_stack_arg)
+{
+  int with_stack = (!(FD_FALSEP(with_stack)));
+  struct FD_EXCEPTION *xo=
+    fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
+  lispval result = fd_make_slotmap(7,0,NULL);
+  if (xo->ex_condition)
+    fd_store(result,condition_symbol,fd_intern(xo->ex_condition));
+  if (xo->ex_caller)
+    fd_store(result,caller_symbol,fd_intern(xo->ex_caller));
+  if (xo->ex_timebase > 0) {
+    lispval timebase = fd_time2timestamp(xo->ex_timebase);
+    fd_store(result,timebase_symbol,timebase);
+    fd_decref(timebase);}
+  if (xo->ex_moment > 0) {
+    lispval moment = fd_make_flonum(xo->ex_moment);
+    fd_store(result,moment_symbol,moment);
+    fd_decref(moment);}
+  if (xo->ex_thread > 0) {
+    lispval threadnum = FD_INT(xo->ex_thread);
+    fd_store(result,thread_symbol,threadnum);
+    fd_decref(threadnum);}
+  if (xo->ex_details) {
+    lispval details_string = lispval_string(xo->ex_details);
+    fd_store(result,details_symbol,details_string);
+    fd_decref(details_string);}
+  if (xo->ex_session) {
+    lispval details_string = lispval_string(xo->ex_session);
+    fd_store(result,session_symbol,details_string);
+    fd_decref(details_string);}
+  if (!(FD_VOIDP(xo->ex_context)))
+    fd_store(result,context_symbol,xo->ex_context);
+  if (!(FD_VOIDP(xo->ex_irritant)))
+    fd_store(result,irritant_symbol,xo->ex_irritant);
+  if (FD_VECTORP(xo->ex_stack)) {
+    lispval vec = xo->ex_stack;
+    int len = FD_VECTOR_LENGTH(vec);
+    lispval new_stack = fd_init_vector(NULL,len,0);
+    int i = 0; while (i < len) {
+      lispval entry = FD_VECTOR_REF(vec,i);
+      if (FD_EXCEPTIONP(entry)) {
+        FD_VECTOR_SET(new_stack,i,exception2slotmap(entry,FD_FALSE));}
+      if ( (FD_COMPOUND_TYPEP(entry,stack_entry_symbol)) &&
+           ( (FD_COMPOUND_LENGTH(entry)) >= 5) ) {
+        lispval copied = fd_copier(entry,0);
+        int len = FD_COMPOUND_LENGTH(entry);
+        if (len >= 5) {
+          lispval argvec = FD_COMPOUND_REF(entry,5);
+          if (FD_VECTORP(argvec)) {
+            lispval wrapped = fd_init_compound_from_elts
+              (NULL,args_tag,FD_COMPOUND_INCREF,
+               FD_VECTOR_LENGTH(argvec),
+               FD_VECTOR_ELTS(argvec));
+            FD_COMPOUND_REF(entry,5) = wrapped;
+            fd_decref(argvec);}}
+        if (len >= 7) {
+          lispval env = FD_COMPOUND_REF(entry,7);
+          if (FD_TABLEP(env)) {
+            lispval wrapped = fd_init_compound
+              (NULL,env_tag,FD_COMPOUND_INCREF,1,env);
+            FD_COMPOUND_REF(entry,7) = wrapped;
+            fd_decref(env);}}
+        FD_VECTOR_SET(new_stack,i,copied);}
+      else {
+        fd_incref(entry);
+        FD_VECTOR_SET(new_stack,i,entry);}
+      i++;}
+    fd_store(result,stack_symbol,new_stack);
+    fd_decref(new_stack);}
+  return result;
+}
+
 static lispval exception_stack(lispval x,lispval arg1,lispval arg2)
 {
   struct FD_EXCEPTION *xo=
@@ -326,7 +449,7 @@ static lispval exception_stack(lispval x,lispval arg1,lispval arg2)
     return FD_FALSE; /* Warn? */
   else {
     struct FD_VECTOR *stack = (fd_vector) (xo->ex_stack);
-    size_t    stack_len   = stack->vec_length;
+    size_t stack_len   = stack->vec_length;
     if (FD_VOIDP(arg1))
       return fd_incref(xo->ex_stack);
     else if ( (FD_VOIDP(arg2)) && ((FD_FIX2INT(arg1)) > 0) ) {
@@ -619,10 +742,22 @@ FD_EXPORT void fd_init_errors_c()
             "Returns the condition name (a symbol) for an exception",
             fd_exception_type,VOID);
   fd_idefn1(fd_scheme_module,"EXCEPTION-CALLER",exception_caller,1,
-            "Returns the immediate context (caller, a symbol) for an exception",
+            "Returns the immediate context (caller) for an exception",
             fd_exception_type,VOID);
   fd_idefn1(fd_scheme_module,"EXCEPTION-DETAILS",exception_details,1,
             "Returns any descriptive details (a string) for the exception",
+            fd_exception_type,VOID);
+  fd_idefn1(fd_scheme_module,"EXCEPTION-MOMENT",exception_moment,1,
+            "Returns the time an exception was initially recorded",
+            fd_exception_type,VOID);
+  fd_idefn1(fd_scheme_module,"EXCEPTION-TIMEBASE",exception_timebase,1,
+            "Returns the time from which exception moments are measured",
+            fd_exception_type,VOID);
+  fd_idefn1(fd_scheme_module,"EXCEPTION-THREADNO",exception_threadno,1,
+            "Returns an integer ID for the thread where the error occurred",
+            fd_exception_type,VOID);
+  fd_idefn1(fd_scheme_module,"EXCEPTION-SESSIONID",exception_sessionid,1,
+            "Returns the sessionid when the error occurred",
             fd_exception_type,VOID);
   fd_idefn1(fd_scheme_module,"EXCEPTION-IRRITANT",exception_irritant,1,
             "Returns the LISP object (if any) which 'caused' the exception",
@@ -634,6 +769,10 @@ FD_EXPORT void fd_init_errors_c()
             "(EXCEPTION-IRRITANT? *ex*) Returns true if *ex* is an exception "
             "and has an 'irritant'",
             fd_exception_type,VOID);
+  fd_idefn2(fd_scheme_module,"EXCEPTION->SLOTMAP",exception2slotmap,1,
+            "(EXCEPTION-IRRITANT? *ex*) Returns true if *ex* is an exception "
+            "and has an 'irritant'",
+            fd_exception_type,VOID,-1,FD_FALSE);
 
   fd_idefn3(fd_scheme_module,"EXCEPTION-STACK",exception_stack,1,
             "(EXCEPTION-STACK *ex* [*len*] [*start*]) returns the call stack "
@@ -690,6 +829,18 @@ FD_EXPORT void fd_init_errors_c()
             fd_compound_type,FD_VOID);
 
   stack_entry_symbol = fd_intern("%STACK");
+  condition_symbol = fd_intern("CONDITION");
+  caller_symbol = fd_intern("CALLER");
+  timebase_symbol = fd_intern("TIMEBASE");
+  moment_symbol = fd_intern("MOMENT");
+  thread_symbol = fd_intern("THREAD");
+  details_symbol = fd_intern("DETAILS");
+  session_symbol = fd_intern("SESSION");
+  context_symbol = fd_intern("CONTEXT");
+  irritant_symbol = fd_intern("IRRITANT");
+  stack_symbol = fd_intern("STACK");
+  env_tag = fd_intern("%ENV");
+  args_tag = fd_intern("%ARGS");
 
 }
 

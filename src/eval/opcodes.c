@@ -19,6 +19,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
+#include "framerd/compounds.h"
 #include "framerd/support.h"
 #include "framerd/storage.h"
 #include "framerd/eval.h"

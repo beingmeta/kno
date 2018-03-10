@@ -16,6 +16,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
+#include "framerd/compounds.h"
 #include "framerd/lexenv.h"
 #include "framerd/apply.h"
 
@@ -39,7 +40,8 @@ __thread struct FD_STACK *fd_stackptr=NULL;
 struct FD_STACK *fd_stackptr=NULL;
 #endif
 
-static lispval stack_entry_symbol, stack_target_symbol, opaque_symbol;
+static lispval stack_entry_symbol, stack_target_symbol, opaque_symbol,
+  env_symbol, args_symbol;;
 
 static int tidy_stack_frames = 1;
 
@@ -125,7 +127,10 @@ static lispval stack2lisp(struct FD_STACK *stack,struct FD_STACK *inner)
   lispval type = FD_FALSE, label = FD_FALSE, status = FD_FALSE;
   lispval op = stack->stack_op, env = FD_FALSE;
   lispval argvec = ( stack->stack_args ) ?
-    (fd_make_vector(stack->n_args,NULL)) :
+    (fd_init_compound_from_elts(NULL,args_symbol,
+                                FD_COMPOUND_COPYREF|FD_COMPOUND_SEQUENCE,
+                                stack->n_args,
+                                stack->stack_args)) :
     (FD_FALSE);
   lispval source = stack->stack_source;
   if (stack->stack_type) type = fd_intern(stack->stack_type);
@@ -143,13 +148,6 @@ static lispval stack2lisp(struct FD_STACK *stack,struct FD_STACK *inner)
     op = annotate_source(stack->stack_op,inner->stack_op);
   else fd_incref(op);
 
-  if ( stack->stack_args ) {
-    lispval n=stack->n_args, i=0;
-    lispval *args=stack->stack_args;
-    lispval *copy=FD_VECTOR_ELTS(argvec);
-    while (i<n) {
-      copy[i]=fd_copier(args[i],FD_FULL_COPY);
-      i++;}}
   if (stack->stack_env) {
     lispval bindings = stack->stack_env->env_bindings;
     if ( (SLOTMAPP(bindings)) || (SCHEMAPP(bindings)) ) {
@@ -173,21 +171,22 @@ static lispval stack2lisp(struct FD_STACK *stack,struct FD_STACK *inner)
   switch (n) {
   case 4:
     return fd_init_compound(NULL,stack_entry_symbol,
-                            STACK_CREATE_OPTS,4,depth,type,op,label);
+                            STACK_CREATE_OPTS,4,depth,type,label,op);
   case 5:
     return fd_init_compound(NULL,stack_entry_symbol,
-                            STACK_CREATE_OPTS,5,depth,type,op,label,argvec);
+                            STACK_CREATE_OPTS,5,depth,type,label,op,
+                            argvec);
   case 6:
     return fd_init_compound(NULL,stack_entry_symbol,
-                            STACK_CREATE_OPTS,6,depth,type,op,label,
+                            STACK_CREATE_OPTS,6,depth,type,label,op,
                             argvec,source);
   case 7:
     return fd_init_compound(NULL,stack_entry_symbol,
-                            STACK_CREATE_OPTS,7,depth,type,op,label,
+                            STACK_CREATE_OPTS,7,depth,type,label,op,
                             argvec,source,env);
   default:
     return fd_init_compound(NULL,stack_entry_symbol,
-                            STACK_CREATE_OPTS,8,depth,type,op,label,
+                            STACK_CREATE_OPTS,8,depth,type,label,op,
                             argvec,source,env,status);
   }
 }
@@ -255,6 +254,8 @@ void fd_init_stacks_c()
   opaque_symbol = fd_intern("%OPAQUE");
   stack_entry_symbol = fd_intern("_STACK");
   stack_target_symbol = fd_intern("$<<*eval*>>$");
+  env_symbol = fd_intern("%ENV");
+  args_symbol = fd_intern("%ARGS");
 }
 
 /* Emacs local variables

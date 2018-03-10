@@ -16,6 +16,7 @@
 #include "common.h"
 #include "ptr.h"
 #include "cons.h"
+#include "compounds.h"
 
 FD_EXPORT u8_condition fd_NoMethod;
 FD_EXPORT u8_condition fd_NotAnOID;

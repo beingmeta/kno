@@ -12,6 +12,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/cons.h"
+#include "framerd/compounds.h"
 
 #include <libu8/u8printf.h>
 #include <libu8/u8timefns.h>
@@ -26,11 +27,14 @@ FD_EXPORT lispval fd_init_compound
   (struct FD_COMPOUND *p,lispval tag,int flags,int n,...)
 {
   lispval *write, *limit, initfn = FD_FALSE;
-  int ismutable = (flags&(FD_COMPOUND_MUTABLE));
-  int isopaque  = (flags&(FD_COMPOUND_OPAQUE));
-  int incref    = (flags&(FD_COMPOUND_INCREF));
-  int decref    = (flags&(FD_COMPOUND_USEREF));
-  int header    = FD_COMPOUND_HEADER_LENGTH(flags);
+  int ismutable   = (flags&(FD_COMPOUND_MUTABLE));
+  int isopaque    = (flags&(FD_COMPOUND_OPAQUE));
+  int issequence  = (flags&(FD_COMPOUND_SEQUENCE));
+  int istable     = (flags&(FD_COMPOUND_TABLE));
+  int refmask     = (flags&(FD_COMPOUND_REFMASK));
+  int incref      = (refmask==FD_COMPOUND_INCREF);
+  int decref      = (refmask==FD_COMPOUND_USEREF);
+  int copyref     = (refmask==FD_COMPOUND_COPYREF);
   va_list args; int i = 0;
   if (n<0) {
     fd_seterr("NegativeLength","fd_init_compound",NULL,FD_INT(n));
@@ -50,7 +54,10 @@ FD_EXPORT lispval fd_init_compound
   p->compound_typetag = fd_incref(tag);
   p->compound_ismutable = ismutable;
   p->compound_isopaque = isopaque;
-  p->compound_off = header;
+  p->compound_istable = istable;
+  if (issequence)
+    p->compound_off = FD_COMPOUND_HEADER_LENGTH(flags);
+  else p->compound_off = -1;
   p->compound_length = n;
   if (n > 0) {
     write = &(p->compound_0);
@@ -58,13 +65,17 @@ FD_EXPORT lispval fd_init_compound
     va_start(args,n);
     while (write<limit) {
       lispval value = va_arg(args,lispval);
-      if (incref) fd_incref(value);
+      if (copyref)
+	value = fd_copier(value,0);
+      else if (incref)
+	fd_incref(value);
+      else NO_ELSE;
       *write = value;
       write++;}
     va_end(args);
     if (FD_ABORTP(initfn)) {
       lispval *scan = &(p->compound_0);
-      if ( (incref) || (decref) ) {
+      if ( (incref) || (copyref) || (decref) ) {
 	while (scan<write) {fd_decref(*scan); scan++;}}
       return initfn;}
     else return LISP_CONS(p);}
@@ -74,11 +85,14 @@ FD_EXPORT lispval fd_init_compound
 FD_EXPORT lispval fd_init_compound_from_elts
   (struct FD_COMPOUND *p,lispval tag,int flags,int n,lispval *elts)
 {
-  int ismutable = (flags&(FD_COMPOUND_MUTABLE));
-  int isopaque  = (flags&(FD_COMPOUND_OPAQUE));
-  int incref    = (flags&(FD_COMPOUND_INCREF));
-  int decref    = (flags&(FD_COMPOUND_USEREF));
-  int header    = FD_COMPOUND_HEADER_LENGTH(flags);
+  int ismutable   = (flags&(FD_COMPOUND_MUTABLE));
+  int isopaque    = (flags&(FD_COMPOUND_OPAQUE));
+  int issequence  = (flags&(FD_COMPOUND_SEQUENCE));
+  int istable     = (flags&(FD_COMPOUND_TABLE));
+  int refmask     = (flags&(FD_COMPOUND_REFMASK));
+  int incref      = (refmask==FD_COMPOUND_INCREF);
+  int decref      = (refmask==FD_COMPOUND_USEREF);
+  int copyref     = (refmask==FD_COMPOUND_COPYREF);
   lispval *write, *limit, *read = elts, initfn = FD_FALSE;
   if (PRED_FALSE((n<0) || (n>=256)))
     return fd_type_error(_("positive byte"),"fd_init_compound_from_elts",
@@ -92,17 +106,24 @@ FD_EXPORT lispval fd_init_compound_from_elts
   p->compound_typetag = fd_incref(tag);
   p->compound_ismutable = ismutable;
   p->compound_isopaque = isopaque;
-  p->compound_off = header;
+  p->compound_istable = istable;
+  if (issequence)
+    p->compound_off = FD_COMPOUND_HEADER_LENGTH(flags);
+  else p->compound_off = -1;
   p->compound_length = n;
   if (n>0) {
     write = &(p->compound_0); limit = write+n;
     while (write<limit) {
-      lispval v = *read++;
-      if (incref) fd_incref(v);
-      *write++ = v;}
+      lispval value = *read++;
+      if (copyref)
+	value = fd_copier(value,0);
+      else if (incref)
+	fd_incref(value);
+      else NO_ELSE;
+      *write++ = value;}
     if (FD_ABORTP(initfn)) {
       lispval *scan = &(p->compound_0);
-      if ( (incref) || (decref) ) {
+      if ( (incref) || (copyref) || (decref) ) {
 	while (scan<write) {fd_decref(*scan); scan++;}}
       return initfn;}
     else return LISP_CONS(p);}

@@ -14,6 +14,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
+#include "framerd/compounds.h"
 #include "framerd/hash.h"
 #include "framerd/tables.h"
 #include "framerd/numbers.h"

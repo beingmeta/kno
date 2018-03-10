@@ -16,6 +16,7 @@ static int mongodb_loglevel;
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
+#include "framerd/compounds.h"
 #include "framerd/numbers.h"
 #include "framerd/eval.h"
 #include "framerd/sequences.h"
@@ -2258,7 +2259,7 @@ FD_EXPORT lispval fd_bson2dtype(bson_t *in,int flags,lispval opts)
 static lispval mongovec_lexpr(int n,lispval *values)
 {
   return fd_init_compound_from_elts
-    (NULL,mongovec_symbol,FD_COMPOUND_INCREF,n,values);
+    (NULL,mongovec_symbol,FD_COMPOUND_INCREF|FD_COMPOUND_SEQUENCE,n,values);
 }
 
 static lispval make_mongovec(lispval vec)
@@ -2266,7 +2267,7 @@ static lispval make_mongovec(lispval vec)
   lispval *elts = FD_VECTOR_ELTS(vec);
   int n = FD_VECTOR_LENGTH(vec);
   return fd_init_compound_from_elts
-    (NULL,mongovec_symbol,FD_COMPOUND_INCREF,n,elts);
+    (NULL,mongovec_symbol,FD_COMPOUND_INCREF|FD_COMPOUND_SEQUENCE,n,elts);
 }
 
 static lispval mongovecp(lispval arg)

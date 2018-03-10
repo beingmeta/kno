@@ -11,6 +11,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
+#include "framerd/compounds.h"
 #include "framerd/numbers.h"
 #include "framerd/sequences.h"
 #include "framerd/support.h"

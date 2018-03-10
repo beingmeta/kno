@@ -14,12 +14,13 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/storage.h"
-#include "framerd/eval.h"
+#include "framerd/compounds.h"
 #include "framerd/sequences.h"
 #include "framerd/numbers.h"
-#include "framerd/sorting.h"
+#include "framerd/storage.h"
+#include "framerd/eval.h"
 #include "framerd/seqprims.h"
+#include "framerd/sorting.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8stringfns.h>

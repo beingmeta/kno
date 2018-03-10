@@ -14,6 +14,7 @@
 #define U8_INLINE_IO 1
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
+#include "framerd/compounds.h"
 #include "framerd/ports.h"
 
 #include <libu8/u8printf.h>
@@ -1107,7 +1108,7 @@ static lispval recreate_record(int n,lispval *v)
     struct FD_COMPOUND *c=
       u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*LISPVAL_LEN);
     lispval *data = &(c->compound_0);
-    fd_init_compound(c,v[0],0,0);
+    fd_init_compound(c,v[0],FD_COMPOUND_SEQUENCE,0);
     c->compound_length = n-1;
     i = 1; while (i<n) {data[i-1]=v[i]; i++;}
     if (v) u8_free(v);

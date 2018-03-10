@@ -11,6 +11,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
+#include "framerd/compounds.h"
 #include "framerd/cons.h"
 
 /* Walks the object tree given a walker function. If the walker

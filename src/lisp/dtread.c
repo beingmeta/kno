@@ -13,6 +13,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
+#include "framerd/compounds.h"
 #include "framerd/dtypeio.h"
 
 #include <libu8/u8elapsed.h>
@@ -241,21 +242,28 @@ FD_EXPORT lispval fd_read_dtype(struct FD_INBUF *in)
           lispval result = e->compound_restorefn(car,cdr,e);
           fd_decref(cdr);
           return result;}
-        else if ((VECTORP(cdr)) &&
-                 (VEC_LEN(cdr)<32767)) {
-          struct FD_VECTOR *vec = (struct FD_VECTOR *)cdr;
-          short n_elts = (short)(vec->vec_length);
-          lispval result=
-            fd_init_compound_from_elts
-            (NULL,car,FD_COMPOUND_USEREF,
-             n_elts,vec->vec_elts);
-          /* Note that the incref'd values are now stored in the compound,
-             so we don't decref them ourselves. */
-          u8_free(vec);
-          return result;}
-        else return fd_init_compound
-               (u8_alloc(struct FD_COMPOUND),car,
-                FD_COMPOUND_MUTABLE|FD_COMPOUND_USEREF,1,cdr);}
+        else {
+          int flags = FD_COMPOUND_USEREF;
+          if (e) {
+            if (e->compound_isopaque)
+              flags |= FD_COMPOUND_OPAQUE;
+            if (e->compound_ismutable)
+              flags |= FD_COMPOUND_MUTABLE;
+            if (e->compound_istable)
+              flags |= FD_COMPOUND_TABLE;
+            if (e->compound_istable)
+              flags |= FD_COMPOUND_SEQUENCE;}
+          else if (FD_VECTORP(cdr)) {
+            flags |= FD_COMPOUND_SEQUENCE;}
+          else NO_ELSE;
+          if (FD_VECTORP(cdr)) {
+            struct FD_VECTOR *vec = (struct FD_VECTOR *)cdr;
+            lispval result = fd_init_compound_from_elts
+              (NULL,car,flags,vec->vec_length,vec->vec_elts);
+            vec->vec_length = 0; vec->vec_elts = NULL;
+            fd_decref(cdr);
+            return result;}
+          else return fd_init_compound(NULL,car,flags,1,cdr);}}
       case dt_rational:
         return _fd_make_rational(car,cdr);
       case dt_complex:

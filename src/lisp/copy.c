@@ -11,7 +11,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/cons.h"
+#include "framerd/compounds.h"
 
 #if 0 /* From cons.h */
 #define FD_DEEP_COPY 2   /* Make a deep copy */

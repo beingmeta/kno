@@ -11,6 +11,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
+#include "framerd/compounds.h"
 #include "framerd/sequences.h"
 #include "framerd/history.h"
 
@@ -191,7 +192,7 @@ FD_EXPORT void fd_histinit(int size)
       size = 128;}}
   if (VOIDP(history)) {
     history = fd_init_compound(NULL,history_symbol,
-			       FD_COMPOUND_USEREF,5,
+                               FD_COMPOUND_USEREF,5,
 			       FD_INT(1),
 			       fd_make_hashtable(NULL,size),
 			       fd_make_hashtable(NULL,size),

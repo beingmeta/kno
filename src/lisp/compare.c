@@ -11,6 +11,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
+#include "framerd/compounds.h"
 #include "framerd/cons.h"
 
 static int string_compare(u8_string s1,u8_string s2,int ci);
