@@ -513,7 +513,12 @@ static int vector_search(lispval key,lispval x,int start,int end)
 lispval *fd_seq_elts(lispval seq,int *n)
 {
   int len = seq_length(seq);
-  if (len==0) {*n = 0; return NULL;}
+  if (len < 0) {
+    *n = -1;
+    return NULL;}
+  else if (len==0) {
+    *n = 0;
+    return NULL;}
   else {
     fd_ptr_type ctype = FD_PTR_TYPE(seq);
     lispval *vec = u8_alloc_n(len,lispval);
