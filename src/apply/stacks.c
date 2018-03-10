@@ -41,7 +41,7 @@ struct FD_STACK *fd_stackptr=NULL;
 #endif
 
 static lispval stack_entry_symbol, stack_target_symbol, opaque_symbol,
-  env_symbol, args_symbol;;
+  pbound_symbol, pargs_symbol;
 
 static int tidy_stack_frames = 1;
 
@@ -127,7 +127,7 @@ static lispval stack2lisp(struct FD_STACK *stack,struct FD_STACK *inner)
   lispval type = FD_FALSE, label = FD_FALSE, status = FD_FALSE;
   lispval op = stack->stack_op, env = FD_FALSE;
   lispval argvec = ( stack->stack_args ) ?
-    (fd_init_compound_from_elts(NULL,args_symbol,
+    (fd_init_compound_from_elts(NULL,pargs_symbol,
                                 FD_COMPOUND_COPYREF|FD_COMPOUND_SEQUENCE,
                                 stack->n_args,
                                 stack->stack_args)) :
@@ -151,7 +151,8 @@ static lispval stack2lisp(struct FD_STACK *stack,struct FD_STACK *inner)
   if (stack->stack_env) {
     lispval bindings = stack->stack_env->env_bindings;
     if ( (SLOTMAPP(bindings)) || (SCHEMAPP(bindings)) ) {
-      env = fd_copier(bindings,FD_FULL_COPY);}}
+      lispval copied = fd_copier(bindings,FD_FULL_COPY);
+      env = fd_init_compound(NULL,pbound_symbol,0,1,copied);}}
 
   if (FD_VOIDP(op)) op = FD_FALSE;
   if (FD_VOIDP(source))
@@ -254,8 +255,8 @@ void fd_init_stacks_c()
   opaque_symbol = fd_intern("%OPAQUE");
   stack_entry_symbol = fd_intern("_STACK");
   stack_target_symbol = fd_intern("$<<*eval*>>$");
-  env_symbol = fd_intern("%ENV");
-  args_symbol = fd_intern("%ARGS");
+  pbound_symbol = fd_intern("%BOUND");
+  pargs_symbol = fd_intern("%ARGS");
 }
 
 /* Emacs local variables
