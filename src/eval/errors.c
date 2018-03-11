@@ -670,6 +670,39 @@ static lispval stack_entry_status(lispval stackobj)
   return fd_compound_ref(stackobj,stack_entry_symbol,7,FD_FALSE);
 }
 
+static u8_string static_string(lispval x)
+{
+  if (FD_SYMBOLP(x))
+    return FD_SYMBOL_NAME(x);
+  else if (FD_STRINGP(x)) {
+    u8_string s = FD_CSTRING(x);
+    lispval sym = fd_intern(s);
+    return FD_SYMBOL_NAME(sym);}
+  else return "BadExceptionArgument";
+}
+
+static lispval make_exception(lispval cond,lispval cxt,lispval details,
+                              lispval threadid,lispval sessionid,
+                              lispval moment,lispval timebase,
+                              lispval stack,lispval context,
+                              lispval irritant)
+{
+  double secs = (FD_FLONUMP(moment)) ? (FD_FLONUM(moment)) : (-1);
+  struct FD_TIMESTAMP *tstamp = (FD_TYPEP(timebase,fd_timestamp_type)) ?
+    ((fd_timestamp) timebase) : (NULL);
+  time_t tick = (FD_FIXNUMP(timebase)) ? (FD_FIX2INT(timebase)) :
+    (tstamp) ? (tstamp->u8xtimeval.u8_tick) : (-1);
+  return fd_init_exception
+    (NULL,(u8_condition) static_string(cond),
+     (u8_condition) static_string(cxt),
+     (FD_STRINGP(details)) ? (u8_strdup(FD_CSTRING(details))) : (NULL),
+     (FD_DEFAULTP(irritant)) ? (FD_VOID) : (fd_incref(irritant)),
+     fd_incref(stack),fd_incref(context),
+     (FD_STRINGP(sessionid)) ? (u8_strdup(FD_CSTRING(sessionid))) : (NULL),
+     (FD_FIXNUMP(threadid)) ? (FD_FIX2INT(threadid)) : (-1),
+     secs,tick);
+}
+
 /* Clear errors */
 
 FD_EXPORT void fd_init_errors_c()
@@ -786,6 +819,12 @@ FD_EXPORT void fd_init_errors_c()
   fd_defalias(fd_scheme_module,"EX/COND","EXCEPTION-CONDITION");
   fd_defalias(fd_scheme_module,"EX/DETAILS","EXCEPTION-DETAILS");
 
+  fd_idefn10(fd_scheme_module,"MAKE-EXCEPTION",make_exception,1|FD_NDCALL,
+             "Creates an exception object",
+             -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
+             -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
+             -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
+             -1,FD_VOID);
 
   fd_defalias(fd_scheme_module,"ERROR-CONDITION","EXCEPTION-CONDITION");
   fd_defalias(fd_scheme_module,"ERROR-CALLER","EXCEPTION-CALLER");
