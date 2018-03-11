@@ -376,7 +376,7 @@ static lispval characterp(lispval x)
   if (FD_CHARACTERP(x)) return FD_TRUE; else return FD_FALSE;
 }
 
-static lispval errorp(lispval x)
+static lispval exceptionp(lispval x)
 {
   if (FD_EXCEPTIONP(x))
     return FD_TRUE;
@@ -772,7 +772,8 @@ FD_EXPORT void fd_init_coreprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("CHARACTER?",characterp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("FCNID?",opcodep,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("OPCODE?",opcodep,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("ERROR?",errorp,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("EXCEPTION?",exceptionp,1));
+  fd_defalias(fd_scheme_module,"ERROR?","EXCEPTION?");
   fd_idefn(fd_scheme_module,fd_make_cprim1("APPLICABLE?",applicablep,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("FCNID?",fcnidp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("FLONUM?",flonump,1));
