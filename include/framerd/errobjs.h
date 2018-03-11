@@ -5,10 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FRAMERD_LISPERRS_H
-#define FRAMERD_LISPERRS_H 1
-#ifndef FRAMERD_LISPERRS_H_INFO
-#define FRAMERD_LISPERRS_H_INFO "include/framerd/lisperrs.h"
+#ifndef FRAMERD_ERROBJS_H
+#define FRAMERD_ERROBJS_H 1
+#ifndef FRAMERD_ERROBJS_H_INFO
+#define FRAMERD_ERROBJS_H_INFO "include/framerd/errobjs.h"
 #endif
 
 /* Error handling */
@@ -70,7 +70,7 @@ FD_EXPORT u8_condition fd_retcode_to_exception(lispval err);
 
 FD_EXPORT lispval fd_exception_backtrace(u8_exception ex);
 
-#endif /* ndef FRAMERD_LISPERRS_H */
+#endif /* ndef FRAMERD_ERROBJS_H */
 
 /* Emacs local variables
    ;;;  Local variables: ***

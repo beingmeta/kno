@@ -13,7 +13,7 @@
 #include "framerd/dtype.h"
 #include "framerd/compounds.h"
 #include "framerd/support.h"
-#include "framerd/lisperrs.h"
+#include "framerd/errobjs.h"
 #include "framerd/eval.h"
 #include "framerd/ports.h"
 #include "framerd/sequences.h"
@@ -725,7 +725,7 @@ static lispval make_exception(lispval cond,lispval cxt,lispval details,
 
 /* Clear errors */
 
-FD_EXPORT void fd_init_errors_c()
+FD_EXPORT void fd_init_errfns_c()
 {
   u8_register_source_file(_FILEINFO);
 

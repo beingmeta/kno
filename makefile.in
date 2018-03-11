@@ -75,7 +75,7 @@ LISP_HEADERS=\
  include/framerd/fdsource.h                          \
  include/framerd/config.h                            \
  include/framerd/common.h                            \
- include/framerd/lisperrs.h                          \
+ include/framerd/errobjs.h                          \
  include/framerd/defines.h                           \
  include/framerd/support.h                           \
  include/framerd/numbers.h                           \
@@ -147,7 +147,7 @@ LISP_OBJS=\
 
 SUPPORT_OBJS=						\
 	src/support/buildinfo.o src/support/support.o	\
-	src/support/config.o src/support/lisperrs.o	\
+	src/support/config.o src/support/errobjs.o	\
 	src/support/logging.o src/support/getopt.o	\
 	src/support/startup.o src/support/fluid.o 	\
 	src/support/signals.o src/support/posix.o	\
@@ -195,7 +195,7 @@ CORE_SCHEME_OBJS=\
 	src/eval/macros.o\
 	src/eval/threads.o\
 	src/eval/quasiquote.o \
-	src/eval/errors.o\
+	src/eval/errfns.o\
 	src/eval/conditionals.o\
 	src/eval/iterators.o
 
@@ -391,7 +391,7 @@ FRAMERD_SOURCES=\
 	src/lisp/parse.c src/lisp/unparse.c src/lisp/lisp.c 			\
 	src/support/buildinfo.c 						\
 	src/support/support.c src/support/config.c src/support/posix.c		\
-	src/support/lisperrs.c src/support/logging.c src/support/getopt.c	\
+	src/support/errobjs.c src/support/logging.c src/support/getopt.c	\
 	src/support/startup.c src/support/fluid.c src/support/signals.c		\
 	src/apply/apply.c src/apply/stacks.c src/apply/lexenv.c 		\
 	src/apply/ffi.c								\
@@ -414,7 +414,7 @@ FRAMERD_SOURCES=\
 	src/drivers/netpool.c src/drivers/netindex.c				\
 	src/eval/eval.c src/eval/opcodes.c 					\
 	src/eval/binders.c src/eval/lambda.c 					\
-	src/eval/macros.c src/eval/errors.c     				\
+	src/eval/macros.c src/eval/errfns.c     				\
 	src/eval/conditionals.c src/eval/iterators.c               		\
         src/eval/threads.c src/eval/quasiquote.c               			\
 	src/eval/modules.c src/eval/load.c src/eval/reflection.c 		\

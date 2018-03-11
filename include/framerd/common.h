@@ -107,7 +107,7 @@ FD_EXPORT u8_condition fd_FileNotFound, fd_NoSuchFile;
 /* Generic support */
 
 #include "support.h"
-#include "lisperrs.h"
+#include "errobjs.h"
 
 #endif /* ndef FRAMERD_COMMON_H */
 

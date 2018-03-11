@@ -3310,7 +3310,7 @@ static void init_localfns()
 
 }
 
-FD_EXPORT void fd_init_errors_c(void);
+FD_EXPORT void fd_init_errfns_c(void);
 FD_EXPORT void fd_init_compoundfns_c(void);
 FD_EXPORT void fd_init_threads_c(void);
 FD_EXPORT void fd_init_conditionals_c(void);
@@ -3348,7 +3348,7 @@ static void init_eval_core()
   fd_init_modules_c();
   fd_init_arith_c();
   fd_init_threads_c();
-  fd_init_errors_c();
+  fd_init_errfns_c();
   fd_init_load_c();
   fd_init_conditionals_c();
   fd_init_iterators_c();
