@@ -3,11 +3,11 @@
 
 (in-module 'bugjar)
 
-(use-module '{fdweb xhtml texttools xhtml/tableout})
+(use-module '{fdweb xhtml texttools xhtml/tableout condense})
 (use-module '{varconfig stringfmts getcontent mimetable gpath logger})
 (define %used_modules '{varconfig})
 
-(module-export! '{bugjar! bugjar/saveroot bugjar/webroot})
+(module-export! '{bugjar! bugjar bugjar/saveroot bugjar/webroot})
 
 (define-init %loglevel %notice%)
 
@@ -95,6 +95,63 @@
 	  (unless (file-directory? dir) (mkdir dir)))
 	dir)
       (error "Root doesn't exist: " root)))
+
+(define (getlogroot uuid)
+  (let* ((date (uuid-time uuid)))
+    (stringout "Y0" (get date 'year) "/"
+      "M" (padnum (1+ (get date 'month)) 2) "/"
+      "D" (padnum (get date 'date) 2))))
+
+(define (makelogroot uuid (root bugjar/saveroot))
+  (if (or (not (string? root)) (has-prefix root "s3:")
+	  (file-directory? root)
+	  (file-directory? (dirname root)))
+      (let* ((date (uuid-time uuid))
+	     (root (->gpath root))
+	     (yname (gp/mkpath root (glom "Y0" (get date 'year))))
+	     (mname (gp/mkpath yname (glom "M" (padnum (1+ (get date 'month)) 2))))
+	     (dname (gp/mkpath mname (glom "D" (padnum (get date 'date) 2)))))
+	(when (string? root)
+	  (unless (file-directory? root) (mkdir root #o777))
+	  (unless (file-directory? yname) (mkdir yname #o777))
+	  (unless (file-directory? mname) (mkdir mname #o777))
+	  (unless (file-directory? dname) (mkdir dname #o777)))
+	(glom yname "/" mname "/" dname "/"))
+      (error "Root doesn't exist: " root)))
+					   
+(define (getlogname uuid)
+  (let ((date (uuid-time uuid)))
+    (glom (padnum (get date 'hours) 2) ":"
+      (padnum (get date 'minutes) 2) ":"
+      (padnum (get date 'seconds) 2)
+      "-" (uuid->string uuid))))
+
+(define (bugjar exception (opts #f))
+  (let* ((uuid (if (uuid? opts) opts (getopt opts 'uuid (getuuid))))
+	 (opts (if (opts? opts) opts `#[uuid ,uuid]))
+	 (saveroot (makelogroot uuid bugjar/saveroot))
+	 (webroot (and bugjar/webroot (mkpath bugjar/webroot (getlogroot uuid))))
+	 (logname (getlogname uuid))
+	 (savepath (gp/makepath saveroot (glom logname ".err")))
+	 (refpath (if webroot 
+		      (mkpath webroot (glom logname ".err"))
+		      (if (string? savepath)
+			  (glom "file:" savepath)
+			  (gpath->string savepath))))
+	 (reqdata (req/getlog))
+	 (reqlog (req/getlog)))
+    (debug%watch exception uuid saveroot webroot logname savepath refpath)
+    (when (string? bugjar/saveroot) (mkdirs (mkpath bugjar/saveroot "example")))
+    (when reqdata (exception/context! exception 'reqdata reqdata))
+    (when reqlog (exception/context! exception 'reqlog reqlog))
+    (dtype->gpath (condense exception) savepath)
+    (logwarn |Bugjar| 
+      "Logged " (exception-condition exception) " " (uuid->string uuid)
+      (when (exception-context exception) (printout " <" (exception-context exception) ">"))
+      (when (exception-details exception) (printout " (" (exception-details exception) ")"))
+      "\n  to " (gpath->string savepath)
+      "\n  at " refpath)
+    refpath))
 
 (define (bugjar! spec exception . sections)
   (if (uuid? spec) (set! spec `#[uuid ,spec]) (set! spec #[]))
@@ -245,6 +302,24 @@
 	(mkpath bugjar/webroot "backtrace.html")
 	(glom "file://" (gp/mkpath bugjar/saveroot "backtrace.html")))))
 
+;;;; HTML error
 
-
-
+(define (bugjar/html-handler (exception #f) (uuid (getuuid)))
+  (title! (exception-condition exception) " "
+	  (when (exception-caller exception)
+	    (printout "- " (exception-caller exception)))
+	  " - " (uuid->string uuid))
+  (h1 "Unexpected " (tt (exception-condition exception))
+    (when (exception-caller exception) (span ((class "caller")) (exception-caller exception))))
+  (when (exception-details exception)
+    (p* ((class "details")) (htmlout (exception-details exception))))
+  (p* ((class "errorid")) (uuid->string uuid))
+  (when (exception-irritant? exception)
+    (xmlblock "PRE" ((class "irritant"))
+      (pprint (exception-irritant))))
+  (let ((ref (bugjar exception uuid)))
+    (if ref
+	(p* ((class "location"))
+	  "This error was logged at " (anchor ref ref))
+	(p* ((class "sorry"))
+	  "Sorry, this error couldn't be logged"))))
