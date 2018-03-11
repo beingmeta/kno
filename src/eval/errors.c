@@ -319,15 +319,6 @@ static lispval exception_has_irritant(lispval x)
   else return FD_TRUE;
 }
 
-static lispval exception_session(lispval x)
-{
-  struct FD_EXCEPTION *xo=
-    fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
-  if (xo->ex_session)
-    return lispval_string(xo->ex_session);
-  else return FD_TRUE;
-}
-
 static lispval exception_moment(lispval x)
 {
   struct FD_EXCEPTION *xo=
@@ -364,6 +355,36 @@ static lispval exception_sessionid(lispval x)
   else return FD_FALSE;
 }
 
+static lispval exception_add_context(lispval x,lispval slotid,lispval value)
+{
+  struct FD_EXCEPTION *xo=
+    fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
+  lispval context = xo->ex_context;
+  lispval slotmap = FD_VOID;
+  if ( (FD_NULLP(context)) || (FD_VOIDP(context)) || (FD_FALSEP(context)) )
+    context = FD_EMPTY;
+  if (FD_VOIDP(value)) {}
+  else if (FD_SLOTMAPP(context))
+    slotmap = context;
+  else if (FD_CHOICEP(context)) {
+    FD_DO_CHOICES(cxt,context) {
+      if (FD_SLOTMAPP(context))  {
+        slotmap = cxt;
+        FD_STOP_DO_CHOICES;}}}
+  else NO_ELSE;
+  if (FD_VOIDP(value)) {
+    fd_incref(slotid);
+    FD_ADD_TO_CHOICE(context,slotid);}
+  else if (!(FD_SLOTMAPP(slotmap))) {
+    slotmap = fd_make_slotmap(4,0,NULL);
+    FD_ADD_TO_CHOICE(context,slotmap);}
+  else NO_ELSE;
+  if (FD_SLOTMAPP(slotmap))
+    fd_add(slotmap,slotid,value);
+  xo->ex_context = context;
+  return FD_VOID;
+}
+
 static lispval condition_symbol, caller_symbol, timebase_symbol, moment_symbol,
   thread_symbol, details_symbol, session_symbol, context_symbol,
   irritant_symbol, stack_symbol, env_tag, args_tag;
@@ -371,7 +392,6 @@ static lispval condition_symbol, caller_symbol, timebase_symbol, moment_symbol,
 
 static lispval exception2slotmap(lispval x,lispval with_stack_arg)
 {
-  int with_stack = (!(FD_FALSEP(with_stack)));
   struct FD_EXCEPTION *xo=
     fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
   lispval result = fd_make_slotmap(7,0,NULL);
@@ -640,12 +660,12 @@ static lispval stack_entry_type(lispval stackobj)
   return fd_compound_ref(stackobj,stack_entry_symbol,1,FD_FALSE);
 }
 
-static lispval stack_entry_op(lispval stackobj)
+static lispval stack_entry_label(lispval stackobj)
 {
   return fd_compound_ref(stackobj,stack_entry_symbol,2,FD_FALSE);
 }
 
-static lispval stack_entry_label(lispval stackobj)
+static lispval stack_entry_op(lispval stackobj)
 {
   return fd_compound_ref(stackobj,stack_entry_symbol,3,FD_FALSE);
 }
@@ -819,6 +839,11 @@ FD_EXPORT void fd_init_errors_c()
   fd_defalias(fd_scheme_module,"EX/COND","EXCEPTION-CONDITION");
   fd_defalias(fd_scheme_module,"EX/DETAILS","EXCEPTION-DETAILS");
 
+  fd_idefn3(fd_scheme_module,"EXCEPTION/CONTEXT!",
+            exception_add_context,2|FD_NDCALL,
+            "Creates an exception object",
+            fd_exception_type,VOID,-1,FD_VOID,-1,FD_VOID);
+
   fd_idefn10(fd_scheme_module,"MAKE-EXCEPTION",make_exception,1|FD_NDCALL,
              "Creates an exception object",
              -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
@@ -867,7 +892,7 @@ FD_EXPORT void fd_init_errors_c()
             "Returns the status of a stack entry",
             fd_compound_type,FD_VOID);
 
-  stack_entry_symbol = fd_intern("%STACK");
+  stack_entry_symbol = fd_intern("_STACK");
   condition_symbol = fd_intern("CONDITION");
   caller_symbol = fd_intern("CALLER");
   timebase_symbol = fd_intern("TIMEBASE");
