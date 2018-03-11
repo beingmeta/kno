@@ -308,7 +308,14 @@ FD_EXPORT lispval fd_reduce(lispval fn,lispval sequence,lispval result)
 
 static lispval sequencep_prim(lispval x)
 {
-  if (FD_SEQUENCEP(x)) return FD_TRUE; else return FD_FALSE;
+  if (FD_COMPOUNDP(x)) {
+    struct FD_COMPOUND *c = (fd_compound) x;
+    if (c->compound_off >= 0)
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else if (FD_SEQUENCEP(x))
+    return FD_TRUE;
+  else return FD_FALSE;
 }
 
 static lispval seqlen_prim(lispval x)

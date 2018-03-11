@@ -41,7 +41,8 @@ FD_EXPORT lispval fd_removeif(lispval test,lispval sequence,int invert);
 FD_EXPORT int fd_generic_position(lispval key,lispval x,int start,int end);
 FD_EXPORT int fd_generic_search(lispval subseq,lispval seq,int start,int end);
 
-#define FD_SEQUENCEP(x) ((FD_EMPTY_LISTP(x)) || ((fd_seqfns[FD_PTR_TYPE(x)])!=NULL))
+#define FD_SEQUENCEP(x) \
+  ((FD_EMPTY_LISTP(x)) || ((fd_seqfns[FD_PTR_TYPE(x)])!=NULL))
 
 lispval *fd_seq_elts(lispval seq,int *len);
 lispval fd_makeseq(fd_ptr_type ctype,int n,lispval *v);
