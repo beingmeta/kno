@@ -699,8 +699,8 @@ static lispval make_exception(lispval cond,lispval cxt,lispval details,
      (FD_DEFAULTP(irritant)) ? (FD_VOID) : (fd_incref(irritant)),
      fd_incref(stack),fd_incref(context),
      (FD_STRINGP(sessionid)) ? (u8_strdup(FD_CSTRING(sessionid))) : (NULL),
-     (FD_FIXNUMP(threadid)) ? (FD_FIX2INT(threadid)) : (-1),
-     secs,tick);
+     secs,tick,
+     (FD_FIXNUMP(threadid)) ? (FD_FIX2INT(threadid)) : (-1));
 }
 
 /* Clear errors */

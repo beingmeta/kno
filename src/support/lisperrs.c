@@ -91,8 +91,10 @@ FD_EXPORT void fd_seterr
   lispval exception = fd_init_exception
     (NULL,condition,caller,u8_strdup(details),
      irritant,backtrace,context,
-     NULL,u8_elapsed_time(),u8_threadid(),
-     u8_elapsed_base());
+     u8_sessionid(),
+     u8_elapsed_time(),
+     u8_elapsed_base(),
+     u8_threadid());
   fd_incref(irritant);
   u8_push_exception(condition,caller,u8_strdup(details),
                     (void *)exception,fd_decref_embedded_exception);
@@ -122,8 +124,10 @@ FD_EXPORT lispval fd_wrap_exception(u8_exception ex)
                              u8_strdup(details),
                              fd_incref(irritant),
                              backtrace,FD_VOID,
-                             NULL,ex->u8x_moment,ex->u8x_thread,
-                             u8_elapsed_base());}
+                             u8_sessionid(),
+                             ex->u8x_moment,
+                             u8_elapsed_base(),
+                             ex->u8x_thread);}
 }
 
 /* This gets the 'actual' irritant from a u8_exception, extracting it
@@ -503,8 +507,10 @@ FD_EXPORT lispval fd_init_exception
     u8_condition condition,u8_context caller,
     u8_string details,lispval irritant,
     lispval stack,lispval context,
-    u8_string sid,double moment,long long thread,
-    time_t timebase)
+    u8_string sid,
+    double moment,
+    time_t timebase,
+    long long thread)
 {
   if (exo == NULL) exo = u8_alloc(struct FD_EXCEPTION);
   FD_INIT_CONS(exo,fd_exception_type);
@@ -516,10 +522,10 @@ FD_EXPORT lispval fd_init_exception
   exo->ex_irritant  = irritant;
   exo->ex_stack     = stack;
   exo->ex_context   = context;
-  exo->ex_moment    = moment;
-  exo->ex_thread    = thread;
-  exo->ex_timebase  = timebase;
   exo->ex_session   = sid;
+  exo->ex_moment    = moment;
+  exo->ex_timebase  = timebase;
+  exo->ex_thread    = thread;
   return LISP_CONS(exo);
 }
 
@@ -658,8 +664,9 @@ FD_EXPORT lispval fd_restore_exception_dtype(lispval content)
     return fd_init_exception(NULL,condname,caller,
                              details,irritant,
                              stack,context,
-                             sessionid,moment,-1,
-                             timebase);}
+                             sessionid,moment,
+                             timebase,
+                             -1);}
   else if (FD_SYMBOLP(content)) {
     return fd_init_exception
       (NULL,FD_SYMBOL_NAME(content),
@@ -677,8 +684,8 @@ FD_EXPORT lispval fd_restore_exception_dtype(lispval content)
           "fd_restore_exception_dtype",NULL,content,
           FD_VOID,FD_VOID,NULL,
           u8_elapsed_time(),
-          u8_threadid(),
-          u8_elapsed_base());
+          u8_elapsed_base(),
+          u8_threadid());
 }
 
 static lispval copy_exception(lispval x,int deep)
@@ -690,8 +697,10 @@ static lispval copy_exception(lispval x,int deep)
                            fd_incref(xo->ex_irritant),
                            fd_incref(xo->ex_stack),
                            fd_incref(xo->ex_context),
-                           xo->ex_session,xo->ex_moment,xo->ex_thread,
-                           xo->ex_timebase);
+                           xo->ex_session,
+                           xo->ex_moment,
+                           xo->ex_timebase,
+                           xo->ex_thread);
 }
 
 static int unparse_exception(struct U8_OUTPUT *out,lispval x)

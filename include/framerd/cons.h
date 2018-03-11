@@ -810,8 +810,8 @@ FD_EXPORT lispval fd_init_exception(fd_exception,
                                     u8_condition,u8_context,
                                     u8_string,lispval,
                                     lispval,lispval,
-                                    u8_string,double,long long,
-                                    time_t);
+                                    u8_string,double,time_t,
+                                    long long);
 FD_EXPORT void fd_decref_u8x_xdata(void *ptr);
 FD_EXPORT void fd_decref_embedded_exception(void *ptr);
 

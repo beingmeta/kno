@@ -840,8 +840,9 @@ static lispval threadfinish_prim(lispval args,lispval U8_MAYBE_UNUSED opts)
                 (NULL,ThreadReturnError,"threadfinish_prim",
                  u8_mkstring("%d:%s",retval,strerror(retval)),
                  VOID,VOID,VOID,
-                 NULL,u8_elapsed_time(),tstruct->threadid,
-                 u8_elapsed_base());}
+                 u8_sessionid(),u8_elapsed_time(),
+                 u8_elapsed_base(),
+                 tstruct->threadid);}
             tstruct->result = void_val;}
           fd_incref(result);
           CHOICE_ADD(results,result);}
