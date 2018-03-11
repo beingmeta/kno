@@ -2235,7 +2235,7 @@ static int do_hashtable_op(struct FD_HASHTABLE *ht,fd_tableop op,
 {
   struct FD_KEYVAL *result;
   struct FD_HASH_BUCKET **bucket_loc=NULL;
-  int added=0, was_prechoice=0;
+  int added=0;
   if (EMPTYP(key))
     return 0;
   else if (FD_TROUBLEP(key))
@@ -2287,8 +2287,6 @@ static int do_hashtable_op(struct FD_HASHTABLE *ht,fd_tableop op,
        (op == fd_table_minimize_if_present) ||
        (op == fd_table_increment_if_present)))
     return 0;
-  if ( (result) && (PRECHOICEP(result->kv_val)) )
-    was_prechoice=1;
   switch (op) {
   case fd_table_replace_novoid:
     if (VOIDP(result->kv_val)) return 0;
