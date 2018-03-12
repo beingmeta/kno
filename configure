@@ -10525,7 +10525,7 @@ fi
    if test "${enable_leveldb}" = "yes" &&
       test "${ac_cv_header_leveldb_c_h}" = "yes" &&
       test "${leveldb_ok}" = "yes"; then
-     DBCMODULES="${DBMODULES} lib/framerd/leveldb.${shared_suffix}";
+      DBMODULES="${DBMODULES} lib/framerd/leveldb.${shared_suffix}";
      INSTALLDBMODULES="${INSTALLDBMODULES} install-leveldb";
    elif test "${enable_leveldb}" = "force"; then
      DBMODULES="lib/framerd/leveldb.${shared_suffix} ${DBMODULES}";
