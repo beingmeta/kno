@@ -6,6 +6,9 @@
 (use-module '{optimize varconfig logger mttools})
 (use-module '{storage/indexes})
 
+(onerror (use-module 'rocksdb))
+(onerror (use-module 'leveldb))
+
 (define (overwriting file)
   (when (file-exists? file)
     (cond ((config 'unsafe)

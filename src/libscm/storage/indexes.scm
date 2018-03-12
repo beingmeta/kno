@@ -7,24 +7,25 @@
 
 (define-init %loglevel %notice%)
 
-(module-export! '{index/copy! index/pack!
+(module-export! '{index/copy! index/pack! index/merge!
 		  index/copy-keys!
 		  index/install!})
 
 ;;; Top level functions
 
 (define (index/copy! from to (opts #f))
-  (let ((in (if (index? from) from
-		(if (string? from)
-		    (open-index from (get-read-opts opts))
-		    (irritant from |NotIndex| index/copy!))))
-	(out (if (index? to) to
+  (let ((out (if (index? to) to
 		 (if (string? to)
 		     (open-index to (get-write-opts opts))
 		     (irritant from |NotIndex| index/copy!)))))
-    (if (equal? (indexctl in 'metadata 'type) "hashindex")
-	(hashindex/copy-keys! in out opts)
-	(index/copy-keys! in out opts))))
+    (do-choices from 
+      (let ((in (if (index? from) from
+		    (if (string? from)
+			(open-index from (get-read-opts opts))
+			(irritant from |NotIndex| index/copy!)))))
+	(if (equal? (indexctl in 'metadata 'type) "hashindex")
+	    (hashindex/copy-keys! in out opts)
+	    (index/copy-keys! in out opts))))))
 
 (define (index/pack! from (to #f) (opts #f))
   (let* ((in (if (index? from) from
@@ -55,6 +56,43 @@
       (index/install! out outfile)
       (when rare (index/install! rare rarefile))
       (when unique (index/install! unique uniquefile)))))
+
+(defambda (index/merge! from outfile (opts #f))
+  (let* ((rarefile (getopt opts 'rarefile))
+	 (uniquefile (getopt opts 'uniquefile))
+	 (merge (open-index from opts))
+	 (out (if (file-exists? outfile)
+		  (open-index outfile opts)
+		  (get-new-index outfile merge opts)))
+	 (rare (and rarefile
+		    (if (file-exists? rarefile)
+			(open-index rarefile opts)
+			(get-new-index rarefile merge opts))))
+	 (unique (and uniquefile 
+		      (if (file-exists? uniquefile)
+			  (open-index uniquefile opts)
+			  (get-new-index uniquefile merge opts))))
+	 (copy-opts `(#[rare ,rare unique ,unique] . ,opts))
+	 (ok #f))
+    (onerror 
+	(begin
+	  (do-choices (in merge)
+	    (let ((copier (cond ((testopt opts 'copier 'generic) index/copy-keys!)
+				((getopt opts 'copier) (getopt opts 'copier))
+				((equal? (indexctl in 'metadata 'type) "hashindex")
+				 hashindex/copy-keys!)
+				(else index/copy-keys!))))
+	      (copier in out copy-opts)))
+	  (set! ok #t)))
+    (when ok
+      (index/install! out outfile)
+      (when (and rare (not (equal? (realpath (index-source rare))
+				   (realpath rarefile))))
+	(index/install! rare rarefile))
+      (when (and unique
+		 (not (equal? (realpath (index-source unique))
+			      (realpath uniquefile))))
+	(index/install! unique uniquefile)))))
 
 (define (index/install! index into)
   (close-index index)

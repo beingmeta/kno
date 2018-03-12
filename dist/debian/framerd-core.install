@@ -20,6 +20,7 @@ usr/bin/hashindexop
 usr/bin/split-pool
 usr/bin/pack-index
 usr/bin/pack-pool
+usr/bin/merge-indexes
 usr/bin/fdgetconfig
 usr/bin/fdsetconfig
 usr/bin/fdsignal
