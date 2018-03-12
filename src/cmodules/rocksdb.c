@@ -27,6 +27,7 @@
 #include "framerd/bufio.h"
 
 #include <libu8/libu8.h>
+#include <libu8/libu8io.h>
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
 #include <libu8/u8printf.h>
@@ -2343,6 +2344,36 @@ static int rocksdb_table_store(lispval db,lispval key,lispval val)
     return 1;}
 }
 
+/* Matching rocksdb  pathnames */
+
+static u8_string rocksdb_matcher(u8_string name,void *data)
+{
+  int rv = 0;
+  if (u8_directoryp(name)) {
+    u8_string lock_file = u8_mkpath(name,"LOCK");
+    u8_string current_file = u8_mkpath(name,"CURRENT");
+    u8_string identity_file = u8_mkpath(name,"IDENTITY");
+    if ( (u8_file_existsp(lock_file)) &&
+         (u8_file_existsp(current_file)) &&
+         (u8_file_existsp(identity_file)) ) {
+      u8_byte *contents  = (u8_byte *) u8_filestring(current_file,NULL);
+      if (contents) {
+        size_t len = strlen(contents);
+        if (contents[len-1] == '\n') contents[len-1]='\0';
+        u8_string current = u8_mkpath(name,contents);
+        if ( (*contents) && (u8_file_existsp(current)) )
+          rv = 1;
+        u8_free(current);
+        u8_free(contents);}}
+    u8_free(lock_file);
+    u8_free(current_file);
+    u8_free(identity_file);}
+  U8_CLEAR_ERRNO();
+  if (rv)
+    return u8_strdup(name);
+  else return NULL;
+}
+
 /* Initialization */
 
 FD_EXPORT int fd_init_rocksdb()
@@ -2461,12 +2492,16 @@ FD_EXPORT int fd_init_rocksdb()
   fd_register_pool_type
     ("rocksdb",
      &rocksdb_pool_handler,
-     rocksdb_pool_open,NULL,NULL);
+     rocksdb_pool_open,
+     rocksdb_matcher,
+     NULL);
 
   fd_register_index_type
     ("rocksdb",
      &rocksdb_index_handler,
-     rocksdb_index_open,NULL,NULL);
+     rocksdb_index_open,
+     rocksdb_matcher,
+     NULL);
 
   fd_finish_module(module);
 
