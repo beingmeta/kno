@@ -541,8 +541,7 @@ static ssize_t write_exception_dtype(struct FD_OUTBUF *out,lispval x)
   u8_string session = (xo->ex_session) ? (xo->ex_session) : (u8_sessionid());
   time_t timebase = xo->ex_timebase;
   double moment = xo->ex_moment;
-  int veclen = (FD_VOIDP(irritant)) ? (8) : (9);
-  lispval vector = fd_empty_vector(veclen);
+  lispval vector = fd_empty_vector(9);
   FD_VECTOR_SET(vector,0,fd_intern(condition));
   if (caller) {
     FD_VECTOR_SET(vector,1,fd_intern(caller));}
@@ -614,7 +613,7 @@ FD_EXPORT lispval fd_restore_exception_dtype(lispval content)
                condval,content);
         condname="BadCondName";}}
     if (len>1) {
-      lispval caller_val = VEC_REF(content,0);
+      lispval caller_val = VEC_REF(content,1);
       if (SYMBOLP(caller_val))
         caller = SYM_NAME(caller_val);
       else if (STRINGP(caller_val)) {
