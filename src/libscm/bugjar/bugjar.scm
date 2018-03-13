@@ -80,9 +80,9 @@
 	  (file-directory? (dirname root)))
       (let* ((date (uuid-time uuid))
 	     (root (->gpath root))
-	     (yname (gp/mkpath root (glom "Y0" (get date 'year))))
-	     (mname (gp/mkpath yname (glom "M" (padnum (1+ (get date 'month)) 2))))
-	     (dname (gp/mkpath mname (glom "D" (padnum (get date 'date) 2))))
+	     (yname (glom "Y0" (get date 'year)))
+	     (mname (glom "M" (padnum (1+ (get date 'month)) 2)))
+	     (dname (glom "D" (padnum (get date 'date) 2)))
 	     (dir (gp/mkpath dname (glom (padnum (get date 'hours) 2) ":"
 				     (padnum (get date 'minutes) 2) ":"
 				     (padnum (get date 'seconds) 2)
@@ -116,7 +116,7 @@
 	  (unless (file-directory? yname) (mkdir yname #o777))
 	  (unless (file-directory? mname) (mkdir mname #o777))
 	  (unless (file-directory? dname) (mkdir dname #o777)))
-	(glom yname "/" mname "/" dname "/"))
+	dname)
       (error "Root doesn't exist: " root)))
 					   
 (define (getlogname uuid)
@@ -141,13 +141,13 @@
 	 (reqdata (req/getlog))
 	 (reqlog (req/getlog)))
     (debug%watch exception uuid saveroot webroot logname savepath refpath)
-    (when (string? bugjar/saveroot) (mkdirs (mkpath bugjar/saveroot "example")))
+    (when (string? saveroot) (mkdirs (mkpath saveroot "example")))
     (when reqdata (exception/context! exception 'reqdata reqdata))
     (when reqlog (exception/context! exception 'reqlog reqlog))
     (dtype->gpath (condense exception) savepath)
     (logwarn |Bugjar| 
       "Logged " (exception-condition exception) " " (uuid->string uuid)
-      (when (exception-context exception) (printout " <" (exception-context exception) ">"))
+      (when (exception-context exception) (printout " <" (exception-caller exception) ">"))
       (when (exception-details exception) (printout " (" (exception-details exception) ")"))
       "\n  to " (gpath->string savepath)
       "\n  at " refpath)
