@@ -955,36 +955,37 @@ lispval fd_stack_eval(lispval expr,fd_lexenv env,
     return fd_deep_copy(expr);
   case fd_choice_type: {
     lispval result = EMPTY;
-    FD_PUSH_STACK(eval_stack,fd_ndevalstack_type,NULL,expr);
+    FD_PUSH_STACK(nd_eval_stack,fd_ndevalstack_type,NULL,expr);
     DO_CHOICES(each_expr,expr) {
-      lispval r = stack_eval(each_expr,env,eval_stack);
+      lispval r = stack_eval(each_expr,env,nd_eval_stack);
       if (FD_ABORTED(r)) {
         FD_STOP_DO_CHOICES;
         fd_decref(result);
-        fd_pop_stack(eval_stack);
+        fd_pop_stack(nd_eval_stack);
         return r;}
       else {CHOICE_ADD(result,r);}}
-    fd_pop_stack(eval_stack);
+    fd_pop_stack(nd_eval_stack);
     return simplify_value(result);}
   case fd_prechoice_type: {
     lispval exprs = fd_make_simple_choice(expr);
-    FD_PUSH_STACK(eval_stack,fd_evalstack_type,NULL,expr);
+    FD_PUSH_STACK(prechoice_eval_stack,fd_evalstack_type,NULL,expr);
     if (CHOICEP(exprs)) {
       lispval results = EMPTY;
       DO_CHOICES(expr,exprs) {
-        lispval result = stack_eval(expr,env,eval_stack);
+        lispval result = stack_eval(expr,env,prechoice_eval_stack);
         if (FD_ABORTED(result)) {
           FD_STOP_DO_CHOICES;
           fd_decref(results);
+          fd_pop_stack(prechoice_eval_stack);
           return result;}
         else {CHOICE_ADD(results,result);}}
       fd_decref(exprs);
-      fd_pop_stack(eval_stack);
+      fd_pop_stack(prechoice_eval_stack);
       return simplify_value(results);}
     else {
-      lispval result = fd_stack_eval(exprs,env,eval_stack,tail);
+      lispval result = fd_stack_eval(exprs,env,prechoice_eval_stack,tail);
       fd_decref(exprs);
-      fd_pop_stack(eval_stack);
+      fd_pop_stack(prechoice_eval_stack);
       return result;}}
   default:
     return fd_incref(expr);}
