@@ -1788,9 +1788,8 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   tests/makefile DIY/makefile 
            etc/gdbinit
 	   exe/.gdbinit
-	   dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit 
-	   tests/.valgrind
-	   tests/lisp/.gdbinit tests/storage/.gdbinit
+	   dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind
+	   tests/lisp/.gdbinit tests/storage/.gdbinit tests/.valgrind
 	   etc/fd_start_servlets etc/fd_start_daemons etc/fd_stop_jobs
 	   etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup
 	   etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog 

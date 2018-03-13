@@ -12717,7 +12717,7 @@ if (test ! -f src/scheme/gpath.scm); then
    fi;
 fi;
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/makefile DIY/makefile etc/gdbinit exe/.gdbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit tests/.valgrind tests/lisp/.gdbinit tests/storage/.gdbinit etc/fd_start_servlets etc/fd_start_daemons etc/fd_stop_jobs etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl etc/fdgdb etc/fdbgexec etc/fdsetconfig etc/fdgetconfig etc/fdconfig tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/fdexectest src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/fdjob etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/ex_servlet.service etc/ex_daemon.service etc/fdaemons.service etc/fdweb.service etc/framerd.service etc/FramerD.plist etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-4.2.spec"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/makefile DIY/makefile etc/gdbinit exe/.gdbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind tests/lisp/.gdbinit tests/storage/.gdbinit tests/.valgrind etc/fd_start_servlets etc/fd_start_daemons etc/fd_stop_jobs etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl etc/fdgdb etc/fdbgexec etc/fdsetconfig etc/fdgetconfig etc/fdconfig tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/fdexectest src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/fdjob etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/ex_servlet.service etc/ex_daemon.service etc/fdaemons.service etc/fdweb.service etc/framerd.service etc/FramerD.plist etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-4.2.spec"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -13430,9 +13430,10 @@ do
     "dbg/runenv.sh") CONFIG_FILES="$CONFIG_FILES dbg/runenv.sh" ;;
     "dbg/.gdbinit") CONFIG_FILES="$CONFIG_FILES dbg/.gdbinit" ;;
     "dbg/.lldbinit") CONFIG_FILES="$CONFIG_FILES dbg/.lldbinit" ;;
-    "tests/.valgrind") CONFIG_FILES="$CONFIG_FILES tests/.valgrind" ;;
+    "dbg/.valgrind") CONFIG_FILES="$CONFIG_FILES dbg/.valgrind" ;;
     "tests/lisp/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/lisp/.gdbinit" ;;
     "tests/storage/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/storage/.gdbinit" ;;
+    "tests/.valgrind") CONFIG_FILES="$CONFIG_FILES tests/.valgrind" ;;
     "etc/fd_start_servlets") CONFIG_FILES="$CONFIG_FILES etc/fd_start_servlets" ;;
     "etc/fd_start_daemons") CONFIG_FILES="$CONFIG_FILES etc/fd_start_daemons" ;;
     "etc/fd_stop_jobs") CONFIG_FILES="$CONFIG_FILES etc/fd_stop_jobs" ;;
