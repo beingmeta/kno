@@ -200,6 +200,7 @@ static lispval copy_compound(lispval x,int flags)
     nc->compound_isopaque = xc->compound_isopaque;
     nc->compound_typetag = fd_incref(xc->compound_typetag);
     nc->compound_length = xc->compound_length;
+    nc->compound_off = xc->compound_off;
     if (flags)
       while (i<n) {
         *write = fd_copier(data[i],flags);

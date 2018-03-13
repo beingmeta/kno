@@ -1563,8 +1563,8 @@ static unsigned int hash_lisp(lispval x)
       struct FD_COMPOUND *c=
         fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);
       if (c->compound_isopaque) {
-        int ctype=FD_PTR_TYPE(x);
-        if ((ctype>0) && (ctype<N_TYPE_MULTIPLIERS))
+        int ctype = FD_PTR_TYPE(x);
+        if ( (ctype>0) && (ctype<N_TYPE_MULTIPLIERS) )
           return hash_mult(x,type_multipliers[ctype]);
         else return hash_mult(x,MYSTERIOUS_MULTIPLIER);}
       else return hash_mult

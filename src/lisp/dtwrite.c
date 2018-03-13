@@ -593,7 +593,7 @@ static ssize_t dtype_compound(struct FD_OUTBUF *out,lispval x)
   int n_bytes = 1;
   fd_write_byte(out,dt_compound);
   n_bytes = n_bytes+fd_write_dtype(out,xc->compound_typetag);
-  if (xc->compound_length==1)
+  if ( (xc->compound_length) == 1 )
     n_bytes = n_bytes+fd_write_dtype(out,xc->compound_0);
   else {
     int i = 0, n = xc->compound_length; lispval *data = &(xc->compound_0);

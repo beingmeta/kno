@@ -61,7 +61,7 @@ FD_FASTOP int seq_length(lispval x)
     return VEC_LEN(x);
   case fd_compound_type: {
     struct FD_COMPOUND *compound = (fd_compound) x;
-    if ((compound->compound_off)<0)
+    if ( (compound->compound_off) < 0 )
       return -1;
     else return (compound->compound_length)-(compound->compound_off);}
     return VEC_LEN(x);

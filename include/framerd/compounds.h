@@ -86,7 +86,7 @@ FD_EXPORT lispval fd_compound_ref(lispval arg,lispval tag,int off,lispval dflt);
 #define FD_COMPOUND_HEADER(n) \
   ((((n)&0x8f)<<8)|(FD_COMPOUND_SEQUENCE))
 #define FD_COMPOUND_HEADER_LENGTH(flags) \
-  ( ((flags)&(FD_COMPOUND_SEQUENCE)) ? (((n)>>8)&0x8f) : (-1))
+  ( ((flags)&(FD_COMPOUND_SEQUENCE)) ? (((n)>>8)&(0x8f)) : (-1))
 
 FD_EXPORT lispval fd_compound_descriptor_type;
 
