@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2005-2017 beingmeta, inc. All rights reserved
 
-(in-module 'bugjar/xhtml)
+(in-module 'bugjar/html)
 
 (use-module '{fdweb xhtml})
 
@@ -51,6 +51,11 @@
     (h1 (tt (exception-condition exception)))
     (when (exception-details exception)
       (p* ((class "details")) (xmlout (exception-details exception)))))
+  (do-choices (msg (req/get 'messages {}))
+    (cond ((and (string? msg) (position #\< msg)) (xhtml msg))
+	  ((string? msg) (p* ((class "message")) msg))
+	  ((applicable? msg) (msg))
+	  (else (p* ((class "message")) msg))))
   (div ((id "BODY"))
     (when (exception-irritant? exception)
       (h2 "Irritant")
