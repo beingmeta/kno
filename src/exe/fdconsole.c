@@ -179,7 +179,7 @@ static lispval histref_prim(int n,lispval *args)
       int rel_off = FD_FIX2INT(path);
       if (FD_CHOICEP(scan)) {
 	ssize_t n_choices = FD_CHOICE_SIZE(scan);
-	size_t off = (rel_off>=0) ?  (rel_off) : (n_choices + rel_off);
+	ssize_t off = (rel_off>=0) ?  (rel_off) : (n_choices + rel_off);
 	if ( (off < 0) || (off > n_choices) )
 	  return fd_err(fd_RangeError,"histref_prim",NULL,path);
 	else {
@@ -188,7 +188,7 @@ static lispval histref_prim(int n,lispval *args)
 	  scan=new_scan;}}
       else if (FD_SEQUENCEP(scan)) {
 	ssize_t n_elts = fd_seq_length(scan);
-	size_t off = (rel_off>=0) ?  (rel_off) : (n_elts + rel_off);
+	ssize_t off = (rel_off>=0) ?  (rel_off) : (n_elts + rel_off);
 	if ( (off < 0) || (off > n_elts) )
 	  return fd_err(fd_RangeError,"histref_prim",NULL,path);
 	else {
