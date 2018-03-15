@@ -1107,9 +1107,9 @@ static int webservefn(u8_client ucl)
     u8_exception ex = u8_erreify(), exscan = ex;
     /* errorpage is used when errors occur.  Currently, it can be a
        procedure (to be called) or an HTML string to be returned.  */
-    lispval errorpage = ((base_env)?
-                      (fd_symeval(errorpage_symbol,base_env)):
-                      (VOID));
+    lispval errorpage = (base_env) ?
+      (fd_symeval(errorpage_symbol,base_env)) :
+      (VOID);
     int depth = 0;
     if (((FD_VOIDP(errorpage))||(errorpage == FD_UNBOUND))&&
         (!(FD_VOIDP(default_errorpage)))) {
@@ -1153,9 +1153,9 @@ static int webservefn(u8_client ucl)
       result = fd_cgiexec(errorpage,cgidata);
       if (FD_ABORTP(result)) {
         u8_exception newex = u8_current_exception, lastex = newex;
-        lispval crisispage = ((base_env)?
-                          (fd_symeval(crisispage_symbol,base_env)):
-                          (VOID));
+        lispval crisispage = (base_env) ?
+          (fd_symeval(crisispage_symbol,base_env)):
+          (VOID);
         if (((FD_VOIDP(crisispage))||(crisispage == FD_UNBOUND))&&
             (!(FD_VOIDP(default_crisispage)))) {
           fd_incref(default_crisispage);

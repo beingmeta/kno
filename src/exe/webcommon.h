@@ -39,7 +39,8 @@ static int U8_MAYBE_UNUSED pid_fd = -1;
 
 static fd_lexenv server_env = NULL;
 
-static MU lispval cgisymbol, main_symbol, setup_symbol, script_filename;
+static MU lispval main_symbol, webmain_symbol, setup_symbol;
+static MU lispval cgisymbol, script_filename;
 static MU lispval uri_slotid, response_symbol, err_symbol, status_symbol;
 static MU lispval browseinfo_symbol, threadcache_symbol;
 static MU lispval http_headers, html_headers, doctype_slotid, xmlpi_slotid;
@@ -66,6 +67,7 @@ static void init_webcommon_symbols()
   uri_slotid = fd_intern("REQUEST_URI");
   query_slotid = fd_intern("QUERY_STRING");
   main_symbol = fd_intern("MAIN");
+  webmain_symbol = fd_intern("WEBMAIN");
   setup_symbol = fd_intern("SETUP");
   cgisymbol = fd_intern("CGIDATA");
   script_filename = fd_intern("SCRIPT_FILENAME");
@@ -112,17 +114,17 @@ static int preflight_set(lispval var,lispval val,void *data)
     vf = FD_DTYPE2FCN(val);
     if ((vf)&&(vf->fcn_name)&&(vf->fcn_filename)) {
       lispval scan = preflight; while (FD_PAIRP(scan)) {
-	lispval fn = FD_CAR(scan);
-	if (val == fn) return 0;
-	else if (FD_FUNCTIONP(fn)) {
-	  struct FD_FUNCTION *f = FD_DTYPE2FCN(fn);
-	  if ((f->fcn_name)&&(f->fcn_filename)&&
-	      (strcmp(f->fcn_name,vf->fcn_name)==0)&&
-	      (strcmp(f->fcn_filename,vf->fcn_filename)==0)) {
-	    struct FD_PAIR *p = fd_consptr(struct FD_PAIR *,scan,fd_pair_type);
-	    p->car = val; fd_incref(val); fd_decref(fn);
-	    return 0;}}
-	scan = FD_CDR(scan);}}
+        lispval fn = FD_CAR(scan);
+        if (val == fn) return 0;
+        else if (FD_FUNCTIONP(fn)) {
+          struct FD_FUNCTION *f = FD_DTYPE2FCN(fn);
+          if ((f->fcn_name)&&(f->fcn_filename)&&
+              (strcmp(f->fcn_name,vf->fcn_name)==0)&&
+              (strcmp(f->fcn_filename,vf->fcn_filename)==0)) {
+            struct FD_PAIR *p = fd_consptr(struct FD_PAIR *,scan,fd_pair_type);
+            p->car = val; fd_incref(val); fd_decref(fn);
+            return 0;}}
+        scan = FD_CDR(scan);}}
     preflight = fd_conspair(val,preflight);
     fd_incref(val);
     return 1;}
@@ -164,17 +166,17 @@ static int postflight_set(lispval var,lispval val,void *data)
     vf = FD_DTYPE2FCN(val);
     if ((vf)&&(vf->fcn_name)&&(vf->fcn_filename)) {
       lispval scan = postflight; while (FD_PAIRP(scan)) {
-	lispval fn = FD_CAR(scan);
-	if (val == fn) return 0;
-	else if (FD_FUNCTIONP(fn)) {
-	  struct FD_FUNCTION *f = FD_DTYPE2FCN(fn);
-	  if ((f->fcn_name)&&(f->fcn_filename)&&
-	      (strcmp(f->fcn_name,vf->fcn_name)==0)&&
-	      (strcmp(f->fcn_filename,vf->fcn_filename)==0)) {
-	    struct FD_PAIR *p = fd_consptr(struct FD_PAIR *,scan,fd_pair_type);
-	    p->car = val; fd_incref(val); fd_decref(fn);
-	    return 0;}}
-	scan = FD_CDR(scan);}}
+        lispval fn = FD_CAR(scan);
+        if (val == fn) return 0;
+        else if (FD_FUNCTIONP(fn)) {
+          struct FD_FUNCTION *f = FD_DTYPE2FCN(fn);
+          if ((f->fcn_name)&&(f->fcn_filename)&&
+              (strcmp(f->fcn_name,vf->fcn_name)==0)&&
+              (strcmp(f->fcn_filename,vf->fcn_filename)==0)) {
+            struct FD_PAIR *p = fd_consptr(struct FD_PAIR *,scan,fd_pair_type);
+            p->car = val; fd_incref(val); fd_decref(fn);
+            return 0;}}
+        scan = FD_CDR(scan);}}
     postflight = fd_conspair(val,postflight);
     fd_incref(val);
     return 1;}
@@ -248,7 +250,7 @@ static int urllog_set(lispval var,lispval val,void *data)
     u8_unlock_mutex(&log_lock);
     return 0;}
   else return fd_reterr
-	 (fd_TypeError,"config_set_urllog",u8_strdup(_("string")),val);
+         (fd_TypeError,"config_set_urllog",u8_strdup(_("string")),val);
 }
 
 static lispval urllog_get(lispval var,void *data)
@@ -285,10 +287,10 @@ static int reqlog_set(lispval var,lispval val,void *data)
       u8_free(reqlogname); reqlogname = NULL;}
     reqlog = u8_alloc(struct FD_STREAM);
     if (fd_init_file_stream(reqlog,filename,
-			    FD_FILE_WRITE,-1,
-			    30000)) {
+                            FD_FILE_WRITE,-1,
+                            30000)) {
       u8_string logstart=
-	u8_mkstring("# Log open %*lt for %s",u8_sessionid());
+        u8_mkstring("# Log open %*lt for %s",u8_sessionid());
       lispval logstart_entry = fd_lispstring(logstart);
       fd_endpos(reqlog);
       reqlogname = u8_strdup(filename);
@@ -307,7 +309,7 @@ static int reqlog_set(lispval var,lispval val,void *data)
     u8_unlock_mutex(&log_lock);
     return 0;}
   else return fd_reterr
-	 (fd_TypeError,"config_set_urllog",u8_strdup(_("string")),val);
+         (fd_TypeError,"config_set_urllog",u8_strdup(_("string")),val);
 }
 
 static lispval reqlog_get(lispval var,void *data)
@@ -333,28 +335,28 @@ static void dolog
     if (urllog) {
       lispval uri = fd_get(cgidata,uri_slotid,FD_VOID);
       u8_string tmp = u8_mkstring(">%s\n@%*lt %g/%g\n",
-				FD_CSTRING(uri),
-				exectime,
-				u8_elapsed_time());
+                                FD_CSTRING(uri),
+                                exectime,
+                                u8_elapsed_time());
       fputs(tmp,urllog); u8_free(tmp);
       fd_decref(uri);}}
   else if (FD_ABORTP(val)) {
     if (urllog) {
       lispval uri = fd_get(cgidata,uri_slotid,FD_VOID); u8_string tmp;
       if (FD_TROUBLEP(val)) {
-	u8_exception ex = u8_erreify();
-	if (ex == NULL)
-	  tmp = u8_mkstring("!%s\n@%*lt %g/%g (mystery error)\n",FD_CSTRING(uri),
-			  exectime,u8_elapsed_time());
+        u8_exception ex = u8_erreify();
+        if (ex == NULL)
+          tmp = u8_mkstring("!%s\n@%*lt %g/%g (mystery error)\n",FD_CSTRING(uri),
+                          exectime,u8_elapsed_time());
 
-	else if (ex->u8x_context)
-	  tmp = u8_mkstring("!%s\n@%*lt %g/%g %s %s\n",FD_CSTRING(uri),
-			  exectime,u8_elapsed_time(),
-			  ex->u8x_cond,ex->u8x_context);
-	else tmp = u8_mkstring("!%s\n@%*lt %g/%g %s\n",FD_CSTRING(uri),
-			     exectime,u8_elapsed_time(),ex->u8x_cond);}
+        else if (ex->u8x_context)
+          tmp = u8_mkstring("!%s\n@%*lt %g/%g %s %s\n",FD_CSTRING(uri),
+                          exectime,u8_elapsed_time(),
+                          ex->u8x_cond,ex->u8x_context);
+        else tmp = u8_mkstring("!%s\n@%*lt %g/%g %s\n",FD_CSTRING(uri),
+                             exectime,u8_elapsed_time(),ex->u8x_cond);}
       else tmp = u8_mkstring("!%s\n@%*lt %g/%g %q\n",FD_CSTRING(uri),
-			   exectime,u8_elapsed_time(),val);
+                           exectime,u8_elapsed_time(),val);
       fputs(tmp,urllog); u8_free(tmp);}
     if (reqlog) {
       fd_store(cgidata,err_symbol,val);
@@ -363,7 +365,7 @@ static void dolog
     if (urllog) {
       lispval uri = fd_get(cgidata,uri_slotid,FD_VOID);
       u8_string tmp = u8_mkstring("<%s\n@%*lt %ld %g/%g\n",FD_CSTRING(uri),
-				len,exectime,u8_elapsed_time());
+                                len,exectime,u8_elapsed_time());
       fputs(tmp,urllog); u8_free(tmp);}
     if ((reqlog) && (reqloglevel>2))
       fd_store(cgidata,response_symbol,lispval_string(response));
@@ -404,14 +406,14 @@ static int preload_set(lispval var,lispval val,void *ignored)
     u8_string filename = FD_CSTRING(val); time_t mtime;
     if (!(u8_file_existsp(filename)))
       return fd_reterr(fd_FileNotFound,"preload_config_set",
-		       u8_strdup(filename),FD_VOID);
+                       u8_strdup(filename),FD_VOID);
     u8_lock_mutex(&preload_lock);
     scan = preloads; while (scan) {
       if (strcmp(filename,scan->preload_filename)==0) {
-	mtime = u8_file_mtime(filename);
-	if (mtime>scan->preload_mtime) break;
-	u8_unlock_mutex(&preload_lock);
-	return 0;}
+        mtime = u8_file_mtime(filename);
+        if (mtime>scan->preload_mtime) break;
+        u8_unlock_mutex(&preload_lock);
+        return 0;}
       else scan = scan->next_preload;}
     if (server_env == NULL) server_env = fd_working_lexenv();
     scan = u8_alloc(struct FD_PRELOAD_LIST);
@@ -437,16 +439,16 @@ static int update_preloads()
     scan = preloads; while (scan) {
       time_t mtime = u8_file_mtime(scan->preload_filename);
       if (mtime>scan->preload_mtime) {
-	lispval load_result;
-	u8_unlock_mutex(&preload_lock);
-	load_result = fd_load_source(scan->preload_filename,server_env,"auto");
-	if (FD_ABORTP(load_result)) {
-	  return fd_interr(load_result);}
-	n_reloads++;
-	fd_decref(load_result);
-	u8_lock_mutex(&preload_lock);
-	if (mtime>scan->preload_mtime)
-	  scan->preload_mtime = mtime;}
+        lispval load_result;
+        u8_unlock_mutex(&preload_lock);
+        load_result = fd_load_source(scan->preload_filename,server_env,"auto");
+        if (FD_ABORTP(load_result)) {
+          return fd_interr(load_result);}
+        n_reloads++;
+        fd_decref(load_result);
+        u8_lock_mutex(&preload_lock);
+        if (mtime>scan->preload_mtime)
+          scan->preload_mtime = mtime;}
       scan = scan->next_preload;}
     last_preload_update = u8_elapsed_time();
     u8_unlock_mutex(&preload_lock);
@@ -491,13 +493,13 @@ static lispval loadcontent(lispval path)
     if (xml == NULL) {
       u8_free(content);
       if (u8_current_exception == NULL) {
-	u8_seterr("BadFDXML","loadconfig/fdxml",u8_strdup(pathname));}
+        u8_seterr("BadFDXML","loadconfig/fdxml",u8_strdup(pathname));}
       u8_log(LOG_CRIT,Startup,"ERROR","Error parsing %s",pathname);
       return FD_ERROR_VALUE;}
     parsed = xml->xml_head;
     while ((FD_PAIRP(parsed)) &&
-	   (FD_STRINGP(FD_CAR(parsed))) &&
-	   (whitespace_stringp(FD_CSTRING(FD_CAR(parsed))))) {
+           (FD_STRINGP(FD_CAR(parsed))) &&
+           (whitespace_stringp(FD_CSTRING(FD_CAR(parsed))))) {
       struct FD_PAIR *old_parsed = (struct FD_PAIR *)parsed;
       parsed = FD_CDR(parsed);
       old_parsed->cdr = FD_EMPTY_LIST;}
@@ -505,7 +507,7 @@ static lispval loadcontent(lispval path)
     env = (fd_lexenv)xml->xml_data; lenv = (lispval)env;
     if (traceweb>0)
       u8_log(LOG_NOTICE,"LOADED","Loaded %s in %f secs",
-		pathname,u8_elapsed_time()-load_start);
+                pathname,u8_elapsed_time()-load_start);
     fd_incref(ldata); fd_incref(lenv);
     u8_free(content);
     fd_free_xml_node(xml);
@@ -524,20 +526,25 @@ static lispval loadcontent(lispval path)
     load_result = fd_load_source(pathname,newenv,NULL);
     if (FD_TROUBLEP(load_result)) {
       if (u8_current_exception == NULL) {
-	u8_seterr("LoadSourceFailed","loadcontent/scheme",
-		  u8_strdup(pathname));}
+        u8_seterr("LoadSourceFailed","loadcontent/scheme",
+                  u8_strdup(pathname));}
       return load_result;}
     fd_decref(load_result);
-    main_proc = fd_eval(main_symbol,newenv);
+    main_proc = fd_eval(webmain_symbol,newenv);
+    if ( (FD_DEFAULTP(main_proc)) ||
+         (FD_VOIDP(main_proc))    ||
+         (FD_UNBOUNDP(main_proc)) ||
+         (FD_ABORTP(main_proc)) )
+      main_proc = fd_eval(main_symbol,newenv);
     if (!(FD_APPLICABLEP(main_proc))) {
       u8_log(LOG_CRIT,"ServletMainNotApplicable",
-	     "From loading %s",pathname);
+             "From loading %s",pathname);
       u8_seterr("ServletMainNotApplicable","loadcontent/scheme",
-		u8_strdup(pathname));
+                u8_strdup(pathname));
       return FD_ERROR_VALUE;}
     if (traceweb>0)
       u8_log(LOG_NOTICE,"LOADED","Loaded %s in %f secs",
-		pathname,u8_elapsed_time()-load_start);
+                pathname,u8_elapsed_time()-load_start);
     return fd_conspair(main_proc,(lispval)newenv);}
 }
 
@@ -548,7 +555,7 @@ static lispval update_pagemap(lispval path)
   int retval = stat(lpath,&fileinfo);
   if (retval<0) {
     u8_log(LOG_CRIT,"StatFailed","Stat on %s failed (errno=%d)",
-	   lpath,errno);
+           lpath,errno);
     u8_graberrno("getcontent",lpath);
     return FD_ERROR_VALUE;}
   u8_init_xtime(&mtime,fileinfo.st_mtime,u8_second,0,0,0);
@@ -558,7 +565,7 @@ static lispval update_pagemap(lispval path)
     return content;}
   lispval pagemap_value =
     fd_conspair(fd_make_timestamp(&mtime),
-		fd_incref(content));
+                fd_incref(content));
   fd_hashtable_store(&pagemap,path,pagemap_value);
   fd_decref(pagemap_value);
   u8_free(lpath);
@@ -567,13 +574,14 @@ static lispval update_pagemap(lispval path)
 
 static lispval getcontent(lispval path)
 {
-  if ((FD_STRINGP(path))&&(u8_file_existsp(FD_CSTRING(path)))) {
+  if ( (FD_STRINGP(path)) &&
+       (u8_file_existsp(FD_CSTRING(path)))) {
     struct stat fileinfo; struct U8_XTIME mtime;
     char *lpath = u8_localpath(FD_CSTRING(path));
     int retval = stat(lpath,&fileinfo);
     if (retval<0) {
       u8_log(LOG_CRIT,"StatFailed","Stat on %s failed (errno=%d)",
-	     lpath,errno);
+             lpath,errno);
       u8_graberrno("getcontent",lpath);
       return FD_ERROR_VALUE;}
     else u8_init_xtime(&mtime,fileinfo.st_mtime,u8_second,0,0,0);
@@ -582,15 +590,15 @@ static lispval getcontent(lispval path)
       u8_lock_mutex(&pagemap_lock);
       pagemap_value = fd_hashtable_get(&pagemap,path,FD_VOID);
       if (FD_VOIDP(pagemap_value)) {
-	lispval content = update_pagemap(path);
-	u8_unlock_mutex(&pagemap_lock);
-	return content;}
+        lispval content = update_pagemap(path);
+        u8_unlock_mutex(&pagemap_lock);
+        return content;}
       else {
-	lispval content=FD_CDR(pagemap_value);
-	fd_incref(content);
-	fd_decref(pagemap_value);
-	u8_unlock_mutex(&pagemap_lock);
-	return content;}}
+        lispval content=FD_CDR(pagemap_value);
+        fd_incref(content);
+        fd_decref(pagemap_value);
+        u8_unlock_mutex(&pagemap_lock);
+        return content;}}
     lispval tval = FD_CAR(pagemap_value), cval = FD_CDR(pagemap_value);
     struct FD_TIMESTAMP *lmtime=
       fd_consptr(fd_timestamp,tval,fd_timestamp_type);
@@ -598,13 +606,15 @@ static lispval getcontent(lispval path)
       /* Loaded version up to date */
       return fd_incref(cval);
     u8_lock_mutex(&pagemap_lock);
-    fd_decref(pagemap_value); pagemap_value = fd_hashtable_get(&pagemap,path,FD_VOID);
+    fd_decref(pagemap_value);
+    pagemap_value = fd_hashtable_get(&pagemap,path,FD_VOID);
     if (FD_VOIDP(pagemap_value)) {
       /* This *should* never happen, but we check anyway */
       lispval content = update_pagemap(path);
       u8_unlock_mutex(&pagemap_lock);
       return content;}
-    tval = FD_CAR(pagemap_value); cval = FD_CDR(pagemap_value);
+    tval = FD_CAR(pagemap_value);
+    cval = FD_CDR(pagemap_value);
     lmtime = fd_consptr(fd_timestamp,tval,fd_timestamp_type);
     if ( (fileinfo.st_mtime) <= (lmtime->u8xtimeval.u8_tick) ) {
       /* Loaded version made up to date before while we got the lock  */
@@ -648,15 +658,15 @@ static void init_webcommon_data()
 static void init_webcommon_configs()
 {
   fd_register_config("TRACEWEB",_("Trace all web transactions"),
-		     fd_boolconfig_get,fd_boolconfig_set,&traceweb);
+                     fd_boolconfig_get,fd_boolconfig_set,&traceweb);
   fd_register_config("WEBDEBUG",_("Show backtraces on errors"),
-		     fd_boolconfig_get,fd_boolconfig_set,&webdebug);
+                     fd_boolconfig_get,fd_boolconfig_set,&webdebug);
   fd_register_config("WEBALLOWDEBUG",_("Allow requests to specify debugging"),
-		     fd_boolconfig_get,fd_boolconfig_set,&weballowdebug);
+                     fd_boolconfig_get,fd_boolconfig_set,&weballowdebug);
   fd_register_config("LOGSTACK",_("Log error stacktraces"),
-		     fd_boolconfig_get,fd_boolconfig_set,&logstack);
+                     fd_boolconfig_get,fd_boolconfig_set,&logstack);
   fd_register_config("ERRORPAGE",_("Default error page for web errors"),
-		     fd_lconfig_get,fd_lconfig_set,&default_errorpage);
+                     fd_lconfig_get,fd_lconfig_set,&default_errorpage);
   fd_register_config
     ("CRISISPAGE",
      _("Default crisis page (for when the error page yields an error)"),
@@ -671,27 +681,29 @@ static void init_webcommon_configs()
      fd_lconfig_get,fd_lconfig_set,&default_nocontentpage);
 
   fd_register_config("PRELOAD",
-		     _("Files to preload into the shared environment"),
-		     preload_get,preload_set,NULL);
+                     _("Files to preload into the shared environment"),
+                     preload_get,preload_set,NULL);
   fd_register_config("URLLOG",_("Where to write URLs where were requested"),
-		     urllog_get,urllog_set,NULL);
+                     urllog_get,urllog_set,NULL);
   fd_register_config("REQLOG",_("Where to write request objects"),
-		     reqlog_get,reqlog_set,NULL);
+                     reqlog_get,reqlog_set,NULL);
   fd_register_config("REQLOGLEVEL",_("Level of transaction logging"),
-		     fd_intconfig_get,fd_intconfig_set,&reqloglevel);
+                     fd_intconfig_get,fd_intconfig_set,&reqloglevel);
   fd_register_config("THREADCACHE",_("Use per-request thread cache"),
-		     fd_boolconfig_get,fd_boolconfig_set,&use_threadcache);
+                     fd_boolconfig_get,fd_boolconfig_set,&use_threadcache);
   fd_register_config("TRACECGI",_("Whether to log all cgidata"),
-		     fd_boolconfig_get,fd_boolconfig_set,&trace_cgidata);
+                     fd_boolconfig_get,fd_boolconfig_set,&trace_cgidata);
   fd_register_config("DOCROOT",
-		     _("File base (directory) for resolving requests"),
-		     fd_sconfig_get,fd_sconfig_set,&docroot);
+                     _("File base (directory) for resolving requests"),
+                     fd_sconfig_get,fd_sconfig_set,&docroot);
   fd_register_config("PREFLIGHT",
-		     _("Preflight (before request handling) procedures"),
-		     preflight_get,preflight_set,NULL);
+                     _("Preflight (before request handling) procedures"),
+                     preflight_get,preflight_set,NULL);
   fd_register_config("POSTFLIGHT",
-		     _("POSTFLIGHT (before request handling) procedures"),
-		     postflight_get,postflight_set,NULL);
+                     _("POSTFLIGHT (before request handling) procedures"),
+                     postflight_get,postflight_set,NULL);
+
+  fd_autoload_config("WEBMOD","WEBLOAD","WEBINITS");
 }
 
 static void shutdown_server(void);
@@ -701,7 +713,7 @@ static void webcommon_shutdown(u8_condition why)
   u8_string exit_filename = fd_runbase_filename(".exit");
   FILE *exitfile = u8_fopen(exit_filename,"w");
   u8_log(LOG_CRIT,"web_shutdown","Shutting down server on %s",
-	 ((why == NULL)?((u8_condition)"a whim"):(why)));
+         ((why == NULL)?((u8_condition)"a whim"):(why)));
   if (portfile)
     if (remove(portfile)>=0) {
       u8_free(portfile); portfile = NULL;}
@@ -779,7 +791,7 @@ static void init_webcommon_finalize()
 
   memset(&sigaction_ignore,0,sizeof(sigaction_ignore));
   sigaction_ignore.sa_handler = SIG_IGN;
-  
+
   memset(&sigaction_shutdown,0,sizeof(sigaction_ignore));
   sigaction_shutdown.sa_sigaction = shutdown_onsignal;
   sigaction_shutdown.sa_flags = SA_SIGINFO;
@@ -836,13 +848,13 @@ static lispval webcommon_adjust_docroot(lispval cgidata,u8_string docroot)
       lispval lisp_docroot = lispval_string(docroot);
       fd_store(cgidata,document_root,lisp_docroot);
       if ((FD_STRINGP(scriptname))&&
-	  ((strncmp(FD_CSTRING(scriptname),FD_CSTRING(incoming_docroot),
-		    FD_STRLEN(incoming_docroot)))==0)) {
-	u8_string local_scriptname = u8_string_append
-	  (docroot,FD_CSTRING(scriptname)+FD_STRLEN(incoming_docroot),NULL);
-	lispval new_scriptname = fd_init_string(NULL,-1,local_scriptname);
-	fd_store(cgidata,script_filename,new_scriptname);
-	fd_decref(new_scriptname);}
+          ((strncmp(FD_CSTRING(scriptname),FD_CSTRING(incoming_docroot),
+                    FD_STRLEN(incoming_docroot)))==0)) {
+        u8_string local_scriptname = u8_string_append
+          (docroot,FD_CSTRING(scriptname)+FD_STRLEN(incoming_docroot),NULL);
+        lispval new_scriptname = fd_init_string(NULL,-1,local_scriptname);
+        fd_store(cgidata,script_filename,new_scriptname);
+        fd_decref(new_scriptname);}
       fd_decref(lisp_docroot); fd_decref(scriptname);}
     fd_decref(incoming_docroot);
     return cgidata;}
