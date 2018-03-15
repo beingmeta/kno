@@ -651,6 +651,7 @@ FD_EXPORT lispval fd_register_constant(u8_string name);
 #define FD_EOFP(x) ((x) == (FD_EOF))
 #define FD_EODP(x) ((x) == (FD_EOD))
 #define FD_EOXP(x) ((x) == (FD_EOX))
+#define FD_UNBOUNDP(x) ((x) == (FD_UNBOUND))
 
 #define FD_AGNOSTICP(x) ( (FD_VOIDP(x)) || (FD_DEFAULTP(x)) )
 #define FD_BREAKP(result) ((result) == (FD_BREAK))
