@@ -646,7 +646,7 @@ dbg/%: src/exe/%.c $(STATIC_LIBS)
 	      $(TEST_LDFLAGS) $(TEST_EXEFLAGS) 	\
 	      -lu8stdio -lu8syslog 		\
 	      $(LIBS) $(EXELIBS)
-dbg/%: ${REVISION_H} ${CONFIG_H}
+dbg/%: ${REVISION_H} ${CONFIG_H} src/exe/main.h src/exe/webcommon.h
 
 etc/%: etc/%.in ./config.status
 	@echo "Configuring $@"
