@@ -2746,14 +2746,8 @@ FD_EXPORT void fd_set_app_env(fd_lexenv env)
   else if (fd_app_env) {
     fd_lexenv old_env=fd_app_env;
     fd_app_env=NULL;
-    fd_decref((lispval)old_env);
-    /* Decref it again if it's in the default_env */
-    if ( (default_env) &&
-         (default_env->env_parent == old_env) ) {
-      default_env->env_parent = NULL;
-      fd_decref((lispval)old_env);}}
+    fd_decref((lispval)old_env);}
   fd_app_env=env;
-  if (default_env) default_env->env_parent = env;
   if (env) {
     int modules_loaded = 0, files_loaded = 0;
     int modules_failed = 0, files_failed = 0;
