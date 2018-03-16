@@ -1,0 +1,68 @@
+body {
+    font-family: arial,sans; 
+    padding-bottom: 1em;
+    margin: 0px;}
+div.exception_header {
+    padding-left: 3px; padding-right: 3px; padding-top: 0px; 
+    margin-bottom: 1ex; margin-right: 0px; 
+    background-color: silver; 
+    border-bottom: solid black 2px;}
+div.exception_header span.floatright {
+    font-size: 80%;
+    float: right; 
+    clear: right;}
+div.exception_header h1 { 
+    margin-top: 0px; margin-bottom: 0px; }
+div.exception_header p { 
+    margin-left: 2em;  }
+div.exception_messages {
+    padding-left: 2em; padding-right: 2em; padding-bottom: 1ex; 
+    margin-bottom: 1em;
+    background-color: ivory; color: purple;
+    border-bottom: solid black 1ex;}
+
+div.exception_body {
+    margin-left: 5vw;
+    margin-right: 2vw;}
+
+.expands { 
+    max-width: 93vw;
+    max-height: 10em;
+    overflow: auto;
+    padding-right: 1ex;
+    padding-bottom: 1ex;
+    border-bottom: dotted gray 3px;
+    cursor: pointer;}
+.expands.expanded { 
+    max-height: inherit; 
+    border-bottom: solid black 3px;}
+
+div.exception_body h2 { 
+    text-align: left; 
+    margin-left: -3vw; margin-bottom: 1px;
+    border-top: double black 2px; 
+    font-variant: small-caps;}
+div.exception_body h2:first-child { border-top: none; }
+div.exception_body div.backtrace { margin-left: -2vw; }
+div.exception_body pre { margin-top: 1px; }
+div.stack { border-top: solid black 1px; margin-bottom: 1em; }
+div.stack:first-child { border-top: none; }
+div.stack pre { display: inline; margin-bottom: 0px; }
+div.stack li pre { display: block; }
+div.stack span.info { font-size: 70%; float: right; margin-left: 2em; }
+div.stack span.info span.type { font-weight: bold; ;}
+div.stack span.label { font-size: 120%; font-weight: bold; padding-right: 1em; ;}
+div.stack span.op { white-space: nowrap; font-size: 80%; }
+div.stack div.bindings { margin-left: 2vw; }
+div.stack div.bindings .binding { 
+    display: inline-block; 
+    white-space: nowrap;
+    padding-right: 1ex;}
+div.stack div.bindings .binding .name { font-weight: bold; }
+div.stack div.bindings .binding .value { display: inline; }
+div.stack div.bindings .binding .status { font-style: italic; }
+p,li,ul,ol {
+    text-align: left; 
+    margin-right: 2em; 
+    margin-top: 1px; 
+    margin-bottom: 1px;}
