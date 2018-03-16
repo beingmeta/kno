@@ -466,7 +466,7 @@ static lispval exception_stack(lispval x,lispval arg1,lispval arg2)
   struct FD_EXCEPTION *xo=
     fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
   if (!(FD_VECTORP(xo->ex_stack)))
-    return FD_FALSE; /* Warn? */
+    return fd_empty_vector(0);
   else {
     struct FD_VECTOR *stack = (fd_vector) (xo->ex_stack);
     size_t stack_len   = stack->vec_length;
@@ -690,7 +690,7 @@ static lispval stack_entry_status(lispval stackobj)
   return fd_compound_ref(stackobj,stack_entry_symbol,7,FD_FALSE);
 }
 
-static u8_string static_string(lispval x)
+static u8_string static_string(lispval x,int err)
 {
   if (FD_SYMBOLP(x))
     return FD_SYMBOL_NAME(x);
@@ -698,10 +698,12 @@ static u8_string static_string(lispval x)
     u8_string s = FD_CSTRING(x);
     lispval sym = fd_intern(s);
     return FD_SYMBOL_NAME(sym);}
-  else return "BadExceptionArgument";
+  else if (err)
+    return "BadExceptionArgument";
+  else return NULL;
 }
 
-static lispval make_exception(lispval cond,lispval cxt,lispval details,
+static lispval make_exception(lispval cond,lispval caller,lispval details,
                               lispval threadid,lispval sessionid,
                               lispval moment,lispval timebase,
                               lispval stack,lispval context,
@@ -713,8 +715,8 @@ static lispval make_exception(lispval cond,lispval cxt,lispval details,
   time_t tick = (FD_FIXNUMP(timebase)) ? (FD_FIX2INT(timebase)) :
     (tstamp) ? (tstamp->u8xtimeval.u8_tick) : (-1);
   return fd_init_exception
-    (NULL,(u8_condition) static_string(cond),
-     (u8_condition) static_string(cxt),
+    (NULL,(u8_condition) static_string(cond,1),
+     (u8_condition) static_string(caller,0),
      (FD_STRINGP(details)) ? (u8_strdup(FD_CSTRING(details))) : (NULL),
      (FD_DEFAULTP(irritant)) ? (FD_VOID) : (fd_incref(irritant)),
      fd_incref(stack),fd_incref(context),
