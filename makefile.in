@@ -1568,9 +1568,9 @@ really-install-libscm:
 	  $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM}/$$dir;		\
 	  $(SYSINSTALL) @install_file_opts@ src/libscm/$$dir/*.scm 		\
 	    $(DESTDIR)${LIBSCM}/$$dir; done;
-	  $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM}/bugjar/websrc;
-	  $(SYSINSTALL) @install_file_opts@ src/libscm/bugjar/websrc/*		\
-	       $(DESTDIR)${LIBSCM}/bugjar/websrc;
+	  $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM}/bugjar/resources;
+	  $(SYSINSTALL) @install_file_opts@ src/libscm/bugjar/resources/*	\
+	       $(DESTDIR)${LIBSCM}/bugjar/resources;
 
 logdirs: $(DESTDIR)@framerd_logdir@ $(DESTDIR)@servlet_logdir@ \
 	$(DESTDIR)@daemon_logdir@

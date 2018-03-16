@@ -3,16 +3,16 @@
 
 (in-module 'bugjar)
 
-(use-module '{fdweb xhtml texttools xhtml/tableout condense})
-(use-module '{varconfig stringfmts getcontent mimetable gpath logger})
+(use-module '{fdweb xhtml texttools xhtml/tableout gpath condense})
+(use-module '{varconfig stringfmts getcontent mimetable logger})
 (define %used_modules '{varconfig})
 
 (module-export! '{bugjar! bugjar bugjar/saveroot bugjar/webroot})
 
 (define-init %loglevel %notice%)
 
-(define bugjar-css (get-component "websrc/bugjar.css"))
-(define bugjar-js (get-component "websrc/bugjar.js"))
+(define bugjar-css (get-component "resources/bugjar.css"))
+(define bugjar-js (get-component "resources/bugjar.js"))
 
 (define datetime markup*fn)
 
@@ -126,6 +126,8 @@
       (padnum (get date 'seconds) 2)
       "-" (uuid->string uuid))))
 
+(define bugjar-tmpdir #f)
+
 (define (bugjar exception (opts #f))
   (let* ((uuid (if (uuid? opts) opts (getopt opts 'uuid (getuuid))))
 	 (opts (if (opts? opts) opts `#[uuid ,uuid]))
@@ -138,7 +140,7 @@
 		      (if (string? savepath)
 			  (if (has-prefix savepath "file:") savepath (glom "file:" savepath))
 			  (gpath->string savepath))))
-	 (reqdata (req/getlog))
+	 (reqdata (req/data))
 	 (reqlog (req/getlog)))
     (debug%watch exception uuid saveroot webroot logname savepath refpath)
     (when (string? saveroot) (mkdirs (mkpath saveroot "example")))

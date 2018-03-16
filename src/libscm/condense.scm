@@ -2,13 +2,16 @@
 
 (in-module 'condense)
 
-(use-module '{reflection})
+(use-module '{reflection varconfig logger})
+
+(define %loglevel %debug%)
 
 (module-export! '{condense condense/expand})
 
 (define (asis? object)
-  (or (not (cons? object))
-      (number? object) (symbol? object)
+  (or (not (cons? object)) (symbol? object)
+      (uuid? object) (timestamp? object) (regex? object)
+      (number? object) 
       (and (string? object) (< (length object) 200))
       (and (packet? object) (<= (length object) 64))))
 
@@ -105,6 +108,7 @@
 	     (macro? object) (special-form? object) (procedure? object)
 	     (%lexref? object) (dtserver? object)
 	     (opcode? object) (thread? object) (synchronizer? object))
+	 (debug%watch "Wrapping OPAQUE object " object)
 	 (try (get uuids (hashptr object))
 	      (add-condensed object root uuids
 			     (make-compound '%opaque (stringout object)))))
@@ -136,6 +140,8 @@
 		  (forseq (elt (->list components))
 		    (if (asis? elt) elt
 			(dump-elt elt object refcounts root uuids ptr))))))))
+	((or (string? object) (packet? object) (secret? object))
+	 (add-condensed object root uuids object))
 	((hashtable? object)
 	 (let ((uuid (getuuid))
 	       (ptr (hashptr object))
@@ -146,6 +152,16 @@
 	     (store! condensed
 	       (if (asis? key) key (dump-elt key object refcounts root uuids))
 	       (dump-elt (get object key) object refcounts root uuids)))
+	   condensed))
+	((hashset? object)
+	 (let* ((uuid (getuuid))
+		(ptr (hashptr object))
+		(elts (hashset-elts object))
+		(celts (for-choices (elt elts)
+			 (dump-elt elt object refcounts root uuids)))
+		(condensed (choice->hashset celts)))
+	   (store! uuids ptr uuid)
+	   (store! root uuid condensed)
 	   condensed))
 	((pair? object)
 	 (cons (dumper (car object) refcounts root uuids)
@@ -178,6 +194,7 @@
 	(else (try (get uuids (hashptr object))
 		   (let ((stringform (stringout object))
 			 (ptr (hashptr object)))
+		     (debug%watch "Fall through to opaque " object)
 		     (if (> (get refcounts ptr) 1)
 			 (add-condensed object root uuids
 					(make-compound '%opaque stringform))
