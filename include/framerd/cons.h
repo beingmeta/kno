@@ -779,6 +779,8 @@ typedef struct FD_REGEX *fd_regex;
 
 FD_EXPORT lispval fd_make_regex(u8_string src,int flags);
 
+#define FD_REGEXP(x) (FD_PTR_TYPE(x) == fd_regex_type)
+
 /* Mysteries */
 
 typedef struct FD_MYSTERY_DTYPE {
