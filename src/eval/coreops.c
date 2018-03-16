@@ -285,6 +285,10 @@ static lispval valid_utf8p(lispval x)
     else return FD_FALSE;}
   else return FD_FALSE;
 }
+static lispval regexp(lispval x)
+{
+  if (FD_REGEXP(x)) return FD_TRUE; else return FD_FALSE;
+}
 
 static lispval packetp(lispval x)
 {
@@ -760,6 +764,7 @@ FD_EXPORT void fd_init_coreprims_c()
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("STRING?",stringp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("VALID-UTF8?",valid_utf8p,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("REGEX?",regexp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("PACKET?",packetp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("SECRET?",secretp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("SYMBOL?",symbolp,1));
