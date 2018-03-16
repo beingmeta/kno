@@ -2028,6 +2028,8 @@ int main(int argc,char **argv)
   fd_idefn((lispval)server_env,
            fd_make_cprim0("SERVLET-STATUS",servlet_status));
 
+  fd_set_app_env(server_env);
+
   /* We keep a lock on the log, which could become a bottleneck if there are I/O problems.
      An alternative would be to log to a data structure and have a separate thread writing
      to the log.  Of course, if we have problems writing to the log, we probably have all sorts

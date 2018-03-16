@@ -62,6 +62,8 @@ static lispval default_crisispage = FD_VOID;
 static lispval default_notfoundpage = FD_VOID;
 static lispval default_nocontentpage = FD_VOID;
 
+static lispval webmain = FD_VOID;
+
 static void init_webcommon_symbols()
 {
   uri_slotid = fd_intern("REQUEST_URI");
@@ -456,6 +458,27 @@ static int update_preloads()
   else return 0;
 }
 
+static lispval get_web_handler(fd_lexenv env,u8_string src)
+{
+  lispval handler = fd_symeval(webmain_symbol,env);
+  if ( (FD_DEFAULTP(handler)) ||
+       (FD_VOIDP(handler))    ||
+       (FD_UNBOUNDP(handler)) ||
+       (FD_ABORTP(handler)) )
+    handler = fd_symeval(main_symbol,env);
+  if ( (FD_DEFAULTP(handler)) ||
+       (FD_VOIDP(handler))    ||
+       (FD_UNBOUNDP(handler)) ||
+       (FD_ABORTP(handler)) )
+    handler = fd_incref(webmain);
+  if (!(FD_APPLICABLEP(handler))) {
+      u8_log(LOG_CRIT,"ServletMainNotApplicable",
+             "From default environment: %q",handler);
+      fd_seterr("ServletMainNotApplicable","get_web_handler",
+                src,handler);
+      return FD_ERROR;}
+  else return handler;
+}
 
 /* Getting content for pages */
 
@@ -518,33 +541,21 @@ static lispval loadcontent(lispval path)
     fd_lexenv newenv=
       ((server_env) ? (fd_make_env(fd_make_hashtable(NULL,17),server_env)) :
        (fd_working_lexenv()));
-    lispval main_proc, load_result;
+    lispval load_result = fd_load_source(pathname,newenv,NULL);
     /* We reload the file.  There should really be an API call to
        evaluate a source string (fd_eval_source?).  This could then
        use that. */
     u8_free(content);
-    load_result = fd_load_source(pathname,newenv,NULL);
     if (FD_TROUBLEP(load_result)) {
       if (u8_current_exception == NULL) {
         u8_seterr("LoadSourceFailed","loadcontent/scheme",
                   u8_strdup(pathname));}
       return load_result;}
     fd_decref(load_result);
-    main_proc = fd_eval(webmain_symbol,newenv);
-    if ( (FD_DEFAULTP(main_proc)) ||
-         (FD_VOIDP(main_proc))    ||
-         (FD_UNBOUNDP(main_proc)) ||
-         (FD_ABORTP(main_proc)) )
-      main_proc = fd_eval(main_symbol,newenv);
-    if (!(FD_APPLICABLEP(main_proc))) {
-      u8_log(LOG_CRIT,"ServletMainNotApplicable",
-             "From loading %s",pathname);
-      u8_seterr("ServletMainNotApplicable","loadcontent/scheme",
-                u8_strdup(pathname));
-      return FD_ERROR_VALUE;}
+    lispval main_proc = get_web_handler(newenv,pathname);
     if (traceweb>0)
-      u8_log(LOG_NOTICE,"LOADED","Loaded %s in %f secs",
-                pathname,u8_elapsed_time()-load_start);
+      u8_log(LOG_NOTICE,"LOADED","Loaded %s in %f secs, webmain=%q",
+             pathname,u8_elapsed_time()-load_start,main_proc);
     return fd_conspair(main_proc,(lispval)newenv);}
 }
 
@@ -628,8 +639,15 @@ static lispval getcontent(lispval path)
       u8_free(lpath);
       return content;}}
   else if (FD_STRINGP(path)) {
-    u8_log(LOG_CRIT,"FileNotFound","Content file %s",FD_CSTRING(path));
-    return fd_err(fd_FileNotFound,"getcontent",NULL,path);}
+    lispval handler = (server_env) ? (get_web_handler(server_env,NULL)) :
+      (FD_VOID);
+    if (FD_ABORTP(handler)) 
+      return handler;
+    else if (FD_APPLICABLEP(handler))
+      return handler;
+    else {
+      u8_log(LOG_CRIT,"FileNotFound","Content file %s",FD_CSTRING(path));
+      return fd_err(fd_FileNotFound,"getcontent",NULL,path);}}
   else {
     u8_log(LOG_CRIT,"BadPathArg","To getcontent");
     return fd_type_error("pathname","getcontent",path);}
@@ -702,6 +720,10 @@ static void init_webcommon_configs()
   fd_register_config("POSTFLIGHT",
                      _("POSTFLIGHT (before request handling) procedures"),
                      postflight_get,postflight_set,NULL);
+
+  fd_register_config("WEBMAIN",
+                     _("WEBMAIN default procedure for handling requests"),
+                     fd_lconfig_get,fd_lconfig_set,&webmain);
 
   fd_autoload_config("WEBMOD","WEBLOAD","WEBINITS");
 }
