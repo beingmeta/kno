@@ -531,8 +531,9 @@ FD_EXPORT lispval fd_slotmap_keys(struct FD_SLOTMAP *sm)
   write=(lispval *)FD_XCHOICE_DATA(result);
   while (scan < limit) {
     lispval key=(scan++)->kv_key;
-    if (CONSP(key)) {fd_incref(key); atomic=0;}
-    *write++=key;}
+    if (!(FD_VOIDP(key))) {
+      if (CONSP(key)) {fd_incref(key); atomic=0;}
+      *write++=key;}}
   if (unlock) u8_rw_unlock(&sm->table_rwlock);
   return fd_init_choice(result,size,NULL,
                         ((FD_CHOICE_REALLOC)|(FD_CHOICE_DOSORT)|
