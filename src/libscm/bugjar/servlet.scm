@@ -9,7 +9,7 @@
 (use-module '{bugjar bugjar/html})
 (use-module '{aws aws/s3})
 
-(define %loglevel %debug%)
+(define %loglevel %notice%)
 
 (config! 'aws:config 'bugjar_creds)
 
@@ -56,10 +56,28 @@
   (debug%watch "MAIN" REQUEST_URI)
   (let* ((root (get-bugroot http_host))
 	 (bugpath (gp/mkpath root (strip-prefix request_uri "/")))
-	 (bugdata (gpath->dtype bugpath))
-	 (expanded (condense/expand bugdata)))
+	 (data (gp/fetch bugpath))
+	 (bugdata (and data (onerror (packet->dtype data) #f)))
+	 (expanded (and bugdata (condense/expand bugdata))))
     (debug%watch "MAIN/OUTPUT" bugpath root bugdata expanded request_uri)
-    (exception/page expanded)))
+    (if expanded (exception/page expanded)
+	(begin
+	  (htmlheader (xmlblock STYLE () "body { font-family: sans,sans-serif;}"))
+	  (cond ((not data)
+		 (req/set! 'status 404)
+		 (title! "Error details were not found")
+		 (h1 "No details for error " (strong (tt (basename request_uri))))
+		 (p "We looked at the path '" (tt (gpath->string bugpath)) "'"))
+		((not bugdata)
+		 (req/set! 'status 504)
+		 (title! "The stored error details were invalid")
+		 (h1 "Corrupted error details for " (strong (tt (basename request_uri))))
+		 (p "Invalid error details stored at '" (tt (gpath->string bugpath)) "'"))
+		(else
+		 (req/set! 'status 504)
+		 (title! "Error getting and converting error dump")
+		 (p "An internal error was encountered while attempting "
+		   "to display error details from '" (tt (gpath->string bugpath)) "'")))))))
 
 (define (errorpage reqerror)
   (exception/page reqerror))
