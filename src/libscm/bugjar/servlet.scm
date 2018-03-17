@@ -11,26 +11,33 @@
 
 (define %loglevel %debug%)
 
-(loginfo |Bugjar/Servlet| "Loading")
-
-(when (file-exists? "/etc/beingmeta/bugjar.cfg")
-  (load-config "/etc/beingmeta/bugjar.cfg"))
+(config! 'aws:config 'bugjar_creds)
 
 (module-export! '{main webmain get-bugroot errorpage})
 
-(define bug-buckets
-  #["us-east" "beingmeta-us-east"
-    "us-east-1" "beingmeta-us-east"
-    "us-east-2" "beingmeta-us-east-2"	
-    "US-west" "beingmeta-us-west"
-    "us-northwest" "beingmeta-us-northwest"
-    "eu-east" "beingmeta-eu-east"
-    "eu-west" "beingmeta-eu-west"
-    "asia-south" "beingmeta-asia-south"
-    "asia-japan" "beingmeta-asia-japan"])
+(define-init bug-buckets #[])
+(config-def! 'bugjar:buckets
+	     (lambda (var (val))
+	       (cond ((not (bound? val)) bug-buckets)
+		     ((table? val)
+		      (do-choices (key (getkeys val))
+			(store! bug-buckets key (get val key))))
+		     ((string? val)
+		      (doseq (defs (textslice val '(+ {";" (isspace) (vspace)}) #f))
+			(cond ((position def "=")
+			       (store! bug-buckets
+				 (decode-entities (slice def 0 (position def "=")))
+				 (decode-entities (slice def (1+ (position def "="))))))
+			      ((position def ":")
+			       (store! bug-buckets
+				 (decode-entities (slice def 0 (position def ":")))
+				 (decode-entities (slice def (1+ (position def ":"))))))
+			      (else (logwarn |BadBucketDef| "Definition " (write def) " from " val)))))
+		     (else (logwarn |BadBucketDef| "Definition " (write def) " from " val)))))
 
-(define default-bug-bucket
-  "beingmeta-us-east")
+(define-init default-bug-bucket 
+  "s3://beingmeta-us-east/bugjar/")
+(varconfig! bugjar:bucket default-bug-bucket)
 
 (define (get-bugroot hostname)
   (if (string-starts-with? 
@@ -41,9 +48,8 @@
 		     #{#((bos) (label region (not> ".")) ".bugs.")
 		       #((bos) "bugs." (label region (not> ".")) ".")}
 		     hostname)))
-	(s3loc (try (get bug-buckets (get region 'region)) 
-		    default-bug-bucket)
-	       "/"))))
+	(->gpath (try (get bug-buckets (get region 'region)) 
+		      default-bug-bucket)))))
 
 (define (main (http_host (req/get 'http_host))
 	      (request_uri (req/get 'request_uri)))
