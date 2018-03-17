@@ -920,38 +920,6 @@ static lispval ilog_prim(lispval n,lispval base_arg)
   return FD_INT(count);
 }
 
-/* HASHPTR */
-
-static lispval hashptr_prim(lispval x)
-{
-  unsigned long long intval = (unsigned long long)x;
-  if ((intval<FD_MAX_FIXNUM)&&(intval>FD_MIN_FIXNUM))
-    return FIX2INT(((int)intval));
-  else return (lispval)fd_ulong_long_to_bigint(intval);
-}
-
-static lispval hashref_prim(lispval x)
-{
-  unsigned long long intval = (unsigned long long)x;
-  char buf[40]="", numbuf[32]="";
-  strcpy(buf,"#!");
-  strcpy(buf,u8_uitoa16(intval,numbuf));
-  return fd_make_string(NULL,-1,buf);
-}
-
-static lispval ptrlock_prim(lispval x,lispval mod)
-{
-  unsigned long long intval = (unsigned long long)x;
-  long long int modval = ((VOIDP(mod))?
-                        (FD_N_PTRLOCKS):
-                        (FIX2INT(mod)));
-  if (modval==0)
-    return (lispval)fd_ulong_long_to_bigint(intval);
-  else {
-    unsigned long long hashval = hashptrval((void *)x,modval);
-    return FD_INT(hashval);}
-}
-
 /* Integer hashing etc. */
 
 static lispval knuth_hash(lispval arg)
@@ -1338,11 +1306,6 @@ FD_EXPORT void fd_init_arith_c()
   fd_idefn(fd_scheme_module,fd_make_cprim2x("CITYHASH64",cityhash64,1,
                                             -1,VOID,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CITYHASH128",cityhash128,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("HASHPTR",hashptr_prim,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("HASHREF",hashref_prim,1));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("PTRLOCK",ptrlock_prim,1,
-                           -1,VOID,fd_fixnum_type,VOID));
 
   fd_idefn(fd_scheme_module,fd_make_cprim2x
            ("U8ITOA",itoa_prim,1,-1,VOID,fd_fixnum_type,FD_INT(10)));

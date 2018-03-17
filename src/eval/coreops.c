@@ -696,6 +696,38 @@ static lispval thread_ref_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
   else return val;
 }
 
+/* HASHPTR */
+
+static lispval hashptr_prim(lispval x)
+{
+  unsigned long long intval = (unsigned long long)x;
+  if ((intval<FD_MAX_FIXNUM)&&(intval>FD_MIN_FIXNUM))
+    return FIX2INT(((int)intval));
+  else return (lispval)fd_ulong_long_to_bigint(intval);
+}
+
+static lispval hashref_prim(lispval x)
+{
+  unsigned long long intval = (unsigned long long)x;
+  char buf[40]="", numbuf[32]="";
+  strcpy(buf,"#!");
+  strcpy(buf,u8_uitoa16(intval,numbuf));
+  return fd_make_string(NULL,-1,buf);
+}
+
+static lispval ptrlock_prim(lispval x,lispval mod)
+{
+  unsigned long long intval = (unsigned long long)x;
+  long long int modval = ((VOIDP(mod))?
+                        (FD_N_PTRLOCKS):
+                        (FIX2INT(mod)));
+  if (modval==0)
+    return (lispval)fd_ulong_long_to_bigint(intval);
+  else {
+    unsigned long long hashval = hashptrval((void *)x,modval);
+    return FD_INT(hashval);}
+}
+
 /* GETSOURCEIDS */
 
 static void add_sourceid(u8_string s,void *vp)
@@ -775,7 +807,6 @@ FD_EXPORT void fd_init_coreprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("CODE?",railp,1));
   fd_defalias(fd_scheme_module,"RAIL?","CODE?");
   fd_idefn(fd_scheme_module,fd_make_cprim1("CHARACTER?",characterp,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("FCNID?",opcodep,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("OPCODE?",opcodep,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("EXCEPTION?",exceptionp,1));
   fd_defalias(fd_scheme_module,"ERROR?","EXCEPTION?");
@@ -851,6 +882,13 @@ FD_EXPORT void fd_init_coreprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim0("SEGFAULT",force_sigsegv));
   fd_idefn(fd_scheme_module,fd_make_cprim0("FPERROR",force_sigfpe));
 
+  fd_idefn1(fd_scheme_module,"HASHPTR",hashptr_prim,1|FD_NDCALL,
+            "Returns an integer representation for its argument.",
+            -1,FD_VOID);
+  fd_idefn(fd_scheme_module,fd_make_cprim1("HASHREF",hashref_prim,1));
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim2x("PTRLOCK",ptrlock_prim,1,
+                           -1,VOID,fd_fixnum_type,VOID));
 }
 
 /* Emacs local variables
