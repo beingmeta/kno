@@ -3,7 +3,9 @@
 
 (in-module 'bugjar/html)
 
-(use-module '{fdweb xhtml bugjar condense getcontent})
+(use-module '{fdweb xhtml bugjar condense getcontent logger})
+
+(define-init %loglevel %notice%)
 
 (module-export! '{exception/preamble
 		  exception/header 
