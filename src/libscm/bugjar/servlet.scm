@@ -13,7 +13,10 @@
 
 (loginfo |Bugjar/Servlet| "Loading")
 
-(module-export! '{main webmain get-bugroot})
+(when (file-exists? "/etc/beingmeta/bugjar.cfg")
+  (load-config "/etc/beingmeta/bugjar.cfg"))
+
+(module-export! '{main webmain get-bugroot errorpage})
 
 (define bug-buckets
   #["us-east" "beingmeta-us-east"
@@ -35,10 +38,12 @@
 		 #("bugs." {"local" "site"} ".")})
       bugjar/saveroot
       (let ((region (text->frames
-		     #{#((bos) (label (not> ".") region) ".bugs.")
-		       #((bos) "bugs." (label (not> ".") region) ".")})))
-	(s3/loc (try (get bug-buckets (get region 'region)) 
-		     default-bug-bucket)))))
+		     #{#((bos) (label region (not> ".")) ".bugs.")
+		       #((bos) "bugs." (label region (not> ".")) ".")}
+		     hostname)))
+	(s3loc (try (get bug-buckets (get region 'region)) 
+		    default-bug-bucket)
+	       "/"))))
 
 (define (main (http_host (req/get 'http_host))
 	      (request_uri (req/get 'request_uri)))
@@ -49,5 +54,8 @@
 	 (expanded (condense/expand bugdata)))
     (debug%watch "MAIN/OUTPUT" bugpath root bugdata expanded request_uri)
     (exception/page expanded)))
+
+(define (errorpage reqerror)
+  (exception/page reqerror))
 
 (define webmain main)
