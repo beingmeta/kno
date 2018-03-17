@@ -42,6 +42,7 @@ struct FD_STACK *fd_stackptr=NULL;
 
 static lispval stack_entry_symbol, stack_target_symbol, opaque_symbol,
   pbound_symbol, pargs_symbol;
+static lispval null_sym, unbound_sym, void_sym, default_sym;
 
 static int tidy_stack_frames = 1;
 
@@ -105,6 +106,50 @@ static lispval annotate_source(lispval expr,lispval target)
     }}
 }
 
+static lispval copy_bindings(lispval bindings)
+{
+  if (FD_SLOTMAPP(bindings)) {
+    int unlock = 0;
+    struct FD_SLOTMAP *smap = (fd_slotmap) bindings;
+    struct FD_SLOTMAP *copy =
+      (fd_slotmap) fd_make_slotmap(smap->n_allocd,0,NULL);
+    if (smap->table_uselock) {
+      u8_read_lock(&(smap->table_rwlock));
+      unlock = 1;}
+    struct FD_KEYVAL *read = smap->sm_keyvals, *limit = read + smap->n_slots;
+    struct FD_KEYVAL *write = copy->sm_keyvals;
+    while (read<limit) {
+      lispval key = read->kv_key;
+      if (!( (FD_NULLP(key)) || (FD_VOIDP(key)) || (key == FD_UNBOUND) )) {
+        lispval val = read->kv_val;
+        if (val == FD_NULL) val = null_sym;
+        else if (val == FD_UNBOUND) val = unbound_sym;
+        else if (val == FD_VOID) val = void_sym;
+        else if (val == FD_DEFAULT) val = default_sym;
+        else NO_ELSE;
+        write->kv_key = fd_incref(key);
+        write->kv_val = fd_incref(val);
+        write++; read++;}
+      else read++;}
+    copy->n_slots = write-(copy->sm_keyvals);
+    if (unlock) u8_rw_unlock(&(smap->table_rwlock));}
+  else if (FD_SCHEMAPP(bindings)) {
+    lispval copy = fd_copier(bindings,FD_FULL_COPY);
+    struct FD_SCHEMAP *smap = (fd_schemap) copy;
+    lispval *vals = smap->schema_values;
+    int i = 0, n = smap->schema_length;
+    while (i<n) {
+      lispval val = vals[i];
+      if (val == FD_NULL) vals[i] = null_sym;
+      else if (val == FD_UNBOUND) vals[i] = unbound_sym;
+      else if (val == FD_VOID) vals[i] = void_sym;
+      else if (val == FD_DEFAULT) vals[i] = default_sym;
+      else NO_ELSE;
+      i++;}
+    return copy;}
+  else return fd_copier(bindings,FD_FULL_COPY);
+}
+
 #define IS_EVAL_EXPR(x) ( (!(FD_NULLP(x))) && ((FD_PAIRP(x)) || (FD_CODEP(x))) )
 
 /* Stacks are rendered into LISP as vectors as follows:
@@ -151,7 +196,7 @@ static lispval stack2lisp(struct FD_STACK *stack,struct FD_STACK *inner)
   if (stack->stack_env) {
     lispval bindings = stack->stack_env->env_bindings;
     if ( (SLOTMAPP(bindings)) || (SCHEMAPP(bindings)) ) {
-      lispval copied = fd_copier(bindings,FD_FULL_COPY);
+      lispval copied = copy_bindings(bindings);
       env = fd_init_compound(NULL,pbound_symbol,0,1,copied);}}
 
   if (FD_VOIDP(op)) op = FD_FALSE;
@@ -257,6 +302,12 @@ void fd_init_stacks_c()
   stack_target_symbol = fd_intern("$<<*eval*>>$");
   pbound_symbol = fd_intern("%BOUND");
   pargs_symbol = fd_intern("%ARGS");
+
+  null_sym = fd_intern("#null");
+  unbound_sym = fd_intern("#unbound");
+  void_sym = fd_intern("#void");
+  default_sym = fd_intern("#default");
+
 }
 
 /* Emacs local variables
