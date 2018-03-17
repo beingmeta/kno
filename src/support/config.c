@@ -151,7 +151,7 @@ static lispval file_config_lookup(lispval symbol,void *pathdata)
     ((pathdata == NULL) ?
      ((configdata_path) ? (configdata_path) : ((u8_string)FD_CONFIG_FILE_PATH)) :
      ((u8_string)pathdata));
-  u8_string filename = u8_find_file(SYM_NAME(symbol),path,NULL);
+  u8_string filename = u8_find_file(SYM_NAME(symbol),path,u8_file_readablep);
   if (filename) {
     int n_bytes; lispval result;
     unsigned char *content = u8_filedata(filename,&n_bytes);
