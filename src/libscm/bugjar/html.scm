@@ -111,7 +111,7 @@
   (exception/body exception))
 
 (define (exception/page exception)
-  (req/set! 'content-type "text/html")
+  (req/set! 'content-type "text/html; charset=utf8")
   (req/set! 'doctype "<!doctype html>")
   (bodyclass! "errorpage")
   (exception->html exception))
