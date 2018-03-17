@@ -33,6 +33,7 @@ static lispval macrop(lispval x)
 
 static lispval compound_procedurep(lispval x)
 {
+  if (FD_FCNIDP(x)) x = fd_fcnid_ref(x);
   if (FD_LAMBDAP(x))
     return FD_TRUE;
   else return FD_FALSE;
@@ -40,6 +41,7 @@ static lispval compound_procedurep(lispval x)
 
 static lispval applicablep(lispval x)
 {
+  if (FD_FCNIDP(x)) x = fd_fcnid_ref(x);
   if (FD_APPLICABLEP(x))
     return FD_TRUE;
   else return FD_FALSE;
@@ -47,6 +49,7 @@ static lispval applicablep(lispval x)
 
 static lispval evalfnp(lispval x)
 {
+  if (FD_FCNIDP(x)) x = fd_fcnid_ref(x);
   if (TYPEP(x,fd_evalfn_type))
     return FD_TRUE;
   else return FD_FALSE;
@@ -54,6 +57,7 @@ static lispval evalfnp(lispval x)
 
 static lispval primitivep(lispval x)
 {
+  if (FD_FCNIDP(x)) x = fd_fcnid_ref(x);
   if (TYPEP(x,fd_cprim_type))
     return FD_TRUE;
   else return FD_FALSE;
@@ -61,6 +65,7 @@ static lispval primitivep(lispval x)
 
 static lispval procedurep(lispval x)
 {
+  if (FD_FCNIDP(x)) x = fd_fcnid_ref(x);
   if (FD_FUNCTIONP(x))
     return FD_TRUE;
   else return FD_FALSE;
@@ -68,6 +73,7 @@ static lispval procedurep(lispval x)
 
 static lispval procedure_name(lispval x)
 {
+  if (FD_FCNIDP(x)) x = fd_fcnid_ref(x);
   if (FD_FUNCTIONP(x)) {
     struct FD_FUNCTION *f = FD_DTYPE2FCN(x);
     if (f->fcn_name)
@@ -85,6 +91,7 @@ static lispval procedure_name(lispval x)
 
 static lispval procedure_filename(lispval x)
 {
+  if (FD_FCNIDP(x)) x = fd_fcnid_ref(x);
   if (FD_FUNCTIONP(x)) {
     struct FD_FUNCTION *f = FD_XFUNCTION(x);
     if (f->fcn_filename)
@@ -100,6 +107,7 @@ static lispval procedure_filename(lispval x)
 
 static lispval procedure_moduleid(lispval x)
 {
+  if (FD_FCNIDP(x)) x = fd_fcnid_ref(x);
   if (FD_FUNCTIONP(x)) {
     struct FD_FUNCTION *f = FD_XFUNCTION(x);
     lispval id = f->fcn_moduleid;
@@ -123,6 +131,7 @@ static lispval procedure_moduleid(lispval x)
 
 static lispval procedure_symbol(lispval x)
 {
+  if (FD_FCNIDP(x)) x = fd_fcnid_ref(x);
   if (FD_APPLICABLEP(x)) {
     struct FD_FUNCTION *f = FD_DTYPE2FCN(x);
     if (f->fcn_name)
@@ -143,6 +152,7 @@ static lispval procedure_symbol(lispval x)
 
 static lispval procedure_id(lispval x)
 {
+  if (FD_FCNIDP(x)) x = fd_fcnid_ref(x);
   if (FD_APPLICABLEP(x)) {
     struct FD_FUNCTION *f = FD_DTYPE2FCN(x);
     if (f->fcn_name)
@@ -158,6 +168,7 @@ static lispval procedure_id(lispval x)
 
 static lispval procedure_documentation(lispval x)
 {
+  if (FD_FCNIDP(x)) x = fd_fcnid_ref(x);
   u8_string doc = fd_get_documentation(x);
   if (doc)
     return lispval_string(doc);
@@ -207,6 +218,7 @@ static lispval set_procedure_tailable(lispval x,lispval bool)
 
 static lispval procedure_arity(lispval x)
 {
+  if (FD_FCNIDP(x)) x = fd_fcnid_ref(x);
   if (FD_APPLICABLEP(x)) {
     struct FD_FUNCTION *f = FD_DTYPE2FCN(x);
     int arity = f->fcn_arity;
@@ -217,6 +229,7 @@ static lispval procedure_arity(lispval x)
 
 static lispval non_deterministicp(lispval x)
 {
+  if (FD_FCNIDP(x)) x = fd_fcnid_ref(x);
   if (FD_APPLICABLEP(x)) {
     struct FD_FUNCTION *f = FD_DTYPE2FCN(x);
     if (f->fcn_ndcall)
@@ -227,6 +240,7 @@ static lispval non_deterministicp(lispval x)
 
 static lispval synchronizedp(lispval x)
 {
+  if (FD_FCNIDP(x)) x = fd_fcnid_ref(x);
   if (TYPEP(x,fd_lambda_type)) {
     fd_lambda f = (fd_lambda)x;
     if (f->lambda_synchronized)
@@ -239,6 +253,7 @@ static lispval synchronizedp(lispval x)
 
 static lispval procedure_min_arity(lispval x)
 {
+  if (FD_FCNIDP(x)) x = fd_fcnid_ref(x);
   if (FD_APPLICABLEP(x)) {
     struct FD_FUNCTION *f = FD_DTYPE2FCN(x);
     int arity = f->fcn_min_arity;
@@ -251,6 +266,7 @@ static lispval procedure_min_arity(lispval x)
 
 static lispval get_proc_attribs(lispval x,int create)
 {
+  if (FD_FCNIDP(x)) x = fd_fcnid_ref(x);
   fd_ptr_type proctype = FD_PTR_TYPE(x);
   if (fd_functionp[proctype]) {
     struct FD_FUNCTION *f = FD_DTYPE2FCN(x);
@@ -270,6 +286,7 @@ static lispval get_proc_attribs(lispval x,int create)
 
 static lispval get_procedure_attribs(lispval x)
 {
+  if (FD_FCNIDP(x)) x = fd_fcnid_ref(x);
   lispval attribs = get_proc_attribs(x,1);
   if (FD_ABORTP(attribs)) return attribs;
   else fd_incref(attribs);
@@ -300,7 +317,8 @@ static lispval reflect_get(lispval x,lispval attrib)
 static lispval reflect_store(lispval x,lispval attrib,lispval value)
 {
   lispval attribs = get_proc_attribs(x,1);
-  if (FD_ABORTP(attribs)) return attribs;
+  if (FD_ABORTP(attribs))
+    return attribs;
   else if (TABLEP(attribs)) {
     int rv = fd_store(attribs,attrib,value);
     if (rv<0) return FD_ERROR;
@@ -312,7 +330,8 @@ static lispval reflect_store(lispval x,lispval attrib,lispval value)
 static lispval reflect_add(lispval x,lispval attrib,lispval value)
 {
   lispval attribs = get_proc_attribs(x,1);
-  if (FD_ABORTP(attribs)) return attribs;
+  if (FD_ABORTP(attribs))
+    return attribs;
   else if (TABLEP(attribs)) {
     int rv = fd_add(attribs,attrib,value);
     if (rv<0) return FD_ERROR;
@@ -324,7 +343,8 @@ static lispval reflect_add(lispval x,lispval attrib,lispval value)
 static lispval reflect_drop(lispval x,lispval attrib,lispval value)
 {
   lispval attribs = get_proc_attribs(x,1);
-  if (FD_ABORTP(attribs)) return attribs;
+  if (FD_ABORTP(attribs))
+    return attribs;
   else if (TABLEP(attribs)) {
     int rv = fd_drop(attribs,attrib,value);
     if (rv<0) return FD_ERROR;
