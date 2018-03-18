@@ -963,9 +963,9 @@ int main(int argc,char **argv)
          ((FD_EQ(FD_CAR(expr),histref_symbol))) &&
          (PAIRP(FD_CDR(expr))) && (FD_UINTP(FD_CADR(expr)))) ||
         (FD_EQ(expr,that_symbol))) {
-      if (!(FD_EQ(expr,that_symbol)))
+      if (!(FD_EQ(expr,that_symbol))) {
         is_histref = 1;
-      histref = FIX2INT(FD_CAR(FD_CDR(expr)));}
+        histref = FIX2INT(FD_CAR(FD_CDR(expr)));}}
     else if (OIDP(expr)) {
       lispval v = fd_oid_value(expr);
       if (CHOICEP(v))
