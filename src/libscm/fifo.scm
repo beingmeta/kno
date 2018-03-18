@@ -333,8 +333,8 @@
 		       (count (min maxcount (- end start)))
 		       (items (elts vec start (+ start count))))
 		  (if (fifo-debug fifo)
-		      (always%watch "FIFO/POP/ITEM" start end item fifo)
-		      (debug%watch "FIFO/POP/ITEM" start end item fifo))
+		      (always%watch "FIFO/POP/ITEM" start end fifo items)
+		      (debug%watch "FIFO/POP/ITEM" start end fifo items))
 		  ;; Replace the item with false
 		  (dotimes (i count)
 		    (vector-set! vec (+ start i) #f))
