@@ -687,7 +687,7 @@ static lispval watchcall(lispval expr,fd_lexenv env,int with_proc)
       u8_free(out.u8_outbuf); u8_free(errstring);
       return val;}
     if ((i==0)&&(with_proc==0)&&(SYMBOLP(arg))) {}
-    else if ((PAIRP(arg))||(SYMBOLP(arg))) {
+    else if (FD_EVALP(arg)) {
       u8_printf(&out,"%q ==> %q",arg,val);
       u8_logger(U8_LOG_MSG,arglabel,out.u8_outbuf);
       out.u8_write = out.u8_outbuf;}
@@ -1084,7 +1084,8 @@ lispval fd_pair_eval(lispval head,lispval expr,fd_lexenv env,
 
 static int applicable_choicep(lispval headvals)
 {
-  DO_CHOICES(hv,headvals) {
+  DO_CHOICES(fcn,headvals) {
+    lispval hv = (FD_FCNIDP(fcn)) ? (fd_fcnid_ref(fcn)) : (fcn);
     int hvtype = FD_PRIM_TYPE(hv);
     /* Check that all the elements are either applicable or special
        forms and not mixed */
