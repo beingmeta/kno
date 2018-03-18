@@ -102,7 +102,7 @@ lispval call_lambda(struct FD_STACK *_stack,
 
   int direct_call = ( ( n == arity ) && ( no_defaults(args,n) ) );
   struct FD_SCHEMAP _bindings = {0}, *bindings=&_bindings;
-  struct FD_LEXENV stack_env;
+  struct FD_LEXENV stack_env = {0};
   lispval vals[n_vars];
 
   /*

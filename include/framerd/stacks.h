@@ -102,8 +102,8 @@ FD_EXPORT __thread struct FD_STACK *fd_stackptr;
       ( (stack) < (caller) ) ) )
 
 #define FD_SETUP_NAMED_STACK(name,caller,type,label,op) \
-  struct FD_STACK _ ## name, *name=&_ ## name;          \
-  memset(&_ ## name,0,sizeof(struct FD_STACK));         \
+  struct FD_STACK _ ## name = {0};                      \
+  struct FD_STACK *name=&_ ## name;                     \
   assert( caller != name);                              \
   if (caller) _ ## name.stack_root=caller->stack_root;  \
   if (caller)                                           \
