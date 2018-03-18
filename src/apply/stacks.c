@@ -99,11 +99,8 @@ static lispval annotate_source(lispval expr,lispval target)
         new_kvals[i].kv_val = source_subst(kvals[i].kv_val,target);
         i++;}
       return (lispval) newsmap;}
-    default: {
-      u8_string string = fd_lisp2string(expr);
-      return fd_init_compound(NULL,opaque_symbol,0,1,
-                              fd_init_string(NULL,-1,string));}
-    }}
+    default:
+      return fd_incref(expr);}}
 }
 
 static lispval copy_bindings(lispval bindings)
@@ -132,7 +129,8 @@ static lispval copy_bindings(lispval bindings)
         write++; read++;}
       else read++;}
     copy->n_slots = write-(copy->sm_keyvals);
-    if (unlock) u8_rw_unlock(&(smap->table_rwlock));}
+    if (unlock) u8_rw_unlock(&(smap->table_rwlock));
+    return (lispval) copy;}
   else if (FD_SCHEMAPP(bindings)) {
     lispval copy = fd_copier(bindings,FD_FULL_COPY);
     struct FD_SCHEMAP *smap = (fd_schemap) copy;
