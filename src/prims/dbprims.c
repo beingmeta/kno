@@ -2026,6 +2026,7 @@ FD_FASTOP int test_selector_relation(lispval f,lispval pred,lispval val,int data
   else if (TABLEP(pred))
     return fd_test(pred,f,val);
   else if (FD_APPLICABLEP(pred)) {
+    if (FD_FCNIDP(pred)) pred = fd_fcnid_ref(pred);
     lispval rail[2], result = VOID;
     /* Handle the case where the 'slotid' is a unary function which can
        be used to extract an argument. */
@@ -2051,7 +2052,7 @@ FD_FASTOP int test_selector_relation(lispval f,lispval pred,lispval val,int data
                          "invalid relation",pred);}
     if (FD_ABORTED(result))
       return fd_interr(result);
-    else if ((FALSEP(result)) || (EMPTYP(result)))
+    else if ((FALSEP(result)) || (EMPTYP(result)) || (VOIDP(result)) )
       return 0;
     else {
       fd_decref(result);
@@ -2339,7 +2340,9 @@ static lispval hashtable_filter(lispval candidates,fd_hashtable ht,int pick)
 
 static lispval pick_lexpr(int n,lispval *args)
 {
-  if ((n==2)&&(HASHTABLEP(args[1])))
+  if (FD_EMPTYP(args[0]))
+    return FD_EMPTY;
+  else if ((n==2)&&(HASHTABLEP(args[1])))
     return hashtable_pick(args[0],(fd_hashtable)args[1]);
   else if ((n==2)&&(FD_HASHSETP(args[1])))
     return hashset_pick(args[0],(fd_hashset)args[1]);
@@ -2448,7 +2451,9 @@ static lispval reject_helper(lispval candidates,int n,lispval *tests,int datalev
 
 static lispval reject_lexpr(int n,lispval *args)
 {
-  if ((n==2)&&(HASHTABLEP(args[1])))
+  if (FD_EMPTYP(args[0]))
+    return FD_EMPTY;
+  else if ((n==2)&&(HASHTABLEP(args[1])))
     return hashtable_reject(args[0],args[1]);
   else if ((n==2)&&(FD_HASHSETP(args[1])))
     return hashset_reject(args[0],args[1]);
