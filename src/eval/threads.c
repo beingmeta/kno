@@ -476,8 +476,9 @@ static void *thread_main(void *data)
       *(tstruct->resultptr) = result;
       fd_incref(result);}}
   if (tstruct->flags&FD_EVAL_THREAD) {
-    fd_free_lexenv(tstruct->evaldata.env);
-    tstruct->evaldata.env = NULL;}
+    lispval free_env = (lispval) tstruct->evaldata.env;
+    tstruct->evaldata.env = NULL;
+    fd_decref(free_env);}
   tstruct->thread_stackptr = NULL;
   fd_pop_stack(_stack);
   fd_decref((lispval)tstruct);
