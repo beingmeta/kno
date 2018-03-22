@@ -1291,6 +1291,35 @@
     ,(optimize-attribs (third expr) env bound opts)
     ,@(optimize-body (cdddr expr))))
 
+(define (optimize-watch fcn expr env bound opts)
+  (if (string? (cadr expr))
+      `(,(car expr) ,(cadr expr) 
+	,(optimize (cadr expr) env bound opts) "%WATCH"
+	,@(optimize-watch-clauses (cddr expr) env bound opts))
+      `(,(car expr) ,(optimize (cadr expr) env bound opts)
+	"%WATCH"
+	,@(optimize-watch-clauses (cddr expr) env bound opts))))
+
+(define (optimize-watch-clauses clauses env bound opts)
+  (let ((optimized '())
+	(scan clauses))
+    (while (pair? scan)
+      (cond ((and (string? (car scan)) (null? (cdr scan)))
+	     (set! optimized (cons (car scan) optimized))
+	     (set! scan (cdr scan)))
+	    ((string? (car scan))
+	     (set! optimized (cons* (optimize (cadr scan) env bound opts)
+				    (car scan)
+				    optimized))
+	     (set! scan (cddr scan)))
+	    (else
+	     (set! optimized (cons* (optimize (car scan) env bound opts)
+				    (stringout (car scan)) optimized))
+	     (set! scan (cdr scan)))))
+    (reverse optimized)))
+
+(add! special-form-optimizers %watch optimize-watch)
+
 ;;; Declare them
 
 (add! special-form-optimizers let optimize-let)
@@ -1338,7 +1367,7 @@
 	optimize-block))
 
 (add! special-form-optimizers
-      (choice printout lineout stringout message notify)
+      (choice printout lineout stringout message notify %wc)
       optimize-block)
 
 (add! special-form-optimizers unwind-protect optimize-unwind-protect)
