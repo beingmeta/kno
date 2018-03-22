@@ -64,8 +64,10 @@ fd_pool fd_make_extpool(u8_string label,
        we don't make it read-only. But there's probably a better
        solution. */
     fd_register_pool((fd_pool)xp);
-    fd_incref(fetchfn); fd_incref(savefn);
-    fd_incref(lockfn); fd_incref(allocfn);
+    fd_incref(fetchfn);
+    fd_incref(savefn);
+    fd_incref(lockfn);
+    fd_incref(allocfn);
     fd_incref(state);
     xp->fetchfn = fetchfn;
     xp->savefn = savefn;

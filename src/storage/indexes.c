@@ -395,11 +395,14 @@ FD_EXPORT fd_index fd_get_index
     while (brk) {
       if (ix == NULL) {
         *brk='\0'; ix = fd_open_index(start,flags,opts);
-        if (ix) {brk = NULL; start = NULL;}
+        if (ix) {
+          brk = NULL;
+          start = NULL;}
         else {
           start = brk+1;
           brk = strchr(start,';');}}}
-    if (ix) return ix;
+    if (ix)
+      return ix;
     else if ((start)&&(*start)) {
       int start_off = start-copy;
       u8_free(copy);

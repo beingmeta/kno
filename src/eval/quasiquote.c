@@ -274,7 +274,8 @@ static lispval quasiquote_slotmap(lispval obj,fd_lexenv env,int level)
         fd_decref(result); return qval;}
       if (PRECHOICEP(qval)) qval = fd_simplify_choice(qval);
       fd_slotmap_store(new_slotmap,slotid,qval);
-      fd_decref(qval); i++;}
+      fd_decref(qval);
+      i++;}
     else {
       fd_slotmap_store(new_slotmap,slotid,value);
       i++;}}

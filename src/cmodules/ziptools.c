@@ -320,7 +320,8 @@ static lispval zipget_prim(lispval zipfile,lispval filename,lispval isbinary)
     int size = zstat.size, block = 0, read = 0, togo = size;
     while ((togo>0)&&((block = zip_fread(zfile,buf+read,togo))>0)) {
       if (block<0) break;
-      read = read+block; togo = togo-block;}
+      read = read+block;
+      togo = togo-block;}
     if (togo>0) {
       u8_free(buf);
       u8_unlock_mutex(&(zf->zipfile_lock));

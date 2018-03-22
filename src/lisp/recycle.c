@@ -18,7 +18,7 @@
 
 static void recycle_string(struct FD_STRING *s)
 {
-  if ((s->str_bytes)&&(s->str_freebytes))
+  if ( (s->str_bytes) && (s->str_freebytes) )
     u8_free(s->str_bytes);
   u8_free(s);
 }

@@ -125,8 +125,10 @@ FD_EXPORT int fd_set_adjunct(fd_pool p,lispval slotid,lispval adjtable)
     CHOICE_ADD(fd_adjunct_slotids,slotid);
     fd_adjunct_slotids = fd_simplify_choice(fd_adjunct_slotids);}
   if (adj) {
-    fd_incref(adjtable); fd_decref(adj->table);
+    lispval old = adj->table;
+    fd_incref(adjtable);
     adj->table = adjtable;
+    fd_decref(old);
     return 0;}
   else {
     struct FD_ADJUNCT *adjuncts; int n, max;
@@ -147,9 +149,12 @@ FD_EXPORT int fd_set_adjunct(fd_pool p,lispval slotid,lispval adjtable)
       else {
         adjuncts = global_adjuncts = newadj; max_global_adjuncts = new_max;}}
     adjuncts[n].pool = p; adjuncts[n].slotid = slotid;
-    adjuncts[n].table = adjtable; fd_incref(adjtable);
+    adjuncts[n].table = adjtable;
+    fd_incref(adjtable);
     adj = &(adjuncts[n]);
-    if (p) p->pool_n_adjuncts++; else n_global_adjuncts++;
+    if (p)
+      p->pool_n_adjuncts++;
+    else n_global_adjuncts++;
     return 1;}
 }
 

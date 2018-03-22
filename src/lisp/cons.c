@@ -282,7 +282,8 @@ lispval fd_init_string(struct FD_STRING *ptr,int slen,u8_string string)
   if ((len==0) && (string == NULL)) {
     u8_byte *bytes = u8_malloc(1); *bytes='\0';
     string = (u8_string)bytes;}
-  ptr->str_bytelen = len; ptr->str_bytes = string;
+  ptr->str_bytelen = len;
+  ptr->str_bytes = string;
   return LISP_CONS(ptr);
 }
 
