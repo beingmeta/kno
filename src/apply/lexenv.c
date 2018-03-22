@@ -38,20 +38,32 @@ static fd_lexenv copy_lexenv(fd_lexenv env);
 FD_EXPORT
 fd_lexenv dynamic_lexenv(fd_lexenv env)
 {
-  if (env->env_copy) return env->env_copy;
+  if (env->env_copy)
+    return env->env_copy;
   else {
-    struct FD_LEXENV *newenv = u8_alloc(struct FD_LEXENV);
-    FD_INIT_FRESH_CONS(newenv,fd_lexenv_type);
-    if (env->env_parent)
-      newenv->env_parent = copy_lexenv(env->env_parent);
-    else newenv->env_parent = NULL;
-    if (FD_STATIC_CONSP(FD_CONS_DATA(env->env_bindings)))
-      newenv->env_bindings = fd_copy(env->env_bindings);
-    else newenv->env_bindings = fd_incref(env->env_bindings);
-    newenv->env_exports = fd_incref(env->env_exports);
-    env->env_copy = newenv;
-    newenv->env_copy = newenv;
-    return newenv;}
+    fd_lexenv parent = (env->env_parent) ?
+      (copy_lexenv(env->env_parent)) :
+      (NULL);
+    lispval bindings =
+      (FD_STATIC_CONSP(FD_CONS_DATA(env->env_bindings))) ?
+      (fd_copy(env->env_bindings)) :
+      (fd_incref(env->env_bindings));
+    FD_LOCK_PTR((void *)env);
+    if (env->env_copy) {
+      fd_decref(bindings);
+      fd_decref((lispval)parent);
+      FD_UNLOCK_PTR((void *)env);
+      return env->env_copy;}
+    else  {
+      struct FD_LEXENV *newenv = u8_alloc(struct FD_LEXENV);
+      FD_INIT_FRESH_CONS(newenv,fd_lexenv_type);
+      newenv->env_exports = fd_incref(env->env_exports);
+      newenv->env_parent = parent;
+      newenv->env_bindings = bindings;
+      newenv->env_copy = newenv;
+      env->env_copy = newenv;
+      FD_UNLOCK_PTR((void *)env);
+      return newenv;}}
 }
 
 static fd_lexenv copy_lexenv(fd_lexenv env)
@@ -93,7 +105,7 @@ static void recycle_lexenv(struct FD_RAW_CONS *envp)
 /* Counting environment refs. This is a bit of a kludge to get around
    some inherently circular structures. */
 
-static int env_recycle_depth = 4;
+static int env_recycle_depth = 17;
 
 struct ENVCOUNT_STATE {
   fd_lexenv env;
@@ -106,8 +118,6 @@ static int envcountproc(lispval v,void *data)
   if (!(CONSP(v)))
     return 1;
   else if (FD_STATICP(v))
-    return 0;
-  else if (FD_CONS_REFCOUNT(v)>1)
     return 0;
   else if (FD_LEXENVP(v)) {
     fd_lexenv scan = (fd_lexenv)v;
@@ -147,8 +157,8 @@ int fd_recycle_lexenv(fd_lexenv env)
     fd_decref((lispval)env);
     return 1;}
   else {
-    int lambda_count = count_envrefs(env->env_bindings,env,env_recycle_depth);
-    if (lambda_count+1==refcount) {
+    int env_refs = count_envrefs(env->env_bindings,env,env_recycle_depth);
+    if (env_refs == refcount) {
       struct FD_RAW_CONS *envstruct = (struct FD_RAW_CONS *)env;
       fd_decref(env->env_bindings);
       fd_decref(env->env_exports);
