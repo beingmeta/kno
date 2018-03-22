@@ -72,7 +72,6 @@ static int fd_logger(int loglevel,u8_condition c,u8_string message)
   struct U8_OUTPUT *reqout = ((req_loglevel>=loglevel)?(fd_try_reqlog()):(NULL));
   lispval mstring = fd_make_string(NULL,-1,message);
   lispval args[3]={ll,csym,mstring};
-  lispval logfns = fd_make_simple_choice(framerd_logfns);
   char *level = ((abs_loglevel>MAX_LOGLEVEL)?(NULL):
 	       (loglevel_names[abs_loglevel]));
   if (reqout) {
@@ -92,9 +91,11 @@ static int fd_logger(int loglevel,u8_condition c,u8_string message)
       (!(local_log))&&
       (req_logonly>=0)&&
       (abs_loglevel>=LOG_NOTIFY)&&
-      (abs_loglevel>=req_logonly))
-    return 0;
-  if (VOIDP(framerd_logfn)) u8_default_logger(loglevel,c,message);
+      (abs_loglevel>=req_logonly)) {
+    fd_decref(mstring);
+    return 0;}
+  else if (VOIDP(framerd_logfn))
+    u8_default_logger(loglevel,c,message);
   else {
     lispval logfn = fd_incref(framerd_logfn);
     lispval v = fd_apply(logfn,3,args);
@@ -104,16 +105,21 @@ static int fd_logger(int loglevel,u8_condition c,u8_string message)
       u8_default_logger(LOG_CRIT,"Log Error","FramerD log call failed");
       default_log_error();
       framerd_logfn = VOID;
-      fd_decref(logfn); fd_decref(logfn);}
-    fd_decref(v);}
-  {
-    DO_CHOICES(logfn,framerd_logfns) {
+      fd_decref(logfn);
+      fd_decref(logfn);}
+    else {
+      fd_decref(logfn);
+      fd_decref(v);}}
+  lispval logfns = fd_make_simple_choice(framerd_logfns); {
+    DO_CHOICES(logfn,logfns) {
       lispval v = fd_apply(logfn,3,args);
       if (FD_ABORTP(v)) {
-	u8_default_logger(LOG_CRIT,"Log Error","FramerD log call failed");
-	default_log_error();}
+        u8_default_logger(LOG_CRIT,"Log Error","FramerD log call failed");
+        default_log_error();}
       fd_decref(v);}}
-  fd_decref(mstring); fd_decref(ll); fd_decref(logfns);
+  fd_decref(mstring);
+  fd_decref(ll);
+  fd_decref(logfns);
   return 1;
 }
 
