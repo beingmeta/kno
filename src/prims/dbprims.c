@@ -761,7 +761,7 @@ static lispval make_extindex(lispval label,lispval fetchfn,lispval commitfn,
      ((FALSEP(fetchfn))?(VOID):(fetchfn)),
      ((FALSEP(commitfn))?(VOID):(commitfn)),
      ((FALSEP(state))?(VOID):(state)),
-     1,
+     -1,
      opts);
   if (FALSEP(usecache)) fd_index_setcache(ix,0);
   return index2lisp(ix);
@@ -775,7 +775,7 @@ static lispval cons_extindex(lispval label,lispval fetchfn,lispval commitfn,
      ((FALSEP(fetchfn))?(VOID):(fetchfn)),
      ((FALSEP(commitfn))?(VOID):(commitfn)),
      ((FALSEP(state))?(VOID):(state)),
-     0,
+     -1,
      opts);
   if (FALSEP(usecache)) fd_index_setcache(ix,0);
   if (ix->index_serialno>=0) return index_ref(ix);

@@ -27,7 +27,7 @@ lispval set_symbol, drop_symbol;
 FD_EXPORT
 fd_index fd_make_extindex
 (u8_string name,lispval fetchfn,lispval commitfn,lispval state,
- int reg,lispval opts)
+ fd_storage_flags flags,lispval opts)
 {
   if (!(PRED_TRUE(FD_APPLICABLEP(fetchfn)))) {
     fd_seterr(fd_TypeError,"fd_make_extindex","fetch function",
@@ -41,20 +41,18 @@ fd_index fd_make_extindex
     struct FD_EXTINDEX *fetchix = u8_alloc(struct FD_EXTINDEX);
     FD_INIT_STRUCT(fetchix,struct FD_EXTINDEX);
     fd_init_index((fd_index)fetchix,&fd_extindex_handler,
-                  name,NULL,NULL,
-                  (!(reg)),FD_VOID,opts);
+                  name,NULL,NULL,flags,FD_VOID,opts);
     fetchix->index_cache_level = 1;
     if (VOIDP(commitfn))
       U8_SETBITS(fetchix->index_flags,FD_STORAGE_READ_ONLY);
     fetchix->fetchfn = fd_incref(fetchfn);
     fetchix->commitfn = fd_incref(commitfn);
     fetchix->state = fd_incref(state);
-    if (reg) fd_register_index((fd_index)fetchix);
-    else fetchix->index_serialno = -1;
+    fd_register_index((fd_index)fetchix);
     return (fd_index)fetchix;}
 }
 
-static lispval extindex_fetch(fd_index p,lispval oid)
+static lispval extindex_fetch(fd_index p,lispval key)
 {
   struct FD_EXTINDEX *xp = (fd_extindex)p;
   lispval state = xp->state, fetchfn = xp->fetchfn, value;
@@ -63,9 +61,9 @@ static lispval extindex_fetch(fd_index p,lispval oid)
                               (NULL));
   if ((VOIDP(state))||(FALSEP(state))||
       ((fptr)&&(fptr->fcn_arity==1)))
-    value = fd_apply(fetchfn,1,&oid);
+    value = fd_apply(fetchfn,1,&key);
   else {
-    lispval args[2]; args[0]=oid; args[1]=state;
+    lispval args[2]; args[0]=key; args[1]=state;
     value = fd_apply(fetchfn,2,args);}
   return value;
 }
@@ -99,7 +97,7 @@ static lispval *extindex_fetchn(fd_index p,int n,const lispval *keys)
     lispval *results = u8_alloc_n(n,lispval);
     memcpy(results,vstruct->vec_elts,LISPVEC_BYTELEN(n));
     /* Free the CONS itself (and maybe data), to avoid DECREF/INCREF
-       of values. */
+       of the elements of the vector (which are being returned). */
     if (vstruct->vec_free_elts)
       u8_free(vstruct->vec_elts);
     u8_free((struct FD_CONS *)value);
@@ -195,6 +193,7 @@ static void recycle_extindex(fd_index ix)
     fd_decref(ei->fetchfn);
     fd_decref(ei->commitfn);
     fd_decref(ei->state);}
+  u8_free(ix);
 }
 
 struct FD_INDEX_HANDLER fd_extindex_handler={

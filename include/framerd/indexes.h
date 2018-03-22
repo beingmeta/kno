@@ -218,7 +218,7 @@ typedef struct FD_EXTINDEX *fd_extindex;
 
 FD_EXPORT fd_index fd_make_extindex
   (u8_string name,lispval fetchfn,lispval commitfn,
-   lispval state,int reg,lispval opts);
+   lispval state,fd_storage_flags flags,lispval opts);
 
 FD_EXPORT struct FD_INDEX_HANDLER fd_extindex_handler;
 
