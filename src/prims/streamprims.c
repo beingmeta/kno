@@ -552,6 +552,7 @@ static lispval zipfile2dtype(lispval filename)
     if (in == NULL) return FD_ERROR;
     else object = fd_zread_dtype(fd_readbuf(in));
     fd_close_stream(in,FD_STREAM_CLOSE_FULL);
+    u8_free(in);
     return object;}
   else if (TYPEP(filename,fd_stream_type)) {
     struct FD_STREAM *in=
