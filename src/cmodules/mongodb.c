@@ -528,9 +528,14 @@ static lispval mongodb_open(lispval arg,lispval opts)
   if (client_pool == NULL) {
     mongoc_uri_destroy(info);
     return fd_type_error("MongoDB client URI","mongodb_open",arg);}
-  else if ((mongoc_uri_get_ssl(info))&&
-           (setup_ssl(&ssl_opts,info,opts)))
+  else if ( (mongoc_uri_get_ssl(info)) &&
+            (setup_ssl(&ssl_opts,info,opts)) ) {
     mongoc_client_pool_set_ssl_opts(client_pool,&ssl_opts);
+    u8_free(ssl_opts.pem_file);
+    u8_free(ssl_opts.pem_pwd);
+    u8_free(ssl_opts.ca_file);
+    u8_free(ssl_opts.ca_dir);
+    u8_free(ssl_opts.crl_file);}
   else NO_ELSE;
 
   if (smoke_test) {
@@ -2063,7 +2068,7 @@ static void bson_read_step(FD_BSON_INPUT b,lispval into,lispval *loc)
     else {
       lispval packet = fd_make_packet(NULL,len,(unsigned char *)data);
       if (st == BSON_SUBTYPE_BINARY)
-        value = fd_make_packet(NULL,len,(unsigned char *)data);
+        value = packet;
       else if (st == BSON_SUBTYPE_USER)
         value = fd_init_compound(NULL,mongouser,0,1,packet);
       else if (st == BSON_SUBTYPE_MD5)

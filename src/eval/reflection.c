@@ -533,6 +533,7 @@ static lispval apropos_prim(lispval arg)
   {DO_CHOICES(sym,all) {
     u8_string name = SYM_NAME(sym);
     if (strstr(name,seeking)) {CHOICE_ADD(results,sym);}}}
+  fd_decref(all);
   return results;
 }
 

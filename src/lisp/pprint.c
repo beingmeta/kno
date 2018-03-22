@@ -573,6 +573,7 @@ int fd_pprint_table(u8_output out,lispval x,
       u8_putn(out,tmp.u8_outbuf,len);
       u8_close_output(&tmp);
       col += len;
+      fd_decref(val);
       continue;}
     u8_close_output(&tmp);
     col=fd_pprinter(out,val,value_indent,col,depth+1,
