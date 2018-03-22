@@ -2320,11 +2320,24 @@ static void recycle_consed_pool(struct FD_RAW_CONS *c)
   if (p->pool_prefix) u8_free(p->pool_prefix);
   if (p->pool_typeid) u8_free(p->pool_typeid);
 
+  struct FD_ADJUNCT *adjuncts = p->pool_adjuncts;
+  int n_adjuncts = p->pool_n_adjuncts;
+  if ( (adjuncts) && (n_adjuncts) ) {
+    int i = 0; while (i<n_adjuncts) {
+      fd_decref(adjuncts[i].table);
+      adjuncts[i].table = VOID;
+      i++;}}
+  if (adjuncts) u8_free(adjuncts);
+  p->pool_adjuncts = NULL;
+
   fd_free_slotmap(&(p->pool_metadata));
   fd_free_slotmap(&(p->pool_props));
 
   fd_decref(p->pool_namefn);
+  p->pool_namefn = VOID;
+
   fd_decref(p->pool_opts);
+  p->pool_opts = VOID;
 
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
