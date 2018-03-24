@@ -947,10 +947,7 @@ lispval fd_stack_eval(lispval expr,fd_lexenv env,
       U8_INIT_FIXED_OUTPUT(&out,128,buf);
       u8_printf(&out,"%lld > %lld",u8_stack_depth(),fd_stack_limit);
       return fd_err(fd_StackOverflow,"fd_tail_eval",buf,expr);}
-    else {
-      u8_string label=(SYMBOLP(head)) ? (SYM_NAME(head)) : (NULL);
-      FD_PUSH_STACK(eval_stack,fd_evalstack_type,label,expr);
-      return fd_pair_eval(head,expr,env,eval_stack,tail);}}
+    else return fd_pair_eval(head,expr,env,_stack,tail);}
   case fd_slotmap_type:
     return fd_deep_copy(expr);
   case fd_choice_type: {
@@ -993,9 +990,11 @@ lispval fd_stack_eval(lispval expr,fd_lexenv env,
 
 FD_EXPORT
 lispval fd_pair_eval(lispval head,lispval expr,fd_lexenv env,
-                     struct FD_STACK *eval_stack,
+                     struct FD_STACK *_stack,
                      int tail)
 {
+  u8_string label=(SYMBOLP(head)) ? (SYM_NAME(head)) : (NULL);
+  FD_PUSH_STACK(eval_stack,fd_evalstack_type,label,expr);
   lispval result = VOID, headval = VOID;
   int gc_head=0;
   if (FD_LEXREFP(head)) {

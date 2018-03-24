@@ -953,9 +953,9 @@ static lispval bindop(lispval op,
 }
 
 static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
-                                    fd_lexenv env,
-                                    fd_stack _stack,
-                                    int tail)
+                                     fd_lexenv env,
+                                     fd_stack _stack,
+                                     int tail)
 {
   if (opcode == FD_QUOTE_OPCODE)
     return fd_incref(pop_arg(expr));
