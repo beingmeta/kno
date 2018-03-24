@@ -105,7 +105,7 @@ static void recycle_lexenv(struct FD_RAW_CONS *envp)
 /* Counting environment refs. This is a bit of a kludge to get around
    some inherently circular structures. */
 
-static int env_recycle_depth = 17;
+static int env_recycle_depth = 150;
 
 struct ENVCOUNT_STATE {
   fd_lexenv env;
