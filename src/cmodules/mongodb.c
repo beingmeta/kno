@@ -306,7 +306,8 @@ static U8_MAYBE_UNUSED bson_t *getfindopts(lispval opts,int flags)
   lispval limit_arg = fd_getopt(opts,limitsym,FD_FIXZERO);
   lispval batch_arg = fd_getopt(opts,batchsym,FD_FIXZERO);
   lispval projection = fd_getopt(opts,returnsym,FD_VOID);
-  struct FD_BSON_OUTPUT out; bson_t *doc = bson_new();
+  struct FD_BSON_OUTPUT out;
+  bson_t *doc = bson_new();
   out.bson_doc = doc;
   out.bson_opts = opts;
   out.bson_flags = flags;
@@ -1161,13 +1162,13 @@ static lispval mongodb_modify(lispval arg,lispval query,lispval update,
     lispval donew = getnewopt(opts,1);
     bson_t *q = fd_lisp2bson(query,flags,opts);
     bson_t *u = fd_lisp2bson(update,flags,opts);
-    bson_t *reply = bson_new(); bson_error_t error;
     if ((q == NULL)||(u == NULL)) {
       U8_CLEAR_ERRNO();
       return FD_ERROR_VALUE;}
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
       u8_logf(LOG_DETAIL,"MongoDB/find+modify","Matches to %q using %q in %q",
              query,update,arg);
+    bson_t reply; bson_error_t error;
     if (mongoc_collection_find_and_modify
         (collection,
          q,fd_lisp2bson(sort,flags,opts),
@@ -1175,8 +1176,8 @@ static lispval mongodb_modify(lispval arg,lispval query,lispval update,
          ((FD_FALSEP(remove))?(false):(true)),
          ((FD_FALSEP(upsert))?(false):(true)),
          ((FD_FALSEP(donew))?(false):(true)),
-         reply,&error)) {
-      result = fd_bson2dtype(reply,flags,opts);}
+         &reply,&error)) {
+      result = fd_bson2dtype(&reply,flags,opts);}
     else {
       u8_byte buf[100];
       fd_seterr(fd_MongoDB_Error,"mongodb_modify",
@@ -1188,7 +1189,7 @@ static lispval mongodb_modify(lispval arg,lispval query,lispval update,
     collection_done(collection,client,domain);
     if (q) bson_destroy(q);
     if (u) bson_destroy(u);
-    if (reply) bson_destroy(reply);
+    bson_destroy(&reply);
     fd_decref(opts);
     fd_decref(fields);
     fd_decref(upsert);
