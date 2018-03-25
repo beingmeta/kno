@@ -100,28 +100,24 @@ lispval call_lambda(struct FD_STACK *_stack,
       _stack->stack_label=lambda_id(fn);
       _stack->stack_free_label=1;}}
 
-  int direct_call = ( ( n == arity ) && ( no_defaults(args,n) ) );
-  struct FD_SCHEMAP _bindings = {0}, *bindings=&_bindings;
-  struct FD_LEXENV stack_env = {0};
   lispval vals[n_vars];
 
-  /*
-  if  (direct_call) {
-    fd_make_schemap(&_bindings,n_vars,0,proc_vars,args);
-    _bindings.schemap_stackvals=1;}
-    else { } */
-  fd_init_elts(vals,n_vars,VOID);
-  fd_make_schemap(&_bindings,n_vars,0,proc_vars,vals);
-  _bindings.schemap_stackvals = direct_call;
-
-  /* Make it static */
-  FD_SET_REFCOUNT(bindings,0);
+  struct FD_LEXENV stack_env = { 0 };
   FD_INIT_STATIC_CONS(&stack_env,fd_lexenv_type);
-  stack_env.env_bindings = (lispval) bindings;
   stack_env.env_exports  = VOID;
   stack_env.env_parent   = proc_env;
   stack_env.env_copy     = NULL;
 
+  int direct_call = ( ( n == arity ) && ( no_defaults(args,n) ) );
+  struct FD_SCHEMAP _bindings = { 0 }, *bindings=&_bindings;
+  fd_make_schemap(bindings,n_vars,0,proc_vars,vals);
+  _bindings.schemap_stackvals = direct_call;
+  FD_SET_REFCOUNT(bindings,0);
+  stack_env.env_bindings = (lispval) bindings;
+
+  fd_init_elts(vals,n_vars,VOID);
+
+  /* Make it static */
   if (_stack) _stack->stack_env = call_env = &stack_env;
 
   if (direct_call)
