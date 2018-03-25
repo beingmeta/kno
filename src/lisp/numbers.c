@@ -3607,17 +3607,19 @@ lispval fd_string2number(u8_string string,int base)
     return make_rational(num,denom);}
   else if (string[0]=='\0') return FD_FALSE;
   else if (((string[0]=='+')|| (string[0]=='-') ||
-	    (isdigit(string[0])) ||
-	    ((string[0]=='.') && (isdigit(string[1])))) &&
-	   (strchr(string,'.'))) {
+            (isdigit(string[0])) ||
+            ((string[0]=='.') && (isdigit(string[1])))) &&
+           (strchr(string,'.'))) {
     double flonum; u8_byte *end = NULL;
     flonum = strtod(string,(char **)&end);
     U8_CLEAR_ERRNO();
     if ((end>string) && ((end-string) == len))
       return fd_make_flonum(flonum);
     else return FD_FALSE;}
-  else if (strchr(string+1,'+')) return FD_FALSE;
-  else if (strchr(string+1,'-')) return FD_FALSE;
+  else if (strchr(string+1,'+'))
+    return FD_FALSE;
+  else if (strchr(string+1,'-'))
+    return FD_FALSE;
   else {
     lispval result;
     long long fixnum, nbase = 0;

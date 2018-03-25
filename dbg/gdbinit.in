@@ -15,5 +15,6 @@ set env FD_DISPLAYMAXCHARS=1024
 set env FD_TRACEWEB=yes
 set env FD_WEBDEBUG=yes
 set env FD_WEBALLOWDEBUG=yes
+set env FD_HYPHENDICT=../src/cmodules/hyph_en_US.dic
 set env FD_LIBSCM_DIR=@abs_top_srcdir@/src/libscm/
 source .gdbinit.local

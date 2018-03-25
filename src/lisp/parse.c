@@ -292,7 +292,7 @@ lispval fd_lookup_hashname(u8_string s)
   return lookup_hashname(s,-1,1);
 }
 
-static int copy_atom(u8_input s,u8_output a)
+static int copy_atom(u8_input s,u8_output a,int upcase)
 {
   int c = u8_getc(s), vbar = 0;
   if (c=='|') {vbar = 1; c = u8_getc(s);}
@@ -303,9 +303,10 @@ static int copy_atom(u8_input s,u8_output a)
       realc = read_escape(s);
       u8_putc(a,realc);}
     else if (vbar) u8_putc(a,c);
-    else {
+    else if (upcase) {
       int upper = u8_toupper(c);
       u8_putc(a,upper);}
+    else u8_putc(a,c);
     c = u8_getc(s);}
   if (c>=0) u8_ungetc(s,c);
   return c;
@@ -464,7 +465,7 @@ static lispval parse_oid(U8_INPUT *in)
   /* First, copy the data into a buffer.
      The buffer will almost never grow, but it might
      if we have a really long prefix id. */
-  c = copy_atom(in,&tmpbuf);
+  c = copy_atom(in,&tmpbuf,0);
   if ((c=='"')&&((tmpbuf.u8_write-tmpbuf.u8_outbuf)==2)&&
       (buf[0]=='@')&&(ispunct(buf[1]))&&
       (strchr("(){}[]<>",buf[1]) == NULL)) {
@@ -1189,7 +1190,7 @@ lispval fd_parser(u8_input in)
     struct U8_OUTPUT tmpbuf; char buf[128];
     lispval result; U8_MAYBE_UNUSED int c;
     U8_INIT_STATIC_OUTPUT_BUF(tmpbuf,128,buf);
-    c = copy_atom(in,&tmpbuf);
+    c = copy_atom(in,&tmpbuf,1);
     result = fd_make_symbol(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
     if (tmpbuf.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpbuf.u8_outbuf);
     return result;}
@@ -1278,7 +1279,7 @@ static lispval parse_atom(u8_input in,int ch1,int ch2)
   U8_INIT_STATIC_OUTPUT_BUF(tmpbuf,128,buf);
   if (ch1>=0) u8_putc(&tmpbuf,ch1);
   if (ch2>=0) u8_putc(&tmpbuf,ch2);
-  c = copy_atom(in,&tmpbuf);
+  c = copy_atom(in,&tmpbuf,1);
   if (tmpbuf.u8_write == tmpbuf.u8_outbuf) result = FD_EOX;
   else if (ch1 == '|')
     result = fd_make_symbol(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
@@ -1385,9 +1386,11 @@ FD_EXPORT
 */
 lispval fd_parse_arg(u8_string arg)
 {
-  if (*arg=='\0') return lispval_string(arg);
+  if (*arg=='\0')
+    return lispval_string(arg);
   else if (*arg == ':')
-    if (arg[1]=='\0') return lispval_string(arg);
+    if (arg[1]=='\0')
+      return lispval_string(arg);
     else {
       lispval val = fd_parse(arg+1);
       if (PARSE_ABORTP(val)) {
@@ -1395,15 +1398,16 @@ lispval fd_parse_arg(u8_string arg)
         fd_clear_errors(1);
         return lispval_string(arg);}
       else return val;}
-  else if (*arg == '\\') return lispval_string(arg+1);
+  else if (*arg == '\\')
+    return lispval_string(arg+1);
+  else if (arg[0] == '\'')
+    return fd_symbolize(arg+1);
   else if ((isdigit(arg[0])) ||
            ((strchr("+-.",arg[0])) && (isdigit(arg[1]))) ||
            ((arg[0]=='#') && (strchr("OoXxDdBbIiEe",arg[1])))) {
     lispval num = fd_string2number(arg,-1);
     if (NUMBERP(num)) return num;
     else return lispval_string(arg);}
-  else if (arg[0] == '\'')
-    return fd_symbolize(arg+1);
   else if (strchr("@{#(\"|",arg[0])) {
     lispval result;
     struct U8_INPUT stream;
@@ -1426,47 +1430,72 @@ FD_EXPORT
      Arguments: a string
      Returns: a lisp object
 
-     Parses a textual object representation into a lisp object.  This is
-     designed for command line arguments or other external contexts
-     (e.g. Windows registry entries).  The idea is to be able to easily
-     pass strings (without embedded double quotes) while still allowing
-     arbitrary expressions.  If the string starts with a parser-significant
-     character, the parser is called on it.  If the string starts with a ':',
-     the parser is called on the rest of the string (so you can refer to the
-     symbol FOO as ":foo").  If the string starts with a backslash, a lisp string
-     is created from the rest of the string.  Otherwise, a lisp string is
-     just created from the string.
+     Parses a textual object representation into a lisp object.  This
+     is designed for command line arguments or other external contexts
+     (e.g. Windows registry entries).  The idea is to be able to
+     easily pass strings (without embedded double quotes) while still
+     allowing arbitrary expressions.  If the string starts with a
+     parser-significant character, the parser is called on it.  If the
+     string starts with a ':', the parser is called on the rest of the
+     string (so you can refer to the symbol FOO as ":foo").  If the
+     string starts with a backslash, a lisp string is created from the
+     rest of the string.  Otherwise, a lisp string is just created
+     from the string.
 */
 lispval fd_read_arg(u8_input in)
 {
   int c=u8_probec(in);
   if (c<0)
-    return lispval_string("");
+    return FD_EOF;
+  else if (c == '\\') {
+    U8_STATIC_OUTPUT(all,120);
+    c = u8_getc(in); c=u8_getc(in);
+    while (c > 0) {
+      u8_putc(allout,c);
+      c = u8_getc(in);}
+    return fd_stream2string(allout);}
   else if ((c==':') || (c=='\'')) {
     c=u8_getc(in);
     int nextc=u8_probec(in);
     if (nextc<0) {
       char buf[2]="a"; buf[0]=c;
       return lispval_string(buf);}
-    lispval val=fd_parser(in);
-    if (PARSE_ABORTP(val)) {
-      fd_clear_errors(1);
-      return FD_FALSE;}
-    else return val;}
-  else if (c == '\\') {
-    lispval val=lispval_string(in->u8_read+1);
-    in->u8_read=in->u8_inlim;
-    return val;}
-  else if (strchr("@{#(\"|0123456789",c)) {
-    u8_string start=in->u8_read;
-    lispval result=fd_parser(in);
-    if (PARSE_ABORTP(result)) {
-      fd_clear_errors(1);
-      if ( (start>=in->u8_inbuf) && (start<=in->u8_read) )
-        return lispval_string(start);
-      else return EMPTY;}
-    else return result;}
-  else return lispval_string(in->u8_read);
+    else return fd_parser(in);}
+  else if ( (c == '.') ||
+            (c == '+') ||
+            (c == '-') ||
+            (u8_isdigit(c)) ) {
+    /* Parse an atom, i.e. a printed representation which doesn't
+       contain any special spaces or other special characters */
+    struct U8_OUTPUT tmpbuf; char buf[128];
+    U8_INIT_STATIC_OUTPUT_BUF(tmpbuf,128,buf);
+    c = copy_atom(in,&tmpbuf,0);
+    if (tmpbuf.u8_write > tmpbuf.u8_outbuf) {
+      lispval result = fd_parse_atom(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
+      if (FD_TROUBLEP(result)) {
+        if (result != FD_EOX) u8_pop_exception();
+        result = fdstring("");}
+      else if (!(FD_NUMBERP(result))) {
+        fd_decref(result);
+        result = fd_make_string
+          (NULL,u8_outlen(&tmpbuf),u8_outstring(&tmpbuf));}
+      else NO_ELSE;
+      if (tmpbuf.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpbuf.u8_outbuf);
+      return result;}}
+  else if ( (c < 0x80) && (strchr("@{#(\"|",c)) )
+    return fd_parser(in);
+  else NO_ELSE;
+  U8_STATIC_OUTPUT(all,120);
+  c=u8_getc(in);
+  u8_putc(allout,c);
+  c=u8_getc(in);
+  while ( (c > 0) && ( ( c != '\n') || ( c != '\r') || ( c != '\f') ) ) {
+    u8_putc(allout,c);
+    c = u8_getc(in);
+    if (c == '\\') {
+      u8_putc(allout,c);
+      c = u8_getc(in);}}
+  return fd_stream2string(allout);
 }
 
 FD_EXPORT
@@ -1474,38 +1503,33 @@ FD_EXPORT
      Arguments: a string
      Returns: a lisp object
 
-     Parses a textual object representation into a lisp object.  This is
-     designed for command line arguments or other external contexts
-     (e.g. Windows registry entries).  The idea is to be able to easily
-     pass strings (without embedded double quotes) while still allowing
-     arbitrary expressions.  If the string starts with a parser-significant
-     character, the parser is called on it.  If the string starts with a ':',
-     the parser is called on the rest of the string (so you can refer to the
-     symbol FOO as ":foo").  If the string starts with a backslash, a lisp string
-     is created from the rest of the string.  Otherwise, a lisp string is
-     just created from the string.
+     Parses a textual object representation into a lisp object.  This
+     is designed for command line arguments or other external contexts
+     (e.g. Windows registry entries).  The idea is to be able to
+     easily pass strings (without embedded double quotes) while still
+     allowing arbitrary expressions.  If the string starts with a
+     parser-significant character, the parser is called on it.  If the
+     string starts with a ':', the parser is called on the rest of the
+     string (so you can refer to the symbol FOO as ":foo").  If the
+     string starts with a backslash, a lisp string is created from the
+     rest of the string.  Otherwise, a lisp string is just created
+     from the string.
 */
 lispval fd_parse_arg(u8_string arg)
 {
-  if ( (*arg=='\0') ||
-       ( ((*arg == ':') || (*arg == '\'')) &&
-         (arg[1]=='\0') ) )
-    return lispval_string(arg);
-  else if (*arg == '\\')
-    return lispval_string(arg+1);
+  struct U8_INPUT instream;
+  U8_INIT_STRING_INPUT(&instream,-1,arg);
+  lispval v = fd_read_arg(&instream);
+  if (!(FD_ABORTP(v))) {
+    int c = u8_getc(&instream);
+    while ( (c > 0) && (u8_isspace(c)) ) c = u8_getc(&instream);
+    if (instream.u8_read == instream.u8_inlim)
+      return v;
+    fd_decref(v);}
   else {
-    lispval result;
-    struct U8_INPUT stream;
-    U8_INIT_STRING_INPUT((&stream),-1,arg);
-    result = fd_read_arg(&stream);
-    if (PARSE_ABORTP(result)) {
-      fd_clear_errors(1);
-      return lispval_string(arg);}
-    else if (fd_skip_whitespace(&stream)>0) {
-      /* If there's more than one object, take the whole arg as a string */
-      fd_decref(result);
-      return lispval_string(arg);}
-    else return result;}
+    u8_exception ex = u8_erreify();
+    u8_free_exception(ex,0);}
+  return fdstring(arg);
 }
 
 /* Initializations */
