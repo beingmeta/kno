@@ -115,7 +115,7 @@ Description: This package contains the debugging symbols for framerd-leveldb
 
 Package: framerd-rocksdb
 Architecture: any
-Depends: framerd-core (= ${binary:Version}), librocksdb4.5 | librocksdb4.1
+Depends: framerd-core (= ${binary:Version}), librocksdb5.8 | librocksdb4.5 | librocksdb4.1
 Description: Rocksdb interface for FramerD
 
 Package: framerd-rocksdb-dbg
