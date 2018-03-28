@@ -1,3 +1,9 @@
+framerd (4.2.8-16) stable; urgency=medium
+
+  * Adjust to libcurl3/libcurl4 conflicts
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 28 Mar 2018 19:21:30 +0000
+
 framerd (4.2.8-15) stable; urgency=medium
 
   * Got pools and indexes for rocksdb/leveldb to work, various refinements
