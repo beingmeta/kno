@@ -178,13 +178,13 @@ static void recycle_python_object(struct FD_RAW_CONS *obj)
 
 static int unparse_python_object(u8_output out,lispval obj)
 {
-  struct FD_PYTHON_OBJECT *pyo=(struct FD_PYTHON_OBJECT *)obj;
-  PyObject *as_string=PyObject_Unicode(pyo->pyval);
-  PyObject *u8=PyUnicode_AsEncodedString(as_string,"utf8","none");
-  u8_string repr = PyString_AS_STRING(u8);
+  struct FD_PYTHON_OBJECT *pyo = (struct FD_PYTHON_OBJECT *)obj;
+  PyObject *as_string = PyObject_Unicode(pyo->pyval);
+  PyObject *u8        = PyUnicode_AsEncodedString(as_string,"utf8","none");
+  u8_string repr      = PyString_AS_STRING(u8);
   if (repr[0] == '<')
-    u8_printf(out,"#🐍%s",);
-  else u8_printf(out,"#<PYTHON %s>",);
+    u8_printf(out,"#🐍%s",repr);
+  else u8_printf(out,"#<PYTHON %s>",repr);
   Py_DECREF(as_string);
   Py_DECREF(u8);
   return 1;
@@ -1044,8 +1044,14 @@ static lispval pyerr(u8_context cxt)
 {
   PyObject *err=PyErr_Occurred();
   if (err) {
+    PyObject *type, *val, *tb;
+    PyErr_Fetch(&type,&val,&tb);
+    lispval v = fd_make_nvector(3,py2lisp(type),py2lisp(val),py2lisp(tb));
+    if (type) Py_DECREF(type);
+    if (val) Py_DECREF(val);
+    if (tb) Py_DECREF(tb);
     PyErr_Clear();
-    return py2lisp(err);}
+    return v;}
   else return fd_err("Mysterious Python error",cxt,NULL,FD_VOID);
 }
 
@@ -1222,6 +1228,20 @@ static lispval pyfcn(lispval modname,lispval fname)
   else return pyerr("pymethod");
 }
 
+static lispval pyimport(lispval modname)
+{
+  PyObject *o;
+  if (FD_STRINGP(modname)) {
+    PyObject *pmodulename=lisp2py(modname);
+    o = PyImport_Import(pmodulename);
+    if (o) {
+      lispval wrapped=py2lisp(o);
+      Py_DECREF(o);
+      return wrapped;}
+    else return pyerr("pyimport");}
+  else return FD_FALSE;
+}
+
 static lispval pymodule=FD_VOID;
 static int python_init_done=0;
 
@@ -1256,6 +1276,9 @@ static void initframerdmodule()
 
   fd_idefn1(pymodule,"PY/EXEC",pyexec,1,
 	    "Executes a Python expression",
+	    fd_string_type,FD_VOID);
+  fd_idefn1(pymodule,"PY/IMPORT",pyimport,1,
+	    "Imports a python module/file",
 	    fd_string_type,FD_VOID);
   fd_idefnN(pymodule,"PY/CALL",pycall,1,
 	    "Calls a python function on some arguments");
