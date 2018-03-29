@@ -1294,7 +1294,6 @@
 (define (optimize-watch fcn expr env bound opts)
   (if (string? (cadr expr))
       `(,(car expr) ,(cadr expr) 
-	,(optimize (cadr expr) env bound opts) "%WATCH"
 	,@(optimize-watch-clauses (cddr expr) env bound opts))
       `(,(car expr) ,(optimize (cadr expr) env bound opts)
 	"%WATCH"
