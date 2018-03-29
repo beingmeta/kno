@@ -657,6 +657,11 @@ FD_EXPORT lispval fd_register_constant(u8_string name);
 #define FD_BREAKP(result) ((result) == (FD_BREAK))
 #define FD_THROWP(result) ((result) == (FD_THROW_VALUE))
 
+#define FD_EMPTY     (FD_EMPTY_CHOICE)
+#define FD_DEFAULT   (FD_DEFAULT_VALUE)
+#define FD_ERROR     (FD_ERROR_VALUE)
+#define FD_EMPTYP(x) (FD_EMPTY_CHOICEP(x))
+
 #define FD_ABORTP(x) \
   (((FD_TYPEP(x,fd_constant_type)) && \
     (FD_GET_IMMEDIATE(x,fd_constant_type)>6) && \
@@ -918,9 +923,7 @@ FD_EXPORT void lispval_sort(lispval *v,size_t n,fd_compare_flags flags);
 #if FRAMERD_SOURCE
 #define VOID       (FD_VOID)
 #define VOIDP(x)   (FD_VOIDP(x))
-#define FD_EMPTY   (FD_EMPTY_CHOICE)
 #define EMPTY      (FD_EMPTY_CHOICE)
-#define FD_EMPTYP(x) (FD_EMPTY_CHOICEP(x))
 #define EMPTYP(x)  (FD_EMPTY_CHOICEP(x))
 #define EXISTSP(x) (! (FD_EMPTY_CHOICEP(x)) )
 #define NIL        (FD_EMPTY_LIST)
@@ -928,8 +931,6 @@ FD_EXPORT void lispval_sort(lispval *v,size_t n,fd_compare_flags flags);
 #define CONSP(x)   (FD_CONSP(x))
 #define ATOMICP(x) (FD_ATOMICP(x))
 #define TYPEP(o,t) (FD_TYPEP((o),(t)))
-#define FD_DEFAULT (FD_DEFAULT_VALUE)
-#define FD_ERROR   (FD_ERROR_VALUE)
 #define CHOICEP(x) (FD_CHOICEP(x))
 #define FIXNUMP(x) (FD_FIXNUMP(x))
 #define NUMBERP(x) (FD_NUMBERP(x))
