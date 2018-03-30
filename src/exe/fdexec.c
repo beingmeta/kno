@@ -336,7 +336,7 @@ int do_main(int argc,char **argv,
     u8_exception e = u8_erreify();
 
     fd_unparse_maxchars = debug_maxchars; fd_unparse_maxelts = debug_maxelts;
-    fd_sum_exception(&out,e);
+    fd_output_errstack(&out,e);
     fd_unparse_maxelts = old_maxelts; fd_unparse_maxchars = old_maxchars;
     fputs(out.u8_outbuf,stderr); fputc('\n',stderr);
 

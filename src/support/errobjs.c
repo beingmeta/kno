@@ -324,9 +324,13 @@ FD_EXPORT
 void fd_output_errstack(u8_output out,u8_exception ex)
 {
   if (ex==NULL) ex=u8_current_exception;
-  while (ex) {
-    fd_output_exception(out,ex);
-    ex=ex->u8x_prev;}
+  u8_exception scan = ex;
+  while (scan) {
+    fd_output_exception(out,scan);
+    scan=scan->u8x_prev;}
+  lispval stack = FD_U8X_STACK(ex);
+  if (!(FD_VOIDP(stack)))
+    fd_compact_backtrace(out,stack,fd_sum_stack_max);
 }
 
 FD_EXPORT
