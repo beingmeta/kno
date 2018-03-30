@@ -2156,6 +2156,7 @@ static lispval applytest_inner(int n,lispval *args)
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
       u8_printf(&out,"Unexpected result from %q",args[1]);
       u8_printf(&out,"\n   Expected: %q",args[0]);
+      u8_printf(&out,"\n        Got: %q",value);
       lispval err = fd_err(TestFailed,"applytest",out.u8_outbuf,value);
       u8_close_output(&out);
       fd_decref(value);
