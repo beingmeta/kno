@@ -53,6 +53,7 @@
 	     (n-args (length args-forms))
 	     (arglist (temp-arglist n-args)))
 	`(let ((fcn (ambda ,arglist (,fn-form ,@arglist))))
+	   (optimize-procedure! fcn)
 	   (applytest ,result-form fcn ,@args-forms)))))
   (define evaltester
     (macro expr
