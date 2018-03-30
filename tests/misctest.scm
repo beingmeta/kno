@@ -51,6 +51,18 @@
 (applytest #t test f1 'bar 8)
 (applytest #f test f1 'bar 9)
 
+(define l2 '("e" "f"))
+(define l3 (cons "d" l2))
+(define l4 (cons "c" l3))
+(define l5 (cons "b" l4))
+(define l6 (cons "a" l5))
+
+(applytester "a" car l6)
+(applytester "b" cadr l6)
+(applytester "c" caddr l6)
+(applytester l2 cdr l3)
+(applytester l2 cddr l4)
+
 ;; This is a regression test for the TEST primitive for slotmaps using
 ;; fd_sortvec_get rather than fd_keyvec_get internally.
 (evaltest #t (and (test f1 'bar 8)
