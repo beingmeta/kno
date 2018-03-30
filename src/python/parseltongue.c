@@ -1245,6 +1245,24 @@ static lispval pyimport(lispval modname)
 static lispval pymodule=FD_VOID;
 static int python_init_done=0;
 
+static int pypath_config_set(lispval var,lispval val,void * data)
+{
+  PyObject* sysPath = PySys_GetObject((char*)"path");
+  if (!(FD_STRINGP(val))) {
+    fd_seterr("NotAString","pypath_config_set",NULL,val);
+    return -1;}
+  PyObject* dirname = lisp2py(val);
+  PyList_Append(sysPath, dirname);
+  Py_DECREF(dirname);
+  return 1;
+}
+
+static lispval pypath_config_get(lispval var,void * data)
+{
+  PyObject* sysPath = PySys_GetObject((char*)"path");
+  return py2lisp(sysPath);
+}
+
 static void initframerdmodule()
 {
   if (!(FD_VOIDP(pymodule))) return;
@@ -1304,6 +1322,10 @@ static void initframerdmodule()
 	    "Gets a field from a python object",
 	    python_object_type,FD_VOID,-1,FD_VOID);
   fd_finish_module(pymodule);
+
+  fd_register_config("PYPATH","The search path used by Python",
+		     pypath_config_get,pypath_config_set,NULL);
+
 }
 
 static void initpythonmodule()
