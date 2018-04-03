@@ -55,6 +55,7 @@ staticforward PyTypeObject OIDType;
 staticforward PyTypeObject FramerDType;
 staticforward PyTypeObject IndexType;
 staticforward PyTypeObject PoolType;
+staticforward PyTypeObject ApplyType;
 
 typedef void (*bigint_consumer)(void *,int);
 typedef unsigned int (*bigint_producer)(void *);
@@ -152,6 +153,18 @@ newpyoid()                 /* instance constructor function */
   if (self == NULL)
     return NULL;            /* raise exception */
   self->lval=FD_VOID;
+  return self;                /* a new type-instance object */
+}
+
+static pylisp *             /* on "x = stacktype.Stack()" */
+newpyapply(lispval fn)                 /* instance constructor function */
+{                                /* these don't get an 'args' input */
+  pylisp *self;
+  self = PyObject_New(pylisp, &ApplyType);  /* malloc, init, incref */
+  if (self == NULL)
+    return NULL;            /* raise exception */
+  self->lval=fn;
+  fd_incref(fn);
   return self;                /* a new type-instance object */
 }
 
@@ -703,6 +716,35 @@ static PyTypeObject ChoiceType = {      /* main python type-descriptor */
 
 };  /* plus others: see Include/object.h */
 
+static PyTypeObject ApplyType = {      /* main python type-descriptor */
+  /* type header */                    /* shared by all instances */
+  PyObject_HEAD_INIT(&PyType_Type)
+  0,                               /* ob_size */
+  "framerd",                         /* tp_name */
+  sizeof(struct FD_PYTHON_WRAPPER),/* tp_basicsize */
+  0,                               /* tp_itemsize */
+
+  /* standard methods */
+  (destructor)  pylisp_dealloc,   /* tp_dealloc  ref-count==0  */
+  (printfunc)   NULL,     /* tp_print    "print x"     */
+  (getattrfunc) NULL,   /* tp_getattr  "x.attr"      */
+  (setattrfunc) NULL,               /* tp_setattr  "x.attr=v"    */
+  (cmpfunc)     pylisp_compare,   /* tp_compare  "x > y"       */
+  (reprfunc)    pylisp_str,               /* tp_repr     `x`, print x  */
+
+  /* type categories */
+  0,                             /* tp_as_number   +,-,*,/,%,&,>>,pow...*/
+  0,            /* tp_as_sequence +,[i],[i:j],len, ...*/
+  &table_methods, /* tp_as_mapping  [key], len, ...*/
+
+  /* more methods */
+  (hashfunc)     0,              /* tp_hash    "dict[x]" */
+  (ternaryfunc)  0,              /* tp_call    "x()"     */
+  (reprfunc)     0,              /* tp_str     "str(x)"  */
+
+};  /* plus others: see Include/object.h */
+
+
 static PyTypeObject PoolType;
 
 /*****************************************************************************
@@ -961,6 +1003,11 @@ static PyObject *lispcall(PyObject *self,PyObject *args)
     lispval fn, *argv, result;
     if (size==0) return NULL;
     fn=py2lisp(PyTuple_GET_ITEM(args,0));
+    if (! (FD_APPLICABLEP(fn)) ) {
+      fd_decref(fn);
+      PyErr_Format(PyExc_IndexError,"choice only has %d (<=%d) elements",
+		   FD_CHOICE_SIZE(pw->lval),i);
+      return NULL;}
     argv=u8_alloc_n(size-1,lispval);
     while (i<n_args) {
       PyObject *arg=PyTuple_GET_ITEM(args,i+1);
