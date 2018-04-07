@@ -46,6 +46,8 @@
 #endif
 
 u8_condition fd_ArgvConfig=_("Config (argv)");
+u8_condition fd_CmdArg=_("Command arg");
+u8_condition fd_CmdLine=_("Command");
 u8_condition SetRLimit=_("SetRLimit");
 u8_condition fd_ExitException=_("Unhandled exception at exit");
 
@@ -54,8 +56,9 @@ static u8_mutex atexit_handlers_lock;
 static u8_string pid_file = NULL;
 
 int fd_in_doexit = 0;
-int fd_exiting = 0;
-int fd_exited = 0;
+int fd_logcmd    = 0;
+int fd_exiting   = 0;
+int fd_exited    = 0;
 
 /* This determines whether to memory should be freed while exiting */
 int fd_fast_exit = 0;
@@ -75,6 +78,19 @@ static lispval exec_arg = FD_FALSE, lisp_argv = FD_FALSE, string_argv = FD_FALSE
 static lispval raw_argv = FD_FALSE, config_argv = FD_FALSE;
 static int init_argc = 0;
 static size_t app_argc;
+
+static void log_argv(int n,lispval *argv)
+{
+  U8_STATIC_OUTPUT(args,1000);
+  int arg_i = 0; ssize_t start = 0;
+  while ( arg_i < n) {
+    if (((args.u8_write-args.u8_outbuf)-start) > 80) {
+      u8_puts(argsout,"\n  ");
+      start = args.u8_write-args.u8_outbuf;}
+    u8_printf(argsout,"%q ",argv[arg_i]);
+    arg_i++;}
+  u8_log(U8_LOG_MSG,NULL,"Command = %s %s",u8_appid(),args.u8_outbuf);
+}
 
 /* This takes an argv, argc combination and processes the argv elements
    which are configs (var = value again) */
@@ -129,7 +145,7 @@ FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
     lispval raw_args = fd_make_vector(argc,NULL);
     lispval *return_args = (arglen_ptr) ? (u8_alloc_n(argc-1,lispval)) : (NULL);
     lispval *_fd_argv = u8_alloc_n(argc-1,lispval);
-
+    
     u8_threadcheck();
 
     init_argc = argc;
@@ -170,6 +186,7 @@ FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
       _fd_argv[n]=lisp_arg; fd_incref(lisp_arg);
       FD_VECTOR_SET(lisp_args,n,lisp_arg);
       FD_VECTOR_SET(string_args,n,string_arg);
+      u8_log(LOG_INFO,fd_CmdArg,"[%d] %s => %q",n+1,arg,lisp_arg);
       u8_free(arg);
       n++;}
     set_vector_length(lisp_args,n);
@@ -326,9 +343,14 @@ FD_EXPORT void fd_doexit(lispval arg)
                   "Couldn't remove PID file %s",pid_file);}
     u8_free(pid_file);
     pid_file=NULL;}
+  
+  if ( (fd_logcmd) && (fd_argc > 1) )
+    log_argv(fd_argc,fd_argv);
+
   if (fd_argv) {
     int i = 0, n = fd_argc; while (i<n) {
-      lispval elt = fd_argv[i++]; fd_decref(elt);}
+      lispval elt = fd_argv[i++];
+      fd_decref(elt);}
     u8_free(fd_argv);
     fd_argv = NULL;
     fd_argc = -1;}
@@ -351,7 +373,7 @@ static void doexit_atexit()
 
 FD_EXPORT void fd_signal_doexit(int sig)
 {
-  fd_doexit(FD_INT(sig));
+  fd_doexit(FD_INT2FIX(sig));
 }
 
 
@@ -619,7 +641,7 @@ FD_EXPORT void fd_setapp(u8_string spec,u8_string statedir)
   else {
     u8_byte *atpos = strchr(spec,'@');
     u8_string appid = ((atpos)?(u8_slice(spec,atpos)):
-                     ((u8_string)(u8_strdup(spec))));
+                       ((u8_string)(u8_strdup(spec))));
     u8_identify_application(appid);
     if (statedir)
       runbase = u8_mkpath(statedir,appid);
@@ -708,7 +730,7 @@ static int resolve_gid(lispval val)
 static lispval config_getuser(lispval var,void *data)
 {
   u8_uid gid = GETUIDFN(); int ival = (int)gid;
-  return FD_INT(ival);
+  return FD_INT2FIX(ival);
 }
 #else
 static lispval config_getuser(lispval var,void *fd_vecelts)
@@ -817,6 +839,8 @@ FD_EXPORT int fd_boot_message()
   u8_log(U8_LOG_MSG,NULL,_("%-s@%-s:%-s (%s)"),
          u8_username(uid),u8_gethostname(),u8_getcwd(),
          curtime.u8_outbuf);
+  if ( (fd_logcmd) && (fd_argc > 1) )
+    log_argv(fd_argc,fd_argv);
   boot_message_delivered = 1;
   return 1;
 }
@@ -968,6 +992,11 @@ void fd_init_startup_c()
   fd_register_config("CONFIGARGS",
                      _("config arguments passed to the application (unparsed)"),
                      fd_lconfig_get,NULL,&config_argv);
+
+  fd_register_config("LOGCMD",_("Whether to display command line args on entry and exit"),
+                     fd_boolconfig_get,fd_boolconfig_set,&fd_logcmd);
+
+
 
   fd_register_config("SESSIONID",_("unique session identifier"),
                      config_getsessionid,config_setsessionid,NULL);

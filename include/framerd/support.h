@@ -75,8 +75,8 @@ FD_EXPORT int fd_read_default_config(u8_input in);
 
 FD_EXPORT int fd_argv_config(int argc,char **argv) U8_DEPRECATED;
 FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
-                                 unsigned int parse_mask,
-                                 size_t *arglen_ptr);
+                                  unsigned int parse_mask,
+                                  size_t *arglen_ptr);
 
 FD_EXPORT lispval *fd_argv;
 FD_EXPORT int fd_argc;
@@ -100,15 +100,24 @@ FD_EXPORT void fd_config_lock(int lock);
 
 FD_EXPORT int fd_boolstring(u8_string,int);
 
-/* Whether the executable is exiting */
+/* Whether the executable is exiting or has exited */
 FD_EXPORT int fd_exiting;
 FD_EXPORT int fd_exited;
+
+/* Whether to log command arguments */
+FD_EXPORT int fd_logcmd;
+
+/* Whether to 'fast exit' by skipping some memory release, etc when
+   exiting */
 FD_EXPORT int fd_fast_exit;
+/* Whether to report an error conditions on exit */
 FD_EXPORT int fd_report_errors_atexit;
-FD_EXPORT int fd_clear_errors(int);
-FD_EXPORT void fd_log_exception(u8_exception ex);
+
 FD_EXPORT void fd_doexit(lispval);
 FD_EXPORT void fd_signal_doexit(int);
+
+FD_EXPORT int fd_clear_errors(int);
+FD_EXPORT void fd_log_exception(u8_exception ex);
 
 FD_EXPORT lispval fd_thread_get(lispval var);
 FD_EXPORT lispval fd_init_threadtable(lispval);
