@@ -939,12 +939,15 @@ FD_EXPORT lispval fd_call(struct FD_STACK *_stack,
                           lispval fp,int n,lispval *args)
 {
   lispval result;
-  struct FD_FUNCTION *f = FD_DTYPE2FCN(fp);
-  if (f->fcn_ndcall)
-    if (!(PRED_FALSE(contains_qchoicep(n,args))))
-      result = fd_dcall(_stack,(lispval)f,n,args);
-    else result = qchoice_dcall(_stack,fp,n,args);
-  else {
+  lispval handler = (FD_FCNIDP(fp)) ? (fd_fcnid_ref(fp)) : (fp);
+  if (FD_FUNCTIONP(handler))  {
+    struct FD_FUNCTION *f = (fd_function) handler;
+    if ( (f) && (f->fcn_ndcall) ) {
+      if (!(PRED_FALSE(contains_qchoicep(n,args))))
+        result = fd_dcall(_stack,(lispval)f,n,args);
+      else result = qchoice_dcall(_stack,fp,n,args);
+      return fd_finish_call(result);}}
+  if (fd_applyfns[FD_PRIM_TYPE(handler)]) {
     int i = 0, qchoice = 0;
     while (i<n)
       if (args[i]==EMPTY)
@@ -954,15 +957,16 @@ FD_EXPORT lispval fd_call(struct FD_STACK *_stack,
         fd_ptr_type argtype = FD_PTR_TYPE(args[i]);
         if ((argtype == fd_choice_type) ||
             (argtype == fd_prechoice_type)) {
-          result = fd_ndcall(_stack,(lispval)f,n,args);
+          result = fd_ndcall(_stack,handler,n,args);
           return fd_finish_call(result);}
         else if (argtype == fd_qchoice_type) {
           qchoice = 1; i++;}
         else i++;}
     if (qchoice)
-      result=qchoice_dcall(_stack,(lispval)f,n,args);
-    else result=fd_dcall(_stack,(lispval)f,n,args);}
-  return fd_finish_call(result);
+      result=qchoice_dcall(_stack,handler,n,args);
+    else result=fd_dcall(_stack,handler,n,args);
+    return fd_finish_call(result);}
+  else return fd_err("Not applicable","fd_call",NULL,fp);
 }
 
 static int contains_qchoicep(int n,lispval *args)
