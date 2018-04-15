@@ -59,7 +59,7 @@ MKSO		= $(CC) -shared $(LDFLAGS)
 MACLIBTOOL	= $(CC) -dynamiclib -single_module -undefined dynamic_lookup \
 			$(LDFLAGS)
 BUILD		= `pwd`
-BUILDMODE       := `cat buildmode || echo none`
+BUILDMODE       := `cat .buildmode || echo none`
 DEBUG_FDSERV    = 0
 RPMFLAGS	= @RPMFLAGS@
 RPMDIR		= @RPMDIR@
@@ -496,8 +496,8 @@ ALL=testbin exe cmodules @TAGS@
 
 default: @DEFAULTMAKETARGET@
 
-update: buildmode
-	@+make -s `cat buildmode`
+update: .buildmode
+	@+make -s `cat .buildmode`
 normal:
 	@echo Building NORMAL configuration
 	@if test -f .malloc; then \
@@ -532,21 +532,21 @@ fresh: clean
 # Handy targets
 
 debug:
-	@if test $(BUILDMODE) != "debugging"; then echo debugging > buildmode; fi
-	@make -s `cat buildmode`
+	@if test $(BUILDMODE) != "debugging"; then echo debugging > .buildmode; fi
+	@make -s `cat .buildmode`
 standard:
-	@if test $(BUILDMODE) != "normal"; then echo normal > buildmode; fi
-	@make -s `cat buildmode`
+	@if test $(BUILDMODE) != "normal"; then echo normal > .buildmode; fi
+	@make -s `cat .buildmode`
 nitpick:
-	@if test $(BUILDMODE) != "nitpicking"; then echo nitpicking > buildmode; fi
-	@make -s `cat buildmode`
+	@if test $(BUILDMODE) != "nitpicking"; then echo nitpicking > .buildmode; fi
+	@make -s `cat .buildmode`
 fast:
-	@if test $(BUILDMODE) != "optimizing"; then echo optimizing > buildmode; fi
-	@make -s `cat buildmode`
-buildmode:
-	@echo normal > buildmode
-showbuildmode showmode showbuild: buildmode
-	@cat buildmode
+	@if test $(BUILDMODE) != "optimizing"; then echo optimizing > .buildmode; fi
+	@make -s `cat .buildmode`
+.buildmode:
+	@echo normal > .buildmode
+showbuildmode showmode showbuild: .buildmode
+	@cat .buildmode
 cleandebug: clean
 	make debug
 
@@ -897,7 +897,7 @@ tidy: profile-clean
 	make testclean
 	rm -f config.log
 clean: tidy
-	rm -f buildmode
+	rm -f .buildmode
 	@for dir in ${CLEANDIRS}; do rm -f ${dir}/*.o; done
 	rm -rf etc/*.o etc/.libs
 	rm -f lib/*.a lib/*@suffix@.so lib/*.dylib
@@ -1358,13 +1358,13 @@ apt-upload upload-apt upload-deb: update-remote-apt-repo
 # Installation targets
 
 install-status:
-	@if test -f .malloc && test -f buildmode; then \
-	  echo "Installing" $(shell cat buildmode) "build linked with" $(shell cat .malloc); \
+	@if test -f .malloc && test -f .buildmode; then \
+	  echo "Installing" $(shell cat .buildmode) "build linked with" $(shell cat .malloc); \
 	fi;
 install: install-status install-core install-cmodules install-dbmodules \
 		install-libscm install-modules @setup_target@
-	@if test -f .malloc && test -f buildmode; then \
-	  echo "Installed" $(shell cat buildmode) "build linked with" $(shell cat .malloc); \
+	@if test -f .malloc && test -f .buildmode; then \
+	  echo "Installed" $(shell cat .buildmode) "build linked with" $(shell cat .malloc); \
 	fi;
 install-bin: install-static install-shared install-exe
 install-text: install-headers install-scripts install-support
@@ -1855,8 +1855,8 @@ include/framerd/revision.h: $(FRAMERD_SOURCES) $(FRAMERD_HEADERS) makefile
 	  mv $@ etc/old_revision.h; 					\
 	  mv etc/use_revision.h $@;					\
 	fi;
-### Depending on the buildmode
-$(EXECUTABLES) $(STATIC_EXECUTABLES): buildmode $(REVISION_H)
+### Depending on the .buildmode
+$(EXECUTABLES) $(STATIC_EXECUTABLES): .buildmode $(REVISION_H)
 $(LISP_OBJS): $(LISP_HEADERS) $(REVISION_H)
 $(SUPPORT_OBJS): $(LISP_HEADERS) $(REVISION_H)
 $(APPLY_OBJS): $(LISP_HEADERS) $(APPLY_HEADERS) $(REVISION_H)
@@ -1868,12 +1868,12 @@ $(WEB_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
 	$(SCHEME_HEADERS) $(REVISION_H) ./include/framerd/fdweb.h
 $(TEXT_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
 	 $(REVISION_H) $(SCHEME_HEADERS) ./include/framerd/texttools.h
-$(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS):  buildmode
-$(STORAGE_OBJS) $(DRIVER_OBJS):  buildmode
-$(SCHEME_OBJS): buildmode
-$(WEB_OBJS) $(TEXT_OBJS): buildmode
+$(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS): .buildmode
+$(STORAGE_OBJS) $(DRIVER_OBJS): .buildmode
+$(SCHEME_OBJS): .buildmode
+$(WEB_OBJS) $(TEXT_OBJS): .buildmode
 $(CMODULE_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
-	$(SCHEME_HEADERS) $(REVISION_H) buildmode
+	$(SCHEME_HEADERS) $(REVISION_H) .buildmode
 src/eval/choiceops.o src/prims/seqprims.o: include/framerd/sorting.h
 # Driver dependencies
 src/drivers/filepool.o: src/drivers/headers/filepool.h
