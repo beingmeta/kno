@@ -2,7 +2,7 @@ Source: framerd
 Section: Libraries
 Priority: optional
 Maintainer: Kenneth Benefiel Haase <kh@beingmeta.com>
-Build-Depends: debhelper (>= 8.0.0), autotools-dev, equivs, dh-systemd, dh-elpa, debsigs, devscripts, libsnappy-dev, libzstd-dev, sqlite3, apache2-dev, default-libmysqlclient-dev | libmysqlclient-dev, libcurl4-openssl-dev, libarchive-dev, libexif-dev, libzip-dev, libqrencode-dev, libu8-dev (>= 2.6.7-51), libhyphen-dev, libedit-dev, libsasl2-dev, libbson-dev, libmagickwand-dev, libmongoc-dev, libldns-dev, libleveldb-dev
+Build-Depends: debhelper (>= 8.0.0), autotools-dev, equivs, dh-systemd, dh-elpa, debsigs, devscripts, libsnappy-dev, libzstd-dev, sqlite3, apache2-dev, default-libmysqlclient-dev | libmysqlclient-dev, libcurl4-openssl-dev, libarchive-dev, libexif-dev, libzip-dev, libqrencode-dev, libu8-dev (>= 2.6.7-51), python2.7-dev, libhyphen-dev, libedit-dev, libsasl2-dev, libbson-dev, libmagickwand-dev, libmongoc-dev, libldns-dev, libleveldb-dev
 Standards-Version: 3.9.4
 Homepage: http://www.framerd.org/
 
@@ -115,7 +115,7 @@ Description: This package contains the debugging symbols for framerd-leveldb
 
 Package: framerd-rocksdb
 Architecture: any
-Depends: framerd-core (= ${binary:Version}), librocksdb5.8 | librocksdb4.5 | librocksdb4.1
+Depends: framerd-core (= ${binary:Version}), librocksdb5.10 | librocksdb5.8 | librocksdb4.5 | librocksdb4.1
 Description: Rocksdb interface for FramerD
 
 Package: framerd-rocksdb-dbg
@@ -125,9 +125,23 @@ Depends:
     framerd-core-dbg (= ${binary:Version}),
     framerd-rocksdb (= ${binary:Version}),
     librocksdb-dev,
-    librocksdb4.5-dbg | librocksdb4.1-dbg,
+    librocksdb5.10-dbg | librocksdb5.8-dbg | librocksdb4.5-dbg | librocksdb4.1-dbg,
     ${misc:Depends}
 Description: This package contains the debugging symbols for framerd-rocksdb
+
+Package: framerd-parseltongue
+Architecture: any
+Depends: framerd-core, python2.7
+Description: FramerD/Python FFI
+
+Package: framerd-parseltongue-dbg
+Architecture: any
+Section: debug
+Depends: 
+    framerd-core-dbg (= ${binary:Version}),
+    framerd-parseltongue (= ${binary:Version}),
+    ${misc:Depends}
+Description: This package contains the debugging symbols for framerd-parseltongue
 
 Package: framerd-imagetools
 Architecture: any
