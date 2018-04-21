@@ -498,33 +498,42 @@ static u8_string mongodb_check(mongoc_client_pool_t *client_pool)
   else return u8_strdup("mongoc_client_pool_pop failed");
 }
 
+#if MONGOC_CHECK_VERSION(1,4,0)
+#define mongoc_uri_info(s,e) mongoc_uri_new_with_error((s),&error)
+#else
+#define mongoc_uri_info(s,e) mongoc_uri_new((s))
+#endif
+
 /* This returns a MongoDB server object which wraps a MongoDB client
    pool. */
 static lispval mongodb_open(lispval arg,lispval opts)
 {
-  mongoc_client_pool_t *client_pool; int flags;
+  mongoc_client_pool_t *client_pool;
   mongoc_uri_t *info;
   mongoc_ssl_opt_t ssl_opts={ 0 };
+  bson_error_t error = { 0 };
   int smoke_test = boolopt(opts,smoketest_sym,1);
+  int flags = getflags(opts,mongodb_defaults);;
+
   if ((FD_STRINGP(arg))||(FD_TYPEP(arg,fd_secret_type))) {
-    info = mongoc_uri_new(FD_CSTRING(arg));}
+    info = mongoc_uri_info(FD_CSTRING(arg),&error);}
   else if (FD_SYMBOLP(arg)) {
     lispval conf_val = fd_config_get(FD_SYMBOL_NAME(arg));
     if (FD_VOIDP(conf_val))
       return fd_type_error("MongoDB URI config","mongodb_open",arg);
     else if ((FD_STRINGP(conf_val))||
              (FD_TYPEP(conf_val,fd_secret_type))) {
-      info = mongoc_uri_new(FD_CSTRING(conf_val));
+      info = mongoc_uri_info(FD_CSTRING(conf_val),&error);
       fd_decref(conf_val);}
     else return fd_type_error("MongoDB URI config val",
                               FD_SYMBOL_NAME(arg),conf_val);}
   else return fd_type_error("MongoDB URI","mongodb_open",arg);
-  if (!(info))
-    return fd_type_error("MongoDB client URI","mongodb_open",arg);
-  else info = setup_mongoc_uri(info,opts);
-  flags = getflags(opts,mongodb_defaults);
 
-  client_pool = mongoc_client_pool_new(info);
+  if (!(info)) info = setup_mongoc_uri(info,opts);
+
+  if (!(info))
+    return fd_err(fd_MongoDB_Error,"mongodb_open",error.message,arg);
+  else client_pool = mongoc_client_pool_new(info);
 
   if (client_pool == NULL) {
     mongoc_uri_destroy(info);
@@ -2592,6 +2601,8 @@ static int getu8loglevel(mongoc_log_level_t l)
 
 /* Initialization */
 
+static u8_byte mongoc_version_string[100];
+
 FD_EXPORT int fd_init_mongodb(void) FD_LIBINIT_FN;
 static long long int mongodb_initialized = 0;
 
@@ -2785,6 +2796,10 @@ FD_EXPORT int fd_init_mongodb()
                      &mongodb_ignore_loglevel);
 
   u8_register_source_file(_FILEINFO);
+
+  strcpy(mongoc_version_string,"libmongoc ");
+  strcat(mongoc_version_string,MONGOC_VERSION_S);
+  u8_register_source_file(mongoc_version_string);
 
   return 1;
 }
