@@ -21,7 +21,7 @@
 (define (exception/preamble exception)
   (htmlheader
    (xmlblock STYLE ((type "text/css"))
-     (getcontent inline-css-file)))
+     (printout (getcontent inline-css-file))))
   (htmlheader
    (xmlblock SCRIPT ((language "javascript"))
      (printout (getcontent inline-js-file))))
@@ -42,7 +42,9 @@
 	   'iso))
     (h1 (tt (exception-condition exception)))
     (when (exception-details exception)
-      (p* ((class "details")) (xmlout (exception-details exception)))))
+      (p* ((class "details")) 
+	(xmlout (exception-details exception))))
+    (div ((style "clear: both;"))))
   (when (req/get 'messages)
     (div ((class "exception_messages"))
       (do-choices (msg (req/get 'messages {}))

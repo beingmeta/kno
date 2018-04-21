@@ -25,24 +25,22 @@ div.exception_body {
     margin-left: 5vw;
     margin-right: 2vw;}
 
-.expands { 
+div.aspect { 
     max-width: 93vw;
-    max-height: 10em;
+    max-height: 50vh;
     overflow: auto;
     padding-right: 1ex;
     padding-bottom: 1ex;
     border-bottom: dotted gray 3px;
     cursor: pointer;}
-.expands.expanded { 
-    max-height: inherit; 
-    border-bottom: solid black 3px;}
 
-div.exception_body h2 { 
+div.exception_body > h2 { 
     text-align: left; 
     margin-left: -3vw; margin-bottom: 1px;
     border-top: double black 2px; 
+    border-bottom: solid black 1px; 
     font-variant: small-caps;}
-div.exception_body h2:first-child { border-top: none; }
+div.exception_body > h2:first-child { border-top: none; }
 div.exception_body div.backtrace { margin-left: -2vw; }
 div.exception_body pre { margin-top: 1px; }
 div.stack { border-top: solid black 1px; margin-bottom: 1em; }
