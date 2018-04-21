@@ -66,8 +66,8 @@ static lispval colonize, colonizein, colonizeout, choices, nochoices;
 static lispval skipsym, limitsym, batchsym, writesym, readsym;
 static lispval fieldssym, upsertsym, newsym, removesym, singlesym, wtimeoutsym;
 static lispval returnsym, originalsym;
-static lispval primarysym, primarypsym, secondarysym, secondarypsym, nearestsym;
-static lispval poolmaxsym, poolminsym;
+static lispval primarysym, primarypsym, secondarysym, secondarypsym;
+static lispval nearestsym, poolmaxsym;
 static lispval mongovec_symbol;
 
 static void grab_mongodb_error(bson_error_t *error,u8_string caller)
@@ -338,6 +338,33 @@ static U8_MAYBE_UNUSED bson_t *getfindopts(lispval opts,int flags)
   return out.bson_doc;
 }
 
+static U8_MAYBE_UNUSED bson_t *getbulkopts(lispval opts,int flags)
+{
+  struct FD_BSON_OUTPUT out;
+  bson_t *doc = bson_new();
+  out.bson_doc = doc;
+  out.bson_opts = opts;
+  out.bson_flags = flags;
+  out.bson_fieldmap = fd_getopt(opts,fieldmap_symbol,FD_VOID);
+  lispval ordered_arg = fd_getopt(opts,FDSYM_SORTED,FD_FALSE);
+  if (!(FD_FALSEP(ordered_arg))) {
+    bson_append_dtype(out,"ordered",4,ordered_arg);}
+
+  lispval wcval = fd_getopt(opts,writesym,FD_VOID);
+  lispval wcwait = fd_getopt(opts,wtimeoutsym,FD_VOID);
+
+  if (!(FD_VOIDP(wcval))) {
+    bson_append_dtype(out,"writeConcern",4,wcval);}
+  if (!(FD_VOIDP(wcwait))) {
+    bson_append_dtype(out,"wtimeout",4,wcwait);}
+
+  fd_decref(ordered_arg);
+  fd_decref(wcval);
+  fd_decref(wcwait);
+
+  return out.bson_doc;
+}
+
 static int mongodb_getflags(lispval mongodb);
 
 /* Consing MongoDB clients, collections, and cursors */
@@ -562,14 +589,10 @@ static lispval mongodb_open(lispval arg,lispval opts)
   struct FD_MONGODB_DATABASE *srv = u8_alloc(struct FD_MONGODB_DATABASE);
   u8_string dbname = mongoc_uri_get_database(info);
   lispval poolmax = fd_getopt(opts,poolmaxsym,FD_VOID);
-  lispval poolmin = fd_getopt(opts,poolminsym,FD_INT(1));
   if (FD_UINTP(poolmax)) {
     int pmax = FD_FIX2INT(poolmax);
     mongoc_client_pool_max_size(client_pool,pmax);}
-  if (FD_UINTP(poolmin)) {
-    int pmin = FD_FIX2INT(poolmin);
-    mongoc_client_pool_min_size(client_pool,pmin);}
-  fd_decref(poolmax); fd_decref(poolmin);
+  fd_decref(poolmax);
   FD_INIT_CONS(srv,fd_mongoc_server);
   srv->dburi = uri;
   if (dbname == NULL)
@@ -742,6 +765,78 @@ static void collection_done(mongoc_collection_t *collection,
 
 /* Basic operations on collections */
 
+#if HAVE_MONGOC_OPTS_FUNCTIONS
+static lispval mongodb_insert(lispval arg,lispval obj,lispval opts_arg)
+{
+  struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
+  struct FD_MONGODB_DATABASE *db=
+    (struct FD_MONGODB_DATABASE *) (domain->domain_db);
+  if (FD_EMPTY_CHOICEP(obj))
+    return FD_EMPTY_CHOICE;
+  else {
+    lispval result;
+    int flags = getflags(opts_arg,domain->domain_flags);
+    lispval opts = combine_opts(opts_arg,db->dbopts);
+    bson_t *bulkopts = getbulkopts(opts,flags);
+    mongoc_client_t *client = NULL; bool retval;
+    mongoc_collection_t *collection = open_collection(domain,&client,flags);
+    if (collection) {
+      bson_t reply;
+      bson_error_t error;
+      if ((logops)||(flags&FD_MONGODB_LOGOPS))
+        u8_logf(LOG_DETAIL,"MongoDB/insert",
+               "Inserting %d items into %q",FD_CHOICE_SIZE(obj),arg);
+      if (FD_CHOICEP(obj)) {
+        mongoc_bulk_operation_t *bulk=
+          mongoc_collection_create_bulk_operation_with_opts(collection,bulkopts);
+
+        FD_DO_CHOICES(elt,obj) {
+          bson_t *doc = fd_lisp2bson(elt,flags,opts);
+          if (doc) {
+            mongoc_bulk_operation_insert(bulk,doc);
+            bson_destroy(doc);}}
+        retval = mongoc_bulk_operation_execute(bulk,&reply,&error);
+        mongoc_bulk_operation_destroy(bulk);
+        if (retval) {
+          result = fd_bson2dtype(&reply,flags,opts);}
+        else {
+          u8_byte buf[100];
+          if (errno) u8_graberrno("mongodb_insert",NULL);
+          fd_seterr(fd_MongoDB_Error,"mongodb_insert",
+                    u8_sprintf(buf,100,"%s>%s>%s:%s",
+                               db->dburi,db->dbname,
+                               domain->collection_name,
+                               error.message),
+                    fd_incref(obj));
+          result = FD_ERROR_VALUE;}
+        bson_destroy(&reply);}
+      else {
+        bson_t *doc = fd_lisp2bson(obj,flags,opts);
+        mongoc_write_concern_t *wc = get_write_concern(opts);
+
+        retval = (doc==NULL) ? (0) :
+          (mongoc_collection_insert(collection,MONGOC_INSERT_NONE,doc,wc,&error));
+        if (retval) {
+          result = FD_TRUE;}
+        else {
+          u8_byte buf[100];
+          if (doc) bson_destroy(doc);
+          if (errno) u8_graberrno("mongodb_insert",NULL);
+          fd_seterr(fd_MongoDB_Error,"mongodb_insert",
+                    u8_sprintf(buf,100,"%s>%s>%s:%s",
+                               db->dburi,db->dbname,
+                               domain->collection_name,
+                               error.message),
+                    fd_incref(obj));
+          result = FD_ERROR_VALUE;}
+        if (wc) mongoc_write_concern_destroy(wc);}
+      collection_done(collection,client,domain);}
+    else result = FD_ERROR_VALUE;
+    fd_decref(opts);
+    U8_CLEAR_ERRNO();
+    return result;}
+}
+#else
 static lispval mongodb_insert(lispval arg,lispval obj,lispval opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
@@ -809,6 +904,7 @@ static lispval mongodb_insert(lispval arg,lispval obj,lispval opts_arg)
     U8_CLEAR_ERRNO();
     return result;}
 }
+#endif
 
 static lispval mongodb_remove(lispval arg,lispval obj,lispval opts_arg)
 {
@@ -2678,7 +2774,6 @@ FD_EXPORT int fd_init_mongodb()
   nearestsym = fd_intern("NEAREST");
 
   poolmaxsym = fd_intern("POOLMAX");
-  poolminsym = fd_intern("POOLMIN");
 
   fd_mongoc_server = fd_register_cons_type("MongoDB client");
   fd_mongoc_collection = fd_register_cons_type("MongoDB collection");
