@@ -12,8 +12,10 @@
   (and (file-exists? (mkpath data-dir "private.dtype"))
        (mkpath data-dir "private.dtype")))
 
-(applytest #f file-readable? private-text-file)
-(applytest #f file-readable? private-dtype-file)
+(when private-text-file
+  (applytest #f file-readable? private-text-file))
+(when private-dtype-file
+  (applytest #f file-readable? private-dtype-file))
 
 (applytest "(#[foo 3 bar 8] " getline
 	   (open-input-file (mkpath data-dir "testobj.text")))

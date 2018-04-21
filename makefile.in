@@ -485,6 +485,7 @@ SCHEME_MODULES=src/extmods/*.scm \
 	src/beingmeta/chopper/*.scm src/beingmeta/morph/*.scm \
 	src/beingmeta/gnosys/*.scm
 
+# These might be neccessary on MacOS
 CMODULE_DEPENDS=lib/libfdcore@suffix@.@shared_suffix@	\
 	lib/libfdstorage@suffix@.@shared_suffix@ 	\
 	lib/libfdstorage@suffix@.@shared_suffix@ 	\
@@ -628,7 +629,7 @@ exe/%@suffix@: src/exe/%.c ${CONFIG_HDRS}
 src/cmodules/%.o: src/cmodules/%.c ${CONFIG_HDRS}
 	@$(CC) $(CFLAGS) -o $@ -c $< ${MODLIBS}
 	@$(MSG) CC_MODULE  $@ $<
-lib/framerd/%.so: src/cmodules/%.o ${CMODULE_DEPENDS}
+lib/framerd/%.so: src/cmodules/%.o # ${CMODULE_DEPENDS}
 	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS}
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO  $@ $<
@@ -1019,9 +1020,9 @@ lib/libtexttools@suffix@.dylib: $(TEXT_OBJS) \
 src/cmodules/mysql.o: src/cmodules/mysql.c ${CONFIG_HDRS}
 	@$(CC) @MYSQL_CFLAGS@ $(CFLAGS)  -o $@ -c $<
 	@$(MSG) CC "(MYSQL)" $@
-lib/framerd/mysql.so: src/cmodules/mysql.o ${CMODULE_DEPENDS}
+lib/framerd/mysql.so: src/cmodules/mysql.o # ${CMODULE_DEPENDS}
 	@$(MKSO) -L./ -L./lib \
-		-o $@ $< ${CMODULE_DEPENDS} @MYSQL_LDFLAGS@
+		-o $@ $< @MYSQL_LDFLAGS@ # ${CMODULE_DEPENDS}
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(MYSQL)" $@
 lib/framerd/mysql.dylib: src/cmodules/mysql.o ${CMODULE_DEPENDS}
@@ -1034,9 +1035,8 @@ lib/framerd/mysql.dylib: src/cmodules/mysql.o ${CMODULE_DEPENDS}
 src/cmodules/mongodb.o: src/cmodules/mongodb.c ${CONFIG_HDRS}
 	@$(CC) @MONGODB_CFLAGS@ $(CFLAGS)  -o $@ -c $<
 	@$(MSG) CC "(MONGODB)" $@
-lib/framerd/mongodb.so: src/cmodules/mongodb.o ${CMODULE_DEPENDS}
-	@$(MKSO) -L./ -L./lib \
-		-o $@ $< ${CMODULE_DEPENDS} @MONGODB_LDFLAGS@
+lib/framerd/mongodb.so: src/cmodules/mongodb.o
+	@$(MKSO) -L./ -L./lib -o $@ $< @MONGODB_LDFLAGS@
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(MONGODB)" $@
 lib/framerd/mongodb.dylib: src/cmodules/mongodb.o ${CMODULE_DEPENDS}
@@ -1049,9 +1049,8 @@ lib/framerd/mongodb.dylib: src/cmodules/mongodb.o ${CMODULE_DEPENDS}
 src/cmodules/imagick.o: src/cmodules/imagick.c ${CONFIG_HDRS}
 	@$(CC) @IMAGICK_CFLAGS@ $(CFLAGS)  -o $@ -c $<
 	@$(MSG) CC "(IMAGICK)" $@
-lib/framerd/imagick.so: src/cmodules/imagick.o ${CMODULE_DEPENDS}
-	$(MKSO) -L./ -L./lib \
-		-o $@ $< ${CMODULE_DEPENDS} @IMAGICK_LDFLAGS@
+lib/framerd/imagick.so: src/cmodules/imagick.o
+	$(MKSO) -L./ -L./lib -o $@ $< @IMAGICK_LDFLAGS@
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(IMAGICK)" $@
 lib/framerd/imagick.dylib: src/cmodules/imagick.o ${CMODULE_DEPENDS}
@@ -1064,9 +1063,8 @@ lib/framerd/imagick.dylib: src/cmodules/imagick.o ${CMODULE_DEPENDS}
 src/cmodules/ziptools.o: src/cmodules/ziptools.c ${CONFIG_HDRS}
 	@$(CC) $(CFLAGS) @LIBZIP_CFLAGS@ -o $@ -c $<
 	@$(MSG) CC "(ZIPTOOLS)"  $@ $<
-lib/framerd/ziptools.so: src/cmodules/ziptools.o ${CMODULE_DEPENDS}
-	@$(MKSO) -L./ -L./lib \
-		-o $@ $< ${CMODULE_DEPENDS} @LIBZIP_LDFLAGS@
+lib/framerd/ziptools.so: src/cmodules/ziptools.o
+	@$(MKSO) -L./ -L./lib -o $@ $< @LIBZIP_LDFLAGS@
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(ZIPTOOLS)"  $@ $<
 lib/framerd/ziptools.dylib: src/cmodules/ziptools.o ${CMODULE_DEPENDS}
@@ -1079,9 +1077,8 @@ lib/framerd/ziptools.dylib: src/cmodules/ziptools.o ${CMODULE_DEPENDS}
 src/cmodules/libarchive.o: src/cmodules/libarchive.c ${CONFIG_HDRS}
 	@$(CC) $(CFLAGS) @LIBZIP_CFLAGS@ -o $@ -c $<
 	@$(MSG) CC "(LIBARCHIVE)"  $@ $<
-lib/framerd/libarchive.so: src/cmodules/libarchive.o ${CMODULE_DEPENDS}
-	@$(MKSO) -L./ -L./lib \
-		-o $@ $< ${CMODULE_DEPENDS} -larchive
+lib/framerd/libarchive.so: src/cmodules/libarchive.o
+	@$(MKSO) -L./ -L./lib -o $@ $< -larchive
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(LIBARCHIVE)"  $@ $<
 lib/framerd/libarchive.dylib: src/cmodules/libarchive.o ${CMODULE_DEPENDS}
@@ -1091,8 +1088,8 @@ lib/framerd/libarchive.dylib: src/cmodules/libarchive.o ${CMODULE_DEPENDS}
 		-o $@ $<
 	@$(MSG) MACLIBTOOL "(LIBARCHIVE)" $@
 
-lib/framerd/exif.so: src/cmodules/exif.o ${CMODULE_DEPENDS}
-	@$(MKSO) -L./ -L./lib -o $@ $^ ${CMODULE_DEPENDS} $(MODLIBS) -lexif
+lib/framerd/exif.so: src/cmodules/exif.o
+	@$(MKSO) -L./ -L./lib -o $@ $^ $(MODLIBS) -lexif
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO $@
 lib/framerd/exif.dylib: src/cmodules/exif.o ${CMODULE_DEPENDS}
@@ -1103,52 +1100,50 @@ lib/framerd/exif.dylib: src/cmodules/exif.o ${CMODULE_DEPENDS}
 	@$(MSG) MACLIBTOOL $@
 
 src/cmodules/crypto.o: src/cmodules/crypto.c
-lib/framerd/crypto.so: src/cmodules/crypto.o ${CMODULE_DEPENDS}
+lib/framerd/crypto.so: src/cmodules/crypto.o
 lib/framerd/crypto.dylib: src/cmodules/crypto.o ${CMODULE_DEPENDS}
 
 lib/framerd/odbc.o: src/cmodules/odbc.c
-lib/framerd/odbc.so: src/cmodules/odbc.o ${CMODULE_DEPENDS}
+lib/framerd/odbc.so: src/cmodules/odbc.o
 lib/framerd/odbc.dylib: src/cmodules/odbc.o ${CMODULE_DEPENDS}
 lib/framerd/odbc.so : MODLIBS="@ODBC_LIBS@"
 lib/framerd/odbc.dylib : MODLIBS="@ODBC_LIBS@"
 
 lib/framerd/sqlite.o: src/cmodules/sqlite.c
-lib/framerd/sqlite.so: src/cmodules/sqlite.o ${CMODULE_DEPENDS}
+lib/framerd/sqlite.so: src/cmodules/sqlite.o
 lib/framerd/sqlite.dylib: src/cmodules/sqlite.o ${CMODULE_DEPENDS}
 
 lib/framerd/libarchive.o: src/cmodules/libarchive.c
-lib/framerd/libarchive.so: src/cmodules/libarchive.o ${CMODULE_DEPENDS}
+lib/framerd/libarchive.so: src/cmodules/libarchive.o
 lib/framerd/libarchive.dylib: src/cmodules/libarchive.o ${CMODULE_DEPENDS}
 
 lib/framerd/qrcode.so lib/framerd/qrcode.dylib : MODLIBS=-lqrencode -lpng
 lib/framerd/qrcode.o: src/cmodules/qrcode.c
-lib/framerd/qrcode.so: src/cmodules/qrcode.o ${CMODULE_DEPENDS}
+lib/framerd/qrcode.so: src/cmodules/qrcode.o
 lib/framerd/qrcode.dylib: src/cmodules/qrcode.o ${CMODULE_DEPENDS}
 
 lib/framerd/hyphenate.so lib/framerd/hyphenate.dylib : MODLIBS=-lhyphen
 lib/framerd/hyphenate.o: src/cmodules/hyphenate.c
-lib/framerd/hyphenate.so: src/cmodules/hyphenate.o ${CMODULE_DEPENDS}
+lib/framerd/hyphenate.so: src/cmodules/hyphenate.o
 lib/framerd/hyphenate.dylib: src/cmodules/hyphenate.o ${CMODULE_DEPENDS}
 
 lib/framerd/zlib.so lib/framerd/zlib.dylib : MODLIBS="-lz"
 lib/framerd/zlib.o: src/cmodules/zlib.c
-lib/framerd/zlib.so: src/cmodules/zlib.o ${CMODULE_DEPENDS}
+lib/framerd/zlib.so: src/cmodules/zlib.o
 lib/framerd/zlib.dylib: src/cmodules/zlib.o
 
 lib/framerd/leveldb.so lib/framerd/leveldb.dylib : MODLIBS="-lleveldb"
 lib/framerd/leveldb.o: src/cmodules/leveldb.c
-lib/framerd/leveldb.so: src/cmodules/leveldb.o ${CMODULE_DEPENDS}
+lib/framerd/leveldb.so: src/cmodules/leveldb.o
 lib/framerd/leveldb.dylib: src/cmodules/leveldb.o ${CMODULE_DEPENDS}
 
 lib/framerd/rocksdb.so lib/framerd/rocksdb.dylib : MODLIBS="-lrocksdb"
 lib/framerd/rocksdb.o: src/cmodules/rocksdb.c
-lib/framerd/rocksdb.so: src/cmodules/rocksdb.o ${CMODULE_DEPENDS}
+lib/framerd/rocksdb.so: src/cmodules/rocksdb.o
 lib/framerd/rocksdb.dylib: src/cmodules/rocksdb.o ${CMODULE_DEPENDS}
 
-lib/framerd/sundown.so: src/cmodules/sundown.c \
-		$(SUNDOWN_OBJECTS) $(CMODULE_DEPENDS)
-	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/sundown.c \
-		$(SUNDOWN_OBJECTS) $(CMODULE_DEPENDS)
+lib/framerd/sundown.so: src/cmodules/sundown.c $(SUNDOWN_OBJECTS)
+	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/sundown.c $(SUNDOWN_OBJECTS)
 	@$(MSG) MKSO  $@ $<
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 lib/framerd/sundown.dylib: \
@@ -1159,10 +1154,8 @@ lib/framerd/sundown.dylib: \
 		src/cmodules/sundown.c $(SUNDOWN_OBJECTS)
 	@$(MSG) MACLIBTOOL  $@ $<
 
-lib/framerd/tidy.so: src/cmodules/tidy.c \
-			$(TIDY_OBJECTS) $(CMODULE_DEPENDS)
-	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/tidy.c \
-		$(TIDY_OBJECTS) $(CMODULE_DEPENDS)
+lib/framerd/tidy.so: src/cmodules/tidy.c $(TIDY_OBJECTS)
+	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/tidy.c $(TIDY_OBJECTS)
 	@$(MSG) MKSO  $@ $<
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 lib/framerd/tidy.dylib: \
@@ -1174,7 +1167,7 @@ lib/framerd/tidy.dylib: \
 	@$(MSG) MACLIBTOOL  $@ $<
 
 # Parseltongue
-lib/framerd/parseltongue.so: src/python/parseltongue.o ${CMODULE_DEPENDS}
+lib/framerd/parseltongue.so: src/python/parseltongue.o
 	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS} -l@PYTHON2_LIB@
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO  $@ $<
@@ -1746,10 +1739,15 @@ testclean:
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 tests: testclean
 	@echo "#### Running tests scripts"
+	@if test ! -f tests/data/private.text; then \
+	 echo "#### Can't test primitives on protected files, enable with 'make private_files'"; \
+	 fi;
 	@echo "#### Note that killed/exited messages for the 'countup' scripts are normal"
 	@DATE=`date +%d%b%yT%T`; make -s -C tests -k -j && \
-	 cp tests.log tests/logs/tests-$${DATE}.log; \
 	 sort tests/timing.log -k 2 > tests/logs/timing-$${DATE}.log;
+	@if test ! -f tests/data/private.text; then \
+	 echo "#### Can't test primitives on protected files, enable with 'make private_files'"; \
+	 fi;
 
 tests.log: tests/fdexec tests/makefile.in makefile
 	@echo "#### Running tests scripts, output in" $@
