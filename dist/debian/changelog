@@ -1,3 +1,9 @@
+framerd (4.2.8-18) stable; urgency=medium
+
+  * Build to reference libldns2 not libldns1
+
+ -- Ken Haase <kh@beingmeta.com>  Sat, 28 Apr 2018 17:56:41 -0400
+
 framerd (4.2.8-17) stable; urgency=medium
 
   * More debian build dependency fixes

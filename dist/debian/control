@@ -109,8 +109,8 @@ Depends:
     framerd-core-dbg (= ${binary:Version}),
     framerd-leveldb (= ${binary:Version}),
     libleveldb-dev,
-    libleveldb-dbg,
     ${misc:Depends}
+Suggests: libleveldb-dbg
 Description: This package contains the debugging symbols for framerd-leveldb
 
 Package: framerd-rocksdb
