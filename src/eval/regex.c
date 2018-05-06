@@ -57,17 +57,21 @@ static lispval getcharoff(u8_string s,int byteoff)
   return FD_INT(charoff);
 }
 
-static lispval regex_searchop(enum FD_REGEX_OP op,lispval pat,lispval string,
-                             int eflags)
+static lispval regex_searchop(enum FD_REGEX_OP op,
+                              lispval pat,lispval string,
+                              int eflags)
 {
   struct FD_REGEX *ptr = fd_consptr(struct FD_REGEX *,pat,fd_regex_type);
   regmatch_t results[1];
   int retval, len = STRLEN(string);
   u8_string s = CSTRING(string);
   /* Convert numeric eflags value to correct flags field */
-  if (eflags==1) eflags = REG_NOTBOL;
-  else if (eflags==2) eflags = REG_NOTEOL;
-  else if (eflags==3) eflags = REG_NOTEOL|REG_NOTBOL;
+  if (eflags==1)
+    eflags = REG_NOTBOL;
+  else if (eflags==2)
+    eflags = REG_NOTEOL;
+  else if (eflags==3)
+    eflags = REG_NOTEOL|REG_NOTBOL;
   else eflags = 0;
   u8_lock_mutex(&(ptr->rx_lock));
   retval = regexec(&(ptr->rxcompiled),CSTRING(string),1,results,eflags);
@@ -80,9 +84,11 @@ static lispval regex_searchop(enum FD_REGEX_OP op,lispval pat,lispval string,
     u8_unlock_mutex(&(ptr->rx_lock));
     return fd_err(fd_RegexError,"regex_search",u8_strdup(buf),VOID);}
   else u8_unlock_mutex(&(ptr->rx_lock));
-  if (results[0].rm_so<0) return FD_FALSE;
+  if (results[0].rm_so<0)
+    return FD_FALSE;
   else switch (op) {
-    case rx_search: return getcharoff(s,results[0].rm_so);
+    case rx_search:
+      return getcharoff(s,results[0].rm_so);
     case rx_exactmatch:
       if ((results[0].rm_so==0)&&(results[0].rm_eo == len))
         return FD_TRUE;
@@ -109,9 +115,12 @@ FD_EXPORT ssize_t fd_regex_op(enum FD_REGEX_OP op,lispval pat,
   regmatch_t results[1];
   int retval;
   /* Convert numeric eflags value to correct flags field */
-  if (eflags==1) eflags = REG_NOTBOL;
-  else if (eflags==2) eflags = REG_NOTEOL;
-  else if (eflags==3) eflags = REG_NOTEOL|REG_NOTBOL;
+  if (eflags==1)
+    eflags = REG_NOTBOL;
+  else if (eflags==2)
+    eflags = REG_NOTEOL;
+  else if (eflags==3)
+    eflags = REG_NOTEOL|REG_NOTBOL;
   else eflags = 0;
   u8_lock_mutex(&(ptr->rx_lock));
   retval = regexec(&(ptr->rxcompiled),s,1,results,eflags);
@@ -140,13 +149,16 @@ FD_EXPORT ssize_t fd_regex_op(enum FD_REGEX_OP op,lispval pat,
       else return -1;
     case rx_matchstring: {
       fd_seterr(fd_RegexBadOp,"fd_regex_op","rx_matchstring",pat);
-      fd_incref(pat); return -2;}
+      fd_incref(pat);
+      return -2;}
     case rx_matchpair: {
       fd_seterr(fd_RegexBadOp,"fd_regex_op","rx_matchpair",pat);
-      fd_incref(pat); return -2;}
+      fd_incref(pat);
+      return -2;}
     default: {
       fd_seterr(fd_RegexBadOp,"fd_regex_op","badop",pat);
-      fd_incref(pat); return -2;}}
+      fd_incref(pat);
+      return -2;}}
 }
 
 FD_EXPORT int fd_regex_test(lispval pat,u8_string s,ssize_t len)
