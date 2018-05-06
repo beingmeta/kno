@@ -20,7 +20,7 @@
 
 (define-init %loglevel %warn%)
 
-(module-export! '{typeindex/open})
+(module-export! '{typeindex/open typeindex/create})
 
 (message "Loading from dev")
 
@@ -41,6 +41,8 @@
 
 (define (typeindex/open filename (opts #f) (create))
   (default! create (getopt opts 'create))
+  (when (file-directory? filename)
+    (set! filename (mkpath filename "keys.table")))
   (try (get typeindexes filename)
        (let ((keyinfo (if (file-exists? filename)
 			  (file->dtype filename)
@@ -68,11 +70,23 @@
 
 (define (typeindex/create filename (opts #f))
   (try (get typeindexes filename)
-       (if (file-exists? filename) (typeindex/open filename opts)
-	   (let ((dir (dirname (realpath filename))))
-	     (when (file-directory? filename) (set! filename (mkpath filename "keys.table")))
-	     (unless (file-directory? dir) (mkdirs (mkpath dir "")))
-	     (typeindex/open filename opts #t)))))
+       (cond ((file-directory? filename)
+	      ;; Search for other names here?
+	      (typeindex/open (mkpath filename "keys.table") opts #t))
+	     ((file-exists? filename)
+	      (typeindex/open filename opts))
+	     ((has-suffix filename "/")
+	      (mkdirs filename)
+	      (typeindex/open filename opts #t))
+	     ((has-suffix filename {".table" ".dtype" ".root"})
+	      (unless (file-directory? (dirname (realpath filename)))
+		(mkdirs (mkpath (dirname (realpath filename)) "")))
+	      (typeindex/open filename opts #t))
+	     (else
+	      (mkdirs (mkpath filename ""))
+	      (when (file-directory? filename)
+		(set! filename (mkpath filename "keys.table")))
+	      (typeindex/open filename opts #t)))))
 
 (define (init-typeindex filename)
   (let ((keyinfo (make-hashtable)))
