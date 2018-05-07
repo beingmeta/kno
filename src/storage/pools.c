@@ -1021,6 +1021,9 @@ static int pool_docommit(fd_pool p,lispval oids,
       free_commits=0;}
     else commits.commit_pool = p;
 
+    if (commits.commit_metadata == FD_NULL)
+      commits.commit_metadata = FD_VOID;
+
     double start_time = u8_elapsed_time(), mark = start_time;
     commits.commit_times.base = start_time;
 

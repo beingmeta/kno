@@ -1336,6 +1336,9 @@ static int index_docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
   else commits.commit_index = ix;
 
   commits.commit_times.base = mark;
+  if ( (use_commits == NULL) ||
+       (commits.commit_metadata == FD_NULL) )
+    commits.commit_metadata = FD_VOID;
 
   int started = ix->index_handler->commit(ix,fd_commit_start,&commits);
   if (started < 0) {
