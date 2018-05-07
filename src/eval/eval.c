@@ -1143,8 +1143,8 @@ FD_FASTOP int commentp(lispval arg)
 {
   lispval arg_exprs = fd_get_body(expr,1), result=VOID;
   int n_args = count_args(arg_exprs), arg_count = 0, lambda = 0;
-  int gc_args = 0, nd_args = 0, d_prim = 0, argbuf_len=0;
-  lispval argbuf[n_args]; /* *argv=fd_alloca(argv_length); */
+  int gc_args = 0, nd_args = 0, d_prim = 0;
+  lispval argbuf[n_args]; /* *argv=fd_alloca(n_args); */
   lispval fn = (FD_FCNIDP(headval)) ? (fd_fcnid_ref(headval)) : (headval);
   if (FD_AMBIGP(fn)) {
     FD_DO_CHOICES(f,fn) {
@@ -1167,7 +1167,7 @@ FD_FASTOP int commentp(lispval arg)
     if (fcn->fcn_notail) tail = 0;
     lambda = FD_LAMBDAP(fn);}
   else NO_ELSE;
-  int i=0; while (i<argbuf_len) argbuf[i++]=VOID;
+  int i=0; while (i<n_args) argbuf[i++]=VOID;
   /* Now we evaluate each of the subexpressions to fill the arg
      vector */
   {FD_DOLIST(elt,arg_exprs) {
