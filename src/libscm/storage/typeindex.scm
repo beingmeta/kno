@@ -159,7 +159,8 @@
   (getkeys (typeindex-keyinfo typeindex)))
 
 (define (typeindex-commit index typeindex phase adds drops stores (metadata #f))
-  (if (eq? phase 'save)
+  (info%watch "TYPEINDEX-COMMIT" index phase adds drops stores)
+  (if (overlaps? phase '{save write})
       (let ((keyinfo (typeindex-keyinfo typeindex))
 	    (savedir (dirname (typeindex-filename typeindex))))
 	(when stores
