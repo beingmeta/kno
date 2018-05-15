@@ -1500,11 +1500,11 @@ $(DESTDIR)@unpackage_dir@:
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
 MODULE_DIRS=xhtml fdxml mongodb \
-	brico misc tests jwt domutils knodules textindex \
+	brico misc tests jwt domutils knodules textindex morph \
 	aws facebook paypal twitter dropbox google
 
 MODULE_DATA_DIRS=textindex/data brico/data knodules/data \
-		 aws/templates
+		 aws/templates morph/data
 
 install-modules: install-standard-modules install-safe-modules
 install-standard-modules: install-module-source install-module-data

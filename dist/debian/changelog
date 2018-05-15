@@ -1,3 +1,9 @@
+framerd (4.2.8-19) stable; urgency=medium
+
+  * Restore morph to builtin modules
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 15 May 2018 17:48:35 +0000
+
 framerd (4.2.8-18) stable; urgency=medium
 
   * Build to reference libldns2 not libldns1

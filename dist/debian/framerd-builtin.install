@@ -16,6 +16,8 @@ usr/share/framerd/modules/builtin/mongodb/*.scm
 usr/share/framerd/modules/builtin/paypal/*.scm
 usr/share/framerd/modules/builtin/safe/*.scm
 usr/share/framerd/modules/builtin/tests/*.scm
+usr/share/framerd/modules/builtin/morph/*.scm
+usr/share/framerd/modules/builtin/morph/data/*.dtype
 usr/share/framerd/modules/builtin/textindex/*.scm
 usr/share/framerd/modules/builtin/textindex/data/*
 usr/share/framerd/modules/builtin/twitter/*.scm
