@@ -1215,7 +1215,7 @@ debian deb debs: dist/debs.done
 cleandist cleanrpms cleandeb rpmclean debclean: 
 	rm -rf dist/rpms.done dist/rpms.ready
 	rm -f dist/debs.signed dist/debs.built dist/debs.done
-	rm -f dist/*.deb dist/*.tar dist/*.gz dist/*.dsc dist/*.changes
+	rm -f dist/*.deb dist/*.tar dist/*.gz dist/*.dsc dist/*.changes dist/*.buildinfo
 	find dist -name "*.rpm" -writable | xargs -r rm
 	rm -rf staging/framerd*
 
