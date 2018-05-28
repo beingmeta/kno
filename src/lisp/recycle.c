@@ -223,8 +223,11 @@ FD_EXPORT
 void fd_incref_vec(lispval *vec,size_t n)
 {
   int i = 0; while (i<n) {
-    lispval elt = vec[i++];
-    fd_incref(elt);}
+    lispval elt = vec[i];
+    if ( (FD_CONSP(elt)) && (FD_STATIC_CONSP(elt) ) ) {
+      vec[i] = fd_copier(elt,FD_FULL_COPY);}
+    else fd_incref(elt);
+    i++;}
 }
 
 FD_EXPORT
