@@ -50,7 +50,7 @@
 
 (define (flex/wrap pool (opts #f))
   (unless (or (adjunct? pool) (exists? (poolctl pool 'props 'adjuncts)))
-    (if (getopt opts 'make)
+    (if (or (getopt opts 'make) (getopt opts 'create))
 	(adjuncts/setup! pool)
 	(adjuncts/init! pool)))
   pool)
@@ -78,7 +78,7 @@
 		 (flex/wrap (use-pool source opts) opts))
 	     (if (not (getopt opts 'create))
 		 (irritant source |NoSuchPool| flex/dbref)
-		 (make-pool source opts))))
+		 (flex/wrap (make-pool source opts)))))
 	((or (has-suffix source ".index")
 	     (testopt opts 'index)
 	     (testopt opts 'indextype))
