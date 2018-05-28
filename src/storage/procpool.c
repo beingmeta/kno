@@ -258,7 +258,7 @@ static int procpool_commit(fd_pool p,fd_commit_phase phase,
     return 0;
   else {
     lispval lp = fd_pool2lisp(p);
-    struct FD_VECTOR oidvec, valvec;
+    struct FD_VECTOR oidvec = { 0 }, valvec = { 0 };
     FD_INIT_STATIC_CONS(&oidvec,fd_vector_type);
     FD_INIT_STATIC_CONS(&valvec,fd_vector_type);
     oidvec.vec_length = commits->commit_count;

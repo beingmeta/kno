@@ -287,7 +287,7 @@ static int procindex_commit(fd_index ix,fd_commit_phase phase,
   if (VOIDP(pix->index_methods->commitfn))
     return 0;
   else {
-    struct FD_SLOTMAP add_table, drop_table, store_table;
+    struct FD_SLOTMAP add_table = {0}, drop_table = {0}, store_table = {0};
     fd_init_slotmap(&add_table,commits->commit_n_adds,
                     (fd_keyval)(commits->commit_adds));
     fd_init_slotmap(&drop_table,commits->commit_n_drops,
