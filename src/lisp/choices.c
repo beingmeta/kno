@@ -249,6 +249,15 @@ struct FD_CHOICE *fd_cleanup_choice(struct FD_CHOICE *ch,unsigned int flags)
     return ch;}
 }
 
+static void copy_static(lispval *vec,size_t n)
+{
+  int i = 0; while (i<n) {
+    lispval elt = vec[i];
+    if ( (FD_CONSP(elt)) && (FD_STATIC_CONSP(elt) ) ) {
+      vec[i] = fd_copier(elt,FD_FULL_COPY);}
+    i++;}
+}
+
 FD_EXPORT
 lispval fd_init_choice
   (struct FD_CHOICE *ch,int n,const lispval *data,int flags)
@@ -292,10 +301,13 @@ lispval fd_init_choice
   /* Determine if the choice is atomic. */
   if (flags&FD_CHOICE_ISATOMIC) atomicp = 1;
   else if (flags&FD_CHOICE_ISCONSES) atomicp = 0;
-  else while (scan<limit)
-    if (ATOMICP(*scan)) scan++; else {atomicp = 0; break;}
-  if ( (flags&FD_CHOICE_INCREF) && (! atomicp ) )
+  else while (scan<limit) {
+    if (ATOMICP(*scan)) scan++;
+    else {atomicp = 0; break;}}
+  if (atomicp) {}
+  else if (flags&FD_CHOICE_INCREF)
     fd_incref_vec(((lispval *)(FD_XCHOICE_DATA(ch))),n);
+  else copy_static(((lispval *)(FD_XCHOICE_DATA(ch))),n);
   /* Now sort and compress it if requested */
   if (flags&FD_CHOICE_DOSORT) {
     if (atomicp) atomic_sort((lispval *)base,n);
