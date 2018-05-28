@@ -218,6 +218,8 @@
 u8_condition fd_InternalMatchError=_("Internal match error");
 u8_condition fd_MatchSyntaxError=_("match syntax error");
 u8_condition fd_TXInvalidPattern=_("Not a valid TX text pattern");
+u8_condition UnboundMatchSymbol=_("Unbound matcher symbol");
+u8_condition BadMatcherMethod=_("Unknown matcher symbol");
 
 fd_ptr_type fd_txclosure_type;
 
@@ -245,7 +247,7 @@ static lispval match_eval(lispval symbol,fd_lexenv env)
   else return value;
 }
 static lispval match_apply(lispval method,u8_context cxt,fd_lexenv env,
-                          int n,lispval *args)
+                           int n,lispval *args)
 {
   if (FD_APPLICABLEP(method))
     return fd_apply(method,n,args);
@@ -253,11 +255,10 @@ static lispval match_apply(lispval method,u8_context cxt,fd_lexenv env,
     lispval methfn = match_eval(method,env), result;
     if (FD_APPLICABLEP(methfn))
       result = fd_apply(methfn,n,args);
-    else return fd_err(_("Unknown matcher symbol"),cxt,
-                       SYM_NAME(method),method);
+    else return fd_err(BadMatcherMethod,cxt,SYM_NAME(method),method);
     fd_decref(methfn);
     return result;}
-  else return fd_err(_("Invalid Match Method"),cxt,NULL,method);
+  else return fd_err(BadMatcherMethod,cxt,NULL,method);
 }
 
 /** Utility functions **/
@@ -477,8 +478,7 @@ lispval fd_text_domatch
   else if (SYMBOLP(pat)) {
     lispval v = match_eval(pat,env);
     if (VOIDP(v))
-      return fd_err(fd_UnboundIdentifier,"fd_text_domatch",
-                    SYM_NAME(pat),pat);
+      return fd_err(UnboundMatchSymbol,"fd_text_domatch",SYM_NAME(pat),pat);
     else {
       lispval result = fd_text_domatch(v,next,env,string,off,lim,flags);
       fd_decref(v); return result;}}
