@@ -1153,10 +1153,10 @@ static lispval copy_schemap(lispval schemap,int flags)
     while (i < size) {
       lispval val=ovalues[i];
       if (CONSP(val))
-        if (PRECHOICEP(val))
-          values[i]=fd_make_simple_choice(val);
-        else if ((flags&FD_FULL_COPY)||(FD_STATICP(val)))
+        if ((flags&FD_FULL_COPY)||(FD_STATICP(val)))
           values[i]=fd_copier(val,flags);
+        else if (PRECHOICEP(val))
+          values[i]=fd_make_simple_choice(val);
         else values[i]=fd_incref(val);
       else values[i]=val;
       nschema[i]=schema[i];
