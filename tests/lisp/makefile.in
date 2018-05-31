@@ -278,7 +278,7 @@ bigbricotests: ../data/brico.dump
 $(TESTBIN): ../../src/storage/streams.o ../../lib/libfdcore@suffix@.a
 %: %.c
 	@echo MKTEST_STATIC $@
-	@$(CC) $(CFLAGS) $(EXEFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) $(EXELIBS)
+	$(CC) $(CFLAGS) $(EXEFLAGS) @STATICLDFLAGS@ $(LDFLAGS) -o $@ $^ $(LIBS) $(EXELIBS)
 
 # This is for making shared (dynamically linked) versions of the test programs
 %.shared: %.c

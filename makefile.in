@@ -644,7 +644,7 @@ lib/framerd/%.@FDMAJOR@.dylib: lib/framerd/%.dylib
 dbg/%: src/exe/%.c $(STATIC_LIBS)
 	@echo MKEXE_DEBUG $@
 	$(CC) $(TEST_CFLAGS) -o $@ $^ 		\
-	      $(TEST_LDFLAGS) $(TEST_EXEFLAGS) 	\
+	      @STATICLDFLAGS@ $(TEST_LDFLAGS) $(TEST_EXEFLAGS) 	\
 	      -lu8stdio -lu8syslog 		\
 	      $(LIBS) $(EXELIBS)
 dbg/%: ${REVISION_H} ${CONFIG_H} src/exe/main.h src/exe/webcommon.h
