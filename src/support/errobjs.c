@@ -309,7 +309,9 @@ void fd_output_exception(u8_output out,u8_exception ex)
 FD_EXPORT
 void sum_exception(u8_output out,u8_exception ex)
 {
-  u8_puts(out,ex->u8x_cond);
+  if (ex->u8x_cond)
+    u8_puts(out,ex->u8x_cond);
+  else u8_puts(out,"UnknownError");
   if (ex->u8x_context) {
     u8_puts(out," <");
     u8_puts(out,ex->u8x_context);
