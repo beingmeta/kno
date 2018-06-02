@@ -69,7 +69,7 @@ $(TESTBIN): ../../lib/libfddrivers@suffix@.a 	\
 	../../lib/libfdstorage@suffix@.a 		\
 	../../lib/libfdcore@suffix@.a
 	@echo MKTEST_STATIC $@
-	@$(CC) $(CFLAGS) $(EXEFLAGS) $(LDFLAGS) $(EXELIBS) -o $@ $^ \
+	@$(CC) $(CFLAGS) $(EXEFLAGS) @STATICLDFLAGS@ $(LDFLAGS) $(EXELIBS) -o $@ $^ \
 		$(LIBS) $(EXELIBS)
 
 # This is for making shared (dynamically linked) versions of the test programs
