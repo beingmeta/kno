@@ -314,11 +314,11 @@
   (h1 "Unexpected " (tt (exception-condition exception))
     (when (exception-caller exception) (span ((class "caller")) (exception-caller exception))))
   (when (exception-details exception)
-    (p* ((class "details")) (htmlout (exception-details exception))))
+    (p* ((class "details")) (xmlout (exception-details exception))))
   (p* ((class "errorid")) (uuid->string uuid))
   (when (exception-irritant? exception)
     (xmlblock "PRE" ((class "irritant"))
-      (pprint (exception-irritant))))
+      (pprint (exception-irritant exception))))
   (let ((ref (bugjar exception uuid)))
     (if ref
 	(p* ((class "location"))
