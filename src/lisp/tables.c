@@ -3506,6 +3506,7 @@ FD_EXPORT void fd_init_hashset(struct FD_HASHSET *hashset,int size,
   hashset->hs_buckets=slots=u8_alloc_n(n_slots,lispval);
   while (i < n_slots) slots[i++]=FD_EMPTY;
   u8_init_rwlock(&(hashset->table_rwlock));
+  hashset->table_uselock = 1;
   return;
 }
 
