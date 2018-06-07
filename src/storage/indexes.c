@@ -1944,12 +1944,12 @@ static void display_index(u8_output out,fd_index ix,lispval lix)
     strncpy(buf,source,prefix_len);
     buf[prefix_len]='\0';
     u8_printf(out,_("#<%s %s (%s) cx=%d+%d%s #!%llx \"%s...\">"),
-              tag,type,useid,cached,added,edits,lix,buf);}
+              tag,useid,type,cached,added,edits,lix,buf);}
   else if (source)
     u8_printf(out,_("#<%s %s (%s) cx=%d+%d%s #!%llx \"%s\">"),
-              tag,type,useid,cached,added,edits,lix,source);
+              tag,useid,type,cached,added,edits,lix,source);
   else u8_printf(out,_("#<%s %s (%s) cx=%d+%d%s #!%llx>"),
-                 tag,type,useid,cached,added,edits,lix);
+                 tag,useid,type,cached,added,edits,lix);
 }
 static int unparse_index(u8_output out,lispval x)
 {
