@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-04-21 21:35+0000\n"
+"POT-Creation-Date: 2018-06-07 20:44+0000\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Dutch <nl@li.org>\n"
@@ -117,13 +117,13 @@ msgstr ""
 msgid "function identifier"
 msgstr ""
 
-#: src/lisp/choices.c:269
+#: src/lisp/choices.c:278
 msgid "BadInitData"
 msgstr ""
 
 #: src/lisp/sequences.c:155 src/lisp/sequences.c:241 src/lisp/sequences.c:739
 #: src/eval/opcodes.c:188 src/eval/opcodes.c:192 src/eval/opcodes.c:375
-#: src/eval/opcodes.c:382 src/prims/dbprims.c:2625 src/prims/dbprims.c:2627
+#: src/eval/opcodes.c:382 src/prims/dbprims.c:2630 src/prims/dbprims.c:2632
 #: src/prims/seqprims.c:324 src/prims/seqprims.c:332 src/prims/seqprims.c:338
 #: src/prims/seqprims.c:354 src/prims/seqprims.c:482 src/prims/seqprims.c:513
 #: src/prims/seqprims.c:530 src/prims/seqprims.c:547 src/prims/seqprims.c:564
@@ -381,7 +381,7 @@ msgid "oid"
 msgstr ""
 
 #: src/lisp/lisp.c:62 src/support/config.c:591 src/eval/eval.c:1723
-#: src/eval/opcodes.c:383 src/prims/dbprims.c:2565 src/prims/portprims.c:428
+#: src/eval/opcodes.c:383 src/prims/dbprims.c:2570 src/prims/portprims.c:428
 #: src/eval/choiceops.c:1212 src/eval/choiceops.c:1245
 #: src/eval/choiceops.c:1264 src/eval/choiceops.c:1295
 #: src/eval/choiceops.c:1306 src/eval/choiceops.c:1310
@@ -429,12 +429,12 @@ msgstr ""
 msgid "cdrcode"
 msgstr ""
 
-#: src/lisp/lisp.c:73 src/storage/pools.c:2754 src/prims/dbprims.c:251
+#: src/lisp/lisp.c:73 src/storage/pools.c:2757 src/prims/dbprims.c:251
 #: src/prims/dbprims.c:1531
 msgid "pool"
 msgstr ""
 
-#: src/lisp/lisp.c:74 src/storage/indexes.c:1115 src/storage/indexes.c:2333
+#: src/lisp/lisp.c:74 src/storage/indexes.c:1115 src/storage/indexes.c:2336
 #: src/storage/slotindexes.c:170 src/prims/dbprims.c:626
 #: src/prims/dbprims.c:1505 src/prims/dbprims.c:1517 src/prims/dbprims.c:1542
 msgid "index"
@@ -807,7 +807,7 @@ msgstr ""
 msgid "object is not a %m"
 msgstr ""
 
-#: src/support/errobjs.c:586
+#: src/support/errobjs.c:588
 msgid "Poorly Restored Error"
 msgstr ""
 
@@ -1207,12 +1207,12 @@ msgstr ""
 msgid "Error getting metadata"
 msgstr ""
 
-#: src/storage/storage.c:372 src/storage/pools.c:2636 src/prims/dbprims.c:1153
+#: src/storage/storage.c:372 src/storage/pools.c:2639 src/prims/dbprims.c:1153
 #: src/prims/dbprims.c:1164 src/prims/dbprims.c:1172 src/prims/dbprims.c:1180
 #: src/prims/dbprims.c:1221 src/prims/dbprims.c:1234 src/prims/dbprims.c:1250
 #: src/prims/dbprims.c:1262 src/prims/dbprims.c:1273 src/prims/dbprims.c:1291
-#: src/prims/dbprims.c:1327 src/prims/dbprims.c:1341 src/prims/dbprims.c:2560
-#: src/prims/dbprims.c:2638
+#: src/prims/dbprims.c:1327 src/prims/dbprims.c:1341 src/prims/dbprims.c:2565
+#: src/prims/dbprims.c:2643
 msgid "pool spec"
 msgstr ""
 
@@ -1463,52 +1463,52 @@ msgstr ""
 msgid "Synced %d changes to %s in %f secs"
 msgstr ""
 
-#: src/storage/indexes.c:1422
+#: src/storage/indexes.c:1425
 #, c-format
 msgid "Committing %d %s (+%d-%d:=%d%s) to %s"
 msgstr ""
 
-#: src/storage/indexes.c:1437
+#: src/storage/indexes.c:1440
 #, c-format
 msgid "Wrote %d changes to %s after %f secs"
 msgstr ""
 
-#: src/storage/indexes.c:1443
+#: src/storage/indexes.c:1446
 #, c-format
 msgid "Error writing %d changes to %s after %f secs, rolling back"
 msgstr ""
 
-#: src/storage/indexes.c:1515
+#: src/storage/indexes.c:1518
 #, c-format
 msgid "for %d %supdated keys from %s after %f secs"
 msgstr ""
 
-#: src/storage/indexes.c:1519
+#: src/storage/indexes.c:1522
 #, c-format
 msgid "Committed %d %s%s keys to %s in %f secs"
 msgstr ""
 
-#: src/storage/indexes.c:1661
+#: src/storage/indexes.c:1664
 #, c-format
 msgid "Saving %d changes (+%d-%d=%d%s) to %s"
 msgstr ""
 
-#: src/storage/indexes.c:1943
+#: src/storage/indexes.c:1946
 #, c-format
 msgid "#<%s %s (%s) cx=%d+%d%s #!%llx \"%s...\">"
 msgstr ""
 
-#: src/storage/indexes.c:1946
+#: src/storage/indexes.c:1949
 #, c-format
 msgid "#<%s %s (%s) cx=%d+%d%s #!%llx \"%s\">"
 msgstr ""
 
-#: src/storage/indexes.c:1948
+#: src/storage/indexes.c:1951
 #, c-format
 msgid "#<%s %s (%s) cx=%d+%d%s #!%llx>"
 msgstr ""
 
-#: src/storage/indexes.c:2337
+#: src/storage/indexes.c:2340
 msgid "raw index"
 msgstr ""
 
@@ -1619,28 +1619,28 @@ msgstr ""
 msgid "Swapping out oids in pool %s"
 msgstr ""
 
-#: src/storage/pools.c:1124
+#: src/storage/pools.c:1127
 #, c-format
 msgid "Couldn't rollback %d changes%s to %s"
 msgstr ""
 
-#: src/storage/pools.c:1580 include/framerd/pools.h:401
+#: src/storage/pools.c:1583 include/framerd/pools.h:401
 msgid "Corrupted pool table"
 msgstr ""
 
-#: src/storage/pools.c:1712
+#: src/storage/pools.c:1715
 msgid "not a pool"
 msgstr ""
 
-#: src/storage/pools.c:2623
+#: src/storage/pools.c:2626
 msgid "Config mis-config"
 msgstr ""
 
-#: src/storage/pools.c:2759
+#: src/storage/pools.c:2762
 msgid "raw pool"
 msgstr ""
 
-#: src/storage/pools.c:2816
+#: src/storage/pools.c:2819
 msgid "Default location for new OID allocation"
 msgstr ""
 
@@ -2156,11 +2156,11 @@ msgstr ""
 msgid "test object"
 msgstr ""
 
-#: src/prims/dbprims.c:2618
+#: src/prims/dbprims.c:2623
 msgid "wrong number of args"
 msgstr ""
 
-#: src/prims/dbprims.c:2742 src/prims/dbprims.c:2760
+#: src/prims/dbprims.c:2747 src/prims/dbprims.c:2765
 msgid "offset base"
 msgstr ""
 
@@ -2715,15 +2715,15 @@ msgstr ""
 msgid "Not a valid TX text pattern"
 msgstr ""
 
-#: src/text/match.c:256
+#: src/text/match.c:221
+msgid "Unbound matcher symbol"
+msgstr ""
+
+#: src/text/match.c:222
 msgid "Unknown matcher symbol"
 msgstr ""
 
-#: src/text/match.c:260
-msgid "Invalid Match Method"
-msgstr ""
-
-#: src/text/match.c:473
+#: src/text/match.c:474
 msgid "unknown match operator"
 msgstr ""
 
@@ -2735,129 +2735,129 @@ msgstr ""
 msgid "prompt is not a string"
 msgstr ""
 
-#: src/exe/fdconsole.c:239
+#: src/exe/fdconsole.c:306
 #, c-format
 msgid ";; Done in %f seconds, with %d/%d object/index loads\n"
 msgstr ""
 
-#: src/exe/fdconsole.c:241
+#: src/exe/fdconsole.c:308
 #, c-format
 msgid ";; %s computed in %f seconds, %d/%d object/index loads\n"
 msgstr ""
 
-#: src/exe/fdconsole.c:243
+#: src/exe/fdconsole.c:310
 #, c-format
 msgid ";; %s (%ls) computed in %f seconds, %d/%d object/index loads\n"
 msgstr ""
 
-#: src/exe/fdconsole.c:347 src/exe/fdconsole.c:349
+#: src/exe/fdconsole.c:414 src/exe/fdconsole.c:416
 #, c-format
 msgid "%s ;; %s = (%d/%d items)"
 msgstr ""
 
-#: src/exe/fdconsole.c:351
+#: src/exe/fdconsole.c:418
 #, c-format
 msgid "%s ;; %s = (%d items)"
 msgstr ""
 
-#: src/exe/fdconsole.c:352
+#: src/exe/fdconsole.c:419
 #, c-format
 msgid "%s ;; (%d items)"
 msgstr ""
 
-#: src/exe/fdconsole.c:441
+#: src/exe/fdconsole.c:508
 msgid ";; Bad assignment expression!\n"
 msgstr ""
 
-#: src/exe/fdconsole.c:738
+#: src/exe/fdconsole.c:805
 msgid "Threshold for displaying execution time"
 msgstr ""
 
-#: src/exe/fdconsole.c:740
+#: src/exe/fdconsole.c:807
 msgid "Eval prompt (within #||#s)"
 msgstr ""
 
-#: src/exe/fdconsole.c:744
+#: src/exe/fdconsole.c:811
 msgid "Max number of string characters to display in debug message"
 msgstr ""
 
-#: src/exe/fdconsole.c:748
+#: src/exe/fdconsole.c:815
 msgid "Max number of sequence/choice elements to display in debug message"
 msgstr ""
 
-#: src/exe/fdconsole.c:751
+#: src/exe/fdconsole.c:818
 msgid "Whether to minimize console output"
 msgstr ""
 
-#: src/exe/fdconsole.c:754
+#: src/exe/fdconsole.c:821
 msgid "Report startup times when longer than N seconds"
 msgstr ""
 
-#: src/exe/fdconsole.c:758
+#: src/exe/fdconsole.c:825
 msgid "Number of characters available for pretty-printing console output"
 msgstr ""
 
-#: src/exe/fdconsole.c:762
+#: src/exe/fdconsole.c:829
 msgid "Number of elements to initially show in displaying results"
 msgstr ""
 
-#: src/exe/fdconsole.c:765
+#: src/exe/fdconsole.c:832
 msgid "Where to create directories for saving backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:768
+#: src/exe/fdconsole.c:835
 msgid "The base URL for referencing HTML backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:771
+#: src/exe/fdconsole.c:838
 msgid "The command to use to open saved backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:774
+#: src/exe/fdconsole.c:841
 msgid "Whether to dump HTML versions of backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:777
+#: src/exe/fdconsole.c:844
 msgid "Whether to dump LISP object versions of backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:780
+#: src/exe/fdconsole.c:847
 msgid "Whether to dump binary DTYPE versions of backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:783
+#: src/exe/fdconsole.c:850
 msgid "Whether to plaintext versions of backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:786
+#: src/exe/fdconsole.c:853
 msgid "Whether to always save backtraces in the history"
 msgstr ""
 
-#: src/exe/fdconsole.c:789
+#: src/exe/fdconsole.c:856
 msgid "Whether to always output backtraces to stderr"
 msgstr ""
 
-#: src/exe/fdconsole.c:792
+#: src/exe/fdconsole.c:859
 msgid "Whether load .fdconsole or other dot files"
 msgstr ""
 
-#: src/exe/fdconsole.c:795
+#: src/exe/fdconsole.c:862
 msgid "Where to dump console errors"
 msgstr ""
 
-#: src/exe/fdconsole.c:840 src/exe/fdexec.c:227 src/exe/fdexec.c:232
+#: src/exe/fdconsole.c:907 src/exe/fdexec.c:227 src/exe/fdexec.c:232
 msgid "File to wait to exist before starting"
 msgstr ""
 
-#: src/exe/fdconsole.c:928
+#: src/exe/fdconsole.c:993
 msgid "Whether to use EDITLINE for the console"
 msgstr ""
 
-#: src/exe/fdconsole.c:954
+#: src/exe/fdconsole.c:1019
 msgid ";; Bound %q\n"
 msgstr ""
 
-#: src/exe/fdconsole.c:955
+#: src/exe/fdconsole.c:1020
 msgid ";; Bad command result %q\n"
 msgstr ""
 

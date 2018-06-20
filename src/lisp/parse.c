@@ -1326,7 +1326,7 @@ static lispval parse_histref(u8_input in)
       tmpbuf.u8_outbuf[0] = '\0';}
   if (c>0) u8_ungetc(in,c);
   if (fd_resolve_histref) {
-    lispval resolved = fd_resolve_histref(elts);
+    lispval resolved = fd_resolve_histref(FD_CDR(elts));
     if (FD_ABORTP(resolved))
       fd_clear_errors(1);
     else if (FD_VOIDP(resolved)) {}

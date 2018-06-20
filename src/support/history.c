@@ -20,6 +20,8 @@ static lispval history_symbol, histref_symbol;
 #define hashtable_get(tbl,key,dflt) \
   fd_hashtable_get((fd_hashtable)tbl,key,dflt)
 
+FD_EXPORT fd_history_resolvefn fd_resolve_histref;
+
 /* Data stucture:
 
 */
@@ -180,6 +182,77 @@ FD_EXPORT lispval fd_histfind(lispval value)
     return refs;}
 }
 
+FD_EXPORT
+lispval fd_get_histref(lispval elts)
+{
+  lispval history = fd_thread_get(history_symbol);
+  if (FD_ABORTP(history))
+    return history;
+  else if (VOIDP(history)) {
+    fd_seterr("NoActiveHistory","histref_evalfn",NULL,FD_VOID);
+    return FD_ERROR_VALUE;}
+  else NO_ELSE;
+  lispval root = FD_CAR(elts);
+  lispval val = fd_history_ref(history,root);
+  if ( (FD_ABORTP(root)) || (FD_EMPTYP(root)) || (FD_VOIDP(root)) ) {
+    fd_seterr("BadHistref","fd_get_histref",NULL,root);
+    return FD_ERROR;}
+  lispval paths = FD_CDR(elts);
+  lispval scan = fd_incref(val);
+  while ( (FD_PAIRP(paths)) && (!(FD_VOIDP(scan))) ) {
+    lispval path = FD_CAR(paths); paths = FD_CDR(paths);
+    if (FD_FIXNUMP(path)) {
+      int rel_off = FD_FIX2INT(path);
+      if (FD_CHOICEP(scan)) {
+	ssize_t n_choices = FD_CHOICE_SIZE(scan);
+	ssize_t off = (rel_off>=0) ?  (rel_off) : (n_choices + rel_off);
+	if ( (off < 0) || (off > n_choices) )
+	  return fd_err(fd_RangeError,"histref_evalfn",NULL,path);
+	else {
+	  lispval new_scan = FD_CHOICE_ELTS(scan)[off];
+	  fd_incref(new_scan); fd_decref(scan);
+	  scan=new_scan;}}
+      else if (FD_SEQUENCEP(scan)) {
+	ssize_t n_elts = fd_seq_length(scan);
+	ssize_t off = (rel_off>=0) ?  (rel_off) : (n_elts + rel_off);
+	if ( (off < 0) || (off > n_elts) )
+	  return fd_err(fd_RangeError,"histref_evalfn",NULL,path);
+	else {
+	  lispval new_scan = fd_seq_elt(scan,off);
+	  fd_decref(scan);
+	  scan=new_scan;}}
+      else scan = FD_VOID;}
+    else if (FD_STRINGP(path)) {
+      if (FD_TABLEP(scan)) {
+	lispval v = fd_get(scan,path,FD_VOID);
+	if (FD_VOIDP(v)) {
+	  u8_string upper = u8_upcase(FD_CSTRING(scan));
+	  lispval sym = fd_probe_symbol(upper,-1);
+	  if (FD_SYMBOLP(sym))
+	    v = fd_get(scan,sym,FD_VOID);}
+	if (FD_VOIDP(v))
+	  fd_seterr("NoSuchKey","histref_evalfn",FD_CSTRING(path),scan);
+	scan = v;}
+      else scan = FD_VOID;}
+    else if (FD_SYMBOLP(path)) {
+      if (FD_TABLEP(scan)) {
+	lispval v = fd_get(scan,path,FD_VOID);
+	if (FD_VOIDP(v))
+	  fd_seterr("NoSuchKey","histref_evalfn",FD_CSTRING(path),scan);
+	fd_decref(scan);
+	scan = v;}
+      else scan = FD_VOID;}
+    else scan = FD_VOID;}
+  if (FD_VOIDP(scan)) {
+    fd_seterr("InvalidHistRef","histref_evalfn",NULL,root);
+    fd_decref(root);
+    return FD_ERROR;}
+  else {
+    fd_incref(scan);
+    fd_decref(val);
+    return scan;}
+}
+
 FD_EXPORT void fd_histinit(int size)
 {
   lispval history = fd_thread_get(history_symbol);
@@ -218,6 +291,8 @@ FD_EXPORT void fd_init_history_c()
 
   history_symbol = fd_intern("%HISTORY");
   histref_symbol = fd_intern("%HISTREF");
+
+  fd_resolve_histref = fd_get_histref;
 
 }
 
