@@ -3,72 +3,84 @@
 
 (in-module 'mongodb/pools)
 
-(use-module '{mongodb logger})
+(use-module '{mongodb ezrecords varconfig logger})
 
 (module-export! '{mgo/pool mgo/poolfetch
 		  mgo/store! mgo/drop! mgo/add!
 		  mgo/decache!
 		  mgo/adjslot})
 
+(define (mongopool->string f)
+  (stringout "#<MONGOPOOL " (mongopool-spec f) " " 
+    (oid->string (mongopool-base f)) "+" 
+    (flexpool-capacity f) ">"))
+
+(defrecord (mongopool mutable opaque 
+		      #[predicate mongopool?] 
+		      `(stringfn . mongopool->string))
+  collection spec base capacity (opts #f)
+  (lock (make-condvar)))
+
 (define-init pool-table (make-hashtable))
 
 ;;; Basic methods for mongodb
 
-(define (fetchfn oid/s collection)
-  (if (vector? oid/s)
-      (let ((values (mongodb/find collection
-			`#[_id #[$oneof ,(elts oid/s)]
-			   #[__index 0]]))
-	    (result (make-vector (length oid/s) #f))
-	    (map (make-hashtable)))
-	(do-choices (value values) (store! map (get value '_id) value))
-	(doseq (oid oid/s i)
-	  (vector-set! result i (get map oid)))
-	result)
-      (mongodb/get collection oid/s #[return #[__index 0]])))
+(define (mongopool-fetch oid/s collection)
+  (mongodb/get collection oid/s #[return #[__index 0]]))
 
-(define (mgo/pool/fetch oid/s collection) (fetchfn oid/s collection))
+(define (mongopool-fetchn oidvec collection)
+  (let ((values (mongodb/find collection
+		    `#[_id #[$oneof ,(elts oidvec)]
+		       #[__index 0]]))
+	(result (make-vector (length oidvec) #f))
+	(map (make-hashtable)))
+    (do-choices (value values) (store! map (get value '_id) value))
+    (doseq (oid oid/s i)
+      (vector-set! result i (get map oid)))
+    result))
 
-(define (allocfn n collection)
+(define (mongopool-alloc pool mp n)
   (if (and (integer? n) (> n 0) (<= n 1024))
-      (let* ((mod (mongodb/modify collection
-		      #[_id "_pool"] 
-		    `#[$inc #[load ,n]]
-		    #[original #t]))
-	     (before (get mod 'value))
-	     (start (get before 'load))
-	     (base (get before 'base))
-	     (result {}))
-	(dotimes (i n)
-	  (set+! result (oid-plus base (+ i start))))
-	(do-choices (oid result)
-	  (mongodb/insert! collection `#[_id ,oid])
-	  (set-oid-value! oid `#[_id ,oid]))
-	result)
+      (with-lock (monogpool-lock mp)
+	(let* ((collection (mongopool-collection mp))
+	       (mod (mongodb/modify collection
+			#[_id "_pool"] 
+		      `#[$inc #[load ,n]]
+		      #[original #t]))
+	       (before (get mod 'value))
+	       (start (get before 'load))
+	       (base (get before 'base))
+	       (result {}))
+	  (dotimes (i n)
+	    (set+! result (oid-plus base (+ i start))))
+	  (do-choices (oid result)
+	    (mongodb/insert! collection `#[_id ,oid])
+	    (set-oid-value! oid `#[_id ,oid]))
+	  result))
       (irritant n |BadAllocCount| "For pool in " collection)))
-
-(define (mgo/pool/alloc n collection) (allocfn n collection))
 
 ;;; Declaring pools from MongoDB collections
 
-(define (mgo/pool collection (base-arg #f) (cap-arg #f))
-  (try (get pool-table (vector (mongodb/spec collection)
-			       (collection/name collection)))
-       (let* ((info (try (mongodb/get collection "_pool") #f))
-	      (base (get-pool-base collection base-arg cap-arg))
-	      (cap (get-pool-capacity collection base-arg cap-arg))
-	      (pool (make-extpool (collection/name collection) base cap
-				  mgo/pool/fetch 
-				  #f ;; save
-				  #f ;; lock
-				  mgo/pool/alloc ;; alloc (mgo/pool/alloc)
-				  collection ;; state
-				  #t)))
+(define-init mongopools (make-hashtable))
+
+(define (mongopool/open spec opts (collection))
+  (default! collection (mongodb/collection spec))
+  (try (get pool-table 
+	    `#(,(mongodb/spec collection) ,(collection/name collection)))
+       (let ((info (try (mongodb/get collection "_pool") #f)))
+	 (if info
+	     (let ((base (get info 'base))
+		   (cap (get info 'capacity))
+		   (load (get info 'load))
+		   (name (get info 'name)))
+	       (let ((pool (mongopool/new collection opts spec
+					  ))))
+	       
 	 (store! pool-table pool collection)
 	 (store! pool-table (vector (mongodb/spec collection)
 				    (collection/name collection)) 
 		 pool)
-	 pool)))
+	 pool)))))
 
 ;;; Basic operations for OIDs in mongodb pools
 
@@ -287,3 +299,32 @@
   (1+ (try (oid-offset (get-max-id collection) base) 0)))
 
 
+;;; Handlers
+
+(define (mongopool-alloc pool flexpool (n 1))
+  (with-lock (flexpool-lock flexpool)
+    (let ((front (flexpool-front flexpool)))
+      (if (<= (+ (pool-load front) n) (pool-capacity front))
+	  (allocate-oids front n)
+	  (let* ((lower (- (pool-capacity front)
+			   (pool-load front)))
+		 (upper (- n lower)))
+	    (choice (tryif (< (pool-load front) (pool-capacity front))
+		      (allocate-oids front lower))
+		    (allocate-oids (flexpool-next flexpool) upper)))))))
+
+(define (flexpool-fetch pool flexpool oid) (oid-value oid))
+(define (flexpool-storen pool flexpool n oidvec valvec) 
+  (error |VirtualPool| flexpool-storen
+	 "Can't store values in the virtual pool " p))
+(define (flexpool-load pool flexpool (front))
+  (set! front (flexpool-front flexpool))
+  (if front
+      (oid-offset (oid-plus (pool-base front) (pool-load front))
+		  (pool-base pool))
+      0))
+
+(define (flexpool-ctl pool flexpool op . args)
+  (cond ((and (eq? op 'partitions) (null? args))
+	 (flexpool-partitions flexpool))
+	(else (apply poolctl/default pool op args))))
