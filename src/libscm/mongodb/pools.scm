@@ -26,10 +26,12 @@
 
 ;;; Basic methods for mongodb
 
-(define (mongopool-fetch oid/s collection)
-  (mongodb/get collection oid/s #[return #[__index 0]]))
+(define (mongopool-fetch pool mp oid (collection))
+  (default! collection (mongopool-collection mp))
+  (mongodb/get collection oid #[return #[__index 0]]))
 
-(define (mongopool-fetchn oidvec collection)
+(define (mongopool-fetchn pool mp oidvec (collection))
+  (default! collection (mongopool-collection mp))
   (let ((values (mongodb/find collection
 		    `#[_id #[$oneof ,(elts oidvec)]
 		       #[__index 0]]))
@@ -39,6 +41,20 @@
     (doseq (oid oid/s i)
       (vector-set! result i (get map oid)))
     result))
+
+(define (mongopool-lockoids pool mp oids (collection))
+  (default! collection (mongopool-collection mp))
+  (let ((current (mongodb/find collection
+		     `#[_id #[$oneof ,oids]
+			#[__index 0]]))
+	(originals (mongopool-originals mp)))
+    (do-choices (entry current)
+      (store! originals (get value '_id) (deep-copy value)))
+    #t))
+
+(define (mongopool-releaseoids pool mp oids (collection))
+  (default! collection (mongopool-collection mp))
+  (drop! originals oids))
 
 (define (mongopool-alloc pool mp n)
   (if (and (integer? n) (> n 0) (<= n 1024))
@@ -77,6 +93,11 @@
 	 (info (mongodb/get collection "_pool")))
     (try (get info 'load)
 	 (irritant pool |MongoPoolNotIntialized|))))
+
+(define (mongopool-ctl pool mp op . args)
+  (cond ((and (eq? op 'collection) (null? args))
+	 (mongopool-collection mp))
+	(else (apply poolctl/default pool op args))))
 
 ;;; Declaring pools from MongoDB collections
 
@@ -138,13 +159,37 @@
 	(mongodb/collection spec (getopt opts 'name) opts)))
   (init-mongopool collection (opts+ #[create #t] opts)))
 
+(define (mongopool-storen pool mp n oidvec valvec) 
+  (let ((collection (mongopool-collection mp))
+	(originals (mongopool-originals mp)))
+    (dotimes (i (length oidvec))
+      (let* ((oid (elt oidvec i))
+	     (cur (get originals oid))
+	     (new (elt valvec i)))
+	(do-choices (slotid (getkeys {cur new}))
+	  (if (test cur slotid)
+	      (let ((add (difference (get new slotid) (get cur slotid)))
+		    (drop (difference (get cur slotid) (get new slotid))))
+		(mongodb/modify! collection
+		    `#[_id ,oid]
+		  `#[$addToSet #[,slotid #[$each ,add]]
+		     $pullAll #[,slotid ,drop]]))
+	      (unless (identical? (get cur slotid) (get new sloid))
+		(mongodb/modify! collection
+		    `#[_id ,oid]
+		  `#[$set #[,slotid ,(get new slotid)]]))))))))
+
 (defpooltype 'mongopool
   `#[open ,mongopool/open
      create ,mongopool/make
      alloc ,mongopool-alloc
      getload ,mongopool-load
      fetch ,mongopool-fetch
-     fetchn ,mongopool-fetchn])
+     fetchn ,mongopool-fetchn
+     lockoids ,mongopool-lockoids
+     releaseoids ,mongopool-releaseoids
+     poolctl ,mongopool-ctl
+     storen ,mongopool-storen])
 
 (module-export! '{mongopool/open mongopool/make})
 
