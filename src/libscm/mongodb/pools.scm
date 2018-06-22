@@ -13,12 +13,13 @@
 (define (mongopool->string f)
   (stringout "#<MONGOPOOL " (mongopool-spec f) " " 
     (oid->string (mongopool-base f)) "+" 
-    (flexpool-capacity f) ">"))
+    (mongopool-capacity f) ">"))
 
 (defrecord (mongopool mutable opaque 
 		      #[predicate mongopool?] 
 		      `(stringfn . mongopool->string))
   collection spec base capacity (opts #f)
+  (originals (make-hashtable))
   (lock (make-condvar)))
 
 (define-init pool-table (make-hashtable))
@@ -59,28 +60,81 @@
 	  result))
       (irritant n |BadAllocCount| "For pool in " collection)))
 
+(define (mongopool-load pool mp)
+  (let* ((collection (mongopool-collection mp))
+	 (values (mongodb/find collection
+		    `#[_id #[$oneof ,(elts oidvec)]
+		       #[__index 0]]))
+	(result (make-vector (length oidvec) #f))
+	(map (make-hashtable)))
+    (do-choices (value values) (store! map (get value '_id) value))
+    (doseq (oid oid/s i)
+      (vector-set! result i (get map oid)))
+    result))
+
+(define (mongopool-load pool mongoopool)
+  (let* ((collection (mongopool-collection mongopool))
+	 (info (mongodb/get collection "_pool")))
+    (try (get info 'load)
+	 (irritant pool |MongoPoolNotIntialized|))))
+
 ;;; Declaring pools from MongoDB collections
 
 (define-init mongopools (make-hashtable))
 
-(define (mongopool/open spec opts (collection))
-  (default! collection (mongodb/collection spec))
-  (try (get pool-table 
-	    `#(,(mongodb/spec collection) ,(collection/name collection)))
-       (let ((info (try (mongodb/get collection "_pool") #f)))
-	 (if info
-	     (let ((base (get info 'base))
-		   (cap (get info 'capacity))
-		   (load (get info 'load))
-		   (name (get info 'name)))
-	       (let ((pool (mongopool/new collection opts spec
-					  ))))
-	       
-	 (store! pool-table pool collection)
-	 (store! pool-table (vector (mongodb/spec collection)
-				    (collection/name collection)) 
-		 pool)
-	 pool)))))
+(defrecord (mongopool mutable opaque 
+		      #[predicate mongopool?] 
+		      `(stringfn . mongopool->string))
+  collection spec base capacity (opts #f)
+  (originals (make-hashtable))
+  (lock (make-condvar)))
+
+(define (init-mongopool-inner collection (opts #f))
+  (try (get mongopools `#(,(mongodb/spec collection) ,(collection/name collection)))
+       (get mongopools `#(,(mongodb/getdb collection) ,(collection/name collection)))
+       (let* ((info (mongodb/get collection "_pool"))
+	      (base (get info 'base))
+	      (cap (get info 'capacity #1mib))
+	      (load (get info 'load 0))
+	      (name (get info 'name)))
+	 (cond ((and (exists? base) (exists? cap)))
+	       ((not (getopt opts 'create)) #f)
+	       ((not (getopt opts 'base))
+		(irritant collection |NoBaseOID|))
+	       (else (set! base (getopt opts 'base))
+		     (set! cap (getopt opts 'capacity #1mib))
+		     (set! load (getopt opts 'load 0))
+		     (set! name (collection-name collection))
+		     (mongodb/insert! collection
+		       `#[_id "_pool" base ,base capacity ,cap
+			  name ,name load ,load])))
+	 (let* ((opts (or opts `#[]))
+		(record (cons-mongopool collection spec base cap opts))
+		(pool (make-procpool name base cap opts record load)))
+	   (store! mongopools collection pool)
+	   (store! mongopools `#(,(mongodb/spec collection) ,(collection/name collection))
+		   pool)
+	   pool))))
+(define-init init-mongopool
+  (slambda (collection (opts #f))
+    (init-mongopool-inner collection opts)))
+
+(define (mongopool/open spec (opts #f) (collection))
+  (default! collection (mongodb/collection spec (getopt spec 'name) opts))
+  (init-mongopool collection opts))
+(define (mongopool/make spec (opts #f) (collection))
+  (default! collection (mongodb/collection spec (getopt spec 'name) opts))
+  (init-mongopool collection (opts+ #[create #t] opts)))
+
+(defpooltype 'mongopool
+  `#[open ,mongopool/open
+     create ,mongopool/make
+     alloc ,mongopool-alloc
+     getload ,mongopool-load
+     fetch ,mongopool-fetch
+     fetchn ,mongopool-fetchn])
+
+(module-export! '{mongopool/open mongpool/make})
 
 ;;; Basic operations for OIDs in mongodb pools
 
@@ -285,46 +339,8 @@
 			" in " info
 			"for " collection))))
 
-(define (init-pool collection base cap)
-  (mongodb/insert! collection
-    `#[_id "_pool" base ,base capacity ,cap
-       name ,(collection/name collection)
-       load ,(get-init-load collection base)]))
 
-(define (get-max-id collection)
-  (largest (get (mongodb/find collection #[_id #[$type "objectId"]]
-		  #[return #[_id: 1]])
-		'_id)))
 (define (get-init-load collection base)
   (1+ (try (oid-offset (get-max-id collection) base) 0)))
 
 
-;;; Handlers
-
-(define (mongopool-alloc pool flexpool (n 1))
-  (with-lock (flexpool-lock flexpool)
-    (let ((front (flexpool-front flexpool)))
-      (if (<= (+ (pool-load front) n) (pool-capacity front))
-	  (allocate-oids front n)
-	  (let* ((lower (- (pool-capacity front)
-			   (pool-load front)))
-		 (upper (- n lower)))
-	    (choice (tryif (< (pool-load front) (pool-capacity front))
-		      (allocate-oids front lower))
-		    (allocate-oids (flexpool-next flexpool) upper)))))))
-
-(define (flexpool-fetch pool flexpool oid) (oid-value oid))
-(define (flexpool-storen pool flexpool n oidvec valvec) 
-  (error |VirtualPool| flexpool-storen
-	 "Can't store values in the virtual pool " p))
-(define (flexpool-load pool flexpool (front))
-  (set! front (flexpool-front flexpool))
-  (if front
-      (oid-offset (oid-plus (pool-base front) (pool-load front))
-		  (pool-base pool))
-      0))
-
-(define (flexpool-ctl pool flexpool op . args)
-  (cond ((and (eq? op 'partitions) (null? args))
-	 (flexpool-partitions flexpool))
-	(else (apply poolctl/default pool op args))))
