@@ -137,21 +137,20 @@ FD_EXPORT void fd_register_pool_type
   u8_lock_mutex(&pool_typeinfo_lock);
   ptype = pool_typeinfo; while (ptype) {
     if (strcasecmp(name,ptype->pool_typename)==0) {
-      if ((matcher) && (ptype->matcher) && (matcher!=ptype->matcher))
-        u8_logf(LOG_WARN,"PoolTypeInconsistency",
-                "Attempt to redefine pool type '%s' with different matcher",
-                name);
-      else if ((type_data) && (ptype->type_data) &&
-               (type_data!=ptype->type_data))
-        u8_logf(LOG_WARN,"PoolTypeInconsistency",
-                "Attempt to redefine pool type '%s' with different type data",
-                name);
+      if ( ( (matcher == NULL) || (matcher == ptype->matcher) ) &&
+           ( (handler == NULL) || (handler == ptype->handler) ) ) {
+        if ( (type_data) && (type_data != ptype->type_data) ) {
+          u8_logf(LOG_WARN,"PoolTypeRedefinition",
+                  "Redefining pool type '%s' with different type data",
+                  name);}
+        else {}}
       else if ((handler) && (ptype->handler) &&
                (handler!=ptype->handler))
         u8_logf(LOG_WARN,"PoolTypeInconsistency",
                 "Attempt to redefine pool type '%s' with different handler",
                 name);
-      else break;}
+      u8_unlock_mutex(&pool_typeinfo_lock);
+      return;}
     else ptype = ptype->next_type;}
   if (ptype) {
     u8_unlock_mutex(&pool_typeinfo_lock);
@@ -379,21 +378,26 @@ FD_EXPORT void fd_register_index_type
   u8_lock_mutex(&index_typeinfo_lock);
   ixtype = index_typeinfo; while (ixtype) {
     if (strcasecmp(name,ixtype->index_typename)==0) {
-      if ((matcher) && (ixtype->matcher) && (matcher!=ixtype->matcher))
-        u8_logf(LOG_WARN,"IndexTypeInconsistency",
+      if ( ( (handler == NULL) || (handler == ixtype->handler) ) &&
+           ( (matcher == NULL) || (matcher == ixtype->matcher) ) ) {
+        if (type_data != ixtype->type_data) {
+          u8_logf(LOG_WARN,"IndexTypeRedefinition",
+                  "Redefining index type '%s' with different type data",
+                  name);
+          ixtype->type_data = type_data;}
+        u8_unlock_mutex(&index_typeinfo_lock);
+        return;}
+      else if ((matcher) && (ixtype->matcher) && (matcher!=ixtype->matcher))
+        u8_logf(LOG_ERR,"IndexTypeInconsistency",
                 "Attempt to redefine index type '%s' with different matcher",
-                name);
-      else if ((type_data) && (ixtype->type_data) &&
-               (type_data!=ixtype->type_data))
-        u8_logf(LOG_WARN,"IndexTypeInconsistency",
-                "Attempt to redefine index type '%s' with different type data",
                 name);
       else if ((handler) && (ixtype->handler) &&
                (handler!=ixtype->handler))
-        u8_logf(LOG_WARN,"IndexTypeInconsistency",
+        u8_logf(LOG_ERR,"IndexTypeInconsistency",
                 "Attempt to redefine index type '%s' with different handler",
                 name);
-      else break;}
+      else {}
+    return;}
     else ixtype = ixtype->next_type;}
   if (ixtype) {
     u8_unlock_mutex(&index_typeinfo_lock);
