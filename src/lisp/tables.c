@@ -3313,12 +3313,6 @@ static lispval copy_hashtable(lispval table,int deep)
     (NULL,fd_consptr(fd_hashtable,table,fd_hashtable_type),1);
 }
 
-static lispval copy_hashset(lispval table,int deep)
-{
-  struct FD_HASHSET *ptr=fd_consptr(fd_hashset,table,fd_hashset_type);
-  return fd_copy_hashset(NULL,ptr);
-}
-
 static int unparse_hashtable(u8_output out,lispval x)
 {
   struct FD_HASHTABLE *ht=FD_XHASHTABLE(x);
@@ -3870,7 +3864,8 @@ FD_EXPORT int fd_hashset_mod(struct FD_HASHSET *h,lispval key,int add)
 {
   int rv=0, unlock=0;
   if (h->table_uselock) {
-    fd_write_lock_table(h); unlock=0;}
+    fd_write_lock_table(h);
+    unlock = 1;}
   rv=hashset_mod(h,key,add);
   if (unlock) fd_unlock_table(h);
   return rv;
@@ -3924,12 +3919,18 @@ static void recycle_hashset(struct FD_RAW_CONS *c)
   u8_free(c);
 }
 
+static lispval copy_hashset(lispval table,int deep)
+{
+  struct FD_HASHSET *ptr=fd_consptr(fd_hashset,table,fd_hashset_type);
+  return fd_copy_hashset(NULL,ptr);
+}
+
 FD_EXPORT lispval fd_copy_hashset(struct FD_HASHSET *hnew,struct FD_HASHSET *h)
 {
   int unlock = 0;
   if (h->table_uselock) {
     fd_read_lock_table(h);
-    unlock=1;}
+    unlock = 1;}
   int n_slots = h->hs_n_buckets;
   lispval *read = h->hs_buckets, *readlim = read+n_slots;
   if (hnew==NULL) hnew=u8_alloc(struct FD_HASHSET);
