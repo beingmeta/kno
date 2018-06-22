@@ -21,4 +21,5 @@ usr/share/framerd/modules/builtin/morph/data/*.dtype
 usr/share/framerd/modules/builtin/textindex/*.scm
 usr/share/framerd/modules/builtin/textindex/data/*
 usr/share/framerd/modules/builtin/twitter/*.scm
+usr/share/framerd/modules/builtin/twilio/*.scm
 usr/share/framerd/modules/builtin/xhtml/*.scm

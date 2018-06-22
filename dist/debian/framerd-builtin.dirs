@@ -21,6 +21,7 @@ usr/share/framerd/modules/builtin/tests
 usr/share/framerd/modules/builtin/textindex
 usr/share/framerd/modules/builtin/textindex/data
 usr/share/framerd/modules/builtin/twitter
+usr/share/framerd/modules/builtin/twilio
 usr/share/framerd/modules/builtin/xhtml
 
 

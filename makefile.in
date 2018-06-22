@@ -478,7 +478,7 @@ SCHEME_MODULES=src/extmods/*.scm \
 	src/extmods/aws/*.scm src/extmods/brico/*.scm \
 	src/extmods/facebook/*.scm src/extmods/google/*.scm \
 	src/extmods/paypal/*.scm src/extmods/twitter/*.scm \
-	src/extmods/dropbox/*.scm \
+	src/extmods/dropbox/*.scm src/extmods/twilio/*.scm \
 	src/extmods/misc/*.scm src/extmods/tests/*.scm \
 	src/extmods/safe/domutils/*.scm src/extmods/safe/knodules/*.scm \
 	src/extmods/safe/textindex/*.scm src/extmods/safe/jwt/*.scm \
@@ -1501,7 +1501,7 @@ upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
 MODULE_DIRS=xhtml fdxml mongodb \
 	brico misc tests jwt domutils knodules textindex morph \
-	aws facebook paypal twitter dropbox google
+	aws facebook paypal twitter twilio dropbox google
 
 MODULE_DATA_DIRS=textindex/data brico/data knodules/data \
 		 aws/templates morph/data
