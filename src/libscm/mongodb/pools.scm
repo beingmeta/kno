@@ -18,7 +18,7 @@
 (defrecord (mongopool mutable opaque 
 		      #[predicate mongopool?] 
 		      `(stringfn . mongopool->string))
-  collection spec base capacity (opts #f)
+  collection dbspec cname base capacity (opts #f)
   (originals (make-hashtable))
   (lock (make-condvar)))
 
@@ -89,14 +89,18 @@
   (originals (make-hashtable))
   (lock (make-condvar)))
 
-(define (init-mongopool-inner collection (opts #f))
-  (try (get mongopools `#(,(mongodb/spec collection) ,(collection/name collection)))
-       (get mongopools `#(,(mongodb/getdb collection) ,(collection/name collection)))
+;; This is called by the slambda init-mongopool to create the
+;; mongopool entry for a given OID pool stored in MongoDB.
+(define (init-mongopool-inner collection (opts #f) (cname))
+  (default! cname (collection/name collection))
+  (try (get mongopools `#(,(mongodb/getdb collection) ,cname))
+       (get mongopools `#(,(mongodb/spec collection) ,cname))
        (let* ((info (mongodb/get collection "_pool"))
+	      (collname (collection/name collection))
 	      (base (get info 'base))
-	      (cap (get info 'capacity #1mib))
-	      (load (get info 'load 0))
-	      (name (get info 'name)))
+	      (cap (get info 'capacity))
+	      (load (try (get info 'load) 0))
+	      (name (try (get info 'name) cname)))
 	 (cond ((and (exists? base) (exists? cap)))
 	       ((not (getopt opts 'create)) #f)
 	       ((not (getopt opts 'base))
@@ -104,26 +108,34 @@
 	       (else (set! base (getopt opts 'base))
 		     (set! cap (getopt opts 'capacity #1mib))
 		     (set! load (getopt opts 'load 0))
-		     (set! name (collection-name collection))
+		     (set! name (collection/name collection))
 		     (mongodb/insert! collection
 		       `#[_id "_pool" base ,base capacity ,cap
 			  name ,name load ,load])))
 	 (let* ((opts (or opts `#[]))
-		(record (cons-mongopool collection spec base cap opts))
+		(record (cons-mongopool collection (mongodb/spec collection)
+					(collection/name collection)
+					base cap opts))
 		(pool (make-procpool name base cap opts record load)))
 	   (store! mongopools collection pool)
-	   (store! mongopools `#(,(mongodb/spec collection) ,(collection/name collection))
-		   pool)
+	   (store! mongopools
+	     (vector {(mongodb/getdb collection) (mongodb/spec collection)}
+		     cname)
+	     pool)
 	   pool))))
 (define-init init-mongopool
   (slambda (collection (opts #f))
     (init-mongopool-inner collection opts)))
 
 (define (mongopool/open spec (opts #f) (collection))
-  (default! collection (mongodb/collection spec (getopt spec 'name) opts))
+  (default! collection 
+    (if (mongodb/collection? spec) spec 
+	(mongodb/collection spec (getopt opts 'name) opts)))
   (init-mongopool collection opts))
 (define (mongopool/make spec (opts #f) (collection))
-  (default! collection (mongodb/collection spec (getopt spec 'name) opts))
+  (default! collection 
+    (if (mongodb/collection? spec) spec 
+	(mongodb/collection spec (getopt opts 'name) opts)))
   (init-mongopool collection (opts+ #[create #t] opts)))
 
 (defpooltype 'mongopool
@@ -134,7 +146,7 @@
      fetch ,mongopool-fetch
      fetchn ,mongopool-fetchn])
 
-(module-export! '{mongopool/open mongpool/make})
+(module-export! '{mongopool/open mongopool/make})
 
 ;;; Basic operations for OIDs in mongodb pools
 
