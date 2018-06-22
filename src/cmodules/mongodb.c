@@ -471,9 +471,11 @@ static mongoc_uri_t *setup_mongoc_uri(mongoc_uri_t *info,lispval opts)
     set_uri_opt(info,MONGOC_URI_MAXPOOLSIZE,ctimeout);
   if ( (FD_STRINGP(appname)) || (FD_SYMBOLP(appname)) )
     set_uri_opt(info,MONGOC_URI_APPNAME,appname);
-  else mongoc_uri_set_option_as_utf8(info,MONGOC_URI_APPNAME,u8_appid());
-  if (boolopt(opts,sslsym,default_ssl))
-    mongoc_uri_set_option_as_bool(info,MONGOC_URI_SSL,1);
+  else if (info) {
+    mongoc_uri_set_option_as_utf8(info,MONGOC_URI_APPNAME,u8_appid());
+    if (boolopt(opts,sslsym,default_ssl))
+      mongoc_uri_set_option_as_bool(info,MONGOC_URI_SSL,1);}
+  else {}
 #else
   u8_string uri = mongoc_uri_get_string(info);
   u8_string qmark = strchr(uri,'?');
@@ -556,7 +558,7 @@ static lispval mongodb_open(lispval arg,lispval opts)
                               FD_SYMBOL_NAME(arg),conf_val);}
   else return fd_type_error("MongoDB URI","mongodb_open",arg);
 
-  if (!(info)) info = setup_mongoc_uri(info,opts);
+  info = setup_mongoc_uri(info,opts);
 
   if (!(info))
     return fd_err(fd_MongoDB_Error,"mongodb_open",error.message,arg);
@@ -625,11 +627,15 @@ static int unparse_server(struct U8_OUTPUT *out,lispval x)
 
 static u8_string get_connection_spec(mongoc_uri_t *info)
 {
-  struct U8_OUTPUT out;
   const mongoc_host_list_t *hosts = mongoc_uri_get_hosts(info);
-  U8_INIT_OUTPUT(&out,256);
-  u8_printf(&out,"%s@%s",mongoc_uri_get_username(info),hosts->host_and_port);
-  return out.u8_outbuf;
+  u8_string username = mongoc_uri_get_username(info), result = NULL;
+  if (username) {
+    struct U8_OUTPUT out;
+    U8_INIT_OUTPUT(&out,256);
+    u8_printf(&out,"%s@%s",username,hosts->host_and_port);
+    result = out.u8_outbuf;}
+  else result = u8_strdup(hosts->host_and_port);
+  return result;
 }
 
 static lispval pemsym, pempwd, cafilesym, cadirsym, crlsym;
