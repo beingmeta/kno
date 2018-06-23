@@ -648,7 +648,11 @@ FD_EXPORT lispval fd_new_frame(lispval pool_spec,lispval initval,int copyflags)
     return fd_err(fd_NoSuchPool,"frame_create_lexpr",NULL,pool_spec);
   /* At this point, we have p!=NULL and we get an OID */
   oid = fd_pool_alloc(p,1);
-  if (FD_ABORTP(oid)) return oid;
+  if (FD_ABORTP(oid))
+    return oid;
+  else if (!(FD_OIDP(oid)))
+    return fd_err("PoolAllocFailed","fd_new_frame",p->poolid,VOID);
+  else {}
   /* Now we figure out what to store in the OID */
   if (VOIDP(initval)) initval = fd_empty_slotmap();
   else if ((OIDP(initval)) && (copyflags)) {
