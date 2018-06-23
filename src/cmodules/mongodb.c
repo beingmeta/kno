@@ -1290,9 +1290,9 @@ static lispval mongodb_modify(lispval arg,lispval query,lispval update,
          &reply,&error)) {
       result = fd_bson2dtype(&reply,flags,opts);}
     else {
-      u8_byte buf[100];
+      u8_byte buf[1000];
       fd_seterr(fd_MongoDB_Error,"mongodb_modify",
-                u8_sprintf(buf,100,"%s>%s>%s:%s",
+                u8_sprintf(buf,1000,"%s>%s>%s:%s",
                            db->dburi,db->dbname,domain->collection_name,
                            error.message),
                 fd_make_pair(query,update));
