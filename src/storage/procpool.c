@@ -61,6 +61,7 @@ fd_pool fd_make_procpool(FD_OID base,
     (FD_SYMBOLP(pool_type)) ? 
     (fd_get_pool_typeinfo(FD_SYMBOL_NAME(pool_type))) :
     (NULL);
+  int cache_level = -1;
 
   if ( (typeinfo) && (typeinfo->type_data) )
     methods = (struct FD_PROCPOOL_METHODS *) (typeinfo->type_data);
@@ -87,47 +88,40 @@ fd_pool fd_make_procpool(FD_OID base,
     if (FD_STRINGP(source_opt))
       source = CSTRING(source_opt);}
 
-  fd_init_pool((fd_pool)pp,base,cap,
-               &fd_procpool_handler,
-               label,source,source,
-               flags,
-               metadata,
-               opts);
-
   if (fd_testopt(opts,FDSYM_CACHELEVEL,FD_VOID)) {
     lispval v = fd_getopt(opts,FDSYM_CACHELEVEL,FD_VOID);
     if (FD_FALSEP(v))
-      pp->pool_cache_level=0;
-    else if (FD_FIXNUMP(v)) {
-      int ival=FD_FIX2INT(v);
-      pp->pool_cache_level=ival;}
+      cache_level=0;
+    else if (FD_FIXNUMP(v))
+      cache_level=FD_FIX2INT(v);
     else if ( (FD_TRUEP(v)) || (v == FD_DEFAULT_VALUE) ) {}
     else u8_logf(LOG_CRIT,"BadCacheLevel",
                  "Invalid cache level %q specified for procpool %s",
                  v,label);
     fd_decref(v);}
 
+  flags |= FD_POOL_SPARSE;
   if (fd_testopt(opts,fd_intern("ADJUNCT"),FD_VOID))
     flags |= FD_POOL_ADJUNCT;
   if (fd_testopt(opts,fd_intern("READONLY"),FD_VOID))
     flags |= FD_STORAGE_READ_ONLY;
-  if (!(fd_testopt(opts,fd_intern("REGISTER"),FD_VOID)))
+  if (fd_testopt(opts,fd_intern("VIRTUAL"),FD_VOID))
+    flags |= FD_STORAGE_VIRTUAL;
+  lispval rval = fd_getopt(opts,fd_intern("REGISTER"),FD_VOID);
+  if (FD_FALSEP(rval))
     flags |= FD_STORAGE_UNREGISTERED;
-  flags |= FD_POOL_SPARSE;
+  else fd_decref(rval);
 
-  pp->pool_flags = flags;
-
+  fd_init_pool((fd_pool)pp,base,cap,
+               &fd_procpool_handler,
+               label,source,source,
+               flags,
+               metadata,
+               opts);
   pp->pool_methods = methods;
   pp->pool_state   = state; fd_incref(state);
   pp->pool_label = u8_strdup(label);
-
-  lispval init_metadata = fd_getopt(opts,FDSYM_METADATA,FD_VOID);
-  if (FD_SLOTMAPP(init_metadata)) {
-    struct FD_SLOTMAP *pool_metadata = &(pp->pool_metadata);
-    fd_copy_slotmap((fd_slotmap)init_metadata,pool_metadata);}
-  fd_decref(init_metadata);
-
-  fd_register_pool((fd_pool)pp);
+  pp->pool_cache_level = cache_level;
 
   if (fd_testopt(opts,fd_intern("TYPEID"),VOID)) {
     lispval idval = poolopt(opts,"TYPEID");
@@ -143,7 +137,7 @@ fd_pool fd_make_procpool(FD_OID base,
     fd_decref(idval);}
 
   fd_register_pool((fd_pool)pp);
-
+  fd_decref(metadata);
   fd_decref(source_opt);
 
   return (fd_pool)pp;
@@ -230,7 +224,7 @@ static lispval procpool_alloc(fd_pool p,int n)
   lispval lp = fd_pool2lisp(p);
   lispval n_arg = FD_INT(n);
   lispval args[3]={lp,pp->pool_state,n_arg};
-  if (NO_METHODP(pp->pool_methods->fetchfn))
+  if (NO_METHODP(pp->pool_methods->allocfn))
     return VOID;
   else return fd_dapply(pp->pool_methods->allocfn,3,args);
 }
@@ -265,10 +259,10 @@ static int procpool_commit(fd_pool p,fd_commit_phase phase,
     oidvec.vec_elts = commits->commit_oids;
     valvec.vec_length = commits->commit_count;
     valvec.vec_elts = commits->commit_vals;
-    lispval args[6] = { lp, pp->pool_state, fd_commit_phases[phase], 
+    lispval args[6] = { lp, pp->pool_state, fd_commit_phases[phase],
                         ((lispval)(&oidvec)),
                         ((lispval)(&valvec)),
-                        ( (FD_VOIDP(commits->commit_metadata)) ? 
+                        ( (FD_VOIDP(commits->commit_metadata)) ?
                           (FD_FALSE) :
                           (commits->commit_metadata) ) };
     lispval result = fd_apply(pp->pool_methods->commitfn,6,args);
