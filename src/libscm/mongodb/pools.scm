@@ -5,30 +5,45 @@
 
 (use-module '{mongodb ezrecords varconfig logger})
 
+(module-export! '{mongopool/open mongopool/make
+		  mongopool? mongo/convert})
+
 (module-export! '{mgo/pool mgo/poolfetch
 		  mgo/store! mgo/drop! mgo/add!
 		  mgo/decache!
 		  mgo/adjslot})
 
 (define (mongopool->string f)
-  (stringout "#<MONGOPOOL " (mongopool-spec f) " " 
+  (stringout "#<MONGOPOOL "
+    (mongopool-server f) "/" 
+    (mongopool-dbname f) " "
+    (mongopool-cname f) " "
     (oid->string (mongopool-base f)) "+" 
     (mongopool-capacity f) ">"))
 
+(define-init mongopools (make-hashtable))
+
 (defrecord (mongopool mutable opaque 
-		      #[predicate mongopool?] 
+		      #[predicate ismongopool?] 
 		      `(stringfn . mongopool->string))
-  collection dbspec cname base capacity (opts #f)
+  collection server dbname cname base capacity (opts #f)
   (originals (make-hashtable))
   (lock (make-condvar)))
 
-(define-init pool-table (make-hashtable))
+(define (mongopool? x) (and (pool? x) (test mongopools x)))
+
+;;; Converting mongodb objects to FramerD (mostly choices)
+(define (mongo/convert object)
+  (do-choices (assoc (getassocs object))
+    (when (vector? (cdr assoc))
+      (store! object (car assoc) (elts (cdr assoc)))))
+  object)
 
 ;;; Basic methods for mongodb
 
 (define (mongopool-fetch pool mp oid (collection))
   (default! collection (mongopool-collection mp))
-  (mongodb/get collection oid #[return #[__index 0]]))
+  (mongo/convert (mongodb/get collection oid #[return #[__index 0]])))
 
 (define (mongopool-fetchn pool mp oidvec (collection))
   (default! collection (mongopool-collection mp))
@@ -37,9 +52,10 @@
 		       #[__index 0]]))
 	(result (make-vector (length oidvec) #f))
 	(map (make-hashtable)))
-    (do-choices (value values) (store! map (get value '_id) value))
-    (doseq (oid oid/s i)
-      (vector-set! result i (get map oid)))
+    (do-choices (value values) 
+      (store! map (get value '_id) value))
+    (doseq (oid oidvec i)
+      (vector-set! result i (mongo/convert (get map oid))))
     result))
 
 (define (mongopool-lockoids pool mp oids (collection))
@@ -49,16 +65,17 @@
 			#[__index 0]]))
 	(originals (mongopool-originals mp)))
     (do-choices (entry current)
-      (store! originals (get value '_id) (deep-copy value)))
+      (store! originals (get entry '_id) (deep-copy entry)))
     #t))
 
-(define (mongopool-releaseoids pool mp oids (collection))
-  (default! collection (mongopool-collection mp))
-  (drop! originals oids))
+(define (mongopool-releaseoids pool mp oids (originals))
+  (default! originals (mongopool-originals mp))
+  (drop! originals oids)
+  #t)
 
 (define (mongopool-alloc pool mp n)
   (if (and (integer? n) (> n 0) (<= n 1024))
-      (with-lock (monogpool-lock mp)
+      (with-lock (mongopool-lock mp)
 	(let* ((collection (mongopool-collection mp))
 	       (mod (mongodb/modify collection
 			#[_id "_pool"] 
@@ -76,19 +93,7 @@
 	  result))
       (irritant n |BadAllocCount| "For pool in " collection)))
 
-(define (mongopool-load pool mp)
-  (let* ((collection (mongopool-collection mp))
-	 (values (mongodb/find collection
-		    `#[_id #[$oneof ,(elts oidvec)]
-		       #[__index 0]]))
-	(result (make-vector (length oidvec) #f))
-	(map (make-hashtable)))
-    (do-choices (value values) (store! map (get value '_id) value))
-    (doseq (oid oid/s i)
-      (vector-set! result i (get map oid)))
-    result))
-
-(define (mongopool-load pool mongoopool)
+(define (mongopool-load pool mongopool)
   (let* ((collection (mongopool-collection mongopool))
 	 (info (mongodb/get collection "_pool")))
     (try (get info 'load)
@@ -97,26 +102,57 @@
 (define (mongopool-ctl pool mp op . args)
   (cond ((and (eq? op 'collection) (null? args))
 	 (mongopool-collection mp))
+	((eq? op 'cachelevel) 1)
 	(else (apply poolctl/default pool op args))))
 
-;;; Declaring pools from MongoDB collections
+(define (mongopool-commit pool mp phase oidvec valvec metadata) 
+  (info%watch "MONGOPOOL-COMMIT" 
+    pool mp phase "N" (length oidvec)
+    metadata)
+  (when (eq? phase 'write)
+    (let ((collection (mongopool-collection mp))
+	  (originals (mongopool-originals mp)))
+      (dotimes (i (length oidvec))
+	(let* ((oid (elt oidvec i))
+	       (cur (get originals oid))
+	       (new (elt valvec i)))
+	  (debug%watch oid cur new (modified? new))
+	  (let ((sets `#[]) (unsets `#[]) (adds `#[]) (drops `#[]))
+	    (do-choices (slotid (getkeys {cur new}))
+	      (let ((curv (get cur slotid)) (newv (get new slotid)))
+		(cond ((identical? curv newv))
+		      ((fail? curv)
+		       (store! sets slotid (choice->vector newv)))
+		      ((fail? newv) (store! unsets slotid ""))
+		      ((and (singleton? curv) (singleton? newv))
+		       (store! sets slotid newv))
+		      (else (let ((toadd (difference newv curv))
+				  (todrop (difference curv newv)))
+			      (when (exists? toadd)
+				(store! adds slotid `#[$each ,(choice->vector toadd)]))
+			      (when (exists? todrop)
+				(store! drops slotid (choice->vector todrop))))))))
+	    (mongodb/modify! collection `#[_id ,oid]
+	      (frame-create #f
+		'$set (tryif (> (table-size sets) 0) sets)
+		'$addToSet (tryif (> (table-size adds) 0) adds)
+		'$pullAll (tryif (> (table-size drops) 0) drops)
+		'$unset (tryif (> (table-size unsets) 0) unsets))))
+	  (store! originals oid new)))))
+  #t)
 
-(define-init mongopools (make-hashtable))
+;;; Opening and initializing mongodb-backed pools
 
-(defrecord (mongopool mutable opaque 
-		      #[predicate mongopool?] 
-		      `(stringfn . mongopool->string))
-  collection spec base capacity (opts #f)
-  (originals (make-hashtable))
-  (lock (make-condvar)))
-
-;; This is called by the slambda init-mongopool to create the
+;; This is called by the slambda init-mongopool (below) to create the
 ;; mongopool entry for a given OID pool stored in MongoDB.
 (define (init-mongopool-inner collection (opts #f) (cname))
   (default! cname (collection/name collection))
   (try (get mongopools `#(,(mongodb/getdb collection) ,cname))
-       (get mongopools `#(,(mongodb/spec collection) ,cname))
+       (get mongopools `#(,(mongodb/spec collection) 
+			  ,(mongodb/name collection)
+			  ,cname))
        (let* ((info (mongodb/get collection "_pool"))
+	      (metadata (try (mongodb/get collection "_metadata") #[]))
 	      (collname (collection/name collection))
 	      (base (get info 'base))
 	      (cap (get info 'capacity))
@@ -133,16 +169,19 @@
 		     (mongodb/insert! collection
 		       `#[_id "_pool" base ,base capacity ,cap
 			  name ,name load ,load])))
-	 (let* ((opts (or opts `#[]))
+	 (let* ((opts (opts+ `#[type mongopool metadata ,metadata] 
+			     opts))
 		(record (cons-mongopool collection (mongodb/spec collection)
 					(collection/name collection)
 					base cap opts))
 		(pool (make-procpool name base cap opts record load)))
 	   (store! mongopools collection pool)
 	   (store! mongopools
-	     (vector {(mongodb/getdb collection) (mongodb/spec collection)}
-		     cname)
+	     {(vector (mongodb/getdb collection) cname)
+	      (vector (mongodb/spec collection) (mongodb/name collection)
+		      cname)}
 	     pool)
+	   (store! mongopools pool record)
 	   pool))))
 (define-init init-mongopool
   (slambda (collection (opts #f))
@@ -159,26 +198,6 @@
 	(mongodb/collection spec (getopt opts 'name) opts)))
   (init-mongopool collection (opts+ #[create #t] opts)))
 
-(define (mongopool-storen pool mp n oidvec valvec) 
-  (let ((collection (mongopool-collection mp))
-	(originals (mongopool-originals mp)))
-    (dotimes (i (length oidvec))
-      (let* ((oid (elt oidvec i))
-	     (cur (get originals oid))
-	     (new (elt valvec i)))
-	(do-choices (slotid (getkeys {cur new}))
-	  (if (test cur slotid)
-	      (let ((add (difference (get new slotid) (get cur slotid)))
-		    (drop (difference (get cur slotid) (get new slotid))))
-		(mongodb/modify! collection
-		    `#[_id ,oid]
-		  `#[$addToSet #[,slotid #[$each ,add]]
-		     $pullAll #[,slotid ,drop]]))
-	      (unless (identical? (get cur slotid) (get new sloid))
-		(mongodb/modify! collection
-		    `#[_id ,oid]
-		  `#[$set #[,slotid ,(get new slotid)]]))))))))
-
 (defpooltype 'mongopool
   `#[open ,mongopool/open
      create ,mongopool/make
@@ -189,15 +208,14 @@
      lockoids ,mongopool-lockoids
      releaseoids ,mongopool-releaseoids
      poolctl ,mongopool-ctl
-     storen ,mongopool-storen])
-
-(module-export! '{mongopool/open mongopool/make})
+     commit ,mongopool-commit])
 
 ;;; Basic operations for OIDs in mongodb pools
 
-(defambda (mgo/store! oid slotid values (pool) (collection))
+(defambda (mgo/store! oid slotid values (pool) (mp) (collection))
   (set! pool (getpool oid))
-  (set! collection (get pool-table pool))
+  (set! mp (get mongopools pool))
+  (set! collection (mongopool-collection mp))
   (if (or (fail? pool) (not pool))
       (irritant oid |No pool| mgo/store!)
       (if (fail? collection)
@@ -218,9 +236,10 @@
     (store! result slotid values))
   result)
 
-(defambda (mgo/add! oid slotid values (pool) (collection))
+(defambda (mgo/add! oid slotid values (pool) (mp) (collection))
   (set! pool (getpool oid))
-  (set! collection (get pool-table pool))
+  (set! mp (get mongopools pool))
+  (set! collection (mongopool-collection mp))
   (if (or (fail? pool) (not pool))
       (irritant oid |No pool| mgo/store!)
       (if (fail? collection)
@@ -241,30 +260,31 @@
 		(if (unique? values) values `#[$each ,values]))
 	  q))))
 
-(defambda (mgo/drop! oid slotid (values) (pool) (collection))
+(defambda (mgo/drop! oid slotid (values) (pool) (mp) (collection))
   (set! pool (getpool oid))
-  (set! collection (get pool-table pool))
+  (set! mp (get mongopools pool))
+  (set! collection (mongopool-collection mp))
   (if (or (fail? pool) (not pool))
       (irritant oid |No pool| mgo/store!)
       (if (fail? collection)
 	  (irritant pool |Not A MongoDB pool| mgo/store!)
 	  (update!
-	   (if (bound? values)
-	       (mongodb/modify! collection `#[_id ,oid]
-		 (if (unique? values)
-		     `#[$pull ,(if (unique? slotid)
-				   `#[,slotid ,values]
-				   (get-store-modifier slotid values))]
-		     `#[$pullAll ,(if (unique? slotid)
-				      `#[,slotid ,values]
-				      (get-store-modifier slotid values)
-				      )])
-		 #[new #t return #[__index 0]])
-	       (mongodb/modify! collection 
-		   `#[_id ,oid] (if (ambiguous? slotid)
-				    (get-drop-all-modifier slotid)
-				    `#[$unset #[,slotid 1]])
-		   #[new #t return #[__index 0]]))))))
+	    (if (bound? values)
+		(mongodb/modify! collection `#[_id ,oid]
+		  (if (unique? values)
+		      `#[$pull ,(if (unique? slotid)
+				    `#[,slotid ,values]
+				    (get-store-modifier slotid values))]
+		      `#[$pullAll ,(if (unique? slotid)
+				       `#[,slotid ,values]
+				       (get-store-modifier slotid values)
+				       )])
+		  #[new #t return #[__index 0]])
+		(mongodb/modify! collection 
+		    `#[_id ,oid] (if (ambiguous? slotid)
+				     (get-drop-all-modifier slotid)
+				     `#[$unset #[,slotid 1]])
+		    #[new #t return #[__index 0]]))))))
 
 (define (get-drop-all-modifier slotids (result #[]))
   (do-choices (slotid slotids)
@@ -277,7 +297,7 @@
 (define (update! result (value #f))
   (when (test result 'value)
     (set! value (get result 'value))
-    (set-oid-value! (get value '_id) value))
+    (%set-oid-value! (get value '_id) value))
   (or value result))
 
 ;;; Defining adjunct slots of various kinds
@@ -308,7 +328,7 @@
 			       `#[returns ,extract])
 			     extract)
 			(mongodb/find collection (adjunct-query query oid)))))
-	 (coll (get pool-table pool))
+	 (coll (get mongopools pool))
 	 (name 
 	  (if (exists? coll) 
 	      (glom (mongodb/name coll) "/" (collection/name coll) "/" slot)
@@ -353,51 +373,3 @@
 	    '%mongovec
 	    #f #f)))
 	(else query)))
-
-;;; Handling mongo/pool arguments
-
-(define (get-pool-base collection base cap (info))
-  (set! info (try (mongodb/get collection "_pool") #f))
-  (cond ((and (not info) (not base))
-	 (irritant collection 
-		   |BadMongoPool| "No pool info or specified base"))
-	((and (not info) (not (oid? base)))
-	 (irritant base |InvalidPoolBase| "For collection " collection))
-	((not info)
-	 (init-pool collection base cap)
-	 base)
-	((not (test info 'base))
-	 (mongodb/update! collection #[_id "_pool"] `#[$set #[base ,base]])
-	 base)
-	((test info 'base base) base)
-	(else (irritant base |InconsistentBase| 
-			"Doesn't match " (get info 'base) 
-			" in " info
-			"for " collection))))
-(define (get-pool-capacity collection base cap (info))
-  (set! info (try (mongodb/get collection "_pool") #f))
-  (cond ((and (not info) (not cap))
-	 (irritant collection 
-		   |BadMongoPool| "No pool info or specified capacity"))
-	((and (not info) (not (and (integer? cap)
-				   (> cap 0)
-				   (<= cap (* 4 1000 1000 1000)))))
-	 (irritant cap |InvalidPoolCapacity| "For collection " collection))
-	((not info)
-	 (init-pool collection base cap)
-	 cap)
-	((not (test info 'capacity))
-	 (mongodb/update! collection #[_id "_pool"]
-	   `#[$set #[capacity ,cap]])
-	 cap)
-	((test info 'capacity cap) cap)
-	(else (irritant base |InconsistentCapacity| 
-			"Doesn't match " (get info 'capacity) 
-			" in " info
-			"for " collection))))
-
-
-(define (get-init-load collection base)
-  (1+ (try (oid-offset (get-max-id collection) base) 0)))
-
-

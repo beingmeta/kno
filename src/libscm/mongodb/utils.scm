@@ -43,7 +43,7 @@
 		  "index" name)
       (mongodb/do collection
 		  "dropIndexes" (collection/name collection)
-		  "index" (get 'name))))
+		  "index" (get name 'name))))
 
 (defambda (mgo/index/add! collection specs (opts #f))
   (mongodb/do collection
@@ -114,16 +114,17 @@
 		    "maxdocs" ,(getopt opts 'maxdocs {})]))
 
 (define (collection/rename! collection newname (db))
-  (set! db (mongodb/getdb collection))
+  (default! db (mongodb/getdb collection))
   (mongodb/do db `#["renameCollection" 
 		    ,(glom (mongodb/name collection) "/" (collection/name collection))
 		    "to" ,newname]))
 
-(define (collection/drop! collection)
+(define (collection/drop! collection (db))
+  (default! db (mongodb/getdb collection))
   (mongodb/do db `#["drop" ,(collection/name collection)]))
 
 (define (mgo/dropdb! db dbname)
-  (mongodb/do db #["dropDatabse" 1]))
+  (mongodb/do db #["dropDatabase" 1]))
 
 (define (mgo/params/list arg (db))
   (set! db (if (mongodb? arg) arg (mongodb/getdb arg)))

@@ -803,7 +803,7 @@
 (define (flexpool-fetch pool flexpool oid) (oid-value oid))
 (define (flexpool-storen pool flexpool n oidvec valvec) 
   (error |VirtualPool| flexpool-storen
-	 "Can't store values in the virtual pool " p))
+	 "Can't store values directly in the flexpool " p))
 (define (flexpool-load pool flexpool (front))
   (set! front (flexpool-front flexpool))
   (if front
