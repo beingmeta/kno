@@ -570,7 +570,7 @@ FD_EXPORT int fd_set_oid_value(lispval oid,lispval value)
 {
   fd_pool p = fd_oid2pool(oid);
   if (p == NULL)
-    return fd_reterr(fd_AnonymousOID,"SET-OID_VALUE!",NULL,oid);
+    return fd_reterr(fd_AnonymousOID,"SET-OID-VALUE!",NULL,oid);
   else if (p == fd_zero_pool)
     return fd_zero_pool_store(oid,value);
   else {
@@ -584,7 +584,28 @@ FD_EXPORT int fd_set_oid_value(lispval oid,lispval value)
     else if (fd_lock_oid(oid)) {
       fd_hashtable_store(&(p->pool_changes),oid,value);
       return 1;}
-    else return fd_reterr(fd_CantLockOID,"SET-OID_VALUE!",NULL,oid);}
+    else return fd_reterr(fd_CantLockOID,"SET-OID-VALUE!",NULL,oid);}
+}
+
+FD_EXPORT int fd_replace_oid_value(lispval oid,lispval value)
+{
+  fd_pool p = fd_oid2pool(oid);
+  if (p == NULL)
+    return fd_reterr(fd_AnonymousOID,"REPLACE-OID-VALUE!",NULL,oid);
+  else if (p == fd_zero_pool)
+    return fd_zero_pool_store(oid,value);
+  else {
+    if ( (p->pool_handler->lock == NULL) ||
+         (U8_BITP(p->pool_flags,FD_POOL_VIRTUAL)) ||
+         (U8_BITP(p->pool_flags,FD_POOL_NOLOCKS)) ) {
+      fd_hashtable_store(&(p->pool_cache),oid,value);
+      return 1;}
+    else if (fd_hashtable_probe(&(p->pool_changes),oid)) {
+      fd_hashtable_store(&(p->pool_changes),oid,value);
+      return 1;}
+    else {
+      fd_hashtable_store(&(p->pool_cache),oid,value);
+      return 1;}}
 }
 
 /* Fetching OID values */

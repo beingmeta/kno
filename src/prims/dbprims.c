@@ -513,7 +513,18 @@ static lispval setoidvalue(lispval o,lispval v,lispval nocopy)
   else v = fd_incref(v);
   retval = fd_set_oid_value(o,v);
   fd_decref(v);
-  if (retval<0) return FD_ERROR;
+  if (retval<0)
+    return FD_ERROR;
+  else return VOID;
+}
+static lispval xsetoidvalue(lispval o,lispval v)
+{
+  int retval;
+  fd_incref(v);
+  retval = fd_replace_oid_value(o,v);
+  fd_decref(v);
+  if (retval<0)
+    return FD_ERROR;
   else return VOID;
 }
 
@@ -3396,6 +3407,15 @@ FD_EXPORT void fd_init_dbprims_c()
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2("UNLOCK-OIDS!",unlockoids,0)));
   fd_idefn(fd_scheme_module,fd_make_cprim1("LOCKED-OIDS",lockedoids,1));
+
+  fd_idefn2(fd_scheme_module,"%SET-OID-VALUE!",
+            xsetoidvalue,FD_NEEDS_2_ARGS|FD_NDCALL,
+            "`(%SET-OID-VALUE! *oid* *value* [*nocopy*])` "
+            "directly sets the value of *oid* to *value*. If "
+            "the value is a slotmap or schemap, a copy is stored unless "
+            "*nocopy* is not false (the default).",
+            fd_oid_type,VOID,-1,VOID);
+
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("POOL?",poolp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("INDEX?",indexp,1));

@@ -375,6 +375,7 @@ FD_EXPORT void fd_reset_pool_tables(fd_pool p,ssize_t cacheval,ssize_t locksval)
 
 FD_EXPORT int fd_set_oid_value(lispval oid,lispval value);
 FD_EXPORT lispval fd_locked_oid_value(fd_pool p,lispval oid);
+FD_EXPORT int fd_replace_oid_value(lispval oid,lispval value);
 
 FD_EXPORT int fd_swapout_pools(void);
 FD_EXPORT int fd_close_pools(void);
