@@ -57,7 +57,7 @@ lispval fd_commit_phases[8];
 
 static lispval id_symbol, flags_symbol, background_symbol,
   readonly_symbol, repair_symbol, adjunct_symbol,
-  sparse_symbol, register_symbol, phased_symbol,
+  sparse_symbol, register_symbol, virtual_symbol, phased_symbol,
   oidcodes_symbol, slotcodes_symbol;
 
 static lispval lookupfns = FD_NIL;
@@ -101,6 +101,8 @@ fd_get_dbflags(lispval opts,fd_storage_flags init_flags)
       flags |= FD_STORAGE_PHASED;
     if (!(testopt(opts,register_symbol,1)))
       flags |= FD_STORAGE_UNREGISTERED;
+    if (!(testopt(opts,virtual_symbol,1)))
+      flags |= FD_STORAGE_VIRTUAL;
     if (testopt(opts,repair_symbol,0))
       flags |= FD_STORAGE_REPAIR;
     if ( (is_index) && (testopt(opts,background_symbol,0)) )
@@ -655,6 +657,7 @@ FD_EXPORT int fd_init_storage()
   phased_symbol = fd_intern("PHASED");
   slotcodes_symbol = fd_intern("SLOTCODES");
   oidcodes_symbol = fd_intern("OIDCODES");
+  virtual_symbol = fd_intern("VIRTUAL");
 
   fd_set_oid_parser(better_parse_oid);
   fd_unparsers[fd_oid_type]=better_unparse_oid;
