@@ -6,7 +6,8 @@
 (use-module '{mongodb ezrecords varconfig logger})
 
 (module-export! '{mongopool/open mongopool/make
-		  mongopool? mongo/convert})
+		  mongopool? mongo/convert
+		  mongo/invert})
 
 (module-export! '{mgo/pool mgo/poolfetch
 		  mgo/store! mgo/drop! mgo/add!
@@ -26,24 +27,34 @@
 (defrecord (mongopool mutable opaque 
 		      #[predicate ismongopool?] 
 		      `(stringfn . mongopool->string))
-  collection server dbname cname base capacity (opts #f)
+  collection server dbname cname base capacity 
+  (opts #f) (slotinfo `#[])
   (originals (make-hashtable))
   (lock (make-condvar)))
 
 (define (mongopool? x) (and (pool? x) (test mongopools x)))
 
+#|
 ;;; Converting mongodb objects to FramerD (mostly choices)
-(define (mongo/convert object)
+(define (mongo/convert object (slotinfo {}))
   (do-choices (assoc (getassocs object))
-    (when (vector? (cdr assoc))
+    (when (and (vector? (cdr assoc)) 
+	       (not (test slotinfo (car assoc) 'singleton)))
       (store! object (car assoc) (elts (cdr assoc)))))
   object)
+
+(define (mongo/invert object (slotinfo {}))
+  (do-choices (assoc (getassocs object))
+    (unless (test slotinfo (car assoc) 'singleton)
+      (store! object (car assoc) (choice->vector (cdr assoc)))))
+  object)
+|#
 
 ;;; Basic methods for mongodb
 
 (define (mongopool-fetch pool mp oid (collection))
   (default! collection (mongopool-collection mp))
-  (mongo/convert (mongodb/get collection oid #[return #[__index 0]])))
+  (mongodb/get collection oid #[return #[__index 0]]))
 
 (define (mongopool-fetchn pool mp oidvec (collection))
   (default! collection (mongopool-collection mp))
@@ -52,10 +63,10 @@
 		       #[__index 0]]))
 	(result (make-vector (length oidvec) #f))
 	(map (make-hashtable)))
-    (do-choices (value values) 
+    (do-choices (value values)
       (store! map (get value '_id) value))
     (doseq (oid oidvec i)
-      (vector-set! result i (mongo/convert (get map oid))))
+      (vector-set! result i (get map oid)))
     result))
 
 (define (mongopool-lockoids pool mp oids (collection))
@@ -168,12 +179,17 @@
 		     (set! name (collection/name collection))
 		     (mongodb/insert! collection
 		       `#[_id "_pool" base ,base capacity ,cap
-			  name ,name load ,load])))
+			  name ,name load ,load])
+		     (set! metadata 
+		       `#[_id "_metadata" base ,base capacity ,cap
+			  name ,name])
+		     (mongodb/insert! collection metadata)))
 	 (let* ((opts (opts+ `#[type mongopool metadata ,metadata] 
 			     opts))
 		(record (cons-mongopool collection (mongodb/spec collection)
 					(collection/name collection)
-					base cap opts))
+					base cap opts 
+					(qc (getopt opts 'slotinfo {}))))
 		(pool (make-procpool name base cap opts record load)))
 	   (store! mongopools collection pool)
 	   (store! mongopools
