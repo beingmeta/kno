@@ -1953,7 +1953,8 @@ static int bigpool_set_compression(fd_bigpool bp,fd_compress_type cmptype)
   ssize_t v = fd_write_4bytes_at(stream,format,FD_BIGPOOL_FORMAT_POS);
   if (v>=0) {
     fd_lock_pool_struct((fd_pool)bp,1);
-    bp->pool_compression = cmptype;}
+    bp->pool_compression = cmptype;
+    fd_unlock_pool_struct((fd_pool)bp);}
   fd_close_stream(stream,FD_STREAM_FREEDATA);
   if (v<0) return v;
   else return FD_INT(cmptype);
@@ -1973,7 +1974,8 @@ static int bigpool_set_read_only(fd_bigpool bp,int read_only)
     fd_lock_pool_struct((fd_pool)bp,1);
     if (read_only)
       bp->pool_flags |=  FD_STORAGE_READ_ONLY;
-    else bp->pool_flags &=  (~(FD_STORAGE_READ_ONLY));}
+    else bp->pool_flags &=  (~(FD_STORAGE_READ_ONLY));
+    fd_unlock_pool_struct((fd_pool)bp);}
   fd_close_stream(stream,FD_STREAM_FREEDATA);
   return v;
 }
