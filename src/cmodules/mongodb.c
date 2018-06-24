@@ -48,6 +48,7 @@ static int logops = 0;
 
 static lispval dbname_symbol, username_symbol, auth_symbol, fdtag_symbol;
 static lispval hosts_symbol, connections_symbol, fieldmap_symbol, logopsym;
+static lispval fdparse_symbol;
 
 static struct FD_KEYVAL *mongo_opmap = NULL;
 static int mongo_opmap_size = 0, mongo_opmap_space = 0;
@@ -794,7 +795,8 @@ static lispval mongodb_insert(lispval arg,lispval obj,lispval opts_arg)
                "Inserting %d items into %q",FD_CHOICE_SIZE(obj),arg);
       if (FD_CHOICEP(obj)) {
         mongoc_bulk_operation_t *bulk=
-          mongoc_collection_create_bulk_operation_with_opts(collection,bulkopts);
+          mongoc_collection_create_bulk_operation_with_opts
+          (collection,bulkopts);
 
         FD_DO_CHOICES(elt,obj) {
           bson_t *doc = fd_lisp2bson(elt,flags,opts);
@@ -821,7 +823,8 @@ static lispval mongodb_insert(lispval arg,lispval obj,lispval opts_arg)
         mongoc_write_concern_t *wc = get_write_concern(opts);
 
         retval = (doc==NULL) ? (0) :
-          (mongoc_collection_insert(collection,MONGOC_INSERT_NONE,doc,wc,&error));
+          (mongoc_collection_insert
+           (collection,MONGOC_INSERT_NONE,doc,wc,&error));
         if (retval) {
           result = FD_TRUE;}
         else {
@@ -1797,7 +1800,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       break;}
     case fd_packet_type:
       ok = bson_append_binary(out,key,keylen,BSON_SUBTYPE_BINARY,
-                            FD_PACKET_DATA(val),FD_PACKET_LENGTH(val));
+                              FD_PACKET_DATA(val),FD_PACKET_LENGTH(val));
       break;
     case fd_flonum_type: {
       double d = FD_FLONUM(val);
@@ -1921,7 +1924,15 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
         bson_append_array_end(out,&doc);
       else bson_append_document_end(out,&doc);
       break;}
-    default: break;}
+    default: {
+      struct U8_OUTPUT vout; unsigned char buf[128]; 
+      U8_INIT_OUTPUT_BUF(&vout,128,buf);
+      if (flags&FD_MONGODB_COLONIZE)
+        u8_printf(&vout,":%q",val);
+      else fd_unparse(&vout,val);
+      ok = bson_append_utf8(out,key,keylen,vout.u8_outbuf,
+                            vout.u8_write-vout.u8_outbuf);
+      u8_close((u8_stream)&vout);}}
     return ok;}
   else if (FD_INTP(val))
     return bson_append_int32(out,key,keylen,((int)(FD_FIX2INT(val))));
@@ -1972,7 +1983,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
         u8_printf(&vout,":%q",val);
       else fd_unparse(&vout,val);
       rv = bson_append_utf8(out,key,keylen,vout.u8_outbuf,
-                          vout.u8_write-vout.u8_outbuf);
+                            vout.u8_write-vout.u8_outbuf);
       u8_close((u8_stream)&vout);
       return rv;}}
 }
@@ -1987,7 +1998,8 @@ static bool bson_append_keyval(FD_BSON_OUTPUT b,lispval key,lispval val)
   if (FD_VOIDP(val)) return 0;
   if (FD_SYMBOLP(key)) {
     if (flags&FD_MONGODB_SLOTIFY) {
-      struct FD_KEYVAL *opmap = fd_sortvec_get(key,mongo_opmap,mongo_opmap_size);
+      struct FD_KEYVAL *opmap = fd_sortvec_get
+        (key,mongo_opmap,mongo_opmap_size);
       if (FD_EXPECT_FALSE(opmap!=NULL))  {
         if (FD_STRINGP(opmap->kv_val)) {
           lispval mapped = opmap->kv_val;
@@ -2270,7 +2282,9 @@ static void bson_read_step(FD_BSON_INPUT b,lispval into,lispval *loc)
             compound = LISP_CONS(c);}
           fd_decref(value);
           value = compound;}
-        fd_decref(keys); fd_decref(tag);}}
+        fd_decref(keys);
+        fd_decref(tag);}
+      else {}}
     else if (BSON_ITER_HOLDS_ARRAY(in)) {
       int flags = b.bson_flags, choicevals = (flags&FD_MONGODB_CHOICEVALS);
       if ((choicevals)&&(symbolized))
@@ -2772,6 +2786,7 @@ FD_EXPORT int fd_init_mongodb()
   hosts_symbol = fd_intern("HOSTS");
   connections_symbol = fd_intern("CONNECTIONS");
   fdtag_symbol = fd_intern("%FDTAG");
+  fdparse_symbol = fd_intern("%FDPARSE");
 
   primarysym = fd_intern("PRIMARY");
   primarypsym = fd_intern("PRIMARY+");
