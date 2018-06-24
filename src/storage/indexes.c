@@ -2304,6 +2304,8 @@ FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args
     return fd_index_keys(ix);
   else if (op == fd_partitions_op)
     return FD_EMPTY;
+  else if (op == FDSYM_CACHELEVEL)
+    return FD_INT2FIX(1);
   else return FD_FALSE;
 }
 
