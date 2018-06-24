@@ -1035,7 +1035,7 @@ module_path=$with_module_path
 safe_module_path=$with_safe_module_path
 
 if test ! -z ${with_loadpath}; then
-   module_path="${with_loadpath} ${module_path}";
+   module_path="${with_loadpath}:${module_path}";
 fi;
 
 AC_DEFINE_UNQUOTED(FD_LOCAL_MODULE_DIR,"$local_module_dir")
