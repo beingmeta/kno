@@ -299,7 +299,7 @@ static void parse_query_string(fd_slotmap c,const char *data,int len)
   const u8_byte *scan = data, *end = scan+len;
   char *buf = u8_malloc(len+1), *write = buf;
   while (scan<end)
-    if ((VOIDP(slotid)) && (*scan=='=')) {
+    if ( (VOIDP(slotid)) && (*scan=='=') ) {
       *write++='\0';
       /* Don't store vars beginning with _ or HTTP, to avoid spoofing
          of real HTTP variables or other variables that might be used
@@ -307,9 +307,12 @@ static void parse_query_string(fd_slotmap c,const char *data,int len)
       if (buf[0]=='_') slotid = VOID;
       if (strncmp(buf,"HTTP",4)==0) slotid = VOID;
       else slotid = buf2slotid(buf,isascii);
-      if (isprotected(slotid)) slotid = VOID;
-      write = buf; isascii = 1; scan++;}
-    else if (*scan=='&') {
+      if (isprotected(slotid))
+        slotid = VOID;
+      write = buf;
+      isascii = 1;
+      scan++;}
+    else if ( *scan == '&' ) {
       *write++='\0';
       if (VOIDP(slotid))
         value = buf2string(buf,isascii);
@@ -317,19 +320,30 @@ static void parse_query_string(fd_slotmap c,const char *data,int len)
       if (VOIDP(slotid))
         fd_slotmap_add(c,query,value);
       else fd_slotmap_add(c,slotid,value);
-      fd_decref(value); value = VOID; slotid = VOID;
-      write = buf; isascii = 1; scan++;}
+      fd_decref(value);
+      value = VOID;
+      slotid = VOID;
+      write = buf;
+      isascii = 1;
+      scan++;}
     else if (*scan == '%')
       if (scan+3>end) end = scan;
       else {
         char buf[4]; int c; scan++;
-        buf[0]= *scan++; buf[1]= *scan++; buf[2]='\0';
+        buf[0] = *scan++;
+        buf[1] = *scan++;
+        buf[2] ='\0';
         c = strtol(buf,NULL,16);
         if (c>=0x80) isascii = 0;
         *write++=c;}
-    else if (*scan == '+') {*write++=' '; scan++;}
-    else if (*scan<0x80) *write++= *scan++;
-    else {*write++= *scan++; isascii = 0;}
+    else if (*scan == '+') {
+      *write++=' ';
+      scan++;}
+    else if (*scan<0x80) {
+      *write++= *scan++;}
+    else {
+      *write++= *scan++;
+      isascii = 0;}
   if (write>buf) {
     *write++='\0';
     if (VOIDP(slotid))
@@ -338,8 +352,12 @@ static void parse_query_string(fd_slotmap c,const char *data,int len)
     if (VOIDP(slotid))
       fd_slotmap_add(c,query,value);
     else fd_slotmap_add(c,slotid,value);
-    fd_decref(value); value = VOID; slotid = VOID;
-    write = buf; isascii = 1; scan++;}
+    fd_decref(value);
+    value = VOID;
+    slotid = VOID;
+    write = buf;
+    isascii = 1;
+    scan++;}
   else if (!(VOIDP(slotid))) {
     lispval str = lispval_string("");
     fd_slotmap_add(c,slotid,str);
