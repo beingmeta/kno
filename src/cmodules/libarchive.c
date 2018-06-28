@@ -63,6 +63,14 @@ typedef struct FD_ARCHIVE_INPUT {
   u8_string archive_eltname, archive_id;
   struct archive *inport_archive;} *fd_archive_input;
 
+static u8_string archive_errmsg(u8_byte *buf,size_t len,
+                                struct FD_ARCHIVE *archive)
+{
+  return u8_sprintf(buf,len,"(%s)%s",
+                    archive->archive_spec,
+                    archive_error_string(archive->fd_archive));
+}
+
 static lispval new_archive(lispval spec,lispval opts)
 {
   int status = -1;
@@ -84,12 +92,15 @@ static lispval new_archive(lispval spec,lispval opts)
                              FD_PACKET_LENGTH(spec),
                              (unsigned long long) FD_PACKET_DATA(spec));}
   else {
+    fd_seterr("InvalidArchiveSpec","new_archive",
+              archive_error_string(archive),spec);
     archive_read_close(archive);
-    fd_seterr("InvalidArchiveSpec","open_archive",NULL,spec);
     return FD_ERROR_VALUE;}
   if (status < 0) {
+    fd_seterr("LibArchiveError","new_archive",
+              archive_error_string(archive),
+              spec);
     archive_read_close(archive);
-    fd_seterr("LibArchiveError","open_archive",NULL,spec);
     return FD_ERROR_VALUE;}
   else {
     struct FD_ARCHIVE *obj = u8_alloc(struct FD_ARCHIVE);
@@ -108,6 +119,7 @@ static  int archive_seek(struct FD_ARCHIVE *archive,lispval seek,
                          struct archive_entry **entryp)
 {
   struct archive_entry *entry;
+  u8_byte msgbuf[1000];
   int rv = archive_read_next_header(archive->fd_archive,&entry);
   while (rv == ARCHIVE_OK) {
     if ( (FD_VOIDP(seek)) || (FD_FALSEP(seek)) || (FD_DEFAULTP(seek)) ) {
@@ -124,13 +136,15 @@ static  int archive_seek(struct FD_ARCHIVE *archive,lispval seek,
         if (entryp) *entryp = entry;
         return 1;}}
     else {
-      fd_seterr("BadSeekSpec","archive_seek",archive->archive_spec,seek);
+      fd_seterr("BadSeekSpec","archive_seek",
+                archive_errmsg(msgbuf,1000,archive),
+                seek);
       return -1;}
     rv = archive_read_next_header(archive->fd_archive,&entry);}
   if (rv == ARCHIVE_OK) {}
     return 0;
   fd_seterr("ArchiveError","archive_find",
-            archive_error_string(archive->fd_archive),
+            archive_errmsg(msgbuf,1000,archive),
             seek);
   return -1;
 }
@@ -261,7 +275,10 @@ static lispval open_archive(lispval spec,lispval path,lispval opts)
     if (rv<0) return FD_ERROR_VALUE;
     else if (rv == 0) {
       if (fd_testopt(opts,FDSYM_DROP,FD_TRUE)) {
-        fd_seterr("NotFound","open_archive",archive->archive_spec,path);
+        u8_byte msgbuf[1000];
+        fd_seterr("NotFound","open_archive",
+                  archive_errmsg(msgbuf,1000,archive),
+                  path);
         fd_decref(spec);
         return FD_ERROR;}
       else return FD_FALSE;}
