@@ -666,7 +666,8 @@ static int setup_ssl(mongoc_ssl_opt_t *ssl_opts,
    that it won't correspond to a single mongoc_collection_t object,
    but that each use of the collection will pop a client from the pool
    and create a collection with that client. */
-static lispval mongodb_collection(lispval server,lispval name_arg,lispval opts_arg)
+static lispval mongodb_collection(lispval server,lispval name_arg,
+                                  lispval opts_arg)
 {
   struct FD_MONGODB_COLLECTION *result;
   struct FD_MONGODB_DATABASE *srv;
@@ -2147,7 +2148,7 @@ static void bson_read_step(FD_BSON_INPUT b,lispval into,lispval *loc)
   const unsigned char *field = bson_iter_key(in);
   bson_type_t bt = bson_iter_type(in);
   lispval slotid, value = FD_VOID;
-  if ((flags&FD_MONGODB_SLOTIFY)&&(strchr(":(#@",field[0])!=NULL))
+  if ( (flags&FD_MONGODB_SLOTIFY) && (strchr(":(#@",field[0])!=NULL) )
     slotid = fd_parse_arg((u8_string)field);
   else if (flags&FD_MONGODB_SLOTIFY) {
     int sc = slotcode((u8_string)field);
@@ -2816,7 +2817,7 @@ FD_EXPORT int fd_init_mongodb()
                                   -1,FD_VOID,-1,FD_VOID));
   fd_idefn(module,fd_make_cprim3x("MONGODB/COLLECTION",mongodb_collection,1,
                                   -1,FD_VOID,fd_string_type,FD_VOID,
-                                  fd_string_type,FD_VOID));
+                                  -1,FD_VOID));
   fd_idefn(module,fd_make_cprim3x("MONGODB/CURSOR",mongodb_cursor,2,
                                   -1,FD_VOID,-1,FD_VOID,
                                   -1,FD_VOID));
