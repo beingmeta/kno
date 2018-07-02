@@ -2125,6 +2125,8 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
       return fd_intern("ZLIB9");
     else if ( bp->pool_compression == FD_SNAPPY )
       return fd_intern("SNAPPY");
+    else if ( bp->pool_compression == FD_ZSTD )
+      return fd_intern("ZSTD");
     else {
       fd_seterr("BadCompressionType","bigpool_ctl",bp->poolid,FD_VOID);
       return FD_ERROR;}}
