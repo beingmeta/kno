@@ -75,7 +75,7 @@
 	 (if (file-exists? source)
 	     (if (getopt opts 'adjunct)
 		 (open-pool source opts)
-		 (flex/wrap (use-pool source opts) opts))
+		 (flex/wrap (pool/ref source opts) opts))
 	     (if (not (getopt opts 'create))
 		 (irritant source |NoSuchPool| flex/dbref)
 		 (flex/wrap (make-pool source opts)))))
@@ -308,7 +308,3 @@
 (define (commit-queued fifo opts timings)
   (let ((db (fifo/pop fifo)))
     (commit-db db opts timings)))
-
-
-
-
