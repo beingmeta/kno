@@ -61,8 +61,10 @@ typedef struct FD_ARCHIVE {
 
 typedef struct FD_ARCHIVE_INPUT {
   U8_INPUT_FIELDS;
+  ssize_t bytes_read, bytes_total;
   unsigned int archive_owned;
   u8_string archive_eltname, archive_id;
+  lispval entry_info;
   struct archive *inport_archive;} *fd_archive_input;
 
 static u8_string archive_errmsg(u8_byte *buf,size_t len,
@@ -202,10 +204,22 @@ static int close_archive_input(struct U8_INPUT *raw_input)
   return 1;
 }
 
+static void compress_input(struct FD_ARCHIVE_INPUT *input)
+{
+  if (input->u8_read > input->u8_inbuf) {
+    size_t n_read = input->u8_read - input->u8_inbuf;
+    size_t n = input->u8_inlim - input->u8_read;
+    memmove(input->u8_inbuf,input->u8_read,n);
+    input->u8_read = input->u8_inbuf;
+    input->u8_inlim = input->u8_inlim - n_read;
+    input->bytes_read += n_read;}
+}
+
 static int read_from_archive(struct U8_INPUT *raw_input)
 {
   struct FD_ARCHIVE_INPUT *in = (fd_archive_input) raw_input;
   struct archive *archive = in->inport_archive;
+  compress_input(in);
   ssize_t space = in->u8_bufsz - (in->u8_inlim-in->u8_inbuf);
   int tries = 0; double last_wait = 0, wait = 0.1;
   if (space == 0) {
@@ -256,9 +270,12 @@ static int read_from_archive(struct U8_INPUT *raw_input)
       return -1;}}
 }
 
+static lispval entry_info(struct archive_entry *entry);
+
 static fd_port open_archive_input(struct archive *archive,
                                   u8_string archive_id,
-                                  u8_string eltname)
+                                  u8_string eltname,
+                                  struct archive_entry *entry)
 {
   struct FD_ARCHIVE_INPUT *in = u8_alloc(struct FD_ARCHIVE_INPUT);
   U8_INIT_INPUT_X((u8_input)in,30000,NULL,U8_STREAM_MALLOCD);
@@ -267,6 +284,13 @@ static fd_port open_archive_input(struct archive *archive,
   in->inport_archive = archive;
   in->u8_fillfn = read_from_archive;
   in->u8_closefn = close_archive_input;
+  in->bytes_read = 0;
+  if (entry)
+    in->bytes_total = archive_entry_size(entry);
+  else in->bytes_total = -1;
+  if (entry)
+    in->entry_info = entry_info(entry);
+  else in->entry_info = fd_make_slotmap(5,0,NULL);
   struct FD_PORT *port = u8_alloc(struct FD_PORT);
   FD_INIT_CONS(port,fd_port_type);
   port->port_input = (u8_input)in;
@@ -282,13 +306,14 @@ static lispval open_archive(lispval spec,lispval path,lispval opts)
 {
   if ( (FD_STRINGP(opts)) && (FD_TABLEP(path)) ) {
     lispval swap = path; path=opts; opts=swap;}
+  if (FD_ABORTP(path)) return path;
   if ( (FD_STRINGP(path)) || (FD_UINTP(path)) || (FD_TRUEP(path)) ) {
     lispval archive_ptr = (FD_TYPEP(spec,fd_libarchive_type)) ?
       (fd_incref(spec)) :
       (new_archive(spec,opts));
-    if (FD_ABORTP(path)) return path;
     struct FD_ARCHIVE *archive = (fd_archive) archive_ptr;
-    int rv = archive_seek(archive,path,NULL);
+    struct archive_entry *entry;
+    int rv = archive_seek(archive,path,&entry);
     if (rv<0) return FD_ERROR_VALUE;
     else if (rv == 0) {
       if (fd_testopt(opts,FDSYM_DROP,FD_TRUE)) {
@@ -307,7 +332,8 @@ static lispval open_archive(lispval spec,lispval path,lispval opts)
     fd_port inport =
       open_archive_input(archive->fd_archive,
                          archive->archive_spec,
-                         pathname);
+                         pathname,
+                         entry);
     FD_ADD_TO_CHOICE(inport->port_lisprefs,archive_ptr);
     return LISPVAL(inport);}
   else if ( (FD_FALSEP(path)) || (FD_VOIDP(path)) || (FD_DEFAULTP(path)) )
@@ -351,9 +377,9 @@ static lispval entry_info(struct archive_entry *entry)
   set_string_prop(tbl,"GID",archive_entry_gname(entry));
   set_string_prop(tbl,"SYMLINK",archive_entry_symlink(entry));
   set_string_prop(tbl,"PATH",entry_pathname(entry));
-  set_string_prop(tbl,"PATH",entry_pathname(entry));
   set_string_prop(tbl,"FLAGS",archive_entry_fflags_text(entry));
-  set_int_prop(tbl,"SIZE",archive_entry_size(entry));
+  if (archive_entry_size_is_set(entry))
+    set_int_prop(tbl,"SIZE",archive_entry_size(entry));
   return tbl;
 }
 
@@ -362,7 +388,8 @@ static lispval archive_find(lispval obj,lispval seek)
   struct FD_ARCHIVE *archive = (struct FD_ARCHIVE *) obj;
   struct archive_entry *entry;
   if (! ( (FD_VOIDP(seek)) || (FD_FALSEP(seek)) || (FD_TRUEP(seek)) ||
-          (FD_STRINGP(seek)) || (FD_TYPEP(seek,fd_regex_type)) ) )
+          (FD_STRINGP(seek)) || (FD_TYPEP(seek,fd_regex_type)) ||
+          (FD_UINTP(seek))) )
     return fd_err("InvalidArchivePathSpec","archive_find",NULL,seek);
   if (FD_TRUEP(seek)) {
     if (FD_VOIDP(archive->archive_cur))
@@ -380,6 +407,22 @@ static lispval archive_find(lispval obj,lispval seek)
     fd_incref(info);
     return info;}
   else return FD_FALSE;
+}
+
+static lispval archive_stat(lispval port)
+{
+  lispval info;
+  struct FD_PORT *p = fd_consptr(struct FD_PORT *,port,fd_port_type);
+  struct FD_ARCHIVE_INPUT *in = (fd_archive_input) (p->port_input);
+  if (in->u8_closefn != close_archive_input)
+    return fd_err("NotAnArchiveStream","archive_stat",NULL,port);
+  else info = in->entry_info;
+
+  lispval bytes_read = FD_INT(in->bytes_read);
+  fd_store(info,fd_intern("BYTEPOS"),bytes_read);
+  fd_decref(bytes_read);
+
+  return fd_incref(info);
 }
 
 FD_EXPORT int fd_init_libarchive()
@@ -401,6 +444,10 @@ FD_EXPORT int fd_init_libarchive()
   fd_idefn2(module,"ARCHIVE/FIND",archive_find,1,
             "Get the next archive entry (possibly matching a string or regex)",
             fd_libarchive_type,FD_VOID,-1,FD_FALSE);
+  fd_idefn1(module,"ARCHIVE/STAT",archive_stat,1,
+            "Information about an open archive stream",
+            fd_port_type,FD_VOID);
+
 
   fd_finish_module(module);
 
