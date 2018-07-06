@@ -48,11 +48,6 @@
 
 (define timezones {"GMT" "UTC" "EDT" "EST" "PST" "PDT" "CST" "CDT"})
 
-(define (add1900 string)
-  (string-append "19" string))
-(define (add2000 string)
-  (string-append "20" string))
-
 (define (parseyear string)
   (if (= (length string) 2)
       (let ((num (string->number string)))
@@ -63,65 +58,66 @@
   '(word #((isdigit) (opt (isdigit)) (opt {"st" "th" "nd"}))))
 
 (define generic-patterns
-  (choice `#({(bol) (spaces) ">"}
-	     (label year #({"19" "20"} (isdigit) (isdigit)) #t))
-	  `#({(bol) (spaces) ">"}
-	     (label DATE ,date-in-month #t)
-	     (spaces)
-	     (IC (label MONTH ,monthstrings ,monthnum)) (opt #({"" (spaces)} ","))
-	     (spaces)
-	     (opt (label YEAR #({"1" "2"} (isdigit) (isdigit) (isdigit)) #t)))
-	  `#({(bol) (spaces) ">"}
-	     (IC (label MONTH ,monthstrings ,monthnum))
-	     (spaces*)
-	     (label DATE ,date-in-month #t)
-	     {"" (spaces) #("," (spaces))}
-	     (opt (label YEAR #({"1" "2"} (isdigit) (isdigit) (isdigit)) #t)))
-	  `#({(bol) (spaces) ">"}
-	     (IC (label MONTH ,monthstrings ,monthnum))
-	     (spaces)
-	     (opt (label YEAR #({"1" "2"} (isdigit) (isdigit) (isdigit)) #t)))
-	  `(PREF #({(bol) (isspace)}
-		   (label HOUR #((isdigit) (opt (isdigit))) #t) ":"
-		   (label MINUTE #((isdigit) (isdigit)) #t) ":"
-		   (label SECOND #((isdigit) (isdigit)) #t)
-		   (opt #("." (label FRACTION (isdigit+) #t))))
-		 #({(bol) (isspace)}
-		    (label HOUR #((isdigit) (opt (isdigit))) #t) ":"
-		    (label MINUTE #((isdigit) (isdigit)) #t) ":"
-		    (label SECOND #((isdigit) (isdigit)) #t))
-		 #({(bol) (isspace)}
-		   (label HOUR #((isdigit) (opt (isdigit))) #t) ":"
-		   (label MINUTE #((isdigit) (isdigit)) #t)))
-	  `#({(bol) (spaces) ">"}
-	     (label AMPM (IC {"AM" "PM"})) {(eol) (spaces) "<"})
-	  `#({(bol) (spaces) ">"}
-	     (label TIMEZONE
-		    {(IC ,timezones)
-		     #({"+" "-"} (isdigit) (opt (isdigit))
-		       (opt #(":" (isdigit) (isdigit))))})
-	     {(eol) (spaces) "<"})
-	  `#({(bol) (spaces) ">"}
-	     (label year #("19" (isdigit) (isdigit)) #t) {"/" "-"}
-	     (label year #((isdigit) (isdigit)) ,add1900))
-	  	  `#({(bol) (spaces)}
-	     (label year #("20" (isdigit) (isdigit)) #t) {"/" "-"}
-	     (label year #((isdigit) (isdigit)) ,add2000)))
-  )
+  `{#({(bol) (spaces) ">"}
+      (label year #({"19" "20"} (isdigit) (isdigit)) #t))
+    #({(bol) (spaces) ">"}
+      (label DATE ,date-in-month #t)
+      (spaces)
+      (IC (label MONTH ,monthstrings ,monthnum)) (opt #({"" (spaces)} ","))
+      (spaces)
+      (opt (label YEAR #({"1" "2"} (isdigit) (isdigit) (isdigit)) #t)))
+    #({(bol) (spaces) ">"}
+      (IC (label MONTH ,monthstrings ,monthnum))
+      (spaces*)
+      (label DATE ,date-in-month #t)
+      {"" (spaces) #("," (spaces))}
+      (opt (label YEAR #({"1" "2"} (isdigit) (isdigit) (isdigit)) #t)))
+    #({(bol) (spaces) ">"}
+      (IC (label MONTH ,monthstrings ,monthnum))
+      (spaces)
+      (opt (label YEAR #({"1" "2"} (isdigit) (isdigit) (isdigit)) #t)))
+    (PREF #({(bol) (isspace)}
+	    (label HOUR #((isdigit) (opt (isdigit))) #t) ":"
+	    (label MINUTE #((isdigit) (isdigit)) #t) ":"
+	    (label SECOND #((isdigit) (isdigit)) #t)
+	    (opt #("." (label FRACTION (isdigit+) #t))))
+	  #({(bol) (isspace)}
+	    (label HOUR #((isdigit) (opt (isdigit))) #t) ":"
+	    (label MINUTE #((isdigit) (isdigit)) #t) ":"
+	    (label SECOND #((isdigit) (isdigit)) #t))
+	  #({(bol) (isspace)}
+	    (label HOUR #((isdigit) (opt (isdigit))) #t) ":"
+	    (label MINUTE #((isdigit) (isdigit)) #t)))
+    #({(bol) (spaces) ">"}
+      (label AMPM (IC {"AM" "PM"})) {(eol) (spaces) "<"})
+    #({(bol) (spaces) ">"}
+      (label TIMEZONE
+	     {(IC ,timezones)
+	      #({"+" "-"} (isdigit) (opt (isdigit))
+		(opt #(":" (isdigit) (isdigit))))})
+      {(eol) (spaces) "<"})
+    #({(bol) (spaces) ">"}
+      (label year #("19" (isdigit) (isdigit)) ,parseyear)
+      {"/" "-"}
+      (label year #((isdigit) (isdigit)) ,parseyear))
+    #({(bol) (spaces)}
+      (label year #("20" (isdigit) (isdigit)) #t) 
+      {"/" "-"}
+      (label year #((isdigit) (isdigit)) ,parseyear))})
 
 (define us-patterns
   (choice generic-patterns
-	  #((label MONTH #((isdigit) (opt (isdigit))) #t) "/"
-	    (label DATE #((isdigit) (opt (isdigit))) #t)
-	    (opt #("/" (label YEAR (isdigit+) ,parseyear))))))
+	  `#((label MONTH #((isdigit) (opt (isdigit))) #t) "/"
+	     (label DATE #((isdigit) (opt (isdigit))) #t)
+	     (opt #("/" (label YEAR (isdigit+) ,parseyear))))))
 (define terran-patterns
   (choice generic-patterns
-	  #((label DATE #((isdigit) (opt (isdigit))) #t) "/"
-	    (label MONTH #((isdigit) (opt (isdigit))) #t)
-	    (opt #("/" (label YEAR (isdigit+) ,parseyear))))
-	  #((label DATE #((isdigit) (opt (isdigit))) #t) "."
-	    (label MONTH #((isdigit) (opt (isdigit))) #t)
-	    #("." (label YEAR (isdigit+) ,parseyear)))))
+	  `#((label DATE #((isdigit) (opt (isdigit))) #t) "/"
+	     (label MONTH #((isdigit) (opt (isdigit))) #t)
+	     (opt #("/" (label YEAR (isdigit+) ,parseyear))))
+	  `#((label DATE #((isdigit) (opt (isdigit))) #t) "."
+	     (label MONTH #((isdigit) (opt (isdigit))) #t)
+	     #("." (label YEAR (isdigit+) ,parseyear)))))
 
 (define time-patterns
   (choice generic-patterns us-patterns terran-patterns))
@@ -149,7 +145,8 @@
 		string))
 
 (defambda (getfields matches)
-  (try (tryif (test matches 'second) '(seconds second minute hour date month year))
+  (try (tryif (test matches 'second) 
+	 '(seconds second minute hour date month year))
        (tryif (test matches 'minute) '(minutes minute hour date month year))
        (tryif (test matches 'hour) '(hours hour date month year))
        (tryif (test matches 'date) '(date date month year))
@@ -176,11 +173,6 @@
 	  (let ((hours (get matches 'hour)))
 	    (unless (> (+ 12 hours) 24)
 	      (store! matches 'hours (+ 12 hours)))))
-	(when (test matches 'year)
-	  (do-choices (year (pickstrings (get matches 'year)))
-	    (if (= (length year) 2)
-		(store! matches 'year (+ 1900 (string->number year)))
-		(store! matches 'year (string->number year)))))
 	;; Handle the case where people swapped the month and date according
 	;;  to US conventions .vs. the rest of the world
 	(when (and (test matches 'month) (test matches 'date)
