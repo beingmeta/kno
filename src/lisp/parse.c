@@ -1130,7 +1130,7 @@ static lispval parse_record(U8_INPUT *in)
 
 /* The main parser procedure */
 
-static lispval parse_atom(u8_input in,int ch1,int ch2);
+static lispval parse_atom(u8_input in,int ch1,int ch2,int upcase);
 
 FD_EXPORT
 /* fd_parser:
@@ -1239,9 +1239,9 @@ lispval fd_parser(u8_input in)
       else return FD_PARSE_ERROR;}
     case '\\': return parse_character(in);
     case '#': return parse_histref(in);
-    case 'U': return parse_atom(in,inchar,ch); /* UUID */
-    case 'T': return parse_atom(in,inchar,ch); /* TIMESTAMP */
-    case '!': return parse_atom(in,inchar,ch); /* pointer reference */
+    case 'U': return parse_atom(in,inchar,ch,1); /* UUID */
+    case 'T': return parse_atom(in,inchar,ch,1); /* TIMESTAMP */
+    case '!': return parse_atom(in,inchar,ch,1); /* pointer reference */
     default:
       if (u8_ispunct(ch)) {
         /* This introduced a hash-punct sequence which is used
@@ -1265,12 +1265,12 @@ lispval fd_parser(u8_input in)
       else {
         /* In this case, it's just an atom */
         u8_ungetc(in,ch);
-        return parse_atom(in,'#',-1);}}}
+        return parse_atom(in,'#',-1,1);}}}
   default:
-    return parse_atom(in,-1,-1);}
+    return parse_atom(in,-1,-1,1);}
 }
 
-static lispval parse_atom(u8_input in,int ch1,int ch2)
+static lispval parse_atom(u8_input in,int ch1,int ch2,int upcase)
 {
   /* Parse an atom, i.e. a printed representation which doesn't
      contain any special spaces or other special characters */
@@ -1279,7 +1279,7 @@ static lispval parse_atom(u8_input in,int ch1,int ch2)
   U8_INIT_STATIC_OUTPUT_BUF(tmpbuf,128,buf);
   if (ch1>=0) u8_putc(&tmpbuf,ch1);
   if (ch2>=0) u8_putc(&tmpbuf,ch2);
-  c = copy_atom(in,&tmpbuf,1);
+  c = copy_atom(in,&tmpbuf,upcase);
   if (tmpbuf.u8_write == tmpbuf.u8_outbuf) result = FD_EOX;
   else if (ch1 == '|')
     result = fd_make_symbol(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
