@@ -529,7 +529,11 @@ static lispval assoc_get_method(lispval f,lispval slotid)
               fd_incref(cdr);
               CHOICE_ADD(answers,cdr);}
             else {}}
-        fd_decref(entries);}}
+          else if ( (FD_TABLEP(e)) && (fd_test(e,key,FD_VOID)) ) {
+            lispval v = fd_get(e,key,FD_VOID);
+            CHOICE_ADD(answers,v);}
+          else {}}
+      fd_decref(entries);}
     fd_decref(through); fd_decref(key);
     return answers;}
 }
@@ -553,13 +557,20 @@ static lispval assoc_test_method(lispval f,lispval slotid,lispval values)
         DO_CHOICES(e,entries)
           if (PAIRP(e)) {
             lispval car = FD_CAR(e), cdr = FD_CDR(e);
-            if (((ambigkey|(CHOICEP(car))) ? (fd_overlapp(car,key)) : (FD_EQ(car,key))) &&
+            if (((ambigkey|(CHOICEP(car))) ?
+                 (fd_overlapp(car,key)) :
+                 (FD_EQ(car,key))) &&
                 ((VOIDP(values)) ||
-                 ((ambigval|(CHOICEP(cdr))) ? (fd_overlapp(cdr,values)) : (FD_EQUAL(cdr,values))))) {
+                 ((ambigval|(CHOICEP(cdr))) ? (fd_overlapp(cdr,values)) :
+                  (FD_EQUAL(cdr,values))))) {
               fd_decref(entries); fd_decref(key); fd_decref(through);
               FD_STOP_DO_CHOICES;
               return FD_TRUE;}}
-        fd_decref(entries);}}
+          else if ( (FD_TABLEP(e)) && (fd_test(e,th_slot,values)) ) {
+            FD_STOP_DO_CHOICES;
+            return FD_TRUE;}
+          else {}}
+      fd_decref(entries);}
     fd_decref(through); fd_decref(key);
     return FD_FALSE;}
 }
@@ -568,10 +579,16 @@ static lispval assoc_add_method(lispval f,lispval slotid,lispval value)
 {
   lispval through, key;
   through = fd_frame_get(slotid,through_slot);
-  if (FD_ABORTP(through)) return through;
+  if (FD_ABORTP(through))
+    return through;
   else key = fd_frame_get(slotid,key_slot);
   if (FD_ABORTP(key)) {
-    fd_decref(through); return key;}
+    fd_decref(through);
+    return key;}
+  else if (FD_SLOTMAPP(through)) {
+    fd_add(through,key,value);
+    fd_oid_store(f,through_slot,through);
+    return VOID;}
   else {
     lispval pair = fd_conspair(fd_incref(key),fd_incref(value));
     fd_oid_add(f,through,pair);
@@ -587,6 +604,10 @@ static lispval assoc_drop_method(lispval f,lispval slotid,lispval value)
   else key = fd_frame_get(slotid,key_slot);
   if (FD_ABORTP(key)) {
     fd_decref(through); return key;}
+  else if (FD_SLOTMAPP(through)) {
+    fd_drop(through,key,value);
+    fd_store(f,through_slot,through);
+    return VOID;}
   else {
     lispval pair = fd_conspair(fd_incref(key),fd_incref(value));
     fd_oid_drop(f,through,pair);
@@ -598,7 +619,8 @@ static lispval car_get_method(lispval f,lispval slotid)
 {
   lispval result = (EMPTY);
   lispval values = fd_oid_get(f,slotid,EMPTY);
-  if (FD_ABORTP(values)) return values;
+  if (FD_ABORTP(values))
+    return values;
   else {
     DO_CHOICES(value,values)
       if (PAIRP(value)) {

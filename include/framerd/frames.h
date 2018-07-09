@@ -42,6 +42,7 @@ FD_EXPORT void fd_push_opstack(struct FD_FRAMEOP_STACK *);
 FD_EXPORT int fd_pop_opstack(struct FD_FRAMEOP_STACK *,int normal);
 
 FD_EXPORT lispval fd_oid_get(lispval f,lispval slotid,lispval dflt);
+FD_EXPORT int fd_oid_store(lispval f,lispval slotid,lispval value);
 FD_EXPORT int fd_oid_add(lispval f,lispval slotid,lispval value);
 FD_EXPORT int fd_oid_drop(lispval f,lispval slotid,lispval value);
 FD_EXPORT int fd_oid_test(lispval f,lispval slotid,lispval value);
