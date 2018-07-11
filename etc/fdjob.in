@@ -11,7 +11,7 @@ abspath( ) {
 FDEXEC=@BINDIR@/fdexec
 BASE=_$(basename ${FILE} .scm)
 FULLPATH=$(abspath ${FILE})
-RUNDIR=${RUNDIR:-$(dirname ${FULLPATH})}
+RUNDIR=${RUNDIR:-$(pwd)}
 PPIDFILE=${RUNDIR}/${BASE}.ppid
 PIDFILE=${RUNDIR}/${BASE}.pid
 LOGDIR=${LOGDIR:-${RUNDIR}}
