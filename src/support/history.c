@@ -156,7 +156,9 @@ FD_EXPORT int fd_histpush(lispval value)
   else {
     lispval ref = fd_history_add(history,value,FD_VOID);
     fd_decref(history);
-    return FD_FIX2INT(ref);}
+    if (FD_FIXNUMP(ref))
+      return FD_FIX2INT(ref);
+    else return -1;}
 }
 
 FD_EXPORT lispval fd_histref(int ref)
@@ -216,6 +218,20 @@ lispval fd_get_histref(lispval elts)
 	  lispval new_scan = FD_CHOICE_ELTS(scan)[off];
 	  fd_incref(new_scan); fd_decref(scan);
 	  scan=new_scan;}}
+      else if (FD_PAIRP(scan)) {
+        lispval base = scan; size_t n_elts = 0;
+        int improper=0;
+        while (FD_PAIRP(scan)) { scan=FD_CDR(scan); n_elts++; }
+        if (scan != FD_EMPTY_LIST) { improper=1; n_elts++; }
+        ssize_t off = (rel_off>=0) ?  (rel_off) : (n_elts + rel_off);
+	if ( (off < 0) || (off > n_elts) )
+	  return fd_err(fd_RangeError,"histref_evalfn",NULL,path);
+	else {
+          ssize_t i = 0; scan = base; while ( i < off) {
+            scan = FD_CDR(scan); i++;}
+          if ( (improper) && ((off+1) == n_elts) )
+            scan = scan;
+          else scan = FD_CAR(scan);}}
       else if (FD_SEQUENCEP(scan)) {
 	ssize_t n_elts = fd_seq_length(scan);
 	ssize_t off = (rel_off>=0) ?  (rel_off) : (n_elts + rel_off);
