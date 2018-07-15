@@ -394,7 +394,7 @@ static int output_result(u8_output out,lispval result,
     fd_decref(v);
     return 1;}
   else if ((FD_CHOICEP(result)) || (FD_VECTORP(result)) ||
-           (PAIRP(result)))  {
+           (PAIRP(result))) {
     u8_string start_with = NULL, end_with = NULL;
     int count = 0, max_elts, n_elts = 0;
 
@@ -437,7 +437,7 @@ static int output_result(u8_output out,lispval result,
           count++; scan = FD_CDR(scan);}
         else {
           u8_printf(out,"\n  . ;; improper list");
-          output_element(out,scan,NULL,count);
+          output_element(out,scan,histref,count);
           count++; scan = VOID;
           break;}}
     else {}
@@ -1004,6 +1004,7 @@ int main(int argc,char **argv)
     double start_time, finish_time;
     int histref = -1, stat_line = 0, is_histref = 0;
     u8_byte histref_buf[100];
+    u8_string histref_string = NULL;
     start_ocache = fd_object_cache_load();
     start_icache = fd_index_cache_load();
     u8_flush(out);
@@ -1076,7 +1077,8 @@ int main(int argc,char **argv)
       int ref = fd_histpush(result);
       if (ref>=0) {
         histref = ref;
-        u8_sprintf(histref_buf,100,"##%d",ref);}}
+        u8_sprintf(histref_buf,100,"##%d",ref);
+        histref_string = histref_buf;}}
     else if ((SYMBOLP(expr))&&
              ((CHOICEP(result))||
               (VECTORP(result))||
@@ -1084,8 +1086,11 @@ int main(int argc,char **argv)
       int ref = fd_histpush(result);
       if (ref>=0) {
         histref = ref;
-        u8_sprintf(histref_buf,100,"##%d",ref);}}
-    else {}
+        u8_sprintf(histref_buf,100,"##%d",ref);
+        histref_string = histref_buf;}}
+    else {
+      histref = -1;
+      histref_string = NULL;}
     if (FD_ABORTP(result)) stat_line = 0;
     else if ((showtime_threshold >= 0.0) &&
              (((finish_time-start_time) > showtime_threshold) ||
@@ -1121,12 +1126,12 @@ int main(int argc,char **argv)
       else fprintf(stderr,
                    ";;; The expression generated a mysterious error!!!!\n");}
     else if (stat_line)
-      output_result(out,result,histref_buf,is_histref);
+      output_result(out,result,histref_string,is_histref);
     else if (VOIDP(result)) {}
     else if (histref<0)
-      stat_line = output_result(out,result,histref_buf,is_histref);
+      stat_line = output_result(out,result,histref_string,is_histref);
     else {
-      output_result(out,result,histref_buf,is_histref);
+      output_result(out,result,histref_string,is_histref);
       stat_line = 1;}
     if (errno) {
       u8_log(LOG_WARN,u8_strerror(errno),"Unexpected errno after output");
@@ -1141,11 +1146,11 @@ int main(int argc,char **argv)
         lispval sym = bind_random_symbol(result,env);
         if (VOIDP(sym))
           u8_printf(out,stats_message_w_history,
-                    histref_buf,(finish_time-start_time),
+                    histref_string,(finish_time-start_time),
                     finish_ocache-start_ocache,
                     finish_icache-start_icache);
         else u8_printf(out,stats_message_w_history_and_sym,
-                       histref_buf,SYM_NAME(sym),
+                       histref_string,SYM_NAME(sym),
                        (finish_time-start_time),
                        finish_ocache-start_ocache,
                        finish_icache-start_icache);}}
