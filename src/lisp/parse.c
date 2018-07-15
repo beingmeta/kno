@@ -1297,7 +1297,10 @@ static lispval parse_histref(u8_input in)
   int c = u8_getc(in);
   U8_INIT_STATIC_OUTPUT_BUF(tmpbuf,128,buf);
   while (c >= 0) {
-    if (u8_isalnum(c)) { u8_putc(&tmpbuf,c); }
+    if ( (u8_isalnum(c)) ||
+         (c=='-') || (c=='_') ||
+         (c=='/') || (c=='+')) {
+      u8_putc(&tmpbuf,c); }
     else if (c == '.') {
       lispval elt = fd_parse(tmpbuf.u8_outbuf);
       if (elt == FD_EOX) elt = FD_FALSE;
