@@ -1290,8 +1290,6 @@ static lispval parse_atom(u8_input in,int ch1,int ch2,int upcase)
 
 static lispval parse_histref(u8_input in)
 {
-  /* Parse an atom, i.e. a printed representation which doesn't
-     contain any special spaces or other special characters */
   struct U8_OUTPUT tmpbuf;
   lispval elts = fd_init_pair(NULL,histref_symbol,FD_EMPTY_LIST);
   lispval *tail = &(FD_CDR(elts));
@@ -1302,6 +1300,7 @@ static lispval parse_histref(u8_input in)
     if (u8_isalnum(c)) { u8_putc(&tmpbuf,c); }
     else if (c == '.') {
       lispval elt = fd_parse(tmpbuf.u8_outbuf);
+      if (elt == FD_EOX) elt = FD_FALSE;
       lispval new_tail = fd_init_pair(NULL,elt,FD_EMPTY_LIST);
       *tail = new_tail;
       tail = &(FD_CDR(new_tail));

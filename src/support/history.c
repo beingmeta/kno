@@ -193,6 +193,10 @@ lispval fd_get_histref(lispval elts)
     return FD_ERROR_VALUE;}
   else NO_ELSE;
   lispval root = FD_CAR(elts);
+  int void_root = (FD_FALSEP(root));
+  if (void_root) {
+    elts = FD_CDR(elts);
+    root = FD_CAR(elts);}
   lispval val = fd_history_ref(history,root);
   if ( (FD_ABORTP(root)) || (FD_EMPTYP(root)) || (FD_VOIDP(root)) ) {
     fd_seterr("BadHistref","fd_get_histref",NULL,root);
@@ -250,7 +254,12 @@ lispval fd_get_histref(lispval elts)
   else {
     fd_incref(scan);
     fd_decref(val);
-    return scan;}
+    if (void_root)
+      return scan;
+    else if ( (FD_SYMBOLP(scan)) || (FD_PAIRP(scan)) ||
+              (FD_SLOTMAPP(scan)) )
+      return fd_make_list(2,FDSYM_QUOTE,scan);
+    else return scan;}
 }
 
 FD_EXPORT void fd_histinit(int size)
