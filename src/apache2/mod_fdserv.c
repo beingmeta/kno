@@ -2847,7 +2847,9 @@ static int fdserv_handler(request_rec *r)
     return HTTP_INTERNAL_SERVER_ERROR;}
   else {}
   ap_add_common_vars(r); ap_add_cgi_vars(r);
-  if (r->method_number == M_POST) {
+  /* This should work: */ /* ( r->remaining > 0 ) */
+  if ( (r->method_number == M_POST) ||
+       (r->method_number == M_PUT) ) {
     char bigbuf[4096];
     rv=ap_setup_client_block(r,REQUEST_CHUNKED_ERROR);
     if (rv!=OK) {}
