@@ -448,6 +448,22 @@
 (evaltest "3" (stringout ($num2 3)))
 (evaltest "186,000" (stringout ($num2 186000)))
 
+;;; Testing structural evaluation
+
+(evaltest #(1 2 3) #.((/ 2 2) (+ 1 1) (/ 9 3)))
+(evaltest #[alpha #\a beta "B" gamma "abcd"]
+	  #.[alpha 
+	     (elt "abcde" 0) 
+	     beta (intersection {"B" "C"} "B")
+	     gamma (slice (glom "ab" "cd" "ef") 0 4)
+	     delta (intersection '{"A" "B"} {"C" "D"})])
+(evaltest #[alpha #\a beta "B" gamma "abcd" delta {}]
+	  #.[alpha 
+	     (elt "abcde" 0) 
+	     beta (intersection {"B" "C"} "B")
+	     gamma (slice (glom "ab" "cd" "ef") 0 4)
+	     delta (qc (intersection '{"A" "B"} {"C" "D"}))])
+
 ;;; Check for config setting
 
 (evaltest 88 configured-value)

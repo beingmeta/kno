@@ -67,7 +67,7 @@ int fd_interpret_pointers = 1;
 
 static lispval quote_symbol, histref_symbol, comment_symbol;
 static lispval quasiquote_symbol, unquote_symbol, unquotestar_symbol;
-static lispval opaque_tag;
+static lispval opaque_tag, struct_eval_symbol;
 
 fd_history_resolvefn fd_resolve_histref = NULL;
 
@@ -948,77 +948,13 @@ static lispval parse_list(U8_INPUT *in)
       return FD_PARSE_ERROR;}}
 }
 
-static lispval parse_bracket_list(U8_INPUT *in)
-{
-  /* This starts parsing the list after a '(' has been read. */
-  int ch = skip_whitespace(in); lispval head = VOID;
-  if (ch<0)
-    if (ch== -1) return FD_EOX;
-    else return FD_PARSE_ERROR;
-  else if (ch == ']') {
-    /* The empty list case */
-    u8_getc(in); return NIL;}
-  else if (ch == ')') {
-    fd_seterr(fd_MismatchedClose,"parse_bracket_list",NULL,head);
-    return FD_PARSE_ERROR;}
-  else {
-    /* This is where we build the list.  We recur in the CAR direction and
-       iterate in the CDR direction to avoid growing the stack. */
-    struct FD_PAIR *scan;
-    lispval car = fd_parser(in), head;
-    if (PARSE_ABORTP(car))
-      return car;
-    else {
-      scan = u8_alloc(struct FD_PAIR);
-      FD_INIT_CONS(scan,fd_pair_type);
-      if (scan == NULL) {fd_decref(car); return FD_OOM;}
-      else head = fd_init_pair(scan,car,NIL);}
-    ch = skip_whitespace(in);
-    while ((ch>=0) && (ch != ']')) {
-      /* After starting with the head, we iterate until we get to
-         the closing paren, except for the dotted pair exit clause. */
-      lispval list_elt; struct FD_PAIR *new_pair;
-      if (ch == '.') {
-        int nextch = u8_getc(in), probed = u8_probec(in);
-        if (u8_isspace(probed)) break;
-        else u8_ungetc(in,nextch);}
-      list_elt = fd_parser(in);
-      if (PARSE_ABORTP(list_elt)) {
-        fd_decref(head);
-        return list_elt;}
-      new_pair = u8_alloc(struct FD_PAIR);
-      if (new_pair) {
-        scan->cdr = fd_init_pair(new_pair,list_elt,NIL);
-        scan = new_pair;}
-      else {
-        fd_decref(head); fd_decref(list_elt);
-        return FD_OOM;}
-      ch = skip_whitespace(in);}
-    if (ch<0) {
-      fd_decref(head);
-      if (ch== -1) return FD_EOX;
-      else return FD_PARSE_ERROR;}
-    else if (ch == ']') {
-      u8_getc(in);
-      return head;}
-    else {
-      lispval tail;
-      tail = fd_parser(in);
-      if (PARSE_ABORTP(tail)) {
-        fd_decref(head);
-        return tail;}
-      skip_whitespace(in); ch = u8_getc(in);
-      if (ch == ')') {scan->cdr = tail; return head;}
-      fd_decref(head); fd_decref(tail);
-      return FD_PARSE_ERROR;}}
-}
-
 static lispval parse_vector(U8_INPUT *in)
 {
   int n_elts = -2;
   lispval *elts = parse_vec(in,')',&n_elts);
-  if (n_elts>=0)
-    return fd_init_vector(u8_alloc(struct FD_VECTOR),n_elts,elts);
+  if (n_elts>=0) {
+    lispval vec = fd_init_vector(u8_alloc(struct FD_VECTOR),n_elts,elts);
+    return vec;}
   else return FD_PARSE_ERROR;
 }
 
@@ -1034,15 +970,15 @@ static lispval parse_code(U8_INPUT *in)
 static lispval parse_slotmap(U8_INPUT *in)
 {
   int n_elts = -2;
-  lispval *elts = parse_vec(in,']',&n_elts);
-  if (PRED_FALSE(n_elts<0)) return FD_PARSE_ERROR;
+  lispval *elts = parse_vec(in,']',&n_elts), result = FD_VOID;
+  if (PRED_FALSE(n_elts<0))
+    return FD_PARSE_ERROR;
   else if (n_elts>7)
-    return fd_init_slotmap(NULL,n_elts/2,(struct FD_KEYVAL *)elts);
+    result = fd_init_slotmap(NULL,n_elts/2,(struct FD_KEYVAL *)elts);
   else {
-    lispval result =
-      fd_make_slotmap(n_elts/2,n_elts/2,(struct FD_KEYVAL *)elts);
-    u8_free(elts);
-    return result;}
+    result = fd_make_slotmap(n_elts/2,n_elts/2,(struct FD_KEYVAL *)elts);
+    u8_free(elts);}
+  return result;
 }
 
 static lispval parse_choice(U8_INPUT *in)
@@ -1156,9 +1092,6 @@ lispval fd_parser(u8_input in)
   case '(':
     /* Skip the open paren and parse the list */
     u8_getc(in); return parse_list(in);
-  case '[':
-    /* Skip the open paren and parse the list */
-    u8_getc(in); return parse_bracket_list(in);
   case '{':
     /* Skip the open brace and parse the choice */
     u8_getc(in); return parse_choice(in);
@@ -1235,13 +1168,46 @@ lispval fd_parser(u8_input in)
                               fd_conspair(content,NIL));}
     case '%': {
       int c = u8_getc(in);
-      if (c=='(') return parse_record(in);
-      else return FD_PARSE_ERROR;}
+      if (c=='(')
+        return parse_record(in);
+      else {
+        u8_string details=u8_get_input_context(in,32,32,">!<");
+        u8_seterr("BadRecordExpression","fd_parser",details);
+        return FD_PARSE_ERROR;}}
     case '\\': return parse_character(in);
     case '#': return parse_histref(in);
     case 'U': return parse_atom(in,inchar,ch,1); /* UUID */
     case 'T': return parse_atom(in,inchar,ch,1); /* TIMESTAMP */
     case '!': return parse_atom(in,inchar,ch,1); /* pointer reference */
+    case '.': {
+      int nch = u8_getc(in);
+      if (nch == -1) return FD_EOX;
+      else if (nch == '[') {
+        lispval slotmap = parse_slotmap(in);
+        if (PARSE_ABORTP(slotmap))
+          return slotmap;
+        else return fd_make_list(2,struct_eval_symbol,slotmap);}
+      else if (nch == '(') {
+        lispval vec = parse_vector(in);
+        if (PARSE_ABORTP(vec))
+          return vec;
+        else return fd_make_list(2,struct_eval_symbol,vec);}
+      else if (ch == '%') {
+        int rch = u8_getc(in);
+        if (rch == '(') {
+          lispval rec = parse_record(in);
+          if (PARSE_ABORTP(rec))
+            return rec;
+          else return fd_make_list(2,struct_eval_symbol,rec);}
+        else {
+          u8_string details=u8_get_input_context(in,32,32,">!<");
+          u8_seterr("BadHashDotRecord","fd_parser",details);
+          return FD_PARSE_ERROR;}}
+      else {
+        lispval obj = fd_parser(in);
+        if (PARSE_ABORTP(obj))
+          return obj;
+        else return fd_make_list(2,struct_eval_symbol,obj);}}
     default:
       if (u8_ispunct(ch)) {
         /* This introduced a hash-punct sequence which is used
@@ -1549,7 +1515,77 @@ FD_EXPORT void fd_init_parse_c()
   histref_symbol = fd_intern("%HISTREF");
   comment_symbol = fd_intern("COMMENT");
   opaque_tag = fd_intern("%OPAQUE");
+  struct_eval_symbol = fd_intern("#.");
 }
+
+/* Dead code */
+
+#if 0
+static lispval parse_bracket_list(U8_INPUT *in)
+{
+  /* This starts parsing the list after a '(' has been read. */
+  int ch = skip_whitespace(in); lispval head = VOID;
+  if (ch<0)
+    if (ch== -1) return FD_EOX;
+    else return FD_PARSE_ERROR;
+  else if (ch == ']') {
+    /* The empty list case */
+    u8_getc(in); return NIL;}
+  else if (ch == ')') {
+    fd_seterr(fd_MismatchedClose,"parse_bracket_list",NULL,head);
+    return FD_PARSE_ERROR;}
+  else {
+    /* This is where we build the list.  We recur in the CAR direction and
+       iterate in the CDR direction to avoid growing the stack. */
+    struct FD_PAIR *scan;
+    lispval car = fd_parser(in), head;
+    if (PARSE_ABORTP(car))
+      return car;
+    else {
+      scan = u8_alloc(struct FD_PAIR);
+      FD_INIT_CONS(scan,fd_pair_type);
+      if (scan == NULL) {fd_decref(car); return FD_OOM;}
+      else head = fd_init_pair(scan,car,NIL);}
+    ch = skip_whitespace(in);
+    while ((ch>=0) && (ch != ']')) {
+      /* After starting with the head, we iterate until we get to
+         the closing paren, except for the dotted pair exit clause. */
+      lispval list_elt; struct FD_PAIR *new_pair;
+      if (ch == '.') {
+        int nextch = u8_getc(in), probed = u8_probec(in);
+        if (u8_isspace(probed)) break;
+        else u8_ungetc(in,nextch);}
+      list_elt = fd_parser(in);
+      if (PARSE_ABORTP(list_elt)) {
+        fd_decref(head);
+        return list_elt;}
+      new_pair = u8_alloc(struct FD_PAIR);
+      if (new_pair) {
+        scan->cdr = fd_init_pair(new_pair,list_elt,NIL);
+        scan = new_pair;}
+      else {
+        fd_decref(head); fd_decref(list_elt);
+        return FD_OOM;}
+      ch = skip_whitespace(in);}
+    if (ch<0) {
+      fd_decref(head);
+      if (ch== -1) return FD_EOX;
+      else return FD_PARSE_ERROR;}
+    else if (ch == ']') {
+      u8_getc(in);
+      return head;}
+    else {
+      lispval tail;
+      tail = fd_parser(in);
+      if (PARSE_ABORTP(tail)) {
+        fd_decref(head);
+        return tail;}
+      skip_whitespace(in); ch = u8_getc(in);
+      if (ch == ')') {scan->cdr = tail; return head;}
+      fd_decref(head); fd_decref(tail);
+      return FD_PARSE_ERROR;}}
+}
+#endif
 
 /* Emacs local variables
    ;;;  Local variables: ***
@@ -1557,3 +1593,4 @@ FD_EXPORT void fd_init_parse_c()
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */
+

@@ -3384,6 +3384,7 @@ FD_EXPORT void fd_init_opcodes_c(void);
 FD_EXPORT void fd_init_reqstate_c(void);
 FD_EXPORT void fd_init_regex_c(void);
 FD_EXPORT void fd_init_quasiquote_c(void);
+FD_EXPORT void fd_init_struct_eval_c(void);
 FD_EXPORT void fd_init_extdbprims_c(void);
 
 static void init_eval_core()
@@ -3404,6 +3405,7 @@ static void init_eval_core()
   fd_init_macros_c();
   fd_init_compoundfns_c();
   fd_init_quasiquote_c();
+  fd_init_struct_eval_c();
   fd_init_side_effects_c();
   fd_init_reflection_c();
   fd_init_reqstate_c();

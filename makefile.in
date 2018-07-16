@@ -195,6 +195,7 @@ CORE_SCHEME_OBJS=\
 	src/eval/macros.o\
 	src/eval/threads.o\
 	src/eval/quasiquote.o \
+	src/eval/struct_eval.o \
 	src/eval/errfns.o\
 	src/eval/conditionals.o\
 	src/eval/iterators.o
@@ -416,7 +417,7 @@ FRAMERD_SOURCES=\
 	src/eval/binders.c src/eval/lambda.c 					\
 	src/eval/macros.c src/eval/errfns.c     				\
 	src/eval/conditionals.c src/eval/iterators.c               		\
-        src/eval/threads.c src/eval/quasiquote.c               			\
+        src/eval/threads.c src/eval/quasiquote.c src/eval/struct_eval.c		\
 	src/eval/modules.c src/eval/load.c src/eval/reflection.c 		\
 	src/eval/compoundfns.c 							\
 	src/eval/coreops.c                  					\
