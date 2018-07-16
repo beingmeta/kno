@@ -92,6 +92,10 @@
 	     (if data
 		 (irritant (cons data arg) |FIFO/AmbiguousSpec/Data|)
 		 (set! data arg)))
+	    ((ambiguous? arg)
+	     (if data
+		 (irritant (cons data arg) |FIFO/AmbiguousSpec/Data|)
+		 (set! data (choice->vector arg))))
 	    ((table? arg)
 	     (if opts
 		 (unless (eq? opts arg)
