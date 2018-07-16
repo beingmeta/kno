@@ -256,7 +256,7 @@
 	(started (elapsed-time)))
     (when (exists? modified)
       (let* ((timings (make-hashtable))
-	     (fifo (fifo/make modified))
+	     (fifo (fifo/make (choice->vector modified)))
 	     (spec-threads (mt/threadcount (getopt opts 'threads commit-threads)))
 	     (n-threads (and spec-threads (min spec-threads (choice-size modified)))))
 	(lognotice |FLEX/Commit|
