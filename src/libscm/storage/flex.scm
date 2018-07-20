@@ -317,4 +317,8 @@
 
 (define (commit-queued fifo opts timings)
   (let ((db (fifo/pop fifo)))
-    (commit-db db opts timings)))
+    (while (and (exists? db) db)
+      (commit-db db opts timings)
+      (set! db (fifo/pop fifo)))))
+
+
