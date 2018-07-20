@@ -41,8 +41,8 @@
 
 (define (typeindex/open filename (opts #f) (create))
   (default! create (getopt opts 'create))
-  (when (file-directory? filename)
-    (set! filename (mkpath filename "keys.table")))
+  (if (or (file-directory? filename) (has-suffix filename "/"))
+      (set! filename (mkpath filename "keys.table")))
   (try (get typeindexes filename)
        (let ((keyinfo (if (file-exists? filename)
 			  (file->dtype filename)
@@ -59,7 +59,7 @@
 		 (irritant v |InvalidKeyInfo|))))
 	 (let* ((typeindex (cons-typeindex (realpath filename)
 					   prefix opts keyinfo filecount))
-		(index (make-procindex (realpath filename)
+		(index (make-procindex (realpath (dirname filename))
 				       (cons #[type typeindex] opts)
 				       typeindex
 				       filename
