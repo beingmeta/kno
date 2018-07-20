@@ -102,13 +102,12 @@
 		   (set! opts (cons arg opts)))
 		 (set! opts arg)))
 	    (else (irritant arg |FIFO/BadSpec|))))
-    (when opts
-      (unless name (set! name (getopt opts 'name #f)))
-      (unless size 
-	(set! size (getopt opts 'size (if data (length data) 64))))
-      (set! debug (getopt opts 'debug #f))
-      (set! fillfn (getopt opts 'fillfn fifo/exhausted!))
-      (set! live? (getopt opts 'live? live?)))
+    (unless name (set! name (getopt opts 'name #f)))
+    (unless size
+      (set! size (getopt opts 'size (if data (length data) 64))))
+    (set! debug (getopt opts 'debug #f))
+    (set! fillfn (getopt opts 'fillfn fifo/exhausted!))
+    (set! live? (getopt opts 'live? live?))
     (if (getopt opts 'nodups #t)
 	(set! items (make-hashset))
 	(set! items #f))
