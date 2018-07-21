@@ -141,6 +141,7 @@
   (default! to from)
   (cond ((not (bound? from)) (usage))
 	((and (file-exists? to) (not (equal? from to)) (config 'COPY #f))
+	 (config! 'appid (glom "copy(" (basename from) ")"))
 	 (copy-pool from to))
 	((and (file-exists? to) 
 	      (not (equal? from to))
@@ -150,7 +151,8 @@
 	((not (file-exists? from))
 	 (logwarn |MissingInput| "Can't locate source " (write from))
 	 (exit))
-	(else (repack-pool (abspath from) (abspath to)))))
+	(else (config! 'appid (glom "repack(" (basename from) ")"))
+	      (repack-pool (abspath from) (abspath to)))))
 
 (define (writable? file)
   (if (file-exists? file)

@@ -46,6 +46,7 @@
     (when (and overwrite (getopt opts 'rare)
 	       (file-exists? (getopt opts 'rare)))
       (overwriting (getopt opts 'rare)))
+    (config! 'appid (glom "pack(" (basename in) ")"))
     (index/pack! in out opts)))
 
 (when (config 'optimize #t)
