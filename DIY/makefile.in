@@ -10,10 +10,7 @@ mongo-c-driver:
 mongo-c-driver/Makefile: mongo-c-driver
 	cd mongo-c-driver; cmake -G "Unix Makefiles" \
 		-DCMAKE_INSTALL_PREFIX=@prefix@ \
-		-DENABLE_BSON=ON -DENABLE_SNAPPY=AUTO \
-		-DENABLE_MAN_PAGES=ON -DENABLE_HTML_DOCS=ON
-libmongoc.done: mongo-c-driver/Makefile mongo-c-driver
-	( cd mongo-c-driver; DEB_BUILD_OPTIONS=nocheck dpkg-buildpackage -r fakeroot -uc -us -b ) && touch $@
+		-DENABLE_BSON=ON -DENABLE_STATIC=ON
 
 libzip/lib/libzip.so: update-libzip
 	cd libzip; make
