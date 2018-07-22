@@ -630,8 +630,13 @@ static u8_string get_connection_spec(mongoc_uri_t *info)
 {
   const mongoc_host_list_t *hosts = mongoc_uri_get_hosts(info);
   u8_string username = mongoc_uri_get_username(info), result = NULL;
-  u8_string server_name = (hosts) ? (hosts->host_and_port) :
-    (mongoc_uri_get_service(info));
+  u8_string server_name = "unknown";
+  if (hosts) server_name = hosts->host_and_port;
+  else {
+#if MONGOC_CHECK_VERSION(1,9,0)
+    server_name = mongoc_uri_get_service(info);
+#endif
+  }
   if (server_name == NULL) server_name="unknown";
   if (username) {
     struct U8_OUTPUT out;
@@ -2914,6 +2919,10 @@ FD_EXPORT int fd_init_mongodb()
                      "Controls which log messages are always discarded",
                      fd_intconfig_get,fd_intconfig_set,
                      &mongodb_ignore_loglevel);
+  fd_register_config("MONGODB:VERSION",
+                     "The MongoDB C library version string",
+                     fd_sconfig_get,NULL,
+                     &mongoc_version_string);
 
   u8_register_source_file(_FILEINFO);
 
