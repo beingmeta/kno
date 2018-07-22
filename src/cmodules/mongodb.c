@@ -630,12 +630,15 @@ static u8_string get_connection_spec(mongoc_uri_t *info)
 {
   const mongoc_host_list_t *hosts = mongoc_uri_get_hosts(info);
   u8_string username = mongoc_uri_get_username(info), result = NULL;
+  u8_string server_name = (hosts) ? (hosts->host_and_port) :
+    (mongoc_uri_get_service(info));
+  if (server_name == NULL) server_name="unknown";
   if (username) {
     struct U8_OUTPUT out;
     U8_INIT_OUTPUT(&out,256);
-    u8_printf(&out,"%s@%s",username,hosts->host_and_port);
+    u8_printf(&out,"%s@%s",username,server_name);
     result = out.u8_outbuf;}
-  else result = u8_strdup(hosts->host_and_port);
+  else result = u8_strdup(server_name);
   return result;
 }
 
