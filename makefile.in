@@ -839,10 +839,10 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in		\
 	@etags -o TAGS -a src/eval/*.c src/prims/*.c
 	@etags -o TAGS -a src/web/*.c src/text/*.c;
 	@etags -o TAGS -a tests/lisp/*.c tests/storage/*.c tests/*.scm;
-	@etags -o TAGS -a src/libscm/*.scm src/libscm/storage/*.scm;
-	@etags -o TAGS -a src/libscm/optimize/optimize.scm
-	@etags -o TAGS -a src/libscm/bugjar/bugjar.scm;
 	@etags -o TAGS -a src/cmodules/*.c;
+	@etags -o TAGS -a src/scripts/*.scm;
+	@find src/libscm/ -name "*.scm" -type f | grep -v /module.scm | \
+		xargs etags -a -o TAGS;
 
 CTAGS: makefile.in configure.ac include/framerd/config.h.in	\
 	tests/lisp/*.c tests/storage/*.c tests/*.c	\
@@ -1500,11 +1500,11 @@ $(DESTDIR)@unpackage_dir@:
 
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
-MODULE_DIRS=xhtml fdxml mongodb \
+EXT_MODULE_DIRS=xhtml fdxml mongodb \
 	brico misc tests jwt domutils knodules textindex morph \
 	aws facebook paypal twitter twilio dropbox google
 
-MODULE_DATA_DIRS=textindex/data brico/data knodules/data \
+EXT_MODULE_DATA=textindex/data brico/data knodules/data \
 		 aws/templates morph/data
 
 install-modules: install-standard-modules install-safe-modules
@@ -1514,7 +1514,7 @@ install-module-source: $(DESTDIR)@builtin_module_dir@
 	@$(ECHO) Copying standard Scheme modules to @builtin_module_dir@
 	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/extmods/*.scm 		\
 		$(DESTDIR)@builtin_module_dir@;
-	@for dir in $(MODULE_DIRS); do						\
+	@for dir in $(EXT_MODULE_DIRS); do						\
 	  install_dir="$(DESTDIR)@builtin_module_dir@/$${dir}";			\
 	  echo "Installing $${dir} module at $${install_dir}";			\
 	  $(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
@@ -1524,7 +1524,7 @@ install-module-source: $(DESTDIR)@builtin_module_dir@
 
 install-module-data: $(DESTDIR)@builtin_module_dir@
 	@$(ECHO) Copying module data to @builtin_module_dir@;
-	@for dir in $(MODULE_DATA_DIRS); do					\
+	@for dir in $(EXT_MODULE_DATA); do					\
 	  src_dir="$(BUILD)/src/extmods/$${dir}";				\
 	  install_dir="$(DESTDIR)@builtin_module_dir@/$${dir}";			\
 	  echo Installing data from $${src_dir} to $${install_dir};		\
@@ -1548,7 +1548,7 @@ install-support: $(DESTDIR)@share_dir@
 		gdbinit makefile.include fdconsole.el 		\
 		$(DESTDIR)@share_dir@
 
-LIBSCM_DIRS=optimize bugjar storage
+LIBSCM_DIRS=optimize bugjar storage mongodb xhtml
 install-libscm:
 	@if [ ! -d ${DESTDIR}${LIBSCM} ]; then 						\
 	  make really-install-libscm; 							\
