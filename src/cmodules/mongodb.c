@@ -452,6 +452,7 @@ static void escape_uri(u8_output out,u8_string s,int len)
 
 static mongoc_uri_t *setup_mongoc_uri(mongoc_uri_t *info,lispval opts)
 {
+  if (info == NULL) return info;
   lispval appname = fd_getopt(opts,fd_intern("APPNAME"),FD_VOID);
   lispval timeout = fd_getopt(opts,fd_intern("TIMEOUT"),FD_VOID);
   lispval ctimeout = fd_getopt(opts,fd_intern("CTIMEOUT"),FD_VOID);
@@ -472,11 +473,9 @@ static mongoc_uri_t *setup_mongoc_uri(mongoc_uri_t *info,lispval opts)
     set_uri_opt(info,MONGOC_URI_MAXPOOLSIZE,ctimeout);
   if ( (FD_STRINGP(appname)) || (FD_SYMBOLP(appname)) )
     set_uri_opt(info,MONGOC_URI_APPNAME,appname);
-  else if (info) {
-    mongoc_uri_set_option_as_utf8(info,MONGOC_URI_APPNAME,u8_appid());
-    if (boolopt(opts,sslsym,default_ssl))
-      mongoc_uri_set_option_as_bool(info,MONGOC_URI_SSL,1);}
-  else {}
+  mongoc_uri_set_option_as_utf8(info,MONGOC_URI_APPNAME,u8_appid());
+  if (boolopt(opts,sslsym,default_ssl))
+    mongoc_uri_set_option_as_bool(info,MONGOC_URI_SSL,1);
 #else
   u8_string uri = mongoc_uri_get_string(info);
   u8_string qmark = strchr(uri,'?');
@@ -493,7 +492,6 @@ static mongoc_uri_t *setup_mongoc_uri(mongoc_uri_t *info,lispval opts)
     qstring = add_to_query(qstring,"serverSelectionTimeoutMS",stimeout);
   if (!(FD_VOIDP(maxpool)))
     qstring = add_to_query(qstring,"maxPoolSize",ctimeout);
-
   if (boolopt(opts,sslsym,default_ssl))
     qstring = add_to_query(qstring,"ssl",FD_TRUE);
   size_t base_len = (qmark==NULL) ? (strlen(uri)) : (qmark-uri);
@@ -559,7 +557,9 @@ static lispval mongodb_open(lispval arg,lispval opts)
                               FD_SYMBOL_NAME(arg),conf_val);}
   else return fd_type_error("MongoDB URI","mongodb_open",arg);
 
-  info = setup_mongoc_uri(info,opts);
+  if (info == NULL)
+    return fd_err("MongoDB URI spec","mongodb_open",NULL,arg);
+  else info = setup_mongoc_uri(info,opts);
 
   if (!(info))
     return fd_err(fd_MongoDB_Error,"mongodb_open",error.message,arg);
