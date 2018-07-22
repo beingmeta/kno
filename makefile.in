@@ -1033,14 +1033,14 @@ lib/framerd/mysql.dylib: src/cmodules/mysql.o ${CMODULE_DEPENDS}
 		-o $@ src/cmodules/mysql.o @MYSQL_LDFLAGS@
 	@$(MSG) MACLIBTOOL "(MYSQL)" $@
 
-src/cmodules/mongodb.o: src/cmodules/mongodb.c ${CONFIG_HDRS}
+src/cmodules/mongodb.o: src/cmodules/mongodb.c ${CONFIG_HDRS} @MONGODB_BUNDLED@
 	@$(CC) @MONGODB_CFLAGS@ $(CFLAGS)  -o $@ -c $<
 	@$(MSG) CC "(MONGODB)" $@
-lib/framerd/mongodb.so: src/cmodules/mongodb.o
-	@$(MKSO) -L./ -L./lib -o $@ $< @MONGODB_LDFLAGS@
-	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
+lib/framerd/mongodb.so: src/cmodules/mongodb.o @MONGODB_BUNDLED@
+	@$(MKSO) -L./ -L./lib@ $@ $< @MONGODB_LDFLAGS@
+	@ln -sf $(@F) $(@D)/$(@F).4
 	@$(MSG) MKSO "(MONGODB)" $@
-lib/framerd/mongodb.dylib: src/cmodules/mongodb.o ${CMODULE_DEPENDS}
+lib/framerd/mongodb.dylib: src/cmodules/mongodb.o ${CMODULE_DEPENDS} @MONGODB_BUNDLED@
 	@$(MACLIBTOOL) -install_name \
 		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
 		$(DYLIB_FLAGS) \
@@ -1821,6 +1821,20 @@ tests/data/private:
 	@@SUDO@ chmod og-w $@
 
 .PHONY: tests libtests schemetests dbtests cmtdtests memtests leaktests
+
+# DIY rules
+
+mongodb.bundled: include/bson include/mongoc lib/libbson.a lib/libmongoc.a
+
+include/bson include/mongoc lib/libbson.a lib/libmongoc.a: DIY/mongo-c-driver/built
+	cd DIY; make mongo-c-driver/built;
+	ln -sf ../DIY/mongo-c-driver/src/libbson/src/bson include/bson
+	ln -sf ../DIY/mongo-c-driver/src/libmongoc/src/mongoc include/mongoc
+	cp DIY/mongo-c-driver/libmongoc.a lib
+	cp DIY/mongo-c-driver/libbson.a lib
+
+DIY/mongo-c-driver/built:
+	cd DIY; make mongo-c-driver/built
 
 # Meta operations
 

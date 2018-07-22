@@ -10,7 +10,14 @@ mongo-c-driver:
 mongo-c-driver/Makefile: mongo-c-driver
 	cd mongo-c-driver; cmake -G "Unix Makefiles" \
 		-DCMAKE_INSTALL_PREFIX=@prefix@ \
-		-DENABLE_BSON=ON -DENABLE_STATIC=ON
+		-DCMAKE_POSITION_INDEPENDENT_CODE=on \
+		-DENABLE_BSON=ON -DENABLE_STATIC=ON \
+		-DENABLE_SHM_COUNTERS=ON
+mongo-c-driver/built: mongo-c-driver/Makefile
+	cd mongo-c-driver; make
+	cp mongo-c-driver/src/libbson/libbson*.a mongo-c-driver/libbson.a
+	cp mongo-c-driver/src/libmongoc/libmongoc*.a  mongo-c-driver/libmongoc.a
+	touch mongo-c-driver/built
 
 libzip/lib/libzip.so: update-libzip
 	cd libzip; make

@@ -161,6 +161,7 @@ CLANG=no
 MALLOC_FLAGS="-fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free"
 MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
+MONGODB_BUNDLED=
 MONGODB_CFLAGS=
 MONGODB_LDFLAGS=
 IMAGICK_CFLAGS=
@@ -334,6 +335,7 @@ AC_SUBST(INSTALLDBMODULES)
 AC_SUBST(MALLOC_FLAGS)
 AC_SUBST(MYSQL_CFLAGS)
 AC_SUBST(MYSQL_LDFLAGS)
+AC_SUBST(MONGODB_BUNDLED)
 AC_SUBST(MONGODB_CFLAGS)
 AC_SUBST(MONGODB_LDFLAGS)
 AC_SUBST(LIBZIP_CFLAGS)
@@ -1356,6 +1358,12 @@ if test "$enable_mongodb" = "yes" ||
   else
     auto_disabled="mongodb ${auto_disabled}";
   fi;
+elif test "$enable_mongodb" = "bundled"; then
+    MONGODB_BUNDLED=mongodb.bundled
+    MONGODB_CFLAGS="-I./include/bson -I./include/mongoc"
+    MONGODB_LDFLAGS="-Wl,--whole-archive -Wl,-Bstatic -lmongoc -Wl,--no-whole-archive  -lbson -Wl,-Bdynamic"
+    DBMODULES="lib/framerd/mongodb.$shared_suffix ${DBMODULES}";
+    INSTALLDBMODULES="install-mongodb ${INSTALLDBMODULES}";
 else
     manually_disabled="mongodb ${manually_disabled}";      
 fi;
