@@ -7,6 +7,11 @@ usr/share/framerd/modules/installed/safe
 usr/share/framerd/modules/local
 usr/share/framerd/modules/local/safe
 usr/share/framerd/libscm
+usr/share/framerd/libscm/bugjar
+usr/share/framerd/libscm/optimize
+usr/share/framerd/libscm/storage
+usr/share/framerd/libscm/mongodb
+usr/share/framerd/libscm/xhtml
 usr/share/framerd/packages
 etc
 etc/framerd

@@ -1,3 +1,9 @@
+framerd (4.2.8-20) stable; urgency=medium
+
+  * Add libscm dirs to install, including mongodb and xhtml
+
+ -- Ken Haase <kh@beingmeta.com>  Sun, 22 Jul 2018 11:36:22 +0000
+
 framerd (4.2.8-19) stable; urgency=medium
 
   * Restore morph to builtin modules
