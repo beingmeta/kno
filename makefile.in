@@ -1037,7 +1037,7 @@ src/cmodules/mongodb.o: src/cmodules/mongodb.c ${CONFIG_HDRS} @MONGODB_BUNDLED@
 	@$(CC) @MONGODB_CFLAGS@ $(CFLAGS)  -o $@ -c $<
 	@$(MSG) CC "(MONGODB)" $@
 lib/framerd/mongodb.so: src/cmodules/mongodb.o @MONGODB_BUNDLED@
-	@$(MKSO) -L./ -L./lib@ $@ $< @MONGODB_LDFLAGS@
+	@$(MKSO) -L./ -L./lib@ -o $@ $< @MONGODB_LDFLAGS@
 	@ln -sf $(@F) $(@D)/$(@F).4
 	@$(MSG) MKSO "(MONGODB)" $@
 lib/framerd/mongodb.dylib: src/cmodules/mongodb.o ${CMODULE_DEPENDS} @MONGODB_BUNDLED@
