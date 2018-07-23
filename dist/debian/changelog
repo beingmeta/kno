@@ -1,3 +1,9 @@
+framerd (4.2.8-21) stable; urgency=medium
+
+  * Fix mongodb dependencies to work with mongo-c-driver
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 23 Jul 2018 00:16:42 +0000
+
 framerd (4.2.8-20) stable; urgency=medium
 
   * Add libscm dirs to install, including mongodb and xhtml
