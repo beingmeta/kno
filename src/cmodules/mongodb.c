@@ -400,37 +400,40 @@ static void escape_uri(u8_output out,u8_string s,int len);
 static u8_string add_to_query(u8_string qstring,const char *option,lispval val)
 {
   u8_string result = qstring;
- size_t option_len = strlen(option);
+  size_t option_len = strlen(option);
   char optbuf[option_len+2];
   strcpy(optbuf,option); strcat(optbuf,"=");
   u8_string poss_start = strstr(qstring,optbuf);
   if ( (poss_start) && (poss_start>qstring) &&
        ( (poss_start[-1] == '?') || (poss_start[-1] == '&') ) )
     return qstring;
+  u8_string tail = qstring+strlen(qstring)-1;
+  u8_string sep = (*tail == '&') ? ("") :
+    (*tail == '?') ? ("") : (strchr(qstring,'?')) ? ("&") : ("?");
   if (FD_FALSEP(val))
-    result = u8_mkstring("%s&%s=false&",qstring,option);
+    result = u8_mkstring("%s%s%s=false&",qstring,sep,option);
   else if (FD_TRUEP(val))
-    result = u8_mkstring("%s&%s=true&",qstring,option);
+    result = u8_mkstring("%s%s%s=true&",qstring,sep,option);
   else if (FD_STRINGP(val)) {
     struct U8_OUTPUT out; unsigned char buf[200];
     U8_INIT_OUTPUT_BUF(&out,200,buf);
     escape_uri(&out,FD_CSTRING(val),FD_STRLEN(val));
-    result = u8_mkstring("%s&%s=%s&",qstring,out.u8_outbuf);
+    result = u8_mkstring("%s%s%s=%s&",qstring,sep,out.u8_outbuf);
     u8_close_output(&out);}
   else if (FD_SYMBOLP(val)) {
     struct U8_OUTPUT out; unsigned char buf[200];
     u8_string pname = FD_SYMBOL_NAME(val);
     U8_INIT_OUTPUT_BUF(&out,200,buf);
     escape_uri(&out,pname,strlen(pname));
-    result = u8_mkstring("%s&%s=%s&",qstring,out.u8_outbuf);
+    result = u8_mkstring("%s%s%s=%s&",qstring,sep,out.u8_outbuf);
     u8_close_output(&out);}
   else if (FD_UINTP(val))
-    result = u8_mkstring("%s&%s=%d&",qstring,FD_FIX2INT(val));
+    result = u8_mkstring("%s%s%s=%d&",qstring,sep,FD_FIX2INT(val));
   else if (FD_FLONUMP(val)) {
     long long msecs = (int) floor(FD_FLONUM(val)*1000.0);
     if (msecs > 0) {
       if (msecs > INT_MAX) msecs=INT_MAX;
-      result  = u8_mkstring("%s&%s=%lld&",qstring,msecs);}}
+      result  = u8_mkstring("%s%s%s=%lld&",qstring,sep,msecs);}}
   else NO_ELSE;
   if (result != qstring) u8_free(qstring);
   return result;
@@ -458,6 +461,7 @@ static mongoc_uri_t *setup_mongoc_uri(mongoc_uri_t *info,lispval opts)
   lispval ctimeout = fd_getopt(opts,fd_intern("CTIMEOUT"),FD_VOID);
   lispval stimeout = fd_getopt(opts,fd_intern("STIMEOUT"),FD_VOID);
   lispval maxpool = fd_getopt(opts,fd_intern("MAXPOOL"),FD_VOID);
+  int is_ssl = 0;
 #if MONGOC_CHECK_VERSION(1,6,0)
   if (!(FD_VOIDP(timeout))) {
     set_uri_opt(info,MONGOC_URI_SOCKETTIMEOUTMS,timeout);
@@ -474,8 +478,9 @@ static mongoc_uri_t *setup_mongoc_uri(mongoc_uri_t *info,lispval opts)
   if ( (FD_STRINGP(appname)) || (FD_SYMBOLP(appname)) )
     set_uri_opt(info,MONGOC_URI_APPNAME,appname);
   mongoc_uri_set_option_as_utf8(info,MONGOC_URI_APPNAME,u8_appid());
-  if (boolopt(opts,sslsym,default_ssl))
+  if (boolopt(opts,sslsym,default_ssl)) {
     mongoc_uri_set_option_as_bool(info,MONGOC_URI_SSL,1);
+    is_ssl=1;}
 #else
   u8_string uri = mongoc_uri_get_string(info);
   u8_string qmark = strchr(uri,'?');
@@ -492,8 +497,9 @@ static mongoc_uri_t *setup_mongoc_uri(mongoc_uri_t *info,lispval opts)
     qstring = add_to_query(qstring,"serverSelectionTimeoutMS",stimeout);
   if (!(FD_VOIDP(maxpool)))
     qstring = add_to_query(qstring,"maxPoolSize",ctimeout);
-  if (boolopt(opts,sslsym,default_ssl))
+  if (boolopt(opts,sslsym,default_ssl)) {
     qstring = add_to_query(qstring,"ssl",FD_TRUE);
+    is_ssl=1;}
   size_t base_len = (qmark==NULL) ? (strlen(uri)) : (qmark-uri);
   unsigned char newbuf[base_len+strlen(qstring)+1];
   strcpy(newbuf,uri);
@@ -647,7 +653,7 @@ static u8_string get_connection_spec(mongoc_uri_t *info)
   return result;
 }
 
-static lispval pemsym, pempwd, cafilesym, cadirsym, crlsym;
+static lispval certfile, certpass, cafilesym, cadirsym, crlsym;
 
 static int setup_ssl(mongoc_ssl_opt_t *ssl_opts,
                      mongoc_uri_t *info,
@@ -655,8 +661,8 @@ static int setup_ssl(mongoc_ssl_opt_t *ssl_opts,
 {
   const mongoc_ssl_opt_t *default_opts = mongoc_ssl_opt_get_default();
   memcpy(ssl_opts,default_opts,sizeof(mongoc_ssl_opt_t));
-  ssl_opts->pem_file = stropt(opts,pemsym,NULL);
-  ssl_opts->pem_pwd = stropt(opts,pempwd,NULL);
+  ssl_opts->pem_file = stropt(opts,certfile,NULL);
+  ssl_opts->pem_pwd = stropt(opts,certpass,NULL);
   ssl_opts->ca_file = stropt(opts,cafilesym,NULL);
   ssl_opts->ca_dir = stropt(opts,cadirsym,NULL);
   ssl_opts->crl_file = stropt(opts,crlsym,NULL);
@@ -2727,6 +2733,7 @@ static int getu8loglevel(mongoc_log_level_t l)
 /* Initialization */
 
 static u8_byte mongoc_version_string[100];
+static u8_byte *mongoc_version = mongoc_version_string;
 
 FD_EXPORT int fd_init_mongodb(void) FD_LIBINIT_FN;
 static long long int mongodb_initialized = 0;
@@ -2768,8 +2775,8 @@ FD_EXPORT int fd_init_mongodb()
 
   sslsym = fd_intern("SSL");
   smoketest_sym = fd_intern("SMOKETEST");
-  pemsym = fd_intern("PEMFILE");
-  pempwd = fd_intern("PEMPWD");
+  certfile = fd_intern("CERTFILE");
+  certpass = fd_intern("CERTPASS");
   cafilesym = fd_intern("CAFILE");
   cadirsym = fd_intern("CADIR");
   crlsym = fd_intern("CRLFILE");
@@ -2911,6 +2918,10 @@ FD_EXPORT int fd_init_mongodb()
   mongoc_init();
   atexit(mongoc_cleanup);
 
+  strcpy(mongoc_version_string,"libmongoc ");
+  strcat(mongoc_version_string,MONGOC_VERSION_S);
+  u8_register_source_file(mongoc_version_string);
+
   mongoc_log_set_handler(mongoc_logger,NULL);
   fd_register_config("MONGODB:LOGLEVEL",
                      "Controls log levels for which messages are always shown",
@@ -2922,7 +2933,7 @@ FD_EXPORT int fd_init_mongodb()
   fd_register_config("MONGODB:VERSION",
                      "The MongoDB C library version string",
                      fd_sconfig_get,NULL,
-                     &mongoc_version_string);
+                     &mongoc_version);
 
   u8_register_source_file(_FILEINFO);
 
