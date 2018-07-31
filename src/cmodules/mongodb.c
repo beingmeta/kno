@@ -2152,7 +2152,7 @@ FD_EXPORT bson_t *fd_lisp2bson(lispval obj,int flags,lispval opts)
 /* BSON input functions */
 
 #define slotify_char(c) \
-    ((c=='_')||(c=='-')||(c=='.')||(c=='/')||(c=='$')||(u8_isalnum(c)))
+    ((c=='_')||(c=='-')||(c=='%')||(c=='.')||(c=='/')||(c=='$')||(u8_isalnum(c)))
 
 /* -1 means don't slotify at all, 0 means symbolize, 1 means intern */
 static int slotcode(u8_string s)
