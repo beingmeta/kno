@@ -9,15 +9,22 @@ mongo-c-driver:
 	git clone git@github.com:mongodb/mongo-c-driver.git mongo-c-driver
 mongo-c-driver/Makefile: mongo-c-driver
 	cd mongo-c-driver; cmake -G "Unix Makefiles" \
-		-DCMAKE_INSTALL_PREFIX=@prefix@ \
+		-DCMAKE_INSTALL_PREFIX=/usr \
 		-DCMAKE_POSITION_INDEPENDENT_CODE=on \
 		-DENABLE_BSON=ON -DENABLE_STATIC=ON \
+		-DENABLE_MAN_PAGES=ON -DENABLE_HTML_DOCS=ON \
 		-DENABLE_SHM_COUNTERS=ON
+
 mongo-c-driver/built: mongo-c-driver/Makefile
 	cd mongo-c-driver; make
 	cp mongo-c-driver/src/libbson/libbson*.a mongo-c-driver/libbson.a
 	cp mongo-c-driver/src/libmongoc/libmongoc*.a  mongo-c-driver/libmongoc.a
 	touch mongo-c-driver/built
+
+libmongoc_amd64.deb: mongo-c-driver/Makefile
+	cd mongo-c-driver; DEB_BUILD_OPTIONS="nocheck notest noautodbgsym" \
+		dpkg-buildpackage -rfakeroot -uc -us -b;
+	ln -sf libmongoc-*_amd64.deb libmongoc_amd64.deb
 
 libzip/lib/libzip.so: update-libzip
 	cd libzip; make
