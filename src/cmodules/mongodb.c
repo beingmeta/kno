@@ -456,6 +456,18 @@ static void escape_uri(u8_output out,u8_string s,int len)
 static mongoc_uri_t *setup_mongoc_uri(mongoc_uri_t *info,lispval opts)
 {
   if (info == NULL) return info;
+  lispval dbarg   = fd_getopt(opts,fd_intern("DBNAME"),FD_VOID);
+  if (FD_STRINGP(dbarg))
+    mongoc_uri_set_database(info,FD_CSTRING(dbarg));
+  else if (!((FD_VOIDP(dbarg)) || (FD_FALSEP(dbarg)) || (FD_DEFAULTP(dbarg)) )) {
+    fd_seterr("Invalid MongoDBName","setup_mongoc_uri",
+              mongoc_uri_get_string(info),
+              dbarg);
+    fd_decref(dbarg);
+    return NULL;}
+  else {
+    u8_string dbname = mongoc_uri_get_database(info);
+    if (dbname == NULL) mongoc_uri_set_database(info,"test");}
   lispval appname = fd_getopt(opts,fd_intern("APPNAME"),FD_VOID);
   lispval timeout = fd_getopt(opts,fd_intern("TIMEOUT"),FD_VOID);
   lispval ctimeout = fd_getopt(opts,fd_intern("CTIMEOUT"),FD_VOID);
@@ -2116,7 +2128,7 @@ FD_EXPORT lispval fd_bson_output(struct FD_BSON_OUTPUT out,lispval obj)
 FD_EXPORT bson_t *fd_lisp2bson(lispval obj,int flags,lispval opts)
 {
   if (FD_VOIDP(obj)) return NULL;
-  else if (FD_STRINGP(obj)) {
+  else if ( (FD_STRINGP(obj)) && (strchr(FD_CSTRING(obj),'{')) ) {
     u8_string json = FD_CSTRING(obj); int free_it = 0;
     bson_error_t error; bson_t *result;
     if (strchr(json,'"')<0) {
