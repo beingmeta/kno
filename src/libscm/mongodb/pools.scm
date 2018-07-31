@@ -56,11 +56,17 @@
   (default! collection (mongopool-collection mp))
   (mongodb/get collection oid #[return #[__index 0]]))
 
+(define (fetchn collection oidvec)
+  (if (= (length oidvec) 1)
+      (mongodb/find collection `#[_id ,(first oidvec)]
+	#[__index 0])
+      (if (zero? (length oidvec)) {}
+	  (mongodb/find collection `#[_id #[$in ,(elts oidvec)]]
+	    #[__index 0]))))
+
 (define (mongopool-fetchn pool mp oidvec (collection))
   (default! collection (mongopool-collection mp))
-  (let ((values (mongodb/find collection
-		    `#[_id #[$oneof ,(elts oidvec)]
-		       #[__index 0]]))
+  (let ((values (fetchn collection oidvec))
 	(result (make-vector (length oidvec) #f))
 	(map (make-hashtable)))
     (do-choices (value values)
@@ -71,12 +77,11 @@
 
 (define (mongopool-lockoids pool mp oids (collection))
   (default! collection (mongopool-collection mp))
-  (let ((current (mongodb/find collection
-		     `#[_id #[$oneof ,oids]
-			#[__index 0]]))
+  (let ((current (fetchn collection (choice->vector oids)))
 	(originals (mongopool-originals mp)))
-    (do-choices (entry current)
-      (store! originals (get entry '_id) (deep-copy entry)))
+    (info%watch "MONGPOOL/lockoids" current)
+    (do-choices (cur current)
+      (store! originals (get cur '_id) (deep-copy cur)))
     #t))
 
 (define (mongopool-releaseoids pool mp oids (originals))
@@ -118,22 +123,30 @@
 
 (define (mongopool-commit pool mp phase oidvec valvec metadata) 
   (info%watch "MONGOPOOL-COMMIT" 
-    pool mp phase "N" (length oidvec)
+    pool mp phase 
+    "N" (if (vector? oidvec) (length oidvec) oidvec)
     metadata)
   (when (eq? phase 'write)
     (let ((collection (mongopool-collection mp))
 	  (originals (mongopool-originals mp)))
+      (info%watch "MONGPOOL-COMMIT/WRITE" collection originals)
       (dotimes (i (length oidvec))
 	(let* ((oid (elt oidvec i))
 	       (cur (get originals oid))
 	       (new (elt valvec i)))
-	  (debug%watch oid cur new (modified? new))
+	  (debug%watch "MONGPOOL-COMMIT/DIFFER" 
+	    oid cur new "CUR#" (hashptr cur) "NEW#" (hashptr new)
+	    "MODIFIED" (modified? new))
 	  (let ((sets `#[]) (unsets `#[]) (adds `#[]) (drops `#[]))
 	    (do-choices (slotid (getkeys {cur new}))
 	      (let ((curv (get cur slotid)) (newv (get new slotid)))
+		(detail%watch "COMMIT/COMPARE" oid slotid curv newv
+			      "CURV#" (hashptr curv)
+			      "NEWV#" (hashptr newv))
 		(cond ((identical? curv newv))
 		      ((fail? curv)
-		       (store! sets slotid (choice->vector newv)))
+		       (store! sets slotid (if (singleton? newv) newv
+					       (choice->vector newv))))
 		      ((fail? newv) (store! unsets slotid ""))
 		      ((and (singleton? curv) (singleton? newv))
 		       (store! sets slotid newv))
@@ -143,12 +156,16 @@
 				(store! adds slotid `#[$each ,(choice->vector toadd)]))
 			      (when (exists? todrop)
 				(store! drops slotid (choice->vector todrop))))))))
-	    (mongodb/modify! collection `#[_id ,oid]
-	      (frame-create #f
-		'$set (tryif (> (table-size sets) 0) sets)
-		'$addToSet (tryif (> (table-size adds) 0) adds)
-		'$pullAll (tryif (> (table-size drops) 0) drops)
-		'$unset (tryif (> (table-size unsets) 0) unsets))))
+	    (info%watch "MONGPOOL/COMMIT/edits" sets adds drops unsets)
+	    (when (> (+ (table-size sets) (table-size adds) 
+			(table-size drops) (table-size unsets))
+		     0)
+	      (mongodb/modify! collection `#[_id ,oid]
+		(frame-create #f
+		  '$set (tryif (> (table-size sets) 0) sets)
+		  '$addToSet (tryif (> (table-size adds) 0) adds)
+		  '$pullAll (tryif (> (table-size drops) 0) drops)
+		  '$unset (tryif (> (table-size unsets) 0) unsets)))))
 	  (store! originals oid new)))))
   #t)
 
@@ -186,7 +203,8 @@
 		     (mongodb/insert! collection metadata)))
 	 (let* ((opts (opts+ `#[type mongopool metadata ,metadata] 
 			     opts))
-		(record (cons-mongopool collection (mongodb/spec collection)
+		(record (cons-mongopool collection (mongodb/getdb collection)
+					(mongodb/spec collection)
 					(collection/name collection)
 					base cap opts 
 					(qc (getopt opts 'slotinfo {}))))
