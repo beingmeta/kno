@@ -3,12 +3,13 @@
 
 (in-module 'mongodb/utils)
 
-(use-module '{mongodb logger})
+(use-module '{mongodb logger varconfig engine})
 
 (module-export! '{mgo/index/list mgo/index/drop! mgo/index/add!
 		  collection/new collection/rename! collection/drop!
 		  mgo/dropdb! 
-		  mgo/params/list mgo/params/get mgo/params/set! })
+		  mgo/params/list mgo/params/get mgo/params/set!
+		  mongodb/copy-pool})
 
 
 (defambda (getbatch v)
@@ -136,3 +137,27 @@
   (set! db (mongodb/getdb arg))
   (mongodb/results db "setParameter" 1 param value))
 
+;;;; Copying pools into MongoDB
+
+(define (mongodb/copy-pool input collection (slotinfo {}))
+  (let ((base (pool-base input))
+	(capacity (pool-capacity input))
+	(load (pool-load input))
+	(metadata (poolctl input 'metadata))
+	(curinfo (mongodb/get collection "_pool"))
+	(curmd (mongodb/get collection "_metadata")))
+    (unless (exists? curinfo)
+      (mongodb/insert! collection
+	`#[_id "_pool" base ,base capacity ,capacity load ,load]))
+    (store! metadata '_id "_metadata")
+    (unless (exists? curmd)
+      (mongodb/modify! collection #[_id "_metadata"] `#[$set ,metadata]))
+    (engine/run
+	(lambda (oid)
+	  (let ((v (frame-create #f '_id oid)))
+	    (do-choices (slotid (getkeys oid))
+	      (store! v slotid (get oid slotid)))
+	    (mongodb/modify! collection
+		`#[_id ,oid] `#[$set ,v]
+		`#[upsert #t new #t])))
+	(pool-elts input))))
