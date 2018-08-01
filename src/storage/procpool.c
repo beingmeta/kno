@@ -52,7 +52,7 @@ fd_pool fd_make_procpool(FD_OID base,
 
   struct FD_PROCPOOL *pp = u8_alloc(struct FD_PROCPOOL);
   struct FD_PROCPOOL_METHODS *methods;
-  unsigned int flags = FD_STORAGE_ISPOOL | FD_STORAGE_VIRTUAL;
+  unsigned int flags = FD_STORAGE_ISPOOL;
   lispval pool_type = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
   lispval metadata = fd_getopt(opts,FDSYM_METADATA,FD_VOID);
   struct FD_POOL_TYPEINFO *typeinfo =
