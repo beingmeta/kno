@@ -2496,7 +2496,7 @@ FD_EXPORT lispval fd_default_poolctl(fd_pool p,lispval op,int n,lispval *args)
     lispval slotid = (n>0) ? (args[0]) : (FD_VOID);
     /* TODO: check that slotid isn't any of the slots returned by default */
     if (n == 0)
-      return fd_copier(metadata,0);
+      return fd_pool_base_metadata(p);
     else if (n == 1) {
       lispval extended=fd_pool_ctl(p,fd_metadata_op,0,NULL);
       lispval v = fd_get(extended,slotid,FD_EMPTY);

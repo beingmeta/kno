@@ -2215,7 +2215,7 @@ FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args
     lispval slotid = (n>0) ? (args[0]) : (FD_VOID);
     /* TODO: check that slotid isn't any of the slots returned by default */
     if (n == 0)
-      return fd_copier(metadata,0);
+      return fd_index_base_metadata(ix);
     else if (n == 1) {
       lispval extended=fd_index_ctl(ix,fd_metadata_op,0,NULL);
       lispval v = fd_get(extended,args[0],FD_EMPTY);
@@ -2291,7 +2291,8 @@ FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args
       if (FIXNUMP(args[0])) {
         long long level = FD_FIX2INT(args[0]);
         if ((level<0) || (level > 128))
-          return fd_err(fd_RangeError,"fd_default_indexctl",ix->indexid,args[0]);
+          return fd_err(fd_RangeError,
+                        "fd_default_indexctl",ix->indexid,args[0]);
         else {
           int old_loglevel = ix->index_loglevel;
           ix->index_loglevel = level;
