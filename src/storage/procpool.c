@@ -174,7 +174,7 @@ static lispval *procpool_fetchn(fd_pool p,int n,lispval *oids)
     lispval result = fd_dapply(pp->pool_methods->fetchnfn,3,args);
     fd_decref(oidvec);
     if (VECTORP(result)) {
-      lispval *vals = u8_alloc_n(n,lispval);
+      lispval *vals = u8_big_alloc_n(n,lispval);
       int i = 0; while (i<n) {
         lispval val = VEC_REF(result,i);
         FD_VECTOR_SET(result,i,VOID);

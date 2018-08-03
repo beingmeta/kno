@@ -180,7 +180,7 @@ static lispval *procindex_fetchn(fd_index ix,int n,const lispval *keys)
     lispval result = fd_dapply(pix->index_methods->fetchnfn,3,args);
 
     if (VECTORP(result)) {
-      lispval *vals = u8_alloc_n(n,lispval);
+      lispval *vals = u8_big_alloc_n(n,lispval);
       int i = 0; while (i<n) {
         lispval val = VEC_REF(result,i);
         FD_VECTOR_SET(result,i,VOID);
@@ -206,7 +206,7 @@ static lispval *procindex_fetchkeys(fd_index ix,int *n_keys)
 
     if (VECTORP(result)) {
       int n = FD_VECTOR_LENGTH(result);
-      lispval *vals = u8_alloc_n(n,lispval);
+      lispval *vals = u8_big_alloc_n(n,lispval);
       int i = 0; while (i<n) {
         lispval val = VEC_REF(result,i);
         FD_VECTOR_SET(result,i,VOID);
@@ -216,7 +216,7 @@ static lispval *procindex_fetchkeys(fd_index ix,int *n_keys)
       return vals;}
     else if (FD_CHOICEP(result)) {
       int i=0, n = FD_CHOICE_SIZE(result);
-      lispval *vals = u8_alloc_n(n,lispval);
+      lispval *vals = u8_big_alloc_n(n,lispval);
       FD_DO_CHOICES(elt,result) {
         vals[i++]=elt; fd_incref(elt);}
       *n_keys=n;
@@ -263,7 +263,7 @@ struct FD_KEY_SIZE *procindex_fetchinfo
     lispval result = fd_dapply(pix->index_methods->fetchinfofn,2,args);
     if (VECTORP(result)) {
       int n = FD_VECTOR_LENGTH(result);
-      struct FD_KEY_SIZE *info = u8_alloc_n(n,struct FD_KEY_SIZE);
+      struct FD_KEY_SIZE *info = u8_big_alloc_n(n,struct FD_KEY_SIZE);
       int i = 0; while (i<n) {
         lispval keysize_pair = VEC_REF(result,i);
         FD_VECTOR_SET(result,i,VOID);

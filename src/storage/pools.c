@@ -1504,8 +1504,8 @@ static int apply_poolop(fd_pool_op fn,lispval oids_arg)
         oids_in_pool = fd_simplify_choice(oids_in_pool);
         if (EMPTYP(oids_in_pool)) rv = 0;
         else rv = fn(p,oids_in_pool);
-        if (rv<0) {}
-        else sum = sum+rv;
+        if (rv>0)
+          sum = sum+rv;
         fd_decref(oids_in_pool);
         n = keep-oidv;}}
     fd_decref(oids);
