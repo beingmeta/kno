@@ -543,18 +543,19 @@ FD_EXPORT lispval fd_slotmap_keys(struct FD_SLOTMAP *sm)
 
 FD_EXPORT lispval fd_slotmap_values(struct FD_SLOTMAP *sm)
 {
-  struct FD_KEYVAL *scan, *limit; int unlock=0;
+  int unlock=0;
   struct FD_PRECHOICE *prechoice; lispval results;
-  int size;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_slotmap_type);
+  if (FD_XSLOTMAP_NUSED(sm) == 0) return FD_EMPTY;
   if (sm->table_uselock) {
     u8_read_lock(&sm->table_rwlock);
     unlock=1;}
-  size=FD_XSLOTMAP_NUSED(sm); scan=sm->sm_keyvals; limit=scan+size;
-  if (size==0) {
+  int size=FD_XSLOTMAP_NUSED(sm);
+  if (size == 0) {
     if (unlock) u8_rw_unlock(&sm->table_rwlock);
     return EMPTY;}
-  else if (size==1) {
+  struct FD_KEYVAL *scan = sm->sm_keyvals, *limit = scan+size;
+  if (size==1) {
     lispval value=fd_incref(scan->kv_val);
     if (unlock) u8_rw_unlock(&sm->table_rwlock);
     return value;}
@@ -2687,10 +2688,15 @@ FD_EXPORT lispval fd_hashtable_values(struct FD_HASHTABLE *ptr)
 {
   int unlock=0;
   struct FD_PRECHOICE *prechoice; lispval results;
-  int size;
+  int size = ptr->table_n_keys;
+  if (size == 0) return FD_EMPTY;
   FD_CHECK_TYPE_RETDTYPE(ptr,fd_hashtable_type);
   if (ptr->table_uselock) {u8_read_lock(&ptr->table_rwlock); unlock=1;}
   size=ptr->table_n_keys;
+  if (size == 0) {
+    /* Race condition */
+    if (unlock) u8_rw_unlock(&ptr->table_rwlock);
+    return FD_EMPTY;}
   /* Otherwise, copy the keys into a choice vector. */
   results=fd_init_prechoice(NULL,17*(size),0);
   prechoice=FD_XPRECHOICE(results);
