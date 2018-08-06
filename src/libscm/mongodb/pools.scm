@@ -137,7 +137,10 @@
 	  (debug%watch "MONGPOOL-COMMIT/DIFFER" 
 	    oid cur new "CUR#" (hashptr cur) "NEW#" (hashptr new)
 	    "MODIFIED" (modified? new))
-	  (let ((sets `#[]) (unsets `#[]) (adds `#[]) (drops `#[]))
+	  (let ((sets (frame-create #f))
+		(unsets (frame-create #f))
+		(adds (frame-create #f))
+		(drops (frame-create #f)))
 	    (do-choices (slotid (difference (getkeys {cur new}) '_id))
 	      (let ((curv (get cur slotid)) (newv (get new slotid)))
 		(detail%watch "COMMIT/COMPARE" oid slotid curv newv
@@ -145,8 +148,7 @@
 			      "NEWV#" (hashptr newv))
 		(cond ((identical? curv newv))
 		      ((fail? curv)
-		       (store! sets slotid (if (singleton? newv) newv
-					       (choice->vector newv))))
+		       (store! sets slotid (qc newv)))
 		      ((fail? newv) (store! unsets slotid ""))
 		      ((and (singleton? curv) (singleton? newv))
 		       (store! sets slotid newv))
@@ -154,7 +156,7 @@
 				  (todrop (difference curv newv)))
 			      (when (exists? toadd)
 				(if (ambiguous? curv)
-				    (store! adds slotid `#[$each ,(choice->vector toadd)])
+				    (store! adds slotid `#[$each ,toadd])
 				    (store! sets slotid (choice toadd curv))))
 			      (when (exists? todrop)
 				(store! drops slotid (choice->vector todrop))))))))
