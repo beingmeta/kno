@@ -184,20 +184,6 @@ FD_EXPORT lispval fd_histfind(lispval value)
     return refs;}
 }
 
-static int quote_choicep(lispval v)
-{
-  if (! (FD_AMBIGP(v)) )
-    return ( (FD_PAIRP(v)) || (FD_SYMBOLP(v)) );
-  else if ( (FD_CHOICEP(v)) && (FD_CHOICE_SIZE(v) > 257) )
-    return 1;
-  else {
-    FD_DO_CHOICES(e,v) {
-      if ( (FD_PAIRP(e)) || (FD_SYMBOLP(e)) ) {
-        FD_STOP_DO_CHOICES;
-        return 1;}}
-    return 0;}
-}
-
 FD_EXPORT
 lispval fd_get_histref(lispval elts)
 {

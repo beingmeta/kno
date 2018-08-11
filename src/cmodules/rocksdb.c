@@ -629,6 +629,7 @@ static int rocksdb_scanner(struct FD_ROCKSDB *db,lispval opts,
   return rv;
 }
 
+#if 0
 static int rocksdb_key_scanner(struct FD_ROCKSDB *db,lispval opts,
                                rocksdb_iterator_t *use_iterator,
                                lispval key,struct BYTEVEC *use_prefix,
@@ -667,6 +668,7 @@ static int rocksdb_key_scanner(struct FD_ROCKSDB *db,lispval opts,
   if (use_iterator == NULL) rocksdb_iter_destroy(iterator);
   return rv;
 }
+#endif
 
 static int rocksdb_editor(struct FD_ROCKSDB *db,lispval opts,
                           rocksdb_iterator_t *use_iterator,

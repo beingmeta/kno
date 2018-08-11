@@ -622,6 +622,7 @@ static int leveldb_scanner(struct FD_LEVELDB *db,lispval opts,
   return rv;
 }
 
+#if 0
 static int leveldb_key_scanner(struct FD_LEVELDB *db,lispval opts,
                                leveldb_iterator_t *use_iterator,
                                lispval key,struct BYTEVEC *use_prefix,
@@ -660,6 +661,7 @@ static int leveldb_key_scanner(struct FD_LEVELDB *db,lispval opts,
   if (use_iterator == NULL) leveldb_iter_destroy(iterator);
   return rv;
 }
+#endif
 
 static int leveldb_editor(struct FD_LEVELDB *db,lispval opts,
                           leveldb_iterator_t *use_iterator,
