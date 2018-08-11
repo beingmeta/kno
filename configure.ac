@@ -161,6 +161,7 @@ CLANG=no
 MALLOC_FLAGS="-fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free"
 MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
+MONGODB_ENABLED=
 MONGODB_BUNDLED=
 MONGODB_CFLAGS=
 MONGODB_LDFLAGS=
@@ -632,7 +633,7 @@ else
  AC_MSG_RESULT($apache_log_dir);
 fi;
 
-if test ! -z $APXS; then
+if test ! -z "$APXS"; then
   apache_conf_dir=`$APXS -q SYSCONFDIR`
   apache_modules_dir=`$APXS -q LIBEXECDIR`
   if test -d ${apache_conf_dir}/mods-available; then
@@ -1351,10 +1352,12 @@ if test "$enable_mongodb" = "yes" ||
     MONGODB_LDFLAGS=`$pkg_config libmongoc-1.0 --libs` 
     DBMODULES="lib/framerd/mongodb.$shared_suffix ${DBMODULES}";
     INSTALLDBMODULES="install-mongodb ${INSTALLDBMODULES}";
+    MONGODB_ENABLED=yes
   elif test "$enable_mongodb" = "force"; then
     force_enabled="mongodb ${force_enabled}";
     DBMODULES="lib/framerd/mongodb.$shared_suffix ${DBMODULES}";
     INSTALLDBMODULES="install-mongodb ${INSTALLDBMODULES}";
+    MONGODB_ENABLED=yes
   else
     auto_disabled="mongodb ${auto_disabled}";
   fi;

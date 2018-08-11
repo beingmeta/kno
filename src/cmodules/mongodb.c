@@ -78,6 +78,9 @@ static void grab_mongodb_error(bson_error_t *error,u8_string caller)
 
 /*#define HAVE_MONGOC_OPTS_FUNCTIONS (MONGOC_CHECK_VERSION(1,7,0)) */
 #define HAVE_MONGOC_OPTS_FUNCTIONS (MONGOC_CHECK_VERSION(1,5,0))
+#define HAVE_MONGOC_COUNT_DOCUMENTS (MONGOC_CHECK_VERSION(1,12,0))
+#define HAVE_MONGOC_COUNT_WITH_OPTS (MONGOC_CHECK_VERSION(1,6,0))
+#define HAVE_MONGOC_BULK_OPERATION_WITH_OPTS (MONGOC_CHECK_VERSION(1,9,0))
 
 #define MONGODB_CLIENT_BLOCK 1
 #define MONGODB_CLIENT_NOBLOCK 0
@@ -799,7 +802,7 @@ static void collection_done(mongoc_collection_t *collection,
 
 /* Basic operations on collections */
 
-#if HAVE_MONGOC_OPTS_FUNCTIONS
+#if HAVE_MONGOC_BULK_OPERATION_WITH_OPTS
 static lispval mongodb_insert(lispval arg,lispval obj,lispval opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
@@ -816,7 +819,7 @@ static lispval mongodb_insert(lispval arg,lispval obj,lispval opts_arg)
     mongoc_collection_t *collection = open_collection(domain,&client,flags);
     if (collection) {
       bson_t reply;
-      bson_error_t error;
+      bson_error_t error = { 0 };
       if ((logops)||(flags&FD_MONGODB_LOGOPS))
         u8_logf(LOG_DETAIL,"MongoDB/insert",
                "Inserting %d items into %q",FD_CHOICE_SIZE(obj),arg);
@@ -824,7 +827,6 @@ static lispval mongodb_insert(lispval arg,lispval obj,lispval opts_arg)
         mongoc_bulk_operation_t *bulk=
           mongoc_collection_create_bulk_operation_with_opts
           (collection,bulkopts);
-
         FD_DO_CHOICES(elt,obj) {
           bson_t *doc = fd_lisp2bson(elt,flags,opts);
           if (doc) {
@@ -835,7 +837,7 @@ static lispval mongodb_insert(lispval arg,lispval obj,lispval opts_arg)
         if (retval) {
           result = fd_bson2dtype(&reply,flags,opts);}
         else {
-          u8_byte buf[100];
+          u8_byte buf[1000];
           if (errno) u8_graberrno("mongodb_insert",NULL);
           fd_seterr(fd_MongoDB_Error,"mongodb_insert",
                     u8_sprintf(buf,100,"%s>%s>%s:%s",
@@ -1194,6 +1196,120 @@ static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
 }
 #endif
 
+#if HAVE_MONGOC_COUNT_DOCUMENTS
+static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
+{
+  struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
+  int flags = getflags(opts_arg,domain->domain_flags);
+  lispval opts = combine_opts(opts_arg,domain->domain_opts);
+  mongoc_client_t *client = NULL;
+  mongoc_collection_t *collection = open_collection(domain,&client,flags);
+  if (collection) {
+    lispval result = FD_VOID;
+    long n_documents = -1;
+    const bson_t *doc;
+    bson_error_t error = { 0 };
+    bson_t *q = fd_lisp2bson(query,flags,opts);
+    if (q == NULL) {
+      collection_done(collection,client,domain);
+      fd_decref(opts);
+      return FD_ERROR_VALUE;}
+    bson_t *findopts = getfindopts(opts,flags);
+    mongoc_read_prefs_t *rp = get_read_prefs(opts);
+    lispval *vec = NULL; size_t n = 0, max = 0;
+    if ((logops)||(flags&FD_MONGODB_LOGOPS))
+      u8_logf(LOG_DETAIL,"MongoDB/count","Counting matches to %q in %q",query,arg);
+    n_documents = mongoc_collection_count_documents(collection,q,findopts,rp,&error);
+    if (n_documents>=0) 
+      result = FD_INT(n_documents);
+    else {
+      u8_byte buf[1000];
+      fd_seterr(fd_MongoDB_Error,"mongodb_count",
+                u8_sprintf(buf,1000,
+                           "couldn't count documents matching %q with options:\n%Q",
+                           arg,opts),
+                fd_incref(query));
+      result = FD_ERROR_VALUE;}
+    if (rp) mongoc_read_prefs_destroy(rp);
+    if (q) bson_destroy(q);
+    if (findopts) bson_destroy(findopts);
+    collection_done(collection,client,domain);
+    fd_decref(opts);
+    U8_CLEAR_ERRNO();
+    return result;}
+  else {
+    fd_decref(opts);
+    U8_CLEAR_ERRNO();
+    return FD_ERROR_VALUE;}
+}
+#else
+static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
+{
+  struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
+  struct FD_MONGODB_DATABASE *db = DOMAIN2DB(domain);
+  int flags = getflags(opts_arg,domain->domain_flags);
+  lispval opts = combine_opts(opts_arg,domain->domain_opts);
+  mongoc_client_t *client = NULL;
+  mongoc_collection_t *collection = open_collection(domain,&client,flags);
+  if (collection) {
+    lispval result = FD_VOID;
+    long n_documents = -1;
+    const bson_t *doc;
+    bson_error_t err = { 0 };
+    bson_t *q = fd_lisp2bson(query,flags,opts);
+    if (q == NULL) {
+      collection_done(collection,client,domain);
+      fd_decref(opts);
+      return FD_ERROR;}
+    lispval skip_arg = fd_getopt(opts,skipsym,FD_FIXZERO);
+    lispval limit_arg = fd_getopt(opts,limitsym,FD_FIXZERO);
+    lispval batch_arg = fd_getopt(opts,batchsym,FD_FIXZERO);
+    int sort_results = fd_testopt(opts,FDSYM_SORTED,FD_VOID);
+    lispval *vec = NULL; size_t n = 0, max = 0;
+    if ((FD_UINTP(skip_arg))&&(FD_UINTP(limit_arg))&&(FD_UINTP(batch_arg))) {
+      bson_t *fields = get_projection(opts,flags);
+      mongoc_read_prefs_t *rp = get_read_prefs(opts);
+      if ((logops)||(flags&FD_MONGODB_LOGOPS))
+        u8_logf(LOG_DETAIL,"MongoDB/find","Matches to %q in %q",query,arg);
+      n_documents = mongoc_collection_count
+        (collection,MONGOC_QUERY_NONE,
+         q,
+         FD_FIX2INT(skip_arg),
+         FD_FIX2INT(limit_arg),
+         rp,
+         &err);
+      if (n_documents >= 0) 
+        result = FD_INT(n_documents);
+      else {
+        u8_byte buf[1000];
+        if (errno) u8_graberrno("mongodb_count",NULL);
+        fd_seterr(fd_MongoDB_Error,"mongodb_count",
+                  u8_sprintf(buf,100,"%s>%s>%s:%s",
+                             db->dburi,db->dbname,
+                             domain->collection_name,
+                             err.message),
+                  fd_incref(query));
+        result = FD_ERROR_VALUE;}
+      if (rp) mongoc_read_prefs_destroy(rp);
+      if (q) bson_destroy(q);
+      if (fields) bson_destroy(fields);}
+    else {
+      result = fd_err(fd_TypeError,"mongodb_find","bad skip/limit/batch",opts);
+      sort_results = 0;}
+    collection_done(collection,client,domain);
+    U8_CLEAR_ERRNO();
+    fd_decref(opts);
+    fd_decref(skip_arg);
+    fd_decref(limit_arg);
+    fd_decref(batch_arg);
+    return result;}
+  else {
+    fd_decref(opts);
+    U8_CLEAR_ERRNO();
+    return FD_ERROR_VALUE;}
+}
+#endif
+
 #if HAVE_MONGOC_OPTS_FUNCTIONS
 static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
 {
@@ -1309,7 +1425,7 @@ static lispval mongodb_modify(lispval arg,lispval query,lispval update,
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
       u8_logf(LOG_DETAIL,"MongoDB/find+modify","Matches to %q using %q in %q",
              query,update,arg);
-    bson_t reply; bson_error_t error;
+    bson_t reply; bson_error_t error = { 0 };
     if (mongoc_collection_find_and_modify
         (collection,
          q,fd_lisp2bson(sort,flags,opts),
@@ -2859,6 +2975,9 @@ FD_EXPORT int fd_init_mongodb()
                                   -1,FD_VOID,-1,FD_VOID,
                                   -1,FD_VOID));
   fd_idefn(module,fd_make_cprim3x("MONGODB/FIND",mongodb_find,2,
+                                  fd_mongoc_collection,FD_VOID,
+                                  -1,FD_VOID,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim3x("MONGODB/COUNT",mongodb_count,2,
                                   fd_mongoc_collection,FD_VOID,
                                   -1,FD_VOID,-1,FD_VOID));
   fd_idefn(module,fd_make_cprim4x("MONGODB/MODIFY",mongodb_modify,3,
