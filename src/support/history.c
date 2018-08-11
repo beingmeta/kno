@@ -286,10 +286,7 @@ lispval fd_get_histref(lispval elts)
     fd_decref(val);
     if (void_root)
       return scan;
-    else if ( (FD_SYMBOLP(scan)) || (FD_PAIRP(scan)) ||
-              ( (FD_CHOICEP(scan)) && (quote_choicep(scan)) ) )
-      return fd_make_list(2,FDSYM_QUOTE,scan);
-    else return scan;}
+    else return fd_make_list(2,FDSYM_QUOTE,scan);}
 }
 
 FD_EXPORT void fd_histinit(int size)

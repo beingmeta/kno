@@ -1002,7 +1002,7 @@ int main(int argc,char **argv)
     int start_icache, finish_icache;
     int start_ocache, finish_ocache;
     double start_time, finish_time;
-    int histref = -1, stat_line = 0, is_histref = 0;
+    int histref = -1, stat_line = 0, showall = 0;
     u8_byte histref_buf[100];
     u8_string histref_string = NULL;
     start_ocache = fd_object_cache_load();
@@ -1025,13 +1025,8 @@ int main(int argc,char **argv)
       fd_decref(result);
       break;}
     /* Clear the buffer (should do more?) */
-    if (((PAIRP(expr)) &&
-         ((FD_EQ(FD_CAR(expr),histref_symbol))) &&
-         (PAIRP(FD_CDR(expr))) && (FD_UINTP(FD_CADR(expr)))) ||
-        (FD_EQ(expr,that_symbol))) {
-      if (!(FD_EQ(expr,that_symbol))) {
-        is_histref = 1;
-        histref = FIX2INT(FD_CAR(FD_CDR(expr)));}}
+    if (((PAIRP(expr)) && ((FD_EQ(FD_CAR(expr),FDSYM_QUOTE))))) {
+      showall = 1;}
     else if (OIDP(expr)) {
       lispval v = fd_oid_value(expr);
       if (CHOICEP(v))
@@ -1070,7 +1065,7 @@ int main(int argc,char **argv)
     finish_ocache = fd_object_cache_load();
     finish_icache = fd_index_cache_load();
     if ((PAIRP(expr))&&
-        (!((FD_CHECK_PTR(result)==0) || (is_histref) ||
+        (!((FD_CHECK_PTR(result)==0) || (showall) ||
            (VOIDP(result)) || (EMPTYP(result)) ||
            (FD_TRUEP(result)) || (FALSEP(result)) ||
            (FD_ABORTP(result)) || (FIXNUMP(result))))) {
@@ -1126,12 +1121,12 @@ int main(int argc,char **argv)
       else fprintf(stderr,
                    ";;; The expression generated a mysterious error!!!!\n");}
     else if (stat_line)
-      output_result(out,result,histref_string,is_histref);
+      output_result(out,result,histref_string,showall);
     else if (VOIDP(result)) {}
     else if (histref<0)
-      stat_line = output_result(out,result,histref_string,is_histref);
+      stat_line = output_result(out,result,histref_string,showall);
     else {
-      output_result(out,result,histref_string,is_histref);
+      output_result(out,result,histref_string,showall);
       stat_line = 1;}
     if (errno) {
       u8_log(LOG_WARN,u8_strerror(errno),"Unexpected errno after output");
