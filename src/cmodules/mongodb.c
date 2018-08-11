@@ -1208,7 +1208,6 @@ static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
   if (collection) {
     lispval result = FD_VOID;
     long n_documents = -1;
-    const bson_t *doc;
     bson_error_t error = { 0 };
     bson_t *q = fd_lisp2bson(query,flags,opts);
     if (q == NULL) {
@@ -1217,10 +1216,11 @@ static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
       return FD_ERROR_VALUE;}
     bson_t *findopts = getfindopts(opts,flags);
     mongoc_read_prefs_t *rp = get_read_prefs(opts);
-    lispval *vec = NULL; size_t n = 0, max = 0;
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
-      u8_logf(LOG_DETAIL,"MongoDB/count","Counting matches to %q in %q",query,arg);
-    n_documents = mongoc_collection_count_documents(collection,q,findopts,rp,&error);
+      u8_logf(LOG_DETAIL,"MongoDB/count","Counting matches to %q in %q",query,
+              arg);
+    n_documents = mongoc_collection_count_documents
+      (collection,q,findopts,rp,NULL,&error);
     if (n_documents>=0) 
       result = FD_INT(n_documents);
     else {
