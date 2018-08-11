@@ -476,7 +476,6 @@ static mongoc_uri_t *setup_mongoc_uri(mongoc_uri_t *info,lispval opts)
   lispval ctimeout = fd_getopt(opts,fd_intern("CTIMEOUT"),FD_VOID);
   lispval stimeout = fd_getopt(opts,fd_intern("STIMEOUT"),FD_VOID);
   lispval maxpool = fd_getopt(opts,fd_intern("MAXPOOL"),FD_VOID);
-  int is_ssl = 0;
 #if MONGOC_CHECK_VERSION(1,6,0)
   if (!(FD_VOIDP(timeout))) {
     set_uri_opt(info,MONGOC_URI_SOCKETTIMEOUTMS,timeout);
@@ -494,8 +493,7 @@ static mongoc_uri_t *setup_mongoc_uri(mongoc_uri_t *info,lispval opts)
     set_uri_opt(info,MONGOC_URI_APPNAME,appname);
   mongoc_uri_set_option_as_utf8(info,MONGOC_URI_APPNAME,u8_appid());
   if (boolopt(opts,sslsym,default_ssl)) {
-    mongoc_uri_set_option_as_bool(info,MONGOC_URI_SSL,1);
-    is_ssl=1;}
+    mongoc_uri_set_option_as_bool(info,MONGOC_URI_SSL,1);}
 #else
   u8_string uri = mongoc_uri_get_string(info);
   u8_string qmark = strchr(uri,'?');
@@ -513,8 +511,7 @@ static mongoc_uri_t *setup_mongoc_uri(mongoc_uri_t *info,lispval opts)
   if (!(FD_VOIDP(maxpool)))
     qstring = add_to_query(qstring,"maxPoolSize",ctimeout);
   if (boolopt(opts,sslsym,default_ssl)) {
-    qstring = add_to_query(qstring,"ssl",FD_TRUE);
-    is_ssl=1;}
+    qstring = add_to_query(qstring,"ssl",FD_TRUE);}
   size_t base_len = (qmark==NULL) ? (strlen(uri)) : (qmark-uri);
   unsigned char newbuf[base_len+strlen(qstring)+1];
   strcpy(newbuf,uri);
@@ -589,8 +586,7 @@ static lispval mongodb_open(lispval arg,lispval opts)
   if (client_pool == NULL) {
     mongoc_uri_destroy(info);
     return fd_type_error("MongoDB client URI","mongodb_open",arg);}
-  else if ( (mongoc_uri_get_ssl(info)) &&
-            (setup_ssl(&ssl_opts,info,opts)) ) {
+  else if ( (setup_ssl(&ssl_opts,info,opts)) ) {
     mongoc_client_pool_set_ssl_opts(client_pool,&ssl_opts);
     u8_free(ssl_opts.pem_file);
     u8_free(ssl_opts.pem_pwd);
@@ -674,18 +670,23 @@ static int setup_ssl(mongoc_ssl_opt_t *ssl_opts,
                      mongoc_uri_t *info,
                      lispval opts)
 {
-  const mongoc_ssl_opt_t *default_opts = mongoc_ssl_opt_get_default();
-  memcpy(ssl_opts,default_opts,sizeof(mongoc_ssl_opt_t));
-  ssl_opts->pem_file = stropt(opts,certfile,NULL);
-  ssl_opts->pem_pwd = stropt(opts,certpass,NULL);
-  ssl_opts->ca_file = stropt(opts,cafilesym,NULL);
-  ssl_opts->ca_dir = stropt(opts,cadirsym,NULL);
-  ssl_opts->crl_file = stropt(opts,crlsym,NULL);
-  return (!((ssl_opts->pem_file == NULL)&&
-            (ssl_opts->pem_pwd == NULL)&&
-            (ssl_opts->ca_file == NULL)&&
-            (ssl_opts->ca_dir == NULL)&&
-            (ssl_opts->crl_file == NULL)));
+  if ( (mongoc_uri_get_ssl(info)) ||
+       (fd_testopt(opts,sslsym,FD_VOID)) ||
+       ( (fd_testopt(opts,cafilesym,FD_VOID)) &&
+         (!(fd_testopt(opts,cafilesym,FD_FALSE)))) ) {
+    const mongoc_ssl_opt_t *default_opts = mongoc_ssl_opt_get_default();
+    memcpy(ssl_opts,default_opts,sizeof(mongoc_ssl_opt_t));
+    ssl_opts->pem_file = stropt(opts,certfile,NULL);
+    ssl_opts->pem_pwd = stropt(opts,certpass,NULL);
+    ssl_opts->ca_file = stropt(opts,cafilesym,NULL);
+    ssl_opts->ca_dir = stropt(opts,cadirsym,NULL);
+    ssl_opts->crl_file = stropt(opts,crlsym,NULL);
+    return (!((ssl_opts->pem_file == NULL)&&
+              (ssl_opts->pem_pwd == NULL)&&
+              (ssl_opts->ca_file == NULL)&&
+              (ssl_opts->ca_dir == NULL)&&
+              (ssl_opts->crl_file == NULL)));}
+  else return 0;
 }
 
 /* Creating collections */
@@ -1254,7 +1255,6 @@ static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
   if (collection) {
     lispval result = FD_VOID;
     long n_documents = -1;
-    const bson_t *doc;
     bson_error_t err = { 0 };
     bson_t *q = fd_lisp2bson(query,flags,opts);
     if (q == NULL) {
@@ -1264,8 +1264,6 @@ static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
     lispval skip_arg = fd_getopt(opts,skipsym,FD_FIXZERO);
     lispval limit_arg = fd_getopt(opts,limitsym,FD_FIXZERO);
     lispval batch_arg = fd_getopt(opts,batchsym,FD_FIXZERO);
-    int sort_results = fd_testopt(opts,FDSYM_SORTED,FD_VOID);
-    lispval *vec = NULL; size_t n = 0, max = 0;
     if ((FD_UINTP(skip_arg))&&(FD_UINTP(limit_arg))&&(FD_UINTP(batch_arg))) {
       bson_t *fields = get_projection(opts,flags);
       mongoc_read_prefs_t *rp = get_read_prefs(opts);
@@ -1293,9 +1291,7 @@ static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
       if (rp) mongoc_read_prefs_destroy(rp);
       if (q) bson_destroy(q);
       if (fields) bson_destroy(fields);}
-    else {
-      result = fd_err(fd_TypeError,"mongodb_find","bad skip/limit/batch",opts);
-      sort_results = 0;}
+    else result = fd_err(fd_TypeError,"mongodb_find","bad skip/limit/batch",opts);
     collection_done(collection,client,domain);
     U8_CLEAR_ERRNO();
     fd_decref(opts);
