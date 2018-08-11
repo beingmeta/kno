@@ -215,8 +215,14 @@ static int output_markup_attrib
       free_value = fd_eval(value_expr,env);
       if (FD_ABORTED(free_value)) {
         fd_decref(free_name);
-        return free_value;}
-      attrib_val = free_value;}
+        return -1;}
+      else if (FD_DEFAULTP(free_value)) {
+        fd_decref(free_name);
+        return 0;}
+      else attrib_val = free_value;}
+    else if (FD_DEFAULTP(value_expr)) {
+      fd_decref(free_name);
+      return 0;}
     else attrib_val = value_expr;}
   if (attrib_name) {
     if (VOIDP(value_expr)) {
