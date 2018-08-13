@@ -62,6 +62,17 @@ FD_EXPORT int fd_unparse(u8_output,lispval);
 FD_EXPORT u8_string fd_lisp2string(lispval x);
 FD_EXPORT u8_string fd_lisp2buf(lispval x,size_t n,u8_byte *buf);
 
+typedef int (*fd_listobj_fn)(u8_output out,lispval obj);
+FD_EXPORT int fd_list_object(u8_output out,
+                             lispval result,
+                             u8_string label,
+                             u8_string pathref,
+                             u8_string indent,
+                             fd_listobj_fn listfn,
+                             int width,
+                             int show_elts);
+
+
 FD_EXPORT lispval fd_string2number(u8_string string,int base);
 FD_EXPORT int fd_output_number(u8_output output,lispval num,int base);
 

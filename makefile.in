@@ -141,7 +141,8 @@ LISP_OBJS=\
 	src/lisp/choices.o src/lisp/numbers.o 			\
 	src/lisp/compounds.o src/lisp/misctypes.o		\
 	src/lisp/parse.o src/lisp/unparse.o			\
-	src/lisp/bufio.o src/lisp/pprint.o			\
+	src/lisp/bufio.o src/lisp/pprint.o  			\
+	src/lisp/listing.o					\
 	src/lisp/dtread.o src/lisp/dtwrite.o			\
 	src/lisp/lisp.o
 
