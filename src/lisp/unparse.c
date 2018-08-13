@@ -101,13 +101,16 @@ static int unparse_string(U8_OUTPUT *out,lispval x)
 {
   struct FD_STRING *s = (struct FD_STRING *)x; int n_chars = 0;
   u8_string scan = s->str_bytes, limit = s->str_bytes+s->str_bytelen;
+  int unparse_maxchars =
+    ( (out->u8_streaminfo) & (U8_STREAM_VERBOSE) ) ? (-1) :
+    (fd_unparse_maxchars);
   u8_putc(out,'"'); while (scan < limit) {
     u8_string chunk = scan;
     while ((scan < limit) &&
            (*scan != '"') && (*scan != '\\') &&
            (!(iscntrl(*scan)))) {
       n_chars++; u8_sgetc(&scan);
-      if ((fd_unparse_maxchars>0) && (n_chars>=fd_unparse_maxchars)) {
+      if ((unparse_maxchars>0) && (n_chars>=unparse_maxchars)) {
         u8_putn(out,chunk,scan-chunk); u8_putc(out,' ');
         output_ellipsis(out,u8_strlen(scan),"chars");
         return u8_putc(out,'"');}}
@@ -542,14 +545,15 @@ static u8_string lisp_printf_handler
   (struct U8_OUTPUT *s,char *cmd,u8_byte *buf,int bufsiz,va_list *args)
 {
   lispval value = va_arg(*args,lispval);
-  int taciturn = (strchr(cmd,'h')!=NULL), retval;
-  int already = (s->u8_streaminfo)&(U8_STREAM_TACITURN);
-  if (taciturn) s->u8_streaminfo = (s->u8_streaminfo)|U8_STREAM_TACITURN;
-  else s->u8_streaminfo = (s->u8_streaminfo)&(~U8_STREAM_TACITURN);
+  int verbose = (strchr(cmd,'l')!=NULL), retval;
+  int already = (s->u8_streaminfo)&(U8_STREAM_VERBOSE);
+  if (verbose)
+    s->u8_streaminfo = (s->u8_streaminfo)|U8_STREAM_VERBOSE;
+  else s->u8_streaminfo = (s->u8_streaminfo)&(~U8_STREAM_VERBOSE);
   retval = fd_unparse(s,value);
   if (already)
-    s->u8_streaminfo = s->u8_streaminfo|U8_STREAM_TACITURN;
-  else s->u8_streaminfo = s->u8_streaminfo&(~U8_STREAM_TACITURN);
+    s->u8_streaminfo = s->u8_streaminfo|U8_STREAM_VERBOSE;
+  else s->u8_streaminfo = s->u8_streaminfo&(~U8_STREAM_VERBOSE);
   if (retval<0) fd_clear_errors(1);
   if (strchr(cmd,'-')) fd_decref(value);
   return NULL;
