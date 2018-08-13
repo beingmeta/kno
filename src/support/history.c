@@ -103,15 +103,19 @@ FD_EXPORT lispval fd_history_add(lispval history,lispval val,lispval ref)
   int top = unpack_history(history,&roots,&vals,&refs,&root_refs);
   if (top<0)
     return FD_ERROR_VALUE;
-  else if ( (FD_SYMBOLP(val)) ||
-	    ( (FD_STRINGP(val)) && ( (FD_STRLEN(val)) < 40 ) ) ||
-	    ( (FD_NUMBERP(val)) ) )
+  else if (FD_CONSTANTP(val))
     return FD_VOID;
+#if 0
+  else if ( (FD_SYMBOLP(val)) ||
+            ( (FD_STRINGP(val)) && ( (FD_STRLEN(val)) < 40 ) ) || 
+            ( (FD_NUMBERP(val)) ) )
+    return FD_VOID;
+#endif
   lispval val_key = ( (FD_CHOICEP(val)) || (FD_PRECHOICEP(val)) ) ?
     (fd_make_qchoice(val)) : (val);
   if (!( (FD_VOIDP(ref)) || (FD_FALSEP(ref)) ) ) {
     if ( ! ( (FD_FIXNUMP(ref)) || (FD_STRINGP(ref)) || (FD_SYMBOLP(ref)) ||
-	     (FD_COMPOUND_TYPEP(ref,histref_symbol)) ) )
+             (FD_COMPOUND_TYPEP(ref,histref_symbol)) ) )
       return fd_err("InvalidHistRef","fd_history_add",NULL,ref);
     lispval overwrite = fd_hashtable_get((fd_hashtable)refs,ref,FD_VOID);
     if ( (!(FD_VOIDP(overwrite))) && (overwrite != val) ) {
@@ -143,6 +147,19 @@ FD_EXPORT lispval fd_history_add(lispval history,lispval val,lispval ref)
     fd_decref(cur);
     return best;}
   else return cur;
+}
+
+FD_EXPORT lispval fd_history_find(lispval history,lispval val)
+{
+  lispval roots=FD_VOID, vals=FD_VOID, refs=FD_EMPTY, root_refs=FD_EMPTY;
+  int top = unpack_history(history,&roots,&vals,&refs,&root_refs);
+  if (top<0)
+    return FD_ERROR_VALUE;
+  lispval val_key = ( (FD_CHOICEP(val)) || (FD_PRECHOICEP(val)) ) ?
+    (fd_make_qchoice(val)) : (val);
+  lispval cur = fd_hashtable_get((fd_hashtable)vals,val_key,FD_EMPTY);
+  if ( (FD_CHOICEP(val)) || (FD_PRECHOICEP(val)) ) {fd_decref(val_key);}
+  return cur;
 }
 
 FD_EXPORT int fd_histpush(lispval value)
@@ -232,6 +249,20 @@ lispval fd_get_histref(lispval elts)
           if ( (improper) && ((off+1) == n_elts) )
             scan = scan;
           else scan = FD_CAR(scan);}}
+      else if (FD_SLOTMAPP(scan)) {
+        struct FD_SLOTMAP *sm = FD_XSLOTMAP(scan);
+        size_t n_slots = sm->n_slots;
+        ssize_t off = (rel_off>=0) ?  (rel_off) : (n_slots + rel_off);
+        if ( ( off < 0) || ( off >= n_slots ) )
+          return fd_err(fd_RangeError,"histref_evalfn",NULL,path);
+        else scan = sm->sm_keyvals[off].kv_val;}
+      else if (FD_SCHEMAPP(scan)) {
+        struct FD_SCHEMAP *sm = FD_XSCHEMAP(scan);
+        size_t n_slots = sm->schema_length;
+        ssize_t off = (rel_off>=0) ?  (rel_off) : (n_slots + rel_off);
+        if ( off >= sm->schema_length )
+          return fd_err(fd_RangeError,"histref_evalfn",NULL,path);
+        else scan = sm->schema_values[off];}
       else if (FD_SEQUENCEP(scan)) {
 	ssize_t n_elts = fd_seq_length(scan);
 	ssize_t off = (rel_off>=0) ?  (rel_off) : (n_elts + rel_off);
