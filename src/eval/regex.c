@@ -144,7 +144,7 @@ FD_EXPORT ssize_t fd_regex_op(enum FD_REGEX_OP op,lispval pat,
       else return 0;
     case rx_matchlen:
       if ((results[0].rm_so==0)&&
-          (results[0].rm_eo<len))
+          (results[0].rm_eo<=len))
         return results[0].rm_eo;
       else return -1;
     case rx_matchstring: {
