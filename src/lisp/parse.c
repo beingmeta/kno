@@ -1159,6 +1159,8 @@ lispval fd_parser(u8_input in)
     case 'X': case 'x': case '@': case '"':
       return parse_packet(in,ch);
     case '/': return parse_regex(in);
+    case '>':
+      return fd_parser(in);
     case '<': return parse_opaque(in);
     case ';': {
       lispval content = fd_parser(in);
@@ -1179,7 +1181,7 @@ lispval fd_parser(u8_input in)
     case 'U': return parse_atom(in,inchar,ch,1); /* UUID */
     case 'T': return parse_atom(in,inchar,ch,1); /* TIMESTAMP */
     case '!': return parse_atom(in,inchar,ch,1); /* pointer reference */
-    case '.': {
+    case '.': case ',': {
       int nch = u8_getc(in);
       if (nch == -1) return FD_EOX;
       else if (nch == '[') {
