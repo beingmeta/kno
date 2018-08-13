@@ -107,7 +107,7 @@ static void list_table(u8_output out,lispval table,
     if (EMPTYP(val)) {
       u8_printf(out,"\n%s  %q #> {} ;;no values",indent,key);}
     else {
-      U8_STATIC_OUTPUT(tmp,1000);
+      U8_SUB_STREAM(tmp,1000,out);
       fd_unparse(tmpout,key);
       u8_puts(tmpout," #> ");
       int custom = list_item(tmpout,val,listfn);
@@ -156,7 +156,7 @@ static void list_element(u8_output out,lispval elt,
                          int depth)
 {
   if (pathref) {
-    U8_STATIC_OUTPUT(tmp,1000);
+    U8_SUB_STREAM(tmp,1000,out);
     int custom = list_item(tmpout,elt,listfn);
     if ((tmp.u8_write-tmp.u8_outbuf)<width) {
       u8_printf(out,"\n%s%s ;;=%s.%d",indent,tmp.u8_outbuf,pathref,path);
@@ -271,8 +271,15 @@ FD_EXPORT int fd_list_object(u8_output out,
   else if ( (FD_SLOTMAPP(result)) || (FD_SCHEMAPP(result)) ) {
     list_table(out,result,label,pathref,-1,indent,listfn,width,detail,0);
     return 1;}
-  else if ( (FD_STRINGP(result)) && (detail <= 0) ) {
-    if (FD_STRLEN(result) > width)
+  else if (FD_STRINGP(result)) {
+    if (detail <= 0) {
+      if (FD_STRLEN(result) > width)
+        u8_printf(out,";; %s (%d chars)\n%s%lq",
+                  pathref,FD_STRLEN(result),
+                indent,result);
+      else u8_printf(out,"%lq ;; %s (%d chars)",
+                     result,pathref,FD_STRLEN(result));}
+    else if (FD_STRLEN(result) > width)
       u8_printf(out,";; %s (%d chars)\n%s%q",
                 pathref,FD_STRLEN(result),
                 indent,result);
@@ -285,15 +292,14 @@ FD_EXPORT int fd_list_object(u8_output out,
     else if (width <= 0)
       u8_printf(out,"%q",result);
     else {
-      struct U8_OUTPUT tmpout;
-      U8_INIT_STATIC_OUTPUT(tmpout,500);
-      fd_pprint(&tmpout,result,indent,4,4,width);
+      U8_SUB_STREAM(tmp,1000,out);
+      fd_pprint(tmpout,result,indent,4,4,width);
       if (pathref) {
-        if (strchr(tmpout.u8_outbuf,'\n'))
-          u8_printf(out,"%s\n%s%s",pathref,indent,tmpout.u8_outbuf);
-        else u8_printf(out,"%s ;; %s",tmpout.u8_outbuf,pathref);}
-      else u8_printf(out,"%s",tmpout.u8_outbuf);
-      u8_close_output(&tmpout);
+        if (strchr(tmp.u8_outbuf,'\n'))
+          u8_printf(out,"%s\n%s%s",pathref,indent,tmp.u8_outbuf);
+        else u8_printf(out,"%s ;; %s",tmp.u8_outbuf,pathref);}
+      else u8_printf(out,"%s",tmp.u8_outbuf);
+      u8_close_output(tmpout);
       u8_flush(out);}
     return 1;}
 }
