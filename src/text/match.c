@@ -595,7 +595,8 @@ static lispval textract
   else if (STRINGP(pat))
     if ((STRLEN(pat)) == 0) {
       return fd_conspair(FD_INT(off),lispval_string(""));}
-    else if (off == lim) return EMPTY;
+    else if (off == lim)
+      return EMPTY;
     else {
       u8_byteoff mlen=
         strmatcher(flags,CSTRING(pat),STRLEN(pat),
@@ -693,9 +694,10 @@ static lispval textract
     return textract(txc->fd_txpattern,next,txc->fd_txenv,string,off,lim,flags);}
   else if (TYPEP(pat,fd_regex_type)) {
     struct FD_REGEX *ptr = fd_consptr(struct FD_REGEX *,pat,fd_regex_type);
-    regmatch_t results[1]; u8_string base = CSTRING(string)+off;
+    regmatch_t results[1]; u8_string base = string+off;
     int retval = regexec(&(ptr->rxcompiled),base,1,results,0);
-    if (retval == REG_NOMATCH) return EMPTY;
+    if (retval == REG_NOMATCH)
+      return EMPTY;
     else if (retval) {
       u8_byte buf[512];
       regerror(retval,&(ptr->rxcompiled),buf,512);
@@ -705,7 +707,7 @@ static lispval textract
     else {
       lispval ex = fd_extract_string
         (NULL,base+results[0].rm_so,base+results[0].rm_eo);
-      int loc = u8_charoffset(string,off+results[0].rm_so);
+      int loc = u8_charoffset(string,off+results[0].rm_eo);
       return fd_conspair(FD_INT(loc),ex);}}
   else return fd_err(fd_MatchSyntaxError,"textract",NULL,pat);
 }
