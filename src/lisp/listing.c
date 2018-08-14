@@ -80,7 +80,8 @@ static void list_table(u8_output out,lispval table,
   u8_byte indentbuf[64] = { 0 }, pathbuf[64] = { 0 };
   u8_string val_indent = u8_sprintf(indentbuf,64,"%s    ",indent);
   u8_string full_pathref = ( path < 0) ? (pathref) :
-    (u8_sprintf(pathbuf,64,"%s.%d",pathref,path));
+    (pathref) ? (u8_sprintf(pathbuf,64,"%s.%d",pathref,path)) :
+    (NULL);
   int val_detail = (detail == 0) ? (detail) :
     (detail > 0) ? ((detail/2)+1) :
     (((-detail)/2)+1);
@@ -89,8 +90,8 @@ static void list_table(u8_output out,lispval table,
     u8_printf(out,"#[]");
     return;}
   else if (show_keys < n_keys)
-    u8_printf(out,"#[ ;; %s (%d/%d slots)",label,show_keys,n_keys);
-  else u8_printf(out,"#[ ;; %s (%d slots)",label,n_keys);
+    u8_printf(out,"#[ ;; %s (%d/%d slots)",U8S(label),show_keys,n_keys);
+  else u8_printf(out,"#[ ;; %s (%d slots)",U8S(label),n_keys);
   DO_CHOICES(key,keys) {
     if (count >= show_keys) {
       FD_STOP_DO_CHOICES;
@@ -98,11 +99,15 @@ static void list_table(u8_output out,lispval table,
     u8_byte label_buf[64] = { 0 };
     u8_byte val_pathbuf[64] = { 0 };
     u8_string val_pathref =
+      (full_pathref == NULL) ?
+      (NULL) :
       (FD_SYMBOLP(key)) ?
       (u8_sprintf(val_pathbuf,64,"%s.%q",full_pathref,key)) :
       (u8_sprintf(val_pathbuf,64,"%s.%d",full_pathref,count));
     u8_string val_label =
-      u8_sprintf(label_buf,64,"%s.%d (%q)",full_pathref,count,key);
+      (full_pathref) ?
+      (u8_sprintf(label_buf,64,"%s.%d (%q)",full_pathref,count,key)) :
+      (NULL);
     lispval val = fd_get(table,key,FD_EMPTY_CHOICE);
     if (EMPTYP(val)) {
       u8_printf(out,"\n%s  %q #> {} ;;no values",indent,key);}
@@ -111,10 +116,13 @@ static void list_table(u8_output out,lispval table,
       fd_unparse(tmpout,key);
       u8_puts(tmpout," #> ");
       int custom = list_item(tmpout,val,listfn);
-      if ((tmp.u8_write-tmp.u8_outbuf)<width)
-        u8_printf(out,"\n%s  %s ;;=%s.%d (%q)",
-                  indent,tmp.u8_outbuf,
-                  full_pathref,count,key);
+      if ((tmp.u8_write-tmp.u8_outbuf)<width) {
+        if (full_pathref)
+          u8_printf(out,"\n%s  %s ;;=%s.%d (%q)",
+                    indent,tmp.u8_outbuf,
+                    full_pathref,count,key);
+        else u8_printf(out,"\n%s  %s ;; #%d (%q)",
+                       indent,tmp.u8_outbuf,count,key);}
       else if ( (FD_CHOICEP(val)) || (FD_VECTORP(val)) ||
                 ( (FD_PAIRP(val)) && (!(FD_SYMBOLP(FD_CAR(val)))) ) ) {
         u8_printf(out,"\n%s  %q #> ",indent,key);
@@ -130,18 +138,22 @@ static void list_table(u8_output out,lispval table,
         if (custom)
           list_item(tmpout,val,listfn);
         else fd_pprint(tmpout,val,val_indent,3,3,width);
-        u8_printf(out,"\n%s  %q #> ;;=%s.%d\n%s%s",
-                  indent,key,full_pathref,count,
-                  val_indent,tmp.u8_outbuf);}
+        if (full_pathref)
+          u8_printf(out,"\n%s  %q #> ;;=%s.%d\n%s%s",
+                    indent,key,full_pathref,count,
+                    val_indent,tmp.u8_outbuf);
+        else u8_printf(out,"\n%s  %q #> ;; #%d\n%s%s",
+                       indent,key,count,
+                       val_indent,tmp.u8_outbuf);}
       u8_close_output(tmpout);
       u8_flush(out);}
     fd_decref(val);
     count++;}
   if ( (label) && (n_keys > show_keys) )
-    u8_printf(out,"\n%s  ;;...\t .... %d/%d more slots in %s ....\n%s ]",
+    u8_printf(out,"\n%s  ;;... %d/%d more slots in %s ....\n%s ]",
               indent,(n_keys-show_keys),n_keys,label,indent);
   else if (n_keys > show_keys)
-    u8_printf(out,"\n%s  ;;...\t .... %d/%d more slots ....\n%s ]",
+    u8_printf(out,"\n%s  ;;... %d/%d more slots ....\n%s ]",
               indent,(n_keys-show_keys),n_keys,indent);
   else if (label)
     u8_printf(out,"\n%s ] ;; %s (%d slots)",indent,label,n_keys);
@@ -159,11 +171,19 @@ static void list_element(u8_output out,lispval elt,
     U8_SUB_STREAM(tmp,1000,out);
     int custom = list_item(tmpout,elt,listfn);
     if ((tmp.u8_write-tmp.u8_outbuf)<width) {
-      u8_printf(out,"\n%s%s ;;=%s.%d",indent,tmp.u8_outbuf,pathref,path);
+      if ((pathref) && (path>=0))
+        u8_printf(out,"\n%s%s ;;=%s.%d",indent,tmp.u8_outbuf,pathref,path);
+      else if (pathref)
+        u8_printf(out,"\n%s%s ;;=%s",indent,tmp.u8_outbuf,pathref);
+      else u8_printf(out,"\n%s%s",indent,tmp.u8_outbuf);
       u8_close_output(tmpout);
       return;}
     /* Output the element preamble, since we're putting it on a new line */
-    u8_printf(out,"\n%s;; %s.%d=\n%s",indent,pathref,path,indent);
+    if ((pathref) && (path>=0))
+      u8_printf(out,"\n%s;; %s.%d=\n%s",indent,pathref,path,indent);
+    else if (pathref)
+      u8_printf(out,"\n%s;; %s=\n%s",indent,pathref,indent);
+    else u8_printf(out,"\n%s",indent);
     /* Reset tmpout before pretty printing */
     tmp.u8_write=tmp.u8_outbuf; tmp.u8_outbuf[0]='\0';
     if (custom)
@@ -210,9 +230,9 @@ static int list_elements(u8_output out,
   if (label == NULL) label=pathref;
 
   if (n_elts == show_elts)
-    u8_printf(out,"%s ;;; %s (%d items)",start,label,n_elts);
+    u8_printf(out,"%s ;;; %s (%d items)",start,U8S(label),n_elts);
   else u8_printf(out,"%s ;;; %s (%d/%d items)",
-                 start,label,show_elts,n_elts);
+                 start,U8S(label),show_elts,n_elts);
 
   if (CHOICEP(result)) {
     FD_DO_CHOICES(elt,result) {
@@ -243,11 +263,16 @@ static int list_elements(u8_output out,
         break;}}
   else {}
 
-  if (show_elts<n_elts)
-    u8_printf(out,"\n%s;; ....... %d/%d more items in %s .......\n%s %s",
-              elt_indent,n_elts-show_elts,n_elts,label,
-              indent,end);
-  else u8_printf(out,"\n%s %s ;; ==%s (%d items)",indent,end,label,n_elts);
+  if (show_elts<n_elts) {
+    if (label)
+      u8_printf(out,"\n%s;;... %d/%d more items in %s ....\n%s %s",
+                elt_indent,n_elts-show_elts,n_elts,label,
+                indent,end);
+    else u8_printf(out,"\n%s;;... %d/%d more items ....\n%s %s",
+                   elt_indent,n_elts-show_elts,n_elts,indent,end);}
+  else if (label)
+    u8_printf(out,"\n%s %s ;; ==%s (%d items)",indent,end,label,n_elts);
+  else u8_printf(out,"\n%s %s ;; (%d items)",indent,end,n_elts);
 
   return show_elts;
 }
@@ -262,7 +287,6 @@ FD_EXPORT int fd_list_object(u8_output out,
                              int detail)
 {
   if (VOIDP(result)) return 0;
-  if (pathref == NULL) pathref="*";
   if ((FD_CHOICEP(result)) ||
       (FD_VECTORP(result)) ||
       (PAIRP(result))) {
@@ -275,16 +299,15 @@ FD_EXPORT int fd_list_object(u8_output out,
     if (detail <= 0) {
       if (FD_STRLEN(result) > width)
         u8_printf(out,";; %s (%d chars)\n%s%lq",
-                  pathref,FD_STRLEN(result),
-                indent,result);
+                  U8S(pathref),FD_STRLEN(result),indent,result);
       else u8_printf(out,"%lq ;; %s (%d chars)",
-                     result,pathref,FD_STRLEN(result));}
+                     result,U8ALT(pathref,""),
+                     FD_STRLEN(result));}
     else if (FD_STRLEN(result) > width)
       u8_printf(out,";; %s (%d chars)\n%s%q",
-                pathref,FD_STRLEN(result),
-                indent,result);
+                U8S(pathref),FD_STRLEN(result),indent,result);
     else u8_printf(out,"%q ;; %s (%d chars)",
-                   result,pathref,FD_STRLEN(result));
+                   result,U8S(pathref),FD_STRLEN(result));
     return 1;}
   else {
     if ( (width <= 0) && (pathref) )
