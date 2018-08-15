@@ -10,7 +10,6 @@
 		  mongo/invert})
 
 (module-export! '{mgo/pool mgo/poolfetch
-		  mgo/store! mgo/drop! mgo/add!
 		  mgo/decache!
 		  mgo/adjslot})
 
@@ -54,14 +53,14 @@
 
 (define (mongopool-fetch pool mp oid (collection))
   (default! collection (mongopool-collection mp))
-  (mongodb/get collection oid #[return #[__index 0]]))
+  (collection/get collection oid #[return #[__index 0]]))
 
 (define (fetchn collection oidvec)
   (if (= (length oidvec) 1)
-      (mongodb/find collection `#[_id ,(first oidvec)]
+      (collection/find collection `#[_id ,(first oidvec)]
 	#[__index 0])
       (if (zero? (length oidvec)) {}
-	  (mongodb/find collection `#[_id #[$in ,(elts oidvec)]]
+	  (collection/find collection `#[_id #[$in ,(elts oidvec)]]
 	    #[__index 0]))))
 
 (define (mongopool-fetchn pool mp oidvec (collection))
@@ -93,7 +92,7 @@
   (if (and (integer? n) (> n 0) (<= n 1024))
       (with-lock (mongopool-lock mp)
 	(let* ((collection (mongopool-collection mp))
-	       (mod (mongodb/modify collection
+	       (mod (collection/modify collection
 			#[_id "_pool"] 
 		      `#[$inc #[load ,n]]
 		      #[original #t]))
@@ -104,14 +103,14 @@
 	  (dotimes (i n)
 	    (set+! result (oid-plus base (+ i start))))
 	  (do-choices (oid result)
-	    (mongodb/insert! collection `#[_id ,oid])
+	    (collection/insert! collection `#[_id ,oid])
 	    (set-oid-value! oid `#[_id ,oid]))
 	  result))
       (irritant n |BadAllocCount| "For pool in " collection)))
 
 (define (mongopool-load pool mongopool)
   (let* ((collection (mongopool-collection mongopool))
-	 (info (mongodb/get collection "_pool")))
+	 (info (collection collection "_pool")))
     (try (get info 'load)
 	 (irritant pool |MongoPoolNotIntialized|))))
 
@@ -164,7 +163,7 @@
 	    (when (> (+ (table-size sets) (table-size adds) 
 			(table-size drops) (table-size unsets))
 		     0)
-	      (mongodb/modify! collection `#[_id ,oid]
+	      (collection/modify! collection `#[_id ,oid]
 		(frame-create #f
 		  '$set (tryif (> (table-size sets) 0) sets)
 		  '$addToSet (tryif (> (table-size adds) 0) adds)
@@ -179,12 +178,12 @@
 ;; mongopool entry for a given OID pool stored in MongoDB.
 (define (init-mongopool-inner collection (opts #f) (cname))
   (default! cname (collection/name collection))
-  (try (get mongopools `#(,(mongodb/getdb collection) ,cname))
-       (get mongopools `#(,(mongodb/spec collection) 
-			  ,(mongodb/name collection)
+  (try (get mongopools `#(,(mongo/getdb collection) ,cname))
+       (get mongopools `#(,(mongo/dbspec collection) 
+			  ,(mongo/dbname collection)
 			  ,cname))
-       (let* ((info (mongodb/get collection "_pool"))
-	      (metadata (try (mongodb/get collection "_metadata") #[]))
+       (let* ((info (collection/get collection "_pool"))
+	      (metadata (try (collection/get collection "_metadata") #[]))
 	      (collname (collection/name collection))
 	      (base (get info 'base))
 	      (cap (get info 'capacity))
@@ -198,25 +197,25 @@
 		     (set! cap (getopt opts 'capacity #1mib))
 		     (set! load (getopt opts 'load 0))
 		     (set! name (collection/name collection))
-		     (mongodb/insert! collection
+		     (collection/insert! collection
 		       `#[_id "_pool" base ,base capacity ,cap
 			  name ,name load ,load])
 		     (set! metadata 
 		       `#[_id "_metadata" base ,base capacity ,cap
 			  name ,name])
-		     (mongodb/insert! collection metadata)))
+		     (collection/insert! collection metadata)))
 	 (let* ((opts (opts+ `#[type mongopool metadata ,metadata] 
 			     opts))
-		(record (cons-mongopool collection (mongodb/getdb collection)
-					(mongodb/spec collection)
+		(record (cons-mongopool collection (mongo/getdb collection)
+					(mongo/dbspec collection)
 					(collection/name collection)
 					base cap opts 
 					(qc (getopt opts 'slotinfo {}))))
 		(pool (make-procpool name base cap opts record load)))
 	   (store! mongopools collection pool)
 	   (store! mongopools
-	     {(vector (mongodb/getdb collection) cname)
-	      (vector (mongodb/spec collection) (mongodb/name collection)
+	     {(vector (mongo/getdb collection) cname)
+	      (vector (mongo/dbspec collection) (mongo/dbname collection)
 		      cname)}
 	     pool)
 	   (store! mongopools pool record)
@@ -227,13 +226,13 @@
 
 (define (mongopool/open spec (opts #f) (collection))
   (default! collection 
-    (if (mongodb/collection? spec) spec 
-	(mongodb/collection spec (getopt opts 'name) opts)))
+    (if (collection? spec) spec 
+	(collection/open spec (getopt opts 'name) opts)))
   (init-mongopool collection opts))
 (define (mongopool/make spec (opts #f) (collection))
   (default! collection 
-    (if (mongodb/collection? spec) spec 
-	(mongodb/collection spec (getopt opts 'name) opts)))
+    (if (collection? spec) spec 
+	(collection/open spec (getopt opts 'name) opts)))
   (init-mongopool collection (opts+ #[create #t] opts)))
 
 (defpooltype 'mongopool
@@ -247,96 +246,6 @@
      releaseoids ,mongopool-releaseoids
      poolctl ,mongopool-ctl
      commit ,mongopool-commit])
-
-;;; Basic operations for OIDs in mongodb pools
-
-(defambda (mgo/store! oid slotid values (pool) (mp) (collection))
-  (set! pool (getpool oid))
-  (set! mp (get mongopools pool))
-  (set! collection (mongopool-collection mp))
-  (if (or (fail? pool) (not pool))
-      (irritant oid |No pool| mgo/store!)
-      (if (fail? collection)
-	  (irritant pool |Not A MongoDB pool| mgo/store!)
-	  (update!
-	   (mongodb/modify! collection 
-	       `#[_id ,(if (ambiguous? oid)
-			   `#[$oneof ,oid]
-			   oid)]
-	     `#[$set ,(if (ambiguous? slotid)
-			  (get-store-modifier slotid values)
-			  `#[,slotid ,values])]
-	     #[new #t return #[__index 0]])))))
-
-(defambda (get-store-modifier slotids values (result))
-  (set! result #[])
-  (do-choices (slotid slotids)
-    (store! result slotid values))
-  result)
-
-(defambda (mgo/add! oid slotid values (pool) (mp) (collection))
-  (set! pool (getpool oid))
-  (set! mp (get mongopools pool))
-  (set! collection (mongopool-collection mp))
-  (if (or (fail? pool) (not pool))
-      (irritant oid |No pool| mgo/store!)
-      (if (fail? collection)
-	  (irritant pool |Not A MongoDB pool| mgo/store!)
-	  (update! (mongodb/modify! collection 
-		       (if (ambiguous? oid)
-			   `#[_id #[$in ,oid]]
-			   `#[_id ,oid])
-		     `#[$addToSet ,(get-add-modifier slotid values)]
-		     #[new #t return #[__index 0]])))))
-
-(defambda (get-add-modifier slotids values)
-  (if (unique? slotids)
-      `#[,slotids ,(if (unique? values) values `#[$each ,values])]
-      (let ((q (frame-create #f)))
-	(do-choices (slotid slotids)
-	  (add! q slotid 
-		(if (unique? values) values `#[$each ,values]))
-	  q))))
-
-(defambda (mgo/drop! oid slotid (values) (pool) (mp) (collection))
-  (set! pool (getpool oid))
-  (set! mp (get mongopools pool))
-  (set! collection (mongopool-collection mp))
-  (if (or (fail? pool) (not pool))
-      (irritant oid |No pool| mgo/store!)
-      (if (fail? collection)
-	  (irritant pool |Not A MongoDB pool| mgo/store!)
-	  (update!
-	    (if (bound? values)
-		(mongodb/modify! collection `#[_id ,oid]
-		  (if (unique? values)
-		      `#[$pull ,(if (unique? slotid)
-				    `#[,slotid ,values]
-				    (get-store-modifier slotid values))]
-		      `#[$pullAll ,(if (unique? slotid)
-				       `#[,slotid ,values]
-				       (get-store-modifier slotid values)
-				       )])
-		  #[new #t return #[__index 0]])
-		(mongodb/modify! collection 
-		    `#[_id ,oid] (if (ambiguous? slotid)
-				     (get-drop-all-modifier slotid)
-				     `#[$unset #[,slotid 1]])
-		    #[new #t return #[__index 0]]))))))
-
-(define (get-drop-all-modifier slotids (result #[]))
-  (do-choices (slotid slotids)
-    (store! result slotid 1))
-  result)
-
-(define (mgo/decache! oid (slotid #f))
-  (swapout oid))
-
-(define (update! result (value #f))
-  (when (test result 'value)
-    (set! value (get result 'value))
-    (%set-oid-value! (get value '_id) value))
-  (or value result))
 
 ;;; Defining adjunct slots of various kinds
 
@@ -362,14 +271,14 @@
   (info%watch "MAKE-ADJSLOT" pool slot qcoll query extract)
   (let* ((fetchfn (lambda (oid collection)
 		    (if extract
-			(get (mongodb/find collection (adjunct-query query oid)
+			(get (collection/find collection (adjunct-query query oid)
 			       `#[returns ,extract])
 			     extract)
-			(mongodb/find collection (adjunct-query query oid)))))
+			(collection/find collection (adjunct-query query oid)))))
 	 (coll (get mongopools pool))
 	 (name 
 	  (if (exists? coll) 
-	      (glom (mongodb/name coll) "/" (collection/name coll) "/" slot)
+	      (glom (mongo/dbname coll) "/" (collection/name coll) "/" slot)
 	      (glom (pool-id pool) "/" slot)))
 	 (adjunct (cons-extindex name fetchfn #f qcoll #t)))
     (info%watch "MAKE-ADJSLOT/setup" adjunct name coll fetchfn)

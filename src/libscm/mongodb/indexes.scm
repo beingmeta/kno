@@ -5,15 +5,18 @@
 
 (use-module '{mongodb logger})
 
-(module-export! '{mongodb/index})
+(module-export! '{mongo/index mongodb/index})
 
 (define (collection-index-fetchfn key.value collection)
-  (get (mongodb/find collection `#[,(car key.value) ,(cdr key.value)]
+  (get (collection/find collection `#[,(car key.value) ,(cdr key.value)]
 	 `#[return #[_id #t]])
        '_id))
 
-(define (mongodb/index collection (opts #f))
+(define (mongo/index collection (opts #f))
   (cons-extindex 
-   (glom "index-" (collection/name collection) "@" (mongodb/spec collection))
+   (glom "index-" (collection/name collection) "@" (mongo/dbspec collection))
    collection-index-fetchfn #f collection #t (opts+ opts 'register #t)))
+
+(define (mongodb/index collection (opts #f))
+  (mongo/index collection opts))
 

@@ -147,8 +147,37 @@ static u8_string stropt(lispval opts,lispval key,u8_string dflt)
 U8_MAYBE_UNUSED static bson_t *get_projection(lispval opts,int flags)
 {
   lispval projection = fd_getopt(opts,returnsym,FD_VOID);
-  if ((FD_CONSP(projection))&&(FD_TABLEP(projection))) {
+  if (!(FD_CONSP(projection)))
+    return NULL;
+  else if (FD_SLOTMAPP(projection)) {
     bson_t *fields = fd_lisp2bson(projection,flags,opts);
+    fd_decref(projection);
+    return fields;}
+  else if ( (FD_SYMBOLP(projection)) ||
+            (FD_STRINGP(projection)) ) {
+    struct FD_KEYVAL kv[1];
+    kv[0].kv_key = projection;
+    kv[0].kv_val = FD_INT(1);
+    fd_incref(projection);
+    lispval map = fd_make_slotmap(1,1,kv);
+    bson_t *fields = fd_lisp2bson(map,flags,opts);
+    fd_decref(map);
+    return fields;}
+  else if (FD_CHOICEP(projection)) {
+    int i = 0, len = FD_CHOICE_SIZE(projection);
+    struct FD_KEYVAL kv[len];
+    FD_DO_CHOICES(field,projection) {
+      if ( (FD_STRINGP(field)) )
+        fd_incref(field);
+      else if (FD_SYMBOLP(field)) {}
+      else field=VOID;
+      if (!(FD_VOIDP(field))) {
+        kv[i].kv_key = field;
+        kv[i].kv_val = FD_INT(1);
+        i++;}}
+    lispval map = fd_make_slotmap(i,i,kv);
+    bson_t *fields = fd_lisp2bson(map,flags,opts);
+    fd_decref(map);
     fd_decref(projection);
     return fields;}
   else return NULL;
@@ -2710,21 +2739,12 @@ static lispval mongodb_uri(lispval arg)
   else return lispval_string(db->dburi);
 }
 
-static lispval mongodb_server(lispval arg)
-{
-  struct FD_MONGODB_DATABASE *db = getdb(arg,"mongodb_uri");
-  if (db == NULL) return FD_ERROR_VALUE;
-  else {
-    lispval server = (lispval)db;
-    fd_incref(server);
-    return server;}
-}
-
-static lispval mongodb_opts(lispval arg)
+static lispval mongodb_getopts(lispval arg)
 {
   lispval opts = FD_VOID;
   if (FD_TYPEP(arg,fd_mongoc_server)) {
-    opts = (fd_consptr(struct FD_MONGODB_DATABASE *,arg,fd_mongoc_server))->dbopts;}
+    opts = (fd_consptr(struct FD_MONGODB_DATABASE *,arg,fd_mongoc_server))
+      ->dbopts;}
   else if (FD_TYPEP(arg,fd_mongoc_collection)) {
     struct FD_MONGODB_COLLECTION *collection=
       fd_consptr(struct FD_MONGODB_COLLECTION *,arg,fd_mongoc_collection);
@@ -2738,21 +2758,6 @@ static lispval mongodb_opts(lispval arg)
     return FD_ERROR_VALUE;}
   fd_incref(opts);
   return opts;
-}
-
-static lispval mongodb_collection_name(lispval arg)
-{
-  struct FD_MONGODB_COLLECTION *collection = NULL;
-  if (FD_TYPEP(arg,fd_mongoc_collection))
-    collection = fd_consptr(struct FD_MONGODB_COLLECTION *,arg,fd_mongoc_collection);
-  else if (FD_TYPEP(arg,fd_mongoc_cursor)) {
-    struct FD_MONGODB_CURSOR *cursor=
-      fd_consptr(struct FD_MONGODB_CURSOR *,arg,fd_mongoc_cursor);
-    collection = (struct FD_MONGODB_COLLECTION *)cursor->cursor_domain;}
-  else return fd_type_error("MongoDB collection/cursor","mongodb_dbname",arg);
-  if (collection)
-    return fd_make_string(NULL,-1,collection->collection_name);
-  else return FD_FALSE;
 }
 
 static lispval mongodb_getdb(lispval arg)
@@ -2769,6 +2774,21 @@ static lispval mongodb_getdb(lispval arg)
   else return fd_type_error("MongoDB collection/cursor","mongodb_dbname",arg);
   if (collection)
     return fd_incref(collection->domain_db);
+  else return FD_FALSE;
+}
+
+static lispval mongodb_collection_name(lispval arg)
+{
+  struct FD_MONGODB_COLLECTION *collection = NULL;
+  if (FD_TYPEP(arg,fd_mongoc_collection))
+    collection = fd_consptr(struct FD_MONGODB_COLLECTION *,arg,fd_mongoc_collection);
+  else if (FD_TYPEP(arg,fd_mongoc_cursor)) {
+    struct FD_MONGODB_CURSOR *cursor=
+      fd_consptr(struct FD_MONGODB_CURSOR *,arg,fd_mongoc_cursor);
+    collection = (struct FD_MONGODB_COLLECTION *)cursor->cursor_domain;}
+  else return fd_type_error("MongoDB collection/cursor","mongodb_dbname",arg);
+  if (collection)
+    return fd_make_string(NULL,-1,collection->collection_name);
   else return FD_FALSE;
 }
 
@@ -2913,6 +2933,8 @@ static long long int mongodb_initialized = 0;
 
 #define DEFAULT_FLAGS (FD_SHORT2DTYPE(FD_MONGODB_DEFAULTS))
 
+static void init_old_mongodb(lispval module);
+
 FD_EXPORT int fd_init_mongodb()
 {
   lispval module;
@@ -3001,92 +3023,195 @@ FD_EXPORT int fd_init_mongodb()
   fd_unparsers[fd_mongoc_collection]=unparse_collection;
   fd_unparsers[fd_mongoc_cursor]=unparse_cursor;
 
-  fd_idefn(module,fd_make_cprim2x("MONGODB/OPEN",mongodb_open,1,
+  fd_idefn(module,fd_make_cprim2x("MONGO/OPEN",mongodb_open,1,
                                   -1,FD_VOID,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim3x("MONGODB/COLLECTION",mongodb_collection,1,
+  fd_idefn(module,fd_make_cprim3x("COLLECTION/OPEN",mongodb_collection,1,
                                   -1,FD_VOID,fd_string_type,FD_VOID,
                                   -1,FD_VOID));
-  fd_idefn(module,fd_make_cprim3x("MONGODB/CURSOR",mongodb_cursor,2,
+  fd_idefn(module,fd_make_cprim3x("CURSOR/OPEN",mongodb_cursor,2,
                                   -1,FD_VOID,-1,FD_VOID,
                                   -1,FD_VOID));
-  fd_idefn3(module,"MONGODB/INSERT!",mongodb_insert,FD_NEEDS_2_ARGS|FD_NDCALL,
-            "(MONGODB/INSERT! *collection* *objects* *opts*)",
+  fd_defalias(module,"MONGO/COLLECTION","COLLECTION/OPEN");
+  fd_defalias(module,"MONGO/CURSOR","CURSOR/OPEN");
+
+  fd_idefn(module,fd_make_cprim1x("MONGODB?",mongodbp,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("MONGO/COLLECTION?",mongodb_collectionp,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("MONGO/CURSOR?",mongodb_cursorp,1,-1,FD_VOID));
+  fd_defalias(module,"CURSOR?","MONGO/CURSOR?");
+  fd_defalias(module,"COLLECTION?","MONGO/COLLECTION?");
+
+  fd_idefn3(module,"COLLECTION/INSERT!",mongodb_insert,
+            FD_NEEDS_2_ARGS|FD_NDCALL,
+            "(COLLECTION/INSERT! *collection* *objects* *opts*)",
             -1,FD_VOID,-1,FD_VOID,-1,FD_FALSE);
-  fd_idefn(module,fd_make_cprim3x("MONGODB/REMOVE!",mongodb_remove,2,
+  fd_idefn(module,fd_make_cprim3x("COLLECTION/REMOVE!",mongodb_remove,2,
                                   fd_mongoc_collection,FD_VOID,
                                   -1,FD_VOID,-1,FD_VOID));
-  fd_idefn4(module,"MONGODB/UPDATE!",mongodb_update,FD_NEEDS_2_ARGS,
-            "(MONGODB/UPDATE! *collection* *object* *opts*)",
+
+  fd_idefn4(module,"COLLECTION/UPDATE!",mongodb_update,FD_NEEDS_2_ARGS,
+            "(COLLECTION/UPDATE! *collection* *object* *opts*)",
             fd_mongoc_collection,FD_VOID,
             -1,FD_VOID,-1,FD_VOID,
             -1,FD_VOID);
-  fd_idefn4(module,"MONGODB/UPDATE!",mongodb_upsert,FD_NEEDS_2_ARGS,
-            "(MONGODB/UPSERT! *collection* *object* *opts*)",
+  fd_idefn4(module,"COLLECTION/UPSERT!",mongodb_upsert,FD_NEEDS_2_ARGS,
+            "(COLLECTION/UPSERT! *collection* *object* *opts*)",
             fd_mongoc_collection,FD_VOID,
             -1,FD_VOID,-1,FD_VOID,
             -1,FD_VOID);
-  fd_idefn(module,fd_make_cprim3x("MONGODB/FIND",mongodb_find,2,
-                                  fd_mongoc_collection,FD_VOID,
-                                  -1,FD_VOID,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim3x("MONGODB/COUNT",mongodb_count,2,
-                                  fd_mongoc_collection,FD_VOID,
-                                  -1,FD_VOID,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim4x("MONGODB/MODIFY",mongodb_modify,3,
+  fd_idefn(module,fd_make_cprim4x("COLLECTION/MODIFY!",mongodb_modify,3,
                                   fd_mongoc_collection,FD_VOID,
                                   -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
-  fd_defalias(module,"MONGODB/MODIFY!","MONGODB/MODIFY");
+  fd_defalias(module,"COLLECTION/MODIFY","COLLECTION/MODIFY!");
 
-  fd_idefn(module,fd_make_cprim3x("MONGODB/GET",mongodb_get,2,
+  fd_idefn(module,fd_make_cprim3x("COLLECTION/FIND",mongodb_find,2,
+                                  fd_mongoc_collection,FD_VOID,
+                                  -1,FD_VOID,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim3x("COLLECTION/COUNT",mongodb_count,2,
+                                  fd_mongoc_collection,FD_VOID,
+                                  -1,FD_VOID,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim3x("COLLECTION/GET",mongodb_get,2,
                                   fd_mongoc_collection,FD_VOID,
                                   -1,FD_VOID,-1,FD_VOID));
 
-  fd_idefn(module,fd_make_cprimn("MONGODB/RESULTS",mongodb_command,2));
-  fd_idefn(module,fd_make_cprimn("MONGODB/DO",mongodb_simple_command,2));
+  fd_idefn(module,fd_make_cprimn("MONGO/RESULTS",mongodb_command,2));
+  fd_idefn(module,fd_make_cprimn("MONGO/CMD",mongodb_simple_command,2));
 
-  fd_idefn(module,fd_make_cprim1x("MONGODB/DONE?",mongodb_donep,1,
+  fd_idefn(module,fd_make_cprim1x("CURSOR/DONE?",mongodb_donep,1,
                                   fd_mongoc_cursor,FD_VOID));
-  fd_idefn(module,fd_make_cprim2x("MONGODB/SKIP",mongodb_skip,1,
+  fd_idefn(module,fd_make_cprim2x("CURSOR/SKIP",mongodb_skip,1,
                                   fd_mongoc_cursor,FD_VOID,
                                   fd_fixnum_type,FD_FIXNUM_ONE));
+
   fd_idefn(module,fd_make_cprim3x("CURSOR/READ",mongodb_cursor_read,1,
                                   fd_mongoc_cursor,FD_VOID,
                                   fd_fixnum_type,FD_FIXNUM_ONE,
                                   -1,FD_VOID));
-  fd_defalias(module,"MONGODB/READ","CURSOR/READ");
 
-  fd_idefn(module,fd_make_cprim3x("CURSOR->VECTOR",
+  fd_idefn(module,fd_make_cprim3x("CURSOR/READVEC",
                                   mongodb_cursor_read_vector,1,
                                   fd_mongoc_cursor,FD_VOID,
                                   fd_fixnum_type,FD_FIXNUM_ONE,
                                   -1,FD_VOID));
-  fd_defalias(module,"MONGODB/READ->VECTOR","CURSOR->VECTOR");
 
   fd_idefn(module,fd_make_ndprim(fd_make_cprimn("MONGOVEC",mongovec_lexpr,0)));
   fd_idefn(module,fd_make_cprim1x("->MONGOVEC",make_mongovec,1,
                                   fd_vector_type,FD_VOID));
   fd_idefn(module,fd_make_cprim1("MONGOVEC?",mongovecp,1));
 
-  fd_idefn(module,fd_make_cprim1x("MONGODB/NAME",mongodb_dbname,1,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim1x("MONGODB/SPEC",mongodb_spec,1,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim1x("MONGODB/URI",mongodb_uri,1,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim1x("MONGODB/OPTS",mongodb_opts,1,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim1x("MONGODB/SERVER",
-                                  mongodb_server,1,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim1x("MONGODB/GETCOLLECTION",
-                                  mongodb_getcollection,1,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim1x("COLLECTION/NAME",
-                                  mongodb_collection_name,1,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim1x("MONGODB/GETDB",mongodb_getdb,1,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim2x("MONGODB/INFO",mongodb_getinfo,1,
+  fd_idefn(module,fd_make_cprim1x("MONGO/GETDB",mongodb_getdb,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim2x("MONGO/DBINFO",mongodb_getinfo,1,
                                   fd_mongoc_server,FD_VOID,
                                   -1,FD_VOID));
 
-  fd_idefn(module,fd_make_cprim1x("MONGODB?",mongodbp,1,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim1x("MONGODB/COLLECTION?",
-                                  mongodb_collectionp,1,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim1x("MONGODB/CURSOR?",
-                                  mongodb_cursorp,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("MONGO/DBNAME",mongodb_dbname,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("MONGO/DBSPEC",mongodb_spec,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("MONGO/DBURI",mongodb_uri,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("MONGO/GETOPTS",mongodb_getopts,1,-1,FD_VOID));
 
+  fd_idefn(module,fd_make_cprim1x("MONGO/GETCOLLECTION",
+                                  mongodb_getcollection,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("COLLECTION/NAME",
+                                  mongodb_collection_name,1,-1,FD_VOID));
+
+  fd_register_config("MONGO:FLAGS",
+                     "Default flags (fixnum) for MongoDB/BSON processing",
+                     fd_intconfig_get,fd_intconfig_set,&mongodb_defaults);
+
+  fd_register_config("MONGO:LOGLEVEL",
+                     "Default flags (fixnum) for MongoDB/BSON processing",
+                     fd_intconfig_get,fd_intconfig_set,&mongodb_loglevel);
+  fd_register_config("MONGO:LOGOPS",
+                     "Default flags (fixnum) for MongoDB/BSON processing",
+                     fd_boolconfig_get,fd_boolconfig_set,&logops);
+
+  fd_register_config("MONGO:SSL",
+                     "Whether to default to SSL for MongoDB connections",
+                     fd_boolconfig_get,fd_boolconfig_set,
+                     &default_ssl);
+  fd_register_config("MONGO:CERT",
+                     "Default certificate file to use for mongodb",
+                     fd_sconfig_get,fd_realpath_config_set,
+                     &default_certfile);
+  fd_register_config("MONGO:CAFILE",
+                     "Default certificate file for use with MongoDB",
+                     fd_sconfig_get,fd_realpath_config_set,
+                     &default_cafile);
+  fd_register_config("MONGO:CADIR",
+                     "Default certificate file directory for use with MongoDB",
+                     fd_sconfig_get,fd_realdir_config_set,
+                     &default_cadir);
+
+  fd_finish_module(module);
+
+  mongoc_init();
+  atexit(mongoc_cleanup);
+
+  strcpy(mongoc_version_string,"libmongoc ");
+  strcat(mongoc_version_string,MONGOC_VERSION_S);
+  u8_register_source_file(mongoc_version_string);
+
+  mongoc_log_set_handler(mongoc_logger,NULL);
+  fd_register_config("MONGO:LOGLEVEL",
+                     "Controls log levels for which messages are always shown",
+                     fd_intconfig_get,fd_intconfig_set,&mongodb_loglevel);
+  fd_register_config("MONGO:MAXLOG",
+                     "Controls which log messages are always discarded",
+                     fd_intconfig_get,fd_intconfig_set,
+                     &mongodb_ignore_loglevel);
+  fd_register_config("MONGO:VERSION",
+                     "The MongoDB C library version string",
+                     fd_sconfig_get,NULL,
+                     &mongoc_version);
+
+  u8_register_source_file(_FILEINFO);
+
+  strcpy(mongoc_version_string,"libmongoc ");
+  strcat(mongoc_version_string,MONGOC_VERSION_S);
+  u8_register_source_file(mongoc_version_string);
+
+  init_old_mongodb(module);
+
+  return 1;
+}
+
+static void init_old_mongodb(lispval module)
+{
+  fd_defalias(module,"MONGODB/OPEN","MONGO/OPEN");
+  fd_defalias(module,"MONGODB/COLLECTION","COLLECTION/OPEN");
+  fd_defalias(module,"MONGODB/CURSOR","CURSOR/OPEN");
+  fd_defalias(module,"MONGODB/INSERT!","COLLECTION/INSERT!");
+  fd_defalias(module,"MONGODB/REMOVE!","COLLECTION/REMOVE!");
+  fd_defalias(module,"MONGODB/UPDATE!","COLLECTION/UPDATE!");
+  fd_defalias(module,"MONGODB/FIND","COLLECTION/FIND");
+  fd_defalias(module,"MONGODB/MODIFY","COLLECTION/MODIFY!");
+  fd_defalias(module,"MONGODB/MODIFY!","COLLECTION/MODIFY!");
+  fd_defalias(module,"MONGODB/GET","COLLECTION/GET");
+
+  fd_defalias(module,"MONGODB/RESULTS","MONGODB/RESULTS");
+  fd_defalias(module,"MONGODB/DO","MONGODB/DO");
+
+  fd_defalias(module,"MONGODB/DONE?","CURSOR/DONE?");
+  fd_defalias(module,"MONGODB/SKIP","CURSOR/SKIP");
+  fd_defalias(module,"MONGODB/READ","CURSOR/READ");
+  fd_defalias(module,"MONGODB/READ->VECTOR","CURSOR/READVEC");
+
+  fd_defalias(module,"->MONGOVEC","->MONGOVEC");
+  fd_defalias(module,"MONGOVEC?","MONGOVEC?");
+
+  fd_defalias(module,"MONGODB/NAME","MONGO/DBNAME");
+  fd_defalias(module,"MONGODB/SPEC","MONGO/DBSPEC");
+  fd_defalias(module,"MONGODB/URI","MONGO/DBURI");
+  fd_defalias(module,"MONGODB/OPTS","MONGO/GETOPTS");
+  fd_defalias(module,"MONGODB/SERVER","MONGODB/SERVER");
+
+  fd_defalias(module,"MONGODB/GETCOLLECTION","MONGO/GETCOLLECTION");
+
+  fd_defalias(module,"MONGODB/GETDB","MONGO/GETDB");
+  fd_defalias(module,"MONGODB/INFO","MONGO/DBINFO");
+  fd_defalias(module,"MONGODB?","MONGODB?");
+  fd_defalias(module,"MONGODB/COLLECTION?","MONGO/COLLECTION?");
+  fd_defalias(module,"MONGODB/CURSOR?","MONGO/CURSOR?");
+  
   fd_register_config("MONGODB:FLAGS",
                      "Default flags (fixnum) for MongoDB/BSON processing",
                      fd_intconfig_get,fd_intconfig_set,&mongodb_defaults);
@@ -3115,16 +3240,6 @@ FD_EXPORT int fd_init_mongodb()
                      fd_sconfig_get,fd_realdir_config_set,
                      &default_cadir);
 
-  fd_finish_module(module);
-
-  mongoc_init();
-  atexit(mongoc_cleanup);
-
-  strcpy(mongoc_version_string,"libmongoc ");
-  strcat(mongoc_version_string,MONGOC_VERSION_S);
-  u8_register_source_file(mongoc_version_string);
-
-  mongoc_log_set_handler(mongoc_logger,NULL);
   fd_register_config("MONGODB:LOGLEVEL",
                      "Controls log levels for which messages are always shown",
                      fd_intconfig_get,fd_intconfig_set,&mongodb_loglevel);
@@ -3136,14 +3251,6 @@ FD_EXPORT int fd_init_mongodb()
                      "The MongoDB C library version string",
                      fd_sconfig_get,NULL,
                      &mongoc_version);
-
-  u8_register_source_file(_FILEINFO);
-
-  strcpy(mongoc_version_string,"libmongoc ");
-  strcat(mongoc_version_string,MONGOC_VERSION_S);
-  u8_register_source_file(mongoc_version_string);
-
-  return 1;
 }
 
 /* Emacs local variables

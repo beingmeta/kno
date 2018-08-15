@@ -10,7 +10,7 @@
 		  collection/rename! collection/copy! collection/drop!
 		  mgo/dropdb! 
 		  mgo/params/list mgo/params/get mgo/params/set!
-		  mongodb/copy-pool})
+		  mongo/copy-pool})
 
 
 (defambda (getbatch v)
@@ -24,7 +24,7 @@
 	     (cursor-id (get cursor 'id)))
 	(while (not (zero? cursor-id))
 	  (set! result 
-		(mongodb/results collection 
+		(mongo/results collection 
 				 "getMore" cursor-id
 				 "collection" (collection/name collection)
 				 "batchSize" batch))
@@ -34,21 +34,21 @@
 	results)))
 
 (define (mgo/index/list collection)
-  (extract-results (mongodb/results 
+  (extract-results (mongo/results 
 		    collection "listIndexes" (collection/name collection))
 		   collection))
 
 (define (mgo/index/drop! collection name)
   (if (string? name)
-      (mongodb/do collection
+      (mongo/cmd collection
 		  "dropIndexes" (collection/name collection)
 		  "index" name)
-      (mongodb/do collection
+      (mongo/cmd collection
 		  "dropIndexes" (collection/name collection)
 		  "index" (get name 'name))))
 
 (defambda (mgo/index/add! collection specs (opts #f))
-  (mongodb/do collection
+  (mongo/cmd collection
 	      "createIndexes" (collection/name collection)
 	      "indexes" (qc (generate-index-specs specs))))
 
@@ -109,68 +109,68 @@
        "expireAfterSeconds" ,ttl]))
 
 (define (collection/new db name (opts #f))
-  (mongodb/do db `#["create" ,name 
+  (mongo/cmd db `#["create" ,name 
 		    "capped" ,(getopt opts 'capped {})
 		    "indexids" ,(getopt opts 'indexid {})
 		    "maxsize" ,(getopt opts 'maxsize {})
 		    "maxdocs" ,(getopt opts 'maxdocs {})]))
 
 (define (collection/rename! collection newname (db))
-  (default! db (mongodb/getdb collection))
-  (mongodb/do db
+  (default! db (mongo/getdb collection))
+  (mongo/cmd db
       `#["renameCollection" 
-	 ,(glom (mongodb/name collection) "/" (collection/name collection))
+	 ,(glom (mongo/dbname collection) "/" (collection/name collection))
 	 "target" ,newname]))
 
 (define (collection/drop! collection (db))
-  (default! db (mongodb/getdb collection))
-  (mongodb/do db `#["drop" ,(collection/name collection)]))
+  (default! db (mongo/getdb collection))
+  (mongo/cmd db `#["drop" ,(collection/name collection)]))
 
 (define (collection/copy! source dest (opts #f) (batchsize))
   (default! batchsize (getopt opts 'batchsize 200))
-  (let* ((cursor (mongodb/cursor source #[]))
-	 (batch (mongodb/read cursor batchsize))
+  (let* ((cursor (mongo/cursor source #[]))
+	 (batch (cursor/read cursor batchsize))
 	 (seen {}))
     (while (exists? batch)
-      (mongodb/insert! dest (reject batch '_id seen))
-      (set! batch (mongodb/read cursor batchsize)))))
+      (collection/insert! dest (reject batch '_id seen))
+      (if (cursor/done? cursor) 
+	  (set! batch {})
+	  (set! batch (cursor/read cursor batchsize))))))
 
 (define (mgo/dropdb! db dbname)
-  (mongodb/do db #["dropDatabase" 1]))
+  (mongo/cmd db #["dropDatabase" 1]))
 
 (define (mgo/params/list arg (db))
-  (set! db (if (mongodb? arg) arg (mongodb/getdb arg)))
-  (extract-results (mongodb/results db "getParameter" "*")))
+  (set! db (if (mongodb? arg) arg (mongo/getdb arg)))
+  (extract-results (mongo/results db "getParameter" "*")))
 (define (mgo/params/get arg param (db))
-  (set! db (mongodb/getdb arg))
-  (mongodb/results db "getParameter" 1 param 1))
+  (set! db (mongo/getdb arg))
+  (mongo/results db "getParameter" 1 param 1))
 (define (mgo/params/set! arg param value (db))
-  (set! db (mongodb/getdb arg))
-  (mongodb/results db "setParameter" 1 param value))
+  (set! db (mongo/getdb arg))
+  (mongo/results db "setParameter" 1 param value))
 
 ;;;; Copying pools into MongoDB
 
-(define (mongodb/copy-pool input collection (slotinfo {}))
+(define (mongo/copy-pool input collection (slotinfo {}))
   (let ((base (pool-base input))
 	(capacity (pool-capacity input))
 	(load (pool-load input))
 	(metadata (poolctl input 'metadata))
-	(curinfo (mongodb/get collection "_pool"))
-	(curmd (mongodb/get collection "_metadata")))
+	(curinfo (collection/get collection "_pool"))
+	(curmd (collection/get collection "_metadata")))
     (unless (exists? curinfo)
-      (mongodb/insert! collection
+      (collection/insert! collection
 	`#[_id "_pool" base ,base capacity ,capacity load ,load]))
     (store! metadata '_id "_metadata")
     (unless (exists? curmd)
-      (mongodb/modify! collection #[_id "_metadata"] `#[$set ,metadata]))
+      (collection/modify! collection #[_id "_metadata"] `#[$set ,metadata]))
     (engine/run
 	(lambda (oid)
 	  (let ((v (frame-create #f '_id oid)))
 	    (do-choices (slotid (getkeys oid))
 	      (store! v slotid (get oid slotid)))
-	    (mongodb/modify! collection
+	    (collection/modify! collection
 		`#[_id ,oid] `#[$set ,v]
 		`#[upsert #t new #t])))
 	(pool-elts input))))
-
-
