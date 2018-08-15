@@ -81,4 +81,5 @@ FD_EXPORT int fd_init_mongodb(void);
 #define DOMAIN2DB(dom) \
   ((struct FD_MONGODB_DATABASE *) ((dom)->domain_db))
 #define CURSOR2DOMAIN(cursor) \
-  (struct FD_MONGODB_COLLECTION *) (cursor->cursor_collection);
+  (struct FD_MONGODB_COLLECTION *) ((cursor)->cursor_domain);
+#define CURSOR2COLLECTION(cursor) ((cursor)->cursor_collection)

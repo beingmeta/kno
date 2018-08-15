@@ -42,9 +42,13 @@ u8_condition fd_BSON_Input_Error=_("BSON input error");
 u8_condition fd_BSON_Compound_Overflow=_("BSON/FramerD compound overflow");
 
 static lispval sslsym, smoketest_sym;
-static int default_ssl = 0;
 static int mongodb_loglevel = LOG_NOTICE;
 static int logops = 0;
+
+static int default_ssl = 0;
+static u8_string default_cafile = NULL;
+static u8_string default_cadir = NULL;
+static u8_string default_certfile = NULL;
 
 static lispval dbname_symbol, username_symbol, auth_symbol, fdtag_symbol;
 static lispval hosts_symbol, connections_symbol, fieldmap_symbol, logopsym;
@@ -671,15 +675,15 @@ static int setup_ssl(mongoc_ssl_opt_t *ssl_opts,
                      lispval opts)
 {
   if ( (mongoc_uri_get_ssl(info)) ||
-       (fd_testopt(opts,sslsym,FD_VOID)) ||
+       (boolopt(opts,sslsym,default_ssl)) ||
        ( (fd_testopt(opts,cafilesym,FD_VOID)) &&
          (!(fd_testopt(opts,cafilesym,FD_FALSE)))) ) {
     const mongoc_ssl_opt_t *default_opts = mongoc_ssl_opt_get_default();
     memcpy(ssl_opts,default_opts,sizeof(mongoc_ssl_opt_t));
-    ssl_opts->pem_file = stropt(opts,certfile,NULL);
+    ssl_opts->pem_file = stropt(opts,certfile,default_certfile);
     ssl_opts->pem_pwd = stropt(opts,certpass,NULL);
-    ssl_opts->ca_file = stropt(opts,cafilesym,NULL);
-    ssl_opts->ca_dir = stropt(opts,cadirsym,NULL);
+    ssl_opts->ca_file = stropt(opts,cafilesym,default_cafile);
+    ssl_opts->ca_dir = stropt(opts,cadirsym,default_cadir);
     ssl_opts->crl_file = stropt(opts,crlsym,NULL);
     return (!((ssl_opts->pem_file == NULL)&&
               (ssl_opts->pem_pwd == NULL)&&
@@ -804,144 +808,164 @@ static void collection_done(mongoc_collection_t *collection,
 /* Basic operations on collections */
 
 #if HAVE_MONGOC_BULK_OPERATION_WITH_OPTS
-static lispval mongodb_insert(lispval arg,lispval obj,lispval opts_arg)
+static lispval mongodb_insert(lispval arg,lispval objects,lispval opts_arg)
 {
+  if (FD_EMPTY_CHOICEP(objects))
+    return FD_EMPTY_CHOICE;
+  if (FD_CHOICEP(arg)) {
+    lispval results = FD_EMPTY;
+    FD_DO_CHOICES(collection,arg) {
+      lispval rv = mongodb_insert(collection,objects,opts_arg);
+      if (FD_ABORTP(rv)) {
+        fd_decref(results);
+        FD_STOP_DO_CHOICES;
+        return rv;}
+      else {
+        FD_ADD_TO_CHOICE(results,rv);}}
+    return results;}
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
   struct FD_MONGODB_DATABASE *db=
     (struct FD_MONGODB_DATABASE *) (domain->domain_db);
-  if (FD_EMPTY_CHOICEP(obj))
-    return FD_EMPTY_CHOICE;
-  else {
-    lispval result;
-    int flags = getflags(opts_arg,domain->domain_flags);
-    lispval opts = combine_opts(opts_arg,db->dbopts);
-    bson_t *bulkopts = getbulkopts(opts,flags);
-    mongoc_client_t *client = NULL; bool retval;
-    mongoc_collection_t *collection = open_collection(domain,&client,flags);
-    if (collection) {
-      bson_t reply;
-      bson_error_t error = { 0 };
-      if ((logops)||(flags&FD_MONGODB_LOGOPS))
-        u8_logf(LOG_DETAIL,"MongoDB/insert",
-               "Inserting %d items into %q",FD_CHOICE_SIZE(obj),arg);
-      if (FD_CHOICEP(obj)) {
-        mongoc_bulk_operation_t *bulk=
-          mongoc_collection_create_bulk_operation_with_opts
-          (collection,bulkopts);
-        FD_DO_CHOICES(elt,obj) {
-          bson_t *doc = fd_lisp2bson(elt,flags,opts);
-          if (doc) {
-            mongoc_bulk_operation_insert(bulk,doc);
-            bson_destroy(doc);}}
-        retval = mongoc_bulk_operation_execute(bulk,&reply,&error);
-        mongoc_bulk_operation_destroy(bulk);
-        if (retval) {
-          result = fd_bson2dtype(&reply,flags,opts);}
-        else {
-          u8_byte buf[1000];
-          if (errno) u8_graberrno("mongodb_insert",NULL);
-          fd_seterr(fd_MongoDB_Error,"mongodb_insert",
-                    u8_sprintf(buf,100,"%s>%s>%s:%s",
-                               db->dburi,db->dbname,
-                               domain->collection_name,
-                               error.message),
-                    fd_incref(obj));
-          result = FD_ERROR_VALUE;}
-        bson_destroy(&reply);}
+  lispval result;
+  int flags = getflags(opts_arg,domain->domain_flags);
+  lispval opts = combine_opts(opts_arg,db->dbopts);
+  bson_t *bulkopts = getbulkopts(opts,flags);
+  mongoc_client_t *client = NULL; bool retval;
+  mongoc_collection_t *collection = open_collection(domain,&client,flags);
+  if (collection) {
+    bson_t reply;
+    bson_error_t error = { 0 };
+    if ((logops)||(flags&FD_MONGODB_LOGOPS))
+      u8_logf(LOG_DETAIL,"MongoDB/insert",
+              "Inserting %d items into %q",FD_CHOICE_SIZE(objects),arg);
+    if (FD_CHOICEP(objects)) {
+      mongoc_bulk_operation_t *bulk=
+        mongoc_collection_create_bulk_operation_with_opts
+        (collection,bulkopts);
+      FD_DO_CHOICES(elt,objects) {
+        bson_t *doc = fd_lisp2bson(elt,flags,opts);
+        if (doc) {
+          mongoc_bulk_operation_insert(bulk,doc);
+          bson_destroy(doc);}}
+      retval = mongoc_bulk_operation_execute(bulk,&reply,&error);
+      mongoc_bulk_operation_destroy(bulk);
+      if (retval) {
+        result = fd_bson2dtype(&reply,flags,opts);}
       else {
-        bson_t *doc = fd_lisp2bson(obj,flags,opts);
-        mongoc_write_concern_t *wc = get_write_concern(opts);
+        u8_byte buf[1000];
+        if (errno) u8_graberrno("mongodb_insert",NULL);
+        fd_seterr(fd_MongoDB_Error,"mongodb_insert",
+                  u8_sprintf(buf,100,"%s>%s>%s:%s",
+                             db->dburi,db->dbname,
+                             domain->collection_name,
+                             error.message),
+                  fd_incref(objects));
+        result = FD_ERROR_VALUE;}
+      bson_destroy(&reply);}
+    else {
+      bson_t *doc = fd_lisp2bson(objects,flags,opts);
+      mongoc_write_concern_t *wc = get_write_concern(opts);
 
-        retval = (doc==NULL) ? (0) :
-          (mongoc_collection_insert
-           (collection,MONGOC_INSERT_NONE,doc,wc,&error));
-        if (retval) {
-          result = FD_TRUE;}
-        else {
-          u8_byte buf[100];
-          if (doc) bson_destroy(doc);
-          if (errno) u8_graberrno("mongodb_insert",NULL);
-          fd_seterr(fd_MongoDB_Error,"mongodb_insert",
-                    u8_sprintf(buf,100,"%s>%s>%s:%s",
-                               db->dburi,db->dbname,
-                               domain->collection_name,
-                               error.message),
-                    fd_incref(obj));
-          result = FD_ERROR_VALUE;}
-        if (wc) mongoc_write_concern_destroy(wc);}
-      collection_done(collection,client,domain);}
-    else result = FD_ERROR_VALUE;
-    fd_decref(opts);
-    U8_CLEAR_ERRNO();
-    return result;}
+      retval = (doc==NULL) ? (0) :
+        (mongoc_collection_insert
+         (collection,MONGOC_INSERT_NONE,doc,wc,&error));
+      if (retval) {
+        result = FD_TRUE;}
+      else {
+        u8_byte buf[100];
+        if (doc) bson_destroy(doc);
+        if (errno) u8_graberrno("mongodb_insert",NULL);
+        fd_seterr(fd_MongoDB_Error,"mongodb_insert",
+                  u8_sprintf(buf,100,"%s>%s>%s:%s",
+                             db->dburi,db->dbname,
+                             domain->collection_name,
+                             error.message),
+                  fd_incref(objects));
+        result = FD_ERROR_VALUE;}
+      if (wc) mongoc_write_concern_destroy(wc);}
+    collection_done(collection,client,domain);}
+  else result = FD_ERROR_VALUE;
+  fd_decref(opts);
+  U8_CLEAR_ERRNO();
+  return result;
 }
 #else
-static lispval mongodb_insert(lispval arg,lispval obj,lispval opts_arg)
+static lispval mongodb_insert(lispval arg,lispval objects,lispval opts_arg)
 {
-  struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
-  struct FD_MONGODB_DATABASE *db=
-    (struct FD_MONGODB_DATABASE *) (domain->domain_db);
-  if (FD_EMPTY_CHOICEP(obj))
+  if (FD_EMPTY_CHOICEP(objects))
     return FD_EMPTY_CHOICE;
-  else {
-    lispval result;
-    int flags = getflags(opts_arg,domain->domain_flags);
-    lispval opts = combine_opts(opts_arg,db->dbopts);
-    mongoc_client_t *client = NULL; bool retval;
-    mongoc_collection_t *collection = open_collection(domain,&client,flags);
-    if (collection) {
-      bson_t reply;
-      bson_error_t error;
-      mongoc_write_concern_t *wc = get_write_concern(opts);
-      if ((logops)||(flags&FD_MONGODB_LOGOPS))
-        u8_logf(LOG_DETAIL,"MongoDB/insert",
-               "Inserting %d items into %q",FD_CHOICE_SIZE(obj),arg);
-      if (FD_CHOICEP(obj)) {
-        mongoc_bulk_operation_t *bulk=
-          mongoc_collection_create_bulk_operation(collection,true,wc);
-        FD_DO_CHOICES(elt,obj) {
-          bson_t *doc = fd_lisp2bson(elt,flags,opts);
-          if (doc) {
-            mongoc_bulk_operation_insert(bulk,doc);
-            bson_destroy(doc);}}
-        retval = mongoc_bulk_operation_execute(bulk,&reply,&error);
-        mongoc_bulk_operation_destroy(bulk);
-        if (retval) {
-          result = fd_bson2dtype(&reply,flags,opts);}
-        else {
-          u8_byte buf[100];
-          if (errno) u8_graberrno("mongodb_insert",NULL);
-          fd_seterr(fd_MongoDB_Error,"mongodb_insert",
-                    u8_sprintf(buf,100,"%s>%s>%s:%s",
-                               db->dburi,db->dbname,
-                               domain->collection_name,
-                               error.message),
-                    fd_incref(obj));
-          result = FD_ERROR_VALUE;}
-        bson_destroy(&reply);}
+  else if (FD_CHOICEP(arg)) {
+    lispval results = FD_EMPTY;
+    FD_DO_CHOICES(collection,arg) {
+      lispval rv = mongodb_insert(collection,objects,opts_arg);
+      if (FD_ABORTP(rv)) {
+        fd_decref(results);
+        FD_STOP_DO_CHOICES;
+        return rv;}
       else {
-        bson_t *doc = fd_lisp2bson(obj,flags,opts);
-        retval = (doc==NULL) ? (0) :
-          (mongoc_collection_insert(collection,MONGOC_INSERT_NONE,doc,wc,&error));
-        if (retval) {
-          result = FD_TRUE;}
-        else {
-          u8_byte buf[100];
-          if (doc) bson_destroy(doc);
-          if (errno) u8_graberrno("mongodb_insert",NULL);
-          fd_seterr(fd_MongoDB_Error,"mongodb_insert",
-                    u8_sprintf(buf,100,"%s>%s>%s:%s",
-                               db->dburi,db->dbname,
-                               domain->collection_name,
-                               error.message),
-                    fd_incref(obj));
-          result = FD_ERROR_VALUE;}}
-      if (wc) mongoc_write_concern_destroy(wc);
-      collection_done(collection,client,domain);}
-    else result = FD_ERROR_VALUE;
-    fd_decref(opts);
-    U8_CLEAR_ERRNO();
-    return result;}
+        FD_ADD_TO_CHOICE(results,rv);}}
+    return results;}
+  struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
+  struct FD_MONGODB_DATABASE *db =
+    (struct FD_MONGODB_DATABASE *) (domain->domain_db);
+  lispval result;
+  int flags = getflags(opts_arg,domain->domain_flags);
+  lispval opts = combine_opts(opts_arg,db->dbopts);
+  mongoc_client_t *client = NULL; bool retval;
+  mongoc_collection_t *collection = open_collection(domain,&client,flags);
+  if (collection) {
+    bson_t reply;
+    bson_error_t error;
+    mongoc_write_concern_t *wc = get_write_concern(opts);
+    if ((logops)||(flags&FD_MONGODB_LOGOPS))
+      u8_logf(LOG_DETAIL,"MongoDB/insert",
+              "Inserting %d items into %q",FD_CHOICE_SIZE(objects),arg);
+    if (FD_CHOICEP(objects)) {
+      mongoc_bulk_operation_t *bulk=
+        mongoc_collection_create_bulk_operation(collection,true,wc);
+      FD_DO_CHOICES(elt,objects) {
+        bson_t *doc = fd_lisp2bson(elt,flags,opts);
+        if (doc) {
+          mongoc_bulk_operation_insert(bulk,doc);
+          bson_destroy(doc);}}
+      retval = mongoc_bulk_operation_execute(bulk,&reply,&error);
+      mongoc_bulk_operation_destroy(bulk);
+      if (retval) {
+        result = fd_bson2dtype(&reply,flags,opts);}
+      else {
+        u8_byte buf[100];
+        if (errno) u8_graberrno("mongodb_insert",NULL);
+        fd_seterr(fd_MongoDB_Error,"mongodb_insert",
+                  u8_sprintf(buf,100,"%s>%s>%s:%s",
+                             db->dburi,db->dbname,
+                             domain->collection_name,
+                             error.message),
+                  fd_incref(objects));
+        result = FD_ERROR_VALUE;}
+      bson_destroy(&reply);}
+    else {
+      bson_t *doc = fd_lisp2bson(objects,flags,opts);
+      retval = (doc==NULL) ? (0) :
+        (mongoc_collection_insert(collection,MONGOC_INSERT_NONE,doc,wc,&error));
+      if (retval) {
+        result = FD_TRUE;}
+      else {
+        u8_byte buf[100];
+        if (doc) bson_destroy(doc);
+        if (errno) u8_graberrno("mongodb_insert",NULL);
+        fd_seterr(fd_MongoDB_Error,"mongodb_insert",
+                  u8_sprintf(buf,100,"%s>%s>%s:%s",
+                             db->dburi,db->dbname,
+                             domain->collection_name,
+                             error.message),
+                  fd_incref(objects));
+        result = FD_ERROR_VALUE;}}
+    if (wc) mongoc_write_concern_destroy(wc);
+    collection_done(collection,client,domain);}
+  else result = FD_ERROR_VALUE;
+  fd_decref(opts);
+  U8_CLEAR_ERRNO();
+  return result;
 }
 #endif
 
@@ -995,8 +1019,9 @@ static lispval mongodb_remove(lispval arg,lispval obj,lispval opts_arg)
   return result;
 }
 
-static lispval mongodb_update(lispval arg,lispval query,lispval update,
-                             lispval opts_arg)
+static lispval mongodb_updater(lispval arg,lispval query,lispval update,
+                               mongoc_update_flags_t add_update_flags,
+                               lispval opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
   struct FD_MONGODB_DATABASE *db = DOMAIN2DB(domain);
@@ -1008,12 +1033,12 @@ static lispval mongodb_update(lispval arg,lispval query,lispval update,
     bson_t *q = fd_lisp2bson(query,flags,opts);
     bson_t *u = fd_lisp2bson(update,flags,opts);
     mongoc_write_concern_t *wc = get_write_concern(opts);
-    bson_error_t error;
-    int success = 0, no_error = boolopt(opts,softfailsym,0);
     mongoc_update_flags_t update_flags=
-      (MONGOC_UPDATE_NONE) |
+      (MONGOC_UPDATE_NONE) | (add_update_flags) |
       ((boolopt(opts,upsertsym,0))?(MONGOC_UPDATE_UPSERT):(0)) |
       ((boolopt(opts,singlesym,0))?(0):(MONGOC_UPDATE_MULTI_UPDATE));
+    bson_error_t error;
+    int success = 0, no_error = boolopt(opts,softfailsym,0);
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
       u8_logf(LOG_DETAIL,"MongoDB/update",
              "Updating matches to %q with %q in %q",query,update,arg);
@@ -1053,6 +1078,19 @@ static lispval mongodb_update(lispval arg,lispval query,lispval update,
   else {
     fd_decref(opts);
     return FD_ERROR_VALUE;}
+}
+
+static lispval mongodb_update(lispval arg,lispval query,lispval update,
+                              lispval opts_arg)
+{
+  return mongodb_updater(arg,query,update,0,opts_arg);
+}
+
+
+static lispval mongodb_upsert(lispval arg,lispval query,lispval update,
+                              lispval opts_arg)
+{
+  return mongodb_updater(arg,query,update,(MONGOC_UPDATE_UPSERT),opts_arg);
 }
 
 #if HAVE_MONGOC_OPTS_FUNCTIONS
@@ -1737,6 +1775,7 @@ static lispval mongodb_cursor(lispval arg,lispval query,lispval opts_arg)
     consed->cursor_query = query; fd_incref(query);
     consed->cursor_query_bson = bq;
     consed->cursor_readprefs = rp;
+    consed->cursor_flags = flags;
     consed->cursor_opts = opts;
     consed->cursor_connection = connection;
     consed->cursor_collection = collection;
@@ -1848,22 +1887,22 @@ static lispval mongodb_skip(lispval cursor,lispval howmany)
   if (i == n) return FD_TRUE; else return FD_FALSE;
 }
 
-static lispval mongodb_read(lispval cursor,lispval howmany,lispval opts_arg)
+static lispval mongodb_cursor_read(lispval cursor,lispval howmany,lispval opts_arg)
 {
   struct FD_MONGODB_CURSOR *c = (struct FD_MONGODB_CURSOR *)cursor;
-  if (!(FD_UINTP(howmany))) return fd_type_error("uint","mongodb_skip",howmany);
-  int n = FD_FIX2INT(howmany), i = 0;
-  if (n==0) return FD_EMPTY_CHOICE;
+  if (!(FD_UINTP(howmany)))
+    return fd_type_error("uint","mongodb_skip",howmany);
+  int i = 0, n = FD_FIX2INT(howmany);
+  if (n == 0)
+    return FD_EMPTY_CHOICE;
   else {
-    lispval results = FD_EMPTY_CHOICE, *vec = NULL, opts = c->cursor_opts;
+    lispval results = FD_EMPTY_CHOICE, *vec = NULL;
     mongoc_cursor_t *scan = c->mongoc_cursor; const bson_t *doc;
-    int flags = c->cursor_flags; size_t n = 0, vlen = 0;
+    int flags = getflags(opts_arg,c->cursor_flags);
+    lispval opts = combine_opts(opts_arg,c->cursor_opts);
     int sorted = fd_testopt(opts,FDSYM_SORTED,FD_VOID);
-    if (!(FD_VOIDP(opts_arg))) {
-      flags = getflags(opts_arg,c->cursor_flags);
-      opts = combine_opts(opts_arg,opts);
-      sorted = fd_testopt(opts,FDSYM_SORTED,FD_VOID);}
-    while ((i<n)&&(mongoc_cursor_next(scan,&doc))) {
+    size_t vec_len = 0;
+    while ( (i < n) && (mongoc_cursor_next(scan,&doc)) ) {
       /* u8_string json = bson_as_json(doc,NULL); */
       lispval r = fd_bson2dtype((bson_t *)doc,flags,opts);
       if (FD_ABORTP(r)) {
@@ -1872,9 +1911,9 @@ static lispval mongodb_read(lispval cursor,lispval howmany,lispval opts_arg)
         results = FD_ERROR_VALUE;
         sorted = 0;}
       else if (sorted) {
-        if (n>=vlen) {
-          if (!(grow_dtype_vec(&vec,n,&vlen))) {
-            free_dtype_vec(vec,n);
+        if (i >= vec_len) {
+          if (!(grow_dtype_vec(&vec,n,&vec_len))) {
+            free_dtype_vec(vec,i);
             results = FD_ERROR_VALUE;
             sorted = 0;
             break;}}
@@ -1884,27 +1923,28 @@ static lispval mongodb_read(lispval cursor,lispval howmany,lispval opts_arg)
       i++;}
     if (!(FD_VOIDP(opts_arg))) fd_decref(opts);
     if (sorted) {
-      if ((vec == NULL)||(n==0)) return fd_make_vector(0,NULL);
-      else results = fd_make_vector(n,vec);
+      if ( (vec == NULL) || (i == 0) )
+        return fd_make_vector(0,NULL);
+      else results = fd_make_vector(i,vec);
       if (vec) u8_free(vec);}
     return results;}
 }
 
-static lispval mongodb_readvec(lispval cursor,lispval howmany,lispval opts_arg)
+static lispval mongodb_cursor_read_vector(lispval cursor,lispval howmany,lispval opts_arg)
 {
   struct FD_MONGODB_CURSOR *c = (struct FD_MONGODB_CURSOR *)cursor;
   if (!(FD_UINTP(howmany))) return fd_type_error("uint","mongodb_skip",howmany);
   int n = FD_FIX2INT(howmany), i = 0;
-  if (n==0) return fd_make_vector(0,NULL);
+  if (n == 0) return fd_make_vector(0,NULL);
   else {
     lispval result = fd_make_vector(n,NULL);
     mongoc_cursor_t *scan = c->mongoc_cursor; const bson_t *doc;
-    lispval opts = c->cursor_opts;
-    int flags = c->cursor_flags;
+    int flags = getflags(opts_arg,c->cursor_flags);
+    lispval opts = combine_opts(opts_arg,c->cursor_opts);
     if (!(FD_VOIDP(opts_arg))) {
       flags = getflags(opts_arg,c->cursor_flags);
       opts = combine_opts(opts_arg,opts);}
-    while ((i<n)&&(mongoc_cursor_next(scan,&doc))) {
+    while ( (i < n) && (mongoc_cursor_next(scan,&doc)) ) {
       lispval dtype = fd_bson2dtype((bson_t *)doc,flags,opts);
       FD_VECTOR_SET(result,i,dtype);
       i++;}
@@ -2207,6 +2247,15 @@ FD_EXPORT lispval fd_bson_output(struct FD_BSON_OUTPUT out,lispval obj)
     int i = 0; FD_DO_CHOICES(elt,obj) {
       u8_byte buf[16]; sprintf(buf,"%d",i++);
       if (ok) ok = bson_append_dtype(out,buf,strlen(buf),elt);}}
+  else if (FD_SLOTMAPP(obj)) {
+    struct FD_SLOTMAP *smap = (fd_slotmap) obj;
+    int i = 0, n = smap->n_slots;
+    struct FD_KEYVAL *keyvals = smap->sm_keyvals;
+    while (i < n) {
+      lispval key = keyvals[i].kv_key;
+      lispval val = keyvals[i].kv_val;
+      ok = bson_append_keyval(out,key,val);
+      i++;}}
   else if (FD_TABLEP(obj)) {
     lispval keys = fd_getkeys(obj);
     {FD_DO_CHOICES(key,keys) {
@@ -2472,7 +2521,7 @@ static lispval bson_read_vector(FD_BSON_INPUT b)
       int len = lim-data;
       int newlen = ((len<16384)?(len*2):(len+16384));
       lispval *newdata = u8_realloc_n(data,newlen,lispval);
-      if (!(newdata)) u8_raise(fd_MallocFailed,"mongodb_read_vector",NULL);
+      if (!(newdata)) u8_raise(fd_MallocFailed,"mongodb_cursor_read_vector",NULL);
       write = newdata+(write-data); lim = newdata+newlen; data = newdata;}
     bson_read_step(r,FD_VOID,write); write++;}
   result = fd_make_vector(write-data,data);
@@ -2492,7 +2541,7 @@ static lispval bson_read_choice(FD_BSON_INPUT b)
       int len = lim-data;
       int newlen = ((len<16384)?(len*2):(len+16384));
       lispval *newdata = u8_realloc_n(data,newlen,lispval);
-      if (!(newdata)) u8_raise(fd_MallocFailed,"mongodb_read_vector",NULL);
+      if (!(newdata)) u8_raise(fd_MallocFailed,"mongodb_cursor_read_vector",NULL);
       write = newdata+(write-data); lim = newdata+newlen; data = newdata;}
     if (BSON_ITER_HOLDS_ARRAY(&child)) {
       *write++=bson_read_vector(r);}
@@ -2960,16 +3009,22 @@ FD_EXPORT int fd_init_mongodb()
   fd_idefn(module,fd_make_cprim3x("MONGODB/CURSOR",mongodb_cursor,2,
                                   -1,FD_VOID,-1,FD_VOID,
                                   -1,FD_VOID));
-  fd_idefn(module,fd_make_cprim3x("MONGODB/INSERT!",mongodb_insert,2,
-                                  fd_mongoc_collection,FD_VOID,
-                                  -1,FD_VOID,-1,FD_VOID));
+  fd_idefn3(module,"MONGODB/INSERT!",mongodb_insert,FD_NEEDS_2_ARGS|FD_NDCALL,
+            "(MONGODB/INSERT! *collection* *objects* *opts*)",
+            -1,FD_VOID,-1,FD_VOID,-1,FD_FALSE);
   fd_idefn(module,fd_make_cprim3x("MONGODB/REMOVE!",mongodb_remove,2,
                                   fd_mongoc_collection,FD_VOID,
                                   -1,FD_VOID,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim4x("MONGODB/UPDATE!",mongodb_update,2,
-                                  fd_mongoc_collection,FD_VOID,
-                                  -1,FD_VOID,-1,FD_VOID,
-                                  -1,FD_VOID));
+  fd_idefn4(module,"MONGODB/UPDATE!",mongodb_update,FD_NEEDS_2_ARGS,
+            "(MONGODB/UPDATE! *collection* *object* *opts*)",
+            fd_mongoc_collection,FD_VOID,
+            -1,FD_VOID,-1,FD_VOID,
+            -1,FD_VOID);
+  fd_idefn4(module,"MONGODB/UPDATE!",mongodb_upsert,FD_NEEDS_2_ARGS,
+            "(MONGODB/UPSERT! *collection* *object* *opts*)",
+            fd_mongoc_collection,FD_VOID,
+            -1,FD_VOID,-1,FD_VOID,
+            -1,FD_VOID);
   fd_idefn(module,fd_make_cprim3x("MONGODB/FIND",mongodb_find,2,
                                   fd_mongoc_collection,FD_VOID,
                                   -1,FD_VOID,-1,FD_VOID));
@@ -2993,15 +3048,18 @@ FD_EXPORT int fd_init_mongodb()
   fd_idefn(module,fd_make_cprim2x("MONGODB/SKIP",mongodb_skip,1,
                                   fd_mongoc_cursor,FD_VOID,
                                   fd_fixnum_type,FD_FIXNUM_ONE));
-  fd_idefn(module,fd_make_cprim3x("MONGODB/READ",mongodb_read,1,
+  fd_idefn(module,fd_make_cprim3x("CURSOR/READ",mongodb_cursor_read,1,
                                   fd_mongoc_cursor,FD_VOID,
                                   fd_fixnum_type,FD_FIXNUM_ONE,
                                   -1,FD_VOID));
-  fd_idefn(module,fd_make_cprim3x("MONGODB/READ->VECTOR",
-                                  mongodb_readvec,1,
+  fd_defalias(module,"MONGODB/READ","CURSOR/READ");
+
+  fd_idefn(module,fd_make_cprim3x("CURSOR->VECTOR",
+                                  mongodb_cursor_read_vector,1,
                                   fd_mongoc_cursor,FD_VOID,
                                   fd_fixnum_type,FD_FIXNUM_ONE,
                                   -1,FD_VOID));
+  fd_defalias(module,"MONGODB/READ->VECTOR","CURSOR->VECTOR");
 
   fd_idefn(module,fd_make_ndprim(fd_make_cprimn("MONGOVEC",mongovec_lexpr,0)));
   fd_idefn(module,fd_make_cprim1x("->MONGOVEC",make_mongovec,1,
@@ -3039,6 +3097,23 @@ FD_EXPORT int fd_init_mongodb()
   fd_register_config("MONGODB:LOGOPS",
                      "Default flags (fixnum) for MongoDB/BSON processing",
                      fd_boolconfig_get,fd_boolconfig_set,&logops);
+
+  fd_register_config("MONGODB:SSL",
+                     "Whether to default to SSL for MongoDB connections",
+                     fd_boolconfig_get,fd_boolconfig_set,
+                     &default_ssl);
+  fd_register_config("MONGODB:CERT",
+                     "Default certificate file to use for mongodb",
+                     fd_sconfig_get,fd_realpath_config_set,
+                     &default_certfile);
+  fd_register_config("MONGODB:CAFILE",
+                     "Default certificate file for use with MongoDB",
+                     fd_sconfig_get,fd_realpath_config_set,
+                     &default_cafile);
+  fd_register_config("MONGODB:CADIR",
+                     "Default certificate file directory for use with MongoDB",
+                     fd_sconfig_get,fd_realdir_config_set,
+                     &default_cadir);
 
   fd_finish_module(module);
 
