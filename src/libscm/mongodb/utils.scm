@@ -6,7 +6,8 @@
 (use-module '{mongodb logger varconfig engine})
 
 (module-export! '{mgo/index/list mgo/index/drop! mgo/index/add!
-		  collection/new collection/rename! collection/drop!
+		  collection/new 
+		  collection/rename! collection/copy! collection/drop!
 		  mgo/dropdb! 
 		  mgo/params/list mgo/params/get mgo/params/set!
 		  mongodb/copy-pool})
@@ -116,13 +117,23 @@
 
 (define (collection/rename! collection newname (db))
   (default! db (mongodb/getdb collection))
-  (mongodb/do db `#["renameCollection" 
-		    ,(glom (mongodb/name collection) "/" (collection/name collection))
-		    "to" ,newname]))
+  (mongodb/do db
+      `#["renameCollection" 
+	 ,(glom (mongodb/name collection) "/" (collection/name collection))
+	 "target" ,newname]))
 
 (define (collection/drop! collection (db))
   (default! db (mongodb/getdb collection))
   (mongodb/do db `#["drop" ,(collection/name collection)]))
+
+(define (collection/copy! source dest (opts #f) (batchsize))
+  (default! batchsize (getopt opts 'batchsize 200))
+  (let* ((cursor (mongodb/cursor source #[]))
+	 (batch (mongodb/read cursor batchsize))
+	 (seen {}))
+    (while (exists? batch)
+      (mongodb/insert! dest (reject batch '_id seen))
+      (set! batch (mongodb/read cursor batchsize)))))
 
 (define (mgo/dropdb! db dbname)
   (mongodb/do db #["dropDatabase" 1]))
@@ -161,3 +172,5 @@
 		`#[_id ,oid] `#[$set ,v]
 		`#[upsert #t new #t])))
 	(pool-elts input))))
+
+
