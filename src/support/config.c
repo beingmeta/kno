@@ -558,6 +558,39 @@ FD_EXPORT int fd_sconfig_set(lispval ignored,lispval v,void *vptr)
     return 1;}
   else return fd_reterr(fd_TypeError,"fd_sconfig_set",u8_strdup(_("string")),v);
 }
+FD_EXPORT int fd_realpath_config_set(lispval ignored,lispval v,void *vptr)
+{
+  u8_string *ptr = vptr;
+  if (STRINGP(v)) {
+    u8_string s = CSTRING(v);
+    /* We could allow alternates here, e.g. path1;path2;path3 */
+    if (!(u8_file_existsp(s)))
+      s = NULL;
+    else {}
+    if (s) {
+      if (*ptr) u8_free(*ptr);
+      *ptr = u8_strdup(s);
+      return 1;}
+    else return 0;}
+  else return fd_reterr(fd_TypeError,"fd_sconfig_set",u8_strdup(_("string")),v);
+}
+FD_EXPORT int fd_realdir_config_set(lispval ignored,lispval v,void *vptr)
+{
+  u8_string *ptr = vptr;
+  if (STRINGP(v)) {
+    u8_string s = CSTRING(v);
+    /* We could allow alternates here, e.g. path1;path2;path3 */
+    if (!(u8_directoryp(s)))
+      s = NULL;
+    else {}
+    if (s) {
+      if (*ptr) u8_free(*ptr);
+      *ptr = u8_strdup(s);
+      return 1;}
+    else return 0;}
+  else return fd_reterr(fd_TypeError,"fd_sconfig_set",u8_strdup(_("string")),v);
+}
+
 
 /* For configuration variables which get/set ints. */
 FD_EXPORT lispval fd_intconfig_get(lispval ignored,void *vptr)
