@@ -92,13 +92,15 @@ static lispval reqgetvar(lispval cgidata,lispval var)
 static lispval reqcall_prim(lispval proc)
 {
   lispval value = VOID;
-  if (FD_LAMBDAP(proc))
-    value=
-      fd_xapply_lambda((fd_lambda)proc,(void *)VOID,
-                      (lispval (*)(void *,lispval))reqgetvar);
-  else if (FD_APPLICABLEP(proc))
-    value = fd_apply(proc,0,NULL);
-  else value = fd_type_error("applicable","cgicall",proc);
+  if (!(FD_APPLICABLEP(proc)))
+    value = fd_type_error("applicable","cgicall",proc);
+  else {
+    lispval fn = fd_fcnid_ref(proc);
+    if (FD_LAMBDAP(fn))
+      value=fd_xapply_lambda((fd_lambda)fn,
+                             (void *)VOID,
+                             (lispval (*)(void *,lispval))reqgetvar);
+    else value = fd_apply(fn,0,NULL);}
   return value;
 }
 
