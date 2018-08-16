@@ -894,10 +894,8 @@ static lispval mongodb_insert(lispval arg,lispval objects,lispval opts_arg)
         u8_byte buf[1000];
         if (errno) u8_graberrno("mongodb_insert",NULL);
         fd_seterr(fd_MongoDB_Error,"mongodb_insert",
-                  u8_sprintf(buf,100,"%s>%s>%s:%s",
-                             db->dburi,db->dbname,
-                             domain->collection_name,
-                             error.message),
+                  u8_sprintf(buf,1000,"%s (%s>%s)",
+                             error.message,db->dburi,domain->collection_name),
                   fd_incref(objects));
         result = FD_ERROR_VALUE;}
       bson_destroy(&reply);}
@@ -911,14 +909,12 @@ static lispval mongodb_insert(lispval arg,lispval objects,lispval opts_arg)
       if (retval) {
         result = FD_TRUE;}
       else {
-        u8_byte buf[100];
+        u8_byte buf[1000];
         if (doc) bson_destroy(doc);
         if (errno) u8_graberrno("mongodb_insert",NULL);
         fd_seterr(fd_MongoDB_Error,"mongodb_insert",
-                  u8_sprintf(buf,100,"%s>%s>%s:%s",
-                             db->dburi,db->dbname,
-                             domain->collection_name,
-                             error.message),
+                  u8_sprintf(buf,1000,"%s (%s>%s)",
+                             error.message,db->dburi,domain->collection_name),
                   fd_incref(objects));
         result = FD_ERROR_VALUE;}
       if (wc) mongoc_write_concern_destroy(wc);}
@@ -972,13 +968,11 @@ static lispval mongodb_insert(lispval arg,lispval objects,lispval opts_arg)
       if (retval) {
         result = fd_bson2dtype(&reply,flags,opts);}
       else {
-        u8_byte buf[100];
+        u8_byte buf[1000];
         if (errno) u8_graberrno("mongodb_insert",NULL);
         fd_seterr(fd_MongoDB_Error,"mongodb_insert",
-                  u8_sprintf(buf,100,"%s>%s>%s:%s",
-                             db->dburi,db->dbname,
-                             domain->collection_name,
-                             error.message),
+                  u8_sprintf(buf,1000,"%s (%s>%s)",
+                             error.message,db->dburi,domain->collection_name),
                   fd_incref(objects));
         result = FD_ERROR_VALUE;}
       bson_destroy(&reply);}
@@ -989,14 +983,12 @@ static lispval mongodb_insert(lispval arg,lispval objects,lispval opts_arg)
       if (retval) {
         result = FD_TRUE;}
       else {
-        u8_byte buf[100];
+        u8_byte buf[1000];
         if (doc) bson_destroy(doc);
         if (errno) u8_graberrno("mongodb_insert",NULL);
         fd_seterr(fd_MongoDB_Error,"mongodb_insert",
-                  u8_sprintf(buf,100,"%s>%s>%s:%s",
-                             db->dburi,db->dbname,
-                             domain->collection_name,
-                             error.message),
+                  u8_sprintf(buf,1000,"%s (%s>%s)",
+                             error.message,db->dburi,domain->collection_name),
                   fd_incref(objects));
         result = FD_ERROR_VALUE;}}
     if (wc) mongoc_write_concern_destroy(wc);
@@ -1042,11 +1034,10 @@ static lispval mongodb_remove(lispval arg,lispval obj,lispval opts_arg)
                                  q.bson_doc,wc,&error)) {
       result = FD_TRUE;}
     else {
-      u8_byte buf[100];
+      u8_byte buf[1000];
       fd_seterr(fd_MongoDB_Error,"mongodb_remove",
-                u8_sprintf(buf,100,"%s>%s>%s:%s",
-                           db->dburi,db->dbname,domain->collection_name,
-                           error.message),
+                  u8_sprintf(buf,1000,"%s (%s>%s)",
+                             error.message,db->dburi,domain->collection_name),
                 fd_incref(obj));
       result = FD_ERROR_VALUE;}
     collection_done(collection,client,domain);
@@ -1092,26 +1083,23 @@ static lispval mongodb_updater(lispval arg,lispval query,lispval update,
     else if (no_error) {
       if ((q)&&(u))
         u8_logf(LOG_ERR,"mongodb_update",
-               "Error %s on %s>%s>%s with query\nquery =  %q\nupdate =  %q\nflags = %q",
-               error.message,db->dburi,db->dbname,
-               domain->collection_name,query,update,opts);
+               "Error on %s>%s: %s\n\twith query\nquery =  %q\nupdate =  %q\nflags = %q",
+                db->dburi,domain->collection_name,error.message,query,update,opts);
       else u8_logf(LOG_ERR,"mongodb_update",
-                  "Error %s on %s>%s>%s with query\nquery =  %q\nupdate =  %q\nflags = %q",
-                  error.message,db->dburi,db->dbname,
-                  domain->collection_name,query,update,opts);
+                   "Error on %s>%s:  %s\n\twith query\nquery =  %q\nupdate =  %q\nflags = %q",
+                   db->dburi,domain->collection_name,error.message,query,update,opts);
       return FD_FALSE;}
     else if ((q)&&(u)) {
-      u8_byte buf[100];
+      u8_byte buf[1000];
       fd_seterr(fd_MongoDB_Error,"mongodb_update/call",
-                u8_sprintf(buf,100,"%s>%s>%s:%s",
-                           db->dburi,db->dbname,domain->collection_name,
-                           error.message),
+                u8_sprintf(buf,1000,"%s (%s>%s)",
+                           error.message,db->dburi,domain->collection_name),
                 fd_make_pair(query,update));}
     else {
-      u8_byte buf[100];
+      u8_byte buf[1000];
       fd_seterr(fd_BSON_Error,"mongodb_update/prep",
-                u8_sprintf(buf,100,"%s>%s>%s:%s",
-                           db->dburi,db->dbname,domain->collection_name),
+                u8_sprintf(buf,1000,"%s (%s>%s)",
+                           error.message,db->dburi,domain->collection_name),
                 fd_make_pair(query,update));}
     return FD_ERROR_VALUE;}
   else {
@@ -1174,9 +1162,9 @@ static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
           FD_ADD_TO_CHOICE(results,r);}}
       mongoc_cursor_destroy(cursor);}
     else {
-      u8_byte buf[100];
+      u8_byte buf[1000];
       fd_seterr(fd_MongoDB_Error,"mongodb_find",
-                u8_sprintf(buf,100,
+                u8_sprintf(buf,1000,
                            "couldn't get query cursor over %q with options:\n%Q",
                            arg,opts),
                 fd_incref(query));
@@ -1359,10 +1347,8 @@ static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
         u8_byte buf[1000];
         if (errno) u8_graberrno("mongodb_count",NULL);
         fd_seterr(fd_MongoDB_Error,"mongodb_count",
-                  u8_sprintf(buf,100,"%s>%s>%s:%s",
-                             db->dburi,db->dbname,
-                             domain->collection_name,
-                             err.message),
+                  u8_sprintf(buf,1000,"%s (%s>%s)",
+                             errr.message,db->dburi,domain->collection_name),
                   fd_incref(query));
         result = FD_ERROR_VALUE;}
       if (rp) mongoc_read_prefs_destroy(rp);
@@ -1511,9 +1497,8 @@ static lispval mongodb_modify(lispval arg,lispval query,lispval update,
     else {
       u8_byte buf[1000];
       fd_seterr(fd_MongoDB_Error,"mongodb_modify",
-                u8_sprintf(buf,1000,"%s>%s>%s:%s",
-                           db->dburi,db->dbname,domain->collection_name,
-                           error.message),
+                u8_sprintf(buf,1000,"%s (%s>%s)",
+                           error.message,db->dburi,domain->collection_name),
                 fd_make_pair(query,update));
       result = FD_ERROR_VALUE;}
     collection_done(collection,client,domain);
@@ -2209,10 +2194,10 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
 static bool bson_append_keyval(FD_BSON_OUTPUT b,lispval key,lispval val)
 {
   int flags = b.bson_flags;
-  struct U8_OUTPUT keyout; unsigned char buf[256];
+  struct U8_OUTPUT keyout; unsigned char buf[1000];
   const char *keystring = NULL; int keylen; bool ok = true;
   lispval fieldmap = b.bson_fieldmap, store_value = val;
-  U8_INIT_OUTPUT_BUF(&keyout,256,buf);
+  U8_INIT_OUTPUT_BUF(&keyout,1000,buf);
   if (FD_VOIDP(val)) return 0;
   if (FD_SYMBOLP(key)) {
     if (flags&FD_MONGODB_SLOTIFY) {
@@ -2262,6 +2247,18 @@ static bool bson_append_keyval(FD_BSON_OUTPUT b,lispval key,lispval val)
     fd_unparse(&keyout,key);
     keystring = keyout.u8_outbuf;
     keylen = keyout.u8_write-keyout.u8_outbuf;}
+  /* Keys can't have periods in them, so we need to replace the
+     periods on write and replace them back on read. */
+  size_t new_len = 0, max_len = keylen+1;
+  u8_byte newbuf[max_len], *write = newbuf;
+  u8_string dotted = strchr(keystring,'.');
+  if ( (dotted) || (keystring[0] == '+') || (keystring[0] == '/') )  {
+    const u8_byte *scan = keystring, *limit = scan+keylen;
+    while (scan < limit) {
+      unsigned char c = *scan++;
+      if (c == '.') *write++ = 0x02;
+      else *write++ = c;}
+    keystring = newbuf;}
   if (store_value == val)
     ok = bson_append_dtype(b,keystring,keylen,val);
   else {
@@ -2372,8 +2369,18 @@ static void bson_read_step(FD_BSON_INPUT b,lispval into,lispval *loc)
 {
   bson_iter_t *in = b.bson_iter; int flags = b.bson_flags, symbolized = 0;
   const unsigned char *field = bson_iter_key(in);
+  const size_t field_len = strlen(field);
+  unsigned char tmpbuf[field_len+1];
+  if (strchr(field,0x02)) {
+    const unsigned char *read = field, *limit = read+field_len;
+    unsigned char *write = tmpbuf;
+    while ( read < limit ) {
+      unsigned char c = *read++;
+      if (c == 0x02) *write++='.'; else *write++=c;}
+    *write++='\0';
+    field = tmpbuf;}
   bson_type_t bt = bson_iter_type(in);
-  lispval slotid, value = FD_VOID;
+  lispval slotid, value;
   if ( (flags&FD_MONGODB_SLOTIFY) && (strchr(":(#@",field[0])!=NULL) )
     slotid = fd_parse_arg((u8_string)field);
   else if (flags&FD_MONGODB_SLOTIFY) {
