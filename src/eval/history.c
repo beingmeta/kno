@@ -21,6 +21,7 @@ static lispval history_symbol, histref_symbol;
   fd_hashtable_get((fd_hashtable)tbl,key,dflt)
 
 FD_EXPORT fd_history_resolvefn fd_resolve_histref;
+FD_EXPORT lispval fd_oid_value(lispval oid);
 
 /* Data stucture:
 
@@ -249,20 +250,6 @@ lispval fd_get_histref(lispval elts)
           if ( (improper) && ((off+1) == n_elts) )
             scan = scan;
           else scan = FD_CAR(scan);}}
-      else if (FD_SLOTMAPP(scan)) {
-        struct FD_SLOTMAP *sm = FD_XSLOTMAP(scan);
-        size_t n_slots = sm->n_slots;
-        ssize_t off = (rel_off>=0) ?  (rel_off) : (n_slots + rel_off);
-        if ( ( off < 0) || ( off >= n_slots ) )
-          return fd_err(fd_RangeError,"histref_evalfn",NULL,path);
-        else scan = sm->sm_keyvals[off].kv_val;}
-      else if (FD_SCHEMAPP(scan)) {
-        struct FD_SCHEMAP *sm = FD_XSCHEMAP(scan);
-        size_t n_slots = sm->schema_length;
-        ssize_t off = (rel_off>=0) ?  (rel_off) : (n_slots + rel_off);
-        if ( off >= sm->schema_length )
-          return fd_err(fd_RangeError,"histref_evalfn",NULL,path);
-        else scan = sm->schema_values[off];}
       else if (FD_SEQUENCEP(scan)) {
 	ssize_t n_elts = fd_seq_length(scan);
 	ssize_t off = (rel_off>=0) ?  (rel_off) : (n_elts + rel_off);
@@ -272,7 +259,23 @@ lispval fd_get_histref(lispval elts)
 	  lispval new_scan = fd_seq_elt(scan,off);
 	  fd_decref(scan);
 	  scan=new_scan;}}
-      else scan = FD_VOID;}
+      else {
+        if (FD_OIDP(scan)) scan = fd_oid_value(scan);
+        if (FD_SLOTMAPP(scan)) {
+          struct FD_SLOTMAP *sm = FD_XSLOTMAP(scan);
+          size_t n_slots = sm->n_slots;
+          ssize_t off = (rel_off>=0) ?  (rel_off) : (n_slots + rel_off);
+          if ( ( off < 0) || ( off >= n_slots ) )
+            return fd_err(fd_RangeError,"histref_evalfn",NULL,path);
+          else scan = sm->sm_keyvals[off].kv_val;}
+        else if (FD_SCHEMAPP(scan)) {
+          struct FD_SCHEMAP *sm = FD_XSCHEMAP(scan);
+          size_t n_slots = sm->schema_length;
+          ssize_t off = (rel_off>=0) ?  (rel_off) : (n_slots + rel_off);
+          if ( off >= sm->schema_length )
+            return fd_err(fd_RangeError,"histref_evalfn",NULL,path);
+          else scan = sm->schema_values[off];}
+        else scan = FD_VOID;}}
     else if (FD_STRINGP(path)) {
       if (FD_TABLEP(scan)) {
 	lispval v = fd_get(scan,path,FD_VOID);

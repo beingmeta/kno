@@ -3386,6 +3386,7 @@ FD_EXPORT void fd_init_regex_c(void);
 FD_EXPORT void fd_init_quasiquote_c(void);
 FD_EXPORT void fd_init_struct_eval_c(void);
 FD_EXPORT void fd_init_extdbprims_c(void);
+FD_EXPORT void fd_init_history_c(void);
 
 static void init_eval_core()
 {
@@ -3411,6 +3412,8 @@ static void init_eval_core()
   fd_init_reqstate_c();
 
   fd_init_regex_c();
+
+  fd_init_history_c();
 
   fd_init_coreprims_c();
   fd_init_stringprims_c();

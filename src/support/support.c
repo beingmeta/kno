@@ -169,7 +169,6 @@ void fd_init_startup_c(void);
 void fd_init_getopt_c(void);
 void fd_init_fluid_c(void);
 void fd_init_posix_c(void);
-void fd_init_history_c(void);
 
 FD_EXPORT void fd_init_support_c()
 {
@@ -185,7 +184,6 @@ FD_EXPORT void fd_init_support_c()
   fd_init_getopt_c();
   fd_init_fluid_c();
   fd_init_posix_c();
-  fd_init_history_c();
 
   fd_register_config
     ("MAXCHARS",_("Max number of chars to show in strings"),
