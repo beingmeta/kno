@@ -4181,11 +4181,13 @@ FD_EXPORT int fd_test(lispval arg,lispval key,lispval value)
   else if (fd_tablefns[argtype]->get) {
     lispval (*getfn)(lispval,lispval,lispval)=fd_tablefns[argtype]->get;
     DO_CHOICES(each,key) {
-      lispval values=getfn(arg,key,EMPTY);
+      lispval values=getfn(arg,each,EMPTY);
       if (VOIDP(value))
         if (EMPTYP(values))
           return 0;
-        else {fd_decref(values); return 1;}
+        else {
+          fd_decref(values);
+          return 1;}
       else if (EMPTYP(values)) {}
       else if (FD_EQ(value,values)) {
         fd_decref(values); return 1;}
