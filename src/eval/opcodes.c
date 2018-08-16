@@ -273,7 +273,7 @@ static lispval d1_dispatch(lispval opcode,lispval arg1)
       long long iarg = FIX2INT(arg1);
       return FD_INT(iarg+delta);}
     else if (NUMBERP(arg1))
-      return fd_plus(arg1,FIX2INT(-1));
+      return fd_plus(arg1,FD_INT(-1));
     else return fd_type_error(_("number"),"opcode 1+/-",arg1);
   case FD_NUMBERP_OPCODE:
     if (NUMBERP(arg1)) return FD_TRUE; else return FD_FALSE;
