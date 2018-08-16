@@ -182,8 +182,10 @@ static int list_result(struct U8_OUTPUT *out,lispval result,
     fd_pool p = fd_oid2pool(result);
     if (p) {
       lispval v = fd_oid_value(result);
-      u8_printf(out,";; %q %s\n",result,histref);
-      fd_list_object(out,v,NULL,histref,"",oid_listfn,width,detail);
+      u8_byte _label[64];
+      u8_string label = u8_sprintf(_label,64,"%q",result);
+      u8_printf(out,"%q\n",result);
+      fd_list_object(out,v,label,histref,"",oid_listfn,width,detail);
       u8_putc(out,'\n');
       u8_flush(out);
       return 1;}}

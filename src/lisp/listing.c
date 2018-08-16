@@ -90,8 +90,8 @@ static void list_table(u8_output out,lispval table,
     u8_printf(out,"#[]");
     return;}
   else if (show_keys < n_keys)
-    u8_printf(out,"#[ ;; %s (%d/%d slots)",U8S(label),show_keys,n_keys);
-  else u8_printf(out,"#[ ;; %s (%d slots)",U8S(label),n_keys);
+    u8_printf(out,"#[;; %s (%d/%d slots)",U8S(label),show_keys,n_keys);
+  else u8_printf(out,"#[;; %s (%d slots)",U8S(label),n_keys);
   DO_CHOICES(key,keys) {
     if (count >= show_keys) {
       FD_STOP_DO_CHOICES;
@@ -230,8 +230,8 @@ static int list_elements(u8_output out,
   if (label == NULL) label=pathref;
 
   if (n_elts == show_elts)
-    u8_printf(out,"%s ;;; %s (%d items)",start,U8S(label),n_elts);
-  else u8_printf(out,"%s ;;; %s (%d/%d items)",
+    u8_printf(out,"%s;; %s (%d items)",start,U8S(label),n_elts);
+  else u8_printf(out,"%s;; %s (%d/%d items)",
                  start,U8S(label),show_elts,n_elts);
 
   if (CHOICEP(result)) {
