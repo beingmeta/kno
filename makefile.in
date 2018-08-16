@@ -537,7 +537,7 @@ fresh: clean
 debug:
 	@if test $(BUILDMODE) != "debugging"; then echo debugging > .buildmode; fi
 	@make -s `cat .buildmode`
-standard:
+nodebug standard usable working:
 	@if test $(BUILDMODE) != "normal"; then echo normal > .buildmode; fi
 	@make -s `cat .buildmode`
 nitpick:
