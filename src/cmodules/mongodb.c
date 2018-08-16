@@ -358,7 +358,7 @@ static U8_MAYBE_UNUSED bson_t *getfindopts(lispval opts,int flags)
   if (FD_FIXNUMP(batch_arg))
     bson_append_dtype(out,"batchSize",9,batch_arg);
   else fd_decref(batch_arg);
-  if ((FD_CONSP(projection))&&(FD_TABLEP(projection))) {
+  if ( (FD_SYMBOLP(projection)) || (FD_CONSP(projection)) ) {
     struct FD_BSON_OUTPUT fields; bson_t proj;
     int ok = bson_append_document_begin(doc,"projection",10,&proj);
     if (ok) {
@@ -366,7 +366,17 @@ static U8_MAYBE_UNUSED bson_t *getfindopts(lispval opts,int flags)
       fields.bson_flags = ((flags<0)?(getflags(opts,FD_MONGODB_DEFAULTS)):(flags));
       fields.bson_opts = opts;
       fields.bson_fieldmap = out.bson_fieldmap;
-      fd_bson_output(fields,projection);
+      if (FD_SLOTMAPP(projection))
+        fd_bson_output(fields,projection);
+      else if (FD_SYMBOLP(projection))
+        bson_append_keyval(fields,projection,FD_INT(1));
+      else if (FD_STRINGP(projection))
+        bson_append_keyval(fields,projection,FD_INT(1));
+      else if (FD_CHOICEP(projection)) {
+        FD_DO_CHOICES(key,projection) {
+          if ( (FD_SYMBOLP(key)) || (FD_STRINGP(key)) )
+            bson_append_keyval(fields,key,FD_INT(1));}}
+      else {}
       bson_append_document_end(doc,&proj);}
     else {
       fd_seterr(fd_BSON_Error,"getfindopts(mongodb)",NULL,opts);
