@@ -1348,7 +1348,7 @@ static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
         if (errno) u8_graberrno("mongodb_count",NULL);
         fd_seterr(fd_MongoDB_Error,"mongodb_count",
                   u8_sprintf(buf,1000,"%s (%s>%s)",
-                             errr.message,db->dburi,domain->collection_name),
+                             err.message,db->dburi,domain->collection_name),
                   fd_incref(query));
         result = FD_ERROR_VALUE;}
       if (rp) mongoc_read_prefs_destroy(rp);
