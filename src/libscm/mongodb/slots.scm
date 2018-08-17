@@ -101,14 +101,14 @@
 	 (selector `#[_id ,(if (ambiguous? id) `#[$in ,id] id)])
 	 (result 
 	  (collection/modify! collection selector
-			      `#[$addToSet ,(get-add-modifier slotid values)]
+			      `#[$addToSet ,(get-multi-modifier slotid values)]
 			      #[new #t return #[__index 0]])))
     (if (oid? obj)
 	(update/oid! result)
 	(when (table? obj)
 	  (add! obj slotid values)))))
 
-(defambda (get-add-modifier slotids values)
+(defambda (get-multi-modifier slotids values)
   (if (unique? slotids)
       `#[,slotids ,(if (unique? values) values `#[$each ,values])]
       (let ((q (frame-create #f)))
@@ -123,20 +123,22 @@
 	 (selector `#[_id ,(if (ambiguous? id) `#[$in ,id] id)])
 	 (result 
 	  (if (bound? values)
-	      (collection/modify! collection selector
-				  (if (unique? values)
-				      `#[$pull ,(if (unique? slotid)
-						    `#[,slotid ,values]
-						    (get-store-modifier slotid values))]
-				      `#[$pullAll ,(if (unique? slotid)
-						       `#[,slotid ,values]
-						       (get-store-modifier slotid values)
-						       )])
-				  #[new #t return #[__index 0]])
+	      (collection/modify!
+	       collection selector
+	       (if (unique? values)
+		   `#[$pull ,(if (unique? slotid)
+				 `#[,slotid ,values]
+				 (get-store-modifier slotid values))]
+		   `#[$pullAll ,(if (unique? slotid)
+				    `#[,slotid ,values]
+				    (get-multi-modifier slotid values)
+				    )])
+	       #[new #t return #[__index 0]])
 	      (collection/modify! collection 
-				  `#[_id ,obj] (if (ambiguous? slotid)
-						   (get-drop-all-modifier slotid)
-						   `#[$unset #[,slotid 1]])
+				  `#[_id ,obj] 
+				  (if (ambiguous? slotid)
+				      (get-drop-all-modifier slotid)
+				      `#[$unset #[,slotid 1]])
 				  #[new #t return #[__index 0]]))))
     (if (oid? obj)
 	(update/oid! result)
