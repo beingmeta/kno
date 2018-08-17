@@ -1337,66 +1337,9 @@ lispval fd_parse(u8_string s)
   return fd_parser(&stream);
 }
 
-#if 0
-FD_EXPORT
-/* fd_parse_arg:
-     Arguments: a string
-     Returns: a lisp object
-
-     Parses a textual object representation into a lisp object.  This is
-     designed for command line arguments or other external contexts
-     (e.g. Windows registry entries).  The idea is to be able to easily
-     pass strings (without embedded double quotes) while still allowing
-     arbitrary expressions.  If the string starts with a parser-significant
-     character, the parser is called on it.  If the string starts with a ':',
-     the parser is called on the rest of the string (so you can refer to the
-     symbol FOO as ":foo").  If the string starts with a backslash, a lisp string
-     is created from the rest of the string.  Otherwise, a lisp string is
-     just created from the string.
-*/
-lispval fd_parse_arg(u8_string arg)
-{
-  if (*arg=='\0')
-    return lispval_string(arg);
-  else if (*arg == ':')
-    if (arg[1]=='\0')
-      return lispval_string(arg);
-    else {
-      lispval val = fd_parse(arg+1);
-      if (PARSE_ABORTP(val)) {
-        u8_log(LOG_WARN,fd_ParseArgError,"Bad colon spec arg '%s'",arg);
-        fd_clear_errors(1);
-        return lispval_string(arg);}
-      else return val;}
-  else if (*arg == '\\')
-    return lispval_string(arg+1);
-  else if (arg[0] == '\'')
-    return fd_symbolize(arg+1);
-  else if ((isdigit(arg[0])) ||
-           ((strchr("+-.",arg[0])) && (isdigit(arg[1]))) ||
-           ((arg[0]=='#') && (strchr("OoXxDdBbIiEe",arg[1])))) {
-    lispval num = fd_string2number(arg,-1);
-    if (NUMBERP(num)) return num;
-    else return lispval_string(arg);}
-  else if (strchr("@{#(\"|",arg[0])) {
-    lispval result;
-    struct U8_INPUT stream;
-    U8_INIT_STRING_INPUT((&stream),-1,arg);
-    result = fd_parser(&stream);
-    if (PARSE_ABORTP(result)) {
-      fd_clear_errors(1);
-      return lispval_string(arg);}
-    else if (fd_skip_whitespace(&stream)>0) {
-      /* If there's more than one object, take the whole arg as a string */
-      fd_decref(result);
-      return lispval_string(arg);}
-    else return result;}
-  else return lispval_string(arg);
-}
-#endif
 
 FD_EXPORT
-/* fd_parse_arg:
+/* fd_read_arg:
      Arguments: a string
      Returns: a lisp object
 
@@ -1418,6 +1361,7 @@ lispval fd_read_arg(u8_input in)
   if (c<0)
     return FD_EOF;
   else if (c == '\\') {
+    /* If it starts with a \, treat all of the input as one string */
     U8_STATIC_OUTPUT(all,120);
     c = u8_getc(in); c=u8_getc(in);
     while (c > 0) {
@@ -1425,6 +1369,8 @@ lispval fd_read_arg(u8_input in)
       c = u8_getc(in);}
     return fd_stream2string(allout);}
   else if ((c==':') || (c=='\'')) {
+    /* If it starts with a colon or single quote, call the parser, unless that's
+       the only character (in which case, treat it as a string) */
     c=u8_getc(in);
     int nextc=u8_probec(in);
     if (nextc<0) {
@@ -1453,6 +1399,7 @@ lispval fd_read_arg(u8_input in)
       if (tmpbuf.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpbuf.u8_outbuf);
       return result;}}
   else if ( (c < 0x80) && (strchr("@{#(\"|",c)) )
+    /* Parse an object */
     return fd_parser(in);
   else NO_ELSE;
   U8_STATIC_OUTPUT(all,120);
