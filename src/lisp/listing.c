@@ -257,7 +257,6 @@ static int list_elements(u8_output out,
       else {
         u8_printf(out,"\n  . ;; improper list");
         list_element(out,scan,pathref,count,elt_indent,listfn,width,depth+1);
-        list_element(out,scan,pathref,count,elt_indent,listfn,width,depth+1);
         scan = VOID;
         count++;
         break;}}
