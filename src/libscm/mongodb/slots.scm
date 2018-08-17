@@ -89,9 +89,9 @@
 	  (collection/modify! collection selector
 			      `#[$set `#[,slotid ,values]]
 			      #[new #t return #[__index 0]])))
-    (mgo/decache-index! slotid 
-			{(difference current values)
-			 (difference values current)})
+    (mongo/decache-index! slotid 
+			  {(difference current values)
+			   (difference values current)})
     (debug%watch "MGO/STORE!" 
       obj id slotid collection values "\n" result)
     (cond ((and (oid? obj) (modified? obj))
@@ -121,7 +121,7 @@
 			  `#[$addToSet ,(get-multi-modifier slotid values)]
 			  #[new #t return #[__index 0]]))
     (debug%watch "MGO/ADD!" obj id slotid collection values "\n" result)
-    (mgo/decache-index! slotid values)
+    (mongo/decache-index! slotid values)
     (cond ((and (oid? obj) (modified? obj))
 	   ;; Just write the new value
 	   (add! obj slotid values))
@@ -159,9 +159,9 @@
 	     collection selector
 	     `#[$pull #[,slotid ,(if (unique? values) values `#[$each ,values]),values]]
 	     #[new #t return #[__index 0]]))))
-    (mgo/decache-index! slotid 
-			{(difference current values)
-			 (difference values current)})
+    (mongo/decache-index! slotid 
+			  {(difference current values)
+			   (difference values current)})
     (cond ((and (oid? obj) (modified? obj))
 	   ;; Just write the new value
 	   (drop! obj slotid values))
