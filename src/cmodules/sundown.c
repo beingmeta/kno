@@ -81,7 +81,7 @@ FD_EXPORT int fd_init_sundown()
   if (sundown_init) return 0;
   /* u8_register_source_file(_FILEINFO); */
   sundown_init = 1;
-  sundown_module = fd_new_module("SUNDOWN",(FD_MODULE_SAFE));
+  sundown_module = fd_new_cmodule("SUNDOWN",(FD_MODULE_SAFE),fd_init_sundown);
 
   fd_idefn(sundown_module,
            fd_make_cprim2x("MARKDOWN->HTML",markdown2html_prim,1,

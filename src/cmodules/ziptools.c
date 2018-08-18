@@ -465,7 +465,8 @@ FD_EXPORT int fd_init_ziptools()
   if (ziptools_init) return 0;
 
   ziptools_init = u8_millitime();
-  ziptools_module = fd_new_module("ZIPTOOLS",(FD_MODULE_SAFE));
+  ziptools_module =
+    fd_new_cmodule("ZIPTOOLS",(FD_MODULE_SAFE),fd_init_ziptools);
 
   fd_zipfile_type = fd_register_cons_type("ZIPFILE");
 

@@ -522,7 +522,7 @@ FD_EXPORT int fd_init_odbc()
   odbc_initialized = 1;
   fd_init_scheme();
 
-  module = fd_new_module("ODBC",(0));
+  module = fd_new_cmodule("ODBC",(0),fd_init_odbc);
 
   odbc_handler.execute = odbcexechandler;
   odbc_handler.makeproc = odbcmakeprochandler;

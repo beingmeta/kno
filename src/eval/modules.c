@@ -311,7 +311,8 @@ static int load_dynamic_module(lispval spec,int safe,void *data)
                    errno,u8_strerror(errno),pname);
             errno = 0;}
           u8_threadcheck();
-          u8_free(module_filename); u8_free(name);
+          u8_free(module_filename);
+          u8_free(name);
           if (alt_name) u8_free(alt_name);
           if (mod) return 1; else return -1;}}}
     if (alt_name) u8_free(alt_name);

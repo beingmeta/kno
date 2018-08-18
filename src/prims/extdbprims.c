@@ -302,7 +302,7 @@ FD_EXPORT void fd_init_extdbprims_c()
   if (extdb_initialized) return;
   extdb_initialized = 1;
   fd_init_scheme();
-  extdb_module = fd_new_module("EXTDB",(0));
+  extdb_module = fd_new_cmodule("EXTDB",(0),fd_init_extdbprims_c);
   u8_register_source_file(_FILEINFO);
 
   u8_init_mutex(&extdb_handlers_lock);

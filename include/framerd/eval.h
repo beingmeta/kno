@@ -138,6 +138,7 @@ FD_EXPORT int fd_lock_exports(lispval module);
 
 FD_EXPORT lispval fd_find_module(lispval,int,int);
 FD_EXPORT lispval fd_new_module(char *name,int flags);
+FD_EXPORT lispval fd_new_cmodule(char *name,int flags,void *addr);
 
 FD_EXPORT lispval fd_use_module(fd_lexenv env,lispval module);
 

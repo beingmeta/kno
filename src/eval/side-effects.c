@@ -47,7 +47,8 @@ static lispval set_cdr(lispval pair,lispval value)
 
 FD_EXPORT void fd_init_side_effects_c()
 {
-  lispval module = fd_new_module("SIDE-EFFECTS",FD_MODULE_SAFE);
+  lispval module = fd_new_cmodule("SIDE-EFFECTS",FD_MODULE_SAFE,
+                                  fd_init_side_effects_c);
   fd_idefn(module,fd_make_cprim3x("VECTOR-SET!",vector_set,3,
                                   fd_vector_type,VOID,
                                   fd_fixnum_type,VOID,

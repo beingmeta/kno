@@ -178,7 +178,7 @@ FD_EXPORT int fd_init_qrcode()
 {
   lispval module;
   if (qrencode_init) return 0;
-  module = fd_new_module("QRCODE",0);
+  module = fd_new_cmodule("QRCODE",0,fd_init_qrcode);
   l_sym = fd_intern("L");
   m_sym = fd_intern("M");
   q_sym = fd_intern("Q");

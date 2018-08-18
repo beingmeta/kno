@@ -1285,8 +1285,8 @@ FD_EXPORT void fd_init_cgiexec_c()
   if (cgiexec_initialized) return;
   cgiexec_initialized = 1;
   fd_init_scheme();
-  module = fd_new_module("FDWEB",(0));
-  xhtmlout_module = fd_new_module("XHTML",FD_MODULE_SAFE);
+  module = fd_new_cmodule("FDWEB",(0),fd_init_cgiexec_c);
+  xhtmlout_module = fd_new_cmodule("XHTML",FD_MODULE_SAFE,fd_init_cgiexec_c);
 
   u8_init_mutex(&protected_cgi_lock);
 

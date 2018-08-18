@@ -267,7 +267,8 @@ FD_EXPORT void fd_init_procprims_c()
   if (scheme_procprims_initialized) return;
   scheme_procprims_initialized = 1;
   fd_init_scheme();
-  procprims_module = fd_new_module("PROCPRIMS",(FD_MODULE_DEFAULT));
+  procprims_module =
+    fd_new_cmodule("PROCPRIMS",(FD_MODULE_DEFAULT),fd_init_procprims_c);
   u8_register_source_file(_FILEINFO);
 
   fd_idefn(procprims_module,fd_make_cprim1("EXIT",exit_prim,0));

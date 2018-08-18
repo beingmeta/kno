@@ -1466,7 +1466,7 @@ FD_EXPORT int fd_init_mysql()
   u8_register_threadinit(init_thread_for_mysql);
   u8_register_threadexit(cleanup_thread_for_mysql);
 
-  module = fd_new_module("MYSQL",0);
+  module = fd_new_cmodule("MYSQL",0,fd_init_mysql);
 
   u8_init_mutex(&mysql_connect_lock);
 

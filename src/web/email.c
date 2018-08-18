@@ -133,7 +133,7 @@ static lispval mailout_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 
 void fd_init_email_c()
 {
-  lispval unsafe_module = fd_new_module("FDWEB",(0));
+  lispval unsafe_module = fd_new_cmodule("FDWEB",(0),fd_init_email_c);
 
   fd_idefn(unsafe_module,fd_make_cprim5("SMTP",smtp_function,3));
   fd_def_evalfn(unsafe_module,"MAILOUT","",mailout_evalfn);

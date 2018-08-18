@@ -259,7 +259,7 @@ FD_EXPORT int fd_init_tidy()
   dontfix_symbol = fd_intern("DONTFIX");
   xhtml_symbol = fd_intern("XHTML");
   wrap_symbol = fd_intern("WRAP");
-  tidy_module = fd_new_module("TIDY",(FD_MODULE_SAFE));
+  tidy_module = fd_new_cmodule("TIDY",(FD_MODULE_SAFE),fd_init_tidy);
 
   fd_idefn(tidy_module,
            fd_make_cprim3x("TIDY5",tidy_prim,1,

@@ -657,7 +657,7 @@ int fd_init_imagick()
   lispval imagick_module;
   if (imagick_init) return 0;
   else imagick_init = u8_millitime();
-  imagick_module = fd_new_module("IMAGICK",(FD_MODULE_SAFE));
+  imagick_module = fd_new_cmodule("IMAGICK",(FD_MODULE_SAFE),fd_init_imagick);
 
   fd_imagick_type = fd_register_cons_type("IMAGICK");
   fd_unparsers[fd_imagick_type]=unparse_imagick;

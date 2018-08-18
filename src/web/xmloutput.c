@@ -1162,12 +1162,9 @@ static u8_string markup_printf_handler
 
 FD_EXPORT void fd_init_xmloutput_c()
 {
-  lispval fdweb_module=
-    fd_new_module("FDWEB",(0));
-  lispval safe_fdweb_module=
-    fd_new_module("FDWEB",(FD_MODULE_SAFE));
-  lispval xhtml_module=
-    fd_new_module("XHTML",FD_MODULE_SAFE);
+  lispval fdweb_module = fd_new_module("FDWEB",(0));
+  lispval safe_fdweb_module = fd_new_module("FDWEB",(FD_MODULE_SAFE));
+  lispval xhtml_module = fd_new_module("XHTML",FD_MODULE_SAFE);
 
   lispval markup_prim = fd_make_evalfn("markup",markup_evalfn);
   lispval markupstar_prim = fd_make_evalfn("markup*",markupstar_evalfn);

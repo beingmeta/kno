@@ -2541,7 +2541,8 @@ void fd_init_texttools()
   if (texttools_init) return;
   u8_register_source_file(_FILEINFO);
   texttools_init = fdscheme_version;
-  texttools_module = fd_new_module("TEXTTOOLS",(FD_MODULE_SAFE));
+  texttools_module =
+    fd_new_cmodule("TEXTTOOLS",(FD_MODULE_SAFE),fd_init_texttools);
   fd_init_match_c();
   fd_init_phonetic_c();
   fd_idefn(texttools_module,fd_make_cprim1("MD5",md5_prim,1));

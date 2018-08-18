@@ -155,7 +155,8 @@ FD_EXPORT void fd_init_driverfns_c()
   scheme_driverfns_initialized = 1;
   fd_init_scheme();
   fd_init_drivers();
-  driverfns_module = fd_new_module("DRIVERFNS",(FD_MODULE_DEFAULT));
+  driverfns_module = fd_new_cmodule("DRIVERFNS",(FD_MODULE_DEFAULT),
+                                    fd_init_driverfns_c);
   u8_register_source_file(_FILEINFO);
 
   fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-SLOTIDS",index_slotids,1));

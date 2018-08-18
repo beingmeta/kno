@@ -278,7 +278,7 @@ FD_EXPORT int fd_init_exif()
   if (exif_init) return 0;
   /* u8_register_source_file(_FILEINFO); */
   exif_init = u8_millitime();
-  exif_module = fd_new_module("EXIF",(FD_MODULE_SAFE));
+  exif_module = fd_new_cmodule("EXIF",(FD_MODULE_SAFE),fd_init_exif);
   FD_INIT_STATIC_CONS(&exif_tagmap,fd_hashtable_type);
   fd_make_hashtable(&exif_tagmap,139);
   while (scan->tagname) {

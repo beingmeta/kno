@@ -2259,7 +2259,7 @@ FD_EXPORT int fd_init_x2vec_c()
 
   init_x2vec_symbols();
 
-  module=fd_new_module("X2VEC",(FD_MODULE_SAFE));
+  module=fd_new_cmodule("X2VEC",(FD_MODULE_SAFE),fd_init_x2vec_c);
 
   fd_idefn(module,fd_make_cprim3("X2VEC/START",x2vec_start_prim,1));
   fd_idefn(module,fd_make_cprim3("X2VEC/MSTART",x2vec_modular_start_prim,1));

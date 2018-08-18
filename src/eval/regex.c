@@ -225,7 +225,7 @@ FD_EXPORT int fd_init_regex_c()
   if (regex_init) return 0;
 
   regex_init = 1;
-  regex_module = fd_new_module("REGEX",(FD_MODULE_SAFE));
+  regex_module = fd_new_cmodule("REGEX",(FD_MODULE_SAFE),fd_init_regex_c);
 
   fd_idefn(regex_module,
            fd_make_cprim3x("REGEX",make_regex,1,

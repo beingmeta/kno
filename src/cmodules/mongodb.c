@@ -2960,7 +2960,7 @@ FD_EXPORT int fd_init_mongodb()
 
   init_mongo_opmap();
 
-  module = fd_new_module("MONGODB",(FD_MODULE_SAFE));
+  module = fd_new_cmodule("MONGODB",(FD_MODULE_SAFE),fd_init_mongodb);
 
   idsym = fd_intern("_ID");
   maxkey = fd_intern("mongomax");

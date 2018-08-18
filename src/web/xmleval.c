@@ -1746,7 +1746,6 @@ static int xmleval_initialized = 0;
 
 FD_EXPORT void fd_init_xmleval_c()
 {
-  /* lispval module = fd_new_module("FDWEB",(FD_MODULE_SAFE)); */
   if (xmleval_initialized) return;
   xmleval_initialized = 1;
   fd_init_scheme();

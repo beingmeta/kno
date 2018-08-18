@@ -432,7 +432,7 @@ FD_EXPORT int fd_init_libarchive()
     return libarchive_initialized;
   else libarchive_initialized = u8_millitime();
 
-  module = fd_new_module("LIBARCHIVE",0);
+  module = fd_new_cmodule("LIBARCHIVE",0,fd_init_libarchive);
 
   fd_libarchive_type = fd_register_cons_type("archive");
   fd_unparsers[fd_libarchive_type] = unparse_archive;

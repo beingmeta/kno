@@ -788,7 +788,7 @@ FD_EXPORT int fd_init_sqlite()
 {
   lispval module;
   if (sqlite_init) return 0;
-  module = fd_new_module("SQLITE",0);
+  module = fd_new_cmodule("SQLITE",0,fd_init_sqlite);
 
   sqlite_handler.execute = sqliteexechandler;
   sqlite_handler.makeproc = sqlitemakeprochandler;

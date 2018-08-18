@@ -878,7 +878,8 @@ static lispval get_all_modules_prim()
 
 FD_EXPORT void fd_init_reflection_c()
 {
-  lispval module = fd_new_module("REFLECTION",FD_MODULE_SAFE);
+  lispval module =
+    fd_new_cmodule("REFLECTION",FD_MODULE_SAFE,fd_init_reflection_c);
 
   lispval apropos_cprim = fd_make_cprim1("APROPOS",apropos_prim,1);
   fd_idefn(module,apropos_cprim);

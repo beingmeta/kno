@@ -772,7 +772,8 @@ FD_EXPORT void fd_init_streamprims_c()
   scheme_streamprims_initialized = 1;
   fd_init_scheme();
   fd_init_drivers();
-  streamprims_module = fd_new_module("STREAMPRIMS",(FD_MODULE_DEFAULT));
+  streamprims_module =
+    fd_new_cmodule("STREAMPRIMS",(FD_MODULE_DEFAULT),fd_init_streamprims_c);
   u8_register_source_file(_FILEINFO);
 
   fd_idefn3(fd_scheme_module,"READ-DTYPE",read_dtype,1,

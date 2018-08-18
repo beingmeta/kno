@@ -698,7 +698,7 @@ FD_EXPORT void fd_init_loader_c()
   if (scheme_loader_initialized) return;
   scheme_loader_initialized = 1;
   fd_init_scheme();
-  loader_module = fd_new_module("LOADER",(FD_MODULE_DEFAULT));
+  loader_module = fd_new_cmodule("LOADER",(FD_MODULE_DEFAULT),fd_init_loader_c);
   u8_register_source_file(_FILEINFO);
 
   u8_init_mutex(&load_record_lock);

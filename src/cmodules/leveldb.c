@@ -2390,7 +2390,7 @@ FD_EXPORT int fd_init_leveldb()
   fd_tablefns[fd_leveldb_type]->get = leveldb_table_get;
   fd_tablefns[fd_leveldb_type]->store = leveldb_table_store;
 
-  module = fd_new_module("LEVELDB",0);
+  module = fd_new_cmodule("LEVELDB",0,fd_init_leveldb);
 
   fd_idefn(module,fd_make_cprim2x("LEVELDB/OPEN",leveldb_open_prim,1,
                                   fd_string_type,FD_VOID,

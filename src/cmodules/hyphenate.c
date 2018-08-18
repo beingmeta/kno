@@ -270,7 +270,8 @@ FD_EXPORT int fd_init_hyphenate()
              dictfile);}
     u8_free(dictfile);}
 
-  hyphenate_module = fd_new_module("HYPHENATE",(FD_MODULE_SAFE));
+  hyphenate_module =
+    fd_new_cmodule("HYPHENATE",(FD_MODULE_SAFE),fd_init_hyphenate);
 
   fd_idefn(hyphenate_module,
            fd_make_cprim1x("HYPHENATE-WORD",

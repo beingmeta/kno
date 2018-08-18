@@ -2399,7 +2399,7 @@ FD_EXPORT int fd_init_rocksdb()
   fd_tablefns[fd_rocksdb_type]->get = rocksdb_table_get;
   fd_tablefns[fd_rocksdb_type]->store = rocksdb_table_store;
 
-  module = fd_new_module("ROCKSDB",0);
+  module = fd_new_cmodule("ROCKSDB",0,fd_init_rocksdb);
 
   fd_idefn(module,fd_make_cprim2x("ROCKSDB/OPEN",rocksdb_open_prim,1,
                                   fd_string_type,FD_VOID,

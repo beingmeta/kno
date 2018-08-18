@@ -1567,7 +1567,8 @@ FD_EXPORT void fd_init_fileprims_c()
   if (scheme_fileio_initialized) return;
   scheme_fileio_initialized = 1;
   fd_init_scheme();
-  fileio_module = fd_new_module("FILEIO",(FD_MODULE_DEFAULT));
+  fileio_module =
+    fd_new_cmodule("FILEIO",(FD_MODULE_DEFAULT),fd_init_fileprims_c);
   u8_register_source_file(_FILEINFO);
 
 

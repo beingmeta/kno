@@ -195,7 +195,7 @@ FD_EXPORT int fd_init_crypto()
   if (crypto_init) return 0;
 
   crypto_init = u8_millitime();
-  crypto_module = fd_new_module("CRYPTO",(FD_MODULE_SAFE));
+  crypto_module = fd_new_cmodule("CRYPTO",(FD_MODULE_SAFE),fd_init_crypto);
 
   u8_init_cryptofns();
 

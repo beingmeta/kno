@@ -142,7 +142,7 @@ FD_EXPORT int fd_init_zlib()
   if (zlib_init) return 0;
 
   zlib_init = u8_millitime();
-  zlib_module = fd_new_module("ZLIB",(FD_MODULE_SAFE));
+  zlib_module = fd_new_cmodule("ZLIB",(FD_MODULE_SAFE),fd_init_zlib);
 
   fd_idefn(zlib_module,
            fd_make_cprim2("ZLIB/COMPRESS",zlib_compress_prim,1));

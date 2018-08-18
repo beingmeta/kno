@@ -154,7 +154,7 @@ FD_EXPORT int fd_init_gperftools()
 {
   if (gperftools_init) return 0;
   gperftools_init = u8_millitime();
-  lispval gperftools_module = fd_new_module("GPERFTOOLS",0);
+  lispval gperftools_module = fd_new_cmodule("GPERFTOOLS",0,fd_init_gperftools);
 
   fd_add_sensor(fd_intern("MALLOCD"),mallocd_sensor());
   fd_add_sensor(fd_intern("HEAPSIZE"),heapsize_sensor());
