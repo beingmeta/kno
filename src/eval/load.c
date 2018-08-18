@@ -79,42 +79,6 @@ FD_EXPORT void fd_register_sourcefn
   u8_unlock_mutex(&sourcefns_lock);
 }
 
-/* Tracking the current source base */
-
-#if FD_USE_TLS
-static u8_tld_key sourcebase_key;
-FD_EXPORT u8_string fd_sourcebase()
-{
-  return u8_tld_get(sourcebase_key);
-}
-static u8_string bind_sourcebase(u8_string push)
-{
-  u8_string current = u8_tld_get(sourcebase_key);
-  u8_tld_set(sourcebase_key,push);
-  return current;
-}
-static void restore_sourcebase(u8_string old)
-{
-  u8_tld_set(sourcebase_key,old);
-}
-#else
-static __thread u8_string sourcebase;
-FD_EXPORT u8_string fd_sourcebase()
-{
-  return sourcebase;
-}
-static u8_string bind_sourcebase(u8_string push)
-{
-  u8_string current = sourcebase;
-  sourcebase = push;
-  return current;
-}
-static void restore_sourcebase(u8_string old)
-{
-  sourcebase = old;
-}
-#endif
-
 static lispval loading_symbol;
 
 #define LOAD_CONTEXT_SIZE 40
@@ -122,7 +86,7 @@ static lispval loading_symbol;
 FD_EXPORT lispval fd_load_stream(u8_input loadstream,fd_lexenv env,
                                  u8_string sourcebase)
 {
-  u8_string outer_sourcebase = bind_sourcebase(sourcebase);
+  u8_string outer_sourcebase = fd_bind_sourcebase(sourcebase);
   double start = u8_elapsed_time();
   struct FD_STACK *_stack = fd_stackptr;
   lispval postload = VOID;
@@ -162,7 +126,7 @@ FD_EXPORT lispval fd_load_stream(u8_input loadstream,fd_lexenv env,
                  ((ex->u8x_context)?(ex->u8x_context):((u8_string)"")),
                  ((ex->u8x_details)?(ex->u8x_details):((u8_string)"")),
                  sourcebase,expr);}
-        restore_sourcebase(outer_sourcebase);
+        fd_restore_sourcebase(outer_sourcebase);
         fd_decref(last_expr); last_expr = VOID;
         fd_decref(expr);
         fd_pop_stack(load_stack);
@@ -217,7 +181,7 @@ FD_EXPORT lispval fd_load_stream(u8_input loadstream,fd_lexenv env,
                   "Postload method is not applicable: ",
                   postload);}
     fd_decref(postload);
-    restore_sourcebase(outer_sourcebase);
+    fd_restore_sourcebase(outer_sourcebase);
     if (last_expr == expr) {
       fd_decref(last_expr);
       last_expr = VOID;}
@@ -269,42 +233,6 @@ static u8_string get_component(u8_string spec)
   else return u8_strdup(spec);
 }
 
-FD_EXPORT
-/* fd_get_component:
-    Arguments: a utf8 string identifying a filename
-    Returns: a utf8 string identifying a filename
-  Interprets a relative pathname with respect to the directory
-   of the current file being loaded.
-*/
-u8_string fd_get_component(u8_string spec)
-{
-  u8_string base = fd_sourcebase();
-  if (base) return u8_realpath(spec,base);
-  else return u8_strdup(spec);
-}
-
-FD_EXPORT
-/* fd_bind_sourcebase:
-      Arguments: a UTF-8 string
-      Returns: a UTF-8 string
-  This dynamically binds the sourcebase, which indicates
- the "current file" and is used by functions like load-component
- and get-component. */
-u8_string fd_bind_sourcebase(u8_string sourcebase)
-{
-  return bind_sourcebase(sourcebase);
-}
-
-FD_EXPORT
-/* fd_restore_sourcebase:
-      Arguments: a UTF-8 string
-      Returns: void
-  Restores the previous sourcebase, passed as an argument. */
-void fd_restore_sourcebase(u8_string sourcebase)
-{
-  restore_sourcebase(sourcebase);
-}
-
 /* Loading config files */
 
 static int trace_config_load = 0;
@@ -316,7 +244,7 @@ FD_EXPORT int fd_load_config(u8_string sourceid)
   u8_string content = fd_get_source(sourceid,NULL,&sourcebase,NULL);
   if (content == NULL) return -1;
   else if (sourcebase) {
-    outer_sourcebase = bind_sourcebase(sourcebase);}
+    outer_sourcebase = fd_bind_sourcebase(sourcebase);}
   else outer_sourcebase = NULL;
   U8_INIT_STRING_INPUT((&stream),-1,content);
   if ((trace_load)||(trace_config_load))
@@ -326,7 +254,7 @@ FD_EXPORT int fd_load_config(u8_string sourceid)
   if (trace_load)
     u8_log(LOG_NOTICE,FileLoad,"Loaded config %s",sourcebase);
   if (sourcebase) {
-    restore_sourcebase(outer_sourcebase);
+    fd_restore_sourcebase(outer_sourcebase);
     u8_free(sourcebase);}
   u8_free(content);
   return retval;
@@ -339,7 +267,7 @@ FD_EXPORT int fd_load_default_config(u8_string sourceid)
   u8_string content = fd_get_source(sourceid,NULL,&sourcebase,NULL);
   if (content == NULL) return -1;
   else if (sourcebase) {
-    outer_sourcebase = bind_sourcebase(sourcebase);}
+    outer_sourcebase = fd_bind_sourcebase(sourcebase);}
   else outer_sourcebase = NULL;
   U8_INIT_STRING_INPUT((&stream),-1,content);
   if ((trace_load)||(trace_config_load))
@@ -349,7 +277,7 @@ FD_EXPORT int fd_load_default_config(u8_string sourceid)
   if (trace_load)
     u8_log(LOG_NOTICE,FileLoad,"Loaded config %s",sourcebase);
   if (sourcebase) {
-    restore_sourcebase(outer_sourcebase);
+    fd_restore_sourcebase(outer_sourcebase);
     u8_free(sourcebase);}
   u8_free(content);
   return retval;

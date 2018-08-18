@@ -208,11 +208,6 @@ FD_EXPORT lispval fd_load_source
 FD_EXPORT lispval fd_load_source_with_date
   (u8_string sourceid,fd_lexenv env,u8_string enc_name,time_t *modtime);
 
-FD_EXPORT u8_string fd_sourcebase();
-FD_EXPORT u8_string fd_get_component(u8_string spec);
-FD_EXPORT u8_string fd_bind_sourcebase(u8_string sourcebase);
-FD_EXPORT void fd_restore_sourcebase(u8_string sourcebase);
-
 typedef struct FD_CONFIG_RECORD {
   u8_string config_filename;
   struct FD_CONFIG_RECORD *loaded_after;} FD_CONFIG_RECORD;

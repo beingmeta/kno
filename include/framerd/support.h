@@ -40,7 +40,7 @@ FD_EXPORT int fd_default_config(u8_string var,lispval val);
 FD_EXPORT int fd_set_config_consed(u8_string var,lispval val);
 #define fd_config_set(var,val) fd_set_config(var,val)
 #define fd_config_set_consed(var,val) fd_set_config_consed(var,val)
-#define fd_default_config(var,val) fd_default_config(var,val)
+#define fd_config_default(var,val) fd_default_config(var,val)
 
 FD_EXPORT int fd_readonly_config_set(lispval ignored,lispval v,void *p);
 
@@ -187,6 +187,13 @@ FD_EXPORT struct sigaction *fd_sigaction_abort;
 FD_EXPORT struct sigaction *fd_sigaction_default;
 
 FD_EXPORT sigset_t *fd_default_sigmask;
+
+/* Sourcebase functions */
+
+FD_EXPORT u8_string fd_sourcebase();
+FD_EXPORT u8_string fd_get_component(u8_string spec);
+FD_EXPORT u8_string fd_bind_sourcebase(u8_string sourcebase);
+FD_EXPORT void fd_restore_sourcebase(u8_string sourcebase);
 
 #endif /* #ifndef FRAMERD_SUPPORT_H */
 

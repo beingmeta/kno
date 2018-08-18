@@ -151,7 +151,8 @@ SUPPORT_OBJS=						\
 	src/support/config.o src/support/errobjs.o	\
 	src/support/logging.o src/support/getopt.o	\
 	src/support/startup.o src/support/fluid.o 	\
-	src/support/signals.o src/support/posix.o
+	src/support/signals.o src/support/posix.o 	\
+	src/support/sourcebase.o
 
 APPLY_OBJS=\
 	src/apply/apply.o src/apply/stacks.o 			\
@@ -391,7 +392,7 @@ FRAMERD_SOURCES=\
 	src/lisp/tables.c src/lisp/compounds.c 					\
         src/lisp/bufio.c src/lisp/dtread.c src/lisp/dtread.c 			\
 	src/lisp/parse.c src/lisp/unparse.c src/lisp/lisp.c 			\
-	src/support/buildinfo.c 						\
+	src/support/buildinfo.c src/support/sourcebase.c			\
 	src/support/support.c src/support/config.c src/support/posix.c		\
 	src/support/errobjs.c src/support/logging.c src/support/getopt.c	\
 	src/support/startup.c src/support/fluid.c src/support/signals.c		\
