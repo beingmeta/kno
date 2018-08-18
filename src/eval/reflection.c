@@ -21,7 +21,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-static lispval moduleid_symbol;
+static lispval moduleid_symbol, source_symbol;
 
 #define GETEVALFN(x) ((fd_evalfn)(fd_fcnid_ref(x)))
 
@@ -86,6 +86,11 @@ static lispval procedure_name(lispval x)
     if (sf->evalfn_name)
       return lispval_string(sf->evalfn_name);
     else return FD_FALSE;}
+  else if (TYPEP(x,fd_macro_type)) {
+    struct FD_MACRO *m = (fd_macro) x;
+    if (m->macro_name)
+      return lispval_string(m->macro_name);
+    else return FD_FALSE;}
   else return fd_type_error(_("function"),"procedure_name",x);
 }
 
@@ -101,6 +106,11 @@ static lispval procedure_filename(lispval x)
     struct FD_EVALFN *sf = GETEVALFN(x);
     if (sf->evalfn_filename)
       return lispval_string(sf->evalfn_filename);
+    else return FD_FALSE;}
+  else if (TYPEP(x,fd_macro_type)) {
+    struct FD_MACRO *m = (fd_macro) x;
+    if (m->macro_filename)
+      return lispval_string(m->macro_filename);
     else return FD_FALSE;}
   else return fd_type_error(_("function"),"procedure_filename",x);
 }
@@ -546,14 +556,6 @@ static lispval module_bindings(lispval arg)
     return fd_getkeys(envptr->env_bindings);}
   else if (TABLEP(arg))
     return fd_getkeys(arg);
-  else if (SYMBOLP(arg)) {
-    lispval module = fd_get_module(arg,1);
-    if (VOIDP(module))
-      return fd_type_error(_("module"),"module_bindings",arg);
-    else {
-      lispval v = module_bindings(module);
-      fd_decref(module);
-      return v;}}
   else return fd_type_error(_("module"),"module_bindings",arg);
 }
 
@@ -562,17 +564,13 @@ static lispval module_getsource(lispval arg)
   lispval ids = FD_EMPTY;
   if (FD_LEXENVP(arg)) {
     fd_lexenv envptr = fd_consptr(fd_lexenv,arg,fd_lexenv_type);
-    ids = fd_get(envptr->env_bindings,moduleid_symbol,FD_VOID);}
-  else if (TABLEP(arg))
-    ids = fd_get(arg,moduleid_symbol,FD_VOID);
-  else if (SYMBOLP(arg)) {
-    lispval module = fd_get_module(arg,1);
-    if (VOIDP(module))
-      return fd_type_error(_("module"),"module_bindings",arg);
-    else {
-      lispval source = module_getsource(module);
-      fd_decref(module);
-      return source;}}
+    ids = fd_get(envptr->env_bindings,source_symbol,FD_VOID);
+    if (FD_VOIDP(ids))
+      ids = fd_get(envptr->env_bindings,moduleid_symbol,FD_VOID);}
+  else if (TABLEP(arg)) {
+    ids = fd_get(arg,source_symbol,FD_VOID);
+    if (FD_VOIDP(ids))
+      ids = fd_get(arg,moduleid_symbol,FD_VOID);}
   else return fd_type_error(_("module"),"module_bindings",arg);
   if (FD_VOIDP(ids))
     return FD_FALSE;
@@ -609,8 +607,10 @@ static lispval module_exports(lispval arg)
   else if (TABLEP(arg))
     return fd_getkeys(arg);
   else if (SYMBOLP(arg)) {
-    lispval module = fd_get_module(arg,1);
-    if (VOIDP(module))
+    lispval module = fd_find_module(arg,0,1);
+    if (FD_ABORTP(module))
+      return module;
+    else if (VOIDP(module))
       return fd_type_error(_("module"),"module_exports",arg);
     else {
       lispval v = module_exports(module);
@@ -886,6 +886,7 @@ FD_EXPORT void fd_init_reflection_c()
   fd_defn(fd_scheme_module,apropos_cprim);
 
   moduleid_symbol = fd_intern("%MODULEID");
+  source_symbol = fd_intern("%SOURCE");
   call_profile_symbol = fd_intern("%CALLPROFILE");
 
   fd_idefn1(module,"MACRO?",macrop,1,
