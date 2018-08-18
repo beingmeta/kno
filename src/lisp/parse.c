@@ -1160,8 +1160,27 @@ lispval fd_parser(u8_input in)
       return parse_packet(in,ch);
     case '/': return parse_regex(in);
     case '>':
+      /* This sequence #> is used as decoration in slotmaps. It
+         doesn't read as anything. */
       return fd_parser(in);
     case '<': return parse_opaque(in);
+    case ':': {
+      int label_length = 0, escaped = 0;
+      U8_STATIC_OUTPUT(label,200);
+      u8_putc(labelout,'#');
+      ch = u8_getc(in);
+      while ( ( ch >= 0 ) && (label_length < 42) &&
+              (strchr("{(\":'`#",ch) == NULL) ) {
+        int uch = u8_toupper(ch);
+        u8_putc(labelout,uch);
+        ch = u8_getc(in);
+        label_length++;}
+      if ( (strchr("{(\":;'`#",ch) == NULL) || (label_length >= 42) ) {
+        u8_seterr("Unclosed Reader Macro","fd_parser",NULL);
+        return FD_PARSE_ERROR;}
+      if (! ( (ch == ':') || (ch == ':') ) ) u8_ungetc(in,ch);
+      lispval sym = fd_intern(label.u8_outbuf), next = fd_parser(in);
+      return fd_make_list(2,sym,next);}
     case ';': {
       lispval content = fd_parser(in);
       if (PARSE_ABORTP(content))
