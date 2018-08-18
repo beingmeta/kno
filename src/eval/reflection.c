@@ -557,6 +557,35 @@ static lispval module_bindings(lispval arg)
   else return fd_type_error(_("module"),"module_bindings",arg);
 }
 
+static lispval module_getsource(lispval arg)
+{
+  lispval ids = FD_EMPTY;
+  if (FD_LEXENVP(arg)) {
+    fd_lexenv envptr = fd_consptr(fd_lexenv,arg,fd_lexenv_type);
+    ids = fd_get(envptr->env_bindings,moduleid_symbol,FD_VOID);}
+  else if (TABLEP(arg))
+    ids = fd_get(arg,moduleid_symbol,FD_VOID);
+  else if (SYMBOLP(arg)) {
+    lispval module = fd_get_module(arg,1);
+    if (VOIDP(module))
+      return fd_type_error(_("module"),"module_bindings",arg);
+    else {
+      lispval source = module_getsource(module);
+      fd_decref(module);
+      return source;}}
+  else return fd_type_error(_("module"),"module_bindings",arg);
+  if (FD_VOIDP(ids))
+    return FD_FALSE;
+  else {
+    FD_DO_CHOICES(id,ids) {
+      if (FD_STRINGP(id)) {
+        fd_incref(id);
+        fd_decref(ids);
+        FD_STOP_DO_CHOICES;
+        return id;}}
+    return FD_FALSE;}
+}
+
 static lispval modulep(lispval arg)
 {
   if (FD_LEXENVP(arg)) {
@@ -981,6 +1010,9 @@ FD_EXPORT void fd_init_reflection_c()
             -1,VOID);
   fd_idefn1(module,"MODULE-EXPORTS",module_exports,1,
             "Returns the exports table for a module",
+            -1,VOID);
+  fd_idefn1(module,"MODULE-SOURCE",module_getsource,1,
+            "Returns the source (a string) for a module",
             -1,VOID);
 
   fd_idefn0(module,"ALL-MODULES",get_all_modules_prim,
