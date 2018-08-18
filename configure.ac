@@ -1104,6 +1104,11 @@ if test $libc_dlopen != "yes"; then
    AC_CHECK_LIB(dl,dlopen)
 fi
 
+AC_CHECK_HEADERS(dlfcn.h)
+
+AC_CHECK_LIB(dl,dladdr)
+AC_CHECK_FUNCS(dladdr)
+
 AC_ARG_ENABLE(maintainer-mode,--en[dis]able-maintainer-mode doesn't do anything)
 AC_ARG_ENABLE(dependency-tracking,--en[dis]able-dependency-tracking doesn't do anything)
 

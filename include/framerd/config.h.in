@@ -72,6 +72,14 @@
 /* Define if you have stat.st_mtimespec  */
 #undef HAVE_STRUCT_STAT_ST_MTIMESPEC
 
+/* Define if you have the dladdr() function for getting shared library
+   information */
+#undef HAVE_DLFCN_H
+
+/* Define if you have the dladdr() function for getting shared library
+   information */
+#undef HAVE_DLADDR
+
 /* Define if you have <resource.h> declares struct tm.  */
 #undef HAVE_SYS_RESOURCE_H
 
