@@ -69,7 +69,7 @@ static lispval load_source_for_module
   (lispval spec,u8_string module_source,int safe);
 static u8_string get_module_source(lispval spec,int safe);
 
-static lispval moduleid_symbol;
+static lispval moduleid_symbol, source_symbol;
 
 /* Module finding */
 
@@ -86,7 +86,7 @@ static int load_source_module(lispval spec,int safe,void *ignored)
       fd_register_module_x(module_key,load_result,safe);
       /* Store non symbolic specifiers as module identifiers */
       if (STRINGP(spec))
-        fd_add(load_result,moduleid_symbol,spec);
+        fd_add(load_result,source_symbol,spec);
       /* Register the module under its filename too. */
       if (strchr(module_source,':') == NULL) {
         lispval abspath_key = fd_lispstring(u8_abspath(module_source,NULL));
@@ -176,7 +176,7 @@ static lispval reload_module(lispval module)
     else return fd_err(fd_TypeError,"reload_module",
                        "module name or path",module);}
   else if (TABLEP(module)) {
-    lispval ids = fd_get(module,moduleid_symbol,EMPTY), source = VOID;
+    lispval ids = fd_get(module,source_symbol,EMPTY), source = VOID;
     DO_CHOICES(id,ids) {
       if (STRINGP(id)) {source = id; FD_STOP_DO_CHOICES; break;}}
     if (STRINGP(source)) {
@@ -205,7 +205,7 @@ static lispval safe_reload_module(lispval module)
     else return fd_err(fd_TypeError,"safe_reload_module",
                        "module name or path",module);}
   else if (TABLEP(module)) {
-    lispval ids = fd_get(module,moduleid_symbol,EMPTY), source = VOID;
+    lispval ids = fd_get(module,source_symbol,EMPTY), source = VOID;
     DO_CHOICES(id,ids) {
       if (STRINGP(id)) {source = id; FD_STOP_DO_CHOICES; break;}}
     if (STRINGP(source)) {

@@ -66,7 +66,7 @@ lispval fd_scheme_module, fd_xscheme_module;
 
 lispval _fd_comment_symbol;
 
-static lispval quote_symbol, comment_symbol, moduleid_symbol;
+static lispval quote_symbol, comment_symbol, moduleid_symbol, source_symbol;
 
 static lispval log_testfail = FD_FALSE;
 
@@ -1370,7 +1370,7 @@ FD_EXPORT lispval fd_new_cmodule(char *name,int flags,void *addr)
       u8_string filename = u8_fromlibc((char *)cfilename);
       lispval fname = fd_make_string(NULL,-1,filename);
       u8_free(filename);
-      fd_add(mod,moduleid_symbol,fname);
+      fd_add(mod,source_symbol,fname);
       fd_decref(fname);}}
 #endif
   return mod;
@@ -3117,6 +3117,7 @@ void fd_init_eval_c()
   _fd_comment_symbol = comment_symbol = fd_intern("COMMENT");
   profile_symbol = fd_intern("%PROFILE");
   moduleid_symbol = fd_intern("%MODULEID");
+  source_symbol = fd_intern("%SOURCE");
 
   FD_INIT_STATIC_CONS(&module_map,fd_hashtable_type);
   fd_make_hashtable(&module_map,67);
