@@ -44,6 +44,10 @@
 #include <mcheck.h>
 #endif
 
+#if HAVE_DLFCN_H
+#include <dlfcn.h>
+#endif
+
 static volatile int scheme_initialized = 0;
 
 u8_string fd_evalstack_type="eval";
@@ -1353,6 +1357,23 @@ FD_EXPORT lispval fd_new_module(char *name,int flags)
       safe_default_env->env_parent = fd_make_env(module,safe_default_env->env_parent);
     default_env->env_parent = fd_make_env(module,default_env->env_parent);}
   return module;
+}
+
+FD_EXPORT lispval fd_new_cmodule(char *name,int flags,void *addr)
+{
+  lispval mod = fd_new_module(name,flags);
+#if HAVE_DLADDR
+  Dl_info  dlinfo;
+  if (dladdr(addr,&dlinfo)) {
+    const char *cfilename = dlinfo.dli_fname;
+    if (cfilename) {
+      u8_string filename = u8_fromlibc((char *)cfilename);
+      lispval fname = fd_make_string(NULL,-1,filename);
+      u8_free(filename);
+      fd_add(mod,moduleid_symbol,fname);
+      fd_decref(fname);}}
+#endif
+  return mod;
 }
 
 FD_EXPORT lispval fd_get_module(lispval name,int safe)
