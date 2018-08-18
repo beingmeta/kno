@@ -18,7 +18,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-static lispval loadstamp_symbol, moduleid_symbol;
+static lispval loadstamp_symbol, moduleid_symbol, source_symbol;
 
 u8_condition fd_NotAModule=_("Argument is not a module (table)");
 u8_condition fd_NoSuchModule=_("Can't find named module");
@@ -756,6 +756,73 @@ static lispval safe_get_exports_prim(lispval arg)
   else return EMPTY;
 }
 
+static lispval get_source(lispval arg,int safe)
+{
+  lispval ids = FD_EMPTY;
+  if (FD_LEXENVP(arg)) {
+    fd_lexenv envptr = fd_consptr(fd_lexenv,arg,fd_lexenv_type);
+    ids = fd_get(envptr->env_bindings,source_symbol,FD_VOID);
+    if (FD_VOIDP(ids))
+      ids = fd_get(envptr->env_bindings,moduleid_symbol,FD_VOID);}
+  else if (TABLEP(arg)) {
+    ids = fd_get(arg,source_symbol,FD_VOID);
+    if (FD_VOIDP(ids))
+      ids = fd_get(arg,moduleid_symbol,FD_VOID);}
+  else if (FD_SYMBOLP(arg)) {
+    lispval mod = fd_find_module(arg,safe,1);
+    if (FD_ABORTP(mod))
+      return mod;
+    lispval mod_source = get_source(mod,safe);
+    fd_decref(mod);
+    return mod_source;}
+  /* These aren't strictly modules, but they're nice to have here */
+  else if (FD_LAMBDAP(arg)) {
+    struct FD_LAMBDA *f = (fd_lambda) fd_fcnid_ref(arg);
+    if (f->fcn_filename)
+      return fd_make_string(NULL,-1,f->fcn_filename);
+    else {
+      lispval sourceinfo = fd_symeval(source_symbol,f->lambda_env);
+      if (FD_STRINGP(sourceinfo))
+        return sourceinfo;
+      else return FD_FALSE;}}
+  else if (FD_FUNCTIONP(arg)) {
+    struct FD_FUNCTION *f = (fd_function) fd_fcnid_ref(arg);
+    if (f->fcn_filename)
+      return fd_make_string(NULL,-1,f->fcn_filename);
+    else return FD_FALSE;}
+  else if (TYPEP(arg,fd_evalfn_type)) {
+    struct FD_EVALFN *sf = (fd_evalfn) fd_fcnid_ref(arg);
+    if (sf->evalfn_filename)
+      return lispval_string(sf->evalfn_filename);
+    else return FD_FALSE;}
+  else if (FD_TYPEP(arg,fd_macro_type)) {
+    struct FD_FUNCTION *f = (fd_function) fd_fcnid_ref(arg);
+    if (f->fcn_filename)
+      return fd_make_string(NULL,-1,f->fcn_filename);
+    else return FD_FALSE;}
+  else return fd_type_error(_("module"),"module_bindings",arg);
+  if (FD_VOIDP(ids))
+    return FD_FALSE;
+  else {
+    FD_DO_CHOICES(id,ids) {
+      if (FD_STRINGP(id)) {
+        fd_incref(id);
+        fd_decref(ids);
+        FD_STOP_DO_CHOICES;
+        return id;}}
+    return FD_FALSE;}
+}
+
+static lispval get_source_prim(lispval arg)
+{
+  return get_source(arg,0);
+}
+
+static lispval safe_get_source_prim(lispval arg)
+{
+  return get_source(arg,1);
+}
+
 /* LOADMODULE config */
 
 static int loadmodule_sandbox = 0;
@@ -929,6 +996,7 @@ FD_EXPORT void fd_init_modules_c()
 
   loadstamp_symbol = fd_intern("%LOADSTAMP");
   moduleid_symbol = fd_intern("%MODULEID");
+  source_symbol = fd_intern("%SOURCE");
 
   fd_idefn(fd_xscheme_module,
            fd_make_cprim1x("DYNAMIC-LOAD",dynamic_load_prim,1,
@@ -951,6 +1019,13 @@ FD_EXPORT void fd_init_modules_c()
            fd_make_cprim1("GET-EXPORTS",safe_get_exports_prim,1));
   fd_defalias(fd_scheme_module,"%LS","GET-EXPORTS");
 
+  fd_idefn1(fd_scheme_module,"GET-SOURCE",safe_get_source_prim,1,
+            "(get-source *module**)\nGets the source file implementing *module*",
+            -1,VOID);
+  fd_idefn1(fd_xscheme_module,"GET-SOURCE",get_source_prim,1,
+            "(get-source *module**)\nGets the source file implementing *module*",
+            -1,VOID);
+
   fd_idefn3(fd_scheme_module,"GET-BINDING",safe_get_binding_prim,2,
             "(get-binding *module* *symbol* [*default*])\n"
             "Gets *module*'s exported binding of *symbol* "
@@ -963,6 +1038,7 @@ FD_EXPORT void fd_init_modules_c()
             "On failure, returns *default* if provided "
             "or errs if none is provided.",
             -1,VOID,fd_symbol_type,VOID,-1,VOID);
+
   fd_idefn3(fd_xscheme_module,"%GET-BINDING",get_internal_binding_prim,2,
             "(get-binding *module* *symbol* [*default*])\n"
             "Gets *module*'s binding of *symbol* "
