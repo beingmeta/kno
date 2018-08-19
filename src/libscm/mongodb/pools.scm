@@ -110,7 +110,7 @@
 
 (define (mongopool-load pool mongopool)
   (let* ((collection (mongopool-collection mongopool))
-	 (info (collection collection "_pool")))
+	 (info (collection/get collection "_pool")))
     (try (get info 'load)
 	 (irritant pool |MongoPoolNotIntialized|))))
 
