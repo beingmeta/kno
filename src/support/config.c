@@ -41,6 +41,8 @@ static int trace_config = 0;
 struct FD_CONFIG_HANDLER *config_handlers = NULL;
 
 static lispval configuration_table;
+static lispval path_macro, env_macro, config_macro, now_macro;
+static lispval glom_macro;
 
 static u8_mutex config_lookup_lock;
 static u8_mutex config_register_lock;
@@ -417,12 +419,62 @@ FD_EXPORT int fd_default_config_assignment(u8_string assignment)
   else return -1;
 }
 
+#define EXPR_STARTS_WITH(expr,sym) \
+  ( (FD_PAIRP(expr)) &&            \
+    (FD_PAIRP(FD_CDR(expr))) &&    \
+    ( (FD_CAR(expr)) == (sym) ) )
+
+FD_EXPORT lispval fd_interpret_value(lispval expr)
+{
+  if ( (FD_PAIRP(expr)) &&
+       (FD_PAIRP(FD_CDR(expr))) &&
+       (FD_CDDR(expr) == FD_NIL) ) {
+    lispval head = FD_CAR(expr);
+    lispval arg = FD_CADR(expr);
+    if (head == path_macro) {
+      if ( (FD_STRINGP(arg)) ) {
+        u8_string fullpath = (fd_sourcebase()) ?
+          (fd_get_component(FD_CSTRING(arg))) :
+          (u8_abspath(FD_CSTRING(arg),NULL));
+        return fd_init_string(NULL,-1,fullpath);}
+      else return fd_incref(arg);}
+    else if (head == config_macro) {
+      if (FD_SYMBOLP(arg)) {
+        lispval v = fd_config_get(FD_SYMBOL_NAME(arg));
+        if (FD_VOIDP(v))
+          return expr;
+        else return v;}}
+    else if (head == env_macro) {
+      if ( (FD_SYMBOLP(arg)) || (FD_STRINGP(arg)) ) {
+        u8_string strval = (FD_SYMBOLP(arg)) ?
+          (u8_getenv(FD_SYMBOL_NAME(arg))) :
+          (u8_getenv(FD_CSTRING(arg)));
+        if (strval) {
+          lispval val = fd_lispstring(strval);
+          u8_free(strval);
+          return val;}
+        else return FD_FALSE;}
+      else return expr;}
+    else if (head == now_macro) {
+      if (FD_SYMBOLP(arg)) {
+        lispval now = fd_make_timestamp(NULL);
+        lispval v = fd_get(now,arg,FD_VOID);
+        fd_decref(now);
+        if (FD_VOIDP(v))
+          return expr;
+        else return v;}}
+    else NO_ELSE;
+    return fd_incref(expr);}
+  else return fd_incref(expr);
+}
+
 /* This reads a config file.  It consists of a series of entries, each of which is
    either a list (var value) or an assignment var = value.
-   Both # and ; are comment characters */
-FD_EXPORT int fd_read_config(U8_INPUT *in)
+   Both # and ; are comment characters at the beginning of lines. */
+static int read_config(U8_INPUT *in,int dflt)
 {
-  int c,n =0; u8_string buf;
+  int c, count = 0;
+  u8_string buf;
   while ((c = u8_getc(in))>=0)
     if (c == '#') {
       buf = u8_gets(in); u8_free(buf);}
@@ -437,11 +489,17 @@ FD_EXPORT int fd_read_config(U8_INPUT *in)
       else if ((PAIRP(entry)) &&
                (SYMBOLP(FD_CAR(entry))) &&
                (PAIRP(FD_CDR(entry)))) {
-        if (fd_set_config(SYM_NAME(FD_CAR(entry)),(FD_CADR(entry)))<0) {
+        lispval val = fd_interpret_value(FD_CADR(entry));
+        int rv = (dflt) ?
+          (fd_default_config(SYM_NAME(FD_CAR(entry)),val)<0) :
+          (fd_set_config(SYM_NAME(FD_CAR(entry)),val)<0);
+        if (rv < 0) {
           fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
+          fd_decref(val);
           return -1;}
+        if (rv) count++;
         fd_decref(entry);
-        n++;}
+        fd_decref(val);}
       else {
         fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
         return -1;}}
@@ -449,11 +507,24 @@ FD_EXPORT int fd_read_config(U8_INPUT *in)
     else {
       u8_ungetc(in,c);
       buf = u8_gets(in);
-      if (fd_config_assignment(buf)<0)
+      int rv = (dflt) ?
+        (fd_default_config_assignment(buf)<0) :
+        (fd_config_assignment(buf)<0);
+      if (rv<0)
         return fd_reterr(fd_ConfigError,"fd_read_config",buf,VOID);
-      else n++;
+      else if (rv)
+        count++;
+      else NO_ELSE;
       u8_free(buf);}
-  return n;
+  return count;
+}
+
+/* This reads a config file.  It consists of a series of entries, each of which is
+   either a list (var value) or an assignment var = value.
+   Both # and ; are comment characters */
+FD_EXPORT int fd_read_config(U8_INPUT *in)
+{
+  return read_config(in,0);
 }
 
 /* This reads a config file.  It consists of a series of entries, each of which is
@@ -461,38 +532,7 @@ FD_EXPORT int fd_read_config(U8_INPUT *in)
    Both # and ; are comment characters */
 FD_EXPORT int fd_read_default_config(U8_INPUT *in)
 {
-  int c, n = 0, count = 0; u8_string buf;
-  while ((c = u8_getc(in))>=0)
-    if (c == '#') {
-      buf = u8_gets(in); u8_free(buf);}
-    else if (c == ';') {
-      buf = u8_gets(in); u8_free(buf);}
-    else if (c == '(') {
-      lispval entry;
-      u8_ungetc(in,c);
-      entry = fd_parser(in);
-      if (FD_ABORTP(entry))
-        return fd_interr(entry);
-      else if ((PAIRP(entry)) &&
-               (SYMBOLP(FD_CAR(entry))) &&
-               (PAIRP(FD_CDR(entry)))) {
-        if (fd_default_config(SYM_NAME(FD_CAR(entry)),(FD_CADR(entry)))<0) {
-          fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
-          return -1;}
-        else {n++; count++;}
-        fd_decref(entry);}
-      else {
-        fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
-        return -1;}}
-    else if ((u8_isspace(c)) || (u8_isctrl(c))) {}
-    else {
-      u8_ungetc(in,c);
-      buf = u8_gets(in);
-      if (fd_default_config_assignment(buf)<0)
-        return fd_reterr(fd_ConfigError,"fd_read_config",buf,VOID);
-      else {count++; n++;}
-      u8_free(buf);}
-  return count;
+  return read_config(in,1);
 }
 
 /* Utility configuration functions */
@@ -920,6 +960,12 @@ void fd_init_config_c()
 
   u8_init_mutex(&config_lookup_lock);
   u8_init_mutex(&config_register_lock);
+
+  path_macro = fd_intern("#PATH");
+  glom_macro = fd_intern("#GLOM");
+  config_macro = fd_intern("#CONFIG");
+  now_macro = fd_intern("#NOW");
+  env_macro = fd_intern("#ENV");
 
   fd_register_config
     ("FDVERSION",_("Get the FramerD version string"),

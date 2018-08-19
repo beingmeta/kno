@@ -568,6 +568,17 @@ static lispval config_get(lispval vars,lispval dflt,lispval valfn)
   else return result;
 }
 
+static lispval config_macro(lispval expr,fd_lexenv env,fd_stack ptr)
+{
+  lispval var = fd_get_arg(expr,1);
+  if (FD_SYMBOLP(var)) {
+    lispval config_val = (fd_config_get(FD_SYMBOL_NAME(var)));
+    if (FD_VOIDP(config_val))
+      return FD_FALSE;
+    else return config_val;}
+  else return FD_FALSE;
+}
+
 static lispval set_config(int n,lispval *args)
 {
   int retval, i = 0;
@@ -831,13 +842,20 @@ FD_EXPORT void fd_init_coreprims_c()
                            fd_fixnum_type,VOID));
   fd_idefn(fd_scheme_module,fd_make_cprim1("PROCEDURE-NAME",procedure_name,1));
 
-  fd_idefn3(fd_scheme_module,"CONFIG",config_get,(FD_NEEDS_1_ARG|FD_NDCALL),
-            "(CONFIG *name* *default* *valfn*)\n"
+  fd_idefn3(fd_scheme_module,"CONFIG",config_get,FD_NEEDS_1_ARG,
+            "CONFIG *name* *default* *valfn*)\n"
             "Gets the configuration value named *name*, returning *default* "
             "if it isn't defined. *valfn*, if provided is either a function "
             "to call on the retrieved value or #t to indicate that string "
             "values should be parsed as lisp",
             -1,FD_VOID,-1,FD_VOID,-1,FD_VOID);
+
+  fd_def_evalfn(fd_scheme_module,"#CONFIG",
+                "#:CONFIG\"FDVERSION\" or #:CONFIG:LOADPATH\n"
+                "evaluates to a value from the current configuration "
+                "environment",
+                config_macro);
+
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("SET-CONFIG!",set_config,2)));
   fd_defalias(fd_scheme_module,"CONFIG!","SET-CONFIG!");

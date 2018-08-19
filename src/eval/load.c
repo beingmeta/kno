@@ -394,6 +394,17 @@ static lispval lisp_get_component(lispval string,lispval base)
     return fd_lispstring(thepath);}
 }
 
+static lispval path_macro(lispval expr,fd_lexenv env,fd_stack ptr)
+{
+  lispval arg = fd_get_arg(expr,1);
+  if (FD_STRINGP(arg)) {
+    u8_string fullpath = (fd_sourcebase()) ?
+      (fd_get_component(FD_CSTRING(arg))) :
+      (u8_abspath(FD_CSTRING(arg),NULL));
+    return fd_init_string(NULL,-1,fullpath);}
+  else return fd_err(fd_TypeError,"path_macro","string",arg);
+}
+
 static lispval lisp_load_config(lispval arg)
 {
   if (STRINGP(arg)) {
@@ -651,6 +662,11 @@ FD_EXPORT void fd_init_load_c()
                           fd_string_type,VOID));
  fd_idefn(fd_scheme_module,
           fd_make_cprim0("GET-SOURCE",lisp_get_source));
+
+  fd_def_evalfn(fd_scheme_module,"#PATH",
+                "#:PATH\"init/foo.scm\" or #:PATH:home.scm\n"
+                "evaluates to an environment variable",
+                path_macro);
 
  fd_register_config("CONFIG","Add a CONFIG file/URI to process",
                     get_config_files,add_config_file,NULL);

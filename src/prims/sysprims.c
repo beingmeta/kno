@@ -87,6 +87,19 @@ static lispval getenv_prim(lispval var)
   else return fd_lispstring(enval);
 }
 
+static lispval getenv_macro(lispval expr,fd_lexenv env,fd_stack ptr)
+{
+  lispval var = fd_get_arg(expr,1);
+  if ( (FD_STRINGP(var)) || (FD_SYMBOLP(var)) ) {
+    u8_string enval = (FD_SYMBOLP(var)) ?
+      (u8_getenv(FD_SYMBOL_NAME(var))) :
+      (u8_getenv(CSTRING(var)));
+    if (enval == NULL)
+      return FD_FALSE;
+    else return fd_lispstring(enval);}
+  else return fd_err(fd_TypeError,"getenv_macro","string or symbol",var);
+}
+
 /* LOAD AVERAGE */
 
 static lispval loadavg_prim()
@@ -771,6 +784,11 @@ FD_EXPORT void fd_init_sysprims_c()
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("GETENV",getenv_prim,1,
                            fd_string_type,VOID));
+
+  fd_def_evalfn(fd_scheme_module,"#ENV",
+                "#:ENV\"HOME\" or #:ENV:HOME\n"
+                "evaluates to an environment variable",
+                getenv_macro);
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("RUSAGE",rusage_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("MEMUSAGE",memusage_prim));

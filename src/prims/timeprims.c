@@ -1016,6 +1016,17 @@ static lispval microtime_prim()
   else return FD_INT(now);
 }
 
+static lispval now_macro(lispval expr,fd_lexenv env,fd_stack ptr)
+{
+  lispval field = fd_get_arg(expr,1);
+  lispval now = fd_make_timestamp(NULL);
+  lispval v = fd_get(now,field,FD_VOID);
+  fd_decref(now);
+  if ( (FD_VOIDP(v)) || (FD_EMPTYP(v)) )
+    return FD_FALSE;
+  else return v;
+}
+
 /* Counting seconds */
 
 static lispval secs2string(lispval secs,lispval prec_arg)
@@ -1507,6 +1518,10 @@ FD_EXPORT void fd_init_timeprims_c()
            ("FUTURE?",futurep,1,-1,VOID,fd_flonum_type,VOID));
   fd_idefn(fd_scheme_module,fd_make_cprim2x
            ("PAST?",pastp,1,-1,VOID,fd_flonum_type,VOID));
+
+  fd_def_evalfn(fd_scheme_module,"#NOW",
+                "#:NOW:YEAR\n evaluates to a field of the current time",
+                now_macro);
 
   fd_idefn(fd_scheme_module,fd_make_cprimn("MKTIME",mktime_lexpr,0));
 

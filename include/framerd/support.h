@@ -44,6 +44,8 @@ FD_EXPORT int fd_set_config_consed(u8_string var,lispval val);
 
 FD_EXPORT int fd_readonly_config_set(lispval ignored,lispval v,void *p);
 
+FD_EXPORT lispval fd_interpret_value(lispval value_expr);
+
 FD_EXPORT int fd_lconfig_push(lispval,lispval v,void *lispp);
 FD_EXPORT int fd_lconfig_add(lispval,lispval v,void *lispp);
 FD_EXPORT int fd_lconfig_set(lispval,lispval v,void *lispp);
