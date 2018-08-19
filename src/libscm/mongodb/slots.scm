@@ -87,7 +87,7 @@
 			      `#[$set ,(get-store-modifier slotid values)]
 			      #[new #t return #[__index 0]])
 	  (collection/modify! collection selector
-			      `#[$set `#[,slotid ,values]]
+			      `#[$set #[,slotid ,values]]
 			      #[new #t return #[__index 0]])))
     (mongo/decache-index! slotid 
 			  {(difference current values)
@@ -157,7 +157,7 @@
 				#[new #t return #[__index 0]])
 	    (collection/modify!
 	     collection selector
-	     `#[$pull #[,slotid ,(if (unique? values) values `#[$each ,values]),values]]
+	     `#[$pull #[,slotid ,(if (unique? values) values `#[$each ,values])]]
 	     #[new #t return #[__index 0]]))))
     (mongo/decache-index! slotid 
 			  {(difference current values)
