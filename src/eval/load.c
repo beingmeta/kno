@@ -377,13 +377,6 @@ static lispval load_component_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   return result;
 }
 
-static lispval lisp_get_source()
-{
-  u8_string path = fd_sourcebase();
-  if (path) return lispval_string(path);
-  else return FD_FALSE;
-}
-
 static lispval lisp_get_component(lispval string,lispval base)
 {
   if (VOIDP(base)) {
@@ -656,8 +649,6 @@ FD_EXPORT void fd_init_load_c()
           fd_make_cprim2x("GET-COMPONENT",lisp_get_component,1,
                           fd_string_type,VOID,
                           fd_string_type,VOID));
- fd_idefn(fd_scheme_module,
-          fd_make_cprim0("GET-SOURCE",lisp_get_source));
 
   fd_def_evalfn(fd_scheme_module,"#PATH",
                 "#:PATH\"init/foo.scm\" or #:PATH:home.scm\n"

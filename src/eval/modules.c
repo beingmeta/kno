@@ -759,7 +759,11 @@ static lispval safe_get_exports_prim(lispval arg)
 static lispval get_source(lispval arg,int safe)
 {
   lispval ids = FD_EMPTY;
-  if (FD_LEXENVP(arg)) {
+  if (FD_VOIDP(arg)) {
+    u8_string path = fd_sourcebase();
+    if (path) return lispval_string(path);
+    else return FD_FALSE;}
+  else if (FD_LEXENVP(arg)) {
     fd_lexenv envptr = fd_consptr(fd_lexenv,arg,fd_lexenv_type);
     ids = fd_get(envptr->env_bindings,source_symbol,FD_VOID);
     if (FD_VOIDP(ids))
@@ -1019,11 +1023,15 @@ FD_EXPORT void fd_init_modules_c()
            fd_make_cprim1("GET-EXPORTS",safe_get_exports_prim,1));
   fd_defalias(fd_scheme_module,"%LS","GET-EXPORTS");
 
-  fd_idefn1(fd_scheme_module,"GET-SOURCE",safe_get_source_prim,1,
-            "(get-source *module**)\nGets the source file implementing *module*",
+  fd_idefn1(fd_scheme_module,"GET-SOURCE",safe_get_source_prim,0,
+            "(get-source [*obj*])\nGets the source file implementing *obj*, "
+            "which can be a function (or macro or evalfn), module, or module "
+            "name. With no arguments, returns the current SOURCEBASE",
             -1,VOID);
-  fd_idefn1(fd_xscheme_module,"GET-SOURCE",get_source_prim,1,
-            "(get-source *module**)\nGets the source file implementing *module*",
+  fd_idefn1(fd_xscheme_module,"GET-SOURCE",get_source_prim,0,
+            "(get-source [*obj*])\nGets the source file implementing *obj*, "
+            "which can be a function (or macro or evalfn), module, or module "
+            "name. With no arguments, returns the current SOURCEBASE",
             -1,VOID);
 
   fd_idefn3(fd_scheme_module,"GET-BINDING",safe_get_binding_prim,2,
