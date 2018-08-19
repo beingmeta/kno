@@ -113,6 +113,10 @@ void fd_init_sourcebase_c()
     return;
   else support_sourcebase_c_init_done=1;
 
+#if FD_USE_TLS
+  u8_new_threadkey(&sourcebase_key,NULL);
+#endif
+
   u8_register_source_file(_FILEINFO);
 }
 

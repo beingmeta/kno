@@ -169,11 +169,14 @@ void fd_init_startup_c(void);
 void fd_init_getopt_c(void);
 void fd_init_fluid_c(void);
 void fd_init_posix_c(void);
+void fd_init_sourcebase_c(void);
 
 FD_EXPORT void fd_init_support_c()
 {
 
   u8_register_textdomain("FramerD");
+
+  fd_init_sourcebase_c();
 
   fd_init_config_c();
 

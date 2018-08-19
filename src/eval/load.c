@@ -620,10 +620,6 @@ FD_EXPORT void fd_init_load_c()
   u8_init_mutex(&sourcefns_lock);
   u8_init_mutex(&config_file_lock);
 
-#if FD_USE_TLS
-  u8_new_threadkey(&sourcebase_key,NULL);
-#endif
-
  after_symbol = fd_intern("AFTEREXPR");
  loading_symbol = fd_intern("%LOADING");
  traceloadeval_symbol = fd_intern("%TRACELOADEVAL");
