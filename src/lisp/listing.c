@@ -98,15 +98,11 @@ static void list_table(u8_output out,lispval table,
       break;}
     u8_byte label_buf[64] = { 0 };
     u8_byte val_pathbuf[64] = { 0 };
-    u8_string val_pathref =
-      (full_pathref == NULL) ?
-      (NULL) :
-      (FD_SYMBOLP(key)) ?
+    u8_string val_pathref = (full_pathref) ?
       (u8_sprintf(val_pathbuf,64,"%s.%q",full_pathref,key)) :
-      (u8_sprintf(val_pathbuf,64,"%s.%d",full_pathref,count));
-    u8_string val_label =
-      (full_pathref) ?
-      (u8_sprintf(label_buf,64,"%s.%d (%q)",full_pathref,count,key)) :
+      (NULL);
+    u8_string val_label = (full_pathref) ?
+      (u8_sprintf(label_buf,64,"%s.%q",full_pathref,key)) :
       (NULL);
     lispval val = fd_get(table,key,FD_EMPTY_CHOICE);
     if (EMPTYP(val)) {
@@ -118,11 +114,8 @@ static void list_table(u8_output out,lispval table,
       int custom = list_item(tmpout,val,listfn);
       if ((tmp.u8_write-tmp.u8_outbuf)<width) {
         if (full_pathref)
-          u8_printf(out,"\n%s  %s ;;=%s.%d (%q)",
-                    indent,tmp.u8_outbuf,
-                    full_pathref,count,key);
-        else u8_printf(out,"\n%s  %s ;; #%d (%q)",
-                       indent,tmp.u8_outbuf,count,key);}
+          u8_printf(out,"\n%s  %s ;;=%s.%q",indent,tmp.u8_outbuf,full_pathref,key);
+        else u8_printf(out,"\n%s  %s ;; (%q)",indent,tmp.u8_outbuf,key);}
       else if ( (FD_CHOICEP(val)) || (FD_VECTORP(val)) ||
                 ( (FD_PAIRP(val)) && (!(FD_SYMBOLP(FD_CAR(val)))) ) ) {
         u8_printf(out,"\n%s  %q #> ",indent,key);
@@ -139,8 +132,8 @@ static void list_table(u8_output out,lispval table,
           list_item(tmpout,val,listfn);
         else fd_pprint(tmpout,val,val_indent,3,3,width);
         if (full_pathref)
-          u8_printf(out,"\n%s  %q #> ;;=%s.%d\n%s%s",
-                    indent,key,full_pathref,count,
+          u8_printf(out,"\n%s  %q #> ;;=%s.%q\n%s%s",
+                    indent,key,full_pathref,key,
                     val_indent,tmp.u8_outbuf);
         else u8_printf(out,"\n%s  %q #> ;; #%d\n%s%s",
                        indent,key,count,
