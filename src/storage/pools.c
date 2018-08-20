@@ -2429,6 +2429,7 @@ FD_EXPORT lispval fd_pool_base_metadata(fd_pool p)
 
   if (fd_testopt(metadata,FDSYM_ADJUNCT,FD_VOID))
     fd_add(metadata,flags_slot,FDSYM_ISADJUNCT);
+  else fd_add(metadata,flags_slot,background_flag);
 
   if (U8_BITP(flags,FD_POOL_ADJUNCT))
     fd_add(metadata,flags_slot,FDSYM_ADJUNCT);

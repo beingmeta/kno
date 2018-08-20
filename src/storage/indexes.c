@@ -2372,6 +2372,7 @@ FD_EXPORT void fd_init_indexes_c()
   noswap_flag=fd_intern("NOSWAP");
   noerr_flag=fd_intern("NOERR");
   phased_flag=fd_intern("PHASED");
+  background_flag=fd_intern("BACKGROUND");
 
   {
     struct FD_COMPOUND_TYPEINFO *e =
