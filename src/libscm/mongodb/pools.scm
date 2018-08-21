@@ -189,6 +189,7 @@
 	      (cap (get info 'capacity))
 	      (load (try (get info 'load) 0))
 	      (name (try (get info 'name) cname)))
+	 (config! 'mongo:domain collection)
 	 (cond ((and (exists? base) (exists? cap)))
 	       ((not (getopt opts 'create)) #f)
 	       ((not (getopt opts 'base))
