@@ -1485,7 +1485,7 @@ static lispval mongodb_modify(lispval arg,lispval query,lispval update,
     lispval fields = fd_getopt(opts,fieldssym,FD_VOID);
     lispval upsert = fd_getopt(opts,upsertsym,FD_FALSE);
     lispval remove = fd_getopt(opts,removesym,FD_FALSE);
-    int donew = getnewopt(opts,1);
+    int return_new = getnewopt(opts,1);
     bson_t *q = fd_lisp2bson(query,flags,opts);
     bson_t *u = fd_lisp2bson(update,flags,opts);
     if ((q == NULL)||(u == NULL)) {
@@ -1501,7 +1501,7 @@ static lispval mongodb_modify(lispval arg,lispval query,lispval update,
          u,fd_lisp2bson(fields,flags,opts),
          ((FD_FALSEP(remove))?(false):(true)),
          ((FD_FALSEP(upsert))?(false):(true)),
-         ((donew)?(false):(true)),
+         ((return_new)?(true):(false)),
          &reply,&error)) {
       result = fd_bson2dtype(&reply,flags,opts);}
     else {
@@ -1519,7 +1519,6 @@ static lispval mongodb_modify(lispval arg,lispval query,lispval update,
     fd_decref(fields);
     fd_decref(upsert);
     fd_decref(remove);
-    fd_decref(donew);
     U8_CLEAR_ERRNO();
     return result;}
   else {
@@ -1533,12 +1532,15 @@ static int getnewopt(lispval opts,int dflt)
   lispval v = fd_getopt(opts,newsym,FD_VOID);
   if (FD_VOIDP(v)) {
     v = fd_getopt(opts,originalsym,FD_VOID);
-    if (FD_VOIDP(v)) return dflt;
-    else if (FD_FALSEP(v)) return 1;
+    if (FD_VOIDP(v))
+      return dflt;
+    else if (FD_FALSEP(v))
+      return 1;
     else {
       fd_decref(v);
       return 0;}}
-  else if (FD_FALSEP(v)) return 0;
+  else if (FD_FALSEP(v))
+    return 0;
   else {
     fd_decref(v);
     return 1;}
