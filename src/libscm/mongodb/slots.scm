@@ -188,34 +188,36 @@
       (let* ((collection (->collection obj))
 	     (id {(reject obj table?) (get (pick obj table?) '_id)})
 	     (selector `#[_id ,(if (ambiguous? id) `#[$in ,id] id)])
-	     (current (if (table? obj) (get obj slotid) (mgo/get obj slotid)))
 	     (result #f))
 	(info%watch "MGO/DROP!" obj id collection slotid values)
 	(do-choices slotid
-	  (set! result
-	    (if (or (not (bound? values)) (singleton? (get obj slotid)))
-		(collection/modify! collection 
-		    `#[_id ,obj] 
-		  `#[$unset #[,slotid 1]]
-		  #[new #t return #[__index 0]])
-		(collection/modify!
-		    collection selector
-		  (if (singleton? values)
-		      `#[$pull #[,slotid ,values]]
-		      `#[$pullAll #[,slotid ,values]])
-		  #[new #t return #[__index 0]]))))
-	(mongo/decache-index! slotid 
-			      {(difference current values)
-			       (difference values current)})
-	(cond ((and (oid? obj) (modified? obj))
-	       ;; Just write the new value
-	       (drop! obj slotid values))
-	      ((oid? obj)
-	       ;; This updates the current OID value from the
-	       ;;  value we got from the database from
-	       ;; mongo/modify!
-	       (oid/sync! obj slotid result))
-	      ((table? obj) (add! obj slotid values))))))
+	  (let ((current (if (table? obj) (get obj slotid) (mgo/get obj slotid))))
+	    (set! result
+	      (if (or (not (bound? values)) (singleton? current))
+		  (collection/modify! collection 
+		      `#[_id ,obj] 
+		    `#[$unset #[,slotid 1]]
+		    #[new #t return #[__index 0]])
+		  (collection/modify!
+		      collection selector
+		    (if (singleton? values)
+			`#[$pull #[,slotid ,values]]
+			`#[$pullAll #[,slotid ,values]])
+		    #[new #t return #[__index 0]])))
+	    (mongo/decache-index! 
+	     slotid (if (or (unbound? values) (eq? values #default)) 
+			current
+			{(difference current values)
+			 (difference values current)})))
+	  (cond ((and (oid? obj) (modified? obj))
+		 ;; Just write the new value
+		 (drop! obj slotid values))
+		((oid? obj)
+		 ;; This updates the current OID value from the
+		 ;;  value we got from the database from
+		 ;; mongo/modify!
+		 (oid/sync! obj slotid result))
+		((table? obj) (drop! obj slotid values)))))))
 
 (define (get-drop-all-modifier slotids (result #[]))
   (do-choices (slotid slotids)
