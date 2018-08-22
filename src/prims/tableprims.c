@@ -782,6 +782,16 @@ static lispval table_size(lispval table)
   else return FD_INT(size);
 }
 
+static lispval table_writablep(lispval table)
+{
+  int read_only = fd_readonlyp(table);
+  if (read_only == 0)
+    return FD_TRUE;
+  else if (read_only > 0)
+    return FD_FALSE;
+  else return FD_ERROR;
+}
+
 static lispval table_modifiedp(lispval table)
 {
   int ismod = fd_modifiedp(table);
@@ -1101,6 +1111,7 @@ FD_EXPORT void fd_init_tableprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim2x("PICK-KEYS",lisp_pick_keys,1,
                                             -1,VOID,fd_fixnum_type,FD_INT(1)));
   fd_idefn(fd_scheme_module,fd_make_cprim1("TABLE-SIZE",table_size,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("TABLE-WRITABLE?",table_writablep,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("TABLE-MODIFIED?",table_modifiedp,1));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2("TABLE-MODIFIED!",table_set_modified,1));
