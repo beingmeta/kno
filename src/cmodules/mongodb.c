@@ -75,6 +75,16 @@ static lispval primarysym, primarypsym, secondarysym, secondarypsym;
 static lispval nearestsym, poolmaxsym;
 static lispval mongovec_symbol;
 
+static lispval mongodb_oidref(lispval oid)
+{
+  if (FD_OIDP(oid)) {
+    FD_OID addr = FD_OID_ADDR(oid);
+    unsigned int hi = FD_OID_HI(addr), lo = FD_OID_LO(addr);
+    u8_string rep = u8_mkstring("ObjectId(00000000%016x%016x)",hi,lo);
+    return fd_init_string(NULL,-1,rep);}
+  else return fd_err("NotAnOID","mongodb_oidref",NULL,oid);
+}
+
 static void grab_mongodb_error(bson_error_t *error,u8_string caller)
 {
   u8_seterr(fd_MongoDB_Error,caller,u8_strdup(error->message));
@@ -1475,7 +1485,7 @@ static lispval mongodb_modify(lispval arg,lispval query,lispval update,
     lispval fields = fd_getopt(opts,fieldssym,FD_VOID);
     lispval upsert = fd_getopt(opts,upsertsym,FD_FALSE);
     lispval remove = fd_getopt(opts,removesym,FD_FALSE);
-    lispval donew = getnewopt(opts,1);
+    int donew = getnewopt(opts,1);
     bson_t *q = fd_lisp2bson(query,flags,opts);
     bson_t *u = fd_lisp2bson(update,flags,opts);
     if ((q == NULL)||(u == NULL)) {
@@ -1491,7 +1501,7 @@ static lispval mongodb_modify(lispval arg,lispval query,lispval update,
          u,fd_lisp2bson(fields,flags,opts),
          ((FD_FALSEP(remove))?(false):(true)),
          ((FD_FALSEP(upsert))?(false):(true)),
-         ((FD_FALSEP(donew))?(false):(true)),
+         ((donew)?(false):(true)),
          &reply,&error)) {
       result = fd_bson2dtype(&reply,flags,opts);}
     else {
@@ -3050,6 +3060,9 @@ FD_EXPORT int fd_init_mongodb()
                                   -1,FD_VOID));
   fd_defalias(module,"MONGO/COLLECTION","COLLECTION/OPEN");
   fd_defalias(module,"MONGO/CURSOR","CURSOR/OPEN");
+
+  fd_idefn(module,fd_make_cprim1x("MONGO/OID",mongodb_oidref,1,-1,FD_VOID));
+
 
   fd_idefn(module,fd_make_cprim1x("MONGODB?",mongodbp,1,-1,FD_VOID));
   fd_idefn(module,fd_make_cprim1x("MONGO/COLLECTION?",mongodb_collectionp,1,-1,FD_VOID));
