@@ -856,11 +856,13 @@ int main(int argc,char **argv)
     finish_time = u8_elapsed_time();
     finish_ocache = fd_object_cache_load();
     finish_icache = fd_index_cache_load();
-    if ((PAIRP(expr))&&
-        (!((FD_CHECK_PTR(result)==0) ||
+    if (((PAIRP(expr))&&
+         (!((FD_CHECK_PTR(result)==0) ||
            (VOIDP(result)) || (EMPTYP(result)) ||
            (FD_TRUEP(result)) || (FALSEP(result)) ||
-           (FD_ABORTP(result)) || (FIXNUMP(result))))) {
+            (FD_ABORTP(result)) || (FIXNUMP(result))))) ||
+        (FD_OIDP(expr)) || (FD_CHOICEP(expr)) ||
+        (FD_VECTORP(expr)) || (FD_SLOTMAPP(expr)) ) {
       int ref = fd_histpush(result);
       if (ref>=0) {
         histref = ref;
