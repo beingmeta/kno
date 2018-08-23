@@ -118,16 +118,21 @@ FD_EXPORT lispval fd_history_add(lispval history,lispval val,lispval ref)
     if ( ! ( (FD_FIXNUMP(ref)) || (FD_STRINGP(ref)) || (FD_SYMBOLP(ref)) ||
              (FD_COMPOUND_TYPEP(ref,histref_symbol)) ) )
       return fd_err("InvalidHistRef","fd_history_add",NULL,ref);
+
     lispval overwrite = fd_hashtable_get((fd_hashtable)refs,ref,FD_VOID);
     if ( (!(FD_VOIDP(overwrite))) && (overwrite != val) ) {
-      fd_drop(vals,overwrite,ref);
-      fd_add(vals,val_key,ref);
-      fd_store(refs,ref,val);
-      if ( (FD_FIXNUMP(ref)) || (FD_STRINGP(ref)) || (FD_SYMBOLP(ref)) )
-	fd_store(roots,ref,val);
-      else if (FD_COMPOUND_TYPEP(ref,histref_symbol))
-	fd_add(root_refs,FD_COMPOUND_REF(ref,0),ref);
-      else NO_ELSE;}}
+      /* Drop pointers from the values we're replacing */
+      fd_drop(vals,overwrite,ref);}
+    /* Add the ref to the value */
+    fd_add(vals,val_key,ref);
+    /* Add the value to the refs */
+    fd_store(refs,ref,val);
+    /* If it can be a root, make it one */
+    if ( (FD_FIXNUMP(ref)) || (FD_STRINGP(ref)) || (FD_SYMBOLP(ref)) )
+      fd_store(roots,ref,val);
+    else if (FD_COMPOUND_TYPEP(ref,histref_symbol))
+      fd_add(root_refs,FD_COMPOUND_REF(ref,0),ref);
+    else NO_ELSE;}
   else if (! (fd_test(vals,val_key,FD_VOID)) ) {
     struct FD_COMPOUND *histdata = (fd_compound) history;
     fd_store(roots,FD_INT(top),val);
@@ -288,6 +293,17 @@ lispval fd_get_histref(lispval elts)
 	  fd_seterr("NoSuchKey","histref_evalfn",FD_CSTRING(path),scan);
 	scan = v;}
       else scan = FD_VOID;}
+    else if (path == FDSYM_EQUALS) {
+      if ( (FD_PAIRP(paths)) &&
+           ( (FD_STRINGP(FD_CAR(paths))) ||
+             (FD_SYMBOLP(FD_CAR(paths))) ) ) {
+        lispval next = FD_CAR(paths);
+        fd_history_add(history,scan,next);
+        paths=FD_CDR(paths);}
+      else {
+        fd_seterr("InvalidHistRef","histref_evalfn",NULL,root);
+        fd_decref(root);
+        return FD_ERROR;}}
     else if (FD_SYMBOLP(path)) {
       if (FD_TABLEP(scan)) {
 	lispval v = fd_get(scan,path,FD_VOID);
