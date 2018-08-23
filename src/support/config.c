@@ -569,6 +569,24 @@ FD_EXPORT int fd_lconfig_set(lispval ignored,lispval v,void *lispp)
   *val = v;
   return 1;
 }
+FD_EXPORT int fd_symconfig_set(lispval ignored,lispval v,void *lispp)
+{
+  lispval *val = (lispval *)lispp;
+  lispval sym = VOID;
+  if (FD_SYMBOLP(v))
+    sym = v;
+  else if (FD_STRINGP(v)) {
+    u8_string upper = u8_upcase(CSTRING(v));
+    sym = fd_intern(upper);
+    u8_free(upper);}
+  else {}
+  if (FD_VOIDP(sym)) {
+    fd_type_error("string or symbol","fd_symconfig_set",v);
+    return -1;}
+  else {
+    *val = sym;
+    return 1;}
+}
 FD_EXPORT int fd_lconfig_add(lispval ignored,lispval v,void *lispp)
 {
   lispval *val = (lispval *)lispp;

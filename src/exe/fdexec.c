@@ -73,6 +73,8 @@ static lispval load_stdin(fd_lexenv env)
 
 typedef char *charp;
 
+static lispval main_symbol;
+
 static lispval chain_prim(int n,lispval *args)
 {
   if (n_configs>=MAX_CONFIGS)
@@ -212,6 +214,8 @@ int do_main(int argc,char **argv,
 
   fd_set_app_env(env);
 
+  main_symbol = fd_intern("MAIN");
+
   fd_register_config
     ("DEBUGMAXCHARS",
      _("Max number of chars in strings output in error reports"),
@@ -237,6 +241,11 @@ int do_main(int argc,char **argv,
      _("Don't read source from STDIN when needed"),
      fd_boolconfig_get,fd_boolconfig_set,
      &no_stdin);
+  fd_register_config
+    ("MAIN",
+     _("The name of the (main) routine for this file"),
+     fd_lconfig_get,fd_symconfig_set,
+     &main_symbol);
 
 
   setlocale(LC_ALL,"");
@@ -300,8 +309,7 @@ int do_main(int argc,char **argv,
 
     fd_set_config("SOURCE",src);
 
-    fd_decref(src);
-    source_file = NULL;}
+    fd_decref(src);}
   else if (no_stdin) {
     int i = 0;
     fprintf(stderr,"argc=%d\n",argc);
@@ -324,12 +332,17 @@ int do_main(int argc,char **argv,
                fd_n_primary_indexes+fd_n_secondary_indexes);}
 
   if (!(FD_ABORTP(result))) {
-    lispval main_symbol = fd_intern("MAIN");
     main_proc = fd_symeval(main_symbol,env);
     if (FD_APPLICABLEP(main_proc)) {
       fd_decref(result);
       result = fd_apply(main_proc,n_args,args);
-      result = fd_finish_call(result);}}
+      result = fd_finish_call(result);}
+    else {
+      u8_log(LOGWARN,"BadMain",
+             "The main procedure for %s (%q) isn't applicable",
+             ((source_file) ? (source_file) : (U8S("stdin")) ),
+             main_proc);}}
+  if (source_file) source_file = NULL;
   if (FD_TROUBLEP(result)) {
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,2000);
     int old_maxelts = fd_unparse_maxelts, old_maxchars = fd_unparse_maxchars;

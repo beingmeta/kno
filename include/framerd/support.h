@@ -64,6 +64,8 @@ FD_EXPORT int fd_dblconfig_set(lispval,lispval v,void *dblptr);
 FD_EXPORT lispval fd_dblconfig_get(lispval,void *dblptr);
 FD_EXPORT int fd_loglevelconfig_set(lispval var,lispval val,void *data);
 
+FD_EXPORT int fd_symconfig_set(lispval,lispval v,void *stringptr);
+
 FD_EXPORT int fd_realpath_config_set(lispval,lispval v,void *stringptr);
 FD_EXPORT int fd_realdir_config_set(lispval,lispval v,void *stringptr);
 
