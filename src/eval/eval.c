@@ -866,7 +866,11 @@ static lispval watched_eval_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
             if (off>0) u8_printf(&out,"\n  // %s=",lbl+1);
             else u8_printf(&out," // %s=",lbl+1);}
           else oneout = 1;
-          fd_pprint(&out,wval,"   ",0,3,100);
+          int char_indent = strlen(lbl)+5;
+          char indent_buf[char_indent+1];
+          memset(indent_buf,' ',char_indent);
+          indent_buf[char_indent] = '\0';
+          fd_list_object(&out,wval,lbl+1,NULL,indent_buf,NULL,100,2);
           if (PAIRP(scan)) {
             u8_puts(&out,"\n"); off = 0;}}
         else {
