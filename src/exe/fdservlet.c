@@ -809,7 +809,8 @@ static int max_error_depth = 128;
 static int webservefn(u8_client ucl)
 {
   lispval proc = VOID, result = VOID;
-  lispval cgidata = VOID, init_cgidata = VOID, path = VOID, precheck;
+  lispval cgidata = VOID, init_cgidata = VOID, precheck = VOID;
+  lispval path = VOID, uri = VOID, method = VOID;
   lispval content = VOID, retfile = VOID;
   fd_lexenv base_env = NULL;
   fd_webconn client = (fd_webconn)ucl;
@@ -932,15 +933,16 @@ static int webservefn(u8_client ucl)
       return -1;}
     else {}
     if (docroot) webcommon_adjust_docroot(cgidata,docroot);
-    path = fd_get(cgidata,script_filename,VOID);
+    path   = fd_get(cgidata,script_filename,VOID);
+    uri    = fd_get(cgidata,uri_slotid,VOID);
+    method = fd_get(cgidata,request_method,VOID);
+
     /* This is where we parse all the CGI variables, etc */
     fd_parse_cgidata(cgidata);
     forcelog = fd_req_test(forcelog_slotid,VOID);
     if ((forcelog)||(traceweb>0)) {
       lispval referer = fd_get(cgidata,referer_slotid,VOID);
       lispval remote = fd_get(cgidata,remote_info,VOID);
-      lispval method = fd_get(cgidata,request_method,VOID);
-      lispval uri = fd_get(cgidata,uri_slotid,VOID);
       if (STRINGP(uri))
         ucl->status = u8_strdup(CSTRING(uri));
       if ((STRINGP(uri)) &&
@@ -966,14 +968,10 @@ static int webservefn(u8_client ucl)
                (unsigned long)ucl,start_load[0],start_load[1],start_load[2],
                method,CSTRING(uri));
       fd_decref(remote);
-      fd_decref(referer);
-      fd_decref(method);
-      fd_decref(uri);}
+      fd_decref(referer);}
     else {
-      lispval uri = fd_get(cgidata,uri_slotid,VOID);
       if (STRINGP(uri))
-        ucl->status = u8_strdup(CSTRING(uri));
-      fd_decref(uri);}
+        ucl->status = u8_strdup(CSTRING(uri));}
 
     /* This is what we'll execute, be it a procedure or FDXML */
     proc = getcontent(path);}
@@ -985,7 +983,8 @@ static int webservefn(u8_client ucl)
   parse_time = u8_elapsed_time();
   if ((FD_ABORTP(proc))&&(u8_current_exception!=NULL)) {
     u8_log(LOG_WARN,u8_current_exception->u8x_cond,
-           "Problem getting content from %q",path);
+           "Problem getting content from %q for %q",
+           path,uri);
     if (u8_current_exception->u8x_cond == fd_FileNotFound) {
       fd_clear_errors(1);
       if (FD_VOIDP(default_notfoundpage)) {
@@ -1026,14 +1025,16 @@ static int webservefn(u8_client ucl)
     result = precheck;
   else if (TYPEP(proc,fd_cprim_type)) {
     if ((forcelog)||(traceweb>1))
-      u8_log(LOG_NOTICE,"START","Handling %q with primitive procedure %q (#%lx)",
-             path,proc,(unsigned long)ucl);
+      u8_log(LOG_NOTICE,"START",
+             "Handling %q (%q) with primitive procedure %q (#%lx)",
+             uri,path,proc,(unsigned long)ucl);
     result = fd_apply(proc,0,NULL);}
   else if (FD_LAMBDAP(proc)) {
     struct FD_LAMBDA *sp = FD_CONSPTR(fd_lambda,proc);
     if ((forcelog)||(traceweb>1))
-      u8_log(LOG_NOTICE,"START","Handling %q with lambda procedure %q (#%lx)",
-             path,proc,(unsigned long)ucl);
+      u8_log(LOG_NOTICE,"START",
+             "Handling %q (%q) with lambda procedure %q (#%lx)",
+             uri,path,proc,(unsigned long)ucl);
     base_env = sp->lambda_env;
     threadcache = checkthreadcache(sp->lambda_env);
     result = fd_cgiexec(proc,cgidata);}
@@ -1041,8 +1042,9 @@ static int webservefn(u8_client ucl)
            (FD_LAMBDAP((FD_CAR(proc))))) {
     struct FD_LAMBDA *sp = FD_CONSPTR(fd_lambda,FD_CAR(proc));
     if ((forcelog)||(traceweb>1))
-      u8_log(LOG_NOTICE,"START","Handling %q with lambda procedure %q (#%lx)",
-             path,proc,(unsigned long)ucl);
+      u8_log(LOG_NOTICE,"START",
+             "Handling %q (%q) with lambda procedure %q (#%lx)",
+             uri,path,proc,(unsigned long)ucl);
     threadcache = checkthreadcache(sp->lambda_env);
     /* This should possibly put the CDR of proc into the environment chain,
        but it no longer does. ?? */
@@ -1057,8 +1059,9 @@ static int webservefn(u8_client ucl)
     if (base) fd_load_latest(NULL,base,NULL);
     threadcache = checkthreadcache(base);
     if ((forcelog)||(traceweb>1))
-      u8_log(LOG_NOTICE,"START","Handling %q with template (#%lx)",
-             path,(unsigned long)ucl);
+      u8_log(LOG_NOTICE,"START",
+             "Handling %q (%q) with template (#%lx)",
+             uri,path,(unsigned long)ucl);
     setup_proc = fd_symeval(setup_symbol,base);
     /* Run setup procs */
     if (FD_VOIDP(setup_proc)) {}
@@ -1115,12 +1118,27 @@ static int webservefn(u8_client ucl)
         (!(FD_VOIDP(default_errorpage)))) {
       fd_incref(default_errorpage);
       errorpage = default_errorpage;}
-    if (STRINGP(path))
+    if ( (STRINGP(path)) && (STRINGP(uri)) && (STRINGP(method)) )
       u8_log(LOG_ERR,ex->u8x_cond,
-             "Unexpected error \"%m \" for %s:@%s (%s) (#%lx)",
-             ex->u8x_cond,CSTRING(path),ex->u8x_context,
-             ex->u8x_details,
-             (unsigned long)ucl);
+             "Unexpected error \"%m \" @%s (%s) (#%lx) "
+             "\n\t  using '%s' to"
+             "\n%s %s",
+             ex->u8x_cond,ex->u8x_context,
+             ex->u8x_details,(unsigned long)ucl,
+             FD_CSTRING(path),FD_CSTRING(method),FD_CSTRING(uri));
+    else if (STRINGP(path))
+      u8_log(LOG_ERR,ex->u8x_cond,
+             "Unexpected error \"%m \" @%s (%s) (#%lx)\n from '%s'",
+             ex->u8x_cond,ex->u8x_context,
+             ex->u8x_details,(unsigned long)ucl,
+             FD_CSTRING(path));
+    else if (STRINGP(uri))
+      u8_log(LOG_ERR,ex->u8x_cond,
+             "Unexpected error \"%m \" @%s (%s) (#%lx)\n to %s %s",
+             ex->u8x_cond,ex->u8x_context,
+             ex->u8x_details,(unsigned long)ucl,
+             ( (FD_STRINGP(method)) ? (FD_CSTRING(method)) : (U8S(""))),
+             FD_CSTRING(uri)) ;
     else u8_log(LOG_ERR,ex->u8x_cond,
                 "Unexpected error \"%m \" %s:@%s (%s) (#%lx)",
                 ex->u8x_cond,ex->u8x_context,ex->u8x_details,
@@ -1168,12 +1186,15 @@ static int webservefn(u8_client ucl)
           u8_context exdetails = ((exscan->u8x_details) ? (exscan->u8x_details) :
                                 ((u8_string)"no more details"));
           lispval irritant = fd_exception_xdata(exscan);
-          if (STRINGP(path))
+          u8_string spath = (STRINGP(path)) ? (CSTRING(path)) : (NULL);
+          u8_string suri = (STRINGP(uri)) ? (CSTRING(uri)) : (NULL);
+          if ( (spath) || (suri) )
             u8_log(LOG_ERR,excond,
-                   "Unexpected recursive error \"%m \" for %s:@%s (%s) (#%lx)",
-                   excond,CSTRING(path),excxt,exdetails,(unsigned long)ucl);
+                   "Unexpected recursive error '%m' @%s (%s) (#%lx)\n  %s (%s)",
+                   excond,excxt,exdetails,(unsigned long)ucl,
+                   suri,spath);
           else u8_log(LOG_ERR,excond,
-                      "Unexpected recursive error \"%m \" %s:@%s (%s) (#%lx)",
+                      "Unexpected recursive error '%m' %s:@%s (%s) (#%lx)",
                       excond,excxt,exdetails,(unsigned long)ucl);
           if (!(FD_VOIDP(irritant)))
             u8_log(LOG_ERR,excond,"Irritant: %q",irritant);
@@ -1438,12 +1459,10 @@ static int webservefn(u8_client ucl)
   u8_getrusage(RUSAGE_SELF,&end_usage);
   if ((forcelog)||(traceweb>0)||
       ((overtime>0)&&((write_time-start_time)>overtime))) {
-    lispval method = fd_get(cgidata,request_method,VOID);
     lispval query = fd_get(cgidata,query_slotid,VOID);
     lispval redirect = fd_get(cgidata,redirect_slotid,VOID);
     lispval sendfile = fd_get(cgidata,sendfile_slotid,VOID);
     lispval xredirect = fd_get(cgidata,xredirect_slotid,VOID);
-    lispval uri = fd_get(cgidata,uri_slotid,VOID);
     if (!(FD_VOIDP(redirect)))
       u8_log(LOG_NOTICE,"FDServlet/REQUEST/REDIRECT","to %q",redirect);
     else if (!(FD_VOIDP(xredirect)))
@@ -1453,7 +1472,9 @@ static int webservefn(u8_client ucl)
     else {}
     if ((FD_VOIDP(query))||((STRINGP(query))&&(STRLEN(query)==0)))
       u8_log(LOG_NOTICE,"FDServlet/REQUEST/DONE",
-             "%q (%d) %s %d=%d+%d+%d bytes (#%lx)\n\t< %q %s\n\t< generated by %q\n\t< taking %f = setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
+             "%q (%d) %s %d=%d+%d+%d bytes (#%lx)\n\t< %q %s\n\t< generated "
+             "by %q\n\t< taking %f = setup:%f+req:%f+run:%f+write:%f secs, "
+             "stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
              method,http_status,((buffered)?("buffered"):("sent")),
              http_len+head_len+content_len,http_len,head_len,content_len,
              (unsigned long)ucl,method,CSTRING(uri),path,
@@ -1466,7 +1487,10 @@ static int webservefn(u8_client ucl)
              (u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0,
              end_load[0],end_load[1],end_load[2]);
     else u8_log(LOG_NOTICE,"FDSerlvet/REQUEST/DONE",
-                "%q (%d) %s %d=%d+%d+%d bytes (#%lx)\n\t< %q %s\n\t< generated by %q\n\t< from query %q\n\t< taking %f = setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
+                "%q (%d) %s %d=%d+%d+%d bytes (#%lx)\n\t< %q %s\n\t< "
+                "generated by %q\n\t< from query %q\n\t< "
+                "taking %f = setup:%f+req:%f+run:%f+write:%f secs, "
+                "stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
                 method,http_status,((buffered)?("buffered"):("sent")),
                 http_len+head_len+content_len,http_len,head_len,content_len,
                 (unsigned long)ucl,method,CSTRING(uri),path,query,
@@ -1494,11 +1518,13 @@ static int webservefn(u8_client ucl)
     fd_decref(xredirect);
     fd_decref(redirect);
     fd_decref(sendfile);
-    fd_decref(method);
-    fd_decref(query);
-    fd_decref(uri);}
+    fd_decref(query);}
   else {}
-  fd_decref(proc); fd_decref(result); fd_decref(path);
+  fd_decref(proc);
+  fd_decref(result);
+  fd_decref(path);
+  fd_decref(uri);
+  fd_decref(method);
   fd_decref(cgidata);
   fd_swapcheck();
   /* Task is done */
