@@ -55,6 +55,8 @@ static History *edithistory;
 
 #include "main.h"
 
+static lispval command_tag;
+
 #define EVAL_PROMPT "#|fdconsole>|# "
 static u8_string eval_prompt = EVAL_PROMPT;
 static int set_prompt(lispval ignored,lispval v,void *vptr)
@@ -75,6 +77,8 @@ static int set_prompt(lispval ignored,lispval v,void *vptr)
 }
 
 #include "main.c"
+
+#define FD_MAX_COMMAND_LENGTH 128
 
 static double showtime_threshold = 1.0;
 
@@ -100,27 +104,45 @@ static char *editline_promptfn(EditLine *ignored)
 }
 #endif
 
+/* This skips whitespace and returns the first non-whitepsace
+   character, which it consumes; */
 int skip_whitespace(u8_input in)
 {
   int c = u8_getc(in);
-  while ((c>=0) && (isspace(c))) c = u8_getc(in);
+  while ((c>=0) && (u8_isspace(c))) c = u8_getc(in);
   if (c==';') {
+    /* Handle comments */
     while ((c>=0) && (c != '\n')) c = u8_getc(in);
     if (c<0) return c;
     else return skip_whitespace(in);}
   else return c;
 }
 
+/* This is just like skip_whitespace, but doesn't consume the
+   non-whitespace character it consumes. */
 int swallow_whitespace(u8_input in)
 {
   int c = u8_peekc(in);
   if (c<0) return c;
-  while ((c>=0) && (isspace(c))) {
+  while ((c>=0) && (u8_isspace(c))) {
     u8_getc(in); c = u8_peekc(in);}
   if (c==';') {
     while ((c>=0) && (c != '\n')) c = u8_getc(in);
     if (c<0) return c;
-    else return skip_whitespace(in);}
+    else return swallow_whitespace(in);}
+  else return c;
+}
+
+int swallow_hspace(u8_input in)
+{
+  int c = u8_peekc(in);
+  if (c<0) return c;
+  while ((c>=0) && (u8_ishspace(c))) {
+    u8_getc(in); c = u8_peekc(in);}
+  if (c==';') {
+    while ((c>=0) && (c != '\n')) c = u8_getc(in);
+    if (c<0) return c;
+    else return swallow_hspace(in);}
   else return c;
 }
 
@@ -172,7 +194,7 @@ static int oid_listfn(u8_output out,lispval item)
   return 0;
 }
 
-static int list_result(struct U8_OUTPUT *out,lispval result,
+static int output_result(struct U8_OUTPUT *out,lispval result,
                        u8_string histref,int width,int showall)
 {
   int detail = (showall) ? (-result_max_elts) : (result_max_elts);
@@ -304,14 +326,62 @@ static lispval stream_read(u8_input in,fd_lexenv env)
   c = skip_whitespace(in);
   if (c<0) return FD_EOF;
   else if (c=='=') {
-    lispval sym = fd_parser(in);
-    if (SYMBOLP(sym)) {
-      swallow_whitespace(in);
-      return fd_make_nrail(2,FDSYM_EQUALS,sym);}
+    lispval expr = fd_parser(in);
+    swallow_hspace(in);
+    return fd_init_compound
+      (NULL,command_tag,FD_COMPOUND_SEQUENCE,2,FDSYM_EQUALS,expr);}
+  else if ( (c==',') || (c == ':') ) {
+    lispval cmds[FD_MAX_COMMAND_LENGTH];
+    int n = 0, done = 0;
+    int nextc = swallow_hspace(in);
+    while ( (nextc > 0) && (nextc != '\n') ) {
+      lispval arg = VOID;
+      if ( (n == 0) ||
+           (nextc == '#') || (nextc == '(') ||
+           (nextc == '"') || (nextc == '\'') ||
+           (nextc == '+') || (nextc == '-') ||
+           (u8_isdigit(nextc)) )
+        arg = fd_parser(in);
+      else if (nextc == ':') {
+        u8_getc(in); arg = fd_parser(in);}
+      else {
+        struct U8_OUTPUT argout;
+        U8_INIT_OUTPUT(&argout,100);
+        int ac = u8_getc(in);
+        while ( (ac > 0) && (!(u8_isspace(ac))) ) {
+          if (ac == '\\') {
+            int nextac = u8_getc(in);
+            if ( (nextac == 'u') || (nextac == 'U') ) {
+              u8_putc(&argout,'\\');
+              u8_putc(&argout,nextac);}
+            else u8_putc(&argout,nextac);}
+          else u8_putc(&argout,ac);
+          ac = u8_getc(in);}
+        arg = fd_init_string(NULL,argout.u8_write-argout.u8_outbuf,
+                             argout.u8_outbuf);}
+      if (n >= FD_MAX_COMMAND_LENGTH) {
+        fd_seterr("TooManyCommandArgs","stream_read",NULL,FD_VOID);
+        fd_decref_vec(cmds,n);
+        return FD_ERROR;}
+      cmds[n++] = arg;
+      nextc = swallow_hspace(in);}
+    if (n == 0)
+      return stream_read(in,env);
+    else if (c == ':')
+      return fd_init_compound_from_elts(NULL,command_tag,FD_COMPOUND_SEQUENCE,
+                                        n,cmds);
     else {
-      fd_decref(sym);
-      u8_printf(errconsole,_(";; Bad assignment expression!\n"));
-      return VOID;}}
+      lispval expr = FD_NIL;
+      int j = n-1; while (j>0) {
+        expr = fd_init_pair(NULL,cmds[j],expr); j--;}
+      if (FD_SYMBOLP(cmds[0])) {
+        u8_string pname = FD_SYMBOL_NAME(cmds[0]);
+        u8_byte name_buf[strlen(pname)+16];
+        strcpy(name_buf,pname);
+        strcat(name_buf,".command");
+        lispval cmd_symbol = fd_intern(name_buf);
+        return fd_init_pair(NULL,cmd_symbol,expr);}
+      else return fd_init_pair(NULL,cmds[0],expr);}}
   /* Handle command parsing here */
   /* else if ((c==':')||(c==',')) {} */
   else u8_ungetc(in,c);
@@ -328,7 +398,7 @@ static lispval stream_read(u8_input in,fd_lexenv env)
 static lispval console_read(u8_input in,fd_lexenv env)
 {
 #if USING_EDITLINE
-  if ((use_editline)&&(in == inconsole)) {
+  if ( (use_editline) && (in == inconsole) ) {
     struct U8_INPUT scan; lispval expr; int n_bytes;
     const char *line = el_gets(editconsole,&n_bytes);
     if (!(line)) return FD_EOF;
@@ -688,6 +758,7 @@ int main(int argc,char **argv)
   setlocale(LC_ALL,"");
   that_symbol = fd_intern("THAT");
   histref_symbol = fd_intern("%HISTREF");
+  command_tag = fd_intern(".command.");
 
   /* Process config fields in the arguments,
      storing the first non config field as a source file. */
@@ -814,13 +885,13 @@ int main(int argc,char **argv)
     start_icache = fd_index_cache_load();
     u8_flush(out);
     expr = console_read(in,env);
-    if (TYPEP(expr,fd_code_type)) {
+    if (FD_COMPOUND_TYPEP(expr,command_tag)) {
       /* Handle commands */
-      lispval head = FD_VECTOR_REF(expr,0);
-      if ((head == FDSYM_EQUALS)&&
-          (VEC_LEN(expr)==2)&&
-          (SYMBOLP(VEC_REF(expr,1)))) {
-        lispval sym = VEC_REF(expr,1);
+      lispval head = FD_COMPOUND_REF(expr,0);
+      if ( (head == FDSYM_EQUALS ) &&
+           ( (FD_COMPOUND_LENGTH(expr)) == 2) &&
+           ( SYMBOLP(FD_COMPOUND_REF(expr,1)) ) ) {
+        lispval sym = FD_COMPOUND_REF(expr,1);
         fd_bind_value(sym,lastval,env);
         u8_printf(out,_(";; Bound %q\n"),sym);}
       else u8_printf(out,_(";; Bad command result %q\n"),expr);
@@ -915,13 +986,13 @@ int main(int argc,char **argv)
       else fprintf(stderr,
                    ";;; The expression generated a mysterious error!!!!\n");}
     else if (stat_line)
-      list_result(out,result,histref_string,console_width,showall);
+      output_result(out,result,histref_string,console_width,showall);
     else if (VOIDP(result)) {}
     else if (histref<0) {
-      list_result(out,result,histref_string,console_width,showall);
+      output_result(out,result,histref_string,console_width,showall);
       stat_line = 1;}
     else {
-      list_result(out,result,histref_string,console_width,showall);
+      output_result(out,result,histref_string,console_width,showall);
       stat_line = 1;}
     if (errno) {
       u8_log(LOG_WARN,u8_strerror(errno),"Unexpected errno after output");
