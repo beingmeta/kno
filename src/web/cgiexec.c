@@ -211,13 +211,9 @@ static lispval intern_compound(u8_string s1,u8_string s2)
 
 static void get_form_args(fd_slotmap c)
 {
-  if (fd_test((lispval)c,request_method,get_method)) {
-    lispval qval = fd_slotmap_get(c,query_string,VOID);
-    if (STRINGP(qval))
-      parse_query_string(c,FD_STRING_DATA(qval),FD_STRING_LENGTH(qval));
-    fd_decref(qval);
-    return;}
-  else if (fd_test((lispval)c,request_method,post_method)) {
+  if ( (fd_test((lispval)c,request_method,post_method)) ||
+       (fd_test((lispval)c,cgi_content_type,multipart_form_data)) ||
+       (fd_test((lispval)c,cgi_content_type,www_form_urlencoded)) ) {
     fd_handle_compound_mime_field((lispval)c,cgi_content_type,VOID);
     if (parse_query_on_post) {
       /* We do this first, so it won't override any post data
@@ -291,6 +287,12 @@ static void get_form_args(fd_slotmap c)
         parse_query_string(c,data,len);
       fd_decref(qval);}
     else {}}
+  else {
+    lispval qval = fd_slotmap_get(c,query_string,VOID);
+    if (STRINGP(qval))
+      parse_query_string(c,FD_STRING_DATA(qval),FD_STRING_LENGTH(qval));
+    fd_decref(qval);
+    return;}
 }
 
 static void parse_query_string(fd_slotmap c,const char *data,int len)

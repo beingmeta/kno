@@ -245,7 +245,8 @@
       (choice cur new)))
 
 (defambda (config:fnset new cur)
-  (if (or (fail? cur) (not cur)) new
+  (if (or (fail? cur) (not cur)) 
+      new
       (if (and (procedure? new) (procedure-name new))
 	  (choice (reject cur procedure-name (procedure-name new))
 		  new)
