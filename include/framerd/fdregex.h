@@ -27,7 +27,7 @@ FD_EXPORT off_t fd_regex_search(lispval pat,u8_string s,ssize_t len);
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  compile-command: "make -C ../.. debugging;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

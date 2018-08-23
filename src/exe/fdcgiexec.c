@@ -740,7 +740,7 @@ int main(int argc,char **argv)
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  compile-command: "make -C ../.. debugging;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

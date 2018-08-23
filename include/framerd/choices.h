@@ -429,7 +429,7 @@ FD_EXPORT lispval *fd_natsort_choice(fd_choice ch,lispval *,ssize_t);
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  compile-command: "make -C ../.. debugging;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

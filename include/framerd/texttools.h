@@ -106,7 +106,7 @@ FD_EXPORT lispval fd_words2list(u8_string string,int keep_punct);
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  compile-command: "make -C ../.. debugging;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

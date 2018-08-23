@@ -295,7 +295,7 @@ U8_MAYBE_UNUSED static lispval _fd_apply_keyfn(lispval x,lispval keyfn)
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  compile-command: "make -C ../.. debugging;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

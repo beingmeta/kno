@@ -34,7 +34,7 @@ FD_EXPORT void fd_summarize_backtrace(U8_OUTPUT *out,u8_exception ex);
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  compile-command: "make -C ../.. debugging;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

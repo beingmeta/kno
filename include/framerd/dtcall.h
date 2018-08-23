@@ -30,7 +30,7 @@ FD_EXPORT lispval fd_dtcall_nrx(struct U8_CONNPOOL *cp,int doeval,int n,...);
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  compile-command: "make -C ../.. debugging;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

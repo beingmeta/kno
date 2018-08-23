@@ -122,7 +122,7 @@ typedef struct FD_COMPOUND_CONSTRUCTOR *fd_compound_constructor;
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  compile-command: "make -C ../.. debugging;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

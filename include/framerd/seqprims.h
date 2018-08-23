@@ -25,7 +25,7 @@ FD_EXPORT lispval fd_reduce(lispval fn,lispval sequence,lispval result);
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  compile-command: "make -C ../.. debugging;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

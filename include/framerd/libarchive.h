@@ -21,7 +21,7 @@ FD_EXPORT int fd_init_libarchive(void) FD_LIBINIT_FN;
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debug;" ***
+   ;;;  compile-command: "make -C ../.. debugging;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */
