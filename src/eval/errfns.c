@@ -670,24 +670,29 @@ static lispval stack_entry_op(lispval stackobj)
   return fd_compound_ref(stackobj,stack_entry_symbol,3,FD_FALSE);
 }
 
-static lispval stack_entry_args(lispval stackobj)
+static lispval stack_entry_filename(lispval stackobj)
 {
   return fd_compound_ref(stackobj,stack_entry_symbol,4,FD_FALSE);
 }
 
-static lispval stack_entry_source(lispval stackobj)
+static lispval stack_entry_args(lispval stackobj)
 {
   return fd_compound_ref(stackobj,stack_entry_symbol,5,FD_FALSE);
 }
 
-static lispval stack_entry_env(lispval stackobj)
+static lispval stack_entry_source(lispval stackobj)
 {
   return fd_compound_ref(stackobj,stack_entry_symbol,6,FD_FALSE);
 }
 
-static lispval stack_entry_status(lispval stackobj)
+static lispval stack_entry_env(lispval stackobj)
 {
   return fd_compound_ref(stackobj,stack_entry_symbol,7,FD_FALSE);
+}
+
+static lispval stack_entry_status(lispval stackobj)
+{
+  return fd_compound_ref(stackobj,stack_entry_symbol,8,FD_FALSE);
 }
 
 static u8_string static_string(lispval x,int err)
@@ -879,6 +884,9 @@ FD_EXPORT void fd_init_errfns_c()
             "Returns the op of a stack entry",
             fd_compound_type,FD_VOID);
   fd_idefn1(fd_scheme_module,"STACK-LABEL",stack_entry_label,1,
+            "Returns the label of a stack entry",
+            fd_compound_type,FD_VOID);
+  fd_idefn1(fd_scheme_module,"STACK-FILENAME",stack_entry_filename,1,
             "Returns the label of a stack entry",
             fd_compound_type,FD_VOID);
   fd_idefn1(fd_scheme_module,"STACK-ARGS",stack_entry_args,1,
