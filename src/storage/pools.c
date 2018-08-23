@@ -2587,6 +2587,10 @@ FD_EXPORT lispval fd_default_poolctl(fd_pool p,lispval op,int n,lispval *args)
     return FD_EMPTY;
   else if (op == FDSYM_CACHELEVEL)
     return FD_INT2FIX(1);
+  else if (op == FDSYM_READONLY) {
+    if (U8_BITP((p->pool_flags),FD_STORAGE_READ_ONLY))
+      return FD_TRUE;
+    else return FD_FALSE;}
   else {
     u8_log(LOG_WARN,"Unhandled POOLCTL op",
            "Couldn't handle %q for %s",op,p->poolid);

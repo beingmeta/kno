@@ -2307,6 +2307,10 @@ FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args
     return FD_EMPTY;
   else if (op == FDSYM_CACHELEVEL)
     return FD_INT2FIX(1);
+  else if (op == FDSYM_READONLY) {
+    if (FD_INDEX_READONLYP(ix))
+      return FD_TRUE;
+    else return FD_FALSE;}
   else return FD_FALSE;
 }
 

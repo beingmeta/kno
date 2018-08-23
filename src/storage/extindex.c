@@ -210,7 +210,7 @@ struct FD_INDEX_HANDLER fd_extindex_handler={
   NULL, /* create */
   NULL,  /* walk */
   recycle_extindex,  /* recycle */
-  NULL  /* indexctl */
+  fd_default_indexctl  /* indexctl */
 };
 
 FD_EXPORT void fd_init_extindex_c()
