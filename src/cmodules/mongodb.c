@@ -54,16 +54,26 @@ static lispval dbname_symbol, username_symbol, auth_symbol, fdtag_symbol;
 static lispval hosts_symbol, connections_symbol, fieldmap_symbol, logopsym;
 static lispval fdparse_symbol;
 
+/* The mongo_opmap translates symbols for mongodb operators (like
+   $addToSet) into the correctly capitalized strings to use in
+   operations. */
 static struct FD_KEYVAL *mongo_opmap = NULL;
 static int mongo_opmap_size = 0, mongo_opmap_space = 0;
 #ifndef MONGO_OPMAP_MAX
 #define MONGO_OPMAP_MAX 8000
 #endif
 
+#define MONGO_VECSLOTS_MAX 2032
+static lispval vecslots[MONGO_VECSLOTS_MAX];
+static int n_vecslots = 0;
+static u8_mutex vecslots_lock;
+
+/* These are the new cons types introducted for mongodb */
 fd_ptr_type fd_mongoc_server, fd_mongoc_collection, fd_mongoc_cursor;
 
 static bool bson_append_keyval(struct FD_BSON_OUTPUT,lispval,lispval);
-static bool bson_append_dtype(struct FD_BSON_OUTPUT,const char *,int,lispval);
+static bool bson_append_dtype(struct FD_BSON_OUTPUT,const char *,int,
+                              lispval,int);
 static lispval idsym, maxkey, minkey;
 static lispval oidtag, mongofun, mongouser, mongomd5;
 static lispval bsonflags, raw, slotify, slotifyin, slotifyout, softfailsym;
@@ -360,13 +370,13 @@ static U8_MAYBE_UNUSED bson_t *getfindopts(lispval opts,int flags)
   out.bson_flags = flags;
   out.bson_fieldmap = fd_getopt(opts,fieldmap_symbol,FD_VOID);
   if (FD_FIXNUMP(skip_arg))
-    bson_append_dtype(out,"skip",4,skip_arg);
+    bson_append_dtype(out,"skip",4,skip_arg,0);
   else fd_decref(skip_arg);
   if (FD_FIXNUMP(limit_arg))
-    bson_append_dtype(out,"limit",5,limit_arg);
+    bson_append_dtype(out,"limit",5,limit_arg,0);
   else fd_decref(limit_arg);
   if (FD_FIXNUMP(batch_arg))
-    bson_append_dtype(out,"batchSize",9,batch_arg);
+    bson_append_dtype(out,"batchSize",9,batch_arg,0);
   else fd_decref(batch_arg);
   if ( (FD_SYMBOLP(projection)) || (FD_CONSP(projection)) ) {
     struct FD_BSON_OUTPUT fields; bson_t proj;
@@ -405,15 +415,15 @@ static U8_MAYBE_UNUSED bson_t *getbulkopts(lispval opts,int flags)
   out.bson_fieldmap = fd_getopt(opts,fieldmap_symbol,FD_VOID);
   lispval ordered_arg = fd_getopt(opts,FDSYM_SORTED,FD_FALSE);
   if (!(FD_FALSEP(ordered_arg))) {
-    bson_append_dtype(out,"ordered",4,ordered_arg);}
+    bson_append_dtype(out,"ordered",4,ordered_arg,0);}
 
   lispval wcval = fd_getopt(opts,writesym,FD_VOID);
   lispval wcwait = fd_getopt(opts,wtimeoutsym,FD_VOID);
 
   if (!(FD_VOIDP(wcval))) {
-    bson_append_dtype(out,"writeConcern",4,wcval);}
+    bson_append_dtype(out,"writeConcern",4,wcval,0);}
   if (!(FD_VOIDP(wcwait))) {
-    bson_append_dtype(out,"wtimeout",4,wcwait);}
+    bson_append_dtype(out,"wtimeout",4,wcwait,0);}
 
   fd_decref(ordered_arg);
   fd_decref(wcval);
@@ -423,6 +433,76 @@ static U8_MAYBE_UNUSED bson_t *getbulkopts(lispval opts,int flags)
 }
 
 static int mongodb_getflags(lispval mongodb);
+
+/* MongoDB vecslots */
+
+/* These are slots which should always have vector (array) values, so
+   if their value is a choice, it is rendered as an array, but if it's
+   a singleton, it's rendered as an array of one value. */
+
+static int get_vecslot(lispval slot)
+{
+  int i = 0, n = n_vecslots;
+  while (i<n)
+    if (vecslots[i] == slot)
+      return i;
+    else i++;
+  return -1;
+}
+
+static int add_vecslot(lispval slot)
+{
+  int off = get_vecslot(slot);
+  if (off>=0) return off;
+  else {
+    u8_lock_mutex(&vecslots_lock);
+    int i = 0, n = n_vecslots;
+    while (i<n)
+      if (vecslots[i] == slot) {
+        u8_unlock_mutex(&vecslots_lock);
+        return i;}
+      else i++;
+    if (i >= MONGO_VECSLOTS_MAX) {
+      u8_unlock_mutex(&vecslots_lock);
+      return -1;}
+    vecslots[i] = slot;
+    n_vecslots++;
+    u8_unlock_mutex(&vecslots_lock);
+    return i;}
+}
+
+static lispval vecslots_config_get(lispval var,void *data)
+{
+  lispval result = FD_EMPTY;
+  int i = 0, n = n_vecslots;
+  while (i < n) {
+    lispval slot = vecslots[i++];
+    FD_ADD_TO_CHOICE(result,slot);}
+  return result;
+}
+
+static int vecslots_config_add(lispval var,lispval val,void *data)
+{
+  lispval sym = FD_VOID;
+  if (FD_SYMBOLP(val))
+    sym = val;
+  else if (FD_STRINGP(val)) {
+    u8_string upper = u8_upcase(FD_CSTRING(val));
+    sym = fd_intern(upper);
+    u8_free(upper);}
+  else {
+    fd_seterr("Not symbolic","mongodb/config_add_vecslots",
+              NULL,val);
+    return -1;}
+  int rv = add_vecslot(sym);
+  if (rv < 0) {
+    char buf[64];
+    fd_seterr("Too many vecslots declared","mongodb/config_add_vecslots",
+              u8_sprintf(buf,sizeof(buf),"%d",MONGO_VECSLOTS_MAX),
+              val);
+    return rv;}
+  else return rv;
+}
 
 /* Consing MongoDB clients, collections, and cursors */
 
@@ -1033,9 +1113,9 @@ static lispval mongodb_remove(lispval arg,lispval obj,lispval opts_arg)
         fd_bson_output(q,obj);
         hasid = 0;}
       else {
-        bson_append_dtype(q,"_id",3,id);
+        bson_append_dtype(q,"_id",3,id,0);
         fd_decref(id);}}
-    else bson_append_dtype(q,"_id",3,obj);
+    else bson_append_dtype(q,"_id",3,obj,0);
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
       u8_logf(LOG_DETAIL,"MongoDB/remove","Removing %q items from %q",obj,arg);
     if (mongoc_collection_remove(collection,
@@ -1400,7 +1480,7 @@ static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
       out.bson_doc = bson_new();
       out.bson_flags = ((flags<0)?(getflags(opts,FD_MONGODB_DEFAULTS)):(flags));
       out.bson_opts = opts;
-      bson_append_dtype(out,"_id",3,query);
+      bson_append_dtype(out,"_id",3,query,0);
       q = out.bson_doc;}
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
       u8_logf(LOG_DETAIL,"MongoDB/get","Matches to %q in %q",query,arg);
@@ -1443,7 +1523,7 @@ static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
       out.bson_doc = bson_new();
       out.bson_flags = ((flags<0)?(getflags(opts,FD_MONGODB_DEFAULTS)):(flags));
       out.bson_opts = opts;
-      bson_append_dtype(out,"_id",3,query);
+      bson_append_dtype(out,"_id",3,query,0);
       q = out.bson_doc;}
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
       u8_logf(LOG_DETAIL,"MongoDB/get","Matches to %q in %q",query,arg);
@@ -1996,10 +2076,26 @@ static lispval mongodb_cursor_read_vector(lispval cursor,lispval howmany,lispval
 
 static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
                               const char *key,int keylen,
-                              lispval val)
+                              lispval val,
+                              int vecslot)
 {
-  bson_t *out = b.bson_doc; int flags = b.bson_flags; bool ok = true;
-  if (FD_CONSP(val)) {
+  bson_t *out = b.bson_doc;
+  int flags = b.bson_flags;
+  char buf[16];
+  bool ok = true;
+  if ( (vecslot) && (FD_CHOICEP(val)) ) vecslot = 0;
+  if (vecslot) {
+    struct FD_BSON_OUTPUT wrapper_out = { 0 };
+    bson_t values;
+    ok = bson_append_array_begin(out,key,keylen,&values);
+    wrapper_out.bson_doc = &values;
+    wrapper_out.bson_flags = b.bson_flags;
+    wrapper_out.bson_opts = b.bson_opts;
+    wrapper_out.bson_fieldmap = b.bson_fieldmap;
+    if (ok) ok = bson_append_dtype(wrapper_out,"0",1,val,0);
+    if (ok) ok = bson_append_document_end(out,&values);
+    return ok;}
+  else if (FD_CONSP(val)) {
     fd_ptr_type ctype = FD_PTR_TYPE(val);
     switch (ctype) {
     case fd_string_type: {
@@ -2055,7 +2151,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       if (ok) {
         int i = 0; FD_DO_CHOICES(v,val) {
           sprintf(buf,"%d",i++);
-          ok = bson_append_dtype(rout,buf,strlen(buf),v);
+          ok = bson_append_dtype(rout,buf,strlen(buf),v,0);
           if (!(ok)) FD_STOP_DO_CHOICES;}}
       bson_append_document_end(out,&arr);
       break;}
@@ -2075,7 +2171,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       rout.bson_opts = b.bson_opts; rout.bson_fieldmap = b.bson_fieldmap;
       if (ok) while (i<lim) {
           lispval v = data[i]; sprintf(buf,"%d",i++);
-          ok = bson_append_dtype(rout,buf,strlen(buf),v);
+          ok = bson_append_dtype(rout,buf,strlen(buf),v,0);
           if (!(ok)) break;}
       if (wrap_vector) {
         bson_append_array_end(&ch,&arr);
@@ -2125,15 +2221,15 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
         lispval *scan = elts, *limit = scan+len; int i = 0;
         while (scan<limit) {
           u8_byte buf[16]; sprintf(buf,"%d",i);
-          ok = bson_append_dtype(rout,buf,strlen(buf),*scan);
+          ok = bson_append_dtype(rout,buf,strlen(buf),*scan,0);
           scan++; i++;
           if (!(ok)) break;}}
       else {
         int i = 0;
-        ok = bson_append_dtype(rout,"%fdtag",6,tag);
+        ok = bson_append_dtype(rout,"%fdtag",6,tag,0);
         if (ok) while (i<len) {
             char buf[16]; sprintf(buf,"%d",i);
-            ok = bson_append_dtype(rout,buf,strlen(buf),elts[i++]);
+            ok = bson_append_dtype(rout,buf,strlen(buf),elts[i++],0);
             if (!(ok)) break;}}
       if (tag == mongovec_symbol)
         bson_append_array_end(out,&doc);
@@ -2209,6 +2305,10 @@ static bool bson_append_keyval(FD_BSON_OUTPUT b,lispval key,lispval val)
   struct U8_OUTPUT keyout; unsigned char buf[1000];
   const char *keystring = NULL; int keylen; bool ok = true;
   lispval fieldmap = b.bson_fieldmap, store_value = val;
+  int vecslot = (!(FD_SYMBOLP(key))) ? (0) : 
+    (FD_CHOICEP(val)) ? (0) :
+    (FD_VECTORP(val)) ? (0) :
+    (get_vecslot(key) >= 0);
   U8_INIT_OUTPUT_BUF(&keyout,1000,buf);
   if (FD_VOIDP(val)) return 0;
   if (FD_SYMBOLP(key)) {
@@ -2272,9 +2372,9 @@ static bool bson_append_keyval(FD_BSON_OUTPUT b,lispval key,lispval val)
       else *write++ = c;}
     keystring = newbuf;}
   if (store_value == val)
-    ok = bson_append_dtype(b,keystring,keylen,val);
+    ok = bson_append_dtype(b,keystring,keylen,val,vecslot);
   else {
-    ok = bson_append_dtype(b,keystring,keylen,store_value);
+    ok = bson_append_dtype(b,keystring,keylen,store_value,vecslot);
     fd_decref(store_value);}
   u8_close((u8_stream)&keyout);
   return ok;
@@ -2290,11 +2390,11 @@ FD_EXPORT lispval fd_bson_output(struct FD_BSON_OUTPUT out,lispval obj)
       lispval elt = elts[i]; u8_byte buf[16];
       sprintf(buf,"%d",i++);
       if (ok)
-        ok = bson_append_dtype(out,buf,strlen(buf),elt);}}
+        ok = bson_append_dtype(out,buf,strlen(buf),elt,0);}}
   else if (FD_CHOICEP(obj)) {
     int i = 0; FD_DO_CHOICES(elt,obj) {
       u8_byte buf[16]; sprintf(buf,"%d",i++);
-      if (ok) ok = bson_append_dtype(out,buf,strlen(buf),elt);}}
+      if (ok) ok = bson_append_dtype(out,buf,strlen(buf),elt,0);}}
   else if (FD_SLOTMAPP(obj)) {
     struct FD_SLOTMAP *smap = (fd_slotmap) obj;
     int i = 0, n = smap->n_slots;
@@ -2319,15 +2419,15 @@ FD_EXPORT lispval fd_bson_output(struct FD_BSON_OUTPUT out,lispval obj)
       lispval *scan = elts, *limit = scan+len; int i = 0;
       while (scan<limit) {
         u8_byte buf[16]; sprintf(buf,"%d",i);
-        ok = bson_append_dtype(out,buf,strlen(buf),*scan);
+        ok = bson_append_dtype(out,buf,strlen(buf),*scan,0);
         i++; scan++;
         if (!(ok)) break;}}
     else {
       int i = 0;
-      ok = bson_append_dtype(out,"%fdtag",6,tag);
+      ok = bson_append_dtype(out,"%fdtag",6,tag,0);
       if (ok) while (i<len) {
           char buf[16]; sprintf(buf,"%d",i);
-          ok = bson_append_dtype(out,buf,strlen(buf),elts[i++]);
+          ok = bson_append_dtype(out,buf,strlen(buf),elts[i++],0);
           if (!(ok)) break;}}}
   if (!(ok))
     return FD_ERROR_VALUE;
@@ -2653,11 +2753,6 @@ static lispval mongovecp(lispval arg)
     return FD_TRUE;
   else return FD_FALSE;
 }
-
-/* MongoDB pools and indexes */
-
-/* These are now implemented in Scheme */
-
 
 /* The MongoDB OPMAP */
 
@@ -3145,33 +3240,49 @@ FD_EXPORT int fd_init_mongodb()
   fd_idefn(module,fd_make_cprim1x("COLLECTION/NAME",
                                   mongodb_collection_name,1,-1,FD_VOID));
 
-  fd_register_config("MONGO:FLAGS",
+  fd_register_config("MONGODB:FLAGS",
                      "Default flags (fixnum) for MongoDB/BSON processing",
                      fd_intconfig_get,fd_intconfig_set,&mongodb_defaults);
 
-  fd_register_config("MONGO:LOGLEVEL",
+  fd_register_config("MONGODB:LOGLEVEL",
                      "Default flags (fixnum) for MongoDB/BSON processing",
                      fd_intconfig_get,fd_intconfig_set,&mongodb_loglevel);
-  fd_register_config("MONGO:LOGOPS",
+  fd_register_config("MONGO:MAXLOG",
+                     "Controls which log messages are always discarded",
+                     fd_intconfig_get,fd_intconfig_set,
+                     &mongodb_ignore_loglevel);
+  fd_register_config("MONGODB:LOGOPS",
                      "Default flags (fixnum) for MongoDB/BSON processing",
                      fd_boolconfig_get,fd_boolconfig_set,&logops);
 
-  fd_register_config("MONGO:SSL",
+  fd_register_config("MONGODB:SSL",
                      "Whether to default to SSL for MongoDB connections",
                      fd_boolconfig_get,fd_boolconfig_set,
                      &default_ssl);
-  fd_register_config("MONGO:CERT",
+  fd_register_config("MONGODB:CERT",
                      "Default certificate file to use for mongodb",
                      fd_sconfig_get,fd_realpath_config_set,
                      &default_certfile);
-  fd_register_config("MONGO:CAFILE",
+  fd_register_config("MONGODB:CAFILE",
                      "Default certificate file for use with MongoDB",
                      fd_sconfig_get,fd_realpath_config_set,
                      &default_cafile);
-  fd_register_config("MONGO:CADIR",
+  fd_register_config("MONGODB:CADIR",
                      "Default certificate file directory for use with MongoDB",
                      fd_sconfig_get,fd_realdir_config_set,
                      &default_cadir);
+
+  fd_register_config("MONGODB:VECSLOTS",
+                     "Which slots whould always have vector values",
+                     vecslots_config_get,vecslots_config_add,NULL);
+
+  add_vecslot(fd_intern("$EACH"));
+  add_vecslot(fd_intern("$IN"));
+  add_vecslot(fd_intern("$NIN"));
+  add_vecslot(fd_intern("$ALL"));
+  add_vecslot(fd_intern("$AND"));
+  add_vecslot(fd_intern("$OR"));
+  add_vecslot(fd_intern("$NOR"));
 
   fd_finish_module(module);
 
@@ -3183,13 +3294,6 @@ FD_EXPORT int fd_init_mongodb()
   u8_register_source_file(mongoc_version_string);
 
   mongoc_log_set_handler(mongoc_logger,NULL);
-  fd_register_config("MONGO:LOGLEVEL",
-                     "Controls log levels for which messages are always shown",
-                     fd_intconfig_get,fd_intconfig_set,&mongodb_loglevel);
-  fd_register_config("MONGO:MAXLOG",
-                     "Controls which log messages are always discarded",
-                     fd_intconfig_get,fd_intconfig_set,
-                     &mongodb_ignore_loglevel);
   fd_register_config("MONGO:VERSION",
                      "The MongoDB C library version string",
                      fd_sconfig_get,NULL,
@@ -3243,46 +3347,6 @@ static void init_old_mongodb(lispval module)
   fd_defalias(module,"MONGODB?","MONGODB?");
   fd_defalias(module,"MONGODB/COLLECTION?","MONGO/COLLECTION?");
   fd_defalias(module,"MONGODB/CURSOR?","MONGO/CURSOR?");
-  
-  fd_register_config("MONGODB:FLAGS",
-                     "Default flags (fixnum) for MongoDB/BSON processing",
-                     fd_intconfig_get,fd_intconfig_set,&mongodb_defaults);
-
-  fd_register_config("MONGODB:LOGLEVEL",
-                     "Default flags (fixnum) for MongoDB/BSON processing",
-                     fd_intconfig_get,fd_intconfig_set,&mongodb_loglevel);
-  fd_register_config("MONGODB:LOGOPS",
-                     "Default flags (fixnum) for MongoDB/BSON processing",
-                     fd_boolconfig_get,fd_boolconfig_set,&logops);
-
-  fd_register_config("MONGODB:SSL",
-                     "Whether to default to SSL for MongoDB connections",
-                     fd_boolconfig_get,fd_boolconfig_set,
-                     &default_ssl);
-  fd_register_config("MONGODB:CERT",
-                     "Default certificate file to use for mongodb",
-                     fd_sconfig_get,fd_realpath_config_set,
-                     &default_certfile);
-  fd_register_config("MONGODB:CAFILE",
-                     "Default certificate file for use with MongoDB",
-                     fd_sconfig_get,fd_realpath_config_set,
-                     &default_cafile);
-  fd_register_config("MONGODB:CADIR",
-                     "Default certificate file directory for use with MongoDB",
-                     fd_sconfig_get,fd_realdir_config_set,
-                     &default_cadir);
-
-  fd_register_config("MONGODB:LOGLEVEL",
-                     "Controls log levels for which messages are always shown",
-                     fd_intconfig_get,fd_intconfig_set,&mongodb_loglevel);
-  fd_register_config("MONGODB:MAXLOG",
-                     "Controls which log messages are always discarded",
-                     fd_intconfig_get,fd_intconfig_set,
-                     &mongodb_ignore_loglevel);
-  fd_register_config("MONGODB:VERSION",
-                     "The MongoDB C library version string",
-                     fd_sconfig_get,NULL,
-                     &mongoc_version);
 }
 
 /* Emacs local variables
