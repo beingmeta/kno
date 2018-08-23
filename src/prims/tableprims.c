@@ -792,6 +792,18 @@ static lispval table_writablep(lispval table)
   else return FD_ERROR;
 }
 
+static lispval table_set_writable(lispval table,lispval flag_arg)
+{
+  int flag = ((FALSEP(flag_arg))||(FD_ZEROP(flag_arg)))?(1):
+    (VOIDP(flag_arg))?(0):(1);
+  int retval = fd_set_readonly(table,flag);
+  if (retval == 0)
+    return FD_FALSE;
+  else if (retval > 0)
+    return FD_TRUE;
+  else return FD_ERROR;
+}
+
 static lispval table_modifiedp(lispval table)
 {
   int ismod = fd_modifiedp(table);
@@ -1111,7 +1123,17 @@ FD_EXPORT void fd_init_tableprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim2x("PICK-KEYS",lisp_pick_keys,1,
                                             -1,VOID,fd_fixnum_type,FD_INT(1)));
   fd_idefn(fd_scheme_module,fd_make_cprim1("TABLE-SIZE",table_size,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("TABLE-WRITABLE?",table_writablep,1));
+  fd_idefn1(fd_scheme_module,"TABLE-WRITABLE?",table_writablep,1,
+            "(TABLE-WRITABLE? *table*) returns true if *table* "
+            "can be modified",
+            -1,FD_VOID);
+  fd_defalias(fd_scheme_module,"WRITABLE?","TABLE-WRITABLE?");
+  fd_idefn2(fd_scheme_module,"TABLE-WRITABLE!",table_set_writable,1,
+            "(TABLE-WRITABLE! *table* *flag*) sets the rea-only status "
+            "of *table*. With no *flag*, it defaults to making the table "
+            "writable.",
+            -1,FD_VOID,-1,FD_VOID);
+
   fd_idefn(fd_scheme_module,fd_make_cprim1("TABLE-MODIFIED?",table_modifiedp,1));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2("TABLE-MODIFIED!",table_set_modified,1));
