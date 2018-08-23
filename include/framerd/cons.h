@@ -874,6 +874,7 @@ FD_EXPORT lispval fd_wrap_pointer(void *ptrval,
 typedef struct FD_COMPOUND_TYPEINFO *fd_compound_typeinfo;
 typedef int (*fd_compound_unparsefn)(u8_output out,lispval,fd_compound_typeinfo);
 typedef lispval (*fd_compound_parsefn)(int n,lispval *,fd_compound_typeinfo);
+typedef int (*fd_compound_freefn)(lispval,fd_compound_typeinfo);
 typedef lispval (*fd_compound_dumpfn)(lispval,fd_compound_typeinfo);
 typedef lispval (*fd_compound_restorefn)(lispval,lispval,fd_compound_typeinfo);
 
@@ -884,12 +885,13 @@ typedef struct FD_COMPOUND_TYPEINFO {
   char compound_ismutable;
   char compound_istable;
   char compound_issequence;
+  struct FD_COMPOUND_TYPEINFO *compound_nextinfo;
   fd_compound_parsefn compound_parser;
   fd_compound_unparsefn compound_unparser;
+  fd_compound_freefn compound_freefn;
   fd_compound_dumpfn compound_dumpfn;
   fd_compound_restorefn compound_restorefn;
-  struct FD_TABLEFNS *compund_tablefns;
-  struct FD_COMPOUND_TYPEINFO *compound_nextinfo;} FD_COMPOUND_TYPEINFO;
+  struct FD_TABLEFNS *compund_tablefns;} FD_COMPOUND_TYPEINFO;
 FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_compound_entries;
 
 

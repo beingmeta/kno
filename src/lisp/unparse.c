@@ -522,12 +522,12 @@ static int unparse_rawptr(struct U8_OUTPUT *out,lispval x)
 {
   struct FD_RAWPTR *rawptr = (struct FD_RAWPTR *)x;
   if ((rawptr->typestring)&&(rawptr->idstring))
-    u8_printf(out,"#<RAW '%s' 0x%llx (%s)>",
+    u8_printf(out,"#<%s(RAW) 0x%llx (%s)>",
               rawptr->typestring,
               U8_PTR2INT(rawptr->ptrval),
               rawptr->idstring);
   else if (rawptr->typestring)
-    u8_printf(out,"#<RAW '%s' 0x%llx>",
+    u8_printf(out,"#<%s(RAW) 0x%llx>",
               rawptr->typestring,
               U8_PTR2INT(rawptr->ptrval));
   else if (rawptr->idstring)

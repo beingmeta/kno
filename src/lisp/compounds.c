@@ -222,6 +222,7 @@ FD_EXPORT struct FD_COMPOUND_TYPEINFO
   newrec->compound_nextinfo = fd_compound_entries;
   newrec->compound_parser = NULL;
   newrec->compound_dumpfn = NULL;
+  newrec->compound_freefn = NULL;
   newrec->compound_restorefn = NULL;
   newrec->compund_tablefns = NULL;
   fd_compound_entries = newrec;

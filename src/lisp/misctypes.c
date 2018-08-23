@@ -245,9 +245,9 @@ FD_EXPORT lispval fd_make_regex(u8_string src,int flags)
 /* Raw pointers */
 
 FD_EXPORT lispval fd_wrap_pointer(void *ptrval,
-                                 fd_raw_recyclefn recycler,
-                                 lispval typespec,
-                                 u8_string idstring)
+                                  fd_raw_recyclefn recycler,
+                                  lispval typespec,
+                                  u8_string idstring)
 {
   struct FD_RAWPTR *rawptr = u8_alloc(struct FD_RAWPTR);
   FD_INIT_CONS(rawptr,fd_rawptr_type);
@@ -259,7 +259,7 @@ FD_EXPORT lispval fd_wrap_pointer(void *ptrval,
   else if (STRINGP(typespec))
     rawptr->typestring = CSTRING(typespec);
   else rawptr->typestring = NULL;
-  rawptr->idstring = idstring;
+  rawptr->idstring = u8_strdup(idstring);
   return (lispval) rawptr;
 }
 
