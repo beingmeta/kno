@@ -3235,6 +3235,27 @@ static lispval dbmodifiedp(lispval arg1,lispval arg2)
   else return fd_type_error("pool/index","loadedp",arg2);
 }
 
+static lispval db_writablep(lispval db)
+{
+  if (FD_POOLP(db)) {
+    fd_pool p = fd_lisp2pool(db);
+    int flags = p->pool_flags;
+    if ( (flags) & (FD_STORAGE_READ_ONLY) )
+      return FD_FALSE;
+    else return FD_TRUE;}
+  else if (FD_INDEXP(db)) {
+    fd_index ix = fd_lisp2index(db);
+    int flags = ix->index_flags;
+    if ( (flags) & (FD_STORAGE_READ_ONLY) )
+      return FD_FALSE;
+    else return FD_TRUE;}
+  else if (FD_TABLEP(db)) {
+    if (fd_readonlyp(db))
+      return FD_FALSE;
+    else return FD_TRUE;}
+  else return FD_FALSE;
+}
+
 /* Bloom filters */
 
 static lispval make_bloom_filter(lispval n_entries,lispval allowed_error)
@@ -3363,6 +3384,7 @@ FD_EXPORT void fd_init_dbprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("SLOTID?",slotidp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2("LOADED?",dbloadedp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2("MODIFIED?",dbmodifiedp,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("DB/WRITABLE?",db_writablep,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("LOCKED?",oidlockedp,1));
 
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim2("GET",fd_fget,2)));
