@@ -242,19 +242,20 @@ lispval fd_get_histref(lispval elts)
 	  fd_incref(new_scan); fd_decref(scan);
 	  scan=new_scan;}}
       else if (FD_PAIRP(scan)) {
-        lispval base = scan; size_t n_elts = 0;
+        lispval base = scan, lst = base;
+        size_t n_elts = 0;
         int improper=0;
-        while (FD_PAIRP(scan)) { scan=FD_CDR(scan); n_elts++; }
-        if (scan != FD_EMPTY_LIST) { improper=1; n_elts++; }
+        while (FD_PAIRP(lst)) { lst=FD_CDR(lst); n_elts++; }
+        if (lst != FD_EMPTY_LIST) { improper=1; n_elts++; }
         ssize_t off = (rel_off>=0) ?  (rel_off) : (n_elts + rel_off);
 	if ( (off < 0) || (off > n_elts) )
 	  return fd_err(fd_RangeError,"histref_evalfn",NULL,path);
 	else {
-          ssize_t i = 0; scan = base; while ( i < off) {
-            scan = FD_CDR(scan); i++;}
+          ssize_t i = 0; lst = base; while ( i < off) {
+            lst = FD_CDR(lst); i++;}
           if ( (improper) && ((off+1) == n_elts) )
-            scan = scan;
-          else scan = FD_CAR(scan);}}
+            scan = lst;
+          else scan = FD_CAR(lst);}}
       else if (FD_SEQUENCEP(scan)) {
 	ssize_t n_elts = fd_seq_length(scan);
 	ssize_t off = (rel_off>=0) ?  (rel_off) : (n_elts + rel_off);
