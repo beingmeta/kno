@@ -2583,31 +2583,32 @@ static lispval allocate_oids(lispval pool,lispval howmany)
 
 static lispval frame_create_lexpr(int n,lispval *args)
 {
-  lispval result; int i = (n%2);
+  lispval result;
+  int i = (n%2);
   if ((n>=1)&&(EMPTYP(args[0])))
     return EMPTY;
   else if (n==1) return fd_new_frame(args[0],VOID,0);
   else if (n==2) return fd_new_frame(args[0],args[1],1);
   else if (n%2) {
-    if ((SLOTMAPP(args[0]))||(SCHEMAPP(args[0]))||
-        (OIDP(args[0])))
-      result = fd_deep_copy(args[0]);
+    if ((SLOTMAPP(args[0]))||(SCHEMAPP(args[0]))||(OIDP(args[0]))) {
+      result = fd_deep_copy(args[0]);}
     else result = fd_new_frame(args[0],VOID,0);}
   else if ((SYMBOLP(args[0]))||(OIDP(args[0])))
     result = fd_new_frame(FD_DEFAULT_VALUE,VOID,0);
   else return fd_err(fd_SyntaxError,"frame_create_lexpr",NULL,VOID);
   if (FD_ABORTP(result))
     return result;
-  else if (OIDP(result))
-    while (i<n) {
+  else if (FD_OIDP(result)) while (i<n) {
       DO_CHOICES(slotid,args[i]) {
-        if (fd_frame_add(result,slotid,args[i+1])<0) {
+        int rv = fd_frame_add(result,slotid,args[i+1]);
+        if (rv < 0) {
           FD_STOP_DO_CHOICES;
           return FD_ERROR;}}
       i = i+2;}
   else while (i<n) {
       DO_CHOICES(slotid,args[i]) {
-        if (fd_add(result,slotid,args[i+1])<0) {
+        int rv = fd_add(result,slotid,args[i+1]);
+        if (rv < 0) {
           FD_STOP_DO_CHOICES;
           return FD_ERROR;}}
       i = i+2;}
