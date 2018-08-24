@@ -412,6 +412,10 @@ FD_EXPORT int fd_default_config_assignment(u8_string assignment)
     lispval value = fd_parse_arg(equals+1);
     if (FD_ABORTP(value))
       return fd_interr(value);
+    else if (FD_PAIRP(value)) {
+      lispval interpreted = fd_interpret_value(value);
+      fd_decref(value);
+      value = interpreted;}
     if (namelen+1>64)
       namebuf = u8_malloc(namelen+1);
     else namebuf=_namebuf;
