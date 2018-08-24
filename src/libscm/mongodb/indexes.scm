@@ -14,9 +14,18 @@
 (define-init *mongodb-indexmap* (make-hashtable))
 
 (define (collection-index-fetchfn key.value collection)
-  (get (collection/find collection `#[,(car key.value) ,(cdr key.value)]
-	 `#[return #[_id #t]])
-       '_id))
+  (if (vector? key.value)
+      (forseq (key.value key.value)
+	(if (pair? key.value)
+	    (get (collection/find collection `#[,(car key.value) ,(cdr key.value)]
+		   `#[return #[_id #t]])
+		 '_id)
+	    (irritant key.value |MongoDB/NonPairKey|)))
+      (if (pair? key.value)
+	  (get (collection/find collection `#[,(car key.value) ,(cdr key.value)]
+		 `#[return #[_id #t]])
+	       '_id)
+	  (irritant key.value |MongoDB/NonPairKey|))))
 
 (define (make-collection-index collection (opts #f))
   (cons-extindex 
