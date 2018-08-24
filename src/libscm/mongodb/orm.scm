@@ -1,7 +1,12 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2018 beingmeta, inc.  All rights reserved.
 
-(in-module 'mongodb/slots)
+;;; This is a simple ORM for operating on objects stored in mongodb,
+;;; including OIDs stored in mongodb pools. The MGO/{ADD|DROP|STORE}
+;;; calls connect directly to MongoDB and then update the local object
+;;; as needed as well.
+
+(in-module 'mongodb/orm)
 
 (use-module '{varconfig logger})
 (use-module '{mongodb mongodb/indexes})
