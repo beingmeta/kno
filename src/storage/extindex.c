@@ -59,7 +59,30 @@ static lispval extindex_fetch(fd_index p,lispval key)
   struct FD_FUNCTION *fptr = ((FD_FUNCTIONP(fetchfn))?
                               ((struct FD_FUNCTION *)fetchfn):
                               (NULL));
-  if ((VOIDP(state))||(FALSEP(state))||
+  /* TODO: If key is a vector, we need to wrap it in another vector
+     for the method, and then unwrap the value. */
+  if (FD_VECTORP(key)) {
+    struct FD_VECTOR vstruct;
+    FD_INIT_STATIC_CONS(&vstruct,fd_vector_type);
+    vstruct.vec_length = 1;
+    vstruct.vec_elts = &key;
+    vstruct.vec_free_elts = 0;
+    lispval vecarg = LISP_CONS(&vstruct);
+    lispval value = VOID;
+    if ((VOIDP(state))||(FALSEP(state))||
+        ((fptr)&&(fptr->fcn_arity==1)))
+      value = fd_apply(fetchfn,1,&key);
+    else {
+      lispval args[2]; args[0]=key; args[1]=state;
+      value = fd_apply(fetchfn,2,args);}
+    if (FD_VECTORP(value)) {
+      lispval result = FD_VECTOR_REF(value,0);
+      fd_incref(result);
+      fd_decref(value);
+      return result;}
+    else return fd_err("BadExtindexResult","extindex_fetch",
+                       xp->indexid,value);}
+  else if ((VOIDP(state))||(FALSEP(state))||
       ((fptr)&&(fptr->fcn_arity==1)))
     value = fd_apply(fetchfn,1,&key);
   else {
@@ -91,41 +114,45 @@ static lispval *extindex_fetchn(fd_index p,int n,const lispval *keys)
   else {
     lispval args[2]; args[0]=vecarg; args[1]=state;
     value = fd_apply(xp->fetchfn,2,args);}
-  if (FD_ABORTP(value)) return NULL;
+  if (FD_ABORTP(value))
+    return NULL;
   else if (VECTORP(value)) {
     struct FD_VECTOR *vstruct = (struct FD_VECTOR *)value;
-    lispval *results = u8_alloc_n(n,lispval);
+    lispval *results = u8_big_alloc_n(n,lispval);
     memcpy(results,vstruct->vec_elts,LISPVEC_BYTELEN(n));
     /* Free the CONS itself (and maybe data), to avoid DECREF/INCREF
-       of the elements of the vector (which are being returned). */
+       of the elements of the vector, which are being returned in
+       *results*. */
     if (vstruct->vec_free_elts)
       u8_free(vstruct->vec_elts);
     u8_free((struct FD_CONS *)value);
     return results;}
+  /* It didnt' return a vector, which is its way of telling us that it
+     needs to be fed a key at a time. */
+  fd_decref(value); value = FD_VOID;
+  lispval *values = u8_big_alloc_n(n,lispval);
+  if ((VOIDP(state))||(FALSEP(state))||
+      ((fptr)&&(fptr->fcn_arity==1))) {
+    int i = 0; while (i<n) {
+      lispval key = keys[i];
+      lispval value = fd_apply(fetchfn,1,&key);
+      if (FD_ABORTP(value)) {
+        int j = 0; while (j<i) {fd_decref(values[j]); j++;}
+        u8_free(values);
+        return NULL;}
+      else values[i++]=value;}
+    return values;}
   else {
-    lispval *values = u8_alloc_n(n,lispval);
-    if ((VOIDP(state))||(FALSEP(state))||
-        ((fptr)&&(fptr->fcn_arity==1))) {
-      int i = 0; while (i<n) {
-        lispval key = keys[i];
-        lispval value = fd_apply(fetchfn,1,&key);
-        if (FD_ABORTP(value)) {
-          int j = 0; while (j<i) {fd_decref(values[j]); j++;}
-          u8_free(values);
-          return NULL;}
-        else values[i++]=value;}
-      return values;}
-    else {
-      lispval args[2]; int i = 0; args[1]=state;
-      i = 0; while (i<n) {
-        lispval key = keys[i], value;
-        args[0]=key; value = fd_apply(fetchfn,2,args);
-        if (FD_ABORTP(value)) {
-          int j = 0; while (j<i) {fd_decref(values[j]); j++;}
-          u8_free(values);
-          return NULL;}
-        else values[i++]=value;}
-      return values;}}
+    lispval args[2]; int i = 0; args[1]=state;
+    i = 0; while (i<n) {
+      lispval key = keys[i], value;
+      args[0]=key; value = fd_apply(fetchfn,2,args);
+      if (FD_ABORTP(value)) {
+        int j = 0; while (j<i) {fd_decref(values[j]); j++;}
+        u8_free(values);
+        return NULL;}
+      else values[i++]=value;}
+    return values;}
 }
 
 static int extindex_save(struct FD_INDEX *ix,

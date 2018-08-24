@@ -127,10 +127,11 @@ static lispval *extpool_fetchn(fd_pool p,int n,lispval *oids)
   else {
     lispval args[2]; args[0]=vecarg; args[1]=state;
     value = fd_apply(fetchfn,2,args);}
-  if (FD_ABORTP(value)) return NULL;
+  if (FD_ABORTP(value))
+    return NULL;
   else if (VECTORP(value)) {
     struct FD_VECTOR *vstruct = (struct FD_VECTOR *)value;
-    lispval *results = u8_alloc_n(n,lispval);
+    lispval *results = u8_big_alloc_n(n,lispval);
     memcpy(results,vstruct->vec_elts,LISPVEC_BYTELEN(n));
     /* Free the CONS itself (and maybe data), to avoid DECREF/INCREF
        of values. */
@@ -139,7 +140,9 @@ static lispval *extpool_fetchn(fd_pool p,int n,lispval *oids)
     u8_free((struct FD_CONS *)value);
     return results;}
   else {
-    lispval *values = u8_alloc_n(n,lispval);
+    u8_log(LOGWARN,"BadExtPoolFetch","Invalid value from %q",fetchfn);
+    fd_decref(value); value = FD_VOID;
+    lispval *values = u8_big_alloc_n(n,lispval);
     if ((VOIDP(state))||(FALSEP(state))||
         ((fptr)&&(fptr->fcn_arity==1))) {
       int i = 0; while (i<n) {
