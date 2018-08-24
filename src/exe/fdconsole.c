@@ -206,8 +206,8 @@ static int output_result(struct U8_OUTPUT *out,lispval result,
       lispval v = fd_oid_value(result);
       u8_byte _label[64];
       u8_string label = (histref) ?
-        (u8_sprintf(_label,64,"%q %s",result,histref)) :
-        (u8_sprintf(_label,64,"%q",result));
+        (u8_bprintf(_label,"%q %s",result,histref)) :
+        (u8_bprintf(_label,"%q",result));
       u8_printf(out,"%q\n",result);
       fd_list_object(out,v,label,histref,"",oid_listfn,width,detail);
       if (histref)
