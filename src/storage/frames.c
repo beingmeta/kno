@@ -641,11 +641,11 @@ FD_EXPORT lispval fd_new_frame(lispval pool_spec,lispval initval,int copyflags)
     return fd_empty_slotmap();
   else if ((FD_DEFAULTP(pool_spec)) || (VOIDP(pool_spec)))
     if (fd_default_pool) p = fd_default_pool;
-    else return fd_err(_("No default pool"),"frame_create_lexpr",NULL,VOID);
+    else return fd_err(_("No default pool"),"fd_new_frame",NULL,VOID);
   else if ((FD_TRUEP(pool_spec))||(pool_spec == FD_FIXZERO))
     p = fd_zero_pool;
   else if ((p = fd_lisp2pool(pool_spec)) == NULL)
-    return fd_err(fd_NoSuchPool,"frame_create_lexpr",NULL,pool_spec);
+    return fd_err(fd_NoSuchPool,"fd_new_frame",NULL,pool_spec);
   /* At this point, we have p!=NULL and we get an OID */
   oid = fd_pool_alloc(p,1);
   if (FD_ABORTP(oid))
