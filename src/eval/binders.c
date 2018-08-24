@@ -424,6 +424,26 @@ static lispval define_init_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   else return fd_err(fd_NotAnIdentifier,"DEFINE_INIT",NULL,var);
 }
 
+/* This defines an identifier in the local environment to
+   the value it would have anyway by environment inheritance.
+   This is helpful if it was to rexport it, for example. */
+static lispval define_return_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+{
+  lispval var = fd_get_arg(expr,1), val_expr = fd_get_arg(expr,2);
+  if ( (VOIDP(var)) || (VOIDP(val_expr)) )
+    return fd_err(fd_TooFewExpressions,"DEF+",NULL,expr);
+  else if (SYMBOLP(var)) {
+    lispval value = fast_stack_eval(val_expr,env,_stack);
+    if (FD_ABORTED(value))
+      return value;
+    else if (fd_bind_value(var,value,env))
+      return value;
+    else {
+      fd_decref(value);
+      return fd_err(fd_BindError,"DEF+",SYM_NAME(var),var);}}
+  else return fd_err(fd_NotAnIdentifier,"DEF+",NULL,var);
+}
+
 /* DEFINE-INIT */
 
 /* This defines an identifier in the local environment only if
@@ -497,6 +517,7 @@ FD_EXPORT void fd_init_binders_c()
   fd_def_evalfn(fd_scheme_module,"LET*","",letstar_evalfn);
   fd_def_evalfn(fd_scheme_module,"DEFINE-INIT","",define_init_evalfn);
   fd_def_evalfn(fd_scheme_module,"DEFINE-LOCAL","",define_local_evalfn);
+  fd_def_evalfn(fd_scheme_module,"DEF+","",define_return_evalfn);
 
   fd_def_evalfn(fd_scheme_module,"DO","",do_evalfn);
 
