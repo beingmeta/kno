@@ -189,7 +189,9 @@
 	   (not (getopt opts 'batch #f)))
       (do-choices obj
 	(do-choices slotid
-	  (mgo/store! obj slotid values opts)))
+	  (if (bound? values)
+	      (mgo/drop! obj slotid values opts)
+	      (mgo/drop! obj slotid #default opts))))
       (let* ((collection (->collection obj))
 	     (id {(reject obj table?) (get (pick obj table?) '_id)})
 	     (selector `#[_id ,(if (ambiguous? id) `#[$in ,id] id)])
