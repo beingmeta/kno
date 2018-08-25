@@ -158,14 +158,16 @@
 	(set! result
 	  (if (singleton? current)
 	      (collection/modify! collection selector
-		`#[$set #[,slotid ,values]]
+		`#[$set #[,slotid ,{values current}]]
 		#[new #t return #[__index 0]])
 	      (collection/modify! collection selector
 		`#[$addToSet ,(get-multi-modifier slotid values)]
 		#[new #t return #[__index 0]])))
 	(debug%watch "MGO/ADD!" obj id slotid collection values "\n" result)
 	(mongo/decache-index! slotid values)
-	(cond ((and (oid? obj) (modified? obj))
+	(cond ((oid? obj)
+	       (add! obj slotid values))
+	      ((and (oid? obj) (modified? obj))
 	       ;; Just write the new value
 	       (add! obj slotid values))
 	      ((oid? obj)
@@ -199,10 +201,12 @@
 	(info%watch "MGO/DROP!" obj id collection slotid values)
 	(do-choices slotid
 	  (let ((current (if (table? obj) (get obj slotid) (mgo/get obj slotid))))
+	    (debug%watch "MGO/DROP!" obj id collection slotid current values)
 	    (set! result
-	      (if (or (not (bound? values)) (singleton? current))
+	      (if (or (not (bound? values)) (default? values)
+		      (singleton? current))
 		  (collection/modify! collection 
-		      `#[_id ,obj] 
+		      `#[_id ,id] 
 		    `#[$unset #[,slotid 1]]
 		    #[new #t return #[__index 0]])
 		  (collection/modify!
@@ -233,7 +237,7 @@
 
 (define (oid/sync! oid slotid result (value #f))
   (debug%watch "OID/SYNC!" oid slotid result value)
-  (when (test result 'value)
+  (when (and (test result 'value) (exists? (get result 'value)))
     (set! value (get result 'value))
     (%set-oid-value! oid value)))
 
