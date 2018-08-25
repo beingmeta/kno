@@ -28,6 +28,7 @@
 #define FD_JSON_TICKS    32  /* Show time as unix time */
 #define FD_JSON_TICKLETS 64  /* Show time as nanosecond-precision unix time */
 #define FD_JSON_VERBOSE 128 /* Emit conversion warnings, etc */
+#define FD_JSON_STRICT  256 /* Emit conversion warnings, etc */
 #define FD_JSON_DEFAULTS (FD_JSON_SYMBOLIZE)
 
 #define FD_JSON_MAXFLAGS 256
@@ -114,6 +115,12 @@ static lispval json_parse(U8_INPUT *in,int flags,lispval fieldmap)
   if (c=='[') return json_vector(in,flags,fieldmap);
   else if (c=='{') return json_table(in,flags,fieldmap);
   else if (c=='"') return json_string(in,flags);
+  else if (c=='\'') {
+    if ( (flags) & (FD_JSON_STRICT) )
+      return fd_err("BadJSON","json_parse",
+                    "unexpected ' in strict mode",
+                    FD_VOID);
+    else return json_string(in,flags);}
   else return json_atom(in,0);
 }
 
@@ -137,24 +144,26 @@ static lispval json_atom(U8_INPUT *in,int flags)
 
 static lispval json_string(U8_INPUT *in,int flags)
 {
-  struct U8_OUTPUT out; int c = readc(in); /* Skip '"' */
-  int init_escape = 0;
+  struct U8_OUTPUT out;
+  int terminator = readc(in); /* Save '"/\'' */
+  int c = u8_getc(in);
+  int raw_string = 0;
   U8_INIT_OUTPUT(&out,32);
-  c = u8_getc(in);
-  if ((c=='\\')&&(flags&FD_JSON_COLONIZE)) {
+  if ( (c=='\\') && (flags&FD_JSON_COLONIZE) ) {
     c = u8_getc(in);
-    if (c==':') init_escape = 1;
+    if (c==':') raw_string = 1;
     u8_putc(&out,c);
     c = u8_getc(in);}
   while (c>=0) {
-    if (c=='"') break;
+    if (c == terminator) break;
     else if (c=='\\') {
       c = fd_read_escape(in);
-      u8_putc(&out,c); c = u8_getc(in);
+      u8_putc(&out,c);
+      c = u8_getc(in);
       continue;}
     u8_putc(&out,c);
     c = u8_getc(in);}
-  if (init_escape)
+  if (raw_string)
     return fd_stream2string(&out);
   else if ((flags&FD_JSON_COLONIZE)&&(out.u8_outbuf[0]==':')) {
     lispval result = fd_parse(out.u8_outbuf+1);
@@ -311,7 +320,7 @@ static lispval json_table(U8_INPUT *in,int flags,lispval fieldmap)
 }
 
 static lispval symbolize_symbol, colonize_symbol, rawids_symbol;
-static lispval ticks_symbol, ticklets_symbol, verbose_symbol;
+static lispval ticks_symbol, ticklets_symbol, verbose_symbol, strict_symbol;
 
 static int get_json_flags(lispval flags_arg)
 {
@@ -340,6 +349,8 @@ static int get_json_flags(lispval flags_arg)
       flags |= FD_JSON_TICKLETS;
     if (!(fd_testopt(flags_arg,verbose_symbol,VOID)))
       flags |= FD_JSON_VERBOSE;
+    if (!(fd_testopt(flags_arg,strict_symbol,VOID)))
+      flags |= FD_JSON_STRICT;
     return flags;}
   else if (PRECHOICEP(flags_arg)) {
     lispval choice=fd_make_simple_choice(flags_arg);
@@ -620,6 +631,7 @@ FD_EXPORT void fd_init_json_c()
   ticks_symbol=fd_intern("TICKS");
   ticklets_symbol=fd_intern("TICKLETS");
   verbose_symbol=fd_intern("VERBOSE");
+  strict_symbol=fd_intern("STRICT");
 
   u8_register_source_file(_FILEINFO);
 }
