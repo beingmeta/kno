@@ -65,6 +65,13 @@
 
 (define mongodb/index mongo/index)
 
-(defambda (mongo/decache-index! slotid val (indexes *mongodb-indexes*) (keys))
-  (default! keys (cons slotid val))
-  (do-choices (index *mongodb-indexes*) (extindex-decache! index keys)))
+(defambda (mongo/decache-index! arg1 . args)
+  (let* ((index-arg (index? (car args)))
+	 (indexes (if index-arg (car args) *mongodb-indexes*))
+	 (scan (if index-arg args (cons arg1 args)))
+	 (keys {}))
+    (while (and (pair? scan) (pair? (cdr scan)))
+      (set+! keys (cons (car scan) (cadr scan)))
+      (set! scan (cddr scan)))
+    (do-choices (index *mongodb-indexes*)
+      (extindex-decache! index keys))))
