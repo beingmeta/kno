@@ -630,6 +630,73 @@ static lispval lisp_pprint(int n,lispval *args)
     return FD_INT(col);}
 }
 
+/* LIST object */
+
+static int get_stringopt(lispval opts,lispval optname,u8_string *strval)
+{
+  lispval v = fd_getopt(opts,optname,FD_VOID);
+  if (FD_VOIDP(v)) {
+    return 0;}
+  else if (FD_STRINGP(v)) {
+    *strval = FD_CSTRING(v);
+    fd_decref(v);
+    return 1;}
+  else {
+    if (FD_SYMBOLP(optname))
+      fd_seterr("BadStringOpt","lisp_list_object",FD_SYMBOL_NAME(optname),v);
+    else if (FD_STRINGP(optname))
+      fd_seterr("BadStringOpt","lisp_list_object",FD_CSTRING(optname),v);
+    else fd_seterr("BadStringOpt","lisp_list_object",NULL,v);
+    fd_decref(v);
+    return -1;}
+}
+
+static int get_fixopt(lispval opts,lispval optname,long long *intval)
+{
+  lispval v = fd_getopt(opts,optname,FD_VOID);
+  if (FD_VOIDP(v)) return 0;
+  else if (FD_FIXNUMP(v)) {
+    *intval = FD_FIX2INT(v);
+    return 1;}
+  else {
+    if (FD_SYMBOLP(optname))
+      fd_seterr("BadFixOpt","lisp_list_object",FD_SYMBOL_NAME(optname),v);
+    else if (FD_STRINGP(optname))
+      fd_seterr("BadStringOpt","lisp_list_object",FD_CSTRING(optname),v);
+    else fd_seterr("BadFixOpt","lisp_list_object",NULL,v);
+    fd_decref(v);
+    return -1;}
+}
+
+static lispval label_symbol, width_symbol, depth_symbol, output_symbol;
+
+static lispval lisp_listdata(lispval object,lispval opts,lispval stream)
+{
+  u8_string label=NULL, pathref=NULL, indent="";
+  long long width = 100, depth = -1;
+  if (FD_FIXNUMP(opts)) {
+    depth = FD_FIX2INT(opts);
+    opts = FD_FALSE;}
+  if (get_stringopt(opts,label_symbol,&label)<0)
+    return FD_ERROR;
+  else if (get_stringopt(opts,margin_symbol,&indent)<0)
+    return FD_ERROR;
+  else if (get_fixopt(opts,width_symbol,&width)<0)
+    return FD_ERROR;
+  else if (get_fixopt(opts,depth_symbol,&depth)<0)
+    return FD_ERROR;
+  if (FD_VOIDP(stream))
+    stream = fd_getopt(opts,output_symbol,FD_VOID);
+  else fd_incref(stream);
+  U8_OUTPUT *out = get_output_port(stream);
+  int rv = fd_list_object(out,object,label,pathref,indent,NULL,width,depth);
+  u8_flush(out);
+  fd_decref(stream);
+  if (rv<0)
+    return FD_ERROR;
+  else return FD_INT(rv);
+}
+
 /* Base 64 stuff */
 
 static lispval from_base64_prim(lispval string)
@@ -855,7 +922,6 @@ static void init_portprims_symbols()
   maxcol_symbol=fd_intern("MAXCOL");
   width_symbol=fd_intern("WIDTH");
   margin_symbol=fd_intern("MARGIN");
-  margin_symbol=fd_intern("MARGIN");
   maxelts_symbol=fd_intern("MAXELTS");
   maxchars_symbol=fd_intern("MAXCHARS");
   maxbytes_symbol=fd_intern("MAXBYTES");
@@ -863,6 +929,8 @@ static void init_portprims_symbols()
   listmax_symbol=fd_intern("LISTMAX");
   vecmax_symbol=fd_intern("VECMAX");
   choicemax_symbol=fd_intern("CHOICEMAX");
+  label_symbol = fd_intern("LABEL");
+  output_symbol = fd_intern("OUTPUT");
 }
 
 /* The init function */
@@ -899,6 +967,10 @@ FD_EXPORT void fd_init_portprims_c()
             "on *port* () with a width of *width* columns with a "
             "left margin of *margin* which is either number of columns "
             "or a string.");
+  fd_idefn3(fd_scheme_module,"LISTDATA",lisp_list_object,
+            FD_NEEDS_1_ARG|FD_NDCALL,
+            "(LISTDATA *object* *opts* [*port*])",
+            -1,FD_VOID,-1,FD_VOID,-1,FD_VOID);
 
   fd_idefn(fd_scheme_module,fd_make_cprim2("PUTCHAR",putchar_prim,1));
   fd_defalias(fd_scheme_module,"WRITE-CHAR","PUTCHAR");
