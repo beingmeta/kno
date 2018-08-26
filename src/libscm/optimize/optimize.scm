@@ -1008,7 +1008,9 @@
 (define (optimize-do2expression handler expr env bound opts)
   (let ((bindspec (cadr expr)) 
 	(body (cddr expr)))
-    `(,handler ,(cond ((pair? bindspec)
+    `(,handler ,(cond ((symbol? bindspec)
+		       `(,bindspec ,(optimize bindspec env bound opts)))
+		      ((pair? bindspec)
 		       `(,(car bindspec)
 			 ,(optimize (cadr bindspec) env bound opts)
 			 ,@(cddr bindspec)))
@@ -1292,12 +1294,15 @@
     ,@(optimize-body (cdddr expr))))
 
 (define (optimize-watch fcn expr env bound opts)
+  #|
   (if (string? (cadr expr))
       `(,(car expr) ,(cadr expr) 
 	,@(optimize-watch-clauses (cddr expr) env bound opts))
       `(,(car expr) ,(optimize (cadr expr) env bound opts)
 	"%WATCH"
-	,@(optimize-watch-clauses (cddr expr) env bound opts))))
+	,@(optimize-watch-clauses (cddr expr) env bound opts)))
+  |#
+  expr)
 
 (define (optimize-watch-clauses clauses env bound opts)
   (let ((optimized '())
