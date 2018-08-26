@@ -1500,6 +1500,32 @@ else
   manually_disabled="hyphenate $manually_disabled";
 fi
 
+AC_ARG_ENABLE(hunspell,--en[dis]able-hunspell Build and install the hunspell module,,enable_hunspell="yes")
+hyphen_ok="no"
+
+if test "$enable_hunspell" = "yes"; then
+  AC_CHECK_HEADERS(hunspell/hunspell.h)
+  AC_CHECK_LIB(hunspell,Hunspell_create,hunspell_ok="yes")
+fi
+
+if test "$enable_hunspell" = "yes" &&
+   test "$ac_cv_header_hunspell_hunspell_h" = "yes" &&
+   test "$hunspell_ok" = "yes"; then
+  CMODULES="lib/framerd/hunspell.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-hunspell ${INSTALLCMODULES}"
+elif test "$enable_hunspell" = "force"; then
+  CMODULES="lib/framerd/hunspell.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-hunspell ${INSTALLCMODULES}"
+  force_enabled="hunspell ${force_enabled}";
+elif test "$enable_hunspell" = "yes"; then
+  auto_disabled="hunspell $auto_disabled";
+  enable_hunspell="failed";
+else
+  manually_disabled="hunspell $manually_disabled";
+fi
+
+
+
 # For OS X
 AC_CHECK_HEADERS(CommonCrypto/CommonDigest.h CommonCrypto/CommonHMAC.h)
 AC_CHECK_FUNCS(CCHmacInit)

@@ -345,7 +345,7 @@ CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
 	     src/cmodules/qrcode.o src/cmodules/exif.o \
 	     src/cmodules/imagick.o src/cmodules/libarchive.o \
 	     src/cmodules/ziptools.o \
-	     src/cmodules/hyphenate.o \
+	     src/cmodules/hyphenate.o src/cmodules/hunspell.o \
 	     ${SUNDOWN_OBJS} ${TIDY_OBJECTS}
 
 EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ exe/fdbatch@suffix@  \
@@ -450,7 +450,8 @@ CMODULE_SOURCES=\
 	src/cmodules/mysql.c src/cmodules/mongodb.c  				\
 	src/cmodules/leveldb.c src/cmodules/rocksdb.c  				\
 	src/cmodules/ziptools.c src/cmodules/libarchive.c			\
-	src/cmodules/tidy.c src/cmodules/sundown.c src/cmodules/hyphenate.c 	\
+	src/cmodules/tidy.c src/cmodules/sundown.c 				\
+	src/cmodules/hyphenate.c src/cmodules/hunspell.c 			\
 	src/cmodules/qrcode.c src/cmodules/exif.c src/cmodules/imagick.c	\
 	src/cmodules/crypto.c
 
@@ -1130,6 +1131,11 @@ lib/framerd/hyphenate.o: src/cmodules/hyphenate.c
 lib/framerd/hyphenate.so: src/cmodules/hyphenate.o
 lib/framerd/hyphenate.dylib: src/cmodules/hyphenate.o ${CMODULE_DEPENDS}
 
+lib/framerd/hunspell.so lib/framerd/hunspell.dylib : MODLIBS=-lhunspell
+lib/framerd/hunspell.o: src/cmodules/hunspell.c
+lib/framerd/hunspell.so: src/cmodules/hunspell.o
+lib/framerd/hunspell.dylib: src/cmodules/hunspell.o ${CMODULE_DEPENDS}
+
 lib/framerd/zlib.so lib/framerd/zlib.dylib : MODLIBS="-lz"
 lib/framerd/zlib.o: src/cmodules/zlib.c
 lib/framerd/zlib.so: src/cmodules/zlib.o
@@ -1462,6 +1468,7 @@ install-crypto: ${CMODULES}/crypto.@shared_suffix@ ${CMODULES}/crypto.@vshared_s
 install-mysql: ${CMODULES}/mysql.@shared_suffix@ ${CMODULES}/mysql.@vshared_suffix@
 install-qrcode: ${CMODULES}/qrcode.@shared_suffix@ ${CMODULES}/qrcode.@vshared_suffix@
 install-hyphenate: ${CMODULES}/hyphenate.@shared_suffix@ ${CMODULES}/hyphenate.@vshared_suffix@
+install-hunspell: ${CMODULES}/hunspell.@shared_suffix@ ${CMODULES}/hunspell.@vshared_suffix@
 install-ziptools: ${CMODULES}/ziptools.@shared_suffix@ ${CMODULES}/ziptools.@vshared_suffix@
 install-tidy: ${CMODULES}/tidy.@shared_suffix@ ${CMODULES}/tidy.@vshared_suffix@
 install-imagick: ${CMODULES}/imagick.@shared_suffix@ ${CMODULES}/imagick.@vshared_suffix@
@@ -1678,7 +1685,7 @@ setup-none:
 build-setup.debian:
 	sudo apt-get install -m libcurl4-openssl-dev libssl-dev libldns-dev \
 		libmysqlclient-dev libmongoc-dev unixodbc-dev sqlite3 \
-		libzip-dev apache2-dev libedit-dev libhyphen-dev \
+		libzip-dev apache2-dev libedit-dev libhyphen-dev libhunspell-dev \
 		libmagickwand-dev libqrencode-dev libexif-dev \
 		libgoogle-perftools-dev \
 		dh-make devscripts dpkg-dev

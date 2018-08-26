@@ -942,6 +942,7 @@ with_mysql
 enable_odbc
 enable_tidy
 enable_hyphenate
+enable_hunspell
 enable_largefiles
 with_crypto
 with_sundown
@@ -1612,6 +1613,7 @@ Optional Features:
 --endisable-odbc Build odbc modules
 --endisable-tidy Build and install tidy module
 --endisable-hyphenate Build and install the hyphenate module
+--endisable-hunspell Build and install the hunspell module
 --endisable-largefiles Enable use of large (> 2GB) file support
 --endisable-prefetching make frame operations prefetch when they can
 --endisable-fileconfig enable file-based configuration
@@ -11487,6 +11489,88 @@ elif test "$enable_hyphenate" = "yes"; then
 else
   manually_disabled="hyphenate $manually_disabled";
 fi
+
+# Check whether --enable-hunspell was given.
+if test "${enable_hunspell+set}" = set; then :
+  enableval=$enable_hunspell;
+else
+  enable_hunspell="yes"
+fi
+
+hyphen_ok="no"
+
+if test "$enable_hunspell" = "yes"; then
+  for ac_header in hunspell/hunspell.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "hunspell/hunspell.h" "ac_cv_header_hunspell_hunspell_h" "$ac_includes_default"
+if test "x$ac_cv_header_hunspell_hunspell_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_HUNSPELL_HUNSPELL_H 1
+_ACEOF
+
+fi
+
+done
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for Hunspell_create in -lhunspell" >&5
+$as_echo_n "checking for Hunspell_create in -lhunspell... " >&6; }
+if ${ac_cv_lib_hunspell_Hunspell_create+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lhunspell  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char Hunspell_create ();
+int
+main ()
+{
+return Hunspell_create ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_hunspell_Hunspell_create=yes
+else
+  ac_cv_lib_hunspell_Hunspell_create=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_hunspell_Hunspell_create" >&5
+$as_echo "$ac_cv_lib_hunspell_Hunspell_create" >&6; }
+if test "x$ac_cv_lib_hunspell_Hunspell_create" = xyes; then :
+  hunspell_ok="yes"
+fi
+
+fi
+
+if test "$enable_hunspell" = "yes" &&
+   test "$ac_cv_header_hunspell_hunspell_h" = "yes" &&
+   test "$hunspell_ok" = "yes"; then
+  CMODULES="lib/framerd/hunspell.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-hunspell ${INSTALLCMODULES}"
+elif test "$enable_hunspell" = "force"; then
+  CMODULES="lib/framerd/hunspell.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-hunspell ${INSTALLCMODULES}"
+  force_enabled="hunspell ${force_enabled}";
+elif test "$enable_hunspell" = "yes"; then
+  auto_disabled="hunspell $auto_disabled";
+  enable_hunspell="failed";
+else
+  manually_disabled="hunspell $manually_disabled";
+fi
+
+
 
 # For OS X
 for ac_header in CommonCrypto/CommonDigest.h CommonCrypto/CommonHMAC.h
