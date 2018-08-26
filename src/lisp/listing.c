@@ -75,6 +75,7 @@ static void list_table(u8_output out,lispval table,
   lispval keys = fd_getkeys(table);
   int count = 0, n_keys = FD_CHOICE_SIZE(keys);
   int show_keys = ( detail <= 0) ? (n_keys) :
+    (n_keys < (detail+5) ) ? (n_keys) :
     (n_keys >= detail) ? (detail) : (n_keys);
   if (show_keys == 0) show_keys = 1;
   u8_byte indentbuf[64] = { 0 }, pathbuf[64] = { 0 };
