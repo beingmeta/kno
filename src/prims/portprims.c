@@ -967,8 +967,7 @@ FD_EXPORT void fd_init_portprims_c()
             "on *port* () with a width of *width* columns with a "
             "left margin of *margin* which is either number of columns "
             "or a string.");
-  fd_idefn3(fd_scheme_module,"LISTDATA",lisp_list_object,
-            FD_NEEDS_1_ARG|FD_NDCALL,
+  fd_idefn3(fd_scheme_module,"LISTDATA",lisp_listdata,FD_NEEDS_1_ARG|FD_NDCALL,
             "(LISTDATA *object* *opts* [*port*])",
             -1,FD_VOID,-1,FD_VOID,-1,FD_VOID);
 
