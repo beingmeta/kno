@@ -308,8 +308,8 @@ lispval fd_get_histref(lispval elts)
     else if (FD_SYMBOLP(path)) {
       if (FD_TABLEP(scan)) {
 	lispval v = fd_get(scan,path,FD_VOID);
-	if (FD_VOIDP(v))
-	  fd_seterr("NoSuchKey","histref_evalfn",FD_CSTRING(path),scan);
+        if (FD_VOIDP(v))
+	  fd_seterr("NoSuchKey","histref_evalfn",FD_SYMBOL_NAME(path),scan);
 	fd_decref(scan);
 	scan = v;}
       else scan = FD_VOID;}
