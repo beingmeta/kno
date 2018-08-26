@@ -801,7 +801,7 @@ static lispval parse_packet(U8_INPUT *in,int nextc)
     else {
       u8_seterr(fd_MissingOpenQuote,"parse_packet",NULL);
       return FD_PARSE_ERROR;}}
-  else if (nextc=='@') {
+  else if ((nextc=='B')||(nextc=='b')) {
     int nc = u8_getc(in);
     if (nc=='"') return parse_base64_packet(in);
     else {
@@ -1156,7 +1156,7 @@ lispval fd_parser(u8_input in)
       if (PACKETP(result)) {
         FD_SET_CONS_TYPE(result,fd_secret_type);}
       return result;}
-    case 'X': case 'x': case '@': case '"':
+    case 'X': case 'x': case 'B': case 'b': case '"':
       return parse_packet(in,ch);
     case '/': return parse_regex(in);
     case '>':
