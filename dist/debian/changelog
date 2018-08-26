@@ -1,3 +1,9 @@
+framerd (4.2.8-22) stable; urgency=medium
+
+  * Added hunspell module
+
+ -- Ken Haase <kh@beingmeta.com>  Sun, 26 Aug 2018 13:29:20 -0400
+
 framerd (4.2.8-21) stable; urgency=medium
 
   * Fix mongodb dependencies to work with mongo-c-driver
