@@ -2,7 +2,7 @@ Source: framerd
 Section: Libraries
 Priority: optional
 Maintainer: Kenneth Benefiel Haase <kh@beingmeta.com>
-Build-Depends: debhelper (>= 8.0.0), autotools-dev, equivs, dh-systemd, dh-elpa, debsigs, devscripts, libsnappy-dev, libzstd-dev, sqlite3, apache2-dev, default-libmysqlclient-dev | libmysqlclient-dev, libcurl4-openssl-dev, libarchive-dev, libexif-dev, libzip-dev, libqrencode-dev, libu8-dev (>= 2.6.7-68), python2.7-dev, libhyphen-dev, libedit-dev, libsasl2-dev, libbson-dev, libmagickwand-dev, libmongoc-dev, libldns-dev, libleveldb-dev
+Build-Depends: debhelper (>= 8.0.0), autotools-dev, equivs, dh-systemd, dh-elpa, debsigs, devscripts, libsnappy-dev, libzstd-dev, sqlite3, apache2-dev, default-libmysqlclient-dev | libmysqlclient-dev, libcurl4-openssl-dev, libarchive-dev, libexif-dev, libzip-dev, libqrencode-dev, libu8-dev (>= 2.6.7-68), python2.7-dev, libhyphen-dev, libhunspell-dev, libedit-dev, libsasl2-dev, libbson-dev, libmagickwand-dev, libmongoc-dev, libldns-dev, libleveldb-dev
 Standards-Version: 3.9.4
 Homepage: http://www.framerd.org/
 
@@ -25,7 +25,7 @@ Description: Scalable knowledge base development and application platform
 Package: framerd-core
 Architecture: any
 Suggests: framerd-docs
-Depends: ${misc:Depends}, libu8 (>= 2.6.7-51), libzip4 | libzip2, libarchive13, libsnappy1v5, libzstd1, libssl1.0 | libssl1.0.0, libcurl4 | libcurl3, libhyphen0, libedit2, adduser, libldns2 | libldns1
+Depends: ${misc:Depends}, libu8 (>= 2.6.7-51), libzip4 | libzip2, libarchive13, libsnappy1v5, libzstd1, libssl1.0 | libssl1.0.0, libcurl4 | libcurl3, libhyphen0, libhunspell, libedit2, adduser, libldns2 | libldns1
 Description: This package provides the core libraries, executables, and 
   configuration files for FramerD applications
 

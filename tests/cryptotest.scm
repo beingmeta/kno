@@ -24,12 +24,12 @@
 (define password "mellon")
 ;; openssl enc -e -a -bf -in sample -K `cat key16.hex` -iv `cat iv8.hex`
 (define aes-encrypted-sample16
-  #@"u8H5dri2nNzUkqTO7QS2Ojf0qE5qxk90+ThFqbEhfoU=")
+  #X@"u8H5dri2nNzUkqTO7QS2Ojf0qE5qxk90+ThFqbEhfoU=")
 (define aes-encrypted-sample32
-  #@"I5t/w/QNf2RmAK/0w2OnKgIhzWKocD0hngSJhZDz82k=")
+  #X@"I5t/w/QNf2RmAK/0w2OnKgIhzWKocD0hngSJhZDz82k=")
 
 (define bf-encrypted-sample16
-  #@"33LmggVnMlXFnYMC/phQaOItzP7WD2H3kFswc9OXLT8=")
+  #X@"33LmggVnMlXFnYMC/phQaOItzP7WD2H3kFswc9OXLT8=")
 ;; Note that the bigger key examples can't be compared with the
 ;; openssl command line because the command line can't handle big hex
 ;; numbers
@@ -37,7 +37,7 @@
 (define random-input (random-packet 2048))
 
 ;; openssl enc -rc4 -in sample -K `cat key16.hex` -a
-(applytest #@"T9OM7k4y8+mlD8CASAVVqkKpE6pxJgCNMHBFIg=="
+(applytest #X@"T9OM7k4y8+mlD8CASAVVqkKpE6pxJgCNMHBFIg=="
 	   encrypt sample key16 "RC4")
 
 (applytest aes-encrypted-sample16 encrypt sample key16 "AES128" iv16)
