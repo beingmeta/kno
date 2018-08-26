@@ -1004,6 +1004,12 @@ static lispval pickn(lispval x,lispval count,lispval offset)
       if (howmany<=0) {
         fd_decref(normal);
         return EMPTY;}
+      else if (n == 1) {
+        struct FD_CHOICE *base=
+          (fd_consptr(struct FD_CHOICE *,normal,fd_choice_type));
+        const lispval *read = FD_XCHOICE_DATA(base);
+        lispval one = read[0];
+        return fd_incref(one);}
       else if (n) {
         struct FD_CHOICE *base=
           (fd_consptr(struct FD_CHOICE *,normal,fd_choice_type));
