@@ -1181,7 +1181,7 @@ lispval fd_parser(u8_input in)
       if ( (strchr("{(\":;'`#",ch) == NULL) || (label_length >= 42) ) {
         u8_seterr("Unclosed Reader Macro","fd_parser",NULL);
         return FD_PARSE_ERROR;}
-      if (! ( (ch == ':') || (ch == ':') ) ) u8_ungetc(in,ch);
+      if (! (ch == ':') ) u8_ungetc(in,ch);
       lispval sym = fd_intern(label.u8_outbuf), next = fd_parser(in);
       return fd_make_list(2,sym,next);}
     case ';': {
