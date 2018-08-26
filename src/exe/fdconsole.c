@@ -85,7 +85,7 @@ static double showtime_threshold = 1.0;
 static u8_string stats_message=
   _(";; Done in %f seconds, with %d/%d object/index loads\n");
 static u8_string stats_message_w_history=
-   _(";; %s computed in %f seconds, %d/%d object/index loads\n");
+  _(";; %s computed in %f seconds, %d/%d object/index loads\n");
 
 static double run_start = -1.0;
 
@@ -195,7 +195,7 @@ static int oid_listfn(u8_output out,lispval item)
 }
 
 static int output_result(struct U8_OUTPUT *out,lispval result,
-                       u8_string histref,int width,int showall)
+                         u8_string histref,int width,int showall)
 {
   int detail = (showall) ? (-result_max_elts) : (result_max_elts);
   if (width < 0) width = console_width;
@@ -243,43 +243,43 @@ static lispval histref_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     if (FD_FIXNUMP(path)) {
       int rel_off = FD_FIX2INT(path);
       if (FD_CHOICEP(scan)) {
-	ssize_t n_choices = FD_CHOICE_SIZE(scan);
-	ssize_t off = (rel_off>=0) ?  (rel_off) : (n_choices + rel_off);
-	if ( (off < 0) || (off > n_choices) )
-	  return fd_err(fd_RangeError,"histref_evalfn",NULL,path);
-	else {
-	  lispval new_scan = FD_CHOICE_ELTS(scan)[off];
-	  fd_incref(new_scan); fd_decref(scan);
-	  scan=new_scan;}}
+        ssize_t n_choices = FD_CHOICE_SIZE(scan);
+        ssize_t off = (rel_off>=0) ?  (rel_off) : (n_choices + rel_off);
+        if ( (off < 0) || (off > n_choices) )
+          return fd_err(fd_RangeError,"histref_evalfn",NULL,path);
+        else {
+          lispval new_scan = FD_CHOICE_ELTS(scan)[off];
+          fd_incref(new_scan); fd_decref(scan);
+          scan=new_scan;}}
       else if (FD_SEQUENCEP(scan)) {
-	ssize_t n_elts = fd_seq_length(scan);
-	ssize_t off = (rel_off>=0) ?  (rel_off) : (n_elts + rel_off);
-	if ( (off < 0) || (off > n_elts) )
-	  return fd_err(fd_RangeError,"histref_evalfn",NULL,path);
-	else {
-	  lispval new_scan = fd_seq_elt(scan,off);
-	  fd_decref(scan);
-	  scan=new_scan;}}
+        ssize_t n_elts = fd_seq_length(scan);
+        ssize_t off = (rel_off>=0) ?  (rel_off) : (n_elts + rel_off);
+        if ( (off < 0) || (off > n_elts) )
+          return fd_err(fd_RangeError,"histref_evalfn",NULL,path);
+        else {
+          lispval new_scan = fd_seq_elt(scan,off);
+          fd_decref(scan);
+          scan=new_scan;}}
       else scan = FD_VOID;}
     else if (FD_STRINGP(path)) {
       if (FD_TABLEP(scan)) {
-	lispval v = fd_get(scan,path,FD_VOID);
-	if (FD_VOIDP(v)) {
-	  u8_string upper = u8_upcase(FD_CSTRING(scan));
-	  lispval sym = fd_probe_symbol(upper,-1);
-	  if (FD_SYMBOLP(sym))
-	    v = fd_get(scan,sym,FD_VOID);}
-	if (FD_VOIDP(v))
-	  fd_seterr("NoSuchKey","histref_evalfn",FD_CSTRING(path),scan);
-	scan = v;}
+        lispval v = fd_get(scan,path,FD_VOID);
+        if (FD_VOIDP(v)) {
+          u8_string upper = u8_upcase(FD_CSTRING(scan));
+          lispval sym = fd_probe_symbol(upper,-1);
+          if (FD_SYMBOLP(sym))
+            v = fd_get(scan,sym,FD_VOID);}
+        if (FD_VOIDP(v))
+          fd_seterr("NoSuchKey","histref_evalfn",FD_CSTRING(path),scan);
+        scan = v;}
       else scan = FD_VOID;}
     else if (FD_SYMBOLP(path)) {
       if (FD_TABLEP(scan)) {
-	lispval v = fd_get(scan,path,FD_VOID);
-	if (FD_VOIDP(v))
-	  fd_seterr("NoSuchKey","histref_evalfn",FD_CSTRING(path),scan);
-	fd_decref(scan);
-	scan = v;}
+        lispval v = fd_get(scan,path,FD_VOID);
+        if (FD_VOIDP(v))
+          fd_seterr("NoSuchKey","histref_evalfn",FD_CSTRING(path),scan);
+        fd_decref(scan);
+        scan = v;}
       else scan = FD_VOID;}
     else scan = FD_VOID;}
   if (FD_VOIDP(scan)) {
@@ -301,10 +301,10 @@ static lispval history_prim()
 /*
   :command params*
   To read a param:
-   skip whitepsace
-   if at :({#" call parse_arg and wrap in quasiquote if needed;
-   if at , just call read;
-   otherwise read string until space,
+  skip whitepsace
+  if at :({#" call parse_arg and wrap in quasiquote if needed;
+  if at , just call read;
+otherwise read string until space,
     using \ and | as escapes;
 
   Model A: just combine command name (as symbol) with args into an expression
@@ -939,10 +939,13 @@ int main(int argc,char **argv)
         histref = ref;
         u8_sprintf(histref_buf,100,"##%d",ref);
         histref_string = histref_buf;}}
-    else if ((SYMBOLP(expr))&&
-             ((CHOICEP(result))||
-              (VECTORP(result))||
-              (PAIRP(result)))) {
+    else if ((SYMBOLP(expr))&& (FD_CONSP(result))) {
+      int ref = fd_histpush(result);
+      if (ref>=0) {
+        histref = ref;
+        u8_sprintf(histref_buf,100,"##%d",ref);
+        histref_string = histref_buf;}}
+    else if ( (FD_EQUALP(expr,result)) && (FD_CONSP(expr)) ) {
       int ref = fd_histpush(result);
       if (ref>=0) {
         histref = ref;

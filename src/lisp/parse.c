@@ -796,15 +796,13 @@ static lispval parse_packet(U8_INPUT *in,int nextc)
   else if (nextc=='"')
     return parse_text_packet(in);
   else if ( (nextc=='X') || (nextc=='x') ) {
-    int nc = u8_getc(in);
-    if (nc=='"') return parse_hex_packet(in);
-    else if ( (nc == 'B') || (nc == 'b') || (nc == '@') ) {
-      nc = u8_getc(in);
-      if (nc=='"') return parse_base64_packet(in);}
-    u8_seterr(fd_MissingOpenQuote,"parse_packet",NULL);
-    return FD_PARSE_ERROR;}
+    u8_getc(in);
+    return parse_hex_packet(in);}
+  else if ( (nextc == 'B') || (nextc == 'b') ) {
+    u8_getc(in);
+    return parse_base64_packet(in);}
   else {
-    u8_seterr(fd_ParseError,"parse_packet",NULL);
+    u8_seterr(fd_MissingOpenQuote,"parse_packet",NULL);
     return FD_PARSE_ERROR;}
 }
 
@@ -1148,14 +1146,17 @@ lispval fd_parser(u8_input in)
       else return fd_parser(in);}
     case '*': {
       int nextc = u8_getc(in);
-      if (nextc == '"') {
-        lispval result = parse_packet(in,nextc);
-        if (PACKETP(result)) {
-          FD_SET_CONS_TYPE(result,fd_secret_type);}
-        return result;}
-      else return parse_packet(in,nextc);}
-    case 'X': case 'x': case '"':
+      lispval result = parse_packet(in,nextc);
+      if (FD_ABORTP(result)) return result;
+      else if (PACKETP(result)) {
+        FD_SET_CONS_TYPE(result,fd_secret_type);}
+      return result;}
+    case '"':
       return parse_packet(in,ch);
+    case 'X': case 'x': case 'B': case 'b': {
+      int probec = u8_probec(in);
+      if (probec == '"')
+        return parse_packet(in,ch);}
     case '/': return parse_regex(in);
     case '>':
       /* This sequence #> is used as decoration in slotmaps. It
