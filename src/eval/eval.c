@@ -862,10 +862,8 @@ static lispval watched_eval_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
           u8_exception ex = u8_erreify();
           wval = fd_wrap_exception(ex);}
         if (lbl[0]=='\n') {
-          if (oneout) {
-            if (off>0) u8_printf(&out,"\n  // %s=",lbl+1);
-            else u8_printf(&out," // %s=",lbl+1);}
-          else oneout = 1;
+          u8_printf(&out,"\n  ");
+          oneout = 1;
           int char_indent = strlen(lbl)+5;
           char indent_buf[char_indent+1];
           memset(indent_buf,' ',char_indent);
