@@ -147,10 +147,10 @@ static void recycle_regex(struct FD_RAW_CONS *c)
 static void recycle_rawptr(struct FD_RAW_CONS *c)
 {
   struct FD_RAWPTR *rawptr = (struct FD_RAWPTR *)c;
-  if (rawptr->idstring) u8_free(rawptr->idstring);
-  fd_decref(rawptr->raw_typespec);
   if (rawptr->recycler)
     rawptr->recycler(rawptr->ptrval);
+  if (rawptr->idstring) u8_free(rawptr->idstring);
+  fd_decref(rawptr->raw_typespec);
 }
 
 static void recycle_compound(struct FD_RAW_CONS *c)
