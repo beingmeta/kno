@@ -1156,7 +1156,11 @@ lispval fd_parser(u8_input in)
     case 'X': case 'x': case 'B': case 'b': {
       int probec = u8_probec(in);
       if (probec == '"')
-        return parse_packet(in,ch);}
+        return parse_packet(in,ch);
+      else {
+        /* In this case, it's just an atom */
+        u8_ungetc(in,ch);
+        return parse_atom(in,'#',-1,1);}}
     case '/': return parse_regex(in);
     case '>':
       /* This sequence #> is used as decoration in slotmaps. It

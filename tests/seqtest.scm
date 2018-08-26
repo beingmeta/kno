@@ -317,8 +317,8 @@
 (applytester #t equal? #"foobar889" #x"666f6f626172383839")
 (applytester "Zm9vYmFyODg5" packet->base64  #"foobar889")
 (applytester "666F6F626172383839" packet->base16  #"foobar889")
-(applytester #t equal? #"foobar889" #X@"Zm9vYmFyODg5")
-(applytester #t equal? #"foobar889" #X@"Zm9vYmFyODg5")
+(applytester #t equal? #"foobar889" #B"Zm9vYmFyODg5")
+(applytester #t equal? #"foobar889" #B"Zm9vYmFyODg5")
 
 (define (parsefail string)
   (onerror (begin (string->lisp 
@@ -330,9 +330,9 @@
 ;; Check that parsing fails, too
 (applytester #f parsefail "#X“33ff”")
 (applytester #t parsefail "#X“3z3ff”")
-(applytester #f parsefail "#X@“M/8=”")
-(applytester #t parsefail "#X@“M/_8=”")
-(applytester #t parsefail "#X@“_M/8=”")
+(applytester #f parsefail "#B“M/8=”")
+(applytester #t parsefail "#B“M/_8=”")
+(applytester #t parsefail "#B“_M/8=”")
 
 ;;; Some simple test for non vector compounds
 
