@@ -560,13 +560,17 @@ static int add_config_file_helper(lispval var,lispval val,
     scan = config_stack; while (scan) {
       if (strcmp(scan->config_filename,pathname)==0) {
         u8_unlock_mutex(&config_file_lock);
+        if ( (fd_trace_config) || (trace_load) || (trace_config_load) )
+          u8_log(LOGINFO,LoadConfig,
+                 "Skipping redundant reload of %s from the config %q",
+                 FD_CSTRING(val),var);
         u8_free(pathname);
         return 0;}
       else scan = scan->loaded_after;}
     if ( (fd_trace_config) || (trace_load) || (trace_config_load) )
       u8_log(LOGWARN,LoadConfig,
-             "Loading the config file %s in response to a CONFIG directive",
-             FD_CSTRING(val));
+             "Loading the config file %s in response to a %q directive",
+             FD_CSTRING(val),var);
     memset(&on_stack,0,sizeof(struct FD_CONFIG_RECORD));
     on_stack.config_filename = pathname;
     on_stack.loaded_after = config_stack;
