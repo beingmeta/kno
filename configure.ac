@@ -1515,10 +1515,11 @@ else
 fi
 
 AC_ARG_ENABLE(hunspell,--en[dis]able-hunspell Build and install the hunspell module,,enable_hunspell="yes")
-hyphen_ok="no"
+hunspell_ok="no"
 
 if test "$enable_hunspell" = "yes"; then
   AC_CHECK_HEADERS(hunspell/hunspell.h)
+  AC_CHECK_LIB(hunspell,Hunspell_create)
   AC_CHECK_LIB(hunspell,Hunspell_create,hunspell_ok="yes")
   AC_CHECK_FUNCS(Hunspell_add_dic)
 fi
