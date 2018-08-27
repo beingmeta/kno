@@ -34,7 +34,7 @@
 u8_condition fd_ConfigError=_("Configuration error");
 u8_condition fd_ReadOnlyConfig=_("Read-only config setting");
 
-int fd_trace_config = 1;
+int fd_trace_config = 0;
 
 static int support_config_c_init_done = 0;
 
