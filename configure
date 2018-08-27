@@ -11588,6 +11588,17 @@ if test "x$ac_cv_lib_hunspell_Hunspell_create" = xyes; then :
   hunspell_ok="yes"
 fi
 
+  for ac_func in Hunspell_add_dic
+do :
+  ac_fn_c_check_func "$LINENO" "Hunspell_add_dic" "ac_cv_func_Hunspell_add_dic"
+if test "x$ac_cv_func_Hunspell_add_dic" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_HUNSPELL_ADD_DIC 1
+_ACEOF
+
+fi
+done
+
 fi
 
 if test "$enable_hunspell" = "yes" &&

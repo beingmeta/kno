@@ -76,6 +76,7 @@ static lispval hunspell_open(lispval path,lispval keyboard)
   return result;
 }
 
+#if HAVE_HUNSPELL_ADD_DIC
 static lispval hunspell_add_dictionary(lispval h,lispval dictpath)
 {
   Hunhandle *hh = gethunspell(h);
@@ -84,6 +85,7 @@ static lispval hunspell_add_dictionary(lispval h,lispval dictpath)
     return FD_FALSE;
   else return fd_incref(h);
 }
+#endif
 
 
 static lispval hunspell_check(lispval word,lispval hunspell)
@@ -149,10 +151,12 @@ FD_EXPORT int fd_init_hunspell()
 	    "Opens (creates) a spellchecker",
 	    fd_string_type,FD_VOID,fd_string_type,FD_VOID);
   
+#if HAVE_HUNSPELL_ADD_DIC
   fd_idefn2(hunspell_module,"HUNSPELL/DICTIONARY!",hunspell_add_dictionary,1,
 	    "(hunspell/dictionary! *hunspeller* *dictionary*) "
 	    "Opens (creates) a spellchecker",
 	    fd_rawptr_type,FD_VOID,fd_string_type,FD_VOID);
+#endif
   
   fd_idefn2(hunspell_module,"HUNSPELL/CHECK",hunspell_check,2,
 	    "(hunspell/check *hunspell* *word*) "

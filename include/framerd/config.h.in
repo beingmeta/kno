@@ -493,6 +493,9 @@
 #undef WITH_GOOGLE_PROFILER
 
 /* Whether we're using the Google profiler library */
+#undef HAVE_HUNSPELL_ADD_DIC
+
+/* Whether we're using the Google profiler library */
 #undef HAVE_GOOGLE_PROFILER_H
 
 /* Whether we're using fastcgi in fastcgiexec */
