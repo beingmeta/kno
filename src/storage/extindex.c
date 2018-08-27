@@ -67,7 +67,6 @@ static lispval extindex_fetch(fd_index p,lispval key)
     vstruct.vec_length = 1;
     vstruct.vec_elts = &key;
     vstruct.vec_free_elts = 0;
-    lispval vecarg = LISP_CONS(&vstruct);
     lispval value = VOID;
     if ((VOIDP(state))||(FALSEP(state))||
         ((fptr)&&(fptr->fcn_arity==1)))

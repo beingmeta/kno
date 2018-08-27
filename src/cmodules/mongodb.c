@@ -2081,7 +2081,6 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
 {
   bson_t *out = b.bson_doc;
   int flags = b.bson_flags;
-  char buf[16];
   bool ok = true;
   if ( (vecslot) && (FD_CHOICEP(val)) ) vecslot = 0;
   if (vecslot) {
@@ -2361,7 +2360,7 @@ static bool bson_append_keyval(FD_BSON_OUTPUT b,lispval key,lispval val)
     keylen = keyout.u8_write-keyout.u8_outbuf;}
   /* Keys can't have periods in them, so we need to replace the
      periods on write and replace them back on read. */
-  size_t new_len = 0, max_len = keylen+1;
+  size_t  max_len = keylen+1;
   u8_byte newbuf[max_len], *write = newbuf;
   u8_string dotted = strchr(keystring,'.');
   if ( (dotted) || (keystring[0] == '+') || (keystring[0] == '/') )  {

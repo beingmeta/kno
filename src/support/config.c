@@ -34,7 +34,9 @@
 u8_condition fd_ConfigError=_("Configuration error");
 u8_condition fd_ReadOnlyConfig=_("Read-only config setting");
 
-int fd_trace_config = 0;
+int fd_trace_config = 1;
+
+static int support_config_c_init_done = 0;
 
 /* Configuration handling */
 
@@ -971,8 +973,6 @@ FD_EXPORT lispval fd_tblconfig_get(lispval var,void *data)
 }
 
 /* Initialization */
-
-static int support_config_c_init_done = 0;
 
 void fd_init_config_c()
 {

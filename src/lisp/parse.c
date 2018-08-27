@@ -1168,7 +1168,7 @@ lispval fd_parser(u8_input in)
       return fd_parser(in);
     case '<': return parse_opaque(in);
     case ':': {
-      int label_length = 0, escaped = 0;
+      int label_length = 0;
       U8_STATIC_OUTPUT(label,200);
       u8_putc(labelout,'#');
       ch = u8_getc(in);

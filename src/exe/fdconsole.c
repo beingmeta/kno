@@ -332,8 +332,7 @@ static lispval stream_read(u8_input in,fd_lexenv env)
       (NULL,command_tag,FD_COMPOUND_SEQUENCE,2,FDSYM_EQUALS,expr);}
   else if ( (c==',') || (c == ':') ) {
     lispval cmds[FD_MAX_COMMAND_LENGTH];
-    int n = 0, done = 0;
-    int nextc = swallow_hspace(in);
+    int n = 0, nextc = swallow_hspace(in);
     while ( (nextc > 0) && (nextc != '\n') ) {
       lispval arg = VOID;
       if ( (n == 0) ||

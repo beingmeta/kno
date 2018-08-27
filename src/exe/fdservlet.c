@@ -1877,7 +1877,7 @@ int main(int argc,char **argv)
   int dtype_version = fd_init_lisp_types();
   int fd_version; /* Wait to set this until we have a log file */
   unsigned int arg_mask = 0;  /* Bit map of args to skip */
-  u8_string socket_spec = NULL, load_source = NULL, load_config = NULL;
+  u8_string socket_spec = NULL, load_source = NULL;
   u8_string logfile = NULL;
 
   FD_INIT_STACK();
@@ -1982,8 +1982,6 @@ int main(int argc,char **argv)
   FD_NEW_STACK(((struct FD_STACK *)NULL),"fdservlet",NULL,VOID);
   _stack->stack_label=u8_strdup(u8_appid());
   _stack->stack_free_label=1;
-
-  if (load_config) fd_load_config(load_config);
 
   {
     if (argc>2) {

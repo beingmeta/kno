@@ -831,9 +831,14 @@ FD_EXPORT int fd_boot_message()
   u8_uid uid = getuid();
   U8_FIXED_OUTPUT(curtime,256);
   u8_xtime_to_rfc822_x(curtimeout,&xt,xt.u8_tzoff,0);
-  u8_log(U8_LOG_MSG,NULL,"(%s:%lld) %s %s",
-         u8_appid(),(unsigned long long)getpid(),
-         fd_getrevision(),u8_getrevision());
+  u8_string appid = u8_appid();
+  if (appid)
+    u8_log(U8_LOG_MSG,NULL,"(%lld) %s %s",
+           (unsigned long long)getpid(),
+           fd_getrevision(),u8_getrevision());
+  else u8_log(U8_LOG_MSG,NULL,"(%s:%lld) %s %s",
+              appid,(unsigned long long)getpid(),
+              fd_getrevision(),u8_getrevision());
   u8_log(U8_LOG_MSG,NULL,
          _("Copyright (C) beingmeta 2004-2018, all rights reserved"));
   u8_log(U8_LOG_MSG,NULL,_("%-s@%-s:%-s (%s)"),

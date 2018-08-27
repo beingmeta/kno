@@ -159,7 +159,10 @@ static void recycle_compound(struct FD_RAW_CONS *c)
   lispval typetag = compound->compound_typetag;
   struct FD_COMPOUND_TYPEINFO *typeinfo = fd_lookup_compound(typetag);
   if ( (typeinfo) && (typeinfo->compound_freefn) ) {
-    int rv = (typeinfo->compound_freefn)((lispval)c,typeinfo);}
+    int rv = (typeinfo->compound_freefn)((lispval)c,typeinfo);
+    if (rv < 0) {
+      u8_log(LOGERR,"RecycleCompound",
+             "Recycling %q compound: %q",typetag,compound);}}
   int i = 0, n = compound->compound_length;
   lispval *data = &(compound->compound_0);
   while (i<n) {fd_decref(data[i]); i++;}
