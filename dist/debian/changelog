@@ -1,3 +1,9 @@
+framerd (4.2.8-23) stable; urgency=medium
+
+  * Added hunspell to the framerd-core.install
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 27 Aug 2018 14:38:12 -0400
+
 framerd (4.2.8-22) stable; urgency=medium
 
   * Added hunspell module
