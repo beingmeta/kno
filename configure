@@ -781,6 +781,7 @@ fdaemon
 admininstall
 admin_group
 wwwinstall
+webgroup
 webuser
 apache_modinfo
 apache_conf_dir
@@ -893,6 +894,7 @@ with_optdir
 with_admin_group
 with_fdaemon
 with_webuser
+with_webgroup
 with_apacheinfo
 with_apachelib
 with_rundir
@@ -1646,6 +1648,7 @@ Optional Packages:
 --with-admin-group Install files with admin group and group write permissions
 --with-fdaemon The identity (user) for FramerD servers to run as
 --with-webuser The user for the webserver
+--with-webgroup The group for the webserver
 --with-apacheinfo where Apache module info lives
 --with-apachelib where Apache extensions live
 --with-rundir The default location for server state files
@@ -2946,6 +2949,7 @@ install_dir_opts="-d -m 0775"
 install_file_opts="-m 0664"
 install_exe_opts="-m 0775"
 webuser=""
+webgroup=""
 wwwinstall=""
 admin_group=""
 admininstall=""
@@ -3145,6 +3149,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
 
 
 
@@ -6187,6 +6192,21 @@ $as_echo_n "checking for user default_webuser... " >&6; }
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $found_user" >&5
 $as_echo "$found_user" >&6; }
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for user default_webgroup" >&5
+$as_echo_n "checking for user default_webgroup... " >&6; }
+  found_user="none";
+  for user in www apache httpd www-data _www;
+  do
+  if grep ^$user: /etc/passwd > /dev/null;
+  then
+	found_user=$user;
+	break;
+  fi;
+  done;
+  default_webgroup=$found_user;
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $found_user" >&5
+$as_echo "$found_user" >&6; }
+
 
 # Check whether --with-execwrapper was given.
 if test "${with_execwrapper+set}" = set; then :
@@ -6337,6 +6357,22 @@ if test "$with_webuser" != "none"; then
    wwwinstall="-o $webuser"
 else
    webuser=$default_webuser
+   wwwinstall=""
+fi
+
+
+# Check whether --with-webgroup was given.
+if test "${with_webgroup+set}" = set; then :
+  withval=$with_webgroup;
+else
+  with_webgroup=$default_webgroup
+fi
+
+if test "$with_webgroup" != "none"; then
+   webgroup=$with_webgroup
+   wwwinstall="-o $webgroup"
+else
+   webgroup=$default_webgroup
    wwwinstall=""
 fi
 

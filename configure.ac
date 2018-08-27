@@ -44,6 +44,7 @@ install_dir_opts="-d -m 0775"
 install_file_opts="-m 0664"
 install_exe_opts="-m 0775"
 webuser=""
+webgroup=""
 wwwinstall=""
 admin_group=""
 admininstall=""
@@ -261,6 +262,7 @@ AC_SUBST(apache_modules_dir)
 AC_SUBST(apache_conf_dir)
 AC_SUBST(apache_modinfo)
 AC_SUBST(webuser)
+AC_SUBST(webgroup)
 AC_SUBST(wwwinstall)
 AC_SUBST(admin_group)
 AC_SUBST(admininstall)
@@ -501,6 +503,7 @@ AC_CHECK_GROUP(default_admin_group,framerd _framerd adm admin)
 AC_CHECK_USER(default_fdaemon,fdaemon _fdaemon daemon nobody)
 AC_CHECK_USER(default_daemon,xdaemon fdaemon _fdaemon daemon nobody)
 AC_CHECK_USER(default_webuser,www apache httpd www-data _www)
+AC_CHECK_USER(default_webgroup,www apache httpd www-data _www)
 
 AC_ARG_WITH(execwrapper,--with-execwrapper program to use when calling exec(),,with_execwrapper=$binenv)
 if test "$with_execwrapper" != ""; then
@@ -584,6 +587,17 @@ if test "$with_webuser" != "none"; then
    wwwinstall="-o $webuser"
 else
    webuser=$default_webuser
+   wwwinstall=""
+fi
+
+dnl Specifies the group which the Web server runs as
+dnl This is used to set up the directories used by fdserv
+AC_ARG_WITH(webgroup,--with-webgroup The group for the webserver,,with_webgroup=$default_webgroup)
+if test "$with_webgroup" != "none"; then
+   webgroup=$with_webgroup
+   wwwinstall="-o $webgroup"
+else
+   webgroup=$default_webgroup
    wwwinstall=""
 fi
 

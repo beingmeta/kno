@@ -6,7 +6,7 @@ After=fdaemons.service upsource.target
 [Service]
 Type=forking
 RemainAfterExit=true
-Environment=FD_LAUNCHER=framerd.service RUNUSER=@webuser@ RUNGROUP=@admin_group@
+Environment=FD_LAUNCHER=fdweb.service RUNUSER=@webuser@ RUNGROUP=@webgroup@
 PassEnvironment=FD_LAUNCHER RUNUSER RUNGROUP
 TimeoutStartSec=300
 TimeoutStopSec=300
