@@ -16,6 +16,8 @@
 FD_EXPORT u8_condition fd_UnknownError, fd_ConfigError, fd_OutOfMemory;
 FD_EXPORT u8_condition fd_ReadOnlyConfig;
 
+FD_EXPORT int fd_trace_config;
+
 #define FD_CONFIG_ALREADY_MODIFIED 1
 
 typedef struct FD_CONFIG_HANDLER {

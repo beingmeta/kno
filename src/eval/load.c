@@ -24,6 +24,7 @@
 
 u8_condition FileLoad=_("File Load"), FileDone=_("File Done");
 u8_condition LoadEval=_("Load Eval");
+u8_condition LoadConfig=_("Loading config");
 
 static int trace_load = 0, trace_load_eval = 0;
 
@@ -109,7 +110,7 @@ FD_EXPORT lispval fd_load_stream(u8_input loadstream,fd_lexenv env,
       fd_decref(result);
       if ((trace_load_eval) ||
           (fd_test(env->env_bindings,traceloadeval_symbol,FD_TRUE))) {
-        u8_log(LOG_NOTICE,LoadEval,"From %s, evaluating %q",sourcebase,expr);
+        u8_log(LOG_WARN,LoadEval,"From %s, evaluating %q",sourcebase,expr);
         if (errno) {
           u8_log(LOG_WARN,"UnexpectedErrno",
                  "Dangling errno value %d (%s) before evaluating %q",
@@ -134,7 +135,7 @@ FD_EXPORT lispval fd_load_stream(u8_input loadstream,fd_lexenv env,
       else if ((trace_load_eval) ||
                (fd_test(env->env_bindings,traceloadeval_symbol,FD_TRUE))) {
         if (start_time>0)
-          u8_log(LOG_NOTICE,LoadEval,"Took %fs to evaluate %q",
+          u8_log(LOG_WARN,LoadEval,"Took %fs to evaluate %q",
                  u8_elapsed_time()-start_time,expr);
         if (errno) {
           u8_log(LOG_WARN,"UnexpectedErrno",
@@ -167,7 +168,7 @@ FD_EXPORT lispval fd_load_stream(u8_input loadstream,fd_lexenv env,
     /* Clear the stack status */
     load_stack->stack_status=NULL;
     if ((trace_load) || (trace_load_eval))
-      u8_log(LOG_NOTICE,FileDone,"Loaded %s in %f seconds",
+      u8_log(LOG_WARN,FileDone,"Loaded %s in %f seconds",
              sourcebase,u8_elapsed_time()-start);
     postload = fd_symeval(postload_symbol,env);
     if ((!(FD_ABORTP(result)))&&(!(VOIDP(postload)))) {
@@ -210,7 +211,7 @@ FD_EXPORT lispval fd_load_source_with_date
     return FD_ERROR;
   const u8_byte *input = content;
   if ((trace_load) || (trace_load_eval))
-    u8_log(LOG_NOTICE,FileLoad,
+    u8_log(LOG_WARN,FileLoad,
            "Loading %s (%d bytes)",sourcebase,u8_strlen(content));
   if ((input[0]=='#') && (input[1]=='!')) input = strchr(input,'\n');
   U8_INIT_STRING_INPUT((&stream),-1,input);
@@ -247,12 +248,12 @@ FD_EXPORT int fd_load_config(u8_string sourceid)
     outer_sourcebase = fd_bind_sourcebase(sourcebase);}
   else outer_sourcebase = NULL;
   U8_INIT_STRING_INPUT((&stream),-1,content);
-  if ((trace_load)||(trace_config_load))
-    u8_log(LOG_NOTICE,FileLoad,
+  if ( (trace_load) || (trace_config_load) || (fd_trace_config) )
+    u8_log(LOG_WARN,FileLoad,
            "Loading config %s (%d bytes)",sourcebase,u8_strlen(content));
   retval = fd_read_config(&stream);
   if (trace_load)
-    u8_log(LOG_NOTICE,FileLoad,"Loaded config %s",sourcebase);
+    u8_log(LOG_WARN,FileLoad,"Loaded config %s",sourcebase);
   if (sourcebase) {
     fd_restore_sourcebase(outer_sourcebase);
     u8_free(sourcebase);}
@@ -270,12 +271,12 @@ FD_EXPORT int fd_load_default_config(u8_string sourceid)
     outer_sourcebase = fd_bind_sourcebase(sourcebase);}
   else outer_sourcebase = NULL;
   U8_INIT_STRING_INPUT((&stream),-1,content);
-  if ((trace_load)||(trace_config_load))
-    u8_log(LOG_NOTICE,FileLoad,
+  if ( (trace_load) || (trace_config_load) || (fd_trace_config) )
+    u8_log(LOG_WARN,FileLoad,
            "Loading config %s (%d bytes)",sourcebase,u8_strlen(content));
   retval = fd_read_default_config(&stream);
   if (trace_load)
-    u8_log(LOG_NOTICE,FileLoad,"Loaded config %s",sourcebase);
+    u8_log(LOG_WARN,FileLoad,"Loaded config %s",sourcebase);
   if (sourcebase) {
     fd_restore_sourcebase(outer_sourcebase);
     u8_free(sourcebase);}
@@ -562,6 +563,10 @@ static int add_config_file_helper(lispval var,lispval val,
         u8_free(pathname);
         return 0;}
       else scan = scan->loaded_after;}
+    if ( (fd_trace_config) || (trace_load) || (trace_config_load) )
+      u8_log(LOGWARN,LoadConfig,
+             "Loading the config file %s in response to a CONFIG directive",
+             FD_CSTRING(val));
     memset(&on_stack,0,sizeof(struct FD_CONFIG_RECORD));
     on_stack.config_filename = pathname;
     on_stack.loaded_after = config_stack;

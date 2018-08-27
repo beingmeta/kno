@@ -34,7 +34,7 @@
 u8_condition fd_ConfigError=_("Configuration error");
 u8_condition fd_ReadOnlyConfig=_("Read-only config setting");
 
-static int trace_config = 0;
+int fd_trace_config = 0;
 
 /* Configuration handling */
 
@@ -200,13 +200,13 @@ FD_EXPORT int fd_set_config(u8_string var,lispval val)
     if (FD_EQ(scan->configname,symbol)) {
       scan->configflags = scan->configflags|FD_CONFIG_ALREADY_MODIFIED;
       retval = scan->config_set_method(symbol,val,scan->configdata);
-      if (trace_config)
+      if (fd_trace_config)
         u8_log(LOG_WARN,"ConfigSet",
                "Using handler to configure %s (%s) with %q",
                var,SYM_NAME(symbol),val);
       break;}
     else scan = scan->config_next;
-  if ((!(scan))&&(trace_config))
+  if ((!(scan))&&(fd_trace_config))
     u8_log(LOG_WARN,"ConfigSet","Configuring %s (%s) with %q",
            var,SYM_NAME(symbol),val);
   set_config(var,val);
@@ -226,7 +226,7 @@ FD_EXPORT int fd_default_config(u8_string var,lispval val)
       if ((scan->configflags)&(FD_CONFIG_ALREADY_MODIFIED)) return 0;
       scan->configflags = scan->configflags|FD_CONFIG_ALREADY_MODIFIED;
       retval = scan->config_set_method(symbol,val,scan->configdata);
-      if (trace_config)
+      if (fd_trace_config)
         u8_log(LOG_WARN,"ConfigSet",
                "Using handler to configure default %s (%s) with %q",
                var,SYM_NAME(symbol),val);
@@ -234,7 +234,7 @@ FD_EXPORT int fd_default_config(u8_string var,lispval val)
     else scan = scan->config_next;
   if (fd_test(configuration_table,symbol,VOID)) return 0;
   else {
-    if ((!(scan))&&(trace_config))
+    if ((!(scan))&&(fd_trace_config))
       u8_log(LOG_WARN,"ConfigSet","Configuring %s (%s) with %q",
              var,SYM_NAME(symbol),val);
     retval = set_config(var,val);}
@@ -1056,7 +1056,7 @@ void fd_init_config_c()
 
   fd_register_config
     ("TRACECONFIG",_("whether to trace configuration"),
-     fd_boolconfig_get,fd_boolconfig_set,&trace_config);
+     fd_boolconfig_get,fd_boolconfig_set,&fd_trace_config);
 
 }
 
