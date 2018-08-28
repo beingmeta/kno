@@ -197,7 +197,7 @@ static int oid_listfn(u8_output out,lispval item)
 static int output_result(struct U8_OUTPUT *out,lispval result,
                          u8_string histref,int width,int showall)
 {
-  int detail = (showall) ? (-result_max_elts) : (result_max_elts);
+  int detail = (showall) ? (-(1+((result_max_elts)/2))) : (result_max_elts);
   if (width < 0) width = console_width;
   if (FD_VOIDP(result)) return 0;
   if (FD_OIDP(result)) {
@@ -873,6 +873,9 @@ int main(int argc,char **argv)
 
   fd_set_config("SIGRAISE",FD_INT(SIGINT));
 
+  lispval _err_symbol = fd_intern("_ERR");
+  fd_bind_value(_err_symbol,FD_FALSE,env);
+
   while (1) { /* ((c = skip_whitespace((u8_input)in))>=0) */
     int start_icache, finish_icache;
     int start_ocache, finish_ocache;
@@ -936,19 +939,19 @@ int main(int argc,char **argv)
       int ref = fd_histpush(result);
       if (ref>=0) {
         histref = ref;
-        u8_sprintf(histref_buf,100,"##%d",ref);
+        u8_sprintf(histref_buf,100,"#%d",ref);
         histref_string = histref_buf;}}
-    else if ((SYMBOLP(expr))&& (FD_CONSP(result))) {
+    else if ((SYMBOLP(expr)) && (FD_CONSP(result))) {
       int ref = fd_histpush(result);
       if (ref>=0) {
         histref = ref;
-        u8_sprintf(histref_buf,100,"##%d",ref);
+        u8_sprintf(histref_buf,100,"#%d",ref);
         histref_string = histref_buf;}}
     else if ( (FD_EQUALP(expr,result)) && (FD_CONSP(expr)) ) {
       int ref = fd_histpush(result);
       if (ref>=0) {
         histref = ref;
-        u8_sprintf(histref_buf,100,"##%d",ref);
+        u8_sprintf(histref_buf,100,"#%d",ref);
         histref_string = histref_buf;}}
     else {
       histref = -1;
@@ -975,8 +978,9 @@ int main(int argc,char **argv)
         lispval exo = fd_get_exception(ex);
         if (!(FD_VOIDP(exo))) {
           if (save_backtrace)
-            u8_fprintf(stderr,";; The exception was saved in ##%d\n",
+            u8_fprintf(stderr,";; The exception was saved in #%d\n",
                        fd_histpush(exo));
+          fd_assign_value(_err_symbol,exo,env);
           if (console_bugdir) {
             if (*console_bugdir) fd_dump_bug(exo,console_bugdir);}
           else if (fd_dump_exception)
