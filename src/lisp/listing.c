@@ -40,24 +40,27 @@ static int list_elements(u8_output out,
                          int detail,
                          int depth);
 
+static void custom_list_error(lispval item)
+{
+  u8_exception ex = u8_erreify();
+  if (ex)
+    u8_log(LOGNOTICE,"CustomListError",
+           "Exception %m <%s> (%s) %q",
+           ex->u8x_cond,ex->u8x_context,
+           ex->u8x_details,
+           item);
+  else u8_log(LOGNOTICE,"CustomListError","%q",item);
+  if (ex) u8_free_exception(ex,0);
+}
+
 static int list_item(u8_output out,lispval item,fd_listobj_fn listfn)
 {
   if (listfn == NULL)
     fd_unparse(out,item);
   else if ( (FD_OIDP(item)) || (FD_COMPOUNDP(item))  ) {
     int rv = listfn(out,item);
-    if (rv<0) {
-      u8_exception ex = u8_erreify();
-      if (ex)
-        u8_log(LOGNOTICE,"CustomListError",
-               "Exception %m <%s> (%s) %q",
-               ex->u8x_cond,ex->u8x_context,
-               ex->u8x_details,
-               item);
-      else u8_log(LOGNOTICE,"CustomListError",
-                  "%q",item);
-      if (ex) u8_free_exception(ex,0);}
-    if ( rv <= 0 )
+    if (rv<0) custom_list_error(item);
+    if ( rv == 0 )
       fd_unparse(out,item);
     else return 1;}
   else fd_unparse(out,item);
@@ -107,10 +110,18 @@ static void list_table(u8_output out,lispval table,
       (NULL);
     lispval val = fd_get(table,key,FD_EMPTY_CHOICE);
     if (EMPTYP(val)) {
-      u8_printf(out,"\n%s  %q #> {} ;;no values",indent,key);}
+      u8_printf(out,"\n%s  ",indent);
+      int rv = (listfn == NULL) ? (0) :
+        ( (FD_OIDP(key)) || (FD_COMPOUNDP(key)) ) ?
+        (listfn(out,key)) : (0);
+      if (rv == 0) fd_unparse(out,key);
+      u8_puts(out," #> {} ;;no values");}
     else {
       U8_SUB_STREAM(tmp,1000,out);
-      fd_unparse(tmpout,key);
+      int rv = (listfn == NULL) ? (0) :
+        ( (FD_OIDP(key)) || (FD_COMPOUNDP(key)) ) ?
+        (listfn(tmpout,key)) : (0);
+      if (rv == 0) fd_unparse(tmpout,key);
       u8_puts(tmpout," #> ");
       int custom = list_item(tmpout,val,listfn);
       if ((tmp.u8_write-tmp.u8_outbuf)<width) {
