@@ -408,6 +408,9 @@
 (applytest 1073741824 string->lisp "#1gib")
 (applytest 2147483648 string->lisp "#2gib")
 
+(evaltest 2147483648 #2gib)
+(applytest 2147483648 second '(first #2gib))
+
 (define (add2numbers x y)
   "This procedure adds 2 numbers and returns the result"
   (+ x y))

@@ -1300,18 +1300,18 @@ static lispval parse_histref(u8_input in)
      really constants followed by '.' or '=' by checking *after* we've
      parsed the histref. We should really do it here, when we've
      reached the first histref element. */
-  while (c >= 0) {
-    if ( (u8_isalnum(c)) ||
-         (c=='-') || (c=='_') ||
-         (c=='/') || (c=='+') ||
-         (c=='%') || (c=='$') ||
-         (c=='&') || (c=='!') ) {
-      u8_putc(&tmpbuf,c);
-      c = u8_getc(in);}
-    else break;}
+  while ( (c >= 0) &&
+          ( (u8_isalnum(c)) ||
+            (c=='-') || (c=='_') ||
+            (c=='/') || (c=='+') ||
+            (c=='%') || (c=='$') ||
+            (c=='&') || (c=='!') ) ) {
+    u8_putc(&tmpbuf,c);
+    c = u8_getc(in);}
   lispval constval = lookup_constname(tmpbuf.u8_outbuf,1);
   if (constval != FD_NULL) {
     fd_decref(elts);
+    if (c >= 0) u8_ungetc(in,c);
     return constval;}
   else while (c >= 0) {
     if ( (u8_isalnum(c)) ||
