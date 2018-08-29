@@ -1689,9 +1689,9 @@ setup-none:
 build-setup.debian:
 	sudo apt-get install -m libcurl4-openssl-dev libssl-dev libldns-dev \
 		libmysqlclient-dev libmongoc-dev unixodbc-dev sqlite3 \
-		libzip-dev apache2-dev libedit-dev libhyphen-dev libhunspell-dev \
-		libmagickwand-dev libqrencode-dev libexif-dev \
-		libgoogle-perftools-dev \
+		libzip-dev apache2-dev libedit-dev libhyphen-dev \
+		libhunspell-dev libmagickwand-dev libqrencode-dev \
+		libexif-dev libgoogle-perftools-dev \
 		dh-make devscripts dpkg-dev
 build-setup.redhat:
 	sudo rpm -Uvh libedit-devel
