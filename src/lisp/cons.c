@@ -915,14 +915,14 @@ void fd_init_cons_c()
 
   fd_add_hashname("#kib",FD_INT(ONEK));
   fd_add_hashname("#mib",FD_INT((ONEK)*(ONEK)));
-  fd_add_hashname("#1MIB",FD_INT((ONEK)*(ONEK)));
-  fd_add_hashname("#2MIB",FD_INT((2)*(ONEK)*(ONEK)));
-  fd_add_hashname("#3MIB",FD_INT((3)*(ONEK)*(ONEK)));
-  fd_add_hashname("#4MIB",FD_INT((4)*(ONEK)*(ONEK)));
-  fd_add_hashname("#5MIB",FD_INT((5)*(ONEK)*(ONEK)));
-  fd_add_hashname("#6MIB",FD_INT((6)*(ONEK)*(ONEK)));
-  fd_add_hashname("#7MIB",FD_INT((7)*(ONEK)*(ONEK)));
-  fd_add_hashname("#8MIB",FD_INT((8)*(ONEK)*(ONEK)));
+  fd_add_hashname("#1mib",FD_INT((ONEK)*(ONEK)));
+  fd_add_hashname("#2mib",FD_INT((2)*(ONEK)*(ONEK)));
+  fd_add_hashname("#3mib",FD_INT((3)*(ONEK)*(ONEK)));
+  fd_add_hashname("#4mib",FD_INT((4)*(ONEK)*(ONEK)));
+  fd_add_hashname("#5mib",FD_INT((5)*(ONEK)*(ONEK)));
+  fd_add_hashname("#6mib",FD_INT((6)*(ONEK)*(ONEK)));
+  fd_add_hashname("#7mib",FD_INT((7)*(ONEK)*(ONEK)));
+  fd_add_hashname("#8mib",FD_INT((8)*(ONEK)*(ONEK)));
   fd_add_hashname("#gib",FD_INT((1024*1024*1024)));
   fd_add_hashname("#1gib",FD_INT(((ONEK)*(ONEK)*(ONEK))));
   fd_add_hashname("#2gib",FD_INT((2*(ONEK)*(ONEK)*(ONEK))));
@@ -934,7 +934,6 @@ void fd_init_cons_c()
   fd_add_hashname("#8gib",FD_INT((8*(ONEK)*(ONEK)*(ONEK))));
   fd_add_hashname("#1mib",FD_INT((1024*1024)));
   fd_add_hashname("#2mib",FD_INT((2*1024*1024)));
-
 }
 
 /* Emacs local variables
