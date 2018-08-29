@@ -1314,7 +1314,7 @@ dist/rpms.zip: dist/rpms.done
 
 dist/debs.built: staging/framerd_@FDVERSION@
 	(cd staging/framerd_@FDVERSION@; \
-	 dpkg-buildpackage -sa -us -uc --build=full -rfakeroot) && \
+	 dpkg-buildpackage -sa -us -uc -F -rfakeroot) && \
 	touch dist/debs.built;
 dist/debs.signed: dist/debs.built
 	(cd staging; debsign -p${GPG} --re-sign -k${GPGID} 	\
@@ -1692,7 +1692,8 @@ build-setup.debian:
 		libzip-dev apache2-dev libedit-dev libhyphen-dev \
 		libhunspell-dev libmagickwand-dev libqrencode-dev \
 		libexif-dev libgoogle-perftools-dev \
-		dh-make devscripts dpkg-dev
+		libarchive-dev libsasl2-dev libsqlite3-dev \
+		dh-make devscripts dpkg-dev dh-systemd debsigs
 build-setup.redhat:
 	sudo rpm -Uvh libedit-devel
 
