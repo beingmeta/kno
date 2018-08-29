@@ -199,7 +199,7 @@
 	       ((not (getopt opts 'base))
 		(irritant collection |NoBaseOID|))
 	       (else (set! base (getopt opts 'base))
-		     (set! cap (getopt opts 'capacity #1mib))
+		     (set! cap (getopt opts 'capacity #mib))
 		     (set! load (getopt opts 'load 0))
 		     (set! name (collection/name collection))
 		     (collection/insert! collection

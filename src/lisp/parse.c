@@ -1247,7 +1247,7 @@ lispval fd_parser(u8_input in)
     else switch (ch) {
       case 'U': return parse_atom(in,inchar,ch,1); /* UUID */
       case 'T': return parse_atom(in,inchar,ch,1); /* TIMESTAMP */
-      case 'X': case 'B': {
+      case 'X': case 'B': case 'x': case 'b': {
         int probec = u8_probec(in);
         if (probec == '"')
           return parse_packet(in,ch);
@@ -1255,11 +1255,8 @@ lispval fd_parser(u8_input in)
           /* In this case, it's just an atom */
           u8_ungetc(in,ch);
           return parse_atom(in,'#',-1,1);}}
-      default:  {
-        /* We could check here for symbolic histrefs */
-        u8_ungetc(in,ch);
-        /* In this case, it's just an atom */
-        return parse_atom(in,'#',-1,1);}}}
+      default:
+        return parse_atom(in,'#',ch,1);}}
     default:
       return parse_atom(in,-1,-1,1);}
 }
@@ -1271,10 +1268,11 @@ static lispval parse_atom(u8_input in,int ch1,int ch2,int upcase)
   struct U8_OUTPUT tmpbuf; char buf[128];
   lispval result; U8_MAYBE_UNUSED int c;
   U8_INIT_STATIC_OUTPUT_BUF(tmpbuf,128,buf);
-  if (ch1>=0) u8_putc(&tmpbuf,ch1);
-  if (ch2>=0) u8_putc(&tmpbuf,ch2);
+  if (ch1>=0) u8_putc(&tmpbuf,((upcase) ? (u8_toupper(ch1)) : (ch1)));
+  if (ch2>=0) u8_putc(&tmpbuf,((upcase) ? (u8_toupper(ch2)) : (ch2)));
   c = copy_atom(in,&tmpbuf,upcase);
-  if (tmpbuf.u8_write == tmpbuf.u8_outbuf) result = FD_EOX;
+  if (tmpbuf.u8_write == tmpbuf.u8_outbuf)
+    result = FD_EOX;
   else if (ch1 == '|')
     result = fd_make_symbol(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
   else result = fd_parse_atom(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
@@ -1282,13 +1280,14 @@ static lispval parse_atom(u8_input in,int ch1,int ch2,int upcase)
   return result;
 }
 
+
 static lispval parse_histref(u8_input in)
 {
   struct U8_OUTPUT tmpbuf;
   lispval elts = fd_init_pair(NULL,histref_symbol,FD_EMPTY_LIST);
   lispval *tail = &(FD_CDR(elts));
   char buf[128];
-  int c = u8_getc(in);
+  int c = u8_getc(in), n_elts = 0;
   U8_INIT_STATIC_OUTPUT_BUF(tmpbuf,128,buf);
   while (c >= 0) {
     if ( (u8_isalnum(c)) ||
@@ -1304,7 +1303,8 @@ static lispval parse_histref(u8_input in)
       *tail = new_tail;
       tail = &(FD_CDR(new_tail));
       tmpbuf.u8_write = tmpbuf.u8_outbuf;
-      tmpbuf.u8_outbuf[0] = '\0';}
+      tmpbuf.u8_outbuf[0] = '\0';
+      n_elts++;}
     else if (c == '=') {
       lispval elt = fd_parse(tmpbuf.u8_outbuf);
       lispval new_tail = fd_make_list(2,elt,FDSYM_EQUALS);
@@ -1312,7 +1312,8 @@ static lispval parse_histref(u8_input in)
       *tail = new_tail;
       tail = &(FD_CDR(new_cdr));
       tmpbuf.u8_write = tmpbuf.u8_outbuf;
-      tmpbuf.u8_outbuf[0] = '\0';}
+      tmpbuf.u8_outbuf[0] = '\0';
+      n_elts++;}
     else break;
     c = u8_getc(in);}
   if (tmpbuf.u8_write>tmpbuf.u8_outbuf) {
@@ -1321,8 +1322,20 @@ static lispval parse_histref(u8_input in)
       *tail = new_tail;
       tail = &(FD_CDR(new_tail));
       tmpbuf.u8_write = tmpbuf.u8_outbuf;
-      tmpbuf.u8_outbuf[0] = '\0';}
+      tmpbuf.u8_outbuf[0] = '\0';
+      n_elts++;}
   if (c>0) u8_ungetc(in,c);
+  if ( (n_elts == 1) && (FD_SYMBOLP(FD_CADR(elts))) ) {
+    lispval root = FD_CADR(elts);
+    u8_string name = FD_SYMBOL_NAME(root);
+    size_t name_len = strlen(name);
+    u8_byte hashname[name_len+2];
+    hashname[0]='#'; strncpy(hashname+1,name,name_len);
+    hashname[name_len+1] = '\0';
+    lispval constval = fd_lookup_hashname(hashname);
+    if (!(FD_NULLP(constval))) {
+      fd_decref(elts);
+      return constval;}}
   if (fd_resolve_histref) {
     lispval resolved = fd_resolve_histref(FD_CDR(elts));
     if (FD_ABORTP(resolved))
