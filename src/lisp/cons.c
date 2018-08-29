@@ -914,6 +914,13 @@ void fd_init_cons_c()
 #define ONEK ((unsigned long long)1024)
 
   fd_add_constname("#kib",FD_INT(ONEK));
+  fd_add_constname("#1kib",FD_INT(ONEK));
+  fd_add_constname("#2kib",FD_INT(2*ONEK));
+  fd_add_constname("#4kib",FD_INT(4*ONEK));
+  fd_add_constname("#8kib",FD_INT(8*ONEK));
+  fd_add_constname("#16kib",FD_INT(16*ONEK));
+  fd_add_constname("#32kib",FD_INT(32*ONEK));
+  fd_add_constname("#64kib",FD_INT(64*ONEK));
   fd_add_constname("#mib",FD_INT((ONEK)*(ONEK)));
   fd_add_constname("#1mib",FD_INT((ONEK)*(ONEK)));
   fd_add_constname("#2mib",FD_INT((2)*(ONEK)*(ONEK)));

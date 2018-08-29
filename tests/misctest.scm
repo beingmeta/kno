@@ -398,6 +398,16 @@
 (evaltest 90 (string->number "0x5a"))
 (evaltest 90 (string->lisp "0x5a"))
 
+(applytest 1024 string->lisp "#kib")
+(applytest 1024 string->lisp "#1kib")
+(applytest 2048 string->lisp "#2kib")
+(applytest 1048576 string->lisp "#mib")
+(applytest 1048576 string->lisp "#1mib")
+(applytest 3145728 string->lisp "#3mib")
+(applytest 1073741824 string->lisp "#gib")
+(applytest 1073741824 string->lisp "#1gib")
+(applytest 2147483648 string->lisp "#2gib")
+
 (define (add2numbers x y)
   "This procedure adds 2 numbers and returns the result"
   (+ x y))
