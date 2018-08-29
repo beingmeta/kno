@@ -234,44 +234,51 @@ FD_EXPORT int fd_read_escape(u8_input in)
 
 /* Atom parsing */
 
-static struct FD_KEYVAL *hashnames=NULL;
-static int n_hashnames=0, hashnames_len=0;
-static u8_rwlock hashnames_lock;
+static struct FD_KEYVAL *constnames=NULL;
+static int n_constnames=0, constnames_len=0;
+static u8_rwlock constnames_lock;
 
-#ifndef MAX_HASHNAMES
-#define MAX_HASHNAMES 7654321
+#ifndef MAX_CONSTNAMES
+#define MAX_CONSTNAMES 7654321
 #endif
 
-static lispval lookup_hashname(u8_string s,int len,int lock)
+static lispval lookup_constname(u8_string s,int lock)
 {
-  if (len<0) len=strlen(s);
-  struct FD_STRING _string; unsigned char buf[len+1];
-  strcpy(buf,s); buf[len]='\0';
-  lispval string=fd_init_string(&_string,len,buf);
+  u8_string scan = s;
+  int c = u8_sgetc(&scan);
+  U8_STATIC_OUTPUT(namebuf,128);
+  if (c == '#') c = u8_sgetc(&scan);
+  while (c >= 0) {
+    u8_putc(&namebuf,u8_toupper(c));
+    c=u8_sgetc(&scan);}
+  struct FD_STRING _string;
+  lispval string=fd_init_string
+    (&_string,namebuf.u8_write-namebuf.u8_outbuf,
+     namebuf.u8_outbuf);
   FD_MAKE_STATIC(string);
-  if (lock) u8_read_lock(&hashnames_lock);
-  struct FD_KEYVAL *kv=fd_sortvec_get(string,hashnames,n_hashnames);
-  if (lock) u8_rw_unlock(&hashnames_lock);
+  if (lock) u8_read_lock(&constnames_lock);
+  struct FD_KEYVAL *kv=fd_sortvec_get(string,constnames,n_constnames);
+  if (lock) u8_rw_unlock(&constnames_lock);
   if (kv)
     return kv->kv_val;
   else return FD_NULL;
 }
 
 FD_EXPORT
-int fd_add_hashname(u8_string s,lispval value)
+int fd_add_constname(u8_string s,lispval value)
 {
-  u8_write_lock(&hashnames_lock);
-  lispval cur=lookup_hashname(s,-1,0);
+  u8_write_lock(&constnames_lock);
+  lispval cur=lookup_constname(s,0);
   if (cur!=FD_NULL) {
-    u8_rw_unlock(&hashnames_lock);
+    u8_rw_unlock(&constnames_lock);
     if (value==cur) return 0;
     else return -1;}
   else {
-    u8_string d=u8_upcase(s);
+    u8_string d= (*s == '#') ? (u8_upcase(s+1)) : (u8_upcase(s));
     lispval string=lispval_string(d);
     struct FD_KEYVAL *added=
-      fd_sortvec_insert(string,&hashnames,
-                        &n_hashnames,&hashnames_len,MAX_HASHNAMES,
+      fd_sortvec_insert(string,&constnames,
+                        &n_constnames,&constnames_len,MAX_CONSTNAMES,
                         1);
     if (added)
       added->kv_val=value;
@@ -281,15 +288,15 @@ int fd_add_hashname(u8_string s,lispval value)
                "Conflicting values for constant #%s: #!0x%llx and #!0x%llx",
                d,added->kv_val,value);
       fd_decref(string);}
-    u8_rw_unlock(&hashnames_lock);
+    u8_rw_unlock(&constnames_lock);
     u8_free(d);
     return 1;}
 }
 
 FD_EXPORT
-lispval fd_lookup_hashname(u8_string s)
+lispval fd_lookup_constname(u8_string s)
 {
-  return lookup_hashname(s,-1,1);
+  return lookup_constname(s,1);
 }
 
 static int copy_atom(u8_input s,u8_output a,int upcase)
@@ -345,7 +352,7 @@ lispval fd_parse_atom(u8_string start,int len)
            (fd_NoPointerExpressions,"fd_parse_atom",
             u8_strdup(start),VOID);}
   else if (start[0]=='#') { /* Look it up */
-    lispval value = lookup_hashname(start,-1,1);
+    lispval value = lookup_constname(start,1);
     if (value != FD_NULL) return value;
     /* Number syntaxes */
     if (strchr("XxOoBbEeIiDd",start[1])) {
@@ -1289,7 +1296,24 @@ static lispval parse_histref(u8_input in)
   char buf[128];
   int c = u8_getc(in), n_elts = 0;
   U8_INIT_STATIC_OUTPUT_BUF(tmpbuf,128,buf);
+  /* There is a kludge here where we identify histrefs which were
+     really constants followed by '.' or '=' by checking *after* we've
+     parsed the histref. We should really do it here, when we've
+     reached the first histref element. */
   while (c >= 0) {
+    if ( (u8_isalnum(c)) ||
+         (c=='-') || (c=='_') ||
+         (c=='/') || (c=='+') ||
+         (c=='%') || (c=='$') ||
+         (c=='&') || (c=='!') ) {
+      u8_putc(&tmpbuf,c);
+      c = u8_getc(in);}
+    else break;}
+  lispval constval = lookup_constname(tmpbuf.u8_outbuf,1);
+  if (constval != FD_NULL) {
+    fd_decref(elts);
+    return constval;}
+  else while (c >= 0) {
     if ( (u8_isalnum(c)) ||
          (c=='-') || (c=='_') ||
          (c=='/') || (c=='+') ||
@@ -1325,17 +1349,6 @@ static lispval parse_histref(u8_input in)
       tmpbuf.u8_outbuf[0] = '\0';
       n_elts++;}
   if (c>0) u8_ungetc(in,c);
-  if ( (n_elts == 1) && (FD_SYMBOLP(FD_CADR(elts))) ) {
-    lispval root = FD_CADR(elts);
-    u8_string name = FD_SYMBOL_NAME(root);
-    size_t name_len = strlen(name);
-    u8_byte hashname[name_len+2];
-    hashname[0]='#'; strncpy(hashname+1,name,name_len);
-    hashname[name_len+1] = '\0';
-    lispval constval = fd_lookup_hashname(hashname);
-    if (!(FD_NULLP(constval))) {
-      fd_decref(elts);
-      return constval;}}
   if (fd_resolve_histref) {
     lispval resolved = fd_resolve_histref(FD_CDR(elts));
     if (FD_ABORTP(resolved))
@@ -1496,7 +1509,7 @@ FD_EXPORT void fd_init_parse_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  u8_init_rwlock(&hashnames_lock);
+  u8_init_rwlock(&constnames_lock);
 
   quote_symbol = fd_intern("QUOTE");
   quasiquote_symbol = fd_intern("QUASIQUOTE");

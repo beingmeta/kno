@@ -1221,10 +1221,10 @@ FD_FASTOP lispval op_eval(lispval x,fd_lexenv env,
 static void set_opcode_name(lispval opcode,u8_string name)
 {
   int off = FD_OPCODE_NUM(opcode);
-  u8_string hashname=u8_string_append("#",name,NULL);
+  u8_string constname=u8_string_append("#",name,NULL);
   fd_opcode_names[off]=name;
-  fd_add_hashname(hashname,opcode);
-  u8_free(hashname);
+  fd_add_constname(constname,opcode);
+  u8_free(constname);
 }
 
 static void init_opcode_names()

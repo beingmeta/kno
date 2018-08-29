@@ -92,8 +92,8 @@ typedef int (*fd_hashfn)(lispval x,unsigned int (*hf)(lispval));
 FD_EXPORT lispval fd_parse_oid_addr(u8_string string,int len);
 FD_EXPORT fd_hashfn fd_hashfns[];
 
-FD_EXPORT int fd_add_hashname(u8_string s,lispval value);
-FD_EXPORT lispval fd_lookup_hashname(u8_string s);
+FD_EXPORT int fd_add_constname(u8_string s,lispval value);
+FD_EXPORT lispval fd_lookup_constname(u8_string s);
 
 FD_EXPORT int pprint_maxchars;
 FD_EXPORT int pprint_maxbytes;

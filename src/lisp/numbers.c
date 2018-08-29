@@ -3742,12 +3742,12 @@ void fd_init_numbers_c()
 
 #define ONEK ((unsigned long long)1024)
 
-  fd_add_hashname("#tib",FD_INT((ONEK)*(ONEK)*(ONEK)*(ONEK)));
-  fd_add_hashname("#1tib",FD_INT((ONEK)*(ONEK)*(ONEK)*(ONEK)));
-  fd_add_hashname("#2tib",FD_INT((2)*(ONEK)*(ONEK)*(ONEK)*(ONEK)));
-  fd_add_hashname("#3tib",FD_INT((3)*(ONEK)*(ONEK)*(ONEK)*(ONEK)));
-  fd_add_hashname("#4tib",FD_INT((3)*(ONEK)*(ONEK)*(ONEK)*(ONEK)));
-  fd_add_hashname("#pib",FD_INT((ONEK)*(ONEK)*(ONEK)*(ONEK)*(ONEK)));
+  fd_add_constname("#tib",FD_INT((ONEK)*(ONEK)*(ONEK)*(ONEK)));
+  fd_add_constname("#1tib",FD_INT((ONEK)*(ONEK)*(ONEK)*(ONEK)));
+  fd_add_constname("#2tib",FD_INT((2)*(ONEK)*(ONEK)*(ONEK)*(ONEK)));
+  fd_add_constname("#3tib",FD_INT((3)*(ONEK)*(ONEK)*(ONEK)*(ONEK)));
+  fd_add_constname("#4tib",FD_INT((3)*(ONEK)*(ONEK)*(ONEK)*(ONEK)));
+  fd_add_constname("#pib",FD_INT((ONEK)*(ONEK)*(ONEK)*(ONEK)*(ONEK)));
 
   u8_register_source_file(_FILEINFO);
 }

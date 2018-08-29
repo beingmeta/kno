@@ -92,7 +92,7 @@ lispval fd_register_constant(u8_string name)
       return FD_CONSTANT(i);
     else i++;}
   lispval constant=FD_CONSTANT(i);
-  if (fd_add_hashname(name,constant)<0) {
+  if (fd_add_constname(name,constant)<0) {
     u8_seterr("ConstantConflict","fd_register_constant",
               u8_strdup(name));
     return FD_ERROR;}
@@ -851,7 +851,7 @@ init_flonum_constant(u8_string name,double val,int off)
   struct FD_FLONUM *cons = &(flonum_consts[off]);
   lispval lptr = fd_init_flonum(cons,val);
   FD_MAKE_STATIC(lptr);
-  fd_add_hashname(name,lptr);
+  fd_add_constname(name,lptr);
 }
 
 void fd_init_cons_c()
@@ -881,12 +881,12 @@ void fd_init_cons_c()
 
   i=0; while (i<256) {
     if (fd_constant_names[i]) {
-      fd_add_hashname(fd_constant_names[i],FD_CONSTANT(i));}
+      fd_add_constname(fd_constant_names[i],FD_CONSTANT(i));}
     i++;}
-  fd_add_hashname("#true",FD_TRUE);
-  fd_add_hashname("#false",FD_FALSE);
-  fd_add_hashname("#empty",EMPTY);
-  fd_add_hashname("#dflt",FD_DEFAULT_VALUE);
+  fd_add_constname("#true",FD_TRUE);
+  fd_add_constname("#false",FD_FALSE);
+  fd_add_constname("#empty",EMPTY);
+  fd_add_constname("#dflt",FD_DEFAULT_VALUE);
   int const_off=0;
 #ifdef M_PI
   init_flonum_constant("#pi",M_PI,const_off++);
@@ -906,34 +906,34 @@ void fd_init_cons_c()
 #ifdef M_LN10
   init_flonum_constant("#ln10",M_LN10,const_off++);
 #endif
-  fd_add_hashname("#answer",FD_INT(42));
-  fd_add_hashname("#life",FD_INT(42));
-  fd_add_hashname("#universe",FD_INT(42));
-  fd_add_hashname("#everything",FD_INT(42));
+  fd_add_constname("#answer",FD_INT(42));
+  fd_add_constname("#life",FD_INT(42));
+  fd_add_constname("#universe",FD_INT(42));
+  fd_add_constname("#everything",FD_INT(42));
 
 #define ONEK ((unsigned long long)1024)
 
-  fd_add_hashname("#kib",FD_INT(ONEK));
-  fd_add_hashname("#mib",FD_INT((ONEK)*(ONEK)));
-  fd_add_hashname("#1mib",FD_INT((ONEK)*(ONEK)));
-  fd_add_hashname("#2mib",FD_INT((2)*(ONEK)*(ONEK)));
-  fd_add_hashname("#3mib",FD_INT((3)*(ONEK)*(ONEK)));
-  fd_add_hashname("#4mib",FD_INT((4)*(ONEK)*(ONEK)));
-  fd_add_hashname("#5mib",FD_INT((5)*(ONEK)*(ONEK)));
-  fd_add_hashname("#6mib",FD_INT((6)*(ONEK)*(ONEK)));
-  fd_add_hashname("#7mib",FD_INT((7)*(ONEK)*(ONEK)));
-  fd_add_hashname("#8mib",FD_INT((8)*(ONEK)*(ONEK)));
-  fd_add_hashname("#gib",FD_INT((1024*1024*1024)));
-  fd_add_hashname("#1gib",FD_INT(((ONEK)*(ONEK)*(ONEK))));
-  fd_add_hashname("#2gib",FD_INT((2*(ONEK)*(ONEK)*(ONEK))));
-  fd_add_hashname("#3gib",FD_INT((3*(ONEK)*(ONEK)*(ONEK))));
-  fd_add_hashname("#4gib",FD_INT((4*(ONEK)*(ONEK)*(ONEK))));
-  fd_add_hashname("#5gib",FD_INT((5*(ONEK)*(ONEK)*(ONEK))));
-  fd_add_hashname("#6gib",FD_INT((6*(ONEK)*(ONEK)*(ONEK))));
-  fd_add_hashname("#7gib",FD_INT((7*(ONEK)*(ONEK)*(ONEK))));
-  fd_add_hashname("#8gib",FD_INT((8*(ONEK)*(ONEK)*(ONEK))));
-  fd_add_hashname("#1mib",FD_INT((1024*1024)));
-  fd_add_hashname("#2mib",FD_INT((2*1024*1024)));
+  fd_add_constname("#kib",FD_INT(ONEK));
+  fd_add_constname("#mib",FD_INT((ONEK)*(ONEK)));
+  fd_add_constname("#1mib",FD_INT((ONEK)*(ONEK)));
+  fd_add_constname("#2mib",FD_INT((2)*(ONEK)*(ONEK)));
+  fd_add_constname("#3mib",FD_INT((3)*(ONEK)*(ONEK)));
+  fd_add_constname("#4mib",FD_INT((4)*(ONEK)*(ONEK)));
+  fd_add_constname("#5mib",FD_INT((5)*(ONEK)*(ONEK)));
+  fd_add_constname("#6mib",FD_INT((6)*(ONEK)*(ONEK)));
+  fd_add_constname("#7mib",FD_INT((7)*(ONEK)*(ONEK)));
+  fd_add_constname("#8mib",FD_INT((8)*(ONEK)*(ONEK)));
+  fd_add_constname("#gib",FD_INT((1024*1024*1024)));
+  fd_add_constname("#1gib",FD_INT(((ONEK)*(ONEK)*(ONEK))));
+  fd_add_constname("#2gib",FD_INT((2*(ONEK)*(ONEK)*(ONEK))));
+  fd_add_constname("#3gib",FD_INT((3*(ONEK)*(ONEK)*(ONEK))));
+  fd_add_constname("#4gib",FD_INT((4*(ONEK)*(ONEK)*(ONEK))));
+  fd_add_constname("#5gib",FD_INT((5*(ONEK)*(ONEK)*(ONEK))));
+  fd_add_constname("#6gib",FD_INT((6*(ONEK)*(ONEK)*(ONEK))));
+  fd_add_constname("#7gib",FD_INT((7*(ONEK)*(ONEK)*(ONEK))));
+  fd_add_constname("#8gib",FD_INT((8*(ONEK)*(ONEK)*(ONEK))));
+  fd_add_constname("#1mib",FD_INT((1024*1024)));
+  fd_add_constname("#2mib",FD_INT((2*1024*1024)));
 }
 
 /* Emacs local variables
