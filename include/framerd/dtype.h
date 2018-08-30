@@ -62,7 +62,7 @@ FD_EXPORT int fd_unparse(u8_output,lispval);
 FD_EXPORT u8_string fd_lisp2string(lispval x);
 FD_EXPORT u8_string fd_lisp2buf(lispval x,size_t n,u8_byte *buf);
 
-typedef int (*fd_listobj_fn)(u8_output out,lispval obj);
+typedef lispval (*fd_listobj_fn)(lispval obj);
 FD_EXPORT int fd_list_object(u8_output out,
                              lispval result,
                              u8_string label,

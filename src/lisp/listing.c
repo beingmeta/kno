@@ -35,12 +35,13 @@ static int list_elements(u8_output out,
                          u8_string label,
                          u8_string pathref,
                          u8_string indent,
-                         fd_listobj_fn listfn,
+                         fd_listobj_fn eltfn,
                          int width,
                          int detail,
                          int depth);
+static void output_key(u8_output out,lispval key,fd_listobj_fn eltfn);
 
-static void custom_list_error(lispval item)
+static void custom_eltfn_error(lispval item)
 {
   u8_exception ex = u8_erreify();
   if (ex)
@@ -53,24 +54,29 @@ static void custom_list_error(lispval item)
   if (ex) u8_free_exception(ex,0);
 }
 
-static int list_item(u8_output out,lispval item,fd_listobj_fn listfn)
+static int list_item(u8_output out,lispval item,fd_listobj_fn eltfn)
 {
-  if (listfn == NULL)
+  if (eltfn == NULL)
     fd_unparse(out,item);
   else if ( (FD_OIDP(item)) || (FD_COMPOUNDP(item))  ) {
-    int rv = listfn(out,item);
-    if (rv<0) custom_list_error(item);
-    if ( rv == 0 )
+    lispval alt = eltfn(item);
+    if (FD_VOIDP(alt))
       fd_unparse(out,item);
-    else return 1;}
-  else fd_unparse(out,item);
+    else if (FD_ABORTP(alt)) {
+      custom_eltfn_error(item);
+      fd_unparse(out,alt);}
+    else {
+      fd_unparse(out,alt);
+      fd_decref(alt);}}
+  else {
+    fd_unparse(out,item);}
   return 0;
 }
 
 static void list_table(u8_output out,lispval table,
                        u8_string label,u8_string pathref,int path,
                        u8_string indent,
-                       fd_listobj_fn listfn,
+                       fd_listobj_fn eltfn,
                        int width,
                        int detail,
                        int depth)
@@ -111,46 +117,42 @@ static void list_table(u8_output out,lispval table,
     lispval val = fd_get(table,key,FD_EMPTY_CHOICE);
     if (EMPTYP(val)) {
       u8_printf(out,"\n%s  ",indent);
-      int rv = (listfn == NULL) ? (0) :
-        ( (FD_OIDP(key)) || (FD_COMPOUNDP(key)) ) ?
-        (listfn(out,key)) : (0);
-      if (rv == 0) fd_unparse(out,key);
+      output_key(out,key,eltfn);
       u8_puts(out," #> {} ;;no values");}
     else {
-      U8_SUB_STREAM(tmp,1000,out);
-      int rv = (listfn == NULL) ? (0) :
-        ( (FD_OIDP(key)) || (FD_COMPOUNDP(key)) ) ?
-        (listfn(tmpout,key)) : (0);
-      if (rv == 0) fd_unparse(tmpout,key);
-      u8_puts(tmpout," #> ");
-      int custom = list_item(tmpout,val,listfn);
-      if ((tmp.u8_write-tmp.u8_outbuf)<width) {
-        if (full_pathref)
-          u8_printf(out,"\n%s  %s ;;=%s.%q",indent,tmp.u8_outbuf,full_pathref,key);
-        else u8_printf(out,"\n%s  %s ;; (%q)",indent,tmp.u8_outbuf,key);}
-      else if ( (FD_CHOICEP(val)) || (FD_VECTORP(val)) ||
-                ( (FD_PAIRP(val)) && (!(FD_SYMBOLP(FD_CAR(val)))) ) ) {
+      if ( (FD_CHOICEP(val)) || (FD_VECTORP(val)) ||
+           ( (FD_PAIRP(val)) && (!(FD_SYMBOLP(FD_CAR(val)))) ) ) {
         u8_printf(out,"\n%s  %q #> ",indent,key);
         list_elements(out,val,val_label,val_pathref,
-                      val_indent,listfn,width,val_detail,depth+1);}
+                      val_indent,eltfn,width,val_detail,depth+1);}
       else if ( (FD_SLOTMAPP(val)) || (FD_SCHEMAPP(val)) ) {
         u8_printf(out,"\n%s  %q #> ",indent,key);
         list_table(out,val,val_label,val_pathref,-1,
-                   val_indent,listfn,width,val_detail,depth+1);}
+                   val_indent,eltfn,width,val_detail,depth+1);}
       else {
-        /* Reset to zero */
-        tmp.u8_write=tmp.u8_outbuf; tmp.u8_outbuf[0]='\0';
-        if (custom)
-          list_item(tmpout,val,listfn);
-        else fd_pprint(tmpout,val,val_indent,3,3,width);
-        if (full_pathref)
-          u8_printf(out,"\n%s  %q #> ;;=%s.%q\n%s%s",
-                    indent,key,full_pathref,key,
-                    val_indent,tmp.u8_outbuf);
-        else u8_printf(out,"\n%s  %q #> ;; #%d\n%s%s",
-                       indent,key,count,
-                       val_indent,tmp.u8_outbuf);}
-      u8_close_output(tmpout);
+        U8_SUB_STREAM(tmp,1000,out);
+        output_key(tmpout,key,eltfn);
+        u8_puts(tmpout," #> ");
+        int custom = list_item(tmpout,val,eltfn);
+        if ((tmp.u8_write-tmp.u8_outbuf)<width) {
+          if (full_pathref)
+            u8_printf(out,"\n%s  %s ;;=%s.%q",
+                      indent,tmp.u8_outbuf,full_pathref,key);
+          else u8_printf(out,"\n%s  %s ;; (%q)",indent,tmp.u8_outbuf,key);}
+        else {
+          /* Reset to zero */
+          tmp.u8_write=tmp.u8_outbuf; tmp.u8_outbuf[0]='\0';
+          if (custom)
+            list_item(tmpout,val,eltfn);
+          else fd_pprint(tmpout,val,val_indent,3,3,width);
+          if (full_pathref)
+            u8_printf(out,"\n%s  %q #> ;;=%s.%q\n%s%s",
+                      indent,key,full_pathref,key,
+                      val_indent,tmp.u8_outbuf);
+          else u8_printf(out,"\n%s  %q #> ;; #%d\n%s%s",
+                         indent,key,count,
+                         val_indent,tmp.u8_outbuf);}
+        u8_close_output(tmpout);}
       u8_flush(out);}
     fd_decref(val);
     count++;}
@@ -165,16 +167,31 @@ static void list_table(u8_output out,lispval table,
   else u8_puts(out," ]");
 }
 
+static void output_key(u8_output out,lispval key,fd_listobj_fn eltfn)
+{
+  if ( (eltfn) && ( (FD_OIDP(key)) || (FD_COMPOUNDP(key)) ) ) {
+    lispval alt = eltfn(key);
+    if (FD_VOIDP(alt))
+      fd_unparse(out,key);
+    else if (FD_ABORTP(alt)) {
+      custom_eltfn_error(key);
+      fd_unparse(out,alt);}
+    else {
+      fd_unparse(out,alt);
+      fd_decref(alt);}}
+  else fd_unparse(out,key);
+}
+
 static void list_element(u8_output out,lispval elt,
                          u8_string pathref,int path,
                          u8_string indent,
-                         fd_listobj_fn listfn,
+                         fd_listobj_fn eltfn,
                          int width,
                          int depth)
 {
   if (pathref) {
     U8_SUB_STREAM(tmp,1000,out);
-    int custom = list_item(tmpout,elt,listfn);
+    int custom = list_item(tmpout,elt,eltfn);
     if ((tmp.u8_write-tmp.u8_outbuf)<width) {
       if ((pathref) && (path>=0))
         u8_printf(out,"\n%s%s ;;=%s.%d",indent,tmp.u8_outbuf,pathref,path);
@@ -192,7 +209,7 @@ static void list_element(u8_output out,lispval elt,
     /* Reset tmpout before pretty printing */
     tmp.u8_write=tmp.u8_outbuf; tmp.u8_outbuf[0]='\0';
     if (custom)
-      list_item(out,elt,listfn);
+      list_item(out,elt,eltfn);
     else fd_pprint(tmpout,elt,indent,3,3,width);
     u8_puts(out,tmp.u8_outbuf);
     u8_close_output(tmpout);
@@ -205,7 +222,7 @@ static int list_elements(u8_output out,
                          u8_string label,
                          u8_string pathref,
                          u8_string indent,
-                         fd_listobj_fn listfn,
+                         fd_listobj_fn eltfn,
                          int width,
                          int detail,
                          int depth)
@@ -242,26 +259,26 @@ static int list_elements(u8_output out,
   if (CHOICEP(result)) {
     FD_DO_CHOICES(elt,result) {
       if ((show_elts>0) && (count<show_elts)) {
-        list_element(out,elt,pathref,count,elt_indent,listfn,width,depth+1);
+        list_element(out,elt,pathref,count,elt_indent,eltfn,width,depth+1);
         count++;}
       else {FD_STOP_DO_CHOICES; break;}}}
   else if (VECTORP(result)) {
     lispval *elts = VEC_DATA(result);
     while (count<show_elts) {
       list_element(out,elts[count],pathref,count,elt_indent,
-                   listfn,width,depth+1);
+                   eltfn,width,depth+1);
       count++;}}
   else if (PAIRP(result)) {
     lispval scan = result;
     while (count<show_elts)
       if (PAIRP(scan)) {
         list_element(out,FD_CAR(scan),pathref,count,elt_indent,
-                     listfn,width,depth+1);
+                     eltfn,width,depth+1);
         scan = FD_CDR(scan);
         count++;}
       else {
         u8_printf(out,"\n  . ;; improper list");
-        list_element(out,scan,pathref,count,elt_indent,listfn,width,depth+1);
+        list_element(out,scan,pathref,count,elt_indent,eltfn,width,depth+1);
         scan = VOID;
         count++;
         break;}}
@@ -286,7 +303,7 @@ FD_EXPORT int fd_list_object(u8_output out,
                              u8_string label,
                              u8_string pathref,
                              u8_string indent,
-                             fd_listobj_fn listfn,
+                             fd_listobj_fn eltfn,
                              int width,
                              int detail)
 {
@@ -294,10 +311,10 @@ FD_EXPORT int fd_list_object(u8_output out,
   if ((FD_CHOICEP(result)) ||
       (FD_VECTORP(result)) ||
       (PAIRP(result))) {
-    list_elements(out,result,label,pathref,indent,listfn,width,detail,0);
+    list_elements(out,result,label,pathref,indent,eltfn,width,detail,0);
     return 1;}
   else if ( (FD_SLOTMAPP(result)) || (FD_SCHEMAPP(result)) ) {
-    list_table(out,result,label,pathref,-1,indent,listfn,width,detail,0);
+    list_table(out,result,label,pathref,-1,indent,eltfn,width,detail,0);
     return 1;}
   else if (FD_STRINGP(result)) {
     if (detail <= 0) {

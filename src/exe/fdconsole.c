@@ -184,14 +184,14 @@ static void close_consoles()
     console_env = NULL;}
 }
 
-static int oid_listfn(u8_output out,lispval item)
+static lispval oid_listfn(lispval item)
 {
   if (FD_OIDP(item)) {
     fd_pool p = fd_oid2pool(item);
     if (p) {
       lispval v = fd_oid_value(item);
       fd_decref(v);}}
-  return 0;
+  return FD_VOID;
 }
 
 static int output_result(struct U8_OUTPUT *out,lispval result,
@@ -209,7 +209,8 @@ static int output_result(struct U8_OUTPUT *out,lispval result,
         (u8_bprintf(_label,"%q %s",result,histref)) :
         (u8_bprintf(_label,"%q",result));
       u8_printf(out,"%q\n",result);
-      fd_list_object(out,v,label,histref,"",oid_listfn,width,detail);
+      fd_list_object(out,v,label,histref,"",oid_listfn,width,
+                     (showall)?(-4):(7));
       if (histref)
         u8_printf(out," ;; %q %s\n",result,histref);
       else u8_printf(out," ;; %q\n",result);
