@@ -997,6 +997,11 @@ void fd_init_startup_c()
   fd_register_config("CONFIGARGS",
                      _("config arguments passed to the application (unparsed)"),
                      fd_lconfig_get,NULL,&config_argv);
+  fd_register_config("EXENAME",
+                     _("the vector of args (before parsing) to the application (no configs)"),
+                     fd_lconfig_get,NULL,&exec_arg);
+
+
 
   fd_register_config("LOGCMD",_("Whether to display command line args on entry and exit"),
                      fd_boolconfig_get,fd_boolconfig_set,&fd_logcmd);
