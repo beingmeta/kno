@@ -33,7 +33,7 @@
 
 static lispval accept_language, accept_type, accept_charset, accept_encoding;
 static lispval server_port, remote_port, request_method, status_field;
-static lispval get_method, post_method, browseinfo_symbol;
+static lispval get_method, post_method, browseinfo_symbol, params_symbol;
 static lispval redirect_field, sendfile_field, xredirect_field;
 static lispval query_string, query_elts, query, http_cookie, http_referrer;
 static lispval http_headers, html_headers, cookiedata_symbol;
@@ -114,6 +114,11 @@ void fd_urify(u8_output out,lispval val)
 
 /* Converting cgidata */
 
+#define MAX_PROTECTED_PARAMS 200
+
+static lispval protected_params[MAX_PROTECTED_PARAMS];
+static int n_protected_params = 0;
+
 static struct FD_PROTECTED_CGI {
   lispval field;
   struct FD_PROTECTED_CGI *next;} *protected_cgi;
@@ -121,38 +126,48 @@ static u8_mutex protected_cgi_lock;
 
 static int isprotected(lispval field)
 {
-  struct FD_PROTECTED_CGI *scan = protected_cgi;
-  while (scan) {
-    if (LISP_EQUAL(scan->field,field)) return 1;
-    else scan = scan->next;}
+  int i = 0, n = n_protected_params;
+  while (i < n)
+    if (protected_params[i] == field)
+      return 1;
+    else i++;
   return 0;
 }
 static lispval protected_cgi_get(lispval var,void *ptr)
 {
   lispval result = EMPTY;
-  struct FD_PROTECTED_CGI *scan = protected_cgi;
-  while (scan) {
-    lispval field = scan->field; fd_incref(field);
-    CHOICE_ADD(result,field);
-    scan = scan->next;}
+  int i = 0, n = n_protected_params;
+  while (i < n) {
+    lispval param = protected_params[i++];
+    fd_incref(param);
+    FD_ADD_TO_CHOICE(result,param);}
   return result;
 }
 static int protected_cgi_set(lispval var,lispval field,void *ptr)
 {
-  struct FD_PROTECTED_CGI *scan = protected_cgi, *fresh = NULL;
+  int i = 0, n = n_protected_params;
+  while (i < n)
+    if (protected_params[i] == field)
+      return 0;
+    else i++;
   u8_lock_mutex(&protected_cgi_lock);
-  while (scan) {
-    if (LISP_EQUAL(scan->field,field)) {
+  n = n_protected_params;
+  while (i < n)
+    if (protected_params[i] == field) {
       u8_unlock_mutex(&protected_cgi_lock);
       return 0;}
-    else scan = scan->next;}
-  fresh = u8_alloc(struct FD_PROTECTED_CGI);
-  fresh->field = field; fd_incref(field);
-  fresh->next = protected_cgi;
-  protected_cgi = fresh;
-  u8_unlock_mutex(&protected_cgi_lock);
-  return 1;
+    else i++;
+  if (i >= MAX_PROTECTED_PARAMS) {
+    fd_seterr("TooManyProtectedParams","protected_cgi_set",NULL,var);
+    u8_unlock_mutex(&protected_cgi_lock);
+    return -1;}
+  else {
+    protected_params[n_protected_params++] = field;
+    fd_incref(field);
+    u8_unlock_mutex(&protected_cgi_lock);
+    return 1;}
 }
+
 
 static void convert_parse(fd_slotmap c,lispval slotid)
 {
@@ -295,9 +310,30 @@ static void get_form_args(fd_slotmap c)
     return;}
 }
 
+static void add_param(fd_slotmap req,fd_slotmap params,
+                      lispval slotstring,lispval slotid,
+                      lispval val)
+{
+  if (FD_VOIDP(slotstring))
+    fd_slotmap_add(req,query,val);
+  else {
+    fd_slotmap_add(params,slotstring,val);
+    if (!(FD_VOIDP(slotid))) {
+      fd_slotmap_add(params,slotid,val);
+      fd_slotmap_add(req,slotid,val);}}
+}
+
 static void parse_query_string(fd_slotmap c,const char *data,int len)
 {
-  lispval slotid = VOID, value = VOID; int isascii = 1;
+  int isascii = 1;
+  lispval slotid = VOID, slotstring = VOID, value = VOID;
+  lispval params_val = fd_slotmap_get(c,params_symbol,FD_VOID);
+  fd_slotmap q = NULL;
+  if (FD_SLOTMAPP(params_val))
+    q = (fd_slotmap) params_val;
+  else {
+    params_val = fd_init_slotmap(NULL,32,NULL);
+    q = (fd_slotmap) params_val;}
   const u8_byte *scan = data, *end = scan+len;
   char *buf = u8_malloc(len+1), *write = buf;
   while (scan<end)
@@ -306,25 +342,21 @@ static void parse_query_string(fd_slotmap c,const char *data,int len)
       /* Don't store vars beginning with _ or HTTP, to avoid spoofing
          of real HTTP variables or other variables that might be used
          internally. */
-      if (buf[0]=='_') slotid = VOID;
-      if (strncmp(buf,"HTTP",4)==0) slotid = VOID;
-      else slotid = buf2slotid(buf,isascii);
-      if (isprotected(slotid))
+      if ( (buf[0]=='_') || (strncmp(buf,"HTTP",4)==0) )
         slotid = VOID;
+      else slotid = buf2slotid(buf,isascii);
+      fd_decref(slotstring); slotstring = VOID;
+      fd_decref(value); value = VOID;
+      slotstring = buf2string(buf,isascii);
+      if (isprotected(slotid)) slotid = VOID;
       write = buf;
       isascii = 1;
       scan++;}
     else if ( *scan == '&' ) {
       *write++='\0';
-      if (VOIDP(slotid))
-        value = buf2string(buf,isascii);
-      else value = buf2lisp(buf,isascii);
-      if (VOIDP(slotid))
-        fd_slotmap_add(c,query,value);
-      else fd_slotmap_add(c,slotid,value);
-      fd_decref(value);
-      value = VOID;
-      slotid = VOID;
+      value = buf2string(buf,isascii);
+      add_param(c,q,slotstring,slotid,value);
+      fd_decref(value); value = VOID; slotid = VOID;
       write = buf;
       isascii = 1;
       scan++;}
@@ -348,15 +380,9 @@ static void parse_query_string(fd_slotmap c,const char *data,int len)
       isascii = 0;}
   if (write>buf) {
     *write++='\0';
-    if (VOIDP(slotid))
-      value = buf2string(buf,isascii);
-    else value = buf2lisp(buf,isascii);
-    if (VOIDP(slotid))
-      fd_slotmap_add(c,query,value);
-    else fd_slotmap_add(c,slotid,value);
-    fd_decref(value);
-    value = VOID;
-    slotid = VOID;
+    value = buf2string(buf,isascii);
+    add_param(c,q,slotstring,slotid,value);
+    fd_decref(value); value = VOID; slotid = VOID;
     write = buf;
     isascii = 1;
     scan++;}
@@ -364,6 +390,9 @@ static void parse_query_string(fd_slotmap c,const char *data,int len)
     lispval str = lispval_string("");
     fd_slotmap_add(c,slotid,str);
     fd_decref(str);}
+  if (q->n_slots) {
+    fd_slotmap_add(c,params_symbol,params_val);}
+  else fd_decref(params_val);
   u8_free(buf);
 }
 
@@ -1401,6 +1430,8 @@ FD_EXPORT void fd_init_cgiexec_c()
   remote_ident_symbol = fd_intern("REMOTE_IDENT");
   remote_agent_symbol = fd_intern("HTTP_USER_AGENT");
   remote_info_symbol = fd_intern("REMOTE_INFO");
+
+  params_symbol = fd_intern("_PARAMS");
 
   ipeval_symbol = fd_intern("_IPEVAL");
 
