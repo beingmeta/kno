@@ -72,11 +72,14 @@ static void recycle_pair(struct FD_PAIR *pair)
 static void recycle_list(struct FD_PAIR *pair)
 {
   lispval car = pair->car, cdr = pair->cdr;
-  u8_free(pair); fd_decref(car);
+  fd_decref(car);
   if (!(PAIRP(cdr))) {
     fd_decref(cdr);
+    u8_free(pair);
     return;}
-  else pair = (fd_pair)cdr;
+  else {
+    u8_free(pair);
+    pair = (fd_pair)cdr;}
 #if FD_LOCKFREE_REFCOUNTS
   while (1) {
     struct FD_REF_CONS *cons = (struct FD_REF_CONS *)pair;
@@ -103,13 +106,14 @@ static void recycle_list(struct FD_PAIR *pair)
       FD_LOCK_PTR(xcdr);
       while (FD_CONS_REFCOUNT(xcdr)==1) {
         car = xcdr->car; cdr = xcdr->cdr;
-        FD_UNLOCK_PTR(xcdr); u8_free(xcdr);
+        FD_UNLOCK_PTR(xcdr);
         fd_decref(car);
+        u8_free(xcdr); xcdr = NULL;
         if (PAIRP(cdr)) {
           xcdr = (fd_pair)cdr;
           FD_LOCK_PTR(xcdr);
           continue;}
-        else {xcdr = NULL; break;}}
+        else break;}
       if (xcdr) FD_UNLOCK_PTR(xcdr);
       fd_decref(cdr);}
     else fd_decref(cdr);}
