@@ -83,21 +83,22 @@ static int load_source_module(lispval spec,int safe,void *ignored)
       fd_decref(load_result);
       return -1;}
     else {
-      lispval module_key = lispval_string(module_source);
-      fd_register_module_x(module_key,load_result,safe);
+      lispval module_filename = lispval_string(module_source);
+      fd_register_module_x(module_filename,load_result,safe);
       /* Store non symbolic specifiers as module identifiers */
-      if (STRINGP(spec)) {
+      if (STRINGP(spec))
         fd_add(load_result,source_symbol,spec);
-        if (FD_LEXENVP(load_result)) {
-          fd_lexenv lexenv = (fd_lexenv) load_result;
-          if (FD_TABLEP(lexenv->env_exports))
-            fd_add(lexenv->env_exports,source_symbol,module_key);}}
+      if (FD_LEXENVP(load_result)) {
+        fd_lexenv lexenv = (fd_lexenv) load_result;
+        fd_add(load_result,source_symbol,module_filename);
+        if (FD_TABLEP(lexenv->env_exports))
+          fd_add(lexenv->env_exports,source_symbol,module_filename);}
       /* Register the module under its filename too. */
       if (strchr(module_source,':') == NULL) {
         lispval abspath_key = fd_lispstring(u8_abspath(module_source,NULL));
         fd_register_module_x(abspath_key,load_result,safe);
         fd_decref(abspath_key);}
-      fd_decref(module_key);
+      fd_decref(module_filename);
       u8_free(module_source);
       fd_decref(load_result);
       return 1;}}
