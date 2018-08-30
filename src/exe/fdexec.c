@@ -73,7 +73,7 @@ static lispval load_stdin(fd_lexenv env)
 
 typedef char *charp;
 
-static lispval main_symbol;
+static lispval main_symbol = FD_VOID, exec_script = FD_FALSE;
 
 static lispval chain_prim(int n,lispval *args)
 {
@@ -246,6 +246,10 @@ int do_main(int argc,char **argv,
      _("The name of the (main) routine for this file"),
      fd_lconfig_get,fd_symconfig_set,
      &main_symbol);
+  fd_register_config
+    ("EXECSCRIPT",
+     _("The name of the root file being executed for this application"),
+     fd_lconfig_get,NULL,&exec_script);
 
 
   setlocale(LC_ALL,"");
@@ -390,6 +394,9 @@ int main(int argc,char **argv)
   if (appid==NULL) appid=argv[0];
   _stack->stack_label=u8_strdup(appid);
   _stack->stack_free_label=1;
+
+  if (source_file)
+    exec_script = fd_lispstring(source_file);
 
   retval = do_main(argc,argv,exe_name,source_file,args,n_args);
 
