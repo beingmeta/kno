@@ -319,6 +319,7 @@ FD_EXPORT
 int fd_index_frame(fd_index ix,lispval frames,lispval slotids,lispval values)
 {
   int rv = 0;
+  if (FD_EMPTYP(values)) return 0;
   DO_CHOICES(slotid,slotids) {
     fd_index write_index = get_writable_slotindex(ix,slotid);
     if (write_index == NULL) {
