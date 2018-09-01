@@ -297,7 +297,7 @@ static int list_elements(u8_output out,
         scan = FD_CDR(scan);
         count++;}
       else {
-        u8_printf(out,"\n  . ;; improper list");
+        u8_printf(out,"\n%s. ;; improper list",elt_indent);
         list_element(out,scan,pathref,count,elt_indent,
                      eltfn,width,detail,depth+1);
         scan = VOID;
