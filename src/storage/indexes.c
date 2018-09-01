@@ -1201,7 +1201,7 @@ static int index_dowrite(fd_index ix,struct FD_INDEX_COMMITS *commits)
     commits->commit_n_stores;
   if (!(FD_VOIDP(commits->commit_metadata))) n_changes++;
 
-  u8_logf(LOG_DETAIL,"IndexCommit/Write",
+  u8_logf(LOG_DEBUG,"IndexCommit/Write",
           "Writing %d edits to %s",n_changes,ix->indexid);
 
   int rv =ix->index_handler->commit(ix,fd_commit_write,commits);
@@ -1217,7 +1217,7 @@ static int index_dowrite(fd_index ix,struct FD_INDEX_COMMITS *commits)
     else u8_logf(LOG_CRIT,"Failed/IndexCommit/Write",
                  "(after %fsecs) writing %d edits to %s",
                  n_changes,ix->indexid,elapsed_time(started));}
-  else u8_logf(LOG_DETAIL,"Finished/IndexCommit/Write",
+  else u8_logf(LOG_INFO,"Finished/IndexCommit/Write",
                "(after %fsecs) writing %d edits to %s",
                elapsed_time(started),n_changes,ix->indexid);
 
@@ -1232,7 +1232,7 @@ static int index_rollback(fd_index ix,struct FD_INDEX_COMMITS *commits)
     commits->commit_n_adds + commits->commit_n_drops + commits->commit_n_stores;
   if (!(FD_VOIDP(commits->commit_metadata))) n_changes++;
 
-  u8_logf(LOG_DETAIL,"IndexRollback",
+  u8_logf(LOG_WARN,"IndexRollback",
           "Rolling back %d edits to %s",n_changes,ix->indexid);
 
   int rollback = ix->index_handler->commit(ix,fd_commit_rollback,commits);
@@ -1242,7 +1242,7 @@ static int index_rollback(fd_index ix,struct FD_INDEX_COMMITS *commits)
             elapsed_time(started),ix->indexid);
     u8_seterr("IndexRollbackFailed","index_dcommit/rollback",
               u8_strdup(ix->indexid));}
-  else u8_logf(LOG_DETAIL,"Finished/IndexRollback",
+  else u8_logf(LOG_WARN,"Finished/IndexRollback",
                "Rolled back %d edits to %s in %f seconds",
                n_changes,ix->indexid,
                elapsed_time(started));
@@ -1300,7 +1300,7 @@ static int index_doflush(fd_index ix,struct FD_INDEX_COMMITS *commits)
     else u8_logf(LOG_CRIT,"Failed/IndexCommit/Write",
                  "(after %fs) flushing %d cached edits from %s",
                  elapsed_time(started),n_changes,ix->indexid);}
-  else u8_logf(LOG_DETAIL,"Finished/IndexCommit/Flush",
+  else u8_logf(LOG_DEBUG,"Finished/IndexCommit/Flush",
                "Flushed %d cached edits from %s in %f secons",
                n_changes,ix->indexid,
                elapsed_time(started));
@@ -1310,7 +1310,7 @@ static int index_doflush(fd_index ix,struct FD_INDEX_COMMITS *commits)
 
 static void log_timings(fd_index ix,struct FD_INDEX_COMMITS *commits)
 {
-  u8_logf(LOG_DEBUG,"Index/Commit/Timing",
+  u8_logf(LOG_INFO,"Index/Commit/Timing",
           "for '%s'\n  total=%f, start=%f, setup=%f, save=%f, "
           "finalize=%f, apply=%f, cleanup=%f",
           ix->indexid,
@@ -1345,7 +1345,7 @@ static int index_docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
     u8_seterr("CommitFailed","index_docommit/start",u8_strdup(ix->indexid));
     return started;}
   record_elapsed(commits.commit_times.start);
-  u8_logf(LOG_DETAIL,"IndexCommit/Started","Committing %s for %s",
+  u8_logf(LOG_DEBUG,"IndexCommit/Started","Committing %s for %s",
           ((use_commits)?("edits"):("changes")),
           ix->indexid);
 
@@ -1421,7 +1421,7 @@ static int index_docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
   int n_changes = n_keys + (FD_SLOTMAPP(commits.commit_metadata));
   int w_metadata = FD_SLOTMAPP(commits.commit_metadata);
 
-  u8_logf(LOG_DEBUG,fd_IndexCommit,
+  u8_logf(LOG_INFO,fd_IndexCommit,
           _("Committing %d %s (+%d-%d:=%d%s) to %s"),
           n_changes,((use_commits) ? ("edits") : ("changes")),
           commits.commit_n_adds,
@@ -1436,7 +1436,7 @@ static int index_docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
   record_elapsed(commits.commit_times.write);
 
   if (written >= 0)
-    u8_logf(LOG_DETAIL,"IndexWrite/Written",
+    u8_logf(LOG_INFO,"IndexWrite/Written",
             _("Wrote %d changes to %s after %f secs"),
             n_changes,ix->indexid,commits.commit_times.write);
 
@@ -1518,7 +1518,7 @@ static int index_docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
             _("for %d %supdated keys from %s after %f secs"),
             n_changes,(w_metadata ? ("(and metadata) ") : ("") ),
             ix->indexid,u8_elapsed_time()-start_time);
-  else u8_logf(LOG_INFO,fd_IndexCommit,
+  else u8_logf(LOG_DEBUG,fd_IndexCommit,
                _("Committed %d %s%s keys to %s in %f secs"),
                n_changes,(w_metadata ? ("(and metadata) ") : ("") ),
                (use_commits) ? ("edited") : ("changed"),
@@ -2264,7 +2264,7 @@ FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args
       if (!( (FD_NULLP(ix->index_keyslot)) ||
              (FD_VOIDP(ix->index_keyslot)) )) {
         if (defslot == ix->index_keyslot) {
-          u8_logf(LOG_NOTICE,"KeySlotOK",
+          u8_logf(LOG_WARN,"KeySlotOK",
                   "The keyslot of %s is already %q",ix->indexid,defslot);
           return defslot;}
         else return fd_err("KeySlotAlreadyDefined",
