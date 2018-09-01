@@ -20,6 +20,12 @@
 #include "libu8/u8strings.h"
 
 
+#define LISTABLEP(x)                                                    \
+  ( (FD_CHOICEP(x)) || (FD_VECTORP(x)) || (FD_PAIRP(x)) ||              \
+    (FD_SLOTMAPP(x)) || (FD_SCHEMAPP(x)) || (FD_PRECHOICEP(x)) ||       \
+    (FD_COMPOUND_VECTORP(x)) )
+#define UNLISTABLEP(x) (! (LISTABLEP(x)) )
+
 static int list_length(lispval scan)
 {
   int len = 0;
@@ -133,7 +139,7 @@ static void list_table(u8_output out,lispval table,
         U8_SUB_STREAM(tmp,1000,out);
         output_key(tmpout,key,eltfn);
         u8_puts(tmpout," #> ");
-        int custom = list_item(tmpout,val,eltfn);
+        list_item(tmpout,val,eltfn);
         if ((tmp.u8_write-tmp.u8_outbuf)<width) {
           if (full_pathref)
             u8_printf(out,"\n%s  %s ;;=%s.%q",
@@ -142,9 +148,7 @@ static void list_table(u8_output out,lispval table,
         else {
           /* Reset to zero */
           tmp.u8_write=tmp.u8_outbuf; tmp.u8_outbuf[0]='\0';
-          if (custom)
-            list_item(tmpout,val,eltfn);
-          else fd_pprint(tmpout,val,val_indent,3,3,width);
+          fd_pprint(tmpout,val,val_indent,3,3,width);
           if (full_pathref)
             u8_printf(out,"\n%s  %q #> ;;=%s.%q\n%s%s",
                       indent,key,full_pathref,key,
@@ -187,34 +191,37 @@ static void list_element(u8_output out,lispval elt,
                          u8_string indent,
                          fd_listobj_fn eltfn,
                          int width,
+                         int detail,
                          int depth)
 {
-  if (pathref) {
-    U8_SUB_STREAM(tmp,1000,out);
-    int custom = list_item(tmpout,elt,eltfn);
-    if ((tmp.u8_write-tmp.u8_outbuf)<width) {
-      if ((pathref) && (path>=0))
-        u8_printf(out,"\n%s%s ;;=%s.%d",indent,tmp.u8_outbuf,pathref,path);
-      else if (pathref)
-        u8_printf(out,"\n%s%s ;;=%s",indent,tmp.u8_outbuf,pathref);
-      else u8_printf(out,"\n%s%s",indent,tmp.u8_outbuf);
-      u8_close_output(tmpout);
-      return;}
-    /* Output the element preamble, since we're putting it on a new line */
+  U8_SUB_STREAM(tmp,1000,out);
+  int custom = list_item(tmpout,elt,eltfn);
+  if ((tmp.u8_write-tmp.u8_outbuf)<width) {
+    if ((pathref) && (path>=0))
+      u8_printf(out,"\n%s%s ;;=%s.%d",indent,tmp.u8_outbuf,pathref,path);
+    else if (pathref)
+      u8_printf(out,"\n%s%s ;;=%s",indent,tmp.u8_outbuf,pathref);
+    else u8_printf(out,"\n%s%s",indent,tmp.u8_outbuf);
+    u8_close_output(tmpout);
+    return;}
+  tmp.u8_write = tmp.u8_outbuf; tmp.u8_outbuf[0]='\0';
+  u8_byte pathbuf[64];
+  u8_string sub_path = u8_bprintf(pathbuf,"%s.%d",pathref,path);
+  u8_printf(out,";; %s.%d\n%s",pathref,path,indent);
+  /* Output the element preamble, since we're putting it on a new line */
+  if (UNLISTABLEP(elt)) {
     if ((pathref) && (path>=0))
       u8_printf(out,"\n%s;; %s.%d=\n%s",indent,pathref,path,indent);
     else if (pathref)
       u8_printf(out,"\n%s;; %s=\n%s",indent,pathref,indent);
     else u8_printf(out,"\n%s",indent);
-    /* Reset tmpout before pretty printing */
-    tmp.u8_write=tmp.u8_outbuf; tmp.u8_outbuf[0]='\0';
-    if (custom)
-      list_item(out,elt,eltfn);
-    else fd_pprint(tmpout,elt,indent,3,3,width);
-    u8_puts(out,tmp.u8_outbuf);
-    u8_close_output(tmpout);
-    u8_flush(out);}
-  else u8_printf(out,"\n%s%Q",indent,elt);
+    fd_pprint(out,elt,indent,3,3,width);}
+  else if ( (FD_SLOTMAPP(elt)) || (FD_SCHEMAPP(elt)) ) {
+    list_table(out,elt,NULL,pathref,path,indent,eltfn,width,3,depth);}
+  else list_elements(out,elt,sub_path,sub_path,indent,
+                     eltfn,width,detail,depth+1);
+  u8_close_output(tmpout);
+  u8_flush(out);
 }
 
 static int list_elements(u8_output out,
@@ -228,7 +235,7 @@ static int list_elements(u8_output out,
                          int depth)
 {
   int count = 0, show_elts, n_elts = 0;
-  u8_byte indentbuf[64] = { 0 };
+  u8_byte indentbuf[64] = { 0 }, startbuf[128] = { 0 };
   u8_string start, end, elt_indent;
 
   if (FD_CHOICEP(result)) {
@@ -239,6 +246,12 @@ static int list_elements(u8_output out,
     n_elts = FD_VECTOR_LENGTH(result);
     elt_indent = u8_sprintf(indentbuf,64,"%s  ",indent);
     start = "#("; end = ")";}
+  else if (FD_COMPOUND_VECTORP(result))  {
+    lispval tag = FD_COMPOUND_TAG(result);
+    n_elts = FD_COMPOUND_LENGTH(result);
+    elt_indent = u8_sprintf(indentbuf,64,"%s    ",indent);
+    start = u8_bprintf(startbuf,"#%%(%q",tag);
+    end = ")";}
   else if (FD_PAIRP(result)) {
     n_elts = list_length(result);
     elt_indent = u8_sprintf(indentbuf,64,"%s ",indent);
@@ -259,26 +272,34 @@ static int list_elements(u8_output out,
   if (CHOICEP(result)) {
     FD_DO_CHOICES(elt,result) {
       if ((show_elts>0) && (count<show_elts)) {
-        list_element(out,elt,pathref,count,elt_indent,eltfn,width,depth+1);
+        list_element(out,elt,pathref,count,elt_indent,
+                     eltfn,width,detail,depth+1);
         count++;}
       else {FD_STOP_DO_CHOICES; break;}}}
   else if (VECTORP(result)) {
     lispval *elts = VEC_DATA(result);
     while (count<show_elts) {
       list_element(out,elts[count],pathref,count,elt_indent,
-                   eltfn,width,depth+1);
+                   eltfn,width,detail,depth+1);
+      count++;}}
+  else if (FD_COMPOUND_VECTORP(result)) {
+    lispval *elts = FD_COMPOUND_ELTS(result);
+    while (count<show_elts) {
+      list_element(out,elts[count],pathref,count,elt_indent,
+                   eltfn,width,detail,depth+1);
       count++;}}
   else if (PAIRP(result)) {
     lispval scan = result;
     while (count<show_elts)
       if (PAIRP(scan)) {
         list_element(out,FD_CAR(scan),pathref,count,elt_indent,
-                     eltfn,width,depth+1);
+                     eltfn,width,detail,depth+1);
         scan = FD_CDR(scan);
         count++;}
       else {
         u8_printf(out,"\n  . ;; improper list");
-        list_element(out,scan,pathref,count,elt_indent,eltfn,width,depth+1);
+        list_element(out,scan,pathref,count,elt_indent,
+                     eltfn,width,detail,depth+1);
         scan = VOID;
         count++;
         break;}}
@@ -310,6 +331,7 @@ FD_EXPORT int fd_list_object(u8_output out,
   if (VOIDP(result)) return 0;
   if ((FD_CHOICEP(result)) ||
       (FD_VECTORP(result)) ||
+      (FD_COMPOUND_VECTORP(result)) ||
       (PAIRP(result))) {
     list_elements(out,result,label,pathref,indent,eltfn,width,detail,0);
     return 1;}
