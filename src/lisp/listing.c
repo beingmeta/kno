@@ -124,21 +124,21 @@ static void list_table(u8_output out,lispval table,
     if (EMPTYP(val)) {
       u8_printf(out,"\n%s  ",indent);
       output_key(out,key,eltfn);
-      u8_puts(out," #> {} ;;no values");}
+      u8_puts(out," \t#>  {} ;;no values");}
     else {
       if ( (FD_CHOICEP(val)) || (FD_VECTORP(val)) ||
            ( (FD_PAIRP(val)) && (!(FD_SYMBOLP(FD_CAR(val)))) ) ) {
-        u8_printf(out,"\n%s  %q #> ",indent,key);
+        u8_printf(out,"\n%s  %q \t#>  ",indent,key);
         list_elements(out,val,val_label,val_pathref,
                       val_indent,eltfn,width,val_detail,depth+1);}
       else if ( (FD_SLOTMAPP(val)) || (FD_SCHEMAPP(val)) ) {
-        u8_printf(out,"\n%s  %q #> ",indent,key);
+        u8_printf(out,"\n%s  %q \t#>  ",indent,key);
         list_table(out,val,val_label,val_pathref,-1,
                    val_indent,eltfn,width,val_detail,depth+1);}
       else {
         U8_SUB_STREAM(tmp,1000,out);
         output_key(tmpout,key,eltfn);
-        u8_puts(tmpout," #> ");
+        u8_puts(tmpout," \t#>  ");
         list_item(tmpout,val,eltfn);
         if ((tmp.u8_write-tmp.u8_outbuf)<width) {
           if (full_pathref)
@@ -150,10 +150,10 @@ static void list_table(u8_output out,lispval table,
           tmp.u8_write=tmp.u8_outbuf; tmp.u8_outbuf[0]='\0';
           fd_pprint(tmpout,val,val_indent,3,3,width);
           if (full_pathref)
-            u8_printf(out,"\n%s  %q #> ;;=%s.%q\n%s%s",
+            u8_printf(out,"\n%s  %q \t#>  ;;=%s.%q\n%s%s",
                       indent,key,full_pathref,key,
                       val_indent,tmp.u8_outbuf);
-          else u8_printf(out,"\n%s  %q #> ;; #%d\n%s%s",
+          else u8_printf(out,"\n%s  %q \t#>  ;; #%d\n%s%s",
                          indent,key,count,
                          val_indent,tmp.u8_outbuf);}
         u8_close_output(tmpout);}
