@@ -21,7 +21,7 @@
   (cond (testpool testpool)
 	((file-exists? poolfile)
 	 (let ((p (use-pool poolfile opts))
-	       (a (open-pool (adjfile poolfile) (cons #[adjunct #t] opts))))
+	       (a (open-pool (adjfile poolfile) (cons #[isadjunct #t] opts))))
 	   (adjunct! p 'adjslot a)
 	   (set! testpool p)
 	   (set! adjpool a)
@@ -39,7 +39,7 @@
 		   'slotcodes (config 'slotcodes 16)))
 		(p (make-pool poolfile (cons make-opts opts)))
 		(a (make-pool (string-subst poolfile ".pool" ".adjunct.pool") 
-			      (cons* #[adjunct #t slotcodes #f]
+			      (cons* #[isadjunct #t slotcodes #f]
 				     make-opts opts))))
 	   (adjunct! p 'adjslot a)
 	   (set! testpool p)
