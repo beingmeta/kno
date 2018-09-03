@@ -2193,18 +2193,20 @@ static unsigned int get_bigpool_format(fd_storage_flags sflags,lispval opts)
   flags |= ((fd_compression_type(opts,FD_NOCOMPRESS))<<3);
 
   if ( fd_testopt(opts,fd_intern("DTYPEV2"),VOID) ||
-       fd_testopt(opts,FDSYM_FLAGS,fd_intern("DTYPEV2")) )
+       fd_testopt(opts,FDSYM_FLAGS,fd_intern("DTYPEV2")) ||
+       fd_testopt(opts,FDSYM_FORMAT,fd_intern("DTYPEV2")) )
     flags |= FD_BIGPOOL_DTYPEV2;
 
-  if ( ( (sflags) & (FD_STORAGE_READ_ONLY) ) ||
-       (fd_testopt(opts,FDSYM_READONLY,VOID)) )
+  if ( (fd_testopt(opts,FDSYM_READONLY,VOID)) )
     flags |= FD_BIGPOOL_READ_ONLY;
 
   if ( (fd_testopt(opts,FDSYM_ISADJUNCT,VOID)) ||
-       (fd_testopt(opts,FDSYM_FLAGS,FDSYM_ISADJUNCT)) )
+       (fd_testopt(opts,FDSYM_FLAGS,FDSYM_ISADJUNCT)) ||
+       (fd_testopt(opts,FDSYM_FORMAT,FDSYM_ISADJUNCT)) ||
+       (fd_testopt(opts,FDSYM_FORMAT,FDSYM_ADJUNCT)) )
     flags |= FD_BIGPOOL_ADJUNCT;
 
-  if ( (sflags) & (FD_POOL_ADJUNCT) ||
+  if ( ( (sflags) & (FD_POOL_SPARSE) ) ||
        (fd_testopt(opts,fd_intern("SPARSE"),VOID)) )
     flags |= FD_BIGPOOL_SPARSE;
 
