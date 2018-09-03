@@ -205,7 +205,7 @@ static void list_element(u8_output out,lispval elt,
                          int depth)
 {
   U8_SUB_STREAM(tmp,1000,out);
-  int custom = list_item(tmpout,elt,eltfn);
+  list_item(tmpout,elt,eltfn);
   if ((tmp.u8_write-tmp.u8_outbuf)<width) {
     if ((pathref) && (path>=0))
       u8_printf(out,"\n%s%s \t;;=%s.%d",indent,tmp.u8_outbuf,pathref,path);
