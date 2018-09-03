@@ -47,13 +47,21 @@
 ;;;; Implementation
 
 (define (fifo->string fifo)
-  (stringout "#<FIFO "
-    (- (fifo-end fifo) (fifo-start fifo)) "/" (length (fifo-queue fifo)) 
-    "-r" (choice-size (fifo-running fifo)) "-w" (choice-size (fifo-waiting fifo)) " "
-    (or (fifo-name fifo) (glom "0x" (number->string (hashptr fifo) 16))) 
-    (if (not (fifo-live? fifo)) " (exhausted)")
-    (if (fifo-debug fifo) " (debug)")
-    ">"))
+  (if (fifo-name fifo)
+      (stringout "#<FIFO "
+	(fifo-name fifo) " "
+	(- (fifo-end fifo) (fifo-start fifo)) "/" (length (fifo-queue fifo)) 
+	"-r" (choice-size (fifo-running fifo)) "-w" (choice-size (fifo-waiting fifo)) " "
+	(if (not (fifo-live? fifo)) " (exhausted)")
+	(if (fifo-debug fifo) " (debug)")
+	">")
+      (stringout "#<FIFO "
+	(- (fifo-end fifo) (fifo-start fifo)) "/" (length (fifo-queue fifo)) 
+	"-r" (choice-size (fifo-running fifo)) "-w" (choice-size (fifo-waiting fifo)) " "
+	(glom "0x" (number->string (hashptr fifo) 16)) 
+	(if (not (fifo-live? fifo)) " (exhausted)")
+	(if (fifo-debug fifo) " (debug)")
+	">")))
 
 (defrecord (fifo MUTABLE OPAQUE `(stringfn . fifo->string))
   name    ;; a string
