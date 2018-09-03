@@ -119,9 +119,6 @@ void fd_urify(u8_output out,lispval val)
 static lispval protected_params[MAX_PROTECTED_PARAMS];
 static int n_protected_params = 0;
 
-static struct FD_PROTECTED_CGI {
-  lispval field;
-  struct FD_PROTECTED_CGI *next;} *protected_cgi;
 static u8_mutex protected_cgi_lock;
 
 static int isprotected(lispval field)
