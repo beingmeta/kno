@@ -627,7 +627,7 @@ static int make_bigpool
     fd_write_bytes(outstream,label,len);
     label_size = fd_getpos(stream)-label_pos;}
 
-  /* Write the slotcodes */
+  /* Write the actual slotcodes */
   if (VECTORP(slotcodes_init)) {
     int i = 0, len = VEC_LEN(slotcodes_init);
     slotcodes_pos = fd_getpos(stream);

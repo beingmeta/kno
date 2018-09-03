@@ -38,18 +38,31 @@
   #[bigpool snappy oidpool zlib filepool #f])
 
 (define (make-new-pool filename old 
-		       (type (symbolize (config 'pooltype 'bigpool))))
-  (let ((metadata (or (poolctl old 'metadata) #[])))
-    (make-pool filename `#[type ,type
-			   base ,(pool-base old)
-			   capacity ,(config 'newcap (pool-capacity old))
-			   load ,(config 'newload (pool-load old))
-			   label ,(config 'label (pool-label old))
-			   slotids ,(get-slotids metadata type)
-			   compression ,(get-compression metadata type)
-			   dtypev2 ,(or dtypev2 (test metadata 'flags 'dtypev2))
-			   isadjunct ,(config 'ISADJUNCT (test metadata 'flags 'isadjunct) config:boolean)
-			   register #t])))
+		       (type (symbolize (config 'pooltype 'bigpool)))
+		       (adjslot (CONFIG 'ADJSLOT (CONFIG 'ADJUNCTSLOT #f))))
+  (let ((metadata (or (poolctl old '%metadata) #[])))
+    (when adjslot (store! metadata 'adjunct adjslot))
+    (when (or adjslot (CONFIG 'ISADJUNCT))
+      (add! metadata 'format 'adjunct))
+    (make-pool filename
+      (modify-frame 
+	  `#[type ,type
+	     base ,(pool-base old)
+	     capacity ,(config 'newcap (pool-capacity old))
+	     load ,(config 'newload (pool-load old))
+	     label ,(config 'label (pool-label old))]
+	'slotids (get-slotids metadata type)
+	'compression (get-compression metadata type)
+	'dtypev2 (tryif (or dtypev2 (test metadata 'flags 'dtypev2)) 'dtypev2)
+	'isadjunct
+	(tryif (or adjslot
+		   (config 'ISADJUNCT 
+			   (or (test metadata 'format 'adjunct)
+			       (test metadata 'flags 'isadjunct))
+			   config:boolean))
+	  'adjunct)
+	'metadata metadata
+	'register #t))))
 
 (define code-slots #default)
 (varconfig! codeslots code-slots config:boolean)
