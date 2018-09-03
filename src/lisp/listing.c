@@ -138,11 +138,15 @@ static void list_table(u8_output out,lispval table,
            ( (FD_PAIRP(val)) &&
              (!(FD_SYMBOLP(FD_CAR(val)))) &&
              (!(ODDPAIRP(val)) ) ) ) {
-        u8_printf(out,"\n%s  %q #> ",indent,key);
+        u8_printf(out,"\n%s  ",indent);
+        output_key(out,key,eltfn);
+        u8_puts(out,"#> ");
         list_elements(out,val,val_label,val_pathref,
                       val_indent,eltfn,width,val_detail,depth+1);}
       else if ( (FD_SLOTMAPP(val)) || (FD_SCHEMAPP(val)) ) {
-        u8_printf(out,"\n%s  %q #> ",indent,key);
+        u8_printf(out,"\n%s  ",indent);
+        output_key(out,key,eltfn);
+        u8_puts(out,"#> ");
         list_table(out,val,val_label,val_pathref,-1,
                    val_indent,eltfn,width,val_detail,depth+1);}
       else {
