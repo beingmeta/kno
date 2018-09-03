@@ -655,15 +655,15 @@ static int make_bigpool
     fd_write_8bytes(outstream,label_pos);
     fd_write_4bytes(outstream,label_size);}
 
-  if (metadata_pos) {
-    fd_setpos(stream,FD_BIGPOOL_METADATA_POS);
-    fd_write_8bytes(outstream,metadata_pos);
-    fd_write_4bytes(outstream,metadata_size);}
-
   if (slotcodes_pos) {
     fd_setpos(stream,FD_BIGPOOL_SLOTCODES_POS);
     fd_write_8bytes(outstream,slotcodes_pos);
     fd_write_4bytes(outstream,slotcodes_size);}
+
+  if (metadata_pos) {
+    fd_setpos(stream,FD_BIGPOOL_METADATA_POS);
+    fd_write_8bytes(outstream,metadata_pos);
+    fd_write_4bytes(outstream,metadata_size);}
 
   fd_flush_stream(stream);
   fd_unlock_stream(stream);
@@ -2061,21 +2061,6 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
           return FD_ERROR_VALUE;
         else return FD_INT(rv);}}
     else return fd_err("BadArg","bigpool_ctl/label",p->poolid,args[0]);}
-  else if (op == fd_label_op) {
-    if (n == 0) {
-      if (p->pool_label)
-        return FD_FALSE;
-      else return lispval_string(p->pool_label);}
-    else if ( (n==1) && ( (FD_STRINGP(args[0])) || (FD_FALSEP(args[0]))) ) {
-      if ( (p->pool_flags)&(FD_STORAGE_READ_ONLY) )
-        return fd_err(fd_ReadOnlyPool,"bigpool_ctl/label",p->poolid,args[0]);
-      else {
-        int rv = (FD_STRINGP(args[0])) ? (set_bigpool_label(bp,FD_CSTRING(args[0]))) :
-          (set_bigpool_label(bp,NULL));
-        if (rv<0)
-          return FD_ERROR_VALUE;
-        else return FD_INT(rv);}}
-    else return fd_err("BadArg","bigpool_ctl/label",p->poolid,args[0]);}
   else if (op == fd_capacity_op)
     return FD_INT(bp->pool_capacity);
   else if ( (op == fd_metadata_op) && (n == 0) ) {
@@ -2088,23 +2073,39 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
     fd_store(base,slotids_symbol,FD_INT(bp->pool_slotcodes.n_slotcodes));
     if ( bp->bigpool_format & FD_BIGPOOL_READ_ONLY )
       fd_store(base,FDSYM_READONLY,FD_TRUE);
-    if ( bp->pool_offtype == FD_B32)
+    if ( bp->bigpool_format & FD_BIGPOOL_READ_ONLY )
+      fd_add(base,FDSYM_FORMAT,FDSYM_READONLY);
+    if ( bp->bigpool_format & FD_BIGPOOL_ADJUNCT )
+      fd_add(base,FDSYM_FORMAT,FDSYM_ADJUNCT);
+    if ( bp->bigpool_format & FD_BIGPOOL_DTYPEV2 )
+      fd_add(base,FDSYM_FORMAT,fd_intern("DTYPEV2"));
+    if ( bp->bigpool_format & FD_BIGPOOL_SPARSE )
+      fd_add(base,FDSYM_FORMAT,fd_intern("SPARSE"));
+    if ( bp->pool_offtype == FD_B32) {
       fd_store(base,offmode_symbol,fd_intern("B32"));
-    else if ( bp->pool_offtype == FD_B40)
+      fd_add(base,FDSYM_FORMAT,fd_intern("B32"));}
+    else if ( bp->pool_offtype == FD_B40) {
       fd_store(base,offmode_symbol,fd_intern("B40"));
-    else if ( bp->pool_offtype == FD_B64)
+      fd_add(base,FDSYM_FORMAT,fd_intern("B40"));}
+    else if ( bp->pool_offtype == FD_B64) {
       fd_store(base,offmode_symbol,fd_intern("B64"));
+      fd_add(base,FDSYM_FORMAT,fd_intern("B64"));}
     else fd_store(base,offmode_symbol,fd_intern("!!INVALID!!"));
-    if ( bp->pool_compression == FD_NOCOMPRESS )
+    if ( bp->pool_compression == FD_NOCOMPRESS ) {
       fd_store(base,compression_symbol,FD_FALSE);
-    else if ( bp->pool_compression == FD_ZLIB )
+      fd_add(base,FDSYM_FORMAT,fd_intern("NOCOMPRESS"));}
+    else if ( bp->pool_compression == FD_ZLIB ) {
       fd_store(base,compression_symbol,fd_intern("ZLIB"));
-    else if ( bp->pool_compression == FD_ZLIB9 )
+      fd_add(base,FDSYM_FORMAT,fd_intern("ZLIB"));}
+    else if ( bp->pool_compression == FD_ZLIB9 ) {
       fd_store(base,compression_symbol,fd_intern("ZLIB9"));
-    else if ( bp->pool_compression == FD_SNAPPY )
+      fd_add(base,FDSYM_FORMAT,fd_intern("ZLIB9"));}
+    else if ( bp->pool_compression == FD_SNAPPY ) {
       fd_store(base,compression_symbol,fd_intern("SNAPPY"));
-    else if ( bp->pool_compression == FD_ZSTD )
+      fd_add(base,FDSYM_FORMAT,fd_intern("SNAPPY"));}
+    else if ( bp->pool_compression == FD_ZSTD ) {
       fd_store(base,compression_symbol,fd_intern("ZSTD"));
+      fd_add(base,FDSYM_FORMAT,fd_intern("ZSTD"));}
     else fd_store(base,compression_symbol,fd_intern("!!INVALID!!"));
     fd_add(base,metadata_readonly_props,load_symbol);
     fd_add(base,metadata_readonly_props,slotids_symbol);
@@ -2219,7 +2220,7 @@ static fd_pool bigpool_create(u8_string spec,void *type_data,
   lispval load_arg = fd_getopt(opts,fd_intern("LOAD"),FD_FIXZERO);
   lispval label = fd_getopt(opts,FDSYM_LABEL,VOID);
   lispval slotcodes = fd_getopt(opts,fd_intern("SLOTIDS"),VOID);
-  lispval metadata = fd_getopt(opts,fd_intern("METADATA"),VOID);
+  lispval metadata_init = fd_getopt(opts,fd_intern("METADATA"),VOID);
   lispval ctime_opt = fd_getopt(opts,fd_intern("CTIME"),FD_VOID);
   lispval mtime_opt = fd_getopt(opts,fd_intern("MTIME"),FD_VOID);
   lispval generation_opt = fd_getopt(opts,fd_intern("GENERATION"),FD_VOID);
@@ -2277,8 +2278,28 @@ static fd_pool bigpool_create(u8_string spec,void *type_data,
   else mtime=now;
 
   if (FD_FIXNUMP(generation_opt))
-    generation=FD_FIX2INT(generation_opt);
-  else generation=0;
+    generation=FD_FIX2INT(generation_opt)+1;
+  else generation=1;
+
+  lispval metadata = VOID;
+  lispval created_symbol = fd_intern("CREATED");
+  lispval packed_symbol = fd_intern("PACKED");
+  lispval init_opts = fd_intern("INITOPTS");
+  lispval make_opts = fd_intern("MAKEOPTS");
+
+  if (FD_TABLEP(metadata_init))
+    metadata = fd_deep_copy(metadata_init);
+  else metadata = fd_make_slotmap(8,0,NULL);
+
+  lispval ltime = fd_time2timestamp(now);
+  if (!(fd_test(metadata,created_symbol,FD_VOID)))
+    fd_store(metadata,created_symbol,ltime);
+  fd_store(metadata,packed_symbol,ltime);
+  fd_decref(ltime); ltime = FD_VOID;
+
+  if (!(fd_test(metadata,init_opts,FD_VOID)))
+    fd_store(metadata,init_opts,opts);
+  fd_store(metadata,make_opts,opts);
 
   if (rv<0) return NULL;
   else rv = make_bigpool(spec,

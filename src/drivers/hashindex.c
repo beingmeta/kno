@@ -3215,18 +3215,33 @@ static fd_index hashindex_create(u8_string spec,void *typedata,
   fd_decref(slotids_init);
   fd_decref(baseoids_init);
 
+  lispval metadata = VOID;
+  lispval created_symbol = fd_intern("CREATED");
+  lispval assembled_symbol = fd_intern("ASSEMBLED");
+  lispval init_opts = fd_intern("INITOPTS");
+  lispval make_opts = fd_intern("MAKEOPTS");
+
+  if (FD_TABLEP(metadata_init)) {
+    metadata = fd_deep_copy(metadata_init);}
+  else metadata = fd_make_slotmap(8,0,NULL);
+
+  lispval ltime = fd_make_timestamp(NULL);
+  if (!(fd_test(metadata,created_symbol,FD_VOID)))
+    fd_store(metadata,created_symbol,ltime);
+  fd_store(metadata,assembled_symbol,ltime);
+  fd_decref(ltime); ltime = FD_VOID;
+
+  if (!(fd_test(metadata,init_opts,FD_VOID)))
+    fd_store(metadata,init_opts,opts);
+  fd_store(metadata,make_opts,opts);
+
   lispval keyslot = fd_getopt(opts,FDSYM_KEYSLOT,FD_VOID);
 
   if ( (FD_VOIDP(keyslot)) || (FD_FALSEP(keyslot)) ) {}
-  else if ( (FD_SYMBOLP(keyslot)) || (FD_OIDP(keyslot)) ) {
-    if (FD_SLOTMAPP(metadata_init))
-      fd_store(metadata_init,FDSYM_KEYSLOT,keyslot);
-    else {
-      metadata_init = fd_empty_slotmap();
-      fd_store(metadata_init,FDSYM_KEYSLOT,keyslot);}}
+  else if ( (FD_SYMBOLP(keyslot)) || (FD_OIDP(keyslot)) )
+    fd_store(metadata,FDSYM_KEYSLOT,keyslot);
   else u8_log(LOG_WARN,"InvalidKeySlot",
               "Not initializing keyslot of %s to %q",spec,keyslot);
-
 
   if (rv<0)
     return NULL;
@@ -3234,10 +3249,11 @@ static fd_index hashindex_create(u8_string spec,void *typedata,
          (spec,FIX2INT(nbuckets_arg),
           interpret_hashindex_flags(opts),
           FD_INT(hashconst),
-          metadata_init,
+          metadata,
           slotids_arg,
           baseoids_arg,-1,-1);
 
+  fd_decref(metadata);
   fd_decref(metadata_init);
   fd_decref(baseoids_arg);
   fd_decref(slotids_arg);
