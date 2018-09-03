@@ -56,7 +56,7 @@ int fd_dbconn_init_default = FD_DBCONN_INIT_DEFAULT;
 lispval fd_commit_phases[8];
 
 static lispval id_symbol, flags_symbol, background_symbol,
-  readonly_symbol, repair_symbol, adjunct_symbol,
+  readonly_symbol, repair_symbol,
   sparse_symbol, register_symbol, virtual_symbol, phased_symbol,
   oidcodes_symbol, slotcodes_symbol;
 
@@ -107,8 +107,12 @@ fd_get_dbflags(lispval opts,fd_storage_flags init_flags)
       flags |= FD_STORAGE_REPAIR;
     if ( (is_index) && (testopt(opts,background_symbol,0)) )
       flags |= FD_INDEX_IN_BACKGROUND;
-    if ( (!(is_index)) && (testopt(opts,adjunct_symbol,0)) )
-      flags |= FD_POOL_ADJUNCT | FD_POOL_SPARSE;
+    if ( (!(is_index)) &&
+         ( (testopt(opts,FDSYM_ADJUNCT,0)) ||
+           (testopt(opts,FDSYM_ISADJUNCT,0)) ||
+           (fd_testopt(opts,FDSYM_FORMAT,FDSYM_ISADJUNCT)) ||
+           (fd_testopt(opts,FDSYM_FORMAT,FDSYM_ADJUNCT))) )
+      flags |= FD_POOL_ADJUNCT;
     if ( (!(is_index)) && (testopt(opts,sparse_symbol,0)) )
       flags |= FD_POOL_SPARSE;
     fd_decref(flags_val);
@@ -651,7 +655,6 @@ FD_EXPORT int fd_init_storage()
   background_symbol = fd_intern("BACKGROUND");
   readonly_symbol = fd_intern("READONLY");
   repair_symbol = fd_intern("REPAIR");
-  adjunct_symbol = fd_intern("ADJUNCT");
   sparse_symbol = fd_intern("SPARSE");
   register_symbol = fd_intern("REGISTER");
   phased_symbol = fd_intern("PHASED");
