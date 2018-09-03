@@ -197,7 +197,7 @@ FD_EXPORT int fd_set_adjuncts(fd_pool p,lispval adjuncts)
           else {
             fd_pool adjpool=
               fd_get_pool(CSTRING(adjunct),
-                          FD_STORAGE_ISPOOL|FD_POOL_ADJUNCT|FD_POOL_SPARSE,
+                          FD_STORAGE_ISPOOL|FD_POOL_ADJUNCT,
                           FD_FALSE);
             if (adjpool) {
               fd_decref(adjunct);

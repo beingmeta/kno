@@ -300,8 +300,7 @@ static lispval adjunct_pool(lispval arg1,lispval opts)
     return fd_type_error(_("string"),"adjunct_pool",arg1);
   else {
     fd_storage_flags flags = fd_get_dbflags(opts,FD_STORAGE_ISPOOL) |
-      FD_POOL_ADJUNCT |
-      FD_POOL_SPARSE;
+      FD_POOL_ADJUNCT;
     fd_pool p = fd_get_pool(CSTRING(arg1),flags,opts);
     if (p)
       return pool2lisp(p);
