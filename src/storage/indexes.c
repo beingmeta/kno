@@ -2305,6 +2305,8 @@ FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args
     return fd_index_keys(ix);
   else if (op == fd_partitions_op)
     return FD_EMPTY;
+  else if (op == fd_raw_metadata_op)
+    return fd_deep_copy((lispval) &(ix->index_metadata));
   else if (op == FDSYM_CACHELEVEL)
     return FD_INT2FIX(1);
   else if (op == FDSYM_READONLY) {

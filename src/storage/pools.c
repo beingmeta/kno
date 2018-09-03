@@ -2586,6 +2586,8 @@ FD_EXPORT lispval fd_default_poolctl(fd_pool p,lispval op,int n,lispval *args)
     return FD_EMPTY;
   else if (op == FDSYM_CACHELEVEL)
     return FD_INT2FIX(1);
+  else if (op == fd_raw_metadata_op)
+    return fd_deep_copy((lispval) &(p->pool_metadata));
   else if (op == FDSYM_READONLY) {
     if (U8_BITP((p->pool_flags),FD_STORAGE_READ_ONLY))
       return FD_TRUE;
