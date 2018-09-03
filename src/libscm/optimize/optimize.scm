@@ -55,7 +55,7 @@
 (define-init persist-default #f)
 (varconfig! optimize:persist persist-default)
 
-(define-init keep-source-default #t)
+(define-init keep-source-default #f)
 (varconfig! optimize:keepsource keep-source-default)
 
 (define (optmode-macro optname thresh varname)
@@ -337,12 +337,14 @@
 
 (def-opcode GET        #OP_FGET 2)
 (def-opcode TEST       #OP_FTEST 3)
+(def-opcode TEST       #OP_FTEST 2)
 (def-opcode ASSERT!    #OP_ASSERT 3)
 (def-opcode ADD!       #OP_ADD 3)
 (def-opcode DROP!      #OP_DROP 3)
 (def-opcode RETRACT!   #OP_RETRACT 3)
 (def-opcode %GET       #OP_PGET 2)
 (def-opcode %TEST      #OP_PTEST 3)
+(def-opcode %TEST      #OP_PTEST 2)
 
 ;;; The core loop
 
