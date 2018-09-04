@@ -39,9 +39,7 @@
 	 (metadata (frame-create #f))
 	 (partition-opts
 	  `(,(frame-create #f
-	       'register (getopt opts 'register #t)
-	       'metadata metadata
-	       'background #f)
+	       'register (getopt opts 'register #t) 'background #f)
 	    . ,opts)))
     (try (get flex-indexes refpath)
 	 (let* ((indexes (open-index (strip-prefix files full-prefix) partition-opts))
@@ -49,7 +47,12 @@
 		(writable (reject indexes get-readonly))
 		(keyslot (if (fail? keyslots)
 			     (getopt partition-opts 'keyslot)
-			     (singleton keyslots))))
+			     (singleton keyslots)))
+		(new-partition-opts 
+		 (cons (frame-create #f 
+			 'register (getopt opts 'register #t) 'background #f
+			 'keyslot keyslot)
+		       opts)))
 	   (when (and (fail? indexes) (not (getopt opts 'create)))
 	     (irritant fullpath |NoMatchingFiles| flex/open-index))
 	   (when (ambiguous? keyslots)
@@ -69,7 +72,7 @@
 			     (make-front fullpath
 					 (if (fail? serials) 0 (1+ (largest serials)))
 					 (try (largest indexes get-serial) #f)
-					 partition-opts)))
+					 new-partition-opts)))
 		    (aggregate
 		     (make-aggregate-index (choice indexes front)
 					   `#[register #t])))
@@ -119,10 +122,11 @@
     (tryif index index)))
 
 (define (get-make-opts path model opts)
-  (let* ((type (getopt opts 'type (and model (indexctl model 'metadata 'type))))
-	 (size (getopt opts 'size
-		       (and model (indexctl model 'size))))
-	 (make-opts (frame-create #f 'type type 'size size))
+  (let* ((type (getopt opts 'type (try (and model (indexctl model 'metadata 'type)) #f)))
+	 (buckets (getopt opts 'buckets
+			  (try (and model (indexctl model 'metadata 'buckets)) #f)))
+	 (size (getopt opts 'size (try (indexctl model 'metadata 'size) #f)))
+	 (make-opts (frame-create #f 'type type))
 	 (maxsize (getopt opts 'maxsize
 			  (and model (indexctl model 'metadata 'maxsize))))
 	 (maxkeys (getopt opts 'maxkeys
@@ -130,14 +134,24 @@
 	 (new-opts (cons make-opts opts)))
     (unless type
       (logwarn |MissingIndexType|
-	"Can't determine type for new index " (write path) ", "
-	"using " 'hashindex)
+	"Can't determine type for new index " (write path) 
+	" from model " model 
+	", using " 'hashindex)
       (store! make-opts 'type 'hashindex))
-    (unless size
-      (logwarn |MissingIndexSize|
-	"Can't determine capacity for new index " (write path) ", "
-	"using " ($num 100000))
-      (store! make-opts 'size 100000))
+    
+    (if buckets
+	(store! make-opts 'buckets buckets)
+	(if size
+	    (store! make-opts 'size size)
+	    (begin (logwarn |MissingIndexSize|
+		     "Can't determine capacity for new index " (write path) " from model " model 
+		     ", using " ($num 100000))
+	      (store! make-opts 'size 100000))))
+    
+    (when (or (getopt opts 'keyslot) (and model (indexctl model 'keyslot)))
+      (store! make-opts 'keyslot 
+	      (or (getopt opts 'keyslot) (and model (indexctl model 'keyslot)))))
+										 
     (when (or maxsize maxkeys)
       (unless (getopt new-opts 'metadata) (store! make-opts 'metadata #[]))
       (when maxsize (store! (getopt new-opts 'metadata) 'maxsize maxsize))
