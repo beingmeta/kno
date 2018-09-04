@@ -1,3 +1,9 @@
+framerd (4.2.8-24) stable; urgency=medium
+
+  * Build with later versions of libhunspell
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 04 Sep 2018 17:36:17 -0400
+
 framerd (4.2.8-23) stable; urgency=medium
 
   * Added hunspell to the framerd-core.install
