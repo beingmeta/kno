@@ -22,9 +22,9 @@ case "$1" in
     configure)
 	rm -f /lib/systemd/system/framerd.service /lib/systemd/system/fdservlets.service
 	systemctl daemon-reload
-	systemctl enable fdaemons
-	systemctl enable fdweb
-	systemctl enable framerd.target
+#	systemctl enable fdaemons
+#	systemctl enable fdweb
+#	systemctl enable framerd.target
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
