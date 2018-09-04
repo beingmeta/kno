@@ -462,7 +462,7 @@ static fd_index recover_hashindex(u8_string fname,fd_storage_flags open_flags,
 
 FD_EXPORT int make_hashindex
 (u8_string fname,
- int n_buckets_arg,
+ int n_buckets,
  unsigned int flags,
  unsigned int hashconst,
  lispval metadata_init,
@@ -471,7 +471,6 @@ FD_EXPORT int make_hashindex
  time_t ctime,
  time_t mtime)
 {
-  int n_buckets;
   time_t now = time(NULL);
   fd_off_t slotids_pos = 0, baseoids_pos = 0, metadata_pos = 0;
   size_t slotids_size = 0, baseoids_size = 0, metadata_size = 0;
@@ -487,8 +486,6 @@ FD_EXPORT int make_hashindex
     fd_free_stream(stream);
     return -1;}
   stream->stream_flags &= ~FD_STREAM_IS_CONSED;
-  if (n_buckets_arg<0) n_buckets = -n_buckets_arg;
-  else n_buckets = fd_get_hashtable_size(n_buckets_arg);
 
   u8_logf(LOG_INFO,"CreateHashIndex",
           "Creating a hashindex '%s' with %ld buckets",
@@ -3190,14 +3187,20 @@ static fd_index hashindex_create(u8_string spec,void *typedata,
     fd_getopt(opts,fd_intern("SLOTIDS"),VOID);
   lispval baseoids_arg=FD_VOID, baseoids_init =
     fd_getopt(opts,fd_intern("BASEOIDS"),VOID);
-  lispval nbuckets_arg = fd_getopt(opts,fd_intern("SLOTS"),
-                                   fd_getopt(opts,FDSYM_SIZE,
-                                             FD_INT(hashindex_default_size)));
+  lispval buckets_arg = fd_getopt(opts,fd_intern("BUCKETS"),FD_VOID);
+  lispval size_arg = fd_getopt(opts,FDSYM_SIZE,FD_INT(hashindex_default_size));
   lispval hashconst = fd_getopt(opts,fd_intern("HASHCONST"),FD_FIXZERO);
-  if (!(FD_UINTP(nbuckets_arg))) {
-    fd_seterr("InvalidBucketCount","hashindex_create",spec,nbuckets_arg);
+  int n_buckets = hashindex_default_size;
+  if (FD_FIXNUMP(buckets_arg))
+    /* A negative number indicates an exact number of buckets */
+    n_buckets = FD_FIX2INT(buckets_arg);
+  else if (FD_FIXNUMP(size_arg))
+    n_buckets = fd_get_hashtable_size(FD_FIX2INT(size_arg));
+  else {
+    fd_seterr("InvalidBucketCount","hashindex_create",spec,opts);
     rv = -1;}
-  else if (!(FD_INTEGERP(hashconst))) {
+
+  if (!(FD_INTEGERP(hashconst))) {
     fd_seterr("InvalidHashConst","hashindex_create",spec,hashconst);
     rv = -1;}
   else {
@@ -3246,7 +3249,7 @@ static fd_index hashindex_create(u8_string spec,void *typedata,
   if (rv<0)
     return NULL;
   else rv = make_hashindex
-         (spec,FIX2INT(nbuckets_arg),
+         (spec,n_buckets,
           interpret_hashindex_flags(opts),
           FD_INT(hashconst),
           metadata,
@@ -3257,7 +3260,8 @@ static fd_index hashindex_create(u8_string spec,void *typedata,
   fd_decref(metadata_init);
   fd_decref(baseoids_arg);
   fd_decref(slotids_arg);
-  fd_decref(nbuckets_arg);
+  fd_decref(buckets_arg);
+  fd_decref(size_arg);
   fd_decref(hashconst);
 
   if (rv<0)
