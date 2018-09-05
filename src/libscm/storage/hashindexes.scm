@@ -158,14 +158,17 @@
 		      (indexctl index 'buckets)))
 	 (rare (getopt opts 'rare {}))
 	 (unique (getopt opts 'unique {})))
-    (lognotice |Copying| ($num (choice-size buckets)) " buckets from " index " to " output)
+    (lognotice |Copying|
+      ($num (choice-size buckets)) 
+      (if span " bucket spans " " buckets ")
+      "from " index " to " output)
     (engine/run hashindex-copier buckets  
 		`#[loop #[input ,index output ,output
 			  rare ,(getopt opts 'rare)
 			  unique ,(getopt opts 'unique)
 			  maxcount ,(getopt opts 'maxcount)
 			  mincount ,(getopt opts 'mincount)]
-		   count-term "buckets"
+		   count-term ,(if span "buckets" "bucket spans")
 		   onerror {stopall signal}
 		   counters {keys rarekeys uniquekeys values}
 		   logrates {keys rarekeys uniquekeys values}
