@@ -154,6 +154,8 @@ static void recycle_rawptr(struct FD_RAW_CONS *c)
   if (rawptr->recycler)
     rawptr->recycler(rawptr->ptrval);
   if (rawptr->idstring) u8_free(rawptr->idstring);
+  rawptr->ptrval   = NULL;
+  rawptr->idstring = NULL;
   fd_decref(rawptr->raw_typespec);
 }
 
