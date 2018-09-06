@@ -509,7 +509,7 @@ static ssize_t get_more_data(u8_input in,ssize_t lim)
 
 /* PPRINT lisp primitives */
 
-static lispval column_symbol, depth_symbol;
+static lispval column_symbol, depth_symbol, detail_symbol;
 static lispval maxcol_symbol, width_symbol, margin_symbol;
 static lispval maxelts_symbol, maxchars_symbol, maxbytes_symbol;
 static lispval maxkeys_symbol, listmax_symbol, vecmax_symbol, choicemax_symbol;
@@ -658,6 +658,9 @@ static int get_fixopt(lispval opts,lispval optname,long long *intval)
   else if (FD_FIXNUMP(v)) {
     *intval = FD_FIX2INT(v);
     return 1;}
+  else if (FD_FALSEP(v)) {
+    *intval = 0;
+    return 1;}
   else {
     if (FD_SYMBOLP(optname))
       fd_seterr("BadFixOpt","lisp_list_object",FD_SYMBOL_NAME(optname),v);
@@ -673,28 +676,34 @@ static lispval label_symbol, width_symbol, depth_symbol, output_symbol;
 static lispval lisp_listdata(lispval object,lispval opts,lispval stream)
 {
   u8_string label=NULL, pathref=NULL, indent="";
-  long long width = 100, depth = -1;
+  long long width = 100, detail = -1;
   if (FD_FIXNUMP(opts)) {
-    depth = FD_FIX2INT(opts);
+    detail = FD_FIX2INT(opts);
     opts = FD_FALSE;}
-  if (get_stringopt(opts,label_symbol,&label)<0)
+  else if (FD_TRUEP(opts)) {
+    detail = 0;
+    opts = FD_FALSE;}
+  else if (get_stringopt(opts,label_symbol,&label)<0)
     return FD_ERROR;
   else if (get_stringopt(opts,margin_symbol,&indent)<0)
     return FD_ERROR;
   else if (get_fixopt(opts,width_symbol,&width)<0)
     return FD_ERROR;
-  else if (get_fixopt(opts,depth_symbol,&depth)<0)
+  else if (get_fixopt(opts,depth_symbol,&detail)<0)
     return FD_ERROR;
+  else if (get_fixopt(opts,detail_symbol,&detail)<0)
+    return FD_ERROR;
+  else NO_ELSE;
   if (FD_VOIDP(stream))
     stream = fd_getopt(opts,output_symbol,FD_VOID);
   else fd_incref(stream);
   U8_OUTPUT *out = get_output_port(stream);
-  int rv = fd_list_object(out,object,label,pathref,indent,NULL,width,depth);
+  int rv = fd_list_object(out,object,label,pathref,indent,NULL,width,detail);
   u8_flush(out);
   fd_decref(stream);
   if (rv<0)
     return FD_ERROR;
-  else return FD_INT(rv);
+  else return FD_VOID;
 }
 
 /* Base 64 stuff */
@@ -931,6 +940,7 @@ static void init_portprims_symbols()
   choicemax_symbol=fd_intern("CHOICEMAX");
   label_symbol = fd_intern("LABEL");
   output_symbol = fd_intern("OUTPUT");
+  detail_symbol = fd_intern("DETAIL");
 }
 
 /* The init function */
