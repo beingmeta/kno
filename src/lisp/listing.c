@@ -167,9 +167,8 @@ static void list_table(u8_output out,lispval table,
             u8_printf(out,"\n%s  %q #> ;;=%s.%q\n%s%s",
                       indent,key,full_pathref,key,
                       val_indent,tmp.u8_outbuf);
-          else u8_printf(out,"\n%s  %q #> ;; #%d\n%s%s",
-                         indent,key,count,
-                         val_indent,tmp.u8_outbuf);}
+          else u8_printf(out,"\n%s  %q #> ;;\n%s%s",
+                         indent,key,val_indent,tmp.u8_outbuf);}
         u8_close_output(tmpout);}
       u8_flush(out);}
     fd_decref(val);
