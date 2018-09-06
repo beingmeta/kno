@@ -118,6 +118,7 @@ safe_module_path=""
 source_dir=""
 CMODULES=""
 INSTALLCMODULES=""
+TESTCMODULES=""
 DBMODULES=""
 INSTALLDBMODULES=""
 DATAFILES="etc/version"
@@ -334,6 +335,7 @@ AC_SUBST(DBMODULES)
 AC_SUBST(DATAFILES)
 AC_SUBST(BOOTSETUP)
 AC_SUBST(INSTALLCMODULES)
+AC_SUBST(TESTCMODULES)
 AC_SUBST(INSTALLDBMODULES)
 AC_SUBST(MALLOC_FLAGS)
 AC_SUBST(MYSQL_CFLAGS)
@@ -1529,9 +1531,11 @@ if test "$enable_hunspell" = "yes" &&
    test "$hunspell_ok" = "yes"; then
   CMODULES="lib/framerd/hunspell.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-hunspell ${INSTALLCMODULES}"
+  TESTCMODULES="test-hunspell ${TESTCMODULES}"
 elif test "$enable_hunspell" = "force"; then
   CMODULES="lib/framerd/hunspell.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-hunspell ${INSTALLCMODULES}"
+  TESTCMODULES="test-hunspell ${TESTCMODULES}"
   force_enabled="hunspell ${force_enabled}";
 elif test "$enable_hunspell" = "yes"; then
   auto_disabled="hunspell $auto_disabled";

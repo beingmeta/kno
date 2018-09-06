@@ -60,6 +60,7 @@ MACLIBTOOL	= $(CC) -dynamiclib -single_module -undefined dynamic_lookup \
 			$(LDFLAGS)
 BUILD		= `pwd`
 BUILDMODE       := `cat .buildmode || echo none`
+LINKEDWITH      := `cat .malloc || echo standard libraries`
 DEBUG_FDSERV    = 0
 RPMFLAGS	= @RPMFLAGS@
 RPMDIR		= @RPMDIR@
@@ -1753,7 +1754,7 @@ update-fdserv: src/apache2/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 testclean:
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 tests: testclean
-	@echo "#### Running tests scripts"
+	@echo "#### Running test scripts, BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@if test ! -f tests/data/private.text; then \
 	 echo "#### Can't test primitives on protected files, enable with 'make private_files'"; \
 	 fi;
@@ -1765,7 +1766,7 @@ tests: testclean
 	 fi;
 
 tests.log: tests/fdexec tests/makefile.in makefile
-	@echo "#### Running tests scripts, output in" $@
+	@echo "#### Running test scripts, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@echo "#### Note that killed/exited messages for the 'countup' scripts are normal"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; make -s -C tests -k -j 2>&1 > tests.log && \
@@ -1773,7 +1774,7 @@ tests.log: tests/fdexec tests/makefile.in makefile
 	 sort tests/timing.log -k 2 > tests/logs/timing-$${DATE}.log;
 
 libtests.log: tests/fdexec tests/makefile.in
-	@echo "#### Running libtests, output in" $@
+	@echo "#### Running libtests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; \
 	 make -s -C tests -k -j libtests loadmods optmods 2>&1 > libtests.log && \
@@ -1781,7 +1782,7 @@ libtests.log: tests/fdexec tests/makefile.in
 libtests: libtests.log
 
 tests/memtests.log: tests/fdexec tests/makefile.in
-	@echo "#### Running scheme tests, output in" $@
+	@echo "#### Running memory tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; \
 	 make -s -C tests -k -j memtests 2>&1 > memtests.log && \
@@ -1789,14 +1790,14 @@ tests/memtests.log: tests/fdexec tests/makefile.in
 memtests: memtests.log
 
 tests/leaktests.log: tests/fdexec tests/makefile.in
-	@echo "#### Running scheme tests, output in" $@
+	@echo "#### Running leak tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; make -s -C tests -k -j leaktests 2>&1 > leaktests.log && \
 	cp leaktests.log tests/logs/leaktests-`date +%d%b%yT%T`.log;
 leaktests: leaktests.log
 
 tests/schemetests.log: tests/fdexec tests/makefile.in
-	@echo "#### Running scheme tests, output in" $@
+	@echo "#### Running scheme tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; \
 	 make -s -C tests -k -j schemetests 2>&1 > schemetests.log && \
@@ -1804,7 +1805,7 @@ tests/schemetests.log: tests/fdexec tests/makefile.in
 schemetests: schemetests.log
 
 tests/cmdtests.log: tests/fdexec tests/makefile.in
-	@echo "#### Running scheme tests, output in" $@
+	@echo "#### Running command tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; \
 	 make -s -C tests -k -j cmdtests 2>&1 > tests/cmdtests.log && \
@@ -1812,7 +1813,7 @@ tests/cmdtests.log: tests/fdexec tests/makefile.in
 cmdtests: tests/cmdtests.log
 
 tests/dbtests.log: tests/fdexec tests/makefile.in
-	@echo "#### Running scheme tests, output in" $@
+	@echo "#### Running database tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; \
 	 make -s -C tests -k -j dbtests 2>&1 > dbtests.log && \

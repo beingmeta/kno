@@ -770,10 +770,16 @@ optscheme_leaktest:
 		optscheme
 	@${header} "■■■■■■■■ Finished leak checking for optimized scheme tests"
 
-
 .PHONY: leaktest leaktest
 .PHONY:	all_leaktest scheme_leaktest table_leaktests
 .PHONY:	pool_leaktests index_leaktests db_leaktests
 .PHONY:	crypto_leaktest load_modules_leaktest
 .PHONY:	optimize_modules_leaktest
 
+# CMODULE tests
+
+test-cmodules: @TESTCMODULES@
+
+test-hunspell:
+	@${RUN} ${FDX} test-hunspell.scm ${RUNCONF}
+	@${header} "■■■■ Completed hunspell tests ${RUNCONF}"
