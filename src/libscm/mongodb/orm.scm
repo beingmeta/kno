@@ -221,12 +221,14 @@
 			{(difference current values)
 			 (difference values current)})))
 	  (cond ((and (oid? obj) (modified? obj))
-		 ;; Just write the new value
-		 (drop! obj slotid values))
+		 ;; Just drop the specified values (or all of them)
+		 (if (or (unbound? values) (default? values))
+		     (drop! obj slotid)
+		     (drop! obj slotid values)))
 		((oid? obj)
 		 ;; This updates the current OID value from the
-		 ;;  value we got from the database from
-		 ;; mongo/modify!
+		 ;;  value we got from the database in our call
+		 ;;  to mongo/modify!
 		 (oid/sync! obj slotid result))
 		((table? obj) (drop! obj slotid values)))))))
 
