@@ -806,6 +806,24 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
 
 static int max_error_depth = 128;
 
+static void add_reqdata_to_error(lispval ex,lispval reqdata)
+{
+  if (FD_TYPEP(ex,fd_exception_type)) {
+    struct FD_EXCEPTION *exinfo = (fd_exception) ex;
+    lispval context = exinfo->ex_context;
+    lispval copied = fd_deep_copy(reqdata);
+    if (FD_VOIDP(context))
+      exinfo->ex_context=context=fd_make_slotmap(2,0,NULL);
+    else if (!(FD_SLOTMAPP(context))) {
+      lispval new_context = fd_make_slotmap(2,0,NULL);
+      fd_store(new_context,fd_intern("MISC"),context);
+      fd_decref(context);
+      exinfo->ex_context = new_context;
+      context = new_context;}
+    else NO_ELSE;
+    fd_store(context,fd_intern("REQDATA"),copied);}
+}
+
 static int webservefn(u8_client ucl)
 {
   lispval proc = VOID, result = VOID;
@@ -1090,20 +1108,21 @@ static int webservefn(u8_client ucl)
   if (!(FD_TROUBLEP(result))) {
     /* See if the content or retfile will get us into trouble. */
     content = fd_get(cgidata,content_slotid,VOID);
-    retfile = ((FD_VOIDP(content))?
-             (fd_get(cgidata,sendfile_slotid,VOID)):
-             (VOID));
+    retfile = (FD_VOIDP(content)) ?
+      (fd_get(cgidata,sendfile_slotid,VOID)):
+      (VOID);
     if ((!(FD_VOIDP(content)))&&
         (!((STRINGP(content))||(PACKETP(content))))) {
       fd_decref(result);
       result = fd_err(fd_TypeError,"FDServlet/content","string or packet",
-                    content);}
+                      content);}
     else if ((!(FD_VOIDP(retfile)))&&
              ((!(STRINGP(retfile)))||
               (!(u8_file_existsp(CSTRING(retfile)))))) {
       fd_decref(result);
       result = fd_err(u8_CantOpenFile,"FDServlet/retfile","existing filename",
-                    retfile);}}
+                      retfile);}}
+  /* Output is done, so stop writing */
   if (!(FD_TROUBLEP(result))) u8_set_default_output(NULL);
   else recovered = 0;
   if (FD_TROUBLEP(result)) {
@@ -1114,35 +1133,42 @@ static int webservefn(u8_client ucl)
       (fd_symeval(errorpage_symbol,base_env)) :
       (VOID);
     int depth = 0;
+    u8_byte tmpbuf[100];
+    lispval irritant = fd_get_irritant(ex);
+    u8_string irritation = (FD_VOIDP(irritant)) ? (NULL) :
+      (u8_bprintf(tmpbuf,"\n\t    irritant=%q",irritant));
     if (((FD_VOIDP(errorpage))||(errorpage == FD_UNBOUND))&&
         (!(FD_VOIDP(default_errorpage)))) {
       fd_incref(default_errorpage);
       errorpage = default_errorpage;}
     if ( (STRINGP(path)) && (STRINGP(uri)) && (STRINGP(method)) )
       u8_log(LOG_ERR,ex->u8x_cond,
-             "Unexpected error \"%m \" @%s (%s) (#%lx) "
+             "Unexpected error \"%m \" @%s (%s) (#%lx) %s"
              "\n\t  using '%s' to"
              "\n%s %s",
              ex->u8x_cond,ex->u8x_context,
-             ex->u8x_details,(unsigned long)ucl,
+             ex->u8x_details,(unsigned long)ucl,irritation,
              FD_CSTRING(path),FD_CSTRING(method),FD_CSTRING(uri));
     else if (STRINGP(path))
       u8_log(LOG_ERR,ex->u8x_cond,
-             "Unexpected error \"%m \" @%s (%s) (#%lx)\n from '%s'",
+             "Unexpected error \"%m \" @%s (%s) (#%lx)%s\n from '%s'",
              ex->u8x_cond,ex->u8x_context,
              ex->u8x_details,(unsigned long)ucl,
+             irritation,
              FD_CSTRING(path));
     else if (STRINGP(uri))
       u8_log(LOG_ERR,ex->u8x_cond,
-             "Unexpected error \"%m \" @%s (%s) (#%lx)\n to %s %s",
+             "Unexpected error \"%m \" @%s (%s) (#%lx)%s\n to %s %s",
              ex->u8x_cond,ex->u8x_context,
              ex->u8x_details,(unsigned long)ucl,
+             irritation,
              ( (FD_STRINGP(method)) ? (FD_CSTRING(method)) : (U8S(""))),
              FD_CSTRING(uri)) ;
     else u8_log(LOG_ERR,ex->u8x_cond,
-                "Unexpected error \"%m \" %s:@%s (%s) (#%lx)",
+                "Unexpected error \"%m \" %s:@%s (%s) (#%lx)%s",
                 ex->u8x_cond,ex->u8x_context,ex->u8x_details,
-                (unsigned long)ucl);
+                (unsigned long)ucl,
+                irritation);
     if (logstack) {
       lispval backtrace=FD_U8X_STACK(ex);
       if (FD_PAIRP(backtrace)) {
@@ -1150,6 +1176,7 @@ static int webservefn(u8_client ucl)
           u8_log(LOG_ERR,"Backtrace","%Q",entry);}}}
     if (FD_APPLICABLEP(errorpage)) {
       lispval err_value = fd_wrap_exception(ex);
+      add_reqdata_to_error(err_value,cgidata);
       fd_push_reqinfo(init_cgidata);
       fd_store(init_cgidata,error_symbol,err_value); fd_decref(err_value);
       fd_store(init_cgidata,reqdata_symbol,cgidata); fd_decref(cgidata);
