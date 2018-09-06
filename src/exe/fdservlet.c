@@ -1107,7 +1107,7 @@ static int webservefn(u8_client ucl)
   if (!(FD_TROUBLEP(result))) u8_set_default_output(NULL);
   else recovered = 0;
   if (FD_TROUBLEP(result)) {
-    u8_exception ex = u8_erreify(), exscan = ex;
+    u8_exception ex = u8_erreify();
     /* errorpage is used when errors occur.  Currently, it can be a
        procedure (to be called) or an HTML string to be returned.  */
     lispval errorpage = (base_env) ?
@@ -1170,7 +1170,8 @@ static int webservefn(u8_client ucl)
       /* Apply the error page object */
       result = fd_cgiexec(errorpage,cgidata);
       if (FD_ABORTP(result)) {
-        u8_exception newex = u8_current_exception, lastex = newex;
+        u8_exception newex = u8_erreify(), lastex = newex;
+        u8_exception exscan = newex; depth=0;
         lispval crisispage = (base_env) ?
           (fd_symeval(crisispage_symbol,base_env)):
           (VOID);
@@ -1178,7 +1179,6 @@ static int webservefn(u8_client ucl)
             (!(FD_VOIDP(default_crisispage)))) {
           fd_incref(default_crisispage);
           crisispage = default_crisispage;}
-        exscan = newex; depth = 0;
         while ((exscan)&&(depth<max_error_depth)) {
           u8_condition excond = exscan->u8x_cond;
           u8_context excxt = ((exscan->u8x_context) ? (exscan->u8x_context) :
@@ -1200,9 +1200,13 @@ static int webservefn(u8_client ucl)
             u8_log(LOG_ERR,excond,"Irritant: %q",irritant);
           lastex = exscan; exscan = exscan->u8x_prev; depth++;}
         while (exscan) {
-          lastex = exscan; exscan = exscan->u8x_prev; depth++;}
+          lastex = exscan;
+          exscan = exscan->u8x_prev;
+          depth++;}
         /* Add the previous exception to this one as we go forward */
-        if (lastex) lastex->u8x_prev = ex;
+        if (lastex) {
+          lastex->u8x_prev = ex;
+          ex = newex;}
         fd_decref(errorpage); errorpage = VOID;
         if (STRINGP(crisispage)) errorpage = crisispage;}
       else {
@@ -1214,7 +1218,6 @@ static int webservefn(u8_client ucl)
     else if ((STRINGP(errorpage))&&
              (strstr(CSTRING(errorpage),"\n")!=NULL)) {
       /* Assume that the error page is a string of HTML */
-      ex = u8_erreify();
       http_len = http_len+strlen(HTML_UTF8_CTYPE_HEADER);
       write_string(client->socket,HTML_UTF8_CTYPE_HEADER);
       write_string(client->socket,CSTRING(errorpage));}
@@ -1255,7 +1258,6 @@ static int webservefn(u8_client ucl)
       write_string(client->socket,
                    "Content-type: text/html; charset = utf-8\r\n\r\n");
       fd_xhtmlerrorpage(&(client->out),ex);}
-    u8_free_exception(ex,1);
     if (!(recovered)) {
       if ((reqlog) || (urllog) || (trace_cgidata))
         dolog(cgidata,result,outstream->u8_outbuf,
@@ -1270,7 +1272,8 @@ static int webservefn(u8_client ucl)
       /* And close the client for good measure */
       if (ucl->status) {u8_free(ucl->status); ucl->status = NULL;}
       u8_client_done(ucl);
-      u8_client_close(ucl);}}
+      u8_client_close(ucl);}
+    if (ex) u8_free_exception(ex,1);}
   if (recovered) {
     U8_OUTPUT httphead, htmlhead; int tracep;
     lispval traceval = fd_get(cgidata,tracep_slotid,VOID);
