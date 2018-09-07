@@ -132,4 +132,4 @@
 	  ((number? val) (span ((class "value number")) val))
 	  ((oid? val) (span ((class "value oid")) val))
 	  (else (xmlblock PRE ((class "value"))
-		  (stringout (void (pprint val))))))))
+		  (stringout (listdata val #t)))))))
