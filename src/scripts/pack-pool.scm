@@ -29,10 +29,11 @@
   (onerror (move-file from to)
       (lambda (ex) (system "mv " from " " to))))
 
-(define (symbolize s)
-  (if (or (symbol? s)  (number? s)) s
-      (if (string? s) (string->symbol (upcase s))
-	  (irritant s |NotStringOrSymbol|))))
+(unless (bound? symbolize)
+  (define (symbolize s)
+    (if (or (symbol? s)  (number? s)) s
+	(if (string? s) (string->symbol (upcase s))
+	    (irritant s |NotStringOrSymbol|)))))
 
 (define compression-type-map
   #[bigpool snappy oidpool zlib filepool #f])

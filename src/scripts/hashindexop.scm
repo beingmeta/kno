@@ -111,10 +111,11 @@
   
 ;;; Other features
 
-(define (symbolize s)
-  (if (symbol? s) s
-      (if (string? s) (string->symbol (upcase s))
-	  (irritant s |NotStringOrSymbol|))))
+(unless (bound? symbolize)
+  (define (symbolize s)
+    (if (symbol? s) s
+	(if (string? s) (string->symbol (upcase s))
+	    (irritant s |NotStringOrSymbol|)))))
 
 (define (get-new-size nkeys)
   (config 'newsize (inexact->exact (* (config 'loadfactor 2) nkeys))))

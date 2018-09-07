@@ -444,7 +444,8 @@ static void json_lower(u8_output out,u8_string s)
     c = u8_sgetc(&scan);}
 }
 
-static int json_slotval(u8_output out,lispval key,lispval value,int flags,lispval slotfn,lispval oidfn,lispval miscfn)
+static int json_slotval(u8_output out,lispval key,lispval value,int flags,
+                        lispval slotfn,lispval oidfn,lispval miscfn)
 {
   if (VOIDP(value)) return 0;
   else {

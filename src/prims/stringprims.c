@@ -434,6 +434,15 @@ static lispval string_startword(lispval string)
   return fd_incref(string);
 }
 
+static lispval symbolize_cprim(lispval arg)
+{
+  if (FD_SYMBOLP(arg))
+    return arg;
+  else if (FD_STRINGP(arg))
+    return fd_symbolize(FD_CSTRING(arg));
+  else return fd_err("NotAString","symbolize_cprim",NULL,arg);
+}
+
 /* UTF8 related primitives */
 
 static lispval utf8p_prim(lispval packet)
@@ -1432,6 +1441,7 @@ FD_EXPORT void fd_init_stringprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("CAPITALIZE",capitalize,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CAPITALIZE1",capitalize1,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("DOWNCASE1",string_downcase1,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("SYMBOLIZE",symbolize_cprim,1));
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("UTF8?",utf8p_prim,1,fd_packet_type,VOID));
