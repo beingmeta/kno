@@ -78,7 +78,7 @@ static lispval idsym, maxkey, minkey;
 static lispval oidtag, mongofun, mongouser, mongomd5;
 static lispval bsonflags, raw, slotify, slotifyin, slotifyout, softfailsym;
 static lispval colonize, colonizein, colonizeout, choices, nochoices;
-static lispval skipsym, limitsym, batchsym, writesym, readsym;
+static lispval skipsym, limitsym, batchsym, writesym, readsym;;
 static lispval fieldssym, upsertsym, newsym, removesym, singlesym, wtimeoutsym;
 static lispval returnsym, originalsym;
 static lispval primarysym, primarypsym, secondarysym, secondarypsym;
@@ -363,6 +363,7 @@ static U8_MAYBE_UNUSED bson_t *getfindopts(lispval opts,int flags)
   lispval limit_arg = fd_getopt(opts,limitsym,FD_FIXZERO);
   lispval batch_arg = fd_getopt(opts,batchsym,FD_FIXZERO);
   lispval projection = fd_getopt(opts,returnsym,FD_VOID);
+  lispval sort_arg   = fd_getopt(opts,FDSYM_SORTED,FD_VOID);
   struct FD_BSON_OUTPUT out;
   bson_t *doc = bson_new();
   out.bson_doc = doc;
@@ -378,6 +379,9 @@ static U8_MAYBE_UNUSED bson_t *getfindopts(lispval opts,int flags)
   if (FD_FIXNUMP(batch_arg))
     bson_append_dtype(out,"batchSize",9,batch_arg,0);
   else fd_decref(batch_arg);
+  if (FD_TABLEP(sort_arg))
+    bson_append_dtype(out,"sort",4,sort_arg,0);
+  fd_decref(sort_arg);
   if ( (FD_SYMBOLP(projection)) || (FD_CONSP(projection)) ) {
     struct FD_BSON_OUTPUT fields; bson_t proj;
     int ok = bson_append_document_begin(doc,"projection",10,&proj);
@@ -2813,6 +2817,16 @@ static void init_mongo_opmap()
   add_to_mongo_opmap("$bitsAllClear");
   add_to_mongo_opmap("$bitsAnySet");
   add_to_mongo_opmap("$bitsAnyClear");
+
+  add_to_mongo_opmap("$gt");
+  add_to_mongo_opmap("$gte");
+  add_to_mongo_opmap("$lt");
+  add_to_mongo_opmap("$lte");
+
+  add_to_mongo_opmap("$eq");
+  add_to_mongo_opmap("$ne");
+  add_to_mongo_opmap("$nin");
+  add_to_mongo_opmap("$in");
 
   add_to_mongo_opmap("$maxScan");
   add_to_mongo_opmap("$maxTimeMS");
