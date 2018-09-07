@@ -19,6 +19,20 @@
 (define us-format-default #f)
 (varconfig! parsetime/usafmt us-format-default)
 
+(define iso-pattern
+  '(GREEDY
+    #((label year #((isdigit)  (isdigit) (isdigit) (isdigit)))
+      (opt #("-"  (label month #((isdigit) (isdigit)))
+	     (opt #( "-" (label day #((isdigit) (isdigit)))
+		     (opt #("T" (label hour #((isdigit) (isdigit)))
+			    (opt #(":" (label minute #((isdigit) (isdigit)))
+				   (opt #(":" (label secs #((isdigit) (isdigit)
+							    (opt #("." (isdigit+)))))))))))))))
+      (label gmtoff
+	     {(opt #({"+" "-"} (isdigit) (opt (isdigit)) 
+		     (opt #(":" (isdigit) (isdigit)))))
+	      "GMT" "Z"}))))
+
 (define month-names
   (vector (qc "Jan" "January")
 	  (qc "Feb" "February")
@@ -32,6 +46,15 @@
 	  (qc "Oct" "October")
 	  (qc "Nov" "November")
 	  (qc "Dec" "December")))
+
+(define rfc822-pattern
+  `(GREEDY
+    #({"Mon" "Tue" "Wed" "Thu" "Fri" "Sat" "Sun"} ","
+      (spaces) (isdigit) (opt (isdigit)) (spaces)
+      ,(pick (elts month-names) length 3)
+      (spaces)
+      (isdigit) (isdigit) (isdigit) (isdigit)
+      (spaces) (rest))))
 
 (define monthnums
   (let ((table (make-hashtable)))
@@ -166,25 +189,28 @@
 	  (matches->timestamps matches (cdr fields) base))))
 
 (define (parsetime string (base #f) (us us-format-default))
-  (if (string? string)
-      (let ((matches
-	     (text->frames (if us us-patterns terran-patterns) string)))
-	(when (test matches 'ampm '{"PM" "pm"})
-	  (let ((hours (get matches 'hour)))
-	    (unless (> (+ 12 hours) 24)
-	      (store! matches 'hours (+ 12 hours)))))
-	;; Handle the case where people swapped the month and date according
-	;;  to US conventions .vs. the rest of the world
-	(when (and (test matches 'month) (test matches 'date)
-		   (> (get matches 'month) 12)
-		   (<= (get matches 'date) 12))
-	  (let ((m (get matches 'month)) (d (get matches 'date)))
-	    (store! matches 'month d) (store! matches 'date m)))
-	(let* ((fields (getfields matches))
-	       (base (timestamp (car fields))))
-	  (%debug "parsetime matches=" matches ", fields=" fields)
-	  (matches->timestamps matches (cdr fields) base)))
-      (timestamp string)))
+  (cond ((not (string? string)) (timestamp string))
+	((textmatch '(isdigit+) string)
+	 (timestamp (string->number string)))
+	((textmatch iso-pattern string) (timestamp string))
+	((textmatch rfc822-pattern string) (timestamp string))
+	(else (let ((matches
+		     (text->frames (if us us-patterns terran-patterns) string)))
+		(when (test matches 'ampm '{"PM" "pm"})
+		  (let ((hours (get matches 'hour)))
+		    (unless (> (+ 12 hours) 24)
+		      (store! matches 'hours (+ 12 hours)))))
+		;; Handle the case where people swapped the month and date according
+		;;  to US conventions .vs. the rest of the world
+		(when (and (test matches 'month) (test matches 'date)
+			   (> (get matches 'month) 12)
+			   (<= (get matches 'date) 12))
+		  (let ((m (get matches 'month)) (d (get matches 'date)))
+		    (store! matches 'month d) (store! matches 'date m)))
+		(let* ((fields (getfields matches))
+		       (base (timestamp (car fields))))
+		  (%debug "parsetime matches=" matches ", fields=" fields)
+		  (matches->timestamps matches (cdr fields) base))))))
 
 (define (parsegmtime string (base #f) (us us-format-default))
   (parsetime string (or base (gmtimestamp)) us))
