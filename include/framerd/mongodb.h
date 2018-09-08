@@ -62,11 +62,13 @@ typedef struct FD_MONGODB_COLLECTION *fd_mongodb_collection;
 typedef struct FD_MONGODB_CURSOR {
   FD_CONS_HEADER;
   lispval cursor_db, cursor_domain, cursor_query;
-  lispval cursor_opts; int cursor_flags;
+  lispval cursor_opts;
+  int cursor_flags, cursor_done;
   mongoc_client_t *cursor_connection;
   mongoc_collection_t *cursor_collection;
   bson_t *cursor_query_bson;
   bson_t *cursor_opts_bson;
+  const bson_t *cursor_value_bson;
   mongoc_read_prefs_t *cursor_readprefs;
   mongoc_cursor_t *mongoc_cursor;}
   FD_MONGODB_CURSOR;
