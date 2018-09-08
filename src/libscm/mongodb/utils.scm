@@ -129,11 +129,14 @@
 (define (collection/copy! source dest (opts #f) (batchsize))
   (default! batchsize (getopt opts 'batchsize 200))
   (let* ((cursor (mongo/cursor source #[]))
-	 (batch (cursor/read cursor batchsize))
-	 (seen {}))
+	 (batch (cursor/read cursor batchsize)))
     (while (exists? batch)
-      (collection/insert! dest (reject batch '_id seen))
-      (if (cursor/done? cursor) 
+      (if (getopt opts 'upsert)
+	  (do-choices (save batch)
+	    (collection/upsert! dest `#[_id ,(get save '_id)]
+				`#[$set ,save]))
+	  (collection/insert! dest batch))
+      (if (%wc cursor/done? cursor) 
 	  (set! batch {})
 	  (set! batch (cursor/read cursor batchsize))))))
 
