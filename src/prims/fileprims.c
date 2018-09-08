@@ -439,6 +439,17 @@ static lispval file_existsp(lispval arg)
   else return FD_FALSE;
 }
 
+static lispval file_regularp(lispval arg)
+{
+  if (! (u8_file_existsp(CSTRING(arg))) )
+    return FD_FALSE;
+  else if (u8_directoryp(CSTRING(arg)))
+    return FD_FALSE;
+  else if (u8_socketp(CSTRING(arg)))
+    return FD_FALSE;
+  else return FD_TRUE;
+}
+
 static lispval file_readablep(lispval arg)
 {
   if (u8_file_readablep(CSTRING(arg)))
@@ -456,6 +467,20 @@ static lispval file_writablep(lispval arg)
 static lispval file_directoryp(lispval arg)
 {
   if (u8_directoryp(CSTRING(arg)))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static lispval file_symlinkp(lispval arg)
+{
+  if (u8_symlinkp(CSTRING(arg)))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static lispval file_socketp(lispval arg)
+{
+  if (u8_socketp(CSTRING(arg)))
     return FD_TRUE;
   else return FD_FALSE;
 }
@@ -1660,15 +1685,26 @@ FD_EXPORT void fd_init_fileprims_c()
   fd_idefn(fileio_module,
            fd_make_cprim1x("FILE-EXISTS?",file_existsp,1,
                            fd_string_type,VOID));
+
   fd_idefn(fileio_module,
            fd_make_cprim1x("FILE-READABLE?",file_readablep,1,
                            fd_string_type,VOID));
   fd_idefn(fileio_module,
            fd_make_cprim1x("FILE-WRITABLE?",file_writablep,1,
                            fd_string_type,VOID));
+
+  fd_idefn(fileio_module,
+           fd_make_cprim1x("FILE-SYMLINK?",file_symlinkp,1,fd_string_type,VOID));
+  fd_idefn(fileio_module,
+           fd_make_cprim1x("FILE-SOCKET?",file_socketp,1,fd_string_type,VOID));
+  fd_idefn(fileio_module,
+           fd_make_cprim1x("FILE-REGULAR?",file_regularp,1,fd_string_type,VOID));
+  fd_defalias(fileio_module,"REGULAR-FILE?","FILE-REGULAR?");
+
   fd_idefn(fileio_module,
            fd_make_cprim1x("FILE-DIRECTORY?",file_directoryp,1,
                            fd_string_type,VOID));
+  fd_defalias(fileio_module,"DIRECTORY?","FILE-DIRECTORY?");
   fd_idefn(fileio_module,
            fd_make_cprim1x("PATH-DIRNAME",path_dirname,1,
                            fd_string_type,VOID));
