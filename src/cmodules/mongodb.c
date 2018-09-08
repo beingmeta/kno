@@ -1254,7 +1254,15 @@ static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
           vec[n++]=r;}
         else {
           FD_ADD_TO_CHOICE(results,r);}}
-      mongoc_cursor_destroy(cursor);}
+      bson_error_t err;
+      bool trouble = mongoc_cursor_error(cursor,&err);
+      if (trouble) {
+        free_dtype_vec(vec,n);
+        grab_mongodb_error(&err,"mongodb_bind");
+        mongoc_cursor_destroy(cursor);
+        fd_decref(opts);
+        return FD_ERROR;}
+      else mongoc_cursor_destroy(cursor);}
     else {
       u8_byte buf[1000];
       fd_seterr(fd_MongoDB_Error,"mongodb_find",
@@ -1894,8 +1902,10 @@ static lispval mongodb_cursor(lispval arg,lispval query,lispval opts_arg)
     fd_incref(domain->domain_db);
     consed->cursor_query = query; fd_incref(query);
     consed->cursor_query_bson = bq;
+    consed->cursor_value_bson = NULL;
     consed->cursor_readprefs = rp;
     consed->cursor_flags = flags;
+    consed->cursor_done  = 0;
     consed->cursor_opts = opts;
     consed->cursor_connection = connection;
     consed->cursor_collection = collection;
@@ -1942,6 +1952,7 @@ static lispval mongodb_cursor(lispval arg,lispval query,lispval opts_arg)
     fd_incref(domain->domain_db);
     consed->cursor_query = query; fd_incref(query);
     consed->cursor_query_bson = bq;
+    consed->cursor_value_bson = NULL;
     consed->cursor_opts_bson = fields;
     consed->cursor_readprefs = rp;
     consed->cursor_connection = connection;
@@ -1975,6 +1986,7 @@ static void recycle_cursor(struct FD_RAW_CONS *c)
     bson_destroy(cursor->cursor_opts_bson);
   if (cursor->cursor_readprefs)
     mongoc_read_prefs_destroy(cursor->cursor_readprefs);
+  cursor->cursor_value_bson = NULL;
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 static int unparse_cursor(struct U8_OUTPUT *out,lispval x)
@@ -1989,91 +2001,113 @@ static int unparse_cursor(struct U8_OUTPUT *out,lispval x)
 
 /* Operations on cursors */
 
+static int cursor_advance(struct FD_MONGODB_CURSOR *c,u8_context caller)
+{
+  if (c->cursor_done) return 0;
+  bool ok = mongoc_cursor_next(c->mongoc_cursor,&(c->cursor_value_bson));
+  if (ok) return 1;
+  bson_error_t err;
+  ok = mongoc_cursor_error(c->mongoc_cursor,&err);
+  if (ok) {
+    grab_mongodb_error(&err,caller);
+    return -1;}
+  else {
+    c->cursor_done = 1;
+    return 0;}
+}
+
 static lispval mongodb_donep(lispval cursor)
 {
   struct FD_MONGODB_CURSOR *c = (struct FD_MONGODB_CURSOR *)cursor;
-  if (mongoc_cursor_more(c->mongoc_cursor))
+  if (c->cursor_value_bson)
     return FD_TRUE;
-  else return FD_FALSE;
+  int rv = cursor_advance(c,"mongodb_donep");
+  if (rv == 0)
+    return FD_TRUE;
+  else if (rv == 1)
+    return FD_FALSE;
+  else return FD_ERROR;
 }
 
 static lispval mongodb_skip(lispval cursor,lispval howmany)
 {
   struct FD_MONGODB_CURSOR *c = (struct FD_MONGODB_CURSOR *)cursor;
-  if (!(FD_UINTP(howmany))) return fd_type_error("uint","mongodb_skip",howmany);
+  if (!(FD_UINTP(howmany)))
+    return fd_type_error("uint","mongodb_skip",howmany);
   int n = FD_FIX2INT(howmany), i = 0; const bson_t *doc;
-  while ((i<n)&&(mongoc_cursor_more(c->mongoc_cursor))) {
-    mongoc_cursor_next(c->mongoc_cursor,&doc); i++;}
-  if (i == n) return FD_TRUE; else return FD_FALSE;
+  while  ((i<n) && (cursor_advance(c,"mongodb_skip") > 0)) i++;
+  if (i == n)
+    return FD_TRUE;
+  else return FD_FALSE;
 }
 
-static lispval mongodb_cursor_read(lispval cursor,lispval howmany,lispval opts_arg)
+static lispval mongodb_cursor_reader(lispval cursor,lispval howmany,
+                                     lispval opts_arg,int sorted)
 {
   struct FD_MONGODB_CURSOR *c = (struct FD_MONGODB_CURSOR *)cursor;
   if (!(FD_UINTP(howmany)))
     return fd_type_error("uint","mongodb_skip",howmany);
   int i = 0, n = FD_FIX2INT(howmany);
-  if (n == 0)
-    return FD_EMPTY_CHOICE;
+  int flags = getflags(opts_arg,c->cursor_flags);
+  if (sorted < 0) sorted = fd_testopt(opts_arg,FDSYM_SORTED,FD_VOID);
+  if (n == 0) {
+    if (sorted)
+      return fd_make_vector(0,NULL);
+    else return FD_EMPTY_CHOICE;}
+  else if ( (n == 1) && (c->cursor_value_bson != NULL) ) {
+    lispval r = fd_bson2dtype((bson_t *)c->cursor_value_bson,flags,opts_arg);
+    c->cursor_value_bson = NULL;
+    if (sorted)
+      return fd_make_vector(1,&r);
+    else return r;}
   else {
-    lispval results = FD_EMPTY_CHOICE, *vec = NULL;
-    mongoc_cursor_t *scan = c->mongoc_cursor; const bson_t *doc;
-    int flags = getflags(opts_arg,c->cursor_flags);
+    lispval vec[n];
+    mongoc_cursor_t *scan = c->mongoc_cursor;
+    const bson_t *doc;
     lispval opts = combine_opts(opts_arg,c->cursor_opts);
-    int sorted = fd_testopt(opts,FDSYM_SORTED,FD_VOID);
     size_t vec_len = 0;
+    if (c->cursor_value_bson != NULL) {
+      lispval v = fd_bson2dtype(((bson_t *)c->cursor_value_bson),flags,opts);
+      c->cursor_value_bson=NULL;
+      vec[i++] = v;}
     while ( (i < n) && (mongoc_cursor_next(scan,&doc)) ) {
       /* u8_string json = bson_as_json(doc,NULL); */
       lispval r = fd_bson2dtype((bson_t *)doc,flags,opts);
+      if (!(FD_VOIDP(opts_arg))) fd_decref(opts);
       if (FD_ABORTP(r)) {
-        fd_decref(results);
-        free_dtype_vec(vec,i);
-        results = FD_ERROR_VALUE;
-        sorted = 0;}
-      else if (sorted) {
-        if (i >= vec_len) {
-          if (!(grow_dtype_vec(&vec,n,&vec_len))) {
-            free_dtype_vec(vec,i);
-            results = FD_ERROR_VALUE;
-            sorted = 0;
-            break;}}
-        vec[i]=r;}
-      else {
-        FD_ADD_TO_CHOICE(results,r);}
-      i++;}
-    if (!(FD_VOIDP(opts_arg))) fd_decref(opts);
+        fd_decref_elts(vec,i);
+        return FD_ERROR;}
+      else vec[i++] = r;}
+    if (i < n) {
+      bson_error_t err;
+      int cursor_err = mongoc_cursor_error(scan,&err);
+      if (cursor_err) {
+        grab_mongodb_error(&err,"mongodb");
+        fd_decref_vec(vec,i);
+        return FD_ERROR;}
+      else c->cursor_done=1;}
     if (sorted) {
-      if ( (vec == NULL) || (i == 0) )
+      if (i == 0)
         return fd_make_vector(0,NULL);
-      else results = fd_make_vector(i,vec);
-      if (vec) u8_free(vec);}
-    return results;}
+      else return fd_make_vector(i,vec);}
+    else if (i == 0)
+      return FD_EMPTY_CHOICE;
+    else if (i == 1)
+      return vec[0];
+    else return fd_init_choice(NULL,i,vec,FD_CHOICE_DOSORT|FD_CHOICE_COMPRESS);}
 }
 
-static lispval mongodb_cursor_read_vector(lispval cursor,lispval howmany,lispval opts_arg)
+static lispval mongodb_cursor_read(lispval cursor,lispval howmany,
+                                   lispval opts_arg)
 {
-  struct FD_MONGODB_CURSOR *c = (struct FD_MONGODB_CURSOR *)cursor;
-  if (!(FD_UINTP(howmany))) return fd_type_error("uint","mongodb_skip",howmany);
-  int n = FD_FIX2INT(howmany), i = 0;
-  if (n == 0) return fd_make_vector(0,NULL);
-  else {
-    lispval result = fd_make_vector(n,NULL);
-    mongoc_cursor_t *scan = c->mongoc_cursor; const bson_t *doc;
-    int flags = getflags(opts_arg,c->cursor_flags);
-    lispval opts = combine_opts(opts_arg,c->cursor_opts);
-    if (!(FD_VOIDP(opts_arg))) {
-      flags = getflags(opts_arg,c->cursor_flags);
-      opts = combine_opts(opts_arg,opts);}
-    while ( (i < n) && (mongoc_cursor_next(scan,&doc)) ) {
-      lispval dtype = fd_bson2dtype((bson_t *)doc,flags,opts);
-      FD_VECTOR_SET(result,i,dtype);
-      i++;}
-    if (!(FD_VOIDP(opts_arg))) fd_decref(opts);
-    if (i == n) return result;
-    else {
-      lispval truncated = fd_make_vector(i,FD_VECTOR_DATA(result));
-      u8_free((struct FD_CONS *)result);
-      return truncated;}}
+  return mongodb_cursor_reader(cursor,howmany,opts_arg,-1);
+}
+
+
+static lispval mongodb_cursor_read_vector(lispval cursor,lispval howmany,
+                                          lispval opts_arg)
+{
+  return mongodb_cursor_reader(cursor,howmany,opts_arg,1);
 }
 
 /* BSON output functions */
