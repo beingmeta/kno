@@ -22,8 +22,6 @@
 
 (module-export! '{typeindex/open typeindex/create})
 
-(message "Loading from dev")
-
 ;;; Flexpool records
 
 (define (typeindex->string ix)
