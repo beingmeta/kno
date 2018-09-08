@@ -253,47 +253,41 @@ lispval fd_get_histref(lispval elts)
 	else {
           ssize_t i = 0; lst = base; while ( i < off) {
             lst = FD_CDR(lst); i++;}
-          if ( (improper) && ((off+1) == n_elts) )
-            scan = lst;
-          else scan = FD_CAR(lst);}}
+          if ( (improper) && ((off+1) == n_elts) ) {
+            fd_incref(lst); fd_decref(scan); scan=lst;}
+          else {
+            lispval new_scan = FD_CAR(lst);
+            fd_incref(new_scan); fd_decref(scan);
+            scan = new_scan;}}}
       else if (FD_SEQUENCEP(scan)) {
 	ssize_t n_elts = fd_seq_length(scan);
 	ssize_t off = (rel_off>=0) ?  (rel_off) : (n_elts + rel_off);
 	if ( (off < 0) || (off > n_elts) )
-	  return fd_err(fd_RangeError,"histref_evalfn",NULL,path);
+	  return fd_err(fd_RangeError,"histref_evalfn",NULL,scan);
 	else {
 	  lispval new_scan = fd_seq_elt(scan,off);
 	  fd_decref(scan);
 	  scan=new_scan;}}
       else {
-        if (FD_OIDP(scan)) scan = fd_oid_value(scan);
-        if (FD_SLOTMAPP(scan)) {
-          struct FD_SLOTMAP *sm = FD_XSLOTMAP(scan);
-          size_t n_slots = sm->n_slots;
-          ssize_t off = (rel_off>=0) ?  (rel_off) : (n_slots + rel_off);
-          if ( ( off < 0) || ( off >= n_slots ) )
-            return fd_err(fd_RangeError,"histref_evalfn",NULL,path);
-          else scan = sm->sm_keyvals[off].kv_val;}
-        else if (FD_SCHEMAPP(scan)) {
-          struct FD_SCHEMAP *sm = FD_XSCHEMAP(scan);
-          size_t n_slots = sm->schema_length;
-          ssize_t off = (rel_off>=0) ?  (rel_off) : (n_slots + rel_off);
-          if ( off >= sm->schema_length )
-            return fd_err(fd_RangeError,"histref_evalfn",NULL,path);
-          else scan = sm->schema_values[off];}
-        else scan = FD_VOID;}}
+        return fd_err("NotASequence","histref_evalfn",NULL,scan);}}
     else if (FD_STRINGP(path)) {
       if (FD_TABLEP(scan)) {
 	lispval v = fd_get(scan,path,FD_VOID);
 	if (FD_VOIDP(v)) {
 	  u8_string upper = u8_upcase(FD_CSTRING(scan));
 	  lispval sym = fd_probe_symbol(upper,-1);
-	  if (FD_SYMBOLP(sym))
-	    v = fd_get(scan,sym,FD_VOID);}
-	if (FD_VOIDP(v))
-	  fd_seterr("NoSuchKey","histref_evalfn",FD_CSTRING(path),scan);
-	scan = v;}
-      else scan = FD_VOID;}
+	  if (FD_SYMBOLP(sym)) v = fd_get(scan,sym,FD_VOID);}
+        if (FD_VOIDP(v)) {
+          fd_seterr("NoSuchKey","histref_evalfn",FD_CSTRING(path),scan);
+          return FD_ERROR;}
+        fd_decref(scan);
+        scan = v;}
+      else {
+        lispval err =
+          fd_err("NotATable","histref_evalfn",FD_CSTRING(path),scan);
+        fd_decref(scan);
+        scan = FD_VOID;
+        return err;}}
     else if (path == FDSYM_EQUALS) {
       if ( (FD_PAIRP(paths)) &&
            ( (FD_STRINGP(FD_CAR(paths))) ||
