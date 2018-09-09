@@ -11,7 +11,8 @@
 		  exception/header 
 		  exception/body
 		  exception->html
-		  exception/page})
+		  exception/page
+		  exception.html})
 
 (define inline-css-file (get-component "resources/inline.css"))
 (define inline-js-file (get-component "resources/inline.js"))
@@ -119,6 +120,22 @@
   (req/set! 'doctype "<!doctype html>")
   (bodyclass! "errorpage")
   (exception->html exception))
+
+(define (exception.html exception)
+  (lineout "<!doctype html>\n<html>\n<head>")
+  (xmlblock STYLE ((type "text/css"))
+    (printout (getcontent inline-css-file)))
+  (xmlblock SCRIPT ((language "javascript"))
+    (printout (getcontent inline-js-file)))
+  (xmlblock TITLE ()
+    (exception-condition exception) " "
+    (get (timestamp+ (exception-timebase exception) (exception-moment exception))
+	 'iso) " "
+	 (when (exception-caller exception)
+	   (printout "- " (exception-caller exception))))
+  (lineout "\n</head>\n<body class='errorpage'>")
+  (exception/header exception)
+  (exception/body exception))
 
 (defambda (output-vals vals)
   (cond ((fail? vals) 
