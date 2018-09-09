@@ -35,6 +35,14 @@
   `{#((label host,network-host) ":" (label port (isdigit+)))
     #((label ttport (isalnum)) "@" (label host ,network-host))})
 
+(define (checkdir source opts)
+  (cond ((exists position {#\@ #\:} source) source)
+	((file-directory? (dirname source)) source)
+	((getopt opts 'mkdir #f)
+	 (mkdirs (dirname source))
+	 source)
+	(else (irritant source |MissingDirectory|))))
+
 (define (get-source arg (opts #f) (rootdir))
   (default! rootdir (getopt opts 'rootdir))
   (cond ((not (string? arg)) arg)
@@ -88,7 +96,7 @@
 		 (flex/wrap (pool/ref source opts) opts))
 	     (if (not (getopt opts 'create))
 		 (irritant source |NoSuchPool| flex/dbref)
-		 (flex/wrap (make-pool source opts)))))
+		 (flex/wrap (make-pool (checkdir source opts) opts)))))
 	((or (has-suffix source ".index")
 	     (testopt opts 'index)
 	     (testopt opts 'indextype))
@@ -98,7 +106,7 @@
 		 (use-index source opts))
 	     (if (not (getopt opts 'create))
 		 (irritant source |NoSuchIndex| flex/dbref)
-		 (make-index source opts))))
+		 (make-index (checkdir source opts) opts))))
 	((or (has-suffix source ".flexpool")
 	     (testopt opts 'flexpool)
 	     (testopt opts 'type 'flexpool))
@@ -168,12 +176,12 @@
 	((has-suffix spec ".flexpool")
 	 (flexpool/make spec opts))
 	((has-suffix spec ".pool")
-	 (flex/wrap (make-pool spec (make-opts opts)) opts))
+	 (flex/wrap (make-pool (checkdir spec opts) (make-opts opts)) opts))
 	((or (test opts 'flexpool) 
 	     (test opts 'type 'flexpool)
 	     (test opts '{flexpool step flexstep partsize partition}))
 	 (flexpool/make spec opts))
-	(else (flex/wrap (make-pool spec (make-opts opts)) opts))))
+	(else (flex/wrap (make-pool (checkdir spec opts) (make-opts opts)) opts))))
 
 ;;; Index refs
 
@@ -195,7 +203,7 @@
 		   (use-index spec opts)
 		   (open-index spec opts)))
 	      ((getopt opts 'create)
-	       (make-index spec opts))
+	       (make-index (checkdir spec opts) opts))
 	      ((getopt opts 'err) (irritant spec |IndexRefFailed|))
 	      (else #f)))))
 
