@@ -47,7 +47,8 @@
 		 (exit)))
 	   (logwarn |FileExists|
 	     "Moved existing file " out " " "to " (glom out ".bak")))
-    (index/merge! (elts in) out opts)))
+    (doseq (indexfile in)
+      (index/merge! indexfile out opts))))
 
 (when (config 'optimize #t)
   (optimize! '{storage/indexes storage/hashindexes ezrecords fifo engine})

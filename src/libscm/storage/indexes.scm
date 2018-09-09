@@ -84,7 +84,17 @@
 				(else index/copy-keys!))))
 	      (copier in out copy-opts)))
 	  (set! ok #t)))
+    (indexctl out 'metadata 'merges
+	      (qchoice (indexctl out 'metadata 'merges)
+		       `#[from ,(if (string? from) from
+				    (index-source from)from)
+			  rare ,rarefile unique ,uniquefile
+			  timestamp ,(gmtimestamp)
+			  session ,(config 'sessionid)
+			  mincount ,(getopt opts 'mincount)
+			  maxcount ,(getopt opts 'mincount)]))
     (when ok
+      ;; Handle copying of any files in temporary locations
       (index/install! out outfile)
       (when (and rare (not (equal? (realpath (index-source rare))
 				   (realpath rarefile))))
