@@ -25,15 +25,19 @@
 	     "Moved existing file " file " " "to " (glom file ".bak"))))))
 
 (define (main out . in)
-  (let* ((opts (frame-create #f
-		 'newsize (config 'newsize {})
-		 'keyslot (string->symbol (upcase (config 'keyslot {})))
+  (let* ((index (open-index (and (pair? in) (car in))))
+	 (first-size (indexctl index 'metadata 'keys))
+	 (keyslot (symbolize (config 'KEYSLOT (indexctl index 'keyslot))))
+	 (newsize (config 'NEWSIZE (* 4 first-size)))
+	 (opts (frame-create #f
+		 'newsize newsize
+		 'keyslot keyslot
 		 'mincount (config 'mincount {})
 		 'maxcount (config 'maxcount {})
 		 'rarefile (config 'rare {})
 		 'uniquefile (config 'unique {})
 		 'repair (config 'repair #f)
-		 'overwrite overwrite)))
+		 'overwrite #f)))
     (when (and (config 'rebuild) (file-exists? out))
       (onerror
 	  (move-file! out (glom out ".bak"))
