@@ -199,7 +199,7 @@
 	((has-suffix file ".index")
 	 (make-index file (frame-create #f 
 			    'type indextype
-			    'module (config 'indexmod {} #t)
+			    'module (or (config 'indexmod #f #t) {})
 			    'register (not consed)
 			    'size 1000000
 			    'offtype (config 'offtype 'b40)
@@ -213,7 +213,7 @@
       (open-index file (frame-create #f 
 			 'type indextype
 			 'register (not consed)
-			 'module (config 'indexmod {} #t)))
+			 'module (or (config 'indexmod #f #t) {})))
       (if (has-suffix file ".aggindex")
 	  (open-aggindex file consed indextype)
 	  (file->dtype file))))
@@ -222,7 +222,7 @@
   (let* ((part-opts (frame-create #f 
 		      'type indextype
 		      'register (not consed)
-		      'module (config 'indexmod {} #t)
+		      'module (or (config 'indexmod #f #t) {})
 		      'size 1000000
 		      'offtype (config 'offtype 'b40)
 		      'oidcodes (config 'oidcodes #f)
@@ -233,7 +233,7 @@
 	 (agg (make-aggregate-index {aindex bindex}
 				    (frame-create #f 
 				      'type indextype
-				      'module (config 'indexmod {} #t)
+				      'module (or (config 'indexmod #f #t) {})
 				      'size 1000000
 				      'offtype (config 'offtype 'b40)
 				      'oidcodes (config 'oidcodes #f)
@@ -247,7 +247,7 @@
   (let* ((part-opts (frame-create #f 
 		      'type indextype
 		      'register (not consed)
-		      'module (config 'indexmod {} #t)
+		      'module (or (config 'indexmod #f #t) {})
 		      'size 1000000
 		      'offtype (config 'offtype 'b40)
 		      'oidcodes (config 'oidcodes #f)

@@ -29,8 +29,8 @@
 (define (check-poolfile poolfile)
   (let* ((opts (frame-create #f
 		 'adjunct #t 'register #f
-		 'type (config 'pooltype (config 'type {}))
-		 'module (config 'dbmodule {}))))
+		 'type (config 'pooltype (or (config 'type) {}))
+		 'module (or (config 'dbmodule) {}))))
     (onerror (begin (open-pool poolfile opts) #t)
 	(lambda (ex)
 	  (logcrit |BadPool| "Couldn't open the pool " poolfile ": " ex)
@@ -50,8 +50,8 @@
       (onerror
 	  (let* ((read-opts (frame-create #f
 			      'adjunct #t
-			      'type (config 'pooltype (config 'type {}))
-			      'module (config 'dbmodule {})))
+			      'type (config 'pooltype (or (config 'type) {}))
+			      'module (or (config 'dbmodule) {})))
 		 (old (open-pool bakfile read-opts))
 		 (pooltype (config 'NEWTYPE (try (poolctl old 'metadata 'type) 'bigpool)))
 		 (base (pool-base old))

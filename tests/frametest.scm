@@ -27,9 +27,9 @@
       (use-pool source opts)
       (let ((xopts (cons (frame-create #f
 			   'type pooltype
-			   'module (config 'poolmod {} #t)
+			   'module (or (config 'poolmod #f #t) {})
 			   'base @17/0 'capacity 65000
-			   'offtype (getopt opts 'offtype (config 'pooloff (config 'offtype {})))
+			   'offtype (getopt opts 'offtype (config 'pooloff (or (config 'offtype) {})))
 			   'compression (getopt opts 'compression (config 'compression 'zstd))
 			   'register (getopt opts 'register
 					     (not (config 'conspool (config 'consdb #f config:boolean))))
@@ -46,11 +46,11 @@
       (open-index source opts)
       (let ((xopts (cons (frame-create #f
 			   'type indextype
-			   'module (config 'indexmod {} #t)
+			   'module (or (config 'indexmod #f #t) {})
 			   'size 65000
 			   'register (getopt opts 'register
 					     (not (config 'consindex (config 'consdb #f config:boolean))))
-			   'offtype (getopt opts 'offtype (config 'pooloff (config 'offtype {})))
+			   'offtype (getopt opts 'offtype (config 'pooloff (or (config 'offtype) {})))
 			   'slotcodes (config 'slotcodes 16)
 			   'oidcodes (config 'oidcodes 16))
 			 opts)))

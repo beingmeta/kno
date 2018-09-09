@@ -68,7 +68,7 @@
 (define code-slots #default)
 (varconfig! codeslots code-slots config:boolean)
 
-(define (get-slotids metadata type (current) (added (config 'slotids {})))
+(define (get-slotids metadata type (current) (added (or (config 'slotids) {})))
   (set! current (getopt metadata 'slotids #f))
   (and (if (eq? code-slots #default)
 	   (or (vector? current) (exists? added))

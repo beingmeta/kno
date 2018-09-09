@@ -30,7 +30,7 @@
 	 (let* ((make-opts 
 		 (frame-create #f
 		   'type pooltype
-		   'module (config 'poolmod {} #t)
+		   'module (or (config 'poolmod #f #t) {})
 		   'compression compression
 		   'base @b001/0 
 		   'capacity 100000
@@ -116,7 +116,7 @@
   (let* ((init (not (file-exists? poolfile)))
 	 (pool (get-pool poolfile (frame-create #f
 				    'type pooltype 'readonly (not init)
-				    'module (config 'poolmod {} #t)))))
+				    'module (or (config 'poolmod #f #t) {})))))
     (if init
 	(logwarn |FreshPool| pool)
 	(logwarn |ExistingPool| pool))

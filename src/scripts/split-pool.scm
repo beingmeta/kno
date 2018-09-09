@@ -51,9 +51,9 @@
 			 (frame-create #f
 			   'make #t 'output to
 			   'partsize (config 'partsize (tryif capacity capacity))
-			   'prefix (config 'PREFIX {})
-			   'newload (config 'NEWLOAD {})
-			   'newcap (config 'NEWCAP {})
+			   'prefix (or (config 'PREFIX) {})
+			   'newload (or (config 'NEWLOAD) {})
+			   'newcap (or (config 'NEWCAP) {})
 			   'nthreads (tryif (config 'nthreads) (config 'nthreads)))
 			 (or capacity #default)))
 	(else
@@ -63,9 +63,9 @@
 		   'make #t 'output to 'copy #f
 		   'partsize (config 'partsize (tryif capacity capacity))
 		   'batchsize (config 'BATCHSIZE 0x40000)
-		   'prefix (config 'PREFIX {})
-		   'newload (config 'NEWLOAD {})
-		   'newcap (config 'NEWCAP {})
+		   'prefix (or (config 'PREFIX) {})
+		   'newload (or (config 'NEWLOAD) {})
+		   'newcap (or (config 'NEWCAP) {})
 		   'nthreads (tryif (config 'nthreads) (config 'nthreads))))
 		(flexpool (flexpool/split from split-opts (or capacity #default)))
 		(partitions (flexpool/partitions flexpool))

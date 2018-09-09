@@ -32,10 +32,10 @@
 	 (opts (frame-create #f
 		 'newsize newsize
 		 'keyslot keyslot
-		 'mincount (config 'mincount {})
-		 'maxcount (config 'maxcount {})
-		 'rarefile (config 'rare {})
-		 'uniquefile (config 'unique {})
+		 'mincount (or (config 'mincount) {})
+		 'maxcount (or (config 'maxcount) {})
+		 'rarefile (or (config 'rare) {})
+		 'uniquefile (or (config 'unique) {})
 		 'repair (config 'repair #f)
 		 'overwrite #f)))
     (when (and (config 'rebuild) (file-exists? out))
