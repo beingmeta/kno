@@ -136,7 +136,7 @@
 	    (collection/upsert! dest `#[_id ,(get save '_id)]
 				`#[$set ,save]))
 	  (collection/insert! dest batch))
-      (if (%wc cursor/done? cursor) 
+      (if (cursor/done? cursor) 
 	  (set! batch {})
 	  (set! batch (cursor/read cursor batchsize))))))
 
