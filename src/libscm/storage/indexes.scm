@@ -96,26 +96,22 @@
     (when ok
       ;; Handle copying of any files in temporary locations
       (index/install! out outfile)
-      (when (and rare (not (equal? (realpath (index-source rare))
-				   (realpath rarefile))))
-	(index/install! rare rarefile))
-      (when (and unique
-		 (not (equal? (realpath (index-source unique))
-			      (realpath uniquefile))))
-	(index/install! unique uniquefile)))))
+      (when rare (index/install! rare rarefile))
+      (when unique (index/install! unique uniquefile)))))
 
-(define (index/install! index into)
+(define (index/install! index file)
   (close-index index)
-  (when (file-exists? into)
-    (if (config 'unsafe #f)
-	(remove-file into)
-	(move-file! into (glom into ".bak"))))
-  (onerror
-      (move-file! (index-source index) into)
-      (lambda (x)
-	(logwarn |RenameFailed|
-	  "Couldn't rename " (index-source index) " to " into ", using shell")
-	(exec/cmd "mv" (index-source index) into))))
+  (unless (equal? (realpath (index-source index)) (realpath file))
+    (when (file-exists? file)
+      (if (config 'unsafe #f)
+	  (remove-file file)
+	  (move-file! file (glom file ".bak"))))
+    (onerror
+	(move-file! (index-source index) file)
+	(lambda (x)
+	  (logwarn |RenameFailed|
+	    "Couldn't rename " (index-source index) " to " file ", using shell")
+	  (exec/cmd "mv" (index-source index) file)))))
 
 ;;;; Support functions
 
