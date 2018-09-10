@@ -37,7 +37,7 @@
 (define *json-uuidfn* #f)
 (varconfig! JSON:UUIDFN *json-uuidfn*)
 
-(define *render-timestamp* (lambda (t) (get t 'iso)))
+(define *render-timestamp* #f)
 (varconfig! JSON:TIMESTAMPFN *render-timestamp*)
 
 (define %volatile '{*json-refslot* *json-oidref* *json-uuidfn*})
@@ -161,7 +161,10 @@
 	  (for-choices (object object) 
 	    (exportjson object opts #f oidfn uuidfn slotkeyfn refslot))))
 	((timestamp? object) 
-	 ((getopt opts 'timestampfn *render-timestamp*) object))
+	 (let ((timestampfn (getopt opts 'timestampfn *render-timestamp*)))
+	   (cond ((symbol? timestampfn) (get object timestampfn))
+		 ((applicable? timestampfn) (timestampfn object))
+		 (else (lisp->string object)))))
 	((pair? object)
 	 (if (proper-list? object)
 	     (if (getopt opts 'wrapvecs *wrapvecs*)
