@@ -25,6 +25,9 @@
 
 (define (qc-wrap x) `(qc ,x))
 
+(defambda (applytest/err proc . args)
+  (evaltest '|err| (onerror (%wc apply proc args) '|err|)))
+
 (define errors {})
 
 (define test-finished
