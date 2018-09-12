@@ -944,7 +944,7 @@
 (define (optimize-when handler expr env bound opts)
   (if (and (use-opcodes? opts) (rewrite? opts))
       `(#OP_BRANCH
-	(#OP_TRY ,(optimize (cadr expr) env bound opts) #t)
+	(#OP_TRY ,(optimize (cadr expr) env bound opts) #f)
 	(#OP_BEGIN ,@(optimize-body (cddr expr))
 	 (,void-opcode)))
       (optimize-block handler expr env bound opts)))
