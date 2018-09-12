@@ -56,15 +56,20 @@
 		  (jsonelt elt #f (= i 0)))
     "]"))
 
+(define (slot->key slotid)
+  (if (symbol? slotid) (downcase slotid)
+      (if (string? slotid) slotid
+	  (unparse-arg slotid))))
+
 (defambda (jsonfield field value (valuefn #f) (prefix #f) (context #f)
 		     (vecval #f))
+  (unless (string? field)
+    (set! field
+      (if (symbol? field) (downcase field)
+	  (unparse-arg field))))
   (printout
     (if prefix prefix)
-    (if (symbol? field)
-	(write (downcase (symbol->string field)))
-	(if (string? field) (write field)
-	    (write (unparse-arg field))))
-    ": "
+    (write field) ": "
     (if (or vecval (not (singleton? value))) (printout "["))
     (do-choices (value value i)
       (when (> i 0) (printout ","))
@@ -72,15 +77,16 @@
 	  (jsonout (valuefn value context) #f)
 	  (jsonout value #f)))
     (if (or vecval (not (singleton? value))) (printout "]"))))
+
 (defambda (jsonfield+ field value (valuefn #f) (prefix #f) (context #f)
 		      (vecval #f))
+  (unless (string? field)
+    (set! field
+      (if (symbol? field) (downcase field)
+	  (unparse-arg field))))
   (printout
     (if prefix prefix)
-    (if (symbol? field)
-	(write (downcase (symbol->string field)))
-	(if (string? field) (write field)
-	    (write (unparse-arg field))))
-    ": ["
+    (write field) ": ["
     (do-choices (value value i)
       (when (> i 0) (printout ","))
       (if valuefn
@@ -88,16 +94,24 @@
 	  (jsonout value #f)))
     "]"))
 
-(define (jsontable table (valuefn #f) (context #f))
+(define (getkv table (slotid))
+  (for-choices (assoc (getassocs table))
+    (set! slotid (car assoc))
+    (cons (if (symbol? slotid) (downcase slotid)
+	      (if (string? slotid) slotid (unparse-arg slotid)))
+	  (cdr assoc))))
+
+(define (jsontable table (opts #f) (valuefn #f) (context #f))
   (printout "{"
-	    (let ((initial #t))
-	      (do-choices (key (getkeys table) i)
-		(let ((v (get table key)))
-		  (unless initial (printout ", "))
-		  (jsonfield key (qc v) valuefn "" context)
-		  (set! initial #f))))
-	    
-	    "}"))
+    (if (getopt opts 'keysort)
+	(doseq (assoc (sorted (getkv table) (get opts 'keysort)) i)
+	  (if (> i 0) (printout ", "))
+	  (jsonfield (car assoc) (qc (cdr assoc))
+		     valuefn #f context))
+	(do-choices (key (getkeys table) i)
+	  (if (> i 0) (printout ", "))
+	  (jsonfield key (qc (get table key)) valuefn #f context)))
+    "}"))
 
 (defambda (jsonout value (opts #f) (emptyval))
   (when (string? opts)
@@ -116,12 +130,12 @@
 	((eq? value #t) (printout "true"))
 	((eq? value #f) (printout "false"))
 	((number? value) (printout value))
-	((table? value) (jsontable value))
+	((table? value) (jsontable value opts))
 	(else (let ((string (stringout (printout json-lisp-prefix)
 			      (write value))))
 		(jsonoutput string 0)))))
 
-(module-export! '{jsonout jsonvec jsontable jsonfield jsonfield+ jsonelt})
+(module-export! '{jsonout jsonvec jsontable opts jsonfield jsonfield+ jsonelt})
 
 ;;; Support for JSON responses
 
