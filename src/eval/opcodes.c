@@ -1019,15 +1019,16 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
     if (VOIDP(test_expr))
       return fd_err(fd_SyntaxError,"FD_BRANCH_OPCODE",NULL,expr);
     lispval test_val = op_eval(test_expr,env,_stack,0);
-    if (FD_ABORTED(test_val)) return test_val;
-    if (!(FALSEP(test_val))) {
+    if (FD_ABORTED(test_val))
+      return test_val;
+    else if (FD_FALSEP(test_val)) { /* (  || (FD_EMPTYP(test_val)) ) */
+      pop_arg(args);
+      return op_eval(pop_arg(args),env,_stack,tail);}
+    else {
       lispval then = pop_arg(args);
       U8_MAYBE_UNUSED lispval ignore = pop_arg(args);
       fd_decref(test_val);
-      return op_eval(then,env,_stack,tail);}
-    else {
-      pop_arg(args);
-      return op_eval(pop_arg(args),env,_stack,tail);}}
+      return op_eval(then,env,_stack,tail);}}
   case FD_TRY_OPCODE:
     return try_op(args,env,_stack,tail);
   case FD_AND_OPCODE:
