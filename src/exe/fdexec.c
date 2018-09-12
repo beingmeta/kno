@@ -74,6 +74,7 @@ static lispval load_stdin(fd_lexenv env)
 typedef char *charp;
 
 static lispval main_symbol = FD_VOID, exec_script = FD_FALSE;
+static lispval real_main = FD_VOID;
 
 static lispval chain_prim(int n,lispval *args)
 {
@@ -214,7 +215,7 @@ int do_main(int argc,char **argv,
 
   fd_set_app_env(env);
 
-  main_symbol = fd_intern("MAIN");
+  main_symbol = real_main = fd_intern("MAIN");
 
   fd_register_config
     ("DEBUGMAXCHARS",
@@ -337,7 +338,10 @@ int do_main(int argc,char **argv,
 
   if (!(FD_ABORTP(result))) {
     main_proc = fd_symeval(main_symbol,env);
-    if (FD_APPLICABLEP(main_proc)) {
+    if ( (FD_VOIDP(main_proc)) && (main_symbol == real_main) ) {
+      /* Nothing to do */
+      result = FD_VOID;}
+    else if (FD_APPLICABLEP(main_proc)) {
       fd_decref(result);
       result = fd_apply(main_proc,n_args,args);
       result = fd_finish_call(result);}
