@@ -37,8 +37,7 @@
 (define *json-uuidfn* #f)
 (varconfig! JSON:UUIDFN *json-uuidfn*)
 
-(define *render-timestamp*
-  (lambda (t) (printout (get t 'tick))))
+(define *render-timestamp* #f)
 (varconfig! JSON:TIMESTAMPFN *render-timestamp*)
 
 (define %volatile '{*json-refslot* *json-oidref* *json-uuidfn*})
@@ -57,15 +56,20 @@
 		  (jsonelt elt #f (= i 0)))
     "]"))
 
+(define (slot->key slotid)
+  (if (symbol? slotid) (downcase slotid)
+      (if (string? slotid) slotid
+	  (unparse-arg slotid))))
+
 (defambda (jsonfield field value (valuefn #f) (prefix #f) (context #f)
 		     (vecval #f))
+  (unless (string? field)
+    (set! field
+      (if (symbol? field) (downcase field)
+	  (unparse-arg field))))
   (printout
     (if prefix prefix)
-    (if (symbol? field)
-	(write (downcase (symbol->string field)))
-	(if (string? field) (write field)
-	    (write (unparse-arg field))))
-    ": "
+    (write field) ": "
     (if (or vecval (not (singleton? value))) (printout "["))
     (do-choices (value value i)
       (when (> i 0) (printout ","))
@@ -73,15 +77,16 @@
 	  (jsonout (valuefn value context) #f)
 	  (jsonout value #f)))
     (if (or vecval (not (singleton? value))) (printout "]"))))
+
 (defambda (jsonfield+ field value (valuefn #f) (prefix #f) (context #f)
 		      (vecval #f))
+  (unless (string? field)
+    (set! field
+      (if (symbol? field) (downcase field)
+	  (unparse-arg field))))
   (printout
     (if prefix prefix)
-    (if (symbol? field)
-	(write (downcase (symbol->string field)))
-	(if (string? field) (write field)
-	    (write (unparse-arg field))))
-    ": ["
+    (write field) ": ["
     (do-choices (value value i)
       (when (> i 0) (printout ","))
       (if valuefn
@@ -89,16 +94,24 @@
 	  (jsonout value #f)))
     "]"))
 
-(define (jsontable table (valuefn #f) (context #f))
+(define (getkv table (slotid))
+  (for-choices (assoc (getassocs table))
+    (set! slotid (car assoc))
+    (cons (if (symbol? slotid) (downcase slotid)
+	      (if (string? slotid) slotid (unparse-arg slotid)))
+	  (cdr assoc))))
+
+(define (jsontable table (opts #f) (valuefn #f) (context #f))
   (printout "{"
-	    (let ((initial #t))
-	      (do-choices (key (getkeys table) i)
-		(let ((v (get table key)))
-		  (unless initial (printout ", "))
-		  (jsonfield key (qc v) valuefn "" context)
-		  (set! initial #f))))
-	    
-	    "}"))
+    (if (getopt opts 'keysort)
+	(doseq (assoc (sorted (getkv table) (get opts 'keysort)) i)
+	  (if (> i 0) (printout ", "))
+	  (jsonfield (car assoc) (qc (cdr assoc))
+		     valuefn #f context))
+	(do-choices (key (getkeys table) i)
+	  (if (> i 0) (printout ", "))
+	  (jsonfield key (qc (get table key)) valuefn #f context)))
+    "}"))
 
 (defambda (jsonout value (opts #f) (emptyval))
   (when (string? opts)
@@ -117,12 +130,12 @@
 	((eq? value #t) (printout "true"))
 	((eq? value #f) (printout "false"))
 	((number? value) (printout value))
-	((table? value) (jsontable value))
+	((table? value) (jsontable value opts))
 	(else (let ((string (stringout (printout json-lisp-prefix)
 			      (write value))))
 		(jsonoutput string 0)))))
 
-(module-export! '{jsonout jsonvec jsontable jsonfield jsonfield+ jsonelt})
+(module-export! '{jsonout jsonvec jsontable opts jsonfield jsonfield+ jsonelt})
 
 ;;; Support for JSON responses
 
@@ -154,7 +167,7 @@
 	((oid? (qc object))
 	 (try (tryif oidfn
 		(tryif (or (symbol? oidfn) (oid? oidfn)) (get object oidfn))
-		(oidfn object opts toplevel))
+		(tryif (applicable? oidfn) (oidfn object opts toplevel)))
 	      (tryif *json-refslot* (get object *json-refslot*))
 	      (glom json-lisp-prefix (oid->string object))))
 	((ambiguous? object)
@@ -162,7 +175,10 @@
 	  (for-choices (object object) 
 	    (exportjson object opts #f oidfn uuidfn slotkeyfn refslot))))
 	((timestamp? object) 
-	 ((getopt opts 'timestampfn *render-timestamp*) object))
+	 (let ((timestampfn (getopt opts 'timestampfn *render-timestamp*)))
+	   (cond ((symbol? timestampfn) (get object timestampfn))
+		 ((applicable? timestampfn) (timestampfn object))
+		 (else (lisp->string object)))))
 	((pair? object)
 	 (if (proper-list? object)
 	     (if (getopt opts 'wrapvecs *wrapvecs*)
@@ -182,11 +198,10 @@
 	((vector? object)
 	 (if (getopt opts 'wrapvecs *wrapvecs*)
 	     (vector (forseq (elt (->vector object))
-		       (exportjson elt opts #f oidfn slotkeyfn refslot)))
+		       (exportjson elt opts #f oidfn uuidfn slotkeyfn refslot)))
 	     (forseq (elt (->vector object))
-	       (exportjson elt opts #f oidfn slotkeyfn refslot))))
-	((and refslot (table? object) (test object refslot))
-	 (get object refslot))
+	       (exportjson elt opts #f oidfn uuidfn slotkeyfn refslot))))
+	;; ((and refslot (table? object) (test object refslot)) (get object refslot))
 	((table? object)
 	 (let ((obj (frame-create #f)))
 	   (do-choices (key (getkeys object))
@@ -194,20 +209,23 @@
 	       (cond ((and (oid? key) oidfn)
 		      (try (tryif (oid? oidfn) (get key oidfn))
 			   (tryif (symbol? oidfn) (get key oidfn))
-			   (oidfn key)
+			   (tryif (applicable? oidfn) (oidfn key))
 			   (oid->string key)))
 		     ((oid? key) (oid->string key))
-		     ((and (symbol? key) slotkeyfn) (slotkeyfn key))
+		     ((and (symbol? key) slotkeyfn (applicable? slotkeyfn))
+		      (slotkeyfn key))
 		     ((and (symbol? key) *ugly-slots*)
 		      (glom json-lisp-prefix (symbol->string key)))
 		     ((and (symbol? key) toplevel)
 		      (downcase (symbol->string key)))
+		     ((symbol? key) key)
 		     ((string? key) key)
-		     (else (let ((exported (exportjson key opts #f oidfn slotkeyfn refslot)))
-			     (if (string? exported) exported
+		     (else (let ((exported (exportjson key opts #f oidfn uuidfn slotkeyfn refslot)))
+			     (if (string? exported) 
+				 exported
 				 (lisp->string exported)))))
 	       (for-choices (v (get object key))
-		 (exportjson v opts #f oidfn slotkeyfn refslot))))
+		 (exportjson v opts #f oidfn uuidfn slotkeyfn refslot))))
 	   obj))
 	 (else object)))
 (define (export->json arg (opts #f)) (exportjson arg opts #t))

@@ -339,7 +339,9 @@ static void parse_query_string(fd_slotmap c,const char *data,int len)
       /* Don't store vars beginning with _ or HTTP, to avoid spoofing
          of real HTTP variables or other variables that might be used
          internally. */
-      if ( (buf[0]=='_') || (strncmp(buf,"HTTP",4)==0) )
+      if ( (buf[0]=='_') ||
+           (strncmp(buf,"HTTP_",5)==0) ||
+           (strncmp(buf,"SERVER_",7)==0) )
         slotid = VOID;
       else slotid = buf2slotid(buf,isascii);
       fd_decref(slotstring); slotstring = VOID;
@@ -1431,6 +1433,12 @@ FD_EXPORT void fd_init_cgiexec_c()
   params_symbol = fd_intern("_PARAMS");
 
   ipeval_symbol = fd_intern("_IPEVAL");
+
+  protected_params[n_protected_params++] = fd_intern("STATUS");
+  protected_params[n_protected_params++] = fd_intern("AUTHORIZATION");
+  protected_params[n_protected_params++] = fd_intern("SCRIPT_FILENAME");
+  protected_params[n_protected_params++] = fd_intern("REQUEST_METHOD");
+  protected_params[n_protected_params++] = fd_intern("DOCUMENT_ROOT");
 
   fd_register_config
     ("CGIPREP",
