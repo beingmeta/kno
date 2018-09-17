@@ -43,10 +43,19 @@
 #define simplify_value(v) \
   ( (FD_PRECHOICEP(v)) ? (fd_simplify_choice(v)) : (v) )
 
+static u8_string opcode_name(lispval opcode);
+
+static lispval pickone_opcode(lispval normal);
+static lispval pickstrings_opcode(lispval arg1);
+static lispval pickoids_opcode(lispval arg1);
+static lispval eltn_opcode(lispval arg1,int n,u8_context opname);
+static lispval elt_opcode(lispval arg1,lispval arg2);
+static lispval xref_opcode(lispval x,long long i,lispval tag);
+static lispval tableop(lispval opcode,lispval arg1,lispval arg2,lispval arg3);
+
 static lispval op_eval(lispval x,fd_lexenv env,fd_stack stack,int tail);
 
-FD_FASTOP lispval op_eval_body(lispval body,fd_lexenv env,
-                               fd_stack stack,int tail)
+FD_FASTOP lispval op_eval_body(lispval body,fd_lexenv env,fd_stack stack,int tail)
 {
   lispval result=VOID;
   if (FD_CODEP(body)) {
@@ -72,7 +81,7 @@ FD_FASTOP lispval op_eval_body(lispval body,fd_lexenv env,
   return fd_err(fd_SyntaxError,"op_eval_body",NULL,body);
 }
 
-FD_FASTOP lispval _pop_arg(lispval *scan)
+FD_FASTOP lispval _next_qcode(lispval *scan)
 {
   lispval expr = *scan;
   if (PAIRP(expr)) {
@@ -82,77 +91,44 @@ FD_FASTOP lispval _pop_arg(lispval *scan)
   else return VOID;
 }
 
-#define pop_arg(args) (_pop_arg(&args))
+#define next_qcode(args) (_next_qcode(&args))
 
-/* Opcode names */
-
-u8_string fd_opcode_names[0x800]={NULL};
-
-int fd_opcodes_length = 0x800;
-
-static int unparse_opcode(u8_output out,lispval opcode)
-{
-  int opcode_offset = (FD_GET_IMMEDIATE(opcode,fd_opcode_type));
-  if (opcode_offset>fd_opcodes_length) {
-    u8_printf(out,"#<INVALIDOPCODE>");
-    return 1;}
-  else if (fd_opcode_names[opcode_offset]==NULL) {
-    u8_printf(out,"#<OPCODE_0x%x>",opcode_offset);
-    return 1;}
-  else {
-    u8_printf(out,"#<OPCODE_%s>",fd_opcode_names[opcode_offset]);
-    return 1;}
-}
-
-static int validate_opcode(lispval opcode)
-{
-  int opcode_offset = (FD_GET_IMMEDIATE(opcode,fd_opcode_type));
-  if ((opcode_offset>=0) && (opcode_offset<fd_opcodes_length))
-    return 1;
-  else return 0;
-}
-
-static u8_string opcode_name(lispval opcode)
-{
-  int opcode_offset = (FD_GET_IMMEDIATE(opcode,fd_opcode_type));
-  if ((opcode_offset<fd_opcodes_length) &&
-      (fd_opcode_names[opcode_offset]))
-    return fd_opcode_names[opcode_offset];
-  else return "anonymous_opcode";
-}
-
-static lispval pickoids_opcode(lispval arg1);
-static lispval pickstrings_opcode(lispval arg1);
-static lispval pickone_opcode(lispval normal);
-
-static lispval nd1_dispatch(lispval opcode,lispval arg1)
+static lispval unary_nd_dispatch(lispval opcode,lispval arg1)
 {
   switch (opcode) {
   case FD_AMBIGP_OPCODE:
-    if (CHOICEP(arg1)) return FD_TRUE;
+    if (CHOICEP(arg1))
+      return FD_TRUE;
     else return FD_FALSE;
   case FD_SINGLETONP_OPCODE:
-    if (EMPTYP(arg1)) return FD_FALSE;
-    else if (CHOICEP(arg1)) return FD_FALSE;
+    if (EMPTYP(arg1))
+      return FD_FALSE;
+    else if (CHOICEP(arg1))
+      return FD_FALSE;
     else return FD_TRUE;
   case FD_FAILP_OPCODE:
-    if (arg1==EMPTY) return FD_TRUE;
+    if (arg1==EMPTY)
+      return FD_TRUE;
     else return FD_FALSE;
   case FD_EXISTSP_OPCODE:
-    if (arg1==EMPTY) return FD_FALSE;
+    if (arg1==EMPTY)
+      return FD_FALSE;
     else return FD_TRUE;
   case FD_SINGLETON_OPCODE:
-    if (CHOICEP(arg1)) return EMPTY;
+    if (CHOICEP(arg1))
+      return EMPTY;
     else return fd_incref(arg1);
   case FD_CAR_OPCODE:
-    if (EMPTYP(arg1)) return arg1;
+    if (EMPTYP(arg1))
+      return arg1;
     else if (PAIRP(arg1))
       return fd_incref(FD_CAR(arg1));
     else if (CHOICEP(arg1)) {
       lispval results = EMPTY;
       DO_CHOICES(arg,arg1)
         if (PAIRP(arg)) {
-          lispval car = FD_CAR(arg); fd_incref(car);
+          lispval car = FD_CAR(arg);
+          fd_incref(car);
           CHOICE_ADD(results,car);}
         else {
           fd_decref(results);
@@ -232,38 +208,7 @@ static lispval nd1_dispatch(lispval opcode,lispval arg1)
   }
 }
 
-static lispval first_opcode(lispval arg1)
-{
-  if (PAIRP(arg1)) return fd_incref(FD_CAR(arg1));
-  else if (VECTORP(arg1))
-    if (VEC_LEN(arg1) > 0)
-      return fd_incref(VEC_REF(arg1,0));
-    else return fd_err(fd_RangeError,"FD_FIRST_OPCODE",NULL,arg1);
-  else if (COMPOUND_VECTORP(arg1))
-    if (COMPOUND_VECLEN(arg1) > 0)
-      return fd_incref(XCOMPOUND_VEC_REF(arg1,1));
-    else return fd_err(fd_RangeError,"FD_FIRST_OPCODE",NULL,arg1);
-  else if (STRINGP(arg1)) {
-    u8_string data = CSTRING(arg1); int c = u8_sgetc(&data);
-    if (c<0) return fd_err(fd_RangeError,"FD_FIRST_OPCODE",NULL,arg1);
-    else return FD_CODE2CHAR(c);}
-  else return fd_seq_elt(arg1,0);
-}
-
-static lispval eltn_opcode(lispval arg1,int n,u8_context opname)
-{
-  if (VECTORP(arg1))
-    if (VEC_LEN(arg1) > n)
-      return fd_incref(VEC_REF(arg1,n));
-    else return fd_err(fd_RangeError,opname,NULL,arg1);
-  else if (COMPOUND_VECTORP(arg1))
-    if (COMPOUND_VECLEN(arg1) > n)
-      return fd_incref(XCOMPOUND_VEC_REF(arg1,n));
-    else return fd_err(fd_RangeError,opname,NULL,arg1);
-  else return fd_seq_elt(arg1,n);
-}
-
-static lispval d1_dispatch(lispval opcode,lispval arg1)
+static lispval unary_dispatch(lispval opcode,lispval arg1)
 {
   int delta = 1;
   switch (opcode) {
@@ -323,7 +268,7 @@ static lispval d1_dispatch(lispval opcode,lispval arg1)
       else return fd_err(fd_RangeError,"FD_CDDR",NULL,arg1);}
     else return fd_err(fd_RangeError,"FD_CDDDR",NULL,arg1);}
   case FD_FIRST_OPCODE:
-    return first_opcode(arg1);
+    return eltn_opcode(arg1,0,"FD_FIRST_OPCODE");
   case FD_SECOND_OPCODE:
     return eltn_opcode(arg1,1,"FD_SECOND_OPCODE");
   case FD_THIRD_OPCODE:
@@ -341,20 +286,20 @@ static lispval d1_dispatch(lispval opcode,lispval arg1)
   }
 }
 
-static lispval d1_call(lispval opcode,lispval arg1)
+static lispval unary_call(lispval opcode,lispval arg1)
 {
   if (EMPTYP(arg1))
     return EMPTY;
   else if (!(CONSP(arg1)))
-    return d1_dispatch(opcode,arg1);
+    return unary_dispatch(opcode,arg1);
   else if (!(CHOICEP(arg1))) {
-    lispval result = d1_dispatch(opcode,arg1);
+    lispval result = unary_dispatch(opcode,arg1);
     fd_decref(arg1);
     return result;}
   else {
     lispval results = EMPTY;
     DO_CHOICES(arg,arg1) {
-      lispval result = d1_dispatch(opcode,arg);
+      lispval result = unary_dispatch(opcode,arg);
       if (FD_ABORTED(result)) {
         fd_decref(results); fd_decref(arg1);
         FD_STOP_DO_CHOICES;
@@ -364,72 +309,7 @@ static lispval d1_call(lispval opcode,lispval arg1)
     return results;}
 }
 
-static lispval elt_opcode(lispval arg1,lispval arg2)
-{
-  if ((FD_SEQUENCEP(arg1)) && (FD_INTP(arg2))) {
-    lispval result;
-    long long off = FIX2INT(arg2), len = fd_seq_length(arg1);
-    if (off<0) off = len+off;
-    result = fd_seq_elt(arg1,off);
-    if (result == FD_TYPE_ERROR)
-      return fd_type_error(_("sequence"),"FD_OPCODE_ELT",arg1);
-    else if (result == FD_RANGE_ERROR) {
-      char buf[32];
-      sprintf(buf,"%lld",off);
-      return fd_err(fd_RangeError,"FD_OPCODE_ELT",u8_strdup(buf),arg1);}
-    else return result;}
-  else if (!(FD_SEQUENCEP(arg1)))
-    return fd_type_error(_("sequence"),"FD_OPCODE_ELT",arg1);
-  else return fd_type_error(_("fixnum"),"FD_OPCODE_ELT",arg2);
-}
-
-static lispval try_op(lispval exprs,fd_lexenv env,
-                     fd_stack stack,int tail)
-{
-  while (PAIRP(exprs)) {
-    lispval expr = pop_arg(exprs);
-    if (NILP(exprs))
-      return op_eval(expr,env,stack,tail);
-    else {
-      lispval val  = op_eval(expr,env,stack,0);
-      if (FD_ABORTED(val)) return val;
-      else if (!(EMPTYP(val)))
-        return val;
-      else fd_decref(val);}}
-  return EMPTY;
-}
-
-static lispval and_op(lispval exprs,fd_lexenv env,fd_stack stack,int tail)
-{
-  while (PAIRP(exprs)) {
-    lispval expr = pop_arg(exprs);
-    if (NILP(exprs))
-      return op_eval(expr,env,stack,tail);
-    else {
-      lispval val  = op_eval(expr,env,stack,0);
-      if (FD_ABORTED(val)) return val;
-      else if (FALSEP(val))
-        return FD_FALSE;
-      else fd_decref(val);}}
-  return FD_TRUE;
-}
-
-static lispval or_op(lispval exprs,fd_lexenv env,fd_stack stack,int tail)
-{
-  while (PAIRP(exprs)) {
-    lispval expr = pop_arg(exprs);
-    if (NILP(exprs))
-      return op_eval(expr,env,stack,tail);
-    else {
-      lispval val  = op_eval(expr,env,stack,0);
-      if (FD_ABORTED(val)) return val;
-      else if (!(FALSEP(val)))
-        return val;
-      else {}}}
-  return FD_FALSE;
-}
-
-static lispval d2_dispatch(lispval opcode,lispval arg1,lispval arg2)
+static lispval binary_dispatch(lispval opcode,lispval arg1,lispval arg2)
 {
   switch (opcode) {
   case FD_NUMEQ_OPCODE:
@@ -557,7 +437,7 @@ static lispval d2_call(lispval opcode,lispval arg1,lispval arg2)
   lispval results = EMPTY;
   DO_CHOICES(a1,arg1) {
     {DO_CHOICES(a2,arg2) {
-        lispval result = d2_dispatch(opcode,a1,a2);
+        lispval result = binary_dispatch(opcode,a1,a2);
         /* If we need to abort due to an error, we need to pop out of
            two choice loops.  So on the inside, we decref results and
            replace it with the error object.  We then break and
@@ -575,7 +455,7 @@ static lispval d2_call(lispval opcode,lispval arg1,lispval arg2)
   return results;
 }
 
-static lispval nd2_dispatch(lispval opcode,lispval arg1,lispval arg2)
+static lispval binary_nd_dispatch(lispval opcode,lispval arg1,lispval arg2)
 {
   lispval result = FD_ERROR_VALUE;
   if (PRECHOICEP(arg2)) arg2 = fd_simplify_choice(arg2);
@@ -636,62 +516,53 @@ static lispval nd2_dispatch(lispval opcode,lispval arg1,lispval arg2)
   return result;
 }
 
-static lispval xref_type_error(lispval x,lispval tag)
+static lispval try_op(lispval exprs,fd_lexenv env,
+                     fd_stack stack,int tail)
 {
-  if (VOIDP(tag))
-    fd_seterr(fd_TypeError,"XREF_OPCODE","compound",x);
-  else {
-    u8_string buf=fd_lisp2string(tag);
-    fd_seterr(fd_TypeError,"XREF_OPCODE",buf,x);
-    u8_free(buf);}
-  return FD_ERROR_VALUE;
-}
-
-static lispval xref_op(struct FD_COMPOUND *c,long long i,lispval tag,int free)
-{
-  if ((VOIDP(tag)) || ((c->compound_typetag) == tag)) {
-    if ((i>=0) && (i<c->compound_length)) {
-      lispval *values = &(c->compound_0), value;
-      if (c->compound_ismutable)
-        u8_lock_mutex(&(c->compound_lock));
-      value = values[i];
-      fd_incref(value);
-      if (c->compound_ismutable)
-        u8_unlock_mutex(&(c->compound_lock));
-      if (free) fd_decref((lispval)c);
-      return value;}
+  while (PAIRP(exprs)) {
+    lispval expr = next_qcode(exprs);
+    if (NILP(exprs))
+      return op_eval(expr,env,stack,tail);
     else {
-      fd_seterr(fd_RangeError,"xref",NULL,(lispval)c);
-      if (free) fd_decref((lispval)c);
-      return FD_ERROR_VALUE;}}
-  else {
-    lispval err=xref_type_error((lispval)c,tag);
-    if (free) fd_decref((lispval)c);
-    return err;}
+      lispval val  = op_eval(expr,env,stack,0);
+      if (FD_ABORTED(val)) return val;
+      else if (!(EMPTYP(val)))
+        return val;
+      else fd_decref(val);}}
+  return EMPTY;
 }
 
-static lispval xref_opcode(lispval x,long long i,lispval tag)
+static lispval and_op(lispval exprs,fd_lexenv env,fd_stack stack,int tail)
 {
-  if (!(CONSP(x))) {
-    if (EMPTYP(x))
-      return EMPTY;
-    else return xref_type_error(x,tag);}
-  else if (FD_COMPOUNDP(x))
-    return xref_op((struct FD_COMPOUND *)x,i,tag,1);
-  else if (CHOICEP(x)) {
-    lispval results = EMPTY;
-    DO_CHOICES(c,x) {
-      lispval r = xref_op((struct FD_COMPOUND *)c,i,tag,0);
-      if (FD_ABORTED(r)) {
-        fd_decref(results); results = r;
-        FD_STOP_DO_CHOICES;
-        break;}
-      else {CHOICE_ADD(results,r);}}
-    /* Need to free this */
-    fd_decref(x);
-    return results;}
-  else return fd_err(fd_TypeError,"xref",fd_lisp2string(tag),x);
+  while (PAIRP(exprs)) {
+    lispval expr = next_qcode(exprs);
+    if (NILP(exprs))
+      return op_eval(expr,env,stack,tail);
+    else {
+      lispval val  = op_eval(expr,env,stack,0);
+      if (FD_ABORTED(val)) return val;
+      else if (FALSEP(val))
+        return FD_FALSE;
+      else fd_decref(val);}}
+  return FD_TRUE;
 }
+
+static lispval or_op(lispval exprs,fd_lexenv env,fd_stack stack,int tail)
+{
+  while (PAIRP(exprs)) {
+    lispval expr = next_qcode(exprs);
+    if (NILP(exprs))
+      return op_eval(expr,env,stack,tail);
+    else {
+      lispval val  = op_eval(expr,env,stack,0);
+      if (FD_ABORTED(val)) return val;
+      else if (!(FALSEP(val)))
+        return val;
+      else {}}}
+  return FD_FALSE;
+}
+
+/* Loop */
 
 static lispval until_opcode(lispval expr,fd_lexenv env,fd_stack stack)
 {
@@ -715,91 +586,7 @@ static lispval until_opcode(lispval expr,fd_lexenv env,fd_stack stack)
   return test_val;
 }
 
-static lispval tableop(lispval opcode,lispval arg1,lispval arg2,lispval arg3)
-{
-  if (EMPTYP(arg1)) {
-    switch (opcode) {
-    case FD_GET_OPCODE: case FD_PRIMGET_OPCODE:
-      return EMPTY;
-    case FD_TEST_OPCODE: case FD_PRIMTEST_OPCODE:
-      return FD_FALSE;
-    case FD_STORE_OPCODE:
-    case FD_RETRACT_OPCODE: case FD_DROP_OPCODE:
-    case FD_ASSERT_OPCODE: case FD_ADD_OPCODE:
-      return VOID;
-    default:
-      return VOID;}}
-  else if (opcode == FD_TEST_OPCODE)
-    return fd_ftest(arg1,arg2,arg3);
-  else if (opcode == FD_PRIMTEST_OPCODE) {
-    int rv = fd_test(arg1,arg2,arg3);
-    if (rv<0) return FD_ERROR_VALUE;
-    else if (rv>0) return FD_TRUE;
-    else return FD_FALSE;}
-  else if (CHOICEP(arg1)) {
-    lispval results=EMPTY;
-    DO_CHOICES(tbl,arg1) {
-      lispval partial=tableop(opcode,tbl,arg2,arg3);
-      if (FD_ABORTED(partial)) {
-        fd_decref(results);
-        FD_STOP_DO_CHOICES;
-        return partial;}
-      else {
-        CHOICE_ADD(results,partial);}}
-    return results;}
-  else {
-    int rv=0;
-    switch (opcode) {
-    case FD_PRIMGET_OPCODE:
-      if (FD_VOIDP(arg3))
-        return fd_get(arg1,arg2,FD_EMPTY);
-      else return fd_get(arg1,arg2,arg3);
-    case FD_PRIMTEST_OPCODE:
-      rv=fd_test(arg1,arg2,arg3);
-      if (rv<0) return FD_ERROR_VALUE;
-      else if (rv==0) return FD_FALSE;
-      else return FD_TRUE;
-    case FD_ADD_OPCODE:
-      rv=fd_add(arg1,arg2,arg3);
-      if (rv<0) return FD_ERROR_VALUE;
-      else if (rv==0) return FD_FALSE;
-      else return FD_TRUE;
-    case FD_DROP_OPCODE:
-      rv=fd_drop(arg1,arg2,arg3);
-      if (rv<0) return FD_ERROR_VALUE;
-      else if (rv==0) return FD_FALSE;
-      else return FD_TRUE;
-    case FD_STORE_OPCODE:
-      rv=fd_store(arg1,arg2,arg3);
-      if (rv<0) return FD_ERROR_VALUE;
-      else if (rv==0) return FD_FALSE;
-      else return FD_TRUE;
-    case FD_TEST_OPCODE:
-      if (OIDP(arg1))
-        rv=fd_frame_test(arg1,arg2,arg3);
-      else rv=fd_test(arg1,arg2,arg3);
-      if (rv<0) return FD_ERROR_VALUE;
-      else if (rv==0) return FD_FALSE;
-      else return FD_TRUE;
-    case FD_GET_OPCODE:
-      return fd_fget(arg1,arg2);
-    case FD_ASSERT_OPCODE:
-      if (OIDP(arg1))
-        rv=fd_assert(arg1,arg2,arg3);
-      else rv=fd_add(arg1,arg2,arg3);
-      if (rv<0) return FD_ERROR_VALUE;
-      else if (rv==0) return FD_FALSE;
-      else return FD_TRUE;
-    case FD_RETRACT_OPCODE:
-      if (OIDP(arg1))
-        rv=fd_retract(arg1,arg2,arg3);
-      else rv=fd_drop(arg1,arg2,arg3);
-      if (rv<0) return FD_ERROR_VALUE;
-      else if (rv==0) return FD_FALSE;
-      else return FD_TRUE;
-    default:
-      return VOID;}}
-}
+/* Assignment */
 
 #define CURRENT_VALUEP(x) \
   (! ((cur == FD_DEFAULT_VALUE) || (cur == FD_UNBOUND) || \
@@ -928,6 +715,8 @@ static lispval assignop(fd_stack stack,fd_lexenv env,
   return fd_err(fd_SyntaxError,"ASSIGN_OPCODE",NULL,expr);
 }
 
+/* Binding */
+
 static lispval bindop(lispval op,
                       struct FD_STACK *_stack,fd_lexenv env,
                       lispval vars,lispval inits,lispval body,
@@ -952,17 +741,20 @@ static lispval bindop(lispval op,
   return result;
 }
 
+/* Opcode dispatch */
+
 static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
                                      fd_lexenv env,
                                      fd_stack _stack,
                                      int tail)
 {
   if (opcode == FD_QUOTE_OPCODE)
-    return fd_incref(pop_arg(expr));
+    return fd_incref(next_qcode(expr));
   if (opcode == FD_SOURCEREF_OPCODE) {
     if (!(FD_PAIRP(FD_CDR(expr)))) {
       lispval err = fd_err(fd_SyntaxError,"opcode_dispatch",NULL,expr);
       _return err;}
+    /* Unpack sourcerefs */
     while (opcode == FD_SOURCEREF_OPCODE) {
       lispval source = FD_CAR(FD_CDR(expr));
       lispval code   = FD_CDR(FD_CDR(expr));
@@ -975,7 +767,8 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
            (_stack->stack_source == expr) )
         _stack->stack_source=source;
       lispval old_op = _stack->stack_op;
-      fd_incref(code); _stack->stack_op=code;
+      fd_incref(code);
+      _stack->stack_op=code;
       if (_stack->stack_decref_op) fd_decref(old_op);
       _stack->stack_decref_op = 1;
       lispval realop = FD_CAR(code);
@@ -991,18 +784,9 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
       else return _fd_fast_eval(expr,env,_stack,tail);}}
   lispval args = FD_CDR(expr);
   switch (opcode) {
-  case FD_NOT_OPCODE: {
-    lispval arg_val = op_eval(pop_arg(args),env,_stack,0);
-    if (FALSEP(arg_val))
-      return FD_TRUE;
-    else {
-      fd_decref(arg_val);
-      return FD_FALSE;}}
-  case FD_BEGIN_OPCODE:
-    return op_eval_body(FD_CDR(expr),env,_stack,tail);
   case FD_SYMREF_OPCODE: {
-    lispval refenv=pop_arg(args);
-    lispval sym=pop_arg(args);
+    lispval refenv=next_qcode(args);
+    lispval sym=next_qcode(args);
     if (!(FD_SYMBOLP(sym)))
       return fd_err(fd_SyntaxError,"FD_SYMREF_OPCODE/badsym",NULL,expr);
     if (HASHTABLEP(refenv))
@@ -1012,58 +796,67 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
     else if (TABLEP(refenv))
       return fd_get(refenv,sym,FD_UNBOUND);
     else return fd_err(fd_SyntaxError,"FD_SYMREF_OPCODE/badenv",NULL,expr);}
+  case FD_VOID_OPCODE: {
+    return VOID;}
+  case FD_BEGIN_OPCODE:
+    return op_eval_body(FD_CDR(expr),env,_stack,tail);
   case FD_UNTIL_OPCODE:
     return until_opcode(expr,env,_stack);
   case FD_BRANCH_OPCODE: {
-    lispval test_expr = pop_arg(args);
+    lispval test_expr = next_qcode(args);
     if (VOIDP(test_expr))
       return fd_err(fd_SyntaxError,"FD_BRANCH_OPCODE",NULL,expr);
     lispval test_val = op_eval(test_expr,env,_stack,0);
     if (FD_ABORTED(test_val))
       return test_val;
     else if (FD_FALSEP(test_val)) { /* (  || (FD_EMPTYP(test_val)) ) */
-      pop_arg(args);
-      return op_eval(pop_arg(args),env,_stack,tail);}
+      next_qcode(args);
+      return op_eval(next_qcode(args),env,_stack,tail);}
     else {
-      lispval then = pop_arg(args);
-      U8_MAYBE_UNUSED lispval ignore = pop_arg(args);
+      lispval then = next_qcode(args);
+      U8_MAYBE_UNUSED lispval ignore = next_qcode(args);
       fd_decref(test_val);
       return op_eval(then,env,_stack,tail);}}
+  case FD_BIND_OPCODE: {
+    lispval vars=next_qcode(args);
+    lispval inits=next_qcode(args);
+    lispval body=next_qcode(args);
+    return bindop(opcode,_stack,env,vars,inits,body,tail);}
+  case FD_ASSIGN_OPCODE: {
+    lispval var = next_qcode(args);
+    lispval combiner = next_qcode(args);
+    lispval val_expr = next_qcode(args);
+    return assignop(_stack,env,var,val_expr,combiner);}
+  case FD_XREF_OPCODE: {
+    lispval off_arg = next_qcode(args);
+    lispval type_arg = next_qcode(args);
+    lispval obj_expr = next_qcode(args);
+    if ( (FIXNUMP(off_arg)) && (! (VOIDP(obj_expr)) ) ) {
+      lispval obj_arg=fast_eval(obj_expr,env);
+      return xref_opcode(fd_simplify_choice(obj_arg),
+                         FIX2INT(off_arg),
+                         next_qcode(args));}
+    fd_seterr(fd_SyntaxError,"FD_XREF_OPCODE",NULL,expr);
+    return FD_ERROR_VALUE;}
+  case FD_NOT_OPCODE: {
+    lispval arg_val = op_eval(next_qcode(args),env,_stack,0);
+    if (FALSEP(arg_val))
+      return FD_TRUE;
+    else {
+      fd_decref(arg_val);
+      return FD_FALSE;}}
   case FD_TRY_OPCODE:
     return try_op(args,env,_stack,tail);
   case FD_AND_OPCODE:
     return and_op(args,env,_stack,tail);
   case FD_OR_OPCODE:
     return or_op(args,env,_stack,tail);
-  case FD_ASSIGN_OPCODE: {
-    lispval var = pop_arg(args);
-    lispval val_expr = pop_arg(args);
-    lispval combiner = pop_arg(args);
-    return assignop(_stack,env,var,val_expr,combiner);}
-  case FD_VOID_OPCODE: {
-    return VOID;}
-  case FD_XREF_OPCODE: {
-    lispval obj_expr = pop_arg(args);
-    lispval off_arg = pop_arg(args);
-    if ((VOIDP(obj_expr))||(!(FIXNUMP(off_arg)))) {
-      fd_seterr(fd_SyntaxError,"FD_XREF_OPCODE",NULL,expr);
-      return FD_ERROR_VALUE;}
-    else {
-      lispval obj_arg=fast_eval(obj_expr,env);
-      return xref_opcode(fd_simplify_choice(obj_arg),
-                         FIX2INT(off_arg),
-                         pop_arg(args));}}
-  case FD_BIND_OPCODE: {
-    lispval vars=pop_arg(args);
-    lispval inits=pop_arg(args);
-    lispval body=pop_arg(args);
-    return bindop(opcode,_stack,env,vars,inits,body,tail);}
   case FD_GET_OPCODE: case FD_PRIMGET_OPCODE:
   case FD_TEST_OPCODE: case FD_PRIMTEST_OPCODE:
   case FD_ASSERT_OPCODE: case FD_ADD_OPCODE:
   case FD_RETRACT_OPCODE: case FD_DROP_OPCODE:
   case FD_STORE_OPCODE: {
-    lispval expr1=pop_arg(args), expr2=pop_arg(args), expr3=pop_arg(args);
+    lispval expr1=next_qcode(args), expr2=next_qcode(args), expr3=next_qcode(args);
     lispval arg1=op_eval(expr1,env,_stack,0), arg2, arg3;
     lispval result=VOID;
     if (FD_ABORTED(arg1)) return arg1;
@@ -1085,8 +878,8 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
     return fd_err(fd_SyntaxError,"opcode eval",NULL,expr);}
   else {
     /* We have at least one argument to evaluate and we also get the body. */
-    lispval arg1_expr = pop_arg(args), arg1 = op_eval(arg1_expr,env,_stack,0);
-    lispval arg2_expr = pop_arg(args), arg2;
+    lispval arg1_expr = next_qcode(args), arg1 = op_eval(arg1_expr,env,_stack,0);
+    lispval arg2_expr = next_qcode(args), arg2;
     /* Now, check the result of the first argument expression */
     if (FD_ABORTED(arg1)) return arg1;
     else if (VOIDP(arg1))
@@ -1100,12 +893,12 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
           return fd_simplify_choice(arg1);
         else return arg1;}
       else if (CONSP(arg1)) {
-        lispval result = nd1_dispatch(opcode,arg1);
+        lispval result = unary_nd_dispatch(opcode,arg1);
         fd_decref(arg1);
         return result;}
-      else return nd1_dispatch(opcode,arg1);}
+      else return unary_nd_dispatch(opcode,arg1);}
     else if (FD_D1_OPCODEP(opcode))
-      return d1_call(opcode,arg1);
+      return unary_call(opcode,arg1);
     /* Check the type for numeric arguments here. */
     else if (FD_NUMERIC_OPCODEP(opcode)) {
       if (PRED_FALSE(EMPTYP(arg1)))
@@ -1129,10 +922,10 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
         else if ((CHOICEP(arg1))||(CHOICEP(arg2)))
           return d2_call(opcode,arg1,arg2);
         else if ((CONSP(arg1))||(CONSP(arg2))) {
-          lispval result = d2_dispatch(opcode,arg1,arg2);
+          lispval result = binary_dispatch(opcode,arg1,arg2);
           fd_decref(arg1); fd_decref(arg2);
           return result;}
-        else return d2_dispatch(opcode,arg1,arg2);}}
+        else return binary_dispatch(opcode,arg1,arg2);}}
     else if (FD_D2_OPCODEP(opcode)) {
       if (EMPTYP(arg1))
         return EMPTY;
@@ -1151,16 +944,16 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
           /* Prune the call */
           fd_decref(arg1); return arg2;}
         else if ((CHOICEP(arg1)) || (CHOICEP(arg2)))
-          /* nd2_dispatch handles decref of arg1 and arg2 */
+          /* binary_nd_dispatch handles decref of arg1 and arg2 */
           return d2_call(opcode,arg1,arg2);
         else {
           /* This is the dispatch case where we just go to dispatch. */
-          lispval result = d2_dispatch(opcode,arg1,arg2);
+          lispval result = binary_dispatch(opcode,arg1,arg2);
           fd_decref(arg1); fd_decref(arg2);
           return result;}}}
     else if (FD_ND2_OPCODEP(opcode))
       /* This decrefs its arguments itself */
-      return nd2_dispatch(opcode,arg1,op_eval(arg2_expr,env,_stack,0));
+      return binary_nd_dispatch(opcode,arg1,op_eval(arg2_expr,env,_stack,0));
     else {
       fd_decref(arg1);
       return fd_err(fd_SyntaxError,"opcode eval",NULL,expr);}
@@ -1218,6 +1011,260 @@ FD_FASTOP lispval op_eval(lispval x,fd_lexenv env,
     return x;
   }
 }
+
+/* Deterministic opcodes */
+
+static lispval tableop(lispval opcode,lispval arg1,lispval arg2,lispval arg3)
+{
+  if (EMPTYP(arg1)) {
+    switch (opcode) {
+    case FD_GET_OPCODE: case FD_PRIMGET_OPCODE:
+      return EMPTY;
+    case FD_TEST_OPCODE: case FD_PRIMTEST_OPCODE:
+      return FD_FALSE;
+    case FD_STORE_OPCODE:
+    case FD_RETRACT_OPCODE: case FD_DROP_OPCODE:
+    case FD_ASSERT_OPCODE: case FD_ADD_OPCODE:
+      return VOID;
+    default:
+      return VOID;}}
+  else if (opcode == FD_TEST_OPCODE)
+    return fd_ftest(arg1,arg2,arg3);
+  else if (opcode == FD_PRIMTEST_OPCODE) {
+    int rv = fd_test(arg1,arg2,arg3);
+    if (rv<0) return FD_ERROR_VALUE;
+    else if (rv>0) return FD_TRUE;
+    else return FD_FALSE;}
+  else if (CHOICEP(arg1)) {
+    lispval results=EMPTY;
+    DO_CHOICES(tbl,arg1) {
+      lispval partial=tableop(opcode,tbl,arg2,arg3);
+      if (FD_ABORTED(partial)) {
+        fd_decref(results);
+        FD_STOP_DO_CHOICES;
+        return partial;}
+      else {
+        CHOICE_ADD(results,partial);}}
+    return results;}
+  else {
+    int rv=0;
+    switch (opcode) {
+    case FD_PRIMGET_OPCODE:
+      if (FD_VOIDP(arg3))
+        return fd_get(arg1,arg2,FD_EMPTY);
+      else return fd_get(arg1,arg2,arg3);
+    case FD_PRIMTEST_OPCODE:
+      rv=fd_test(arg1,arg2,arg3);
+      if (rv<0) return FD_ERROR_VALUE;
+      else if (rv==0) return FD_FALSE;
+      else return FD_TRUE;
+    case FD_ADD_OPCODE:
+      rv=fd_add(arg1,arg2,arg3);
+      if (rv<0) return FD_ERROR_VALUE;
+      else if (rv==0) return FD_FALSE;
+      else return FD_TRUE;
+    case FD_DROP_OPCODE:
+      rv=fd_drop(arg1,arg2,arg3);
+      if (rv<0) return FD_ERROR_VALUE;
+      else if (rv==0) return FD_FALSE;
+      else return FD_TRUE;
+    case FD_STORE_OPCODE:
+      rv=fd_store(arg1,arg2,arg3);
+      if (rv<0) return FD_ERROR_VALUE;
+      else if (rv==0) return FD_FALSE;
+      else return FD_TRUE;
+    case FD_TEST_OPCODE:
+      if (OIDP(arg1))
+        rv=fd_frame_test(arg1,arg2,arg3);
+      else rv=fd_test(arg1,arg2,arg3);
+      if (rv<0) return FD_ERROR_VALUE;
+      else if (rv==0) return FD_FALSE;
+      else return FD_TRUE;
+    case FD_GET_OPCODE:
+      return fd_fget(arg1,arg2);
+    case FD_ASSERT_OPCODE:
+      if (OIDP(arg1))
+        rv=fd_assert(arg1,arg2,arg3);
+      else rv=fd_add(arg1,arg2,arg3);
+      if (rv<0) return FD_ERROR_VALUE;
+      else if (rv==0) return FD_FALSE;
+      else return FD_TRUE;
+    case FD_RETRACT_OPCODE:
+      if (OIDP(arg1))
+        rv=fd_retract(arg1,arg2,arg3);
+      else rv=fd_drop(arg1,arg2,arg3);
+      if (rv<0) return FD_ERROR_VALUE;
+      else if (rv==0) return FD_FALSE;
+      else return FD_TRUE;
+    default:
+      return VOID;}}
+}
+
+static lispval xref_type_error(lispval x,lispval tag)
+{
+  if (VOIDP(tag))
+    fd_seterr(fd_TypeError,"XREF_OPCODE","compound",x);
+  else {
+    u8_string buf=fd_lisp2string(tag);
+    fd_seterr(fd_TypeError,"XREF_OPCODE",buf,x);
+    u8_free(buf);}
+  return FD_ERROR_VALUE;
+}
+
+static lispval xref_op(struct FD_COMPOUND *c,long long i,lispval tag,int free)
+{
+  if ((VOIDP(tag)) || ((c->compound_typetag) == tag)) {
+    if ((i>=0) && (i<c->compound_length)) {
+      lispval *values = &(c->compound_0), value;
+      if (c->compound_ismutable)
+        u8_lock_mutex(&(c->compound_lock));
+      value = values[i];
+      fd_incref(value);
+      if (c->compound_ismutable)
+        u8_unlock_mutex(&(c->compound_lock));
+      if (free) fd_decref((lispval)c);
+      return value;}
+    else {
+      fd_seterr(fd_RangeError,"xref",NULL,(lispval)c);
+      if (free) fd_decref((lispval)c);
+      return FD_ERROR_VALUE;}}
+  else {
+    lispval err=xref_type_error((lispval)c,tag);
+    if (free) fd_decref((lispval)c);
+    return err;}
+}
+
+static lispval xref_opcode(lispval x,long long i,lispval tag)
+{
+  if (!(CONSP(x))) {
+    if (EMPTYP(x))
+      return EMPTY;
+    else return xref_type_error(x,tag);}
+  else if (FD_COMPOUNDP(x))
+    return xref_op((struct FD_COMPOUND *)x,i,tag,1);
+  else if (CHOICEP(x)) {
+    lispval results = EMPTY;
+    DO_CHOICES(c,x) {
+      lispval r = xref_op((struct FD_COMPOUND *)c,i,tag,0);
+      if (FD_ABORTED(r)) {
+        fd_decref(results); results = r;
+        FD_STOP_DO_CHOICES;
+        break;}
+      else {CHOICE_ADD(results,r);}}
+    /* Need to free this */
+    fd_decref(x);
+    return results;}
+  else return fd_err(fd_TypeError,"xref",fd_lisp2string(tag),x);
+}
+
+static lispval elt_opcode(lispval arg1,lispval arg2)
+{
+  if ((FD_SEQUENCEP(arg1)) && (FD_INTP(arg2))) {
+    lispval result;
+    long long off = FIX2INT(arg2), len = fd_seq_length(arg1);
+    if (off<0) off = len+off;
+    result = fd_seq_elt(arg1,off);
+    if (result == FD_TYPE_ERROR)
+      return fd_type_error(_("sequence"),"FD_OPCODE_ELT",arg1);
+    else if (result == FD_RANGE_ERROR) {
+      char buf[32];
+      sprintf(buf,"%lld",off);
+      return fd_err(fd_RangeError,"FD_OPCODE_ELT",u8_strdup(buf),arg1);}
+    else return result;}
+  else if (!(FD_SEQUENCEP(arg1)))
+    return fd_type_error(_("sequence"),"FD_OPCODE_ELT",arg1);
+  else return fd_type_error(_("fixnum"),"FD_OPCODE_ELT",arg2);
+}
+
+static lispval eltn_opcode(lispval arg1,int n,u8_context opname)
+{
+  if ( ( n == 0) && (FD_PAIRP(arg1)) )
+    return fd_incref(FD_CAR(arg1));
+  else if (VECTORP(arg1))
+    if (VEC_LEN(arg1) > n)
+      return fd_incref(VEC_REF(arg1,n));
+    else return fd_err(fd_RangeError,opname,NULL,arg1);
+  else if (COMPOUND_VECTORP(arg1))
+    if (COMPOUND_VECLEN(arg1) > n)
+      return fd_incref(XCOMPOUND_VEC_REF(arg1,n));
+    else return fd_err(fd_RangeError,opname,NULL,arg1);
+  else return fd_seq_elt(arg1,n);
+}
+
+/* PICK opcodes */
+
+static lispval pickoids_opcode(lispval arg1)
+{
+  if (OIDP(arg1)) return arg1;
+  else if (EMPTYP(arg1)) return arg1;
+  else if ((CHOICEP(arg1)) || (PRECHOICEP(arg1))) {
+    lispval choice, results = EMPTY;
+    int free_choice = 0, all_oids = 1;
+    if (CHOICEP(arg1)) choice = arg1;
+    else {choice = fd_make_simple_choice(arg1); free_choice = 1;}
+    {DO_CHOICES(elt,choice) {
+        if (OIDP(elt)) {CHOICE_ADD(results,elt);}
+        else if (all_oids) all_oids = 0;}}
+    if (all_oids) {
+      fd_decref(results);
+      if (free_choice) return choice;
+      else return fd_incref(choice);}
+    else if (free_choice) fd_decref(choice);
+    return fd_simplify_choice(results);}
+  else return EMPTY;
+}
+
+static lispval pickstrings_opcode(lispval arg1)
+{
+  if ((CHOICEP(arg1)) || (PRECHOICEP(arg1))) {
+    lispval choice, results = EMPTY;
+    int free_choice = 0, all_strings = 1;
+    if (CHOICEP(arg1)) choice = arg1;
+    else {choice = fd_make_simple_choice(arg1); free_choice = 1;}
+    {DO_CHOICES(elt,choice) {
+        if (STRINGP(elt)) {
+          fd_incref(elt); CHOICE_ADD(results,elt);}
+        else if (all_strings) all_strings = 0;}}
+    if (all_strings) {
+      fd_decref(results);
+      if (free_choice) return choice;
+      else return fd_incref(choice);}
+    else if (free_choice) fd_decref(choice);
+    return fd_simplify_choice(results);}
+  else if (STRINGP(arg1)) return fd_incref(arg1);
+  else return EMPTY;
+}
+
+static lispval pickone_opcode(lispval normal)
+{
+  int n = FD_CHOICE_SIZE(normal);
+  if (n) {
+    lispval chosen;
+    int i = u8_random(n);
+    const lispval *data = FD_CHOICE_DATA(normal);
+    chosen = data[i]; fd_incref(chosen);
+    return chosen;}
+  else return EMPTY;
+}
+
+/* Initialization */
+
+static double opcodes_initialized = 0;
+
+FD_EXPORT
+lispval fd_opcode_dispatch(lispval opcode,lispval expr,fd_lexenv env,
+                          struct FD_STACK *stack,int tail)
+{
+  return opcode_dispatch(opcode,expr,env,stack,tail);
+}
+
+/* Opcode objects/names */
+
+u8_string fd_opcode_names[0x800]={NULL};
+
+int fd_opcodes_length = 0x800;
+
+/* Opcodes and names */
 
 static void set_opcode_name(lispval opcode,u8_string name)
 {
@@ -1329,72 +1376,38 @@ static lispval name2opcode_prim(lispval arg)
   else return fd_type_error(_("opcode name"),"name2opcode_prim",arg);
 }
 
-/* PICK opcodes */
-
-static lispval pickoids_opcode(lispval arg1)
+static int unparse_opcode(u8_output out,lispval opcode)
 {
-  if (OIDP(arg1)) return arg1;
-  else if (EMPTYP(arg1)) return arg1;
-  else if ((CHOICEP(arg1)) || (PRECHOICEP(arg1))) {
-    lispval choice, results = EMPTY;
-    int free_choice = 0, all_oids = 1;
-    if (CHOICEP(arg1)) choice = arg1;
-    else {choice = fd_make_simple_choice(arg1); free_choice = 1;}
-    {DO_CHOICES(elt,choice) {
-        if (OIDP(elt)) {CHOICE_ADD(results,elt);}
-        else if (all_oids) all_oids = 0;}}
-    if (all_oids) {
-      fd_decref(results);
-      if (free_choice) return choice;
-      else return fd_incref(choice);}
-    else if (free_choice) fd_decref(choice);
-    return fd_simplify_choice(results);}
-  else return EMPTY;
+  int opcode_offset = (FD_GET_IMMEDIATE(opcode,fd_opcode_type));
+  if (opcode_offset>fd_opcodes_length) {
+    u8_printf(out,"#<INVALIDOPCODE>");
+    return 1;}
+  else if (fd_opcode_names[opcode_offset]==NULL) {
+    u8_printf(out,"#<OPCODE_0x%x>",opcode_offset);
+    return 1;}
+  else {
+    u8_printf(out,"#<OPCODE_%s>",fd_opcode_names[opcode_offset]);
+    return 1;}
 }
 
-static lispval pickstrings_opcode(lispval arg1)
+static int validate_opcode(lispval opcode)
 {
-  if ((CHOICEP(arg1)) || (PRECHOICEP(arg1))) {
-    lispval choice, results = EMPTY;
-    int free_choice = 0, all_strings = 1;
-    if (CHOICEP(arg1)) choice = arg1;
-    else {choice = fd_make_simple_choice(arg1); free_choice = 1;}
-    {DO_CHOICES(elt,choice) {
-        if (STRINGP(elt)) {
-          fd_incref(elt); CHOICE_ADD(results,elt);}
-        else if (all_strings) all_strings = 0;}}
-    if (all_strings) {
-      fd_decref(results);
-      if (free_choice) return choice;
-      else return fd_incref(choice);}
-    else if (free_choice) fd_decref(choice);
-    return fd_simplify_choice(results);}
-  else if (STRINGP(arg1)) return fd_incref(arg1);
-  else return EMPTY;
+  int opcode_offset = (FD_GET_IMMEDIATE(opcode,fd_opcode_type));
+  if ((opcode_offset>=0) && (opcode_offset<fd_opcodes_length))
+    return 1;
+  else return 0;
 }
 
-static lispval pickone_opcode(lispval normal)
+static u8_string opcode_name(lispval opcode)
 {
-  int n = FD_CHOICE_SIZE(normal);
-  if (n) {
-    lispval chosen;
-    int i = u8_random(n);
-    const lispval *data = FD_CHOICE_DATA(normal);
-    chosen = data[i]; fd_incref(chosen);
-    return chosen;}
-  else return EMPTY;
+  int opcode_offset = (FD_GET_IMMEDIATE(opcode,fd_opcode_type));
+  if ((opcode_offset<fd_opcodes_length) &&
+      (fd_opcode_names[opcode_offset]))
+    return fd_opcode_names[opcode_offset];
+  else return "anonymous_opcode";
 }
 
 /* Initialization */
-
-static double opcodes_initialized = 0;
-
-FD_EXPORT
-lispval fd_opcode_dispatch(lispval opcode,lispval expr,fd_lexenv env,
-                          struct FD_STACK *stack,int tail)
-{
-  return opcode_dispatch(opcode,expr,env,stack,tail);
-}
 
 void fd_init_opcodes_c()
 {

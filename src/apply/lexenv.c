@@ -178,7 +178,6 @@ void _fd_free_lexenv(fd_lexenv env)
   fd_free_lexenv(env);
 }
 
-
 static int unparse_lexenv(u8_output out,lispval x)
 {
   struct FD_LEXENV *env=
