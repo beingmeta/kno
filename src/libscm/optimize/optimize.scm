@@ -33,6 +33,7 @@
 (varconfig! optlevel optlevel)
 
 (define-init fcnrefs-default {})
+(define-init pfcnrefs-default {})
 (define-init opcodes-default {})
 (define-init bindops-default {})
 (define-init lexrefs-default {})
@@ -71,12 +72,13 @@
       `(optmode-macro ',optname ,opthresh ',optvar))))
 
 (define use-opcodes? (optmode opcodes 2 opcodes-default))
-(define use-fcnrefs? (optmode fcnrefs 2 fcnrefs-default))
+(define use-pfcnrefs? (optmode pfcnrefs 2 pfcnrefs-default))
 (define use-bindops? (optmode bindops 4 bindops-default))
 (define use-substs? (optmode substs 2 substs-default))
 (define use-lexrefs? (optmode lexrefs 2 lexrefs-default))
 (define rewrite? (optmode 'rewrite 3 rewrite-default))
 (define keep-source? (optmode keepsource 2 keep-source-default))
+(define use-fcnrefs? (optmode fcnrefs 5 fcnrefs-default))
 
 ;;; Controls whether optimization warnings are emitted in real time
 ;;; (when encountered)
@@ -133,7 +135,7 @@
 	  '()
 	  (list arglist))))
 
-(define (get-lexref sym bindlist base)
+(define (get-lexref sym bindlist (base 0))
   (if (null? bindlist) #f
       (if (pair? (car bindlist))
 	  (let ((pos (position sym (car bindlist))))
@@ -169,7 +171,10 @@
 		     value)))
 	    (cond ((not (symbol? sym)) value)
 		  ((not (test env sym value)) sym)
-		  ((use-fcnrefs? opts)
+		  ((if (or (special-form? value) (primitive? value)
+			   (%test env '%constants sym))
+		       (use-pfcnrefs? opts)
+		       (use-fcnrefs? opts))
 		   (try (get fcnids (cons sym env))
 			(add-fcnid sym env value)))
 		  ;; If we want to directly embed the function, do so
@@ -406,47 +411,47 @@
 	    (when (and module (table? module))
 	      (add! env '%modrefs
 		    (pick (get module '%moduleid) symbol?))))
-	  (cond ;; This means the symbol can't be found
-	   ((not srcenv)
-	    (unless (or (test env '%nowarn expr)
-			(testopt opts 'nowarn expr)
-			(testopt opts 'nowarn #t))
-	      (codewarning (cons* 'UNBOUND expr bound))
-	      (when env
-		(add! env '%warnings (cons* 'UNBOUND expr bound)))
-	      (when (or optwarn (not env))
-		(warning "The symbol " expr
-			 " appears to be unbound given bindings "
-			 (apply append bound))))
-	    expr)
-	   ;; This is where the symbol isn't from a module, but
-	   ;; we're not doing lexrefs, so we just keep the
-	   ;; expression as a symbol
-	   ((not module) expr)
-	   ;; Several ways to disable optimization
-	   ((or (%test srcenv dont-touch-decls expr)
-		(testopt opts dont-touch-decls expr))
-	    expr)
-	   ;; If it's a primitive or special form, replace it
-	   ;; with its value
-	   ((or (primitive? value) (special-form? value))
-	    value)
-	   ((%test srcenv '%constants expr)
-	    ;; If it's a constant, replace it as well, but be
-	    ;; careful to quote it if it contains anything which
-	    ;; might be evaluated (symbols or pairs)
-	    (if (not (exists {pair? symbol?} value))
-		value
-		(list 'quote (qc value))))
-	   ((forall applicable? value)
-	    (fcnref value expr module opts))
-	   ;; TODO: add 'modrefs' which resolves module.var to a
-	   ;; fcnref and uses that for the symbol
-	   (else `(,(try (tryif use-opcodes #OP_SYMREF)
-			 (tryif (use-fcnrefs? opts)
-			   (force-fcnid %modref))
-			 %modref)
-		   ,module ,expr)))))))
+	  (cond ((not srcenv)
+		 ;; This means the symbol can't be found
+		 (unless (or (test env '%nowarn expr)
+			     (testopt opts 'nowarn expr)
+			     (testopt opts 'nowarn #t))
+		   (codewarning (cons* 'UNBOUND expr bound))
+		   (when env
+		     (add! env '%warnings (cons* 'UNBOUND expr bound)))
+		   (when (or optwarn (not env))
+		     (warning "The symbol " expr
+			      " appears to be unbound given bindings "
+			      (apply append bound))))
+		 expr)
+		;; This is where the symbol isn't from a module, but
+		;; we're not doing lexrefs, so we just keep the
+		;; expression as a symbol
+		((not module) expr)
+		;; Several ways to disable optimization
+		((or (%test srcenv dont-touch-decls expr)
+		     (testopt opts dont-touch-decls expr))
+		 expr)
+		;; If it's a primitive or special form, replace it
+		;; with its value
+		((or (primitive? value) (special-form? value))
+		 value)
+		((%test srcenv '%constants expr)
+		 ;; If it's a constant, replace it as well, but be
+		 ;; careful to quote it if it contains anything which
+		 ;; might be evaluated (symbols or pairs)
+		 (if (not (exists {pair? symbol?} value))
+		     value
+		     (list 'quote (qc value))))
+		((forall applicable? value)
+		 (fcnref value expr module opts))
+		;; TODO: add 'modrefs' which resolves module.var to a
+		;; fcnref and uses that for the symbol
+		(else `(,(try (tryif use-opcodes #OP_SYMREF)
+			      (tryif (use-fcnrefs? opts)
+				(force-fcnid %modref))
+			      %modref)
+			,module ,expr)))))))
 
 (define (do-rewrite rewriter expr env bound opts)
   (onerror
@@ -904,14 +909,14 @@
   (tryif (fixnum? off-arg)
     (tryif (and (pair? type-arg) (= (length type-arg) 2)
 		(overlaps? (car type-arg) {'quote quote}))
-      `(,xref-opcode ,(optimize (get-arg expr 1) env bound opts)
-		     ,off-arg ,(cadr type-arg)))
+      `(,xref-opcode ,off-arg ,(cadr type-arg)
+		     ,(optimize (get-arg expr 1) env bound opts)))
     (tryif (and (pair? type-arg) (eq? (car type-arg) #OP_QUOTE))
-      `(,xref-opcode ,(optimize (get-arg expr 1) env bound opts)
-		     ,off-arg ,(cadr type-arg)))
+      `(,xref-opcode ,off-arg ,(cadr type-arg)
+		     ,(optimize (get-arg expr 1) env bound opts)))
     (tryif (and (pair? type-arg) (not type-arg))
-      `(,xref-opcode ,(optimize (get-arg expr 1) env bound opts)
-		     ,off-arg))))
+      `(,xref-opcode ,off-arg #f
+		     (optimize (get-arg expr 1) env bound opts)))))
 
 (store! procedure-optimizers compound-ref optimize-compound-ref)
 
@@ -1029,6 +1034,44 @@
 				(cons (list (first bindspec)) bound)))))
 		   (forseq (b body) (optimize b env bound opts))))))
 
+(define (optimize-dotimes handler expr env bound opts)
+  (let* ((bindspec (cadr expr)) 
+	 (varname (car bindspec))
+	 (limit-expr (cadr bindspec))
+	 (newbound (cons (list varname '|dotimes_limit|) bound))
+	 (iter-ref (get-lexref varname newbound))
+	 (limit-ref (get-lexref '|dotimes_limit| newbound))
+	 (body (cddr expr)))
+    `(#OP_BIND #(,varname |dotimes_limit|) 
+	       #(0 ,(optimize limit-expr env bound opts))
+	       (#OP_UNTIL
+		(#OP_GTE ,iter-ref ,limit-ref)
+		,@(forseq (clause body) (optimize clause env newbound opts))
+		(,%env/reset!)
+		(#OP_ASSIGN ,iter-ref #t (#OP_PLUS1 ,iter-ref))))))
+
+(define (optimize-doseq handler expr env bound opts)
+  (let* ((bindspec (cadr expr))
+	 (varname (car bindspec))
+	 (val-expr (cadr bindspec))
+	 (iter-var (get-arg bindspec 2 '|doseq_i|))
+	 (new-bindings (cons `(,varname ,iter-var |_doseq_subject| |_doseq_limit|)
+			     bound))
+	 (elt-ref (get-lexref varname new-bindings))
+	 (iter-ref (get-lexref iter-var new-bindings))
+	 (seq-ref (get-lexref '|_doseq_subject| new-bindings))
+	 (limit-ref (get-lexref '|_doseq_limit| new-bindings))
+	 (body (cddr expr)))
+    `(#OP_BIND #(,varname ,iter-var |_doseq_subject| |_doseq_limit|)
+	       #(#f 0 ,(optimize val-expr env bound opts) 0)
+	       (#OP_ASSIGN ,limit-ref (#OP_LENGTH ,seq-ref))
+	       (#OP_UNTIL
+		(#OP_GTE ,iter-ref ,limit-ref)
+		(#OP_ASSIGN ,elt-ref (#OP_SEQELT ,seq-ref ,iter-ref))
+		,@(forseq (clause body) (optimize clause env new-bindings  opts))
+		(,%env/reset!)
+		(#OP_ASSIGN ,iter-ref #t (#OP_PLUS1 ,iter-ref))))))
+
 (define (optimize-dosubsets handler expr env bound opts)
   (let ((bindspec (cadr expr)) 
 	(body (cddr expr)))
@@ -1098,11 +1141,11 @@
 		 ;; lexical contour or enviroment
 		 `(,handler ,var ,optval))
 		((overlaps? handler set!) `
-		 (#OP_ASSIGN ,loc ,optval #f))
+		 (#OP_ASSIGN ,loc #f ,optval))
 		((overlaps? handler set+!)
-		 `(#OP_ASSIGN ,loc ,optval #OP_UNION))
+		 `(#OP_ASSIGN ,loc #OP_UNION ,optval))
 		((overlaps? handler default!) 
-		 `(#OP_ASSIGN ,loc ,optval #t))
+		 `(#OP_ASSIGN ,loc #t ,optval))
 		(else `(,handler ,var ,optval)))
 	  `(,handler ,var ,optval)))))
 
@@ -1152,9 +1195,11 @@
 	,(if (overlaps? (car (car clauses)) '{else default})
 	     #t
 	     (optimize (car (car clauses)) env bound opts))
-	(#OP_BEGIN 
-	 ,@(forseq (c (cdr (car clauses)))
-	     (optimize c env bound opts)))
+	,(if (empty-list? (cdr (cdr clauses)))
+	     (optimize (cadr clauses) env bound opts)
+	     `(#OP_BEGIN 
+	       ,@(forseq (c (cdr (car clauses)))
+		   (optimize c env bound opts))))
 	,(convert-cond (cdr clauses) env bound opts))))
 
 (define (optimize-and handler expr env bound opts)
