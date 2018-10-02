@@ -69,7 +69,7 @@ static lispval load_source_for_module
   (lispval spec,u8_string module_source,int safe);
 static u8_string get_module_source(lispval spec,int safe);
 
-static lispval moduleid_symbol, source_symbol;
+static lispval moduleid_symbol, source_symbol, loadstamps_symbol;
 
 /* Module finding */
 
@@ -487,8 +487,6 @@ static u8_string file_source_fn(int fetch,u8_string filename,u8_string encname,
 
 /* Latest source functions */
 
-static lispval source_symbol;
-
 static lispval get_entry(lispval key,lispval entries)
 {
   lispval entry = EMPTY;
@@ -508,9 +506,9 @@ int fd_load_latest(u8_string filename,fd_lexenv env,u8_string base)
     fd_lexenv scan = env;
     lispval result = VOID;
     while (scan) {
-      lispval sources =
-        fd_get(scan->env_bindings,source_symbol,EMPTY);
-      DO_CHOICES(entry,sources) {
+      lispval loadstamps =
+        fd_get(scan->env_bindings,loadstamps_symbol,EMPTY);
+      DO_CHOICES(entry,loadstamps) {
         struct FD_TIMESTAMP *loadstamp=
           fd_consptr(fd_timestamp,FD_CDR(entry),fd_timestamp_type);
         time_t mod_time = u8_file_mtime(CSTRING(FD_CAR(entry)));
@@ -526,7 +524,7 @@ int fd_load_latest(u8_string filename,fd_lexenv env,u8_string base)
                    CSTRING(FD_CAR(entry)));
           result = fd_load_source(CSTRING(FD_CAR(entry)),scan,"auto");
           if (FD_ABORTP(result)) {
-            fd_decref(sources);
+            fd_decref(loadstamps);
             return fd_interr(result);}
           else fd_decref(result);
           loads++;}}
@@ -535,9 +533,9 @@ int fd_load_latest(u8_string filename,fd_lexenv env,u8_string base)
   else {
     u8_string abspath = u8_abspath(filename,base);
     lispval abspath_dtype = lispval_string(abspath);
-    lispval sources =
-      fd_get(env->env_bindings,source_symbol,EMPTY);
-    lispval entry = get_entry(abspath_dtype,sources);
+    lispval loadstamps =
+      fd_get(env->env_bindings,loadstamps_symbol,EMPTY);
+    lispval entry = get_entry(abspath_dtype,loadstamps);
     lispval result = VOID;
     if (PAIRP(entry))
       if (TYPEP(FD_CDR(entry),fd_timestamp_type)) {
@@ -557,7 +555,8 @@ int fd_load_latest(u8_string filename,fd_lexenv env,u8_string base)
       else {
         fd_seterr("Invalid load_latest record","load_latest",
                   abspath,entry);
-        fd_decref(sources); fd_decref(abspath_dtype);
+        fd_decref(loadstamps);
+        fd_decref(abspath_dtype);
         return -1;}
     else {
       time_t mod_time = u8_file_mtime(abspath);
@@ -565,15 +564,15 @@ int fd_load_latest(u8_string filename,fd_lexenv env,u8_string base)
       FD_INIT_CONS(tstamp,fd_timestamp_type);
       u8_init_xtime(&(tstamp->u8xtimeval),mod_time,u8_second,0,0,0);
       entry = fd_conspair(fd_incref(abspath_dtype),LISP_CONS(tstamp));
-      if (EMPTYP(sources))
-        fd_bind_value(source_symbol,entry,env);
-      else fd_add_value(source_symbol,entry,env);}
+      if (EMPTYP(loadstamps))
+        fd_bind_value(loadstamps_symbol,entry,env);
+      else fd_add_value(loadstamps_symbol,entry,env);}
     if (log_reloads)
       u8_log(LOG_WARN,"fd_load_latest","Reloading %s",abspath);
     result = fd_load_source(abspath,env,"auto");
     u8_free(abspath);
     fd_decref(abspath_dtype);
-    fd_decref(sources);
+    fd_decref(loadstamps);
     if (FD_ABORTP(result))
       return fd_interr(result);
     else fd_decref(result);
@@ -712,6 +711,7 @@ FD_EXPORT void fd_init_loader_c()
 
   moduleid_symbol = fd_intern("%MODULEID");
   source_symbol = fd_intern("%SOURCE");
+  loadstamps_symbol = fd_intern("%LOADSTAMPS");
 
   /* Setup load paths */
   {u8_string path = u8_getenv("FD_INIT_LOADPATH");
