@@ -562,7 +562,9 @@ static lispval lockedoids(lispval pool)
 
 static lispval unlockoids(lispval oids,lispval commitp)
 {
-  int force_commit = (!((VOIDP(commitp)) || (FALSEP(commitp))));
+  int force_commit = (VOIDP(commitp)) ? (0) :
+    (FD_FALSEP(commitp)) ? (-1) :
+    (1);
   if (VOIDP(oids)) {
     fd_unlock_pools(force_commit);
     return FD_FALSE;}
