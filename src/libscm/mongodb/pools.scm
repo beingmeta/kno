@@ -325,3 +325,10 @@
 	    '%mongovec
 	    #f #f)))
 	(else query)))
+
+;;; Decaching OIDs
+
+(define (mgo/decache! oid (commit #f))
+  (when (locked? oid) (unlock-oids! oid commit))
+  (swapout oid))
+
