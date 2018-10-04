@@ -3,6 +3,7 @@ SIGNAL_ARG=
 SIGNAL=${SIGNAL:-TERM}
 CMD="@SUDO@ kill -s"
 SIGNALNAMES="^(sig)?(kill|term|hup|alarm|alrm|quit|int|[1]?[0-9])"
+SHOWLOG=
 
 showusage ( ) {
     echo "Usage: fdsignal [signal] <job>*";
@@ -42,7 +43,9 @@ if test $# -eq 0 || test "$1" = "usage"; then
 elif signalp $1; then
     SIGNAL=$1; shift;
 fi;     
+
 for name in $*; do
+    signalled="yes"
     base=`basename ${name}`;
     if test "${name}" = "${base}"; then
        name=`basename ${name} .`;
@@ -58,6 +61,17 @@ for name in $*; do
 	send_signal ${SIGNAL} "@daemon_rundir@/${name}.pid";
     elif test -f @servlet_rundir@/${name}.pid; then
 	send_signal ${SIGNAL} "@servlet_rundir@/${name}.pid";
-    else echo "fdsignal: Couldn't find task ${name} for signal ${SIGNAL}";
+    else 
+	signalled="no";
+    fi;
+    if [ ${signalled} == "no" ]; then
+	echo "fdsignal: Couldn't find task ${name} for signal ${SIGNAL}";
+    elif [ -z "${SHOWLOG}" ]; then
+	SHOWLOG=${name};
+    else
+	SHOWLOG=.none;
     fi;
 done;
+if [ ! -z ${SHOWLOG} ] && [ ${SHOWLOG} != ".none" ]; then
+    exec fdlog ${SHOWLOG};
+fi;

@@ -562,7 +562,9 @@ static lispval lockedoids(lispval pool)
 
 static lispval unlockoids(lispval oids,lispval commitp)
 {
-  int force_commit = (!((VOIDP(commitp)) || (FALSEP(commitp))));
+  int force_commit = (VOIDP(commitp)) ? (0) :
+    (FD_FALSEP(commitp)) ? (-1) :
+    (1);
   if (VOIDP(oids)) {
     fd_unlock_pools(force_commit);
     return FD_FALSE;}
@@ -2035,6 +2037,8 @@ FD_FASTOP int test_selector_relation(lispval f,lispval pred,lispval val,int data
     else return fd_test(f,pred,val);}
   else if (TABLEP(pred))
     return fd_test(pred,f,val);
+  else if ((SYMBOLP(pred)) || (OIDP(pred)))
+    return 0;
   else if (FD_APPLICABLEP(pred)) {
     if (FD_FCNIDP(pred)) pred = fd_fcnid_ref(pred);
     lispval rail[2], result = VOID;
@@ -2234,9 +2238,10 @@ static lispval pick_helper(lispval candidates,int n,lispval *tests,int datalevel
       lispval candidate = *read++;
       int retval = test_selector_clauses(candidate,n,tests,datalevel);
       if (retval<0) {
-        const lispval *scan = FD_XCHOICE_DATA(write_choice), *limit = scan+n_results;
+        const lispval *scan = FD_XCHOICE_DATA(write_choice);
+        const lispval *limit = scan+n_results;
         while (scan<limit) {lispval v = *scan++; fd_decref(v);}
-        u8_free(write_choice);
+        fd_free_choice(write_choice);
         return FD_ERROR;}
       else if (retval) {
         *write++=candidate; n_results++;

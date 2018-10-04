@@ -682,7 +682,7 @@ static u8_string mongodb_check(mongoc_client_pool_t *client_pool)
 }
 
 #if MONGOC_CHECK_VERSION(1,4,0)
-#define mongoc_uri_info(s,e) mongoc_uri_new_with_error((s),&error)
+#define mongoc_uri_info(s,e) mongoc_uri_new_with_error((s),e)
 #else
 #define mongoc_uri_info(s,e) mongoc_uri_new((s))
 #endif

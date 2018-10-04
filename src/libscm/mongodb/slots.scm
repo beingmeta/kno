@@ -23,7 +23,6 @@
 
 (module-export! '{->collection mongo/domain!})
 (module-export! '{mgo/get mgo/store! mgo/drop! mgo/add!})
-(module-export! '{mgo/decache!})
 
 (defimport mongopools 'mongodb/pools)
 (defimport mp->collection 'mongodb/pools mongopool-collection)
@@ -242,6 +241,3 @@
   (when (test result 'value)
     (set! value (get result 'value))
     (%set-oid-value! oid value)))
-
-(define (mgo/decache! oid (slotid #f))
-  (swapout oid))

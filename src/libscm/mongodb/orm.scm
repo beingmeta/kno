@@ -17,7 +17,6 @@
 
 (module-export! '{->collection mongo/domain!})
 (module-export! '{mgo/get mgo/store! mgo/drop! mgo/add!})
-(module-export! '{mgo/decache!})
 
 (defimport mongopools 'mongodb/pools)
 (defimport mp->collection 'mongodb/pools mongopool-collection)
@@ -250,5 +249,4 @@
     (detail%watch "OID/SYNC!" oid slotid "\nVALUE" value "\nRESULT" result)
     (%set-oid-value! oid value)))
 
-(define (mgo/decache! oid (slotid #f))
-  (swapout oid))
+
