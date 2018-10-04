@@ -153,11 +153,14 @@ FD_EXPORT int fd_unparse_packet
    (U8_OUTPUT *out,const unsigned char *bytes,size_t len,int base)
 {
   int i = 0;
+  int unparse_maxbytes =
+    ( (out->u8_streaminfo) & (U8_STREAM_VERBOSE) ) ? (-1) :
+    (fd_unparse_maxchars);
   if (base==16) {
     u8_puts(out,"#X\"");
     while (i<len) {
       int byte = bytes[i++]; char buf[16];
-      if ((fd_unparse_maxchars>0) && (i>=fd_unparse_maxchars)) {
+      if ((unparse_maxbytes>0) && (i>=unparse_maxbytes)) {
         u8_putc(out,' '); output_ellipsis(out,len-i,"bytes");
         return u8_putc(out,'"');}
       sprintf(buf,"%02x",byte);
@@ -167,9 +170,9 @@ FD_EXPORT int fd_unparse_packet
     int n_chars = 0;
     char *b64 = u8_write_base64(bytes,len,&n_chars);
     u8_puts(out,"#@\"");
-    if ((fd_unparse_maxchars>0) && (n_chars>=fd_unparse_maxchars)) {
-      u8_putn(out,b64,fd_unparse_maxchars);
-      output_ellipsis(out,len-fd_unparse_maxchars,"bytes");}
+    if ((unparse_maxbytes>0) && (n_chars>=unparse_maxbytes)) {
+      u8_putn(out,b64,unparse_maxbytes);
+      output_ellipsis(out,len-unparse_maxbytes,"bytes");}
     else u8_putn(out,b64,n_chars);
     u8_free(b64);
     return u8_putc(out,'"');}
@@ -177,8 +180,9 @@ FD_EXPORT int fd_unparse_packet
     u8_puts(out,"#\"");
     while (i < len) {
       int byte = bytes[i++]; char buf[16];
-      if ((fd_unparse_maxchars>0) && (i>=fd_unparse_maxchars)) {
-        u8_putc(out,' '); output_ellipsis(out,len-i,"bytes");
+      if ((unparse_maxbytes>0) && (i>=unparse_maxbytes)) {
+        u8_putc(out,' ');
+        output_ellipsis(out,len-i,"bytes");
         return u8_putc(out,'"');}
       if (byte == '"') u8_puts(out,"\\\"");
       else if (byte == '\\') u8_puts(out,"\\\\");
@@ -222,6 +226,9 @@ static int unparse_secret(U8_OUTPUT *out,lispval x)
 static int unparse_pair(U8_OUTPUT *out,lispval x)
 {
   lispval car = FD_CAR(x);
+  int unparse_maxelts =
+    ( (out->u8_streaminfo) & (U8_STREAM_VERBOSE) ) ? (-1) :
+    (fd_unparse_maxelts);
   if ((SYMBOLP(car)) && (PAIRP(FD_CDR(x))) &&
       ((FD_CDR(FD_CDR(x))) == NIL)) {
     int false_alarm = 0;
@@ -236,12 +243,14 @@ static int unparse_pair(U8_OUTPUT *out,lispval x)
   {
     lispval scan = x; int len = 0, ellipsis_start = -1;
     u8_puts(out,"(");
-    fd_unparse(out,FD_CAR(scan)); len++;
+    fd_unparse(out,FD_CAR(scan));
+    len++;
     scan = FD_CDR(scan);
     while (FD_PTR_TYPE(scan) == fd_pair_type)
-      if ((fd_unparse_maxelts>0) && (len>=fd_unparse_maxelts)) {
-        if (len == fd_unparse_maxelts) ellipsis_start = len;
-        scan = FD_CDR(scan); len++;}
+      if ((unparse_maxelts>0) && (len>=unparse_maxelts)) {
+        if (len == unparse_maxelts) ellipsis_start = len;
+        scan = FD_CDR(scan);
+        len++;}
       else {
         u8_puts(out," ");
         fd_unparse(out,FD_CAR(scan)); len++;
@@ -261,12 +270,17 @@ static int unparse_vector(U8_OUTPUT *out,lispval x)
 {
   struct FD_VECTOR *v = (struct FD_VECTOR *) x;
   int i = 0, len = v->vec_length;
+  int unparse_maxelts =
+    ( (out->u8_streaminfo) & (U8_STREAM_VERBOSE) ) ? (-1) :
+    (fd_unparse_maxelts);
   u8_puts(out,"#(");
   while (i < len) {
-    if ((fd_unparse_maxelts>0) && (i>=fd_unparse_maxelts)) {
-      u8_puts(out," "); output_ellipsis(out,len-i,"elts");
+    if ((unparse_maxelts>0) && (i>=unparse_maxelts)) {
+      u8_puts(out," ");
+      output_ellipsis(out,len-i,"elts");
       return u8_puts(out,")");}
-    if (i>0) u8_puts(out," "); fd_unparse(out,v->vec_elts[i]);
+    if (i>0) u8_puts(out," ");
+    fd_unparse(out,v->vec_elts[i]);
     i++;}
   return u8_puts(out,")");
 }
@@ -275,9 +289,12 @@ static int unparse_code(U8_OUTPUT *out,lispval x)
 {
   struct FD_VECTOR *v = (struct FD_VECTOR *) x;
   int i = 0, len = v->vec_length; lispval *data = v->vec_elts;
+  int unparse_maxelts =
+    ( (out->u8_streaminfo) & (U8_STREAM_VERBOSE) ) ? (-1) :
+    (fd_unparse_maxelts);
   u8_puts(out,"#~(");
   while (i < len) {
-    if ((fd_unparse_maxelts>0) && (i>=fd_unparse_maxelts)) {
+    if ((unparse_maxelts>0) && (i>=unparse_maxelts)) {
       u8_puts(out," "); output_ellipsis(out,len-i,"elts");
       return u8_puts(out,")");}
     if (i>0) u8_puts(out," ");
@@ -291,10 +308,13 @@ static int unparse_choice(U8_OUTPUT *out,lispval x)
   struct FD_CHOICE *v = (struct FD_CHOICE *) x;
   const lispval *data = FD_XCHOICE_DATA(v);
   int i = 0, len = FD_XCHOICE_SIZE(v);
+  int unparse_maxelts =
+    ( (out->u8_streaminfo) & (U8_STREAM_VERBOSE) ) ? (-1) :
+    (fd_unparse_maxelts);
   u8_puts(out,"{");
   while (i < len) {
     if (i>0) u8_puts(out," ");
-    if ((fd_unparse_maxelts>0) && (i>=fd_unparse_maxelts)) {
+    if ((unparse_maxelts>0) && (i>=unparse_maxelts)) {
       output_ellipsis(out,len-i,"elts");
       return u8_puts(out,"}");}
     else fd_unparse(out,data[i]);
