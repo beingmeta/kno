@@ -309,8 +309,9 @@ static lispval json_table(U8_INPUT *in,int flags,lispval fieldmap)
         if (VOIDP(handler))
           kv[n_elts].kv_val = json_parse(in,flags,fieldmap);
         else
-          kv[n_elts].kv_val = convert_value(handler,json_parse(in,flags,fieldmap),
-                                         1,(flags&FD_JSON_VERBOSE));}
+          kv[n_elts].kv_val =
+            convert_value(handler,json_parse(in,flags,fieldmap),
+                          1,(flags&FD_JSON_VERBOSE));}
       if (FD_ABORTP(kv[n_elts].kv_val)) break;
       n_elts++; c = skip_whitespace(in);}}
   i = 0; while (i<n_elts) {
@@ -555,7 +556,9 @@ static void json_unparse(u8_output out,lispval x,int flags,lispval slotfn,
     lispval tval = ((VOIDP(miscfn))?(VOID):
                  (fd_finish_call(fd_dapply(miscfn,1,&x))));
     U8_INIT_STATIC_OUTPUT_BUF(tmpout,256,buf);
-    if (VOIDP(tval)) fd_unparse(&tmpout,x);
+    tmpout.u8_streaminfo |= U8_STREAM_VERBOSE;
+    if (VOIDP(tval))
+      fd_unparse(&tmpout,x);
     else fd_unparse(&tmpout,tval);
     fd_decref(tval);
     if (flags) u8_puts(out,"\":"); else u8_putc(out,'"');
