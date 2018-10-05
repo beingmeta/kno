@@ -30,7 +30,8 @@
 (define (make-collection-index collection (opts #f))
   (cons-extindex 
    (glom "index-" (collection/name collection) "@" (mongo/dbspec collection))
-   collection-index-fetchfn #f collection #t opts))
+   collection-index-fetchfn #f collection (getopt opts 'cached #f)
+   opts))
 
 (define (mongo/index collection (opts #f) (reuse))
   (default! reuse (getopt opts 'reuse #t))
