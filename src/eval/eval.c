@@ -864,7 +864,7 @@ static lispval watched_eval_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
         if (lbl[0]=='\n') {
           u8_printf(&out,"\n  ");
           oneout = 1;
-          fd_list_object(&out,wval,lbl+1,NULL,"  ",NULL,100,2);
+          fd_list_object(&out,wval,lbl+1,NULL,"  ",NULL,100,0);
           if (PAIRP(scan)) {
             u8_puts(&out,"\n"); off = 0;}}
         else {
