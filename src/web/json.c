@@ -340,17 +340,17 @@ static int get_json_flags(lispval flags_arg)
     int flags=0;
     if (!(fd_testopt(flags_arg,symbolize_symbol,FD_FALSE)))
       flags |= FD_JSON_SYMBOLIZE;
-    if (!(fd_testopt(flags_arg,colonize_symbol,VOID)))
+    if (fd_testopt(flags_arg,colonize_symbol,VOID))
       flags |= FD_JSON_COLONIZE;
     if (!(fd_testopt(flags_arg,rawids_symbol,VOID)))
       flags |= FD_JSON_IDKEY;
-    if (!(fd_testopt(flags_arg,ticks_symbol,VOID)))
+    if (fd_testopt(flags_arg,ticks_symbol,VOID))
       flags |= FD_JSON_TICKS;
-    if (!(fd_testopt(flags_arg,ticklets_symbol,VOID)))
+    if (fd_testopt(flags_arg,ticklets_symbol,VOID))
       flags |= FD_JSON_TICKLETS;
-    if (!(fd_testopt(flags_arg,verbose_symbol,VOID)))
+    if (fd_testopt(flags_arg,verbose_symbol,VOID))
       flags |= FD_JSON_VERBOSE;
-    if (!(fd_testopt(flags_arg,strict_symbol,VOID)))
+    if (fd_testopt(flags_arg,strict_symbol,VOID))
       flags |= FD_JSON_STRICT;
     return flags;}
   else if (PRECHOICEP(flags_arg)) {
