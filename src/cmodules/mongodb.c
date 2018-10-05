@@ -2274,6 +2274,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
     default: {
       struct U8_OUTPUT vout; unsigned char buf[128]; 
       U8_INIT_OUTPUT_BUF(&vout,128,buf);
+      vout.u8_streaminfo |= U8_STREAM_VERBOSE;
       if (flags&FD_MONGODB_COLONIZE)
         u8_printf(&vout,":%q",val);
       else fd_unparse(&vout,val);
@@ -2326,6 +2327,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
     default: {
       struct U8_OUTPUT vout; unsigned char buf[128]; bool rv;
       U8_INIT_OUTPUT_BUF(&vout,128,buf);
+      vout.u8_streaminfo |= U8_STREAM_VERBOSE;
       if (flags&FD_MONGODB_COLONIZE)
         u8_printf(&vout,":%q",val);
       else fd_unparse(&vout,val);
@@ -2375,6 +2377,7 @@ static bool bson_append_keyval(FD_BSON_OUTPUT b,lispval key,lispval val)
         store_value = fd_get(mapfn,val,FD_VOID);
       else if (FD_TRUEP(mapfn)) {
         struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
+        out.u8_streaminfo |= U8_STREAM_VERBOSE;
         fd_unparse(&out,val);
         store_value = fd_stream2string(&out);}
       else {}}}
