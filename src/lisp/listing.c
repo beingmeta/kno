@@ -220,7 +220,6 @@ static void list_element(u8_output out,lispval elt,
   tmp.u8_write = tmp.u8_outbuf; tmp.u8_outbuf[0]='\0';
   u8_byte pathbuf[64];
   u8_string sub_path = u8_bprintf(pathbuf,"%s.%d",pathref,path);
-  u8_printf(out,"\n%s",indent);
   /* Output the element preamble, since we're putting it on a new line */
   if (UNLISTABLEP(elt)) {
     if ((pathref) && (path>=0))
@@ -230,9 +229,12 @@ static void list_element(u8_output out,lispval elt,
     else u8_printf(out,"\n%s",indent);
     fd_pprint(out,elt,indent,3,3,width);}
   else if ( (FD_SLOTMAPP(elt)) || (FD_SCHEMAPP(elt)) ) {
+    u8_printf(out,"\n%s",indent);
     list_table(out,elt,NULL,pathref,path,indent,eltfn,width,3,depth);}
-  else list_elements(out,elt,sub_path,sub_path,indent,
-                     eltfn,width,detail,depth+1);
+  else {
+    u8_printf(out,"\n%s",indent);
+    list_elements(out,elt,sub_path,sub_path,indent,
+                  eltfn,width,detail,depth+1);}
   u8_close_output(tmpout);
   u8_flush(out);
 }
