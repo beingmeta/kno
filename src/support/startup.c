@@ -76,6 +76,7 @@ int fd_argc = -1;
 static void set_vector_length(lispval vector,int len);
 static lispval exec_arg = FD_FALSE, lisp_argv = FD_FALSE, string_argv = FD_FALSE;
 static lispval raw_argv = FD_FALSE, config_argv = FD_FALSE;
+static u8_string exe_name = NULL;
 static int init_argc = 0;
 static size_t app_argc;
 
@@ -99,8 +100,8 @@ FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
                                   size_t *arglen_ptr)
 {
   if (argc>0) {
-    u8_string exe_name = u8_fromlibc(argv[0]);
-    lispval interp = fd_lispstring(exe_name);
+    exe_name = u8_fromlibc(argv[0]);
+    lispval interp = fdstring(exe_name);
     u8_string exec_path = NULL;
     fd_set_config("INTERPRETER",interp);
     fd_set_config("EXE",interp);
@@ -832,16 +833,13 @@ FD_EXPORT int fd_boot_message()
   U8_FIXED_OUTPUT(curtime,256);
   u8_xtime_to_rfc822_x(curtimeout,&xt,xt.u8_tzoff,0);
   u8_string appid = u8_appid();
-  if (appid)
-    u8_log(U8_LOG_MSG,NULL,"(%lld) %s %s",
-           (unsigned long long)getpid(),
-           fd_getrevision(),u8_getrevision());
-  else u8_log(U8_LOG_MSG,NULL,"(%s:%lld) %s %s",
-              appid,(unsigned long long)getpid(),
-              fd_getrevision(),u8_getrevision());
   u8_log(U8_LOG_MSG,NULL,
-         _("Copyright (C) beingmeta 2004-2018, all rights reserved"));
-  u8_log(U8_LOG_MSG,NULL,_("%-s@%-s:%-s (%s)"),
+         _("(%s:%lld) %s %s\n"
+           "Copyright (C) beingmeta 2004-2018, all rights reserved\n"
+           "%-s@%-s:%-s (%s)"),
+         ((appid) ? (appid) : (exe_name) ? (exe_name) : ((u8_string)"exe")),
+         (unsigned long long)getpid(),
+         fd_getrevision(),u8_getrevision(),
          u8_username(uid),u8_gethostname(),u8_getcwd(),
          curtime.u8_outbuf);
   if ( (fd_logcmd) && (fd_argc > 1) )
