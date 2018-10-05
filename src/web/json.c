@@ -358,19 +358,19 @@ static int get_json_flags(lispval flags_arg)
     int rv=get_json_flags(choice);
     fd_decref(choice);
     return rv;}
-  else if (CHOICEP(flags_arg)) {
+  else if ( (CHOICEP(flags_arg)) || (SYMBOLP(flags_arg)) ) {
     int flags=0;
-    if (fd_choice_containsp(symbolize_symbol,flags_arg))
+    if (fd_overlapp(symbolize_symbol,flags_arg))
       flags |= FD_JSON_SYMBOLIZE;
-    if (fd_choice_containsp(colonize_symbol,flags_arg))
+    if (fd_overlapp(colonize_symbol,flags_arg))
       flags |= FD_JSON_COLONIZE;
-    if (fd_choice_containsp(rawids_symbol,flags_arg))
+    if (fd_overlapp(rawids_symbol,flags_arg))
       flags |= FD_JSON_IDKEY;
-    if (fd_choice_containsp(ticks_symbol,flags_arg))
+    if (fd_overlapp(ticks_symbol,flags_arg))
       flags |= FD_JSON_TICKS;
-    if (fd_choice_containsp(ticklets_symbol,flags_arg))
+    if (fd_overlapp(ticklets_symbol,flags_arg))
       flags |= FD_JSON_TICKLETS|FD_JSON_TICKS;
-    if (fd_choice_containsp(verbose_symbol,flags_arg))
+    if (fd_overlapp(verbose_symbol,flags_arg))
       flags |= FD_JSON_VERBOSE;
     return flags;}
   else return FD_JSON_DEFAULTS;
