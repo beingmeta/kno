@@ -148,7 +148,7 @@ void handle_content_type(char *value,lispval table)
   if (slash) *slash='\0';
   endbyte = *end; *end='\0';
   major_type = fd_parse(value);
-  fd_add(table,FDSYM_TYPE,major_type);
+  fd_store(table,FDSYM_TYPE,major_type);
   if (slash) *slash='/';
   full_type = lispval_string(value);
   fd_add(table,FDSYM_TYPE,full_type); *end = endbyte;
@@ -160,7 +160,7 @@ void handle_content_type(char *value,lispval table)
     else chset_end = strchr(chset,';');
     if (chset_end) *chset_end='\0';
     chset_val = lispval_string(chset);
-    fd_add(table,charset_symbol,chset_val);
+    fd_store(table,charset_symbol,chset_val);
     fd_decref(chset_val);}
 }
 
@@ -177,25 +177,32 @@ static size_t handle_header(void *ptr,size_t size,size_t n,void *data)
     else copy[byte_len-2]='\0';}
   else {}
   if ((valstart = (strchr(copy,':')))) {
+    int add = 1;
     *valstart++='\0'; while (isspace(*valstart)) valstart++;
     if (!(TABLEP(val)))
       *valptr = val = fd_empty_slotmap();
     slotid = fd_parse(copy);
     if (FD_EQ(slotid,content_type_symbol)) {
       handle_content_type(valstart,val);
-      hval = lispval_string(valstart);}
+      hval = lispval_string(valstart);
+      add = 0;}
     else if ((FD_EQ(slotid,content_length_symbol)) ||
-             (FD_EQ(slotid,etag_symbol)))
+             (FD_EQ(slotid,etag_symbol)) ||
+             (FD_EQ(slotid,response_code_slotid))) {
       hval = fd_parse(valstart);
+      add = 0;}
     else if ((FD_EQ(slotid,date_symbol)) ||
              (FD_EQ(slotid,last_modified_symbol))) {
       time_t now, moment = curl_getdate(valstart,&now);
       struct U8_XTIME xt;
       u8_init_xtime(&xt,moment,u8_second,0,0,0);
-      hval = fd_make_timestamp(&xt);}
+      hval = fd_make_timestamp(&xt);
+      add = 0;}
     else hval = lispval_string(valstart);
-    fd_add(val,slotid,hval);
-    fd_decref(hval); u8_free(copy);}
+    if (add) fd_add(val,slotid,hval);
+    else fd_store(val,slotid,hval);
+    fd_decref(hval);
+    u8_free(copy);}
   else {
     hval = lispval_string(copy);
     fd_add(val,header_symbol,hval);
@@ -789,7 +796,7 @@ static lispval handlefetchresult(struct FD_CURL_HANDLE *h,lispval result,
   else {
     cval = fd_make_packet(NULL,data->size,data->bytes);
     u8_free(data->bytes);}
-  fd_add(result,pcontent_symbol,cval);
+  fd_store(result,pcontent_symbol,cval);
   {
     char *urlbuf; long filetime;
     CURLcode rv = curl_easy_getinfo(h->handle,CURLINFO_EFFECTIVE_URL,&urlbuf);
@@ -1048,7 +1055,7 @@ static lispval urlxml(lispval url,lispval xmlopt,lispval curl)
           else if ((CHOICEP(name)) || (PRECHOICEP(name))) {
             DO_CHOICES(nm,name) {
               if (SYMBOLP(nm)) fd_add(result,nm,elt);}}}}}
-      fd_add(result,pcontent_symbol,xmlret->xml_head);
+      fd_store(result,pcontent_symbol,xmlret->xml_head);
       u8_free(buf); fd_decref(xmlret->xml_head);
       return result;}
     else {
@@ -1057,7 +1064,7 @@ static lispval urlxml(lispval url,lispval xmlopt,lispval curl)
   else {
     lispval err;
     cval = fd_make_packet(NULL,data.size,data.bytes);
-    fd_add(result,pcontent_symbol,cval); fd_decref(cval);
+    fd_store(result,pcontent_symbol,cval); fd_decref(cval);
     err = fd_err(NonTextualContent,"urlxml",CSTRING(url),result);
     fd_decref(result);
     u8_free(data.bytes);
@@ -1070,8 +1077,8 @@ static lispval urlxml(lispval url,lispval xmlopt,lispval curl)
 static lispval responsetest(lispval response,int min,int max)
 {
   lispval status = ((TABLEP(response))?
-                 (fd_get(response,response_code_slotid,VOID)):
-                 (FIXNUMP(response))?(response):(VOID));
+                    (fd_get(response,response_code_slotid,VOID)):
+                    (FIXNUMP(response))?(response):(VOID));
   if ((FD_UINTP(status))&&
       ((FIX2INT(status))>=min)&&
       ((FIX2INT(status))<max))
@@ -1139,8 +1146,8 @@ static lispval responsegonep(lispval response)
 static lispval responsestatusprim(lispval response)
 {
   lispval status = ((TABLEP(response))?
-                 (fd_get(response,response_code_slotid,VOID)):
-                 (FIXNUMP(response))?(response):(VOID));
+                    (fd_get(response,response_code_slotid,VOID)):
+                    (FIXNUMP(response))?(response):(VOID));
   if (!(FIXNUMP(status))) {
     fd_decref(status);
     return fd_type_error("HTTP response","responsestatusprim",response);}
@@ -1158,8 +1165,8 @@ static lispval testresponseprim(lispval response,lispval arg1,lispval arg2)
     return FD_FALSE;}
   else {
     lispval status = ((TABLEP(response))?
-                   (fd_get(response,response_code_slotid,VOID)):
-                   (FIXNUMP(response))?(response):(VOID));
+                      (fd_get(response,response_code_slotid,VOID)):
+                      (FIXNUMP(response))?(response):(VOID));
     if (!(FIXNUMP(status))) {
       if (TABLEP(response)) fd_decref(status);
       return FD_FALSE;}
