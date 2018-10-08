@@ -90,7 +90,7 @@ static lispval mongodb_oidref(lispval oid)
   if (FD_OIDP(oid)) {
     FD_OID addr = FD_OID_ADDR(oid);
     unsigned int hi = FD_OID_HI(addr), lo = FD_OID_LO(addr);
-    u8_string rep = u8_mkstring("ObjectId(00000000%016x%016x)",hi,lo);
+    u8_string rep = u8_mkstring("ObjectId(\"00000000%08x%08x\")",hi,lo);
     return fd_init_string(NULL,-1,rep);}
   else return fd_err("NotAnOID","mongodb_oidref",NULL,oid);
 }
