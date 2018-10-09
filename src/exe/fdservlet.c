@@ -902,6 +902,7 @@ static int webservefn(u8_client ucl)
   start_time = u8_elapsed_time();
   getloadavg(start_load,3);
   u8_getrusage(RUSAGE_SELF,&start_usage);
+
   /* Start doing your stuff */
   if (fd_update_file_modules(0)<0) {
     u8_condition c; u8_context cxt; u8_string details = NULL;
@@ -956,6 +957,10 @@ static int webservefn(u8_client ucl)
     method = fd_get(cgidata,request_method,VOID);
 
     /* This is where we parse all the CGI variables, etc */
+    lispval etime = fd_make_double(u8_elapsed_time());
+    fd_store(cgidata,reqstart_symbol,etime);
+    fd_decref(etime);
+
     fd_parse_cgidata(cgidata);
     forcelog = fd_req_test(forcelog_slotid,VOID);
     if ((forcelog)||(traceweb>0)) {

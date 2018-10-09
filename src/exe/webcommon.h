@@ -40,7 +40,7 @@ static int U8_MAYBE_UNUSED pid_fd = -1;
 static fd_lexenv server_env = NULL;
 
 static MU lispval main_symbol, webmain_symbol, setup_symbol;
-static MU lispval cgisymbol, script_filename;
+static MU lispval cgisymbol, script_filename, reqstart_symbol;
 static MU lispval uri_slotid, response_symbol, err_symbol, status_symbol;
 static MU lispval browseinfo_symbol, threadcache_symbol;
 static MU lispval http_headers, html_headers, doctype_slotid, xmlpi_slotid;
@@ -69,6 +69,7 @@ static void init_webcommon_symbols()
   uri_slotid = fd_intern("REQUEST_URI");
   query_slotid = fd_intern("QUERY_STRING");
   main_symbol = fd_intern("MAIN");
+  reqstart_symbol = fd_intern("_REQSTART");
   webmain_symbol = fd_intern("WEBMAIN");
   setup_symbol = fd_intern("SETUP");
   cgisymbol = fd_intern("CGIDATA");
