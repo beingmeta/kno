@@ -824,6 +824,10 @@ static int boot_config()
 
 /* Bootup message */
 
+#define COPYRIGHT_MESSAGE ""
+#define REAL_COPYRIGHT_MESSAGE \
+  "\nCopyright (C) beingmeta 2004-2018, all rights reserved"
+
 FD_EXPORT int fd_boot_message()
 {
   if (fd_be_vewy_quiet) return 0;
@@ -835,13 +839,13 @@ FD_EXPORT int fd_boot_message()
   u8_string appid = u8_appid();
   u8_log(U8_LOG_MSG,NULL,
          _("(%s:%lld) %s %s\n"
-           "Copyright (C) beingmeta 2004-2018, all rights reserved\n"
-           "%-s@%-s:%-s (%s)"),
+           "%-s@%-s:%-s (%s)%s"),
          ((appid) ? (appid) : (exe_name) ? (exe_name) : ((u8_string)"exe")),
          (unsigned long long)getpid(),
          fd_getrevision(),u8_getrevision(),
          u8_username(uid),u8_gethostname(),u8_getcwd(),
-         curtime.u8_outbuf);
+         curtime.u8_outbuf,
+         COPYRIGHT_MESSAGE);
   if ( (fd_logcmd) && (fd_argc > 1) )
     log_argv(fd_argc,fd_argv);
   boot_message_delivered = 1;
