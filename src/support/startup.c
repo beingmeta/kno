@@ -824,8 +824,8 @@ static int boot_config()
 
 /* Bootup message */
 
-#define COPYRIGHT_MESSAGE ""
-#define REAL_COPYRIGHT_MESSAGE \
+#define NO_COPYRIGHT_MESSAGE ""
+#define COPYRIGHT_MESSAGE \
   "\nCopyright (C) beingmeta 2004-2018, all rights reserved"
 
 FD_EXPORT int fd_boot_message()
@@ -838,13 +838,12 @@ FD_EXPORT int fd_boot_message()
   u8_xtime_to_rfc822_x(curtimeout,&xt,xt.u8_tzoff,0);
   u8_string appid = u8_appid();
   u8_log(U8_LOG_MSG,NULL,
-         _("(%s:%lld) %s %s\n"
-           "%-s@%-s:%-s (%s)%s"),
+         _("(%s:%lld) %-s@%-s:%-s (%s)\n%s %s%s"),
          ((appid) ? (appid) : (exe_name) ? (exe_name) : ((u8_string)"exe")),
          (unsigned long long)getpid(),
-         fd_getrevision(),u8_getrevision(),
          u8_username(uid),u8_gethostname(),u8_getcwd(),
          curtime.u8_outbuf,
+         fd_getrevision(),u8_getrevision(),
          COPYRIGHT_MESSAGE);
   if ( (fd_logcmd) && (fd_argc > 1) )
     log_argv(fd_argc,fd_argv);
