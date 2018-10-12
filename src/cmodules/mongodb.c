@@ -41,6 +41,9 @@ u8_condition fd_MongoDB_Warning=_("MongoDB warning");
 u8_condition fd_BSON_Input_Error=_("BSON input error");
 u8_condition fd_BSON_Compound_Overflow=_("BSON/FramerD compound overflow");
 
+#define FD_FIND_MATCHES  1
+#define FD_COUNT_MATCHES 0
+
 static lispval sslsym, smoketest_sym;
 static int mongodb_loglevel = LOG_NOTICE;
 static int logops = 0;
@@ -357,13 +360,13 @@ static lispval combine_opts(lispval opts,lispval clopts)
     return opts;}
 }
 
-static U8_MAYBE_UNUSED bson_t *getfindopts(lispval opts,int flags)
+static U8_MAYBE_UNUSED bson_t *get_search_opts(lispval opts,int flags,int for_find)
 {
   lispval skip_arg = fd_getopt(opts,skipsym,FD_FIXZERO);
-  lispval limit_arg = fd_getopt(opts,limitsym,FD_FIXZERO);
-  lispval batch_arg = fd_getopt(opts,batchsym,FD_FIXZERO);
-  lispval projection = fd_getopt(opts,returnsym,FD_VOID);
+  lispval limit_arg = fd_getopt(opts,limitsym,FD_VOID);
   lispval sort_arg   = fd_getopt(opts,FDSYM_SORTED,FD_VOID);
+  lispval batch_arg = (for_find) ? (fd_getopt(opts,batchsym,FD_FIXZERO)) : (FD_VOID);
+  lispval projection = (for_find) ? (fd_getopt(opts,returnsym,FD_VOID)) : (FD_VOID);
   struct FD_BSON_OUTPUT out;
   bson_t *doc = bson_new();
   out.bson_doc = doc;
@@ -403,7 +406,7 @@ static U8_MAYBE_UNUSED bson_t *getfindopts(lispval opts,int flags)
       else {}
       bson_append_document_end(doc,&proj);}
     else {
-      fd_seterr(fd_BSON_Error,"getfindopts(mongodb)",NULL,opts);
+      fd_seterr(fd_BSON_Error,"get_search_opts(mongodb)",NULL,opts);
       fd_decref(out.bson_fieldmap);
       return NULL;}}
   return out.bson_doc;
@@ -1227,7 +1230,7 @@ static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
     mongoc_cursor_t *cursor = NULL;
     const bson_t *doc;
     bson_t *q = fd_lisp2bson(query,flags,opts);
-    bson_t *findopts = getfindopts(opts,flags);
+    bson_t *findopts = get_search_opts(opts,flags,FD_FIND_MATCHES);
     mongoc_read_prefs_t *rp = get_read_prefs(opts);
     lispval *vec = NULL; size_t n = 0, max = 0;
     int sort_results = fd_testopt(opts,FDSYM_SORTED,FD_VOID);
@@ -1381,7 +1384,7 @@ static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
       collection_done(collection,client,domain);
       fd_decref(opts);
       return FD_ERROR_VALUE;}
-    bson_t *findopts = getfindopts(opts,flags);
+    bson_t *findopts = get_search_opts(opts,flags,FD_COUNT_MATCHES);
     mongoc_read_prefs_t *rp = get_read_prefs(opts);
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
       u8_logf(LOG_DETAIL,"MongoDB/count","Counting matches to %q in %q",query,
@@ -1430,8 +1433,7 @@ static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
       return FD_ERROR;}
     lispval skip_arg = fd_getopt(opts,skipsym,FD_FIXZERO);
     lispval limit_arg = fd_getopt(opts,limitsym,FD_FIXZERO);
-    lispval batch_arg = fd_getopt(opts,batchsym,FD_FIXZERO);
-    if ((FD_UINTP(skip_arg))&&(FD_UINTP(limit_arg))&&(FD_UINTP(batch_arg))) {
+     if ((FD_UINTP(skip_arg))&&(FD_UINTP(limit_arg))) {
       bson_t *fields = get_projection(opts,flags);
       mongoc_read_prefs_t *rp = get_read_prefs(opts);
       if ((logops)||(flags&FD_MONGODB_LOGOPS))
@@ -1462,7 +1464,6 @@ static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
     fd_decref(opts);
     fd_decref(skip_arg);
     fd_decref(limit_arg);
-    fd_decref(batch_arg);
     return result;}
   else {
     fd_decref(opts);
@@ -1483,7 +1484,7 @@ static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
   if (collection) {
     mongoc_cursor_t *cursor;
     const bson_t *doc;
-    bson_t *q, *findopts = getfindopts(opts,flags);
+    bson_t *q, *findopts = get_search_opts(opts,flags,FD_FIND_MATCHES);
     mongoc_read_prefs_t *rp = get_read_prefs(opts);
     if ((!(FD_OIDP(query)))&&(FD_TABLEP(query)))
       q = fd_lisp2bson(query,flags,opts);
@@ -1889,7 +1890,7 @@ static lispval mongodb_cursor(lispval arg,lispval query,lispval opts_arg)
   mongoc_cursor_t *cursor = NULL;
   mongoc_collection_t *collection = open_collection(domain,&connection,flags);
   bson_t *bq = fd_lisp2bson(query,flags,opts);
-  bson_t *findopts = getfindopts(opts,flags);
+  bson_t *findopts = get_search_opts(opts,flags,FD_FIND_MATCHES);
   mongoc_read_prefs_t *rp = get_read_prefs(opts);
   if (collection) {
     cursor = mongoc_collection_find_with_opts
@@ -2636,9 +2637,8 @@ static void bson_read_step(FD_BSON_INPUT b,lispval into,lispval *loc)
       if (fd_test(value,fdtag_symbol,FD_VOID)) {
         lispval tag = fd_get(value,fdtag_symbol,FD_VOID), compound;
         struct FD_COMPOUND_TYPEINFO *entry = fd_lookup_compound(tag);
-        lispval fields[16], keys = fd_getkeys(value);
+        lispval fields[16] = { FD_VOID }, keys = fd_getkeys(value);
         int max = -1, i = 0, n, ok = 1;
-        while (i<16) fields[i++]=FD_VOID;
         {FD_DO_CHOICES(key,keys) {
             if (FD_FIXNUMP(key)) {
               long long index = FD_FIX2INT(key);
