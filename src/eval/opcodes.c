@@ -835,7 +835,7 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
       lispval obj_arg=fast_eval(obj_expr,env);
       return xref_opcode(fd_simplify_choice(obj_arg),
                          FIX2INT(off_arg),
-                         next_qcode(args));}
+                         type_arg);}
     fd_seterr(fd_SyntaxError,"FD_XREF_OPCODE",NULL,expr);
     return FD_ERROR_VALUE;}
   case FD_NOT_OPCODE: {
