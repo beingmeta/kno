@@ -1032,7 +1032,7 @@ FD_EXPORT void fd_init_threads_c()
 
   fd_idefnN(fd_scheme_module,"THREAD/CALL",threadcall_prim,
             FD_NEEDS_1_ARG,
-            "(THREAD/CALL *opts* *fcn* *args*...) applies *fcn* "
+            "(THREAD/CALL *fcn* *args*...) applies *fcn* "
             "in parallel to all of the combinations of *args* "
             "and returns one thread for each combination.");
   fd_defalias(fd_scheme_module,"THREADCALL","THREAD/CALL");
