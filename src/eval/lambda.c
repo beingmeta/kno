@@ -180,25 +180,36 @@ _make_lambda(u8_string name,
              int incref,int copy_env,
              int autodoc)
 {
-  int i = 0, n_vars = 0, min_args = 0;
-  lispval scan = arglist, *schema = NULL, attribs=FD_VOID;
+  int i = 0, n_vars = 0, min_args = 0, have_inits = 0;
+  lispval scan = arglist, *schema = NULL, *inits = NULL, attribs=FD_VOID;
   struct FD_LAMBDA *s = u8_alloc(struct FD_LAMBDA);
   FD_INIT_FRESH_CONS(s,fd_lambda_type);
   s->fcn_name = ((name) ? (u8_strdup(name)) : (NULL));
   while (PAIRP(scan)) {
     lispval argspec = FD_CAR(scan);
-    n_vars++; scan = FD_CDR(scan);
+    if ( (FD_PAIRP(argspec)) && (FD_PAIRP(FD_CDR(argspec))) )
+      have_inits = 1;
+    scan = FD_CDR(scan);
+    n_vars++;
     if (SYMBOLP(argspec)) min_args = n_vars;}
   if (NILP(scan)) {
     s->lambda_n_vars = s->fcn_arity = n_vars;}
   else {
-    n_vars++; s->lambda_n_vars = n_vars; s->fcn_arity = -1;}
-  s->fcn_min_arity = min_args; s->fcn_xcall = 1; s->fcn_ndcall = nd;
+    n_vars++;
+    s->lambda_n_vars = n_vars;
+    s->fcn_arity = -1;}
+  s->fcn_min_arity = min_args;
+  s->fcn_ndcall = nd;
+  s->fcn_xcall = 1;
   s->fcn_handler.fnptr = NULL;
   s->fcn_typeinfo = NULL;
-  if (n_vars)
+  if (n_vars) {
     s->lambda_vars = schema = u8_alloc_n((n_vars+1),lispval);
-  else s->lambda_vars = NULL;
+    if (have_inits)
+      s->lambda_inits = inits = u8_alloc_n((n_vars+1),lispval);}
+  else {
+    s->lambda_vars = NULL;
+    s->lambda_inits = NULL;}
   s->fcn_defaults = NULL; s->fcn_filename = NULL;
   s->fcn_attribs = VOID;
   s->fcnid = VOID;
@@ -206,7 +217,8 @@ _make_lambda(u8_string name,
     s->lambda_body = fd_incref(body);
     s->lambda_arglist = fd_incref(arglist);}
   else {
-    s->lambda_body = body; s->lambda_arglist = arglist;}
+    s->lambda_body = body;
+    s->lambda_arglist = arglist;}
   s->lambda_bytecode = NULL;
   if (env == NULL)
     s->lambda_env = env;
@@ -279,10 +291,16 @@ _make_lambda(u8_string name,
   scan = arglist; i = 0; while (PAIRP(scan)) {
     lispval argspec = FD_CAR(scan);
     if (PAIRP(argspec)) {
-      schema[i]=FD_CAR(argspec);}
+      schema[i]=FD_CAR(argspec);
+      if ( (inits) && (FD_PAIRP(FD_CDR(argspec))) ) {
+        lispval init = FD_CADR(argspec);
+        inits[i] = init;
+        fd_incref(init);}}
     else {
-      schema[i]=argspec;}
-    i++; scan = FD_CDR(scan);}
+      schema[i]=argspec;
+      if (inits) inits[i] = FD_VOID;}
+    scan = FD_CDR(scan);
+    i++;}
   if (i<s->lambda_n_vars) schema[i]=scan;
   s->lambda_source = VOID;
   return LISP_CONS(s);
@@ -305,7 +323,7 @@ FD_EXPORT lispval fd_make_lambda(u8_string name,
 FD_EXPORT void recycle_lambda(struct FD_RAW_CONS *c)
 {
   struct FD_LAMBDA *lambda = (struct FD_LAMBDA *)c;
-  int mallocd = FD_MALLOCD_CONSP(c);
+  int mallocd = FD_MALLOCD_CONSP(c), n_vars = lambda->lambda_n_vars;
   if (lambda->fcn_typeinfo) u8_free(lambda->fcn_typeinfo);
   if (lambda->fcn_defaults) u8_free(lambda->fcn_defaults);
   if ( (lambda->fcn_doc) && (lambda->fcn_freedoc) )
@@ -316,6 +334,9 @@ FD_EXPORT void recycle_lambda(struct FD_RAW_CONS *c)
   fd_decref(lambda->lambda_body);
   fd_decref(lambda->lambda_source);
   u8_free(lambda->lambda_vars);
+  if (lambda->lambda_inits) {
+    fd_decref_vec(lambda->lambda_inits,n_vars);
+    u8_free(lambda->lambda_inits);}
   if (lambda->lambda_env->env_copy) {
     fd_decref((lispval)(lambda->lambda_env->env_copy));
     /* fd_recycle_lexenv(lambda->lambda_env->env_copy); */

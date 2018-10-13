@@ -158,7 +158,8 @@ FD_EXPORT void fd_add_module_loader(int (*loader)(lispval,int,void *),void *);
 typedef struct FD_LAMBDA {
   FD_FUNCTION_FIELDS;
   short lambda_n_vars, lambda_synchronized;
-  lispval *lambda_vars, lambda_arglist, lambda_body, lambda_source;
+  lispval *lambda_vars, *lambda_inits;
+  lispval lambda_arglist, lambda_body, lambda_source;
   lispval lambda_optimizer;
   struct FD_VECTOR *lambda_bytecode;
   fd_lexenv lambda_env;
