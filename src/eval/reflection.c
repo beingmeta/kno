@@ -181,7 +181,7 @@ static lispval procedure_documentation(lispval x)
   if (FD_FCNIDP(x)) x = fd_fcnid_ref(x);
   u8_string doc = fd_get_documentation(x);
   if (doc)
-    return lispval_string(doc);
+    return fd_lispstring(doc);
   else return FD_FALSE;
 }
 
@@ -191,13 +191,15 @@ static lispval set_procedure_documentation(lispval x,lispval doc)
   fd_ptr_type proctype = FD_PTR_TYPE(proc);
   if (fd_functionp[proctype]) {
     struct FD_FUNCTION *f = FD_DTYPE2FCN(x);
-    if (f->fcn_documentation) u8_free(f->fcn_documentation);
-    f->fcn_documentation = CSTRING(doc);
+    if ( (f->fcn_doc) && (f->fcn_freedoc) )
+      u8_free(f->fcn_doc);
+    f->fcn_doc = u8_strdup(CSTRING(doc));
+    f->fcn_freedoc = 1;
     return VOID;}
   else if (TYPEP(proc,fd_evalfn_type)) {
     struct FD_EVALFN *sf = GETEVALFN(proc);
     if (sf->evalfn_documentation) u8_free(sf->evalfn_documentation);
-    sf->evalfn_documentation = CSTRING(doc);
+    sf->evalfn_documentation = u8_strdup(CSTRING(doc));
     return VOID;}
   else return fd_err("Not Handled","set_procedure_documentation",NULL,x);
 }

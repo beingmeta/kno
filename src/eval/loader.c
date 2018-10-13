@@ -664,15 +664,16 @@ static int loadpath_config_set(lispval var,lispval vals,void *d)
           else {
             strcpy(buf,start);
             len = strlen(start);}
-          if (buf[len-1] == '/')
+          if (len == 0) {
+            if (next) start=next+1; else start=NULL;
+            continue;}
+          else if (buf[len-1] == '/')
             buf[len]='\0';
           else {
             buf[len]='/'; len++;
             buf[len]='\0';}
           path = fd_init_pair(NULL,fdstring(buf),path);
-          if (next)
-            start=next+1;
-          else start=NULL;}}}}
+          if (next) start=next+1; else start=NULL;}}}}
   *pathref = path;
   fd_decref(cur_path);
   return 1;

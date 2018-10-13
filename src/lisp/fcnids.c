@@ -148,11 +148,10 @@ static int unparse_fcnid(u8_output out,lispval x)
   lispval lp = fd_fcnid_ref(x);
   if (TYPEP(lp,fd_cprim_type)) {
     struct FD_FUNCTION *fcn = (fd_function)lp;
-    u8_string name = fcn->fcn_name;
     u8_string filename = fcn->fcn_filename;
-    u8_byte arity[64]="", codes[64]="", numbuf[32];
+    u8_byte arity[64]="", codes[64]="", numbuf[32], namebuf[64];
+    u8_string name = fd_fcn_sig(fcn,namebuf);
     if ((filename)&&(filename[0]=='\0')) filename = NULL;
-    if (name == NULL) name = fcn->fcn_name;
     if (fcn->fcn_ndcall) strcat(codes,"∀");
     if ((fcn->fcn_arity<0)&&(fcn->fcn_min_arity<0))
       strcat(arity,"…");

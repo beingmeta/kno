@@ -138,8 +138,6 @@ static lispval irritant_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
         struct FD_FUNCTION *fcn=FD_XFUNCTION(op);
         if (fcn->fcn_name)
           cxt=fcn->fcn_name;
-        else if (fcn->fcn_documentation)
-          cxt=fcn->fcn_documentation;
         else cxt="FUNCTIONCALL";}
       else {}
       cur=cur->stack_caller;}}

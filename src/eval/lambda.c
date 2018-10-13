@@ -64,7 +64,8 @@ static int add_autodocp(u8_string s)
 {
   if (s == NULL)
     return 1;
-  else if ( ( *s == '(') || (*s == '<') || (*s == '\n') )
+  else if ( ( *s == '(') || (*s == '<') ||
+            (*s == '\n') || (*s == '`' ) )
     return 0;
   else return 1;
 }
@@ -174,9 +175,10 @@ static lispval apply_lambda(lispval fn,int n,lispval *args)
 
 static lispval
 _make_lambda(u8_string name,
-            lispval arglist,lispval body,fd_lexenv env,
-            int nd,int sync,
-            int incref,int copy_env)
+             lispval arglist,lispval body,fd_lexenv env,
+             int nd,int sync,
+             int incref,int copy_env,
+             int autodoc)
 {
   int i = 0, n_vars = 0, min_args = 0;
   lispval scan = arglist, *schema = NULL, attribs=FD_VOID;
@@ -215,39 +217,41 @@ _make_lambda(u8_string name,
     s->lambda_synchronized = 1;
     u8_init_mutex(&(s->lambda_lock));}
   else s->lambda_synchronized = 0;
-  struct U8_OUTPUT docstream;
-  U8_INIT_OUTPUT(&docstream,256);
-  u8_string init_docstring = NULL;
-  if ( (PAIRP(body)) &&
-       (STRINGP(FD_CAR(body))) &&
-       (PAIRP(FD_CDR(body))) )
-    init_docstring=FD_CSTRING(FD_CAR(body));
-  if (add_autodocp(init_docstring)) {
-    lispval scan = arglist;
-    u8_puts(&docstream,"`(");
-    if (name) u8_puts(&docstream,name); else u8_puts(&docstream,"λ");
-    while (PAIRP(scan)) {
-      lispval arg = FD_CAR(scan);
-      if (SYMBOLP(arg))
-        u8_printf(&docstream," %ls",SYM_NAME(arg));
-      else if ((PAIRP(arg))&&(SYMBOLP(FD_CAR(arg))))
-        u8_printf(&docstream," [%ls]",SYM_NAME(FD_CAR(arg)));
-      else u8_puts(&docstream," ??");
-      scan = FD_CDR(scan);}
-    if (SYMBOLP(scan))
-      u8_printf(&docstream," [%ls...]",SYM_NAME(scan));
-    u8_puts(&docstream,")`");}
-  if (init_docstring) {
-    u8_puts(&docstream,"\n");
-    while ( (PAIRP(body)) &&
-            (STRINGP(FD_CAR(body))) &&
-            (PAIRP(FD_CDR(body))) ) {
-      u8_putc(&docstream,'\n');
-      u8_puts(&docstream,FD_CSTRING(FD_CAR(body)));
-      body=FD_CDR(body);}}
-  if ( (u8_outbuf_written(&docstream)) )
-    s->fcn_documentation=docstream.u8_outbuf;
-  else u8_close_output(&docstream);
+  if (autodoc) {
+    struct U8_OUTPUT docstream;
+    U8_INIT_OUTPUT(&docstream,256);
+    u8_string init_docstring = NULL;
+    if ( (PAIRP(body)) &&
+         (STRINGP(FD_CAR(body))) &&
+         (PAIRP(FD_CDR(body))) )
+      init_docstring=FD_CSTRING(FD_CAR(body));
+    if (add_autodocp(init_docstring)) {
+      lispval scan = arglist;
+      u8_puts(&docstream,"`(");
+      if (name) u8_puts(&docstream,name); else u8_puts(&docstream,"λ");
+      while (PAIRP(scan)) {
+        lispval arg = FD_CAR(scan);
+        if (SYMBOLP(arg))
+          u8_printf(&docstream," %ls",SYM_NAME(arg));
+        else if ((PAIRP(arg))&&(SYMBOLP(FD_CAR(arg))))
+          u8_printf(&docstream," [%ls]",SYM_NAME(FD_CAR(arg)));
+        else u8_puts(&docstream," ??");
+        scan = FD_CDR(scan);}
+      if (SYMBOLP(scan))
+        u8_printf(&docstream," [%ls...]",SYM_NAME(scan));
+      u8_puts(&docstream,")`");}
+    if (init_docstring) {
+      u8_puts(&docstream,"\n");
+      while ( (PAIRP(body)) &&
+              (STRINGP(FD_CAR(body))) &&
+              (PAIRP(FD_CDR(body))) ) {
+        u8_putc(&docstream,'\n');
+        u8_puts(&docstream,FD_CSTRING(FD_CAR(body)));
+        body=FD_CDR(body);}}
+    if ( (u8_outbuf_written(&docstream)) ) {
+      s->fcn_doc=docstream.u8_outbuf;
+      s->fcn_freedoc = 1;}
+    else u8_close_output(&docstream);}
 
   if ( ( FD_PAIRP(body) ) &&
        ( FD_PAIRP(FD_CAR(body)) ) &&
@@ -285,17 +289,17 @@ _make_lambda(u8_string name,
 }
 
 static lispval make_lambda(u8_string name,
-                         lispval arglist,lispval body,fd_lexenv env,
-                         int nd,int sync)
+                           lispval arglist,lispval body,fd_lexenv env,
+                           int nd,int sync,int autodoc)
 {
-  return _make_lambda(name,arglist,body,env,nd,sync,1,1);
+  return _make_lambda(name,arglist,body,env,nd,sync,1,1,autodoc);
 }
 
 FD_EXPORT lispval fd_make_lambda(u8_string name,
-                               lispval arglist,lispval body,fd_lexenv env,
-                               int nd,int sync)
+                                 lispval arglist,lispval body,fd_lexenv env,
+                                 int nd,int sync)
 {
-  return make_lambda(name,arglist,body,env,nd,sync);
+  return make_lambda(name,arglist,body,env,nd,sync,0);
 }
 
 FD_EXPORT void recycle_lambda(struct FD_RAW_CONS *c)
@@ -304,7 +308,8 @@ FD_EXPORT void recycle_lambda(struct FD_RAW_CONS *c)
   int mallocd = FD_MALLOCD_CONSP(c);
   if (lambda->fcn_typeinfo) u8_free(lambda->fcn_typeinfo);
   if (lambda->fcn_defaults) u8_free(lambda->fcn_defaults);
-  if (lambda->fcn_documentation) u8_free(lambda->fcn_documentation);
+  if ( (lambda->fcn_doc) && (lambda->fcn_freedoc) )
+    u8_free(lambda->fcn_doc);
   if (lambda->fcn_attribs) fd_decref(lambda->fcn_attribs);
   if (lambda->fcn_moduleid) fd_decref(lambda->fcn_moduleid);
   fd_decref(lambda->lambda_arglist);
@@ -328,6 +333,8 @@ FD_EXPORT void recycle_lambda(struct FD_RAW_CONS *c)
     u8_free(lambda);}
 }
 
+static void output_callsig(u8_output out,lispval arglist);
+
 static int unparse_lambda(u8_output out,lispval x)
 {
   struct FD_LAMBDA *lambda = fd_consptr(fd_lambda,x,fd_lambda_type);
@@ -343,24 +350,12 @@ static int unparse_lambda(u8_output out,lispval x)
   if (lambda->fcn_name)
     u8_printf(out,"#<λ%s%s",codes,lambda->fcn_name);
   else u8_printf(out,"#<λ%s0x%04x",codes,((addr>>2)%0x10000));
-  if (PAIRP(arglist)) {
-    int first = 1; lispval scan = lambda->lambda_arglist;
-    lispval spec = VOID, arg = VOID;
-    u8_putc(out,'(');
-    while (PAIRP(scan)) {
-      if (first) first = 0; else u8_putc(out,' ');
-      spec = FD_CAR(scan);
-      arg = SYMBOLP(spec)?(spec):(PAIRP(spec))?(FD_CAR(spec)):(VOID);
-      if (SYMBOLP(arg))
-        u8_puts(out,SYM_NAME(arg));
-      else u8_puts(out,"??");
-      if (PAIRP(spec)) u8_putc(out,'?');
-      scan = FD_CDR(scan);}
-    if (NILP(scan))
-      u8_putc(out,')');
-    else if (SYMBOLP(scan))
-      u8_printf(out,"%s…)",SYM_NAME(scan));
-    else u8_printf(out,"…%q…)",scan);}
+  u8_byte namebuf[100];
+  u8_string sig = fd_fcn_sig((fd_function)lambda,namebuf);
+  if (sig)
+    u8_puts(out,sig);
+  else if (PAIRP(arglist))
+    output_callsig(out,arglist);
   else if (NILP(arglist))
     u8_puts(out,"()");
   else if (SYMBOLP(arglist))
@@ -381,6 +376,27 @@ static int unparse_lambda(u8_output out,lispval x)
     u8_puts(out,"'>");}
   else u8_puts(out,">");
   return 1;
+}
+
+static void output_callsig(u8_output out,lispval arglist)
+{
+  int first = 1; lispval scan = arglist;
+  lispval spec = VOID, arg = VOID;
+  u8_putc(out,'(');
+  while (PAIRP(scan)) {
+    if (first) first = 0; else u8_putc(out,' ');
+    spec = FD_CAR(scan);
+    arg = SYMBOLP(spec)?(spec):(PAIRP(spec))?(FD_CAR(spec)):(VOID);
+    if (SYMBOLP(arg))
+      u8_puts(out,SYM_NAME(arg));
+    else u8_puts(out,"??");
+    if (PAIRP(spec)) u8_putc(out,'?');
+    scan = FD_CDR(scan);}
+  if (NILP(scan))
+    u8_putc(out,')');
+  else if (SYMBOLP(scan))
+    u8_printf(out,"%s…)",SYM_NAME(scan));
+  else u8_printf(out,"…%q…)",scan);
 }
 
 static int *copy_intvec(int *vec,int n,int *into)
@@ -443,8 +459,8 @@ static lispval lambda_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     return fd_err(fd_TooFewExpressions,"LAMBDA",NULL,expr);
   if (FD_CODEP(body)) {
     fd_incref(arglist);
-    proc=_make_lambda(NULL,arglist,body,env,0,0,0,0);}
-  else proc=make_lambda(NULL,arglist,body,env,0,0);
+    proc=_make_lambda(NULL,arglist,body,env,0,0,0,0,0);}
+  else proc=make_lambda(NULL,arglist,body,env,0,0,0);
   FD_SET_LAMBDA_SOURCE(proc,expr);
   return proc;
 }
@@ -458,8 +474,8 @@ static lispval ambda_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     return fd_err(fd_TooFewExpressions,"AMBDA",NULL,expr);
   if (FD_CODEP(body)) {
     fd_incref(arglist);
-    proc=_make_lambda(NULL,arglist,body,env,1,0,0,0);}
-  else proc=make_lambda(NULL,arglist,body,env,1,0);
+    proc=_make_lambda(NULL,arglist,body,env,1,0,0,0,0);}
+  else proc=make_lambda(NULL,arglist,body,env,1,0,0);
   FD_SET_LAMBDA_SOURCE(proc,expr);
   return proc;
 }
@@ -480,8 +496,8 @@ static lispval nlambda_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
                             "nlambda_evalfn",name);
   if (FD_CODEP(body)) {
     fd_incref(arglist);
-    proc=_make_lambda(namestring,arglist,body,env,1,0,0,0);}
-  else proc=make_lambda(namestring,arglist,body,env,1,0);
+    proc=_make_lambda(namestring,arglist,body,env,1,0,0,0,0);}
+  else proc=make_lambda(namestring,arglist,body,env,1,0,0);
   FD_SET_LAMBDA_SOURCE(proc,expr);
   return proc;
 }
@@ -502,8 +518,8 @@ static lispval def_helper(lispval expr,fd_lexenv env,int nd,int sync)
          ("procedure name (string or symbol)","def_evalfn",name);
   if (FD_CODEP(body)) {
     fd_incref(arglist);
-    proc=_make_lambda(namestring,arglist,body,env,1,0,0,0);}
-  else proc=make_lambda(namestring,arglist,body,env,1,0);
+    proc=_make_lambda(namestring,arglist,body,env,1,0,0,0,0);}
+  else proc=make_lambda(namestring,arglist,body,env,1,0,0);
   FD_SET_LAMBDA_SOURCE(proc,expr);
   return proc;
 }
@@ -532,9 +548,9 @@ static lispval slambda_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     return fd_err(fd_TooFewExpressions,"SLAMBDA",NULL,expr);
  if (FD_CODEP(body)) {
     fd_incref(arglist);
-    proc=_make_lambda(NULL,arglist,body,env,0,1,0,0);}
-  else proc=make_lambda(NULL,arglist,body,env,0,1);
-  FD_SET_LAMBDA_SOURCE(proc,expr);
+    proc=_make_lambda(NULL,arglist,body,env,0,1,0,0,0);}
+ else proc=make_lambda(NULL,arglist,body,env,0,1,0);
+ FD_SET_LAMBDA_SOURCE(proc,expr);
   return proc;
 }
 
@@ -547,10 +563,10 @@ static lispval sambda_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     return fd_err(fd_TooFewExpressions,"SLAMBDA",NULL,expr);
  if (FD_CODEP(body)) {
     fd_incref(arglist);
-    proc=_make_lambda(NULL,arglist,body,env,1,1,0,0);}
-  else proc=make_lambda(NULL,arglist,body,env,1,1);
-  FD_SET_LAMBDA_SOURCE(proc,expr);
-  return proc;
+    proc=_make_lambda(NULL,arglist,body,env,1,1,0,0,0);}
+ else proc=make_lambda(NULL,arglist,body,env,1,1,0);
+ FD_SET_LAMBDA_SOURCE(proc,expr);
+ return proc;
 }
 
 static lispval thunk_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
@@ -558,8 +574,8 @@ static lispval thunk_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   lispval body = fd_get_body(expr,1);
   lispval proc = VOID;
   if (FD_CODEP(body))
-    return _make_lambda(NULL,NIL,body,env,0,0,0,0);
-  else return make_lambda(NULL,NIL,body,env,0,0);
+    return _make_lambda(NULL,NIL,body,env,0,0,0,0,0);
+  else return make_lambda(NULL,NIL,body,env,0,0,0);
   FD_SET_LAMBDA_SOURCE(proc,expr);
   return proc;
 }
@@ -615,7 +631,7 @@ static lispval define_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     if (!(SYMBOLP(fn_name)))
       return fd_err(fd_NotAnIdentifier,"DEFINE",NULL,fn_name);
     else {
-      lispval value = make_lambda(SYM_NAME(fn_name),args,body,env,0,0);
+      lispval value = make_lambda(SYM_NAME(fn_name),args,body,env,0,0,1);
       if (FD_ABORTED(value))
         return value;
       else if (fd_bind_value(fn_name,value,env)>=0) {
@@ -647,7 +663,7 @@ static lispval defslambda_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
       return fd_err(fd_NotAnIdentifier,"DEFINE-SYNCHRONIZED",NULL,fn_name);
     else {
       lispval body = fd_get_body(expr,2);
-      lispval value = make_lambda(SYM_NAME(fn_name),args,body,env,0,1);
+      lispval value = make_lambda(SYM_NAME(fn_name),args,body,env,0,1,1);
       if (FD_ABORTED(value))
         return value;
       else if (fd_bind_value(fn_name,value,env)>=0) {
@@ -675,7 +691,7 @@ static lispval defambda_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     if (!(SYMBOLP(fn_name)))
       return fd_err(fd_NotAnIdentifier,"DEFINE-AMB",NULL,fn_name);
     else {
-      lispval value = make_lambda(SYM_NAME(fn_name),args,body,env,1,0);
+      lispval value = make_lambda(SYM_NAME(fn_name),args,body,env,1,0,1);
       if (FD_ABORTED(value)) return value;
       else if (fd_bind_value(fn_name,value,env)>=0) {
         lispval opvalue = fd_fcnid_ref(value);

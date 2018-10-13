@@ -2304,8 +2304,8 @@ u8_string fd_get_documentation(lispval x)
   fd_ptr_type proctype = FD_PTR_TYPE(proc);
   if (proctype == fd_lambda_type) {
     struct FD_LAMBDA *lambda = (fd_lambda)proc;
-    if (lambda->fcn_documentation)
-      return lambda->fcn_documentation;
+    if (lambda->fcn_doc)
+      return u8_strdup(lambda->fcn_doc);
     else {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,120);
       lispval arglist = lambda->lambda_arglist, scan = arglist;
@@ -2322,14 +2322,15 @@ u8_string fd_get_documentation(lispval x)
         scan = FD_CDR(scan);}
       if (SYMBOLP(scan))
         u8_printf(&out," [%ls...]",SYM_NAME(scan));
-      lambda->fcn_documentation = out.u8_outbuf;
+      lambda->fcn_doc = out.u8_outbuf;
+      lambda->fcn_freedoc = 1;
       return out.u8_outbuf;}}
   else if (fd_functionp[proctype]) {
     struct FD_FUNCTION *f = FD_DTYPE2FCN(proc);
-    return f->fcn_documentation;}
+    return u8_strdup(f->fcn_doc);}
   else if (TYPEP(x,fd_evalfn_type)) {
     struct FD_EVALFN *sf = (fd_evalfn)proc;
-    return sf->evalfn_documentation;}
+    return u8_strdup(sf->evalfn_documentation);}
   else return NULL;
 }
 

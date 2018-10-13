@@ -129,7 +129,7 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
     savespecs[i]=argspec;
     i++;}
   struct FD_FFI_PROC *proc=u8_alloc(struct FD_FFI_PROC);
-  FD_INIT_CONS(proc,fd_ffi_type);
+  FD_INIT_FRESH_CONS(proc,fd_ffi_type);
   ffi_status rv=
     ffi_prep_cif(&(proc->ffi_interface), FFI_DEFAULT_ABI, arity,
                  return_type,ffi_argtypes);
@@ -361,8 +361,9 @@ static void recycle_ffi_proc(struct FD_RAW_CONS *c)
   struct FD_FFI_PROC *ffi = (struct FD_FFI_PROC *)c;
   int arity = ffi->fcn_arity;
   if (ffi->fcn_name) u8_free(ffi->fcn_name);
-  u8_free(ffi->fcn_filename);
-  u8_free(ffi->fcn_documentation);
+  if (ffi->fcn_filename) u8_free(ffi->fcn_filename);
+  if ( (ffi->fcn_doc) && (ffi->fcn_freedoc) )
+    u8_free(ffi->fcn_doc);
   if (ffi->fcn_typeinfo) u8_free(ffi->fcn_typeinfo);
   if (ffi->fcn_defaults) {
     lispval *default_values = ffi->fcn_defaults;

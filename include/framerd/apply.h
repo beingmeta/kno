@@ -144,10 +144,10 @@ typedef lispval (*fd_xprimn)(fd_function,int n,lispval *);
 #define FD_FUNCTION_FIELDS                                                \
   FD_CONS_HEADER;                                                         \
   u8_string fcn_name, fcn_filename;                                       \
-  u8_string fcn_documentation;                                            \
+  u8_string fcn_doc;                                                      \
   lispval fcn_moduleid;                                                   \
   unsigned int fcn_ndcall:1, fcn_xcall:1, fcn_wrap_calls:1, fcn_notail:1; \
-  unsigned int fcn_break:1, fcn_trace:3;                                  \
+  unsigned int fcn_break:1, fcn_trace:3, fcn_freedoc:1;                   \
   lispval fcnid;                                                          \
   short fcn_arity, fcn_min_arity;                                         \
   lispval fcn_attribs;                                                    \
@@ -175,6 +175,8 @@ typedef lispval (*fd_xprimn)(fd_function,int n,lispval *);
 struct FD_FUNCTION {
   FD_FUNCTION_FIELDS;
 };
+
+FD_EXPORT u8_string fd_fcn_sig(struct FD_FUNCTION *fcn,u8_byte namebuf[100]);
 
 /* This maps types to whether they have function (FD_FUNCTION_FIELDS) header. */
 FD_EXPORT short fd_functionp[];

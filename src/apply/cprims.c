@@ -30,16 +30,17 @@
 #include <stdarg.h>
 
 
-FD_EXPORT int unparse_primitive(u8_output out,lispval x)
+int unparse_primitive(u8_output out,lispval x)
 {
   struct FD_FUNCTION *fcn = (fd_function)x;
-  u8_string name = fcn->fcn_name;
   u8_string filename = fcn->fcn_filename, space;
   lispval moduleid = fcn->fcn_moduleid;
   u8_string modname =
     (FD_SYMBOLP(moduleid)) ? (FD_SYMBOL_NAME(moduleid)) : (NULL);
   u8_byte arity[64]=""; u8_byte codes[64]="";
-  u8_byte tmpbuf[32], numbuf[32];
+  u8_byte tmpbuf[32], numbuf[32], namebuf[100];
+  u8_string name = fcn->fcn_name, sig = fd_fcn_sig(fcn,namebuf);
+  if (sig == NULL) sig = "";
   if ((filename)&&(filename[0]=='\0'))
     filename = NULL;
   if ( (filename) && (space=strchr(filename,' '))) {
@@ -67,15 +68,15 @@ FD_EXPORT int unparse_primitive(u8_output out,lispval x)
     strcat(arity,u8_itoa10(fcn->fcn_arity,numbuf));
     strcat(arity,"]");}
   if ( (name) && (modname) )
-    u8_printf(out,"#<Φ%s%s%s %s %s%s%s>",
-              codes,name,arity,modname,
+    u8_printf(out,"#<Φ%s%s%s%s %s %s%s%s>",
+              codes,name,arity,sig,modname,
               U8OPTSTR(" '",filename,"'"));
   else if (name)
-    u8_printf(out,"#<Φ%s%s%s%s%s%s>",
-              codes,name,arity,
+    u8_printf(out,"#<Φ%s%s%s%s%s%s%s>",
+              codes,name,arity,sig,
               U8OPTSTR(" '",filename,"'"));
-  else u8_printf(out,"#<Φ%s%s #!0x%s%s%s%s>",
-                 codes,arity,
+  else u8_printf(out,"#<Φ%s%s%s #!0x%s%s%s%s>",
+                 codes,arity,sig,
                  u8_uitoa16((unsigned long long) fcn,numbuf),
                  U8OPTSTR("'",filename,"'"));
   return 1;
@@ -134,7 +135,7 @@ static struct FD_FUNCTION *new_cprim(u8_string name,
   FD_INIT_FRESH_CONS(f,fd_cprim_type);
   f->fcn_name = name;
   f->fcn_filename = filename;
-  f->fcn_documentation = doc;
+  f->fcn_doc = doc;
   f->fcn_moduleid = FD_VOID;
   if (non_deterministic)
     f->fcn_ndcall = 1;
@@ -153,6 +154,26 @@ static struct FD_FUNCTION *new_cprim(u8_string name,
            name,U8OPTSTR(" (",filename,") "),arity,min_arity);
     f->fcn_min_arity = arity;}
   return f;
+}
+
+FD_EXPORT u8_string fd_fcn_sig(struct FD_FUNCTION *fcn,u8_byte namebuf[100])
+{
+  u8_string name = NULL;
+  if (fcn->fcn_doc) {
+    u8_string sig = fcn->fcn_doc, sig_start = sig, sig_end = NULL;
+    if (sig[0] == '`') {
+      sig_start++;
+      sig_end = strchr(sig_start,'`');}
+    else if (sig[0] == '(') {
+      sig_end = strchr(sig_start,')');
+      if (sig_end) sig_end++;}
+    else NO_ELSE;
+    size_t sig_len = (sig_end) ? (sig_end-sig_start) : (strlen(sig_start));
+    if (sig_len < 90) {
+      strncpy(namebuf,sig_start,sig_len);
+      namebuf[sig_len]='\0';
+      name = namebuf;}}
+  return name;
 }
 
 /* Providing type info and defaults */
