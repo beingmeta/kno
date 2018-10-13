@@ -124,27 +124,24 @@ lispval call_lambda(struct FD_STACK *_stack,
   if (direct_call)
     memcpy(vals,args,sizeof(lispval)*n_vars);
   else {
-    lispval arglist = fn->lambda_arglist;
-    int i = 0; while (PAIRP(arglist)) {
+    lispval *inits = fn->lambda_inits;
+    int n_inits = (arity < 0) ? (n_vars-1) : (n_vars);
+    int i = 0; while (i < n_inits) {
       lispval arg = (i<n) ? (args[i]) : (FD_DEFAULT_VALUE);
       if (arg != FD_DEFAULT_VALUE)
         vals[i]=fd_incref(args[i]);
-      else {
-        lispval argspec = FD_CAR(arglist);
-        lispval default_expr =
-          ( (PAIRP(argspec)) && (PAIRP(FD_CDR(argspec))) ) ?
-          (FD_CAR(FD_CDR(argspec))) :
-          (VOID);
-        lispval default_value = fd_eval(default_expr,proc_env);
-        if (FD_THROWP(default_value))
-          _return default_value;
-        else if (FD_ABORTED(default_value))
-          _return default_value;
-        else vals[i]=default_value;}
-      arglist=FD_CDR(arglist);
+      else if (inits) {
+        lispval default_expr = inits[i];
+        lispval use_value = fast_stack_eval(default_expr,proc_env,_stack);
+        if (FD_THROWP(use_value)) {
+          fd_decref_vec(vals,i);
+          _return use_value;}
+        else if (FD_ABORTED(use_value)) {
+          fd_decref_vec(vals,i);
+          _return use_value;}
+        else vals[i]=use_value;}
       i++;}
-    if (SYMBOLP(arglist)) {
-      assert(arity<0);
+    if (arity < 0) {
       lispval rest_arg=get_rest_arg(args+i,n-i);
       vals[i++]=rest_arg;
       assert(i==n_vars);}
@@ -181,10 +178,10 @@ _make_lambda(u8_string name,
              int autodoc)
 {
   int i = 0, n_vars = 0, min_args = 0, have_inits = 0;
-  lispval scan = arglist, *schema = NULL, *inits = NULL, attribs=FD_VOID;
   struct FD_LAMBDA *s = u8_alloc(struct FD_LAMBDA);
   FD_INIT_FRESH_CONS(s,fd_lambda_type);
   s->fcn_name = ((name) ? (u8_strdup(name)) : (NULL));
+  lispval scan = arglist, *schema = NULL, *inits = NULL, attribs=FD_VOID;
   while (PAIRP(scan)) {
     lispval argspec = FD_CAR(scan);
     if ( (FD_PAIRP(argspec)) && (FD_PAIRP(FD_CDR(argspec))) )
@@ -204,9 +201,13 @@ _make_lambda(u8_string name,
   s->fcn_handler.fnptr = NULL;
   s->fcn_typeinfo = NULL;
   if (n_vars) {
-    s->lambda_vars = schema = u8_alloc_n((n_vars+1),lispval);
-    if (have_inits)
-      s->lambda_inits = inits = u8_alloc_n((n_vars+1),lispval);}
+    // s->lambda_vars = schema = u8_alloc_n((n_vars+1),lispval);
+    s->lambda_vars = schema = u8_alloc_n((n_vars),lispval);
+    fd_init_elts(schema,n_vars,FD_VOID);
+    if (have_inits) {
+      // s->lambda_inits = inits = u8_alloc_n((n_vars+1),lispval);
+      s->lambda_inits = inits = u8_alloc_n((n_vars),lispval);
+      fd_init_elts(inits,n_vars,FD_VOID);}}
   else {
     s->lambda_vars = NULL;
     s->lambda_inits = NULL;}
