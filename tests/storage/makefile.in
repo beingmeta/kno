@@ -2,7 +2,7 @@
 # Copyright (C) 2004-2018 beingmeta, inc.
 # This file is a part of beingmeta's FramerD implementation
 
-FD_LOADPATH=../../src/extmods/%/module.scm:../../src/extmods/%.scm:
+FD_LOADPATH=../../src/extmods/:
 export FD_LOADPATH
 FD_DLOADPATH=../../lib/framerd
 export FD_DLOADPATH

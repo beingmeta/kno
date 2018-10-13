@@ -3,8 +3,8 @@ directory @abs_top_srcdir@:@abs_top_srcdir@/../libu8:@abs_top_srcdir@/../lingo:@
 set env DYLD_LIBRARY_PATH @abs_top_srcdir@/lib
 set env LD_LIBRARY_PATH @abs_top_srcdir@/lib
 set env FD_INIT_DLOADPATH @abs_top_srcdir@/lib/framerd/%.@shared_suffix@:@abs_top_srcdir@/../lingo/%.@shared_suffix@:@prefix@/lib/framerd/%.@shared_suffix@
-set env FD_INIT_LOADPATH @abs_top_srcdir@/src/extmods/%.scm:@abs_top_srcdir@/src/extmods/%/module.scm:@abs_top_srcdir@/src/extmods/safe/%.scm:@abs_top_srcdir@/src/extmods/safe/%/module.scm:@default_module_path@
-set env FD_INIT_SAFELOADPATH @abs_top_srcdir@/src/extmods/safe/%.scm:@abs_top_srcdir@/src/extmods/safe/%/module.scm:@default_safe_module_path@
+set env FD_INIT_LOADPATH @abs_top_srcdir@/src/extmods/:@abs_top_srcdir@/src/extmods/safe/:@default_module_path@
+set env FD_INIT_SAFELOADPATH @abs_top_srcdir@/src/extmods/safe/:@default_safe_module_path@
 set env FD_UPDATEMODULES=5
 set env FD_SKIP_DOTLOAD yes
 set env FD_TRACECONFIGLOAD yes

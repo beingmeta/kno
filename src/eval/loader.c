@@ -73,6 +73,18 @@ static lispval moduleid_symbol, source_symbol, loadstamps_symbol;
 
 /* Module finding */
 
+static u8_string check_module_source(u8_string name,u8_string search_path)
+{
+  if (strchr(search_path,'%'))
+    return u8_find_file(name,search_path,NULL);
+  unsigned char buf[1000];
+  if (u8_file_existsp(u8_bprintf(buf,"%s/%s/module.scm",search_path,name)))
+    return u8_mkstring("%s/%s/module.scm",search_path,name);
+  else if (u8_file_existsp(u8_bprintf(buf,"%s/%s.scm",search_path,name)))
+    return u8_mkstring("%s/%s.scm",search_path,name);
+  else return NULL;
+}
+
 static int load_source_module(lispval spec,int safe,void *ignored)
 {
   u8_string module_source = get_module_source(spec,safe);
@@ -109,20 +121,20 @@ static u8_string get_module_source(lispval spec,int safe)
 {
   if (SYMBOLP(spec)) {
     u8_string name = u8_downcase(SYM_NAME(spec));
-    u8_string module_source = u8_find_file(name,libscm_path,NULL);
+    u8_string module_source = check_module_source(name,libscm_path);
     if (module_source) {
       u8_free(name);
       return module_source;}
     else if (safe==0) {
       FD_DOLIST(elt,loadpath) {
         if (STRINGP(elt)) {
-          module_source = u8_find_file(name,CSTRING(elt),NULL);
+          module_source = check_module_source(name,CSTRING(elt));
           if (module_source) {
             u8_free(name);
             return module_source;}}}}
     FD_DOLIST(elt,safe_loadpath) {
       if (STRINGP(elt)) {
-        module_source = u8_find_file(name,CSTRING(elt),NULL);
+        module_source = check_module_source(name,CSTRING(elt));
         if (module_source) {
           u8_free(name);
           return module_source;}}}
@@ -154,7 +166,8 @@ static lispval load_source_for_module
     ((safe) ?
      (fd_safe_working_lexenv()) :
      (fd_working_lexenv()));
-  lispval load_result = fd_load_source_with_date(module_source,env,"auto",&mtime);
+  lispval load_result =
+    fd_load_source_with_date(module_source,env,"auto",&mtime);
   if (FD_ABORTP(load_result)) {
     if (HASHTABLEP(env->env_bindings))
       fd_reset_hashtable((fd_hashtable)(env->env_bindings),0,1);
@@ -627,7 +640,8 @@ static int liveload_add(lispval var,lispval val,void *ignored)
 static int loadpath_config_set(lispval var,lispval vals,void *d)
 {
   lispval *pathref = (lispval *) d;
-  lispval cur_path = *pathref, path = cur_path; fd_incref(path);
+  lispval cur_path = *pathref, path = cur_path;
+  fd_incref(path);
   DO_CHOICES(val,vals) {
     if (!(STRINGP(val))) {
       fd_seterr(fd_TypeError,"loadpath_config_set","filename",val);
@@ -639,14 +653,26 @@ static int loadpath_config_set(lispval var,lispval vals,void *d)
         path = fd_init_pair(NULL,val,path);
         fd_incref(val);}
       else {
-        size_t len = FD_STRING_LENGTH(val);
-        u8_string search_path =
-          (pathstring[len-1] == '/') ?
-          (u8_mkstring("%s%%/module.scm:%s%%.scm",pathstring,pathstring)) :
-          (u8_mkstring("%s/%%/module.scm:%s/%%.scm",pathstring,pathstring));
-        lispval entry = fdstring(search_path);
-        path = fd_init_pair(NULL,entry,path);
-        u8_free(search_path);}}}
+        size_t len = 0;
+        u8_string start = pathstring;
+        while (start) {
+          u8_byte buf[1000];
+          u8_string next = strchr(start,':');
+          if (next) {
+            strncpy(buf,start,next-start);
+            len = next-start;}
+          else {
+            strcpy(buf,start);
+            len = strlen(start);}
+          if (buf[len-1] == '/')
+            buf[len]='\0';
+          else {
+            buf[len]='/'; len++;
+            buf[len]='\0';}
+          path = fd_init_pair(NULL,fdstring(buf),path);
+          if (next)
+            start=next+1;
+          else start=NULL;}}}}
   *pathref = path;
   fd_decref(cur_path);
   return 1;

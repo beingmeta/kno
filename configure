@@ -8534,14 +8534,14 @@ _ACEOF
    LIBSCM=$with_libscm
 fi;
 
-builtin_module_path=$builtin_module_dir/%/module.scm:$builtin_module_dir/%.scm
-builtin_safe_module_path=$builtin_module_dir/safe/%/module.scm:$builtin_module_dir/safe/%.scm
+builtin_module_path=$builtin_module_dir/
+builtin_safe_module_path=$builtin_module_dir/safe/
 
-installed_module_path=$installed_module_dir/%/module.scm:$installed_module_dir/%.scm
-installed_safe_module_path=$installed_safe_module_dir/%/module.scm:$installed_safe_module_dir/%.scm
+installed_module_path=$installed_module_dir/
+installed_safe_module_path=$installed_safe_module_dir/
 
-local_module_path=$local_module_dir/%/module.scm:$local_module_dir/%.scm
-local_safe_module_path=$local_safe_module_dir/%/module.scm:$local_safe_module_dir/%.scm
+local_module_path=$local_module_dir/
+local_safe_module_path=$local_safe_module_dir/
 
 default_module_path=$local_module_path:$installed_module_path:$builtin_module_path
 default_safe_module_path=$local_safe_module_path:$installed_safe_module_path:$builtin_safe_module_path
