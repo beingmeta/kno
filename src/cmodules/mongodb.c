@@ -1397,8 +1397,10 @@ static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
       u8_byte buf[1000];
       fd_seterr(fd_MongoDB_Error,"mongodb_count",
                 u8_sprintf(buf,1000,
-                           "couldn't count documents matching %q with options:\n%Q",
-                           arg,opts),
+                           "(%s) couldn't count documents in %s matching\n"
+                           "%Q\n given options:\n%Q",
+                           error.message,domain->collection_name,
+                           query,opts),
                 fd_incref(query));
       result = FD_ERROR_VALUE;}
     if (rp) mongoc_read_prefs_destroy(rp);
@@ -1445,7 +1447,7 @@ static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
          FD_FIX2INT(limit_arg),
          rp,
          &err);
-      if (n_documents >= 0) 
+      if (n_documents >= 0)
         result = FD_INT(n_documents);
       else {
         u8_byte buf[1000];
