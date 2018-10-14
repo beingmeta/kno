@@ -49,6 +49,10 @@
 #include <signal.h>
 #endif
 
+#if HAVE_SYS_STAT_H
+#include <sys/stat.h>
+#endif
+
 #if ((HAVE_SYS_VFS_H)&&(HAVE_STATFS))
 #include <sys/vfs.h>
 #elif ((HAVE_SYS_FSTAT_H)&&(HAVE_STATFS))
@@ -73,16 +77,61 @@ static lispval moduleid_symbol, source_symbol, loadstamps_symbol;
 
 /* Module finding */
 
+static int loadablep(u8_string path)
+{
+  if (! (u8_file_readablep(path)) )
+    return 0;
+  else {
+    char *lpath = u8_localpath(path);
+    struct stat info;
+    int rv = stat(lpath,&info);
+    u8_free(lpath);
+    if (rv != 0)
+      return 0;
+    else if ( (info.st_mode&S_IFMT) == S_IFREG )
+      return 1;
+    else return 0;}
+}
+
+static u8_string find_path_sep(u8_string path)
+{
+  u8_string loc[4];
+  loc[0] = strchr(path,':');
+  loc[1] = strchr(path,';');
+  loc[2] = strchr(path,' ');
+  loc[3] = strchr(path,',');
+  u8_string result = NULL;
+  int i = 0;
+  while (i<4) {
+    if (loc[i] == NULL) i++;
+    else if ( (result == NULL) || (loc[i] < result) )
+      result = loc[i++];
+    else i++;}
+  return result;
+}
+
 static u8_string check_module_source(u8_string name,u8_string search_path)
 {
   if (strchr(search_path,'%'))
-    return u8_find_file(name,search_path,NULL);
-  unsigned char buf[1000];
-  if (u8_file_existsp(u8_bprintf(buf,"%s/%s/module.scm",search_path,name)))
-    return u8_mkstring("%s/%s/module.scm",search_path,name);
-  else if (u8_file_existsp(u8_bprintf(buf,"%s/%s.scm",search_path,name)))
-    return u8_mkstring("%s/%s.scm",search_path,name);
-  else return NULL;
+    return u8_find_file(name,search_path,loadablep);
+  else if (find_path_sep(search_path)) {
+    u8_string start = search_path;
+    while (start) {
+      u8_string end = find_path_sep(start);
+      size_t len = (end) ? (end-start) : (strlen(start));
+      unsigned char buf[len+1];
+      strncpy(buf,start,len); buf[len]='\0';
+      u8_string probe = check_module_source(name,buf);
+      if (probe) return probe;
+      if (end) start = end+1; else start =NULL;}
+    return NULL;}
+  else {
+    unsigned char buf[1000];
+    if (u8_file_existsp(u8_bprintf(buf,"%s/%s/module.scm",search_path,name)))
+      return u8_mkstring("%s/%s/module.scm",search_path,name);
+    else if (u8_file_existsp(u8_bprintf(buf,"%s/%s.scm",search_path,name)))
+      return u8_mkstring("%s/%s.scm",search_path,name);
+    else return NULL;}
 }
 
 static int load_source_module(lispval spec,int safe,void *ignored)
