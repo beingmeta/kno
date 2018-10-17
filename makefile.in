@@ -1123,32 +1123,32 @@ lib/framerd/libarchive.o: src/cmodules/libarchive.c
 lib/framerd/libarchive.so: src/cmodules/libarchive.o
 lib/framerd/libarchive.dylib: src/cmodules/libarchive.o ${CMODULE_DEPENDS}
 
-lib/framerd/qrcode.so lib/framerd/qrcode.dylib : MODLIBS=-lqrencode -lpng
+lib/framerd/qrcode.so : MODLIBS=-lqrencode -lpng
 lib/framerd/qrcode.o: src/cmodules/qrcode.c
 lib/framerd/qrcode.so: src/cmodules/qrcode.o
 lib/framerd/qrcode.dylib: src/cmodules/qrcode.o ${CMODULE_DEPENDS}
 
-lib/framerd/hyphenate.so lib/framerd/hyphenate.dylib : MODLIBS=-lhyphen
+lib/framerd/hyphenate.so : MODLIBS=-lhyphen
 lib/framerd/hyphenate.o: src/cmodules/hyphenate.c
 lib/framerd/hyphenate.so: src/cmodules/hyphenate.o
 lib/framerd/hyphenate.dylib: src/cmodules/hyphenate.o ${CMODULE_DEPENDS}
 
-lib/framerd/hunspell.so lib/framerd/hunspell.dylib : MODLIBS=-lhunspell
+lib/framerd/hunspell.so : MODLIBS=-lhunspell
 lib/framerd/hunspell.o: src/cmodules/hunspell.c
 lib/framerd/hunspell.so: src/cmodules/hunspell.o
 lib/framerd/hunspell.dylib: src/cmodules/hunspell.o ${CMODULE_DEPENDS}
 
-lib/framerd/zlib.so lib/framerd/zlib.dylib : MODLIBS="-lz"
+lib/framerd/zlib.so : MODLIBS="-lz"
 lib/framerd/zlib.o: src/cmodules/zlib.c
 lib/framerd/zlib.so: src/cmodules/zlib.o
 lib/framerd/zlib.dylib: src/cmodules/zlib.o
 
-lib/framerd/leveldb.so lib/framerd/leveldb.dylib : MODLIBS="-lleveldb"
+lib/framerd/leveldb.so : MODLIBS="-lleveldb"
 lib/framerd/leveldb.o: src/cmodules/leveldb.c
 lib/framerd/leveldb.so: src/cmodules/leveldb.o
 lib/framerd/leveldb.dylib: src/cmodules/leveldb.o ${CMODULE_DEPENDS}
 
-lib/framerd/rocksdb.so lib/framerd/rocksdb.dylib : MODLIBS="-lrocksdb"
+lib/framerd/rocksdb.so : MODLIBS="-lrocksdb"
 lib/framerd/rocksdb.o: src/cmodules/rocksdb.c
 lib/framerd/rocksdb.so: src/cmodules/rocksdb.o
 lib/framerd/rocksdb.dylib: src/cmodules/rocksdb.o ${CMODULE_DEPENDS}
