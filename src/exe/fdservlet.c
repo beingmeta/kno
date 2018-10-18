@@ -1148,7 +1148,7 @@ static int webservefn(u8_client ucl)
       errorpage = default_errorpage;}
     if ( (STRINGP(path)) && (STRINGP(uri)) && (STRINGP(method)) )
       u8_log(LOG_ERR,ex->u8x_cond,
-             "Unexpected error \"%m \" @%s (%s) (#%lx) %s"
+             "Unexpected error \"%m\" @%s (%s) (#%lx) %s"
              "\n\t  using '%s' to"
              "\n%s %s",
              ex->u8x_cond,ex->u8x_context,
@@ -1156,21 +1156,21 @@ static int webservefn(u8_client ucl)
              FD_CSTRING(path),FD_CSTRING(method),FD_CSTRING(uri));
     else if (STRINGP(path))
       u8_log(LOG_ERR,ex->u8x_cond,
-             "Unexpected error \"%m \" @%s (%s) (#%lx)%s\n from '%s'",
+             "Unexpected error \"%m\" @%s (%s) (#%lx)%s\n from '%s'",
              ex->u8x_cond,ex->u8x_context,
              ex->u8x_details,(unsigned long)ucl,
              irritation,
              FD_CSTRING(path));
     else if (STRINGP(uri))
       u8_log(LOG_ERR,ex->u8x_cond,
-             "Unexpected error \"%m \" @%s (%s) (#%lx)%s\n to %s %s",
+             "Unexpected error \"%m\" @%s (%s) (#%lx)%s\n to %s %s",
              ex->u8x_cond,ex->u8x_context,
              ex->u8x_details,(unsigned long)ucl,
              irritation,
              ( (FD_STRINGP(method)) ? (FD_CSTRING(method)) : (U8S(""))),
              FD_CSTRING(uri)) ;
     else u8_log(LOG_ERR,ex->u8x_cond,
-                "Unexpected error \"%m \" %s:@%s (%s) (#%lx)%s",
+                "Unexpected error \"%m\" %s:@%s (%s) (#%lx)%s",
                 ex->u8x_cond,ex->u8x_context,ex->u8x_details,
                 (unsigned long)ucl,
                 irritation);
