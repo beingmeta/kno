@@ -59,7 +59,7 @@
 		   (if (gpath-handler? val)
 		       (store! gpath-handlers (gpath-handler-name val)
 			       val)
-		       (error "NOT a GPATH HANDLER"))
+		       (irritant val |BadGPathHandler|))
 		   (get gpath-handlers (getkeys gpath-handlers)))))
 
 (define-init urish?
@@ -202,8 +202,10 @@
 		     (if (response/badmethod? req)
 			 (let ((req (urlput dest content ctype `#[METHOD POST HEADERS ,headers])))
 			   (unless (response/ok? req)
-			     (error "Couldn't save to URL" dest req)))
-			 (error "Couldn't save to URL" dest req)))))
+			     (error "Couldn't save to URL"  GP/SAVE!
+				    dest req)))
+			 (error "Couldn't save to URL" GP/SAVE!
+				dest req)))))
 		((string? dest) (write-file dest content))
 		((s3loc? dest) (s3/write! dest content ctype headers))
 		((and (pair? dest) (hashfs? (car dest)))
@@ -230,7 +232,7 @@
 		 ((gpath-handler-save (get gpath-handlers (compound-tag (car dest))))
 		  (car dest) (cdr dest) content ctype
 		  (if charset (cons `#[charset ,charset] opts) opts)))
-		(else (error "Bad GP/SAVE call")))
+		(else (error "Bad GP/SAVE call" GP/SAVE! #f dest)))
 	  (loginfo GP/SAVE! "Saved " (length content)
 		   (if (string? content) " characters of "
 		       (if (packet? content) " bytes of "))
@@ -400,7 +402,7 @@
 	  (set! root (cons (string->root (car root)) (cdr root)))))
   (cond ((or (not path) (null? path)) root)
 	((and require-subpath (not (string? path)))
-	 (error |TypeError| makepath "Relative path is not a string" path))
+	 (error |TypeError| MAKEPATH "Relative path is not a string" path))
 	((or (s3loc? path) (zipfile? path) 
 	     (hashtable? path) (hashfs? path)
 	     (zipfs? path)
@@ -410,7 +412,7 @@
 		      (zipfs? (car path)))))
 	 path)
 	((not (string? path))
-	 (error |TypeError| makepath "Relative path is not a string" path))
+	 (error |TypeError| MAKEPATH "Relative path is not a string" path))
 	((and (not require-subpath)
 	      (has-prefix path {"http:" "s3:" "https:" "~"
 				"HTTP:" "S3:" "HTTPS:"}))
@@ -424,13 +426,14 @@
 	((and (compound-type? root) (test gpath-handlers (compound-tag root)))
 	 (cons root path))
 	((and (pair? root) (not (string? (cdr root))))
-	 (error "Bad GPATH root" root))
+	 (error "Bad GPATH root" MAKEPATH "not a valid GPATH root" root))
 	((string? root) (checkdir (mkpath root path)))
 	((and (pair? root) (string? (car root)))
 	 (checkdir (mkpath (mkpath (car root) (cdr root)) path)))
 	((pair? root) (cons (car root) (mkpath (cdr root) path)))
 	((string? root) (cons (checkdir root) path))
-	(else (error "Weird GPATH root" root " for " path))))
+	(else (error "Weird GPATH root" MAKEPATH
+		     (stringout root " for " path)))))
 (define gp/makepath makepath)
 (define (gp/path root path . more)
   (let ((result (if path (makepath (->gpath root) path) (->gpath root))))
@@ -492,7 +495,7 @@
 		  (filestring (abspath ref) (and ctype (ctype->charset ctype)))
 		  (filecontent (abspath ref)))
 	      (filedata (abspath ref))))
-	(else (error "Weird GPATH ref" ref))))
+	(else (error "Weird GPATH ref" GP/FETCH #f ref))))
 
 (define (gp/urlfetch url (err #t) (max-redirects 10))
   (let* ((newurl (textsubst url (qc gp/urlsubst)))
@@ -521,10 +524,12 @@
 		(gp/urlfetch (get response 'location)
 			     (and err (cons url (if (pair? err) err '())))
 			     (-1+ max-redirects))
-		(if err (error TOO_MANY_REDIRECTS url response)
+		(if err (error TOO_MANY_REDIRECTS GP/URLFETCH
+			       url response)
 		    (begin (logwarn "Too many redirects: "
 			     (cons url err)))))
-	    (tryif err (error URLFETCH_FAILED url response))))))
+	    (tryif err (error URLFETCH_FAILED GP/URLFETCH
+			      url response))))))
 
 (define (gp/urlinfo url (err #t) (max-redirects 10))
   (let* ((newurl (textsubst url (qc gp/urlsubst)))
@@ -541,7 +546,7 @@
 		(gp/urlinfo (get response 'location)
 			    (and err (cons url (if (pair? err) err '())))
 			    (-1+ max-redirects))
-		(if err (error TOO_MANY_REDIRECTS url response)
+		(if err (error TOO_MANY_REDIRECTS GP/URLINFO url response)
 		    (begin (logwarn "Too many redirects: "
 			     (cons url err)))))
 	    response))))
@@ -643,7 +648,7 @@
 	     'hash     (packet->base16 hash)
 	     'md5      (packet->base16 hash)
 	     'last-modified (file-modtime ref))))
-	(else (error "Weird GPATH ref" ref))))
+	(else (error "Weird GPATH ref" GP/FETCH+ #f ref))))
 
 (define (gp/info ref (etag #t) (ctype #f) (opts #f) (encoding))
   (if (urish? ref) (set! ref (->gpath ref)))
@@ -713,7 +718,7 @@
 	   'path ref 'gpath ref 'location #t))
 	((and (string? ref) (not (file-exists? ref))) #f)
 	((string? ref) (file-info ref etag ctype opts encoding))
-	(else (error "Weird GPATH ref" ref))))
+	(else (error "Weird GPATH ref" GP/INFO #f ref))))
 
 (define (file-info ref etag ctype opts encoding)
   (let* ((ref (abspath ref))
@@ -772,7 +777,7 @@
 	((and (string? ref) (has-prefix ref "s3:"))
 	 (s3/modified (->s3loc ref)))
 	((string? ref) (file-modtime ref))
-	(else (error "Invalid GPATH" ref))))
+	(else (error "Invalid GPATH" GP/MODIFIED #f ref))))
 
 (define (gp/newer ref base)
   (if (urish? ref) (set! ref (->gpath ref)))
@@ -816,7 +821,7 @@
 	((and (string? ref) (has-prefix ref "s3:"))
 	 (s3/exists? (->s3loc ref)))
 	((string? ref) (file-exists? ref))
-	(else (error "Weird GPATH ref" ref))))
+	(else (error "Weird GPATH ref" GP/EXISTS? #f ref))))
 
 (define (gp/exists ref) (and (gp/exists? ref) ref))
 
@@ -851,7 +856,7 @@
 	 (s3/etag (->s3loc ref) compute))
 	((string? ref)
 	 (and (file-exists? ref) compute (packet->string (md5 (filedata ref)) 16)))
-	(else (error "Weird GPATH ref" ref))))
+	(else (error "Weird GPATH ref" GP/ETAG #f ref))))
 
 (defambda (filter-list matches matcher (prefix #f))
   (if (not matcher) 
