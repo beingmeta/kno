@@ -9,12 +9,16 @@
 #define _FILEINFO __FILE__
 #endif
 
+#include "framerd/config.h"
+
 #if HAVE_GPERFTOOLS_PROFILER_H
 #include <gperftools/profiler.h>
 #endif
+
 #if HAVE_GPERFTOOLS_HEAP_PROFILER_H
 #include <gperftools/heap-profiler.h>
 #endif
+
 #if HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H
 #include <gperftools/malloc_extension_c.h>
 #endif
@@ -89,7 +93,7 @@ static lispval gperf_startstop(lispval arg)
   else ProfilerStop();
   return VOID;
 }
-static lispval gperf_flush(lispval arg)
+static lispval gperf_flush()
 {
   ProfilerFlush();
   return VOID;
@@ -101,8 +105,8 @@ static lispval malloc_stats_prim()
 #if HAVE_MALLOC_STATS
   malloc_stats();
 #else
-  write(2,"No malloc_stats available\n",
-        strlen("No malloc_stats available\n"));
+  int rv = write(2,"No malloc_stats available\n",
+                 strlen("No malloc_stats available\n"));
 #endif
   return VOID;
 }
@@ -156,9 +160,9 @@ FD_EXPORT int fd_init_gperftools()
   gperftools_init = u8_millitime();
   lispval gperftools_module = fd_new_cmodule("GPERFTOOLS",0,fd_init_gperftools);
 
-  fd_add_sensor(fd_intern("MALLOCD"),mallocd_sensor());
-  fd_add_sensor(fd_intern("HEAPSIZE"),heapsize_sensor());
-  fd_add_sensor(fd_intern("MALLOCINFO"),mallocinfo_sensor());
+  fd_add_sensor(fd_intern("MALLOCD"),mallocd_sensor);
+  fd_add_sensor(fd_intern("HEAPSIZE"),heapsize_sensor);
+  fd_add_sensor(fd_intern("MALLOCINFO"),mallocinfo_sensor);
 
 #if HAVE_GPERFTOOLS_HEAP_PROFILER_H
   fd_idefn(fd_xscheme_module,
@@ -172,8 +176,7 @@ FD_EXPORT int fd_init_gperftools()
 #if HAVE_GPERFTOOLS_PROFILER_H
   fd_idefn(fd_xscheme_module,
            fd_make_cprim1("GPERF/PROFILE!",gperf_startstop,0));
-  fd_idefn(fd_xscheme_module,
-           fd_make_cprim1("GPERF/FLUSH",gperf_flush,1));
+  fd_idefn(fd_xscheme_module,fd_make_cprim0("GPERF/FLUSH",gperf_flush));
 #endif
 
   fd_idefn1(fd_scheme_module,"RELEASE-MEMORY",release_memory_prim,0,

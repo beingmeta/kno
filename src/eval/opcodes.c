@@ -741,6 +741,14 @@ static lispval bindop(lispval op,
   return result;
 }
 
+static void reset_env_op(fd_lexenv env)
+{
+  if ( (env->env_copy) && (env != env->env_copy) ) {
+    lispval tofree = (lispval) env;
+    env->env_copy=NULL;
+    fd_decref(tofree);}
+}
+
 /* Opcode dispatch */
 
 static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
@@ -798,6 +806,9 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
     else return fd_err(fd_SyntaxError,"FD_SYMREF_OPCODE/badenv",NULL,expr);}
   case FD_VOID_OPCODE: {
     return VOID;}
+  case FD_RESET_ENV_OPCODE: {
+    reset_env_op(env);
+    return VOID;}
   case FD_BEGIN_OPCODE:
     return op_eval_body(FD_CDR(expr),env,_stack,tail);
   case FD_UNTIL_OPCODE:
@@ -817,11 +828,13 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
       U8_MAYBE_UNUSED lispval ignore = next_qcode(args);
       fd_decref(test_val);
       return op_eval(then,env,_stack,tail);}}
+
   case FD_BIND_OPCODE: {
     lispval vars=next_qcode(args);
     lispval inits=next_qcode(args);
     lispval body=next_qcode(args);
     return bindop(opcode,_stack,env,vars,inits,body,tail);}
+
   case FD_ASSIGN_OPCODE: {
     lispval var = next_qcode(args);
     lispval combiner = next_qcode(args);
@@ -1293,6 +1306,7 @@ static void init_opcode_names()
   set_opcode_name(FD_FIXCHOICE_OPCODE,"OP_FIXCHOICE");
 
   set_opcode_name(FD_SOURCEREF_OPCODE,"OP_SOURCEREF");
+  set_opcode_name(FD_RESET_ENV_OPCODE,"OP_RESET_ENV");
 
   set_opcode_name(FD_AMBIGP_OPCODE,"OP_AMBIGP");
   set_opcode_name(FD_SINGLETONP_OPCODE,"OP_SINGLETONP");

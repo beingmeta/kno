@@ -1000,18 +1000,21 @@
 		       (optimize-body body))))))
 
 (define (optimize-doexpression handler expr env bound opts)
-  (let ((bindspec (cadr expr)) 
-	(body (cddr expr)))
-    `(,handler (,(car bindspec)
-		,(optimize (cadr bindspec) env bound opts)
-		,@(cddr bindspec))
-	       ,@(let ((bound
-			(if (= (length bindspec) 3)
-			    (cons (list (first bindspec) (third bindspec))
-				  bound)
-			    (cons (list (first bindspec)) bound))))
-		   (forseq (b body)
-		     (optimize b env bound opts))))))
+  (let* ((bindspec (cadr expr))
+	 (body (cddr expr))
+	 (inner (cond ((symbol? bindspec) (cons (list bindspec) bound))
+		      ((or (not (pair? bindspec)) (not (< 1 (length bindspec) 4)))
+		       (irritant expr |SyntaxError|))
+		      ((= (length bindspec) 3)
+		       (cons (list (first bindspec) (third bindspec))
+			     bound))
+		      (else (cons (list (first bindspec)) bound)))))
+    `(,handler ,(if (symbol? bindspec) 
+		    `(,bindspec ,(optimize bindspec env bound opts))
+		    `(,(car bindspec) 
+		      ,(optimize (cadr bindspec) env bound opts)
+		      ,@(cddr bindspec)))
+	       ,@(forseq (b body) (optimize b env inner opts)))))
 (define (optimize-do2expression handler expr env bound opts)
   (let ((bindspec (cadr expr)) 
 	(body (cddr expr)))
@@ -1043,11 +1046,13 @@
 	 (limit-ref (get-lexref '|dotimes_limit| newbound))
 	 (body (cddr expr)))
     `(#OP_BIND #(,varname |dotimes_limit|) 
-	       #(0 ,(optimize limit-expr env bound opts))
+	       #(0 ,(optimize limit-expr env
+			      (cons '(#f #f) bound)
+			      opts))
 	       (#OP_UNTIL
 		(#OP_GTE ,iter-ref ,limit-ref)
 		,@(forseq (clause body) (optimize clause env newbound opts))
-		(,%env/reset!)
+		(#OP_RESET_ENV)
 		(#OP_ASSIGN ,iter-ref #t (#OP_PLUS1 ,iter-ref))))))
 
 (define (optimize-doseq handler expr env bound opts)
@@ -1063,14 +1068,21 @@
 	 (limit-ref (get-lexref '|_doseq_limit| new-bindings))
 	 (body (cddr expr)))
     `(#OP_BIND #(,varname ,iter-var |_doseq_subject| |_doseq_limit|)
-	       #(#f 0 ,(optimize val-expr env bound opts) 0)
-	       (#OP_ASSIGN ,limit-ref (#OP_LENGTH ,seq-ref))
-	       (#OP_UNTIL
-		(#OP_GTE ,iter-ref ,limit-ref)
-		(#OP_ASSIGN ,elt-ref (#OP_SEQELT ,seq-ref ,iter-ref))
-		,@(forseq (clause body) (optimize clause env new-bindings  opts))
-		(,%env/reset!)
-		(#OP_ASSIGN ,iter-ref #t (#OP_PLUS1 ,iter-ref))))))
+	       #(#f 0 ,(optimize val-expr env (cons '(#f #f #f #f) bound) opts)
+		 0)
+	       ((#OP_BRANCH 
+		 (#OP_PAIRP ,seq-ref)
+		 (,doseq (,varname ,seq-ref ,iter-var)
+		   ,@body)
+		 (#OP_BEGIN
+		  (#OP_ASSIGN ,limit-ref #f (#OP_LENGTH ,seq-ref))
+		  (#OP_UNTIL
+		   (#OP_GTE ,iter-ref ,limit-ref)
+		   (#OP_ASSIGN ,elt-ref #f (#OP_SEQELT ,seq-ref ,iter-ref))
+		   ,@(forseq (clause body) (optimize clause env new-bindings  opts))
+		   (#OP_RESET_ENV)
+		   (#OP_ASSIGN ,iter-ref #f (#OP_PLUS1 ,iter-ref)))
+		  (#OP_VOID)))))))
 
 (define (optimize-dosubsets handler expr env bound opts)
   (let ((bindspec (cadr expr)) 
@@ -1387,9 +1399,12 @@
 (add! special-form-optimizers
       (choice dolist dotimes doseq forseq)
       optimize-doexpression)
+;;(store! special-form-optimizers dotimes optimize-dotimes)
+;;(store! special-form-optimizers doseq optimize-doseq)
+
 (add! special-form-optimizers
       (choice do-choices for-choices filter-choices try-choices)
-      optimize-do2expression)
+      optimize-doexpression)
 
 (add! special-form-optimizers tryif optimize-tryif)
 (add! special-form-optimizers and optimize-and)
@@ -1441,6 +1456,8 @@
 (add! special-form-optimizers
       with-log-context
       optimize-block)
+
+;;(add! special-form-optimizers doseq optimize-doseq)
 
 ;; Don't optimize these because they look at the symbol that is the head
 ;; of the expression to get their tag name.
