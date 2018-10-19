@@ -6962,6 +6962,8 @@ if test "x$ac_cv_lib_profiler_ProfilerStart" = xyes; then :
   EXELIBS="-lprofiler $EXELIBS"
 fi
 
+    CMODULES="lib/framerd/gperftools.${shared_suffix} ${CMODULES}"
+    INSTALLCMODULES="install-gperftools ${INSTALLCMODULES}"
   elif test "$gperftools" = "minimal"; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_minimal" >&5
 $as_echo_n "checking for malloc in -ltcmalloc_minimal... " >&6; }

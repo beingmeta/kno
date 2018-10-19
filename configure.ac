@@ -825,6 +825,8 @@ else
   elif test "$gperftools" = "profile"; then
     AC_CHECK_LIB(tcmalloc,malloc,EXELIBS="-ltcmalloc $EXELIBS")
     AC_CHECK_LIB(profiler,ProfilerStart,EXELIBS="-lprofiler $EXELIBS")
+    CMODULES="lib/framerd/gperftools.${shared_suffix} ${CMODULES}"
+    INSTALLCMODULES="install-gperftools ${INSTALLCMODULES}"
   elif test "$gperftools" = "minimal"; then
     AC_CHECK_LIB(tcmalloc_minimal,malloc,EXELIBS="-ltcmalloc_minimal $EXELIBS")
   else

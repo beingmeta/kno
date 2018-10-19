@@ -43,16 +43,6 @@
 #define FD_FASTOP static inline
 #endif
 
-#if ((WITH_GOOGLE_PROFILER)&&(HAVE_GOOGLE_PROFILER_H))
-#include <google/profiler.h>
-#define USING_GOOGLE_PROFILER 1
-#else
-#define USING_GOOGLE_PROFILER 0
-#define ProfilerStart(x)
-#define ProfilerStop()
-#define ProfilerFlush()
-#endif
-
 /* This is for C profiling and helps generate code which is easier to profile. */
 #ifndef FD_PROFILING_ENABLED
 #define FD_PROFILING_ENABLED 0

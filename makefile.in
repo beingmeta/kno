@@ -455,6 +455,7 @@ CMODULE_SOURCES=\
 	src/cmodules/tidy.c src/cmodules/sundown.c 				\
 	src/cmodules/hyphenate.c src/cmodules/hunspell.c 			\
 	src/cmodules/qrcode.c src/cmodules/exif.c src/cmodules/imagick.c	\
+	src/cmodules/gperftools.c 						\
 	src/cmodules/crypto.c
 
 STATIC_LIBS=lib/libfdcore@suffix@.a 	\
@@ -1153,6 +1154,11 @@ lib/framerd/rocksdb.o: src/cmodules/rocksdb.c
 lib/framerd/rocksdb.so: src/cmodules/rocksdb.o
 lib/framerd/rocksdb.dylib: src/cmodules/rocksdb.o ${CMODULE_DEPENDS}
 
+lib/framerd/gperftools.so : MODLIBS="-lprofiler"
+lib/framerd/gperftools.o: src/cmodules/gperftools.c
+lib/framerd/gperftools.so: src/cmodules/gperftools.o
+lib/framerd/gperftools.dylib: src/cmodules/gperftools.o ${CMODULE_DEPENDS}
+
 lib/framerd/sundown.so: src/cmodules/sundown.c $(SUNDOWN_OBJECTS)
 	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/sundown.c $(SUNDOWN_OBJECTS)
 	@$(MSG) MKSO  $@ $<
@@ -1484,6 +1490,7 @@ install-libarchive: ${CMODULES}/libarchive.@shared_suffix@ ${CMODULES}/libarchiv
 install-exif: ${CMODULES}/exif.@shared_suffix@ ${CMODULES}/exif.@vshared_suffix@
 install-zlib: ${CMODULES}/zlib.@shared_suffix@ ${CMODULES}/zlib.@vshared_suffix@
 install-sundown: ${CMODULES}/sundown.@shared_suffix@ ${CMODULES}/sundown.@vshared_suffix@
+install-gperftools: ${CMODULES}/gperftools.@shared_suffix@ ${CMODULES}/gperftools.@vshared_suffix@
 
 # Setup targets
 
