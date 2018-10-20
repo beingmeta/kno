@@ -5,11 +5,11 @@
 
 (use-module '{mongodb logger varconfig engine})
 
-(module-export! '{mgo/index/list mgo/index/drop! mgo/index/add!
+(module-export! '{mongo/index/list mongo/index/drop! mongo/index/add!
 		  collection/new 
 		  collection/rename! collection/copy! collection/drop!
-		  mgo/dropdb! 
-		  mgo/params/list mgo/params/get mgo/params/set!
+		  mongo/dropdb! 
+		  mongo/params/list mongo/params/get mongo/params/set!
 		  mongo/copy-pool})
 
 
@@ -33,12 +33,12 @@
 	  (set! cursor-id (get cursor 'id)))
 	results)))
 
-(define (mgo/index/list collection)
+(define (mongo/index/list collection)
   (extract-results (mongo/results 
 		    collection "listIndexes" (collection/name collection))
 		   collection))
 
-(define (mgo/index/drop! collection name)
+(define (mongo/index/drop! collection name)
   (if (string? name)
       (mongo/cmd collection
 		  "dropIndexes" (collection/name collection)
@@ -47,7 +47,7 @@
 		  "dropIndexes" (collection/name collection)
 		  "index" (get name 'name))))
 
-(defambda (mgo/index/add! collection specs (opts #f))
+(defambda (mongo/index/add! collection specs (opts #f))
   (mongo/cmd collection
 	      "createIndexes" (collection/name collection)
 	      "indexes" (qc (generate-index-specs specs))))
@@ -140,16 +140,16 @@
 	  (set! batch {})
 	  (set! batch (cursor/read cursor batchsize))))))
 
-(define (mgo/dropdb! db dbname)
+(define (mongo/dropdb! db)
   (mongo/cmd db #["dropDatabase" 1]))
 
-(define (mgo/params/list arg (db))
+(define (mongo/params/list arg (db))
   (set! db (if (mongodb? arg) arg (mongo/getdb arg)))
   (extract-results (mongo/results db "getParameter" "*")))
-(define (mgo/params/get arg param (db))
+(define (mongo/params/get arg param (db))
   (set! db (mongo/getdb arg))
   (mongo/results db "getParameter" 1 param 1))
-(define (mgo/params/set! arg param value (db))
+(define (mongo/params/set! arg param value (db))
   (set! db (mongo/getdb arg))
   (mongo/results db "setParameter" 1 param value))
 
