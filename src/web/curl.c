@@ -187,7 +187,6 @@ static size_t handle_header(void *ptr,size_t size,size_t n,void *data)
       hval = lispval_string(valstart);
       add = 0;}
     else if ((FD_EQ(slotid,content_length_symbol)) ||
-             (FD_EQ(slotid,etag_symbol)) ||
              (FD_EQ(slotid,response_code_slotid))) {
       hval = fd_parse(valstart);
       add = 0;}
