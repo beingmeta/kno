@@ -184,7 +184,11 @@ FD_EXPORT lispval fd_make_lambda(u8_string name,
                                  lispval arglist,lispval body,fd_lexenv env,
                                  int nd,int sync);
 
+/* QCODE */
 
+typedef struct FD_QCODE {
+  const lispval *codes;
+  const int code_len;} *fd_qcode;
 
 /* Loading files and config data */
 

@@ -407,7 +407,16 @@ static lispval opcodep(lispval x)
 
 static lispval make_opcode(lispval x)
 {
-  return FD_OPCODE(FIX2INT(x));
+  if ( (FD_UINTP(x)) && ((FD_FIX2INT(x)) < FD_IMMEDIATE_MAX) )
+    return FD_OPCODE(FIX2INT(x));
+  else return fd_err(fd_RangeError,"make_opcode",NULL,x);
+}
+
+static lispval make_coderef(lispval x)
+{
+  if ( (FD_UINTP(x)) && ((FD_FIX2INT(x)) < FD_IMMEDIATE_MAX) )
+    return FD_OPCODE(FIX2INT(x));
+  else return fd_err(fd_RangeError,"make_coderef",NULL,x);
 }
 
 static lispval booleanp(lispval x)
@@ -747,7 +756,7 @@ static void add_sourceid(u8_string s,void *vp)
   *valp = fd_make_pair(lispval_string(s),*valp);
 }
 
-static lispval lisp_getsourceinfo()
+static lispval lisp_getsourceids()
 {
   lispval result = NIL;
   u8_for_source_files(add_sourceid,&result);
@@ -840,6 +849,11 @@ FD_EXPORT void fd_init_coreprims_c()
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("MAKE-OPCODE",make_opcode,1,
                            fd_fixnum_type,VOID));
+  fd_idefn1(fd_scheme_module,"-MAKE-CODEREF",make_coderef,1,
+            "(CODEREF <fixnum>)\nReturns a coderef object",
+            fd_fixnum_type,FD_VOID);
+
+
   fd_idefn(fd_scheme_module,fd_make_cprim1("PROCEDURE-NAME",procedure_name,1));
 
   fd_idefn3(fd_scheme_module,"CONFIG",config_get,FD_NEEDS_1_ARG,
@@ -894,7 +908,7 @@ FD_EXPORT void fd_init_coreprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("PARSE-ARG",lisp_parse_arg,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("UNPARSE-ARG",lisp_unparse_arg,1));
 
-  fd_idefn(fd_scheme_module,fd_make_cprim0("GETSOURCEINFO",lisp_getsourceinfo));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("GETSOURCEINFO",lisp_getsourceids));
   fd_idefn(fd_scheme_module,fd_make_cprim0("ALLSYMBOLS",lisp_all_symbols));
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("SEGFAULT",force_sigsegv));

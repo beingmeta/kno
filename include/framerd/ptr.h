@@ -329,6 +329,7 @@ FD_FASTOP U8_MAYBE_UNUSED int _FD_ISDTYPE(lispval x){ return 1;}
 #define FD_IMMEDIATE_TYPE(x) ((((LISPVAL(x))>>25)&0x7F)+0x4)
 #define FD_IMMEDIATE_DATA(x) ((LISPVAL(x))>>2)
 #define FD_IMM_TYPE(x) ((((LISPVAL(x))>>25)&0x7F)+0x4)
+#define FD_IMMEDIATE_MAX (1<<24)
 
 #if FD_PTR_TYPE_MACRO
 #define FD_PTR_TYPE(x) \
@@ -691,6 +692,35 @@ FD_EXPORT lispval fd_register_constant(u8_string name);
 #define FD_CHARCODE(x) (FD_GET_IMMEDIATE(x,fd_character_type))
 #define FD_CHAR2CODE(x) (FD_GET_IMMEDIATE(x,fd_character_type))
 
+/* CODEREFS */
+
+#define FD_CODEREFP(x) \
+  ((FD_PTR_MANIFEST_TYPE(x) == fd_immediate_ptr_type) && \
+   (FD_IMMEDIATE_TYPE(x) == fd_coderef_type))
+#define FD_DECODEREF(cref) (FD_IMMEDIATE_DATA(cref))
+#define FD_ENCODEREF(off) (LISPVAL_IMMEDIATE((off),fd_coderef_type))
+
+/* Lexrefs */
+
+#define FD_LEXREFP(x) (FD_TYPEP(x,fd_lexref_type))
+#define FD_LEXREF_UP(x) ((FD_GET_IMMEDIATE((x),fd_lexref_type))/32)
+#define FD_LEXREF_ACROSS(x) ((FD_GET_IMMEDIATE((x),fd_lexref_type))%32)
+
+/* Opcodes */
+
+/* These are used by the evaluator.  We define the immediate type here,
+   rather than dyanmically, so that they can be compile time constants
+   and dispatch very quickly. */
+
+#define FD_OPCODEP(x) \
+  ((FD_PTR_MANIFEST_TYPE(x) == fd_immediate_ptr_type) && \
+   (FD_IMMEDIATE_TYPE(x) == fd_opcode_type))
+
+#define FD_OPCODE(num) (LISPVAL_IMMEDIATE(fd_opcode_type,num))
+#define FD_OPCODE_NUM(op) (FD_GET_IMMEDIATE(op,fd_opcode_type))
+#define FD_NEXT_OPCODE(op) \
+  (LISPVAL_IMMEDIATE(fd_opcode_type,(1+(FD_OPCODE_NUM(op)))))
+
 /* Symbols */
 
 #ifndef FD_CORE_SYMBOLS
@@ -746,9 +776,9 @@ FD_EXPORT lispval FDSYM_TAG, FDSYM_TEST, FDSYM_TEXT, FDSYM_TYPE;
 FD_EXPORT lispval FDSYM_STORE;
 FD_EXPORT lispval FDSYM_VERSION, FDSYM_VOID;
 
-/* Persistent pointers */
+/* Function IDs */
 
-/* Persistent pointers are immediate values which refer to
+/* Function IDs are immediate values which refer to
    conses stored in a persistent table.  The idea is that
    persistent pointers are not subject to GC, so they can
    be passed much more quickly and without thread contention. */
@@ -802,27 +832,6 @@ static U8_MAYBE_UNUSED lispval _fd_fcnid_ref(lispval ref)
 
 #define FD_FCNID_TYPEP(x,tp)    (FD_TYPEP(fd_fcnid_ref(x),tp))
 #define FD_FCNID_TYPE(x)        (FD_PTR_TYPE(fd_fcnid_ref(x)))
-
-/* Opcodes */
-
-/* These are used by the evaluator.  We define the immediate type here,
-   rather than dyanmically, so that they can be compile time constants
-   and dispatch very quickly. */
-
-#define FD_OPCODEP(x) \
-  ((FD_PTR_MANIFEST_TYPE(x) == fd_immediate_ptr_type) && \
-   (FD_IMMEDIATE_TYPE(x) == fd_opcode_type))
-
-#define FD_OPCODE(num) (LISPVAL_IMMEDIATE(fd_opcode_type,num))
-#define FD_OPCODE_NUM(op) (FD_GET_IMMEDIATE(op,fd_opcode_type))
-#define FD_NEXT_OPCODE(op) \
-  (LISPVAL_IMMEDIATE(fd_opcode_type,(1+(FD_OPCODE_NUM(op)))))
-
-/* Lexrefs */
-
-#define FD_LEXREFP(x) (FD_TYPEP(x,fd_lexref_type))
-#define FD_LEXREF_UP(x) ((FD_GET_IMMEDIATE((x),fd_lexref_type))/32)
-#define FD_LEXREF_ACROSS(x) ((FD_GET_IMMEDIATE((x),fd_lexref_type))%32)
 
 /* Numeric macros */
 
