@@ -487,6 +487,8 @@ FD_EXPORT int make_hashindex
     return -1;}
   stream->stream_flags &= ~FD_STREAM_IS_CONSED;
 
+  outstream->buf_flags |= FD_WRITE_OPAQUE;
+
   u8_logf(LOG_INFO,"CreateHashIndex",
           "Creating a hashindex '%s' with %ld buckets",
           fname,n_buckets);
@@ -790,6 +792,7 @@ FD_EXPORT ssize_t hashindex_bucket(struct FD_HASHINDEX *hx,lispval key,
   FD_INIT_BYTE_OUTBUF(&out,buf,1024);
   if ((hx->hashindex_format)&(FD_HASHINDEX_DTYPEV2))
     out.buf_flags = out.buf_flags|FD_USE_DTYPEV2;
+  out.buf_flags |= FD_WRITE_OPAQUE;
   dtype_len = write_zkey(hx,&out,key);
   hashval = hash_bytes(out.buffer,dtype_len);
   fd_close_outbuf(&out);
@@ -877,6 +880,7 @@ static lispval hashindex_fetch(fd_index ix,lispval key)
         return EMPTY;}}}
   if ((hx->hashindex_format)&(FD_HASHINDEX_DTYPEV2))
     out.buf_flags |= FD_USE_DTYPEV2;
+  out.buf_flags |= FD_WRITE_OPAQUE;
   dtype_len = write_zkey(hx,&out,key); {}
   hashval = hash_bytes(out.buffer,dtype_len);
   bucket = hashval%(hx->index_n_buckets);
@@ -1066,6 +1070,7 @@ static int hashindex_fetchsize(fd_index ix,lispval key)
   FD_INIT_BYTE_OUTBUF(&out,buf,64);
   if ((hx->hashindex_format)&(FD_HASHINDEX_DTYPEV2))
     out.buf_flags = out.buf_flags|FD_USE_DTYPEV2;
+  out.buf_flags |= FD_WRITE_OPAQUE;
   dtype_len = write_zkey(hx,&out,key);
   hashval = hash_bytes(out.buffer,dtype_len);
   bucket = hashval%(hx->index_n_buckets);
@@ -1175,6 +1180,9 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,const lispval *keys)
   FD_INIT_BYTE_OUTPUT(&keysbuf,n*32);
   if ((hx->hashindex_format)&(FD_HASHINDEX_DTYPEV2))
     keysbuf.buf_flags = keysbuf.buf_flags|FD_USE_DTYPEV2;
+
+  keysbuf.buf_flags |= FD_WRITE_OPAQUE;
+
   /* Fill out a fetch schedule, computing hashes and buckets for each
      key.  If we have an offsets table, we compute the offsets during
      this phase, otherwise we defer to an additional loop.
@@ -2515,6 +2523,9 @@ static int hashindex_save(struct FD_HASHINDEX *hx,
   if ((hx->hashindex_format)&(FD_HASHINDEX_DTYPEV2)) {
     out.buf_flags |= FD_USE_DTYPEV2;
     newkeys.buf_flags |= FD_USE_DTYPEV2;}
+
+  out.buf_flags |= FD_WRITE_OPAQUE;
+  newkeys.buf_flags |= FD_WRITE_OPAQUE;
 
   /* Get all the keys we need to write and put then in the commit
      schedule */

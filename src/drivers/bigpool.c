@@ -545,6 +545,8 @@ static int make_bigpool
     fd_free_stream(stream);
     return -1;}
 
+  outstream->buf_flags |= FD_WRITE_OPAQUE;
+
   /* Remove leftover files */
   fd_remove_suffix(fname,".commit");
   fd_remove_suffix(fname,".rollback");
@@ -1075,7 +1077,8 @@ static int bigpool_storen(fd_pool p,struct FD_POOL_COMMITS *commits,
     if (init_buflen>262144) init_buflen = 262144;
     FD_INIT_BYTE_OUTPUT(&tmpout,init_buflen);
     if ((bp->bigpool_format)&(FD_BIGPOOL_DTYPEV2))
-      tmpout.buf_flags = tmpout.buf_flags|FD_USE_DTYPEV2|FD_IS_WRITING;
+      tmpout.buf_flags |= FD_USE_DTYPEV2;
+    tmpout.buf_flags |= FD_WRITE_OPAQUE;
 
     FD_OID base = bp->pool_base;
     int isadjunct = (bp->pool_flags) & (FD_POOL_ADJUNCT);
