@@ -550,10 +550,10 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
 /* The sizeof check here avoids *tautological* range errors
    when n can't be too big for a fixnum. */
 #define FD_INT2DTYPE(n)                         \
-  ( ( (sizeof(n) < FD_FIXNUM_BYTES) ||          \
-      ((n) > FD_MAX_FIXNUM) ||                  \
-      ((n) < FD_MIN_FIXNUM) ) ?                 \
-    (fd_make_bigint(n)) :                       \
+  ( ( (sizeof(n) < FD_FIXNUM_BYTES) ||           \
+      (((long long)(n)) > FD_MAX_FIXNUM) ||      \
+      (((long long)(n)) < FD_MIN_FIXNUM) ) ?     \
+    (fd_make_bigint(n)) :                        \
     (FD_INT2FIX(n)) )
 #define FD_INT(x) (FD_INT2DTYPE(x))
 #define FD_MAKEINT(x) (FD_INT2DTYPE(x))
