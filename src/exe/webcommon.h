@@ -406,7 +406,8 @@ static int preload_set(lispval var,lispval val,void *ignored)
     return 0;
   else {
     struct FD_PRELOAD_LIST *scan;
-    u8_string filename = FD_CSTRING(val); time_t mtime;
+    u8_string filename = FD_CSTRING(val), abspath;
+    time_t mtime;
     if (!(u8_file_existsp(filename)))
       return fd_reterr(fd_FileNotFound,"preload_config_set",
                        u8_strdup(filename),FD_VOID);
@@ -420,11 +421,12 @@ static int preload_set(lispval var,lispval val,void *ignored)
       else scan = scan->next_preload;}
     if (server_env == NULL) server_env = fd_working_lexenv();
     scan = u8_alloc(struct FD_PRELOAD_LIST);
-    scan->preload_filename = u8_strdup(filename);
+    scan->preload_filename = abspath = u8_abspath(filename,NULL);
     scan->preload_mtime = (time_t)-1;
     scan->next_preload = preloads;
     preloads = scan;
     u8_unlock_mutex(&preload_lock);
+    u8_log(LOG_NOTICE,"WebPreload","Preloading '%s'",abspath);
     return 1;}
 }
 
