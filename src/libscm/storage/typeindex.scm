@@ -119,7 +119,7 @@
 
 ;;; Reading a value
 
-(define (read-value info key typeindex (filename))
+(define (read-value info key typeindex (pathname))
   (set! pathname (mkpath (dirname (typeindex-filename typeindex))
 			 (get info 'file)))
   (if (file-exists? pathname)
