@@ -127,10 +127,15 @@ static u8_string check_module_source(u8_string name,u8_string search_path)
     return NULL;}
   else {
     unsigned char buf[1000];
-    if (u8_file_existsp(u8_bprintf(buf,"%s/%s/module.scm",search_path,name)))
-      return u8_mkstring("%s/%s/module.scm",search_path,name);
-    else if (u8_file_existsp(u8_bprintf(buf,"%s/%s.scm",search_path,name)))
-      return u8_mkstring("%s/%s.scm",search_path,name);
+    u8_string init_sep = (u8_has_suffix(search_path,"/",0)) 
+      ? (U8S(""))
+      : (U8S("/"));
+    if (u8_file_existsp
+        (u8_bprintf(buf,"%s%s%s/module.scm",search_path,init_sep,name)))
+      return u8_mkstring("%s%s%s/module.scm",search_path,init_sep,name);
+    else if (u8_file_existsp(u8_bprintf(buf,"%s%s%s.scm",
+                                        search_path,init_sep,name)))
+      return u8_mkstring("%s%s%s.scm",search_path,init_sep,name);
     else return NULL;}
 }
 
