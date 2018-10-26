@@ -22,7 +22,7 @@ while [ $# -gt 0 ]; do
 	    ;;
 	dev)
 	    CONFIG_ARGS="--with-libscm=${BUILD}/src/libscm/ ${CONFIG_ARGS}";
-	    CONFIG_ARGS="--with-loadpath=${SRC}/fdmodules/%/module.scm:${SRC}/fdmodules/%.scm ${CONFIG_ARGS}";
+	    CONFIG_ARGS="--with-loadpath=${SRC}/fdmodules/ ${CONFIG_ARGS}";
 	    ;;
 	ipeval)
 	    CONFIG_ARGS="--with-ipeval ${CONFIG_ARGS}";
