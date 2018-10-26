@@ -624,15 +624,12 @@ LIBOBJS
 PYTHON2_LIB
 PYTHON2_INCLUDE_DIR
 PYTHON2_BIN
-pkg_config
 mysql_config
 sudo_program
 PTHREAD_CFLAGS
 PTHREAD_LIBS
 PTHREAD_CC
 ax_pthread_config
-git
-etags
 rpm
 buildrpm
 RANLIB
@@ -661,6 +658,9 @@ build_os
 build_vendor
 build_cpu
 build
+pkg_config
+git
+etags
 MSGFMT
 MSGMERGE
 XGETTEXT
@@ -848,7 +848,6 @@ infodir
 docdir
 oldincludedir
 includedir
-runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -872,6 +871,7 @@ ac_subst_files=''
 ac_user_opts='
 enable_option_checking
 with_statedir
+with_execwrapper
 with_mkdir
 with_chmod
 with_chown
@@ -881,33 +881,33 @@ with_copyfile
 with_touchfile
 with_apxs
 with_make_target
-with_rpath
-with_fileinfo
-with_codename
-with_stackcheck
-with_execwrapper
-enable_thread_debug
+with_suffix
 with_optinclude
 with_optlib
 with_sourcedir
 with_extra_sources
 with_optdir
+with_extlib
+with_rpath
+with_fileinfo
+with_stackcheck
+with_profiling
+with_duma
+with_malloc
+with_crypto
+with_codename
 with_admin_group
 with_fdaemon
+with_rundir
+with_logdir
+with_bugjar
 with_webuser
 with_webgroup
 with_apacheinfo
 with_apachelib
-with_rundir
-with_logdir
-with_bugjar
-with_duma
-with_malloc
 enable_ffi
 with_arch
 with_extended_profiling
-with_suffix
-with_extlib
 with_share_dir
 with_data_dir
 with_config_dir
@@ -921,17 +921,19 @@ with_loadpath
 with_libscm
 with_module_path
 with_safe_module_path
-with_dload_path
 with_boot_config
+with_dload_path
+enable_shared
 enable_maintainer_mode
 enable_dependency_tracking
-enable_shared
 enable_async
 enable_dtblock
 with_i18n
 with_mmap
-enable_lockfree
+with_tls
 with_nptrlocks
+enable_thread_debug
+enable_lockfree
 with_editline
 with_libu8
 with_sudo
@@ -947,13 +949,10 @@ enable_tidy
 enable_hyphenate
 enable_hunspell
 enable_largefiles
-with_crypto
 with_sundown
-with_profiling
 enable_prefetching
 enable_fileconfig
 enable_htmldump
-with_tls
 enable_ipeval
 with_global_ipeval
 with_parseltongue
@@ -1015,7 +1014,6 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
-runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE}'
@@ -1268,15 +1266,6 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
-  -runstatedir | --runstatedir | --runstatedi | --runstated \
-  | --runstate | --runstat | --runsta | --runst | --runs \
-  | --run | --ru | --r)
-    ac_prev=runstatedir ;;
-  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
-  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
-  | --run=* | --ru=* | --r=*)
-    runstatedir=$ac_optarg ;;
-
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1414,7 +1403,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir runstatedir
+		libdir localedir mandir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1567,7 +1556,6 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
-  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -1600,13 +1588,13 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
---enable-thread-debug Use libu8 thread tracing and debugging
 --enable-ffi enable the FFI interface
+--endisable-shared Build with/without shared libraries
 --endisable-maintainer-mode doesn't do anything
 --endisable-dependency-tracking doesn't do anything
---endisable-shared Build with/without shared libraries
 --endisable-async Enable async I/O features
 --endisable-dtblock DTBlock dtype for net I/O
+--enable-thread-debug Use libu8 thread tracing and debugging
 --endisable-lockfree Enables lock-free reference counting
 --endisable-leveldb Build and install LevelDB module
 --endisable-rocksdb Build and install Rocksdb module
@@ -1627,6 +1615,7 @@ Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
 --with-statedir where to keep local state e.g. /var
+--with-execwrapper program to use when calling exec()
 --with-mkdir command
 --with-chmod command
 --with-chown command
@@ -1636,31 +1625,32 @@ Optional Packages:
 --with-touchfile command
 --with-apxs command
 --with-make-target default-target
---with-rpath dir
---without-fileinfo record fileinfo
---with-codename for distribution
---with-stackcheck Build with native stack checking
---with-execwrapper program to use when calling exec()
+--with-suffix string
 --with-optinclude Use optional include directory
 --with-optlib Use optional library directory
 --with-sourcedir source directory
 --with-extra_sources Configure extra source directories for gdb
 --with-optdir Use optional header/lib
+  --with-extlib[=DIR]       use additional lib dir
+--with-rpath dir
+--without-fileinfo record fileinfo
+--with-stackcheck Build with native stack checking
+--with/out-profiling compile to generate profile information
+--with-duma Build with Detect Unintended Memory Access
+--with-malloc Use custom malloc
+--without-crypto Compile the crypto module
+--with-codename for distribution
 --with-admin-group Install files with admin group and group write permissions
 --with-fdaemon The identity (user) for FramerD servers to run as
+--with-rundir The default location for server state files
+--with-logdir The default location for log files
+--with-bugjar The default location for bugjar reports
 --with-webuser The user for the webserver
 --with-webgroup The group for the webserver
 --with-apacheinfo where Apache module info lives
 --with-apachelib where Apache extensions live
---with-rundir The default location for server state files
---with-logdir The default location for log files
---with-bugjar The default location for bugjar reports
---with-duma Build with Detect Unintended Memory Access
---with-malloc Use custom malloc
 --without-arch build with particular --arch flags
 --enable-rusage-profiling use extended profiling information
---with-suffix string
-  --with-extlib[=DIR]       use additional lib dir
 --with-share-dir location
 --with-data-dir location
 --with-config-dir location
@@ -1674,20 +1664,18 @@ Optional Packages:
 --with-libscm location
 --with-module-path location
 --with-safe-module-path location
---with-dload-path location
 --with-boot-config configstring
+--with-dload-path location
 --without-i18n built and install message catalogs
 --without-mmap build without using mmap
+--without-tls Force use of threadlocal storage
 --with-nptrlocks Sets the number of pointer hash locks to use
 --without-editline Use the editline with fdconsole
 --without-libu8 Use libu8 includes
 --without-sudo use sudo with install
 --without-fastcgi Use fastcgi
 --without-mysql Use alternate mysql lib
---without-crypto Compile the crypto module
 --without-sundown Compile the sundown module
---with/out-profiling compile to generate profile information
---without-tls Force use of threadlocal storage
 --without-global-ipeval Use global lock and variables for ipeval
 --without-parseltongue Build parseltongue libraries for connecting FramerD and Python
 --without-curl Use libcurl in fdweb
@@ -2072,52 +2060,6 @@ $as_echo "$ac_res" >&6; }
 
 } # ac_fn_c_check_decl
 
-# ac_fn_c_try_link LINENO
-# -----------------------
-# Try to link conftest.$ac_ext, and return whether this succeeded.
-ac_fn_c_try_link ()
-{
-  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
-  rm -f conftest.$ac_objext conftest$ac_exeext
-  if { { ac_try="$ac_link"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
-$as_echo "$ac_try_echo"; } >&5
-  (eval "$ac_link") 2>conftest.err
-  ac_status=$?
-  if test -s conftest.err; then
-    grep -v '^ *+' conftest.err >conftest.er1
-    cat conftest.er1 >&5
-    mv -f conftest.er1 conftest.err
-  fi
-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; } && {
-	 test -z "$ac_c_werror_flag" ||
-	 test ! -s conftest.err
-       } && test -s conftest$ac_exeext && {
-	 test "$cross_compiling" = yes ||
-	 test -x conftest$ac_exeext
-       }; then :
-  ac_retval=0
-else
-  $as_echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-	ac_retval=1
-fi
-  # Delete the IPA/IPO (Inter Procedural Analysis/Optimization) information
-  # created by the PGI compiler (conftest_ipa8_conftest.oo), as it would
-  # interfere with the next link command; also delete a directory that is
-  # left behind by Apple's compiler.  We do this before executing the actions.
-  rm -rf conftest.dSYM conftest_ipa8_conftest.oo
-  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
-  as_fn_set_status $ac_retval
-
-} # ac_fn_c_try_link
-
 # ac_fn_c_check_type LINENO TYPE VAR INCLUDES
 # -------------------------------------------
 # Tests whether TYPE exists after having included INCLUDES, setting cache
@@ -2355,62 +2297,51 @@ rm -f conftest.val
 
 } # ac_fn_c_compute_int
 
-# ac_fn_c_check_member LINENO AGGR MEMBER VAR INCLUDES
-# ----------------------------------------------------
-# Tries to find if the field MEMBER exists in type AGGR, after including
-# INCLUDES, setting cache variable VAR accordingly.
-ac_fn_c_check_member ()
+# ac_fn_c_try_link LINENO
+# -----------------------
+# Try to link conftest.$ac_ext, and return whether this succeeded.
+ac_fn_c_try_link ()
 {
   as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2.$3" >&5
-$as_echo_n "checking for $2.$3... " >&6; }
-if eval \${$4+:} false; then :
-  $as_echo_n "(cached) " >&6
+  rm -f conftest.$ac_objext conftest$ac_exeext
+  if { { ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
+$as_echo "$ac_try_echo"; } >&5
+  (eval "$ac_link") 2>conftest.err
+  ac_status=$?
+  if test -s conftest.err; then
+    grep -v '^ *+' conftest.err >conftest.er1
+    cat conftest.er1 >&5
+    mv -f conftest.er1 conftest.err
+  fi
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext && {
+	 test "$cross_compiling" = yes ||
+	 test -x conftest$ac_exeext
+       }; then :
+  ac_retval=0
 else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-$5
-int
-main ()
-{
-static $2 ac_aggr;
-if (ac_aggr.$3)
-return 0;
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  eval "$4=yes"
-else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-$5
-int
-main ()
-{
-static $2 ac_aggr;
-if (sizeof ac_aggr.$3)
-return 0;
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  eval "$4=yes"
-else
-  eval "$4=no"
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-fi
-eval ac_res=\$$4
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
 
-} # ac_fn_c_check_member
+	ac_retval=1
+fi
+  # Delete the IPA/IPO (Inter Procedural Analysis/Optimization) information
+  # created by the PGI compiler (conftest_ipa8_conftest.oo), as it would
+  # interfere with the next link command; also delete a directory that is
+  # left behind by Apple's compiler.  We do this before executing the actions.
+  rm -rf conftest.dSYM conftest_ipa8_conftest.oo
+  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
+  as_fn_set_status $ac_retval
+
+} # ac_fn_c_try_link
 
 # ac_fn_c_check_func LINENO FUNC VAR
 # ----------------------------------
@@ -2478,6 +2409,63 @@ $as_echo "$ac_res" >&6; }
   eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
 
 } # ac_fn_c_check_func
+
+# ac_fn_c_check_member LINENO AGGR MEMBER VAR INCLUDES
+# ----------------------------------------------------
+# Tries to find if the field MEMBER exists in type AGGR, after including
+# INCLUDES, setting cache variable VAR accordingly.
+ac_fn_c_check_member ()
+{
+  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2.$3" >&5
+$as_echo_n "checking for $2.$3... " >&6; }
+if eval \${$4+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+$5
+int
+main ()
+{
+static $2 ac_aggr;
+if (ac_aggr.$3)
+return 0;
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  eval "$4=yes"
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+$5
+int
+main ()
+{
+static $2 ac_aggr;
+if (sizeof ac_aggr.$3)
+return 0;
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  eval "$4=yes"
+else
+  eval "$4=no"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+eval ac_res=\$$4
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
+
+} # ac_fn_c_check_member
 cat >config.log <<_ACEOF
 This file contains any messages produced by compilers while
 running configure, to aid debugging if configure makes a mistake.
@@ -3086,6 +3074,7 @@ debuglibs=""
 manually_disabled=""
 auto_disabled=""
 force_enabled=""
+missing=""
 
 test_env=
 memtest_env="MALLOC_CHECK_=3 "
@@ -3843,7 +3832,6 @@ done
   done
 IFS=$as_save_IFS
 
-  test -z "$ac_cv_prog_CREATEREPO" && ac_cv_prog_CREATEREPO="echo No createrepo for "
 fi
 fi
 CREATEREPO=$ac_cv_prog_CREATEREPO
@@ -4098,6 +4086,161 @@ else
 $as_echo "no" >&6; }
 fi
 
+
+
+
+# Check whether --with-execwrapper was given.
+if test "${with_execwrapper+set}" = set; then :
+  withval=$with_execwrapper;
+else
+  with_execwrapper=$binenv
+fi
+
+if test "$with_execwrapper" != ""; then
+  cat >>confdefs.h <<_ACEOF
+#define FD_EXEC_WRAPPER "$with_execwrapper"
+_ACEOF
+
+fi
+
+for ac_prog in etags
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_etags+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$etags"; then
+  ac_cv_prog_etags="$etags" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_etags="$ac_prog"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+etags=$ac_cv_prog_etags
+if test -n "$etags"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $etags" >&5
+$as_echo "$etags" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  test -n "$etags" && break
+done
+test -n "$etags" || etags=""na""
+
+if test $etags = "na"; then
+   TAGS=""
+fi
+
+for ac_prog in "git"
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_git+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$git"; then
+  ac_cv_prog_git="$git" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_git="$ac_prog"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+git=$ac_cv_prog_git
+if test -n "$git"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $git" >&5
+$as_echo "$git" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  test -n "$git" && break
+done
+test -n "$git" || git=""na""
+
+if test $git = "na"; then
+   GITDESCRIBE="false"
+else
+   GITDESCRIBE="$git describe"
+fi
+
+for ac_prog in pkg-config /usr/local/bin/pkg-config /opt/bin/pkg-config /opt/local/bin/pkg-config
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_pkg_config+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$pkg_config"; then
+  ac_cv_prog_pkg_config="$pkg_config" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_pkg_config="$ac_prog"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+pkg_config=$ac_cv_prog_pkg_config
+if test -n "$pkg_config"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $pkg_config" >&5
+$as_echo "$pkg_config" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  test -n "$pkg_config" && break
+done
+test -n "$pkg_config" || pkg_config=""na""
 
 
 
@@ -5350,6 +5493,7 @@ $as_echo "$ac_cv_safe_to_define___extensions__" >&6; }
 
 
 
+
 # Find a good install program.  We prefer a C program (faster),
 # so one script is as good as another.  But avoid the broken or
 # incompatible versions:
@@ -5538,6 +5682,115 @@ fi
 
 CFLAGS="-I$prefix/include/$host/ $CFLAGS"
 
+cat >>confdefs.h <<_ACEOF
+#define FD_VERSION "$FDVERSION"
+_ACEOF
+
+cat >>confdefs.h <<_ACEOF
+#define FD_MAJOR_VERSION $FDMAJOR
+_ACEOF
+
+cat >>confdefs.h <<_ACEOF
+#define FD_MINOR_VERSION $FDMINOR
+_ACEOF
+
+cat >>confdefs.h <<_ACEOF
+#define FD_RELEASE_VERSION $FDRELEASE
+_ACEOF
+
+
+
+# Check whether --with-suffix was given.
+if test "${with_suffix+set}" = set; then :
+  withval=$with_suffix;
+else
+  with_suffix=""
+fi
+
+suffix=$with_suffix
+
+if test -f .ipeval; then
+  enable_ipeval_default="yes;
+else enable_ipeval_default="no;
+fi
+
+
+# Check whether --with-optinclude was given.
+if test "${with_optinclude+set}" = set; then :
+  withval=$with_optinclude;
+else
+  with_optinclude="none"
+fi
+
+if test $with_optinclude != "none"; then
+  CPPFLAGS="$CPPFLAGS -I$with_optinclude"
+  CFLAGS="$CFLAGS -I$with_optinclude"
+fi
+
+
+# Check whether --with-optlib was given.
+if test "${with_optlib+set}" = set; then :
+  withval=$with_optlib;
+else
+  with_optlib="none"
+fi
+
+if test $with_optlib != "none"; then
+  LDFLAGS="$LDFLAGS -L$with_optlib"
+fi
+
+
+# Check whether --with-sourcedir was given.
+if test "${with_sourcedir+set}" = set; then :
+  withval=$with_sourcedir; source_dir=$withval
+else
+  source_dir=$prefix/src
+fi
+
+
+
+# Check whether --with-extra_sources was given.
+if test "${with_extra_sources+set}" = set; then :
+  withval=$with_extra_sources;
+else
+  with_extra_sources="none"
+fi
+
+if test $with_extra_sources != "none"; then
+   extra_sources=${with_extra_sources};
+fi
+
+
+# Check whether --with-optdir was given.
+if test "${with_optdir+set}" = set; then :
+  withval=$with_optdir;
+else
+  with_optdir="/opt/local"
+fi
+
+if test -d $with_optdir/include; then
+  CPPFLAGS="$CPPFLAGS -I$with_optdir/include"
+  CFLAGS="$CFLAGS -I$with_optdir/include"
+  APXSFLAGS="$APXSFLAGS -I$with_optdir/include"
+fi
+if test -d $with_optdir/lib; then
+  LDFLAGS="$LDFLAGS -L$with_optdir/lib"
+fi
+if test -d $with_optdir/bin; then
+  PATH="$PATH:$with_optdir/bin"
+fi
+
+
+# Check whether --with-extlib was given.
+if test "${with_extlib+set}" = set; then :
+  withval=$with_extlib;
+  if test "$withval" != "no" -a "$withval" != "yes"; then
+    LDFLAGS="${LDFLAGS} -l$withval"
+  fi
+
+fi
+
+
 
 # Check whether --with-rpath was given.
 if test "${with_rpath+set}" = set; then :
@@ -5551,123 +5804,7 @@ if test "$rpath" != "none" && test "$rpath" != "/usr" && test "$rpath" != "/usr/
   EXEFLAGS=" $EXEFLAGS \$(RPATHFLAGS) "
 fi
 
-
-# Check whether --with-fileinfo was given.
-if test "${with_fileinfo+set}" = set; then :
-  withval=$with_fileinfo;
-else
-  with_fileinfo="yes"
-fi
-
-if test "$with_fileinfo" = "yes" ; then
-   definefileinfo="-D_FILEINFO=\"\\\"\`./fileinfo ./$< .\`\\\"\""
-   versionsh="include/framerd/versions.h"
-fi
-
-
-# Check whether --with-codename was given.
-if test "${with_codename+set}" = set; then :
-  withval=$with_codename; with_codename=$withval
-else
-  with_codename=$CODENAME
-fi
-
-CODENAME=$with_codename
-
-
-
-
-if test -n "$ac_tool_prefix"; then
-  # Extract the first word of "${ac_tool_prefix}ranlib", so it can be a program name with args.
-set dummy ${ac_tool_prefix}ranlib; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_prog_RANLIB+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test -n "$RANLIB"; then
-  ac_cv_prog_RANLIB="$RANLIB" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_prog_RANLIB="${ac_tool_prefix}ranlib"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-fi
-fi
-RANLIB=$ac_cv_prog_RANLIB
-if test -n "$RANLIB"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $RANLIB" >&5
-$as_echo "$RANLIB" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-fi
-if test -z "$ac_cv_prog_RANLIB"; then
-  ac_ct_RANLIB=$RANLIB
-  # Extract the first word of "ranlib", so it can be a program name with args.
-set dummy ranlib; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_prog_ac_ct_RANLIB+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test -n "$ac_ct_RANLIB"; then
-  ac_cv_prog_ac_ct_RANLIB="$ac_ct_RANLIB" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_prog_ac_ct_RANLIB="ranlib"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-fi
-fi
-ac_ct_RANLIB=$ac_cv_prog_ac_ct_RANLIB
-if test -n "$ac_ct_RANLIB"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_ct_RANLIB" >&5
-$as_echo "$ac_ct_RANLIB" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-  if test "x$ac_ct_RANLIB" = x; then
-    RANLIB=":"
-  else
-    case $cross_compiling:$ac_tool_warned in
-yes:)
-{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: using cross tools not prefixed with host triplet" >&5
-$as_echo "$as_me: WARNING: using cross tools not prefixed with host triplet" >&2;}
-ac_tool_warned=yes ;;
-esac
-    RANLIB=$ac_ct_RANLIB
-  fi
-else
-  RANLIB="$ac_cv_prog_RANLIB"
-fi
+### Checking the compiler
 
 ac_fn_c_check_decl "$LINENO" "__clang__" "ac_cv_have_decl___clang__" "$ac_includes_default"
 if test "x$ac_cv_have_decl___clang__" = xyes; then :
@@ -5909,1411 +6046,6 @@ fi;
 
 
 
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for pthread_rwlock_wrlock in -lpthread" >&5
-$as_echo_n "checking for pthread_rwlock_wrlock in -lpthread... " >&6; }
-if ${ac_cv_lib_pthread_pthread_rwlock_wrlock+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lpthread  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char pthread_rwlock_wrlock ();
-int
-main ()
-{
-return pthread_rwlock_wrlock ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_pthread_pthread_rwlock_wrlock=yes
-else
-  ac_cv_lib_pthread_pthread_rwlock_wrlock=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_pthread_pthread_rwlock_wrlock" >&5
-$as_echo "$ac_cv_lib_pthread_pthread_rwlock_wrlock" >&6; }
-if test "x$ac_cv_lib_pthread_pthread_rwlock_wrlock" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBPTHREAD 1
-_ACEOF
-
-  LIBS="-lpthread $LIBS"
-
-fi
-
-
-case $host_os in
-  darwin*)
-   MKSTATIC="libtool -static -o "
-   dynamic_cflag="-dynamic"
-   shared_suffix="dylib"
-   vshared_suffix=${FDVERSION}.dylib
-   mshared_suffix=${FDMAJOR}.dylib
-   mmshared_suffix=${FDMAJOR}.${FDMINOR}.dylib
-   APXS="apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a $APXSFLAGS"
-   CFLAGS="-D_DARWIN_C_SOURCE $CFLAGS"
-   RPATHFLAGS=" -rpath \$(RPATH) "
-   STATICLDFLAGS=" -lc++"
-   ifmacosx=""
-   setup_target="setup-osx"
-   gperftools_default="no"
-   ;;
-esac
-
-as_CACHEVAR=`$as_echo "ax_cv_check_ldflags__"-static-libgcc"" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the linker accepts \"-static-libgcc\"" >&5
-$as_echo_n "checking whether the linker accepts \"-static-libgcc\"... " >&6; }
-if eval \${$as_CACHEVAR+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-
-  ax_check_save_flags=$LDFLAGS
-  LDFLAGS="$LDFLAGS  "-static-libgcc""
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  eval "$as_CACHEVAR=yes"
-else
-  eval "$as_CACHEVAR=no"
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-  LDFLAGS=$ax_check_save_flags
-fi
-eval ac_res=\$$as_CACHEVAR
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_CACHEVAR"\" = x"yes"; then :
-  static_libgcc="yes"
-else
-  :
-fi
-
-
-if test "${static_libgcc}" == "yes"; then
-   LDFLAGS="-static-libgcc -Wl,--as-needed ${LDFLAGS}"
-fi
-
-
-# Check whether --with-stackcheck was given.
-if test "${with_stackcheck+set}" = set; then :
-  withval=$with_stackcheck; with_stackcheck=$withval
-else
-  with_stackcheck="yes"
-fi
-
-if ! test "${with_stackcheck}" = "no"; then
-   cat >>confdefs.h <<_ACEOF
-#define FD_STACKCHECK 1
-_ACEOF
-
-fi
-
-cat >>confdefs.h <<_ACEOF
-#define FD_VERSION "$FDVERSION"
-_ACEOF
-
-cat >>confdefs.h <<_ACEOF
-#define FD_MAJOR_VERSION $FDMAJOR
-_ACEOF
-
-cat >>confdefs.h <<_ACEOF
-#define FD_MINOR_VERSION $FDMINOR
-_ACEOF
-
-cat >>confdefs.h <<_ACEOF
-#define FD_RELEASE_VERSION $FDRELEASE
-_ACEOF
-
-
-for ac_prog in "lsb-rpmbuild"
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_prog_buildrpm+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test -n "$buildrpm"; then
-  ac_cv_prog_buildrpm="$buildrpm" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in "lsb-rpm"
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_prog_buildrpm="$ac_prog"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-fi
-fi
-buildrpm=$ac_cv_prog_buildrpm
-if test -n "$buildrpm"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $buildrpm" >&5
-$as_echo "$buildrpm" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-  test -n "$buildrpm" && break
-done
-test -n "$buildrpm" || buildrpm=""rpmbuild""
-
-for ac_prog in "lsb-rpm"
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_prog_rpm+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test -n "$rpm"; then
-  ac_cv_prog_rpm="$rpm" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in "na"
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_prog_rpm="$ac_prog"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-fi
-fi
-rpm=$ac_cv_prog_rpm
-if test -n "$rpm"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $rpm" >&5
-$as_echo "$rpm" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-  test -n "$rpm" && break
-done
-test -n "$rpm" || rpm=""rpm""
-
-
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for group default_admin_group" >&5
-$as_echo_n "checking for group default_admin_group... " >&6; }
-  found_group="none";
-  for group in framerd _framerd adm admin;
-  do if grep ^$group: /etc/group > /dev/null;
-  then
-	found_group=$group;
-	break;
-  fi; done;
-  default_admin_group=$found_group;
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $found_group" >&5
-$as_echo "$found_group" >&6; }
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for user default_fdaemon" >&5
-$as_echo_n "checking for user default_fdaemon... " >&6; }
-  found_user="none";
-  for user in fdaemon _fdaemon daemon nobody;
-  do
-  if grep ^$user: /etc/passwd > /dev/null;
-  then
-	found_user=$user;
-	break;
-  fi;
-  done;
-  default_fdaemon=$found_user;
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $found_user" >&5
-$as_echo "$found_user" >&6; }
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for user default_daemon" >&5
-$as_echo_n "checking for user default_daemon... " >&6; }
-  found_user="none";
-  for user in xdaemon fdaemon _fdaemon daemon nobody;
-  do
-  if grep ^$user: /etc/passwd > /dev/null;
-  then
-	found_user=$user;
-	break;
-  fi;
-  done;
-  default_daemon=$found_user;
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $found_user" >&5
-$as_echo "$found_user" >&6; }
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for user default_webuser" >&5
-$as_echo_n "checking for user default_webuser... " >&6; }
-  found_user="none";
-  for user in www apache httpd www-data _www;
-  do
-  if grep ^$user: /etc/passwd > /dev/null;
-  then
-	found_user=$user;
-	break;
-  fi;
-  done;
-  default_webuser=$found_user;
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $found_user" >&5
-$as_echo "$found_user" >&6; }
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for user default_webgroup" >&5
-$as_echo_n "checking for user default_webgroup... " >&6; }
-  found_user="none";
-  for user in www apache httpd www-data _www;
-  do
-  if grep ^$user: /etc/passwd > /dev/null;
-  then
-	found_user=$user;
-	break;
-  fi;
-  done;
-  default_webgroup=$found_user;
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $found_user" >&5
-$as_echo "$found_user" >&6; }
-
-
-# Check whether --with-execwrapper was given.
-if test "${with_execwrapper+set}" = set; then :
-  withval=$with_execwrapper;
-else
-  with_execwrapper=$binenv
-fi
-
-if test "$with_execwrapper" != ""; then
-  cat >>confdefs.h <<_ACEOF
-#define FD_EXEC_WRAPPER "$with_execwrapper"
-_ACEOF
-
-fi
-
-if test -f .ipeval; then
-  enable_ipeval_default="yes;
-else enable_ipeval_default="no;
-fi
-
-# Check whether --enable-thread_debug was given.
-if test "${enable_thread_debug+set}" = set; then :
-  enableval=$enable_thread_debug; enable_thread_debug=$enableval
-else
-  enable_thread_debug="no"
-fi
-
-
-if test "${enable_thread_debug}" != "no"; then
-   $as_echo "#define U8_THREAD_DEBUG 1" >>confdefs.h
-
-fi
-
-
-# Check whether --with-optinclude was given.
-if test "${with_optinclude+set}" = set; then :
-  withval=$with_optinclude;
-else
-  with_optinclude="none"
-fi
-
-if test $with_optinclude != "none"; then
-  CPPFLAGS="$CPPFLAGS -I$with_optinclude"
-  CFLAGS="$CFLAGS -I$with_optinclude"
-fi
-
-
-# Check whether --with-optlib was given.
-if test "${with_optlib+set}" = set; then :
-  withval=$with_optlib;
-else
-  with_optlib="none"
-fi
-
-if test $with_optlib != "none"; then
-  LDFLAGS="$LDFLAGS -L$with_optlib"
-fi
-
-
-# Check whether --with-sourcedir was given.
-if test "${with_sourcedir+set}" = set; then :
-  withval=$with_sourcedir; source_dir=$withval
-else
-  source_dir=$prefix/src
-fi
-
-
-
-# Check whether --with-extra_sources was given.
-if test "${with_extra_sources+set}" = set; then :
-  withval=$with_extra_sources;
-else
-  with_extra_sources="none"
-fi
-
-if test $with_extra_sources != "none"; then
-   extra_sources=${with_extra_sources};
-fi
-
-
-# Check whether --with-optdir was given.
-if test "${with_optdir+set}" = set; then :
-  withval=$with_optdir;
-else
-  with_optdir="/opt/local"
-fi
-
-if test -d $with_optdir/include; then
-  CPPFLAGS="$CPPFLAGS -I$with_optdir/include"
-  CFLAGS="$CFLAGS -I$with_optdir/include"
-  APXSFLAGS="$APXSFLAGS -I$with_optdir/include"
-fi
-if test -d $with_optdir/lib; then
-  LDFLAGS="$LDFLAGS -L$with_optdir/lib"
-fi
-if test -d $with_optdir/bin; then
-  PATH="$PATH:$with_optdir/bin"
-fi
-
-
-# Check whether --with-admin_group was given.
-if test "${with_admin_group+set}" = set; then :
-  withval=$with_admin_group;
-else
-  with_admin_group=$default_admin_group
-fi
-
-if test $with_admin_group != "none"; then
-  install_dir_opts="-g $with_admin_group -m 0775 $install_dir_opts"
-  install_file_opts="-g $with_admin_group $install_file_opts"
-  install_exe_opts="-g $with_admin_group $install_exe_opts"
-  admin_group=$with_admin_group
-  admininstall="-g $with_admin_group"
-else
-  install_dir_opts="$install_dir_opts"
-  install_file_opts="$install_file_opts"
-  install_exe_opts="$install_exe_opts"
-  admin_group=$default_admin_group
-  admininstall=""
-fi
-
-
-# Check whether --with-fdaemon was given.
-if test "${with_fdaemon+set}" = set; then :
-  withval=$with_fdaemon;
-else
-  with_fdaemon=$default_fdaemon
-fi
-
-if test $with_fdaemon != "none"; then
-   fdaemoninstall="-o $with_fdaemon"
-   fdaemon=$with_fdaemon
-else
-   fdaemoninstall=""
-   fdaemon=$default_fdaemon
-fi
-
-
-# Check whether --with-webuser was given.
-if test "${with_webuser+set}" = set; then :
-  withval=$with_webuser;
-else
-  with_webuser=$default_webuser
-fi
-
-if test "$with_webuser" != "none"; then
-   webuser=$with_webuser
-   wwwinstall="-o $webuser"
-else
-   webuser=$default_webuser
-   wwwinstall=""
-fi
-
-
-# Check whether --with-webgroup was given.
-if test "${with_webgroup+set}" = set; then :
-  withval=$with_webgroup;
-else
-  with_webgroup=$default_webgroup
-fi
-
-if test "$with_webgroup" != "none"; then
-   webgroup=$with_webgroup
-   wwwinstall="-o $webgroup"
-else
-   webgroup=$default_webgroup
-   wwwinstall=""
-fi
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking apache log directory" >&5
-$as_echo_n "checking apache log directory... " >&6; }
-if test -d ${apache_conf_dir}/log; then
-   if test -h ${apache_conf_dir}/log; then
-     apache_log_dir=$(readlink ${apache_conf_dir}/log);
-   else apache_log_dir=${apache_conf_dir}/log;
-   fi
-elif test -d ${apache_conf_dir}/logs; then
-   if test -h ${apache_conf_dir}/logs; then
-     apache_log_dir=$(readlink ${apache_conf_dir}/logs);
-   else apache_log_dir=${apache_conf_dir}/logs;
-   fi
-elif test -d ${local_state_dir}/logs/apache; then
-    apache_log_dir=${local_state_dir}/logs/apache;
-elif test -d ${local_state_dir}/logs/apache2; then
-    apache_log_dir=${local_state_dir}/logs/apache2;
-elif test -d ${local_state_dir}/logs/httpd; then
-    apache_log_dir=${local_state_dir}/logs/httpd;
-elif test -d ${local_state_dir}/logs/http; then
-    apache_log_dir=${local_state_dir}/logs/http;
-elif test -d /var/log/apache; then
-    apache_log_dir=/var/log/apache;
-elif test -d /var/log/apache2; then
-    apache_log_dir=/var/log/apache2;
-elif test -d /var/log/httpd; then
-    apache_log_dir=/var/log/httpd;
-elif test -d /var/log/http; then
-    apache_log_dir=/var/log/http;
-elif test -d /usr/log/apache; then
-    apache_log_dir=/usr/log/apache;
-elif test -d /usr/log/apache2; then
-     apache_log_dir=/usr/log/apache2;
-elif test -d /usr/log/httpd; then
-    apache_log_dir=/usr/log/httpd;
-elif test -d /usr/log/http; then
-    apache_log_dir=/usr/log/http;
-else
-    apache_log_dir=""
-fi;
-
-if test -z ${apache_log_dir}; then
- { $as_echo "$as_me:${as_lineno-$LINENO}: result: none found" >&5
-$as_echo "none found" >&6; }
- apache_log_dir=/var/log/apache;
-else
- { $as_echo "$as_me:${as_lineno-$LINENO}: result: $apache_log_dir" >&5
-$as_echo "$apache_log_dir" >&6; };
-fi;
-
-if test ! -z "$APXS"; then
-  apache_conf_dir=`$APXS -q SYSCONFDIR`
-  apache_modules_dir=`$APXS -q LIBEXECDIR`
-  if test -d ${apache_conf_dir}/mods-available; then
-    apache_modinfo=${apache_conf_dir}/mods-available;
-  elif test -d ${apache_conf_dir}/mods_available; then
-    apache_modinfo=${apache_conf_dir}/mods_available;
-  elif test -d ${apache_conf_dir}.d; then
-    apache_modinfo=${apache_conf_dir}.d;
-  elif test -d ${apache_conf_dir}/other; then
-    apache_modinfo=${apache_conf_dir}/other;
-  else apache_modinfo=$apache_conf_dir;
-  fi;
-else
-  echo "Warning: No apache development environment, can't build mod_fdserv"
-fi
-
-
-# Check whether --with-apacheinfo was given.
-if test "${with_apacheinfo+set}" = set; then :
-  withval=$with_apacheinfo;
-else
-  with_apacheinfo=$apache_modinfo
-fi
-
-
-
-# Check whether --with-apachelib was given.
-if test "${with_apachelib+set}" = set; then :
-  withval=$with_apachelib;
-else
-  with_apachelib=$apache_modules_dir
-fi
-
-
-apache_modinfo=$with_apacheinfo
-apache_modules_dir=$with_apachelib
-
-
-# Check whether --with-rundir was given.
-if test "${with_rundir+set}" = set; then :
-  withval=$with_rundir;
-else
-  with_rundir="$localstatedir/run"
-fi
-
-rundir=$with_rundir
-cat >>confdefs.h <<_ACEOF
-#define FD_RUN_DIR "$rundir"
-_ACEOF
-
-
-
-# Check whether --with-logdir was given.
-if test "${with_logdir+set}" = set; then :
-  withval=$with_logdir;
-else
-  with_logdir="$localstatedir/log"
-fi
-
-logdir=$with_logdir
-
-
-# Check whether --with-bugjar was given.
-if test "${with_bugjar+set}" = set; then :
-  withval=$with_bugjar;
-else
-  with_bugjar="$default_bugjar"
-fi
-
-bugjar=$with_bugjar
-
-cat >>confdefs.h <<_ACEOF
-#define FD_LOG_DIR "$logdir"
-_ACEOF
-
-
-cat >>confdefs.h <<_ACEOF
-#define FD_DAEMON_LOG_DIR "$daemon_logdir"
-_ACEOF
-
-
-cat >>confdefs.h <<_ACEOF
-#define FD_SERVLET_LOG_DIR "$servlet_logdir"
-_ACEOF
-
-
-cat >>confdefs.h <<_ACEOF
-#define FD_DAEMON_RUN_DIR "$daemon_rundir"
-_ACEOF
-
-
-cat >>confdefs.h <<_ACEOF
-#define FD_SERVLET_RUN_DIR "$daemon_rundir"
-_ACEOF
-
-
-cat >>confdefs.h <<_ACEOF
-#define FD_BUGJAR_ROOT "$bugjar"
-_ACEOF
-
-
-
-
-
-# Check whether --with-duma was given.
-if test "${with_duma+set}" = set; then :
-  withval=$with_duma; with_duma=$withval
-else
-  with_duma="no"
-fi
-
-
-if test "$with_duma" != "no"; then
-   default_malloc="libc";
-fi
-
-
-# Check whether --with-malloc was given.
-if test "${with_malloc+set}" = set; then :
-  withval=$with_malloc; with_malloc=$withval
-else
-  with_malloc=$default_malloc
-fi
-
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking malloc library" >&5
-$as_echo_n "checking malloc library... " >&6; }
-
-if test -z "$with_malloc" ||
-   test "$with_malloc" = "libc" ||
-   test "$with_malloc" = "builtin" ; then
-   { $as_echo "$as_me:${as_lineno-$LINENO}: result: libc default" >&5
-$as_echo "libc default" >&6; }
-   custom_malloc="";
-   using_malloc="libc"
-elif test "$with_duma" != "no"; then
-   as_fn_error $? "DUMA can only be used with libc malloc" "$LINENO" 5
-   exit;
-elif test "$with_malloc" = "tcmalloc"; then
-  gperftools="yes";
-  custom_malloc="tcmalloc"
-  using_malloc="tcmalloc"
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: tcmalloc" >&5
-$as_echo "tcmalloc" >&6; }
-elif test "$with_malloc" = "gperftools"; then
-  gperftools="profile";
-  custom_malloc="tcmalloc"
-  using_malloc="gperftools"
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: tcmalloc profiling" >&5
-$as_echo "tcmalloc profiling" >&6; }
-elif test "$with_malloc" = "tcmalloc_debug"; then
-  gperftools="debug";
-  custom_malloc="tcmalloc_debug"
-  using_malloc="tcmalloc_debug"
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: tcmalloc debug" >&5
-$as_echo "tcmalloc debug" >&6; }
-elif test "$with_malloc" = "tcmalloc_minimal"; then
-  gperftools="minimal";
-  custom_malloc="tcmalloc_minimal"
-  using_malloc="tcmalloc_minimal"
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: tcmalloc minimal" >&5
-$as_echo "tcmalloc minimal" >&6; }
-elif test "$with_malloc" = "jemalloc"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ljemalloc" >&5
-$as_echo_n "checking for malloc in -ljemalloc... " >&6; }
-if ${ac_cv_lib_jemalloc_malloc+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-ljemalloc  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char malloc ();
-int
-main ()
-{
-return malloc ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_jemalloc_malloc=yes
-else
-  ac_cv_lib_jemalloc_malloc=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_jemalloc_malloc" >&5
-$as_echo "$ac_cv_lib_jemalloc_malloc" >&6; }
-if test "x$ac_cv_lib_jemalloc_malloc" = xyes; then :
-  EXELIBS="-ljemalloc $EXELIBS"
-fi
-
-  if test "${ac_cv_lib_jemalloc_malloc}" = "yes"; then
-    custom_malloc="jemalloc"
-    using_malloc="jemalloc"
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: jemalloc" >&5
-$as_echo "jemalloc" >&6; }
-    memtest_env="junk:true,tcache:false"
-    leaktest_env="prof_leak:true,lg_prof_sample:0,prof_final:true"
-  else
-    as_fn_error $? "jemalloc can't be found" "$LINENO" 5
-    exit;
-  fi;
-elif test "$with_malloc" = "dmalloc"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ldmalloc" >&5
-$as_echo_n "checking for malloc in -ldmalloc... " >&6; }
-if ${ac_cv_lib_dmalloc_malloc+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-ldmalloc  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char malloc ();
-int
-main ()
-{
-return malloc ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_dmalloc_malloc=yes
-else
-  ac_cv_lib_dmalloc_malloc=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_dmalloc_malloc" >&5
-$as_echo "$ac_cv_lib_dmalloc_malloc" >&6; }
-if test "x$ac_cv_lib_dmalloc_malloc" = xyes; then :
-  EXELIBS="-ldmalloc $EXELIBS"
-fi
-
-  if test "${ac_cv_lib_dmalloc_malloc}" = "yes"; then
-    custom_malloc="dmalloc"
-    using_malloc="dmalloc"
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: dmalloc" >&5
-$as_echo "dmalloc" >&6; }
-  else
-    as_fn_error $? "dmalloc can't be found" "$LINENO" 5
-    exit;
-  fi;
-elif test "$with_malloc" = "asan"; then
-   CFLAGS="-fsanitize=address -fno-omit-frame-pointer -O0 -g $CFLAGS"
-   LDFLAGS="-g -fsanitize=address $LDFLAGS"
-   build_static=""
-   test_static=""
-   install_static=""
-   custom_malloc="asan"
-   using_malloc="asan"
-   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=malloc_context_size=20 LSAN_OPTIONS=report_objects=1 $test_env";
-   leaktester_env="ASAN_OPTIONS=malloc_context_size=20 LSAN_OPTIONS=report_objects=1 ${leaktester_env}";
-   asan="yes"
-   test_size=64
-   { $as_echo "$as_me:${as_lineno-$LINENO}: result: ASAN" >&5
-$as_echo "ASAN" >&6; }
-elif test "$with_malloc" = "asan_noleak"; then
-   CFLAGS="-fsanitize=address -fno-omit-frame-pointer -O0 -g $CFLAGS"
-   LDFLAGS="-g -fsanitize=address $LDFLAGS"
-   build_static=""
-   test_static=""
-   install_static=""
-   custom_malloc="asan"
-   using_malloc="asan"
-   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=0:malloc_context_size=20 $test_env";
-   leaktester_env="ASAN_OPTIONS=malloc_context_size=20:detect_leaks=1 LSAN_OPTIONS=report_objects=1 ${leaktester_env}";
-   asan="yes"
-   test_size=64
-   { $as_echo "$as_me:${as_lineno-$LINENO}: result: ASAN" >&5
-$as_echo "ASAN" >&6; }
-elif test "$with_malloc" = "asan_thread"; then
-   CFLAGS="-fsanitize=thread -g -fno-omit-frame-pointer $CFLAGS"
-   LDFLAGS="-g -fsanitize=thread -fno-omit-frame-pointer $LDFLAGS"
-   build_static=""
-   test_static=""
-   install_static=""
-   custom_malloc="asan_thread"
-   using_malloc="asan_thread"
-   test_env="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
-   asan="thread"
-   { $as_echo "$as_me:${as_lineno-$LINENO}: result: ASAN thread" >&5
-$as_echo "ASAN thread" >&6; }
-else
-   as_fn_error $? "Valid values for malloc are libc tcmalloc jemalloc gperftools dmalloc tcmalloc_debug asan asan_thread" "$LINENO" 5
-   exit 1;
-fi
-
-if test ! -z "$using_malloc"; then
-   cat >>confdefs.h <<_ACEOF
-#define FD_DEFAULT_MALLOC "$using_malloc"
-_ACEOF
-
-fi;
-
-if test ! -z "$asan" && test "$CLANG" = "none"; then
-   as_fn_error $? "No clang program to use with ASAN" "$LINENO" 5
-fi;
-
-if test -z "$gperftools" || test "$gperftools" = "no"; then
-   echo -n;
-else
-  for ac_header in gperftools/profiler.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "gperftools/profiler.h" "ac_cv_header_gperftools_profiler_h" "$ac_includes_default"
-if test "x$ac_cv_header_gperftools_profiler_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_GPERFTOOLS_PROFILER_H 1
-_ACEOF
-
-fi
-
-done
-
-  for ac_header in gperftools/heap-profiler.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "gperftools/heap-profiler.h" "ac_cv_header_gperftools_heap_profiler_h" "$ac_includes_default"
-if test "x$ac_cv_header_gperftools_heap_profiler_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_GPERFTOOLS_HEAP_PROFILER_H 1
-_ACEOF
-
-fi
-
-done
-
-  for ac_header in gperftools/heap-checker.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "gperftools/heap-checker.h" "ac_cv_header_gperftools_heap_checker_h" "$ac_includes_default"
-if test "x$ac_cv_header_gperftools_heap_checker_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_GPERFTOOLS_HEAP_CHECKER_H 1
-_ACEOF
-
-fi
-
-done
-
-  for ac_header in gperftools/malloc_extension_c.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "gperftools/malloc_extension_c.h" "ac_cv_header_gperftools_malloc_extension_c_h" "$ac_includes_default"
-if test "x$ac_cv_header_gperftools_malloc_extension_c_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H 1
-_ACEOF
-
-fi
-
-done
-
-  if test "$gperftools" = "debug"; then
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_debug" >&5
-$as_echo_n "checking for malloc in -ltcmalloc_debug... " >&6; }
-if ${ac_cv_lib_tcmalloc_debug_malloc+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-ltcmalloc_debug  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char malloc ();
-int
-main ()
-{
-return malloc ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_tcmalloc_debug_malloc=yes
-else
-  ac_cv_lib_tcmalloc_debug_malloc=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_debug_malloc" >&5
-$as_echo "$ac_cv_lib_tcmalloc_debug_malloc" >&6; }
-if test "x$ac_cv_lib_tcmalloc_debug_malloc" = xyes; then :
-  EXELIBS="-ltcmalloc_debug $EXELIBS"
-fi
-
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ProfilerStart in -lprofiler" >&5
-$as_echo_n "checking for ProfilerStart in -lprofiler... " >&6; }
-if ${ac_cv_lib_profiler_ProfilerStart+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lprofiler  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char ProfilerStart ();
-int
-main ()
-{
-return ProfilerStart ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_profiler_ProfilerStart=yes
-else
-  ac_cv_lib_profiler_ProfilerStart=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_profiler_ProfilerStart" >&5
-$as_echo "$ac_cv_lib_profiler_ProfilerStart" >&6; }
-if test "x$ac_cv_lib_profiler_ProfilerStart" = xyes; then :
-  EXELIBS="-lprofiler $EXELIBS"
-fi
-
-  elif test "$gperftools" = "profile"; then
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc" >&5
-$as_echo_n "checking for malloc in -ltcmalloc... " >&6; }
-if ${ac_cv_lib_tcmalloc_malloc+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-ltcmalloc  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char malloc ();
-int
-main ()
-{
-return malloc ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_tcmalloc_malloc=yes
-else
-  ac_cv_lib_tcmalloc_malloc=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_malloc" >&5
-$as_echo "$ac_cv_lib_tcmalloc_malloc" >&6; }
-if test "x$ac_cv_lib_tcmalloc_malloc" = xyes; then :
-  EXELIBS="-ltcmalloc $EXELIBS"
-fi
-
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ProfilerStart in -lprofiler" >&5
-$as_echo_n "checking for ProfilerStart in -lprofiler... " >&6; }
-if ${ac_cv_lib_profiler_ProfilerStart+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lprofiler  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char ProfilerStart ();
-int
-main ()
-{
-return ProfilerStart ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_profiler_ProfilerStart=yes
-else
-  ac_cv_lib_profiler_ProfilerStart=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_profiler_ProfilerStart" >&5
-$as_echo "$ac_cv_lib_profiler_ProfilerStart" >&6; }
-if test "x$ac_cv_lib_profiler_ProfilerStart" = xyes; then :
-  EXELIBS="-lprofiler $EXELIBS"
-fi
-
-    CMODULES="lib/framerd/gperftools.${shared_suffix} ${CMODULES}"
-    INSTALLCMODULES="install-gperftools ${INSTALLCMODULES}"
-  elif test "$gperftools" = "minimal"; then
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_minimal" >&5
-$as_echo_n "checking for malloc in -ltcmalloc_minimal... " >&6; }
-if ${ac_cv_lib_tcmalloc_minimal_malloc+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-ltcmalloc_minimal  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char malloc ();
-int
-main ()
-{
-return malloc ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_tcmalloc_minimal_malloc=yes
-else
-  ac_cv_lib_tcmalloc_minimal_malloc=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_minimal_malloc" >&5
-$as_echo "$ac_cv_lib_tcmalloc_minimal_malloc" >&6; }
-if test "x$ac_cv_lib_tcmalloc_minimal_malloc" = xyes; then :
-  EXELIBS="-ltcmalloc_minimal $EXELIBS"
-fi
-
-  else
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc" >&5
-$as_echo_n "checking for malloc in -ltcmalloc... " >&6; }
-if ${ac_cv_lib_tcmalloc_malloc+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-ltcmalloc  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char malloc ();
-int
-main ()
-{
-return malloc ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_tcmalloc_malloc=yes
-else
-  ac_cv_lib_tcmalloc_malloc=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_malloc" >&5
-$as_echo "$ac_cv_lib_tcmalloc_malloc" >&6; }
-if test "x$ac_cv_lib_tcmalloc_malloc" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBTCMALLOC 1
-_ACEOF
-
-  LIBS="-ltcmalloc $LIBS"
-
-fi
-
-  fi;
-  if test "${ac_cv_lib_tcmalloc_malloc}" == "yes" || \
-     test "${ac_cv_lib_tcmalloc_debug_malloc}" == "yes" || \
-     test "${ac_cv_lib_tcmalloc_and_profiler_malloc}" == "yes"; then
-    custom_malloc="tcmalloc";
-    CFLAGS="${CFLAGS} ";
-    leaktest_env="HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}";
-    memtest_env="TCMALLOC_DEBUG=5";
-  else
-    echo "No tcmalloc available";
-    custom_malloc="";
-    gperftools="no";
-  fi;
-fi
-
-if test "$with_duma" != "no" && test "$custom_malloc" != ""; then
-  echo "Can't use DUMA with other custom MALLOC libraries ($custom_malloc)";
-  with_duma="no";
-elif test "$with_duma" != "no" && test "$DUMA" = "none"; then
-  echo "No DUMA executable";
-  with_duma="no";
-elif test "$with_duma" != "no"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -lduma" >&5
-$as_echo_n "checking for malloc in -lduma... " >&6; }
-if ${ac_cv_lib_duma_malloc+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lduma  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char malloc ();
-int
-main ()
-{
-return malloc ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_duma_malloc=yes
-else
-  ac_cv_lib_duma_malloc=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_duma_malloc" >&5
-$as_echo "$ac_cv_lib_duma_malloc" >&6; }
-if test "x$ac_cv_lib_duma_malloc" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBDUMA 1
-_ACEOF
-
-  LIBS="-lduma $LIBS"
-
-fi
-
-  for ac_header in duma.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "duma.h" "ac_cv_header_duma_h" "$ac_includes_default"
-if test "x$ac_cv_header_duma_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_DUMA_H 1
-_ACEOF
-
-fi
-
-done
-
-  test_env="DUMA_ALIGNMENT=4 $test_env";
-  custom_malloc="DUMA";
-fi
-
-if test "${VALGRIND}" != "none" && test -z "${custom_malloc}"; then
-  MEMTEST_CMD="FD_INVALGRIND=yes valgrind --tool=memcheck --num-callers=24"
-  LEAKTESTER="FD_INVALGRIND=yes valgrind --tool=memcheck --leak-check=full --num-callers=24"
-fi
-
-# Check whether --enable-ffi was given.
-if test "${enable_ffi+set}" = set; then :
-  enableval=$enable_ffi; enable_ffi=$enableval
-else
-  enable_ffi="yes"
-fi
-
-
-if test "${enable_ffi}" == "yes"; then
-   for ac_header in ffi/ffi.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "ffi/ffi.h" "ac_cv_header_ffi_ffi_h" "$ac_includes_default"
-if test "x$ac_cv_header_ffi_ffi_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_FFI_FFI_H 1
-_ACEOF
-
-fi
-
-done
-
-   for ac_header in ffi.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "ffi.h" "ac_cv_header_ffi_h" "$ac_includes_default"
-if test "x$ac_cv_header_ffi_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_FFI_H 1
-_ACEOF
-
-fi
-
-done
-
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ffi_prep_cif in -lffi" >&5
-$as_echo_n "checking for ffi_prep_cif in -lffi... " >&6; }
-if ${ac_cv_lib_ffi_ffi_prep_cif+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lffi  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char ffi_prep_cif ();
-int
-main ()
-{
-return ffi_prep_cif ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_ffi_ffi_prep_cif=yes
-else
-  ac_cv_lib_ffi_ffi_prep_cif=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ffi_ffi_prep_cif" >&5
-$as_echo "$ac_cv_lib_ffi_ffi_prep_cif" >&6; }
-if test "x$ac_cv_lib_ffi_ffi_prep_cif" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBFFI 1
-_ACEOF
-
-  LIBS="-lffi $LIBS"
-
-fi
-
-fi
-
-if test "${enable_ffi}" != "yes"; then
-   manually_disabled="ffi ${manually_disabled}"
-elif test ! "${ac_cv_header_ffi_h}" != "yes" &&
-     test ! "${ac_cv_header_ffi_ffi_h}" != "yes";  then
-   enable_ffi="no";
-   auto_disabled="ffi ${auto_disabled}";
-elif test "${ac_cv_lib_ffi_ffi_prep_cif}" != "yes"; then
-   enable_ffi="no";
-   auto_disabled="ffi ${auto_disabled}";
-fi
-
-# This cmodule isn't actually implemented yet
-for ac_header in archive.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "archive.h" "ac_cv_header_archive_h" "$ac_includes_default"
-if test "x$ac_cv_header_archive_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_ARCHIVE_H 1
-_ACEOF
-
-fi
-
-done
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for archive_read_new in -larchive" >&5
-$as_echo_n "checking for archive_read_new in -larchive... " >&6; }
-if ${ac_cv_lib_archive_archive_read_new+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-larchive  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char archive_read_new ();
-int
-main ()
-{
-return archive_read_new ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_archive_archive_read_new=yes
-else
-  ac_cv_lib_archive_archive_read_new=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_archive_archive_read_new" >&5
-$as_echo "$ac_cv_lib_archive_archive_read_new" >&6; }
-if test "x$ac_cv_lib_archive_archive_read_new" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBARCHIVE 1
-_ACEOF
-
-  LIBS="-larchive $LIBS"
-
-fi
-
-if test "${ac_cv_header_archive_h}" == "yes" && \
-   test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
-  CMODULES="lib/framerd/libarchive.${shared_suffix} ${CMODULES}"
-  INSTALLCMODULES="install-libarchive ${INSTALLCMODULES}"
-fi
-
-DEFAULT_DLOADPATH="${prefix}/lib/framerd/%.${vshared_suffix}:${prefix}/lib/%.${vshared_suffix}:${prefix}/lib/lib%.${vshared_suffix}:${prefix}/lib/framerd/%.${mmshared_suffix}:${prefix}/lib/%.${mmshared_suffix}:${prefix}/lib/lib%.${mmshared_suffix}:${prefix}/lib/framerd/%.${mshared_suffix}:${prefix}/lib/%.${mshared_suffix}:${prefix}/lib/lib%.${mshared_suffix}:${prefix}/lib/framerd/%.${shared_suffix}:${prefix}/lib/%.${shared_suffix}:${prefix}/lib/lib%.${shared_suffix}:"
-
-
-# Check whether --with-arch was given.
-if test "${with_arch+set}" = set; then :
-  withval=$with_arch;
-else
-  with_arch=""
-fi
-
-if test -z $with_arch; then
-  archflags=""
-elif test $with_arch = "all"; then
-  archflags="-arch i386 -arch x86_64 -arch ppc -arch ppc64";
-elif test $with_arch = "all86"; then
-  archflags="-arch i386 -arch x86_64";
-elif test $with_arch = "allppc"; then
-  archflags="-arch ppc -arch ppc64";
-else archflags=$with_arch
-fi
 
 $as_echo "#define FD_WORDS_ARE_ALIGNED 1" >>confdefs.h
 
@@ -7910,6 +6642,1484 @@ _ACEOF
 fi
 
 
+case $host_os in
+  darwin*)
+   MKSTATIC="libtool -static -o "
+   dynamic_cflag="-dynamic"
+   shared_suffix="dylib"
+   vshared_suffix=${FDVERSION}.dylib
+   mshared_suffix=${FDMAJOR}.dylib
+   mmshared_suffix=${FDMAJOR}.${FDMINOR}.dylib
+   APXS="apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a $APXSFLAGS"
+   CFLAGS="-D_DARWIN_C_SOURCE $CFLAGS"
+   RPATHFLAGS=" -rpath \$(RPATH) "
+   STATICLDFLAGS=" -lc++"
+   ifmacosx=""
+   setup_target="setup-osx"
+   gperftools_default="no"
+   ;;
+esac
+
+as_CACHEVAR=`$as_echo "ax_cv_check_ldflags__"-static-libgcc"" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the linker accepts \"-static-libgcc\"" >&5
+$as_echo_n "checking whether the linker accepts \"-static-libgcc\"... " >&6; }
+if eval \${$as_CACHEVAR+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+
+  ax_check_save_flags=$LDFLAGS
+  LDFLAGS="$LDFLAGS  "-static-libgcc""
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  eval "$as_CACHEVAR=yes"
+else
+  eval "$as_CACHEVAR=no"
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+  LDFLAGS=$ax_check_save_flags
+fi
+eval ac_res=\$$as_CACHEVAR
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_CACHEVAR"\" = x"yes"; then :
+  static_libgcc="yes"
+else
+  :
+fi
+
+
+if test "${static_libgcc}" == "yes"; then
+   LDFLAGS="-static-libgcc -Wl,--as-needed ${LDFLAGS}"
+fi
+
+
+# Check whether --with-fileinfo was given.
+if test "${with_fileinfo+set}" = set; then :
+  withval=$with_fileinfo;
+else
+  with_fileinfo="yes"
+fi
+
+if test "$with_fileinfo" = "yes" ; then
+   definefileinfo="-D_FILEINFO=\"\\\"\`./fileinfo ./$< .\`\\\"\""
+   versionsh="include/framerd/versions.h"
+fi
+
+
+# Check whether --with-stackcheck was given.
+if test "${with_stackcheck+set}" = set; then :
+  withval=$with_stackcheck; with_stackcheck=$withval
+else
+  with_stackcheck="yes"
+fi
+
+if ! test "${with_stackcheck}" = "no"; then
+   cat >>confdefs.h <<_ACEOF
+#define FD_STACKCHECK 1
+_ACEOF
+
+fi
+
+### GNU Profiling
+
+
+# Check whether --with-profiling was given.
+if test "${with_profiling+set}" = set; then :
+  withval=$with_profiling;
+else
+  with_profiling="no"
+fi
+
+if test $with_profiling = "yes"; then
+  $as_echo "#define FD_WITH_PROFILING 1" >>confdefs.h
+
+  PROFILING="-O0 -pg -fno-inline -fprofile-arcs -ftest-coverage"
+else
+  PROFILING=""
+fi
+
+### Check some compiler fancies
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for working __builtin_expect" >&5
+$as_echo_n "checking for working __builtin_expect... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+	     int main (int argc,char *argv[]) {
+                if (__builtin_expect((argc>2),1)) return 0;
+                else return 1;
+		}
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+		$as_echo "#define HAVE_BUILTIN_EXPECT 1" >>confdefs.h
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for working __builtin_prefetch" >&5
+$as_echo_n "checking for working __builtin_prefetch... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+	     static int data[]={0,1,2,3};
+
+	     int main (int argc,char *argv[]) {
+                __builtin_prefetch(&data[2],0,3);
+		return 0;
+		}
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+		$as_echo "#define HAVE_BUILTIN_PREFETCH 1" >>confdefs.h
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for working __constructor_attributes" >&5
+$as_echo_n "checking for working __constructor_attributes... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+             int tmpinit(void) __attribute__ ((constructor));
+
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+		$as_echo "#define HAVE_CONSTRUCTOR_ATTRIBUTES 1" >>confdefs.h
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+### What flavor of malloc() to use
+
+
+# Check whether --with-duma was given.
+if test "${with_duma+set}" = set; then :
+  withval=$with_duma; with_duma=$withval
+else
+  with_duma="no"
+fi
+
+if test "$with_duma" != "no"; then
+   default_malloc="libc";
+fi
+
+
+# Check whether --with-malloc was given.
+if test "${with_malloc+set}" = set; then :
+  withval=$with_malloc; with_malloc=$withval
+else
+  with_malloc=$default_malloc
+fi
+
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking malloc library" >&5
+$as_echo_n "checking malloc library... " >&6; }
+
+if test -z "$with_malloc" ||
+   test "$with_malloc" = "libc" ||
+   test "$with_malloc" = "builtin" ; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: libc default" >&5
+$as_echo "libc default" >&6; }
+   custom_malloc="";
+   using_malloc="libc"
+elif test "$with_duma" != "no"; then
+   as_fn_error $? "DUMA can only be used with libc malloc" "$LINENO" 5
+   exit;
+elif test "$with_malloc" = "tcmalloc"; then
+  gperftools="yes";
+  custom_malloc="tcmalloc"
+  using_malloc="tcmalloc"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: tcmalloc" >&5
+$as_echo "tcmalloc" >&6; }
+elif test "$with_malloc" = "gperftools"; then
+  gperftools="profile";
+  custom_malloc="tcmalloc"
+  using_malloc="gperftools"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: tcmalloc profiling" >&5
+$as_echo "tcmalloc profiling" >&6; }
+elif test "$with_malloc" = "tcmalloc_debug"; then
+  gperftools="debug";
+  custom_malloc="tcmalloc_debug"
+  using_malloc="tcmalloc_debug"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: tcmalloc debug" >&5
+$as_echo "tcmalloc debug" >&6; }
+elif test "$with_malloc" = "tcmalloc_minimal"; then
+  gperftools="minimal";
+  custom_malloc="tcmalloc_minimal"
+  using_malloc="tcmalloc_minimal"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: tcmalloc minimal" >&5
+$as_echo "tcmalloc minimal" >&6; }
+elif test "$with_malloc" = "jemalloc"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ljemalloc" >&5
+$as_echo_n "checking for malloc in -ljemalloc... " >&6; }
+if ${ac_cv_lib_jemalloc_malloc+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ljemalloc  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char malloc ();
+int
+main ()
+{
+return malloc ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_jemalloc_malloc=yes
+else
+  ac_cv_lib_jemalloc_malloc=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_jemalloc_malloc" >&5
+$as_echo "$ac_cv_lib_jemalloc_malloc" >&6; }
+if test "x$ac_cv_lib_jemalloc_malloc" = xyes; then :
+  EXELIBS="-ljemalloc $EXELIBS"
+fi
+
+  if test "${ac_cv_lib_jemalloc_malloc}" = "yes"; then
+    custom_malloc="jemalloc"
+    using_malloc="jemalloc"
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: jemalloc" >&5
+$as_echo "jemalloc" >&6; }
+    memtest_env="junk:true,tcache:false"
+    leaktest_env="prof_leak:true,lg_prof_sample:0,prof_final:true"
+  else
+    as_fn_error $? "jemalloc can't be found" "$LINENO" 5
+    exit;
+  fi;
+elif test "$with_malloc" = "dmalloc"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ldmalloc" >&5
+$as_echo_n "checking for malloc in -ldmalloc... " >&6; }
+if ${ac_cv_lib_dmalloc_malloc+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ldmalloc  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char malloc ();
+int
+main ()
+{
+return malloc ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_dmalloc_malloc=yes
+else
+  ac_cv_lib_dmalloc_malloc=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_dmalloc_malloc" >&5
+$as_echo "$ac_cv_lib_dmalloc_malloc" >&6; }
+if test "x$ac_cv_lib_dmalloc_malloc" = xyes; then :
+  EXELIBS="-ldmalloc $EXELIBS"
+fi
+
+  if test "${ac_cv_lib_dmalloc_malloc}" = "yes"; then
+    custom_malloc="dmalloc"
+    using_malloc="dmalloc"
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: dmalloc" >&5
+$as_echo "dmalloc" >&6; }
+  else
+    as_fn_error $? "dmalloc can't be found" "$LINENO" 5
+    exit;
+  fi;
+elif test "$with_malloc" = "asan"; then
+   CFLAGS="-fsanitize=address -fno-omit-frame-pointer -O0 -g $CFLAGS"
+   LDFLAGS="-g -fsanitize=address $LDFLAGS"
+   build_static=""
+   test_static=""
+   install_static=""
+   custom_malloc="asan"
+   using_malloc="asan"
+   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=malloc_context_size=20 LSAN_OPTIONS=report_objects=1 $test_env";
+   leaktester_env="ASAN_OPTIONS=malloc_context_size=20 LSAN_OPTIONS=report_objects=1 ${leaktester_env}";
+   asan="yes"
+   test_size=64
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: ASAN" >&5
+$as_echo "ASAN" >&6; }
+elif test "$with_malloc" = "asan_noleak"; then
+   CFLAGS="-fsanitize=address -fno-omit-frame-pointer -O0 -g $CFLAGS"
+   LDFLAGS="-g -fsanitize=address $LDFLAGS"
+   build_static=""
+   test_static=""
+   install_static=""
+   custom_malloc="asan"
+   using_malloc="asan"
+   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=0:malloc_context_size=20 $test_env";
+   leaktester_env="ASAN_OPTIONS=malloc_context_size=20:detect_leaks=1 LSAN_OPTIONS=report_objects=1 ${leaktester_env}";
+   asan="yes"
+   test_size=64
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: ASAN" >&5
+$as_echo "ASAN" >&6; }
+elif test "$with_malloc" = "asan_thread"; then
+   CFLAGS="-fsanitize=thread -g -fno-omit-frame-pointer $CFLAGS"
+   LDFLAGS="-g -fsanitize=thread -fno-omit-frame-pointer $LDFLAGS"
+   build_static=""
+   test_static=""
+   install_static=""
+   custom_malloc="asan_thread"
+   using_malloc="asan_thread"
+   test_env="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
+   asan="thread"
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: ASAN thread" >&5
+$as_echo "ASAN thread" >&6; }
+else
+   as_fn_error $? "Valid values for malloc are libc tcmalloc jemalloc gperftools dmalloc tcmalloc_debug asan asan_thread" "$LINENO" 5
+   exit 1;
+fi
+
+if test ! -z "$using_malloc"; then
+   cat >>confdefs.h <<_ACEOF
+#define FD_DEFAULT_MALLOC "$using_malloc"
+_ACEOF
+
+fi;
+
+if test ! -z "$asan" && test "$CLANG" = "none"; then
+   as_fn_error $? "No clang program to use with ASAN" "$LINENO" 5
+fi;
+
+if test -z "$gperftools" || test "$gperftools" = "no"; then
+   ${ECHO} -n;
+else
+  for ac_header in gperftools/profiler.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "gperftools/profiler.h" "ac_cv_header_gperftools_profiler_h" "$ac_includes_default"
+if test "x$ac_cv_header_gperftools_profiler_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_GPERFTOOLS_PROFILER_H 1
+_ACEOF
+
+fi
+
+done
+
+  for ac_header in gperftools/heap-profiler.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "gperftools/heap-profiler.h" "ac_cv_header_gperftools_heap_profiler_h" "$ac_includes_default"
+if test "x$ac_cv_header_gperftools_heap_profiler_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_GPERFTOOLS_HEAP_PROFILER_H 1
+_ACEOF
+
+fi
+
+done
+
+  for ac_header in gperftools/heap-checker.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "gperftools/heap-checker.h" "ac_cv_header_gperftools_heap_checker_h" "$ac_includes_default"
+if test "x$ac_cv_header_gperftools_heap_checker_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_GPERFTOOLS_HEAP_CHECKER_H 1
+_ACEOF
+
+fi
+
+done
+
+  for ac_header in gperftools/malloc_extension_c.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "gperftools/malloc_extension_c.h" "ac_cv_header_gperftools_malloc_extension_c_h" "$ac_includes_default"
+if test "x$ac_cv_header_gperftools_malloc_extension_c_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H 1
+_ACEOF
+
+fi
+
+done
+
+  if test "$gperftools" = "debug"; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_debug" >&5
+$as_echo_n "checking for malloc in -ltcmalloc_debug... " >&6; }
+if ${ac_cv_lib_tcmalloc_debug_malloc+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ltcmalloc_debug  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char malloc ();
+int
+main ()
+{
+return malloc ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_tcmalloc_debug_malloc=yes
+else
+  ac_cv_lib_tcmalloc_debug_malloc=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_debug_malloc" >&5
+$as_echo "$ac_cv_lib_tcmalloc_debug_malloc" >&6; }
+if test "x$ac_cv_lib_tcmalloc_debug_malloc" = xyes; then :
+  EXELIBS="-ltcmalloc_debug $EXELIBS"
+fi
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ProfilerStart in -lprofiler" >&5
+$as_echo_n "checking for ProfilerStart in -lprofiler... " >&6; }
+if ${ac_cv_lib_profiler_ProfilerStart+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lprofiler  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char ProfilerStart ();
+int
+main ()
+{
+return ProfilerStart ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_profiler_ProfilerStart=yes
+else
+  ac_cv_lib_profiler_ProfilerStart=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_profiler_ProfilerStart" >&5
+$as_echo "$ac_cv_lib_profiler_ProfilerStart" >&6; }
+if test "x$ac_cv_lib_profiler_ProfilerStart" = xyes; then :
+  EXELIBS="-lprofiler $EXELIBS"
+fi
+
+  elif test "$gperftools" = "profile"; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc" >&5
+$as_echo_n "checking for malloc in -ltcmalloc... " >&6; }
+if ${ac_cv_lib_tcmalloc_malloc+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ltcmalloc  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char malloc ();
+int
+main ()
+{
+return malloc ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_tcmalloc_malloc=yes
+else
+  ac_cv_lib_tcmalloc_malloc=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_malloc" >&5
+$as_echo "$ac_cv_lib_tcmalloc_malloc" >&6; }
+if test "x$ac_cv_lib_tcmalloc_malloc" = xyes; then :
+  EXELIBS="-ltcmalloc $EXELIBS"
+fi
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ProfilerStart in -lprofiler" >&5
+$as_echo_n "checking for ProfilerStart in -lprofiler... " >&6; }
+if ${ac_cv_lib_profiler_ProfilerStart+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lprofiler  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char ProfilerStart ();
+int
+main ()
+{
+return ProfilerStart ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_profiler_ProfilerStart=yes
+else
+  ac_cv_lib_profiler_ProfilerStart=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_profiler_ProfilerStart" >&5
+$as_echo "$ac_cv_lib_profiler_ProfilerStart" >&6; }
+if test "x$ac_cv_lib_profiler_ProfilerStart" = xyes; then :
+  EXELIBS="-lprofiler $EXELIBS"
+fi
+
+    CMODULES="lib/framerd/gperftools.${shared_suffix} ${CMODULES}"
+    INSTALLCMODULES="install-gperftools ${INSTALLCMODULES}"
+  elif test "$gperftools" = "minimal"; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_minimal" >&5
+$as_echo_n "checking for malloc in -ltcmalloc_minimal... " >&6; }
+if ${ac_cv_lib_tcmalloc_minimal_malloc+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ltcmalloc_minimal  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char malloc ();
+int
+main ()
+{
+return malloc ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_tcmalloc_minimal_malloc=yes
+else
+  ac_cv_lib_tcmalloc_minimal_malloc=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_minimal_malloc" >&5
+$as_echo "$ac_cv_lib_tcmalloc_minimal_malloc" >&6; }
+if test "x$ac_cv_lib_tcmalloc_minimal_malloc" = xyes; then :
+  EXELIBS="-ltcmalloc_minimal $EXELIBS"
+fi
+
+  else
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc" >&5
+$as_echo_n "checking for malloc in -ltcmalloc... " >&6; }
+if ${ac_cv_lib_tcmalloc_malloc+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ltcmalloc  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char malloc ();
+int
+main ()
+{
+return malloc ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_tcmalloc_malloc=yes
+else
+  ac_cv_lib_tcmalloc_malloc=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_malloc" >&5
+$as_echo "$ac_cv_lib_tcmalloc_malloc" >&6; }
+if test "x$ac_cv_lib_tcmalloc_malloc" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBTCMALLOC 1
+_ACEOF
+
+  LIBS="-ltcmalloc $LIBS"
+
+fi
+
+  fi;
+  if test "${ac_cv_lib_tcmalloc_malloc}" == "yes" || \
+     test "${ac_cv_lib_tcmalloc_debug_malloc}" == "yes" || \
+     test "${ac_cv_lib_tcmalloc_and_profiler_malloc}" == "yes"; then
+    custom_malloc="tcmalloc";
+    CFLAGS="${CFLAGS} ";
+    leaktest_env="HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}";
+    memtest_env="TCMALLOC_DEBUG=5";
+  else
+    echo "No tcmalloc available";
+    custom_malloc="";
+    gperftools="no";
+  fi;
+fi
+
+if test "$with_duma" != "no" && test "$custom_malloc" != ""; then
+  echo "Can't use DUMA with other custom MALLOC libraries ($custom_malloc)";
+  with_duma="no";
+elif test "$with_duma" != "no" && test "$DUMA" = "none"; then
+  echo "No DUMA executable";
+  with_duma="no";
+elif test "$with_duma" != "no"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -lduma" >&5
+$as_echo_n "checking for malloc in -lduma... " >&6; }
+if ${ac_cv_lib_duma_malloc+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lduma  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char malloc ();
+int
+main ()
+{
+return malloc ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_duma_malloc=yes
+else
+  ac_cv_lib_duma_malloc=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_duma_malloc" >&5
+$as_echo "$ac_cv_lib_duma_malloc" >&6; }
+if test "x$ac_cv_lib_duma_malloc" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBDUMA 1
+_ACEOF
+
+  LIBS="-lduma $LIBS"
+
+fi
+
+  for ac_header in duma.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "duma.h" "ac_cv_header_duma_h" "$ac_includes_default"
+if test "x$ac_cv_header_duma_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_DUMA_H 1
+_ACEOF
+
+fi
+
+done
+
+  test_env="DUMA_ALIGNMENT=4 $test_env";
+  custom_malloc="DUMA";
+fi
+
+if test "${VALGRIND}" != "none" && test -z "${custom_malloc}"; then
+  MEMTEST_CMD="FD_INVALGRIND=yes valgrind --tool=memcheck --num-callers=24"
+  LEAKTESTER="FD_INVALGRIND=yes valgrind --tool=memcheck --leak-check=full --num-callers=24"
+fi
+
+# libu8 configuration
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for u8_raise in -lu8" >&5
+$as_echo_n "checking for u8_raise in -lu8... " >&6; }
+if ${ac_cv_lib_u8_u8_raise+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lu8  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char u8_raise ();
+int
+main ()
+{
+return u8_raise ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_u8_u8_raise=yes
+else
+  ac_cv_lib_u8_u8_raise=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_u8_u8_raise" >&5
+$as_echo "$ac_cv_lib_u8_u8_raise" >&6; }
+if test "x$ac_cv_lib_u8_u8_raise" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBU8 1
+_ACEOF
+
+  LIBS="-lu8 $LIBS"
+
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for u8_open_xinput in -lu8io" >&5
+$as_echo_n "checking for u8_open_xinput in -lu8io... " >&6; }
+if ${ac_cv_lib_u8io_u8_open_xinput+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lu8io  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char u8_open_xinput ();
+int
+main ()
+{
+return u8_open_xinput ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_u8io_u8_open_xinput=yes
+else
+  ac_cv_lib_u8io_u8_open_xinput=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_u8io_u8_open_xinput" >&5
+$as_echo "$ac_cv_lib_u8io_u8_open_xinput" >&6; }
+if test "x$ac_cv_lib_u8io_u8_open_xinput" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBU8IO 1
+_ACEOF
+
+  LIBS="-lu8io $LIBS"
+
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for u8_init_chardata_c in -lu8data" >&5
+$as_echo_n "checking for u8_init_chardata_c in -lu8data... " >&6; }
+if ${ac_cv_lib_u8data_u8_init_chardata_c+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lu8data  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char u8_init_chardata_c ();
+int
+main ()
+{
+return u8_init_chardata_c ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_u8data_u8_init_chardata_c=yes
+else
+  ac_cv_lib_u8data_u8_init_chardata_c=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_u8data_u8_init_chardata_c" >&5
+$as_echo "$ac_cv_lib_u8data_u8_init_chardata_c" >&6; }
+if test "x$ac_cv_lib_u8data_u8_init_chardata_c" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBU8DATA 1
+_ACEOF
+
+  LIBS="-lu8data $LIBS"
+
+fi
+
+for ac_func in u8_cryptic
+do :
+  ac_fn_c_check_func "$LINENO" "u8_cryptic" "ac_cv_func_u8_cryptic"
+if test "x$ac_cv_func_u8_cryptic" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_U8_CRYPTIC 1
+_ACEOF
+ with_crypto_default="yes"
+fi
+done
+
+
+# Check whether --with-crypto was given.
+if test "${with_crypto+set}" = set; then :
+  withval=$with_crypto;
+else
+  with_crypto=$with_crypto_default
+fi
+
+if test $with_crypto = "yes"; then
+  CMODULES="lib/framerd/crypto.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-crypto ${INSTALLCMODULES}"
+fi
+
+### Installation configuration
+
+
+# Check whether --with-codename was given.
+if test "${with_codename+set}" = set; then :
+  withval=$with_codename; with_codename=$withval
+else
+  with_codename=$CODENAME
+fi
+
+CODENAME=$with_codename
+
+for ac_prog in "lsb-rpmbuild"
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_buildrpm+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$buildrpm"; then
+  ac_cv_prog_buildrpm="$buildrpm" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in "lsb-rpm"
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_buildrpm="$ac_prog"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+buildrpm=$ac_cv_prog_buildrpm
+if test -n "$buildrpm"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $buildrpm" >&5
+$as_echo "$buildrpm" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  test -n "$buildrpm" && break
+done
+test -n "$buildrpm" || buildrpm=""rpmbuild""
+
+for ac_prog in "lsb-rpm"
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_rpm+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$rpm"; then
+  ac_cv_prog_rpm="$rpm" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in "na"
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_rpm="$ac_prog"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+rpm=$ac_cv_prog_rpm
+if test -n "$rpm"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $rpm" >&5
+$as_echo "$rpm" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  test -n "$rpm" && break
+done
+test -n "$rpm" || rpm=""rpm""
+
+
+### System users, groups, and paths for FramerD
+
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for group default_admin_group" >&5
+$as_echo_n "checking for group default_admin_group... " >&6; }
+  found_group="none";
+  for group in framerd _framerd adm admin;
+  do if grep ^$group: /etc/group > /dev/null;
+  then
+	found_group=$group;
+	break;
+  fi; done;
+  default_admin_group=$found_group;
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $found_group" >&5
+$as_echo "$found_group" >&6; }
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for user default_fdaemon" >&5
+$as_echo_n "checking for user default_fdaemon... " >&6; }
+  found_user="none";
+  for user in fdaemon _fdaemon daemon nobody;
+  do
+  if grep ^$user: /etc/passwd > /dev/null;
+  then
+	found_user=$user;
+	break;
+  fi;
+  done;
+  default_fdaemon=$found_user;
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $found_user" >&5
+$as_echo "$found_user" >&6; }
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for user default_daemon" >&5
+$as_echo_n "checking for user default_daemon... " >&6; }
+  found_user="none";
+  for user in xdaemon fdaemon _fdaemon daemon nobody;
+  do
+  if grep ^$user: /etc/passwd > /dev/null;
+  then
+	found_user=$user;
+	break;
+  fi;
+  done;
+  default_daemon=$found_user;
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $found_user" >&5
+$as_echo "$found_user" >&6; }
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for user default_webuser" >&5
+$as_echo_n "checking for user default_webuser... " >&6; }
+  found_user="none";
+  for user in www apache httpd www-data _www;
+  do
+  if grep ^$user: /etc/passwd > /dev/null;
+  then
+	found_user=$user;
+	break;
+  fi;
+  done;
+  default_webuser=$found_user;
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $found_user" >&5
+$as_echo "$found_user" >&6; }
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for user default_webgroup" >&5
+$as_echo_n "checking for user default_webgroup... " >&6; }
+  found_user="none";
+  for user in www apache httpd www-data _www;
+  do
+  if grep ^$user: /etc/passwd > /dev/null;
+  then
+	found_user=$user;
+	break;
+  fi;
+  done;
+  default_webgroup=$found_user;
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $found_user" >&5
+$as_echo "$found_user" >&6; }
+
+
+# Check whether --with-admin_group was given.
+if test "${with_admin_group+set}" = set; then :
+  withval=$with_admin_group;
+else
+  with_admin_group=$default_admin_group
+fi
+
+if test $with_admin_group != "none"; then
+  install_dir_opts="-g $with_admin_group -m 0775 $install_dir_opts"
+  install_file_opts="-g $with_admin_group $install_file_opts"
+  install_exe_opts="-g $with_admin_group $install_exe_opts"
+  admin_group=$with_admin_group
+  admininstall="-g $with_admin_group"
+else
+  install_dir_opts="$install_dir_opts"
+  install_file_opts="$install_file_opts"
+  install_exe_opts="$install_exe_opts"
+  admin_group=$default_admin_group
+  admininstall=""
+fi
+
+
+# Check whether --with-fdaemon was given.
+if test "${with_fdaemon+set}" = set; then :
+  withval=$with_fdaemon;
+else
+  with_fdaemon=$default_fdaemon
+fi
+
+if test $with_fdaemon != "none"; then
+   fdaemoninstall="-o $with_fdaemon"
+   fdaemon=$with_fdaemon
+else
+   fdaemoninstall=""
+   fdaemon=$default_fdaemon
+fi
+
+
+# Check whether --with-rundir was given.
+if test "${with_rundir+set}" = set; then :
+  withval=$with_rundir;
+else
+  with_rundir="$localstatedir/run"
+fi
+
+rundir=$with_rundir
+cat >>confdefs.h <<_ACEOF
+#define FD_RUN_DIR "$rundir"
+_ACEOF
+
+
+
+# Check whether --with-logdir was given.
+if test "${with_logdir+set}" = set; then :
+  withval=$with_logdir;
+else
+  with_logdir="$localstatedir/log"
+fi
+
+logdir=$with_logdir
+
+
+# Check whether --with-bugjar was given.
+if test "${with_bugjar+set}" = set; then :
+  withval=$with_bugjar;
+else
+  with_bugjar="$default_bugjar"
+fi
+
+bugjar=$with_bugjar
+
+cat >>confdefs.h <<_ACEOF
+#define FD_LOG_DIR "$logdir"
+_ACEOF
+
+cat >>confdefs.h <<_ACEOF
+#define FD_DAEMON_LOG_DIR "$daemon_logdir"
+_ACEOF
+
+cat >>confdefs.h <<_ACEOF
+#define FD_SERVLET_LOG_DIR "$servlet_logdir"
+_ACEOF
+
+cat >>confdefs.h <<_ACEOF
+#define FD_DAEMON_RUN_DIR "$daemon_rundir"
+_ACEOF
+
+cat >>confdefs.h <<_ACEOF
+#define FD_SERVLET_RUN_DIR "$daemon_rundir"
+_ACEOF
+
+cat >>confdefs.h <<_ACEOF
+#define FD_BUGJAR_ROOT "$bugjar"
+_ACEOF
+
+
+### Paths
+
+### Users and Groups
+
+
+# Check whether --with-webuser was given.
+if test "${with_webuser+set}" = set; then :
+  withval=$with_webuser;
+else
+  with_webuser=$default_webuser
+fi
+
+if test "$with_webuser" != "none"; then
+   webuser=$with_webuser
+   wwwinstall="-o $webuser"
+else
+   webuser=$default_webuser
+   wwwinstall=""
+fi
+
+
+# Check whether --with-webgroup was given.
+if test "${with_webgroup+set}" = set; then :
+  withval=$with_webgroup;
+else
+  with_webgroup=$default_webgroup
+fi
+
+if test "$with_webgroup" != "none"; then
+   webgroup=$with_webgroup
+   wwwinstall="-o $webgroup"
+else
+   webgroup=$default_webgroup
+   wwwinstall=""
+fi
+
+### Apache
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking apache log directory" >&5
+$as_echo_n "checking apache log directory... " >&6; }
+if test -d ${apache_conf_dir}/log; then
+   if test -h ${apache_conf_dir}/log; then
+     apache_log_dir=$(readlink ${apache_conf_dir}/log);
+   else apache_log_dir=${apache_conf_dir}/log;
+   fi
+elif test -d ${apache_conf_dir}/logs; then
+   if test -h ${apache_conf_dir}/logs; then
+     apache_log_dir=$(readlink ${apache_conf_dir}/logs);
+   else apache_log_dir=${apache_conf_dir}/logs;
+   fi
+elif test -d ${local_state_dir}/logs/apache; then
+    apache_log_dir=${local_state_dir}/logs/apache;
+elif test -d ${local_state_dir}/logs/apache2; then
+    apache_log_dir=${local_state_dir}/logs/apache2;
+elif test -d ${local_state_dir}/logs/httpd; then
+    apache_log_dir=${local_state_dir}/logs/httpd;
+elif test -d ${local_state_dir}/logs/http; then
+    apache_log_dir=${local_state_dir}/logs/http;
+elif test -d /var/log/apache; then
+    apache_log_dir=/var/log/apache;
+elif test -d /var/log/apache2; then
+    apache_log_dir=/var/log/apache2;
+elif test -d /var/log/httpd; then
+    apache_log_dir=/var/log/httpd;
+elif test -d /var/log/http; then
+    apache_log_dir=/var/log/http;
+elif test -d /usr/log/apache; then
+    apache_log_dir=/usr/log/apache;
+elif test -d /usr/log/apache2; then
+     apache_log_dir=/usr/log/apache2;
+elif test -d /usr/log/httpd; then
+    apache_log_dir=/usr/log/httpd;
+elif test -d /usr/log/http; then
+    apache_log_dir=/usr/log/http;
+else
+    apache_log_dir=""
+fi;
+
+if test -z ${apache_log_dir}; then
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: none found" >&5
+$as_echo "none found" >&6; }
+ apache_log_dir=/var/log/apache;
+else
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: $apache_log_dir" >&5
+$as_echo "$apache_log_dir" >&6; };
+fi;
+
+if test ! -z "$APXS"; then
+  apache_conf_dir=`$APXS -q SYSCONFDIR`
+  apache_modules_dir=`$APXS -q LIBEXECDIR`
+  if test -d ${apache_conf_dir}/mods-available; then
+    apache_modinfo=${apache_conf_dir}/mods-available;
+  elif test -d ${apache_conf_dir}/mods_available; then
+    apache_modinfo=${apache_conf_dir}/mods_available;
+  elif test -d ${apache_conf_dir}.d; then
+    apache_modinfo=${apache_conf_dir}.d;
+  elif test -d ${apache_conf_dir}/other; then
+    apache_modinfo=${apache_conf_dir}/other;
+  else apache_modinfo=$apache_conf_dir;
+  fi;
+else
+  echo "Warning: No apache development environment, can't build mod_fdserv"
+fi
+
+
+# Check whether --with-apacheinfo was given.
+if test "${with_apacheinfo+set}" = set; then :
+  withval=$with_apacheinfo;
+else
+  with_apacheinfo=$apache_modinfo
+fi
+
+
+# Check whether --with-apachelib was given.
+if test "${with_apachelib+set}" = set; then :
+  withval=$with_apachelib;
+else
+  with_apachelib=$apache_modules_dir
+fi
+
+apache_modinfo=$with_apacheinfo
+apache_modules_dir=$with_apachelib
+
+### Provide the FFI interface
+
+# Check whether --enable-ffi was given.
+if test "${enable_ffi+set}" = set; then :
+  enableval=$enable_ffi; enable_ffi=$enableval
+else
+  enable_ffi="yes"
+fi
+
+if test "${enable_ffi}" == "yes"; then
+   for ac_header in ffi/ffi.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "ffi/ffi.h" "ac_cv_header_ffi_ffi_h" "$ac_includes_default"
+if test "x$ac_cv_header_ffi_ffi_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_FFI_FFI_H 1
+_ACEOF
+
+fi
+
+done
+
+   for ac_header in ffi.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "ffi.h" "ac_cv_header_ffi_h" "$ac_includes_default"
+if test "x$ac_cv_header_ffi_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_FFI_H 1
+_ACEOF
+
+fi
+
+done
+
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ffi_prep_cif in -lffi" >&5
+$as_echo_n "checking for ffi_prep_cif in -lffi... " >&6; }
+if ${ac_cv_lib_ffi_ffi_prep_cif+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lffi  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char ffi_prep_cif ();
+int
+main ()
+{
+return ffi_prep_cif ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_ffi_ffi_prep_cif=yes
+else
+  ac_cv_lib_ffi_ffi_prep_cif=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ffi_ffi_prep_cif" >&5
+$as_echo "$ac_cv_lib_ffi_ffi_prep_cif" >&6; }
+if test "x$ac_cv_lib_ffi_ffi_prep_cif" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBFFI 1
+_ACEOF
+
+  LIBS="-lffi $LIBS"
+
+fi
+
+fi
+if test "${enable_ffi}" != "yes"; then
+   manually_disabled="ffi ${manually_disabled}"
+elif test ! "${ac_cv_header_ffi_h}" != "yes" &&
+     test ! "${ac_cv_header_ffi_ffi_h}" != "yes";  then
+   enable_ffi="no";
+   auto_disabled="ffi ${auto_disabled}";
+elif test "${ac_cv_lib_ffi_ffi_prep_cif}" != "yes"; then
+   enable_ffi="no";
+   auto_disabled="ffi ${auto_disabled}";
+   missing="${missing} ffi";
+fi
+
+DEFAULT_DLOADPATH="${prefix}/lib/framerd/%.${vshared_suffix}:${prefix}/lib/%.${vshared_suffix}:${prefix}/lib/lib%.${vshared_suffix}:${prefix}/lib/framerd/%.${mmshared_suffix}:${prefix}/lib/%.${mmshared_suffix}:${prefix}/lib/lib%.${mmshared_suffix}:${prefix}/lib/framerd/%.${mshared_suffix}:${prefix}/lib/%.${mshared_suffix}:${prefix}/lib/lib%.${mshared_suffix}:${prefix}/lib/framerd/%.${shared_suffix}:${prefix}/lib/%.${shared_suffix}:${prefix}/lib/lib%.${shared_suffix}:"
+
+
+# Check whether --with-arch was given.
+if test "${with_arch+set}" = set; then :
+  withval=$with_arch;
+else
+  with_arch=""
+fi
+
+if test -z $with_arch; then
+  archflags=""
+elif test $with_arch = "all"; then
+  archflags="-arch i386 -arch x86_64 -arch ppc -arch ppc64";
+elif test $with_arch = "all86"; then
+  archflags="-arch i386 -arch x86_64";
+elif test $with_arch = "allppc"; then
+  archflags="-arch ppc -arch ppc64";
+else archflags=$with_arch
+fi
+
 # Check whether to use an architecture specific library directory
 if test "${libdir}" != "\${exec_prefix}/lib"; then
   echo checking libdir, using explicit libdir ${libdir};
@@ -7922,6 +8132,7 @@ elif test ${ac_cv_sizeof_long} -eq 8 && test -d ${prefix}/lib64; then
 else
   echo checking libdir, using default libdir ${libdir};
 fi
+
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ANSI C header files" >&5
 $as_echo_n "checking for ANSI C header files... " >&6; }
@@ -8075,104 +8286,6 @@ if test $ac_cv_header_stat_broken = yes; then
 
 $as_echo "#define STAT_MACROS_BROKEN 1" >>confdefs.h
 
-fi
-
-
-for ac_prog in etags
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_prog_etags+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test -n "$etags"; then
-  ac_cv_prog_etags="$etags" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_prog_etags="$ac_prog"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-fi
-fi
-etags=$ac_cv_prog_etags
-if test -n "$etags"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $etags" >&5
-$as_echo "$etags" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-  test -n "$etags" && break
-done
-test -n "$etags" || etags=""na""
-
-
-if test $etags = "na"; then
-   TAGS=""
-fi
-
-for ac_prog in "git"
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_prog_git+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test -n "$git"; then
-  ac_cv_prog_git="$git" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_prog_git="$ac_prog"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-fi
-fi
-git=$ac_cv_prog_git
-if test -n "$git"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $git" >&5
-$as_echo "$git" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-  test -n "$git" && break
-done
-test -n "$git" || git=""na""
-
-if test $git = "na"; then
-   GITDESCRIBE="false"
-else
-   GITDESCRIBE="$git describe"
 fi
 
 
@@ -8376,27 +8489,6 @@ fi;
 
 
 
-# Check whether --with-suffix was given.
-if test "${with_suffix+set}" = set; then :
-  withval=$with_suffix;
-else
-  with_suffix=""
-fi
-
-suffix=$with_suffix
-
-
-# Check whether --with-extlib was given.
-if test "${with_extlib+set}" = set; then :
-  withval=$with_extlib;
-  if test "$withval" != "no" -a "$withval" != "yes"; then
-    LDFLAGS="${LDFLAGS} -L$withval"
-  fi
-
-fi
-
-
-
 # Check whether --with-share_dir was given.
 if test "${with_share_dir+set}" = set; then :
   withval=$with_share_dir;
@@ -8473,6 +8565,8 @@ else
 fi
 
 unpackage_dir=$with_unpackage_dir
+
+### Scheme Module search paths
 
 
 # Check whether --with-installed_module_dir was given.
@@ -8609,24 +8703,6 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
-cat >>confdefs.h <<_ACEOF
-#define FD_DLOAD_SUFFIX "$shared_suffix"
-_ACEOF
-
-
-
-# Check whether --with-dload_path was given.
-if test "${with_dload_path+set}" = set; then :
-  withval=$with_dload_path;
-else
-  with_dload_path=${DEFAULT_DLOADPATH}
-fi
-
-cat >>confdefs.h <<_ACEOF
-#define FD_DEFAULT_DLOADPATH "$with_dload_path"
-_ACEOF
-
-
 
 # Check whether --with-boot_config was given.
 if test "${with_boot_config+set}" = set; then :
@@ -8659,6 +8735,28 @@ _ACEOF
 _ACEOF
 
 fi
+
+### Dynamic library load paths
+
+cat >>confdefs.h <<_ACEOF
+#define FD_DLOAD_SUFFIX "$shared_suffix"
+_ACEOF
+
+
+
+# Check whether --with-dload_path was given.
+if test "${with_dload_path+set}" = set; then :
+  withval=$with_dload_path;
+else
+  with_dload_path=${DEFAULT_DLOADPATH}
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define FD_DEFAULT_DLOADPATH "$with_dload_path"
+_ACEOF
+
+
+### Miscellaneous functions
 
 for ac_func in sigprocmask
 do :
@@ -8912,6 +9010,51 @@ fi
 done
 
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for pthread_rwlock_wrlock in -lpthread" >&5
+$as_echo_n "checking for pthread_rwlock_wrlock in -lpthread... " >&6; }
+if ${ac_cv_lib_pthread_pthread_rwlock_wrlock+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lpthread  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char pthread_rwlock_wrlock ();
+int
+main ()
+{
+return pthread_rwlock_wrlock ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_pthread_pthread_rwlock_wrlock=yes
+else
+  ac_cv_lib_pthread_pthread_rwlock_wrlock=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_pthread_pthread_rwlock_wrlock" >&5
+$as_echo "$ac_cv_lib_pthread_pthread_rwlock_wrlock" >&6; }
+if test "x$ac_cv_lib_pthread_pthread_rwlock_wrlock" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBPTHREAD 1
+_ACEOF
+
+  LIBS="-lpthread $LIBS"
+
+fi
+
 for ac_func in pthread_tryjoin_np pthread_timedjoin_np
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
@@ -9016,6 +9159,8 @@ _ACEOF
 
 fi
 
+
+### Dynamic library support
 
 # Ditto, though it's almost always there
 for ac_func in dlopen
@@ -9147,17 +9292,6 @@ fi
 done
 
 
-# Check whether --enable-maintainer-mode was given.
-if test "${enable_maintainer_mode+set}" = set; then :
-  enableval=$enable_maintainer_mode;
-fi
-
-# Check whether --enable-dependency-tracking was given.
-if test "${enable_dependency_tracking+set}" = set; then :
-  enableval=$enable_dependency_tracking;
-fi
-
-
 # Check whether --enable-shared was given.
 if test "${enable_shared+set}" = set; then :
   enableval=$enable_shared;
@@ -9173,6 +9307,17 @@ else
   SHARED_LIBV=
   SHARED_LIB_TARGET=
 fi
+
+# Check whether --enable-maintainer-mode was given.
+if test "${enable_maintainer_mode+set}" = set; then :
+  enableval=$enable_maintainer_mode;
+fi
+
+# Check whether --enable-dependency-tracking was given.
+if test "${enable_dependency_tracking+set}" = set; then :
+  enableval=$enable_dependency_tracking;
+fi
+
 
 # Check whether --enable-async was given.
 if test "${enable_async+set}" = set; then :
@@ -9207,6 +9352,8 @@ else
   $as_echo "#define FD_USE_DTBLOCK 0" >>confdefs.h
 
 fi
+
+### Internationalization
 
 # Internationalization
 for ac_header in libintl.h
@@ -9310,6 +9457,23 @@ if test $doi18n = "yes"; then
   I18N="i18n"
   INSTALLI18N="install-i18n"
 fi
+
+### Using mmap (if available)
+
+
+# Check whether --with-mmap was given.
+if test "${with_mmap+set}" = set; then :
+  withval=$with_mmap;
+else
+  with_mmap="yes"
+fi
+
+if test $with_mmap == "no"; then
+   $as_echo "#define FD_WITHOUT_MMAP 1" >>confdefs.h
+
+fi
+
+### THREADS
 
 
 
@@ -10195,15 +10359,44 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
-# Check whether --with-mmap was given.
-if test "${with_mmap+set}" = set; then :
-  withval=$with_mmap;
+# Check whether --with-tls was given.
+if test "${with_tls+set}" = set; then :
+  withval=$with_tls;
 else
-  with_mmap="yes"
+  with_tls=$tls_default
 fi
 
-if test $with_mmap == "no"; then
-   $as_echo "#define FD_WITHOUT_MMAP 1" >>confdefs.h
+if test $with_tls = "yes"; then
+  $as_echo "#define FD_FORCE_TLS 1" >>confdefs.h
+
+else
+  $as_echo "#define FD_FORCE_TLS 0" >>confdefs.h
+
+fi
+
+
+# Check whether --with-nptrlocks was given.
+if test "${with_nptrlocks+set}" = set; then :
+  withval=$with_nptrlocks;
+fi
+
+if test ! -z $with_nptrlocks; then
+   cat >>confdefs.h <<_ACEOF
+#define FD_N_PTRLOCKS $with_nptrlocks
+_ACEOF
+
+fi
+
+# Check whether --enable-thread_debug was given.
+if test "${enable_thread_debug+set}" = set; then :
+  enableval=$enable_thread_debug; enable_thread_debug=$enableval
+else
+  enable_thread_debug="no"
+fi
+
+
+if test "${enable_thread_debug}" != "no"; then
+   $as_echo "#define U8_THREAD_DEBUG 1" >>confdefs.h
 
 fi
 
@@ -10235,20 +10428,56 @@ else
 
 fi
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for working __thread" >&5
+$as_echo_n "checking for working __thread... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
 
+            #include <pthread.h>
+            __thread int i;
+	    static int res1, res2;
 
-# Check whether --with-nptrlocks was given.
-if test "${with_nptrlocks+set}" = set; then :
-  withval=$with_nptrlocks;
-fi
+int
+main ()
+{
 
-if test ! -z $with_nptrlocks; then
-   cat >>confdefs.h <<_ACEOF
-#define FD_N_PTRLOCKS $with_nptrlocks
+	     void thread_main (void *arg)
+	     {
+		i = arg;
+		sleep (1);
+		if (arg == 1) res1 = (i == arg);
+		else res2 = (i == arg);
+	     }
+
+	     int main () {
+		pthread_t t1, t2;
+ 		i = 5;
+		pthread_create (&t1, NULL, thread_main, 1);
+		pthread_create (&t2, NULL, thread_main, 2);
+
+		pthread_join (t1, NULL);
+		pthread_join (t2, NULL);
+		return !(res1 + res2 == 2);
+		}
+
+  ;
+  return 0;
+}
 _ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
 
+		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+		$as_echo "#define HAVE_THREAD_STORAGE_CLASS 1" >>confdefs.h
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
 fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 
+
+### Use editline in fdconsole
 
 
 # Check whether --with-editline was given.
@@ -10324,6 +10553,8 @@ else
 
 fi
 
+### Alternate libu8 directory
+
 
 # Check whether --with-libu8 was given.
 if test "${with_libu8+set}" = set; then :
@@ -10337,6 +10568,8 @@ if test "$with_libu8" != ""; then
   LDFLAGS="-L$with_libu8/lib $LDFLAGS"
   EXEFLAGS="$EXEFLAGS -L$with_libu8/lib"
 fi
+
+### Control use of 'sudo' for installation
 
 for ac_prog in sudo
 do
@@ -10403,6 +10636,8 @@ elif test "$with_sudo" == "no"; then
 else
    SUINSTALL="$with_sudo ";
 fi
+
+### Build fastcgi executable if possible
 
 with_fastcgi="yes";
 
@@ -10474,111 +10709,7 @@ fi
 
 fi
 
-for ac_header in sql.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "sql.h" "ac_cv_header_sql_h" "$ac_includes_default"
-if test "x$ac_cv_header_sql_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_SQL_H 1
-_ACEOF
-
-fi
-
-done
-
-
-for ac_prog in mysql_config /usr/local/bin/mysql_config /opt/bin/mysql_config /opt/local/bin/mysql_config
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_prog_mysql_config+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test -n "$mysql_config"; then
-  ac_cv_prog_mysql_config="$mysql_config" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_prog_mysql_config="$ac_prog"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-fi
-fi
-mysql_config=$ac_cv_prog_mysql_config
-if test -n "$mysql_config"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $mysql_config" >&5
-$as_echo "$mysql_config" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-  test -n "$mysql_config" && break
-done
-test -n "$mysql_config" || mysql_config=""na""
-
-for ac_prog in pkg-config /usr/local/bin/pkg-config /opt/bin/pkg-config /opt/local/bin/pkg-config
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_prog_pkg_config+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test -n "$pkg_config"; then
-  ac_cv_prog_pkg_config="$pkg_config" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_prog_pkg_config="$ac_prog"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-fi
-fi
-pkg_config=$ac_cv_prog_pkg_config
-if test -n "$pkg_config"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $pkg_config" >&5
-$as_echo "$pkg_config" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-  test -n "$pkg_config" && break
-done
-test -n "$pkg_config" || pkg_config=""na""
-
-
-if test $mysql_config != "na"; then
-   with_mysql_default="auto"
-else
-   with_mysql_default="no";
-fi
+### LevelDB cmodule build
 
 # Check whether --enable-leveldb was given.
 if test "${enable_leveldb+set}" = set; then :
@@ -10660,6 +10791,8 @@ else
    manually_disabled="leveldb ${auto_disabled}";
 fi
 
+### RocksDB cmodule build
+
 # Check whether --enable-rocksdb was given.
 if test "${enable_rocksdb+set}" = set; then :
   enableval=$enable_rocksdb;
@@ -10740,6 +10873,8 @@ else
    manually_disabled="rocksdb ${auto_disabled}";
 fi
 
+### ImageMagick cmodule build
+
 # Check whether --enable-imagick was given.
 if test "${enable_imagick+set}" = set; then :
   enableval=$enable_imagick;
@@ -10764,6 +10899,73 @@ elif test "$enable_imagick" = "yes"; then
 else
   manually_disabled="imagick ${manually_disabled}";
 fi
+
+### archive library (manipulates various kinds of archives)
+
+for ac_header in archive.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "archive.h" "ac_cv_header_archive_h" "$ac_includes_default"
+if test "x$ac_cv_header_archive_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_ARCHIVE_H 1
+_ACEOF
+
+fi
+
+done
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for archive_read_new in -larchive" >&5
+$as_echo_n "checking for archive_read_new in -larchive... " >&6; }
+if ${ac_cv_lib_archive_archive_read_new+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-larchive  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char archive_read_new ();
+int
+main ()
+{
+return archive_read_new ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_archive_archive_read_new=yes
+else
+  ac_cv_lib_archive_archive_read_new=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_archive_archive_read_new" >&5
+$as_echo "$ac_cv_lib_archive_archive_read_new" >&6; }
+if test "x$ac_cv_lib_archive_archive_read_new" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBARCHIVE 1
+_ACEOF
+
+  LIBS="-larchive $LIBS"
+
+fi
+
+if test "${ac_cv_header_archive_h}" == "yes" && \
+   test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
+  CMODULES="lib/framerd/libarchive.${shared_suffix} ${CMODULES}"
+  INSTALLCMODULES="install-libarchive ${INSTALLCMODULES}"
+fi
+
+### ziptools library (manipulates zip archives)
 
 # Check whether --enable-ziptools was given.
 if test "${enable_ziptools+set}" = set; then :
@@ -10862,6 +11064,8 @@ else
     manually_disabled="ziptools ${manually_disabled}";
 fi
 
+### MongoDB
+
 # Check whether --enable-mongodb was given.
 if test "${enable_mongodb+set}" = set; then :
   enableval=$enable_mongodb;
@@ -10897,6 +11101,101 @@ else
     manually_disabled="mongodb ${manually_disabled}";
 fi;
 
+### MySQL
+
+for ac_prog in mysql_config /usr/local/bin/mysql_config /opt/bin/mysql_config /opt/local/bin/mysql_config
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_mysql_config+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$mysql_config"; then
+  ac_cv_prog_mysql_config="$mysql_config" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_mysql_config="$ac_prog"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+mysql_config=$ac_cv_prog_mysql_config
+if test -n "$mysql_config"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $mysql_config" >&5
+$as_echo "$mysql_config" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  test -n "$mysql_config" && break
+done
+test -n "$mysql_config" || mysql_config=""na""
+
+for ac_prog in pkg-config /usr/local/bin/pkg-config /opt/bin/pkg-config /opt/local/bin/pkg-config
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_pkg_config+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$pkg_config"; then
+  ac_cv_prog_pkg_config="$pkg_config" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_pkg_config="$ac_prog"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+pkg_config=$ac_cv_prog_pkg_config
+if test -n "$pkg_config"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $pkg_config" >&5
+$as_echo "$pkg_config" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  test -n "$pkg_config" && break
+done
+test -n "$pkg_config" || pkg_config=""na""
+
+
+if test $mysql_config != "na"; then
+   with_mysql_default="auto"
+else
+   with_mysql_default="no";
+fi
+
 
 # Check whether --with-mysql was given.
 if test "${with_mysql+set}" = set; then :
@@ -10921,6 +11220,21 @@ if test "$with_mysql" != "no"; then
   DBMODULES="lib/framerd/mysql.$shared_suffix ${DBMODULES}"
   INSTALLDBMODULES="install-mysql ${INSTALLDBMODULES}"
 fi
+
+### ODBC
+
+for ac_header in sql.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "sql.h" "ac_cv_header_sql_h" "$ac_includes_default"
+if test "x$ac_cv_header_sql_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_SQL_H 1
+_ACEOF
+
+fi
+
+done
+
 
 # Check whether --enable-odbc was given.
 if test "${enable_odbc+set}" = set; then :
@@ -11036,6 +11350,8 @@ fi
 
 fi
 
+### SQLITE3
+
 ac_fn_c_check_header_mongrel "$LINENO" "sqlite3.h" "ac_cv_header_sqlite3_h" "$ac_includes_default"
 if test "x$ac_cv_header_sqlite3_h" = xyes; then :
   have_sqlite3_h="yes"
@@ -11140,6 +11456,8 @@ fi
   fi;
 fi
 
+### Regular expressions library
+
 ac_fn_c_check_header_mongrel "$LINENO" "regex.h" "ac_cv_header_regex_h" "$ac_includes_default"
 if test "x$ac_cv_header_regex_h" = xyes; then :
   have_regex_h="yes"
@@ -11201,6 +11519,8 @@ else
 fi
 
 fi
+
+### zlib/libz compression functions
 
 ac_fn_c_check_header_mongrel "$LINENO" "zlib.h" "ac_cv_header_zlib_h" "$ac_includes_default"
 if test "x$ac_cv_header_zlib_h" = xyes; then :
@@ -11318,6 +11638,8 @@ fi
 
 fi;
 
+### Google SNAPPY compression library
+
 ac_fn_c_check_header_mongrel "$LINENO" "snappy-c.h" "ac_cv_header_snappy_c_h" "$ac_includes_default"
 if test "x$ac_cv_header_snappy_c_h" = xyes; then :
   have_snappyc_h="yes"
@@ -11377,6 +11699,7 @@ fi
 fi;
 LIBS="${LIBS} -lsnappy"
 
+### ZSTD (compression wrapper)
 
 ac_fn_c_check_header_mongrel "$LINENO" "zstd.h" "ac_cv_header_zstd_h" "$ac_includes_default"
 if test "x$ac_cv_header_zstd_h" = xyes; then :
@@ -11436,6 +11759,8 @@ fi
 
 fi;
 
+### HTML TIDY
+
 # Check whether --enable-tidy was given.
 if test "${enable_tidy+set}" = set; then :
   enableval=$enable_tidy;
@@ -11448,6 +11773,8 @@ if test "$enable_tidy" = "yes"; then
   CMODULES="lib/framerd/tidy.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-tidy ${INSTALLCMODULES}"
 fi
+
+### Hyphenate library
 
 # Check whether --enable-hyphenate was given.
 if test "${enable_hyphenate+set}" = set; then :
@@ -11530,6 +11857,8 @@ elif test "$enable_hyphenate" = "yes"; then
 else
   manually_disabled="hyphenate $manually_disabled";
 fi
+
+## HUNSPELL library (spelling correction)
 
 # Check whether --enable-hunspell was given.
 if test "${enable_hunspell+set}" = set; then :
@@ -11669,115 +11998,7 @@ else
   manually_disabled="hunspell $manually_disabled";
 fi
 
-
-
-# For OS X
-for ac_header in CommonCrypto/CommonDigest.h CommonCrypto/CommonHMAC.h
-do :
-  as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
-ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
-if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
-  cat >>confdefs.h <<_ACEOF
-#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
-_ACEOF
-
-fi
-
-done
-
-for ac_func in CCHmacInit
-do :
-  ac_fn_c_check_func "$LINENO" "CCHmacInit" "ac_cv_func_CCHmacInit"
-if test "x$ac_cv_func_CCHmacInit" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_CCHMACINIT 1
-_ACEOF
-
-fi
-done
-
 # OpenSSL checks
-for ac_header in openssl/hmac.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "openssl/hmac.h" "ac_cv_header_openssl_hmac_h" "$ac_includes_default"
-if test "x$ac_cv_header_openssl_hmac_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_OPENSSL_HMAC_H 1
-_ACEOF
-
-fi
-
-done
-
-for ac_header in openssl/sha.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "openssl/sha.h" "ac_cv_header_openssl_sha_h" "$ac_includes_default"
-if test "x$ac_cv_header_openssl_sha_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_OPENSSL_SHA_H 1
-_ACEOF
-
-fi
-
-done
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for EVP_CIPHER_CTX_init in -lcrypto" >&5
-$as_echo_n "checking for EVP_CIPHER_CTX_init in -lcrypto... " >&6; }
-if ${ac_cv_lib_crypto_EVP_CIPHER_CTX_init+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lcrypto  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char EVP_CIPHER_CTX_init ();
-int
-main ()
-{
-return EVP_CIPHER_CTX_init ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_crypto_EVP_CIPHER_CTX_init=yes
-else
-  ac_cv_lib_crypto_EVP_CIPHER_CTX_init=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_crypto_EVP_CIPHER_CTX_init" >&5
-$as_echo "$ac_cv_lib_crypto_EVP_CIPHER_CTX_init" >&6; }
-if test "x$ac_cv_lib_crypto_EVP_CIPHER_CTX_init" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBCRYPTO 1
-_ACEOF
-
-  LIBS="-lcrypto $LIBS"
-
-fi
-
-for ac_func in SHA1_Init EVP_get_cipherbyname EVP_CIPHER_CTX_init
-do :
-  as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
-ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
-if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
-  cat >>confdefs.h <<_ACEOF
-#define `$as_echo "HAVE_$ac_func" | $as_tr_cpp` 1
-_ACEOF
-
-fi
-done
-
 for ac_func in CRYPTO_set_locking_callback
 do :
   ac_fn_c_check_func "$LINENO" "CRYPTO_set_locking_callback" "ac_cv_func_CRYPTO_set_locking_callback"
@@ -11788,6 +12009,7 @@ _ACEOF
 
 fi
 done
+
 
 # For UUID functions
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_generate_time in -luuid" >&5
@@ -11847,6 +12069,8 @@ fi
 done
 
 
+## Large files
+
 # Check whether --enable-largefiles was given.
 if test "${enable_largefiles+set}" = set; then :
   enableval=$enable_largefiles;
@@ -11862,164 +12086,7 @@ else
 
 fi
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for u8_raise in -lu8" >&5
-$as_echo_n "checking for u8_raise in -lu8... " >&6; }
-if ${ac_cv_lib_u8_u8_raise+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lu8  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char u8_raise ();
-int
-main ()
-{
-return u8_raise ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_u8_u8_raise=yes
-else
-  ac_cv_lib_u8_u8_raise=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_u8_u8_raise" >&5
-$as_echo "$ac_cv_lib_u8_u8_raise" >&6; }
-if test "x$ac_cv_lib_u8_u8_raise" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBU8 1
-_ACEOF
-
-  LIBS="-lu8 $LIBS"
-
-fi
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for u8_open_xinput in -lu8io" >&5
-$as_echo_n "checking for u8_open_xinput in -lu8io... " >&6; }
-if ${ac_cv_lib_u8io_u8_open_xinput+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lu8io  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char u8_open_xinput ();
-int
-main ()
-{
-return u8_open_xinput ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_u8io_u8_open_xinput=yes
-else
-  ac_cv_lib_u8io_u8_open_xinput=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_u8io_u8_open_xinput" >&5
-$as_echo "$ac_cv_lib_u8io_u8_open_xinput" >&6; }
-if test "x$ac_cv_lib_u8io_u8_open_xinput" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBU8IO 1
-_ACEOF
-
-  LIBS="-lu8io $LIBS"
-
-fi
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for u8_init_chardata_c in -lu8data" >&5
-$as_echo_n "checking for u8_init_chardata_c in -lu8data... " >&6; }
-if ${ac_cv_lib_u8data_u8_init_chardata_c+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lu8data  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char u8_init_chardata_c ();
-int
-main ()
-{
-return u8_init_chardata_c ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_u8data_u8_init_chardata_c=yes
-else
-  ac_cv_lib_u8data_u8_init_chardata_c=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_u8data_u8_init_chardata_c" >&5
-$as_echo "$ac_cv_lib_u8data_u8_init_chardata_c" >&6; }
-if test "x$ac_cv_lib_u8data_u8_init_chardata_c" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBU8DATA 1
-_ACEOF
-
-  LIBS="-lu8data $LIBS"
-
-fi
-
-for ac_func in u8_cryptic
-do :
-  ac_fn_c_check_func "$LINENO" "u8_cryptic" "ac_cv_func_u8_cryptic"
-if test "x$ac_cv_func_u8_cryptic" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_U8_CRYPTIC 1
-_ACEOF
- with_crypto_default="yes"
-fi
-done
-
-
-# Check whether --with-crypto was given.
-if test "${with_crypto+set}" = set; then :
-  withval=$with_crypto;
-else
-  with_crypto=$with_crypto_default
-fi
-
-if test $with_crypto = "yes"; then
-  CMODULES="lib/framerd/crypto.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-crypto ${INSTALLCMODULES}"
-fi
+# Sundown library for converting markdown to HTML
 
 
 # Check whether --with-sundown was given.
@@ -12034,21 +12101,7 @@ if test "$with_sundown" = "yes"; then
   INSTALLCMODULES="install-sundown ${INSTALLCMODULES}"
 fi
 
-
-# Check whether --with-profiling was given.
-if test "${with_profiling+set}" = set; then :
-  withval=$with_profiling;
-else
-  with_profiling="no"
-fi
-
-if test $with_profiling = "yes"; then
-  $as_echo "#define FD_WITH_PROFILING 1" >>confdefs.h
-
-  PROFILING="-O0 -pg -fno-inline -fprofile-arcs -ftest-coverage"
-else
-  PROFILING=""
-fi
+### Object/index database prefetching
 
 # Check whether --enable-prefetching was given.
 if test "${enable_prefetching+set}" = set; then :
@@ -12093,163 +12146,6 @@ if test $enable_htmldump = "yes"; then
   xstatic_exe_libs="lib/libfdweb${suffix}.a $xstatic_exe_libs"
   xstatic_scheme_libs=" ../../lib/libfdweb${suffix}.a $xstatic_scheme_libs"
   $as_echo "#define FD_HTMLDUMP_ENABLED 1" >>confdefs.h
-
-fi
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for working __thread" >&5
-$as_echo_n "checking for working __thread... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-            #include <pthread.h>
-            __thread int i;
-	    static int res1, res2;
-
-int
-main ()
-{
-
-	     void thread_main (void *arg)
-	     {
-		i = arg;
-		sleep (1);
-		if (arg == 1) res1 = (i == arg);
-		else res2 = (i == arg);
-	     }
-
-	     int main () {
-		pthread_t t1, t2;
- 		i = 5;
-		pthread_create (&t1, NULL, thread_main, 1);
-		pthread_create (&t2, NULL, thread_main, 2);
-
-		pthread_join (t1, NULL);
-		pthread_join (t2, NULL);
-		return !(res1 + res2 == 2);
-		}
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-
-		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-		$as_echo "#define HAVE_THREAD_STORAGE_CLASS 1" >>confdefs.h
-
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for working __builtin_expect" >&5
-$as_echo_n "checking for working __builtin_expect... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-int
-main ()
-{
-
-	     int main (int argc,char *argv[]) {
-                if (__builtin_expect((argc>2),1)) return 0;
-                else return 1;
-		}
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-
-		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-		$as_echo "#define HAVE_BUILTIN_EXPECT 1" >>confdefs.h
-
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for working __builtin_prefetch" >&5
-$as_echo_n "checking for working __builtin_prefetch... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-int
-main ()
-{
-
-	     static int data[]={0,1,2,3};
-
-	     int main (int argc,char *argv[]) {
-                __builtin_prefetch(&data[2],0,3);
-		return 0;
-		}
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-
-		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-		$as_echo "#define HAVE_BUILTIN_PREFETCH 1" >>confdefs.h
-
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for working __constructor_attributes" >&5
-$as_echo_n "checking for working __constructor_attributes... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-int
-main ()
-{
-
-             int tmpinit(void) __attribute__ ((constructor));
-
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-
-		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-		$as_echo "#define HAVE_CONSTRUCTOR_ATTRIBUTES 1" >>confdefs.h
-
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-
-
-# Check whether --with-tls was given.
-if test "${with_tls+set}" = set; then :
-  withval=$with_tls;
-else
-  with_tls=$tls_default
-fi
-
-if test $with_tls = "yes"; then
-  $as_echo "#define FD_FORCE_TLS 1" >>confdefs.h
-
-else
-  $as_echo "#define FD_FORCE_TLS 0" >>confdefs.h
 
 fi
 
@@ -12462,6 +12358,8 @@ if test "$with_parseltongue" = "yes" &&  test ! -z "${ax_python2_lib}"; then
    INSTALLCMODULES="install-parseltongue ${INSTALLCMODULES}"
 fi
 
+## Build CURL cmodule
+
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for curl_easy_init in -lcurl" >&5
 $as_echo_n "checking for curl_easy_init in -lcurl... " >&6; }
 if ${ac_cv_lib_curl_curl_easy_init+:} false; then :
@@ -12576,6 +12474,8 @@ else
   $as_echo "#define FD_WITH_CURL 0" >>confdefs.h
 
 fi
+
+## Providing DNS functions in fdweb
 
 for ac_header in resolv.h
 do :
@@ -12727,6 +12627,8 @@ else
 
 fi
 
+### exif (extract metadata from image files)
+
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for exif_data_new_from_data in -lexif" >&5
 $as_echo_n "checking for exif_data_new_from_data in -lexif... " >&6; }
 if ${ac_cv_lib_exif_exif_data_new_from_data+:} false; then :
@@ -12799,6 +12701,8 @@ done
   CMODULES="lib/framerd/exif.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-exif ${INSTALLCMODULES}"
 fi
+
+### qrencode
 
 ac_fn_c_check_header_mongrel "$LINENO" "png.h" "ac_cv_header_png_h" "$ac_includes_default"
 if test "x$ac_cv_header_png_h" = xyes; then :
@@ -12916,7 +12820,7 @@ fi
   fi;
 fi
 
-echo "with_qrcode=$with_qrcode have_png_h=$have_png_h have_qrencode_h=$have_qrencode_h libpng_ok=$libpng_ok qrcode_ok=$qrcode_ok"
+### Boot systems
 
 if test -d /etc/systemd; then
   default_bootsystem="systemd";
@@ -12968,6 +12872,8 @@ if test "$prefix" != "/usr"; then
   LDFLAGS="$LDFLAGS -L$prefix/lib"
 fi
 
+### These are components to preload
+
 cat >>confdefs.h <<_ACEOF
 #define FD_SCHEME_BUILTINS $scheme_builtins_init
 _ACEOF
@@ -12978,13 +12884,15 @@ if test $exec_prefix = 'NONE';
 else BINDIR="${exec_prefix}/bin";
 fi
 
-if (test ! -f src/scheme/gpath.scm); then
+if (test ! -f src/extmods/samplefns.scm); then
    if (which git 2>&1 > /dev/null) && (test -d .git); then
      git submodule update --init;
    else
      echo "Can't initialize git submodules";
    fi;
 fi;
+
+### Here's where stuff gets made
 
 ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/makefile DIY/makefile etc/gdbinit exe/.gdbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind tests/lisp/.gdbinit tests/storage/.gdbinit tests/.valgrind etc/fd_start_servlets etc/fd_start_daemons etc/fd_stop_jobs etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl etc/fdgdb etc/fdbgexec etc/fdsetconfig etc/fdgetconfig etc/fdconfig tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/fdexectest src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/fdjob etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/ex_servlet.service etc/ex_daemon.service etc/fdaemons.service etc/fdweb.service etc/framerd.service etc/FramerD.plist etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-4.2.spec"
 

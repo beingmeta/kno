@@ -180,6 +180,7 @@ debuglibs=""
 manually_disabled=""
 auto_disabled=""
 force_enabled=""
+missing=""
 
 test_env=
 memtest_env="MALLOC_CHECK_=3 "
@@ -387,13 +388,32 @@ AC_PATH_PROG(VALGRIND,valgrind,none)
 AC_PATH_PROG(DUMA,duma,none)
 AC_PATH_PROG(CLANG,clang,none)
 AC_CHECK_PROGS(APXS,/usr/local/bin/apxs2 /usr/local/bin/apxs /usr/bin/apxs2 /usr/bin/apxs /usr/sbin/apxs2 /usr/sbin/apxs apxs2 apxs)
-AC_CHECK_PROG(CREATEREPO,createrepo,,echo No createrepo for )
+AC_CHECK_PROG(CREATEREPO,createrepo)
 AC_CHECK_PROGS(LLVM_SYMBOLIZER,llvm-symbolizer-3.5,llvm-symbolizer-3.4)
 AC_PATH_PROG(LLVM_SYMBOLIZER_PATH,$LLVM_SYMBOLIZER)
 AC_PATH_PROG(GOOGLE_PPROF,google-pprof)
 AC_PATH_PROG(XGETTEXT,xgettext)
 AC_PATH_PROG(MSGMERGE,msgmerge)
 AC_PATH_PROG(MSGFMT,msgfmt)
+
+AC_ARG_WITH(execwrapper,--with-execwrapper program to use when calling exec(),,with_execwrapper=$binenv)
+if test "$with_execwrapper" != ""; then
+  AC_DEFINE_UNQUOTED(FD_EXEC_WRAPPER,"$with_execwrapper")
+fi
+
+AC_CHECK_PROGS(etags,etags,"na")
+if test $etags = "na"; then
+   TAGS=""
+fi
+
+AC_CHECK_PROGS(git,"git","na")
+if test $git = "na"; then
+   GITDESCRIBE="false"
+else
+   GITDESCRIBE="$git describe"
+fi
+
+AC_CHECK_PROGS(pkg_config,pkg-config /usr/local/bin/pkg-config /opt/bin/pkg-config /opt/local/bin/pkg-config ,"na")
 
 AC_ARG_WITH(mkdir,--with-mkdir command,with_mkdir=$withval,with_mkdir=$MKDIR_DEFAULT)
 MKDIR=$with_mkdir
@@ -419,108 +439,24 @@ AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 AC_PROG_CC([${CC} cc gcc clang])
 AC_USE_SYSTEM_EXTENSIONS
+AC_AIX
 
 AC_PROG_INSTALL
 AC_PROG_RANLIB
 
 CFLAGS="-I$prefix/include/$host/ $CFLAGS"
 
-AC_ARG_WITH(rpath,--with-rpath dir,rpath=$withval,rpath=$rpath_default)
-
-if test "$rpath" != "none" && test "$rpath" != "/usr" && test "$rpath" != "/usr/local"; then
-  EXEFLAGS=" $EXEFLAGS \$(RPATHFLAGS) "
-fi
-
-AC_ARG_WITH(fileinfo,--with[out]-fileinfo record fileinfo,,with_fileinfo="yes")
-if test "$with_fileinfo" = "yes" ; then
-   definefileinfo="-D_FILEINFO=\"\\\"\`./fileinfo ./$< .\`\\\"\""
-   versionsh="include/framerd/versions.h"
-fi
-
-AC_ARG_WITH(codename,--with-codename for distribution,with_codename=$withval,with_codename=$CODENAME)
-CODENAME=$with_codename
-
-AC_CANONICAL_HOST
-AC_USE_SYSTEM_EXTENSIONS
-AC_PROG_INSTALL
-AC_PROG_RANLIB
-AC_CHECK_DECL(__clang__,CLANG=yes)
-
-if test "${CLANG}" = "yes"; then
-   CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb"
-   OPTFLAGS="-O2"
-   XOPTFLAGS="-O3 -funroll-loops"
-elif test "${GCC}" = "yes"; then
-   CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb"
-   OPTFLAGS="-O2"
-   XOPTFLAGS="-O3 -funroll-loops"
-   gcc_version=`gcc -dumpversion`;
-   dynamic_cflag="-rdynamic";
-fi;
-
-m4_include([etc/ax_pthread.m4])
-m4_include([etc/ax_check_link_flag.m4])
-m4_include([etc/ax_python.m4])
-
-AC_CHECK_LIB(pthread,pthread_rwlock_wrlock)
-
-case $host_os in
-  darwin*)
-   MKSTATIC="libtool -static -o "
-   dynamic_cflag="-dynamic"
-   shared_suffix="dylib"
-   vshared_suffix=${FDVERSION}.dylib
-   mshared_suffix=${FDMAJOR}.dylib
-   mmshared_suffix=${FDMAJOR}.${FDMINOR}.dylib
-   APXS="apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a $APXSFLAGS"
-   CFLAGS="-D_DARWIN_C_SOURCE $CFLAGS"
-   RPATHFLAGS=" -rpath \$(RPATH) "
-   STATICLDFLAGS=" -lc++"
-   ifmacosx=""
-   setup_target="setup-osx"
-   gperftools_default="no"
-   ;;
-esac  
-
-AX_CHECK_LINK_FLAG("-static-libgcc",static_libgcc="yes")
-
-if test "${static_libgcc}" == "yes"; then
-   LDFLAGS="-static-libgcc -Wl,--as-needed ${LDFLAGS}"
-fi
-
-AC_ARG_WITH(stackcheck,--with-stackcheck Build with native stack checking,with_stackcheck=$withval,with_stackcheck="yes")
-if ! test "${with_stackcheck}" = "no"; then
-   AC_DEFINE_UNQUOTED(FD_STACKCHECK,1)
-fi
-
 AC_DEFINE_UNQUOTED(FD_VERSION,"$FDVERSION")
 AC_DEFINE_UNQUOTED(FD_MAJOR_VERSION,$FDMAJOR)
 AC_DEFINE_UNQUOTED(FD_MINOR_VERSION,$FDMINOR)
 AC_DEFINE_UNQUOTED(FD_RELEASE_VERSION,$FDRELEASE)
 
-AC_CHECK_PROGS(buildrpm,"lsb-rpmbuild","rpmbuild","lsb-rpm","na")
-AC_CHECK_PROGS(rpm,"lsb-rpm","rpm","na")
-
-AC_CHECK_GROUP(default_admin_group,framerd _framerd adm admin)
-AC_CHECK_USER(default_fdaemon,fdaemon _fdaemon daemon nobody)
-AC_CHECK_USER(default_daemon,xdaemon fdaemon _fdaemon daemon nobody)
-AC_CHECK_USER(default_webuser,www apache httpd www-data _www)
-AC_CHECK_USER(default_webgroup,www apache httpd www-data _www)
-
-AC_ARG_WITH(execwrapper,--with-execwrapper program to use when calling exec(),,with_execwrapper=$binenv)
-if test "$with_execwrapper" != ""; then
-  AC_DEFINE_UNQUOTED(FD_EXEC_WRAPPER,"$with_execwrapper")
-fi
+AC_ARG_WITH(suffix,--with-suffix string,,with_suffix="")
+suffix=$with_suffix
 
 if test -f .ipeval; then
   enable_ipeval_default="yes;
 else enable_ipeval_default="no;
-fi
-
-AC_ARG_ENABLE(thread_debug,--enable-thread-debug Use libu8 thread tracing and debugging,enable_thread_debug=$enableval,enable_thread_debug="no")
-
-if test "${enable_thread_debug}" != "no"; then
-   AC_DEFINE(U8_THREAD_DEBUG,1)
 fi
 
 AC_ARG_WITH(optinclude,--with-optinclude Use optional include directory,,with_optinclude="none")
@@ -554,155 +490,151 @@ if test -d $with_optdir/bin; then
   PATH="$PATH:$with_optdir/bin"
 fi
 
-dnl Specifies an admin group; files written by installation scripts will be
-dnl owned by this group and the group will have full rwX access.
-AC_ARG_WITH(admin_group,--with-admin-group Install files with admin group and group write permissions,,with_admin_group=$default_admin_group)
-if test $with_admin_group != "none"; then
-  install_dir_opts="-g $with_admin_group -m 0775 $install_dir_opts"
-  install_file_opts="-g $with_admin_group $install_file_opts"
-  install_exe_opts="-g $with_admin_group $install_exe_opts"
-  admin_group=$with_admin_group
-  admininstall="-g $with_admin_group"
-else
-  install_dir_opts="$install_dir_opts"
-  install_file_opts="$install_file_opts"
-  install_exe_opts="$install_exe_opts"
-  admin_group=$default_admin_group
-  admininstall=""
+dnl Specify an additional library
+AC_ARG_WITH(extlib,
+[  --with-extlib[[=DIR]]       use additional lib dir],[
+  if test "$withval" != "no" -a "$withval" != "yes"; then
+    LDFLAGS="${LDFLAGS} -l$withval"
+  fi
+])
+
+AC_ARG_WITH(rpath,--with-rpath dir,rpath=$withval,rpath=$rpath_default)
+
+if test "$rpath" != "none" && test "$rpath" != "/usr" && test "$rpath" != "/usr/local"; then
+  EXEFLAGS=" $EXEFLAGS \$(RPATHFLAGS) "
 fi
 
-dnl Specifies a daemon identity user/group for managed FramerD servers
-AC_ARG_WITH(fdaemon,--with-fdaemon The identity (user) for FramerD servers to run as,,with_fdaemon=$default_fdaemon)
-if test $with_fdaemon != "none"; then
-   fdaemoninstall="-o $with_fdaemon"
-   fdaemon=$with_fdaemon
-else
-   fdaemoninstall=""
-   fdaemon=$default_fdaemon
-fi
+### Checking the compiler
 
-dnl Specifies the user which the Web server runs as
-dnl This is used to set up the directories used by fdserv
-AC_ARG_WITH(webuser,--with-webuser The user for the webserver,,with_webuser=$default_webuser)
-if test "$with_webuser" != "none"; then
-   webuser=$with_webuser
-   wwwinstall="-o $webuser"
-else
-   webuser=$default_webuser
-   wwwinstall=""
-fi
+AC_CHECK_DECL(__clang__,CLANG=yes)
 
-dnl Specifies the group which the Web server runs as
-dnl This is used to set up the directories used by fdserv
-AC_ARG_WITH(webgroup,--with-webgroup The group for the webserver,,with_webgroup=$default_webgroup)
-if test "$with_webgroup" != "none"; then
-   webgroup=$with_webgroup
-   wwwinstall="-o $webgroup"
-else
-   webgroup=$default_webgroup
-   wwwinstall=""
-fi
-
-AC_MSG_CHECKING(apache log directory)
-if test -d ${apache_conf_dir}/log; then
-   if test -h ${apache_conf_dir}/log; then
-     apache_log_dir=$(readlink ${apache_conf_dir}/log);
-   else apache_log_dir=${apache_conf_dir}/log;
-   fi
-elif test -d ${apache_conf_dir}/logs; then
-   if test -h ${apache_conf_dir}/logs; then
-     apache_log_dir=$(readlink ${apache_conf_dir}/logs);
-   else apache_log_dir=${apache_conf_dir}/logs;
-   fi
-elif test -d ${local_state_dir}/logs/apache; then
-    apache_log_dir=${local_state_dir}/logs/apache;
-elif test -d ${local_state_dir}/logs/apache2; then
-    apache_log_dir=${local_state_dir}/logs/apache2;
-elif test -d ${local_state_dir}/logs/httpd; then
-    apache_log_dir=${local_state_dir}/logs/httpd;
-elif test -d ${local_state_dir}/logs/http; then
-    apache_log_dir=${local_state_dir}/logs/http;
-elif test -d /var/log/apache; then
-    apache_log_dir=/var/log/apache;
-elif test -d /var/log/apache2; then
-    apache_log_dir=/var/log/apache2;
-elif test -d /var/log/httpd; then
-    apache_log_dir=/var/log/httpd;
-elif test -d /var/log/http; then
-    apache_log_dir=/var/log/http;
-elif test -d /usr/log/apache; then
-    apache_log_dir=/usr/log/apache;
-elif test -d /usr/log/apache2; then
-     apache_log_dir=/usr/log/apache2;
-elif test -d /usr/log/httpd; then
-    apache_log_dir=/usr/log/httpd;
-elif test -d /usr/log/http; then
-    apache_log_dir=/usr/log/http;
-else
-    apache_log_dir=""
+if test "${CLANG}" = "yes"; then
+   CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb"
+   OPTFLAGS="-O2"
+   XOPTFLAGS="-O3 -funroll-loops"
+elif test "${GCC}" = "yes"; then
+   CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb"
+   OPTFLAGS="-O2"
+   XOPTFLAGS="-O3 -funroll-loops"
+   gcc_version=`gcc -dumpversion`;
+   dynamic_cflag="-rdynamic";
 fi;
 
-if test -z ${apache_log_dir}; then
- AC_MSG_RESULT(none found, assuming /var/log/apache2/)
- apache_log_dir=/var/log/apache;
-else
- AC_MSG_RESULT($apache_log_dir);
-fi;
+m4_include([etc/ax_pthread.m4])
+m4_include([etc/ax_check_link_flag.m4])
+m4_include([etc/ax_python.m4])
 
-if test ! -z "$APXS"; then
-  apache_conf_dir=`$APXS -q SYSCONFDIR`
-  apache_modules_dir=`$APXS -q LIBEXECDIR`
-  if test -d ${apache_conf_dir}/mods-available; then
-    apache_modinfo=${apache_conf_dir}/mods-available;
-  elif test -d ${apache_conf_dir}/mods_available; then
-    apache_modinfo=${apache_conf_dir}/mods_available;
-  elif test -d ${apache_conf_dir}.d; then
-    apache_modinfo=${apache_conf_dir}.d;
-  elif test -d ${apache_conf_dir}/other; then
-    apache_modinfo=${apache_conf_dir}/other;
-  else apache_modinfo=$apache_conf_dir;
-  fi;
-else
-  echo "Warning: No apache development environment, can't build mod_fdserv"
+AC_DEFINE(FD_WORDS_ARE_ALIGNED,1)
+AC_TYPE_UID_T
+AC_TYPE_OFF_T
+AC_TYPE_SIZE_T
+AC_C_INLINE
+AC_C_BIGENDIAN
+AC_CHECK_SIZEOF(short,2)
+AC_CHECK_SIZEOF(int,4)
+AC_CHECK_SIZEOF(long,4)
+AC_CHECK_SIZEOF(long long,8)
+AC_CHECK_SIZEOF(void *,8)
+AC_CHECK_SIZEOF(time_t,8)
+AC_CHECK_SIZEOF(off_t,8)
+AC_CHECK_SIZEOF(size_t,8)
+AC_CHECK_TYPES(uchar)
+
+case $host_os in
+  darwin*)
+   MKSTATIC="libtool -static -o "
+   dynamic_cflag="-dynamic"
+   shared_suffix="dylib"
+   vshared_suffix=${FDVERSION}.dylib
+   mshared_suffix=${FDMAJOR}.dylib
+   mmshared_suffix=${FDMAJOR}.${FDMINOR}.dylib
+   APXS="apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a $APXSFLAGS"
+   CFLAGS="-D_DARWIN_C_SOURCE $CFLAGS"
+   RPATHFLAGS=" -rpath \$(RPATH) "
+   STATICLDFLAGS=" -lc++"
+   ifmacosx=""
+   setup_target="setup-osx"
+   gperftools_default="no"
+   ;;
+esac  
+
+AX_CHECK_LINK_FLAG("-static-libgcc",static_libgcc="yes")
+
+if test "${static_libgcc}" == "yes"; then
+   LDFLAGS="-static-libgcc -Wl,--as-needed ${LDFLAGS}"
 fi
 
-dnl Allow overrides of APXS apacheinfo
-AC_ARG_WITH(apacheinfo,--with-apacheinfo where Apache module info lives,,with_apacheinfo=$apache_modinfo)
+AC_ARG_WITH(fileinfo,--with[out]-fileinfo record fileinfo,,with_fileinfo="yes")
+if test "$with_fileinfo" = "yes" ; then
+   definefileinfo="-D_FILEINFO=\"\\\"\`./fileinfo ./$< .\`\\\"\""
+   versionsh="include/framerd/versions.h"
+fi
 
-AC_ARG_WITH(apachelib,--with-apachelib where Apache extensions live,,with_apachelib=$apache_modules_dir)
+AC_ARG_WITH(stackcheck,--with-stackcheck Build with native stack checking,with_stackcheck=$withval,with_stackcheck="yes")
+if ! test "${with_stackcheck}" = "no"; then
+   AC_DEFINE_UNQUOTED(FD_STACKCHECK,1)
+fi
 
-apache_modinfo=$with_apacheinfo
-apache_modules_dir=$with_apachelib
+### GNU Profiling
 
-dnl Specifies where server state files should live
-AC_ARG_WITH(rundir,--with-rundir The default location for server state files,,with_rundir="$localstatedir/run")
-rundir=$with_rundir
-AC_DEFINE_UNQUOTED(FD_RUN_DIR,"$rundir")
+dnl This compiles a version to be used with the GNU profiling tools
+AC_ARG_WITH(profiling,--with/out-profiling compile to generate profile information,,with_profiling="no")
+if test $with_profiling = "yes"; then
+  AC_DEFINE(FD_WITH_PROFILING,1)
+  PROFILING="-O0 -pg -fno-inline -fprofile-arcs -ftest-coverage"
+else 
+  PROFILING=""
+fi
 
-dnl Specifies where log files should live
-AC_ARG_WITH(logdir,--with-logdir The default location for log files,,with_logdir="$localstatedir/log")
-logdir=$with_logdir
+### Check some compiler fancies
 
-dnl Specifies where the default bugjar location
-AC_ARG_WITH(bugjar,--with-bugjar The default location for bugjar reports,,with_bugjar="$default_bugjar")
-bugjar=$with_bugjar
+dnl ***********************************
+dnl *** Checks for working __builtin_expect ***
+dnl ***********************************
+AC_MSG_CHECKING(for working __builtin_expect)
+AC_TRY_COMPILE([],[
+	     int main (int argc,char *argv[]) {
+                if (__builtin_expect((argc>2),1)) return 0;
+                else return 1;
+		}
+	    ], [
+		AC_MSG_RESULT(yes)
+		AC_DEFINE(HAVE_BUILTIN_EXPECT)],
+	       [AC_MSG_RESULT(no)])
 
-AC_DEFINE_UNQUOTED(FD_LOG_DIR,"$logdir")
 
-AC_DEFINE_UNQUOTED(FD_DAEMON_LOG_DIR,"$daemon_logdir")
+dnl ***********************************
+dnl *** Checks for working __builtin_prefetch ***
+dnl ***********************************
+AC_MSG_CHECKING(for working __builtin_prefetch)
+AC_TRY_COMPILE([],[
+	     static int data[]={0,1,2,3};
 
-AC_DEFINE_UNQUOTED(FD_SERVLET_LOG_DIR,"$servlet_logdir")
+	     int main (int argc,char *argv[]) {
+                __builtin_prefetch(&data[2],0,3);
+		return 0;
+		}
+	    ], [
+		AC_MSG_RESULT(yes)
+		AC_DEFINE(HAVE_BUILTIN_PREFETCH)],
+	       [AC_MSG_RESULT(no)])
 
-AC_DEFINE_UNQUOTED(FD_DAEMON_RUN_DIR,"$daemon_rundir")
 
-AC_DEFINE_UNQUOTED(FD_SERVLET_RUN_DIR,"$daemon_rundir")
+dnl ***********************************
+dnl *** Checks for working constructor attributes ***
+dnl ***********************************
+AC_MSG_CHECKING(for working __constructor_attributes)
+AC_TRY_COMPILE([],[
+             int tmpinit(void) __attribute__ ((constructor));
 
-AC_DEFINE_UNQUOTED(FD_BUGJAR_ROOT,"$bugjar")
+	    ], [
+		AC_MSG_RESULT(yes)
+		AC_DEFINE(HAVE_CONSTRUCTOR_ATTRIBUTES)],
+	       [AC_MSG_RESULT(no)])
 
-AC_AIX
+### What flavor of malloc() to use
 
 AC_ARG_WITH(duma,--with-duma Build with Detect Unintended Memory Access,with_duma=$withval,with_duma="no")
-
 if test "$with_duma" != "no"; then
    default_malloc="libc";
 fi
@@ -813,7 +745,7 @@ if test ! -z "$asan" && test "$CLANG" = "none"; then
 fi;
 
 if test -z "$gperftools" || test "$gperftools" = "no"; then
-   echo -n;
+   ${ECHO} -n;
 else
   AC_CHECK_HEADERS(gperftools/profiler.h)
   AC_CHECK_HEADERS(gperftools/heap-profiler.h)
@@ -864,14 +796,187 @@ if test "${VALGRIND}" != "none" && test -z "${custom_malloc}"; then
   LEAKTESTER="FD_INVALGRIND=yes valgrind --tool=memcheck --leak-check=full --num-callers=24"
 fi
 
-AC_ARG_ENABLE(ffi,--enable-ffi enable the FFI interface,enable_ffi=$enableval,enable_ffi="yes")
+# libu8 configuration
 
+AC_CHECK_LIB(u8,u8_raise)
+AC_CHECK_LIB(u8io,u8_open_xinput)
+AC_CHECK_LIB(u8data,u8_init_chardata_c)
+dnl Check for cryptic in in libu8
+AC_CHECK_FUNCS(u8_cryptic,with_crypto_default="yes")
+AC_ARG_WITH(crypto,--with[out]-crypto Compile the crypto module,,with_crypto=$with_crypto_default)
+if test $with_crypto = "yes"; then
+  CMODULES="lib/framerd/crypto.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-crypto ${INSTALLCMODULES}"
+fi
+
+### Installation configuration
+
+AC_ARG_WITH(codename,--with-codename for distribution,with_codename=$withval,with_codename=$CODENAME)
+CODENAME=$with_codename
+
+AC_CHECK_PROGS(buildrpm,"lsb-rpmbuild","rpmbuild","lsb-rpm","na")
+AC_CHECK_PROGS(rpm,"lsb-rpm","rpm","na")
+
+### System users, groups, and paths for FramerD
+
+AC_CHECK_GROUP(default_admin_group,framerd _framerd adm admin)
+AC_CHECK_USER(default_fdaemon,fdaemon _fdaemon daemon nobody)
+AC_CHECK_USER(default_daemon,xdaemon fdaemon _fdaemon daemon nobody)
+AC_CHECK_USER(default_webuser,www apache httpd www-data _www)
+AC_CHECK_USER(default_webgroup,www apache httpd www-data _www)
+
+dnl Specifies an admin group; files written by installation scripts will be
+dnl owned by this group and the group will have full rwX access.
+AC_ARG_WITH(admin_group,--with-admin-group Install files with admin group and group write permissions,,with_admin_group=$default_admin_group)
+if test $with_admin_group != "none"; then
+  install_dir_opts="-g $with_admin_group -m 0775 $install_dir_opts"
+  install_file_opts="-g $with_admin_group $install_file_opts"
+  install_exe_opts="-g $with_admin_group $install_exe_opts"
+  admin_group=$with_admin_group
+  admininstall="-g $with_admin_group"
+else
+  install_dir_opts="$install_dir_opts"
+  install_file_opts="$install_file_opts"
+  install_exe_opts="$install_exe_opts"
+  admin_group=$default_admin_group
+  admininstall=""
+fi
+
+dnl Specifies a daemon identity user/group for managed FramerD servers
+AC_ARG_WITH(fdaemon,--with-fdaemon The identity (user) for FramerD servers to run as,,with_fdaemon=$default_fdaemon)
+if test $with_fdaemon != "none"; then
+   fdaemoninstall="-o $with_fdaemon"
+   fdaemon=$with_fdaemon
+else
+   fdaemoninstall=""
+   fdaemon=$default_fdaemon
+fi
+
+dnl Specifies where server state files should live
+AC_ARG_WITH(rundir,--with-rundir The default location for server state files,,with_rundir="$localstatedir/run")
+rundir=$with_rundir
+AC_DEFINE_UNQUOTED(FD_RUN_DIR,"$rundir")
+
+dnl Specifies where log files should live
+AC_ARG_WITH(logdir,--with-logdir The default location for log files,,with_logdir="$localstatedir/log")
+logdir=$with_logdir
+
+dnl Specifies where the default bugjar location
+AC_ARG_WITH(bugjar,--with-bugjar The default location for bugjar reports,,with_bugjar="$default_bugjar")
+bugjar=$with_bugjar
+
+AC_DEFINE_UNQUOTED(FD_LOG_DIR,"$logdir")
+AC_DEFINE_UNQUOTED(FD_DAEMON_LOG_DIR,"$daemon_logdir")
+AC_DEFINE_UNQUOTED(FD_SERVLET_LOG_DIR,"$servlet_logdir")
+AC_DEFINE_UNQUOTED(FD_DAEMON_RUN_DIR,"$daemon_rundir")
+AC_DEFINE_UNQUOTED(FD_SERVLET_RUN_DIR,"$daemon_rundir")
+AC_DEFINE_UNQUOTED(FD_BUGJAR_ROOT,"$bugjar")
+
+### Paths
+
+### Users and Groups
+
+dnl Specifies the user which the Web server runs as
+dnl This is used to set up the directories used by fdserv
+AC_ARG_WITH(webuser,--with-webuser The user for the webserver,,with_webuser=$default_webuser)
+if test "$with_webuser" != "none"; then
+   webuser=$with_webuser
+   wwwinstall="-o $webuser"
+else
+   webuser=$default_webuser
+   wwwinstall=""
+fi
+
+dnl Specifies the group which the Web server runs as
+dnl This is used to set up the directories used by fdserv
+AC_ARG_WITH(webgroup,--with-webgroup The group for the webserver,,with_webgroup=$default_webgroup)
+if test "$with_webgroup" != "none"; then
+   webgroup=$with_webgroup
+   wwwinstall="-o $webgroup"
+else
+   webgroup=$default_webgroup
+   wwwinstall=""
+fi
+
+### Apache
+
+AC_MSG_CHECKING(apache log directory)
+if test -d ${apache_conf_dir}/log; then
+   if test -h ${apache_conf_dir}/log; then
+     apache_log_dir=$(readlink ${apache_conf_dir}/log);
+   else apache_log_dir=${apache_conf_dir}/log;
+   fi
+elif test -d ${apache_conf_dir}/logs; then
+   if test -h ${apache_conf_dir}/logs; then
+     apache_log_dir=$(readlink ${apache_conf_dir}/logs);
+   else apache_log_dir=${apache_conf_dir}/logs;
+   fi
+elif test -d ${local_state_dir}/logs/apache; then
+    apache_log_dir=${local_state_dir}/logs/apache;
+elif test -d ${local_state_dir}/logs/apache2; then
+    apache_log_dir=${local_state_dir}/logs/apache2;
+elif test -d ${local_state_dir}/logs/httpd; then
+    apache_log_dir=${local_state_dir}/logs/httpd;
+elif test -d ${local_state_dir}/logs/http; then
+    apache_log_dir=${local_state_dir}/logs/http;
+elif test -d /var/log/apache; then
+    apache_log_dir=/var/log/apache;
+elif test -d /var/log/apache2; then
+    apache_log_dir=/var/log/apache2;
+elif test -d /var/log/httpd; then
+    apache_log_dir=/var/log/httpd;
+elif test -d /var/log/http; then
+    apache_log_dir=/var/log/http;
+elif test -d /usr/log/apache; then
+    apache_log_dir=/usr/log/apache;
+elif test -d /usr/log/apache2; then
+     apache_log_dir=/usr/log/apache2;
+elif test -d /usr/log/httpd; then
+    apache_log_dir=/usr/log/httpd;
+elif test -d /usr/log/http; then
+    apache_log_dir=/usr/log/http;
+else
+    apache_log_dir=""
+fi;
+
+if test -z ${apache_log_dir}; then
+ AC_MSG_RESULT(none found, assuming /var/log/apache2/)
+ apache_log_dir=/var/log/apache;
+else
+ AC_MSG_RESULT($apache_log_dir);
+fi;
+
+if test ! -z "$APXS"; then
+  apache_conf_dir=`$APXS -q SYSCONFDIR`
+  apache_modules_dir=`$APXS -q LIBEXECDIR`
+  if test -d ${apache_conf_dir}/mods-available; then
+    apache_modinfo=${apache_conf_dir}/mods-available;
+  elif test -d ${apache_conf_dir}/mods_available; then
+    apache_modinfo=${apache_conf_dir}/mods_available;
+  elif test -d ${apache_conf_dir}.d; then
+    apache_modinfo=${apache_conf_dir}.d;
+  elif test -d ${apache_conf_dir}/other; then
+    apache_modinfo=${apache_conf_dir}/other;
+  else apache_modinfo=$apache_conf_dir;
+  fi;
+else
+  echo "Warning: No apache development environment, can't build mod_fdserv"
+fi
+
+dnl Allow overrides of APXS apacheinfo and apachelib
+AC_ARG_WITH(apacheinfo,--with-apacheinfo where Apache module info lives,,with_apacheinfo=$apache_modinfo)
+AC_ARG_WITH(apachelib,--with-apachelib where Apache extensions live,,with_apachelib=$apache_modules_dir)
+apache_modinfo=$with_apacheinfo
+apache_modules_dir=$with_apachelib
+
+### Provide the FFI interface
+
+AC_ARG_ENABLE(ffi,--enable-ffi enable the FFI interface,enable_ffi=$enableval,enable_ffi="yes")
 if test "${enable_ffi}" == "yes"; then
    AC_CHECK_HEADERS(ffi/ffi.h)
    AC_CHECK_HEADERS(ffi.h)
    AC_CHECK_LIB(ffi,ffi_prep_cif)
 fi
-
 if test "${enable_ffi}" != "yes"; then
    manually_disabled="ffi ${manually_disabled}"
 elif test ! "${ac_cv_header_ffi_h}" != "yes" &&
@@ -881,15 +986,7 @@ elif test ! "${ac_cv_header_ffi_h}" != "yes" &&
 elif test "${ac_cv_lib_ffi_ffi_prep_cif}" != "yes"; then
    enable_ffi="no";
    auto_disabled="ffi ${auto_disabled}";
-fi
-
-# This cmodule isn't actually implemented yet
-AC_CHECK_HEADERS(archive.h)
-AC_CHECK_LIB(archive,archive_read_new)
-if test "${ac_cv_header_archive_h}" == "yes" && \
-   test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
-  CMODULES="lib/framerd/libarchive.${shared_suffix} ${CMODULES}"
-  INSTALLCMODULES="install-libarchive ${INSTALLCMODULES}"
+   missing="${missing} ffi";
 fi
 
 DEFAULT_DLOADPATH="${prefix}/lib/framerd/%.${vshared_suffix}:${prefix}/lib/%.${vshared_suffix}:${prefix}/lib/lib%.${vshared_suffix}:${prefix}/lib/framerd/%.${mmshared_suffix}:${prefix}/lib/%.${mmshared_suffix}:${prefix}/lib/lib%.${mmshared_suffix}:${prefix}/lib/framerd/%.${mshared_suffix}:${prefix}/lib/%.${mshared_suffix}:${prefix}/lib/lib%.${mshared_suffix}:${prefix}/lib/framerd/%.${shared_suffix}:${prefix}/lib/%.${shared_suffix}:${prefix}/lib/lib%.${shared_suffix}:"
@@ -907,22 +1004,6 @@ elif test $with_arch = "allppc"; then
 else archflags=$with_arch
 fi
 
-AC_DEFINE(FD_WORDS_ARE_ALIGNED,1)
-AC_TYPE_UID_T
-AC_TYPE_OFF_T
-AC_TYPE_SIZE_T
-AC_C_INLINE
-AC_C_BIGENDIAN
-AC_CHECK_SIZEOF(short,2)
-AC_CHECK_SIZEOF(int,4)
-AC_CHECK_SIZEOF(long,4)
-AC_CHECK_SIZEOF(long long,8)
-AC_CHECK_SIZEOF(void *,8)
-AC_CHECK_SIZEOF(time_t,8)
-AC_CHECK_SIZEOF(off_t,8)
-AC_CHECK_SIZEOF(size_t,8)
-AC_CHECK_TYPES(uchar)
-
 # Check whether to use an architecture specific library directory
 if test "${libdir}" != "\${exec_prefix}/lib"; then
   echo checking libdir, using explicit libdir ${libdir};
@@ -936,23 +1017,10 @@ else
   echo checking libdir, using default libdir ${libdir};
 fi
 
+dnl Some system headers and members
+
 AC_HEADER_STDC
 AC_HEADER_STAT
-
-AC_CHECK_PROGS(etags,etags,"na")
-
-if test $etags = "na"; then
-   TAGS=""
-fi
-
-AC_CHECK_PROGS(git,"git","na")
-if test $git = "na"; then
-   GITDESCRIBE="false"
-else
-   GITDESCRIBE="$git describe"
-fi
-
-dnl Some system headers and members
 
 AC_CHECK_HEADERS(fcntl.h malloc.h mcheck.h sys/resource.h malloc/malloc.h)
 AC_CHECK_HEADERS(resource.h sys/resource.h)
@@ -974,17 +1042,6 @@ else
 fi;
 
 dnl Various directory/path configuration options
-
-AC_ARG_WITH(suffix,--with-suffix string,,with_suffix="")
-suffix=$with_suffix
-
-dnl Specify an additional library
-AC_ARG_WITH(extlib,
-[  --with-extlib[[=DIR]]       use additional lib dir],[
-  if test "$withval" != "no" -a "$withval" != "yes"; then
-    LDFLAGS="${LDFLAGS} -L$withval"
-  fi
-])
 
 AC_ARG_WITH(share_dir,--with-share-dir location,,with_share_dir=$prefix/share/framerd)
 AC_DEFINE_UNQUOTED(FD_SHARE_DIR,"$with_share_dir")
@@ -1012,6 +1069,8 @@ AC_DEFINE_UNQUOTED(FD_CONFIG_FILE_PATH,"$with_local_config/%:$with_shared_config
 
 AC_ARG_WITH(unpackage_dir,--with-unpackage-dir location,,with_unpackage_dir=$share_dir/packages)
 unpackage_dir=$with_unpackage_dir
+
+### Scheme Module search paths
 
 AC_ARG_WITH(installed_module_dir,--with-installed-module-dir location,,with_installed_module_dir=$share_dir/modules/installed)
 installed_module_dir=$with_installed_module_dir
@@ -1070,11 +1129,6 @@ AC_DEFINE_UNQUOTED(FD_UNPACKAGE_DIR,"$unpackage_dir")
 AC_DEFINE_UNQUOTED(FD_DEFAULT_LOADPATH,"$module_path")
 AC_DEFINE_UNQUOTED(FD_DEFAULT_SAFE_LOADPATH,"$safe_module_path")
 
-AC_DEFINE_UNQUOTED(FD_DLOAD_SUFFIX,"$shared_suffix")
-
-AC_ARG_WITH(dload_path,--with-dload-path location,,with_dload_path=${DEFAULT_DLOADPATH})
-AC_DEFINE_UNQUOTED(FD_DEFAULT_DLOADPATH,"$with_dload_path")
-
 AC_ARG_WITH(boot_config,--with-boot-config configstring,,with_boot_config="")
 AC_DEFINE_UNQUOTED(FD_BOOT_CONFIG,"$with_boot_config")
 
@@ -1085,6 +1139,15 @@ else
   AC_DEFINE_UNQUOTED(FD_EXEC,"$exec_prefix/bin/fdexec")
   AC_DEFINE_UNQUOTED(FD_DBSERVER,"$prefix/bin/fdserver")
 fi
+
+### Dynamic library load paths
+
+AC_DEFINE_UNQUOTED(FD_DLOAD_SUFFIX,"$shared_suffix")
+
+AC_ARG_WITH(dload_path,--with-dload-path location,,with_dload_path=${DEFAULT_DLOADPATH})
+AC_DEFINE_UNQUOTED(FD_DEFAULT_DLOADPATH,"$with_dload_path")
+
+### Miscellaneous functions
 
 AC_CHECK_FUNCS(sigprocmask)
 AC_CHECK_FUNCS(sigsetmask)
@@ -1110,11 +1173,14 @@ AC_CHECK_FUNCS(seteuid setuid setgid setegid)
 AC_CHECK_FUNCS(getpwnam_r getpwnam)
 AC_CHECK_FUNCS(getgrnam getgrnam_r)
 
+AC_CHECK_LIB(pthread,pthread_rwlock_wrlock)
 AC_CHECK_FUNCS(pthread_tryjoin_np pthread_timedjoin_np)
 
 # This gets it in the library list
 AC_CHECK_LIB(m,floor)
 AC_CHECK_LIB(z,compress2)
+
+### Dynamic library support
 
 # Ditto, though it's almost always there
 AC_CHECK_FUNCS(dlopen,libc_dlopen="yes")
@@ -1127,9 +1193,6 @@ AC_CHECK_HEADERS(dlfcn.h)
 AC_CHECK_LIB(dl,dladdr)
 AC_CHECK_FUNCS(dladdr)
 
-AC_ARG_ENABLE(maintainer-mode,--en[dis]able-maintainer-mode doesn't do anything)
-AC_ARG_ENABLE(dependency-tracking,--en[dis]able-dependency-tracking doesn't do anything)
-
 dnl Build the shared libraries.
 AC_ARG_ENABLE(shared,--en[dis]able-shared Build with/without shared libraries,,enable_shared=$shared_default)
 if test $enable_shared = "yes"; then
@@ -1140,6 +1203,9 @@ else
   SHARED_LIBV=
   SHARED_LIB_TARGET=
 fi
+
+AC_ARG_ENABLE(maintainer-mode,--en[dis]able-maintainer-mode doesn't do anything)
+AC_ARG_ENABLE(dependency-tracking,--en[dis]able-dependency-tracking doesn't do anything)
 
 dnl Enable async I/O features
 AC_ARG_ENABLE(async,--en[dis]able-async Enable async I/O features)
@@ -1163,6 +1229,8 @@ else
   AC_DEFINE(FD_USE_DTBLOCK,0)
 fi
 
+### Internationalization
+
 # Internationalization
 AC_CHECK_HEADERS(libintl.h)
 AC_CHECK_FUNCS(gettext,[doi18n="yes"])
@@ -1185,12 +1253,38 @@ if test $doi18n = "yes"; then
   INSTALLI18N="install-i18n"
 fi
 
-AX_PTHREAD
-AX_PTHREAD(threads_default="yes",threads_default="no")
+### Using mmap (if available)
 
 AC_ARG_WITH(mmap,--with[out]-mmap build without using mmap,,with_mmap="yes")
 if test $with_mmap == "no"; then
    AC_DEFINE(FD_WITHOUT_MMAP,1)
+fi
+
+### THREADS
+
+AX_PTHREAD
+AX_PTHREAD(threads_default="yes",threads_default="no")
+
+dnl This forces the use of the threadlocal storage functions from the pthreads
+dnl  library.  Otherwise, the executable will use __thread storage declarations
+dnl  when available
+AC_ARG_WITH(tls,--with[out]-tls Force use of threadlocal storage,,with_tls=$tls_default)
+if test $with_tls = "yes"; then
+  AC_DEFINE(FD_FORCE_TLS,1)
+else
+  AC_DEFINE(FD_FORCE_TLS,0)
+fi
+
+dnl Size of the table used for hashlocking
+AC_ARG_WITH(nptrlocks,--with-nptrlocks Sets the number of pointer hash locks to use)
+if test ! -z $with_nptrlocks; then
+   AC_DEFINE_UNQUOTED(FD_N_PTRLOCKS,$with_nptrlocks)
+fi
+
+AC_ARG_ENABLE(thread_debug,--enable-thread-debug Use libu8 thread tracing and debugging,enable_thread_debug=$enableval,enable_thread_debug="no")
+
+if test "${enable_thread_debug}" != "no"; then
+   AC_DEFINE(U8_THREAD_DEBUG,1)
 fi
 
 AC_CHECK_HEADERS(stdatomic.h)
@@ -1200,428 +1294,6 @@ if test "$enable_lockfree" = "yes"; then
   AC_DEFINE(FD_ENABLE_LOCKFREE,1)
 else
   AC_DEFINE(FD_ENABLE_LOCKFREE,0)
-fi
-
-
-dnl If possible, compile for multi-threaded execution.  This both makes
-dnl  the library threadsafe and enables Scheme primitives for spawning threads
-dnl  and parallel execution
-AC_ARG_WITH(nptrlocks,--with-nptrlocks Sets the number of pointer hash locks to use)
-if test ! -z $with_nptrlocks; then
-   AC_DEFINE_UNQUOTED(FD_N_PTRLOCKS,$with_nptrlocks)
-fi
-
-
-dnl Use the editline library from fdconsole
-AC_ARG_WITH(editline,--with[out]-editline Use the editline with fdconsole,,with_editline="yes")
-if test "$with_editline" = "yes"; then
-  AC_CHECK_HEADERS(editline/readline.h histedit.h)
-  AC_CHECK_LIB(edit,el_init)
-  AC_DEFINE(FD_WITH_EDITLINE,1)
-else
-  AC_DEFINE(FD_WITH_EDITLINE,0)
-fi
-
-dnl Use a different directory for libu8
-AC_ARG_WITH(libu8,--with[out]-libu8 Use libu8 includes,,with_libu8="")
-if test "$with_libu8" != ""; then
-  CFLAGS="-I$with_libu8/include $CFLAGS"
-  LDFLAGS="-L$with_libu8/lib $LDFLAGS"
-  EXEFLAGS="$EXEFLAGS -L$with_libu8/lib"
-fi
-
-dnl Use sudo for installations in makefile
-AC_CHECK_PROGS(sudo_program,sudo,"na")
-if test "$sudoprogram" == "na"; then
-  SUDO="";
-else
-  SUDO=$sudo_program
-fi;
-
-AC_ARG_WITH(sudo,--with[out]-sudo use sudo with install,,with_sudo="$SUDO")
-
-if test "$with_sudo" == "yes"; then
-   SUINSTALL="${SUDO} ";
-elif test "$with_sudo" == "no"; then
-   SUINSTALL="";
-else
-   SUINSTALL="$with_sudo ";
-fi
-
-with_fastcgi="yes";
-AC_ARG_WITH(fastcgi,--with[out]-fastcgi Use fastcgi,with_fastcgi=no,[AC_DEFINE(WITH_FASTCGI,1)])
-if test "$with_fastcgi" != "no"; then
-  AC_CHECK_HEADERS(fcgiapp.h)
-  AC_CHECK_LIB(fcgi,FCGX_Init)
-fi
-
-AC_CHECK_HEADERS(sql.h)
-
-AC_CHECK_PROGS(mysql_config,mysql_config /usr/local/bin/mysql_config /opt/bin/mysql_config /opt/local/bin/mysql_config ,"na")
-AC_CHECK_PROGS(pkg_config,pkg-config /usr/local/bin/pkg-config /opt/bin/pkg-config /opt/local/bin/pkg-config ,"na")
-
-if test $mysql_config != "na"; then
-   with_mysql_default="auto"
-else
-   with_mysql_default="no";
-fi
-
-AC_ARG_ENABLE(leveldb,--en[dis]able-leveldb Build and install LevelDB module,,enable_leveldb="yes")
-leveldb_ok="no"
-
-if test "${enable_leveldb}" = "yes" ||
-   test "${enable_leveldb}" = "force"; then
-   AC_CHECK_HEADERS(leveldb/c.h)
-   AC_CHECK_LIB(leveldb,leveldb_open,leveldb_ok="yes")
-   if test "${enable_leveldb}" = "yes" &&
-      test "${ac_cv_header_leveldb_c_h}" = "yes" &&
-      test "${leveldb_ok}" = "yes"; then
-      DBMODULES="${DBMODULES} lib/framerd/leveldb.${shared_suffix}";
-     INSTALLDBMODULES="${INSTALLDBMODULES} install-leveldb";
-   elif test "${enable_leveldb}" = "force"; then
-     DBMODULES="lib/framerd/leveldb.${shared_suffix} ${DBMODULES}";
-     INSTALLDBMODULES="${INSTALLDBMODULES} install-leveldb";
-     force_enabled="leveldb ${force_enabled}";
-   else
-     auto_disabled="leveldb ${auto_disabled}";
-     enable_leveldb="no";
-   fi;
-else
-   manually_disabled="leveldb ${auto_disabled}";
-fi
-
-AC_ARG_ENABLE(rocksdb,--en[dis]able-rocksdb Build and install Rocksdb module,,enable_rocksdb="yes")
-rocksdb_ok="no"
-
-if test "${enable_rocksdb}" = "yes" ||
-   test "${enable_rocksdb}" = "force"; then
-   AC_CHECK_HEADERS(rocksdb/c.h)
-   AC_CHECK_LIB(rocksdb,rocksdb_open,rocksdb_ok="yes")
-   if test "${enable_rocksdb}" = "yes" && 
-      test "${ac_cv_header_rocksdb_c_h}" = "yes";
-      test "${rocksdb_ok}" = "yes"; then
-     DBMODULES="lib/framerd/rocksdb.${shared_suffix} ${DBMODULES}";
-     INSTALLDBMODULES="install-rocksdb ${INSTALLDBMODULES}";
-   elif test "${enable_rocksdb}" = "force"; then
-     DBMODULES="lib/framerd/rocksdb.${shared_suffix} ${DBMODULES}";
-     INSTALLDBMODULES="install-rocksdb ${INSTALLDBMODULES}";
-     force_enabled="rocksdb ${force_enabled}";
-   else
-     auto_disabled="rocksdb ${auto_disabled}";
-     enable_rocksdb="no";
-   fi;
-else
-   manually_disabled="rocksdb ${auto_disabled}";
-fi
-
-AC_ARG_ENABLE(imagick,--en[dis]able-imagick Build and install imagemagick module,,enable_imagick="yes")
-
-if test "$enable_imagick" = "yes" &&
-   test $pkg_config != "na" &&
-   $pkg_config --exists MagickWand; then
-  IMAGICK_CFLAGS=`$pkg_config MagickWand --cflags`;
-  IMAGICK_LDFLAGS=`$pkg_config MagickWand --libs`;
-  CMODULES="lib/framerd/imagick.$shared_suffix ${CMODULES}";
-  INSTALLCMODULES="install-imagick ${INSTALLCMODULES}";
-elif test "$enable_imagick" = "force"; then
-  CMODULES="lib/framerd/imagick.$shared_suffix ${CMODULES}";
-  INSTALLCMODULES="install-imagick ${INSTALLCMODULES}";
-elif test "$enable_imagick" = "yes"; then
-  auto_disabled="imagick ${auto_disabled}";
-  enable_imagick="failed";
-else
-  manually_disabled="imagick ${manually_disabled}";
-fi
-
-AC_ARG_ENABLE(ziptools,--with-ziptools Build and install ziptools,,enable_ziptools="yes")
-
-if test "$enable_ziptools" = "yes" ||
-   test "$enable_ziptools" = "force"; then
-  AC_CHECK_HEADER(zip.h,have_zip_h="yes",have_zip_h="no")
-  AC_CHECK_LIB(zip,zip_add,have_libzip="yes",have_libzip="no")
-  AC_CHECK_FUNCS(zip_set_file_compression zip_set_file_comment zip_set_file_extra)
-  if test $pkg_config != "na" &&
-     $pkg_config --exists libzip; then
-    LIBZIP_CFLAGS=`$pkg_config libzip --cflags` 
-    LIBZIP_LDFLAGS=`$pkg_config libzip --libs` 
-    CFLAGS="${CFLAGS} ${LIBZIP_CFLAGS}"
-    CPPFLAGS="${CPPFLAGS} ${LIBZIP_CFLAGS}"
-    LDFLAGS="${LDFLAGS} ${LIBZIP_LDFLAGS}"
-    CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}";
-    INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}";
-  elif test "$have_zip_h" = "yes" &&
-       test "$have_libzip" = "yes"; then
-    CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}";
-    INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}";
-  elif test "$enable_ziptools" = "force"; then
-    CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}";
-    INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}";
-    force_enabled="ziptools ${force_enabled}";
-  else
-    auto_disabled="ziptools ${auto_disabled}";
-    enable_ziptools="failed";
-  fi;
-else
-    manually_disabled="ziptools ${manually_disabled}";
-fi
-
-AC_ARG_ENABLE(mongodb,--en[dis]able-mongodb Build and install MongoDB module,,enable_mongodb="yes")
-
-if test "$enable_mongodb" = "yes" ||
-   test "$enable_mongodb" = "force"; then
-  if test $pkg_config != "na" &&
-     $pkg_config --exists libmongoc-1.0; then
-    MONGODB_CFLAGS=`$pkg_config libmongoc-1.0 --cflags` 
-    MONGODB_LDFLAGS=`$pkg_config libmongoc-1.0 --libs` 
-    DBMODULES="lib/framerd/mongodb.$shared_suffix ${DBMODULES}";
-    INSTALLDBMODULES="install-mongodb ${INSTALLDBMODULES}";
-    MONGODB_ENABLED=yes
-  elif test "$enable_mongodb" = "force"; then
-    force_enabled="mongodb ${force_enabled}";
-    DBMODULES="lib/framerd/mongodb.$shared_suffix ${DBMODULES}";
-    INSTALLDBMODULES="install-mongodb ${INSTALLDBMODULES}";
-    MONGODB_ENABLED=yes
-  else
-    auto_disabled="mongodb ${auto_disabled}";
-  fi;
-elif test "$enable_mongodb" = "bundled"; then
-    MONGODB_BUNDLED=mongodb.bundled
-    MONGODB_CFLAGS="-I./include/bson -I./include/mongoc"
-    MONGODB_LDFLAGS="-Wl,--whole-archive -Wl,-Bstatic -lmongoc -Wl,--no-whole-archive  -lbson -Wl,-Bdynamic"
-    DBMODULES="lib/framerd/mongodb.$shared_suffix ${DBMODULES}";
-    INSTALLDBMODULES="install-mongodb ${INSTALLDBMODULES}";
-else
-    manually_disabled="mongodb ${manually_disabled}";      
-fi;
-
-AC_ARG_WITH(mysql,--with[out]-mysql Use alternate mysql lib,,with_mysql=$with_mysql_default)
-
-if test "$with_mysql" = "auto"; then
-  MYSQL_CFLAGS=`$mysql_config --cflags`
-  MYSQL_LDFLAGS=`$mysql_config --libs_r`
-elif test "$with_mysql" = "yes"; then
-  MYSQL_CFLAGS=\`$mysql_config --cflags\`
-  MYSQL_LDFLAGS=\`$mysql_config --libs_r\`
-elif test "$with_mysql" != "no"; then
-  MYSQL_CFLAGS="-I$with_mysql/include"
-  MYSQL_LDFLAGS="-I$with_mysql/lib"
-fi
-
-if test "$with_mysql" != "no"; then
-  DBMODULES="lib/framerd/mysql.$shared_suffix ${DBMODULES}"
-  INSTALLDBMODULES="install-mysql ${INSTALLDBMODULES}"
-fi
-
-AC_ARG_ENABLE(odbc,--en[dis]able-odbc Build odbc modules,,enable_odbc="yes")
-ODBC_LIBS=
-
-if test "$enable_odbc" = "yes"; then
-   AC_CHECK_HEADER(sql.h,have_sql_h="yes",have_sql_h="no")
-   if test "$have_sql_h" = "yes"; then
-     AC_CHECK_LIB(iodbc,SQLNumResultCols,ODBC_LIBS="-liodbc")
-     if test ! -z "${ODBC_LIBS}"; then
-       DBMODULES="lib/framerd/odbc.$shared_suffix ${DBMODULES}"
-       INSTALLDBMODULES="install-odbc ${INSTALLDBMODULES}"
-     fi;
-   fi;
-fi;
-
-if test "$have_sql_h" = "yes"; then
-  AC_CHECK_LIB(odbc,SQLNumResultCols)
-fi
-
-AC_CHECK_HEADER(sqlite3.h,have_sqlite3_h="yes",have_sqlite3_h="no")
-sqlite3_ok="no"
-sqlite3v2_ok="no"
-
-if test $have_sqlite3_h = "yes"; then
-  AC_DEFINE(HAVE_SQLITE3_H,1)
-  AC_CHECK_LIB(sqlite3,sqlite3_open,sqlite3_ok="yes")
-  AC_CHECK_LIB(sqlite3,sqlite3_open_v2,sqlite3v2_ok="yes")
-  if test "$sqlite3_ok" = "yes"; then
-    DBMODULES="lib/framerd/sqlite.$shared_suffix ${DBMODULES}";
-    INSTALLDBMODULES="install-sqlite ${INSTALLDBMODULES}";
-    if test "${sqlite3v2_ok}" == "yes"; then
-      AC_DEFINE(HAVE_SQLITE3_V2,1)
-    fi;
-  fi;
-fi
-
-AC_CHECK_HEADER(regex.h,have_regex_h="yes",have_regex_h="no")
-if (test "$have_regex_h" = "yes"); then
-  AC_CHECK_FUNC(regcomp,have_regcomp="yes",have_regcomp="no")
-fi
-if (test "$have_regex_h" = "yes") && (test "$have_regcomp" = "no"); then
-  AC_CHECK_LIB(regex,regcomp,have_regcomp="yes",have_regcomp="no")
-fi
-
-AC_CHECK_HEADER(zlib.h,have_zlib_h="yes",have_zlib_h="no")
-if (test "$have_zlib_h" = "yes"); then
-  AC_CHECK_LIB(z,compress2,have_libz="yes",have_libz="no")
-fi
-
-if (test "$have_libz" = "yes"); then
-  CMODULES="lib/framerd/zlib.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-zlib ${INSTALLCMODULES}"
-fi
-
-AC_CHECK_HEADER(zlib.h,have_zlib_h="yes",have_zlib_h="no")
-if test "${have_zlib_h}" = "yes"; then
-   AC_CHECK_LIB(zlib,uncompress)
-   AC_DEFINE(HAVE_ZLIB_H,1)
-fi;
-
-AC_CHECK_HEADER(snappy-c.h,have_snappyc_h="yes",have_snappyc_h="no")
-if test "${have_snappyc_h}" = "yes"; then
-   AC_CHECK_LIB(snappy,snappy_compress)
-   AC_DEFINE(HAVE_SNAPPYC_H,1)
-fi;
-LIBS="${LIBS} -lsnappy"
-
-
-AC_CHECK_HEADER(zstd.h,have_zstd_h="yes",have_zstd_h="no")
-if test "${have_zstd_h}" = "yes"; then
-   AC_CHECK_LIB(zstd,ZSTD_decompress)
-   AC_DEFINE(HAVE_ZSTD_H,1)
-fi;
-
-AC_ARG_ENABLE(tidy,--en[dis]able-tidy Build and install tidy module,,enable_tidy="yes")
-
-if test "$enable_tidy" = "yes"; then
-  CMODULES="lib/framerd/tidy.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-tidy ${INSTALLCMODULES}"
-fi
-
-AC_ARG_ENABLE(hyphenate,--en[dis]able-hyphenate Build and install the hyphenate module,,enable_hyphenate="yes")
-hyphen_ok="no"
-
-if test "$enable_hyphenate" = "yes"; then
-  AC_CHECK_HEADERS(hyphen.h)
-  AC_CHECK_LIB(hyphen,hnj_hyphen_hyphenate2,hyphen_ok="yes")
-fi
-
-if test "$enable_hyphenate" = "yes" &&
-   test "$ac_cv_header_hyphen_h" = "yes" &&
-   test "$hyphen_ok" = "yes"; then
-  CMODULES="lib/framerd/hyphenate.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-hyphenate ${INSTALLCMODULES}"
-  DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
-elif test "$enable_hyphenate" = "force"; then
-  CMODULES="lib/framerd/hyphenate.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-hyphenate ${INSTALLCMODULES}"
-  DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
-  force_enabled="hyphenate ${force_enabled}";
-elif test "$enable_hyphenate" = "yes"; then
-  auto_disabled="hyphenate $auto_disabled";
-  enable_hyphenate="failed";
-else
-  manually_disabled="hyphenate $manually_disabled";
-fi
-
-AC_ARG_ENABLE(hunspell,--en[dis]able-hunspell Build and install the hunspell module,,enable_hunspell="yes")
-hunspell_ok="no"
-
-if test "$enable_hunspell" = "yes"; then
-  AC_CHECK_HEADERS(hunspell/hunspell.h)
-  AC_CHECK_LIB(hunspell,Hunspell_create)
-  AC_CHECK_LIB(hunspell,Hunspell_create,hunspell_ok="yes")
-  AC_CHECK_FUNCS(Hunspell_add_dic)
-fi
-
-if test "$enable_hunspell" = "yes" &&
-   test "$ac_cv_header_hunspell_hunspell_h" = "yes" &&
-   test "$hunspell_ok" = "yes"; then
-  CMODULES="lib/framerd/hunspell.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-hunspell ${INSTALLCMODULES}"
-  TESTCMODULES="test-hunspell ${TESTCMODULES}"
-elif test "$enable_hunspell" = "force"; then
-  CMODULES="lib/framerd/hunspell.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-hunspell ${INSTALLCMODULES}"
-  TESTCMODULES="test-hunspell ${TESTCMODULES}"
-  force_enabled="hunspell ${force_enabled}";
-elif test "$enable_hunspell" = "yes"; then
-  auto_disabled="hunspell $auto_disabled";
-  enable_hunspell="failed";
-else
-  manually_disabled="hunspell $manually_disabled";
-fi
-
-
-
-# For OS X
-AC_CHECK_HEADERS(CommonCrypto/CommonDigest.h CommonCrypto/CommonHMAC.h)
-AC_CHECK_FUNCS(CCHmacInit)
-# OpenSSL checks
-AC_CHECK_HEADERS(openssl/hmac.h)
-AC_CHECK_HEADERS(openssl/sha.h)
-AC_CHECK_LIB(crypto,EVP_CIPHER_CTX_init)
-AC_CHECK_FUNCS(SHA1_Init EVP_get_cipherbyname EVP_CIPHER_CTX_init)
-AC_CHECK_FUNCS(CRYPTO_set_locking_callback)
-# For UUID functions
-AC_CHECK_LIB(uuid,uuid_generate_time)
-AC_CHECK_FUNCS(uuid_generate_time)
-
-dnl Compile for access to large files, essentially defining off_t as 64 bits.
-AC_ARG_ENABLE(largefiles,--en[dis]able-largefiles Enable use of large (> 2GB) file support,,enable_largefiles=yes)
-if test $enable_largefiles = "yes"; then
-  AC_DEFINE(FD_LARGEFILES_ENABLED,1)
-else
-  AC_DEFINE(FD_LARGEFILES_ENABLED,0)
-fi
-
-AC_CHECK_LIB(u8,u8_raise)
-AC_CHECK_LIB(u8io,u8_open_xinput)
-AC_CHECK_LIB(u8data,u8_init_chardata_c)
-dnl Check for cryptic in in libu8
-AC_CHECK_FUNCS(u8_cryptic,with_crypto_default="yes")
-AC_ARG_WITH(crypto,--with[out]-crypto Compile the crypto module,,with_crypto=$with_crypto_default)
-if test $with_crypto = "yes"; then
-  CMODULES="lib/framerd/crypto.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-crypto ${INSTALLCMODULES}"
-fi
-
-AC_ARG_WITH(sundown,--with[out]-sundown Compile the sundown module,,with_sundown="yes")
-if test "$with_sundown" = "yes"; then
-  CMODULES="lib/framerd/sundown.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-sundown ${INSTALLCMODULES}"
-fi
-
-dnl This compiles a version to be used with the GNU profiling tools
-AC_ARG_WITH(profiling,--with/out-profiling compile to generate profile information,,with_profiling="no")
-if test $with_profiling = "yes"; then
-  AC_DEFINE(FD_WITH_PROFILING,1)
-  PROFILING="-O0 -pg -fno-inline -fprofile-arcs -ftest-coverage"
-else 
-  PROFILING=""
-fi
-
-dnl This is used to disable the simplest automatic database prefetches.
-dnl This is typically used to configure for benchmarking prefetch mechanisms
-dnl against the base case of no prefetches at all.
-AC_ARG_ENABLE(prefetching,--en[dis]able-prefetching make frame operations prefetch when they can,,enable_prefetching="yes")
-if test $enable_prefetching = "yes"; then
-  AC_DEFINE(FD_PREFETCHING_ENABLED,1)
-else
-  AC_DEFINE(FD_PREFETCHING_ENABLED,0)
-fi
-
-dnl This builds in file config lookups
-AC_ARG_ENABLE(fileconfig,--en[dis]able-fileconfig enable file-based configuration,,enable_fileconfig="yes")
-if test "$enable_fileconfig" = "yes"; then
-  AC_DEFINE(FD_FILECONFIG_ENABLED,1)
-else
-  AC_DEFINE(FD_FILECONFIG_ENABLED,0)
-fi
-
-dnl This integrates the fdweb module into executables by default; otherwise
-dnl  it is built and installed as a plugin library
-AC_ARG_ENABLE(htmldump,--en[dis]able-htmldump write HTML backtraces,,enable_htmldump="yes")
-if test $enable_htmldump = "yes"; then
-  scheme_builtins_init="$scheme_builtins_init; fd_init_fdweb()"
-  xdynamic_scheme_libs="$xdynamic_scheme_libs -lfdweb${suffix}"
-  xstatic_exe_libs="lib/libfdweb${suffix}.a $xstatic_exe_libs"
-  xstatic_scheme_libs=" ../../lib/libfdweb${suffix}.a $xstatic_scheme_libs"
-  AC_DEFINE(FD_HTMLDUMP_ENABLED,1)
 fi
 
 dnl ***********************************
@@ -1657,58 +1329,441 @@ AC_TRY_COMPILE([
 	       [AC_MSG_RESULT(no)])
 
 
-dnl ***********************************
-dnl *** Checks for working __builtin_expect ***
-dnl ***********************************
-AC_MSG_CHECKING(for working __builtin_expect)
-AC_TRY_COMPILE([],[
-	     int main (int argc,char *argv[]) {
-                if (__builtin_expect((argc>2),1)) return 0;
-                else return 1;
-		}
-	    ], [
-		AC_MSG_RESULT(yes)
-		AC_DEFINE(HAVE_BUILTIN_EXPECT)],
-	       [AC_MSG_RESULT(no)])
+### Use editline in fdconsole
 
-
-dnl ***********************************
-dnl *** Checks for working __builtin_prefetch ***
-dnl ***********************************
-AC_MSG_CHECKING(for working __builtin_prefetch)
-AC_TRY_COMPILE([],[
-	     static int data[]={0,1,2,3};
-
-	     int main (int argc,char *argv[]) {
-                __builtin_prefetch(&data[2],0,3);
-		return 0;
-		}
-	    ], [
-		AC_MSG_RESULT(yes)
-		AC_DEFINE(HAVE_BUILTIN_PREFETCH)],
-	       [AC_MSG_RESULT(no)])
-
-
-dnl ***********************************
-dnl *** Checks for working constructor attributes ***
-dnl ***********************************
-AC_MSG_CHECKING(for working __constructor_attributes)
-AC_TRY_COMPILE([],[
-             int tmpinit(void) __attribute__ ((constructor));
-
-	    ], [
-		AC_MSG_RESULT(yes)
-		AC_DEFINE(HAVE_CONSTRUCTOR_ATTRIBUTES)],
-	       [AC_MSG_RESULT(no)])
-
-dnl This forces the use of the threadlocal storage functions from the pthreads
-dnl  library.  Otherwise, the executable will use __thread storage declarations
-dnl  when available
-AC_ARG_WITH(tls,--with[out]-tls Force use of threadlocal storage,,with_tls=$tls_default)
-if test $with_tls = "yes"; then
-  AC_DEFINE(FD_FORCE_TLS,1)
+dnl Use the editline library from fdconsole
+AC_ARG_WITH(editline,--with[out]-editline Use the editline with fdconsole,,with_editline="yes")
+if test "$with_editline" = "yes"; then
+  AC_CHECK_HEADERS(editline/readline.h histedit.h)
+  AC_CHECK_LIB(edit,el_init)
+  AC_DEFINE(FD_WITH_EDITLINE,1)
 else
-  AC_DEFINE(FD_FORCE_TLS,0)
+  AC_DEFINE(FD_WITH_EDITLINE,0)
+fi
+
+### Alternate libu8 directory
+
+dnl Use a different directory for libu8
+AC_ARG_WITH(libu8,--with[out]-libu8 Use libu8 includes,,with_libu8="")
+if test "$with_libu8" != ""; then
+  CFLAGS="-I$with_libu8/include $CFLAGS"
+  LDFLAGS="-L$with_libu8/lib $LDFLAGS"
+  EXEFLAGS="$EXEFLAGS -L$with_libu8/lib"
+fi
+
+### Control use of 'sudo' for installation
+
+dnl Use sudo for installations in makefile
+AC_CHECK_PROGS(sudo_program,sudo,"na")
+if test "$sudoprogram" == "na"; then
+  SUDO="";
+else
+  SUDO=$sudo_program
+fi;
+
+AC_ARG_WITH(sudo,--with[out]-sudo use sudo with install,,with_sudo="$SUDO")
+
+if test "$with_sudo" == "yes"; then
+   SUINSTALL="${SUDO} ";
+elif test "$with_sudo" == "no"; then
+   SUINSTALL="";
+else
+   SUINSTALL="$with_sudo ";
+fi
+
+### Build fastcgi executable if possible
+
+with_fastcgi="yes";
+AC_ARG_WITH(fastcgi,--with[out]-fastcgi Use fastcgi,with_fastcgi=no,[AC_DEFINE(WITH_FASTCGI,1)])
+if test "$with_fastcgi" != "no"; then
+  AC_CHECK_HEADERS(fcgiapp.h)
+  AC_CHECK_LIB(fcgi,FCGX_Init)
+fi
+
+### LevelDB cmodule build
+
+AC_ARG_ENABLE(leveldb,--en[dis]able-leveldb Build and install LevelDB module,,enable_leveldb="yes")
+leveldb_ok="no"
+
+if test "${enable_leveldb}" = "yes" ||
+   test "${enable_leveldb}" = "force"; then
+   AC_CHECK_HEADERS(leveldb/c.h)
+   AC_CHECK_LIB(leveldb,leveldb_open,leveldb_ok="yes")
+   if test "${enable_leveldb}" = "yes" &&
+      test "${ac_cv_header_leveldb_c_h}" = "yes" &&
+      test "${leveldb_ok}" = "yes"; then
+      DBMODULES="${DBMODULES} lib/framerd/leveldb.${shared_suffix}";
+     INSTALLDBMODULES="${INSTALLDBMODULES} install-leveldb";
+   elif test "${enable_leveldb}" = "force"; then
+     DBMODULES="lib/framerd/leveldb.${shared_suffix} ${DBMODULES}";
+     INSTALLDBMODULES="${INSTALLDBMODULES} install-leveldb";
+     force_enabled="leveldb ${force_enabled}";
+   else
+     auto_disabled="leveldb ${auto_disabled}";
+     enable_leveldb="no";
+   fi;
+else
+   manually_disabled="leveldb ${auto_disabled}";
+fi
+
+### RocksDB cmodule build
+
+AC_ARG_ENABLE(rocksdb,--en[dis]able-rocksdb Build and install Rocksdb module,,enable_rocksdb="yes")
+rocksdb_ok="no"
+
+if test "${enable_rocksdb}" = "yes" ||
+   test "${enable_rocksdb}" = "force"; then
+   AC_CHECK_HEADERS(rocksdb/c.h)
+   AC_CHECK_LIB(rocksdb,rocksdb_open,rocksdb_ok="yes")
+   if test "${enable_rocksdb}" = "yes" && 
+      test "${ac_cv_header_rocksdb_c_h}" = "yes";
+      test "${rocksdb_ok}" = "yes"; then
+     DBMODULES="lib/framerd/rocksdb.${shared_suffix} ${DBMODULES}";
+     INSTALLDBMODULES="install-rocksdb ${INSTALLDBMODULES}";
+   elif test "${enable_rocksdb}" = "force"; then
+     DBMODULES="lib/framerd/rocksdb.${shared_suffix} ${DBMODULES}";
+     INSTALLDBMODULES="install-rocksdb ${INSTALLDBMODULES}";
+     force_enabled="rocksdb ${force_enabled}";
+   else
+     auto_disabled="rocksdb ${auto_disabled}";
+     enable_rocksdb="no";
+   fi;
+else
+   manually_disabled="rocksdb ${auto_disabled}";
+fi
+
+### ImageMagick cmodule build
+
+AC_ARG_ENABLE(imagick,--en[dis]able-imagick Build and install imagemagick module,,enable_imagick="yes")
+
+if test "$enable_imagick" = "yes" &&
+   test $pkg_config != "na" &&
+   $pkg_config --exists MagickWand; then
+  IMAGICK_CFLAGS=`$pkg_config MagickWand --cflags`;
+  IMAGICK_LDFLAGS=`$pkg_config MagickWand --libs`;
+  CMODULES="lib/framerd/imagick.$shared_suffix ${CMODULES}";
+  INSTALLCMODULES="install-imagick ${INSTALLCMODULES}";
+elif test "$enable_imagick" = "force"; then
+  CMODULES="lib/framerd/imagick.$shared_suffix ${CMODULES}";
+  INSTALLCMODULES="install-imagick ${INSTALLCMODULES}";
+elif test "$enable_imagick" = "yes"; then
+  auto_disabled="imagick ${auto_disabled}";
+  enable_imagick="failed";
+else
+  manually_disabled="imagick ${manually_disabled}";
+fi
+
+### archive library (manipulates various kinds of archives)
+
+AC_CHECK_HEADERS(archive.h)
+AC_CHECK_LIB(archive,archive_read_new)
+if test "${ac_cv_header_archive_h}" == "yes" && \
+   test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
+  CMODULES="lib/framerd/libarchive.${shared_suffix} ${CMODULES}"
+  INSTALLCMODULES="install-libarchive ${INSTALLCMODULES}"
+fi
+
+### ziptools library (manipulates zip archives)
+
+AC_ARG_ENABLE(ziptools,--with-ziptools Build and install ziptools,,enable_ziptools="yes")
+
+if test "$enable_ziptools" = "yes" ||
+   test "$enable_ziptools" = "force"; then
+  AC_CHECK_HEADER(zip.h,have_zip_h="yes",have_zip_h="no")
+  AC_CHECK_LIB(zip,zip_add,have_libzip="yes",have_libzip="no")
+  AC_CHECK_FUNCS(zip_set_file_compression zip_set_file_comment zip_set_file_extra)
+  if test $pkg_config != "na" &&
+     $pkg_config --exists libzip; then
+    LIBZIP_CFLAGS=`$pkg_config libzip --cflags` 
+    LIBZIP_LDFLAGS=`$pkg_config libzip --libs` 
+    CFLAGS="${CFLAGS} ${LIBZIP_CFLAGS}"
+    CPPFLAGS="${CPPFLAGS} ${LIBZIP_CFLAGS}"
+    LDFLAGS="${LDFLAGS} ${LIBZIP_LDFLAGS}"
+    CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}";
+    INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}";
+  elif test "$have_zip_h" = "yes" &&
+       test "$have_libzip" = "yes"; then
+    CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}";
+    INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}";
+  elif test "$enable_ziptools" = "force"; then
+    CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}";
+    INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}";
+    force_enabled="ziptools ${force_enabled}";
+  else
+    auto_disabled="ziptools ${auto_disabled}";
+    enable_ziptools="failed";
+  fi;
+else
+    manually_disabled="ziptools ${manually_disabled}";
+fi
+
+### MongoDB
+
+AC_ARG_ENABLE(mongodb,--en[dis]able-mongodb Build and install MongoDB module,,enable_mongodb="yes")
+
+if test "$enable_mongodb" = "yes" ||
+   test "$enable_mongodb" = "force"; then
+  if test $pkg_config != "na" &&
+     $pkg_config --exists libmongoc-1.0; then
+    MONGODB_CFLAGS=`$pkg_config libmongoc-1.0 --cflags` 
+    MONGODB_LDFLAGS=`$pkg_config libmongoc-1.0 --libs` 
+    DBMODULES="lib/framerd/mongodb.$shared_suffix ${DBMODULES}";
+    INSTALLDBMODULES="install-mongodb ${INSTALLDBMODULES}";
+    MONGODB_ENABLED=yes
+  elif test "$enable_mongodb" = "force"; then
+    force_enabled="mongodb ${force_enabled}";
+    DBMODULES="lib/framerd/mongodb.$shared_suffix ${DBMODULES}";
+    INSTALLDBMODULES="install-mongodb ${INSTALLDBMODULES}";
+    MONGODB_ENABLED=yes
+  else
+    auto_disabled="mongodb ${auto_disabled}";
+  fi;
+elif test "$enable_mongodb" = "bundled"; then
+    MONGODB_BUNDLED=mongodb.bundled
+    MONGODB_CFLAGS="-I./include/bson -I./include/mongoc"
+    MONGODB_LDFLAGS="-Wl,--whole-archive -Wl,-Bstatic -lmongoc -Wl,--no-whole-archive  -lbson -Wl,-Bdynamic"
+    DBMODULES="lib/framerd/mongodb.$shared_suffix ${DBMODULES}";
+    INSTALLDBMODULES="install-mongodb ${INSTALLDBMODULES}";
+else
+    manually_disabled="mongodb ${manually_disabled}";      
+fi;
+
+### MySQL
+
+AC_CHECK_PROGS(mysql_config,mysql_config /usr/local/bin/mysql_config /opt/bin/mysql_config /opt/local/bin/mysql_config ,"na")
+AC_CHECK_PROGS(pkg_config,pkg-config /usr/local/bin/pkg-config /opt/bin/pkg-config /opt/local/bin/pkg-config ,"na")
+
+if test $mysql_config != "na"; then
+   with_mysql_default="auto"
+else
+   with_mysql_default="no";
+fi
+
+AC_ARG_WITH(mysql,--with[out]-mysql Use alternate mysql lib,,with_mysql=$with_mysql_default)
+
+if test "$with_mysql" = "auto"; then
+  MYSQL_CFLAGS=`$mysql_config --cflags`
+  MYSQL_LDFLAGS=`$mysql_config --libs_r`
+elif test "$with_mysql" = "yes"; then
+  MYSQL_CFLAGS=\`$mysql_config --cflags\`
+  MYSQL_LDFLAGS=\`$mysql_config --libs_r\`
+elif test "$with_mysql" != "no"; then
+  MYSQL_CFLAGS="-I$with_mysql/include"
+  MYSQL_LDFLAGS="-I$with_mysql/lib"
+fi
+
+if test "$with_mysql" != "no"; then
+  DBMODULES="lib/framerd/mysql.$shared_suffix ${DBMODULES}"
+  INSTALLDBMODULES="install-mysql ${INSTALLDBMODULES}"
+fi
+
+### ODBC
+
+AC_CHECK_HEADERS(sql.h)
+
+AC_ARG_ENABLE(odbc,--en[dis]able-odbc Build odbc modules,,enable_odbc="yes")
+ODBC_LIBS=
+
+if test "$enable_odbc" = "yes"; then
+   AC_CHECK_HEADER(sql.h,have_sql_h="yes",have_sql_h="no")
+   if test "$have_sql_h" = "yes"; then
+     AC_CHECK_LIB(iodbc,SQLNumResultCols,ODBC_LIBS="-liodbc")
+     if test ! -z "${ODBC_LIBS}"; then
+       DBMODULES="lib/framerd/odbc.$shared_suffix ${DBMODULES}"
+       INSTALLDBMODULES="install-odbc ${INSTALLDBMODULES}"
+     fi;
+   fi;
+fi;
+
+if test "$have_sql_h" = "yes"; then
+  AC_CHECK_LIB(odbc,SQLNumResultCols)
+fi
+
+### SQLITE3
+
+AC_CHECK_HEADER(sqlite3.h,have_sqlite3_h="yes",have_sqlite3_h="no")
+sqlite3_ok="no"
+sqlite3v2_ok="no"
+
+if test $have_sqlite3_h = "yes"; then
+  AC_DEFINE(HAVE_SQLITE3_H,1)
+  AC_CHECK_LIB(sqlite3,sqlite3_open,sqlite3_ok="yes")
+  AC_CHECK_LIB(sqlite3,sqlite3_open_v2,sqlite3v2_ok="yes")
+  if test "$sqlite3_ok" = "yes"; then
+    DBMODULES="lib/framerd/sqlite.$shared_suffix ${DBMODULES}";
+    INSTALLDBMODULES="install-sqlite ${INSTALLDBMODULES}";
+    if test "${sqlite3v2_ok}" == "yes"; then
+      AC_DEFINE(HAVE_SQLITE3_V2,1)
+    fi;
+  fi;
+fi
+
+### Regular expressions library
+
+AC_CHECK_HEADER(regex.h,have_regex_h="yes",have_regex_h="no")
+if (test "$have_regex_h" = "yes"); then
+  AC_CHECK_FUNC(regcomp,have_regcomp="yes",have_regcomp="no")
+fi
+if (test "$have_regex_h" = "yes") && (test "$have_regcomp" = "no"); then
+  AC_CHECK_LIB(regex,regcomp,have_regcomp="yes",have_regcomp="no")
+fi
+
+### zlib/libz compression functions
+
+AC_CHECK_HEADER(zlib.h,have_zlib_h="yes",have_zlib_h="no")
+if (test "$have_zlib_h" = "yes"); then
+  AC_CHECK_LIB(z,compress2,have_libz="yes",have_libz="no")
+fi
+
+if (test "$have_libz" = "yes"); then
+  CMODULES="lib/framerd/zlib.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-zlib ${INSTALLCMODULES}"
+fi
+
+AC_CHECK_HEADER(zlib.h,have_zlib_h="yes",have_zlib_h="no")
+if test "${have_zlib_h}" = "yes"; then
+   AC_CHECK_LIB(zlib,uncompress)
+   AC_DEFINE(HAVE_ZLIB_H,1)
+fi;
+
+### Google SNAPPY compression library
+
+AC_CHECK_HEADER(snappy-c.h,have_snappyc_h="yes",have_snappyc_h="no")
+if test "${have_snappyc_h}" = "yes"; then
+   AC_CHECK_LIB(snappy,snappy_compress)
+   AC_DEFINE(HAVE_SNAPPYC_H,1)
+fi;
+LIBS="${LIBS} -lsnappy"
+
+### ZSTD (compression wrapper)
+
+AC_CHECK_HEADER(zstd.h,have_zstd_h="yes",have_zstd_h="no")
+if test "${have_zstd_h}" = "yes"; then
+   AC_CHECK_LIB(zstd,ZSTD_decompress)
+   AC_DEFINE(HAVE_ZSTD_H,1)
+fi;
+
+### HTML TIDY
+
+AC_ARG_ENABLE(tidy,--en[dis]able-tidy Build and install tidy module,,enable_tidy="yes")
+
+if test "$enable_tidy" = "yes"; then
+  CMODULES="lib/framerd/tidy.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-tidy ${INSTALLCMODULES}"
+fi
+
+### Hyphenate library
+
+AC_ARG_ENABLE(hyphenate,--en[dis]able-hyphenate Build and install the hyphenate module,,enable_hyphenate="yes")
+hyphen_ok="no"
+
+if test "$enable_hyphenate" = "yes"; then
+  AC_CHECK_HEADERS(hyphen.h)
+  AC_CHECK_LIB(hyphen,hnj_hyphen_hyphenate2,hyphen_ok="yes")
+fi
+
+if test "$enable_hyphenate" = "yes" &&
+   test "$ac_cv_header_hyphen_h" = "yes" &&
+   test "$hyphen_ok" = "yes"; then
+  CMODULES="lib/framerd/hyphenate.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-hyphenate ${INSTALLCMODULES}"
+  DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
+elif test "$enable_hyphenate" = "force"; then
+  CMODULES="lib/framerd/hyphenate.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-hyphenate ${INSTALLCMODULES}"
+  DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
+  force_enabled="hyphenate ${force_enabled}";
+elif test "$enable_hyphenate" = "yes"; then
+  auto_disabled="hyphenate $auto_disabled";
+  enable_hyphenate="failed";
+else
+  manually_disabled="hyphenate $manually_disabled";
+fi
+
+## HUNSPELL library (spelling correction)
+
+AC_ARG_ENABLE(hunspell,--en[dis]able-hunspell Build and install the hunspell module,,enable_hunspell="yes")
+hunspell_ok="no"
+
+if test "$enable_hunspell" = "yes"; then
+  AC_CHECK_HEADERS(hunspell/hunspell.h)
+  AC_CHECK_LIB(hunspell,Hunspell_create)
+  AC_CHECK_LIB(hunspell,Hunspell_create,hunspell_ok="yes")
+  AC_CHECK_FUNCS(Hunspell_add_dic)
+fi
+
+if test "$enable_hunspell" = "yes" &&
+   test "$ac_cv_header_hunspell_hunspell_h" = "yes" &&
+   test "$hunspell_ok" = "yes"; then
+  CMODULES="lib/framerd/hunspell.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-hunspell ${INSTALLCMODULES}"
+  TESTCMODULES="test-hunspell ${TESTCMODULES}"
+elif test "$enable_hunspell" = "force"; then
+  CMODULES="lib/framerd/hunspell.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-hunspell ${INSTALLCMODULES}"
+  TESTCMODULES="test-hunspell ${TESTCMODULES}"
+  force_enabled="hunspell ${force_enabled}";
+elif test "$enable_hunspell" = "yes"; then
+  auto_disabled="hunspell $auto_disabled";
+  enable_hunspell="failed";
+else
+  manually_disabled="hunspell $manually_disabled";
+fi
+
+# OpenSSL checks
+AC_CHECK_FUNCS(CRYPTO_set_locking_callback)
+
+# For UUID functions
+AC_CHECK_LIB(uuid,uuid_generate_time)
+AC_CHECK_FUNCS(uuid_generate_time)
+
+## Large files
+
+dnl Compile for access to large files, essentially defining off_t as 64 bits.
+AC_ARG_ENABLE(largefiles,--en[dis]able-largefiles Enable use of large (> 2GB) file support,,enable_largefiles=yes)
+if test $enable_largefiles = "yes"; then
+  AC_DEFINE(FD_LARGEFILES_ENABLED,1)
+else
+  AC_DEFINE(FD_LARGEFILES_ENABLED,0)
+fi
+
+# Sundown library for converting markdown to HTML
+
+AC_ARG_WITH(sundown,--with[out]-sundown Compile the sundown module,,with_sundown="yes")
+if test "$with_sundown" = "yes"; then
+  CMODULES="lib/framerd/sundown.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-sundown ${INSTALLCMODULES}"
+fi
+
+### Object/index database prefetching
+
+dnl This is used to disable the simplest automatic database prefetches.
+dnl This is typically used to configure for benchmarking prefetch mechanisms
+dnl against the base case of no prefetches at all.
+AC_ARG_ENABLE(prefetching,--en[dis]able-prefetching make frame operations prefetch when they can,,enable_prefetching="yes")
+if test $enable_prefetching = "yes"; then
+  AC_DEFINE(FD_PREFETCHING_ENABLED,1)
+else
+  AC_DEFINE(FD_PREFETCHING_ENABLED,0)
+fi
+
+dnl This builds in file config lookups
+AC_ARG_ENABLE(fileconfig,--en[dis]able-fileconfig enable file-based configuration,,enable_fileconfig="yes")
+if test "$enable_fileconfig" = "yes"; then
+  AC_DEFINE(FD_FILECONFIG_ENABLED,1)
+else
+  AC_DEFINE(FD_FILECONFIG_ENABLED,0)
+fi
+
+dnl This integrates the fdweb module into executables by default; otherwise
+dnl  it is built and installed as a plugin library
+AC_ARG_ENABLE(htmldump,--en[dis]able-htmldump write HTML backtraces,,enable_htmldump="yes")
+if test $enable_htmldump = "yes"; then
+  scheme_builtins_init="$scheme_builtins_init; fd_init_fdweb()"
+  xdynamic_scheme_libs="$xdynamic_scheme_libs -lfdweb${suffix}"
+  xstatic_exe_libs="lib/libfdweb${suffix}.a $xstatic_exe_libs"
+  xstatic_scheme_libs=" ../../lib/libfdweb${suffix}.a $xstatic_scheme_libs"
+  AC_DEFINE(FD_HTMLDUMP_ENABLED,1)
 fi
 
 dnl This enables the ipeval implementation within FramerD
@@ -1740,6 +1795,8 @@ if test "$with_parseltongue" = "yes" &&  test ! -z "${ax_python2_lib}"; then
    INSTALLCMODULES="install-parseltongue ${INSTALLCMODULES}"
 fi
 
+## Build CURL cmodule
+
 dnl Build with primitives accessing libcurl, if it is available
 AC_CHECK_LIB(curl,curl_easy_init,curl_default="yes")
 AC_ARG_WITH(curl,--with[out]-curl Use libcurl in fdweb,,with_curl=$curl_default)
@@ -1752,6 +1809,8 @@ if test $with_curl = "yes"; then
 else
   AC_DEFINE(FD_WITH_CURL,0)
 fi
+
+## Providing DNS functions in fdweb
 
 dnl Build with primitives accessing DNS resolution functions, if available
 AC_CHECK_HEADERS(resolv.h)
@@ -1768,6 +1827,8 @@ else
   AC_DEFINE(FD_WITH_DNS,0)
 fi
 
+### exif (extract metadata from image files)
+
 dnl Build with primitives accessing libexif, if it is available
 AC_CHECK_LIB(exif,exif_data_new_from_data,exif_default="yes")
 AC_CHECK_HEADER(libexif/exif-data.h,exif_default=$exif_default,exif_default="no")
@@ -1777,6 +1838,8 @@ if test "$with_exif" = "yes"; then
   CMODULES="lib/framerd/exif.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-exif ${INSTALLCMODULES}"
 fi
+
+### qrencode
 
 dnl Build with primitives accessing qrcoding, if available
 AC_CHECK_HEADER(png.h,have_png_h="yes",have_png_h="no")
@@ -1796,7 +1859,7 @@ if (test "$with_qrcode" = "yes"); then
   fi;
 fi
 
-echo "with_qrcode=$with_qrcode have_png_h=$have_png_h have_qrencode_h=$have_qrencode_h libpng_ok=$libpng_ok qrcode_ok=$qrcode_ok"
+### Boot systems
 
 if test -d /etc/systemd; then
   default_bootsystem="systemd";
@@ -1834,6 +1897,8 @@ if test "$prefix" != "/usr"; then
   LDFLAGS="$LDFLAGS -L$prefix/lib"
 fi
 
+### These are components to preload
+
 AC_DEFINE_UNQUOTED(FD_SCHEME_BUILTINS,$scheme_builtins_init)
 
 if test $exec_prefix = 'NONE';
@@ -1842,13 +1907,15 @@ else BINDIR="${exec_prefix}/bin";
 fi
 
 dnl Try to init submodules if needed and possible
-if (test ! -f src/scheme/gpath.scm); then
+if (test ! -f src/extmods/samplefns.scm); then
    if (which git 2>&1 > /dev/null) && (test -d .git); then
      git submodule update --init;
    else
      echo "Can't initialize git submodules";
    fi;
 fi;
+
+### Here's where stuff gets made
 
 AC_OUTPUT([makefile etc/version etc/makefile.include
            tests/lisp/makefile tests/storage/makefile
