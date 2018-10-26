@@ -1,3 +1,12 @@
+framerd (4.2.10-25) stable; urgency=medium
+
+  * Removed brico from extmods
+  * Add initial support for qcode interpreter
+  * Fixes and extensions to config and path handling
+  * Many other fixes and small improvements
+
+ -- Ken Haase <kh@beingmeta.com>  Fri, 26 Oct 2018 11:26:24 -0400
+
 framerd (4.2.8-24) stable; urgency=medium
 
   * Build with later versions of libhunspell

@@ -4,7 +4,6 @@ usr/share/framerd/modules/builtin/aws
 usr/share/framerd/modules/builtin/aws/templates
 usr/share/framerd/modules/builtin/batch
 usr/share/framerd/modules/builtin/bench
-usr/share/framerd/modules/builtin/brico/data
 usr/share/framerd/modules/builtin/domutils
 usr/share/framerd/modules/builtin/dropbox
 usr/share/framerd/modules/builtin/facebook

@@ -1,8 +1,6 @@
 usr/share/framerd/modules/builtin/*.scm
 usr/share/framerd/modules/builtin/aws/*.scm
 usr/share/framerd/modules/builtin/aws/templates/*.json
-usr/share/framerd/modules/builtin/brico/*.scm
-usr/share/framerd/modules/builtin/brico/data/*
 usr/share/framerd/modules/builtin/domutils/*.scm
 usr/share/framerd/modules/builtin/dropbox/*.scm
 usr/share/framerd/modules/builtin/facebook/*.scm

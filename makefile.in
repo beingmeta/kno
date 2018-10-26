@@ -482,7 +482,7 @@ SHARED_LIBS=lib/libfdcore@suffix@.@shared_suffix@  		\
 	lib/libtexttools@suffix@.@mshared_suffix@
 
 SCHEME_MODULES=src/extmods/*.scm \
-	src/extmods/aws/*.scm src/extmods/brico/*.scm \
+	src/extmods/aws/*.scm \
 	src/extmods/facebook/*.scm src/extmods/google/*.scm \
 	src/extmods/paypal/*.scm src/extmods/twitter/*.scm \
 	src/extmods/dropbox/*.scm src/extmods/twilio/*.scm \
@@ -1522,11 +1522,10 @@ $(DESTDIR)@unpackage_dir@:
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
 EXT_MODULE_DIRS=xhtml fdxml mongodb \
-	brico misc tests jwt domutils knodules textindex morph \
+	misc tests jwt domutils knodules textindex morph \
 	aws facebook paypal twitter twilio dropbox google
 
-EXT_MODULE_DATA=textindex/data brico/data knodules/data \
-		 aws/templates morph/data
+EXT_MODULE_DATA=textindex/data knodules/data aws/templates morph/data
 
 install-modules: install-standard-modules install-safe-modules
 install-standard-modules: install-module-source install-module-data

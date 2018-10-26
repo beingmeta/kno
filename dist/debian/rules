@@ -16,7 +16,7 @@ override_dh_auto_configure:
 		--with-make-target=packaged		 	\
 		--with-parseltongue				\
 		--with-libscm=version			 	\
-                --with-malloc=tcmalloc
+                --with-malloc=jemalloc
 
 override_dh_auto_install:
 	make DESTDIR=$$(pwd)/debian/tmp install install-fdserv install-i18n \
