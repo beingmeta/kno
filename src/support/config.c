@@ -626,14 +626,17 @@ FD_EXPORT int fd_sconfig_set(lispval ignored,lispval v,void *vptr)
     return 1;}
   else return fd_reterr(fd_TypeError,"fd_sconfig_set",u8_strdup(_("string")),v);
 }
-FD_EXPORT int fd_realpath_config_set(lispval ignored,lispval v,void *vptr)
+FD_EXPORT int fd_realpath_config_set(lispval confvar,lispval v,void *vptr)
 {
   u8_string *ptr = vptr;
   if (STRINGP(v)) {
     u8_string s = CSTRING(v);
     /* We could allow alternates here, e.g. path1;path2;path3 */
-    if (!(u8_file_existsp(s)))
-      s = NULL;
+    if (!(u8_file_existsp(s))) {
+      u8_log(LOG_ERR,"BadConfigPath",
+             "The path %s, configured for %q, does not exist: %s",
+             s,confvar);
+      s = NULL;}
     else {}
     if (s) {
       if (*ptr) u8_free(*ptr);
@@ -642,14 +645,17 @@ FD_EXPORT int fd_realpath_config_set(lispval ignored,lispval v,void *vptr)
     else return 0;}
   else return fd_reterr(fd_TypeError,"fd_sconfig_set",u8_strdup(_("string")),v);
 }
-FD_EXPORT int fd_realdir_config_set(lispval ignored,lispval v,void *vptr)
+FD_EXPORT int fd_realdir_config_set(lispval confvar,lispval v,void *vptr)
 {
   u8_string *ptr = vptr;
   if (STRINGP(v)) {
     u8_string s = CSTRING(v);
     /* We could allow alternates here, e.g. path1;path2;path3 */
-    if (!(u8_directoryp(s)))
-      s = NULL;
+    if (!(u8_directoryp(s))) {
+      u8_log(LOG_ERR,"BadConfigPath",
+             "The directory %s, configured for %q, does not exist",
+             s,confvar);
+      s = NULL;}
     else {}
     if (s) {
       if (*ptr) u8_free(*ptr);
