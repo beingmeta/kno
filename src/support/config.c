@@ -634,7 +634,7 @@ FD_EXPORT int fd_realpath_config_set(lispval confvar,lispval v,void *vptr)
     /* We could allow alternates here, e.g. path1;path2;path3 */
     if (!(u8_file_existsp(s))) {
       u8_log(LOG_ERR,"BadConfigPath",
-             "The path %s, configured for %q, does not exist: %s",
+             "The path %s, configured for %q, does not exist",
              s,confvar);
       s = NULL;}
     else {}
