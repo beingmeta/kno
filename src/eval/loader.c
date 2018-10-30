@@ -693,21 +693,18 @@ static int liveload_add(lispval var,lispval val,void *ignored)
 
 static int loadpath_config_set(lispval var,lispval vals,void *d)
 {
-  lispval *pathref = (lispval *) d;
-  lispval cur_path = *pathref, path = cur_path;
-  fd_incref(path);
+  lispval add_paths=FD_EMPTY_LIST;
   DO_CHOICES(val,vals) {
     if (!(STRINGP(val))) {
       fd_seterr(fd_TypeError,"loadpath_config_set","filename",val);
-      fd_decref(path);
+      fd_decref(add_paths);
       return -1;}
     else {
       u8_string pathstring = CSTRING(val);
       if (strchr(pathstring,'%')) {
-        path = fd_init_pair(NULL,val,path);
-        fd_incref(val);}
+        add_paths = fd_init_pair(NULL,fd_incref(val),add_paths);}
       else {
-        size_t len = 0;
+        size_t len = 0, n_elts = 0;
         u8_string start = pathstring;
         while (start) {
           u8_byte buf[1000];
@@ -719,16 +716,26 @@ static int loadpath_config_set(lispval var,lispval vals,void *d)
             strcpy(buf,start);
             len = strlen(start);}
           if (len == 0) {
-            if (next) start=next+1; else start=NULL;
+            if (next)
+              start=next+1;
+            else start=NULL;
             continue;}
           else if (buf[len-1] == '/')
             buf[len]='\0';
           else {
             buf[len]='/'; len++;
             buf[len]='\0';}
-          path = fd_init_pair(NULL,fdstring(buf),path);
-          if (next) start=next+1; else start=NULL;}}}}
+          add_paths = fd_init_pair(NULL,fdstring(buf),add_paths);
+          if (next)
+            start=next+1;
+          else start=NULL;}}}}
+  lispval *pathref = (lispval *) d;
+  lispval cur_path = *pathref, path = fd_incref(cur_path);
+  {FD_DOLIST(path_elt,add_paths) {
+      if (! ( (FD_PAIRP(path)) && (FD_EQUALP(path_elt,FD_CAR(path))) ) ) {
+        path = fd_init_pair(NULL,fd_incref(path_elt),path);}}}
   *pathref = path;
+  fd_decref(add_paths);
   fd_decref(cur_path);
   return 1;
 }
@@ -798,12 +805,14 @@ FD_EXPORT void fd_init_loader_c()
   {u8_string path = u8_getenv("FD_INIT_LOADPATH");
     lispval v = ((path) ? (fd_lispstring(path)) :
                 (lispval_string(FD_DEFAULT_LOADPATH)));
-    loadpath = fd_init_pair(NULL,v,loadpath);}
+    loadpath_config_set(fd_intern("LOADPATH"),v,&loadpath);
+    fd_decref(v);}
 
   {u8_string path = u8_getenv("FD_INIT_SAFELOADPATH");
     lispval v = ((path) ? (fd_lispstring(path)) :
                 (lispval_string(FD_DEFAULT_SAFE_LOADPATH)));
-    safe_loadpath = fd_init_pair(NULL,v,safe_loadpath);}
+    loadpath_config_set(fd_intern("SAFELOADPATH"),v,&safe_loadpath);
+    fd_decref(v);}
 
   {u8_string dir=u8_getenv("FD_LIBSCM_DIR");
     if (dir==NULL) dir = u8_strdup(FD_LIBSCM_DIR);
