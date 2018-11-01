@@ -58,15 +58,25 @@ static struct FD_KEY_SIZE *tempindex_fetchinfo(fd_index ix,fd_choice filter,int 
   return NULL;
 }
 
-static fd_index open_tempindex(u8_string name,fd_storage_flags flags,lispval opts)
+static unsigned int tempindex_init_n_slots = 24593;
+
+static fd_index open_tempindex(u8_string name,fd_storage_flags flags,
+                               lispval opts)
 {
   struct FD_TEMPINDEX *tempindex = u8_alloc(struct FD_TEMPINDEX);
   lispval metadata = fd_getopt(opts,FDSYM_METADATA,FD_VOID);
+  lispval size = fd_getopt(opts,FDSYM_SIZE,FD_VOID);
   fd_init_index((fd_index)tempindex,&tempindex_handler,
                 name,name,name,
                 flags|FD_STORAGE_NOSWAP,
                 metadata,
                 opts);
+  if (FD_FIXNUMP(size)) {
+    int n_slots = ((FD_FIX2INT(size)) > 0) ?
+      (fd_get_hashtable_size(size)) :
+      (-(FD_FIX2INT(size)));
+    fd_resize_hashtable(&(tempindex->index_adds),n_slots);}
+  else fd_resize_hashtable(&(tempindex->index_adds),tempindex_init_n_slots);
   fd_register_index((fd_index)tempindex);
   fd_decref(metadata);
   return (fd_index)tempindex;
@@ -142,6 +152,10 @@ FD_EXPORT void fd_init_tempindex_c()
                          NULL,
                          NULL);
   register_symbol = fd_intern("REGISTER");
+
+  fd_register_config("TEMPINDEX:SIZE","default size for tempindex caches",
+                     fd_intconfig_get,fd_intconfig_set,
+                     &tempindex_init_n_slots);
 
   u8_register_source_file(_FILEINFO);
 }
