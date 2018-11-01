@@ -9,24 +9,29 @@
 
 (module-export! '{aggregate/branch aggregate/merge! aggregate/merge})
 
-(define-init %loglevel %debug%)
+(define-init %loglevel %notice%)
+
+(define default-branchsize 16000)
+(varconfig! aggregate:branchsize default-branch-size)
 
 (define (keyslot->string keyslot partition)
   (if (symbol? keyslot)
       (downcase keyslot)
       #f))
 
-(define (aggregate/branch root)
+(define (aggregate/branch root (opts #f))
   (let ((partitions
 	 (for-choices (partition (indexctl root 'partitions))
 	   (let* ((keyslot (indexctl partition 'keyslot))
+		  (branchsize (getopt opts 'branchsize default-branchsize))
 		  (ix (open-index 
 			  (glom
 			    (if (symbol? keyslot) (downcase keyslot)
 				(basename (index-id partition))	)
 			    "-t" (threadid))
 			`#[type tempindex register #f
-			  keyslot ,keyslot])))
+			   keyslot ,keyslot
+			   size ,(suggest-hash-size branchsize)])))
 	     (indexctl ix 'props 'root partition)
 	     ix))))
     (make-aggregate-index partitions #[register #f])))
