@@ -235,7 +235,10 @@
 		 ;;  value we got from the database in our call
 		 ;;  to mongo/modify!
 		 (oid/sync! obj slotid result))
-		((table? obj) (drop! obj slotid values)))))))
+		((table? obj)
+		 (if (unbound? values)
+		     (drop! obj slotid)
+		     (drop! obj slotid values))))))))
 
 (define (get-drop-all-modifier slotids (result #[]))
   (do-choices (slotid slotids)
