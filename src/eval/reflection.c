@@ -733,7 +733,7 @@ static lispval profile_reset_prim(lispval fcn)
     u8_unlock_mutex(&(profile->prof_lock));
 #endif
     return FD_TRUE;}
-  else return fd_type_error("function","profile_fcn",fcn);
+  else return fd_type_error("function","profile_reset(profile)",fcn);
 }
 
 static lispval profiledp_prim(lispval fcn)
@@ -783,7 +783,7 @@ static lispval getcalls_prim(lispval fcn)
        FD_INT(user_time),FD_INT(system_time),
        FD_INT(n_waits),FD_INT(n_contests),FD_INT(n_faults),
        FD_INT(nsecs),FD_INT(calls),FD_INT(items));}
-  else return fd_type_error("function","profile_fcn",fcn);
+  else return fd_type_error("function","getcalls_prim(profile)",fcn);
 }
 
 /* Accessors */
