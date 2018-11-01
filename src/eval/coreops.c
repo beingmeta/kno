@@ -570,7 +570,7 @@ static lispval config_get(lispval vars,lispval dflt,lispval valfn)
         fd_decref(value);}}
     else {
       CHOICE_ADD(result,value);}}
-  if (EMPTYP(result))
+  if ( (VOIDP(result)) || (EMPTYP(result)) )
     if (VOIDP(dflt))
       return FD_FALSE;
     else return fd_incref(dflt);
