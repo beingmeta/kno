@@ -82,7 +82,10 @@
 				  #f)))))
 	    (when  (and args (sequence? args)  (> (length args) 0))
 	      (xmlblock ol ((class "args")) 
-		(doseq (arg args i) (li (output-vals arg)))))
+		(doseq (arg args i) 
+		  (if (bound? arg)
+		      (li (output-vals arg))
+		      (li "unbound")))))
 	    (when env
 	      (div ((class "bindings expands"))
 		(do-choices (key (getkeys env) k)
