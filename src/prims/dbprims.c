@@ -428,9 +428,9 @@ static lispval register_index(lispval arg,lispval opts)
   else return open_index_helper(arg,opts,1);
 }
 
-static lispval temp_index(lispval arg,lispval opts)
+static lispval cons_index(lispval arg,lispval opts)
 {
-  if (load_db_module(opts,"temp_index")<0)
+  if (load_db_module(opts,"cons_index")<0)
     return FD_ERROR;
   else return open_index_helper(arg,opts,0);
 }
@@ -619,7 +619,17 @@ static lispval make_aggregate_index(lispval sources,lispval opts)
   return index2lisp((fd_index)aggregate);
 }
 
-static lispval add_to_aggregate_index(lispval into_arg,lispval partition_arg)
+static lispval aggregate_indexp(lispval arg)
+{
+  fd_index ix = fd_indexptr(arg);
+  if (ix == NULL)
+    return FD_FALSE;
+  else if (fd_aggregate_indexp(ix))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static lispval extend_aggregate_index(lispval into_arg,lispval partition_arg)
 {
   fd_index into = fd_indexptr(into_arg);
   fd_index partition = fd_indexptr(partition_arg);
@@ -638,6 +648,16 @@ static lispval add_to_aggregate_index(lispval into_arg,lispval partition_arg)
            (_("index"),"add_to_aggregate_index",partition_arg);}
   else return fd_type_error(_("aggregate index"),"add_to_aggregate_index",
                             into_arg);
+}
+
+static lispval tempindexp(lispval arg)
+{
+  fd_index ix = fd_indexptr(arg);
+  if (ix == NULL)
+    return FD_FALSE;
+  else if (fd_tempindexp(ix))
+    return FD_TRUE;
+  else return FD_FALSE;
 }
 
 static lispval make_mempool(lispval label,lispval base,lispval cap,
@@ -1935,9 +1955,17 @@ static lispval index_merge(lispval ixarg,lispval addstable)
   fd_index ix = fd_indexptr(ixarg);
   if (ix == NULL)
     return fd_type_error("index","index_merge",ixarg);
-  else {
+  else if (FD_HASHTABLEP(addstable)) {
     int rv = fd_index_merge(ix,(fd_hashtable)addstable);
     return FD_INT(rv);}
+  else {
+    fd_index add_index = fd_indexptr(addstable);
+    if (add_index == NULL)
+      return fd_type_error("tempindex|hashtable","index_merge",addstable);
+    else if (fd_tempindexp(add_index)) {
+      int rv = fd_index_merge(ix,&(add_index->index_adds));
+      return FD_INT(rv);}
+    else return fd_type_error("tempindex|hashtable","index_merge",addstable);}
 }
 
 static lispval slotindex_merge(lispval ixarg,lispval add)
@@ -1949,8 +1977,6 @@ static lispval slotindex_merge(lispval ixarg,lispval add)
     int rv = fd_slotindex_merge(ix,add);
     return FD_INT(rv);}
 }
-
-
 
 static lispval index_source(lispval ix_arg)
 {
@@ -3507,9 +3533,10 @@ FD_EXPORT void fd_init_dbprims_c()
   fd_idefn2(fd_xscheme_module,"REGISTER-INDEX",register_index,1,
             "(REGISTER-INDEX *spec* [*opts*]) opens, registers, and returns an index",
             -1,VOID,-1,VOID);
-  fd_idefn2(fd_xscheme_module,"TEMP-INDEX",temp_index,1,
-            "(TEMP-INDEX *spec* [*opts*]) opens and returns an unregistered index",
+  fd_idefn2(fd_xscheme_module,"CONS-INDEX",cons_index,1,
+            "(CONS-INDEX *spec* [*opts*]) opens and returns an unregistered index",
             -1,VOID,-1,VOID);
+  fd_defalias(fd_xscheme_module,"TEMP-INDEX","CONS-INDEX");
 
   fd_idefn(fd_xscheme_module,
            fd_make_cprim2x("MAKE-INDEX",make_index,2,
@@ -3767,10 +3794,21 @@ FD_EXPORT void fd_init_dbprims_c()
             FD_NDCALL|FD_NEEDS_1_ARG,
             "Creates an aggregate index from a collection of other indexes",
             -1,FD_VOID,-1,FD_FALSE);
+  fd_idefn1(fd_xscheme_module,"AGGREGATE-INDEX?",aggregate_indexp,1,
+            "(AGGREGATE-INDEX? *arg*) => true if *arg* is an aggregate index",
+            -1,FD_VOID);
+  fd_idefn2(fd_xscheme_module,
+            "EXTEND-AGGREGATE-INDEX!",extend_aggregate_index,2,
+            "(EXTEND-AGGREGATE-INDEX! *agg* *index*) "
+            "adds *index* to the aggregate index *agg*",
+            -1,FD_VOID,-1,FD_VOID);
+  fd_defalias(fd_xscheme_module,"ADD-TO-AGGREGATE-INDEX!",
+              "EXTEND-AGGREGATE-INDEX!");
 
-  fd_idefn(fd_xscheme_module,
-           fd_make_cprim2("ADD-TO-AGGREGATE-INDEX!",add_to_aggregate_index,2));
-
+  fd_idefn1(fd_xscheme_module,"TEMPINDEX?",tempindexp,1,
+            "(TEMPINDEX? *arg*) returns #t if *arg* is a temporary index.",
+            -1,VOID);
+  
   fd_idefn(fd_xscheme_module,
            fd_make_ndprim(fd_make_cprim4("INDEX-FRAME",index_frame_prim,3)));
   fd_idefn(fd_xscheme_module,fd_make_cprim3("INDEX-SET!",index_set,3));
