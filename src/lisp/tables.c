@@ -1555,7 +1555,7 @@ static unsigned int hash_lisp(lispval x)
       return mult_hash_bytes(s->str_bytes,s->str_bytelen);}
     case fd_pair_type: {
       lispval car=FD_CAR(x), cdr=FD_CDR(x);
-      unsigned int hcar=fd_hash_lisp(car), hcdr=fd_hash_lisp(cdr);
+      unsigned int hcar=hash_lisp(car), hcdr=hash_lisp(cdr);
       return hash_mult(hcar,hcdr);}
     case fd_vector_type: {
       struct FD_VECTOR *v=
@@ -1616,7 +1616,7 @@ static unsigned int hash_elts(lispval *x,unsigned int n)
 {
   lispval *limit=x+n; int sum=0;
   while (x < limit) {
-    unsigned int h=fd_hash_lisp(*x);
+    unsigned int h=hash_lisp(*x);
     sum=hash_combine(sum,h); sum=sum%(MYSTERIOUS_MODULUS); x++;}
   return sum;
 }
@@ -2766,8 +2766,8 @@ static int free_buckets(struct FD_HASH_BUCKET **buckets,int len,int big)
       if (*scan) {
         struct FD_HASH_BUCKET *e=*scan;
         int n_entries=e->bucket_len;
-        struct FD_KEYVAL *kvscan=&(e->kv_val0);
-        struct FD_KEYVAL *kvlimit=kvscan+n_entries;
+        struct FD_CONST_KEYVAL *kvscan=(struct FD_CONST_KEYVAL *)&(e->kv_val0);
+        struct FD_CONST_KEYVAL *kvlimit=(struct FD_CONST_KEYVAL *)kvscan+n_entries;
         while (kvscan<kvlimit) {
           fd_decref(kvscan->kv_key);
           fd_decref(kvscan->kv_val);
