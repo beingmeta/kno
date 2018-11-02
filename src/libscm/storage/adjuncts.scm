@@ -62,10 +62,11 @@
 	       (let ((spec (get adjuncts slotid))
 		     (usedb (db/ref (get adjuncts slotid) open-opts)))
 		 (cond ((exists? usedb)
-			(logwarn |AdjunctConflict| 
-			  "Overriding existing adjunct for " slotid " of " pool ":" 
-			  "\n   using:      " (get adjuncts slotid)
-			  "\n   dropping:   " (get cur slotid))
+			(unless (test cur slotid usedb)
+			  (logwarn |AdjunctConflict| 
+			    "Overriding existing adjunct for " slotid " of " pool ":" 
+			    "\n   using:      " (get adjuncts slotid)
+			    "\n   dropping:   " (get cur slotid)))
 			(adjunct! pool slotid usedb))
 		       ((getopt opts 'require_adjuncts)
 			(irritant (get adjuncts slotid) |MissingAdjunct|
