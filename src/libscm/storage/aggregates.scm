@@ -12,7 +12,7 @@
 (define-init %loglevel %notice%)
 
 (define default-branchsize 16000)
-(varconfig! aggregate:branchsize default-branch-size)
+(varconfig! aggregate:branchsize default-branchsize)
 
 (define (keyslot->string keyslot partition)
   (if (symbol? keyslot)

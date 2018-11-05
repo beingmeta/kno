@@ -64,7 +64,7 @@ for name in $*; do
     else 
 	signalled="no";
     fi;
-    if [ ${signalled} == "no" ]; then
+    if [ ${signalled} = "no" ]; then
 	echo "fdsignal: Couldn't find task ${name} for signal ${SIGNAL}";
     elif [ -z "${SHOWLOG}" ]; then
 	SHOWLOG=${name};

@@ -39,6 +39,7 @@ static int n_chains=0, sum_chains=0;
 
 FD_FASTOP int find_base_oid(FD_OID base)
 {
+  /* TODO: Improve this hashing algorithm? */
   unsigned int hi = FD_OID_HI(base), lo=FD_OID_LO(base);
   unsigned long hi_times = hi*HASH_MULTIPLIER, lo_times = lo*HASH_MULTIPLIER;
   unsigned long hashval = hi_times ^ lo_times;

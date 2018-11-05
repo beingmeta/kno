@@ -50,7 +50,6 @@ static int resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots,int need_lock);
 #define flip_word(x) \
   (((x>>24)&0xff) | ((x>>8)&0xff00) | ((x&0xff00)<<8) | ((x&0xff)<<24))
 #define compute_offset(hash,size) (hash%size)
-/* #define compute_offset(hash,size) hash_multr(hash,2654435769U,size) */
 
 FD_FASTOP int numcompare(lispval x,lispval y)
 {
@@ -1511,9 +1510,13 @@ FD_EXPORT unsigned int fd_get_hashtable_size(unsigned int min)
   return min;
 }
 
+#define FIXNUM_MULTIPLIER 220000073 
+#define OID_MULTIPLIER 240000083
+#define CONSTANT_MULTIPLIER 250000073
+#define SYMBOL_MULTIPLIER 260000093
 static unsigned int type_multipliers[]=
-  {200000093,210000067,220000073,230000059,240000083,
-   250000073,260000093};
+  {200000093,210000067,FIXNUM_MULTIPLIER,OID_MULTIPLIER,
+   CONSTANT_MULTIPLIER,SYMBOL_MULTIPLIER};
 #define N_TYPE_MULTIPLIERS 6
 
 FD_FASTOP unsigned int mult_hash_bytes
@@ -1544,26 +1547,27 @@ static unsigned int hash_elts(lispval *x,unsigned int n);
 
 static unsigned int hash_lisp(lispval x)
 {
-  if (CONSP(x))
-    switch (FD_PTR_TYPE(x)) {
+  enum FD_PTR_TYPE ptr_type = FD_PTR_MANIFEST_TYPE(x);
+  if (ptr_type == fd_cons_type) {
+    struct FD_CONS *cons = (struct FD_CONS *)x;
+    ptr_type = FD_CONS_TYPE(cons);
+    switch (ptr_type) {
     case fd_string_type: {
-      struct FD_STRING *s=
-        fd_consptr(struct FD_STRING *,x,fd_string_type);
+      struct FD_STRING *s = (fd_string) cons;
       return mult_hash_bytes(s->str_bytes,s->str_bytelen);}
     case fd_packet_type: case fd_secret_type: {
-      struct FD_STRING *s=(struct FD_STRING *)x;
+      struct FD_STRING *s = (fd_string) cons;
       return mult_hash_bytes(s->str_bytes,s->str_bytelen);}
     case fd_pair_type: {
-      lispval car=FD_CAR(x), cdr=FD_CDR(x);
-      unsigned int hcar=fd_hash_lisp(car), hcdr=fd_hash_lisp(cdr);
+      struct FD_PAIR *pair = (fd_pair) cons;
+      lispval car=pair->car, cdr=pair->cdr;
+      unsigned int hcar=hash_lisp(car), hcdr=hash_lisp(cdr);
       return hash_mult(hcar,hcdr);}
     case fd_vector_type: {
-      struct FD_VECTOR *v=
-        fd_consptr(struct FD_VECTOR *,x,fd_vector_type);
+      struct FD_VECTOR *v = (fd_vector) cons;
       return hash_elts(v->vec_elts,v->vec_length);}
     case fd_compound_type: {
-      struct FD_COMPOUND *c=
-        fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);
+      struct FD_COMPOUND *c = (fd_compound) cons;
       if (c->compound_isopaque) {
         int ctype = FD_PTR_TYPE(x);
         if ( (ctype>0) && (ctype<N_TYPE_MULTIPLIERS) )
@@ -1573,13 +1577,11 @@ static unsigned int hash_lisp(lispval x)
              (hash_lisp(c->compound_typetag),
               hash_elts(&(c->compound_0),c->compound_length));}
     case fd_slotmap_type: {
-      struct FD_SLOTMAP *sm=
-        fd_consptr(struct FD_SLOTMAP *,x,fd_slotmap_type);
+      struct FD_SLOTMAP *sm = (fd_slotmap) cons;
       lispval *kv=(lispval *)sm->sm_keyvals;
       return hash_elts(kv,sm->n_slots*2);}
     case fd_choice_type: {
-      struct FD_CHOICE *ch=
-        fd_consptr(struct FD_CHOICE *,x,fd_choice_type);
+      struct FD_CHOICE *ch = (fd_choice) cons;
       int size=FD_XCHOICE_SIZE(ch);
       return hash_elts((lispval *)(FD_XCHOICE_DATA(ch)),size);}
     case fd_prechoice_type: {
@@ -1588,18 +1590,24 @@ static unsigned int hash_lisp(lispval x)
       fd_decref(simple);
       return hash;}
     case fd_qchoice_type: {
-      struct FD_QCHOICE *ch=
-        fd_consptr(struct FD_QCHOICE *,x,fd_qchoice_type);
+      struct FD_QCHOICE *ch = (fd_qchoice) cons;
       return hash_lisp(ch->qchoiceval);}
     default: {
-      int ctype=FD_PTR_TYPE(x);
-      if ((ctype<FD_TYPE_MAX) && (fd_hashfns[ctype]))
-        return fd_hashfns[ctype](x,fd_hash_lisp);
-      else return hash_mult(x,MYSTERIOUS_MULTIPLIER);}}
+      if ((ptr_type<FD_TYPE_MAX) && (fd_hashfns[ptr_type]))
+        return fd_hashfns[ptr_type](x,fd_hash_lisp);
+      else return hash_mult(x,MYSTERIOUS_MULTIPLIER);}}}
+  else if (ptr_type == fd_oid_type)
+    return hash_mult(x,OID_MULTIPLIER);
+  else if (ptr_type == fd_fixnum_type)
+    return hash_mult(x,FIXNUM_MULTIPLIER);
   else {
-    int ctype=FD_PTR_TYPE(x);
-    if ((ctype>0) && (ctype<N_TYPE_MULTIPLIERS))
-      return hash_mult(x,type_multipliers[ctype]);
+   ptr_type = FD_IMMEDIATE_TYPE(x);
+   if (ptr_type == fd_constant_type)
+     return hash_mult(x,CONSTANT_MULTIPLIER);
+   else if (ptr_type == fd_symbol_type)
+     return hash_mult(x,SYMBOL_MULTIPLIER);
+   else if ((ptr_type>fd_symbol_type) && (ptr_type<N_TYPE_MULTIPLIERS))
+      return hash_mult(x,type_multipliers[ptr_type]);
     else return hash_mult(x,MYSTERIOUS_MULTIPLIER);}
 }
 
@@ -1616,7 +1624,7 @@ static unsigned int hash_elts(lispval *x,unsigned int n)
 {
   lispval *limit=x+n; int sum=0;
   while (x < limit) {
-    unsigned int h=fd_hash_lisp(*x);
+    unsigned int h=hash_lisp(*x);
     sum=hash_combine(sum,h); sum=sum%(MYSTERIOUS_MODULUS); x++;}
   return sum;
 }
@@ -2764,10 +2772,11 @@ static int free_buckets(struct FD_HASH_BUCKET **buckets,int len,int big)
     struct FD_HASH_BUCKET **scan=buckets, **lim=scan+len;
     while (scan < lim)
       if (*scan) {
-        struct FD_HASH_BUCKET *e=*scan;
+        struct FD_HASH_BUCKET *e = *scan;
         int n_entries=e->bucket_len;
-        struct FD_KEYVAL *kvscan=&(e->kv_val0);
-        struct FD_KEYVAL *kvlimit=kvscan+n_entries;
+        struct FD_CONST_KEYVAL *kvscan =
+          ((struct FD_CONST_KEYVAL *) &(e->kv_val0));
+        struct FD_CONST_KEYVAL *kvlimit = kvscan + n_entries;
         while (kvscan<kvlimit) {
           fd_decref(kvscan->kv_key);
           fd_decref(kvscan->kv_val);
