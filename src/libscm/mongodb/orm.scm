@@ -113,16 +113,17 @@
 		       (else (try (get obj '_id) obj))))
 	     (selector `#[_id ,(if (ambiguous? id) `#[$in ,id] id)])
 	     (current (if (table? obj) (get obj slotid) (mgo/get obj slotid)))
+	     (vecvals (getopt opts 'vecvals #f))
 	     (result #f))
 	(info%watch "MGO/STORE!" obj id collection slotid values)
 	(set! result
-	  (if (ambiguous? slotid)
-	      (collection/modify! collection selector
-		`#[$set ,(get-store-modifier slotid values)]
-		#[new #t return #[__index 0]])
-	      (collection/modify! collection selector
-		`#[$set #[,slotid ,values]]
-		#[new #t return #[__index 0]])))
+	  (collection/modify! collection selector
+	    (if (ambiguous? slotid)
+		`#[$set ,(get-store-modifier slotid values (and vecvals (singleton? values)))]
+		(if (and (singleton? values) vecvals)
+		    `#[$set #[,slotid ,(mongovec values)]]
+		    `#[$set #[,slotid ,values]]))
+	    #[new #t return #[__index 0]]))
 	(mongo/decache-index! slotid 
 			      {(difference current values)
 			       (difference values current)})
@@ -138,47 +139,56 @@
 	       (oid/sync! obj slotid result))
 	      ((table? obj) (store! obj slotid values))))))
 
-(defambda (get-store-modifier slotids values (result))
+(defambda (get-store-modifier slotids values vecvals (result))
   (set! result #[])
   (do-choices (slotid slotids)
-    (store! result slotid values))
+    (store! result slotid (if vecvals (mongovec values) values)))
   result)
 
 (defambda (mgo/add! obj slotid values (opts #f))
-  (if (and (or (ambiguous? obj) (ambiguous? slotid))
-	   (not (getopt opts 'batch #f)))
-      (for-choices obj
-	(for-choices slotid
-	  (mgo/store! obj slotid values opts)))
-      (let* ((collection (->collection obj))
-	     (id (cond ((oid? obj) obj)
-		       ((not (table? obj)) obj)
-		       (else (try (get obj '_id) obj))))
-	     (selector `#[_id ,(if (ambiguous? id) `#[$in ,id] id)])
-	     (current (tryif (singleton? obj) (get obj slotid)))
-	     (result #f))
-	(info%watch "MGO/ADD!" obj id collection slotid values)
-	(set! result
-	  (if (singleton? current)
-	      (collection/modify! collection selector
-		`#[$set #[,slotid ,{values current}]]
-		#[new #t return #[__index 0]])
-	      (collection/modify! collection selector
-		`#[$addToSet ,(get-multi-modifier slotid values)]
-		#[new #t return #[__index 0]])))
-	(debug%watch "MGO/ADD!" obj id slotid collection values "\n" result)
-	(mongo/decache-index! slotid values)
-	(cond ((oid? obj)
-	       (add! obj slotid values))
-	      ((and (oid? obj) (modified? obj))
-	       ;; Just write the new value
-	       (add! obj slotid values))
-	      ((oid? obj)
-	       ;; This updates the current OID value from the
-	       ;;  value we got from the database from
-	       ;; mongo/modify!
-	       (oid/sync! obj slotid result))
-	      ((table? obj) (add! obj slotid values))))))
+  (cond ((fail? values) #f)
+	((and (or (ambiguous? obj) (ambiguous? slotid))
+	      (not (getopt opts 'batch #f)))
+	 (for-choices obj
+	   (for-choices slotid
+	     (mgo/add! obj slotid values opts))))
+	(else
+	 (let* ((collection (->collection obj))
+		(id (cond ((oid? obj) obj)
+			  ((not (table? obj)) obj)
+			  (else (try (get obj '_id) obj))))
+		(selector `#[_id ,(if (ambiguous? id) `#[$in ,id] id)])
+		(current (tryif (singleton? obj) (get obj slotid)))
+		(result #f))
+	   (info%watch "MGO/ADD!" obj id collection slotid values)
+	   (set! result
+	     (cond ((empty? current)
+		    (collection/modify! collection selector
+		      (if (and (singleton? values) (getopt opts 'vecvals #f))
+			  `#[$set #[,slotid ,(mongovec values)]]
+			  `#[$set #[,slotid ,values]])
+		      #[new #t return #[__index 0]]))
+		   ((singleton? current)
+		    (collection/modify! collection selector
+		      `#[$set #[,slotid ,{values current}]]
+		      #[new #t return #[__index 0]]))
+		   (else
+		    (collection/modify! collection selector
+		      `#[$addToSet ,(get-multi-modifier slotid values)]
+		      #[new #t return #[__index 0]]))))
+	   (debug%watch "MGO/ADD!" obj id slotid collection values "\n" result)
+	   (mongo/decache-index! slotid values)
+	   (cond ((oid? obj)
+		  (add! obj slotid values))
+		 ((and (oid? obj) (modified? obj))
+		  ;; Just write the new value
+		  (add! obj slotid values))
+		 ((oid? obj)
+		  ;; This updates the current OID value from the
+		  ;;  value we got from the database from
+		  ;; mongo/modify!
+		  (oid/sync! obj slotid result))
+		 ((table? obj) (add! obj slotid values)))))))
 
 (defambda (get-multi-modifier slotids values)
   (if (unique? slotids)
