@@ -1,3 +1,9 @@
+framerd (4.2.10-26) stable; urgency=medium
+
+  * Fix build dependencies to accept libmongoc/bson-dev or mongo-c-driver
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 06 Nov 2018 21:00:11 +0000
+
 framerd (4.2.10-25) stable; urgency=medium
 
   * Removed brico from extmods
