@@ -30,6 +30,7 @@ TEST_EXEFLAGS = @EXEFLAGS@
 XLIBS         =
 LIBS          = $(XLIBS) @LIBS@
 PATH          = @BINPATH@
+DEBBUILD      = -b
 INDENTOPTS    = -br -ce -psl -Tfdtype -Tu8_string -Tfd_stream -Tfd_inbuf \
 		-Tfd_outbuf -Tfd_rawbuf -Tfd_function -Tfd_pair -Tfd_choice
 
@@ -1321,7 +1322,7 @@ dist/rpms.zip: dist/rpms.done
 
 dist/debs.built: staging/framerd_@FDVERSION@
 	(cd staging/framerd_@FDVERSION@; \
-	 dpkg-buildpackage -sa -us -uc -F -rfakeroot) && \
+	 dpkg-buildpackage -sa -us -uc ${DEBBUILD} -rfakeroot) && \
 	touch dist/debs.built;
 dist/debs.signed: dist/debs.built
 	(cd staging; debsign -p${GPG} --re-sign -k${GPGID} 	\
