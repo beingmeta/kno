@@ -1698,7 +1698,7 @@ build-setup.debian:
 		libmysqlclient-dev libmongoc-dev unixodbc-dev sqlite3 \
 		libzip-dev apache2-dev libedit-dev libhyphen-dev \
 		libhunspell-dev libmagickwand-dev libqrencode-dev \
-		libexif-dev libgoogle-perftools-dev \
+		libexif-dev libgoogle-perftools-dev libhunspell-dev \
 		libarchive-dev libsasl2-dev libsqlite3-dev \
 		dh-make devscripts dpkg-dev dh-systemd debsigs
 build-setup.redhat:
