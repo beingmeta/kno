@@ -1229,6 +1229,7 @@ i18n: etc/intl/fr.gmo etc/intl/nl.gmo etc/intl/es.gmo
 
 rpms: dist/rpms.done
 debian deb debs: dist/debs.done
+debsource: dist/debsource.done
 
 cleandist cleanrpms cleandeb rpmclean debclean: 
 	rm -rf dist/rpms.done dist/rpms.ready
@@ -1322,8 +1323,13 @@ dist/rpms.zip: dist/rpms.done
 
 dist/debs.built: staging/framerd_@FDVERSION@
 	(cd staging/framerd_@FDVERSION@; \
-	 dpkg-buildpackage -sa -us -uc ${DEBBUILD} -rfakeroot) && \
+	 dpkg-buildpackage -sa -us -uc -b -rfakeroot) && \
 	touch dist/debs.built;
+dist/debsource.built: staging/framerd_@FDVERSION@
+	(cd staging/framerd_@FDVERSION@; \
+	 dpkg-buildpackage -sa -us -uc -F -rfakeroot) && \
+	touch dist/debs.built dist/debsource.built;
+
 dist/debs.signed: dist/debs.built
 	(cd staging; debsign -p${GPG} --re-sign -k${GPGID} 	\
 		framerd_@FDVERSION@*.changes) && 		\
@@ -1336,9 +1342,24 @@ dist/debs.signed: dist/debs.built
 			elpa-fdconsole_@FDVERSION@*.deb  \
 			../dist) &&                             \
 	touch dist/debs.signed;
+dist/debsource.signed: dist/debsource.built
+	(cd staging; debsign -p${GPG} --re-sign -k${GPGID} 	\
+		framerd_@FDVERSION@*.changes) && 		\
+	(cd staging; cp framerd_@FDVERSION@*.tar.?z ../dist) && \
+	(cd staging; mv framerd*_@FDVERSION@*.*               	\
+			sysv-framerd_@FDVERSION@*.deb  		\
+			upstart-framerd_@FDVERSION@*.deb  	\
+			systemd-framerd_@FDVERSION@*.deb  	\
+			libapache2-mod-fdserv_@FDVERSION@*.deb  \
+			elpa-fdconsole_@FDVERSION@*.deb  \
+			../dist) &&                             \
+	touch dist/debsource.signed;
+	touch dist/debs.signed;
 
 dist/debs.done: dist/debs.signed
 	touch dist/debs.done
+dist/debsource.done: dist/debsource.signed
+	touch dist/debsource.done dist/debs.done
 
 install-debian install-debs debinstall installdebs: dist/debs.done
 	@cd dist; @SUDO@ dpkg -i framerd*@FDVERSION@*.deb \
