@@ -1,3 +1,9 @@
+framerd (4.2.10-27) stable; urgency=medium
+
+  * More mongoc dependency fixes
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 07 Nov 2018 15:01:21 +0000
+
 framerd (4.2.10-26) stable; urgency=medium
 
   * Fix build dependencies to accept libmongoc/bson-dev or mongo-c-driver

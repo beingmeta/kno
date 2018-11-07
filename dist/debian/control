@@ -83,7 +83,7 @@ Description: This package contains the debugging symbols for framerd-sqlite
 
 Package: framerd-mongodb
 Architecture: any
-Depends: framerd-core (= ${binary:Version}), libbson-dev, libmongoc-dev
+Depends: framerd-core (= ${binary:Version}), mongo-c-driver | libbson-dev, mongo-c-driver | libmongoc-dev
 Description: MongoDB interface for FramerD
 
 Package: framerd-mongodb-dbg
@@ -92,8 +92,8 @@ Section: debug
 Depends: 
     framerd-core-dbg (= ${binary:Version}),
     framerd-mongodb (= ${binary:Version}),
-    libmongoc-dev,
-    libbson-dev,
+    mongo-c-driver | libmongoc-dev,
+    mongo-c-driver | libbson-dev,
     ${misc:Depends}
 Description: This package contains the debugging symbols for framerd-mongodb
 
