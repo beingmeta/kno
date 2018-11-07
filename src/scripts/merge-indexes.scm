@@ -27,11 +27,12 @@
 (define (main out . in)
   (let* ((index (open-index (and (pair? in) (car in))))
 	 (first-size (indexctl index 'metadata 'keys))
-	 (keyslot (symbolize (config 'KEYSLOT (indexctl index 'keyslot))))
+	 (keyslot (and (config 'KEYSLOT (indexctl index 'keyslot))
+		       (symbolize (config 'KEYSLOT (indexctl index 'keyslot)))))
 	 (newsize (config 'NEWSIZE (* 4 first-size)))
 	 (opts (frame-create #f
 		 'newsize newsize
-		 'keyslot keyslot
+		 'keyslot (tryif keyslot keyslot)
 		 'mincount (or (config 'mincount) {})
 		 'maxcount (or (config 'maxcount) {})
 		 'rarefile (or (config 'rare) {})
