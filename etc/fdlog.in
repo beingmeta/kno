@@ -50,8 +50,8 @@ elif test -f @daemon_logdir@/${name}.log; then
 elif test -f @servlet_logdir@/${name}.log; then
     LOGFILE=@servlet_logdir@/${name}.log;
 else 
-    showusage;
     echo "fdlog: Couldn't find activity ${name}";
+    showusage;
     exit;
 fi;
 if test -z "${LOGFILE}"; then
