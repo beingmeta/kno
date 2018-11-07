@@ -1396,7 +1396,7 @@ $(DESTDIR)@config_dir@ $(DESTDIR)@share_dir@ $(DATADIR):
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 $(DESTDIR)@local_config@ $(DESTDIR)@shared_config@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
-$(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets: $(DESTDIR)@config_dir@
+$(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets $(DESTDIR)@config_dir@/config_files: $(DESTDIR)@config_dir@
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 
 install-static:  static-libs $(LIBINSTALLDIR)
@@ -1504,8 +1504,8 @@ confdirs: $(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \
 	  $(DESTDIR)@local_module_dir@ $(DESTDIR)@local_safe_module_dir@ \
 	  $(DESTDIR)@unpackage_dir@ \
 	  $(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
-	  $(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/daemons \
-	  $(DESTDIR)@config_dir@/servlets \
+	  $(DESTDIR)@config_dir@  $(DESTDIR)@config_dir@/config_files \
+	  $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets \
 	  $(DESTDIR)@config_dir@/config
 	@$(MSG) Setting up configuration directories
 	@if test ! -f $(DESTDIR)@config_dir@/servers; then \

@@ -16,6 +16,7 @@ usr/share/framerd/packages
 etc
 etc/framerd
 etc/framerd/config
+etc/framerd/config_files
 etc/framerd/daemons
 etc/framerd/servlets
 etc/framerd/boot

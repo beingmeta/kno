@@ -1,3 +1,9 @@
+framerd (4.2.10-28) stable; urgency=medium
+
+  * Add /etc/framerd/config_files
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 07 Nov 2018 15:57:02 -0500
+
 framerd (4.2.10-27) stable; urgency=medium
 
   * More mongoc dependency fixes
