@@ -1460,6 +1460,8 @@ install-scheme-scripts: $(BININSTALLDIR) $(SCHEME_SCRIPTS)
 	@$(SYSINSTALL) @install_exe_opts@ $(SCHEME_SCRIPTS) $(BININSTALLDIR)
 
 install-data: \
+	$(DESTDIR)@config_dir@/boot/ex_daemon.service   \
+	$(DESTDIR)@config_dir@/boot/ex_servlet.service  \
 	$(DESTDIR)@config_dir@/boot/framerd.target	\
 	$(DESTDIR)@config_dir@/boot/fdaemons.service	\
 	$(DESTDIR)@config_dir@/boot/fdweb.service	\
