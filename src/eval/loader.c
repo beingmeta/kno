@@ -817,9 +817,10 @@ FD_EXPORT void fd_init_loader_c()
   {u8_string dir=u8_getenv("FD_LIBSCM_DIR");
     if (dir==NULL) dir = u8_strdup(FD_LIBSCM_DIR);
     if (u8_has_suffix(dir,"/",0))
-      libscm_path=u8_string_append(dir,"%/module.scm:",dir,"%.scm",NULL);
-    else libscm_path=u8_string_append(dir,"/%/module.scm:",dir,"/%.scm",NULL);
-    u8_free(dir);}
+      libscm_path=dir;
+    else {
+      libscm_path=u8_string_append(dir,"/",NULL);
+      u8_free(dir);}}
 
   fd_register_config
     ("UPDATEMODULES","Modules to update automatically on UPDATEMODULES",
