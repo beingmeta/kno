@@ -944,12 +944,20 @@ static lispval hashsetp(lispval x)
 
 static lispval hashset_add(lispval hs,lispval key)
 {
-  if ((CHOICEP(hs))||(PRECHOICEP(hs))) {
+  if (FD_EMPTYP(hs))
+    return FD_EMPTY;
+  else if ((CHOICEP(hs))||(PRECHOICEP(hs))) {
     lispval results = EMPTY;
     DO_CHOICES(h,hs) {
+      if (!(FD_TYPEP(hs,fd_hashset_type))) {
+        FD_STOP_DO_CHOICES;
+        fd_decref(results);
+        return fd_type_error("hashset","hashset_add",h);}
       lispval value = hashset_add(h,key);
       CHOICE_ADD(results,value);}
     return results;}
+  else if (!(FD_TYPEP(hs,fd_hashset_type)))
+    return fd_type_error("hashset","hashset_add",hs);
   else {
     int retval = fd_hashset_add((fd_hashset)hs,key);
     if (retval<0) return FD_ERROR;
