@@ -126,7 +126,7 @@
 	       content-encoding ,enc])
 	(let* ((charset (ctype->charset ctype))
 	       (content (if base64 
-			    (if (mimetype/text? ctype)
+			    (if (mimetype/string?? ctype)
 				(packet->string (base64->packet data) charset)
 				(base64->packet data))
 			    data)))
@@ -489,7 +489,7 @@
 	((and (string? ref) (not (file-exists? (abspath ref)))) #f)
 	((string? ref)
 	 (if  (and ctype (not encoding)
-		   (or (mimetype/text? ctype)
+		   (or (mimetype/string?? ctype)
 		       (textsearch #{"xml" "json"} ctype)))
 	      (if (and ctype (ctype->charset ctype))
 		  (filestring (abspath ref) (and ctype (ctype->charset ctype)))
@@ -723,7 +723,7 @@
 (define (file-info ref etag ctype opts encoding)
   (let* ((ref (abspath ref))
 	 (ctype (or ctype (guess-mimetype (get-namestring ref) #f opts)))
-	 (istext (and ctype (mimetype/text? ctype) (not encoding)))
+	 (istext (and ctype (mimetype/string?? ctype) (not encoding)))
 	 (charset (and istext (ctype->charset ctype)))
 	 (gpathstring (gpath->string ref))
 	 (hash (md5 (if charset

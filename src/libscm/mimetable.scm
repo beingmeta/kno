@@ -13,6 +13,7 @@
    ctype->suffix ctype->charset ctype->base
    path->ctype path->mimetype
    path->encoding
+   mimetype/string?
    mimetype/text?})
 
 (define *default-charset* #f)
@@ -537,6 +538,15 @@
        (or (has-prefix mimetype "text")
 	   (has-prefix mimetype
 		       {"application/xml"
+			"application/xhtml"
+			"application/xml+xhtml"}))))
+
+(define (mimetype/string? mimetype)
+  (and (string? mimetype)
+       (or (has-prefix mimetype "text")
+	   (has-prefix mimetype
+		       {"application/xml"
+			"application/xhtml"
 			"application/json"
 			"application/javascript"
 			"application/x-json"
