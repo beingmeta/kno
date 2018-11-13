@@ -540,14 +540,14 @@ static u8_string file_source_fn(int fetch,u8_string filename,u8_string encname,
   if (fetch) {
     u8_string data = u8_filestring(filename,encname);
     if (data) {
-      if (abspath) *abspath = u8_abspath(filename,NULL);
+      if (abspath) *abspath = u8_realpath(filename,NULL); /* u8_abspath? */
       if (timep) *timep = u8_file_mtime(filename);
       return data;}
     else return NULL;}
   else {
     time_t mtime = u8_file_mtime(filename);
     if (mtime<0) return NULL;
-    if (abspath) *abspath = u8_abspath(filename,NULL);
+    if (abspath) *abspath = u8_realpath(filename,NULL); /* u8_abspath? */
     if (timep) *timep = mtime;
     return "exists";}
 }
