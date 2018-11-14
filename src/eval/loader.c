@@ -704,7 +704,7 @@ static int loadpath_config_set(lispval var,lispval vals,void *d)
       if (strchr(pathstring,'%')) {
         add_paths = fd_init_pair(NULL,fd_incref(val),add_paths);}
       else {
-        size_t len = 0, n_elts = 0;
+        size_t len = 0;
         u8_string start = pathstring;
         while (start) {
           u8_byte buf[1000];
