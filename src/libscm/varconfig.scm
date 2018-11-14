@@ -17,7 +17,8 @@
 		  config:number config:loglevel config:bytes config:interval
 		  config:goodstring config:symbol config:oneof
 		  config:boolset config:fnset
-		  config:replace config:push})
+		  config:replace config:push
+		  config:dirname config:dirname:opt})
 
 (define varconfigfn
   (macro expr
@@ -138,6 +139,26 @@
 			    (overlaps? (car val) '{not drop}))
 		       (set! false-values (difference false-values val))
 		       (set+! false-values val)))))
+
+(define (config-dirname val (err #f))
+  (cond ((not (string? val))
+	 (if err
+	     (irritant val |NotAString| config:dirname)
+	     (begin (logwarn |ConfigError| "Dirname " val " is not a string.")
+	       {})))
+	((not (file-exists? val))
+	 (if err
+	     (irritant val |DirectoryDoesntExist| config:dirname)
+	     (begin (logwarn |ConfigError| "Directory " val " does not exist.")
+	       {})))
+	((not (file-directory? val))
+	 (if err
+	     (irritant val |NotADirectory| config:dirname)
+	     (begin (logwarn |ConfigError| "File " val " is not a directory.")
+	       {})))
+	(else val)))
+(define (config:dirname:opt val) (config-dirname val #f))
+(define (config:dirname val) (config-dirname val #t))
 
 (define (config:number val)
   (if (string? val) (string->number val)
