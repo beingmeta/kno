@@ -3,7 +3,8 @@
 
 (in-module 'engine)
 
-(use-module '{fifo varconfig mttools stringfmts reflection logger})
+(use-module '{fifo varconfig mttools stringfmts reflection 
+	      bugjar bugjar/html logger})
 (use-module '{storage/flex storage/registry})
 
 (define %loglevel %notice%)
@@ -27,6 +28,9 @@
 		  engine/delta})
 
 ;;;; Configurable
+
+(define engine-bugjar #f)
+(varconfig! engine:bugjar engine-bugjar)
 
 (define log-frequency 60)
 (varconfig! engine:logfreq log-frequency)
@@ -176,8 +180,9 @@ slot of the loop state.
 		  (getopt loop-state 'opts) optname
 		  default)))
 
-(define (thread-error ex batch-state loop-state (handler)
+(define (thread-error ex batch-state loop-state (handler) (opts)
 		      (now (timestamp)) (saved #f))
+  (default! opts (get loop-state 'opts))
   (default! handler (get loop-state 'onerror))
   (store! batch-state 'error ex)
   (logwarn |EngineError| 
@@ -205,15 +210,56 @@ slot of the loop state.
 	((overlaps? handler 'reraise) (reraise ex))
 	((applicable? handler)
 	 (let ((hv (handler ex batch-state loop-state)))
-	   (thread-error ex batch-state loop-state hv)))
+	   (thread-error ex batch-state loop-state hv opts now)))
 	(else
 	 (add! loop-state 'errors ex)
 	 (store! loop-state 'stopped now)
 	 (store! batch-state 'aborted now)
 	 #f)))
 
+(define (get-saveroot arg)
+  (cond ((pair? arg) (get-saveroot (car arg)))
+	((string? arg) (abspath arg))
+	((symbol? arg) (config arg))
+	(else #f)))
+
+(define (get-refroot arg saveroot)
+  (cond ((pair? arg) (cdr arg))
+	((string? arg) saveroot)
+	((symbol? arg) (config arg saveroot))
+	(else #f)))
+
+(define (dump-error ex bugroot (saveroot) (refroot))
+  (default! saveroot (get-saveroot bugroot))
+  (default! refroot (get-refroot bugroot saveroot))
+  (let* ((now (timestamp 'days))
+	 (uuid (getuuid))
+	 (bugdir (mkpath saveroot (get now 'isobasic)))
+	 (refdir (mkpath refroot (get now 'isobasic)))
+	 (bugpath (mkpath bugdir (glom (downcase (uuid->string uuid)) ".html")))
+	 (refpath (mkpath refdir (glom (downcase (uuid->string uuid)) ".html")))
+	 (condition (exception-condition ex))
+	 (caller (exception-caller ex))
+	 (details (exception-details ex)))
+    (unless (file-directory? bugdir) (mkdir bugdir))
+    (fileout bugpath (exception.html ex))
+    (logerr |Bugjar|
+      "Unexpected " condition " in " caller (if details (printout " (" details ")"))
+      "\nsaved to " refpath
+      (when (error-irritant? ex)
+	(printout "\nirritant: " (listdata (error-irritant ex)))))
+    refpath))
+
 (define (engine-error-handler batch-state loop-state)
-  (lambda (ex) (thread-error ex batch-state loop-state)))
+  (let* ((opts (getopt loop-state 'opts))
+	 (bugdir (getopt opts 'bugjar engine-bugjar)))
+    (lambda (ex)
+      (thread-error ex batch-state loop-state 
+		    (try (getopt loop-state 'onerror) #f) opts (timestamp) 
+		    (and bugdir (onerror (dump-error ex bugdir)
+				    (lambda (ex)
+				      (logerr |ErrorDumpingError| 
+					"Can't save error to " bugdir))))))))
 
 (define (engine-threadfn iterfn fifo opts loop-state state
 			 beforefn afterfn
