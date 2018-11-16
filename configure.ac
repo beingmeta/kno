@@ -78,7 +78,7 @@ daemon_identity_default="daemon"
 setup_target="setup-unix"
 extra_sources=
 DREENTRANT="-D_REENTRANT"
-MKSTATIC="ld -r -o"
+MKSTATIC="ld -r "
 TESTLIBS=
 TESTLDFLAGS=
 STATICLDFLAGS=
@@ -542,7 +542,7 @@ AC_CHECK_TYPES(uchar)
 
 case $host_os in
   darwin*)
-   MKSTATIC="libtool -static -o "
+   MKSTATIC="libtool -static "
    dynamic_cflag="-dynamic"
    shared_suffix="dylib"
    vshared_suffix=${FDVERSION}.dylib
@@ -555,6 +555,9 @@ case $host_os in
    ifmacosx=""
    setup_target="setup-osx"
    gperftools_default="no"
+   ;;
+  *)
+   MKSTATIC="ld -r --build-id "
    ;;
 esac  
 
@@ -1016,6 +1019,7 @@ elif test ${ac_cv_sizeof_long} -eq 8 && test -d ${prefix}/lib64; then
 else
   echo checking libdir, using default libdir ${libdir};
 fi
+LDFLAGS="-L${libdir} ${LDFLAGS}"
 
 dnl Some system headers and members
 
@@ -1808,6 +1812,7 @@ if test $with_curl = "yes"; then
   curlconfig="\`curl-config --libs\`"
 else
   AC_DEFINE(FD_WITH_CURL,0)
+  missing="curl ${missing}"
 fi
 
 ## Providing DNS functions in fdweb
@@ -1825,6 +1830,7 @@ if test "$with_dns" = "yes"; then
   ldnso="src/web/ldns.o"
 else
   AC_DEFINE(FD_WITH_DNS,0)
+  missing="ldns ${missing}"
 fi
 
 ### exif (extract metadata from image files)
@@ -1837,6 +1843,8 @@ if test "$with_exif" = "yes"; then
   AC_CHECK_HEADERS(libexif/exif-data.h)
   CMODULES="lib/framerd/exif.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-exif ${INSTALLCMODULES}"
+else
+  missing="curl ${missing}"
 fi
 
 ### qrencode
@@ -1856,7 +1864,11 @@ if (test "$with_qrcode" = "yes"); then
        (test "$libpng_ok" = "yes") && (test "$qrcode_ok" = "yes") ); then
     CMODULES="lib/framerd/qrcode.$shared_suffix ${CMODULES}"
     INSTALLCMODULES="install-qrcode ${INSTALLCMODULES}"
+  else			    
+    missing="qrcode ${missing}"
   fi;
+else
+  missing="qrcode ${missing}"
 fi
 
 ### Boot systems
