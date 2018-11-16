@@ -872,6 +872,7 @@ ac_user_opts='
 enable_option_checking
 with_statedir
 with_execwrapper
+with_chowning
 with_mkdir
 with_chmod
 with_chown
@@ -1616,6 +1617,7 @@ Optional Packages:
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
 --with-statedir where to keep local state e.g. /var
 --with-execwrapper program to use when calling exec()
+--with/out-chowning
 --with-mkdir command
 --with-chmod command
 --with-chown command
@@ -3050,7 +3052,7 @@ with_hyphenate_default="yes"
 use_dtblock_default="yes"
 default_bootsystem="none"
 BOOTSETUP="none"
-CFLAGS="-DLIBU8_SOURCE -DFRAMERD_SOURCE"
+CFLAGS="-DLIBU8_SOURCE -DFRAMERD_SOURCE -fPIC"
 OPTFLAGS=
 XOPTFLAGS=
 CLANG=no
@@ -4102,6 +4104,16 @@ if test "$with_execwrapper" != ""; then
 _ACEOF
 
 fi
+
+chowning=yes
+
+# Check whether --with-chowning was given.
+if test "${with_chowning+set}" = set; then :
+  withval=$with_chowning; chowning=yes
+else
+  chowning=no
+fi
+
 
 for ac_prog in etags
 do
@@ -7799,11 +7811,13 @@ else
 fi
 
 if test $with_admin_group != "none"; then
-  install_dir_opts="-g $with_admin_group -m 0775 $install_dir_opts"
-  install_file_opts="-g $with_admin_group $install_file_opts"
-  install_exe_opts="-g $with_admin_group $install_exe_opts"
+   if test "$chowning" = "yes"; then
+     install_dir_opts="-g $with_admin_group -m 0775 $install_dir_opts"
+     install_file_opts="-g $with_admin_group $install_file_opts"
+     install_exe_opts="-g $with_admin_group $install_exe_opts"
+     admininstall="-g $with_admin_group"
+  fi;
   admin_group=$with_admin_group
-  admininstall="-g $with_admin_group"
 else
   install_dir_opts="$install_dir_opts"
   install_file_opts="$install_file_opts"
@@ -7821,8 +7835,10 @@ else
 fi
 
 if test $with_fdaemon != "none"; then
-   fdaemoninstall="-o $with_fdaemon"
    fdaemon=$with_fdaemon
+   if test "$chowning" = "yes"; then
+     fdaemoninstall="-o $with_fdaemon";
+   fi;
 else
    fdaemoninstall=""
    fdaemon=$default_fdaemon
@@ -7901,7 +7917,7 @@ fi
 
 if test "$with_webuser" != "none"; then
    webuser=$with_webuser
-   wwwinstall="-o $webuser"
+   if test "$chowning" = "yes"; then wwwinstall="-o $webuser"; fi
 else
    webuser=$default_webuser
    wwwinstall=""
@@ -7915,9 +7931,9 @@ else
   with_webgroup=$default_webgroup
 fi
 
-if test "$with_webgroup" != "none"; then
+if test "$with_webgroup" != "none" && test "$chowning" = "yes"; then
    webgroup=$with_webgroup
-   wwwinstall="-o $webgroup"
+   if test "$chowning" = "yes"; then wwwinstall="$wwwinstall -g $webgroup"; fi
 else
    webgroup=$default_webgroup
    wwwinstall=""
@@ -10967,6 +10983,8 @@ if test "${ac_cv_header_archive_h}" == "yes" && \
    test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
   CMODULES="lib/framerd/libarchive.${shared_suffix} ${CMODULES}"
   INSTALLCMODULES="install-libarchive ${INSTALLCMODULES}"
+else
+  missing="libarchive ${missing}"
 fi
 
 ### ziptools library (manipulates zip archives)
@@ -11223,6 +11241,8 @@ fi
 if test "$with_mysql" != "no"; then
   DBMODULES="lib/framerd/mysql.$shared_suffix ${DBMODULES}"
   INSTALLDBMODULES="install-mysql ${INSTALLDBMODULES}"
+else
+  missing="mysql ${missing}"
 fi
 
 ### ODBC
@@ -11248,6 +11268,7 @@ else
 fi
 
 ODBC_LIBS=
+odbc_included=no
 
 if test "$enable_odbc" = "yes"; then
    ac_fn_c_check_header_mongrel "$LINENO" "sql.h" "ac_cv_header_sql_h" "$ac_includes_default"
@@ -11299,15 +11320,7 @@ if test "x$ac_cv_lib_iodbc_SQLNumResultCols" = xyes; then :
   ODBC_LIBS="-liodbc"
 fi
 
-     if test ! -z "${ODBC_LIBS}"; then
-       DBMODULES="lib/framerd/odbc.$shared_suffix ${DBMODULES}"
-       INSTALLDBMODULES="install-odbc ${INSTALLDBMODULES}"
-     fi;
-   fi;
-fi;
-
-if test "$have_sql_h" = "yes"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SQLNumResultCols in -lodbc" >&5
+     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SQLNumResultCols in -lodbc" >&5
 $as_echo_n "checking for SQLNumResultCols in -lodbc... " >&6; }
 if ${ac_cv_lib_odbc_SQLNumResultCols+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -11344,14 +11357,19 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_odbc_SQLNumResultCols" >&5
 $as_echo "$ac_cv_lib_odbc_SQLNumResultCols" >&6; }
 if test "x$ac_cv_lib_odbc_SQLNumResultCols" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBODBC 1
-_ACEOF
-
-  LIBS="-lodbc $LIBS"
-
+  ODBC_LIBS="-lodbc"
 fi
 
+     if test ! -z "${ODBC_LIBS}"; then
+       DBMODULES="lib/framerd/odbc.$shared_suffix ${DBMODULES}"
+       INSTALLDBMODULES="install-odbc ${INSTALLDBMODULES}"
+       odbc_included=yes
+     fi;
+   fi;
+fi;
+
+if test ! "${odbc_included}" = "yes"; then
+   missing="odbc ${missing}";
 fi
 
 ### SQLITE3
@@ -11366,6 +11384,7 @@ fi
 
 sqlite3_ok="no"
 sqlite3v2_ok="no"
+sqlite_included=no
 
 if test $have_sqlite3_h = "yes"; then
   $as_echo "#define HAVE_SQLITE3_H 1" >>confdefs.h
@@ -11453,6 +11472,7 @@ fi
   if test "$sqlite3_ok" = "yes"; then
     DBMODULES="lib/framerd/sqlite.$shared_suffix ${DBMODULES}";
     INSTALLDBMODULES="install-sqlite ${INSTALLDBMODULES}";
+    sqlite_included=no
     if test "${sqlite3v2_ok}" == "yes"; then
       $as_echo "#define HAVE_SQLITE3_V2 1" >>confdefs.h
 
@@ -11460,7 +11480,13 @@ fi
   fi;
 fi
 
+if test ! "${sqlite_included}" = "yes"; then
+   missing="sqlite ${missing}";
+fi
+
 ### Regular expressions library
+
+regex_included=no
 
 ac_fn_c_check_header_mongrel "$LINENO" "regex.h" "ac_cv_header_regex_h" "$ac_includes_default"
 if test "x$ac_cv_header_regex_h" = xyes; then :
@@ -11478,6 +11504,7 @@ else
   have_regcomp="no"
 fi
 
+  regex_included=yes
 fi
 if (test "$have_regex_h" = "yes") && (test "$have_regcomp" = "no"); then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for regcomp in -lregex" >&5
@@ -11522,6 +11549,11 @@ else
   have_regcomp="no"
 fi
 
+  regex_included=yes
+fi
+
+if test ! "${regex_included}" = "yes"; then
+   missing="regex ${missing}";
 fi
 
 ### zlib/libz compression functions

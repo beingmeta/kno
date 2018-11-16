@@ -1,0 +1,7 @@
+#!/bin/sh
+if test -d .git; then
+   git rev-parse --symbolic-full-name HEAD
+else
+   echo "export_branch"
+fi
+

@@ -71,8 +71,8 @@ RPMGPG		= %__gpg gpg --force-v3-sigs --digest-algo=sha1 -u \"%{_gpg_name}\" --no
 APTREPO		= @APTREPO@
 FDVERSION	= @FDVERSION@
 DEBNAME		:= $(shell etc/dpkgname)
-REVISION	:= $(shell git describe)
-GITBRANCH	:= $(shell git rev-parse --symbolic-full-name HEAD)
+REVISION	:= $(shell etc/gitrev)
+GITBRANCH	:= $(shell etc/gitbranch)
 LIBSCM	 	= @LIBSCM@
 LISP_HEADERS=\
  include/framerd/fdsource.h                          \
@@ -1244,14 +1244,17 @@ debfresh freshdeb:
 
 # Creating staging areas from GIT
 
-staging/framerd-@FDVERSION@: \
+staging/framerd-@FDVERSION@: include/framerd/revision.h \
 	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
 	@git archive --prefix=framerd-@FDVERSION@/ \
-	            -o staging/$(DEBNAME).tar HEAD
+	            -o staging/framerd-@FDVERSION@.tar HEAD
+	cd src/extmods; git archive --prefix=framerd-@FDVERSION@/src/extmods/ \
+	            -o ../../staging/framerd_modules-@FDVERSION@.tar HEAD;
 	cd staging; tar -xf framerd-@FDVERSION@.tar; rm framerd-@FDVERSION@.tar
-	$(ECHO) "#define FRAMERD_REVISION \""`git describe`"\"" \
-		> staging/framerd-@FDVERSION@/etc/revision.h;
-staging/framerd_@FDVERSION@: \
+	cd staging; tar -xf framerd_modules-@FDVERSION@.tar; rm framerd_modules-@FDVERSION@.tar;
+	cp include/framerd/revision.h staging/framerd-@FDVERSION@/etc/revision.h;
+	cp dist/framerd-@FDMAJOR@.@FDMINOR@.spec staging/framerd-@FDVERSION@/dist
+staging/framerd_@FDVERSION@: include/framerd/revision.h \
 	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
 	@git archive --prefix=framerd_@FDVERSION@/ \
 	            -o staging/framerd_@FDVERSION@.tar HEAD;
@@ -1259,30 +1262,26 @@ staging/framerd_@FDVERSION@: \
 	            -o ../../staging/framerd_modules_@FDVERSION@.tar HEAD;
 	cd staging; tar -xf framerd_@FDVERSION@.tar; rm framerd_@FDVERSION@.tar;
 	cd staging; tar -xf framerd_modules_@FDVERSION@.tar; rm framerd_modules_@FDVERSION@.tar;
-	$(ECHO) "#define FRAMERD_REVISION \""`git describe`"\"" \
-		> staging/framerd_@FDVERSION@/etc/revision.h;
-	cd staging; tar -czvf $(DEBNAME).orig.tar.gz \
-		framerd_@FDVERSION@;
-	mv staging/framerd_@FDVERSION@/dist/debian \
-	   staging/framerd_@FDVERSION@/debian;
+	cp include/framerd/revision.h staging/framerd_@FDVERSION@/etc/revision.h;
+	cd staging; tar -czf $(DEBNAME).orig.tar.gz framerd_@FDVERSION@;
+	mv staging/framerd_@FDVERSION@/dist/debian staging/framerd_@FDVERSION@/debian;
 	etc/gitchangelog framerd ${CODENAME} < dist/debian/changelog \
 	   > staging/framerd_@FDVERSION@/debian/changelog;
 staging/framerd-@FDVERSION@.tar.gz: \
 	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
 	make -s staging/framerd-@FDVERSION@
-	tar -czvf staging/$(DEBNAME).tar.gz -C staging framerd-@FDVERSION@
+	tar -czf staging/framerd-@FDVERSION@.tar.gz -C staging framerd-@FDVERSION@
 	cd staging; ln -s ${DEBNAME}.tar.gz framerd_@FDVERSION@.tar.gz
 
 staging/framerd_@FDVERSION@.orig.tar.gz: \
 	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
 	make -s staging/framerd_@FDVERSION@
-	tar -czvf staging/$(DEBNAME).orig.tar.gz -C staging framerd-@FDVERSION@
+	tar -czf staging/$(DEBNAME).orig.tar.gz -C staging framerd-@FDVERSION@
 	cd staging; ln -s ${DEBNAME}.orig.tar.gz framerd_@FDVERSION@.orig.tar.gz
 
 # RPM rules
 
 dist/rpms.ready: staging/framerd-@FDVERSION@ \
-	staging/framerd_@FDVERSION@.orig.tar.gz \
 	staging/framerd-@FDVERSION@.tar.gz
 	@buildrpm@ $(RPMFLAGS)  			\
 	   --define="_rpmdir $(RPMDIR)"			\
@@ -1304,9 +1303,8 @@ dist/rpms.done: dist/rpms.ready
 	     @rpm@ --addsign --define="_gpg_name $(GPGID)" 	\
 		--define="__gpg_sign_cmd $(RPMGPG)"		\
 		$(RPMDIR)/framerd-@FDVERSION@*.src.rpm 		\
-		$(RPMDIR)/*/framerd*-@FDVERSION@-*.rpm; fi && 	\
-	@CREATEREPO@ -p -d $(RPMDIR) && 			\
-	touch dist/rpms.done;
+		$(RPMDIR)/*/framerd*-@FDVERSION@-*.rpm; 	\
+	fi && touch dist/rpms.done;
 	@ls -l $(RPMDIR)/framerd-@FDVERSION@-*.src.rpm \
 		$(RPMDIR)/*/framerd*-@FDVERSION@-*.rpm;
 

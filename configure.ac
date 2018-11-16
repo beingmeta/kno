@@ -156,7 +156,7 @@ with_hyphenate_default="yes"
 use_dtblock_default="yes"
 default_bootsystem="none"
 BOOTSETUP="none"
-CFLAGS="-DLIBU8_SOURCE -DFRAMERD_SOURCE"
+CFLAGS="-DLIBU8_SOURCE -DFRAMERD_SOURCE -fPIC"
 OPTFLAGS=
 XOPTFLAGS=
 CLANG=no
@@ -400,6 +400,9 @@ AC_ARG_WITH(execwrapper,--with-execwrapper program to use when calling exec(),,w
 if test "$with_execwrapper" != ""; then
   AC_DEFINE_UNQUOTED(FD_EXEC_WRAPPER,"$with_execwrapper")
 fi
+
+chowning=yes
+AC_ARG_WITH(chowning,--with/out-chowning,chowning=yes,chowning=no)
 
 AC_CHECK_PROGS(etags,etags,"na")
 if test $etags = "na"; then
@@ -832,11 +835,13 @@ dnl Specifies an admin group; files written by installation scripts will be
 dnl owned by this group and the group will have full rwX access.
 AC_ARG_WITH(admin_group,--with-admin-group Install files with admin group and group write permissions,,with_admin_group=$default_admin_group)
 if test $with_admin_group != "none"; then
-  install_dir_opts="-g $with_admin_group -m 0775 $install_dir_opts"
-  install_file_opts="-g $with_admin_group $install_file_opts"
-  install_exe_opts="-g $with_admin_group $install_exe_opts"
+   if test "$chowning" = "yes"; then
+     install_dir_opts="-g $with_admin_group -m 0775 $install_dir_opts"
+     install_file_opts="-g $with_admin_group $install_file_opts"
+     install_exe_opts="-g $with_admin_group $install_exe_opts"
+     admininstall="-g $with_admin_group"
+  fi;
   admin_group=$with_admin_group
-  admininstall="-g $with_admin_group"
 else
   install_dir_opts="$install_dir_opts"
   install_file_opts="$install_file_opts"
@@ -848,8 +853,10 @@ fi
 dnl Specifies a daemon identity user/group for managed FramerD servers
 AC_ARG_WITH(fdaemon,--with-fdaemon The identity (user) for FramerD servers to run as,,with_fdaemon=$default_fdaemon)
 if test $with_fdaemon != "none"; then
-   fdaemoninstall="-o $with_fdaemon"
    fdaemon=$with_fdaemon
+   if test "$chowning" = "yes"; then
+     fdaemoninstall="-o $with_fdaemon";
+   fi;
 else
    fdaemoninstall=""
    fdaemon=$default_fdaemon
@@ -884,7 +891,7 @@ dnl This is used to set up the directories used by fdserv
 AC_ARG_WITH(webuser,--with-webuser The user for the webserver,,with_webuser=$default_webuser)
 if test "$with_webuser" != "none"; then
    webuser=$with_webuser
-   wwwinstall="-o $webuser"
+   if test "$chowning" = "yes"; then wwwinstall="-o $webuser"; fi
 else
    webuser=$default_webuser
    wwwinstall=""
@@ -893,9 +900,9 @@ fi
 dnl Specifies the group which the Web server runs as
 dnl This is used to set up the directories used by fdserv
 AC_ARG_WITH(webgroup,--with-webgroup The group for the webserver,,with_webgroup=$default_webgroup)
-if test "$with_webgroup" != "none"; then
+if test "$with_webgroup" != "none" && test "$chowning" = "yes"; then
    webgroup=$with_webgroup
-   wwwinstall="-o $webgroup"
+   if test "$chowning" = "yes"; then wwwinstall="$wwwinstall -g $webgroup"; fi
 else
    webgroup=$default_webgroup
    wwwinstall=""
@@ -1465,6 +1472,8 @@ if test "${ac_cv_header_archive_h}" == "yes" && \
    test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
   CMODULES="lib/framerd/libarchive.${shared_suffix} ${CMODULES}"
   INSTALLCMODULES="install-libarchive ${INSTALLCMODULES}"
+else
+  missing="libarchive ${missing}"
 fi
 
 ### ziptools library (manipulates zip archives)
@@ -1559,6 +1568,8 @@ fi
 if test "$with_mysql" != "no"; then
   DBMODULES="lib/framerd/mysql.$shared_suffix ${DBMODULES}"
   INSTALLDBMODULES="install-mysql ${INSTALLDBMODULES}"
+else
+  missing="mysql ${missing}"
 fi
 
 ### ODBC
@@ -1567,27 +1578,31 @@ AC_CHECK_HEADERS(sql.h)
 
 AC_ARG_ENABLE(odbc,--en[dis]able-odbc Build odbc modules,,enable_odbc="yes")
 ODBC_LIBS=
+odbc_included=no
 
 if test "$enable_odbc" = "yes"; then
    AC_CHECK_HEADER(sql.h,have_sql_h="yes",have_sql_h="no")
    if test "$have_sql_h" = "yes"; then
      AC_CHECK_LIB(iodbc,SQLNumResultCols,ODBC_LIBS="-liodbc")
+     AC_CHECK_LIB(odbc,SQLNumResultCols,ODBC_LIBS="-lodbc")
      if test ! -z "${ODBC_LIBS}"; then
        DBMODULES="lib/framerd/odbc.$shared_suffix ${DBMODULES}"
        INSTALLDBMODULES="install-odbc ${INSTALLDBMODULES}"
+       odbc_included=yes
      fi;
    fi;
 fi;
 
-if test "$have_sql_h" = "yes"; then
-  AC_CHECK_LIB(odbc,SQLNumResultCols)
-fi
+if test ! "${odbc_included}" = "yes"; then
+   missing="odbc ${missing}";
+fi   
 
 ### SQLITE3
 
 AC_CHECK_HEADER(sqlite3.h,have_sqlite3_h="yes",have_sqlite3_h="no")
 sqlite3_ok="no"
 sqlite3v2_ok="no"
+sqlite_included=no
 
 if test $have_sqlite3_h = "yes"; then
   AC_DEFINE(HAVE_SQLITE3_H,1)
@@ -1596,21 +1611,34 @@ if test $have_sqlite3_h = "yes"; then
   if test "$sqlite3_ok" = "yes"; then
     DBMODULES="lib/framerd/sqlite.$shared_suffix ${DBMODULES}";
     INSTALLDBMODULES="install-sqlite ${INSTALLDBMODULES}";
+    sqlite_included=no
     if test "${sqlite3v2_ok}" == "yes"; then
       AC_DEFINE(HAVE_SQLITE3_V2,1)
     fi;
   fi;
 fi
 
+if test ! "${sqlite_included}" = "yes"; then
+   missing="sqlite ${missing}";
+fi   
+
 ### Regular expressions library
+
+regex_included=no
 
 AC_CHECK_HEADER(regex.h,have_regex_h="yes",have_regex_h="no")
 if (test "$have_regex_h" = "yes"); then
   AC_CHECK_FUNC(regcomp,have_regcomp="yes",have_regcomp="no")
+  regex_included=yes
 fi
 if (test "$have_regex_h" = "yes") && (test "$have_regcomp" = "no"); then
   AC_CHECK_LIB(regex,regcomp,have_regcomp="yes",have_regcomp="no")
+  regex_included=yes
 fi
+
+if test ! "${regex_included}" = "yes"; then
+   missing="regex ${missing}";
+fi   
 
 ### zlib/libz compression functions
 

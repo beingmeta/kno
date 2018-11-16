@@ -1,0 +1,7 @@
+#!/bin/sh
+if test -d .git; then
+    git describe
+else
+    echo "exported";
+fi
+
