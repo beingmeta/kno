@@ -30,7 +30,6 @@ static int mongodb_loglevel;
 #include "framerd/fdregex.h"
 #include "framerd/mongodb.h"
 
-#include <mongoc-ssl.h>
 #include <math.h>
 
 /* Initialization */
