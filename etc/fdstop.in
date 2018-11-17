@@ -1,4 +1,4 @@
-#!/bin/sh
+#!@prefix@/bin/sh
 TARGETS="@servlet_rundir@/ @daemon_rundir@/"
 if [ $# -gt 0 ]; then TARGETS="$*"; fi
 KILLWAIT=2

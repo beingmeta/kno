@@ -1,4 +1,4 @@
-#!/bin/sh
+#!@prefix@/bin/sh
 ROOTDIR=$1
 SIGNAL=TERM
 shift

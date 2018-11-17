@@ -1,1 +1,2 @@
+#!@prefix@/bin/sh
 exec gdb -x @share_dir@/gdbinit $*

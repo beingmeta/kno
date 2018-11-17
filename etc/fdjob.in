@@ -1,4 +1,4 @@
-#!/bin/sh
+#!@prefix@/bin/sh
 FILE=$1
 shift;
 abspath( ) {

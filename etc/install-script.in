@@ -1,4 +1,4 @@
-#!/bin/sh
+#!@prefix@/bin/sh
 rm -f @prefix@/bin/$(basename $1 .scm)
 echo "#!"@prefix@/bin/fdexec | cat - $1 > @prefix@/bin/$(basename $1 .scm)
 chmod a-w @prefix@/bin/$(basename $1 .scm)

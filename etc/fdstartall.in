@@ -1,4 +1,4 @@
-#!/bin/sh
+#!@prefix@/bin/sh
 export FD_LAUNCHER=${FD_LAUNCHER:-fdstartall} 
 fd_start_daemons @config_dir@/daemons/
 fd_start_servlets @config_dir@/servlets/

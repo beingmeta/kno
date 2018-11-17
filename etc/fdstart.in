@@ -1,4 +1,4 @@
-#!/bin/sh
+#!@prefix@/bin/sh
 DEFAULT_TARGETS="@config_dir@/daemons @config_dir@/servlets"
 TARGETS=""
 while ((test $# -ne "0") && ((test -d $1) || (test -f $1)));

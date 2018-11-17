@@ -1,4 +1,4 @@
-#!/bin/sh
+#!@prefix@/bin/sh
 
 showusage ( ) {
     echo "Usage: fdlog <activity> [watch|tail|more] [lines]"
