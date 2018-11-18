@@ -39,6 +39,9 @@
 
 (define (have-brico)
   (and (config 'bricosource)
+       (or (position #\@ (config 'bricosource) )
+	   (position #\: (config 'bricosource) )
+	   (file-exists? (config 'bricosource)))
        (onerror (begin (get-module 'brico) #t) #f)))
 
 (when (have-brico)
