@@ -913,11 +913,23 @@ static lispval watched_eval_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
 
 /* The evaluator itself */
 
-static lispval call_function(u8_string fname,lispval f,
-                             lispval expr,fd_lexenv env,
-                             fd_stack s,
-                             int tail);
 static int applicable_choicep(lispval choice);
+
+static lispval eval_apply(u8_string fname,
+                          lispval fn,lispval arg_exprs,
+                          fd_lexenv env,
+                          struct FD_STACK *stack,
+                          int tail);
+
+static lispval pair_eval(lispval expr,fd_lexenv env,
+                         struct FD_STACK *_stack,
+                         int tail);
+static lispval choice_eval(lispval expr,fd_lexenv env,
+                           struct FD_STACK *_stack,
+                           int tail);
+static lispval prechoice_eval(lispval expr,fd_lexenv env,
+                              struct FD_STACK *_stack,
+                              int tail);
 
 FD_EXPORT
 lispval fd_stack_eval(lispval expr,fd_lexenv env,
@@ -925,18 +937,83 @@ lispval fd_stack_eval(lispval expr,fd_lexenv env,
                      int tail)
 {
   if (_stack==NULL) _stack=fd_stackptr;
-  switch (FD_PTR_TYPE(expr)) {
-  case fd_lexref_type:
-    return fd_lexref(expr,env);
-  case fd_code_type:
-    return fd_incref(expr);
-  case fd_symbol_type: {
-    lispval val = fd_symeval(expr,env);
-    if (PRED_FALSE(VOIDP(val)))
-      return fd_err(fd_UnboundIdentifier,"fd_eval",
-                    SYM_NAME(expr),expr);
-    else return simplify_value(val);}
-  case fd_pair_type: {
+  if (FD_IMMEDIATEP(expr)) {
+    switch (FD_PTR_TYPE(expr)) {
+    case fd_lexref_type:
+      return fd_lexref(expr,env);
+    case fd_symbol_type: {
+      lispval val = fd_symeval(expr,env);
+      if (PRED_FALSE(VOIDP(val)))
+        return fd_err(fd_UnboundIdentifier,"fd_eval",
+                      SYM_NAME(expr),expr);
+      else return simplify_value(val);}
+    default:
+      return expr;}}
+  else if (FD_CONSP(expr))
+    switch (FD_CONSPTR_TYPE(expr)) {
+    case fd_pair_type:
+      return pair_eval(expr,env,_stack,tail);
+    case fd_choice_type:
+      return choice_eval(expr,env,_stack,tail);
+    case fd_prechoice_type:
+      return prechoice_eval(expr,env,_stack,tail);
+    case fd_code_type:
+      return fd_incref(expr);
+    case fd_slotmap_type:
+      return fd_deep_copy(expr);
+    default:
+      return fd_incref(expr);}
+  else return expr;
+}
+
+static lispval choice_eval(lispval expr,fd_lexenv env,
+                           struct FD_STACK *_stack,
+                           int tail)
+{
+  lispval result = EMPTY;
+  FD_PUSH_STACK(nd_eval_stack,fd_ndevalstack_type,NULL,expr);
+  DO_CHOICES(each_expr,expr) {
+    lispval r = stack_eval(each_expr,env,nd_eval_stack);
+    if (FD_ABORTED(r)) {
+      FD_STOP_DO_CHOICES;
+      fd_decref(result);
+      fd_pop_stack(nd_eval_stack);
+      return r;}
+    else {CHOICE_ADD(result,r);}}
+  fd_pop_stack(nd_eval_stack);
+  return simplify_value(result);
+}
+
+static lispval prechoice_eval(lispval expr,fd_lexenv env,
+                              struct FD_STACK *_stack,
+                              int tail)
+{
+  lispval exprs = fd_make_simple_choice(expr);
+  FD_PUSH_STACK(prechoice_eval_stack,fd_evalstack_type,NULL,expr);
+  if (CHOICEP(exprs)) {
+    lispval results = EMPTY;
+    DO_CHOICES(expr,exprs) {
+      lispval result = stack_eval(expr,env,prechoice_eval_stack);
+      if (FD_ABORTED(result)) {
+        FD_STOP_DO_CHOICES;
+        fd_decref(results);
+        fd_pop_stack(prechoice_eval_stack);
+        return result;}
+      else {CHOICE_ADD(results,result);}}
+    fd_decref(exprs);
+    fd_pop_stack(prechoice_eval_stack);
+    return simplify_value(results);}
+  else {
+    lispval result = fd_stack_eval(exprs,env,prechoice_eval_stack,tail);
+    fd_decref(exprs);
+    fd_pop_stack(prechoice_eval_stack);
+    return result;}
+}
+
+static lispval pair_eval(lispval expr,fd_lexenv env,
+                         struct FD_STACK *_stack,
+                         int tail)
+{
     lispval head = (FD_CAR(expr));
     if (FD_OPCODEP(head))
       return fd_opcode_dispatch(head,expr,env,_stack,tail);
@@ -949,46 +1026,13 @@ lispval fd_stack_eval(lispval expr,fd_lexenv env,
       U8_INIT_FIXED_OUTPUT(&out,128,buf);
       u8_printf(&out,"%lld > %lld",u8_stack_depth(),fd_stack_limit);
       return fd_err(fd_StackOverflow,"fd_tail_eval",buf,expr);}
-    else return fd_pair_eval(head,expr,env,_stack,tail);}
-  case fd_slotmap_type:
-    return fd_deep_copy(expr);
-  case fd_choice_type: {
-    lispval result = EMPTY;
-    FD_PUSH_STACK(nd_eval_stack,fd_ndevalstack_type,NULL,expr);
-    DO_CHOICES(each_expr,expr) {
-      lispval r = stack_eval(each_expr,env,nd_eval_stack);
-      if (FD_ABORTED(r)) {
-        FD_STOP_DO_CHOICES;
-        fd_decref(result);
-        fd_pop_stack(nd_eval_stack);
-        return r;}
-      else {CHOICE_ADD(result,r);}}
-    fd_pop_stack(nd_eval_stack);
-    return simplify_value(result);}
-  case fd_prechoice_type: {
-    lispval exprs = fd_make_simple_choice(expr);
-    FD_PUSH_STACK(prechoice_eval_stack,fd_evalstack_type,NULL,expr);
-    if (CHOICEP(exprs)) {
-      lispval results = EMPTY;
-      DO_CHOICES(expr,exprs) {
-        lispval result = stack_eval(expr,env,prechoice_eval_stack);
-        if (FD_ABORTED(result)) {
-          FD_STOP_DO_CHOICES;
-          fd_decref(results);
-          fd_pop_stack(prechoice_eval_stack);
-          return result;}
-        else {CHOICE_ADD(results,result);}}
-      fd_decref(exprs);
-      fd_pop_stack(prechoice_eval_stack);
-      return simplify_value(results);}
-    else {
-      lispval result = fd_stack_eval(exprs,env,prechoice_eval_stack,tail);
-      fd_decref(exprs);
-      fd_pop_stack(prechoice_eval_stack);
-      return result;}}
-  default:
-    return fd_incref(expr);}
+    else return fd_pair_eval(head,expr,env,_stack,tail);
 }
+
+/* Function application */
+
+static lispval get_headval(lispval head,fd_lexenv env,fd_stack eval_stack,
+                           int *gc_headval);
 
 FD_EXPORT
 lispval fd_pair_eval(lispval head,lispval expr,fd_lexenv env,
@@ -997,39 +1041,15 @@ lispval fd_pair_eval(lispval head,lispval expr,fd_lexenv env,
 {
   u8_string label=(SYMBOLP(head)) ? (SYM_NAME(head)) : (NULL);
   FD_PUSH_STACK(eval_stack,fd_evalstack_type,label,expr);
-  lispval result = VOID, headval = VOID;
   int gc_head=0;
-  if (FD_LEXREFP(head)) {
-    headval=fd_lexref(head,env);
-    if (FD_CONSP(headval)) gc_head=1;}
-  else if (FD_FCNIDP(head)) {
-    headval=fd_fcnid_ref(head);
-    if (PRECHOICEP(headval)) {
-      headval=fd_make_simple_choice(headval);
-      gc_head=1;}}
-  else if ( (SYMBOLP(head)) || (PAIRP(head)) ||
-            (FD_CODEP(head)) || (CHOICEP(head)) ) {
-    headval=stack_eval(head,env,eval_stack);
-    headval=simplify_value(headval);
-    gc_head=1;}
-  else headval=head;
-  if (FD_ABORTED(headval)) {
-    fd_pop_stack(eval_stack);
-    return headval;}
-  else if (FD_FCNIDP(headval)) {
-    headval=fd_fcnid_ref(headval);
-    if (PRECHOICEP(headval)) {
-      headval=fd_make_simple_choice(headval);
-      gc_head=1;}
-    else gc_head=0;}
-  int headtype = FD_PTR_TYPE(headval);
+  lispval result = VOID, headval = get_headval(head,env,eval_stack,&gc_head);
+  fd_ptr_type headtype = FD_PTR_TYPE(headval);
   if (gc_head) fd_push_cleanup(eval_stack,FD_DECREF,headval,NULL);
   switch (headtype) {
   case fd_cprim_type: case fd_lambda_type: {
     struct FD_FUNCTION *f = (struct FD_FUNCTION *) headval;
     if (f->fcn_name) eval_stack->stack_label=f->fcn_name;
-    result=call_function(f->fcn_name,headval,expr,env,
-                         eval_stack,tail);
+    result=eval_apply(f->fcn_name,headval,FD_CDR(expr),env,eval_stack,tail);
     break;}
   case fd_evalfn_type: {
     /* These are evalfns which do all the evaluating themselves */
@@ -1055,16 +1075,18 @@ lispval fd_pair_eval(lispval head,lispval expr,fd_lexenv env,
   case fd_choice_type: {
     int applicable = applicable_choicep(headval);
     if (applicable)
-      result = call_function("fnchoice",headval,expr,env,eval_stack,0);
+      result = eval_apply("fnchoice",headval,FD_CDR(expr),env,eval_stack,0);
     else result=fd_err(fd_SyntaxError,"fd_stack_eval",
                        "not applicable or evalfn",
                        headval);
     break;}
   default:
-    if ( (fd_functionp[headtype]) || (fd_applyfns[headtype]) ) {
+    if (fd_functionp[headtype]) {
       struct FD_FUNCTION *f = (struct FD_FUNCTION *) headval;
-      result=call_function(f->fcn_name,headval,expr,env,
-                           eval_stack,tail);}
+      result=eval_apply(f->fcn_name,headval,FD_CDR(expr),env,
+                        eval_stack,tail);}
+    if (fd_applyfns[headtype]) {
+      result=eval_apply("extfcn",headval,FD_CDR(expr),env,eval_stack,tail);}
     else if (FD_ABORTED(headval)) {
       result=headval;}
     else if (VOIDP(headval)) {
@@ -1108,25 +1130,7 @@ FD_EXPORT lispval _fd_eval(lispval expr,fd_lexenv env)
   else return fd_finish_call(result);
 }
 
-static int count_args(lispval args)
-{
-  int n_args = 0; FD_DOLIST(arg,args) {
-    if (!((PAIRP(arg)) &&
-          (FD_EQ(FD_CAR(arg),comment_symbol))))
-      n_args++;}
-  return n_args;
-}
-
-static lispval process_arg(lispval arg,fd_lexenv env,
-                          struct FD_STACK *_stack)
-{
-  lispval argval = fast_eval(arg,env);
-  if (PRED_FALSE(VOIDP(argval)))
-    return fd_err(fd_VoidArgument,"call_function/process_arg",NULL,arg);
-  else if (FD_ABORTED(argval))
-    return argval;
-  else return simplify_value(argval);
-}
+/* Applying functions */
 
 #define ND_ARGP(v) ((CHOICEP(v))||(QCHOICEP(v)))
 
@@ -1138,61 +1142,116 @@ FD_FASTOP int commentp(lispval arg)
       (FD_EQ(FD_CAR(arg),comment_symbol))));
 }
 
- static lispval call_function(u8_string fname,lispval headval,
-                              lispval expr,fd_lexenv env,
-                              struct FD_STACK *stack,
-                              int tail)
+static lispval get_headval(lispval head,fd_lexenv env,fd_stack eval_stack,
+                           int *gc_headval)
 {
-  lispval arg_exprs = fd_get_body(expr,1), result=VOID;
-  int n_args = count_args(arg_exprs), arg_count = 0, lambda = 0;
-  int gc_args = 0, nd_args = 0, d_prim = 0;
-  lispval argbuf[n_args]; /* *argv=fd_alloca(n_args); */
-  int i=0; while (i<n_args) argbuf[i++]=VOID;
-  lispval fn = (FD_FCNIDP(headval)) ? (fd_fcnid_ref(headval)) : (headval);
-  if (FD_AMBIGP(fn)) {
-    FD_DO_CHOICES(f,fn) {
-      if (!(FD_APPLICABLEP(f))) {
-        FD_STOP_DO_CHOICES;
-        return fd_err("NotApplicable","call_function/eval",NULL,f);}}
-    tail=0;}
-  else if (!(FD_APPLICABLEP(fn)))
-    return fd_err("NotApplicable","call_function/eval",NULL,fn);
-  else if (FD_FUNCTIONP(fn)) {
-    struct FD_FUNCTION *fcn=FD_XFUNCTION(fn);
-    int max_arity = fcn->fcn_arity, min_arity = fcn->fcn_min_arity;
-    if (max_arity<0) {}
-    else if (PRED_FALSE(n_args>max_arity))
-      return fd_err(fd_TooManyArgs,"call_function",fcn->fcn_name,expr);
-    else if (PRED_FALSE((min_arity>=0) && (n_args<min_arity)))
-      return fd_err(fd_TooFewArgs,"call_function",fcn->fcn_name,expr);
-    else {}
-    d_prim=(fcn->fcn_ndcall==0);
-    if (fcn->fcn_notail) tail = 0;
-    lambda = FD_LAMBDAP(fn);}
+  lispval headval = VOID;
+  if (FD_IMMEDIATEP(head)) {
+    if (FD_LEXREFP(head)) {
+      headval=fd_lexref(head,env);
+      if (FD_CONSP(headval)) *gc_headval=1;}
+    else if (FD_SYMBOLP(head)) {
+      headval=fd_symeval(head,env);
+      if (FD_CONSP(headval)) *gc_headval=1;}
+    else headval = head;}
+  else if ( (PAIRP(head)) || (FD_CODEP(head)) || (CHOICEP(head)) ) {
+    headval=stack_eval(head,env,eval_stack);
+    headval=simplify_value(headval);
+    *gc_headval=1;}
+  else headval=head;
+  if (FD_ABORTED(headval))
+    return headval;
+  else if (FD_FCNIDP(headval)) {
+    headval=fd_fcnid_ref(headval);
+    if (PRECHOICEP(headval)) {
+      headval=fd_make_simple_choice(headval);
+      *gc_headval=1;}}
   else NO_ELSE;
-  /* Now we evaluate each of the subexpressions to fill the arg
-     vector */
-  {FD_DOLIST(elt,arg_exprs) {
-      if (commentp(elt)) continue;
-      lispval argval = process_arg(elt,env,stack);
-      if ( (FD_ABORTED(argval)) ||
-           ( (d_prim) && (EMPTYP(argval)) ) ) {
-        /* Clean up the arguments we've already evaluated */
+  return headval;
+}
+
+static lispval eval_apply(u8_string fname,
+                          lispval fn,lispval arg_exprs,
+                          fd_lexenv env,
+                          struct FD_STACK *stack,
+                          int tail)
+{
+  int max_args = 0, min_args = 0, n_fns = 0;
+  int arg_count = 0, lambda = -1, gc_args = 0, nd_args = 0, d_prim = 1;
+  FD_DO_CHOICES(f,fn) {
+    if (FD_FUNCTIONP(f)) {
+      struct FD_FUNCTION *fcn=FD_XFUNCTION(f);
+      int max_arity = fcn->fcn_arity, min_arity = fcn->fcn_min_arity;
+      if (max_args >= 0) {
+        if (max_arity < 0) max_args = max_arity;
+        else if (max_arity > max_args)
+          max_args = max_arity;
+        else {}}
+      if (min_args >= 0) {
+        if (min_arity < min_args)
+          min_args = min_arity;}
+      if (fcn->fcn_ndcall) d_prim = 0;
+      if (fcn->fcn_notail) tail = 0;
+      if (lambda < 0) {
+        if (FD_LAMBDAP(fn)) lambda = 1;}
+      else if (FD_LAMBDAP(fn))
+        lambda = 0;
+      else NO_ELSE;
+      n_fns++;}
+    else if (!(FD_APPLICABLEP(f))) {
+      FD_STOP_DO_CHOICES;
+      return fd_err("NotApplicable","eval_apply",NULL,f);}
+    else n_fns++;}
+  if (n_fns > 1) tail = 0;
+  lispval static_argbuf[8], *argbuf = static_argbuf, result;
+  int arg_i = 0, argbuf_len = 8, free_argbuf = 0;
+  lispval scan = arg_exprs;
+  while (FD_PAIRP(scan)) {
+    lispval arg_expr = FD_CAR(scan); scan = FD_CDR(scan);
+    if (commentp(arg_expr)) continue;
+    if ( (max_args >= 0) && (arg_i > max_args) ) {
+      if (gc_args) fd_decref_vec(argbuf,arg_count);
+      return fd_err(fd_TooManyArgs,"eval_apply",fname,arg_exprs);}
+    lispval arg_val = fast_stack_eval(arg_expr,env,stack);
+    if (PRED_FALSE(VOIDP(arg_val))) {
+      if (gc_args) fd_decref_vec(argbuf,arg_count);
+      return fd_err(fd_VoidArgument,"eval_apply/arg",NULL,arg_expr);}
+    else if ( ( (d_prim) && (EMPTYP(arg_val)) ) || (FD_ABORTED(arg_val)) ) {
+      /* Clean up the arguments we've already evaluated */
+      if (gc_args) fd_decref_vec(argbuf,arg_count);
+      return arg_val;}
+    else if (CONSP(arg_val)) {
+      if ( (nd_args == 0) && (ND_ARGP(arg_val)) )
+        nd_args = 1;
+      gc_args = 1;}
+    else {}
+    if (arg_count >= argbuf_len) {
+      size_t cur_size = argbuf_len*sizeof(lispval);
+      size_t new_size = 2*argbuf_len*sizeof(lispval);
+      size_t new_len = 2*argbuf_len;
+      lispval *new_argbuf;
+      if (free_argbuf)
+        new_argbuf=u8_realloc(argbuf,new_size);
+      else if  ((new_argbuf=u8_malloc(new_size)))
+        memcpy(new_argbuf,argbuf,cur_size);
+      else NO_ELSE;
+      if (new_argbuf == NULL) {
         if (gc_args) fd_decref_vec(argbuf,arg_count);
-        return argval;}
-      else if (CONSP(argval)) {
-        if ( (nd_args == 0) && (ND_ARGP(argval)) ) nd_args = 1;
-        gc_args = 1;}
-      else {}
-      argbuf[arg_count++]=argval;}}
+        u8_graberrno("eval_apply",fname);
+        return FD_ERROR_VALUE;}
+      else {
+        argbuf = new_argbuf;
+        argbuf_len = new_len;}}
+    argbuf[arg_count++]=arg_val;}
   if ((tail) && (lambda) && (fd_optimize_tail_calls)  )
     result=fd_tail_call(fn,arg_count,argbuf);
-  else if ((CHOICEP(fn)) ||
-           (PRECHOICEP(fn)) ||
-           ((d_prim) && (nd_args)))
+  else if ((CHOICEP(fn)) || (PRECHOICEP(fn)) || ((d_prim) && (nd_args)))
     result=fd_ndcall(stack,fn,arg_count,argbuf);
-  else result=fd_dcall(stack,fn,arg_count,argbuf);
+  else if ( (gc_args) || (argbuf != static_argbuf) )
+    result=fd_dcall(stack,fn,arg_count,argbuf);
+  else return fd_dcall(stack,fn,arg_count,argbuf);
   if (gc_args) fd_decref_vec(argbuf,arg_count);
+  if (argbuf != static_argbuf) u8_free(argbuf);
   return result;
 }
 
