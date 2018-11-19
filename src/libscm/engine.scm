@@ -5,7 +5,7 @@
 
 (use-module '{fifo varconfig mttools stringfmts reflection 
 	      bugjar bugjar/html logger})
-(use-module '{storage/flex storage/registry})
+(use-module '{storage/flex storage/registry storage/aggregates})
 
 (define %loglevel %notice%)
 
@@ -265,14 +265,17 @@ slot of the loop state.
 			 beforefn afterfn
 			 monitors
 			 stopfn)
+  "This is then loop function for each engine thread."
   (let* ((batch (fifo/pop fifo))
 	 (batch-state `#[loop ,loop-state started ,(elapsed-time) batchno 1])
 	 (start (get batch-state 'started))
 	 (proc-time #f)
 	 (batchno 1))
-
     (while (and (exists? batch) batch)
       (loginfo |GotBatch| "Processing batch of " ($num (choice-size batch)) " items")
+      (do-choices (indexslot (getopt opts 'branchindexes))
+	(when (test loop-state indexslot)
+	  (store! batch-state indexslot (aggregate/branch (get loop-state indexslot)))))
       (when (and (exists? beforefn) beforefn)
 	(beforefn (qc batch) batch-state loop-state state))
       (set! proc-time (elapsed-time))
@@ -303,6 +306,9 @@ slot of the loop state.
 		       (else (do-choices (item batch) (iterfn item))))))
 	  (engine-error-handler batch-state loop-state))
       (set! proc-time (elapsed-time proc-time))
+      (do-choices (indexslot (getopt opts 'branchindexes))
+	(when (test batch-state indexslot) 
+	  (aggregate/merge! (get batch-state indexslot))))
       (unless (test batch-state 'aborted)
 	(when (and  (exists? afterfn) afterfn)
 	  (afterfn (qc batch) batch-state loop-state state))
