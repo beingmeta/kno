@@ -59,6 +59,15 @@ FD_EXPORT int fd_index_adds_init;
 typedef struct FD_INDEX {FD_INDEX_FIELDS;} FD_INDEX;
 typedef struct FD_INDEX *fd_index;
 
+U8_MAYBE_UNUSED static void fd_incref_index(fd_index ix)
+{
+  if (FD_INDEX_CONSEDP(ix)) { fd_incref(LISPVAL(ix)); }
+}
+U8_MAYBE_UNUSED static void fd_decref_index(fd_index ix)
+{
+  if (FD_INDEX_CONSEDP(ix)) { fd_decref(LISPVAL(ix)); }
+}
+
 /* Pool commit objects */
 
 typedef struct FD_INDEX_COMMITS {
@@ -311,16 +320,15 @@ U8_MAYBE_UNUSED static fd_index fd_get_writable_index(fd_index ix)
     if (FD_INDEXP(front_val)) {
       fd_index front = fd_indexptr(front_val);
       if (U8_BITP(front->index_flags,FD_STORAGE_READ_ONLY)) {
+        fd_decref(front_val);
         return NULL;}
       else return front;}
     else {
-      fd_incref(front_val);
+      fd_decref(front_val);
       return NULL;}}
-  else if (ix->index_serialno < 0) {
-    lispval ix_ptr = fd_index2lisp(ix);
-    fd_incref(ix_ptr);
+  else {
+    fd_incref_index(ix);
     return ix;}
-  else return ix;
 }
 #else
 #define fd_indexptr _fd_indexptr

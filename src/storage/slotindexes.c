@@ -300,12 +300,14 @@ static fd_index get_writable_slotindex(fd_index ix,lispval slotid)
       fd_index possible = indexes[i++], use_front = NULL;
       if (possible->index_keyslot == slotid) {
 	if ( (use_front = fd_get_writable_index(possible)) ){
+	  if (generic) fd_decref_index(generic);
 	  return use_front;}}
       else if ( (FD_VOIDP(possible->index_keyslot)) ||
 		(FD_FALSEP(possible->index_keyslot)) ||
 		(FD_EMPTYP(possible->index_keyslot)) ) {
-	  if (generic == NULL)
-	    generic = possible;}
+	if (generic == NULL) {
+	  fd_incref_index(possible);
+	  generic = possible;}}
       else {}}
     return generic;}
   else return fd_get_writable_index(ix);
