@@ -1204,12 +1204,14 @@ static int pool_docommit(fd_pool p,lispval oids,
 
     u8_logf(LOG_INFO,
             ((sync<0) ? ("Pool/Commit/Timing") : ("Pool/Commit/Complete")),
-            "%s %d OIDs%s to '%s'\n  total=%f, start=%f, setup=%f, save=%f, "
+            "%s %d OIDs%s to '%s' in %fs\n"
+            "total=%f, start=%f, setup=%f, save=%f, "
             "finalize=%f, apply=%f, cleanup=%f",
             ((sync<0) ? ("for") : ("Committed")),
             commits.commit_count,
             ((w_metadata) ? (" and metadata") : ("") ),
             p->poolid,
+            u8_elapsed_time()-commits.commit_times.base,
             u8_elapsed_time()-commits.commit_times.base,
             commits.commit_times.start,
             commits.commit_times.setup,
