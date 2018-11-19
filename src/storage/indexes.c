@@ -1217,7 +1217,7 @@ static int index_dowrite(fd_index ix,struct FD_INDEX_COMMITS *commits)
     else u8_logf(LOG_CRIT,"Failed/IndexCommit/Write",
                  "(after %fsecs) writing %d edits to %s",
                  n_changes,ix->indexid,elapsed_time(started));}
-  else u8_logf(LOG_INFO,"Finished/IndexCommit/Write",
+  else u8_logf(LOG_DEBUG,"Finished/IndexCommit/Write",
                "(after %fsecs) writing %d edits to %s",
                elapsed_time(started),n_changes,ix->indexid);
 
@@ -1306,21 +1306,6 @@ static int index_doflush(fd_index ix,struct FD_INDEX_COMMITS *commits)
                elapsed_time(started));
 
   return rv;
-}
-
-static void log_timings(fd_index ix,struct FD_INDEX_COMMITS *commits)
-{
-  u8_logf(LOG_INFO,"Index/Commit/Timing",
-          "for '%s'\n  total=%f, start=%f, setup=%f, save=%f, "
-          "finalize=%f, apply=%f, cleanup=%f",
-          ix->indexid,
-          elapsed_time(commits->commit_times.base),
-          commits->commit_times.start,
-          commits->commit_times.setup,
-          commits->commit_times.write,
-          commits->commit_times.sync,
-          commits->commit_times.flush,
-          commits->commit_times.cleanup);
 }
 
 static int index_docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
@@ -1514,18 +1499,33 @@ static int index_docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
   commits.commit_phase = fd_commit_done;
 
   if (synced < 0)
-    u8_logf(LOG_CRIT,"Commit Failed",
-            _("for %d %supdated keys from %s after %f secs"),
+    u8_logf(LOG_CRIT,"Index/Commit/Failed",
+            _("for %d %supdated keys from %s after %f secs"
+              "total=%f, start=%f, setup=%f, save=%f, "
+              "finalize=%f, apply=%f, cleanup=%f"),
             n_changes,(w_metadata ? ("(and metadata) ") : ("") ),
-            ix->indexid,u8_elapsed_time()-start_time);
-  else u8_logf(LOG_DEBUG,fd_IndexCommit,
-               _("Committed %d %s%s keys to %s in %f secs"),
+            ix->indexid,
+            elapsed_time(commits.commit_times.base),
+            commits.commit_times.start,
+            commits.commit_times.setup,
+            commits.commit_times.write,
+            commits.commit_times.sync,
+            commits.commit_times.flush,
+            commits.commit_times.cleanup);
+  else u8_logf(LOG_NOTICE,"Index/Commit/Complete",
+               _("Committed %d%s from '%s'\n"
+                 "total=%f, start=%f, setup=%f, save=%f, "
+                 "finalize=%f, apply=%f, cleanup=%f"),
                n_changes,(w_metadata ? ("(and metadata) ") : ("") ),
-               (use_commits) ? ("edited") : ("changed"),
-               ix->indexid,u8_elapsed_time()-start_time);
-
-  if (fd_storage_loglevel >= LOG_INFO) log_timings(ix,&commits);
-
+               ix->indexid,
+               elapsed_time(commits.commit_times.base),
+               commits.commit_times.start,
+               commits.commit_times.setup,
+               commits.commit_times.write,
+               commits.commit_times.sync,
+               commits.commit_times.flush,
+               commits.commit_times.cleanup);
+  
   if (synced < 0)
     return synced;
   else return n_changes;

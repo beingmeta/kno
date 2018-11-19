@@ -1201,14 +1201,15 @@ static int pool_docommit(fd_pool p,lispval oids,
               "Couldn't commit %d OIDs%s to %s after %f secs",
               commit_count,((w_metadata) ? (" and metadata") : ("") ),
               p->poolid,u8_elapsed_time()-start_time);
-    else u8_logf(LOG_INFO,"Pool/Commit/Complete",
-                 "Committed %d OIDs%s to %s in %f secs",
-                 commit_count,((w_metadata) ? (" and metadata") : ("") ),
-                 p->poolid,u8_elapsed_time()-start_time);
-    u8_logf(LOG_INFO,"Pool/Commit/Timing",
-            "for %d OIDs in '%s'\n  total=%f, start=%f, setup=%f, save=%f, "
+
+    u8_logf(LOG_NOTICE,
+            ((sync<0) ? ("Pool/Commit/Timing") : ("Pool/Commit/Complete")),
+            "%s %d OIDs%s to '%s'\n  total=%f, start=%f, setup=%f, save=%f, "
             "finalize=%f, apply=%f, cleanup=%f",
-            commits.commit_count,p->poolid,
+            ((sync<0) ? ("for") : ("Committed")),
+            commits.commit_count,
+            ((w_metadata) ? (" and metadata") : ("") ),
+            p->poolid,
             u8_elapsed_time()-commits.commit_times.base,
             commits.commit_times.start,
             commits.commit_times.setup,
