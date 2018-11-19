@@ -10,7 +10,6 @@ usr/share/framerd/modules/builtin/knodules/*.scm
 usr/share/framerd/modules/builtin/knodules/data/*
 usr/share/framerd/modules/builtin/jwt/*.scm
 usr/share/framerd/modules/builtin/misc/*.scm
-usr/share/framerd/modules/builtin/mongodb/*.scm
 usr/share/framerd/modules/builtin/paypal/*.scm
 usr/share/framerd/modules/builtin/safe/*.scm
 usr/share/framerd/modules/builtin/tests/*.scm

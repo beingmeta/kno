@@ -1,3 +1,9 @@
+framerd (4.2.10-29) stable; urgency=medium
+
+  * Remove builtin/mongodb files, now in libscm
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 19 Nov 2018 14:25:31 -0500
+
 framerd (4.2.10-28) stable; urgency=medium
 
   * Add /etc/framerd/config_files
