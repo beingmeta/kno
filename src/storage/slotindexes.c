@@ -285,35 +285,31 @@ int fd_find_prefetch(fd_index ix,lispval slotids,lispval values)
 
 #define FD_LOOP_BREAK() FD_STOP_DO_CHOICES; break
 
+#define FALSISH(x) ( (FD_VOIDP(x)) || (FD_FALSEP(x)) || (FD_EMPTYP(x)) )
+
 static fd_index get_writable_slotindex(fd_index ix,lispval slotid)
 {
   if (fd_aggregate_indexp(ix)) {
-    fd_index generic = NULL;
+    lispval keyslot = ix->index_keyslot;
+    fd_index generic = (FALSISH(keyslot)) ?
+      (fd_get_writable_index(ix)) :
+      (NULL);
     struct FD_AGGREGATE_INDEX *aix = (fd_aggregate_index) ix;
     fd_index *indexes = aix->ax_indexes;
     int i = 0, n = aix->ax_n_indexes; while (i<n) {
-      fd_index possible = indexes[i++];
-      fd_index use_front = fd_get_writable_index(possible);
-      if (use_front) {
-	if (possible->index_keyslot == slotid)
-	  return use_front;
-	else if ( (FD_VOIDP(use_front->index_keyslot)) ||
-		  (FD_FALSEP(use_front->index_keyslot)) ||
-		  (FD_EMPTYP(use_front->index_keyslot)) ) {
+      fd_index possible = indexes[i++], use_front = NULL;
+      if (possible->index_keyslot == slotid) {
+	if ( (use_front = fd_get_writable_index(possible)) ){
+	  return use_front;}}
+      else if ( (FD_VOIDP(possible->index_keyslot)) ||
+		(FD_FALSEP(possible->index_keyslot)) ||
+		(FD_EMPTYP(possible->index_keyslot)) ) {
 	  if (generic == NULL)
-	    generic = use_front;
-	  else if (FD_INDEX_CONSEDP(use_front)) {
-	    fd_decref(LISPVAL(use_front));}
-	  else NO_ELSE;}
-	else if (FD_INDEX_CONSEDP(use_front)) {
-	  fd_decref(LISPVAL(use_front));}
-	else {}}}
-    if (generic)
-      return generic;
-    else return NULL;}
+	    generic = possible;}
+      else {}}
+    return generic;}
   else return fd_get_writable_index(ix);
 }
-
 
 FD_EXPORT
 int fd_index_frame(fd_index ix,lispval frames,lispval slotids,lispval values)
