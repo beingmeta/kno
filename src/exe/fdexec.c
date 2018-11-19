@@ -120,6 +120,7 @@ static lispval chain_prim(int n,lispval *args)
     u8_log(LOG_NOTICE,"CHAIN",">> %s %s%s",
            exe_arg,u8_fromlibc(file_arg),argstring.u8_outbuf);
     u8_free(argstring.u8_outbuf);
+    u8_log(LOG_NOTICE,"CHAIN","================================================================");
     rv = execvp(exe_arg,cargv);
     if (rv<0) {
       u8_graberr(errno,"CHAIN",u8_strdup(file_arg));
