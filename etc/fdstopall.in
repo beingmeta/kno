@@ -1,2 +1,2 @@
-#!@prefix@/bin/sh
+#!@SCRIPT_SHELL@
 fdstop @servlet_rundir@/ @daemon_rundir@/

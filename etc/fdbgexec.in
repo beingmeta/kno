@@ -1,2 +1,2 @@
-#!@prefix@/bin/sh
+#!@SCRIPT_SHELL@
 exec gdb -se @prefix@/bin/fdexec -x @share_dir@/gdbinit -ex "run $*"

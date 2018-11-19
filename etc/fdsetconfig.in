@@ -1,2 +1,2 @@
-#!@prefix@/bin/sh
+#!@SCRIPT_SHELL@
 echo $2 > @local_config@/$1

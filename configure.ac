@@ -376,6 +376,7 @@ AC_SUBST(APTREPO)
 AC_SUBST(GPG)
 
 AC_PATH_PROG(binenv,env)
+AC_CHECK_PROG(SCRIPT_SHELL,sh,,/bin/sh)
 AC_CHECK_PROG(ECHO,echo,,/bin/echo)
 AC_CHECK_PROG(MKDIR_DEFAULT,mkdir,,/bin/mkdir)
 AC_CHECK_PROG(CHMOD_DEFAULT,chmod,,/bin/chmod)

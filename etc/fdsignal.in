@@ -1,4 +1,4 @@
-#!@prefix@/bin/sh
+#!@SCRIPT_SHELL@
 SIGNAL_ARG=
 SIGNAL=${SIGNAL:-TERM}
 CMD="@SUDO@ kill -s"

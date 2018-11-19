@@ -1,4 +1,4 @@
-#!@prefix@/bin/sh
+#!@SCRIPT_SHELL@
 if test -f @local_config@/$1; then cat @local_config@/$1; else echo "Config variable" $1 "is not defined"; fi
 
 

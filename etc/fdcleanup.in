@@ -1,4 +1,4 @@
-#!@prefix@/bin/sh
+#!@SCRIPT_SHELL@
 fdstopall
 if test -d @servlet_logdir@; then
   rm -f @servlet_logdir@/*.log @servlet_logdir@/*.log*

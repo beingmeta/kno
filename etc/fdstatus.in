@@ -1,4 +1,4 @@
-#!@prefix@/bin/sh
+#!@SCRIPT_SHELL@
 
 showusage( ) {
     echo "Usage: fdstatus <activity> ... ";

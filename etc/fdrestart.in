@@ -1,4 +1,4 @@
-#!@prefix@/bin/sh
+#!@SCRIPT_SHELL@
 SIGNAL=${SIGNAL:-TERM}
 CMD="kill -s"
 

@@ -1,4 +1,4 @@
-#!@prefix@/bin/sh
+#!@SCRIPT_SHELL@
 if [ -z $# ]; then
     ROOTDIR=@config_dir@/daemons
 else

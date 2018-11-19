@@ -1,4 +1,4 @@
-#!@prefix@/bin/sh
+#!@SCRIPT_SHELL@
 function usage() {
     echo "Usage: fdinject <task> <file>";
     echo "Usage: fdinject <task> - (read from stdin)";
