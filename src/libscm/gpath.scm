@@ -126,7 +126,7 @@
 	       content-encoding ,enc])
 	(let* ((charset (ctype->charset ctype))
 	       (content (if base64 
-			    (if (mimetype/string?? ctype)
+			    (if (mimetype/text? ctype)
 				(packet->string (base64->packet data) charset)
 				(base64->packet data))
 			    data)))
@@ -489,7 +489,7 @@
 	((and (string? ref) (not (file-exists? (abspath ref)))) #f)
 	((string? ref)
 	 (if  (and ctype (not encoding)
-		   (or (mimetype/string?? ctype)
+		   (or (mimetype/text? ctype)
 		       (textsearch #{"xml" "json"} ctype)))
 	      (if (and ctype (ctype->charset ctype))
 		  (filestring (abspath ref) (and ctype (ctype->charset ctype)))
@@ -497,13 +497,14 @@
 	      (filedata (abspath ref))))
 	(else (error "Weird GPATH ref" GP/FETCH #f ref))))
 
-(define (gp/urlfetch url (err #t) (max-redirects 10))
+(define (gp/urlfetch url (err #t) (max-redirects #t))
   (let* ((newurl (textsubst url (qc gp/urlsubst)))
 	 (err (and err
 		   (if (equal? url newurl)
 		       (cons url (if (pair? err) err '()))
 		       (cons* newurl (list url) (if (pair? err) err '())))))
-	 (response (urlget newurl))
+	 (curlopts (and max-redirects `#[follow ,(if (number? max-redirects) max-redirects #t)]))
+	 (response (urlget newurl curlopts))
 	 (encoding (get response 'content-encoding))
 	 (hash (md5 (get response 'content))))
     (if (and (test response 'response)
@@ -519,37 +520,19 @@
 	  'hash hash 'md5 (packet->base16 hash)
 	  'content-encoding  (get response 'content-encoding)
 	  'content (get response '%content))
-	(if (<= 300 (get response 'response) 399)
-	    (if (and (number? max-redirects) (> max-redirects 0))
-		(gp/urlfetch (get response 'location)
-			     (and err (cons url (if (pair? err) err '())))
-			     (-1+ max-redirects))
-		(if err (error TOO_MANY_REDIRECTS GP/URLFETCH
-			       url response)
-		    (begin (logwarn "Too many redirects: "
-			     (cons url err)))))
-	    (tryif err (error URLFETCH_FAILED GP/URLFETCH
-			      url response))))))
+	(tryif err
+	  (error URLFETCH_FAILED GP/URLFETCH
+		 url response)))))
 
-(define (gp/urlinfo url (err #t) (max-redirects 10))
+(define (gp/urlinfo url (err #t) (max-redirects #t))
   (let* ((newurl (textsubst url (qc gp/urlsubst)))
 	 (err (and err
 		   (if (equal? url newurl)
 		       (cons url (if (pair? err) err '()))
 		       (cons* newurl (list url) (if (pair? err) err '())))))
-	 (response (urlhead newurl)))
-    (if (and (test response 'response)
-	     (<= 200 (get response 'response) 299))
-	response
-	(if (<= 300 (get response 'response) 399)
-	    (if (and (number? max-redirects) (> max-redirects 0))
-		(gp/urlinfo (get response 'location)
-			    (and err (cons url (if (pair? err) err '())))
-			    (-1+ max-redirects))
-		(if err (error TOO_MANY_REDIRECTS GP/URLINFO url response)
-		    (begin (logwarn "Too many redirects: "
-			     (cons url err)))))
-	    response))))
+	 (curlopts (and max-redirects `#[follow ,(if (number? max-redirects) max-redirects #t)]))
+	 (response (urlhead newurl curlopts)))
+    response))
 
 (define (gp/fetch+ ref (ctype #f) (opts #f) (encoding))
   (if (urish? ref) (set! ref (->gpath ref)))
@@ -723,7 +706,7 @@
 (define (file-info ref etag ctype opts encoding)
   (let* ((ref (abspath ref))
 	 (ctype (or ctype (guess-mimetype (get-namestring ref) #f opts)))
-	 (istext (and ctype (mimetype/string?? ctype) (not encoding)))
+	 (istext (and ctype (mimetype/text? ctype) (not encoding)))
 	 (charset (and istext (ctype->charset ctype)))
 	 (gpathstring (gpath->string ref))
 	 (hash (md5 (if charset

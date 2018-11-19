@@ -54,12 +54,15 @@ static lispval eurl_slotid, filetime_slotid, response_code_slotid;
 static lispval timeout_symbol, connect_timeout_symbol, accept_timeout_symbol;
 static lispval dns_symbol, dnsip_symbol, dns_cachelife_symbol;
 static lispval fresh_connect_symbol, forbid_reuse_symbol, filetime_symbol;
+static lispval follow_symbol;
 
 static lispval text_types = EMPTY;
 
 static u8_condition NonTextualContent=
   _("can't parse non-textual content as XML");
 static u8_condition CurlError=_("Internal libcurl error");
+
+static int max_redirects = -1;
 
 typedef struct FD_CURL_HANDLE {
   FD_CONS_HEADER;
@@ -594,6 +597,16 @@ static lispval set_curlopt
       long int msecs = (long int)floor(secs);
       curl_easy_setopt(ch->handle,CURLOPT_DNS_CACHE_TIMEOUT,msecs);}
     else return fd_type_error("seconds","set_curlopt/connecttimeout",val);}
+  else if (FD_EQ(opt,follow_symbol)) {
+    if (FD_TRUEP(val)) {
+      curl_easy_setopt(ch->handle,CURLOPT_FOLLOWLOCATION,1);
+      if (max_redirects > 0)
+        curl_easy_setopt(ch->handle,CURLOPT_MAXREDIRS,max_redirects);}
+    else if ( (FD_FIXNUMP(val)) && ((FD_FIX2INT(val))>0) ) {
+      long long count = FD_FIX2INT(val);
+      curl_easy_setopt(ch->handle,CURLOPT_FOLLOWLOCATION,1);
+      curl_easy_setopt(ch->handle,CURLOPT_MAXREDIRS,count);}
+    else curl_easy_setopt(ch->handle,CURLOPT_FOLLOWLOCATION,0);}
   else if (FD_EQ(opt,fresh_connect_symbol)) {
     if (FD_TRUEP(val)) {
       curl_easy_setopt(ch->handle,CURLOPT_FRESH_CONNECT,1);}
@@ -1657,6 +1670,7 @@ FD_EXPORT void fd_init_curl_c()
   fresh_connect_symbol = fd_intern("FRESHCONNECT");
   forbid_reuse_symbol = fd_intern("NOREUSE");
   filetime_symbol = fd_intern("FILETIME");
+  follow_symbol = fd_intern("FOLLOW");
 
   CHOICE_ADD(text_types,FDSYM_TEXT);
   decl_text_type("application/xml");
@@ -1724,6 +1738,9 @@ FD_EXPORT void fd_init_curl_c()
     ("CURL:USERAGENT",_("What CURL should use as the default user agent string"),
      fd_sconfig_get,fd_sconfig_set,&default_user_agent);
 
+  fd_register_config
+    ("CURL:REDIRECTS",_("Maximum number of redirects to allow"),
+     fd_intconfig_get,fd_intconfig_set,&max_redirects);
 
   fd_register_sourcefn(url_source_fn,NULL);
 
