@@ -1085,7 +1085,7 @@ static int pool_docommit(fd_pool p,lispval oids,
          means they've been marked readonly. */
       pick_modified(p,1,&commits);
       if (commits.commit_count)
-        u8_logf(LOG_INFO,"PoolCommit/finalized",
+        u8_logf(LOG_DEBUG,"PoolCommit/finalized",
                 "%d modified+finished OIDs to commit to %s",
                 commits.commit_count,p->poolid);}
     else pick_writes(p,EMPTY,&commits);
@@ -1202,7 +1202,7 @@ static int pool_docommit(fd_pool p,lispval oids,
               commit_count,((w_metadata) ? (" and metadata") : ("") ),
               p->poolid,u8_elapsed_time()-start_time);
 
-    u8_logf(LOG_NOTICE,
+    u8_logf(LOG_INFO,
             ((sync<0) ? ("Pool/Commit/Timing") : ("Pool/Commit/Complete")),
             "%s %d OIDs%s to '%s'\n  total=%f, start=%f, setup=%f, save=%f, "
             "finalize=%f, apply=%f, cleanup=%f",

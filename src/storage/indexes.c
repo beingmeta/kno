@@ -1421,7 +1421,7 @@ static int index_docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
   record_elapsed(commits.commit_times.write);
 
   if (written >= 0)
-    u8_logf(LOG_INFO,"IndexWrite/Written",
+    u8_logf(LOG_DEBUG,"IndexWrite/Written",
             _("Wrote %d changes to %s after %f secs"),
             n_changes,ix->indexid,commits.commit_times.write);
 
@@ -1512,7 +1512,7 @@ static int index_docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
             commits.commit_times.sync,
             commits.commit_times.flush,
             commits.commit_times.cleanup);
-  else u8_logf(LOG_NOTICE,"Index/Commit/Complete",
+  else u8_logf(LOG_INFO,"Index/Commit/Complete",
                _("Committed %d%s from '%s'\n"
                  "total=%f, start=%f, setup=%f, save=%f, "
                  "finalize=%f, apply=%f, cleanup=%f"),
@@ -1660,7 +1660,7 @@ FD_EXPORT int fd_index_save(fd_index ix,
 
   if (n_changes) {
     init_cache_level(ix);
-    u8_logf(LOG_INFO,fd_IndexCommit,
+    u8_logf(LOG_DEBUG,fd_IndexCommit,
             _("Saving %d changes (+%d-%d=%d%s) to %s"),
             n_changes,n_adds,n_drops,n_stores,
             (FD_VOIDP(metadata)) ? ("") : ("/md"),
@@ -2143,14 +2143,14 @@ FD_EXPORT int fd_execute_index_delays(fd_index ix,void *data)
     /* u8_unlock_mutex(&(fd_ipeval_lock)); */
 #if FD_TRACE_IPEVAL
     if (fd_trace_ipeval>1)
-      u8_logf(LOG_INFO,ipeval_ixfetch,"Fetching %d keys from %s: %q",
+      u8_logf(LOG_DEBUG,ipeval_ixfetch,"Fetching %d keys from %s: %q",
               FD_CHOICE_SIZE(todo),ix->indexid,todo);
     else
 #endif
       retval = fd_index_prefetch(ix,todo);
 #if FD_TRACE_IPEVAL
     if (fd_trace_ipeval)
-      u8_logf(LOG_INFO,ipeval_ixfetch,"Fetched %d keys from %s",
+      u8_logf(LOG_DEBUG,ipeval_ixfetch,"Fetched %d keys from %s",
               FD_CHOICE_SIZE(todo),ix->indexid);
 #endif
     if (retval<0) return retval;
