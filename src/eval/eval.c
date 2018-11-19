@@ -1232,11 +1232,13 @@ static lispval eval_apply(u8_string fname,
       lispval *new_argbuf;
       if (free_argbuf)
         new_argbuf=u8_realloc(argbuf,new_size);
-      else if  ((new_argbuf=u8_malloc(new_size)))
+      else if  ((new_argbuf=u8_malloc(new_size))) {
         memcpy(new_argbuf,argbuf,cur_size);
+        free_argbuf=1;}
       else NO_ELSE;
       if (new_argbuf == NULL) {
         if (gc_args) fd_decref_vec(argbuf,arg_count);
+        if (argbuf != static_argbuf) u8_free(argbuf);
         u8_graberrno("eval_apply",fname);
         return FD_ERROR_VALUE;}
       else {
