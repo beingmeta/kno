@@ -53,6 +53,8 @@ static char *configs[MAX_CONFIGS], *exe_arg = NULL, *file_arg = NULL;
 static int n_configs = 0;
 static int no_stdin = 0;
 
+static int chain_fast_exit=1;
+
 static u8_condition FileWait=_("FILEWAIT");
 
 static void exit_fdexec()
@@ -108,13 +110,16 @@ static lispval chain_prim(int n,lispval *args)
     cargv[cargc++]=u8_strdup("LOGAPPEND=yes");
     i = 0; while (i<n_configs) {
       char *config = configs[i];
-      if (strncmp(config,"LOGAPPEND=",10)) {
+      if ( (strncmp(config,"LOGAPPEND=",10) == 0) ||
+           (strncmp(config,"PIDFILE=",10) == 0) ) {}
+      else {
         u8_printf(&argstring," %s",u8_fromlibc(configs[i]));
-        cargv[cargc++]=configs[i++];}
-      else i++;}
+        cargv[cargc++]=configs[i++];}}
     cargv[cargc++]=NULL;
     fflush(stdout); fflush(stderr);
+    /* TODO: Should we run any exit methods here? */
     u8_log(LOG_INFO,"CHAIN","Closing pools and indexes");
+    fd_fast_exit = chain_fast_exit;
     fd_close_pools();
     fd_close_indexes();
     u8_log(LOG_NOTICE,"CHAIN",">> %s %s%s",
