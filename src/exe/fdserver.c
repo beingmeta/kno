@@ -932,7 +932,8 @@ static void exit_fdserver()
 int main(int argc,char **argv)
 {
   int i = 1;
-  unsigned int arg_mask = 0; /* Bit map of args to skip */
+  /* Mask of args which we handle */
+  unsigned char arg_mask[argc];  memset(arg_mask,0,argc);
 
   u8_log_show_date=1;
   u8_log_show_procinfo=1;
@@ -977,7 +978,7 @@ int main(int argc,char **argv)
       u8_log(LOG_NOTICE,"FDServerConfig","    %s",argv[i++]);
     else if (server_spec) i++;
     else {
-      if (i<32) arg_mask = arg_mask | (1<<i);
+      arg_mask[i] = 'X';
       server_spec = argv[i++];}} /* while (i<argc) */
   i = 1;
 

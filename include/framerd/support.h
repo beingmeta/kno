@@ -84,7 +84,7 @@ FD_EXPORT int fd_read_default_config(u8_input in);
 
 FD_EXPORT int fd_argv_config(int argc,char **argv) U8_DEPRECATED;
 FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
-                                  unsigned int parse_mask,
+                                  unsigned char *arg_mask,
                                   size_t *arglen_ptr);
 
 FD_EXPORT lispval *fd_argv;

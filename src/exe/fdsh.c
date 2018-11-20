@@ -278,7 +278,8 @@ int main(int argc,char **argv)
   u8_output out=(u8_output)u8_open_xoutput(1,enc);
   u8_output err=(u8_output)u8_open_xoutput(2,enc);
   int i=1, c, n_chars=0;
-  unsigned int arg_mask=0;
+  /* Mask of args which we handle */
+  unsigned char arg_mask[argc];  memset(arg_mask,0,argc);
   u8_string source_file=NULL;
 
   /* INITIALIZING MODULES */
@@ -342,7 +343,7 @@ int main(int argc,char **argv)
     if (isconfig(argv[i])) i++;
     else if (source_file) i++;
     else {
-      if (i<32) arg_mask = arg_mask | (1<<i);
+      arg_mask[i] = 'X';
       source_file=argv[i++];}}
 
   fd_handle_argv(argc,argv,arg_mask,NULL);

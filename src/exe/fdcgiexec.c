@@ -611,7 +611,8 @@ int main(int argc,char **argv)
 {
   int i = 1;
   int u8_version = u8_initialize(), fd_version;
-  unsigned int arg_mask = 0;  /* Bit map of args to skip */
+  /* Mask of args which we handle */
+  unsigned char arg_mask[argc];  memset(arg_mask,0,argc);
   unsigned char *loadfile = NULL;
 
   fd_main_errno_ptr = &errno;
@@ -699,7 +700,7 @@ int main(int argc,char **argv)
       u8_log(LOG_NOTICE,"CONFIG","   %s",argv[i++]);}
     else if (loadfile) i++;
     else {
-      if (i<32) arg_mask = arg_mask | (1<<i);
+      arg_mask[i] = 'X';
       loadfile = argv[i++];}}
 
   if (socketspec == NULL) {

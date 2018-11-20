@@ -151,7 +151,8 @@ static lispval *handle_argv(int argc,char **argv,size_t *arglenp,
 {
   lispval *args = NULL;
   u8_string tmp_string = NULL, source_file = NULL, exe_name = NULL;
-  unsigned int arg_mask = 0;
+  /* Bit map of args which we handle */
+  unsigned char arg_mask[argc];  memset(arg_mask,0,argc);
   int i = 1;
 
   if (getenv("FD_SHOWARGV")) print_args(argc,argv);
@@ -171,7 +172,7 @@ static lispval *handle_argv(int argc,char **argv,size_t *arglenp,
       i++;}
     else if (source_file) i++;
     else {
-      arg_mask  |=  (1<<i);
+      arg_mask[i] = 'X';
       file_arg = argv[i++];
       source_file = u8_fromlibc(file_arg);}}
 

@@ -624,7 +624,8 @@ static void dotloader(u8_string file,fd_lexenv env)
 int main(int argc,char **argv)
 {
   int i = 1;
-  unsigned int arg_mask = 0; /* Bit map of args to skip */
+  /* Mask of args which we handle */
+  unsigned char arg_mask[argc];  memset(arg_mask,0,argc);
   time_t boot_time = time(NULL);
   lispval expr = VOID, result = VOID, lastval = VOID;
   u8_encoding enc = u8_get_default_encoding();
@@ -766,7 +767,7 @@ int main(int argc,char **argv)
     else if (source_file) i++;
     else {
       if (u8_file_existsp(argv[i])) {
-        if (i<32) arg_mask = arg_mask | (1<<i);}
+        arg_mask[i] = 'X';}
       source_file = argv[i++];}}
 
   fd_handle_argv(argc,argv,arg_mask,NULL);

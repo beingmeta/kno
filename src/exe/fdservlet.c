@@ -1911,7 +1911,8 @@ int main(int argc,char **argv)
   int u8_version = u8_initialize();
   int dtype_version = fd_init_lisp_types();
   int fd_version; /* Wait to set this until we have a log file */
-  unsigned int arg_mask = 0;  /* Bit map of args to skip */
+  /* Bit map of args which we handle */
+  unsigned char arg_mask[argc];  memset(arg_mask,0,argc);
   u8_string socket_spec = NULL, load_source = NULL;
   u8_string logfile = NULL;
 
@@ -1953,7 +1954,7 @@ int main(int argc,char **argv)
     else if (socket_spec) i++;
     else {
       socket_spec = argv[i];
-      if (i<32) arg_mask = arg_mask | (1<<i);
+      arg_mask[i] = 'X';
       i++;}
   }
   i = 1;

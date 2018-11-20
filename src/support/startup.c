@@ -96,7 +96,7 @@ static void log_argv(int n,lispval *argv)
 /* This takes an argv, argc combination and processes the argv elements
    which are configs (var = value again) */
 FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
-                                  unsigned int arg_mask,
+                                  unsigned char *arg_mask,
                                   size_t *arglen_ptr)
 {
   if (argc>0) {
@@ -146,7 +146,7 @@ FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
     lispval raw_args = fd_make_vector(argc,NULL);
     lispval *return_args = (arglen_ptr) ? (u8_alloc_n(argc-1,lispval)) : (NULL);
     lispval *_fd_argv = u8_alloc_n(argc-1,lispval);
-    
+
     u8_threadcheck();
 
     init_argc = argc;
@@ -156,11 +156,8 @@ FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
       u8_string arg = u8_fromlibc(carg), eq = strchr(arg,'=');
       FD_VECTOR_SET(raw_args,i,lispval_string(arg));
       /* Don't include argv[0] in the arglists */
-      if (i==0) {
-        u8_free(arg);
-        i++;
-        continue;}
-      else if ( ( n < 32 ) && ( ( (arg_mask) & (1<<i)) !=0 ) ) {
+      if ( (i==0) || (arg_mask[i]) ) {
+        /* Skip first and masked args */
         u8_free(arg);
         i++;
         continue;}
