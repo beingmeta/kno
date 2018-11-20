@@ -32,7 +32,7 @@
 	 (full-prefix (strip-suffix fullpath prefix))
 	 (directory (dirname fullpath))
 	 (files (pick (pick (getfiles directory)
-			    has-prefix fullpath)
+			    has-prefix (glom fullpath "."))
 		      has-suffix ".index"))
 	 (serials (get-serial files))
 	 (refpath (textsubst files flex-suffix ""))
