@@ -922,9 +922,11 @@ static int stdin_config_set(lispval var,lispval val,void *data)
 
 #define PID_OPEN_FLAGS O_WRONLY|O_CREAT|O_EXCL
 
+u8_string pid_filename = NULL;
+
 static int pidfile_config_set(lispval var,lispval val,void *data)
 {
-  u8_string filename=NULL;
+  u8_string filename=NULL, *fname_ptr = (u8_string *) data;
   if (FD_STRINGP(val))
     filename=u8_strdup(FD_CSTRING(val));
   else if (FD_TRUEP(val)) {
@@ -943,9 +945,23 @@ static int pidfile_config_set(lispval var,lispval val,void *data)
     pid_t pid = getpid();
     char buf[32], *pidstring = u8_uitoa10(pid,buf);
     int rv = u8_writeall(fd,pidstring,strlen(pidstring));
-    if (rv<0) u8_graberrno("pid_config_set/write",filename);
+    if (rv<0) {
+      u8_graberrno("pid_config_set/write",filename);}
+    else if (fname_ptr)
+      *fname_ptr = filename;
+    else NO_ELSE;
     close(fd);
     return rv;}
+}
+
+static void remove_pidfile()
+{
+  if ( (fd_exited) || (fd_in_doexit))
+    return;
+  else if (pid_filename) {
+    if (u8_file_existsp(pid_filename))
+      u8_removefile(pid_filename);}
+  else fd_doexit(FD_FALSE);
 }
 
 /* Full startup */
@@ -1031,7 +1047,7 @@ void fd_init_startup_c()
   fd_register_config("STDIN",_("Redirect standard input to file"),
                      fd_sconfig_get,stdin_config_set,&stdin_filename);
   fd_register_config("PIDFILE",_("Write PID to file, delete on exit"),
-                     fd_sconfig_get,pidfile_config_set,&stdin_filename);
+                     fd_sconfig_get,pidfile_config_set,&pid_filename);
 
 #if HAVE_SYS_RESOURCE_H
 #ifdef RLIMIT_CPU
