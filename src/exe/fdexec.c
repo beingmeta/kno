@@ -111,7 +111,8 @@ static lispval chain_prim(int n,lispval *args)
     i = 0; while (i<n_configs) {
       char *config = configs[i];
       if ( (strncmp(config,"LOGAPPEND=",10) == 0) ||
-           (strncmp(config,"PIDFILE=",10) == 0) ) {}
+           (strncmp(config,"PIDFILE=",10) == 0) )
+        i++;
       else {
         u8_printf(&argstring," %s",u8_fromlibc(configs[i]));
         cargv[cargc++]=configs[i++];}}
