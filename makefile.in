@@ -1240,6 +1240,7 @@ cleandist cleanrpms cleandeb rpmclean debclean:
 
 debfresh freshdeb:
 	make -s debclean
+	rm -f include/framerd/revision.h; make include/framerd/revision.h
 	make -s debian
 
 # Creating staging areas from GIT
