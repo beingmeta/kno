@@ -12,7 +12,7 @@
 (define (->slotid arg)
   (if (not (string? arg))
       arg 
-      (if (has-prefix arg {"@" ":@"}}
+      (if (has-prefix arg {"@" ":@"})
 	  (parse-arg arg)
 	  (string->symbol (upcase arg)))))
 
