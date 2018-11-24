@@ -24,11 +24,18 @@
 	   (logwarn |FileExists|
 	     "Moved existing file " file " " "to " (glom file ".bak"))))))
 
+(define (->slotid arg)
+  (if (not (string? arg))
+      arg 
+      (if (has-prefix arg {"@" ":@"})
+	  (parse-arg arg)
+	  (string->symbol (upcase arg)))))
+
 (define (main out . in)
   (let* ((index (open-index (and (pair? in) (car in))))
 	 (first-size (indexctl index 'metadata 'keys))
 	 (keyslot (and (config 'KEYSLOT (indexctl index 'keyslot))
-		       (symbolize (config 'KEYSLOT (indexctl index 'keyslot)))))
+		       (->slotid (config 'KEYSLOT (indexctl index 'keyslot)))))
 	 (newsize (config 'NEWSIZE (* 4 first-size)))
 	 (opts (frame-create #f
 		 'newsize newsize
