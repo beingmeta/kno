@@ -53,7 +53,8 @@ u8_condition fd_ExitException=_("Unhandled exception at exit");
 
 static u8_mutex atexit_handlers_lock;
 
-static u8_string pid_file = NULL;
+#define PID_OPEN_FLAGS O_WRONLY|O_CREAT|O_EXCL
+u8_string pid_filename = NULL;
 
 int fd_in_doexit = 0;
 int fd_logcmd    = 0;
@@ -330,18 +331,18 @@ FD_EXPORT void fd_doexit(lispval arg)
       scan = scan->exitfn_next;
       u8_free(tmp);}}
   else u8_log(LOG_DEBUG,"fd_doexit","No FramerD exit handlers!");
-  if (pid_file) {
-    int rv = u8_removefile(pid_file);
+  if (pid_filename) {
+    int rv = u8_removefile(pid_filename);
     if (rv<0) {
       if (errno)
         u8_log(LOG_CRIT,"PIDFile",
                "Couldn't remove PID file %s (%s)",
-               pid_file,u8_strerror(errno));
+               pid_filename,u8_strerror(errno));
       else u8_log(LOG_CRIT,"PIDFile",
-                  "Couldn't remove PID file %s",pid_file);}
-    u8_free(pid_file);
-    pid_file=NULL;}
-  
+                  "Couldn't remove PID file %s",pid_filename);}
+    u8_free(pid_filename);
+    pid_filename=NULL;}
+
   if ( (fd_logcmd) && (fd_argc > 1) )
     log_argv(fd_argc,fd_argv);
 
@@ -917,10 +918,6 @@ static int stdin_config_set(lispval var,lispval val,void *data)
 
 /* Setting a pid file */
 
-#define PID_OPEN_FLAGS O_WRONLY|O_CREAT|O_EXCL
-
-u8_string pid_filename = NULL;
-
 static int pidfile_config_set(lispval var,lispval val,void *data)
 {
   u8_string filename=NULL, *fname_ptr = (u8_string *) data;
@@ -970,6 +967,7 @@ void fd_init_startup_c()
   u8_init_mutex(&atexit_handlers_lock);
 
   atexit(doexit_atexit);
+  atexit(remove_pidfile);
 
   boot_config();
 
