@@ -697,6 +697,25 @@ static lispval getmodules_evalfn(lispval expr,fd_lexenv call_env,fd_stack _stack
   return modules;
 }
 
+/* CONSBLOCKS */
+
+static lispval make_consblock(lispval obj)
+{
+  return fd_make_consblock(obj);
+}
+
+static lispval consblock_original(lispval obj)
+{
+  struct FD_CONSBLOCK *cb = (fd_consblock) obj;
+  return fd_incref(cb->consblock_original);
+}
+
+static lispval consblock_head(lispval obj)
+{
+  struct FD_CONSBLOCK *cb = (fd_consblock) obj;
+  return cb->consblock_head;
+}
+
 /* Profiling */
 
 static lispval profile_fcn_prim(lispval fcn,lispval bool)
@@ -1027,6 +1046,19 @@ FD_EXPORT void fd_init_reflection_c()
             "(SAFE-MODULES) "
             "Returns all 'safe' loaded modules as an alist"
             "of module names and modules");
+
+  fd_idefn1(module,"CONSBLOCK",make_consblock,1,
+            "(CONSBLOCK *obj*) returns a consblock structure "
+            "which copies *obj* into a static contiguous block "
+            "of memory.",
+            -1,FD_VOID);
+  fd_idefn1(module,"CONSBLOCK-ORIGIN",consblock_original,1,
+            "(CONSBLOCK-ORIGIN *consblock*) returns the original object "
+            "from which a consblock was generated.",
+            fd_consblock_type,FD_VOID);
+  fd_idefn1(module,"CONSBLOCK-HEAD",consblock_head,1,
+            "(CONSBLOCK-HEAD *consblock*) returns the head of the consblock",
+            fd_consblock_type,FD_VOID);
 
   fd_idefn2(module,"REFLECT/PROFILE!",profile_fcn_prim,1,
             "`(REFLECT/PROFILE! *fcn* *boolean*)`"

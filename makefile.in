@@ -145,7 +145,7 @@ LISP_OBJS=\
 	src/lisp/compounds.o src/lisp/misctypes.o		\
 	src/lisp/parse.o src/lisp/unparse.o			\
 	src/lisp/bufio.o src/lisp/pprint.o  			\
-	src/lisp/listing.o					\
+	src/lisp/listing.o src/lisp/consblocks.o		\
 	src/lisp/dtread.o src/lisp/dtwrite.o			\
 	src/lisp/lisp.o
 
@@ -392,7 +392,7 @@ FRAMERD_SOURCES=\
 	src/lisp/copy.c src/lisp/recycle.c src/lisp/misctypes.c       		\
         src/lisp/compare.c src/lisp/walk.c src/lisp/fcnids.c			\
 	src/lisp/choices.c src/lisp/sequences.c					\
-	src/lisp/tables.c src/lisp/compounds.c 					\
+	src/lisp/tables.c src/lisp/compounds.c src/lisp/consblocks.c		\
         src/lisp/bufio.c src/lisp/dtread.c src/lisp/dtread.c 			\
 	src/lisp/parse.c src/lisp/unparse.c src/lisp/lisp.c 			\
 	src/support/buildinfo.c src/support/sourcebase.c			\

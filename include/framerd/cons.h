@@ -845,12 +845,12 @@ FD_EXPORT lispval fd_time2timestamp(time_t moment);
 
 typedef struct FD_CONSBLOCK {
   FD_CONS_HEADER;
-  unsigned int *consdata;
-  lispval cons_root;
-  lispval cons_directory;
-  ssize_t consdata_size;
-  ssize_t consdata_lenth;} FD_CONSBLOCK;
-typedef struct FD_CONSBLOCK *fd_consblock;
+  lispval consblock_head, consblock_original;
+  struct FD_CONS *consblock_conses;
+  size_t consblock_len;
+  int consblock_contiguous;} *fd_consblock;
+
+lispval fd_make_consblock(lispval obj);
 
 /* Raw pointers */
 

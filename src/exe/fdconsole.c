@@ -924,8 +924,17 @@ int main(int argc,char **argv)
     if (errno) {
       u8_log(LOG_WARN,u8_strerror(errno),"Unexpected errno after eval");
       errno = 0;}
-    if (PRECHOICEP(result))
+    if (FD_CHECK_PTR(result)==0) {
+      fprintf(stderr,";;; An invalid pointer 0x%llx was returned!\n",
+              (unsigned long long)result);
+      result = FD_VOID;}
+    else if (PRECHOICEP(result))
       result = fd_simplify_choice(result);
+    else if ( (FD_CONSP(result)) && (FD_STATIC_CONSP(result)) ) {
+      u8_log(LOG_WARN,"StaticCons",
+             "A static, potentially ephemeral cons was returned, copying...");
+      result = fd_copy(result);}
+    else NO_ELSE;
     finish_time = u8_elapsed_time();
     finish_ocache = fd_object_cache_load();
     finish_icache = fd_index_cache_load();
@@ -964,10 +973,7 @@ int main(int argc,char **argv)
       /* Whether to show a stat line (time/dbs/etc) */
       stat_line = 1;
     fd_decref(expr); expr = VOID;
-    if (FD_CHECK_PTR(result)==0) {
-      fprintf(stderr,";;; An invalid pointer 0x%llx was returned!\n",
-              (unsigned long long)result);}
-    else if (FD_TROUBLEP(result)) {
+    if (FD_TROUBLEP(result)) {
       u8_exception ex = u8_erreify();
       u8_byte tmpbuf[100];
       lispval irritant = fd_get_irritant(ex);
