@@ -107,6 +107,7 @@ static void grab_mongodb_error(bson_error_t *error,u8_string caller)
 #define HAVE_MONGOC_COUNT_DOCUMENTS (MONGOC_CHECK_VERSION(1,12,0))
 #define HAVE_MONGOC_COUNT_WITH_OPTS (MONGOC_CHECK_VERSION(1,6,0))
 #define HAVE_MONGOC_BULK_OPERATION_WITH_OPTS (MONGOC_CHECK_VERSION(1,9,0))
+#define HAVE_MONGOC_URI_SET_DATABASE (MONGOC_CHECK_VERSION(1,4,0))
 
 #define MONGODB_CLIENT_BLOCK 1
 #define MONGODB_CLIENT_NOBLOCK 0
@@ -598,18 +599,40 @@ static void escape_uri(u8_output out,u8_string s,int len)
 static mongoc_uri_t *setup_mongoc_uri(mongoc_uri_t *info,lispval opts)
 {
   if (info == NULL) return info;
+  u8_string dbname = mongoc_uri_get_database(info);
   lispval dbarg   = fd_getopt(opts,fd_intern("DBNAME"),FD_VOID);
-  if (FD_STRINGP(dbarg))
-    mongoc_uri_set_database(info,FD_CSTRING(dbarg));
-  else if (!((FD_VOIDP(dbarg)) || (FD_FALSEP(dbarg)) || (FD_DEFAULTP(dbarg)) )) {
+  if ( (dbname) &&
+       ((FD_VOIDP(dbarg)) || (FD_FALSEP(dbarg)) || (FD_DEFAULTP(dbarg)) ) ) {}
+  else if ((FD_VOIDP(dbarg)) || (FD_FALSEP(dbarg)) || (FD_DEFAULTP(dbarg)) ) {
+    fd_seterr("NoDBName","setup_mongoc_uri",
+              mongoc_uri_get_string(info),FD_VOID);
+    fd_decref(dbarg);
+    return NULL;}
+#if HAVE_MONGOC_URI_SET_DATABASE
+  else if (!(FD_STRINGP(dbarg))) {
     fd_seterr("Invalid MongoDBName","setup_mongoc_uri",
               mongoc_uri_get_string(info),
               dbarg);
     fd_decref(dbarg);
     return NULL;}
+  else if ( (dbname) && (strcmp(dbname,FD_CSTRING(dbarg))) ) {}
   else {
-    u8_string dbname = mongoc_uri_get_database(info);
-    if (dbname == NULL) mongoc_uri_set_database(info,"test");}
+    mongoc_uri_set_database(info,FD_CSTRING(dbarg));}
+#else
+  else if (dbname == NULL) {
+    fd_seterr("NoDBName","setup_mongoc_uri",
+              mongoc_uri_get_string(info),FD_VOID);
+    fd_decref(dbarg);
+    return NULL;}
+  else if ( (FD_STRINGP(dbarg)) && (strcmp(dbname,FD_CSTRING(dbarg))) == 0) {}
+  else {
+    fd_seterr("CantSetDB","setup_mongoc_uri",
+              "Can't set/modify database in this version of MongoDB",
+              FD_VOID);
+    fd_decref(dbarg);
+    return NULL;}
+#endif
+
   lispval appname = fd_getopt(opts,fd_intern("APPNAME"),FD_VOID);
   lispval timeout = fd_getopt(opts,fd_intern("TIMEOUT"),FD_VOID);
   lispval ctimeout = fd_getopt(opts,fd_intern("CTIMEOUT"),FD_VOID);
