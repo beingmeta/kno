@@ -170,6 +170,129 @@ static lispval apply_lambda(lispval fn,int n,lispval *args)
   return call_lambda(fd_stackptr,(struct FD_LAMBDA *)fn,n,args);
 }
 
+FD_EXPORT int fd_set_lambda_schema(struct FD_LAMBDA *s,lispval args)
+{
+  int n_vars = 0, has_inits = 0;
+  lispval scan = args;
+  while (FD_PAIRP(scan)) {
+    lispval arg = FD_CAR(scan);
+    if ( (FD_PAIRP(arg)) && (FD_PAIRP(FD_CDR(arg))) ) has_inits=1;
+    scan = FD_CDR(scan);
+    n_vars++;}
+  if (! (FD_EMPTY_LISTP(scan)) ) n_vars++;
+  lispval *cur_vars = s->lambda_vars;
+  lispval *cur_inits = s->lambda_inits;
+  int n_cur = s->lambda_n_vars;
+  if (n_vars) {
+    lispval *schema = s->lambda_vars = u8_alloc_n((n_vars),lispval);
+    lispval *inits = s->lambda_inits = (has_inits) ?
+      (u8_alloc_n((n_vars),lispval)) :
+      (NULL);
+    int i = 0; scan = args; while (PAIRP(scan)) {
+      lispval arg = FD_CAR(scan);
+      if (FD_PAIRP(arg)) {
+        if (FD_SYMBOLP(FD_CAR(arg))) {
+          schema[i] = FD_CAR(arg);
+          if (FD_PAIRP(FD_CDR(arg))) {
+            lispval init = FD_CADR(arg);
+            inits[i] = fd_incref(init);}
+          else if (FD_EMPTY_LISTP(FD_CDR(arg))) {
+            if (inits) inits[i] = FD_VOID;}
+          else {
+            u8_free(schema); if (inits) u8_free(inits);
+            fd_seterr(fd_SyntaxError,"optimize_procedure_args",NULL,arg);
+            return -1;}}
+        else {
+          u8_free(schema); if (inits) u8_free(inits);
+          fd_seterr(fd_SyntaxError,"optimize_procedure_args",NULL,arg);
+          return -1;}}
+      else if (FD_SYMBOLP(arg)) {
+        schema[i]=arg; if (inits) inits[i]=FD_VOID;}
+      else {
+        u8_free(schema); if (inits) u8_free(inits);
+        fd_seterr(fd_SyntaxError,"optimize_procedure_args",NULL,arg);
+        return -1;}
+      scan = FD_CDR(scan);
+      i++;}
+    if (FD_SYMBOLP(scan)) {
+      schema[i] = scan;
+      if (inits) inits[i] = FD_NIL;}}
+  else {
+    s->lambda_vars = NULL;
+    s->lambda_inits = NULL;}
+  s->lambda_n_vars = n_vars;
+  if (cur_vars) u8_free(cur_vars);
+  if (cur_inits) {
+    fd_decref_vec(cur_inits,n_cur);
+    u8_free(cur_inits);}
+  return n_vars;
+}
+
+static lispval document_lambda(struct FD_LAMBDA *s,u8_string name,
+                               lispval arglist,lispval body)
+{
+  struct U8_OUTPUT docstream;
+  U8_INIT_OUTPUT(&docstream,256);
+  int n_lines = 0;
+  while ( (PAIRP(body)) &&
+          (STRINGP(FD_CAR(body))) &&
+          (PAIRP(FD_CDR(body))) ) {
+    u8_string docstring = FD_CSTRING(FD_CAR(body));
+    if (n_lines == 0) {
+      if (add_autodocp(docstring)) {
+        /* Generate an initial docstring from the name and args */
+        lispval scan = arglist;
+        u8_puts(&docstream,"`(");
+        if (name) u8_puts(&docstream,name); else u8_puts(&docstream,"λ");
+        while (PAIRP(scan)) {
+          lispval arg = FD_CAR(scan);
+          if (SYMBOLP(arg))
+            u8_printf(&docstream," %ls",SYM_NAME(arg));
+          else if ((PAIRP(arg))&&(SYMBOLP(FD_CAR(arg))))
+          u8_printf(&docstream," [%ls]",SYM_NAME(FD_CAR(arg)));
+        else u8_puts(&docstream," ??");
+        scan = FD_CDR(scan);}
+      if (SYMBOLP(scan))
+        u8_printf(&docstream," [%ls...]",SYM_NAME(scan));
+      u8_puts(&docstream,")`\n");}
+      u8_puts(&docstream,docstring);}
+    else {
+      u8_putc(&docstream,'\n');
+      u8_puts(&docstream,docstring);}
+    body = FD_CDR(body);
+    n_lines++;}
+  if ( (u8_outbuf_written(&docstream)) ) {
+    s->fcn_doc=docstream.u8_outbuf;
+    s->fcn_freedoc = 1;}
+  else u8_close_output(&docstream);
+  return body;
+}
+
+static int process_decls(struct FD_LAMBDA *s,lispval body)
+{
+  lispval attribs = s->fcn_attribs;
+  if (attribs == FD_VOID)
+    s->fcn_attribs = attribs = fd_make_slotmap(4,0,NULL);
+  while ( (FD_PAIRP(body)) && (FD_CAR(body) == decls_symbol) ) {
+    lispval decls = FD_CAR(body); body = FD_CDR(body);
+    lispval scan =  FD_CDR(decls);
+    int len = fd_list_length(scan);
+    if (len > 0) {
+      if (len == 1)
+        fd_add(attribs,flags_symbol,FD_CAR(scan));
+      else if (len%2) {
+        while ( FD_PAIRP(scan) ) {
+          lispval key = FD_CAR(scan);
+          lispval value = FD_CADR(scan);
+          fd_add(attribs,key,value);
+          scan=FD_CDR(FD_CDR(scan));}}
+      else {
+        u8_log(LOG_ERR,"BadProcedureDECL",
+               "Couldn't get decls from %q",decls);}}
+    body = FD_CDR(body);}
+  return body;
+}
+
 static lispval
 _make_lambda(u8_string name,
              lispval arglist,lispval body,fd_lexenv env,
@@ -177,37 +300,28 @@ _make_lambda(u8_string name,
              int incref,int copy_env,
              int autodoc)
 {
-  int i = 0, n_vars = 0, min_args = 0, have_inits = 0;
+  int min_args = 0;
   struct FD_LAMBDA *s = u8_alloc(struct FD_LAMBDA);
   FD_INIT_FRESH_CONS(s,fd_lambda_type);
   s->fcn_name = ((name) ? (u8_strdup(name)) : (NULL));
-  lispval scan = arglist, *schema = NULL, *inits = NULL, attribs=FD_VOID;
+  int n_vars = fd_set_lambda_schema(s,arglist);
+  lispval scan = arglist;
   while (PAIRP(scan)) {
     lispval argspec = FD_CAR(scan);
-    if ( (FD_PAIRP(argspec)) && (FD_PAIRP(FD_CDR(argspec))) )
-      have_inits = 1;
-    scan = FD_CDR(scan);
-    n_vars++;
-    if (SYMBOLP(argspec)) min_args = n_vars;}
-  if (NILP(scan)) {
-    s->lambda_n_vars = s->fcn_arity = n_vars;}
-  else {
-    n_vars++;
-    s->lambda_n_vars = n_vars;
-    s->fcn_arity = -1;}
+    if (SYMBOLP(argspec)) {
+      min_args++; scan=FD_CDR(scan);}
+    else {
+      while (PAIRP(scan)) scan=FD_CDR(scan);}}
+  if (NILP(scan))
+    s->fcn_arity = n_vars;
+  else s->fcn_arity = -1;
   s->fcn_min_arity = min_args;
   s->fcn_ndcall = nd;
   s->fcn_xcall = 1;
   s->fcn_handler.fnptr = NULL;
   s->fcn_typeinfo = NULL;
-  if (n_vars) {
-    // s->lambda_vars = schema = u8_alloc_n((n_vars+1),lispval);
-    s->lambda_vars = schema = u8_alloc_n((n_vars),lispval);
-    fd_init_elts(schema,n_vars,FD_VOID);
-    if (have_inits) {
-      // s->lambda_inits = inits = u8_alloc_n((n_vars+1),lispval);
-      s->lambda_inits = inits = u8_alloc_n((n_vars),lispval);
-      fd_init_elts(inits,n_vars,FD_VOID);}}
+  if (n_vars)
+    fd_set_lambda_schema(s,arglist);
   else {
     s->lambda_vars = NULL;
     s->lambda_inits = NULL;}
@@ -220,7 +334,7 @@ _make_lambda(u8_string name,
   else {
     s->lambda_body = body;
     s->lambda_arglist = arglist;}
-  s->lambda_bytecode = NULL;
+  s->lambda_consblock = NULL;
   if (env == NULL)
     s->lambda_env = env;
   else if ( (copy_env) || (FD_MALLOCD_CONSP(env)) )
@@ -230,80 +344,16 @@ _make_lambda(u8_string name,
     s->lambda_synchronized = 1;
     u8_init_mutex(&(s->lambda_lock));}
   else s->lambda_synchronized = 0;
-  if (autodoc) {
-    struct U8_OUTPUT docstream;
-    U8_INIT_OUTPUT(&docstream,256);
-    u8_string init_docstring = NULL;
-    if ( (PAIRP(body)) &&
-         (STRINGP(FD_CAR(body))) &&
-         (PAIRP(FD_CDR(body))) )
-      init_docstring=FD_CSTRING(FD_CAR(body));
-    if (add_autodocp(init_docstring)) {
-      lispval scan = arglist;
-      u8_puts(&docstream,"`(");
-      if (name) u8_puts(&docstream,name); else u8_puts(&docstream,"λ");
-      while (PAIRP(scan)) {
-        lispval arg = FD_CAR(scan);
-        if (SYMBOLP(arg))
-          u8_printf(&docstream," %ls",SYM_NAME(arg));
-        else if ((PAIRP(arg))&&(SYMBOLP(FD_CAR(arg))))
-          u8_printf(&docstream," [%ls]",SYM_NAME(FD_CAR(arg)));
-        else u8_puts(&docstream," ??");
-        scan = FD_CDR(scan);}
-      if (SYMBOLP(scan))
-        u8_printf(&docstream," [%ls...]",SYM_NAME(scan));
-      u8_puts(&docstream,")`");}
-    if (init_docstring) {
-      u8_puts(&docstream,"\n");
-      while ( (PAIRP(body)) &&
-              (STRINGP(FD_CAR(body))) &&
-              (PAIRP(FD_CDR(body))) ) {
-        u8_putc(&docstream,'\n');
-        u8_puts(&docstream,FD_CSTRING(FD_CAR(body)));
-        body=FD_CDR(body);}}
-    if ( (u8_outbuf_written(&docstream)) ) {
-      s->fcn_doc=docstream.u8_outbuf;
-      s->fcn_freedoc = 1;}
-    else u8_close_output(&docstream);}
+  if (autodoc) body = document_lambda(s,name,arglist,body);
 
   if ( ( FD_PAIRP(body) ) &&
        ( FD_PAIRP(FD_CAR(body)) ) &&
-       ( FD_PAIRP(FD_CDR(body)) ) &&
-       ( (FD_CAR(FD_CAR(body))) == decls_symbol ) ) {
-    lispval decls = FD_CAR(body); body = FD_CDR(body);
-    lispval scan =  FD_CDR(decls);
-    int len = fd_list_length(scan);
-    if (len == 0) {}
-    else if (len == 1) {
-      struct FD_KEYVAL kv;
-      kv.kv_key = flags_symbol;
-      kv.kv_val = FD_CAR(scan);
-      s->fcn_attribs = attribs = fd_init_slotmap(NULL,1,&kv);}
-    else if (len%2) {
-      s->fcn_attribs = attribs = fd_make_slotmap(len/2,0,NULL);
-      while ( FD_PAIRP(scan) ) {
-        lispval key = FD_CAR(scan);
-        lispval value = FD_CADR(scan);
-        fd_add(attribs,key,value);
-        scan=FD_CDR(FD_CDR(scan));}}
-    else {
-      u8_log(LOG_ERR,"BadProcedureDECL",
-             "Couldn't get decls from %q",decls);}}
-  scan = arglist; i = 0; while (PAIRP(scan)) {
-    lispval argspec = FD_CAR(scan);
-    if (PAIRP(argspec)) {
-      schema[i]=FD_CAR(argspec);
-      if ( (inits) && (FD_PAIRP(FD_CDR(argspec))) ) {
-        lispval init = FD_CADR(argspec);
-        inits[i] = init;
-        fd_incref(init);}}
-    else {
-      schema[i]=argspec;
-      if (inits) inits[i] = FD_VOID;}
-    scan = FD_CDR(scan);
-    i++;}
-  if (i<s->lambda_n_vars) schema[i]=scan;
+       ( (FD_CAR(FD_CAR(body))) == decls_symbol ) )
+    body = process_decls(s,body);
+  s->lambda_start = body;
+
   s->lambda_source = VOID;
+
   return LISP_CONS(s);
 }
 
@@ -342,10 +392,21 @@ FD_EXPORT void recycle_lambda(struct FD_RAW_CONS *c)
     fd_decref((lispval)(lambda->lambda_env->env_copy));
     /* fd_recycle_lexenv(lambda->lambda_env->env_copy); */
   }
+
+  if (lambda->lambda_consblock) {
+    lispval cb = (lispval) lambda->lambda_consblock;
+    lambda->lambda_consblock=NULL;
+    fd_decref(cb);}
+  else if (lambda->lambda_start != lambda->lambda_body)
+    fd_decref(lambda->lambda_start);
+  else {}
+  lambda->lambda_start = FD_VOID;
+
   if (lambda->lambda_synchronized)
     u8_destroy_mutex(&(lambda->lambda_lock));
-  if (lambda->lambda_bytecode) {
-    lispval bc = (lispval)(lambda->lambda_bytecode);
+  if (lambda->lambda_consblock) {
+    lispval bc = (lispval)(lambda->lambda_consblock);
+    lambda->lambda_consblock = NULL;
     fd_decref(bc);}
   /* Put these last to help with debugging, when needed */
   if (lambda->fcn_name) u8_free(lambda->fcn_name);
@@ -455,11 +516,14 @@ FD_EXPORT lispval copy_lambda(struct FD_CONS *c,int flags)
     fresh->lambda_body = fd_copier(lambda->lambda_body,flags);
     fresh->lambda_source = lambda->lambda_source;
     fd_incref(lambda->lambda_source);
-    fresh->lambda_bytecode = NULL;
+    fresh->lambda_consblock = NULL;
     if (lambda->lambda_vars)
       fresh->lambda_vars = fd_copy_vec(lambda->lambda_vars,n_args,NULL,flags);
     if (lambda->fcn_defaults)
       fresh->fcn_defaults = fd_copy_vec(lambda->fcn_defaults,arity,NULL,flags);
+
+    fresh->lambda_start = fresh->lambda_body;
+    fresh->lambda_consblock = NULL;
 
     if (fresh->lambda_synchronized)
       u8_init_mutex(&(fresh->lambda_lock));

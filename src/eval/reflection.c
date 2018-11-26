@@ -31,7 +31,7 @@ static lispval macrop(lispval x)
   else return FD_FALSE;
 }
 
-static lispval compound_procedurep(lispval x)
+static lispval lambdap(lispval x)
 {
   if (FD_FCNIDP(x)) x = fd_fcnid_ref(x);
   if (FD_LAMBDAP(x))
@@ -367,17 +367,17 @@ static lispval reflect_drop(lispval x,lispval attrib,lispval value)
 
 /* LAMBDA functions */
 
-static lispval compound_procedure_args(lispval arg)
+static lispval lambda_args(lispval arg)
 {
   lispval x = fd_fcnid_ref(arg);
   if (FD_LAMBDAP(x)) {
     struct FD_LAMBDA *proc = (fd_lambda)x;
     return fd_incref(proc->lambda_arglist);}
   else return fd_type_error
-         ("compound procedure","compound_procedure_args",x);
+         ("lambda","lambda_args",x);
 }
 
-static lispval set_compound_procedure_args(lispval arg,lispval new_arglist)
+static lispval set_lambda_args(lispval arg,lispval new_arglist)
 {
   lispval x = fd_fcnid_ref(arg);
   if (FD_LAMBDAP(x)) {
@@ -387,29 +387,29 @@ static lispval set_compound_procedure_args(lispval arg,lispval new_arglist)
     fd_decref(arglist);
     return VOID;}
   else return fd_type_error
-         ("compound procedure","set_compound_procedure_args",x);
+         ("lambda","set_lambda_args",x);
 }
 
-static lispval compound_procedure_env(lispval arg)
+static lispval lambda_env(lispval arg)
 {
   lispval x = fd_fcnid_ref(arg);
   if (FD_LAMBDAP(x)) {
     struct FD_LAMBDA *proc = (fd_lambda)fd_fcnid_ref(x);
     return (lispval) fd_copy_env(proc->lambda_env);}
-  else return fd_type_error("compound procedure","compound_procedure_env",x);
+  else return fd_type_error("lambda","lambda_env",x);
 }
 
-static lispval compound_procedure_body(lispval arg)
+static lispval lambda_body(lispval arg)
 {
   lispval x = fd_fcnid_ref(arg);
   if (FD_LAMBDAP(x)) {
     struct FD_LAMBDA *proc = (fd_lambda)fd_fcnid_ref(x);
     return fd_incref(proc->lambda_body);}
   else return fd_type_error
-         ("compound procedure","compound_procedure_body",x);
+         ("lambda","lambda_body",x);
 }
 
-static lispval compound_procedure_source(lispval arg)
+static lispval lambda_source(lispval arg)
 {
   lispval x = fd_fcnid_ref(arg);
   if (FD_LAMBDAP(x)) {
@@ -418,10 +418,10 @@ static lispval compound_procedure_source(lispval arg)
       return FD_FALSE;
     else return fd_incref(proc->lambda_source);}
   else return fd_type_error
-         ("compound procedure","compound_procedure_source",x);
+         ("lambda","lambda_source",x);
 }
 
-static lispval set_compound_procedure_body(lispval arg,lispval new_body)
+static lispval set_lambda_body(lispval arg,lispval new_body)
 {
   lispval x = fd_fcnid_ref(arg);
   if (FD_LAMBDAP(x)) {
@@ -431,10 +431,51 @@ static lispval set_compound_procedure_body(lispval arg,lispval new_body)
     fd_decref(body);
     return VOID;}
   else return fd_type_error
-         ("compound procedure","set_compound_procedure_body",x);
+         ("lambda","set_lambda_body",x);
 }
 
-static lispval set_compound_procedure_source(lispval arg,lispval new_source)
+static lispval optimize_lambda_body(lispval arg,lispval new_body)
+{
+  lispval x = fd_fcnid_ref(arg);
+  if (FD_LAMBDAP(x)) {
+    struct FD_LAMBDA *proc = (fd_lambda)x;
+    if (FD_FALSEP(new_body)) {
+      if (proc->lambda_consblock) {
+        lispval cb = (lispval) (proc->lambda_consblock);
+        fd_decref(cb);}
+      proc->lambda_start = proc->lambda_body;}
+    else {
+      lispval new_consblock = (FD_TRUEP(new_body)) ?
+        (fd_make_consblock(proc->lambda_body)) :
+        (fd_make_consblock(new_body));
+      if (FD_ABORTP(new_consblock))
+        return new_consblock;
+      else if (FD_TYPEP(new_consblock,fd_consblock_type)) {
+        struct FD_CONSBLOCK *cb = (fd_consblock) new_consblock;
+        proc->lambda_start = cb->consblock_head;}
+      else proc->lambda_start = new_consblock;
+      if (proc->lambda_consblock) {
+        lispval cb = (lispval) (proc->lambda_consblock);
+        fd_decref(cb);}
+      if (FD_TYPEP(new_consblock,fd_consblock_type))
+        proc->lambda_consblock = (fd_consblock) new_consblock;
+      else proc->lambda_consblock = NULL;}
+    return VOID;}
+  else return fd_type_error("lambda","optimize_lambda_body",x);
+}
+
+static lispval optimize_lambda_args(lispval arg,lispval new_args)
+{
+  lispval x = fd_fcnid_ref(arg);
+  if (FD_LAMBDAP(x)) {
+    struct FD_LAMBDA *s = (fd_lambda)x;
+    int n = fd_set_lambda_schema(s,new_args);
+    if (n<0) return FD_ERROR_VALUE;
+    else return FD_INT(n);}
+  else return fd_type_error("lambda","optimize_lambda_args",x);
+}
+
+static lispval set_lambda_source(lispval arg,lispval new_source)
 {
   lispval x = fd_fcnid_ref(arg);
   if (FD_LAMBDAP(x)) {
@@ -444,39 +485,10 @@ static lispval set_compound_procedure_source(lispval arg,lispval new_source)
     fd_decref(source);
     return VOID;}
   else return fd_type_error
-         ("compound procedure","set_compound_procedure_source",x);
+         ("lambda","set_lambda_source",x);
 }
 
-static lispval compound_procedure_bytecode(lispval arg)
-{
-  lispval x = fd_fcnid_ref(arg);
-  if (FD_LAMBDAP(x)) {
-    struct FD_LAMBDA *proc = (fd_lambda)fd_fcnid_ref(x);
-    if (proc->lambda_bytecode) {
-      lispval cur = (lispval)(proc->lambda_bytecode);
-      fd_incref(cur);
-      return cur;}
-    else return FD_FALSE;}
-  else return fd_type_error
-         ("compound procedure","compound_procedure_body",x);
-}
-
-static lispval set_compound_procedure_bytecode(lispval arg,lispval bytecode)
-{
-  lispval x = fd_fcnid_ref(arg);
-  if (FD_LAMBDAP(x)) {
-    struct FD_LAMBDA *proc = (fd_lambda)fd_fcnid_ref(x);
-    if (proc->lambda_bytecode) {
-      lispval cur = (lispval)(proc->lambda_bytecode);
-      fd_decref(cur);}
-    fd_incref(bytecode);
-    proc->lambda_bytecode = (struct FD_VECTOR *)bytecode;
-    return VOID;}
-  else return fd_type_error
-         ("compound procedure","set_compound_procedure_bytecode",x);
-}
-
-static lispval set_compound_procedure_optimizer(lispval arg,lispval optimizer)
+static lispval set_lambda_optimizer(lispval arg,lispval optimizer)
 {
   lispval x = fd_fcnid_ref(arg);
   if (FD_LAMBDAP(x)) {
@@ -488,7 +500,7 @@ static lispval set_compound_procedure_optimizer(lispval arg,lispval optimizer)
     proc->lambda_optimizer = optimizer;
     return VOID;}
   else return fd_type_error
-         ("compound procedure","set_compound_procedure_optimizer",x);
+         ("lambda","set_lambda_optimizer",x);
 }
 
 /* Function IDs */
@@ -918,7 +930,7 @@ FD_EXPORT void fd_init_reflection_c()
             "(can be passed to apply, used as a function, etc",
             -1,VOID);
 
-  fd_idefn1(module,"COMPOUND-PROCEDURE?",compound_procedurep,1,
+  fd_idefn1(module,"COMPOUND-PROCEDURE?",lambdap,1,
             "",
             -1,VOID);
   fd_idefn1(module,"SPECIAL-FORM?",evalfnp,1,
@@ -969,25 +981,12 @@ FD_EXPORT void fd_init_reflection_c()
             "false otherwise. By default, all procedures "
             "are tailable when called deterministically.",
             -1,VOID);
-  fd_idefn1(module,"PROCEDURE-ID",procedure_id,1,
-            "",
-            -1,VOID);
-  fd_idefn1(module,"PROCEDURE-ARGS",compound_procedure_args,1,
-            "",
-            -1,VOID);
-  fd_idefn1(module,"PROCEDURE-BODY",compound_procedure_body,1,
-            "",
-            -1,VOID);
-  fd_idefn1(module,"PROCEDURE-SOURCE",compound_procedure_source,1,
-            "",
-            -1,VOID);
-  fd_idefn1(module,"PROCEDURE-ENV",compound_procedure_env,1,
-            "",
-            -1,VOID);
-  fd_idefn1(module,"PROCEDURE-BYTECODE",
-            compound_procedure_bytecode,1,
-            "",
-            -1,VOID);
+  fd_idefn1(module,"PROCEDURE-ID",procedure_id,1,"",-1,VOID);
+  fd_idefn1(module,"LAMBDA-ARGS",lambda_args,1,"",-1,VOID);
+  fd_idefn1(module,"LAMBDA-ARGS",lambda_args,1,"",-1,VOID);
+  fd_idefn1(module,"LAMBDA-BODY",lambda_body,1,"",-1,VOID);
+  fd_idefn1(module,"LAMBDA-SOURCE",lambda_source,1,"",-1,VOID);
+  fd_idefn1(module,"LAMBDA-ENV",lambda_env,1,"",-1,VOID);
 
   fd_idefn2(module,"REFLECT/GET",reflect_get,2,
             "Returns a meta-property of a procedure",
@@ -1007,17 +1006,24 @@ FD_EXPORT void fd_init_reflection_c()
             "",
             -1,VOID,-1,VOID);
 
-  fd_idefn2(module,"SET-PROCEDURE-BODY!",set_compound_procedure_body,2,
+  fd_idefn2(module,"SET-LAMBDA-BODY!",set_lambda_body,2,
             "",fd_lambda_type,VOID,-1,VOID);
-  fd_idefn2(module,"SET-PROCEDURE-ARGS!",set_compound_procedure_args,2,
+  fd_idefn2(module,"SET-LAMBDA-ARGS!",set_lambda_args,2,
            "",fd_lambda_type,VOID,-1,VOID);
-  fd_idefn2(module,"SET-PROCEDURE-SOURCE!",set_compound_procedure_source,2,
+  fd_idefn2(module,"SET-LAMBDA-SOURCE!",set_lambda_source,2,
             "",fd_lambda_type,VOID,-1,VOID);
-  fd_idefn2(module,"SET-PROCEDURE-OPTIMIZER!",
-            set_compound_procedure_optimizer,2,
+  fd_idefn2(module,"SET-LAMBDA-OPTIMIZER!",
+            set_lambda_optimizer,2,
             "",fd_lambda_type,VOID,-1,VOID);
-  fd_idefn2(module,"SET-PROCEDURE-BYTECODE!",set_compound_procedure_bytecode,2,
-            "",fd_lambda_type,VOID,fd_code_type,VOID);
+
+  fd_idefn2(module,"OPTIMIZE-LAMBDA-BODY!",optimize_lambda_body,2,
+            "(OPTIMIZE-LAMBDA-BODY! *lambda*) updates the consblock "
+            "body of a procedure",
+            fd_lambda_type,VOID,-1,VOID);
+  fd_idefn2(module,"OPTIMIZE-LAMBDA-ARGS!",optimize_lambda_args,2,
+            "(OPTIMIZE-LAMBDA-ARGS! *lambda*) updates the parsed vars and "
+            "defaults for lambda procedure",
+            fd_lambda_type,VOID,-1,VOID);
 
   fd_idefn(module,fd_make_cprim2("MACROEXPAND",macroexpand,2));
 

@@ -151,9 +151,9 @@
 		   (make-compound '%definition (procedure-source object))
 		   (make-compound '%lambda 
 				  (procedure-name object)
-				  (procedure-args object)
-				  (procedure-body object)
-				  (hashptr (procedure-env object))))
+				  (lambda-args object)
+				  (lambda-body object)
+				  (hashptr (lambda-env object))))
 	       (hashptr object) uuid)))
 	((procedure? object)
 	 (try (get uuids (hashptr object))

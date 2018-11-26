@@ -160,8 +160,8 @@ typedef struct FD_LAMBDA {
   short lambda_n_vars, lambda_synchronized;
   lispval *lambda_vars, *lambda_inits;
   lispval lambda_arglist, lambda_body, lambda_source;
-  lispval lambda_optimizer;
-  struct FD_VECTOR *lambda_bytecode;
+  lispval lambda_optimizer, lambda_start;
+  struct FD_CONSBLOCK *lambda_consblock;
   fd_lexenv lambda_env;
   U8_MUTEX_DECL(lambda_lock);
 } FD_LAMBDA;
@@ -183,6 +183,7 @@ FD_EXPORT lispval fd_xapply_lambda
 FD_EXPORT lispval fd_make_lambda(u8_string name,
                                  lispval arglist,lispval body,fd_lexenv env,
                                  int nd,int sync);
+FD_EXPORT int fd_set_lambda_schema(struct FD_LAMBDA *s,lispval args);
 
 /* QCODE */
 

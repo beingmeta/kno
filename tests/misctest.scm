@@ -301,7 +301,7 @@
         (else expr)))
 
 (define-tester (get-atoms x)
-   (if (procedure? x) (get-expr-atoms (procedure-body x))
+   (if (procedure? x) (get-expr-atoms (lambda-body x))
        (get-expr-atoms x)))
 
 (define (leaker x)
@@ -420,9 +420,9 @@
   "so it's relatively generic."
   (+ x y))
 
-(applytest "`(ADD2NUMBERS x y)`\n\nThis procedure adds 2 numbers and returns the result"
+(applytest "`(ADD2NUMBERS x y)`\nThis procedure adds 2 numbers and returns the result"
 	   procedure-documentation add2numbers)
-(applytest "`(ADD2NUMBERS.LONGDOC x y)`\n\nThis procedure adds 2 numbers and returns the result.\nIt uses the underlying +/-/etc arithmetic operators, \nso it's relatively generic."
+(applytest "`(ADD2NUMBERS.LONGDOC x y)`\nThis procedure adds 2 numbers and returns the result.\nIt uses the underlying +/-/etc arithmetic operators, \nso it's relatively generic."
 	   procedure-documentation add2numbers.longdoc)
 
 ;; This checks a bug where errors in an else were ignored

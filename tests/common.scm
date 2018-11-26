@@ -62,7 +62,7 @@
     (macro expr
       `(let ((fcn (lambda () ,(third expr))))
 	 (optimize-procedure! fcn)
-	 (pprint (procedure-body fcn))
+	 (pprint (lambda-body fcn))
 	 (,evaltest ,(second expr) (fcn)))))
   (define define-tester
     (macro expr

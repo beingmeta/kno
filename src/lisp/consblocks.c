@@ -66,19 +66,21 @@ static void convert_refs(lispval v,struct FD_CONS *conses)
         assert(FD_FIXNUMP(offset));
         long long off = FD_FIX2INT(offset);
         lispval ptr = (lispval) (conses+off);
+        fd_decref(car);
         p->car = car = ptr;}
       if (FD_COMPOUND_TYPEP(cdr,coderef_symbol)) {
         lispval offset = FD_COMPOUND_REF(cdr,0);
         assert(FD_FIXNUMP(offset));
         long long off = FD_FIX2INT(offset);
         lispval ptr = (lispval) (conses+off);
+        fd_decref(cdr);
         p->cdr = cdr = ptr;}
       convert_refs(car,conses);
       convert_refs(cdr,conses);}
     else {}}
 }
 
-lispval fd_make_consblock(lispval obj)
+FD_EXPORT lispval fd_make_consblock(lispval obj)
 {
   if (!(FD_CONSP(obj))) return obj;
   size_t init_size = 4096;
@@ -102,6 +104,7 @@ lispval fd_make_consblock(lispval obj)
   consblock->consblock_head = (lispval) conses;
   consblock->consblock_conses = conses;
   consblock->consblock_len = out.conses_write;
+  u8_free(out.conses);
   return (lispval) consblock;
 }
 
