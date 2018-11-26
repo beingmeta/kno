@@ -405,8 +405,19 @@ static lispval lambda_body(lispval arg)
   if (FD_LAMBDAP(x)) {
     struct FD_LAMBDA *proc = (fd_lambda)fd_fcnid_ref(x);
     return fd_incref(proc->lambda_body);}
-  else return fd_type_error
-         ("lambda","lambda_body",x);
+  else return fd_type_error("lambda","lambda_body",x);
+}
+
+static lispval lambda_start(lispval arg)
+{
+  lispval x = fd_fcnid_ref(arg);
+  if (FD_LAMBDAP(x)) {
+    struct FD_LAMBDA *proc = (fd_lambda)fd_fcnid_ref(x);
+    lispval start = proc->lambda_start;
+    if ( (FD_CONSP(start)) && (FD_STATIC_CONSP(start)) )
+      return fd_copier(start,FD_DEEP_COPY);
+    else return fd_incref(proc->lambda_body);}
+  else return fd_type_error("lambda","lambda_start",x);
 }
 
 static lispval lambda_source(lispval arg)
@@ -417,8 +428,7 @@ static lispval lambda_source(lispval arg)
     if (VOIDP(proc->lambda_source))
       return FD_FALSE;
     else return fd_incref(proc->lambda_source);}
-  else return fd_type_error
-         ("lambda","lambda_source",x);
+  else return fd_type_error("lambda","lambda_source",x);
 }
 
 static lispval set_lambda_body(lispval arg,lispval new_body)
@@ -986,6 +996,7 @@ FD_EXPORT void fd_init_reflection_c()
   fd_idefn1(module,"LAMBDA-ARGS",lambda_args,1,"",-1,VOID);
   fd_idefn1(module,"LAMBDA-ARGS",lambda_args,1,"",-1,VOID);
   fd_idefn1(module,"LAMBDA-BODY",lambda_body,1,"",-1,VOID);
+  fd_idefn1(module,"LAMBDA-START",lambda_start,1,"",-1,VOID);
   fd_idefn1(module,"LAMBDA-SOURCE",lambda_source,1,"",-1,VOID);
   fd_idefn1(module,"LAMBDA-ENV",lambda_env,1,"",-1,VOID);
 
