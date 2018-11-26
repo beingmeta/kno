@@ -40,7 +40,7 @@
 #include <pthread.h>
 #include <errno.h>
 
-#define simplify_value(v) \
+#define simplify_value(v)                                       \
   ( (FD_PRECHOICEP(v)) ? (fd_simplify_choice(v)) : (v) )
 
 static u8_string opcode_name(lispval opcode);
@@ -212,7 +212,7 @@ static lispval d1_call(lispval opcode,lispval arg1)
   switch (opcode) {
   case FD_MINUS1_OPCODE:
   case FD_PLUS1_OPCODE: {
-    int delta = (opcode == FD_MINUS1_OPCODE);
+    int delta = (opcode == FD_MINUS1_OPCODE) ? (-1) : (1);
     if (FIXNUMP(arg1)) {
       long long iarg = FIX2INT(arg1);
       return FD_INT(iarg+delta);}
@@ -343,84 +343,84 @@ static lispval numop_call(lispval opcode,lispval arg1,lispval arg2)
   else if (FD_EXPECT_FALSE(!(numeric_argp(arg2))))
     return fd_err("NotANumber","numop_call",NULL,arg2);
   else switch (opcode) {
-  case FD_NUMEQ_OPCODE:
-    if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))
-      if ((FIX2INT(arg1)) == (FIX2INT(arg2)))
-        return FD_TRUE;
-      else return FD_FALSE;
-    else if (fd_numcompare(arg1,arg2)==0) return FD_TRUE;
-    else return FD_FALSE;
-  case FD_GT_OPCODE:
-    if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))
-      if ((FIX2INT(arg1))>(FIX2INT(arg2)))
-        return FD_TRUE;
-      else return FD_FALSE;
-    else if (fd_numcompare(arg1,arg2)>0) return FD_TRUE;
-    else return FD_FALSE;
-  case FD_GTE_OPCODE:
-    if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))
-      if ((FIX2INT(arg1))>=(FIX2INT(arg2)))
-        return FD_TRUE;
-      else return FD_FALSE;
-    else if (fd_numcompare(arg1,arg2)>=0) return FD_TRUE;
-    else return FD_FALSE;
-  case FD_LT_OPCODE:
-    if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))
-      if ((FIX2INT(arg1))<(FIX2INT(arg2)))
-        return FD_TRUE;
-      else return FD_FALSE;
-    else if (fd_numcompare(arg1,arg2)<0) return FD_TRUE;
-    else return FD_FALSE;
-  case FD_LTE_OPCODE:
-    if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))
-      if ((FIX2INT(arg1))<=(FIX2INT(arg2)))
-        return FD_TRUE;
-      else return FD_FALSE;
-    else if (fd_numcompare(arg1,arg2)<=0) return FD_TRUE;
-    else return FD_FALSE;
-  case FD_PLUS_OPCODE:
-    if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))  {
-      long long m = FIX2INT(arg1), n = FIX2INT(arg2);
-      return FD_INT(m+n);}
-    else if ((FD_FLONUMP(arg1)) && (FD_FLONUMP(arg2))) {
-      double x = FD_FLONUM(arg1), y = FD_FLONUM(arg2);
-      return fd_init_double(NULL,x+y);}
-    else return fd_plus(arg1,arg2);
-  case FD_MINUS_OPCODE:
-    if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))  {
-      long long m = FIX2INT(arg1), n = FIX2INT(arg2);
-      return FD_INT(m-n);}
-    else if ((FD_FLONUMP(arg1)) && (FD_FLONUMP(arg2))) {
-      double x = FD_FLONUM(arg1), y = FD_FLONUM(arg2);
-      return fd_init_double(NULL,x-y);}
-    else return fd_subtract(arg1,arg2);
-  case FD_TIMES_OPCODE:
-    if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))  {
-      long long m = FIX2INT(arg1), n = FIX2INT(arg2);
-      return FD_INT(m*n);}
-    else if ((FD_FLONUMP(arg1)) && (FD_FLONUMP(arg2))) {
-      double x = FD_FLONUM(arg1), y = FD_FLONUM(arg2);
-      return fd_init_double(NULL,x*y);}
-    else return fd_multiply(arg1,arg2);
-  case FD_FLODIV_OPCODE:
-    if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))  {
-      long long m = FIX2INT(arg1), n = FIX2INT(arg2);
-      double x = (double)m, y = (double)n;
-      return fd_init_double(NULL,x/y);}
-    else if ((FD_FLONUMP(arg1)) && (FD_FLONUMP(arg2))) {
-      double x = FD_FLONUM(arg1), y = FD_FLONUM(arg2);
-      return fd_init_double(NULL,x/y);}
-    else {
-      double x = fd_todouble(arg1), y = fd_todouble(arg2);
-      return fd_init_double(NULL,x/y);}
-  }
+    case FD_NUMEQ_OPCODE: {
+      if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))
+        if ((FIX2INT(arg1)) == (FIX2INT(arg2)))
+          return FD_TRUE;
+        else return FD_FALSE;
+      else if (fd_numcompare(arg1,arg2)==0) return FD_TRUE;
+      else return FD_FALSE;}
+    case FD_GT_OPCODE: {
+      if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))
+        if ((FIX2INT(arg1))>(FIX2INT(arg2)))
+          return FD_TRUE;
+        else return FD_FALSE;
+      else if (fd_numcompare(arg1,arg2)>0) return FD_TRUE;
+      else return FD_FALSE;}
+    case FD_GTE_OPCODE: {
+      if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))
+        if ((FIX2INT(arg1))>=(FIX2INT(arg2)))
+          return FD_TRUE;
+        else return FD_FALSE;
+      else if (fd_numcompare(arg1,arg2)>=0) return FD_TRUE;
+      else return FD_FALSE;}
+    case FD_LT_OPCODE: {
+      if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))
+        if ((FIX2INT(arg1))<(FIX2INT(arg2)))
+          return FD_TRUE;
+        else return FD_FALSE;
+      else if (fd_numcompare(arg1,arg2)<0) return FD_TRUE;
+      else return FD_FALSE;}
+    case FD_LTE_OPCODE: {
+      if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))
+        if ((FIX2INT(arg1))<=(FIX2INT(arg2)))
+          return FD_TRUE;
+        else return FD_FALSE;
+      else if (fd_numcompare(arg1,arg2)<=0) return FD_TRUE;
+      else return FD_FALSE;}
+    case FD_PLUS_OPCODE: {
+      if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))  {
+        long long m = FIX2INT(arg1), n = FIX2INT(arg2);
+        return FD_INT(m+n);}
+      else if ((FD_FLONUMP(arg1)) && (FD_FLONUMP(arg2))) {
+        double x = FD_FLONUM(arg1), y = FD_FLONUM(arg2);
+        return fd_init_double(NULL,x+y);}
+      else return fd_plus(arg1,arg2);}
+    case FD_MINUS_OPCODE: {
+      if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))  {
+        long long m = FIX2INT(arg1), n = FIX2INT(arg2);
+        return FD_INT(m-n);}
+      else if ((FD_FLONUMP(arg1)) && (FD_FLONUMP(arg2))) {
+        double x = FD_FLONUM(arg1), y = FD_FLONUM(arg2);
+        return fd_init_double(NULL,x-y);}
+      else return fd_subtract(arg1,arg2);}
+    case FD_TIMES_OPCODE: {
+      if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))  {
+        long long m = FIX2INT(arg1), n = FIX2INT(arg2);
+        return FD_INT(m*n);}
+      else if ((FD_FLONUMP(arg1)) && (FD_FLONUMP(arg2))) {
+        double x = FD_FLONUM(arg1), y = FD_FLONUM(arg2);
+        return fd_init_double(NULL,x*y);}
+      else return fd_multiply(arg1,arg2);}
+    case FD_FLODIV_OPCODE: {
+      if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))  {
+        long long m = FIX2INT(arg1), n = FIX2INT(arg2);
+        double x = (double)m, y = (double)n;
+        return fd_init_double(NULL,x/y);}
+      else if ((FD_FLONUMP(arg1)) && (FD_FLONUMP(arg2))) {
+        double x = FD_FLONUM(arg1), y = FD_FLONUM(arg2);
+        return fd_init_double(NULL,x/y);}
+      else {
+        double x = fd_todouble(arg1), y = fd_todouble(arg2);
+        return fd_init_double(NULL,x/y);}}
+    default:
+      return fd_err(_("Invalid opcode"),"numop_call",NULL,VOID);
+    }
 }
 
 static lispval nd2_call(lispval opcode,lispval arg1,lispval arg2)
 {
   lispval result = FD_ERROR_VALUE;
-  if (PRECHOICEP(arg2)) arg2 = fd_simplify_choice(arg2);
-  if (PRECHOICEP(arg1)) arg1 = fd_simplify_choice(arg1);
   lispval argv[2]={arg1,arg2};
   if (FD_ABORTED(arg2)) result = arg2;
   else if (VOIDP(arg2)) {
@@ -458,27 +458,30 @@ static lispval nd2_call(lispval opcode,lispval arg1,lispval arg2)
     case FD_CHOICEREF_OPCODE:
       if (!(FIXNUMP(arg2))) {
         fd_decref(arg1);
-        return fd_err(fd_SyntaxError,"choiceref_opcode",NULL,arg2);}
+        result = fd_err(fd_SyntaxError,"choiceref_opcode",NULL,arg2);}
       else {
         int i = FIX2INT(arg2);
-        if (i<0) return fd_err(fd_SyntaxError,"choiceref_opcode",NULL,arg2);
-        if ((i==0)&&(EMPTYP(arg1))) return VOID;
+        if (i<0)
+          result = fd_err(fd_SyntaxError,"choiceref_opcode",NULL,arg2);
+        else if ((i==0)&&(EMPTYP(arg1)))
+          result = VOID;
         else if (CHOICEP(arg1)) {
           struct FD_CHOICE *ch = (fd_choice)arg1;
           if (i<ch->choice_size) {
             const lispval *elts = FD_XCHOICE_DATA(ch);
             lispval elt = elts[i];
-            return fd_incref(elt);}
-          else return VOID;}
-        else if (i==0) return arg1;
-        else {fd_decref(arg1); return VOID;}}
+            result = fd_incref(elt);}
+          else result = VOID;}
+        else if (i==0) result=arg1;
+        else result = VOID;}
+    default:
+      result = fd_err(_("Invalid opcode"),"numop_call",NULL,VOID);
     }
-  fd_decref(arg1); fd_decref(arg2);
   return result;
 }
 
 static lispval try_op(lispval exprs,fd_lexenv env,
-                     fd_stack stack,int tail)
+                      fd_stack stack,int tail)
 {
   while (PAIRP(exprs)) {
     lispval expr = pop_arg(exprs);
@@ -549,7 +552,7 @@ static lispval until_opcode(lispval expr,fd_lexenv env,fd_stack stack)
 
 /* Assignment */
 
-#define CURRENT_VALUEP(x) \
+#define CURRENT_VALUEP(x)                                 \
   (! ((cur == FD_DEFAULT_VALUE) || (cur == FD_UNBOUND) || \
       (cur == VOID) || (cur == FD_NULL)))
 
@@ -750,7 +753,8 @@ static lispval handle_special_opcode(lispval opcode,lispval expr,
       return test_val;
     else if (FD_FALSEP(test_val)) { /* (  || (FD_EMPTYP(test_val)) ) */
       pop_arg(args);
-      return op_eval(pop_arg(args),env,_stack,tail);}
+      lispval else_expr = pop_arg(args);
+      return op_eval(else_expr,env,_stack,tail);}
     else {
       lispval then = pop_arg(args);
       U8_MAYBE_UNUSED lispval ignore = pop_arg(args);
@@ -803,7 +807,7 @@ static lispval handle_table_opcode(lispval opcode,lispval expr,
                                    fd_stack _stack,
                                    int tail)
 {
-  lispval args = FD_CDR(args);
+  lispval args = FD_CDR(expr);
   lispval subject_arg = pop_arg(args);
   if (FD_EXPECT_FALSE(!(FD_PAIRP(args))))
     return fd_err(fd_TooFewArgs,"handle_table_opcode",NULL,expr);
@@ -894,7 +898,6 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
                                      fd_lexenv env,
                                      fd_stack _stack,
                                      int tail)
-
 {
   lispval args = FD_CDR(expr);
   if (opcode == FD_QUOTE_OPCODE)
@@ -935,7 +938,7 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
       else return fast_stack_eval(expr,env,_stack);}}
   if (FD_SPECIAL_OPCODEP(opcode))
     return handle_special_opcode(opcode,expr,env,_stack,tail);
-  else if ( (FD_D1_OPCODEP(opcode)) || (FD_ND1_OPCODEP(opcode)) ){
+  else if ( (FD_D1_OPCODEP(opcode)) || (FD_ND1_OPCODEP(opcode)) ) {
     int nd_call = (FD_ND1_OPCODEP(opcode));
     lispval results = FD_EMPTY_CHOICE;
     lispval arg = FD_CAR(args), val = fast_stack_eval(arg,env,_stack);
@@ -970,7 +973,7 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
     else if ( (FD_EMPTY_CHOICEP(val1)) && (!(nd_call)) )
       return val1;
     else NO_ELSE;
-    lispval arg2 = FD_CADR(args), val2 = fast_stack_eval(arg2,env,_stack);
+    lispval arg2 = pop_arg(args), val2 = fast_stack_eval(arg2,env,_stack);
     if (FD_ABORTP(val2)) {fd_decref(val1); return val2;}
     else if ( (FD_EMPTY_CHOICEP(val2)) && (!(nd_call)) ) {
       fd_decref(val1); return val2;}
@@ -994,17 +997,20 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
           if (FD_ABORTP(results)) {
             FD_STOP_DO_CHOICES;
             break;}}}}
+    else if (numericp)
+      results = numop_call(opcode,val1,val2);
+    else results = d2_call(opcode,val1,val2);
     fd_decref(val1); fd_decref(val2);
     return results;}
   else if (FD_TABLE_OPCODEP(opcode))
     return handle_table_opcode(opcode,expr,env,_stack,tail);
-  else NO_ELSE;
+  else return fd_err(_("Invalid opcode"),"numop_call",NULL,expr);
 }
 
 static lispval opcode_dispatch(lispval opcode,lispval expr,
-                              fd_lexenv env,
-                              fd_stack caller,
-                              int tail)
+                               fd_lexenv env,
+                               fd_stack caller,
+                               int tail)
 {
   FD_NEW_STACK(caller,"opcode",opcode_name(opcode),expr);
   lispval result = opcode_dispatch_inner(opcode,expr,env,_stack,tail);
@@ -1012,8 +1018,8 @@ static lispval opcode_dispatch(lispval opcode,lispval expr,
 }
 
 FD_FASTOP lispval op_eval(lispval x,fd_lexenv env,
-                         struct FD_STACK *stack,
-                         int tail)
+                          struct FD_STACK *stack,
+                          int tail)
 {
   switch (FD_PTR_MANIFEST_TYPE(x)) {
   case fd_oid_ptr_type: case fd_fixnum_ptr_type:
@@ -1208,7 +1214,7 @@ static double opcodes_initialized = 0;
 
 FD_EXPORT
 lispval fd_opcode_dispatch(lispval opcode,lispval expr,fd_lexenv env,
-                          struct FD_STACK *stack,int tail)
+                           struct FD_STACK *stack,int tail)
 {
   return opcode_dispatch(opcode,expr,env,stack,tail);
 }
