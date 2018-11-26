@@ -30,23 +30,27 @@ static lispval block_copier(lispval v,struct BLOCKOUT *block)
 {
   if (FD_CONSP(v)) {
     if (FD_PAIRP(v)) {
-      size_t new_size = block->conses_next + CONSBLOCK_SIZE(struct FD_PAIR);
-      if (new_size > block->conses_len) {
+      size_t need_size = block->conses_next + CONSBLOCK_SIZE(struct FD_PAIR);
+      if (need_size >= block->conses_len) {
         size_t new_size = block->conses_len*2;
         struct FD_CONS *newblock = u8_realloc(block->conses,new_size*CONS_SIZE);
         if (newblock == NULL) {
           u8_graberrno("block_copier",u8_mkstring("%lld",new_size));
-          return FD_ERROR_VALUE;}}
+          return FD_ERROR_VALUE;}
+        block->conses = newblock;
+        block->conses_len = new_size;}
       size_t off = block->conses_next;
-      struct FD_PAIR *pair = (fd_pair) (block->conses+block->conses_next);
       block->conses_next += CONSBLOCK_SIZE(struct FD_PAIR);
-      FD_INIT_STATIC_CONS(pair,fd_pair_type);
       lispval car = FD_CAR(v);
       if (FD_CONSP(car)) car = block_copier(car,block);
       if (FD_ABORTP(car)) return car;
       lispval cdr = FD_CDR(v);
       if (FD_CONSP(cdr)) cdr = block_copier(cdr,block);
-      if (FD_ABORTP(cdr)) return cdr;
+      if (FD_ABORTP(cdr)) {
+        if (FD_COMPOUND_TYPEP(car,coderef_symbol)) {fd_decref(car);}
+        return cdr;}
+      struct FD_PAIR *pair = (fd_pair) (block->conses+off);
+      FD_INIT_STATIC_CONS(pair,fd_pair_type);
       pair->car = car;
       pair->cdr = cdr;
       return fd_init_compound(NULL,coderef_symbol,0,1,FD_INT2FIX(off));}
