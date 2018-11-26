@@ -442,6 +442,7 @@ static lispval optimize_lambda_body(lispval arg,lispval new_body)
     if (FD_FALSEP(new_body)) {
       if (proc->lambda_consblock) {
         lispval cb = (lispval) (proc->lambda_consblock);
+        proc->lambda_consblock = NULL;
         fd_decref(cb);}
       proc->lambda_start = proc->lambda_body;}
     else {

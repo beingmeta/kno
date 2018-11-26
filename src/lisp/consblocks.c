@@ -19,7 +19,7 @@ static lispval coderef_symbol;
 
 struct BLOCKOUT {
   struct FD_CONS *conses;
-  size_t conses_len, conses_write;};
+  size_t conses_len, conses_next;};
 
 #define CONS_SIZE (sizeof(struct FD_CONS))
 #define CONSBLOCK_SIZE(typespec) \
@@ -30,16 +30,16 @@ static lispval block_copier(lispval v,struct BLOCKOUT *block)
 {
   if (FD_CONSP(v)) {
     if (FD_PAIRP(v)) {
-      size_t new_size = block->conses_write + CONSBLOCK_SIZE(struct FD_PAIR);
+      size_t new_size = block->conses_next + CONSBLOCK_SIZE(struct FD_PAIR);
       if (new_size > block->conses_len) {
         size_t new_size = block->conses_len*2;
         struct FD_CONS *newblock = u8_realloc(block->conses,new_size*CONS_SIZE);
         if (newblock == NULL) {
           u8_graberrno("block_copier",u8_mkstring("%lld",new_size));
           return FD_ERROR_VALUE;}}
-      size_t off = block->conses_write;
-      struct FD_PAIR *pair = (fd_pair) (block->conses+block->conses_write);
-      block->conses_write += CONSBLOCK_SIZE(struct FD_PAIR);
+      size_t off = block->conses_next;
+      struct FD_PAIR *pair = (fd_pair) (block->conses+block->conses_next);
+      block->conses_next += CONSBLOCK_SIZE(struct FD_PAIR);
       FD_INIT_STATIC_CONS(pair,fd_pair_type);
       lispval car = FD_CAR(v);
       if (FD_CONSP(car)) car = block_copier(car,block);
@@ -87,23 +87,26 @@ FD_EXPORT lispval fd_make_consblock(lispval obj)
   struct BLOCKOUT out = {0};
   out.conses = u8_malloc(init_size*CONS_SIZE);
   out.conses_len = init_size;
-  out.conses_write = 0;
+  out.conses_next = 0;
   lispval v = block_copier(obj,&out);
   if (FD_ABORTP(v)) {
     u8_free(out.conses);
     return v;}
-  if (out.conses_write == 0) {
+  else if (FD_COMPOUND_TYPEP(v,coderef_symbol)) {
+    fd_decref(v);}
+  else return v;
+  if (out.conses_next == 0) {
     u8_free(out.conses);
     return fd_incref(obj);}
   struct FD_CONSBLOCK *consblock = u8_alloc(struct FD_CONSBLOCK);
   FD_INIT_CONS(consblock,fd_consblock_type);
-  struct FD_CONS *conses = u8_malloc(out.conses_write*CONS_SIZE);
-  memcpy(conses,out.conses,out.conses_write*CONS_SIZE);
+  struct FD_CONS *conses = u8_malloc(out.conses_next*CONS_SIZE);
+  memcpy(conses,out.conses,out.conses_next*CONS_SIZE);
   convert_refs((lispval)(conses),conses);
   consblock->consblock_original = fd_incref(obj);
   consblock->consblock_head = (lispval) conses;
   consblock->consblock_conses = conses;
-  consblock->consblock_len = out.conses_write;
+  consblock->consblock_len = out.conses_next;
   u8_free(out.conses);
   return (lispval) consblock;
 }
