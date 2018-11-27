@@ -1,0 +1,3 @@
+. runenv.sh
+export FD_INIT_LOADPATH="${FD_INIT_LOADPATH}:/app/%/module.scm:/app/%.scm"
+MEMCHECKING=yes ASAN_SYMBOLIZER_PATH= ASAN_OPTIONS=malloc_context_size=20 LSAN_OPTIONS=report_objects=1  exec $* DLOAD:TRACE=yes
