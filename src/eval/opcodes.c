@@ -54,43 +54,31 @@ static lispval xref_opcode(lispval x,long long i,lispval tag);
 
 static lispval op_eval(lispval x,fd_lexenv env,fd_stack stack,int tail);
 
-FD_FASTOP lispval op_eval_body(lispval body,fd_lexenv env,fd_stack stack,int tail)
-{
-  lispval result=VOID;
-  if (FD_CODEP(body)) {
-    int j=0, n_sub_exprs=FD_CODE_LENGTH(body);
-    lispval *sub_exprs=FD_CODE_DATA(body);
-    while (j<n_sub_exprs) {
-      lispval sub_expr=sub_exprs[j++];
-      fd_decref(result);
-      result=op_eval(sub_expr,env,stack,j==n_sub_exprs);
-      if (FD_ABORTED(result))
-        return result;}
-    return result;}
-  else if (body == NIL)
-    return VOID;
-  else while (PAIRP(body)) {
-      lispval subex = FD_CAR(body), next = FD_CDR(body);
-      if (PAIRP(next)) {
-        lispval v = op_eval(subex,env,stack,0);
-        if (FD_ABORTED(v)) return v;
-        fd_decref(v);
-        body = next;}
-      else return op_eval(subex,env,stack,tail);}
-  return fd_err(fd_SyntaxError,"op_eval_body",NULL,body);
-}
-
 FD_FASTOP lispval _pop_arg(lispval *scan)
 {
   lispval expr = *scan;
   if (PAIRP(expr)) {
-    lispval arg = FD_CAR(expr);
-    *scan = FD_CDR(expr);
+    lispval arg = FD_CAR(expr), next = FD_CDR(expr);
+    if (FD_CONSP(arg)) FD_PREFETCH((struct FD_CONS *)arg);
+    if (FD_CONSP(next)) FD_PREFETCH((struct FD_CONS *)next);
+    *scan = next;
     return arg;}
   else return VOID;
 }
 
 #define pop_arg(args) (_pop_arg(&args))
+
+FD_FASTOP lispval op_eval_body(lispval body,fd_lexenv env,fd_stack stack,int tail)
+{
+  lispval result=VOID;
+  while (PAIRP(body)) {
+    lispval subex = pop_arg(body);
+    if (PAIRP(body)) {
+      lispval v = op_eval(subex,env,stack,0);
+      if (FD_ABORTED(v)) return v;
+      fd_decref(v);}
+    else return op_eval(subex,env,stack,tail);}
+}
 
 static lispval nd1_call(lispval opcode,lispval arg1)
 {
@@ -1045,11 +1033,9 @@ FD_FASTOP lispval op_eval(lispval x,fd_lexenv env,
         else {
           lispval v = opcode_dispatch(car,x,env,stack,tail);
           return fd_finish_call(v);}}
-      else if (tail)
-        return fd_tail_eval(x,env);
-      else return fd_eval(x,env);}
+      else return fd_stack_eval(x,env,stack,tail);}
     case fd_choice_type: case fd_prechoice_type:
-      return fd_eval(x,env);
+      return fd_stack_eval(x,env,stack,0);
     case fd_slotmap_type:
       return fd_deep_copy(x);
     default:
