@@ -70,14 +70,15 @@ FD_FASTOP lispval _pop_arg(lispval *scan)
 
 FD_FASTOP lispval op_eval_body(lispval body,fd_lexenv env,fd_stack stack,int tail)
 {
-  lispval result=VOID;
   while (PAIRP(body)) {
     lispval subex = pop_arg(body);
     if (PAIRP(body)) {
       lispval v = op_eval(subex,env,stack,0);
-      if (FD_ABORTED(v)) return v;
-      fd_decref(v);}
+      if (FD_ABORTED(v)) 
+        return v;
+      else fd_decref(v);}
     else return op_eval(subex,env,stack,tail);}
+  return FD_VOID;
 }
 
 static lispval nd1_call(lispval opcode,lispval arg1)
@@ -838,7 +839,7 @@ static lispval handle_table_opcode(lispval opcode,lispval expr,
   else if (FD_PRECHOICEP(value))
     value = fd_simplify_choice(value);
   else NO_ELSE;
-  lispval result;
+  lispval result = FD_VOID;
   switch (opcode) {
   case FD_GET_OPCODE:
     result = fd_fget(subject,slotid); break;
@@ -847,26 +848,43 @@ static lispval handle_table_opcode(lispval opcode,lispval expr,
     result = fd_get(subject,slotid,value); break;
   case FD_TEST_OPCODE:
     result = fd_ftest(subject,slotid,value); break;
-  case FD_PRIMTEST_OPCODE:
-    result = fd_test(subject,slotid,value); break;
+  case FD_PRIMTEST_OPCODE: {
+    int rv = fd_test(subject,slotid,value);
+    if (rv < 0)
+      result = FD_ERROR_VALUE;
+    else if (rv)
+      result = FD_TRUE;
+    else result = FD_FALSE;
+    break;}
   case FD_ADD_OPCODE:
     if (FD_VOIDP(value))
-      result = fd_err(fd_TooFewArgs,"handle_table_opcode",NULL,expr);
-    else if (fd_add(subject,slotid,value) < 0)
-      result = FD_ERROR_VALUE;
-    else result = FD_VOID;
+      result = fd_err(fd_TooFewArgs,"handle_table_opcode/add",NULL,expr);
+    else {
+      int rv = fd_add(subject,slotid,value);
+      if (rv < 0)
+        result = FD_ERROR_VALUE;
+      else if (rv)
+        result = FD_TRUE;
+      else result = FD_FALSE;}
     break;
-  case FD_DROP_OPCODE:
-    if (fd_drop(subject,slotid,value) < 0)
+  case FD_DROP_OPCODE: {
+    int rv = fd_drop(subject,slotid,value);
+    if (rv < 0)
       result = FD_ERROR_VALUE;
-    else result = FD_VOID;
-    break;
+    else if (rv)
+      result = FD_TRUE;
+    else result = FD_FALSE;
+    break;}
   case FD_STORE_OPCODE:
     if (FD_VOIDP(value))
-      result = fd_err(fd_TooFewArgs,"handle_table_opcode",NULL,expr);
-    else if (fd_store(subject,slotid,value) < 0)
-      result = FD_ERROR_VALUE;
-    else result = FD_VOID;
+      result = fd_err(fd_TooFewArgs,"handle_table_opcode/store",NULL,expr);
+    else {
+      int rv = fd_store(subject,slotid,value);
+      if (rv < 0)
+        result = FD_ERROR_VALUE;
+      else if (rv)
+        result = FD_TRUE;
+      else result = FD_FALSE;}
     break;
   case FD_ASSERT_OPCODE:
     if (FD_VOIDP(value))
@@ -892,33 +910,17 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
     if (FD_EXPECT_TRUE(FD_PAIRP(args)))
       return fd_incref(FD_CAR(args));
     else return fd_err(fd_SyntaxError,"opcode_dispatch_inner",NULL,expr);
-  else if (opcode == FD_SOURCEREF_OPCODE) {
+  else while (opcode == FD_SOURCEREF_OPCODE) {
     if (!(FD_PAIRP(FD_CDR(expr)))) {
       lispval err = fd_err(fd_SyntaxError,"opcode_dispatch",NULL,expr);
       _return err;}
-    /* Unpack sourcerefs */
-    while (opcode == FD_SOURCEREF_OPCODE) {
-      lispval source = FD_CAR(FD_CDR(expr));
-      lispval code   = FD_CDR(FD_CDR(expr));
-      if (!(FD_PAIRP(code))) {
-        lispval err = fd_err(fd_SyntaxError,"opcode_dispatch",NULL,expr);
-        return err;}
-      else expr = code;
-      if ( (FD_NULLP(_stack->stack_source)) ||
-           (FD_VOIDP(_stack->stack_source)) ||
-           (_stack->stack_source == expr) )
-        _stack->stack_source=source;
-      lispval old_op = _stack->stack_op;
-      fd_incref(code);
-      _stack->stack_op=code;
-      if (_stack->stack_decref_op) fd_decref(old_op);
-      _stack->stack_decref_op = 1;
-      lispval realop = FD_CAR(code);
-      if (!(FD_OPCODEP(realop))) {
-        opcode = realop;
-        break;}
-      opcode=realop;
-      expr = code;}
+    lispval source = pop_arg(args);
+    expr = args;
+    opcode = pop_arg(args);
+    if ( (FD_NULLP(_stack->stack_source)) ||
+         (FD_VOIDP(_stack->stack_source)) ||
+         (_stack->stack_source == expr) )
+      _stack->stack_source=source;
     if (! (FD_OPCODEP(opcode)) ) {
       _stack->stack_type = fd_evalstack_type;
       if (FD_PAIRP(expr))
@@ -987,6 +989,8 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
             break;}}}}
     else if (numericp)
       results = numop_call(opcode,val1,val2);
+    else if (FD_ND2_OPCODEP(opcode))
+      return nd2_call(opcode,val1,val2);
     else results = d2_call(opcode,val1,val2);
     fd_decref(val1); fd_decref(val2);
     return results;}

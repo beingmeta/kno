@@ -21,7 +21,7 @@ FD_EXPORT u8_string fd_opcode_names[];
 FD_EXPORT int fd_opcodes_length;
 
 #define FD_SPECIAL_OPCODE(x)  FD_OPCODE(x+0x00)
-#define FD_SPECIAL_OPCODEP(x) ((x>FD_OPCODE(0x00))&&(x<FD_OPCODE(0x100)))
+#define FD_SPECIAL_OPCODEP(x) ((x>=FD_OPCODE(0x00))&&(x<FD_OPCODE(0x100)))
 #define FD_BRANCH_OPCODE      FD_SPECIAL_OPCODE(0x01)
 #define FD_NOT_OPCODE         FD_SPECIAL_OPCODE(0x02)
 #define FD_UNTIL_OPCODE       FD_SPECIAL_OPCODE(0x03)
@@ -40,7 +40,7 @@ FD_EXPORT int fd_opcodes_length;
 
 /* Unary primitives which handle their own non-determinism. */
 #define FD_ND1_OPCODE(x)      FD_OPCODE(0x100+x)
-#define FD_ND1_OPCODEP(x)     ((x>FD_OPCODE(0x100))&&(x<FD_OPCODE(0x200)))
+#define FD_ND1_OPCODEP(x)     ((x>=FD_OPCODE(0x100))&&(x<FD_OPCODE(0x200)))
 #define FD_AMBIGP_OPCODE      FD_ND1_OPCODE(0x01)
 #define FD_SINGLETONP_OPCODE  FD_ND1_OPCODE(0x02)
 #define FD_FAILP_OPCODE       FD_ND1_OPCODE(0x03)
@@ -85,7 +85,7 @@ FD_EXPORT int fd_opcodes_length;
 #define FD_ELTS_OPCODE        FD_D1_OPCODE(0x17)
 
 #define FD_D2_OPCODE(x)      FD_OPCODE(0x400+x)
-#define FD_D2_OPCODEP(x)     ((x>FD_OPCODE(0x400))&&(x<FD_OPCODE(0x500)))
+#define FD_D2_OPCODEP(x)     ((x>=FD_OPCODE(0x400))&&(x<FD_OPCODE(0x500)))
 #define FD_EQ_OPCODE         FD_D2_OPCODE(0x01)
 #define FD_EQV_OPCODE        FD_D2_OPCODE(0x02)
 #define FD_EQUAL_OPCODE      FD_D2_OPCODE(0x03)
@@ -93,7 +93,7 @@ FD_EXPORT int fd_opcodes_length;
 #define FD_CONS_OPCODE       FD_D2_OPCODE(0x05)
 
 #define FD_ND2_OPCODE(x)     FD_OPCODE(0x500+x)
-#define FD_ND2_OPCODEP(x)    ((x>FD_OPCODE(0x500))&&(x<FD_OPCODE(0x600)))
+#define FD_ND2_OPCODEP(x)    ((x>=FD_OPCODE(0x500))&&(x<FD_OPCODE(0x600)))
 #define FD_IDENTICAL_OPCODE  FD_ND2_OPCODE(0x01)
 #define FD_OVERLAPS_OPCODE   FD_ND2_OPCODE(0x02)
 #define FD_CONTAINSP_OPCODE  FD_ND2_OPCODE(0x03)
@@ -104,7 +104,7 @@ FD_EXPORT int fd_opcodes_length;
 
 /* Arithmetic primitives with two arguments */
 #define FD_NUMERIC_OPCODE(x) FD_OPCODE(0x300+x)
-#define FD_NUMERIC_OPCODEP(x) (x>FD_OPCODE(0x300))&&(x<FD_OPCODE(0x400))
+#define FD_NUMERIC_OPCODEP(x) (x>=FD_OPCODE(0x300))&&(x<FD_OPCODE(0x400))
 #define FD_NUMEQ_OPCODE      FD_NUMERIC_OPCODE(0x01)
 #define FD_GT_OPCODE         FD_NUMERIC_OPCODE(0x02)
 #define FD_GTE_OPCODE        FD_NUMERIC_OPCODE(0x03)
@@ -116,7 +116,7 @@ FD_EXPORT int fd_opcodes_length;
 #define FD_FLODIV_OPCODE     FD_NUMERIC_OPCODE(0x09)
 
 #define FD_TABLE_OPCODE(x)     FD_OPCODE(0x700+x)
-#define FD_TABLE_OPCODEP(x)    (((x)>FD_OPCODE(0x600))&&((x)<FD_OPCODE(0x800)))
+#define FD_TABLE_OPCODEP(x)    (((x)>=FD_OPCODE(0x600))&&((x)<FD_OPCODE(0x800)))
 /* Other primitives with more than two arguments */
 #define FD_GET_OPCODE        FD_TABLE_OPCODE(0x01)
 #define FD_ASSERT_OPCODE     FD_TABLE_OPCODE(0x02)
@@ -129,7 +129,7 @@ FD_EXPORT int fd_opcodes_length;
 #define FD_PRIMTEST_OPCODE   FD_TABLE_OPCODE(0x09)
 
 #define FD_APPLY_OPCODE(x)   FD_OPCODE(0x800+x)
-#define FD_APPLY_OPCODEP(x)  ((x>FD_OPCODE(0x800))&&(x<FD_OPCODE(0xA00))
+#define FD_APPLY_OPCODEP(x)  ((x>=FD_OPCODE(0x800))&&(x<FD_OPCODE(0xA00))
 /* Other primitives with more than two arguments */
 #define FD_APPLY0_OPCODE        FD_APPLY_OPCODE(0x00)
 #define FD_APPLY1_OPCODE        FD_APPLY_OPCODE(0x01)

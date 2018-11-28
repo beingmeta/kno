@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-11-24 20:11+0000\n"
+"POT-Creation-Date: 2018-11-28 13:05-0500\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Dutch <nl@li.org>\n"
@@ -122,8 +122,8 @@ msgid "BadInitData"
 msgstr ""
 
 #: src/lisp/sequences.c:155 src/lisp/sequences.c:241 src/lisp/sequences.c:739
-#: src/eval/opcodes.c:164 src/eval/opcodes.c:168 src/eval/opcodes.c:1181
-#: src/eval/opcodes.c:1188 src/prims/dbprims.c:2672 src/prims/dbprims.c:2674
+#: src/eval/opcodes.c:151 src/eval/opcodes.c:155 src/eval/opcodes.c:1115
+#: src/eval/opcodes.c:1122 src/prims/dbprims.c:2672 src/prims/dbprims.c:2674
 #: src/prims/seqprims.c:324 src/prims/seqprims.c:332 src/prims/seqprims.c:338
 #: src/prims/seqprims.c:354 src/prims/seqprims.c:482 src/prims/seqprims.c:513
 #: src/prims/seqprims.c:530 src/prims/seqprims.c:547 src/prims/seqprims.c:564
@@ -381,7 +381,7 @@ msgid "oid"
 msgstr ""
 
 #: src/lisp/lisp.c:62 src/support/config.c:698 src/eval/eval.c:1803
-#: src/eval/opcodes.c:1189 src/prims/dbprims.c:2611 src/prims/portprims.c:428
+#: src/eval/opcodes.c:1123 src/prims/dbprims.c:2611 src/prims/portprims.c:428
 #: src/eval/choiceops.c:1218 src/eval/choiceops.c:1251
 #: src/eval/choiceops.c:1270 src/eval/choiceops.c:1301
 #: src/eval/choiceops.c:1312 src/eval/choiceops.c:1316
@@ -405,7 +405,7 @@ msgid "constant"
 msgstr ""
 
 #: src/lisp/lisp.c:67 src/eval/eval.c:1701 src/eval/modules.c:549
-#: src/eval/reflection.c:672
+#: src/eval/reflection.c:695
 msgid "symbol"
 msgstr ""
 
@@ -417,7 +417,7 @@ msgstr ""
 msgid "lexref"
 msgstr ""
 
-#: src/lisp/lisp.c:70 src/eval/opcodes.c:1431
+#: src/lisp/lisp.c:70 src/eval/opcodes.c:1365
 msgid "opcode"
 msgstr ""
 
@@ -475,8 +475,8 @@ msgstr ""
 msgid "bigint"
 msgstr ""
 
-#: src/lisp/lisp.c:81 src/eval/eval.c:1804 src/eval/opcodes.c:135
-#: src/eval/opcodes.c:137 src/eval/opcodes.c:150 src/eval/opcodes.c:152
+#: src/lisp/lisp.c:81 src/eval/eval.c:1804 src/eval/opcodes.c:122
+#: src/eval/opcodes.c:124 src/eval/opcodes.c:137 src/eval/opcodes.c:139
 msgid "pair"
 msgstr ""
 
@@ -529,8 +529,8 @@ msgstr ""
 msgid "builtin function"
 msgstr ""
 
-#: src/lisp/lisp.c:97 src/eval/eval.c:1720 src/eval/reflection.c:653
-#: src/eval/reflection.c:684
+#: src/lisp/lisp.c:97 src/eval/eval.c:1720 src/eval/reflection.c:676
+#: src/eval/reflection.c:707
 msgid "environment"
 msgstr ""
 
@@ -626,7 +626,7 @@ msgstr ""
 msgid "bloom filter"
 msgstr ""
 
-#: src/lisp/lisp.c:173
+#: src/lisp/lisp.c:174
 msgid "RUSAGE Failed"
 msgstr ""
 
@@ -1878,7 +1878,7 @@ msgstr ""
 msgid "Read only environment"
 msgstr ""
 
-#: src/eval/eval.c:1071 src/eval/reflection.c:529
+#: src/eval/eval.c:1071 src/eval/reflection.c:552
 msgid "macro expansion"
 msgstr ""
 
@@ -1914,19 +1914,20 @@ msgstr ""
 msgid "coderef"
 msgstr ""
 
-#: src/eval/opcodes.c:207 src/eval/opcodes.c:285 src/eval/opcodes.c:406
+#: src/eval/opcodes.c:194 src/eval/opcodes.c:272 src/eval/opcodes.c:297
+#: src/eval/opcodes.c:405 src/eval/opcodes.c:466 src/eval/opcodes.c:995
 msgid "Invalid opcode"
 msgstr ""
 
-#: src/eval/opcodes.c:222 src/eval/opcodes.c:920 src/eval/arith.c:254
+#: src/eval/opcodes.c:209 src/eval/arith.c:254
 msgid "number"
 msgstr ""
 
-#: src/eval/opcodes.c:283
+#: src/eval/opcodes.c:270
 msgid "number|string"
 msgstr ""
 
-#: src/eval/opcodes.c:1390
+#: src/eval/opcodes.c:1324
 msgid "opcode name"
 msgstr ""
 
@@ -2042,8 +2043,8 @@ msgstr ""
 msgid "Can't reload a read-only module"
 msgstr ""
 
-#: src/eval/modules.c:807 src/eval/reflection.c:561 src/eval/reflection.c:576
-#: src/eval/reflection.c:616 src/eval/reflection.c:621
+#: src/eval/modules.c:807 src/eval/reflection.c:584 src/eval/reflection.c:599
+#: src/eval/reflection.c:639 src/eval/reflection.c:644
 msgid "module"
 msgstr ""
 
@@ -2075,7 +2076,7 @@ msgstr ""
 msgid "procedure"
 msgstr ""
 
-#: src/eval/reflection.c:543 src/eval/coreops.c:545 src/eval/coreops.c:601
+#: src/eval/reflection.c:566 src/eval/coreops.c:545 src/eval/coreops.c:601
 #: src/eval/coreops.c:613 src/cmodules/sqlite.c:164
 msgid "string or symbol"
 msgstr ""
@@ -3145,23 +3146,23 @@ msgstr ""
 msgid "BSON/FramerD compound overflow"
 msgstr ""
 
-#: src/cmodules/mongodb.c:118
+#: src/cmodules/mongodb.c:119
 msgid "MongoDB/getclient"
 msgstr ""
 
-#: src/cmodules/mongodb.c:122
+#: src/cmodules/mongodb.c:123
 msgid "MongoDB/gotclient"
 msgstr ""
 
-#: src/cmodules/mongodb.c:130
+#: src/cmodules/mongodb.c:131
 msgid "MongoDB/freeclient"
 msgstr ""
 
-#: src/cmodules/mongodb.c:863
+#: src/cmodules/mongodb.c:886
 msgid "MissingDBName"
 msgstr ""
 
-#: src/cmodules/mongodb.c:1772 src/cmodules/mongodb.c:1861
+#: src/cmodules/mongodb.c:1795 src/cmodules/mongodb.c:1884
 msgid "MongoDB"
 msgstr ""
 
