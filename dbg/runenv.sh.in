@@ -2,17 +2,13 @@ FD_LIBSCM_DIR=@abs_top_srcdir@/src/libscm/
 export FD_LIBSCM_DIR
 FD_INIT_DLOADPATH=@abs_top_srcdir@/lib/framerd/%.@shared_suffix@:@abs_top_srcdir@/../lingo/%.@shared_suffix@:@prefix@/lib/framerd/%.@shared_suffix@
 export FD_INIT_DLOADPATH
-FD_INIT_LOADPATH=@abs_top_srcdir@/src/extmods/:@abs_top_srcdir@/src/extmods/safe/:@default_module_path@
-export FD_INIT_LOADPATH
-FD_INIT_SAFELOADPATH=@abs_top_srcdir@/src/extmods/safe/:@default_safe_module_path@
-export=FD_INIT_SAFELOADPATH
-FD_LOADPATH=../src/extmods/
+FD_LOADPATH=@abs_top_srcdir@/src/extmods
 export FD_LOADPATH
-FD_DLOADPATH=../lib/framerd:
+FD_DLOADPATH=@abs_top_srcdir@/lib/framerd
 export FD_DLOADPATH
-LD_LIBRARY_PATH=../lib
+LD_LIBRARY_PATH=@abs_top_srcdir@/lib/framerd:@abs_top_srcdir@/lib
 export LD_LIBRARY_PATH
-DYLD_LIBRARY_PATH=../lib
+DYLD_LIBRARY_PATH=@abs_top_srcdir@/lib/framerd:@abs_top_srcdir@/lib
 export DYLD_LIBRARY_PATH
 PPROF_PATH=@GOOGLE_PPROF@
 export PPROF_PATH
@@ -22,7 +18,7 @@ FD_SHOWTIME=0.0
 export FD_SHOWTIME
 FD_DLOAD_TRACE=yes
 export FD_DLOAD_TRACE
-FD_HYPHENDICT=../src/cmodules/hyph_en_US.dic
+FD_HYPHENDICT=$(realpath ../lib/framerd)/src/cmodules/hyph_en_US.dic
 export FD_HYPHENDICT
 FD_DISPLAYMAXELTS=36
 export FD_DISPLAYMAXELTS=36
