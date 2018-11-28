@@ -177,9 +177,12 @@ static lispval onerror_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
         u8_exception handler_ex = u8_erreify();
         /* Clear this field so we can decref err_value while leaving
            the exception object current. */
-        u8_log(LOG_WARN,"Recursive error",
-               "Error %m handling error during %q",
-               handler_ex->u8x_cond,toeval);
+        if (handler_ex)
+          u8_log(LOG_WARN,"Recursive error",
+                 "Error %m handling error during %q",
+                 handler_ex->u8x_cond,toeval);
+        else u8_log(LOG_WARN,"Obscure Recursive error",
+                    "Obscure error caught in %q",toeval);
         fd_log_backtrace(handler_ex,LOG_WARN,"RecursiveError",128);
         u8_restore_exception(ex);
         u8_restore_exception(handler_ex);
