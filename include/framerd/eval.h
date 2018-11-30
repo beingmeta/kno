@@ -61,6 +61,7 @@ FD_EXPORT int fd_bind_value(lispval,lispval,fd_lexenv);
 FD_EXPORT fd_lexenv fd_app_env;
 
 FD_EXPORT void fd_set_app_env(fd_lexenv env);
+FD_EXPORT void fd_setup_app_env(void);
 
 FD_EXPORT void fd_autoload_config
 (u8_string module_inits,u8_string file_inits,u8_string run_inits);

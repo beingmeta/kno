@@ -193,6 +193,10 @@ DBSERV_OBJS=src/storage/dbserv.o
 
 CORE_SCHEME_OBJS=\
 	src/eval/eval.o\
+	src/eval/debug.o\
+	src/eval/getopt.o\
+	src/eval/testops.o\
+	src/eval/appenv.o\
 	src/eval/opcodes.o\
 	src/eval/binders.o\
 	src/eval/lambda.o\
@@ -419,6 +423,8 @@ FRAMERD_SOURCES=\
 	src/drivers/memindex.c							\
 	src/drivers/netpool.c src/drivers/netindex.c				\
 	src/eval/eval.c src/eval/opcodes.c 					\
+	src/eval/debug.c src/eval/getopt.c src/eval/appenv.c			\
+	src/eval/testops.c src/eval/appenv.c		\
 	src/eval/binders.c src/eval/lambda.c 					\
 	src/eval/macros.c src/eval/errfns.c     				\
 	src/eval/conditionals.c src/eval/iterators.c               		\

@@ -19,6 +19,9 @@ static int testeval(lispval expr,fd_lexenv env,lispval *whoops,
   else {fd_decref(val); return 1;}
 }
 
+#define simplify_value(v) \
+  ( (FD_PRECHOICEP(v)) ? (fd_simplify_choice(v)) : (v) )
+
 static U8_MAYBE_UNUSED
 lispval find_module_id( fd_lexenv env )
 {
