@@ -75,7 +75,7 @@ static lispval cleanup_app_env()
   return FD_VOID;
 }
 
-static void setup_app_env()
+FD_EXPORT void fd_setup_app_env()
 {
   lispval exit_handler = fd_make_cprim0("APPENV/ATEXIT",cleanup_app_env);
   fd_config_set("ATEXIT",exit_handler);
@@ -342,14 +342,13 @@ void fd_autoload_config(u8_string module_inits,
 
 /* Initialization */
 
-static int eval_appenv_initialized = 0;
-
-FD_EXPORT int fd_init_eval_appenv_c()
+FD_EXPORT void fd_init_eval_appenv_c()
 {
-  if (eval_appenv_initialized)
-    return eval_appenv_initialized;
+  u8_register_source_file(_FILEINFO);
+
   fd_idefn0(fd_scheme_module,"%APPENV",appenv_prim,
             "Returns the base 'application environment' for the "
             "current instance");
+  u8_init_mutex(&app_cleanup_lock);
 }
 

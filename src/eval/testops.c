@@ -227,16 +227,14 @@ static lispval evaltest_evalfn(lispval expr,fd_lexenv env,fd_stack s)
 
 /* Initialization */
 
-static int eval_testops_initialized = 0;
-
-FD_EXPORT int fd_init_eval_testops_c()
+FD_EXPORT void fd_init_eval_testops_c()
 {
-  if (eval_testops_initialized)
-    return eval_testops_initialized;
+  u8_register_source_file(_FILEINFO);
+
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("APPLYTEST",applytest,2)));
   fd_def_evalfn(fd_scheme_module,"EVALTEST","",evaltest_evalfn);
-
+  
   fd_register_config
     ("LOGTESTS",
      "Whether to log failed tests, rather than treating them as errors",

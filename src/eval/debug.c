@@ -44,6 +44,7 @@
 #include <mcheck.h>
 #endif
 
+static char *cpu_profilename = NULL;
 u8_string fd_bugdir = NULL;
 
 /* Trace functions */
@@ -730,12 +731,9 @@ static lispval list9(lispval arg1,lispval arg2,
 
 /* Initialization */
 
-static int eval_debug_initialized = 0;
-
-FD_EXPORT int fd_init_debug_c()
+FD_EXPORT void fd_init_eval_debug_c()
 {
-  if (eval_debug_initialized)
-    return eval_debug_initialized;
+  u8_register_source_file(_FILEINFO);
 
   fd_def_evalfn(fd_scheme_module,"DBG","",dbg_evalfn);
 
@@ -797,6 +795,8 @@ FD_EXPORT int fd_init_debug_c()
   fd_register_config
     ("GPROFILE","Set filename for the Google CPU profiler",
      fd_sconfig_get,fd_sconfig_set,&cpu_profilename);
+
+  profile_symbol = fd_intern("%PROFILE");
 }
 
 /* Emacs local variables

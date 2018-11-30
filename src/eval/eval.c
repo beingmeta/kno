@@ -65,8 +65,6 @@ static u8_condition ExpiredThrow=_("Continuation is no longer valid");
 static u8_condition DoubleThrow=_("Continuation used twice");
 static u8_condition LostThrow=_("Lost invoked continuation");
 
-static char *cpu_profilename = NULL;
-
 u8_condition
   fd_SyntaxError=_("SCHEME expression syntax error"),
   fd_InvalidMacro=_("invalid macro transformer"),
@@ -77,9 +75,6 @@ u8_condition
   fd_TooFewExpressions=_("too few subexpressions"),
   fd_CantBind=_("can't add binding to environment"),
   fd_ReadOnlyEnv=_("Read only environment");
-
-#define simplify_value(v) \
-  ( (FD_PRECHOICEP(v)) ? (fd_simplify_choice(v)) : (v) )
 
 /* Environment functions */
 
@@ -1859,7 +1854,6 @@ void fd_init_eval_c()
 
   quote_symbol = fd_intern("QUOTE");
   _fd_comment_symbol = comment_symbol = fd_intern("COMMENT");
-  profile_symbol = fd_intern("%PROFILE");
   moduleid_symbol = fd_intern("%MODULEID");
   source_symbol = fd_intern("%SOURCE");
 
@@ -2056,8 +2050,6 @@ static void init_eval_core()
   init_localfns();
   fd_init_eval_getopt_c();
   fd_init_eval_debug_c();
-  fd_init_eval_moduleops_c();
-  fd_init_eval_appenv_c();
   fd_init_eval_testops_c();
   fd_init_opcodes_c();
   fd_init_tableprims_c();
@@ -2078,6 +2070,8 @@ static void init_eval_core()
   fd_init_side_effects_c();
   fd_init_reflection_c();
   fd_init_reqstate_c();
+
+  fd_init_eval_appenv_c();
 
   fd_init_regex_c();
 
@@ -2122,13 +2116,11 @@ FD_EXPORT int fd_init_scheme()
     init_scheme_module();
     init_eval_core();
 
-    u8_init_mutex(&app_cleanup_lock);
-
     /* This sets up the fd_atexit handler for recycling the
        application environment. Consequently, it needs to be called
        before setting up any fd_atexit handlers which might use the
        application environment. */
-    setup_app_env();
+    fd_setup_app_env();
 
     return scheme_initialized;}
 }

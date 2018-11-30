@@ -193,12 +193,10 @@ static lispval opts_plus_prim(int n,lispval *args)
 
 /* Initialization */
 
-static int eval_getopt_initialized = 0;
-
-FD_EXPORT int fd_init_eval_getopt_c()
+FD_EXPORT void fd_init_eval_getopt_c()
 {
-  if (eval_getopt_initialized)
-    return eval_debug_initialized;
+  u8_register_source_file(_FILEINFO);
+
   fd_def_evalfn(fd_scheme_module,"GETOPT",
                 "`(GETOPT *opts* *name* [*default*=#f])` returns any *name* "
                 "option defined in *opts* or *default* otherwise. "
