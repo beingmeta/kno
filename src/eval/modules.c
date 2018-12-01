@@ -14,6 +14,10 @@
 #include <libu8/u8printf.h>
 #include <libu8/u8filefns.h>
 
+#if HAVE_DLFCN_H
+#include <dlfcn.h>
+#endif
+
 #ifndef _FILEINFO
 #define _FILEINFO __FILE__
 #endif
@@ -28,6 +32,10 @@ u8_condition OpaqueModule=_("Can't switch to opaque module");
 static struct MODULE_LOADER {
   int (*loader)(lispval,int,void *); void *data;
   struct MODULE_LOADER *next;} *module_loaders = NULL;
+
+static struct FD_HASHTABLE module_map, safe_module_map;
+static fd_lexenv default_env = NULL, safe_default_env = NULL;
+lispval fd_scheme_module = FD_VOID, fd_xscheme_module = FD_VOID;
 
 static u8_mutex module_loaders_lock;
 static u8_mutex module_wait_lock;
@@ -53,6 +61,187 @@ static int readonly_tablep(lispval arg)
     return FD_SCHEMAP_READONLYP(arg);
   default:
     return 0;}
+}
+
+/* Module system */
+
+FD_EXPORT fd_lexenv fd_make_env(lispval bindings,fd_lexenv parent)
+{
+  if (PRED_FALSE(!(TABLEP(bindings)) )) {
+    u8_byte buf[100];
+    fd_seterr(fd_TypeError,"fd_make_env",
+              u8_sprintf(buf,100,_("object is not a %m"),"table"),
+              bindings);
+    return NULL;}
+  else {
+    struct FD_LEXENV *e = u8_alloc(struct FD_LEXENV);
+    FD_INIT_FRESH_CONS(e,fd_lexenv_type);
+    e->env_bindings = bindings; e->env_exports = VOID;
+    e->env_parent = fd_copy_env(parent);
+    e->env_copy = e;
+    return e;}
+}
+
+
+FD_EXPORT
+/* fd_make_export_env:
+    Arguments: a hashtable and an environment
+    Returns: a consed environment whose bindings and exports
+  are the exports table.  This indicates that the environment
+  is "for export only" and cannot be modified. */
+fd_lexenv fd_make_export_env(lispval exports,fd_lexenv parent)
+{
+  if (PRED_FALSE(!(HASHTABLEP(exports)) )) {
+    u8_byte buf[100];
+    fd_seterr(fd_TypeError,"fd_make_env",
+              u8_sprintf(buf,100,_("object is not a %m"),"hashtable"),
+              exports);
+    return NULL;}
+  else {
+    struct FD_LEXENV *e = u8_alloc(struct FD_LEXENV);
+    FD_INIT_FRESH_CONS(e,fd_lexenv_type);
+    e->env_bindings = fd_incref(exports);
+    e->env_exports = fd_incref(e->env_bindings);
+    e->env_parent = fd_copy_env(parent);
+    e->env_copy = e;
+    return e;}
+}
+
+FD_EXPORT fd_lexenv fd_new_lexenv(lispval bindings,int safe)
+{
+  if (fd_scheme_initialized==0) fd_init_scheme();
+  if (VOIDP(bindings))
+    bindings = fd_make_hashtable(NULL,17);
+  else fd_incref(bindings);
+  return fd_make_env(bindings,((safe)?(safe_default_env):(default_env)));
+}
+FD_EXPORT fd_lexenv fd_working_lexenv()
+{
+  if (fd_scheme_initialized==0) fd_init_scheme();
+  return fd_make_env(fd_make_hashtable(NULL,17),default_env);
+}
+FD_EXPORT fd_lexenv fd_safe_working_lexenv()
+{
+  if (fd_scheme_initialized==0) fd_init_scheme();
+  return fd_make_env(fd_make_hashtable(NULL,17),safe_default_env);
+}
+
+FD_EXPORT lispval fd_register_module_x(lispval name,lispval module,int flags)
+{
+  if (flags&FD_MODULE_SAFE)
+    fd_hashtable_store(&safe_module_map,name,module);
+  else fd_hashtable_store(&module_map,name,module);
+
+  /* Set the module ID*/
+  if (FD_LEXENVP(module)) {
+    fd_lexenv env = (fd_lexenv)module;
+    fd_add(env->env_bindings,moduleid_symbol,name);}
+  else if (HASHTABLEP(module))
+    fd_add(module,moduleid_symbol,name);
+  else {}
+
+  /* Add to the appropriate default environment */
+  if (flags&FD_MODULE_DEFAULT) {
+    fd_lexenv scan;
+    if (flags&FD_MODULE_SAFE) {
+      scan = safe_default_env;
+      while (scan)
+        if (FD_EQ(scan->env_bindings,module))
+          /* It's okay to return now, because if it's in the safe module
+             defaults it's also in the risky module defaults. */
+          return module;
+        else scan = scan->env_parent;
+      safe_default_env->env_parent=
+        fd_make_env(fd_incref(module),safe_default_env->env_parent);}
+    scan = default_env;
+    while (scan)
+      if (FD_EQ(scan->env_bindings,module)) return module;
+      else scan = scan->env_parent;
+    default_env->env_parent=
+      fd_make_env(fd_incref(module),default_env->env_parent);}
+  return module;
+}
+
+FD_EXPORT lispval fd_register_module(u8_string name,lispval module,int flags)
+{
+  return fd_register_module_x(fd_intern(name),module,flags);
+}
+
+FD_EXPORT lispval fd_new_module(char *name,int flags)
+{
+  lispval module_name, module, as_stored;
+  if (fd_scheme_initialized==0) fd_init_scheme();
+  module_name = fd_intern(name);
+  module = fd_make_hashtable(NULL,0);
+  fd_add(module,moduleid_symbol,module_name);
+  if (flags&FD_MODULE_SAFE) {
+    fd_hashtable_op
+      (&safe_module_map,fd_table_default,module_name,module);
+    as_stored = fd_get((lispval)&safe_module_map,module_name,VOID);}
+  else {
+    fd_hashtable_op
+      (&module_map,fd_table_default,module_name,module);
+    as_stored = fd_get((lispval)&module_map,module_name,VOID);}
+  if (!(FD_EQ(module,as_stored))) {
+    fd_decref(module);
+    return as_stored;}
+  else fd_decref(as_stored);
+  if (flags&FD_MODULE_DEFAULT) {
+    if (flags&FD_MODULE_SAFE)
+      safe_default_env->env_parent = fd_make_env(module,safe_default_env->env_parent);
+    default_env->env_parent = fd_make_env(module,default_env->env_parent);}
+  return module;
+}
+
+FD_EXPORT lispval fd_new_cmodule(char *name,int flags,void *addr)
+{
+  lispval mod = fd_new_module(name,flags);
+#if HAVE_DLADDR
+  Dl_info  dlinfo;
+  if (dladdr(addr,&dlinfo)) {
+    const char *cfilename = dlinfo.dli_fname;
+    if (cfilename) {
+      u8_string filename = u8_fromlibc((char *)cfilename);
+      lispval fname = fd_make_string(NULL,-1,filename);
+      u8_free(filename);
+      fd_add(mod,source_symbol,fname);
+      fd_decref(fname);}}
+#endif
+  return mod;
+}
+
+FD_EXPORT lispval fd_get_module(lispval name,int safe)
+{
+  if (safe)
+    return fd_hashtable_get(&safe_module_map,name,VOID);
+  else {
+    lispval module = fd_hashtable_get(&module_map,name,VOID);
+    if (VOIDP(module))
+      return fd_hashtable_get(&safe_module_map,name,VOID);
+    else return module;}
+}
+
+FD_EXPORT lispval fd_all_modules()
+{
+  return fd_hashtable_assocs(&module_map);
+}
+
+FD_EXPORT lispval fd_safe_modules()
+{
+  return fd_hashtable_assocs(&safe_module_map);
+}
+
+FD_EXPORT int fd_discard_module(lispval name,int safe)
+{
+  if (safe)
+    return fd_hashtable_store(&safe_module_map,name,VOID);
+  else {
+    lispval module = fd_hashtable_get(&module_map,name,VOID);
+    if (VOIDP(module))
+      return fd_hashtable_store(&safe_module_map,name,VOID);
+    else {
+      fd_decref(module);
+      return fd_hashtable_store(&module_map,name,VOID);}}
 }
 
 /* Design for avoiding the module loading race condition */
@@ -977,6 +1166,33 @@ static lispval import_var_prim(lispval mod_arg,lispval symbol,lispval dflt)
   return get_binding_helper(mod_arg,symbol,dflt,0,0,1,"import_var_prim");
 }
 
+static volatile int module_tables_initialized = 0;
+
+void fd_init_module_tables()
+{
+  if (module_tables_initialized) return;
+  else module_tables_initialized=1;
+
+  moduleid_symbol = fd_intern("%MODULEID");
+
+  FD_INIT_STATIC_CONS(&module_map,fd_hashtable_type);
+  fd_make_hashtable(&module_map,67);
+
+  FD_INIT_STATIC_CONS(&safe_module_map,fd_hashtable_type);
+  fd_make_hashtable(&safe_module_map,67);
+
+  if (FD_VOIDP(fd_scheme_module)) {
+    fd_xscheme_module = fd_make_hashtable(NULL,71);
+    fd_scheme_module = fd_make_hashtable(NULL,71);}
+
+  default_env = fd_make_env(fd_make_hashtable(NULL,0),fd_app_env);
+  safe_default_env = fd_make_env(fd_make_hashtable(NULL,0),NULL);
+
+  fd_register_module("SCHEME",fd_scheme_module,
+                     (FD_MODULE_DEFAULT|FD_MODULE_SAFE));
+  fd_register_module("XSCHEME",fd_xscheme_module,(FD_MODULE_DEFAULT));
+}
+
 /* Initialization */
 
 FD_EXPORT void fd_init_modules_c()
@@ -999,7 +1215,6 @@ FD_EXPORT void fd_init_modules_c()
                      fd_boolconfig_get,fd_boolconfig_set,&trace_dload);
 
   loadstamp_symbol = fd_intern("%LOADSTAMP");
-  moduleid_symbol = fd_intern("%MODULEID");
   source_symbol = fd_intern("%SOURCE");
 
   fd_idefn(fd_xscheme_module,
