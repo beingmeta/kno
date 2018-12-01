@@ -1,3 +1,9 @@
+framerd (4.2.10-30) stable; urgency=medium
+
+  * Add webinfo.fdcgi to share directory
+
+ -- Ken Haase <kh@beingmeta.com>  Sat, 01 Dec 2018 22:01:00 +0000
+
 framerd (4.2.10-29) stable; urgency=medium
 
   * Remove builtin/mongodb files, now in libscm

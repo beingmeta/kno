@@ -44,6 +44,7 @@ etc/framerd/boot/*
 usr/share/framerd/gdbinit
 usr/share/framerd/fdconsole.el
 usr/share/framerd/makefile.include
+usr/share/framerd/webinfo.fdcgi
 usr/share/framerd/data/hyph_en_US.dic
 etc/logrotate.d/framerd
 usr/share/framerd/libscm/framerd-*/bugjar/*.scm
