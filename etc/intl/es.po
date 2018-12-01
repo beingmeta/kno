@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-11-24 20:11+0000\n"
+"POT-Creation-Date: 2018-12-01 14:50+0000\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -380,7 +380,7 @@ msgstr ""
 msgid "oid"
 msgstr ""
 
-#: src/lisp/lisp.c:62 src/support/config.c:698 src/eval/eval.c:1803
+#: src/lisp/lisp.c:62 src/support/config.c:698 src/eval/eval.c:1004
 #: src/eval/opcodes.c:1189 src/prims/dbprims.c:2611 src/prims/portprims.c:428
 #: src/eval/choiceops.c:1218 src/eval/choiceops.c:1251
 #: src/eval/choiceops.c:1270 src/eval/choiceops.c:1301
@@ -404,7 +404,7 @@ msgstr ""
 msgid "constant"
 msgstr ""
 
-#: src/lisp/lisp.c:67 src/eval/eval.c:1701 src/eval/modules.c:549
+#: src/lisp/lisp.c:67 src/eval/eval.c:902 src/eval/modules.c:738
 #: src/eval/reflection.c:672
 msgid "symbol"
 msgstr ""
@@ -413,7 +413,7 @@ msgstr ""
 msgid "fcnid"
 msgstr ""
 
-#: src/lisp/lisp.c:69 src/eval/eval.c:3170
+#: src/lisp/lisp.c:69 src/eval/eval.c:1657
 msgid "lexref"
 msgstr ""
 
@@ -458,8 +458,8 @@ msgstr ""
 #: src/prims/fileprims.c:560 src/web/cgiexec.c:1282 src/web/cgiexec.c:1309
 #: src/web/htmlout.c:578 src/web/uriprims.c:393 src/web/mime.c:110
 #: src/web/curl.c:636 src/text/texttools.c:141 src/text/texttools.c:168
-#: src/text/texttools.c:540 src/exe/fdservlet.c:255 src/exe/webcommon.h:256
-#: src/exe/webcommon.h:315
+#: src/text/texttools.c:540 src/exe/fdservlet.c:255 src/exe/webcommon.h:259
+#: src/exe/webcommon.h:318
 msgid "string"
 msgstr ""
 
@@ -475,7 +475,7 @@ msgstr ""
 msgid "bigint"
 msgstr ""
 
-#: src/lisp/lisp.c:81 src/eval/eval.c:1804 src/eval/opcodes.c:135
+#: src/lisp/lisp.c:81 src/eval/eval.c:1005 src/eval/opcodes.c:135
 #: src/eval/opcodes.c:137 src/eval/opcodes.c:150 src/eval/opcodes.c:152
 msgid "pair"
 msgstr ""
@@ -529,7 +529,7 @@ msgstr ""
 msgid "builtin function"
 msgstr ""
 
-#: src/lisp/lisp.c:97 src/eval/eval.c:1720 src/eval/reflection.c:653
+#: src/lisp/lisp.c:97 src/eval/eval.c:921 src/eval/reflection.c:653
 #: src/eval/reflection.c:684
 msgid "environment"
 msgstr ""
@@ -802,8 +802,8 @@ msgstr ""
 msgid "The default group for the ucrrent process"
 msgstr ""
 
-#: src/support/errobjs.c:238 src/support/errobjs.c:246 src/eval/eval.c:1298
-#: src/eval/eval.c:1322
+#: src/support/errobjs.c:238 src/support/errobjs.c:246 src/eval/modules.c:73
+#: src/eval/modules.c:97
 #, c-format
 msgid "object is not a %m"
 msgstr ""
@@ -1822,95 +1822,67 @@ msgstr ""
 msgid "NotMemindex"
 msgstr ""
 
-#: src/eval/eval.c:73
-msgid "Test failed"
-msgstr ""
-
-#: src/eval/eval.c:74
-msgid "Test error"
-msgstr ""
-
-#: src/eval/eval.c:75
+#: src/eval/eval.c:54
 msgid "Continuation is no longer valid"
 msgstr ""
 
-#: src/eval/eval.c:76
+#: src/eval/eval.c:55
 msgid "Continuation used twice"
 msgstr ""
 
-#: src/eval/eval.c:77
+#: src/eval/eval.c:56
 msgid "Lost invoked continuation"
 msgstr ""
 
-#: src/eval/eval.c:82
+#: src/eval/eval.c:59
 msgid "SCHEME expression syntax error"
 msgstr ""
 
-#: src/eval/eval.c:83
+#: src/eval/eval.c:60
 msgid "invalid macro transformer"
 msgstr ""
 
-#: src/eval/eval.c:84
+#: src/eval/eval.c:61
 msgid "the variable is unbound"
 msgstr ""
 
-#: src/eval/eval.c:85
+#: src/eval/eval.c:62
 msgid "VOID result passed as argument"
 msgstr ""
 
-#: src/eval/eval.c:86
+#: src/eval/eval.c:63
 msgid "VOID result used as variable binding"
 msgstr ""
 
-#: src/eval/eval.c:87
+#: src/eval/eval.c:64
 msgid "not an identifier"
 msgstr ""
 
-#: src/eval/eval.c:88
+#: src/eval/eval.c:65
 msgid "too few subexpressions"
 msgstr ""
 
-#: src/eval/eval.c:89
+#: src/eval/eval.c:66
 msgid "can't add binding to environment"
 msgstr ""
 
-#: src/eval/eval.c:90
+#: src/eval/eval.c:67
 msgid "Read only environment"
 msgstr ""
 
-#: src/eval/eval.c:1071 src/eval/reflection.c:529
+#: src/eval/eval.c:456 src/eval/reflection.c:529
 msgid "macro expansion"
 msgstr ""
 
-#: src/eval/eval.c:2071
+#: src/eval/eval.c:1272
 msgid "Server unconfigured"
 msgstr ""
 
-#: src/eval/eval.c:2148 src/eval/eval.c:2158
+#: src/eval/eval.c:1349 src/eval/eval.c:1359
 msgid "server"
 msgstr ""
 
-#: src/eval/eval.c:2554
-msgid "missing directory"
-msgstr ""
-
-#: src/eval/eval.c:3101 src/eval/loader.c:768
-msgid "load error"
-msgstr ""
-
-#: src/eval/eval.c:3143
-msgid "Which modules to load into the application environment"
-msgstr ""
-
-#: src/eval/eval.c:3146
-msgid "Which files to load into the application environment"
-msgstr ""
-
-#: src/eval/eval.c:3149
-msgid "Which functions/forms to execute to set up the application environment"
-msgstr ""
-
-#: src/eval/eval.c:3174
+#: src/eval/eval.c:1661
 msgid "coderef"
 msgstr ""
 
@@ -1928,6 +1900,34 @@ msgstr ""
 
 #: src/eval/opcodes.c:1390
 msgid "opcode name"
+msgstr ""
+
+#: src/eval/debug.c:520
+msgid "missing directory"
+msgstr ""
+
+#: src/eval/appenv.c:290 src/eval/loader.c:768
+msgid "load error"
+msgstr ""
+
+#: src/eval/appenv.c:332
+msgid "Which modules to load into the application environment"
+msgstr ""
+
+#: src/eval/appenv.c:335
+msgid "Which files to load into the application environment"
+msgstr ""
+
+#: src/eval/appenv.c:338
+msgid "Which functions/forms to execute to set up the application environment"
+msgstr ""
+
+#: src/eval/testops.c:45
+msgid "Test failed"
+msgstr ""
+
+#: src/eval/testops.c:46
+msgid "Test error"
 msgstr ""
 
 #: src/eval/binders.c:22
@@ -2002,47 +2002,47 @@ msgstr ""
 msgid "condvar"
 msgstr ""
 
-#: src/eval/modules.c:23
+#: src/eval/modules.c:27
 msgid "Argument is not a module (table)"
 msgstr ""
 
-#: src/eval/modules.c:24
+#: src/eval/modules.c:28
 msgid "Can't find named module"
 msgstr ""
 
-#: src/eval/modules.c:25
+#: src/eval/modules.c:29
 msgid "Loading failed to resolve module"
 msgstr ""
 
-#: src/eval/modules.c:26
+#: src/eval/modules.c:30
 msgid "Can't switch to opaque module"
 msgstr ""
 
-#: src/eval/modules.c:137
+#: src/eval/modules.c:326
 msgid "module name"
 msgstr ""
 
-#: src/eval/modules.c:192
+#: src/eval/modules.c:381
 msgid "Anonymous module"
 msgstr ""
 
-#: src/eval/modules.c:252
+#: src/eval/modules.c:441
 msgid "not a module"
 msgstr ""
 
-#: src/eval/modules.c:301
+#: src/eval/modules.c:490
 msgid "FailedModule"
 msgstr ""
 
-#: src/eval/modules.c:305
+#: src/eval/modules.c:494
 msgid "DynamicLoad"
 msgstr ""
 
-#: src/eval/modules.c:387
+#: src/eval/modules.c:576
 msgid "Can't reload a read-only module"
 msgstr ""
 
-#: src/eval/modules.c:807 src/eval/reflection.c:561 src/eval/reflection.c:576
+#: src/eval/modules.c:996 src/eval/reflection.c:561 src/eval/reflection.c:576
 #: src/eval/reflection.c:616 src/eval/reflection.c:621
 msgid "module"
 msgstr ""
@@ -2892,100 +2892,100 @@ msgstr ""
 msgid "No servers configured"
 msgstr ""
 
-#: src/exe/fdservlet.c:1786
+#: src/exe/fdservlet.c:1799
 msgid "Trace web transactions over N seconds"
 msgstr ""
 
-#: src/exe/fdservlet.c:1789 src/exe/fdcgiexec.c:689 src/exe/fdserver.c:1132
+#: src/exe/fdservlet.c:1802 src/exe/fdcgiexec.c:689 src/exe/fdserver.c:1132
 msgid "Number of pending connection requests allowed"
 msgstr ""
 
-#: src/exe/fdservlet.c:1791 src/exe/fdserver.c:1135
+#: src/exe/fdservlet.c:1804 src/exe/fdserver.c:1135
 msgid "Max number of requests to keep queued"
 msgstr ""
 
-#: src/exe/fdservlet.c:1794
+#: src/exe/fdservlet.c:1807
 msgid "Max number of concurrent connections to allow (NYI)"
 msgstr ""
 
-#: src/exe/fdservlet.c:1797 src/exe/fdserver.c:1139
+#: src/exe/fdservlet.c:1810 src/exe/fdserver.c:1139
 msgid "Number of clients to prepare for/grow by"
 msgstr ""
 
-#: src/exe/fdservlet.c:1800 src/exe/fdservlet.c:1803 src/exe/fdcgiexec.c:691
+#: src/exe/fdservlet.c:1813 src/exe/fdservlet.c:1816 src/exe/fdcgiexec.c:691
 #: src/exe/fdserver.c:1142
 msgid "Number of threads in the thread pool"
 msgstr ""
 
-#: src/exe/fdservlet.c:1806
+#: src/exe/fdservlet.c:1819
 msgid "File for recording status reports"
 msgstr ""
 
-#: src/exe/fdservlet.c:1809
+#: src/exe/fdservlet.c:1822
 msgid "Milliseconds (roughly) between updates to .status"
 msgstr ""
 
-#: src/exe/fdservlet.c:1812
+#: src/exe/fdservlet.c:1825
 msgid "Milliseconds (roughly) between logging status information"
 msgstr ""
 
-#: src/exe/fdservlet.c:1815 src/exe/fdserver.c:1208
+#: src/exe/fdservlet.c:1828 src/exe/fdserver.c:1208
 msgid "How long (μs) to wait for tasks during shutdown"
 msgstr ""
 
-#: src/exe/fdservlet.c:1819
+#: src/exe/fdservlet.c:1832
 msgid "Remove existing socket files with extreme prejudice"
 msgstr ""
 
-#: src/exe/fdservlet.c:1823
+#: src/exe/fdservlet.c:1836
 msgid "Whether to check for existing PID files"
 msgstr ""
 
-#: src/exe/fdservlet.c:1827
+#: src/exe/fdservlet.c:1840
 msgid "Ports for listening for connections"
 msgstr ""
 
-#: src/exe/fdservlet.c:1829 src/exe/fdserver.c:1204
+#: src/exe/fdservlet.c:1842 src/exe/fdserver.c:1204
 msgid "Whether to run in asynchronous mode"
 msgstr ""
 
-#: src/exe/fdservlet.c:1832 src/exe/fdserver.c:1125
+#: src/exe/fdservlet.c:1845 src/exe/fdserver.c:1125
 msgid "Whether to enable auto-restart"
 msgstr ""
 
-#: src/exe/fdservlet.c:1834 src/exe/fdserver.c:1128
+#: src/exe/fdservlet.c:1847 src/exe/fdserver.c:1128
 msgid "Whether to wait for the servlet PID file"
 msgstr ""
 
-#: src/exe/fdservlet.c:1838
+#: src/exe/fdservlet.c:1851
 msgid "Whether to have libu8 log each monitored address"
 msgstr ""
 
-#: src/exe/fdservlet.c:1842
+#: src/exe/fdservlet.c:1855
 msgid "Timeout for the poll loop (lower bound of status updates)"
 msgstr ""
 
-#: src/exe/fdservlet.c:1846 src/exe/fdserver.c:1169
+#: src/exe/fdservlet.c:1859 src/exe/fdserver.c:1169
 msgid "Whether to have libu8 log each connection"
 msgstr ""
 
-#: src/exe/fdservlet.c:1850 src/exe/fdserver.c:1174
+#: src/exe/fdservlet.c:1863 src/exe/fdserver.c:1174
 msgid "Whether to have libu8 log each transaction"
 msgstr ""
 
-#: src/exe/fdservlet.c:1854
+#: src/exe/fdservlet.c:1867
 msgid "Whether to have libu8 log queue activity"
 msgstr ""
 
-#: src/exe/fdservlet.c:1860
+#: src/exe/fdservlet.c:1873
 msgid "Whether to have libu8 log data transmission/receiption"
 msgstr ""
 
-#: src/exe/fdservlet.c:1867 src/exe/fdserver.c:1186
+#: src/exe/fdservlet.c:1880 src/exe/fdserver.c:1186
 msgid "Whether to support thread-asynchronous transactions"
 msgstr ""
 
-#: src/exe/fdservlet.c:1944 src/exe/fdserver.c:1122
+#: src/exe/fdservlet.c:1957 src/exe/fdserver.c:1122
 msgid "Whether to run in the foreground"
 msgstr ""
 
@@ -3145,23 +3145,23 @@ msgstr ""
 msgid "BSON/FramerD compound overflow"
 msgstr ""
 
-#: src/cmodules/mongodb.c:118
+#: src/cmodules/mongodb.c:119
 msgid "MongoDB/getclient"
 msgstr ""
 
-#: src/cmodules/mongodb.c:122
+#: src/cmodules/mongodb.c:123
 msgid "MongoDB/gotclient"
 msgstr ""
 
-#: src/cmodules/mongodb.c:130
+#: src/cmodules/mongodb.c:131
 msgid "MongoDB/freeclient"
 msgstr ""
 
-#: src/cmodules/mongodb.c:863
+#: src/cmodules/mongodb.c:886
 msgid "MissingDBName"
 msgstr ""
 
-#: src/cmodules/mongodb.c:1772 src/cmodules/mongodb.c:1861
+#: src/cmodules/mongodb.c:1795 src/cmodules/mongodb.c:1884
 msgid "MongoDB"
 msgstr ""
 
@@ -3189,74 +3189,74 @@ msgstr ""
 msgid "uint len"
 msgstr ""
 
-#: src/exe/webcommon.h:681
+#: src/exe/webcommon.h:684
 msgid "Trace all web transactions"
 msgstr ""
 
-#: src/exe/webcommon.h:683
+#: src/exe/webcommon.h:686
 msgid "Show backtraces on errors"
 msgstr ""
 
-#: src/exe/webcommon.h:685
+#: src/exe/webcommon.h:688
 msgid "Allow requests to specify debugging"
 msgstr ""
 
-#: src/exe/webcommon.h:687
+#: src/exe/webcommon.h:690
 msgid "Log error stacktraces"
 msgstr ""
 
-#: src/exe/webcommon.h:689
+#: src/exe/webcommon.h:692
 msgid "Default error page for web errors"
 msgstr ""
 
-#: src/exe/webcommon.h:693
+#: src/exe/webcommon.h:696
 msgid "Default crisis page (for when the error page yields an error)"
 msgstr ""
 
-#: src/exe/webcommon.h:697
+#: src/exe/webcommon.h:700
 msgid "Default not found page (for when specified content isn't found)"
 msgstr ""
 
-#: src/exe/webcommon.h:701
+#: src/exe/webcommon.h:704
 msgid "Default no content page (for when content fetch failed generically)"
 msgstr ""
 
-#: src/exe/webcommon.h:705
+#: src/exe/webcommon.h:708
 msgid "Files to preload into the shared environment"
 msgstr ""
 
-#: src/exe/webcommon.h:707
+#: src/exe/webcommon.h:710
 msgid "Where to write URLs where were requested"
 msgstr ""
 
-#: src/exe/webcommon.h:709
+#: src/exe/webcommon.h:712
 msgid "Where to write request objects"
 msgstr ""
 
-#: src/exe/webcommon.h:711
+#: src/exe/webcommon.h:714
 msgid "Level of transaction logging"
 msgstr ""
 
-#: src/exe/webcommon.h:713
+#: src/exe/webcommon.h:716
 msgid "Use per-request thread cache"
 msgstr ""
 
-#: src/exe/webcommon.h:715
+#: src/exe/webcommon.h:718
 msgid "Whether to log all cgidata"
 msgstr ""
 
-#: src/exe/webcommon.h:718
+#: src/exe/webcommon.h:721
 msgid "File base (directory) for resolving requests"
 msgstr ""
 
-#: src/exe/webcommon.h:721
+#: src/exe/webcommon.h:724
 msgid "Preflight (before request handling) procedures"
 msgstr ""
 
-#: src/exe/webcommon.h:724
+#: src/exe/webcommon.h:727
 msgid "POSTFLIGHT (before request handling) procedures"
 msgstr ""
 
-#: src/exe/webcommon.h:728
+#: src/exe/webcommon.h:731
 msgid "WEBMAIN default procedure for handling requests"
 msgstr ""

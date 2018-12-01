@@ -828,7 +828,7 @@ static int webservefn(u8_client ucl)
 {
   lispval proc = VOID, result = VOID;
   lispval cgidata = VOID, init_cgidata = VOID, precheck = VOID;
-  lispval path = VOID, uri = VOID, method = VOID, addr = FD_VOID;
+  lispval user = VOID, path = VOID, uri = VOID, method = VOID, addr = FD_VOID;
   lispval content = VOID, retfile = VOID;
   fd_lexenv base_env = NULL;
   fd_webconn client = (fd_webconn)ucl;
@@ -844,6 +844,7 @@ static int webservefn(u8_client ucl)
   u8_output outstream = &(client->out);
   int async = ((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
   int return_code = 0, buffered = 0, recovered = 1, http_status = -1;
+  U8_FIXED_OUTPUT(logcxt,100);
 
   /* Set the signal mask for the current thread.  By default, this
      only accepts synchronoyus signals. */
@@ -952,18 +953,21 @@ static int webservefn(u8_client ucl)
       return -1;}
     else {}
     if (docroot) webcommon_adjust_docroot(cgidata,docroot);
+    user   = fd_get(cgidata,remote_user,VOID);
     path   = fd_get(cgidata,script_filename,VOID);
     uri    = fd_get(cgidata,uri_slotid,VOID);
     method = fd_get(cgidata,request_method,VOID);
-    addr   = fd_get(cgidata,remote_addr,VOID);
-#if 0
-    U8_FIXED_OUTPUT(req_cxt,100);
-    u8_printf(req_cxtout,"%s %q %s (%s)",
-              (FD_STRINGP(addr)) ? (FD_CSTRING(addr)) : U8S("?remote?"),method,
+    addr   = fd_get(cgidata,remote_host,VOID);
+    if (FD_VOIDP(addr)) addr = fd_get(cgidata,remote_addr,VOID);
+    u8_printf(logcxtout,"%s%s%s %q %s (%s)",
+              (FD_STRINGP(user)) ? (FD_CSTRING(user)) : (U8S("")),
+              (FD_STRINGP(user)) ? ("@") : (""),
+              (FD_STRINGP(addr)) ? (FD_CSTRING(addr)) : U8S("?remote?"),
+              (FD_STRINGP(method)) ? (FD_CSTRING(method)) :
+              (FD_SYMBOLP(method)) ? (FD_SYMBOL_NAME(method)) : (U8S("?OP?")),
               (FD_STRINGP(uri)) ? (FD_CSTRING(uri)) : U8S("?uri?"),
               (FD_STRINGP(path)) ? (FD_CSTRING(path)) : U8S("?scriptfile?"));
-    u8_set_log_context(req_cxt.u8_outbuf);
-#endif
+    u8_set_log_context(logcxt.u8_outbuf);
 
     /* This is where we parse all the CGI variables, etc */
     lispval etime = fd_make_double(u8_elapsed_time());
@@ -1564,14 +1568,13 @@ static int webservefn(u8_client ucl)
     fd_decref(sendfile);
     fd_decref(query);}
   else {}
-#if 0
   u8_set_log_context(NULL);
-#endif
   fd_decref(proc);
   fd_decref(result);
   fd_decref(path);
   fd_decref(addr);
   fd_decref(uri);
+  fd_decref(user);
   fd_decref(method);
   fd_decref(cgidata);
   fd_swapcheck();

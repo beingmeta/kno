@@ -104,6 +104,7 @@ static void init_webcommon_symbols()
   filedata_slotid = fd_intern("_FILEDATA");
   remote_port = fd_intern("REMOTE_PORT");
   remote_host = fd_intern("REMOTE_HOST");
+  remote_user = fd_intern("REMOTE_USER");
   remote_addr = fd_intern("REMOTE_ADDR");
 }
 
@@ -560,7 +561,7 @@ static lispval loadcontent(lispval path)
     fd_decref(load_result);
     lispval main_proc = get_web_handler(newenv,pathname);
     if (traceweb>0)
-      u8_log(LOG_NOTICE,"LOADED","Loaded %s in %f secs, webmain=%q",
+      u8_log(LOG_NOTICE,"LOADED","Loaded %s in %f secs, \nwebmain=%q",
              pathname,u8_elapsed_time()-load_start,main_proc);
     return fd_conspair(main_proc,(lispval)newenv);}
 }
