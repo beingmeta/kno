@@ -46,7 +46,7 @@ static MU lispval browseinfo_symbol, threadcache_symbol;
 static MU lispval http_headers, html_headers, doctype_slotid, xmlpi_slotid;
 static MU lispval http_accept_language, http_accept_encoding, http_accept_charset;
 static MU lispval http_cookie, request_method, http_referer, http_accept;
-static MU lispval auth_type, remote_host, remote_user, remote_port;
+static MU lispval auth_type, remote_host, remote_user, remote_addr, remote_port;
 static MU lispval content_slotid, content_type, query_string, reqdata_symbol;
 static MU lispval query_string, script_name, path_info, remote_info, document_root;
 static MU lispval content_type, content_length, post_data;
@@ -102,6 +102,9 @@ static void init_webcommon_symbols()
   redirect_slotid = fd_intern("_REDIRECT");
   xredirect_slotid = fd_intern("_XREDIRECT");
   filedata_slotid = fd_intern("_FILEDATA");
+  remote_port = fd_intern("REMOTE_PORT");
+  remote_host = fd_intern("REMOTE_HOST");
+  remote_addr = fd_intern("REMOTE_ADDR");
 }
 
 /* Preflight/postflight */
