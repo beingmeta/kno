@@ -197,7 +197,6 @@ CORE_SCHEME_OBJS=\
 	src/eval/getopt.o\
 	src/eval/testops.o\
 	src/eval/appenv.o\
-	src/eval/opcodes.o\
 	src/eval/binders.o\
 	src/eval/lambda.o\
 	src/eval/macros.o\
@@ -422,7 +421,7 @@ FRAMERD_SOURCES=\
 	src/storage/procpool.c src/storage/procindex.c 				\
 	src/drivers/memindex.c							\
 	src/drivers/netpool.c src/drivers/netindex.c				\
-	src/eval/eval.c src/eval/opcodes.c 					\
+	src/eval/eval.c src/eval/opcode_defs.c 							\
 	src/eval/debug.c src/eval/getopt.c src/eval/appenv.c			\
 	src/eval/testops.c src/eval/appenv.c		\
 	src/eval/binders.c src/eval/lambda.c 					\
@@ -944,11 +943,9 @@ pull:
 
 # Custom dependencies
 
-src/eval/eval.o src/eval/opcodes.c: src/eval/eval_internals.h \
-	$(LISP_HEADERS) $(APPLY_HEADERS) \
-	$(STORAGE_HEADERS) $(SCHEME_HEADERS)
 src/eval/binders.o src/eval/conditionals.o src/eval/iterators.o: \
 	src/eval/eval_internals.h
+src/eval/eval.o: src/eval/eval_internals.h src/eval/opcode_defs.c
 
 # Custom rules
 
@@ -960,7 +957,7 @@ src/apply/apply.o : XCFLAGS="${XOPTFLAGS}"
 src/storage/streams.o src/storage/pools.o src/storage/indexes.o : XCFLAGS="${XOPTFLAGS}"
 src/eval/eval.o src/eval/choiceops.o : XCFLAGS="${XOPTFLAGS}"
 src/eval/conditionals.o src/eval/iterators.o : XCFLAGS="${XOPTFLAGS}"
-src/eval/opcodes.o src/eval/lambda.o : XCFLAGS="${XOPTFLAGS}"
+src/eval/lambda.o : XCFLAGS="${XOPTFLAGS}"
 src/text/matcher.o src/text/texttools.o : XCFLAGS="${XOPTFLAGS}"
 
 # Library targets

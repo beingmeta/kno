@@ -27,6 +27,8 @@
 #include "framerd/sequences.h"
 #include "framerd/ports.h"
 #include "framerd/dtcall.h"
+#include "framerd/opcodes.h"
+#include "framerd/dbprims.h"
 #include "framerd/ffi.h"
 
 #include "eval_internals.h"
@@ -65,6 +67,17 @@ u8_condition
   fd_TooFewExpressions=_("too few subexpressions"),
   fd_CantBind=_("can't add binding to environment"),
   fd_ReadOnlyEnv=_("Read only environment");
+
+/* Reading from expressions */
+
+FD_EXPORT lispval _fd_get_arg(lispval expr,int i)
+{
+  return fd_get_arg(expr,i);
+}
+FD_EXPORT lispval _fd_get_body(lispval expr,int i)
+{
+  return fd_get_body(expr,i);
+}
 
 /* Environment functions */
 
@@ -178,6 +191,135 @@ static ssize_t write_coderef_dtype(struct FD_OUTBUF *out,lispval x)
   return n_bytes;
 }
 
+/* Opcodes */
+
+u8_string fd_opcode_names[0x800]={NULL};
+int fd_opcodes_length = 0x800;
+
+static void set_opcode_name(lispval opcode,u8_string name)
+{
+  int off = FD_OPCODE_NUM(opcode);
+  u8_string constname=u8_string_append("#",name,NULL);
+  fd_opcode_names[off]=name;
+  fd_add_constname(constname,opcode);
+  u8_free(constname);
+}
+
+FD_EXPORT lispval fd_get_opcode(u8_string name)
+{
+  int i = 0; while (i<fd_opcodes_length) {
+    u8_string opname = fd_opcode_names[i];
+    if ((opname)&&(strcasecmp(name,opname)==0))
+      return FD_OPCODE(i);
+    else i++;}
+  return FD_FALSE;
+}
+
+static lispval name2opcode_prim(lispval arg)
+{
+  if (FD_SYMBOLP(arg))
+    return fd_get_opcode(SYM_NAME(arg));
+  else if (STRINGP(arg))
+    return fd_get_opcode(CSTRING(arg));
+  else return fd_type_error(_("opcode name"),"name2opcode_prim",arg);
+}
+
+static int unparse_opcode(u8_output out,lispval opcode)
+{
+  int opcode_offset = (FD_GET_IMMEDIATE(opcode,fd_opcode_type));
+  if (opcode_offset>fd_opcodes_length) {
+    u8_printf(out,"#<INVALIDOPCODE>");
+    return 1;}
+  else if (fd_opcode_names[opcode_offset]==NULL) {
+    u8_printf(out,"#<OPCODE_0x%x>",opcode_offset);
+    return 1;}
+  else {
+    u8_printf(out,"#<OPCODE_%s>",fd_opcode_names[opcode_offset]);
+    return 1;}
+}
+
+static int validate_opcode(lispval opcode)
+{
+  int opcode_offset = (FD_GET_IMMEDIATE(opcode,fd_opcode_type));
+  if ((opcode_offset>=0) && (opcode_offset<fd_opcodes_length))
+    return 1;
+  else return 0;
+}
+
+static u8_string opcode_name(lispval opcode)
+{
+  int opcode_offset = (FD_GET_IMMEDIATE(opcode,fd_opcode_type));
+  if ((opcode_offset<fd_opcodes_length) &&
+      (fd_opcode_names[opcode_offset]))
+    return fd_opcode_names[opcode_offset];
+  else return "anonymous_opcode";
+}
+
+/* Some datatype methods */
+
+static int unparse_evalfn(u8_output out,lispval x)
+{
+  struct FD_EVALFN *s=
+    fd_consptr(struct FD_EVALFN *,x,fd_evalfn_type);
+  lispval moduleid = s->evalfn_moduleid;
+  u8_string modname =
+    (FD_SYMBOLP(moduleid)) ? (FD_SYMBOL_NAME(moduleid)) : (NULL);
+  if (s->evalfn_filename) {
+    u8_string filename = s->evalfn_filename;
+    size_t len = strlen(filename);
+    u8_string space_break=strchr(filename,' ');
+    u8_byte buf[len+1];
+    if (space_break) {
+      strcpy(buf,filename);
+      buf[space_break-filename]='\0';
+      filename=buf;}
+    u8_printf(out,"#<EvalFN %s %s%s%s%s%s%s>",
+              s->evalfn_name,
+              U8OPTSTR(" ",modname,""),
+              U8OPTSTR(" '",buf,"'"));}
+  else u8_printf(out,"#<EvalFN %s%s%s%s>",s->evalfn_name,
+                 U8OPTSTR(" ",modname,""));
+  return 1;
+}
+
+static ssize_t write_evalfn_dtype(struct FD_OUTBUF *out,lispval x)
+{
+  struct FD_EVALFN *s=
+    fd_consptr(struct FD_EVALFN *,x,fd_evalfn_type);
+  u8_string name=s->evalfn_name;
+  u8_string filename=s->evalfn_filename;
+  size_t name_len=strlen(name);
+  ssize_t file_len=(filename) ? (strlen(filename)) : (-1);
+  int n_elts = (file_len<0) ? (1) : (0);
+  unsigned char buf[100], *tagname="%EVALFN";
+  struct FD_OUTBUF tmp = { 0 };
+  FD_INIT_OUTBUF(&tmp,buf,100,0);
+  fd_write_byte(&tmp,dt_compound);
+  fd_write_byte(&tmp,dt_symbol);
+  fd_write_4bytes(&tmp,strlen(tagname));
+  fd_write_bytes(&tmp,tagname,strlen(tagname));
+  fd_write_byte(&tmp,dt_vector);
+  fd_write_4bytes(&tmp,n_elts);
+  fd_write_byte(&tmp,dt_string);
+  fd_write_4bytes(&tmp,name_len);
+  fd_write_bytes(&tmp,name,name_len);
+  if (file_len>=0) {
+    fd_write_byte(&tmp,dt_string);
+    fd_write_4bytes(&tmp,file_len);
+    fd_write_bytes(&tmp,filename,file_len);}
+  ssize_t n_bytes=tmp.bufwrite-tmp.buffer;
+  fd_write_bytes(out,tmp.buffer,n_bytes);
+  fd_close_outbuf(&tmp);
+  return n_bytes;
+}
+
+FD_EXPORT void recycle_evalfn(struct FD_RAW_CONS *c)
+{
+  struct FD_EVALFN *sf = (struct FD_EVALFN *)c;
+  u8_free(sf->evalfn_name);
+  if (!(FD_STATIC_CONSP(c))) u8_free(c);
+}
+
 /* Checking if eval is needed */
 
 FD_EXPORT int fd_choice_evalp(lispval x)
@@ -192,6 +334,13 @@ FD_EXPORT int fd_choice_evalp(lispval x)
     return 0;}
   else return 0;
 }
+
+FD_EXPORT
+lispval fd_eval_exprs(lispval body,fd_lexenv env,fd_stack stack,int tail)
+{
+  return eval_body(body,env,stack,tail);
+}
+
 
 /* Symbol lookup */
 
@@ -277,15 +426,6 @@ FD_EXPORT int fd_assign_value(lispval symbol,lispval value,fd_lexenv env)
 
 /* Unpacking expressions, non-inline versions */
 
-FD_EXPORT lispval _fd_get_arg(lispval expr,int i)
-{
-  return fd_get_arg(expr,i);
-}
-FD_EXPORT lispval _fd_get_body(lispval expr,int i)
-{
-  return fd_get_body(expr,i);
-}
-
 /* Quote */
 
 static lispval quote_evalfn(lispval obj,fd_lexenv env,fd_stack stake)
@@ -306,9 +446,13 @@ static lispval eval_apply(u8_string fname,
                           struct FD_STACK *stack,
                           int tail);
 
-static lispval pair_eval(lispval expr,fd_lexenv env,
+static lispval pair_eval(lispval head,lispval expr,fd_lexenv env,
                          struct FD_STACK *_stack,
                          int tail);
+static lispval opcode_eval(lispval opcode,lispval expr,
+                           fd_lexenv env,
+                           fd_stack _stack,
+                           int tail);
 static lispval choice_eval(lispval expr,fd_lexenv env,
                            struct FD_STACK *_stack,
                            int tail);
@@ -337,7 +481,7 @@ lispval fd_stack_eval(lispval expr,fd_lexenv env,
   else if (FD_CONSP(expr))
     switch (FD_CONSPTR_TYPE(expr)) {
     case fd_pair_type:
-      return pair_eval(expr,env,_stack,tail);
+      return pair_eval(FD_CAR(expr),expr,env,_stack,tail);
     case fd_choice_type:
       return choice_eval(expr,env,_stack,tail);
     case fd_prechoice_type:
@@ -395,9 +539,10 @@ static lispval prechoice_eval(lispval expr,fd_lexenv env,
     return result;}
 }
 
-static lispval pair_eval(lispval expr,fd_lexenv env,
-                         struct FD_STACK *_stack,
-                         int tail)
+#if 0
+static lispval old_pair_eval(lispval expr,fd_lexenv env,
+                             struct FD_STACK *_stack,
+                             int tail)
 {
     lispval head = (FD_CAR(expr));
     if (FD_OPCODEP(head))
@@ -413,6 +558,7 @@ static lispval pair_eval(lispval expr,fd_lexenv env,
       return fd_err(fd_StackOverflow,"fd_tail_eval",buf,expr);}
     else return fd_pair_eval(head,expr,env,_stack,tail);
 }
+#endif
 
 /* Function application */
 
@@ -420,12 +566,17 @@ static lispval get_headval(lispval head,fd_lexenv env,fd_stack eval_stack,
                            int *gc_headval);
 
 FD_EXPORT
-lispval fd_pair_eval(lispval head,lispval expr,fd_lexenv env,
-                     struct FD_STACK *_stack,
-                     int tail)
+lispval pair_eval(lispval head,lispval expr,fd_lexenv env,
+                  struct FD_STACK *_stack,
+                  int tail)
 {
-  u8_string label=(SYMBOLP(head)) ? (SYM_NAME(head)) : (NULL);
+  u8_string label=(SYMBOLP(head)) ? (SYM_NAME(head)) :
+    (FD_OPCODEP(head)) ? (opcode_name(head)) : (NULL);
   FD_PUSH_STACK(eval_stack,fd_evalstack_type,label,expr);
+  if (FD_OPCODEP(head)) {
+    lispval result = opcode_eval(head,expr,env,eval_stack,tail);
+    fd_pop_stack(eval_stack);
+    return simplify_value(result);}
   int gc_head=0;
   lispval result = VOID, headval = get_headval(head,env,eval_stack,&gc_head);
   fd_ptr_type headtype = FD_PTR_TYPE(headval);
@@ -562,112 +713,182 @@ static lispval eval_apply(u8_string fname,
                           int tail)
 {
   int max_args = 0, min_args = 0, n_fns = 0;
-  int arg_count = 0, lambda = -1, gc_args = 0, nd_args = 0, d_prim = 1;
-  FD_DO_CHOICES(f,fn) {
-    if (FD_FUNCTIONP(f)) {
-      struct FD_FUNCTION *fcn=FD_XFUNCTION(f);
-      int max_arity = fcn->fcn_arity, min_arity = fcn->fcn_min_arity;
-      if (max_args >= 0) {
-        if (max_arity < 0) max_args = max_arity;
-        else if (max_arity > max_args)
-          max_args = max_arity;
-        else {}}
-      if (min_args >= 0) {
-        if (min_arity < min_args)
-          min_args = min_arity;}
-      if (fcn->fcn_ndcall) d_prim = 0;
-      if (fcn->fcn_notail) tail = 0;
-      if (lambda < 0) {
-        if (FD_LAMBDAP(fn)) lambda = 1;}
-      else if (FD_LAMBDAP(fn))
-        lambda = 0;
-      else NO_ELSE;
-      n_fns++;}
-    else if (!(FD_APPLICABLEP(f))) {
-      FD_STOP_DO_CHOICES;
-      return fd_err("NotApplicable","eval_apply",NULL,f);}
-    else n_fns++;}
+  int lambda = -1, gc_args = 0, nd_args = 0, d_prim = 1;
+  if (FD_EXPECT_FALSE(FD_CHOICEP(fn))) {
+    FD_DO_CHOICES(f,fn) {
+      if (FD_FUNCTIONP(f)) {
+        struct FD_FUNCTION *fcn=FD_XFUNCTION(f);
+        int max_arity = fcn->fcn_arity, min_arity = fcn->fcn_min_arity;
+        if (max_args >= 0) {
+          if (max_arity < 0) max_args = max_arity;
+          else if (max_arity > max_args)
+            max_args = max_arity;
+          else {}}
+        if (min_args >= 0) {
+          if (min_arity < min_args)
+            min_args = min_arity;}
+        if (fcn->fcn_ndcall) d_prim = 0;
+        if (fcn->fcn_notail) tail = 0;
+        if (lambda < 0) {
+          if (FD_LAMBDAP(fn)) lambda = 1;}
+        else if (FD_LAMBDAP(fn))
+          lambda = 0;
+        else NO_ELSE;
+        n_fns++;}
+      else if (!(FD_APPLICABLEP(f))) {
+        FD_STOP_DO_CHOICES;
+        return fd_err("NotApplicable","eval_apply",NULL,f);}
+      else n_fns++;}}
+    else if (FD_FUNCTIONP(fn)) {
+      struct FD_FUNCTION *fcn=FD_XFUNCTION(fn);
+      lambda = FD_LAMBDAP(fn);
+      d_prim = (! (fcn->fcn_ndcall) );
+      tail   = (! (fcn->fcn_notail) );
+      max_args = fcn->fcn_arity;
+      min_args = fcn->fcn_min_arity;}
+    else if (FD_APPLICABLEP(fn))
+      n_fns++;
+    else return fd_err("NotApplicable","eval_apply",NULL,fn);
+
   if (n_fns > 1) tail = 0;
-  lispval static_argbuf[8], *argbuf = static_argbuf, result;
-  int arg_i = 0, argbuf_len = 8, free_argbuf = 0;
+  int arg_i = 0, argbuf_len = (max_args>=0) ? (max_args) : (min_args+8);
+  lispval init_argbuf[argbuf_len], *argbuf=init_argbuf;
+  lispval result = FD_VOID;
   lispval scan = arg_exprs;
   while (FD_PAIRP(scan)) {
-    lispval arg_expr = FD_CAR(scan); scan = FD_CDR(scan);
+    lispval arg_expr = pop_arg(scan);
     if (commentp(arg_expr)) continue;
-    if ( (max_args >= 0) && (arg_i > max_args) ) {
-      if (gc_args) fd_decref_vec(argbuf,arg_count);
-      return fd_err(fd_TooManyArgs,"eval_apply",fname,arg_exprs);}
+    else if ( (max_args >= 0) && (arg_i > max_args) ) {
+      if (gc_args) fd_decref_vec(argbuf,arg_i);
+      return fd_err(fd_TooManyArgs,"eval_apply",fname,arg_expr);}
     lispval arg_val = fast_stack_eval(arg_expr,env,stack);
     if (PRED_FALSE(VOIDP(arg_val))) {
-      if (gc_args) fd_decref_vec(argbuf,arg_count);
+      if (gc_args) fd_decref_vec(argbuf,arg_i);
       return fd_err(fd_VoidArgument,"eval_apply/arg",NULL,arg_expr);}
     else if ( ( (d_prim) && (EMPTYP(arg_val)) ) || (FD_ABORTED(arg_val)) ) {
       /* Clean up the arguments we've already evaluated */
-      if (gc_args) fd_decref_vec(argbuf,arg_count);
+      if (gc_args) fd_decref_vec(argbuf,arg_i);
       return arg_val;}
     else if (CONSP(arg_val)) {
       if ( (nd_args == 0) && (ND_ARGP(arg_val)) )
         nd_args = 1;
       gc_args = 1;}
     else {}
-    if (arg_count >= argbuf_len) {
-      size_t cur_size = argbuf_len*sizeof(lispval);
-      size_t new_size = 2*argbuf_len*sizeof(lispval);
-      size_t new_len = 2*argbuf_len;
-      lispval *new_argbuf;
-      if (free_argbuf)
-        new_argbuf=u8_realloc(argbuf,new_size);
-      else if  ((new_argbuf=u8_malloc(new_size))) {
-        memcpy(new_argbuf,argbuf,cur_size);
-        free_argbuf=1;}
-      else NO_ELSE;
-      if (new_argbuf == NULL) {
-        if (gc_args) fd_decref_vec(argbuf,arg_count);
-        if (argbuf != static_argbuf) u8_free(argbuf);
-        u8_graberrno("eval_apply",fname);
-        return FD_ERROR_VALUE;}
-      else {
-        argbuf = new_argbuf;
-        argbuf_len = new_len;}}
-    argbuf[arg_count++]=arg_val;}
+    if (arg_i >= argbuf_len) {
+      lispval new_argbuf_len = argbuf_len*2;
+      lispval *new_argbuf = alloca(sizeof(lispval)*new_argbuf_len);
+      memcpy(new_argbuf,argbuf,sizeof(lispval)*arg_i);
+      argbuf_len = new_argbuf_len;
+      argbuf=new_argbuf;}
+    argbuf[arg_i++]=arg_val;}
   if ((tail) && (lambda) && (fd_optimize_tail_calls)  )
-    result=fd_tail_call(fn,arg_count,argbuf);
+    result=fd_tail_call(fn,arg_i,argbuf);
   else if ((CHOICEP(fn)) || (PRECHOICEP(fn)) || ((d_prim) && (nd_args)))
-    result=fd_ndcall(stack,fn,arg_count,argbuf);
-  else if ( (gc_args) || (argbuf != static_argbuf) )
-    result=fd_dcall(stack,fn,arg_count,argbuf);
-  else return fd_dcall(stack,fn,arg_count,argbuf);
-  if (gc_args) fd_decref_vec(argbuf,arg_count);
-  if (argbuf != static_argbuf) u8_free(argbuf);
+    result=fd_ndcall(stack,fn,arg_i,argbuf);
+  else if (gc_args)
+    result=fd_dcall(stack,fn,arg_i,argbuf);
+  else return fd_dcall(stack,fn,arg_i,argbuf);
+  if (gc_args) fd_decref_vec(argbuf,arg_i);
   return result;
 }
 
-FD_EXPORT lispval fd_eval_exprs(lispval exprs,fd_lexenv env)
+/* Opcode eval */
+
+#include "opcode_defs.c"
+
+static lispval opcode_eval(lispval opcode,lispval expr,
+                           fd_lexenv env,
+                           fd_stack _stack,
+                           int tail)
 {
-  if (PAIRP(exprs)) {
-    lispval next = FD_CDR(exprs), val = VOID;
-    while (PAIRP(exprs)) {
-      fd_decref(val); val = VOID;
-      if (NILP(next))
-        return fd_tail_eval(FD_CAR(exprs),env);
+  lispval args = FD_CDR(expr);
+  while (opcode == FD_SOURCEREF_OPCODE) {
+    if (!(FD_PAIRP(FD_CDR(expr)))) {
+      lispval err = fd_err(fd_SyntaxError,"opcode_eval",NULL,expr);
+      _return err;}
+    lispval source = pop_arg(args);
+    expr = args;
+    opcode = pop_arg(args);
+    if ( (FD_NULLP(_stack->stack_source)) ||
+         (FD_VOIDP(_stack->stack_source)) ||
+         (_stack->stack_source == expr) )
+      _stack->stack_source=source;
+    if (! (FD_OPCODEP(opcode)) ) {
+      _stack->stack_type = fd_evalstack_type;
+      if (FD_PAIRP(expr))
+        return pair_eval(opcode,expr,env,_stack,tail);
+      else return fast_stack_eval(expr,env,_stack);}}
+  if (FD_SPECIAL_OPCODEP(opcode))
+    return handle_special_opcode(opcode,args,expr,env,_stack,tail);
+  else if ( (FD_D1_OPCODEP(opcode)) || (FD_ND1_OPCODEP(opcode)) ) {
+    int nd_call = (FD_ND1_OPCODEP(opcode));
+    lispval results = FD_EMPTY_CHOICE;
+    lispval arg = FD_CAR(args), val = fast_stack_eval(arg,env,_stack);
+    if (FD_PRECHOICEP(val)) val = fd_simplify_choice(val);
+    if (FD_ABORTP(val)) _return val;
+    else if ( (!(nd_call)) && (FD_EMPTY_CHOICEP(val)) )
+      results = FD_EMPTY_CHOICE;
+    else if (nd_call)
+      results = nd1_call(opcode,val);
+    else if (FD_CHOICEP(val)) {
+      FD_DO_CHOICES(v,val) {
+        lispval r = d1_call(opcode,val);
+        if (FD_ABORTP(r)) {
+          fd_decref(results);
+          FD_STOP_DO_CHOICES;
+          _return r;}
+        else {FD_ADD_TO_CHOICE(results,r);}}}
+    else results = d1_call(opcode,val);
+    fd_decref(val);
+    return results;}
+  else if ( (FD_D2_OPCODEP(opcode)) ||
+            (FD_ND2_OPCODEP(opcode)) ||
+            (FD_NUMERIC_OPCODEP(opcode)) ) {
+    int nd_call = (FD_ND2_OPCODEP(opcode));
+    lispval results = FD_EMPTY_CHOICE;
+    int numericp = (FD_NUMERIC_OPCODEP(opcode));
+    lispval arg1 = pop_arg(args), val1 = fast_stack_eval(arg1,env,_stack);
+    if (FD_ABORTP(val1)) return val1;
+    else if (! (FD_EXPECT_TRUE(FD_PAIRP(args))) )
+      return fd_err(fd_TooFewArgs,"opcode_eval",opcode_name(opcode),
+                    expr);
+    else if ( (FD_EMPTY_CHOICEP(val1)) && (!(nd_call)) )
+      return val1;
+    else NO_ELSE;
+    lispval arg2 = pop_arg(args), val2 = fast_stack_eval(arg2,env,_stack);
+    if (FD_ABORTP(val2)) {fd_decref(val1); return val2;}
+    else if ( (FD_EMPTY_CHOICEP(val2)) && (!(nd_call)) ) {
+      fd_decref(val1); return val2;}
+    else NO_ELSE;
+    if (FD_PRECHOICEP(val1)) val1 = fd_simplify_choice(val1);
+    if (FD_PRECHOICEP(val2)) val2 = fd_simplify_choice(val2);
+    if ( (FD_CHOICEP(val1)) || (FD_CHOICEP(val2)) ) {
+      if (nd_call)
+        results = nd2_call(opcode,val1,val2);
       else {
-        val = fd_eval(FD_CAR(exprs),env);
-        if (FD_ABORTED(val)) return val;
-        else exprs = next;
-        if (PAIRP(exprs)) next = FD_CDR(exprs);}}
-    return val;}
-  else if (FD_CODEP(exprs)) {
-    struct FD_VECTOR *v = fd_consptr(fd_vector,exprs,fd_code_type);
-    int len = v->vec_length; lispval *elts = v->vec_elts, val = VOID;
-    int i = 0; while (i<len) {
-      lispval expr = elts[i++];
-      fd_decref(val); val = VOID;
-      if (i == len)
-        return fd_eval(expr,env);
-      else val = fd_eval(expr,env);
-      if (FD_ABORTED(val)) return val;}
-    return val;}
-  else return VOID;
+        FD_DO_CHOICES(v1,val1) {
+          FD_DO_CHOICES(v2,val2) {
+            lispval r = (numericp) ? (numop_call(opcode,v1,v2)) :
+              (d2_call(opcode,v1,v2));
+            if (FD_ABORTP(r)) {
+              fd_decref(results);
+              FD_STOP_DO_CHOICES;
+              results = r;
+              break;}
+            else {FD_ADD_TO_CHOICE(results,r);}}
+          if (FD_ABORTP(results)) {
+            FD_STOP_DO_CHOICES;
+            break;}}}}
+    else if (numericp)
+      results = numop_call(opcode,val1,val2);
+    else if (FD_ND2_OPCODEP(opcode))
+      return nd2_call(opcode,val1,val2);
+    else results = d2_call(opcode,val1,val2);
+    fd_decref(val1); fd_decref(val2);
+    return results;}
+  else if (FD_TABLE_OPCODEP(opcode))
+    return handle_table_opcode(opcode,expr,env,_stack,tail);
+  else return fd_err(_("Invalid opcode"),"numop_call",NULL,expr);
 }
 
 /* Making some functions */
@@ -1060,71 +1281,6 @@ static int lispenv_store(lispval e,lispval s,lispval v)
 static int lispenv_add(lispval e,lispval s,lispval v)
 {
   return add_to_value(s,v,FD_XENV(e));
-}
-
-/* Some datatype methods */
-
-static int unparse_evalfn(u8_output out,lispval x)
-{
-  struct FD_EVALFN *s=
-    fd_consptr(struct FD_EVALFN *,x,fd_evalfn_type);
-  lispval moduleid = s->evalfn_moduleid;
-  u8_string modname =
-    (FD_SYMBOLP(moduleid)) ? (FD_SYMBOL_NAME(moduleid)) : (NULL);
-  if (s->evalfn_filename) {
-    u8_string filename = s->evalfn_filename;
-    size_t len = strlen(filename);
-    u8_string space_break=strchr(filename,' ');
-    u8_byte buf[len+1];
-    if (space_break) {
-      strcpy(buf,filename);
-      buf[space_break-filename]='\0';
-      filename=buf;}
-    u8_printf(out,"#<EvalFN %s %s%s%s%s%s%s>",
-              s->evalfn_name,
-              U8OPTSTR(" ",modname,""),
-              U8OPTSTR(" '",buf,"'"));}
-  else u8_printf(out,"#<EvalFN %s%s%s%s>",s->evalfn_name,
-                 U8OPTSTR(" ",modname,""));
-  return 1;
-}
-
-static ssize_t write_evalfn_dtype(struct FD_OUTBUF *out,lispval x)
-{
-  struct FD_EVALFN *s=
-    fd_consptr(struct FD_EVALFN *,x,fd_evalfn_type);
-  u8_string name=s->evalfn_name;
-  u8_string filename=s->evalfn_filename;
-  size_t name_len=strlen(name);
-  ssize_t file_len=(filename) ? (strlen(filename)) : (-1);
-  int n_elts = (file_len<0) ? (1) : (0);
-  unsigned char buf[100], *tagname="%EVALFN";
-  struct FD_OUTBUF tmp = { 0 };
-  FD_INIT_OUTBUF(&tmp,buf,100,0);
-  fd_write_byte(&tmp,dt_compound);
-  fd_write_byte(&tmp,dt_symbol);
-  fd_write_4bytes(&tmp,strlen(tagname));
-  fd_write_bytes(&tmp,tagname,strlen(tagname));
-  fd_write_byte(&tmp,dt_vector);
-  fd_write_4bytes(&tmp,n_elts);
-  fd_write_byte(&tmp,dt_string);
-  fd_write_4bytes(&tmp,name_len);
-  fd_write_bytes(&tmp,name,name_len);
-  if (file_len>=0) {
-    fd_write_byte(&tmp,dt_string);
-    fd_write_4bytes(&tmp,file_len);
-    fd_write_bytes(&tmp,filename,file_len);}
-  ssize_t n_bytes=tmp.bufwrite-tmp.buffer;
-  fd_write_bytes(out,tmp.buffer,n_bytes);
-  fd_close_outbuf(&tmp);
-  return n_bytes;
-}
-
-FD_EXPORT void recycle_evalfn(struct FD_RAW_CONS *c)
-{
-  struct FD_EVALFN *sf = (struct FD_EVALFN *)c;
-  u8_free(sf->evalfn_name);
-  if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
 /* Call/cc */
@@ -1639,6 +1795,7 @@ static lispval ffi_found_prim(lispval name,lispval modname)
 /* Initialization */
 
 void fd_init_module_tables(void);
+#include "opcode_names.h"
 
 static void init_types_and_tables()
 {
@@ -1660,12 +1817,17 @@ static void init_types_and_tables()
   fd_dtype_writers[fd_coderef_type]=write_coderef_dtype;
   fd_type_names[fd_coderef_type]=_("coderef");
 
+  fd_type_names[fd_opcode_type]=_("opcode");
+  fd_unparsers[fd_opcode_type]=unparse_opcode;
+  fd_immediate_checkfns[fd_opcode_type]=validate_opcode;
+
   quote_symbol = fd_intern("QUOTE");
   _fd_comment_symbol = comment_symbol = fd_intern("COMMENT");
   moduleid_symbol = fd_intern("%MODULEID");
   source_symbol = fd_intern("%SOURCE");
 
   fd_init_module_tables();
+  init_opcode_names();
 }
 
 static void init_localfns()
@@ -1716,6 +1878,8 @@ static void init_localfns()
   fd_idefn1(fd_scheme_module,"%CODREFVAL",coderef_value_prim,1,
             "(%CODEREFVAL *coderef*) returns the integer relative offset of a coderef",
             fd_lexref_type,VOID);
+
+  fd_idefn(fd_scheme_module,fd_make_cprim1("NAME->OPCODE",name2opcode_prim,1));
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2("%CHOICEREF",choiceref_prim,2)));
@@ -1827,7 +1991,6 @@ FD_EXPORT void fd_init_sysprims_c(void);
 FD_EXPORT void fd_init_arith_c(void);
 FD_EXPORT void fd_init_side_effects_c(void);
 FD_EXPORT void fd_init_reflection_c(void);
-FD_EXPORT void fd_init_opcodes_c(void);
 FD_EXPORT void fd_init_reqstate_c(void);
 FD_EXPORT void fd_init_regex_c(void);
 FD_EXPORT void fd_init_quasiquote_c(void);
@@ -1846,7 +2009,6 @@ static void init_eval_core()
   fd_init_eval_getopt_c();
   fd_init_eval_debug_c();
   fd_init_eval_testops_c();
-  fd_init_opcodes_c();
   fd_init_tableprims_c();
   fd_init_modules_c();
   fd_init_arith_c();

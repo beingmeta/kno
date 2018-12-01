@@ -227,7 +227,7 @@ static lispval let_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
           letenv_vars[i]=var;
           letenv_vals[i]=value;
           i++;}}}
-    result = eval_body(":LET",SYM_NAME(letenv_vars[0]),
+    result = eval_inner_body(":LET",SYM_NAME(letenv_vars[0]),
                        expr,2,letenv,_stack);
     _return result;}
 }
@@ -262,7 +262,7 @@ static lispval letstar_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
           letseq_vars[i]=var;
           letseq_vals[i]=value;}
         i++;}}
-    result = eval_body(":LET*",
+    result = eval_inner_body(":LET*",
                        SYM_NAME(letseq_vars[0]),
                        expr,2,letseq,_stack);
     _return result;}
@@ -361,7 +361,7 @@ static lispval do_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     result = testval;
     if (PAIRP(FD_CDR(exitexprs))) {
       fd_decref(result);
-      result = eval_body(":DO",SYM_NAME(vars[0]),exitexprs,1,
+      result = eval_inner_body(":DO",SYM_NAME(vars[0]),exitexprs,1,
                          inner_env,_stack);}
     /* Free the environment. */
     fd_free_lexenv(&envstruct);

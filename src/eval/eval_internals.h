@@ -19,6 +19,20 @@ static int testeval(lispval expr,fd_lexenv env,lispval *whoops,
   else {fd_decref(val); return 1;}
 }
 
+FD_FASTOP lispval _pop_arg(lispval *scan)
+{
+  lispval expr = *scan;
+  if (PAIRP(expr)) {
+    lispval arg = FD_CAR(expr), next = FD_CDR(expr);
+    if (FD_CONSP(arg)) FD_PREFETCH((struct FD_CONS *)arg);
+    if (FD_CONSP(next)) FD_PREFETCH((struct FD_CONS *)next);
+    *scan = next;
+    return arg;}
+  else return VOID;
+}
+
+#define pop_arg(args) (_pop_arg(&args))
+
 #define simplify_value(v) \
   ( (FD_PRECHOICEP(v)) ? (fd_simplify_choice(v)) : (v) )
 
@@ -66,48 +80,31 @@ void free_lexenv(struct FD_LEXENV *env)
     u8_destroy_rwlock(&(sm->table_rwlock));}
 }
 
-FD_FASTOP lispval eval_body(u8_context cxt,u8_string label,
-                           lispval expr,int offset,
-                           fd_lexenv inner_env,
-                           struct FD_STACK *_stack)
+FD_FASTOP lispval eval_body(lispval body,fd_lexenv env,fd_stack stack,int tail)
 {
-  lispval result = FD_VOID, body = fd_get_body(expr,offset);
+  while (PAIRP(body)) {
+    lispval subex = pop_arg(body);
+    if (PAIRP(body)) {
+      lispval v = stack_eval(subex,env,stack);
+      if (FD_ABORTED(v))
+        return v;
+      else fd_decref(v);}
+    else return _fd_fast_eval(subex,env,stack,tail);}
+  return FD_VOID;
+}
+
+FD_FASTOP lispval eval_inner_body(u8_context cxt,u8_string label,
+                                  lispval expr,int offset,
+                                  fd_lexenv inner_env,
+                                  struct FD_STACK *_stack)
+{
+  lispval body = fd_get_body(expr,offset);
   if (FD_EMPTY_LISTP(body))
     return FD_VOID;
   else if (!(FD_PAIRP(body))) {
     fd_seterr(fd_SyntaxError,"eval_body",label,expr);
     return FD_ERROR_VALUE;}
-  else {
-    FD_DOLIST(bodyexpr,body) {
-      if (FD_TYPEP(result,fd_tailcall_type))
-        result=_fd_finish_call(result);
-      if (FD_ABORTP(result)) {
-        if (FD_BREAKP(result))
-          return result;
-        else if (FD_THROWP(result))
-          return result;
-        else if ( (u8_current_exception) &&
-                  ( (u8_current_exception)->u8x_cond == fd_StackOverflow ) )
-          return result;
-        else return result;}
-      else {fd_decref(result);}
-      result = fast_tail_eval(bodyexpr,inner_env);}
-    if (FD_THROWP(result)) return result;
-    else if (FD_ABORTP(result))
-      return result;
-    else return result;}
-}
-
-FD_FASTOP lispval eval_exprs(lispval body,fd_lexenv inner_env)
-{
-  lispval result = FD_VOID;
-  FD_DOLIST(bodyexpr,body) {
-    if (FD_TYPEP(result,fd_tailcall_type))
-      result=_fd_finish_call(result);
-    if (FD_ABORTP(result)) return result;
-    else {fd_decref(result);}
-    result = fd_tail_eval(bodyexpr,inner_env);}
-  return result;
+  else return eval_body(body,inner_env,_stack,1);
 }
 
 #define FD_VOID_RESULT(result)                          \

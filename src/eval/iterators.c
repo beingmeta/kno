@@ -349,12 +349,12 @@ static lispval dolist_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 
 static lispval begin_evalfn(lispval begin_expr,fd_lexenv env,fd_stack _stack)
 {
-  return eval_body("BEGIN",NULL,begin_expr,1,env,_stack);
+  return eval_inner_body("BEGIN",NULL,begin_expr,1,env,_stack);
 }
 
 static lispval onbreak_evalfn(lispval begin_expr,fd_lexenv env,fd_stack _stack)
 {
-  lispval result = eval_body("ONBREAK",NULL,begin_expr,2,env,_stack);
+  lispval result = eval_inner_body("ONBREAK",NULL,begin_expr,2,env,_stack);
   if (FD_BREAKP(result))
     result = fast_stack_eval(fd_get_arg(begin_expr,1),env,_stack);
   return result;

@@ -121,7 +121,7 @@ static lispval cond_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     if (!(PAIRP(clause)))
       return fd_err(fd_SyntaxError,_("invalid cond clause"),NULL,expr);
     else if (FD_EQ(FD_CAR(clause),else_symbol))
-      return fd_eval_exprs(FD_CDR(clause),env);
+      return fd_eval_exprs(FD_CDR(clause),env,_stack,1);
     else test_val = fd_eval(FD_CAR(clause),env);
     if (FD_ABORTED(test_val)) return test_val;
     else if (FALSEP(test_val)) {}
@@ -145,7 +145,7 @@ static lispval cond_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
         else return fd_err(fd_SyntaxError,"cond_evalfn","apply syntax",expr);
       else {
         fd_decref(test_val);
-        return eval_body("COND",NULL,clause,1,env,_stack);}}}
+        return eval_inner_body("COND",NULL,clause,1,env,_stack);}}}
   return VOID;
 }
 
@@ -163,10 +163,10 @@ static lispval case_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
           lispval keys = FD_CAR(clause);
           FD_DOLIST(key,keys)
             if (FD_EQ(keyval,key))
-              return eval_body("CASE",NULL,clause,1,env,_stack);}
+              return eval_inner_body("CASE",NULL,clause,1,env,_stack);}
         else if (FD_EQ(FD_CAR(clause),else_symbol)) {
           fd_decref(keyval);
-          return fd_eval_exprs(FD_CDR(clause),env);}
+          return fd_eval_exprs(FD_CDR(clause),env,_stack,1);}
         else return fd_err(fd_SyntaxError,"case_evalfn",NULL,clause);
       else return fd_err(fd_SyntaxError,"case_evalfn",NULL,clause);
     return VOID;}
@@ -182,7 +182,7 @@ static lispval when_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   else if (FALSEP(test_val)) return VOID;
   else if (EMPTYP(test_val)) return VOID;
   else {
-    lispval result = fd_eval_exprs(FD_CDR(FD_CDR(expr)),env);
+    lispval result = fd_eval_exprs(FD_CDR(FD_CDR(expr)),env,_stack,1);
     fd_decref(test_val);
     FD_VOID_RESULT(result);
     return result;}
@@ -196,7 +196,7 @@ static lispval unless_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   else test_val = fd_eval(test_expr,env);
   if (FD_ABORTED(test_val)) return test_val;
   else if (FALSEP(test_val)) {
-    lispval result = fd_eval_exprs(FD_CDR(FD_CDR(expr)),env);
+    lispval result = fd_eval_exprs(FD_CDR(FD_CDR(expr)),env,_stack,1);
     FD_VOID_RESULT(result);
     return result;}
   else if (EMPTYP(test_val))

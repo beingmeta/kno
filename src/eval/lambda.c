@@ -148,7 +148,7 @@ lispval call_lambda(struct FD_STACK *_stack,
     else {}}
   /* If we're synchronized, lock the mutex. */
   if (fn->lambda_synchronized) u8_lock_mutex(&(fn->lambda_lock));
-  result = eval_body(":LAMBDA",fn->fcn_name,fn->lambda_start,0,
+  result = eval_inner_body(":LAMBDA",fn->fcn_name,fn->lambda_start,0,
                      call_env,fd_stackptr);
   if (fn->lambda_synchronized) {
     /* If we're synchronized, finish any tail calls and unlock the
@@ -833,7 +833,7 @@ lispval fd_xapply_lambda
   /* This means we have a lexpr arg. */
   /* If we're synchronized, lock the mutex. */
   if (fn->lambda_synchronized) u8_lock_mutex(&(fn->lambda_lock));
-  result = eval_body(":XPROC",fn->fcn_name,fn->lambda_body,0,call_env,_stack);
+  result = eval_inner_body(":XPROC",fn->fcn_name,fn->lambda_body,0,call_env,_stack);
   /* if (fn->lambda_synchronized) result = fd_finish_call(result); */
   /* We always finish tail calls here */
   result = fd_finish_call(result);
