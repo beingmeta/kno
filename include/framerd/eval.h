@@ -27,6 +27,7 @@ FD_EXPORT lispval fd_scheme_module, fd_xscheme_module;
 
 FD_EXPORT lispval _fd_comment_symbol;
 
+FD_EXPORT int fd_scheme_initialized;
 FD_EXPORT int fd_load_scheme(void) FD_LIBINIT0_FN;
 FD_EXPORT int fd_init_scheme(void);
 FD_EXPORT void fd_init_schemeio(void) FD_LIBINIT0_FN;
