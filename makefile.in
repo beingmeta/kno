@@ -1593,6 +1593,8 @@ install-support: $(DESTDIR)@share_dir@
 	cd $(BUILD)/etc; $(SYSINSTALL) @install_file_opts@ 	\
 		gdbinit makefile.include fdconsole.el 		\
 		$(DESTDIR)@share_dir@
+	cd $(BUILD)/src/web; $(SYSINSTALL) @install_file_opts@ 	\
+		webinfo.fdcgi $(DESTDIR)@share_dir@
 
 LIBSCM_DIRS=optimize bugjar storage mongodb xhtml
 install-libscm:

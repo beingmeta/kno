@@ -1,0 +1,183 @@
+;;; -*- Mode: Scheme; -*-
+
+(use-module '{fdweb xhtml texttools optimize samplefns logger})
+(use-module 'bugjar/html)
+
+(config! 'traceweb #t)
+(config! 'updatemodules 5.0)
+
+(define (errorpage (reqerror #f))
+  (when reqerror
+    (req/set! 'content-type "text/html; charset: utf-8;")
+    (exception->html reqerror)))
+
+(define (main (name) (cookiename #f) (cookieval "set")
+	      (dropcookie {}) (filedata #f)
+	      (start (timestamp))
+	      (profile #f))
+  ;; (+ 2 "two")
+  (when profile (config! 'calltrack profile))
+  (when (and cookiename (not (empty-string? cookiename))
+	     (not (overlaps? (downcase cookiename) (downcase dropcookie))))
+    (req/add! '_cookiedata
+      (vector (string->symbol (upcase cookiename)) cookieval))
+    (set-cookie! cookiename cookieval))
+  (when (exists? dropcookie)
+    (do-choices dropcookie (clear-cookie! dropcookie)))
+  (title! "Get connection info")
+  (xmlelt 'META 'name "viewport" 'content
+    "width=device-width,user-scalable=yes,initial-scale=1.0")
+  (javascript! "/static/fdjt/fdjt.js")
+  (stylesheet! "/static/fdjt/fdjt.css")
+  (htmlheader
+   (xmlblock STYLE ((type "text/css"))
+     "\n"
+     "body {font-family: arial,sans; margin: 0px;}\n"
+     "div#BODY {margin-left: 32px;}\n"
+     "h1 {text-align: right; font-variant: small-caps; margin: 0px; padding: 1ex; background-color: silver; border-bottom: solid black 2px;}\n"
+     "h1 .smaller {display: block; clear: both; font-size: 10px; text-align: right; font-weight: normal; font-variant: normal;}\n"
+     "p,div {text-align: left; margin-right: 2em;;}\n"))
+  (req/set! 'syshost (gethostname))
+  (h1 "This is " (gethostname)
+    (when (req/test 'server_software)
+      (span ((class "smaller")) (req/get 'server_software))))
+  (div ((id "BODY"))
+    (h2 "appVersion (from DOM/JS)")
+    (div ((id "APPVERSION")))
+    (h2 "userAgent (from DOM/JS)")
+    (div ((id "USERAGENT")))
+    (h2 "Geometry (from DOM/JS)")
+    (p "Window inner=" (span ((id "WIW")) "?") "x" (span ((id "WIH")) "?")
+      ", outer="  (span ((id "WOW")) "?") "x" (span ((id "WOH")) "?"))
+    (p "Doc client=" (span ((id "DCW")) "?") "x" (span ((id "DCH")) "?") ","
+      " offset=" (span ((id "DOW")) "?") "x" (span ((id "DOH")) "?"))
+    (h2 "Args")
+    (if (bound? name)
+	(p "NAME is " name " or also " (req/call showname))
+	(p "The NAME argument was not passed, so REQ/GET delivers "
+	  (req/get 'name) "."))
+    (form ()
+      (p "Pass the name "
+	(input TYPE "TEXT" NAME "NAME"
+	       VALUE (if (bound? name) name ""))
+	(input TYPE "SUBMIT" NAME "ACTION" VALUE "Submit")))
+    (h2 "COOKIES")
+    (when (and (exists? dropcookie) dropcookie)
+      (if (singleton? dropcookie)
+	  (p "Dropped the cookie " dropcookie)
+	  (p "Dropped the cookies "
+	    (do-choices (dc dropcookie i)
+	      (xmlout (if (> i 0) ", ") dc)))))
+    (form ()
+      (p "Set the cookie "
+	(input TYPE "TEXT" NAME "COOKIENAME" VALUE "")
+	" to "
+	(input TYPE "TEXT" NAME "COOKIEVAL" VALUE "")
+	(input TYPE "SUBMIT" NAME "ACTION" VALUE "Submit"))
+      (do-choices (cookie (req/get '_cookiedata #{}))
+	(unless (overlaps? (downcase dropcookie) (downcase (first cookie)))
+	  (p "Drop "
+	    (input TYPE "CHECKBOX" NAME "DROPCOOKIE" VALUE (first cookie))
+	    " " (first cookie) "=" (second cookie)))))
+    (h2 "FILEDATA")
+    (when filedata)
+    (form ((METHOD "POST") (enctype "multipart/form-data"))
+      (p "File: " (input TYPE "FILE" NAME "FILEDATA") " "
+	(input TYPE "SUBMIT" NAME "ACTION" VALUE "Upload")))
+    (h2 "REQDATA")
+    (let ((reqdata (req/data)))
+      (output-table reqdata))
+    (h2 "GET/SUBMIT")
+    (form ()
+      (table* ((class "fdjtform"))
+	(tr (th "X") (td (input TYPE "TEXT" NAME "X" VALUE "")))
+	(tr (th "Y") (td (input TYPE "TEXT" NAME "Y" VALUE "")))
+	(tr (th (input TYPE "SUBMIT" NAME "ACTION" VALUE "GET"))
+	    (td "Using GET"))))
+    (h2 "POST/SUBMIT")
+    (form ((method "POST"))
+      (table* ((class "fdjtform"))
+	(tr (th "X") (td (input TYPE "TEXT" NAME "X" VALUE "")))
+	(tr (th "Y") (td (input TYPE "TEXT" NAME "Y" VALUE "")))
+	(tr (th (input TYPE "SUBMIT" NAME "ACTION" VALUE "POST"))
+	    (td "with no enctype"))))
+    (h2 "POST/MULTIPART")
+    (form ((method "POST")
+	   (enctype "multipart/form-data")
+	   (accept-charset "utf-8"))
+      (INPUT TYPE "HIDDEN" NAME "IEHACK" VALUE "&#9760;")
+      (table* ((class "fdjtform"))
+	(tr (th "X") (td (input TYPE "TEXT" NAME "X" VALUE (req/get 'x ""))))
+	(tr (th "Y") (td (input TYPE "TEXT" NAME "Y" VALUE (req/get 'y ""))))
+	(tr (th "T") (td (xmlblock TEXTAREA ((NAME "T")) (req/get 't ""))))
+	(tr (th "FILE") (td (input TYPE "FILE" NAME "UPLOAD")))
+	(tr (th (input TYPE "SUBMIT" NAME "ACTION" VALUE "POST"))
+	    (td "using multipart/form-data")))))
+  (xmlblock "SCRIPT" ((language "javascript"))
+    "\n"
+    (xhtml "document.getElementById('APPVERSION').innerHTML=navigator.appVersion;\n")
+    (xhtml "document.getElementById('USERAGENT').innerHTML=navigator.userAgent;\n")
+    (xhtml
+      "function updateGeometry(){\n\t\
+           document.getElementById ('WIW').innerHTML=window.innerWidth.toString();\n\t\
+           document.getElementById ('WIH').innerHTML=window.innerHeight.toString();\n\t\
+           document.getElementById ('WOW').innerHTML=window.outerWidth.toString();\n\t\
+           document.getElementById ('WOH').innerHTML=window.outerHeight.toString();\n\t\
+           var docelt=document.documentElement; if (docelt) { \n\t\t\
+           document.getElementById ('DCW').innerHTML=docelt.clientWidth.toString();\n\t\t\
+           document.getElementById ('DCH').innerHTML=docelt.clientHeight.toString();\n\t\t\
+           document.getElementById ('DOW').innerHTML=docelt.offsetWidth.toString();\n\t\t\
+           document.getElementById ('DOH').innerHTML=docelt.offsetHeight.toString();}\n\t\}\n\
+       window.onload=updateGeometry;
+       window.onresize=updateGeometry;\n"))
+  (when profile (config! 'calltrack #f))
+  ;; (%watch (difftime start))
+  )
+
+
+(define (output-table table)
+  (table* ((class "fdjtdata"))
+    (do-choices (key (getkeys table))
+      (let ((val (get table key)))
+	(tr (th key)
+	    (td (output-value val)))))))
+
+(defambda (output-value val)
+  (cond ((ambiguous? val)
+	 (xmlblock UL ()
+	   (do-choices (v val)
+	     (if (not (bound? v))
+		 (li "#?")
+		 (li (output-value v))))))
+	((or (proper-list? val) (vector? val))
+	 (xmlblock OL ()
+	   (doseq (v val)
+	     (if (not (bound? v))
+		 (li "#?")
+		 (li (output-value v))))))
+	((and (or (packet? val) (string? val)) (> (length val) 250))
+	 (anchor* (stringout "data:" (if (string? val) "text" "application")
+		    (if (string? val) ";charset=utf-8")
+		    (if (packet? val) ";base64," ",")
+		    (if (string? val) (uriencode val) (packet->base64 val)))
+	     ((target "_blank"))
+	   (length val)
+	   (if (packet? val)  " bytes of data" " characters of text")))
+	((packet? val) val)
+	((string? val) (xmlout "\"" val "\""))
+	((pair? val) val)
+	((table? val)
+	 (let ((s (stringout val)))
+	   (if (> (length s) 77)
+	       (output-table val)
+	       s)))
+	(else val)))
+
+(define (showname (name #f))
+  (span ((class "showname")) name))
+
+;; If we optimize this file, the automatic updates of component
+;; modules don't make a difference.
+(when (config 'OPTIMIZE:MAIN #f) (optimize!))
+
+(config! 'webmain main)
