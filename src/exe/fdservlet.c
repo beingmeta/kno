@@ -828,7 +828,7 @@ static int webservefn(u8_client ucl)
 {
   lispval proc = VOID, result = VOID;
   lispval cgidata = VOID, init_cgidata = VOID, precheck = VOID;
-  lispval path = VOID, uri = VOID, method = VOID;
+  lispval path = VOID, uri = VOID, method = VOID, addr = FD_VOID;
   lispval content = VOID, retfile = VOID;
   fd_lexenv base_env = NULL;
   fd_webconn client = (fd_webconn)ucl;
@@ -955,6 +955,15 @@ static int webservefn(u8_client ucl)
     path   = fd_get(cgidata,script_filename,VOID);
     uri    = fd_get(cgidata,uri_slotid,VOID);
     method = fd_get(cgidata,request_method,VOID);
+    addr   = fd_get(cgidata,remote_addr,VOID);
+#if 0
+    U8_FIXED_OUTPUT(req_cxt,100);
+    u8_printf(req_cxtout,"%s %q %s (%s)",
+              (FD_STRINGP(addr)) ? (FD_CSTRING(addr)) : U8S("?remote?"),method,
+              (FD_STRINGP(uri)) ? (FD_CSTRING(uri)) : U8S("?uri?"),
+              (FD_STRINGP(path)) ? (FD_CSTRING(path)) : U8S("?scriptfile?"));
+    u8_set_log_context(req_cxt.u8_outbuf);
+#endif
 
     /* This is where we parse all the CGI variables, etc */
     lispval etime = fd_make_double(u8_elapsed_time());
@@ -1555,9 +1564,13 @@ static int webservefn(u8_client ucl)
     fd_decref(sendfile);
     fd_decref(query);}
   else {}
+#if 0
+  u8_set_log_context(NULL);
+#endif
   fd_decref(proc);
   fd_decref(result);
   fd_decref(path);
+  fd_decref(addr);
   fd_decref(uri);
   fd_decref(method);
   fd_decref(cgidata);
