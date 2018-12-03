@@ -1056,12 +1056,8 @@ FD_EXPORT void fd_init_reflection_c()
             "spent in the profiled function",
             -1,FD_VOID);
   fd_idefn1(module,"PROFILE/UTIME",profile_getutime,1,
-            "`(PROFILE/ *profile*)` returns the number of seconds "
+            "`(PROFILE/UTIME *profile*)` returns the number of seconds "
             "of user time spent in the profiled function",
-            -1,FD_VOID);
-  fd_idefn1(module,"PROFILE/STIME",profile_getutime,1,
-            "`(PROFILE/STIME *profile*)` returns the number of seconds "
-            "of system time spent in the profiled function",
             -1,FD_VOID);
   fd_idefn1(module,"PROFILE/STIME",profile_getstime,1,
             "`(PROFILE/STIME *profile*)` returns the number of seconds "
@@ -1078,12 +1074,12 @@ FD_EXPORT void fd_init_reflection_c()
             "the execution of the profiled function",
             -1,FD_VOID);
   fd_idefn1(module,"PROFILE/FAULTS",profile_getfaults,1,
-            "`(PROFILE/FAULTS *profile*)` returns the number of page "
+            "`(PROFILE/FAULTS *profile*)` returns the number of (major) page "
             "faults during the execution of the profiled function",
             -1,FD_VOID);
   fd_idefn1(module,"PROFILE/NSECS",profile_nsecs,1,
-            "`(PROFILE/FAULTS *profile*)` returns the number of calls "
-            "to the profiled function",
+            "`(PROFILE/NSECS *profile*)` returns the number of nanoseconds "
+            "spent in the profiled function",
             -1,FD_VOID);
   fd_idefn1(module,"PROFILE/NCALLS",profile_ncalls,1,
             "`(PROFILE/FAULTS *profile*)` returns the number of calls "
