@@ -824,9 +824,14 @@ static lispval opcode_eval(lispval opcode,lispval expr,
     int nd_call = (FD_ND1_OPCODEP(opcode));
     lispval results = FD_EMPTY_CHOICE;
     lispval arg = FD_CAR(args), val = fast_stack_eval(arg,env,_stack);
-    if (FD_PRECHOICEP(val)) val = fd_simplify_choice(val);
-    if (FD_ABORTP(val)) _return val;
-    else if ( (!(nd_call)) && (FD_EMPTY_CHOICEP(val)) )
+    if (FD_ABORTED(val)) _return val;
+    else if (FD_VOIDP(val))
+      return fd_err(fd_VoidArgument,"OPCODE_APPLY",opcode_name(opcode),arg);
+    else NO_ELSE;
+    if (FD_PRECHOICEP(val))
+      val = fd_simplify_choice(val);
+    /* Get results */
+    if ( (!(nd_call)) && (FD_EMPTY_CHOICEP(val)) )
       results = FD_EMPTY_CHOICE;
     else if (nd_call)
       results = nd1_call(opcode,val);
@@ -848,17 +853,23 @@ static lispval opcode_eval(lispval opcode,lispval expr,
     lispval results = FD_EMPTY_CHOICE;
     int numericp = (FD_NUMERIC_OPCODEP(opcode));
     lispval arg1 = pop_arg(args), val1 = fast_stack_eval(arg1,env,_stack);
-    if (FD_ABORTP(val1)) return val1;
+    if (FD_ABORTED(val1)) return val1;
     else if (! (FD_EXPECT_TRUE(FD_PAIRP(args))) )
       return fd_err(fd_TooFewArgs,"opcode_eval",opcode_name(opcode),
                     expr);
     else if ( (FD_EMPTY_CHOICEP(val1)) && (!(nd_call)) )
       return val1;
+    else if (FD_EXPECT_FALSE(FD_VOIDP(val1)))
+      return fd_err(fd_VoidArgument,"OPCODE_APPLY",opcode_name(opcode),arg1);
     else NO_ELSE;
     lispval arg2 = pop_arg(args), val2 = fast_stack_eval(arg2,env,_stack);
-    if (FD_ABORTP(val2)) {fd_decref(val1); return val2;}
+    if (FD_ABORTED(val2)) {fd_decref(val1); return val2;}
     else if ( (FD_EMPTY_CHOICEP(val2)) && (!(nd_call)) ) {
-      fd_decref(val1); return val2;}
+      fd_decref(val1);
+      return val2;}
+    else if (FD_EXPECT_FALSE(FD_VOIDP(val2))) {
+      fd_decref(val1);
+      return fd_err(fd_VoidArgument,"OPCODE_APPLY",opcode_name(opcode),arg2);}
     else NO_ELSE;
     if (FD_PRECHOICEP(val1)) val1 = fd_simplify_choice(val1);
     if (FD_PRECHOICEP(val2)) val2 = fd_simplify_choice(val2);
@@ -882,7 +893,7 @@ static lispval opcode_eval(lispval opcode,lispval expr,
     else if (numericp)
       results = numop_call(opcode,val1,val2);
     else if (FD_ND2_OPCODEP(opcode))
-      return nd2_call(opcode,val1,val2);
+      results = nd2_call(opcode,val1,val2);
     else results = d2_call(opcode,val1,val2);
     fd_decref(val1); fd_decref(val2);
     return results;}
