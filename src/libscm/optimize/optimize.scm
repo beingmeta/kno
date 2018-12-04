@@ -907,13 +907,12 @@
   (set! off-arg (get-arg expr 2 #f))
   (set! type-arg (get-arg expr 3 #f))
   (tryif (fixnum? off-arg)
-    (tryif (and (pair? type-arg) (= (length type-arg) 2)
-		(overlaps? (car type-arg) {'quote quote}))
-      `(,xref-opcode ,off-arg ,(cadr type-arg)
-		     ,(optimize (get-arg expr 1) env bound opts)))
-    (tryif (and (pair? type-arg) (eq? (car type-arg) #OP_QUOTE))
-      `(,xref-opcode ,off-arg ,(cadr type-arg)
-		     ,(optimize (get-arg expr 1) env bound opts)))
+    (tryif (and (pair? type-arg)
+		(overlaps? (car type-arg) {'quote quote #OP_QUOTE}))
+      (if (= (length type-arg) 2)
+	  `(,xref-opcode ,off-arg ,(cadr type-arg)
+			 ,(optimize (get-arg expr 1) env bound opts))
+	  (irritant type-arg |SyntaxError| COMPOUND-REF "In compound ref " expr)))
     (tryif (and (pair? type-arg) (not type-arg))
       `(,xref-opcode ,off-arg #f
 		     (optimize (get-arg expr 1) env bound opts)))))
@@ -1401,6 +1400,8 @@
       optimize-doexpression)
 ;;(store! special-form-optimizers dotimes optimize-dotimes)
 ;;(store! special-form-optimizers doseq optimize-doseq)
+
+;;(add! special-form-optimizers quote optimize-quote)
 
 (add! special-form-optimizers
       (choice do-choices for-choices filter-choices try-choices)
