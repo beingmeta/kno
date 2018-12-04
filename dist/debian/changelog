@@ -1,3 +1,9 @@
+framerd (4.3.0-31) stable; urgency=medium
+
+  * Bumped minor version number to 3
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 04 Dec 2018 18:49:40 -0500
+
 framerd (4.2.10-30) stable; urgency=medium
 
   * Add webinfo.fdcgi to share directory

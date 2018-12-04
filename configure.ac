@@ -88,7 +88,7 @@ BINPATH=${PATH}
 RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
 FDMAJOR=4
-FDMINOR=2
+FDMINOR=3
 FDRELEASE=`cat etc/release`
 FDVERSION=${FDMAJOR}.${FDMINOR}.${FDRELEASE}
 VERSION=$FDVERSION
@@ -1988,7 +1988,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/fdserv.conf 
 	   etc/fdserv.load
 	   etc/install-script 
-	   dist/framerd-4.2.spec],
+	   dist/framerd-4.3.spec],
 	   [chmod a+x etc/fd* tests/*test])
 
 if test ! -z "$gperftools"; then
