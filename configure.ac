@@ -1991,7 +1991,11 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   dist/framerd-4.2.spec],
 	   [chmod a+x etc/fd* tests/*test])
 
-echo "Built with malloc=$using_malloc";
+if test ! -z "$gperftools"; then
+   echo  "Built with malloc=$using_malloc, gperftools=${gperftools}";
+else
+   echo "Built with malloc=$using_malloc";
+fi;
 echo $using_malloc > ./.malloc;
 if test ! -z "$manually_disabled"; then
    echo "+++ These components have been explicitly disabled: $manually_disabled"; fi
