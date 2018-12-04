@@ -14344,7 +14344,11 @@ $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
 
 
-echo "Built with malloc=$using_malloc";
+if test ! -z "$gperftools"; then
+   echo  "Built with malloc=$using_malloc, gperftools=${gperftools}";
+else
+   echo "Built with malloc=$using_malloc";
+fi;
 echo $using_malloc > ./.malloc;
 if test ! -z "$manually_disabled"; then
    echo "+++ These components have been explicitly disabled: $manually_disabled"; fi
