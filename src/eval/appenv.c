@@ -89,8 +89,8 @@ static int run_init(lispval init,fd_lexenv env)
     if (FD_FUNCTIONP(init)) {
       struct FD_FUNCTION *f = (fd_function) init;
       v = (f->fcn_arity == 0) ?
-        (fd_apply(init,0,NULL)) :
-        (fd_apply(init,1,(lispval *)(&env)));}
+	(fd_apply(init,0,NULL)) :
+	(fd_apply(init,1,(lispval *)(&env)));}
     else v = fd_apply(init,0,NULL);}
   else if (FD_PAIRP(init))
     v = fd_eval(init,env);
@@ -98,9 +98,9 @@ static int run_init(lispval init,fd_lexenv env)
   if (FD_ABORTP(v)) {
     u8_exception ex = u8_erreify();
     u8_log(LOGCRIT,"InitFailed",
-           "Failed to apply init %q: %m <%s> %s%s%s",
-           init,ex->u8x_cond,ex->u8x_context,
-           U8OPTSTR(" (",ex->u8x_details,")"));
+	   "Failed to apply init %q: %m <%s> %s%s%s",
+	   init,ex->u8x_cond,ex->u8x_context,
+	   U8OPTSTR(" (",ex->u8x_details,")"));
     u8_free_exception(ex,1);
     return -1;}
   else {
@@ -123,45 +123,45 @@ FD_EXPORT void fd_set_app_env(fd_lexenv env)
     int inits_run = 0, inits_failed = 0;
     lispval modules = fd_reverse(module_list);
     {FD_DOLIST(modname,modules) {
-        lispval module = fd_find_module(modname,0,0);
-        if (FD_ABORTP(module)) {
-          u8_log(LOG_WARN,"LoadModuleError","Error loading module %q",modname);
-          fd_clear_errors(1);
-          modules_failed++;}
-        else {
-          lispval used = fd_use_module(fd_app_env,module);
-          if (FD_ABORTP(used)) {
-            u8_log(LOG_WARN,"UseModuleError","Error using module %q",module);
-            fd_clear_errors(1);
-            modules_failed++;}
-          else modules_loaded++;
-          fd_decref(module);
-          fd_decref(used);}}}
+	lispval module = fd_find_module(modname,0,0);
+	if (FD_ABORTP(module)) {
+	  u8_log(LOG_WARN,"LoadModuleError","Error loading module %q",modname);
+	  fd_clear_errors(1);
+	  modules_failed++;}
+	else {
+	  lispval used = fd_use_module(fd_app_env,module);
+	  if (FD_ABORTP(used)) {
+	    u8_log(LOG_WARN,"UseModuleError","Error using module %q",module);
+	    fd_clear_errors(1);
+	    modules_failed++;}
+	  else modules_loaded++;
+	  fd_decref(module);
+	  fd_decref(used);}}}
     fd_decref(modules); modules=FD_VOID;
     lispval files = fd_reverse(loadfile_list);
     {FD_DOLIST(file,files) {
-        lispval loadval = fd_load_source(FD_CSTRING(file),fd_app_env,NULL);
-        if (FD_ABORTP(loadval)) {
-          u8_log(LOG_WARN,"LoadError","fd_set_app_end",
-                 "Error loading %s into the application environment",
-                 FD_CSTRING(file));
-          fd_clear_errors(1);
-          files_failed++;}
-        else files_loaded++;
-        fd_decref(loadval);}}
+	lispval loadval = fd_load_source(FD_CSTRING(file),fd_app_env,NULL);
+	if (FD_ABORTP(loadval)) {
+	  u8_log(LOG_WARN,"LoadError","fd_set_app_end",
+		 "Error loading %s into the application environment",
+		 FD_CSTRING(file));
+	  fd_clear_errors(1);
+	  files_failed++;}
+	else files_loaded++;
+	fd_decref(loadval);}}
     fd_decref(files); files=FD_VOID;
     lispval inits = init_list;
     {FD_DOLIST(init,inits) {
-        int rv = run_init(init,env);
-        if (rv > 0) inits_run++;
-        else if (rv<0) inits_failed++;
-        else NO_ELSE;}}
+	int rv = run_init(init,env);
+	if (rv > 0) inits_run++;
+	else if (rv<0) inits_failed++;
+	else NO_ELSE;}}
     fd_decref(inits); inits=FD_VOID;
     u8_log(LOG_INFO,"AppEnvLoad",
-           "%d:%d:%d modules:files:inits loaded/run, "
-           "%d:%d:%d modules:files:init failed",
-           modules_loaded,files_loaded,inits_run,
-           modules_failed,files_failed,inits_failed);}
+	   "%d:%d:%d modules:files:inits loaded/run, "
+	   "%d:%d:%d modules:files:init failed",
+	   modules_loaded,files_loaded,inits_run,
+	   modules_failed,files_failed,inits_failed);}
 }
 
 static lispval appenv_prim()
@@ -183,10 +183,10 @@ static lispval parse_module_spec(u8_string s)
       u8_string elt = u8_slice(s,brk);
       lispval parsed = fd_parse(elt);
       if (FD_ABORTP(parsed)) {
-        u8_free(elt);
-        return parsed;}
+	u8_free(elt);
+	return parsed;}
       else return fd_init_pair(NULL,parsed,
-                               parse_module_spec(brk+1));}
+			       parse_module_spec(brk+1));}
     else {
       lispval parsed = fd_parse(s);
       if (FD_ABORTP(parsed)) return parsed;
@@ -213,12 +213,12 @@ static int add_modname(lispval modname)
       return -1;
     else if (FD_VOIDP(module)) {
       u8_log(LOG_WARN,fd_NoSuchModule,"module_config_set",
-             "No module found for %q",modname);
+	     "No module found for %q",modname);
       return -1;}
     lispval used = fd_use_module(fd_app_env,module);
     if (FD_ABORTP(used)) {
       u8_log(LOG_WARN,"LoadModuleError",
-             "Error using module %q",module);
+	     "Error using module %q",module);
       fd_clear_errors(1);
       fd_decref(module);
       fd_decref(used);
@@ -238,20 +238,20 @@ static int module_config_set(lispval var,lispval vals,void *d)
 {
   int loads = 0; DO_CHOICES(val,vals) {
     lispval modname = ((SYMBOLP(val))?(val):
-                       (STRINGP(val))?
-                       (parse_module_spec(CSTRING(val))):
-                       (VOID));
+		       (STRINGP(val))?
+		       (parse_module_spec(CSTRING(val))):
+		       (VOID));
     if (VOIDP(modname)) {
       fd_seterr(fd_TypeError,"module_config_set","module",val);
       return -1;}
     else if (PAIRP(modname)) {
       FD_DOLIST(elt,modname) {
-        if (!(SYMBOLP(elt))) {
-          u8_log(LOG_WARN,fd_TypeError,"module_config_set",
-                 "Not a valid module name: %q",elt);}
-        else {
-          int added = add_modname(elt);
-          if (added>0) loads++;}}
+	if (!(SYMBOLP(elt))) {
+	  u8_log(LOG_WARN,fd_TypeError,"module_config_set",
+		 "Not a valid module name: %q",elt);}
+	else {
+	  int added = add_modname(elt);
+	  if (added>0) loads++;}}
       fd_decref(modname);}
     else if (!(SYMBOLP(modname))) {
       fd_seterr(fd_TypeError,"module_config_set","module name",val);
@@ -277,22 +277,22 @@ static int loadfile_config_set(lispval var,lispval vals,void *d)
   if (fd_app_env == NULL) {
     FD_DO_CHOICES(val,vals) {
       u8_string loadpath = (!(strchr(CSTRING(val),':'))) ?
-        (u8_abspath(CSTRING(val),NULL)) :
-        (u8_strdup(CSTRING(val)));
+	(u8_abspath(CSTRING(val),NULL)) :
+	(u8_strdup(CSTRING(val)));
       loadfile_list = fd_conspair(fd_lispstring(loadpath),loadfile_list);}}
   else {
     FD_DO_CHOICES(val,vals) {
       u8_string loadpath = (!(strchr(CSTRING(val),':'))) ?
-        (u8_abspath(CSTRING(val),NULL)) :
-        (u8_strdup(CSTRING(val)));
+	(u8_abspath(CSTRING(val),NULL)) :
+	(u8_strdup(CSTRING(val)));
       lispval loadval = fd_load_source(loadpath,fd_app_env,NULL);
       if (FD_ABORTP(loadval)) {
-        fd_seterr(_("load error"),"loadfile_config_set",loadpath,val);
-        return -1;}
+	fd_seterr(_("load error"),"loadfile_config_set",loadpath,val);
+	return -1;}
       else {
-        loadfile_list = fd_conspair(fdstring(loadpath),loadfile_list);
-        u8_free(loadpath);
-        loads++;}}}
+	loadfile_list = fd_conspair(fdstring(loadpath),loadfile_list);
+	u8_free(loadpath);
+	loads++;}}}
   return loads;
 }
 
@@ -317,16 +317,16 @@ static int inits_config_set(lispval var,lispval inits,void *d)
     FD_DO_CHOICES(init,inits) {
       int rv = run_init(init,fd_app_env);
       if (rv > 0) {
-        fd_incref(init);
-        init_list = fd_conspair(init,init_list);
-        run_count++;}}}
+	fd_incref(init);
+	init_list = fd_conspair(init,init_list);
+	run_count++;}}}
   return run_count;
 }
 
 FD_EXPORT
 void fd_autoload_config(u8_string module_inits,
-                        u8_string file_inits,
-                        u8_string run_inits)
+			u8_string file_inits,
+			u8_string run_inits)
 {
   fd_register_config
     (module_inits,_("Which modules to load into the application environment"),
@@ -336,7 +336,7 @@ void fd_autoload_config(u8_string module_inits,
      loadfile_config_get,loadfile_config_set,&loadfile_list);
   fd_register_config
     (run_inits,_("Which functions/forms to execute to set up "
-                 "the application environment"),
+		 "the application environment"),
      inits_config_get,inits_config_set,&init_list);
 }
 
@@ -346,9 +346,13 @@ FD_EXPORT void fd_init_eval_appenv_c()
 {
   u8_register_source_file(_FILEINFO);
 
+  /* These are the default appenv configs. Particularly applications
+     or executables may define their own. */
+  fd_autoload_config("APPMODS","APPLOAD","APPEVAL");
+
   fd_idefn0(fd_scheme_module,"%APPENV",appenv_prim,
-            "Returns the base 'application environment' for the "
-            "current instance");
+	    "Returns the base 'application environment' for the "
+	    "current instance");
   u8_init_mutex(&app_cleanup_lock);
 }
 
