@@ -884,10 +884,13 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
                                      int tail)
 {
   switch (opcode) {
-  case FD_QUOTE_OPCODE:
-    if (FD_EXPECT_TRUE(FD_PAIRP(args)))
-      return fd_incref(FD_CAR(args));
-    else return fd_err(fd_SyntaxError,"opcode_eval",NULL,expr);
+  case FD_QUOTE_OPCODE: {
+    lispval arg = pop_arg(args);
+    if (FD_EXPECT_FALSE(FD_VOIDP(arg)))
+      return fd_err(fd_SyntaxError,"opcode_eval",NULL,expr);
+    else if (FD_CONSP(arg))
+      return fd_incref(arg);
+    else return arg;}
   case FD_SYMREF_OPCODE: {
     lispval refenv=pop_arg(args);
     lispval sym=pop_arg(args);
