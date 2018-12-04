@@ -573,15 +573,16 @@ lispval pair_eval(lispval head,lispval expr,fd_lexenv env,
   u8_string label=(SYMBOLP(head)) ? (SYM_NAME(head)) :
     (FD_OPCODEP(head)) ? (opcode_name(head)) : (NULL);
   FD_PUSH_STACK(eval_stack,fd_evalstack_type,label,expr);
-  if (FD_OPCODEP(head)) {
-    lispval result = opcode_eval(head,expr,env,eval_stack,tail);
-    fd_pop_stack(eval_stack);
-    return simplify_value(result);}
   int gc_head=0;
-  lispval result = VOID, headval = get_headval(head,env,eval_stack,&gc_head);
+  lispval result = VOID, headval =
+    (FD_OPCODEP(head)) ? (head) : (get_headval(head,env,eval_stack,&gc_head));
   fd_ptr_type headtype = FD_PTR_TYPE(headval);
   if (gc_head) fd_push_cleanup(eval_stack,FD_DECREF,headval,NULL);
   switch (headtype) {
+  case fd_opcode_type: {
+    lispval result = opcode_eval(headval,expr,env,eval_stack,tail);
+    fd_pop_stack(eval_stack);
+    return simplify_value(result);}
   case fd_cprim_type: case fd_lambda_type: {
     struct FD_FUNCTION *f = (struct FD_FUNCTION *) headval;
     if (f->fcn_name) eval_stack->stack_label=f->fcn_name;
@@ -683,10 +684,14 @@ static lispval get_headval(lispval head,fd_lexenv env,fd_stack eval_stack,
 {
   lispval headval = VOID;
   if (FD_IMMEDIATEP(head)) {
-    if (FD_LEXREFP(head)) {
+    if (FD_OPCODEP(head))
+      return head;
+    else if (FD_LEXREFP(head)) {
       headval=fd_lexref(head,env);
-      if (FD_CONSP(headval)) *gc_headval=1;}
+      if ( (FD_CONSP(headval)) && (FD_MALLOCD_CONSP(headval)) )
+        *gc_headval=1;}
     else if (FD_SYMBOLP(head)) {
+      if (head == quote_symbol) return FD_QUOTE_OPCODE;
       headval=fd_symeval(head,env);
       if (FD_CONSP(headval)) *gc_headval=1;}
     else headval = head;}
