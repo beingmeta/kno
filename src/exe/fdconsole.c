@@ -318,6 +318,61 @@ otherwise read string until space,
 
 */
 
+static lispval read_command(u8_input in,int iscmd)
+{
+  lispval cmds[FD_MAX_COMMAND_LENGTH];
+  int n = 0, nextc = swallow_hspace(in);
+  while ( (nextc > 0) && (nextc != '\n') ) {
+    lispval arg = VOID;
+    if ( (n == 0) ||
+         (nextc == '#') || (nextc == '(') ||
+         (nextc == '"') || (nextc == '\'') ||
+         (nextc == '+') || (nextc == '-') ||
+         (u8_isdigit(nextc)) )
+      arg = fd_parser(in);
+    else if (nextc == ':') {
+      u8_getc(in);
+      arg = fd_parser(in);}
+    else {
+      struct U8_OUTPUT argout;
+      U8_INIT_OUTPUT(&argout,100);
+      int ac = u8_getc(in);
+      while ( (ac > 0) && (!(u8_isspace(ac))) ) {
+        if (ac == '\\') {
+          int nextac = u8_getc(in);
+          if ( (nextac == 'u') || (nextac == 'U') ) {
+            u8_putc(&argout,'\\');
+            u8_putc(&argout,nextac);}
+          else u8_putc(&argout,nextac);}
+        else u8_putc(&argout,ac);
+        ac = u8_getc(in);}
+      arg = fd_init_string(NULL,argout.u8_write-argout.u8_outbuf,
+                           argout.u8_outbuf);}
+    if (n >= FD_MAX_COMMAND_LENGTH) {
+      fd_seterr("TooManyCommandArgs","stream_read",NULL,FD_VOID);
+      fd_decref_vec(cmds,n);
+      return FD_ERROR;}
+    cmds[n++] = arg;
+    nextc = swallow_hspace(in);}
+  if (n == 0)
+    return FD_EOX;
+  else if (iscmd)
+    return fd_init_compound_from_elts(NULL,command_tag,FD_COMPOUND_SEQUENCE,
+                                      n,cmds);
+  else {
+    lispval expr = FD_NIL;
+    int j = n-1; while (j>0) {
+      expr = fd_init_pair(NULL,cmds[j],expr); j--;}
+    if (FD_SYMBOLP(cmds[0])) {
+      u8_string pname = FD_SYMBOL_NAME(cmds[0]);
+      u8_byte name_buf[strlen(pname)+16];
+      strcpy(name_buf,pname);
+      strcat(name_buf,".command");
+      lispval cmd_symbol = fd_intern(name_buf);
+      return fd_init_pair(NULL,cmd_symbol,expr);}
+    else return fd_init_pair(NULL,cmds[0],expr);}
+}
+
 static lispval stream_read(u8_input in,fd_lexenv env)
 {
   lispval expr; int c;
@@ -401,25 +456,31 @@ static lispval console_read(u8_input in,fd_lexenv env)
     const char *line = el_gets(editconsole,&n_bytes);
     if (!(line)) return FD_EOF;
     else while (isspace(*line)) line++;
-    if (line[0]=='=') {
+    if (line[0]=='=')  {
       U8_INIT_STRING_INPUT(&scan,n_bytes-1,line+1);
-      expr = fd_parser(&scan);
-      return fd_make_nrail(2,FDSYM_EQUALS,expr);}
+      lispval expr = fd_parser(&scan);
+      return fd_init_compound
+        (NULL,command_tag,FD_COMPOUND_SEQUENCE,2,FDSYM_EQUALS,expr);}
+    else if ( (line[0] == ',') || (line[0] == ':') ) {
+      U8_INIT_STRING_INPUT(&scan,n_bytes-1,line+1);
+      lispval cmd = read_command(&scan,(line[0]==':'));
+      if (cmd != FD_EOX) return cmd;}
     /* Handle command line parsing here */
     /* else if ((line[0]=='=')||(line[0]==',')) {} */
-    else {
-      struct HistEvent tmp;
-      history(edithistory,&tmp,H_ENTER,line);
-      U8_INIT_STRING_INPUT(&scan,n_bytes,line);
-      expr = fd_parser(&scan);
-      if (FD_ABORTP(expr)) {
-        el_reset(editconsole);
-        return expr;}
-      else return expr;}}
+    struct HistEvent tmp;
+    history(edithistory,&tmp,H_ENTER,line);
+    U8_INIT_STRING_INPUT(&scan,n_bytes,line);
+    expr = fd_parser(&scan);
+    if (FD_ABORTP(expr)) {
+      el_reset(editconsole);
+      return expr;}
+    else return expr;}
   else return stream_read(in,env);
 #endif
   return stream_read(in,env);
 }
+
+
 
 static void exit_fdconsole()
 {
