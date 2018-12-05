@@ -775,6 +775,7 @@ static lispval eval_apply(u8_string fname,
       if (gc_args) fd_decref_vec(argbuf,arg_i);
       return arg_val;}
     else if (CONSP(arg_val)) {
+      if (FD_PRECHOICEP(arg_val)) arg_val = fd_simplify_choice(arg_val);
       if ( (nd_args == 0) && (ND_ARGP(arg_val)) )
         nd_args = 1;
       gc_args = 1;}
