@@ -15,7 +15,7 @@
 #include "libu8/u8memlist.h"
 
 lispval *fd_symbol_names;
-int fd_n_symbols = 0, fd_max_symbols = 0, fd_initial_symbols = 1024;
+int fd_n_symbols = 0, fd_max_symbols = 0, fd_initial_symbols = 4096;
 struct FD_SYMBOL_TABLE fd_symbol_table;
 
 lispval FDSYM_ADD, FDSYM_ADJUNCT, FDSYM_ALL, FDSYM_ALWAYS;
