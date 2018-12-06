@@ -468,13 +468,18 @@ static lispval console_read(u8_input in,fd_lexenv env)
     /* Handle command line parsing here */
     /* else if ((line[0]=='=')||(line[0]==',')) {} */
     struct HistEvent tmp;
-    history(edithistory,&tmp,H_ENTER,line);
     U8_INIT_STRING_INPUT(&scan,n_bytes,line);
     expr = fd_parser(&scan);
     if (FD_ABORTP(expr)) {
+      history(edithistory,&tmp,H_ENTER,line);
       el_reset(editconsole);
       return expr;}
-    else return expr;}
+    else {
+      U8_STATIC_OUTPUT(expanded,512);
+      fd_pprint(&expanded,expr,NULL,0,0,80);
+      history(edithistory,&tmp,H_ENTER,expanded.u8_outbuf);
+      u8_close_output(expandedout);
+      return expr;}}
   else return stream_read(in,env);
 #endif
   return stream_read(in,env);
