@@ -22,7 +22,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-static lispval loadstamp_symbol, moduleid_symbol, source_symbol;
+static lispval loadstamp_symbol, moduleid_symbol, source_symbol, safemod_symbol;
 
 u8_condition fd_NotAModule=_("Argument is not a module (table)");
 u8_condition fd_NoSuchModule=_("Can't find named module");
@@ -174,14 +174,12 @@ FD_EXPORT lispval fd_new_module(char *name,int flags)
   module_name = fd_intern(name);
   module = fd_make_hashtable(NULL,0);
   fd_add(module,moduleid_symbol,module_name);
-  if (flags&FD_MODULE_SAFE) {
-    fd_hashtable_op
-      (&safe_module_map,fd_table_default,module_name,module);
-    as_stored = fd_get((lispval)&safe_module_map,module_name,VOID);}
-  else {
-    fd_hashtable_op
-      (&module_map,fd_table_default,module_name,module);
-    as_stored = fd_get((lispval)&module_map,module_name,VOID);}
+  if (flags&FD_MODULE_SAFE)
+    fd_store(module,safemod_symbol,FD_TRUE);
+  struct FD_HASHTABLE *modmap =
+    (flags&FD_MODULE_SAFE) ? (&safe_module_map) : (&module_map);
+  fd_hashtable_op(modmap,fd_table_default,module_name,module);
+  as_stored = fd_get((lispval)modmap,module_name,VOID);
   if (!(FD_EQ(module,as_stored))) {
     fd_decref(module);
     return as_stored;}
@@ -190,8 +188,7 @@ FD_EXPORT lispval fd_new_module(char *name,int flags)
     if (flags&FD_MODULE_SAFE)
       safe_default_env->env_parent = fd_make_env(module,safe_default_env->env_parent);
     default_env->env_parent = fd_make_env(module,default_env->env_parent);}
-  return module;
-}
+  return module;}
 
 FD_EXPORT lispval fd_new_cmodule(char *name,int flags,void *addr)
 {
@@ -1174,6 +1171,9 @@ void fd_init_module_tables()
   else module_tables_initialized=1;
 
   moduleid_symbol = fd_intern("%MODULEID");
+  safemod_symbol = fd_intern("%SAFEMOD");
+  loadstamp_symbol = fd_intern("%LOADSTAMP");
+  source_symbol = fd_intern("%SOURCE");
 
   FD_INIT_STATIC_CONS(&module_map,fd_hashtable_type);
   fd_make_hashtable(&module_map,67);
@@ -1213,9 +1213,6 @@ FD_EXPORT void fd_init_modules_c()
   fd_register_config("DLOAD:TRACE",
                      "Whether to announce the loading of dynamic modules",
                      fd_boolconfig_get,fd_boolconfig_set,&trace_dload);
-
-  loadstamp_symbol = fd_intern("%LOADSTAMP");
-  source_symbol = fd_intern("%SOURCE");
 
   fd_idefn(fd_xscheme_module,
            fd_make_cprim1x("DYNAMIC-LOAD",dynamic_load_prim,1,

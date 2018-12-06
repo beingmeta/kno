@@ -50,8 +50,14 @@
 (define-init aliasfns-default #f)
 (varconfig! optimize:aliasfns aliasfns-default)
 
+(define-init aliasprims-default #t)
+(varconfig! optimize:aliasfns aliasfns-default)
+
 (define-init staticfns-default #f)
 (varconfig! optimize:staticfns staticfns-default)
+
+(define-init staticprims-default #t)
+(varconfig! optimize:staticprims staticprims-default)
 
 (define-init persist-default #f)
 (varconfig! optimize:persist persist-default)
@@ -157,60 +163,98 @@
 
 ;;; Converting non-lexical function references
 
-(define (fcnref value sym env opts)
-  (if (and (cons? value)
-	   (or (applicable? value) (special-form? value)))
-      (if (special-form? value) 
-	  (if (getopt opts 'staticfns staticfns-default)
-	      (static-ref value)
-	      value)
-	  ;; Otherwise:
-	  (let ((usevalue
-		 (if (getopt opts 'staticfns staticfns-default)
-		     (static-ref value)
-		     value)))
-	    (cond ((not (symbol? sym)) value)
-		  ((not (test env sym value)) sym)
-		  ((if (or (special-form? value) (primitive? value)
-			   (%test env '%constants sym))
-		       (use-pfcnrefs? opts)
-		       (use-fcnrefs? opts))
-		   (try (get fcnids (cons sym env))
-			(add-fcnid sym env value)))
-		  ;; If we want to directly embed the function, do so
-		  ((and (getopt opts 'aliasfns aliasfns-default)
-			(or (pair? value) (symbol? value)))
-		   `(quote ,value))
-		  ((getopt opts 'aliasfns aliasfns-default)
-		   value)
-		  (else
-		   `(,(try (tryif (use-opcodes? opts) #OP_SYMREF)
-			   (tryif (use-fcnrefs? opts)
-			     (force-fcnid %modref))
-			   %modref)
-		     ,env ,sym)))))
-      value))
+(define (fcnref value sym env opts (from))
+  (default! from (wherefrom sym env))
+  (inner-fcnref value sym env opts from))
 
-(defslambda (add-fcnid sym env value)
-  (try (if env
-	   (get fcnids (cons sym env))
-	   (get fcnids env))
-       (let ((newid (fcnid/register value)))
-	 (store! fcnids 
-		 (if env (cons sym env) sym)
-		 newid)
-	 newid)))
+(defambda (inner-fcnref value sym env opts from)
+  (cond ((not (or (applicable? value) (special-form? value)))
+	 sym)
+	((not (cons? value)) sym)
+	((or (%test env '%constants sym)
+	     (and from (%test from '%constants sym))
+	     (if (or (special-form? value) (primitive? value))
+		 (or (getopt opts 'aliasprims aliasprims-default)
+		     (getopt opts 'aliasfns aliasfns-default))
+		 (getopt opts 'aliasfns aliasfns-default)))
+	 (fcnval value opts))
+	((not (symbol? sym)) (fcnval value opts))
+	((or (not from) (not (test from sym value))) sym)
+	((not (use-fcnrefs? opts))
+	 `(,(try (tryif (use-opcodes? opts) #OP_SYMREF)
+		 (tryif (use-fcnrefs? opts)
+		   (force-fcnid %modref))
+		 %modref)
+	   ,(or from env) ,sym))
+	((and (test from '%fcnids) (fail? (get from '%fcnids))) sym)
+	(else (get-fcnid sym from value))))
 
-(define (get-fcnid sym env value)
+(define (fcnval value opts)
+  (cond ((and (or (special-form? value) (primitive? value))
+	      (or (getopt opts 'staticprims staticprims-default)
+		  (getopt opts 'staticfns staticfns-default)))
+	 (static-ref value))
+	((and (applicable? value)
+	      (getopt opts 'staticfns staticfns-default))
+	 (static-ref value))
+	(else value)))
+
+;;; FCNIDs
+
+(define-init get-fcnids
+  (slambda (env)
+    (try (get env '%fcnids)
+	 (let ((table (make-hashtable)))
+	   (store! env '%fcnids table)
+	   table))))
+
+(define new-fcnid
+  (slambda (symbol env value internal)
+    (if (not (symbol? symbol))
+	(try (get fcnids value)
+	     (let ((fcnid (fcnid/register value)))
+	       (store! fcnids fcnid)
+	       fcnid))
+	(try (if internal
+		 (get (get internal '%fcnids) symbol)
+		 (get fcnids (cons env symbol)))
+	     (let ((fcnid (fcnid/register value)))
+	       (if internal
+		   (store! (try (get internal '%fcnids) (get-fcnids internal))
+		     symbol fcnid)
+		   (store! fcnids (cons env symbol) fcnid))
+	       fcnid)))))
+
+(define (probe-fcnid symbol env (internal))
+  (default! internal (module-environment env))
+  (if internal
+      (try (get (get internal '%fcnids) symbol)
+	   (get (get-fcnids internal) symbol))
+      (get fcnids (cons env symbol))))
+
+(define (get-fcnid symbol env value (internal) (update #f))
+  (default! internal (module-environment env))
+  (get-fcnid-internal symbol env value internal update))
+(define (get-fcnid-internal symbol env value internal update)
   (if (cons? value)
-      (try (get fcnids (cons sym env))
-	   (add-fcnid sym env value))
+      (begin
+	(default! internal (module-environment env))
+	(let* ((known (probe-fcnid symbol env internal))
+	       (fcnid (try known (new-fcnid symbol env value internal))))
+	  (when (and update (exists? known)
+		     (or (fail? (fcnid/ref fcnid)) 
+			 (not (eq? (fcnid/ref fcnid) value))))
+	    (fcnid/set! fcnid value))
+	  fcnid))
       value))
+(define (update-fcnid! symbol env value (internal))
+  (default! internal (module-environment env))
+  (get-fcnid symbol env value internal #t))
 
 (define (force-fcnid value)
   (if (cons? value)
       (try (get fcnids value)
-	   (add-fcnid value #f value))
+	   (new-fcnid value #f value #f))
       value))
 
 (define (static-ref ref)
@@ -224,13 +268,6 @@
 	 (if (eq? copy ref) ref
 	     (begin (store! static-refs ref copy)
 	       copy)))))
-
-(defslambda (update-fcnid! var env value)
-  (when (test env var value)
-    (let ((id (get fcnids (cons var env))))
-      (if (exists? id)
-	  (fcnid/set! id value)
-	  (add-fcnid var env value)))))
 
 ;;; Opcode mapping
 

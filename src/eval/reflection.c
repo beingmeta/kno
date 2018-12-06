@@ -21,7 +21,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-static lispval moduleid_symbol, source_symbol;
+static lispval moduleid_symbol, source_symbol, safe_symbol;
 
 #define GETEVALFN(x) ((fd_evalfn)(fd_fcnid_ref(x)))
 
@@ -609,6 +609,29 @@ static lispval module_getsource(lispval arg)
     return FD_FALSE;}
 }
 
+static lispval module_table(lispval arg)
+{
+  if (FD_LEXENVP(arg)) {
+    fd_lexenv envptr = fd_consptr(fd_lexenv,arg,fd_lexenv_type);
+    if (FD_TABLEP(envptr->env_exports))
+      return fd_incref(envptr->env_exports);
+    else return FD_FALSE;}
+  else if (TABLEP(arg))
+    return fd_incref(arg);
+  else return fd_type_error(_("module"),"module_table",arg);
+}
+
+static lispval module_environment(lispval arg)
+{
+  if (FD_LEXENVP(arg)) {
+    fd_lexenv envptr = fd_consptr(fd_lexenv,arg,fd_lexenv_type);
+    if ( ( (envptr->env_bindings) != (envptr->env_exports) ) &&
+         (FD_TABLEP(envptr->env_bindings)) )
+      return fd_incref(envptr->env_bindings);
+    else return FD_FALSE;}
+  else return FD_FALSE;
+}
+
 static lispval modulep(lispval arg)
 {
   if (FD_LEXENVP(arg)) {
@@ -663,15 +686,35 @@ static lispval thisenv_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 
 /* Finding where a symbol comes from */
 
-static lispval wherefrom_evalfn(lispval expr,fd_lexenv call_env,fd_stack _stack)
+static lispval wherefrom_evalfn(lispval expr,fd_lexenv call_env,
+                                fd_stack _stack)
 {
   lispval symbol_arg = fd_get_arg(expr,1);
   lispval symbol = fd_eval(symbol_arg,call_env);
   if (SYMBOLP(symbol)) {
     fd_lexenv env, scan;
-    lispval env_arg = fd_eval(fd_get_arg(expr,2),call_env);
-    if (VOIDP(env_arg)) env = call_env;
-    else if (TYPEP(env_arg,fd_lexenv_type))
+    int lookup_ids = 1, decref_env = 0;
+    lispval env_arg = fd_get_arg(expr,2);
+    if (FD_VOIDP(env_arg))
+      env = call_env;
+    else {
+      lispval env_val = fd_eval(env_arg,call_env);
+      if (FD_ABORTED(env_val))
+        return env_val;
+      else {
+        env_arg = env_val;
+        decref_env = 1;}}
+    lispval lookup = fd_get_arg(expr,3);
+    if (!(FD_VOIDP(lookup))) {
+      lookup = fd_eval(lookup,call_env);
+      if (FD_ABORTED(lookup)) {
+        if (decref_env) fd_decref(env_arg);
+        return lookup;}
+      else if (FD_FALSEP(lookup))
+        lookup_ids = 0;
+      else lookup_ids = 1;
+      fd_decref(lookup);}
+    if (TYPEP(env_arg,fd_lexenv_type))
       env = fd_consptr(fd_lexenv,env_arg,fd_lexenv_type);
     else return fd_type_error(_("environment"),"wherefrom",env_arg);
     if (env->env_copy)
@@ -680,13 +723,20 @@ static lispval wherefrom_evalfn(lispval expr,fd_lexenv call_env,fd_stack _stack)
     while (scan) {
       if (fd_test(scan->env_bindings,symbol,VOID)) {
         lispval bindings = scan->env_bindings;
-        if ((CONSP(bindings)) &&
-            (FD_MALLOCD_CONSP((fd_cons)bindings))) {
-          fd_decref(env_arg);
-          return fd_incref((lispval)scan);}
-        else {
-          fd_decref(env_arg);
-          return FD_FALSE;}}
+        if (!(CONSP(bindings))) return FD_FALSE;
+        lispval id = fd_get(bindings,moduleid_symbol,FD_VOID);
+        if ( (FD_SYMBOLP(id)) &&
+             ( (lookup_ids) || (!(FD_MALLOCD_CONSP((fd_cons)bindings))) ) ) {
+          int safe = fd_test(bindings,safe_symbol,FD_VOID);
+          lispval mod = fd_get_module(id,safe);
+          if (FD_ABORTP(mod)) return mod;
+          else if (FD_TABLEP(mod)) return mod;
+          else fd_decref(mod);}
+        if (FD_MALLOCD_CONSP((fd_cons)bindings)) {
+          lispval result = (lispval) scan;
+          fd_incref(result);
+          return result;}
+        else return FD_FALSE;}
       scan = scan->env_parent;
       if ((scan) && (scan->env_copy))
         scan = scan->env_copy;}
@@ -931,6 +981,7 @@ FD_EXPORT void fd_init_reflection_c()
 
   moduleid_symbol = fd_intern("%MODULEID");
   source_symbol = fd_intern("%SOURCE");
+  safe_symbol = fd_intern("%SAFEMOD");
   call_profile_symbol = fd_intern("%CALLPROFILE");
 
   fd_idefn1(module,"MACRO?",macrop,1,
@@ -1047,13 +1098,19 @@ FD_EXPORT void fd_init_reflection_c()
             "",fd_fcnid_type,VOID,-1,VOID);
 
   fd_idefn1(module,"MODULE-BINDINGS",module_bindings,1,
-            "Returns the bindings table for a module's environment",
+            "Returns the symbols bound in a module's environment",
             -1,VOID);
   fd_idefn1(module,"MODULE-EXPORTS",module_exports,1,
-            "Returns the exports table for a module",
+            "Returns the symbols exported from a module",
             -1,VOID);
   fd_idefn1(module,"MODULE-SOURCE",module_getsource,1,
-            "Returns the source (a string) for a module",
+            "Returns the source (a string) from which module was loaded",
+            -1,VOID);
+  fd_idefn1(module,"MODULE-TABLE",module_table,1,
+            "Returns the table used for getting symbols from this module",
+            -1,VOID);
+  fd_idefn1(module,"MODULE-ENVIRONMENT",module_environment,1,
+            "Returns the table used for this module's internal environment",
             -1,VOID);
 
   fd_idefn0(module,"ALL-MODULES",get_all_modules_prim,
