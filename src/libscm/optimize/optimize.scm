@@ -212,7 +212,7 @@
     (if (not (symbol? symbol))
 	(try (get fcnids value)
 	     (let ((fcnid (fcnid/register value)))
-	       (store! fcnids fcnid)
+	       (store! fcnids symbol fcnid)
 	       fcnid))
 	(try (if internal
 		 (get (get internal '%fcnids) symbol)
