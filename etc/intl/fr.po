@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-12-01 14:50+0000\n"
+"POT-Creation-Date: 2018-12-07 19:48+0000\n"
 "PO-Revision-Date: 2005-03-05 16:06-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -132,12 +132,13 @@ msgid "BadInitData"
 msgstr ""
 
 #: src/lisp/sequences.c:155 src/lisp/sequences.c:241 src/lisp/sequences.c:739
-#: src/eval/opcodes.c:164 src/eval/opcodes.c:168 src/eval/opcodes.c:1181
-#: src/eval/opcodes.c:1188 src/prims/dbprims.c:2672 src/prims/dbprims.c:2674
-#: src/prims/seqprims.c:324 src/prims/seqprims.c:332 src/prims/seqprims.c:338
-#: src/prims/seqprims.c:354 src/prims/seqprims.c:482 src/prims/seqprims.c:513
-#: src/prims/seqprims.c:530 src/prims/seqprims.c:547 src/prims/seqprims.c:564
-#: src/prims/seqprims.c:585 src/prims/seqprims.c:1367 src/prims/seqprims.c:1417
+#: src/eval/opcode_defs.c:66 src/eval/opcode_defs.c:73
+#: src/eval/opcode_defs.c:216 src/eval/opcode_defs.c:220
+#: src/prims/dbprims.c:2672 src/prims/dbprims.c:2674 src/prims/seqprims.c:324
+#: src/prims/seqprims.c:332 src/prims/seqprims.c:338 src/prims/seqprims.c:354
+#: src/prims/seqprims.c:482 src/prims/seqprims.c:513 src/prims/seqprims.c:530
+#: src/prims/seqprims.c:547 src/prims/seqprims.c:564 src/prims/seqprims.c:585
+#: src/prims/seqprims.c:1367 src/prims/seqprims.c:1417
 #: src/prims/seqprims.c:1433 src/prims/seqprims.c:1460
 #: src/prims/seqprims.c:1502 src/prims/seqprims.c:1656
 #: src/prims/seqprims.c:1915 src/prims/seqprims.c:1954
@@ -408,8 +409,8 @@ msgstr "opération pas supporté"
 msgid "oid"
 msgstr "oid"
 
-#: src/lisp/lisp.c:62 src/support/config.c:698 src/eval/eval.c:1004
-#: src/eval/opcodes.c:1189 src/prims/dbprims.c:2611 src/prims/portprims.c:428
+#: src/lisp/lisp.c:62 src/support/config.c:698 src/eval/eval.c:1247
+#: src/eval/opcode_defs.c:74 src/prims/dbprims.c:2611 src/prims/portprims.c:428
 #: src/eval/choiceops.c:1218 src/eval/choiceops.c:1251
 #: src/eval/choiceops.c:1270 src/eval/choiceops.c:1301
 #: src/eval/choiceops.c:1312 src/eval/choiceops.c:1316
@@ -436,8 +437,8 @@ msgid "constant"
 msgstr "constante"
 
 # bfd
-#: src/lisp/lisp.c:67 src/eval/eval.c:902 src/eval/modules.c:738
-#: src/eval/reflection.c:672
+#: src/lisp/lisp.c:67 src/eval/eval.c:1145 src/eval/modules.c:735
+#: src/eval/reflection.c:745
 msgid "symbol"
 msgstr "symbole"
 
@@ -445,11 +446,11 @@ msgstr "symbole"
 msgid "fcnid"
 msgstr ""
 
-#: src/lisp/lisp.c:69 src/eval/eval.c:1657
+#: src/lisp/lisp.c:69 src/eval/eval.c:1836
 msgid "lexref"
 msgstr ""
 
-#: src/lisp/lisp.c:70 src/eval/opcodes.c:1431
+#: src/lisp/lisp.c:70 src/eval/eval.c:1842
 msgid "opcode"
 msgstr ""
 
@@ -493,8 +494,8 @@ msgstr ""
 #: src/prims/fileprims.c:560 src/web/cgiexec.c:1282 src/web/cgiexec.c:1309
 #: src/web/htmlout.c:578 src/web/uriprims.c:393 src/web/mime.c:110
 #: src/web/curl.c:636 src/text/texttools.c:141 src/text/texttools.c:168
-#: src/text/texttools.c:540 src/exe/fdservlet.c:255 src/exe/webcommon.h:259
-#: src/exe/webcommon.h:318
+#: src/text/texttools.c:540 src/exe/fdservlet.c:255 src/exe/webcommon.h:260
+#: src/exe/webcommon.h:319
 msgid "string"
 msgstr "chaîne"
 
@@ -513,8 +514,9 @@ msgid "bigint"
 msgstr "nombre entier grande"
 
 # coreutils
-#: src/lisp/lisp.c:81 src/eval/eval.c:1005 src/eval/opcodes.c:135
-#: src/eval/opcodes.c:137 src/eval/opcodes.c:150 src/eval/opcodes.c:152
+#: src/lisp/lisp.c:81 src/eval/eval.c:1248 src/eval/opcode_defs.c:187
+#: src/eval/opcode_defs.c:189 src/eval/opcode_defs.c:202
+#: src/eval/opcode_defs.c:204
 msgid "pair"
 msgstr "paire"
 
@@ -572,8 +574,8 @@ msgstr "table de hachage"
 msgid "builtin function"
 msgstr "pas une fonction"
 
-#: src/lisp/lisp.c:97 src/eval/eval.c:921 src/eval/reflection.c:653
-#: src/eval/reflection.c:684
+#: src/lisp/lisp.c:97 src/eval/eval.c:1164 src/eval/reflection.c:719
+#: src/eval/reflection.c:757
 msgid "environment"
 msgstr ""
 
@@ -682,7 +684,7 @@ msgstr "Erreur de type"
 msgid "bloom filter"
 msgstr ""
 
-#: src/lisp/lisp.c:173
+#: src/lisp/lisp.c:174
 msgid "RUSAGE Failed"
 msgstr ""
 
@@ -1952,94 +1954,96 @@ msgstr "«get» opération pas supporté"
 msgid "NotMemindex"
 msgstr "index"
 
-#: src/eval/eval.c:54
+#: src/eval/eval.c:56
 msgid "Continuation is no longer valid"
 msgstr ""
 
-#: src/eval/eval.c:55
+#: src/eval/eval.c:57
 msgid "Continuation used twice"
 msgstr ""
 
-#: src/eval/eval.c:56
+#: src/eval/eval.c:58
 msgid "Lost invoked continuation"
 msgstr ""
 
-#: src/eval/eval.c:59
+#: src/eval/eval.c:61
 msgid "SCHEME expression syntax error"
 msgstr "Expression exécutable mal formulée"
 
-#: src/eval/eval.c:60
+#: src/eval/eval.c:62
 #, fuzzy
 msgid "invalid macro transformer"
 msgstr "«cond» expression mal formulée"
 
 # binutils
-#: src/eval/eval.c:61
+#: src/eval/eval.c:63
 msgid "the variable is unbound"
 msgstr "variable non définie"
 
-#: src/eval/eval.c:62
+#: src/eval/eval.c:64
 msgid "VOID result passed as argument"
 msgstr ""
 
-#: src/eval/eval.c:63
+#: src/eval/eval.c:65
 msgid "VOID result used as variable binding"
 msgstr ""
 
-#: src/eval/eval.c:64
+#: src/eval/eval.c:66
 msgid "not an identifier"
 msgstr "pas une identificateur"
 
 # aptitude
-#: src/eval/eval.c:65
+#: src/eval/eval.c:67
 #, fuzzy
 msgid "too few subexpressions"
 msgstr "trop peu de expressions"
 
-#: src/eval/eval.c:66
+#: src/eval/eval.c:68
 msgid "can't add binding to environment"
 msgstr ""
 
-#: src/eval/eval.c:67
+#: src/eval/eval.c:69
 msgid "Read only environment"
 msgstr ""
 
-#: src/eval/eval.c:456 src/eval/reflection.c:529
+#: src/eval/eval.c:224
+msgid "opcode name"
+msgstr ""
+
+#: src/eval/eval.c:613 src/eval/reflection.c:552
 msgid "macro expansion"
 msgstr ""
 
-#: src/eval/eval.c:1272
-msgid "Server unconfigured"
-msgstr ""
-
-#: src/eval/eval.c:1349 src/eval/eval.c:1359
-msgid "server"
-msgstr ""
-
-#: src/eval/eval.c:1661
-msgid "coderef"
-msgstr ""
-
-#: src/eval/opcodes.c:207 src/eval/opcodes.c:285 src/eval/opcodes.c:406
+#: src/eval/eval.c:913 src/eval/opcode_defs.c:259 src/eval/opcode_defs.c:337
+#: src/eval/opcode_defs.c:362 src/eval/opcode_defs.c:470
+#: src/eval/opcode_defs.c:531
 #, fuzzy
 msgid "Invalid opcode"
 msgstr "constante invalide"
 
+#: src/eval/eval.c:1450
+msgid "Server unconfigured"
+msgstr ""
+
+#: src/eval/eval.c:1527 src/eval/eval.c:1537
+msgid "server"
+msgstr ""
+
+#: src/eval/eval.c:1840
+msgid "coderef"
+msgstr ""
+
 # gnumeric
-#: src/eval/opcodes.c:222 src/eval/opcodes.c:920 src/eval/arith.c:254
+#: src/eval/opcode_defs.c:274 src/eval/arith.c:254
 #, fuzzy
 msgid "number"
 msgstr "nombre"
 
 # bfd
-#: src/eval/opcodes.c:283
+#: src/eval/opcode_defs.c:335
 #, fuzzy
 msgid "number|string"
 msgstr "chaîne"
-
-#: src/eval/opcodes.c:1390
-msgid "opcode name"
-msgstr ""
 
 #: src/eval/debug.c:520
 msgid "missing directory"
@@ -2166,34 +2170,35 @@ msgstr ""
 msgid "Can't switch to opaque module"
 msgstr "ne peut repérer le module"
 
-#: src/eval/modules.c:326
+#: src/eval/modules.c:323
 msgid "module name"
 msgstr ""
 
-#: src/eval/modules.c:381
+#: src/eval/modules.c:378
 msgid "Anonymous module"
 msgstr ""
 
-#: src/eval/modules.c:441
+#: src/eval/modules.c:438
 #, fuzzy
 msgid "not a module"
 msgstr "pas une fichiers d'index"
 
-#: src/eval/modules.c:490
+#: src/eval/modules.c:487
 msgid "FailedModule"
 msgstr ""
 
-#: src/eval/modules.c:494
+#: src/eval/modules.c:491
 msgid "DynamicLoad"
 msgstr ""
 
-#: src/eval/modules.c:576
+#: src/eval/modules.c:573
 #, fuzzy
 msgid "Can't reload a read-only module"
 msgstr "ne peut repérer le module"
 
-#: src/eval/modules.c:996 src/eval/reflection.c:561 src/eval/reflection.c:576
-#: src/eval/reflection.c:616 src/eval/reflection.c:621
+#: src/eval/modules.c:993 src/eval/reflection.c:584 src/eval/reflection.c:599
+#: src/eval/reflection.c:621 src/eval/reflection.c:662
+#: src/eval/reflection.c:667
 msgid "module"
 msgstr ""
 
@@ -2227,7 +2232,7 @@ msgstr ""
 msgid "procedure"
 msgstr ""
 
-#: src/eval/reflection.c:543 src/eval/coreops.c:545 src/eval/coreops.c:601
+#: src/eval/reflection.c:566 src/eval/coreops.c:545 src/eval/coreops.c:601
 #: src/eval/coreops.c:613 src/cmodules/sqlite.c:164
 msgid "string or symbol"
 msgstr "chaîne ou symbole"
@@ -2941,95 +2946,95 @@ msgstr ""
 msgid ";; %s computed in %f seconds, %d/%d object/index loads\n"
 msgstr ""
 
-#: src/exe/fdconsole.c:679
+#: src/exe/fdconsole.c:745
 msgid "Threshold for displaying execution time"
 msgstr ""
 
-#: src/exe/fdconsole.c:681
+#: src/exe/fdconsole.c:747
 msgid "Eval prompt (within #||#s)"
 msgstr ""
 
-#: src/exe/fdconsole.c:685
+#: src/exe/fdconsole.c:751
 msgid "Max number of string characters to display in debug message"
 msgstr ""
 
-#: src/exe/fdconsole.c:689
+#: src/exe/fdconsole.c:755
 msgid "Max number of sequence/choice elements to display in debug message"
 msgstr ""
 
-#: src/exe/fdconsole.c:692
+#: src/exe/fdconsole.c:758
 msgid "Whether to minimize console output"
 msgstr ""
 
-#: src/exe/fdconsole.c:695
+#: src/exe/fdconsole.c:761
 msgid "Report startup times when longer than N seconds"
 msgstr ""
 
-#: src/exe/fdconsole.c:699
+#: src/exe/fdconsole.c:765
 msgid "Number of characters available for pretty-printing console output"
 msgstr ""
 
-#: src/exe/fdconsole.c:703
+#: src/exe/fdconsole.c:769
 msgid "Number of elements to initially show in displaying results"
 msgstr ""
 
-#: src/exe/fdconsole.c:706
+#: src/exe/fdconsole.c:772
 msgid "Where to create directories for saving backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:709
+#: src/exe/fdconsole.c:775
 msgid "The base URL for referencing HTML backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:712
+#: src/exe/fdconsole.c:778
 msgid "The command to use to open saved backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:715
+#: src/exe/fdconsole.c:781
 msgid "Whether to dump HTML versions of backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:718
+#: src/exe/fdconsole.c:784
 msgid "Whether to dump LISP object versions of backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:721
+#: src/exe/fdconsole.c:787
 msgid "Whether to dump binary DTYPE versions of backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:724
+#: src/exe/fdconsole.c:790
 msgid "Whether to plaintext versions of backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:727
+#: src/exe/fdconsole.c:793
 msgid "Whether to always save backtraces in the history"
 msgstr ""
 
-#: src/exe/fdconsole.c:730
+#: src/exe/fdconsole.c:796
 msgid "Whether to always output backtraces to stderr"
 msgstr ""
 
-#: src/exe/fdconsole.c:733
+#: src/exe/fdconsole.c:799
 msgid "Whether load .fdconsole or other dot files"
 msgstr ""
 
-#: src/exe/fdconsole.c:736
+#: src/exe/fdconsole.c:802
 msgid "Where to dump console errors"
 msgstr ""
 
-#: src/exe/fdconsole.c:782 src/exe/fdexec.c:242 src/exe/fdexec.c:247
+#: src/exe/fdconsole.c:848 src/exe/fdexec.c:242 src/exe/fdexec.c:247
 msgid "File to wait to exist before starting"
 msgstr ""
 
-#: src/exe/fdconsole.c:868
+#: src/exe/fdconsole.c:934
 msgid "Whether to use EDITLINE for the console"
 msgstr ""
 
-#: src/exe/fdconsole.c:898
+#: src/exe/fdconsole.c:964
 msgid ";; Bound %q\n"
 msgstr ""
 
-#: src/exe/fdconsole.c:899
+#: src/exe/fdconsole.c:965
 msgid ";; Bad command result %q\n"
 msgstr ""
 
@@ -3078,100 +3083,100 @@ msgstr ""
 msgid "No servers configured"
 msgstr ""
 
-#: src/exe/fdservlet.c:1799
+#: src/exe/fdservlet.c:1802
 msgid "Trace web transactions over N seconds"
 msgstr ""
 
-#: src/exe/fdservlet.c:1802 src/exe/fdcgiexec.c:689 src/exe/fdserver.c:1132
+#: src/exe/fdservlet.c:1805 src/exe/fdcgiexec.c:689 src/exe/fdserver.c:1132
 msgid "Number of pending connection requests allowed"
 msgstr ""
 
-#: src/exe/fdservlet.c:1804 src/exe/fdserver.c:1135
+#: src/exe/fdservlet.c:1807 src/exe/fdserver.c:1135
 msgid "Max number of requests to keep queued"
 msgstr ""
 
-#: src/exe/fdservlet.c:1807
+#: src/exe/fdservlet.c:1810
 msgid "Max number of concurrent connections to allow (NYI)"
 msgstr ""
 
-#: src/exe/fdservlet.c:1810 src/exe/fdserver.c:1139
+#: src/exe/fdservlet.c:1813 src/exe/fdserver.c:1139
 msgid "Number of clients to prepare for/grow by"
 msgstr ""
 
-#: src/exe/fdservlet.c:1813 src/exe/fdservlet.c:1816 src/exe/fdcgiexec.c:691
+#: src/exe/fdservlet.c:1816 src/exe/fdservlet.c:1819 src/exe/fdcgiexec.c:691
 #: src/exe/fdserver.c:1142
 msgid "Number of threads in the thread pool"
 msgstr ""
 
-#: src/exe/fdservlet.c:1819
+#: src/exe/fdservlet.c:1822
 msgid "File for recording status reports"
 msgstr ""
 
-#: src/exe/fdservlet.c:1822
+#: src/exe/fdservlet.c:1825
 msgid "Milliseconds (roughly) between updates to .status"
 msgstr ""
 
-#: src/exe/fdservlet.c:1825
+#: src/exe/fdservlet.c:1828
 msgid "Milliseconds (roughly) between logging status information"
 msgstr ""
 
-#: src/exe/fdservlet.c:1828 src/exe/fdserver.c:1208
+#: src/exe/fdservlet.c:1831 src/exe/fdserver.c:1208
 msgid "How long (μs) to wait for tasks during shutdown"
 msgstr ""
 
-#: src/exe/fdservlet.c:1832
+#: src/exe/fdservlet.c:1835
 msgid "Remove existing socket files with extreme prejudice"
 msgstr ""
 
-#: src/exe/fdservlet.c:1836
+#: src/exe/fdservlet.c:1839
 msgid "Whether to check for existing PID files"
 msgstr ""
 
-#: src/exe/fdservlet.c:1840
+#: src/exe/fdservlet.c:1843
 msgid "Ports for listening for connections"
 msgstr ""
 
-#: src/exe/fdservlet.c:1842 src/exe/fdserver.c:1204
+#: src/exe/fdservlet.c:1845 src/exe/fdserver.c:1204
 msgid "Whether to run in asynchronous mode"
 msgstr ""
 
-#: src/exe/fdservlet.c:1845 src/exe/fdserver.c:1125
+#: src/exe/fdservlet.c:1848 src/exe/fdserver.c:1125
 msgid "Whether to enable auto-restart"
 msgstr ""
 
-#: src/exe/fdservlet.c:1847 src/exe/fdserver.c:1128
+#: src/exe/fdservlet.c:1850 src/exe/fdserver.c:1128
 msgid "Whether to wait for the servlet PID file"
 msgstr ""
 
-#: src/exe/fdservlet.c:1851
+#: src/exe/fdservlet.c:1854
 msgid "Whether to have libu8 log each monitored address"
 msgstr ""
 
-#: src/exe/fdservlet.c:1855
+#: src/exe/fdservlet.c:1858
 msgid "Timeout for the poll loop (lower bound of status updates)"
 msgstr ""
 
-#: src/exe/fdservlet.c:1859 src/exe/fdserver.c:1169
+#: src/exe/fdservlet.c:1862 src/exe/fdserver.c:1169
 msgid "Whether to have libu8 log each connection"
 msgstr ""
 
-#: src/exe/fdservlet.c:1863 src/exe/fdserver.c:1174
+#: src/exe/fdservlet.c:1866 src/exe/fdserver.c:1174
 msgid "Whether to have libu8 log each transaction"
 msgstr ""
 
-#: src/exe/fdservlet.c:1867
+#: src/exe/fdservlet.c:1870
 msgid "Whether to have libu8 log queue activity"
 msgstr ""
 
-#: src/exe/fdservlet.c:1873
+#: src/exe/fdservlet.c:1876
 msgid "Whether to have libu8 log data transmission/receiption"
 msgstr ""
 
-#: src/exe/fdservlet.c:1880 src/exe/fdserver.c:1186
+#: src/exe/fdservlet.c:1883 src/exe/fdserver.c:1186
 msgid "Whether to support thread-asynchronous transactions"
 msgstr ""
 
-#: src/exe/fdservlet.c:1957 src/exe/fdserver.c:1122
+#: src/exe/fdservlet.c:1960 src/exe/fdserver.c:1122
 msgid "Whether to run in the foreground"
 msgstr ""
 
@@ -3390,75 +3395,75 @@ msgstr ""
 msgid "uint len"
 msgstr ""
 
-#: src/exe/webcommon.h:684
+#: src/exe/webcommon.h:685
 msgid "Trace all web transactions"
 msgstr ""
 
-#: src/exe/webcommon.h:686
+#: src/exe/webcommon.h:687
 msgid "Show backtraces on errors"
 msgstr ""
 
-#: src/exe/webcommon.h:688
+#: src/exe/webcommon.h:689
 msgid "Allow requests to specify debugging"
 msgstr ""
 
-#: src/exe/webcommon.h:690
+#: src/exe/webcommon.h:691
 msgid "Log error stacktraces"
 msgstr ""
 
-#: src/exe/webcommon.h:692
+#: src/exe/webcommon.h:693
 msgid "Default error page for web errors"
 msgstr ""
 
-#: src/exe/webcommon.h:696
+#: src/exe/webcommon.h:697
 msgid "Default crisis page (for when the error page yields an error)"
 msgstr ""
 
-#: src/exe/webcommon.h:700
+#: src/exe/webcommon.h:701
 msgid "Default not found page (for when specified content isn't found)"
 msgstr ""
 
-#: src/exe/webcommon.h:704
+#: src/exe/webcommon.h:705
 msgid "Default no content page (for when content fetch failed generically)"
 msgstr ""
 
-#: src/exe/webcommon.h:708
+#: src/exe/webcommon.h:709
 msgid "Files to preload into the shared environment"
 msgstr ""
 
-#: src/exe/webcommon.h:710
+#: src/exe/webcommon.h:711
 msgid "Where to write URLs where were requested"
 msgstr ""
 
-#: src/exe/webcommon.h:712
+#: src/exe/webcommon.h:713
 msgid "Where to write request objects"
 msgstr ""
 
-#: src/exe/webcommon.h:714
+#: src/exe/webcommon.h:715
 msgid "Level of transaction logging"
 msgstr ""
 
-#: src/exe/webcommon.h:716
+#: src/exe/webcommon.h:717
 msgid "Use per-request thread cache"
 msgstr ""
 
-#: src/exe/webcommon.h:718
+#: src/exe/webcommon.h:719
 msgid "Whether to log all cgidata"
 msgstr ""
 
-#: src/exe/webcommon.h:721
+#: src/exe/webcommon.h:722
 msgid "File base (directory) for resolving requests"
 msgstr ""
 
-#: src/exe/webcommon.h:724
+#: src/exe/webcommon.h:725
 msgid "Preflight (before request handling) procedures"
 msgstr ""
 
-#: src/exe/webcommon.h:727
+#: src/exe/webcommon.h:728
 msgid "POSTFLIGHT (before request handling) procedures"
 msgstr ""
 
-#: src/exe/webcommon.h:731
+#: src/exe/webcommon.h:732
 msgid "WEBMAIN default procedure for handling requests"
 msgstr ""
 
