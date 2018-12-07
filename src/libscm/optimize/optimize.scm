@@ -165,9 +165,6 @@
 
 (define (fcnref value sym env opts (from))
   (default! from (wherefrom sym env))
-  (inner-fcnref value sym env opts from))
-
-(defambda (inner-fcnref value sym env opts from)
   (cond ((not (or (applicable? value) (special-form? value)))
 	 sym)
 	((not (cons? value)) sym)
@@ -180,7 +177,9 @@
 	 (fcnval value opts))
 	((not (symbol? sym)) (fcnval value opts))
 	((or (not from) (not (test from sym value))) sym)
-	((not (use-fcnrefs? opts))
+	((or (not (use-fcnrefs? opts))
+	     (test env '%volatile sym)
+	     (test from '%volatile sym))
 	 `(,(try (tryif (use-opcodes? opts) #OP_SYMREF)
 		 (tryif (use-fcnrefs? opts)
 		   (force-fcnid %modref))
