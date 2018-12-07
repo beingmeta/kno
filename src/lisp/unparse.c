@@ -387,8 +387,7 @@ int fd_unparse(u8_output out,lispval x)
         char buf[128]; int retval;
         sprintf(buf,"#!%lx",(unsigned long)x);
         retval = u8_puts(out,buf);
-        sprintf(buf,"#!%lx (type=%d)",(unsigned long)x,ct);
-        u8_log(LOG_WARN,fd_CantUnparse,buf);
+        u8_log(LOG_WARN,fd_CantUnparse,"%s (type=%d)",buf,ct);
         return retval;}}
   default:
     return 1;
