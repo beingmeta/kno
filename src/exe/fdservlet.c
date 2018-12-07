@@ -959,7 +959,7 @@ static int webservefn(u8_client ucl)
     method = fd_get(cgidata,request_method,VOID);
     addr   = fd_get(cgidata,remote_host,VOID);
     if (FD_VOIDP(addr)) addr = fd_get(cgidata,remote_addr,VOID);
-    u8_printf(logcxtout,"%s%s%s %q %s (%s)",
+    u8_printf(logcxtout,"%s%s%s %s %s (%s)",
               (FD_STRINGP(user)) ? (FD_CSTRING(user)) : (U8S("")),
               (FD_STRINGP(user)) ? ("@") : (""),
               (FD_STRINGP(addr)) ? (FD_CSTRING(addr)) : U8S("?remote?"),
