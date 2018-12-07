@@ -1247,9 +1247,9 @@ debfresh freshdeb:
 	rm -f include/framerd/revision.h; make include/framerd/revision.h
 	make -s debian
 
-checkdeb debcheck:
+debupdate:
 	@if [ "${DEBNAME}" = "framerd_${APTVERSION}" ]; then 	\
-	  echo "Debian build is up to date"; 		\
+	  echo "Debian build of FramerD is up to date"; 		\
 	else make debfresh; fi;
 
 # Creating staging areas from GIT
