@@ -49,7 +49,7 @@ u8_string fd_ndevalstack_type="ndeval";
 
 int fd_optimize_tail_calls = 1;
 
-lispval _fd_comment_symbol;
+lispval _fd_comment_symbol, fcnids_symbol;
 
 static lispval quote_symbol, comment_symbol, moduleid_symbol, source_symbol;
 
@@ -379,10 +379,20 @@ FD_EXPORT int fd_bind_value(lispval sym,lispval val,fd_lexenv env)
   /* TODO: Check for checking the return value of calls to
      `fd_bind_value` */
   if (env) {
-    if (fd_store(env->env_bindings,sym,val)<0) {
+    lispval bindings = env->env_bindings;
+    lispval exports = env->env_exports;
+    if (fd_store(bindings,sym,val)<0) {
       fd_poperr(NULL,NULL,NULL,NULL);
       fd_seterr(fd_CantBind,"fd_bind_value",NULL,sym);
       return -1;}
+    if ( (FD_CONSP(val)) && 
+         ( (FD_FUNCTIONP(val)) || (FD_APPLICABLEP(val)) ) &&
+         (FD_HASHTABLEP(bindings)) ) {
+      lispval fcnids = fd_get(bindings,fcnids_symbol,FD_VOID);
+      if (FD_HASHTABLEP(fcnids)) {
+        lispval fcnid = fd_get(fcnids,sym,FD_VOID);
+        if (FD_FCNIDP(fcnid)) fd_set_fcnid(fcnid,val);}
+      fd_decref(fcnids);}
     if (HASHTABLEP(env->env_exports))
       fd_hashtable_op((fd_hashtable)(env->env_exports),
                       fd_table_replace,sym,val);
@@ -415,12 +425,7 @@ FD_EXPORT int fd_assign_value(lispval symbol,lispval value,fd_lexenv env)
       /* This is the kind of environment produced by using a module,
          so it's read only. */
       return fd_reterr(fd_ReadOnlyEnv,"fd_assign_value",NULL,symbol);
-    else {
-      fd_store(env->env_bindings,symbol,value);
-      if (HASHTABLEP(env->env_exports))
-        fd_hashtable_op((fd_hashtable)(env->env_exports),
-                        fd_table_replace,symbol,value);
-      return 1;}}
+    else return fd_bind_value(symbol,value,env);}
   return 0;
 }
 
@@ -787,7 +792,7 @@ static lispval eval_apply(u8_string fname,
       argbuf_len = new_argbuf_len;
       argbuf=new_argbuf;}
     argbuf[arg_i++]=arg_val;}
-  if ((tail) && (lambda) && (fd_optimize_tail_calls)  )
+  if ( (tail) && (lambda) && (fd_optimize_tail_calls) )
     result=fd_tail_call(fn,arg_i,argbuf);
   else if ((CHOICEP(fn)) || (PRECHOICEP(fn)) || ((d_prim) && (nd_args)))
     result=fd_ndcall(stack,fn,arg_i,argbuf);
@@ -1842,6 +1847,7 @@ static void init_types_and_tables()
   _fd_comment_symbol = comment_symbol = fd_intern("COMMENT");
   moduleid_symbol = fd_intern("%MODULEID");
   source_symbol = fd_intern("%SOURCE");
+  fcnids_symbol = fd_intern("%FCNIDS");
 
   fd_init_module_tables();
   init_opcode_names();
