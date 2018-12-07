@@ -2,4 +2,4 @@
 PACKAGE=$1
 FIELD=${2:-Candidate}
 VERSION=$(apt-cache policy ${PACKAGE} | grep -i "${FIELD}:" | sed -e "s/ *${FIELD}: *//" | sed -e "s/-[^-]*$//")
-echo ${PACKAGE}-${VERSION}
+echo ${VERSION}
