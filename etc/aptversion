@@ -1,4 +1,5 @@
 #!/bin/sh
+if ! which apt-cache; then exit; fi;
 PACKAGE=$1
 FIELD=${2:-Candidate}
 VERSION=$(apt-cache policy ${PACKAGE} | grep -i "${FIELD}:" | sed -e "s/ *${FIELD}: *//" | sed -e "s/-[^-]*$//")
