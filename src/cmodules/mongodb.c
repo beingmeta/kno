@@ -2272,13 +2272,21 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       int len = FD_COMPOUND_LENGTH(val);
       struct FD_BSON_OUTPUT rout;
       bson_t doc;
-      if (tag == mongovec_symbol)
+      if (tag == oidtag) {
+        lispval packet = elts[0];
+        bson_oid_t oid;
+        bson_oid_init_from_data(&oid,FD_PACKET_DATA(packet));
+        ok = bson_append_oid(out,key,keylen,&oid);
+        break;}
+      else if (tag == mongovec_symbol)
         ok = bson_append_array_begin(out,key,keylen,&doc);
       else ok = bson_append_document_begin(out,key,keylen,&doc);
+      /* Initialize the substream */
       memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
       rout.bson_doc = &doc; rout.bson_flags = b.bson_flags;
       rout.bson_opts = b.bson_opts; rout.bson_fieldmap = b.bson_fieldmap;
       if (tag == mongovec_symbol) {
+        /* Output a vector */
         lispval *scan = elts, *limit = scan+len; int i = 0;
         while (scan<limit) {
           u8_byte buf[16]; sprintf(buf,"%d",i);
@@ -2286,6 +2294,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
           scan++; i++;
           if (!(ok)) break;}}
       else {
+        /* Or a tagged object */
         int i = 0;
         ok = bson_append_dtype(rout,"%fdtag",6,tag,0);
         if (ok) while (i<len) {
