@@ -1171,6 +1171,7 @@ static void free_commits(struct FD_INDEX_COMMITS *commits)
   struct FD_KEYVAL *adds = (fd_keyvals) commits->commit_adds;
   struct FD_KEYVAL *drops = (fd_keyvals) commits->commit_drops;
   struct FD_KEYVAL *stores = (fd_keyvals) commits->commit_stores;
+
   if (adds) {
     fd_free_keyvals(adds,commits->commit_n_adds);
     commits->commit_adds=NULL;
@@ -1186,6 +1187,8 @@ static void free_commits(struct FD_INDEX_COMMITS *commits)
     commits->commit_stores=NULL;
     commits->commit_n_stores=0;
     u8_big_free(stores);}
+
+  fd_decref(commits.commit_metadata);
 }
 
 #define record_elapsed(loc) \
