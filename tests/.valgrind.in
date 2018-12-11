@@ -1,9 +1,10 @@
 export VG_ENV="\
         LD_LIBRARY_PATH=./lib DYLD_LIBRARY_PATH=../lib			\
 	MEMCHECKING=yes UNDERGDB=yes					\
-	FD_INIT_LOADPATH=@abs_top_srcdir@/src/extmods/%.scm:@abs_top_srcdir@/src/extmods/%/module.scm:@abs_top_srcdir@/src/extmods/safe/%.scm:@abs_top_srcdir@/src/extmods/safe/%/module.scm:@default_module_path@ \
-	FD_INIT_SAFELOADPATH=@abs_top_srcdir@/src/extmods/safe/%.scm:@abs_top_srcdir@/src/extmods/safe/%/module.scm:@default_safe_module_path@ \
-	FD_LOADPATH=../src/scheme/%/module.scm:../src/scheme/%.scm: 	\
+	FD_INIT_LOADPATH=@abs_top_srcdir@/src/extmods/:@abs_top_srcdir@/src/extmods/safe/:@default_module_path@ \
+	FD_INIT_SAFELOADPATH=@abs_top_srcdir@/src/extmods/safe/:@default_safe_module_path@ \
+	FD_LOADPATH=../src/extmods/%/module.scm:../src/extmods/%.scm: 	\
+	FD_LIBSCM_DIR=@abs_top_srcdir@/src/libscm/ 			\
 	FD_DLOADPATH=../lib/framerd					\
 	FD_TRACECONFIGLOAD=yes FD_UPDATE_MODULES=5			\
 	FD_LIBSCM_DIR=../src/libscm					\
