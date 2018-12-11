@@ -94,13 +94,18 @@ FD_EXPORT lispval fd_init_compound_from_elts
   int decref      = (refmask==FD_COMPOUND_USEREF);
   int copyref     = (refmask==FD_COMPOUND_COPYREF);
   lispval *write, *limit, *read = elts, initfn = FD_FALSE;
-  if (PRED_FALSE((n<0) || (n>=256)))
+  if (PRED_FALSE((n<0)))
     return fd_type_error(_("positive byte"),"fd_init_compound_from_elts",
 			 FD_SHORT2DTYPE(n));
   else if (p == NULL) {
     if (n==0)
       p = u8_malloc(sizeof(struct FD_COMPOUND));
     else p = u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*LISPVAL_LEN);}
+  else NO_ELSE;
+  if (n >= FD_BIG_COMPOUND_LENGTH)
+    u8_log(LOGWARN,"HugeCompound",
+	   "Creating a compound of type %q with %d elements",tag,n);
+  else NO_ELSE;
   FD_INIT_CONS(p,fd_compound_type);
   if (ismutable) u8_init_mutex(&(p->compound_lock));
   p->compound_typetag = fd_incref(tag);

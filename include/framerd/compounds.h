@@ -103,4 +103,6 @@ FD_EXPORT lispval fd_compound_descriptor_type;
 #define FD_COMPOUND_TYPE_DUMPFN 7
 #define FD_COMPOUND_TYPE_RESTOREFN 8
 
+#define FD_BIG_COMPOUND_LENGTH 1024
+
 #endif
