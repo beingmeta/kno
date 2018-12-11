@@ -47,7 +47,8 @@ static ssize_t validate_dtype(int pos,const unsigned char *ptr,
     int code = ptr[pos];
     switch (code) {
     case dt_empty_list: case dt_void:
-      return pos+1;
+    case dt_empty_choice: case dt_default_value:
+      return newpos(pos+1,ptr,lim);
     case dt_boolean:
       return newpos(pos+2,ptr,lim);
     case dt_fixnum: case dt_flonum:
@@ -62,8 +63,6 @@ static ssize_t validate_dtype(int pos,const unsigned char *ptr,
     case dt_tiny_symbol: case dt_tiny_string:
       if (ptr+pos+1 >= lim) return -1;
       else return newpos(pos+1+ptr[pos+1],ptr,lim);
-    case dt_empty_choice:
-      return newpos(pos+1,ptr,lim);
     case dt_tiny_choice:
       if (ptr+pos+1 >= lim) return -1;
       else {
@@ -153,6 +152,7 @@ FD_EXPORT lispval fd_read_dtype(struct FD_INBUF *in)
     case dt_empty_list: return NIL;
     case dt_void: return VOID;
     case dt_empty_choice: return EMPTY;
+    case dt_default_value: return FD_DEFAULT_VALUE;
     case dt_boolean:
       if (nobytes(in,1))
         return fd_return_errcode(FD_EOD);

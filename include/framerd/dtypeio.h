@@ -45,6 +45,7 @@ typedef enum dt_type_code {
   dt_tiny_choice = 0x12,
   dt_empty_choice = 0x13,
   dt_block = 0x14,
+  dt_default_value = 0x15,
 
   dt_character_package = 0x40,
   dt_numeric_package = 0x41,
@@ -75,7 +76,8 @@ enum dt_framerd_subtypes
     dt_slotmap = 0xC1, dt_small_slotmap = 0x81,
     dt_hashtable = 0xC2, dt_small_hashtable = 0x82,
     dt_qchoice = 0xC3, dt_small_qchoice = 0x83,
-    dt_hashset = 0xC4, dt_small_hashset = 0x84};
+    dt_hashset = 0xC4, dt_small_hashset = 0x84,
+    dt_schemap = 0xC5, dt_small_schemap = 0x85,};
 
 FD_EXPORT int fd_use_dtblock;
 
