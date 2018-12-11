@@ -640,7 +640,7 @@ FD_FASTOP lispval apply_fcn(struct FD_STACK *stack,
 FD_EXPORT lispval fd_dcall(struct FD_STACK *_stack,lispval fn,
                            int n,lispval *argvec)
 {
-  u8_byte namebuf[60]="", numbuf[32];
+  u8_byte namebuf[60], numbuf[32];
   u8_string fname="apply";
   fd_ptr_type ftype=FD_PRIM_TYPE(fn);
   struct FD_FUNCTION *f=NULL;
@@ -653,7 +653,7 @@ FD_EXPORT lispval fd_dcall(struct FD_STACK *_stack,lispval fn,
     f=(struct FD_FUNCTION *)fn;
     if (f->fcn_name) fname=f->fcn_name;}
   else if (fd_applyfns[ftype]) {
-    strcat(namebuf,"λ0x");
+    strcpy(namebuf,"λ0x");
     strcat(namebuf,u8_uitoa16((unsigned long long)fn,numbuf));
     fname=namebuf;}
   else return fd_type_error("applicable","fd_determinstic_apply",fn);
