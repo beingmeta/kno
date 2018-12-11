@@ -729,9 +729,9 @@ static lispval hashptr_prim(lispval x)
 static lispval hashref_prim(lispval x)
 {
   unsigned long long intval = (unsigned long long)x;
-  char buf[40]="", numbuf[32]="";
+  char buf[40], numbuf[32];
   strcpy(buf,"#!");
-  strcpy(buf,u8_uitoa16(intval,numbuf));
+  strcat(buf,u8_uitoa16(intval,numbuf));
   return fd_make_string(NULL,-1,buf);
 }
 
