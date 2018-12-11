@@ -1188,7 +1188,7 @@ static void free_commits(struct FD_INDEX_COMMITS *commits)
     commits->commit_n_stores=0;
     u8_big_free(stores);}
 
-  fd_decref(commits.commit_metadata);
+  fd_decref(commits->commit_metadata);
 }
 
 #define record_elapsed(loc) \
