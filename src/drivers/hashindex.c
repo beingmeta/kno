@@ -3182,8 +3182,14 @@ static int interpret_hashindex_flags(lispval opts)
   else flags |= (FD_B40<<4);
 
   if ( fd_testopt(opts,fd_intern("DTYPEV2"),VOID) ||
-       fd_testopt(opts,FDSYM_FLAGS,fd_intern("DTYPEV2")) )
+       fd_testopt(opts,FDSYM_FLAGS,fd_intern("DTYPEV2")) ||
+       fd_testopt(opts,FDSYM_FORMAT,fd_intern("DTYPEV2")) )
     flags |= FD_HASHINDEX_DTYPEV2;
+  else if  ( (fd_testopt(opts,fd_intern("DTYPEV1"),VOID)) ||
+             (fd_testopt(opts,FDSYM_FLAGS,fd_intern("DTYPEV1"))) ||
+             (fd_testopt(opts,FDSYM_FORMAT,fd_intern("DTYPEV1"))) )
+    flags = flags;
+  else flags |= FD_HASHINDEX_DTYPEV2;
 
   return flags;
 }

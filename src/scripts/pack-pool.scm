@@ -9,7 +9,9 @@
 (config! 'logthreadinfo #t)
 (config! 'thread:logexit #f)
 
-(define dtypev2 #f)
+(define dtypev1 #f)
+(varconfig! dtypev1 dtypev1 config:boolean)
+(define dtypev2 #t)
 (varconfig! dtypev2 dtypev2 config:boolean)
 (define isadjunct #f)
 (varconfig! isadjunct isadjunct config:boolean)
@@ -17,7 +19,7 @@
 
 (define (getflags)
   (choice->list
-   (choice (tryif (config 'dtypev2 #f) 'dtypev2)
+   (choice (tryif (config 'dtypev2 (not dtypev1)) 'dtypev2)
 	   (tryif (config 'B32 #f) 'B32)
 	   (tryif (config 'B40 #f) 'B40)
 	   (tryif (config 'B64 #f) 'B64)
@@ -54,7 +56,10 @@
 	     label ,(config 'label (pool-label old))]
 	'slotids (get-slotids metadata type)
 	'compression (get-compression metadata type)
-	'dtypev2 (tryif (or dtypev2 (test metadata 'flags 'dtypev2)) 'dtypev2)
+	'dtypev2 (tryif (not (or dtypev1
+				 (test metadata 'flags 'dtypev1)
+				 (test metadata 'format 'dtypev1)))
+		   'dtypev2)
 	'isadjunct
 	(tryif (or adjslot
 		   (config 'ISADJUNCT 
