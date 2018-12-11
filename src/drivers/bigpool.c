@@ -2195,15 +2195,10 @@ static unsigned int get_bigpool_format(fd_storage_flags sflags,lispval opts)
 
   flags |= ((fd_compression_type(opts,FD_NOCOMPRESS))<<3);
 
-  if ( (fd_testopt(opts,fd_intern("DTYPEV2"),VOID)) ||
-       (fd_testopt(opts,FDSYM_FLAGS,fd_intern("DTYPEV2"))) ||
-       (fd_testopt(opts,FDSYM_FORMAT,fd_intern("DTYPEV2"))) )
+  if ( fd_testopt(opts,fd_intern("DTYPEV2"),VOID) ||
+       fd_testopt(opts,FDSYM_FLAGS,fd_intern("DTYPEV2")) ||
+       fd_testopt(opts,FDSYM_FORMAT,fd_intern("DTYPEV2")) )
     flags |= FD_BIGPOOL_DTYPEV2;
-  else if  ( (fd_testopt(opts,fd_intern("DTYPEV1"),VOID)) ||
-             (fd_testopt(opts,FDSYM_FLAGS,fd_intern("DTYPEV1"))) ||
-             (fd_testopt(opts,FDSYM_FORMAT,fd_intern("DTYPEV1"))) )
-    flags = flags;
-  else flags |= FD_BIGPOOL_DTYPEV2;
 
   if ( (fd_testopt(opts,FDSYM_READONLY,VOID)) )
     flags |= FD_BIGPOOL_READ_ONLY;
