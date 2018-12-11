@@ -259,16 +259,14 @@ FD_EXPORT lispval fd_intern(u8_string string)
 
 FD_EXPORT lispval fd_symbolize(u8_string string)
 {
-  lispval result;
-  struct U8_OUTPUT out; unsigned char buf[64];
   const u8_byte *scan = string;
+  U8_STATIC_OUTPUT(name,64);
   int c = u8_sgetc(&scan);
-  U8_INIT_OUTPUT_BUF(&out,64,buf);
   while (c>=0) {
-    u8_putc(&out,u8_toupper(c));
+    u8_putc(nameout,u8_toupper(c));
     c = u8_sgetc(&scan);}
-  result = fd_make_symbol(out.u8_outbuf,out.u8_write-out.u8_outbuf);
-  u8_close((u8_stream)&out);
+  lispval result = fd_make_symbol(name.u8_outbuf,name.u8_write-name.u8_outbuf);
+  u8_close((u8_stream)nameout);
   return result;
 }
 
