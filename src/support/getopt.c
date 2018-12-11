@@ -45,30 +45,31 @@ FD_EXPORT lispval fd_getopt(lispval opts,lispval key,lispval dflt)
     DO_CHOICES(opt,opts) {
       lispval value = fd_getopt(opt,key,VOID);
       if (!(VOIDP(value))) {
-        FD_STOP_DO_CHOICES; return value;}}
+        FD_STOP_DO_CHOICES;
+        return value;}}
     return fd_incref(dflt);}
   else if (QCHOICEP(opts))
     return fd_getopt(FD_XQCHOICE(opts)->qchoiceval,key,dflt);
-  else while (!(VOIDP(opts))) {
+  else {
+    lispval values = FD_VOID;
+    while (!(VOIDP(opts))) {
       if (PAIRP(opts)) {
-        lispval car = FD_CAR(opts);
+        lispval car = FD_CAR(opts), value = FD_VOID;
         if (SYMBOLP(car)) {
           if (FD_EQ(key,car))
             return FD_TRUE;
           else {}}
         else if (PAIRP(car)) {
           if (FD_EQ(FD_CAR(car),key))
-            return fd_incref(FD_CDR(car));
-          else {
-            lispval value = fd_getopt(car,key,VOID);
-            if (!(VOIDP(value)))
-              return value;}}
-        else if (TABLEP(car)) {
-          lispval value = fd_get(car,key,VOID);
-          if (!(VOIDP(value)))
-            return value;}
+            value = fd_incref(FD_CDR(car));
+          else value = fd_getopt(car,key,VOID);}
+        else if (TABLEP(car))
+          value = fd_get(car,key,VOID);
         else if ((FALSEP(car))||(NILP(car))) {}
         else return fd_err(WeirdOption,"fd_getopt",NULL,car);
+        if (FD_VOIDP(value)) {}
+        else if (value == FD_DEFAULT_VALUE) {}
+        else return value;
         opts = FD_CDR(opts);}
       else if (SYMBOLP(opts))
         if (FD_EQ(key,opts))
@@ -78,7 +79,7 @@ FD_EXPORT lispval fd_getopt(lispval opts,lispval key,lispval dflt)
         return fd_get(opts,key,dflt);
       else if ((NILP(opts))||(FALSEP(opts)))
         return fd_incref(dflt);
-      else return fd_err(WeirdOption,"fd_getopt",NULL,opts);}
+      else return fd_err(WeirdOption,"fd_getopt",NULL,opts);}}
   return fd_incref(dflt);
 }
 
