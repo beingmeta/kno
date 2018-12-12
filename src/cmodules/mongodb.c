@@ -723,8 +723,8 @@ static lispval mongodb_open(lispval arg,lispval opts)
   int smoke_test = boolopt(opts,smoketest_sym,1);
   int flags = getflags(opts,mongodb_defaults);;
 
-  if ((FD_STRINGP(arg))||(FD_TYPEP(arg,fd_secret_type))) {
-    info = mongoc_uri_info(FD_CSTRING(arg),&error);}
+  if ((FD_STRINGP(arg))||(FD_TYPEP(arg,fd_secret_type)))
+    info = mongoc_uri_info(FD_CSTRING(arg),&error);
   else if (FD_SYMBOLP(arg)) {
     lispval conf_val = fd_config_get(FD_SYMBOL_NAME(arg));
     if (FD_VOIDP(conf_val))
@@ -761,7 +761,7 @@ static lispval mongodb_open(lispval arg,lispval opts)
     u8_string errmsg = mongodb_check(client_pool);
     if (errmsg) {
       fd_seterr("MongoDB/ConnectFailed","mongodb_open",errmsg,
-                fd_lispstring(mongoc_uri_get_string(info)));
+                fdstring(mongoc_uri_get_string(info)));
       mongoc_client_pool_destroy(client_pool);
       mongoc_uri_destroy(info);
       u8_free(errmsg);
