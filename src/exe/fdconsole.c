@@ -318,7 +318,7 @@ otherwise read string until space,
 
 */
 
-static lispval read_command(u8_input in,int iscmd)
+static lispval read_command(u8_input in,int iscmd,fd_lexenv env)
 {
   lispval cmds[FD_MAX_COMMAND_LENGTH];
   int n = 0, nextc = swallow_hspace(in);
@@ -353,15 +353,18 @@ static lispval read_command(u8_input in,int iscmd)
       fd_decref_vec(cmds,n);
       return FD_ERROR;}
     cmds[n++] = arg;
+    /* Add environment */
+    if (n == 1) cmds[n++] = fd_incref((lispval)env);
     nextc = swallow_hspace(in);}
   if (n == 0)
     return FD_EOX;
   else if (iscmd)
-    return fd_init_compound_from_elts(NULL,command_tag,FD_COMPOUND_SEQUENCE,
-                                      n,cmds);
+    return fd_init_compound_from_elts
+      (NULL,command_tag,FD_COMPOUND_SEQUENCE,n,cmds);
   else {
     lispval expr = FD_NIL;
-    int j = n-1; while (j>0) {
+    int j = n-1; while (j>1) {
+      /* Skip command name and environment */
       expr = fd_init_pair(NULL,cmds[j],expr); j--;}
     if (FD_SYMBOLP(cmds[0])) {
       u8_string pname = FD_SYMBOL_NAME(cmds[0]);
@@ -421,8 +424,8 @@ static lispval stream_read(u8_input in,fd_lexenv env)
     if (n == 0)
       return stream_read(in,env);
     else if (c == ':')
-      return fd_init_compound_from_elts(NULL,command_tag,FD_COMPOUND_SEQUENCE,
-                                        n,cmds);
+      return fd_init_compound_from_elts
+        (NULL,command_tag,FD_COMPOUND_SEQUENCE,n,cmds);
     else {
       lispval expr = FD_NIL;
       int j = n-1; while (j>0) {
@@ -463,7 +466,7 @@ static lispval console_read(u8_input in,fd_lexenv env)
         (NULL,command_tag,FD_COMPOUND_SEQUENCE,2,FDSYM_EQUALS,expr);}
     else if ( (line[0] == ',') || (line[0] == ':') ) {
       U8_INIT_STRING_INPUT(&scan,n_bytes-1,line+1);
-      lispval cmd = read_command(&scan,(line[0]==':'));
+      lispval cmd = read_command(&scan,(line[0]==':'),env);
       if (cmd != FD_EOX) return cmd;}
     /* Handle command line parsing here */
     /* else if ((line[0]=='=')||(line[0]==',')) {} */
