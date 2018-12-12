@@ -47,6 +47,8 @@
 static char *cpu_profilename = NULL;
 u8_string fd_bugdir = NULL;
 
+static lispval unquote_symbol, else_symbol, apply_marker;
+
 /* Trace functions */
 
 static lispval timed_eval_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
@@ -366,6 +368,131 @@ static lispval watched_eval_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
     else u8_log(U8_LOG_MSG,label,"<%.1fus> %q => %q",howlong*1000000,
                 toeval,value);
     return value;}
+}
+
+static lispval watched_cond_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+{
+  lispval label_arg = FD_VOID;
+  u8_string label="%WCOND";
+  lispval clauses = FD_CDR(expr);
+  if (FD_STRINGP(FD_CAR(clauses))) {
+    label = FD_CSTRING(label);
+    clauses = FD_CDR(clauses);}
+  else if ( (FD_PAIRP(FD_CAR(clauses))) &&
+            (FD_PAIRP(FD_CDR(FD_CAR(clauses)))) &&
+            (FD_EQ(FD_CAR(FD_CAR(clauses)),unquote_symbol))) {
+    lispval label_expr = FD_CADR(FD_CAR(clauses));
+    clauses = FD_CDR(clauses);
+    label_arg = fd_stack_eval(label_expr,env,_stack,0);
+    if (FD_ABORTP(label_arg)) {
+      u8_exception ex = u8_erreify();
+      u8_string errstring = fd_errstring(ex);
+      u8_log(LOG_ERR,"BadWatchLabel",
+             "Watch label '%q' returned an error (%s)",
+             label_expr,errstring);
+      u8_free(errstring);
+      u8_free_exception(ex,0);
+      label_arg = FD_VOID;}
+    else if (FD_STRINGP(label_arg)) {
+      int len = FD_STRLEN(label_arg);
+      u8_byte *tmplabel = alloca(len+1);
+      strcpy(tmplabel,FD_CSTRING(label_arg));
+      label = tmplabel;}
+    else u8_log(LOG_ERR,"BadWatchLabel",
+                "Watch label '%q' value %q wasn't a string",
+                label_expr,label_arg);
+    fd_decref(label_arg);}
+  FD_DOLIST(clause,FD_CDR(expr)) {
+    lispval test_val;
+    if (!(PAIRP(clause)))
+      return fd_err(fd_SyntaxError,_("invalid cond clause"),NULL,expr);
+    else if (FD_EQ(FD_CAR(clause),else_symbol)) {
+      u8_log(U8_LOG_MSG,label,"COND ? ELSE => %Q",FD_CDR(clause));
+      lispval value = fd_eval_exprs(FD_CDR(clause),env,_stack,0);
+      u8_log(U8_LOG_MSG,label,"COND ? ELSE => %Q => ",FD_CDR(clause),value);
+      return value;}
+    else test_val = fd_eval(FD_CAR(clause),env);
+    if (FD_ABORTED(test_val)) return test_val;
+    else if (FALSEP(test_val)) {}
+    else {
+      u8_log(U8_LOG_MSG,label,"COND => %q => %Q",
+             FD_CAR(clause),FD_CDR(clause));
+      lispval applyp =
+        ((PAIRP(FD_CDR(clause))) &&
+         (FD_EQ(FD_CAR(FD_CDR(clause)),apply_marker)));
+      if (applyp) {
+        if (PAIRP(FD_CDR(FD_CDR(clause)))) {
+          lispval fnexpr = FD_CAR(FD_CDR(FD_CDR(clause)));
+          lispval fn = fd_eval(fnexpr,env);
+          if (FD_ABORTED(fn)) {
+            fd_decref(test_val);
+            return fn;}
+          else if (FD_APPLICABLEP(fn)) {
+            lispval retval = fd_apply(fn,1,&test_val);
+            fd_decref(test_val); fd_decref(fn);
+            return retval;}
+          else {
+            fd_decref(test_val);
+            return fd_type_error("function","watched_cond_evalfn",fn);}}
+        else return fd_err
+               (fd_SyntaxError,"watched_cond_evalfn","apply syntax",expr);}
+      else {
+        fd_decref(test_val);
+        lispval value = fd_eval_exprs(FD_CDR(clause),env,_stack,0);
+        u8_log(U8_LOG_MSG,label,"COND => %q => %q",
+               FD_CAR(clause),value);
+        return value;}}}
+  return VOID;
+}
+
+static lispval watched_try_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+{
+  lispval label_arg = FD_VOID;
+  u8_string label="%WTRY";
+  lispval clauses = FD_CDR(expr);
+  if (FD_STRINGP(FD_CAR(clauses))) {
+    label = FD_CSTRING(label);
+    clauses = FD_CDR(clauses);}
+  else if ( (FD_PAIRP(FD_CAR(clauses))) &&
+            (FD_PAIRP(FD_CDR(FD_CAR(clauses)))) &&
+            (FD_EQ(FD_CAR(FD_CAR(clauses)),unquote_symbol))) {
+    lispval label_expr = FD_CADR(FD_CAR(clauses));
+    clauses = FD_CDR(clauses);
+    label_arg = fd_stack_eval(label_expr,env,_stack,0);
+    if (FD_ABORTP(label_arg)) {
+      u8_exception ex = u8_erreify();
+      u8_string errstring = fd_errstring(ex);
+      u8_log(LOG_ERR,"BadWatchLabel",
+             "Watch label '%q' returned an error (%s)",
+             label_expr,errstring);
+      u8_free(errstring);
+      u8_free_exception(ex,0);
+      label_arg = FD_VOID;}
+    else if (FD_STRINGP(label_arg)) {
+      int len = FD_STRLEN(label_arg);
+      u8_byte *tmplabel = alloca(len+1);
+      strcpy(tmplabel,FD_CSTRING(label_arg));
+      label = tmplabel;}
+    else u8_log(LOG_ERR,"BadWatchLabel",
+                "Watch label '%q' value %q wasn't a string",
+                label_expr,label_arg);
+    fd_decref(label_arg);}
+  lispval value = EMPTY;
+  FD_DOLIST(clause,clauses) {
+    int ipe_state = fd_ipeval_status();
+    fd_decref(value);
+    value = fd_eval(clause,env);
+    if (FD_ABORTED(value))
+      return value;
+    else if (VOIDP(value)) {
+      fd_seterr(fd_VoidArgument,"try_evalfn",NULL,clause);
+      return FD_ERROR;}
+    else if (!(EMPTYP(value))) {
+      u8_log(U8_LOG_MSG,label,"TRY %q ==> %q",clause,value);
+      return value;}
+    else if (fd_ipeval_status()!=ipe_state)
+      return value;}
+  return value;
 }
 
 /* Debugging assistance */
@@ -768,6 +895,13 @@ FD_EXPORT void fd_init_eval_debug_c()
   fd_def_evalfn(fd_scheme_module,"%WATCHCALL+","",watchcall_plus_evalfn);
   fd_defalias(fd_scheme_module,"%WC+","%WATCHCALL+");
 
+  fd_def_evalfn(fd_scheme_module,"%WCOND",
+                "Reports (watches) which branch of a COND was taken",
+                watched_cond_evalfn);
+  fd_def_evalfn(fd_scheme_module,"%WTRY",
+                "Reports (watches) which clause of a TRY succeeded",
+                watched_try_evalfn);
+
   /* This pushes a log context */
   fd_def_evalfn(fd_scheme_module,"WITH-LOG-CONTEXT","",with_log_context_evalfn);
 
@@ -797,6 +931,9 @@ FD_EXPORT void fd_init_eval_debug_c()
      fd_sconfig_get,fd_sconfig_set,&cpu_profilename);
 
   profile_symbol = fd_intern("%PROFILE");
+  unquote_symbol = fd_intern("UNQUOTE");
+  else_symbol = fd_intern("ELSE");
+  apply_marker = fd_intern("=>");
 }
 
 /* Emacs local variables
