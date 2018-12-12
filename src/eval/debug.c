@@ -312,7 +312,10 @@ static lispval watched_eval_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
          or a series of "<label>" <expr>, which is output as:
            label=<value> */
       lispval towatch = FD_CAR(scan), wval = VOID;
-      if ((STRINGP(towatch)) && (PAIRP(FD_CDR(scan)))) {
+      if ((STRINGP(towatch)) && (FD_STRLEN(towatch) > 32)) {
+        u8_printf(&out," %s ",FD_CSTRING(towatch));
+        scan = FD_CDR(scan);}
+      else if ((STRINGP(towatch)) && (PAIRP(FD_CDR(scan)))) {
         lispval label = towatch; u8_string lbl = CSTRING(label);
         towatch = FD_CAR(FD_CDR(scan)); scan = FD_CDR(FD_CDR(scan));
         wval = ((SYMBOLP(towatch))?(fd_symeval(towatch,env)):
