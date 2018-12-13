@@ -97,7 +97,7 @@ FD_EXPORT lispval fd_load_stream(u8_input loadstream,fd_lexenv env,
            errno,u8_strerror(errno),sourcebase);
     errno = 0;}
   FD_PUSH_STACK(load_stack,"loadsource",u8_strdup(sourcebase),VOID);
-  load_stack->stack_free_label=1;
+  U8_SETBITS(load_stack->stack_flags,FD_STACK_FREE_LABEL);
   {
     /* This does a read/eval loop. */
     u8_byte context_buf[LOAD_CONTEXT_SIZE+1];

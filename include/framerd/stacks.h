@@ -60,15 +60,21 @@ typedef struct FD_STACK {
   lispval stack_vals;
   short n_args;
   struct FD_LEXENV *stack_env;
-  unsigned int stack_live:1;
-  unsigned int stack_retvoid:1, stack_ndcall:1, stack_tail:1;
-  unsigned int stack_free_label:1, stack_free_status:1, stack_free_src:1;
-  unsigned int stack_decref_op:1;
+  unsigned int stack_flags;
   struct FD_STACK_CLEANUP _cleanups[FD_STACK_CLEANUP_QUANTUM];
   struct FD_STACK_CLEANUP *cleanups;
   short n_cleanups;} *fd_stack;
 typedef struct FD_LEXENV *fd_lexenv;
 typedef struct FD_LEXENV *fd_lexenv;
+
+#define FD_STACK_LIVE 0x01
+#define FD_STACK_RETVOID 0x02
+#define FD_STACK_TAIL 0x04
+#define FD_STACK_NDCALL 0x08
+#define FD_STACK_DECREF_OP 0x10
+#define FD_STACK_FREE_LABEL 0x20
+#define FD_STACK_FREE_STATUS 0x40
+#define FD_STACK_FREE_SRC 0x80
 
 /* Stack error flags */
 
@@ -126,19 +132,12 @@ FD_EXPORT __thread struct FD_STACK *fd_stackptr;
   _ ## name.cleanups=_ ## name._cleanups;               \
   _ ## name.stack_op=op;                                \
   _ ## name.stack_status=NULL;                          \
-  _ ## name.stack_decref_op=0;                          \
   _ ## name.stack_src=NULL;                             \
   _ ## name.n_cleanups=0;                               \
   _ ## name.n_args=0;                                   \
   _ ## name.stack_args = NULL;                          \
   _ ## name.stack_env=NULL;                             \
-  _ ## name.stack_retvoid=0;                            \
-  _ ## name.stack_ndcall=0;                             \
-  _ ## name.stack_tail=0;                               \
-  _ ## name.stack_free_label=0;                         \
-  _ ## name.stack_free_status=0;                        \
-  _ ## name.stack_free_src=0;                           \
-  _ ## name.stack_live=1
+  _ ## name.stack_flags=0x01
 
 #define FD_PUSH_STACK(name,type,label,op)              \
   FD_SETUP_NAMED_STACK(name,_stack,type,label,op);     \
@@ -166,7 +165,7 @@ FD_EXPORT __thread struct FD_STACK *fd_stackptr;
   name->stack_source = FD_VOID;                                 \
   name->stack_op = FD_VOID;                                     \
   name->cleanups = name->_cleanups;                             \
-  name->stack_live=1; \
+  name->stack_flags=0x01; \
   set_call_stack(name)
 
 #define FD_INIT_STACK()                         \
@@ -190,26 +189,26 @@ FD_EXPORT struct FD_STACK_CLEANUP *_fd_add_cleanup
 #if FD_INLINE_STACKS
 FD_FASTOP void fd_free_stack(struct FD_STACK *stack)
 {
-  if (stack->stack_live==0) return;
+  if ((stack->stack_flags%2) == 0) return;
 
-  if (stack->stack_decref_op) {
+  if (U8_BITP(stack->stack_flags,FD_STACK_DECREF_OP)) {
     fd_decref(stack->stack_op);
     stack->stack_op=FD_VOID;}
 
-  if ( (stack->stack_free_label) && (stack->stack_label) ) {
+  if ( (stack->stack_label) &&
+       (U8_BITP(stack->stack_flags,FD_STACK_FREE_LABEL)) ) {
     u8_free(stack->stack_label);
-    stack->stack_label=NULL;
-    stack->stack_free_label=0;}
+    stack->stack_label=NULL;}
 
-  if ( (stack->stack_free_status) && (stack->stack_status) ) {
+  if ( (stack->stack_status) &&
+       (U8_BITP(stack->stack_flags,FD_STACK_FREE_STATUS)) ) {
     u8_free(stack->stack_status);
-    stack->stack_status=NULL;
-    stack->stack_free_status=0;}
+    stack->stack_status=NULL;}
 
-  if ( (stack->stack_free_src) && (stack->stack_src) ) {
+  if ( (stack->stack_src) &&
+       (U8_BITP(stack->stack_flags,FD_STACK_FREE_SRC)) ) {
     u8_free(stack->stack_src);
-    stack->stack_src=NULL;
-    stack->stack_free_src=0;}
+    stack->stack_src=NULL;}
 
   if (stack->n_cleanups) {
     struct FD_STACK_CLEANUP *cleanups = stack->cleanups;
@@ -311,13 +310,13 @@ FD_FASTOP void fd_free_stack(struct FD_STACK *stack)
   if (stack->stack_env) {
     fd_free_lexenv(stack->stack_env);
     stack->stack_env=NULL;}
+  stack->stack_flags = 0;
 }
 FD_FASTOP void fd_pop_stack(struct FD_STACK *stack)
 {
-  if (stack->stack_live) {
+  if (U8_BITP(stack->stack_flags,FD_STACK_LIVE)) {
     struct FD_STACK *caller = stack->stack_caller;
     fd_free_stack(stack);
-    stack->stack_live=0;
     set_call_stack(caller);}
 }
 

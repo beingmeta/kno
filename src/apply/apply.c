@@ -665,7 +665,7 @@ FD_EXPORT lispval fd_dcall(struct FD_STACK *_stack,lispval fn,
     FD_APPLY_STACK(apply_stack,fname,fn);
     if (f) {
       apply_stack->stack_src      = f->fcn_filename;
-      apply_stack->stack_free_src = 0;}
+      U8_CLEARBITS(apply_stack->stack_flags,FD_STACK_FREE_SRC);}
     apply_stack->stack_args=argvec;
     apply_stack->n_args=n;
     U8_WITH_CONTOUR(fname,0)
@@ -898,7 +898,7 @@ FD_EXPORT lispval fd_ndcall(struct FD_STACK *_stack,
         lispval retval, results = EMPTY;
         FD_PUSH_STACK(ndstack,fd_ndcallstack_type,f->fcn_name,handler);
         ndstack->stack_src = f->fcn_filename;
-        ndstack->stack_free_src = 0;
+        U8_CLEARBITS(ndstack->stack_flags,FD_STACK_FREE_SRC);
         /* Initialize the d_args vector */
         if (n==1)
           return ndapply1(ndstack,handler,args[0]);

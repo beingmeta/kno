@@ -384,7 +384,7 @@ static void *thread_main(void *data)
 
   FD_NEW_STACK(((struct FD_STACK *)NULL),"thread",NULL,VOID);
   _stack->stack_label=u8_mkstring("thread%lld",u8_threadid());
-  _stack->stack_free_label=1;
+  U8_SETBITS(_stack->stack_flags,FD_STACK_FREE_LABEL);
   tstruct->thread_stackptr=_stack;
 
   /* Set (block) most signals */

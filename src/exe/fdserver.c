@@ -1081,7 +1081,7 @@ int main(int argc,char **argv)
 
   FD_NEW_STACK(((struct FD_STACK *)NULL),"fdserver",NULL,VOID);
   _stack->stack_label=u8_strdup(u8_appid());
-  _stack->stack_free_label=1;
+  U8_SETBITS(_stack->stack_flags,FD_STACK_FREE_LABEL);
 
   /* Store server initialization information in the configuration
      environment. */

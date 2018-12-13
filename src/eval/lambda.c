@@ -99,7 +99,7 @@ lispval call_lambda(struct FD_STACK *_stack,
       _stack->stack_label=fn->fcn_name;
     else {
       _stack->stack_label=lambda_id(fn);
-      _stack->stack_free_label=1;}}
+      U8_SETBITS(_stack->stack_flags,FD_STACK_FREE_LABEL);}}
 
   lispval vals[n_vars];
 

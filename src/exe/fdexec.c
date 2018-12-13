@@ -186,7 +186,7 @@ static lispval *handle_argv(int argc,char **argv,size_t *arglenp,
 
   FD_NEW_STACK(((fd_stack)NULL),"startup",argv[0],VOID);
   _stack->stack_label=u8_strdup(u8_appid());
-  _stack->stack_free_label=1;
+  U8_SETBITS(_stack->stack_flags,FD_STACK_FREE_LABEL);
 
   args = fd_handle_argv(argc,argv,arg_mask,arglenp);
 
@@ -407,7 +407,7 @@ int main(int argc,char **argv)
   u8_string appid=u8_appid();
   if (appid==NULL) appid=argv[0];
   _stack->stack_label=u8_strdup(appid);
-  _stack->stack_free_label=1;
+  U8_SETBITS(_stack->stack_flags,FD_STACK_FREE_LABEL);
 
   if (source_file)
     exec_script = fd_lispstring(source_file);
