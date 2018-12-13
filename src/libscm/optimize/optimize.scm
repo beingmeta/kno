@@ -84,7 +84,7 @@
 (define use-lexrefs? (optmode lexrefs 2 lexrefs-default))
 (define rewrite? (optmode 'rewrite 3 rewrite-default))
 (define keep-source? (optmode keepsource 2 keep-source-default))
-(define use-fcnrefs? (optmode fcnrefs 5 fcnrefs-default))
+(define use-fcnrefs? (optmode fcnrefs 3 fcnrefs-default))
 
 ;;; Controls whether optimization warnings are emitted in real time
 ;;; (when encountered)
