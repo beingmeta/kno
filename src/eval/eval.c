@@ -582,7 +582,9 @@ lispval pair_eval(lispval head,lispval expr,fd_lexenv env,
   lispval result = VOID, headval =
     (FD_OPCODEP(head)) ? (head) : (get_headval(head,env,eval_stack,&gc_head));
   fd_ptr_type headtype = FD_PTR_TYPE(headval);
-  if (gc_head) fd_push_cleanup(eval_stack,FD_DECREF,headval,NULL);
+  if (gc_head) {
+    FD_ADD_TO_CHOICE(eval_stack->stack_vals,headval);}
+
   switch (headtype) {
   case fd_opcode_type: {
     lispval result = opcode_eval(headval,expr,env,eval_stack,tail);

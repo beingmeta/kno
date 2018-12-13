@@ -161,8 +161,6 @@ static void _concise_stack_frame(struct FD_STACK *stack)
     struct FD_EVALFN *evalfn=(fd_evalfn)op;
     fprintf(stderr,", op=%s",evalfn->evalfn_name);}
   else {}
-  if (stack->n_cleanups)
-    fprintf(stderr,", %d cleanups",stack->n_cleanups);
   if ((stack->stack_env) &&
       (SCHEMAPP(stack->stack_env->env_bindings))) {
     struct FD_SCHEMAP *sm = (fd_schemap)stack->stack_env->env_bindings;

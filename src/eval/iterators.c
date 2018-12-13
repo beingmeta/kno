@@ -215,10 +215,6 @@ static lispval forseq_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     forseq_vals[1]=FD_FIXZERO;}
   else forseq_bindings.schema_length=1;
   results = fd_init_elts(NULL,lim,VOID);
-  /* Extra increfs could be avoided if fd_makeseq could
-     be told to not bother increfing the values. This would
-     also require changing this line here. */
-  fd_push_cleanup(_stack,FD_FREE_VEC,results,&lim);
   while ( i < lim ) {
     lispval elt = (islist) ? (fd_refcar(pairscan)) : (fd_seq_elt(seq,i));
     lispval val = VOID;
@@ -229,9 +225,13 @@ static lispval forseq_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
         val = fast_eval(subexpr,forseq);
         if (FD_BROKEP(val)) {
           result=fd_makeseq(FD_PTR_TYPE(seq),i,results);
+          fd_decref_vec(results,i);
+          u8_free(results);
           _return result;}
-        else if (FD_ABORTED(val))
-          _return val;}}
+        else if (FD_ABORTED(val)) {
+          fd_decref_vec(results,i);
+          u8_free(results);
+          _return val;}}}
     results[i]=val;
     reset_env(forseq);
     fd_decref(forseq_vals[0]);
@@ -240,6 +240,8 @@ static lispval forseq_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     if (islist) pairscan = FD_CDR(pairscan);
     i++;}
   result=fd_makeseq(FD_PTR_TYPE(seq),lim,results);
+  fd_decref_vec(results,i);
+  u8_free(results);
   _return result;
 }
 

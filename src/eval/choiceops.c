@@ -72,7 +72,7 @@ static lispval dochoices_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   else if (FD_ABORTED(choices)) return choices;
   else if (EMPTYP(choices))
     return VOID;
-  fd_push_cleanup(_stack,FD_DECREF,choices,NULL);
+  FD_ADD_TO_CHOICE(_stack->stack_vals,choices);
   INIT_STACK_ENV(_stack,dochoices,env,2);
   dochoices_vars[0]=var;
   if (SYMBOLP(count_var))
@@ -110,7 +110,7 @@ static lispval trychoices_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   else if (FD_ABORTED(choices)) return choices;
   else if (EMPTYP(choices))
     return EMPTY;
-  fd_push_cleanup(_stack,FD_DECREF,choices,NULL);
+  FD_ADD_TO_CHOICE(_stack->stack_vals,choices);
   INIT_STACK_ENV(_stack,trychoices,env,2);
   trychoices_vars[0]=var;
   if (SYMBOLP(count_var))
@@ -153,7 +153,7 @@ static lispval forchoices_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     return choices;
   else if (EMPTYP(choices))
     return EMPTY;
-  fd_push_cleanup(_stack,FD_DECREF,choices,NULL);
+  FD_ADD_TO_CHOICE(_stack->stack_vals,choices);
   INIT_STACK_ENV(_stack,forchoices,env,2);
   forchoices_vars[0]=var;
   if (SYMBOLP(count_var))
@@ -197,7 +197,7 @@ static lispval filterchoices_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     return choices;
   else if (EMPTYP(choices))
     return EMPTY;
-  fd_push_cleanup(_stack,FD_DECREF,choices,NULL);
+  FD_ADD_TO_CHOICE(_stack->stack_vals,choices);
   INIT_STACK_ENV(_stack,filterchoices,env,2);
   filterchoices_vars[0]=var;
   if (SYMBOLP(count_var))
@@ -258,7 +258,7 @@ static lispval dosubsets_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   if (FD_ABORTED(choices)) return choices;
   else {FD_SIMPLIFY_CHOICE(choices);}
   if (EMPTYP(choices)) return VOID;
-  fd_push_cleanup(_stack,FD_DECREF,choices,NULL);
+  FD_ADD_TO_CHOICE(_stack->stack_vals,choices);
   INIT_STACK_ENV(_stack,dosubsets,env,2);
   dosubsets_vars[0]=var;
   if (SYMBOLP(count_var))
