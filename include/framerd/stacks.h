@@ -102,12 +102,13 @@ FD_EXPORT __thread struct FD_STACK *fd_stackptr;
       ( (stack) < (caller) ) ) )
 
 #define FD_SETUP_NAMED_STACK(name,caller,type,label,op) \
-  struct FD_STACK _ ## name = { 0 };                    \
+  struct FD_STACK _ ## name;                            \
   struct FD_STACK *name=&_ ## name;                     \
   assert( caller != name);                              \
   if (caller) _ ## name.stack_root=caller->stack_root;  \
   if (caller)                                           \
     _ ## name.stack_depth = 1 + caller->stack_depth;    \
+  else  _ ## name.stack_depth = 0;                      \
   if (caller)                                           \
     _ ## name.stack_errflags = caller->stack_errflags;  \
   else _ ## name.stack_errflags = FD_STACK_ERR_DEFAULT; \
@@ -120,10 +121,23 @@ FD_EXPORT __thread struct FD_STACK *fd_stackptr;
   _ ## name.stack_caller=caller;                        \
   _ ## name.stack_type=type;                            \
   _ ## name.stack_label=label;                          \
-  _ ## name.stack_op=op;                                \
-  _ ## name.stack_source=FD_VOID;                       \
   _ ## name.stack_vals=FD_EMPTY_CHOICE;                 \
+  _ ## name.stack_source=FD_VOID;                       \
   _ ## name.cleanups=_ ## name._cleanups;               \
+  _ ## name.stack_op=op;                                \
+  _ ## name.stack_status=NULL;                          \
+  _ ## name.stack_decref_op=0;                          \
+  _ ## name.stack_src=NULL;                             \
+  _ ## name.n_cleanups=0;                               \
+  _ ## name.n_args=0;                                   \
+  _ ## name.stack_args = NULL;                          \
+  _ ## name.stack_env=NULL;                             \
+  _ ## name.stack_retvoid=0;                            \
+  _ ## name.stack_ndcall=0;                             \
+  _ ## name.stack_tail=0;                               \
+  _ ## name.stack_free_label=0;                         \
+  _ ## name.stack_free_status=0;                        \
+  _ ## name.stack_free_src=0;                           \
   _ ## name.stack_live=1
 
 #define FD_PUSH_STACK(name,type,label,op)              \

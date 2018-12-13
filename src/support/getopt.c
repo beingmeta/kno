@@ -51,7 +51,6 @@ FD_EXPORT lispval fd_getopt(lispval opts,lispval key,lispval dflt)
   else if (QCHOICEP(opts))
     return fd_getopt(FD_XQCHOICE(opts)->qchoiceval,key,dflt);
   else {
-    lispval values = FD_VOID;
     while (!(VOIDP(opts))) {
       if (PAIRP(opts)) {
         lispval car = FD_CAR(opts), value = FD_VOID;

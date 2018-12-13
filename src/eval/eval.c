@@ -240,7 +240,7 @@ static int unparse_opcode(u8_output out,lispval opcode)
 
 static int validate_opcode(lispval opcode)
 {
-  int opcode_offset = (FD_GET_IMMEDIATE(opcode,fd_opcode_type));
+  long opcode_offset = (FD_GET_IMMEDIATE(opcode,fd_opcode_type));
   if ((opcode_offset>=0) && (opcode_offset<fd_opcodes_length))
     return 1;
   else return 0;
@@ -248,7 +248,7 @@ static int validate_opcode(lispval opcode)
 
 static u8_string opcode_name(lispval opcode)
 {
-  int opcode_offset = (FD_GET_IMMEDIATE(opcode,fd_opcode_type));
+  long opcode_offset = (FD_GET_IMMEDIATE(opcode,fd_opcode_type));
   if ((opcode_offset<fd_opcodes_length) &&
       (fd_opcode_names[opcode_offset]))
     return fd_opcode_names[opcode_offset];
@@ -596,8 +596,7 @@ lispval pair_eval(lispval head,lispval expr,fd_lexenv env,
   case fd_evalfn_type: {
     /* These are evalfns which do all the evaluating themselves */
     struct FD_EVALFN *handler = (fd_evalfn)headval;
-    if (handler->evalfn_name)
-      eval_stack->stack_label=handler->evalfn_name;
+    if (handler->evalfn_name) eval_stack->stack_label=handler->evalfn_name;
     result=handler->evalfn_handler(expr,env,eval_stack);
     break;}
   case fd_macro_type: {
@@ -627,7 +626,7 @@ lispval pair_eval(lispval head,lispval expr,fd_lexenv env,
       struct FD_FUNCTION *f = (struct FD_FUNCTION *) headval;
       result=eval_apply(f->fcn_name,headval,FD_CDR(expr),env,
                         eval_stack,tail);}
-    if (fd_applyfns[headtype]) {
+    else if (fd_applyfns[headtype]) {
       result=eval_apply("extfcn",headval,FD_CDR(expr),env,eval_stack,tail);}
     else if (FD_ABORTED(headval)) {
       result=headval;}
