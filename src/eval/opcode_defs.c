@@ -666,7 +666,7 @@ static lispval assignop(fd_stack stack,fd_lexenv env,
               return cur;
             else return VOID;}
           else {
-            lispval value = _fd_fast_eval(expr,env,stack,0);
+	    lispval value = _fd_fast_eval(expr,env,stack,0);
             /* This gnarly bit of code handles the case where
                evaluating 'expr' changed the environment structure,
                by, for instance, creating a lambda which made a
@@ -776,7 +776,7 @@ static lispval handle_table_opcode(lispval opcode,lispval expr,
   lispval subject_arg = pop_arg(args);
   if (FD_EXPECT_FALSE(!(FD_PAIRP(args))))
     return fd_err(fd_TooFewArgs,"handle_table_opcode",NULL,expr);
-  lispval subject = fast_stack_eval(subject_arg,env,_stack);
+  lispval subject = arg_eval(subject_arg,env,_stack);
   if (FD_ABORTP(subject))
     return subject;
   else if (FD_EMPTYP(subject)) {
@@ -799,7 +799,7 @@ static lispval handle_table_opcode(lispval opcode,lispval expr,
     return FD_ERROR_VALUE;}
   else NO_ELSE;
   lispval slotid_arg = pop_arg(args);
-  lispval slotid = fast_stack_eval(slotid_arg,env,_stack);
+  lispval slotid = arg_eval(slotid_arg,env,_stack);
   if (FD_ABORTP(slotid)) {
     fd_decref(subject);
     return slotid;}
@@ -808,7 +808,7 @@ static lispval handle_table_opcode(lispval opcode,lispval expr,
   else NO_ELSE;
   lispval value_arg = (FD_PAIRP(args)) ? (pop_arg(args)) : (FD_VOID);
   lispval value = (FD_VOIDP(value_arg)) ? (FD_VOID) :
-    (fast_stack_eval(value_arg,env,_stack));
+    (arg_eval(value_arg,env,_stack));
   if (FD_ABORTP(value)) {
     fd_decref(subject); fd_decref(slotid);
     return value;}
