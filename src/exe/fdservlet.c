@@ -970,9 +970,18 @@ static int webservefn(u8_client ucl)
     u8_set_log_context(logcxt.u8_outbuf);
 
     /* This is where we parse all the CGI variables, etc */
-    lispval etime = fd_make_double(u8_elapsed_time());
+
+    /* First record both when we got the request and when we started
+       processing it */
+    double now = u8_elapsed_time();
+    time_t tick = time(NULL);
+    lispval ltime = fd_make_double(now-start_time);
+    lispval etime = fd_make_double(now);
+    lispval tickval = FD_INT(tick);
     fd_store(cgidata,reqstart_symbol,etime);
-    fd_decref(etime);
+    fd_store(cgidata,reqtick_symbol,ltime);
+    fd_store(cgidata,loadtime_symbol,ltime);
+    fd_decref(etime); fd_decref(ltime); fd_decref(tickval);
 
     fd_parse_cgidata(cgidata);
     forcelog = fd_req_test(forcelog_slotid,VOID);
