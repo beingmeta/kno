@@ -1045,11 +1045,14 @@ FD_EXPORT void fd_init_reflection_c()
             -1,VOID);
   fd_idefn1(module,"PROCEDURE-ID",procedure_id,1,"",-1,VOID);
   fd_idefn1(module,"LAMBDA-ARGS",lambda_args,1,"",-1,VOID);
+  fd_defalias(module,"PROCEDURE-ARGS","LAMBDA-ARGS");
   fd_idefn1(module,"LAMBDA-ARGS",lambda_args,1,"",-1,VOID);
   fd_idefn1(module,"LAMBDA-BODY",lambda_body,1,"",-1,VOID);
+  fd_defalias(module,"PROCEDURE-BODY","LAMBDA-BODY");
   fd_idefn1(module,"LAMBDA-START",lambda_start,1,"",-1,VOID);
   fd_idefn1(module,"LAMBDA-SOURCE",lambda_source,1,"",-1,VOID);
   fd_idefn1(module,"LAMBDA-ENV",lambda_env,1,"",-1,VOID);
+  fd_defalias(module,"PROCEDURE-ENV","LAMBDA-ENV");
 
   fd_idefn2(module,"REFLECT/GET",reflect_get,2,
             "Returns a meta-property of a procedure",
