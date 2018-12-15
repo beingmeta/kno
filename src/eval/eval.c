@@ -49,7 +49,7 @@ u8_string fd_ndevalstack_type="ndeval";
 
 int fd_optimize_tail_calls = 1;
 
-lispval _fd_comment_symbol, fcnids_symbol;
+lispval _fd_comment_symbol, fcnids_symbol, sourceref_tag;
 
 static lispval quote_symbol, comment_symbol, moduleid_symbol, source_symbol;
 
@@ -440,6 +440,19 @@ static lispval quote_evalfn(lispval obj,fd_lexenv env,fd_stack stake)
   else return fd_err(fd_SyntaxError,"QUOTE",NULL,obj);
 }
 
+/* Handle sourcerefs */
+
+static lispval handle_sourcerefs(lispval expr,struct FD_STACK *stack)
+{
+  while (FD_CAR(expr) == FD_SOURCEREF_OPCODE) {
+    expr = FD_CDR(expr);
+    lispval source = FD_CAR(expr);
+    expr = FD_CDR(expr);
+    stack->stack_source=source;
+    if (!(FD_PAIRP(expr))) return expr;}
+  return expr;
+}
+
 /* The evaluator itself */
 
 static int applicable_choicep(lispval choice);
@@ -559,6 +572,11 @@ lispval pair_eval(lispval head,lispval expr,fd_lexenv env,
 {
   u8_string label=(SYMBOLP(head)) ? (SYM_NAME(head)) :
     (FD_OPCODEP(head)) ? (opcode_name(head)) : (NULL);
+  if (head == FD_SOURCEREF_OPCODE) {
+    expr = handle_sourcerefs(expr,eval_stack);
+    head = (FD_PAIRP(expr)) ? (FD_CAR(expr)) : (FD_VOID);
+    label=(SYMBOLP(head)) ? (SYM_NAME(head)) :
+      (FD_OPCODEP(head)) ? (opcode_name(head)) : (NULL);}
   int flags = eval_stack->stack_flags;
   if (U8_BITP(flags,FD_STACK_DECREF_OP)) {fd_decref(eval_stack->stack_op);}
   if (label) {
@@ -701,6 +719,8 @@ static lispval get_headval(lispval head,fd_lexenv env,fd_stack eval_stack,
   return headval;
 }
 
+static int fast_eval_args = 1;
+
 FD_FASTOP lispval arg_eval(lispval x,fd_lexenv env,struct FD_STACK *stack)
 {
   switch (FD_PTR_MANIFEST_TYPE(x)) {
@@ -719,7 +739,9 @@ FD_FASTOP lispval arg_eval(lispval x,fd_lexenv env,struct FD_STACK *stack)
     fd_ptr_type type = FD_CONSPTR_TYPE(x);
     switch (type) {
     case fd_pair_type:
-      return pair_eval(FD_CAR(x),x,env,stack,0);
+      if (fast_eval_args)
+        return pair_eval(FD_CAR(x),x,env,stack,0);
+      else return fd_stack_eval(x,env,stack,0);
     case fd_code_type:
     case fd_choice_type: case fd_prechoice_type:
       return fd_stack_eval(x,env,stack,0);
@@ -829,22 +851,7 @@ static lispval opcode_eval(lispval opcode,lispval expr,
                            int tail)
 {
   lispval args = FD_CDR(expr);
-  while (opcode == FD_SOURCEREF_OPCODE) {
-    if (!(FD_PAIRP(FD_CDR(expr)))) {
-      lispval err = fd_err(fd_SyntaxError,"opcode_eval",NULL,expr);
-      _return err;}
-    lispval source = pop_arg(args);
-    expr = args;
-    opcode = pop_arg(args);
-    if ( (FD_NULLP(_stack->stack_source)) ||
-         (FD_VOIDP(_stack->stack_source)) ||
-         (_stack->stack_source == expr) )
-      _stack->stack_source=source;
-    if (! (FD_OPCODEP(opcode)) ) {
-      _stack->stack_type = fd_evalstack_type;
-      if (FD_PAIRP(expr))
-        return pair_eval(opcode,expr,env,_stack,tail);
-      else return fast_stack_eval(expr,env,_stack);}}
+
   if (FD_SPECIAL_OPCODEP(opcode))
     return handle_special_opcode(opcode,args,expr,env,_stack,tail);
   else if ( (FD_D1_OPCODEP(opcode)) || (FD_ND1_OPCODEP(opcode)) ) {
@@ -1864,6 +1871,7 @@ static void init_types_and_tables()
   moduleid_symbol = fd_intern("%MODULEID");
   source_symbol = fd_intern("%SOURCE");
   fcnids_symbol = fd_intern("%FCNIDS");
+  sourceref_tag = fd_intern("%SOURCEREF");
 
   fd_init_module_tables();
   init_opcode_names();
