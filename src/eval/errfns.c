@@ -164,6 +164,8 @@ static lispval onerror_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   lispval value = fd_stack_eval(toeval,env,_stack,0);
   if (FD_THROWP(value))
     return value;
+  else if (FD_BREAKP(value))
+    return value;
   else if (FD_ABORTP(value)) {
     u8_exception ex = u8_erreify();
     lispval handler = fd_stack_eval(error_handler,env,_stack,0);
