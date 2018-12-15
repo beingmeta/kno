@@ -324,11 +324,17 @@ static lispval watched_eval_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
           u8_exception ex = u8_erreify();
           wval = fd_wrap_exception(ex);}
         if (lbl[0]=='\n') {
-          u8_printf(&out,"\n  ");
-          oneout = 1;
-          fd_list_object(&out,wval,lbl+1,NULL,"  ",NULL,100,0);
-          if (PAIRP(scan)) {
-            u8_puts(&out,"\n"); off = 0;}}
+          if (FD_EMPTYP(wval))
+            u8_printf(&out," %s={}",lbl+1);
+          else {
+            if (off > 2) {
+              u8_printf(&out,"\n  ");
+              off=1;}
+            oneout = 1;
+            if ( (FD_PAIRP(wval)) || (FD_VECTORP(wval)) || (FD_CHOICEP(wval)) ||
+                 (FD_SLOTMAPP(wval)) || (FD_SCHEMAPP(wval)) ) {
+              fd_list_object(&out,wval,lbl+1,NULL,"  ",NULL,100,0);
+              if (PAIRP(scan)) {u8_puts(&out,"\n "); off = 0;}}}}
         else {
           if (oneout) u8_puts(&out," // "); else oneout = 1;
           u8_printf(&out,"%s=%q",CSTRING(label),wval);
