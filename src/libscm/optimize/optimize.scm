@@ -62,7 +62,7 @@
 (define-init persist-default #f)
 (varconfig! optimize:persist persist-default)
 
-(define-init keep-source-default #f)
+(define-init keep-source-default #t)
 (varconfig! optimize:keepsource keep-source-default)
 
 (define (optmode-macro optname thresh varname)
