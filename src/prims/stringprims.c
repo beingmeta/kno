@@ -402,6 +402,29 @@ static lispval string_stdstring(lispval string)
   else return fd_type_error("string","string_stdstring",string);
 }
 
+static lispval stdobj(lispval string)
+{
+  if (STRINGP(string)) {
+    const u8_byte *scan = CSTRING(string); int c, white = 1;
+    struct U8_OUTPUT out;
+    U8_INIT_OUTPUT(&out,64);
+    while ((c = u8_sgetc(&scan))>=0) {
+      if (u8_isspace(c))
+        if (white) {}
+        else {u8_putc(&out,' '); white = 1;}
+      else if (u8_ismodifier(c)) white = 0;
+      else {
+        int bc = u8_base_char(c);
+        bc = u8_tolower(bc); white = 0;
+        u8_putc(&out,bc);}}
+    if (out.u8_write == out.u8_outbuf) {
+      u8_free(out.u8_outbuf);
+      return lispval_string("");}
+    else if (white) {out.u8_write[-1]='\0'; out.u8_write--;}
+    return fd_stream2string(&out);}
+  else return fd_incref(string);
+}
+
 static lispval string_basestring(lispval string)
 {
   if (STRINGP(string)) {
@@ -1457,14 +1480,17 @@ FD_EXPORT void fd_init_stringprims_c()
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("PHRASE-LENGTH",string_phrase_length,1,
                            fd_string_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("STDSPACE",string_stdspace,1,
-                           fd_string_type,VOID,-1,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("STDCAP",string_stdcap,1,fd_string_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("STDSTRING",string_stdstring,1,
-                           fd_string_type,VOID));
+  fd_idefn2(fd_scheme_module,"STDSPACE",string_stdspace,1,
+            "`(STDSPACE *string* **)` Compresses whitespace runs in *string*",
+            fd_string_type,VOID,-1,VOID);
+  fd_idefn1(fd_scheme_module,"STDCAP",string_stdcap,1,
+            "`(STDCAP *string* **)` returns the standardized "
+            "capitalized form of *string*",
+            fd_string_type,VOID);
+  fd_idefn1(fd_scheme_module,"STDSTRING",string_stdstring,1,
+            "`(STDSTRING *string*)` downcases, unicode simplifies, "
+            "and whitespace compresses *string*",
+            fd_string_type,VOID);
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("BASESTRING",string_basestring,1,
                            fd_string_type,VOID));
@@ -1477,6 +1503,12 @@ FD_EXPORT void fd_init_stringprims_c()
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("BIGRAMS",string_bigrams,1,
                            fd_string_type,VOID));
+
+  fd_idefn1(fd_scheme_module,"STDOBJ",stdobj,1,
+            "`(STDOBJ *obj*)` downcases, unicode simplifies, "
+            "and whitespace compresses strings, returns everything else",
+            -1,FD_VOID);
+
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("CHAR->INTEGER",char2integer,1,
