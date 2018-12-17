@@ -786,6 +786,7 @@ static lispval ndapply1(fd_stack _stack,lispval fp,lispval args1)
     if (FD_ABORTP(r)) {
       FD_STOP_DO_CHOICES;
       fd_decref(results);
+      fd_pop_stack(_stack);
       return r;}
     else {FD_ADD_RESULT(results,r);}}
   fd_pop_stack(_stack);
@@ -876,7 +877,7 @@ FD_EXPORT lispval fd_ndcall(struct FD_STACK *_stack,
   else if (CHOICEP(handler)) {
     FD_APPLY_STACK(ndapply_stack,"fnchoices",handler);
     lispval results=EMPTY;
-    DO_CHOICES(h, handler) {
+    DO_CHOICES(h,handler) {
       lispval r=fd_call(ndapply_stack,h,n,args);
       if (FD_ABORTP(r)) {
         fd_decref(results);
