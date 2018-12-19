@@ -1,5 +1,6 @@
 (use-module '{optimize logger samplefns})
 (config! 'port "tempx@localhost")
+;;(config! 'port "/tmp/tempx.sock")
 (define runfile (get-component "tempsrv.run"))
 (define (startup)
   (optimize! plus)
