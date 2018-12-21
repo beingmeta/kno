@@ -18,7 +18,7 @@
 
 (define (get-serial arg)
   (if (string? arg)
-      (try (get (text->frames flex-suffix arg) 'serial) #f)
+      (get (text->frames flex-suffix arg) 'serial)
       (if (index? arg)
 	  (get-serial (index-source arg))
 	  (irritant arg |NotAnIndex| get-serial/flexindex/storage))))
