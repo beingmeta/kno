@@ -1960,12 +1960,6 @@ int main(int argc,char **argv)
   u8_init_chardata_c();
 #endif
 
-  /* Now we initialize the libu8 logging configuration */
-  u8_log_show_date = 1;
-  u8_log_show_elapsed = 1;
-  u8_log_show_procinfo = 1;
-  u8_log_show_threadinfo = 1;
-
   fd_register_config("FOREGROUND",_("Whether to run in the foreground"),
                      fd_boolconfig_get,fd_boolconfig_set,&foreground);
 
