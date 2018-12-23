@@ -70,6 +70,7 @@ static long long state_files_written = 0;
 static int async_mode = 1;
 static int auto_reload = 0;
 static int server_shutdown = 0;
+static int stealsockets = 0;
 
 static int debug_maxelts = 32, debug_maxchars = 80;
 
@@ -279,16 +280,36 @@ static int config_serve_port(lispval var,lispval val,void U8_MAYBE_UNUSED *data)
       return 0;}
     return retval;}
   else if (STRINGP(val)) {
-    int retval = u8_add_server(&dtype_server,CSTRING(val),0);
-    if (retval>0)
-      n_ports = n_ports+retval;
-    else if (retval<0) {
+    int rv = 0;
+    u8_string port = CSTRING(val);
+    if ((strchr(port,'/')) && (u8_file_existsp(port))) {
+      if (! (u8_socketp(port)) ) {
+        u8_log(LOG_CRIT,"FDServlet/start",
+               "File %s exists and is not a socket",port);
+        rv = -1;}
+      else if (stealsockets) {
+        rv = u8_removefile(port);
+        if (rv<0)
+          u8_log(LOG_CRIT,"FDServlet/start",
+                 "Couldn't remove existing socket file %s",port);}
+      else {
+        u8_log(LOG_WARN,"FDServlet/start",
+               "Socket file %s already exists",port);
+        rv=-1;}}
+    else rv=0;
+    if (rv < 0) {
+      u8_seterr("InvalidFileSocket","config_server_port",u8_strdup(port));
+      return rv;}
+    rv = u8_add_server(&dtype_server,CSTRING(val),0);
+    if (rv>0)
+      n_ports = n_ports+rv;
+    else if (rv<0) {
       fd_seterr(BadPortSpec,"config_serve_port",NULL,val);
-      return -1;}
+      return rv;}
     else {
       u8_log(LOG_WARN,"NoServers","No servers were added for port %q",val);
       return 0;}
-    return retval;}
+    return rv;}
   else {
     fd_seterr(BadPortSpec,"config_serve_port",NULL,val);
     return -1;}
@@ -934,6 +955,7 @@ int main(int argc,char **argv)
   int i = 1;
   /* Mask of args which we handle */
   unsigned char arg_mask[argc];  memset(arg_mask,0,argc);
+  u8_string logfile = NULL;
 
   u8_log_show_date=1;
   u8_log_show_procinfo=1;
@@ -991,16 +1013,43 @@ int main(int argc,char **argv)
   else server_port = server_spec;
 
   if (getenv("STDLOG")) {
-    u8_log(LOG_WARN,Startup,
-           "Obeying STDLOG and using stdout/stderr for logging");}
-  else if ((!(log_filename))&&(getenv("LOGFILE")))
-    set_logfile(getenv("LOGFILE"),1);
-  if ((!(log_filename))&&(getenv("LOGDIR"))) {
+    u8_log(LOG_WARN,Startup,"Obeying STDLOG and using stdout/stderr for logging");}
+  else if (getenv("LOGFILE")) {
+    char *envfile = getenv("LOGFILE");
+    if ((envfile)&&(envfile[0])&&(strcmp(envfile,"-")))
+      logfile = u8_fromlibc(envfile);}
+  else if ((getenv("LOGDIR"))&&(server_spec)) {
     u8_string base = u8_basename(server_spec,"*");
     u8_string logname = u8_mkstring("%s.log",base);
-    u8_string logfile = u8_mkpath(getenv("LOGDIR"),logname);
-    set_logfile(logfile,1);
+    logfile = u8_mkpath(getenv("LOGDIR"),logname);
     u8_free(base); u8_free(logname);}
+  else if ((!(foreground))&&(server_spec)) {
+    u8_string base = u8_basename(server_spec,"*");
+    u8_string logname = u8_mkstring("%s.log",base);
+    logfile = u8_mkpath(FD_SERVLET_LOG_DIR,logname);
+    u8_free(base); u8_free(logname);}
+  else u8_log(LOG_WARN,Startup,"No logfile, using stdout");
+
+  /* Close and reopen STDIN */
+  close(0);  if (open("/dev/null",O_RDONLY) == -1) {
+    u8_log(LOG_CRIT,ServerAbort,"Unable to reopen stdin for daemon");
+    exit(1);}
+
+  /* We do this using the Unix environment (rather than configuration
+     variables) for two reasons.  First, we want to redirect errors
+     from the processing of the configuration variables themselves
+     (where lots of errors could happen); second, we want to be able
+     to set this in the environment we wrap around calls (which is how
+     mod_fdserv does it). */
+  if (logfile) {
+    int logsync = ((getenv("LOGSYNC") == NULL)?(0):(O_SYNC));
+    int log_fd = open(logfile,O_RDWR|O_APPEND|O_CREAT|logsync,0644);
+    if (log_fd<0) {
+      u8_log(LOG_CRIT,ServerAbort,"Couldn't open log file %s",logfile);
+      exit(1);}
+    dup2(log_fd,1);
+    dup2(log_fd,2);}
+
 
   {
     if (argc>2) {
@@ -1115,6 +1164,10 @@ int main(int argc,char **argv)
 
 static void init_configs()
 {
+  fd_register_config
+    ("STEALSOCKETS",
+     _("Remove existing socket files with extreme prejudice"),
+     fd_boolconfig_get,fd_boolconfig_set,&stealsockets);
   fd_register_config
     ("FDSERVER:LOGLEVEL",_("Loglevel for fdserver itself"),
      fd_intconfig_get,fd_loglevelconfig_set,&fdserver_loglevel);
