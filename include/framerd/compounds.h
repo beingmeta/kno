@@ -106,3 +106,10 @@ FD_EXPORT lispval fd_compound_descriptor_type;
 #define FD_BIG_COMPOUND_LENGTH 1024
 
 #endif
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debugging;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/
