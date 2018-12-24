@@ -342,26 +342,30 @@ int fd_pprinter(u8_output out,lispval x,int indent,int col,int depth,
     fd_decref(simple);
     return rv;}
   else if ( (SLOTMAPP(x)) || (SCHEMAPP(x)) ) {
-    lispval keys=fd_getkeys(x);
+    lispval keys=fd_getkeys(x); int off = 0;
     if (PRECHOICEP(keys)) keys=fd_simplify_choice(keys);
     if (EMPTYP(keys)) {
-      if (col>(margin_len+indent)) {
-        u8_puts(out," #[]");
-        return col+4;}
-      else {
-        u8_puts(out,"#[]");
-        return col+3;}}
+      int at_start = ! (col>(margin_len+indent));
+      if (at_start) off++;
+      if (! (FD_SCHEMAPP(x)) ) off++;
+      u8_printf(out,"%s%s[]",
+                (at_start) ? (" ") : (""),
+                (FD_SCHEMAPP(x)) ? ("") : ("#"));
+      return col+off+2;}
     if (col>(margin_len+indent))
       col=do_indent(out,margin,indent,-1);
-    u8_puts(out,"#[");
+    if (FD_SCHEMAPP(x)) {
+      off = 1; u8_putc(out,'[');}
+    else {
+      off = 2; u8_puts(out,"#[");}
     if (!(CHOICEP(keys)))
       col=fd_pprint_table(out,x,&keys,1,
-                          indent+2,col+2,depth+1,
+                          indent+off,col+off,depth+1,
                           customfn,customdata,
                           ppcxt);
     else col=fd_pprint_table
            (out,x,FD_CHOICE_DATA(keys),FD_CHOICE_SIZE(keys),
-            indent+2,col+2,depth+1,
+            indent+off,col+off,depth+1,
             customfn,customdata,
             ppcxt);
     u8_putc(out,']');

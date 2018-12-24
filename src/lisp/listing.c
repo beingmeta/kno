@@ -110,12 +110,13 @@ static void list_table(u8_output out,lispval table,
     (detail > 0) ? ((detail/2)+1) :
     (((-detail)/2)+1);
   if (label == NULL) label = full_pathref;
+  u8_string prefix = (FD_SCHEMAPP(table)) ? ("") : ("#");
   if (n_keys == 0) {
-    u8_printf(out,"#[]");
+    u8_printf(out,"%s[]",prefix);
     return;}
   else if (show_keys < n_keys)
-    u8_printf(out,"#[;; %s (%d/%d slots)",U8S(label),show_keys,n_keys);
-  else u8_printf(out,"#[;; %s (%d slots)",U8S(label),n_keys);
+    u8_printf(out,"%s[;; %s (%d/%d slots)",prefix,U8S(label),show_keys,n_keys);
+  else u8_printf(out,"%s[;; %s (%d slots)",prefix,U8S(label),n_keys);
   DO_CHOICES(key,keys) {
     if (count >= show_keys) {
       FD_STOP_DO_CHOICES;

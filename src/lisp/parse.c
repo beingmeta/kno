@@ -1141,9 +1141,8 @@ lispval fd_parser(u8_input in)
       result = fd_make_symbol(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
       if (tmpbuf.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpbuf.u8_outbuf);
       return result;}
-    case '[': {
-      return parse_schemap(in);
-    }
+    case '[':
+      u8_getc(in); return parse_schemap(in);
     case '#': {
       /* Absorb the # and set ch to the next character, dispatching on
          that */
