@@ -3,7 +3,7 @@
 
 (in-module 'storage/flexindex)
 
-(use-module '{ezrecords stringfmts logger texttools})
+(use-module '{ezrecords stringfmts logger varconfig texttools})
 (use-module '{storage/adjuncts storage/filenames})
 (use-module '{storage/flex})
 
@@ -12,6 +12,11 @@
 (define-init %loglevel %notice%)
 
 (define-init flex-indexes (make-hashtable))
+
+(define default-partition-size (* 3 #gib))
+(define default-partition-type 'hashindex)
+(varconfig! flexindex:minsize default-partition-size config:bytes)
+(varconfig! flexindex:type default-partition-type)
 
 (define flex-suffix
   #("." (label serial (isdigit+) #t) ".index" (eos)))
@@ -51,6 +56,8 @@
 		(new-partition-opts 
 		 (cons (frame-create #f 
 			 'register (getopt opts 'register #t) 'background #f
+			 'type (getopt opts 'flextype (getopt opts 'type default-partition-type))
+			 'size (getopt opts 'size default-partition-size)
 			 'keyslot keyslot)
 		       opts)))
 	   (when (and (fail? indexes) (not (getopt opts 'create)))
@@ -125,7 +132,7 @@
   (let* ((type (getopt opts 'type (try (and model (indexctl model 'metadata 'type)) #f)))
 	 (buckets (getopt opts 'buckets
 			  (try (and model (indexctl model 'metadata 'buckets)) #f)))
-	 (size (getopt opts 'size (try (indexctl model 'metadata 'size) #f)))
+	 (size (getopt opts 'size (try (and model (indexctl model 'metadata 'size)) #f)))
 	 (make-opts (frame-create #f 'type type))
 	 (maxsize (getopt opts 'maxsize
 			  (and model (indexctl model 'metadata 'maxsize))))
