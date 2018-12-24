@@ -466,6 +466,8 @@ static lispval eval_apply(u8_string fname,
 static lispval pair_eval(lispval head,lispval expr,fd_lexenv env,
                          struct FD_STACK *_stack,
                          int tail);
+static lispval schemap_eval(lispval expr,fd_lexenv env,
+                            struct FD_STACK *_stack);
 static lispval opcode_eval(lispval opcode,lispval expr,
                            fd_lexenv env,
                            fd_stack _stack,
@@ -512,6 +514,12 @@ lispval fd_stack_eval(lispval expr,fd_lexenv env,
       return fd_incref(expr);
     case fd_slotmap_type:
       return fd_deep_copy(expr);
+    case fd_schemap_type: {
+      lispval result = VOID;
+      FD_PUSH_STACK(eval_stack,fd_evalstack_type,NULL,expr);
+      result = schemap_eval(expr,env,eval_stack);
+      fd_pop_stack(eval_stack);
+      return result;}
     default:
       return fd_incref(expr);}}
   else return expr;
@@ -745,8 +753,10 @@ FD_FASTOP lispval arg_eval(lispval x,fd_lexenv env,struct FD_STACK *stack)
     case fd_code_type:
     case fd_choice_type: case fd_prechoice_type:
       return fd_stack_eval(x,env,stack,0);
-    case fd_slotmap_type: case fd_schemap_type:
+    case fd_slotmap_type:
       return fd_deep_copy(x);
+    case fd_schemap_type:
+      return schemap_eval(x,env,stack);
     default:
       return fd_incref(x);}}
   default: /* Never reached */
@@ -840,6 +850,29 @@ static lispval eval_apply(u8_string fname,
   if (gc_args) fd_decref_vec(argbuf,arg_i);
   return result;
 }
+
+/* Evaluating schemaps */
+
+lispval schemap_eval(lispval expr,fd_lexenv env,
+                     struct FD_STACK *eval_stack)
+{
+  struct FD_SCHEMAP *skmap = (fd_schemap) expr;
+  int n = skmap->schema_length;
+  lispval *schema = skmap->table_schema;
+  lispval *vals = skmap->schema_values;
+  lispval new_vals[n];
+  int i = 0; while (i < n) {
+    lispval val_expr = vals[i];
+    lispval val = arg_eval(val_expr,env,eval_stack);
+    if (FD_ABORTP(val)) {
+      fd_decref_vec(new_vals,i);
+      return val;}
+    else new_vals[i++] = val;}
+  return fd_make_schemap(NULL,n,
+                         FD_SCHEMAP_INLINE|FD_SCHEMAP_COPY_SCHEMA,
+                         schema,new_vals);
+}
+
 
 /* Opcode eval */
 
