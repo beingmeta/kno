@@ -262,10 +262,14 @@ slot of the loop state.
 					"Can't save error to " bugdir))))))))
 
 (define (engine-threadfn iterfn fifo opts loop-state state
-			 beforefn afterfn
+			 beforefn afterfn fillfn
 			 monitors
 			 stopfn)
   "This is then loop function for each engine thread."
+  (when (and (not (test loop-state 'stopping)) fillfn (getopt opts 'fillmin)) 
+    (engine/fill! fifo fillfn loop-state 
+		  (getopt opts 'fillmin)
+		  (getopt opts 'fillmax (* 2 (getopt opts 'fillmin)))))
   (let* ((batch (fifo/pop fifo))
 	 (batch-state `#[loop ,loop-state started ,(elapsed-time) batchno 1])
 	 (start (get batch-state 'started))
@@ -321,25 +325,33 @@ slot of the loop state.
 			 batch-state loop-state state)))
       ;; Free some stuff up, maybe
       (set! batch {})
-      (let ((stopval (or (try (get batch-state 'error) #f)
+      (let ((stopval (or (try (get batch-state 'stopval) #f)
+			 (try (get batch-state 'error) #f)
 			 (test loop-state 'stopped)
 			 (and (exists? stopfn) stopfn (exists stopfn loop-state)))))
-	(cond ((and (exists? stopval) stopval)
+	(cond ((and (exists? stopval) stopval 
+		    (or (fail? fillfn) (identical? fillfn #f)))
 	       (store! loop-state 'stopped (timestamp))
 	       (store! loop-state 'stopval stopval))
-	      (monitors
-	       (do-choices (monitor monitors)
-		 (cond ((applicable? monitor) (monitor loop-state))
-		       ((and (pair? monitor) (applicable? (car monitor)))
-			(let ((testval ((car monitor) loop-state)))
-			  (when testval
-			    (do-choices (action (if (pair? (cdr monitor))
-						    (cadr monitor)
-						    (cdr monitor)))
-			      (if (applicable? action)
-				  (action testval loop-state)
-				  (logwarn |BadMonitorAction| action))))))
-		       (else (logwarn |BadMonitor| monitor))))))
+	      ((and (exists? stopval) stopval)
+	       (if (fifo/empty? fifo)
+		   (store! loop-state 'stopped (timestamp))
+		   (store! loop-state 'stopping (timestamp)))
+	       (unless (test loop-state 'stopval)
+		 (store! loop-state 'stopval stopval))))
+	(when (and monitors (not (test loop-state 'stopped)))
+	  (do-choices (monitor monitors)
+	    (cond ((applicable? monitor) (monitor loop-state))
+		  ((and (pair? monitor) (applicable? (car monitor)))
+		   (let ((testval ((car monitor) loop-state)))
+		     (when testval
+		       (do-choices (action (if (pair? (cdr monitor))
+					       (cadr monitor)
+					       (cdr monitor)))
+			 (if (applicable? action)
+			     (action testval loop-state)
+			     (logwarn |BadMonitorAction| action))))))
+		  (else (logwarn |BadMonitor| monitor)))))
 	(cond ((getopt loop-state 'stopped)
 	       (set! batch {}))
 	      ((zero? (fifo/load fifo))
@@ -348,10 +360,11 @@ slot of the loop state.
 	       ;; handle it.
 	       (set! batch {}))
 	      (else
-	       (when (checkpointing? loop-state)
-		 (when (or (test loop-state 'checknow) (docheck? loop-state fifo))
-		   (when (or (test loop-state 'checknow) (check/save? loop-state))
-		     (thread/wait! (thread/call engine/checkpoint loop-state fifo)))))
+	       (unless (getopt loop-state 'stopping)
+		 (when (checkpointing? loop-state)
+		   (when (or (test loop-state 'checknow) (docheck? loop-state fifo))
+		     (when (or (test loop-state 'checknow) (check/save? loop-state))
+		       (thread/wait! (thread/call engine/checkpoint loop-state fifo))))))
 	       (set! batch (fifo/pop fifo))
 	       (set! batchno (1+ batchno))
 	       (set! start (elapsed-time))
@@ -405,6 +418,7 @@ slot of the loop state.
 	 (fifo (->fifo batches fifo-opts))
 	 (before (getopt opts 'before #f))
 	 (after (getopt opts 'after #f))
+	 (fill (getopt opts 'fill #f))
 	 (stop (getopt opts 'stopfn #f))
 	 (state (getopt opts 'state (init-state opts)))
 	 (logfns (getopt opts 'logfns {}))
@@ -459,6 +473,10 @@ slot of the loop state.
       (do-choices after
 	(unless (and (applicable? after) (= (procedure-arity after) 4))
 	  (irritant after |ENGINE/InvalidAfterFn| engine/run))))
+    (when (and (exists? fill) fill)
+      (do-choices fill
+	(unless (applicable? fill)
+	  (irritant after |ENGINE/InvalidFillFn| engine/run))))
 
     (when (and (exists? logfns) logfns)
       (do-choices (logfn (difference logfns #t))
@@ -483,7 +501,7 @@ slot of the loop state.
 	      (thread/call engine-threadfn 
 		  fcn fifo opts 
 		  loop-state state 
-		  (qc before) (qc after)
+		  (qc before) (qc after) (qc fill)
 		  (getopt opts 'monitors)
 		  stop))
 	    (when spacing (sleep spacing)))
@@ -491,7 +509,7 @@ slot of the loop state.
 	(engine-threadfn 
 	 fcn fifo opts 
 	 loop-state state 
-	 (qc before) (qc after)
+	 (qc before) (qc after) (qc fill)
 	 (getopt opts 'monitors)
 	 stop))
     
@@ -682,6 +700,17 @@ slot of the loop state.
 
 (define (engine/logrusage batch proctime time batch-state loop-state state)
   (lognotice |Engine/Resources| (engine/showrusage)))
+
+;;; Filling the fifo
+
+(define (engine/fill! fifo fillfn loop-state fillmin fillmax)
+  (unless (or (test loop-state 'stopped)
+	      (test loop-state 'stopping)
+	      (> (fifo-load fifo) fillmin))
+    (dotimes (i (- fillmax (fifo-load fifo)))
+      (let ((item (fillfn fifo loop-state)))
+	(when (and (exists? item) item)
+	  (fifo/push! fifo item))))))
 
 ;;; Checkpointing
 
