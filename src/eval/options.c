@@ -159,6 +159,12 @@ static lispval optionsp_prim(lispval opts)
 static lispval opts_plus_prim(int n,lispval *args)
 {
   int i = 0;
+  /* *back* is the options list and *front* is where specified values
+     should be stored. We walk the arguments, either adding tables to
+     the options list, setting options on *front*, or creating new
+     slotmaps to get *front*. This was made more complicated when
+     schemaps started to be common elements in options lists.
+  */
   lispval back = FD_FALSE, front = FD_VOID;
   if (n == 0)
     return fd_make_slotmap(3,0,NULL);
