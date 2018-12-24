@@ -1065,27 +1065,42 @@ FD_EXPORT lispval fd_make_schemap
   (struct FD_SCHEMAP *ptr,int size,int flags,
    lispval *schema,lispval *values)
 {
-  int i=0;
-  if (ptr == NULL) ptr=u8_alloc(struct FD_SCHEMAP);
+  int i=0, stackvec = 0;
+  lispval *vec = values;
+  if (ptr == NULL) {
+    if (flags&FD_SCHEMAP_INLINE) {
+      void *consed = u8_malloc(sizeof(struct FD_SCHEMAP)+(sizeof(lispval)*size));
+      ptr = (struct FD_SCHEMAP *) consed;
+      vec = (lispval *) (consed + sizeof(struct FD_SCHEMAP));
+      stackvec = 1;}
+    else ptr=u8_alloc(struct FD_SCHEMAP);}
+  if (vec == NULL) vec = u8_alloc_n(size,lispval);
   FD_INIT_STRUCT(ptr,struct FD_SCHEMAP);
   FD_INIT_CONS(ptr,fd_schemap_type);
-  ptr->table_schema=schema;
   ptr->schema_length=size;
-  if (flags&FD_SCHEMAP_SORTED) ptr->schemap_sorted=1;
-  if (flags&FD_SCHEMAP_PRIVATE)
+  if (flags&FD_SCHEMAP_PRIVATE) {
     ptr->schemap_shared=0;
-  else ptr->schemap_shared=1;
+    ptr->table_schema=schema;}
+  else if ( (flags) & (FD_SCHEMAP_COPY_SCHEMA) ) {
+    lispval *copied = u8_alloc_n(size,lispval);
+    memcpy(copied,schema,sizeof(lispval)*size);
+    fd_incref_vec(copied,size),
+    ptr->table_schema=copied;
+    ptr->schemap_shared=0;}
+  else {
+    ptr->table_schema=schema;
+    ptr->schemap_shared=1;}
+  if (flags&FD_SCHEMAP_SORTED) ptr->schemap_sorted=1;
   if (flags&FD_SCHEMAP_READONLY) ptr->table_readonly=1;
   if (flags&FD_SCHEMAP_MODIFIED) ptr->table_modified=1;
-  if (values)
-    ptr->schema_values=values;
-  else if (size==0)
-    ptr->schema_values=NULL;
-  else {
-    ptr->schema_values=values=u8_alloc_n(size,lispval);
-    while (i<size) values[i++]=VOID;}
-  ptr->table_uselock=1;
+  ptr->schema_values=vec;
+  ptr->schemap_stackvec = stackvec;
+  if (vec == values) {}
+  else if (values)
+    memcpy(vec,values,sizeof(lispval)*size);
+  else while (i<size) vec[i++]=VOID;
   u8_init_rwlock(&(ptr->table_rwlock));
+  ptr->table_uselock=1;
   return LISP_CONS(ptr);
 }
 
@@ -1136,10 +1151,11 @@ static lispval copy_schemap(lispval schemap,int flags)
   int unlock = 0;
   struct FD_SCHEMAP *ptr=
     fd_consptr(struct FD_SCHEMAP *,schemap,fd_schemap_type);
-  struct FD_SCHEMAP *nptr=u8_alloc(struct FD_SCHEMAP);
   int i=0, size=FD_XSCHEMAP_SIZE(ptr);
+  struct FD_SCHEMAP *nptr =
+    u8_malloc(sizeof(struct FD_SCHEMAP)+(size*sizeof(lispval)));
   lispval *ovalues=ptr->schema_values;
-  lispval *values=((size==0) ? (NULL) : (u8_alloc_n(size,lispval)));
+  lispval *values= (lispval *)(((void *)nptr)+sizeof(struct FD_SCHEMAP));
   lispval *schema=ptr->table_schema, *nschema=NULL;
   if (FD_XSCHEMAP_USELOCKP(ptr)) {
     fd_read_lock_table(ptr);
@@ -1179,6 +1195,7 @@ static lispval copy_schemap(lispval schemap,int flags)
   if  ( ptr->table_schema == nptr->table_schema ) {
     ptr->schemap_shared=nptr->schemap_shared=1;}
   if (unlock) fd_unlock_table(ptr);
+  nptr->schemap_stackvec=1;
   nptr->table_uselock=1;
   u8_init_rwlock(&(nptr->table_rwlock));
   return LISP_CONS(nptr);
@@ -1187,28 +1204,33 @@ static lispval copy_schemap(lispval schemap,int flags)
 FD_EXPORT lispval fd_init_schemap
   (struct FD_SCHEMAP *ptr, int size, struct FD_KEYVAL *init)
 {
-  int i=0; lispval *news, *newv;
+  int i=0, stackvec = 0;
+  lispval *new_schema, *new_vals;
   if (ptr == NULL) {
-    ptr=u8_alloc(struct FD_SCHEMAP);
-    FD_INIT_FRESH_CONS(ptr,fd_schemap_type);}
+    ptr=u8_malloc(sizeof(struct FD_SCHEMAP)+(size*sizeof(lispval)));
+    FD_INIT_FRESH_CONS(ptr,fd_schemap_type);
+    new_vals=(lispval *)(((void *)ptr)+sizeof(struct FD_SCHEMAP));
+    stackvec=1;}
   else {
-    FD_SET_CONS_TYPE(ptr,fd_schemap_type);}
-  news=u8_alloc_n(size,lispval);
-  ptr->schema_values=newv=u8_alloc_n(size,lispval);
+    FD_SET_CONS_TYPE(ptr,fd_schemap_type);
+    new_vals = u8_alloc_n(size,lispval);}
+  new_schema=u8_alloc_n(size,lispval);
+  ptr->schema_values=new_vals;
   ptr->schema_length=size;
-  ptr->schemap_sorted=1;
+  ptr->schemap_sorted=0;
   sort_keyvals(init,size);
   while (i<size) {
-    news[i]=init[i].kv_key;
-    newv[i]=init[i].kv_val;
+    new_schema[i]=init[i].kv_key;
+    new_vals[i]=init[i].kv_val;
     i++;}
-  ptr->table_schema=fd_register_schema(size,news);
-  if (ptr->table_schema != news) {
+  /* ptr->table_schema=fd_register_schema(size,new_schema); */
+  ptr->table_schema = new_schema;
+  if (ptr->table_schema != new_schema) {
     ptr->schemap_shared=1;
-    u8_free(news);}
-  u8_free(init);
-  ptr->table_uselock=1;
+    u8_free(new_schema);}
+  if (stackvec) ptr->schemap_stackvec = 1;
   u8_init_rwlock(&(ptr->table_rwlock));
+  ptr->table_uselock=1;
   return LISP_CONS(ptr);
 }
 
@@ -1411,7 +1433,8 @@ static void recycle_schemap(struct FD_RAW_CONS *c)
       lispval *scan=sm->schema_values;
       lispval *limit=sm->schema_values+schemap_size;
       while (scan < limit) {fd_decref(*scan); scan++;}
-      u8_free(sm->schema_values);}
+      if (! (sm->schemap_stackvec) )
+        u8_free(sm->schema_values);}
     if ((sm->table_schema) && (!(sm->schemap_shared)))
       u8_free(sm->table_schema);
     if (unlock) fd_unlock_table(sm);
@@ -1427,7 +1450,7 @@ static int unparse_schemap(u8_output out,lispval x)
   {
     int i=0, schemap_size=FD_XSCHEMAP_SIZE(sm);
     lispval *schema=sm->table_schema, *values=sm->schema_values;
-    u8_puts(out,"#[");
+    u8_puts(out,"[");
     if (i<schemap_size) {
       fd_unparse(out,schema[i]); u8_putc(out,' ');
       fd_unparse(out,values[i]); i++;}

@@ -336,6 +336,7 @@ typedef struct FD_SCHEMAP {
   unsigned int schemap_tagged:1;
   unsigned int schemap_shared:1;
   unsigned int schemap_stackvals:1;
+  unsigned int schemap_stackvec:1;
   lispval *table_schema, *schema_values;
   U8_RWLOCK_DECL(table_rwlock);} FD_SCHEMAP;
 
@@ -348,6 +349,8 @@ typedef struct FD_SCHEMAP {
 #define FD_SCHEMAP_FIXED 32
 /* Tagged schemaps keep an integer ID in their n+1st element */
 #define FD_SCHEMAP_TAGGED 64
+#define FD_SCHEMAP_INLINE 128
+#define FD_SCHEMAP_COPY_SCHEMA 256
 
 #define FD_SCHEMAP_LEN (sizeof(struct FD_SCHEMAP))
 

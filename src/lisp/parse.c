@@ -974,10 +974,23 @@ static lispval parse_slotmap(U8_INPUT *in)
   lispval *elts = parse_vec(in,']',&n_elts), result = FD_VOID;
   if (PRED_FALSE(n_elts<0))
     return FD_PARSE_ERROR;
-  else if (n_elts>7)
-    result = fd_init_slotmap(NULL,n_elts/2,(struct FD_KEYVAL *)elts);
-  else {
+  else if (n_elts<=7)  {
+    /* If it's a short slotmap, allocate the map 'inline' with the
+       object (that's what fd_make_slotmap does) */
     result = fd_make_slotmap(n_elts/2,n_elts/2,(struct FD_KEYVAL *)elts);
+    u8_free(elts);}
+  else result = fd_init_slotmap(NULL,n_elts/2,(struct FD_KEYVAL *)elts);
+  return result;
+}
+
+static lispval parse_schemap(U8_INPUT *in)
+{
+  int n_elts = -2;
+  lispval *elts = parse_vec(in,']',&n_elts), result = FD_VOID;
+  if (PRED_FALSE(n_elts<0))
+    return FD_PARSE_ERROR;
+  else {
+    result = fd_init_schemap(NULL,n_elts/2,(struct FD_KEYVAL *)elts);
     u8_free(elts);}
   return result;
 }
@@ -1083,187 +1096,190 @@ lispval fd_parser(u8_input in)
     if (inchar== -1) return FD_EOX;
     else return FD_PARSE_ERROR;}
   else switch (inchar) {
-  case ')': case ']': case '}': {
-    u8_string details=u8_get_input_context(in,32,32,">!<");
-    u8_getc(in); /* Consume the character */
-    return fd_err(fd_ParseError,"unexpected terminator",
-                  details,FD_CODE2CHAR(inchar));}
-  case '"': return parse_string(in);
-  case '@': return parse_oid(in);
-  case '(':
-    /* Skip the open paren and parse the list */
-    u8_getc(in); return parse_list(in);
-  case '{':
-    /* Skip the open brace and parse the choice */
-    u8_getc(in); return parse_choice(in);
-  case '\'': {
-    lispval content;
-    u8_getc(in); /* Skip the quote mark */
-    content = fd_parser(in);
-    if (PARSE_ABORTP(content))
-      return content;
-    else return fd_make_list(2,quote_symbol,content);}
-  case '`': {
-    lispval content;
-    u8_getc(in); /* Skip the quote mark */
-    content = fd_parser(in);
-    if (PARSE_ABORTP(content))
-      return content;
-    else return fd_make_list(2,quasiquote_symbol,content);}
-  case ',': {
-    lispval content; int c = u8_getc(in); c = u8_getc(in);
-    /* Skip the quote mark and check for an atsign. */
-    if (c != '@') u8_ungetc(in,c);
-    content = fd_parser(in);
-    if (PARSE_ABORTP(content))
-      return content;
-    else if (c == '@')
-      return fd_make_list(2,unquotestar_symbol,content);
-    else return fd_make_list(2,unquote_symbol,content);}
-  case '|': { /* Escaped symbol */
-    struct U8_OUTPUT tmpbuf; char buf[128];
-    lispval result; U8_MAYBE_UNUSED int c;
-    U8_INIT_STATIC_OUTPUT_BUF(tmpbuf,128,buf);
-    c = copy_atom(in,&tmpbuf,1);
-    result = fd_make_symbol(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
-    if (tmpbuf.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpbuf.u8_outbuf);
-    return result;}
-  case '#': {
-    /* Absorb the # and set ch to the next character, dispatching on
-       that */
-    int ch = u8_getc(in); ch = u8_getc(in);
-    if (u8_isdigit(ch)) {
-      u8_ungetc(in,ch);
-      return parse_histref(in);}
-    else if (u8_ispunct(ch)) switch (ch) {
-      case '(': return parse_vector(in);
-      case '~': {
-        ch = u8_getc(in); if (ch<0) return FD_EOX;
-        if (ch!='(') return fd_err(fd_ParseError,"fd_parser",NULL,VOID);
-        return parse_code(in);}
-      case '{': return parse_qchoice(in);
-      case '[': return parse_slotmap(in);
-      case '|': {
-        int bar = 0;
-        /* Skip block #|..|# comment */
-        while ((ch = u8_getc(in))>=0)
-          if (ch=='|') bar = 1;
-          else if ((bar) && (ch=='#')) break;
-          else bar = 0;
-        if (ch<0) {
-          u8_seterr(fd_UnterminatedBlockComment,"fd_parser",NULL);
-          return FD_PARSE_ERROR;}
-        else return fd_parser(in);}
-      case '*': {
-        int nextc = u8_getc(in);
-        lispval result = parse_packet(in,nextc);
-        if (FD_ABORTP(result)) return result;
-        else if (PACKETP(result)) {
-          FD_SET_CONS_TYPE(result,fd_secret_type);}
-        return result;}
-      case '"':
-        return parse_packet(in,ch);
-      case '/': return parse_regex(in);
-      case '>':
-        /* This sequence #> is used as decoration in slotmaps. It
-           doesn't read as anything. */
-        return fd_parser(in);
-      case '<': return parse_opaque(in);
-      case ':': {
-        int label_length = 0;
-        U8_STATIC_OUTPUT(label,200);
-        u8_putc(labelout,'#');
-        ch = u8_getc(in);
-        while ( ( ch >= 0 ) && (label_length < 42) &&
-                (strchr("{(\":'`#",ch) == NULL) ) {
-          int uch = u8_toupper(ch);
-          u8_putc(labelout,uch);
+    case ')': case ']': case '}': {
+      u8_string details=u8_get_input_context(in,32,32,">!<");
+      u8_getc(in); /* Consume the character */
+      return fd_err(fd_ParseError,"unexpected terminator",
+                    details,FD_CODE2CHAR(inchar));}
+    case '"': return parse_string(in);
+    case '@': return parse_oid(in);
+    case '(':
+      /* Skip the open paren and parse the list */
+      u8_getc(in); return parse_list(in);
+    case '{':
+      /* Skip the open brace and parse the choice */
+      u8_getc(in); return parse_choice(in);
+    case '\'': {
+      lispval content;
+      u8_getc(in); /* Skip the quote mark */
+      content = fd_parser(in);
+      if (PARSE_ABORTP(content))
+        return content;
+      else return fd_make_list(2,quote_symbol,content);}
+    case '`': {
+      lispval content;
+      u8_getc(in); /* Skip the quote mark */
+      content = fd_parser(in);
+      if (PARSE_ABORTP(content))
+        return content;
+      else return fd_make_list(2,quasiquote_symbol,content);}
+    case ',': {
+      lispval content; int c = u8_getc(in); c = u8_getc(in);
+      /* Skip the quote mark and check for an atsign. */
+      if (c != '@') u8_ungetc(in,c);
+      content = fd_parser(in);
+      if (PARSE_ABORTP(content))
+        return content;
+      else if (c == '@')
+        return fd_make_list(2,unquotestar_symbol,content);
+      else return fd_make_list(2,unquote_symbol,content);}
+    case '|': { /* Escaped symbol */
+      struct U8_OUTPUT tmpbuf; char buf[128];
+      lispval result; U8_MAYBE_UNUSED int c;
+      U8_INIT_STATIC_OUTPUT_BUF(tmpbuf,128,buf);
+      c = copy_atom(in,&tmpbuf,1);
+      result = fd_make_symbol(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
+      if (tmpbuf.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpbuf.u8_outbuf);
+      return result;}
+    case '[': {
+      return parse_schemap(in);
+    }
+    case '#': {
+      /* Absorb the # and set ch to the next character, dispatching on
+         that */
+      int ch = u8_getc(in); ch = u8_getc(in);
+      if (u8_isdigit(ch)) {
+        u8_ungetc(in,ch);
+        return parse_histref(in);}
+      else if (u8_ispunct(ch)) switch (ch) {
+        case '(': return parse_vector(in);
+        case '~': {
+          ch = u8_getc(in); if (ch<0) return FD_EOX;
+          if (ch!='(') return fd_err(fd_ParseError,"fd_parser",NULL,VOID);
+          return parse_code(in);}
+        case '{': return parse_qchoice(in);
+        case '[': return parse_slotmap(in);
+        case '|': {
+          int bar = 0;
+          /* Skip block #|..|# comment */
+          while ((ch = u8_getc(in))>=0)
+            if (ch=='|') bar = 1;
+            else if ((bar) && (ch=='#')) break;
+            else bar = 0;
+          if (ch<0) {
+            u8_seterr(fd_UnterminatedBlockComment,"fd_parser",NULL);
+            return FD_PARSE_ERROR;}
+          else return fd_parser(in);}
+        case '*': {
+          int nextc = u8_getc(in);
+          lispval result = parse_packet(in,nextc);
+          if (FD_ABORTP(result)) return result;
+          else if (PACKETP(result)) {
+            FD_SET_CONS_TYPE(result,fd_secret_type);}
+          return result;}
+        case '"':
+          return parse_packet(in,ch);
+        case '/': return parse_regex(in);
+        case '>':
+          /* This sequence #> is used as decoration in slotmaps. It
+             doesn't read as anything. */
+          return fd_parser(in);
+        case '<': return parse_opaque(in);
+        case ':': {
+          int label_length = 0;
+          U8_STATIC_OUTPUT(label,200);
+          u8_putc(labelout,'#');
           ch = u8_getc(in);
-          label_length++;}
-        if ( (strchr("{(\":;'`#",ch) == NULL) || (label_length >= 42) ) {
-          u8_seterr("Unclosed Reader Macro","fd_parser",NULL);
-          return FD_PARSE_ERROR;}
-        if (! (ch == ':') ) u8_ungetc(in,ch);
-        lispval sym = fd_intern(label.u8_outbuf), next = fd_parser(in);
-        return fd_make_list(2,sym,next);}
-      case ';': {
-        lispval content = fd_parser(in);
-        if (PARSE_ABORTP(content))
-          return content;
-        else return fd_conspair(comment_symbol,fd_conspair(content,NIL));}
-      case '%': {
-        int c = u8_getc(in);
-        if (c=='(')
-          return parse_record(in);
-        else {
-          u8_string details=u8_get_input_context(in,32,32,">!<");
-          u8_seterr("BadRecordExpression","fd_parser",details);
-          return FD_PARSE_ERROR;}}
-      case '\\': return parse_character(in);
-      case '#': return parse_histref(in);
-      case '!': /* pointer reference, often disabled */
-        return parse_atom(in,inchar,ch,1);
-      case '.': case ',': {
-        int nch = u8_getc(in);
-        if (nch == -1) return FD_EOX;
-        else if (nch == '[') {
-          lispval slotmap = parse_slotmap(in);
-          if (PARSE_ABORTP(slotmap))
-            return slotmap;
-          else return fd_make_list(2,struct_eval_symbol,slotmap);}
-        else if (nch == '(') {
-          lispval vec = parse_vector(in);
-          if (PARSE_ABORTP(vec))
-            return vec;
-          else return fd_make_list(2,struct_eval_symbol,vec);}
-        else if (ch == '%') {
-          int rch = u8_getc(in);
-          if (rch == '(') {
-            lispval rec = parse_record(in);
-            if (PARSE_ABORTP(rec))
-              return rec;
-            else return fd_make_list(2,struct_eval_symbol,rec);}
+          while ( ( ch >= 0 ) && (label_length < 42) &&
+                  (strchr("{(\":'`#",ch) == NULL) ) {
+            int uch = u8_toupper(ch);
+            u8_putc(labelout,uch);
+            ch = u8_getc(in);
+            label_length++;}
+          if ( (strchr("{(\":;'`#",ch) == NULL) || (label_length >= 42) ) {
+            u8_seterr("Unclosed Reader Macro","fd_parser",NULL);
+            return FD_PARSE_ERROR;}
+          if (! (ch == ':') ) u8_ungetc(in,ch);
+          lispval sym = fd_intern(label.u8_outbuf), next = fd_parser(in);
+          return fd_make_list(2,sym,next);}
+        case ';': {
+          lispval content = fd_parser(in);
+          if (PARSE_ABORTP(content))
+            return content;
+          else return fd_conspair(comment_symbol,fd_conspair(content,NIL));}
+        case '%': {
+          int c = u8_getc(in);
+          if (c=='(')
+            return parse_record(in);
           else {
             u8_string details=u8_get_input_context(in,32,32,">!<");
-            u8_seterr("BadHashDotRecord","fd_parser",details);
+            u8_seterr("BadRecordExpression","fd_parser",details);
             return FD_PARSE_ERROR;}}
-        else {
-          lispval obj = fd_parser(in);
-          if (PARSE_ABORTP(obj))
-            return obj;
-          else return fd_make_list(2,struct_eval_symbol,obj);}}
-      default: {
-        /* This introduced a hash-punct sequence which is used
-           for other kinds of character macros. */
-        u8_byte buf[16]; struct U8_OUTPUT out; int nch;
-        lispval punct_code, punct_code_arg;
-        U8_INIT_OUTPUT_X(&out,16,buf,U8_FIXED_STREAM);
-        u8_putc(&out,'#'); u8_putc(&out,ch); nch = u8_getc(in);
-        while ((u8_ispunct(nch))&&
-               ((nch>128)||(strchr("\"([{",nch) == NULL))) {
-          u8_putc(&out,nch);
-          if ((out.u8_write-out.u8_outbuf)>11) {
-            fd_seterr(fd_ParseError,"fd_parser","invalid hash # prefix",
-                      fd_stream2string(&out));
-            return FD_PARSE_ERROR;}
-          else nch = u8_getc(in);}
-        u8_ungetc(in,nch);
-        punct_code = fd_intern(buf);
-        punct_code_arg = fd_parser(in);
-        return fd_make_list(2,punct_code,punct_code_arg);}}
-    else switch (ch) {
-      case 'U': return parse_atom(in,inchar,ch,1); /* UUID */
-      case 'T': return parse_atom(in,inchar,ch,1); /* TIMESTAMP */
-      case 'X': case 'B': case 'x': case 'b': {
-        int probec = u8_probec(in);
-        if (probec == '"')
-          return parse_packet(in,ch);
-        else {
-          /* In this case, it's just an atom */
-          u8_ungetc(in,ch);
-          return parse_atom(in,'#',-1,1);}}
-      default:
-        return parse_atom(in,'#',ch,1);}}
+        case '\\': return parse_character(in);
+        case '#': return parse_histref(in);
+        case '!': /* pointer reference, often disabled */
+          return parse_atom(in,inchar,ch,1);
+        case '.': case ',': {
+          int nch = u8_getc(in);
+          if (nch == -1) return FD_EOX;
+          else if (nch == '[') {
+            lispval slotmap = parse_slotmap(in);
+            if (PARSE_ABORTP(slotmap))
+              return slotmap;
+            else return fd_make_list(2,struct_eval_symbol,slotmap);}
+          else if (nch == '(') {
+            lispval vec = parse_vector(in);
+            if (PARSE_ABORTP(vec))
+              return vec;
+            else return fd_make_list(2,struct_eval_symbol,vec);}
+          else if (ch == '%') {
+            int rch = u8_getc(in);
+            if (rch == '(') {
+              lispval rec = parse_record(in);
+              if (PARSE_ABORTP(rec))
+                return rec;
+              else return fd_make_list(2,struct_eval_symbol,rec);}
+            else {
+              u8_string details=u8_get_input_context(in,32,32,">!<");
+              u8_seterr("BadHashDotRecord","fd_parser",details);
+              return FD_PARSE_ERROR;}}
+          else {
+            lispval obj = fd_parser(in);
+            if (PARSE_ABORTP(obj))
+              return obj;
+            else return fd_make_list(2,struct_eval_symbol,obj);}}
+        default: {
+          /* This introduced a hash-punct sequence which is used
+             for other kinds of character macros. */
+          u8_byte buf[16]; struct U8_OUTPUT out; int nch;
+          lispval punct_code, punct_code_arg;
+          U8_INIT_OUTPUT_X(&out,16,buf,U8_FIXED_STREAM);
+          u8_putc(&out,'#'); u8_putc(&out,ch); nch = u8_getc(in);
+          while ((u8_ispunct(nch))&&
+                 ((nch>128)||(strchr("\"([{",nch) == NULL))) {
+            u8_putc(&out,nch);
+            if ((out.u8_write-out.u8_outbuf)>11) {
+              fd_seterr(fd_ParseError,"fd_parser","invalid hash # prefix",
+                        fd_stream2string(&out));
+              return FD_PARSE_ERROR;}
+            else nch = u8_getc(in);}
+          u8_ungetc(in,nch);
+          punct_code = fd_intern(buf);
+          punct_code_arg = fd_parser(in);
+          return fd_make_list(2,punct_code,punct_code_arg);}}
+      else switch (ch) {
+        case 'U': return parse_atom(in,inchar,ch,1); /* UUID */
+        case 'T': return parse_atom(in,inchar,ch,1); /* TIMESTAMP */
+        case 'X': case 'B': case 'x': case 'b': {
+          int probec = u8_probec(in);
+          if (probec == '"')
+            return parse_packet(in,ch);
+          else {
+            /* In this case, it's just an atom */
+            u8_ungetc(in,ch);
+            return parse_atom(in,'#',-1,1);}}
+        default:
+          return parse_atom(in,'#',ch,1);}}
     default:
       return parse_atom(in,-1,-1,1);}
 }
