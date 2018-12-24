@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-12-07 19:48+0000\n"
+"POT-Creation-Date: 2018-12-24 18:39+0000\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -363,12 +363,12 @@ msgstr ""
 msgid "no handler"
 msgstr ""
 
-#: src/lisp/unparse.c:531
+#: src/lisp/unparse.c:530
 #, c-format
 msgid "#<MysteryVector 0x%x/0x%x %lld elements>"
 msgstr ""
 
-#: src/lisp/unparse.c:534
+#: src/lisp/unparse.c:533
 #, c-format
 msgid "#<MysteryPacket 0x%x/0x%x %lld bytes>"
 msgstr ""
@@ -381,7 +381,7 @@ msgstr ""
 msgid "oid"
 msgstr ""
 
-#: src/lisp/lisp.c:62 src/support/config.c:698 src/eval/eval.c:1247
+#: src/lisp/lisp.c:62 src/support/config.c:698 src/eval/eval.c:1270
 #: src/eval/opcode_defs.c:74 src/prims/dbprims.c:2611 src/prims/portprims.c:428
 #: src/eval/choiceops.c:1218 src/eval/choiceops.c:1251
 #: src/eval/choiceops.c:1270 src/eval/choiceops.c:1301
@@ -405,7 +405,7 @@ msgstr ""
 msgid "constant"
 msgstr ""
 
-#: src/lisp/lisp.c:67 src/eval/eval.c:1145 src/eval/modules.c:735
+#: src/lisp/lisp.c:67 src/eval/eval.c:1168 src/eval/modules.c:735
 #: src/eval/reflection.c:745
 msgid "symbol"
 msgstr ""
@@ -414,11 +414,11 @@ msgstr ""
 msgid "fcnid"
 msgstr ""
 
-#: src/lisp/lisp.c:69 src/eval/eval.c:1836
+#: src/lisp/lisp.c:69 src/eval/eval.c:1859
 msgid "lexref"
 msgstr ""
 
-#: src/lisp/lisp.c:70 src/eval/eval.c:1842
+#: src/lisp/lisp.c:70 src/eval/eval.c:1865
 msgid "opcode"
 msgstr ""
 
@@ -435,7 +435,7 @@ msgstr ""
 msgid "pool"
 msgstr ""
 
-#: src/lisp/lisp.c:74 src/storage/indexes.c:1115 src/storage/indexes.c:2346
+#: src/lisp/lisp.c:74 src/storage/indexes.c:1115 src/storage/indexes.c:2349
 #: src/storage/slotindexes.c:170 src/prims/dbprims.c:648
 #: src/prims/dbprims.c:1537 src/prims/dbprims.c:1549 src/prims/dbprims.c:1574
 msgid "index"
@@ -454,13 +454,13 @@ msgstr ""
 #: src/prims/streamprims.c:528 src/prims/streamprims.c:543
 #: src/prims/streamprims.c:563 src/prims/streamprims.c:594
 #: src/prims/streamprims.c:612 src/prims/stringprims.c:341
-#: src/prims/stringprims.c:697 src/prims/stringprims.c:718
-#: src/prims/stringprims.c:1173 src/prims/fileprims.c:271
+#: src/prims/stringprims.c:720 src/prims/stringprims.c:741
+#: src/prims/stringprims.c:1196 src/prims/fileprims.c:271
 #: src/prims/fileprims.c:560 src/web/cgiexec.c:1282 src/web/cgiexec.c:1309
 #: src/web/htmlout.c:578 src/web/uriprims.c:393 src/web/mime.c:110
 #: src/web/curl.c:636 src/text/texttools.c:141 src/text/texttools.c:168
-#: src/text/texttools.c:540 src/exe/fdservlet.c:255 src/exe/webcommon.h:260
-#: src/exe/webcommon.h:319
+#: src/text/texttools.c:540 src/exe/fdservlet.c:255 src/exe/webcommon.h:262
+#: src/exe/webcommon.h:321
 msgid "string"
 msgstr ""
 
@@ -476,7 +476,7 @@ msgstr ""
 msgid "bigint"
 msgstr ""
 
-#: src/lisp/lisp.c:81 src/eval/eval.c:1248 src/eval/opcode_defs.c:187
+#: src/lisp/lisp.c:81 src/eval/eval.c:1271 src/eval/opcode_defs.c:187
 #: src/eval/opcode_defs.c:189 src/eval/opcode_defs.c:202
 #: src/eval/opcode_defs.c:204
 msgid "pair"
@@ -531,7 +531,7 @@ msgstr ""
 msgid "builtin function"
 msgstr ""
 
-#: src/lisp/lisp.c:97 src/eval/eval.c:1164 src/eval/reflection.c:719
+#: src/lisp/lisp.c:97 src/eval/eval.c:1187 src/eval/reflection.c:719
 #: src/eval/reflection.c:757
 msgid "environment"
 msgstr ""
@@ -1116,23 +1116,23 @@ msgstr ""
 msgid "Internal stack size didn't make any sense, punting"
 msgstr ""
 
-#: src/apply/apply.c:610
+#: src/apply/apply.c:612
 msgid "Negative arg count"
 msgstr ""
 
-#: src/apply/apply.c:1165
+#: src/apply/apply.c:1168
 msgid "Definition Failed"
 msgstr ""
 
-#: src/apply/apply.c:1271
+#: src/apply/apply.c:1274
 msgid "Size of the stack (in bytes or as a factor of the current size)"
 msgstr ""
 
-#: src/apply/apply.c:1275
+#: src/apply/apply.c:1278
 msgid "Whether to profile function applications by default"
 msgstr ""
 
-#: src/apply/apply.c:1279
+#: src/apply/apply.c:1282
 msgid "Functions declared for profiling"
 msgstr ""
 
@@ -1449,71 +1449,71 @@ msgstr ""
 msgid "not an index"
 msgstr ""
 
-#: src/storage/indexes.c:1262
+#: src/storage/indexes.c:1265
 #, c-format
 msgid "Syncing %d changes to %s"
 msgstr ""
 
-#: src/storage/indexes.c:1269
+#: src/storage/indexes.c:1272
 #, c-format
 msgid "(after %fs) syncing %d changes to %s, rolling back"
 msgstr ""
 
-#: src/storage/indexes.c:1273
+#: src/storage/indexes.c:1276
 #, c-format
 msgid "Synced %d changes to %s in %f secs"
 msgstr ""
 
-#: src/storage/indexes.c:1410
+#: src/storage/indexes.c:1413
 #, c-format
 msgid "Committing %d %s (+%d-%d:=%d%s) to %s"
 msgstr ""
 
-#: src/storage/indexes.c:1425
+#: src/storage/indexes.c:1428
 #, c-format
 msgid "Wrote %d changes to %s after %f secs"
 msgstr ""
 
-#: src/storage/indexes.c:1431
+#: src/storage/indexes.c:1434
 #, c-format
 msgid "Error writing %d changes to %s after %f secs, rolling back"
 msgstr ""
 
-#: src/storage/indexes.c:1503
+#: src/storage/indexes.c:1506
 #, c-format
 msgid ""
 "for %d %supdated keys from %s after %f secstotal=%f, start=%f, setup=%f, "
 "save=%f, finalize=%f, apply=%f, cleanup=%f"
 msgstr ""
 
-#: src/storage/indexes.c:1516
+#: src/storage/indexes.c:1519
 #, c-format
 msgid ""
 "Committed %d%s from '%s' in %f\n"
 "total=%f, start=%f, setup=%f, save=%f, finalize=%f, apply=%f, cleanup=%f"
 msgstr ""
 
-#: src/storage/indexes.c:1665
+#: src/storage/indexes.c:1668
 #, c-format
 msgid "Saving %d changes (+%d-%d=%d%s) to %s"
 msgstr ""
 
-#: src/storage/indexes.c:1947
+#: src/storage/indexes.c:1950
 #, c-format
 msgid "#<%s %s (%s) cx=%d+%d%s #!%llx \"%s...\">"
 msgstr ""
 
-#: src/storage/indexes.c:1950
+#: src/storage/indexes.c:1953
 #, c-format
 msgid "#<%s %s (%s) cx=%d+%d%s #!%llx \"%s\">"
 msgstr ""
 
-#: src/storage/indexes.c:1952
+#: src/storage/indexes.c:1955
 #, c-format
 msgid "#<%s %s (%s) cx=%d+%d%s #!%llx>"
 msgstr ""
 
-#: src/storage/indexes.c:2350
+#: src/storage/indexes.c:2353
 msgid "raw index"
 msgstr ""
 
@@ -1876,25 +1876,25 @@ msgstr ""
 msgid "opcode name"
 msgstr ""
 
-#: src/eval/eval.c:613 src/eval/reflection.c:552
+#: src/eval/eval.c:617 src/eval/reflection.c:552
 msgid "macro expansion"
 msgstr ""
 
-#: src/eval/eval.c:913 src/eval/opcode_defs.c:259 src/eval/opcode_defs.c:337
+#: src/eval/eval.c:936 src/eval/opcode_defs.c:259 src/eval/opcode_defs.c:337
 #: src/eval/opcode_defs.c:362 src/eval/opcode_defs.c:470
 #: src/eval/opcode_defs.c:531
 msgid "Invalid opcode"
 msgstr ""
 
-#: src/eval/eval.c:1450
+#: src/eval/eval.c:1473
 msgid "Server unconfigured"
 msgstr ""
 
-#: src/eval/eval.c:1527 src/eval/eval.c:1537
+#: src/eval/eval.c:1550 src/eval/eval.c:1560
 msgid "server"
 msgstr ""
 
-#: src/eval/eval.c:1840
+#: src/eval/eval.c:1863
 msgid "coderef"
 msgstr ""
 
@@ -1906,7 +1906,11 @@ msgstr ""
 msgid "number|string"
 msgstr ""
 
-#: src/eval/debug.c:520
+#: src/eval/debug.c:421 src/eval/conditionals.c:122
+msgid "invalid cond clause"
+msgstr ""
+
+#: src/eval/debug.c:660
 msgid "missing directory"
 msgstr ""
 
@@ -1952,10 +1956,6 @@ msgstr ""
 
 #: src/eval/errfns.c:21
 msgid "Undistinguished Scheme Error"
-msgstr ""
-
-#: src/eval/conditionals.c:122
-msgid "invalid cond clause"
 msgstr ""
 
 #: src/eval/iterators.c:91 src/eval/iterators.c:94 src/eval/choiceops.c:50
@@ -2267,7 +2267,7 @@ msgstr ""
 msgid "string or character"
 msgstr ""
 
-#: src/prims/stringprims.c:1033 src/prims/stringprims.c:1079
+#: src/prims/stringprims.c:1056 src/prims/stringprims.c:1102
 msgid "text encoding"
 msgstr ""
 
@@ -2761,95 +2761,95 @@ msgstr ""
 msgid ";; %s computed in %f seconds, %d/%d object/index loads\n"
 msgstr ""
 
-#: src/exe/fdconsole.c:745
+#: src/exe/fdconsole.c:748
 msgid "Threshold for displaying execution time"
 msgstr ""
 
-#: src/exe/fdconsole.c:747
+#: src/exe/fdconsole.c:750
 msgid "Eval prompt (within #||#s)"
 msgstr ""
 
-#: src/exe/fdconsole.c:751
+#: src/exe/fdconsole.c:754
 msgid "Max number of string characters to display in debug message"
 msgstr ""
 
-#: src/exe/fdconsole.c:755
+#: src/exe/fdconsole.c:758
 msgid "Max number of sequence/choice elements to display in debug message"
 msgstr ""
 
-#: src/exe/fdconsole.c:758
+#: src/exe/fdconsole.c:761
 msgid "Whether to minimize console output"
 msgstr ""
 
-#: src/exe/fdconsole.c:761
+#: src/exe/fdconsole.c:764
 msgid "Report startup times when longer than N seconds"
 msgstr ""
 
-#: src/exe/fdconsole.c:765
+#: src/exe/fdconsole.c:768
 msgid "Number of characters available for pretty-printing console output"
 msgstr ""
 
-#: src/exe/fdconsole.c:769
+#: src/exe/fdconsole.c:772
 msgid "Number of elements to initially show in displaying results"
 msgstr ""
 
-#: src/exe/fdconsole.c:772
+#: src/exe/fdconsole.c:775
 msgid "Where to create directories for saving backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:775
+#: src/exe/fdconsole.c:778
 msgid "The base URL for referencing HTML backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:778
+#: src/exe/fdconsole.c:781
 msgid "The command to use to open saved backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:781
+#: src/exe/fdconsole.c:784
 msgid "Whether to dump HTML versions of backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:784
+#: src/exe/fdconsole.c:787
 msgid "Whether to dump LISP object versions of backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:787
+#: src/exe/fdconsole.c:790
 msgid "Whether to dump binary DTYPE versions of backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:790
+#: src/exe/fdconsole.c:793
 msgid "Whether to plaintext versions of backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:793
+#: src/exe/fdconsole.c:796
 msgid "Whether to always save backtraces in the history"
 msgstr ""
 
-#: src/exe/fdconsole.c:796
+#: src/exe/fdconsole.c:799
 msgid "Whether to always output backtraces to stderr"
 msgstr ""
 
-#: src/exe/fdconsole.c:799
+#: src/exe/fdconsole.c:802
 msgid "Whether load .fdconsole or other dot files"
 msgstr ""
 
-#: src/exe/fdconsole.c:802
+#: src/exe/fdconsole.c:805
 msgid "Where to dump console errors"
 msgstr ""
 
-#: src/exe/fdconsole.c:848 src/exe/fdexec.c:242 src/exe/fdexec.c:247
+#: src/exe/fdconsole.c:851 src/exe/fdexec.c:242 src/exe/fdexec.c:247
 msgid "File to wait to exist before starting"
 msgstr ""
 
-#: src/exe/fdconsole.c:934
+#: src/exe/fdconsole.c:937
 msgid "Whether to use EDITLINE for the console"
 msgstr ""
 
-#: src/exe/fdconsole.c:964
+#: src/exe/fdconsole.c:967
 msgid ";; Bound %q\n"
 msgstr ""
 
-#: src/exe/fdconsole.c:965
+#: src/exe/fdconsole.c:968
 msgid ";; Bad command result %q\n"
 msgstr ""
 
@@ -2897,100 +2897,100 @@ msgstr ""
 msgid "No servers configured"
 msgstr ""
 
-#: src/exe/fdservlet.c:1802
+#: src/exe/fdservlet.c:1811
 msgid "Trace web transactions over N seconds"
 msgstr ""
 
-#: src/exe/fdservlet.c:1805 src/exe/fdcgiexec.c:689 src/exe/fdserver.c:1132
+#: src/exe/fdservlet.c:1814 src/exe/fdcgiexec.c:689 src/exe/fdserver.c:1185
 msgid "Number of pending connection requests allowed"
 msgstr ""
 
-#: src/exe/fdservlet.c:1807 src/exe/fdserver.c:1135
+#: src/exe/fdservlet.c:1816 src/exe/fdserver.c:1188
 msgid "Max number of requests to keep queued"
 msgstr ""
 
-#: src/exe/fdservlet.c:1810
+#: src/exe/fdservlet.c:1819
 msgid "Max number of concurrent connections to allow (NYI)"
 msgstr ""
 
-#: src/exe/fdservlet.c:1813 src/exe/fdserver.c:1139
+#: src/exe/fdservlet.c:1822 src/exe/fdserver.c:1192
 msgid "Number of clients to prepare for/grow by"
 msgstr ""
 
-#: src/exe/fdservlet.c:1816 src/exe/fdservlet.c:1819 src/exe/fdcgiexec.c:691
-#: src/exe/fdserver.c:1142
+#: src/exe/fdservlet.c:1825 src/exe/fdservlet.c:1828 src/exe/fdcgiexec.c:691
+#: src/exe/fdserver.c:1195
 msgid "Number of threads in the thread pool"
 msgstr ""
 
-#: src/exe/fdservlet.c:1822
+#: src/exe/fdservlet.c:1831
 msgid "File for recording status reports"
 msgstr ""
 
-#: src/exe/fdservlet.c:1825
+#: src/exe/fdservlet.c:1834
 msgid "Milliseconds (roughly) between updates to .status"
 msgstr ""
 
-#: src/exe/fdservlet.c:1828
+#: src/exe/fdservlet.c:1837
 msgid "Milliseconds (roughly) between logging status information"
 msgstr ""
 
-#: src/exe/fdservlet.c:1831 src/exe/fdserver.c:1208
+#: src/exe/fdservlet.c:1840 src/exe/fdserver.c:1261
 msgid "How long (μs) to wait for tasks during shutdown"
 msgstr ""
 
-#: src/exe/fdservlet.c:1835
+#: src/exe/fdservlet.c:1844 src/exe/fdserver.c:1169
 msgid "Remove existing socket files with extreme prejudice"
 msgstr ""
 
-#: src/exe/fdservlet.c:1839
+#: src/exe/fdservlet.c:1848
 msgid "Whether to check for existing PID files"
 msgstr ""
 
-#: src/exe/fdservlet.c:1843
+#: src/exe/fdservlet.c:1852
 msgid "Ports for listening for connections"
 msgstr ""
 
-#: src/exe/fdservlet.c:1845 src/exe/fdserver.c:1204
+#: src/exe/fdservlet.c:1854 src/exe/fdserver.c:1257
 msgid "Whether to run in asynchronous mode"
 msgstr ""
 
-#: src/exe/fdservlet.c:1848 src/exe/fdserver.c:1125
+#: src/exe/fdservlet.c:1857 src/exe/fdserver.c:1178
 msgid "Whether to enable auto-restart"
 msgstr ""
 
-#: src/exe/fdservlet.c:1850 src/exe/fdserver.c:1128
+#: src/exe/fdservlet.c:1859 src/exe/fdserver.c:1181
 msgid "Whether to wait for the servlet PID file"
 msgstr ""
 
-#: src/exe/fdservlet.c:1854
+#: src/exe/fdservlet.c:1863
 msgid "Whether to have libu8 log each monitored address"
 msgstr ""
 
-#: src/exe/fdservlet.c:1858
+#: src/exe/fdservlet.c:1867
 msgid "Timeout for the poll loop (lower bound of status updates)"
 msgstr ""
 
-#: src/exe/fdservlet.c:1862 src/exe/fdserver.c:1169
+#: src/exe/fdservlet.c:1871 src/exe/fdserver.c:1222
 msgid "Whether to have libu8 log each connection"
 msgstr ""
 
-#: src/exe/fdservlet.c:1866 src/exe/fdserver.c:1174
+#: src/exe/fdservlet.c:1875 src/exe/fdserver.c:1227
 msgid "Whether to have libu8 log each transaction"
 msgstr ""
 
-#: src/exe/fdservlet.c:1870
+#: src/exe/fdservlet.c:1879
 msgid "Whether to have libu8 log queue activity"
 msgstr ""
 
-#: src/exe/fdservlet.c:1876
+#: src/exe/fdservlet.c:1885
 msgid "Whether to have libu8 log data transmission/receiption"
 msgstr ""
 
-#: src/exe/fdservlet.c:1883 src/exe/fdserver.c:1186
+#: src/exe/fdservlet.c:1892 src/exe/fdserver.c:1239
 msgid "Whether to support thread-asynchronous transactions"
 msgstr ""
 
-#: src/exe/fdservlet.c:1960 src/exe/fdserver.c:1122
+#: src/exe/fdservlet.c:1963 src/exe/fdserver.c:1175
 msgid "Whether to run in the foreground"
 msgstr ""
 
@@ -3002,107 +3002,107 @@ msgstr ""
 msgid "The socket file used by this server for use with external versions"
 msgstr ""
 
-#: src/exe/fdserver.c:79
+#: src/exe/fdserver.c:80
 msgid "Bad port spec"
 msgstr ""
 
-#: src/exe/fdserver.c:80
+#: src/exe/fdserver.c:81
 msgid "Bad client request"
 msgstr ""
 
-#: src/exe/fdserver.c:81
+#: src/exe/fdserver.c:82
 msgid "NoServers"
 msgstr ""
 
-#: src/exe/fdserver.c:82
+#: src/exe/fdserver.c:83
 msgid "Startup"
 msgstr ""
 
-#: src/exe/fdserver.c:83
+#: src/exe/fdserver.c:84
 msgid "FDServer/ABORT"
 msgstr ""
 
-#: src/exe/fdserver.c:84
+#: src/exe/fdserver.c:85
 msgid "FDServer/CONFIG"
 msgstr ""
 
-#: src/exe/fdserver.c:85
+#: src/exe/fdserver.c:86
 msgid "FDServer/STARTUP"
 msgstr ""
 
-#: src/exe/fdserver.c:86
+#: src/exe/fdserver.c:87
 msgid "FDServer/SHUTDOWN"
 msgstr ""
 
-#: src/exe/fdserver.c:90
+#: src/exe/fdserver.c:91
 msgid "Incoming"
 msgstr ""
 
-#: src/exe/fdserver.c:90
+#: src/exe/fdserver.c:91
 msgid "Outgoing"
 msgstr ""
 
-#: src/exe/fdserver.c:220
+#: src/exe/fdserver.c:221
 msgid "Log file error"
 msgstr ""
 
-#: src/exe/fdserver.c:1119
+#: src/exe/fdserver.c:1172
 msgid "Loglevel for fdserver itself"
 msgstr ""
 
-#: src/exe/fdserver.c:1145
+#: src/exe/fdserver.c:1198
 msgid "modules to provide in the server environment"
 msgstr ""
 
-#: src/exe/fdserver.c:1148
+#: src/exe/fdserver.c:1201
 msgid "whether to provide full scheme interpreter"
 msgstr ""
 
-#: src/exe/fdserver.c:1151
+#: src/exe/fdserver.c:1204
 msgid "Whether to log each request and response"
 msgstr ""
 
-#: src/exe/fdserver.c:1154
+#: src/exe/fdserver.c:1207
 msgid "Whether to log each transaction"
 msgstr ""
 
-#: src/exe/fdserver.c:1158
+#: src/exe/fdserver.c:1211
 msgid "Whether to log errors returned by the server to clients"
 msgstr ""
 
-#: src/exe/fdserver.c:1162
+#: src/exe/fdserver.c:1215
 msgid "Whether to include a detailed backtrace when logging errors"
 msgstr ""
 
-#: src/exe/fdserver.c:1165
+#: src/exe/fdserver.c:1218
 msgid "Line width for logged backtraces"
 msgstr ""
 
-#: src/exe/fdserver.c:1180
+#: src/exe/fdserver.c:1233
 msgid "Whether to have libu8 log all data transfers"
 msgstr ""
 
-#: src/exe/fdserver.c:1192
+#: src/exe/fdserver.c:1245
 msgid "Max number of string characters to display in debug messages"
 msgstr ""
 
-#: src/exe/fdserver.c:1197
+#: src/exe/fdserver.c:1250
 msgid "Max number of object elements to display in debug messages"
 msgstr ""
 
-#: src/exe/fdserver.c:1201
+#: src/exe/fdserver.c:1254
 msgid "Where to write server pid/nid files"
 msgstr ""
 
-#: src/exe/fdserver.c:1212
+#: src/exe/fdserver.c:1265
 msgid "Whether to automatically reload changed files"
 msgstr ""
 
-#: src/exe/fdserver.c:1216
+#: src/exe/fdserver.c:1269
 msgid "Whether to disable exported FramerD DB API"
 msgstr ""
 
-#: src/exe/fdserver.c:1358
+#: src/exe/fdserver.c:1411
 msgid "port or port@host to listen on"
 msgstr ""
 
@@ -3194,74 +3194,74 @@ msgstr ""
 msgid "uint len"
 msgstr ""
 
-#: src/exe/webcommon.h:685
+#: src/exe/webcommon.h:687
 msgid "Trace all web transactions"
 msgstr ""
 
-#: src/exe/webcommon.h:687
+#: src/exe/webcommon.h:689
 msgid "Show backtraces on errors"
 msgstr ""
 
-#: src/exe/webcommon.h:689
+#: src/exe/webcommon.h:691
 msgid "Allow requests to specify debugging"
 msgstr ""
 
-#: src/exe/webcommon.h:691
+#: src/exe/webcommon.h:693
 msgid "Log error stacktraces"
 msgstr ""
 
-#: src/exe/webcommon.h:693
+#: src/exe/webcommon.h:695
 msgid "Default error page for web errors"
 msgstr ""
 
-#: src/exe/webcommon.h:697
+#: src/exe/webcommon.h:699
 msgid "Default crisis page (for when the error page yields an error)"
 msgstr ""
 
-#: src/exe/webcommon.h:701
+#: src/exe/webcommon.h:703
 msgid "Default not found page (for when specified content isn't found)"
 msgstr ""
 
-#: src/exe/webcommon.h:705
+#: src/exe/webcommon.h:707
 msgid "Default no content page (for when content fetch failed generically)"
 msgstr ""
 
-#: src/exe/webcommon.h:709
+#: src/exe/webcommon.h:711
 msgid "Files to preload into the shared environment"
 msgstr ""
 
-#: src/exe/webcommon.h:711
+#: src/exe/webcommon.h:713
 msgid "Where to write URLs where were requested"
 msgstr ""
 
-#: src/exe/webcommon.h:713
+#: src/exe/webcommon.h:715
 msgid "Where to write request objects"
 msgstr ""
 
-#: src/exe/webcommon.h:715
+#: src/exe/webcommon.h:717
 msgid "Level of transaction logging"
 msgstr ""
 
-#: src/exe/webcommon.h:717
+#: src/exe/webcommon.h:719
 msgid "Use per-request thread cache"
 msgstr ""
 
-#: src/exe/webcommon.h:719
+#: src/exe/webcommon.h:721
 msgid "Whether to log all cgidata"
 msgstr ""
 
-#: src/exe/webcommon.h:722
+#: src/exe/webcommon.h:724
 msgid "File base (directory) for resolving requests"
 msgstr ""
 
-#: src/exe/webcommon.h:725
+#: src/exe/webcommon.h:727
 msgid "Preflight (before request handling) procedures"
 msgstr ""
 
-#: src/exe/webcommon.h:728
+#: src/exe/webcommon.h:730
 msgid "POSTFLIGHT (before request handling) procedures"
 msgstr ""
 
-#: src/exe/webcommon.h:732
+#: src/exe/webcommon.h:734
 msgid "WEBMAIN default procedure for handling requests"
 msgstr ""
