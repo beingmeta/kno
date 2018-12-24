@@ -429,7 +429,8 @@
 	(set! result (subseq (fifo-queue fifo)
 			     (fifo-start fifo)
 			     (fifo-end fifo))))
-    (condvar-unlock (fifo-condvar fifo))))
+    (condvar-unlock (fifo-condvar fifo)))
+  result)
 (define (fifo-queued fifo) (fifo/queued fifo))
 
 (define (fifo/load fifo)
