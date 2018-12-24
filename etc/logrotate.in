@@ -4,7 +4,7 @@
    notifempty
    minsize 100k
    maxsize 2M
-   daily
+   hourly
    compress
    delaycompress
    missingok
@@ -21,7 +21,7 @@
    notifempty
    minsize 100k
    maxsize 2M
-   daily
+   hourly
    compress
    delaycompress
    missingok
@@ -38,7 +38,7 @@
    notifempty
    minsize 100k
    maxsize 2M
-   daily
+   hourly
    compress
    delaycompress
    missingok
