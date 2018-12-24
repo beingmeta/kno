@@ -77,13 +77,17 @@ static lispval regex_searchop(enum FD_REGEX_OP op,
   retval = regexec(&(ptr->rxcompiled),CSTRING(string),1,results,eflags);
   if (retval == REG_NOMATCH) {
     u8_unlock_mutex(&(ptr->rx_lock));
+    U8_CLEAR_ERRNO();
     return FD_FALSE;}
   else if (retval) {
     u8_byte buf[512];
     regerror(retval,&(ptr->rxcompiled),buf,512);
     u8_unlock_mutex(&(ptr->rx_lock));
+    if (errno) u8_graberrno("regex_search",NULL);
     return fd_err(fd_RegexError,"regex_search",u8_strdup(buf),VOID);}
-  else u8_unlock_mutex(&(ptr->rx_lock));
+  else {
+    U8_CLEAR_ERRNO();
+    u8_unlock_mutex(&(ptr->rx_lock));}
   if (results[0].rm_so<0)
     return FD_FALSE;
   else switch (op) {
@@ -126,14 +130,18 @@ FD_EXPORT ssize_t fd_regex_op(enum FD_REGEX_OP op,lispval pat,
   retval = regexec(&(ptr->rxcompiled),s,1,results,eflags);
   if (retval == REG_NOMATCH) {
     u8_unlock_mutex(&(ptr->rx_lock));
+    U8_CLEAR_ERRNO();
     return -1;}
   else if (retval) {
     u8_byte buf[512];
     regerror(retval,&(ptr->rxcompiled),buf,512);
     u8_unlock_mutex(&(ptr->rx_lock));
+    if (errno) u8_graberrno("regex_search",NULL);
     fd_seterr(fd_RegexError,"fd_regex_op",buf,VOID);
     return -2;}
-  else u8_unlock_mutex(&(ptr->rx_lock));
+  else {
+    u8_unlock_mutex(&(ptr->rx_lock));
+    U8_CLEAR_ERRNO();}
   if (results[0].rm_so<0) return -1;
   else switch (op) {
     case rx_search:
