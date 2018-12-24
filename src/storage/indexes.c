@@ -1516,10 +1516,11 @@ static int index_docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
             commits.commit_times.flush,
             commits.commit_times.cleanup);
   else u8_logf(LOG_INFO,"Index/Commit/Complete",
-               _("Committed %d%s from '%s' in %f\n"
+               _("Committed %d changes%s from '%s' in %f\n"
                  "total=%f, start=%f, setup=%f, save=%f, "
                  "finalize=%f, apply=%f, cleanup=%f"),
-               n_changes,(w_metadata ? ("(and metadata) ") : ("") ),
+               n_changes,
+               (w_metadata ? (" (and metadata) ") : ("") ),
                ix->indexid,
                elapsed_time(commits.commit_times.base),
                elapsed_time(commits.commit_times.base),
