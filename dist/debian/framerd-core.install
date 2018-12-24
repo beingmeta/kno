@@ -33,6 +33,7 @@ usr/bin/fdstart
 usr/bin/fdstop
 usr/bin/fdctl
 usr/bin/fdlog
+usr/bin/fdjob
 usr/bin/fdstartall
 usr/bin/fdcleanup
 usr/bin/fdstopall

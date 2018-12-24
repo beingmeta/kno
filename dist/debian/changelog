@@ -1,3 +1,9 @@
+framerd (4.3.0-32) stable; urgency=medium
+
+  * Add fdjob script
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 24 Dec 2018 18:55:11 +0000
+
 framerd (4.3.0-31) stable; urgency=medium
 
   * Bumped minor version number to 3
