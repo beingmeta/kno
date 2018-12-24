@@ -1013,7 +1013,8 @@ int main(int argc,char **argv)
            (FD_TRUEP(result)) || (FALSEP(result)) ||
             (FD_ABORTP(result)) || (FIXNUMP(result))))) ||
         (FD_OIDP(expr)) || (FD_CHOICEP(expr)) ||
-        (FD_VECTORP(expr)) || (FD_SLOTMAPP(expr)) ) {
+        (FD_VECTORP(expr)) || (FD_COMPOUNDP(expr)) ||
+        (FD_SLOTMAPP(expr)) || (FD_SCHEMAPP(expr))) {
       int ref = fd_histpush(result);
       if (ref>=0) {
         histref = ref;
