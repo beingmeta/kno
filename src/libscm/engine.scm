@@ -334,7 +334,7 @@ slot of the loop state.
 	       (store! loop-state 'stopped (timestamp))
 	       (store! loop-state 'stopval stopval))
 	      ((and (exists? stopval) stopval)
-	       (if (fifo/empty? fifo)
+	       (if (zero? (fifo/load fifo))
 		   (store! loop-state 'stopped (timestamp))
 		   (store! loop-state 'stopping (timestamp)))
 	       (unless (test loop-state 'stopval)
@@ -381,25 +381,28 @@ slot of the loop state.
 		 (/~ nthreads (ilog nthreads)))))))
 
 (defambda (pick-batchsize items opts)
-  (let ((n-items (length items)))
-    (if (number? (getopt opts 'nbatches))
-	(1+ (quotient n-items (getopt opts 'nbatches)))
-	(if (number? (getopt opts 'nthreads))
-	    (1+ (quotient n-items (* 4 (getopt opts 'nthreads))))
-	    (->exact (ceiling (sqrt n-items)))))))
-
+  (and (vector? items)
+       (let ((n-items (length items)))
+	 (if (number? (getopt opts 'nbatches))
+	     (1+ (quotient n-items (getopt opts 'nbatches)))
+	     (if (number? (getopt opts 'nthreads))
+		 (1+ (quotient n-items (* 4 (getopt opts 'nthreads))))
+		 (->exact (ceiling (sqrt n-items))))))))
+  
 (defambda (get-items-vec items opts (max))
   (set! max (getopt opts 'maxitems (config 'maxitems)))
-  (let ((vec (if (and (singleton? items) (vector? items)) 
-		 items
-		 (choice->vector items))))
-    (if (or (not max) (>= max (length vec)))
-	vec
-	(slice vec 0 max))))
+  (if (applicable? items)
+      items
+      (let ((vec (if (and (singleton? items) (vector? items)) 
+		     items
+		     (choice->vector items))))
+	(if (or (not max) (>= max (length vec)))
+	    vec
+	    (slice vec 0 max)))))
 
 (defambda (engine/run fcn items-arg (opts #f))
   (let* ((items (get-items-vec items-arg opts))
-	 (n-items (length items))
+	 (n-items (and (vector? items) (length items)))
 	 (batchsize (getopt opts 'batchsize (pick-batchsize items opts)))
 	 (nthreads (mt/threadcount (getopt opts 'nthreads (config 'engine:threads (config 'nthreads #t)))))
 	 (spacing (pick-spacing opts nthreads))
@@ -413,12 +416,15 @@ slot of the loop state.
 		       (length batches)
 		       nthreads))
 	 (fifo-opts 
-	  `#[fillfn ,(getopt opts 'fillfn fifo/exhausted!) 
-	     name ,(getopt opts 'name (or (procedure-name fcn) {}))])
-	 (fifo (->fifo batches fifo-opts))
+	  (frame-create #f
+	    'name (getopt opts 'name (or (procedure-name fcn) {}))
+	    'fillfn (getopt opts 'fillfifo fifo/exhausted!)))
+	 (fifo (if (number? batches)
+		   (fifo/make batches fifo-opts)
+		   (->fifo batches fifo-opts)))
+	 (fill (getopt opts 'fill #f))
 	 (before (getopt opts 'before #f))
 	 (after (getopt opts 'after #f))
-	 (fill (getopt opts 'fill #f))
 	 (stop (getopt opts 'stopfn #f))
 	 (state (getopt opts 'state (init-state opts)))
 	 (logfns (getopt opts 'logfns {}))
@@ -429,10 +435,10 @@ slot of the loop state.
 		       'fifo fifo
 		       'counters counters
 		       'started (getopt opts 'started (elapsed-time))
-		       'total n-items
+		       'total (tryif (vector? items) n-items)
 		       'batchsize batchsize
 		       'batchrange batchsize
-		       'n-batches (length batches)
+		       'n-batches (tryif (vector? batches) (length batches))
 		       'nthreads rthreads
 		       '%loglevel (getopt opts 'loglevel {})
 		       'logfreq (getopt opts 'logfreq log-frequency)
@@ -483,16 +489,17 @@ slot of the loop state.
 	(unless (and (applicable? logfn) (overlaps? (procedure-arity logfn) {1 3 6}))
 	  (irritant logfn |ENGINE/InvalidLogfn| engine/run))))
 
-    (lognotice |Engine| 
-      "Processing " ($count n-items) " " count-term " "
-      (when (and batchsize (> batchsize 1))
-	(printout "in " ($count (length batches)) " batches "))
-      "using " (or rthreads "no") " threads with "
-      (if (procedure-name fcn)
-	  (printout (procedure-name fcn)
-	    (if (procedure-filename fcn)
-		(printout ":" (procedure-filename fcn))))
-	  fcn))
+    (if (vector? batches)
+	(lognotice |Engine| 
+	  "Processing " ($count n-items) " " count-term " "
+	  (when (and batchsize (> batchsize 1))
+	    (printout "in " ($count (length batches)) " batches "))
+	  "using " (or rthreads "no") " threads with "
+	  (if (procedure-name fcn)
+	      (printout (procedure-name fcn)
+		(if (procedure-filename fcn)
+		    (printout ":" (procedure-filename fcn))))
+	      fcn)))
 
     (if (and rthreads (> rthreads 1))
 	(let ((threads {}))
@@ -706,8 +713,8 @@ slot of the loop state.
 (define (engine/fill! fifo fillfn loop-state fillmin fillmax)
   (unless (or (test loop-state 'stopped)
 	      (test loop-state 'stopping)
-	      (> (fifo-load fifo) fillmin))
-    (dotimes (i (- fillmax (fifo-load fifo)))
+	      (> (fifo/load fifo) fillmin))
+    (dotimes (i (- fillmax (fifo/load fifo)))
       (let ((item (fillfn fifo loop-state)))
 	(when (and (exists? item) item)
 	  (fifo/push! fifo item))))))
