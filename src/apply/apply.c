@@ -797,15 +797,15 @@ static lispval ndapply2(fd_stack _stack,lispval fp,lispval args0,lispval args1)
 {
   lispval results = EMPTY;
   DO_CHOICES(arg0,args0) {
-    DO_CHOICES(arg1,args1) {
-      lispval argv[2]={arg0,arg1};
-      lispval r = fd_dapply(fp,2,argv);
-      if (FD_ABORTP(r)) {
-        fd_decref(results);
-        results = r;
-        FD_STOP_DO_CHOICES;
-        break;}
-      else {FD_ADD_RESULT(results,r);}}
+    {DO_CHOICES(arg1,args1) {
+        lispval argv[2]={arg0,arg1};
+        lispval r = fd_dapply(fp,2,argv);
+        if (FD_ABORTP(r)) {
+          fd_decref(results);
+          results = r;
+          FD_STOP_DO_CHOICES;
+          break;}
+        else {FD_ADD_RESULT(results,r);}}}
     if (FD_ABORTP(results)) {
       FD_STOP_DO_CHOICES;
       break;}}
@@ -817,19 +817,19 @@ static lispval ndapply3(fd_stack _stack,lispval fp,lispval args0,lispval args1,l
 {
   lispval results = EMPTY;
   DO_CHOICES(arg0,args0) {
-    DO_CHOICES(arg1,args1) {
-      DO_CHOICES(arg2,args2) {
-        lispval argv[3]={arg0,arg1,arg2};
-        lispval r = fd_dapply(fp,3,argv);
-        if (FD_ABORTP(r)) {
-          fd_decref(results);
-          results = r;
+    {DO_CHOICES(arg1,args1) {
+        {DO_CHOICES(arg2,args2) {
+            lispval argv[3]={arg0,arg1,arg2};
+            lispval r = fd_dapply(fp,3,argv);
+            if (FD_ABORTP(r)) {
+              fd_decref(results);
+              results = r;
+              FD_STOP_DO_CHOICES;
+              break;}
+            else {FD_ADD_RESULT(results,r);}}}
+        if (FD_ABORTP(results)) {
           FD_STOP_DO_CHOICES;
-          break;}
-        else {FD_ADD_RESULT(results,r);}}
-      if (FD_ABORTP(results)) {
-        FD_STOP_DO_CHOICES;
-        break;}}
+          break;}}}
     if (FD_ABORTP(results)) {
       FD_STOP_DO_CHOICES;
       break;}}
@@ -844,23 +844,23 @@ static lispval ndapply4(fd_stack _stack,
 {
   lispval results = EMPTY;
   DO_CHOICES(arg0,args0) {
-    DO_CHOICES(arg1,args1) {
-      DO_CHOICES(arg2,args2) {
-        DO_CHOICES(arg3,args3) {
-          lispval argv[4]={arg0,arg1,arg2,arg3};
-          lispval r = fd_dapply(fp,4,argv);
-          if (FD_ABORTP(r)) {
-            fd_decref(results);
-            results = r;
-            FD_STOP_DO_CHOICES;
-            break;}
-          else {FD_ADD_RESULT(results,r);}}
+    {DO_CHOICES(arg1,args1) {
+        {DO_CHOICES(arg2,args2) {
+            {DO_CHOICES(arg3,args3) {
+                lispval argv[4]={arg0,arg1,arg2,arg3};
+                lispval r = fd_dapply(fp,4,argv);
+                if (FD_ABORTP(r)) {
+                  fd_decref(results);
+                  results = r;
+                  FD_STOP_DO_CHOICES;
+                  break;}
+                else {FD_ADD_RESULT(results,r);}}}
+            if (FD_ABORTP(results)) {
+              FD_STOP_DO_CHOICES;
+              break;}}}
         if (FD_ABORTP(results)) {
           FD_STOP_DO_CHOICES;
-          break;}}
-      if (FD_ABORTP(results)) {
-        FD_STOP_DO_CHOICES;
-        break;}}
+          break;}}}
     if (FD_ABORTP(results)) {
       FD_STOP_DO_CHOICES;
       break;}}
