@@ -397,8 +397,8 @@ FD_EXPORT void recycle_lambda(struct FD_RAW_CONS *c)
     lispval cb = (lispval) lambda->lambda_consblock;
     lambda->lambda_consblock=NULL;
     fd_decref(cb);}
-  else if (lambda->lambda_start != lambda->lambda_body)
-    fd_decref(lambda->lambda_start);
+  else if (lambda->lambda_start != lambda->lambda_body) {
+    /* fd_decref(lambda->lambda_start); */ }
   else {}
   lambda->lambda_start = FD_VOID;
 
