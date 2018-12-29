@@ -107,7 +107,7 @@ static int check_line_length(u8_output out,int off,int max_len)
     start[off]='\n'; start[off+1]='\t';
     out->u8_write = out->u8_write+2;
     start[len+2]='\0';
-    return -1;}
+    return out->u8_write-(start+off+2);}
 }
 
 static lispval watchcall(lispval expr,fd_lexenv env,int with_proc)
@@ -324,13 +324,14 @@ static lispval watched_eval_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
           u8_exception ex = u8_erreify();
           wval = fd_wrap_exception(ex);}
         if (lbl[0]=='\n') {
-          if (FD_EMPTYP(wval))
-            u8_printf(&out," %s={}",lbl+1);
+          if (FD_EMPTYP(wval)) {
+            if (oneout) u8_puts(&out," // "); else oneout = 1;
+            u8_printf(&out," %s={}",lbl+1);}
           else {
             if (off > 2) {
-              u8_printf(&out,"\n  ");
+              u8_printf(&out,"\n ");
               off=1;}
-            oneout = 1;
+            if (oneout) u8_puts(&out," // "); else oneout = 1;
             if ( (FD_PAIRP(wval)) || (FD_VECTORP(wval)) || (FD_CHOICEP(wval)) ||
                  (FD_SLOTMAPP(wval)) || (FD_SCHEMAPP(wval)) ) {
               fd_list_object(&out,wval,lbl+1,NULL,"  ",NULL,100,0);
