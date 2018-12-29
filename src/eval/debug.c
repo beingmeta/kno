@@ -277,7 +277,7 @@ static lispval watchptr_prim(lispval val,lispval label_arg)
   return fd_incref(val);
 }
 
-static lispval watched_eval_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
+static lispval watchpoint_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
 {
   lispval toeval = fd_get_arg(expr,1);
   double start; int oneout = 0;
@@ -902,7 +902,7 @@ FD_EXPORT void fd_init_eval_debug_c()
   fd_def_evalfn(fd_scheme_module,"%WATCHPTR","",watchptr_evalfn);
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2("%WATCHPTRVAL",watchptr_prim,1)));
-  fd_def_evalfn(fd_scheme_module,"%WATCH","",watched_eval_evalfn);
+  fd_def_evalfn(fd_scheme_module,"%WATCH","",watchpoint_evalfn);
   fd_def_evalfn(fd_scheme_module,"PROFILE","",profiled_eval_evalfn);
   fd_def_evalfn(fd_scheme_module,"%WATCHCALL","",watchcall_evalfn);
   fd_defalias(fd_scheme_module,"%WC","%WATCHCALL");
