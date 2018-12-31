@@ -46,7 +46,7 @@
        size ,sum]))
 
 (define (main out . in)
-  (let* ((combined (%wc make-opts in))
+  (let* ((combined (make-opts in))
 	 (newsize (config 'NEWSIZE (getopt combined 'size)))
 	 (keyslot (config 'KEYSLOT (getopt combined 'keyslot)))
 	 (opts (frame-create #f
