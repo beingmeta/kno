@@ -31,15 +31,27 @@
 	  (parse-arg arg)
 	  (string->symbol (upcase arg)))))
 
+(define (temp-index file)
+  (open-index file #[register #f cachelevel 1]))
+
+(define (make-opts in)
+  (let ((sum 0) (keyslots {}))
+    (dolist (in in)
+      (let* ((index (temp-index in))
+	     (n-keys (indexctl index 'metadata 'keys))
+	     (keyslot (indexctl index 'keyslot)))
+	(when n-keys (set! sum (+ sum n-keys)))
+	(set+! keyslots keyslot)))
+    `#[keyslot ,(try (singleton keyslots) #f) 
+       size ,sum]))
+
 (define (main out . in)
-  (let* ((index (open-index (and (pair? in) (car in))))
-	 (first-size (indexctl index 'metadata 'keys))
-	 (keyslot (and (config 'KEYSLOT (indexctl index 'keyslot))
-		       (->slotid (config 'KEYSLOT (indexctl index 'keyslot)))))
-	 (newsize (config 'NEWSIZE (* 4 first-size)))
+  (let* ((combined (%wc make-opts in))
+	 (newsize (config 'NEWSIZE (getopt combined 'size)))
+	 (keyslot (config 'KEYSLOT (getopt combined 'keyslot)))
 	 (opts (frame-create #f
 		 'newsize newsize
-		 'keyslot (tryif keyslot keyslot)
+		 'keyslot (tryif keyslot (->slotid keyslot))
 		 'mincount (or (config 'mincount) {})
 		 'maxcount (or (config 'maxcount) {})
 		 'rarefile (or (config 'rare) {})
@@ -59,5 +71,6 @@
       (index/merge! indexfile out opts))))
 
 (when (config 'optimize #t)
-  (optimize! '{storage/indexes storage/hashindexes ezrecords fifo engine})
+  (optimize! '{storage/indexes storage/hashindexes
+	       ezrecords fifo engine})
   (optimize!))
