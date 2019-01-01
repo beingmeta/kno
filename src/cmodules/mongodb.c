@@ -172,7 +172,7 @@ U8_MAYBE_UNUSED static bson_t *get_projection(lispval opts,int flags)
   lispval projection = fd_getopt(opts,returnsym,FD_VOID);
   if (!(FD_CONSP(projection)))
     return NULL;
-  else if (FD_SLOTMAPP(projection)) {
+  else if ( (FD_SLOTMAPP(projection)) || (FD_SCHEMAPP(projection)) ) {
     bson_t *fields = fd_lisp2bson(projection,flags,opts);
     fd_decref(projection);
     return fields;}
@@ -393,7 +393,7 @@ static U8_MAYBE_UNUSED bson_t *get_search_opts(lispval opts,int flags,int for_fi
       fields.bson_flags = ((flags<0)?(getflags(opts,FD_MONGODB_DEFAULTS)):(flags));
       fields.bson_opts = opts;
       fields.bson_fieldmap = out.bson_fieldmap;
-      if (FD_SLOTMAPP(projection))
+      if ( (FD_SLOTMAPP(projection)) || (FD_SCHEMAPP(projection)) )
         fd_bson_output(fields,projection);
       else if (FD_SYMBOLP(projection))
         bson_append_keyval(fields,projection,FD_INT(1));
@@ -2475,6 +2475,16 @@ FD_EXPORT lispval fd_bson_output(struct FD_BSON_OUTPUT out,lispval obj)
     while (i < n) {
       lispval key = keyvals[i].kv_key;
       lispval val = keyvals[i].kv_val;
+      ok = bson_append_keyval(out,key,val);
+      i++;}}
+  else if (FD_SCHEMAPP(obj)) {
+    struct FD_SCHEMAP *smap = (fd_schemap) obj;
+    lispval *schema = smap->table_schema;
+    lispval *values = smap->schema_values;
+    int i = 0, n = smap->schema_length;
+    while (i < n) {
+      lispval key = schema[i];
+      lispval val = values[i];
       ok = bson_append_keyval(out,key,val);
       i++;}}
   else if (FD_TABLEP(obj)) {
