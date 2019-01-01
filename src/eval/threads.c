@@ -355,7 +355,7 @@ static lispval with_lock_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
         if (FD_ABORTED(value)) {
           u8_unlock_mutex(uselock);
           fd_decref(lck);
-          return value;}}}
+          break;}}}
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
       fd_decref(value);
