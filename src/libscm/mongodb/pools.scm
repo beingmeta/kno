@@ -9,6 +9,7 @@
 
 (module-export! '{mongopool/open mongopool/make
 		  mongopool? mongo/convert
+		  mongopool/intern
 		  mongo/invert})
 
 (module-export! '{mgo/pool mgo/poolfetch
@@ -230,7 +231,7 @@
     (init-mongopool-inner collection opts)))
 
 (define (mongopool/open spec (opts #f) (collection))
-  (default! collection 
+  (default! collection
     (if (collection? spec) spec 
 	(collection/open spec (getopt opts 'name) opts)))
   (init-mongopool collection opts))
@@ -325,6 +326,34 @@
 	    '%mongovec
 	    #f #f)))
 	(else query)))
+
+;;; Mongopool intern
+
+(define (mongopool-intern pool mp unique (collection) (existing) (oid))
+  (default! collection (mongopool-collection mp))
+  (set! existing (collection/find collection unique))
+  (if (or (test existing 'oid) (oid? (get existing '_id)))
+      existing
+      (with-lock (mongopool-lock mp)
+	(let* ((mod (collection/modify collection
+			#[_id "_pool"] 
+		      `#[$inc #[load 1]]
+		      #[original #t]))
+	       (before (get mod 'value))
+	       (start (get before 'load))
+	       (base (get before 'base)))
+	  (set! oid (oid-plus base start)))
+	(if (exists? existing)
+	    (collection/upsert! 
+		collection (frame-create existing '_id oid)
+		`#[$setOnInsert #[oid ,oid]])
+	    (collection/upsert! 
+		collection unique
+		`#[$setOnInsert #[_id ,oid oid ,oid]]))
+	(get (collection/find collection unique) '_id))))
+
+(define (mongopool/intern pool keyframe)
+  (mongopool-intern pool (get mongopools pool) keyframe))
 
 ;;; Decaching OIDs
 
