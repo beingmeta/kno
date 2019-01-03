@@ -43,10 +43,10 @@ static lispval block_copier(lispval v,struct BLOCKOUT *block)
       block->conses_next += CONSBLOCK_SIZE(struct FD_PAIR);
       lispval car = FD_CAR(v);
       if (FD_CONSP(car)) car = block_copier(car,block);
-      if (FD_ABORTP(car)) return car;
+      if (FD_TROUBLEP(car)) return car;
       lispval cdr = FD_CDR(v);
       if (FD_CONSP(cdr)) cdr = block_copier(cdr,block);
-      if (FD_ABORTP(cdr)) {
+      if (FD_TROUBLEP(cdr)) {
         if (FD_COMPOUND_TYPEP(car,coderef_symbol)) {fd_decref(car);}
         return cdr;}
       struct FD_PAIR *pair = (fd_pair) (block->conses+off);
@@ -93,7 +93,7 @@ FD_EXPORT lispval fd_make_consblock(lispval obj)
   out.conses_len = init_size;
   out.conses_next = 0;
   lispval v = block_copier(obj,&out);
-  if (FD_ABORTP(v)) {
+  if (FD_ABORTED(v)) {
     u8_free(out.conses);
     return v;}
   else if (FD_COMPOUND_TYPEP(v,coderef_symbol)) {
