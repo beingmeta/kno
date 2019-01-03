@@ -8,6 +8,8 @@
 
 (define (make-xref-generator off tag-expr)
   (lambda (expr) `(,compound-ref ,(cadr expr) ,off ',tag-expr)))
+(define (make-predicate-generator off tag-expr)
+  (lambda (expr) `(,compound? ,(cadr expr) ',tag-expr)))
 
 (define (make-accessor-def name field tag-expr prefix fields)
   (let* ((field-name (if (pair? field) (car field) field))
@@ -34,6 +36,10 @@
 		  (,make-xref-generator 
 		   ,(position field fields)
 		   ,tag-expr)))))
+(define (make-predicate-subst name field tag-expr prefix fields)
+  (let* ((predicate-name (string->symbol (stringout prefix "?"))))
+    `(set+! %rewrite
+       (cons ',predicate-name (,make-predicate-generator ,tag-expr)))))
 
 (define (fieldname x)
   (if (pair? x) (car x) x))
