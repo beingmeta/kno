@@ -314,6 +314,7 @@
 (define or-opcode     #OP_OR)
 (define try-opcode    #OP_TRY)
 (define xref-opcode   #OP_XREF)
+(define xpred-opcode   #OP_XPRED)
 (define choiceref-opcode #OP_CHOICEREF)
 (define fixchoice-opcode  #OP_FIXCHOICE)
 
@@ -393,7 +394,9 @@
 
 (defambda (optimize expr env bound opts)
   (logdebug "Optimizing " expr " given " bound)
-  (cond ((ambiguous? expr)
+  (cond ((and (ambiguous? expr) (use-opcodes? opts))
+	 `(#OP_UNION ,@(forseq (each (choice->list expr)) (optimize each env bound opts))))
+	((ambiguous? expr)
 	 (for-choices (each expr) 
 	   (optimize each env bound opts)))
 	((fail? expr) expr)
@@ -413,9 +416,10 @@
 	 ;; resolve it.
 	 (codewarning (cons* 'UNBOUND expr bound))
 	 (when optwarn
-	   (warning "The symbol " (car expr) " in " expr
-		    " appears to be unbound given bindings "
-		    (apply append bound)))
+	   (logwarn |TooManyArgs|
+	     "The symbol " (car expr) " in " expr
+	     " appears to be unbound given bindings "
+	     (apply append bound)))
 	 expr)
 	(else (optimize-expr expr env bound opts))))
 
@@ -456,9 +460,9 @@
 		   (when env
 		     (add! env '%warnings (cons* 'UNBOUND expr bound)))
 		   (when (or optwarn (not env))
-		     (warning "The symbol " expr
-			      " appears to be unbound given bindings "
-			      (apply append bound))))
+		     (logwarn |Unbound|
+		       "The symbol " expr " appears to be unbound given bindings "
+		       (apply append bound))))
 		 expr)
 		;; This is where the symbol isn't from a module, but
 		;; we're not doing lexrefs, so we just keep the
@@ -503,15 +507,16 @@
 	     (< n-exprs (procedure-min-arity value)))
     (codewarning (list 'TOOFEWARGS expr value))
     (when optwarn
-      (warning "The call to " expr
-	       " provides too few arguments "
-	       "(" n-exprs ") for " value)))
+      (logwarn |TooFewArguments|
+	"The call to " expr " provides too few arguments "
+	"(" n-exprs ") for " value)))
   (when (and (procedure-arity value)
 	     (> n-exprs (procedure-arity value)))
     (codewarning (list 'TOOMANYARGS expr value))
     (when optwarn
-      (warning "The call to " expr " provides too many "
-	       "arguments (" n-exprs ") for " value))))
+      (logwarn |TooManyArguments|
+	"The call to " expr " provides too many "
+	"arguments (" n-exprs ") for " value))))
 
 (define (optimize-expr expr env bound opts)
   (let* ((head (get-arg expr 0))
@@ -601,9 +606,10 @@
 	   (when (and optwarn from
 		      (not (test from '{%nosubst %volatile} head)))
 	     (codewarning (cons* 'NOTFCN expr headvalue))
-	     (warning "The current value of " expr " (" head ") "
-		      "doesn't appear to be a applicable given "
-		      (apply append bound)))
+	     (logwarn |NotAFunction|
+	       "The current value of " expr " (" head ") "
+	       "doesn't appear to be a applicable given "
+	       (apply append bound)))
 	   expr))))
 
 (define (callcons head tail)
@@ -655,11 +661,12 @@
 	  (unless (equal? arglist optimized-args)
 	    (set-lambda-args! proc optimized-args))))
       (if (exists? (threadget 'codewarnings))
-	  (warning "Errors optimizing " proc ": "
-		   (do-choices (warning (threadget 'codewarnings))
-		     (printout "\n\t" warning)))
-	  (lognotice |Optimized| proc))
-      (threadset! 'codewarnings #{}))))
+	  (logwarn |OptimizeErrors|
+	    "for " proc ": "
+	    (do-choices (warning (threadget 'codewarnings))
+	      (printout "\n\t" warning)))
+	  (lognotice |Optimized| proc)))
+    (threadset! 'codewarnings #{})))
 
 (define (optimize-procedure! proc (opts #f))
   (threadset! 'codewarnings #{})
@@ -801,15 +808,15 @@
   (logdebug "Deoptimizing bindings " bindings)
   (let ((count 0))
     (do-choices (var (getkeys bindings))
-      (logdetail "Deoptimizing binding " var)
+      (logdetail |Deoptimize| "Deoptimizing binding " var)
       (let ((value (get bindings var)))
 	(if (defined? value)
 	    (when (compound-procedure? value)
 	      (when (deoptimize-procedure! value)
 		(set! count (1+ count))))
 	    (if (bound? value)
-		(notify var " is bound but undefined (#default)")
-		(warning var " is unbound")))))
+		(logwarn |Unbound| var " is bound but undefined (#default)")
+		(logwarn |Unbound| var " is unbound")))))
     count))
 
 (defambda (module-arg? arg)
@@ -954,6 +961,31 @@
 		     (optimize (get-arg expr 1) env bound opts)))))
 
 (store! procedure-optimizers compound-ref optimize-compound-ref)
+
+(define (optimize-compound-predicate proc expr env bound opts
+				     (type-arg))
+  (set! type-arg (get-arg expr 2 #f))
+  (if (and (pair? type-arg)
+	   (overlaps? (car type-arg) {'quote quote #OP_QUOTE}))
+      `(,xpred-opcode ,(cadr type-arg) ,(optimize (get-arg expr 1) env bound opts))
+      `(,(fcnref compound? compound? env opts)
+	,(optimize (get-arg expr 1) env bound opts))))
+
+(store! procedure-optimizers compound? optimize-compound-predicate)
+
+;;; Optimizing break (with a warning)
+
+(define (optimize-break proc expr env bound opts)
+  (if (null? (cdr expr)) `(,break-opcode)
+      (begin 
+	(codewarning (cons* 'TOOMANYARGS expr))
+	(when optwarn
+	  (logwarn |TooManyArgs|
+	    "The (break) function doesn't take any arguments"))
+	expr)))
+
+(store! procedure-optimizers BREAK optimize-break)
+
 
 ;;;; Special form handlers
 
@@ -1224,9 +1256,13 @@
       (convert-cond (cdr expr) env bound opts)
       (cons handler 
 	    (forseq (clause (cdr expr))
-	      (cond #|((not (pair? clause))
+	      (cond ((not (pair? clause))
 		     (codewarning (list 'BADCLAUSE expr clause))
-		     clause)|#
+		     (when optwarn
+		       (logwarn |BadClause|
+			 "The clause " clause " in the CONDitional " 
+			 expr " is malformed."))
+		     clause)
 		    ((eq? (car clause) 'else)
 		     `(ELSE ,@(optimize-body (cdr clause))))
 		    ((and (pair? (cdr clause)) 
