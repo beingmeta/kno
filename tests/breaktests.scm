@@ -6,7 +6,7 @@
   (let ((i 1) (result 1))
     (while #t
       (if (> i n)
-	  #break
+	  (break)
 	  (begin (set! result (* result i))
 	    (set! i (1+ i)))))
     result))
@@ -21,20 +21,20 @@
 
 (define (slice-break-1 seq n)
   (forseq (elt seq i)
-    (if (>= i n) #break elt)))
+    (if (>= i n) (break) elt)))
 (define (slice-break-2 seq n)
   (forseq (elt seq i)
     (if (>= i n) (break) elt)))
 
 (defambda (pick-some choice (n 5) (result {}))
   (do-choices (elt choice)
-    (if (>= (choice-size result) n) #break
+    (if (>= (choice-size result) n) (break)
 	(set+! result elt)))
   result)
 
 (define (sqlim n (max 1000) (square #f))
   (dotimes (i max)
-    (if (>= (* i i) n) #break
+    (if (>= (* i i) n) (break)
 	(set! square (* i i))))
   square)
 
@@ -53,3 +53,4 @@
 (evaltest 8 (choice-size (pick-some tenchoice 8)))
 
 (evaltest 33 (onbreak (* 3 11) 8 9 (* 88 9) #break (+ 17 5)))
+(evaltest 88 (onbreak (* 8 11) 8 9 (* 88 9) (break) (+ 17 5)))
