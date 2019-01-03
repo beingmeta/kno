@@ -809,10 +809,15 @@ static lispval eval_apply(u8_string fname,
     else return fd_err("NotApplicable","eval_apply",NULL,fn);
 
   if (n_fns > 1) tail = 0;
+  int flags = stack->stack_flags;
   int arg_i = 0, argbuf_len = (max_args>=0) ? (max_args) : (min_args+8);
   lispval init_argbuf[argbuf_len], *argbuf=init_argbuf;
   lispval result = FD_VOID;
   lispval scan = arg_exprs;
+  lispval op = (U8_BITP(flags,FD_STACK_DECREF_OP)) ? (FD_VOID) :
+    (stack->stack_op);
+  u8_string label = (U8_BITP(flags,FD_STACK_FREE_LABEL)) ? (NULL) :
+    (stack->stack_label);
   while (FD_PAIRP(scan)) {
     lispval arg_expr = pop_arg(scan);
     if (commentp(arg_expr)) continue;
@@ -823,7 +828,20 @@ static lispval eval_apply(u8_string fname,
     if (PRED_FALSE(VOIDP(arg_val))) {
       if (gc_args) fd_decref_vec(argbuf,arg_i);
       return fd_err(fd_VoidArgument,"eval_apply/arg",NULL,arg_expr);}
-    else if ( ( (d_prim) && (EMPTYP(arg_val)) ) || (FD_ABORTED(arg_val)) ) {
+    else if (FD_ABORTED(arg_val)) {
+      /* Clean up the arguments we've already evaluated */
+      if (gc_args) fd_decref_vec(argbuf,arg_i);
+      return arg_val;}
+    else {
+      /* Otherwise, reset the stack op and label, if advisable */
+      flags = stack->stack_flags;
+      if (label) {
+        if (U8_BITP(flags,FD_STACK_FREE_LABEL)) u8_free(stack->stack_label);
+        stack->stack_label = label;}
+      if (!(FD_VOIDP(op))) {
+        if (U8_BITP(flags,FD_STACK_DECREF_OP)) fd_decref(stack->stack_op);
+        stack->stack_op = op;}}
+    if (PRED_FALSE( (d_prim) && (EMPTYP(arg_val)) )) {
       /* Clean up the arguments we've already evaluated */
       if (gc_args) fd_decref_vec(argbuf,arg_i);
       return arg_val;}
