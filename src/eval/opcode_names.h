@@ -76,6 +76,8 @@ static void init_opcode_names()
   set_opcode_name(FD_ADD_OPCODE,"OP_ADD");
   set_opcode_name(FD_DROP_OPCODE,"OP_DROP");
   set_opcode_name(FD_XREF_OPCODE,"OP_XREF");
+  set_opcode_name(FD_XPRED_OPCODE,"OP_XPRED");
+  set_opcode_name(FD_BREAK_OPCODE,"OP_BREAK");
   set_opcode_name(FD_PRIMGET_OPCODE,"OP_PGET");
   set_opcode_name(FD_PRIMTEST_OPCODE,"OP_PTEST");
   set_opcode_name(FD_STORE_OPCODE,"OP_PSTORE");

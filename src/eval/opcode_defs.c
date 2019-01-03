@@ -55,6 +55,38 @@ static lispval xref_opcode(lispval x,long long i,lispval tag)
   else return fd_err(fd_TypeError,"xref",fd_lisp2string(tag),x);
 }
 
+static lispval xpred_opcode(lispval x,lispval tag)
+{
+  if (FD_COMPOUNDP(x)) {
+    int match = FD_COMPOUND_TYPEP(x,tag);
+    fd_decref(x);
+    if (match)
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else if (FD_CHOICEP(x)) {
+    int match = 0, nomatch = 0;
+    FD_DO_CHOICES(e,x) {
+      if (FD_COMPOUND_TYPEP(e,tag)) {
+	match=1; if (nomatch) {
+	  FD_STOP_DO_CHOICES;
+	  break;}}
+      else {
+	nomatch = 1;
+	if (match) {
+	  FD_STOP_DO_CHOICES;
+	  break;}}}
+    fd_decref(x);
+    if (match) {
+      if (nomatch) {
+	lispval tmpvec[2] = {FD_FALSE,FD_TRUE};
+	return fd_init_choice(NULL,2,tmpvec,FD_CHOICE_ISATOMIC);}
+      else return FD_TRUE;}
+    else return FD_FALSE;}
+  else {
+    fd_decref(x);
+    return FD_FALSE;}
+}
+
 static lispval elt_opcode(lispval arg1,lispval arg2)
 {
   if ((FD_SEQUENCEP(arg1)) && (FD_INTP(arg2))) {
@@ -292,9 +324,9 @@ static lispval d1_call(lispval opcode,lispval arg1)
     if (FIXNUMP(arg1)) return FD_TRUE; else return FD_FALSE;
   case FD_FLONUMP_OPCODE:
     if (FD_FLONUMP(arg1)) return FD_TRUE; else return FD_FALSE;
-  case FD_TABLEP_OPCODE:
-    if (TABLEP(arg1)) return FD_TRUE; else return FD_FALSE;
   case FD_SEQUENCEP_OPCODE:
+    if (FD_SEQUENCEP(arg1)) return FD_TRUE; else return FD_FALSE;
+  case FD_TABLEP_OPCODE:
     if (FD_SEQUENCEP(arg1)) return FD_TRUE; else return FD_FALSE;
   case FD_CADR_OPCODE: {
     lispval cdr = FD_CDR(arg1);
@@ -954,6 +986,21 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
     fd_seterr(fd_SyntaxError,"FD_XREF_OPCODE",NULL,expr);
     return FD_ERROR_VALUE;}
 
+  case FD_XPRED_OPCODE: {
+    lispval type_arg = pop_arg(args);
+    lispval obj_expr = pop_arg(args);
+    if (FD_EXPECT_FALSE(VOIDP(obj_expr))) {
+      fd_seterr(fd_SyntaxError,"FD_XREF_OPCODE",NULL,expr);
+      return FD_ERROR_VALUE;}
+    lispval obj_arg=fast_eval(obj_expr,env);
+    if (FD_ABORTED(obj_arg)) return obj_arg;
+    else if (FD_EMPTYP(obj_arg)) return FD_EMPTY;
+    else if ( (FD_COMPOUNDP(obj_arg)) || (FD_AMBIGP(obj_arg)) )
+      return xpred_opcode(fd_simplify_choice(obj_arg),type_arg);
+    else {
+      fd_decref(obj_arg);
+      return FD_FALSE;}}
+
   case FD_NOT_OPCODE: {
     lispval arg_val = _fd_fast_eval(pop_arg(args),env,_stack,0);
     if (FALSEP(arg_val))
@@ -961,6 +1008,9 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
     else {
       fd_decref(arg_val);
       return FD_FALSE;}}
+
+  case FD_BREAK_OPCODE:
+    return FD_BREAK;
 
   case FD_TRY_OPCODE: return try_op(args,env,_stack,tail);
   case FD_AND_OPCODE: return and_op(args,env,_stack,tail);

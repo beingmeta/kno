@@ -37,6 +37,8 @@ FD_EXPORT int fd_opcodes_length;
 #define FD_SOURCEREF_OPCODE   FD_SPECIAL_OPCODE(0x0D)
 #define FD_RESET_ENV_OPCODE   FD_SPECIAL_OPCODE(0x0E)
 #define FD_XREF_OPCODE        FD_SPECIAL_OPCODE(0x0F)
+#define FD_XPRED_OPCODE       FD_SPECIAL_OPCODE(0x10)
+#define FD_BREAK_OPCODE       FD_SPECIAL_OPCODE(0x11)
 
 /* Unary primitives which handle their own non-determinism. */
 #define FD_ND1_OPCODE(x)      FD_OPCODE(0x100+x)
