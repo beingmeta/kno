@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2018 beingmeta, inc.
+/* Copyright (C) 2004-2019 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -824,7 +824,7 @@ static int boot_config()
 
 #define NO_COPYRIGHT_MESSAGE ""
 #define COPYRIGHT_MESSAGE \
-  "\nCopyright (C) beingmeta 2004-2018, all rights reserved"
+  "\nCopyright (C) beingmeta 2004-2019, all rights reserved"
 
 FD_EXPORT int fd_boot_message()
 {

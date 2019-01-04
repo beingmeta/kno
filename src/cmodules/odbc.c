@@ -2,7 +2,7 @@
 
 /* odbc.c
    This implements FramerD bindings to odbc.
-   Copyright (C) 2007-2018 beingmeta, inc.
+   Copyright (C) 2007-2019 beingmeta, inc.
 */
 
 #ifndef _FILEINFO

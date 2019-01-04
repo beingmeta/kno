@@ -7,7 +7,7 @@
    Extended exentsively by Ken Haase at beingmeta, inc.
 
    Copyright (C) 1999 Massachusetts Institute of Technology
-   Copyright (C) 1999-2018 beingmeta,inc 
+   Copyright (C) 1999-2019 beingmeta,inc 
 
 */
 

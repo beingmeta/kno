@@ -1,5 +1,5 @@
 # -*- Mode: Makefile; -*-
-# Copyright © 2004-2018 beingmeta, inc
+# Copyright © 2004-2019 beingmeta, inc
 # This file is a part of beingmeta's FramerD implementation
 
 CC	      = @CC@

@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2018 beingmeta, inc.
+/* Copyright (C) 2004-2019 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -2050,7 +2050,7 @@ int main(int argc,char **argv)
              socket_spec,out.u8_outbuf);
       u8_close((U8_STREAM *)&out);}
     else u8_log(LOG_WARN,Startup,"Starting beingmeta fdservlet %s",socket_spec);
-    u8_log(LOG_WARN,Startup,"Copyright (C) beingmeta 2004-2018, all rights reserved");}
+    u8_log(LOG_WARN,Startup,"Copyright (C) beingmeta 2004-2019, all rights reserved");}
 
   if (socket_spec) {
     ports = u8_malloc(sizeof(u8_string)*8);
@@ -2208,7 +2208,7 @@ static int run_servlet(u8_string socket_spec)
          "FramerD (%s) FDServlet running, %d/%d pools/indexes",
          FRAMERD_REVISION,fd_n_pools,
          fd_n_primary_indexes+fd_n_secondary_indexes);
-  u8_message("beingmeta FramerD, (C) beingmeta 2004-2018, all rights reserved");
+  u8_message("beingmeta FramerD, (C) beingmeta 2004-2019, all rights reserved");
   if (fdwebserver.n_servers>0) {
     u8_log(LOG_WARN,ServletStartup,"Listening on %d addresses",
            fdwebserver.n_servers);

@@ -3,7 +3,7 @@
 /* qrencode.c
    This implements FramerD bindings to the libqrencode library.
 
-   Copyright (C) 2009-2018 beingmeta, inc.
+   Copyright (C) 2009-2019 beingmeta, inc.
 */
 
 #ifndef _FILEINFO
