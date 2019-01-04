@@ -422,7 +422,7 @@ FRAMERD_SOURCES=\
 	src/storage/procpool.c src/storage/procindex.c 				\
 	src/drivers/memindex.c							\
 	src/drivers/netpool.c src/drivers/netindex.c				\
-	src/eval/eval.c src/eval/opcode_defs.c					\
+	src/eval/eval.c src/eval/opcode_defs.c src/eval/opcode_names.h		\
 	src/eval/options.c src/eval/appenv.c					\
 	src/eval/testops.c src/eval/debug.c					\
 	src/eval/binders.c src/eval/lambda.c 					\
@@ -946,7 +946,7 @@ pull:
 
 src/eval/binders.o src/eval/conditionals.o src/eval/iterators.o: \
 	src/eval/eval_internals.h
-src/eval/eval.o: src/eval/eval_internals.h src/eval/opcode_defs.c
+src/eval/eval.o: src/eval/eval_internals.h src/eval/opcode_defs.c src/eval/opcode_names.h
 
 # Custom rules
 
