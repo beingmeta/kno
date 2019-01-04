@@ -1077,6 +1077,7 @@ FD_EXPORT lispval fd_make_schemap
   if (vec == NULL) vec = u8_alloc_n(size,lispval);
   FD_INIT_STRUCT(ptr,struct FD_SCHEMAP);
   FD_INIT_CONS(ptr,fd_schemap_type);
+  ptr->schemap_template=FD_VOID;
   ptr->schema_length=size;
   if (flags&FD_SCHEMAP_PRIVATE) {
     ptr->schemap_shared=0;
@@ -1162,6 +1163,7 @@ static lispval copy_schemap(lispval schemap,int flags)
     unlock=1;}
   FD_INIT_STRUCT(nptr,struct FD_SCHEMAP);
   FD_INIT_CONS(nptr,fd_schemap_type);
+  nptr->schemap_template=FD_VOID;
   if (ptr->schemap_onstack)
     nptr->table_schema=nschema=u8_alloc_n(size,lispval);
   else nptr->table_schema=schema;
@@ -1215,6 +1217,7 @@ FD_EXPORT lispval fd_init_schemap
     FD_SET_CONS_TYPE(ptr,fd_schemap_type);
     new_vals = u8_alloc_n(size,lispval);}
   new_schema=u8_alloc_n(size,lispval);
+  ptr->schemap_template=FD_VOID;
   ptr->schema_values=new_vals;
   ptr->schema_length=size;
   ptr->schemap_sorted=0;
@@ -1426,22 +1429,24 @@ static void recycle_schemap(struct FD_RAW_CONS *c)
     fd_write_lock_table(sm);
     unlock = 1;}
   else {}
-  {
-    int schemap_size=FD_XSCHEMAP_SIZE(sm);
-    int stack_vals = sm->schemap_stackvals;
-    if ( (sm->schema_values) &&  (PRED_TRUE (! stack_vals ) ) ) {
-      lispval *scan=sm->schema_values;
-      lispval *limit=sm->schema_values+schemap_size;
-      while (scan < limit) {fd_decref(*scan); scan++;}
-      if (! (sm->schemap_stackvec) )
-        u8_free(sm->schema_values);}
-    if ((sm->table_schema) && (!(sm->schemap_shared)))
-      u8_free(sm->table_schema);
-    if (unlock) fd_unlock_table(sm);
-    u8_destroy_rwlock(&(sm->table_rwlock));
-    memset(sm,0,FD_SCHEMAP_LEN);
-    u8_free(sm);
-  }
+  lispval template = sm->schemap_template;
+  if ( (template) && (FD_CONSP(template)) ) {
+    fd_decref(template);
+    sm->schemap_template=FD_VOID;}
+  int schemap_size=FD_XSCHEMAP_SIZE(sm);
+  int stack_vals = sm->schemap_stackvals;
+  if ( (sm->schema_values) &&  (PRED_TRUE (! stack_vals ) ) ) {
+    lispval *scan=sm->schema_values;
+    lispval *limit=sm->schema_values+schemap_size;
+    while (scan < limit) {fd_decref(*scan); scan++;}
+    if (! (sm->schemap_stackvec) )
+      u8_free(sm->schema_values);}
+  if ((sm->table_schema) && (!(sm->schemap_shared)))
+    u8_free(sm->table_schema);
+  if (unlock) fd_unlock_table(sm);
+  u8_destroy_rwlock(&(sm->table_rwlock));
+  memset(sm,0,FD_SCHEMAP_LEN);
+  u8_free(sm);
 }
 static int unparse_schemap(u8_output out,lispval x)
 {

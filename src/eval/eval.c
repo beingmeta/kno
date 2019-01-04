@@ -886,11 +886,12 @@ lispval schemap_eval(lispval expr,fd_lexenv env,
       fd_decref_vec(new_vals,i);
       return val;}
     else new_vals[i++] = val;}
-  return fd_make_schemap(NULL,n,
-                         FD_SCHEMAP_INLINE|FD_SCHEMAP_COPY_SCHEMA,
-                         schema,new_vals);
+  lispval result = fd_make_schemap(NULL,n,FD_SCHEMAP_INLINE,schema,new_vals);
+  /* Set the template, which allows the new schemap to share the schema */
+  struct FD_SCHEMAP *newmap = (fd_schemap) result;
+  newmap->schemap_template=expr; fd_incref(expr);
+  return result;
 }
-
 
 /* Opcode eval */
 

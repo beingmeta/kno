@@ -338,6 +338,7 @@ typedef struct FD_SCHEMAP {
   unsigned int schemap_stackvals:1;
   unsigned int schemap_stackvec:1;
   lispval *table_schema, *schema_values;
+  lispval schemap_template;
   U8_RWLOCK_DECL(table_rwlock);} FD_SCHEMAP;
 
 #define FD_SCHEMAP_SORTED 1
