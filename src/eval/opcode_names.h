@@ -81,5 +81,12 @@ static void init_opcode_names()
   set_opcode_name(FD_PRIMGET_OPCODE,"OP_PGET");
   set_opcode_name(FD_PRIMTEST_OPCODE,"OP_PTEST");
   set_opcode_name(FD_STORE_OPCODE,"OP_PSTORE");
+
+  set_opcode_name(FD_PICKNUMS_OPCODE,"OP_PICKNUMS");
+  set_opcode_name(FD_PICKMAPS_OPCODE,"OP_PICKMAPS");
+  set_opcode_name(FD_SOMETRUE_OPCODE,"OP_SOMETRUE");
+  set_opcode_name(FD_GETKEYS_OPCODE,"OP_GETKEYS");
+  set_opcode_name(FD_GETVALUES_OPCODE,"OP_GETVALUES");
+  set_opcode_name(FD_GETASSOCS_OPCODE,"OP_GETASSOCS");
 }
 

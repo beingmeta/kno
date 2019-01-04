@@ -131,15 +131,21 @@ static lispval pickoids_opcode(lispval arg1)
     lispval choice, results = EMPTY;
     int free_choice = 0, all_oids = 1;
     if (CHOICEP(arg1)) choice = arg1;
-    else {choice = fd_make_simple_choice(arg1); free_choice = 1;}
+    else {
+      choice = fd_make_simple_choice(arg1);
+      free_choice = 1;}
     {DO_CHOICES(elt,choice) {
         if (OIDP(elt)) {CHOICE_ADD(results,elt);}
-        else if (all_oids) all_oids = 0;}}
+        else if (all_oids)
+	  all_oids = 0;
+	else NO_ELSE;}}
     if (all_oids) {
       fd_decref(results);
-      if (free_choice) return choice;
+      if (free_choice)
+	return choice;
       else return fd_incref(choice);}
     else if (free_choice) fd_decref(choice);
+    else NO_ELSE;
     return fd_simplify_choice(results);}
   else return EMPTY;
 }
@@ -149,19 +155,96 @@ static lispval pickstrings_opcode(lispval arg1)
   if ((CHOICEP(arg1)) || (PRECHOICEP(arg1))) {
     lispval choice, results = EMPTY;
     int free_choice = 0, all_strings = 1;
-    if (CHOICEP(arg1)) choice = arg1;
-    else {choice = fd_make_simple_choice(arg1); free_choice = 1;}
+    if (CHOICEP(arg1))
+      choice = arg1;
+    else {
+      choice = fd_make_simple_choice(arg1);
+      free_choice = 1;}
     {DO_CHOICES(elt,choice) {
         if (STRINGP(elt)) {
-          fd_incref(elt); CHOICE_ADD(results,elt);}
-        else if (all_strings) all_strings = 0;}}
+          fd_incref(elt);
+	  CHOICE_ADD(results,elt);}
+        else if (all_strings)
+	  all_strings = 0;
+	else NO_ELSE;}}
     if (all_strings) {
       fd_decref(results);
-      if (free_choice) return choice;
+      if (free_choice)
+	return choice;
       else return fd_incref(choice);}
-    else if (free_choice) fd_decref(choice);
+    else if (free_choice)
+      fd_decref(choice);
+    else NO_ELSE;
     return fd_simplify_choice(results);}
-  else if (STRINGP(arg1)) return fd_incref(arg1);
+  else if (STRINGP(arg1))
+    return fd_incref(arg1);
+  else return EMPTY;
+}
+
+static lispval picknums_opcode(lispval arg1)
+{
+  if (EMPTYP(arg1)) return arg1;
+  else if ((CHOICEP(arg1)) || (PRECHOICEP(arg1))) {
+    lispval choice, results = EMPTY;
+    int free_choice = 0, all_nums = 1;
+    if (CHOICEP(arg1))
+      choice = arg1;
+    else {
+      choice = fd_make_simple_choice(arg1);
+      free_choice = 1;}
+    {DO_CHOICES(elt,choice) {
+	if (FD_FIXNUMP(elt)) {
+	  CHOICE_ADD(results,elt);}
+	else if (FD_NUMBERP(elt)) {
+	  fd_incref(elt);
+	  CHOICE_ADD(results,elt);}
+        else if (all_nums)
+	  all_nums = 0;
+	else NO_ELSE;}}
+    if (all_nums) {
+      fd_decref(results);
+      if (free_choice)
+	return choice;
+      else return fd_incref(choice);}
+    else if (free_choice)
+      fd_decref(choice);
+    else NO_ELSE;
+    return fd_simplify_choice(results);}
+  else if (FD_NUMBERP(arg1))
+    return fd_incref(arg1);
+  else return EMPTY;
+}
+
+static lispval pickmaps_opcode(lispval arg1)
+{
+  if (EMPTYP(arg1))
+    return arg1;
+  else if ((CHOICEP(arg1)) || (PRECHOICEP(arg1))) {
+    lispval choice, results = EMPTY;
+    int free_choice = 0, all_nums = 1;
+    if (CHOICEP(arg1))
+      choice = arg1;
+    else {
+      choice = fd_make_simple_choice(arg1);
+      free_choice = 1;}
+    {DO_CHOICES(elt,choice) {
+	if ( (FD_SLOTMAPP(elt)) || (FD_SCHEMAPP(elt)) ) {
+	  fd_incref(elt);
+	  CHOICE_ADD(results,elt);}
+        else if (all_nums) 
+	  all_nums = 0;
+	else NO_ELSE;}}
+    if (all_nums) {
+      fd_decref(results);
+      if (free_choice)
+	return choice;
+      else return fd_incref(choice);}
+    else if (free_choice)
+      fd_decref(choice);
+    else NO_ELSE;
+    return fd_simplify_choice(results);}
+  else if ( (FD_SLOTMAPP(arg1)) || (FD_SCHEMAPP(arg1)) )
+    return fd_incref(arg1);
   else return EMPTY;
 }
 
@@ -275,6 +358,10 @@ static lispval nd1_call(lispval opcode,lispval arg1)
     return pickoids_opcode(arg1);
   case FD_PICKSTRINGS_OPCODE:
     return pickstrings_opcode(arg1);
+  case FD_PICKNUMS_OPCODE:
+    return picknums_opcode(arg1);
+  case FD_PICKMAPS_OPCODE:
+    return pickmaps_opcode(arg1);
   case FD_PICKONE_OPCODE:
     if (CHOICEP(arg1))
       return pickone_opcode(arg1);
@@ -283,6 +370,10 @@ static lispval nd1_call(lispval opcode,lispval arg1)
     if (EMPTYP(arg1))
       return VOID;
     else return fd_incref(arg1);
+  case FD_SOMETRUE_OPCODE:
+    if ( (EMPTYP(arg1)) || (FALSEP(arg1)) )
+      return FD_FALSE;
+    else return FD_TRUE;
   case FD_FIXCHOICE_OPCODE:
     if (PRECHOICEP(arg1))
       return fd_simplify_choice(arg1);
@@ -365,6 +456,18 @@ static lispval d1_call(lispval opcode,lispval arg1)
     else if (FD_CHARACTERP(arg1))
       return FD_INT(FD_CHARCODE(arg1));
     else return fd_type_error(_("number|string"),"opcode ->number",arg1);
+  case FD_GETKEYS_OPCODE:
+    if (FD_TABLEP(arg1))
+      return fd_getkeys(arg1);
+    else return fd_type_error(_("table"),"opcode GETKEYS",arg1);
+  case FD_GETVALUES_OPCODE:
+    if (FD_TABLEP(arg1))
+      return fd_getvalues(arg1);
+    else return fd_type_error(_("table"),"opcode GETVALUES",arg1);
+  case FD_GETASSOCS_OPCODE:
+    if (FD_TABLEP(arg1))
+      return fd_getassocs(arg1);
+    else return fd_type_error(_("table"),"opcode GETASSOCS",arg1);
   default:
     return fd_err(_("Invalid opcode"),"opcode eval",NULL,VOID);
   }
@@ -506,8 +609,8 @@ static lispval numop_call(lispval opcode,lispval arg1,lispval arg2)
 static lispval nd2_call(lispval opcode,lispval arg1,lispval arg2)
 {
   lispval result = FD_ERROR_VALUE;
-  lispval argv[2]={arg1,arg2};
-  if (FD_ABORTED(arg2)) result = arg2;
+  if (FD_ABORTED(arg2))
+    result = arg2;
   else if (VOIDP(arg2)) {
     result = fd_err(fd_VoidArgument,"OPCODE setop",NULL,opcode);}
   else switch (opcode) {
@@ -525,23 +628,6 @@ static lispval nd2_call(lispval opcode,lispval arg1,lispval arg2)
       if (fd_containsp(arg1,arg2)) result = FD_TRUE;
       else result = FD_FALSE;
       break;
-      /*
-    case FD_INTERSECT_OPCODE:
-      if ((EMPTYP(arg1)) || (EMPTYP(arg2)))
-        result = EMPTY;
-      else result = fd_intersection(argv,2);
-      break;
-    case FD_UNION_OPCODE:
-      if (EMPTYP(arg1)) result = fd_incref(arg2);
-      else if (EMPTYP(arg2)) result = fd_incref(arg1);
-      else result = fd_union(argv,2);
-      break;
-    case FD_DIFFERENCE_OPCODE:
-      if ((EMPTYP(arg1)) || (EMPTYP(arg2)))
-        result = fd_incref(arg1);
-      else result = fd_difference(arg1,arg2);
-      break;
-      */
     case FD_CHOICEREF_OPCODE:
       if (!(FIXNUMP(arg2))) {
         fd_decref(arg1);

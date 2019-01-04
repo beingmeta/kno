@@ -61,6 +61,9 @@ FD_EXPORT int fd_opcodes_length;
 #define FD_PICKONE_OPCODE     FD_ND1_OPCODE(0x0d)
 #define FD_IFEXISTS_OPCODE    FD_ND1_OPCODE(0x0e)
 #define FD_FIXCHOICE_OPCODE   FD_ND1_OPCODE(0x0f)
+#define FD_PICKNUMS_OPCODE    FD_ND1_OPCODE(0x10)
+#define FD_PICKMAPS_OPCODE    FD_ND1_OPCODE(0x11)
+#define FD_SOMETRUE_OPCODE    FD_ND1_OPCODE(0x12)
 
 /* Unary primitives which don't handle their own non-determinism. */
 #define FD_D1_OPCODE(x)       FD_OPCODE(0x200+x)
@@ -88,6 +91,9 @@ FD_EXPORT int fd_opcodes_length;
 #define FD_CDDDR_OPCODE       FD_D1_OPCODE(0x15)
 #define FD_TONUMBER_OPCODE    FD_D1_OPCODE(0x16)
 #define FD_ELTS_OPCODE        FD_D1_OPCODE(0x17)
+#define FD_GETKEYS_OPCODE     FD_D1_OPCODE(0x18)
+#define FD_GETVALUES_OPCODE   FD_D1_OPCODE(0x19)
+#define FD_GETASSOCS_OPCODE   FD_D1_OPCODE(0x1a)
 
 #define FD_D2_OPCODE(x)      FD_OPCODE(0x400+x)
 #define FD_D2_OPCODEP(x)     ((x>=FD_OPCODE(0x400))&&(x<FD_OPCODE(0x500)))

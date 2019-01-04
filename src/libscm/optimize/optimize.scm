@@ -334,8 +334,10 @@
 (def-opcode CHOICE-SIZE #OP_CHOICESIZE 1)
 (def-opcode PICKOIDS    #OP_PICKOIDS 1)
 (def-opcode PICKSTRINGS #OP_PICKSTRINGS 1)
+(def-opcode PICKNUMS    #OP_PICKNUMS 1)
 (def-opcode PICK-ONE    #OP_PICKONE 1)
 (def-opcode IFEXISTS    #OP_IFEXISTS 1)
+(def-opcode SOMETRUE    #OP_SOMETRUE 1)
 
 (def-opcode 1-         #OP_MINUS1 1)
 (def-opcode -1+        #OP_MINUS1 1)
@@ -356,6 +358,10 @@
 (def-opcode CADDR      #OP_CADDR 1)
 (def-opcode CDDDR      #OP_CDDDR 1)
 (def-opcode ->NUMBER   #OP_2NUMBER 1)
+
+(def-opcode GETKEYS    #OP_GETKEYS 1)
+(def-opcode GETVALUES  #OP_GETVALUES 1)
+(def-opcode GETASSOCS  #OP_GETASSOCS 1)
 
 (def-opcode UNION        #OP_UNION)
 (def-opcode INTERSECTION #OP_INTERSECTION)
