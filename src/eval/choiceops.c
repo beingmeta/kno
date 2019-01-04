@@ -616,6 +616,8 @@ static lispval sometrue_lexpr(int n,lispval *nd_args)
   if (n==1)
     if (EMPTYP(nd_args[0]))
       return FD_FALSE;
+    else if (FD_FALSEP(nd_args[0]))
+      return FD_FALSE;
     else return FD_TRUE;
   else return exists_lexpr(n,nd_args);
 }
@@ -633,10 +635,10 @@ static int test_exists(struct FD_FUNCTION *fn,int i,int n,
     return 1;}
   else if ((CHOICEP(nd_args[i])) || (PRECHOICEP(nd_args[i]))) {
     DO_CHOICES(v,nd_args[i]) {
-      int retval;
-      d_args[i]=v;
-      retval = test_exists(fn,i+1,n,nd_args,d_args);
-      if (retval!=0) return retval;}
+      d_args[i]=v; int retval = test_exists(fn,i+1,n,nd_args,d_args);
+      if (retval != 0) {
+        FD_STOP_DO_CHOICES;
+        return retval;}}
     return 0;}
   else {
     d_args[i]=nd_args[i];
@@ -1431,6 +1433,20 @@ static lispval pick_nums_prim(lispval items)
   else return results;
 }
 
+static lispval pick_maps_prim(lispval items)
+{
+  lispval results = EMPTY; int no_change = 1;
+  DO_CHOICES(item,items)
+    if ( (FD_SLOTMAPP(item)) || (FD_SCHEMAPP(item)) ) {
+      fd_incref(item);
+      CHOICE_ADD(results,item);}
+    else no_change = 0;
+  if (no_change) {
+    fd_decref(results);
+    return fd_incref(items);}
+  else return results;
+}
+
 /* Initialize functions */
 
 FD_EXPORT void fd_init_choicefns_c()
@@ -1578,6 +1594,8 @@ FD_EXPORT void fd_init_choicefns_c()
            fd_make_ndprim(fd_make_cprim1("PICKOIDS",pick_oids_prim,1)));
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim1("PICKNUMS",pick_nums_prim,1)));
+  fd_idefn(fd_scheme_module,
+           fd_make_ndprim(fd_make_cprim1("PICKMAPS",pick_maps_prim,1)));
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim1("PICKSTRINGS",pick_strings_prim,1)));
   fd_idefn(fd_scheme_module,
