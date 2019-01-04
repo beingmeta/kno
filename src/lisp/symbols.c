@@ -32,7 +32,7 @@ lispval FDSYM_MAIN, FDSYM_MERGE, FDSYM_METADATA;
 lispval FDSYM_MINUS, FDSYM_MODULE;
 lispval FDSYM_NAME, FDSYM_NO, FDSYM_NONE, FDSYM_NOT;
 lispval FDSYM_OPT, FDSYM_OPTS, FDSYM_OUTPUT;
-lispval FDSYM_PLUS, FDSYM_PREFIX, FDSYM_PROPS;
+lispval FDSYM_PCTID, FDSYM_PLUS, FDSYM_PREFIX, FDSYM_PROPS;
 lispval FDSYM_QMARK, FDSYM_QUOTE, FDSYM_READONLY, FDSYM_SEP;
 lispval FDSYM_SET, FDSYM_SIZE, FDSYM_SORT, FDSYM_SORTED;
 lispval FDSYM_SOURCE, FDSYM_STAR, FDSYM_STORE, FDSYM_STRING, FDSYM_SUFFIX;
@@ -85,6 +85,11 @@ static void init_symbol_tables()
 
 static void init_builtin_symbols()
 {
+  /* Make these low-numberd symbols to have them early in sorts */
+  fd_intern("%ID"); fd_intern("NAME"); fd_intern("ID"); fd_intern("_ID");
+  fd_intern("LABEL");
+
+  /* Here they are in alphabetical order */
   FDSYM_ADD = fd_intern("ADD");
   FDSYM_ADJUNCT = fd_intern("ADJUNCT");
   FDSYM_ALL = fd_intern("ALL");
@@ -127,6 +132,7 @@ static void init_builtin_symbols()
   FDSYM_OPT = fd_intern("OPT");
   FDSYM_OPTS = fd_intern("OPTS");
   FDSYM_OUTPUT = fd_intern("OUTPUT");
+  FDSYM_PCTID = fd_intern("%ID");
   FDSYM_PLUS = fd_intern("+");
   FDSYM_PREFIX = fd_intern("PREFIX");
   FDSYM_PROPS = fd_intern("PROPS");
