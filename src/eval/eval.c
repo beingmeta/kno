@@ -908,11 +908,12 @@ static lispval opcode_eval(lispval opcode,lispval expr,
   else if ( (FD_D1_OPCODEP(opcode)) || (FD_ND1_OPCODEP(opcode)) ) {
     int nd_call = (FD_ND1_OPCODEP(opcode));
     lispval results = FD_EMPTY_CHOICE;
-    lispval arg = FD_CAR(args), val = arg_eval(arg,env,_stack);
+    lispval arg = pop_arg(args), val = arg_eval(arg,env,_stack);
     if (FD_ABORTED(val)) _return val;
     else if (FD_VOIDP(val))
       return fd_err(fd_VoidArgument,"OPCODE_APPLY",opcode_name(opcode),arg);
-    else NO_ELSE;
+    else if (PRED_TRUE(args == FD_EMPTY_LIST)) {}
+    else return fd_err(fd_TooManyArgs,"opcode_eval",opcode_name(opcode),expr);
     if (FD_PRECHOICEP(val))
       val = fd_simplify_choice(val);
     /* Get results */
@@ -937,25 +938,25 @@ static lispval opcode_eval(lispval opcode,lispval expr,
     int nd_call = (FD_ND2_OPCODEP(opcode));
     lispval results = FD_EMPTY_CHOICE;
     int numericp = (FD_NUMERIC_OPCODEP(opcode));
-    lispval arg1 = pop_arg(args), val1 = arg_eval(arg1,env,_stack);
-    if (FD_ABORTED(val1)) return val1;
-    else if (! (FD_EXPECT_TRUE(FD_PAIRP(args))) )
+    lispval arg1 = pop_arg(args), arg2 = pop_arg(args);
+    if (PRED_FALSE(FD_VOIDP(arg1)))
       return fd_err(fd_TooFewArgs,"opcode_eval",opcode_name(opcode),
                     expr);
+    else if (PRED_FALSE(args != FD_EMPTY_LIST))
+      return fd_err(fd_TooManyArgs,"opcode_eval",opcode_name(opcode),expr);
+    else NO_ELSE;
+    lispval val1 = arg_eval(arg1,env,_stack), val2;
+    if (FD_ABORTED(val1))
+      return val1;
     else if ( (FD_EMPTY_CHOICEP(val1)) && (!(nd_call)) )
       return val1;
-    else if (FD_EXPECT_FALSE(FD_VOIDP(val1)))
-      return fd_err(fd_VoidArgument,"OPCODE_APPLY",opcode_name(opcode),arg1);
-    else NO_ELSE;
-    lispval arg2 = pop_arg(args), val2 = arg_eval(arg2,env,_stack);
-    if (FD_ABORTED(val2)) {fd_decref(val1); return val2;}
+    else val2 = arg_eval(arg2,env,_stack);
+    if (FD_ABORTED(val2)) {
+      fd_decref(val1);
+      return val2;}
     else if ( (FD_EMPTY_CHOICEP(val2)) && (!(nd_call)) ) {
       fd_decref(val1);
       return val2;}
-    else if (FD_EXPECT_FALSE(FD_VOIDP(val2))) {
-      fd_decref(val1);
-      return fd_err(fd_VoidArgument,"OPCODE_APPLY",opcode_name(opcode),arg2);}
-    else NO_ELSE;
     if (FD_PRECHOICEP(val1)) val1 = fd_simplify_choice(val1);
     if (FD_PRECHOICEP(val2)) val2 = fd_simplify_choice(val2);
     if ( (FD_CHOICEP(val1)) || (FD_CHOICEP(val2)) ) {
