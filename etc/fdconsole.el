@@ -18,7 +18,7 @@
 (require 'cmuscheme)
 
 (let ((st scheme-mode-syntax-table))
-  (modify-syntax-entry ?\[ "(]" )
+  (modify-syntax-entry ?\[ "(]" scheme-mode-syntax-table)
   (modify-syntax-entry ?\] ")[" scheme-mode-syntax-table)
   (modify-syntax-entry ?{ "(}" scheme-mode-syntax-table)
   (modify-syntax-entry ?} "){" scheme-mode-syntax-table)
@@ -64,10 +64,12 @@
 	     (or (not (looking-at "\\sw\\|\\s_"))
 		 (save-excursion
 		   (goto-char (elt state 1))
-		   (looking-at "{"))
+		   (or (looking-at "{") (looking-at "\\[")))
 		 (save-excursion
 		   (goto-char (- (elt state 1) 1))
-		   (or (looking-at "#(") (looking-at "#\\[") (looking-at "#{"))))
+		   (or (looking-at "#(")
+		       (looking-at "#\\[")
+		       (looking-at "#{"))))
              ;; (not (looking-at "\\sw\\|\\s_"))
 	     )
         ;; car of form doesn't seem to be a symbol
@@ -124,8 +126,13 @@
 
 (put 'set! 'scheme-indent-function 1)
 (put 'set+! 'scheme-indent-function 1)
-(put 'store! 'scheme-indent-function 1)
-(put 'add! 'scheme-indent-function 1)
+(put 'store! 'scheme-indent-function 2)
+(put 'add! 'scheme-indent-function 2)
+(put 'drop! 'scheme-indent-function 2)
+(put 'assert! 'scheme-indent-function 2)
+(put 'retract! 'scheme-indent-function 2)
+(put 'test 'scheme-indent-function 2)
+(put '%test 'scheme-indent-function 2)
 
 (put 'irritant 'scheme-indent-function 2)
 (put 'begin 'scheme-indent-function 'block-indenter)
