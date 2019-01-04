@@ -525,6 +525,7 @@ static lispval nd2_call(lispval opcode,lispval arg1,lispval arg2)
       if (fd_containsp(arg1,arg2)) result = FD_TRUE;
       else result = FD_FALSE;
       break;
+      /*
     case FD_INTERSECT_OPCODE:
       if ((EMPTYP(arg1)) || (EMPTYP(arg2)))
         result = EMPTY;
@@ -540,6 +541,7 @@ static lispval nd2_call(lispval opcode,lispval arg1,lispval arg2)
         result = fd_incref(arg1);
       else result = fd_difference(arg1,arg2);
       break;
+      */
     case FD_CHOICEREF_OPCODE:
       if (!(FIXNUMP(arg2))) {
         fd_decref(arg1);
@@ -565,7 +567,6 @@ static lispval nd2_call(lispval opcode,lispval arg1,lispval arg2)
   return result;
 }
 
-
 static lispval try_op(lispval exprs,fd_lexenv env,
                       fd_stack stack,int tail)
 {
@@ -580,6 +581,64 @@ static lispval try_op(lispval exprs,fd_lexenv env,
         return val;
       else fd_decref(val);}}
   return EMPTY;
+}
+
+static lispval union_op(lispval exprs,fd_lexenv env,fd_stack stack)
+{
+  lispval result = FD_EMPTY_CHOICE;
+  while (PAIRP(exprs)) {
+    lispval expr = pop_arg(exprs);
+    lispval val  = _fd_fast_eval(expr,env,stack,0);
+    if (FD_ABORTED(val)) {
+      fd_decref(result);
+      return val;}
+    else {FD_ADD_TO_CHOICE(result,val);}}
+  return fd_simplify_choice(result);
+}
+
+static lispval intersect_op(lispval exprs,fd_lexenv env,fd_stack stack)
+{
+  lispval result = VOID;
+  while (PAIRP(exprs)) {
+    lispval expr = pop_arg(exprs);
+    lispval val  = _fd_fast_eval(expr,env,stack,0);
+    if (FD_ABORTED(val)) {
+      fd_decref(result);
+      return val;}
+    else if (FD_VOIDP(result))
+      result = val;
+    else if (FD_EMPTYP(val)) {
+      fd_decref(result);
+      return val;}
+    else {
+      lispval combine[2] = {result,val};
+      lispval combined = fd_intersection(combine,2);
+      fd_decref(result);
+      if (FD_EMPTYP(combined))
+	return combined;
+      else result=combined;}}
+  return fd_simplify_choice(result);
+}
+
+static lispval difference_op(lispval exprs,fd_lexenv env,fd_stack stack)
+{
+  lispval result = VOID;
+  while (PAIRP(exprs)) {
+    lispval expr = pop_arg(exprs);
+    lispval val  = _fd_fast_eval(expr,env,stack,0);
+    if (FD_ABORTED(val)) {
+      fd_decref(result);
+      return val;}
+    else if (FD_VOIDP(result))
+      result = val;
+    else if (FD_EMPTYP(val)) {}
+    else {
+      lispval combined = fd_difference(result,val);
+      fd_decref(result);
+      if (FD_EMPTYP(combined))
+	return combined;
+      else result=combined;}}
+  return fd_simplify_choice(result);
 }
 
 static lispval and_op(lispval exprs,fd_lexenv env,fd_stack stack,int tail)
@@ -1015,6 +1074,10 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
   case FD_TRY_OPCODE: return try_op(args,env,_stack,tail);
   case FD_AND_OPCODE: return and_op(args,env,_stack,tail);
   case FD_OR_OPCODE:  return or_op(args,env,_stack,tail);
+  
+  case FD_INTERSECT_OPCODE: return intersect_op(args,env,_stack);
+  case FD_UNION_OPCODE: return union_op(args,env,_stack);
+  case FD_DIFFERENCE_OPCODE: return difference_op(args,env,_stack);
 
   default:
     return fd_err("BadOpcode","handle_special_opcode",NULL,expr);

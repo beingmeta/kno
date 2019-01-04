@@ -39,6 +39,9 @@ FD_EXPORT int fd_opcodes_length;
 #define FD_XREF_OPCODE        FD_SPECIAL_OPCODE(0x0F)
 #define FD_XPRED_OPCODE       FD_SPECIAL_OPCODE(0x10)
 #define FD_BREAK_OPCODE       FD_SPECIAL_OPCODE(0x11)
+#define FD_UNION_OPCODE       FD_SPECIAL_OPCODE(0x12)
+#define FD_INTERSECT_OPCODE   FD_SPECIAL_OPCODE(0x13)
+#define FD_DIFFERENCE_OPCODE  FD_SPECIAL_OPCODE(0x14)
 
 /* Unary primitives which handle their own non-determinism. */
 #define FD_ND1_OPCODE(x)      FD_OPCODE(0x100+x)
@@ -99,9 +102,11 @@ FD_EXPORT int fd_opcodes_length;
 #define FD_IDENTICAL_OPCODE  FD_ND2_OPCODE(0x01)
 #define FD_OVERLAPS_OPCODE   FD_ND2_OPCODE(0x02)
 #define FD_CONTAINSP_OPCODE  FD_ND2_OPCODE(0x03)
+/*
 #define FD_UNION_OPCODE      FD_ND2_OPCODE(0x04)
 #define FD_INTERSECT_OPCODE  FD_ND2_OPCODE(0x05)
 #define FD_DIFFERENCE_OPCODE FD_ND2_OPCODE(0x06)
+*/
 #define FD_CHOICEREF_OPCODE  FD_ND2_OPCODE(0x07)
 
 /* Arithmetic primitives with two arguments */
