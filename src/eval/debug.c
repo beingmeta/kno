@@ -47,7 +47,7 @@
 static char *cpu_profilename = NULL;
 u8_string fd_bugdir = NULL;
 
-static lispval unquote_symbol, else_symbol, apply_marker;
+static lispval unquote_symbol, else_symbol, apply_marker, logcxt_symbol;
 
 /* Trace functions */
 
@@ -797,17 +797,30 @@ static lispval with_log_context_evalfn(lispval expr,fd_lexenv env,fd_stack _stac
     return fd_err(fd_SyntaxError,"with_context_evalfn",NULL,expr);
   else {
     lispval label=fd_stack_eval(label_expr,env,_stack,0);
-    if (FD_ABORTED(label)) return label;
-    else if (!(FD_STRINGP(label)))
-      return fd_type_error("string","with_context_evalfn",label);
+    if (FD_ABORTED(label))
+      return label;
     else {
-      u8_string outer_context=u8_log_context;
-      u8_set_log_context(FD_CSTRING(label));
+      lispval outer_lisp_context = fd_thread_get(logcxt_symbol);
+      u8_string outer_context = u8_log_context;
+      u8_string local_context = (FD_SYMBOLP(label)) ? (FD_SYMBOL_NAME(label)) :
+        (FD_STRINGP(label)) ? (FD_CSTRING(label)) : (NULL);
+      fd_thread_set(logcxt_symbol,label);
+      u8_set_log_context(local_context);
       lispval result=eval_inner_body("with_log_context",FD_CSTRING(label),
                                expr,2,env,_stack);
+      fd_thread_set(logcxt_symbol,outer_lisp_context);
       u8_set_log_context(outer_context);
       fd_decref(label);
       return result;}}
+}
+
+static lispval set_log_context_prim(lispval label)
+{
+  u8_string local_context = (FD_SYMBOLP(label)) ? (FD_SYMBOL_NAME(label)) :
+    (FD_STRINGP(label)) ? (FD_CSTRING(label)) : (NULL);
+  fd_thread_set(logcxt_symbol,label);
+  u8_set_log_context(local_context);
+  return FD_VOID;
 }
 
 /* Primitives for testing purposes */
@@ -918,6 +931,10 @@ FD_EXPORT void fd_init_eval_debug_c()
 
   /* This pushes a log context */
   fd_def_evalfn(fd_scheme_module,"WITH-LOG-CONTEXT","",with_log_context_evalfn);
+  fd_idefn1(fd_scheme_module,"SET-LOG-CONTEXT!",set_log_context_prim,1,
+            "`(SET-LOG-CONTEXT! *label*)` sets the current log context to "
+            "the string or symbol *label*.",
+            -1,FD_VOID);
 
   fd_idefn2(fd_scheme_module,"DUMP-BUG",dumpbug_prim,1,
             "(DUMP-BUG *err* [*to*]) writes a DType representation of *err* "
@@ -948,6 +965,7 @@ FD_EXPORT void fd_init_eval_debug_c()
   unquote_symbol = fd_intern("UNQUOTE");
   else_symbol = fd_intern("ELSE");
   apply_marker = fd_intern("=>");
+  logcxt_symbol = fd_intern("LOGCXT");
 }
 
 /* Emacs local variables
