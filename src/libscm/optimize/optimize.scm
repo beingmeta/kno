@@ -164,7 +164,7 @@
 ;;; Converting non-lexical function references
 
 (define (fcnref value sym env opts (from))
-  (default! from (wherefrom sym env))
+  (default! from (and (symbol? sym) (wherefrom sym env)))
   (cond ((not (or (applicable? value) (special-form? value)))
 	 sym)
 	((not (cons? value)) sym)
@@ -317,6 +317,7 @@
 (define xpred-opcode   #OP_XPRED)
 (define choiceref-opcode #OP_CHOICEREF)
 (define fixchoice-opcode  #OP_FIXCHOICE)
+(define break-opcode  #OP_BREAK)
 
 (define sourcref-opcode  #OP_SOURCEREF)
 
@@ -356,6 +357,10 @@
 (def-opcode CDDDR      #OP_CDDDR 1)
 (def-opcode ->NUMBER   #OP_2NUMBER 1)
 
+(def-opcode UNION        #OP_UNION)
+(def-opcode INTERSECTION #OP_INTERSECTION)
+(def-opcode DIFFERENCE   #OP_DIFFERENCE)
+
 (def-opcode =          #OP_NUMEQ 2)
 (def-opcode >          #OP_GT 2)
 (def-opcode >=         #OP_GTE 2)
@@ -369,9 +374,6 @@
 (def-opcode IDENTICAL?   #OP_IDENTICALP 2)
 (def-opcode OVERLAPS?    #OP_OVERLAPSP 2)
 (def-opcode CONTAINS?    #OP_CONTAINSP 2)
-(def-opcode UNION        #OP_UNION)
-(def-opcode INTERSECTION #OP_INTERSECTION)
-(def-opcode DIFFERENCE   #OP_DIFFERENCE)
 (def-opcode EQ?          #OP_EQP 2)
 (def-opcode EQV?         #OP_EQVP 2)
 (def-opcode EQUAL?       #OP_EQUALP 2)
@@ -400,7 +402,7 @@
 	 (for-choices (each expr) 
 	   (optimize each env bound opts)))
 	((fail? expr) expr)
-	((symbol? expr) (optimize-symbol expr env bound opts))
+	((symbol? expr) (optimize-variable expr env bound opts))
 	((not (pair? expr)) expr)
 	((or (pair? (car expr)) (ambiguous? (car expr)))
 	 ;; If we can't determine a single head for an expression,
@@ -434,7 +436,7 @@
 	     (optimize _subexpr ,env-expr ,bound-expr ,opts-expr)
 	     _subexpr)))))
 
-(defambda (optimize-symbol expr env bound opts)
+(defambda (optimize-variable expr env bound opts)
   (let ((lexref (get-lexref expr bound 0))
 	(use-opcodes (use-opcodes? opts)))
     (debug%watch "OPTIMIZE/SYMBOL" expr lexref env bound)
@@ -474,15 +476,19 @@
 		 expr)
 		;; If it's a primitive or special form, replace it
 		;; with its value
-		((or (primitive? value) (special-form? value))
+		((and (singleton? value)
+		      (or (primitive? value) (special-form? value)))
 		 value)
 		((%test srcenv '%constants expr)
 		 ;; If it's a constant, replace it as well, but be
 		 ;; careful to quote it if it contains anything which
 		 ;; might be evaluated (symbols or pairs)
-		 (if (not (exists {pair? symbol?} value))
+		 (if (and (singleton? value)
+			  (not (exists {pair? symbol? schemap?} value)))
 		     value
-		     (list 'quote (qc value))))
+		     (if use-opcodes
+			 (list quote-opcode (qc value))
+			 (list 'quote (qc value)))))
 		((forall applicable? value)
 		 (fcnref value expr module opts))
 		;; TODO: add 'modrefs' which resolves module.var to a
@@ -968,7 +974,7 @@
   (if (and (pair? type-arg)
 	   (overlaps? (car type-arg) {'quote quote #OP_QUOTE}))
       `(,xpred-opcode ,(cadr type-arg) ,(optimize (get-arg expr 1) env bound opts))
-      `(,(fcnref compound? compound? env opts)
+      `(,(fcnref compound? (car expr) env opts)
 	,(optimize (get-arg expr 1) env bound opts))))
 
 (store! procedure-optimizers compound? optimize-compound-predicate)
@@ -1333,16 +1339,25 @@
 	      (or (eq? (car expr) 'unquote)  (eq? (car expr) 'unquote*)))
 	 `(,(car expr) ,(optimize (cadr expr) env bound opts)))
 	((pair? expr)
-	 (let ((backwards (reverse expr)))
-	   (if (and (pair? (cdr backwards)) 
+	 (let ((backwards '()) (scan expr))
+	   (while (pair? scan)
+	     (set! backwards (cons (car scan) backwards))
+	     (set! scan (cdr scan)))
+	   (if (and (empty-list? scan) (pair? (cdr backwards)) 
 		    (or (eq? (cadr backwards) 'unquote)
 			(eq? (cadr backwards) 'unquote*)))
 	       (reverse (cons* (optimize (car backwards) env bound opts)
 			       (cadr backwards)
 			       (forseq (elt (cddr backwards))
 				 (optimize-quasiquote-node elt env bound opts))))
-	       (forseq (elt expr)
-		 (optimize-quasiquote-node elt env bound opts)))))
+	       (let ((converted scan)
+		     (scanback backwards))
+		 (while (pair? scanback)
+		   (set! converted 
+		     (cons (optimize-quasiquote-node (car scanback) env bound opts)
+			   converted))
+		   (set! scanback (cdr scanback)))
+		 converted))))
 	((vector? expr)
 	 (forseq (elt expr)
 	   (optimize-quasiquote-node elt env bound opts)))
