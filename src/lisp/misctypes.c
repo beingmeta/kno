@@ -132,7 +132,7 @@ static int unparse_timestamp(struct U8_OUTPUT *out,lispval x)
   else {
     char xbuf[32];
     u8_puts(out,"#<TIMESTAMP 0x");
-    u8_puts(out,u8_uitoa16((unsigned long long)x,xbuf));
+    u8_puts(out,u8_uitoa16(FD_LONGVAL(x),xbuf));
     u8_puts(out," \"");
     u8_xtime_to_iso8601(out,&(tm->u8xtimeval));
     u8_puts(out,"\">");

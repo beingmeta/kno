@@ -562,7 +562,7 @@ FD_EXPORT int fd_readonly_config_set(lispval ignored,lispval v,void *vptr)
 /* For configuration variables which are just integer constants */
 FD_EXPORT lispval fd_constconfig_get(lispval ignored,void *llval)
 {
-  long long int_val = (long long) llval;
+  fd_ptrval int_val = (fd_ptrval) llval;
   return FD_INT(int_val);
 }
 

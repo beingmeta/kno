@@ -127,8 +127,8 @@ static int unparse_consblock(struct U8_OUTPUT *out,lispval x)
 {
   struct FD_CONSBLOCK *cb = fd_consptr(struct FD_CONSBLOCK *,x,fd_consblock_type);
   u8_printf(out,"#<CONSBLOCK 0x%llx+%lld>",
-            (unsigned long long)(cb->consblock_conses),
-            (unsigned long long)(cb->consblock_len));
+            FD_LONGVAL((cb->consblock_conses)),
+            FD_LONGVAL((cb->consblock_len)));
   return 1;
 }
 

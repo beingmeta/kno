@@ -706,7 +706,7 @@ static u8_string mongodb_check(mongoc_client_pool_t *client_pool)
   else return u8_strdup("mongoc_client_pool_pop failed");
 }
 
-#if MONGOC_CHECK_VERSION(1,4,0)
+#if MONGOC_CHECK_VERSION(1,7,0)
 #define mongoc_uri_info(s,e) mongoc_uri_new_with_error((s),e)
 #else
 #define mongoc_uri_info(s,e) mongoc_uri_new((s))

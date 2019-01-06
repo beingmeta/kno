@@ -963,7 +963,7 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
   int retval = 0, n_cols = dbproc->mysqlproc_n_cols, n_params;
   u8_condition error_phase="init_mysqlproc";
   u8_log(LOG_DEBUG,"MySQLproc/init","%lx: %s",
-         (unsigned long long)dbproc,
+         FD_LONGVAL(dbproc),
          dbproc->mysqlproc_string);
 
   /* Reinitialize these structures in case there have been schema
@@ -1140,7 +1140,7 @@ static lispval applymysqlproc(fd_function fn,int n,lispval *args,int reconn)
   u8_lock_mutex(&(dbproc->mysqlproc_lock)); proclock = 1;
 
   u8_log(LOG_DEBUG,"MySQLproc/call","%lx: %s",
-         (unsigned long long)dbproc,
+         FD_LONGVAL(dbproc),
          dbproc->mysqlproc_string);
 
   /* Initialize it if it needs it */

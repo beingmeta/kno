@@ -624,7 +624,7 @@ FD_EXPORT void fd_close_stream(fd_stream s,int flags)
       u8_logf(LOG_CRIT,_("StreamClosed"),
               "Stream %s (0x%llx) was closed with %d bytes still buffered",
               U8ALT(s->streamid,"somestream"),
-              (unsigned long long)s,
+              FD_LONGVAL(s),
               (s->buf.out.bufwrite-s->buf.out.buffer));}
     else fd_flush_stream(s);}
   else {}
@@ -667,12 +667,12 @@ FD_EXPORT void fd_free_stream(fd_stream s)
     u8_logf(LOG_WARN,_("FreeingStaticStream"),
             "Attempting to free the static stream %s 0x%llx",
             U8ALT(s->streamid,"somestream"),
-            (unsigned long long)s);}
+            FD_LONGVAL(s));}
   else if (FD_CONS_REFCOUNT(cons)>1) {
     u8_logf(LOG_WARN,_("DanglingStreamPointers"),
             "Freeing a stream with dangling pointers %s 0x%llx",
             U8ALT(s->streamid,"somestream"),
-            (unsigned long long)s);
+            FD_LONGVAL(s));
     fd_decref(sptr);}
   else fd_decref(sptr);
 }
@@ -1455,7 +1455,7 @@ lispval fd_streamctl_x(fd_stream s,fd_streamop op,void *data)
     fd_setbufsize(s,(ssize_t)data);
     return VOID;
   case fd_stream_mmap: {
-    unsigned long long enable = (unsigned long long) data;
+    fd_ptrval enable = (fd_ptrval) data;
     // Only read-only streams are mmapped for now
     if (!(U8_BITP(s->stream_flags,FD_STREAM_READ_ONLY) )) enable=0;
     if ( ( (enable) && (U8_BITP(s->stream_flags,FD_STREAM_MMAPPED)) ) ||

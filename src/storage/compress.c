@@ -158,7 +158,7 @@ static U8_MAYBE_UNUSED unsigned char *do_zcompress
     int level)
 {
   u8_condition error = NULL; int zerror;
-  ssize_t dsize = n_bytes, csize, csize_max;
+  uLongf dsize = n_bytes, csize, csize_max;
   Bytef *dbuf = (Bytef *)bytes, *cbuf;
   if (init_cbuf == NULL) {
     csize = csize_max = dsize;
@@ -265,6 +265,7 @@ static unsigned char *do_zstd_compress
 static unsigned char *do_zstd_uncompress
 (ssize_t *destlen,const unsigned char *source,size_t source_len,void *state)
 {
+#if HAVE_ZSTD_GETFRAMECONTENTSIZE
   size_t alloc_size = ZSTD_getFrameContentSize(source,source_len);
   if (PRED_FALSE(alloc_size == ZSTD_CONTENTSIZE_UNKNOWN)) {
     u8_seterr("UnknownContentSize","do_zstd_uncompress",
@@ -274,21 +275,23 @@ static unsigned char *do_zstd_uncompress
     u8_seterr("ZSTD_ContentSizeError","do_zstd_uncompress",
 	      zstd_error(alloc_size));
     return NULL;}
+#else
+  size_t alloc_size = ZSTD_getDecompressedSize(source,source_len);
+#endif
+  unsigned char *uncompressed = u8_big_alloc(alloc_size);
+  size_t uncompressed_size =
+    ZSTD_decompress(uncompressed,alloc_size,source,source_len);
+  if (ZSTD_isError(uncompressed_size)) {
+    u8_seterr("ZSTD_UncompressError","do_zstd_uncompress",
+	      zstd_error(uncompressed_size));
+    u8_big_free(uncompressed);
+    return NULL;}
   else {
-    unsigned char *uncompressed = u8_big_alloc(alloc_size);
-    size_t uncompressed_size =
-      ZSTD_decompress(uncompressed,alloc_size,source,source_len);
-    if (ZSTD_isError(uncompressed_size)) {
-      u8_seterr("ZSTD_UncompressError","do_zstd_uncompress",
-		zstd_error(uncompressed_size));
-      u8_big_free(uncompressed);
-      return NULL;}
-    else {
-      if ( (uncompressed_size*2) < alloc_size) {
-	unsigned char *new_data = u8_big_realloc(uncompressed,uncompressed_size);
-	if (new_data) uncompressed = new_data;}
-      *destlen = uncompressed_size;
-      return uncompressed;}}
+    if ( (uncompressed_size*2) < alloc_size) {
+      unsigned char *new_data = u8_big_realloc(uncompressed,uncompressed_size);
+      if (new_data) uncompressed = new_data;}
+    *destlen = uncompressed_size;
+    return uncompressed;}
 }
 
 /* Exported compression functions */

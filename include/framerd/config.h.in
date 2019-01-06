@@ -549,7 +549,10 @@
 /* Whether we have the zstd library */
 #undef HAVE_LIBZSTD
 
-/* Whether we have the libzip library */
+/* whether our version of zstd has ZSTD_getFrameContentSize */
+#undef HAVE_ZSTD_GETFRAMECONTENTSIZE
+
+/* whether we have the libzip library */
 #undef HAVE_LIBZIP
 
 /* Whether we have the libzip set_extra function */
