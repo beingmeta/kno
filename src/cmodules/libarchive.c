@@ -95,7 +95,7 @@ static lispval new_archive(lispval spec,lispval opts)
     if (status == ARCHIVE_OK)
       use_spec = u8_mkstring("%lldB@0x%llx",
                              FD_PACKET_LENGTH(spec),
-                             (unsigned long long) FD_PACKET_DATA(spec));}
+                             FD_LONGVAL( FD_PACKET_DATA (spec) ));}
   else {
     fd_seterr("InvalidArchiveSpec","new_archive",
               archive_error_string(archive),spec);
@@ -179,7 +179,7 @@ static int unparse_archive(struct U8_OUTPUT *out,lispval x)
 
   if (format) u8_puts(out,format);
   else u8_puts(out,"badformat");
-  u8_printf(out,"#!0x%llx>",(unsigned long long)fdarchive);
+  u8_printf(out,"#!0x%llx>",FD_LONGVAL(fdarchive));
   return 1;
 }
 static void recycle_archive(struct FD_RAW_CONS *c)

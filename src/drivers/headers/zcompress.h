@@ -53,7 +53,7 @@ static U8_MAYBE_UNUSED unsigned char *do_zcompress
     int level)
 {
   u8_condition error = NULL; int zerror;
-  ssize_t dsize = n_bytes, csize, csize_max;
+  uLongf dsize = n_bytes, csize, csize_max;
   Bytef *dbuf = (Bytef *)bytes, *cbuf;
   if (init_cbuf == NULL) {
     csize = csize_max = dsize;

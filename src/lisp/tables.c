@@ -3361,7 +3361,7 @@ static int unparse_hashtable(u8_output out,lispval x)
   struct FD_HASHTABLE *ht=FD_XHASHTABLE(x);
   u8_printf(out,"#<HASHTABLE %d/%d #!0x%llx>",
             ht->table_n_keys,ht->ht_n_buckets,
-            ((unsigned long long) x));
+            (FD_LONGVAL( x)));
   return 1;
 }
 

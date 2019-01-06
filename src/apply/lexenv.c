@@ -238,7 +238,7 @@ static ssize_t lexenv_dtype(struct FD_OUTBUF *out,lispval x)
     fd_write_byte(&tmp,dt_vector);
     fd_write_4bytes(&tmp,1);
     unsigned char buf[32], *numstring=
-      u8_uitoa16((unsigned long long)x,buf);
+      u8_uitoa16(FD_LONGVAL(x),buf);
     size_t len=strlen(numstring);
     fd_write_byte(&tmp,dt_string);
     fd_write_4bytes(&tmp,(len+2));

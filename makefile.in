@@ -1727,14 +1727,42 @@ setup-none:
 
 # Build setups
 
-build-setup.debian:
-	sudo apt-get install -m libcurl4-openssl-dev libssl-dev libldns-dev \
-		libmysqlclient-dev libmongoc-dev unixodbc-dev sqlite3 \
-		libzip-dev apache2-dev libedit-dev libhyphen-dev \
-		libhunspell-dev libmagickwand-dev libqrencode-dev \
-		libexif-dev libgoogle-perftools-dev libhunspell-dev \
+staging/build-setup.debian.core:
+	sudo apt-get install -ym libcurl4-openssl-dev libssl-dev libldns-dev \
+		sqlite3 libzip-dev libzstd-dev libedit-dev \
 		libarchive-dev libsasl2-dev libsqlite3-dev \
-		dh-make devscripts dpkg-dev dh-systemd debsigs
+		dh-make devscripts dpkg-dev dh-systemd debsigs && \
+	touch $@
+staging/build-setup.debian.text: staging/build-setup.debian.core
+	sudo apt-get install -ym libhyphen-dev libhunspell-dev && \
+	touch $@
+staging/build-setup.debian.graphics: staging/build-setup.debian.core
+	sudo apt-get install -ym libexif-dev libmagickwand-dev \
+		libqrencode-dev && \
+	touch $@
+staging/build-setup.debian.db: staging/build-setup.debian.odbc \
+	staging/build-setup.debian.mongo staging/build-setup.debian.mysql
+staging/build-setup.debian.malloc: staging/build-setup.debian.core
+	sudo apt install -ym libgoogle-perftools-dev libjemalloc-dev && \
+	touch $@
+
+staging/build-setup.debian.odbc: staging/build-setup.debian.core
+	sudo apt-get install -ym  unixodbc-dev && \
+	touch $@
+staging/build-setup.debian.mongo: staging/build-setup.debian.core
+	sudo apt-get install -ym libmongoc-dev libbson-dev && \
+	touch $@
+staging/build-setup.debian.mysql: staging/build-setup.debian.core
+	sudo apt-get install -ym libmysqlclient-dev || \
+	sudo apt-get install -ym default-libmysqlclient-dev && \
+	touch $@
+
+build-setup.debian: staging/build-setup.debian.core \
+	staging/build-setup.debian.text \
+	staging/build-setup.debian.graphics \
+	staging/build-setup.debian.db \
+	staging/build-setup.debian.malloc
+
 build-setup.redhat:
 	sudo rpm -Uvh libedit-devel
 

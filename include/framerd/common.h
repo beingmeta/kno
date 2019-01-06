@@ -23,7 +23,12 @@
 
 /* Utility structures and definitions */
 
-#if (SIZEOF_LONG == SIZEOF_VOID_P)
+#if (SIZEOF_INT == SIZEOF_VOID_P)
+typedef unsigned int lispval;
+typedef unsigned int fd_ptrbits;
+typedef unsigned int fd_wideint;
+#define SIZEOF_LISPVAL SIZEOF_LONG
+#elif (SIZEOF_LONG == SIZEOF_VOID_P)
 typedef unsigned long lispval;
 typedef unsigned long fd_ptrbits;
 typedef unsigned long fd_wideint;

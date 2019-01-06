@@ -384,7 +384,7 @@ static int unparse_ffi_proc(u8_output out,lispval x)
     if (i>0)
       u8_printf(out,",%q",argspecs[i++]);
     else u8_printf(out,"%q",argspecs[i++]);}
-  u8_printf(out,") #!%llx>",(long long) ffi);
+  u8_printf(out,") #!%llx>",FD_LONGVAL( ffi));
   return 1;
 }
 

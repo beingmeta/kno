@@ -11844,6 +11844,17 @@ fi
 
    $as_echo "#define HAVE_ZSTD_H 1" >>confdefs.h
 
+   for ac_func in ZSTD_getFrameContentSize
+do :
+  ac_fn_c_check_func "$LINENO" "ZSTD_getFrameContentSize" "ac_cv_func_ZSTD_getFrameContentSize"
+if test "x$ac_cv_func_ZSTD_getFrameContentSize" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_ZSTD_GETFRAMECONTENTSIZE 1
+_ACEOF
+
+fi
+done
+
 fi;
 
 ### HTML TIDY

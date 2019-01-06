@@ -455,7 +455,7 @@ static int bad_arg(u8_context cxt,struct FD_FUNCTION *f,int i,lispval v)
   u8_string details =
     ((f->fcn_name) ?
      (u8_sprintf(buf,128,"%s[%d]",f->fcn_name,i)) :
-     (u8_sprintf(buf,128,"#!%llx[%d]",(long long)f,i)));
+     (u8_sprintf(buf,128,"#!%llx[%d]",FD_LONGVAL(f),i)));
   if (cxt)
     fd_seterr(fd_TypeError,cxt,details,v);
   else {
@@ -656,7 +656,7 @@ FD_EXPORT lispval fd_dcall(struct FD_STACK *_stack,lispval fn,
     if (f->fcn_name) fname=f->fcn_name;}
   else if (fd_applyfns[ftype]) {
     strcpy(namebuf,"λ0x");
-    strcat(namebuf,u8_uitoa16((unsigned long long)fn,numbuf));
+    strcat(namebuf,u8_uitoa16(FD_LONGVAL(fn),numbuf));
     fname=namebuf;}
   else return fd_type_error("applicable","fd_determinstic_apply",fn);
 

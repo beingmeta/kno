@@ -326,13 +326,22 @@ typedef int fd_size_t;
 
 #if (SIZEOF_VOID_P == SIZEOF_INT)
 #define FD_INTPTR unsigned int
+typedef unsigned int fd_ptrval;
 #elif (SIZEOF_VOID_P == SIZEOF_LONG)
 #define FD_INTPTR unsigned long
+typedef unsigned long fd_ptrval;
 #elif (SIZEOF_VOID_P == SIZEOF_LONG_LONG)
 #define FD_INTPTR unsigned long long
+typedef unsigned long long fd_ptrval;
 #else
 #define FD_INTPTR unsigned long long
+typedef unsigned long long fd_ptrval;
 #endif
+
+/* These are for cases where we need to pass a 64 bit value (for
+   instance printf string args) for generality. */
+#define FD_PTRVAL(x) ((fd_ptrval)(x))
+#define FD_LONGVAL(x) ((unsigned long long)((fd_ptrval)(x)))
 
 /* Sized numeric types */
 

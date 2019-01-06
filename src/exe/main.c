@@ -74,7 +74,7 @@ static int isconfig(char *arg)
 static struct FD_STACK *_get_stack_frame(void *arg)
 {
   struct FD_STACK *curstack=fd_stackptr;
-  unsigned long long intval=(unsigned long long) arg;
+  unsigned long long intval=FD_LONGVAL( arg);
   if (arg==NULL)
     return curstack;
   else if ((intval < 100000) && (curstack) &&

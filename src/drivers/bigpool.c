@@ -195,15 +195,15 @@ static ssize_t get_chunk_ref_size(fd_bigpool p)
   return -1;
 }
 
-static size_t get_maxpos(fd_bigpool p)
+static fd_size_t get_maxpos(fd_bigpool p)
 {
   switch (p->pool_offtype) {
   case FD_B32:
-    return ((size_t)(((size_t)1)<<32));
+    return ((fd_size_t)(((fd_size_t)1)<<32));
   case FD_B40:
-    return ((size_t)(((size_t)1)<<40));
+    return ((fd_size_t)(((fd_size_t)1)<<40));
   case FD_B64:
-    return ((size_t)(((size_t)1)<<63));
+    return ((fd_size_t)(((fd_size_t)1)<<63));
   default:
     return -1;}
 }
