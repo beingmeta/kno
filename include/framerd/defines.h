@@ -338,6 +338,8 @@ typedef unsigned long long fd_ptrval;
 typedef unsigned long long fd_ptrval;
 #endif
 
+/* These are for cases where we need to pass a 64 bit value (for
+   instance printf string args) for generality. */
 #define FD_PTRVAL(x) ((fd_ptrval)(x))
 #define FD_LONGVAL(x) ((unsigned long long)((fd_ptrval)(x)))
 
