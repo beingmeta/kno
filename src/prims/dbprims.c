@@ -1503,7 +1503,7 @@ static lispval pool_prefetch_prim(lispval pool,lispval oids)
         fd_pool p=fd_lisp2pool(spec);
         int rv=fd_pool_prefetch(p,oids);
         if (rv<0) ok=rv;}
-      return ok;}}
+      return (ok) ? (FD_TRUE) : (FD_FALSE);}}
 }
 
 static lispval prefetch_oids_prim(lispval oids,lispval parg)
