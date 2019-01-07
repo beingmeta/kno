@@ -1281,7 +1281,7 @@ static fd_index fileindex_create(u8_string spec,void *type_data,
     fd_seterr("NumberOfIndexSlots","fileindex_create",spec,n_slots);
     return NULL;}
   else if (fd_make_fileindex(spec,
-                             (unsigned int)type_data,
+                             (unsigned int)(FD_PTRVAL(type_data)),
                              FIX2INT(n_slots))>=0) {
     fd_set_file_opts(spec,opts);
     return fd_open_index(spec,flags,VOID);}
