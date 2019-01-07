@@ -166,7 +166,7 @@ static void *safe_malloc(size_t n_bytes,u8_context context)
   void *result = u8_malloc(n_bytes);
   if (result == NULL) {
     u8_byte *buf=u8_malloc(64);
-    sprintf(buf,"%llu",(unsigned long long)n_bytes);
+    sprintf(buf,"%llu",FD_LONGVAL(n_bytes));
     u8_raise(fd_MallocFailed,context,buf);
     return NULL;}
   else return result;
@@ -2234,7 +2234,7 @@ static int unparse_x2vec(struct U8_OUTPUT *out,lispval x)
             ((x2v->x2vec_vocab_locked)?(U8S0()):(U8STR("~"))),
             x2v->x2vec_vocab_size,
             x2v->x2vec_hidden_size,
-            (unsigned long long)x2v);
+            FD_LONGVAL(x2v));
   return 1;
 }
 

@@ -41,7 +41,7 @@ FD_EXPORT int fd_isreadbuf(struct FD_OUTBUF *b)
 {
   u8_log(LOG_CRIT,fd_IsReadBuf,
          "Trying to write to an input buffer 0x%llx",
-         (unsigned long long)b);
+         FD_LONGVAL(b));
   u8_seterr(fd_IsReadBuf,NULL,NULL);
   return -1;
 }
@@ -50,7 +50,7 @@ FD_EXPORT int fd_iswritebuf(struct FD_INBUF *b)
 {
   u8_log(LOG_CRIT,fd_IsWriteBuf,
          "Trying to read from an output buffer 0x%llx",
-         (unsigned long long)b);
+         FD_LONGVAL(b));
   u8_seterr(fd_IsWriteBuf,NULL,NULL);
   return -1;
 }
@@ -59,7 +59,7 @@ FD_EXPORT lispval fdt_isreadbuf(struct FD_OUTBUF *b)
 {
   u8_log(LOG_CRIT,"WriteToRead",
          "Trying to write to an input buffer 0x%llx",
-         (unsigned long long)b);
+         FD_LONGVAL(b));
   u8_seterr(fd_IsReadBuf,"ReturningDType",NULL);
   return FD_ERROR;
 }
@@ -68,7 +68,7 @@ FD_EXPORT lispval fdt_iswritebuf(struct FD_INBUF *b)
 {
   u8_log(LOG_CRIT,fd_IsWriteBuf,
          "Trying to read from an output buffer 0x%llx",
-         (unsigned long long)b);
+         FD_LONGVAL(b));
   u8_seterr(fd_IsWriteBuf,"ReturningDType",NULL);
   return FD_ERROR;
 }
@@ -376,7 +376,7 @@ unsigned char *fd_zlib_compress
  int level_arg)
 {
   Bytef *zbuf  = (Bytef *)out;
-  ssize_t buf_len = *z_len;
+  uLongf buf_len = *z_len;
   uLongf z_lim = (((uLongf)(n_bytes*1.001))+12);
   int level = (level_arg>=0) ? (level_arg) : FD_DEFAULT_ZLEVEL;
   if ( (out==NULL) || (buf_len < z_lim) ) {

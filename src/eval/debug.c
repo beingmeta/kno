@@ -221,21 +221,21 @@ static void log_ptr(lispval val,lispval label_arg,lispval expr)
     u8_log(U8_LOG_MSG,"Pointer/Immediate",
            "%s%s%s0x%llx [ T0x%llx(%s) data=%llu ] == %q%s%s%s",
            U8OPTSTR("",label,": "),
-           ((unsigned long long)val),
+           (FD_LONGVAL(val)),
            itype,type_name,data,val,
            U8OPTSTR(" <== ",src_string,""));}
   else if (FIXNUMP(val))
     u8_log(U8_LOG_MSG,"Pointer/Fixnum",
            "%s%s%sFixnum","0x%llx == %d%s%s%s",
            U8OPTSTR("",label,": "),
-           ((unsigned long long)val),FIX2INT(val),
+           (FD_LONGVAL(val)),FIX2INT(val),
            U8OPTSTR(" <== ",src_string,""));
   else if (OIDP(val)) {
     FD_OID addr = FD_OID_ADDR(val);
     u8_log(U8_LOG_MSG,"Pointer/OID",
            "%s%s%s0x%llx [ base=%llx off=%llx ] == %llx/%llx%s%s%s",
            U8OPTSTR("",label,": "),
-           ((unsigned long long)val),
+           (FD_LONGVAL(val)),
            (FD_OID_BASE_ID(val)),(FD_OID_BASE_OFFSET(val)),
            FD_OID_HI(addr),FD_OID_LO(addr),
            U8OPTSTR(" <== ",src_string,""));}
@@ -245,7 +245,7 @@ static void log_ptr(lispval val,lispval label_arg,lispval expr)
     u8_log(U8_LOG_MSG,"Pointer/Static",
            "%s%s%s0x%llx [ T0x%llx(%s) ] == %q%s%s%s",
            U8OPTSTR("",label,": "),
-           ((unsigned long long)val),
+           (FD_LONGVAL(val)),
            ptype,type_name,val,
            U8OPTSTR(" <== ",src_string,""));}
   else if (CONSP(val)) {
@@ -256,7 +256,7 @@ static void log_ptr(lispval val,lispval label_arg,lispval expr)
     u8_log(U8_LOG_MSG,"Pointer/Consed",
            "%s%s%s0x%llx [ T0x%llx(%s) refs=%d ] == %q%s%s%s",
            U8OPTSTR("",label,": "),
-           ((unsigned long long)val),
+           (FD_LONGVAL(val)),
            ptype,type_name,refcount,val,
            U8OPTSTR(" <== ",src_string,""));}
   else {}

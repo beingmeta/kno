@@ -175,7 +175,7 @@ static int unparse_fcnid(u8_output out,lispval x)
                 codes,name,arity,U8OPTSTR("'",filename,"'"));
     else u8_printf(out,"#<~%d<Φ%s%s #!0x%llx%s%s%s>>",
                    FD_GET_IMMEDIATE(x,fd_fcnid_type),codes,arity,
-                   u8_uitoa16((unsigned long long) fcn,numbuf),
+                   u8_uitoa16((FD_PTRVAL(fcn)),numbuf),
                    U8OPTSTR(" '",filename,"'"));
     return 1;}
   else {

@@ -3314,7 +3314,7 @@ static lispval vector_scale(lispval vec,lispval scalar)
       u8_free(scaled);
       return result;}
     else {
-      fd_long max, min;
+      lispval max, min;
       lispval *scaled = u8_alloc_n(vlen,lispval);
       int i = 0; while (i<vlen) {
         lispval elt = NUM_ELT(vec,i);

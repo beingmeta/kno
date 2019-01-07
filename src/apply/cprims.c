@@ -77,7 +77,7 @@ int unparse_primitive(u8_output out,lispval x)
               U8OPTSTR(" '",filename,"'"));
   else u8_printf(out,"#<Φ%s%s%s #!0x%s%s%s%s>",
                  codes,arity,sig,
-                 u8_uitoa16((unsigned long long) fcn,numbuf),
+                 u8_uitoa16(FD_LONGVAL( fcn),numbuf),
                  U8OPTSTR("'",filename,"'"));
   return 1;
 }

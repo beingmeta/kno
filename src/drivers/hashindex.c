@@ -148,17 +148,17 @@ static int hashindex_loglevel = -1;
 
 FD_EXPORT u8_condition fd_TooManyArgs;
 
-static ssize_t hashindex_default_size=32000;
+static fd_size_t hashindex_default_size=32000;
 
-static ssize_t get_maxpos(fd_hashindex p)
+static fd_size_t get_maxpos(fd_hashindex p)
 {
   switch (p->index_offtype) {
   case FD_B32:
-    return ((size_t)(((size_t)1)<<32));
+    return ((fd_size_t)(((fd_size_t)1)<<32));
   case FD_B40:
-    return ((size_t)(((size_t)1)<<40));
+    return ((fd_size_t)(((fd_size_t)1)<<40));
   case FD_B64:
-    return ((size_t)(((size_t)1)<<62));
+    return ((fd_size_t)(((fd_size_t)1)<<62));
   default:
     return -1;}
 }

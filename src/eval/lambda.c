@@ -35,11 +35,11 @@ static u8_string lambda_id(struct FD_LAMBDA *fn)
   else if (fn->fcn_filename)
     return u8_mkstring("λ%lx:%s",
                        ((unsigned long)
-                        (((unsigned long long)fn)&0xFFFFFFFF)),
+                        ((FD_LONGVAL(fn))&0xFFFFFFFF)),
                        fn->fcn_filename);
   else return u8_mkstring("λ%lx",
                           ((unsigned long)
-                           (((unsigned long long)fn)&0xFFFFFFFF)));
+                           ((FD_LONGVAL(fn))&0xFFFFFFFF)));
 }
 
 static int no_defaults(lispval *args,int n)
@@ -422,7 +422,7 @@ static int unparse_lambda(u8_output out,lispval x)
 {
   struct FD_LAMBDA *lambda = fd_consptr(fd_lambda,x,fd_lambda_type);
   lispval arglist = lambda->lambda_arglist;
-  unsigned long long addr = (unsigned long long) lambda;
+  fd_ptrval addr = (fd_ptrval) lambda;
   lispval moduleid = lambda->fcn_moduleid;
   u8_string modname =
     (FD_SYMBOLP(moduleid)) ? (FD_SYMBOL_NAME(moduleid)) : (NULL);
@@ -445,7 +445,7 @@ static int unparse_lambda(u8_output out,lispval x)
     u8_printf(out,"(%s…)",SYM_NAME(arglist));
   else u8_printf(out,"(…%q…)",arglist);
   if (!(lambda->fcn_name))
-    u8_printf(out," #!0x%llx",(unsigned long long)lambda);
+    u8_printf(out," #!0x%llx",FD_LONGVAL(lambda));
   if (modname) {
     u8_putc(out,' ');
     u8_puts(out,modname);}
@@ -881,7 +881,7 @@ static int unparse_extended_fcnid(u8_output out,lispval x)
   lispval lp = fd_fcnid_ref(x);
   if (TYPEP(lp,fd_lambda_type)) {
     struct FD_LAMBDA *lambda = fd_consptr(fd_lambda,lp,fd_lambda_type);
-    unsigned long long addr = (unsigned long long) lambda;
+    fd_ptrval addr = (fd_ptrval) lambda;
     lispval arglist = lambda->lambda_arglist;
     u8_string codes=
       (((lambda->lambda_synchronized)&&(lambda->fcn_ndcall))?("∀∥"):
@@ -920,14 +920,14 @@ static int unparse_extended_fcnid(u8_output out,lispval x)
       u8_printf(out,"(%s…)",SYM_NAME(arglist));
     else u8_printf(out,"(…%q…)",arglist);
     if (!(lambda->fcn_name))
-      u8_printf(out," #!0x%llx",(unsigned long long)lambda);
+      u8_printf(out," #!0x%llx",FD_LONGVAL(lambda));
     if (lambda->fcn_filename)
       u8_printf(out," '%s'>>",lambda->fcn_filename);
     else u8_puts(out,">>");
     return 1;}
   else if (TYPEP(lp,fd_cprim_type)) {
     struct FD_FUNCTION *fcn = (fd_function)lp;
-    unsigned long long addr = (unsigned long long) fcn;
+    fd_ptrval addr = (fd_ptrval) fcn;
     u8_string name = fcn->fcn_name;
     u8_string filename = fcn->fcn_filename;
     u8_byte arity[64]="", codes[64]="", numbuf[32]="";
@@ -957,7 +957,7 @@ static int unparse_extended_fcnid(u8_output out,lispval x)
     else u8_printf(out,"#<~%d<Φ%s0x%04x%s #!0x%llx%s%s%s>>",
                    FD_GET_IMMEDIATE(x,fd_fcnid_type),
                    codes,((addr>>2)%0x10000),arity,
-                   (unsigned long long) fcn,
+                   FD_LONGVAL( fcn),
                    arity,U8OPTSTR("'",filename,"'"));
     return 1;}
   else u8_printf(out,"#<~%ld %q>",

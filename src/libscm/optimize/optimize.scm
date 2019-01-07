@@ -424,7 +424,7 @@
 	 ;; resolve it.
 	 (codewarning (cons* 'UNBOUND expr bound))
 	 (when optwarn
-	   (logwarn |TooManyArgs|
+	   (logwarn |UnboundVariable|
 	     "The symbol " (car expr) " in " expr
 	     " appears to be unbound given bindings "
 	     (apply append bound)))

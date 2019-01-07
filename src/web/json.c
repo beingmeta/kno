@@ -524,7 +524,8 @@ static void json_unparse(u8_output out,lispval x,int flags,lispval slotfn,
           (tm->u8xtimeval.u8_nsecs)*0.000000001;
         u8_printf(out,"%f",dtick);}
       else {
-        unsigned long long llval = (unsigned long long)(tm->u8xtimeval.u8_tick);
+        unsigned long long llval = 
+          (unsigned long long)(tm->u8xtimeval.u8_tick);
         u8_printf(out,"%llu",llval);}
     else if (flags&FD_JSON_COLONIZE)
       u8_printf(out,"\":#T%iSXGt\"",&(tm->u8xtimeval));

@@ -1674,6 +1674,7 @@ AC_CHECK_HEADER(zstd.h,have_zstd_h="yes",have_zstd_h="no")
 if test "${have_zstd_h}" = "yes"; then
    AC_CHECK_LIB(zstd,ZSTD_decompress)
    AC_DEFINE(HAVE_ZSTD_H,1)
+   AC_CHECK_FUNCS(ZSTD_getFrameContentSize)
 fi;
 
 ### HTML TIDY
