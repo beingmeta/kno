@@ -9,7 +9,7 @@
 
 (module-export! '{mongopool/open mongopool/make
 		  mongopool? mongo/convert
-		  mongopool/intern
+		  mongo/intern
 		  mongo/invert})
 
 (module-export! '{mgo/pool mgo/poolfetch
@@ -329,31 +329,32 @@
 
 ;;; Mongopool intern
 
-(define (mongopool-intern pool mp unique (collection) (existing) (oid))
+(define (mongopool-intern pool mp unique 
+			  (uuid (getuuid))
+			  (collection) (existing) (oid))
   (default! collection (mongopool-collection mp))
   (set! existing (collection/find collection unique))
-  (if (or (test existing 'oid) (oid? (get existing '_id)))
-      existing
-      (with-lock (mongopool-lock mp)
-	(let* ((mod (collection/modify collection
-			#[_id "_pool"] 
-		      `#[$inc #[load 1]]
-		      #[original #t]))
-	       (before (get mod 'value))
-	       (start (get before 'load))
-	       (base (get before 'base)))
-	  (set! oid (oid-plus base start)))
-	(if (exists? existing)
-	    (collection/upsert! 
-		collection (frame-create existing '_id oid)
-		`#[$setOnInsert #[oid ,oid]])
-	    (collection/upsert! 
-		collection unique
-		`#[$setOnInsert #[_id ,oid oid ,oid]]))
-	(get (collection/find collection unique) '_id))))
+  (try (get (collection/find collection unique) '_id)
+       (with-lock (mongopool-lock mp)
+	 (let* ((mod (collection/modify collection
+			 #[_id "_pool"] 
+		       `#[$inc #[load 1]]
+		       #[original #t]))
+		(before (get mod 'value))
+		(start (get before 'load))
+		(base (get before 'base))
+		(oid (oid-plus base start))
+		(found #f))
+	   (collection/upsert! 
+	       collection unique
+	       `#[$setOnInsert #[_id ,oid _internid ,uuid]])
+	   (set! found (collection/find collection unique))
+	   (if (test found '_id oid)
+	       oid
+	       (collection/insert! collection #[_id ,oid reuse #t]))))))
 
-(define (mongopool/intern pool keyframe)
-  (mongopool-intern pool (get mongopools pool) keyframe))
+(define (mongo/intern pool keyframe (uuid (getuuid)))
+  (mongopool-intern pool (get mongopools pool) keyframe uuid))
 
 ;;; Decaching OIDs
 
