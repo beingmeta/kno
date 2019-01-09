@@ -7,9 +7,9 @@
 
 (define %loglevel %notice%)
 
-(module-export! '{mongopool/open mongopool/make
+(module-export! '{mongopool/open mongopool/make mongodb/pool
 		  mongopool? mongo/convert
-		  mongo/intern
+		  mongodb/intern
 		  mongo/invert})
 
 (module-export! '{mgo/pool mgo/poolfetch
@@ -240,6 +240,8 @@
     (if (collection? spec) spec 
 	(collection/open spec (getopt opts 'name) opts)))
   (init-mongopool collection (opts+ #[create #t] opts)))
+(define (mongodb/pool collection (opts #f))
+  (init-mongopool collection opts))
 
 (defpooltype 'mongopool
   `#[open ,mongopool/open
@@ -353,7 +355,7 @@
 	       oid
 	       (collection/insert! collection #[_id ,oid reuse #t]))))))
 
-(define (mongo/intern pool keyframe (uuid (getuuid)))
+(define (mongodb/intern pool keyframe (uuid (getuuid)))
   (mongopool-intern pool (get mongopools pool) keyframe uuid))
 
 ;;; Decaching OIDs
