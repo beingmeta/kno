@@ -968,9 +968,11 @@ static void collection_done(mongoc_collection_t *collection,
 #if HAVE_MONGOC_BULK_OPERATION_WITH_OPTS
 static lispval mongodb_insert(lispval arg,lispval objects,lispval opts_arg)
 {
-  if (FD_EMPTY_CHOICEP(objects))
+  if (FD_EMPTY_CHOICEP(arg))
     return FD_EMPTY_CHOICE;
-  if (FD_CHOICEP(arg)) {
+  else if (FD_EMPTY_CHOICEP(objects))
+    return FD_EMPTY_CHOICE;
+  else if (FD_CHOICEP(arg)) {
     lispval results = FD_EMPTY;
     FD_DO_CHOICES(collection,arg) {
       lispval rv = mongodb_insert(collection,objects,opts_arg);
@@ -981,6 +983,9 @@ static lispval mongodb_insert(lispval arg,lispval objects,lispval opts_arg)
       else {
         FD_ADD_TO_CHOICE(results,rv);}}
     return results;}
+  else if (!(FD_TYPEP(arg,fd_mongoc_collection)))
+    return fd_type_error(_("MongoDB collection"),"mongodb_insert",arg);
+  else NO_ELSE;
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
   struct FD_MONGODB_DATABASE *db=
     (struct FD_MONGODB_DATABASE *) (domain->domain_db);
@@ -1046,7 +1051,9 @@ static lispval mongodb_insert(lispval arg,lispval objects,lispval opts_arg)
 #else
 static lispval mongodb_insert(lispval arg,lispval objects,lispval opts_arg)
 {
-  if (FD_EMPTY_CHOICEP(objects))
+  if (FD_EMPTY_CHOICEP(asrg))
+    return FD_EMPTY_CHOICE;
+  else if (FD_EMPTY_CHOICEP(objects))
     return FD_EMPTY_CHOICE;
   else if (FD_CHOICEP(arg)) {
     lispval results = FD_EMPTY;
@@ -1059,6 +1066,9 @@ static lispval mongodb_insert(lispval arg,lispval objects,lispval opts_arg)
       else {
         FD_ADD_TO_CHOICE(results,rv);}}
     return results;}
+  else if (!(FD_TYPEP(arg,fd_mongoc_collection)))
+    return fd_type_error(_("MongoDB collection"),"mongodb_insert",arg);
+  else NO_ELSE;
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
   struct FD_MONGODB_DATABASE *db =
     (struct FD_MONGODB_DATABASE *) (domain->domain_db);
