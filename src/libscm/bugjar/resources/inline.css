@@ -47,8 +47,14 @@ div.stack { border-top: solid black 1px; margin-bottom: 1em; }
 div.stack:first-child { border-top: none; }
 div.stack pre { display: inline; margin-bottom: 0px; }
 div.stack li pre { display: block; }
+div.stack span.filename { 
+    font-family: monospace; font-style: italic; 
+    font-size: 60%; 
+    float: right;
+    margin-left: 2em; }
 div.stack span.info { font-size: 70%; float: right; margin-left: 2em; }
-div.stack span.info span.type { font-weight: bold; ;}
+div.stack span.info span.type { font-weight: bold; }
+div.stack span.info span.depth {}
 div.stack span.label { font-size: 120%; font-weight: bold; padding-right: 1em; ;}
 div.stack span.op { white-space: nowrap; font-size: 80%; }
 div.stack div.bindings { margin-left: 2vw; }

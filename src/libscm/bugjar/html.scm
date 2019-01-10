@@ -68,6 +68,8 @@
 	  (span ((class "info"))
 	    (span ((class "type")) (->string (stack-type stack)))
 	    (span ((class "depth")) "@" (stack-depth stack)))
+	  (when (string? (stack-filename stack))
+	    (span ((class "filename")) "\&ldquo;" (stack-filename stack) "\&rdquo;"))
 	  (span ((class "label")) (stack-label stack))
 	  (if (pair? (stack-op stack))
 	      (xmlblock PRE ((class "expr"))
