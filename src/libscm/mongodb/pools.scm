@@ -8,7 +8,7 @@
 (define %loglevel %notice%)
 
 (module-export! '{mongopool/open mongopool/make mongodb/pool
-		  mongopool? mongo/convert
+		  mongopool? mongopool/collection mongo/convert
 		  mongodb/intern
 		  mongo/invert})
 
@@ -35,6 +35,9 @@
   (lock (make-condvar)))
 
 (define (mongopool? x) (and (pool? x) (test mongopools x)))
+
+(define (mongopool/collection pool)
+  (mongopool-collection (get mongopools pool)))
 
 #|
 ;;; Converting mongodb objects to FramerD (mostly choices)
