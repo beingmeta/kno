@@ -16,7 +16,7 @@
 (define %nosbust 'domains)
 
 (module-export! '{->collection mongo/domain!})
-(module-export! '{mgo/get mgo/store! mgo/drop! mgo/add!})
+(module-export! '{mgo/get mgo/store! mgo/drop! mgo/add! mgo/modify!})
 
 (defimport mongopools 'mongodb/pools)
 (defimport mp->collection 'mongodb/pools mongopool-collection)
@@ -262,4 +262,20 @@
     (detail%watch "OID/SYNC!" oid slotid "\nVALUE" value "\nRESULT" result)
     (%set-oid-value! oid value)))
 
+;;;; Modify
+
+(define (mgo/modify! obj modifier)
+  (let* ((collection (->collection obj))
+	 (id (cond ((oid? obj) obj)
+		   ((not (table? obj)) obj)
+		   (else (try (get obj '_id) obj))))
+	 (selector `#[_id ,(if (ambiguous? id) `#[$in ,id] id)])
+	 (result (collection/modify! collection selector modifier)))
+    (cond ((and (oid? obj) (test result 'value))
+	   (%set-oid-value! obj (get result 'value)))
+	  ((and (table? obj) (test obj '_id))
+	   (let ((new (get result 'value)))
+	     (drop! obj (difference (getkeys obj) '_id))
+	     (do-choices (slotid (getkeys new))
+	       (store! obj slotid (get new slotid))))))))
 
