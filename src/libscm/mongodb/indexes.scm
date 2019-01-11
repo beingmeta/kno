@@ -6,7 +6,6 @@
 (use-module '{mongodb logger})
 
 (module-export! '{make-collection-index
-		  mongo/index
 		  mongo/decache-index!
 		  mongodb/index})
 
@@ -33,7 +32,7 @@
    collection-index-fetchfn #f collection (getopt opts 'cached #f)
    opts))
 
-(define (mongo/index collection (opts #f) (reuse))
+(define (mongodb/index collection (opts #f) (reuse))
   (default! reuse (getopt opts 'reuse #t))
   (try (tryif reuse
 	 (get *mongodb-indexmap* collection)
@@ -63,8 +62,6 @@
 (define-init register-mongo-index
   (slambda (collection (opts #f))
     (register-mongo-index-inner collection opts)))
-
-(define mongodb/index mongo/index)
 
 (defambda (mongo/decache-index! arg1 . args)
   (let* ((index-arg (index? (car args)))
