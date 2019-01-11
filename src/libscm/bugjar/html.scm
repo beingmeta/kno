@@ -107,7 +107,7 @@
 			  (span ((class (if big "binding big" "binding")))
 			    (span ((class "name")) key) "\&nbsp;=\&nbsp;"
 			    (span ((class "values expands"))
-			      (output-vals val)))))))))))))
+			      (output-vals v)))))))))))))
     (do-choices (context (pick (exception-context exception) {slotmap? schemap?}))
       (do-choices (key (getkeys context))
 	(unless (void? key)
