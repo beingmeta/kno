@@ -62,6 +62,8 @@ div.stack div.bindings .binding {
     display: inline-block; 
     white-space: nowrap;
     padding-right: 1ex;}
+div.stack div.bindings .binding.big { 
+    display: block;}
 div.stack div.bindings .binding .name { font-weight: bold; }
 div.stack div.bindings .binding .value { display: inline; }
 div.stack div.bindings .binding .status { font-style: italic; }
