@@ -107,7 +107,6 @@ FD_EXPORT __thread struct FD_STACK *fd_stackptr;
   _ ## name.stack_source=FD_VOID;                       \
   _ ## name.stack_op=op;                                \
   _ ## name.stack_status=NULL;                          \
-  _ ## name.stack_src=NULL;                             \
   _ ## name.n_args=0;                                   \
   _ ## name.stack_args = NULL;                          \
   _ ## name.stack_env=NULL;                             \
