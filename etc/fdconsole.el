@@ -120,6 +120,9 @@
 (put 'error+ 'scheme-indent-function 3)
 (put 'irritant 'scheme-indent-function 2)
 
+(put 'opts+ 'scheme-indent-function 2)
+(put 'opt+ 'scheme-indent-function 2)
+
 (put 'ambda 'scheme-indent-function 1)
 (put 'sambda 'scheme-indent-function 1)
 (put 'slambda 'scheme-indent-function 1)
