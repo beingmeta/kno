@@ -160,12 +160,30 @@ static lispval string_compoundp(lispval string)
 {
   if (STRINGP(string)) {
     const u8_byte *scan = CSTRING(string);
-    if (strchr(scan,' ')) return FD_TRUE;
+    if (strchr(scan,' '))
+      return FD_TRUE;
     else {
       const u8_byte *lim = scan+STRLEN(string);
       int c = u8_sgetc(&scan);
       while ((c>=0) && (scan<lim))
         if (u8_isspace(c)) return FD_TRUE;
+        else c = u8_sgetc(&scan);
+      return FD_FALSE;}}
+  else return FD_FALSE;
+}
+
+static lispval string_multilinep(lispval string)
+{
+  if (STRINGP(string)) {
+    const u8_byte *scan = CSTRING(string);
+    if (strchr(scan,'\n'))
+      return FD_TRUE;
+    else {
+      const u8_byte *lim = scan+STRLEN(string);
+      int c = u8_sgetc(&scan);
+      while ((c>=0) && (scan<lim))
+        if (u8_isvspace(c))
+          return FD_TRUE;
         else c = u8_sgetc(&scan);
       return FD_FALSE;}}
   else return FD_FALSE;
@@ -1476,7 +1494,10 @@ FD_EXPORT void fd_init_stringprims_c()
                            -1,VOID,-1,FD_FALSE,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("COMPOUND-STRING?",string_compoundp,1,
-                           fd_string_type,VOID));
+                           -1,VOID));
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim1x("MULTILINE-STRING?",string_multilinep,1,
+                           -1,VOID));
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("PHRASE-LENGTH",string_phrase_length,1,
                            fd_string_type,VOID));
