@@ -158,7 +158,7 @@ static lispval optionsp_prim(lispval opts)
 #define nulloptsp(v) ( (v == FD_FALSE) || (v == FD_DEFAULT) )
 static lispval opts_plus_prim(int n,lispval *args)
 {
-  int i = 0;
+  int i = 0, new_front = 0;
   /* *back* is the options list and *front* is where specified values
      should be stored. We walk the arguments, either adding tables to
      the options list, setting options on *front*, or creating new
@@ -181,7 +181,9 @@ static lispval opts_plus_prim(int n,lispval *args)
         back = fd_init_pair(NULL,arg,back);}}
     else if ( (nulloptsp(arg)) || (FD_EMPTYP(arg)) ) {}
     else {
-      if (FD_VOIDP(front)) front = fd_make_slotmap(n,0,NULL);
+      if (FD_VOIDP(front)) {
+	front = fd_make_slotmap(n,0,NULL);
+	new_front = 1;}
       if (i < n) {
         lispval optval = args[i++];
         if (FD_QCHOICEP(optval)) {
@@ -191,8 +193,14 @@ static lispval opts_plus_prim(int n,lispval *args)
       else fd_store(front,arg,FD_TRUE);}}
   if (FD_VOIDP(front))
     return back;
-  else if (FD_FALSEP(back))
-    return front;
+  else if (FD_FALSEP(back)) {
+    if (new_front == 0)
+      return front;
+    else if ((FD_SLOTMAPP(front)) &&
+	     (FD_SLOTMAP_NSLOTS(front) == 0)) {
+      fd_decref(front);
+      return FD_FALSE;}
+    else return front;}
   else return fd_init_pair(NULL,front,back);
 }
 
