@@ -818,7 +818,7 @@ static lispval eval_apply(u8_string fname,
     (stack->stack_op);
   u8_string label = (U8_BITP(flags,FD_STACK_FREE_LABEL)) ? (NULL) :
     (stack->stack_label);
-  u8_string sourcefile = stack->stack_filename;
+  u8_string sourcefile = stack->stack_src;
   while (FD_PAIRP(scan)) {
     lispval arg_expr = pop_arg(scan);
     if (commentp(arg_expr)) continue;
@@ -843,7 +843,7 @@ static lispval eval_apply(u8_string fname,
         if (U8_BITP(flags,FD_STACK_DECREF_OP)) fd_decref(stack->stack_op);
         stack->stack_op = op;}
       if (sourcefile)
-        stack->stack_filename = sourcefile;}
+        stack->stack_src = sourcefile;}
     if (PRED_FALSE( (d_prim) && (EMPTYP(arg_val)) )) {
       /* Clean up the arguments we've already evaluated */
       if (gc_args) fd_decref_vec(argbuf,arg_i);
