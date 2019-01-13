@@ -843,7 +843,7 @@ static lispval eval_apply(u8_string fname,
         if (U8_BITP(flags,FD_STACK_DECREF_OP)) fd_decref(stack->stack_op);
         stack->stack_op = op;}
       if (sourcefile)
-        stack->stack_filename = sourcefile;}}
+        stack->stack_filename = sourcefile;}
     if (PRED_FALSE( (d_prim) && (EMPTYP(arg_val)) )) {
       /* Clean up the arguments we've already evaluated */
       if (gc_args) fd_decref_vec(argbuf,arg_i);
