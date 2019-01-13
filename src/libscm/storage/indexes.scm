@@ -77,12 +77,15 @@
     (onerror 
 	(begin
 	  (do-choices (in merge)
-	    (let ((copier (cond ((testopt opts 'copier 'generic) index/copy-keys!)
-				((getopt opts 'copier) (getopt opts 'copier))
-				((equal? (indexctl in 'metadata 'type) "hashindex")
-				 hashindex/copy-keys!)
-				(else index/copy-keys!))))
-	      (copier in out copy-opts)))
+	    (lognotice |MergeIndexes| "Merging " in)
+	    (with-log-context (stringout "Merging " (index-source in))
+	      (let ((copier (cond ((testopt opts 'copier 'generic) index/copy-keys!)
+				  ((getopt opts 'copier) (getopt opts 'copier))
+				  ((equal? (indexctl in 'metadata 'type) "hashindex")
+				   hashindex/copy-keys!)
+				  (else index/copy-keys!))))
+		(copier in out copy-opts))))
+	  (close-index in)
 	  (set! ok #t)))
     (indexctl out 'metadata 'merges
 	      (qchoice (indexctl out 'metadata 'merges)
