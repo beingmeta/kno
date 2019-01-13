@@ -21,7 +21,9 @@
    fifo/exhausted!
    fifo/loop
    fifo/queued
-   fifo/load})
+   fifo/load
+   fifo-name
+   fifo-opts})
 
 (module-export!
  '{make-fifo
