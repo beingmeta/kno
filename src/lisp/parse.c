@@ -1199,8 +1199,14 @@ lispval fd_parser(u8_input in)
             u8_seterr("Unclosed Reader Macro","fd_parser",NULL);
             return FD_PARSE_ERROR;}
           if (! (ch == ':') ) u8_ungetc(in,ch);
-          lispval sym = fd_intern(label.u8_outbuf), next = fd_parser(in);
-          return fd_make_list(2,sym,next);}
+          lispval sym = fd_intern(label.u8_outbuf);
+          int nextch = u8_probec(in);
+          if ( (u8_isspace(nextch)) ||
+               ( (nextch<128) && (strchr("]})",nextch))) ) {
+            return fd_make_list(2,sym,FD_FALSE);}
+          else {
+            lispval next = fd_parser(in);
+            return fd_make_list(2,sym,next);}}
         case ';': {
           lispval content = fd_parser(in);
           if (PARSE_ABORTP(content))
