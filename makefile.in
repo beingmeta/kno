@@ -115,7 +115,8 @@ STORAGE_HEADERS=\
 
 DRIVERS_H=include/framerd/drivers.h
 SCHEME_HEADERS=include/framerd/eval.h include/framerd/threads.h \
-	include/framerd/opcodes.h include/framerd/seqprims.h
+	include/framerd/opcodes.h include/framerd/seqprims.h \
+	include/framerd/procprims.h
 LIB_HEADERS=include/framerd/texttools.h include/framerd/fdweb.h \
 		include/framerd/mongodb.h \
 	        include/framerd/leveldb.h \
@@ -1971,6 +1972,7 @@ $(WEB_OBJS) $(TEXT_OBJS): .buildmode
 $(CMODULE_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
 	$(SCHEME_HEADERS) $(REVISION_H) .buildmode
 src/eval/choiceops.o src/prims/seqprims.o: include/framerd/sorting.h
+src/prims/procprims.o: include/framerd/procprims.h
 # Driver dependencies
 src/drivers/filepool.o: src/drivers/headers/filepool.h
 src/drivers/fileindex.o: src/drivers/headers/fileindex.h

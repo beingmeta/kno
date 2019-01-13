@@ -22,6 +22,7 @@
 #include "framerd/eval.h"
 #include "framerd/ports.h"
 #include "framerd/fileprims.h"
+#include "framerd/procprims.h"
 
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
@@ -256,6 +257,54 @@ static lispval fdfork_prim(int n,lispval *args)
 {
   return exec_helper("fdfork_prim",(FD_IS_SCHEME|FD_DO_FORK),n,args);
 }
+
+/* SUBJOBs */
+
+fd_ptr_type fd_subjob_type;
+
+#define PIPE_FLAGS O_NONBLOCK
+
+#if 0
+static lispval open_subjob(lispval id)
+{
+  int in_fd[2], out_fd[2], err_fd[2];
+  if ( (pipe2(in_fd,PIPE_FLAGS)) < 0) {
+    lispval err = open_error();
+    close(in_fd[0]); close(in_fd[1]);
+    return err;}
+  else if ( (pipe2(out_fd,PIPE_FLAGS)) < 0) {
+    lispval err = open_error();
+    close(in_fd[0]); close(in_fd[1]);
+    close(out_fd[0]); close(out_fd[1]);
+    return err;}
+  else if ( (pipe2(err_fd,PIPE_FLAGS)) < 0) {
+    lispval err = open_error();
+    close(in_fd[0]); close(in_fd[1]);
+    close(out_fd[0]); close(out_fd[1]);
+    close(err_fd[0]); close(err_fd[1]);
+    return err;}
+  else {
+    pid_t pid = fork();
+    if (pid) {
+      struct FD_SUBJOB *subjob = u8_alloc(struct FD_SUBJOB);
+      u8_string idstring = "none";
+      FD_INIT_CONS(subjob,fd_subjob_type);
+      subjob->subjob_pid = pid;
+      subjob->subjob_id = u8_strdup(FD_CSTRING(id));
+      subjob->subjob_in =
+        make_port(u8_open_xinput(in_fd[0],NULL),NULL,
+                  u8_mkstring("(in)%s",idstring));
+      subjob->subjob_out =
+        make_port(NULL,u8_open_xoutput(out_fd[1],NULL),
+                  u8_mkstring("(out)%s",idstring));
+      subjob->subjob_err =
+        make_port(u8_open_xinput(out_fd[1],NULL),NULL,
+                  u8_mkstring("(err)%s",idstring));
+      return (lispval) ;}
+    else {}
+  }
+}
+#endif
 
 /* The init function */
 
