@@ -1187,6 +1187,8 @@ void fd_init_module_tables()
 
   default_env = fd_make_env(fd_make_hashtable(NULL,0),fd_app_env);
   safe_default_env = fd_make_env(fd_make_hashtable(NULL,0),NULL);
+  fd_store(default_env,fd_intern("%SOURCE"),FD_FALSE);
+  fd_store(safe_default_env,fd_intern("%SOURCE"),FD_FALSE);
 
   fd_register_module("SCHEME",fd_scheme_module,
                      (FD_MODULE_DEFAULT|FD_MODULE_SAFE));
