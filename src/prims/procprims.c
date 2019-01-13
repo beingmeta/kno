@@ -265,46 +265,148 @@ fd_ptr_type fd_subjob_type;
 #define PIPE_FLAGS O_NONBLOCK
 
 #if 0
-static lispval open_subjob(lispval id)
+static lispval open_subjob(int n,lisp *args)
 {
+  lispval opts = args[0];
+  lispval id = fd_getopt(opts,FDSYM_ID,FD_VOID);
+  lispval infile = fd_getopt(opts,infile_symbol,FD_VOID);
+  lispval outfile = fd_getopt(opts,outfile_symbol,FD_VOID);
+  lispval errfile = fd_getopt(opts,errfile_symbol,FD_VOID);
   int in_fd[2], out_fd[2], err_fd[2];
-  if ( (pipe2(in_fd,PIPE_FLAGS)) < 0) {
-    lispval err = open_error();
-    close(in_fd[0]); close(in_fd[1]);
+  int *in  = (FD_VOIDP(infile)) ? (in_fd) : (NULL);
+  int *out = (FD_VOIDP(outfile)) ? (out_fd) : (NULL);
+  int *err = (FD_VOIDP(errfile)) ? (err_fd) : (NULL);
+  /* Get pipes */
+  if ( (in) && ( (pipe2(in,PIPE_FLAGS)) < 0) ) {
+    lispval err = fd_err("PipeFailed","open_subjob",NULL,FD_VOID);
     return err;}
-  else if ( (pipe2(out_fd,PIPE_FLAGS)) < 0) {
-    lispval err = open_error();
-    close(in_fd[0]); close(in_fd[1]);
-    close(out_fd[0]); close(out_fd[1]);
+  else if ( (out) && ( (pipe2(out,PIPE_FLAGS)) < 0) ) {
+    lispval err = fd_err("PipeFailed","open_subjob",NULL,FD_VOID);
+    if (in) {close(in[0]); close(in[1]);}
     return err;}
-  else if ( (pipe2(err_fd,PIPE_FLAGS)) < 0) {
-    lispval err = open_error();
-    close(in_fd[0]); close(in_fd[1]);
-    close(out_fd[0]); close(out_fd[1]);
-    close(err_fd[0]); close(err_fd[1]);
+  else if ( (err) && ( (pipe2(err,PIPE_FLAGS)) < 0) ) {
+    lispval err = fd_err("PipeFailed","open_subjob",NULL,FD_VOID);
+    if (in) {close(in[0]); close(in[1]);}
+    if (out) {close(out[0]); close(out[1]);}
     return err;}
   else {
     pid_t pid = fork();
     if (pid) {
       struct FD_SUBJOB *subjob = u8_alloc(struct FD_SUBJOB);
-      u8_string idstring = "none";
+      u8_string idstring = FD_CSTRING(id);
       FD_INIT_CONS(subjob,fd_subjob_type);
+      if (in) close(in[0]);
+      if (out) close(out[1]);
+      if (err) close(err[1]);
       subjob->subjob_pid = pid;
       subjob->subjob_id = u8_strdup(FD_CSTRING(id));
-      subjob->subjob_in =
-        make_port(u8_open_xinput(in_fd[0],NULL),NULL,
+      subjob->subjob_in = (in == NULL) ? (fd_incref(infile)) :
+        make_port(u8_open_xinput(in[0],NULL),NULL,
                   u8_mkstring("(in)%s",idstring));
-      subjob->subjob_out =
-        make_port(NULL,u8_open_xoutput(out_fd[1],NULL),
+      subjob->subjob_out = (out == NULL) ? (fd_incref(outfile)) :
+        make_port(NULL,u8_open_xoutput(out[1],NULL),
                   u8_mkstring("(out)%s",idstring));
-      subjob->subjob_err =
-        make_port(u8_open_xinput(out_fd[1],NULL),NULL,
+      subjob->subjob_err = (err == NULL) ? (fd_incref(errfile)) :
+        make_port(u8_open_xinput(err[1],NULL),NULL,
                   u8_mkstring("(err)%s",idstring));
-      return (lispval) ;}
-    else {}
+      fd_decref(infile); fd_decref(outfile); fd_decref(errfile);
+      return (lispval) subjob;}
+    else {
+      int rv = 0;
+      if (in) close(in[1]);
+      if (out) close(out[0]);
+      if (err) close(err[0]);
+      if (in) {
+        rv = dup2(in[0],STDIN_FILENO);
+        if (rv<0) u8_log(LOGCRIT,"Couldn't redirect stdin for job %q",id);}
+      else if (FD_STRINGP(infile)) {
+        int new_stdin = u8_fopen(FD_CSTRING(infile),"r");
+        if (new_stdin<0) {
+          u8_exception ex = u8_pop_exception();
+          u8_log(LOGCRIT,"Couldn't open stdout %s",FD_CSTRING(infile));
+          rv=new_stdin;}
+        else {
+          rv = dup2(new_stdin,STDIN_FILENO);
+          if (rv<0) u8_log(LOGCRIT,"Couldn't redirect stdin for job %q",id);}}
+      else NO_ELSE;
+      if (rv<0) {}
+      else if (out) {
+        rv = dup2(out[1],STDOUT_FILENO);
+        if (rv<0) u8_log(LOGCRIT,"Couldn't redirect stdout for job %q",id);}
+      else if (FD_STRINGP(outfile)) {
+        int new_stdout = u8_fopen(FD_CSTRING(infile),"w");
+        if (new_stdout<0) {
+          u8_exception ex = u8_pop_exception();
+          u8_log(LOGCRIT,"Couldn't open stdout %s",FD_CSTRING(outfile));
+          rv=new_stdout;}
+        else {
+          rv = dup2(new_stdout,STDOUT_FILENO);
+          if (rv<0) u8_log(LOGCRIT,"Couldn't redirect stdout for job %q",id);}}
+      else NO_ELSE;
+      if (rv<0) {}
+      else if (err) {
+        rv = dup2(out[1],STDERR_FILENO);
+        if (rv<0) u8_log(LOGCRIT,"Couldn't redirect stderr for job %q",id);}
+      else if (FD_STRINGP(errfile)) {
+        int new_stderr = u8_fopen(FD_CSTRING(infile),"w");
+        if (new_stderr<0) {
+          u8_exception ex = u8_pop_exception();
+          u8_log(LOGCRIT,"Couldn't open stderr %s",FD_CSTRING(outfile));
+          rv=new_stderr;}
+        else {
+          rv = dup2(new_stderr,STDERR_FILENO);
+          if (rv<0) u8_log(LOGCRIT,"Couldn't redirect stderr for job %q",id);}}
+      else NO_ELSE;
+      if (rv<0) {
+        if (in) close(in[0]);
+        if (out) close(out[1]);
+        if (err) close(err[1]);
+        exit(1);}
+      int exec_result = exec_helper("fd_subjob",flags,n-1,args+1);
+      /* Never reached */
+      return FD_VOID;}
   }
 }
 #endif
+
+static lispval subjob_pid(lispval subjob)
+{
+  struct FD_SUBJOB *sj = (fd_subjob) subjob;
+  return FD_INT(sj->subjob_pid);
+}
+
+static lispval subjob_stdin(lispval subjob)
+{
+  struct FD_SUBJOB *sj = (fd_subjob) subjob;
+  return fd_incref(sj->subjob_out);
+}
+
+static lispval subjob_stdout(lispval subjob)
+{
+  struct FD_SUBJOB *sj = (fd_subjob) subjob;
+  return fd_incref(sj->subjob_in);
+}
+
+static lispval subjob_stderr(lispval subjob)
+{
+  struct FD_SUBJOB *sj = (fd_subjob) subjob;
+  return fd_incref(sj->subjob_err);
+}
+
+static lispval subjob_signal(lispval subjob,lispval sigval)
+{
+  struct FD_SUBJOB *sj = (fd_subjob) subjob;
+  int sig = FD_INT(sigval);
+  int pid = sj->subjob_pid;
+  if ((sig>0)&&(sig<256)) {
+    int rv = kill(pid,sig);
+    if (rv<0) {
+      char buf[128]; sprintf(buf,"pid=%ld;sig=%d",(long int)pid,sig);
+      u8_graberrno("subjob_signal",u8_strdup(buf));
+      return FD_ERROR;}
+    else return FD_TRUE;}
+  else return fd_type_error("signal","subjob_signal",sigval);
+}
 
 /* The init function */
 
@@ -337,6 +439,23 @@ FD_EXPORT void fd_init_procprims_c()
   fd_idefn(procprims_module,fd_make_cprim1("PID?",ispid_prim,1));
   fd_idefn(procprims_module,fd_make_cprim2("PID/KILL!",pid_kill_prim,2));
   fd_defalias(procprims_module,"PID/KILL","PID/KILL!");
+
+  fd_idefn1(procprims_module,"SUBJOB/PID",subjob_pid,1,
+            "Gets the PID for the subjob",
+            fd_subjob_type,FD_VOID);
+  fd_idefn2(procprims_module,"SUBJOB/SIGNAL",subjob_signal,2,
+            "Sends a signal to a subjob",
+            fd_subjob_type,FD_VOID,fd_fixnum_type,FD_VOID);
+
+  fd_idefn1(procprims_module,"SUBJOB/STDIN",subjob_stdin,1,
+            "Gets the STDIN for the subjob, either a file or an output stream",
+            fd_subjob_type,FD_VOID);
+  fd_idefn1(procprims_module,"SUBJOB/STDOUT",subjob_stdout,1,
+            "Gets the STDOUT for the subjob, either a file or an input stream",
+            fd_subjob_type,FD_VOID);
+  fd_idefn1(procprims_module,"SUBJOB/STDERR",subjob_stderr,1,
+            "Gets the STDOUT for the subjob, either a file or an input stream",
+            fd_subjob_type,FD_VOID);
 
   fd_finish_module(procprims_module);
 }
