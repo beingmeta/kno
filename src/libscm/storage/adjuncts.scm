@@ -39,7 +39,8 @@
 			(logwarn |MissingAdjunct| 
 			  "Adjunct " (get adjuncts slotid) " couldn't be resolved for\n  "
 			  pool)))))
-	      ((consistent? (get cur slotid) (get adjuncts slotid)))
+	      ((consistent? (get cur slotid) (get adjuncts slotid)
+			    (dirname (pool-source pool))))
 	      ((testopt opts 'override 'error)
 	       (irritant `#[pool ,pool slotid ,slotid 
 			    cur ,(get cur slotid)
@@ -78,15 +79,15 @@
 			  pool)))))))
       (poolctl pool 'props 'adjuncts (get-adjuncts pool)))))
 
-(define (consistent? adjunct spec)
+(define (consistent? adjunct spec (dir))
   (unless (or (index? adjunct) (pool? adjunct))
     (irritant adjunct |NotAPoolOrIndex|))
   (if (index? adjunct)
       (and (test spec 'index)
 	   (or (eq? adjunct (get spec 'index))
 	       (equal? (index-source adjunct) (get spec 'index))
-	       (equal? (realpath (index-source adjunct))
-		       (realpath (get spec 'index)))))
+	       (equal? (realpath (index-source adjunct) dir)
+		       (realpath (get spec 'index) dir))))
       (if (pool? adjunct)
 	  (and (test spec 'pool)
 	       (or (eq? adjunct (get spec 'pool))
@@ -109,7 +110,8 @@
     (do-choices (slotid (getkeys adjuncts))
       (cond ((not (test cur slotid))
 	     (adjunct-setup! pool slotid (get adjuncts slotid) opts))
-	    ((consistent? (get cur slotid) (get adjuncts slotid)))
+	    ((consistent? (get cur slotid) (get adjuncts slotid)
+			  (dirname (pool-source pool))))
 	    ((testopt opts 'override 'error)
 	     (irritant `#[pool ,pool slotid ,slotid 
 			  cur ,(get cur slotid)
