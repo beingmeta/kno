@@ -75,27 +75,27 @@ static lispval timed_evalx_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
   else return fd_make_nvector(2,value,fd_init_double(NULL,finish-start));
 }
 
-/* Inserts a \n\t line break if the current output line is longer
-    than max_len.  *off*, if > 0, is the last offset on the current line,
-    which is where the line break goes if inserted;  */
-static int check_line_length(u8_output out,int off,int max_len)
+/* Take a stream and the an offset. Inserts a \n\t line break at the offset
+   if the current output line is longer than max_len. Returns the new offset.
+   We use offsets because we may realloc the stream's buffer during output. */
+static int check_line_length(u8_output out,int last_off,int max_len)
 {
   u8_byte *start = out->u8_outbuf, *end = out->u8_write, *scanner = end;
   int scan_off, line_len, len = end-start;
+  /* Find the beginning of the current line: */
   while ((scanner>start)&&((*scanner)!='\n')) scanner--;
   line_len = end-scanner; scan_off = scanner-start;
   /* If the current line is less than max_len, return the current offset */
-  if (line_len<max_len) return len;
-  /* If the offset is non-positive, the last item was the first
-     item on a line and gets the whole line to itself, so we still
-     return the current offset.  We don't insert a \n\t now because
-     it might be the last item output. */
-  else if (off<=0)
-    return len;
+  if (line_len<max_len)
+    return end-start;
+  else if (last_off<=0)
+    /* If we don't have an offset for insertion, just return the new
+       offset. */
+    return end-start;
   else {
     /* TODO: abstract out u8_need_len, abstract out whole "if longer
        than" logic */
-    /* The line is too long, insert a \n\t at off */
+    /* The line is too long, insert a \n\t at last_off */
     if ((end+5)>(out->u8_outlim)) {
       /* Grow the stream if needed */
       if (u8_grow_stream((u8_stream)out,U8_BUF_MIN_GROW)<=0)
@@ -103,11 +103,11 @@ static int check_line_length(u8_output out,int off,int max_len)
       start = out->u8_outbuf; end = out->u8_write;
       scanner = start+scan_off;}
     /* Use memmove because it's overlapping */
-    memmove(start+off+2,start+off,len-off);
-    start[off]='\n'; start[off+1]='\t';
+    memmove(start+last_off+2,start+last_off,len-last_off);
+    start[last_off]='\n'; start[last_off+1]='\t';
     out->u8_write = out->u8_write+2;
     start[len+2]='\0';
-    return out->u8_write-(start+off+2);}
+    return out->u8_write-out->u8_outbuf;}
 }
 
 static lispval watchcall(lispval expr,fd_lexenv env,int with_proc)
@@ -335,15 +335,15 @@ static lispval watchpoint_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
             if ( (FD_PAIRP(wval)) || (FD_VECTORP(wval)) || (FD_CHOICEP(wval)) ||
                  (FD_SLOTMAPP(wval)) || (FD_SCHEMAPP(wval)) ) {
               fd_list_object(&out,wval,lbl+1,NULL,"  ",NULL,100,0);
-              if (PAIRP(scan)) {u8_puts(&out,"\n "); off = 0;}}
+              if (PAIRP(scan)) {
+                u8_puts(&out,"\n ");}}
             else {
               u8_printf(&out,"%s=%q",lbl+1,wval);
-              if (PAIRP(scan)) {u8_puts(&out,"\n "); off = 0;}
-              off = check_line_length(&out,off,100);}}}
+              if (PAIRP(scan)) {
+                u8_puts(&out,"\n ");}}}}
         else {
           if (oneout) u8_puts(&out," // "); else oneout = 1;
-          u8_printf(&out,"%s=%q",CSTRING(label),wval);
-          off = check_line_length(&out,off,100);}
+          u8_printf(&out,"%s=%q",CSTRING(label),wval);}
         fd_decref(wval); wval = VOID;}
       else {
         wval = ((SYMBOLP(towatch))?(fd_symeval(towatch,env)):
@@ -352,12 +352,14 @@ static lispval watchpoint_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
           u8_exception ex = u8_erreify();
           wval = fd_wrap_exception(ex);}
         scan = FD_CDR(scan);
-        if (oneout) u8_printf(&out," // %q=%q",towatch,wval);
+        if (oneout)
+          u8_printf(&out," // %q=%q",towatch,wval);
         else {
           u8_printf(&out,"%q=%q",towatch,wval);
           oneout = 1;}
-        off = check_line_length(&out,off,50);
-        fd_decref(wval); wval = VOID;}}
+        fd_decref(wval);
+        wval = VOID;}
+      off = check_line_length(&out,off,80);}
     u8_logger(U8_LOG_MSG,label,out.u8_outbuf);
     u8_free(out.u8_outbuf);}
   start = u8_elapsed_time();
