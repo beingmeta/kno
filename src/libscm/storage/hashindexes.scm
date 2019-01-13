@@ -105,8 +105,8 @@
 	(if (test keyinfo 'value)
 	    (when (or uniquehash (not mincount) (< mincount 1))
 	      (add! (or uniquehash rarehash outhash)
-		    (get keyinfo 'key)
-		    (get keyinfo 'value))
+		  (get keyinfo 'key)
+		(get keyinfo 'value))
 	      (set! key-count (1+ key-count))
 	      (when mincount (set! rare-count (1+ rare-count)))
 	      (set! unique-count (1+ unique-count))
@@ -160,14 +160,16 @@
 	 (unique (getopt opts 'unique {})))
     (lognotice |Copying|
       ($num (choice-size buckets)) 
-      (if span " bucket spans " " buckets ")
-      "from " index " to " output)
+      (if span " bucket spans" " buckets")
+      " from " (write (index-source index))
+      " to " (write (index-source output)))
     (engine/run hashindex-copier buckets  
 		`#[loop #[input ,index output ,output
 			  rare ,(getopt opts 'rare)
 			  unique ,(getopt opts 'unique)
 			  maxcount ,(getopt opts 'maxcount)
 			  mincount ,(getopt opts 'mincount)]
+		   logcontext ,(stringout "Copying " (index-source index))
 		   count-term ,(if span "buckets" "bucket spans")
 		   onerror {stopall signal}
 		   counters {keys rarekeys uniquekeys values}

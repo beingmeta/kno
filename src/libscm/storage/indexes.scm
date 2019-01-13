@@ -77,15 +77,14 @@
     (onerror 
 	(begin
 	  (do-choices (in merge)
-	    (lognotice |MergeIndexes| "Merging " in)
-	    (with-log-context (stringout "Merging " (index-source in))
-	      (let ((copier (cond ((testopt opts 'copier 'generic) index/copy-keys!)
-				  ((getopt opts 'copier) (getopt opts 'copier))
-				  ((equal? (indexctl in 'metadata 'type) "hashindex")
-				   hashindex/copy-keys!)
-				  (else index/copy-keys!))))
-		(copier in out copy-opts))))
-	  (close-index in)
+	    (lognotice |MergeIndexes| "Merging " (index-source in))
+	    (let ((copier (cond ((testopt opts 'copier 'generic) index/copy-keys!)
+				((getopt opts 'copier) (getopt opts 'copier))
+				((equal? (indexctl in 'metadata 'type) "hashindex")
+				 hashindex/copy-keys!)
+				(else index/copy-keys!))))
+	      (copier in out copy-opts))
+	    (close-index in))
 	  (set! ok #t)))
     (indexctl out 'metadata 'merges
 	      (qchoice (indexctl out 'metadata 'merges)
@@ -248,7 +247,10 @@
 	(rare (getopt opts 'rare {}))
 	(unique (getopt opts 'unique {}))
 	(keys (getkeys in)))
-    (lognotice |Copying| (choice-size keys) " keys from " in " to " out)
+    (lognotice |Copying|
+      (choice-size keys) " keys"
+      " from " (index-source in) 
+      " to " (index-source out))
     (engine/run key-copier keys
 		`#[loop #[input ,in output ,out
 			  rare ,(getopt opts 'rare)
@@ -258,6 +260,7 @@
 		   count-term "keys"
 		   onerror {stopall signal}
 		   counters {copied rarekeys uniquekeys values}
+		   logcontext ,(stringout "Copying " (if (index? in) (index-source in) in))
 		   logrates {copied rarekeys uniquekeys values}
 		   batchsize ,(getopt opts 'batchsize (config 'BATCHSIZE 10000))
 		   batchrange ,(getopt opts 'batchrange (config 'BATCHRANGE 8))

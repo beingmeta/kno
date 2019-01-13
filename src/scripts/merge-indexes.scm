@@ -3,6 +3,7 @@
 (config! 'cachelevel 2)
 (config! 'logthreadinfo #t)
 (config! 'logelapsed #t)
+(config! 'thread:logexit #f)
 (use-module '{optimize varconfig logger mttools})
 (use-module '{storage/indexes})
 
