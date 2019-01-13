@@ -44,7 +44,7 @@ struct FD_CONFIG_HANDLER *config_handlers = NULL;
 
 static lispval configuration_table;
 static lispval path_macro, env_macro, config_macro, now_macro;
-static lispval glom_macro;
+static lispval glom_macro, source_macro;
 
 static u8_mutex config_lookup_lock;
 static u8_mutex config_register_lock;
@@ -448,6 +448,11 @@ FD_EXPORT lispval fd_interpret_value(lispval expr)
           (u8_abspath(FD_CSTRING(arg),NULL));
         return fd_init_string(NULL,-1,fullpath);}
       else return fd_incref(arg);}
+    else if (head == source_macro) {
+      u8_string sourcepath = fd_sourcebase();
+      if (sourcepath)
+        return fd_make_string(NULL,-1,sourcepath);
+      else return FD_FALSE;}
     else if (head == config_macro) {
       if (FD_SYMBOLP(arg)) {
         lispval v = fd_config_get(FD_SYMBOL_NAME(arg));
@@ -998,6 +1003,7 @@ void fd_init_config_c()
   config_macro = fd_intern("#CONFIG");
   now_macro = fd_intern("#NOW");
   env_macro = fd_intern("#ENV");
+  source_macro = fd_intern("#SOURCE");
 
   fd_register_config
     ("FDVERSION",_("Get the FramerD version string"),
