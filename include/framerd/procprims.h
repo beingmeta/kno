@@ -15,7 +15,7 @@ typedef struct FD_SUBJOB {
   FD_CONS_HEADER;
   u8_string subjob_id;
   pid_t subjob_pid;
-  lispval subjob_in, subjob_out, subjob_err;}
+  lispval subjob_stdin, subjob_stdout, subjob_stderr;}
   *fd_subjob;
 
 FD_EXPORT fd_ptr_type fd_subjob_type;

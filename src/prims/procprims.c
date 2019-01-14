@@ -28,6 +28,7 @@
 #include <libu8/u8filefns.h>
 #include <libu8/u8stringfns.h>
 #include <libu8/u8streamio.h>
+#include "libu8/u8fileio.h"
 #include <libu8/u8netfns.h>
 #include <libu8/u8xfiles.h>
 
@@ -59,9 +60,12 @@
 #include <sys/statfs.h>
 #endif
 
+static lispval id_symbol, stdin_symbol, stdout_symbol, stderr_symbol;
+
 static lispval exit_prim(lispval arg)
 {
-  if (FD_INTP(arg)) exit(FIX2INT(arg));
+  if (FD_INTP(arg))
+    exit(FIX2INT(arg));
   else exit(0);
   return VOID;
 }
@@ -263,19 +267,26 @@ static lispval fdfork_prim(int n,lispval *args)
 fd_ptr_type fd_subjob_type;
 
 #define PIPE_FLAGS O_NONBLOCK
+#define STDOUT_FILE_MODE (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)
+#define STDERR_FILE_MODE (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)
+#define SUBJOB_EXEC_FLAGS FD_DO_LOOKUP
 
-#if 0
-static lispval open_subjob(int n,lisp *args)
+static u8_string makeid(int n,lispval *args);
+
+static lispval subjob_open(int n,lispval *args)
 {
   lispval opts = args[0];
-  lispval id = fd_getopt(opts,FDSYM_ID,FD_VOID);
-  lispval infile = fd_getopt(opts,infile_symbol,FD_VOID);
-  lispval outfile = fd_getopt(opts,outfile_symbol,FD_VOID);
-  lispval errfile = fd_getopt(opts,errfile_symbol,FD_VOID);
+  lispval idstring = fd_getopt(opts,id_symbol,FD_VOID);
+  lispval infile   = fd_getopt(opts,stdin_symbol,FD_VOID);
+  lispval outfile  = fd_getopt(opts,stdout_symbol,FD_VOID);
+  lispval errfile  = fd_getopt(opts,stderr_symbol,FD_VOID);
   int in_fd[2], out_fd[2], err_fd[2];
-  int *in  = (FD_VOIDP(infile)) ? (in_fd) : (NULL);
-  int *out = (FD_VOIDP(outfile)) ? (out_fd) : (NULL);
-  int *err = (FD_VOIDP(errfile)) ? (err_fd) : (NULL);
+  int *in  = (FD_TRUEP(infile)) ? (in_fd) : (NULL);
+  int *out = (FD_TRUEP(outfile)) ? (out_fd) : (NULL);
+  int *err = (FD_TRUEP(errfile)) ? (err_fd) : (NULL);
+  u8_string id = (FD_STRINGP(idstring)) ?
+    (u8_strdup(FD_CSTRING(idstring))) :
+    (makeid(n-1,args+1));
   /* Get pipes */
   if ( (in) && ( (pipe2(in,PIPE_FLAGS)) < 0) ) {
     lispval err = fd_err("PipeFailed","open_subjob",NULL,FD_VOID);
@@ -299,17 +310,19 @@ static lispval open_subjob(int n,lisp *args)
       if (out) close(out[1]);
       if (err) close(err[1]);
       subjob->subjob_pid = pid;
-      subjob->subjob_id = u8_strdup(FD_CSTRING(id));
-      subjob->subjob_in = (in == NULL) ? (fd_incref(infile)) :
-        make_port(u8_open_xinput(in[0],NULL),NULL,
-                  u8_mkstring("(in)%s",idstring));
-      subjob->subjob_out = (out == NULL) ? (fd_incref(outfile)) :
-        make_port(NULL,u8_open_xoutput(out[1],NULL),
-                  u8_mkstring("(out)%s",idstring));
-      subjob->subjob_err = (err == NULL) ? (fd_incref(errfile)) :
-        make_port(u8_open_xinput(err[1],NULL),NULL,
-                  u8_mkstring("(err)%s",idstring));
-      fd_decref(infile); fd_decref(outfile); fd_decref(errfile);
+      subjob->subjob_id = id;
+      subjob->subjob_stdin = (in == NULL) ? (fd_incref(infile)) :
+        fd_make_port(NULL,(u8_output)u8_open_xoutput(in[1],NULL),
+                     u8_mkstring("(in)%s",idstring));
+      subjob->subjob_stdout = (out == NULL) ? (fd_incref(outfile)) :
+        fd_make_port((u8_input)u8_open_xinput(out[0],NULL),NULL,
+                     u8_mkstring("(out)%s",idstring));
+      subjob->subjob_stderr = (err == NULL) ? (fd_incref(errfile)) :
+        fd_make_port((u8_input)u8_open_xinput(err[0],NULL),NULL,
+                     u8_mkstring("(err)%s",idstring));
+      fd_decref(infile);
+      fd_decref(outfile);
+      fd_decref(errfile);
       return (lispval) subjob;}
     else {
       int rv = 0;
@@ -318,56 +331,105 @@ static lispval open_subjob(int n,lisp *args)
       if (err) close(err[0]);
       if (in) {
         rv = dup2(in[0],STDIN_FILENO);
-        if (rv<0) u8_log(LOGCRIT,"Couldn't redirect stdin for job %q",id);}
+        if (rv<0) u8_log(LOGCRIT,"RedirectFailed",
+                         "Couldn't redirect stdin for job %q",id);}
       else if (FD_STRINGP(infile)) {
-        int new_stdin = u8_fopen(FD_CSTRING(infile),"r");
+        int new_stdin = u8_open_fd(FD_CSTRING(infile),O_RDONLY,0);
         if (new_stdin<0) {
           u8_exception ex = u8_pop_exception();
-          u8_log(LOGCRIT,"Couldn't open stdout %s",FD_CSTRING(infile));
+          u8_log(LOGCRIT,"RedirectFailed",
+                 "Couldn't open stdin %s",FD_CSTRING(infile));
           rv=new_stdin;}
         else {
           rv = dup2(new_stdin,STDIN_FILENO);
-          if (rv<0) u8_log(LOGCRIT,"Couldn't redirect stdin for job %q",id);}}
+          if (rv<0)
+            u8_log(LOGCRIT,"RedirectFailed",
+                   "Couldn't redirect stdin for job %q",id);}}
       else NO_ELSE;
       if (rv<0) {}
       else if (out) {
         rv = dup2(out[1],STDOUT_FILENO);
-        if (rv<0) u8_log(LOGCRIT,"Couldn't redirect stdout for job %q",id);}
+        if (rv<0)
+          u8_log(LOGCRIT,"RedirectFailed",
+                 "Couldn't redirect stdout for job %q",id);}
       else if (FD_STRINGP(outfile)) {
-        int new_stdout = u8_fopen(FD_CSTRING(infile),"w");
+        int new_stdout = u8_open_fd(FD_CSTRING(outfile),
+                                    O_WRONLY|O_CREAT,
+                                    STDOUT_FILE_MODE);
         if (new_stdout<0) {
           u8_exception ex = u8_pop_exception();
           u8_log(LOGCRIT,"Couldn't open stdout %s",FD_CSTRING(outfile));
           rv=new_stdout;}
         else {
           rv = dup2(new_stdout,STDOUT_FILENO);
-          if (rv<0) u8_log(LOGCRIT,"Couldn't redirect stdout for job %q",id);}}
+          if (rv<0)
+            u8_log(LOGCRIT,"RedirectFailed",
+                   "Couldn't redirect stdout for job %q",id);
+          else close(new_stdout);}}
       else NO_ELSE;
       if (rv<0) {}
       else if (err) {
         rv = dup2(out[1],STDERR_FILENO);
-        if (rv<0) u8_log(LOGCRIT,"Couldn't redirect stderr for job %q",id);}
+        if (rv<0) u8_log(LOGCRIT,"RedirectFailed",
+                         "Couldn't redirect stderr for job %q",id);}
       else if (FD_STRINGP(errfile)) {
-        int new_stderr = u8_fopen(FD_CSTRING(infile),"w");
+        int new_stderr = u8_open_fd(FD_CSTRING(errfile),
+                                    O_WRONLY|O_CREAT,
+                                    STDERR_FILE_MODE);
         if (new_stderr<0) {
           u8_exception ex = u8_pop_exception();
-          u8_log(LOGCRIT,"Couldn't open stderr %s",FD_CSTRING(outfile));
+          u8_log(LOGCRIT,"Couldn't open stderr %s",FD_CSTRING(errfile));
           rv=new_stderr;}
         else {
           rv = dup2(new_stderr,STDERR_FILENO);
-          if (rv<0) u8_log(LOGCRIT,"Couldn't redirect stderr for job %q",id);}}
+          if (rv<0)
+            u8_log(LOGCRIT,"RedirectFailed",
+                   "Couldn't redirect stdout for job %q",id);
+          else close(new_stderr);}}
       else NO_ELSE;
       if (rv<0) {
         if (in) close(in[0]);
         if (out) close(out[1]);
         if (err) close(err[1]);
         exit(1);}
-      int exec_result = exec_helper("fd_subjob",flags,n-1,args+1);
+      int exec_result = exec_helper("fd_subjob",SUBJOB_EXEC_FLAGS,n-1,args+1);
       /* Never reached */
       return FD_VOID;}
   }
 }
-#endif
+
+static u8_string makeid(int n,lispval *args)
+{
+  struct U8_OUTPUT idout; U8_INIT_OUTPUT(&idout,64);
+  int i = 0; while (i<n) {
+    lispval v = args[i];
+    if (i>0) u8_putc(&idout,' ');
+    if (FD_STRINGP(v)) {
+      u8_string s = FD_CSTRING(v);
+      if (strchr(s,' '))
+        fd_unparse(&idout,v);
+      else u8_puts(&idout,s);}
+    else u8_printf(&idout,"'%q'",v);
+    i++;}
+  return u8_outstring(&idout);
+}
+
+static int unparse_subjob(u8_output out,lispval x)
+{
+  struct FD_SUBJOB *sj = (struct FD_SUBJOB *)x;
+  u8_printf(out,"#<SUBJOB/%s>",sj->subjob_id);
+  return 1;
+}
+
+static void recycle_subjob(struct FD_RAW_CONS *c)
+{
+  struct FD_SUBJOB *sj = (struct FD_SUBJOB *)c;
+  fd_decref(sj->subjob_stdin); sj->subjob_stdin=FD_VOID;
+  fd_decref(sj->subjob_stdout); sj->subjob_stdout=FD_VOID;
+  fd_decref(sj->subjob_stderr); sj->subjob_stderr=FD_VOID;
+  u8_free(sj->subjob_id);
+  if (!(FD_STATIC_CONSP(c))) u8_free(c);
+}
 
 static lispval subjob_pid(lispval subjob)
 {
@@ -378,19 +440,19 @@ static lispval subjob_pid(lispval subjob)
 static lispval subjob_stdin(lispval subjob)
 {
   struct FD_SUBJOB *sj = (fd_subjob) subjob;
-  return fd_incref(sj->subjob_out);
+  return fd_incref(sj->subjob_stdin);
 }
 
 static lispval subjob_stdout(lispval subjob)
 {
   struct FD_SUBJOB *sj = (fd_subjob) subjob;
-  return fd_incref(sj->subjob_in);
+  return fd_incref(sj->subjob_stdout);
 }
 
 static lispval subjob_stderr(lispval subjob)
 {
   struct FD_SUBJOB *sj = (fd_subjob) subjob;
-  return fd_incref(sj->subjob_err);
+  return fd_incref(sj->subjob_stderr);
 }
 
 static lispval subjob_signal(lispval subjob,lispval sigval)
@@ -440,6 +502,15 @@ FD_EXPORT void fd_init_procprims_c()
   fd_idefn(procprims_module,fd_make_cprim2("PID/KILL!",pid_kill_prim,2));
   fd_defalias(procprims_module,"PID/KILL","PID/KILL!");
 
+  fd_subjob_type = fd_register_cons_type("subjob");
+  fd_unparsers[fd_subjob_type] = unparse_subjob;
+  fd_recyclers[fd_subjob_type] = recycle_subjob;
+
+  id_symbol = fd_intern("ID");
+  stdin_symbol = fd_intern("STDIN");
+  stdout_symbol = fd_intern("STDOUT");
+  stderr_symbol = fd_intern("STDERR");
+
   fd_idefn1(procprims_module,"SUBJOB/PID",subjob_pid,1,
             "Gets the PID for the subjob",
             fd_subjob_type,FD_VOID);
@@ -456,6 +527,7 @@ FD_EXPORT void fd_init_procprims_c()
   fd_idefn1(procprims_module,"SUBJOB/STDERR",subjob_stderr,1,
             "Gets the STDOUT for the subjob, either a file or an input stream",
             fd_subjob_type,FD_VOID);
+  fd_idefn(procprims_module,fd_make_cprimn("SUBJOB/OPEN",subjob_open,2));
 
   fd_finish_module(procprims_module);
 }
