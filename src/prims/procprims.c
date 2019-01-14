@@ -60,6 +60,8 @@
 #include <sys/statfs.h>
 #endif
 
+static u8_condition RedirectFailed = "Redirect failed";
+
 static lispval id_symbol, stdin_symbol, stdout_symbol, stderr_symbol;
 
 static lispval exit_prim(lispval arg)
@@ -284,6 +286,18 @@ static int setup_pipe(int fds[2])
 }
 #endif
 
+static int dodup(int from,int to,u8_string stream,u8_string id)
+{
+  int rv = dup2(from,to);
+  if (rv<0) {
+    int err = errno; errno=0;
+    u8_log(LOGCRIT,RedirectFailed,
+           "Couldn't redirect %s for job %s (%d:%s)",
+           stream,id,err,u8_strerror(err));}
+  close(from);
+  return rv;
+}
+
 static u8_string makeid(int n,lispval *args);
 
 static lispval subjob_open(int n,lispval *args)
@@ -301,14 +315,14 @@ static lispval subjob_open(int n,lispval *args)
     (u8_strdup(FD_CSTRING(idstring))) :
     (makeid(n-1,args+1));
   /* Get pipes */
-  if ( (in) && ( (pipe2(in,PIPE_FLAGS)) < 0) ) {
+  if ( (in) && ( (setup_pipe(in)) < 0) ) {
     lispval err = fd_err("PipeFailed","open_subjob",NULL,FD_VOID);
     return err;}
-  else if ( (out) && ( (pipe2(out,PIPE_FLAGS)) < 0) ) {
+  else if ( (out) && ( (setup_pipe(out)) < 0) ) {
     lispval err = fd_err("PipeFailed","open_subjob",NULL,FD_VOID);
     if (in) {close(in[0]); close(in[1]);}
     return err;}
-  else if ( (err) && ( (pipe2(err,PIPE_FLAGS)) < 0) ) {
+  else if ( (err) && ( (setup_pipe(err)) < 0) ) {
     lispval err = fd_err("PipeFailed","open_subjob",NULL,FD_VOID);
     if (in) {close(in[0]); close(in[1]);}
     if (out) {close(out[0]); close(out[1]);}
@@ -317,7 +331,6 @@ static lispval subjob_open(int n,lispval *args)
     pid_t pid = fork();
     if (pid) {
       struct FD_SUBJOB *subjob = u8_alloc(struct FD_SUBJOB);
-      u8_string idstring = FD_CSTRING(id);
       FD_INIT_CONS(subjob,fd_subjob_type);
       if (in) close(in[0]);
       if (out) close(out[1]);
@@ -326,13 +339,13 @@ static lispval subjob_open(int n,lispval *args)
       subjob->subjob_id = id;
       subjob->subjob_stdin = (in == NULL) ? (fd_incref(infile)) :
         fd_make_port(NULL,(u8_output)u8_open_xoutput(in[1],NULL),
-                     u8_mkstring("(in)%s",idstring));
+                     u8_mkstring("(in)%s",id));
       subjob->subjob_stdout = (out == NULL) ? (fd_incref(outfile)) :
         fd_make_port((u8_input)u8_open_xinput(out[0],NULL),NULL,
-                     u8_mkstring("(out)%s",idstring));
+                     u8_mkstring("(out)%s",id));
       subjob->subjob_stderr = (err == NULL) ? (fd_incref(errfile)) :
         fd_make_port((u8_input)u8_open_xinput(err[0],NULL),NULL,
-                     u8_mkstring("(err)%s",idstring));
+                     u8_mkstring("(err)%s",id));
       fd_decref(infile);
       fd_decref(outfile);
       fd_decref(errfile);
@@ -342,70 +355,55 @@ static lispval subjob_open(int n,lispval *args)
       if (in) close(in[1]);
       if (out) close(out[0]);
       if (err) close(err[0]);
-      if (in) {
-        rv = dup2(in[0],STDIN_FILENO);
-        if (rv<0) u8_log(LOGCRIT,"RedirectFailed",
-                         "Couldn't redirect stdin for job %q",id);}
+      if (in)
+        rv = dodup(in[0],STDIN_FILENO,"stdin",id);
       else if (FD_STRINGP(infile)) {
         int new_stdin = u8_open_fd(FD_CSTRING(infile),O_RDONLY,0);
         if (new_stdin<0) {
           u8_exception ex = u8_pop_exception();
-          u8_log(LOGCRIT,"RedirectFailed",
-                 "Couldn't open stdin %s",FD_CSTRING(infile));
+          u8_log(LOGCRIT,RedirectFailed,
+                 "Couldn't open stdin %s (%s:%s)",
+                 FD_CSTRING(infile),ex->u8x_cond,ex->u8x_details);
+          u8_free_exception(ex,0);
           rv=new_stdin;}
-        else {
-          rv = dup2(new_stdin,STDIN_FILENO);
-          if (rv<0)
-            u8_log(LOGCRIT,"RedirectFailed",
-                   "Couldn't redirect stdin for job %q",id);}}
+        else rv = dodup(in[0],STDIN_FILENO,"stdin",id);}
       else NO_ELSE;
       if (rv<0) {}
-      else if (out) {
-        rv = dup2(out[1],STDOUT_FILENO);
-        if (rv<0)
-          u8_log(LOGCRIT,"RedirectFailed",
-                 "Couldn't redirect stdout for job %q",id);}
+      else if (out)
+        rv = dodup(out[1],STDOUT_FILENO,"stdout",id);
       else if (FD_STRINGP(outfile)) {
         int new_stdout = u8_open_fd(FD_CSTRING(outfile),
                                     O_WRONLY|O_CREAT,
                                     STDOUT_FILE_MODE);
         if (new_stdout<0) {
           u8_exception ex = u8_pop_exception();
-          u8_log(LOGCRIT,"Couldn't open stdout %s",FD_CSTRING(outfile));
+          u8_log(LOGCRIT,"Couldn't open stdout %s (%s:%s)",
+                 FD_CSTRING(outfile));
+          u8_free_exception(ex,0);
           rv=new_stdout;}
-        else {
-          rv = dup2(new_stdout,STDOUT_FILENO);
-          if (rv<0)
-            u8_log(LOGCRIT,"RedirectFailed",
-                   "Couldn't redirect stdout for job %q",id);
-          else close(new_stdout);}}
+        else rv = dodup(new_stdout,STDOUT_FILENO,"stdin",id);}
       else NO_ELSE;
       if (rv<0) {}
-      else if (err) {
-        rv = dup2(out[1],STDERR_FILENO);
-        if (rv<0) u8_log(LOGCRIT,"RedirectFailed",
-                         "Couldn't redirect stderr for job %q",id);}
+      else if (err)
+        rv = dodup(err[1],STDERR_FILENO,"stderr",id);
       else if (FD_STRINGP(errfile)) {
         int new_stderr = u8_open_fd(FD_CSTRING(errfile),
                                     O_WRONLY|O_CREAT,
                                     STDERR_FILE_MODE);
         if (new_stderr<0) {
           u8_exception ex = u8_pop_exception();
-          u8_log(LOGCRIT,"Couldn't open stderr %s",FD_CSTRING(errfile));
+          u8_log(LOGCRIT,"Couldn't open stderr %s (%s:%s)",
+                 FD_CSTRING(errfile),
+                 ex->u8x_cond,ex->u8x_details);
+          u8_free_exception(ex,0);
           rv=new_stderr;}
-        else {
-          rv = dup2(new_stderr,STDERR_FILENO);
-          if (rv<0)
-            u8_log(LOGCRIT,"RedirectFailed",
-                   "Couldn't redirect stdout for job %q",id);
-          else close(new_stderr);}}
+        else rv = dodup(new_stderr,STDERR_FILENO,"stderr",id);}
       else NO_ELSE;
-      if (rv<0) {
-        if (in) close(in[0]);
-        if (out) close(out[1]);
-        if (err) close(err[1]);
-        exit(1);}
+      if (rv<0) {exit(1);}
       int exec_result = exec_helper("fd_subjob",SUBJOB_EXEC_FLAGS,n-1,args+1);
+      if (exec_result < 0) {
+        u8_log(LOG_CRIT,"ExecFailed","Couldn't launch subjob %s",id);
+        exit(1);}
       /* Never reached */
       return FD_VOID;}
   }
