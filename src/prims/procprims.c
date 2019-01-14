@@ -271,6 +271,19 @@ fd_ptr_type fd_subjob_type;
 #define STDERR_FILE_MODE (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)
 #define SUBJOB_EXEC_FLAGS FD_DO_LOOKUP
 
+#if HAVE_PIPE2
+static int setup_pipe(int fds[2])
+{
+  return pipe2(fds,PIPE_FLAGS);
+}
+#else
+static int setup_pipe(int fds[2])
+{
+  int rv = pipe(fds);
+  return rv;
+}
+#endif
+
 static u8_string makeid(int n,lispval *args);
 
 static lispval subjob_open(int n,lispval *args)

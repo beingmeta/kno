@@ -201,6 +201,12 @@
 /* Define if you have the statfs() library function.  */
 #undef HAVE_STATFS
 
+/* Define if you have the pipe() library function.  */
+#undef HAVE_PIPE
+
+/* Define if you have the pipe2() library function.  */
+#undef HAVE_PIPE2
+
 /* Define if you have the sleep library function.  */
 #undef HAVE_SLEEP
 

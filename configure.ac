@@ -1182,6 +1182,7 @@ AC_CHECK_FUNCS(ftime)
 AC_CHECK_FUNCS(waitpid)
 AC_CHECK_FUNCS(wait4)
 AC_CHECK_FUNCS(statfs)
+AC_CHECK_FUNCS(pipe pipe2)
 AC_CHECK_FUNCS(gettext)
 
 AC_CHECK_FUNCS(geteuid getuid getgid getegid getumask)
