@@ -30,6 +30,8 @@ FD_EXPORT void fd_log_backtrace(u8_exception ex,int loglevel,
                                 u8_condition label,int width);
 FD_EXPORT void fd_summarize_backtrace(U8_OUTPUT *out,u8_exception ex);
 
+FD_EXPORT lispval fd_make_port(U8_INPUT *in,U8_OUTPUT *out,u8_string id);
+
 #endif
 
 /* Emacs local variables

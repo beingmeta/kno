@@ -34,7 +34,7 @@ u8_condition fd_UnknownEncoding=_("Unknown encoding");
 
 /* Making ports */
 
-static lispval make_port(U8_INPUT *in,U8_OUTPUT *out,u8_string id)
+FD_EXPORT lispval fd_make_port(U8_INPUT *in,U8_OUTPUT *out,u8_string id)
 {
   struct FD_PORT *port = u8_alloc(struct FD_PORT);
   FD_INIT_CONS(port,fd_port_type);
@@ -138,7 +138,7 @@ static lispval open_output_string()
 {
   U8_OUTPUT *out = u8_alloc(struct U8_OUTPUT);
   U8_INIT_OUTPUT(out,256);
-  return make_port(NULL,out,u8_strdup("output string"));
+  return fd_make_port(NULL,out,u8_strdup("output string"));
 }
 
 static lispval open_input_string(lispval arg)
@@ -147,7 +147,7 @@ static lispval open_input_string(lispval arg)
     U8_INPUT *in = u8_alloc(struct U8_INPUT);
     U8_INIT_STRING_INPUT(in,FD_STRING_LENGTH(arg),u8_strdup(CSTRING(arg)));
     in->u8_streaminfo = in->u8_streaminfo|U8_STREAM_OWNS_BUF;
-    return make_port(in,NULL,u8_strdup("input string"));}
+    return fd_make_port(in,NULL,u8_strdup("input string"));}
   else return fd_type_error(_("string"),"open_input_string",arg);
 }
 
