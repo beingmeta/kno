@@ -6932,44 +6932,7 @@ else
 fi
 
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking malloc library" >&5
-$as_echo_n "checking malloc library... " >&6; }
-
-if test -z "$with_malloc" ||
-   test "$with_malloc" = "libc" ||
-   test "$with_malloc" = "builtin" ; then
-   { $as_echo "$as_me:${as_lineno-$LINENO}: result: libc default" >&5
-$as_echo "libc default" >&6; }
-   custom_malloc="";
-   using_malloc="libc"
-elif test "$with_duma" != "no"; then
-   as_fn_error $? "DUMA can only be used with libc malloc" "$LINENO" 5
-   exit;
-elif test "$with_malloc" = "tcmalloc"; then
-  gperftools="yes";
-  custom_malloc="tcmalloc"
-  using_malloc="tcmalloc"
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: tcmalloc" >&5
-$as_echo "tcmalloc" >&6; }
-elif test "$with_malloc" = "gperftools"; then
-  gperftools="profile";
-  custom_malloc="tcmalloc"
-  using_malloc="gperftools"
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: tcmalloc profiling" >&5
-$as_echo "tcmalloc profiling" >&6; }
-elif test "$with_malloc" = "tcmalloc_debug"; then
-  gperftools="debug";
-  custom_malloc="tcmalloc_debug"
-  using_malloc="tcmalloc_debug"
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: tcmalloc debug" >&5
-$as_echo "tcmalloc debug" >&6; }
-elif test "$with_malloc" = "tcmalloc_minimal"; then
-  gperftools="minimal";
-  custom_malloc="tcmalloc_minimal"
-  using_malloc="tcmalloc_minimal"
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: tcmalloc minimal" >&5
-$as_echo "tcmalloc minimal" >&6; }
-elif test "$with_malloc" = "jemalloc"; then
+if test "$with_malloc" = "jemalloc"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ljemalloc" >&5
 $as_echo_n "checking for malloc in -ljemalloc... " >&6; }
 if ${ac_cv_lib_jemalloc_malloc+:} false; then :
@@ -7010,17 +6973,6 @@ if test "x$ac_cv_lib_jemalloc_malloc" = xyes; then :
   EXELIBS="-ljemalloc $EXELIBS"
 fi
 
-  if test "${ac_cv_lib_jemalloc_malloc}" = "yes"; then
-    custom_malloc="jemalloc"
-    using_malloc="jemalloc"
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: jemalloc" >&5
-$as_echo "jemalloc" >&6; }
-    memtest_env="junk:true,tcache:false"
-    leaktest_env="prof_leak:true,lg_prof_sample:0,prof_final:true"
-  else
-    as_fn_error $? "jemalloc can't be found" "$LINENO" 5
-    exit;
-  fi;
 elif test "$with_malloc" = "dmalloc"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ldmalloc" >&5
 $as_echo_n "checking for malloc in -ldmalloc... " >&6; }
@@ -7062,6 +7014,58 @@ if test "x$ac_cv_lib_dmalloc_malloc" = xyes; then :
   EXELIBS="-ldmalloc $EXELIBS"
 fi
 
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking malloc library" >&5
+$as_echo_n "checking malloc library... " >&6; }
+
+if test -z "$with_malloc" ||
+   test "$with_malloc" = "libc" ||
+   test "$with_malloc" = "builtin" ; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: libc default" >&5
+$as_echo "libc default" >&6; }
+   custom_malloc="";
+   using_malloc="libc"
+elif test "$with_duma" != "no"; then
+   as_fn_error $? "DUMA can only be used with libc malloc" "$LINENO" 5
+   exit;
+elif test "$with_malloc" = "tcmalloc"; then
+  gperftools="yes";
+  custom_malloc="tcmalloc"
+  using_malloc="tcmalloc"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: tcmalloc" >&5
+$as_echo "tcmalloc" >&6; }
+elif test "$with_malloc" = "gperftools"; then
+  gperftools="profile";
+  custom_malloc="tcmalloc"
+  using_malloc="gperftools"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: tcmalloc profiling" >&5
+$as_echo "tcmalloc profiling" >&6; }
+elif test "$with_malloc" = "tcmalloc_debug"; then
+  gperftools="debug";
+  custom_malloc="tcmalloc_debug"
+  using_malloc="tcmalloc_debug"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: tcmalloc debug" >&5
+$as_echo "tcmalloc debug" >&6; }
+elif test "$with_malloc" = "tcmalloc_minimal"; then
+  gperftools="minimal";
+  custom_malloc="tcmalloc_minimal"
+  using_malloc="tcmalloc_minimal"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: tcmalloc minimal" >&5
+$as_echo "tcmalloc minimal" >&6; }
+elif test "$with_malloc" = "jemalloc"; then
+  if test "${ac_cv_lib_jemalloc_malloc}" = "yes"; then
+    custom_malloc="jemalloc"
+    using_malloc="jemalloc"
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: jemalloc" >&5
+$as_echo "jemalloc" >&6; }
+    memtest_env="junk:true,tcache:false"
+    leaktest_env="prof_leak:true,lg_prof_sample:0,prof_final:true"
+  else
+    as_fn_error $? "jemalloc can't be found" "$LINENO" 5
+    exit;
+  fi;
+elif test "$with_malloc" = "dmalloc"; then
   if test "${ac_cv_lib_dmalloc_malloc}" = "yes"; then
     custom_malloc="dmalloc"
     using_malloc="dmalloc"

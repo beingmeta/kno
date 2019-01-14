@@ -648,6 +648,12 @@ fi
 
 AC_ARG_WITH(malloc,--with-malloc Use custom malloc,with_malloc=$withval,with_malloc=$default_malloc)
 
+if test "$with_malloc" = "jemalloc"; then
+  AC_CHECK_LIB(jemalloc,malloc,EXELIBS="-ljemalloc $EXELIBS")
+elif test "$with_malloc" = "dmalloc"; then
+  AC_CHECK_LIB(dmalloc,malloc,EXELIBS="-ldmalloc $EXELIBS")
+fi
+
 AC_MSG_CHECKING(malloc library)
 
 if test -z "$with_malloc" || 
@@ -680,7 +686,6 @@ elif test "$with_malloc" = "tcmalloc_minimal"; then
   using_malloc="tcmalloc_minimal"
   AC_MSG_RESULT(tcmalloc minimal)
 elif test "$with_malloc" = "jemalloc"; then
-  AC_CHECK_LIB(jemalloc,malloc,EXELIBS="-ljemalloc $EXELIBS")
   if test "${ac_cv_lib_jemalloc_malloc}" = "yes"; then
     custom_malloc="jemalloc"
     using_malloc="jemalloc"
@@ -692,7 +697,6 @@ elif test "$with_malloc" = "jemalloc"; then
     exit;
   fi;
 elif test "$with_malloc" = "dmalloc"; then
-  AC_CHECK_LIB(dmalloc,malloc,EXELIBS="-ldmalloc $EXELIBS")
   if test "${ac_cv_lib_dmalloc_malloc}" = "yes"; then
     custom_malloc="dmalloc"
     using_malloc="dmalloc"
