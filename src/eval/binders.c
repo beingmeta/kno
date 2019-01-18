@@ -81,12 +81,16 @@ static lispval assign_default_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     lispval val = fd_symeval(symbol,env);
     if ((VOIDP(val))||(val == FD_UNBOUND)||(val == FD_DEFAULT_VALUE)) {
       lispval value = fd_eval(value_expr,env);
-      if (FD_ABORTED(value)) return value;
-      /* TODO: Error checking */
-      if (fd_assign_value(symbol,value,env)==0)
-        fd_bind_value(symbol,value,env);
+      if (FD_ABORTED(value))
+        return value;
+      /* Try to assign/bind it, checking for error return values */
+      int rv = fd_assign_value(symbol,value,env);
+      if (rv==0)
+        rv=fd_bind_value(symbol,value,env);
       fd_decref(value);
-      return VOID;}
+      if (rv<0)
+        return FD_ERROR;
+      else return FD_VOID;}
     else {
       fd_decref(val);
       return VOID;}}
@@ -105,14 +109,19 @@ static lispval assign_false_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     if ((VOIDP(val))||(FALSEP(val))||
         (val == FD_UNBOUND)||(val == FD_DEFAULT_VALUE)) {
       lispval value = fd_eval(value_expr,env);
-      if (FD_ABORTED(value)) return value;
-      /* TODO: Error checking */
-      if (fd_assign_value(symbol,value,env)==0)
-        fd_bind_value(symbol,value,env);
+      if (FD_ABORTED(value))
+        return value;
+      /* Try to assign/bind it, checking for error return values */
+      int rv = fd_assign_value(symbol,value,env);
+      if (rv == 0)
+        rv = fd_bind_value(symbol,value,env);
       fd_decref(value);
-      return VOID;}
+      if (rv<0)
+        return FD_ERROR;
+      else return VOID;}
     else {
-      fd_decref(val); return VOID;}}
+      fd_decref(val);
+      return VOID;}}
 }
 
 static lispval bind_default_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
@@ -129,11 +138,13 @@ static lispval bind_default_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     lispval val = fd_get(env->env_bindings,symbol,VOID);
     if ((VOIDP(val))||(val == FD_UNBOUND)||(val == FD_DEFAULT_VALUE)) {
       lispval value = fd_eval(value_expr,env);
-      if (FD_ABORTED(value)) return value;
-      /* TODO: Error checking */
-      fd_bind_value(symbol,value,env);
+      if (FD_ABORTED(value))
+        return value;
+      int rv = fd_bind_value(symbol,value,env);
       fd_decref(value);
-      return VOID;}
+      if (rv<0)
+        return FD_ERROR;
+      else return VOID;}
     else {
       fd_decref(val); return VOID;}}
 }
