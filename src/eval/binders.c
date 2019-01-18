@@ -38,11 +38,15 @@ static lispval assign_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   if (FD_ABORTED(value)) return value;
   else if ((retval = (fd_assign_value(var,value,env)))) {
     fd_decref(value);
-    if (retval<0) return FD_ERROR;
+    if (PRED_FALSE(retval<0)) {
+      /* TODO: Convert table errors to env errors */
+      return FD_ERROR;}
     else return VOID;}
   else if ((retval = (fd_bind_value(var,value,env)))) {
     fd_decref(value);
-    if (retval<0) return FD_ERROR;
+    if (PRED_FALSE(retval<0)) {
+      /* TODO: Convert table errors to env errors */
+      return FD_ERROR;}
     else return VOID;}
   else return fd_err(fd_BindError,"SET!",SYM_NAME(var),var);
 }
@@ -78,6 +82,7 @@ static lispval assign_default_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     if ((VOIDP(val))||(val == FD_UNBOUND)||(val == FD_DEFAULT_VALUE)) {
       lispval value = fd_eval(value_expr,env);
       if (FD_ABORTED(value)) return value;
+      /* TODO: Error checking */
       if (fd_assign_value(symbol,value,env)==0)
         fd_bind_value(symbol,value,env);
       fd_decref(value);
@@ -101,6 +106,7 @@ static lispval assign_false_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
         (val == FD_UNBOUND)||(val == FD_DEFAULT_VALUE)) {
       lispval value = fd_eval(value_expr,env);
       if (FD_ABORTED(value)) return value;
+      /* TODO: Error checking */
       if (fd_assign_value(symbol,value,env)==0)
         fd_bind_value(symbol,value,env);
       fd_decref(value);
@@ -124,6 +130,7 @@ static lispval bind_default_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     if ((VOIDP(val))||(val == FD_UNBOUND)||(val == FD_DEFAULT_VALUE)) {
       lispval value = fd_eval(value_expr,env);
       if (FD_ABORTED(value)) return value;
+      /* TODO: Error checking */
       fd_bind_value(symbol,value,env);
       fd_decref(value);
       return VOID;}

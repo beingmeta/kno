@@ -1013,6 +1013,7 @@ FD_EXPORT lispval _fd_stack_ndapply
 
 /* Tail calls */
 
+// TODO: Merge the core of these functions
 FD_EXPORT lispval fd_tail_call(lispval fcn,int n,lispval *vec)
 {
   if (FD_FCNIDP(fcn)) fcn = fd_fcnid_ref(fcn);

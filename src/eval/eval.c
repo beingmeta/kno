@@ -388,11 +388,13 @@ FD_EXPORT int fd_bind_value(lispval sym,lispval val,fd_lexenv env)
     if ( (FD_CONSP(val)) && 
          ( (FD_FUNCTIONP(val)) || (FD_APPLICABLEP(val)) ) &&
          (FD_HASHTABLEP(bindings)) ) {
+      /* Update fcnids if needed */
       lispval fcnids = fd_get(bindings,fcnids_symbol,FD_VOID);
       if (FD_HASHTABLEP(fcnids)) {
         lispval fcnid = fd_get(fcnids,sym,FD_VOID);
         if (FD_FCNIDP(fcnid)) fd_set_fcnid(fcnid,val);}
       fd_decref(fcnids);}
+    /* If there are exports, modify this variable if needed. */
     if (HASHTABLEP(exports))
       fd_hashtable_op((fd_hashtable)(exports),fd_table_replace,sym,val);
     return 1;}
@@ -1896,6 +1898,7 @@ static lispval ffi_found_prim(lispval name,lispval modname)
 /* Initialization */
 
 void fd_init_module_tables(void);
+
 #include "opcode_names.h"
 
 static void init_types_and_tables()
@@ -2065,8 +2068,12 @@ static void init_localfns()
                            fd_string_type,VOID));
 
   fd_register_config
-    ("TAILCALL","Enable/disable tail recursion in the Scheme evaluator",
-     fd_boolconfig_get,fd_boolconfig_set,&fd_optimize_tail_calls);
+    ("TAILCALL",
+     "Enable/disable tail recursion in the Scheme evaluator. "
+     "This may cause various source packages to break in some "
+     "or all cases.",
+     fd_boolconfig_get,fd_boolconfig_set,
+     &fd_optimize_tail_calls);
 
 }
 
