@@ -921,12 +921,38 @@ static lispval bindop(lispval op,
   FD_PUSH_STACK(bind_stack,"bindop","opframe",op);
   INIT_STACK_SCHEMA(bind_stack,bound,env,n,VEC_DATA(vars));
   lispval *values=bound_bindings.schema_values;
+  lispval scan_inits = inits;
+  fd_lexenv env_copy=NULL;
+  while (i<n) {
+    lispval val_expr = pop_arg(scan_inits);
+    lispval val = _fd_fast_eval(val_expr,bound,bind_stack,0);
+    if (FD_ABORTED(val))
+      _return val;
+    if ( (env_copy == NULL) && (bound->env_copy) ) {
+      env_copy=bound->env_copy; bound=env_copy;
+      values=((fd_schemap)(bound->env_bindings))->schema_values;}
+    values[i++]=val;}
+  lispval result = eval_body(body,bound,bind_stack,tail);
+  fd_pop_stack(bind_stack);
+  return result;
+}
+
+static lispval vector_bindop(lispval op,
+			     struct FD_STACK *_stack,fd_lexenv env,
+			     lispval vars,lispval inits,lispval body,
+			     int tail)
+{
+  int i=0, n=VEC_LEN(vars);
+  FD_PUSH_STACK(bind_stack,"vector_bindop","opframe",op);
+  INIT_STACK_SCHEMA(bind_stack,bound,env,n,VEC_DATA(vars));
+  lispval *values=bound_bindings.schema_values;
   lispval *exprs=VEC_DATA(inits);
   fd_lexenv env_copy=NULL;
   while (i<n) {
     lispval val_expr=exprs[i];
     lispval val=_fd_fast_eval(val_expr,bound,bind_stack,0);
-    if (FD_ABORTED(val)) _return val;
+    if (FD_ABORTED(val))
+      _return val;
     if ( (env_copy == NULL) && (bound->env_copy) ) {
       env_copy=bound->env_copy; bound=env_copy;
       values=((fd_schemap)(bound->env_bindings))->schema_values;}
@@ -1111,7 +1137,11 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
     lispval vars=pop_arg(args);
     lispval inits=pop_arg(args);
     lispval body=pop_arg(args);
-    return bindop(opcode,_stack,env,vars,inits,body,tail);}
+    if (!(FD_VECTORP(vars)))
+      return fd_err(fd_SyntaxError,"BINDOP",NULL,expr);
+    else if (FD_VECTORP(inits))
+      return vector_bindop(opcode,_stack,env,vars,inits,body,tail);
+    else return bindop(opcode,_stack,env,vars,inits,body,tail);}
 
   case FD_ASSIGN_OPCODE: {
     lispval var = pop_arg(args);

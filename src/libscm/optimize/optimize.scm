@@ -1060,7 +1060,7 @@
   (if (and (use-opcodes? opts) (use-bindops? opts))
       (let* ((bindexprs (cadr expr))
 	     (vars (map car bindexprs))
-	     (vals (->vector (map cadr bindexprs)))
+	     (vals (map cadr bindexprs))
 	     (not-vars (forseq (var vars) #f))
 	     (outer (cons not-vars bound))
 	     (inner (cons vars bound)))
@@ -1147,8 +1147,7 @@
 	 (limit-ref (get-lexref '|_doseq_limit| new-bindings))
 	 (body (cddr expr)))
     `(#OP_BIND #(,varname ,iter-var |_doseq_subject| |_doseq_limit|)
-	       #(#f 0 ,(optimize val-expr env (cons '(#f #f #f #f) bound) opts)
-		 0)
+	       (#f 0 ,(optimize val-expr env (cons '(#f #f #f #f) bound) opts) 0)
 	       ((#OP_BRANCH 
 		 (#OP_PAIRP ,seq-ref)
 		 (,doseq (,varname ,seq-ref ,iter-var)
@@ -1189,13 +1188,16 @@
   (if (and (use-opcodes? opts) (use-bindops? opts))
       (let* ((bindexprs (cadr expr))
 	     (vars (map car bindexprs))
-	     (vals (->vector (map cadr bindexprs)))
+	     (vals (map cadr bindexprs))
 	     (not-vars (forseq (var vars) #f))
 	     (outer (cons not-vars bound))
 	     (inner (cons vars bound)))
 	`(#OP_BIND
 	  ,(->vector vars)
 	  ,(forseq (valexpr vals i)
+	     ;; We implement the let/let* semantics in the compiler by
+	     ;; have each init be evaulated with a different list of
+	     ;; local bindings
 	     (optimize valexpr env 
 		       (cons (append (slice vars 0 i)
 				     (slice not-vars i))
