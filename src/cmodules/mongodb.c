@@ -1051,7 +1051,7 @@ static lispval mongodb_insert(lispval arg,lispval objects,lispval opts_arg)
 #else
 static lispval mongodb_insert(lispval arg,lispval objects,lispval opts_arg)
 {
-  if (FD_EMPTY_CHOICEP(asrg))
+  if (FD_EMPTY_CHOICEP(arg))
     return FD_EMPTY_CHOICE;
   else if (FD_EMPTY_CHOICEP(objects))
     return FD_EMPTY_CHOICE;

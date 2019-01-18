@@ -161,7 +161,7 @@ static lispval segment_prim(lispval inputs,lispval separators)
         fd_decref(results); return result;}
       CHOICE_ADD(results,result);}
     return results;}
-  else if (STRINGP(inputs)) 
+  else if (STRINGP(inputs))
     if (VOIDP(separators))
       return whitespace_segment(CSTRING(inputs));
     else return dosegment(CSTRING(inputs),separators);
@@ -183,7 +183,7 @@ static lispval decode_entities_prim(lispval input)
 }
 
 static lispval encode_entities(lispval input,int nonascii,
-                              u8_string ascii_chars,lispval other_chars)
+                               u8_string ascii_chars,lispval other_chars)
 {
   struct U8_OUTPUT out;
   u8_string scan = CSTRING(input);
@@ -293,7 +293,7 @@ static u8_string skip_word(u8_string start)
     while (c>0) {
       if (spacecharp(c)) break;
       else if (punctcharp(c)) {
-        int nc = egetc(&scan); 
+        int nc = egetc(&scan);
         if (!(wordcharp(nc))) return last;}
       else {}
       last = scan; c = egetc(&scan);}
@@ -322,14 +322,14 @@ FD_EXPORT lispval fd_words2list(u8_string string,int keep_punct)
   lispval result = NIL, *lastp = &result;
   textspantype spantype;
   u8_string start = string, last = start, scan = skip_span(last,&spantype);
-  while (1) 
+  while (1)
     if (spantype == spacespan) {
       if (scan == NULL) break;
       last = scan; scan = skip_span(last,&spantype);}
     else if (((spantype == punctspan) && (keep_punct)) ||
              (spantype == wordspan)) {
       lispval newcons;
-      lispval extraction = 
+      lispval extraction =
         ((scan) ? (fd_substring(last,scan)) : (lispval_string(last)));
       newcons = fd_conspair(extraction,NIL);
       *lastp = newcons; lastp = &(FD_CDR(newcons));
@@ -347,7 +347,7 @@ FD_EXPORT lispval fd_words2vector(u8_string string,int keep_punct)
   lispval *wordsv=_buf, result = VOID;
   textspantype spantype;
   u8_string start = string, last = start, scan = skip_span(last,&spantype);
-  while (1)  
+  while (1)
     if (spantype == spacespan) {
       if (scan == NULL) break;
       last = scan; scan = skip_span(last,&spantype);}
@@ -654,7 +654,7 @@ static int all_asciip(u8_string s)
 
 static lispval disemvowel(lispval string,lispval vowels)
 {
-  struct U8_OUTPUT out; struct U8_INPUT in; 
+  struct U8_OUTPUT out; struct U8_INPUT in;
   U8_INIT_STRING_INPUT(&in,STRLEN(string),CSTRING(string));
   U8_INIT_OUTPUT(&out,FD_STRING_LENGTH(string));
   int c = u8_getc(&in), all_ascii;
@@ -682,7 +682,7 @@ static lispval disemvowel(lispval string,lispval vowels)
 
 static lispval depunct(lispval string)
 {
-  struct U8_OUTPUT out; struct U8_INPUT in; 
+  struct U8_OUTPUT out; struct U8_INPUT in;
   U8_INIT_STRING_INPUT(&in,STRLEN(string),CSTRING(string));
   U8_INIT_OUTPUT(&out,FD_STRING_LENGTH(string));
   int c = u8_getc(&in);
@@ -702,7 +702,7 @@ static lispval strip_markup(lispval string,lispval insert_space_arg)
   if (*start) {
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,STRLEN(string));
     while ((c = egetc(&scan))>0)
-      if (c=='<') 
+      if (c=='<')
         if (strncmp(scan,"!--",3)==0) {
           u8_string end = strstr(scan,"-->");
           if (end) scan = end+3; else break;}
@@ -829,7 +829,7 @@ static void convert_offsets
 }
 
 static lispval textmatcher(lispval pattern,lispval string,
-                          lispval offset,lispval limit)
+                           lispval offset,lispval limit)
 {
   u8_byteoff off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
@@ -844,7 +844,7 @@ static lispval textmatcher(lispval pattern,lispval string,
 }
 
 static lispval textmatch(lispval pattern,lispval string,
-                        lispval offset,lispval limit)
+                         lispval offset,lispval limit)
 {
   u8_byteoff off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
@@ -859,7 +859,7 @@ static lispval textmatch(lispval pattern,lispval string,
 }
 
 static lispval textsearch(lispval pattern,lispval string,
-                         lispval offset,lispval limit)
+                          lispval offset,lispval limit)
 {
   u8_byteoff off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
@@ -904,8 +904,8 @@ static lispval textract(lispval pattern,lispval string,
 }
 
 static lispval textgather_base(lispval pattern,lispval string,
-                              lispval offset,lispval limit,
-                              int star)
+                               lispval offset,lispval limit,
+                               int star)
 {
   lispval results = EMPTY;
   u8_string data = CSTRING(string);
@@ -950,13 +950,13 @@ static lispval textgather_base(lispval pattern,lispval string,
 }
 
 static lispval textgather(lispval pattern,lispval string,
-                         lispval offset,lispval limit)
+                          lispval offset,lispval limit)
 {
   return textgather_base(pattern,string,offset,limit,0);
 }
 
 static lispval textgather_star(lispval pattern,lispval string,
-                              lispval offset,lispval limit)
+                               lispval offset,lispval limit)
 {
   return textgather_base(pattern,string,offset,limit,1);
 }
@@ -1126,8 +1126,8 @@ static lispval textrewrite(lispval pattern,lispval string,
 }
 
 static lispval textsubst(lispval string,
-                        lispval pattern,lispval replace,
-                        lispval offset,lispval limit)
+                         lispval pattern,lispval replace,
+                         lispval offset,lispval limit)
 {
   u8_byteoff off, lim;
   u8_string data = CSTRING(string);
@@ -1187,7 +1187,7 @@ static lispval textsubst(lispval string,
                 u8_byteoff newstart = fd_getint(FD_CAR(xt));
                 if (newstart == lim) {
                   lispval stringval;
-                  struct U8_OUTPUT tmpout; 
+                  struct U8_OUTPUT tmpout;
                   U8_INIT_OUTPUT(&tmpout,512);
                   u8_puts(&tmpout,out.u8_outbuf);
                   if (dorewrite(&tmpout,FD_CDR(xt))<0) {
@@ -1205,7 +1205,7 @@ static lispval textsubst(lispval string,
                   else {
                     DO_CHOICES(rem,remainder) {
                       lispval stringval;
-                      struct U8_OUTPUT tmpout; 
+                      struct U8_OUTPUT tmpout;
                       U8_INIT_OUTPUT(&tmpout,512);
                       u8_puts(&tmpout,out.u8_outbuf);
                       if (dorewrite(&tmpout,FD_CDR(xt))<0) {
@@ -1230,7 +1230,7 @@ static lispval textsubst(lispval string,
                (pattern,NULL,data,forward_char(data,end),lim,0);}
       u8_puts(&out,data+last);
       return fd_stream2string(&out);}
-    else if (start== -2) 
+    else if (start== -2)
       return FD_ERROR;
     else return fd_substring(data+off,data+lim);}
 }
@@ -1238,8 +1238,8 @@ static lispval textsubst(lispval string,
 /* Gathering and rewriting together */
 
 static lispval gathersubst_base(lispval pattern,lispval string,
-                               lispval offset,lispval limit,
-                               int star)
+                                lispval offset,lispval limit,
+                                int star)
 {
   lispval results = EMPTY;
   u8_string data = CSTRING(string);
@@ -1284,13 +1284,13 @@ static lispval gathersubst_base(lispval pattern,lispval string,
 }
 
 static lispval gathersubst(lispval pattern,lispval string,
-                          lispval offset,lispval limit)
+                           lispval offset,lispval limit)
 {
   return gathersubst_base(pattern,string,offset,limit,0);
 }
 
 static lispval gathersubst_star(lispval pattern,lispval string,
-                               lispval offset,lispval limit)
+                                lispval offset,lispval limit)
 {
   return gathersubst_base(pattern,string,offset,limit,1);
 }
@@ -1330,7 +1330,7 @@ static int getnonstring(lispval choice)
 }
 
 static lispval string_matches(lispval string,lispval pattern,
-                             lispval start_arg,lispval end_arg)
+                              lispval start_arg,lispval end_arg)
 {
   int retval;
   u8_byteoff off, lim;
@@ -1339,8 +1339,8 @@ static lispval string_matches(lispval string,lispval pattern,
   if ((EMPTYP(pattern))||(EMPTYP(string)))
     return FD_FALSE;
   notstring = ((STRINGP(string))?(VOID):
-             (FD_AMBIGP(string))?(getnonstring(string)):
-             (string));
+               (FD_AMBIGP(string))?(getnonstring(string)):
+               (string));
   if (!(VOIDP(notstring)))
     return fd_type_error("string","string_matches",notstring);
   else if (FD_AMBIGP(string)) {
@@ -1357,7 +1357,7 @@ static lispval string_matches(lispval string,lispval pattern,
     return FD_FALSE;}
   else {
     convert_offsets(string,start_arg,end_arg,&off,&lim);
-    if ((off<0) || (lim<0)) 
+    if ((off<0) || (lim<0))
       return fd_err(fd_RangeError,"textmatcher",NULL,VOID);
     else retval = fd_text_match(pattern,NULL,CSTRING(string),off,lim,0);
     if (retval<0) return FD_ERROR;
@@ -1366,7 +1366,7 @@ static lispval string_matches(lispval string,lispval pattern,
 }
 
 static lispval string_contains(lispval string,lispval pattern,
-                              lispval start_arg,lispval end_arg)
+                               lispval start_arg,lispval end_arg)
 {
   int retval;
   u8_byteoff off, lim;
@@ -1375,8 +1375,8 @@ static lispval string_contains(lispval string,lispval pattern,
   if ((EMPTYP(pattern))||(EMPTYP(string)))
     return FD_FALSE;
   notstring = ((STRINGP(string))?(VOID):
-             (FD_AMBIGP(string))?(getnonstring(string)):
-             (string));
+               (FD_AMBIGP(string))?(getnonstring(string)):
+               (string));
   if (!(VOIDP(notstring)))
     return fd_type_error("string","string_matches",notstring);
   else if (FD_AMBIGP(string)) {
@@ -1396,7 +1396,7 @@ static lispval string_contains(lispval string,lispval pattern,
     return FD_FALSE;}
   else {
     convert_offsets(string,start_arg,end_arg,&off,&lim);
-    if ((off<0) || (lim<0)) 
+    if ((off<0) || (lim<0))
       return fd_err(fd_RangeError,"textmatcher",NULL,VOID);
     else retval = fd_text_search(pattern,NULL,CSTRING(string),off,lim,0);
     if (retval<-1) return FD_ERROR;
@@ -1405,7 +1405,7 @@ static lispval string_contains(lispval string,lispval pattern,
 }
 
 static lispval string_starts_with(lispval string,lispval pattern,
-                                 lispval start_arg,lispval end_arg)
+                                  lispval start_arg,lispval end_arg)
 {
   u8_byteoff off, lim;
   lispval match_result, notstring;
@@ -1414,8 +1414,8 @@ static lispval string_starts_with(lispval string,lispval pattern,
   if ((EMPTYP(pattern))||(EMPTYP(string)))
     return FD_FALSE;
   notstring = ((STRINGP(string))?(VOID):
-             (FD_AMBIGP(string))?(getnonstring(string)):
-             (string));
+               (FD_AMBIGP(string))?(getnonstring(string)):
+               (string));
   if (!(VOIDP(notstring)))
     return fd_type_error("string","string_matches",notstring);
   else if (FD_AMBIGP(string)) {
@@ -1449,7 +1449,7 @@ static lispval string_starts_with(lispval string,lispval pattern,
 }
 
 static lispval string_ends_with_test(lispval string,lispval pattern,
-                                    int off,int lim)
+                                     int off,int lim)
 {
   u8_string data = CSTRING(string); int start;
   lispval end = FD_INT(lim);
@@ -1478,15 +1478,15 @@ static lispval string_ends_with_test(lispval string,lispval pattern,
 }
 
 static lispval string_ends_with(lispval string,lispval pattern,
-                               lispval start_arg,lispval end_arg)
+                                lispval start_arg,lispval end_arg)
 {
   int retval;
   u8_byteoff off, lim;
   lispval notstring;
   if (EMPTYP(string)) return FD_FALSE;
   notstring = ((STRINGP(string))?(VOID):
-             (FD_AMBIGP(string))?(getnonstring(string)):
-             (string));
+               (FD_AMBIGP(string))?(getnonstring(string)):
+               (string));
   if (!(VOIDP(notstring)))
     return fd_type_error("string","string_matches",notstring);
   convert_offsets(string,start_arg,end_arg,&off,&lim);
@@ -1646,7 +1646,7 @@ static lispval text2frames(lispval pattern,lispval string,
       else {
         max = fd_getint(FD_CAR(extractions));
         longest = fd_incref(FD_CDR(extractions));}
-      /* Should we signal an internal error here if longest is empty, 
+      /* Should we signal an internal error here if longest is empty,
          since search stopped at start, but we don't have a match? */
       {
         DO_CHOICES(extraction,longest) {
@@ -1685,7 +1685,7 @@ static int interpret_keep_arg(lispval keep_arg)
 }
 
 static lispval textslice(lispval string,lispval sep,lispval keep_arg,
-                        lispval offset,lispval limit)
+                         lispval offset,lispval limit)
 {
   u8_byteoff start, len;
   convert_offsets(string,offset,limit,&start,&len);
@@ -1794,7 +1794,7 @@ static lispval has_word_suffix(lispval string,lispval suffix,lispval strictarg)
                  suffix_data,
                  suffix_len) == 0) &&
         (string_data[(string_len-suffix_len)-1]==' '))
-        return FD_TRUE;
+      return FD_TRUE;
     else return FD_FALSE;}
 }
 
@@ -1906,6 +1906,10 @@ static lispval check_string(lispval string,lispval lexicon)
     if (fd_hashset_get((fd_hashset)lexicon,string))
       return string;
     else return EMPTY;
+  else if (TYPEP(lexicon,fd_hashtable_type))
+    if (fd_hashtable_probe((fd_hashtable)lexicon,string))
+      return string;
+    else return EMPTY;
   else if (PAIRP(lexicon)) {
     lispval table = FD_CAR(lexicon);
     lispval key = FD_CDR(lexicon);
@@ -1932,8 +1936,8 @@ static lispval check_string(lispval string,lispval lexicon)
 }
 
 static lispval apply_suffixrule
-  (lispval string,lispval suffix,lispval replacement,
-   lispval lexicon)
+(lispval string,lispval suffix,lispval replacement,
+ lispval lexicon)
 {
   if (STRLEN(string)>128) return EMPTY;
   else if (has_suffix(string,suffix))
@@ -2026,7 +2030,7 @@ static lispval apply_morphrule(lispval string,lispval rule,lispval lexicon)
     DO_CHOICES(alternate,rule) {
       lispval result = apply_morphrule(string,alternate,lexicon);
       if (FD_ABORTP(result)) {
-        fd_decref(results); 
+        fd_decref(results);
         return result;}
       CHOICE_ADD(results,result);}
     return results;}
@@ -2034,18 +2038,44 @@ static lispval apply_morphrule(lispval string,lispval rule,lispval lexicon)
   return EMPTY;
 }
 
+static int proper_listp(lispval list)
+{
+  while (FD_PAIRP(list)) { list = FD_CDR(list); }
+  if (list == FD_NIL) return 1; else return 0;
+}
+
 static lispval morphrule(lispval string,lispval rules,lispval lexicon)
 {
-  if (NILP(rules))
+  if (FD_CHOICEP(string)) {
+    lispval results = FD_EMPTY;
+    FD_DO_CHOICES(s,string) {
+      lispval r = morphrule(s,rules,lexicon);
+      if (FD_ABORTP(r)) {
+        FD_STOP_DO_CHOICES;
+        fd_decref(results);
+        return r;}
+      else {FD_ADD_TO_CHOICE(results,r);}}
+    return results;}
+  else  if (NILP(rules))
     if (check_string(string,lexicon)) return fd_incref(string);
     else return EMPTY;
-  else {
+  else if ( (FD_PAIRP(rules)) && (proper_listp(rules)) ) {
     FD_DOLIST(rule,rules) {
       lispval result = apply_morphrule(string,rule,lexicon);
       if (FD_ABORTP(result)) return result;
       if (!(EMPTYP(result))) return result;}
-    return EMPTY;}
-    
+    return FD_EMPTY;}
+  else if (FD_CHOICEP(rules)) {
+    lispval results = FD_EMPTY;
+    FD_DO_CHOICES(rule,rules) {
+      lispval found = apply_morphrule(string,rule,lexicon);
+      if ((FD_ABORTP(found))) {
+        FD_STOP_DO_CHOICES;
+        fd_decref(results);
+        return found;}
+      else {FD_ADD_TO_CHOICE(results,found);}}
+    return results;}
+  else return apply_morphrule(string,rules,lexicon);
 }
 
 /* textclosure prim */
@@ -2116,9 +2146,9 @@ static lispval read_match(lispval port,lispval pat,lispval limit_arg)
   ssize_t buflen = in->u8_inlim-in->u8_read; int eof = 0;
   off_t start = fd_text_search(pat,NULL,in->u8_read,0,buflen,FD_MATCH_BE_GREEDY);
   lispval ends = ((start>=0)?
-                 (fd_text_matcher
-                  (pat,NULL,in->u8_read,start,buflen,FD_MATCH_BE_GREEDY)):
-                 (EMPTY));
+                  (fd_text_matcher
+                   (pat,NULL,in->u8_read,start,buflen,FD_MATCH_BE_GREEDY)):
+                  (EMPTY));
   size_t end = getlongmatch(ends);
   fd_decref(ends);
   if ((start>=0)&&(end>start)&&
@@ -2129,7 +2159,7 @@ static lispval read_match(lispval port,lispval pat,lispval limit_arg)
     return result;}
   else if ((lim)&&(end>lim))
     return FD_EOF;
-  else if (in->u8_fillfn) 
+  else if (in->u8_fillfn)
     while (!((start>=0)&&(end>start)&&((end<buflen)||(eof)))) {
       int delta = get_more_data(in,lim); size_t new_end;
       if (delta==0) {eof = 1; break;}
@@ -2158,8 +2188,8 @@ static ssize_t get_more_data(u8_input in,size_t lim)
   if ((in->u8_inbuf == in->u8_read)&&
       ((in->u8_inlim - in->u8_inbuf) == in->u8_bufsz)) {
     /* This is the case where the buffer is full of unread data */
-   size_t bufsz = in->u8_bufsz;
-    if (bufsz>=lim) 
+    size_t bufsz = in->u8_bufsz;
+    if (bufsz>=lim)
       return -1;
     else {
       size_t new_size = ((bufsz*2)>=U8_BUF_THROTTLE_POINT)?
@@ -2167,7 +2197,7 @@ static ssize_t get_more_data(u8_input in,size_t lim)
         (bufsz*2);
       if (new_size>lim) new_size = lim;
       new_size = u8_grow_input_stream(in,new_size);
-      if (new_size > bufsz) 
+      if (new_size > bufsz)
         return in->u8_fillfn(in);
       else return 0;}}
   else return in->u8_fillfn(in);
@@ -2176,8 +2206,8 @@ static ssize_t get_more_data(u8_input in,size_t lim)
 /* Character-based escaped segmentation */
 
 static lispval findsep_prim(lispval string,lispval sep,
-                           lispval offset,lispval limit,
-                           lispval esc)
+                            lispval offset,lispval limit,
+                            lispval esc)
 {
   int c = FD_CHARCODE(sep), e = FD_CHARCODE(esc);
   u8_byteoff off, lim;
@@ -2206,8 +2236,8 @@ static lispval findsep_prim(lispval string,lispval sep,
 /* Various custom parsing/extraction functions */
 
 static lispval splitsep_prim(lispval string,lispval sep,
-                            lispval offset,lispval limit,
-                            lispval esc)
+                             lispval offset,lispval limit,
+                             lispval esc)
 {
   int c = FD_CHARCODE(sep), e = FD_CHARCODE(esc);
   u8_byteoff off, lim;
@@ -2244,7 +2274,7 @@ static char *stdlib_escapes="ntrfab\\";
 static char *stdlib_unescaped="\n\t\r\f\a\b\\";
 
 static lispval unslashify_prim(lispval string,lispval offset,lispval limit_arg,
-                              lispval dostd)
+                               lispval dostd)
 {
   u8_string sdata = CSTRING(string), start, limit, split1;
   int handle_stdlib = (!(FALSEP(dostd)));
@@ -2566,7 +2596,7 @@ void fd_init_texttools()
            fd_make_cprim2x("METAPHONE+",metaphone_plus_prim,1,
                            fd_string_type,VOID,
                            -1,FD_FALSE));
-  
+
   fd_idefn(texttools_module,fd_make_cprim1x("PORTER-STEM",stem_prim,1,
                                             fd_string_type,VOID));
   fd_idefn(texttools_module,
@@ -2607,7 +2637,7 @@ void fd_init_texttools()
                            fd_string_type,VOID,
                            -1,VOID,
                            -1,FD_FALSE));
-  
+
   fd_idefn(texttools_module,
            fd_make_cprim3x("HAS-WORD-SUFFIX?",has_word_suffix,2,
                            fd_string_type,VOID,
@@ -2702,7 +2732,7 @@ void fd_init_texttools()
              -1,VOID,-1,VOID,
              fd_fixnum_type,FD_INT(0),
              fd_fixnum_type,VOID)));
-  
+
   fd_idefn(texttools_module,
            fd_make_cprim4x("TEXT->FRAME",text2frame,2,
                            -1,VOID,fd_string_type,VOID,
