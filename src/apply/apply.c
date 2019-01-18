@@ -1013,43 +1013,7 @@ FD_EXPORT lispval _fd_stack_ndapply
 
 /* Tail calls */
 
-// TODO: Merge the core of these functions
-FD_EXPORT lispval fd_tail_call(lispval fcn,int n,lispval *vec)
-{
-  if (FD_FCNIDP(fcn)) fcn = fd_fcnid_ref(fcn);
-  struct FD_FUNCTION *f = (struct FD_FUNCTION *)fcn;
-  if (PRED_FALSE(((f->fcn_arity)>=0) && (n>(f->fcn_arity)))) {
-    u8_byte buf[64];
-    fd_seterr(fd_TooManyArgs,"fd_tail_call",
-              u8_sprintf(buf,64,"%d",n),
-              fcn);
-    return FD_ERROR;}
-  else {
-    int atomic = 1, nd = 0; lispval fcnid = f->fcnid;
-    struct FD_TAILCALL *tc = (struct FD_TAILCALL *)
-      u8_malloc(sizeof(struct FD_TAILCALL)+LISPVEC_BYTELEN(n));
-    lispval *write = &(tc->tailcall_head);
-    lispval *write_limit = write+(n+1);
-    lispval *read = vec;
-    FD_INIT_FRESH_CONS(tc,fd_tailcall_type);
-    tc->tailcall_arity = n+1;
-    tc->tailcall_flags = 0;
-    if (fcnid == FD_NULL) {fcnid = f->fcnid = VOID;}
-    if (FD_FCNIDP(fcnid))
-      *write++=fcnid;
-    else *write++=fd_incref(fcn);
-    while (write<write_limit) {
-      lispval v = *read++;
-      if (CONSP(v)) {
-        if (CHOICEP(v)) nd = 1;
-        atomic = 0;
-        *write++=fd_incref(v);}
-      else *write++=v;}
-    if (atomic) tc->tailcall_flags |= FD_TAILCALL_ATOMIC_ARGS;
-    if (nd) tc->tailcall_flags |= FD_TAILCALL_ND_ARGS;
-    return LISP_CONS(tc);}
-}
-FD_EXPORT lispval fd_void_tail_call(lispval fcn,int n,lispval *vec)
+FD_EXPORT lispval make_tail_call(lispval fcn,int tcflags,int n,lispval *vec)
 {
   if (FD_FCNIDP(fcn)) fcn = fd_fcnid_ref(fcn);
   struct FD_FUNCTION *f = (struct FD_FUNCTION *)fcn;
@@ -1061,6 +1025,7 @@ FD_EXPORT lispval fd_void_tail_call(lispval fcn,int n,lispval *vec)
     return FD_ERROR;}
   else {
     int atomic = 1, nd = 0;
+    lispval fcnid = f->fcnid;
     struct FD_TAILCALL *tc = (struct FD_TAILCALL *)
       u8_malloc(sizeof(struct FD_TAILCALL)+LISPVEC_BYTELEN(n));
     lispval *write = &(tc->tailcall_head);
@@ -1068,24 +1033,34 @@ FD_EXPORT lispval fd_void_tail_call(lispval fcn,int n,lispval *vec)
     lispval *read = vec;
     FD_INIT_FRESH_CONS(tc,fd_tailcall_type);
     tc->tailcall_arity = n+1;
-    tc->tailcall_flags = FD_TAILCALL_VOID_VALUE;
-    *write++=fd_incref(fcn);
+    tc->tailcall_flags = tcflags;
+    if (fcnid == FD_NULL) {fcnid = f->fcnid = VOID;}
+    if (FD_FCNIDP(fcnid))
+      *write++=fcnid;
+    else *write++=fd_incref(fcn);
     while (write<write_limit) {
       lispval v = *read++;
       if (CONSP(v)) {
         atomic = 0;
         if (QCHOICEP(v)) {
           struct FD_QCHOICE *qc = (fd_qchoice)v;
-          lispval cv = qc->qchoiceval;
-          fd_incref(cv);
-          *write++=cv;}
-        else {
-          if (CHOICEP(v)) nd = 1;
-          *write++=fd_incref(v);}}
-      else *write++=v;}
+          v = qc->qchoiceval;}
+        else if (FD_CHOICEP(v)) nd=1;
+        else NO_ELSE;
+        fd_incref(v);}
+      *write++=v;}
     if (atomic) tc->tailcall_flags |= FD_TAILCALL_ATOMIC_ARGS;
     if (nd) tc->tailcall_flags |= FD_TAILCALL_ND_ARGS;
     return LISP_CONS(tc);}
+}
+
+FD_EXPORT lispval fd_tail_call(lispval fcn,int n,lispval *vec)
+{
+  return make_tail_call(fcn,0,n,vec);
+}
+FD_EXPORT lispval fd_void_tail_call(lispval fcn,int n,lispval *vec)
+{
+  return make_tail_call(fcn,FD_TAILCALL_VOID_VALUE,n,vec);
 }
 
 FD_EXPORT lispval fd_step_call(lispval c)
