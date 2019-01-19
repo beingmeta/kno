@@ -110,6 +110,14 @@ static lispval aggregate_prim_find
     if (!(FD_EMPTYP(fetch_features))) {
       i=0; while (i < n) {
 	fd_index ex = indexes[i++];
+	if (fd_aggregate_indexp(ex)) {
+	  lispval ex_results =
+	    aggregate_prim_find((fd_aggregate_index)ex,slotids,values);
+	  if (FD_ABORTP(ex_results)) {
+	    fd_decref(combined);
+	    return ex_results;}
+	  else {CHOICE_ADD(combined,ex_results);}
+	  continue;}
 	lispval ekeyslot = ex->index_keyslot;
 	if ( (SYMBOLP(ekeyslot)) || (OIDP(ekeyslot)) ) {
 	  if (fd_choice_containsp(ekeyslot,slotids)) {
@@ -132,7 +140,8 @@ static lispval aggregate_prim_find
 	    lispval v = fd_index_get((fd_index)ex,key);
 	    keyvec[j] = feature;
 	    valvec[j] = v;
-	    fd_incref(v); CHOICE_ADD(combined,v);
+	    fd_incref(v);
+	    CHOICE_ADD(combined,v);
 	    j++;}}
 	fd_hashtable_iter(cache,fd_table_add,j,keyvec,valvec);
 	fd_decref_vec(valvec,j);
