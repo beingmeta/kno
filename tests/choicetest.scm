@@ -201,7 +201,7 @@
 
 ;;; Combo apply
 
-(define (makepair x y)
+(define-tester (makepair x y)
   (cons (qc x) (qc y)))
 (evaltest '(3 . 4) (makepair 3 4))
 (evaltest '{} (makepair 3 {}))
