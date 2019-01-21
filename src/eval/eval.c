@@ -863,7 +863,8 @@ static lispval eval_apply(u8_string fname,
       argbuf_len = new_argbuf_len;
       argbuf=new_argbuf;}
     argbuf[arg_i++]=arg_val;}
-  if ( (tail) && (lambda) && (fd_optimize_tail_calls) )
+  if ( (tail) && (lambda) && (fd_optimize_tail_calls) &&
+       (! ((d_prim) && (nd_args)) ) )
     result=fd_tail_call(fn,arg_i,argbuf);
   else if ((CHOICEP(fn)) || (PRECHOICEP(fn)) || ((d_prim) && (nd_args)))
     result=fd_ndcall(stack,fn,arg_i,argbuf);

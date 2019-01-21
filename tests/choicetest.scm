@@ -199,6 +199,14 @@
 (define-amb-tester (lnd x y) (list (qc x) (qc y)))
 (applytest '({3 4} 5) apply lnd (qc {3 4}) (list 5))
 
+;;; Combo apply
+
+(define (makepair x y)
+  (cons (qc x) (qc y)))
+(evaltest '(3 . 4) (makepair 3 4))
+(evaltest '{} (makepair 3 {}))
+(evaltest '(3 . {}) (makepair 3 #{}))
+
 ;;; Set operations
 
 (define-tester (set-same? x y) (identical? (elts x) (elts y)))
