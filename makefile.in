@@ -1554,9 +1554,8 @@ $(DESTDIR)@unpackage_dir@:
 
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
-EXT_MODULE_DIRS=xhtml fdxml mongodb \
-	misc tests jwt domutils knodules textindex morph \
-	aws facebook paypal twitter twilio dropbox google
+EXT_MODULE_DIRS=xhtml fdxml domutils textindex morph misc tests  knodules \
+		jwt aws facebook paypal twitter twilio dropbox google
 
 EXT_MODULE_DATA=textindex/data knodules/data aws/templates morph/data
 
@@ -1567,7 +1566,7 @@ install-module-source: $(DESTDIR)@builtin_module_dir@
 	@$(ECHO) Copying standard Scheme modules to @builtin_module_dir@
 	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/extmods/*.scm 		\
 		$(DESTDIR)@builtin_module_dir@;
-	@for dir in $(EXT_MODULE_DIRS); do						\
+	@for dir in $(EXT_MODULE_DIRS); do					\
 	  install_dir="$(DESTDIR)@builtin_module_dir@/$${dir}";			\
 	  echo "Installing $${dir} module at $${install_dir}";			\
 	  $(SYSINSTALL) @install_dir_opts@ $${install_dir};			\

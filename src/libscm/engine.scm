@@ -266,10 +266,13 @@ slot of the loop state.
 			 monitors
 			 stopfn)
   "This is then loop function for each engine thread."
-  (when (and (not (test loop-state 'stopping)) fillfn (getopt opts 'fillmin)) 
-    (engine/fill! fifo fillfn loop-state 
-		  (getopt opts 'fillmin)
-		  (getopt opts 'fillmax (* 2 (getopt opts 'fillmin)))))
+  (when (and (not (test loop-state '{stopping stopped})) fillfn
+	     (getopt opts 'fillmin))
+    (when (and (<= (fifo/load fifo) (getopt opts 'fillmin))
+	       (fill/start! loop-state))
+      (engine/fill! fifo fillfn loop-state 
+		    (getopt opts 'fillmin)
+		    (getopt opts 'fillmax (* 2 (getopt opts 'fillmin))))))
   (let* ((batch (fifo/pop fifo))
 	 (batch-state `#[loop ,loop-state started ,(elapsed-time) batchno 1])
 	 (start (get batch-state 'started))
@@ -284,7 +287,8 @@ slot of the loop state.
 	(loginfo |GotBatch| "Processing batch of " ($num (choice-size batch)) " items")
 	(do-choices (indexslot (getopt opts 'branchindexes))
 	  (when (test loop-state indexslot)
-	    (store! batch-state indexslot (aggregate/branch (get loop-state indexslot)))))
+	    (store! batch-state indexslot 
+	      (aggregate/branch (get loop-state indexslot)))))
 	(when (and (exists? beforefn) beforefn)
 	  (beforefn (qc batch) batch-state loop-state state))
 	(set! proc-time (elapsed-time))
@@ -414,20 +418,25 @@ slot of the loop state.
 	 (batchsize (getopt opts 'batchsize (pick-batchsize items opts)))
 	 (nthreads (mt/threadcount (getopt opts 'nthreads
 					   (config 'engine:threads (config 'nthreads #t)))))
+	 ;; how much to space the launch of threads
 	 (spacing (pick-spacing opts nthreads))
+	 ;; batchrange is used to randomize the batch size in order to
+	 ;; offset batches from one another.
 	 (batchrange (getopt opts 'batchrange (config 'batchrange 3)))
 	 (batches (if (and batchsize (> batchsize 1))
 		      (batchup-vector items batchsize batchrange
 				      (and (singleton? items-arg)
 					   (vector? items-arg)))
 		      items))
+	 ;; How many threads to actually create
 	 (rthreads (if (and nthreads (> nthreads (length batches)))
 		       (length batches)
 		       nthreads))
 	 (fifo-opts 
 	  (frame-create #f
 	    'name (getopt opts 'name (or (procedure-name fcn) {}))
-	    'fillfn (getopt opts 'fillfifo fifo/exhausted!)))
+	    'fillfn (getopt opts 'fillfifo fifo/exhausted!)
+	    'size (getopt opts 'fillmax {})))
 	 (fifo (if (number? batches)
 		   (fifo/make batches fifo-opts)
 		   (->fifo batches fifo-opts)))
@@ -467,6 +476,7 @@ slot of the loop state.
 		       'state (deep-copy state)
 		       'count-term count-term
 		       'nthreads nthreads
+		       'filling #f
 		       'opts opts
 		       'cycles 1))
 	 (count 0))
@@ -721,13 +731,27 @@ slot of the loop state.
 ;;; Filling the fifo
 
 (define (engine/fill! fifo fillfn loop-state fillmin fillmax)
-  (unless (or (test loop-state 'stopped)
-	      (test loop-state 'stopping)
+  (unless (or (test loop-state '{stopped stopping})
 	      (> (fifo/load fifo) fillmin))
     (dotimes (i (- fillmax (fifo/load fifo)))
-      (let ((item (fillfn fifo loop-state)))
-	(when (and (exists? item) item)
-	  (fifo/push! fifo item))))))
+      (when (test loop-state '{stopped stopping}) (break))
+      (let ((items (fillfn loop-state)))
+	(when (and (exists? items) items)
+	  (fifo/push! fifo items)))))
+  (drop! loop-state 'fillthread)
+  (store! loop-state 'filldone (elapsed-time)))
+
+;; This is called by the checkpointing thread and avoids having two
+;; checkpointing threads at the same time.
+(define-init fill/start!
+  (slambda (loop-state)
+    (if (and (getopt loop-state 'fillthread)
+	     (not (test loop-state 'fillthread (threadid))))
+	#f
+	(begin 
+	  (store! loop-state 'fillthread (threadid))
+	  (store! loop-state 'fillstart (elapsed-time))
+	  #t))))
 
 ;;; Checkpointing
 
