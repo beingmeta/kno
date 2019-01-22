@@ -54,7 +54,7 @@ static u8_string default_certfile = NULL;
 
 static lispval dbname_symbol, username_symbol, auth_symbol, fdtag_symbol;
 static lispval hosts_symbol, connections_symbol, fieldmap_symbol, logopsym;
-static lispval fdparse_symbol;
+static lispval fdparse_symbol, dotcar_symbol, dotcdr_symbol;
 
 /* The mongo_opmap translates symbols for mongodb operators (like
    $addToSet) into the correctly capitalized strings to use in
@@ -2230,21 +2230,26 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       struct FD_BSON_OUTPUT rout;
       bson_t arr, ch; char buf[16];
       struct FD_VECTOR *vec = (struct FD_VECTOR *)val;
-      int i = 0, lim = vec->vec_length;
+      int i = 0, lim = vec->vec_length, doc_started = 0;
       lispval *data = vec->vec_elts;
       int wrap_vector = ((flags&FD_MONGODB_CHOICEVALS)&&(key[0]!='$'));
       if (wrap_vector) {
         ok = bson_append_array_begin(out,key,keylen,&ch);
-        if (ok) ok = bson_append_array_begin(&ch,"0",1,&arr);}
+        if (ok) ok = bson_append_array_begin(&ch,"0",1,&arr);
+        else break;}
       else ok = bson_append_array_begin(out,key,keylen,&arr);
-      memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
-      rout.bson_doc = &arr; rout.bson_flags = b.bson_flags;
-      rout.bson_opts = b.bson_opts; rout.bson_fieldmap = b.bson_fieldmap;
-      if (ok) while (i<lim) {
+      if (ok) {
+        doc_started = 1;
+        memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
+        rout.bson_doc = &arr; rout.bson_flags = b.bson_flags;
+        rout.bson_opts = b.bson_opts; rout.bson_fieldmap = b.bson_fieldmap;
+        while (i<lim) {
           lispval v = data[i]; sprintf(buf,"%d",i++);
           ok = bson_append_dtype(rout,buf,strlen(buf),v,0);
-          if (!(ok)) break;}
-      if (wrap_vector) {
+          if (!(ok)) break;}}
+      else break;
+      if (!(doc_started)) break;
+      else if (wrap_vector) {
         bson_append_array_end(&ch,&arr);
         bson_append_array_end(out,&ch);}
       else bson_append_array_end(out,&arr);
@@ -2254,10 +2259,11 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       bson_t doc;
       lispval keys = fd_getkeys(val);
       ok = bson_append_document_begin(out,key,keylen,&doc);
-      memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
-      rout.bson_doc = &doc; rout.bson_flags = b.bson_flags;
-      rout.bson_opts = b.bson_opts; rout.bson_fieldmap = b.bson_fieldmap;
+      int doc_started = ok;
       if (ok) {
+        memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
+        rout.bson_doc = &doc; rout.bson_flags = b.bson_flags;
+        rout.bson_opts = b.bson_opts; rout.bson_fieldmap = b.bson_fieldmap;
         FD_DO_CHOICES(key,keys) {
           lispval value = fd_get(val,key,FD_VOID);
           if (!(FD_VOIDP(value))) {
@@ -2265,7 +2271,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
             fd_decref(value);
             if (!(ok)) FD_STOP_DO_CHOICES;}}}
       fd_decref(keys);
-      bson_append_document_end(out,&doc);
+      if (doc_started) bson_append_document_end(out,&doc);
       break;}
     case fd_regex_type: {
       struct FD_REGEX *rx = (struct FD_REGEX *)val;
@@ -2276,8 +2282,22 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       *write++='\0';
       bson_append_regex(out,key,keylen,rx->rxsrc,opts);
       break;}
+    case fd_pair_type: {
+      struct FD_PAIR *pair = (fd_pair) val;
+      struct FD_BSON_OUTPUT rout = { 0 };
+      bson_t doc;
+      ok = bson_append_document_begin(out,key,keylen,&doc);
+      if (ok) {
+        rout.bson_doc = &doc; rout.bson_flags = b.bson_flags;
+        rout.bson_opts = b.bson_opts; rout.bson_fieldmap = b.bson_fieldmap;
+        ok = bson_append_dtype(rout,":|>car>|",8,pair->car,0);
+        if (ok) {
+          ok = bson_append_dtype(rout,":|>cdr>|",8,pair->cdr,0);
+          if (ok) bson_append_document_end(out,&doc);}}
+      break;}
     case fd_compound_type: {
       struct FD_COMPOUND *compound = FD_XCOMPOUND(val);
+      if (compound == NULL) return FD_ERROR_VALUE;
       lispval tag = compound->compound_typetag, *elts = FD_COMPOUND_ELTS(val);
       int len = FD_COMPOUND_LENGTH(val);
       struct FD_BSON_OUTPUT rout;
@@ -2473,11 +2493,15 @@ FD_EXPORT lispval fd_bson_output(struct FD_BSON_OUTPUT out,lispval obj)
       lispval elt = elts[i]; u8_byte buf[16];
       sprintf(buf,"%d",i++);
       if (ok)
-        ok = bson_append_dtype(out,buf,strlen(buf),elt,0);}}
+        ok = bson_append_dtype(out,buf,strlen(buf),elt,0);
+      else break;}}
   else if (FD_CHOICEP(obj)) {
     int i = 0; FD_DO_CHOICES(elt,obj) {
       u8_byte buf[16]; sprintf(buf,"%d",i++);
-      if (ok) ok = bson_append_dtype(out,buf,strlen(buf),elt,0);}}
+      if (ok) ok = bson_append_dtype(out,buf,strlen(buf),elt,0);
+      else {
+        FD_STOP_DO_CHOICES;
+        break;}}}
   else if (FD_SLOTMAPP(obj)) {
     struct FD_SLOTMAP *smap = (fd_slotmap) obj;
     int i = 0, n = smap->n_slots;
@@ -2486,6 +2510,7 @@ FD_EXPORT lispval fd_bson_output(struct FD_BSON_OUTPUT out,lispval obj)
       lispval key = keyvals[i].kv_key;
       lispval val = keyvals[i].kv_val;
       ok = bson_append_keyval(out,key,val);
+      if (!(ok)) break;
       i++;}}
   else if (FD_SCHEMAPP(obj)) {
     struct FD_SCHEMAP *smap = (fd_schemap) obj;
@@ -2496,16 +2521,19 @@ FD_EXPORT lispval fd_bson_output(struct FD_BSON_OUTPUT out,lispval obj)
       lispval key = schema[i];
       lispval val = values[i];
       ok = bson_append_keyval(out,key,val);
+      if (!(ok)) break;
       i++;}}
   else if (FD_TABLEP(obj)) {
     lispval keys = fd_getkeys(obj);
     {FD_DO_CHOICES(key,keys) {
         lispval val = fd_get(obj,key,FD_VOID);
         if (ok) ok = bson_append_keyval(out,key,val);
-        fd_decref(val);}}
+        fd_decref(val);
+        if (!(ok)) break;}}
     fd_decref(keys);}
   else if (FD_COMPOUNDP(obj)) {
     struct FD_COMPOUND *compound = FD_XCOMPOUND(obj);
+    if (compound == NULL) return FD_ERROR_VALUE;
     lispval tag = compound->compound_typetag, *elts = FD_COMPOUND_ELTS(obj);
     int len = FD_COMPOUND_LENGTH(obj);
     if (tag == mongovec_symbol) {
@@ -2522,8 +2550,9 @@ FD_EXPORT lispval fd_bson_output(struct FD_BSON_OUTPUT out,lispval obj)
           char buf[16]; sprintf(buf,"%d",i);
           ok = bson_append_dtype(out,buf,strlen(buf),elts[i++],0);
           if (!(ok)) break;}}}
-  if (!(ok))
-    return FD_ERROR_VALUE;
+  if (!(ok)) {
+    fd_seterr("BSONError","fd_bson_output",NULL,obj);
+    return FD_ERROR_VALUE;}
   else return FD_VOID;
 }
 
@@ -2546,9 +2575,12 @@ FD_EXPORT bson_t *fd_lisp2bson(lispval obj,int flags,lispval opts)
     out.bson_flags = ((flags<0)?(getflags(opts,FD_MONGODB_DEFAULTS)):(flags));
     out.bson_opts = opts;
     out.bson_fieldmap = fd_getopt(opts,fieldmap_symbol,FD_VOID);
-    fd_bson_output(out,obj);
+    lispval result = fd_bson_output(out,obj);
     fd_decref(out.bson_fieldmap);
-    return out.bson_doc;}
+    if (FD_ABORTP(result)) {
+      bson_destroy(out.bson_doc);
+      return NULL;}
+    else return out.bson_doc;}
 }
 
 /* BSON input functions */
@@ -2687,7 +2719,12 @@ static void bson_read_step(FD_BSON_INPUT b,lispval into,lispval *loc)
       value = fd_init_slotmap(NULL,0,NULL);
       while (bson_iter_next(&child))
         bson_read_step(r,value,NULL);
-      if (fd_test(value,fdtag_symbol,FD_VOID)) {
+      if (fd_test(value,dotcar_symbol,FD_VOID)) {
+        lispval car = fd_get(value,dotcar_symbol,FD_VOID);
+        lispval cdr = fd_get(value,dotcdr_symbol,FD_VOID);
+        fd_decref(value);
+        value = fd_init_pair(NULL,car,cdr);}
+      else if (fd_test(value,fdtag_symbol,FD_VOID)) {
         lispval tag = fd_get(value,fdtag_symbol,FD_VOID), compound;
         struct FD_COMPOUND_TYPEINFO *entry = fd_lookup_compound(tag);
         lispval fields[16] = { FD_VOID }, keys = fd_getkeys(value);
@@ -3230,6 +3267,9 @@ FD_EXPORT int fd_init_mongodb()
   secondarysym = fd_intern("SECONDARY");
   secondarypsym = fd_intern("SECONDARY+");
   nearestsym = fd_intern("NEAREST");
+
+  dotcar_symbol = fd_intern(">car>");
+  dotcdr_symbol = fd_intern(">cdr>");
 
   poolmaxsym = fd_intern("POOLMAX");
 
