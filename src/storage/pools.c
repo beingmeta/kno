@@ -2773,9 +2773,9 @@ static void init_zero_pool()
 
 /* Lisp pointers to Pool pointers */
 
-FD_EXPORT fd_pool _fd_get_poolptr(lispval x)
+FD_EXPORT fd_pool _fd_poolptr(lispval x)
 {
-  return fd_get_poolptr(x);
+  return fd_poolptr(x);
 }
 
 /* Initialization */

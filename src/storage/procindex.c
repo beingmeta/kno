@@ -464,6 +464,11 @@ struct FD_INDEX_HANDLER fd_procindex_handler={
   procindex_ctl /* indexctl */
 };
 
+FD_EXPORT int fd_procindexp(fd_index ix)
+{
+  return (ix->index_handler == &fd_procindex_handler);
+}
+
 FD_EXPORT void fd_init_procindex_c()
 {
   u8_register_source_file(_FILEINFO);

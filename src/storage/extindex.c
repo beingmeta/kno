@@ -239,6 +239,11 @@ struct FD_INDEX_HANDLER fd_extindex_handler={
   fd_default_indexctl  /* indexctl */
 };
 
+FD_EXPORT int fd_extindexp(fd_index ix)
+{
+  return (ix->index_handler == &fd_extindex_handler);
+}
+
 FD_EXPORT void fd_init_extindex_c()
 {
   set_symbol = fd_intern("set");

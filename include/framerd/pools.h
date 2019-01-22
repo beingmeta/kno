@@ -364,7 +364,7 @@ FD_EXPORT int fd_pool_swapout(fd_pool p,lispval oids);
 FD_EXPORT u8_string fd_pool_label(fd_pool p);
 FD_EXPORT u8_string fd_pool_id(fd_pool p);
 
-FD_EXPORT fd_pool _fd_get_poolptr(lispval x);
+FD_EXPORT fd_pool _fd_poolptr(lispval x);
 
 FD_EXPORT int fd_pool_unlock_all(fd_pool p,fd_storage_unlock_flag flags);
 FD_EXPORT int fd_commit_all_oids(fd_pool p);
@@ -403,7 +403,7 @@ FD_FASTOP fd_pool fd_oid2pool(lispval oid)
     return NULL;}
   else return fd_find_subpool((struct FD_GLUEPOOL *)top,oid);
 }
-FD_FASTOP U8_MAYBE_UNUSED fd_pool fd_get_poolptr(lispval x)
+FD_FASTOP U8_MAYBE_UNUSED fd_pool fd_poolptr(lispval x)
 {
   int serial = FD_GET_IMMEDIATE(x,fd_pool_type);
   if (serial<fd_n_pools)
@@ -412,7 +412,7 @@ FD_FASTOP U8_MAYBE_UNUSED fd_pool fd_get_poolptr(lispval x)
 }
 #else
 #define fd_oid2pool _fd_oid2pool
-#define fd_get_poolptr _fd_get_poolptr
+#define fd_poolptr _fd_poolptr
 #endif
 
 /* Adjuncts */

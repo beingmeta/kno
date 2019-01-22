@@ -231,6 +231,8 @@ FD_EXPORT fd_index fd_make_extindex
 
 FD_EXPORT struct FD_INDEX_HANDLER fd_extindex_handler;
 
+FD_EXPORT int fd_extindexp(fd_index ix);
+
 /* Proc indexes */
 
 struct FD_PROCINDEX_METHODS {
@@ -253,6 +255,8 @@ fd_index fd_make_procindex(lispval opts,lispval state,
                            u8_string label,
                            u8_string source);
 FD_EXPORT void fd_register_procindex(u8_string typename,lispval handler);
+
+FD_EXPORT int fd_procindexp(fd_index ix);
 
 /* Compound indexes */
 

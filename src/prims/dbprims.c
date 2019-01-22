@@ -894,6 +894,14 @@ static lispval extindex_state(lispval index)
   else return fd_type_error("extindex","extindex_state",index);
 }
 
+static lispval extindexp(lispval index)
+{
+  fd_index ix = fd_indexptr(index);
+  if (ix->index_handler== &fd_extindex_handler)
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
 /* Adding adjuncts */
 
 static lispval padjuncts_symbol;
@@ -2900,7 +2908,7 @@ static lispval oidhex_prim(lispval oid,lispval base_arg)
       offset = FD_OID_DIFFERENCE(addr,base);}
     else offset = (FD_OID_LO(addr))%0x100000;}
   else if (FD_POOLP(base_arg)) {
-    fd_pool p = fd_get_poolptr(base_arg);
+    fd_pool p = fd_poolptr(base_arg);
     if (p) {
       FD_OID base = p->pool_base;
       offset = FD_OID_DIFFERENCE(addr,base);}
@@ -2923,7 +2931,7 @@ static lispval oidb32_prim(lispval oid,lispval base_arg)
       offset = FD_OID_DIFFERENCE(addr,base);}
     else offset = (FD_OID_LO(addr))%0x100000;}
   else if (FD_POOLP(base_arg)) {
-    fd_pool p = fd_get_poolptr(base_arg);
+    fd_pool p = fd_poolptr(base_arg);
     if (p) {
       FD_OID base = p->pool_base;
       offset = FD_OID_DIFFERENCE(addr,base);}
@@ -2955,7 +2963,7 @@ static lispval hex2oid_prim(lispval arg,lispval base_arg)
     FD_OID base = FD_OID_ADDR(base_arg);
     return oidplus(base,offset);}
   else if (FD_POOLP(base_arg)) {
-    fd_pool p = fd_get_poolptr(base_arg);
+    fd_pool p = fd_poolptr(base_arg);
     return oidplus(p->pool_base,offset);}
   else if (STRINGP(base_arg)) {
     fd_pool p = fd_name2pool(CSTRING(base_arg));
@@ -2980,7 +2988,7 @@ static lispval b32oid_prim(lispval arg,lispval base_arg)
     FD_OID base = FD_OID_ADDR(base_arg);
     return oidplus(base,offset);}
   else if (FD_POOLP(base_arg)) {
-    fd_pool p = fd_get_poolptr(base_arg);
+    fd_pool p = fd_poolptr(base_arg);
     return oidplus(p->pool_base,offset);}
   else if (STRINGP(base_arg)) {
     fd_pool p = fd_name2pool(CSTRING(base_arg));
@@ -3406,6 +3414,22 @@ static lispval def_procindex(lispval typesym,lispval handlers)
   else return fd_err(fd_TypeError,"register_procpool",NULL,typesym);
 }
 
+static lispval procpoolp(lispval pool)
+{
+  fd_pool p = fd_poolptr(pool);
+  if ( (p) && (p->pool_handler == &fd_procpool_handler) )
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static lispval procindexp(lispval index)
+{
+  fd_index ix = fd_indexptr(index);
+  if ( (ix) && (ix->index_handler == &fd_procindex_handler) )
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
 /* Initializing */
 
 FD_EXPORT void fd_init_dbprims_c()
@@ -3649,6 +3673,12 @@ FD_EXPORT void fd_init_dbprims_c()
             "Registers handlers for a procindex",
             -1,FD_VOID,-1,FD_VOID);
 
+  fd_idefn1(fd_scheme_module,"PROCPOOL?",procpoolp,1,
+            "Returns #t if it's argument is a procpool",
+            -1,FD_VOID);
+  fd_idefn1(fd_scheme_module,"PROCINDEX?",procindexp,1,
+            "Returns #t if it's argument is a procindex",
+            -1,FD_VOID);
 
 
   fd_idefn(fd_scheme_module,
@@ -3687,6 +3717,11 @@ FD_EXPORT void fd_init_dbprims_c()
                            fd_string_type,VOID,
                            -1,VOID,-1,VOID,-1,VOID,
                            -1,FD_TRUE,-1,FD_FALSE));
+
+  fd_idefn1(fd_scheme_module,"EXTINDEX?",extindexp,1,
+            "`(EXTINDEX *arg*)` returns #t if *arg* is an extindex, "
+            "#f otherwise",
+            -1,VOID);
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("EXTINDEX-DECACHE!",extindex_decache,1,
