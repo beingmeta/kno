@@ -924,8 +924,8 @@ slot of the loop state.
 	  "Committed " (choice-size (getkeys timings)) " dbs "
 	  (if (fifo-name (get loop-state 'fifo))
 	      (printout "for " (fifo-name (get loop-state 'fifo))))
-	  "in " (secs->string (elapsed-time started)) " "
-	  "using " (or n-threads "no") " threads: "
+	  " in " (secs->string (elapsed-time started))
+	  " using " (or n-threads "no") " threads: "
 	  (do-choices (db (getkeys timings))
 	    (let ((time (get timings db)))
 	      (if (>= time 0)
