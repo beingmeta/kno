@@ -2254,7 +2254,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
         bson_append_array_end(out,&ch);}
       else bson_append_array_end(out,&arr);
       break;}
-    case fd_slotmap_type: case fd_hashtable_type: {
+    case fd_slotmap_type: case fd_hashtable_type: case fd_schemap_type: {
       struct FD_BSON_OUTPUT rout;
       bson_t doc;
       lispval keys = fd_getkeys(val);
