@@ -108,8 +108,8 @@ FD_EXPORT lispval fd_init_threadtable(lispval init_table)
 static void recycle_thread_table()
 {
   lispval table = thread_table;
-  thread_table = VOID;
   if ((fd_exiting) && (fd_fast_exit)) return;
+  thread_table = VOID;
   if (table) fd_decref(table);
 }
 #endif
