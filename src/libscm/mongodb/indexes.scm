@@ -7,7 +7,9 @@
 
 (module-export! '{make-collection-index
 		  mongo/decache-index!
-		  mongodb/index})
+		  mongodb/index/collection
+		  mongodb/index
+		  mongodb/index?})
 
 (define-init *mongodb-indexes* {})
 (define-init *mongodb-indexmap* (make-hashtable))
@@ -43,6 +45,12 @@
        (if reuse
 	   (register-mongo-index collection opts)
 	   (make-collection-index collection opts))))
+
+(define (mongodb/index? arg)
+  (and (extindex? arg) (collection? (extindex-state arg))))
+(define (mongodb/index/collection arg)
+  (and (extindex? arg) (collection? (extindex-state arg))
+       (extindex-state arg)))
 
 (define (register-mongo-index-inner collection (opts #f))
   (try (get *mongodb-indexmap* collection)
