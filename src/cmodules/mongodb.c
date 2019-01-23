@@ -3377,6 +3377,9 @@ FD_EXPORT int fd_init_mongodb()
   fd_idefn(module,fd_make_cprim1x("MONGODB/DBSPEC",mongodb_spec,1,-1,FD_VOID));
   fd_idefn(module,fd_make_cprim1x("MONGODB/DBURI",mongodb_uri,1,-1,FD_VOID));
   fd_idefn(module,fd_make_cprim1x("MONGODB/GETOPTS",mongodb_getopts,1,-1,FD_VOID));
+  fd_defalias(module,"MONGODB/OPTS","MONGODB/GETOPTS");
+  fd_defalias(module,"MONGODB/URI","MONGODB/DBURI");
+  fd_defalias(module,"MONGODB/SPEC","MONGODB/DBSPEC");
 
   fd_idefn(module,fd_make_cprim1x("MONGODB/GETCOLLECTION",
                                   mongodb_getcollection,1,-1,FD_VOID));
