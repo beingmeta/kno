@@ -5,12 +5,13 @@
 
 (use-module '{mongodb logger varconfig engine})
 
-(module-export! '{mongo/index/list mongo/index/drop! mongo/index/add!
+(module-export! '{mongodb/index/list mongodb/index/drop! mongodb/index/add!
 		  collection/new 
 		  collection/rename! collection/copy! collection/drop!
-		  mongo/dropdb! 
-		  mongo/params/list mongo/params/get mongo/params/set!
-		  mongo/copy-pool})
+		  collection/index!
+		  mongodb/dropdb! 
+		  mongodb/params/list mongodb/params/get mongodb/params/set!
+		  mongodb/copy-pool})
 
 
 (defambda (getbatch v)
@@ -24,7 +25,7 @@
 	     (cursor-id (get cursor 'id)))
 	(while (not (zero? cursor-id))
 	  (set! result 
-		(mongo/results collection 
+		(mongodb/results collection 
 				 "getMore" cursor-id
 				 "collection" (collection/name collection)
 				 "batchSize" batch))
@@ -33,22 +34,22 @@
 	  (set! cursor-id (get cursor 'id)))
 	results)))
 
-(define (mongo/index/list collection)
-  (extract-results (mongo/results 
+(define (mongodb/index/list collection)
+  (extract-results (mongodb/results 
 		    collection "listIndexes" (collection/name collection))
 		   collection))
 
-(define (mongo/index/drop! collection name)
+(define (mongodb/index/drop! collection name)
   (if (string? name)
-      (mongo/cmd collection
+      (mongodb/cmd collection
 		  "dropIndexes" (collection/name collection)
 		  "index" name)
-      (mongo/cmd collection
+      (mongodb/cmd collection
 		  "dropIndexes" (collection/name collection)
 		  "index" (get name 'name))))
 
-(defambda (mongo/index/add! collection specs (opts #f))
-  (mongo/cmd collection
+(defambda (mongodb/index/add! collection specs (opts #f))
+  (mongodb/cmd collection
 	      "createIndexes" (collection/name collection)
 	      "indexes" (qc (generate-index-specs specs))))
 
@@ -109,26 +110,26 @@
        "expireAfterSeconds" ,ttl]))
 
 (define (collection/new db name (opts #f))
-  (mongo/cmd db `#["create" ,name 
+  (mongodb/cmd db `#["create" ,name 
 		    "capped" ,(getopt opts 'capped {})
 		    "indexids" ,(getopt opts 'indexid {})
 		    "maxsize" ,(getopt opts 'maxsize {})
 		    "maxdocs" ,(getopt opts 'maxdocs {})]))
 
 (define (collection/rename! collection newname (db))
-  (default! db (mongo/getdb collection))
-  (mongo/cmd db
+  (default! db (mongodb/getdb collection))
+  (mongodb/cmd db
       `#["renameCollection" 
-	 ,(glom (mongo/dbname collection) "/" (collection/name collection))
+	 ,(glom (mongodb/dbname collection) "/" (collection/name collection))
 	 "target" ,newname]))
 
 (define (collection/drop! collection (db))
-  (default! db (mongo/getdb collection))
-  (mongo/cmd db `#["drop" ,(collection/name collection)]))
+  (default! db (mongodb/getdb collection))
+  (mongodb/cmd db `#["drop" ,(collection/name collection)]))
 
 (define (collection/copy! source dest (opts #f) (batchsize))
   (default! batchsize (getopt opts 'batchsize 200))
-  (let* ((cursor (mongo/cursor source #[]))
+  (let* ((cursor (mongodb/cursor source #[]))
 	 (batch (cursor/read cursor batchsize)))
     (while (exists? batch)
       (if (getopt opts 'upsert)
@@ -140,22 +141,22 @@
 	  (set! batch {})
 	  (set! batch (cursor/read cursor batchsize))))))
 
-(define (mongo/dropdb! db)
-  (mongo/cmd db #["dropDatabase" 1]))
+(define (mongodb/dropdb! db)
+  (mongodb/cmd db #["dropDatabase" 1]))
 
-(define (mongo/params/list arg (db))
-  (set! db (if (mongodb? arg) arg (mongo/getdb arg)))
-  (extract-results (mongo/results db "getParameter" "*")))
-(define (mongo/params/get arg param (db))
-  (set! db (mongo/getdb arg))
-  (mongo/results db "getParameter" 1 param 1))
-(define (mongo/params/set! arg param value (db))
-  (set! db (mongo/getdb arg))
-  (mongo/results db "setParameter" 1 param value))
+(define (mongodb/params/list arg (db))
+  (set! db (if (mongodb? arg) arg (mongodb/getdb arg)))
+  (extract-results (mongodb/results db "getParameter" "*")))
+(define (mongodb/params/get arg param (db))
+  (set! db (mongodb/getdb arg))
+  (mongodb/results db "getParameter" 1 param 1))
+(define (mongodb/params/set! arg param value (db))
+  (set! db (mongodb/getdb arg))
+  (mongodb/results db "setParameter" 1 param value))
 
 ;;;; Copying pools into MongoDB
 
-(define (mongo/copy-pool input collection (slotinfo {}))
+(define (mongodb/copy-pool input collection (slotinfo {}))
   (let ((base (pool-base input))
 	(capacity (pool-capacity input))
 	(load (pool-load input))
@@ -177,3 +178,12 @@
 		`#[_id ,oid] `#[$set ,v]
 		`#[upsert #t new #t])))
 	(pool-elts input))))
+
+;;;; Adding indexes to collections
+
+(define (collection/index! collection slot)
+  (mongodb/cmd (mongodb/getdb collection)
+	       `#["createIndexes" ,(collection/name collection)
+		  "indexes" ,(mongovec `#[name ,(downcase (stringout (collection/name collection) "_" slot))
+					  key ,(frame-create #f slot 1)])]))
+

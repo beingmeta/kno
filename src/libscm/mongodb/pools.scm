@@ -8,9 +8,9 @@
 (define %loglevel %notice%)
 
 (module-export! '{mongopool/open mongopool/make mongodb/pool
-		  mongopool? mongopool/collection mongo/convert
+		  mongopool? mongopool/collection mongodb/convert
 		  mongodb/intern
-		  mongo/invert})
+		  mongodb/invert})
 
 (module-export! '{mgo/pool mgo/poolfetch
 		  mgo/decache!
@@ -41,14 +41,14 @@
 
 #|
 ;;; Converting mongodb objects to FramerD (mostly choices)
-(define (mongo/convert object (slotinfo {}))
+(define (mongodb/convert object (slotinfo {}))
   (do-choices (assoc (getassocs object))
     (when (and (vector? (cdr assoc)) 
 	       (not (test slotinfo (car assoc) 'singleton)))
       (store! object (car assoc) (elts (cdr assoc)))))
   object)
 
-(define (mongo/invert object (slotinfo {}))
+(define (mongodb/invert object (slotinfo {}))
   (do-choices (assoc (getassocs object))
     (unless (test slotinfo (car assoc) 'singleton)
       (store! object (car assoc) (choice->vector (cdr assoc)))))
@@ -186,9 +186,9 @@
 ;; mongopool entry for a given OID pool stored in MongoDB.
 (define (init-mongopool-inner collection (opts #f) (cname))
   (default! cname (collection/name collection))
-  (try (get mongopools `#(,(mongo/getdb collection) ,cname))
-       (get mongopools `#(,(mongo/dbspec collection) 
-			  ,(mongo/dbname collection)
+  (try (get mongopools `#(,(mongodb/getdb collection) ,cname))
+       (get mongopools `#(,(mongodb/dbspec collection) 
+			  ,(mongodb/dbname collection)
 			  ,cname))
        (let* ((info (collection/get collection "_pool"))
 	      (metadata (try (collection/get collection "_metadata") #[]))
@@ -215,16 +215,16 @@
 		     (collection/insert! collection metadata)))
 	 (let* ((opts (opts+ `#[type mongopool metadata ,metadata] 
 			     opts))
-		(record (cons-mongopool collection (mongo/getdb collection)
-					(mongo/dbspec collection)
+		(record (cons-mongopool collection (mongodb/getdb collection)
+					(mongodb/dbspec collection)
 					(collection/name collection)
 					base cap opts 
 					(qc (getopt opts 'slotinfo {}))))
 		(pool (make-procpool name base cap opts record load)))
 	   (store! mongopools collection pool)
 	   (store! mongopools
-	     {(vector (mongo/getdb collection) cname)
-	      (vector (mongo/dbspec collection) (mongo/dbname collection)
+	     {(vector (mongodb/getdb collection) cname)
+	      (vector (mongodb/dbspec collection) (mongodb/dbname collection)
 		      cname)}
 	     pool)
 	   (store! mongopools pool record)
@@ -289,7 +289,7 @@
 	 (coll (get mongopools pool))
 	 (name 
 	  (if (exists? coll) 
-	      (glom (mongo/dbname coll) "/" (collection/name coll) "/" slot)
+	      (glom (mongodb/dbname coll) "/" (collection/name coll) "/" slot)
 	      (glom (pool-id pool) "/" slot)))
 	 (adjunct (cons-extindex name fetchfn #f qcoll #t)))
     (info%watch "MAKE-ADJSLOT/setup" adjunct name coll fetchfn)

@@ -15,7 +15,7 @@
 (define %volatile 'domains)
 (define %nosbust 'domains)
 
-(module-export! '{->collection mongo/domain!})
+(module-export! '{->collection mongodb/domain!})
 (module-export! '{mgo/get mgo/store! mgo/drop! mgo/add! mgo/modify!})
 
 (defimport mongopools 'mongodb/pools)
@@ -39,25 +39,25 @@
 (define-init domains-hashset (make-hashset))
 
 ;; A domain is basically a collection being used for a particular type of object
-(define (mongo/domain? val)
+(define (mongodb/domain? val)
   (and (collection? val)
        (or (hashset-get domains-hashset 
-			(cons (mongo/getdb val) (collection/name val)))
+			(cons (mongodb/getdb val) (collection/name val)))
 	   (hashset-get domains-hashset 
-			(cons (mongo/dbspec val) (collection/name val))))))
+			(cons (mongodb/dbspec val) (collection/name val))))))
 
-(define (mongo/domain! val)
+(define (mongodb/domain! val)
   (if (not (collection? val)) (irritant val |NotMongoDBCollection|))
   (if (or (hashset-get domains-hashset 
-		       (cons (mongo/getdb val) (collection/name val)))
+		       (cons (mongodb/getdb val) (collection/name val)))
 	  (hashset-get domains-hashset 
-		       (cons (mongo/dbspec val) (collection/name val))))
+		       (cons (mongodb/dbspec val) (collection/name val))))
       #f
       (begin
 	(hashset-add! domains-hashset
-		      (cons (mongo/getdb val) (collection/name val)))
+		      (cons (mongodb/getdb val) (collection/name val)))
 	(hashset-add! domains-hashset
-		      (cons (mongo/dbspec val) (collection/name val)))
+		      (cons (mongodb/dbspec val) (collection/name val)))
 	(set+! domains val)
 	#t)))
 
@@ -66,11 +66,11 @@
 	((and (collection? val)
 	      (or
 	       (hashset-get domains-hashset
-			    (cons (mongo/getdb val) (collection/name val)))
+			    (cons (mongodb/getdb val) (collection/name val)))
 	       (hashset-get domains-hashset
-			    (cons (mongo/dbspec val) (collection/name val)))))
+			    (cons (mongodb/dbspec val) (collection/name val)))))
 	 #f)
-	((collection? val) (mongo/domain! val))
+	((collection? val) (mongodb/domain! val))
 	(else (irritant val |Not a MongoDB Collection|))))
 (config-def! 'mongo:domains config-domains)
 (config-def! 'mongo:domain config-domains)
@@ -124,7 +124,7 @@
 		    `#[$set #[,slotid ,(mongovec values)]]
 		    `#[$set #[,slotid ,values]]))
 	    #[new #t return #[__index 0]]))
-	(mongo/decache-index! slotid 
+	(mongodb/decache-index! slotid 
 			      {(difference current values)
 			       (difference values current)})
 	(debug%watch "MGO/STORE!" 
@@ -135,7 +135,7 @@
 	      ((oid? obj)
 	       ;; This updates the current OID value from the
 	       ;;  value we got from the database from
-	       ;; mongo/modify!
+	       ;; mongodb/modify!
 	       (oid/sync! obj slotid result))
 	      ((table? obj) (store! obj slotid values))))))
 
@@ -177,7 +177,7 @@
 		      `#[$addToSet ,(get-multi-modifier slotid values)]
 		      #[new #t return #[__index 0]]))))
 	   (debug%watch "MGO/ADD!" obj id slotid collection values "\n" result)
-	   (mongo/decache-index! slotid values)
+	   (mongodb/decache-index! slotid values)
 	   (cond ((oid? obj)
 		  (add! obj slotid values))
 		 ((and (oid? obj) (modified? obj))
@@ -186,7 +186,7 @@
 		 ((oid? obj)
 		  ;; This updates the current OID value from the
 		  ;;  value we got from the database from
-		  ;; mongo/modify!
+		  ;; mongodb/modify!
 		  (oid/sync! obj slotid result))
 		 ((table? obj) (add! obj slotid values)))))))
 
@@ -230,7 +230,7 @@
 			`#[$pull #[,slotid ,values]]
 			`#[$pullAll #[,slotid ,values]])
 		    #[new #t return #[__index 0]])))
-	    (mongo/decache-index! 
+	    (mongodb/decache-index! 
 	     slotid (if (or (unbound? values) (eq? values #default)) 
 			current
 			{(difference current values)
@@ -243,7 +243,7 @@
 		((oid? obj)
 		 ;; This updates the current OID value from the
 		 ;;  value we got from the database in our call
-		 ;;  to mongo/modify!
+		 ;;  to mongodb/modify!
 		 (oid/sync! obj slotid result))
 		((table? obj)
 		 (if (unbound? values)

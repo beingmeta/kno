@@ -6,7 +6,7 @@
 (use-module '{mongodb logger})
 
 (module-export! '{make-collection-index
-		  mongo/decache-index!
+		  mongodb/decache-index!
 		  mongodb/index/collection
 		  mongodb/index
 		  mongodb/index?})
@@ -30,7 +30,7 @@
 
 (define (make-collection-index collection (opts #f))
   (cons-extindex 
-   (glom "index-" (collection/name collection) "@" (mongo/dbspec collection))
+   (glom "index-" (collection/name collection) "@" (mongodb/dbspec collection))
    collection-index-fetchfn #f collection (getopt opts 'cached #f)
    opts))
 
@@ -39,9 +39,9 @@
   (try (tryif reuse
 	 (get *mongodb-indexmap* collection)
 	 (get *mongodb-indexmap* 
-	      (vector (mongo/getdb collection) (collection/name collection) opts))
+	      (vector (mongodb/getdb collection) (collection/name collection) opts))
 	 (get *mongodb-indexmap* 
-	      (vector (mongo/dbspec collection) (collection/name collection) opts)))
+	      (vector (mongodb/dbspec collection) (collection/name collection) opts)))
        (if reuse
 	   (register-mongo-index collection opts)
 	   (make-collection-index collection opts))))
@@ -55,15 +55,15 @@
 (define (register-mongo-index-inner collection (opts #f))
   (try (get *mongodb-indexmap* collection)
        (get *mongodb-indexmap* 
-	    (vector (mongo/getdb collection) (collection/name collection) opts))
+	    (vector (mongodb/getdb collection) (collection/name collection) opts))
        (get *mongodb-indexmap* 
-	    (vector (mongo/dbspec collection) (collection/name collection) opts))
+	    (vector (mongodb/dbspec collection) (collection/name collection) opts))
        (let ((index (make-collection-index collection (opts+ opts 'register #t))))
 	 (store! *mongodb-indexmap* collection index)
 	 (store! *mongodb-indexmap* 
-	    (vector (mongo/getdb collection) (collection/name collection) opts) index)
+	    (vector (mongodb/getdb collection) (collection/name collection) opts) index)
 	 (store! *mongodb-indexmap* 
-	    (vector (mongo/dbspec collection) (collection/name collection) opts) index)
+	    (vector (mongodb/dbspec collection) (collection/name collection) opts) index)
 	 (set+! *mongodb-indexes* index)
 	 index)))
 
@@ -71,7 +71,7 @@
   (slambda (collection (opts #f))
     (register-mongo-index-inner collection opts)))
 
-(defambda (mongo/decache-index! arg1 . args)
+(defambda (mongodb/decache-index! arg1 . args)
   (let* ((index-arg (index? (car args)))
 	 (indexes (if index-arg (car args) *mongodb-indexes*))
 	 (scan (if index-arg args (cons arg1 args)))

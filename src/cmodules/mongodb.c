@@ -3289,7 +3289,7 @@ FD_EXPORT int fd_init_mongodb()
   fd_unparsers[fd_mongoc_collection]=unparse_collection;
   fd_unparsers[fd_mongoc_cursor]=unparse_cursor;
 
-  fd_idefn(module,fd_make_cprim2x("MONGO/OPEN",mongodb_open,1,
+  fd_idefn(module,fd_make_cprim2x("MONGODB/OPEN",mongodb_open,1,
                                   -1,FD_VOID,-1,FD_VOID));
   fd_idefn(module,fd_make_cprim3x("COLLECTION/OPEN",mongodb_collection,1,
                                   -1,FD_VOID,fd_string_type,FD_VOID,
@@ -3297,17 +3297,18 @@ FD_EXPORT int fd_init_mongodb()
   fd_idefn(module,fd_make_cprim3x("CURSOR/OPEN",mongodb_cursor,2,
                                   -1,FD_VOID,-1,FD_VOID,
                                   -1,FD_VOID));
-  fd_defalias(module,"MONGO/COLLECTION","COLLECTION/OPEN");
-  fd_defalias(module,"MONGO/CURSOR","CURSOR/OPEN");
+  fd_defalias(module,"MONGODB/COLLECTION","COLLECTION/OPEN");
+  fd_defalias(module,"MONGODB/CURSOR","CURSOR/OPEN");
 
-  fd_idefn(module,fd_make_cprim1x("MONGO/OID",mongodb_oidref,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("MONGODB/OID",mongodb_oidref,1,-1,FD_VOID));
+  fd_defalias(module,"MONGO/OID","MONGODB/OID");
 
 
   fd_idefn(module,fd_make_cprim1x("MONGODB?",mongodbp,1,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim1x("MONGO/COLLECTION?",mongodb_collectionp,1,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim1x("MONGO/CURSOR?",mongodb_cursorp,1,-1,FD_VOID));
-  fd_defalias(module,"CURSOR?","MONGO/CURSOR?");
-  fd_defalias(module,"COLLECTION?","MONGO/COLLECTION?");
+  fd_idefn(module,fd_make_cprim1x("MONGODB/COLLECTION?",mongodb_collectionp,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("MONGODB/CURSOR?",mongodb_cursorp,1,-1,FD_VOID));
+  fd_defalias(module,"CURSOR?","MONGODB/CURSOR?");
+  fd_defalias(module,"COLLECTION?","MONGODB/COLLECTION?");
 
   fd_idefn3(module,"COLLECTION/INSERT!",mongodb_insert,
             FD_NEEDS_2_ARGS|FD_NDCALL,
@@ -3342,8 +3343,8 @@ FD_EXPORT int fd_init_mongodb()
                                   fd_mongoc_collection,FD_VOID,
                                   -1,FD_VOID,-1,FD_VOID));
 
-  fd_idefn(module,fd_make_cprimn("MONGO/RESULTS",mongodb_command,2));
-  fd_idefn(module,fd_make_cprimn("MONGO/CMD",mongodb_simple_command,2));
+  fd_idefn(module,fd_make_cprimn("MONGODB/RESULTS",mongodb_command,2));
+  fd_idefn(module,fd_make_cprimn("MONGODB/CMD",mongodb_simple_command,2));
 
   fd_idefn(module,fd_make_cprim1x("CURSOR/DONE?",mongodb_donep,1,
                                   fd_mongoc_cursor,FD_VOID));
@@ -3367,17 +3368,17 @@ FD_EXPORT int fd_init_mongodb()
                                   fd_vector_type,FD_VOID));
   fd_idefn(module,fd_make_cprim1("MONGOVEC?",mongovecp,1));
 
-  fd_idefn(module,fd_make_cprim1x("MONGO/GETDB",mongodb_getdb,1,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim2x("MONGO/DBINFO",mongodb_getinfo,1,
+  fd_idefn(module,fd_make_cprim1x("MONGODB/GETDB",mongodb_getdb,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim2x("MONGODB/DBINFO",mongodb_getinfo,1,
                                   fd_mongoc_server,FD_VOID,
                                   -1,FD_VOID));
 
-  fd_idefn(module,fd_make_cprim1x("MONGO/DBNAME",mongodb_dbname,1,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim1x("MONGO/DBSPEC",mongodb_spec,1,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim1x("MONGO/DBURI",mongodb_uri,1,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim1x("MONGO/GETOPTS",mongodb_getopts,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("MONGODB/DBNAME",mongodb_dbname,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("MONGODB/DBSPEC",mongodb_spec,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("MONGODB/DBURI",mongodb_uri,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("MONGODB/GETOPTS",mongodb_getopts,1,-1,FD_VOID));
 
-  fd_idefn(module,fd_make_cprim1x("MONGO/GETCOLLECTION",
+  fd_idefn(module,fd_make_cprim1x("MONGODB/GETCOLLECTION",
                                   mongodb_getcollection,1,-1,FD_VOID));
   fd_idefn(module,fd_make_cprim1x("COLLECTION/NAME",
                                   mongodb_collection_name,1,-1,FD_VOID));
@@ -3454,41 +3455,38 @@ FD_EXPORT int fd_init_mongodb()
 
 static void init_old_mongodb(lispval module)
 {
-  fd_defalias(module,"MONGODB/OPEN","MONGO/OPEN");
-  fd_defalias(module,"MONGODB/COLLECTION","COLLECTION/OPEN");
-  fd_defalias(module,"MONGODB/CURSOR","CURSOR/OPEN");
-  fd_defalias(module,"MONGODB/INSERT!","COLLECTION/INSERT!");
-  fd_defalias(module,"MONGODB/REMOVE!","COLLECTION/REMOVE!");
-  fd_defalias(module,"MONGODB/UPDATE!","COLLECTION/UPDATE!");
-  fd_defalias(module,"MONGODB/FIND","COLLECTION/FIND");
-  fd_defalias(module,"MONGODB/MODIFY","COLLECTION/MODIFY!");
-  fd_defalias(module,"MONGODB/MODIFY!","COLLECTION/MODIFY!");
-  fd_defalias(module,"MONGODB/GET","COLLECTION/GET");
+  fd_defalias(module,"MONGO/OPEN","MONGODB/OPEN");
+  fd_defalias(module,"MONGO/COLLECTION","COLLECTION/OPEN");
+  fd_defalias(module,"MONGO/CURSOR","CURSOR/OPEN");
+  fd_defalias(module,"MONGO/INSERT!","COLLECTION/INSERT!");
+  fd_defalias(module,"MONGO/REMOVE!","COLLECTION/REMOVE!");
+  fd_defalias(module,"MONGO/UPDATE!","COLLECTION/UPDATE!");
+  fd_defalias(module,"MONGO/FIND","COLLECTION/FIND");
+  fd_defalias(module,"MONGO/MODIFY","COLLECTION/MODIFY!");
+  fd_defalias(module,"MONGO/MODIFY!","COLLECTION/MODIFY!");
+  fd_defalias(module,"MONGO/GET","COLLECTION/GET");
 
-  fd_defalias(module,"MONGODB/RESULTS","MONGODB/RESULTS");
-  fd_defalias(module,"MONGODB/DO","MONGODB/DO");
+  fd_defalias(module,"MONGO/RESULTS","MONGODB/RESULTS");
+  fd_defalias(module,"MONGO/DO","MONGODB/DO");
 
-  fd_defalias(module,"MONGODB/DONE?","CURSOR/DONE?");
-  fd_defalias(module,"MONGODB/SKIP","CURSOR/SKIP");
-  fd_defalias(module,"MONGODB/READ","CURSOR/READ");
-  fd_defalias(module,"MONGODB/READ->VECTOR","CURSOR/READVEC");
+  fd_defalias(module,"MONGO/DONE?","CURSOR/DONE?");
+  fd_defalias(module,"MONGO/SKIP","CURSOR/SKIP");
+  fd_defalias(module,"MONGO/READ","CURSOR/READ");
+  fd_defalias(module,"MONGO/READ->VECTOR","CURSOR/READVEC");
 
-  fd_defalias(module,"->MONGOVEC","->MONGOVEC");
-  fd_defalias(module,"MONGOVEC?","MONGOVEC?");
+  fd_defalias(module,"MONGO/NAME","MONGODB/DBNAME");
+  fd_defalias(module,"MONGO/SPEC","MONGODB/DBSPEC");
+  fd_defalias(module,"MONGO/URI","MONGODB/DBURI");
+  fd_defalias(module,"MONGO/OPTS","MONGODB/GETOPTS");
+  fd_defalias(module,"MONGO/SERVER","MONGODB/SERVER");
 
-  fd_defalias(module,"MONGODB/NAME","MONGO/DBNAME");
-  fd_defalias(module,"MONGODB/SPEC","MONGO/DBSPEC");
-  fd_defalias(module,"MONGODB/URI","MONGO/DBURI");
-  fd_defalias(module,"MONGODB/OPTS","MONGO/GETOPTS");
-  fd_defalias(module,"MONGODB/SERVER","MONGODB/SERVER");
+  fd_defalias(module,"MONGO/GETCOLLECTION","MONGODB/GETCOLLECTION");
 
-  fd_defalias(module,"MONGODB/GETCOLLECTION","MONGO/GETCOLLECTION");
-
-  fd_defalias(module,"MONGODB/GETDB","MONGO/GETDB");
-  fd_defalias(module,"MONGODB/INFO","MONGO/DBINFO");
-  fd_defalias(module,"MONGODB?","MONGODB?");
-  fd_defalias(module,"MONGODB/COLLECTION?","MONGO/COLLECTION?");
-  fd_defalias(module,"MONGODB/CURSOR?","MONGO/CURSOR?");
+  fd_defalias(module,"MONGO/GETDB","MONGODB/GETDB");
+  fd_defalias(module,"MONGO/INFO","MONGODB/DBINFO");
+  fd_defalias(module,"MONGO?","MONGODB?");
+  fd_defalias(module,"MONGO/COLLECTION?","MONGODB/COLLECTION?");
+  fd_defalias(module,"MONGO/CURSOR?","MONGODB/CURSOR?");
 }
 
 /* Emacs local variables
