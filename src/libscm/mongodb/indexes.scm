@@ -6,7 +6,7 @@
 (use-module '{mongodb logger})
 
 (module-export! '{make-collection-index
-		  mongodb/decache-index!
+		  mongodb/decache-index! mongo/decache-index!
 		  mongodb/index/collection
 		  mongodb/index
 		  mongodb/index?})
@@ -81,3 +81,4 @@
       (set! scan (cddr scan)))
     (do-choices (index *mongodb-indexes*)
       (extindex-decache! index keys))))
+(define mongo/decache-index! mongodb/decache-index!)
