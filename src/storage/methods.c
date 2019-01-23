@@ -62,9 +62,11 @@ fd_walk_tree(lispval roots,lispval slotids,fd_tree_walkfn walk,void *data)
   memset(&ht,0,sizeof(ht));
   fd_init_hashset(&ht,1024,FD_STACK_CONS);
   {DO_CHOICES(root,roots)
-      if ((retval = keep_walking(&ht,root,slotids,walk,data))<=0) {
+      if (!((FD_OIDP(root)) || (FD_SLOTMAPP(root)) || (FD_SCHEMAPP(root) ))) {}
+      else if ((retval = keep_walking(&ht,root,slotids,walk,data))<=0) {
         fd_recycle_hashset(&ht);
-        return retval;}}
+        return retval;}
+      else NO_ELSE;}
   fd_recycle_hashset(&ht);
   return retval;
 }

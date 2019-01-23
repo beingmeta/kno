@@ -2573,11 +2573,27 @@ static lispval prim_avoid_lexpr(int n,lispval *args)
 
 /* Kleene* operations */
 
+static lispval getroots(lispval frames)
+{
+  lispval roots = FD_EMPTY;
+  if (FD_AMBIGP(frames)) {
+    FD_DO_CHOICES(frame,frames) {
+      if ( (FD_OIDP(frame)) || (FD_SLOTMAPP(frame)) || (FD_SCHEMAPP(frame)) ) {
+        CHOICE_ADD(roots,frame);}}}
+  else if ((FD_OIDP(frames)) || (FD_SLOTMAPP(frames)) || (FD_SCHEMAPP(frames)))
+    roots = frames;
+  else NO_ELSE;
+  return roots;
+}
+
 static lispval getstar(lispval frames,lispval slotids)
 {
-  lispval results = fd_incref(frames);
+  lispval roots = getroots(frames);
+  if (FD_EMPTYP(roots))
+    return FD_EMPTY;
+  lispval results = fd_incref(roots);
   DO_CHOICES(slotid,slotids) {
-    lispval all = fd_inherit_values(frames,slotid,slotid);
+    lispval all = fd_inherit_values(roots,slotid,slotid);
     if (FD_ABORTED(all)) {
       fd_decref(results);
       return all;}
@@ -2587,6 +2603,9 @@ static lispval getstar(lispval frames,lispval slotids)
 
 static lispval inherit_prim(lispval slotids,lispval frames,lispval through)
 {
+  lispval roots = getroots(frames);
+  if (FD_EMPTYP(roots))
+    return FD_EMPTY;
   lispval results = fd_incref(frames);
   DO_CHOICES(through_id,through) {
     lispval all = fd_inherit_values(frames,slotids,through_id);
@@ -2596,7 +2615,11 @@ static lispval inherit_prim(lispval slotids,lispval frames,lispval through)
 
 static lispval pathp(lispval frames,lispval slotids,lispval values)
 {
-  if (fd_pathp(frames,slotids,values)) return FD_TRUE;
+  lispval roots = getroots(frames);
+  if (FD_EMPTYP(roots))
+    return FD_FALSE;
+  else if (fd_pathp(frames,slotids,values))
+    return FD_TRUE;
   else return FD_FALSE;
 }
 
