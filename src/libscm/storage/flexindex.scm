@@ -81,8 +81,10 @@
 					 (try (largest indexes get-serial) #f)
 					 new-partition-opts)))
 		    (aggregate
-		     (make-aggregate-index (choice indexes front)
-					   `#[register #t])))
+		     (if (and (singleton? (choice indexes front)) (getopt opts 'readonly))
+			 (choice indexes front)
+			 (make-aggregate-index (choice indexes front)
+					       `#[register #t]))))
 	       (when keyslot (indexctl aggregate 'keyslot keyslot))
 	       (if (and (exists? front) front)
 		   (indexctl aggregate 'props 'front front)
