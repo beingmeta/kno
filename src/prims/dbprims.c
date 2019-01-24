@@ -2079,8 +2079,19 @@ FD_FASTOP int test_selector_relation(lispval f,lispval pred,lispval val,int data
     /* Handle the case where the 'slotid' is a unary function which can
        be used to extract an argument. */
     if ((FD_LAMBDAP(pred)) || (TYPEP(pred,fd_cprim_type))) {
-      fd_function fcn = FD_DTYPE2FCN(pred);
-      if (fcn->fcn_min_arity==1) {
+      fd_function fcn = FD_DTYPE2FCN(pred); int retval = -1;
+      if ( (fcn->fcn_arity==2) || (fcn->fcn_min_arity==2) ) {
+        rail[0]=f; rail[1]=val;
+        result = fd_apply(pred,2,rail);
+        if (FD_ABORTP(result))
+          retval = -1;
+        else if ( (FD_FALSEP(result)) || (FD_EMPTYP(result)) )
+          retval = 0;
+        else {
+          fd_decref(result);
+          retval=1;}
+        return retval;}
+      else if (fcn->fcn_min_arity == 1) {
         lispval value = fd_apply(pred,1,&f); int retval = -1;
         if (EMPTYP(value)) return 0;
         else if (fd_overlapp(value,val)) retval = 1;
@@ -2094,8 +2105,6 @@ FD_FASTOP int test_selector_relation(lispval f,lispval pred,lispval val,int data
         else retval = 0;
         fd_decref(value);
         return retval;}
-      else if (fcn->fcn_min_arity==2) {
-          rail[0]=f; rail[1]=val; result = fd_apply(pred,2,rail);}
       else result = fd_err(fd_TypeError,"test_selector_relation",
                          "invalid relation",pred);}
     if (FD_ABORTED(result))
