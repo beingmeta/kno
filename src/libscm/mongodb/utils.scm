@@ -125,7 +125,9 @@
 
 (define (collection/drop! collection (db))
   (default! db (mongodb/getdb collection))
-  (mongodb/cmd db `#["drop" ,(collection/name collection)]))
+  (onerror
+      (mongodb/cmd db `#["drop" ,(collection/name collection)])
+      #f))
 
 (define (collection/copy! source dest (opts #f) (batchsize))
   (default! batchsize (getopt opts 'batchsize 200))
