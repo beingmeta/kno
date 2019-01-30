@@ -45,6 +45,7 @@
     (when adjslot (store! metadata 'adjunct adjslot))
     (when (or adjslot (CONFIG 'ISADJUNCT))
       (add! metadata 'format 'adjunct))
+    (drop! metadata 'makeopts)
     (make-pool filename
       (modify-frame 
 	  `#[type ,type
