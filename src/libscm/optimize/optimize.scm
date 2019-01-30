@@ -99,8 +99,6 @@
   (debug%watch "CODEWARNING" warning)
   (threadset! 'codewarnings (choice warning (threadget 'codewarnings))))
 
-
-
 (define (annotate optimized source opts)
   (if (keep-source? opts)
       (cons* sourcref-opcode source optimized)
@@ -811,9 +809,8 @@
 	    (when (compound-procedure? value)
 	      (set! count (1+ count))
 	      (optimize-procedure! value #f))
-	    (if (bound? value)
-		(notify var " is bound but undefined (#default)")
-		(warning var " is unbound")))))
+	    (unless (default? value) 
+	      (notify var " is bound but undefined")))))
     count))
 
 (define (deoptimize-bindings! bindings (opts #f))
