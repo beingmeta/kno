@@ -645,7 +645,7 @@ lispval pair_eval(lispval head,lispval expr,fd_lexenv env,
       result = eval_apply("extfcn",headval,FD_CDR(expr),env,eval_stack,tail);}
     else if (FD_ABORTED(headval)) {
       result=headval;}
-    else if (VOIDP(headval)) {
+    else if (PRED_FALSE(VOIDP(headval))) {
       result=fd_err(fd_UnboundIdentifier,"for function",
                     ((SYMBOLP(head))?(SYM_NAME(head)):
                      (NULL)),
@@ -741,7 +741,7 @@ FD_FASTOP lispval arg_eval(lispval x,fd_lexenv env,struct FD_STACK *stack)
       return fd_lexref(x,env);
     else if (FD_SYMBOLP(x)) {
       lispval val = fd_symeval(x,env);
-      if (FD_EXPECT_FALSE(FD_VOIDP(val)))
+      if (PRED_FALSE(FD_VOIDP(val)))
         return fd_err(fd_UnboundIdentifier,"fd_eval",FD_SYMBOL_NAME(x),x);
       else return val;}
     else return x;
@@ -1112,7 +1112,7 @@ static lispval constantp_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   if (FD_SYMBOLP(to_eval)) {
     lispval v = fd_symeval(to_eval,env);
     if  (v == FD_NULL)
-      return fd_err(fd_BadPtr,"defaultp_evalfn","NULL pointer",to_eval);
+      return fd_err(fd_BadPtr,"constantp_evalfn","NULL pointer",to_eval);
     else if (FD_ABORTED(v))
       return v;
     else if (FD_CONSTANTP(v))
@@ -1123,7 +1123,7 @@ static lispval constantp_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   else {
     lispval v = fd_eval(to_eval,env);
     if  (v == FD_NULL)
-      return fd_err(fd_BadPtr,"defaultp_evalfn","NULL pointer",to_eval);
+      return fd_err(fd_BadPtr,"constantp_evalfn","NULL pointer",to_eval);
     else if (FD_ABORTED(v))
       return v;
     else if (FD_CONSTANTP(v))
