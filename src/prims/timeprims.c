@@ -109,12 +109,17 @@ static lispval timestamp_prim(lispval arg)
     u8_local_xtime(&(tm->u8xtimeval),-1,u8_nanosecond,0);
     return LISP_CONS(tm);}
   else if (STRINGP(arg)) {
+    time_t tick;
     u8_string sdata = CSTRING(arg);
     int c = *sdata;
     if (u8_isdigit(c))
-      u8_iso8601_to_xtime(sdata,&(tm->u8xtimeval));
-    else u8_rfc822_to_xtime(sdata,&(tm->u8xtimeval));
-    return LISP_CONS(tm);}
+      tick=u8_iso8601_to_xtime(sdata,&(tm->u8xtimeval));
+    else tick=u8_rfc822_to_xtime(sdata,&(tm->u8xtimeval));
+    if (tick>=0)
+      return LISP_CONS(tm);
+    else {
+      u8_free(tm);
+      return fd_type_error("timestamp arg","timestamp_prim",arg);}}
   else if (SYMBOLP(arg)) {
     int prec_val = get_precision(arg);
     enum u8_timestamp_precision prec;
@@ -174,11 +179,12 @@ static lispval gmtimestamp_prim(lispval arg)
     u8_string sdata = CSTRING(arg);
     int c = *sdata; time_t moment;
     if (u8_isdigit(c))
-      u8_iso8601_to_xtime(sdata,&(tm->u8xtimeval));
-    else u8_rfc822_to_xtime(sdata,&(tm->u8xtimeval));
-    moment = u8_mktime(&(tm->u8xtimeval));
+      moment=u8_iso8601_to_xtime(sdata,&(tm->u8xtimeval));
+    else moment=u8_rfc822_to_xtime(sdata,&(tm->u8xtimeval));
+    if (moment >= 0) moment = u8_mktime(&(tm->u8xtimeval));
     if (moment<0) {
-      u8_free(tm); return FD_ERROR;}
+      u8_free(tm);
+      return fd_type_error("timestamp arg","timestamp_prim",arg);}
     if ((tm->u8xtimeval.u8_tzoff!=0)||(tm->u8xtimeval.u8_dstoff!=0))
       u8_init_xtime(&(tm->u8xtimeval),moment,tm->u8xtimeval.u8_prec,
                     tm->u8xtimeval.u8_nsecs,0,0);
@@ -216,34 +222,52 @@ static lispval gmtimestamp_prim(lispval arg)
 
 static struct FD_TIMESTAMP *get_timestamp(lispval arg,int *freeit)
 {
+  *freeit = 0;
   if (TYPEP(arg,fd_timestamp_type)) {
-    *freeit = 0;
     return fd_consptr(struct FD_TIMESTAMP *,arg,fd_timestamp_type);}
   else if (STRINGP(arg)) {
     struct FD_TIMESTAMP *tm = u8_alloc(struct FD_TIMESTAMP);
     memset(tm,0,sizeof(struct FD_TIMESTAMP));
-    u8_iso8601_to_xtime(CSTRING(arg),&(tm->u8xtimeval)); *freeit = 1;
-    return tm;}
+    time_t moment =
+      u8_iso8601_to_xtime(CSTRING(arg),&(tm->u8xtimeval));
+    if (moment<0) {
+      fd_set_type_error("timestamp",arg);
+      u8_free(tm);
+      return NULL;}
+    else {
+      *freeit = 1;
+      return tm;}}
   else if ((FIXNUMP(arg))||
            ((FD_BIGINTP(arg))&&
             (fd_modest_bigintp((fd_bigint)arg)))) {
-    struct FD_TIMESTAMP *tm = u8_alloc(struct FD_TIMESTAMP);
-    long long int tick;
-    if (FIXNUMP(arg)) tick = FIX2INT(arg);
+    struct FD_TIMESTAMP *tm = u8_alloc(struct FD_TIMESTAMP), *xtm;
+    long long int tick; time_t moment;
+    if (FIXNUMP(arg))
+      tick = FIX2INT(arg);
     else tick = fd_bigint_to_long_long((fd_bigint)arg);
-    memset(tm,0,sizeof(struct FD_TIMESTAMP)); *freeit = 1;
+    FD_INIT_FRESH_CONS(tm,fd_timestamp_type); *freeit = 1;
     if (tick<31536000L) {
-      u8_now(&(tm->u8xtimeval));
-      u8_xtime_plus(&(tm->u8xtimeval),FIX2INT(arg));}
-    else u8_init_xtime(&(tm->u8xtimeval),tick,u8_second,0,0,0);
-    return tm;}
+      moment = u8_now(&(tm->u8xtimeval));
+      if (moment > 0)
+        u8_xtime_plus(&(tm->u8xtimeval),FIX2INT(arg));
+      else {
+        u8_free(tm); *freeit=0;
+        return NULL;}}
+    else if (u8_init_xtime(&(tm->u8xtimeval),tick,u8_second,0,0,0) == NULL) {
+        u8_free(tm); *freeit=0;
+        return NULL;}
+    else return tm;}
   else if (VOIDP(arg)) {
     struct FD_TIMESTAMP *tm = u8_alloc(struct FD_TIMESTAMP);
     memset(tm,0,sizeof(struct FD_TIMESTAMP));
-    u8_now(&(tm->u8xtimeval)); *freeit = 1;
+    time_t moment = u8_now(&(tm->u8xtimeval));
+    if (moment < 0) {
+      u8_free(tm);
+      return NULL;}
+    *freeit=1;
     return tm;}
   else {
-    fd_set_type_error("timestamp",arg); *freeit = 0;
+    fd_set_type_error("timestamp",arg);
     return NULL;}
 }
 
