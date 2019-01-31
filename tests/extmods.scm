@@ -1,16 +1,32 @@
-(check-modules '{cachequeue calltrack checkurl codewalker
-		 couchdb curlcache dopool dropbox ellipsize ;; ctt
-		 email extoids ezrecords fakezip fifo fillin
-		 findcycles getcontent gpath gravatar gutdb
-		 hashfs hashstats histogram hostinfo i18n
-		 ice isbn jsonout logctl logger
-		 meltcache mimeout mimetable
-		 mttools oauth openlibrary ;; optimize
-		 opts packetfns parsetime bugjar
-		 pump readcsv rulesets samplefns
-		 savecontent saveopt signature speling ;; soap
-		 stringfmts tinygis tracer trackrefs twilio
-		 updatefile usedb varconfig whocalls ximage})
+(check-modules '{condense dopool engine extoids ezrecords fifo
+		 gpath jsonout logctl logger mimetable
+		 mttools packetfns parsetime readfile
+		 stringfmts usedb varconfig
+		 bench})
+
+(check-modules '{storage/flex storage/flexpool storage/flexindex
+		 storage/adjuncts storage/branches storage/aggregates
+		 storage/registry storage/slotindex storage/splitpool
+		 storage/typeindex})
+
+(check-modules '{bugjar bugjar/html bugjar/servlet})
+
+(check-modules '{xhtml/auth xhtml/buglog xhtml/clickit 
+		 xhtml/datetime xhtml/download xhtml/entities
+		 xhtml/exceptions xhtml/include
+		 xhtml/pagedate xhtml/tableout})
+
+(when (get-module 'mongodb)
+  (check-modules '{mongodb/utils
+		   mongodb/pools mongodb/indexes 
+		   mongodb/slots mongodb/orm}))
+
+(check-modules
+ '{opts hashfs rulesets meltcache curlcache saveopt signature cachequeue 
+   calltrack checkurl codewalker couchdb dropbox ellipsize email fakezip fillin 
+   findcycles getcontent gravatar gutdb hashstats histogram hostinfo i18n ice 
+   isbn mimeout oauth openlibrary bugjar pump readcsv samplefns savecontent 
+   speling tinygis tracer trackrefs twilio updatefile whocalls ximage})
 
 (check-modules '{aws aws/s3 aws/ses aws/simpledb aws/sqs aws/v4
 		 aws/associates aws/dynamodb})
