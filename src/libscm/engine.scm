@@ -5,7 +5,7 @@
 
 (use-module '{fifo varconfig mttools stringfmts reflection 
 	      bugjar bugjar/html logger})
-(use-module '{storage/flex storage/registry storage/aggregates})
+(use-module '{storage/flex storage/registry storage/branches})
 
 (define %loglevel %notice%)
 
@@ -288,7 +288,7 @@ slot of the loop state.
 	(do-choices (indexslot (getopt opts 'branchindexes))
 	  (when (test loop-state indexslot)
 	    (store! batch-state indexslot 
-	      (aggregate/branch (get loop-state indexslot)))))
+	      (index/branch (get loop-state indexslot)))))
 	(when (and (exists? beforefn) beforefn)
 	  (beforefn (qc batch) batch-state loop-state state))
 	(set! proc-time (elapsed-time))
@@ -324,7 +324,7 @@ slot of the loop state.
 	(set! proc-time (elapsed-time proc-time))
 	(do-choices (indexslot (getopt opts 'branchindexes))
 	  (when (test batch-state indexslot) 
-	    (aggregate/merge! (get batch-state indexslot))))
+	    (branch/commit! (get batch-state indexslot))))
 	(unless (test batch-state 'aborted)
 	  (when (and  (exists? afterfn) afterfn)
 	    (afterfn (qc batch) batch-state loop-state state))

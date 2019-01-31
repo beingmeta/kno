@@ -1,6 +1,8 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2019 beingmeta, inc.  All rights reserved.
 
+;;; WARNING! This module has been replaced by storage/branches
+
 (in-module 'storage/aggregates)
 
 (use-module '{ezrecords stringfmts logger varconfig fifo texttools})
