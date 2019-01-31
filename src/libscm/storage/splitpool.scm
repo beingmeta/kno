@@ -6,7 +6,7 @@
 (use-module '{reflection texttools regex varconfig
 	      logger logctl fifo
 	      mttools stringfmts opts})
-(use-module '{storage/flex storage/adjuncts})
+(use-module '{storage/flex storage/flexpool storage/adjuncts})
 
 (module-export! 'flexpool/split)
 
@@ -76,7 +76,7 @@
 			   " (aggregate " total-time ") or "
 			   ($num (/~ count (/~ (elapsed-time start) 60)) 1) " OIDs/minute"))))
 	      (let ((threads {})
-		    (fifo (fifo/make (choice->vector (flex/pools flexpool))
+		    (fifo (fifo/make (choice->vector (flexpool/partitions flexpool))
 				     `#[fillfn ,fifo/exhausted!])))
 		(cond ((and nthreads (> nthreads 1))
 		       (dotimes (i nthreads)

@@ -33,7 +33,7 @@
 	  (let ((branches (index/branch (indexctl root 'partitions) opts)))
 	    (if (not (ambiguous? branches))
 		branches
-		(make-aggregate branches #[register #f]))))
+		(make-aggregate-index branches #[register #f]))))
       (let* ((keyslot (indexctl root 'keyslot))
 	     (branchsize (getopt opts 'branchsize default-branchsize))
 	     (index-name
@@ -46,7 +46,7 @@
 		   `#[type tempindex register #f
 		      keyslot ,keyslot
 		      size ,(suggest-hash-size branchsize)])))
-	(indexctl ix 'props 'root partition)
+	(indexctl ix 'props 'root root)
 	ix)))
 (define aggregate/branch index/branch)
 

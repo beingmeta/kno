@@ -116,7 +116,7 @@
 					   (procedure-name object)
 					   (or (procedure-module object) 
 					       (procedure-filename object))
-					   (procedure-source object))
+					   (lambda-source object))
 			    (make-compound '|primitive|
 					   (procedure-name object)
 					   (or (procedure-module object) 
@@ -147,8 +147,8 @@
 	 (try (get uuids (hashptr object))
 	      (add-condensed
 	       object root uuids
-	       (if (procedure-source object)
-		   (make-compound '%definition (procedure-source object))
+	       (if (lambda-source object)
+		   (make-compound '%definition (lambda-source object))
 		   (make-compound '%lambda 
 				  (procedure-name object)
 				  (lambda-args object)
