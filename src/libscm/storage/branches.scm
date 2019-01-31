@@ -39,9 +39,9 @@
 	     (index-name
 	      (glom (if (symbol? keyslot) (downcase keyslot)
 			(basename (index-id root))	)
-		"@" (->exact (elapsed-time))
+		"-e" (->exact (elapsed-time))
 		"-t" (threadid)
-		"#" (number->string (random 65536) 16)))
+		"-r" (number->string (random 65536) 16)))
 	     (ix (open-index index-name
 		   `#[type tempindex register #f
 		      keyslot ,keyslot
