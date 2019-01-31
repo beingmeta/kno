@@ -735,7 +735,7 @@ static lispval extpool_setcache(lispval pool,lispval oid,lispval value)
 static lispval extpool_fetchfn(lispval pool)
 {
   fd_pool p = fd_lisp2pool(pool);
-  if (p->pool_handler== &fd_extpool_handler) {
+  if ( (p) && (p->pool_handler== &fd_extpool_handler) ) {
     struct FD_EXTPOOL *ep = (struct FD_EXTPOOL *)p;
     return fd_incref(ep->fetchfn);}
   else return fd_type_error("extpool","extpool_fetchfn",pool);
@@ -744,7 +744,7 @@ static lispval extpool_fetchfn(lispval pool)
 static lispval extpool_savefn(lispval pool)
 {
   fd_pool p = fd_lisp2pool(pool);
-  if (p->pool_handler== &fd_extpool_handler) {
+  if ( (p) && (p->pool_handler== &fd_extpool_handler) ) {
     struct FD_EXTPOOL *ep = (struct FD_EXTPOOL *)p;
     return fd_incref(ep->savefn);}
   else return fd_type_error("extpool","extpool_savefn",pool);
@@ -753,7 +753,7 @@ static lispval extpool_savefn(lispval pool)
 static lispval extpool_lockfn(lispval pool)
 {
   fd_pool p = fd_lisp2pool(pool);
-  if (p->pool_handler== &fd_extpool_handler) {
+  if ( (p) && (p->pool_handler== &fd_extpool_handler) ) {
     struct FD_EXTPOOL *ep = (struct FD_EXTPOOL *)p;
     return fd_incref(ep->lockfn);}
   else return fd_type_error("extpool","extpool_lockfn",pool);
@@ -762,7 +762,7 @@ static lispval extpool_lockfn(lispval pool)
 static lispval extpool_state(lispval pool)
 {
   fd_pool p = fd_lisp2pool(pool);
-  if (p->pool_handler== &fd_extpool_handler) {
+  if ( (p) && (p->pool_handler== &fd_extpool_handler) ) {
     struct FD_EXTPOOL *ep = (struct FD_EXTPOOL *)p;
     return fd_incref(ep->state);}
   else return fd_type_error("extpool","extpool_state",pool);
@@ -818,7 +818,7 @@ static lispval extindex_cacheadd(lispval index,lispval key,lispval values)
 {
   FDTC *fdtc = fd_threadcache;
   fd_index ix = fd_indexptr(index);
-  if (ix->index_handler== &fd_extindex_handler)
+  if ( (ix) && (ix->index_handler == &fd_extindex_handler) )
     if (fd_hashtable_add(&(ix->index_cache),key,values)<0)
       return FD_ERROR;
     else {}
@@ -838,7 +838,7 @@ static lispval extindex_decache(lispval index,lispval key)
   FDTC *fdtc = fd_threadcache;
   fd_index ix = fd_indexptr(index);
   lispval lix = index2lisp(ix);
-  if (ix->index_handler== &fd_extindex_handler)
+  if ( (ix) && (ix->index_handler == &fd_extindex_handler) )
     if (VOIDP(key))
       if (fd_reset_hashtable(&(ix->index_cache),ix->index_cache.ht_n_buckets,1)<0)
         return FD_ERROR;
@@ -870,7 +870,7 @@ return VOID;
 static lispval extindex_fetchfn(lispval index)
 {
   fd_index ix = fd_indexptr(index);
-  if (ix->index_handler== &fd_extindex_handler) {
+  if ( (ix) && (ix->index_handler== &fd_extindex_handler) ) {
     struct FD_EXTINDEX *eix = (struct FD_EXTINDEX *)ix;
     return fd_incref(eix->fetchfn);}
   else return fd_type_error("extindex","extindex_fetchfn",index);
@@ -879,7 +879,7 @@ static lispval extindex_fetchfn(lispval index)
 static lispval extindex_commitfn(lispval index)
 {
   fd_index ix = fd_indexptr(index);
-  if (ix->index_handler== &fd_extindex_handler) {
+  if ( (ix) && (ix->index_handler== &fd_extindex_handler) ) {
     struct FD_EXTINDEX *eix = (struct FD_EXTINDEX *)ix;
     return fd_incref(eix->commitfn);}
   else return fd_type_error("extindex","extindex_commitfn",index);
@@ -888,7 +888,7 @@ static lispval extindex_commitfn(lispval index)
 static lispval extindex_state(lispval index)
 {
   fd_index ix = fd_indexptr(index);
-  if (ix->index_handler== &fd_extindex_handler) {
+  if ( (ix) && (ix->index_handler== &fd_extindex_handler) ) {
     struct FD_EXTINDEX *eix = (struct FD_EXTINDEX *)ix;
     return fd_incref(eix->state);}
   else return fd_type_error("extindex","extindex_state",index);
@@ -897,7 +897,7 @@ static lispval extindex_state(lispval index)
 static lispval extindexp(lispval index)
 {
   fd_index ix = fd_indexptr(index);
-  if (ix->index_handler== &fd_extindex_handler)
+  if ( (ix) && (ix->index_handler== &fd_extindex_handler) )
     return FD_TRUE;
   else return FD_FALSE;
 }
