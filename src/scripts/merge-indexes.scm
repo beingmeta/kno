@@ -58,7 +58,8 @@
 		 'rarefile (or (config 'rare) {})
 		 'uniquefile (or (config 'unique) {})
 		 'repair (config 'repair #f)
-		 'overwrite #f)))
+		 'overwrite #f))
+	 (n (length in)))
     (when (and (config 'rebuild) (file-exists? out))
       (onerror
 	  (move-file! out (glom out ".bak"))
@@ -68,7 +69,8 @@
 		 (exit)))
 	   (logwarn |FileExists|
 	     "Moved existing file " out " " "to " (glom out ".bak")))
-    (doseq (indexfile in)
+    (doseq (indexfile in i)
+      (config! 'appid (stringout "merge(" (basename indexfile) ")[" i "/" n))
       (index/merge! indexfile out opts))))
 
 (when (config 'optimize #t)
