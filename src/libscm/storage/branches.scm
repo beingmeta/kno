@@ -28,7 +28,7 @@
 
 (define (index/branch root (opts #f))
   (if (aggregate-index? root)
-      (if (indexctl root 'props 'front)
+      (if (exists? (indexctl root 'props 'front))
 	  (index/branch (indexctl root 'props 'front) opts)
 	  (let ((branches (index/branch (indexctl root 'partitions) opts)))
 	    (if (not (ambiguous? branches))
@@ -51,11 +51,11 @@
 (define aggregate/branch index/branch)
 
 (define (branch/commit! branch (root))
-  (set! root (indexctl branch 'root))
+  (set! root (indexctl branch 'props 'root))
   (if (aggregate-index? branch)
       (branch/commit! (indexctl branch 'partitions))
-      (if (and (tempindex? branch) (indexctl branch 'root))
-	  (slotindex/merge! (indexctl branch 'root) branch)
+      (if (and (tempindex? branch) root)
+	  (slotindex/merge! root branch)
 	  (irritant branch |Not A Branch Index| branch/merge!))))
 (define branch/merge! branch/commit!)
 (define aggregate/merge branch/commit!)
