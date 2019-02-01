@@ -50,64 +50,86 @@
 
 (defambda (mongodb/index/add! collection specs (opts #f))
   (mongodb/cmd collection
-	      "createIndexes" (collection/name collection)
-	      "indexes" (qc (generate-index-specs specs))))
+	       "createIndexes" (collection/name collection)
+	       "indexes" (qc (generate-index-specs specs))))
 
-(defambda (generate-index-specs specs)
+(defambda (generate-index-specs specs (opts #f))
   (let ((specs (for-choices (spec specs)
 		 (cond ((symbol? spec)
 			`#["key" #[,(downcase spec) 1]
 			   "name" ,(glom (downcase spec) "_" "1")])
 		       ((string? spec)
-			#["key" #[,spec 1]
-			  "name" ,(glom spec "_" "1")])
+			`#["key" #[,spec 1]
+			   "name" ,(glom spec "_" "1")])
 		       ((vector? spec)
 			(let ((keyspec '()))
 			  (doseq (spec spec)
 			    (set! keyspec 
-				  (cons* 1 (if (symbol? spec) (downcase spec) spec)
-					 keyspec)))
-			  #["key" ,(apply frame-create #f (reverse keyspec))
-			    "name" ,(stringout (doseq (elt (reverse keyspec) i)
-						 (printout (if (> i 0) "_") elt)))]))
-		       ((table? spec) (generate-index-spec spec))
+			      (cons* 1 (if (symbol? spec) (downcase spec) spec)
+				     keyspec)))
+			  `#["key" ,(apply frame-create #f (reverse keyspec))
+			     "name" ,(stringout (doseq (elt (reverse keyspec) i)
+						  (printout (if (> i 0) "_") elt)))]))
+		       ((table? spec) (generate-index-spec spec opts))
 		       (else (irritant spec "Bad index spec"))))))
     (if (singleton? specs) (mongovec specs)
 	specs)))
 
-(define (generate-index-spec spec)
-  (let ((key '())
-	(name (get spec '$name))
-	(fields (get spec '$fields))
-	(unique (try (get spec '$unique) #f))
-	(sparse (try (get spec '$sparse) #f))
+(define (generate-index-spec spec (opts #f))
+  (let ((key (getopt spec 'key (get-index-key spec opts)))
+	(name (try (get spec '$name) (get spec 'name) (getopt opts 'name {})))
+	(unique (get spec '$unique))
+	(sparse (get spec '$sparse))
 	(background (get spec '$background))
 	(ttl (get spec '$ttl)))
-    (do-choices (field (difference (getkeys spec)
-				   '{$name $unique $sparse $fields $ttl
-				     $background}))
-      (set! key (cons* (qc (get spec field)) field key)))
-    (when (exists? fields)
-      (do-choices fields
-	(cond ((symbol? fields) 
-	       (set! key (cons* 1 fields key)))
-	      ((or (vector? fields) (pair? fields))
-	       (doseq (field fields)
-		 (set! key (cons* 1 (if (symbol? field) (downcase field) field)
-				  key))))
-	      (else
-	       (irritant fields "Bad $fields arg")))))
     (when (fail? name)
       (set! name
-	    (stringout (doseq (elt (reverse key) i)
+	    (stringout (do-choices (elt (getkeys key) i)
 			 (printout (if (> i 0) "_") 
 			   (if (symbol? elt) (downcase elt) elt))))))
-    `#["key" ,(apply frame-create #f (reverse key))
-       "name" ,name
-       "unique" ,unique
-       "sparse" ,sparse
-       "background" ,background
-       "expireAfterSeconds" ,ttl]))
+    (frame-create #f
+      'key key 'name name
+      'unique unique 
+      'sparse sparse 
+      'background background
+      "expiresAfterSeconds" ttl
+      'weights (getopt spec 'weights {})
+      'language (getopt spec 'language {}))))
+
+(define (get-index-key spec opts)
+  (try (get spec 'key)
+       (tryif (test spec '{fields field $fields $field})
+	 (let ((key (frame-create #f))
+	       (type (get-index-type (try (get spec 'type) (getopt opts 'type #f)))))
+	   (do-choices (field (try (get spec '$fields) (get spec '$field)
+				   (get spec 'fields) (get spec 'field)))
+	     (store! key field (get-index-type 
+				(try (get spec field) (get spec 'type)
+				     (getopt opts 'type #f)))))
+	   key))
+       (tryif (or (test spec 'fields) (test spec 'field))
+	 (let ((key (frame-create #f))
+	       (type (get-index-type (cons spec opts))))
+	   (do-choices (field (try (get spec 'fields) (get spec 'field)))
+	     (let ((type (get-index-type (try (get spec field) (getopt opts 'type 'normal)))))
+	       (store! key field type) ))
+	   key))
+       (let ((keydoc (frame-create #f)))
+	 (do-choices (key (getkeys spec))
+	   (let ((type (get-index-type (get spec key))))
+	     (when type (store! keydoc key type))))
+	 (tryif (exists? (getkeys keydoc)) keydoc))))
+
+(define (get-index-type arg (err #t))
+  (cond ((not arg) #f)
+	((number? arg) arg)
+	((overlaps? arg {1 -1 "hashed" "text" "2d"}) arg)
+	((overlaps? arg '{increasing normal}) 1)
+	((overlaps? arg '{decreasing reversed}) -1)
+	((overlaps? arg '{hash "hash"}) "hashed")
+	((overlaps? arg 'text) "text")
+	(err (irritant arg |BadMongoIndexType|))
+	(else #f)))
 
 (define (collection/new db name (opts #f))
   (mongodb/cmd db `#["create" ,name 
