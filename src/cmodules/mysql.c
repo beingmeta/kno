@@ -235,7 +235,7 @@ static int setup_connection(struct FD_MYSQL *dbp)
 
   if (retval!=RETVAL_OK) {
     const char *errmsg = mysql_error(&(dbp->_mysqldb)); fd_incref(options);
-    fd_seterr(MySQL_Error,"open_mysql/init",errmsg,options);}
+    fd_seterr(MySQL_Error,"open_mysql/setup_connection",errmsg,options);}
   return retval;
 }
 
@@ -251,7 +251,7 @@ static int restart_connection(struct FD_MYSQL *dbp)
          dbp->mysql_portno,dbp->mysql_sockname,dbp->mysql_flags);
       u8_unlock_mutex(&mysql_connect_lock);}
     if ((db == NULL)&&(mysql_errno(dbp->mysqldb) == CR_ALREADY_CONNECTED)) {
-      u8_log(LOG_WARN,"mysql/reconnect",
+      u8_log(LOG_WARN,"mysql/restart_connection",
              "Already connected to %s (%s) with id=%d/%d",
              dbp->extdb_spec,dbp->extdb_info,
              dbp->mysql_thread_id,
@@ -266,7 +266,7 @@ static int restart_connection(struct FD_MYSQL *dbp)
     const char *msg = mysql_error(db); int err = mysql_errno(dbp->mysqldb);
     lispval conn = (lispval) dbp; fd_incref(conn);
     u8_log(LOG_CRIT,"mysql/reconnect",
-           "Failed after %ds to reconnect to MYSQL %s (%s), final error %s (%d)",
+           "Failed after %ds to reconnect to MYSQL %s (%s), final err %s (%d)",
            waited,dbp->extdb_spec,dbp->extdb_info,msg,err);
     fd_seterr(MySQL_Error,"restart_connection",msg,conn);
     return -1;}
@@ -279,7 +279,8 @@ static int restart_connection(struct FD_MYSQL *dbp)
     dbp->mysql_thread_id = thread_id = mysql_thread_id(db);
     u8_log(LOG_WARN,"myql/reconnect",
            "Reconnect #%d for MYSQL with %s (%s) rv=%d, thread_id=%d",
-           dbp->mysql_restart_count+1,dbp->extdb_spec,dbp->extdb_info,retval,thread_id);
+           dbp->mysql_restart_count+1,dbp->extdb_spec,dbp->extdb_info,retval,
+           thread_id);
 
     /* Flag all the sqlprocs (prepared statements) as needing to be
        reinitialized. */
@@ -309,11 +310,11 @@ static int open_connection(struct FD_MYSQL *dbp)
   dbp->mysqldb = mysql_init(&(dbp->_mysqldb));
   if ((dbp->mysqldb) == NULL) {
     const char *errmsg = mysql_error(&(dbp->_mysqldb));
-    u8_seterr(MySQL_Error,"open_mysql/init",u8_strdup(errmsg));
+    u8_seterr(MySQL_Error,"mysql/open_connection",u8_strdup(errmsg));
     return -1;}
   if (retval) {
     const char *errmsg = mysql_error(&(dbp->_mysqldb));
-    u8_seterr(MySQL_Error,"open_mysql",u8_strdup(errmsg));
+    u8_seterr(MySQL_Error,"mysql/open_connection",u8_strdup(errmsg));
     mysql_close(dbp->mysqldb);
     u8_free(dbp);
     return -1;}
@@ -333,7 +334,7 @@ static int open_connection(struct FD_MYSQL *dbp)
 
   if (db == NULL) {
     const char *errmsg = mysql_error(&(dbp->_mysqldb));
-    u8_seterr(MySQL_Error,"open_connection",u8_strdup(errmsg));
+    u8_seterr(MySQL_Error,"mysql/open_connection",u8_strdup(errmsg));
     return -1;}
   else dbp->mysqldb = db;
   dbp->mysql_restart_count = 0;
@@ -764,7 +765,7 @@ static int init_stmt_results
       if (outbound) u8_free(outbound);
       if (nullbuf) u8_free(nullbuf);
       if (metadata) mysql_free_result(metadata);
-      u8_seterr(MySQL_Error,"init_stmt_results",u8_strdup(errmsg));
+      u8_seterr(MySQL_Error,"mysql/init_stmt_results",u8_strdup(errmsg));
       return -1;}
     while (i<n_cols) {
       mysqlproc_colnames[i]=intern_upcase(&out,fields[i].name);
@@ -951,7 +952,8 @@ static lispval mysqlmakeprochandler
 {
   if (extdb->extdb_handler== &mysql_handler)
     return mysqlmakeproc((fd_mysql)extdb,stmt,stmt_len,colinfo,n,ptypes);
-  else return fd_type_error("MYSQL EXTDB","mysqlmakeprochandler",(lispval)extdb);
+  else return fd_type_error("MYSQL EXTDB","mysqlmakeprochandler",
+                            (lispval)extdb);
 }
 
 /* Various MYSQLPROC functions */
@@ -1002,7 +1004,9 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
     if (dbproc->mysqlproc_stmt) {
       error_phase="init_mysqlproc/stmt_prepare";
       retval = mysql_stmt_prepare
-        (dbproc->mysqlproc_stmt,dbproc->mysqlproc_string,dbproc->mysqlproc_string_len);}}
+        (dbproc->mysqlproc_stmt,
+         dbproc->mysqlproc_string,
+         dbproc->mysqlproc_string_len);}}
 
   if (retval) {
     const char *errmsg = mysql_stmt_error(dbproc->mysqlproc_stmt);
@@ -1020,7 +1024,8 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
 
   if (n_params == dbproc->fcn_n_params) {}
   else {
-    lispval *init_ptypes = dbproc->extdb_paramtypes, *ptypes = u8_alloc_n(n_params,lispval);
+    lispval *init_ptypes = dbproc->extdb_paramtypes;
+    lispval *ptypes = u8_alloc_n(n_params,lispval);
     int i = 0, init_n = dbproc->fcn_n_params; while ((i<init_n)&&(i<n_params)) {
       ptypes[i]=init_ptypes[i]; i++;}
     while (i<n_params) ptypes[i++]=FD_VOID;
@@ -1030,8 +1035,8 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
          the first time that the statement is created. */
       lispval ptype = init_ptypes[i++];
       if (FD_VOIDP(ptype)) {}
-      else u8_log(LOG_WARN,UnusedType,
-                  "Parameter type %hq is not used for %s",ptype,dbproc->extdb_qtext);
+      else u8_log(LOG_WARN,UnusedType,"Parameter type %hq is not used for %s",
+                  ptype,dbproc->extdb_qtext);
       fd_decref(ptype);}
     dbproc->extdb_paramtypes = ptypes; dbproc->fcn_n_params = n_params;
     if (init_ptypes) u8_free(init_ptypes);}
@@ -1159,8 +1164,8 @@ static lispval applymysqlproc(fd_function fn,int n,lispval *args,int reconn)
     if (n!=n_params) {
       u8_unlock_mutex(&(dbproc->mysqlproc_lock));
       if (n<n_params)
-        return fd_err(fd_TooFewArgs,"fd_dapply",fn->fcn_name,FD_VOID);
-      else return fd_err(fd_TooManyArgs,"fd_dapply",fn->fcn_name,FD_VOID);}
+        return fd_err(fd_TooFewArgs,"applymysqlproc",fn->fcn_name,FD_VOID);
+      else return fd_err(fd_TooManyArgs,"applymysqlproc",fn->fcn_name,FD_VOID);}
 
     if (n_params>4) argbuf = u8_alloc_n(n_params,lispval);
     /* memset(argbuf,0,LISPVEC_BYTELEN(n_params)); */
@@ -1291,7 +1296,7 @@ static lispval applymysqlproc(fd_function fn,int n,lispval *args,int reconn)
         struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,32);
         if (fd_unparse(&out,arg)<0) {
           int j = 0;
-          fd_seterr(MySQL_NoConvert,"callmysqlproc",
+          fd_seterr(MySQL_NoConvert,"applymysqlproc",
                     dbproc->extdb_qtext,fd_incref(arg));
           while (j<i) {fd_decref(argbuf[i]); i++;}
           j = 0; while (j<n_mstimes) {u8_free(mstimes[j]); j++;}
@@ -1312,7 +1317,7 @@ static lispval applymysqlproc(fd_function fn,int n,lispval *args,int reconn)
       else {
         int j;
         /* Finally, if we can't convert the value, we error. */
-        fd_seterr(MySQL_NoConvert,"callmysqlproc",
+        fd_seterr(MySQL_NoConvert,"applymysqlproc",
                   dbproc->extdb_qtext,fd_incref(arg));
         j = 0; while (j<n_mstimes) {u8_free(mstimes[j]); j++;}
         j = 0; while (j<i) {fd_decref(argbuf[j]); j++;}
@@ -1370,10 +1375,10 @@ static lispval applymysqlproc(fd_function fn,int n,lispval *args,int reconn)
     mysqlerrno = mysql_stmt_errno(dbproc->mysqlproc_stmt);
     mysqlerrmsg = mysql_stmt_error(dbproc->mysqlproc_stmt);
     u8_log(LOG_WARN,
-           ((sretval)?("callmysqlproc/store"):
-            (eretval)?("callmysqlproc/exec"):
-            (bretval)?("callmysqlproc/bind"):
-            ("callmysqlproc")),
+           ((sretval)?("applymysqlprocproc/store"):
+            (eretval)?("applymysqlprocproc/exec"):
+            (bretval)?("applymysqlprocproc/bind"):
+            ("applymysqlproc")),
            "MYSQL error '%s' (%d) for %s at %s",
            mysqlerrmsg,mysqlerrno,dbproc->mysqlproc_string,dbp->extdb_spec);
     /* mysql_stmt_reset(dbproc->mysqlproc_stmt); */
@@ -1477,21 +1482,21 @@ FD_EXPORT int fd_init_mysql()
 
   fd_register_extdb_handler(&mysql_handler);
 
-  fd_defn(module,
-          fd_make_cprim6x("MYSQL/OPEN",open_mysql,1,
-                          fd_string_type,FD_VOID,
-                          fd_string_type,FD_VOID,
-                          -1,FD_VOID,
-                          fd_string_type,FD_VOID,
-                          -1,FD_VOID,
-                          -1,FD_VOID));
-  fd_defn(module,
-          fd_make_cprim2x("MYSQL/REFRESH",refresh_mysqldb,1,
-                          fd_extdb_type,FD_VOID,
-                          -1,FD_VOID));
-
+  fd_idefn6(module,"MYSQL/OPEN",open_mysql,1,
+            "`(MYSQL/OPEN *host* *dbname* *colmap* *user* *pass* *opts*)`",
+            fd_string_type,FD_VOID,
+            fd_string_type,FD_VOID,
+            -1,FD_VOID,
+            fd_string_type,FD_VOID,
+            -1,FD_VOID,
+            -1,FD_VOID);
+  fd_idefn2(module,"MYSQL/REFRESH",refresh_mysqldb,1,
+            "`(MYSQL/REFRESH *dbptr* *flags*)`",
+            fd_extdb_type,FD_VOID,
+            -1,FD_VOID);
+  
   mysql_initialized = u8_millitime();
-
+  
   boolean_symbol = fd_intern("BOOLEAN");
   merge_symbol = fd_intern("%MERGE");
   noempty_symbol = fd_intern("%NOEMPTY");

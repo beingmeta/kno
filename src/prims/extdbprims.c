@@ -211,8 +211,9 @@ static lispval extdb_makeproc(int n,lispval *args)
     else if ((extdb->extdb_handler->makeproc) == NULL)
       return fd_err(NoMakeProc,"extdb_makeproc",NULL,dbspec);
     else return extdb->extdb_handler->makeproc
-           (extdb,CSTRING(query),STRLEN(query),
-            colinfo,((n>3) ? (n-3) : (0)),((n>3)? (args+3) : (NULL)));}
+           (extdb,CSTRING(query),STRLEN(query),colinfo,
+            ((n>3) ? (n-3) : (0)),
+            ((n>3)? (args+3) : (NULL)));}
   else if (!(FD_PRIM_TYPEP(args[0],fd_extdb_type)))
     return fd_type_error("extdb","extdb_makeproc",args[0]);
   else if  (!(STRINGP(args[1])))
@@ -319,24 +320,31 @@ FD_EXPORT void fd_init_extdbprims_c()
   fd_applyfns[fd_extdb_proc_type]=(fd_applyfn)callextdbproc;
   fd_functionp[fd_extdb_proc_type]=1;
 
-  fd_idefn(extdb_module,
-           fd_make_cprim3x("EXTDB/EXEC",extdb_exec,2,
-                           fd_extdb_type,VOID,
-                           fd_string_type,VOID,
-                           -1,VOID));
-  fd_idefn(extdb_module,fd_make_cprimn("EXTDB/PROC",extdb_makeproc,2));
-  fd_idefn(extdb_module,fd_make_cprimn("EXTDB/PROC+",extdb_proc_plus,2));
+  fd_idefn3(extdb_module,"EXTDB/EXEC",extdb_exec,2,
+            "`(EXTDB/EXEC *dbptr* *sql* *colinfo*)`",
+            fd_extdb_type,VOID,
+            fd_string_type,VOID,
+            -1,VOID);
+  fd_idefnN(extdb_module,"EXTDB/PROC",extdb_makeproc,2,
+            "`(EXTDB/PROC *dbptr* *sql* [*colinfo*] [*paraminfo*...] )`");
+  fd_idefnN(extdb_module,"EXTDB/PROC+",extdb_proc_plus,2,
+            "`(EXTDB/PROC *dbptr* *sql* [*colinfo*] [*paraminfo*...] )`");
 
-  fd_idefn(extdb_module,fd_make_cprim1x
-           ("EXTDB/PROC/QUERY",extdb_proc_query,1,fd_extdb_proc_type,VOID));
-  fd_idefn(extdb_module,fd_make_cprim1x
-           ("EXTDB/PROC/DB",extdb_proc_db,1,fd_extdb_proc_type,VOID));
-  fd_idefn(extdb_module,fd_make_cprim1x
-           ("EXTDB/PROC/SPEC",extdb_proc_spec,1,fd_extdb_proc_type,VOID));
-  fd_idefn(extdb_module,fd_make_cprim1x
-           ("EXTDB/PROC/PARAMS",extdb_proc_params,1,fd_extdb_proc_type,VOID));
-  fd_idefn(extdb_module,fd_make_cprim1x
-           ("EXTDB/PROC/TYPEMAP",extdb_proc_typemap,1,fd_extdb_proc_type,VOID));
+  fd_idefn1(extdb_module,"EXTDB/PROC/QUERY",extdb_proc_query,1,
+            "`(EXTDB/PROC/QUERY *dbproc*)` => sqlstring",
+            fd_extdb_proc_type,VOID);
+  fd_idefn1(extdb_module,"EXTDB/PROC/DB",extdb_proc_db,1,
+            "`(EXTDB/PROC/DB *dbproc*)` => dbptr",
+            fd_extdb_proc_type,VOID);
+  fd_idefn1(extdb_module,"EXTDB/PROC/SPEC",extdb_proc_spec,1,
+            "`(EXTDB/PROC/SPEC *dbproc*)` => dbspecstring",
+            fd_extdb_proc_type,VOID);
+  fd_idefn1(extdb_module,"EXTDB/PROC/PARAMS",extdb_proc_params,1,
+            "`(EXTDB/PROC/PARAMS *dbproc*)` => paraminfo",
+            fd_extdb_proc_type,VOID);
+  fd_idefn1(extdb_module,"EXTDB/PROC/TYPEMAP",extdb_proc_typemap,1,
+            "`(EXTDB/PROC/TYPEMAP *dbproc*)` => colinfo",
+            fd_extdb_proc_type,VOID);
 
   fd_register_config("SQLEXEC",
                      _("whether direct execution of SQL strings is allowed"),
