@@ -45,7 +45,7 @@ u8_condition fd_BSON_Compound_Overflow=_("BSON/FramerD compound overflow");
 
 static lispval sslsym, smoketest_sym;
 static int mongodb_loglevel = LOG_NOTICE;
-static int logops = 0;
+static int logops = 0, logcmds = 0;
 
 static int default_ssl = 0;
 static u8_string default_cafile = NULL;
@@ -1717,6 +1717,9 @@ static lispval collection_command(lispval arg,lispval command,lispval opts_arg)
       if ((FD_UINTP(skip_arg))&&
           (FD_UINTP(limit_arg))&&
           (FD_UINTP(batch_arg))) {
+        if (logcmds) {
+          u8_log(LOG_INFO,"MongoDBCommand",
+                 "For %q:\n  COMMAND: %Q",arg,command);}
         mongoc_cursor_t *cursor = mongoc_collection_command
           (collection,MONGOC_QUERY_EXHAUST,
            (FD_FIX2INT(skip_arg)),
@@ -1766,6 +1769,9 @@ static lispval db_command(lispval arg,lispval command,
       if ((FD_UINTP(skip_arg))&&
           (FD_UINTP(limit_arg))&&
           (FD_UINTP(batch_arg))) {
+        if (logcmds) {
+          u8_log(LOG_INFO,"MongoDBCommand",
+                 "For %q:\n  COMMAND: %Q",arg,command);}
         mongoc_cursor_t *cursor = mongoc_client_command
           (client,srv->dbname,MONGOC_QUERY_EXHAUST,
            (FD_FIX2INT(skip_arg)),
@@ -1824,7 +1830,7 @@ static lispval mongodb_command(int n,lispval *args)
 }
 
 static lispval collection_simple_command(lispval arg,lispval command,
-                                        lispval opts_arg)
+                                         lispval opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
   int flags = getflags(opts_arg,domain->domain_flags);
@@ -1836,6 +1842,9 @@ static lispval collection_simple_command(lispval arg,lispval command,
     if (collection) {U8_CLEAR_ERRNO();}
     if (collection) {
       bson_t response; bson_error_t error;
+      if (logcmds) {
+        u8_log(LOG_INFO,"MongoDBCollectionSimpleCommand",
+               "For %q:\n  COMMAND: %Q",arg,command);}
       if (mongoc_collection_command_simple
           (collection,cmd,NULL,&response,&error)) {
         lispval result = fd_bson2dtype(&response,flags,opts);
@@ -1869,6 +1878,9 @@ static lispval db_simple_command(lispval arg,lispval command,
     bson_t response; bson_error_t error;
     bson_t *cmd = fd_lisp2bson(command,flags,opts);
     if (cmd) {
+      if (logcmds) {
+        u8_log(LOG_INFO,"MongoDBSimpleCommand",
+                 "For %q:\n  COMMAND: %Q",arg,command);}
       if (mongoc_client_command_simple
           (client,srv->dbname,cmd,NULL,&response,&error)) {
         lispval result = fd_bson2dtype(&response,flags,opts);
@@ -3398,8 +3410,11 @@ FD_EXPORT int fd_init_mongodb()
                      fd_intconfig_get,fd_intconfig_set,
                      &mongodb_ignore_loglevel);
   fd_register_config("MONGODB:LOGOPS",
-                     "Default flags (fixnum) for MongoDB/BSON processing",
+                     "Whether to log mongodb operations",
                      fd_boolconfig_get,fd_boolconfig_set,&logops);
+  fd_register_config("MONGODB:LOGCMDS",
+                     "Whether to log mongodb commands",
+                     fd_boolconfig_get,fd_boolconfig_set,&logcmds);
 
   fd_register_config("MONGODB:SSL",
                      "Whether to default to SSL for MongoDB connections",
