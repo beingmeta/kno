@@ -809,6 +809,47 @@ static lispval safe_use_module_evalfn(lispval expr,fd_lexenv env,fd_stack _stack
   return use_module_helper(expr,env,1);
 }
 
+static lispval export_alias_helper(lispval expr,fd_lexenv env,fd_stack _stack,
+                                   int safe)
+{
+  lispval modexpr = fd_get_arg(expr,1);
+  if (FD_VOIDP(modexpr))
+    return fd_err(fd_SyntaxError,"export_alias_helper",NULL,expr);
+  lispval old_exports = env->env_exports;
+  lispval modname = fd_stack_eval(modexpr,env,_stack,0);
+  if (FD_ABORTP(modname)) return modname;
+  lispval module = fd_find_module(modname,safe,1);
+  if (FD_ABORTP(module)) return module;
+  fd_hashtable exports =
+    (FD_HASHTABLEP(module)) ? ((fd_hashtable)module) :
+    (FD_LEXENVP(module)) ? (get_exports((fd_lexenv)module)) :
+    (NULL);
+  if (exports == NULL) {
+    lispval err = fd_err("ModuleAliasFailed","alias_module_evalfn",
+                         (FD_SYMBOLP(modname)) ? (FD_SYMBOL_NAME(modname)) :
+                         (FD_STRINGP(modname)) ? (FD_CSTRING(modname)) : (NULL),
+                         module);
+    fd_decref(modname); fd_decref(module);
+    return err;}
+  fd_incref((lispval)exports);
+  env->env_exports=fd_incref((lispval)exports);
+  fd_decref(modname);
+  fd_decref(module);
+  fd_decref(old_exports);
+  return FD_VOID;
+}
+
+static lispval export_alias_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+{
+  return export_alias_helper(expr,env,_stack,0);
+}
+
+static lispval safe_export_alias_evalfn(lispval expr,fd_lexenv env,
+                                        fd_stack _stack)
+{
+  return export_alias_helper(expr,env,_stack,1);
+}
+
 static lispval safe_get_module(lispval modname)
 {
   lispval module = fd_find_module(modname,1,0);
@@ -1249,6 +1290,13 @@ FD_EXPORT void fd_init_modules_c()
             "which can be a function (or macro or evalfn), module, or module "
             "name. With no arguments, returns the current SOURCEBASE",
             -1,VOID);
+
+  fd_def_evalfn(fd_xscheme_module,"EXPORT-ALIAS!",
+                "Combine the exports of this module with another",
+                export_alias_evalfn);
+  fd_def_evalfn(fd_scheme_module,"EXPORT-ALIAS!",
+                "Combine the exports of this module with another",
+                safe_export_alias_evalfn);
 
   fd_idefn3(fd_scheme_module,"GET-BINDING",safe_get_binding_prim,2,
             "(get-binding *module* *symbol* [*default*])\n"
