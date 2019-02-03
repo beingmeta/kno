@@ -127,7 +127,7 @@ static lispval *extindex_fetchn(fd_index p,int n,const lispval *keys)
     u8_free((struct FD_CONS *)value);
     return results;}
   else if (FD_ABORTED(value))
-    return value;
+    return NULL;
   else NO_ELSE;
   /* It didnt' return a vector, which is its way of telling us that it
      needs to be fed a key at a time. */
