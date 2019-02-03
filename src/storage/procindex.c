@@ -20,6 +20,8 @@
 #include "framerd/indexes.h"
 #include "framerd/drivers.h"
 
+static u8_condition OddResult = _("ProcIndex/OddResult");
+
 /* Fetch pools */
 
 /* Fetch pools are pools which keep their data externally and take care
@@ -139,19 +141,24 @@ static int procindex_fetchsize(fd_index ix,lispval key)
   lispval args[]={lp,pix->index_state,key};
   if (VOIDP(pix->index_methods->fetchsizefn)) {
     lispval v = fd_dapply(pix->index_methods->fetchfn,3,args);
-    if (FD_ABORTP(v))
+    if (FD_ABORTED(v))
       return -1;
     int size = FD_CHOICE_SIZE(v);
     fd_decref(v);
     return size;}
   else {
     lispval size_value = fd_dapply(pix->index_methods->fetchsizefn,3,args);
-    if (FD_ABORTP(size_value))
+    if (FD_ABORTED(size_value))
       return -1;
-    else {
+    else if ( (FD_FIXNUMP(size_value)) && (FD_FIX2INT(size_value)>=0) ) {
       int ival = FD_FIX2INT(size_value);
       fd_decref(size_value);
-      return ival;}}
+      return ival;}
+    else {
+      fd_seterr(OddResult,"procpool_fetchsize",
+                ix->indexid,size_value);
+      fd_decref(size_value);
+      return -1;}}
 }
 
 static lispval *procindex_fetchn(fd_index ix,int n,const lispval *keys)
@@ -163,7 +170,7 @@ static lispval *procindex_fetchn(fd_index ix,int n,const lispval *keys)
     int i = 0; while (i<n) {
       lispval key = keys[i];
       lispval v = procindex_fetch(ix,key);
-      if (FD_ABORTP(v)) {
+      if (FD_ABORTED(v)) {
         fd_decref_vec(vals,i);
         u8_big_free(vals);
         return NULL;}
@@ -176,10 +183,11 @@ static lispval *procindex_fetchn(fd_index ix,int n,const lispval *keys)
     vec.vec_length=n;
     vec.vec_elts= (lispval *) keys;
     lispval keyvec = (lispval) &vec;
-    lispval args[]={lp,pix->index_state,keyvec};
+    lispval args[] = {lp,pix->index_state,keyvec};
     lispval result = fd_dapply(pix->index_methods->fetchnfn,3,args);
-
-    if (VECTORP(result)) {
+    if (FD_ABORTED(result))
+      return NULL;
+    else if (VECTORP(result)) {
       lispval *vals = u8_big_alloc_n(n,lispval);
       int i = 0; while (i<n) {
         lispval val = VEC_REF(result,i);
@@ -188,6 +196,7 @@ static lispval *procindex_fetchn(fd_index ix,int n,const lispval *keys)
       fd_decref(result);
       return vals;}
     else {
+      fd_seterr(OddResult,"procpool_fetchn",ix->indexid,result);
       fd_decref(result);
       return NULL;}}
 }
@@ -196,14 +205,17 @@ static lispval *procindex_fetchkeys(fd_index ix,int *n_keys)
 {
   struct FD_PROCINDEX *pix = (fd_procindex)ix;
   lispval lp = fd_index2lisp(ix);
-  if (VOIDP(pix->index_methods->fetchnfn))
-    return NULL;
+  if (VOIDP(pix->index_methods->fetchnfn)) {
+    *n_keys=-1;
+    return NULL;}
   else {
     lispval args[]={lp,pix->index_state};
     lispval result = fd_dapply(pix->index_methods->fetchkeysfn,2,args);
+    if (FD_ABORTED(result)) {
+      *n_keys = -1;
+      return NULL;}
     if (FD_PRECHOICEP(result))
       result=fd_simplify_choice(result);
-
     if (VECTORP(result)) {
       int n = FD_VECTOR_LENGTH(result);
       lispval *vals = u8_big_alloc_n(n,lispval);
@@ -221,9 +233,14 @@ static lispval *procindex_fetchkeys(fd_index ix,int *n_keys)
         vals[i++]=elt; fd_incref(elt);}
       *n_keys=n;
       return vals;}
+    else if (FD_EMPTYP(result)) {
+      *n_keys = 0;
+      return NULL;}
     else {
-      fd_decref(result);
-      return NULL;}}
+      lispval *vals = u8_big_alloc_n(1,lispval);
+      vals[0] = result;
+      *n_keys=1;
+      return vals;}}
 }
 
 static int copy_keyinfo(lispval info,struct FD_KEY_SIZE *keyinfo)
@@ -261,7 +278,10 @@ struct FD_KEY_SIZE *procindex_fetchinfo
     int key_count = 0;
     lispval args[]={lp,pix->index_state};
     lispval result = fd_dapply(pix->index_methods->fetchinfofn,2,args);
-    if (VECTORP(result)) {
+    if (FD_ABORTED(result)) {
+      *n_ptr = -1;
+      return NULL;}
+    else if (VECTORP(result)) {
       int n = FD_VECTOR_LENGTH(result);
       struct FD_KEY_SIZE *info = u8_big_alloc_n(n,struct FD_KEY_SIZE);
       int i = 0; while (i<n) {
@@ -273,8 +293,9 @@ struct FD_KEY_SIZE *procindex_fetchinfo
       *n_ptr = key_count;
       return info;}
     else {
+      fd_seterr(OddResult,"procpool_fetchn",ix->indexid,result);
       fd_decref(result);
-      *n_ptr = 0;
+      *n_ptr = -1;
       return NULL;}}
 }
 
@@ -307,7 +328,7 @@ static int procindex_commit(fd_index ix,fd_commit_phase phase,
                        (FD_FALSE) :
                        (commits->commit_metadata) )};
     lispval result = fd_dapply(pix->index_methods->commitfn,7,args);
-    if (FD_ABORTP(result))
+    if (FD_ABORTED(result))
       return -1;
     else {
       if (FD_FIXNUMP(result)) {
@@ -319,6 +340,7 @@ static int procindex_commit(fd_index ix,fd_commit_phase phase,
       else if (FD_TRUEP(result))
         return 1;
       else {
+        fd_seterr(OddResult,"procindex_commit",ix->indexid,result);
         fd_decref(result);
         return 1;}}}
 }
@@ -390,7 +412,7 @@ static fd_index open_procindex(u8_string source,fd_storage_flags flags,lispval o
   lispval args[] = { source_arg, opts };
   lispval lp = fd_apply(methods->openfn,2,args);
   fd_decref(args[0]);
-  if (FD_ABORTP(lp))
+  if (FD_ABORTED(lp))
     return NULL;
   else if (FD_INDEXP(lp))
     return fd_lisp2index(lp);
@@ -407,7 +429,7 @@ static fd_index procindex_create(u8_string spec,void *type_data,
   lispval args[] = { spec_arg, opts };
   lispval result = fd_apply(methods->createfn,2,args);
   fd_decref(spec_arg);
-  if (FD_ABORTP(result))
+  if (FD_ABORTED(result))
     return NULL;
   else if (FD_VOIDP(result))
     return open_procindex(spec,storage_flags,opts);

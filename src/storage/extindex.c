@@ -79,6 +79,8 @@ static lispval extindex_fetch(fd_index p,lispval key)
       fd_incref(result);
       fd_decref(value);
       return result;}
+    else if (FD_ABORTED(value))
+      return value;
     else return fd_err("BadExtindexResult","extindex_fetch",
                        xp->indexid,value);}
   else if ((VOIDP(state))||(FALSEP(state))||
@@ -113,9 +115,7 @@ static lispval *extindex_fetchn(fd_index p,int n,const lispval *keys)
   else {
     lispval args[2]; args[0]=vecarg; args[1]=state;
     value = fd_apply(xp->fetchfn,2,args);}
-  if (FD_ABORTP(value))
-    return NULL;
-  else if (VECTORP(value)) {
+  if (VECTORP(value)) {
     struct FD_VECTOR *vstruct = (struct FD_VECTOR *)value;
     lispval *results = u8_big_alloc_n(n,lispval);
     memcpy(results,vstruct->vec_elts,LISPVEC_BYTELEN(n));
@@ -126,6 +126,9 @@ static lispval *extindex_fetchn(fd_index p,int n,const lispval *keys)
       u8_free(vstruct->vec_elts);
     u8_free((struct FD_CONS *)value);
     return results;}
+  else if (FD_ABORTED(value))
+    return value;
+  else NO_ELSE;
   /* It didnt' return a vector, which is its way of telling us that it
      needs to be fed a key at a time. */
   fd_decref(value); value = FD_VOID;
@@ -184,7 +187,7 @@ static int extindex_save(struct FD_INDEX *ix,
   argv[3]=exi->state;
   result = fd_apply(exi->commitfn,((VOIDP(exi->state))?(3):(4)),argv);
   fd_decref(argv[0]); fd_decref(argv[1]); fd_decref(argv[2]);
-  if (FD_ABORTP(result))
+  if (FD_ABORTED(result))
     return -1;
   else {
     fd_decref(result);

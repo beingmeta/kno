@@ -23,6 +23,8 @@
 
 #include "libu8/u8printf.h"
 
+static u8_condition OddResult = _("ProcPool/OddResult");
+
 /* Fetch pools */
 
 /* Fetch pools are pools which keep their data externally and take care
@@ -162,7 +164,7 @@ static lispval *procpool_fetchn(fd_pool p,int n,lispval *oids)
     int i = 0; while (i<n) {
       lispval oid = oids[i];
       lispval v = procpool_fetch(p,oid);
-      if (FD_ABORTP(v)) {
+      if (FD_ABORTED(v)) {
         fd_decref_vec(vals,i);
         u8_big_free(vals);
         return NULL;}
@@ -173,7 +175,10 @@ static lispval *procpool_fetchn(fd_pool p,int n,lispval *oids)
     lispval args[]={lp,pp->pool_state,oidvec};
     lispval result = fd_dapply(pp->pool_methods->fetchnfn,3,args);
     fd_decref(oidvec);
-    if (VECTORP(result)) {
+    if (FD_ABORTED(result)) {
+      fd_decref(oidvec);
+      return NULL;}
+    else if (VECTORP(result)) {
       lispval *vals = u8_big_alloc_n(n,lispval);
       int i = 0; while (i<n) {
         lispval val = VEC_REF(result,i);
@@ -182,6 +187,7 @@ static lispval *procpool_fetchn(fd_pool p,int n,lispval *oids)
       fd_decref(result);
       return vals;}
     else {
+      fd_seterr(OddResult,"procpool_fetchn",p->poolid,result);
       fd_decref(result);
       return NULL;}}
 }
@@ -195,11 +201,15 @@ static int procpool_lock(fd_pool p,lispval oid)
   else {
     lispval args[]={lp,pp->pool_state,oid};
     lispval result = fd_dapply(pp->pool_methods->lockfn,3,args);
-    if (FIXNUMP(result)) return result;
+    if (FD_ABORTED(result)) return result;
+    else if (FIXNUMP(result)) return result;
     else if (FD_TRUEP(result)) return 1;
     else if (FALSEP(result)) return 0;
     else if (EMPTYP(result)) return 0;
-    else {fd_decref(result); return -1;}}
+    else {
+      fd_seterr(OddResult,"procpool_lock",p->poolid,result);
+      fd_decref(result);
+      return -1;}}
 }
 
 static int procpool_swapout(fd_pool p,lispval oid)
@@ -215,7 +225,10 @@ static int procpool_swapout(fd_pool p,lispval oid)
     else if (FD_TRUEP(result)) return 1;
     else if (FALSEP(result)) return 0;
     else if (EMPTYP(result)) return 0;
-    else {fd_decref(result); return -1;}}
+    else {
+      fd_seterr(OddResult,"procpool_swapout",p->poolid,result);
+      fd_decref(result);
+      return -1;}}
 }
 
 static lispval procpool_alloc(fd_pool p,int n)
@@ -241,7 +254,11 @@ static int procpool_release(fd_pool p,lispval oid)
     if (FIXNUMP(result)) return fd_getint(result);
     else if (FD_TRUEP(result)) return 1;
     else if (FALSEP(result)) return 0;
-    else {fd_decref(result); return -1;}}
+    else if (FD_ABORTED(result)) return -1;
+    else {
+      fd_seterr(OddResult,"procpool_release",p->poolid,result);
+      fd_decref(result);
+      return -1;}}
 }
 
 static int procpool_commit(fd_pool p,fd_commit_phase phase,
@@ -270,11 +287,12 @@ static int procpool_commit(fd_pool p,fd_commit_phase phase,
       return FD_INT(result);
     else if (FALSEP(result))
       return 0;
-    else if (FD_ABORTP(result))
+    else if (FD_ABORTED(result))
       return -1;
     else if (FD_TRUEP(result))
       return 1;
     else {
+      fd_seterr(OddResult,"procpool_commit",p->poolid,result);
       fd_decref(result);
       return -1;}}
 }
@@ -304,6 +322,7 @@ static int procpool_getload(fd_pool p)
     if (FD_UINTP(result))
       return FIX2INT(result);
     else {
+      fd_seterr(OddResult,"procpool_getload",p->poolid,result);
       fd_decref(result);
       return -1;}}
 }
@@ -352,12 +371,12 @@ static fd_pool open_procpool(u8_string source,fd_storage_flags flags,lispval opt
 {
   lispval pool_type = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
   struct FD_POOL_TYPEINFO *typeinfo =
-    (FD_STRINGP(pool_type)) ? 
+    (FD_STRINGP(pool_type)) ?
     (fd_get_pool_typeinfo(FD_CSTRING(pool_type))) :
-    (FD_SYMBOLP(pool_type)) ? 
+    (FD_SYMBOLP(pool_type)) ?
     (fd_get_pool_typeinfo(FD_SYMBOL_NAME(pool_type))) :
     (NULL);
-  struct FD_PROCPOOL_METHODS *methods = 
+  struct FD_PROCPOOL_METHODS *methods =
     (struct FD_PROCPOOL_METHODS *) (typeinfo->type_data);
   lispval source_arg = lispval_string(source);
   lispval args[] = { source_arg, opts };
@@ -382,7 +401,7 @@ static fd_pool procpool_create(u8_string spec,void *type_data,
     fd_decref(args[0]);
     return opened;}
   else fd_decref(args[0]);
-  if (FD_ABORTP(result))
+  if (FD_ABORTED(result))
     return NULL;
   else if ( (FD_POOLP(result)) || (FD_TYPEP(result,fd_consed_pool_type)) )
     return fd_lisp2pool(result);
