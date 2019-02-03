@@ -240,7 +240,7 @@ static struct FD_TIMESTAMP *get_timestamp(lispval arg,int *freeit)
   else if ((FIXNUMP(arg))||
            ((FD_BIGINTP(arg))&&
             (fd_modest_bigintp((fd_bigint)arg)))) {
-    struct FD_TIMESTAMP *tm = u8_alloc(struct FD_TIMESTAMP), *xtm;
+    struct FD_TIMESTAMP *tm = u8_alloc(struct FD_TIMESTAMP);
     long long int tick; time_t moment;
     if (FIXNUMP(arg))
       tick = FIX2INT(arg);
@@ -256,7 +256,7 @@ static struct FD_TIMESTAMP *get_timestamp(lispval arg,int *freeit)
     else if (u8_init_xtime(&(tm->u8xtimeval),tick,u8_second,0,0,0) == NULL) {
         u8_free(tm); *freeit=0;
         return NULL;}
-    else return tm;}
+    return tm;}
   else if (VOIDP(arg)) {
     struct FD_TIMESTAMP *tm = u8_alloc(struct FD_TIMESTAMP);
     memset(tm,0,sizeof(struct FD_TIMESTAMP));
