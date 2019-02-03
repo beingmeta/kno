@@ -5,7 +5,7 @@
 
 (use-module '{fifo varconfig mttools stringfmts reflection 
 	      bugjar bugjar/html logger})
-(use-module '{storage/flex storage/registry storage/branches})
+(use-module '{flexdb storage/registry storage/branches})
 
 (define %loglevel %notice%)
 

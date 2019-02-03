@@ -1,8 +1,11 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
-;;; Copyright (C) 2005-2019 beingmeta, inc.  All rights reserved.
+;;; Copyright (C) 2010-2019 beingmeta, inc. All rights reserved
 
 (in-module 'storage/flexindexes)
+(use-module 'logger)
 
-(use-module 'storage/flexindex)
+(logwarn |Deprecated| 
+  "The module " 'storage/flexindexes 
+  " has been deprecated, please use " 'flexdb/flexindexes " instead")
 
-(module-export! '{flex/open-index})
+(export-alias! 'flexdb/flexindex)

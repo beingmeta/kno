@@ -1,8 +1,8 @@
 (load-component "common.scm")
 
-(use-module '{storage/flex storage/flexpool texttools varconfig logger logctl})
+(use-module '{flexdb flexdb/flexpool texttools varconfig logger logctl})
 
-;;(logctl! 'storage/flexpool %debug%)
+;;(logctl! 'flexdb/flexpool %debug%)
 
 (define poolfile "flex.flexpool")
 (define pooltype 'bigpool)

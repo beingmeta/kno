@@ -2,7 +2,7 @@
 
 (use-module '{fdweb optimize mttools varconfig 
 	      stringfmts logger fifo 
-	      storage/flex storage/flexpools})
+	      flexdb storage/flexpools})
 
 (define %loglevel %notice%)
 (config! 'cachelevel 2)
