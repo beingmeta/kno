@@ -1602,7 +1602,7 @@ install-support: $(DESTDIR)@share_dir@
 	cd $(BUILD)/src/web; $(SYSINSTALL) @install_file_opts@ 	\
 		webinfo.fdcgi $(DESTDIR)@share_dir@
 
-LIBSCM_DIRS=optimize bugjar storage mongodb xhtml
+LIBSCM_DIRS=optimize bugjar storage flexdb mongodb xhtml
 install-libscm:
 	@if [ ! -d ${DESTDIR}${LIBSCM} ]; then 						\
 	  make really-install-libscm; 							\
