@@ -54,10 +54,10 @@
       (store! addopts 'metadata #f))
     (cons addopts opts)))
 
-(define (flex/partitions arg)
+(define (flexdb/partitions arg)
   (cond ((pool? arg) (poolctl arg 'partitions))
 	((index? arg) (or (indexctl arg 'partitions) {}))
-	((string? arg) (flex/partition-files arg))
+	((string? arg) (flexdb/partition-files arg))
 	(else (fail))))
 
 (define (wrap-pool pool (opts #f))
@@ -83,7 +83,7 @@
 	     (getopt opts 'flexindex)
 	     (identical? (downcase (getopt opts 'type {})) "flexindex")
 	     (textsearch #("." (isdigit+) ".index") source))
-	 (flex/open-index source opts))
+	 (flexdb/open-index source opts))
 	((or (has-suffix source ".pool")
 	     (testopt opts 'pool)
 	     (testopt opts 'type 'pool)
@@ -98,16 +98,16 @@
 	 (if (testopt opts 'background)
 	     (wrap-index (use-index source opts) opts)
 	     (wrap-index (open-index source opts) opts)))
-	((exists? (flex/partition-files source "index"))
-	 (flex/open-index source opts))
-	((exists? (flex/partition-files source "pool"))
+	((exists? (flexdb/partition-files source "index"))
+	 (flexdb/open-index source opts))
+	((exists? (flexdb/partition-files source "pool"))
 	 (if (or (testopt opts 'adjunct)
 		 (not (getopt opts 'background #t)))
-	     (wrap-pool (open-pool (flex/partition-files source "pool") opts) opts)
-	     (wrap-pool (use-pool (flex/partition-files source "pool") opts) opts)))
+	     (wrap-pool (open-pool (flexdb/partition-files source "pool") opts) opts)
+	     (wrap-pool (use-pool (flexdb/partition-files source "pool") opts) opts)))
 	(else (irritant source |UnknownDBType|))))
 
-(define (flex/dbref dbsource (opts #f))
+(define (flexdb/ref dbsource (opts #f))
   (when (and (table? dbsource) (not (or (pool? dbsource) (index? dbsource))))
     (if opts (set! opts (cons opts dbsource)) (set! opts dbsource))
     (set! dbsource
@@ -120,8 +120,8 @@
 	((not (string? dbsource))
 	 (irritant dbsource |BadDBSource| flex/dbref))
 	((or (file-exists? dbsource) (textmatch (qc network-source) dbsource)
-	     (exists? (flex/partition-files dbsource "index"))
-	     (exists? (flex/partition-files dbsource "pool")))	     
+	     (exists? (flexdb/partition-files dbsource "index"))
+	     (exists? (flexdb/partition-files dbsource "pool")))	     
 	 (flex-open dbsource opts))
 	((not (or (getopt opts 'create) (getopt opts 'make)))
 	 (if (getopt opts 'err)
@@ -149,14 +149,14 @@
 
 ;;; Variants
 
-(define (flex/make spec (opts #f))
-  (flex/dbref spec (if opts (cons #[create #t] opts) #[create #t])))
+(define (flexdb/make spec (opts #f))
+  (flexdb/ref spec (if opts (cons #[create #t] opts) #[create #t])))
 
 (define (pool/ref spec (opts #f))
-  (flex/dbref spec (opt+ opts 'type 'pool)))
+  (flexdb/ref spec (opt+ opts 'type 'pool)))
 
 (define (index/ref spec (opts #f))
-  (flex/dbref spec (opt+ opts 'type 'index)))
+  (flexdb/ref spec (opt+ opts 'type 'index)))
 
 ;;; Copying OIDs between pools
 
@@ -187,7 +187,7 @@
 
 ;;; Generic DB saving
 
-(define (flex/mods arg)
+(define (flexdb/mods arg)
   (cond ((registry? arg) (pick arg registry/modified?))
 	((flexpool/record arg) (pick (flexpool/partitions arg) modified?))
 	((exists? (db->registry arg)) (pick (db->registry arg) registry/modified?))
@@ -196,7 +196,7 @@
 	((and (pair? arg) (applicable? (car arg))) arg)
 	(else (logwarn |CantSave| "No method for saving " arg) {})))
 
-(define (flex/modified? arg)
+(define (flexdb/modified? arg)
   (cond ((registry? arg) (registry/modified? arg))
 	((flexpool/record arg) (exists? (pick (flexpool/partitions arg) modified?)))
 	((pool? arg) (modified? arg))
@@ -220,7 +220,7 @@
 
 (define commit-threads #t)
 
-(defambda (flex/commit! dbs (opts #f))
+(defambda (flexdb/commit! dbs (opts #f))
   (let ((modified (get-modified dbs))
 	(started (elapsed-time)))
     (when (exists? modified)
@@ -252,9 +252,9 @@
 		  (printout "\n\t" ($num time 1) "s \t" db)
 		  (printout "\n\tFAILED after " ($num time 1) "s:\t" db)))))))))
 
-(defambda (flex/save! . args)
+(defambda (flexdb/save! . args)
   (dolist (arg args)
-    (flex/commit! arg)))
+    (flexdb/commit! arg)))
 
 (define (inner-commit arg timings start)
   (cond ((registry? arg) (registry/save! arg))

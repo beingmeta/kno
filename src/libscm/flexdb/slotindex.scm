@@ -119,7 +119,7 @@
 	 (when (file-exists? path)
 	   (lognotice |UsingIndex| "Using the index at " path " for " slot))
 	 (if (file-exists? path)
-	     (set! index (flex/dbref path opts))
+	     (set! index (flexdb/ref path opts))
 	     (let* ((type (getopt opts 'indextype 
 				  (getopt opts 'type (getopt opts 'module 'hashindex))))
 		    (module (getopt opts 'module {}))
@@ -134,7 +134,7 @@
 			       (get-baseoids pools)}))
 	       (lognotice |NewIndex| "Creating new index for " slot " at " path)
 	       (when (exists? baseoids) (store! opts 'baseoids baseoids))
-	       (set! index (flex/make path opts))))
+	       (set! index (flexdb/make path opts))))
 	 (store! base slot index)
 	 (add! base 'slots slot)
 	 index)))

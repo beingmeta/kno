@@ -11,7 +11,7 @@
   (let ((file (apply glom args)))
     (tryif (file-exists? file) file)))
 
-(define (flex/file prefix (suffix "pool") (simple #t))
+(define (flexdb/file prefix (suffix "pool") (simple #t))
   (set! prefix
     (textsubst prefix 
 	       `#("." (opt #((isxdigit+) ".")) ,suffix)
@@ -22,8 +22,9 @@
 	(try-file prefix ".00." suffix)
 	(try-file prefix ".0." suffix)
 	(tryif simple (try-file prefix "." suffix)))))
+(define flex/file flexdb/file)
 
-(define (flex/partition-files prefix (suffix #f))
+(define (flexdb/partition-files prefix (suffix #f))
   (cond ((index? prefix) (index-source (or (indexctl prefix 'partitions) {})))
 	((pool? prefix) (index-source (or (poolctl prefix 'partitions) {})))
 	((string? prefix)
@@ -37,4 +38,5 @@
 		  string-ends-with? suffix)
 	    absroot)))
 	(else (irritant prefix |NotAPartitionSpec|))))
+(define flex/partition-files flexdb/partition-files)
 

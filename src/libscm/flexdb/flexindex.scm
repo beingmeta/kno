@@ -31,7 +31,7 @@
 (define (get-keyslot index) (indexctl index 'keyslot))
 (define (get-readonly index) (indexctl index 'readonly))
 
-(define (flex/open-index spec (opts #f))
+(define (flexdb/open-index spec (opts #f))
   (let* ((prefix (textsubst spec (qc ".flexindex" flex-suffix) ""))
 	 (fullpath (abspath prefix))
 	 (full-prefix (strip-suffix fullpath prefix))
@@ -93,6 +93,7 @@
 		       (glom {fullpath (realpath fullpath)} {".flexindex" ""})
 		       aggregate)
 	       aggregate)))))
+(define flex/open-index flexdb/open-index)
 
 (defambda (pick-front indexes opts)
   (let ((maxsize (getopt opts 'maxsize))

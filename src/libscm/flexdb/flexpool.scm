@@ -9,11 +9,13 @@
 
 (module-export! '{flexpool/open flexpool/make flexpool?
 		  flexpool/ref flexpool/record 
-		  flexpool/zero flexpool/front flexpool/last flexpool/info
+		  flexpool/zero flexpool/front
+		  flexpool/last flexpool/info
 		  flexpool/partitions flexpool/partcount
 		  flexpool/delete!
 		  flexpool/adjunct!
 		  flexpool/padlen
+		  flexdb/zero flexdb/front flexdb/last flexdb/info
 		  flex/zero flex/front flex/last flex/info})
 
 (module-export! '{flexpool-suffix})
@@ -58,7 +60,7 @@
   (stringout "#<FLEXPOOL " (flexpool-filename f) " " 
     (oid->string (flexpool-base f)) "+" 
     (flexpool/partcount f) "*" (flexpool-partsize f) " "
-    ;; (flex/load f)
+    ;; (flexdb/load f)
     (flexpool-capacity f) ">"))
 
 (defrecord (flexpool mutable opaque 
@@ -82,23 +84,26 @@
 	((test flexdata fp)
 	 (flexpool-zero (get flexdata fp)))
 	(else #f)))
-(define (flex/zero fp) (flexpool/zero fp))
+(define (flexdb/zero fp) (flexpool/zero fp))
+(define flex/zero flexdb/zero)
 
 (define (flexpool/front fp)
   (cond ((isflexpool? fp) (flexpool-front fp))
 	((test flexdata fp)
 	 (flexpool-front (get flexdata fp)))
 	(else #f)))
-(define (flex/front fp) (flexpool/front fp))
+(define (flexdb/front fp) (flexpool/front fp))
+(define flex/front flexdb/front)
 
 (define (flexpool/last fp)
   (cond ((isflexpool? fp) 
 	 (or (flexpool-last fp) (flexpool-front fp)
 	     (flexpool-zero fp)))
 	((test flexdata fp)
-	 (flex/last (get flexdata fp)))
+	 (flexdb/last (get flexdata fp)))
 	(else #f)))
-(define (flex/last fp) (flexpool/last fp))
+(define (flexdb/last fp) (flexpool/last fp))
+(define flex/last flexdb/last)
 
 (define (flexpool/record fp)
   (cond ((isflexpool? fp) fp)
@@ -117,7 +122,8 @@
        front ,(and front (pool-source front))
        last ,(and (flexpool-last record)
 		  (pool-source (flexpool-last record)))]))
-(define (flex/info fp) (flexpool/info fp))
+(define (flexdb/info fp) (flexpool/info fp))
+(define flex/info flexdb/info)
 
 ;;; Finding flexpools by filename
 
@@ -447,12 +453,13 @@
     (if (and (exists? info) (isflexpool? info))
 	(choice-size (flexpool-partitions info))
 	(irritant fp |UnknownFlexPool| flexpool/partitions))))
-(define (flex/load flexpool (front))
+(define (flexdb/load flexpool (front))
   (set! front (flexpool-front flexpool))
   (if front
       (oid-offset (oid-plus (pool-base front) (pool-load front))
 		  (flexpool-base flexpool))
       0))
+(define flex/load flexdb/load)
 
 ;;; Deleting flexpools
 
