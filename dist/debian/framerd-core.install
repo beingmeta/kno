@@ -52,6 +52,7 @@ usr/share/framerd/libscm/framerd-*/bugjar/*.scm
 usr/share/framerd/libscm/framerd-*/bugjar/resources/*
 usr/share/framerd/libscm/framerd-*/optimize/*.scm
 usr/share/framerd/libscm/framerd-*/storage/*.scm
+usr/share/framerd/libscm/framerd-*/flexdb/*.scm
 usr/share/framerd/libscm/framerd-*/mongodb/*.scm
 usr/share/framerd/libscm/framerd-*/xhtml/*.scm
 usr/share/framerd/libscm/framerd-*/*.scm

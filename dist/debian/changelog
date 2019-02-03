@@ -1,3 +1,9 @@
+framerd (4.3.0-33) stable; urgency=medium
+
+  * Move storage module to flexdb
+
+ -- Ken Haase <kh@beingmeta.com>  Sun, 03 Feb 2019 21:06:01 +0000
+
 framerd (4.3.0-32) stable; urgency=medium
 
   * Add fdjob script

@@ -9,6 +9,7 @@ usr/share/framerd/modules/local/safe
 usr/share/framerd/libscm
 usr/share/framerd/libscm/bugjar
 usr/share/framerd/libscm/optimize
+usr/share/framerd/libscm/flexdb
 usr/share/framerd/libscm/storage
 usr/share/framerd/libscm/mongodb
 usr/share/framerd/libscm/xhtml
