@@ -1,5 +1,5 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
-;;; Copyright (C) 2010-2017 beingmeta, inc. All rights reserved
+;;; Copyright (C) 2010-2019 beingmeta, inc. All rights reserved
 
 (in-module 'flexdb/slotindex)
 
