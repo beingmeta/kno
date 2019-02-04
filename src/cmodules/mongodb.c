@@ -26,6 +26,7 @@ static int mongodb_loglevel;
 #include <libu8/libu8.h>
 #include <libu8/u8printf.h>
 #include <libu8/u8crypto.h>
+#include <libu8/u8pathfns.h>
 
 #include "framerd/fdregex.h"
 #include "framerd/mongodb.h"
@@ -55,6 +56,7 @@ static u8_string default_certfile = NULL;
 static lispval dbname_symbol, username_symbol, auth_symbol, fdtag_symbol;
 static lispval hosts_symbol, connections_symbol, fieldmap_symbol, logopsym;
 static lispval fdparse_symbol, dotcar_symbol, dotcdr_symbol;
+static lispval certfile, certpass, cafilesym, cadirsym, crlsym;
 
 /* The mongo_opmap translates symbols for mongodb operators (like
    $addToSet) into the correctly capitalized strings to use in
@@ -148,23 +150,23 @@ static int boolopt(lispval opts,lispval key,int dflt)
   else return dflt;
 }
 
-static u8_string stropt(lispval opts,lispval key,u8_string dflt)
+static u8_string fileopt(lispval opts,lispval key,u8_string dflt)
 {
   if (FD_TABLEP(opts)) {
     lispval v = fd_getopt(opts,key,FD_VOID);
     if ((FD_VOIDP(v))||(FD_FALSEP(v))) {
       if (dflt == NULL) return dflt;
-      else return u8_strdup(dflt);}
+      else return u8_realpath(dflt,NULL);}
     else if (FD_STRINGP(v))
-      return u8_strdup(FD_CSTRING(v));
+      return u8_realpath(FD_CSTRING(v),NULL);
     else if (FD_TYPEP(v,fd_secret_type))
-      return u8_strdup(FD_CSTRING(v));
+      return u8_realpath(FD_CSTRING(v),NULL);
     else {
       u8_logf(LOG_ERR,"Invalid string option","%q=%q",key,v);
       fd_decref(v);
       return NULL;}}
   else if (dflt == NULL) return dflt;
-  else return u8_strdup(dflt);
+  else return u8_realpath(dflt,NULL);
 }
 
 U8_MAYBE_UNUSED static bson_t *get_projection(lispval opts,int flags)
@@ -654,7 +656,8 @@ static mongoc_uri_t *setup_mongoc_uri(mongoc_uri_t *info,lispval opts)
   if ( (FD_STRINGP(appname)) || (FD_SYMBOLP(appname)) )
     set_uri_opt(info,MONGOC_URI_APPNAME,appname);
   mongoc_uri_set_option_as_utf8(info,MONGOC_URI_APPNAME,u8_appid());
-  if (boolopt(opts,sslsym,default_ssl)) {
+  if ( (boolopt(opts,sslsym,default_ssl)) ||
+       (boolopt(opts,cafilesym,(default_cafile!=NULL))) ) {
     mongoc_uri_set_option_as_bool(info,MONGOC_URI_SSL,1);}
 #else
   u8_string uri = mongoc_uri_get_string(info);
@@ -826,8 +829,6 @@ static u8_string get_connection_spec(mongoc_uri_t *info)
   return result;
 }
 
-static lispval certfile, certpass, cafilesym, cadirsym, crlsym;
-
 static int setup_ssl(mongoc_ssl_opt_t *ssl_opts,
                      mongoc_uri_t *info,
                      lispval opts)
@@ -838,11 +839,11 @@ static int setup_ssl(mongoc_ssl_opt_t *ssl_opts,
          (!(fd_testopt(opts,cafilesym,FD_FALSE)))) ) {
     const mongoc_ssl_opt_t *default_opts = mongoc_ssl_opt_get_default();
     memcpy(ssl_opts,default_opts,sizeof(mongoc_ssl_opt_t));
-    ssl_opts->pem_file = stropt(opts,certfile,default_certfile);
-    ssl_opts->pem_pwd = stropt(opts,certpass,NULL);
-    ssl_opts->ca_file = stropt(opts,cafilesym,default_cafile);
-    ssl_opts->ca_dir = stropt(opts,cadirsym,default_cadir);
-    ssl_opts->crl_file = stropt(opts,crlsym,NULL);
+    ssl_opts->pem_file = fileopt(opts,certfile,default_certfile);
+    ssl_opts->pem_pwd = fileopt(opts,certpass,NULL);
+    ssl_opts->ca_file = fileopt(opts,cafilesym,default_cafile);
+    ssl_opts->ca_dir = fileopt(opts,cadirsym,default_cadir);
+    ssl_opts->crl_file = fileopt(opts,crlsym,NULL);
     return (!((ssl_opts->pem_file == NULL)&&
               (ssl_opts->pem_pwd == NULL)&&
               (ssl_opts->ca_file == NULL)&&
