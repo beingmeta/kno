@@ -5,7 +5,8 @@
 
 (use-module '{ezrecords stringfmts logger texttools})
 
-(module-export! '{flex/file flex/partition-files})
+(module-export! '{flexdb/file flexdb/partition-files
+		  flex/file flex/partition-files})
 
 (define (try-file . args)
   (let ((file (apply glom args)))
