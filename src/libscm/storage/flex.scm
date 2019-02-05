@@ -8,4 +8,6 @@
   "The module " 'storage/flex 
   " has been deprecated, please use " 'flexdb " instead")
 
+(irritant #t |InFlex|)
+
 (export-alias! 'flexdb)
