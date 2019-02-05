@@ -71,7 +71,7 @@
   index)
 
 (define (flex-open source opts)
-  (%watch "FLEX-OPEN" source "\nOPTS" opts)
+  (debug%watch "FLEX-OPEN" source "\nOPTS" opts)
   (cond ((pool? source) (wrap-pool source opts))
 	((or (index? source) (hashtable? source))
 	 (wrap-index source opts))
@@ -91,7 +91,7 @@
 	 (if (or (testopt opts 'adjunct)
 		 (not (getopt opts 'background #t)))
 	     (wrap-pool (open-pool source opts) opts)
-	     (wrap-pool (use-pool source opts) opts)))
+	     (wrap-pool ( use-pool source opts) opts)))
 	((or (has-suffix source ".index")
 	     (testopt opts 'index)
 	     (testopt opts 'type 'index))
@@ -109,12 +109,14 @@
 
 (define (flexdb/ref dbsource (opts #f))
   (when (and (table? dbsource) (not (or (pool? dbsource) (index? dbsource))))
-    (if opts (set! opts (cons opts dbsource)) (set! opts dbsource))
+    (if opts (set! opts (cons opts dbsource))
+	(set! opts dbsource))
     (set! dbsource
-      (cond ((testopt opts 'index) (get-db-source (getopt opts 'index)))
-	    ((testopt opts 'pool) (get-db-source (getopt opts 'pool)))
-	    ((testopt opts 'source) (get-db-source (getopt opts 'source)))
+      (cond ((testopt opts 'index) (get-db-source (getopt opts 'index) opts))
+	    ((testopt opts 'pool) (get-db-source (getopt opts 'pool) opts))
+	    ((testopt opts 'source) (get-db-source (getopt opts 'source) opts))
 	    (else (irritant dbsource |NoDBSource| flex/dbref)))))
+  (info%watch "FLEXDB/REF" dbsource "\nOPTS" opts)
   (cond ((pool? dbsource) (wrap-pool dbsource opts))
 	((or (index? dbsource) (hashtable? dbsource)) (wrap-index dbsource opts))
 	((not (string? dbsource))
@@ -143,9 +145,10 @@
 		     opts))
 	(else (irritant (cons [source dbsource] opts) 
 		  |CantDetermineDBType| flex/dbref))))
-(define flex/db flex/dbref)
-(define flex/ref flex/dbref)
-(define db/ref flex/dbref)
+(define flex/db flexdb/ref)
+(define flex/ref flexdb/ref)
+(define db/ref flexdb/ref)
+(define flex/dbref flexdb/ref)
 
 ;;; Variants
 
