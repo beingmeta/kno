@@ -513,6 +513,10 @@ ALL=testbin exe cmodules @TAGS@
 default: @DEFAULTMAKETARGET@
 
 update: .buildmode
+	@if test -f .malloc && test -f .buildmode; then \
+	  echo "Updating" $(shell cat .buildmode) "build linked with" \
+		$(shell cat .malloc); \
+	fi;
 	@+make -s `cat .buildmode`
 normal:
 	@echo Building NORMAL configuration
