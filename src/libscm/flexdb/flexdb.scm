@@ -48,8 +48,7 @@
   (let ((addopts (or (deep-copy (getopt opts 'make)) `#[])))
     (when (getopt opts 'adjuncts)
       (store! addopts 'metadata (or (deep-copy (getopt opts 'metadata)) #[]))
-      (store! (getopt addopts 'metadata) 'adjuncts (getopt opts 'adjuncts))
-      (store! addopts 'metadata #f))
+      (store! (getopt addopts 'metadata) 'adjuncts (getopt opts 'adjuncts)))
     (cons addopts opts)))
 
 (define (flexdb/partitions arg)
