@@ -8,11 +8,9 @@
 (use-module '{flexdb/flexpool flexdb/flexindex})
 
 (module-export! '{pool/ref index/ref pool/copy 
-		  flex/dbref db/ref flex/db flex/ref
-		  flex/make
-		  flex/partitions
-		  flex/commit!
-		  flex/save!})
+		  flexdb/ref flex/dbref db/ref flex/db flex/ref
+		  flexdb/make flexdb/partitions flexdb/commit! flexdb/save!
+		  flex/make flex/partitions flex/commit! flex/save!})
 
 (module-export! '{flex/container flex/container!})
 
@@ -59,6 +57,7 @@
 	((index? arg) (or (indexctl arg 'partitions) {}))
 	((string? arg) (flexdb/partition-files arg))
 	(else (fail))))
+(define flex/partitions flexdb/partitions)
 
 (define (wrap-pool pool (opts #f))
   (unless (or (adjunct? pool) (exists? (poolctl pool 'props 'adjuncts)))
@@ -145,15 +144,16 @@
 		     opts))
 	(else (irritant (cons [source dbsource] opts) 
 		  |CantDetermineDBType| flex/dbref))))
+(define flex/dbref flexdb/ref)
 (define flex/db flexdb/ref)
 (define flex/ref flexdb/ref)
 (define db/ref flexdb/ref)
-(define flex/dbref flexdb/ref)
 
 ;;; Variants
 
 (define (flexdb/make spec (opts #f))
   (flexdb/ref spec (if opts (cons #[create #t] opts) #[create #t])))
+(define flex/make flexdb/make)
 
 (define (pool/ref spec (opts #f))
   (flexdb/ref spec (opt+ opts 'type 'pool)))
@@ -198,6 +198,7 @@
 	((and (applicable? arg) (zero? (procedure-min-arity arg))) arg)
 	((and (pair? arg) (applicable? (car arg))) arg)
 	(else (logwarn |CantSave| "No method for saving " arg) {})))
+(define flex/mods flexdb/mods)
 
 (define (flexdb/modified? arg)
   (cond ((registry? arg) (registry/modified? arg))
@@ -207,6 +208,7 @@
 	((and (applicable? arg) (zero? (procedure-min-arity arg))) #t)
 	((and (pair? arg) (applicable? (car arg))) #t)
 	(else #f)))
+(define flex/modified? flexdb/modified?)
 
 (define (get-modified arg)
   (cond ((registry? arg) (tryif (registry/modified? arg) arg))
@@ -254,10 +256,12 @@
 	      (if (>= time 0)
 		  (printout "\n\t" ($num time 1) "s \t" db)
 		  (printout "\n\tFAILED after " ($num time 1) "s:\t" db)))))))))
+(define flex/commit! flexdb/commit!)
 
 (defambda (flexdb/save! . args)
   (dolist (arg args)
     (flexdb/commit! arg)))
+(define flex/save! flexdb/save!)
 
 (define (inner-commit arg timings start)
   (cond ((registry? arg) (registry/save! arg))
