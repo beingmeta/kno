@@ -29,7 +29,8 @@
 #include <stdio.h>
 
 static lispval rev_symbol, gentime_symbol, packtime_symbol, modtime_symbol;
-static lispval adjuncts_symbol, pooltype_symbol, indextype_symbol;
+static lispval adjuncts_symbol, wadjuncts_symbol;
+static lispval pooltype_symbol, indextype_symbol;
 
 lispval fd_cachelevel_op, fd_bufsize_op, fd_mmap_op, fd_preload_op;
 lispval fd_metadata_op, fd_raw_metadata_op, fd_reload_op;
@@ -204,8 +205,8 @@ static fd_pool open_pool(fd_pool_typeinfo ptype,u8_string spec,
     if (! ( flags & FD_STORAGE_NOERR) )
       fd_seterr(fd_CantOpenPool,"fd_open_pool",spec,opts);
     return opened;}
-  else if (fd_testopt(opts,adjuncts_symbol,VOID)) {
-    lispval adjuncts=fd_getopt(opts,adjuncts_symbol,EMPTY);
+  else if (fd_testopt(opts,wadjuncts_symbol,VOID)) {
+    lispval adjuncts=fd_getopt(opts,wadjuncts_symbol,EMPTY);
     int rv=fd_set_adjuncts(opened,adjuncts);
     fd_decref(adjuncts);
     if (rv<0) {
@@ -240,8 +241,8 @@ fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,lispval opts)
         if (opened==NULL) {
           fd_seterr(fd_CantOpenPool,"fd_open_pool",spec,opts);
           return opened;}
-        else if (fd_testopt(opts,adjuncts_symbol,VOID)) {
-          lispval adjuncts=fd_getopt(opts,adjuncts_symbol,EMPTY);
+        else if (fd_testopt(opts,wadjuncts_symbol,VOID)) {
+          lispval adjuncts=fd_getopt(opts,wadjuncts_symbol,EMPTY);
           int rv=fd_set_adjuncts(opened,adjuncts);
           fd_decref(adjuncts);
           if (rv<0) {
@@ -1246,6 +1247,7 @@ FD_EXPORT int fd_init_drivers_c()
   packtime_symbol = fd_intern("PACKTIME");
   modtime_symbol = fd_intern("MODTIME");
   adjuncts_symbol = fd_intern("ADJUNCTS");
+  wadjuncts_symbol = fd_intern("W/ADJUNCTS");
 
   fd_cachelevel_op=fd_intern("CACHELEVEL");
   fd_bufsize_op=fd_intern("BUFSIZE");
