@@ -102,6 +102,7 @@ FD_EXPORT void fd_seterr
 
 FD_EXPORT void fd_restore_exception(struct FD_EXCEPTION *exo)
 {
+  fd_incref((lispval)exo);
   u8_push_exception(exo->ex_condition,exo->ex_caller,
                     u8_strdup(exo->ex_details),
                     (void *)exo,fd_decref_embedded_exception);
