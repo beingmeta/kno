@@ -61,7 +61,7 @@ static lispval index_prim_find(fd_index ix,lispval slotids,lispval values)
   lispval keyslot = ix->index_keyslot;
   DO_CHOICES(slotid,slotids) {
     if (slotid == keyslot) {
-      if (FD_CHOICEP(values))
+      if (FD_AMBIGP(values))
 	fd_index_prefetch(ix,values);
       DO_CHOICES(value,values) {
 	lispval result = fd_index_get(ix,value);
@@ -70,6 +70,24 @@ static lispval index_prim_find(fd_index ix,lispval slotids,lispval values)
 	  fd_decref(combined);
 	  return result;}
 	CHOICE_ADD(combined,result);}}
+    else if ( (OIDP(keyslot)) || (SYMBOLP(keyslot)) ||
+	      ( (FD_AMBIGP(keyslot)) &&
+		(! (fd_choice_containsp(slotid,keyslot))) ) ) {
+      /* Don't bother fetching */}
+    else if (FD_AMBIGP(values)) {
+      lispval keys = FD_EMPTY_CHOICE;
+      {DO_CHOICES(value,values) {
+	  lispval key = fd_make_pair(slotid,value);
+	  FD_ADD_TO_CHOICE(keys,key);}}
+      {DO_CHOICES(key,keys) {
+	  lispval result = fd_index_get(ix,key);
+	  if (FD_ABORTP(result)) {
+	    FD_STOP_DO_CHOICES;
+	    fd_decref(keys);
+	    fd_decref(combined);
+	    return result;}
+	  else {CHOICE_ADD(combined,result);}}}
+      fd_decref(keys);}
     else {
       DO_CHOICES(value,values) {
 	lispval key = fd_make_pair(slotid,value);
@@ -95,7 +113,13 @@ static lispval aggregate_prim_find
       fd_index_prefetch((fd_index)ax,values);
       DO_CHOICES(value,values) {
 	lispval v = fd_index_get((fd_index)ax,value);
-	CHOICE_ADD(combined,v);}}}
+	if (FD_ABORTED(v)) {
+	  fd_decref(combined);
+	  return v;}
+	else {CHOICE_ADD(combined,v);}}}}
+  else if ( (FD_AMBIGP(keyslot)) &&
+	    (! (fd_overlapp(keyslot,slotids)) ) ) {
+    /* No matching slotids */}
   else {
     fd_hashtable cache = &(ax->index_cache);
     lispval features = make_features(slotids,values);
@@ -103,9 +127,9 @@ static lispval aggregate_prim_find
     {DO_CHOICES(feature,features) {
 	lispval cached = fd_hashtable_get(cache,feature,FD_VOID);
 	if (!(FD_VOIDP(cached))) {
-	  CHOICE_ADD(combined,cached);}
+	  CHOICE_ADD(combined,cached);
+	  fd_decref(feature);}
 	else {
-	  fd_incref(feature);
 	  CHOICE_ADD(fetch_features,feature);}}}
     if (!(FD_EMPTYP(fetch_features))) {
       i=0; while (i < n) {
@@ -113,7 +137,8 @@ static lispval aggregate_prim_find
 	if (fd_aggregate_indexp(ex)) {
 	  lispval ex_results =
 	    aggregate_prim_find((fd_aggregate_index)ex,slotids,values);
-	  if (FD_ABORTP(ex_results)) {
+	  if (FD_ABORTED(ex_results)) {
+	    fd_decref(fetch_features);
 	    fd_decref(combined);
 	    return ex_results;}
 	  else {CHOICE_ADD(combined,ex_results);}
@@ -121,34 +146,42 @@ static lispval aggregate_prim_find
 	lispval ekeyslot = ex->index_keyslot;
 	if ( (SYMBOLP(ekeyslot)) || (OIDP(ekeyslot)) ) {
 	  if (fd_choice_containsp(ekeyslot,slotids)) {
-	    lispval fetch_values = FD_EMPTY;
-	    DO_CHOICES(feature,fetch_features) {
-	      if (FD_CAR(feature) == ekeyslot) {
-		lispval v = FD_CDR(feature); fd_incref(v);
-		CHOICE_ADD(fetch_values,v);}}
-	    fd_index_prefetch((fd_index)ex,fetch_values);
-	    fd_decref(fetch_values);}}
+	    lispval ex_results = index_prim_find(ex,ekeyslot,values);
+	    if (FD_ABORTED(ex_results)) {
+	      fd_decref(fetch_features);
+	      fd_decref(combined);
+	      return ex_results;}
+	    else {CHOICE_ADD(combined,ex_results);}}
+	  continue;}
 	else {
 	  fd_index_prefetch((fd_index)ex,fetch_features);
 	  ekeyslot = FD_VOID;}
-	int j=0, n_features = FD_CHOICE_SIZE(features);
+	int j=0, n_features = FD_CHOICE_SIZE(fetch_features);
 	lispval *keyvec = u8_alloc_n(n_features,lispval);
 	lispval *valvec = u8_alloc_n(n_features,lispval);
-	DO_CHOICES(feature,features) {
-	  if ( (FD_VOIDP(ekeyslot)) || (ekeyslot == FD_CAR(feature)) ) {
-	    lispval key = (FD_VOIDP(ekeyslot)) ? (feature) :  (FD_CDR(feature));
-	    lispval v = fd_index_get((fd_index)ex,key);
-	    keyvec[j] = feature;
-	    valvec[j] = v;
-	    fd_incref(v);
-	    CHOICE_ADD(combined,v);
-	    j++;}}
-	fd_hashtable_iter(cache,fd_table_add,j,keyvec,valvec);
+	DO_CHOICES(feature,fetch_features) {
+	  lispval v = fd_index_get((fd_index)ex,feature);
+	  if (FD_ABORTED(v)) {
+	    fd_decref(fetch_features);
+	    fd_decref(combined);
+	    fd_decref_vec(valvec,j);
+	    u8_free(keyvec);
+	    u8_free(valvec);
+	    FD_STOP_DO_CHOICES;
+	    return v;}
+	  keyvec[j] = feature;
+	  valvec[j] = v;
+	  fd_incref(v);
+	  CHOICE_ADD(combined,v);
+	  j++;}
+	int rv = fd_hashtable_iter(cache,fd_table_add,j,keyvec,valvec);
 	fd_decref_vec(valvec,j);
 	u8_free(keyvec);
-	u8_free(valvec);}}
-    fd_decref(fetch_features);
-    fd_decref(features);}
+	u8_free(valvec);
+	if (rv<0) {
+	  fd_decref(fetch_features);
+	  return FD_ERROR_VALUE;}}
+      fd_decref(fetch_features);}}
   return combined;
 }
 
@@ -261,6 +294,9 @@ int fd_find_prefetch(fd_index ix,lispval slotids,lispval values)
       if (slotid == keyslot) {
 	fd_incref(values);
 	CHOICE_ADD(keys,values);}
+      else if ( (OIDP(keyslot)) || (SYMBOLP(keyslot)) ||
+		( (AMBIGP(keyslot)) && (! (fd_overlapp(keyslot,slotids)) ) ) ) {
+	/* These aren't the features you're looking for */}
       else {
 	DO_CHOICES(value,values) {
 	  lispval key = fd_conspair(slotid,value);
@@ -278,6 +314,9 @@ int fd_find_prefetch(fd_index ix,lispval slotids,lispval values)
 	DO_CHOICES(value,values) {
 	  keyv[n_keys++]=value;
 	  fd_incref(value);}}
+      else if ( (OIDP(keyslot)) || (SYMBOLP(keyslot)) ||
+		( (AMBIGP(keyslot)) && (! (fd_overlapp(keyslot,slotids)) ) ) ) {
+	/* These aren't the features you're looking for */}
       else {
 	DO_CHOICES(value,values) {
 	  lispval key = fd_conspair(slotid,value);
@@ -300,23 +339,35 @@ static fd_index get_writable_slotindex(fd_index ix,lispval slotid)
 {
   if (fd_aggregate_indexp(ix)) {
     lispval keyslot = ix->index_keyslot;
-    fd_index generic = (FALSISH(keyslot)) ?
+    fd_index generic =
+      ( (FALSISH(keyslot)) ||
+	( (FD_AMBIGP(keyslot)) &&
+	  (fd_choice_containsp(slotid,keyslot)) ) ) ?
       (fd_get_writable_index(ix)) :
       (NULL);
     struct FD_AGGREGATE_INDEX *aix = (fd_aggregate_index) ix;
     fd_index *indexes = aix->ax_indexes;
     int i = 0, n = aix->ax_n_indexes; while (i<n) {
       fd_index possible = indexes[i++], use_front = NULL;
-      if (possible->index_keyslot == slotid) {
+      lispval pkeyslot = possible->index_keyslot;
+      if (pkeyslot == slotid) {
 	if ( (use_front = fd_get_writable_index(possible)) ){
 	  if (generic) fd_decref_index(generic);
 	  return use_front;}}
-      else if ( (FD_VOIDP(possible->index_keyslot)) ||
-		(FD_FALSEP(possible->index_keyslot)) ||
-		(FD_EMPTYP(possible->index_keyslot)) ) {
-	if (generic == NULL) {
-	  fd_incref_index(possible);
-	  generic = possible;}}
+      else if ( (generic == NULL) &&
+		( (FD_VOIDP(pkeyslot)) ||
+		  (FD_FALSEP(pkeyslot)) ||
+		  (FD_EMPTYP(pkeyslot)) ) ) {
+	fd_incref_index(possible);
+	generic = possible;}
+      else {}}
+    i = 0; while (i<n) {
+      fd_index possible = indexes[i++], use_front = NULL;
+      lispval pkeyslot = possible->index_keyslot;
+      if (FD_AMBIGP(pkeyslot) && (fd_choice_containsp(slotid,pkeyslot)) ) {
+	if ( (use_front = fd_get_writable_index(possible)) ) {
+	  if (generic) fd_decref_index(generic);
+	  return use_front;}}
       else {}}
     return generic;}
   else return fd_get_writable_index(ix);
@@ -373,6 +424,17 @@ static int merge_keys_with_slotid(struct FD_KEYVAL *kv,void *data)
   return 0;
 }
 
+static int merge_keys_for_slotids(struct FD_KEYVAL *kv,void *data)
+{
+  struct KEYSLOT_STATE *state = data;
+  lispval key = kv->kv_key;
+  lispval keyslot = state->keyslot;
+  if ( (FD_PAIRP(key)) &&
+       (fd_choice_containsp(FD_CAR(key),keyslot)) )
+    fd_hashtable_op_nolock(state->adds,fd_table_add,key,kv->kv_val);
+  return 0;
+}
+
 static int merge_keys_without_slotid(struct FD_KEYVAL *kv,void *data)
 {
   struct KEYSLOT_STATE *state = data;
@@ -384,68 +446,134 @@ static int merge_keys_without_slotid(struct FD_KEYVAL *kv,void *data)
   else return 0;
 }
 
+#define SINGLE_KEYSLOTP(x) ( (FD_OIDP(x)) || (FD_SYMBOLP(x)) )
+
 FD_EXPORT int fd_slotindex_merge(fd_index into,lispval from)
 {
   lispval keyslot = into->index_keyslot;
-  if (FD_VOIDP(keyslot)) {
-    if (FD_HASHTABLEP(from))
+  if (FD_HASHTABLEP(from)) {
+    if (FD_VOIDP(keyslot))
       return fd_index_merge(into,(fd_hashtable)from);
-    else if (FD_INDEXP(from)) {
-	fd_index ix = fd_indexptr(from);
-	if (fd_tempindexp(ix)) {
-	  if (FD_VOIDP(ix->index_keyslot))
-	    return fd_index_merge(into,&(ix->index_adds));
-	  else {
-	    struct KEYSLOT_STATE state = { &ix->index_adds, ix->index_keyslot };
-	    int rv = fd_for_hashtable_kv
-	      (&(into->index_adds),merge_keys_with_slotid,&state,1);
-	    return rv;}}
-	else if (fd_aggregate_indexp(ix)) {
-	  int merged = 0;
-	  struct FD_AGGREGATE_INDEX *agg = (fd_aggregate_index) from;
-	  fd_index *indexes = agg->ax_indexes;
-	  int i=0, n=agg->ax_n_indexes; while (i<n) {
-	    fd_index partition = indexes[i++];
-	    if (partition->index_adds.table_n_keys == 0)
-	      continue;
-	    if ( ! ( (FD_VOIDP(keyslot)) ||
-		     (keyslot == partition->index_keyslot) ) )
-	      continue;
-	    lispval partition_ptr = index2lisp(partition);
-	    merged=fd_slotindex_merge(into,partition_ptr);
-	    if (merged<0) {
-	      fd_seterr("IndexMergeError","fd_slotindex_merge",
-			into->indexid,partition_ptr);
-	      fd_decref(partition_ptr);
-	      break;}
-	    else fd_decref(partition_ptr);}
-	  return merged;}
-	else {
-	  fd_seterr("IndexMergeError","fd_slotindex_merge",
-		    into->indexid,from);
-	  return -1;}}
+    else if (SINGLE_KEYSLOTP(keyslot)) {
+      /* If we merge a hashtable into a single-keyslot index, we just
+	 add the values directly. */
+      struct KEYSLOT_STATE state = { (fd_hashtable)from, keyslot };
+      int rv = fd_for_hashtable_kv
+	((fd_hashtable)from,merge_keys_without_slotid,&state,1);
+      return rv;}
+    else  {
+      /* If we merge a hashtable into an index with keyslots, we merge
+	 only the pairs whose cars (the slotkeys) are in the target's
+	 slotkeys. */
+      struct KEYSLOT_STATE state = { (fd_hashtable)from, keyslot };
+      int rv = fd_for_hashtable_kv
+	((fd_hashtable)from,merge_keys_for_slotids,&state,1);
+      return rv;}}
+  else if ( (SINGLE_KEYSLOTP(keyslot)) && (FD_INDEXP(from)) ) {
+    fd_index ix = fd_indexptr(from);
+    if (fd_tempindexp(ix)) {
+      if ( (FD_VOIDP(ix->index_keyslot)) ||
+	   ( (FD_AMBIGP(ix->index_keyslot)) &&
+	     (fd_choice_containsp(keyslot,ix->index_keyslot)) ) ) {
+	struct KEYSLOT_STATE state = { &ix->index_adds, keyslot };
+	/* If the input index doesn't have any keyslots, then it
+	   contains (slot . value) keys and we merge just the values
+	   for entries whose slot matches the target's keyslot). */
+	int rv = fd_for_hashtable_kv
+	  (&(into->index_adds),merge_keys_without_slotid,&state,1);
+	return rv;}
+      else if ( ix->index_keyslot == keyslot ) {
+	/* If the target index and the subject index have exactly the
+	   same keyslots, do a straight merge. */
+	return fd_index_merge(into,&(ix->index_adds));}
+      else {
+	/* In this case, the subject index doesn't have any keys in
+	   which we're interested. */
+	return 0;}}
     else {
       fd_seterr("Not a hashtable or tempindex","fd_slotindex_merge",
 		into->indexid,from);
       return -1;}}
-  else if (FD_HASHTABLEP(from)) {
-    struct KEYSLOT_STATE state = { (fd_hashtable)from, keyslot };
-    int rv = fd_for_hashtable_kv
-      ((fd_hashtable)from,merge_keys_without_slotid,&state,1);
-    return rv;}
-  else if (FD_INDEXP(from)) {
+  else if ( (FALSISH(keyslot)) && (FD_INDEXP(from)) ) {
+    /* This is where we just copy any key value pairs we find. */
     fd_index ix = fd_indexptr(from);
     if (fd_tempindexp(ix)) {
-      if (FD_VOIDP(ix->index_keyslot)) {
-	struct KEYSLOT_STATE state = { &ix->index_adds, keyslot };
+      if (SINGLE_KEYSLOTP(ix->index_keyslot)) {
+	struct KEYSLOT_STATE state = { &ix->index_adds, ix->index_keyslot };
 	int rv = fd_for_hashtable_kv
-	  (&(into->index_adds),merge_keys_without_slotid,&state,1);
+	  (&(into->index_adds),merge_keys_with_slotid,&state,1);
 	return rv;}
-      else if ( ix->index_keyslot == keyslot )
-	return fd_index_merge(into,&(ix->index_adds));
-      else return 0;}
+      else return fd_index_merge(into,&(ix->index_adds));}
+    else if (fd_aggregate_indexp(ix)) {
+      int merged = 0;
+      struct FD_AGGREGATE_INDEX *agg = (fd_aggregate_index) from;
+      fd_index *indexes = agg->ax_indexes;
+      int i=0, n=agg->ax_n_indexes; while (i<n) {
+	fd_index partition = indexes[i++];
+	if (partition->index_adds.table_n_keys == 0)
+	  continue;
+	lispval partition_ptr = index2lisp(partition);
+	merged=fd_slotindex_merge(into,partition_ptr);
+	if (merged<0) {
+	  fd_seterr("IndexMergeError","fd_slotindex_merge",
+		    into->indexid,partition_ptr);
+	  fd_decref(partition_ptr);
+	  break;}
+	else fd_decref(partition_ptr);}
+      return merged;}
     else {
-      fd_seterr("Not a hashtable or tempindex","fd_slotindex_merge",
+      fd_seterr("IndexMergeError","fd_slotindex_merge",
+		into->indexid,from);
+      return -1;}}
+  else if (FD_INDEXP(from)) {
+    /* Here, the keyslot is a choice of slotids */
+    fd_index ix = fd_indexptr(from);
+    if (fd_tempindexp(ix)) {
+      if ( (SINGLE_KEYSLOTP(ix->index_keyslot)) &&
+	   (fd_choice_containsp(ix->index_keyslot,keyslot)) ) {
+	struct KEYSLOT_STATE state = { &ix->index_adds, ix->index_keyslot };
+	int rv = fd_for_hashtable_kv
+	  (&(into->index_adds),merge_keys_with_slotid,&state,1);
+	return rv;}
+      else if ( (FD_AMBIGP(ix->index_keyslot)) ) {
+	lispval v[2] = { ix->index_keyslot, keyslot };
+	lispval common = fd_intersection(v,2);
+	if (!(FD_EMPTYP(common))) {
+	  struct KEYSLOT_STATE state = { &ix->index_adds, common };
+	  int rv = fd_for_hashtable_kv
+	    (&(into->index_adds),merge_keys_for_slotids,&state,1);
+	  fd_decref(common);
+	  return rv;}
+	return 0;}
+      else return fd_index_merge(into,&(ix->index_adds));}
+    else if (fd_aggregate_indexp(ix)) {
+      int merged = 0;
+      struct FD_AGGREGATE_INDEX *agg = (fd_aggregate_index) from;
+      fd_index *indexes = agg->ax_indexes;
+      int i=0, n=agg->ax_n_indexes; while (i<n) {
+	fd_index partition = indexes[i++];
+	lispval pkeyslot = partition->index_keyslot;
+	if (partition->index_adds.table_n_keys == 0)
+	  continue;
+	else if ( (SINGLE_KEYSLOTP(pkeyslot)) &&
+		  (! (fd_choice_containsp(pkeyslot,keyslot)) ) )
+	  continue;
+	else if ( (FD_AMBIGP(pkeyslot)) &&
+		  (! (fd_overlapp(pkeyslot,keyslot)) ) )
+	  continue;
+	else NO_ELSE;
+	/* Call merge on into and the partition */
+	lispval partition_ptr = index2lisp(partition);
+	merged=fd_slotindex_merge(into,partition_ptr);
+	if (merged<0) {
+	  fd_seterr("IndexMergeError","fd_slotindex_merge",
+		    into->indexid,partition_ptr);
+	  fd_decref(partition_ptr);
+	  break;}
+	else fd_decref(partition_ptr);}
+      return merged;}
+    else {
+      fd_seterr("IndexMergeError","fd_slotindex_merge",
 		into->indexid,from);
       return -1;}}
   else {

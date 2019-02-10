@@ -1,4 +1,4 @@
-(use-module '{fileio logger varconfig})
+(use-module '{fileio logger texttools varconfig})
 
 (load-component "common.scm")
 
@@ -8,7 +8,7 @@
 (define testpool #f)
 (define testindex #f)
 (define sepindex {})
-(varconfig! sepindex sepindex #t choice)
+(varconfig! sepindex sepindex #f choice)
 
 (define threaded #f)
 (varconfig! THREADED threaded)
@@ -56,12 +56,20 @@
 			 opts)))
 	(combine-indexes
 	 (for-choices (slot {#f sepindex})
-	   (let ((file (stringout source (if slot (printout "_" (downcase slot)))
-			 ".index"))
-		 (opts (if slot `(#[keyslot ,slot] . ,xopts) xopts)))
-	     (if (file-exists? file) 
-		 (open-index file opts)
-		 (make-index file opts))))))))
+	   (if slot
+	       (let* ((slotstrings (elts (segment slot "^")))
+		      (slots (string->symbol slotstrings))
+		      (file (stringout source (doseq (each (lexsorted slotstrings))
+						(printout "_" (downcase each)))
+			      ".index"))
+		      (opts (if slot `(#[keyslot ,slots] . ,xopts) xopts)))
+		 (if (file-exists? file) 
+		     (open-index file opts)
+		     (make-index file opts)))
+	       (let ((file (glom source ".index")) (opts xopts))
+		 (if (file-exists? file) 
+		     (open-index file opts)
+		     (make-index file opts)))))))))
 
 (defambda (combine-indexes indexes)
   (if (< (choice-size indexes) 2) indexes
@@ -152,7 +160,7 @@
 	      (add! expr-frame '%id (list 'definition name)))
 	    (add! expr-frame '%id expr))
  	(index-frame index expr-frame
- 	  '{in-file created defines expr atoms type})
+ 	  '{in-file context created defines expr atoms type})
  	(index-frame index expr-frame 'has (getkeys expr-frame))))
      (index-frame index file-frame 'type)
      (index-frame index file-frame 'has (getkeys file-frame))
@@ -308,6 +316,23 @@
   (message "Successfully checked " count " expressions")
   (message "Finished checking database integrity"))
 
+(define (check-slot-indexes index)
+  (when (aggregate-index? index)
+    (let* ((filename-index (filter-choices (partition (indexctl index 'partitions))
+			     (identical? (indexctl partition 'keyslot) 'filename)))
+	   (combo-index (filter-choices (partition (indexctl index 'partitions))
+			  (identical? (indexctl partition 'keyslot) '{in-file context})))
+	   (other-index (difference (indexctl index 'partitions) filename-index combo-index)))
+      (applytest #t (fail? (pick (getkeys filename-index) pair?)))
+      (when (exists? combo-index)
+	(applytest #t (fail? (reject (getkeys combo-index) pair?)))
+	(applytest #t (fail? (pick (getkeys combo-index) 'filename))))
+      (applytest #t (fail? (reject (getkeys other-index) pair?)))
+      (applytest #t (fail? (pick (getkeys other-index)
+			     (if (exists? combo-index)
+				 '{filename in-file context}
+				 'filename)))))))
+
 (define (doremove file)
   (cond ((not (file-exists? file)))
 	((file-directory? file)
@@ -334,6 +359,8 @@
 	   (message "Doing init on non-virgin pool")))
 	(else (doremove
 	       (append source {".pool" ".index"
+			       "_filename.index"
+			       "_context_in-file.index"
 			       "-symbols.dtype" "-files.dtype"
 			       "-numbers.dtype"}))))
   (initdb source (and (equal? operation "test") #[readonly #t]))
@@ -345,4 +372,5 @@
   (checkdb (config 'COUNT 1000) testpool testindex)
   (swapout)
   (checkdb (config 'COUNT 1000) testpool testindex)
-  (swapout))
+  (swapout)
+  (when (aggregate-index? testindex) (check-slot-indexes testindex)))

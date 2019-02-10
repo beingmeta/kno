@@ -3254,6 +3254,20 @@ static fd_index hashindex_create(u8_string spec,void *typedata,
   if ( (FD_VOIDP(keyslot)) || (FD_FALSEP(keyslot)) ) {}
   else if ( (FD_SYMBOLP(keyslot)) || (FD_OIDP(keyslot)) )
     fd_store(metadata,FDSYM_KEYSLOT,keyslot);
+  else if (FD_AMBIGP(keyslot)) {
+    lispval reduced = FD_EMPTY;
+    FD_DO_CHOICES(slotid,keyslot) {
+      if ( (FD_OIDP(slotid)) || (FD_SYMBOLP(slotid)) ) {
+        FD_ADD_TO_CHOICE(reduced,slotid);}}
+    if (FD_EMPTYP(reduced)) {
+      u8_log(LOG_WARN,"InvalidKeySlot",
+             "Not initializing keyslot of %s to %q",spec,keyslot);
+      fd_decref(keyslot);
+      keyslot = FD_VOID;}
+    else {
+      fd_decref(keyslot);
+      keyslot = fd_simplify_choice(reduced);
+      fd_store(metadata,FDSYM_KEYSLOT,keyslot);}}
   else u8_log(LOG_WARN,"InvalidKeySlot",
               "Not initializing keyslot of %s to %q",spec,keyslot);
 
@@ -3268,6 +3282,7 @@ static fd_index hashindex_create(u8_string spec,void *typedata,
           baseoids_arg,-1,-1);
 
   fd_decref(metadata);
+  fd_decref(keyslot);
   fd_decref(metadata_init);
   fd_decref(baseoids_arg);
   fd_decref(slotids_arg);

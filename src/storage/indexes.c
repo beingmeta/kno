@@ -212,15 +212,32 @@ static void init_cache_level(fd_index ix)
 
 FD_EXPORT void fd_register_index(fd_index ix)
 {
-  if ( (FD_VOIDP(ix->index_keyslot)) && (ix->index_metadata.n_slots) ) {
-    lispval keyslotid =
-      fd_slotmap_get(&(ix->index_metadata),FDSYM_KEYSLOT,FD_VOID);
-    if (FD_VOIDP(keyslotid)) {}
-    else if ( (FD_SYMBOLP(keyslotid)) || (FD_OIDP(keyslotid)) )
-      ix->index_keyslot=keyslotid;
-    else u8_logf(LOG_WARN,"BadKeySlot",
-                 "Ignoring invalid keyslot from metadata: %q",keyslotid);
-    fd_decref(keyslotid);}
+  lispval keyslotid = ix->index_keyslot;
+  if (FD_NULLP(keyslotid))
+    keyslotid = FD_VOID;
+  if ( (FD_VOIDP(keyslotid)) && (ix->index_metadata.n_slots) )
+    keyslotid = fd_slotmap_get(&(ix->index_metadata),FDSYM_KEYSLOT,FD_VOID);
+  if (FD_VOIDP(keyslotid)) {}
+  else if ( (FD_SYMBOLP(keyslotid)) || (FD_OIDP(keyslotid)) ) {}
+  else if (FD_FALSEP(keyslotid))
+    keyslotid = FD_VOID;
+  else if (FD_CHOICEP(keyslotid)) {
+    lispval new_keyslotid = FD_EMPTY;
+    FD_DO_CHOICES(slotid,keyslotid) {
+      if ( (FD_SYMBOLP(slotid)) || (FD_OIDP(slotid)) ) {
+        CHOICE_ADD(new_keyslotid,slotid);}
+      else u8_log(LOGWARN,"InvalidKeySlotID",
+                  "The value %q isn't a valid keyslot value",
+                  slotid);}
+    fd_decref(keyslotid);
+    keyslotid = fd_simplify_choice(new_keyslotid);}
+  else {
+    u8_log(LOGWARN,"InvalidKeySlotID",
+           "The value %q isn't a valid keyslotid",
+           keyslotid);
+    fd_decref(keyslotid);
+    keyslotid = FD_VOID;}
+  ix->index_keyslot = keyslotid;
   if (ix->index_flags&FD_STORAGE_UNREGISTERED)
     return;
   else if (ix->index_serialno<0) {
@@ -1862,7 +1879,6 @@ FD_EXPORT void fd_init_index(fd_index ix,
   ix->index_metadata.table_modified = 0;
   ix->index_keyslot = keyslot;
 
-
   /* This was what was specified */
   ix->indexid = u8_strdup(id);
   /* Don't copy this one */
@@ -2200,7 +2216,21 @@ static lispval copy_consed_index(lispval x,int deep)
   return fd_incref(x);
 }
 
-FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args)
+static int valid_keyslotp(lispval defslot)
+{
+  if ( (FD_OIDP(defslot)) || (FD_SYMBOLP(defslot)) )
+    return 1;
+  else if (FD_AMBIGP(defslot)) {
+    DO_CHOICES(ks,defslot) {
+      if (! ( (FD_OIDP(ks)) || (FD_SYMBOLP(ks)) ) ) {
+        FD_STOP_DO_CHOICES;
+        return 0;}}
+    return 1;}
+  else return 0;
+}
+
+FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,
+                                      int n,lispval *args)
 {
   if ((n>0)&&(args == NULL))
     return fd_err("BadIndexOpCall","fd_default_indexctl",ix->indexid,VOID);
@@ -2257,7 +2287,7 @@ FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args
     if (n == 0) {
       if ( (FD_NULLP(ix->index_keyslot)) || (FD_VOIDP(ix->index_keyslot)) )
         return FD_FALSE;
-      else return ix->index_keyslot;}
+      else return fd_incref(ix->index_keyslot);}
     else if (n == 1) {
       lispval defslot = args[0];
       if (FD_FALSEP(defslot)) {
@@ -2268,21 +2298,25 @@ FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args
         else return old;}
       if (!( (FD_NULLP(ix->index_keyslot)) ||
              (FD_VOIDP(ix->index_keyslot)) )) {
-        if (defslot == ix->index_keyslot) {
+        if ( (defslot == ix->index_keyslot) ||
+             ( (FD_CHOICEP(defslot)) && (FD_CHOICEP(ix->index_keyslot)) &&
+               (FD_EQUALP(defslot,(ix->index_keyslot))) ) ) {
           u8_logf(LOG_WARN,"KeySlotOK",
                   "The keyslot of %s is already %q",ix->indexid,defslot);
-          return defslot;}
+          return fd_incref(defslot);}
         else return fd_err("KeySlotAlreadyDefined",
                            "fd_default_indexctl/keyslot",
                            ix->indexid,ix->index_keyslot);}
-      else if ((FD_OIDP(defslot)) || (FD_SYMBOLP(defslot))) {
+      else if ((FD_OIDP(defslot)) || (FD_SYMBOLP(defslot)) ||
+               (valid_keyslotp(defslot))) {
         if (ix->index_handler->commit) {
           /* If the index persists itself (has a commit method),
-             add the new keyslot to the metadata. */
+             add the new keyslot to the metadata, so it will be
+             saved. */
           lispval metadata = ((lispval)&(ix->index_metadata));
           fd_store(metadata,FDSYM_KEYSLOT,defslot);}
         ix->index_keyslot=defslot;
-        return defslot;}
+        return fd_incref(defslot);}
       else return fd_type_error("slotid","fd_default_indexctl/keyslot",
                                 defslot);}
     else return fd_err(fd_TooManyArgs,"fd_index_ctl/keyslot",

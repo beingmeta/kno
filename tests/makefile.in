@@ -410,8 +410,10 @@ frametest_base:
 	@make TESTBASE=testdb RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40}" frametest
 frametest_aggregate:
 	@make TESTBASE=agg RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40} AGGINDEX=yes" frametest
-frametest_slotindex:
+frametest_keyslot:
 	@make TESTBASE=slotindex RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40} SEPINDEX=FILENAME" frametest
+frametest_keyslots:
+	@make TESTBASE=slotindex RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40} SEPINDEX=FILENAME SEPINDEX=IN-FILE^CONTEXT" frametest
 frametest_bigpool32:
 	@make TESTBASE=tmpbigpool32 RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB32}" frametest
 frametest_bigpool40:
@@ -439,7 +441,7 @@ rckdbframes rckdbframetest:
 
 frametests dbtest dbtests db: frametest_base \
 	frametest_bigpool32 frametest_bigpool40 frametest_bigpool64 \
-	frametest_aggregate frametest_slotindex \
+	frametest_aggregate frametest_keyslot \
 	frametest_fileindex frametest_memindex \
 
 .PHONY: frametests frametest dbtest dbtests db
