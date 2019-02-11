@@ -987,8 +987,10 @@ FD_EXPORT void fd_init_portprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim4("GETLINE",getline_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("READ",read_prim,0));
 
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim3("READ-RECORD",read_record_prim,1)));
+  fd_idefn3(fd_scheme_module,"READ-RECORD",read_record_prim,
+            FD_NDCALL|FD_NEEDS_1_ARG,
+            "`(READ-RECORD *ports* [*separator*] [*limit*])`",
+            -1,FD_VOID,-1,FD_VOID,-1,FD_VOID);
 
   fd_def_evalfn(fd_scheme_module,"PRINTOUT","",printout_evalfn);
   fd_def_evalfn(fd_scheme_module,"LINEOUT","",lineout_evalfn);

@@ -2788,11 +2788,11 @@ void fd_init_texttools()
   fd_def_evalfn(texttools_module,"TEXTCLOSURE","",textclosure_evalfn);
   fd_idefn(texttools_module,fd_make_cprim1("TEXTCLOSURE?",textclosurep,1));
 
-  fd_idefn(texttools_module,
-           fd_make_cprim3x("READ-MATCH",read_match,2,
-                           fd_port_type,VOID,
-                           -1,VOID,
-                           -1,VOID));
+  fd_idefn3(texttools_module,"READ-MATCH",read_match,2,
+            "`(READ-MATCH *port* *pattern* [*limit*])`",
+            fd_port_type,VOID,
+            -1,VOID,
+            -1,VOID);
 
 
   fd_idefn(texttools_module,
