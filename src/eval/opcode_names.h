@@ -90,3 +90,9 @@ static void init_opcode_names()
   set_opcode_name(FD_GETASSOCS_OPCODE,"OP_GETASSOCS");
 }
 
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debugging;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

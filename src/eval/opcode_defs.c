@@ -67,19 +67,19 @@ static lispval xpred_opcode(lispval x,lispval tag)
     int match = 0, nomatch = 0;
     FD_DO_CHOICES(e,x) {
       if (FD_COMPOUND_TYPEP(e,tag)) {
-	match=1; if (nomatch) {
-	  FD_STOP_DO_CHOICES;
-	  break;}}
+        match=1; if (nomatch) {
+          FD_STOP_DO_CHOICES;
+          break;}}
       else {
-	nomatch = 1;
-	if (match) {
-	  FD_STOP_DO_CHOICES;
-	  break;}}}
+        nomatch = 1;
+        if (match) {
+          FD_STOP_DO_CHOICES;
+          break;}}}
     fd_decref(x);
     if (match) {
       if (nomatch) {
-	lispval tmpvec[2] = {FD_FALSE,FD_TRUE};
-	return fd_init_choice(NULL,2,tmpvec,FD_CHOICE_ISATOMIC);}
+        lispval tmpvec[2] = {FD_FALSE,FD_TRUE};
+        return fd_init_choice(NULL,2,tmpvec,FD_CHOICE_ISATOMIC);}
       else return FD_TRUE;}
     else return FD_FALSE;}
   else {
@@ -137,12 +137,12 @@ static lispval pickoids_opcode(lispval arg1)
     {DO_CHOICES(elt,choice) {
         if (OIDP(elt)) {CHOICE_ADD(results,elt);}
         else if (all_oids)
-	  all_oids = 0;
-	else NO_ELSE;}}
+          all_oids = 0;
+        else NO_ELSE;}}
     if (all_oids) {
       fd_decref(results);
       if (free_choice)
-	return choice;
+        return choice;
       else return fd_incref(choice);}
     else if (free_choice) fd_decref(choice);
     else NO_ELSE;
@@ -163,14 +163,14 @@ static lispval pickstrings_opcode(lispval arg1)
     {DO_CHOICES(elt,choice) {
         if (STRINGP(elt)) {
           fd_incref(elt);
-	  CHOICE_ADD(results,elt);}
+          CHOICE_ADD(results,elt);}
         else if (all_strings)
-	  all_strings = 0;
-	else NO_ELSE;}}
+          all_strings = 0;
+        else NO_ELSE;}}
     if (all_strings) {
       fd_decref(results);
       if (free_choice)
-	return choice;
+        return choice;
       else return fd_incref(choice);}
     else if (free_choice)
       fd_decref(choice);
@@ -193,18 +193,18 @@ static lispval picknums_opcode(lispval arg1)
       choice = fd_make_simple_choice(arg1);
       free_choice = 1;}
     {DO_CHOICES(elt,choice) {
-	if (FD_FIXNUMP(elt)) {
-	  CHOICE_ADD(results,elt);}
-	else if (FD_NUMBERP(elt)) {
-	  fd_incref(elt);
-	  CHOICE_ADD(results,elt);}
+        if (FD_FIXNUMP(elt)) {
+          CHOICE_ADD(results,elt);}
+        else if (FD_NUMBERP(elt)) {
+          fd_incref(elt);
+          CHOICE_ADD(results,elt);}
         else if (all_nums)
-	  all_nums = 0;
-	else NO_ELSE;}}
+          all_nums = 0;
+        else NO_ELSE;}}
     if (all_nums) {
       fd_decref(results);
       if (free_choice)
-	return choice;
+        return choice;
       else return fd_incref(choice);}
     else if (free_choice)
       fd_decref(choice);
@@ -228,16 +228,16 @@ static lispval pickmaps_opcode(lispval arg1)
       choice = fd_make_simple_choice(arg1);
       free_choice = 1;}
     {DO_CHOICES(elt,choice) {
-	if ( (FD_SLOTMAPP(elt)) || (FD_SCHEMAPP(elt)) ) {
-	  fd_incref(elt);
-	  CHOICE_ADD(results,elt);}
+        if ( (FD_SLOTMAPP(elt)) || (FD_SCHEMAPP(elt)) ) {
+          fd_incref(elt);
+          CHOICE_ADD(results,elt);}
         else if (all_nums) 
-	  all_nums = 0;
-	else NO_ELSE;}}
+          all_nums = 0;
+        else NO_ELSE;}}
     if (all_nums) {
       fd_decref(results);
       if (free_choice)
-	return choice;
+        return choice;
       else return fd_incref(choice);}
     else if (free_choice)
       fd_decref(choice);
@@ -701,7 +701,7 @@ static lispval intersect_op(lispval exprs,fd_lexenv env,fd_stack stack)
       lispval combined = fd_intersection(combine,2);
       fd_decref(result);
       if (FD_EMPTYP(combined))
-	return combined;
+        return combined;
       else result=combined;}}
   return fd_simplify_choice(result);
 }
@@ -722,7 +722,7 @@ static lispval difference_op(lispval exprs,fd_lexenv env,fd_stack stack)
       lispval combined = fd_difference(result,val);
       fd_decref(result);
       if (FD_EMPTYP(combined))
-	return combined;
+        return combined;
       else result=combined;}}
   return fd_simplify_choice(result);
 }
@@ -843,7 +843,7 @@ static lispval assignop(fd_stack stack,fd_lexenv env,
               return cur;
             else return VOID;}
           else {
-	    lispval value = _fd_fast_eval(expr,env,stack,0);
+            lispval value = _fd_fast_eval(expr,env,stack,0);
             /* This gnarly bit of code handles the case where
                evaluating 'expr' changed the environment structure,
                by, for instance, creating a lambda which made a
@@ -938,9 +938,9 @@ static lispval bindop(lispval op,
 }
 
 static lispval vector_bindop(lispval op,
-			     struct FD_STACK *_stack,fd_lexenv env,
-			     lispval vars,lispval inits,lispval body,
-			     int tail)
+                     struct FD_STACK *_stack,fd_lexenv env,
+                             lispval vars,lispval inits,lispval body,
+                             int tail)
 {
   int i=0, n=VEC_LEN(vars);
   FD_PUSH_STACK(bind_stack,"vector_bindop","opframe",op);
@@ -1190,7 +1190,7 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
   case FD_TRY_OPCODE: return try_op(args,env,_stack,tail);
   case FD_AND_OPCODE: return and_op(args,env,_stack,tail);
   case FD_OR_OPCODE:  return or_op(args,env,_stack,tail);
-  
+
   case FD_INTERSECT_OPCODE: return intersect_op(args,env,_stack);
   case FD_UNION_OPCODE: return union_op(args,env,_stack);
   case FD_DIFFERENCE_OPCODE: return difference_op(args,env,_stack);
@@ -1200,4 +1200,9 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
   }
 }
 
-
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debugging;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/
