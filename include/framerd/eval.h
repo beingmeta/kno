@@ -293,15 +293,16 @@ FD_FASTOP lispval _fd_fast_eval(lispval x,fd_lexenv env,
         return fd_err(fd_UnboundIdentifier,"fd_eval",FD_SYMBOL_NAME(x),x);
       else return val;}
     else return x;
-  case fd_slotmap_type: case fd_schemap_type:
+  case fd_slotmap_type:
     return fd_deep_copy(x);
   case fd_cons_ptr_type: {
     fd_ptr_type type = FD_CONSPTR_TYPE(x);
     switch (type) {
     case fd_pair_type: case fd_code_type:
     case fd_choice_type: case fd_prechoice_type:
+    case fd_schemap_type:
       return fd_stack_eval(x,env,stack,tail);
-    case fd_slotmap_type: case fd_schemap_type:
+    case fd_slotmap_type:
       return fd_deep_copy(x);
     default:
       return fd_incref(x);}}
