@@ -337,24 +337,37 @@ static lispval subjob_open(int n,lispval *args)
       if (err) close(err[1]);
       subjob->subjob_pid = pid;
       subjob->subjob_id = id;
+
       subjob->subjob_stdin = (in == NULL) ? (fd_incref(infile)) :
         fd_make_port(NULL,(u8_output)u8_open_xoutput(in[1],NULL),
                      u8_mkstring("(in)%s",id));
+      if (in) u8_set_blocking(in[1],1);
+
       subjob->subjob_stdout = (out == NULL) ? (fd_incref(outfile)) :
         fd_make_port((u8_input)u8_open_xinput(out[0],NULL),NULL,
                      u8_mkstring("(out)%s",id));
+      if (out) u8_set_blocking(out[0],1);
+
       subjob->subjob_stderr = (err == NULL) ? (fd_incref(errfile)) :
         fd_make_port((u8_input)u8_open_xinput(err[0],NULL),NULL,
                      u8_mkstring("(err)%s",id));
+      if (err) u8_set_blocking(err[0],1);
+
       fd_decref(infile);
       fd_decref(outfile);
       fd_decref(errfile);
       return (lispval) subjob;}
     else {
       int rv = 0;
-      if (in) close(in[1]);
-      if (out) close(out[0]);
-      if (err) close(err[0]);
+      if (in) {
+        close(in[1]);
+        u8_set_blocking(in[0],1);}
+      if (out) {
+        close(out[0]);
+        u8_set_blocking(out[1],1);}
+      if (err) {
+        close(err[0]);
+        u8_set_blocking(err[1],1);}
       if (in)
         rv = dodup(in[0],STDIN_FILENO,"stdin",id);
       else if (FD_STRINGP(infile)) {
