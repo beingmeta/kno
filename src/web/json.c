@@ -176,12 +176,13 @@ static lispval json_string(U8_INPUT *in,int flags)
 
 static lispval json_intern(U8_INPUT *in,int flags)
 {
-  struct U8_OUTPUT out; int c = readc(in); /* Skip '"' */
+  struct U8_OUTPUT out;
+  int c = readc(in), terminator = c;
   int good_symbol = 1;
   c = u8_getc(in);
   U8_INIT_OUTPUT(&out,64);
   while (c>=0) {
-    if (c=='"') break;
+    if (c == terminator) break;
     else if (c=='\\') {
       c = fd_read_escape(in);
       u8_putc(&out,c); c = u8_getc(in);
@@ -208,7 +209,11 @@ static lispval json_intern(U8_INPUT *in,int flags)
 static lispval json_key(U8_INPUT *in,int flags,lispval fieldmap)
 {
   int c = skip_whitespace(in);
-  if (c=='"')
+  if ( (c=='\'') && ( (flags) & (FD_JSON_STRICT) ) )
+    return fd_err("BadJSON","json_parse",
+                  "unexpected ' in strict mode",
+                  FD_VOID);
+  else if ( (c=='"') || (c=='\'') )
     if (flags&FD_JSON_SYMBOLIZE)
       return json_intern(in,flags);
     else if (VOIDP(fieldmap))
