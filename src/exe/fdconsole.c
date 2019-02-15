@@ -459,7 +459,9 @@ static lispval console_read(u8_input in,fd_lexenv env)
     const char *line = el_gets(editconsole,&n_bytes);
     if (!(line)) return FD_EOF;
     else while (isspace(*line)) line++;
-    if (line[0]=='=')  {
+    if (line[0] == '\0')
+      return FD_EOF;
+    else if (line[0]=='=')  {
       U8_INIT_STRING_INPUT(&scan,n_bytes-1,line+1);
       lispval expr = fd_parser(&scan);
       return fd_init_compound
@@ -473,7 +475,17 @@ static lispval console_read(u8_input in,fd_lexenv env)
     struct HistEvent tmp;
     U8_INIT_STRING_INPUT(&scan,n_bytes,line);
     expr = fd_parser(&scan);
-    if (FD_ABORTP(expr)) {
+    if ( (FD_EOXP(expr)) || (FD_EOFP(expr)) ) {
+      lispval readpoint = fd_make_string(NULL,-1,scan.u8_inbuf);
+      u8_byte edge[42];
+      size_t n_bytes = ( (scan.u8_inlim-scan.u8_read) > 40) ? (40) :
+        (scan.u8_inlim-scan.u8_read);
+      strncpy(edge,scan.u8_read,n_bytes);
+      edge[n_bytes] = '\0';
+      lispval err = fd_err(fd_ParseError,"console_read",edge,readpoint);
+      fd_decref(readpoint);
+      return err;}
+    else if (FD_ABORTP(expr)) {
       history(edithistory,&tmp,H_ENTER,line);
       el_reset(editconsole);
       return expr;}
@@ -968,9 +980,12 @@ int main(int argc,char **argv)
       else u8_printf(out,_(";; Bad command result %q\n"),expr);
       fd_decref(expr);
       continue;}
-    if ((FD_EOFP(expr)) || (FD_EOXP(expr))) {
+    if (FD_EOFP(expr)) {
       fd_decref(result);
       break;}
+    else if (FD_EOXP(expr))
+      expr = fd_err(fd_ParseError,"stream_read",NULL,expr);
+    else NO_ELSE;
     /* Clear the buffer (should do more?) */
     if (((PAIRP(expr)) && ((FD_EQ(FD_CAR(expr),FDSYM_QUOTE))))) {
       showall = 1;}
