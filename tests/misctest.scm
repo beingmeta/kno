@@ -461,6 +461,10 @@
 (evaltest "3" (stringout ($num2 3)))
 (evaltest "186,000" (stringout ($num2 186000)))
 
+;;; Testing schemap evaluation
+
+(applytest 7 get [x 3 y (+ 3 4)] 'y)
+
 ;;; Testing structural evaluation
 
 (evaltest #(1 2 3) #.((/ 2 2) (+ 1 1) (/ 9 3)))
@@ -476,6 +480,13 @@
 	     beta (intersection {"B" "C"} "B")
 	     gamma (slice (glom "ab" "cd" "ef") 0 4)
 	     delta (qc (intersection '{"A" "B"} {"C" "D"}))])
+
+;;; Check for stack bugs
+
+(applytest 3
+	   (try (singleton (let ((x 3) (y 4)) (choice x y)))
+		(singleton (let ((x 3) (y 3)) (choice x y)))
+		(singleton (let ((x 3) (y 5)) (choice x y)))))
 
 ;;; Check for config setting
 
