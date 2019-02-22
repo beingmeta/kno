@@ -91,12 +91,27 @@
 	((ambiguous? flags) (choice->vector flags))
 	(else (vector flags))))
 
+(defambda (convert-schemaps obj)
+  (cond ((ambiguous? obj) (for-choices (v obj) (convert-schemaps v)))
+	((not (cons? obj)) obj)
+	((schemap? obj) (schemap->slotmap obj))
+	((vector? obj) (map convert-schemaps obj))
+	((proper-list? obj) (map convert-schemaps obj))
+	((pair? obj) 
+	 (cons (qc (convert-schemaps (car obj)))
+	       (qc (convert-schemaps (cdr obj)))))
+	(else obj)))
+
+(defambda (convert-object obj (c))
+  (set! c (convert-schemaps obj))
+  (if (identical? obj c) obj c))
+
 (define (get-contents-as-list file)
   (let* ((elts '())
 	 (infile (open-input-file file))
 	 (input (read infile)))
     (until (eof-object? input)
-      (set! elts (cons input elts))
+      (set! elts (cons (qc (convert-object input)) elts))
       (set! input (read infile)))
     (reverse elts)))
 
@@ -105,7 +120,7 @@
 	 (infile (open-input-file file))
 	 (input (read infile)))
     (until (eof-object? input)
-      (set! elts (cons input elts))
+      (set! elts (cons (qc (convert-object input)) elts))
       (set! input (read infile)))
     (->vector (reverse elts))))
 
@@ -114,7 +129,7 @@
 	 (infile (open-input-file file))
 	 (input (read infile)))
     (until (eof-object? input)
-      (set+! elts input)
+      (set+! elts (convert-object input))
       (set! input (read infile)))
     elts))
 
@@ -270,6 +285,10 @@
     (applytest #t test frame 'contents-as-string stringval)
     (applytest stringval get frame 'contents-as-string)
     (applytest #t test frame 'contents-as-list)
+    ;; (%watch "TESTLIST" "\nLISTAVAL" listval "\nSTORED" (get frame 'contents-as-list))
+    ;; (dtype->file listval "listval.dtype")
+    ;; (dtype->file (get frame 'contents-as-list) "cal.dtype")
+    (evaltest #t (equal? listval (get frame 'contents-as-list)))
     (applytest #t test frame 'contents-as-list listval)
     (applytest listval get frame 'contents-as-list)
     
@@ -278,7 +297,8 @@
     (applytest vectorval get frame 'contents-as-vector)
     (applytest exprsval get frame 'contents-as-choice)
     (applytest (choice-size exprsval)
- 	       choice-size (find-frames index 'type 'expr 'in-file frame)))
+    choice-size (find-frames index 'type 'expr 'in-file frame))
+    )
   (message "Done checking filename frame " frame))
 
 (define (checkexpr frame pool index)
