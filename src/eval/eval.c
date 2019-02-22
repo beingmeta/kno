@@ -467,7 +467,7 @@ static lispval eval_apply(u8_string fname,
 
 static lispval pair_eval(lispval head,lispval expr,fd_lexenv env,
                          struct FD_STACK *_stack,
-                         int tail);
+                         int tail,int pushed);
 static lispval schemap_eval(lispval expr,fd_lexenv env,
                             struct FD_STACK *_stack);
 static lispval opcode_eval(lispval opcode,lispval expr,
@@ -505,7 +505,7 @@ lispval fd_stack_eval(lispval expr,fd_lexenv env,
     case fd_pair_type: {
       lispval result = VOID;
       FD_PUSH_STACK(eval_stack,fd_evalstack_type,NULL,expr);
-      result = pair_eval(FD_CAR(expr),expr,env,eval_stack,tail);
+      result = pair_eval(FD_CAR(expr),expr,env,eval_stack,tail,1);
       fd_pop_stack(eval_stack);
       return result;}
     case fd_choice_type:
@@ -578,7 +578,7 @@ static lispval get_headval(lispval head,fd_lexenv env,fd_stack eval_stack,
 
 lispval pair_eval(lispval head,lispval expr,fd_lexenv env,
                   struct FD_STACK *eval_stack,
-                  int tail)
+                  int tail,int fresh_stack)
 {
   u8_string label=(SYMBOLP(head)) ? (SYM_NAME(head)) :
     (FD_OPCODEP(head)) ? (opcode_name(head)) : (NULL);
@@ -588,14 +588,16 @@ lispval pair_eval(lispval head,lispval expr,fd_lexenv env,
     label=(SYMBOLP(head)) ? (SYM_NAME(head)) :
       (FD_OPCODEP(head)) ? (opcode_name(head)) : (NULL);}
   int flags = eval_stack->stack_flags;
-  if (U8_BITP(flags,FD_STACK_DECREF_OP)) {fd_decref(eval_stack->stack_op);}
+  if (U8_BITP(flags,FD_STACK_DECREF_OP)) {
+    fd_decref(eval_stack->stack_op);}
   if (label) {
-    if (U8_BITP(flags,FD_STACK_FREE_LABEL)) {u8_free(eval_stack->stack_label);}
+    if (U8_BITP(flags,FD_STACK_FREE_LABEL)) {
+      u8_free(eval_stack->stack_label);}
     eval_stack->stack_label=label;}
   eval_stack->stack_flags = FD_STACK_LIVE | ( (flags) & (FD_STACK_FREE_SRC) );
   int gc_head=0;
-  lispval result = VOID, headval =
-    (FD_OPCODEP(head)) ? (head) : (get_headval(head,env,eval_stack,&gc_head));
+  lispval result = VOID, headval = (FD_OPCODEP(head)) ? (head) :
+    (get_headval(head,env,eval_stack,&gc_head));
   if (gc_head) {
     FD_ADD_TO_CHOICE(eval_stack->stack_vals,headval);}
 
@@ -609,10 +611,15 @@ lispval pair_eval(lispval head,lispval expr,fd_lexenv env,
     result = eval_apply(f->fcn_name,headval,FD_CDR(expr),env,eval_stack,tail);
     break;}
   case fd_evalfn_type: {
-    /* These are evalfns which do all the evaluating themselves */
     struct FD_EVALFN *handler = (fd_evalfn)headval;
-    if (handler->evalfn_name) eval_stack->stack_label=handler->evalfn_name;
-    result = handler->evalfn_handler(expr,env,eval_stack);
+    if (fresh_stack) {
+      /* These are evalfns which do all the evaluating themselves */
+      if (handler->evalfn_name) eval_stack->stack_label=handler->evalfn_name;
+      result = handler->evalfn_handler(expr,env,eval_stack);}
+    else {
+      FD_NEW_STACK(eval_stack,fd_evalstack_type,handler->evalfn_name,expr);
+      result = pair_eval(FD_CAR(expr),expr,env,_stack,tail,1);
+      fd_pop_stack(_stack);}
     break;}
   case fd_macro_type: {
     /* These expand into expressions which are
@@ -750,7 +757,7 @@ FD_FASTOP lispval arg_eval(lispval x,fd_lexenv env,struct FD_STACK *stack)
     switch (type) {
     case fd_pair_type:
       if (fast_eval_args)
-        return pair_eval(FD_CAR(x),x,env,stack,0);
+        return pair_eval(FD_CAR(x),x,env,stack,0,0);
       else return fd_stack_eval(x,env,stack,0);
     case fd_code_type:
     case fd_choice_type: case fd_prechoice_type:
