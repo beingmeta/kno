@@ -249,6 +249,24 @@ static lispval lisp_pick_keys(lispval table,lispval howmany_arg)
     else return EMPTY;}
 }
 
+/* Converting schemaps to slotmaps */
+
+static lispval schemap2slotmap_prim(lispval in)
+{
+  struct FD_SCHEMAP *schemap = (fd_schemap) in;
+  lispval *schema = schemap->table_schema;
+  lispval *values = schemap->schema_values;
+  int size = schemap->schema_length;
+  struct FD_KEYVAL kv[size];
+  int i = 0; while (i < size) {
+    lispval key = schema[i]; fd_incref(key);
+    lispval val = values[i]; fd_incref(val);
+    kv[i].kv_key = key;
+    kv[i].kv_val = val;
+    i++;}
+  return fd_make_slotmap(size,size,kv);
+}
+
 /* Support for some iterated operations */
 
 typedef lispval (*reduceop)(lispval,lispval);
@@ -1110,6 +1128,11 @@ FD_EXPORT void fd_init_tableprims_c()
            fd_make_cprim2x("RESET-HASHTABLE!",reset_hashtable,1,
                            fd_hashtable_type,VOID,
                            fd_fixnum_type,FD_INT(-1)));
+
+  fd_idefn1(fd_scheme_module,"SCHEMAP->SLOTMAP",schemap2slotmap_prim,1,
+            "Converts a schemap into a slotmap",
+            fd_schemap_type,FD_VOID);
+
   /* Note that GET and TEST are actually DB functions which do inference */
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim3("%GET",lispget,2)));
