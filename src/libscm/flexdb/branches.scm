@@ -38,7 +38,7 @@
 	     (branchsize (getopt opts 'branchsize default-branchsize))
 	     (index-name
 	      (glom (if (symbol? keyslot) (downcase keyslot)
-			(basename (index-id root))	)
+			(basename (index-id root)))
 		"-e" (->exact (elapsed-time))
 		"-t" (threadid)
 		"-r" (number->string (random 65536) 16)))
@@ -54,11 +54,18 @@
   (set! root (indexctl branch 'props 'root))
   (if (aggregate-index? branch)
       (branch/commit! (indexctl branch 'partitions))
-      (if (and (tempindex? branch) root)
-	  (if (indexctl root 'keyslot)
-	      (slotindex/merge! root branch)
-	      (index/merge! root branch))
-	  (irritant branch |Not A Branch Index| branch/merge!))))
+      (cond ((not (and (tempindex? branch) (exists? root) root))
+	     (irritant branch |Not A Branch Index| branch/merge!))
+	    ((and (indexctl root 'keyslot) (singleton? (indexctl root 'keyslot)))
+	     (logdebug |BranchMerge|
+	       "Merging " (indexctl branch 'metadata 'adds) 
+	       " key values for " (indexctl root 'keyslot)
+	       " into " root)
+	      (slotindex/merge! root branch))
+	    (else (logdebug |BranchMerge|
+		    "Merging " (indexctl branch 'metadata 'adds) " key values " 
+		    " into " root)
+		  (index/merge! root branch)))))
 (define branch/merge! branch/commit!)
 (define aggregate/merge branch/commit!)
 (define aggregate/merge! branch/commit!)
