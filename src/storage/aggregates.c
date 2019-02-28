@@ -337,8 +337,8 @@ static struct FD_INDEX_HANDLER aggregate_index_handler={
   NULL, /* commit */
   aggregate_fetch, /* fetch */
   NULL, /* fetchsize */
-  aggregate_prefetch, /* prefetch */
-  aggregate_fetchn, /* fetchn */
+  NULL, /* aggregate_prefetch, prefetch */
+  NULL, /* aggregate_fetchn, fetchn */
   aggregate_fetchkeys, /* fetchkeys */
   NULL, /* fetchinfo */
   NULL, /* batchadd */
