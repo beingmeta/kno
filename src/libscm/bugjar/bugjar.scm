@@ -239,7 +239,8 @@
 	       (h2* ((class "detail"))
 		 (xmlout " \&ldquo;" (error-details exception) "\&rdquo;"))
 	       (set! detailsblock #t))
-	   (let* ((irritant (error-irritant exception))
+	   (let* ((irritant (and (exception-irritant? exception)
+				 (exception-irritant exception)))
 		  (stringval (and (exists? irritant) irritant
 				  (lisp->string (qc irritant)))))
 	     (if (and stringval (< (length stringval) 50))
@@ -283,7 +284,7 @@
 	   (when irritantblock
 	     (h2* ((id "IRRITANT")) "Irritant")
 	     (xmlblock PRE ((class "irritant"))
-	       (xmlout (stringout (pprint (error-irritant exception))))))
+	       (xmlout (stringout (pprint (exception-irritant exception))))))
 	   (doseq (section (reverse sections))
 	     (when (test section 'id)
 	       (h2* ((id (get section 'id)))
