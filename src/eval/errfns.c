@@ -833,8 +833,8 @@ FD_EXPORT void fd_init_errfns_c()
             "and has an 'irritant'",
             fd_exception_type,VOID);
   fd_idefn2(fd_scheme_module,"EXCEPTION->SLOTMAP",exception2slotmap,1,
-            "(EXCEPTION-IRRITANT? *ex*) Returns true if *ex* is an exception "
-            "and has an 'irritant'",
+            "(EXCEPTION->SLOTMAP *ex*) Breaks out the elements of "
+            "the exception *ex* into a slotmap",
             fd_exception_type,VOID,-1,FD_FALSE);
 
   fd_idefn3(fd_scheme_module,"EXCEPTION-STACK",exception_stack,1,
