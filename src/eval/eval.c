@@ -629,9 +629,10 @@ lispval pair_eval(lispval head,lispval expr,fd_lexenv env,
     eval_stack->stack_type="macro";
     lispval xformer = macrofn->macro_transformer;
     lispval new_expr = fd_call(eval_stack,xformer,1,&expr);
-    if (FD_ABORTED(new_expr))
-      result = fd_err(fd_SyntaxError,
-                      _("macro expansion"),NULL,new_expr);
+    if (FD_ABORTED(new_expr)) {
+      u8_string show_name = macrofn->macro_name;
+      if (show_name == NULL) show_name = label;
+      result = fd_err(fd_SyntaxError,_("macro expansion"),show_name,new_expr);
     else result = fd_stack_eval(new_expr,env,eval_stack,tail);
     fd_decref(new_expr);
     break;}
