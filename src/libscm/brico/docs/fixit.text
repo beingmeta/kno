@@ -1,0 +1,28 @@
+HOW TO FIX THINGS (without breaking other things)
+
+We'll use the BRICO predicative relationships to check these.
+
+ALWAYS:
+	distinguish concepts from "identical" concepts
+	check the talk page before changing an audited relationship
+
+NEVER:
+	add or drop an always/never without discussion
+	introduce a contradition without discussion
+
+SOMETIMES:
+	create a new specialized class when adding a relationship
+	create a union class when adding a relationship or term
+	create analogues in new realms
+
+COMMONLY:
+	tag related terms with roles
+	select accurate suggested synonyms
+	add a commonly or rarely for an always or never
+	add a gloss and web references
+	add lat/longs, start, ends for "real" individuals
+
+RARELY:
+	introduce contradictions
+	change always/never relationships
+

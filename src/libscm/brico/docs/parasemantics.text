@@ -1,0 +1,84 @@
+There are basic "types" of terms, which include
+  sense categories (NOUN, VERB, ADJECTIVE, ADVERB)
+  and semi-semantic classes (e.g. INDIVIDUAL, ABSTRACT, BASIC).
+
+There are a variety of relationships between terms and these have both
+symmetric and transitive closures.  The closures are called the
+"lattice" relationships.
+
+RELATED (at the top)
+ CO-OCCURING (A co-occurs and may be "identical" with B,
+              either actually or "virtually" by imagination)
+   ENTAILS (basically, expected to co-occur, for some reason)
+    COENTAILED (symmetric subset of ENTAILS)
+    IMPLIES ("can be substituted" with core meaning preservation)
+     COIMPLIED (symmetric subset of IMPLIES)
+     GENLS (a subset of IMPLIES on type consistent terms)
+      SYNSET (a symmetric subset of IMPLIES)
+ DEFTERMS
+  SYMDEF (symmetric subset of DEFTERMS)
+ REFTERMS
+  SYMREF (symmetric subset of REFTERMS)
+
+IMPLIES is tied to the notion of individuals in situations.  A term p
+IMPLIES a term q if an individual described by p is also normally
+implied by q.
+
+Here's how the current slotids map into this structure:
+  SYNSET is just the current synset defining relationship;
+   we reify the wordforms into single concepts, though we don't have to.
+  GENLS  is just the current GENLS/KINDOF but with type
+   distinct cases converted to IMPLIES
+  ISA goes into IMPLIES
+  PARTOF, MEMBERS, and MADEOF are subrelations of ENTAILS
+  DEFTERMS, REFTERMS, and their inverses are just what you'd think
+
+Here's a kludge: if no one currently uses IMPLIES, we rename ISA to
+IMPLIES and make GENLS a subslot of it.  Then we also use use subslots
+to set up the ENTAILS relationships.
+
+Simple relational indexing (indexlinks) indexes inferred IMPLIES and
+ENTAILS, same for lattice indexing (need to look at the size issues).
+
+
+The empirical ground of these relations are:
+  SYNSET and GENLS, pretty much WordNet stuff
+  IMPLIES is a twist on substitution which allows paraphrasing
+   but asserts that the substitution holds in the paraphrase; this
+   let's you cross sense categories and also languages (in theory).
+   We're actually on shaky ground putting foreign words in the same
+   synset, but it's probably okay for now.
+  ENTAILS is based on expectation violation, which is that ENTAILed
+   relations are suprising if they don't occur;
+  CO-OCCURRING is just the fact of co-occurence in imagined situations,
+   with the "fact" of co-occurence driving from direct interrogation,
+   e.g. asking was there a spatula by the barbecue rather than asking
+   the person to list "what's by the barbecue".
+
+Given this structure, it makes sense to add some relations:
+  META or SETOF connects a term to the meta of the term; this isn't
+   exactly the same as use/mention, because it is referring to concepts
+   rather than words.
+  USEDIN is a subset of ENTAILS which maps NOUNS to VERBS
+
+There are probably others, and they probably line up with CYC-like skolem functions.
+
+
+--------------Old version-----------------------------
+
+synsets: word substitution
+genls: asymmetric word substitution
+partof: 
+  instances: unique spatio-temporal inclusion
+  abstractions: 
+    instances have parts w/ spatio-temporal inclusion
+memberof: range is enumerated groups
+madeof: materials, physical composition
+
+genls among instances indicates "versions", e.g.
+  A. Schwarzenegger as actor, gov, father, etc.
+
+Distinguishing instances and abstractions:
+  abstractions have to have multiple discontinuous instances
+  
+  
