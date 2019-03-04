@@ -1519,6 +1519,8 @@ FD_EXPORT void fd_init_choicefns_c()
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim1("CHOICE-SIZE",choicesize_prim,1)));
   fd_defalias(fd_scheme_module,"Ω","CHOICE-SIZE");
+  fd_defalias(fd_scheme_module," ","CHOICE-SIZE");
+  fd_defalias(fd_scheme_module,"","CHOICE-SIZE");
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("EXISTS",exists_lexpr,1)));
