@@ -367,29 +367,34 @@ static int aggregate_prefetch
   int i = 0, n = ax->ax_n_indexes;
   fd_index *indexes = ax->ax_indexes;
   if (one_slot) {
-    int rv = 0;
-    size_t n_fetched = 0;
+    ssize_t n_fetched = 0;
     lispval fetch_values = FD_EMPTY;
     FD_DO_CHOICES(value,values) {
       if (fd_hashtable_probe(cache,value) == 0) {
+	fd_incref(value);
 	FD_ADD_TO_CHOICE(fetch_values,value);}}
     fetch_values = fd_simplify_choice(fetch_values);
     if (FD_EMPTYP(fetch_values)) return 0;
     while (i < n) {
       fd_index ex = indexes[i++];
-      lispval ekeyslot = ex->index_keyslot;
       fd_hashtable ecache = &(ex->index_cache);
-      rv = fd_index_prefetch(ex,fetch_values);
+      int rv = fd_index_prefetch(ex,fetch_values);
       DO_CHOICES(value,fetch_values) {
 	lispval v = fd_hashtable_get(ecache,value,FD_VOID);
 	if (!(FD_VOIDP(v))) {
 	  if (FD_AMBIGP(v)) v = fd_simplify_choice(v);
 	  rv = fd_hashtable_add(cache,value,v);
 	  n_fetched += FD_CHOICE_SIZE(v);
-	  fd_decref(v);}}}
+	  fd_decref(v);
+	  if (rv<0) {
+	    n_fetched = -1;
+	    FD_STOP_DO_CHOICES;
+	    break;}}
+	else NO_ELSE;}}
+    fd_decref(fetch_values);
     return n_fetched;}
   else {
-    size_t n_fetched = 0;
+    ssize_t n_fetched = 0;
     lispval features = make_features(slotids,values);
     lispval fetch_features = FD_EMPTY;
     FD_DO_CHOICES(feature,features) {
@@ -406,24 +411,32 @@ static int aggregate_prefetch
 	    if ( (FD_PAIRP(feature)) && (FD_EQ(FD_CAR(feature),ekeyslot)) ) {
 	      lispval v = FD_CDR(feature); fd_incref(v);
 	      FD_ADD_TO_CHOICE(fetch_values,v);}}}
-	fd_index_prefetch(ex,fetch_values);
+	int rv = fd_index_prefetch(ex,fetch_values);
+	if (rv<0) { n_fetched = -1; break; }
 	{DO_CHOICES(fetch_val,fetch_values) {
 	    lispval keyval = fd_conspair(ekeyslot,fetch_val);
 	    lispval refs = fd_hashtable_get(ecache,keyval,FD_VOID);
 	    if (! ( (FD_VOIDP(refs)) || (FD_EMPTYP(refs)) ) )
-	      fd_hashtable_add(cache,keyval,refs);
+	      rv = fd_hashtable_add(cache,keyval,refs);
 	    fd_decref(refs);
-	    fd_decref(keyval);}}
-	fd_decref(fetch_values);}
+	    fd_decref(keyval);
+	    if (rv<0) {
+	      n_fetched = -1;
+	      FD_STOP_DO_CHOICES;
+	      break;}}}
+	fd_decref(fetch_values);
+	if (n_fetched < 0) break;}
       else {
-	fd_index_prefetch(ex,fetch_features);
+	int rv = fd_index_prefetch(ex,fetch_features);
+	if (rv<0) { n_fetched = -1; break; }
 	DO_CHOICES(feature,fetch_features) {
 	  lispval v = fd_hashtable_get(ecache,feature,FD_VOID);
 	  if (!(FD_VOIDP(v))) {
 	    if (FD_AMBIGP(v)) v = fd_simplify_choice(v);
-	    fd_hashtable_add(cache,feature,v);
+	    rv = fd_hashtable_add(cache,feature,v);
 	    n_fetched += FD_CHOICE_SIZE(v);
-	    fd_decref(v);}}}}
+	    fd_decref(v);
+	    if (rv<0) {FD_STOP_DO_CHOICES; break;}}}}}
     fd_decref(fetch_features);
     fd_decref(features);
     return n_fetched;}
