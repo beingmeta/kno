@@ -8,6 +8,10 @@ usr/share/framerd/modules/local
 usr/share/framerd/modules/local/safe
 usr/share/framerd/libscm
 usr/share/framerd/libscm/bugjar
+usr/share/framerd/libscm/bugjar/resources
+usr/share/framerd/libscm/brico/
+usr/share/framerd/libscm/brico/build
+usr/share/framerd/libscm/brico/data
 usr/share/framerd/libscm/optimize
 usr/share/framerd/libscm/flexdb
 usr/share/framerd/libscm/storage

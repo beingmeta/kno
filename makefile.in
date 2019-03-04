@@ -1606,7 +1606,7 @@ install-support: $(DESTDIR)@share_dir@
 	cd $(BUILD)/src/web; $(SYSINSTALL) @install_file_opts@ 	\
 		webinfo.fdcgi $(DESTDIR)@share_dir@
 
-LIBSCM_DIRS=optimize bugjar storage flexdb mongodb xhtml
+LIBSCM_DIRS=optimize bugjar storage flexdb brico brico/build mongodb xhtml
 install-libscm:
 	@if [ ! -d ${DESTDIR}${LIBSCM} ]; then 						\
 	  make really-install-libscm; 							\
@@ -1620,9 +1620,12 @@ really-install-libscm:
 	  $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM}/$$dir;		\
 	  $(SYSINSTALL) @install_file_opts@ src/libscm/$$dir/*.scm 		\
 	    $(DESTDIR)${LIBSCM}/$$dir; done;
-	  $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM}/bugjar/resources;
-	  $(SYSINSTALL) @install_file_opts@ src/libscm/bugjar/resources/*	\
+	$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM}/bugjar/resources;
+	$(SYSINSTALL) @install_file_opts@ src/libscm/bugjar/resources/*	\
 	       $(DESTDIR)${LIBSCM}/bugjar/resources;
+	$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM}/brico/data;
+	$(SYSINSTALL) @install_file_opts@ src/libscm/brico/data/*		\
+	       $(DESTDIR)${LIBSCM}/brico/data;
 
 logdirs: $(DESTDIR)@framerd_logdir@ $(DESTDIR)@servlet_logdir@ \
 	$(DESTDIR)@daemon_logdir@

@@ -1,3 +1,9 @@
+framerd (4.3.0-34) stable; urgency=medium
+
+  * Restore BRICO to FramerD, this time in libscm
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 04 Mar 2019 15:36:09 -0500
+
 framerd (4.3.0-33) stable; urgency=medium
 
   * Move storage module to flexdb
