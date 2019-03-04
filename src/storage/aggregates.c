@@ -238,6 +238,10 @@ FD_EXPORT int fd_add_to_aggregate_index(fd_aggregate_index aix,fd_index add)
       int reallocd = allocd * 2;
       fd_index *new = u8_realloc_n(aix->ax_indexes,reallocd,fd_index);
       if (new) {
+        /* We keep the old array value around because it might still
+           be accessed by other threads. But we keep it in a list to avoid
+           potentially leak errors. A kludge, but it's not going to be a big
+           leak. */
         aix->ax_oldvecs = u8_cons_list(aix->ax_indexes,aix->ax_oldvecs,0);
         aix->ax_indexes = new;
         aix->ax_n_allocd = reallocd;}
@@ -253,6 +257,16 @@ FD_EXPORT int fd_add_to_aggregate_index(fd_aggregate_index aix,fd_index add)
     if (add->index_serialno<0) {
       lispval alix = (lispval)add;
       fd_incref(alix);}
+
+    /* If the new index doesn't cache or it has a keyslot that's different
+       from the aggregate, don't cache the aggregate index */
+    if (add->index_cache_level == 0)
+      aix->index_cache_level = 0;
+    else {
+      lispval keyslot = add->index_keyslot;
+      if ( (FD_OIDP(keyslot)) || (FD_SYMBOLP(keyslot)) ) {
+        if ( keyslot != aix->index_keyslot ) {
+          aix->index_cache_level = 0;}}}
 
     u8_string old_source = aix->index_source;
 
@@ -337,8 +351,8 @@ static struct FD_INDEX_HANDLER aggregate_index_handler={
   NULL, /* commit */
   aggregate_fetch, /* fetch */
   NULL, /* fetchsize */
-  NULL, /* aggregate_prefetch, prefetch */
-  NULL, /* aggregate_fetchn, fetchn */
+  aggregate_prefetch, /* prefetch */
+  aggregate_fetchn, /* fetchn */
   aggregate_fetchkeys, /* fetchkeys */
   NULL, /* fetchinfo */
   NULL, /* batchadd */
