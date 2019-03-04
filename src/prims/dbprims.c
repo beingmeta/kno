@@ -3784,6 +3784,7 @@ FD_EXPORT void fd_init_dbprims_c()
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn
                           ("FIND-FRAMES-PREFETCH!",find_frames_prefetch,2)));
+  fd_defalias(fd_scheme_module,"\?\?!","FIND-FRAMES-PREFETCH!");
 
   fd_idefn(fd_xscheme_module,
            fd_make_ndprim(fd_make_cprimn("SWAPOUT",swapout_lexpr,0)));
