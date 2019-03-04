@@ -73,7 +73,9 @@ static lispval index_prim_find(fd_index ix,lispval slotids,lispval values)
     else if ( (OIDP(keyslot)) || (SYMBOLP(keyslot)) ||
 	      ( (FD_AMBIGP(keyslot)) &&
 		(! (fd_choice_containsp(slotid,keyslot))) ) ) {
-      /* Don't bother fetching */}
+      /* This index doesn't cover keyslot, so don't bother fetching
+       anything */
+      continue;}
     else if (FD_AMBIGP(values)) {
       lispval keys = FD_EMPTY_CHOICE;
       {DO_CHOICES(value,values) {
@@ -160,6 +162,9 @@ static lispval aggregate_prim_find
 	    else {CHOICE_ADD(combined,ex_results);}}
 	  else {/* No requests for ekeyslot */}
 	  continue;}
+	else if ( (FD_CHOICEP(ekeyslot)) &&
+		  (! (fd_overlapp(ekeyslot,slotids)) ) ) {
+	  /* No overlapping slotids between index and query */}
 	else {
 	  fd_index_prefetch((fd_index)ex,fetch_features);
 	  ekeyslot = FD_VOID;}
@@ -310,6 +315,7 @@ int fd_find_prefetch(fd_index ix,lispval slotids,lispval values)
 	DO_CHOICES(value,values) {
 	  lispval key = fd_conspair(slotid,value);
 	  CHOICE_ADD(keys,key);}}}
+    if (FD_EMPTYP(keys)) return 0;
     fd_index_prefetch(ix,keys);
     fd_decref(keys);
     return 1;}
@@ -330,13 +336,100 @@ int fd_find_prefetch(fd_index ix,lispval slotids,lispval values)
 	DO_CHOICES(value,values) {
 	  lispval key = fd_conspair(slotid,value);
 	  keyv[n_keys++]=key;}}}
-    valuev = (ix->index_handler->fetchn)(ix,n_keys,keyv);
-    fd_hashtable_iter(&(ix->index_cache),fd_table_add_empty_noref,
-		      n_keys,keyv,valuev);
-    u8_free(keyv); u8_free(valuev);
+    if (n_keys) {
+      valuev = (ix->index_handler->fetchn)(ix,n_keys,keyv);
+      fd_hashtable_iter(&(ix->index_cache),fd_table_add_empty_noref,
+			n_keys,keyv,valuev);}
+    u8_free(keyv); if (valuev) u8_free(valuev);
     return 1;}
 }
 
+static int aggregate_prefetch
+(fd_aggregate_index ix,lispval slotids,lispval values)
+{
+  lispval keyslot = ax->index_keyslot;
+  if ( (FD_OIDP(keyslot)) || (FD_SYMBOLP(keyslot)) ) {
+    if (! ( ( keyslot == slotids) || (fd_choice_containsp(keyslot,slotids)) ) )
+      return 0;}
+  else if ( (FD_AMBIGP(keyslot)) && (! (fd_overlapp(keyslot,slotids)) ) )
+    return 0;
+  else NO_ELSE;
+  int i = 0, n =ax->ax_n_indexes;
+  fd_index *indexes = ax->ax_indexes;
+  /* If we get here, the cache is store keypairs as conses because
+     either there isn't a keyslot or it's a choice. */
+  fd_hashtable cache = &(ax->index_cache);
+  lispval features = make_features(slotids,values);
+  lispval fetch_features = FD_EMPTY;
+  /* Get the features we need to fetch */
+  {DO_CHOICES(feature,features) {
+      lispval cached = fd_hashtable_get(cache,feature,FD_VOID);
+      if (!(FD_VOIDP(cached))) {
+	CHOICE_ADD(combined,cached);
+	fd_decref(feature);}
+      else {
+	CHOICE_ADD(fetch_features,feature);}}}
+  if (!(FD_EMPTYP(fetch_features))) {
+    i=0; while (i < n) {
+      fd_index ex = indexes[i++];
+      if (fd_aggregate_indexp(ex)) {
+	/* If it's an embedded aggregate, recur, passing slotids and
+	   values again. We might end up recomputing slotvalue pairs,
+	   but we won't worry about that for now. */
+	lispval ex_results =
+	  aggregate_prim_find((fd_aggregate_index)ex,slotids,values);
+	if (FD_ABORTED(ex_results)) {
+	  fd_decref(fetch_features);
+	  fd_decref(combined);
+	  return ex_results;}
+	else {CHOICE_ADD(combined,ex_results);}
+	continue;}
+      lispval ekeyslot = ex->index_keyslot;
+      if ( (SYMBOLP(ekeyslot)) || (OIDP(ekeyslot)) ) {
+	if (fd_choice_containsp(ekeyslot,slotids)) {
+	  lispval ex_results = index_prim_find(ex,ekeyslot,values);
+	  if (FD_ABORTED(ex_results)) {
+	    fd_decref(fetch_features);
+	    fd_decref(combined);
+	    return ex_results;}
+	  else {CHOICE_ADD(combined,ex_results);}}
+	else {/* No requests for ekeyslot */}
+	continue;}
+      else if ( (FD_CHOICEP(ekeyslot)) &&
+		(! (fd_overlapp(ekeyslot,slotids)) ) ) {
+	/* No overlapping slotids between index and query */}
+      else {
+	fd_index_prefetch((fd_index)ex,fetch_features);
+	ekeyslot = FD_VOID;}
+      int j=0, n_features = FD_CHOICE_SIZE(fetch_features);
+      /* We will use keyvec and valvec to update the aggregate index
+	 cache. */
+      lispval *keyvec = u8_alloc_n(n_features,lispval);
+      lispval *valvec = u8_alloc_n(n_features,lispval);
+      DO_CHOICES(feature,fetch_features) {
+	lispval v = fd_index_get((fd_index)ex,feature);
+	if (FD_ABORTED(v)) {
+	  fd_decref(fetch_features);
+	  fd_decref(combined);
+	  fd_decref_vec(valvec,j);
+	  u8_free(keyvec);
+	  u8_free(valvec);
+	  FD_STOP_DO_CHOICES;
+	  return v;}
+	keyvec[j] = feature;
+	valvec[j] = v;
+	fd_incref(v);
+	CHOICE_ADD(combined,v);
+	j++;}
+      int rv = fd_hashtable_iter(cache,fd_table_add,j,keyvec,valvec);
+      fd_decref_vec(valvec,j);
+      u8_free(keyvec);
+      u8_free(valvec);
+      if (rv<0) {
+	fd_decref(fetch_features);
+	return FD_ERROR_VALUE;}}
+    fd_decref(fetch_features);}
+}
 
 /* Indexing frames */
 
