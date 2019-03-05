@@ -156,10 +156,15 @@
 (define flex/make flexdb/make)
 
 (define (pool/ref spec (opts #f))
-  (flexdb/ref spec (opt+ opts 'type 'pool)))
+  (flexdb/ref spec 
+	      (if (testopt opts 'pooltype) 
+		  opts
+		  (opt+ opts 'pooltype (getopt opts 'type 'bigpool)))))
 
 (define (index/ref spec (opts #f))
-  (flexdb/ref spec (opt+ opts 'type 'index)))
+  (flexdb/ref spec 
+	      (if (testopt opts 'indextype) opts
+		  (opt+ opts 'indextype (getopt opts 'type 'hashindex)))))
 
 ;;; Copying OIDs between pools
 
