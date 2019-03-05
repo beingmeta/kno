@@ -124,6 +124,51 @@ static ssize_t cprim_dtype(struct FD_OUTBUF *out,lispval x)
 
 /* Declaring functions */
 
+static struct FD_FUNCTION *init_cprim(u8_string name,
+                                      int arity,
+                                      u8_string filename,
+                                      u8_string doc,
+                                      int flags,
+                                      int *types,
+                                      lispval *dflts)
+{
+  struct FD_FUNCTION *f = u8_alloc(struct FD_FUNCTION);
+  int min_arity = ((flags)&0xFFFF);
+  if ( (arity>=0) && (min_arity>arity)) {
+    u8_log(LOG_CRIT,_("Bad primitive definition"),
+           "Fixing primitive %s%s%s%s with min_arity=%d > arity=%d",
+           name,U8OPTSTR(" (",filename,") "),arity,min_arity);
+    min_arity = arity;}
+  FD_INIT_FRESH_CONS(f,fd_cprim_type);
+  f->fcn_name = name;
+  f->fcn_filename = filename;
+  f->fcn_doc = doc;
+  f->fcn_moduleid = FD_VOID;
+  if ((flags)&0x10000)
+    f->fcn_ndcall = 1;
+  else f->fcn_ndcall = 0;
+  if ((flags)&0x20000)
+    f->fcn_xcall = 1;
+  else f->fcn_xcall = 0;
+  f->fcn_arity = arity;
+  f->fcn_min_arity = min_arity;
+  if (types) {
+    f->fcn_typeinfo = u8_alloc_n(arity,int);
+    memcpy(f->fcn_typeinfo,types,sizeof(int)*arity);}
+  else f->fcn_typeinfo = NULL;
+  if (dflts) {
+    f->fcn_defaults = u8_alloc_n(arity,lispval);
+    memcpy(f->fcn_defaults,types,sizeof(lispval)*arity);}
+  else f->fcn_defaults = NULL;
+  f->fcnid = VOID;
+  if ( (arity>=0) && (min_arity>arity)) {
+    u8_log(LOG_CRIT,_("Bad primitive definition"),
+           "Fixing primitive %s%s%s%s with min_arity=%d > arity=%d",
+           name,U8OPTSTR(" (",filename,") "),arity,min_arity);
+    f->fcn_min_arity = arity;}
+  return f;
+}
+
 static struct FD_FUNCTION *new_cprim(u8_string name,
                                      u8_string filename,
                                      u8_string doc,

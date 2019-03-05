@@ -198,6 +198,9 @@ FD_EXPORT lispval fd_new_cprim13(u8_string name,u8_string filename,u8_string doc
 FD_EXPORT lispval fd_new_cprim14(u8_string name,u8_string filename,u8_string doc,fd_cprim14 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6,int type7,lispval dflt7,int type8,lispval dflt8,int type9,lispval dflt9,int type10,lispval dflt10,int type11,lispval dflt11,int type12,lispval dflt12,int type13,lispval dflt13);
 FD_EXPORT lispval fd_new_cprim15(u8_string name,u8_string filename,u8_string doc,fd_cprim15 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6,int type7,lispval dflt7,int type8,lispval dflt8,int type9,lispval dflt9,int type10,lispval dflt10,int type11,lispval dflt11,int type12,lispval dflt12,int type13,lispval dflt13,int type14,lispval dflt14);
 
+FD_EXPORT lispval fd_init_cprim2(u8_string name,u8_string filename,u8_string doc,fd_cprim2 fn,int flags,
+                                 int types[2],lispval dflts[2]);
+
 #define fd_make_cprimn(name,fn,min_arity)               \
   fd_new_cprimn(name,_FILEINFO,NULL,fn,min_arity,0,0)
 #define fd_make_cprimN(name,fn,min_arity)               \
@@ -383,6 +386,21 @@ FD_EXPORT lispval fd_new_cprim15(u8_string name,u8_string filename,u8_string doc
 #define FD_NEEDS_15_ARGS 15
 
 #define FD_NDCALL 0x10000
+
+/* DEFPRIM */
+
+#define DEFPRIM(pname,cname,arity,flags,docstring,types,defaults)	\
+  static cname ## _sym = pname; \
+  static cname ## _flags = flags; \
+  static cname ## _docstring = docstring; \
+  static cname ## _types[arity] = types; \
+  static cname ## _defaults[arity] = defaults
+
+
+#define DECLPRIM(module,cname,arity)		\
+  fd_defprim ## arity(module,cname ## _sym,cname,\
+                      cname ## _flags,cname ## _docstring,\
+                      cname ## _types,cname ## _defaults)
 
 #define FD_FUNCTIONP(x) (fd_functionp[FD_PRIM_TYPE(x)])
 #define FD_XFUNCTION(x)                         \
