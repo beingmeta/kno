@@ -391,6 +391,7 @@ FD_EXPORT lispval fd_init_cprim2(u8_string name,u8_string filename,u8_string doc
 #define FD_NEEDS_13_ARGS 13
 #define FD_NEEDS_14_ARGS 14
 #define FD_NEEDS_15_ARGS 15
+#define FD_NEEDS_ALL_ARGS 0x100000
 
 #define FD_MIN_ARITY_MASK (0xFFFF)
 #define FD_NDCALL 0x10000

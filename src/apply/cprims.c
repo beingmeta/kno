@@ -188,7 +188,8 @@ static struct FD_FUNCTION *init_cprim(u8_string name,
                                       int *typeinfo,
                                       lispval *defaults)
 {
-   int min_arity = ((flags)&(FD_MIN_ARITY_MASK));
+  int min_arity = ((flags) & (FD_NEEDS_ALL_ARGS)) ? (arity) :
+    ((flags)&(FD_MIN_ARITY_MASK));
   return make_cprim(name,filename,doc,arity,min_arity,
                     ((flags)&(FD_NDCALL)),((flags)&(FD_XCALL)),
                     typeinfo,defaults);

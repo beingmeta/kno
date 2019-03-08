@@ -27,7 +27,9 @@ FDPRIM("TABLE?",tablep,1,FD_NEEDS_1_ARG,
        "`(TABLE? *obj*)` returns #t if *obj* is a table, #f otherwise.")
   (lispval arg)
 {
-  if (TABLEP(arg)) return FD_TRUE; else return FD_FALSE;
+  if (TABLEP(arg))
+    return FD_TRUE;
+  else return FD_FALSE;
 }
 
 FDPRIM("HASKEYS?",haskeysp,1,FD_NEEDS_1_ARG,
@@ -47,7 +49,8 @@ FDPRIM("SLOTMAP?",slotmapp,1,FD_NEEDS_1_ARG,
        "`(SLOTMAP? *obj*)` returns #t if *obj* is a slotmap, #f otherwise.")
   (lispval x)
 {
-  if (SLOTMAPP(x)) return FD_TRUE;
+  if (SLOTMAPP(x))
+    return FD_TRUE;
   else return FD_FALSE;
 }
 
@@ -55,7 +58,8 @@ FDPRIM("SCHEMAP?",schemapp,1,FD_NEEDS_1_ARG,
        "`(SCHEMAP? *obj*)` returns #t if *obj* is a slotmap, #f otherwise.")
   (lispval x)
 {
-  if (SCHEMAPP(x)) return FD_TRUE;
+  if (SCHEMAPP(x))
+    return FD_TRUE;
   else return FD_FALSE;
 }
 
@@ -63,7 +67,8 @@ FDPRIM("HASHTABLE?",hashtablep,1,FD_NEEDS_1_ARG,
        "`(HASHTABLE? *obj*)` returns #t if *obj* is a slotmap, #f otherwise.")
   (lispval x)
 {
-  if (HASHTABLEP(x)) return FD_TRUE;
+  if (HASHTABLEP(x))
+    return FD_TRUE;
   else return FD_FALSE;
 }
 
@@ -94,7 +99,11 @@ FDPRIM1("MAKE-HASHTABLE",make_hashtable,FD_NEEDS_NO_ARGS,
   else return fd_make_hashtable(NULL,0);
 }
 
-static lispval pick_hashtable_size(lispval count_arg)
+FDPRIM1("PICK-HASHTABLE-SIZE", pick_hashtable_size,FD_NEEDS_1_ARG,
+        "`(PICK-HASHTABLE-SIZE *count*)` picks a good hashtable size "
+        "for a table of *count* elements.",
+        fd_fixnum_type,FD_VOID)
+  (lispval count_arg)
 {
   if (!(FD_UINTP(count_arg)))
     return fd_type_error("uint","pick_hashtable_size",count_arg);
@@ -103,7 +112,11 @@ static lispval pick_hashtable_size(lispval count_arg)
   return FD_INT(size);
 }
 
-static lispval reset_hashtable(lispval table,lispval n_slots)
+FDPRIM2("RESET-HASHTABLE!",reset_hashtable,FD_NEEDS_1_ARG,
+        "`(RESET-HASHTABLE! *table* [*slots*)` resets a hashtable, removing "
+        "all of its values",
+        fd_hashtable_type,FD_VOID,fd_fixnum_type,FD_VOID)
+  (lispval table,lispval n_slots)
 {
   if (!(FD_UINTP(n_slots)))
     return fd_type_error("uint","reset_hashtable",n_slots);
@@ -111,7 +124,12 @@ static lispval reset_hashtable(lispval table,lispval n_slots)
   return VOID;
 }
 
-static lispval static_hashtable(lispval table)
+FDPRIM1("STATIC-HASHTABLE",static_hashtable,FD_NEEDS_1_ARG,
+        "`(STATIC-HASHTABLE *table* )` declares all keys and values "
+        "in *table* to be static (no GC) and disables locking for the table. "
+        "This may improve performance on objects in the table",
+        fd_hashtable_type,FD_VOID)
+  (lispval table)
 {
   struct FD_HASHTABLE *ht = (fd_hashtable)table;
   fd_write_lock_table(ht);
@@ -121,7 +139,11 @@ static lispval static_hashtable(lispval table)
   return fd_incref(table);
 }
 
-static lispval unsafe_hashtable(lispval table)
+FDPRIM1("UNSAFE-HASHTABLE",unsafe_hashtable,FD_NEEDS_1_ARG,
+        "`(UNSAFE-TABLE *table* )` disables locking for *table*. "
+        "This may improve performance.",
+        fd_hashtable_type,FD_VOID)
+  (lispval table)
 {
   struct FD_HASHTABLE *ht = (fd_hashtable)table;
   fd_write_lock_table(ht);
@@ -130,7 +152,11 @@ static lispval unsafe_hashtable(lispval table)
   return fd_incref(table);
 }
 
-static lispval resafe_hashtable(lispval table)
+FDPRIM1("RESAFE-HASHTABLE",resafe_hashtable,FD_NEEDS_1_ARG,
+        "`(RESAFE-TABLE *table* )` re-enables locking for *table* "
+        "disabled by `UNSAFE-TABLE`.",
+        fd_hashtable_type,FD_VOID)
+  (lispval table)
 {
   struct FD_HASHTABLE *ht = (fd_hashtable)table;
   fd_write_lock_table(ht);
@@ -139,28 +165,106 @@ static lispval resafe_hashtable(lispval table)
   return fd_incref(table);
 }
 
-static lispval hash_lisp_prim(lispval x)
+FDPRIM1("HASH-LISP",hash_lisp_prim,FD_NEEDS_1_ARG,
+        "`(HASH_LISP *object* )` returns an integer hash value "
+        "for *object*.",
+        -1,FD_VOID)
+  (lispval x)
 {
   int val = fd_hash_lisp(x);
   return FD_INT(val);
 }
 
-static lispval lispget(lispval table,lispval key,lispval dflt)
+FDPRIM("%GET",lispget,3,FD_NEEDS_2_ARGS|FD_NDCALL,
+       "`(%GET *table* *key* [*default*])` returns the value "
+       "of *key* in *table* or *default* if *table* does not contain "
+       "*key*. *default* defaults to the empty choice {}."
+       "Note that this does no inference, use GET to enable inference.")
+  (lispval table,lispval key,lispval dflt)
 {
   if (VOIDP(dflt))
     return fd_get(table,key,EMPTY);
   else return fd_get(table,key,dflt);
 }
 
-static lispval lispgetif(lispval table,lispval key,lispval dflt)
+FDPRIM("ADD!",lispadd,3,FD_NEEDS_3_ARGS|FD_NDCALL,
+       "`(ADD! *table* *key* *value*)` adds *value* to "
+       "the associations of *key* in *table*. "
+       "Note that this does no inference, use ASSERT! to enable inference.")
+  (lispval table,lispval key,lispval val)
 {
-  if (FALSEP(table)) return fd_incref(key);
+  if (EMPTYP(table)) return VOID;
+  else if (EMPTYP(key)) return VOID;
+  else if (fd_add(table,key,val)<0)
+    return FD_ERROR;
+  else return VOID;
+}
+FDPRIM("DROP!",lispdrop,3,FD_NEEDS_2_ARGS|FD_NDCALL,
+        "`(DROP! *table* *key* [*values*])` removes *values* "
+        "from *key* of *table*. If *values* is not provided, "
+        "all values associated with *key* are removed. "
+        "Note that this does no inference, use RETRACT! to enable inference.")
+  (lispval table,lispval key,lispval val)
+{
+  if (EMPTYP(table)) return VOID;
+  if (EMPTYP(key)) return VOID;
+  else if (fd_drop(table,key,val)<0) return FD_ERROR;
+  else return VOID;
+}
+FDPRIM("STORE!",lispstore,3,FD_NEEDS_ALL_ARGS|FD_NDCALL,
+       "`(STORE! *table* *key* *value*)` stores *value* in "
+       "*table* under *key*, removing all existing values. If "
+       "*value* is a choice, the entire choice is stored under "
+       "*key*. Note that this does no inference.")
+  (lispval table,lispval key,lispval val)
+{
+  if (EMPTYP(table)) return VOID;
+  else if (EMPTYP(key)) return VOID;
+  else if (QCHOICEP(val)) {
+    struct FD_QCHOICE *qch = FD_XQCHOICE(val);
+    if (fd_store(table,key,qch->qchoiceval)<0)
+      return FD_ERROR;
+    else return VOID;}
+  else if (fd_store(table,key,val)<0)
+    return FD_ERROR;
+  else return VOID;
+}
+FDPRIM("%TEST",lisptest,3,FD_NEEDS_2_ARGS|FD_NDCALL,
+       "`(%TEST *tables* *keys* [*values*])` returns true if "
+       "any of *values* is stored undery any of *keys* in "
+       "any of *tables*. If *values* is not provided, returns true "
+       "if any values are stored under any of *keys* in any of *tables*. "
+       "Note that this does no inference.")
+  (lispval table,lispval key,lispval val)
+{
+  if (EMPTYP(table)) return FD_FALSE;
+  else if (EMPTYP(key)) return FD_FALSE;
+  else if (EMPTYP(val)) return FD_FALSE;
+  else {
+    int retval = fd_test(table,key,val);
+    if (retval<0) return FD_ERROR;
+    else if (retval) return FD_TRUE;
+    else return FD_FALSE;}
+}
+
+FDPRIM("GETIF",lispgetif,3,FD_NEEDS_2_ARGS|FD_NDCALL,
+       "`(GETIF *table* *key* [*default*])` returns *key* if *table* is false, "
+       "or returns the value of *key* in *table* or *default* if *table* does "
+       "not contain *key*. Note that this does no inference.")
+  (lispval table,lispval key,lispval dflt)
+{
+  if (FALSEP(table))
+    return fd_incref(key);
   else if (VOIDP(dflt))
     return fd_get(table,key,EMPTY);
   else return fd_get(table,key,dflt);
 }
 
-static lispval lisptryget(lispval table,lispval key,lispval dflt)
+FDPRIM("TRYGET",lisptryget,3,FD_NEEDS_2_ARGS|FD_NDCALL,
+       "`(TRYGET *table* *key* [*default*])` returns *key* if *table* is false, "
+       "or returns the value of *key* in *table* or *default* if *table* does "
+       "not contain *key*. Note that this does no inference.")
+  (lispval table,lispval key,lispval dflt)
 {
   if ((FALSEP(table)) || (EMPTYP(table)))
     if (VOIDP(dflt))
@@ -194,47 +298,10 @@ static lispval lisptryget(lispval table,lispval key,lispval dflt)
   else return fd_get(table,key,dflt);
 }
 
-static lispval lispadd(lispval table,lispval key,lispval val)
-{
-  if (EMPTYP(table)) return VOID;
-  else if (EMPTYP(key)) return VOID;
-  else if (fd_add(table,key,val)<0)
-    return FD_ERROR;
-  else return VOID;
-}
-static lispval lispdrop(lispval table,lispval key,lispval val)
-{
-  if (EMPTYP(table)) return VOID;
-  if (EMPTYP(key)) return VOID;
-  else if (fd_drop(table,key,val)<0) return FD_ERROR;
-  else return VOID;
-}
-static lispval lispstore(lispval table,lispval key,lispval val)
-{
-  if (EMPTYP(table)) return VOID;
-  else if (EMPTYP(key)) return VOID;
-  else if (QCHOICEP(val)) {
-    struct FD_QCHOICE *qch = FD_XQCHOICE(val);
-    if (fd_store(table,key,qch->qchoiceval)<0)
-      return FD_ERROR;
-    else return VOID;}
-  else if (fd_store(table,key,val)<0)
-    return FD_ERROR;
-  else return VOID;
-}
-static lispval lisptest(lispval table,lispval key,lispval val)
-{
-  if (EMPTYP(table)) return FD_FALSE;
-  else if (EMPTYP(key)) return FD_FALSE;
-  else if (EMPTYP(val)) return FD_FALSE;
-  else {
-    int retval = fd_test(table,key,val);
-    if (retval<0) return FD_ERROR;
-    else if (retval) return FD_TRUE;
-    else return FD_FALSE;}
-}
-
-static lispval lisp_pick_keys(lispval table,lispval howmany_arg)
+FDPRIM("PICK-KEYS",lisp_pick_keys,2,FD_NEEDS_1_ARG,
+       "`(PICK-KEYS *table* [*count*])` returns *count* keys "
+       "from *table* or all of the keys if they're less than *count*.")
+  (lispval table,lispval howmany_arg)
 {
   if (!(TABLEP(table)))
     return fd_type_error(_("table"),"lisp_pick_key",table);
@@ -813,14 +880,19 @@ static lispval hashtable_buckets(lispval table)
   return FD_INT(h->ht_n_buckets);
 }
 
-static lispval table_size(lispval table)
+FDPRIM("TABLE-SIZE",table_size,1,FD_NEEDS_1_ARG,
+       "`(TABLE-SIZE *table*)` returns the number of keys in *table*")
+  (lispval table)
 {
   int size = fd_getsize(table);
   if (size<0) return FD_ERROR;
   else return FD_INT(size);
 }
 
-static lispval table_writablep(lispval table)
+FDPRIM("TABLE-WRITABLE?",table_writablep,1,FD_NEEDS_1_ARG,
+       "(TABLE-WRITABLE? *table*) returns true if *table* "
+       "can be modified")
+  (lispval table)
 {
   int read_only = fd_readonlyp(table);
   if (read_only == 0)
@@ -830,7 +902,11 @@ static lispval table_writablep(lispval table)
   else return FD_ERROR;
 }
 
-static lispval table_set_writable(lispval table,lispval flag_arg)
+FDPRIM("TABLE-WRITABLE!",table_set_writable,2,FD_NEEDS_1_ARG,
+       "(TABLE-WRITABLE! *table* *flag*) sets the read-only status "
+       "of *table*. With no *flag*, it defaults to making the table "
+       "writable.")
+  (lispval table,lispval flag_arg)
 {
   int flag = ((FALSEP(flag_arg))||(FD_ZEROP(flag_arg)))?(1):
     (VOIDP(flag_arg))?(0):(1);
@@ -842,7 +918,10 @@ static lispval table_set_writable(lispval table,lispval flag_arg)
   else return FD_ERROR;
 }
 
-static lispval table_modifiedp(lispval table)
+FDPRIM("TABLE-MODIFIED?",table_modifiedp,1,FD_NEEDS_1_ARG,
+       "`(TABLE-MODIFIED? *table*)` returns true if table has been"
+       "modified since it was created or the last call to `TABLE-MODIFIED!`")
+  (lispval table)
 {
   int ismod = fd_modifiedp(table);
   if (ismod == 0)
@@ -852,7 +931,10 @@ static lispval table_modifiedp(lispval table)
   else return FD_ERROR;
 }
 
-static lispval table_set_modified(lispval table,lispval flag_arg)
+FDPRIM("TABLE-MODIFIED!",table_set_modified,2,FD_NEEDS_1_ARG,
+       "`(TABLE-MODIFIED! *table* [*flag*] )` sets or clears the modified "
+       "flag of *table*. *flag* defaults to true.")
+  (lispval table,lispval flag_arg)
 {
   int flag = ((FALSEP(flag_arg))||(FD_ZEROP(flag_arg)))?(0):
     (VOIDP(flag_arg))?(0):(1);
@@ -863,6 +945,8 @@ static lispval table_set_modified(lispval table,lispval flag_arg)
     return FD_TRUE;
   else return FD_ERROR;
 }
+
+/* Max/Min etc */
 
 static lispval table_max(lispval tables,lispval scope)
 {
@@ -973,18 +1057,23 @@ static lispval map2table(lispval keys,lispval fn,lispval hashp)
 
 /* Hashset operations */
 
-static lispval hashsetp(lispval x)
+FDPRIM("HASHSET?",hashsetp,1,FD_NEEDS_1_ARG,
+       "`(HASHSET? *obj*)` returns true if *obj* is a hashset.")
+  (lispval x)
 {
   if (TYPEP(x,fd_hashset_type))
     return FD_TRUE;
   else return FD_FALSE;
 }
 
-static lispval hashset_add(lispval hs,lispval key)
+FDPRIM("HASHSET-ADD!",hashset_add,2,FD_NEEDS_2_ARGS,
+       "`(HASHSET-ADD! *hashset* *keys*)` adds *keys* to *hashset*(s). "
+       "Returns the number of new values added.")
+  (lispval hs,lispval key)
 {
   if (FD_EMPTYP(hs))
     return FD_EMPTY;
-  else if ((CHOICEP(hs))||(PRECHOICEP(hs))) {
+  else if ( (CHOICEP(hs)) || (PRECHOICEP(hs)) ) {
     lispval results = EMPTY;
     DO_CHOICES(h,hs) {
       if (!(FD_TYPEP(hs,fd_hashset_type))) {
@@ -1003,14 +1092,18 @@ static lispval hashset_add(lispval hs,lispval key)
     else return FD_FALSE;}
 }
 
-static lispval hashsetplus(lispval hs,lispval values)
+FDPRIM("HASHSET+",hashset_plus,2,FD_NEEDS_2_ARGS,
+       "`(HASHSET+ *hashset* *keys*)` adds *keys* to *hashset*")
+  (lispval hs,lispval values)
 {
   fd_hashset_add((fd_hashset)hs,values);
   fd_incref(hs);
   return  hs;
 }
 
-static lispval hashset_drop(lispval hs,lispval key)
+FDPRIM("hashset_drop",hashset_drop,2,FD_NEEDS_2_ARGS|FD_NDCALL,
+       "`(HASHSET-DROP! *hashset* *keys*)` removes *key* from *hashset*.")
+  (lispval hs,lispval key)
 {
   int retval = fd_hashset_drop((fd_hashset)hs,key);
   if (retval<0) return FD_ERROR;
@@ -1018,7 +1111,10 @@ static lispval hashset_drop(lispval hs,lispval key)
   else return FD_FALSE;
 }
 
-static lispval hashset_get(lispval hs,lispval key)
+FDPRIM("hashset_get",hashset_get,2,FD_NEEDS_2_ARGS|FD_NDCALL,
+       "`(HASHSET-GET *hashset* *key*)` returns true if "
+       "*key* is in *hashsets*")
+  (lispval hs,lispval key)
 {
   int retval = fd_hashset_get((fd_hashset)hs,key);
   if (retval<0) return FD_ERROR;
@@ -1026,7 +1122,10 @@ static lispval hashset_get(lispval hs,lispval key)
   else return FD_FALSE;
 }
 
-static lispval hashset_test(lispval hs,lispval keys)
+FDPRIM("hashset_test",hashset_test,2,FD_NEEDS_2_ARGS|FD_NDCALL,
+       "`(HASHSET-TEST *hashset* *keys*)` returns true if "
+       "any *keys* are in any of *hashsets*")
+  (lispval hs,lispval keys)
 {
   DO_CHOICES(hset,hs) {
     if (!(TYPEP(hset,fd_hashset_type)))
@@ -1049,14 +1148,20 @@ static lispval hashset_test(lispval hs,lispval keys)
   else return FD_FALSE;
 }
 
-static lispval hashset_elts(lispval hs,lispval clean)
+FDPRIM("hashset_elts",hashset_elts,2,FD_NEEDS_1_ARG,
+       "Returns the elements of a hashset.\n"
+       "With a non-false second argument, resets "
+       "the hashset (removing all values)")
+  (lispval hs,lispval clean)
 {
   if (FALSEP(clean))
     return fd_hashset_elts((fd_hashset)hs,0);
   else return fd_hashset_elts((fd_hashset)hs,1);
 }
 
-static lispval reset_hashset(lispval hs)
+FDPRIM("reset_hashset",reset_hashset,1,FD_NEEDS_1_ARG,
+       "`(reset_hashset *hashset*)` Remove all of the elements of *hashset*.")
+  (lispval hs)
 {
   int rv=fd_reset_hashset((fd_hashset)hs);
   if (rv<0)
@@ -1132,59 +1237,51 @@ FD_EXPORT void fd_init_tableprims_c()
   DEFPRIM(make_hashset,1,fd_scheme_module);
   DEFPRIM(make_hashtable,1,fd_scheme_module);
 
-  fd_idefn(fd_xscheme_module,fd_make_cprim1("STATIC-HASHTABLE",static_hashtable,1));
-  fd_idefn(fd_xscheme_module,fd_make_cprim1("UNSAFE-HASHTABLE",unsafe_hashtable,1));
-  fd_idefn(fd_xscheme_module,fd_make_cprim1("RESAFE-HASHTABLE",resafe_hashtable,1));
+  DEFPRIM(hash_lisp_prim,1,fd_scheme_module);
 
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("PICK-HASHTABLE-SIZE",pick_hashtable_size,1,
-                           fd_fixnum_type,VOID));
+  DEFPRIM(static_hashtable,1,fd_scheme_module);
+  DEFPRIM(unsafe_hashtable,1,fd_scheme_module);
+  DEFPRIM(resafe_hashtable,1,fd_scheme_module);
 
-
-  fd_idefn(fd_xscheme_module,
-           fd_make_cprim2x("RESET-HASHTABLE!",reset_hashtable,1,
-                           fd_hashtable_type,VOID,
-                           fd_fixnum_type,FD_INT(-1)));
+  DEFPRIM(pick_hashtable_size,1,fd_scheme_module);
+  DEFPRIM(reset_hashtable,2,fd_scheme_module);
 
   fd_idefn1(fd_scheme_module,"SCHEMAP->SLOTMAP",schemap2slotmap_prim,1,
             "Converts a schemap into a slotmap",
             fd_schemap_type,FD_VOID);
 
   /* Note that GET and TEST are actually DB functions which do inference */
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim3("%GET",lispget,2)));
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim3("%TEST",lisptest,2)));
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim3("GETIF",lispgetif,2)));
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim3("TRYGET",lisptryget,2)));
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim3("ADD!",lispadd,3)));
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim3("DROP!",lispdrop,2)));
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim3("STORE!",lispstore,3)));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("GETKEYS",fd_getkeys,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("GETVALUES",fd_getvalues,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("GETASSOCS",fd_getassocs,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim2x("PICK-KEYS",lisp_pick_keys,1,
-                                            -1,VOID,fd_fixnum_type,FD_INT(1)));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("TABLE-SIZE",table_size,1));
-  fd_idefn1(fd_scheme_module,"TABLE-WRITABLE?",table_writablep,1,
-            "(TABLE-WRITABLE? *table*) returns true if *table* "
-            "can be modified",
-            -1,FD_VOID);
-  fd_defalias(fd_scheme_module,"WRITABLE?","TABLE-WRITABLE?");
-  fd_idefn2(fd_scheme_module,"TABLE-WRITABLE!",table_set_writable,1,
-            "(TABLE-WRITABLE! *table* *flag*) sets the rea-only status "
-            "of *table*. With no *flag*, it defaults to making the table "
-            "writable.",
-            -1,FD_VOID,-1,FD_VOID);
+  DEFPRIM(lispget,3,fd_scheme_module);
+  DEFPRIM(lisptest,3,fd_scheme_module);
+  DEFPRIM(lispadd,3,fd_scheme_module);
+  DEFPRIM(lispdrop,3,fd_scheme_module);
+  DEFPRIM(lispstore,3,fd_scheme_module);
+  DEFPRIM(lispgetif,3,fd_scheme_module);
+  DEFPRIM(lisptryget,3,fd_scheme_module);
 
-  fd_idefn(fd_scheme_module,fd_make_cprim1("TABLE-MODIFIED?",table_modifiedp,1));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2("TABLE-MODIFIED!",table_set_modified,1));
+  fd_idefn1(fd_scheme_module,"GETKEYS",fd_getkeys,1,
+            "`(GETKEYS *table*)` returns all the keys in *table*.",
+            -1,FD_VOID);
+  fd_idefn1(fd_scheme_module,"GETVALUES",fd_getvalues,1,
+            "`(GETVALUES *table*)` returns all the values associated with "
+            "all of the keys in *table*.",
+            -1,FD_VOID);
+  fd_idefn1(fd_scheme_module,"GETASSOCS",fd_getassocs,1,
+            "`(GETASSOCS *table*)` returns (key . values) pairs for all "
+            "of the keys in *table*.",
+            -1,FD_VOID);
+
+  DEFPRIM(lisp_pick_keys,2,fd_scheme_module);
+
+  DEFPRIM(table_size,1,fd_scheme_module);
+
+  DEFPRIM(table_writablep,1,fd_scheme_module);
+  DEFPRIM(table_set_writable,2,fd_scheme_module);
+
+  DEFPRIM(table_modifiedp,1,fd_scheme_module);
+  DEFPRIM(table_set_modified,2,fd_scheme_module);
+
+  fd_defalias(fd_scheme_module,"WRITABLE?","TABLE-WRITABLE?");
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2("TABLE-MAX",table_max,1)));
@@ -1232,8 +1329,6 @@ FD_EXPORT void fd_init_tableprims_c()
                                          table_minimize_existing,2)));
 
 
-  fd_idefn(fd_scheme_module,fd_make_cprim1("HASH-LISP",hash_lisp_prim,1));
-
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim3("HASHTABLE-INCREMENT!",
                                          hashtable_increment,2)));
@@ -1280,27 +1375,12 @@ FD_EXPORT void fd_init_tableprims_c()
 
   fd_idefnN(fd_scheme_module,"CHOICE->HASHSET",choices2hashset,FD_NDCALL,
             "Returns a hashset containing all of *elts*.");
-  fd_idefn1(fd_scheme_module,"HASHSET?",hashsetp,1,
-            "`(HASHSET? *arg*) returns #t if *arg* is a hashset",
-            -1,FD_VOID);
 
-  fd_idefn2(fd_scheme_module,"HASHSET-TEST",hashset_test,2|FD_NDCALL,
-            "`(HASHSET-TEST *hashset* *keys*)` returns true if "
-            "*keys* are in any of *hashsets*",
-            -1,FD_VOID,-1,FD_VOID);
-  fd_idefn2(fd_scheme_module,"HASHSET-ADD!",hashset_add,2|FD_NDCALL,
-            "`(HASHSET-ADD! *hashset* *keys*)` returns true if "
-            "*keys* are in any of *hashsets*",
-            -1,FD_VOID,-1,FD_VOID);
-
-  fd_idefn2(fd_scheme_module,"HASHSET-GET",hashset_get,2,
-            "`(HASHSET-GET *hashset* *key*)` returns true if "
-            "*key* is in *hashsets*",
-            -1,VOID,-1,VOID);
-  fd_idefn2(fd_scheme_module,"HASHSET-DROP!",hashset_drop,2,
-            "`(HASHSET-DROP! *hashset* *keys*)` returns true if "
-            "*keys* are in any of *hashsets*",
-            fd_hashset_type,VOID,-1,VOID);
+  DEFPRIM(hashsetp,1,fd_scheme_module);
+  DEFPRIM(hashset_get,2,fd_scheme_module);
+  DEFPRIM(hashset_test,2,fd_scheme_module);
+  DEFPRIM(hashset_add,2,fd_scheme_module);
+  DEFPRIM(hashset_drop,2,fd_scheme_module);
 
   fd_idefn2(fd_scheme_module,"HASHSET/PROBE",hashset_probe,2,
             "(HASHSET/PROBE *hashset* *key*)\n"
@@ -1314,18 +1394,9 @@ FD_EXPORT void fd_init_tableprims_c()
             "and returns it.",
             fd_hashset_type,FD_VOID,-1,FD_VOID);
 
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim2x("HASHSET+",hashsetplus,2,
-                                          fd_hashset_type,VOID,
-                                          -1,VOID)));
-  fd_idefn2(fd_scheme_module,"HASHSET-ELTS",hashset_elts,1,
-            "Returns the elements of a hashset.\n"
-            "With a non-false second argument, resets "
-            "the hashset (removing all values)",
-            fd_hashset_type,VOID,-1,FD_FALSE);
-  fd_idefn1(fd_scheme_module,"RESET-HASHSET!",reset_hashset,1,
-            "Remove all of the elements of a hashset.",
-            fd_hashset_type,VOID);
+  DEFPRIM(hashset_plus,2,fd_scheme_module);
+  DEFPRIM(hashset_elts,2,fd_scheme_module);
+  DEFPRIM(reset_hashset,1,fd_scheme_module);
 
 
 }
