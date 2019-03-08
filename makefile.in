@@ -98,6 +98,7 @@ LISP_HEADERS=\
  include/framerd/dtypeio.h
 APPLY_HEADERS=\
  include/framerd/apply.h   \
+ include/framerd/cprims.h   \
  include/framerd/stacks.h  \
  include/framerd/lexenv.h  \
  include/framerd/ffi.h

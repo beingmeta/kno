@@ -362,7 +362,7 @@ static void recycle_ffi_proc(struct FD_RAW_CONS *c)
   int arity = ffi->fcn_arity;
   if (ffi->fcn_name) u8_free(ffi->fcn_name);
   if (ffi->fcn_filename) u8_free(ffi->fcn_filename);
-  if ( (ffi->fcn_doc) && (ffi->fcn_freedoc) )
+  if ( (ffi->fcn_doc) && (ffi->fcn_free_doc) )
     u8_free(ffi->fcn_doc);
   if (ffi->fcn_typeinfo) u8_free(ffi->fcn_typeinfo);
   if (ffi->fcn_defaults) {

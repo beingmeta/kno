@@ -263,7 +263,7 @@ static lispval document_lambda(struct FD_LAMBDA *s,u8_string name,
     n_lines++;}
   if ( (u8_outbuf_written(&docstream)) ) {
     s->fcn_doc=docstream.u8_outbuf;
-    s->fcn_freedoc = 1;}
+    s->fcn_free_doc = 1;}
   else u8_close_output(&docstream);
   return body;
 }
@@ -377,7 +377,7 @@ FD_EXPORT void recycle_lambda(struct FD_RAW_CONS *c)
   int mallocd = FD_MALLOCD_CONSP(c), n_vars = lambda->lambda_n_vars;
   if (lambda->fcn_typeinfo) u8_free(lambda->fcn_typeinfo);
   if (lambda->fcn_defaults) u8_free(lambda->fcn_defaults);
-  if ( (lambda->fcn_doc) && (lambda->fcn_freedoc) )
+  if ( (lambda->fcn_doc) && (lambda->fcn_free_doc) )
     u8_free(lambda->fcn_doc);
   if (lambda->fcn_attribs) fd_decref(lambda->fcn_attribs);
   if (lambda->fcn_moduleid) fd_decref(lambda->fcn_moduleid);

@@ -147,7 +147,8 @@ typedef lispval (*fd_xprimn)(fd_function,int n,lispval *);
   u8_string fcn_doc;                                                      \
   lispval fcn_moduleid;                                                   \
   unsigned int fcn_ndcall:1, fcn_xcall:1, fcn_wrap_calls:1, fcn_notail:1; \
-  unsigned int fcn_break:1, fcn_trace:3, fcn_freedoc:1;                   \
+  unsigned int fcn_break:1, fcn_trace:3;                                  \
+  unsigned int fcn_free_doc:1, fcn_free_typeinfo:1, fcn_free_defaults:1;  \
   lispval fcnid;                                                          \
   short fcn_arity, fcn_min_arity;                                         \
   lispval fcn_attribs;                                                    \
@@ -175,6 +176,10 @@ typedef lispval (*fd_xprimn)(fd_function,int n,lispval *);
 struct FD_FUNCTION {
   FD_FUNCTION_FIELDS;
 };
+
+typedef struct FD_CPRIM_INFO {
+  u8_string pname, filename, docstring;
+  int arity, flags;} FD_CPRIM_INFO;
 
 FD_EXPORT u8_string fd_fcn_sig(struct FD_FUNCTION *fcn,u8_byte namebuf[100]);
 
@@ -368,6 +373,8 @@ FD_EXPORT lispval fd_init_cprim2(u8_string name,u8_string filename,u8_string doc
                                  __VA_ARGS__))
 
 #define FD_NEEDS_0_ARGS 0
+#define FD_NEEDS_NO_ARGS 0
+#define FD_NEEDS_ONE_ARG  1
 #define FD_NEEDS_1_ARG  1
 #define FD_NEEDS_1_ARGS 1
 #define FD_NEEDS_2_ARGS 2
@@ -385,22 +392,11 @@ FD_EXPORT lispval fd_init_cprim2(u8_string name,u8_string filename,u8_string doc
 #define FD_NEEDS_14_ARGS 14
 #define FD_NEEDS_15_ARGS 15
 
+#define FD_MIN_ARITY_MASK (0xFFFF)
 #define FD_NDCALL 0x10000
+#define FD_XCALL 0x20000
 
-/* DEFPRIM */
-
-#define DEFPRIM(pname,cname,arity,flags,docstring,types,defaults)	\
-  static cname ## _sym = pname; \
-  static cname ## _flags = flags; \
-  static cname ## _docstring = docstring; \
-  static cname ## _types[arity] = types; \
-  static cname ## _defaults[arity] = defaults
-
-
-#define DECLPRIM(module,cname,arity)		\
-  fd_defprim ## arity(module,cname ## _sym,cname,\
-                      cname ## _flags,cname ## _docstring,\
-                      cname ## _types,cname ## _defaults)
+/* Useful macros */
 
 #define FD_FUNCTIONP(x) (fd_functionp[FD_PRIM_TYPE(x)])
 #define FD_XFUNCTION(x)                         \

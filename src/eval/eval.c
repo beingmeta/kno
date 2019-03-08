@@ -1673,7 +1673,7 @@ u8_string fd_get_documentation(lispval x)
       if (SYMBOLP(scan))
         u8_printf(&out," [%ls...]",SYM_NAME(scan));
       lambda->fcn_doc = out.u8_outbuf;
-      lambda->fcn_freedoc = 1;
+      lambda->fcn_free_doc = 1;
       return out.u8_outbuf;}}
   else if (fd_functionp[proctype]) {
     struct FD_FUNCTION *f = FD_DTYPE2FCN(proc);

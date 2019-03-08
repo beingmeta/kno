@@ -16,18 +16,24 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/eval.h"
+#include "framerd/cprims.h"
 #include "framerd/storage.h"
 #include "framerd/pools.h"
 #include "framerd/indexes.h"
 #include "framerd/frames.h"
 #include "framerd/numbers.h"
 
-static lispval tablep(lispval arg)
+FDPRIM("TABLE?",tablep,1,FD_NEEDS_1_ARG,
+       "`(TABLE? *obj*)` returns #t if *obj* is a table, #f otherwise.")
+  (lispval arg)
 {
   if (TABLEP(arg)) return FD_TRUE; else return FD_FALSE;
 }
 
-static lispval haskeysp(lispval arg)
+FDPRIM("HASKEYS?",haskeysp,1,FD_NEEDS_1_ARG,
+       "`(HASKEYS? *obj*)` returns #t if *obj* is a non-empty table, "
+       "#f otherwise.")
+  (lispval arg)
 {
   if (TABLEP(arg)) {
     fd_ptr_type argtype = FD_PTR_TYPE(arg);
@@ -37,25 +43,35 @@ static lispval haskeysp(lispval arg)
   else return FD_FALSE;
 }
 
-static lispval slotmapp(lispval x)
+FDPRIM("SLOTMAP?",slotmapp,1,FD_NEEDS_1_ARG,
+       "`(SLOTMAP? *obj*)` returns #t if *obj* is a slotmap, #f otherwise.")
+  (lispval x)
 {
   if (SLOTMAPP(x)) return FD_TRUE;
   else return FD_FALSE;
 }
 
-static lispval schemapp(lispval x)
+FDPRIM("SCHEMAP?",schemapp,1,FD_NEEDS_1_ARG,
+       "`(SCHEMAP? *obj*)` returns #t if *obj* is a slotmap, #f otherwise.")
+  (lispval x)
 {
   if (SCHEMAPP(x)) return FD_TRUE;
   else return FD_FALSE;
 }
 
-static lispval hashtablep(lispval x)
+FDPRIM("HASHTABLE?",hashtablep,1,FD_NEEDS_1_ARG,
+       "`(HASHTABLE? *obj*)` returns #t if *obj* is a slotmap, #f otherwise.")
+  (lispval x)
 {
   if (HASHTABLEP(x)) return FD_TRUE;
   else return FD_FALSE;
 }
 
-FD_EXPORT lispval make_hashset(lispval arg)
+FDPRIM1("MAKE-HASHSET",make_hashset,FD_NEEDS_NO_ARGS,
+       "`(MAKE-HASHSET [*n_buckets*])` returns a hashset. "
+        "*n_buckets*, if provided indicates the number of buckets",
+        fd_fixnum_type,FD_VOID)
+  (lispval arg)
 {
   struct FD_HASHSET *h = u8_alloc(struct FD_HASHSET);
   if (VOIDP(arg))
@@ -67,7 +83,11 @@ FD_EXPORT lispval make_hashset(lispval arg)
   return LISP_CONS(h);
 }
 
-static lispval make_hashtable(lispval size)
+FDPRIM1("MAKE-HASHTABLE",make_hashtable,FD_NEEDS_NO_ARGS,
+       "`(MAKE-HASHTABLE [*n_buckets*])` returns a hashset. "
+        "*n_buckets*, if provided indicates the number of buckets",
+        fd_fixnum_type,FD_VOID)
+  (lispval size)
 {
   if (FD_UINTP(size))
     return fd_make_hashtable(NULL,FIX2INT(size));
@@ -1104,17 +1124,14 @@ FD_EXPORT void fd_init_tableprims_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  fd_idefn(fd_xscheme_module,fd_make_cprim1("TABLE?",tablep,1));
-  fd_idefn(fd_xscheme_module,fd_make_cprim1("HASKEYS?",haskeysp,1));
+  DEFPRIM(tablep,1,fd_scheme_module);
+  DEFPRIM(haskeysp,1,fd_scheme_module);
+  DEFPRIM(slotmapp,1,fd_scheme_module);
+  DEFPRIM(schemapp,1,fd_scheme_module);
+  DEFPRIM(hashtablep,1,fd_scheme_module);
+  DEFPRIM(make_hashset,1,fd_scheme_module);
+  DEFPRIM(make_hashtable,1,fd_scheme_module);
 
-  fd_idefn(fd_xscheme_module,fd_make_cprim1("SLOTMAP?",slotmapp,1));
-  fd_idefn(fd_xscheme_module,fd_make_cprim1("SCHEMAP?",schemapp,1));
-  fd_idefn(fd_xscheme_module,fd_make_cprim1("HASHTABLE?",hashtablep,1));
-
-  fd_idefn(fd_xscheme_module,
-           fd_make_cprim1x("MAKE-HASHSET",make_hashset,0,
-                           fd_fixnum_type,VOID));
-  fd_idefn(fd_xscheme_module,fd_make_cprim1("MAKE-HASHTABLE",make_hashtable,0));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("STATIC-HASHTABLE",static_hashtable,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("UNSAFE-HASHTABLE",unsafe_hashtable,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("RESAFE-HASHTABLE",resafe_hashtable,1));

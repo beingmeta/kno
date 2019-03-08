@@ -186,6 +186,14 @@ static int check_exec_enabled(lispval opts)
   return 1;
 }
 
+/*
+FDPRIM(extdb_exec,"EXTDB/EXEC",3,FD_NEEDS_3ARGS,
+       "`(extdb/exec *dbptr* *sql_string* [*colinfo*])` "
+       "executes *sql_string* on database *dbptr*, using "
+       "*colinfo* to convert arguments and results.",
+       fd_extdb_type,FD_VOID,fd_string_type,FD_VOID,-1,FD_VOID,
+       (lispval db,lispval query,lispval colinfo))
+*/
 static lispval extdb_exec(lispval db,lispval query,lispval colinfo)
 {
   struct FD_EXTDB *extdb = FD_GET_CONS(db,fd_extdb_type,struct FD_EXTDB *);

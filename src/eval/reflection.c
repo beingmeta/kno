@@ -191,10 +191,10 @@ static lispval set_procedure_documentation(lispval x,lispval doc)
   fd_ptr_type proctype = FD_PTR_TYPE(proc);
   if (fd_functionp[proctype]) {
     struct FD_FUNCTION *f = FD_DTYPE2FCN(x);
-    if ( (f->fcn_doc) && (f->fcn_freedoc) )
+    if ( (f->fcn_doc) && (f->fcn_free_doc) )
       u8_free(f->fcn_doc);
     f->fcn_doc = u8_strdup(CSTRING(doc));
-    f->fcn_freedoc = 1;
+    f->fcn_free_doc = 1;
     return VOID;}
   else if (TYPEP(proc,fd_evalfn_type)) {
     struct FD_EVALFN *sf = GETEVALFN(proc);
