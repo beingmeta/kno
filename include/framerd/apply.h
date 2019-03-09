@@ -394,8 +394,17 @@ FD_EXPORT lispval fd_init_cprim2(u8_string name,u8_string filename,u8_string doc
 #define FD_NEEDS_ALL_ARGS 0x100000
 
 #define FD_MIN_ARITY_MASK (0xFFFF)
-#define FD_NDCALL 0x10000
-#define FD_XCALL 0x20000
+
+#define FD_MAX_ARGS(n) ( (n < 0) ? (0x80) : ((n)&(0xFF)) )
+#define FD_MIN_ARGS(n) ( (n < 0) ? (0x00) : ( (0x8000) | (((n)&(0x7F))<<8) ) )
+#define FD_XCALL  0x10000
+#define FD_NDCALL 0x20000
+
+#define FD_FNFLAGS(max_arity,min_arity,ndcall,xcall)    \
+  ( (FD_MAX_ARGS(max_arity)) |                          \
+    (FD_MIN_ARGS(min_arity)) |                          \
+    ((ndcall) ? (FD_NDCALL) : (0)) |                    \
+    ((xcall) ? (FD_XCALL) : (0)) )
 
 /* Useful macros */
 
