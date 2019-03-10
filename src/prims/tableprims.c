@@ -725,7 +725,7 @@ DEFPRIM("TABLE-MAX",table_max,MAX_ARGS(2)|MIN_ARGS(1)|NDCALL,
     return results;}
 }
 
-DEFPRIM("TABLE-MAXVAL",table_maxval,MAX_ARGS(2)|MIN_ARGS(2)|NDCALL,
+DEFPRIM("TABLE-MAXVAL",table_maxval,MAX_ARGS(2)|MIN_ARGS(1)|NDCALL,
         "`(TABLE-MAXVAL *table* [*scope*])` returns the value "
         "in *table* with the largest numeric magnitude. If *scope* "
         "is provided, limit the operation to the values associated "
@@ -1125,7 +1125,7 @@ FD_EXPORT void fd_init_tableprims_c()
   DECL_ALIAS("HASHTABLE-INCREMENT!",table_increment,fd_scheme_module);
   DECL_ALIAS("HASHTABLE-INCREMENT-EXISTING!",table_increment_existing,
              fd_scheme_module);
-  DECL_ALIAS("HASHTABLE_MULTIPLY!",table_multiply,fd_scheme_module);
+  DECL_ALIAS("HASHTABLE-MULTIPLY!",table_multiply,fd_scheme_module);
   DECL_ALIAS("HASHTABLE-MULTIPLY-EXISTING!",table_multiply_existing,
              fd_scheme_module);
   DECL_ALIAS("HASHTABLE-MAXIMIZE!",table_maximize,fd_scheme_module);
