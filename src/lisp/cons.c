@@ -41,6 +41,10 @@ fd_dtype_fn fd_dtype_writers[FD_TYPE_MAX];
 fd_recycle_fn fd_recyclers[FD_TYPE_MAX];
 fd_compare_fn fd_comparators[FD_TYPE_MAX];
 
+fd_applyfn fd_applyfns[FD_TYPE_MAX];
+/* This is set if the type is a CONS with a FUNCTION header */
+short fd_functionp[FD_TYPE_MAX];
+
 static u8_mutex constant_registry_lock;
 int fd_n_constants = FD_N_BUILTIN_CONSTANTS;
 

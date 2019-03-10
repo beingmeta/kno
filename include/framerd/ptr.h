@@ -96,6 +96,7 @@
 
 #define FD_CONS_TYPECODE(i) (0x84+i)
 #define FD_IMMEDIATE_TYPECODE(i) (0x04+i)
+#define FD_EXTENDED_TYPECODE(i) (0x100+i)
 #define FD_MAX_CONS_TYPES  0x80
 #define FD_MAX_CONS_TYPE   FD_CONS_TYPECODE(0x80)
 #define FD_MAX_IMMEDIATE_TYPES 0x80
@@ -130,6 +131,8 @@ typedef int _fd_sptr;
 /* Basic types */
 
 typedef enum FD_PTR_TYPE {
+  fd_any_type = -1,
+
   fd_cons_type = 0, fd_immediate_type = 1,
   fd_fixnum_type = 2, fd_oid_type = 3,
 
@@ -197,7 +200,14 @@ typedef enum FD_PTR_TYPE {
   fd_rawptr_type = FD_CONS_TYPECODE(37),
 
   fd_dtserver_type = FD_CONS_TYPECODE(38),
-  fd_bloom_filter_type = FD_CONS_TYPECODE(39)
+  fd_bloom_filter_type = FD_CONS_TYPECODE(39),
+
+  /* Extended types */
+
+  fd_number_type = FD_EXTENDED_TYPECODE(1),
+  fd_sequence_type = FD_EXTENDED_TYPECODE(2),
+  fd_table_type = FD_EXTENDED_TYPECODE(3),
+  fd_applicable_type = FD_EXTENDED_TYPECODE(4)
 
   } fd_ptr_type;
 
@@ -358,8 +368,8 @@ static fd_ptr_type FD_PTR_TYPE(lispval x)
    ( ( (ptr) & (0x3) ) == type) )
 /* Other variants */
 #define FD_CONS_TYPEP(x,type) ( (FD_CONSP(x)) && ((FD_CONS_TYPE(x)) == type) )
-#define FD_PTR_TYPEP(x,type) ((FD_PTR_TYPE(x)) == type)
-#define FD_PRIM_TYPEP(x,tp)     (FD_TYPEP(x,tp))
+#define FD_PTR_TYPEP(x,type)  ( (FD_PTR_TYPE(x)) == type )
+#define FD_PRIM_TYPEP(x,tp)   ( FD_TYPEP(x,tp) )
 
 #define FD_MAKE_STATIC(ptr) \
   if (FD_CONSP(ptr))                                                    \

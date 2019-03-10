@@ -183,9 +183,6 @@ typedef struct FD_CPRIM_INFO {
 
 FD_EXPORT u8_string fd_fcn_sig(struct FD_FUNCTION *fcn,u8_byte namebuf[100]);
 
-/* This maps types to whether they have function (FD_FUNCTION_FIELDS) header. */
-FD_EXPORT short fd_functionp[];
-
 FD_EXPORT lispval fd_new_cprimn(u8_string name,u8_string filename,u8_string doc,fd_cprimn fn,int min_arity,int ndcall,int xcall);
 FD_EXPORT lispval fd_new_cprim0(u8_string name,u8_string filename,u8_string doc,fd_cprim0 fn,int xcall);
 FD_EXPORT lispval fd_new_cprim1(u8_string name,u8_string filename,u8_string doc,fd_cprim1 fn,int min_arity,int ndcall,int xcall,int type0,lispval dflt0);
@@ -493,9 +490,6 @@ FD_INLINE_FCN lispval fd_finish_call(lispval pt)
 }
 
 /* Apply functions */
-
-typedef lispval (*fd_applyfn)(lispval f,int n,lispval *);
-FD_EXPORT fd_applyfn fd_applyfns[];
 
 FD_EXPORT lispval fd_call(struct FD_STACK *stack,lispval fp,int n,lispval *args);
 FD_EXPORT lispval fd_ndcall(struct FD_STACK *stack,lispval,int n,lispval *args);

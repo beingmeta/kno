@@ -1035,11 +1035,65 @@ static int cons_compare(lispval x,lispval y)
 
 FD_EXPORT fd_compare_flags fd_get_compare_flags(lispval spec);
 
+/* APPLY methods */
+
+typedef lispval (*fd_applyfn)(lispval f,int n,lispval *);
+FD_EXPORT fd_applyfn fd_applyfns[];
+
+/* This maps types to whether they have function (FD_FUNCTION_FIELDS)
+   header. */
+FD_EXPORT short fd_functionp[];
+
 /* Choices, tables, regexes */
 
 #include "choices.h"
 #include "tables.h"
+#include "sequences.h"
 #include "fdregex.h"
+
+U8_MAYBE_UNUSED static int _fd_applicablep(lispval x)
+{
+  if (FD_CONSP(x)) {
+    fd_ptr_type objtype = FD_CONSPTR_TYPE(x);
+    return ( (objtype == fd_cprim_type) ||
+             (objtype == fd_lambda_type) ||
+             (fd_applyfns[objtype] != NULL) );}
+  else if (FD_IMMEDIATEP(x)) {
+    fd_ptr_type xtype = FD_IMMEDIATE_TYPE(x);
+    if (xtype == fd_fcnid_type) {
+      lispval fcn = fd_fcnid_ref(x);
+      fd_ptr_type objtype = FD_PTR_TYPE(fcn);
+      return ( (objtype == fd_cprim_type) ||
+               (objtype == fd_lambda_type) ||
+               (fd_applyfns[objtype] != NULL) );}
+    else return (fd_applyfns[xtype] != NULL);}
+  else return 0;
+}
+
+U8_MAYBE_UNUSED static int _fd_extended_typep(lispval x,int typecode)
+{
+  switch (typecode) {
+  case fd_number_type:
+    return FD_NUMBERP(x);
+  case fd_sequence_type:
+    return FD_SEQUENCEP(x);
+  case fd_table_type:
+    return FD_TABLEP(x);
+  case fd_applicable_type:
+    return _fd_applicablep(x);
+  default:
+    return 0;
+  }
+}
+
+#define FD_ISA(x,typecode)                                         \
+  ( ( (typecode) > 0x100) ? \
+    (_fd_extended_typep((x),(typecode))) :                              \
+    ( (typecode) >= 0x84) ? \
+    ( (FD_CONSP(x)) && (FD_CONSPTR_TYPE(x) == typecode) ) :             \
+    ( (typecode) >= 0x04) ? \
+    ( (FD_IMMEDIATEP(x)) && (FD_IMM_TYPE(x) == typecode ) ) :           \
+    ( (typecode) >= 0x00) ? ( ( (x) & (0x3) ) == typecode) : (1) )
 
 /* The zero-pool */
 

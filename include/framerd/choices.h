@@ -190,7 +190,7 @@ typedef struct FD_PRECHOICE *fd_prechoice;
 
 #define FD_PRECHOICE_BYTES (sizeof(struct FD_PRECHOICE))
 
-#define FD_PRECHOICEP(x) (FD_TYPEP(x,fd_prechoice_type))
+#define FD_PRECHOICEP(x) (FD_TYPEP((x),fd_prechoice_type))
 #define FD_XPRECHOICE(x) (FD_CONSPTR(fd_prechoice,x))
 #define FD_PRECHOICE_SIZE(x) ((FD_XPRECHOICE(x))->prechoice_size)
 #define FD_PRECHOICE_LENGTH(x) \
@@ -260,11 +260,11 @@ typedef struct FD_QCHOICE *fd_qchoice;
 FD_EXPORT lispval fd_init_qchoice(struct FD_QCHOICE *ptr,lispval choice);
 FD_EXPORT lispval fd_make_qchoice(lispval val);
 
-#define FD_QCHOICEP(x) (FD_TYPEP(x,fd_qchoice_type))
+#define FD_QCHOICEP(x) (FD_TYPEP((x),fd_qchoice_type) )
 #define FD_EMPTY_QCHOICEP(x) \
-  ((FD_TYPEP(x,fd_qchoice_type)) && \
+  ((FD_TYPEP((x),fd_qchoice_type)) &&                                 \
    (((fd_consptr(struct FD_QCHOICE *,x,fd_qchoice_type))->qchoiceval) \
-    ==FD_EMPTY_CHOICE))
+    == (FD_EMPTY_CHOICE)))
 #define FD_XQCHOICE(x) (fd_consptr(struct FD_QCHOICE *,x,fd_qchoice_type))
 #define FD_QCHOICE_SIZE(x) (FD_CHOICE_SIZE(FD_XQCHOICE(x)->qchoiceval))
 
