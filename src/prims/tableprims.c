@@ -23,7 +23,7 @@
 #include "framerd/frames.h"
 #include "framerd/numbers.h"
 
-DEFPRIM("TABLE?",tablep,FD_MAX_ARGS(1),
+DEFPRIM("TABLE?",tablep,MAX_ARGS(1),
         "`(TABLE? *obj*)` returns #t if *obj* is a table, #f otherwise.")
   (lispval arg)
 {
@@ -32,7 +32,7 @@ DEFPRIM("TABLE?",tablep,FD_MAX_ARGS(1),
   else return FD_FALSE;
 }
 
-DEFPRIM("HASKEYS?",haskeysp,FD_MAX_ARGS(1),
+DEFPRIM("HASKEYS?",haskeysp,MAX_ARGS(1),
         "`(HASKEYS? *obj*)` returns #t if *obj* is a non-empty table, "
         "#f otherwise.")
   (lispval arg)
@@ -45,7 +45,7 @@ DEFPRIM("HASKEYS?",haskeysp,FD_MAX_ARGS(1),
   else return FD_FALSE;
 }
 
-DEFPRIM("SLOTMAP?",slotmapp,FD_MAX_ARGS(1),
+DEFPRIM("SLOTMAP?",slotmapp,MAX_ARGS(1),
         "`(SLOTMAP? *obj*)` returns #t if *obj* is a slotmap, #f otherwise.")
   (lispval x)
 {
@@ -54,7 +54,7 @@ DEFPRIM("SLOTMAP?",slotmapp,FD_MAX_ARGS(1),
   else return FD_FALSE;
 }
 
-DEFPRIM("SCHEMAP?",schemapp,FD_MAX_ARGS(1),
+DEFPRIM("SCHEMAP?",schemapp,MAX_ARGS(1),
         "`(SCHEMAP? *obj*)` returns #t if *obj* is a slotmap, #f otherwise.")
   (lispval x)
 {
@@ -63,7 +63,7 @@ DEFPRIM("SCHEMAP?",schemapp,FD_MAX_ARGS(1),
   else return FD_FALSE;
 }
 
-DEFPRIM("HASHTABLE?",hashtablep,FD_MAX_ARGS(1),
+DEFPRIM("HASHTABLE?",hashtablep,MAX_ARGS(1),
         "`(HASHTABLE? *obj*)` returns #t if *obj* is a slotmap, #f otherwise.")
   (lispval x)
 {
@@ -72,7 +72,7 @@ DEFPRIM("HASHTABLE?",hashtablep,FD_MAX_ARGS(1),
   else return FD_FALSE;
 }
 
-DEFPRIM1("MAKE-HASHSET",make_hashset,FD_MIN_ARGS(0),
+DEFPRIM1("MAKE-HASHSET",make_hashset,MIN_ARGS(0),
          "`(MAKE-HASHSET [*n_buckets*])` returns a hashset. "
          "*n_buckets*, if provided indicates the number of buckets",
          fd_fixnum_type,FD_VOID)
@@ -88,7 +88,7 @@ DEFPRIM1("MAKE-HASHSET",make_hashset,FD_MIN_ARGS(0),
   return LISP_CONS(h);
 }
 
-DEFPRIM1("MAKE-HASHTABLE",make_hashtable,FD_MIN_ARGS(0),
+DEFPRIM1("MAKE-HASHTABLE",make_hashtable,MIN_ARGS(0),
          "`(MAKE-HASHTABLE [*n_buckets*])` returns a hashset. "
          "*n_buckets*, if provided indicates the number of buckets",
          fd_fixnum_type,FD_VOID)
@@ -99,7 +99,7 @@ DEFPRIM1("MAKE-HASHTABLE",make_hashtable,FD_MIN_ARGS(0),
   else return fd_make_hashtable(NULL,0);
 }
 
-DEFPRIM1("PICK-HASHTABLE-SIZE", pick_hashtable_size,FD_MAX_ARGS(1),
+DEFPRIM1("PICK-HASHTABLE-SIZE", pick_hashtable_size,MAX_ARGS(1),
          "`(PICK-HASHTABLE-SIZE *count*)` picks a good hashtable size "
          "for a table of *count* elements.",
          fd_fixnum_type,FD_VOID)
@@ -112,7 +112,7 @@ DEFPRIM1("PICK-HASHTABLE-SIZE", pick_hashtable_size,FD_MAX_ARGS(1),
   return FD_INT(size);
 }
 
-DEFPRIM2("RESET-HASHTABLE!",reset_hashtable,FD_MIN_ARGS(1),
+DEFPRIM2("RESET-HASHTABLE!",reset_hashtable,MIN_ARGS(1),
          "`(RESET-HASHTABLE! *table* [*slots*)` resets a hashtable, removing "
          "all of its values",
          fd_hashtable_type,FD_VOID,fd_fixnum_type,FD_VOID)
@@ -124,7 +124,7 @@ DEFPRIM2("RESET-HASHTABLE!",reset_hashtable,FD_MIN_ARGS(1),
   return VOID;
 }
 
-DEFPRIM1("STATIC-HASHTABLE",static_hashtable,FD_MAX_ARGS(1),
+DEFPRIM1("STATIC-HASHTABLE",static_hashtable,MAX_ARGS(1),
          "`(STATIC-HASHTABLE *table* )` declares all keys and values "
          "in *table* to be static (no GC) and disables locking for the table. "
          "This may improve performance on objects in the table",
@@ -139,7 +139,7 @@ DEFPRIM1("STATIC-HASHTABLE",static_hashtable,FD_MAX_ARGS(1),
   return fd_incref(table);
 }
 
-DEFPRIM1("UNSAFE-HASHTABLE",unsafe_hashtable,FD_MAX_ARGS(1),
+DEFPRIM1("UNSAFE-HASHTABLE",unsafe_hashtable,MAX_ARGS(1),
          "`(UNSAFE-TABLE *table* )` disables locking for *table*. "
          "This may improve performance.",
          fd_hashtable_type,FD_VOID)
@@ -152,7 +152,7 @@ DEFPRIM1("UNSAFE-HASHTABLE",unsafe_hashtable,FD_MAX_ARGS(1),
   return fd_incref(table);
 }
 
-DEFPRIM1("RESAFE-HASHTABLE",resafe_hashtable,FD_MAX_ARGS(1),
+DEFPRIM1("RESAFE-HASHTABLE",resafe_hashtable,MAX_ARGS(1),
          "`(RESAFE-TABLE *table* )` re-enables locking for *table* "
          "disabled by `UNSAFE-TABLE`.",
          fd_hashtable_type,FD_VOID)
@@ -175,7 +175,7 @@ DEFPRIM1("HASH-LISP",hash_lisp_prim,0,
   return FD_INT(val);
 }
 
-DEFPRIM("%GET",table_get,FD_MAX_ARGS(3)|FD_MIN_ARGS(2)|FD_NDCALL,
+DEFPRIM("%GET",table_get,MAX_ARGS(3)|MIN_ARGS(2)|NDCALL,
         "`(%GET *table* *key* [*default*])` returns the value "
         "of *key* in *table* or *default* if *table* does not contain "
         "*key*. *default* defaults to the empty choice {}."
@@ -187,7 +187,7 @@ DEFPRIM("%GET",table_get,FD_MAX_ARGS(3)|FD_MIN_ARGS(2)|FD_NDCALL,
   else return fd_get(table,key,dflt);
 }
 
-DEFPRIM("ADD!",table_add,FD_MAX_ARGS(3)|FD_NDCALL,
+DEFPRIM("ADD!",table_add,MAX_ARGS(3)|NDCALL,
         "`(ADD! *table* *key* *value*)` adds *value* to "
         "the associations of *key* in *table*. "
         "Note that this does no inference, use ASSERT! to enable inference.")
@@ -199,7 +199,7 @@ DEFPRIM("ADD!",table_add,FD_MAX_ARGS(3)|FD_NDCALL,
     return FD_ERROR;
   else return VOID;
 }
-DEFPRIM("DROP!",table_drop,FD_MAX_ARGS(3)|FD_MIN_ARGS(2)|FD_NDCALL,
+DEFPRIM("DROP!",table_drop,MAX_ARGS(3)|MIN_ARGS(2)|NDCALL,
         "`(DROP! *table* *key* [*values*])` removes *values* "
         "from *key* of *table*. If *values* is not provided, "
         "all values associated with *key* are removed. "
@@ -211,7 +211,7 @@ DEFPRIM("DROP!",table_drop,FD_MAX_ARGS(3)|FD_MIN_ARGS(2)|FD_NDCALL,
   else if (fd_drop(table,key,val)<0) return FD_ERROR;
   else return VOID;
 }
-DEFPRIM("STORE!",table_store,FD_MAX_ARGS(3)|FD_NDCALL,
+DEFPRIM("STORE!",table_store,MAX_ARGS(3)|NDCALL,
         "`(STORE! *table* *key* *value*)` stores *value* in "
         "*table* under *key*, removing all existing values. If "
         "*value* is a choice, the entire choice is stored under "
@@ -229,7 +229,7 @@ DEFPRIM("STORE!",table_store,FD_MAX_ARGS(3)|FD_NDCALL,
     return FD_ERROR;
   else return VOID;
 }
-DEFPRIM("%TEST",table_test,FD_MAX_ARGS(3)|FD_MIN_ARGS(2)|FD_NDCALL,
+DEFPRIM("%TEST",table_test,MAX_ARGS(3)|MIN_ARGS(2)|NDCALL,
         "`(%TEST *tables* *keys* [*values*])` returns true if "
         "any of *values* is stored undery any of *keys* in "
         "any of *tables*. If *values* is not provided, returns true "
@@ -248,18 +248,18 @@ DEFPRIM("%TEST",table_test,FD_MAX_ARGS(3)|FD_MIN_ARGS(2)|FD_NDCALL,
 }
 
 
-DEFPRIM_DECL("GETKEYS",fd_getkeys,FD_MAX_ARGS(1),
+DEFPRIM_DECL("GETKEYS",fd_getkeys,MAX_ARGS(1),
              "`(GETKEYS *table*)` returns all the keys in *table*.");
-DEFPRIM_DECL("GETVALUES",fd_getvalues,FD_MAX_ARGS(1),
+DEFPRIM_DECL("GETVALUES",fd_getvalues,MAX_ARGS(1),
              "`(GETVALUES *table*)` returns all the values associated with "
              "all of the keys in *table*.");
-DEFPRIM_DECL("GETASSOCS",fd_getassocs,FD_MAX_ARGS(1),
+DEFPRIM_DECL("GETASSOCS",fd_getassocs,MAX_ARGS(1),
              "`(GETASSOCS *table*)` returns (key . values) pairs for all "
              "of the keys in *table*.");
 
 /* Converting schemaps to slotmaps */
 
-DEFPRIM1("SCHEMAP->SLOTMAP",schemap2slotmap_prim,FD_MAX_ARGS(1),
+DEFPRIM1("SCHEMAP->SLOTMAP",schemap2slotmap_prim,MAX_ARGS(1),
          "`(SCHEMAP->SLOTMAP *schemap*)` converts a schemap to a slotmap.",
          fd_schemap_type,FD_VOID)
   (lispval in)
@@ -285,7 +285,7 @@ typedef lispval (*reduceop)(lispval,lispval);
 /* Various table operations */
 
 DEFPRIM("TABLE-INCREMENT!",
-        table_increment,FD_MAX_ARGS(3)|FD_MIN_ARGS(2)|FD_NDCALL,
+        table_increment,MAX_ARGS(3)|MIN_ARGS(2)|NDCALL,
         "`(TABLE-INCREMENT! *table* *key* [*delta*])` "
         "adds *delta* (default to 1) to the current value of *key* in "
         "*table* (which defaults to 0).")
@@ -332,7 +332,7 @@ DEFPRIM("TABLE-INCREMENT!",
 }
 
 DEFPRIM("TABLE-INCREMENT-EXISTING!",
-        table_increment_existing,FD_MAX_ARGS(3)|FD_MIN_ARGS(2)|FD_NDCALL,
+        table_increment_existing,MAX_ARGS(3)|MIN_ARGS(2)|NDCALL,
         "`(TABLE-INCREMENT-EXISTING! *table* *key* [*delta*])` "
         "adds *delta* (default to 1) to the current value of *key* in "
         "*table*, doing nothing if *key* is not in *table*.")
@@ -378,7 +378,7 @@ DEFPRIM("TABLE-INCREMENT-EXISTING!",
 }
 
 DEFPRIM("TABLE-MULTIPLY!",
-        table_multiply,FD_MAX_ARGS(3)|FD_NDCALL,
+        table_multiply,MAX_ARGS(3)|NDCALL,
         "`(TABLE-MULTIPLY! *table* *key* *factor*)` "
         "multiplies the current value of *key* in *table* by *factor*, "
         "defaulting the value of *key* to 1.")
@@ -419,7 +419,7 @@ DEFPRIM("TABLE-MULTIPLY!",
 }
 
 DEFPRIM("TABLE-MULTIPLY-EXISTING!",
-        table_multiply_existing,FD_MAX_ARGS(3)|FD_NDCALL,
+        table_multiply_existing,MAX_ARGS(3)|NDCALL,
         "`(TABLE-MULTIPLY-EXISTING! *table* *key* *factor*)` "
         "multiplies the current value of *key* in *table* by *factor*, "
         "doing nothing if *key* is not currently defined in *table*.")
@@ -463,7 +463,7 @@ DEFPRIM("TABLE-MULTIPLY-EXISTING!",
    less than the new value. */
 
 DEFPRIM("TABLE-MAXIMIZE!",
-        table_maximize,FD_MAX_ARGS(3)|FD_NDCALL,
+        table_maximize,MAX_ARGS(3)|NDCALL,
         "`(TABLE-MAXIMIZE! *table* *key* *value*)` "
         "stores *value* under  *key* in *table* if it is larger "
         "than the current value or if there is no current value.")
@@ -504,7 +504,7 @@ DEFPRIM("TABLE-MAXIMIZE!",
 }
 
 DEFPRIM("TABLE-MAXIMIZE-EXISTING!",
-        table_maximize_existing,FD_MAX_ARGS(3)|FD_NDCALL,
+        table_maximize_existing,MAX_ARGS(3)|NDCALL,
         "`(TABLE-MAXIMIZE-EXISTING! *table* *key* *value*)` "
         "stores *value* under  *key* in *table* if it is larger "
         "than the current value, doing nothing if *key* is not in *table*")
@@ -548,7 +548,7 @@ DEFPRIM("TABLE-MAXIMIZE-EXISTING!",
    less than the new value. */
 
 DEFPRIM("TABLE-MINIMIZE!",
-        table_minimize,FD_MAX_ARGS(3)|FD_NDCALL,
+        table_minimize,MAX_ARGS(3)|NDCALL,
         "`(TABLE-MINIMIZE! *table* *key* *value*)` "
         "stores *value* under  *key* in *table* if it is smaller "
         "than the current value or if there is no current value.")
@@ -589,7 +589,7 @@ DEFPRIM("TABLE-MINIMIZE!",
 }
 
 DEFPRIM("TABLE-MINIMIZE-EXISTING!",
-        table_minimize_existing,FD_MAX_ARGS(3)|FD_NDCALL,
+        table_minimize_existing,MAX_ARGS(3)|NDCALL,
         "`(TABLE-MINIMIZE-EXISTING! *table* *key* *value*)` "
         "stores *value* under  *key* in *table* if it is smaller "
         "than the current value, doing nothing if *key* is not in *table*")
@@ -630,7 +630,7 @@ DEFPRIM("TABLE-MINIMIZE-EXISTING!",
 
 /* Generic functions */
 
-DEFPRIM("TABLE-SIZE",table_size,FD_MAX_ARGS(1),
+DEFPRIM("TABLE-SIZE",table_size,MAX_ARGS(1),
         "`(TABLE-SIZE *table*)` returns the number of keys in *table*")
   (lispval table)
 {
@@ -639,7 +639,7 @@ DEFPRIM("TABLE-SIZE",table_size,FD_MAX_ARGS(1),
   else return FD_INT(size);
 }
 
-DEFPRIM("TABLE-WRITABLE?",table_writablep,FD_MAX_ARGS(1),
+DEFPRIM("TABLE-WRITABLE?",table_writablep,MAX_ARGS(1),
         "(TABLE-WRITABLE? *table*) returns true if *table* "
         "can be modified")
   (lispval table)
@@ -652,7 +652,7 @@ DEFPRIM("TABLE-WRITABLE?",table_writablep,FD_MAX_ARGS(1),
   else return FD_ERROR;
 }
 
-DEFPRIM("TABLE-WRITABLE!",table_set_writable,FD_MAX_ARGS(2)|FD_MIN_ARGS(1),
+DEFPRIM("TABLE-WRITABLE!",table_set_writable,MAX_ARGS(2)|MIN_ARGS(1),
         "(TABLE-WRITABLE! *table* *flag*) sets the read-only status "
         "of *table*. With no *flag*, it defaults to making the table "
         "writable.")
@@ -668,7 +668,7 @@ DEFPRIM("TABLE-WRITABLE!",table_set_writable,FD_MAX_ARGS(2)|FD_MIN_ARGS(1),
   else return FD_ERROR;
 }
 
-DEFPRIM("TABLE-MODIFIED?",table_modifiedp,FD_MAX_ARGS(1),
+DEFPRIM("TABLE-MODIFIED?",table_modifiedp,MAX_ARGS(1),
         "`(TABLE-MODIFIED? *table*)` returns true if table has been"
         "modified since it was created or the last call to `TABLE-MODIFIED!`")
   (lispval table)
@@ -681,7 +681,7 @@ DEFPRIM("TABLE-MODIFIED?",table_modifiedp,FD_MAX_ARGS(1),
   else return FD_ERROR;
 }
 
-DEFPRIM("TABLE-MODIFIED!",table_set_modified,FD_MAX_ARGS(2)|FD_MIN_ARGS(1),
+DEFPRIM("TABLE-MODIFIED!",table_set_modified,MAX_ARGS(2)|MIN_ARGS(1),
         "`(TABLE-MODIFIED! *table* [*flag*] )` sets or clears the modified "
         "flag of *table*. *flag* defaults to true.")
   (lispval table,lispval flag_arg)
@@ -700,7 +700,7 @@ DEFPRIM("TABLE-MODIFIED!",table_set_modified,FD_MAX_ARGS(2)|FD_MIN_ARGS(1),
 
 /* Getting max values out of tables, especially hashtables. */
 
-DEFPRIM("TABLE-MAX",table_max,FD_MAX_ARGS(2)|FD_MIN_ARGS(1)|FD_NDCALL,
+DEFPRIM("TABLE-MAX",table_max,MAX_ARGS(2)|MIN_ARGS(1)|NDCALL,
         "`(TABLE-MAX *table* [*scope*])` returns the key(s) "
         "in *table* with the largest numeric values. If *scope* "
         "is provided, limit the operation to the keys in *scope*.")
@@ -725,7 +725,7 @@ DEFPRIM("TABLE-MAX",table_max,FD_MAX_ARGS(2)|FD_MIN_ARGS(1)|FD_NDCALL,
     return results;}
 }
 
-DEFPRIM("TABLE-MAXVAL",table_maxval,FD_MAX_ARGS(2)|FD_MIN_ARGS(2)|FD_NDCALL,
+DEFPRIM("TABLE-MAXVAL",table_maxval,MAX_ARGS(2)|MIN_ARGS(2)|NDCALL,
         "`(TABLE-MAXVAL *table* [*scope*])` returns the value "
         "in *table* with the largest numeric magnitude. If *scope* "
         "is provided, limit the operation to the values associated "
@@ -747,7 +747,7 @@ DEFPRIM("TABLE-MAXVAL",table_maxval,FD_MAX_ARGS(2)|FD_MIN_ARGS(2)|FD_NDCALL,
     return results;}
 }
 
-DEFPRIM("TABLE-SKIM",table_skim,FD_MAX_ARGS(3)|FD_MIN_ARGS(2)|FD_NDCALL,
+DEFPRIM("TABLE-SKIM",table_skim,MAX_ARGS(3)|MIN_ARGS(2)|NDCALL,
         "`(TABLE-SKIM *table* *threshold* [*scope*])` returns the key(s) "
         "in *table* associated with numeric values larger than *threhsold*. "
         "If *scope* is provided, limit the operation to the keys in *scope*.")
@@ -774,7 +774,7 @@ DEFPRIM("TABLE-SKIM",table_skim,FD_MAX_ARGS(3)|FD_MIN_ARGS(2)|FD_NDCALL,
 
 /* Table utility functions */
 
-DEFPRIM("MAP->TABLE",map2table,FD_MAX_ARGS(3)|FD_MIN_ARGS(2)|FD_NDCALL,
+DEFPRIM("MAP->TABLE",map2table,MAX_ARGS(3)|MIN_ARGS(2)|NDCALL,
         "`(MAP->TABLE *keys* *fcn* [*hashp*])` returns "
         "a table store the results of applying *fn* "
         "to *keys*. The type of table is controlled by *hashp*:"
@@ -814,7 +814,7 @@ DEFPRIM("MAP->TABLE",map2table,FD_MAX_ARGS(3)|FD_MIN_ARGS(2)|FD_NDCALL,
   return table;
 }
 
-DEFPRIM1("TABLE-MAP-SIZE",table_map_size,FD_MAX_ARGS(1),
+DEFPRIM1("TABLE-MAP-SIZE",table_map_size,MAX_ARGS(1),
          "`(TABLE-MAP-SIZE *table*)` returns the number key/value "
          "associates in *table*.",
          fd_table_type,FD_VOID)
@@ -843,7 +843,7 @@ DEFPRIM1("TABLE-MAP-SIZE",table_map_size,FD_MAX_ARGS(1),
 
 /* Hashset operations */
 
-DEFPRIM("HASHSET?",hashsetp,FD_MAX_ARGS(1),
+DEFPRIM("HASHSET?",hashsetp,MAX_ARGS(1),
         "`(HASHSET? *obj*)` returns true if *obj* is a hashset.")
   (lispval x)
 {
@@ -852,7 +852,7 @@ DEFPRIM("HASHSET?",hashsetp,FD_MAX_ARGS(1),
   else return FD_FALSE;
 }
 
-DEFPRIM("HASHSET-ADD!",hashset_add,FD_MAX_ARGS(2)|FD_MIN_ARGS(2)|FD_NDCALL,
+DEFPRIM("HASHSET-ADD!",hashset_add,MAX_ARGS(2)|MIN_ARGS(2)|NDCALL,
         "`(HASHSET-ADD! *hashset* *keys*)` adds *keys* to *hashset*(s). "
         "Returns the number of new values added.")
   (lispval hs,lispval key)
@@ -880,7 +880,7 @@ DEFPRIM("HASHSET-ADD!",hashset_add,FD_MAX_ARGS(2)|FD_MIN_ARGS(2)|FD_NDCALL,
     else return FD_FALSE;}
 }
 
-DEFPRIM("HASHSET+",hashset_plus,FD_MAX_ARGS(2)|FD_MIN_ARGS(2),
+DEFPRIM("HASHSET+",hashset_plus,MAX_ARGS(2)|MIN_ARGS(2),
         "`(HASHSET+ *hashset* *keys*)` adds *keys* to *hashset*")
   (lispval hs,lispval values)
 {
@@ -889,7 +889,7 @@ DEFPRIM("HASHSET+",hashset_plus,FD_MAX_ARGS(2)|FD_MIN_ARGS(2),
   return  hs;
 }
 
-DEFPRIM("HASHSET-DROP!",hashset_drop,FD_MAX_ARGS(2)|FD_MIN_ARGS(2)|FD_NDCALL,
+DEFPRIM("HASHSET-DROP!",hashset_drop,MAX_ARGS(2)|MIN_ARGS(2),
         "`(HASHSET-DROP! *hashset* *keys*)` removes *key* from *hashset*.")
   (lispval hs,lispval key)
 {
@@ -899,7 +899,7 @@ DEFPRIM("HASHSET-DROP!",hashset_drop,FD_MAX_ARGS(2)|FD_MIN_ARGS(2)|FD_NDCALL,
   else return FD_FALSE;
 }
 
-DEFPRIM("HASHSET-GET",hashset_get,FD_MAX_ARGS(2)|FD_MIN_ARGS(2)|FD_NDCALL,
+DEFPRIM("HASHSET-GET",hashset_get,MAX_ARGS(2)|MIN_ARGS(2),
         "`(HASHSET-GET *hashset* *key*)` returns true if "
         "*key* is in *hashsets*")
   (lispval hs,lispval key)
@@ -910,7 +910,8 @@ DEFPRIM("HASHSET-GET",hashset_get,FD_MAX_ARGS(2)|FD_MIN_ARGS(2)|FD_NDCALL,
   else return FD_FALSE;
 }
 
-DEFPRIM("hashset_test",hashset_test,FD_MAX_ARGS(2)|FD_MIN_ARGS(2)|FD_NDCALL,
+DEFPRIM("hashset_test",hashset_test,
+        MAX_ARGS(2)|MIN_ARGS(2)|NDCALL,
         "`(HASHSET-TEST *hashset* *keys*)` returns true if "
         "any *keys* are in any of *hashsets*")
   (lispval hs,lispval keys)
@@ -936,7 +937,7 @@ DEFPRIM("hashset_test",hashset_test,FD_MAX_ARGS(2)|FD_MIN_ARGS(2)|FD_NDCALL,
   else return FD_FALSE;
 }
 
-DEFPRIM("HASHSET-ELTS",hashset_elts,FD_MAX_ARGS(2)|FD_MIN_ARGS(1),
+DEFPRIM("HASHSET-ELTS",hashset_elts,MAX_ARGS(2)|MIN_ARGS(1),
         "Returns the elements of a hashset.\n"
         "With a non-false second argument, resets "
         "the hashset (removing all values).")
@@ -947,7 +948,7 @@ DEFPRIM("HASHSET-ELTS",hashset_elts,FD_MAX_ARGS(2)|FD_MIN_ARGS(1),
   else return fd_hashset_elts((fd_hashset)hs,1);
 }
 
-DEFPRIM("RESET-HASHSET!",reset_hashset,FD_MAX_ARGS(1),
+DEFPRIM("RESET-HASHSET!",reset_hashset,MAX_ARGS(1),
         "`(RESET_HASHSET! *hashset*)` removes all of the elements of *hashset*.")
   (lispval hs)
 {
@@ -959,7 +960,7 @@ DEFPRIM("RESET-HASHSET!",reset_hashset,FD_MAX_ARGS(1),
   else return FD_FALSE;
 }
 
-DEFPRIM("CHOICE->HASHSET",choices2hashset,FD_N_ARGS|FD_MIN_ARGS(0),
+DEFPRIM("CHOICE->HASHSET",choices2hashset,FD_N_ARGS|MIN_ARGS(0),
         "`(CHOICE->HASHSET choices...)` returns a hashset combining "
         "mutiple choices.")
   (int n,lispval *args)
@@ -973,7 +974,7 @@ DEFPRIM("CHOICE->HASHSET",choices2hashset,FD_N_ARGS|FD_MIN_ARGS(0),
   return LISP_CONS(h);
 }
 
-DEFPRIM2("HASHSET/INTERN",hashset_intern,FD_MIN_ARGS(2),
+DEFPRIM2("HASHSET/INTERN",hashset_intern,MIN_ARGS(2),
          "(HASHSET/INTERN *hashset* *key*)\n"
          "If *key* is in *hashset*, returns the exact key (pointer) "
          "stored in *hashset*, otherwise adds *key* to the hashset "
@@ -984,7 +985,7 @@ DEFPRIM2("HASHSET/INTERN",hashset_intern,FD_MIN_ARGS(2),
   return fd_hashset_intern((fd_hashset)hs,key,1);
 }
 
-DEFPRIM2("HASHSET/PROBE",hashset_probe,FD_MIN_ARGS(2),
+DEFPRIM2("HASHSET/PROBE",hashset_probe,MIN_ARGS(2),
          "(HASHSET/PROBE *hashset* *key*)\n"
          "If *key* is in *hashset*, returns the exact key (pointer) "
          "stored in *hashset*, otherwise returns {}",
@@ -996,7 +997,7 @@ DEFPRIM2("HASHSET/PROBE",hashset_probe,FD_MIN_ARGS(2),
 
 /* Sorting slotmaps */
 
-DEFPRIM1("SORT-SLOTMAP",sort_slotmap,FD_MAX_ARGS(1),
+DEFPRIM1("SORT-SLOTMAP",sort_slotmap,MAX_ARGS(1),
          "`(SORT-SLOTMAP *slotmap*)` sorts the keys in *slotmap* "
          "for improved performance",
          fd_slotmap_type,FD_VOID)
@@ -1009,7 +1010,7 @@ DEFPRIM1("SORT-SLOTMAP",sort_slotmap,FD_MAX_ARGS(1),
 
 /* Merging hashtables */
 
-DEFPRIM1("HASHTABLE-BUCKETS",hashtable_buckets,FD_MAX_ARGS(1),
+DEFPRIM1("HASHTABLE-BUCKETS",hashtable_buckets,MAX_ARGS(1),
          "`(HASHTABLE-BUCKETS *hashtable*)` returns the number of buckets "
          "allocated for *hashtable*.",
          fd_hashtable_type,FD_VOID)
@@ -1026,7 +1027,7 @@ static int merge_kv_into_table(struct FD_KEYVAL *kv,void *data)
   return 0;
 }
 
-DEFPRIM2("HASHTABLE/MERGE",hashtable_merge,FD_MIN_ARGS(2),
+DEFPRIM2("HASHTABLE/MERGE",hashtable_merge,MIN_ARGS(2),
          "`(HASHTABLE/MERGE *dest* *src*)`\n"
          "Merges one hashtable into another",
          fd_hashtable_type,VOID,fd_hashtable_type,VOID)
@@ -1042,15 +1043,15 @@ DEFPRIM2("HASHTABLE/MERGE",hashtable_merge,FD_MIN_ARGS(2),
   return fd_incref(dest);
 }
 
-DEFPRIM_DECL("PLIST->TABLE",fd_plist_to_slotmap,FD_MAX_ARGS(1),
+DEFPRIM_DECL("PLIST->TABLE",fd_plist_to_slotmap,MAX_ARGS(1),
              "`(PLIST->TABLE *plist*)` returns a slotmap from a plist "
              "(property list) of the form "
              "(key1 value1 key2 value2 ... )");
-DEFPRIM_DECL("ALIST->TABLE",fd_alist_to_slotmap,FD_MAX_ARGS(1),
+DEFPRIM_DECL("ALIST->TABLE",fd_alist_to_slotmap,MAX_ARGS(1),
              "`(ALIST->TABLE *list*)` returns a slotmap from an alist "
              "(association list) of the form "
              "((key1 . value1) (key2 . value2) ... )");
-DEFPRIM_DECL("BLIST->TABLE",fd_blist_to_slotmap,FD_MAX_ARGS(1),
+DEFPRIM_DECL("BLIST->TABLE",fd_blist_to_slotmap,MAX_ARGS(1),
              "`(BLIST->TABLE *list*)` returns a slotmap from a blist "
              "(binding list) of the form "
              "((key1  value1) (key2 value2) ... )");
