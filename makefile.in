@@ -115,7 +115,8 @@ STORAGE_HEADERS=\
  include/framerd/methods.h
 
 DRIVERS_H=include/framerd/drivers.h
-SCHEME_HEADERS=include/framerd/eval.h include/framerd/threads.h \
+SCHEME_HEADERS=${APPLY_HEADERS} \
+	include/framerd/eval.h include/framerd/threads.h \
 	include/framerd/opcodes.h include/framerd/seqprims.h \
 	include/framerd/procprims.h
 LIB_HEADERS=include/framerd/texttools.h include/framerd/fdweb.h \

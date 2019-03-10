@@ -16,6 +16,7 @@
 #include "framerd/dtype.h"
 #include "framerd/lexenv.h"
 #include "framerd/apply.h"
+#include "framerd/cprims.h"
 
 #include <libu8/u8printf.h>
 #include <libu8/u8contour.h>
@@ -189,7 +190,7 @@ static struct FD_FUNCTION *init_cprim(u8_string name,
                                       int *typeinfo,
                                       lispval *defaults)
 {
-  int min_arity = ((flags) & (FD_NEEDS_ALL_ARGS)) ? (arity) :
+  int min_arity = ((flags) & (FD_OPTARGS)) ? (arity) :
     ((flags)&(FD_MIN_ARITY_MASK));
   return make_cprim(name,filename,doc,flags|FD_MAX_ARGS(arity),
                     typeinfo,defaults);
@@ -209,7 +210,7 @@ FD_EXPORT void fd_defprimN(lispval module,fd_cprimn fn,
 
 FD_EXPORT void fd_defprim0(lispval module,fd_cprim0 fn,
                            struct FD_CPRIM_INFO *info,
-                           unsigned int typeinfo[0],
+                           int typeinfo[0],
                            lispval defaults[0])
 {
   struct FD_FUNCTION *prim = init_cprim
@@ -223,7 +224,7 @@ FD_EXPORT void fd_defprim0(lispval module,fd_cprim0 fn,
 
 FD_EXPORT void fd_defprim1(lispval module,fd_cprim1 fn,
                            struct FD_CPRIM_INFO *info,
-                           unsigned int typeinfo[1],
+                           int typeinfo[1],
                            lispval defaults[1])
 {
   struct FD_FUNCTION *prim = init_cprim
@@ -237,7 +238,7 @@ FD_EXPORT void fd_defprim1(lispval module,fd_cprim1 fn,
 
 FD_EXPORT void fd_defprim2(lispval module,fd_cprim2 fn,
                            struct FD_CPRIM_INFO *info,
-                           unsigned int typeinfo[2],
+                           int typeinfo[2],
                            lispval defaults[2])
 {
   struct FD_FUNCTION *prim = init_cprim
@@ -251,7 +252,7 @@ FD_EXPORT void fd_defprim2(lispval module,fd_cprim2 fn,
 
 FD_EXPORT void fd_defprim3(lispval module,fd_cprim3 fn,
                            struct FD_CPRIM_INFO *info,
-                           unsigned int typeinfo[3],
+                           int typeinfo[3],
                            lispval defaults[3])
 {
   struct FD_FUNCTION *prim = init_cprim
@@ -265,7 +266,7 @@ FD_EXPORT void fd_defprim3(lispval module,fd_cprim3 fn,
 
 FD_EXPORT void fd_defprim4(lispval module,fd_cprim4 fn,
                            struct FD_CPRIM_INFO *info,
-                           unsigned int typeinfo[4],
+                           int typeinfo[4],
                            lispval defaults[4])
 {
   struct FD_FUNCTION *prim = init_cprim
@@ -279,7 +280,7 @@ FD_EXPORT void fd_defprim4(lispval module,fd_cprim4 fn,
 
 FD_EXPORT void fd_defprim5(lispval module,fd_cprim5 fn,
                            struct FD_CPRIM_INFO *info,
-                           unsigned int typeinfo[5],
+                           int typeinfo[5],
                            lispval defaults[5])
 {
   struct FD_FUNCTION *prim = init_cprim
@@ -293,7 +294,7 @@ FD_EXPORT void fd_defprim5(lispval module,fd_cprim5 fn,
 
 FD_EXPORT void fd_defprim6(lispval module,fd_cprim6 fn,
                            struct FD_CPRIM_INFO *info,
-                           unsigned int typeinfo[6],
+                           int typeinfo[6],
                            lispval defaults[6])
 {
   struct FD_FUNCTION *prim = init_cprim
@@ -307,7 +308,7 @@ FD_EXPORT void fd_defprim6(lispval module,fd_cprim6 fn,
 
 FD_EXPORT void fd_defprim7(lispval module,fd_cprim7 fn,
                            struct FD_CPRIM_INFO *info,
-                           unsigned int typeinfo[7],
+                           int typeinfo[7],
                            lispval defaults[7])
 {
   struct FD_FUNCTION *prim = init_cprim
@@ -321,7 +322,7 @@ FD_EXPORT void fd_defprim7(lispval module,fd_cprim7 fn,
 
 FD_EXPORT void fd_defprim8(lispval module,fd_cprim8 fn,
                            struct FD_CPRIM_INFO *info,
-                           unsigned int typeinfo[8],
+                           int typeinfo[8],
                            lispval defaults[8])
 {
   struct FD_FUNCTION *prim = init_cprim
@@ -335,7 +336,7 @@ FD_EXPORT void fd_defprim8(lispval module,fd_cprim8 fn,
 
 FD_EXPORT void fd_defprim9(lispval module,fd_cprim9 fn,
                            struct FD_CPRIM_INFO *info,
-                           unsigned int typeinfo[9],
+                           int typeinfo[9],
                            lispval defaults[9])
 {
   struct FD_FUNCTION *prim = init_cprim
@@ -349,7 +350,7 @@ FD_EXPORT void fd_defprim9(lispval module,fd_cprim9 fn,
 
 FD_EXPORT void fd_defprim10(lispval module,fd_cprim10 fn,
                            struct FD_CPRIM_INFO *info,
-                           unsigned int typeinfo[10],
+                           int typeinfo[10],
                            lispval defaults[10])
 {
   struct FD_FUNCTION *prim = init_cprim
@@ -363,7 +364,7 @@ FD_EXPORT void fd_defprim10(lispval module,fd_cprim10 fn,
 
 FD_EXPORT void fd_defprim11(lispval module,fd_cprim11 fn,
                            struct FD_CPRIM_INFO *info,
-                           unsigned int typeinfo[11],
+                           int typeinfo[11],
                            lispval defaults[11])
 {
   struct FD_FUNCTION *prim = init_cprim
@@ -377,7 +378,7 @@ FD_EXPORT void fd_defprim11(lispval module,fd_cprim11 fn,
 
 FD_EXPORT void fd_defprim12(lispval module,fd_cprim12 fn,
                            struct FD_CPRIM_INFO *info,
-                           unsigned int typeinfo[12],
+                           int typeinfo[12],
                            lispval defaults[12])
 {
   struct FD_FUNCTION *prim = init_cprim
@@ -391,7 +392,7 @@ FD_EXPORT void fd_defprim12(lispval module,fd_cprim12 fn,
 
 FD_EXPORT void fd_defprim13(lispval module,fd_cprim13 fn,
                            struct FD_CPRIM_INFO *info,
-                           unsigned int typeinfo[13],
+                           int typeinfo[13],
                            lispval defaults[13])
 {
   struct FD_FUNCTION *prim = init_cprim
@@ -405,7 +406,7 @@ FD_EXPORT void fd_defprim13(lispval module,fd_cprim13 fn,
 
 FD_EXPORT void fd_defprim14(lispval module,fd_cprim14 fn,
                            struct FD_CPRIM_INFO *info,
-                           unsigned int typeinfo[14],
+                           int typeinfo[14],
                            lispval defaults[14])
 {
   struct FD_FUNCTION *prim = init_cprim
@@ -419,7 +420,7 @@ FD_EXPORT void fd_defprim14(lispval module,fd_cprim14 fn,
 
 FD_EXPORT void fd_defprim15(lispval module,fd_cprim15 fn,
                            struct FD_CPRIM_INFO *info,
-                           unsigned int typeinfo[15],
+                           int typeinfo[15],
                            lispval defaults[15])
 {
   struct FD_FUNCTION *prim = init_cprim
@@ -517,10 +518,10 @@ FD_EXPORT lispval fd_new_cprim1
  fd_cprim1 fn,int min_arity,int ndcall,int xcall,
  int type0,lispval dflt0)
 {
-  unsigned int typeinfo[1] = { type0 };
+  int typeinfo[1] = { type0 };
   lispval defaults[1] = { dflt0 };
   struct FD_FUNCTION *f=(struct FD_FUNCTION *)
-    make_cprim(name,filename,doc,FD_FNFLAGS(1,min_arity,0,xcall),
+    make_cprim(name,filename,doc,FD_FNFLAGS(1,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call1 = fn;
   return LISP_CONS(f);
@@ -532,10 +533,10 @@ FD_EXPORT lispval fd_new_cprim2
  int type0,lispval dflt0,
  int type1,lispval dflt1)
 {
-  unsigned int typeinfo[2] = { type0, type1 };
+  int typeinfo[2] = { type0, type1 };
   lispval defaults[2] = { dflt0, dflt1 };
   struct FD_FUNCTION *f=(struct FD_FUNCTION *)
-    make_cprim(name,filename,doc,FD_FNFLAGS(2,min_arity,0,xcall),
+    make_cprim(name,filename,doc,FD_FNFLAGS(2,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call2 = fn;
   return LISP_CONS(f);
@@ -547,10 +548,10 @@ FD_EXPORT lispval fd_new_cprim3
  int type0,lispval dflt0,
  int type1,lispval dflt1,int type2,lispval dflt2)
 {
-  unsigned int typeinfo[3] = { type0, type1, type2 };
+  int typeinfo[3] = { type0, type1, type2 };
   lispval defaults[3] = { dflt0, dflt1, dflt2 };
   struct FD_FUNCTION *f=(struct FD_FUNCTION *)
-    make_cprim(name,filename,doc,FD_FNFLAGS(3,min_arity,0,xcall),
+    make_cprim(name,filename,doc,FD_FNFLAGS(3,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call3 = fn;
   return LISP_CONS(f);
@@ -563,10 +564,10 @@ FD_EXPORT lispval fd_new_cprim4
  int type1,lispval dflt1,int type2,lispval dflt2,
  int type3,lispval dflt3)
 {
-  unsigned int typeinfo[4] = { type0, type1, type2, type3 };
+  int typeinfo[4] = { type0, type1, type2, type3 };
   lispval defaults[4] = { dflt0, dflt1, dflt2, dflt3 };
   struct FD_FUNCTION *f=(struct FD_FUNCTION *)
-    make_cprim(name,filename,doc,FD_FNFLAGS(4,min_arity,0,xcall),
+    make_cprim(name,filename,doc,FD_FNFLAGS(4,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call4 = fn;
   return LISP_CONS(f);
@@ -579,10 +580,10 @@ FD_EXPORT lispval fd_new_cprim5
  int type1,lispval dflt1,int type2,lispval dflt2,
  int type3,lispval dflt3,int type4,lispval dflt4)
 {
-  unsigned int typeinfo[5] = { type0, type1, type2, type3, type4 };
+  int typeinfo[5] = { type0, type1, type2, type3, type4 };
   lispval defaults[5] = { dflt0, dflt1, dflt2, dflt3, dflt4 };
   struct FD_FUNCTION *f=(struct FD_FUNCTION *)
-    make_cprim(name,filename,doc,FD_FNFLAGS(5,min_arity,0,xcall),
+    make_cprim(name,filename,doc,FD_FNFLAGS(5,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call5 = fn;
   return LISP_CONS(f);
@@ -596,10 +597,10 @@ FD_EXPORT lispval fd_new_cprim6
  int type3,lispval dflt3,int type4,lispval dflt4,
  int type5,lispval dflt5)
 {
-  unsigned int typeinfo[6] = { type0, type1, type2, type3, type4, type5 };
+  int typeinfo[6] = { type0, type1, type2, type3, type4, type5 };
   lispval defaults[6] = { dflt0, dflt1, dflt2, dflt3, dflt4, dflt5 };
   struct FD_FUNCTION *f=(struct FD_FUNCTION *)
-    make_cprim(name,filename,doc,FD_FNFLAGS(6,min_arity,0,xcall),
+    make_cprim(name,filename,doc,FD_FNFLAGS(6,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call6 = fn;
   return LISP_CONS(f);
@@ -613,12 +614,12 @@ FD_EXPORT lispval fd_new_cprim7
  int type3,lispval dflt3,int type4,lispval dflt4,
  int type5,lispval dflt5,int type6,lispval dflt6)
 {
-  unsigned int typeinfo[7] = { type0, type1, type2, type3, type4, type5,
+  int typeinfo[7] = { type0, type1, type2, type3, type4, type5,
                                type6 };
   lispval defaults[7] = { dflt0, dflt1, dflt2, dflt3, dflt4, dflt5,
                           dflt6 };
   struct FD_FUNCTION *f=(struct FD_FUNCTION *)
-    make_cprim(name,filename,doc,FD_FNFLAGS(7,min_arity,0,xcall),
+    make_cprim(name,filename,doc,FD_FNFLAGS(7,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call7 = fn;
   return LISP_CONS(f);
@@ -633,12 +634,12 @@ FD_EXPORT lispval fd_new_cprim8
  int type5,lispval dflt5,int type6,lispval dflt6,
  int type7,lispval dflt7)
 {
-  unsigned int typeinfo[8] =
+  int typeinfo[8] =
     { type0, type1, type2, type3, type4, type5, type6, type7 };
   lispval defaults[8] =
     { dflt0, dflt1, dflt2, dflt3, dflt4, dflt6, dflt7 };
   struct FD_FUNCTION *f=(struct FD_FUNCTION *)
-    make_cprim(name,filename,doc,FD_FNFLAGS(8,min_arity,0,xcall),
+    make_cprim(name,filename,doc,FD_FNFLAGS(8,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call8 = fn;
   return LISP_CONS(f);
@@ -653,12 +654,12 @@ FD_EXPORT lispval fd_new_cprim9
  int type5,lispval dflt5,int type6,lispval dflt6,
  int type7,lispval dflt7,int type8,lispval dflt8)
 {
-  unsigned int typeinfo[9] =
+  int typeinfo[9] =
     { type0, type1, type2, type3, type4, type5, type6, type7, type8 };
   lispval defaults[9] =
     { dflt0, dflt1, dflt2, dflt3, dflt4, dflt6, dflt7, dflt8 };
   struct FD_FUNCTION *f=(struct FD_FUNCTION *)
-    make_cprim(name,filename,doc,FD_FNFLAGS(9,min_arity,0,xcall),
+    make_cprim(name,filename,doc,FD_FNFLAGS(9,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call9 = fn;
   return LISP_CONS(f);
@@ -674,7 +675,7 @@ FD_EXPORT lispval fd_new_cprim10
  int type7,lispval dflt7,int type8,lispval dflt8,
  int type9,lispval dflt9)
 {
-  unsigned int typeinfo[10] =
+  int typeinfo[10] =
     { type0, type1, type2, type3, type4, type5, type6, type7, type8, type9 };
   lispval defaults[10] =
     { dflt0, dflt1, dflt2, dflt3, dflt4, dflt6, dflt7, dflt8, dflt9 };
@@ -695,14 +696,14 @@ FD_EXPORT lispval fd_new_cprim11
  int type7,lispval dflt7,int type8,lispval dflt8,
  int type9,lispval dflt9,int type10,lispval dflt10)
 {
-  unsigned int typeinfo[11] =
+  int typeinfo[11] =
     { type0, type1, type2, type3, type4, type5, type6, type7, type8, type9,
       type10 };
   lispval defaults[11] =
     { dflt0, dflt1, dflt2, dflt3, dflt4, dflt6, dflt7, dflt8, dflt9,
       dflt10};
   struct FD_FUNCTION *f=(struct FD_FUNCTION *)
-    make_cprim(name,filename,doc,FD_FNFLAGS(11,min_arity,0,xcall),
+    make_cprim(name,filename,doc,FD_FNFLAGS(11,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call11 = fn;
   return LISP_CONS(f);
@@ -719,14 +720,14 @@ FD_EXPORT lispval fd_new_cprim12
  int type9,lispval dflt9,int type10,lispval dflt10,
  int type11,lispval dflt11)
 {
-  unsigned int typeinfo[12] =
+  int typeinfo[12] =
     { type0, type1, type2, type3, type4, type5, type6, type7, type8, type9,
       type10, type11 };
   lispval defaults[12] =
     { dflt0, dflt1, dflt2, dflt3, dflt4, dflt6, dflt7, dflt8, dflt9,
       dflt10, dflt11};
   struct FD_FUNCTION *f=(struct FD_FUNCTION *)
-    make_cprim(name,filename,doc,FD_FNFLAGS(12,min_arity,0,xcall),
+    make_cprim(name,filename,doc,FD_FNFLAGS(12,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call12 = fn;
   return LISP_CONS(f);
@@ -743,14 +744,14 @@ FD_EXPORT lispval fd_new_cprim13
  int type9,lispval dflt9,int type10,lispval dflt10,
  int type11,lispval dflt11,int type12,lispval dflt12)
 {
-  unsigned int typeinfo[13] =
+  int typeinfo[13] =
     { type0, type1, type2, type3, type4, type5, type6, type7, type8, type9,
       type10, type11, type12 };
   lispval defaults[13] =
     { dflt0, dflt1, dflt2, dflt3, dflt4, dflt6, dflt7, dflt8, dflt9,
       dflt10, dflt11, dflt12};
   struct FD_FUNCTION *f=(struct FD_FUNCTION *)
-    make_cprim(name,filename,doc,FD_FNFLAGS(13,min_arity,0,xcall),
+    make_cprim(name,filename,doc,FD_FNFLAGS(13,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call13 = fn;
   return LISP_CONS(f);
@@ -768,14 +769,14 @@ FD_EXPORT lispval fd_new_cprim14
  int type11,lispval dflt11,int type12,lispval dflt12,
  int type13,lispval dflt13)
 {
-  unsigned int typeinfo[14] =
+  int typeinfo[14] =
     { type0, type1, type2, type3, type4, type5, type6, type7, type8, type9,
       type10, type11, type12, type13 };
   lispval defaults[14] =
     { dflt0, dflt1, dflt2, dflt3, dflt4, dflt6, dflt7, dflt8, dflt9,
       dflt10, dflt11, dflt12, dflt13};
   struct FD_FUNCTION *f=(struct FD_FUNCTION *)
-    make_cprim(name,filename,doc,FD_FNFLAGS(14,min_arity,0,xcall),
+    make_cprim(name,filename,doc,FD_FNFLAGS(14,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call14 = fn;
   return LISP_CONS(f);
@@ -793,14 +794,14 @@ FD_EXPORT lispval fd_new_cprim15
  int type11,lispval dflt11,int type12,lispval dflt12,
  int type13,lispval dflt13,int type14,lispval dflt14)
 {
-  unsigned int typeinfo[15] =
+  int typeinfo[15] =
     { type0, type1, type2, type3, type4, type5, type6, type7, type8, type9,
       type10, type11, type12, type13, type14 };
   lispval defaults[15] =
     { dflt0, dflt1, dflt2, dflt3, dflt4, dflt6, dflt7, dflt8, dflt9,
       dflt10, dflt11, dflt12, dflt13, dflt14};
   struct FD_FUNCTION *f=(struct FD_FUNCTION *)
-    make_cprim(name,filename,doc,FD_FNFLAGS(15,min_arity,0,xcall),
+    make_cprim(name,filename,doc,FD_FNFLAGS(15,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call15 = fn;
   return LISP_CONS(f);

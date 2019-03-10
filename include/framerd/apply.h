@@ -213,198 +213,189 @@ FD_EXPORT lispval fd_init_cprim2(u8_string name,u8_string filename,u8_string doc
 
 #define fd_make_cprim0(name,fn)                 \
   fd_new_cprim0(name,_FILEINFO,NULL,fn,0)
-#define fd_make_cprim1(name,fn,min)                                     \
-  fd_new_cprim1(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+#define fd_make_cprim1(name,fn,flags)                                     \
+  fd_new_cprim1(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0, \
                 -1,FD_VOID)
-#define fd_make_cprim2(name,fn,min)                                     \
-  fd_new_cprim2(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+#define fd_make_cprim2(name,fn,flags)                                     \
+  fd_new_cprim2(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0, \
                 -1,FD_VOID,-1,FD_VOID)
-#define fd_make_cprim3(name,fn,min)                                     \
-  fd_new_cprim3(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+#define fd_make_cprim3(name,fn,flags)                                     \
+  fd_new_cprim3(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0, \
                 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID)
-#define fd_make_cprim4(name,fn,min)                                     \
-  fd_new_cprim4(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+#define fd_make_cprim4(name,fn,flags)                                     \
+  fd_new_cprim4(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0, \
                 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID)
-#define fd_make_cprim5(name,fn,min)                                     \
-  fd_new_cprim5(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+#define fd_make_cprim5(name,fn,flags)                                     \
+  fd_new_cprim5(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0, \
                 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID)
-#define fd_make_cprim6(name,fn,min)                                     \
-  fd_new_cprim6(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+#define fd_make_cprim6(name,fn,flags)                                     \
+  fd_new_cprim6(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0, \
                 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID, \
                 -1,FD_VOID)
-#define fd_make_cprim7(name,fn,min)                                     \
-  fd_new_cprim7(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+#define fd_make_cprim7(name,fn,flags)                                     \
+  fd_new_cprim7(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0, \
                 -1,FD_VOID-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,  \
                 -1,FD_VOID,-1,FD_VOID)
-#define fd_make_cprim8(name,fn,min)                                     \
-  fd_new_cprim8(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+#define fd_make_cprim8(name,fn,flags)                                     \
+  fd_new_cprim8(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0, \
                 -1,FD_VOID-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,  \
                 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID)
-#define fd_make_cprim9(name,fn,min)                                     \
-  fd_new_cprim9(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+#define fd_make_cprim9(name,fn,flags)                                     \
+  fd_new_cprim9(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0, \
                 -1,FD_VOID-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,  \
                 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID)
-#define fd_make_cprim10(name,fn,min)                                    \
-  fd_new_cprim10(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+#define fd_make_cprim10(name,fn,flags)                                    \
+  fd_new_cprim10(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0, \
                  -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID, \
                  -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID)
-#define fd_make_cprim11(name,fn,min)                                    \
-  fd_new_cprim11(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+#define fd_make_cprim11(name,fn,flags)                                    \
+  fd_new_cprim11(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0, \
                  -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID, \
                  -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID, \
                  -1,FD_VOID)
-#define fd_make_cprim12(name,fn,min)                                    \
-  fd_new_cprim12(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+#define fd_make_cprim12(name,fn,flags)                                    \
+  fd_new_cprim12(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0, \
                  -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID, \
                  -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID, \
                  -1,FD_VOID,-1,FD_VOID)
-#define fd_make_cprim13(name,fn,min)                                    \
-  fd_new_cprim13(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+#define fd_make_cprim13(name,fn,flags)                                    \
+  fd_new_cprim13(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0, \
                  -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID, \
                  -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID, \
                  -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1)
-#define fd_make_cprim14(name,fn,min)                                    \
-  fd_new_cprim14(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+#define fd_make_cprim14(name,fn,flags)                                    \
+  fd_new_cprim14(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0, \
                  -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID, \
                  -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID, \
                  -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID)
-#define fd_make_cprim15(name,fn,min)                                    \
-  fd_new_cprim15(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+#define fd_make_cprim15(name,fn,flags)                                    \
+  fd_new_cprim15(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0, \
                  -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID, \
                  -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID, \
                  -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID)
 
-#define fd_make_cprim1x(name,fn,min,...)                                \
-  fd_new_cprim1(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0,__VA_ARGS__)
-#define fd_make_cprim2x(name,fn,min,...)                                \
-  fd_new_cprim2(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0,__VA_ARGS__)
-#define fd_make_cprim3x(name,fn,min,...)                                \
-  fd_new_cprim3(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0,__VA_ARGS__)
-#define fd_make_cprim4x(name,fn,min,...)                                \
-  fd_new_cprim4(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0,__VA_ARGS__)
-#define fd_make_cprim5x(name,fn,min,...)                                \
-  fd_new_cprim5(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0,__VA_ARGS__)
-#define fd_make_cprim6x(name,fn,min,...)                                \
-  fd_new_cprim6(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0,__VA_ARGS__)
-#define fd_make_cprim7x(name,fn,min,...)                                \
-  fd_new_cprim7(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0,__VA_ARGS__)
-#define fd_make_cprim8x(name,fn,min,...)                                \
-  fd_new_cprim8(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0,__VA_ARGS__)
-#define fd_make_cprim9x(name,fn,min,...)                                \
-  fd_new_cprim9(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0,__VA_ARGS__)
-#define fd_make_cprim10x(name,fn,min,...)                               \
-  fd_new_cprim10(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0,__VA_ARGS__)
-#define fd_make_cprim11x(name,fn,min,...)                               \
-  fd_new_cprim11(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0,__VA_ARGS__)
-#define fd_make_cprim12x(name,fn,min,...)                               \
-  fd_new_cprim12(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0,__VA_ARGS__)
-#define fd_make_cprim13x(name,fn,min,...)                               \
-  fd_new_cprim13(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0,__VA_ARGS__)
-#define fd_make_cprim14x(name,fn,min,...)                               \
-  fd_new_cprim14(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0,__VA_ARGS__)
-#define fd_make_cprim15x(name,fn,min,...)                               \
-  fd_new_cprim15(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0,__VA_ARGS__)
+#define fd_make_cprim1x(name,fn,flags,...)                                \
+  fd_new_cprim1(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,__VA_ARGS__)
+#define fd_make_cprim2x(name,fn,flags,...)                                \
+  fd_new_cprim2(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,__VA_ARGS__)
+#define fd_make_cprim3x(name,fn,flags,...)                                \
+  fd_new_cprim3(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,__VA_ARGS__)
+#define fd_make_cprim4x(name,fn,flags,...)                                \
+  fd_new_cprim4(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,__VA_ARGS__)
+#define fd_make_cprim5x(name,fn,flags,...)                                \
+  fd_new_cprim5(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,__VA_ARGS__)
+#define fd_make_cprim6x(name,fn,flags,...)                                \
+  fd_new_cprim6(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,__VA_ARGS__)
+#define fd_make_cprim7x(name,fn,flags,...)                                \
+  fd_new_cprim7(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,__VA_ARGS__)
+#define fd_make_cprim8x(name,fn,flags,...)                                \
+  fd_new_cprim8(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,__VA_ARGS__)
+#define fd_make_cprim9x(name,fn,flags,...)                                \
+  fd_new_cprim9(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,__VA_ARGS__)
+#define fd_make_cprim10x(name,fn,flags,...)                               \
+  fd_new_cprim10(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,__VA_ARGS__)
+#define fd_make_cprim11x(name,fn,flags,...)                               \
+  fd_new_cprim11(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,__VA_ARGS__)
+#define fd_make_cprim12x(name,fn,flags,...)                               \
+  fd_new_cprim12(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,__VA_ARGS__)
+#define fd_make_cprim13x(name,fn,flags,...)                               \
+  fd_new_cprim13(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,__VA_ARGS__)
+#define fd_make_cprim14x(name,fn,flags,...)                               \
+  fd_new_cprim14(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,__VA_ARGS__)
+#define fd_make_cprim15x(name,fn,flags,...)                               \
+  fd_new_cprim15(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,__VA_ARGS__)
 
-#define fd_idefnN(module,name,fn,min,doc)                               \
+#define fd_idefnN(module,name,fn,flags,doc)                               \
   fd_idefn(module,fd_new_cprimn                                         \
-           (name,_FILEINFO,doc,fn,((min)&0xFFFF),((min)&0x10000),0))
+           (name,_FILEINFO,doc,fn,((flags)&(0x7F)),((flags)&(FD_NDCALL)),0))
 
 #define fd_idefn0(module,name,fn,doc)                           \
   fd_idefn(module,fd_new_cprim0(name,_FILEINFO,doc,fn,0))
-#define fd_idefn1(module,name,fn,min,doc,...)                           \
-  fd_idefn(module,fd_new_cprim1(name,_FILEINFO,doc,fn,((min)&0xFFFF),   \
-                                ((min)&0x10000),0,                      \
+#define fd_idefn1(module,name,fn,flags,doc,...)                           \
+  fd_idefn(module,fd_new_cprim1(name,_FILEINFO,doc,fn,((flags)&(0x7F)),   \
+                                ((flags)&(FD_NDCALL)),0,                      \
                                 __VA_ARGS__))
-#define fd_idefn2(module,name,fn,min,doc,...)           \
+#define fd_idefn2(module,name,fn,flags,doc,...)           \
   fd_idefn(module,fd_new_cprim2(name,_FILEINFO,doc,fn,                  \
-                                ((min)&0xFFFF),((min)&0x10000),0,       \
+                                ((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,       \
                                 __VA_ARGS__))
-#define fd_idefn3(module,name,fn,min,doc,...)           \
+#define fd_idefn3(module,name,fn,flags,doc,...)           \
   fd_idefn(module,fd_new_cprim3(name,_FILEINFO,doc,fn,                  \
-                                ((min)&0xFFFF),((min)&0x10000),0,       \
+                                ((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,       \
                                 __VA_ARGS__))
-#define fd_idefn4(module,name,fn,min,doc,...)           \
+#define fd_idefn4(module,name,fn,flags,doc,...)           \
   fd_idefn(module,fd_new_cprim4(name,_FILEINFO,doc,fn,                  \
-                                ((min)&0xFFFF),((min)&0x10000),0,       \
+                                ((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,       \
                                 __VA_ARGS__))
-#define fd_idefn5(module,name,fn,min,doc,...)           \
+#define fd_idefn5(module,name,fn,flags,doc,...)           \
   fd_idefn(module,fd_new_cprim5(name,_FILEINFO,doc,fn,                  \
-                                ((min)&0xFFFF),((min)&0x10000),0,       \
+                                ((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,       \
                                 __VA_ARGS__))
-#define fd_idefn6(module,name,fn,min,doc,...)           \
+#define fd_idefn6(module,name,fn,flags,doc,...)           \
   fd_idefn(module,fd_new_cprim6(name,_FILEINFO,doc,fn,                  \
-                                ((min)&0xFFFF),((min)&0x10000),0,       \
+                                ((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,       \
                                 __VA_ARGS__))
-#define fd_idefn7(module,name,fn,min,doc,...)           \
+#define fd_idefn7(module,name,fn,flags,doc,...)           \
   fd_idefn(module,fd_new_cprim7(name,_FILEINFO,doc,fn,                  \
-                                ((min)&0xFFFF),((min)&0x10000),0,       \
+                                ((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,       \
                                 __VA_ARGS__))
-#define fd_idefn8(module,name,fn,min,doc,...)           \
+#define fd_idefn8(module,name,fn,flags,doc,...)           \
   fd_idefn(module,fd_new_cprim8(name,_FILEINFO,doc,fn,                  \
-                                ((min)&0xFFFF),((min)&0x10000),0,       \
+                                ((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,       \
                                 __VA_ARGS__))
-#define fd_idefn9(module,name,fn,min,doc,...)           \
+#define fd_idefn9(module,name,fn,flags,doc,...)           \
   fd_idefn(module,fd_new_cprim9(name,_FILEINFO,doc,fn,                  \
-                                ((min)&0xFFFF),((min)&0x10000),0,       \
+                                ((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,       \
                                 __VA_ARGS__))
-#define fd_idefn10(module,name,fn,min,doc,...)          \
+#define fd_idefn10(module,name,fn,flags,doc,...)          \
   fd_idefn(module,fd_new_cprim10(name,_FILEINFO,doc,fn,                 \
-                                 ((min)&0xFFFF),((min)&0x10000),0,      \
+                                 ((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,      \
                                  __VA_ARGS__))
-#define fd_idefn11(module,name,fn,min,doc,...)                          \
+#define fd_idefn11(module,name,fn,flags,doc,...)                          \
   fd_idefn(module,fd_new_cprim11(name,_FILEINFO,doc,fn,                 \
-                                 ((min)&0xFFFF),((min)&0x10000),0,      \
+                                 ((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,      \
                                  __VA_ARGS__))
-#define fd_idefn12(module,name,fn,min,doc,...)          \
+#define fd_idefn12(module,name,fn,flags,doc,...)          \
   fd_idefn(module,fd_new_cprim12(name,_FILEINFO,doc,fn,                 \
-                                 ((min)&0xFFFF),((min)&0x10000),0,      \
+                                 ((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,      \
                                  __VA_ARGS__))
-#define fd_idefn13(module,name,fn,min,doc,...)          \
+#define fd_idefn13(module,name,fn,flags,doc,...)          \
   fd_idefn(module,fd_new_cprim13(name,_FILEINFO,doc,fn,                 \
-                                 ((min)&0xFFFF),((min)&0x10000),0,      \
+                                 ((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,      \
                                  __VA_ARGS__))
-#define fd_idefn14(module,name,fn,min,doc,...)          \
+#define fd_idefn14(module,name,fn,flags,doc,...)          \
   fd_idefn(module,fd_new_cprim14(name,_FILEINFO,doc,fn,                 \
-                                 ((min)&0xFFFF),((min)&0x10000),0,      \
+                                 ((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,      \
                                  __VA_ARGS__))
-#define fd_idefn15(module,name,fn,min,doc,...)                          \
+#define fd_idefn15(module,name,fn,flags,doc,...)                          \
   fd_idefn(module,fd_new_cprim15(name,_FILEINFO,doc,fn,                 \
-                                 ((min)&0xFFFF),((min)&0x10000),0,      \
+                                 ((flags)&(0x7F)),((flags)&(FD_NDCALL)),0,      \
                                  __VA_ARGS__))
 
-#define FD_NEEDS_0_ARGS 0
-#define FD_NEEDS_NO_ARGS 0
-#define FD_NEEDS_ONE_ARG  1
-#define FD_NEEDS_1_ARG  1
-#define FD_NEEDS_1_ARGS 1
-#define FD_NEEDS_2_ARGS 2
-#define FD_NEEDS_3_ARGS 3
-#define FD_NEEDS_4_ARGS 4
-#define FD_NEEDS_5_ARGS 5
-#define FD_NEEDS_6_ARGS 6
-#define FD_NEEDS_7_ARGS 7
-#define FD_NEEDS_8_ARGS 8
-#define FD_NEEDS_9_ARGS 9
-#define FD_NEEDS_10_ARGS 10
-#define FD_NEEDS_11_ARGS 11
-#define FD_NEEDS_12_ARGS 12
-#define FD_NEEDS_13_ARGS 13
-#define FD_NEEDS_14_ARGS 14
-#define FD_NEEDS_15_ARGS 15
-#define FD_NEEDS_ALL_ARGS 0x100000
+#define FD_NEEDS_0_ARGS     0
+#define FD_NEEDS_NO_ARGS    0
+#define FD_NEEDS_ONE_ARG    1
+#define FD_NEEDS_1_ARG      1
+#define FD_NEEDS_1_ARGS     1
+#define FD_NEEDS_2_ARGS     2
+#define FD_NEEDS_3_ARGS     3
+#define FD_NEEDS_4_ARGS     4
+#define FD_NEEDS_5_ARGS     5
+#define FD_NEEDS_6_ARGS     6
+#define FD_NEEDS_7_ARGS     7
+#define FD_NEEDS_8_ARGS     8
+#define FD_NEEDS_9_ARGS     9
+#define FD_NEEDS_10_ARGS    10
+#define FD_NEEDS_11_ARGS    11
+#define FD_NEEDS_12_ARGS    12
+#define FD_NEEDS_13_ARGS    13
+#define FD_NEEDS_14_ARGS    14
+#define FD_NEEDS_15_ARGS    15
 
 #define FD_MIN_ARITY_MASK (0xFFFF)
 
-#define FD_MAX_ARGS(n) ( (n < 0) ? (0x80) : ((n)&(0xFF)) )
-#define FD_MIN_ARGS(n) ( (n < 0) ? (0x00) : ( (0x8000) | (((n)&(0x7F))<<8) ) )
-#define FD_XCALL  0x10000
-#define FD_NDCALL 0x20000
-
-#define FD_FNFLAGS(max_arity,min_arity,ndcall,xcall)    \
-  ( (FD_MAX_ARGS(max_arity)) |                          \
-    (FD_MIN_ARGS(min_arity)) |                          \
-    ((ndcall) ? (FD_NDCALL) : (0)) |                    \
-    ((xcall) ? (FD_XCALL) : (0)) )
+#define FD_XCALL   0x10000
+#define FD_NDCALL  0x20000
 
 /* Useful macros */
 
