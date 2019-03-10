@@ -294,10 +294,11 @@ DEFPRIM("TABLE-INCREMENT!",
   if (EMPTYP(increment)) return VOID;
   else if (EMPTYP(keys)) return VOID;
   else if (EMPTYP(table)) return VOID;
-  else {}
-  if (VOIDP(increment)) increment = FD_INT(1);
+  else if (VOIDP(increment))
+    increment = FD_INT(1);
   else if (!(NUMBERP(increment)))
     return fd_type_error("number","table_increment",increment);
+  else NO_ELSE;
   if (HASHTABLEP(table))
     if (CHOICEP(keys)) {
       const lispval *elts = FD_CHOICE_DATA(keys);
@@ -341,10 +342,11 @@ DEFPRIM("TABLE-INCREMENT-EXISTING!",
   if (EMPTYP(increment)) return VOID;
   else if (EMPTYP(keys)) return VOID;
   else if (EMPTYP(table)) return VOID;
-  else {}
-  if (VOIDP(increment)) increment = FD_INT(1);
+  else if (VOIDP(increment))
+    increment = FD_INT(1);
   else if (!(NUMBERP(increment)))
     return fd_type_error("number","table_increment_existing",increment);
+  else NO_ELSE;
   if (HASHTABLEP(table))
     if (CHOICEP(keys)) {
       const lispval *elts = FD_CHOICE_DATA(keys);
@@ -387,10 +389,11 @@ DEFPRIM("TABLE-MULTIPLY!",
   if (EMPTYP(factor)) return VOID;
   else if (EMPTYP(keys)) return VOID;
   else if (EMPTYP(table)) return VOID;
-  else {}
-  if (VOIDP(factor)) factor = FD_INT(1);
+  else if (VOIDP(factor))
+    factor = FD_INT(1);
   else if (!(NUMBERP(factor)))
     return fd_type_error("number","table_multiply",factor);
+  else NO_ELSE;
   if (HASHTABLEP(table))
     if (CHOICEP(keys)) {
       const lispval *elts = FD_CHOICE_DATA(keys);
@@ -428,10 +431,11 @@ DEFPRIM("TABLE-MULTIPLY-EXISTING!",
   if (EMPTYP(factor)) return VOID;
   else if (EMPTYP(keys)) return VOID;
   else if (EMPTYP(table)) return VOID;
-  else {}
-  if (VOIDP(factor)) factor = FD_INT(1);
+  else if (VOIDP(factor))
+    factor = FD_INT(1);
   else if (!(NUMBERP(factor)))
     return fd_type_error("number","table_multiply_existing",factor);
+  else NO_ELSE;
   if (HASHTABLEP(table))
     if (CHOICEP(keys)) {
       const lispval *elts = FD_CHOICE_DATA(keys);
@@ -472,8 +476,7 @@ DEFPRIM("TABLE-MAXIMIZE!",
   if (EMPTYP(maxval)) return VOID;
   else if (EMPTYP(keys)) return VOID;
   else if (EMPTYP(table)) return VOID;
-  else {}
-  if (!(NUMBERP(maxval)))
+  else if (!(NUMBERP(maxval)))
     return fd_type_error("number","table_maximize",maxval);
   else if (HASHTABLEP(table))
     if (CHOICEP(keys)) {
@@ -513,8 +516,7 @@ DEFPRIM("TABLE-MAXIMIZE-EXISTING!",
   if (EMPTYP(maxval)) return VOID;
   else if (EMPTYP(keys)) return VOID;
   else if (EMPTYP(table)) return VOID;
-  else {}
-  if (!(NUMBERP(maxval)))
+  else if (!(NUMBERP(maxval)))
     return fd_type_error("number","table_maximize_existing",maxval);
   else if (HASHTABLEP(table))
     if (CHOICEP(keys)) {
@@ -598,8 +600,7 @@ DEFPRIM("TABLE-MINIMIZE-EXISTING!",
   if (EMPTYP(minval)) return VOID;
   else if (EMPTYP(keys)) return VOID;
   else if (EMPTYP(table)) return VOID;
-  else {}
-  if (!(NUMBERP(minval)))
+  else if (!(NUMBERP(minval)))
     return fd_type_error("number","table_minimize_existing",minval);
   else if (HASHTABLEP(table))
     if (CHOICEP(keys)) {
@@ -755,6 +756,8 @@ DEFPRIM("TABLE-SKIM",table_skim,MAX_ARGS(3)|MIN_ARGS(2)|NDCALL,
 {
   if (EMPTYP(scope))
     return scope;
+  else if (EMPTYP(maxval))
+    return maxval;
   else if (FD_HASHTABLEP(tables))
     fd_hashtable_skim(FD_XHASHTABLE(tables),maxval,scope);
   else {

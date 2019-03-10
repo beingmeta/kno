@@ -4571,19 +4571,6 @@ FD_EXPORT lispval fd_table_skim(lispval table,lispval maxval,lispval scope)
     /* It's not clear what the right behavior is here. */
     /* It could also all of the keys or the subset of them in *scope*.*/
     return EMPTY;}
-  /*
-  else if (EMPTYP(maxval)) {
-    lispval keys = fd_getkeys(table);
-    if (FD_VOIDP(scope))
-      return keys;
-    else if (EMPTYP(keys))
-      return EMPTY;
-    else {
-      lispval args[2] = { keys, scope };
-      lispval scoped = fd_intersection(args,2);
-      fd_decref(keys);
-      return scoped;}}
-  */
   else if (!(FD_NUMBERP(maxval)))
     return fd_type_error("number","fd_table_skim/maxval",maxval);
   else if (HASHTABLEP(table))
