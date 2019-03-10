@@ -115,8 +115,7 @@ STORAGE_HEADERS=\
  include/framerd/methods.h
 
 DRIVERS_H=include/framerd/drivers.h
-SCHEME_HEADERS=${APPLY_HEADERS} \
-	include/framerd/eval.h include/framerd/threads.h \
+SCHEME_HEADERS=include/framerd/eval.h include/framerd/threads.h \
 	include/framerd/opcodes.h include/framerd/seqprims.h \
 	include/framerd/procprims.h
 LIB_HEADERS=include/framerd/texttools.h include/framerd/fdweb.h \
@@ -391,8 +390,9 @@ CLEANDIRS=include/framerd src/drivers/headers 		\
 	etc
 
 FRAMERD_HEADERS= \
-	$(LISP_HEADERS) $(STORAGE_HEADERS) $(SCHEME_HEADERS) \
-	$(APPLY_HEADERS) $(DRIVERS_H) $(SRC_HEADERS)
+	$(LISP_HEADERS) $(STORAGE_HEADERS) \
+	$(APPLY_HEADERS) $(SCHEME_HEADERS) \
+	$(DRIVERS_H) $(SRC_HEADERS)
 
 FRAMERD_SOURCES=\
 	src/lisp/cons.c src/lisp/oids.c src/lisp/symbols.c           		\
@@ -1968,17 +1968,17 @@ $(APPLY_OBJS): $(LISP_HEADERS) $(APPLY_HEADERS) $(REVISION_H)
 $(STORAGE_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(REVISION_H)
 $(DRIVER_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) $(REVISION_H)
 $(SCHEME_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
-	$(SCHEME_HEADERS) $(REVISION_H)
+	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H)
 $(WEB_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
-	$(SCHEME_HEADERS) $(REVISION_H) ./include/framerd/fdweb.h
+	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H) ./include/framerd/fdweb.h
 $(TEXT_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
-	 $(REVISION_H) $(SCHEME_HEADERS) ./include/framerd/texttools.h
+	$(APPLY_HEADERS) $(REVISION_H) $(SCHEME_HEADERS) ./include/framerd/texttools.h
 $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS): .buildmode
 $(STORAGE_OBJS) $(DRIVER_OBJS): .buildmode
 $(SCHEME_OBJS): .buildmode
 $(WEB_OBJS) $(TEXT_OBJS): .buildmode
 $(CMODULE_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
-	$(SCHEME_HEADERS) $(REVISION_H) .buildmode
+	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H) .buildmode
 src/eval/choiceops.o src/prims/seqprims.o: include/framerd/sorting.h
 src/prims/procprims.o: include/framerd/procprims.h
 # Driver dependencies
