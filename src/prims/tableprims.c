@@ -257,99 +257,6 @@ DEFPRIM_DECL("GETASSOCS",fd_getassocs,FD_MAX_ARGS(1),
              "`(GETASSOCS *table*)` returns (key . values) pairs for all "
              "of the keys in *table*.");
 
-#if 0
-
-DEFPRIM("GETIF",lispgetif,FD_MAX_ARGS(3)|FD_MIN_ARGS(2)|FD_NDCALL,
-        "`(GETIF *table* *key* [*default*])` returns *key* if *table* is false, "
-        "or returns the value of *key* in *table* or *default* if *table* does "
-        "not contain *key*. Note that this does no inference.")
-  (lispval table,lispval key,lispval dflt)
-{
-  if (FALSEP(table))
-    return fd_incref(key);
-  else if (VOIDP(dflt))
-    return fd_get(table,key,EMPTY);
-  else return fd_get(table,key,dflt);
-}
-
-DEFPRIM("TRYGET",lisptryget,FD_MAX_ARGS(3)|FD_MIN_ARGS(2)|FD_NDCALL,
-        "`(TRYGET *table* *key* [*default*])` returns *key* if *table* is false, "
-        "or returns the value of *key* in *table* or *default* if *table* does "
-        "not contain *key*. Note that this does no inference.")
-  (lispval table,lispval key,lispval dflt)
-{
-  if ((FALSEP(table)) || (EMPTYP(table)))
-    if (VOIDP(dflt))
-      return fd_incref(key);
-    else return fd_incref(dflt);
-  else if (CHOICEP(table)) {
-    lispval results = EMPTY;
-    DO_CHOICES(etable,table) {
-      DO_CHOICES(ekey,key) {
-        lispval v = ((VOIDP(dflt)) ? (fd_get(etable,ekey,ekey)) :
-                     (fd_get(etable,ekey,dflt)));
-        CHOICE_ADD(results,v);}}
-    if (EMPTYP(results))
-      if (VOIDP(dflt))
-        return fd_incref(key);
-      else return fd_incref(dflt);
-    else return results;}
-  else if (CHOICEP(key)) {
-    lispval results = EMPTY;
-    DO_CHOICES(ekey,key) {
-      lispval v = ((VOIDP(dflt)) ? (fd_get(table,ekey,ekey)) :
-                   (fd_get(table,ekey,dflt)));
-      CHOICE_ADD(results,v);}
-    if (EMPTYP(results))
-      if (VOIDP(dflt))
-        return fd_incref(key);
-      else return fd_incref(dflt);
-    else return results;}
-  else if (VOIDP(dflt))
-    return fd_get(table,key,key);
-  else return fd_get(table,key,dflt);
-}
-
-DEFPRIM("PICK-KEYS",lisp_pick_keys,FD_MAX_ARGS(2)|FD_MIN_ARGS(1),
-        "`(PICK-KEYS *table* [*count*])` returns *count* keys "
-        "from *table* or all of the keys if they're less than *count*.")
-  (lispval table,lispval howmany_arg)
-{
-  if (!(TABLEP(table)))
-    return fd_type_error(_("table"),"lisp_pick_key",table);
-  else if (!(FD_UINTP(howmany_arg)))
-    return fd_type_error(_("uint"),"lisp_pick_key",howmany_arg);
-  else {
-    lispval x = fd_getkeys(table);
-    lispval normal = fd_make_simple_choice(x);
-    int n = FD_CHOICE_SIZE(normal), howmany = FIX2INT(howmany_arg);
-    if (!(CHOICEP(normal))) return normal;
-    if (n<=howmany) return normal;
-    else if (howmany==1) {
-      int i = u8_random(n);
-      const lispval *data = FD_CHOICE_DATA(normal);
-      lispval result = data[i];
-      fd_incref(result); fd_decref(normal);
-      return result;}
-    else if (n) {
-      struct FD_HASHSET h;
-      const lispval *data = FD_CHOICE_DATA(normal);
-      int j = 0; fd_init_hashset(&h,n*3,FD_STACK_CONS);
-      while (j<howmany) {
-        int i = u8_random(n);
-        if (fd_hashset_mod(&h,data[i],1)<0) {
-          fd_recycle_hashset(&h);
-          fd_decref(normal);
-          fd_decref(x);
-          return FD_ERROR;}
-        else j++;}
-      fd_decref(normal);
-      return fd_hashset_elts(&h,1);}
-    else return EMPTY;}
-}
-
-#endif
-
 /* Converting schemaps to slotmaps */
 
 DEFPRIM1("SCHEMAP->SLOTMAP",schemap2slotmap_prim,FD_MAX_ARGS(1),
@@ -376,34 +283,6 @@ DEFPRIM1("SCHEMAP->SLOTMAP",schemap2slotmap_prim,FD_MAX_ARGS(1),
 typedef lispval (*reduceop)(lispval,lispval);
 
 /* Various table operations */
-
-DEFPRIM("HASHTABLE-INCREMENT!",
-        hashtable_increment,FD_MAX_ARGS(3)|FD_MIN_ARGS(2)|FD_NDCALL,
-        "`(HASHTABLE-INCREMENT! *hashtable* *key* [*delta*])` "
-        "adds *delta* (default to 1) to the current value of *key* in "
-        "*hashtable* (which defaults to 0).")
-  (lispval table,lispval keys,lispval increment)
-{
-  if (EMPTYP(increment)) return VOID;
-  else if (EMPTYP(keys)) return VOID;
-  else if (EMPTYP(table)) return VOID;
-  else {}
-  if (VOIDP(increment)) increment = FD_INT(1);
-  if (HASHTABLEP(table))
-    if (CHOICEP(keys)) {
-      const lispval *elts = FD_CHOICE_DATA(keys);
-      int n_elts = FD_CHOICE_SIZE(keys);
-      if (fd_hashtable_iterkeys
-          (FD_XHASHTABLE(table),fd_table_increment,n_elts,elts,increment)<0) {
-        return FD_ERROR;}
-      else return VOID;}
-    else if (EMPTYP(keys))
-      return VOID;
-    else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_increment,keys,increment)<0)
-      return FD_ERROR;
-    else return VOID;
-  else return fd_type_error("table","hashtable_increment",table);
-}
 
 DEFPRIM("TABLE-INCREMENT!",
         table_increment,FD_MAX_ARGS(3)|FD_MIN_ARGS(2)|FD_NDCALL,
@@ -452,38 +331,6 @@ DEFPRIM("TABLE-INCREMENT!",
   else return fd_type_error("table","table_increment",table);
 }
 
-DEFPRIM("HASHTABLE-INCREMENT-EXISTING!",
-        hashtable_increment_existing,FD_MAX_ARGS(3)|FD_MIN_ARGS(2)|FD_NDCALL,
-        "`(HASHTABLE-INCREMENT-EXISTING! *hashtable* *key* [*delta*])` "
-        "adds *delta* (default to 1) to the current value of *key* in "
-        "*hashtable*, doing nothing if *key* is not in *hashtable*")
-  (lispval table,lispval key,lispval increment)
-{
-  if (EMPTYP(increment)) return VOID;
-  else if (EMPTYP(key)) return VOID;
-  else if (EMPTYP(table)) return VOID;
-  else {}
-  if (VOIDP(increment)) increment = FD_INT(1);
-  if (HASHTABLEP(table))
-    if (CHOICEP(key)) {
-      lispval keys = fd_make_simple_choice(key);
-      const lispval *elts = FD_CHOICE_DATA(keys);
-      int n_elts = FD_CHOICE_SIZE(keys);
-      if (fd_hashtable_iterkeys(FD_XHASHTABLE(table),
-                                fd_table_increment_if_present,
-                                n_elts,elts,increment)<0) {
-        fd_decref(keys); return FD_ERROR;}
-      else {fd_decref(keys); return VOID;}}
-    else if (EMPTYP(key))
-      return VOID;
-    else if (fd_hashtable_op(FD_XHASHTABLE(table),
-                             fd_table_increment_if_present,
-                             key,increment)<0)
-      return FD_ERROR;
-    else return VOID;
-  else return fd_type_error("table","hashtable_increment_existing",table);
-}
-
 DEFPRIM("TABLE-INCREMENT-EXISTING!",
         table_increment_existing,FD_MAX_ARGS(3)|FD_MIN_ARGS(2)|FD_NDCALL,
         "`(TABLE-INCREMENT-EXISTING! *table* *key* [*delta*])` "
@@ -530,38 +377,6 @@ DEFPRIM("TABLE-INCREMENT-EXISTING!",
   else return fd_type_error("table","table_increment_existing",table);
 }
 
-DEFPRIM("HASHTABLE-MULTIPLY!",
-        hashtable_multiply,FD_MAX_ARGS(3)|FD_MIN_ARGS(2)|FD_NDCALL,
-        "`(HASHTABLE-MULTIPLY! *hashtable* *key* *factor*)` "
-        "multiplies the current value of *key* in *hashtable* by *factor*, "
-        "defaulting the value of *key* to 1.")
-  (lispval table,lispval key,lispval factor)
-{
-  if (EMPTYP(factor)) return VOID;
-  else if (EMPTYP(key)) return VOID;
-  else if (EMPTYP(table)) return VOID;
-  else {}
-  if (VOIDP(factor)) factor = FD_INT(2);
-  if (HASHTABLEP(table))
-    if (CHOICEP(key)) {
-      lispval keys = fd_make_simple_choice(key);
-      const lispval *elts = FD_CHOICE_DATA(keys);
-      int n_elts = FD_CHOICE_SIZE(keys);
-      if (fd_hashtable_iterkeys(FD_XHASHTABLE(table),
-                                fd_table_multiply,
-                                n_elts,elts,factor)<0) {
-        fd_decref(keys); return FD_ERROR;}
-      else {fd_decref(keys); return VOID;}}
-    else if (EMPTYP(key))
-      return VOID;
-    else if (fd_hashtable_op(FD_XHASHTABLE(table),
-                             fd_table_multiply,
-                             key,factor)<0)
-      return FD_ERROR;
-    else return VOID;
-  else return fd_type_error("table","hashtable_multiply",table);
-}
-
 DEFPRIM("TABLE-MULTIPLY!",
         table_multiply,FD_MAX_ARGS(3)|FD_NDCALL,
         "`(TABLE-MULTIPLY! *table* *key* *factor*)` "
@@ -601,38 +416,6 @@ DEFPRIM("TABLE-MULTIPLY!",
       else return fd_type_error("number","table_multiply",cur);}
     return VOID;}
   else return fd_type_error("table","table_multiply",table);
-}
-
-DEFPRIM("HASHTABLE-MULTIPLY-EXISTING!",
-        hashtable_multiply_existing,FD_MAX_ARGS(3)|FD_NDCALL,
-        "`(HASHTABLE-MULTIPLY-EXISTING! *hashtable* *key* *factor*)` "
-        "multiplies the current value of *key* in *hashtable* by *factor*, "
-        "doing nothing if *key* is not currently defined in *hashtable*.")
-  (lispval table,lispval key,lispval factor)
-{
-  if (EMPTYP(factor)) return VOID;
-  else if (EMPTYP(key)) return VOID;
-  else if (EMPTYP(table)) return VOID;
-  else {}
-  if (VOIDP(factor)) factor = FD_INT(2);
-  if (HASHTABLEP(table))
-    if (CHOICEP(key)) {
-      lispval keys = fd_make_simple_choice(key);
-      const lispval *elts = FD_CHOICE_DATA(keys);
-      int n_elts = FD_CHOICE_SIZE(keys);
-      if (fd_hashtable_iterkeys(FD_XHASHTABLE(table),
-                                fd_table_multiply_if_present,
-                                n_elts,elts,factor)<0) {
-        fd_decref(keys); return FD_ERROR;}
-      else {fd_decref(keys); return VOID;}}
-    else if (EMPTYP(key))
-      return VOID;
-    else if (fd_hashtable_op(FD_XHASHTABLE(table),
-                             fd_table_multiply_if_present,
-                             key,factor)<0)
-      return FD_ERROR;
-    else return VOID;
-  else return fd_type_error("table","hashtable_multiply_existing",table);
 }
 
 DEFPRIM("TABLE-MULTIPLY-EXISTING!",
@@ -760,60 +543,6 @@ DEFPRIM("TABLE-MAXIMIZE-EXISTING!",
   else return fd_type_error("table","table_maximize",table);
 }
 
-DEFPRIM("HASHTABLE-MAXIMIZE!",
-        hashtable_maximize,FD_MAX_ARGS(3)|FD_NDCALL,
-        "`(HASHTABLE-MAXIMIZE! *table* *key* *value*)` "
-        "stores *value* under  *key* in *hashtable* if it is larger "
-        "than the current value or if there is no current value.")
-  (lispval table,lispval keys,lispval maxval)
-{
-  if (EMPTYP(maxval)) return VOID;
-  else if (EMPTYP(keys)) return VOID;
-  else if (EMPTYP(table)) return VOID;
-  else {}
-  if (HASHTABLEP(table))
-    if (CHOICEP(keys)) {
-      const lispval *elts = FD_CHOICE_DATA(keys);
-      int n_elts = FD_CHOICE_SIZE(keys);
-      if (fd_hashtable_iterkeys
-          (FD_XHASHTABLE(table),fd_table_maximize,n_elts,elts,maxval)<0) {
-        return FD_ERROR;}
-      else return VOID;}
-    else if (EMPTYP(keys))
-      return VOID;
-    else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_maximize,keys,maxval)<0)
-      return FD_ERROR;
-    else return VOID;
-  else return fd_type_error("table","hashtable_maximize",table);
-}
-
-DEFPRIM("HASHTABLE-MAXIMIZE-EXISTING!",
-        hashtable_maximize_existing,FD_MAX_ARGS(3)|FD_NDCALL,
-        "`(HASHTABLE-MAXIMIZE-EXISTING! *table* *key* *value*)` "
-        "stores *value* under  *key* in *hashtable* if it is larger "
-        "than the current value, doing nothing if *key* is not in *table*")
-  (lispval table,lispval keys,lispval maxval)
-{
-  if (EMPTYP(maxval)) return VOID;
-  else if (EMPTYP(keys)) return VOID;
-  else if (EMPTYP(table)) return VOID;
-  else {}
-  if (HASHTABLEP(table))
-    if (CHOICEP(keys)) {
-      const lispval *elts = FD_CHOICE_DATA(keys);
-      int n_elts = FD_CHOICE_SIZE(keys);
-      if (fd_hashtable_iterkeys
-          (FD_XHASHTABLE(table),fd_table_maximize_if_present,n_elts,elts,maxval)<0) {
-        return FD_ERROR;}
-      else return VOID;}
-    else if (EMPTYP(keys))
-      return VOID;
-    else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_maximize_if_present,keys,maxval)<0)
-      return FD_ERROR;
-    else return VOID;
-  else return fd_type_error("table","hashtable_maximize_existing",table);
-}
-
 /* Table MINIMIZE
    Stores a value in a table if the current value is either empty or
    less than the new value. */
@@ -897,60 +626,6 @@ DEFPRIM("TABLE-MINIMIZE-EXISTING!",
       else return fd_type_error("number","table_minimize_existing",cur);}
     return VOID;}
   else return fd_type_error("table","table_minimize",table);
-}
-
-DEFPRIM("HASHTABLE-MINIMIZE!",
-        hashtable_minimize,FD_MAX_ARGS(3)|FD_NDCALL,
-        "`(HASHTABLE-MINIMIZE! *table* *key* *value*)` "
-        "stores *value* under  *key* in *table* if it is smaller "
-        "than the current value or if there is no current value.")
-  (lispval table,lispval keys,lispval minval)
-{
-  if (EMPTYP(minval)) return VOID;
-  else if (EMPTYP(keys)) return VOID;
-  else if (EMPTYP(table)) return VOID;
-  else {}
-  if (HASHTABLEP(table))
-    if (CHOICEP(keys)) {
-      const lispval *elts = FD_CHOICE_DATA(keys);
-      int n_elts = FD_CHOICE_SIZE(keys);
-      if (fd_hashtable_iterkeys
-          (FD_XHASHTABLE(table),fd_table_minimize,n_elts,elts,minval)<0) {
-        return FD_ERROR;}
-      else return VOID;}
-    else if (EMPTYP(keys))
-      return VOID;
-    else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_minimize,keys,minval)<0)
-      return FD_ERROR;
-    else return VOID;
-  else return fd_type_error("table","hashtable_minimize",table);
-}
-
-DEFPRIM("HASHTABLE-MINIMIZE-EXISTING!",
-        hashtable_minimize_existing,FD_MAX_ARGS(3)|FD_NDCALL,
-        "`(HASHTABLE-MINIMIZE-EXISTING! *table* *key* *value*)` "
-        "stores *value* under  *key* in *table* if it is smaller "
-        "than the current value, doing nothing if *key* is not in *table*")
-  (lispval table,lispval keys,lispval minval)
-{
-  if (EMPTYP(minval)) return VOID;
-  else if (EMPTYP(keys)) return VOID;
-  else if (EMPTYP(table)) return VOID;
-  else {}
-  if (HASHTABLEP(table))
-    if (CHOICEP(keys)) {
-      const lispval *elts = FD_CHOICE_DATA(keys);
-      int n_elts = FD_CHOICE_SIZE(keys);
-      if (fd_hashtable_iterkeys
-          (FD_XHASHTABLE(table),fd_table_minimize_if_present,n_elts,elts,minval)<0) {
-        return FD_ERROR;}
-      else return VOID;}
-    else if (EMPTYP(keys))
-      return VOID;
-    else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_minimize_if_present,keys,minval)<0)
-      return FD_ERROR;
-    else return VOID;
-  else return fd_type_error("table","hashtable_minimize_existing",table);
 }
 
 /* Generic functions */
@@ -1139,9 +814,10 @@ DEFPRIM("MAP->TABLE",map2table,FD_MAX_ARGS(3)|FD_MIN_ARGS(2)|FD_NDCALL,
   return table;
 }
 
-DEFPRIM("TABLE-MAP-SIZE",table_map_size,FD_MAX_ARGS(1),
-        "`(TABLE-MAP-SIZE *table*)` returns the number key/value "
-        "associates in *table*.")
+DEFPRIM1("TABLE-MAP-SIZE",table_map_size,FD_MAX_ARGS(1),
+         "`(TABLE-MAP-SIZE *table*)` returns the number key/value "
+         "associates in *table*.",
+         fd_table_type,FD_VOID)
   (lispval table)
 {
   if (TYPEP(table,fd_hashtable_type)) {
@@ -1176,7 +852,7 @@ DEFPRIM("HASHSET?",hashsetp,FD_MAX_ARGS(1),
   else return FD_FALSE;
 }
 
-DEFPRIM("HASHSET-ADD!",hashset_add,FD_MAX_ARGS(2)|FD_MIN_ARGS(2),
+DEFPRIM("HASHSET-ADD!",hashset_add,FD_MAX_ARGS(2)|FD_MIN_ARGS(2)|FD_NDCALL,
         "`(HASHSET-ADD! *hashset* *keys*)` adds *keys* to *hashset*(s). "
         "Returns the number of new values added.")
   (lispval hs,lispval key)
