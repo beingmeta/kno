@@ -910,7 +910,7 @@ DEFPRIM("HASHSET-GET",hashset_get,MAX_ARGS(2)|MIN_ARGS(2),
   else return FD_FALSE;
 }
 
-DEFPRIM("hashset_test",hashset_test,
+DEFPRIM("HASHSET-TEST",hashset_test,
         MAX_ARGS(2)|MIN_ARGS(2)|NDCALL,
         "`(HASHSET-TEST *hashset* *keys*)` returns true if "
         "any *keys* are in any of *hashsets*")
