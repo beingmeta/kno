@@ -190,8 +190,6 @@ static struct FD_FUNCTION *init_cprim(u8_string name,
                                       int *typeinfo,
                                       lispval *defaults)
 {
-  int min_arity = ((flags) & (FD_OPTARGS)) ? (arity) :
-    ((flags)&(FD_MIN_ARITY_MASK));
   return make_cprim(name,filename,doc,flags|FD_MAX_ARGS(arity),
                     typeinfo,defaults);
 }
@@ -432,39 +430,7 @@ FD_EXPORT void fd_defprim15(lispval module,fd_cprim15 fn,
   fd_decref(primval);
 }
 
-/* Older CPRIM definition framework */
-
-static struct FD_FUNCTION *new_cprim(u8_string name,
-                                     u8_string filename,
-                                     u8_string doc,
-                                     int arity,int min_arity,
-                                     int non_deterministic,
-                                     int extended_call)
-{
-  struct FD_FUNCTION *f = u8_alloc(struct FD_FUNCTION);
-  FD_INIT_FRESH_CONS(f,fd_cprim_type);
-  f->fcn_name = name;
-  f->fcn_filename = filename;
-  f->fcn_doc = doc;
-  f->fcn_moduleid = FD_VOID;
-  if (non_deterministic)
-    f->fcn_ndcall = 1;
-  else f->fcn_ndcall = 0;
-  if (extended_call)
-    f->fcn_xcall = 1;
-  else f->fcn_xcall = 0;
-  f->fcn_arity = arity;
-  f->fcn_min_arity = min_arity;
-  f->fcn_typeinfo = NULL;
-  f->fcn_defaults = NULL;
-  f->fcnid = VOID;
-  if ( (arity>=0) && (min_arity>arity)) {
-    u8_log(LOG_CRIT,_("Bad primitive definition"),
-           "Fixing primitive %s%s%s%s with min_arity=%d > arity=%d",
-           name,U8OPTSTR(" (",filename,") "),arity,min_arity);
-    f->fcn_min_arity = arity;}
-  return f;
-}
+/* Providing type info and defaults */
 
 FD_EXPORT u8_string fd_fcn_sig(struct FD_FUNCTION *fcn,u8_byte namebuf[100])
 {
@@ -485,8 +451,6 @@ FD_EXPORT u8_string fd_fcn_sig(struct FD_FUNCTION *fcn,u8_byte namebuf[100])
       name = namebuf;}}
   return name;
 }
-
-/* Providing type info and defaults */
 
 FD_EXPORT lispval fd_new_cprimn
 (u8_string name,u8_string filename,u8_string doc,
