@@ -56,9 +56,7 @@ static lispval extindex_fetch(fd_index p,lispval key)
 {
   struct FD_EXTINDEX *xp = (fd_extindex)p;
   lispval state = xp->state, fetchfn = xp->fetchfn, value;
-  struct FD_FUNCTION *fptr = ((FD_FUNCTIONP(fetchfn))?
-                              ((struct FD_FUNCTION *)fetchfn):
-                              (NULL));
+  int arity = FD_FUNCTION_ARITY(fetchfn);
   /* TODO: If key is a vector, we need to wrap it in another vector
      for the method, and then unwrap the value. */
   if (FD_VECTORP(key)) {
@@ -68,8 +66,7 @@ static lispval extindex_fetch(fd_index p,lispval key)
     vstruct.vec_elts = &key;
     vstruct.vec_free_elts = 0;
     lispval value = VOID;
-    if ((VOIDP(state))||(FALSEP(state))||
-        ((fptr)&&(fptr->fcn_arity==1)))
+    if ( (VOIDP(state)) || (FALSEP(state)) || (arity == 1) )
       value = fd_apply(fetchfn,1,&key);
     else {
       lispval args[2]; args[0]=key; args[1]=state;
@@ -83,8 +80,7 @@ static lispval extindex_fetch(fd_index p,lispval key)
       return value;
     else return fd_err("BadExtindexResult","extindex_fetch",
                        xp->indexid,value);}
-  else if ((VOIDP(state))||(FALSEP(state))||
-      ((fptr)&&(fptr->fcn_arity==1)))
+  else if ( (VOIDP(state)) || (FALSEP(state)) || (arity == 1) )
     value = fd_apply(fetchfn,1,&key);
   else {
     lispval args[2]; args[0]=key; args[1]=state;
@@ -99,9 +95,7 @@ static lispval *extindex_fetchn(fd_index p,int n,const lispval *keys)
 {
   struct FD_EXTINDEX *xp = (fd_extindex)p;
   lispval state = xp->state, fetchfn = xp->fetchfn, value = VOID;
-  struct FD_FUNCTION *fptr = ((FD_FUNCTIONP(fetchfn))?
-                              ((struct FD_FUNCTION *)fetchfn):
-                              (NULL));
+  int arity = FD_FUNCTION_ARITY(fetchfn);
   struct FD_VECTOR vstruct;
   lispval vecarg;
   FD_INIT_STATIC_CONS(&vstruct,fd_vector_type);
@@ -109,8 +103,7 @@ static lispval *extindex_fetchn(fd_index p,int n,const lispval *keys)
   vstruct.vec_elts = (lispval *) keys;
   vstruct.vec_free_elts = 0;
   vecarg = LISP_CONS(&vstruct);
-  if ((VOIDP(state))||(FALSEP(state))||
-      ((fptr)&&(fptr->fcn_arity==1)))
+  if ( (VOIDP(state)) || (FALSEP(state)) || (arity == 1) )
     value = fd_apply(xp->fetchfn,1,&vecarg);
   else {
     lispval args[2]; args[0]=vecarg; args[1]=state;
@@ -133,8 +126,7 @@ static lispval *extindex_fetchn(fd_index p,int n,const lispval *keys)
      needs to be fed a key at a time. */
   fd_decref(value); value = FD_VOID;
   lispval *values = u8_big_alloc_n(n,lispval);
-  if ((VOIDP(state))||(FALSEP(state))||
-      ((fptr)&&(fptr->fcn_arity==1))) {
+  if ( (VOIDP(state)) || (FALSEP(state)) || (arity == 1) ) {
     int i = 0; while (i<n) {
       lispval key = keys[i];
       lispval value = fd_apply(fetchfn,1,&key);

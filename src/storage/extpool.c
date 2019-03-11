@@ -89,11 +89,8 @@ static lispval extpool_fetch(fd_pool p,lispval oid)
 {
   struct FD_EXTPOOL *xp = (fd_extpool)p;
   lispval state = xp->state, value, fetchfn = xp->fetchfn;
-  struct FD_FUNCTION *fptr = ((FD_FUNCTIONP(fetchfn))?
-                              ((struct FD_FUNCTION *)fetchfn):
-                              (NULL));
-  if ((VOIDP(state))||(FALSEP(state))||
-      ((fptr)&&(fptr->fcn_arity==1)))
+  int arity = FD_FUNCTION_ARITY(fetchfn);
+  if ( (VOIDP(state)) || (FALSEP(state)) || (arity == 1) )
     value = fd_apply(fetchfn,1,&oid);
   else {
     lispval args[2]; args[0]=oid; args[1]=state;
@@ -112,17 +109,14 @@ static lispval *extpool_fetchn(fd_pool p,int n,lispval *oids)
 {
   struct FD_EXTPOOL *xp = (fd_extpool)p;
   lispval state = xp->state, fetchfn = xp->fetchfn, value = VOID;
-  struct FD_FUNCTION *fptr = ((FD_FUNCTIONP(fetchfn))?
-                              ((struct FD_FUNCTION *)fetchfn):
-                              (NULL));
+  int arity = FD_FUNCTION_ARITY(fetchfn);
   struct FD_VECTOR vstruct;
   lispval vecarg;
   FD_INIT_STATIC_CONS(&vstruct,fd_vector_type);
   vstruct.vec_length = n; vstruct.vec_elts = oids;
   vstruct.vec_free_elts = 0;
   vecarg = LISP_CONS(&vstruct);
-  if ((VOIDP(state))||(FALSEP(state))||
-      ((fptr)&&(fptr->fcn_arity==1)))
+  if ( (VOIDP(state)) || (FALSEP(state)) || (arity == 1) )
     value = fd_apply(fetchfn,1,&vecarg);
   else {
     lispval args[2]; args[0]=vecarg; args[1]=state;
@@ -143,8 +137,7 @@ static lispval *extpool_fetchn(fd_pool p,int n,lispval *oids)
     u8_log(LOGWARN,"BadExtPoolFetch","Invalid value from %q",fetchfn);
     fd_decref(value); value = FD_VOID;
     lispval *values = u8_big_alloc_n(n,lispval);
-    if ((VOIDP(state))||(FALSEP(state))||
-        ((fptr)&&(fptr->fcn_arity==1))) {
+    if ( (VOIDP(state)) || (FALSEP(state)) || (arity == 1) ) {
       int i = 0; while (i<n) {
         lispval oid = oids[i];
         lispval value = fd_apply(fetchfn,1,&oid);
