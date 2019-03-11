@@ -759,12 +759,14 @@ DEFPRIM("TABLE-SKIM",table_skim,MAX_ARGS(3)|MIN_ARGS(2)|NDCALL,
   else if (EMPTYP(maxval))
     return maxval;
   else if (FD_HASHTABLEP(tables))
-    fd_hashtable_skim(FD_XHASHTABLE(tables),maxval,scope);
+    return fd_hashtable_skim(FD_XHASHTABLE(tables),maxval,scope);
   else {
     lispval results = EMPTY;
     DO_CHOICES(table,tables)
       if (TABLEP(table)) {
-        lispval result = fd_table_skim(table,maxval,scope);
+        lispval result = (FD_HASHTABLEP(table)) ?
+          (fd_hashtable_skim((fd_hashtable)table,maxval,scope)) :
+          (fd_table_skim(table,maxval,scope));
         if (FD_ABORTP(result)) {
           fd_decref(results);
           return result;}
