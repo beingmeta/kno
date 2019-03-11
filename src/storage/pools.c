@@ -496,11 +496,15 @@ static void pool_conflict(fd_pool upstart,fd_pool holder)
 {
   if (pool_conflict_handler) pool_conflict_handler(upstart,holder);
   else {
+    u8_string upstart_id = upstart->pool_source;
+    u8_string holder_id = holder->pool_source;
+    if (!(upstart_id)) upstart_id = upstart->poolid;
+    if (!(holder_id)) holder_id = holder->poolid;
     u8_logf(LOG_WARN,fd_PoolConflict,
             "%s (from %s) and existing pool %s (from %s)\n",
-            upstart->pool_label,upstart->pool_source,
-            holder->pool_label,holder->pool_source);
-    u8_seterr(_("Pool confict"),NULL,NULL);}
+            upstart->pool_label,upstart_id,holder->pool_label,holder_id);
+    u8_seterr(_("Pool confict"),"fd_register_pool",
+              u8_mkstring("%s w/ %s",upstart_id,holder_id));}
 }
 
 
