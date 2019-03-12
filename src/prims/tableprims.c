@@ -965,7 +965,7 @@ DEFPRIM("RESET-HASHSET!",reset_hashset,MAX_ARGS(1),
   else return FD_FALSE;
 }
 
-DEFPRIM("CHOICE->HASHSET",choices2hashset,FD_N_ARGS|MIN_ARGS(0),
+DEFPRIM("CHOICE->HASHSET",choices2hashset,FD_N_ARGS|MIN_ARGS(0)|NDCALL,
         "`(CHOICE->HASHSET choices...)` returns a hashset combining "
         "mutiple choices.")
   (int n,lispval *args)
