@@ -1962,7 +1962,7 @@ static int hash_flonum(lispval x,unsigned int (*fn)(lispval))
   double mantissa = frexp(fabs(dx->floval),&expt);
   double reformed=
     ((expt<0) ? (ldexp(mantissa,0)) : (ldexp(mantissa,expt)));
-  int asint = (int)reformed;
+  unsigned int asint = (unsigned int)reformed;
   return asint%256001281;
 }
 

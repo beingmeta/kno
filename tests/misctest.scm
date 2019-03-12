@@ -481,6 +481,12 @@
 	     gamma (slice (glom "ab" "cd" "ef") 0 4)
 	     delta (qc (intersection '{"A" "B"} {"C" "D"}))])
 
+;;; Hash function bugs
+
+(define (neghash x) (< (hash-lisp x) 0))
+
+(applytest #f neghash 3.653593e+10)
+
 ;;; Check for stack bugs
 
 (applytest 3
