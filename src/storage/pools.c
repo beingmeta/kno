@@ -1206,7 +1206,7 @@ static int pool_docommit(fd_pool p,lispval oids,
               commit_count,((w_metadata) ? (" and metadata") : ("") ),
               p->poolid,u8_elapsed_time()-start_time);
 
-    u8_logf(LOG_INFO,
+    u8_logf(LOG_NOTICE,
             ((sync<0) ? ("Pool/Commit/Timing") : ("Pool/Commit/Complete")),
             "%s %d OIDs%s to '%s' in %fs\n"
             "total=%f, start=%f, setup=%f, save=%f, "

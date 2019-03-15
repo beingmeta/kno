@@ -1532,7 +1532,7 @@ static int index_docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
             commits.commit_times.sync,
             commits.commit_times.flush,
             commits.commit_times.cleanup);
-  else u8_logf(LOG_INFO,"Index/Commit/Complete",
+  else u8_logf(LOG_NOTICE,"Index/Commit/Complete",
                _("Committed %d changes%s from '%s' in %f\n"
                  "total=%f, start=%f, setup=%f, save=%f, "
                  "finalize=%f, apply=%f, cleanup=%f"),
