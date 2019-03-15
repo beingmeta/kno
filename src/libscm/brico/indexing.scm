@@ -269,7 +269,8 @@
   (index-string index concept english (get concept 'words))
   (index-name index concept 'names (get concept 'names))
   (index-name index concept 'names
-	      (pick  (cdr (get concept '%words)) capitalized?))
+	      (pick (cdr (pick (get concept '%words) pair?))
+		capitalized?))
   (do-choices (xlation (pick (get concept '%words) pair?))
     (let ((lang (get language-map (car xlation))))
       (index-string index concept lang (cdr xlation))))
@@ -351,7 +352,8 @@
    @1/2c27d{DISJOINT}
    @1/2d9e9{=IS=}})
 
-(define (index-relations index concept (genslot #f))
+(define (index-relations index concept (slots))
+  (default! slots (intersection (getkeys concept) relations))
   (do-choices (slotid (intersection (getkeys concept) relations))
     (index-relation index concept slotid (getallvalues concept slotid)
 		    (overlaps? slotid invert-slotids)

@@ -60,7 +60,13 @@
       (onerror
 	  (begin
 	    (when fixup (fixup f))
-	    (index-frame core.table f '{type source %linked has})
+	    (index-frame core.table f 
+	      '{type sensecat source
+		topic_domain region_domain usage_domain
+		derivations language
+		fips-code dsg 
+		wikid wikidref wikidef
+		%linked has})
 	    (index-frame core.table f 'has (getslots f))
 	    (when (test f 'words) (index-frame core.table f 'has english))
 	    (index-frame core.table f 'has (get-derived-slots f))
