@@ -2301,7 +2301,7 @@ FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,
         if ( (defslot == ix->index_keyslot) ||
              ( (FD_CHOICEP(defslot)) && (FD_CHOICEP(ix->index_keyslot)) &&
                (FD_EQUALP(defslot,(ix->index_keyslot))) ) ) {
-          u8_logf(LOG_WARN,"KeySlotOK",
+          u8_logf(LOG_NOTICE,"KeySlotOK",
                   "The keyslot of %s is already %q",ix->indexid,defslot);
           return fd_incref(defslot);}
         else return fd_err("KeySlotAlreadyDefined",
