@@ -21,6 +21,8 @@
 #include "framerd/frames.h"
 #include "framerd/numbers.h"
 
+#include "framerd/cprims.h"
+
 #include <libu8/libu8io.h>
 #include <libu8/u8timefns.h>
 #include <libu8/u8rusage.h>
@@ -50,13 +52,17 @@ u8_condition fd_MissingFeature=_("OS doesn't support operation");
 
 /* Getting the current hostname */
 
+DCLPRIM("GETHOSTNAME",hostname_prim,0,
+        "Gets the assigned name for this computer")
 static lispval hostname_prim()
 {
   return fd_lispstring(u8_gethostname());
 }
 
-/* There's not a good justification for putting this here other
-   than that it has to do with getting stuff from the environment. */
+DCLPRIM1("HOSTADDRS",hostaddrs_prim,0,
+         "Gets the addresses associated with a hostname "
+         "using the ldns library",
+         fd_string_type,FD_VOID)
 static lispval hostaddrs_prim(lispval hostname)
 {
   int addr_len = -1; unsigned int type = -1;
@@ -67,19 +73,24 @@ static lispval hostaddrs_prim(lispval hostname)
     fd_clear_errors(1);
     return results;}
   else while (addrs[i]) {
-    unsigned char *addr = addrs[i++]; lispval string;
-    struct U8_OUTPUT out; int j = 0; U8_INIT_OUTPUT(&out,16);
-    while (j<addr_len) {
-      u8_printf(&out,((j>0)?(".%d"):("%d")),(int)addr[j]);
-      j++;}
-    string = fd_init_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
-    CHOICE_ADD(results,string);}
+      unsigned char *addr = addrs[i++]; lispval string;
+      struct U8_OUTPUT out; int j = 0; U8_INIT_OUTPUT(&out,16);
+      while (j<addr_len) {
+        u8_printf(&out,((j>0)?(".%d"):("%d")),(int)addr[j]);
+        j++;}
+      string = fd_init_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
+      CHOICE_ADD(results,string);}
   u8_free(addrs);
   return results;
 }
 
 /* GETENV primitive */
 
+DCLPRIM1("GETENV",getenv_prim,0,
+         "Gets the value of *envvar* in the environment of "
+         "the current process. Returns a string or #f if "
+         "the environment variable is not defined.",
+         fd_string_type,FD_VOID)
 static lispval getenv_prim(lispval var)
 {
   u8_string enval = u8_getenv(CSTRING(var));
@@ -102,6 +113,8 @@ static lispval getenv_macro(lispval expr,fd_lexenv env,fd_stack ptr)
 
 /* LOAD AVERAGE */
 
+DCLPRIM("GETLOAD",loadavg_prim,0,
+        "Gets the current host's load average.")
 static lispval loadavg_prim()
 {
   double loadavg;
@@ -110,6 +123,8 @@ static lispval loadavg_prim()
   else return FD_FALSE;
 }
 
+DCLPRIM("LOADAVG",loadavgs_prim,0,
+        "Gets the load averages for the current host.")
 static lispval loadavgs_prim()
 {
   double loadavg[3]; int nsamples = getloadavg(loadavg,3);
@@ -196,6 +211,11 @@ static u8_string get_malloc_info()
 #endif
 }
 
+DCLPRIM("RUSAGE",rusage_prim,MAX_ARGS(1)|MIN_ARGS(0),
+        "`(RUSAGE [*field*])` returns information about the "
+        "current process. *field*, if provided, indicates the "
+        "value to return. Otherwise, a slotmap of possible "
+        "values is returned.")
 static lispval rusage_prim(lispval field)
 {
   struct rusage r;
@@ -265,7 +285,7 @@ static lispval rusage_prim(lispval field)
           lvec = fd_make_nvector(1,fd_make_flonum(loadavg[0]));
         else if (nsamples==2)
           lvec = fd_make_nvector(2,fd_make_flonum(loadavg[0]),
-                               fd_make_flonum(loadavg[1]));
+                                 fd_make_flonum(loadavg[1]));
         else lvec = fd_make_nvector
                (3,fd_make_flonum(loadavg[0]),
                 fd_make_flonum(loadavg[1]),
@@ -459,6 +479,8 @@ static int setprop(lispval result,u8_string field,char *value)
   else return 0;
 }
 
+DCLPRIM("UNAME",uname_prim,0,
+        "Returns a slotmap describing the hosting OS.")
 static lispval uname_prim()
 {
 #if ((HAVE_SYS_UTSNAME_H)&&(HAVE_UNAME))
@@ -480,17 +502,24 @@ static lispval uname_prim()
 #endif
 }
 
+DCLPRIM("GETPID",getpid_prim,0,
+        "Gets the PID (process ID) for the current process")
 static lispval getpid_prim()
 {
   pid_t pid = getpid();
   return FD_INT(((unsigned long)pid));
 }
+DCLPRIM("GETPPID",getppid_prim,0,
+        "Gets the PID (process ID) for the parent of the "
+        "current process")
 static lispval getppid_prim()
 {
   pid_t pid = getppid();
   return FD_INT(((unsigned long)pid));
 }
 
+DCLPRIM("STACKSIZE",stacksize_prim,0,
+        "Gets the stack size for the current thread")
 static lispval stacksize_prim()
 {
   ssize_t size = u8_stacksize();
@@ -499,12 +528,16 @@ static lispval stacksize_prim()
   else return FD_INT(size);
 }
 
+DCLPRIM("THREADID",threadid_prim,0,
+        "Gets the numeric identifier for the current thread.")
 static lispval threadid_prim()
 {
   long long tid = u8_threadid();
   return FD_INT(tid);
 }
 
+DCLPRIM("PROCSTRING",getprocstring_prim,0,
+        "Gets a string identifying the current thread id and process id")
 static lispval getprocstring_prim()
 {
   unsigned char buf[128];
@@ -512,36 +545,48 @@ static lispval getprocstring_prim()
   return lispval_string(pinfo);
 }
 
+DCLPRIM("MEMUSAGE",memusage_prim,0,
+        "Gets the memory usage by the current process.")
 static lispval memusage_prim()
 {
   ssize_t size = u8_memusage();
   return FD_INT(size);
 }
 
+DCLPRIM("VMEMUSAGE",vmemusage_prim,0,
+        "Gets the virtual memory usage by the current process.")
 static lispval vmemusage_prim()
 {
   ssize_t size = u8_vmemusage();
   return FD_INT(size);
 }
 
-static lispval physmem_prim(lispval total)
+DCLPRIM("PHYSMEM",physmem_prim,0,
+        "Gets the physical memory available on the host.")
+static lispval physmem_prim()
 {
   ssize_t size = u8_physmem();
   return FD_INT(size);
 }
 
+DCLPRIM("MEMLOAD",memload_prim,0,
+        "Gets the memory load for the current process.")
 static lispval memload_prim()
 {
   double load = u8_memload();
   return fd_make_flonum(load);
 }
 
+DCLPRIM("MEMLOAD",vmemload_prim,0,
+        "Gets the virtual memory load for the current process.")
 static lispval vmemload_prim()
 {
   double vload = u8_vmemload();
   return fd_make_flonum(vload);
 }
 
+DCLPRIM("USERTIME",usertime_prim,0,
+        "Gets the total user-space run time for the current process.")
 static lispval usertime_prim()
 {
   struct rusage r;
@@ -556,6 +601,8 @@ static lispval usertime_prim()
     return fd_init_double(NULL,msecs);}
 }
 
+DCLPRIM("SYSTIME",systime_prim,0,
+        "Gets the total system run time for the current process.")
 static lispval systime_prim()
 {
   struct rusage r;
@@ -570,6 +617,12 @@ static lispval systime_prim()
     return fd_init_double(NULL,msecs);}
 }
 
+DCLPRIM("CPUSAGE",cpusage_prim,MAX_ARGS(0)|MIN_ARGS(0),
+        "Provides relative CPU usage information. With no "
+        "argument, this returns usage since the process started, "
+        "as a slotmap. The result of this call can be passed "
+        "as an argument to a later call to get relative timing "
+        "information")
 static lispval cpusage_prim(lispval arg)
 {
   if (VOIDP(arg))
@@ -779,38 +832,41 @@ FD_EXPORT void fd_init_sysprims_c()
   total_ram_symbol=fd_intern("TOTALRAM");
   max_vmem_symbol=fd_intern("MAXVMEM");
 
-  fd_idefn(fd_scheme_module,fd_make_cprim0("GETHOSTNAME",hostname_prim));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("HOSTADDRS",hostaddrs_prim,0));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("GETENV",getenv_prim,1,
-                           fd_string_type,VOID));
+  DECL_PRIM(hostname_prim,0,fd_scheme_module);
+  DECL_PRIM(hostaddrs_prim,1,fd_scheme_module);
+  DECL_PRIM(getenv_prim,1,fd_scheme_module);
+
+  fd_idefn(fd_scheme_module,fd_make_cprim1("RUSAGE",rusage_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("CPUSAGE",cpusage_prim,0));
+
+  DECL_PRIM(rusage_prim,1,fd_scheme_module);
+  DECL_PRIM(cpusage_prim,1,fd_scheme_module);
+
+  DECL_PRIM(memusage_prim,0,fd_scheme_module);
+
+  DECL_PRIM(memusage_prim,0,fd_scheme_module);
+  DECL_PRIM(vmemusage_prim,0,fd_scheme_module);
+  DECL_PRIM(memload_prim,0,fd_scheme_module);
+  DECL_PRIM(vmemload_prim,0,fd_scheme_module);
+  DECL_PRIM(usertime_prim,0,fd_scheme_module);
+  DECL_PRIM(systime_prim,0,fd_scheme_module);
+  DECL_PRIM(physmem_prim,0,fd_scheme_module);
+
+  DECL_PRIM(loadavg_prim,0,fd_scheme_module);
+  DECL_PRIM(loadavgs_prim,0,fd_scheme_module);
+
+  DECL_PRIM(uname_prim,0,fd_scheme_module);
+
+  DECL_PRIM(getpid_prim,0,fd_scheme_module);
+  DECL_PRIM(getppid_prim,0,fd_scheme_module);
+  DECL_PRIM(threadid_prim,0,fd_scheme_module);
+  DECL_PRIM(stacksize_prim,0,fd_scheme_module);
+  DECL_PRIM(getprocstring_prim,0,fd_scheme_module);
 
   fd_def_evalfn(fd_scheme_module,"#ENV",
                 "#:ENV\"HOME\" or #:ENV:HOME\n"
                 "evaluates to an environment variable",
                 getenv_macro);
-
-  fd_idefn(fd_scheme_module,fd_make_cprim1("RUSAGE",rusage_prim,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("MEMUSAGE",memusage_prim));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("VMEMUSAGE",vmemusage_prim));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("PHYSMEM",physmem_prim,0));
-
-  fd_idefn(fd_scheme_module,fd_make_cprim0("MEMLOAD",memload_prim));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("VMEMLOAD",vmemload_prim));
-
-  fd_idefn(fd_scheme_module,fd_make_cprim0("USERTIME",usertime_prim));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("SYSTIME",systime_prim));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("CPUSAGE",cpusage_prim,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("UNAME",uname_prim));
-
-  fd_idefn(fd_scheme_module,fd_make_cprim0("GETLOAD",loadavg_prim));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("LOADAVG",loadavgs_prim));
-
-  fd_idefn(fd_scheme_module,fd_make_cprim0("GETPID",getpid_prim));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("GETPPID",getppid_prim));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("THREADID",threadid_prim));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("STACKSIZE",stacksize_prim));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("PROCSTRING",getprocstring_prim));
 
   fd_register_config
     ("CORELIMIT",_("Set core size limit"),

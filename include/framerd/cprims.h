@@ -18,8 +18,9 @@
 
 #define FD_MAX_ARGS(n) ( (n < 0) ? (0x80) : ((n)&(0x7F)) )
 #define FD_MIN_ARGS(n) ( (n < 0) ? (0x00) : ( (0x8000) | (((n)&(0x7F))<<8) ) )
-#define FD_OPTARGS 0x08000
-#define FD_N_ARGS  0x00080
+#define FD_OPTARGS   0x08000
+#define FD_N_ARGS    0x00080
+#define FD_VAR_ARGS  0x00080
 
 #define FD_FNFLAGS(max_arity,min_arity,ndcall,xcall)    \
   ( (FD_MAX_ARGS(max_arity)) |                          \
@@ -266,6 +267,10 @@
                       cname ## _typeinfo,                       \
                       cname ## _defaults)
 
+#define FD_DECL_PRIM_ARGS(cname,arity,module,typeinfo,defaults) \
+  fd_defprim ## arity(module,cname,&cname ## _info,typeinfo,defaults)
+
+
 #define FD_DECL_PRIM_N(cname,module)            \
   fd_defprimN(module,cname,&cname ## _info);
 
@@ -273,9 +278,10 @@
   fd_defalias(module,alias,cname ## _info.pname)
 
 #if FRAMERD_SOURCE
-#define DECL_PRIM    FD_DECL_PRIM
-#define DECL_PRIM_N  FD_DECL_PRIM_N
-#define DECL_ALIAS   FD_DECL_ALIAS
+#define DECL_PRIM        FD_DECL_PRIM
+#define DECL_PRIM_N      FD_DECL_PRIM_N
+#define DECL_ALIAS       FD_DECL_ALIAS
+#define DECL_PRIM_ARGS    FD_DECL_PRIM_ARGS
 
 #define MAX_ARGS     FD_MAX_ARGS
 #define MIN_ARGS     FD_MIN_ARGS
