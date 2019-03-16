@@ -23,6 +23,8 @@
 #include "framerd/ports.h"
 #include "framerd/pprint.h"
 
+#include "framerd/cprims.h"
+
 #include <libu8/u8streamio.h>
 #include <libu8/u8crypto.h>
 
@@ -67,14 +69,19 @@ static u8_input get_input_port(lispval portarg)
   else return NULL;
 }
 
-static lispval portp(lispval arg)
+FD_DEFPRIM("PORT?",portp,FD_MAX_ARGS(1),
+            "`(PORT? *object*)` returns #t if *object* is an i/o port.")
+  (lispval arg)
 {
   if (FD_PORTP(arg))
     return FD_TRUE;
   else return FD_FALSE;
 }
 
-static lispval input_portp(lispval arg)
+FD_DEFPRIM("INPUT-PORT?",input_portp,FD_MAX_ARGS(1),
+            "`(INPUT-PORT? *object*)` returns #t "
+            "if *object* is an input port.")
+  (lispval arg)
 {
   if (FD_PORTP(arg)) {
     struct FD_PORT *p=
@@ -85,7 +92,10 @@ static lispval input_portp(lispval arg)
   else return FD_FALSE;
 }
 
-static lispval output_portp(lispval arg)
+FD_DEFPRIM("OUTPUT-PORT?",output_portp,MAX_ARGS(1),
+           "`(OUTPUT-PORT? *object*)` returns #t "
+           "if *object* is an output port.")
+  (lispval arg)
 {
   if (FD_PORTP(arg)) {
     struct FD_PORT *p=
@@ -98,13 +108,21 @@ static lispval output_portp(lispval arg)
 
 /* Identifying end of file */
 
-static lispval eofp(lispval x)
+FD_DCLPRIM("EOF?",eofp,MAX_ARGS(1),
+           "`(EOF? *object*)` returns #t "
+           "if *object* is an end of file indicators.")
+static lispval eofp (lispval x)
 {
   if (FD_EOFP(x)) return FD_TRUE; else return FD_FALSE;
 }
 
 /* DTYPE streams */
 
+FD_DCLPRIM1("PACKET->DTYPE",packet2dtype,MAX_ARGS(1),
+            "`(PACKET->DTYPE *packet*)` parses the DType "
+            "representation in *packet* and returns the "
+            "corresponding object.",
+            fd_packet_type,FD_VOID)
 static lispval packet2dtype(lispval packet)
 {
   lispval object;
@@ -115,6 +133,12 @@ static lispval packet2dtype(lispval packet)
   return object;
 }
 
+FD_DCLPRIM2("DTYPE->PACKET",lisp2packet,MIN_ARGS(1),
+            "`(DTYPE->PACKET *object* [*bufsize*])` returns a packet "
+            "containing the DType representation of object. "
+            "*bufsize*, if provided, specifies the initial size "
+            "of the output buffer to be reserved.",
+            fd_packet_type,FD_VOID,fd_fixnum_type,FD_VOID)
 static lispval lisp2packet(lispval object,lispval initsize)
 {
   size_t size = FIX2INT(initsize);
@@ -954,7 +978,12 @@ FD_EXPORT void fd_init_portprims_c()
 
   init_portprims_symbols();
 
-  fd_idefn(fd_scheme_module,fd_make_cprim1("EOF-OBJECT?",eofp,1));
+  DECL_PRIM(eofp,1,fd_scheme_module);
+  DECL_PRIM(portp,1,fd_scheme_module);
+  DECL_PRIM(input_portp,1,fd_scheme_module);
+  DECL_PRIM(output_portp,1,fd_scheme_module);
+  DECL_PRIM(packet2dtype,1,fd_scheme_module);
+  DECL_PRIM(lisp2packet,2,fd_scheme_module);
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("PORTID",portid,1));
 
@@ -963,9 +992,6 @@ FD_EXPORT void fd_init_portprims_c()
   fd_idefn(fd_scheme_module,
            fd_make_cprim1("OPEN-INPUT-STRING",open_input_string,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("PORTDATA",portdata,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("PORT?",portp,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("INPUT-PORT?",input_portp,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("OUTPUT-PORT?",output_portp,1));
 
   fd_idefn(fd_scheme_module,fd_make_cprim2("WRITE",write_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2("DISPLAY",display_prim,1));
@@ -1005,12 +1031,6 @@ FD_EXPORT void fd_init_portprims_c()
                            fd_string_type,VOID,
                            fd_string_type,VOID));
 
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("PACKET->DTYPE",packet2dtype,1,
-                           fd_packet_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("DTYPE->PACKET",lisp2packet,1,
-                           -1,VOID,fd_fixnum_type,FD_INT(128)));
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("BASE64->PACKET",from_base64_prim,1,
                            fd_string_type,VOID));
