@@ -60,29 +60,31 @@
       (onerror
 	  (begin
 	    (when fixup (fixup f))
-	    (index-frame core.table f 
-	      '{type sensecat source
-		topic_domain region_domain usage_domain
-		derivations language
-		fips-code dsg 
-		wikid wikidref wikidef
-		%linked has})
-	    (index-frame core.table f 'has (getslots f))
-	    (when (test f 'words) (index-frame core.table f 'has english))
-	    (index-frame core.table f 'has (get-derived-slots f))
-	    (unless (test f 'source @1/1"Derived from 1911 Roget Thesaurus")
-	      (index-frame wordnet.table
-		  f '{type words hypernym hyponym sensecat source has
-		      sensekeys synsets
-		      verb-frames pertainym
-		      lex-fileno})
-	      (index-frame wordnet.table f '%sensekeys (getvalues (get f '%sensekeys)))
-	      (index-frame wordnet.table f 'has (getkeys f))
-	      (index-gloss wordnet.table f 'gloss)
-	      (index-brico core.table f)
-	      (index-frame core.table f index-also)
-	      (index-wikid wikid.table f)
-	      (index-latlong latlong.table f)))
+	    (index-frame core.table f '{type source})
+	    (unless (test f 'source @1/1)
+	      (index-frame core.table f 
+		'{type sensecat source
+		  topic_domain region_domain usage_domain
+		  derivations language
+		  fips-code dsg 
+		  wikid wikidref wikidef
+		  %linked has})
+	      (index-frame core.table f 'has (getslots f))
+	      (when (test f 'words) (index-frame core.table f 'has english))
+	      (index-frame core.table f 'has (get-derived-slots f))
+	      (unless (test f 'source @1/1"Derived from 1911 Roget Thesaurus")
+		(index-frame wordnet.table
+		    f '{type words hypernym hyponym sensecat source has
+			sensekeys synsets
+			verb-frames pertainym
+			lex-fileno})
+		(index-frame wordnet.table f '%sensekeys (getvalues (get f '%sensekeys)))
+		(index-frame wordnet.table f 'has (getkeys f))
+		(index-gloss wordnet.table f 'gloss)
+		(index-brico core.table f)
+		(index-frame core.table f index-also)
+		(index-wikid wikid.table f)
+		(index-latlong latlong.table f))))
 	  (lambda (ex) (logwarn |IndexError| "Indexing " f "\n" ex))))
     (info%watch "INDEXER"
       "FRAMES" (choice-size frames) latlong.table core.table
