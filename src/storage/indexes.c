@@ -1532,7 +1532,7 @@ static int index_docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
             commits.commit_times.sync,
             commits.commit_times.flush,
             commits.commit_times.cleanup);
-  else u8_logf(LOG_INFO,"Index/Commit/Complete",
+  else u8_logf(LOG_NOTICE,"Index/Commit/Complete",
                _("Committed %d changes%s from '%s' in %f\n"
                  "total=%f, start=%f, setup=%f, save=%f, "
                  "finalize=%f, apply=%f, cleanup=%f"),
@@ -2301,7 +2301,7 @@ FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,
         if ( (defslot == ix->index_keyslot) ||
              ( (FD_CHOICEP(defslot)) && (FD_CHOICEP(ix->index_keyslot)) &&
                (FD_EQUALP(defslot,(ix->index_keyslot))) ) ) {
-          u8_logf(LOG_WARN,"KeySlotOK",
+          u8_logf(LOG_NOTICE,"KeySlotOK",
                   "The keyslot of %s is already %q",ix->indexid,defslot);
           return fd_incref(defslot);}
         else return fd_err("KeySlotAlreadyDefined",

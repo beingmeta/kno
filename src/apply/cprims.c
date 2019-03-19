@@ -580,8 +580,7 @@ FD_EXPORT lispval fd_new_cprim7
 {
   int typeinfo[7] = { type0, type1, type2, type3, type4, type5,
                                type6 };
-  lispval defaults[7] = { dflt0, dflt1, dflt2, dflt3, dflt4, dflt5,
-                          dflt6 };
+  lispval defaults[7] = { dflt0, dflt1, dflt2, dflt3, dflt4, dflt5, dflt6 };
   struct FD_FUNCTION *f=(struct FD_FUNCTION *)
     make_cprim(name,filename,doc,FD_FNFLAGS(7,min_arity,ndcall,xcall),
                typeinfo,defaults);
@@ -601,7 +600,7 @@ FD_EXPORT lispval fd_new_cprim8
   int typeinfo[8] =
     { type0, type1, type2, type3, type4, type5, type6, type7 };
   lispval defaults[8] =
-    { dflt0, dflt1, dflt2, dflt3, dflt4, dflt6, dflt7 };
+    { dflt0, dflt1, dflt2, dflt3, dflt4, dflt5, dflt6, dflt7 };
   struct FD_FUNCTION *f=(struct FD_FUNCTION *)
     make_cprim(name,filename,doc,FD_FNFLAGS(8,min_arity,ndcall,xcall),
                typeinfo,defaults);
@@ -621,7 +620,7 @@ FD_EXPORT lispval fd_new_cprim9
   int typeinfo[9] =
     { type0, type1, type2, type3, type4, type5, type6, type7, type8 };
   lispval defaults[9] =
-    { dflt0, dflt1, dflt2, dflt3, dflt4, dflt6, dflt7, dflt8 };
+    { dflt0, dflt1, dflt2, dflt3, dflt4, dflt5, dflt6, dflt7, dflt8 };
   struct FD_FUNCTION *f=(struct FD_FUNCTION *)
     make_cprim(name,filename,doc,FD_FNFLAGS(9,min_arity,ndcall,xcall),
                typeinfo,defaults);
@@ -642,7 +641,7 @@ FD_EXPORT lispval fd_new_cprim10
   int typeinfo[10] =
     { type0, type1, type2, type3, type4, type5, type6, type7, type8, type9 };
   lispval defaults[10] =
-    { dflt0, dflt1, dflt2, dflt3, dflt4, dflt6, dflt7, dflt8, dflt9 };
+    { dflt0, dflt1, dflt2, dflt3, dflt4, dflt5, dflt6, dflt7, dflt8, dflt9 };
   struct FD_FUNCTION *f=(struct FD_FUNCTION *)
     make_cprim(name,filename,doc,FD_FNFLAGS(10,min_arity,ndcall,xcall),
                typeinfo,defaults);
@@ -664,7 +663,7 @@ FD_EXPORT lispval fd_new_cprim11
     { type0, type1, type2, type3, type4, type5, type6, type7, type8, type9,
       type10 };
   lispval defaults[11] =
-    { dflt0, dflt1, dflt2, dflt3, dflt4, dflt6, dflt7, dflt8, dflt9,
+    { dflt0, dflt1, dflt2, dflt3, dflt4, dflt5, dflt6, dflt7, dflt8, dflt9,
       dflt10};
   struct FD_FUNCTION *f=(struct FD_FUNCTION *)
     make_cprim(name,filename,doc,FD_FNFLAGS(11,min_arity,ndcall,xcall),
@@ -688,7 +687,7 @@ FD_EXPORT lispval fd_new_cprim12
     { type0, type1, type2, type3, type4, type5, type6, type7, type8, type9,
       type10, type11 };
   lispval defaults[12] =
-    { dflt0, dflt1, dflt2, dflt3, dflt4, dflt6, dflt7, dflt8, dflt9,
+    { dflt0, dflt1, dflt2, dflt3, dflt4, dflt5, dflt6, dflt7, dflt8, dflt9,
       dflt10, dflt11};
   struct FD_FUNCTION *f=(struct FD_FUNCTION *)
     make_cprim(name,filename,doc,FD_FNFLAGS(12,min_arity,ndcall,xcall),
@@ -712,7 +711,7 @@ FD_EXPORT lispval fd_new_cprim13
     { type0, type1, type2, type3, type4, type5, type6, type7, type8, type9,
       type10, type11, type12 };
   lispval defaults[13] =
-    { dflt0, dflt1, dflt2, dflt3, dflt4, dflt6, dflt7, dflt8, dflt9,
+    { dflt0, dflt1, dflt2, dflt3, dflt4, dflt5, dflt6, dflt7, dflt8, dflt9,
       dflt10, dflt11, dflt12};
   struct FD_FUNCTION *f=(struct FD_FUNCTION *)
     make_cprim(name,filename,doc,FD_FNFLAGS(13,min_arity,ndcall,xcall),
@@ -737,7 +736,7 @@ FD_EXPORT lispval fd_new_cprim14
     { type0, type1, type2, type3, type4, type5, type6, type7, type8, type9,
       type10, type11, type12, type13 };
   lispval defaults[14] =
-    { dflt0, dflt1, dflt2, dflt3, dflt4, dflt6, dflt7, dflt8, dflt9,
+    { dflt0, dflt1, dflt2, dflt3, dflt4, dflt5, dflt6, dflt7, dflt8, dflt9,
       dflt10, dflt11, dflt12, dflt13};
   struct FD_FUNCTION *f=(struct FD_FUNCTION *)
     make_cprim(name,filename,doc,FD_FNFLAGS(14,min_arity,ndcall,xcall),
@@ -762,7 +761,7 @@ FD_EXPORT lispval fd_new_cprim15
     { type0, type1, type2, type3, type4, type5, type6, type7, type8, type9,
       type10, type11, type12, type13, type14 };
   lispval defaults[15] =
-    { dflt0, dflt1, dflt2, dflt3, dflt4, dflt6, dflt7, dflt8, dflt9,
+    { dflt0, dflt1, dflt2, dflt3, dflt4, dflt5, dflt6, dflt7, dflt8, dflt9,
       dflt10, dflt11, dflt12, dflt13, dflt14};
   struct FD_FUNCTION *f=(struct FD_FUNCTION *)
     make_cprim(name,filename,doc,FD_FNFLAGS(15,min_arity,ndcall,xcall),

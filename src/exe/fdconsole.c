@@ -460,7 +460,7 @@ static lispval console_read(u8_input in,fd_lexenv env)
     if (!(line)) return FD_EOF;
     else while (isspace(*line)) line++;
     if (line[0] == '\0')
-      return FD_EOF;
+      return FD_VOID;
     else if (line[0]=='=')  {
       U8_INIT_STRING_INPUT(&scan,n_bytes-1,line+1);
       lispval expr = fd_parser(&scan);

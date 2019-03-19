@@ -654,7 +654,19 @@ FD_EXPORT lispval fd_new_frame(lispval pool_spec,lispval initval,int copyflags)
     return fd_err("PoolAllocFailed","fd_new_frame",p->poolid,VOID);
   else {}
   /* Now we figure out what to store in the OID */
-  if (VOIDP(initval)) initval = fd_empty_slotmap();
+  if (VOIDP(initval)) {
+    if (fd_hashtable_probe(&(p->pool_changes),oid))
+      initval = fd_hashtable_get(&(p->pool_changes),oid,FD_VOID);
+    else if (fd_hashtable_probe(&(p->pool_cache),oid))
+      initval = fd_hashtable_get(&(p->pool_cache),oid,FD_VOID);
+    else NO_ELSE;
+    if ( (FD_IMMEDIATEP(initval)) &&
+         ( (initval == FD_VOID) ||
+           (initval == FD_EMPTY_CHOICE) ||
+           (initval == FD_LOCKHOLDER) ||
+           (initval == FD_DEFAULT_VALUE) ||
+           (initval == FD_UNALLOCATED_OID) ) )
+      initval = fd_empty_slotmap();}
   else if ((OIDP(initval)) && (copyflags)) {
     /* Avoid aliasing */
     lispval oidval = fd_oid_value(initval);

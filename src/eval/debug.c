@@ -883,7 +883,175 @@ static lispval list9(lispval arg1,lispval arg2,
                       fd_incref(arg9));
 }
 
+static lispval plus4(lispval arg1,lispval arg2,
+                     lispval arg3,lispval arg4)
+{
+  int sum = FD_FIX2INT(arg1) + FD_FIX2INT(arg2) + FD_FIX2INT(arg3) + 
+    FD_FIX2INT(arg4);
+  return FD_INT(sum);
+}
 
+static lispval plus5(lispval arg1,lispval arg2,
+                     lispval arg3,lispval arg4,
+                     lispval arg5)
+{
+  int sum = FD_FIX2INT(arg1) + FD_FIX2INT(arg2) + FD_FIX2INT(arg3) + 
+    FD_FIX2INT(arg4) + FD_FIX2INT(arg5);
+  return FD_INT(sum);
+}
+
+static lispval plus6(lispval arg1,lispval arg2,
+                     lispval arg3,lispval arg4,
+                     lispval arg5,lispval arg6)
+{
+  int sum = FD_FIX2INT(arg1) + FD_FIX2INT(arg2) + FD_FIX2INT(arg3) + 
+    FD_FIX2INT(arg4) + FD_FIX2INT(arg5) + FD_FIX2INT(arg6);
+  return FD_INT(sum);
+}
+
+static lispval plus7(lispval arg1,lispval arg2,
+                     lispval arg3,lispval arg4,
+                     lispval arg5,lispval arg6,
+                     lispval arg7)
+{
+  int sum = FD_FIX2INT(arg1) + FD_FIX2INT(arg2) + FD_FIX2INT(arg3) + 
+    FD_FIX2INT(arg4) + FD_FIX2INT(arg5) + FD_FIX2INT(arg6) + 
+    FD_FIX2INT(arg7);
+  return FD_INT(sum);
+}
+
+static lispval plus8(lispval arg1,lispval arg2,
+                     lispval arg3,lispval arg4,
+                     lispval arg5,lispval arg6,
+                     lispval arg7,
+                     lispval arg8)
+{
+  int sum = FD_FIX2INT(arg1) + FD_FIX2INT(arg2) + FD_FIX2INT(arg3) + 
+    FD_FIX2INT(arg4) + FD_FIX2INT(arg5) + FD_FIX2INT(arg6) + 
+    FD_FIX2INT(arg7) + FD_FIX2INT(arg8);
+  return FD_INT(sum);
+}
+
+static lispval plus9(lispval arg1,lispval arg2,
+                     lispval arg3,lispval arg4,
+                     lispval arg5,lispval arg6,
+                     lispval arg7,
+                     lispval arg8,
+                     lispval arg9)
+{
+  int sum = FD_FIX2INT(arg1) + FD_FIX2INT(arg2) + FD_FIX2INT(arg3) + 
+    FD_FIX2INT(arg4) + FD_FIX2INT(arg5) + FD_FIX2INT(arg6) + 
+    FD_FIX2INT(arg7) + FD_FIX2INT(arg8) + FD_FIX2INT(arg9);
+  return FD_INT(sum);
+}
+
+static lispval plus10(lispval arg1,lispval arg2,
+                     lispval arg3,lispval arg4,
+                     lispval arg5,lispval arg6,
+                     lispval arg7,
+                     lispval arg8,
+                      lispval arg9,
+                      lispval arg10)
+{
+  int sum = FD_FIX2INT(arg1) + FD_FIX2INT(arg2) + FD_FIX2INT(arg3) + 
+    FD_FIX2INT(arg4) + FD_FIX2INT(arg5) + FD_FIX2INT(arg6) + 
+    FD_FIX2INT(arg7) + FD_FIX2INT(arg8) + FD_FIX2INT(arg9) +
+    FD_FIX2INT(arg10);
+  return FD_INT(sum);
+}
+
+static lispval plus11(lispval arg1,lispval arg2,
+                     lispval arg3,lispval arg4,
+                     lispval arg5,lispval arg6,
+                     lispval arg7,
+                     lispval arg8,
+                      lispval arg9,
+                      lispval arg10,
+                      lispval arg11)
+{
+  int sum = FD_FIX2INT(arg1) + FD_FIX2INT(arg2) + FD_FIX2INT(arg3) + 
+    FD_FIX2INT(arg4) + FD_FIX2INT(arg5) + FD_FIX2INT(arg6) + 
+    FD_FIX2INT(arg7) + FD_FIX2INT(arg8) + FD_FIX2INT(arg9) +
+    FD_FIX2INT(arg10) + FD_FIX2INT(arg11);
+  return FD_INT(sum);
+}
+
+static lispval plus12(lispval arg1,lispval arg2,
+                     lispval arg3,lispval arg4,
+                     lispval arg5,lispval arg6,
+                     lispval arg7,
+                     lispval arg8,
+                      lispval arg9,
+                      lispval arg10,
+                      lispval arg11,
+                      lispval arg12)
+{
+  int sum = FD_FIX2INT(arg1) + FD_FIX2INT(arg2) + FD_FIX2INT(arg3) + 
+    FD_FIX2INT(arg4) + FD_FIX2INT(arg5) + FD_FIX2INT(arg6) + 
+    FD_FIX2INT(arg7) + FD_FIX2INT(arg8) + FD_FIX2INT(arg9) +
+    FD_FIX2INT(arg10) + FD_FIX2INT(arg11) + FD_FIX2INT(arg12);
+  return FD_INT(sum);
+}
+
+static lispval plus13(lispval arg1,lispval arg2,
+                     lispval arg3,lispval arg4,
+                     lispval arg5,lispval arg6,
+                     lispval arg7,
+                     lispval arg8,
+                      lispval arg9,
+                      lispval arg10,
+                      lispval arg11,
+                      lispval arg12,
+                      lispval arg13)
+{
+  int sum = FD_FIX2INT(arg1) + FD_FIX2INT(arg2) + FD_FIX2INT(arg3) + 
+    FD_FIX2INT(arg4) + FD_FIX2INT(arg5) + FD_FIX2INT(arg6) + 
+    FD_FIX2INT(arg7) + FD_FIX2INT(arg8) + FD_FIX2INT(arg9) +
+    FD_FIX2INT(arg10) + FD_FIX2INT(arg11) + FD_FIX2INT(arg12) +
+    FD_FIX2INT(arg13);
+  return FD_INT(sum);
+}
+
+static lispval plus14(lispval arg1,lispval arg2,
+                     lispval arg3,lispval arg4,
+                     lispval arg5,lispval arg6,
+                     lispval arg7,
+                     lispval arg8,
+                      lispval arg9,
+                      lispval arg10,
+                      lispval arg11,
+                      lispval arg12,
+                      lispval arg13,
+                      lispval arg14)
+{
+  int sum = FD_FIX2INT(arg1) + FD_FIX2INT(arg2) + FD_FIX2INT(arg3) + 
+    FD_FIX2INT(arg4) + FD_FIX2INT(arg5) + FD_FIX2INT(arg6) + 
+    FD_FIX2INT(arg7) + FD_FIX2INT(arg8) + FD_FIX2INT(arg9) +
+    FD_FIX2INT(arg10) + FD_FIX2INT(arg11) + FD_FIX2INT(arg12) +
+    FD_FIX2INT(arg13) + FD_FIX2INT(arg14);;
+  return FD_INT(sum);
+}
+
+static lispval plus15(lispval arg1,lispval arg2,
+                     lispval arg3,lispval arg4,
+                     lispval arg5,lispval arg6,
+                     lispval arg7,
+                     lispval arg8,
+                      lispval arg9,
+                      lispval arg10,
+                      lispval arg11,
+                      lispval arg12,
+                      lispval arg13,
+                      lispval arg14,
+                      lispval arg15)
+{
+  int sum = FD_FIX2INT(arg1) + FD_FIX2INT(arg2) + FD_FIX2INT(arg3) + 
+    FD_FIX2INT(arg4) + FD_FIX2INT(arg5) + FD_FIX2INT(arg6) + 
+    FD_FIX2INT(arg7) + FD_FIX2INT(arg8) + FD_FIX2INT(arg9) +
+    FD_FIX2INT(arg10) + FD_FIX2INT(arg11) + FD_FIX2INT(arg12) +
+    FD_FIX2INT(arg13) + FD_FIX2INT(arg14) + FD_FIX2INT(arg15);
+  return FD_INT(sum);
+}
 
 /* Initialization */
 
@@ -911,6 +1079,61 @@ FD_EXPORT void fd_init_eval_debug_c()
             -1,FD_FALSE,-1,FD_FALSE,-1,FD_FALSE,
             -1,FD_FALSE,-1,FD_FALSE,-1,FD_FALSE,
             -1,FD_FALSE,-1,FD_FALSE, -1,FD_FALSE);
+
+  fd_idefn4(fd_scheme_module,"_PLUS4",plus4,1,"Add numbers",
+            -1,FD_INT(0),-1,FD_INT(0),-1,FD_INT(0),
+            -1,FD_INT(0));
+  fd_idefn5(fd_scheme_module,"_PLUS5",plus5,1,"Add numbers",
+            -1,FD_INT(0),-1,FD_INT(0),-1,FD_INT(0),
+            -1,FD_INT(0),-1,FD_INT(0));
+  fd_idefn6(fd_scheme_module,"_PLUS6",plus6,2,"Add numbers",
+            -1,FD_INT(0),-1,FD_INT(0),-1,FD_INT(0),
+            -1,FD_INT(0),-1,FD_INT(0),-1,FD_INT(0));
+  fd_idefn7(fd_scheme_module,"_PLUS7",plus7,3,"Add numbers",
+            -1,FD_INT(0),-1,FD_INT(0),-1,FD_INT(0),
+            -1,FD_INT(0),-1,FD_INT(0),-1,FD_INT(0),
+            -1,FD_INT(0));
+  fd_idefn8(fd_scheme_module,"_PLUS8",plus8,3,"Add numbers",
+            -1,FD_INT(0),-1,FD_INT(0),-1,FD_INT(0),
+            -1,FD_INT(0),-1,FD_INT(0),-1,FD_INT(0),
+            -1,FD_INT(0),-1,FD_INT(0));
+  fd_idefn9(fd_scheme_module,"_PLUS9",plus9,3,"Add numbers",
+            -1,FD_INT(0),-1,FD_INT(0),-1,FD_INT(0),
+            -1,FD_INT(0),-1,FD_INT(0),-1,FD_INT(0),
+            -1,FD_INT(0),-1,FD_INT(0), -1,FD_INT(0));
+  fd_idefn10(fd_scheme_module,"_PLUS10",plus10,3,"Add numbers",
+             -1,FD_INT(0),-1,FD_INT(0),-1,FD_INT(0),
+             -1,FD_INT(0),-1,FD_INT(0),-1,FD_INT(0),
+             -1,FD_INT(0),-1,FD_INT(0), -1,FD_INT(0),
+             -1,FD_INT(0));
+  fd_idefn11(fd_scheme_module,"_PLUS11",plus11,3,"Add numbers",
+             -1,FD_INT(0),-1,FD_INT(0),-1,FD_INT(0),
+             -1,FD_INT(0),-1,FD_INT(0),-1,FD_INT(0),
+             -1,FD_INT(0),-1,FD_INT(0), -1,FD_INT(0),
+             -1,FD_INT(0),-1,FD_INT(0));
+  fd_idefn12(fd_scheme_module,"_PLUS12",plus12,3,"Add numbers",
+             -1,FD_INT(0),-1,FD_INT(0),-1,FD_INT(0),
+             -1,FD_INT(0),-1,FD_INT(0),-1,FD_INT(0),
+             -1,FD_INT(0),-1,FD_INT(0), -1,FD_INT(0),
+             -1,FD_INT(0),-1,FD_INT(0),-1,FD_INT(0));
+  fd_idefn13(fd_scheme_module,"_PLUS13",plus13,3,"Add numbers",
+             -1,FD_INT(0),-1,FD_INT(0),-1,FD_INT(0),
+             -1,FD_INT(0),-1,FD_INT(0),-1,FD_INT(0),
+             -1,FD_INT(0),-1,FD_INT(0), -1,FD_INT(0),
+             -1,FD_INT(0),-1,FD_INT(0),-1,FD_INT(0),
+             -1,FD_INT(0));
+  fd_idefn14(fd_scheme_module,"_PLUS14",plus14,3,"Add numbers",
+             -1,FD_INT(0),-1,FD_INT(0),-1,FD_INT(0),
+             -1,FD_INT(0),-1,FD_INT(0),-1,FD_INT(0),
+             -1,FD_INT(0),-1,FD_INT(0), -1,FD_INT(0),
+             -1,FD_INT(0),-1,FD_INT(0),-1,FD_INT(0),
+             -1,FD_INT(0),-1,FD_INT(0));
+  fd_idefn15(fd_scheme_module,"_PLUS15",plus15,3,"Add numbers",
+             -1,FD_INT(0),-1,FD_INT(0),-1,FD_INT(0),
+             -1,FD_INT(0),-1,FD_INT(0),-1,FD_INT(0),
+             -1,FD_INT(0),-1,FD_INT(0), -1,FD_INT(0),
+             -1,FD_INT(0),-1,FD_INT(0),-1,FD_INT(0),
+             -1,FD_INT(0),-1,FD_INT(0),-1,FD_INT(0));
 
   fd_def_evalfn(fd_scheme_module,"TIMEVAL","",timed_eval_evalfn);
   fd_def_evalfn(fd_scheme_module,"%TIMEVAL","",timed_evalx_evalfn);

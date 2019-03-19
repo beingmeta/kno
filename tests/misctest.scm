@@ -494,6 +494,13 @@
 		(singleton (let ((x 3) (y 3)) (choice x y)))
 		(singleton (let ((x 3) (y 5)) (choice x y)))))
 
+;;; Check for apply bugs with different arities
+
+(applytest 20 _plus4 5 5 5 5)
+(applytest 15 _plus4 5 5 5)
+(applytest 15 _plus15 5 5 5)
+(applytest 75 _plus15 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5)
+
 ;;; Check for config setting
 
 (evaltest 88 configured-value)

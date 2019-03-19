@@ -63,6 +63,20 @@ static lispval index_slotids(lispval index_arg)
 
 static lispval indexctl_prim(int n,lispval *args)
 {
+  if (FD_AMBIGP(args[0])) {
+    lispval inner[n], indexes = args[0];
+    memcpy(inner,args,n*sizeof(lispval));
+    lispval results = FD_EMPTY;
+    DO_CHOICES(each,indexes) {
+      inner[0]=each;
+      lispval result = indexctl_prim(n,inner);
+      if (FD_ABORTP(result)) {
+        fd_decref(results);
+        FD_STOP_DO_CHOICES;
+        return result;}
+      else if (FD_VOIDP(result)) {}
+      else {FD_ADD_TO_CHOICE(results,result);}}
+    return results;}
   struct FD_INDEX *ix = fd_lisp2index(args[0]);
   if (ix == NULL)
     return FD_ERROR;
@@ -83,6 +97,20 @@ static lispval indexctl_default_prim(int n,lispval *args)
 
 static lispval poolctl_prim(int n,lispval *args)
 {
+  if (FD_AMBIGP(args[0])) {
+    lispval inner[n], pools = args[0];
+    memcpy(inner,args,n*sizeof(lispval));
+    lispval results = FD_EMPTY;
+    DO_CHOICES(each,pools) {
+      inner[0]=each;
+      lispval result = poolctl_prim(n,inner);
+      if (FD_ABORTP(result)) {
+        fd_decref(results);
+        FD_STOP_DO_CHOICES;
+        return result;}
+      else if (FD_VOIDP(result)) {}
+      else {FD_ADD_TO_CHOICE(results,result);}}
+    return results;}
   struct FD_POOL *p = fd_lisp2pool(args[0]);
   if (p == NULL)
     return FD_ERROR;
@@ -106,9 +134,23 @@ static lispval poolctl_default_prim(int n,lispval *args)
 static lispval dbctl_prim(int n,lispval *args)
 {
   lispval db = args[0];
-  if (!(SYMBOLP(args[1])))
+  if (FD_AMBIGP(db)) {
+    lispval inner[n];
+    memcpy(inner,args,n*sizeof(lispval));
+    lispval results = FD_EMPTY;
+    DO_CHOICES(each,db) {
+      inner[0]=each;
+      lispval result = dbctl_prim(n,inner);
+      if (FD_ABORTP(result)) {
+        fd_decref(results);
+        FD_STOP_DO_CHOICES;
+        return result;}
+      else if (FD_VOIDP(result)) {}
+      else {FD_ADD_TO_CHOICE(results,result);}}
+    return results;}
+  else if (!(SYMBOLP(args[1])))
     return fd_err("BadDatabaseOp","indexctl_prim",NULL,args[1]);
-  if ( (FD_INDEXP(db)) || (FD_TYPEP(db,fd_consed_index_type)) ) {
+  else if ( (FD_INDEXP(db)) || (FD_TYPEP(db,fd_consed_index_type)) ) {
     struct FD_INDEX *ix = fd_lisp2index(db);
     if (ix == NULL)
       return fd_type_error("DB(index)","dbctl_prim",db);

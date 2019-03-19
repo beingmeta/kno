@@ -24,6 +24,8 @@
 #include "framerd/fileprims.h"
 #include "framerd/procprims.h"
 
+#include "framerd/cprims.h"
+
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
 #include <libu8/u8stringfns.h>
@@ -64,52 +66,13 @@ static u8_condition RedirectFailed = "Redirect failed";
 
 static lispval id_symbol, stdin_symbol, stdout_symbol, stderr_symbol;
 
-static lispval exit_prim(lispval arg)
-{
-  if (FD_INTP(arg))
-    exit(FIX2INT(arg));
-  else exit(0);
-  return VOID;
-}
-
-static lispval fast_exit_prim(lispval arg)
-{
-  fd_fast_exit=1;
-  if (FD_INTP(arg))
-    exit(FIX2INT(arg));
-  else exit(0);
-  return VOID;
-}
-
-static lispval ispid_prim(lispval pid_arg)
-{
-  pid_t pid = FIX2INT(pid_arg);
-  int rv = kill(pid,0);
-  if (rv<0) {
-    errno = 0; return FD_FALSE;}
-  else return FD_TRUE;
-}
-
-static lispval pid_kill_prim(lispval pid_arg,lispval sig_arg)
-{
-  pid_t pid = FIX2INT(pid_arg);
-  int sig = FIX2INT(sig_arg);
-  if ((sig>0)&&(sig<256)) {
-    int rv = kill(pid,sig);
-    if (rv<0) {
-      char buf[128]; sprintf(buf,"pid=%ld;sig=%d",(long int)pid,sig);
-      u8_graberrno("os_kill_prim",u8_strdup(buf));
-      return FD_ERROR;}
-    else return FD_TRUE;}
-  else return fd_type_error("signal","pid_kill_prim",sig_arg);
-}
-
 #define FD_IS_SCHEME 1
 #define FD_DO_FORK 2
 #define FD_DO_WAIT 4
 #define FD_DO_LOOKUP 8
 
-static lispval exec_helper(u8_context caller,int flags,int n,lispval *args)
+static lispval exec_helper(u8_context caller,int flags,
+                           int n,lispval *args)
 {
   if (!(STRINGP(args[0])))
     return fd_type_error("pathname",caller,args[0]);
@@ -117,17 +80,18 @@ static lispval exec_helper(u8_context caller,int flags,int n,lispval *args)
            (!(u8_file_existsp(CSTRING(args[0])))))
     return fd_type_error("real file",caller,args[0]);
   else {
+    pid_t pid;
     char **argv;
     u8_byte *arg1 = (u8_byte *)CSTRING(args[0]);
     u8_byte *filename = NULL;
-    int i = 1, argc = 0, max_argc = n+2, retval = 0; pid_t pid;
+    int i = 1, argc = 0, max_argc = n+2, retval = 0;
     if (strchr(arg1,' ')) {
       const char *scan = arg1; while (scan) {
         const char *brk = strchr(scan,' ');
         if (brk) {max_argc++; scan = brk+1;}
         else break;}}
     else {}
-    if ((n>1)&&(SLOTMAPP(args[1]))) {
+    if ( (n>1) && (SLOTMAPP(args[1])) ) {
       lispval keys = fd_getkeys(args[1]);
       max_argc = max_argc+FD_CHOICE_SIZE(keys);}
     argv = u8_alloc_n(max_argc,char *);
@@ -140,8 +104,9 @@ static lispval exec_helper(u8_context caller,int flags,int n,lispval *args)
       return fd_err(_("No exec wrapper to handle env args"),
                     caller,NULL,args[0]);
 #else
-      char *argcopy = u8_tolibc(arg1), *start = argcopy, *scan = strchr(start,' ');
-      argv[argc++]=filename = (u8_byte *)u8_strdup(FD_EXEC_WRAPPER);
+      char *argcopy = u8_tolibc(arg1), *start = argcopy;
+      char *scan = strchr(start,' ');
+      argv[argc++] = filename = (u8_byte *)u8_strdup(FD_EXEC_WRAPPER);
       while (scan) {
         *scan='\0'; argv[argc++]=start;
         start = scan+1; while (isspace(*start)) start++;
@@ -183,7 +148,8 @@ static lispval exec_helper(u8_context caller,int flags,int n,lispval *args)
         argv[argc++]=as_libc_string; u8_free(as_string);}}
     argv[argc++]=NULL;
     if ((flags&FD_DO_FORK)&&((pid = (fork())))) {
-      i = 0; while (i<argc) if (argv[i]) u8_free(argv[i++]); else i++;
+      i = 0; while (i<argc) {
+        if (argv[i]) u8_free(argv[i++]); else i++;}
       u8_free(argv);
 #if HAVE_WAITPID
       if (flags&FD_DO_WAIT) {
@@ -210,21 +176,57 @@ static lispval exec_helper(u8_context caller,int flags,int n,lispval *args)
       abort();}}
 }
 
+DCLPRIM("EXEC",exec_prim,MIN_ARGS(1)|FD_VAR_ARGS,
+        "`(EXEC *command* [*envmap*] [*args*...])` replaces "
+        "the current application with an execution of "
+        "*command* (a string) to *args* (also strings).\n"
+        "*envmap*, if provided, is a slotmap specifying environment "
+        "variables for execution of the command. Environment variables "
+        "can also be explicitly provided in the string *command*.\n"
+        "The last word of *command* (after any environment variables) "
+        "should be the path of an executable program file.")
 static lispval exec_prim(int n,lispval *args)
 {
   return exec_helper("exec_prim",0,n,args);
 }
 
+DCLPRIM("EXEC/CMD",exec_cmd_prim,MIN_ARGS(1)|FD_VAR_ARGS,
+        "`(EXEC/CMD *command* [*envmap*] [*args*...])` replaces "
+        "the current application with an execution of "
+        "*command* (a string) to *args* (also strings).\n"
+        "*envmap*, if provided, is a slotmap specifying environment "
+        "variables for execution of the command. Environment variables "
+        "can also be explicitly provided in the string *command*.\n"
+        "The last word of *command* (after any environment variables) "
+        "should be either a command in the default search path or "
+        "the path of an executable program file.")
 static lispval exec_cmd_prim(int n,lispval *args)
 {
   return exec_helper("exec_cmd_prim",FD_DO_LOOKUP,n,args);
 }
 
+DCLPRIM("FDEXEC",fdexec_prim,MIN_ARGS(1)|FD_VAR_ARGS,
+        "`(FDEXEC *scheme_file* [*envmap*] [*args*...])` replaces "
+        "the current application with a FramerD process reading "
+        "the file *scheme_file* and applying the file's `MAIN` "
+        "definition to the results of parsing *args* (also strings).\n"
+        "*envmap*, if provided, specifies CONFIG settings for the "
+        "reading and execution of *scheme-file*. Environment variables "
+        "can also be explicitly provided in the string *command*.\n")
 static lispval fdexec_prim(int n,lispval *args)
 {
   return exec_helper("fdexec_prim",FD_IS_SCHEME,n,args);
 }
 
+DCLPRIM("FORK",fork_prim,MIN_ARGS(1)|FD_VAR_ARGS,
+        "`(FORK *command* [*envmap*] [*args*...])` 'forks' "
+        "a new process executing *command* (a string) for "
+        "*args* (also strings). It returns the PID of the new process.\n"
+        "*envmap*, if provided, is a slotmap specifying environment "
+        "variables for execution of the command. Environment variables "
+        "can also be explicitly provided in the string *command*.\n"
+        "The last word of *command* (after any environment variables) "
+        "should be the path of an executable program file.")
 static lispval fork_prim(int n,lispval *args)
 {
   if (n==0) {
@@ -236,32 +238,82 @@ static lispval fork_prim(int n,lispval *args)
   else return exec_helper("fork_prim",FD_DO_FORK,n,args);
 }
 
+DCLPRIM("FORK/CMD",fork_cmd_prim,MIN_ARGS(1)|FD_VAR_ARGS,
+        "`(FOR/CMD *command* [*envmap*] [*args*...])` 'forks' "
+        "a new process executing *command* (a string) "
+        "with *args* (also strings). It returns the PID of the "
+        "new process.\n"
+        "*envmap*, if provided, is a slotmap specifying environment "
+        "variables for execution of the command. Environment variables "
+        "can also be explicitly provided in the string *command*.\n"
+        "The last word of *command* (after any environment variables) "
+        "should be either a command in the default search path or "
+        "the path of an executable program file.")
 static lispval fork_cmd_prim(int n,lispval *args)
 {
   return exec_helper("fork_cmd_prim",(FD_DO_FORK|FD_DO_LOOKUP),n,args);
 }
 
+DCLPRIM("FDFORK",fdfork_prim,MIN_ARGS(1)|FD_VAR_ARGS,
+        "`(FDFORK *scheme_file* [*envmap*] [*args*...])` 'forks' "
+        "a new FramerD process reading the file *scheme_file* and "
+        "applying the file's `MAIN` definition to the results of "
+        "parsing *args* (also strings).  It returns the PID of the "
+        "new process.\n"
+        "*envmap*, if provided, specifies CONFIG settings for the "
+        "reading and execution of *scheme-file*. Environment variables "
+        "can also be explicitly provided in the string *command*.\n")
+static lispval fdfork_prim(int n,lispval *args)
+{
+  return exec_helper("fdfork_prim",(FD_IS_SCHEME|FD_DO_FORK),n,args);
+}
+
+DCLPRIM("FORK/WAIT",fork_wait_prim,MIN_ARGS(1)|FD_VAR_ARGS,
+        "`(FORK *command* [*envmap*] [*args*...])` 'forks' "
+        "a new process executing *command* (a string) for "
+        "*args* (also strings). It waits for this process to "
+        "return and returns its exit status.\n"
+        "*envmap*, if provided, is a slotmap specifying environment "
+        "variables for execution of the command. Environment variables "
+        "can also be explicitly provided in the string *command*.\n"
+        "The last word of *command* (after any environment variables) "
+        "should be the path of an executable program file.")
 static lispval fork_wait_prim(int n,lispval *args)
 {
   return exec_helper("fork_wait_prim",(FD_DO_FORK|FD_DO_WAIT),n,args);
 }
 
+DCLPRIM("FORK/CMD/WAIT",fork_cmd_wait_prim,MIN_ARGS(1)|FD_VAR_ARGS,
+        "`(FOR/CMD *command* [*envmap*] [*args*...])` 'forks' "
+        "a new process executing *command* (a string) "
+        "with *args* (also strings). It waits for this process to "
+        "return and returns its exit status.\n"
+        "*envmap*, if provided, is a slotmap specifying environment "
+        "variables for execution of the command. Environment variables "
+        "can also be explicitly provided in the string *command*.\n"
+        "The last word of *command* (after any environment variables) "
+        "should be either a command in the default search path or "
+        "the path of an executable program file.")
 static lispval fork_cmd_wait_prim(int n,lispval *args)
 {
   return exec_helper("fork_cmd_wait_prim",
                      (FD_DO_FORK|FD_DO_LOOKUP|FD_DO_WAIT),n,args);
 }
 
+DCLPRIM("FDFORK/WAIT",fdfork_wait_prim,MIN_ARGS(1)|FD_VAR_ARGS,
+        "`(FDFORK *scheme_file* [*envmap*] [*args*...])` 'forks' "
+        "a new FramerD process reading the file *scheme_file* and "
+        "applying the file's `MAIN` definition to the results of "
+        "parsing *args* (also strings).  It waits for this process to "
+        "return and returns its exit status.\n"
+        "*envmap*, if provided, specifies CONFIG settings for the "
+        "reading and execution of *scheme-file*. Environment variables "
+        "can also be explicitly provided in the string *command*.\n")
 static lispval fdfork_wait_prim(int n,lispval *args)
 {
   return exec_helper("fdfork_wait_prim",
                      (FD_IS_SCHEME|FD_DO_FORK|FD_DO_WAIT),
                      n,args);
-}
-
-static lispval fdfork_prim(int n,lispval *args)
-{
-  return exec_helper("fdfork_prim",(FD_IS_SCHEME|FD_DO_FORK),n,args);
 }
 
 /* SUBJOBs */
@@ -300,6 +352,28 @@ static int dodup(int from,int to,u8_string stream,u8_string id)
 
 static u8_string makeid(int n,lispval *args);
 
+DCLPRIM("SUBJOB/OPEN",subjob_open,MIN_ARGS(1)|FD_VAR_ARGS,
+        "`(SUBJOB/OPEN *opts* *command* [*envmap*] [*args*...])` "
+        "'forks' a new process applying *command* to *args* and "
+        "creates a **subjob** object for the process.\n"
+        "*opts* control how the subjob is started and "
+        "how its inputs and outputs are configured.\n"
+        "Some supported options are:\n"
+        "* **ID** provides a descriptive string;\n"
+        "* **STDIN** is either a file to use as the *stdin* "
+        "to the new process, #f to use the *standard input* of the "
+        "current process, or #t to create a stream through which "
+        "the current process can write to the new process.\n"
+        "* **STDOUT** is either a file to use for the *stdout* "
+        "from the new process, #f to share the *standard output* of the "
+        "current process, or #t to create a stream from which "
+        "the current process can read the standard output of "
+        "the new process.\n"
+        "* **STDERR** is either a file to use for the *stderr* "
+        "for the new process, #f to share the *stderr* of the "
+        "current process, or #t to create a stream from which "
+        "the current process can read the error output of "
+        "the new process.\n")
 static lispval subjob_open(int n,lispval *args)
 {
   lispval opts = args[0];
@@ -413,7 +487,8 @@ static lispval subjob_open(int n,lispval *args)
         else rv = dodup(new_stderr,STDERR_FILENO,"stderr",id);}
       else NO_ELSE;
       if (rv<0) {exit(1);}
-      int exec_result = exec_helper("fd_subjob",SUBJOB_EXEC_FLAGS,n-1,args+1);
+      int exec_result = exec_helper("fd_subjob",SUBJOB_EXEC_FLAGS,
+                                    n-1,args+1);
       if (exec_result < 0) {
         u8_log(LOG_CRIT,"ExecFailed","Couldn't launch subjob %s",id);
         exit(1);}
@@ -455,30 +530,42 @@ static void recycle_subjob(struct FD_RAW_CONS *c)
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
+DCLPRIM("SUBJOB/PID",subjob_pid,MIN_ARGS(1)|MAX_ARGS(1),
+        "Returns the numeric process ID for the subjob")
 static lispval subjob_pid(lispval subjob)
 {
   struct FD_SUBJOB *sj = (fd_subjob) subjob;
   return FD_INT(sj->subjob_pid);
 }
 
+DCLPRIM("SUBJOB/STDIN",subjob_stdin,MIN_ARGS(1)|MAX_ARGS(1),
+        "Returns an output port for sending to the subjob.")
 static lispval subjob_stdin(lispval subjob)
 {
   struct FD_SUBJOB *sj = (fd_subjob) subjob;
   return fd_incref(sj->subjob_stdin);
 }
 
+DCLPRIM("SUBJOB/STDOUT",subjob_stdout,MIN_ARGS(1)|MAX_ARGS(1),
+        "Returns an input port for reading the output of subjob.")
 static lispval subjob_stdout(lispval subjob)
 {
   struct FD_SUBJOB *sj = (fd_subjob) subjob;
   return fd_incref(sj->subjob_stdout);
 }
 
+DCLPRIM("SUBJOB/STDERR",subjob_stderr,MIN_ARGS(1)|MAX_ARGS(1),
+        "Returns an input port for reading the error output (stderr) "
+        " of subjob.")
 static lispval subjob_stderr(lispval subjob)
 {
   struct FD_SUBJOB *sj = (fd_subjob) subjob;
   return fd_incref(sj->subjob_stderr);
 }
 
+DCLPRIM("SUBJOB/SIGNAL",subjob_signal,MIN_ARGS(2)|MAX_ARGS(2),
+        "`(SUBJOB/SIGNAL *subjob* *signal*)` sends the number "
+        "*signal* to the process executing *subjob*.")
 static lispval subjob_signal(lispval subjob,lispval sigval)
 {
   struct FD_SUBJOB *sj = (fd_subjob) subjob;
@@ -492,6 +579,66 @@ static lispval subjob_signal(lispval subjob,lispval sigval)
       return FD_ERROR;}
     else return FD_TRUE;}
   else return fd_type_error("signal","subjob_signal",sigval);
+}
+
+/* EXIT functions */
+
+DCLPRIM("EXIT",exit_prim,MIN_ARGS(0)|MAX_ARGS(1),
+        "`(EXIT [*retval*])` exits the current process with "
+        "a return code of *retval* (defaults to 0)")
+static lispval exit_prim(lispval arg)
+{
+  if (FD_INTP(arg))
+    exit(FIX2INT(arg));
+  else exit(0);
+  return VOID;
+}
+
+DCLPRIM("EXIT/FAST",fast_exit_prim,MIN_ARGS(0)|MAX_ARGS(1),
+        "`(EXIT/FAST [*retval*])` exits the current process "
+        "expeditiously without, for example, freeing memory "
+        "which will just be returned to the OS after exit.")
+static lispval fast_exit_prim(lispval arg)
+{
+  fd_fast_exit=1;
+  if (FD_INTP(arg))
+    exit(FIX2INT(arg));
+  else exit(0);
+  return VOID;
+}
+
+/* PID functions */
+
+DCLPRIM1("PID?",ispid_prim,MIN_ARGS(1),
+         "Returns #t if it's argument is a current and valid "
+         "process ID.",
+         fd_fixnum_type,FD_VOID)
+static lispval ispid_prim(lispval pid_arg)
+{
+  pid_t pid = FIX2INT(pid_arg);
+  int rv = kill(pid,0);
+  if (rv<0) {
+    errno = 0; return FD_FALSE;}
+  else return FD_TRUE;
+}
+
+DCLPRIM2("PID/KILL!",pid_kill_prim,MIN_ARGS(1),
+         "`(PID/KILL *process* [*signal*])` "
+         "sends *signal* (default is ) to "
+         "*process*.",
+         -1,FD_VOID,-1,FD_VOID)
+static lispval pid_kill_prim(lispval pid_arg,lispval sig_arg)
+{
+  pid_t pid = FIX2INT(pid_arg);
+  int sig = FIX2INT(sig_arg);
+  if ((sig>0)&&(sig<256)) {
+    int rv = kill(pid,sig);
+    if (rv<0) {
+      char buf[128]; sprintf(buf,"pid=%ld;sig=%d",(long int)pid,sig);
+      u8_graberrno("os_kill_prim",u8_strdup(buf));
+      return FD_ERROR;}
+    else return FD_TRUE;}
+  else return fd_type_error("signal","pid_kill_prim",sig_arg);
 }
 
 /* The init function */
@@ -508,23 +655,19 @@ FD_EXPORT void fd_init_procprims_c()
     fd_new_cmodule("PROCPRIMS",(FD_MODULE_DEFAULT),fd_init_procprims_c);
   u8_register_source_file(_FILEINFO);
 
-  fd_idefn(procprims_module,fd_make_cprim1("EXIT",exit_prim,0));
-  fd_idefn(procprims_module,fd_make_cprim1("EXIT/FAST",fast_exit_prim,0));
-  fd_idefn(procprims_module,fd_make_cprimn("EXEC",exec_prim,1));
-  fd_idefn(procprims_module,fd_make_cprimn("EXEC/CMD",exec_cmd_prim,1));
-  fd_idefn(procprims_module,fd_make_cprimn("FORK",fork_prim,1));
-  fd_idefn(procprims_module,fd_make_cprimn("FORK/CMD",fork_cmd_prim,1));
-  fd_idefn(procprims_module,fd_make_cprimn("FDEXEC",fdexec_prim,1));
-  fd_idefn(procprims_module,fd_make_cprimn("FDFORK",fdfork_prim,1));
-#if HAVE_WAITPID
-  fd_idefn(procprims_module,fd_make_cprimn("FORK/WAIT",fork_wait_prim,1));
-  fd_idefn(procprims_module,fd_make_cprimn("FORK/CMD/WAIT",fork_cmd_wait_prim,1));
-  fd_idefn(procprims_module,fd_make_cprimn("FDFORK/WAIT",fdfork_wait_prim,1));
-#endif
+  DECL_PRIM_N(exec_prim,procprims_module);
+  DECL_PRIM_N(exec_cmd_prim,procprims_module);
+  DECL_PRIM_N(fork_prim,procprims_module);
+  DECL_PRIM_N(fork_cmd_prim,procprims_module);
 
-  fd_idefn(procprims_module,fd_make_cprim1("PID?",ispid_prim,1));
-  fd_idefn(procprims_module,fd_make_cprim2("PID/KILL!",pid_kill_prim,2));
-  fd_defalias(procprims_module,"PID/KILL","PID/KILL!");
+  DECL_PRIM_N(fdexec_prim,procprims_module);
+  DECL_PRIM_N(fdfork_prim,procprims_module);
+
+#if HAVE_WAITPID
+  DECL_PRIM_N(fork_wait_prim,procprims_module);
+  DECL_PRIM_N(fork_cmd_wait_prim,procprims_module);
+  DECL_PRIM_N(fdfork_wait_prim,procprims_module);
+#endif
 
   fd_subjob_type = fd_register_cons_type("subjob");
   fd_unparsers[fd_subjob_type] = unparse_subjob;
@@ -535,23 +678,26 @@ FD_EXPORT void fd_init_procprims_c()
   stdout_symbol = fd_intern("STDOUT");
   stderr_symbol = fd_intern("STDERR");
 
-  fd_idefn1(procprims_module,"SUBJOB/PID",subjob_pid,1,
-            "Gets the PID for the subjob",
-            fd_subjob_type,FD_VOID);
-  fd_idefn2(procprims_module,"SUBJOB/SIGNAL",subjob_signal,2,
-            "Sends a signal to a subjob",
-            fd_subjob_type,FD_VOID,fd_fixnum_type,FD_VOID);
+  DECL_PRIM_N(subjob_open,procprims_module);
 
-  fd_idefn1(procprims_module,"SUBJOB/STDIN",subjob_stdin,1,
-            "Gets the STDIN for the subjob, either a file or an output stream",
-            fd_subjob_type,FD_VOID);
-  fd_idefn1(procprims_module,"SUBJOB/STDOUT",subjob_stdout,1,
-            "Gets the STDOUT for the subjob, either a file or an input stream",
-            fd_subjob_type,FD_VOID);
-  fd_idefn1(procprims_module,"SUBJOB/STDERR",subjob_stderr,1,
-            "Gets the STDOUT for the subjob, either a file or an input stream",
-            fd_subjob_type,FD_VOID);
-  fd_idefn(procprims_module,fd_make_cprimn("SUBJOB/OPEN",subjob_open,2));
+  int subjob_prim_types[1] = { fd_subjob_type };
+  DECL_PRIM_ARGS(subjob_pid,1,procprims_module,
+                 subjob_prim_types,NULL);
+  DECL_PRIM_ARGS(subjob_stdin,1,procprims_module,
+                 subjob_prim_types,NULL);
+  DECL_PRIM_ARGS(subjob_stdout,1,procprims_module,
+                 subjob_prim_types,NULL);
+  DECL_PRIM_ARGS(subjob_stderr,1,procprims_module,
+                 subjob_prim_types,NULL);
+
+  int subjob_signal_types[2] = { fd_subjob_type, fd_fixnum_type };
+  DECL_PRIM_ARGS(subjob_signal,2,procprims_module,
+                 subjob_signal_types,NULL);
+
+  DECL_PRIM(ispid_prim,1,procprims_module);
+  DECL_PRIM(pid_kill_prim,2,procprims_module);
+  DECL_PRIM(exit_prim,1,procprims_module);
+  DECL_PRIM(fast_exit_prim,1,procprims_module);
 
   fd_finish_module(procprims_module);
 }

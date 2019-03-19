@@ -23,6 +23,8 @@
 #include "framerd/ports.h"
 #include "framerd/pprint.h"
 
+#include "framerd/cprims.h"
+
 #include <libu8/u8streamio.h>
 #include <libu8/u8crypto.h>
 
@@ -67,14 +69,19 @@ static u8_input get_input_port(lispval portarg)
   else return NULL;
 }
 
-static lispval portp(lispval arg)
+FD_DEFPRIM("PORT?",portp,FD_MAX_ARGS(1),
+            "`(PORT? *object*)` returns #t if *object* is an i/o port.")
+  (lispval arg)
 {
   if (FD_PORTP(arg))
     return FD_TRUE;
   else return FD_FALSE;
 }
 
-static lispval input_portp(lispval arg)
+FD_DEFPRIM("INPUT-PORT?",input_portp,FD_MAX_ARGS(1),
+            "`(INPUT-PORT? *object*)` returns #t "
+            "if *object* is an input port.")
+  (lispval arg)
 {
   if (FD_PORTP(arg)) {
     struct FD_PORT *p=
@@ -85,7 +92,10 @@ static lispval input_portp(lispval arg)
   else return FD_FALSE;
 }
 
-static lispval output_portp(lispval arg)
+FD_DEFPRIM("OUTPUT-PORT?",output_portp,MAX_ARGS(1),
+           "`(OUTPUT-PORT? *object*)` returns #t "
+           "if *object* is an output port.")
+  (lispval arg)
 {
   if (FD_PORTP(arg)) {
     struct FD_PORT *p=
@@ -98,13 +108,21 @@ static lispval output_portp(lispval arg)
 
 /* Identifying end of file */
 
-static lispval eofp(lispval x)
+FD_DCLPRIM("EOF-OBJECT?",eofp,MAX_ARGS(1),
+           "`(EOF-OBJECT? *object*)` returns #t "
+           "if *object* is an end of file indicators.")
+static lispval eofp (lispval x)
 {
   if (FD_EOFP(x)) return FD_TRUE; else return FD_FALSE;
 }
 
 /* DTYPE streams */
 
+FD_DCLPRIM1("PACKET->DTYPE",packet2dtype,MAX_ARGS(1),
+            "`(PACKET->DTYPE *packet*)` parses the DType "
+            "representation in *packet* and returns the "
+            "corresponding object.",
+            fd_packet_type,FD_VOID)
 static lispval packet2dtype(lispval packet)
 {
   lispval object;
@@ -115,6 +133,12 @@ static lispval packet2dtype(lispval packet)
   return object;
 }
 
+FD_DCLPRIM2("DTYPE->PACKET",lisp2packet,MIN_ARGS(1),
+            "`(DTYPE->PACKET *object* [*bufsize*])` returns a packet "
+            "containing the DType representation of object. "
+            "*bufsize*, if provided, specifies the initial size "
+            "of the output buffer to be reserved.",
+            fd_packet_type,FD_VOID,fd_fixnum_type,FD_VOID)
 static lispval lisp2packet(lispval object,lispval initsize)
 {
   size_t size = FIX2INT(initsize);
@@ -134,6 +158,8 @@ static lispval lisp2packet(lispval object,lispval initsize)
 
 /* Output strings */
 
+DCLPRIM("OPEN-OUTPUT-STRING",open_output_string,MAX_ARGS(0),
+        "`(OPEN-OUTPUT-STRING)` returns an output string stream")
 static lispval open_output_string()
 {
   U8_OUTPUT *out = u8_alloc(struct U8_OUTPUT);
@@ -141,6 +167,10 @@ static lispval open_output_string()
   return fd_make_port(NULL,out,u8_strdup("output string"));
 }
 
+DCLPRIM1("OPEN-INPUT-STRING",open_input_string,MIN_ARGS(1),
+         "`(OPEN-INPUT-STRING *string*)` returns an input stream "
+         "reading from *string*.",
+         fd_string_type,FD_VOID)
 static lispval open_input_string(lispval arg)
 {
   if (STRINGP(arg)) {
@@ -151,7 +181,10 @@ static lispval open_input_string(lispval arg)
   else return fd_type_error(_("string"),"open_input_string",arg);
 }
 
-static lispval portid(lispval port_arg)
+DCLPRIM("PORTID",portid_prim,MAX_ARGS(1),
+        "`(PORTID *port*)` returns the id string (if any) "
+        "for *port*.")
+static lispval portid_prim(lispval port_arg)
 {
   if (FD_PORTP(port_arg)) {
     struct FD_PORT *port = (struct FD_PORT *)port_arg;
@@ -161,18 +194,32 @@ static lispval portid(lispval port_arg)
   else return fd_type_error(_("port"),"portid",port_arg);
 }
 
-static lispval portdata(lispval port_arg)
+DCLPRIM("PORTDATA",portdata_prim,MAX_ARGS(1),
+        "`(PORTDATA *port*)` returns the buffered data for *port*. "
+        "If *port* is a string stream, this is the output to date "
+        "to the port.")
+static lispval portdata_prim(lispval port_arg)
 {
   if (FD_PORTP(port_arg)) {
     struct FD_PORT *port = (struct FD_PORT *)port_arg;
     if (port->port_output)
-      return fd_substring(port->port_output->u8_outbuf,port->port_output->u8_write);
-    else return fd_substring(port->port_output->u8_outbuf,port->port_output->u8_outlim);}
+      return fd_substring(port->port_output->u8_outbuf,
+                          port->port_output->u8_write);
+    else return fd_substring(port->port_output->u8_outbuf,
+                             port->port_output->u8_outlim);}
   else return fd_type_error(_("port"),"portdata",port_arg);
 }
 
 /* Simple STDIO */
 
+DCLPRIM("WRITE",write_prim,MAX_ARGS(2)|MIN_ARGS(1),
+        "`(WRITE *object* [*port*])` writes a textual represenntation "
+        "of *object* to *port*. The implementation strives to "
+        "make `READ` be able to convert the output of `WRITE` to "
+        "`EQUAL?` objects.\n"
+        "If *port* is #t or not provided, the current output, "
+        "which is usually the stdout, is used. Otherwise, it "
+        "must be an output port.")
 static lispval write_prim(lispval x,lispval portarg)
 {
   U8_OUTPUT *out = get_output_port(portarg);
@@ -183,6 +230,13 @@ static lispval write_prim(lispval x,lispval portarg)
   else return fd_type_error(_("output port"),"write_prim",portarg);
 }
 
+DCLPRIM("DISPLAY",display_prim,MAX_ARGS(2)|MIN_ARGS(1),
+        "`(DISPLAY *object* [*port*])` writes a textual represenntation "
+        "of *object* to *port*. This makes no special attempts "
+        "to make it's output parsable by `READ`\n"
+        "If *port* is #t or not provided, the current output, "
+        "which is usually the stdout, is used. Otherwise, it "
+        "must be an output port.")
 static lispval display_prim(lispval x,lispval portarg)
 {
   U8_OUTPUT *out = get_output_port(portarg);
@@ -195,6 +249,12 @@ static lispval display_prim(lispval x,lispval portarg)
   else return fd_type_error(_("output port"),"display_prim",portarg);
 }
 
+DCLPRIM("PUTCHAR",putchar_prim,MAX_ARGS(2)|MIN_ARGS(1),
+         "`(PUTCHAR *char* [*port*])` the character *char* to *port*. "
+        "*char* must be either a character object or a positive "
+        "integer corresponding to a Unicode code point.\n"
+        "If *port* is #t or not provided, the current default output, "
+        "is used. Otherwise, it must be an output port.")
 static lispval putchar_prim(lispval char_arg,lispval port)
 {
   int ch;
@@ -210,6 +270,11 @@ static lispval putchar_prim(lispval char_arg,lispval port)
   else return fd_type_error(_("output port"),"putchar_prim",port);
 }
 
+DCLPRIM("NEWLINE",newline_prim,MAX_ARGS(1)|MIN_ARGS(0),
+        "`(NEWLINE [*port*])` emits a newline to *port*. "
+        "If *port* is #t or not provided, the current output, "
+        "which is usually the stdout, is used. Otherwise, it "
+        "must be an output port.")
 static lispval newline_prim(lispval portarg)
 {
   U8_OUTPUT *out = get_output_port(portarg);
@@ -219,6 +284,8 @@ static lispval newline_prim(lispval portarg)
     return VOID;}
   else return fd_type_error(_("output port"),"newline_prim",portarg);
 }
+
+/* PRINTOUT handlers */
 
 static int printout_helper(U8_OUTPUT *out,lispval x)
 {
@@ -264,6 +331,14 @@ lispval fd_printout_to(U8_OUTPUT *out,lispval body,fd_lexenv env)
   return VOID;
 }
 
+/* Special output functions */
+
+DCLPRIM3("SUBSTRINGOUT",substringout,MIN_ARGS(1),
+         "`(SUBSTRINGOUT *string* *start* *end*)` emits a substring of "
+         "*string* to the default output.",
+         fd_string_type,VOID,
+         fd_fixnum_type,VOID,
+         fd_fixnum_type,VOID)
 static lispval substringout(lispval arg,lispval start,lispval end)
 {
   u8_output output = u8_current_output;
@@ -283,13 +358,20 @@ static lispval substringout(lispval arg,lispval start,lispval end)
   return VOID;
 }
 
+DCLPRIM2("UNISCAPE",uniscape,MIN_ARGS(1),
+         "`(UNISCAPE *string* [*except_string*])` emits a unicode escaped "
+         "version of *string* to the default output. All non-ascii "
+         "characters except for those in *except_string* are encoded as "
+         "\\uXXXX escape sequences",
+         fd_string_type,VOID,
+         fd_string_type,VOID)
 static lispval uniscape(lispval arg,lispval excluding)
 {
   u8_string input = ((STRINGP(arg))?(CSTRING(arg)):
-                   (fd_lisp2string(arg)));
+                     (fd_lisp2string(arg)));
   u8_string exstring = ((STRINGP(excluding))?
-                      (CSTRING(excluding)):
-                      ((u8_string)""));
+                        (CSTRING(excluding)):
+                        ((u8_string)""));
   u8_output output = u8_current_output;
   u8_string string = input;
   const u8_byte *scan = string;
@@ -332,6 +414,10 @@ static lispval stringout_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 
 /* Input operations! */
 
+DCLPRIM("GETCHAR",getchar_prim,MAX_ARGS(1)|MIN_ARGS(0),
+         "`(GETCHAR [*port*])` reads a single character from *port*. "
+        "If *port* is #t or not provided, the current default input, "
+        "is used. Otherwise, it must be an input port.")
 static lispval getchar_prim(lispval port)
 {
   U8_INPUT *in = get_input_port(port);
@@ -343,8 +429,21 @@ static lispval getchar_prim(lispval port)
   else return fd_type_error(_("input port"),"getchar_prim",port);
 }
 
-static lispval getline_prim(lispval port,lispval eos_arg,lispval lim_arg,
-                           lispval eof_marker)
+DCLPRIM("GETLINE",getline_prim,MAX_ARGS(4)|MIN_ARGS(0),
+         "`(GETLINE [*port*] [*eol*] [*maxchars*] [*eof*])` "
+        "reads a single 'line' from *port* as a string. "
+        "If *port* is #t or not provided, the current default "
+        "input is used. Otherwise, it must be an input port.\n"
+        "* *eol* is the string that indicates the line end, defaulting "
+        "to a single newline; this sequence is consumed but not "
+        "included in the returned string;\n"
+        "* *maxchars* indicates the maximum number of characters "
+        "to read while waiting for *eol*;\n"
+        "* *eof* an \"end of file\" sequence which causes "
+        "`GETLINE` to return #eof when encountered.")
+static lispval getline_prim(lispval port,lispval eos_arg,
+                            lispval lim_arg,
+                            lispval eof_marker)
 {
   U8_INPUT *in = get_input_port(port);
   if (VOIDP(eof_marker)) eof_marker = EMPTY;
@@ -383,6 +482,11 @@ static lispval getline_prim(lispval port,lispval eos_arg,lispval lim_arg,
   else return fd_type_error(_("input port"),"getline_prim",port);
 }
 
+DCLPRIM("READ",read_prim,MAX_ARGS(4)|MIN_ARGS(0),
+         "`(READ [*port*])` "
+        "reads an object from *port*. "
+        "If *port* is #t or not provided, the current default "
+        "input is used. Otherwise, it must be an input port.")
 static lispval read_prim(lispval port)
 {
   if (STRINGP(port)) {
@@ -405,7 +509,11 @@ static off_t find_substring(u8_string string,lispval strings,
 static ssize_t get_more_data(u8_input in,ssize_t lim);
 static lispval record_reader(lispval port,lispval ends,lispval limit_arg);
 
-static lispval read_record_prim(lispval ports,lispval ends,lispval limit_arg)
+DCLPRIM3("READ-RECORD",read_record_prim,MIN_ARGS(1)|NDCALL,
+         "`(READ-RECORD *ports* [*separator*] [*limit*])`",
+         -1,FD_VOID,-1,FD_VOID,-1,FD_VOID)
+static lispval read_record_prim(lispval ports,lispval ends,
+                                lispval limit_arg)
 {
   lispval results = EMPTY;
   DO_CHOICES(port,ports) {
@@ -414,7 +522,8 @@ static lispval read_record_prim(lispval ports,lispval ends,lispval limit_arg)
   return results;
 }
 
-static lispval record_reader(lispval port,lispval ends,lispval limit_arg)
+static lispval record_reader(lispval port,lispval ends,
+                             lispval limit_arg)
 {
   U8_INPUT *in = get_input_port(port);
   ssize_t lim, matchlen = 0, maxbuf=in->u8_bufsz;
@@ -516,6 +625,12 @@ static lispval maxkeys_symbol, listmax_symbol, vecmax_symbol, choicemax_symbol;
 
 #define PPRINT_MARGINBUF_SIZE 256
 
+DCLPRIM("PPRINT",lisp_pprint,MIN_ARGS(1)|NDCALL|FD_VAR_ARGS,
+        "(pprint *object* *port* *width* *margin*)\n"
+        "Generates a formatted representation of *object* "
+        "on *port* () with a width of *width* columns with a "
+        "left margin of *margin* which is either number of columns "
+        "or a string.")
 static lispval lisp_pprint(int n,lispval *args)
 {
   U8_OUTPUT *out=NULL;
@@ -673,6 +788,11 @@ static int get_fixopt(lispval opts,lispval optname,long long *intval)
 
 static lispval label_symbol, width_symbol, depth_symbol, output_symbol;
 
+DCLPRIM3("LISTDATA",lisp_listdata,MIN_ARGS(1)|NDCALL,
+         "`(LISTDATA *object* [*opts*] [*port*])` output "
+         "a formatted textual representation of *object* to *port*, "
+         "controlled by *opts*.",
+         -1,FD_VOID,-1,FD_VOID,-1,FD_VOID)
 static lispval lisp_listdata(lispval object,lispval opts,lispval stream)
 {
   u8_string label=NULL, pathref=NULL, indent="";
@@ -708,6 +828,10 @@ static lispval lisp_listdata(lispval object,lispval opts,lispval stream)
 
 /* Base 64 stuff */
 
+DCLPRIM1("BASE64->PACKET",from_base64_prim,0,
+          "`(BASE64->PACKET *string*)` converts the BASE64 encoding "
+          "in string into a data packet",
+          fd_string_type,FD_VOID)
 static lispval from_base64_prim(lispval string)
 {
   const u8_byte *string_data = CSTRING(string);
@@ -719,11 +843,18 @@ static lispval from_base64_prim(lispval string)
   else return FD_ERROR;
 }
 
-static lispval to_base64_prim(lispval packet,lispval nopad,lispval urisafe)
+DCLPRIM3("PACKET->BASE64",to_base64_prim,MIN_ARGS(1),
+          "`(PACKET->BASE64 *packet* [*nopad*] [*foruri*])` "
+          "converts a packet into a string containing it's "
+          "BASE64 representation.",
+          fd_packet_type,FD_VOID,-1,FD_VOID,-1,FD_VOID)
+static lispval to_base64_prim(lispval packet,lispval nopad,
+                              lispval urisafe)
 {
   const u8_byte *packet_data = FD_PACKET_DATA(packet);
   unsigned int packet_len = FD_PACKET_LENGTH(packet), ascii_len;
-  char *ascii_string = u8_write_base64(packet_data,packet_len,&ascii_len);
+  char *ascii_string =
+    u8_write_base64(packet_data,packet_len,&ascii_len);
   if (ascii_string) {
     if (FD_TRUEP(nopad)) {
       char *scan = ascii_string+(ascii_len-1);
@@ -738,14 +869,20 @@ static lispval to_base64_prim(lispval packet,lispval nopad,lispval urisafe)
   else return FD_ERROR;
 }
 
-static lispval any_to_base64_prim(lispval arg,lispval nopad,lispval urisafe)
+DCLPRIM3("->BASE64",any_to_base64_prim,MIN_ARGS(1),
+          "`(->BASE64 *packet* [*nopad*] [*foruri*])` "
+          "converts a string or packet into a string containing it's "
+          "BASE64 representation.",
+          -1,FD_VOID,-1,FD_VOID,-1,FD_VOID)
+static lispval any_to_base64_prim(lispval arg,lispval nopad,
+                                  lispval urisafe)
 {
   unsigned int data_len, ascii_len;
   const u8_byte *data; char *ascii_string;
   if (PACKETP(arg)) {
     data = FD_PACKET_DATA(arg);
     data_len = FD_PACKET_LENGTH(arg);}
-  else if ((STRINGP(arg))||(TYPEP(arg,fd_secret_type))) {
+  else if ( (STRINGP(arg)) || (TYPEP(arg,fd_secret_type)) ) {
     data = CSTRING(arg);
     data_len = STRLEN(arg);}
   else return fd_type_error("packet or string","any_to_base64_prim",arg);
@@ -766,6 +903,10 @@ static lispval any_to_base64_prim(lispval arg,lispval nopad,lispval urisafe)
 
 /* Base 16 stuff */
 
+DCLPRIM1("BASE16->PACKET",from_base16_prim,0,
+          "`(BASE16->PACKET *string*)` converts the hex encoding "
+          "in string into a data packet",
+          fd_string_type,FD_VOID)
 static lispval from_base16_prim(lispval string)
 {
   const u8_byte *string_data = CSTRING(string);
@@ -776,6 +917,10 @@ static lispval from_base16_prim(lispval string)
   else return FD_ERROR;
 }
 
+DCLPRIM1("PACKET->BASE16",to_base16_prim,0,
+          "`(PACKET->BASE16 *packet*)` converts "
+          "the data packet *packet* into a hexadecimal string.",
+          fd_packet_type,FD_VOID)
 static lispval to_base16_prim(lispval packet)
 {
   const u8_byte *packet_data = FD_PACKET_DATA(packet);
@@ -803,6 +948,16 @@ static int string_isasciip(const unsigned char *data,int len)
 #define FDPP_FNAME 8
 #define FDPP_FCOMMENT 16
 
+DCLPRIM3("GZIP",gzip_prim,MIN_ARGS(1),
+         "`(GZIP *data* [*file*] [*comment*])` GZIP encodes "
+         "the string or packet *arg*. If *file* is provided "
+         "the compressed data is written to it; otherwise, "
+         "the compressed data is returned as a packet. "
+         "When provided *comment* (also a string) is added to "
+         "the compressed content",
+         -1,VOID,
+         fd_string_type,VOID,
+         fd_string_type,VOID)
 static lispval gzip_prim(lispval arg,lispval filename,lispval comment)
 {
   if (!((STRINGP(arg)||PACKETP(arg))))
@@ -954,82 +1109,54 @@ FD_EXPORT void fd_init_portprims_c()
 
   init_portprims_symbols();
 
-  fd_idefn(fd_scheme_module,fd_make_cprim1("EOF-OBJECT?",eofp,1));
+  DECL_PRIM(eofp,1,fd_scheme_module);
+  DECL_ALIAS("EOF?",eofp,fd_scheme_module);
+  DECL_PRIM(portp,1,fd_scheme_module);
+  DECL_PRIM(input_portp,1,fd_scheme_module);
+  DECL_PRIM(output_portp,1,fd_scheme_module);
+  DECL_PRIM(packet2dtype,1,fd_scheme_module);
+  DECL_PRIM(lisp2packet,2,fd_scheme_module);
 
-  fd_idefn(fd_scheme_module,fd_make_cprim1("PORTID",portid,1));
+  DECL_PRIM(open_output_string,0,fd_scheme_module);
+  DECL_PRIM(open_input_string,1,fd_scheme_module);
 
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim0("OPEN-OUTPUT-STRING",open_output_string));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1("OPEN-INPUT-STRING",open_input_string,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("PORTDATA",portdata,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("PORT?",portp,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("INPUT-PORT?",input_portp,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("OUTPUT-PORT?",output_portp,1));
+  int one_port_arg[1] = { fd_port_type };
+  DECL_PRIM_ARGS(portid_prim,1,fd_scheme_module,
+                 one_port_arg,NULL);
+  DECL_PRIM_ARGS(portdata_prim,1,fd_scheme_module,
+                 one_port_arg,NULL);
 
-  fd_idefn(fd_scheme_module,fd_make_cprim2("WRITE",write_prim,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim2("DISPLAY",display_prim,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("NEWLINE",newline_prim,0));
+  DECL_PRIM(write_prim,2,fd_scheme_module);
+  DECL_PRIM(display_prim,2,fd_scheme_module);
+  DECL_PRIM(putchar_prim,2,fd_scheme_module);
+  DECL_PRIM(newline_prim,1,fd_scheme_module);
+  DECL_ALIAS("WRITE-CHAR",putchar_prim,fd_scheme_module);
 
-  fd_idefnN(fd_scheme_module,"PPRINT",lisp_pprint,FD_NEEDS_1_ARG|FD_NDCALL,
-            "(pprint *object* *port* *width* *margin*)\n"
-            "Generates a formatted representation of *object* "
-            "on *port* () with a width of *width* columns with a "
-            "left margin of *margin* which is either number of columns "
-            "or a string.");
-  fd_idefn3(fd_scheme_module,"LISTDATA",lisp_listdata,FD_NEEDS_1_ARG|FD_NDCALL,
-            "(LISTDATA *object* *opts* [*port*])",
-            -1,FD_VOID,-1,FD_VOID,-1,FD_VOID);
+  DECL_PRIM(getchar_prim,1,fd_scheme_module);
+  DECL_PRIM(read_prim,1,fd_scheme_module);
+  DECL_PRIM(getline_prim,4,fd_scheme_module);
 
-  fd_idefn(fd_scheme_module,fd_make_cprim2("PUTCHAR",putchar_prim,1));
-  fd_defalias(fd_scheme_module,"WRITE-CHAR","PUTCHAR");
-  fd_idefn(fd_scheme_module,fd_make_cprim1("GETCHAR",getchar_prim,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim4("GETLINE",getline_prim,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("READ",read_prim,0));
+  DECL_PRIM_N(lisp_pprint,fd_scheme_module);
+  DECL_PRIM(lisp_listdata,3,fd_scheme_module);
 
-  fd_idefn3(fd_scheme_module,"READ-RECORD",read_record_prim,
-            FD_NDCALL|FD_NEEDS_1_ARG,
-            "`(READ-RECORD *ports* [*separator*] [*limit*])`",
-            -1,FD_VOID,-1,FD_VOID,-1,FD_VOID);
+  DECL_PRIM(read_record_prim,3,fd_scheme_module);
+
+  DECL_PRIM(substringout,3,fd_scheme_module);
+  DECL_PRIM(uniscape,2,fd_scheme_module);
+
+  DECL_PRIM(from_base64_prim,1,fd_scheme_module);
+  DECL_PRIM(to_base64_prim,3,fd_scheme_module);
+  DECL_PRIM(any_to_base64_prim,3,fd_scheme_module);
+
+  DECL_PRIM(from_base16_prim,1,fd_scheme_module);
+  DECL_PRIM(to_base16_prim,1,fd_scheme_module);
+
+  DECL_PRIM(gzip_prim,3,fd_scheme_module);
 
   fd_def_evalfn(fd_scheme_module,"PRINTOUT","",printout_evalfn);
   fd_def_evalfn(fd_scheme_module,"LINEOUT","",lineout_evalfn);
   fd_def_evalfn(fd_scheme_module,"STRINGOUT","",stringout_evalfn);
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim3x("SUBSTRINGOUT",substringout,1,
-                           fd_string_type,VOID,
-                           fd_fixnum_type,VOID,
-                           fd_fixnum_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("UNISCAPE",uniscape,1,
-                           fd_string_type,VOID,
-                           fd_string_type,VOID));
 
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("PACKET->DTYPE",packet2dtype,1,
-                           fd_packet_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("DTYPE->PACKET",lisp2packet,1,
-                           -1,VOID,fd_fixnum_type,FD_INT(128)));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("BASE64->PACKET",from_base64_prim,1,
-                           fd_string_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim3x("PACKET->BASE64",to_base64_prim,1,
-                           fd_packet_type,VOID,-1,FD_FALSE,-1,FD_FALSE));
-  fd_idefn(fd_scheme_module,fd_make_cprim3("->BASE64",any_to_base64_prim,1));
-
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("BASE16->PACKET",from_base16_prim,1,
-                           fd_string_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("PACKET->BASE16",to_base16_prim,1,
-                           fd_packet_type,VOID));
-
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim3x("GZIP",gzip_prim,1,-1,VOID,
-                           fd_string_type,VOID,
-                           fd_string_type,VOID));
 }
 
 /* Emacs local variables
