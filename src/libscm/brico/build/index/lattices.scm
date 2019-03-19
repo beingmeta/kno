@@ -7,7 +7,7 @@
   (when done (commit) (clearcaches))
   (unless done (index-lattice/prefetch (qc oids))))
 
-(define (index-node f thread-index)
+(define (index-lattices f thread-index)
   (index-frame* thread-index f genls* genls specls*)
   (index-frame* thread-index f partof* partof parts*)
   (index-frame* thread-index f memberof* memberof members*)
@@ -19,7 +19,7 @@
 			   (index/branch index)
 			   index)))
     (prefetch-oids! frames)
-    (do-choices (f frames) (index-node f thread-index))
+    (do-choices (f frames) (index-lattices f thread-index))
     (unless (eq? index thread-index)
       (branch/commit! thread-index))
     (swapout frames)))
@@ -42,9 +42,7 @@
 	combined)))
 
 (define (main . names)
-  (let* ((pools (use-pool (if (null? names)
-			      brico.pool
-			      (elts names))))
+  (let* ((pools (use-pool (try (elts names) brico-pool-names)))
 	 (frames (if (config 'JUST)
 		     (sample-n (pool-elts pools) (config 'just))
 		     (pool-elts pools)))
@@ -60,6 +58,6 @@
 	 logchecks #t])
     (commit)))
 
-(when (config 'optimize #f config:boolean)
+(when (config 'optimize #t config:boolean)
   (optimize! '{brico engine fifo brico/indexing})
   (optimize!))

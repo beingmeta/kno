@@ -95,9 +95,8 @@
     (swapout frames)))
 
 (define (main . names)
-  (config! 'appid  "indexcore ")
-  (let* ((pools (use-pool (if (null? names) brico.pool
-			      (elts names))))
+  (config! 'appid  "indexcore")
+  (let* ((pools (use-pool (try (elts names) brico-pool-names)))
 	 (core.index (target-index core-index))
 	 (latlong.index (target-index latlong-index))
 	 (wordnet.index (target-index wordnet-index))
@@ -123,7 +122,7 @@
 	(index-frame wordnet.index f '{word of sensenum language rank type}))
       (commit wordnet.index))))
 
-(when (config 'optimize #t)
+(when (config 'optimize #t config:boolean)
   (optimize! '{brico brico/indexing tinygis fifo engine})
   (optimize!))
 

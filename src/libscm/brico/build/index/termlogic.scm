@@ -93,9 +93,7 @@
     (swapout concepts)))
 
 (define (main . names)
-  (let* ((pools (use-pool (if (empty-list? names)
-			      (mkpath indir brico-pool-names)
-			      (elts names))))
+  (let* ((pools (use-pool (try (elts names) brico-pool-names)))
 	 (termlogic.index (target-index "termlogic.index"))
 	 (target termlogic.index))
     (if (config 'phase2) (config! 'appid "termlogic2") (config! 'appid "termlogic1"))
@@ -116,3 +114,7 @@
 
 (optimize! '{brico engine fifo brico/indexing})
 (optimize!)
+
+(when (config 'optimize #t config:boolean)
+  (optimize! '{brico engine fifo brico/indexing})
+  (optimize!))

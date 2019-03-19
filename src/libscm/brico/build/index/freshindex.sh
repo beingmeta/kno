@@ -1,10 +1,9 @@
 #!/bin/sh
-INSRC=${1:-./brico/}
-OUTSRC=${1:-./fresh/}
-index/core.scm INDIR=${INSRC} OUTDIR=${OUTSRC} BRICOSOURCE=${INSRC}
-index/lattice.scm INDIR=${INSRC} OUTDIR=${OUTSRC} BRICOSOURCE=${INSRC}
-index/links.scm INDIR=${INSRC} OUTDIR=${OUTSRC} BRICOSOURCE=${INSRC}
-index/english.scm INDIR=${INSRC} OUTDIR=${OUTSRC} BRICOSOURCE=${INSRC}
-index/words.scm INDIR=${INSRC} OUTDIR=${OUTSRC} BRICOSOURCE=${INSRC}
-index/termlogic.scm INDIR=${INSRC} OUTDIR=${OUTSRC} BRICOSOURCE=${INSRC}
-
+INPUTS=${1:-./brico/}
+OUTPUTS=${1:-./fresh/}
+index/core.scm INDIR=${INPUTS} OUTDIR=${OUTPUTS} BRICOSOURCE=${INPUTS} ${INPUTS}/brico.pool
+index/lattices.scm INDIR=${INPUTS} OUTDIR=${OUTPUTS} BRICOSOURCE=${INPUTS} ${INPUTS}/brico.pool
+index/relations.scm INDIR=${INPUTS} OUTDIR=${OUTPUTS} BRICOSOURCE=${INPUTS} ${INPUTS}/brico.pool
+index/english.scm INDIR=${INPUTS} OUTDIR=${OUTPUTS} BRICOSOURCE=${INPUTS} ${INPUTS}/brico.pool
+index/words.scm INDIR=${INPUTS} OUTDIR=${OUTPUTS} BRICOSOURCE=${INPUTS} ${INPUTS}/brico.pool
+index/termlogic.scm INDIR=${INPUTS} OUTDIR=${OUTPUTS} BRICOSOURCE=${INPUTS} ${INPUTS}/brico.pool
