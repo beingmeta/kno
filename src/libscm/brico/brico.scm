@@ -545,16 +545,14 @@
 
 (defambda (brico-prefetch! concepts (slotids default-brico-slotids) (inparallel #f))
   (if inparallel
-      (parallel (prefetch-oids! concepts)
-		(prefetch-keys!
-		 (cons (choice (get slotids 'inverse)
-			       (get (pick (get slotids 'slots) oid?) 'inverse))
-		       concepts)))
+      (let ((threads {(thread/call prefetch-oids! concepts)
+		      (for-choices (slotid {(get (pickoids slotids) 'inverse)
+					    (get (get (pickoids (get slotids 'slots)) 'inverse))))
+			(thread/call ??/prefetch! slotid concepts))}))
+	(thread/wait threads))
       (begin (prefetch-oids! concepts)
-	     (prefetch-keys!
-	      (cons (choice (get slotids 'inverse)
-			    (get (pick (get slotids 'slots) oid?) 'inverse))
-		    concepts)))))
+	(??/prefetch! (get slotids 'inverse) concepts)
+	(??/prefetch! (get (pick (get slotids 'slots) oid?) 'inverse) concepts))))
 
 (defambda (brico-prefetch concepts (slotids default-brico-slotids))
   (brico-prefetch! concepts)
@@ -698,11 +696,10 @@
 		    (vector 'refterms refterms)))
 
 (defambda (concept-frequency-prefetch concepts language words)
-  (prefetch-keys! (cons (pick (elts (map second freqfns)) oid?)
-			concepts))
+  (??/prefetch! (pick (elts (map second freqfns)) oid?) concepts)
   (when (and use-wordforms (eq? language english) (exists? words))
-    (prefetch-keys! (choice (cons 'of (pick concepts brico-pool))
-			    (cons 'word words))))
+    (parallel (??/prefetch! 'of (pick concepts brico-pool))
+	      (??/prefetch! 'word words)))
   (prefetch-oids! (?? 'of (pick concepts brico-pool)
 		      'word words)))
 
