@@ -56,6 +56,16 @@
 #include <signal.h>
 #endif
 
+#if (HAVE_SYS_RESOURCE_H)
+#include <sys/resource.h>
+#elif (HAVE_RESOURCE_H)
+#include <resource.h>
+#endif
+
+#if HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
+
 #if ((HAVE_SYS_VFS_H)&&(HAVE_STATFS))
 #include <sys/vfs.h>
 #elif ((HAVE_SYS_FSTAT_H)&&(HAVE_STATFS))
@@ -66,12 +76,15 @@ static u8_condition RedirectFailed = "Redirect failed";
 
 static lispval id_symbol, stdin_symbol, stdout_symbol, stderr_symbol;
 
+static int handle_procopts(lispval opts);
+
 #define FD_IS_SCHEME 1
 #define FD_DO_FORK 2
 #define FD_DO_WAIT 4
 #define FD_DO_LOOKUP 8
 
-static lispval exec_helper(u8_context caller,int flags,
+static lispval exec_helper(u8_context caller,
+                           int flags,lispval opts,
                            int n,lispval *args)
 {
   if (!(STRINGP(args[0])))
@@ -158,6 +171,7 @@ static lispval exec_helper(u8_context caller,int flags,
         return FD_INT(retval);}
 #endif
       return FD_INT(pid);}
+    handle_procopts(opts);
     if (flags&FD_IS_SCHEME)
       retval = execvp(FD_EXEC,argv);
     else if (flags&FD_DO_LOOKUP)
@@ -187,7 +201,7 @@ DCLPRIM("EXEC",exec_prim,MIN_ARGS(1)|FD_VAR_ARGS,
         "should be the path of an executable program file.")
 static lispval exec_prim(int n,lispval *args)
 {
-  return exec_helper("exec_prim",0,n,args);
+  return exec_helper("exec_prim",0,n,FD_FALSE,args);
 }
 
 DCLPRIM("EXEC/CMD",exec_cmd_prim,MIN_ARGS(1)|FD_VAR_ARGS,
@@ -202,7 +216,7 @@ DCLPRIM("EXEC/CMD",exec_cmd_prim,MIN_ARGS(1)|FD_VAR_ARGS,
         "the path of an executable program file.")
 static lispval exec_cmd_prim(int n,lispval *args)
 {
-  return exec_helper("exec_cmd_prim",FD_DO_LOOKUP,n,args);
+  return exec_helper("exec_cmd_prim",FD_DO_LOOKUP,n,FD_FALSE,args);
 }
 
 DCLPRIM("FDEXEC",fdexec_prim,MIN_ARGS(1)|FD_VAR_ARGS,
@@ -215,7 +229,7 @@ DCLPRIM("FDEXEC",fdexec_prim,MIN_ARGS(1)|FD_VAR_ARGS,
         "can also be explicitly provided in the string *command*.\n")
 static lispval fdexec_prim(int n,lispval *args)
 {
-  return exec_helper("fdexec_prim",FD_IS_SCHEME,n,args);
+  return exec_helper("fdexec_prim",FD_IS_SCHEME,n,FD_FALSE,args);
 }
 
 DCLPRIM("FORK",fork_prim,MIN_ARGS(1)|FD_VAR_ARGS,
@@ -235,7 +249,7 @@ static lispval fork_prim(int n,lispval *args)
       long long int_pid = (long long) pid;
       return FD_INT2DTYPE(int_pid);}
     else return FD_FALSE;}
-  else return exec_helper("fork_prim",FD_DO_FORK,n,args);
+  else return exec_helper("fork_prim",FD_DO_FORK,n,FD_FALSE,args);
 }
 
 DCLPRIM("FORK/CMD",fork_cmd_prim,MIN_ARGS(1)|FD_VAR_ARGS,
@@ -251,7 +265,7 @@ DCLPRIM("FORK/CMD",fork_cmd_prim,MIN_ARGS(1)|FD_VAR_ARGS,
         "the path of an executable program file.")
 static lispval fork_cmd_prim(int n,lispval *args)
 {
-  return exec_helper("fork_cmd_prim",(FD_DO_FORK|FD_DO_LOOKUP),n,args);
+  return exec_helper("fork_cmd_prim",(FD_DO_FORK|FD_DO_LOOKUP),n,FD_FALSE,args);
 }
 
 DCLPRIM("FDFORK",fdfork_prim,MIN_ARGS(1)|FD_VAR_ARGS,
@@ -265,7 +279,7 @@ DCLPRIM("FDFORK",fdfork_prim,MIN_ARGS(1)|FD_VAR_ARGS,
         "can also be explicitly provided in the string *command*.\n")
 static lispval fdfork_prim(int n,lispval *args)
 {
-  return exec_helper("fdfork_prim",(FD_IS_SCHEME|FD_DO_FORK),n,args);
+  return exec_helper("fdfork_prim",(FD_IS_SCHEME|FD_DO_FORK),n,FD_FALSE,args);
 }
 
 DCLPRIM("FORK/WAIT",fork_wait_prim,MIN_ARGS(1)|FD_VAR_ARGS,
@@ -280,7 +294,7 @@ DCLPRIM("FORK/WAIT",fork_wait_prim,MIN_ARGS(1)|FD_VAR_ARGS,
         "should be the path of an executable program file.")
 static lispval fork_wait_prim(int n,lispval *args)
 {
-  return exec_helper("fork_wait_prim",(FD_DO_FORK|FD_DO_WAIT),n,args);
+  return exec_helper("fork_wait_prim",(FD_DO_FORK|FD_DO_WAIT),n,FD_FALSE,args);
 }
 
 DCLPRIM("FORK/CMD/WAIT",fork_cmd_wait_prim,MIN_ARGS(1)|FD_VAR_ARGS,
@@ -297,7 +311,7 @@ DCLPRIM("FORK/CMD/WAIT",fork_cmd_wait_prim,MIN_ARGS(1)|FD_VAR_ARGS,
 static lispval fork_cmd_wait_prim(int n,lispval *args)
 {
   return exec_helper("fork_cmd_wait_prim",
-                     (FD_DO_FORK|FD_DO_LOOKUP|FD_DO_WAIT),n,args);
+                     (FD_DO_FORK|FD_DO_LOOKUP|FD_DO_WAIT),n,FD_FALSE,args);
 }
 
 DCLPRIM("FDFORK/WAIT",fdfork_wait_prim,MIN_ARGS(1)|FD_VAR_ARGS,
@@ -313,7 +327,7 @@ static lispval fdfork_wait_prim(int n,lispval *args)
 {
   return exec_helper("fdfork_wait_prim",
                      (FD_IS_SCHEME|FD_DO_FORK|FD_DO_WAIT),
-                     n,args);
+                     n,FD_FALSE,args);
 }
 
 /* SUBJOBs */
@@ -488,7 +502,7 @@ static lispval subjob_open(int n,lispval *args)
       else NO_ELSE;
       if (rv<0) {exit(1);}
       int exec_result = exec_helper("fd_subjob",SUBJOB_EXEC_FLAGS,
-                                    n-1,args+1);
+                                    n-1,opts,args+1);
       if (exec_result < 0) {
         u8_log(LOG_CRIT,"ExecFailed","Couldn't launch subjob %s",id);
         exit(1);}
@@ -641,6 +655,206 @@ static lispval pid_kill_prim(lispval pid_arg,lispval sig_arg)
   else return fd_type_error("signal","pid_kill_prim",sig_arg);
 }
 
+/* Generic rlimits */
+
+lispval fd_rlimit_codes = FD_EMPTY;
+
+DCLPRIM2("GETRLIMIT",getrlimit_prim,MAX_ARGS(2)|MIN_ARGS(1),
+         "`(GETRLIMIT *resource* [*getmax*])` gets the *resource* "
+         "resource limit for the current process. If *getmax* is true, "
+         "gets the maximum resource limit.",
+         fd_symbol_type,FD_VOID,-1,FD_VOID)
+static lispval getrlimit_prim(lispval resname,lispval which)
+{
+  struct rlimit lim;
+  long long resnum = -1;
+  lispval rescode = fd_get(fd_rlimit_codes,resname,FD_VOID);
+  if (FD_UINTP(rescode))
+    resnum = FD_FIX2INT(rescode);
+  else return fd_err(_("BadRLIMITKey"),"setrlimit_prim",NULL,resname);
+  int rv = getrlimit(resnum,&lim);
+  if (rv < 0) {
+    u8_string errstring = u8_strerror(errno); errno=0;
+    return fd_err("RLimitFailed","getrlimit_prim",errstring,resname);}
+  if (FD_TRUEP(which)) {
+    long long curlim = (long long) lim.rlim_cur;
+    long long maxlim = (long long) lim.rlim_max;
+    return fd_init_pair(NULL,
+                        ( (curlim<0) ? (FD_FALSE) : (FD_INT(curlim)) ),
+                        ( (maxlim<0) ? (FD_FALSE) : (FD_INT(maxlim)) ));}
+  else {
+    long long curlim = (long long) lim.rlim_cur;
+    if (curlim < 0)
+      return FD_FALSE;
+    else return FD_INT(curlim);}
+}
+
+DCLPRIM3("SETRLIMIT!",setrlimit_prim,MAX_ARGS(2)|MIN_ARGS(2),
+         "`(SETRLIMIT! *resource* *value* [*setmax*])` sets the resource "
+         "limit *resource* (symbol) to *value* for the current process. If "
+         "*setmax* is true, sets the maximium resource value if allowed.",
+         fd_symbol_type,FD_VOID,-1,FD_VOID,-1,FD_VOID)
+static lispval setrlimit_prim(lispval resname,lispval limit_val,
+                              lispval setmax_arg)
+{
+
+  struct rlimit lim;
+  long long resnum = -1;
+  long long resval = -1;
+  lispval rescode = fd_get(fd_rlimit_codes,resname,FD_VOID);
+  int setmax = (FD_TRUEP(setmax_arg));
+  if (FD_UINTP(rescode))
+    resnum = FD_FIX2INT(rescode);
+  else return fd_err(_("BadRLIMITKey"),"setrlimit_prim",NULL,resname);
+  if (FD_UINTP(limit_val))
+    resval = FD_FIX2INT(limit_val);
+  else if ( (FD_FIXNUMP(limit_val)) || (FD_FALSEP(limit_val)) )
+    resval = RLIM_INFINITY;
+  else return fd_err(fd_TypeError,"setrlimit_prim",NULL,limit_val);
+  int rv = getrlimit(FD_FIX2INT(rescode),&lim);
+  if (rv < 0) {
+    u8_string errstring = u8_strerror(errno); errno=0;
+    return fd_err("RLimitFailed","setrlimit_prim/getrlimit",errstring,resname);}
+  if (setmax)
+    lim.rlim_max = resval;
+  else lim.rlim_cur = resval;
+  rv = setrlimit(resnum,&lim);
+  if (rv < 0) {
+    u8_string errstring = u8_strerror(errno); errno=0;
+    return fd_err(_("SetRLIMITFailed"),"setrlimit_prim",errstring,resname);}
+  return FD_TRUE;
+}
+
+/* Corelimit config variable */
+
+static lispval corelimit_get(lispval symbol,void *vptr)
+{
+  struct rlimit limit;
+  int rv = getrlimit(RLIMIT_CORE,&limit);
+  if (rv<0) {
+    u8_graberr(errno,"corelimit_get",NULL);
+    return FD_ERROR;}
+  else return FD_INT(limit.rlim_cur);
+}
+
+static int corelimit_set(lispval symbol,lispval value,void *vptr)
+{
+  struct rlimit limit; int rv;
+  if (FIXNUMP(value))
+    limit.rlim_cur = limit.rlim_max = FIX2INT(value);
+  else if (FD_TRUEP(value))
+    limit.rlim_cur = limit.rlim_max = RLIM_INFINITY;
+  else if (TYPEP(value,fd_bigint_type))
+    limit.rlim_cur = limit.rlim_max = fd_bigint_to_long_long
+      ((struct FD_BIGINT *)(value));
+  else {
+    fd_seterr(fd_TypeError,"corelimit",NULL,value);
+    return -1;}
+  rv = setrlimit(RLIMIT_CORE,&limit);
+  if (rv<0) return rv;
+  else return 1;
+}
+
+/* RLIMIT tables */
+
+#define DECL_RLIMIT(name) \
+  fd_store(fd_rlimit_codes,fd_intern(# name),FD_INT(name))
+#define DECL_RLIMIT_ALIAS(alias,code)                                 \
+  fd_store(fd_rlimit_codes,fd_intern(alias),FD_INT(code))
+
+static void init_rlimit_codes()
+{
+  fd_rlimit_codes = fd_empty_slotmap();
+  DECL_RLIMIT(RLIMIT_AS);
+  DECL_RLIMIT_ALIAS("VMEM",RLIMIT_AS);
+  DECL_RLIMIT(RLIMIT_CORE);
+  DECL_RLIMIT(RLIMIT_CPU);
+  DECL_RLIMIT_ALIAS("CPU",RLIMIT_CPU);
+  DECL_RLIMIT(RLIMIT_DATA);
+  DECL_RLIMIT_ALIAS("HEAP",RLIMIT_DATA);
+  DECL_RLIMIT(RLIMIT_FSIZE);
+  DECL_RLIMIT_ALIAS("FILESIZE",RLIMIT_FSIZE);
+#ifdef RLIMIT_LOCKS
+  DECL_RLIMIT(RLIMIT_LOCKS);
+#endif
+#ifdef RLIMIT_MEMLOCK
+  DECL_RLIMIT(RLIMIT_MEMLOCK);
+#endif
+#ifdef RLIMIT_MSGQUEUE
+  DECL_RLIMIT(RLIMIT_MSGQUEUE);
+#endif
+#ifdef RLIMIT_NICE
+  DECL_RLIMIT(RLIMIT_NICE);
+#endif
+  DECL_RLIMIT(RLIMIT_NOFILE);
+  DECL_RLIMIT_ALIAS("MAXFILES",RLIMIT_NOFILE);
+  DECL_RLIMIT(RLIMIT_NPROC);
+  DECL_RLIMIT_ALIAS("MAXPROCS",RLIMIT_NPROC);
+  DECL_RLIMIT(RLIMIT_RSS);
+  DECL_RLIMIT_ALIAS("RESIDENT",RLIMIT_RSS);
+#ifdef RLIMIT_RTPRIO
+  DECL_RLIMIT(RLIMIT_RTPRIO);
+#endif
+#ifdef RLIMIT_RTIME
+  DECL_RLIMIT(RLIMIT_RTIME);
+#endif
+#ifdef RLIMIT_SIGPENDING
+  DECL_RLIMIT(RLIMIT_SIGPENDING);
+#endif
+  DECL_RLIMIT(RLIMIT_STACK);
+}
+
+/* Handling procopts */
+
+static lispval nice_symbol = FD_VOID;
+
+static int handle_procopts(lispval opts)
+{
+  if ( (FD_FALSEP(opts)) || (FD_VOIDP(opts)) ) return 0;
+  lispval limit_keys = fd_getkeys(fd_rlimit_codes);
+  DO_CHOICES(opt,limit_keys) {
+    lispval optval = fd_getopt(opts,opt,FD_VOID);
+    if (FD_VOIDP(optval)) continue;
+    else {
+      lispval setval = setrlimit_prim(opt,optval,FD_FALSE);
+      if (FD_ABORTP(setval)) {
+        u8_log(LOGWARN,"RlimitFailed","Couldn't set %q",opt);
+        fd_clear_errors(1);}
+      else u8_log(LOGNOTICE,"RlimitChanged","Set %q to %q",opt,optval);
+      fd_decref(optval);}}
+  fd_decref(limit_keys);
+  lispval niceval = fd_getopt(opts,nice_symbol,FD_VOID);
+  if (FD_FIXNUMP(niceval)) {
+    int nv = FD_FIX2INT(niceval); errno = 0;
+    int rv = nice(nv);
+    if (errno) {
+      u8_string errstring = u8_strerror(errno); errno=0;
+      u8_log(LOGCRIT,"ReNiceFailed","With %s, setting to %d",
+             errstring,FD_FIX2INT(niceval));}
+    else u8_log(LOGNOTICE,"Renice","To %d for %d",rv,FD_FIX2INT(niceval));
+    return 0;}
+  else if (!(FD_VOIDP(niceval))) {
+    u8_log(LOGWARN,"BadNiceValue","handle_procopts %q",niceval);
+    return -1;}
+  else return 0;
+ }
+
+/* The nice prim */
+
+DCLPRIM1("NICE",nice_prim,MIN_ARGS(0),
+         "Returns or adjusts the priority for the current process",
+         fd_fixnum_type,FD_VOID)
+static lispval nice_prim(lispval delta_arg)
+{
+  int delta = (!(FD_FIXNUMP(delta_arg))) ? (0) : (FD_FIX2INT(delta_arg));
+  errno = 0;
+  int rv = nice(delta);
+  if (errno) {
+    u8_string errstring = u8_strerror(errno); errno=0;
+    return fd_err("NiceFailed","nice_prim",errstring,delta);}
+  else return FD_INT(rv);
+}
+
 /* The init function */
 
 static int scheme_procprims_initialized = 0;
@@ -654,6 +868,8 @@ FD_EXPORT void fd_init_procprims_c()
   procprims_module =
     fd_new_cmodule("PROCPRIMS",(FD_MODULE_DEFAULT),fd_init_procprims_c);
   u8_register_source_file(_FILEINFO);
+
+  init_rlimit_codes();
 
   DECL_PRIM_N(exec_prim,procprims_module);
   DECL_PRIM_N(exec_cmd_prim,procprims_module);
@@ -669,6 +885,8 @@ FD_EXPORT void fd_init_procprims_c()
   DECL_PRIM_N(fdfork_wait_prim,procprims_module);
 #endif
 
+  DECL_PRIM(nice_prim,1,procprims_module);
+
   fd_subjob_type = fd_register_cons_type("subjob");
   fd_unparsers[fd_subjob_type] = unparse_subjob;
   fd_recyclers[fd_subjob_type] = recycle_subjob;
@@ -677,6 +895,7 @@ FD_EXPORT void fd_init_procprims_c()
   stdin_symbol = fd_intern("STDIN");
   stdout_symbol = fd_intern("STDOUT");
   stderr_symbol = fd_intern("STDERR");
+  nice_symbol = fd_intern("NICE");
 
   DECL_PRIM_N(subjob_open,procprims_module);
 
@@ -698,6 +917,13 @@ FD_EXPORT void fd_init_procprims_c()
   DECL_PRIM(pid_kill_prim,2,procprims_module);
   DECL_PRIM(exit_prim,1,procprims_module);
   DECL_PRIM(fast_exit_prim,1,procprims_module);
+
+  DECL_PRIM(getrlimit_prim,2,fd_scheme_module);
+  DECL_PRIM(setrlimit_prim,3,fd_scheme_module);
+
+  fd_register_config
+    ("CORELIMIT",_("Set core size limit"),
+     corelimit_get,corelimit_set,NULL);
 
   fd_finish_module(procprims_module);
 }

@@ -20,6 +20,8 @@ typedef struct FD_SUBJOB {
 
 FD_EXPORT fd_ptr_type fd_subjob_type;
 
+FD_EXPORT lispval fd_rlimit_codes;
+
 #endif
 
 /* Emacs local variables

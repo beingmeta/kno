@@ -741,36 +741,6 @@ static long long get_available_memory()
   return retval;
 }
 
-/* Corelimit config variable */
-
-static lispval corelimit_get(lispval symbol,void *vptr)
-{
-  struct rlimit limit;
-  int rv = getrlimit(RLIMIT_CORE,&limit);
-  if (rv<0) {
-    u8_graberr(errno,"corelimit_get",NULL);
-    return FD_ERROR;}
-  else return FD_INT(limit.rlim_cur);
-}
-
-static int corelimit_set(lispval symbol,lispval value,void *vptr)
-{
-  struct rlimit limit; int rv;
-  if (FIXNUMP(value))
-    limit.rlim_cur = limit.rlim_max = FIX2INT(value);
-  else if (FD_TRUEP(value))
-    limit.rlim_cur = limit.rlim_max = RLIM_INFINITY;
-  else if (TYPEP(value,fd_bigint_type))
-    limit.rlim_cur = limit.rlim_max = fd_bigint_to_long_long
-      ((struct FD_BIGINT *)(value));
-  else {
-    fd_seterr(fd_TypeError,"corelimit",NULL,value);
-    return -1;}
-  rv = setrlimit(RLIMIT_CORE,&limit);
-  if (rv<0) return rv;
-  else return 1;
-}
-
 /* Initialization */
 
 FD_EXPORT void fd_init_procprims_c(void);
@@ -861,16 +831,11 @@ FD_EXPORT void fd_init_sysprims_c()
   DECL_PRIM(getppid_prim,0,fd_scheme_module);
   DECL_PRIM(threadid_prim,0,fd_scheme_module);
   DECL_PRIM(stacksize_prim,0,fd_scheme_module);
-  DECL_PRIM(getprocstring_prim,0,fd_scheme_module);
 
   fd_def_evalfn(fd_scheme_module,"#ENV",
                 "#:ENV\"HOME\" or #:ENV:HOME\n"
                 "evaluates to an environment variable",
                 getenv_macro);
-
-  fd_register_config
-    ("CORELIMIT",_("Set core size limit"),
-     corelimit_get,corelimit_set,NULL);
 
   fd_init_procprims_c();
 
