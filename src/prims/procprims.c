@@ -725,36 +725,6 @@ static lispval setrlimit_prim(lispval resname,lispval limit_val,
   return FD_TRUE;
 }
 
-/* Corelimit config variable */
-
-static lispval corelimit_get(lispval symbol,void *vptr)
-{
-  struct rlimit limit;
-  int rv = getrlimit(RLIMIT_CORE,&limit);
-  if (rv<0) {
-    u8_graberr(errno,"corelimit_get",NULL);
-    return FD_ERROR;}
-  else return FD_INT(limit.rlim_cur);
-}
-
-static int corelimit_set(lispval symbol,lispval value,void *vptr)
-{
-  struct rlimit limit; int rv;
-  if (FIXNUMP(value))
-    limit.rlim_cur = limit.rlim_max = FIX2INT(value);
-  else if (FD_TRUEP(value))
-    limit.rlim_cur = limit.rlim_max = RLIM_INFINITY;
-  else if (TYPEP(value,fd_bigint_type))
-    limit.rlim_cur = limit.rlim_max = fd_bigint_to_long_long
-      ((struct FD_BIGINT *)(value));
-  else {
-    fd_seterr(fd_TypeError,"corelimit",NULL,value);
-    return -1;}
-  rv = setrlimit(RLIMIT_CORE,&limit);
-  if (rv<0) return rv;
-  else return 1;
-}
-
 /* RLIMIT tables */
 
 #define DECL_RLIMIT(name) \
@@ -768,6 +738,7 @@ static void init_rlimit_codes()
   DECL_RLIMIT(RLIMIT_AS);
   DECL_RLIMIT_ALIAS("VMEM",RLIMIT_AS);
   DECL_RLIMIT(RLIMIT_CORE);
+  DECL_RLIMIT_ALIAS("COREFILE",RLIMIT_CORE);
   DECL_RLIMIT(RLIMIT_CPU);
   DECL_RLIMIT_ALIAS("CPU",RLIMIT_CPU);
   DECL_RLIMIT(RLIMIT_DATA);
@@ -920,10 +891,6 @@ FD_EXPORT void fd_init_procprims_c()
 
   DECL_PRIM(getrlimit_prim,2,fd_scheme_module);
   DECL_PRIM(setrlimit_prim,3,fd_scheme_module);
-
-  fd_register_config
-    ("CORELIMIT",_("Set core size limit"),
-     corelimit_get,corelimit_set,NULL);
 
   fd_finish_module(procprims_module);
 }

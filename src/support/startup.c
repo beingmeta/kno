@@ -37,6 +37,11 @@
 #include <sys/resource.h>
 #endif
 
+#if HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
+
+
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -849,6 +854,46 @@ FD_EXPORT int fd_boot_message()
   return 1;
 }
 
+/* LIMIT configs */
+
+/* Corelimit config variable */
+
+static lispval rlimit_get(lispval symbol,void *rlimit_id)
+{
+  struct rlimit limit;
+  long long RLIMIT_ID = (long long) rlimit_id;
+  int rv = getrlimit(RLIMIT_ID,&limit);
+  if (rv<0) {
+    u8_graberr(errno,"rlimit_get",FD_SYMBOL_NAME(symbol));
+    return FD_ERROR;}
+  else return FD_INT(limit.rlim_cur);
+}
+
+static int rlimit_set(lispval symbol,lispval value,void *rlimit_id)
+{
+  struct rlimit limit;
+  long long RLIMIT_ID = (long long) rlimit_id;
+  int rv = getrlimit(RLIMIT_ID,&limit);
+  if (rv<0) {
+    u8_graberr(errno,"rlimit_set",FD_SYMBOL_NAME(symbol));
+    return -1;}
+  else if (FIXNUMP(value))
+    limit.rlim_cur = FIX2INT(value);
+  else if (FD_TRUEP(value))
+    limit.rlim_cur = RLIM_INFINITY;
+  else if (TYPEP(value,fd_bigint_type))
+    limit.rlim_cur =
+      fd_bigint_to_long_long((struct FD_BIGINT *)(value));
+  else {
+    fd_seterr(fd_TypeError,"rlimit_set",NULL,value);
+    return -1;}
+  rv = setrlimit(RLIMIT_ID,&limit);
+  if (rv<0) {
+    u8_graberr(errno,"rlimit_set",FD_SYMBOL_NAME(symbol));
+    return rv;}
+  else return 1;
+}
+
 /* STDIO redirects */
 
 u8_string stdin_filename = NULL;
@@ -1148,6 +1193,23 @@ void fd_init_startup_c()
 
   fd_register_config("EXITING",_("Whether this process is exiting"),
                      fd_boolconfig_get,fd_boolconfig_set,&fd_exiting);
+
+
+  fd_register_config
+    ("CORELIMIT",_("Set core size limit"),
+     rlimit_get,rlimit_set,(void *)RLIMIT_CORE);
+  fd_register_config
+    ("CPULIMIT",_("Set cpu time limit (in seconds)"),
+     rlimit_get,rlimit_set,((void *)RLIMIT_CPU));
+  fd_register_config
+    ("RSSLIMIT",_("Set resident memory limit"),
+     rlimit_get,rlimit_set,(void *)RLIMIT_RSS);
+  fd_register_config
+    ("VMEMLIMIT",_("Set total VMEM limit"),
+     rlimit_get,rlimit_set,(void *)RLIMIT_AS);
+  fd_register_config
+    ("HEAPLIMIT",_("Set total heap (DATA segment) limit"),
+     rlimit_get,rlimit_set,(void *)RLIMIT_DATA);
 
 }
 
