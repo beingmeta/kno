@@ -69,8 +69,6 @@ static u8_condition ServletAbort=_("FDServlet/ABORT");
 static u8_condition NoServers=_("No servers configured");
 #define Startup ServletStartup
 
-static int daemonize = 0, foreground = 0, pidwait = 1;
-
 static const sigset_t *server_sigmask;
 
 FD_EXPORT int fd_init_dbserv(void);
@@ -1854,11 +1852,6 @@ static void register_servlet_configs()
   fd_register_config("ASYNCMODE",_("Whether to run in asynchronous mode"),
                      fd_boolconfig_get,fd_boolconfig_set,&async_mode);
 
-  fd_register_config("RESTART",_("Whether to enable auto-restart"),
-                     fd_boolconfig_get,fd_boolconfig_set,&daemonize);
-  fd_register_config("PIDWAIT",_("Whether to wait for the servlet PID file"),
-                     fd_boolconfig_get,fd_boolconfig_set,&pidwait);
-
   fd_register_config("U8LOGLISTEN",
                      _("Whether to have libu8 log each monitored address"),
                      config_get_u8server_flag,config_set_u8server_flag,
@@ -1960,15 +1953,10 @@ int main(int argc,char **argv)
   u8_init_chardata_c();
 #endif
 
-  fd_register_config("FOREGROUND",_("Whether to run in the foreground"),
-                     fd_boolconfig_get,fd_boolconfig_set,&foreground);
-
   /* Find the socket spec (the non-config arg) */
   i = 1; while (i<argc) {
     if (isconfig(argv[i])) {
       u8_log(LOG_NOTICE,"FDServletConfig","    %s",argv[i]);
-      if (strncasecmp(argv[i],"foreground=",strlen("foreground="))==0) {
-        fd_config_assignment(argv[i]);}
       i++;}
     else if (socket_spec) i++;
     else {
@@ -1984,19 +1972,17 @@ int main(int argc,char **argv)
     char *envfile = getenv("LOGFILE");
     if ((envfile)&&(envfile[0])&&(strcmp(envfile,"-")))
       logfile = u8_fromlibc(envfile);}
-  else if ((getenv("LOGDIR"))&&(socket_spec)) {
+  else if (socket_spec == NULL) {
+    u8_log(LOG_WARN,Startup,"No socket file to name logfile, using stdout");}
+  else {
+    u8_string logdir = getenv("LOGDIR");
+    if (logdir == NULL) logdir=FD_SERVLET_LOG_DIR;
     u8_string base = u8_basename(socket_spec,"*");
     u8_string logname = u8_mkstring("%s.log",base);
-    logfile = u8_mkpath(getenv("LOGDIR"),logname);
+    logfile = u8_mkpath(logdir,logname);
     u8_free(logname);
     u8_free(base);}
-  else if ((!(foreground))&&(socket_spec)) {
-    u8_string base = u8_basename(socket_spec,"*");
-    u8_string logname = u8_mkstring("%s.log",base);
-    logfile = u8_mkpath(FD_SERVLET_LOG_DIR,logname);
-    u8_free(logname);
-    u8_free(base);}
-  else u8_log(LOG_WARN,Startup,"No logfile, using stdout");
+
 
   /* Close and reopen STDIN */
   close(0);  if (open("/dev/null",O_RDONLY) == -1) {
