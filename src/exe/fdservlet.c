@@ -1988,18 +1988,54 @@ int main(int argc,char **argv)
     u8_string base = u8_basename(socket_spec,"*");
     u8_string logname = u8_mkstring("%s.log",base);
     logfile = u8_mkpath(getenv("LOGDIR"),logname);
-    u8_free(base); u8_free(logname);}
+    u8_free(logname);
+    u8_free(base);}
   else if ((!(foreground))&&(socket_spec)) {
     u8_string base = u8_basename(socket_spec,"*");
     u8_string logname = u8_mkstring("%s.log",base);
     logfile = u8_mkpath(FD_SERVLET_LOG_DIR,logname);
-    u8_free(base); u8_free(logname);}
+    u8_free(logname);
+    u8_free(base);}
   else u8_log(LOG_WARN,Startup,"No logfile, using stdout");
 
   /* Close and reopen STDIN */
   close(0);  if (open("/dev/null",O_RDONLY) == -1) {
     u8_log(LOG_CRIT,ServletAbort,"Unable to reopen stdin for daemon");
     exit(1);}
+
+  u8_string rungroup = getenv("RUNGROUP");
+  if (rungroup == NULL) rungroup = FD_WEBGROUP;
+  if (rungroup) {
+    u8_gid gid = u8_getgid(rungroup);
+    if (gid<0)
+      u8_log(LOGERR,"UnknownGroupName","%s",rungroup);
+    else {
+      int rv = setgid(gid);
+      if (rv<0) {
+        u8_string errstring = u8_strerror(errno); errno=0;
+        u8_log(LOGERR,"SetGroupFailed",
+               "Couldn't set group to %s (%d): %s",
+               rungroup,gid,errstring);}}}
+
+  if ( (geteuid()) == 0) {
+    /* Avoid running as root */
+    u8_string runuser = getenv("RUNUSER");
+    if (runuser == NULL) runuser = FD_WEBUSER;
+    if (runuser) {
+      u8_uid uid = u8_getgid(runuser);
+      if (uid>=0) {
+        int rv = setuid(uid);
+        if (rv < 0) {
+          u8_string errstring = u8_strerror(errno); errno=0;
+          u8_log(LOGERR,"SetUserFailed",
+                 "Couldn't set user to %s (%d): %s",
+                 runuser,uid,errstring);}}
+      else {
+        u8_log(LOGERR,"UnknownUser","%s",runuser);
+        exit(1);}}}
+
+  if ( (geteuid()) == 0)
+    u8_log(LOGCRIT,"RootUser","Running as root, probably a bad idea");
 
   /* We do this using the Unix environment (rather than configuration
      variables) for two reasons.  First, we want to redirect errors
@@ -2213,14 +2249,6 @@ static int run_servlet(u8_string socket_spec)
     u8_log(LOG_WARN,ServletStartup,"Listening on %d addresses",
            fdwebserver.n_servers);
     write_pid_file();
-    if ( (getuid()) == 0) {
-      /* Avoid running as root */
-      lispval webuser = fdstring(FD_WEBUSER);
-      lispval webgroup = fdstring(FD_WEBGROUP);
-      fd_default_config("RUNGROUP",webgroup);
-      fd_default_config("RUNUSER",webuser);
-      fd_decref(webuser);
-      fd_decref(webgroup);}
     u8_server_loop(&fdwebserver);}
   else {
     u8_log(LOG_CRIT,NoServers,"No servers configured, exiting...");
