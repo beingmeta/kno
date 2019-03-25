@@ -485,6 +485,10 @@ FD_EXPORT void fd_init_build_info()
   config_string(FD_DAEMON_RUN_DIR);
   config_string(FD_SERVLET_RUN_DIR);
   config_string(FD_DAEMON_LOG_DIR);
+  config_string(FD_WEBUSER);
+  config_string(FD_WEBGROUP);
+  config_string(FD_DAEMON);
+  config_string(FD_ADMIN_GROUP);
   config_string(FD_CONFIG_FILE_PATH);
   config_string(FD_DEFAULT_LOADPATH);
   config_string(FD_DEFAULT_SAFE_LOADPATH);

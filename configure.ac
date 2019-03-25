@@ -855,6 +855,8 @@ else
   admininstall=""
 fi
 
+AC_DEFINE_UNQUOTED(FD_ADMIN_GROUP,"$admin_group")
+
 dnl Specifies a daemon identity user/group for managed FramerD servers
 AC_ARG_WITH(fdaemon,--with-fdaemon The identity (user) for FramerD servers to run as,,with_fdaemon=$default_fdaemon)
 if test $with_fdaemon != "none"; then
@@ -866,6 +868,8 @@ else
    fdaemoninstall=""
    fdaemon=$default_fdaemon
 fi
+
+AC_DEFINE_UNQUOTED(FD_DAEMON,"$fdaemon")
 
 dnl Specifies where server state files should live
 AC_ARG_WITH(rundir,--with-rundir The default location for server state files,,with_rundir="$localstatedir/run")
@@ -912,6 +916,9 @@ else
    webgroup=$default_webgroup
    wwwinstall=""
 fi
+
+AC_DEFINE_UNQUOTED(FD_WEBUSER,"$webuser")
+AC_DEFINE_UNQUOTED(FD_WEBGROUP,"$webgroup")
 
 ### Apache
 

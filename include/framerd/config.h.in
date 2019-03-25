@@ -591,6 +591,18 @@
 /* The name of the default malloc library (used by executables) */
 #undef FD_DEFAULT_MALLOC
 
+/* Default web (servlet) user */
+#undef FD_WEBUSER
+
+/* Default web (servlet) group */
+#undef FD_WEBGROUP
+
+/* Default daemon user */
+#undef FD_DAEMON
+
+/* Default admin group */
+#undef FD_ADMIN_GROUP
+
 /* Default module dirs */
 #undef FD_LOCAL_MODULE_DIR
 #undef FD_LOCAL_SAFE_MODULE_DIR

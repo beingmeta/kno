@@ -2213,6 +2213,14 @@ static int run_servlet(u8_string socket_spec)
     u8_log(LOG_WARN,ServletStartup,"Listening on %d addresses",
            fdwebserver.n_servers);
     write_pid_file();
+    if ( (getuid()) == 0) {
+      /* Avoid running as root */
+      lispval webuser = fdstring(FD_WEBUSER);
+      lispval webgroup = fdstring(FD_WEBGROUP);
+      fd_default_config("RUNGROUP",webgroup);
+      fd_default_config("RUNUSER",webuser);
+      fd_decref(webuser);
+      fd_decref(webgroup);}
     u8_server_loop(&fdwebserver);}
   else {
     u8_log(LOG_CRIT,NoServers,"No servers configured, exiting...");

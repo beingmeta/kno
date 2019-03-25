@@ -7881,6 +7881,11 @@ else
   admininstall=""
 fi
 
+cat >>confdefs.h <<_ACEOF
+#define FD_ADMIN_GROUP "$admin_group"
+_ACEOF
+
+
 
 # Check whether --with-fdaemon was given.
 if test "${with_fdaemon+set}" = set; then :
@@ -7898,6 +7903,11 @@ else
    fdaemoninstall=""
    fdaemon=$default_fdaemon
 fi
+
+cat >>confdefs.h <<_ACEOF
+#define FD_DAEMON "$fdaemon"
+_ACEOF
+
 
 
 # Check whether --with-rundir was given.
@@ -7993,6 +8003,15 @@ else
    webgroup=$default_webgroup
    wwwinstall=""
 fi
+
+cat >>confdefs.h <<_ACEOF
+#define FD_WEBUSER "$webuser"
+_ACEOF
+
+cat >>confdefs.h <<_ACEOF
+#define FD_WEBGROUP "$webgroup"
+_ACEOF
+
 
 ### Apache
 
