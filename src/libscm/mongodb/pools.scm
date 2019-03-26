@@ -208,7 +208,6 @@
 	       (else (set! base (getopt opts 'base))
 		     (set! cap (getopt opts 'capacity #mib))
 		     (set! load (getopt opts 'load 0))
-		     (set! name (collection/name collection))
 		     (collection/insert! collection
 		       `#[_id "_pool" base ,base capacity ,cap
 			  name ,name load ,load])
