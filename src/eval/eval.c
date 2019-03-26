@@ -781,7 +781,7 @@ static lispval eval_apply(u8_string fname,
                           int tail)
 {
   int max_args = 0, min_args = 0, n_fns = 0;
-  int lambda = -1, gc_args = 0, nd_args = 0, d_prim = 1;
+  int lambda = -1, gc_args = 0, nd_args = 0, d_prim = 1, qc_args = 0;
   if (FD_EXPECT_FALSE(FD_CHOICEP(fn))) {
     FD_DO_CHOICES(f,fn) {
       if (FD_FUNCTIONP(f)) {
@@ -860,8 +860,11 @@ static lispval eval_apply(u8_string fname,
       return arg_val;}
     else if (CONSP(arg_val)) {
       if (FD_PRECHOICEP(arg_val)) arg_val = fd_simplify_choice(arg_val);
-      if ( (nd_args == 0) && (ND_ARGP(arg_val)) )
+      if ( (nd_args == 0) && (CHOICEP(arg_val)) )
         nd_args = 1;
+      else if ( (qc_args == 0) && (QCHOICEP(arg_val)) )
+        qc_args = 1;
+      else NO_ELSE;
       gc_args = 1;}
     else {}
     if (arg_i >= argbuf_len) {
@@ -874,7 +877,8 @@ static lispval eval_apply(u8_string fname,
   if ( (tail) && (lambda) && (fd_optimize_tail_calls) &&
        (! ((d_prim) && (nd_args)) ) )
     result=fd_tail_call(fn,arg_i,argbuf);
-  else if ((CHOICEP(fn)) || (PRECHOICEP(fn)) || ((d_prim) && (nd_args)))
+  else if ((CHOICEP(fn)) || (PRECHOICEP(fn)) ||
+           ((d_prim) && ( (nd_args) || (qc_args) ) ))
     result=fd_ndcall(stack,fn,arg_i,argbuf);
   else if (gc_args)
     result=fd_dcall(stack,fn,arg_i,argbuf);
