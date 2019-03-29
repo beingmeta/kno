@@ -20,7 +20,8 @@
 
 (module-export! '{engine/fetchoids engine/fetchkeys
 		  engine/poolfetch engine/indexfetch engine/swapout
-		  engine/savepool engine/saveindex engine/savetable})
+		  engine/savepool engine/saveindex engine/savetable
+		  engine/lockoids})
 
 (module-export! '{engine/stopfn engine/callif
 		  engine/interval engine/maxitems
@@ -985,6 +986,9 @@ slot of the loop state.
   (prefetch-keys! oids))
 (define (engine/swapout args (batch-state #f) (loop-state #f) (state #f))
   (swapout args))
+(define (engine/lockoids oids (batch-state #f) (loop-state #f) (state #f))
+  (lock-oids! oids)
+  (prefetch-oids! oids))
 
 ;;;; Utility meta-functions
 
