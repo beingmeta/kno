@@ -617,7 +617,7 @@ static lispval systime_prim()
     return fd_init_double(NULL,msecs);}
 }
 
-DCLPRIM("CPUSAGE",cpusage_prim,MAX_ARGS(0)|MIN_ARGS(0),
+DCLPRIM("CPUSAGE",cpusage_prim,MAX_ARGS(1)|MIN_ARGS(0),
         "Provides relative CPU usage information. With no "
         "argument, this returns usage since the process started, "
         "as a slotmap. The result of this call can be passed "
