@@ -861,7 +861,7 @@ FD_EXPORT int fd_boot_message()
 static lispval rlimit_get(lispval symbol,void *rlimit_id)
 {
   struct rlimit limit;
-  long long RLIMIT_ID = (long long) rlimit_id;
+  long long RLIMIT_ID = (long long) U8_PTR2INT(rlimit_id);
   int rv = getrlimit(RLIMIT_ID,&limit);
   if (rv<0) {
     u8_graberr(errno,"rlimit_get",FD_SYMBOL_NAME(symbol));
@@ -872,7 +872,7 @@ static lispval rlimit_get(lispval symbol,void *rlimit_id)
 static int rlimit_set(lispval symbol,lispval value,void *rlimit_id)
 {
   struct rlimit limit;
-  long long RLIMIT_ID = (long long) rlimit_id;
+  long long RLIMIT_ID = (long long) U8_PTR2INT(rlimit_id);
   int rv = getrlimit(RLIMIT_ID,&limit);
   if (rv<0) {
     u8_graberr(errno,"rlimit_set",FD_SYMBOL_NAME(symbol));
