@@ -700,6 +700,7 @@ static lispval intersect_op(lispval exprs,fd_lexenv env,fd_stack stack)
       lispval combine[2] = {result,val};
       lispval combined = fd_intersection(combine,2);
       fd_decref(result);
+      fd_decref(val);
       if (FD_EMPTYP(combined))
         return combined;
       else result=combined;}}
@@ -721,6 +722,7 @@ static lispval difference_op(lispval exprs,fd_lexenv env,fd_stack stack)
     else {
       lispval combined = fd_difference(result,val);
       fd_decref(result);
+      fd_decref(val);
       if (FD_EMPTYP(combined))
         return combined;
       else result=combined;}}
@@ -735,7 +737,8 @@ static lispval and_op(lispval exprs,fd_lexenv env,fd_stack stack,int tail)
       return _fd_fast_eval(expr,env,stack,tail);
     else {
       lispval val  = _fd_fast_eval(expr,env,stack,0);
-      if (FD_ABORTED(val)) return val;
+      if (FD_ABORTED(val))
+        return val;
       else if (FALSEP(val))
         return FD_FALSE;
       else fd_decref(val);}}
@@ -750,7 +753,8 @@ static lispval or_op(lispval exprs,fd_lexenv env,fd_stack stack,int tail)
       return _fd_fast_eval(expr,env,stack,tail);
     else {
       lispval val  = _fd_fast_eval(expr,env,stack,0);
-      if (FD_ABORTED(val)) return val;
+      if (FD_ABORTED(val))
+        return val;
       else if (!(FALSEP(val)))
         return val;
       else {}}}
