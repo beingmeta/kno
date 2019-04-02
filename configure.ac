@@ -1726,36 +1726,6 @@ else
   manually_disabled="hyphenate $manually_disabled";
 fi
 
-## HUNSPELL library (spelling correction)
-
-AC_ARG_ENABLE(hunspell,--en[dis]able-hunspell Build and install the hunspell module,,enable_hunspell="yes")
-hunspell_ok="no"
-
-if test "$enable_hunspell" = "yes"; then
-  AC_CHECK_HEADERS(hunspell/hunspell.h)
-  AC_CHECK_LIB(hunspell,Hunspell_create)
-  AC_CHECK_LIB(hunspell,Hunspell_create,hunspell_ok="yes")
-  AC_CHECK_FUNCS(Hunspell_add_dic)
-fi
-
-if test "$enable_hunspell" = "yes" &&
-   test "$ac_cv_header_hunspell_hunspell_h" = "yes" &&
-   test "$hunspell_ok" = "yes"; then
-  CMODULES="lib/framerd/hunspell.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-hunspell ${INSTALLCMODULES}"
-  TESTCMODULES="test-hunspell ${TESTCMODULES}"
-elif test "$enable_hunspell" = "force"; then
-  CMODULES="lib/framerd/hunspell.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-hunspell ${INSTALLCMODULES}"
-  TESTCMODULES="test-hunspell ${TESTCMODULES}"
-  force_enabled="hunspell ${force_enabled}";
-elif test "$enable_hunspell" = "yes"; then
-  auto_disabled="hunspell $auto_disabled";
-  enable_hunspell="failed";
-else
-  manually_disabled="hunspell $manually_disabled";
-fi
-
 # OpenSSL checks
 AC_CHECK_FUNCS(CRYPTO_set_locking_callback)
 

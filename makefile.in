@@ -354,7 +354,7 @@ CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
 	     src/cmodules/qrcode.o src/cmodules/exif.o \
 	     src/cmodules/imagick.o src/cmodules/libarchive.o \
 	     src/cmodules/ziptools.o \
-	     src/cmodules/hyphenate.o src/cmodules/hunspell.o \
+	     src/cmodules/hyphenate.o \
 	     ${SUNDOWN_OBJS} ${TIDY_OBJECTS}
 
 EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ exe/fdbatch@suffix@  \
@@ -463,7 +463,7 @@ CMODULE_SOURCES=\
 	src/cmodules/leveldb.c src/cmodules/rocksdb.c  				\
 	src/cmodules/ziptools.c src/cmodules/libarchive.c			\
 	src/cmodules/tidy.c src/cmodules/sundown.c 				\
-	src/cmodules/hyphenate.c src/cmodules/hunspell.c 			\
+	src/cmodules/hyphenate.c 			 			\
 	src/cmodules/qrcode.c src/cmodules/exif.c src/cmodules/imagick.c	\
 	src/cmodules/gperftools.c 						\
 	src/cmodules/crypto.c
@@ -1146,11 +1146,6 @@ lib/framerd/hyphenate.o: src/cmodules/hyphenate.c
 lib/framerd/hyphenate.so: src/cmodules/hyphenate.o
 lib/framerd/hyphenate.dylib: src/cmodules/hyphenate.o ${CMODULE_DEPENDS}
 
-lib/framerd/hunspell.so : MODLIBS=-lhunspell
-lib/framerd/hunspell.o: src/cmodules/hunspell.c
-lib/framerd/hunspell.so: src/cmodules/hunspell.o
-lib/framerd/hunspell.dylib: src/cmodules/hunspell.o ${CMODULE_DEPENDS}
-
 lib/framerd/zlib.so : MODLIBS="-lz"
 lib/framerd/zlib.o: src/cmodules/zlib.c
 lib/framerd/zlib.so: src/cmodules/zlib.o
@@ -1518,7 +1513,6 @@ install-crypto: ${CMODULES}/crypto.@shared_suffix@ ${CMODULES}/crypto.@vshared_s
 install-mysql: ${CMODULES}/mysql.@shared_suffix@ ${CMODULES}/mysql.@vshared_suffix@
 install-qrcode: ${CMODULES}/qrcode.@shared_suffix@ ${CMODULES}/qrcode.@vshared_suffix@
 install-hyphenate: ${CMODULES}/hyphenate.@shared_suffix@ ${CMODULES}/hyphenate.@vshared_suffix@
-install-hunspell: ${CMODULES}/hunspell.@shared_suffix@ ${CMODULES}/hunspell.@vshared_suffix@
 install-ziptools: ${CMODULES}/ziptools.@shared_suffix@ ${CMODULES}/ziptools.@vshared_suffix@
 install-tidy: ${CMODULES}/tidy.@shared_suffix@ ${CMODULES}/tidy.@vshared_suffix@
 install-imagick: ${CMODULES}/imagick.@shared_suffix@ ${CMODULES}/imagick.@vshared_suffix@
@@ -1743,7 +1737,7 @@ staging/build-setup.debian.core:
 		dh-make devscripts dpkg-dev dh-systemd debsigs && \
 	touch $@
 staging/build-setup.debian.text: staging/build-setup.debian.core
-	sudo apt-get install -ym libhyphen-dev libhunspell-dev && \
+	sudo apt-get install -ym libhyphen-dev && \
 	touch $@
 staging/build-setup.debian.graphics: staging/build-setup.debian.core
 	sudo apt-get install -ym libexif-dev libmagickwand-dev \
