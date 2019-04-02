@@ -417,7 +417,8 @@ int main(int argc,char **argv)
   fd_pop_stack(_stack);
 
   i = 0; while (i<n_args) {
-    lispval arg = args[i++]; fd_decref(arg);}
+    lispval arg = args[i++];
+    fd_decref(arg);}
   u8_free(args);
 
   if (exe_name) u8_free(exe_name);
