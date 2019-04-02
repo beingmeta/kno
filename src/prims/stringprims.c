@@ -501,6 +501,26 @@ static lispval utf8string_prim(lispval packet)
 
 /* String comparison */
 
+enum STRCMP { str_lt, str_lte, str_eq, str_neq, str_gte, str_gt };
+
+static int docmp(enum STRCMP pred,int rv)
+{
+  switch (pred) {
+  case str_lt:
+    return (rv<0);
+  case str_lte:
+    return (rv<=0);
+  case str_eq:
+    return (rv==0);
+  case str_neq:
+    return (rv!=0)
+  case str_gte:
+    return (rv>=0);
+  case str_gt:
+    return (rv>0);
+  }
+}
+
 static int string_compare(u8_string s1,u8_string s2)
 {
   u8_string scan1 = s1, scan2 = s2;
@@ -512,6 +532,25 @@ static int string_compare(u8_string s1,u8_string s2)
   else if (c2<0) return 1;
   else if (c1<c2) return -1;
   else return 1;
+}
+
+static lispval compare_strings(enum STRCMP need,int n,lispval *stringvals)
+{
+  int i = 0;
+  u8_string base_arg = stringvals[0];
+  if (!(FD_STRINGP(base_arg)))
+    return fd_type_error("string","compare_strings",base_arg);
+  u8_string base = FD_CSTRING(stringvals[0]);
+  while (i < n) {
+    lispval arg = strings[i++];
+    if (!(FD_STRINGP(arg)))
+      return fd_type_error("string","compare_strings",arg);
+    u8_string str = FD_CSTRING(arg);
+    int cmp = string_compare(base,str);
+    if (! (docmp(need,cmp)) )
+      return FD_FALSE;
+    base = str;}
+  return FD_TRUE;
 }
 
 static int string_compare_ci(u8_string s1,u8_string s2)
@@ -526,25 +565,56 @@ static int string_compare_ci(u8_string s1,u8_string s2)
   else if (c1<0) return -1;
   else if (c2<0) return 1;
   else if (c1<c2) return -1;
-  else return 1;
+  else return FD_TRUE;
 }
 
-static lispval string_eq(lispval string1,lispval string2)
+static lispval compare_strings_ci(enum STRCMP need,int n,lispval *stringvals)
 {
-  if (string_compare(CSTRING(string1),CSTRING(string2))==0)
-    return FD_TRUE;
-  else return FD_FALSE;
+  int i = 0;
+  u8_string base_arg = stringvals[0];
+  if (!(FD_STRINGP(base_arg)))
+    return fd_type_error("string","compare_strings",base_arg);
+  u8_string base = FD_CSTRING(stringvals[0]);
+  while (i < n) {
+    lispval arg = strings[i++];
+    if (!(FD_STRINGP(arg)))
+      return fd_type_error("string","compare_strings",arg);
+    u8_string str = FD_CSTRING(arg);
+    int cmp = string_compare_ci(base,str);
+    if (! (docmp(need,cmp)) )
+      return FD_FALSE;
+    base = str;}
+  return FD_TRUE;
 }
+
+DCLPRIM("STRING=?",string_eq,MIN_ARGS(2)|FD_VAR_ARGS,
+        "(string=? *strings...*)\n")
+static lispval string_eq(int n,lispval *args) {
+  return compare_strings(str_eq,n,args); }
+DCLPRIM("STRING-CI=?",string_eq,MIN_ARGS(2)|FD_VAR_ARGS,
+        "(string=? *strings...*)\n")
+static lispval string_ci_eq(int n,lispval *args) {
+  return compare_strings_ci(str_eq,n,args); }
+static lispval string_lt(int n,lispval *args) {
+  return compare_strings(str_lt,n,args); }
+static lispval string_ci_lt(int n,lispval *args) {
+  return compare_strings_ci(str_lt,n,args); }
+static lispval string_lte(int n,lispval *args) {
+  return compare_strings(str_lt,n,args); }
+static lispval string_ci_lte(int n, lispval *strings) {
+  return compare_strings_ci(str_lte,n,args); }
+static lispval string_gte(int n,lispval *args) {
+  return compare_strings(str_gte,n,args); }
+static lispval string_ci_gte(int n,lispval *args) {
+  return compare_strings_ci(str_gte,n,args); }
+static lispval string_gt(int n,lispval *args) {
+  return compare_strings(str_gt,n,args); }
+static lispval string_ci_gt(int n,lispval *args) {
+  return compare_strings_ci(str_gt,n,args); }
+
 static lispval char_eq(lispval ch1,lispval ch2)
 {
   if (FD_CHARCODE(ch1) == FD_CHARCODE(ch2))
-    return FD_TRUE;
-  else return FD_FALSE;
-}
-
-static lispval string_ci_eq(lispval string1,lispval string2)
-{
-  if (string_compare_ci(CSTRING(string1),CSTRING(string2))==0)
     return FD_TRUE;
   else return FD_FALSE;
 }
@@ -554,23 +624,9 @@ static lispval char_ci_eq(lispval ch1,lispval ch2)
     return FD_TRUE;
   else return FD_FALSE;
 }
-
-static lispval string_lt(lispval string1,lispval string2)
-{
-  if (string_compare(CSTRING(string1),CSTRING(string2))<0)
-    return FD_TRUE;
-  else return FD_FALSE;
-}
 static lispval char_lt(lispval ch1,lispval ch2)
 {
   if (FD_CHARCODE(ch1)<FD_CHARCODE(ch2))
-    return FD_TRUE;
-  else return FD_FALSE;
-}
-
-static lispval string_ci_lt(lispval string1,lispval string2)
-{
-  if (string_compare_ci(CSTRING(string1),CSTRING(string2))<0)
     return FD_TRUE;
   else return FD_FALSE;
 }
@@ -580,23 +636,9 @@ static lispval char_ci_lt(lispval ch1,lispval ch2)
     return FD_TRUE;
   else return FD_FALSE;
 }
-
-static lispval string_lte(lispval string1,lispval string2)
-{
-  if (string_compare(CSTRING(string1),CSTRING(string2))<=0)
-    return FD_TRUE;
-  else return FD_FALSE;
-}
 static lispval char_lte(lispval ch1,lispval ch2)
 {
   if (FD_CHARCODE(ch1)<=FD_CHARCODE(ch2))
-    return FD_TRUE;
-  else return FD_FALSE;
-}
-
-static lispval string_ci_lte(lispval string1,lispval string2)
-{
-  if (string_compare_ci(CSTRING(string1),CSTRING(string2))<=0)
     return FD_TRUE;
   else return FD_FALSE;
 }
@@ -606,23 +648,9 @@ static lispval char_ci_lte(lispval ch1,lispval ch2)
     return FD_TRUE;
   else return FD_FALSE;
 }
-
-static lispval string_gt(lispval string1,lispval string2)
-{
-  if (string_compare(CSTRING(string1),CSTRING(string2))>0)
-    return FD_TRUE;
-  else return FD_FALSE;
-}
 static lispval char_gt(lispval ch1,lispval ch2)
 {
   if (FD_CHARCODE(ch1)>FD_CHARCODE(ch2))
-    return FD_TRUE;
-  else return FD_FALSE;
-}
-
-static lispval string_ci_gt(lispval string1,lispval string2)
-{
-  if (string_compare_ci(CSTRING(string1),CSTRING(string2))>0)
     return FD_TRUE;
   else return FD_FALSE;
 }
@@ -632,24 +660,9 @@ static lispval char_ci_gt(lispval ch1,lispval ch2)
     return FD_TRUE;
   else return FD_FALSE;
 }
-
-static lispval string_gte(lispval string1,lispval string2)
-{
-  if (string_compare(CSTRING(string1),CSTRING(string2))>=0)
-    return FD_TRUE;
-  else return FD_FALSE;
-}
 static lispval char_gte(lispval ch1,lispval ch2)
 {
   if (FD_CHARCODE(ch1)>=FD_CHARCODE(ch2))
-    return FD_TRUE;
-  else return FD_FALSE;
-}
-
-
-static lispval string_ci_gte(lispval string1,lispval string2)
-{
-  if (string_compare_ci(CSTRING(string1),CSTRING(string2))>=0)
     return FD_TRUE;
   else return FD_FALSE;
 }
