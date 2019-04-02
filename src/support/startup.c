@@ -967,15 +967,38 @@ static int pidfile_config_set(lispval var,lispval val,void *data)
 {
   u8_string filename=NULL, *fname_ptr = (u8_string *) data;
   if (FD_STRINGP(val))
-    filename=u8_strdup(FD_CSTRING(val));
+    filename=u8_realpath(FD_CSTRING(val),NULL);
   else if (FD_TRUEP(val)) {
     u8_string basename = u8_string_append(u8_appid(),".pid",NULL);
     filename=u8_abspath(basename,NULL);
     u8_free(basename);}
   else filename = NULL;
   if (filename == NULL) {
-    fd_seterr("BadPIDFilename","pid_config_set",NULL,val);
+    fd_seterr("BadPIDFilename","pidfile_config_set",NULL,val);
     return -1;}
+  if (*fname_ptr) {
+    if ( ( (*fname_ptr) == filename ) ||
+         ( strcmp((*fname_ptr),filename) == 0 ) )
+      return 0;
+    u8_string rpath = u8_realpath(filename,NULL);
+    int changed = strcmp(*fname_ptr,rpath);
+    u8_free(rpath);
+    if (changed == 0)
+      return 0;}
+  if (u8_file_existsp(filename)) {
+    int read_fd = u8_open_fd(filename,O_RDONLY,0);
+    if (read_fd<0) {
+      u8_graberrno("pidfile_config_set/write",filename);
+      return read_fd;}
+    u8_byte buf[64];
+    ssize_t rv = read(read_fd,buf,63); buf[rv]='\0';
+    long long disk_pid = strtoll(buf,NULL,10);
+    pid_t cur_pid = getpid();
+    close(read_fd);
+    if (disk_pid == cur_pid) {
+      u8_log(LOG_NOTICE,"MatchingPID","`%s` = %d",filename,cur_pid);
+      *fname_ptr = filename;
+      return 0;}}
   int fd = u8_open_fd(filename,PID_OPEN_FLAGS,0644);
   if (fd<0) {
     u8_graberrno("pid_config_set",filename);
@@ -985,7 +1008,7 @@ static int pidfile_config_set(lispval var,lispval val,void *data)
     char buf[32], *pidstring = u8_uitoa10(pid,buf);
     int rv = u8_writeall(fd,pidstring,strlen(pidstring));
     if (rv<0) {
-      u8_graberrno("pid_config_set/write",filename);}
+      u8_graberrno("pidfile_config_set/write",filename);}
     else if (fname_ptr)
       *fname_ptr = filename;
     else NO_ELSE;
