@@ -1,3 +1,33 @@
+framerd (4.3.0-38) unstable; urgency=medium
+
+  * Add framerd-full-dbg
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 03 Apr 2019 14:49:13 -0400
+
+framerd (4.3.0-37) stable; urgency=medium
+
+  * Make framerd-dev depend on framerd-core-dbg, not framerd-dbg
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 03 Apr 2019 13:12:46 -0400
+
+framerd (4.3.0-37) stable; urgency=medium
+
+  * Make framerd-dev just depend on framerd
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 03 Apr 2019 13:12:46 -0400
+
+framerd (4.3.0-36) stable; urgency=medium
+
+  * Update libssl dependency
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 03 Apr 2019 11:23:57 -0400
+
+framerd (4.3.0-35) stable; urgency=medium
+
+  * Conditional dependencies for rocksdb
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 02 Apr 2019 19:31:09 -0500
+
 framerd (4.3.0-34) stable; urgency=medium
 
   * Restore BRICO to FramerD, this time in libscm

@@ -833,23 +833,19 @@ FD_EXPORT int fd_pool_swapout(fd_pool p,lispval oids)
 FD_EXPORT lispval fd_pool_alloc(fd_pool p,int n)
 {
   lispval result = p->pool_handler->alloc(p,n);
+  fd_hashtable init_cache = (p->pool_handler->lock) ?
+    (&(p->pool_changes)) : (&(p->pool_cache));
   if (p == fd_zero_pool)
     return result;
   else if ( (p->pool_flags) & (FD_STORAGE_VIRTUAL) )
     return result;
   else if (OIDP(result)) {
-    if (p->pool_handler->lock)
-      fd_hashtable_store(&(p->pool_changes),result,EMPTY);
-    else fd_hashtable_store(&(p->pool_cache),result,EMPTY);
+    fd_hashtable_op(init_cache,fd_table_default,result,EMPTY);
     return result;}
   else if (CHOICEP(result)) {
-    if (p->pool_handler->lock)
-      fd_hashtable_iterkeys(&(p->pool_changes),fd_table_store,
-                            FD_CHOICE_SIZE(result),FD_CHOICE_DATA(result),
-                            EMPTY);
-    else fd_hashtable_iterkeys(&(p->pool_cache),fd_table_store,
-                               FD_CHOICE_SIZE(result),FD_CHOICE_DATA(result),
-                               EMPTY);
+    fd_hashtable_iterkeys(init_cache,fd_table_default,
+                          FD_CHOICE_SIZE(result),FD_CHOICE_DATA(result),
+                          EMPTY);
     return result;}
   else if (FD_ABORTP(result)) return result;
   else if (FD_EXCEPTIONP(result)) return result;

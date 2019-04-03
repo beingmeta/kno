@@ -30,10 +30,13 @@
     (branch/merge! branch)
     (swapout frames)))
 
-(define (main)
-  (let* ((pools (use-pool (mkpath indir brico-pool-names)))
-	 (index (target-index relations-index)))
-    (engine/run indexer (pool-elts pools)
+(define (main . names)
+  (let* ((pools (use-pool (try (elts names) brico-pool-names)))
+	 (relns-index (target-index relations-index))
+	 (isa-index (target-index "isa.index"))
+	 (index  (make-aggregate-index {relns-index isa-index}
+				       [register #t])))
+    (engine/run indexer (difference (pool-elts pools) (?? 'source @1/1))
       `#[loop #[index ,index]
 	 batchsize 2000 batchrange 3
 	 checkfreq 15
@@ -43,6 +46,6 @@
 	 logchecks #t
 	 logfreq 25])) )
 
-(when (config 'optimize #t)
+(when (config 'optimize #t config:boolean)
   (optimize! '{brico engine fifo brico/indexing})
   (optimize!))

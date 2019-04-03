@@ -855,6 +855,8 @@ else
   admininstall=""
 fi
 
+AC_DEFINE_UNQUOTED(FD_ADMIN_GROUP,"$admin_group")
+
 dnl Specifies a daemon identity user/group for managed FramerD servers
 AC_ARG_WITH(fdaemon,--with-fdaemon The identity (user) for FramerD servers to run as,,with_fdaemon=$default_fdaemon)
 if test $with_fdaemon != "none"; then
@@ -866,6 +868,8 @@ else
    fdaemoninstall=""
    fdaemon=$default_fdaemon
 fi
+
+AC_DEFINE_UNQUOTED(FD_DAEMON,"$fdaemon")
 
 dnl Specifies where server state files should live
 AC_ARG_WITH(rundir,--with-rundir The default location for server state files,,with_rundir="$localstatedir/run")
@@ -912,6 +916,9 @@ else
    webgroup=$default_webgroup
    wwwinstall=""
 fi
+
+AC_DEFINE_UNQUOTED(FD_WEBUSER,"$webuser")
+AC_DEFINE_UNQUOTED(FD_WEBGROUP,"$webgroup")
 
 ### Apache
 
@@ -1717,36 +1724,6 @@ elif test "$enable_hyphenate" = "yes"; then
   enable_hyphenate="failed";
 else
   manually_disabled="hyphenate $manually_disabled";
-fi
-
-## HUNSPELL library (spelling correction)
-
-AC_ARG_ENABLE(hunspell,--en[dis]able-hunspell Build and install the hunspell module,,enable_hunspell="yes")
-hunspell_ok="no"
-
-if test "$enable_hunspell" = "yes"; then
-  AC_CHECK_HEADERS(hunspell/hunspell.h)
-  AC_CHECK_LIB(hunspell,Hunspell_create)
-  AC_CHECK_LIB(hunspell,Hunspell_create,hunspell_ok="yes")
-  AC_CHECK_FUNCS(Hunspell_add_dic)
-fi
-
-if test "$enable_hunspell" = "yes" &&
-   test "$ac_cv_header_hunspell_hunspell_h" = "yes" &&
-   test "$hunspell_ok" = "yes"; then
-  CMODULES="lib/framerd/hunspell.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-hunspell ${INSTALLCMODULES}"
-  TESTCMODULES="test-hunspell ${TESTCMODULES}"
-elif test "$enable_hunspell" = "force"; then
-  CMODULES="lib/framerd/hunspell.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-hunspell ${INSTALLCMODULES}"
-  TESTCMODULES="test-hunspell ${TESTCMODULES}"
-  force_enabled="hunspell ${force_enabled}";
-elif test "$enable_hunspell" = "yes"; then
-  auto_disabled="hunspell $auto_disabled";
-  enable_hunspell="failed";
-else
-  manually_disabled="hunspell $manually_disabled";
 fi
 
 # OpenSSL checks

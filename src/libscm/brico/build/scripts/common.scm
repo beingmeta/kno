@@ -70,7 +70,9 @@
   (unless (position #\/ filename) 
     (set! filename (mkpath outdir filename)))
   (cond ((and (file-exists? filename) (not (config 'REBUILD #f config:boolean)))
-	 (writable-index filename `(#[register ,(getopt opts 'register #t)] . ,opts)))
+	 (writable-index filename
+			 `(#[register ,(getopt opts 'register #t)]
+			   . ,opts)))
 	(else (when (file-exists? filename) 
 		(logwarn |ReplacingFile| 
 		  (write filename) ", backup in " 
@@ -79,4 +81,6 @@
 	      (make-index filename
 		`(#[type hashindex size ,size keyslot ,keyslot] . ,opts))
 	      (lognotice |NewIndex| "Making new file index " filename)
-	      (writable-index filename `(#[register ,(getopt opts 'register #t)] . ,opts)))))
+	      (writable-index filename
+			      `(#[register ,(getopt opts 'register #t)]
+				. ,opts)))))

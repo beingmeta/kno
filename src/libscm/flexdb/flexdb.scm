@@ -120,6 +120,8 @@
 	((or (index? dbsource) (hashtable? dbsource)) (wrap-index dbsource opts))
 	((not (string? dbsource))
 	 (irritant dbsource |BadDBSource| flex/dbref))
+	((testopt opts '{flexindex flexpool})
+	 (flex-open dbsource opts))
 	((or (file-exists? dbsource) (textmatch (qc network-source) dbsource)
 	     (exists? (flexdb/partition-files dbsource "index"))
 	     (exists? (flexdb/partition-files dbsource "pool")))	     

@@ -9,7 +9,6 @@ usr/lib/framerd/crypto.so*
 usr/lib/framerd/ziptools.so*
 usr/lib/framerd/hyphenate.so*
 usr/lib/framerd/libarchive.so*
-usr/lib/framerd/hunspell.so*
 usr/lib/framerd/zlib.so*
 usr/bin/fdconsole
 usr/bin/fdexec

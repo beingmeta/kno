@@ -34,13 +34,19 @@
 			      #f)))
 	   (genslot (and genslot
 			 (try (pick genslot slotid?)
-			      genls))))
+			      genls*))))
       (index-frame index frame slotid values)
       (when inverse 
 	(index-frame index oidvals inverse frame))
       (when genslot
 	(index-frame index frame slotid (list oidvals))
-	(index-frame index frame slotid (get oidvals genslot))))))
+	(when (overlaps? genslot genls*)
+	  ;; This is a faster way to get genls*
+	  (index-frame index frame slotid (?? @?specls* oidvals)))
+	(when (exists? (difference genslot genls*))
+	  (index-frame index frame slotid
+		       (get oidvals (difference genslot genls*))))))))
+
 (defambda (unindex frame slot value (index #f))
   (do-choices (slot slot)
     (do-choices (value value)
@@ -130,7 +136,7 @@
   (do ((g v (difference (get g base) seen))
        (seen frame (choice g seen)))
       ((empty? g))
-    (index-relation index frame slot g inverse)))*
+    (index-relation index frame slot g inverse)))
 
 (define (index-gloss index frame slotid (value #f))
   (let* ((wordlist (getwords (or value (get frame slotid))))
@@ -271,6 +277,9 @@
   (index-name index concept 'names
 	      (pick (cdr (pick (get concept '%words) pair?))
 		capitalized?))
+  (index-name index concept 'names
+	      (pick (getvalues (pick (get concept '%words) slotmap?))
+		capitalized?))
   (do-choices (xlation (pick (get concept '%words) pair?))
     (let ((lang (get language-map (car xlation))))
       (index-string index concept lang (cdr xlation))))
@@ -343,7 +352,17 @@
     @1/2c276{MADE-OF}
     @1/2c277{STUFF-OF}
     @1/2c278{MEMBERS}
-    @1/2c279{MEMBER-OF}})
+    @1/2c279{MEMBER-OF}
+    @1/2c27e{ISA}})
+
+(define termlogic-slotids
+  {@1/4{ALWAYS}
+   @1/5{SOMETIMES}
+   @1/6{NEVER}
+   @1/8{/ALWAYS}
+   @1/a{COMMONLY}
+   @1/b{RARELY}
+   @1/e{RELTERMS}})
 
 ;; These are slotids whose inverses should also be indexed
 (define invert-slotids
@@ -352,12 +371,20 @@
    @1/2c27d{DISJOINT}
    @1/2d9e9{=IS=}})
 
+(define special-relationships
+  {termlogic-slotids lattice-slotids})
+
 (define (index-relations index concept (slots))
-  (default! slots (intersection (getkeys concept) relations))
-  (do-choices (slotid (intersection (getkeys concept) relations))
+  (default! slots
+    (reject (pick (difference (pickoids (getkeys concept)) special-relationships)
+	      'type 'relation)
+      'type 'termlogic))
+  (do-choices (slotid slots)
     (index-relation index concept slotid (getallvalues concept slotid)
-		    (overlaps? slotid invert-slotids)
-		    (overlaps? slotid generalize-slotids))))
+		    (or (overlaps? slotid invert-slotids)
+			(test slotid 'type 'indexinverse))
+		    (or (overlaps? slotid generalize-slotids)
+			(test slotid 'type 'indexgenls)))))
 
 (define (index-refterms index concept)
   (index-relation index concept refterms (%get concept refterms) #f)

@@ -50,11 +50,12 @@
 	(index-string other.index f '{family lastname})))
     (swapout f)))
 
-(define (main)
+(define (main . names)
   (config! 'appid "indexenglish")
   (when (config 'optimize #t)
     (optimize! '{engine brico brico/indexing brico/lookup}))
-  (let* ((pools (use-pool (mkpath indir brico-pool-names)))
+  (dbctl core.index 'readonly #f)
+  (let* ((pools (use-pool (try (elts names) brico-pool-names)))
 	 (words.index (target-index "en.index" [keyslot english]))
 	 (frags.index (target-index "en_frags.index" [keyslot frags]))
 	 (indicators.index 
@@ -64,7 +65,7 @@
 	 (glosses.index (target-index "en_glosses.index" [keyslot engloss]))
 	 (names.index (target-index "en_names.index" #[keyslot names]))
 	 (other.index (target-index "en_other.index"))
-	 (oids (pool-elts pools)))
+	 (oids (difference (pool-elts pools) (?? 'source @1/1))))
     (engine/run index-english oids
       `#[loop #[words.index ,words.index 
 		frags.index ,frags.index
@@ -89,3 +90,8 @@
 	 logfns {,engine/log ,engine/logrusage}
 	 logchecks #t
 	 logfreq ,(config 'logfreq 50)])))
+
+(when (config 'optimize #t config:boolean)
+  (optimize! '{brico engine fifo brico/indexing})
+  (optimize!))
+

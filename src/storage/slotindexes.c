@@ -132,10 +132,11 @@ static lispval aggregate_prim_find
     {DO_CHOICES(feature,features) {
 	lispval cached = fd_hashtable_get(cache,feature,FD_VOID);
 	if (!(FD_VOIDP(cached))) {
-	  CHOICE_ADD(combined,cached);
-	  fd_decref(feature);}
+	  CHOICE_ADD(combined,cached);}
 	else {
-	  CHOICE_ADD(fetch_features,feature);}}}
+	  CHOICE_ADD(fetch_features,feature);
+	  fd_incref(feature);}}}
+    fd_decref(features);
     if (!(FD_EMPTYP(fetch_features))) {
       i=0; while (i < n) {
 	fd_index ex = indexes[i++];

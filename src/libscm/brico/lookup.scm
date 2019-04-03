@@ -163,6 +163,8 @@
 			     (car (pick all-vary pair?))))
 	 (vary-constraints (for-choices (entry (pick all-vary pair?))
 			     (cons (second entry) (third entry)))))
+    (??/prefetch! english vary-words)
+    (??/prefetch! english vary-words)
     (prefetch-keys! (choice (cons english vary-words)
 			    vary-constraints))))
 
