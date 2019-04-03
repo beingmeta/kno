@@ -1792,6 +1792,8 @@ FD_EXPORT void fd_init_stringprims_c()
   DECL_PRIM(string_trigrams,1,fd_scheme_module);
   DECL_PRIM(string_bigrams,1,fd_scheme_module);
 
+  DECL_PRIM(yesp_prim,4,fd_scheme_module);
+
   DECL_PRIM(stdobj,1,fd_scheme_module);
 
   DECL_PRIM(has_prefix,2,fd_scheme_module);
