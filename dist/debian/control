@@ -209,19 +209,6 @@ Depends: framerd-core
 Conflicts: framerd-upstart, framerd-sysv
 Description: systemd init configuration for FramerD
 
-Package: framerd-dbg
-Architecture: any
-Section: debug
-Depends: 
-    framerd-core-dbg (= ${binary:Version}),
-    framerd-sqlite (= ${binary:Version}),
-    framerd-imagetools-dbg (= ${binary:Version}),
-    framerd-mysql-dbg (= ${binary:Version}),
-    framerd-mongodb-dbg (= ${binary:Version}),
-    framerd-tidy-dbg (= ${binary:Version}),
-    ${misc:Depends}
-Description: This package contains the debugging symbols for framerd-sqlite
-
 Package: elpa-fdconsole
 Architecture: any
 Depends: ${misc:Depends}, ${elpa:Depends}
@@ -240,6 +227,5 @@ Description: Installs all standard FramerD modules
 
 Package: framerd-dev
 Architecture: any
-Depends: framerd (= ${binary:Version}), libu8-dev, framerd-dbg
+Depends: framerd (= ${binary:Version}), libu8-dev, framerd-core-dbg
 Description: Development files for FramerD
-

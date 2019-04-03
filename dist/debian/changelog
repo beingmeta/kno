@@ -1,5 +1,11 @@
 framerd (4.3.0-37) stable; urgency=medium
 
+  * Make framerd-dev depend on framerd-core-dbg, not framerd-dbg
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 03 Apr 2019 13:12:46 -0400
+
+framerd (4.3.0-37) stable; urgency=medium
+
   * Make framerd-dev just depend on framerd
 
  -- Ken Haase <kh@beingmeta.com>  Wed, 03 Apr 2019 13:12:46 -0400
