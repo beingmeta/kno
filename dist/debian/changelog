@@ -1,3 +1,9 @@
+framerd (4.3.0-38) unstable; urgency=medium
+
+  * Add framerd-full-dbg
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 03 Apr 2019 14:49:13 -0400
+
 framerd (4.3.0-37) stable; urgency=medium
 
   * Make framerd-dev depend on framerd-core-dbg, not framerd-dbg

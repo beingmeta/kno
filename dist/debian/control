@@ -225,6 +225,17 @@ Depends: ${misc:Depends}, framerd-core, framerd-builtin, framerd-doc,
 	 elpa-fdconsole
 Description: Installs all standard FramerD modules
 
+Package: framerd-full-dbg
+Architecture: any
+Depends: ${misc:Depends}, framerd-full, 
+	 framerd-imagetools-dbg,
+	 framerd-mysql-dbg,
+	 framerd-mongodb-dbg,
+	 framerd-sqlite-dbg,
+	 framerd-sundown-dbg,
+	 framerd-tidy-dbg
+Description: Installs all standard FramerD modules
+
 Package: framerd-dev
 Architecture: any
 Depends: framerd (= ${binary:Version}), libu8-dev, framerd-core-dbg
