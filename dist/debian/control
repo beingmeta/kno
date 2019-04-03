@@ -55,7 +55,7 @@ Description: The mod_fdserv module for FramerD servlets under Apache
 
 Package: framerd-mysql
 Architecture: any
-Depends: framerd-core (= ${binary:Version}), libmysqlclient | libmysqlclient20 | libmysqlclient19 | libmysqlclient18
+Depends: framerd-core (= ${binary:Version}), libmysqlclient | libmysqlclient20 | libmysqlclient19 | libmysqlclient18 | libmysqlclient-dev
 Description: MYSQL bindings for FramerD
 
 Package: framerd-mysql-dbg
@@ -233,8 +233,8 @@ Description: Provides an Emacs mode for interacting with fdconsole
 Package: framerd-full
 Architecture: any
 Depends: ${misc:Depends}, framerd-core, framerd-builtin, framerd-doc,
-	 framerd-imagetools, framerd-mysql, framerd-mongodb, framerd-sqlite,
-	 framerd-sundown, framerd-tidy,
+	 framerd-imagetools, framerd-mysql, framerd-mongodb,
+	 framerd-sqlite, framerd-sundown, framerd-tidy,
 	 elpa-fdconsole
 Description: Installs all standard FramerD modules
 
