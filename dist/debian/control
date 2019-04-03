@@ -240,6 +240,6 @@ Description: Installs all standard FramerD modules
 
 Package: framerd-dev
 Architecture: any
-Depends: framerd-full (= ${binary:Version}), libu8-dev, framerd-dbg
+Depends: framerd (= ${binary:Version}), libu8-dev, framerd-dbg
 Description: Development files for FramerD
 
