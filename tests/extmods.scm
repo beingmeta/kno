@@ -69,7 +69,7 @@
 (when (have-brico)
   (check-modules '{brico brico/dterms brico/indexing brico/lookup
 		   brico/analytics brico/maprules brico/xdterms
-		   brico/build/wikipedia brico/build/wordnet brico/build/wikidata
+		   brico/build/wordnet
 		   knodules/usebrico knodules/defterm
 		   xtags rdf audit}))
 
