@@ -15,6 +15,7 @@
 #include "framerd/dtype.h"
 #include "framerd/eval.h"
 #include "framerd/sequences.h"
+#include "framerd/cprims.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8convert.h>
@@ -23,52 +24,83 @@ static u8_string StrSearchKey=_("string search/key");
 
 /* Character functions */
 
+DCLPRIM1("CHAR->INTEGER",char2integer,MAX_ARGS(1),
+         "`(CHAR->INTEGER *char*)`",
+         fd_character_type,FD_VOID)
 static lispval char2integer(lispval arg)
 {
   return FD_INT(FD_CHAR2CODE(arg));
 }
 
+DCLPRIM1("INTEGER->CHAR",integer2char,MAX_ARGS(1),
+         "`(CHAR->INTEGER *char*)`",
+         fd_fixnum_type,FD_VOID)
 static lispval integer2char(lispval arg)
 {
   return FD_CODE2CHAR(fd_getint(arg));
 }
 
+DCLPRIM1("CHAR-ALPHABETIC?",char_alphabeticp,MAX_ARGS(1),
+         "`(CHAR-ALPHABETIC? *char*)`",
+         fd_character_type,FD_VOID)
 static lispval char_alphabeticp(lispval arg)
 {
-  if (u8_isalpha(FD_CHAR2CODE(arg))) return FD_TRUE;
+  if (u8_isalpha(FD_CHAR2CODE(arg)))
+    return FD_TRUE;
   else return FD_FALSE;
 }
 
+DCLPRIM1("CHAR-NUMERIC?",char_numericp,MAX_ARGS(1),
+         "`(CHAR-NUMERIC? *char*)`",
+         fd_character_type,FD_VOID)
 static lispval char_numericp(lispval arg)
 {
-  if (u8_isdigit(FD_CHAR2CODE(arg))) return FD_TRUE;
+  if (u8_isdigit(FD_CHAR2CODE(arg)))
+    return FD_TRUE;
   else return FD_FALSE;
 }
 
+DCLPRIM1("CHAR-WHITESPACE?",char_whitespacep,MAX_ARGS(1),
+         "`(CHAR-WHITESPACE? *char*)`",
+         fd_character_type,FD_VOID)
 static lispval char_whitespacep(lispval arg)
 {
-  if (u8_isspace(FD_CHAR2CODE(arg))) return FD_TRUE;
+  if (u8_isspace(FD_CHAR2CODE(arg)))
+    return FD_TRUE;
   else return FD_FALSE;
 }
 
+DCLPRIM1("CHAR-UPPER-CASE?",char_upper_casep,MAX_ARGS(1),
+         "`(CHAR-UPPER-CASE? *char*)`",
+         fd_character_type,FD_VOID)
 static lispval char_upper_casep(lispval arg)
 {
-  if (u8_isupper(FD_CHAR2CODE(arg))) return FD_TRUE;
+  if (u8_isupper(FD_CHAR2CODE(arg)))
+    return FD_TRUE;
   else return FD_FALSE;
 }
 
+DCLPRIM1("CHAR-LOWER-CASE?",char_lower_casep,MAX_ARGS(1),
+         "`(CHAR-LOWER-CASE? *char*)`",
+         fd_character_type,FD_VOID)
 static lispval char_lower_casep(lispval arg)
 {
   if (u8_islower(FD_CHAR2CODE(arg))) return FD_TRUE;
   else return FD_FALSE;
 }
 
+DCLPRIM1("CHAR-ALPHANUMERIC?",char_alphanumericp,MAX_ARGS(1),
+         "`(CHAR-ALPHANUMERIC? *char*)`",
+         fd_character_type,FD_VOID)
 static lispval char_alphanumericp(lispval arg)
 {
   if (u8_isalnum(FD_CHAR2CODE(arg))) return FD_TRUE;
   else return FD_FALSE;
 }
 
+DCLPRIM1("CHAR-PUNCTUATION?",char_punctuationp,MAX_ARGS(1),
+         "`(CHAR-PUNCTUATION? *char*)`",
+         fd_character_type,FD_VOID)
 static lispval char_punctuationp(lispval arg)
 {
   if (u8_ispunct(FD_CHAR2CODE(arg))) return FD_TRUE;
@@ -77,6 +109,9 @@ static lispval char_punctuationp(lispval arg)
 
 /* String predicates */
 
+DCLPRIM1("ASCII?",asciip,MAX_ARGS(1),
+         "`(ASCII? *string*)`",
+         fd_string_type,FD_VOID)
 static lispval asciip(lispval string)
 {
   const u8_byte *scan = CSTRING(string);
@@ -87,6 +122,9 @@ static lispval asciip(lispval string)
   return FD_TRUE;
 }
 
+DCLPRIM1("LATIN1?",latin1p,MAX_ARGS(1),
+         "`(LATIN1? *string*)`",
+         fd_string_type,FD_VOID)
 static lispval latin1p(lispval string)
 {
   const u8_byte *scan = CSTRING(string);
@@ -98,6 +136,9 @@ static lispval latin1p(lispval string)
   return FD_TRUE;
 }
 
+DCLPRIM("LOWERCASE?",lowercasep,MAX_ARGS(1),
+        "`(LOWERCASE? *textarg*)` returns true if *textarg* "
+        "(a string or character) is lowercase.")
 static lispval lowercasep(lispval string)
 {
   if (STRINGP(string)) {
@@ -112,6 +153,9 @@ static lispval lowercasep(lispval string)
   else return fd_type_error("string or character","lowercasep",string);
 }
 
+DCLPRIM("UPPERCASE?",uppercasep,MAX_ARGS(1),
+        "`(UPPERCASE? *textarg*)` returns true if *textarg* "
+        "(a string or character) is uppercase.")
 static lispval uppercasep(lispval string)
 {
   if (STRINGP(string)) {
@@ -126,6 +170,9 @@ static lispval uppercasep(lispval string)
   else return fd_type_error("string or character","uppercasep",string);
 }
 
+DCLPRIM("CAPITALIZED?",capitalizedp,MAX_ARGS(1),
+        "`(CAPITALIZED? *textarg*)` returns true if *textarg* "
+        "(a string or character) is capitalized.")
 static lispval capitalizedp(lispval string)
 {
   if (STRINGP(string)) {
@@ -138,74 +185,39 @@ static lispval capitalizedp(lispval string)
   else return fd_type_error("string or character","capitalizedp",string);
 }
 
+DCLPRIM2("SOMECAP?",some_capitalizedp,MAX_ARGS(2)|MIN_ARGS(2),
+         "`(SOMECAP? *string* *window*)` returns true if *string* "
+         "contains any uppercase characters. If *window* is provided, "
+         "it limits the number of characters searched",
+         fd_string_type,FD_VOID,fd_fixnum_type,FD_VOID)
 static lispval some_capitalizedp(lispval string,lispval window_arg)
 {
-  if (!(FD_UINTP(window_arg)))
+  if (FD_VOIDP(window_arg))
+    window_arg = FD_INT(-1);
+  else if (!(FD_UINTP(window_arg)))
     return fd_type_error("uint","some_capitalizedp",window_arg);
+  else NO_ELSE;
   int window = FIX2INT(window_arg);
   const u8_byte *scan = CSTRING(string);
   int c = u8_sgetc(&scan), i = 0;
-  if (c<0) return FD_FALSE;
+  if (c<0)
+    return FD_FALSE;
   else if (window<=0)
     while (c>0) {
-      if (u8_isupper(c)) return FD_TRUE;
+      if (u8_isupper(c))
+        return FD_TRUE;
       c = u8_sgetc(&scan);}
   else while ((c>0) && (i<window)) {
-      if (u8_isupper(c)) return FD_TRUE;
+      if (u8_isupper(c))
+        return FD_TRUE;
       c = u8_sgetc(&scan); i++;}
   return FD_FALSE;
 }
 
-static lispval string_compoundp(lispval string)
-{
-  if (STRINGP(string)) {
-    const u8_byte *scan = CSTRING(string);
-    if (strchr(scan,' '))
-      return FD_TRUE;
-    else {
-      const u8_byte *lim = scan+STRLEN(string);
-      int c = u8_sgetc(&scan);
-      while ((c>=0) && (scan<lim))
-        if (u8_isspace(c)) return FD_TRUE;
-        else c = u8_sgetc(&scan);
-      return FD_FALSE;}}
-  else return FD_FALSE;
-}
-
-static lispval string_multilinep(lispval string)
-{
-  if (STRINGP(string)) {
-    const u8_byte *scan = CSTRING(string);
-    if (strchr(scan,'\n'))
-      return FD_TRUE;
-    else {
-      const u8_byte *lim = scan+STRLEN(string);
-      int c = u8_sgetc(&scan);
-      while ((c>=0) && (scan<lim))
-        if (u8_isvspace(c))
-          return FD_TRUE;
-        else c = u8_sgetc(&scan);
-      return FD_FALSE;}}
-  else return FD_FALSE;
-}
-
-static lispval string_phrase_length(lispval string)
-{
-  int len = 0;
-  const u8_byte *scan = CSTRING(string);
-  const u8_byte *lim = scan+STRLEN(string);
-  int c = u8_sgetc(&scan);
-  if (u8_isspace(c)) while ((u8_isspace(c)) && (c>=0) && (scan<lim)) {
-      c = u8_sgetc(&scan);}
-  while ((c>=0) && (scan<lim))
-    if (u8_isspace(c)) {
-      len++; while ((u8_isspace(c)) && (c>=0) && (scan<lim)) {
-        c = u8_sgetc(&scan);}
-      continue;}
-    else c = u8_sgetc(&scan);
-  return FD_INT(len+1);
-}
-
+DCLPRIM3("EMPTY-STRING?",empty_stringp,MIN_ARGS(1),
+         "`(EMPTY-STRING? *string*)` returns #t if *string* "
+         "is empty.",
+         -1,FD_VOID,-1,FD_FALSE,-1,FD_FALSE)
 static lispval empty_stringp(lispval string,lispval count_vspace_arg,
                             lispval count_nbsp_arg)
 {
@@ -227,8 +239,72 @@ static lispval empty_stringp(lispval string,lispval count_vspace_arg,
     return FD_TRUE;}
 }
 
+DCLPRIM1("COMPOUND-STRING?",string_compoundp,MAX_ARGS(1),
+         "`(COMPOUND-STRING? *string*)` contains more than one word",
+         fd_string_type,FD_VOID)
+static lispval string_compoundp(lispval string)
+{
+  if (STRINGP(string)) {
+    const u8_byte *scan = CSTRING(string);
+    if (strchr(scan,' '))
+      return FD_TRUE;
+    else {
+      const u8_byte *lim = scan+STRLEN(string);
+      int c = u8_sgetc(&scan);
+      while ((c>=0) && (scan<lim))
+        if (u8_isspace(c)) return FD_TRUE;
+        else c = u8_sgetc(&scan);
+      return FD_FALSE;}}
+  else return FD_FALSE;
+}
+
+DCLPRIM1("MULTILINE-STRING?",string_multilinep,MAX_ARGS(1),
+         "`(MULTILINE-STRING? *string*)` contains more than one line",
+         fd_string_type,FD_VOID)
+static lispval string_multilinep(lispval string)
+{
+  if (STRINGP(string)) {
+    const u8_byte *scan = CSTRING(string);
+    if (strchr(scan,'\n'))
+      return FD_TRUE;
+    else {
+      const u8_byte *lim = scan+STRLEN(string);
+      int c = u8_sgetc(&scan);
+      while ((c>=0) && (scan<lim))
+        if (u8_isvspace(c))
+          return FD_TRUE;
+        else c = u8_sgetc(&scan);
+      return FD_FALSE;}}
+  else return FD_FALSE;
+}
+
+DCLPRIM1("PHRASE-LENGTH",string_phrase_length,MAX_ARGS(1),
+         "`(PHRASE-LENGTH *string*)` returns the number of "
+         "whitespace-separated tokens in *string*",
+         fd_string_type,FD_VOID)
+static lispval string_phrase_length(lispval string)
+{
+  int len = 0;
+  const u8_byte *scan = CSTRING(string);
+  const u8_byte *lim = scan+STRLEN(string);
+  int c = u8_sgetc(&scan);
+  if (u8_isspace(c)) while ((u8_isspace(c)) && (c>=0) && (scan<lim)) {
+      c = u8_sgetc(&scan);}
+  while ((c>=0) && (scan<lim))
+    if (u8_isspace(c)) {
+      len++; while ((u8_isspace(c)) && (c>=0) && (scan<lim)) {
+        c = u8_sgetc(&scan);}
+      continue;}
+    else c = u8_sgetc(&scan);
+  return FD_INT(len+1);
+}
+
 /* String conversions */
 
+DCLPRIM1("DOWNCASE",downcase,MAX_ARGS(1),
+         "`(DOWNCASE *textarg*)` returns a lowercase "
+         "version of *textarg* (a string or character)",
+         -1,FD_VOID)
 static lispval downcase(lispval string)
 {
   if (STRINGP(string)) {
@@ -236,7 +312,8 @@ static lispval downcase(lispval string)
     struct U8_OUTPUT out;
     U8_INIT_OUTPUT(&out,64);
     while ((c = u8_sgetc(&scan))>=0) {
-      int lc = u8_tolower(c); u8_putc(&out,lc);}
+      int lc = u8_tolower(c);
+      u8_putc(&out,lc);}
     return fd_stream2string(&out);}
   else if (FD_CHARACTERP(string)) {
     int c = FD_CHARCODE(string);
@@ -252,12 +329,21 @@ static lispval downcase(lispval string)
          (_("string, symbol, or character"),"downcase",string);
 
 }
+DCLPRIM1("CHAR-DOWNCASE",char_downcase,MAX_ARGS(1),
+         "`(CHAR-DOWNCASE *char*)` returns the lower case "
+         "version of *char* if there is one, otherwise "
+         "returns *char*",
+         -1,FD_VOID)
 static lispval char_downcase(lispval ch)
 {
   int c = FD_CHARCODE(ch);
   return FD_CODE2CHAR(u8_tolower(c));
 }
 
+DCLPRIM1("UPCASE",upcase,MAX_ARGS(1),
+         "`(UPCASE *textarg*)` returns an uppercase "
+         "version of *textarg* (a string or character)",
+         -1,FD_VOID)
 static lispval upcase(lispval string)
 {
   if (STRINGP(string)) {
@@ -279,12 +365,23 @@ static lispval upcase(lispval string)
     return fd_stream2string(&out);}
   else return fd_type_error(_("string or character"),"upcase",string);
 }
+DCLPRIM1("CHAR-UPCASE",char_upcase,MAX_ARGS(1),
+         "`(CHAR-UPCASE *char*)` returns the upper case "
+         "version of *char* if there is one, otherwise "
+         "returns *char*",
+         -1,FD_VOID)
 static lispval char_upcase(lispval ch)
 {
   int c = FD_CHARCODE(ch);
   return FD_CODE2CHAR(u8_toupper(c));
 }
 
+DCLPRIM1("CAPITALIZE",capitalize,MAX_ARGS(1),
+         "`(CAPITALIZE *textarg*)` returns a capitalized "
+         "version of *textarg* (a string or character). "
+         "For a string, the initial letters of all the word "
+         "tokens are converted to uppercase (if possible)",
+         -1,FD_VOID)
 static lispval capitalize(lispval string)
 {
   if (STRINGP(string)) {
@@ -301,6 +398,12 @@ static lispval capitalize(lispval string)
   else return fd_type_error(_("string or character"),"capitalize",string);
 }
 
+DCLPRIM1("CAPITALIZE1",capitalize1,MAX_ARGS(1),
+         "`(CAPITALIZE1 *textarg*)` returns a capitalized "
+         "version of *textarg* (a string or character). "
+         "For a string, the initial letter of the first word "
+         "token is converted to uppercase (if possible)",
+         -1,FD_VOID)
 static lispval capitalize1(lispval string)
 {
   if (STRINGP(string)) {
@@ -315,6 +418,10 @@ static lispval capitalize1(lispval string)
   else return fd_type_error(_("string or character"),"capitalize1",string);
 }
 
+DCLPRIM1("STDCAP",string_stdcap,MAX_ARGS(1),
+         "`(STDCAP *string*)` normalizes the capitalization "
+         "of *string*",
+         fd_string_type,FD_VOID)
 static lispval string_stdcap(lispval string)
 {
   if (STRINGP(string)) {
@@ -359,20 +466,10 @@ static lispval string_stdcap(lispval string)
   else return fd_type_error(_("string"),"string_stdcap",string);
 }
 
-static lispval string_downcase1(lispval string)
-{
-  if (STRINGP(string)) {
-    const u8_byte *scan = CSTRING(string); int c = u8_sgetc(&scan);
-    if (u8_islower(c)) return fd_incref(string);
-    else {
-      struct U8_OUTPUT out;
-      U8_INIT_OUTPUT(&out,STRLEN(string)+4);
-      u8_putc(&out,u8_tolower(c));
-      u8_puts(&out,scan);
-      return fd_stream2string(&out);}}
-  else return fd_type_error(_("string or character"),"capitalize1",string);
-}
-
+DCLPRIM2("STDSPACE",string_stdspace,MAX_ARGS(2)|MIN_ARGS(1),
+         "`(STDSPACE *string* *keepvspace*)` normalizes the whitespace "
+         "of *string*. *keepvspace*, if true, retains pairs of newlines.",
+         fd_string_type,FD_VOID,-1,FD_VOID)
 static lispval string_stdspace(lispval string,lispval keep_vertical_arg)
 {
   int keep_vertical = FD_TRUEP(keep_vertical_arg);
@@ -397,6 +494,10 @@ static lispval string_stdspace(lispval string,lispval keep_vertical_arg)
   return fd_stream2string(&out);
 }
 
+DCLPRIM1("STDSTRING",string_stdstring,MAX_ARGS(1),
+         "`(STDSTRING *string*)` normalizes the whitespace and capitalization "
+         "of *string*, also removing diacritical marks and other modifiers.",
+         fd_string_type,FD_VOID)
 static lispval string_stdstring(lispval string)
 {
   if (STRINGP(string)) {
@@ -420,6 +521,11 @@ static lispval string_stdstring(lispval string)
   else return fd_type_error("string","string_stdstring",string);
 }
 
+DCLPRIM1("STDOBJ",stdobj,MAX_ARGS(1),
+         "`(STDOBJ *arg*)` if *arg* is a string, this normalizes "
+         "its whitespace and capitalization, otherwise *arg* is "
+         "simply returned.",
+         -1,FD_VOID)
 static lispval stdobj(lispval string)
 {
   if (STRINGP(string)) {
@@ -443,6 +549,10 @@ static lispval stdobj(lispval string)
   else return fd_incref(string);
 }
 
+DCLPRIM1("BASESTRING",string_basestring,MAX_ARGS(1),
+         "`(BASESTRING *string*)` removes diacritical marks, etc "
+         "from *string*.",
+         fd_string_type,FD_VOID)
 static lispval string_basestring(lispval string)
 {
   if (STRINGP(string)) {
@@ -459,6 +569,9 @@ static lispval string_basestring(lispval string)
   else return fd_type_error("string","string_basestring",string);
 }
 
+DCLPRIM1("STARTWORD",string_startword,MAX_ARGS(1),
+         "`(STARTWORD *string*)` returns the first word for *string*",
+         fd_string_type,FD_VOID)
 static lispval string_startword(lispval string)
 {
   u8_string scan = CSTRING(string), start = scan, last = scan;
@@ -475,6 +588,10 @@ static lispval string_startword(lispval string)
   return fd_incref(string);
 }
 
+DCLPRIM("SYMBOLIZE",symbolize_cprim,MAX_ARGS(1),
+        "`(SYMBOLIZE *arg*)` upcases and interns *arg* "
+        "if it is a string, returns *arg* if it is already "
+        "a symbol, or signals an error otherwise")
 static lispval symbolize_cprim(lispval arg)
 {
   if (FD_SYMBOLP(arg))
@@ -484,19 +601,130 @@ static lispval symbolize_cprim(lispval arg)
   else return fd_err("NotAString","symbolize_cprim",NULL,arg);
 }
 
+/* Trigrams and Bigrams */
+
+static int get_stdchar(const u8_byte **in)
+{
+  int c;
+  while ((c = u8_sgetc(in))>=0)
+    if (u8_ismodifier(c)) c = u8_sgetc(in);
+    else {
+      c = u8_base_char(c); c = u8_tolower(c);
+      return c;}
+  return c;
+}
+
+DCLPRIM1("TRIGRAMS",string_trigrams,MAX_ARGS(1),
+         "`(TRIGRAMS *string*)` returns all the bigrams (letter triples) "
+         "in *string* as a choice. This strips modifiers and diactricial "
+         "marks.",
+         fd_string_type,FD_VOID)
+static lispval string_trigrams(lispval string)
+{
+  U8_OUTPUT out; u8_byte buf[64];
+  const u8_byte *in = CSTRING(string);
+  int c1=' ', c2=' ', c3=' ', c;
+  lispval trigram, trigrams = EMPTY;
+  U8_INIT_FIXED_OUTPUT(&out,64,buf);
+  if (STRINGP(string)) {
+    while ((c = get_stdchar(&in))>=0) {
+      c1 = c2; c2 = c3; c3 = c; out.u8_write = out.u8_outbuf;
+      u8_putc(&out,c1); u8_putc(&out,c2); u8_putc(&out,c3);
+      trigram = fd_make_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
+      CHOICE_ADD(trigrams,trigram);}
+    c1 = c2; c2 = c3; c3=' '; out.u8_write = out.u8_outbuf;
+    u8_putc(&out,c1); u8_putc(&out,c2); u8_putc(&out,c3);
+    trigram = fd_make_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
+    CHOICE_ADD(trigrams,trigram);
+    c1 = c2; c2 = c3; c3=' '; out.u8_write = out.u8_outbuf;
+    u8_putc(&out,c1); u8_putc(&out,c2); u8_putc(&out,c3);
+    trigram = fd_make_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
+    CHOICE_ADD(trigrams,trigram);
+    return trigrams;}
+  else return fd_type_error(_("string"),"string_trigrams",string);
+}
+
+DCLPRIM1("BIGRAMS",string_bigrams,MAX_ARGS(1),
+         "`(BIGRAMS *string*)` returns all the bigrams (letter pairs) "
+         "in *string* as a choice. This strips modifiers and diactricial "
+         "marks.",
+         fd_string_type,FD_VOID)
+static lispval string_bigrams(lispval string)
+{
+  U8_OUTPUT out; u8_byte buf[64];
+  const u8_byte *in = CSTRING(string);
+  int c1=' ', c2=' ', c;
+  lispval bigram, bigrams = EMPTY;
+  U8_INIT_FIXED_OUTPUT(&out,64,buf);
+  if (STRINGP(string)) {
+    while ((c = get_stdchar(&in))>=0) {
+      c1 = c2; c2 = c; out.u8_write = out.u8_outbuf;
+      u8_putc(&out,c1); u8_putc(&out,c2);
+      bigram = fd_make_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
+      CHOICE_ADD(bigrams,bigram);}
+    c1 = c2; c2=' '; out.u8_write = out.u8_outbuf;
+    u8_putc(&out,c1); u8_putc(&out,c2);
+    bigram = fd_make_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
+    CHOICE_ADD(bigrams,bigram);
+    return bigrams;}
+  else return fd_type_error(_("string"),"string_bigrams",string);
+}
+
 /* UTF8 related primitives */
 
+DCLPRIM1("UTF8?",utf8p_prim,MAX_ARGS(1),
+         "`(UTF8? *packet*)` returns #t if *packet* "
+         "contains a well-formed UTF-8 string.",
+         fd_packet_type,FD_VOID)
 static lispval utf8p_prim(lispval packet)
 {
   if (u8_validp(FD_PACKET_DATA(packet)))
     return FD_TRUE;
   else return FD_FALSE;
 }
+DCLPRIM1("UTF8STRING",utf8string_prim,MAX_ARGS(1),
+         "`(UTF8STRING *packet*)` converts *packet* to a string "
+         "if it contains a well-formed UTF-8 string, or simply "
+         "returns it otherwise.",
+         fd_packet_type,FD_VOID)
 static lispval utf8string_prim(lispval packet)
 {
   if (u8_validp(FD_PACKET_DATA(packet)))
     return fd_make_string(NULL,FD_PACKET_LENGTH(packet),FD_PACKET_DATA(packet));
   else return fd_incref(packet);
+}
+
+DCLPRIM1("BYTE-LENGTH",string_byte_length,MAX_ARGS(1),
+         "`(BYTE-LENGTH *string*)` returns the number of bytes "
+         "in the UTF-8 representation of *string*",
+         fd_string_type,FD_VOID)
+static lispval string_byte_length(lispval string)
+{
+  int len = STRLEN(string);
+  return FD_INT(len);
+}
+
+/* Fixing embedded NULs */
+
+DCLPRIM1("FIXNULS",fixnuls_prim,MAX_ARGS(1),
+         "`(FIXNULS *string*)` replaces any null bytes in the "
+         "utf-8 representation of string with a 'not quite kosher' "
+         "multi-byte representation.",
+         fd_string_type,FD_VOID)
+static lispval fixnuls_prim(lispval string)
+{
+  struct FD_STRING *ss = fd_consptr(fd_string,string,fd_string_type);
+  if (strlen(ss->str_bytes)<ss->str_bytelen) {
+    /* Handle embedded NUL */
+    struct U8_OUTPUT out;
+    const u8_byte *scan = ss->str_bytes, *limit = scan+ss->str_bytelen;
+    U8_INIT_OUTPUT(&out,ss->str_bytelen+8);
+    while (scan<limit) {
+      if (*scan)
+        u8_putc(&out,u8_sgetc(&scan));
+      else u8_putc(&out,0);}
+    return fd_stream2string(&out);}
+  else return fd_incref(string);
 }
 
 /* String comparison */
@@ -513,11 +741,13 @@ static int docmp(enum STRCMP pred,int rv)
   case str_eq:
     return (rv==0);
   case str_neq:
-    return (rv!=0)
+    return (rv!=0);
   case str_gte:
     return (rv>=0);
   case str_gt:
     return (rv>0);
+  default:
+    return -1;
   }
 }
 
@@ -533,16 +763,15 @@ static int string_compare(u8_string s1,u8_string s2)
   else if (c1<c2) return -1;
   else return 1;
 }
-
 static lispval compare_strings(enum STRCMP need,int n,lispval *stringvals)
 {
-  int i = 0;
-  u8_string base_arg = stringvals[0];
+  int i = 1;
+  lispval base_arg = stringvals[0];
   if (!(FD_STRINGP(base_arg)))
     return fd_type_error("string","compare_strings",base_arg);
-  u8_string base = FD_CSTRING(stringvals[0]);
+  u8_string base = FD_CSTRING(base_arg);
   while (i < n) {
-    lispval arg = strings[i++];
+    lispval arg = stringvals[i++];
     if (!(FD_STRINGP(arg)))
       return fd_type_error("string","compare_strings",arg);
     u8_string str = FD_CSTRING(arg);
@@ -570,13 +799,13 @@ static int string_compare_ci(u8_string s1,u8_string s2)
 
 static lispval compare_strings_ci(enum STRCMP need,int n,lispval *stringvals)
 {
-  int i = 0;
-  u8_string base_arg = stringvals[0];
+  int i = 1;
+  lispval base_arg = stringvals[0];
   if (!(FD_STRINGP(base_arg)))
     return fd_type_error("string","compare_strings",base_arg);
-  u8_string base = FD_CSTRING(stringvals[0]);
+  u8_string base = FD_CSTRING(base_arg);
   while (i < n) {
-    lispval arg = strings[i++];
+    lispval arg = stringvals[i++];
     if (!(FD_STRINGP(arg)))
       return fd_type_error("string","compare_strings",arg);
     u8_string str = FD_CSTRING(arg);
@@ -588,94 +817,191 @@ static lispval compare_strings_ci(enum STRCMP need,int n,lispval *stringvals)
 }
 
 DCLPRIM("STRING=?",string_eq,MIN_ARGS(2)|FD_VAR_ARGS,
-        "(string=? *strings...*)\n")
+        "`(string=? *strings...*)`")
 static lispval string_eq(int n,lispval *args) {
   return compare_strings(str_eq,n,args); }
-DCLPRIM("STRING-CI=?",string_eq,MIN_ARGS(2)|FD_VAR_ARGS,
-        "(string=? *strings...*)\n")
+
+DCLPRIM("STRING-CI=?",string_ci_eq,MIN_ARGS(2)|FD_VAR_ARGS,
+        "`(STRING-CI=? *strings...*)`")
 static lispval string_ci_eq(int n,lispval *args) {
   return compare_strings_ci(str_eq,n,args); }
+
+DCLPRIM("STRING!=?",string_ne,MIN_ARGS(2)|FD_VAR_ARGS,
+        "`(STRING!=? *strings...*)`")
+static lispval string_ne(int n,lispval *args) {
+  return compare_strings(str_neq,n,args); }
+
+DCLPRIM("STRING-CI!=?",string_ci_ne,MIN_ARGS(2)|FD_VAR_ARGS,
+        "`(STRING-CI!=? *strings...*)`")
+static lispval string_ci_ne(int n,lispval *args) {
+  return compare_strings_ci(str_neq,n,args); }
+
+DCLPRIM("STRING<?",string_lt,MIN_ARGS(2)|FD_VAR_ARGS,
+        "`(STRING<? *strings...*)`")
 static lispval string_lt(int n,lispval *args) {
   return compare_strings(str_lt,n,args); }
+
+DCLPRIM("STRING-CI<?",string_ci_lt,MIN_ARGS(2)|FD_VAR_ARGS,
+        "`(STRING-CI<? *strings...*)`")
 static lispval string_ci_lt(int n,lispval *args) {
   return compare_strings_ci(str_lt,n,args); }
+
+DCLPRIM("STRING<=?",string_lte,MIN_ARGS(2)|FD_VAR_ARGS,
+        "`(STRING<=? *strings...*)`")
 static lispval string_lte(int n,lispval *args) {
-  return compare_strings(str_lt,n,args); }
-static lispval string_ci_lte(int n, lispval *strings) {
+  return compare_strings(str_lte,n,args); }
+
+DCLPRIM("STRING-CI<=?",string_ci_lte,MIN_ARGS(2)|FD_VAR_ARGS,
+        "`(STRING-CI<=? *strings...*)`")
+static lispval string_ci_lte(int n, lispval *args) {
   return compare_strings_ci(str_lte,n,args); }
+
+DCLPRIM("STRING>=?",string_gte,MIN_ARGS(2)|FD_VAR_ARGS,
+        "`(STRING>=? *strings...*)`")
 static lispval string_gte(int n,lispval *args) {
   return compare_strings(str_gte,n,args); }
+
+DCLPRIM("STRING-CI>=?",string_ci_gte,MIN_ARGS(2)|FD_VAR_ARGS,
+        "`(STRING-CI>=? *strings...*)`")
 static lispval string_ci_gte(int n,lispval *args) {
   return compare_strings_ci(str_gte,n,args); }
+
+DCLPRIM("STRING>?",string_gt,MIN_ARGS(2)|FD_VAR_ARGS,
+        "`(STRING>? *strings...*)`")
 static lispval string_gt(int n,lispval *args) {
   return compare_strings(str_gt,n,args); }
+
+DCLPRIM("STRING-CI>?",string_ci_gt,MIN_ARGS(2)|FD_VAR_ARGS,
+        "`(STRING-CI>? *strings...*)`")
 static lispval string_ci_gt(int n,lispval *args) {
   return compare_strings_ci(str_gt,n,args); }
 
-static lispval char_eq(lispval ch1,lispval ch2)
+/* Character comparisons */
+
+static lispval compare_chars(enum STRCMP need,int n,lispval *charvals)
 {
-  if (FD_CHARCODE(ch1) == FD_CHARCODE(ch2))
-    return FD_TRUE;
-  else return FD_FALSE;
+  int i = 1;
+  lispval base_arg = charvals[0];
+  long long charcode;
+  if (FD_CHARACTERP(base_arg))
+    charcode = FD_CHARCODE(base_arg);
+  else if (FD_FIXNUMP(base_arg))
+    charcode = FD_FIX2INT(base_arg);
+  else return fd_type_error("character/codepoint","compare_chars",base_arg);
+  if (charcode < 0)
+    return fd_type_error("character/codepoint","compare_chars",base_arg);
+  while (i < n) {
+    lispval arg = charvals[i++]; long long code;
+    if (FD_CHARACTERP(arg))
+      code = FD_CHARCODE(arg);
+    else if (FD_FIXNUMP(arg))
+      code = FD_FIX2INT(arg);
+    else return fd_type_error("character/codepoint","compare_chars",arg);
+    if (code < 0)
+      return fd_type_error("character/codepoint","compare_chars",arg);
+    int cmp = (charcode < code) ? (-1) : (charcode == code) ? (0) : (1);
+    if (! (docmp(need,cmp)) )
+      return FD_FALSE;
+    charcode = code;}
+  return FD_TRUE;
 }
-static lispval char_ci_eq(lispval ch1,lispval ch2)
+
+static lispval compare_chars_ci(enum STRCMP need,int n,lispval *charvals)
 {
-  if (u8_tolower(FD_CHARCODE(ch1)) == u8_tolower(FD_CHARCODE(ch2)))
-    return FD_TRUE;
-  else return FD_FALSE;
+  int i = 1;
+  lispval base_arg = charvals[0];
+  long long charcode;
+  if (FD_CHARACTERP(base_arg))
+    charcode = FD_CHARCODE(base_arg);
+  else if (FD_FIXNUMP(base_arg))
+    charcode = FD_FIX2INT(base_arg);
+  else return fd_type_error("character/codepoint","compare_chars",base_arg);
+  if (charcode < 0)
+    return fd_type_error("character/codepoint","compare_chars",base_arg);
+  else charcode = u8_tolower(charcode);
+  while (i < n) {
+    lispval arg = charvals[i++]; long long code;
+    if (FD_CHARACTERP(arg))
+      code = FD_CHARCODE(arg);
+    else if (FD_FIXNUMP(arg))
+      code = FD_FIX2INT(arg);
+    else return fd_type_error("character/codepoint","compare_chars",arg);
+    if (code < 0)
+      return fd_type_error("character/codepoint","compare_chars",arg);
+    else code = u8_tolower(code);
+    int cmp = (charcode < code) ? (-1) : (charcode == code) ? (0) : (1);
+    if (! (docmp(need,cmp)) )
+      return FD_FALSE;
+    charcode = code;}
+  return FD_TRUE;
 }
-static lispval char_lt(lispval ch1,lispval ch2)
-{
-  if (FD_CHARCODE(ch1)<FD_CHARCODE(ch2))
-    return FD_TRUE;
-  else return FD_FALSE;
-}
-static lispval char_ci_lt(lispval ch1,lispval ch2)
-{
-  if (u8_tolower(FD_CHARCODE(ch1))<u8_tolower(FD_CHARCODE(ch2)))
-    return FD_TRUE;
-  else return FD_FALSE;
-}
-static lispval char_lte(lispval ch1,lispval ch2)
-{
-  if (FD_CHARCODE(ch1)<=FD_CHARCODE(ch2))
-    return FD_TRUE;
-  else return FD_FALSE;
-}
-static lispval char_ci_lte(lispval ch1,lispval ch2)
-{
-  if (u8_tolower(FD_CHARCODE(ch1))<=u8_tolower(FD_CHARCODE(ch2)))
-    return FD_TRUE;
-  else return FD_FALSE;
-}
-static lispval char_gt(lispval ch1,lispval ch2)
-{
-  if (FD_CHARCODE(ch1)>FD_CHARCODE(ch2))
-    return FD_TRUE;
-  else return FD_FALSE;
-}
-static lispval char_ci_gt(lispval ch1,lispval ch2)
-{
-  if (u8_tolower(FD_CHARCODE(ch1))>u8_tolower(FD_CHARCODE(ch2)))
-    return FD_TRUE;
-  else return FD_FALSE;
-}
-static lispval char_gte(lispval ch1,lispval ch2)
-{
-  if (FD_CHARCODE(ch1)>=FD_CHARCODE(ch2))
-    return FD_TRUE;
-  else return FD_FALSE;
-}
-static lispval char_ci_gte(lispval ch1,lispval ch2)
-{
-  if (u8_tolower(FD_CHARCODE(ch1))>=u8_tolower(FD_CHARCODE(ch2)))
-    return FD_TRUE;
-  else return FD_FALSE;
-}
+
+DCLPRIM("CHAR=?",char_eq,MIN_ARGS(2)|FD_VAR_ARGS,
+        "`(char=? *chars...*)`")
+static lispval char_eq(int n,lispval *args) {
+  return compare_chars(str_eq,n,args); }
+
+DCLPRIM("CHAR-CI=?",char_ci_eq,MIN_ARGS(2)|FD_VAR_ARGS,
+        "`(CHAR-CI=? *chars...*)`")
+static lispval char_ci_eq(int n,lispval *args) {
+  return compare_chars_ci(str_eq,n,args); }
+
+DCLPRIM("CHAR!=?",char_ne,MIN_ARGS(2)|FD_VAR_ARGS,
+        "`(CHAR!=? *chars...*)`")
+static lispval char_ne(int n,lispval *args) {
+  return compare_chars(str_neq,n,args); }
+
+DCLPRIM("CHAR-CI!=?",char_ci_ne,MIN_ARGS(2)|FD_VAR_ARGS,
+        "`(CHAR-CI!=? *chars...*)`")
+static lispval char_ci_ne(int n,lispval *args) {
+  return compare_chars_ci(str_neq,n,args); }
+
+DCLPRIM("CHAR<?",char_lt,MIN_ARGS(2)|FD_VAR_ARGS,
+        "`(CHAR<? *chars...*)`")
+static lispval char_lt(int n,lispval *args) {
+  return compare_chars(str_lt,n,args); }
+
+DCLPRIM("CHAR-CI<?",char_ci_lt,MIN_ARGS(2)|FD_VAR_ARGS,
+        "`(CHAR-CI<? *chars...*)`")
+static lispval char_ci_lt(int n,lispval *args) {
+  return compare_chars_ci(str_lt,n,args); }
+
+DCLPRIM("CHAR<=?",char_lte,MIN_ARGS(2)|FD_VAR_ARGS,
+        "`(CHAR<=? *chars...*)`")
+static lispval char_lte(int n,lispval *args) {
+  return compare_chars(str_lte,n,args); }
+
+DCLPRIM("CHAR-CI<=?",char_ci_lte,MIN_ARGS(2)|FD_VAR_ARGS,
+        "`(CHAR-CI<=? *chars...*)`")
+static lispval char_ci_lte(int n, lispval *args) {
+  return compare_chars_ci(str_lte,n,args); }
+
+DCLPRIM("CHAR>=?",char_gte,MIN_ARGS(2)|FD_VAR_ARGS,
+        "`(CHAR>=? *chars...*)`")
+static lispval char_gte(int n,lispval *args) {
+  return compare_chars(str_gte,n,args); }
+
+DCLPRIM("CHAR-CI>=?",char_ci_gte,MIN_ARGS(2)|FD_VAR_ARGS,
+        "`(CHAR-CI>=? *chars...*)`")
+static lispval char_ci_gte(int n,lispval *args) {
+  return compare_chars_ci(str_gte,n,args); }
+
+DCLPRIM("CHAR>?",char_gt,MIN_ARGS(2)|FD_VAR_ARGS,
+        "`(CHAR>? *chars...*)`")
+static lispval char_gt(int n,lispval *args) {
+  return compare_chars(str_gt,n,args); }
+
+DCLPRIM("CHAR-CI>?",char_ci_gt,MIN_ARGS(2)|FD_VAR_ARGS,
+        "`(CHAR-CI>? *chars...*)`")
+static lispval char_ci_gt(int n,lispval *args) {
+  return compare_chars_ci(str_gt,n,args); }
 
 /* String building */
 
-static lispval string_append(int n,lispval *args)
+DCLPRIM("STRING-APPEND",string_append_prim,FD_VAR_ARGS,
+        "`(STRING-APPEND *strings...*)` creates a new string "
+        "by appending together each of *strings*.")
+static lispval string_append_prim(int n,lispval *args)
 {
   int i = 0;
   U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
@@ -688,6 +1014,9 @@ static lispval string_append(int n,lispval *args)
   return fd_stream2string(&out);
 }
 
+DCLPRIM("STRING",string_prim,FD_VAR_ARGS,
+        "`(STRING *strings|chars...*)` creates a new string "
+        "by appending together strings or characters.")
 static lispval string_prim(int n,lispval *args)
 {
   int i = 0;
@@ -701,75 +1030,22 @@ static lispval string_prim(int n,lispval *args)
   return fd_stream2string(&out);
 }
 
-static lispval makestring(lispval len,lispval character)
+DCLPRIM2("MAKE-STRING",makestring_prim,MAX_ARGS(2)|MIN_ARGS(1),
+         "`(MAKE-STRING *len* [*initchar*])` creates a new string "
+         "of *len* characters, initialied to *initchar* which defaults "
+         "to #\\Space",
+         fd_fixnum_type,VOID,fd_character_type,FD_VOID)
+static lispval makestring_prim(lispval len,lispval character)
 {
   struct U8_OUTPUT out;
   if (fd_getint(len)==0)
     return fd_init_string(NULL,0,NULL);
   else {
-    int i = 0, n = fd_getint(len), ch = FD_CHAR2CODE(character);
+    int i = 0, n = fd_getint(len);
+    int ch = (VOIDP(character)) ? (' ') : (FD_CHAR2CODE(character));
     U8_INIT_OUTPUT(&out,n);
     while (i<n) {u8_putc(&out,ch); i++;}
     return fd_stream2string(&out);}
-}
-
-/* Trigrams and Bigrams */
-
-static int get_stdchar(const u8_byte **in)
-{
-  int c;
-  while ((c = u8_sgetc(in))>=0)
-    if (u8_ismodifier(c)) c = u8_sgetc(in);
-    else {
-      c = u8_base_char(c); c = u8_tolower(c);
-      return c;}
-  return c;
-}
-
-static lispval string_trigrams(lispval string)
-{
-  U8_OUTPUT out; u8_byte buf[64];
-  const u8_byte *in = CSTRING(string);
-  int c1=' ', c2=' ', c3=' ', c;
-  lispval trigram, trigrams = EMPTY;
-  U8_INIT_FIXED_OUTPUT(&out,64,buf);
-  if (STRINGP(string)) {
-    while ((c = get_stdchar(&in))>=0) {
-      c1 = c2; c2 = c3; c3 = c; out.u8_write = out.u8_outbuf;
-      u8_putc(&out,c1); u8_putc(&out,c2); u8_putc(&out,c3);
-      trigram = fd_make_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
-      CHOICE_ADD(trigrams,trigram);}
-    c1 = c2; c2 = c3; c3=' '; out.u8_write = out.u8_outbuf;
-    u8_putc(&out,c1); u8_putc(&out,c2); u8_putc(&out,c3);
-    trigram = fd_make_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
-    CHOICE_ADD(trigrams,trigram);
-    c1 = c2; c2 = c3; c3=' '; out.u8_write = out.u8_outbuf;
-    u8_putc(&out,c1); u8_putc(&out,c2); u8_putc(&out,c3);
-    trigram = fd_make_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
-    CHOICE_ADD(trigrams,trigram);
-    return trigrams;}
-  else return fd_type_error(_("string"),"string_trigrams",string);
-}
-
-static lispval string_bigrams(lispval string)
-{
-  U8_OUTPUT out; u8_byte buf[64];
-  const u8_byte *in = CSTRING(string);
-  int c1=' ', c2=' ', c;
-  lispval bigram, bigrams = EMPTY;
-  U8_INIT_FIXED_OUTPUT(&out,64,buf);
-  if (STRINGP(string)) {
-    while ((c = get_stdchar(&in))>=0) {
-      c1 = c2; c2 = c; out.u8_write = out.u8_outbuf;
-      u8_putc(&out,c1); u8_putc(&out,c2);
-      bigram = fd_make_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
-      CHOICE_ADD(bigrams,bigram);}
-    c1 = c2; c2=' '; out.u8_write = out.u8_outbuf;
-    u8_putc(&out,c1); u8_putc(&out,c2);
-    bigram = fd_make_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
-    CHOICE_ADD(bigrams,bigram);
-    return bigrams;}
-  else return fd_type_error(_("string"),"string_bigrams",string);
 }
 
 /* String predicates */
@@ -798,6 +1074,10 @@ static int has_suffix_test(lispval string,lispval suffix)
       return 1;
     else return 0;}
 }
+DCLPRIM2("HAS-SUFFIX",has_suffix,MAX_ARGS(2)|MIN_ARGS(2)|NDCALL,
+         "`(HAS-SUFFIX *string* *suffixes*)` returns true if *string* "
+         "starts with any of *suffixes* (also strings).",
+         -1,FD_VOID,-1,FD_VOID)
 static lispval has_suffix(lispval string,lispval suffix)
 {
   lispval notstring;
@@ -838,9 +1118,17 @@ static lispval has_suffix(lispval string,lispval suffix)
     return FD_FALSE;}
   else return FD_FALSE;
 }
+DCLPRIM2("IS-SUFFIX",is_suffix,MAX_ARGS(2)|MIN_ARGS(2),
+         "`(IS-SUFFIX *suffix* *string*)` returns true if *string* "
+         "starts with *suffix*.",
+         fd_string_type,FD_VOID,fd_string_type,FD_VOID)
 static lispval is_suffix(lispval suffix,lispval string) {
   return has_suffix(string,suffix); }
 
+DCLPRIM2("STRIP-SUFFIX",strip_suffix,MAX_ARGS(2)|MIN_ARGS(2)|NDCALL,
+         "`(STRIP-SUFFIX *string* *suffixes*)` removes the longest of "
+         "*suffixes* from the end of *string*, if any.",
+         -1,FD_VOID,-1,FD_VOID)
 static lispval strip_suffix(lispval string,lispval suffix)
 {
   lispval notstring;
@@ -890,6 +1178,11 @@ static int has_prefix_test(lispval string,lispval prefix)
       return 1;
     else return 0;}
 }
+
+DCLPRIM2("HAS-PREFIX",has_prefix,MAX_ARGS(2)|MIN_ARGS(2)|NDCALL,
+         "`(HAS-PREFIX *string* *prefixes*)` returns true if *string* "
+         "starts with any of *prefixes* (also strings).",
+         -1,FD_VOID,-1,FD_VOID)
 static lispval has_prefix(lispval string,lispval prefix)
 {
   lispval notstring;
@@ -929,9 +1222,17 @@ static lispval has_prefix(lispval string,lispval prefix)
     return FD_FALSE;}
   else return FD_FALSE;
 }
+DCLPRIM2("IS-PREFIX",is_prefix,MAX_ARGS(2)|MIN_ARGS(2),
+         "`(IS-PREFIX *prefix* *string*)` returns true if *string* "
+         "starts with *prefix*.",
+         fd_string_type,FD_VOID,fd_string_type,FD_VOID)
 static lispval is_prefix(lispval prefix,lispval string) {
   return has_prefix(string,prefix); }
 
+DCLPRIM2("STRIP-PREFIX",strip_prefix,MAX_ARGS(2)|MIN_ARGS(2)|NDCALL,
+         "`(STRIP-PREFIX *string* *suffixes*)` removes the longest of "
+         "*suffixes* from the beginning of *string*, if any.",
+         -1,FD_VOID,-1,FD_VOID)
 static lispval strip_prefix(lispval string,lispval prefix)
 {
   lispval notstring;
@@ -1006,6 +1307,12 @@ static int check_yesp(u8_string arg,lispval strings,int ignorecase)
   return 0;
 }
 
+DCLPRIM4("YES?",yesp_prim,MAX_ARGS(4)|MIN_ARGS(1),
+         "`(YES? *string* [*default*] [*yesses*] [*nos*])` "
+         "returns true if *string* is recognized as "
+         "an affirmative natural langauge response.",
+         -1,VOID,-1,FD_FALSE,
+         -1,EMPTY,-1,EMPTY)
 static lispval yesp_prim(lispval arg,lispval dflt,lispval yes,lispval no)
 {
   u8_string string_arg; int ignorecase = 0;
@@ -1022,6 +1329,11 @@ static lispval yesp_prim(lispval arg,lispval dflt,lispval yes,lispval no)
 
 /* STRSEARCH */
 
+DCLPRIM3("STRMATCH?",strmatchp_prim,MIN_ARGS(2)|MAX_ARGS(3)|NDCALL,
+         "`(STRMATCH? *string* *patterns* *pos*)` return true "
+         "if any of *patterns* (a choice of strings or regexes) "
+         "matches the substring of *string* starting at *pos*.",
+         fd_string_type,VOID,-1,VOID,fd_fixnum_type,VOID)
 static lispval strmatchp_prim(lispval pat,lispval string,lispval ef)
 {
   if (CHOICEP(string)) {
@@ -1072,6 +1384,15 @@ static lispval strmatchp_prim(lispval pat,lispval string,lispval ef)
 
 static lispval entity_escape;
 
+DCLPRIM3("STRING->PACKET",string2packet,MAX_ARGS(3)|MIN_ARGS(1),
+         "`(STRING->PACKET *string* [*encoding*] [*escape*])` converts "
+         "*string* into a packet based on *encoding*. Characters which "
+         "cannot be converted are escaped based on the *escape* arg. "
+         "If *escape* is '**entities**, HTML escapes are used, if "
+         "*escape* is #f (the default), non-represented characters "
+         "are ignored, and otherwise \\u escapes are emitted. *encoding* "
+         "is either a string or symbol naming the encoding scheme.",
+         fd_string_type,FD_VOID,-1,FD_VOID,-1,FD_VOID)
 static lispval string2packet(lispval string,lispval encoding,lispval escape)
 {
   char *data; int n_bytes;
@@ -1098,6 +1419,14 @@ static lispval string2packet(lispval string,lispval encoding,lispval escape)
   else return FD_ERROR;
 }
 
+DCLPRIM("->SECRET",x2secret_prim,MAX_ARGS(1),
+        "`(->SECRET *object*)` returns a *secret packet* from "
+        "*object* whose printed representation does not disclose it's "
+        "value but which can be used as arguments to many string "
+        "combination functions. If *object* is a packet, it's bytes "
+        "are used directly, if *object* is a string, it's UTF-8 "
+        "representation is used. Otherwise, the object is unparsed "
+        "into a string.")
 static lispval x2secret_prim(lispval arg)
 {
   if (TYPEP(arg,fd_secret_type))
@@ -1114,6 +1443,12 @@ static lispval x2secret_prim(lispval arg)
   else return fd_type_error("string/packet","x2secret_prim",arg);
 }
 
+DCLPRIM2("PACKET->STRING",packet2string,MAX_ARGS(2)|MIN_ARGS(1),
+         "`(PACKET->STRING *packet* [*encoding*])` converts the "
+         "bytes of *packet* into a string based on the named "
+         "*encoding* which can be a string or symbol and defaults "
+         "to UTF-8",
+         fd_packet_type,FD_VOID,-1,FD_FALSE)
 static lispval packet2string(lispval packet,lispval encoding)
 {
   if (FD_PACKET_LENGTH(packet)==0)
@@ -1132,32 +1467,9 @@ static lispval packet2string(lispval packet,lispval encoding)
       enc = u8_get_encoding(SYM_NAME(encoding));
     else return fd_type_error(_("text encoding"),"packet2string",encoding);
     if (u8_convert(enc,0,&out,&scan,limit)<0) {
-      u8_free(out.u8_outbuf); return FD_ERROR;}
+      u8_free(out.u8_outbuf);
+      return FD_ERROR;}
     else return fd_stream2string(&out);}
-}
-
-static lispval string_byte_length(lispval string)
-{
-  int len = STRLEN(string);
-  return FD_INT(len);
-}
-
-/* Fixing embedded NULs */
-
-static lispval fixnuls(lispval string)
-{
-  struct FD_STRING *ss = fd_consptr(fd_string,string,fd_string_type);
-  if (strlen(ss->str_bytes)<ss->str_bytelen) {
-    /* Handle embedded NUL */
-    struct U8_OUTPUT out;
-    const u8_byte *scan = ss->str_bytes, *limit = scan+ss->str_bytelen;
-    U8_INIT_OUTPUT(&out,ss->str_bytelen+8);
-    while (scan<limit) {
-      if (*scan)
-        u8_putc(&out,u8_sgetc(&scan));
-      else u8_putc(&out,0);}
-    return fd_stream2string(&out);}
-  else return fd_incref(string);
 }
 
 /* Simple string subst */
@@ -1189,6 +1501,12 @@ static u8_string strsearch(u8_string string,lispval pat,
   else return NULL;
 }
 
+DCLPRIM3("STRING-SUBST",string_subst_prim,MAX_ARGS(3),
+         "`(STRING-SUBST *string* *pat* *replace*)` "
+         "replaces substrings of *string* which match *pattern* "
+         "with *replacement*. *pattern* can be a string or "
+         "a regex and arguments substitutions are not available.",
+         fd_string_type,FD_VOID,-1,FD_VOID,fd_string_type,FD_VOID)
 static lispval string_subst_prim(lispval string,lispval pat,lispval with)
 {
   if (STRLEN(string)==0) return fd_incref(string);
@@ -1215,6 +1533,10 @@ static lispval string_subst_prim(lispval string,lispval pat,lispval with)
     else return fd_incref(string);}
 }
 
+DCLPRIM("STRING-SUBST*",string_subst_star,MIN_ARGS(3)|FD_VAR_ARGS,
+        "`(STRING-SUBST* *string* [*pattern* *subst*]...)` replaces "
+        "substrings matching each *pattern* with the corresponding *subst* "
+        "starting from left to right.")
 static lispval string_subst_star(int n,lispval *args)
 {
   lispval base = args[0]; int i = 1;
@@ -1236,6 +1558,10 @@ static lispval string_subst_star(int n,lispval *args)
   return base;
 }
 
+DCLPRIM1("TRIM-SPACES",trim_spaces,MAX_ARGS(1),
+         "`(TRIM-SPACES *string*)` removes leading and trailing "
+         "whitespace from *string*.",
+         fd_string_type,FD_VOID)
 static lispval trim_spaces(lispval string)
 {
   const u8_byte *start = CSTRING(string), *end = start+STRLEN(string);
@@ -1265,6 +1591,12 @@ static lispval trim_spaces(lispval string)
 
 /* Glomming */
 
+DCLPRIM("GLOM",glom_lexpr,MAX_ARGS(0)|FD_VAR_ARGS,
+        "`(GLOM *objects...*)` returns a string concatenating "
+        "either the text of *objects* (if they are strings) or the "
+        "text of their printed representations (if they are not). "
+        "If any of the arguments are choices, `GLOM` returns a choice "
+        "of object combinations.")
 static lispval glom_lexpr(int n,lispval *args)
 {
   unsigned char *result_data, *write;
@@ -1389,264 +1721,106 @@ FD_EXPORT void fd_init_stringprims_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("ASCII?",asciip,1,fd_string_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("LATIN1?",latin1p,1,fd_string_type,VOID));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("LOWERCASE?",lowercasep,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("DOWNCASE",downcase,1));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("CHAR-DOWNCASE",char_downcase,1,
-                           fd_character_type,VOID));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("UPPERCASE?",uppercasep,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("UPCASE",upcase,1));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("CHAR-UPCASE",char_upcase,1,
-                           fd_character_type,VOID));
+  DECL_PRIM(asciip,1,fd_scheme_module);
+  DECL_PRIM(latin1p,1,fd_scheme_module);
+  DECL_PRIM(lowercasep,1,fd_scheme_module);
+  DECL_PRIM(uppercasep,1,fd_scheme_module);
 
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("STRING=?",string_eq,2,
-                           fd_string_type,VOID,
-                           fd_string_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("STRING-CI=?",string_ci_eq,2,
-                           fd_string_type,VOID,
-                           fd_string_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("STRING<?",string_lt,2,
-                           fd_string_type,VOID,
-                           fd_string_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("STRING-CI<?",string_ci_lt,2,
-                           fd_string_type,VOID,
-                           fd_string_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("STRING>?",string_gt,2,
-                           fd_string_type,VOID,
-                           fd_string_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("STRING-CI>?",string_ci_gt,2,
-                           fd_string_type,VOID,
-                           fd_string_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("STRING>=?",string_gte,2,
-                           fd_string_type,VOID,
-                           fd_string_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("STRING-CI>=?",string_ci_gte,2,
-                           fd_string_type,VOID,
-                           fd_string_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("STRING<=?",string_lte,2,
-                           fd_string_type,VOID,
-                           fd_string_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("STRING-CI<=?",string_ci_lte,2,
-                           fd_string_type,VOID,
-                           fd_string_type,VOID));
+  DECL_PRIM(utf8p_prim,1,fd_scheme_module);
+  DECL_PRIM(utf8string_prim,1,fd_scheme_module);
+  DECL_PRIM(string_byte_length,1,fd_scheme_module);
+  DECL_PRIM(fixnuls_prim,1,fd_scheme_module);
 
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("CHAR=?",char_eq,2,
-                           fd_character_type,VOID,
-                           fd_character_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("CHAR-CI=?",char_ci_eq,2,
-                           fd_character_type,VOID,
-                           fd_character_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("CHAR<?",char_lt,2,
-                           fd_character_type,VOID,
-                           fd_character_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("CHAR-CI<?",char_ci_lt,2,
-                           fd_character_type,VOID,
-                           fd_character_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("CHAR>?",char_gt,2,
-                           fd_character_type,VOID,
-                           fd_character_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("CHAR-CI>?",char_ci_gt,2,
-                           fd_character_type,VOID,
-                           fd_character_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("CHAR>=?",char_gte,2,
-                           fd_character_type,VOID,
-                           fd_character_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("CHAR-CI>=?",char_ci_gte,2,
-                           fd_character_type,VOID,
-                           fd_character_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("CHAR<=?",char_lte,2,
-                           fd_character_type,VOID,
-                           fd_character_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("CHAR-CI<=?",char_ci_lte,2,
-                           fd_character_type,VOID,
-                           fd_character_type,VOID));
+  DECL_PRIM(char2integer,1,fd_scheme_module);
+  DECL_PRIM(integer2char,1,fd_scheme_module);
+  DECL_PRIM(char_alphabeticp,1,fd_scheme_module);
+  DECL_PRIM(char_numericp,1,fd_scheme_module);
+  DECL_PRIM(char_alphanumericp,1,fd_scheme_module);
+  DECL_PRIM(char_punctuationp,1,fd_scheme_module);
+  DECL_PRIM(char_whitespacep,1,fd_scheme_module);
+  DECL_PRIM(char_upper_casep,1,fd_scheme_module);
+  DECL_PRIM(char_lower_casep,1,fd_scheme_module);
 
-  fd_idefn(fd_scheme_module,fd_make_cprim1("CAPITALIZED?",capitalizedp,1));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x
-           ("SOMECAP?",some_capitalizedp,1,
-            fd_string_type,VOID,
-            fd_fixnum_type,FD_INT(-1)));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("CAPITALIZE",capitalize,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("CAPITALIZE1",capitalize1,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("DOWNCASE1",string_downcase1,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("SYMBOLIZE",symbolize_cprim,1));
+  DECL_PRIM(char_downcase,1,fd_scheme_module);
+  DECL_PRIM(downcase,1,fd_scheme_module);
+  DECL_PRIM(char_upcase,1,fd_scheme_module);
+  DECL_PRIM(upcase,1,fd_scheme_module);
 
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("UTF8?",utf8p_prim,1,fd_packet_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("UTF8STRING",utf8string_prim,1,fd_packet_type,VOID));
+  DECL_PRIM_N(string_eq,fd_scheme_module);
+  DECL_PRIM_N(string_ci_eq,fd_scheme_module);
+  DECL_PRIM_N(string_ne,fd_scheme_module);
+  DECL_PRIM_N(string_ci_ne,fd_scheme_module);
+  DECL_PRIM_N(string_lt,fd_scheme_module);
+  DECL_PRIM_N(string_ci_lt,fd_scheme_module);
+  DECL_PRIM_N(string_gt,fd_scheme_module);
+  DECL_PRIM_N(string_ci_gt,fd_scheme_module);
+  DECL_PRIM_N(string_gte,fd_scheme_module);
+  DECL_PRIM_N(string_ci_gte,fd_scheme_module);
+  DECL_PRIM_N(string_lte,fd_scheme_module);
+  DECL_PRIM_N(string_ci_lte,fd_scheme_module);
 
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim3x("EMPTY-STRING?",empty_stringp,1,
-                           -1,VOID,-1,FD_FALSE,-1,FD_FALSE));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("COMPOUND-STRING?",string_compoundp,1,
-                           -1,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("MULTILINE-STRING?",string_multilinep,1,
-                           -1,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("PHRASE-LENGTH",string_phrase_length,1,
-                           fd_string_type,VOID));
-  fd_idefn2(fd_scheme_module,"STDSPACE",string_stdspace,1,
-            "`(STDSPACE *string* **)` Compresses whitespace runs in *string*",
-            fd_string_type,VOID,-1,VOID);
-  fd_idefn1(fd_scheme_module,"STDCAP",string_stdcap,1,
-            "`(STDCAP *string* **)` returns the standardized "
-            "capitalized form of *string*",
-            fd_string_type,VOID);
-  fd_idefn1(fd_scheme_module,"STDSTRING",string_stdstring,1,
-            "`(STDSTRING *string*)` downcases, unicode simplifies, "
-            "and whitespace compresses *string*",
-            fd_string_type,VOID);
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("BASESTRING",string_basestring,1,
-                           fd_string_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("STARTWORD",string_startword,1,
-                           fd_string_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("TRIGRAMS",string_trigrams,1,
-                           fd_string_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("BIGRAMS",string_bigrams,1,
-                           fd_string_type,VOID));
+  DECL_PRIM_N(char_eq,fd_scheme_module);
+  DECL_PRIM_N(char_ci_eq,fd_scheme_module);
+  DECL_PRIM_N(char_ne,fd_scheme_module);
+  DECL_PRIM_N(char_ci_ne,fd_scheme_module);
+  DECL_PRIM_N(char_lt,fd_scheme_module);
+  DECL_PRIM_N(char_ci_lt,fd_scheme_module);
+  DECL_PRIM_N(char_gt,fd_scheme_module);
+  DECL_PRIM_N(char_ci_gt,fd_scheme_module);
+  DECL_PRIM_N(char_gte,fd_scheme_module);
+  DECL_PRIM_N(char_ci_gte,fd_scheme_module);
+  DECL_PRIM_N(char_lte,fd_scheme_module);
+  DECL_PRIM_N(char_ci_lte,fd_scheme_module);
 
-  fd_idefn1(fd_scheme_module,"STDOBJ",stdobj,1,
-            "`(STDOBJ *obj*)` downcases, unicode simplifies, "
-            "and whitespace compresses strings, returns everything else",
-            -1,FD_VOID);
+  DECL_PRIM(capitalizedp,1,fd_scheme_module);
+  DECL_PRIM(capitalize,1,fd_scheme_module);
+  DECL_PRIM(capitalize1,1,fd_scheme_module);
+  DECL_PRIM(symbolize_cprim,1,fd_scheme_module);
 
+  DECL_PRIM(some_capitalizedp,2,fd_scheme_module);
 
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("CHAR->INTEGER",char2integer,1,
-                           fd_character_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("INTEGER->CHAR",integer2char,1,
-                           fd_fixnum_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("CHAR-ALPHABETIC?",char_alphabeticp,1,
-                           fd_character_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("CHAR-NUMERIC?",char_numericp,1,
-                           fd_character_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("CHAR-ALPHANUMERIC?",char_alphanumericp,1,
-                           fd_character_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("CHAR-PUNCTUATION?",char_punctuationp,1,
-                           fd_character_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("CHAR-WHITESPACE?",char_whitespacep,1,
-                           fd_character_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("CHAR-UPPER-CASE?",char_upper_casep,1,
-                           fd_character_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("CHAR-LOWER-CASE?",char_lower_casep,1,
-                           fd_character_type,VOID));
+  DECL_PRIM(empty_stringp,3,fd_scheme_module);
+  DECL_PRIM(string_compoundp,1,fd_scheme_module);
+  DECL_PRIM(string_multilinep,1,fd_scheme_module);
+  DECL_PRIM(string_phrase_length,1,fd_scheme_module);
 
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim
-           (fd_make_cprim2x("HAS-PREFIX",has_prefix,2,
-                            -1,VOID,-1,VOID)));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("IS-PREFIX",is_prefix,2,
-                           fd_string_type,VOID,
-                           fd_string_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim
-           (fd_make_cprim2x("STRIP-PREFIX",strip_prefix,2,
-                            -1,VOID,-1,VOID)));
+  DECL_PRIM(string_stdspace,2,fd_scheme_module);
+  DECL_PRIM(string_stdcap,1,fd_scheme_module);
+  DECL_PRIM(string_stdstring,1,fd_scheme_module);
+  DECL_PRIM(string_basestring,1,fd_scheme_module);
+  DECL_PRIM(string_startword,1,fd_scheme_module);
+  DECL_PRIM(string_trigrams,1,fd_scheme_module);
+  DECL_PRIM(string_bigrams,1,fd_scheme_module);
 
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim
-           (fd_make_cprim2x("HAS-SUFFIX",has_suffix,2,
-                            -1,VOID,-1,VOID)));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("IS-SUFFIX",is_suffix,2,
-                           fd_string_type,VOID,
-                           fd_string_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim
-           (fd_make_cprim2x("STRIP-SUFFIX",strip_suffix,2,
-                            -1,VOID,-1,VOID)));
+  DECL_PRIM(stdobj,1,fd_scheme_module);
 
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim4x("YES?",yesp_prim,1,
-                           -1,VOID,-1,FD_FALSE,
-                           -1,EMPTY,
-                           -1,EMPTY));
+  DECL_PRIM(has_prefix,2,fd_scheme_module);
+  DECL_PRIM(is_prefix,2,fd_scheme_module);
+  DECL_PRIM(strip_prefix,2,fd_scheme_module);
 
-  fd_idefn(fd_scheme_module,fd_make_cprimn("STRING-APPEND",string_append,0));
-  fd_idefn(fd_scheme_module,fd_make_cprimn("STRING",string_prim,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim2x("MAKE-STRING",makestring,1,
-                                            fd_fixnum_type,VOID,
-                                            fd_character_type,FD_CODE2CHAR(32)));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim3x("STRING-SUBST",string_subst_prim,3,
-                           fd_string_type,VOID,-1,VOID,
-                           fd_string_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprimn("STRING-SUBST*",string_subst_star,3));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("TRIM-SPACES",trim_spaces,1,fd_string_type,VOID));
+  DECL_PRIM(has_suffix,2,fd_scheme_module);
+  DECL_PRIM(is_suffix,2,fd_scheme_module);
+  DECL_PRIM(strip_suffix,2,fd_scheme_module);
 
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim
-           (fd_make_cprim3x("STRMATCH?",strmatchp_prim,2,
-                            fd_string_type,VOID,-1,VOID,
-                            fd_fixnum_type,FD_FIXZERO)));
+  DECL_PRIM_N(string_append_prim,fd_scheme_module);
+  DECL_PRIM_N(string_prim,fd_scheme_module);
+  DECL_PRIM(makestring_prim,2,fd_scheme_module);
 
+  DECL_PRIM(string_subst_prim,3,fd_scheme_module);
+  DECL_PRIM(trim_spaces,1,fd_scheme_module);
+  DECL_PRIM(strmatchp_prim,3,fd_scheme_module);
+  DECL_PRIM_N(string_subst_star,fd_scheme_module);
 
-  fd_idefn(fd_scheme_module,fd_make_cprimn("GLOM",glom_lexpr,1));
+  DECL_PRIM_N(glom_lexpr,fd_scheme_module);
+
+  DECL_PRIM(string2packet,3,fd_scheme_module);
+  DECL_PRIM(packet2string,2,fd_scheme_module);
+  DECL_PRIM(x2secret_prim,1,fd_scheme_module);
+  DECL_PRIM(x2secret_prim,1,fd_scheme_module);
+
   fd_def_evalfn(fd_scheme_module,"TEXTIF","",textif_evalfn);
 
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("BYTE-LENGTH",string_byte_length,1,
-                           fd_string_type,VOID));
-
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim3x("STRING->PACKET",string2packet,1,
-                           fd_string_type,VOID,
-                           -1,VOID,
-                           -1,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("PACKET->STRING",packet2string,1,
-                           fd_packet_type,VOID,
-                           -1,VOID));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("->SECRET",x2secret_prim,1));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("FIXNULS",fixnuls,1,fd_string_type,VOID));
-
   entity_escape = fd_intern("ENTITIES");
-
 }
 
 /* Emacs local variables
