@@ -2080,7 +2080,7 @@ FD_FASTOP int test_selector_relation(lispval f,lispval pred,lispval val,int data
        be used to extract an argument. */
     if ((FD_LAMBDAP(pred)) || (TYPEP(pred,fd_cprim_type))) {
       fd_function fcn = FD_DTYPE2FCN(pred); int retval = -1;
-      if ( (fcn->fcn_arity==2) || (fcn->fcn_min_arity==2) ) {
+      if (fcn->fcn_min_arity == 2) {
         rail[0]=f; rail[1]=val;
         result = fd_apply(pred,2,rail);
         if (FD_ABORTP(result))
