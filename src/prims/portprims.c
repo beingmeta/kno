@@ -138,7 +138,7 @@ FD_DCLPRIM2("DTYPE->PACKET",lisp2packet,MIN_ARGS(1),
             "containing the DType representation of object. "
             "*bufsize*, if provided, specifies the initial size "
             "of the output buffer to be reserved.",
-            fd_packet_type,FD_VOID,fd_fixnum_type,FD_VOID)
+            -1,FD_VOID,fd_fixnum_type,FD_VOID)
 static lispval lisp2packet(lispval object,lispval initsize)
 {
   size_t size = FIX2INT(initsize);
