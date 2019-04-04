@@ -1398,7 +1398,7 @@ static lispval string2packet(lispval string,lispval encoding,lispval escape)
   char *data; int n_bytes;
   const u8_byte *scan, *limit;
   struct U8_TEXT_ENCODING *enc;
-  if (VOIDP(encoding)) {
+  if ( (VOIDP(encoding)) || (FALSEP(encoding)) ) {
     int n_bytes = STRLEN(string);
     return fd_make_packet(NULL,n_bytes,CSTRING(string));}
   else if (STRINGP(encoding))
@@ -1459,7 +1459,7 @@ static lispval packet2string(lispval packet,lispval encoding)
     const u8_byte *limit = scan+FD_PACKET_LENGTH(packet);
     U8_INIT_OUTPUT(&out,2*FD_PACKET_LENGTH(packet));
     struct U8_TEXT_ENCODING *enc;
-    if (VOIDP(encoding))
+    if ( (VOIDP(encoding)) || (FALSEP(encoding)) )
       enc = u8_get_encoding("UTF-8");
     else if (STRINGP(encoding))
       enc = u8_get_encoding(CSTRING(encoding));
