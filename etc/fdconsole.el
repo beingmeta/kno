@@ -377,6 +377,10 @@
   (when comint-output-read-only
     (let ((inhibit-read-only t)
 	  (output-end (process-mark (get-buffer-process (current-buffer)))))
+      (save-excursion 
+	(progn (goto-char output-end)
+	       (beginning-of-line)
+	       (setq output-end (point))))
       (put-text-property comint-last-output-start output-end 'read-only t))))
 (add-hook 'comint-output-filter-functions 'make-output-read-only)
 
