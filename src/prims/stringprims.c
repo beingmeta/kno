@@ -185,19 +185,19 @@ static lispval capitalizedp(lispval string)
   else return fd_type_error("string or character","capitalizedp",string);
 }
 
-DCLPRIM2("SOMECAP?",some_capitalizedp,MAX_ARGS(2)|MIN_ARGS(2),
+DCLPRIM2("SOMECAP?",some_capitalizedp,MAX_ARGS(2)|MIN_ARGS(1),
          "`(SOMECAP? *string* *window*)` returns true if *string* "
          "contains any uppercase characters. If *window* is provided, "
          "it limits the number of characters searched",
          fd_string_type,FD_VOID,fd_fixnum_type,FD_VOID)
 static lispval some_capitalizedp(lispval string,lispval window_arg)
 {
+  int window;
   if (FD_VOIDP(window_arg))
-    window_arg = FD_INT(-1);
+    window = -1;
   else if (!(FD_UINTP(window_arg)))
     return fd_type_error("uint","some_capitalizedp",window_arg);
-  else NO_ELSE;
-  int window = FIX2INT(window_arg);
+  else window = FD_FIX2INT(window_arg);
   const u8_byte *scan = CSTRING(string);
   int c = u8_sgetc(&scan), i = 0;
   if (c<0)
@@ -1398,7 +1398,7 @@ static lispval string2packet(lispval string,lispval encoding,lispval escape)
   char *data; int n_bytes;
   const u8_byte *scan, *limit;
   struct U8_TEXT_ENCODING *enc;
-  if (VOIDP(encoding)) {
+  if ( (VOIDP(encoding)) || (FALSEP(encoding)) ) {
     int n_bytes = STRLEN(string);
     return fd_make_packet(NULL,n_bytes,CSTRING(string));}
   else if (STRINGP(encoding))
@@ -1459,7 +1459,7 @@ static lispval packet2string(lispval packet,lispval encoding)
     const u8_byte *limit = scan+FD_PACKET_LENGTH(packet);
     U8_INIT_OUTPUT(&out,2*FD_PACKET_LENGTH(packet));
     struct U8_TEXT_ENCODING *enc;
-    if (VOIDP(encoding))
+    if ( (VOIDP(encoding)) || (FALSEP(encoding)) )
       enc = u8_get_encoding("UTF-8");
     else if (STRINGP(encoding))
       enc = u8_get_encoding(CSTRING(encoding));

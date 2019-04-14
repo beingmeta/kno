@@ -24,6 +24,7 @@
 #include "libu8/u8printf.h"
 
 static u8_condition OddResult = _("ProcPool/OddResult");
+static u8_condition CommitFailed = _("ProcPoolCommit Failed");
 
 /* Fetch pools */
 
@@ -269,6 +270,9 @@ static int procpool_commit(fd_pool p,fd_commit_phase phase,
     return 0;
   else {
     lispval lp = fd_pool2lisp(p);
+    lispval phase_sym = fd_commit_phases[phase];
+    u8_context phase_name = (FD_SYMBOLP(phase_sym)) ?
+      (FD_SYMBOL_NAME(phase_sym)) : U8S("badphase");
     struct FD_VECTOR oidvec = { 0 }, valvec = { 0 };
     FD_INIT_STATIC_CONS(&oidvec,fd_vector_type);
     FD_INIT_STATIC_CONS(&valvec,fd_vector_type);
@@ -276,7 +280,7 @@ static int procpool_commit(fd_pool p,fd_commit_phase phase,
     oidvec.vec_elts = commits->commit_oids;
     valvec.vec_length = commits->commit_count;
     valvec.vec_elts = commits->commit_vals;
-    lispval args[6] = { lp, pp->pool_state, fd_commit_phases[phase],
+    lispval args[6] = { lp, pp->pool_state, phase_sym,
                         ((lispval)(&oidvec)),
                         ((lispval)(&valvec)),
                         ( (FD_VOIDP(commits->commit_metadata)) ?
@@ -287,12 +291,15 @@ static int procpool_commit(fd_pool p,fd_commit_phase phase,
       return FD_INT(result);
     else if (FALSEP(result))
       return 0;
-    else if (FD_ABORTED(result))
-      return -1;
+    else if (FD_ABORTP(result)) {
+      fd_seterr(CommitFailed,phase_name,p->poolid,FD_VOID);
+      return -1;}
     else if (FD_TRUEP(result))
       return 1;
     else {
-      fd_seterr(OddResult,"procpool_commit",p->poolid,result);
+      u8_log(LOGCRIT,"ProcPoolCommit",
+             "Returned bad value %q",result);
+      fd_seterr(CommitFailed,phase_name,p->poolid,result);
       fd_decref(result);
       return -1;}}
 }

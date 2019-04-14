@@ -5,7 +5,8 @@
 
 (use-module '{mongodb ezrecords varconfig logger})
 
-(define %loglevel %notice%)
+(define-init %loglevel %notice%)
+;;(set! %loglevel %notice%)
 
 (module-export! '{mongopool/open mongopool/make mongodb/pool
 		  mongopool? mongopool/collection mongodb/convert
@@ -129,7 +130,8 @@
 (define (mongopool-commit pool mp phase oidvec valvec metadata) 
   (info%watch "MONGOPOOL-COMMIT" 
     pool mp phase 
-    "N" (if (vector? oidvec) (length oidvec) oidvec)
+    "LEN(O)" (if (vector? oidvec) (length oidvec) oidvec)
+    "LEN(V)" (if (vector? valvec) (length valvec) valvec)
     metadata)
   (when (eq? phase 'write)
     (let ((collection (mongopool-collection mp))

@@ -86,7 +86,7 @@ static int async_mode = 1;
 
 /* Logging declarations */
 static FILE *statlog = NULL; int statusout = -1;
-static double overtime = 0;
+static double overtime = 1.0;
 static int stealsockets = 0;
 
 /* Tracking ports */
@@ -1512,8 +1512,9 @@ static int webservefn(u8_client ucl)
   write_time = u8_elapsed_time();
   getloadavg(end_load,3);
   u8_getrusage(RUSAGE_SELF,&end_usage);
-  if ((forcelog)||(traceweb>0)||
-      ((overtime>0)&&((write_time-start_time)>overtime))) {
+  if ((forcelog) || (traceweb>0) ||
+      ( (overtime > 0) &&
+        ((write_time-start_time) > overtime) ) ) {
     lispval query = fd_get(cgidata,query_slotid,VOID);
     lispval redirect = fd_get(cgidata,redirect_slotid,VOID);
     lispval sendfile = fd_get(cgidata,sendfile_slotid,VOID);
@@ -1557,9 +1558,13 @@ static int webservefn(u8_client ucl)
                 (u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime))/1000.0,
                 (u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0,
                 end_load[0],end_load[1],end_load[2]);
-    if ((forcelog)||((overtime>0)&&((write_time-start_time)>overtime))) {
-      u8_string cond = (((overtime>0)&&((write_time-start_time)>overtime))?
-                      ("OVERTIME"):("FORCELOG"));
+    if ( (forcelog) ||
+         ( (overtime > 0) &&
+           ( (write_time-start_time) > overtime) ) ) {
+      u8_string cond =
+        ( (overtime > 0) && ( (write_time-start_time) > overtime) ) ?
+        ("OVERTIME"):
+        ("FORCELOG");
       u8_string before = u8_rusage_string(&start_usage);
       u8_string after = u8_rusage_string(&end_usage);
       u8_log(LOG_NOTICE,cond,"before: %s",before);
