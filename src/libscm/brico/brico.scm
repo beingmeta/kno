@@ -410,9 +410,7 @@
 (define (get-norm concept (language default-language) (tryhard #t))
   "Gets the 'normal' word for a concept in a given language, \
    going to English or other languages if necessary"
-  (try (tryif (and (eq? language english) (not (test concept 'ranked #())))
-	      (first (get concept 'ranked)))
-       (pick-one (largest (largest (get (get concept '%norm) language) length)))
+  (try (pick-one (largest (largest (get (get concept '%norm) language) length)))
        (pick-one (largest (get concept language)))
        (tryif (and tryhard (not (eq? language english)))
 	      (try (pick-one (largest (get-norm concept english #f)))
@@ -421,9 +419,7 @@
 (define (%get-norm concept (language default-language))
   "Gets the 'normal' word for a concept in a given language, \
    skipping custom overrides and not looking in other languages."
-  (try (tryif (and (eq? language english) (not (test concept 'ranked #())))
-	      (first (get concept 'ranked)))
-       (pick-one (largest (get (get concept '%norm) language)))
+  (try (pick-one (largest (get (get concept '%norm) language)))
        (tryif (eq? language english) (pick-one (largest (get concept 'words))))
        (pick-one (largest (get (get concept '%words) (get language 'key))))
        (pick-one (largest (cdr (get concept '%words))))))
