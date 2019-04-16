@@ -410,8 +410,9 @@
 (define (get-norm concept (language default-language) (tryhard #t) (langid))
   "Gets the 'normal' word for a concept in a given language, \
    going to English or other languages if necessary"
-  (default! langid (get language 'key))
-  (try (pick-one (largest (largest (get (get concept '%norms) langid) length)))
+  (default! langid (if (oid? language) (get language 'key) language))
+  (try (tryif (eq? language english) (pick-one (largest (get concept 'norms) length)))
+       (pick-one (largest (get (get concept '%norms) langid) length))
        (pick-one (largest (get concept language)))
        (tryif (and tryhard (not (eq? language english)))
 	 (try (pick-one (largest (get-norm concept english #f langid)))
@@ -421,13 +422,15 @@
        (tryif (exists? (get concept '%words))
 	 (pick-one (largest (getvalues (get concept '%words)))))))
 
-(define (%get-norm concept (language default-language))
+(define (%get-norm concept (language default-language) (langid))
   "Gets the 'normal' word for a concept in a given language, \
    skipping custom overrides and not looking in other languages."
-  (try (pick-one (largest (get (get concept '%norm) language)))
-       (tryif (eq? language english) (pick-one (largest (get concept 'words))))
-       (pick-one (largest (get (get concept '%words) (get language 'key))))
-       (pick-one (largest (cdr (get concept '%words))))))
+  (default! langid (if (oid? language) (get language 'key) language))
+  (try (tryif (eq? language english) (pick-one (largest (get concept 'norms) length)))
+       (pick-one (largest (get (get concept '%norms) language) length))
+       (tryif (eq? language english) (pick-one (largest (get concept 'words) length)))
+       (pick-one (largest (get (get concept '%words) langid) length))
+       (pick-one (largest (cdr (get concept '%words)) length))))
 
 (define (get-normterm concept (language default-language))
   (try (get-norm concept language #f)
@@ -487,7 +490,7 @@
 
 (define (cap%frame! f (cautious #f))
   (let* ((words (get f '%words))
-	 (norm (get f '%norm))
+	 (norm (get f '%norms))
 	 (cwords (cap%wds words cautious))
 	 (cnorm (cap%wds norm cautious))
 	 (changed #f))
@@ -495,7 +498,7 @@
       (store! f '%words cwords)
       (set! changed #t))
     (unless (identical? norm cnorm)
-      (store! f '%norm cnorm)
+      (store! f '%norms cnorm)
       (set! changed #t))
     (unless cautious
       (when (test f 'words)
@@ -518,7 +521,7 @@
 
 (define (low%frame! f (cautious #f))
   (let* ((words (get f '%words))
-	 (norm (get f '%norm))
+	 (norm (get f '%norms))
 	 (cwords (low%wds words cautious))
 	 (cnorm (low%wds norm cautious))
 	 (changed #f))
@@ -526,7 +529,7 @@
       (store! f '%words cwords)
       (set! changed #t))
     (unless (identical? norm cnorm)
-      (store! f '%norm cnorm)
+      (store! f '%norms cnorm)
       (set! changed #t))
     (unless cautious
       (when (test f 'words)
@@ -765,7 +768,7 @@
   (when fixcase
     (let ((isa-terms (get isa english)))
       (store! f '%words (fixcaps (get f '%words) (qc isa-terms)))
-      (store! f '%norm (fixcaps (get f '%norm) (qc isa-terms)))))
+      (store! f '%norms (fixcaps (get f '%norms) (qc isa-terms)))))
   (make%id! f))
 
 ;;; Getting depth information
