@@ -407,14 +407,19 @@
 
 ;;; Getting norms, glosses, etc.
 
-(define (get-norm concept (language default-language) (tryhard #t))
+(define (get-norm concept (language default-language) (tryhard #t) (langid))
   "Gets the 'normal' word for a concept in a given language, \
    going to English or other languages if necessary"
-  (try (pick-one (largest (largest (get (get concept '%norm) language) length)))
+  (default! langid (get language 'key))
+  (try (pick-one (largest (largest (get (get concept '%norms) langid) length)))
        (pick-one (largest (get concept language)))
        (tryif (and tryhard (not (eq? language english)))
-	      (try (pick-one (largest (get-norm concept english #f)))
-		   (pick-one (largest (cdr (get concept '%words))))))))
+	 (try (pick-one (largest (get-norm concept english #f langid)))
+	      (pick-one (largest (cdr (get concept '%words))))))
+       (tryif (exists? (get concept '%norms))
+	 (pick-one (largest (getvalues (get concept '%norms)))))
+       (tryif (exists? (get concept '%words))
+	 (pick-one (largest (getvalues (get concept '%words)))))))
 
 (define (%get-norm concept (language default-language))
   "Gets the 'normal' word for a concept in a given language, \
