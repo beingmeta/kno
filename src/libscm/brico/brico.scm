@@ -599,7 +599,7 @@
 				(intersection sensecats 'NOUN.PERSON)
 				(intersection sensecats 'NOUN.ANIMAL)
 				(intersection sensecats 'NOUN.LOCATION)
-				sensecat)))
+				(pick-one sensecats))))
 	    `(,(if (ambiguous? sensecat) 'VAGUE sensecat)
 	      ,@(if (ambiguous? sensecat) (list (qc sensecat)) '())
 	      ,(get-norm f lang)
@@ -624,7 +624,7 @@
 			   (%get f partof)
 			   (%get f diffterms)
 			   (%get f sumterms))))
-	      ,@(if (test f 'srcid) (list 'SRCID (get f 'srcid)) '()))))))
+	      ,@(if (test f 'srcid) (list (get f 'srcid)) '()))))))
 
 (defambda (make%id! f (lang default-language))
   (do-choices f
