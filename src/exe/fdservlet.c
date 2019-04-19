@@ -1061,7 +1061,8 @@ static int webservefn(u8_client ucl)
     dolog(cgidata,FD_NULL,NULL,-1,parse_time-start_time);
   if (!(FD_ABORTP(proc)))
     precheck = run_preflight();
-  if (FD_ABORTP(proc)) result = fd_incref(proc);
+  if (FD_ABORTP(proc))
+    result = fd_incref(proc);
   else if (!((FALSEP(precheck))||
              (VOIDP(precheck))||
              (EMPTYP(precheck))))
@@ -1561,15 +1562,18 @@ static int webservefn(u8_client ucl)
     if ( (forcelog) ||
          ( (overtime > 0) &&
            ( (write_time-start_time) > overtime) ) ) {
+      u8_string before = u8_rusage_string(&start_usage);
+      u8_string after = u8_rusage_string(&end_usage);
       u8_string cond =
         ( (overtime > 0) && ( (write_time-start_time) > overtime) ) ?
         ("OVERTIME"):
         ("FORCELOG");
-      u8_string before = u8_rusage_string(&start_usage);
-      u8_string after = u8_rusage_string(&end_usage);
-      u8_log(LOG_NOTICE,cond,"before: %s",before);
-      u8_log(LOG_NOTICE,cond," after: %s",after);
-      u8_free(before); u8_free(after);}
+      u8_log(LOG_NOTICE,cond,"total=%fs, rusage after: %s",
+             (write_time-start_time),after);
+      u8_log(LOG_NOTICE,cond,"setup=%fs, rusage before: %s",
+             (parse_time-start_time),before);
+      u8_free(before);
+      u8_free(after);}
     /* If we're calling traceweb, keep the log files up to date also. */
     u8_lock_mutex(&log_lock);
     if (urllog) fflush(urllog);
