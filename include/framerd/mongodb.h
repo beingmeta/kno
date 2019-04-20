@@ -29,6 +29,9 @@
 #define FD_MONGODB_LOGOPS 64
 #define FD_MONGODB_DEFAULTS \
   (FD_MONGODB_CHOICEVALS|FD_MONGODB_COLONIZE|FD_MONGODB_SLOTIFY)
+#define FD_MONGODB_VECSLOT  128
+#define FD_MONGODB_SYMSLOT  256
+#define FD_MONGODB_RAWSLOT  512
 
 FD_EXPORT u8_condition fd_MongoDB_Error, fd_MongoDB_Warning;
 FD_EXPORT fd_ptr_type fd_mongoc_server, fd_mongoc_collection, fd_mongoc_cursor;
