@@ -2689,15 +2689,19 @@ static void bson_read_step(FD_BSON_INPUT b,int flags,
   case BSON_TYPE_UTF8: {
     int len = -1;
     const unsigned char *bytes = bson_iter_utf8(in,&len);
-    if ((flags&FD_MONGODB_COLONIZE)&&(strchr(":(#@",bytes[0])!=NULL))
+    if ( (flags&FD_MONGODB_COLONIZE) && (bytes[0] == ':') )
       value = fd_parse_arg((u8_string)(bytes));
-    else if ((flags&FD_MONGODB_COLONIZE)&&(bytes[0]=='\\'))
+    else if ( (flags&FD_MONGODB_COLONIZE) && (bytes[0]=='\\'))
       value = fd_make_string(NULL,((len>0)?(len-1):(-1)),
                            (unsigned char *)bytes+1);
     else if (flags&FD_MONGODB_SYMSLOT)
       value = fd_symbolize((u8_string)(bytes));
     else value = fd_make_string(NULL,((len>0)?(len):(-1)),
                                 (unsigned char *)bytes);
+    if (FD_ABORTED(value)) {
+      fd_clear_errors(1);
+      value = fd_make_string(NULL,((len>0)?(len):(-1)),
+                             (unsigned char *)bytes);}
     break;}
   case BSON_TYPE_BINARY: {
     int len; bson_subtype_t st; const unsigned char *data;
