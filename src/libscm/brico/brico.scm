@@ -551,8 +551,8 @@
   (if inparallel
       (let ((threads {(thread/call prefetch-oids! concepts)
 		      (for-choices (slotid {(get (pickoids slotids) 'inverse)
-					    (get (get (pickoids (get slotids 'slots)) 'inverse))}))
-			(thread/call ??/prefetch! slotid concepts)}))
+					    (get (pickoids (get slotids 'slots)) 'inverse)})
+			(thread/call ??/prefetch! slotid concepts))}))
 	(thread/wait threads))
       (begin (prefetch-oids! concepts)
 	(??/prefetch! (get slotids 'inverse) concepts)
