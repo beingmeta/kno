@@ -1568,10 +1568,10 @@ static int webservefn(u8_client ucl)
         ( (overtime > 0) && ( (write_time-start_time) > overtime) ) ?
         ("OVERTIME"):
         ("FORCELOG");
-      u8_log(LOG_NOTICE,cond,"total=%fs, rusage after: %s",
-             (write_time-start_time),after);
-      u8_log(LOG_NOTICE,cond,"setup=%fs, rusage before: %s",
-             (parse_time-start_time),before);
+      u8_log(LOG_NOTICE,cond,"setup=%fs, rusage after: %s",
+             (parse_time-start_time),after);
+      u8_log(LOG_NOTICE,cond,"total=%fs, rusage before: %s",
+             (write_time-start_time),before);
       u8_free(before);
       u8_free(after);}
     /* If we're calling traceweb, keep the log files up to date also. */
