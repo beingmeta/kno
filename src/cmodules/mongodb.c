@@ -1154,9 +1154,9 @@ static lispval mongodb_remove(lispval arg,lispval obj,lispval opts_arg)
         fd_bson_output(q,obj);
         hasid = 0;}
       else {
-        bson_append_dtype(q,"_id",3,id,0);
+        bson_append_dtype(q,"_id",3,id,-1);
         fd_decref(id);}}
-    else bson_append_dtype(q,"_id",3,obj,0);
+    else bson_append_dtype(q,"_id",3,obj,-1);
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
       u8_logf(LOG_DETAIL,"MongoDB/remove","Removing %q items from %q",obj,arg);
     if (mongoc_collection_remove(collection,
@@ -1529,7 +1529,7 @@ static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
       out.bson_doc = bson_new();
       out.bson_flags = ((flags<0)?(getflags(opts,FD_MONGODB_DEFAULTS)):(flags));
       out.bson_opts = opts;
-      bson_append_dtype(out,"_id",3,query,0);
+      bson_append_dtype(out,"_id",3,query,-1);
       q = out.bson_doc;}
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
       u8_logf(LOG_DETAIL,"MongoDB/get","Matches to %q in %q",query,arg);
@@ -1572,7 +1572,7 @@ static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
       out.bson_doc = bson_new();
       out.bson_flags = ((flags<0)?(getflags(opts,FD_MONGODB_DEFAULTS)):(flags));
       out.bson_opts = opts;
-      bson_append_dtype(out,"_id",3,query,0);
+      bson_append_dtype(out,"_id",3,query,-1);
       q = out.bson_doc;}
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
       u8_logf(LOG_DETAIL,"MongoDB/get","Matches to %q in %q",query,arg);
@@ -2167,7 +2167,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
 {
   bool ok = true;
   bson_t *out = b.bson_doc;
-  if (flags < 0) flags = b.bson_flags;
+  if (flags <= 0) flags = b.bson_flags;
   if ( ((flags)&(FD_MONGODB_VECSLOT)) && (!(FD_CHOICEP(val))) ) {
     struct FD_BSON_OUTPUT wrapper_out = { 0 };
     bson_t values;
@@ -2236,7 +2236,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       if (ok) {
         int i = 0; FD_DO_CHOICES(v,val) {
           sprintf(buf,"%d",i++);
-          ok = bson_append_dtype(rout,buf,strlen(buf),v,0);
+          ok = bson_append_dtype(rout,buf,strlen(buf),v,-1);
           if (!(ok)) FD_STOP_DO_CHOICES;}}
       bson_append_document_end(out,&arr);
       break;}
@@ -2259,7 +2259,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
         rout.bson_opts = b.bson_opts; rout.bson_fieldmap = b.bson_fieldmap;
         while (i<lim) {
           lispval v = data[i]; sprintf(buf,"%d",i++);
-          ok = bson_append_dtype(rout,buf,strlen(buf),v,0);
+          ok = bson_append_dtype(rout,buf,strlen(buf),v,-1);
           if (!(ok)) break;}}
       else break;
       if (!(doc_started)) break;
@@ -2304,9 +2304,9 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       if (ok) {
         rout.bson_doc = &doc; rout.bson_flags = b.bson_flags;
         rout.bson_opts = b.bson_opts; rout.bson_fieldmap = b.bson_fieldmap;
-        ok = bson_append_dtype(rout,":|>car>|",8,pair->car,0);
+        ok = bson_append_dtype(rout,":|>car>|",8,pair->car,-1);
         if (ok) {
-          ok = bson_append_dtype(rout,":|>cdr>|",8,pair->cdr,0);
+          ok = bson_append_dtype(rout,":|>cdr>|",8,pair->cdr,-1);
           if (ok) bson_append_document_end(out,&doc);}}
       break;}
     case fd_compound_type: {
@@ -2334,16 +2334,16 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
         lispval *scan = elts, *limit = scan+len; int i = 0;
         while (scan<limit) {
           u8_byte buf[16]; sprintf(buf,"%d",i);
-          ok = bson_append_dtype(rout,buf,strlen(buf),*scan,0);
+          ok = bson_append_dtype(rout,buf,strlen(buf),*scan,-1);
           scan++; i++;
           if (!(ok)) break;}}
       else {
         /* Or a tagged object */
         int i = 0;
-        ok = bson_append_dtype(rout,"%fdtag",6,tag,0);
+        ok = bson_append_dtype(rout,"%fdtag",6,tag,-1);
         if (ok) while (i<len) {
             char buf[16]; sprintf(buf,"%d",i);
-            ok = bson_append_dtype(rout,buf,strlen(buf),elts[i++],0);
+            ok = bson_append_dtype(rout,buf,strlen(buf),elts[i++],-1);
             if (!(ok)) break;}}
       if (tag == mongovec_symbol)
         bson_append_array_end(out,&doc);
