@@ -622,7 +622,7 @@
 			   (%get f partof)
 			   (%get f diffterms)
 			   (%get f sumterms))))
-	      ,@(if (test f 'srcid) (list (get f 'srcid)) '()))))))
+	      ,@(if (test f 'srcid) (list (qc (get f 'srcid))) '()))))))
 
 (defambda (make%id! f (lang default-language))
   (do-choices f
