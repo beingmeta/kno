@@ -2236,7 +2236,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       if (ok) {
         int i = 0; FD_DO_CHOICES(v,val) {
           sprintf(buf,"%d",i++);
-          ok = bson_append_dtype(rout,buf,strlen(buf),v,-1);
+          ok = bson_append_dtype(rout,buf,strlen(buf),v,flags);
           if (!(ok)) FD_STOP_DO_CHOICES;}}
       bson_append_document_end(out,&arr);
       break;}
