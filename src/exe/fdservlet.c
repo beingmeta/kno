@@ -1562,16 +1562,21 @@ static int webservefn(u8_client ucl)
     if ( (forcelog) ||
          ( (overtime > 0) &&
            ( (write_time-start_time) > overtime) ) ) {
+      double loadavg[3] = {-1, -1, -1};
+      int loadavg_rv = getloadavg(loadavg,3);
+      if (loadavg_rv < 0) {U8_CLEAR_ERRNO();}
       u8_string before = u8_rusage_string(&start_usage);
       u8_string after = u8_rusage_string(&end_usage);
       u8_string cond =
         ( (overtime > 0) && ( (write_time-start_time) > overtime) ) ?
         ("OVERTIME"):
         ("FORCELOG");
-      u8_log(LOG_NOTICE,cond,"setup=%fs, rusage after: %s",
-             (parse_time-start_time),after);
-      u8_log(LOG_NOTICE,cond,"total=%fs, rusage before: %s",
-             (write_time-start_time),before);
+      u8_log(LOG_NOTICE,cond,"setup=%fs, load=%f:%f:%f, rusage before: %s",
+             (parse_time-start_time),
+             loadavg[0],loadavg[1],loadavg[2],
+             before);
+      u8_log(LOG_NOTICE,cond,"total=%fs, rusage after: %s",
+             (write_time-start_time),after);
       u8_free(before);
       u8_free(after);}
     /* If we're calling traceweb, keep the log files up to date also. */
