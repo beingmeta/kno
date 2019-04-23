@@ -22,10 +22,10 @@
 (define (exception/preamble exception)
   (htmlheader
    (xmlblock STYLE ((type "text/css"))
-     (printout (getcontent inline-css-file))))
+     (getcontent inline-css-file)))
   (htmlheader
    (xmlblock SCRIPT ((language "javascript"))
-     (printout (getcontent inline-js-file))))
+     (getcontent inline-js-file)))
   (title! (exception-condition exception) " "
 	  (get (timestamp+ (exception-timebase exception) (exception-moment exception))
 	       'iso) " "
