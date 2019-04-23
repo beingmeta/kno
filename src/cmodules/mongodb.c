@@ -57,6 +57,7 @@ static lispval dbname_symbol, username_symbol, auth_symbol, fdtag_symbol;
 static lispval hosts_symbol, connections_symbol, fieldmap_symbol, logopsym;
 static lispval fdparse_symbol, dotcar_symbol, dotcdr_symbol;
 static lispval certfile, certpass, cafilesym, cadirsym, crlsym;
+static lispval symslots_symbol, vecslots_symbol, rawslots_symbol;
 
 /* The mongo_opmap translates symbols for mongodb operators (like
    $addToSet) into the correctly capitalized strings to use in
@@ -67,10 +68,10 @@ static int mongo_opmap_size = 0, mongo_opmap_space = 0;
 #define MONGO_OPMAP_MAX 8000
 #endif
 
-#define MONGO_VECSLOTS_MAX 2032
-static lispval vecslots[MONGO_VECSLOTS_MAX];
-static int n_vecslots = 0;
-static u8_mutex vecslots_lock;
+#define MONGO_MULTISLOTS_MAX 2032
+static lispval multislots[MONGO_MULTISLOTS_MAX];
+static int n_multislots = 0;
+static u8_mutex multislots_lock;
 
 /* These are the new cons types introducted for mongodb */
 fd_ptr_type fd_mongoc_server, fd_mongoc_collection, fd_mongoc_cursor;
@@ -443,7 +444,7 @@ static U8_MAYBE_UNUSED bson_t *getbulkopts(lispval opts,int flags)
 
 static int mongodb_getflags(lispval mongodb);
 
-/* MongoDB vecslots */
+/* MongoDB multislots */
 
 /* These are slots which should always have vector (array) values, so
    if their value is a choice, it is rendered as an array, but if it's
@@ -451,9 +452,9 @@ static int mongodb_getflags(lispval mongodb);
 
 static int get_vecslot(lispval slot)
 {
-  int i = 0, n = n_vecslots;
+  int i = 0, n = n_multislots;
   while (i<n)
-    if (vecslots[i] == slot)
+    if (multislots[i] == slot)
       return i;
     else i++;
   return -1;
@@ -464,33 +465,33 @@ static int add_vecslot(lispval slot)
   int off = get_vecslot(slot);
   if (off>=0) return off;
   else {
-    u8_lock_mutex(&vecslots_lock);
-    int i = 0, n = n_vecslots;
+    u8_lock_mutex(&multislots_lock);
+    int i = 0, n = n_multislots;
     while (i<n)
-      if (vecslots[i] == slot) {
-        u8_unlock_mutex(&vecslots_lock);
+      if (multislots[i] == slot) {
+        u8_unlock_mutex(&multislots_lock);
         return i;}
       else i++;
-    if (i >= MONGO_VECSLOTS_MAX) {
-      u8_unlock_mutex(&vecslots_lock);
+    if (i >= MONGO_MULTISLOTS_MAX) {
+      u8_unlock_mutex(&multislots_lock);
       return -1;}
-    vecslots[i] = slot;
-    n_vecslots++;
-    u8_unlock_mutex(&vecslots_lock);
+    multislots[i] = slot;
+    n_multislots++;
+    u8_unlock_mutex(&multislots_lock);
     return i;}
 }
 
-static lispval vecslots_config_get(lispval var,void *data)
+static lispval multislots_config_get(lispval var,void *data)
 {
   lispval result = FD_EMPTY;
-  int i = 0, n = n_vecslots;
+  int i = 0, n = n_multislots;
   while (i < n) {
-    lispval slot = vecslots[i++];
+    lispval slot = multislots[i++];
     FD_ADD_TO_CHOICE(result,slot);}
   return result;
 }
 
-static int vecslots_config_add(lispval var,lispval val,void *data)
+static int multislots_config_add(lispval var,lispval val,void *data)
 {
   lispval sym = FD_VOID;
   if (FD_SYMBOLP(val))
@@ -500,14 +501,14 @@ static int vecslots_config_add(lispval var,lispval val,void *data)
     sym = fd_intern(upper);
     u8_free(upper);}
   else {
-    fd_seterr("Not symbolic","mongodb/config_add_vecslots",
+    fd_seterr("Not symbolic","mongodb/config_add_multislots",
               NULL,val);
     return -1;}
   int rv = add_vecslot(sym);
   if (rv < 0) {
     char buf[64];
-    fd_seterr("Too many vecslots declared","mongodb/config_add_vecslots",
-              u8_sprintf(buf,sizeof(buf),"%d",MONGO_VECSLOTS_MAX),
+    fd_seterr("Too many multislots declared","mongodb/config_add_multislots",
+              u8_sprintf(buf,sizeof(buf),"%d",MONGO_MULTISLOTS_MAX),
               val);
     return rv;}
   else return rv;
@@ -1153,9 +1154,9 @@ static lispval mongodb_remove(lispval arg,lispval obj,lispval opts_arg)
         fd_bson_output(q,obj);
         hasid = 0;}
       else {
-        bson_append_dtype(q,"_id",3,id,0);
+        bson_append_dtype(q,"_id",3,id,-1);
         fd_decref(id);}}
-    else bson_append_dtype(q,"_id",3,obj,0);
+    else bson_append_dtype(q,"_id",3,obj,-1);
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
       u8_logf(LOG_DETAIL,"MongoDB/remove","Removing %q items from %q",obj,arg);
     if (mongoc_collection_remove(collection,
@@ -1528,7 +1529,7 @@ static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
       out.bson_doc = bson_new();
       out.bson_flags = ((flags<0)?(getflags(opts,FD_MONGODB_DEFAULTS)):(flags));
       out.bson_opts = opts;
-      bson_append_dtype(out,"_id",3,query,0);
+      bson_append_dtype(out,"_id",3,query,-1);
       q = out.bson_doc;}
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
       u8_logf(LOG_DETAIL,"MongoDB/get","Matches to %q in %q",query,arg);
@@ -1571,7 +1572,7 @@ static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
       out.bson_doc = bson_new();
       out.bson_flags = ((flags<0)?(getflags(opts,FD_MONGODB_DEFAULTS)):(flags));
       out.bson_opts = opts;
-      bson_append_dtype(out,"_id",3,query,0);
+      bson_append_dtype(out,"_id",3,query,-1);
       q = out.bson_doc;}
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
       u8_logf(LOG_DETAIL,"MongoDB/get","Matches to %q in %q",query,arg);
@@ -2162,13 +2163,12 @@ static lispval mongodb_cursor_read_vector(lispval cursor,lispval howmany,
 static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
                               const char *key,int keylen,
                               lispval val,
-                              int vecslot)
+                              int flags)
 {
-  bson_t *out = b.bson_doc;
-  int flags = b.bson_flags;
   bool ok = true;
-  if ( (vecslot) && (FD_CHOICEP(val)) ) vecslot = 0;
-  if (vecslot) {
+  bson_t *out = b.bson_doc;
+  if (flags <= 0) flags = b.bson_flags;
+  if ( ((flags)&(FD_MONGODB_VECSLOT)) && (!(FD_CHOICEP(val))) ) {
     struct FD_BSON_OUTPUT wrapper_out = { 0 };
     bson_t values;
     ok = bson_append_array_begin(out,key,keylen,&values);
@@ -2176,7 +2176,8 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
     wrapper_out.bson_flags = b.bson_flags;
     wrapper_out.bson_opts = b.bson_opts;
     wrapper_out.bson_fieldmap = b.bson_fieldmap;
-    if (ok) ok = bson_append_dtype(wrapper_out,"0",1,val,0);
+    if (ok) ok = bson_append_dtype
+              (wrapper_out,"0",1,val,(flags&(~FD_MONGODB_VECSLOT)));
     if (ok) ok = bson_append_document_end(out,&values);
     return ok;}
   else if (FD_CONSP(val)) {
@@ -2235,7 +2236,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       if (ok) {
         int i = 0; FD_DO_CHOICES(v,val) {
           sprintf(buf,"%d",i++);
-          ok = bson_append_dtype(rout,buf,strlen(buf),v,0);
+          ok = bson_append_dtype(rout,buf,strlen(buf),v,flags);
           if (!(ok)) FD_STOP_DO_CHOICES;}}
       bson_append_document_end(out,&arr);
       break;}
@@ -2258,7 +2259,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
         rout.bson_opts = b.bson_opts; rout.bson_fieldmap = b.bson_fieldmap;
         while (i<lim) {
           lispval v = data[i]; sprintf(buf,"%d",i++);
-          ok = bson_append_dtype(rout,buf,strlen(buf),v,0);
+          ok = bson_append_dtype(rout,buf,strlen(buf),v,-1);
           if (!(ok)) break;}}
       else break;
       if (!(doc_started)) break;
@@ -2303,9 +2304,9 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       if (ok) {
         rout.bson_doc = &doc; rout.bson_flags = b.bson_flags;
         rout.bson_opts = b.bson_opts; rout.bson_fieldmap = b.bson_fieldmap;
-        ok = bson_append_dtype(rout,":|>car>|",8,pair->car,0);
+        ok = bson_append_dtype(rout,":|>car>|",8,pair->car,-1);
         if (ok) {
-          ok = bson_append_dtype(rout,":|>cdr>|",8,pair->cdr,0);
+          ok = bson_append_dtype(rout,":|>cdr>|",8,pair->cdr,-1);
           if (ok) bson_append_document_end(out,&doc);}}
       break;}
     case fd_compound_type: {
@@ -2333,16 +2334,16 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
         lispval *scan = elts, *limit = scan+len; int i = 0;
         while (scan<limit) {
           u8_byte buf[16]; sprintf(buf,"%d",i);
-          ok = bson_append_dtype(rout,buf,strlen(buf),*scan,0);
+          ok = bson_append_dtype(rout,buf,strlen(buf),*scan,-1);
           scan++; i++;
           if (!(ok)) break;}}
       else {
         /* Or a tagged object */
         int i = 0;
-        ok = bson_append_dtype(rout,"%fdtag",6,tag,0);
+        ok = bson_append_dtype(rout,"%fdtag",6,tag,-1);
         if (ok) while (i<len) {
             char buf[16]; sprintf(buf,"%d",i);
-            ok = bson_append_dtype(rout,buf,strlen(buf),elts[i++],0);
+            ok = bson_append_dtype(rout,buf,strlen(buf),elts[i++],-1);
             if (!(ok)) break;}}
       if (tag == mongovec_symbol)
         bson_append_array_end(out,&doc);
@@ -2375,7 +2376,17 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
     bson_oid_init_from_data(&oid,bytes);
     return bson_append_oid(out,key,keylen,&oid);}
   else if (FD_SYMBOLP(val)) {
-    if (flags&FD_MONGODB_COLONIZE_OUT) {
+    if ((flags)&(FD_MONGODB_SYMSLOT)) {
+      u8_string pname = FD_SYMBOL_NAME(val), scan = pname;
+      size_t pname_len = strlen(pname);
+      U8_STATIC_OUTPUT(keyout,pname_len*2);
+      int c = u8_sgetc(&scan); while (c>=0) {
+        c = u8_tolower(c);
+        u8_putc(&keyout,c);
+        c = u8_sgetc(&scan);}
+      return bson_append_utf8
+        (out,key,keylen,keyout.u8_outbuf,u8_outlen(&keyout));}
+    else if (flags&FD_MONGODB_COLONIZE_OUT) {
       u8_string pname = FD_SYMBOL_NAME(val);
       u8_byte _buf[512], *buf=_buf;
       size_t len = strlen(pname);
@@ -2420,10 +2431,17 @@ static bool bson_append_keyval(FD_BSON_OUTPUT b,lispval key,lispval val)
   struct U8_OUTPUT keyout; unsigned char buf[1000];
   const char *keystring = NULL; int keylen; bool ok = true;
   lispval fieldmap = b.bson_fieldmap, store_value = val;
-  int vecslot = (!(FD_SYMBOLP(key))) ? (0) : 
-    (FD_CHOICEP(val)) ? (0) :
-    (FD_VECTORP(val)) ? (0) :
-    (get_vecslot(key) >= 0);
+  if (fd_testopt(fieldmap,rawslots_symbol,key)) {
+    flags = flags | FD_MONGODB_RAWSLOT;
+    flags = flags & (~FD_MONGODB_CHOICEVALS);
+    flags = flags & (~FD_MONGODB_COLONIZE);
+    flags = flags & (~FD_MONGODB_VECSLOT);
+    flags = flags & (~FD_MONGODB_SYMSLOT);}
+  else {
+    if ( (get_vecslot(key) >= 0) || (fd_testopt(fieldmap,vecslots_symbol,key)) )
+      flags = flags | FD_MONGODB_VECSLOT;
+    if (fd_testopt(fieldmap,symslots_symbol,key))
+      flags = flags | FD_MONGODB_SYMSLOT;}
   U8_INIT_OUTPUT_BUF(&keyout,1000,buf);
   if (FD_VOIDP(val)) return 0;
   if (FD_SYMBOLP(key)) {
@@ -2488,9 +2506,9 @@ static bool bson_append_keyval(FD_BSON_OUTPUT b,lispval key,lispval val)
       else *write++ = c;}
     keystring = newbuf;}
   if (store_value == val)
-    ok = bson_append_dtype(b,keystring,keylen,val,vecslot);
+    ok = bson_append_dtype(b,keystring,keylen,val,flags);
   else {
-    ok = bson_append_dtype(b,keystring,keylen,store_value,vecslot);
+    ok = bson_append_dtype(b,keystring,keylen,store_value,flags);
     fd_decref(store_value);}
   u8_close((u8_stream)&keyout);
   return ok;
@@ -2506,12 +2524,12 @@ FD_EXPORT lispval fd_bson_output(struct FD_BSON_OUTPUT out,lispval obj)
       lispval elt = elts[i]; u8_byte buf[16];
       sprintf(buf,"%d",i++);
       if (ok)
-        ok = bson_append_dtype(out,buf,strlen(buf),elt,0);
+        ok = bson_append_dtype(out,buf,strlen(buf),elt,-1);
       else break;}}
   else if (FD_CHOICEP(obj)) {
     int i = 0; FD_DO_CHOICES(elt,obj) {
       u8_byte buf[16]; sprintf(buf,"%d",i++);
-      if (ok) ok = bson_append_dtype(out,buf,strlen(buf),elt,0);
+      if (ok) ok = bson_append_dtype(out,buf,strlen(buf),elt,-1);
       else {
         FD_STOP_DO_CHOICES;
         break;}}}
@@ -2553,7 +2571,7 @@ FD_EXPORT lispval fd_bson_output(struct FD_BSON_OUTPUT out,lispval obj)
       lispval *scan = elts, *limit = scan+len; int i = 0;
       while (scan<limit) {
         u8_byte buf[16]; sprintf(buf,"%d",i);
-        ok = bson_append_dtype(out,buf,strlen(buf),*scan,0);
+        ok = bson_append_dtype(out,buf,strlen(buf),*scan,-1);
         i++; scan++;
         if (!(ok)) break;}}
     else {
@@ -2561,7 +2579,7 @@ FD_EXPORT lispval fd_bson_output(struct FD_BSON_OUTPUT out,lispval obj)
       ok = bson_append_dtype(out,"%fdtag",6,tag,0);
       if (ok) while (i<len) {
           char buf[16]; sprintf(buf,"%d",i);
-          ok = bson_append_dtype(out,buf,strlen(buf),elts[i++],0);
+          ok = bson_append_dtype(out,buf,strlen(buf),elts[i++],-1);
           if (!(ok)) break;}}}
   if (!(ok)) {
     fd_seterr("BSONError","fd_bson_output",NULL,obj);
@@ -2612,15 +2630,18 @@ static int slotcode(u8_string s)
   return hasupper;
 }
 
-static lispval bson_read_vector(FD_BSON_INPUT b);
-static lispval bson_read_choice(FD_BSON_INPUT b);
+static lispval bson_read_vector(FD_BSON_INPUT b,int flags);
+static lispval bson_read_choice(FD_BSON_INPUT b,int flags);
 
-static void bson_read_step(FD_BSON_INPUT b,lispval into,lispval *loc)
+static void bson_read_step(FD_BSON_INPUT b,int flags,
+                           lispval into,lispval *loc)
 {
-  bson_iter_t *in = b.bson_iter; int flags = b.bson_flags, symbolized = 0;
+  int symbolized = 0;
+  bson_iter_t *in = b.bson_iter;
   const unsigned char *field = bson_iter_key(in);
   const size_t field_len = strlen(field);
   unsigned char tmpbuf[field_len+1];
+  if (flags < 0) flags = b.bson_flags;
   if (strchr(field,0x02)) {
     const unsigned char *read = field, *limit = read+field_len;
     unsigned char *write = tmpbuf;
@@ -2641,6 +2662,17 @@ static void bson_read_step(FD_BSON_INPUT b,lispval into,lispval *loc)
       symbolized = 1;}
     else slotid = fd_intern((unsigned char *)field);}
   else slotid = fd_make_string(NULL,-1,(unsigned char *)field);
+  lispval fieldmap = b.bson_fieldmap;
+  if (fd_testopt(fieldmap,rawslots_symbol,slotid)) {
+    flags = flags | FD_MONGODB_RAWSLOT;
+    flags = flags & (~FD_MONGODB_CHOICEVALS);
+    flags = flags & (~FD_MONGODB_COLONIZE);
+    flags = flags & (~FD_MONGODB_VECSLOT);
+    flags = flags & (~FD_MONGODB_SYMSLOT);}
+  else if ( (FD_OIDP(slotid)) || (FD_SYMBOLP(slotid)) ) {
+    if (fd_testopt(fieldmap,symslots_symbol,slotid))
+      flags = flags | FD_MONGODB_SYMSLOT;}
+  else NO_ELSE;
   switch (bt) {
   case BSON_TYPE_DOUBLE:
     value = fd_make_double(bson_iter_double(in)); break;
@@ -2657,13 +2689,25 @@ static void bson_read_step(FD_BSON_INPUT b,lispval into,lispval *loc)
   case BSON_TYPE_UTF8: {
     int len = -1;
     const unsigned char *bytes = bson_iter_utf8(in,&len);
-    if ((flags&FD_MONGODB_COLONIZE)&&(strchr(":(#@",bytes[0])!=NULL))
+    if ( (flags&FD_MONGODB_COLONIZE) && (bytes[0] == ':') )
       value = fd_parse_arg((u8_string)(bytes));
-    else if ((flags&FD_MONGODB_COLONIZE)&&(bytes[0]=='\\'))
+    else if ( (flags&FD_MONGODB_COLONIZE) && (bytes[0]=='\\'))
       value = fd_make_string(NULL,((len>0)?(len-1):(-1)),
                            (unsigned char *)bytes+1);
-    else value = fd_make_string(NULL,((len>0)?(len):(-1)),
-                              (unsigned char *)bytes);
+    else if (flags&FD_MONGODB_SYMSLOT)
+      if ( (bytes[0] == ':') || (bytes[0] == '@') ||
+           (bytes[0] == '#') )
+        value = fd_parse_arg((u8_string)(bytes));
+      else value = fd_make_string(NULL,((len>0)?(len):(-1)),
+                                  (unsigned char *)bytes);
+    if (FD_ABORTED(value)) {
+      u8_exception ex = u8_current_exception;
+      u8_log(LOGWARN,"MongoDBParseError","%s<%s> (%s): %s",
+             ex->u8x_cond,ex->u8x_context,
+             ex->u8x_details,bytes);
+      fd_clear_errors(1);
+      value = fd_make_string(NULL,((len>0)?(len):(-1)),
+                             (unsigned char *)bytes);}
     break;}
   case BSON_TYPE_BINARY: {
     int len; bson_subtype_t st; const unsigned char *data;
@@ -2731,7 +2775,7 @@ static void bson_read_step(FD_BSON_INPUT b,lispval into,lispval *loc)
       r.bson_opts = b.bson_opts; r.bson_fieldmap = b.bson_fieldmap;
       value = fd_init_slotmap(NULL,0,NULL);
       while (bson_iter_next(&child))
-        bson_read_step(r,value,NULL);
+        bson_read_step(r,flags,value,NULL);
       if (fd_test(value,dotcar_symbol,FD_VOID)) {
         lispval car = fd_get(value,dotcar_symbol,FD_VOID);
         lispval cdr = fd_get(value,dotcdr_symbol,FD_VOID);
@@ -2774,10 +2818,10 @@ static void bson_read_step(FD_BSON_INPUT b,lispval into,lispval *loc)
         fd_decref(tag);}
       else {}}
     else if (BSON_ITER_HOLDS_ARRAY(in)) {
-      int flags = b.bson_flags, choicevals = (flags&FD_MONGODB_CHOICEVALS);
+      int choicevals = (flags&FD_MONGODB_CHOICEVALS);
       if ((choicevals)&&(symbolized))
-        value = bson_read_choice(b);
-      else value = bson_read_vector(b);}
+        value = bson_read_choice(b,flags);
+      else value = bson_read_vector(b,flags);}
     else {
       u8_logf(LOG_ERR,fd_BSON_Input_Error,
              "Can't handle BSON type %d",bt);
@@ -2809,12 +2853,14 @@ static void bson_read_step(FD_BSON_INPUT b,lispval into,lispval *loc)
   else fd_decref(value);
 }
 
-static lispval bson_read_vector(FD_BSON_INPUT b)
+static lispval bson_read_vector(FD_BSON_INPUT b,int flags)
 {
   struct FD_BSON_INPUT r; bson_iter_t child;
-  lispval result, *data = u8_alloc_n(16,lispval), *write = data, *lim = data+16;
+  lispval result, *data = u8_alloc_n(16,lispval);
+  lispval *write = data, *lim = data+16;
+  if (flags < 0) flags = b.bson_flags;
   bson_iter_recurse(b.bson_iter,&child);
-  r.bson_iter = &child; r.bson_flags = b.bson_flags;
+  r.bson_iter = &child; r.bson_flags = flags;
   r.bson_opts = b.bson_opts; r.bson_fieldmap = b.bson_fieldmap;
   while (bson_iter_next(&child)) {
     if (write>=lim) {
@@ -2823,18 +2869,19 @@ static lispval bson_read_vector(FD_BSON_INPUT b)
       lispval *newdata = u8_realloc_n(data,newlen,lispval);
       if (!(newdata)) u8_raise(fd_MallocFailed,"mongodb_cursor_read_vector",NULL);
       write = newdata+(write-data); lim = newdata+newlen; data = newdata;}
-    bson_read_step(r,FD_VOID,write); write++;}
+    bson_read_step(r,flags,FD_VOID,write); write++;}
   result = fd_make_vector(write-data,data);
   u8_free(data);
   return result;
 }
 
-static lispval bson_read_choice(FD_BSON_INPUT b)
+static lispval bson_read_choice(FD_BSON_INPUT b,int flags)
 {
   struct FD_BSON_INPUT r; bson_iter_t child;
   lispval *data = u8_alloc_n(16,lispval), *write = data, *lim = data+16;
+  if (flags < 0) flags = b.bson_flags;
   bson_iter_recurse(b.bson_iter,&child);
-  r.bson_iter = &child; r.bson_flags = b.bson_flags;
+  r.bson_iter = &child; r.bson_flags = flags;
   r.bson_opts = b.bson_opts; r.bson_fieldmap = b.bson_fieldmap;
   while (bson_iter_next(&child)) {
     if (write>=lim) {
@@ -2844,9 +2891,9 @@ static lispval bson_read_choice(FD_BSON_INPUT b)
       if (!(newdata)) u8_raise(fd_MallocFailed,"mongodb_cursor_read_vector",NULL);
       write = newdata+(write-data); lim = newdata+newlen; data = newdata;}
     if (BSON_ITER_HOLDS_ARRAY(&child)) {
-      *write++=bson_read_vector(r);}
+      *write++=bson_read_vector(r,flags);}
     else {
-      bson_read_step(r,FD_VOID,write);
+      bson_read_step(r,flags,FD_VOID,write);
       write++;}}
   if (write == data) {
     u8_free(data);
@@ -2869,7 +2916,7 @@ FD_EXPORT lispval fd_bson2dtype(bson_t *in,int flags,lispval opts)
     b.bson_iter = &iter; b.bson_flags = flags;
     b.bson_opts = opts; b.bson_fieldmap = fieldmap;
     result = fd_init_slotmap(NULL,0,NULL);
-    while (bson_iter_next(&iter)) bson_read_step(b,result,NULL);
+    while (bson_iter_next(&iter)) bson_read_step(b,flags,result,NULL);
     fd_decref(fieldmap);
     return result;}
   else return fd_err(fd_BSON_Input_Error,"fd_bson2dtype",NULL,FD_VOID);
@@ -3286,6 +3333,10 @@ FD_EXPORT int fd_init_mongodb()
 
   poolmaxsym = fd_intern("POOLMAX");
 
+  symslots_symbol = fd_intern("SYMSLOTS");
+  vecslots_symbol = fd_intern("VECSLOTS");
+  rawslots_symbol = fd_intern("RAWSLOTS");
+
   fd_mongoc_server = fd_register_cons_type("MongoDB client");
   fd_mongoc_collection = fd_register_cons_type("MongoDB collection");
   fd_mongoc_cursor = fd_register_cons_type("MongoDB cursor");
@@ -3434,9 +3485,13 @@ FD_EXPORT int fd_init_mongodb()
                      fd_sconfig_get,fd_realdir_config_set,
                      &default_cadir);
 
+  fd_register_config("MONGODB:MULTISLOTS",
+                     "Which slots should always have vector values",
+                     multislots_config_get,multislots_config_add,NULL);
   fd_register_config("MONGODB:VECSLOTS",
-                     "Which slots whould always have vector values",
-                     vecslots_config_get,vecslots_config_add,NULL);
+                     "Alias for MONGODB:MULTISLOTS: Which slots should "
+                     "always have vector values",
+                     multislots_config_get,multislots_config_add,NULL);
 
   add_vecslot(fd_intern("$EACH"));
   add_vecslot(fd_intern("$IN"));

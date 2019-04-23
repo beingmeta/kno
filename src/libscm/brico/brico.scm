@@ -37,7 +37,6 @@
 (define brico.pool {})
 (define brico.index {})
 (define core.index {})
-(define wikid.index {})
 (define wordnet.index #f)
 (define lattice.index #f)
 (define termlogic.index #f)
@@ -64,7 +63,7 @@
    words.index norms.index aliases.index 
    names.index})
 
-(module-export! '{core.index wikid.index wordnet.index
+(module-export! '{core.index wordnet.index
 		  lattice.index termlogic.index})
 
 (module-export! '{wordnet.adjunct attic.adjunct})
@@ -201,7 +200,6 @@
       (set! en_norms.index (try (pick indexes get-keyslot @1/44896"Common English") #f))
       (set! names.index (try (pick indexes get-keyslot 'names) #f))
       (set! core.index (pick indexes index-source has-suffix "/core.index"))
-      (set! wikid.index (pick indexes index-source has-suffix "/wikid.index"))
       (set! wordnet.index (pick indexes index-source has-suffix "/wordnet.index"))
       (set! lattice.index (pick indexes index-source has-suffix "/lattice.index"))
       (set! termlogic.index (pick indexes index-source has-suffix "/termlogic.index"))))
@@ -407,26 +405,30 @@
 
 ;;; Getting norms, glosses, etc.
 
-(define (get-norm concept (language default-language) (tryhard #t))
+(define (get-norm concept (language default-language) (tryhard #t) (langid))
   "Gets the 'normal' word for a concept in a given language, \
    going to English or other languages if necessary"
-  (try (tryif (and (eq? language english) (not (test concept 'ranked #())))
-	      (first (get concept 'ranked)))
-       (pick-one (largest (largest (get (get concept '%norm) language) length)))
+  (default! langid (if (oid? language) (get language 'key) language))
+  (try (tryif (eq? language english) (pick-one (largest (get concept 'norms) length)))
+       (pick-one (largest (get (get concept '%norms) langid) length))
        (pick-one (largest (get concept language)))
        (tryif (and tryhard (not (eq? language english)))
-	      (try (pick-one (largest (get-norm concept english #f)))
-		   (pick-one (largest (cdr (get concept '%words))))))))
+	 (try (pick-one (largest (get-norm concept english #f langid)))
+	      (pick-one (largest (cdr (get concept '%words))))))
+       (tryif (exists? (get concept '%norms))
+	 (pick-one (largest (getvalues (get concept '%norms)))))
+       (tryif (exists? (get concept '%words))
+	 (pick-one (largest (getvalues (get concept '%words)))))))
 
-(define (%get-norm concept (language default-language))
+(define (%get-norm concept (language default-language) (langid))
   "Gets the 'normal' word for a concept in a given language, \
    skipping custom overrides and not looking in other languages."
-  (try (tryif (and (eq? language english) (not (test concept 'ranked #())))
-	      (first (get concept 'ranked)))
-       (pick-one (largest (get (get concept '%norm) language)))
-       (tryif (eq? language english) (pick-one (largest (get concept 'words))))
-       (pick-one (largest (get (get concept '%words) (get language 'key))))
-       (pick-one (largest (cdr (get concept '%words))))))
+  (default! langid (if (oid? language) (get language 'key) language))
+  (try (tryif (eq? language english) (pick-one (largest (get concept 'norms) length)))
+       (pick-one (largest (get (get concept '%norms) language) length))
+       (tryif (eq? language english) (pick-one (largest (get concept 'words) length)))
+       (pick-one (largest (get (get concept '%words) langid) length))
+       (pick-one (largest (cdr (get concept '%words)) length))))
 
 (define (get-normterm concept (language default-language))
   (try (get-norm concept language #f)
@@ -486,7 +488,7 @@
 
 (define (cap%frame! f (cautious #f))
   (let* ((words (get f '%words))
-	 (norm (get f '%norm))
+	 (norm (get f '%norms))
 	 (cwords (cap%wds words cautious))
 	 (cnorm (cap%wds norm cautious))
 	 (changed #f))
@@ -494,7 +496,7 @@
       (store! f '%words cwords)
       (set! changed #t))
     (unless (identical? norm cnorm)
-      (store! f '%norm cnorm)
+      (store! f '%norms cnorm)
       (set! changed #t))
     (unless cautious
       (when (test f 'words)
@@ -517,7 +519,7 @@
 
 (define (low%frame! f (cautious #f))
   (let* ((words (get f '%words))
-	 (norm (get f '%norm))
+	 (norm (get f '%norms))
 	 (cwords (low%wds words cautious))
 	 (cnorm (low%wds norm cautious))
 	 (changed #f))
@@ -525,7 +527,7 @@
       (store! f '%words cwords)
       (set! changed #t))
     (unless (identical? norm cnorm)
-      (store! f '%norm cnorm)
+      (store! f '%norms cnorm)
       (set! changed #t))
     (unless cautious
       (when (test f 'words)
@@ -547,7 +549,7 @@
   (if inparallel
       (let ((threads {(thread/call prefetch-oids! concepts)
 		      (for-choices (slotid {(get (pickoids slotids) 'inverse)
-					    (get (get (pickoids (get slotids 'slots)) 'inverse))))
+					    (get (pickoids (get slotids 'slots)) 'inverse)})
 			(thread/call ??/prefetch! slotid concepts))}))
 	(thread/wait threads))
       (begin (prefetch-oids! concepts)
@@ -585,34 +587,42 @@
 ;;; Making %ID slots for BRICO concepts
 
 (define (make%id f (lang default-language))
-  (if (test f 'source @1/1) (make-roget-id f lang)
+  (if (test f 'source @1/1)
+      (make-roget-id f lang)
       (if (test f 'type 'wordform)
 	  (make-wordform-id f)
-	  `(,(pick-one (try (difference (get f 'sensecat) 'NOUN.TOPS)
-			    (get f 'sensecat)
-			    'VAGUE))
-	    ,(get-norm f lang)
-	    ,(cond ((and (test f 'sensecat 'noun.location)
-			 (%test f partof))
-		    'PARTOF)
-		   ((%test f 'hypernym)
-		    (if (%test f 'type 'individual) 'ISA 'GENLS))
-		   ((%test f genls) 'GENLS)
-		   ((%test f implies) 'ISA)
-		   ((%test f partof) 'PARTOF)
-		   ((%test f diffterms) 'SUMTERMS)
-		   ((%test f sumterms) 'SUMTERMS)
-		   (else 'TOP))
-	    ,@(map get-norm
-		   (choice->list
-		    (try (tryif (test f 'sensecat 'noun.location)
-				(%get f partof))
-			 (%get f 'hypernym)
-			 (%get f genls)
-			 (%get f implies)
-			 (%get f partof)
-			 (%get f diffterms)
-			 (%get f sumterms))))))))
+	  (let* ((sensecats (get f 'sensecat))
+		 (sensecat (try (singleton sensecats)
+				(singleton (difference sensecats 'NOUN.TOPS))
+				(intersection sensecats 'NOUN.PERSON)
+				(intersection sensecats 'NOUN.ANIMAL)
+				(intersection sensecats 'NOUN.LOCATION)
+				(pick-one sensecats))))
+	    `(,(if (ambiguous? sensecat) 'VAGUE sensecat)
+	      ,@(if (ambiguous? sensecat) (list (qc sensecat)) '())
+	      ,(get-norm f lang)
+	      ,(cond ((and (test f 'sensecat 'noun.location)
+			   (%test f partof))
+		      'PARTOF)
+		     ((%test f 'hypernym)
+		      (if (%test f 'type 'individual) 'ISA 'GENLS))
+		     ((%test f genls) 'GENLS)
+		     ((%test f implies) 'ISA)
+		     ((%test f partof) 'PARTOF)
+		     ((%test f diffterms) 'SUMTERMS)
+		     ((%test f sumterms) 'SUMTERMS)
+		     (else 'TOP))
+	      ,@(map get-norm
+		     (choice->list
+		      (try (tryif (test f 'sensecat 'noun.location)
+			     (%get f partof))
+			   (%get f 'hypernym)
+			   (%get f genls)
+			   (%get f implies)
+			   (%get f partof)
+			   (%get f diffterms)
+			   (%get f sumterms))))
+	      ,@(if (test f 'srcid) (list (qc (get f 'srcid))) '()))))))
 
 (defambda (make%id! f (lang default-language))
   (do-choices f
@@ -764,7 +774,7 @@
   (when fixcase
     (let ((isa-terms (get isa english)))
       (store! f '%words (fixcaps (get f '%words) (qc isa-terms)))
-      (store! f '%norm (fixcaps (get f '%norm) (qc isa-terms)))))
+      (store! f '%norms (fixcaps (get f '%norms) (qc isa-terms)))))
   (make%id! f))
 
 ;;; Getting depth information

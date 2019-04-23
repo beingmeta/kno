@@ -1996,6 +1996,43 @@ static u8_byteoff search_bow
       else return last-string;}}
 }
 
+/* Matching/finding end of words */
+
+static lispval match_eow
+  (lispval pat,lispval next,fd_lexenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  u8_string point = string+off;
+  int nc = u8_sgetc(&point);
+  if ( (nc < 0) || (u8_isspace(nc)) ) {
+    u8_byteoff prev_off = backward_char(string,off);
+    point = string + prev_off;
+    int pc = u8_sgetc(&point);
+    if (!(u8_isspace(pc)))
+      return FD_FIX2INT(off);
+    else return EMPTY;}
+  else return EMPTY;
+}
+
+static u8_byteoff search_eow
+  (lispval pat,fd_lexenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  const u8_byte *scan = string+off, *scanlim = string+lim, *last = scan;
+  int c = u8_sgetc(&scan);
+  while ( (u8_isspace(c)) && (scan < scanlim) ) {
+    last = scan;
+    c = u8_sgetc(&scan);}
+  if ( (scan >= scanlim) || (c < 0) || (u8_isspace(c)) )
+    return -1;
+  while ( (!(u8_isspace(c))) && (scan <= scanlim) ) {
+    last = scan;
+    c = u8_sgetc(&scan);}
+  if ( (c < 0) || (u8_isspace(c)) )
+    return last-string;
+  else return -1;
+}
+
 
 /* Matching/finding the beginning or end of the string */
 
@@ -3912,6 +3949,7 @@ void fd_init_match_c()
   fd_add_match_operator("BOS",match_bos,search_bos,NULL);
   fd_add_match_operator("EOS",match_eos,search_eos,NULL);
   fd_add_match_operator("BOW",match_bow,search_bow,NULL);
+  fd_add_match_operator("EOW",match_eow,search_eow,NULL);
   fd_add_match_operator("CHAR-RANGE",match_char_range,NULL,NULL);
   fd_add_match_operator("CHAR-NOT",match_char_not,NULL,NULL);
   fd_add_match_operator("CHAR-NOT*",match_char_not_star,NULL,NULL);
