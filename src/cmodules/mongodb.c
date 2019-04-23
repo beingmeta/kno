@@ -2695,10 +2695,16 @@ static void bson_read_step(FD_BSON_INPUT b,int flags,
       value = fd_make_string(NULL,((len>0)?(len-1):(-1)),
                            (unsigned char *)bytes+1);
     else if (flags&FD_MONGODB_SYMSLOT)
-      value = fd_symbolize((u8_string)(bytes));
-    else value = fd_make_string(NULL,((len>0)?(len):(-1)),
-                                (unsigned char *)bytes);
+      if ( (bytes[0] == ':') || (bytes[0] == '@') ||
+           (bytes[0] == '#') )
+        value = fd_parse_arg((u8_string)(bytes));
+      else value = fd_make_string(NULL,((len>0)?(len):(-1)),
+                                  (unsigned char *)bytes);
     if (FD_ABORTED(value)) {
+      u8_exception ex = u8_current_exception;
+      u8_log(LOGWARN,"MongoDBParseError","%s<%s> (%s): %s",
+             ex->u8x_cond,ex->u8x_context,
+             ex->u8x_details,bytes);
       fd_clear_errors(1);
       value = fd_make_string(NULL,((len>0)?(len):(-1)),
                              (unsigned char *)bytes);}
