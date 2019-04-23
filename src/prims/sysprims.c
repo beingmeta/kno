@@ -830,6 +830,7 @@ FD_EXPORT void fd_init_sysprims_c()
   DECL_PRIM(getpid_prim,0,fd_scheme_module);
   DECL_PRIM(getppid_prim,0,fd_scheme_module);
   DECL_PRIM(threadid_prim,0,fd_scheme_module);
+  DECL_PRIM(getprocstring_prim,0,fd_scheme_module);
   DECL_PRIM(stacksize_prim,0,fd_scheme_module);
 
   fd_def_evalfn(fd_scheme_module,"#ENV",
