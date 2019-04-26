@@ -615,17 +615,26 @@ static lispval nd2_call(lispval opcode,lispval arg1,lispval arg2)
     result = fd_err(fd_VoidArgument,"OPCODE setop",NULL,opcode);}
   else switch (opcode) {
     case FD_IDENTICAL_OPCODE:
-      if (arg1==arg2) result = FD_TRUE;
-      else if (FD_EQUAL(arg1,arg2)) result = FD_TRUE;
+      if (arg1==arg2)
+        result = FD_TRUE;
+      else if (FD_EQUAL(arg1,arg2))
+        result = FD_TRUE;
       else result = FD_FALSE;
       break;
     case FD_OVERLAPS_OPCODE:
-      if (arg1==arg2) result = FD_TRUE;
-      else if (fd_overlapp(arg1,arg2)) result = FD_TRUE;
+      if (arg1==arg2)
+        result = (!(EMPTYP(arg1)));
+      else if (fd_overlapp(arg1,arg2))
+        result = FD_TRUE;
       else result = FD_FALSE;
       break;
     case FD_CONTAINSP_OPCODE:
-      if (fd_containsp(arg1,arg2)) result = FD_TRUE;
+      if (EMPTYP(arg2))
+        result = FD_FALSE;
+      else if (EMPTYP(arg1))
+        result = FD_TRUE;
+      else if (fd_containsp(arg1,arg2))
+        result = FD_TRUE;
       else result = FD_FALSE;
       break;
     case FD_CHOICEREF_OPCODE:
