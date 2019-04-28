@@ -2694,12 +2694,14 @@ static void bson_read_step(FD_BSON_INPUT b,int flags,
     else if ( (flags&FD_MONGODB_COLONIZE) && (bytes[0]=='\\'))
       value = fd_make_string(NULL,((len>0)?(len-1):(-1)),
                            (unsigned char *)bytes+1);
-    else if (flags&FD_MONGODB_SYMSLOT)
+    else if (flags&FD_MONGODB_SYMSLOT) {
       if ( (bytes[0] == ':') || (bytes[0] == '@') ||
            (bytes[0] == '#') )
         value = fd_parse_arg((u8_string)(bytes));
       else value = fd_make_string(NULL,((len>0)?(len):(-1)),
-                                  (unsigned char *)bytes);
+                                  (unsigned char *)bytes);}
+    else value = fd_make_string(NULL,((len>0)?(len):(-1)),
+                                (unsigned char *)bytes);
     if (FD_ABORTED(value)) {
       u8_exception ex = u8_current_exception;
       u8_log(LOGWARN,"MongoDBParseError","%s<%s> (%s): %s",
@@ -2840,6 +2842,7 @@ static void bson_read_step(FD_BSON_INPUT b,int flags,
       new_value = fd_get(mapfn,value,FD_VOID);
     else if ((FD_TRUEP(mapfn))&&(FD_STRINGP(value)))
       new_value = fd_parse(FD_CSTRING(value));
+    else NO_ELSE;
     if (FD_ABORTP(new_value)) {
       fd_clear_errors(1);
       new_value = FD_VOID;}
