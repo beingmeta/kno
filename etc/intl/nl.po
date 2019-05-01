@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-04-03 12:46-0400\n"
+"POT-Creation-Date: 2019-04-28 16:27-0400\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Dutch <nl@li.org>\n"
@@ -387,8 +387,8 @@ msgstr ""
 #: src/eval/choiceops.c:1253 src/eval/choiceops.c:1272
 #: src/eval/choiceops.c:1303 src/eval/choiceops.c:1314
 #: src/eval/choiceops.c:1318 src/eval/choiceops.c:1319 src/prims/seqprims.c:334
-#: src/prims/seqprims.c:357 src/text/texttools.c:2145 src/text/match.c:3556
-#: src/text/match.c:3573 src/text/match.c:3602 src/text/match.c:3634
+#: src/prims/seqprims.c:357 src/text/texttools.c:2145 src/text/match.c:3593
+#: src/text/match.c:3610 src/text/match.c:3639 src/text/match.c:3671
 #: src/exe/fdservlet.c:271 src/exe/fdservlet.c:286 src/exe/fdservlet.c:304
 #: src/exe/fdservlet.c:320
 msgid "fixnum"
@@ -523,8 +523,8 @@ msgstr ""
 msgid "hashtable"
 msgstr ""
 
-#: src/lisp/lisp.c:94 src/prims/tableprims.c:926 src/text/match.c:3379
-#: src/text/match.c:3414 src/text/match.c:3440 src/text/match.c:3478
+#: src/lisp/lisp.c:94 src/prims/tableprims.c:926 src/text/match.c:3416
+#: src/text/match.c:3451 src/text/match.c:3477 src/text/match.c:3515
 msgid "hashset"
 msgstr ""
 
@@ -1845,6 +1845,10 @@ msgstr ""
 msgid "ProcPool/OddResult"
 msgstr ""
 
+#: src/storage/procpool.c:27
+msgid "ProcPoolCommit Failed"
+msgstr ""
+
 #: src/storage/procindex.c:23
 msgid "ProcIndex/OddResult"
 msgstr ""
@@ -1911,7 +1915,7 @@ msgstr ""
 
 #: src/eval/eval.c:1007 src/eval/opcode_defs.c:382 src/eval/opcode_defs.c:472
 #: src/eval/opcode_defs.c:497 src/eval/opcode_defs.c:605
-#: src/eval/opcode_defs.c:651
+#: src/eval/opcode_defs.c:660
 msgid "Invalid opcode"
 msgstr ""
 
@@ -2025,8 +2029,8 @@ msgstr ""
 msgid "time interval"
 msgstr ""
 
-#: src/eval/threads.c:573 src/eval/threads.c:613 src/text/match.c:3504
-#: src/text/match.c:3531
+#: src/eval/threads.c:573 src/eval/threads.c:613 src/text/match.c:3541
+#: src/text/match.c:3568
 msgid "applicable"
 msgstr ""
 
@@ -2765,7 +2769,7 @@ msgstr ""
 msgid "unknown match operator"
 msgstr ""
 
-#: src/text/match.c:3606 src/text/match.c:3636
+#: src/text/match.c:3643 src/text/match.c:3673
 msgid "positive fixnum"
 msgstr ""
 
@@ -2919,88 +2923,88 @@ msgstr ""
 msgid "No servers configured"
 msgstr ""
 
-#: src/exe/fdservlet.c:1809
+#: src/exe/fdservlet.c:1823
 msgid "Trace web transactions over N seconds"
 msgstr ""
 
-#: src/exe/fdservlet.c:1812 src/exe/fdcgiexec.c:689 src/exe/fdserver.c:1185
+#: src/exe/fdservlet.c:1826 src/exe/fdcgiexec.c:689 src/exe/fdserver.c:1185
 msgid "Number of pending connection requests allowed"
 msgstr ""
 
-#: src/exe/fdservlet.c:1814 src/exe/fdserver.c:1188
+#: src/exe/fdservlet.c:1828 src/exe/fdserver.c:1188
 msgid "Max number of requests to keep queued"
 msgstr ""
 
-#: src/exe/fdservlet.c:1817
+#: src/exe/fdservlet.c:1831
 msgid "Max number of concurrent connections to allow (NYI)"
 msgstr ""
 
-#: src/exe/fdservlet.c:1820 src/exe/fdserver.c:1192
+#: src/exe/fdservlet.c:1834 src/exe/fdserver.c:1192
 msgid "Number of clients to prepare for/grow by"
 msgstr ""
 
-#: src/exe/fdservlet.c:1823 src/exe/fdservlet.c:1826 src/exe/fdcgiexec.c:691
+#: src/exe/fdservlet.c:1837 src/exe/fdservlet.c:1840 src/exe/fdcgiexec.c:691
 #: src/exe/fdserver.c:1195
 msgid "Number of threads in the thread pool"
 msgstr ""
 
-#: src/exe/fdservlet.c:1829
+#: src/exe/fdservlet.c:1843
 msgid "File for recording status reports"
 msgstr ""
 
-#: src/exe/fdservlet.c:1832
+#: src/exe/fdservlet.c:1846
 msgid "Milliseconds (roughly) between updates to .status"
 msgstr ""
 
-#: src/exe/fdservlet.c:1835
+#: src/exe/fdservlet.c:1849
 msgid "Milliseconds (roughly) between logging status information"
 msgstr ""
 
-#: src/exe/fdservlet.c:1838 src/exe/fdserver.c:1261
+#: src/exe/fdservlet.c:1852 src/exe/fdserver.c:1261
 msgid "How long (μs) to wait for tasks during shutdown"
 msgstr ""
 
-#: src/exe/fdservlet.c:1842 src/exe/fdserver.c:1169
+#: src/exe/fdservlet.c:1856 src/exe/fdserver.c:1169
 msgid "Remove existing socket files with extreme prejudice"
 msgstr ""
 
-#: src/exe/fdservlet.c:1846
+#: src/exe/fdservlet.c:1860
 msgid "Whether to check for existing PID files"
 msgstr ""
 
-#: src/exe/fdservlet.c:1850
+#: src/exe/fdservlet.c:1864
 msgid "Ports for listening for connections"
 msgstr ""
 
-#: src/exe/fdservlet.c:1852 src/exe/fdserver.c:1257
+#: src/exe/fdservlet.c:1866 src/exe/fdserver.c:1257
 msgid "Whether to run in asynchronous mode"
 msgstr ""
 
-#: src/exe/fdservlet.c:1856
+#: src/exe/fdservlet.c:1870
 msgid "Whether to have libu8 log each monitored address"
 msgstr ""
 
-#: src/exe/fdservlet.c:1860
+#: src/exe/fdservlet.c:1874
 msgid "Timeout for the poll loop (lower bound of status updates)"
 msgstr ""
 
-#: src/exe/fdservlet.c:1864 src/exe/fdserver.c:1222
+#: src/exe/fdservlet.c:1878 src/exe/fdserver.c:1222
 msgid "Whether to have libu8 log each connection"
 msgstr ""
 
-#: src/exe/fdservlet.c:1868 src/exe/fdserver.c:1227
+#: src/exe/fdservlet.c:1882 src/exe/fdserver.c:1227
 msgid "Whether to have libu8 log each transaction"
 msgstr ""
 
-#: src/exe/fdservlet.c:1872
+#: src/exe/fdservlet.c:1886
 msgid "Whether to have libu8 log queue activity"
 msgstr ""
 
-#: src/exe/fdservlet.c:1878
+#: src/exe/fdservlet.c:1892
 msgid "Whether to have libu8 log data transmission/receiption"
 msgstr ""
 
-#: src/exe/fdservlet.c:1885 src/exe/fdserver.c:1239
+#: src/exe/fdservlet.c:1899 src/exe/fdserver.c:1239
 msgid "Whether to support thread-asynchronous transactions"
 msgstr ""
 
@@ -3172,27 +3176,27 @@ msgstr ""
 msgid "BSON/FramerD compound overflow"
 msgstr ""
 
-#: src/cmodules/mongodb.c:121
+#: src/cmodules/mongodb.c:122
 msgid "MongoDB/getclient"
 msgstr ""
 
-#: src/cmodules/mongodb.c:125
+#: src/cmodules/mongodb.c:126
 msgid "MongoDB/gotclient"
 msgstr ""
 
-#: src/cmodules/mongodb.c:133
+#: src/cmodules/mongodb.c:134
 msgid "MongoDB/freeclient"
 msgstr ""
 
-#: src/cmodules/mongodb.c:887
+#: src/cmodules/mongodb.c:888
 msgid "MissingDBName"
 msgstr ""
 
-#: src/cmodules/mongodb.c:988 src/cmodules/mongodb.c:1071
+#: src/cmodules/mongodb.c:989 src/cmodules/mongodb.c:1072
 msgid "MongoDB collection"
 msgstr ""
 
-#: src/cmodules/mongodb.c:1812 src/cmodules/mongodb.c:1907
+#: src/cmodules/mongodb.c:1813 src/cmodules/mongodb.c:1908
 msgid "MongoDB"
 msgstr ""
 
