@@ -1444,9 +1444,13 @@ static void initpythonmodule()
 
 void fd_init_parseltongue(void) FD_LIBINIT_FN;
 
+static char *py_argv[256]={"",NULL};
+static int py_argc=1;
+
 void fd_init_parseltongue()
 {
   if (!(Py_IsInitialized())) Py_Initialize();
+  PySys_SetArgvEx(py_argc,py_argv,0);
   initframerdmodule();
   initpythonmodule();
 }
