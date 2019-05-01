@@ -1,9 +1,14 @@
 #!/bin/sh
-INPUTS=${1:-./brico/}
-OUTPUTS=${1:-./fresh/}
-index/core.scm INDIR=${INPUTS} OUTDIR=${OUTPUTS} BRICOSOURCE=${INPUTS} ${INPUTS}/brico.pool
-index/lattices.scm INDIR=${INPUTS} OUTDIR=${OUTPUTS} BRICOSOURCE=${INPUTS} ${INPUTS}/brico.pool
-index/relations.scm INDIR=${INPUTS} OUTDIR=${OUTPUTS} BRICOSOURCE=${INPUTS} ${INPUTS}/brico.pool
-index/english.scm INDIR=${INPUTS} OUTDIR=${OUTPUTS} BRICOSOURCE=${INPUTS} ${INPUTS}/brico.pool
-index/words.scm INDIR=${INPUTS} OUTDIR=${OUTPUTS} BRICOSOURCE=${INPUTS} ${INPUTS}/brico.pool
-index/termlogic.scm INDIR=${INPUTS} OUTDIR=${OUTPUTS} BRICOSOURCE=${INPUTS} ${INPUTS}/brico.pool
+POOL=${1:-./brico/brico.pool}
+INPUTS=$(dirname ${POOL})
+OUTPUTS=${2:-./fresh/}
+if [ ! -z "${BRICOSOURCE}" ]; then
+    export FD_BRICOSOURCE=${BRICOSOURCE};
+elif test -f ./brico/brico.pool; then
+    export FD_BRICOSOURCE=./brico/;
+fi
+index/core.scm INDIR=${INPUTS} OUTDIR=${OUTPUTS} ${POOL}
+index/lattices.scm INDIR=${INPUTS} OUTDIR=${OUTPUTS} ${POOL}
+index/relations.scm INDIR=${INPUTS} OUTDIR=${OUTPUTS} ${POOL}
+index/words.scm INDIR=${INPUTS} OUTDIR=${OUTPUTS} ${POOL}
+index/termlogic.scm INDIR=${INPUTS} OUTDIR=${OUTPUTS} ${POOL}
