@@ -116,8 +116,8 @@ static lispval translate_python_error(u8_context cxt)
     fd_seterr("PythonError",cxt,details,evec);
     if (details) u8_free(details);
     fd_decref(evec);
-    Py_DECREF(type);
-    Py_DECREF(value);
+    if (type) Py_DECREF(type);
+    if (value) Py_DECREF(value);
     if (stack) Py_DECREF(stack);
     return FD_ERROR_VALUE;}
   else return FD_VOID;
@@ -1121,9 +1121,14 @@ static lispval pyget(lispval obj,lispval key)
   PyObject *o = lisp2py(obj), *v;
   if (FD_STRINGP(key))
     v = PyObject_GetAttrString(o,FD_STRDATA(key));
-  else if (FD_SYMBOLP(key))
+  else if (FD_SYMBOLP(key)) {
+    u8_string pname = FD_SYMBOL_NAME(key), scan = pname;
+    size_t buflen = strlen(pname)*2;
+    U8_STATIC_OUTPUT(keystring,buflen); int c;
+    while ( (c=u8_sgetc(&scan)) > 0) {
+      u8_putc(&keystring,u8_tolower(c));}
     /* Should probably lowercase it or something smarter */
-    v = PyObject_GetAttrString(o,FD_SYMBOL_NAME(key));
+    v = PyObject_GetAttrString(o,keystring.u8_outbuf);}
   else {
     PyObject *k = lisp2py(key);
     v = PyObject_GetItem(o,k);
@@ -1135,6 +1140,32 @@ static lispval pyget(lispval obj,lispval key)
     lispval r = py2lisp(v);
     Py_DECREF(v);
     return r;}
+}
+
+static lispval pyhas(lispval obj,lispval key)
+{
+  PyObject *o = lisp2py(obj); int has = -1;
+  if (FD_STRINGP(key))
+    has = PyObject_HasAttrString(o,FD_STRDATA(key));
+  else if (FD_SYMBOLP(key)) {
+    u8_string pname = FD_SYMBOL_NAME(key), scan = pname;
+    size_t buflen = strlen(pname)*2;
+    U8_STATIC_OUTPUT(keystring,buflen); int c;
+    while ( (c=u8_sgetc(&scan)) > 0) {
+      u8_putc(&keystring,u8_tolower(c));}
+    /* Should probably lowercase it or something smarter */
+    has = PyObject_HasAttrString(o,keystring.u8_outbuf);}
+  else {
+    PyObject *k = lisp2py(key);
+    has = PyObject_HasAttr(o,k);
+    Py_DECREF(k);}
+  if (has<0)
+  if (has<0) {
+    PyErr_Clear();
+    return FD_FALSE;}
+  else if (has)
+    return FD_TRUE;
+  else return FD_FALSE;
 }
 
 /* Primitives for embedded Python */
@@ -1209,54 +1240,130 @@ static lispval pyapply(lispval fcn,int n,lispval *args)
 static lispval pyhandle(int n,lispval *lisp_args)
 {
   lispval obj = lisp_args[0], method = lisp_args[1];
-  if (!(FD_STRINGP(method)))
-    return fd_type_error("method name","pyhandle",method);
+  PyObject *name;
+  if (! (FD_PRIM_TYPEP(obj,python_object_type)) )
+    return fd_type_error("python object","pyapply",obj);
   else if (n>8)
     return fd_err(fd_TooManyArgs,"pyhandle",NULL,FD_VOID);
-  else if (FD_PRIM_TYPEP(obj,python_object_type)) {
-    struct FD_PYTHON_OBJECT *pyo=(struct FD_PYTHON_OBJECT *) obj;
-    PyObject *po = pyo->pyval;
-    PyObject *name = PyUnicode_DecodeUTF8
-      ((char *)FD_STRING_DATA(method),FD_STRING_LENGTH(method),"none");
-    PyObject *args[n];
-    PyObject *r;
-    int i = 2; while (i<n) {
-      args[i] = lisp2py(lisp_args[i]); i++;}
-    switch (n) {
-    case 0: case 1: return fd_err("BadCall","pyhandle",NULL,FD_VOID);
-    case 2:
-      r = PyObject_CallMethodObjArgs(po,name,NULL); break;
-    case 3:
-      r = PyObject_CallMethodObjArgs(po,name,args[2],NULL); break;
-    case 4:
-      r = PyObject_CallMethodObjArgs(po,name,args[2],args[3],NULL);
-      break;
-    case 5:
-      r = PyObject_CallMethodObjArgs(po,name,args[2],args[3],args[4],NULL);
-      break;
-    case 6:
-      r = PyObject_CallMethodObjArgs
-	(po,name,args[2],args[3],args[4],args[5],NULL);
-      break;
-    case 7:
-      r = PyObject_CallMethodObjArgs
-	(po,name,args[2],args[3],args[4],args[5],args[6],NULL);
-    case 8:
-      r = PyObject_CallMethodObjArgs
-	(po,name,args[2],args[3],args[4],args[5],args[6],
-	 args[7],NULL);
-      break;
-    default:
-      ;;}
-    i=2; while (i<n) { PyObject *o = args[i]; Py_DECREF(o); i++;}
-    Py_DECREF(name);
-    if (r == NULL)
-      return translate_python_error("pyhandle");
-    else {
-      lispval result = py2lisp(r);
-      Py_DECREF(r);
-      return result;}}
-  else return fd_type_error("python object","pyapply",obj);
+  else if (FD_STRINGP(method)) {
+    name = PyUnicode_DecodeUTF8
+      ((char *)FD_STRING_DATA(method),FD_STRING_LENGTH(method),"none");}
+  else if (FD_SYMBOLP(method)) {
+    u8_string pname = FD_SYMBOL_NAME(method), scan = pname;
+    size_t buflen = strlen(pname)*2;
+    U8_STATIC_OUTPUT(keystring,buflen); int c;
+    while ( (c=u8_sgetc(&scan)) > 0) {
+      u8_putc(&keystring,u8_tolower(c));}
+    name = PyUnicode_DecodeUTF8
+      ((char *)keystring.u8_outbuf,
+       keystring.u8_write-keystring.u8_outbuf,
+       "none");}
+  else return fd_type_error("method name","pyhandle",method);
+  struct FD_PYTHON_OBJECT *pyo=(struct FD_PYTHON_OBJECT *) obj;
+  PyObject *po = pyo->pyval;
+  PyObject *args[n];
+  PyObject *r;
+  int i = 2; while (i<n) {
+    args[i] = lisp2py(lisp_args[i]); i++;}
+  switch (n) {
+  case 0: case 1: return fd_err("BadCall","pyhandle",NULL,FD_VOID);
+  case 2:
+    r = PyObject_CallMethodObjArgs(po,name,NULL); break;
+  case 3:
+    r = PyObject_CallMethodObjArgs(po,name,args[2],NULL); break;
+  case 4:
+    r = PyObject_CallMethodObjArgs(po,name,args[2],args[3],NULL);
+    break;
+  case 5:
+    r = PyObject_CallMethodObjArgs(po,name,args[2],args[3],args[4],NULL);
+    break;
+  case 6:
+    r = PyObject_CallMethodObjArgs
+      (po,name,args[2],args[3],args[4],args[5],NULL);
+    break;
+  case 7:
+    r = PyObject_CallMethodObjArgs
+      (po,name,args[2],args[3],args[4],args[5],args[6],NULL);
+  case 8:
+    r = PyObject_CallMethodObjArgs
+      (po,name,args[2],args[3],args[4],args[5],args[6],
+       args[7],NULL);
+    break;
+  default:
+    ;;}
+  i=2; while (i<n) { PyObject *o = args[i]; Py_DECREF(o); i++;}
+  Py_DECREF(name);
+  if (r == NULL)
+    return translate_python_error("pyhandle");
+  else {
+    lispval result = py2lisp(r);
+    Py_DECREF(r);
+    return result;}
+}
+
+static lispval pytry(int n,lispval *lisp_args)
+{
+  lispval obj = lisp_args[0], method = lisp_args[1];
+  PyObject *name;
+  if (! (FD_PRIM_TYPEP(obj,python_object_type)) )
+    return fd_type_error("python object","pyapply",obj);
+  else if (n>8)
+    return fd_err(fd_TooManyArgs,"pyhandle",NULL,FD_VOID);
+  else if (FD_STRINGP(method)) {
+    name = PyUnicode_DecodeUTF8
+      ((char *)FD_STRING_DATA(method),FD_STRING_LENGTH(method),"none");}
+  else if (FD_SYMBOLP(method)) {
+    u8_string pname = FD_SYMBOL_NAME(method), scan = pname;
+    size_t buflen = strlen(pname)*2;
+    U8_STATIC_OUTPUT(keystring,buflen); int c;
+    while ( (c=u8_sgetc(&scan)) > 0) {
+      u8_putc(&keystring,u8_tolower(c));}
+    name = PyUnicode_DecodeUTF8
+      ((char *)keystring.u8_outbuf,
+       keystring.u8_write-keystring.u8_outbuf,
+       "none");}
+  else return fd_type_error("method name","pyhandle",method);
+  struct FD_PYTHON_OBJECT *pyo=(struct FD_PYTHON_OBJECT *) obj;
+  PyObject *po = pyo->pyval;
+  PyObject *args[n];
+  PyObject *r;
+  int i = 2; while (i<n) {
+    args[i] = lisp2py(lisp_args[i]); i++;}
+  switch (n) {
+  case 0: case 1: return fd_err("BadCall","pyhandle",NULL,FD_VOID);
+  case 2:
+    r = PyObject_CallMethodObjArgs(po,name,NULL); break;
+  case 3:
+    r = PyObject_CallMethodObjArgs(po,name,args[2],NULL); break;
+  case 4:
+    r = PyObject_CallMethodObjArgs(po,name,args[2],args[3],NULL);
+    break;
+  case 5:
+    r = PyObject_CallMethodObjArgs(po,name,args[2],args[3],args[4],NULL);
+    break;
+  case 6:
+    r = PyObject_CallMethodObjArgs
+      (po,name,args[2],args[3],args[4],args[5],NULL);
+    break;
+  case 7:
+    r = PyObject_CallMethodObjArgs
+      (po,name,args[2],args[3],args[4],args[5],args[6],NULL);
+  case 8:
+    r = PyObject_CallMethodObjArgs
+      (po,name,args[2],args[3],args[4],args[5],args[6],
+       args[7],NULL);
+    break;
+  default:
+    ;;}
+  i=2; while (i<n) { PyObject *o = args[i]; Py_DECREF(o); i++;}
+  Py_DECREF(name);
+  if (r == NULL) {
+    PyErr_Clear();
+    return FD_EMPTY;}
+  else {
+    lispval result = py2lisp(r);
+    Py_DECREF(r);
+    return result;}
 }
 
 static lispval pydir(lispval obj)
@@ -1308,6 +1415,29 @@ static lispval pydirstar(lispval obj)
 static lispval pycall(int n,lispval *args)
 {
   return pyapply(args[0],n-1,args+1);
+}
+
+static lispval pylen(lispval pyobj)
+{
+  struct FD_PYTHON_OBJECT *po=(fd_python_object)pyobj;
+  PyObject *o=po->pyval;
+  Py_ssize_t len = PyObject_Length(o);
+  if (len < 0) {
+    PyErr_Clear();
+    return FD_FALSE;}
+  else return FD_INT(len);
+}
+
+static lispval pynext(lispval pyobj,lispval termval)
+{
+  struct FD_PYTHON_OBJECT *po=(fd_python_object)pyobj;
+  PyObject *o=po->pyval;
+  if (PyIter_Check(o)) {
+    PyObject *next = PyIter_Next(o);
+    if (next)
+      return py2lisp(next);
+    else return fd_incref(termval);}
+  else return fd_type_error("PythonIterator","pynext",pyobj);
 }
 
 static lispval pyfcn(lispval modname,lispval fname)
@@ -1405,10 +1535,19 @@ static void initframerdmodule()
 	    "Calls a python function on some arguments");
   fd_idefnN(pymodule,"PY/HANDLE",pyhandle,2,
 	    "Calls a method on a Python object");
+  fd_idefnN(pymodule,"PY/TRY",pytry,2,
+	    "Calls a method on a Python object, returning {} on error");
+  fd_idefn2(pymodule,"PY/NEXT",pynext,1,
+	    "Advances an iterator",
+	    python_object_type,FD_VOID,-1,FD_EMPTY);
   fd_idefn2(pymodule,"PY/FCN",pyfcn,2,
 	    "Returns a python method object",
 	    -1,FD_VOID,
 	    fd_string_type,FD_VOID);
+  fd_idefn1(pymodule,"PY/LEN",pylen,1,
+	    "`(PY/LEN *obj* *rv*) Returns the length of *obj* or #f "
+	    "if *obj* doesn't have a length",
+	    python_object_type,FD_VOID);
   fd_idefn1(pymodule,"PY/STRING",pystring,1,
 	    "Returns a string containing the printed representation "
 	    "of a Python object",
@@ -1423,6 +1562,9 @@ static void initframerdmodule()
 	    python_object_type,FD_VOID);
   fd_idefn2(pymodule,"PY/GET",pyget,2,
 	    "Gets a field from a python object",
+	    python_object_type,FD_VOID,-1,FD_VOID);
+  fd_idefn2(pymodule,"PY/HAS",pyhas,2,
+	    "Returns true if a python object has a field",
 	    python_object_type,FD_VOID,-1,FD_VOID);
   fd_finish_module(pymodule);
 
