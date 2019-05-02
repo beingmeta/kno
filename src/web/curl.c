@@ -44,7 +44,7 @@ static u8_string default_user_agent="FramerD/CURL";
 static lispval curl_defaults, url_symbol;
 static lispval content_type_symbol, charset_symbol, pcontent_symbol;
 static lispval content_length_symbol, etag_symbol, content_encoding_symbol;
-static lispval verbose_symbol, header_symbol;
+static lispval verbose_symbol, header_symbol, bearer_symbol;
 static lispval referer_symbol, useragent_symbol, cookie_symbol;
 static lispval date_symbol, last_modified_symbol, name_symbol;
 static lispval cookiejar_symbol, authinfo_symbol, basicauth_symbol;
@@ -330,25 +330,53 @@ static int curl_add_headers(fd_curl_handle ch,lispval val)
   return retval;
 }
 
+static int curl_set_bearer(fd_curl_handle ch,lispval v)
+{
+  u8_string hdr_string = NULL;
+  if ( (FD_STRINGP(v)) || (FD_PACKETP(v)) || (FD_SECRETP(v)) ) {
+    struct curl_slist *cur = ch->headers, *newh;
+    u8_string hdr = u8_mkstring("Authorization: Bearer %s",FD_CSTRING(v));
+    newh = curl_slist_append(cur,hdr);
+    ch->headers = newh;
+    /* Should check for errors */
+    int rv = curl_easy_setopt(ch->handle,CURLOPT_HTTPHEADER,(void *)newh);
+    if (rv != CURLE_OK) {
+      fd_seterr("CurlBearerFailed","curl_set_bearer",NULL,v);}
+    u8_free(hdr);
+    if (rv != CURLE_OK)
+      return -1;
+    else return 1;}
+  else if ( (FD_VOIDP(v)) || (FD_FALSEP(v)) || (FD_EMPTYP(v)) )
+    return 0;
+  else {
+    u8_log(LOGWARN,"CurlBearerFailed","Invalid bearer value of %q",v);
+    return -1;}
+}
+
+
 FD_EXPORT
 struct FD_CURL_HANDLE *fd_open_curl_handle()
 {
+  int rv = 0;
   struct FD_CURL_HANDLE *h = u8_alloc(struct FD_CURL_HANDLE);
+
 #define curl_set(hl,o,v) \
-   if (_curl_set("fd_open_curl_handle",hl,o,(void *)v)) return NULL;
+  if ( (rv >= 0) && (_curl_set("fd_open_curl_handle",hl,o,(void *)v)) ) rv=-1;
 #define curl_set2dtype(hl,o,f,s) \
-   if (_curl_set2dtype("fd_open_curl_handle",hl,o,f,s)) return NULL;
+  if ( (rv>=0) && (_curl_set2dtype("fd_open_curl_handle",hl,o,f,s)) ) rv = -1;
+
   FD_INIT_CONS(h,fd_curl_type);
   h->handle = curl_easy_init();
   h->headers = NULL;
   h->initdata = EMPTY;
   if (h->handle == NULL) {
     u8_free(h);
-    fd_seterr(CurlError,"fd_open_curl_handle",
-              "curl_easy_init failed",VOID);
-    return NULL;}
-  u8_logf(LOG_INFO,"CURL","Creating CURL handle %llx",(FD_INTPTR) h->handle);
-  if (curl_loglevel > LOG_NOTIFY) {
+    fd_seterr(CurlError,"fd_open_curl_handle","curl_easy_init failed",VOID);
+    rv=-1;}
+  if (rv >= 0)
+    u8_logf(LOG_INFO,"CURL","Creating CURL handle %llx",(FD_INTPTR) h->handle);
+
+  if ( (rv >= 0) && (curl_loglevel > LOG_NOTIFY) ) {
     curl_easy_setopt(h->handle,CURLOPT_VERBOSE,1);}
   /*
   memset(h->curl_errbuf,0,sizeof(h->curl_errbuf));
@@ -361,10 +389,10 @@ struct FD_CURL_HANDLE *fd_open_curl_handle()
   curl_set(h,CURLOPT_HEADERFUNCTION,handle_header);
 
   if (fd_test(curl_defaults,verifypeer_symbol,VOID))
-    curl_easy_setopt(h->handle,CURLOPT_SSL_VERIFYPEER,0);
+    curl_set(h,CURLOPT_SSL_VERIFYPEER,0);
   if (fd_test(curl_defaults,verifyhost_symbol,VOID))
-    curl_easy_setopt(h->handle,CURLOPT_SSL_VERIFYHOST,0);
-  curl_easy_setopt(h->handle,CURLOPT_SSLVERSION,CURL_SSLVERSION_DEFAULT);
+    curl_set(h,CURLOPT_SSL_VERIFYHOST,0);
+  curl_set(h,CURLOPT_SSLVERSION,CURL_SSLVERSION_DEFAULT);
 
   if (fd_test(curl_defaults,useragent_symbol,VOID)) {
     curl_set2dtype(h,CURLOPT_USERAGENT,curl_defaults,useragent_symbol);}
@@ -372,6 +400,10 @@ struct FD_CURL_HANDLE *fd_open_curl_handle()
   if (fd_test(curl_defaults,basicauth_symbol,VOID)) {
     curl_set(h,CURLOPT_HTTPAUTH,CURLAUTH_BASIC);
     curl_set2dtype(h,CURLOPT_USERPWD,curl_defaults,basicauth_symbol);}
+  if (fd_test(curl_defaults,bearer_symbol,VOID)) {
+    lispval v = fd_get(curl_defaults,bearer_symbol,VOID);
+    curl_set_bearer(h,v);
+    fd_decref(v);}
   if (fd_test(curl_defaults,authinfo_symbol,VOID)) {
     curl_set(h,CURLOPT_HTTPAUTH,CURLAUTH_ANY);
     curl_set2dtype(h,CURLOPT_USERPWD,curl_defaults,authinfo_symbol);}
@@ -386,11 +418,18 @@ struct FD_CURL_HANDLE *fd_open_curl_handle()
   if (fd_test(curl_defaults,timeout_symbol,VOID))
     curl_set2dtype(h,CURLOPT_CONNECTTIMEOUT,curl_defaults,timeout_symbol);
 
-  {
-    lispval http_headers = fd_get(curl_defaults,header_symbol,EMPTY);
+  if (rv >= 0) {
+   lispval http_headers = fd_get(curl_defaults,header_symbol,EMPTY);
     curl_add_headers(h,http_headers);
     fd_decref(http_headers);}
-  return h;
+
+  if (rv < 0) {
+    curl_slist_free_all(h->headers);
+    curl_easy_cleanup(h->handle);
+    fd_decref(h->initdata);
+    u8_free(h);
+    return NULL;}
+  else return h;
 #undef curl_set
 #undef curl_set2dtype
 }
@@ -481,6 +520,9 @@ static lispval set_curlopt
       curl_easy_setopt(ch->handle,CURLOPT_HTTPAUTH,CURLAUTH_ANY);
       curl_easy_setopt(ch->handle,CURLOPT_USERPWD,CSTRING(val));}
     else return fd_type_error("string","set_curlopt",val);
+  else if (FD_EQ(opt,bearer_symbol)) {
+    int rv = curl_set_bearer(ch,val);
+    if (rv < 0) return fd_type_error("string","set_curlopt",val);}
   else if (FD_EQ(opt,basicauth_symbol))
     if ((STRINGP(val))||(TYPEP(val,fd_secret_type))) {
       curl_easy_setopt(ch->handle,CURLOPT_HTTPAUTH,CURLAUTH_BASIC);
@@ -1651,6 +1693,7 @@ FD_EXPORT void fd_init_curl_c()
   cookiejar_symbol = fd_intern("COOKIEJAR");
   authinfo_symbol = fd_intern("AUTHINFO");
   basicauth_symbol = fd_intern("BASICAUTH");
+  bearer_symbol = fd_intern("BEARER");
   date_symbol = fd_intern("DATE");
   last_modified_symbol = fd_intern("LAST-MODIFIED");
   name_symbol = fd_intern("NAME");
