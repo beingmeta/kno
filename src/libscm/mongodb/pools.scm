@@ -159,7 +159,7 @@
 			((fail? curv)
 			 (store! sets slotid (qc newv)))
 			((fail? newv) (store! unsets slotid ""))
-			((and (singleton? curv) (singleton? newv))
+			((singleton? newv)
 			 (store! sets slotid newv))
 			(else (let ((toadd (difference newv curv))
 				    (todrop (difference curv newv)))
