@@ -2120,7 +2120,7 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
     return FD_INT(bp->pool_load);
   else if ( ( ( op == compression_symbol ) && (n == 0) ) ||
             ( ( op == fd_metadata_op ) && (n == 1) &&
-              ( args[1] == compression_symbol ) ) ) {
+              ( args[0] == compression_symbol ) ) ) {
     if ( bp->pool_compression == FD_NOCOMPRESS )
       return FD_FALSE;
     else if ( bp->pool_compression == FD_ZLIB )
@@ -2136,13 +2136,13 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
       return FD_ERROR;}}
   else if ( ( ( op == FDSYM_READONLY ) && (n == 0) ) ||
             ( ( op == fd_metadata_op ) && (n == 1) &&
-              ( args[1] == FDSYM_READONLY ) ) ) {
+              ( args[0] == FDSYM_READONLY ) ) ) {
     if ( (bp->pool_flags) & (FD_STORAGE_READ_ONLY) )
       return FD_TRUE;
     else return FD_FALSE;}
   else if ( ( ( op == FDSYM_READONLY ) && (n == 1) ) ||
             ( ( op == fd_metadata_op ) && (n == 2) &&
-              ( args[1] == FDSYM_READONLY ) ) ) {
+              ( args[0] == FDSYM_READONLY ) ) ) {
     lispval arg = ( op == FDSYM_READONLY ) ? (args[0]) : (args[1]);
     int rv = (FD_FALSEP(arg)) ? (bigpool_set_read_only(bp,0)) :
       (bigpool_set_read_only(bp,1));
@@ -2151,7 +2151,7 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
     else return fd_incref(arg);}
   else if ( ( ( op == compression_symbol ) && (n == 1) ) ||
             ( ( op == fd_metadata_op ) && (n == 2) &&
-              ( args[1] == compression_symbol ) ) ) {
+              ( args[0] == compression_symbol ) ) ) {
     lispval arg = (op == compression_symbol) ? (args[0]) : (args[1]);
     int rv = bigpool_set_compression(bp,fd_compression_type(arg,FD_NOCOMPRESS));
     if (rv<0) return FD_ERROR;

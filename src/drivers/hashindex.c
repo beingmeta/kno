@@ -3803,14 +3803,14 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
     fd_add(base,metadata_readonly_props,nkeys_symbol);
     return base;}
   else if ( ( ( op == FDSYM_READONLY ) && (n == 0) ) ||
-            ( ( op == fd_metadata_op ) && (n == 2) &&
-              ( args[1] == FDSYM_READONLY ) ) ) {
+            ( ( op == fd_metadata_op ) && (n == 1) &&
+              ( args[0] == FDSYM_READONLY ) ) ) {
     if ( (ix->index_flags) & (FD_STORAGE_READ_ONLY) )
       return FD_TRUE;
     else return FD_FALSE;}
   else if ( ( ( op == FDSYM_READONLY ) && (n == 1) ) ||
             ( ( op == fd_metadata_op ) && (n == 2) &&
-              ( args[1] == FDSYM_READONLY ) ) ) {
+              ( args[0] == FDSYM_READONLY ) ) ) {
     lispval arg = ( op == FDSYM_READONLY ) ? (args[0]) : (args[1]);
     int rv = (FD_FALSEP(arg)) ? (hashindex_set_read_only(hx,0)) :
       (hashindex_set_read_only(hx,1));
