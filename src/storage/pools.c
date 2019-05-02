@@ -1193,8 +1193,9 @@ static int pool_docommit(fd_pool p,lispval oids,
     record_elapsed(commits.commit_times.cleanup);
 
     if (cleanup < 0) {
-      u8_seterr("CleanupFailed","pool_commit",u8_strdup(p->poolid));
-      u8_logf(LOG_WARN,"CleanupFailed","Cleanup for %s failed",p->poolid);}
+      if (errno) { u8_graberrno("pool_docommit",p->poolid); }
+      fd_seterr("PoolCleanupFailed","pool_commit",p->poolid,FD_VOID);
+      u8_logf(LOG_WARN,"PoolCleanupFailed","Cleanup for %s failed",p->poolid);}
 
     if (synced < 0)
       u8_logf(LOG_WARN,"Pool/Commit/Failed",
@@ -1545,7 +1546,7 @@ FD_EXPORT int fd_unlock_oids(lispval oids_arg,fd_storage_unlock_flag flags)
   case discard_modified:
     return apply_poolop(unlock_and_discard,oids_arg);
   default:
-    u8_seterr("UnknownUnlockFlag","fd_unlock_oids",NULL);
+    fd_seterr("UnknownUnlockFlag","fd_unlock_oids",NULL,FD_VOID);
     return -1;}
 }
 

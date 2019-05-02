@@ -1260,8 +1260,8 @@ static int index_rollback(fd_index ix,struct FD_INDEX_COMMITS *commits)
     u8_logf(LOG_CRIT,"Failed/IndexRollback",
             "(after %fs) Couldn't rollback failed save of %d edits to %s",
             elapsed_time(started),ix->indexid);
-    u8_seterr("IndexRollbackFailed","index_dcommit/rollback",
-              u8_strdup(ix->indexid));}
+    fd_seterr("IndexRollbackFailed","index_dcommit/rollback",
+              ix->indexid,FD_VOID);}
   else u8_logf(LOG_WARN,"Finished/IndexRollback",
                "Rolled back %d edits to %s in %f seconds",
                n_changes,ix->indexid,
@@ -1284,7 +1284,7 @@ static int index_dosync(fd_index ix,struct FD_INDEX_COMMITS *commits)
   int synced = ix->index_handler->commit(ix,fd_commit_sync,commits);
 
   if (synced < 0) {
-    u8_seterr("IndexSync/Error","index_dosync",u8_strdup(ix->indexid));
+    fd_seterr("IndexSync/Error","index_dosync",ix->indexid,FD_VOID);
     u8_logf(LOG_ERR,"IndexSync/Error",
             _("(after %fs) syncing %d changes to %s, rolling back"),
             elapsed_time(started),n_changes,ix->indexid);
@@ -1347,7 +1347,7 @@ static int index_docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
 
   int started = ix->index_handler->commit(ix,fd_commit_start,&commits);
   if (started < 0) {
-    u8_seterr("CommitFailed","index_docommit/start",u8_strdup(ix->indexid));
+    fd_seterr("CommitFailed","index_docommit/start",ix->indexid,FD_VOID);
     return started;}
   record_elapsed(commits.commit_times.start);
   u8_logf(LOG_DEBUG,"IndexCommit/Started","Committing %s for %s",
@@ -1446,7 +1446,7 @@ static int index_docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
             n_changes,ix->indexid,commits.commit_times.write);
 
   if (written < 0) {
-    u8_seterr("CommitFailed","index_docommit/write",u8_strdup(ix->indexid));
+    fd_seterr("CommitFailed","index_docommit/write",ix->indexid,FD_VOID);
     u8_logf(LOG_ERR,"IndexWrite/Error",
             _("Error writing %d changes to %s after %f secs, rolling back"),
             n_changes,ix->indexid,u8_elapsed_time()-start_time);
@@ -1511,7 +1511,7 @@ static int index_docommit(fd_index ix,struct FD_INDEX_COMMITS *use_commits)
   int cleanup_rv = ix->index_handler->commit(ix,fd_commit_cleanup,&commits);
   if (cleanup_rv < 0) {
     if (errno) { u8_graberrno("index_docommit",u8_strdup(ix->indexid)); }
-    u8_log(LOG_WARN,"CleanupFailed",
+    u8_log(LOG_WARN,"IndexCleanupFailed",
            "There was en error cleaning up after commiting %s",ix->indexid);
     fd_clear_errors(1);}
   record_elapsed(commits.commit_times.cleanup);

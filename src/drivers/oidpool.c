@@ -925,7 +925,7 @@ static int oidpool_commit(fd_pool p,fd_commit_phase phase,
       int rv = u8_removefile(rollback_file);
       if (rv<0) {
         int saved_errno = errno; errno=0;
-        u8_logf(LOG_WARN,"CleanupFailed",
+        u8_logf(LOG_WARN,"OidPoolCleanupFailed",
                 "Rollback file %s couldn't be deleted errno=%d:%s",
                 rollback_file,saved_errno,u8_strerror(saved_errno));}
       u8_free(rollback_file);
