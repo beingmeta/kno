@@ -18,6 +18,7 @@
 (define core-index (target-file "core.index"))
 (define wordnet-index (target-file "wordnet.index"))
 (define wikid-index (target-file "wikid.index"))
+(define wikidref-index (target-file "wikidref.index"))
 (define latlong-index (target-file "latlong.index"))
 
 (define (index-latlong index f)
@@ -50,68 +51,54 @@
 	(add! concept '%indicators indicators)
 	(drop! concept '%index indicators)))))
 
+(define wn-sources
+  {@1/0{WN16} @1/46074"Wordnet 3.0, Copyright 2006 Princeton University" 
+   @1/94d47"Wordnet 3.1, Copyright 2011 Princeton University"})
+
 (defambda (indexer frames batch-state loop-state task-state)
-  (let ((latlong.table (make-hashtable))
-	(wordnet.table (make-hashtable))
-	(wikid.table (make-hashtable))
-	(core.table (make-hashtable)))
+  (let ((index (get batch-state 'index))
+	(wikid.index (get batch-state 'wikid.index))
+	(latlong.index (get batch-state 'latlong.index))
+	(wordnet.index (get batch-state 'wordnet.index)))
     (prefetch-oids! frames)
     (do-choices (f frames)
       (onerror
 	  (begin
 	    (when fixup (fixup f))
-	    (index-frame core.table f '{type source})
-	    (unless (test f 'source @1/1)
-	      (index-frame core.table f 
-		'{type sensecat source
-		  topic_domain region_domain usage_domain
-		  derivations language
-		  fips-code dsg 
-		  wikid wikidref wikidef
-		  %linked has})
-	      (index-frame core.table f 'has (getslots f))
-	      (when (test f 'words) (index-frame core.table f 'has english))
-	      (index-frame core.table f 'has (get-derived-slots f))
-	      (unless (test f 'source @1/1"Derived from 1911 Roget Thesaurus")
-		(index-frame wordnet.table
-		    f '{type words hypernym hyponym sensecat source has
-			sensekeys synsets
-			verb-frames pertainym
+	      (when (test f 'source wn-sources)
+		(index-frame wordnet.index
+		    f '{type source has words hypernym hyponym sensecat
+			sensekeys synsets verb-frames pertainym
 			lex-fileno})
-		(index-frame wordnet.table f '%sensekeys (getvalues (get f '%sensekeys)))
-		(index-frame wordnet.table f 'has (getkeys f))
-		(index-gloss wordnet.table f 'gloss)
-		(index-brico core.table f)
-		(index-frame core.table f index-also)
-		(index-wikid wikid.table f)
-		(index-latlong latlong.table f))))
+		(index-frame wordnet.index f '%sensekeys (getvalues (get f '%sensekeys)))
+		(index-frame wordnet.index f 'has (getkeys f))
+		(index-gloss wordnet.index f 'gloss)
+		(index-brico index f)
+		(index-latlong latlong.index f)
+		(index-frame index f index-also)
+		(index-wikid wikid.index f))))
 	  (lambda (ex) (logwarn |IndexError| "Indexing " f "\n" ex))))
-    (info%watch "INDEXER"
-      "FRAMES" (choice-size frames) latlong.table core.table
-      "LATLONG.INDEX" (get loop-state 'latlong.index)
-      "CORE.INDEX" (get loop-state 'core.index))
-    (index/merge! (get loop-state 'latlong.index) latlong.table)
-    (index/merge! (get loop-state 'core.index) core.table)
-    (index/merge! (get loop-state 'wikid.index) wikid.table)
-    (index/merge! (get loop-state 'wordnet.index) wordnet.table)
-    (swapout frames)))
+    (swapout frames))
 
 (define (main . names)
   (config! 'appid  "indexcore")
   (let* ((pools (use-pool (try (elts names) brico-pool-names)))
 	 (core.index (target-index core-index))
-	 (latlong.index (target-index latlong-index))
+	 (latlong.index (target-index latlong-index #[keyslot {lat long}]))
 	 (wordnet.index (target-index wordnet-index))
-	 (wikid.index (target-index wikid-index)))
+	 (wikidref.index (target-index wikidref-index #[keyslot wikidref]))
+	 (wikid.index (target-index wikid-index))
+	 (index (make-aggregate-index {core.index latlong.index wikidref.index}
+				      [register #t])))
     (engine/run indexer (pool-elts pools)
-      `#[loop #[latlong.index ,latlong.index
-		core.index ,core.index
+      `#[loop #[index ,index
 		wordnet.index ,wordnet.index
 		wikid.index ,wikid.index]
-	 batchsize 25000 batchrange 4
+	 branchindexes {index wordnet.index wikid.index}
+	 batchsize 10000 batchrange 4
 	 checkfreq 15
 	 checktests ,(engine/interval (config 'savefreq 60))
-	 checkpoint ,{pools latlong.index core.index wordnet.index}
+	 checkpoint ,{pools wikid.index wordnet.index index}
 	 logfns {,engine/log ,engine/logrusage}
 	 logfreq ,(config 'logfreq 50)
 	 logchecks #t])

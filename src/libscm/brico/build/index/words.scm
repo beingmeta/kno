@@ -10,6 +10,7 @@
 (defambda (index-words f (batch-state #f))
   (prefetch-oids! f)
   (let* ((loop-state (get batch-state 'loop))
+	 (core.index (getopt loop-state 'core.index))
 	 (words.index (getopt loop-state 'words.index))
 	 (frags.index (getopt loop-state 'frags.index))
 	 (norms.index  (getopt loop-state 'norms.index))
@@ -32,19 +33,30 @@
 	  (when (exists? %glosses) (index-frame core.index f 'has '%glosses))
 	  (when (exists? %indicators) (index-frame core.index f 'has '%indicators))
 	  (do-choices (langid (difference langids 'en))
-	    (index-string words.index f (get language-map langid)
-			  (get %words langid))
-	    (index-frags frags.index f (get frag-map langid)
-			 (pick (get %words langid) compound-string?)
-			 2 #t)
-	    (index-string norms.index f (get norm-map langid)
-			  (get %norms langid))
-	    (index-string aliases.index f (get alias-map langid)
-			  (get %aliases langid))
-	    (index-string indicators.index f (get indicator-map langid)
-			  (get %indicators langid))
-	    (index-gloss glosses.index f (get gloss-map langid)
-			 (get %glosses langid)))))
+	    (when (test %words langid)
+	      (let* ((words (get %words langid))
+		     (phrases (pick words compound-string?) ))
+		(index-string words.index f (get language-map langid) words)
+		(index-frame core.index f 'has (get language-map langid))
+		(index-frags frags.index f (get frag-map langid) phrases 2 #t)
+		(when (exists? phrases)
+		  (index-frame core.index f 'has (get frag-map langid)))))
+	    (when (test %norms langid)
+	      (index-string norms.index f (get norm-map langid)
+			    (get %norms langid))
+	      (index-frame core.index 'has (get norm-map langid)))
+	    (when (test %aliases langid)
+	      (index-string aliases.index f (get alias-map langid)
+			    (get %aliases langid))
+	      (index-frame core.index 'has (get alias-map langid)))
+	    (when (test %indicators langid)
+	      (index-string indicators.index f (get indicator-map langid)
+			    (get %indicators langid))
+	      (index-frame core.index 'has (get gloss-map langid)))
+	    (when (test %glosses langid)
+	      (index-gloss glosses.index f (get gloss-map langid)
+			   (get %glosses langid))
+	      (index-frame core.index f 'has (get gloss-map langid))))))
       (swapout f))))
 
 (define (main . names)
@@ -53,6 +65,7 @@
     (optimize! '{engine brico brico/indexing brico/lookup}))
   (dbctl core.index 'readonly #f)
   (let* ((pools (use-pool (try (elts names) brico-pool-names)))
+	 (core.index (target-index "core.index"))
 	 (words.index (target-index "words.index"))
 	 (frags.index (target-index "frags.index"))
 	 (indicators.index (target-index "indicators.index"))
@@ -63,7 +76,8 @@
 	 (oids (difference (pool-elts pools) (?? 'source @1/1))))
     (drop! core.index (cons 'has lexslots))
     (engine/run index-words oids
-      `#[loop #[words.index ,words.index 
+      `#[loop #[core.index ,core.index
+		words.index ,words.index 
 		frags.index ,frags.index
 		indicators.index ,indicators.index
 		glosses.index ,glosses.index
@@ -76,7 +90,7 @@
 	 logfreq ,(config 'logfreq 50)
 	 checkfreq 15
 	 checktests ,(engine/delta 'items 100000)
-	 checkpoint ,{pools words.index frags.index 
+	 checkpoint ,{pools core.index words.index frags.index 
 		      indicators.index aliases.index
 		      norms.index glosses.index
 		      other.index}

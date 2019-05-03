@@ -17,6 +17,7 @@
 (defambda (index-english f (batch-state #f))
   (prefetch-oids! f)
   (let* ((loop-state (get batch-state 'loop))
+	 (core.index (getopt loop-state 'words.index))
 	 (words.index (getopt loop-state 'words.index))
 	 (frags.index (getopt loop-state 'frags.index))
 	 (norms.index  (getopt loop-state 'norms.index))
@@ -35,7 +36,8 @@
 	       (aliases (get (get f '%aliases) 'en))
 	       (names {(pick norms capitalized?)
 		       (pick words capitalized?) (get f 'names)
-		       (pick (get f '{family lastname}) string?)}))
+		       (pick (get f '{family lastname}) string?)})
+	       (glosses {(get f 'gloss) (get (get f '%glosses) 'en)}))
 	  (index-string words.index f english words)
 	  (index-string norms.index f norm norms)
 	  (index-string aliases.index f enaliases aliases)
@@ -44,10 +46,16 @@
 	  (index-string names.index f 'names (downcase names))
 	  (set! word-count (+ word-count (choice-size words)))
 	  (set! name-count (+ name-count (choice-size names)))
-	  (index-string names.index f 'names names))
-	(do-choices (gloss {(get f 'gloss) (get (get f '%glosses) 'en)})
-	  (index-gloss glosses.index f engloss gloss))
-	(index-string other.index f '{family lastname})))
+	  (index-string names.index f 'names names)
+	  (index-frame core.index f 'has
+		       {(tryif (exists? words) @1/2c1c7"English")
+			(tryif (exists? norms) @1/44896"Common English")
+			(tryif (exists? indicators) @1/44a40"English indices")
+			(tryif (exists? aliases) @1/2ac91"Aliases in English")
+			(tryif (exists? glosses) @1/2ffbd"Gloss (English)")})
+	  (do-choices (gloss glosses)
+	    (index-gloss glosses.index f engloss gloss))
+	  (index-string other.index f '{family lastname}))))
     (swapout f)))
 
 (define (main . names)
@@ -56,6 +64,7 @@
     (optimize! '{engine brico brico/indexing brico/lookup}))
   (dbctl core.index 'readonly #f)
   (let* ((pools (use-pool (try (elts names) brico-pool-names)))
+	 (core.index (target-index "core.index"))
 	 (words.index (target-index "en.index" [keyslot english]))
 	 (frags.index (target-index "en_frags.index" [keyslot frags]))
 	 (indicators.index 
@@ -67,7 +76,8 @@
 	 (other.index (target-index "en_other.index"))
 	 (oids (difference (pool-elts pools) (?? 'source @1/1))))
     (engine/run index-english oids
-      `#[loop #[words.index ,words.index 
+      `#[loop #[core.index ,core.index
+		words.index ,words.index 
 		frags.index ,frags.index
 		indicators.index ,indicators.index
 		norms.index ,norms.index
@@ -82,7 +92,7 @@
 	 checkfreq 15
 	 checktests ,(engine/delta 'items 100000)
 	 checkpoint ,{pools 
-		      words.index frags.index
+		      core.index words.index frags.index
 		      indicators.index norms.index
 		      aliases.index
 		      glosses.index

@@ -221,6 +221,7 @@
 		    fips-code dsg 
 		    wikid wikidref wikidef
 		    has})
+  (index-frame index frame 'has (getkeys frame))
   (when (and (or (%test frame 'words) (%test frame '%words))
 	     (ambiguous? (get frame 'sensecat)))
     (index-relation index frame 'sensecat 'ambiguous))
