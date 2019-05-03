@@ -332,7 +332,6 @@ static int curl_add_headers(fd_curl_handle ch,lispval val)
 
 static int curl_set_bearer(fd_curl_handle ch,lispval v)
 {
-  u8_string hdr_string = NULL;
   if ( (FD_STRINGP(v)) || (FD_PACKETP(v)) || (FD_SECRETP(v)) ) {
     struct curl_slist *cur = ch->headers, *newh;
     u8_string hdr = u8_mkstring("Authorization: Bearer %s",FD_CSTRING(v));
