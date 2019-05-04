@@ -368,6 +368,7 @@
 ;;; Decaching OIDs
 
 (define (mgo/decache! oid (commit #f))
-  (when (locked? oid) (unlock-oids! oid commit))
-  (swapout oid))
+  (when (oid? oid)
+    (when (locked? oid) (unlock-oids! oid commit))
+    (swapout oid)))
 
