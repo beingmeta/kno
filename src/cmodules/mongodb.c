@@ -1147,8 +1147,14 @@ static lispval mongodb_remove(lispval arg,lispval obj,lispval opts_arg)
     q.bson_opts = opts;
     q.bson_flags = flags;
     q.bson_fieldmap = FD_VOID;
-    if (FD_TABLEP(obj)) {
+    if (FD_OIDP(obj))
+      bson_append_dtype(q,"_id",3,obj,-1);
+    else if (FD_TABLEP(obj)) {
       lispval id = fd_get(obj,idsym,FD_VOID);
+      /* If the selector has an _id field, we always want to remove a single
+         record (there should be only one); otherwise we may remove multiple.
+         Passing MONGOC_REMOVE_SINGLE_REMOVE allows the search for matches to
+         stop sooner on the MongoDB side. */
       if (FD_VOIDP(id)) {
         q.bson_fieldmap = fd_getopt(opts,fieldmap_symbol,FD_VOID);
         fd_bson_output(q,obj);
@@ -1160,7 +1166,8 @@ static lispval mongodb_remove(lispval arg,lispval obj,lispval opts_arg)
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
       u8_logf(LOG_DETAIL,"MongoDB/remove","Removing %q items from %q",obj,arg);
     if (mongoc_collection_remove(collection,
-                                 ((hasid)?(MONGOC_REMOVE_SINGLE_REMOVE):
+                                 ((hasid)?
+                                  (MONGOC_REMOVE_SINGLE_REMOVE):
                                   (MONGOC_REMOVE_NONE)),
                                  q.bson_doc,wc,&error)) {
       result = FD_TRUE;}
