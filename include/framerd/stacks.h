@@ -25,8 +25,8 @@ typedef struct FD_STACK {
   FD_CONS_HEADER; /* We're not using this right now */
   u8_string stack_type, stack_label, stack_status, stack_src;
   long long threadid;
-  int stack_depth;
-  unsigned int stack_errflags;
+  unsigned int stack_flags, stack_errflags, stack_crumb;
+  int stack_depth, n_args;
   struct FD_STACK *stack_caller, *stack_root;
 
 #if HAVE_OBSTACK_H
@@ -37,9 +37,7 @@ typedef struct FD_STACK {
   lispval *stack_args;
   lispval stack_source;
   lispval stack_vals;
-  short n_args;
-  struct FD_LEXENV *stack_env;
-  unsigned int stack_flags;} *fd_stack;
+  struct FD_LEXENV *stack_env;} *fd_stack;
 typedef struct FD_LEXENV *fd_lexenv;
 typedef struct FD_LEXENV *fd_lexenv;
 
@@ -94,7 +92,9 @@ FD_EXPORT __thread struct FD_STACK *fd_stackptr;
   if (caller)                                           \
     _ ## name.stack_errflags = caller->stack_errflags;  \
   else _ ## name.stack_errflags = FD_STACK_ERR_DEFAULT; \
-  if (caller)                                          \
+  _ ## name.stack_flags=0x01;                           \
+  _ ## name.stack_crumb=0x00;                           \
+  if (caller)                                           \
     _ ## name.stack_src = caller->stack_src;            \
   else _ ## name.stack_src = NULL;                      \
   if (!(FD_CHECK_STACK_ORDER(name,caller)))             \
@@ -109,8 +109,7 @@ FD_EXPORT __thread struct FD_STACK *fd_stackptr;
   _ ## name.stack_status=NULL;                          \
   _ ## name.n_args=0;                                   \
   _ ## name.stack_args = NULL;                          \
-  _ ## name.stack_env=NULL;                             \
-  _ ## name.stack_flags=0x01
+  _ ## name.stack_env=NULL
 
 #define FD_PUSH_STACK(name,type,label,op)              \
   FD_SETUP_NAMED_STACK(name,_stack,type,label,op);     \
@@ -133,11 +132,12 @@ FD_EXPORT __thread struct FD_STACK *fd_stackptr;
     name->stack_errflags =                                      \
       name->stack_caller->stack_errflags;                       \
   else name->stack_errflags = FD_STACK_ERR_DEFAULT;             \
+  name->stack_flags=0x01;                                       \
+  name->stack_crumb=0x00;                                       \
   name->stack_type = "alloca";                                  \
   name->stack_vals = FD_EMPTY_CHOICE;                           \
   name->stack_source = FD_VOID;                                 \
   name->stack_op = FD_VOID;                                     \
-  name->stack_flags=0x01; \
   set_call_stack(name)
 
 #define FD_INIT_STACK()                         \
