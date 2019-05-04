@@ -909,6 +909,7 @@ FD_EXPORT int fd_pool_lock(fd_pool p,lispval oids)
     return 1;}
 }
 
+/* TODO: Cleanup fd_pool_unlock call return values */
 FD_EXPORT int fd_pool_unlock(fd_pool p,lispval oids,
                              fd_storage_unlock_flag flags)
 {
@@ -922,7 +923,7 @@ FD_EXPORT int fd_pool_unlock(fd_pool p,lispval oids,
       p->pool_handler->unlock(p,to_unlock);
       fd_decref(to_unlock);}
     fd_reset_hashtable(changes,-1,1);
-    return -n;}
+    return n;}
   else {
     int n_unlocked = 0, n_committed = (flags>0) ? (fd_commit_pool(p,oids)) : (0);
     lispval to_unlock = EMPTY;
