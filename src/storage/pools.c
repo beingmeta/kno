@@ -1464,9 +1464,11 @@ FD_EXPORT int fd_swapout_oid(lispval oid)
   fd_pool p = fd_oid2pool(oid);
   if (p == NULL)
     return fd_reterr(fd_AnonymousOID,"SET-OID_VALUE!",NULL,oid);
-  else if (p->pool_handler->swapout)
-    return p->pool_handler->swapout(p,oid);
-  else if (!(fd_hashtable_probe_novoid(&(p->pool_cache),oid)))
+  else if (p->pool_handler->swapout) {
+    int rv = p->pool_handler->swapout(p,oid);
+    if (rv<=0) return rv;}
+  else NO_ELSE;
+  if (!(fd_hashtable_probe_novoid(&(p->pool_cache),oid)))
     return 0;
   else {
     fd_hashtable_store(&(p->pool_cache),oid,VOID);
