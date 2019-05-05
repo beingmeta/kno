@@ -58,6 +58,7 @@ static lispval hosts_symbol, connections_symbol, fieldmap_symbol, logopsym;
 static lispval fdparse_symbol, dotcar_symbol, dotcdr_symbol;
 static lispval certfile, certpass, cafilesym, cadirsym, crlsym;
 static lispval symslots_symbol, vecslots_symbol, rawslots_symbol;
+static lispval mongo_timestamp_tag;
 
 /* The mongo_opmap translates symbols for mongodb operators (like
    $addToSet) into the correctly capitalized strings to use in
@@ -2331,6 +2332,14 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
         break;}
       else if (tag == mongovec_symbol)
         ok = bson_append_array_begin(out,key,keylen,&doc);
+      else if ( (tag == mongo_timestamp_tag) && (len == 2) &&
+                (FD_INTEGERP(FD_COMPOUND_REF(val,1))) &&
+                (FD_TYPEP(FD_COMPOUND_REF(val,0),fd_timestamp_type)) ) {
+        struct FD_TIMESTAMP *ts = (fd_timestamp)FD_COMPOUND_REF(val,0);
+        ok = bson_append_timestamp(b.bson_doc,key,keylen,
+                                   ts->u8xtimeval.u8_tick,
+                                   fd_getint(FD_COMPOUND_REF(val,1)));
+        break;}
       else ok = bson_append_document_begin(out,key,keylen,&doc);
       /* Initialize the substream */
       memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
@@ -2771,6 +2780,13 @@ static void bson_read_step(FD_BSON_INPUT b,int flags,
     u8_init_xtime(&(ts->u8xtimeval),millis/1000,u8_millisecond,
                   ((millis%1000)*1000000),0,0);
     value = (lispval)ts;
+    break;}
+  case BSON_TYPE_TIMESTAMP: {
+    uint32_t ts, inc; bson_iter_timestamp(in,&ts,&inc);
+    time_t base_time = ts;
+    lispval tm = fd_time2timestamp(base_time);
+    lispval offset = FD_INT(inc);
+    value = fd_init_compound(NULL,mongo_timestamp_tag,0,2,tm,offset);
     break;}
   case BSON_TYPE_MAXKEY:
     value = maxkey; break;
@@ -3346,6 +3362,8 @@ FD_EXPORT int fd_init_mongodb()
   symslots_symbol = fd_intern("SYMSLOTS");
   vecslots_symbol = fd_intern("VECSLOTS");
   rawslots_symbol = fd_intern("RAWSLOTS");
+
+  mongo_timestamp_tag = fd_intern("MONGOTIME");
 
   fd_mongoc_server = fd_register_cons_type("MongoDB client");
   fd_mongoc_collection = fd_register_cons_type("MongoDB collection");
