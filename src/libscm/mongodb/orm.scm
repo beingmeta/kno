@@ -94,6 +94,8 @@
 
 ;;; Basic operations for OIDs in mongodb pools
 
+(define update-modified #[modified #[$type "timestamp"]])
+
 (defambda (mgo/get obj slotid)
   (let* ((collection (->collection obj))
 	 (id {(reject obj table?) (get (pick obj table?) '_id)})
@@ -121,8 +123,10 @@
 	    (if (ambiguous? slotid)
 		`#[$set ,(get-store-modifier slotid values (and vecvals (singleton? values)))]
 		(if (and (singleton? values) vecvals)
-		    `#[$set #[,slotid ,(mongovec values)]]
-		    `#[$set #[,slotid ,values]]))
+		    `#[$set #[,slotid ,(mongovec values)]
+		       $currentDate ,update-modified]
+		    `#[$set #[,slotid ,values]
+		       $currentDate ,update-modified]))
 	    #[new #t return #[__index 0]]))
 	(mongodb/decache-index! slotid 
 			      {(difference current values)
@@ -165,8 +169,10 @@
 	     (cond ((empty? current)
 		    (collection/modify! collection selector
 		      (if (and (singleton? values) (getopt opts 'vecvals #f))
-			  `#[$set #[,slotid ,(mongovec values)]]
-			  `#[$set #[,slotid ,values]])
+			  `#[$set #[,slotid ,(mongovec values)]
+			     $currentDate ,update-modified]
+			  `#[$set #[,slotid ,values]
+			     $currentDate ,update-modified])
 		      #[new #t return #[__index 0]]))
 		   ((singleton? current)
 		    (collection/modify! collection selector
@@ -174,7 +180,8 @@
 		      #[new #t return #[__index 0]]))
 		   (else
 		    (collection/modify! collection selector
-		      `#[$addToSet ,(get-multi-modifier slotid values)]
+		      `#[$addToSet ,(get-multi-modifier slotid values)
+			 $currentDate ,update-modified]
 		      #[new #t return #[__index 0]]))))
 	   (debug%watch "MGO/ADD!" obj id slotid collection values "\n" result)
 	   (mongodb/decache-index! slotid values)
@@ -222,13 +229,16 @@
 		      (singleton? current))
 		  (collection/modify! collection 
 		      `#[_id ,id] 
-		    `#[$unset #[,slotid 1]]
+		    `#[$unset #[,slotid 1]
+		       $currentDate ,update-modified]
 		    #[new #t return #[__index 0]])
 		  (collection/modify!
 		      collection selector
 		    (if (singleton? values)
-			`#[$pull #[,slotid ,values]]
-			`#[$pullAll #[,slotid ,values]])
+			`#[$pull #[,slotid ,values]
+			   $currentDate ,update-modified]
+			`#[$pullAll #[,slotid ,values]
+			   $currentDate ,update-modified])
 		    #[new #t return #[__index 0]])))
 	    (mongodb/decache-index! 
 	     slotid (if (or (unbound? values) (eq? values #default)) 
@@ -270,6 +280,9 @@
 		   ((not (table? obj)) obj)
 		   (else (try (get obj '_id) obj))))
 	 (selector `#[_id ,(if (ambiguous? id) `#[$in ,id] id)])
+	 (modifier (if (test modifier '$currentDate)
+		       modifier
+		       (frame-create modifier '$currentDate #[modified #[$type "timestamp"]])))
 	 (result (collection/modify! collection selector modifier)))
     (cond ((and (oid? obj) (test result 'value))
 	   (%set-oid-value! obj (get result 'value)))

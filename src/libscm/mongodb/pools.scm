@@ -145,7 +145,7 @@
 	    (debug%watch "MONGPOOL-COMMIT/DIFFER" 
 	      oid cur new "CUR#" (hashptr cur) "NEW#" (hashptr new)
 	      "MODIFIED" (modified? new))
-	    (let ((sets (frame-create #f))
+	    (let ((sets (frame-create #f 'modified (timestamp)))
 		  (unsets (frame-create #f))
 		  (adds (frame-create #f))
 		  (drops (frame-create #f)))
@@ -175,6 +175,7 @@
 		       0)
 		(collection/modify! collection `#[_id ,oid]
 		  (frame-create #f
+		    '$currentDate #[modified #[$type "timestamp"]]
 		    '$set (tryif (> (table-size sets) 0) sets)
 		    '$addToSet (tryif (> (table-size adds) 0) adds)
 		    '$pullAll (tryif (> (table-size drops) 0) drops)
