@@ -145,7 +145,7 @@
 	    (debug%watch "MONGPOOL-COMMIT/DIFFER" 
 	      oid cur new "CUR#" (hashptr cur) "NEW#" (hashptr new)
 	      "MODIFIED" (modified? new))
-	    (let ((sets (frame-create #f 'modified (timestamp)))
+	    (let ((sets (frame-create #f))
 		  (unsets (frame-create #f))
 		  (adds (frame-create #f))
 		  (drops (frame-create #f)))
