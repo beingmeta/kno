@@ -3030,6 +3030,11 @@ static void init_mongo_opmap()
   add_to_mongo_opmap("$bitsAnySet");
   add_to_mongo_opmap("$bitsAnyClear");
 
+  add_to_mongo_opmap("$or");
+  add_to_mongo_opmap("$and");
+  add_to_mongo_opmap("$not");
+  add_to_mongo_opmap("$nor");
+
   add_to_mongo_opmap("$gt");
   add_to_mongo_opmap("$gte");
   add_to_mongo_opmap("$lt");
