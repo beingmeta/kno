@@ -149,7 +149,7 @@
 		  (unsets (frame-create #f))
 		  (adds (frame-create #f))
 		  (drops (frame-create #f)))
-	      (do-choices (slotid (difference (getkeys {cur new}) '_id))
+	      (do-choices (slotid (difference (getkeys {cur new}) '{_id modified}))
 		(let ((curv (get cur slotid))
 		      (newv (get new slotid)))
 		  (detail%watch "COMMIT/COMPARE" oid slotid curv newv

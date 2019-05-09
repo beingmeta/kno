@@ -282,7 +282,8 @@
 	 (selector `#[_id ,(if (ambiguous? id) `#[$in ,id] id)])
 	 (modifier (if (test modifier '$currentDate)
 		       modifier
-		       (frame-create modifier '$currentDate #[modified #[$type "timestamp"]])))
+		       (frame-create modifier 
+			 '$currentDate #[modified #[$type "timestamp"]])))
 	 (result (collection/modify! collection selector modifier)))
     (cond ((and (oid? obj) (test result 'value))
 	   (%set-oid-value! obj (get result 'value)))
