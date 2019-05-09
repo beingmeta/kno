@@ -791,8 +791,7 @@ static lispval mongodb_open(lispval arg,lispval opts)
   srv->dbopts = fd_incref(opts);
   srv->dbflags = flags;
   if ((logops)||(flags&FD_MONGODB_LOGOPS))
-    u8_logf(LOG_INFO,"MongoDB/open",
-            "Opened %s with %s",dbname,srv->dbspec);
+    u8_logf(LOG_INFO,"MongoDB/open","Opened %s with %s",dbname,srv->dbspec);
   return (lispval)srv;
 }
 static void recycle_server(struct FD_RAW_CONS *c)
@@ -1002,7 +1001,7 @@ static lispval mongodb_insert(lispval arg,lispval objects,lispval opts_arg)
     bson_t reply;
     bson_error_t error = { 0 };
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
-      u8_logf(LOG_DETAIL,"MongoDB/insert",
+      u8_logf(LOG_NOTICE,"MongoDB/insert",
               "Inserting %d items into %q",FD_CHOICE_SIZE(objects),arg);
     if (FD_CHOICEP(objects)) {
       mongoc_bulk_operation_t *bulk=
@@ -1085,7 +1084,7 @@ static lispval mongodb_insert(lispval arg,lispval objects,lispval opts_arg)
     bson_error_t error;
     mongoc_write_concern_t *wc = get_write_concern(opts);
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
-      u8_logf(LOG_DETAIL,"MongoDB/insert",
+      u8_logf(LOG_NOTICE,"MongoDB/insert",
               "Inserting %d items into %q",FD_CHOICE_SIZE(objects),arg);
     if (FD_CHOICEP(objects)) {
       mongoc_bulk_operation_t *bulk=
@@ -1165,7 +1164,7 @@ static lispval mongodb_remove(lispval arg,lispval obj,lispval opts_arg)
         fd_decref(id);}}
     else bson_append_dtype(q,"_id",3,obj,-1);
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
-      u8_logf(LOG_DETAIL,"MongoDB/remove","Removing %q items from %q",obj,arg);
+      u8_logf(LOG_NOTICE,"MongoDB/remove","Removing %q items from %q",obj,arg);
     if (mongoc_collection_remove(collection,
                                  ((hasid)?
                                   (MONGOC_REMOVE_SINGLE_REMOVE):
@@ -1208,9 +1207,14 @@ static lispval mongodb_updater(lispval arg,lispval query,lispval update,
       ((boolopt(opts,singlesym,0))?(0):(MONGOC_UPDATE_MULTI_UPDATE));
     bson_error_t error;
     int success = 0, no_error = boolopt(opts,softfailsym,0);
-    if ((logops)||(flags&FD_MONGODB_LOGOPS))
-      u8_logf(LOG_DETAIL,"MongoDB/update",
-             "Updating matches to %q with %q in %q",query,update,arg);
+    if ((logops)||(flags&FD_MONGODB_LOGOPS)) {
+      char *qstring = bson_as_json(q,NULL);
+      char *ustring = bson_as_json(u,NULL);
+      u8_logf(LOG_NOTICE,"MongoDB/update",
+             "Updating matches in %q to\n%Q\n%s\n+%Q\n+%s",
+              arg,query,qstring,update,ustring);
+      bson_free(qstring);
+      bson_free(ustring);}
     if ((q)&&(u))
       success = mongoc_collection_update(collection,update_flags,q,u,wc,&error);
     collection_done(collection,client,domain);
@@ -1276,8 +1280,12 @@ static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
     mongoc_read_prefs_t *rp = get_read_prefs(opts);
     lispval *vec = NULL; size_t n = 0, max = 0;
     int sort_results = fd_testopt(opts,FDSYM_SORTED,FD_VOID);
-    if ((logops)||(flags&FD_MONGODB_LOGOPS))
-      u8_logf(LOG_DETAIL,"MongoDB/find","Matches to %q in %q",query,arg);
+    if ((logops)||(flags&FD_MONGODB_LOGOPS)) {
+      char *qstring = bson_as_json(q,NULL);
+      u8_logf(LOG_NOTICE,"MongoDB/find",
+              "Matches in %q to\n%Q\n%s",
+              arg,query,qstring);
+      bson_free(qstring);}
     if (q)
       cursor = mongoc_collection_find_with_opts(collection,q,findopts,rp);
     if (cursor) {
@@ -1354,8 +1362,11 @@ static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
       bson_t *q = fd_lisp2bson(query,flags,opts);
       bson_t *fields = get_projection(opts,flags);
       mongoc_read_prefs_t *rp = get_read_prefs(opts);
-      if ((logops)||(flags&FD_MONGODB_LOGOPS))
-        u8_logf(LOG_DETAIL,"MongoDB/find","Matches to %q in %q",query,arg);
+      if ((logops)||(flags&FD_MONGODB_LOGOPS)) {
+        unsigned char *qstring = bson_as_json(q,NULL);
+        u8_logf(LOG_NOTICE,"MongoDB/find",
+                "Matches in %q to\n%Q\n%s",arg,query,qstring);
+        bson_free(qstring);}
       if (q) cursor = mongoc_collection_find
                (collection,MONGOC_QUERY_NONE,
                 FD_FIX2INT(skip_arg),
@@ -1428,9 +1439,12 @@ static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
       return FD_ERROR_VALUE;}
     bson_t *findopts = get_search_opts(opts,flags,FD_COUNT_MATCHES);
     mongoc_read_prefs_t *rp = get_read_prefs(opts);
-    if ((logops)||(flags&FD_MONGODB_LOGOPS))
-      u8_logf(LOG_DETAIL,"MongoDB/count","Counting matches to %q in %q",query,
-              arg);
+    if ((logops)||(flags&FD_MONGODB_LOGOPS)) {
+      unsigned char *qstring = bson_as_json(q,NULL);
+      u8_logf(LOG_NOTICE,"MongoDB/count",
+              "Counting matches in %q to\n%Q\n%s",
+              arg,query,qstring);
+      bson_free(qstring);}
     n_documents = mongoc_collection_count_documents
       (collection,q,findopts,rp,NULL,&error);
     if (n_documents>=0) 
@@ -1480,8 +1494,11 @@ static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
      if ((FD_UINTP(skip_arg))&&(FD_UINTP(limit_arg))) {
       bson_t *fields = get_projection(opts,flags);
       mongoc_read_prefs_t *rp = get_read_prefs(opts);
-      if ((logops)||(flags&FD_MONGODB_LOGOPS))
-        u8_logf(LOG_DETAIL,"MongoDB/find","Matches to %q in %q",query,arg);
+      if ((logops)||(flags&FD_MONGODB_LOGOPS)) {
+        unsigned char *qstring = bson_as_json(q,NULL);
+        u8_logf(LOG_NOTICE,"MongoDB/find",
+                "Matches in %q to \n%Q\n%s",arg,query,qstring);
+        bson_free(qstring);}
       n_documents = mongoc_collection_count
         (collection,MONGOC_QUERY_NONE,
          q,
@@ -1539,9 +1556,12 @@ static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
       out.bson_opts = opts;
       bson_append_dtype(out,"_id",3,query,-1);
       q = out.bson_doc;}
-    if ((logops)||(flags&FD_MONGODB_LOGOPS))
-      u8_logf(LOG_DETAIL,"MongoDB/get","Matches to %q in %q",query,arg);
-    if (q) 
+    if ((logops)||(flags&FD_MONGODB_LOGOPS)) {
+      unsigned char *qstring = bson_as_json(q,NULL);
+      u8_logf(LOG_NOTICE,"MongoDB/get",
+              "Matches in %q to \n%Q\n%s",arg,query,qstring);
+      bson_free(qstring);}
+    if (q)
       cursor = mongoc_collection_find_with_opts(collection,q,findopts,rp);
     else cursor=NULL;
     if ((cursor)&&(mongoc_cursor_next(cursor,&doc))) {
@@ -1582,8 +1602,12 @@ static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
       out.bson_opts = opts;
       bson_append_dtype(out,"_id",3,query,-1);
       q = out.bson_doc;}
-    if ((logops)||(flags&FD_MONGODB_LOGOPS))
-      u8_logf(LOG_DETAIL,"MongoDB/get","Matches to %q in %q",query,arg);
+    if ((logops)||(flags&FD_MONGODB_LOGOPS)) {
+      unsigned char *qstring = bson_as_json(q,NULL);
+      u8_logf(LOG_NOTICE,"MongoDB/get",
+              "Matches in %q to\n%Q\n%s",
+              arg,query,qstring);
+      bson_free(qstring);}
     if (q) cursor = mongoc_collection_find
              (collection,MONGOC_QUERY_NONE,0,1,0,q,fields,NULL);
     if ((cursor)&&(mongoc_cursor_next(cursor,&doc))) {
@@ -1628,9 +1652,14 @@ static lispval mongodb_modify(lispval arg,lispval query,lispval update,
     if ((q == NULL)||(u == NULL)) {
       U8_CLEAR_ERRNO();
       return FD_ERROR_VALUE;}
-    if ((logops)||(flags&FD_MONGODB_LOGOPS))
-      u8_logf(LOG_DETAIL,"MongoDB/find+modify","Matches to %q using %q in %q",
-             query,update,arg);
+    if ((logops)||(flags&FD_MONGODB_LOGOPS)) {
+      unsigned char *qstring = bson_as_json(q,NULL);
+      unsigned char *ustring = bson_as_json(u,NULL);
+      u8_logf(LOG_NOTICE,"MongoDB/find+modify",
+              "Updating in %q to\n%Q\n%s\n+%Q\n+%s",
+              arg,query,qstring,update,ustring);
+      bson_free(qstring);
+      bson_free(ustring);}
     bson_t reply; bson_error_t error = { 0 };
     if (mongoc_collection_find_and_modify
         (collection,
@@ -1780,8 +1809,11 @@ static lispval db_command(lispval arg,lispval command,
           (FD_UINTP(limit_arg))&&
           (FD_UINTP(batch_arg))) {
         if (logcmds) {
+          unsigned char *cmdstring = bson_as_json(cmd,NULL);
           u8_log(LOG_INFO,"MongoDBCommand",
-                 "For %q:\n  COMMAND: %Q",arg,command);}
+                 "For %q:\n  COMMAND: %Q\n  JSON:%s",
+                 arg,command,cmdstring);
+          bson_free(cmdstring);}
         mongoc_cursor_t *cursor = mongoc_client_command
           (client,srv->dbname,MONGOC_QUERY_EXHAUST,
            (FD_FIX2INT(skip_arg)),
@@ -1853,8 +1885,11 @@ static lispval collection_simple_command(lispval arg,lispval command,
     if (collection) {
       bson_t response; bson_error_t error;
       if (logcmds) {
+        unsigned char *cmd_string = bson_as_json(cmd,NULL);
         u8_log(LOG_INFO,"MongoDBCollectionSimpleCommand",
-               "For %q:\n  COMMAND: %Q",arg,command);}
+               "For %q:\n  COMMAND: %Q\n JSON=%s",
+               arg,command,cmd_string);
+        bson_free(cmd_string);}
       if (mongoc_collection_command_simple
           (collection,cmd,NULL,&response,&error)) {
         lispval result = fd_bson2dtype(&response,flags,opts);
@@ -1889,8 +1924,11 @@ static lispval db_simple_command(lispval arg,lispval command,
     bson_t *cmd = fd_lisp2bson(command,flags,opts);
     if (cmd) {
       if (logcmds) {
+        unsigned char *cmd_string = bson_as_json(cmd,NULL);
         u8_log(LOG_INFO,"MongoDBSimpleCommand",
-                 "For %q:\n  COMMAND: %Q",arg,command);}
+                 "For %q:\n  COMMAND: %Q\n  JSON: %s",
+               arg,command,cmd_string);
+        bson_free(cmd_string);}
       if (mongoc_client_command_simple
           (client,srv->dbname,cmd,NULL,&response,&error)) {
         lispval result = fd_bson2dtype(&response,flags,opts);
@@ -2127,7 +2165,6 @@ static lispval mongodb_cursor_reader(lispval cursor,lispval howmany,
       c->cursor_value_bson=NULL;
       vec[i++] = v;}
     while ( (i < n) && (mongoc_cursor_next(scan,&doc)) ) {
-      /* u8_string json = bson_as_json(doc,NULL); */
       lispval r = fd_bson2dtype((bson_t *)doc,flags,opts);
       if (!(FD_VOIDP(opts_arg))) fd_decref(opts);
       if (FD_ABORTP(r)) {
@@ -2227,7 +2264,9 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       struct FD_TIMESTAMP *fdt=
         fd_consptr(struct FD_TIMESTAMP* ,val,fd_timestamp_type);
       unsigned long long millis = (fdt->u8xtimeval.u8_tick*1000)+
-        ((fdt->u8xtimeval.u8_prec>u8_second)?(fdt->u8xtimeval.u8_nsecs/1000000):(0));
+        ((fdt->u8xtimeval.u8_prec>u8_second)?
+         (fdt->u8xtimeval.u8_nsecs/1000000):
+         (0));
       ok = bson_append_date_time(out,key,keylen,millis);
       break;}
     case fd_uuid_type: {
@@ -2244,7 +2283,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       if (ok) {
         int i = 0; FD_DO_CHOICES(v,val) {
           sprintf(buf,"%d",i++);
-          ok = bson_append_dtype(rout,buf,strlen(buf),v,flags);
+          ok = bson_append_dtype(rout,buf,strlen(buf),v,b.bson_flags);
           if (!(ok)) FD_STOP_DO_CHOICES;}}
       bson_append_document_end(out,&arr);
       break;}

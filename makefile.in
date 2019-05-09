@@ -510,7 +510,7 @@ CMODULE_DEPENDS=lib/libfdcore@suffix@.@shared_suffix@	\
 
 ALL=testbin exe cmodules @TAGS@
 
-# Targets
+# Makefile targets
 
 default: @DEFAULTMAKETARGET@
 
@@ -626,7 +626,7 @@ dbginstall:
 	make XCFLAGS="-O0" all
 	@$(SUDO) make install
 
-# Make rules
+# Implicit make rules
 
 %.o: %.c @abs_top_srcdir@/fileinfo ${CONFIG_HDRS}
 	@$(CC) $(CFLAGS) @definefileinfo@ -o $@ -c $<
