@@ -1363,7 +1363,7 @@ static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
       bson_t *fields = get_projection(opts,flags);
       mongoc_read_prefs_t *rp = get_read_prefs(opts);
       if ((logops)||(flags&FD_MONGODB_LOGOPS)) {
-        u8_string *qstring = bson_as_json(q,NULL);
+        unsigned char *qstring = bson_as_json(q,NULL);
         u8_logf(LOG_NOTICE,"MongoDB/find",
                 "Matches in %q to\n%Q\n%s",arg,query,qstring);
         bson_free(qstring);}
@@ -1440,7 +1440,7 @@ static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
     bson_t *findopts = get_search_opts(opts,flags,FD_COUNT_MATCHES);
     mongoc_read_prefs_t *rp = get_read_prefs(opts);
     if ((logops)||(flags&FD_MONGODB_LOGOPS)) {
-      u8_string *qstring = bson_as_json(q,NULL);
+      unsigned char *qstring = bson_as_json(q,NULL);
       u8_logf(LOG_NOTICE,"MongoDB/count",
               "Counting matches in %q to\n%Q\n%s",
               arg,query,qstring);
@@ -1495,7 +1495,7 @@ static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
       bson_t *fields = get_projection(opts,flags);
       mongoc_read_prefs_t *rp = get_read_prefs(opts);
       if ((logops)||(flags&FD_MONGODB_LOGOPS)) {
-        char *qstring = bson_as_json(q,NULL);
+        unsigned char *qstring = bson_as_json(q,NULL);
         u8_logf(LOG_NOTICE,"MongoDB/find",
                 "Matches in %q to \n%Q\n%s",arg,query,qstring);
         bson_free(qstring);}
@@ -1557,7 +1557,7 @@ static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
       bson_append_dtype(out,"_id",3,query,-1);
       q = out.bson_doc;}
     if ((logops)||(flags&FD_MONGODB_LOGOPS)) {
-      char *qstring = bson_as_json(q,NULL);
+      unsigned char *qstring = bson_as_json(q,NULL);
       u8_logf(LOG_NOTICE,"MongoDB/get",
               "Matches in %q to \n%Q\n%s",arg,query,qstring);
       bson_free(qstring);}
@@ -1603,7 +1603,7 @@ static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
       bson_append_dtype(out,"_id",3,query,-1);
       q = out.bson_doc;}
     if ((logops)||(flags&FD_MONGODB_LOGOPS)) {
-      char *qstring = bson_as_json(q,NULL);
+      unsigned char *qstring = bson_as_json(q,NULL);
       u8_logf(LOG_NOTICE,"MongoDB/get",
               "Matches in %q to\n%Q\n%s",
               arg,query,qstring);
@@ -1653,8 +1653,8 @@ static lispval mongodb_modify(lispval arg,lispval query,lispval update,
       U8_CLEAR_ERRNO();
       return FD_ERROR_VALUE;}
     if ((logops)||(flags&FD_MONGODB_LOGOPS)) {
-      char *qstring = bson_as_json(q,NULL);
-      char *ustring = bson_as_json(u,NULL);
+      unsigned char *qstring = bson_as_json(q,NULL);
+      unsigned char *ustring = bson_as_json(u,NULL);
       u8_logf(LOG_NOTICE,"MongoDB/find+modify",
               "Updating in %q to\n%Q\n%s\n+%Q\n+%s",
               arg,query,qstring,update,ustring);
@@ -1809,7 +1809,7 @@ static lispval db_command(lispval arg,lispval command,
           (FD_UINTP(limit_arg))&&
           (FD_UINTP(batch_arg))) {
         if (logcmds) {
-          char *cmdstring = bson_as_json(cmd,NULL);
+          unsigned char *cmdstring = bson_as_json(cmd,NULL);
           u8_log(LOG_INFO,"MongoDBCommand",
                  "For %q:\n  COMMAND: %Q\n  JSON:%s",
                  arg,command,cmdstring);
@@ -1885,7 +1885,7 @@ static lispval collection_simple_command(lispval arg,lispval command,
     if (collection) {
       bson_t response; bson_error_t error;
       if (logcmds) {
-        char *cmd_string = bson_as_json(cmd,NULL);
+        unsigned char *cmd_string = bson_as_json(cmd,NULL);
         u8_log(LOG_INFO,"MongoDBCollectionSimpleCommand",
                "For %q:\n  COMMAND: %Q\n JSON=%s",
                arg,command,cmd_string);
@@ -1924,7 +1924,7 @@ static lispval db_simple_command(lispval arg,lispval command,
     bson_t *cmd = fd_lisp2bson(command,flags,opts);
     if (cmd) {
       if (logcmds) {
-        char *cmd_string = bson_as_json(cmd,NULL);
+        unsigned char *cmd_string = bson_as_json(cmd,NULL);
         u8_log(LOG_INFO,"MongoDBSimpleCommand",
                  "For %q:\n  COMMAND: %Q\n  JSON: %s",
                arg,command,cmd_string);
