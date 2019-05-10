@@ -1191,6 +1191,10 @@ lib/framerd/tidy.dylib: \
 	@$(MSG) MACLIBTOOL  $@ $<
 
 # Parseltongue
+src/python/parseltongue.o: src/python/parseltongue.c
+	$(CC) "-I@PYTHON2_INCLUDE_DIR@" $(CFLAGS) -o $@ -c $< ${MODLIBS}
+	@$(MSG) CC_PYTHON $@ $<
+
 lib/framerd/parseltongue.so: src/python/parseltongue.o
 	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS} -l@PYTHON2_LIB@
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
@@ -1202,11 +1206,6 @@ lib/framerd/parseltongue.dylib: src/python/parseltongue.o ${CMODULE_DEPENDS}
 	@$(MSG) MACLIBTOOL  $@ $<
 lib/framerd/parseltongue.@FDMAJOR@.dylib: lib/framerd/parseltongue.dylib
 	@ln -sf $(*F).dylib $@
-
-src/python/parseltongue.o: src/python/parseltongue.c
-	$(CC) "-I@PYTHON2_INCLUDE_DIR@" $(CFLAGS) -o $@ -c $< ${MODLIBS}
-	@$(MSG) CC_PYTHON $@ $<
-
 
 parseltongue: lib/framerd/parseltongue.@shared_suffix@
 
