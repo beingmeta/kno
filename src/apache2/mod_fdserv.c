@@ -2642,9 +2642,9 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
       if (written<=0) {
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_ERR,OK,r,
-	   "Write error (%d) (@%ld/%ld) after "
+	   "Write error (%d:%s) (@%ld/%ld) after "
 	   "reading %ld=>%ld/%ld bytes from %s for %s (%s)",
-	   errno,written,delta,
+	   errno,strerror(errno),written,delta,
 	   (long int)bytes_read,(long int)bytes_written,content_length,
 	   fdsocketinfo(sockval,infobuf),
 	   r->unparsed_uri,r->filename);
@@ -2684,17 +2684,17 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
       if (delta>0) {
 	int chunk=ap_rwrite(buf,delta,r); int written=0;
 	while ( (written<delta) && (chunk >= 0) ) {
-	  if (chunk<0) break;
-	  else written=written+chunk;
+	  written=written+chunk;
 	  if (written<delta)
 	    chunk=ap_rwrite(buf+written,delta-written,r);}
 	if (written>0) bytes_written=bytes_written+written;
 	if ((written<delta) && (chunk<0)) {
 	  ap_log_rerror
 	    (APLOG_MARK,APLOG_ERR,OK,r,
-	     "Write error (%d) (@%ld/%ld) after reading %ld=>%ld/%ld bytes "
+	     "Request write error (%d:%s) (@%ld/%ld) "
+	     "after reading %ld=>%ld/%ld bytes "
 	     "from %s for %s (%s)",
-	     errno,(long int)written,(long int)delta,
+	     errno,strerror(errno),(long int)written,(long int)delta,
 	     (long int)bytes_read,(long int)bytes_written,content_length,
 	     fdsocketinfo(sockval,infobuf),
 	     r->unparsed_uri,r->filename);
