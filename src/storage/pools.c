@@ -909,6 +909,7 @@ FD_EXPORT int fd_pool_lock(fd_pool p,lispval oids)
     return 1;}
 }
 
+/* TODO: Cleanup fd_pool_unlock call return values */
 FD_EXPORT int fd_pool_unlock(fd_pool p,lispval oids,
                              fd_storage_unlock_flag flags)
 {
@@ -922,7 +923,7 @@ FD_EXPORT int fd_pool_unlock(fd_pool p,lispval oids,
       p->pool_handler->unlock(p,to_unlock);
       fd_decref(to_unlock);}
     fd_reset_hashtable(changes,-1,1);
-    return -n;}
+    return n;}
   else {
     int n_unlocked = 0, n_committed = (flags>0) ? (fd_commit_pool(p,oids)) : (0);
     lispval to_unlock = EMPTY;
@@ -1464,9 +1465,11 @@ FD_EXPORT int fd_swapout_oid(lispval oid)
   fd_pool p = fd_oid2pool(oid);
   if (p == NULL)
     return fd_reterr(fd_AnonymousOID,"SET-OID_VALUE!",NULL,oid);
-  else if (p->pool_handler->swapout)
-    return p->pool_handler->swapout(p,oid);
-  else if (!(fd_hashtable_probe_novoid(&(p->pool_cache),oid)))
+  else if (p->pool_handler->swapout) {
+    int rv = p->pool_handler->swapout(p,oid);
+    if (rv<=0) return rv;}
+  else NO_ELSE;
+  if (!(fd_hashtable_probe_novoid(&(p->pool_cache),oid)))
     return 0;
   else {
     fd_hashtable_store(&(p->pool_cache),oid,VOID);

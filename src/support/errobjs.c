@@ -78,15 +78,16 @@ static lispval get_exception_context(u8_exception ex)
     return fd_make_slotmap(4,1,&init_kv);}
 }
 
-/* This stores the details and irritant arguments directly,
-   so they should be dup'd or incref'd by the caller. */
 FD_EXPORT void fd_seterr
   (u8_condition c,u8_context caller,u8_string details,lispval irritant)
 {
   u8_exception ex = u8_current_exception;
   u8_condition condition = (c) ? (c) : (ex) ? (ex->u8x_cond) :
     ((u8_condition)"Unknown (NULL) error");
-  lispval backtrace = fd_get_backtrace(fd_stackptr);
+  struct FD_EXCEPTION *exo = (ex) ? (fd_exception_object(ex)) : (NULL);
+  lispval backtrace = ( (exo) && (FD_CONSP(exo->ex_stack)) ) ?
+    (fd_incref(exo->ex_stack)) :
+    (fd_get_backtrace(fd_stackptr));
   lispval context = (ex) ? (get_exception_context(ex)) : (FD_VOID);
   lispval exception = fd_init_exception
     (NULL,condition,caller,u8_strdup(details),

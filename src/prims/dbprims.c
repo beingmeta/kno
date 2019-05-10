@@ -540,10 +540,13 @@ static lispval lockoid(lispval o,lispval soft)
 
 static lispval oidlockedp(lispval arg)
 {
-  fd_pool p = fd_oid2pool(arg);
-  if (fd_hashtable_probe_novoid(&(p->pool_changes),arg))
-    return FD_TRUE;
-  else return FD_FALSE;
+  if (!(OIDP(arg)))
+    return FD_FALSE;
+  else {
+    fd_pool p = fd_oid2pool(arg);
+    if ( (p) && (fd_hashtable_probe_novoid(&(p->pool_changes),arg)) )
+      return FD_TRUE;
+    else return FD_FALSE;}
 }
 
 static lispval lockoids(lispval oids)
@@ -562,9 +565,9 @@ static lispval lockedoids(lispval pool)
 
 static lispval unlockoids(lispval oids,lispval commitp)
 {
-  int force_commit = (VOIDP(commitp)) ? (0) :
-    (FD_FALSEP(commitp)) ? (-1) :
-    (1);
+  int force_commit = (VOIDP(commitp)) ? (commit_modified) :
+    (FD_FALSEP(commitp)) ? (discard_modified) :
+    (leave_modified);
   if (VOIDP(oids)) {
     fd_unlock_pools(force_commit);
     return FD_FALSE;}

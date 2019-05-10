@@ -165,7 +165,7 @@ static lispval copy_bindings(lispval bindings)
 
 static lispval stack2lisp(struct FD_STACK *stack,struct FD_STACK *inner)
 {
-  int n = 9;
+  int n = 10;
   lispval depth = FD_INT(stack->stack_depth);
   lispval type = FD_FALSE, label = FD_FALSE, status = FD_FALSE;
   lispval op = stack->stack_op, env = FD_FALSE;
@@ -175,8 +175,14 @@ static lispval stack2lisp(struct FD_STACK *stack,struct FD_STACK *inner)
                                 stack->n_args,
                                 stack->stack_args)) :
     (FD_FALSE);
+  unsigned int icrumb = stack->stack_crumb;
   lispval source = stack->stack_source;
   lispval srcfile = nofile_symbol;
+  if (icrumb == 0) {
+    icrumb = u8_random(UINT_MAX);
+    if (icrumb > FD_MAX_FIXNUM) icrumb = icrumb%FD_MAX_FIXNUM;
+    stack->stack_crumb=icrumb;}
+  lispval crumb = FD_INT(icrumb);
   if (stack->stack_src) srcfile = lispval_string(stack->stack_src);
   if (stack->stack_type) type = fd_intern(stack->stack_type);
   if (stack->stack_label) label = fd_intern(stack->stack_label);
@@ -215,25 +221,30 @@ static lispval stack2lisp(struct FD_STACK *stack,struct FD_STACK *inner)
         n--; if (FD_FALSEP(argvec)) {
           n--;}}}}
   switch (n) {
-  case 5:
-    return fd_init_compound(NULL,stack_entry_symbol,
-                            STACK_CREATE_OPTS,5,depth,type,label,op,srcfile);
   case 6:
-    return fd_init_compound(NULL,stack_entry_symbol,
-                            STACK_CREATE_OPTS,6,depth,type,label,op,srcfile,
-                            argvec);
+    return fd_init_compound
+      (NULL,stack_entry_symbol,
+       STACK_CREATE_OPTS,6,depth,type,label,op,srcfile,crumb);
   case 7:
-    return fd_init_compound(NULL,stack_entry_symbol,
-                            STACK_CREATE_OPTS,7,depth,type,label,op,srcfile,
-                            argvec,source);
+    return fd_init_compound
+      (NULL,stack_entry_symbol,
+       STACK_CREATE_OPTS,7,depth,type,label,op,srcfile,crumb,
+       argvec);
   case 8:
-    return fd_init_compound(NULL,stack_entry_symbol,
-                            STACK_CREATE_OPTS,8,depth,type,label,op,srcfile,
-                            argvec,source,env);
+    return fd_init_compound
+      (NULL,stack_entry_symbol,
+       STACK_CREATE_OPTS,8,depth,type,label,op,srcfile,crumb,
+       argvec,source);
+  case 9:
+    return fd_init_compound
+      (NULL,stack_entry_symbol,
+       STACK_CREATE_OPTS,9,depth,type,label,op,srcfile,crumb,
+       argvec,source,env);
   default:
-    return fd_init_compound(NULL,stack_entry_symbol,
-                            STACK_CREATE_OPTS,9,depth,type,label,op,srcfile,
-                            argvec,source,env,status);
+    return fd_init_compound
+      (NULL,stack_entry_symbol,
+       STACK_CREATE_OPTS,10,depth,type,label,op,srcfile,crumb,
+       argvec,source,env,status);
   }
 }
 

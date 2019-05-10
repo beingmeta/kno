@@ -149,7 +149,7 @@
 		  (unsets (frame-create #f))
 		  (adds (frame-create #f))
 		  (drops (frame-create #f)))
-	      (do-choices (slotid (difference (getkeys {cur new}) '_id))
+	      (do-choices (slotid (difference (getkeys {cur new}) '{_id modified}))
 		(let ((curv (get cur slotid))
 		      (newv (get new slotid)))
 		  (detail%watch "COMMIT/COMPARE" oid slotid curv newv
@@ -175,6 +175,7 @@
 		       0)
 		(collection/modify! collection `#[_id ,oid]
 		  (frame-create #f
+		    '$currentDate #[modified #[$type "timestamp"]]
 		    '$set (tryif (> (table-size sets) 0) sets)
 		    '$addToSet (tryif (> (table-size adds) 0) adds)
 		    '$pullAll (tryif (> (table-size drops) 0) drops)
@@ -368,6 +369,7 @@
 ;;; Decaching OIDs
 
 (define (mgo/decache! oid (commit #f))
-  (when (locked? oid) (unlock-oids! oid commit))
-  (swapout oid))
+  (when (oid? oid)
+    (when (locked? oid) (unlock-oids! oid commit))
+    (swapout oid)))
 

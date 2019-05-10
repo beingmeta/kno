@@ -218,7 +218,7 @@ static int procpool_swapout(fd_pool p,lispval oid)
   struct FD_PROCPOOL *pp = (fd_procpool)p;
   lispval lp = fd_pool2lisp(p);
   if (NO_METHODP(pp->pool_methods->swapoutfn))
-    return 0;
+    return 1;
   else {
     lispval args[]={lp,pp->pool_state,oid};
     lispval result = fd_dapply(pp->pool_methods->swapoutfn,3,args);

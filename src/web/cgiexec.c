@@ -32,7 +32,7 @@
 #include <ctype.h>
 
 static lispval accept_language, accept_type, accept_charset, accept_encoding;
-static lispval server_port, remote_port, request_method, status_field;
+static lispval server_port, remote_port, request_method, request_uri, status_field;
 static lispval get_method, post_method, browseinfo_symbol, params_symbol;
 static lispval redirect_field, sendfile_field, xredirect_field;
 static lispval query_string, query_elts, query, http_cookie, http_referrer;
@@ -532,6 +532,10 @@ FD_EXPORT int fd_parse_cgidata(lispval data)
       lispval value = fd_apply(handler,1,&data);
       fd_decref(value);}
     else u8_log(LOG_WARN,"Not Applicable","Invalid CGI prep handler %q",handler);}}
+  if (!(fd_slotmap_test(cgidata,FDSYM_PCTID,FD_VOID))) {
+    lispval req_uri = fd_slotmap_get(cgidata,request_uri,FD_VOID);
+    if (FD_STRINGP(req_uri)) fd_slotmap_store(cgidata,FDSYM_PCTID,req_uri);
+    fd_decref(req_uri);}
   return 1;
 }
 
@@ -1385,6 +1389,7 @@ FD_EXPORT void fd_init_cgiexec_c()
   server_port = fd_intern("SERVER_PORT");
   remote_port = fd_intern("REMOTE_PORT");
   request_method = fd_intern("REQUEST_METHOD");
+  request_uri = fd_intern("REQUEST_URI");
 
   query_string = fd_intern("QUERY_STRING");
   query_elts = fd_intern("QELTS");
