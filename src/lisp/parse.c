@@ -1221,10 +1221,10 @@ lispval fd_parser(u8_input in)
             u8_seterr("BadRecordExpression","fd_parser",details);
             return FD_PARSE_ERROR;}}
         case '\\': return parse_character(in);
-        case '#': return parse_histref(in);
+        case '#': case ',': return parse_histref(in);
         case '!': /* pointer reference, often disabled */
           return parse_atom(in,inchar,ch,1);
-        case '.': case ',': {
+        case '.': {
           int nch = u8_getc(in);
           if (nch == -1) return FD_EOX;
           else if (nch == '[') {
