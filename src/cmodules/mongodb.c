@@ -1296,7 +1296,8 @@ static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
           fd_decref(results);
           free_dtype_vec(vec,n);
           results = FD_ERROR_VALUE;
-          sort_results = 0;}
+          sort_results = 0;
+          break;}
         else if (sort_results) {
           if (n>=max) {
             if (!(grow_dtype_vec(&vec,n,&max))) {
@@ -1308,10 +1309,12 @@ static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
         else {
           FD_ADD_TO_CHOICE(results,r);}}
       bson_error_t err;
-      bool trouble = mongoc_cursor_error(cursor,&err);
+      bool trouble = (FD_ABORTP(results)) ? (1) :
+        (mongoc_cursor_error(cursor,&err));
       if (trouble) {
         free_dtype_vec(vec,n);
-        grab_mongodb_error(&err,"mongodb_bind");
+        if (! (FD_ABORTP(results)) )
+          grab_mongodb_error(&err,"mongodb_find");
         mongoc_cursor_destroy(cursor);
         fd_decref(opts);
         return FD_ERROR;}
