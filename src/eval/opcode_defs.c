@@ -622,8 +622,10 @@ static lispval nd2_call(lispval opcode,lispval arg1,lispval arg2)
       else result = FD_FALSE;
       break;
     case FD_OVERLAPS_OPCODE:
-      if (arg1==arg2)
-        result = (!(EMPTYP(arg1)));
+      if (arg1==arg2) {
+        if (EMPTYP(arg1))
+          result = FD_FALSE;
+        else result = FD_TRUE;}
       else if (fd_overlapp(arg1,arg2))
         result = FD_TRUE;
       else result = FD_FALSE;
