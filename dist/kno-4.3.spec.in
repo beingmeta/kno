@@ -1,4 +1,4 @@
-Name:           framerd
+Name:           kno
 Version:        @FDVERSION@
 Release:        @RPMVERSION@%{?dist}
 Summary:        semantic development environment
@@ -6,14 +6,14 @@ Summary:        semantic development environment
 Group:          System Environment/Libraries
 License:        GNU GPL
 URL:            http://www.beingmeta.com/
-Source0:        framerd-@FDVERSION@.tar.gz
+Source0:        kno-@FDVERSION@.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  libu8-devel curl-devel mysql-devel libldns-devel leveldb-devel rocksdb-devel hunspell-devel hyphen-devel libxeif-devel qrencode-devel ImageMagic-devel libffi-devel jemalloc-devel libzip-devel libsnappy-devel mongo-c-driver-devel libzstd-devel
 Requires:       libu8 >= 2.2.0 curl >= 7.15.1
 
 %description
-FramerD is a distributed knowledge base and application environment.
+Kno is a distributed knowledge base and application environment.
 
 %package        devel
 Summary:        Development files for %{name}
@@ -35,17 +35,17 @@ developing statically linked applications that use %{name}.
 You probably don\'t need it.
 
 %package        fdserv
-Summary:        Apache module for FramerD based applications
+Summary:        Apache module for Kno based applications
 Group:          Development/Libraries
 BuildRequires:  httpd-devel
 Requires:       httpd
 
 %description    fdserv
 The %{name}-fdserv package implements the Apache mod_fdserv module for
-FramerD based web applications
+Kno based web applications
 
 %package        mysql
-Summary:        Module for using MySQL from FramerD
+Summary:        Module for using MySQL from Kno
 Group:          Development/Libraries
 BuildRequires: mysql-devel
 Requires:      mysql %{name} = %{version}-%{release}
@@ -55,7 +55,7 @@ The %{name}-mysql package implements external DB bindings to the MySQL
 C client libraries
 
 %package        sqlite
-Summary:        Module for using Sqlite3 from FramerD
+Summary:        Module for using Sqlite3 from Kno
 Group:          Development/Libraries
 BuildRequires:  sqlite-devel
 Requires:       sqlite %{name} = %{version}-%{release}
@@ -65,7 +65,7 @@ The %{name}-sqlite package implements external DB bindings to the
 Sqlite3 library libraries
 
 %package        mongodb
-Summary:        Module for using MongoDB from FramerD
+Summary:        Module for using MongoDB from Kno
 Group:          Development/Libraries
 BuildRequires: mongo-c-driver-devel
 Requires:      mongo-c-driver
@@ -75,7 +75,7 @@ The %{name}-mongodb package implements bindings to the MongoDB
 client library
 
 %package        leveldb
-Summary:        Module for using LevelDB from FramerD
+Summary:        Module for using LevelDB from Kno
 Group:          Development/Libraries
 BuildRequires: leveldb-devel
 Requires:      leveldb
@@ -85,7 +85,7 @@ The %{name}-leveldb package implements bindings to the LevelDB
 database library.
 
 %package        rocksdb
-Summary:        Module for using Rocksdb from FramerD
+Summary:        Module for using Rocksdb from Kno
 Group:          Development/Libraries
 BuildRequires: rocksdb-devel
 Requires:      rocksdb
@@ -95,7 +95,7 @@ The %{name}-rocksdb package implements bindings to the rocksDB
 database library.
 
 %package        graphics
-Summary:        Graphics modules for FramerD
+Summary:        Graphics modules for Kno
 Group:          Development/Libraries
 BuildRequires: rocksdb-devel
 Requires:      rocksdb
@@ -106,7 +106,7 @@ library as well libraries for accessing EXIF metadata and generating
 QR codes.
 
 %package        zlib
-Summary:        FramerD module for working with zipfiles
+Summary:        Kno module for working with zipfiles
 Group:          Development/Libraries
 BuildRequires:  zlib-devel
 Requires:       zlib %{name} = %{version}-%{release}
@@ -115,7 +115,7 @@ Requires:       zlib %{name} = %{version}-%{release}
 The %{name}-zlib package implements external bindings for libz compression and decompression
 
 %package        ziptools
-Summary:        FramerD module for working with zipfiles
+Summary:        Kno module for working with zipfiles
 Group:          Development/Libraries
 BuildRequires:  libzip-devel
 Requires:       libzip %{name} = %{version}-%{release}
@@ -125,7 +125,7 @@ The %{name}-ziptools package provides manipulation for zip-encoded files through
 external bindings for the libzip library.
 
 %package        libarchive
-Summary:        FramerD bindings for the libarchive multi-format library
+Summary:        Kno bindings for the libarchive multi-format library
 Group:          Development/Libraries
 BuildRequires:  libarchive-devel
 Requires:       libarchive %{name} = %{version}-%{release}
@@ -135,7 +135,7 @@ The %{name}-archive package provides access to various archive formats
 through the libarchive library.
 
 %package        exif
-Summary:        FramerD module for getting image metadata
+Summary:        Kno module for getting image metadata
 Group:          Development/Libraries
 BuildRequires:  libexif-devel
 Requires:       libexif %{name} = %{version}-%{release}
@@ -144,7 +144,7 @@ Requires:       libexif %{name} = %{version}-%{release}
 The %{name}-exif package provides access to image EXIF data
 
 %package        odbc
-Summary:        Module for using Odbc from FramerD
+Summary:        Module for using Odbc from Kno
 Group:          Development/Libraries
 BuildRequires:  unixODBC-devel
 Requires:       unixODBC %{name} = %{version}-%{release}
@@ -154,14 +154,14 @@ The %{name}-odbc package implements external DB bindings to the ODBC
 libraries
  
 %package        tidy
-Summary:        FramerD module for tidying HTML code
+Summary:        Kno module for tidying HTML code
 Group:          Development/Libraries
 
 %description    tidy
 The %{name}-tidy package implements external bindings to libtidy
 
 %package        markdown
-Summary:        FramerD module for converting markdown to HTML
+Summary:        Kno module for converting markdown to HTML
 Group:          Development/Libraries
 
 %description    markdown
@@ -169,7 +169,7 @@ The %{name}-markdown package provides access to the Sundown library for
 generating HTML from markdown.
 
 %package        hyphenate
-Summary:        FramerD module for hyphentating text
+Summary:        Kno module for hyphentating text
 Group:          Development/Libraries
 
 %description    hyphenate
@@ -186,11 +186,11 @@ make mod_fdserv
 %pre
 if grep -q ^fdaemon /etc/passwd;
     then echo "User fdaemon already exists";
-    else useradd -r fdaemon -c "FramerD daemon";
+    else useradd -r fdaemon -c "Kno daemon";
 fi
-if grep -q ^framerd /etc/group;
-    then echo "Group framerd already exists";
-    else groupadd -f -r framerd;
+if grep -q ^kno /etc/group;
+    then echo "Group kno already exists";
+    else groupadd -f -r kno;
 fi
 
 %install
@@ -210,62 +210,62 @@ rm -rf $RPM_BUILD_ROOT
 %postun -p /sbin/ldconfig
 
 %files
-%attr(-,root,adm) /etc/init.d/framerd
-%attr(-,root,adm) /etc/logrotate.d/framerd
+%attr(-,root,adm) /etc/init.d/kno
+%attr(-,root,adm) /etc/logrotate.d/kno
 %attr(-,root,adm) /etc/systemd/system/fdaemons.service
 %attr(-,root,adm) /etc/systemd/system/fdweb.service
-%attr(-,root,adm) /etc/systemd/system/framerd.target
-%attr(-,fdaemon,adm) /var/run/framerd/daemons
-%attr(-,fdaemon,adm) /var/log/framerd/daemons
-%attr(-,fdaemon,adm) /var/log/framerd/bugjar
-%attr(-,fdaemon,adm) /etc/framerd/servers
-%attr(-,fdaemon,adm) /etc/framerd/config
-%attr(-,fdaemon,adm) /etc/framerd/boot/*
-%attr(-,fdaemon,adm) %{_datadir}/framerd/gdbinit
-%attr(-,fdaemon,adm) %{_datadir}/framerd/makefile.include
-%attr(-,fdaemon,adm) %{_datadir}/framerd/data/README
-%attr(-,fdaemon,adm) %{_datadir}/framerd/data/version
-%attr(-,fdaemon,adm) %{_datadir}/framerd/fdconsole.el
-%attr(-,fdaemon,adm) %{_datadir}/framerd/libscm/framerd-@FDVERSION@/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/framerd/libscm/framerd-@FDVERSION@/bugjar/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/framerd/libscm/framerd-@FDVERSION@/bugjar/resources/*
-%attr(-,fdaemon,adm) %{_datadir}/framerd/libscm/framerd-@FDVERSION@/optimize/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/framerd/libscm/framerd-@FDVERSION@/storage/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/framerd/libscm/framerd-@FDVERSION@/xhtml/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/local
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/installed
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/aws/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/aws/templates/*.json
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/domutils/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/dropbox/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/facebook/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/fdxml/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/google/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/jwt/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/knodules/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/knodules/data/*
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/morph/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/morph/data/*
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/paypal/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/textindex/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/textindex/data/*
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/twilio/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/twitter/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/tests/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/misc/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/safe/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/xhtml/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/safe/domutils
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/safe/knodules
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/safe/textindex
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/safe/fifo
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/safe/jwt
-%attr(-,fdaemon,adm) %{_datadir}/framerd/modules/builtin/safe/optimize
+%attr(-,root,adm) /etc/systemd/system/kno.target
+%attr(-,fdaemon,adm) /var/run/kno/daemons
+%attr(-,fdaemon,adm) /var/log/kno/daemons
+%attr(-,fdaemon,adm) /var/log/kno/bugjar
+%attr(-,fdaemon,adm) /etc/kno/servers
+%attr(-,fdaemon,adm) /etc/kno/config
+%attr(-,fdaemon,adm) /etc/kno/boot/*
+%attr(-,fdaemon,adm) %{_datadir}/kno/gdbinit
+%attr(-,fdaemon,adm) %{_datadir}/kno/makefile.include
+%attr(-,fdaemon,adm) %{_datadir}/kno/data/README
+%attr(-,fdaemon,adm) %{_datadir}/kno/data/version
+%attr(-,fdaemon,adm) %{_datadir}/kno/fdconsole.el
+%attr(-,fdaemon,adm) %{_datadir}/kno/libscm/kno-@FDVERSION@/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/kno/libscm/kno-@FDVERSION@/bugjar/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/kno/libscm/kno-@FDVERSION@/bugjar/resources/*
+%attr(-,fdaemon,adm) %{_datadir}/kno/libscm/kno-@FDVERSION@/optimize/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/kno/libscm/kno-@FDVERSION@/storage/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/kno/libscm/kno-@FDVERSION@/xhtml/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/local
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/installed
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/aws/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/aws/templates/*.json
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/domutils/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/dropbox/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/facebook/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/fdxml/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/google/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/jwt/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/knodules/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/knodules/data/*
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/morph/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/morph/data/*
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/paypal/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/textindex/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/textindex/data/*
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/twilio/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/twitter/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/tests/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/misc/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/safe/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/xhtml/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/safe/domutils
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/safe/knodules
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/safe/textindex
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/safe/fifo
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/safe/jwt
+%attr(-,fdaemon,adm) %{_datadir}/kno/modules/builtin/safe/optimize
 
-%attr(-,fdaemon,adm) %{_datadir}/locale/es/LC_MESSAGES/framerd.mo
-%attr(-,fdaemon,adm) %{_datadir}/locale/fr/LC_MESSAGES/framerd.mo
-%attr(-,fdaemon,adm) %{_datadir}/locale/nl/LC_MESSAGES/framerd.mo
+%attr(-,fdaemon,adm) %{_datadir}/locale/es/LC_MESSAGES/kno.mo
+%attr(-,fdaemon,adm) %{_datadir}/locale/fr/LC_MESSAGES/kno.mo
+%attr(-,fdaemon,adm) %{_datadir}/locale/nl/LC_MESSAGES/kno.mo
 %{_libdir}/libfdcore.so.*
 %{_libdir}/libfdstorage.so.*
 %{_libdir}/libfddrivers.so.*
@@ -273,8 +273,8 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libfdscheme.so.*
 %{_libdir}/libfdweb.so.*
 %{_libdir}/libtexttools.so.*
-%{_libdir}/framerd/crypto.so*
-%{_libdir}/framerd/sundown.so*
+%{_libdir}/kno/crypto.so*
+%{_libdir}/kno/sundown.so*
 %{_bindir}/*
 %defattr(-,root,root,-)
 %doc
@@ -304,52 +304,52 @@ rm -rf $RPM_BUILD_ROOT
 %files mongodb
 %defattr(-,root,root,-)
 %doc
-%{_libdir}/framerd/mongodb.so*
-%attr(-,root,adm) %{_datadir}/framerd/libscm/framerd-@FDVERSION@/mongodb/*.scm
+%{_libdir}/kno/mongodb.so*
+%attr(-,root,adm) %{_datadir}/kno/libscm/kno-@FDVERSION@/mongodb/*.scm
 
 %files mysql
 %defattr(-,root,root,-)
 %doc
-%{_libdir}/framerd/mysql.so*
+%{_libdir}/kno/mysql.so*
 
 %files sqlite
 %defattr(-,root,root,-)
 %doc
-%{_libdir}/framerd/sqlite.so*
+%{_libdir}/kno/sqlite.so*
 
 %files leveldb
 %defattr(-,root,root,-)
 %doc
-%{_libdir}/framerd/leveldb.so*
+%{_libdir}/kno/leveldb.so*
 
 %files rocksdb
 %defattr(-,root,root,-)
 %doc
-%{_libdir}/framerd/rocksdb.so*
+%{_libdir}/kno/rocksdb.so*
 
 %files markdown
 %defattr(-,root,root,-)
 %doc
-%{_libdir}/framerd/sundown.so*
+%{_libdir}/kno/sundown.so*
 
 %files graphics
 %defattr(-,root,root,-)
 %doc
-%{_libdir}/framerd/imagick.so*
-%{_libdir}/framerd/qrcode.so*
-%{_libdir}/framerd/exif.so*
+%{_libdir}/kno/imagick.so*
+%{_libdir}/kno/qrcode.so*
+%{_libdir}/kno/exif.so*
 
 %files hyphenate
 %defattr(-,root,root,-)
 %doc
-%{_libdir}/framerd/hyphenate.so*
-%{_datadir}/framerd/data/hyph_en_US.dic
+%{_libdir}/kno/hyphenate.so*
+%{_datadir}/kno/data/hyph_en_US.dic
 
 %files fdserv
 %defattr(-,root,root,-)
 %doc
-%attr(-,fdaemon,adm) /var/run/framerd/servlets
-%attr(-,fdaemon,adm) /var/log/framerd/servlets
+%attr(-,fdaemon,adm) /var/run/kno/servlets
+%attr(-,fdaemon,adm) /var/log/kno/servlets
 %{_sysconfdir}/httpd/conf.d/fdserv.conf
 %{_sysconfdir}/httpd/conf.d/fdserv.load
 %{_libdir}/httpd/modules/mod_fdserv.*
@@ -357,29 +357,29 @@ rm -rf $RPM_BUILD_ROOT
 %files zlib
 %defattr(-,root,root,-)
 %doc
-%{_libdir}/framerd/zlib.so*
+%{_libdir}/kno/zlib.so*
  
 %files ziptools
 %defattr(-,root,root,-)
 %doc
-%{_libdir}/framerd/ziptools.so*
+%{_libdir}/kno/ziptools.so*
  
 %files libarchive
 %defattr(-,root,root,-)
 %doc
-%{_libdir}/framerd/libarchive.so*
+%{_libdir}/kno/libarchive.so*
  
 %files exif
 %defattr(-,root,root,-)
 %doc
-%{_libdir}/framerd/exif.so*
+%{_libdir}/kno/exif.so*
 
 %files odbc
 %defattr(-,root,root,-)
 %doc
-%{_libdir}/framerd/odbc.so*
+%{_libdir}/kno/odbc.so*
  
 %files tidy
 %defattr(-,root,root,-)
 %doc
-%{_libdir}/framerd/tidy.so*
+%{_libdir}/kno/tidy.so*

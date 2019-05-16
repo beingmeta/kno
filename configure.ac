@@ -87,16 +87,16 @@ EXELIBS=
 BINPATH=${PATH}
 RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
-FDMAJOR=4
-FDMINOR=3
-FDRELEASE=`cat etc/release`
-FDVERSION=${FDMAJOR}.${FDMINOR}.${FDRELEASE}
-VERSION=$FDVERSION
-RPMVERSION=${FDRELEASE}
-DEBVERSION=${FDRELEASE}
-mshared_suffix=so.${FDMAJOR}
-mmshared_suffix=so.${FDMAJOR}.${FDMINOR}
-vshared_suffix=so.${FDVERSION}
+KNO_MAJOR=4
+KNO_MINOR=3
+KNO_RELEASE=`cat etc/release`
+KNO_VERSION=${KNO_MAJOR}.${KNO_MINOR}.${KNO_RELEASE}
+VERSION=$KNO_VERSION
+RPMVERSION=${KNO_RELEASE}
+DEBVERSION=${KNO_RELEASE}
+mshared_suffix=so.${KNO_MAJOR}
+mmshared_suffix=so.${KNO_MAJOR}.${KNO_MINOR}
+vshared_suffix=so.${KNO_VERSION}
 I18N=""
 INSTALLI18N=""
 WWWUSER="apache"
@@ -316,10 +316,10 @@ AC_SUBST(TESTLIBS)
 AC_SUBST(EXEFLAGS)
 AC_SUBST(EXELIBS)
 AC_SUBST(RPATHFLAGS)
-AC_SUBST(FDVERSION)
-AC_SUBST(FDMAJOR)
-AC_SUBST(FDMINOR)
-AC_SUBST(FDRELEASE)
+AC_SUBST(KNO_VERSION)
+AC_SUBST(KNO_MAJOR)
+AC_SUBST(KNO_MINOR)
+AC_SUBST(KNO_RELEASE)
 AC_SUBST(RPMVERSION)
 AC_SUBST(DEBVERSION)
 AC_SUBST(VERSION)
@@ -450,10 +450,10 @@ AC_PROG_RANLIB
 
 CFLAGS="-I$prefix/include/$host/ $CFLAGS"
 
-AC_DEFINE_UNQUOTED(KNO_VERSION,"$FDVERSION")
-AC_DEFINE_UNQUOTED(KNO_MAJOR_VERSION,$FDMAJOR)
-AC_DEFINE_UNQUOTED(KNO_MINOR_VERSION,$FDMINOR)
-AC_DEFINE_UNQUOTED(KNO_RELEASE_VERSION,$FDRELEASE)
+AC_DEFINE_UNQUOTED(KNO_VERSION,"$KNO_VERSION")
+AC_DEFINE_UNQUOTED(KNO_MAJOR_VERSION,$KNO_MAJOR)
+AC_DEFINE_UNQUOTED(KNO_MINOR_VERSION,$KNO_MINOR)
+AC_DEFINE_UNQUOTED(KNO_RELEASE_VERSION,$KNO_RELEASE)
 
 AC_ARG_WITH(suffix,--with-suffix string,,with_suffix="")
 suffix=$with_suffix
@@ -549,9 +549,9 @@ case $host_os in
    MKSTATIC="libtool -static "
    dynamic_cflag="-dynamic"
    shared_suffix="dylib"
-   vshared_suffix=${FDVERSION}.dylib
-   mshared_suffix=${FDMAJOR}.dylib
-   mmshared_suffix=${FDMAJOR}.${FDMINOR}.dylib
+   vshared_suffix=${KNO_VERSION}.dylib
+   mshared_suffix=${KNO_MAJOR}.dylib
+   mmshared_suffix=${KNO_MAJOR}.${KNO_MINOR}.dylib
    APXS="apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a $APXSFLAGS"
    CFLAGS="-D_DARWIN_C_SOURCE $CFLAGS"
    RPATHFLAGS=" -rpath \$(RPATH) "
@@ -1113,8 +1113,8 @@ AC_ARG_WITH(loadpath,--with-loadpath location)
 
 AC_ARG_WITH(libscm,--with-libscm location)
 if test "$with_libscm" == "version"; then
-   AC_DEFINE_UNQUOTED(KNO_LIBSCM_DIR,"$share_dir/libscm/kno-$FDVERSION")
-   LIBSCM="$share_dir/libscm/kno-$FDVERSION";
+   AC_DEFINE_UNQUOTED(KNO_LIBSCM_DIR,"$share_dir/libscm/kno-$KNO_VERSION")
+   LIBSCM="$share_dir/libscm/kno-$KNO_VERSION";
 elif test ! -z "$with_libscm"; then
    AC_DEFINE_UNQUOTED(KNO_LIBSCM_DIR,"$with_libscm")
    LIBSCM=$with_libscm

@@ -30,11 +30,11 @@ override_dh_shlibdeps:
 	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info
 
 override_dh_strip:
-	dh_strip -pframerd-core --dbg-package=framerd-core-dbg
-	dh_strip -pframerd-sqlite --dbg-package=framerd-sqlite-dbg
-	dh_strip -pframerd-mysql --dbg-package=framerd-mysql-dbg
-	dh_strip -pframerd-mongodb --dbg-package=framerd-mongodb-dbg
-	dh_strip -pframerd-leveldb --dbg-package=framerd-leveldb-dbg
-	dh_strip -pframerd-sundown --dbg-package=framerd-sundown-dbg
-	dh_strip -pframerd-tidy --dbg-package=framerd-tidy-dbg
-	dh_strip -pframerd-imagetools --dbg-package=framerd-imagetools-dbg
+	dh_strip -pkno-core       --dbg-package=kno-core-dbg
+	dh_strip -pkno-sqlite     --dbg-package=kno-sqlite-dbg
+	dh_strip -pkno-mysql      --dbg-package=kno-mysql-dbg
+	dh_strip -pkno-mongodb    --dbg-package=kno-mongodb-dbg
+	dh_strip -pkno-leveldb    --dbg-package=kno-leveldb-dbg
+	dh_strip -pkno-sundown    --dbg-package=kno-sundown-dbg
+	dh_strip -pkno-tidy       --dbg-package=kno-tidy-dbg
+	dh_strip -pkno-imagetools --dbg-package=kno-imagetools-dbg

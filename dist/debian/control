@@ -1,4 +1,4 @@
-Source: framerd
+Source: kno
 Section: Libraries
 Priority: optional
 Maintainer: Kenneth Benefiel Haase <kh@beingmeta.com>
@@ -6,208 +6,208 @@ Build-Depends: debhelper (>= 8.0.0), autotools-dev, equivs, dh-systemd, dh-elpa,
 Standards-Version: 3.9.4
 Homepage: http://www.framerd.org/
 
-Package: framerd
+Package: kno
 Architecture: any
-Depends: ${misc:Depends}, framerd-core, framerd-builtin
+Depends: ${misc:Depends}, kno-core, kno-builtin
 Description: Scalable knowledge base development and application platform
- FramerD provides a robust and scalable object database especially
+ Kno provides a robust and scalable object database especially
  designed and optimized for pointer-intensive semi-structured data based on
- complex or evolving data models.  FramerD includes full support for
+ complex or evolving data models.  Kno includes full support for
  Unicode in both data and programs together with powerful tools for
  text processing and linguistic analysis.
- FramerD natively supports reading and and generation of XML, HTML, and
+ Kno natively supports reading and and generation of XML, HTML, and
  MIME data.  Web services support has long included built-in support
  for processing CGI requests both directly and with fastcgi.  With
- version 2.4, FramerD comes with mod_fdserv, a lightweight extension to
+ version 2.4, Kno comes with mod_knosrv, a lightweight extension to
  the Apache webserver for transparently managing persistent
  multi-threaded servlets responding to CGI requests.
  
-Package: framerd-core
+Package: kno-core
 Architecture: any
-Suggests: framerd-docs
+Suggests: kno-docs
 Depends: ${misc:Depends}, libu8 (>= 2.6.7-83), libzip4 | libzip2, libarchive13, libsnappy1v5, libzstd1, libssl1.1 | libssl1.0 | libssl1.0.0, libcurl4 | libcurl3, libhyphen0, libedit2, adduser, libldns2 | libldns1, libjemalloc1
 Description: This package provides the core libraries, executables, and 
-  configuration files for FramerD applications
+  configuration files for Kno applications
 
-Package: framerd-core-dbg
+Package: kno-core-dbg
 Architecture: any
 Section: debug
 Depends: 
-    framerd-core (= ${binary:Version}),
+    kno-core (= ${binary:Version}),
     libu8-dbg,
     ${misc:Depends}
 Suggests:
     libssl1.1-dbg | libssl1.0-dbg | libssl1.0.0-dbg,
     libcurl4-dbg | libcurl3-dbg
-Description: This package contains the debugging symbols for framerd-core
+Description: This package contains the debugging symbols for kno-core
 
-Package: framerd-builtin
+Package: kno-builtin
 Architecture: any
-Depends: ${misc:Depends}, framerd-core
-Provides: framerd-modules
+Depends: ${misc:Depends}, kno-core
+Provides: kno-modules
 Description: This package directly provides hundreds of source (scheme) modules for
-  use with FramerD
+  use with Kno
 
-Package: libapache2-mod-fdserv
+Package: libapache2-mod-knosrv
 Architecture: any
-Depends: framerd-core (= ${binary:Version}), apache2
-Description: The mod_fdserv module for FramerD servlets under Apache
+Depends: kno-core (= ${binary:Version}), apache2
+Description: The mod_knosrv module for KNO servlets under Apache
 
-Package: framerd-mysql
+Package: kno-mysql
 Architecture: any
-Depends: framerd-core (= ${binary:Version}), libmysqlclient | libmysqlclient20 | libmysqlclient19 | libmysqlclient18 | libmysqlclient-dev
-Description: MYSQL bindings for FramerD
+Depends: kno-core (= ${binary:Version}), libmysqlclient | libmysqlclient20 | libmysqlclient19 | libmysqlclient18 | libmysqlclient-dev
+Description: MYSQL bindings for Kno
 
-Package: framerd-mysql-dbg
+Package: kno-mysql-dbg
 Architecture: any
 Section: debug
 Depends: 
-    framerd-core-dbg (= ${binary:Version}),
-    framerd-mysql (= ${binary:Version}),
+    kno-core-dbg (= ${binary:Version}),
+    kno-mysql (= ${binary:Version}),
     ${misc:Depends}
-Description: This package contains the debugging symbols for framerd-mysql
+Description: This package contains the debugging symbols for kno-mysql
 
-Package: framerd-sqlite
+Package: kno-sqlite
 Architecture: any
-Depends: framerd-core (= ${binary:Version}), sqlite
-Description: SQLite bindings for FramerD
+Depends: kno-core (= ${binary:Version}), sqlite
+Description: SQLite bindings for Kno
 
-Package: framerd-sqlite-dbg
+Package: kno-sqlite-dbg
 Architecture: any
 Section: debug
 Depends: 
-    framerd-core-dbg (= ${binary:Version}),
-    framerd-sqlite (= ${binary:Version}),
+    kno-core-dbg (= ${binary:Version}),
+    kno-sqlite (= ${binary:Version}),
     ${misc:Depends}
-Description: This package contains the debugging symbols for framerd-sqlite
+Description: This package contains the debugging symbols for kno-sqlite
 
-Package: framerd-mongodb
+Package: kno-mongodb
 Architecture: any
-Depends: framerd-core (= ${binary:Version}), mongo-c-driver | libbson-dev, mongo-c-driver | libmongoc-dev
-Description: MongoDB interface for FramerD
+Depends: kno-core (= ${binary:Version}), mongo-c-driver | libbson-dev, mongo-c-driver | libmongoc-dev
+Description: MongoDB interface for Kno
 
-Package: framerd-mongodb-dbg
+Package: kno-mongodb-dbg
 Architecture: any
 Section: debug
 Depends: 
-    framerd-core-dbg (= ${binary:Version}),
-    framerd-mongodb (= ${binary:Version}),
+    kno-core-dbg (= ${binary:Version}),
+    kno-mongodb (= ${binary:Version}),
     mongo-c-driver | libmongoc-dev,
     mongo-c-driver | libbson-dev,
     ${misc:Depends}
-Description: This package contains the debugging symbols for framerd-mongodb
+Description: This package contains the debugging symbols for kno-mongodb
 
-Package: framerd-leveldb
+Package: kno-leveldb
 Architecture: any
-Depends: framerd-core (= ${binary:Version}), libleveldb1v5
-Description: Leveldb interface for FramerD
+Depends: kno-core (= ${binary:Version}), libleveldb1v5
+Description: Leveldb interface for Kno
 
-Package: framerd-leveldb-dbg
+Package: kno-leveldb-dbg
 Architecture: any
 Section: debug
 Depends: 
-    framerd-core-dbg (= ${binary:Version}),
-    framerd-leveldb (= ${binary:Version}),
+    kno-core-dbg (= ${binary:Version}),
+    kno-leveldb (= ${binary:Version}),
     libleveldb-dev,
     ${misc:Depends}
 Suggests: libleveldb-dbg
-Description: This package contains the debugging symbols for framerd-leveldb
+Description: This package contains the debugging symbols for kno-leveldb
 
-Package: framerd-rocksdb
+Package: kno-rocksdb
 Architecture: i386 amd64
-Depends: framerd-core (= ${binary:Version}), librocksdb5.10 | librocksdb5.8 | librocksdb4.5 | librocksdb4.1
-Description: Rocksdb interface for FramerD
+Depends: kno-core (= ${binary:Version}), librocksdb5.10 | librocksdb5.8 | librocksdb4.5 | librocksdb4.1
+Description: Rocksdb interface for Kno
 
-Package: framerd-rocksdb-dbg
+Package: kno-rocksdb-dbg
 Architecture: i386 amd64
 Section: debug
 Depends: 
-    framerd-core-dbg (= ${binary:Version}),
-    framerd-rocksdb (= ${binary:Version}),
+    kno-core-dbg (= ${binary:Version}),
+    kno-rocksdb (= ${binary:Version}),
     librocksdb-dev,
     librocksdb5.10-dbg | librocksdb5.8-dbg | librocksdb4.5-dbg | librocksdb4.1-dbg,
     ${misc:Depends}
-Description: This package contains the debugging symbols for framerd-rocksdb
+Description: This package contains the debugging symbols for kno-rocksdb
 
-Package: framerd-parseltongue
+Package: kno-parseltongue
 Architecture: any
-Depends: framerd-core, python2.7
-Description: FramerD/Python FFI
+Depends: kno-core, python2.7
+Description: Kno/Python FFI
 
-Package: framerd-parseltongue-dbg
+Package: kno-parseltongue-dbg
 Architecture: any
 Section: debug
 Depends: 
-    framerd-core-dbg (= ${binary:Version}),
-    framerd-parseltongue (= ${binary:Version}),
+    kno-core-dbg (= ${binary:Version}),
+    kno-parseltongue (= ${binary:Version}),
     ${misc:Depends}
-Description: This package contains the debugging symbols for framerd-parseltongue
+Description: This package contains the debugging symbols for kno-parseltongue
 
-Package: framerd-imagetools
+Package: kno-imagetools
 Architecture: any
-Depends: framerd-core (= ${binary:Version}), libexif12, libmagickwand | libmagickwand5 | libmagickwand-6.q16-2 | libmagickwand-6.q16-3, libqrencode3
-Description: Image tools for FramerD
-  Bindings to various image libraries modules for FramerD,
+Depends: kno-core (= ${binary:Version}), libexif12, libmagickwand | libmagickwand5 | libmagickwand-6.q16-2 | libmagickwand-6.q16-3, libqrencode3
+Description: Image tools for Kno
+  Bindings to various image libraries modules for Kno,
   including ImageMagick, QRCode generation, and EXIF extraction.
 
-Package: framerd-imagetools-dbg
+Package: kno-imagetools-dbg
 Architecture: any
 Section: debug
 Depends: 
-    framerd-core-dbg (= ${binary:Version}),
-    framerd-imagetools (= ${binary:Version}),
+    kno-core-dbg (= ${binary:Version}),
+    kno-imagetools (= ${binary:Version}),
     ${misc:Depends}
-Description: This package contains the debugging symbols for framerd-imagetools
+Description: This package contains the debugging symbols for kno-imagetools
 
-Package: framerd-sundown
+Package: kno-sundown
 Architecture: any
-Depends: framerd-core (= ${binary:Version})
-Description: Markdown conversion (bindings) for FramerD
+Depends: kno-core (= ${binary:Version})
+Description: Markdown conversion (bindings) for Kno
 
-Package: framerd-sundown-dbg
+Package: kno-sundown-dbg
 Architecture: any
 Section: debug
 Depends: 
-    framerd-core-dbg (= ${binary:Version}),
-    framerd-sundown (= ${binary:Version}),
+    kno-core-dbg (= ${binary:Version}),
+    kno-sundown (= ${binary:Version}),
     ${misc:Depends}
-Description: This package contains the debugging symbols for framerd-sundown
+Description: This package contains the debugging symbols for kno-sundown
 
-Package: framerd-tidy
+Package: kno-tidy
 Architecture: any
-Depends: framerd-core (= ${binary:Version})
-Description: HTML Tidy (bindings) for FramerD
+Depends: kno-core (= ${binary:Version})
+Description: HTML Tidy (bindings) for Kno
 
-Package: framerd-tidy-dbg
+Package: kno-tidy-dbg
 Architecture: any
 Section: debug
 Depends: 
-    framerd-core-dbg (= ${binary:Version}),
-    framerd-tidy (= ${binary:Version}),
+    kno-core-dbg (= ${binary:Version}),
+    kno-tidy (= ${binary:Version}),
     ${misc:Depends}
-Description: This package contains the debugging symbols for framerd-tidy
+Description: This package contains the debugging symbols for kno-tidy
 
-Package: framerd-doc
+Package: kno-doc
 Architecture: any
-Description: documentation for framerd
+Description: documentation for kno
 
-Package: upstart-framerd
+Package: upstart-kno
 Architecture: any
-Depends: framerd-core
-Conflicts: framerd-sysv, framerd-systemd
-Description: Upstart configuration for FramerD
+Depends: kno-core
+Conflicts: kno-sysv, kno-systemd
+Description: Upstart configuration for Kno
 
-Package: sysv-framerd
+Package: sysv-kno
 Architecture: any
-Depends: framerd-core
-Conflicts: framerd-upstart, framerd-systemd
-Description: SYSV init.d configuration for FramerD
+Depends: kno-core
+Conflicts: kno-upstart, kno-systemd
+Description: SYSV init.d configuration for Kno
 
-Package: systemd-framerd
+Package: systemd-kno
 Architecture: any
-Depends: framerd-core
-Conflicts: framerd-upstart, framerd-sysv
-Description: systemd init configuration for FramerD
+Depends: kno-core
+Conflicts: kno-upstart, kno-sysv
+Description: systemd init configuration for Kno
 
 Package: elpa-fdconsole
 Architecture: any
@@ -217,26 +217,26 @@ Recommends: emacs (>= 46.0)
 Enhances: emacs, emacs24, emacs25
 Description: Provides an Emacs mode for interacting with fdconsole
 
-Package: framerd-full
+Package: kno-full
 Architecture: any
-Depends: ${misc:Depends}, framerd-core, framerd-builtin, framerd-doc,
-	 framerd-imagetools, framerd-mysql, framerd-mongodb,
-	 framerd-sqlite, framerd-sundown, framerd-tidy,
+Depends: ${misc:Depends}, kno-core, kno-builtin, kno-doc,
+	 kno-imagetools, kno-mysql, kno-mongodb,
+	 kno-sqlite, kno-sundown, kno-tidy,
 	 elpa-fdconsole
-Description: Installs all standard FramerD modules
+Description: Installs all standard Kno modules
 
-Package: framerd-full-dbg
+Package: kno-full-dbg
 Architecture: any
-Depends: ${misc:Depends}, framerd-full, 
-	 framerd-imagetools-dbg,
-	 framerd-mysql-dbg,
-	 framerd-mongodb-dbg,
-	 framerd-sqlite-dbg,
-	 framerd-sundown-dbg,
-	 framerd-tidy-dbg
-Description: Installs all standard FramerD modules
+Depends: ${misc:Depends}, kno-full, 
+	 kno-imagetools-dbg,
+	 kno-mysql-dbg,
+	 kno-mongodb-dbg,
+	 kno-sqlite-dbg,
+	 kno-sundown-dbg,
+	 kno-tidy-dbg
+Description: Installs all standard Kno modules
 
-Package: framerd-dev
+Package: kno-dev
 Architecture: any
-Depends: framerd (= ${binary:Version}), libu8-dev, framerd-core-dbg
-Description: Development files for FramerD
+Depends: kno (= ${binary:Version}), libu8-dev, kno-core-dbg
+Description: Development files for Kno
