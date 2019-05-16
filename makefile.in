@@ -17,8 +17,8 @@ CFLAGS        = -I./include @CFLAGS@ ${OPTFLAGS} \
 RPATH         = @rpath@
 RPATHFLAGS    = @RPATHFLAGS@
 LDFLAGS       = -L./ -L./lib @LDFLAGS@ @PTHREAD_LIBS@ $(XLDFLAGS)
-DYLIB_FLAGS   = -compatibility_version @FDMAJOR@.0.0 \
-		-current_version @FDMAJOR@.@FDMINOR@.@FDRELEASE@
+DYLIB_FLAGS   = -compatibility_version @KNO_MAJOR@.0.0 \
+		-current_version @KNO_MAJOR@.@KNO_MINOR@.@KNO_RELEASE@
 EXEFLAGS      = @EXEFLAGS@
 EXELIBS       = @EXELIBS@
 STATIC_CFLAGS = -I./include @CFLAGS@ @PROFILING@ @DREENTRANT@ \
@@ -69,7 +69,7 @@ GPG		= @GPG@
 GPGID		= @GPGID@
 RPMGPG		= %__gpg gpg --force-v3-sigs --digest-algo=sha1 -u \"%{_gpg_name}\" --no-armor --no-secmem-warning -sbo %{__signature_filename} %{__plaintext_filename}
 APTREPO		= @APTREPO@
-FDVERSION	= @FDVERSION@
+FDVERSION	= @KNO_VERSION@
 DEBNAME		:= $(shell etc/dpkgname kno)
 APTVERSION	:= $(shell etc/aptversion kno)
 REVISION	:= $(shell etc/gitrev)
@@ -374,7 +374,7 @@ SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
 	       exe/scripts/hashindexop exe/scripts/reset-pool \
                exe/scripts/make-oidpool exe/scripts/split-pool \
 	       exe/scripts/copy-pool exe/scripts/merge-indexes \
-	       exe/scripts/fdpkg
+	       exe/scripts/knopkg
 
 CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config $(DESTDIR)@share_dir@ \
 	$(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \
@@ -468,28 +468,28 @@ CMODULE_SOURCES=\
 	src/cmodules/gperftools.c 						\
 	src/cmodules/crypto.c
 
-STATIC_LIBS=lib/libfdcore@suffix@.a 	\
-	lib/libfdstorage@suffix@.a	\
-        lib/libfddbserv@suffix@.a 	\
-	lib/libfddrivers@suffix@.a  	\
-	lib/libfdscheme@suffix@.a 	\
-	lib/libfdweb@suffix@.a 		\
-	lib/libtexttools@suffix@.a
+STATIC_LIBS=lib/libknocore@suffix@.a 	\
+	lib/libknostorage@suffix@.a	\
+        lib/libknodbserv@suffix@.a 	\
+	lib/libknodrivers@suffix@.a  	\
+	lib/libknoscheme@suffix@.a 	\
+	lib/libknoweb@suffix@.a 		\
+	lib/libknotext@suffix@.a
 
-SHARED_LIBS=lib/libfdcore@suffix@.@shared_suffix@  		\
-	lib/libfdstorage@suffix@.@shared_suffix@        	\
-        lib/libfddrivers@suffix@.@shared_suffix@    		\
-	lib/libfddbserv@suffix@.@shared_suffix@     		\
-	lib/libfdscheme@suffix@.@shared_suffix@    		\
-	lib/libfdweb@suffix@.@shared_suffix@       		\
-	lib/libtexttools@suffix@.@shared_suffix@		\
-	lib/libfdcore@suffix@.@mshared_suffix@  		\
-	lib/libfdstorage@suffix@.@mshared_suffix@        	\
-        lib/libfddrivers@suffix@.@mshared_suffix@    		\
-	lib/libfddbserv@suffix@.@mshared_suffix@     		\
-	lib/libfdscheme@suffix@.@mshared_suffix@    		\
-	lib/libfdweb@suffix@.@mshared_suffix@       		\
-	lib/libtexttools@suffix@.@mshared_suffix@
+SHARED_LIBS=lib/libknocore@suffix@.@shared_suffix@  		\
+	lib/libknostorage@suffix@.@shared_suffix@        	\
+        lib/libknodrivers@suffix@.@shared_suffix@    		\
+	lib/libknodbserv@suffix@.@shared_suffix@     		\
+	lib/libknoscheme@suffix@.@shared_suffix@    		\
+	lib/libknoweb@suffix@.@shared_suffix@       		\
+	lib/libknotext@suffix@.@shared_suffix@		\
+	lib/libknocore@suffix@.@mshared_suffix@  		\
+	lib/libknostorage@suffix@.@mshared_suffix@        	\
+        lib/libknodrivers@suffix@.@mshared_suffix@    		\
+	lib/libknodbserv@suffix@.@mshared_suffix@     		\
+	lib/libknoscheme@suffix@.@mshared_suffix@    		\
+	lib/libknoweb@suffix@.@mshared_suffix@       		\
+	lib/libknotext@suffix@.@mshared_suffix@
 
 SCHEME_MODULES=src/extmods/*.scm \
 	src/extmods/aws/*.scm \
@@ -503,10 +503,10 @@ SCHEME_MODULES=src/extmods/*.scm \
 	src/beingmeta/gnosys/*.scm
 
 # These might be neccessary on MacOS
-CMODULE_DEPENDS=lib/libfdcore@suffix@.@shared_suffix@	\
-	lib/libfdstorage@suffix@.@shared_suffix@ 	\
-	lib/libfdstorage@suffix@.@shared_suffix@ 	\
-	 lib/libfdscheme@suffix@.@shared_suffix@
+CMODULE_DEPENDS=lib/libknocore@suffix@.@shared_suffix@	\
+	lib/libknostorage@suffix@.@shared_suffix@ 	\
+	lib/libknostorage@suffix@.@shared_suffix@ 	\
+	 lib/libknoscheme@suffix@.@shared_suffix@
 
 ALL=testbin exe cmodules @TAGS@
 
@@ -640,10 +640,10 @@ exe/scripts/%: src/scripts/%.scm
 exe/%@suffix@: src/exe/%.c ${CONFIG_HDRS}
 	$(CC) $(CFLAGS) $(LDFLAGS) $(EXEFLAGS)                  \
 		-o $@ $<                                           \
-		-lfddbserv@suffix@                 	 	   \
+		-lknodbserv@suffix@                 	 	   \
 		@xdynamic_scheme_libs@                             \
-		-ltexttools@suffix@ -lfdscheme@suffix@ \
-		-lfddrivers@suffix@ -lfdstorage@suffix@ -lfdcore@suffix@ \
+		-lknotext@suffix@ -lknoscheme@suffix@ \
+		-lknodrivers@suffix@ -lknostorage@suffix@ -lknocore@suffix@ \
 	        -lu8stdio $(LIBS) $(EXELIBS)
 	@$(MSG) MKEXE $@ $<
 
@@ -652,14 +652,14 @@ src/cmodules/%.o: src/cmodules/%.c ${CONFIG_HDRS}
 	@$(MSG) CC_MODULE  $@ $<
 lib/kno/%.so: src/cmodules/%.o # ${CMODULE_DEPENDS}
 	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS}
-	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
+	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
 	@$(MSG) MKSO  $@ $<
 lib/kno/%.dylib: src/cmodules/%.o ${CMODULE_DEPENDS}
 	@$(MACLIBTOOL) -install_name \
-		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
+		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
 		$(DYLIB_FLAGS) ${MODLIBS} -o $@ $< 
 	@$(MSG) MACLIBTOOL  $@ $<
-lib/kno/%.@FDMAJOR@.dylib: lib/kno/%.dylib
+lib/kno/%.@KNO_MAJOR@.dylib: lib/kno/%.dylib
 	@ln -sf $(*F).dylib $@
 
 dbg/%: src/exe/%.c $(STATIC_LIBS)
@@ -684,18 +684,18 @@ static/%@suffix@: src/exe/%.c $(STATIC_LIBS) ${REVISION_H} ${CONFIG_H}
 lib/%@suffix@.a:
 	@$(MKSTATIC) $@ $^
 	@$(MSG) MKSTATIC $@
-lib/%@suffix@.so.@FDMAJOR@: lib/%@suffix@.so
+lib/%@suffix@.so.@KNO_MAJOR@: lib/%@suffix@.so
 	@ln -sf $(*F).so $@
 lib/%@suffix@.so:
-	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -Wl,--as-needed -L./lib -L./ \
+	@$(MKSO) -Wl,-soname=$(@F).@KNO_MAJOR@ -Wl,--as-needed -L./lib -L./ \
 		-o $@ $^ -lu8 $(MODLIBS)
-	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
+	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
 	@echo MKSO $@
-lib/%@suffix@.@FDMAJOR@.dylib: lib/%@suffix@.dylib
+lib/%@suffix@.@KNO_MAJOR@.dylib: lib/%@suffix@.dylib
 	@ln -sf $(*F).dylib $@
 lib/%@suffix@.dylib:
-	@$(MACLIBTOOL) -install_name @rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib $(DYLIB_FLAGS) -o $@ $^
-	@ln -sf $(@F) $(@D)/`basename $(@F) .dylib`.@FDMAJOR@.dylib
+	@$(MACLIBTOOL) -install_name @rpath/lib/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib $(DYLIB_FLAGS) -o $@ $^
+	@ln -sf $(@F) $(@D)/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib
 	@$(MSG) MACLIBTOOL $@
 
 $(LIBINSTALLDIR)/%.a: lib/%.a
@@ -799,17 +799,17 @@ dbg/knosrv.webuser: dbg/knosrv
 
 # Uninstall
 
-LIBBASE=libfdcore libfdstorage libfddrivers libfddbserv \
-	libfdscheme libfdweb libtexttools
+LIBBASE=libknocore libknostorage libknodrivers libknodbserv \
+	libknoscheme libknoweb libknotext
 
 uninstall-core:
 	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(EXECUTABLES) knocgi
 	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(SHELL_SCRIPTS)
 	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(SCHEME_SCRIPTS)
 	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.a" $(LIBBASE)
-	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@FDVERSION@.@shared_suffix@" $(LIBBASE)
-	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@FDMAJOR@.@shared_suffix@" $(LIBBASE)
-	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@FDMAJOR@.@FDMINOR@.@shared_suffix@" $(LIBBASE)
+	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@KNO_VERSION@.@shared_suffix@" $(LIBBASE)
+	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@KNO_MAJOR@.@shared_suffix@" $(LIBBASE)
+	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@KNO_MAJOR@.@KNO_MINOR@.@shared_suffix@" $(LIBBASE)
 	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@shared_suffix@" $(LIBBASE)
 	rm -rf $(DESTDIR)${CMODULES}
 uninstall-all: uninstall-core
@@ -970,68 +970,68 @@ src/text/matcher.o src/text/texttools.o : XCFLAGS="${XOPTFLAGS}"
 
 # Library targets
 
-lib/libfdcore@suffix@.a: $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS)
-lib/libfdcore@suffix@.so: $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS)
-lib/libfdcore@suffix@.dylib: $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS)
+lib/libknocore@suffix@.a: $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS)
+lib/libknocore@suffix@.so: $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS)
+lib/libknocore@suffix@.dylib: $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS)
 
-lib/libfdstorage@suffix@.a: $(STORAGE_OBJS)
-lib/libfdstorage@suffix@.so: $(STORAGE_OBJS) lib/libfdcore@suffix@.so
-lib/libfdstorage@suffix@.dylib: $(STORAGE_OBJS) lib/libfdcore@suffix@.dylib
+lib/libknostorage@suffix@.a: $(STORAGE_OBJS)
+lib/libknostorage@suffix@.so: $(STORAGE_OBJS) lib/libknocore@suffix@.so
+lib/libknostorage@suffix@.dylib: $(STORAGE_OBJS) lib/libknocore@suffix@.dylib
 
-lib/libfddrivers@suffix@.a: $(DRIVER_OBJS)
-lib/libfddrivers@suffix@.so: $(DRIVER_OBJS) \
-	lib/libfdcore@suffix@.so lib/libfdstorage@suffix@.so
-lib/libfddrivers@suffix@.dylib: $(DRIVER_OBJS) \
-	lib/libfdstorage@suffix@.dylib lib/libfdcore@suffix@.dylib
+lib/libknodrivers@suffix@.a: $(DRIVER_OBJS)
+lib/libknodrivers@suffix@.so: $(DRIVER_OBJS) \
+	lib/libknocore@suffix@.so lib/libknostorage@suffix@.so
+lib/libknodrivers@suffix@.dylib: $(DRIVER_OBJS) \
+	lib/libknostorage@suffix@.dylib lib/libknocore@suffix@.dylib
 
-lib/libfddbserv@suffix@.a: $(DBSERV_OBJS)
-lib/libfddbserv@suffix@.so: $(DBSERV_OBJS) \
-	lib/libfdcore@suffix@.so lib/libfdstorage@suffix@.so \
-	lib/libfddrivers@suffix@.so
-lib/libfddbserv@suffix@.dylib: $(DBSERV_OBJS) 	\
-	lib/libfdscheme@suffix@.dylib         	\
-	lib/libfddrivers@suffix@.dylib		\
-	lib/libfdstorage@suffix@.dylib		\
-	lib/libfdcore@suffix@.dylib
-	@$(MACLIBTOOL) -install_name @rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib $(DYLIB_FLAGS) -o $@ $^
+lib/libknodbserv@suffix@.a: $(DBSERV_OBJS)
+lib/libknodbserv@suffix@.so: $(DBSERV_OBJS) \
+	lib/libknocore@suffix@.so lib/libknostorage@suffix@.so \
+	lib/libknodrivers@suffix@.so
+lib/libknodbserv@suffix@.dylib: $(DBSERV_OBJS) 	\
+	lib/libknoscheme@suffix@.dylib         	\
+	lib/libknodrivers@suffix@.dylib		\
+	lib/libknostorage@suffix@.dylib		\
+	lib/libknocore@suffix@.dylib
+	@$(MACLIBTOOL) -install_name @rpath/lib/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib $(DYLIB_FLAGS) -o $@ $^
 	@$(MSG) MACLIBTOOL $@
 
-lib/libfdscheme@suffix@.a: $(SCHEME_OBJS)
-lib/libfdscheme@suffix@.so: $(SCHEME_OBJS) 		\
-	lib/libfdcore@suffix@.so lib/libfdstorage@suffix@.so	\
-	lib/libfddrivers@suffix@.so
-lib/libfdscheme@suffix@.dylib: $(SCHEME_OBJS) 			\
-	lib/libfdcore@suffix@.dylib  lib/libfdstorage@suffix@.dylib	\
-        lib/libfddrivers@suffix@.dylib
+lib/libknoscheme@suffix@.a: $(SCHEME_OBJS)
+lib/libknoscheme@suffix@.so: $(SCHEME_OBJS) 		\
+	lib/libknocore@suffix@.so lib/libknostorage@suffix@.so	\
+	lib/libknodrivers@suffix@.so
+lib/libknoscheme@suffix@.dylib: $(SCHEME_OBJS) 			\
+	lib/libknocore@suffix@.dylib  lib/libknostorage@suffix@.dylib	\
+        lib/libknodrivers@suffix@.dylib
 
-lib/libfdweb@suffix@.a: $(WEB_OBJS)
-lib/libfdweb@suffix@.so: $(WEB_OBJS) \
-	lib/libfdcore@suffix@.so \
-	lib/libfdstorage@suffix@.so \
-	lib/libfddrivers@suffix@.so \
-	lib/libfdscheme@suffix@.so
-lib/libfdweb@suffix@.dylib: $(WEB_OBJS) \
-	lib/libfdscheme@suffix@.dylib     \
-	lib/libfddrivers@suffix@.dylib     \
-	lib/libfdstorage@suffix@.dylib         \
-        lib/libfdcore@suffix@.dylib
+lib/libknoweb@suffix@.a: $(WEB_OBJS)
+lib/libknoweb@suffix@.so: $(WEB_OBJS) \
+	lib/libknocore@suffix@.so \
+	lib/libknostorage@suffix@.so \
+	lib/libknodrivers@suffix@.so \
+	lib/libknoscheme@suffix@.so
+lib/libknoweb@suffix@.dylib: $(WEB_OBJS) \
+	lib/libknoscheme@suffix@.dylib     \
+	lib/libknodrivers@suffix@.dylib     \
+	lib/libknostorage@suffix@.dylib         \
+        lib/libknocore@suffix@.dylib
 	@$(MACLIBTOOL) -install_name \
-		@rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib \
+		@rpath/lib/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
 		$(DYLIB_FLAGS) \
 		-o $@ $(WEB_OBJS)
 	@$(MSG) MACLIBTOOL $@
 
-lib/libtexttools@suffix@.a: $(TEXT_OBJS)
-lib/libtexttools@suffix@.so: $(TEXT_OBJS) \
-	lib/libfdcore@suffix@.so lib/libfdstorage@suffix@.so \
-	lib/libfdstorage@suffix@.so lib/libfdscheme@suffix@.so
-lib/libtexttools@suffix@.dylib: $(TEXT_OBJS) \
-	lib/libfdscheme@suffix@.dylib \
-	lib/libfddrivers@suffix@.dylib \
-	lib/libfdstorage@suffix@.dylib \
-	lib/libfdcore@suffix@.dylib
+lib/libknotext@suffix@.a: $(TEXT_OBJS)
+lib/libknotext@suffix@.so: $(TEXT_OBJS) \
+	lib/libknocore@suffix@.so lib/libknostorage@suffix@.so \
+	lib/libknostorage@suffix@.so lib/libknoscheme@suffix@.so
+lib/libknotext@suffix@.dylib: $(TEXT_OBJS) \
+	lib/libknoscheme@suffix@.dylib \
+	lib/libknodrivers@suffix@.dylib \
+	lib/libknostorage@suffix@.dylib \
+	lib/libknocore@suffix@.dylib
 	@$(MACLIBTOOL) -install_name \
-		@rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib \
+		@rpath/lib/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
 		$(DYLIB_FLAGS) \
 		-o $@ $(TEXT_OBJS)
 	@$(MSG) MACLIBTOOL $@
@@ -1042,11 +1042,11 @@ src/cmodules/mysql.o: src/cmodules/mysql.c ${CONFIG_HDRS}
 lib/kno/mysql.so: src/cmodules/mysql.o # ${CMODULE_DEPENDS}
 	@$(MKSO) -L./ -L./lib \
 		-o $@ $< @MYSQL_LDFLAGS@ # ${CMODULE_DEPENDS}
-	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
+	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
 	@$(MSG) MKSO "(MYSQL)" $@
 lib/kno/mysql.dylib: src/cmodules/mysql.o ${CMODULE_DEPENDS}
 	@$(MACLIBTOOL) -install_name \
-		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
+		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
 		$(DYLIB_FLAGS) \
 		-o $@ src/cmodules/mysql.o @MYSQL_LDFLAGS@
 	@$(MSG) MACLIBTOOL "(MYSQL)" $@
@@ -1060,7 +1060,7 @@ lib/kno/mongodb.so: src/cmodules/mongodb.o @MONGODB_BUNDLED@
 	@$(MSG) MKSO "(MONGODB)" $@
 lib/kno/mongodb.dylib: src/cmodules/mongodb.o ${CMODULE_DEPENDS} @MONGODB_BUNDLED@
 	@$(MACLIBTOOL) -install_name \
-		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
+		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
 		$(DYLIB_FLAGS) \
 		-o $@ src/cmodules/mongodb.o @MONGODB_LDFLAGS@
 	@$(MSG) MACLIBTOOL "(MONGODB)" $@
@@ -1070,11 +1070,11 @@ src/cmodules/imagick.o: src/cmodules/imagick.c ${CONFIG_HDRS}
 	@$(MSG) CC "(IMAGICK)" $@
 lib/kno/imagick.so: src/cmodules/imagick.o
 	$(MKSO) -L./ -L./lib -o $@ $< @IMAGICK_LDFLAGS@
-	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
+	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
 	@$(MSG) MKSO "(IMAGICK)" $@
 lib/kno/imagick.dylib: src/cmodules/imagick.o ${CMODULE_DEPENDS}
 	@$(MACLIBTOOL) -install_name \
-		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
+		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
 		$(DYLIB_FLAGS) \
 		-o $@ src/cmodules/imagick.o @IMAGICK_LDFLAGS@
 	@$(MSG) MACLIBTOOL "(IMAGICK)" $@
@@ -1084,11 +1084,11 @@ src/cmodules/ziptools.o: src/cmodules/ziptools.c ${CONFIG_HDRS}
 	@$(MSG) CC "(ZIPTOOLS)"  $@ $<
 lib/kno/ziptools.so: src/cmodules/ziptools.o
 	@$(MKSO) -L./ -L./lib -o $@ $< @LIBZIP_LDFLAGS@
-	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
+	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
 	@$(MSG) MKSO "(ZIPTOOLS)"  $@ $<
 lib/kno/ziptools.dylib: src/cmodules/ziptools.o ${CMODULE_DEPENDS}
 	@$(MACLIBTOOL) -install_name \
-		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
+		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
 		$(DYLIB_FLAGS) \
 		-o $@ $<
 	@$(MSG) MACLIBTOOL "(ZIPTOOLS)" $@
@@ -1098,22 +1098,22 @@ src/cmodules/libarchive.o: src/cmodules/libarchive.c ${CONFIG_HDRS}
 	@$(MSG) CC "(LIBARCHIVE)"  $@ $<
 lib/kno/libarchive.so: src/cmodules/libarchive.o
 	@$(MKSO) -L./ -L./lib -o $@ $< -larchive
-	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
+	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
 	@$(MSG) MKSO "(LIBARCHIVE)"  $@ $<
 lib/kno/libarchive.dylib: src/cmodules/libarchive.o ${CMODULE_DEPENDS}
 	@$(MACLIBTOOL) -install_name \
-		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
+		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
 		$(DYLIB_FLAGS) \
 		-o $@ $<
 	@$(MSG) MACLIBTOOL "(LIBARCHIVE)" $@
 
 lib/kno/exif.so: src/cmodules/exif.o
 	@$(MKSO) -L./ -L./lib -o $@ $^ $(MODLIBS) -lexif
-	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
+	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
 	@$(MSG) MKSO $@
 lib/kno/exif.dylib: src/cmodules/exif.o ${CMODULE_DEPENDS}
 	@$(MACLIBTOOL) -install_name \
-		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
+		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
 		$(DYLIB_FLAGS) \
 		-lexif -o $@ $^
 	@$(MSG) MACLIBTOOL $@
@@ -1169,11 +1169,11 @@ lib/kno/gperftools.dylib: src/cmodules/gperftools.o ${CMODULE_DEPENDS}
 lib/kno/sundown.so: src/cmodules/sundown.c $(SUNDOWN_OBJECTS)
 	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/sundown.c $(SUNDOWN_OBJECTS)
 	@$(MSG) MKSO  $@ $<
-	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
+	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
 lib/kno/sundown.dylib: \
 	src/cmodules/sundown.c $(SUNDOWN_OBJECTS) ${CMODULE_DEPENDS}
 	@$(MACLIBTOOL) -install_name \
-		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
+		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
 		${CFLAGS} -o $@ $(DYLIB_FLAGS) \
 		src/cmodules/sundown.c $(SUNDOWN_OBJECTS)
 	@$(MSG) MACLIBTOOL  $@ $<
@@ -1181,11 +1181,11 @@ lib/kno/sundown.dylib: \
 lib/kno/tidy.so: src/cmodules/tidy.c $(TIDY_OBJECTS)
 	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/tidy.c $(TIDY_OBJECTS)
 	@$(MSG) MKSO  $@ $<
-	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
+	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
 lib/kno/tidy.dylib: \
 	src/cmodules/tidy.c $(TIDY_OBJECTS) ${CMODULE_DEPENDS}
 	@$(MACLIBTOOL) -install_name \
-		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
+		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
 		${CFLAGS} -o $@ $(DYLIB_FLAGS) \
 		src/cmodules/tidy.c $(TIDY_OBJECTS)
 	@$(MSG) MACLIBTOOL  $@ $<
@@ -1197,14 +1197,14 @@ src/python/parseltongue.o: src/python/parseltongue.c
 
 lib/kno/parseltongue.so: src/python/parseltongue.o
 	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS} -l@PYTHON2_LIB@
-	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
+	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
 	@$(MSG) MKSO  $@ $<
 lib/kno/parseltongue.dylib: src/python/parseltongue.o ${CMODULE_DEPENDS}
 	@$(MACLIBTOOL) -install_name \
-		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
+		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
 		$(DYLIB_FLAGS) ${MODLIBS} -l@PYTHON2_LIB@ -o $@ $< 
 	@$(MSG) MACLIBTOOL  $@ $<
-lib/kno/parseltongue.@FDMAJOR@.dylib: lib/kno/parseltongue.dylib
+lib/kno/parseltongue.@KNO_MAJOR@.dylib: lib/kno/parseltongue.dylib
 	@ln -sf $(*F).dylib $@
 
 parseltongue: lib/kno/parseltongue.@shared_suffix@
@@ -1255,50 +1255,50 @@ debupdate:
 
 # Creating staging areas from GIT
 
-staging/kno-@FDVERSION@: include/kno/revision.h \
+staging/kno-@KNO_VERSION@: include/kno/revision.h \
 	$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
-	@git archive --prefix=kno-@FDVERSION@/ \
-	            -o staging/kno-@FDVERSION@.tar HEAD
-	cd src/extmods; git archive --prefix=kno-@FDVERSION@/src/extmods/ \
-	            -o ../../staging/kno_modules-@FDVERSION@.tar HEAD;
-	cd staging; tar -xf kno-@FDVERSION@.tar; rm kno-@FDVERSION@.tar
-	cd staging; tar -xf kno_modules-@FDVERSION@.tar; rm kno_modules-@FDVERSION@.tar;
-	cp include/kno/revision.h staging/kno-@FDVERSION@/etc/revision.h;
-	cp dist/kno-@FDMAJOR@.@FDMINOR@.spec staging/kno-@FDVERSION@/dist
-staging/kno_@FDVERSION@: include/kno/revision.h \
+	@git archive --prefix=kno-@KNO_VERSION@/ \
+	            -o staging/kno-@KNO_VERSION@.tar HEAD
+	cd src/extmods; git archive --prefix=kno-@KNO_VERSION@/src/extmods/ \
+	            -o ../../staging/kno_modules-@KNO_VERSION@.tar HEAD;
+	cd staging; tar -xf kno-@KNO_VERSION@.tar; rm kno-@KNO_VERSION@.tar
+	cd staging; tar -xf kno_modules-@KNO_VERSION@.tar; rm kno_modules-@KNO_VERSION@.tar;
+	cp include/kno/revision.h staging/kno-@KNO_VERSION@/etc/revision.h;
+	cp dist/kno-@KNO_MAJOR@.@KNO_MINOR@.spec staging/kno-@KNO_VERSION@/dist
+staging/kno_@KNO_VERSION@: include/kno/revision.h \
 	$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
-	@git archive --prefix=kno_@FDVERSION@/ \
-	            -o staging/kno_@FDVERSION@.tar HEAD;
-	cd src/extmods; git archive --prefix=kno_@FDVERSION@/src/extmods/ \
-	            -o ../../staging/kno_modules_@FDVERSION@.tar HEAD;
-	cd staging; tar -xf kno_@FDVERSION@.tar; rm kno_@FDVERSION@.tar;
-	cd staging; tar -xf kno_modules_@FDVERSION@.tar; rm kno_modules_@FDVERSION@.tar;
-	cp include/kno/revision.h staging/kno_@FDVERSION@/etc/revision.h;
-	cd staging; tar -czf $(DEBNAME).orig.tar.gz kno_@FDVERSION@;
-	mv staging/kno_@FDVERSION@/dist/debian staging/kno_@FDVERSION@/debian;
+	@git archive --prefix=kno_@KNO_VERSION@/ \
+	            -o staging/kno_@KNO_VERSION@.tar HEAD;
+	cd src/extmods; git archive --prefix=kno_@KNO_VERSION@/src/extmods/ \
+	            -o ../../staging/kno_modules_@KNO_VERSION@.tar HEAD;
+	cd staging; tar -xf kno_@KNO_VERSION@.tar; rm kno_@KNO_VERSION@.tar;
+	cd staging; tar -xf kno_modules_@KNO_VERSION@.tar; rm kno_modules_@KNO_VERSION@.tar;
+	cp include/kno/revision.h staging/kno_@KNO_VERSION@/etc/revision.h;
+	cd staging; tar -czf $(DEBNAME).orig.tar.gz kno_@KNO_VERSION@;
+	mv staging/kno_@KNO_VERSION@/dist/debian staging/kno_@KNO_VERSION@/debian;
 	etc/gitchangelog kno ${CODENAME} < dist/debian/changelog \
-	   > staging/kno_@FDVERSION@/debian/changelog;
-staging/kno-@FDVERSION@.tar.gz: \
+	   > staging/kno_@KNO_VERSION@/debian/changelog;
+staging/kno-@KNO_VERSION@.tar.gz: \
 	$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
-	make -s staging/kno-@FDVERSION@
-	tar -czf staging/kno-@FDVERSION@.tar.gz -C staging kno-@FDVERSION@
-	cd staging; ln -s ${DEBNAME}.tar.gz kno_@FDVERSION@.tar.gz
+	make -s staging/kno-@KNO_VERSION@
+	tar -czf staging/kno-@KNO_VERSION@.tar.gz -C staging kno-@KNO_VERSION@
+	cd staging; ln -s ${DEBNAME}.tar.gz kno_@KNO_VERSION@.tar.gz
 
-staging/kno_@FDVERSION@.orig.tar.gz: \
+staging/kno_@KNO_VERSION@.orig.tar.gz: \
 	$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
-	make -s staging/kno_@FDVERSION@
-	tar -czf staging/$(DEBNAME).orig.tar.gz -C staging kno-@FDVERSION@
-	cd staging; ln -s ${DEBNAME}.orig.tar.gz kno_@FDVERSION@.orig.tar.gz
+	make -s staging/kno_@KNO_VERSION@
+	tar -czf staging/$(DEBNAME).orig.tar.gz -C staging kno_@KNO_VERSION@
+	cd staging; ln -s ${DEBNAME}.orig.tar.gz kno_@KNO_VERSION@.orig.tar.gz
 
 # RPM rules
 
-dist/rpms.ready: staging/kno-@FDVERSION@ \
-	staging/kno-@FDVERSION@.tar.gz
+dist/rpms.ready: staging/kno-@KNO_VERSION@ \
+	staging/kno-@KNO_VERSION@.tar.gz
 	@buildrpm@ $(RPMFLAGS)  			\
 	   --define="_rpmdir $(RPMDIR)"			\
 	   --define="_srcrpmdir $(RPMDIR)" 		\
 	   --nodeps -ta 				\
-	    staging/kno-@FDVERSION@.tar.gz && 	\
+	    staging/kno-@KNO_VERSION@.tar.gz && 	\
 	touch dist/rpms.ready
 dist/rpms.done: dist/rpms.ready
 	@if (test "x$(GPGID)" = "xnone"); then 			\
@@ -1307,17 +1307,17 @@ dist/rpms.done: dist/rpms.ready
 	   echo "Enter passphrase for the RPM signing key:"; 	\
 	   @rpm@ --addsign 					\
 		--define="__gpg_sign_cmd $(RPMGPG)"		\
-		$(RPMDIR)/kno-@FDVERSION@-*.src.rpm 	\
-		$(RPMDIR)/*/kno*-@FDVERSION@-*.rpm; 	\
+		$(RPMDIR)/kno-@KNO_VERSION@-*.src.rpm 	\
+		$(RPMDIR)/*/kno*-@KNO_VERSION@-*.rpm; 	\
 	   else 						\
 	     echo "Enter passphrase for '$(GPGID)':"; 		\
 	     @rpm@ --addsign --define="_gpg_name $(GPGID)" 	\
 		--define="__gpg_sign_cmd $(RPMGPG)"		\
-		$(RPMDIR)/kno-@FDVERSION@*.src.rpm 		\
-		$(RPMDIR)/*/kno*-@FDVERSION@-*.rpm; 	\
+		$(RPMDIR)/kno-@KNO_VERSION@*.src.rpm 		\
+		$(RPMDIR)/*/kno*-@KNO_VERSION@-*.rpm; 	\
 	fi && touch dist/rpms.done;
-	@ls -l $(RPMDIR)/kno-@FDVERSION@-*.src.rpm \
-		$(RPMDIR)/*/kno*-@FDVERSION@-*.rpm;
+	@ls -l $(RPMDIR)/kno-@KNO_VERSION@-*.src.rpm \
+		$(RPMDIR)/*/kno*-@KNO_VERSION@-*.rpm;
 
 rpmupdate update-rpms freshrpms: cleanrpms
 	rm -f dist/rpms.done dist/rpms.ready
@@ -1325,42 +1325,42 @@ rpmupdate update-rpms freshrpms: cleanrpms
 dist/rpms.zip: dist/rpms.done
 	@rm -f dist/rpms.zip
 	@zip dist/rpms.zip \
-		$(RPMDIR)/kno*-@FDVERSION@-*.src.rpm \
-		$(RPMDIR)/*/kno-*-@FDVERSION@-*.rpm
+		$(RPMDIR)/kno*-@KNO_VERSION@-*.src.rpm \
+		$(RPMDIR)/*/kno-*-@KNO_VERSION@-*.rpm
 
 # Rules for Debian building
 
-dist/debs.built: staging/kno_@FDVERSION@
-	(cd staging/kno_@FDVERSION@; \
+dist/debs.built: staging/kno_@KNO_VERSION@
+	(cd staging/kno_@KNO_VERSION@; \
 	 dpkg-buildpackage -sa -us -uc -b -rfakeroot) && \
 	touch dist/debs.built;
-dist/debsource.built: staging/kno_@FDVERSION@
-	(cd staging/kno_@FDVERSION@; \
+dist/debsource.built: staging/kno_@KNO_VERSION@
+	(cd staging/kno_@KNO_VERSION@; \
 	 dpkg-buildpackage -sa -us -uc -F -rfakeroot) && \
 	touch dist/debs.built dist/debsource.built;
 
 dist/debs.signed: dist/debs.built
 	(cd staging; debsign -p${GPG} --re-sign -k${GPGID} 	\
-		kno_@FDVERSION@*.changes) && 		\
-	(cd staging; cp kno_@FDVERSION@*.tar.?z ../dist) && \
-	(cd staging; mv kno*_@FDVERSION@*.*               	\
-			sysv-kno_@FDVERSION@*.deb  		\
-			upstart-kno_@FDVERSION@*.deb  	\
-			systemd-kno_@FDVERSION@*.deb  	\
-			libapache2-mod-knosrv_@FDVERSION@*.deb  \
-			elpa-knosh_@FDVERSION@*.deb  \
+		kno_@KNO_VERSION@*.changes) && 		\
+	(cd staging; cp kno_@KNO_VERSION@*.tar.?z ../dist) && \
+	(cd staging; mv kno*_@KNO_VERSION@*.*               	\
+			sysv-kno_@KNO_VERSION@*.deb  		\
+			upstart-kno_@KNO_VERSION@*.deb  	\
+			systemd-kno_@KNO_VERSION@*.deb  	\
+			libapache2-mod-knosrv_@KNO_VERSION@*.deb  \
+			elpa-knosh_@KNO_VERSION@*.deb  \
 			../dist) &&                             \
 	touch dist/debs.signed;
 dist/debsource.signed: dist/debsource.built
 	(cd staging; debsign -p${GPG} --re-sign -k${GPGID} 	\
-		kno_@FDVERSION@*.changes) && 		\
-	(cd staging; cp kno_@FDVERSION@*.tar.?z ../dist) && \
-	(cd staging; mv kno*_@FDVERSION@*.*               	\
-			sysv-kno_@FDVERSION@*.deb  		\
-			upstart-kno_@FDVERSION@*.deb  	\
-			systemd-kno_@FDVERSION@*.deb  	\
-			libapache2-mod-knosrv_@FDVERSION@*.deb  \
-			elpa-knosh_@FDVERSION@*.deb  \
+		kno_@KNO_VERSION@*.changes) && 		\
+	(cd staging; cp kno_@KNO_VERSION@*.tar.?z ../dist) && \
+	(cd staging; mv kno*_@KNO_VERSION@*.*               	\
+			sysv-kno_@KNO_VERSION@*.deb  		\
+			upstart-kno_@KNO_VERSION@*.deb  	\
+			systemd-kno_@KNO_VERSION@*.deb  	\
+			libapache2-mod-knosrv_@KNO_VERSION@*.deb  \
+			elpa-knosh_@KNO_VERSION@*.deb  \
 			../dist) &&                             \
 	touch dist/debsource.signed;
 	touch dist/debs.signed;
@@ -1371,9 +1371,9 @@ dist/debsource.done: dist/debsource.signed
 	touch dist/debsource.done dist/debs.done
 
 install-debian install-debs debinstall installdebs: dist/debs.done
-	@cd dist; @SUDO@ dpkg -i kno*@FDVERSION@*.deb \
-		elpa-knosh*@FDVERSION@*.deb libapache2-mod-knosrv_@FDVERSION@*.deb \
-		systemd-kno_@FDVERSION@*.deb
+	@cd dist; @SUDO@ dpkg -i kno*@KNO_VERSION@*.deb \
+		elpa-knosh*@KNO_VERSION@*.deb libapache2-mod-knosrv_@KNO_VERSION@*.deb \
+		systemd-kno_@KNO_VERSION@*.deb
 
 update-local-apt-repo: dist/debs.done
 	for change in dist/*.changes; do \
@@ -1431,42 +1431,42 @@ $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets $(DESTDIR)@config
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 
 install-static:  static-libs $(LIBINSTALLDIR)
-	make $(LIBINSTALLDIR)/libfdcore@suffix@.a        \
-		$(LIBINSTALLDIR)/libfdstorage@suffix@.a       \
-		$(LIBINSTALLDIR)/libfddrivers@suffix@.a   \
-		$(LIBINSTALLDIR)/libfddbserv@suffix@.a    \
-		$(LIBINSTALLDIR)/libfdscheme@suffix@.a   \
-		$(LIBINSTALLDIR)/libfdweb@suffix@.a      \
-		$(LIBINSTALLDIR)/libtexttools@suffix@.a
+	make $(LIBINSTALLDIR)/libknocore@suffix@.a        \
+		$(LIBINSTALLDIR)/libknostorage@suffix@.a       \
+		$(LIBINSTALLDIR)/libknodrivers@suffix@.a   \
+		$(LIBINSTALLDIR)/libknodbserv@suffix@.a    \
+		$(LIBINSTALLDIR)/libknoscheme@suffix@.a   \
+		$(LIBINSTALLDIR)/libknoweb@suffix@.a      \
+		$(LIBINSTALLDIR)/libknotext@suffix@.a
 install-shared: install-status shared-libs $(LIBINSTALLDIR) 				\
-    $(LIBINSTALLDIR)/libfdcore@suffix@.@vshared_suffix@			\
-    $(LIBINSTALLDIR)/libfdcore@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdcore@suffix@.@mshared_suffix@			\
-    $(LIBINSTALLDIR)/libfdcore@suffix@.@shared_suffix@			\
-    $(LIBINSTALLDIR)/libfdstorage@suffix@.@vshared_suffix@			\
-    $(LIBINSTALLDIR)/libfdstorage@suffix@.@mmshared_suffix@			\
-    $(LIBINSTALLDIR)/libfdstorage@suffix@.@mshared_suffix@			\
-    $(LIBINSTALLDIR)/libfdstorage@suffix@.@shared_suffix@			\
-    $(LIBINSTALLDIR)/libfddbserv@suffix@.@vshared_suffix@		\
-    $(LIBINSTALLDIR)/libfddbserv@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libfddbserv@suffix@.@mshared_suffix@		\
-    $(LIBINSTALLDIR)/libfddbserv@suffix@.@shared_suffix@			\
-    $(LIBINSTALLDIR)/libfddrivers@suffix@.@vshared_suffix@		\
-    $(LIBINSTALLDIR)/libfddrivers@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libfddrivers@suffix@.@mshared_suffix@		\
-    $(LIBINSTALLDIR)/libfddrivers@suffix@.@shared_suffix@		\
-    $(LIBINSTALLDIR)/libfdscheme@suffix@.@vshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdscheme@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdscheme@suffix@.@mshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdscheme@suffix@.@shared_suffix@		\
-    $(LIBINSTALLDIR)/libfdweb@suffix@.@vshared_suffix@			\
-    $(LIBINSTALLDIR)/libfdweb@suffix@.@mmshared_suffix@			\
-    $(LIBINSTALLDIR)/libfdweb@suffix@.@mshared_suffix@			\
-    $(LIBINSTALLDIR)/libfdweb@suffix@.@shared_suffix@			\
-    $(LIBINSTALLDIR)/libtexttools@suffix@.@vshared_suffix@		\
-    $(LIBINSTALLDIR)/libtexttools@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libtexttools@suffix@.@mshared_suffix@		\
-    $(LIBINSTALLDIR)/libtexttools@suffix@.@shared_suffix@
+    $(LIBINSTALLDIR)/libknocore@suffix@.@vshared_suffix@			\
+    $(LIBINSTALLDIR)/libknocore@suffix@.@mmshared_suffix@		\
+    $(LIBINSTALLDIR)/libknocore@suffix@.@mshared_suffix@			\
+    $(LIBINSTALLDIR)/libknocore@suffix@.@shared_suffix@			\
+    $(LIBINSTALLDIR)/libknostorage@suffix@.@vshared_suffix@			\
+    $(LIBINSTALLDIR)/libknostorage@suffix@.@mmshared_suffix@			\
+    $(LIBINSTALLDIR)/libknostorage@suffix@.@mshared_suffix@			\
+    $(LIBINSTALLDIR)/libknostorage@suffix@.@shared_suffix@			\
+    $(LIBINSTALLDIR)/libknodbserv@suffix@.@vshared_suffix@		\
+    $(LIBINSTALLDIR)/libknodbserv@suffix@.@mmshared_suffix@		\
+    $(LIBINSTALLDIR)/libknodbserv@suffix@.@mshared_suffix@		\
+    $(LIBINSTALLDIR)/libknodbserv@suffix@.@shared_suffix@			\
+    $(LIBINSTALLDIR)/libknodrivers@suffix@.@vshared_suffix@		\
+    $(LIBINSTALLDIR)/libknodrivers@suffix@.@mmshared_suffix@		\
+    $(LIBINSTALLDIR)/libknodrivers@suffix@.@mshared_suffix@		\
+    $(LIBINSTALLDIR)/libknodrivers@suffix@.@shared_suffix@		\
+    $(LIBINSTALLDIR)/libknoscheme@suffix@.@vshared_suffix@		\
+    $(LIBINSTALLDIR)/libknoscheme@suffix@.@mmshared_suffix@		\
+    $(LIBINSTALLDIR)/libknoscheme@suffix@.@mshared_suffix@		\
+    $(LIBINSTALLDIR)/libknoscheme@suffix@.@shared_suffix@		\
+    $(LIBINSTALLDIR)/libknoweb@suffix@.@vshared_suffix@			\
+    $(LIBINSTALLDIR)/libknoweb@suffix@.@mmshared_suffix@			\
+    $(LIBINSTALLDIR)/libknoweb@suffix@.@mshared_suffix@			\
+    $(LIBINSTALLDIR)/libknoweb@suffix@.@shared_suffix@			\
+    $(LIBINSTALLDIR)/libknotext@suffix@.@vshared_suffix@		\
+    $(LIBINSTALLDIR)/libknotext@suffix@.@mmshared_suffix@		\
+    $(LIBINSTALLDIR)/libknotext@suffix@.@mshared_suffix@		\
+    $(LIBINSTALLDIR)/libknotext@suffix@.@shared_suffix@
 
 install-headers: $(INCINSTALLDIR)
 	@$(SYSINSTALL) -p @install_file_opts@		\
@@ -1493,11 +1493,11 @@ install-scheme-scripts: $(BININSTALLDIR) $(SCHEME_SCRIPTS)
 install-data: \
 	$(DESTDIR)@config_dir@/boot/ex_daemon.service   \
 	$(DESTDIR)@config_dir@/boot/ex_servlet.service  \
-	$(DESTDIR)@config_dir@/boot/kno.target	\
-	$(DESTDIR)@config_dir@/boot/fdaemons.service	\
-	$(DESTDIR)@config_dir@/boot/fdweb.service	\
-	$(DESTDIR)@config_dir@/boot/kno-rc.d 	\
-	$(DESTDIR)@config_dir@/boot/kno.conf 	\
+	$(DESTDIR)@config_dir@/boot/kno.target		\
+	$(DESTDIR)@config_dir@/boot/knod.service	\
+	$(DESTDIR)@config_dir@/boot/knoweb.service	\
+	$(DESTDIR)@config_dir@/boot/kno-rc.d 		\
+	$(DESTDIR)@config_dir@/boot/kno.conf 		\
 	$(DESTDIR)@config_dir@/boot/logrotate
 
 install-fastcgi: $(BININSTALLDIR)/knocgi@suffix@
@@ -1637,11 +1637,11 @@ $(DESTDIR)/etc/init.d/kno: etc/kno-rc.d $(DESTDIR)/etc/init.d
 		   etc/kno-rc.d $(DESTDIR)/etc/init.d/kno
 $(DESTDIR)@kno_rundir@:
 	@$(MSG) Installing Kno run directory
-	@$(SYSINSTALL) -m 0775  @fdaemoninstall@ @admininstall@ -d \
+	@$(SYSINSTALL) -m 0775  @knodaemoninstall@ @admininstall@ -d \
 		   $(DESTDIR)@kno_rundir@
 $(DESTDIR)@daemon_rundir@: $(DESTDIR)@kno_rundir@
 	@$(MSG) Installing Kno daemon run directory
-	@$(SYSINSTALL) -m 0775  @fdaemoninstall@ @admininstall@ -d \
+	@$(SYSINSTALL) -m 0775  @knodaemoninstall@ @admininstall@ -d \
 		   $(DESTDIR)@daemon_rundir@
 $(DESTDIR)@servlet_rundir@: $(DESTDIR)@kno_rundir@
 	@$(MSG) Installing Kno servlet run directory
@@ -1649,14 +1649,14 @@ $(DESTDIR)@servlet_rundir@: $(DESTDIR)@kno_rundir@
 		   $(DESTDIR)@servlet_rundir@
 $(DESTDIR)@kno_logdir@:
 	@$(MSG) Installing Kno log directory
-	@$(SYSINSTALL) -m 0775 @fdaemoninstall@  @admininstall@ -d \
+	@$(SYSINSTALL) -m 0775 @knodaemoninstall@  @admininstall@ -d \
 		   $(DESTDIR)@kno_logdir@
 $(DESTDIR)@bugjar@: $(DESTDIR)@kno_logdir@
 	@$(MSG) Installing Kno bugjar directory
-	@$(SYSINSTALL) -m 0777 @fdaemoninstall@  @admininstall@ -d \
+	@$(SYSINSTALL) -m 0777 @knodaemoninstall@  @admininstall@ -d \
 		   $(DESTDIR)@bugjar@
 $(DESTDIR)@daemon_logdir@:  $(DESTDIR)@kno_logdir@
-	@$(SYSINSTALL) -m 0775 @fdaemoninstall@ @admininstall@ \
+	@$(SYSINSTALL) -m 0775 @knodaemoninstall@ @admininstall@ \
 		-d $(DESTDIR)@daemon_logdir@
 $(DESTDIR)@servlet_logdir@: $(DESTDIR)@kno_logdir@
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
@@ -1690,8 +1690,8 @@ $(DESTDIR)/etc/init/kno.conf: etc/kno.conf $(DESTDIR)/etc/init
 $(DESTDIR)@systemd_loc@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)@systemd_loc@
 setup-systemd: $(DESTDIR)@systemd_loc@/kno.target \
-		$(DESTDIR)@systemd_loc@/fdaemons.service \
-		$(DESTDIR)@systemd_loc@/fdweb.service \
+		$(DESTDIR)@systemd_loc@/knod.service \
+		$(DESTDIR)@systemd_loc@/knoweb.service \
 		startupdirs
 $(DESTDIR)@systemd_loc@/%: etc/% $(DESTDIR)@systemd_loc@
 	@$(MSG) Installing systemd config in $@
@@ -1939,7 +1939,7 @@ include/kno/revision.h: $(KNO_SOURCES) $(KNO_HEADERS) makefile
 	    echo >> etc/use_revision.h;					\
 	    echo "#define KNO_BRANCH \"${GITBRANCH}\"" \
 		>> etc/use_revision.h; 					\
-	else echo "#define KNO_REVISION \"@FDVERSION@-exported\""	\
+	else echo "#define KNO_REVISION \"@KNO_VERSION@-exported\""	\
 		> etc/use_revision.h; 					\
 	    echo "#define KNO_BRANCH \"exported\"" >> 		\
 		etc/use_revision.h; 					\

@@ -27,10 +27,10 @@ rm -f config.log config.status buildmode;
 
 rm -rf etc/*.o etc/.libs;
 rm -f lib/*.a lib/*@suffix@.so* lib/*.dylib;
-rm -f lib/framerd/*@suffix@.so* lib/framerd/*.dylib;
-rm -f exe/fdexec@suffix@ exe/fdbatch@suffix@;
-rm -f exe/fdservlet@suffix@ exe/fdserver@suffix@;
-rm -f exe/fdconsole@suffix@ exe/fdcgiexec@suffix@;
+rm -f lib/kno/*@suffix@.so* lib/kno/*.dylib;
+rm -f exe/knox@suffix@ exe/knotask@suffix@;
+rm -f exe/knosrv@suffix@ exe/knod@suffix@;
+rm -f exe/knosh@suffix@ exe/knocgi@suffix@;
 rm -f *TAGS;
 
 for file in tests/types/*.c \
@@ -48,5 +48,5 @@ rm -f tests/scheme/*.dtype tests/scheme/_countup.*
 rm -f makefile config.log config.status config.cache;
 rm -f tests/types/makefile tests/storage/makefile tests/scheme/makefile;
 rm -f tests/types/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit;
-rm -f etc/fdgetconfig etc/fdsetconfig etc/framerd-rc.d;
-rm -f exe/.gdbinit include/framerd/config.h include/framerd/revision.h;
+rm -f etc/knogetconfig etc/knosetconfig etc/kno-rc.d;
+rm -f exe/.gdbinit include/kno/config.h include/kno/revision.h;

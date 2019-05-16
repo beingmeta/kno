@@ -48,8 +48,8 @@ webgroup=""
 wwwinstall=""
 admin_group=""
 admininstall=""
-fdaemon=""
-fdaemoninstall=""
+knodaemon=""
+knodaemoninstall=""
 libc_pthreads="no"
 libc_dlopen="no"
 calltracko=""
@@ -268,8 +268,8 @@ AC_SUBST(webgroup)
 AC_SUBST(wwwinstall)
 AC_SUBST(admin_group)
 AC_SUBST(admininstall)
-AC_SUBST(fdaemon)
-AC_SUBST(fdaemoninstall)
+AC_SUBST(daemonid)
+AC_SUBST(daemonidinstall)
 AC_SUBST(rundir)
 AC_SUBST(logdir)
 AC_SUBST(bugjar)
@@ -831,8 +831,8 @@ AC_CHECK_PROGS(rpm,"lsb-rpm","rpm","na")
 ### System users, groups, and paths for Kno
 
 AC_CHECK_GROUP(default_admin_group,kno _kno adm admin)
-AC_CHECK_USER(default_fdaemon,fdaemon _fdaemon daemon nobody)
-AC_CHECK_USER(default_daemon,xdaemon fdaemon _fdaemon daemon nobody)
+AC_CHECK_USER(default_daemonid,knodaemon _knodaemon knod _knod daemon nobody)
+AC_CHECK_USER(default_daemon,xdaemon knod _knod knodaemon _knodaemon daemon nobody)
 AC_CHECK_USER(default_webuser,www apache httpd www-data _www)
 AC_CHECK_USER(default_webgroup,www apache httpd www-data _www)
 
@@ -858,18 +858,18 @@ fi
 AC_DEFINE_UNQUOTED(KNO_ADMIN_GROUP,"$admin_group")
 
 dnl Specifies a daemon identity user/group for managed Kno servers
-AC_ARG_WITH(fdaemon,--with-fdaemon The identity (user) for Kno servers to run as,,with_fdaemon=$default_fdaemon)
-if test $with_fdaemon != "none"; then
-   fdaemon=$with_fdaemon
+AC_ARG_WITH(daemonid,--with-daemonid The identity (user) for Kno servers to run as,,with_daemonid=$default_daemonid)
+if test $with_daemonid != "none"; then
+   knodaemon=$with_daemonid
    if test "$chowning" = "yes"; then
-     fdaemoninstall="-o $with_fdaemon";
+     knodaemoninstall="-o $knodaemon";
    fi;
 else
-   fdaemoninstall=""
-   fdaemon=$default_fdaemon
+   knodaemoninstall=""
+   knodaemon=$default_daemonid
 fi
 
-AC_DEFINE_UNQUOTED(KNO_DAEMON,"$fdaemon")
+AC_DEFINE_UNQUOTED(KNO_DAEMON,"$knoaemon")
 
 dnl Specifies where server state files should live
 AC_ARG_WITH(rundir,--with-rundir The default location for server state files,,with_rundir="$localstatedir/run")
@@ -1956,7 +1956,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   tests/testenv.sh tests/xtest
 	   tests/runtest tests/memtest
 	   tests/leaktest tests/knoxtest
-	   src/scripts/fdpkg.scm
+	   src/scripts/knopkg.scm
 	   etc/OSXStartupItem/KNO
 	   etc/knojob
 	   etc/logrotate
@@ -1964,7 +1964,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/kno.conf
 	   etc/ex_servlet.service
 	   etc/ex_daemon.service
-	   etc/knodaemons.service
+	   etc/knod.service
 	   etc/knoweb.service
 	   etc/kno.service
 	   etc/KNO.plist

@@ -778,8 +778,8 @@ kno_rundir
 bugjar
 logdir
 rundir
-fdaemoninstall
-fdaemon
+daemonidinstall
+daemonid
 admininstall
 admin_group
 wwwinstall
@@ -900,7 +900,7 @@ with_malloc
 with_crypto
 with_codename
 with_admin_group
-with_fdaemon
+with_daemonid
 with_rundir
 with_logdir
 with_bugjar
@@ -1654,7 +1654,7 @@ Optional Packages:
 --without-crypto Compile the crypto module
 --with-codename for distribution
 --with-admin-group Install files with admin group and group write permissions
---with-fdaemon The identity (user) for Kno servers to run as
+--with-daemonid The identity (user) for Kno servers to run as
 --with-rundir The default location for server state files
 --with-logdir The default location for log files
 --with-bugjar The default location for bugjar reports
@@ -2955,8 +2955,8 @@ webgroup=""
 wwwinstall=""
 admin_group=""
 admininstall=""
-fdaemon=""
-fdaemoninstall=""
+knodaemon=""
+knodaemoninstall=""
 libc_pthreads="no"
 libc_dlopen="no"
 calltracko=""
@@ -7795,10 +7795,10 @@ $as_echo_n "checking for group default_admin_group... " >&6; }
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $found_group" >&5
 $as_echo "$found_group" >&6; }
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for user default_fdaemon" >&5
-$as_echo_n "checking for user default_fdaemon... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for user default_daemonid" >&5
+$as_echo_n "checking for user default_daemonid... " >&6; }
   found_user="none";
-  for user in fdaemon _fdaemon daemon nobody;
+  for user in knodaemon _knodaemon knod _knod daemon nobody;
   do
   if grep ^$user: /etc/passwd > /dev/null;
   then
@@ -7806,14 +7806,14 @@ $as_echo_n "checking for user default_fdaemon... " >&6; }
 	break;
   fi;
   done;
-  default_fdaemon=$found_user;
+  default_daemonid=$found_user;
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $found_user" >&5
 $as_echo "$found_user" >&6; }
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for user default_daemon" >&5
 $as_echo_n "checking for user default_daemon... " >&6; }
   found_user="none";
-  for user in xdaemon fdaemon _fdaemon daemon nobody;
+  for user in xdaemon knod _knod knodaemon _knodaemon daemon nobody;
   do
   if grep ^$user: /etc/passwd > /dev/null;
   then
@@ -7885,25 +7885,25 @@ _ACEOF
 
 
 
-# Check whether --with-fdaemon was given.
-if test "${with_fdaemon+set}" = set; then :
-  withval=$with_fdaemon;
+# Check whether --with-daemonid was given.
+if test "${with_daemonid+set}" = set; then :
+  withval=$with_daemonid;
 else
-  with_fdaemon=$default_fdaemon
+  with_daemonid=$default_daemonid
 fi
 
-if test $with_fdaemon != "none"; then
-   fdaemon=$with_fdaemon
+if test $with_daemonid != "none"; then
+   knodaemon=$with_daemonid
    if test "$chowning" = "yes"; then
-     fdaemoninstall="-o $with_fdaemon";
+     knodaemoninstall="-o $knodaemon";
    fi;
 else
-   fdaemoninstall=""
-   fdaemon=$default_fdaemon
+   knodaemoninstall=""
+   knodaemon=$default_daemonid
 fi
 
 cat >>confdefs.h <<_ACEOF
-#define KNO_DAEMON "$fdaemon"
+#define KNO_DAEMON "$knoaemon"
 _ACEOF
 
 
@@ -12893,7 +12893,7 @@ fi;
 
 ### Here's where stuff gets made
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/makefile DIY/makefile etc/gdbinit exe/.gdbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind tests/lisp/.gdbinit tests/storage/.gdbinit tests/.valgrind etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup etc/knosignal etc/knoinject etc/knostatus etc/knolog etc/knoreload etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec etc/knosetconfig etc/knogetconfig etc/knoconfig tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/fdpkg.scm etc/OSXStartupItem/KNO etc/knojob etc/logrotate etc/kno-rc.d etc/kno.conf etc/ex_servlet.service etc/ex_daemon.service etc/knodaemons.service etc/knoweb.service etc/kno.service etc/KNO.plist etc/knosrv.conf etc/knosrv.load etc/install-script dist/kno-4.3.spec"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/makefile DIY/makefile etc/gdbinit exe/.gdbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind tests/lisp/.gdbinit tests/storage/.gdbinit tests/.valgrind etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup etc/knosignal etc/knoinject etc/knostatus etc/knolog etc/knoreload etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec etc/knosetconfig etc/knogetconfig etc/knoconfig tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm etc/OSXStartupItem/KNO etc/knojob etc/logrotate etc/kno-rc.d etc/kno.conf etc/ex_servlet.service etc/ex_daemon.service etc/knod.service etc/knoweb.service etc/kno.service etc/KNO.plist etc/knosrv.conf etc/knosrv.load etc/install-script dist/kno-4.3.spec"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -13636,7 +13636,7 @@ do
     "tests/memtest") CONFIG_FILES="$CONFIG_FILES tests/memtest" ;;
     "tests/leaktest") CONFIG_FILES="$CONFIG_FILES tests/leaktest" ;;
     "tests/knoxtest") CONFIG_FILES="$CONFIG_FILES tests/knoxtest" ;;
-    "src/scripts/fdpkg.scm") CONFIG_FILES="$CONFIG_FILES src/scripts/fdpkg.scm" ;;
+    "src/scripts/knopkg.scm") CONFIG_FILES="$CONFIG_FILES src/scripts/knopkg.scm" ;;
     "etc/OSXStartupItem/KNO") CONFIG_FILES="$CONFIG_FILES etc/OSXStartupItem/KNO" ;;
     "etc/knojob") CONFIG_FILES="$CONFIG_FILES etc/knojob" ;;
     "etc/logrotate") CONFIG_FILES="$CONFIG_FILES etc/logrotate" ;;
@@ -13644,7 +13644,7 @@ do
     "etc/kno.conf") CONFIG_FILES="$CONFIG_FILES etc/kno.conf" ;;
     "etc/ex_servlet.service") CONFIG_FILES="$CONFIG_FILES etc/ex_servlet.service" ;;
     "etc/ex_daemon.service") CONFIG_FILES="$CONFIG_FILES etc/ex_daemon.service" ;;
-    "etc/knodaemons.service") CONFIG_FILES="$CONFIG_FILES etc/knodaemons.service" ;;
+    "etc/knod.service") CONFIG_FILES="$CONFIG_FILES etc/knod.service" ;;
     "etc/knoweb.service") CONFIG_FILES="$CONFIG_FILES etc/knoweb.service" ;;
     "etc/kno.service") CONFIG_FILES="$CONFIG_FILES etc/kno.service" ;;
     "etc/KNO.plist") CONFIG_FILES="$CONFIG_FILES etc/KNO.plist" ;;

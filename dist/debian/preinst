@@ -1,5 +1,5 @@
 #!/bin/sh
-# preinst script for framerd
+# preinst script for kno
 #
 # see: dh_installdeb(1)
 
@@ -16,8 +16,8 @@ set -e
 
 case "$1" in
     install|upgrade)
-	addgroup --system framerd
-	adduser --system --no-create-home --disabled-password fdaemon
+	addgroup --system kno
+	adduser --system --no-create-home --disabled-password knod
     ;;
 
     abort-upgrade)

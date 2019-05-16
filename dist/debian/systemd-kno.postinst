@@ -1,5 +1,5 @@
 #!/bin/sh
-# postinst script for framerd
+# postinst script for kno
 #
 # see: dh_installdeb(1)
 
@@ -20,11 +20,11 @@ set -e
 
 case "$1" in
     configure)
-	rm -f /lib/systemd/system/framerd.service /lib/systemd/system/fdservlets.service
+	rm -f /lib/systemd/system/kno.service /lib/systemd/system/fdservlets.service
 	systemctl daemon-reload
-#	systemctl enable fdaemons
-#	systemctl enable fdweb
-#	systemctl enable framerd.target
+#	systemctl enable knod
+#	systemctl enable knoweb
+#	systemctl enable kno.target
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

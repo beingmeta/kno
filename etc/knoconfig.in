@@ -45,13 +45,13 @@ case ${option} in
 	echo share "\t\t\t\t(Where shared kno configuration information is stored)";
 	echo data "\t\t\t\t(Where Kno persistent application data are stored)";;
     version)
-	echo "@FDVERSION@";;
+	echo "@KNO_VERSION@";;
     major)
-	echo "@FDMAJOR@";;
+	echo "@KNO_MAJOR@";;
     minor)
-	echo "@FDMINOR@";;
+	echo "@KNO_MINOR@";;
     release)
-	echo "@FDRELEASE@";;
+	echo "@KNO_RELEASE@";;
     prefix)
 	echo "@prefix@";;
     execprefix|exec_prefix)

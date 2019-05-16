@@ -1,2 +1,2 @@
-mod src/apache2/mod_fdserv.so
-mod debian/fdserv.load
+mod src/apache2/mod_knosrv.so
+mod debian/knosrv.load

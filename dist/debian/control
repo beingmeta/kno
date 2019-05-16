@@ -209,13 +209,13 @@ Depends: kno-core
 Conflicts: kno-upstart, kno-sysv
 Description: systemd init configuration for Kno
 
-Package: elpa-fdconsole
+Package: elpa-knolang
 Architecture: any
 Depends: ${misc:Depends}, ${elpa:Depends}
 Built-Using: ${misc:Built-Using}
 Recommends: emacs (>= 46.0)
 Enhances: emacs, emacs24, emacs25
-Description: Provides an Emacs mode for interacting with fdconsole
+Description: Provides an Emacs mode for interacting with knosh
 
 Package: kno-full
 Architecture: any

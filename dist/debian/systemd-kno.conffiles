@@ -1,3 +1,3 @@
-lib/systemd/system/framerd.target
-lib/systemd/system/fdaemons.service
-lib/systemd/system/fdweb.service
+lib/systemd/system/kno.target
+lib/systemd/system/knod.service
+lib/systemd/system/knoweb.service

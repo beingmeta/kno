@@ -1,4 +1,4 @@
-usr/lib/framerd/imagick.so*
-usr/lib/framerd/qrcode.so*
-usr/lib/framerd/exif.so*
+usr/lib/kno/imagick.so*
+usr/lib/kno/qrcode.so*
+usr/lib/kno/exif.so*
 

@@ -1,5 +1,5 @@
 #!/bin/sh
-# postinst script for framerd
+# postinst script for kno
 #
 # see: dh_installdeb(1)
 
@@ -20,13 +20,13 @@ set -e
 
 case "$1" in
     configure)
-	chown -R root:framerd /etc/framerd /usr/share/framerd /var/log/framerd;
-	chown -R fdaemon:framerd /var/run/framerd/daemons /var/log/framerd/daemons;
-        chown -R www-data:framerd /var/run/framerd/servlets /var/log/framerd/servlets;
-        chown -R root:framerd /var/log/framerd/bugjar;
-	chmod -R g+rwX /etc/framerd /usr/share/framerd;
-	chmod -R g+rwX /var/run/framerd /var/log/framerd;
-	chmod -R ag+rwX /var/log/framerd/bugjar;
+	chown -R root:kno /etc/kno /usr/share/kno /var/log/kno;
+	chown -R fdaemon:kno /var/run/kno/daemons /var/log/kno/daemons;
+        chown -R www-data:kno /var/run/kno/servlets /var/log/kno/servlets;
+        chown -R root:kno /var/log/kno/bugjar;
+	chmod -R g+rwX /etc/kno /usr/share/kno;
+	chmod -R g+rwX /var/run/kno /var/log/kno;
+	chmod -R ag+rwX /var/log/kno/bugjar;
 
     ;;
 
