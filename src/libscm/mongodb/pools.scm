@@ -41,7 +41,7 @@
   (mongopool-collection (get mongopools pool)))
 
 #|
-;;; Converting mongodb objects to FramerD (mostly choices)
+;;; Converting mongodb objects to Kno (mostly choices)
 (define (mongodb/convert object (slotinfo {}))
   (do-choices (assoc (getassocs object))
     (when (and (vector? (cdr assoc)) 

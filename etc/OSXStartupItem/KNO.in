@@ -1,0 +1,93 @@
+#!/bin/sh
+
+##
+# KNO Server Manager
+##
+
+. /etc/rc.common
+
+export FDMANAGER=@prefix@/bin/fdmanager
+export FDSERVER=@prefix@/bin/fdbserver
+export FDSERVER_USER=fdaemon
+export FDSERVER_GROUP=fdaemon
+CTLFILE=@data_dir@/servers
+PIDFILE=/var/run/kno.pid
+STATFILE=/var/run/kno.status
+
+StartService ()
+{
+    if [ "${KNO:=-NO-}" = "-YES-" ]; then
+	ConsoleMessage "Starting KNO server manager"
+	$FDMANAGER $CTLFILE $PIDFILE $STATFILE &
+        sleep 5; time=5;
+        if ((test ! -f $STATFILE) && (test -f $PIDFILE)) then
+	    echo "Waited $time seconds for fdmanager"; sleep 5; time=10
+	fi
+        if ((test ! -f $STATFILE) && (test -f $PIDFILE)) then
+	    echo "Waited $time seconds for fdmanager"; sleep 10; time=20
+	fi
+        if ((test ! -f $STATFILE) && (test -f $PIDFILE)) then
+	    echo "Waited $time seconds for fdmanager"; sleep 10; time=30
+	fi
+        if ((test ! -f $STATFILE) && (test -f $PIDFILE)) then
+	    echo "Waited $time seconds for fdmanager"; sleep 10; time=40
+	fi
+        if ((test ! -f $STATFILE) && (test -f $PIDFILE)) then
+	    echo "Waited $time seconds for fdmanager"; sleep 10; time=50
+	fi
+        if ((test ! -f $STATFILE) && (test -f $PIDFILE)) then
+	    echo "Waited $time seconds for fdmanager"; sleep 10; time=60
+	fi
+        if ((test ! -f $STATFILE) && (test -f $PIDFILE)) then
+	    echo "Waited $time seconds for fdmanager"; sleep 10; time=70
+	fi
+        if ((test ! -f $STATFILE) && (test -f $PIDFILE)) then
+	    echo "Waited $time seconds for fdmanager"; sleep 10; time=80
+	fi
+        if ((test ! -f $STATFILE) && (test -f $PIDFILE)) then
+	    echo "Waited $time seconds for fdmanager"; sleep 10; time=90
+	fi
+        if ((test ! -f $STATFILE) && (test -f $PIDFILE)) then
+	    echo "Waited $time seconds for fdmanager"; sleep 10; time=100
+	fi
+        if ((test ! -f $STATFILE) && (test -f $PIDFILE)) then
+	    echo "Waited $time seconds for fdmanager"; sleep 10; time=110
+	fi
+        if ((test ! -f $STATFILE) && (test -f $PIDFILE)) then
+	    echo "Waited $time seconds for fdmanager"; sleep 10; time=120
+	fi
+        if (test -f $STATFILE) then
+	    echo "fdmanager started in $time seconds"
+	    cat $STATFILE
+        elif (test ! -f $PIDFILE) then
+	    echo "fdmanager failed to start"
+        else
+            echo "fdmanager hasn't finished starting up after $time seconds"
+        fi
+    fi
+}
+
+StopService ()
+{
+    if (test -f $PIDFILE) then
+        ConsoleMessage "Stopping KNO server manager"
+        kill -TERM `cat $PIDFILE`
+    else echo "fdmanager is not running"
+    fi
+    while (test -f $PIDFILE)
+      do sleep 1
+    done
+}
+
+RestartService ()
+{
+    if [ "${KNO:=-NO-}" = "-YES-" ]; then
+	ConsoleMessage "Restarting KNO server manager"
+	StopService
+	StartService
+    else
+	StopService
+    fi
+}
+
+RunService "$1"

@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -9,10 +9,10 @@
 #define _FILEINFO __FILE__
 #endif
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/numbers.h"
-#include "framerd/apply.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/numbers.h"
+#include "kno/apply.h"
 
 #include <libu8/u8signals.h>
 #include <libu8/u8pathfns.h>
@@ -26,21 +26,21 @@
 
 #include <libu8/libu8.h>
 #include <libu8/u8netfns.h>
-#if FD_FILECONFIG_ENABLED
+#if KNO_FILECONFIG_ENABLED
 #include <libu8/u8filefns.h>
 #include <libu8/libu8io.h>
 #endif
 
-u8_condition fd_ConfigError=_("Configuration error");
-u8_condition fd_ReadOnlyConfig=_("Read-only config setting");
+u8_condition kno_ConfigError=_("Configuration error");
+u8_condition kno_ReadOnlyConfig=_("Read-only config setting");
 
-int fd_trace_config = 0;
+int kno_trace_config = 0;
 
 static int support_config_c_init_done = 0;
 
 /* Configuration handling */
 
-struct FD_CONFIG_HANDLER *config_handlers = NULL;
+struct KNO_CONFIG_HANDLER *config_handlers = NULL;
 
 static lispval configuration_table;
 static lispval path_macro, env_macro, config_macro, now_macro;
@@ -49,7 +49,7 @@ static lispval glom_macro, source_macro;
 static u8_mutex config_lookup_lock;
 static u8_mutex config_register_lock;
 
-static struct FD_CONFIG_FINDER *config_lookupfns = NULL;
+static struct KNO_CONFIG_FINDER *config_lookupfns = NULL;
 
 static lispval config_intern(u8_string start)
 {
@@ -64,18 +64,18 @@ static lispval config_intern(u8_string start)
     else u8_putc(&nameout,u8_toupper(c));}
   if (nameout.u8_streaminfo&U8_STREAM_OWNS_BUF) {
     lispval symbol=
-      fd_make_symbol(nameout.u8_outbuf,nameout.u8_write-nameout.u8_outbuf);
+      kno_make_symbol(nameout.u8_outbuf,nameout.u8_write-nameout.u8_outbuf);
     u8_close((u8_stream)&nameout);
     return symbol;}
-  else return fd_make_symbol
+  else return kno_make_symbol
          (nameout.u8_outbuf,nameout.u8_write-nameout.u8_outbuf);
 }
 
-FD_EXPORT
-void fd_register_config_lookup(lispval (*fn)(lispval,void *),void *ldata)
+KNO_EXPORT
+void kno_register_config_lookup(lispval (*fn)(lispval,void *),void *ldata)
 {
-  struct FD_CONFIG_FINDER *entry=
-    u8_alloc(struct FD_CONFIG_FINDER);
+  struct KNO_CONFIG_FINDER *entry=
+    u8_alloc(struct KNO_CONFIG_FINDER);
   u8_lock_mutex(&config_lookup_lock);
   entry->config_lookup = fn;
   entry->config_lookup_data = ldata;
@@ -87,17 +87,17 @@ void fd_register_config_lookup(lispval (*fn)(lispval,void *),void *ldata)
 static lispval config_get(u8_string var)
 {
   lispval symbol = config_intern(var);
-  lispval probe = fd_get(configuration_table,symbol,VOID);
+  lispval probe = kno_get(configuration_table,symbol,VOID);
   /* This lookups configuration information using various methods */
   if (VOIDP(probe)) {
     lispval value = VOID;
-    struct FD_CONFIG_FINDER *scan = config_lookupfns;
+    struct KNO_CONFIG_FINDER *scan = config_lookupfns;
     while (scan) {
       value = scan->config_lookup(symbol,scan->config_lookup_data);
       if (VOIDP(value))
         scan = scan->next_lookup;
       else break;}
-    fd_store(configuration_table,symbol,value);
+    kno_store(configuration_table,symbol,value);
     return value;}
   else return probe;
 }
@@ -109,12 +109,12 @@ static lispval getenv_config_lookup(lispval symbol,void *ignored)
   u8_string u8result;
   lispval result;
   U8_INIT_OUTPUT(&out,32);
-  u8_printf(&out,"FD_%s",SYM_NAME(symbol));
+  u8_printf(&out,"KNO_%s",SYM_NAME(symbol));
   getenv_result = getenv(out.u8_outbuf);
   if (getenv_result == NULL) {
     u8_free(out.u8_outbuf); return VOID;}
   u8result = u8_fromlibc(getenv_result);
-  result = fd_parse_arg(u8result);
+  result = kno_parse_arg(u8result);
   u8_free(out.u8_outbuf); u8_free(u8result);
   return result;
 }
@@ -122,55 +122,55 @@ static lispval getenv_config_lookup(lispval symbol,void *ignored)
 int set_config(u8_string var,lispval val)
 {
   lispval symbol = config_intern(var);
-  lispval current = fd_get(configuration_table,symbol,VOID);
+  lispval current = kno_get(configuration_table,symbol,VOID);
   if (VOIDP(current)) {
     if (PAIRP(val)) {
-      lispval pairpair = fd_make_pair(val,NIL);
-      int rv = fd_store(configuration_table,symbol,pairpair);
-      fd_decref(pairpair);
+      lispval pairpair = kno_make_pair(val,NIL);
+      int rv = kno_store(configuration_table,symbol,pairpair);
+      kno_decref(pairpair);
       return rv;}
-    else return fd_store(configuration_table,symbol,val);}
+    else return kno_store(configuration_table,symbol,val);}
   else if (PAIRP(current)) {
-    lispval pairpair = fd_make_pair(val,current);
-    int rv = fd_store(configuration_table,symbol,pairpair);
-    fd_decref(pairpair);
+    lispval pairpair = kno_make_pair(val,current);
+    int rv = kno_store(configuration_table,symbol,pairpair);
+    kno_decref(pairpair);
     return rv;}
-  else if (FD_EQUAL(current,val)) return 0;
+  else if (KNO_EQUAL(current,val)) return 0;
   else {
-    lispval cdr = fd_make_pair(current,NIL);
-    lispval pairpair = fd_make_pair(val,cdr);
-    int rv = fd_store(configuration_table,symbol,pairpair);
-    fd_decref(cdr); fd_decref(pairpair);
+    lispval cdr = kno_make_pair(current,NIL);
+    lispval pairpair = kno_make_pair(val,cdr);
+    int rv = kno_store(configuration_table,symbol,pairpair);
+    kno_decref(cdr); kno_decref(pairpair);
     return rv;}
 }
 
 /* File-based configuration */
 
-#if FD_FILECONFIG_ENABLED
+#if KNO_FILECONFIG_ENABLED
 static u8_string configdata_path = NULL;
 
 static lispval file_config_lookup(lispval symbol,void *pathdata)
 {
   u8_string path=
     ((pathdata == NULL) ?
-     ((configdata_path) ? (configdata_path) : ((u8_string)FD_CONFIG_FILE_PATH)) :
+     ((configdata_path) ? (configdata_path) : ((u8_string)KNO_CONFIG_FILE_PATH)) :
      ((u8_string)pathdata));
   u8_string filename = u8_find_file(SYM_NAME(symbol),path,u8_file_readablep);
   if (filename) {
     int n_bytes; lispval result;
     unsigned char *content = u8_filedata(filename,&n_bytes);
     if (content[0]==0) {
-      struct FD_INBUF in = { 0 };
+      struct KNO_INBUF in = { 0 };
       in.buffer = in.bufread = content+1; in.buflim = in.buffer+n_bytes;
       in.buf_fillfn = NULL;
-      result = fd_read_dtype(&in);}
+      result = kno_read_dtype(&in);}
     else {
       /* Zap any trailing newlines */
       if ((n_bytes>1) && (content[n_bytes-1]=='\n'))
         content[n_bytes-1]='\0';
       if ((n_bytes>2) && (content[n_bytes-2]=='\r'))
         content[n_bytes-2]='\0';
-      result = fd_parse_arg(content);}
+      result = kno_parse_arg(content);}
     u8_free(filename);
     u8_free(content);
     return result;}
@@ -181,12 +181,12 @@ static lispval file_config_lookup(lispval symbol,void *pathdata)
 
 /* API functions */
 
-FD_EXPORT lispval fd_config_get(u8_string var)
+KNO_EXPORT lispval kno_config_get(u8_string var)
 {
   lispval symbol = config_intern(var);
-  struct FD_CONFIG_HANDLER *scan = config_handlers;
+  struct KNO_CONFIG_HANDLER *scan = config_handlers;
   while (scan)
-    if (FD_EQ(scan->configname,symbol)) {
+    if (KNO_EQ(scan->configname,symbol)) {
       lispval val;
       val = scan->config_get_method(symbol,scan->configdata);
       return val;}
@@ -194,82 +194,82 @@ FD_EXPORT lispval fd_config_get(u8_string var)
   return config_get(var);
 }
 
-FD_EXPORT int fd_set_config(u8_string var,lispval val)
+KNO_EXPORT int kno_set_config(u8_string var,lispval val)
 {
   lispval symbol = config_intern(var); int retval = 0;
-  struct FD_CONFIG_HANDLER *scan = config_handlers;
+  struct KNO_CONFIG_HANDLER *scan = config_handlers;
   while (scan)
-    if (FD_EQ(scan->configname,symbol)) {
-      scan->configflags = scan->configflags|FD_CONFIG_ALREADY_MODIFIED;
+    if (KNO_EQ(scan->configname,symbol)) {
+      scan->configflags = scan->configflags|KNO_CONFIG_ALREADY_MODIFIED;
       retval = scan->config_set_method(symbol,val,scan->configdata);
-      if (fd_trace_config)
+      if (kno_trace_config)
         u8_log(LOG_WARN,"ConfigSet",
                "Using handler to configure %s (%s) with %q",
                var,SYM_NAME(symbol),val);
       break;}
     else scan = scan->config_next;
-  if ((!(scan))&&(fd_trace_config))
+  if ((!(scan))&&(kno_trace_config))
     u8_log(LOG_WARN,"ConfigSet","Configuring %s (%s) with %q",
            var,SYM_NAME(symbol),val);
   set_config(var,val);
   if (retval<0) {
-    u8_string errsum = fd_errstring(NULL);
-    u8_log(LOG_WARN,fd_ConfigError,"Config error %q=%q: %s",symbol,val,errsum);
+    u8_string errsum = kno_errstring(NULL);
+    u8_log(LOG_WARN,kno_ConfigError,"Config error %q=%q: %s",symbol,val,errsum);
     u8_free(errsum);}
   return retval;
 }
 
-FD_EXPORT int fd_default_config(u8_string var,lispval val)
+KNO_EXPORT int kno_default_config(u8_string var,lispval val)
 {
   lispval symbol = config_intern(var); int retval = 1;
-  struct FD_CONFIG_HANDLER *scan = config_handlers;
+  struct KNO_CONFIG_HANDLER *scan = config_handlers;
   while (scan)
-    if (FD_EQ(scan->configname,symbol)) {
-      if ((scan->configflags)&(FD_CONFIG_ALREADY_MODIFIED)) return 0;
-      scan->configflags = scan->configflags|FD_CONFIG_ALREADY_MODIFIED;
+    if (KNO_EQ(scan->configname,symbol)) {
+      if ((scan->configflags)&(KNO_CONFIG_ALREADY_MODIFIED)) return 0;
+      scan->configflags = scan->configflags|KNO_CONFIG_ALREADY_MODIFIED;
       retval = scan->config_set_method(symbol,val,scan->configdata);
-      if (fd_trace_config)
+      if (kno_trace_config)
         u8_log(LOG_WARN,"ConfigSet",
                "Using handler to configure default %s (%s) with %q",
                var,SYM_NAME(symbol),val);
       break;}
     else scan = scan->config_next;
-  if (fd_test(configuration_table,symbol,VOID)) return 0;
+  if (kno_test(configuration_table,symbol,VOID)) return 0;
   else {
-    if ((!(scan))&&(fd_trace_config))
+    if ((!(scan))&&(kno_trace_config))
       u8_log(LOG_WARN,"ConfigSet","Configuring %s (%s) with %q",
              var,SYM_NAME(symbol),val);
     retval = set_config(var,val);}
   if (retval<0) {
-    u8_string errsum = fd_errstring(NULL);
-    u8_log(LOG_WARN,fd_ConfigError,"Config error %q=%q: %s",symbol,val,errsum);
+    u8_string errsum = kno_errstring(NULL);
+    u8_log(LOG_WARN,kno_ConfigError,"Config error %q=%q: %s",symbol,val,errsum);
     u8_free(errsum);}
   return retval;
 }
 
-FD_EXPORT int fd_set_config_consed(u8_string var,lispval val)
+KNO_EXPORT int kno_set_config_consed(u8_string var,lispval val)
 {
-  int retval = fd_set_config(var,val);
+  int retval = kno_set_config(var,val);
   if (retval<0) return retval;
-  fd_decref(val);
+  kno_decref(val);
   return retval;
 }
 
 /* Registering new configuration values */
 
-FD_EXPORT int fd_register_config_x
+KNO_EXPORT int kno_register_config_x
   (u8_string var,u8_string doc,
    lispval (*getfn)(lispval,void *),
    int (*setfn)(lispval,lispval,void *),
-   void *data,int (*reuse)(struct FD_CONFIG_HANDLER *scan))
+   void *data,int (*reuse)(struct KNO_CONFIG_HANDLER *scan))
 {
   lispval symbol = config_intern(var), current = config_get(var);
   int retval = 0;
-  struct FD_CONFIG_HANDLER *scan;
+  struct KNO_CONFIG_HANDLER *scan;
   u8_lock_mutex(&config_register_lock);
   scan = config_handlers;
   while (scan)
-    if (FD_EQ(scan->configname,symbol)) {
+    if (KNO_EQ(scan->configname,symbol)) {
       if (reuse) reuse(scan);
       if (doc) {
         /* We don't override a real doc with a NULL doc.
@@ -283,7 +283,7 @@ FD_EXPORT int fd_register_config_x
     else scan = scan->config_next;
   if (scan == NULL) {
     current = config_get(var);
-    scan = u8_alloc(struct FD_CONFIG_HANDLER);
+    scan = u8_alloc(struct KNO_CONFIG_HANDLER);
     scan->configname = symbol;
     if (doc) scan->configdoc = u8_strdup(doc); else scan->configdoc = NULL;
     scan->configflags = 0;
@@ -293,43 +293,43 @@ FD_EXPORT int fd_register_config_x
     scan->config_next = config_handlers;
     config_handlers = scan;}
   u8_unlock_mutex(&config_register_lock);
-  if (FD_ABORTP(current)) {
-    fd_clear_errors(1);
+  if (KNO_ABORTP(current)) {
+    kno_clear_errors(1);
     retval = -1;}
   else if (VOIDP(current)) {}
   else if (PAIRP(current)) {
     /* There have been multiple configuration specifications,
        so run them all backwards. */
     int n = 0; lispval *vals, *write;
-    {lispval scan = current; while (PAIRP(scan)) {scan = FD_CDR(scan); n++;}}
+    {lispval scan = current; while (PAIRP(scan)) {scan = KNO_CDR(scan); n++;}}
     vals = u8_alloc_n(n,lispval); write = vals;
-    {FD_DOLIST(cv,current) *write++=cv;}
+    {KNO_DOLIST(cv,current) *write++=cv;}
     while (n>0) {
       n = n-1;
       if (retval<0) {
-        u8_free(vals); fd_decref(current);
+        u8_free(vals); kno_decref(current);
         return retval;}
       else retval = setfn(symbol,vals[n],data);}
-    fd_decref(current); u8_free(vals);
+    kno_decref(current); u8_free(vals);
     return retval;}
   else retval = setfn(symbol,current,data);
-  fd_decref(current);
+  kno_decref(current);
   return retval;
 }
 
-FD_EXPORT int fd_register_config
+KNO_EXPORT int kno_register_config
   (u8_string var,u8_string doc,
    lispval (*getfn)(lispval,void *),
    int (*setfn)(lispval,lispval,void *),
    void *data)
 {
-  return fd_register_config_x(var,doc,getfn,setfn,data,NULL);
+  return kno_register_config_x(var,doc,getfn,setfn,data,NULL);
 }
 
-FD_EXPORT lispval fd_all_configs(int with_docs)
+KNO_EXPORT lispval kno_all_configs(int with_docs)
 {
   lispval results = EMPTY;
-  struct FD_CONFIG_HANDLER *scan;
+  struct KNO_CONFIG_HANDLER *scan;
   u8_lock_mutex(&config_register_lock); {
     scan = config_handlers;
     while (scan) {
@@ -338,9 +338,9 @@ FD_EXPORT lispval fd_all_configs(int with_docs)
         lispval doc = ((scan->configdoc)?
                     (fdstring(scan->configdoc)):
                     (NIL));
-        lispval pair = fd_conspair(var,doc); fd_incref(var);
+        lispval pair = kno_conspair(var,doc); kno_incref(var);
         CHOICE_ADD(results,pair);}
-      else {fd_incref(var); CHOICE_ADD(results,var);}
+      else {kno_incref(var); CHOICE_ADD(results,var);}
       scan = scan->config_next;}}
   u8_unlock_mutex(&config_register_lock);
   return results;
@@ -349,7 +349,7 @@ FD_EXPORT lispval fd_all_configs(int with_docs)
 /* Lots of different ways to specify configuration */
 
 /* This takes a string of the form var = value */
-FD_EXPORT int fd_config_assignment(u8_string assignment)
+KNO_EXPORT int kno_config_assignment(u8_string assignment)
 {
   u8_byte *equals;
   if ((equals = (strchr(assignment,'=')))) {
@@ -372,14 +372,14 @@ FD_EXPORT int fd_config_assignment(u8_string assignment)
           scan = strchr(scan+1,sep);
           continue;}
         *scan = '\0';
-        int rv = fd_config_assignment(start);
+        int rv = kno_config_assignment(start);
         if (rv<0) {
-          u8_seterr("BadConfig","fd_config_assigment",u8_strdup(start));
+          u8_seterr("BadConfig","kno_config_assigment",u8_strdup(start));
           return rv;}
         start=scan+1;
         count++;}
       if (*start) {
-        rv = fd_config_assignment(start);
+        rv = kno_config_assignment(start);
         if (rv>=0) count++;}
       if (rv<0)
         return -(count+1);
@@ -387,100 +387,100 @@ FD_EXPORT int fd_config_assignment(u8_string assignment)
     else {
       u8_byte _namebuf[64], *namebuf;
       int namelen = equals-assignment, retval;
-      lispval value = fd_parse_arg(equals+1);
-      if (FD_ABORTP(value))
-        return fd_interr(value);
-      else if (FD_PAIRP(value)) {
-        lispval interpreted = fd_interpret_value(value);
-        fd_decref(value);
+      lispval value = kno_parse_arg(equals+1);
+      if (KNO_ABORTP(value))
+        return kno_interr(value);
+      else if (KNO_PAIRP(value)) {
+        lispval interpreted = kno_interpret_value(value);
+        kno_decref(value);
         value = interpreted;}
       if (namelen+1>64)
         namebuf = u8_malloc(namelen+1);
       else namebuf=_namebuf;
       strncpy(namebuf,assignment,namelen); namebuf[namelen]='\0';
-      retval = fd_set_config_consed(namebuf,value);
+      retval = kno_set_config_consed(namebuf,value);
       if (namebuf!=_namebuf) u8_free(namebuf);
       return retval;}}
   else return -1;
 }
 
 /* This takes a string of the form var = value */
-FD_EXPORT int fd_default_config_assignment(u8_string assignment)
+KNO_EXPORT int kno_default_config_assignment(u8_string assignment)
 {
   u8_byte *equals;
   if ((equals = (strchr(assignment,'=')))) {
     u8_byte _namebuf[64], *namebuf;
     int namelen = equals-assignment, retval = 0;
-    lispval value = fd_parse_arg(equals+1);
-    if (FD_ABORTP(value))
-      return fd_interr(value);
-    else if (FD_PAIRP(value)) {
-      lispval interpreted = fd_interpret_value(value);
-      fd_decref(value);
+    lispval value = kno_parse_arg(equals+1);
+    if (KNO_ABORTP(value))
+      return kno_interr(value);
+    else if (KNO_PAIRP(value)) {
+      lispval interpreted = kno_interpret_value(value);
+      kno_decref(value);
       value = interpreted;}
     if (namelen+1>64)
       namebuf = u8_malloc(namelen+1);
     else namebuf=_namebuf;
     strncpy(namebuf,assignment,namelen); namebuf[namelen]='\0';
-    if (!(fd_test(configuration_table,config_intern(namebuf),VOID)))
-      retval = fd_set_config_consed(namebuf,value);
+    if (!(kno_test(configuration_table,config_intern(namebuf),VOID)))
+      retval = kno_set_config_consed(namebuf,value);
     if (namebuf!=_namebuf) u8_free(namebuf);
     return retval;}
   else return -1;
 }
 
 #define EXPR_STARTS_WITH(expr,sym) \
-  ( (FD_PAIRP(expr)) &&            \
-    (FD_PAIRP(FD_CDR(expr))) &&    \
-    ( (FD_CAR(expr)) == (sym) ) )
+  ( (KNO_PAIRP(expr)) &&            \
+    (KNO_PAIRP(KNO_CDR(expr))) &&    \
+    ( (KNO_CAR(expr)) == (sym) ) )
 
-FD_EXPORT lispval fd_interpret_value(lispval expr)
+KNO_EXPORT lispval kno_interpret_value(lispval expr)
 {
-  if ( (FD_PAIRP(expr)) &&
-       (FD_PAIRP(FD_CDR(expr))) &&
-       (FD_CDDR(expr) == FD_NIL) ) {
-    lispval head = FD_CAR(expr);
-    lispval arg = FD_CADR(expr);
+  if ( (KNO_PAIRP(expr)) &&
+       (KNO_PAIRP(KNO_CDR(expr))) &&
+       (KNO_CDDR(expr) == KNO_NIL) ) {
+    lispval head = KNO_CAR(expr);
+    lispval arg = KNO_CADR(expr);
     if (head == path_macro) {
-      if ( (FD_STRINGP(arg)) ) {
-        u8_string fullpath = (fd_sourcebase()) ?
-          (fd_get_component(FD_CSTRING(arg))) :
-          (u8_abspath(FD_CSTRING(arg),NULL));
-        return fd_init_string(NULL,-1,fullpath);}
-      else return fd_incref(arg);}
+      if ( (KNO_STRINGP(arg)) ) {
+        u8_string fullpath = (kno_sourcebase()) ?
+          (kno_get_component(KNO_CSTRING(arg))) :
+          (u8_abspath(KNO_CSTRING(arg),NULL));
+        return kno_init_string(NULL,-1,fullpath);}
+      else return kno_incref(arg);}
     else if (head == source_macro) {
-      u8_string sourcepath = fd_sourcebase();
+      u8_string sourcepath = kno_sourcebase();
       if (sourcepath)
-        return fd_make_string(NULL,-1,sourcepath);
-      else return FD_FALSE;}
+        return kno_make_string(NULL,-1,sourcepath);
+      else return KNO_FALSE;}
     else if (head == config_macro) {
-      if (FD_SYMBOLP(arg)) {
-        lispval v = fd_config_get(FD_SYMBOL_NAME(arg));
-        if (FD_VOIDP(v))
+      if (KNO_SYMBOLP(arg)) {
+        lispval v = kno_config_get(KNO_SYMBOL_NAME(arg));
+        if (KNO_VOIDP(v))
           return expr;
         else return v;}}
     else if (head == env_macro) {
-      if ( (FD_SYMBOLP(arg)) || (FD_STRINGP(arg)) ) {
-        u8_string strval = (FD_SYMBOLP(arg)) ?
-          (u8_getenv(FD_SYMBOL_NAME(arg))) :
-          (u8_getenv(FD_CSTRING(arg)));
+      if ( (KNO_SYMBOLP(arg)) || (KNO_STRINGP(arg)) ) {
+        u8_string strval = (KNO_SYMBOLP(arg)) ?
+          (u8_getenv(KNO_SYMBOL_NAME(arg))) :
+          (u8_getenv(KNO_CSTRING(arg)));
         if (strval) {
-          lispval val = fd_lispstring(strval);
+          lispval val = kno_lispstring(strval);
           u8_free(strval);
           return val;}
-        else return FD_FALSE;}
+        else return KNO_FALSE;}
       else return expr;}
     else if (head == now_macro) {
-      if (FD_SYMBOLP(arg)) {
-        lispval now = fd_make_timestamp(NULL);
-        lispval v = fd_get(now,arg,FD_VOID);
-        fd_decref(now);
-        if (FD_VOIDP(v))
+      if (KNO_SYMBOLP(arg)) {
+        lispval now = kno_make_timestamp(NULL);
+        lispval v = kno_get(now,arg,KNO_VOID);
+        kno_decref(now);
+        if (KNO_VOIDP(v))
           return expr;
         else return v;}}
     else NO_ELSE;
-    return fd_incref(expr);}
-  else return fd_incref(expr);
+    return kno_incref(expr);}
+  else return kno_incref(expr);
 }
 
 /* This reads a config file.  It consists of a series of entries, each of which is
@@ -498,35 +498,35 @@ static int read_config(U8_INPUT *in,int dflt)
     else if (c == '(') {
       lispval entry;
       u8_ungetc(in,c);
-      entry = fd_parser(in);
-      if (FD_ABORTP(entry))
-        return fd_interr(entry);
+      entry = kno_parser(in);
+      if (KNO_ABORTP(entry))
+        return kno_interr(entry);
       else if ((PAIRP(entry)) &&
-               (SYMBOLP(FD_CAR(entry))) &&
-               (PAIRP(FD_CDR(entry)))) {
-        lispval val = fd_interpret_value(FD_CADR(entry));
+               (SYMBOLP(KNO_CAR(entry))) &&
+               (PAIRP(KNO_CDR(entry)))) {
+        lispval val = kno_interpret_value(KNO_CADR(entry));
         int rv = (dflt) ?
-          (fd_default_config(SYM_NAME(FD_CAR(entry)),val)<0) :
-          (fd_set_config(SYM_NAME(FD_CAR(entry)),val)<0);
+          (kno_default_config(SYM_NAME(KNO_CAR(entry)),val)<0) :
+          (kno_set_config(SYM_NAME(KNO_CAR(entry)),val)<0);
         if (rv < 0) {
-          fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
-          fd_decref(val);
+          kno_seterr(kno_ConfigError,"kno_read_config",NULL,entry);
+          kno_decref(val);
           return -1;}
         if (rv) count++;
-        fd_decref(entry);
-        fd_decref(val);}
+        kno_decref(entry);
+        kno_decref(val);}
       else {
-        fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
+        kno_seterr(kno_ConfigError,"kno_read_config",NULL,entry);
         return -1;}}
     else if ((u8_isspace(c)) || (u8_isctrl(c))) {}
     else {
       u8_ungetc(in,c);
       buf = u8_gets(in);
       int rv = (dflt) ?
-        (fd_default_config_assignment(buf)<0) :
-        (fd_config_assignment(buf)<0);
+        (kno_default_config_assignment(buf)<0) :
+        (kno_config_assignment(buf)<0);
       if (rv<0)
-        return fd_reterr(fd_ConfigError,"fd_read_config",buf,VOID);
+        return kno_reterr(kno_ConfigError,"kno_read_config",buf,VOID);
       else if (rv)
         count++;
       else NO_ELSE;
@@ -537,7 +537,7 @@ static int read_config(U8_INPUT *in,int dflt)
 /* This reads a config file.  It consists of a series of entries, each of which is
    either a list (var value) or an assignment var = value.
    Both # and ; are comment characters */
-FD_EXPORT int fd_read_config(U8_INPUT *in)
+KNO_EXPORT int kno_read_config(U8_INPUT *in)
 {
   return read_config(in,0);
 }
@@ -545,7 +545,7 @@ FD_EXPORT int fd_read_config(U8_INPUT *in)
 /* This reads a config file.  It consists of a series of entries, each of which is
    either a list (var value) or an assignment var = value.
    Both # and ; are comment characters */
-FD_EXPORT int fd_read_default_config(U8_INPUT *in)
+KNO_EXPORT int kno_read_default_config(U8_INPUT *in)
 {
   return read_config(in,1);
 }
@@ -553,85 +553,85 @@ FD_EXPORT int fd_read_default_config(U8_INPUT *in)
 /* Utility configuration functions */
 
 /* This set method just returns an error */
-FD_EXPORT int fd_readonly_config_set(lispval ignored,lispval v,void *vptr)
+KNO_EXPORT int kno_readonly_config_set(lispval ignored,lispval v,void *vptr)
 {
   if (SYMBOLP(v))
-    return fd_reterr(fd_ReadOnlyConfig,"fd_set_config",
+    return kno_reterr(kno_ReadOnlyConfig,"kno_set_config",
                      SYM_NAME(v),VOID);
   else if (STRINGP(v))
-    return fd_reterr(fd_ReadOnlyConfig,"fd_set_config",
+    return kno_reterr(kno_ReadOnlyConfig,"kno_set_config",
                      CSTRING(v),VOID);
-  else return fd_reterr(fd_ReadOnlyConfig,"fd_set_config",NULL,VOID);
+  else return kno_reterr(kno_ReadOnlyConfig,"kno_set_config",NULL,VOID);
 }
 
 /* For configuration variables which are just integer constants */
-FD_EXPORT lispval fd_constconfig_get(lispval ignored,void *llval)
+KNO_EXPORT lispval kno_constconfig_get(lispval ignored,void *llval)
 {
-  fd_ptrval int_val = (fd_ptrval) llval;
-  return FD_INT(int_val);
+  kno_ptrval int_val = (kno_ptrval) llval;
+  return KNO_INT(int_val);
 }
 
 /* For configuration variables which get/set dtype value. */
-FD_EXPORT lispval fd_lconfig_get(lispval ignored,void *lispp)
+KNO_EXPORT lispval kno_lconfig_get(lispval ignored,void *lispp)
 {
   lispval *val = (lispval *)lispp;
-  return fd_incref(*val);
+  return kno_incref(*val);
 }
-FD_EXPORT int fd_lconfig_set(lispval ignored,lispval v,void *lispp)
+KNO_EXPORT int kno_lconfig_set(lispval ignored,lispval v,void *lispp)
 {
   lispval *val = (lispval *)lispp, cur = *val;
-  fd_decref(cur); fd_incref(v);
+  kno_decref(cur); kno_incref(v);
   *val = v;
   return 1;
 }
-FD_EXPORT int fd_symconfig_set(lispval ignored,lispval v,void *lispp)
+KNO_EXPORT int kno_symconfig_set(lispval ignored,lispval v,void *lispp)
 {
   lispval *val = (lispval *)lispp;
   lispval sym = VOID;
-  if (FD_SYMBOLP(v))
+  if (KNO_SYMBOLP(v))
     sym = v;
-  else if (FD_STRINGP(v)) {
+  else if (KNO_STRINGP(v)) {
     u8_string upper = u8_upcase(CSTRING(v));
-    sym = fd_intern(upper);
+    sym = kno_intern(upper);
     u8_free(upper);}
   else {}
-  if (FD_VOIDP(sym)) {
-    fd_type_error("string or symbol","fd_symconfig_set",v);
+  if (KNO_VOIDP(sym)) {
+    kno_type_error("string or symbol","kno_symconfig_set",v);
     return -1;}
   else {
     *val = sym;
     return 1;}
 }
-FD_EXPORT int fd_lconfig_add(lispval ignored,lispval v,void *lispp)
+KNO_EXPORT int kno_lconfig_add(lispval ignored,lispval v,void *lispp)
 {
   lispval *val = (lispval *)lispp;
   CHOICE_ADD(*val,v);
   return 1;
 }
-FD_EXPORT int fd_lconfig_push(lispval ignored,lispval v,void *lispp)
+KNO_EXPORT int kno_lconfig_push(lispval ignored,lispval v,void *lispp)
 {
   lispval *val = (lispval *)lispp;
-  *val = fd_conspair(fd_incref(v),*val);
+  *val = kno_conspair(kno_incref(v),*val);
   return 1;
 }
 
 /* For configuration variables which get/set strings. */
-FD_EXPORT lispval fd_sconfig_get(lispval ignored,void *vptr)
+KNO_EXPORT lispval kno_sconfig_get(lispval ignored,void *vptr)
 {
   u8_string *ptr = vptr;
   if (*ptr) return lispval_string(*ptr);
   else return EMPTY;
 }
-FD_EXPORT int fd_sconfig_set(lispval ignored,lispval v,void *vptr)
+KNO_EXPORT int kno_sconfig_set(lispval ignored,lispval v,void *vptr)
 {
   u8_string *ptr = vptr;
   if (STRINGP(v)) {
     if (*ptr) u8_free(*ptr);
     *ptr = u8_strdup(CSTRING(v));
     return 1;}
-  else return fd_reterr(fd_TypeError,"fd_sconfig_set",u8_strdup(_("string")),v);
+  else return kno_reterr(kno_TypeError,"kno_sconfig_set",u8_strdup(_("string")),v);
 }
-FD_EXPORT int fd_realpath_config_set(lispval confvar,lispval v,void *vptr)
+KNO_EXPORT int kno_realpath_config_set(lispval confvar,lispval v,void *vptr)
 {
   u8_string *ptr = vptr;
   if (STRINGP(v)) {
@@ -648,9 +648,9 @@ FD_EXPORT int fd_realpath_config_set(lispval confvar,lispval v,void *vptr)
       *ptr = u8_strdup(s);
       return 1;}
     else return 0;}
-  else return fd_reterr(fd_TypeError,"fd_sconfig_set",u8_strdup(_("string")),v);
+  else return kno_reterr(kno_TypeError,"kno_sconfig_set",u8_strdup(_("string")),v);
 }
-FD_EXPORT int fd_realdir_config_set(lispval confvar,lispval v,void *vptr)
+KNO_EXPORT int kno_realdir_config_set(lispval confvar,lispval v,void *vptr)
 {
   u8_string *ptr = vptr;
   if (STRINGP(v)) {
@@ -667,90 +667,90 @@ FD_EXPORT int fd_realdir_config_set(lispval confvar,lispval v,void *vptr)
       *ptr = u8_strdup(s);
       return 1;}
     else return 0;}
-  else return fd_reterr(fd_TypeError,"fd_sconfig_set",u8_strdup(_("string")),v);
+  else return kno_reterr(kno_TypeError,"kno_sconfig_set",u8_strdup(_("string")),v);
 }
 
 
 /* For configuration variables which get/set ints. */
-FD_EXPORT lispval fd_intconfig_get(lispval ignored,void *vptr)
+KNO_EXPORT lispval kno_intconfig_get(lispval ignored,void *vptr)
 {
   int *ptr = vptr;
-  return FD_INT(*ptr);
+  return KNO_INT(*ptr);
 }
-FD_EXPORT int fd_intconfig_set(lispval ignored,lispval v,void *vptr)
+KNO_EXPORT int kno_intconfig_set(lispval ignored,lispval v,void *vptr)
 {
   int *ptr = vptr;
-  if (FD_INTP(v)) {
+  if (KNO_INTP(v)) {
     *ptr = FIX2INT(v);
     return 1;}
-  return fd_reterr(fd_TypeError,"fd_intconfig_set",
+  return kno_reterr(kno_TypeError,"kno_intconfig_set",
                    u8_strdup(_("small fixnum")),v);
 }
 
 /* For configuration variables which get/set ints. */
-FD_EXPORT lispval fd_longconfig_get(lispval ignored,void *vptr)
+KNO_EXPORT lispval kno_longconfig_get(lispval ignored,void *vptr)
 {
   long long *ptr = vptr;
-  return FD_INT(*ptr);
+  return KNO_INT(*ptr);
 }
-FD_EXPORT int fd_longconfig_set(lispval ignored,lispval v,void *vptr)
+KNO_EXPORT int kno_longconfig_set(lispval ignored,lispval v,void *vptr)
 {
   long long *ptr = vptr;
   if (FIXNUMP(v)) {
     *ptr = FIX2INT(v);
     return 1;}
-  else return fd_reterr(fd_TypeError,"fd_longconfig_set",
+  else return kno_reterr(kno_TypeError,"kno_longconfig_set",
                         u8_strdup(_("fixnum")),v);
 }
 
 /* For configuration variables which get/set ints. */
-FD_EXPORT lispval fd_sizeconfig_get(lispval ignored,void *vptr)
+KNO_EXPORT lispval kno_sizeconfig_get(lispval ignored,void *vptr)
 {
   ssize_t *ptr = vptr;
   ssize_t sz = *ptr;
-  return FD_INT(sz);
+  return KNO_INT(sz);
 }
-FD_EXPORT int fd_sizeconfig_set(lispval ignored,lispval v,void *vptr)
+KNO_EXPORT int kno_sizeconfig_set(lispval ignored,lispval v,void *vptr)
 {
   ssize_t *ptr = vptr;
   if (FIXNUMP(v)) {
     if ((*ptr) == (FIX2INT(v))) return 0;
     *ptr = FIX2INT(v);
     return 1;}
-  else if (FD_BIGINTP(v)) {
-    struct FD_BIGINT *bi = (fd_bigint)v;
-    if (fd_bigint_fits_in_word_p(bi,8,1)) {
-      long long ullv = fd_bigint_to_long_long(bi);
+  else if (KNO_BIGINTP(v)) {
+    struct KNO_BIGINT *bi = (kno_bigint)v;
+    if (kno_bigint_fits_in_word_p(bi,8,1)) {
+      long long ullv = kno_bigint_to_long_long(bi);
       if ((*ptr) == ((ssize_t)ullv)) return 0;
       *ptr = (ssize_t)ullv;
       return 1;}
-    else return fd_reterr
-           (fd_RangeError,"fd_sizeconfig_set",
+    else return kno_reterr
+           (kno_RangeError,"kno_sizeconfig_set",
             u8_strdup(_("size_t sized value")),v);}
-  else return fd_reterr
-         (fd_TypeError,"fd_sizeconfig_set",
+  else return kno_reterr
+         (kno_TypeError,"kno_sizeconfig_set",
           u8_strdup(_("size_t sized value")),v);
 }
 
 /* Double config methods */
-FD_EXPORT lispval fd_dblconfig_get(lispval ignored,void *vptr)
+KNO_EXPORT lispval kno_dblconfig_get(lispval ignored,void *vptr)
 {
   double *ptr = vptr;
-  if (*ptr) return fd_init_double(NULL,*ptr);
-  else return FD_FALSE;
+  if (*ptr) return kno_init_double(NULL,*ptr);
+  else return KNO_FALSE;
 }
-FD_EXPORT int fd_dblconfig_set(lispval var,lispval v,void *vptr)
+KNO_EXPORT int kno_dblconfig_set(lispval var,lispval v,void *vptr)
 {
   double *ptr = vptr;
   if (FALSEP(v)) {
     *ptr = 0.0; return 1;}
-  else if (FD_FLONUMP(v)) {
-    *ptr = FD_FLONUM(v);}
+  else if (KNO_FLONUMP(v)) {
+    *ptr = KNO_FLONUM(v);}
   else if (FIXNUMP(v)) {
     long long intval = FIX2INT(v);
     double dblval = (double)intval;
     *ptr = dblval;}
-  else return fd_reterr(fd_TypeError,"fd_dblconfig_set",
+  else return kno_reterr(kno_TypeError,"kno_dblconfig_set",
                         SYM_NAME(var),v);
   return 1;
 }
@@ -760,12 +760,12 @@ FD_EXPORT int fd_dblconfig_set(lispval var,lispval v,void *vptr)
 static int false_stringp(u8_string string);
 static int true_stringp(u8_string string);
 
-FD_EXPORT lispval fd_boolconfig_get(lispval ignored,void *vptr)
+KNO_EXPORT lispval kno_boolconfig_get(lispval ignored,void *vptr)
 {
   int *ptr = vptr;
-  if (*ptr) return FD_TRUE; else return FD_FALSE;
+  if (*ptr) return KNO_TRUE; else return KNO_FALSE;
 }
-FD_EXPORT int fd_boolconfig_set(lispval var,lispval v,void *vptr)
+KNO_EXPORT int kno_boolconfig_set(lispval var,lispval v,void *vptr)
 {
   int *ptr = vptr;
   if (FALSEP(v)) {
@@ -785,7 +785,7 @@ FD_EXPORT int fd_boolconfig_set(lispval var,lispval v,void *vptr)
   else if ((STRINGP(v)) && (true_stringp(CSTRING(v)))) {
     *ptr = 1; return 1;}
   else if (STRINGP(v)) {
-    fd_seterr(fd_TypeError,"fd_boolconfig_set",FD_XSYMBOL_NAME(var),v);
+    kno_seterr(kno_TypeError,"kno_boolconfig_set",KNO_XSYMBOL_NAME(var),v);
     return -1;}
   else {*ptr = 1; return 1;}
 }
@@ -817,7 +817,7 @@ static int true_stringp(u8_string string)
   return 0;
 }
 
-FD_EXPORT int fd_boolstring(u8_string string,int dflt)
+KNO_EXPORT int kno_boolstring(u8_string string,int dflt)
 {
   u8_string *scan = true_strings;
   while (*scan)
@@ -834,23 +834,23 @@ FD_EXPORT int fd_boolstring(u8_string string,int dflt)
 
 static lispval fdversion_config_get(lispval var,void *data)
 {
-  return lispval_string(FD_VERSION);
+  return lispval_string(KNO_VERSION);
 }
 static lispval fdrevision_config_get(lispval var,void *data)
 {
-  return lispval_string(FRAMERD_REVISION);
+  return lispval_string(KNO_REVISION);
 }
 static lispval fdbranch_config_get(lispval var,void *data)
 {
-#ifdef FD_BRANCH
-  return lispval_string(FD_BRANCH);
+#ifdef KNO_BRANCH
+  return lispval_string(KNO_BRANCH);
 #else
   return lispval_string("unknown_branch");
 #endif
 }
 static lispval fdmajor_config_get(lispval var,void *data)
 {
-  return FD_INT(FD_MAJOR_VERSION);
+  return KNO_INT(KNO_MAJOR_VERSION);
 }
 static lispval u8version_config_get(lispval var,void *data)
 {
@@ -862,14 +862,14 @@ static lispval u8revision_config_get(lispval var,void *data)
 }
 static lispval u8major_config_get(lispval var,void *data)
 {
-  return FD_INT(u8_getmajorversion());
+  return KNO_INT(u8_getmajorversion());
 }
 
 /* LOGLEVEL */
 
 static int loglevelconfig_set(lispval var,lispval val,void *data)
 {
-  if (FD_INTP(val)) {
+  if (KNO_INTP(val)) {
     int *valp = (int *)data;
     *valp = FIX2INT(val);
     return 1;}
@@ -886,14 +886,14 @@ static int loglevelconfig_set(lispval var,lispval val,void *data)
       int *valp = (int *)data; *valp = loglevel;
       return 1;}
     else {
-      fd_seterr(fd_TypeError,"loglevelconfig_set",FD_XSYMBOL_NAME(var),val);
+      kno_seterr(kno_TypeError,"loglevelconfig_set",KNO_XSYMBOL_NAME(var),val);
       return -1;}}
   else {
-    fd_seterr(fd_TypeError,"loglevelconfig_set",FD_XSYMBOL_NAME(var),val);
+    kno_seterr(kno_TypeError,"loglevelconfig_set",KNO_XSYMBOL_NAME(var),val);
     return -1;}
 }
 
-FD_EXPORT int fd_loglevelconfig_set(lispval var,lispval val,void *data)
+KNO_EXPORT int kno_loglevelconfig_set(lispval var,lispval val,void *data)
 {
   return loglevelconfig_set(var,val,data);
 }
@@ -901,17 +901,17 @@ FD_EXPORT int fd_loglevelconfig_set(lispval var,lispval val,void *data)
 static lispval cwd_config_get(lispval var,void *data)
 {
   u8_string wd = u8_getcwd();
-  if (wd) return fd_lispstring(wd);
-  else return FD_ERROR;
+  if (wd) return kno_lispstring(wd);
+  else return KNO_ERROR;
 }
 
 static int cwd_config_set(lispval var,lispval val,void *data)
 {
-  if (FD_STRINGP(val)) {
+  if (KNO_STRINGP(val)) {
     if (u8_setcwd(CSTRING(val))<0)
-      return FD_ERROR;
+      return KNO_ERROR;
     else return 1;}
-  else return fd_type_error("string","cwd_config_set",val);
+  else return kno_type_error("string","cwd_config_set",val);
 }
 
 
@@ -920,54 +920,54 @@ static int cwd_config_set(lispval var,lispval val,void *data)
 static void tblconfig_error(lispval var,lispval val)
 {
   u8_string details =
-    (FD_SYMBOLP(var)) ? (FD_SYMBOL_NAME(var)) :
-    (FD_STRINGP(var)) ? (CSTRING(var)) :
+    (KNO_SYMBOLP(var)) ? (KNO_SYMBOL_NAME(var)) :
+    (KNO_STRINGP(var)) ? (CSTRING(var)) :
     (U8STR("oddconfig"));
-  fd_seterr("ConfigFailed","fd_tblconfig_set",
+  kno_seterr("ConfigFailed","kno_tblconfig_set",
             u8_strdup(details),val);
 
 }
 
-FD_EXPORT int fd_tblconfig_set(lispval var,lispval config_val,void *data)
+KNO_EXPORT int kno_tblconfig_set(lispval var,lispval config_val,void *data)
 {
   lispval *lptr = (lispval *) data;
   lispval table = *lptr;
   int retval=0, err=0;
-  FD_DO_CHOICES(entry,config_val) {
-    if (FD_PAIRP(entry)) {
-      lispval key = FD_CAR(entry), value;
-      if (FD_PAIRP(FD_CDR(entry)))
-        value=FD_CADR(entry);
-      else value=FD_CDR(entry);
-      int rv=fd_store(table,key,value);
+  KNO_DO_CHOICES(entry,config_val) {
+    if (KNO_PAIRP(entry)) {
+      lispval key = KNO_CAR(entry), value;
+      if (KNO_PAIRP(KNO_CDR(entry)))
+        value=KNO_CADR(entry);
+      else value=KNO_CDR(entry);
+      int rv=kno_store(table,key,value);
       if (rv<0) {
         tblconfig_error(var,value);
-        FD_STOP_DO_CHOICES;
+        KNO_STOP_DO_CHOICES;
         return -1;}
       else retval++;}
-    else if (FD_TABLEP(entry)) {
-      lispval keys=fd_getkeys(entry);
-      FD_DO_CHOICES(key,keys) {
-        lispval value = fd_get(entry,key,FD_VOID);
-        if (FD_ABORTP(value)) {
-          FD_STOP_DO_CHOICES;
-          tblconfig_error(var,FD_VOID);
+    else if (KNO_TABLEP(entry)) {
+      lispval keys=kno_getkeys(entry);
+      KNO_DO_CHOICES(key,keys) {
+        lispval value = kno_get(entry,key,KNO_VOID);
+        if (KNO_ABORTP(value)) {
+          KNO_STOP_DO_CHOICES;
+          tblconfig_error(var,KNO_VOID);
           err=1;
           break;}
-        else if (FD_AGNOSTICP(value)) {}
+        else if (KNO_AGNOSTICP(value)) {}
         else {
-          int rv=fd_store(table,key,value);
+          int rv=kno_store(table,key,value);
           if (rv<0) {
-            FD_STOP_DO_CHOICES;
+            KNO_STOP_DO_CHOICES;
             tblconfig_error(var,value);
             break;}}
-        fd_decref(value);}
-      fd_decref(keys);
+        kno_decref(value);}
+      kno_decref(keys);
       if (err) {
-        FD_STOP_DO_CHOICES;
+        KNO_STOP_DO_CHOICES;
         break;}}
     else {
-      FD_STOP_DO_CHOICES;
+      KNO_STOP_DO_CHOICES;
       tblconfig_error(var,entry);
       err=1;
       break;}}
@@ -976,16 +976,16 @@ FD_EXPORT int fd_tblconfig_set(lispval var,lispval config_val,void *data)
   else return retval;
 }
 
-FD_EXPORT lispval fd_tblconfig_get(lispval var,void *data)
+KNO_EXPORT lispval kno_tblconfig_get(lispval var,void *data)
 {
   lispval *lptr = (lispval *) data;
   lispval table = *lptr;
-  return fd_incref(table);
+  return kno_incref(table);
 }
 
 /* Initialization */
 
-void fd_init_config_c()
+void kno_init_config_c()
 {
   if (support_config_c_init_done)
     return;
@@ -993,82 +993,82 @@ void fd_init_config_c()
 
   u8_register_source_file(_FILEINFO);
 
-  configuration_table = fd_make_hashtable(NULL,16);
+  configuration_table = kno_make_hashtable(NULL,16);
 
   u8_init_mutex(&config_lookup_lock);
   u8_init_mutex(&config_register_lock);
 
-  path_macro = fd_intern("#PATH");
-  glom_macro = fd_intern("#GLOM");
-  config_macro = fd_intern("#CONFIG");
-  now_macro = fd_intern("#NOW");
-  env_macro = fd_intern("#ENV");
-  source_macro = fd_intern("#SOURCE");
+  path_macro = kno_intern("#PATH");
+  glom_macro = kno_intern("#GLOM");
+  config_macro = kno_intern("#CONFIG");
+  now_macro = kno_intern("#NOW");
+  env_macro = kno_intern("#ENV");
+  source_macro = kno_intern("#SOURCE");
 
-  fd_register_config
-    ("FDVERSION",_("Get the FramerD version string"),
-     fdversion_config_get,fd_readonly_config_set,NULL);
-  fd_register_config
-    ("FDREVISION",_("Get the FramerD revision identifier"),
-     fdrevision_config_get,fd_readonly_config_set,NULL);
-  fd_register_config
-    ("FDBRANCH",_("Get the FramerD branch name"),
-     fdbranch_config_get,fd_readonly_config_set,NULL);
-  fd_register_config
-    ("FDMAJOR",_("Get the FramerD major version number"),
-     fdmajor_config_get,fd_readonly_config_set,NULL);
-  fd_register_config
+  kno_register_config
+    ("FDVERSION",_("Get the Kno version string"),
+     fdversion_config_get,kno_readonly_config_set,NULL);
+  kno_register_config
+    ("FDREVISION",_("Get the Kno revision identifier"),
+     fdrevision_config_get,kno_readonly_config_set,NULL);
+  kno_register_config
+    ("FDBRANCH",_("Get the Kno branch name"),
+     fdbranch_config_get,kno_readonly_config_set,NULL);
+  kno_register_config
+    ("FDMAJOR",_("Get the Kno major version number"),
+     fdmajor_config_get,kno_readonly_config_set,NULL);
+  kno_register_config
     ("U8VERSION",_("Get the libu8 version string"),
-     u8version_config_get,fd_readonly_config_set,NULL);
-  fd_register_config
+     u8version_config_get,kno_readonly_config_set,NULL);
+  kno_register_config
     ("U8REVISION",_("Get the libu8 revision identifier"),
-     u8revision_config_get,fd_readonly_config_set,NULL);
-  fd_register_config
+     u8revision_config_get,kno_readonly_config_set,NULL);
+  kno_register_config
     ("U8MAJOR",_("Get the libu8 major version number"),
-     u8major_config_get,fd_readonly_config_set,NULL);
+     u8major_config_get,kno_readonly_config_set,NULL);
 
-#if FD_FILECONFIG_ENABLED
-  fd_register_config
+#if KNO_FILECONFIG_ENABLED
+  kno_register_config
     ("CONFIGDATA",_("Directory for looking up config entries"),
-     fd_sconfig_get,fd_sconfig_set,&configdata_path);
-  fd_register_config_lookup(file_config_lookup,NULL);
+     kno_sconfig_get,kno_sconfig_set,&configdata_path);
+  kno_register_config_lookup(file_config_lookup,NULL);
 #endif
 
-  fd_register_config_lookup(getenv_config_lookup,NULL);
+  kno_register_config_lookup(getenv_config_lookup,NULL);
 
-  fd_register_config
+  kno_register_config
     ("CWD",_("Get/set the current working directory"),
      cwd_config_get,cwd_config_set,NULL);
 
-  fd_register_config("FIXMAX","The maximum fixnum value",
-                     fd_lconfig_get,fd_readonly_config_set,
-                     &fd_max_fixnum);
-  fd_register_config("MAXFIX","The maximum fixnum value",
-                     fd_lconfig_get,fd_readonly_config_set,
-                     &fd_max_fixnum);
-  fd_register_config("FIXMIN","The minimum fixnum value",
-                     fd_lconfig_get,fd_readonly_config_set,
-                     &fd_min_fixnum);
-  fd_register_config("MINFIX","The minimum fixnum value",
-                     fd_lconfig_get,fd_readonly_config_set,
-                     &fd_min_fixnum);
+  kno_register_config("FIXMAX","The maximum fixnum value",
+                     kno_lconfig_get,kno_readonly_config_set,
+                     &kno_max_fixnum);
+  kno_register_config("MAXFIX","The maximum fixnum value",
+                     kno_lconfig_get,kno_readonly_config_set,
+                     &kno_max_fixnum);
+  kno_register_config("FIXMIN","The minimum fixnum value",
+                     kno_lconfig_get,kno_readonly_config_set,
+                     &kno_min_fixnum);
+  kno_register_config("MINFIX","The minimum fixnum value",
+                     kno_lconfig_get,kno_readonly_config_set,
+                     &kno_min_fixnum);
 
-  fd_register_config("UINT_MAX",
+  kno_register_config("UINT_MAX",
                      "Maximum value for an underlying unsigned INT",
-                     fd_constconfig_get,fd_readonly_config_set,
+                     kno_constconfig_get,kno_readonly_config_set,
                      (void *) UINT_MAX);
-  fd_register_config("INT_MAX",
+  kno_register_config("INT_MAX",
                      "Maximum value for an underlying unsigned INT",
-                     fd_constconfig_get,fd_readonly_config_set,
+                     kno_constconfig_get,kno_readonly_config_set,
                      (void *) INT_MAX);
-  fd_register_config("INT_MIN",
+  kno_register_config("INT_MIN",
                      "Maximum value for an underlying unsigned INT",
-                     fd_constconfig_get,fd_readonly_config_set,
+                     kno_constconfig_get,kno_readonly_config_set,
                      (void *) INT_MIN);
 
-  fd_register_config
+  kno_register_config
     ("TRACECONFIG",_("whether to trace configuration"),
-     fd_boolconfig_get,fd_boolconfig_set,&fd_trace_config);
+     kno_boolconfig_get,kno_boolconfig_set,&kno_trace_config);
 
 }
 

@@ -1,6 +1,6 @@
 # -*- Mode: Makefile; -*-
 # Copyright © 2004-2019 beingmeta, inc
-# This file is a part of beingmeta's FramerD implementation
+# This file is a part of beingmeta's Kno implementation
 
 CC	      = @CC@
 XCFLAGS       =
@@ -23,7 +23,7 @@ EXEFLAGS      = @EXEFLAGS@
 EXELIBS       = @EXELIBS@
 STATIC_CFLAGS = -I./include @CFLAGS@ @PROFILING@ @DREENTRANT@ \
 		$(DYNAMIC_CFLAG) -I./include $(XCFLAGS)
-TEST_CFLAGS   = -DFD_TESTCONFIG=1 ${STATIC_CFLAGS}
+TEST_CFLAGS   = -DKNO_TESTCONFIG=1 ${STATIC_CFLAGS}
 STATIC_LDFLAGS= -L./lib @LDFLAGS@ $(EFENCE) @TESTLDFLAGS@ -L./lib
 TEST_LDFLAGS  = ${STATIC_LDFLAGS}
 TEST_EXEFLAGS = @EXEFLAGS@
@@ -31,20 +31,20 @@ XLIBS         =
 LIBS          = $(XLIBS) @LIBS@
 PATH          = @BINPATH@
 DEBBUILD      = -b
-INDENTOPTS    = -br -ce -psl -Tfdtype -Tu8_string -Tfd_stream -Tfd_inbuf \
-		-Tfd_outbuf -Tfd_rawbuf -Tfd_function -Tfd_pair -Tfd_choice
+INDENTOPTS    = -br -ce -psl -Tfdtype -Tu8_string -Tkno_stream -Tkno_inbuf \
+		-Tkno_outbuf -Tkno_rawbuf -Tkno_function -Tkno_pair -Tkno_choice
 
 DESTDIR		=
 prefix		= @prefix@
 exec_prefix	= @exec_prefix@
 datarootdir	= @datarootdir@
 datadir		= @datadir@
-INCINSTALLDIR	= $(DESTDIR)@prefix@/include/framerd
+INCINSTALLDIR	= $(DESTDIR)@prefix@/include/kno
 LIBINSTALLDIR	= $(DESTDIR)@libdir@
 BININSTALLDIR	= $(DESTDIR)@exec_prefix@/bin
 LOCALEDIR	= $(DESTDIR)@exec_prefix@/share/locale
-DATADIR		= $(DESTDIR)@datadir@/framerd/data
-CMODULES	= ${LIBINSTALLDIR}/framerd
+DATADIR		= $(DESTDIR)@datadir@/kno/data
+CMODULES	= ${LIBINSTALLDIR}/kno
 APXS		= @APXS@ -S LIBEXECDIR=$(DESTDIR)@apache_modules_dir@
 PPROF_PATH      = @GOOGLE_PPROF@
 CLEAN		= @CLEAN@
@@ -62,7 +62,7 @@ MACLIBTOOL	= $(CC) -dynamiclib -single_module -undefined dynamic_lookup \
 BUILD		= `pwd`
 BUILDMODE       := `cat .buildmode || echo none`
 LINKEDWITH      := `cat .malloc || echo standard libraries`
-DEBUG_FDSERV    = 0
+DEBUG_KNOSRV    = 0
 RPMFLAGS	= @RPMFLAGS@
 RPMDIR		= @RPMDIR@
 GPG		= @GPG@
@@ -70,60 +70,60 @@ GPGID		= @GPGID@
 RPMGPG		= %__gpg gpg --force-v3-sigs --digest-algo=sha1 -u \"%{_gpg_name}\" --no-armor --no-secmem-warning -sbo %{__signature_filename} %{__plaintext_filename}
 APTREPO		= @APTREPO@
 FDVERSION	= @FDVERSION@
-DEBNAME		:= $(shell etc/dpkgname framerd)
-APTVERSION	:= $(shell etc/aptversion framerd)
+DEBNAME		:= $(shell etc/dpkgname kno)
+APTVERSION	:= $(shell etc/aptversion kno)
 REVISION	:= $(shell etc/gitrev)
 GITBRANCH	:= $(shell etc/gitbranch)
 LIBSCM	 	= @LIBSCM@
 LISP_HEADERS=\
- include/framerd/fdsource.h                          \
- include/framerd/config.h                            \
- include/framerd/common.h                            \
- include/framerd/errobjs.h                          \
- include/framerd/defines.h                           \
- include/framerd/support.h                           \
- include/framerd/numbers.h                           \
- include/framerd/bigints.h                           \
- include/framerd/malloc.h                            \
- include/framerd/dtype.h    			     \
- include/framerd/pprint.h    			     \
- include/framerd/ptr.h				     \
- include/framerd/cons.h        			     \
- include/framerd/compounds.h			     \
- include/framerd/choices.h			     \
- include/framerd/tables.h  			     \
- include/framerd/sequences.h  			     \
- include/framerd/fdregex.h  			     \
- include/framerd/bufio.h			     \
- include/framerd/dtypeio.h
+ include/kno/knosource.h                          \
+ include/kno/config.h                            \
+ include/kno/common.h                            \
+ include/kno/errobjs.h                          \
+ include/kno/defines.h                           \
+ include/kno/support.h                           \
+ include/kno/numbers.h                           \
+ include/kno/bigints.h                           \
+ include/kno/malloc.h                            \
+ include/kno/dtype.h    			     \
+ include/kno/pprint.h    			     \
+ include/kno/ptr.h				     \
+ include/kno/cons.h        			     \
+ include/kno/compounds.h			     \
+ include/kno/choices.h			     \
+ include/kno/tables.h  			     \
+ include/kno/sequences.h  			     \
+ include/kno/fdregex.h  			     \
+ include/kno/bufio.h			     \
+ include/kno/dtypeio.h
 APPLY_HEADERS=\
- include/framerd/apply.h   \
- include/framerd/cprims.h   \
- include/framerd/stacks.h  \
- include/framerd/lexenv.h  \
- include/framerd/ffi.h
+ include/kno/apply.h   \
+ include/kno/cprims.h   \
+ include/kno/stacks.h  \
+ include/kno/lexenv.h  \
+ include/kno/ffi.h
 STORAGE_HEADERS=\
- include/framerd/components/storage_layer.h	\
- include/framerd/streams.h			\
- include/framerd/storage.h			\
- include/framerd/pools.h			\
- include/framerd/indexes.h			\
- include/framerd/bloom.h  			\
- include/framerd/dtproc.h			\
- include/framerd/dtcall.h			\
- include/framerd/frames.h			\
- include/framerd/methods.h
+ include/kno/components/storage_layer.h	\
+ include/kno/streams.h			\
+ include/kno/storage.h			\
+ include/kno/pools.h			\
+ include/kno/indexes.h			\
+ include/kno/bloom.h  			\
+ include/kno/dtproc.h			\
+ include/kno/dtcall.h			\
+ include/kno/frames.h			\
+ include/kno/methods.h
 
-DRIVERS_H=include/framerd/drivers.h
-SCHEME_HEADERS=include/framerd/eval.h include/framerd/threads.h \
-	include/framerd/opcodes.h include/framerd/seqprims.h \
-	include/framerd/procprims.h
-LIB_HEADERS=include/framerd/texttools.h include/framerd/fdweb.h \
-		include/framerd/mongodb.h \
-	        include/framerd/leveldb.h \
-	        include/framerd/rocksdb.h
+DRIVERS_H=include/kno/drivers.h
+SCHEME_HEADERS=include/kno/eval.h include/kno/threads.h \
+	include/kno/opcodes.h include/kno/seqprims.h \
+	include/kno/procprims.h
+LIB_HEADERS=include/kno/texttools.h include/kno/fdweb.h \
+		include/kno/mongodb.h \
+	        include/kno/leveldb.h \
+	        include/kno/rocksdb.h
 
-# Headers which don't live in include/framerd
+# Headers which don't live in include/kno
 SRC_HEADERS=src/lisp/biginternals.h 		\
 	src/eval/eval_internals.h 		\
 	src/exe/webcommon.h 			\
@@ -165,8 +165,8 @@ APPLY_OBJS=\
 	src/apply/ffi.o src/apply/cprims.o			\
 	src/apply/lexenv.o
 
-REVISION_H   =include/framerd/revision.h
-CONFIG_H     =include/framerd/config.h
+REVISION_H   =include/kno/revision.h
+CONFIG_H     =include/kno/config.h
 CONFIG_HDRS  =${REVISION_H} ${CONFIG_H}
 
 STORAGE_OBJS=\
@@ -357,19 +357,19 @@ CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
 	     src/cmodules/hyphenate.o \
 	     ${SUNDOWN_OBJS} ${TIDY_OBJECTS}
 
-EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ exe/fdbatch@suffix@  \
-	    exe/fdservlet@suffix@ exe/fdserver@suffix@
-STATIC_EXECUTABLES=static/fdexec@suffix@ static/fdconsole@suffix@ \
-	static/fdbatch@suffix@ \
-	static/fdservlet@suffix@ static/fdserver@suffix@
-DEBUG_EXECUTABLES=dbg/fdexec dbg/fdconsole \
-	dbg/fdbatch dbg/fdservlet dbg/fdserver
-SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig etc/fdconfig \
-	etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall \
-	etc/fd_start_daemons etc/fd_start_servlets etc/fd_stop_jobs \
-	etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog  \
-	etc/fdrestart etc/fdctl etc/fdgdb etc/fdbgexec \
-	etc/fdcleanup etc/fdjob
+EXECUTABLES=exe/knox@suffix@ exe/knosh@suffix@ exe/knotask@suffix@  \
+	    exe/knosrv@suffix@ exe/knod@suffix@
+STATIC_EXECUTABLES=static/knox@suffix@ static/knosh@suffix@ \
+	static/knotask@suffix@ \
+	static/knosrv@suffix@ static/knod@suffix@
+DEBUG_EXECUTABLES=dbg/knox dbg/knosh \
+	dbg/knotask dbg/knosrv dbg/knod
+SHELL_SCRIPTS=etc/knosetconfig etc/knogetconfig etc/knoconfig \
+	etc/knostart etc/knostop etc/knostartall etc/knostopall \
+	etc/kno_start_daemons etc/kno_start_servlets etc/kno_stop_jobs \
+	etc/knosignal etc/knoinject etc/knostatus etc/knolog  \
+	etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec \
+	etc/knocleanup etc/knojob
 SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
 	       exe/scripts/hashindexop exe/scripts/reset-pool \
                exe/scripts/make-oidpool exe/scripts/split-pool \
@@ -380,7 +380,7 @@ CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config $(DESTDIR)@share_d
 	$(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \
 	$(DESTDIR)@local_module_dir@ $(DESTDIR)@local_safe_module_dir@
 
-CLEANDIRS=include/framerd src/drivers/headers 		\
+CLEANDIRS=include/kno src/drivers/headers 		\
 	src/lisp src/apply src/storage src/drivers	\
 	src/eval src/prims				\
 	src/text src/web src/extmods			\
@@ -389,12 +389,12 @@ CLEANDIRS=include/framerd src/drivers/headers 		\
 	src/cmodules/ext/tidy5 				\
 	etc
 
-FRAMERD_HEADERS= \
+KNO_HEADERS= \
 	$(LISP_HEADERS) $(STORAGE_HEADERS) \
 	$(APPLY_HEADERS) $(SCHEME_HEADERS) \
 	$(DRIVERS_H) $(SRC_HEADERS)
 
-FRAMERD_SOURCES=\
+KNO_SOURCES=\
 	src/lisp/cons.c src/lisp/oids.c src/lisp/symbols.c           		\
 	src/lisp/copy.c src/lisp/recycle.c src/lisp/misctypes.c       		\
         src/lisp/compare.c src/lisp/walk.c src/lisp/fcnids.c			\
@@ -453,9 +453,9 @@ FRAMERD_SOURCES=\
 	src/web/uriprims.c src/web/mime.c src/web/email.c src/web/curl.c	\
 	src/text/texttools.c src/text/match.c                			\
 	src/text/porter.c src/text/phonetic.c                			\
-	src/exe/fdconsole.c                                            		\
-	src/exe/fdexec.c src/exe/fdbatch.c                             		\
-	src/exe/fdservlet.c src/exe/fdcgiexec.c src/exe/fdserver.c
+	src/exe/knosh.c                                            		\
+	src/exe/knox.c src/exe/knotask.c                             		\
+	src/exe/knosrv.c src/exe/knocgi.c src/exe/knod.c
 
 CMODULE_SOURCES=\
 	src/cmodules/odbc.c src/cmodules/sqlite.c 				\
@@ -582,10 +582,10 @@ configure: configure.ac etc/release
 	@if test -f .staticautoconf; then \
 	    echo "WARNING: configure may be out of date"; \
 	else echo "REBUILDING configure"; autoconf; fi
-include/framerd/config.h: include/framerd/config.h.in
+include/kno/config.h: include/kno/config.h.in
 	if test -x ./config.status; then ./config.status; fi
 	touch $@
-include/framerd/fdsource.h: include/framerd/fdsource.h.in
+include/kno/knosource.h: include/kno/knosource.h.in
 	if test -x ./config.status; then ./config.status; fi
 	touch $@
 
@@ -604,9 +604,9 @@ dbg/.gdbinit: dbg/.gdbinit.in ./config.status
 exe/.gdbinit: exe/.gdbinit.in ./config.status
 	./config.status
 
-etc: etc/logrotate etc/install-script etc/framerd-rc.d etc/logrotate    \
-        etc/fdconfig etc/fdsetconfig etc/fdgetconfig                    \
-        etc/fdjob etc/fdsignal etc/fdsignal                             \
+etc: etc/logrotate etc/install-script etc/kno-rc.d etc/logrotate    	\
+        etc/knoconfig etc/knosetconfig etc/knogetconfig			\
+        etc/knojob etc/knosignal                             		\
         tests/lisp/.gdbinit tests/storage/.gdbinit dbg/.gdbinit         \
         exe/.gdbinit
 
@@ -633,7 +633,7 @@ dbginstall:
 	@$(MSG) CC $@ $<
 
 exe/scripts/%: src/scripts/%.scm
-	@$(ECHO) "#!"@prefix@/bin/fdexec | cat - $< > $@
+	@$(ECHO) "#!"@prefix@/bin/knox | cat - $< > $@
 	@chmod a+x $@
 	@$(MSG) MAKESCRIPT $@ $<
 
@@ -650,16 +650,16 @@ exe/%@suffix@: src/exe/%.c ${CONFIG_HDRS}
 src/cmodules/%.o: src/cmodules/%.c ${CONFIG_HDRS}
 	@$(CC) $(CFLAGS) -o $@ -c $< ${MODLIBS}
 	@$(MSG) CC_MODULE  $@ $<
-lib/framerd/%.so: src/cmodules/%.o # ${CMODULE_DEPENDS}
+lib/kno/%.so: src/cmodules/%.o # ${CMODULE_DEPENDS}
 	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS}
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO  $@ $<
-lib/framerd/%.dylib: src/cmodules/%.o ${CMODULE_DEPENDS}
+lib/kno/%.dylib: src/cmodules/%.o ${CMODULE_DEPENDS}
 	@$(MACLIBTOOL) -install_name \
 		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
 		$(DYLIB_FLAGS) ${MODLIBS} -o $@ $< 
 	@$(MSG) MACLIBTOOL  $@ $<
-lib/framerd/%.@FDMAJOR@.dylib: lib/framerd/%.dylib
+lib/kno/%.@FDMAJOR@.dylib: lib/kno/%.dylib
 	@ln -sf $(*F).dylib $@
 
 dbg/%: src/exe/%.c $(STATIC_LIBS)
@@ -717,7 +717,7 @@ $(LIBINSTALLDIR)/%@suffix@.@shared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_
 	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 
-${CMODULES}/%@suffix@.@vshared_suffix@: lib/framerd/%@suffix@.@shared_suffix@
+${CMODULES}/%@suffix@.@vshared_suffix@: lib/kno/%@suffix@.@shared_suffix@
 	@echo Installing $@
 	@$(SYSINSTALL) -d $(@D)
 	@$(SYSINSTALL) $< $@
@@ -753,20 +753,20 @@ src/cmodules/ext/tidy5/%.o: src/cmodules/ext/tidy5/%.c $(SUNDOWN_H_FILES)
 	@$(CC) $(CFLAGS) -I./src/cmodules/ext/tidy5/ -o $@ -c $<
 	@$(MSG) CC "(TIDY5)" $@
 
-exe/fdexec@suffix@ exe/fdbatch@suffix@ exe/fdconsole@suffix@: \
+exe/knox@suffix@ exe/knotask@suffix@ exe/knosh@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
-exe/fdcgiexec@suffix@ exe/fdserver@suffix@ exe/fdservlet@suffix@: \
+exe/knocgi@suffix@ exe/knod@suffix@ exe/knosrv@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
-exe/fdcgiexec@suffix@ exe/fdservlet@suffix@: src/exe/webcommon.h
+exe/knocgi@suffix@ exe/knosrv@suffix@: src/exe/webcommon.h
 
 # Custom rules for making include files with CSS headers
 src/web/htmlout.o: src/web/backtrace_css.h src/web/backtrace_js.h src/web/backtrace.css src/web/backtrace.js
 src/web/backtrace_css.h: src/web/backtrace.css etc/text2include
 	@echo Generating $@ from text in $<
-	@./etc/text2include FD_BACKTRACE_CSS $< $@
+	@./etc/text2include KNO_BACKTRACE_CSS $< $@
 src/web/backtrace_js.h: src/web/backtrace.js etc/text2include
 	@echo Generating $@ from text in $<
-	@./etc/text2include FD_BACKTRACE_JS $< $@
+	@./etc/text2include KNO_BACKTRACE_JS $< $@
 
 # This can be helpful for some debugging 
 etc/usememory: etc/usememory.c
@@ -791,11 +791,11 @@ dbtestbin: libs tests/storage/makefile tests/storage/.gdbinit
 cmodules: dbmodules @CMODULES@
 dbmodules: @DBMODULES@
 
-dbg/fdservlet.webuser: dbg/fdservlet
+dbg/knosrv.webuser: dbg/knosrv
 	@echo "Making" $@
-	@cp dbg/fdservlet dbg/fdservlet.webuser
-	@sudo chown @webuser@:@admin_group@ dbg/fdservlet.webuser
-	@sudo chmod ug+s dbg/fdservlet.webuser
+	@cp dbg/knosrv dbg/knosrv.webuser
+	@sudo chown @webuser@:@admin_group@ dbg/knosrv.webuser
+	@sudo chmod ug+s dbg/knosrv.webuser
 
 # Uninstall
 
@@ -803,7 +803,7 @@ LIBBASE=libfdcore libfdstorage libfddrivers libfddbserv \
 	libfdscheme libfdweb libtexttools
 
 uninstall-core:
-	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(EXECUTABLES) fdcgiexec
+	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(EXECUTABLES) knocgi
 	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(SHELL_SCRIPTS)
 	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(SCHEME_SCRIPTS)
 	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.a" $(LIBBASE)
@@ -833,24 +833,24 @@ uninstall: uninstall-core
 
 # Utility targets
 
-TAGS: makefile.in configure.ac include/framerd/config.h.in		\
+TAGS: makefile.in configure.ac include/kno/config.h.in		\
 		tests/lisp/*.c tests/storage/*.c  			\
-		src/exe/*.c src/exe/*.h include/framerd/*.h 		\
+		src/exe/*.c src/exe/*.h include/kno/*.h 		\
 		src/lisp/*.c src/support/*.c src/apply/*.c		\
 		src/storage/*.c src/drivers/*.c 			\
 		src/eval/*.c src/prims/*.c     				\
 		src/text/*.c src/web/*.c 				\
 		src/cmodules/*.c 					\
 		src/libscm/*.scm src/libscm/*/*.scm			\
-		include/framerd/components/*.h				\
+		include/kno/components/*.h				\
 		etc/*.in ${SRC_HEADERS} 				\
 		dbg/.gdbinit.in tests/*.scm 
 	@echo Building TAGS file
 	@etags makefile.in configure.ac 		\
-		include/framerd/config.h.in     	\
+		include/kno/config.h.in     	\
 	        tests/*/*.in tests/*.in dbg/*.in 	\
-		etc/*.in include/framerd/*.h 		\
-		include/framerd/components/*.h		\
+		etc/*.in include/kno/*.h 		\
+		include/kno/components/*.h		\
 		${SRC_HEADERS};
 	@etags -o TAGS -a src/exe/*.c src/exe/*.h 
 	@etags -o TAGS -a src/lisp/*.c src/support/*.c src/apply/*.c 
@@ -864,23 +864,23 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in		\
 	@find src/libscm/ -name "*.scm" -type f | grep -v /module.scm | \
 		xargs etags -a -o TAGS;
 
-CTAGS: makefile.in configure.ac include/framerd/config.h.in	\
+CTAGS: makefile.in configure.ac include/kno/config.h.in	\
 	tests/lisp/*.c tests/storage/*.c tests/*.c	\
 	src/lisp/*.c src/support/*.c src/apply/*.c src/storage/*.c 		\
 	src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c 	\
-	include/framerd/*.h ${SRC_HEADERS} etc/*.in 		\
-	include/framerd/components/*.h				\
+	include/kno/*.h ${SRC_HEADERS} etc/*.in 		\
+	include/kno/components/*.h				\
 	src/exe/*.c src/cmodules/*.c
 	@echo Building C TAGS file
 	@etags -o CTAGS 
-	      makefile.in configure.ac include/framerd/config.h.in      \
+	      makefile.in configure.ac include/kno/config.h.in      \
 	      tests/lisp/*.c tests/apply/*.c tests/storage/*.c 		\
 	      tests/eval/*.c tests/prims/*.c src/exe/*.c src/exe/*.h	\
 	      src/lisp/*.c src/support/*.c src/storage/*.c 		\
 	      src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c	\
 	      src/cmodules/*.c src/cmodules/*.h				\
-	      include/framerd/*.h etc/*.in 				\
-	      include/framerd/components/*.h				\
+	      include/kno/*.h etc/*.in 				\
+	      include/kno/components/*.h				\
 	      ${SRC_HEADERS}
 
 CSOURCETAGS: src/lisp/*.c src/support/*.c src/apply/*.c	\
@@ -888,7 +888,7 @@ CSOURCETAGS: src/lisp/*.c src/support/*.c src/apply/*.c	\
 	src/web/*.c src/text/*.c 			\
 	src/drivers/*.c src/drivers/headers/*.h		\
 	src/exe/*.c src/exe/*.h
-	@echo Building FRAMERD_SOURCE TAGS file
+	@echo Building KNO_SOURCE TAGS file
 	@etags -o $@ $^
 
 SCHEMETAGS: ${SCHEME_MODULES}
@@ -924,11 +924,11 @@ clean: tidy
 	rm -rf etc/*.o etc/.libs
 	rm -f lib/*.a lib/*@suffix@.so lib/*.dylib
 	rm -f lib/*@suffix@.so.*
-	rm -f lib/framerd/*@suffix@.so lib/framerd/*@suffix@.so.* 
-	rm -f lib/framerd/*.dylib
-	rm -f exe/fdexec@suffix@ exe/fdbatch@suffix@
-	rm -f exe/fdservlet@suffix@ exe/fdserver@suffix@
-	rm -f exe/fdconsole@suffix@ exe/fdcgiexec@suffix@
+	rm -f lib/kno/*@suffix@.so lib/kno/*@suffix@.so.* 
+	rm -f lib/kno/*.dylib
+	rm -f exe/knox@suffix@ exe/knotask@suffix@
+	rm -f exe/knosrv@suffix@ exe/knod@suffix@
+	rm -f exe/knosh@suffix@ exe/knocgi@suffix@
 	rm -f TAGS
 	cd tests/lisp; make -s clean
 	cd tests/storage; make -s clean
@@ -939,8 +939,8 @@ distclean: clean
 	rm -f tests/lisp/makefile tests/storage/makefile tests/makefile
 	rm -f tests/lisp/.gdbinit tests/storage/.gdbinit tests/.gdbinit
 	rm -f dbg/gdbinit
-	rm -f etc/fdgetconfig etc/fdsetconfig etc/framerd-rc.d
-	rm -f exe/.gdbinit include/framerd/config.h include/framerd/revision.h
+	rm -f etc/fdgetconfig etc/fdsetconfig etc/kno-rc.d
+	rm -f exe/.gdbinit include/kno/config.h include/kno/revision.h
 
 commit:
 	git commit
@@ -1039,12 +1039,12 @@ lib/libtexttools@suffix@.dylib: $(TEXT_OBJS) \
 src/cmodules/mysql.o: src/cmodules/mysql.c ${CONFIG_HDRS}
 	@$(CC) @MYSQL_CFLAGS@ $(CFLAGS)  -o $@ -c $<
 	@$(MSG) CC "(MYSQL)" $@
-lib/framerd/mysql.so: src/cmodules/mysql.o # ${CMODULE_DEPENDS}
+lib/kno/mysql.so: src/cmodules/mysql.o # ${CMODULE_DEPENDS}
 	@$(MKSO) -L./ -L./lib \
 		-o $@ $< @MYSQL_LDFLAGS@ # ${CMODULE_DEPENDS}
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(MYSQL)" $@
-lib/framerd/mysql.dylib: src/cmodules/mysql.o ${CMODULE_DEPENDS}
+lib/kno/mysql.dylib: src/cmodules/mysql.o ${CMODULE_DEPENDS}
 	@$(MACLIBTOOL) -install_name \
 		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
 		$(DYLIB_FLAGS) \
@@ -1054,11 +1054,11 @@ lib/framerd/mysql.dylib: src/cmodules/mysql.o ${CMODULE_DEPENDS}
 src/cmodules/mongodb.o: src/cmodules/mongodb.c ${CONFIG_HDRS} @MONGODB_BUNDLED@
 	@$(CC) @MONGODB_CFLAGS@ $(CFLAGS)  -o $@ -c $<
 	@$(MSG) CC "(MONGODB)" $@
-lib/framerd/mongodb.so: src/cmodules/mongodb.o @MONGODB_BUNDLED@
+lib/kno/mongodb.so: src/cmodules/mongodb.o @MONGODB_BUNDLED@
 	@$(MKSO) -L./ -L./lib@ -o $@ $< @MONGODB_LDFLAGS@
 	@ln -sf $(@F) $(@D)/$(@F).4
 	@$(MSG) MKSO "(MONGODB)" $@
-lib/framerd/mongodb.dylib: src/cmodules/mongodb.o ${CMODULE_DEPENDS} @MONGODB_BUNDLED@
+lib/kno/mongodb.dylib: src/cmodules/mongodb.o ${CMODULE_DEPENDS} @MONGODB_BUNDLED@
 	@$(MACLIBTOOL) -install_name \
 		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
 		$(DYLIB_FLAGS) \
@@ -1068,11 +1068,11 @@ lib/framerd/mongodb.dylib: src/cmodules/mongodb.o ${CMODULE_DEPENDS} @MONGODB_BU
 src/cmodules/imagick.o: src/cmodules/imagick.c ${CONFIG_HDRS}
 	@$(CC) @IMAGICK_CFLAGS@ $(CFLAGS)  -o $@ -c $<
 	@$(MSG) CC "(IMAGICK)" $@
-lib/framerd/imagick.so: src/cmodules/imagick.o
+lib/kno/imagick.so: src/cmodules/imagick.o
 	$(MKSO) -L./ -L./lib -o $@ $< @IMAGICK_LDFLAGS@
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(IMAGICK)" $@
-lib/framerd/imagick.dylib: src/cmodules/imagick.o ${CMODULE_DEPENDS}
+lib/kno/imagick.dylib: src/cmodules/imagick.o ${CMODULE_DEPENDS}
 	@$(MACLIBTOOL) -install_name \
 		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
 		$(DYLIB_FLAGS) \
@@ -1082,11 +1082,11 @@ lib/framerd/imagick.dylib: src/cmodules/imagick.o ${CMODULE_DEPENDS}
 src/cmodules/ziptools.o: src/cmodules/ziptools.c ${CONFIG_HDRS}
 	@$(CC) $(CFLAGS) @LIBZIP_CFLAGS@ -o $@ -c $<
 	@$(MSG) CC "(ZIPTOOLS)"  $@ $<
-lib/framerd/ziptools.so: src/cmodules/ziptools.o
+lib/kno/ziptools.so: src/cmodules/ziptools.o
 	@$(MKSO) -L./ -L./lib -o $@ $< @LIBZIP_LDFLAGS@
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(ZIPTOOLS)"  $@ $<
-lib/framerd/ziptools.dylib: src/cmodules/ziptools.o ${CMODULE_DEPENDS}
+lib/kno/ziptools.dylib: src/cmodules/ziptools.o ${CMODULE_DEPENDS}
 	@$(MACLIBTOOL) -install_name \
 		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
 		$(DYLIB_FLAGS) \
@@ -1096,22 +1096,22 @@ lib/framerd/ziptools.dylib: src/cmodules/ziptools.o ${CMODULE_DEPENDS}
 src/cmodules/libarchive.o: src/cmodules/libarchive.c ${CONFIG_HDRS}
 	@$(CC) $(CFLAGS) @LIBZIP_CFLAGS@ -o $@ -c $<
 	@$(MSG) CC "(LIBARCHIVE)"  $@ $<
-lib/framerd/libarchive.so: src/cmodules/libarchive.o
+lib/kno/libarchive.so: src/cmodules/libarchive.o
 	@$(MKSO) -L./ -L./lib -o $@ $< -larchive
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(LIBARCHIVE)"  $@ $<
-lib/framerd/libarchive.dylib: src/cmodules/libarchive.o ${CMODULE_DEPENDS}
+lib/kno/libarchive.dylib: src/cmodules/libarchive.o ${CMODULE_DEPENDS}
 	@$(MACLIBTOOL) -install_name \
 		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
 		$(DYLIB_FLAGS) \
 		-o $@ $<
 	@$(MSG) MACLIBTOOL "(LIBARCHIVE)" $@
 
-lib/framerd/exif.so: src/cmodules/exif.o
+lib/kno/exif.so: src/cmodules/exif.o
 	@$(MKSO) -L./ -L./lib -o $@ $^ $(MODLIBS) -lexif
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO $@
-lib/framerd/exif.dylib: src/cmodules/exif.o ${CMODULE_DEPENDS}
+lib/kno/exif.dylib: src/cmodules/exif.o ${CMODULE_DEPENDS}
 	@$(MACLIBTOOL) -install_name \
 		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
 		$(DYLIB_FLAGS) \
@@ -1119,58 +1119,58 @@ lib/framerd/exif.dylib: src/cmodules/exif.o ${CMODULE_DEPENDS}
 	@$(MSG) MACLIBTOOL $@
 
 src/cmodules/crypto.o: src/cmodules/crypto.c
-lib/framerd/crypto.so: src/cmodules/crypto.o
-lib/framerd/crypto.dylib: src/cmodules/crypto.o ${CMODULE_DEPENDS}
+lib/kno/crypto.so: src/cmodules/crypto.o
+lib/kno/crypto.dylib: src/cmodules/crypto.o ${CMODULE_DEPENDS}
 
-lib/framerd/odbc.o: src/cmodules/odbc.c
-lib/framerd/odbc.so: src/cmodules/odbc.o
-lib/framerd/odbc.dylib: src/cmodules/odbc.o ${CMODULE_DEPENDS}
-lib/framerd/odbc.so : MODLIBS="@ODBC_LIBS@"
-lib/framerd/odbc.dylib : MODLIBS="@ODBC_LIBS@"
+lib/kno/odbc.o: src/cmodules/odbc.c
+lib/kno/odbc.so: src/cmodules/odbc.o
+lib/kno/odbc.dylib: src/cmodules/odbc.o ${CMODULE_DEPENDS}
+lib/kno/odbc.so : MODLIBS="@ODBC_LIBS@"
+lib/kno/odbc.dylib : MODLIBS="@ODBC_LIBS@"
 
-lib/framerd/sqlite.o: src/cmodules/sqlite.c
-lib/framerd/sqlite.so: src/cmodules/sqlite.o
-lib/framerd/sqlite.dylib: src/cmodules/sqlite.o ${CMODULE_DEPENDS}
+lib/kno/sqlite.o: src/cmodules/sqlite.c
+lib/kno/sqlite.so: src/cmodules/sqlite.o
+lib/kno/sqlite.dylib: src/cmodules/sqlite.o ${CMODULE_DEPENDS}
 
-lib/framerd/libarchive.o: src/cmodules/libarchive.c
-lib/framerd/libarchive.so: src/cmodules/libarchive.o
-lib/framerd/libarchive.dylib: src/cmodules/libarchive.o ${CMODULE_DEPENDS}
+lib/kno/libarchive.o: src/cmodules/libarchive.c
+lib/kno/libarchive.so: src/cmodules/libarchive.o
+lib/kno/libarchive.dylib: src/cmodules/libarchive.o ${CMODULE_DEPENDS}
 
-lib/framerd/qrcode.so : MODLIBS=-lqrencode -lpng
-lib/framerd/qrcode.o: src/cmodules/qrcode.c
-lib/framerd/qrcode.so: src/cmodules/qrcode.o
-lib/framerd/qrcode.dylib: src/cmodules/qrcode.o ${CMODULE_DEPENDS}
+lib/kno/qrcode.so : MODLIBS=-lqrencode -lpng
+lib/kno/qrcode.o: src/cmodules/qrcode.c
+lib/kno/qrcode.so: src/cmodules/qrcode.o
+lib/kno/qrcode.dylib: src/cmodules/qrcode.o ${CMODULE_DEPENDS}
 
-lib/framerd/hyphenate.so : MODLIBS=-lhyphen
-lib/framerd/hyphenate.o: src/cmodules/hyphenate.c
-lib/framerd/hyphenate.so: src/cmodules/hyphenate.o
-lib/framerd/hyphenate.dylib: src/cmodules/hyphenate.o ${CMODULE_DEPENDS}
+lib/kno/hyphenate.so : MODLIBS=-lhyphen
+lib/kno/hyphenate.o: src/cmodules/hyphenate.c
+lib/kno/hyphenate.so: src/cmodules/hyphenate.o
+lib/kno/hyphenate.dylib: src/cmodules/hyphenate.o ${CMODULE_DEPENDS}
 
-lib/framerd/zlib.so : MODLIBS="-lz"
-lib/framerd/zlib.o: src/cmodules/zlib.c
-lib/framerd/zlib.so: src/cmodules/zlib.o
-lib/framerd/zlib.dylib: src/cmodules/zlib.o
+lib/kno/zlib.so : MODLIBS="-lz"
+lib/kno/zlib.o: src/cmodules/zlib.c
+lib/kno/zlib.so: src/cmodules/zlib.o
+lib/kno/zlib.dylib: src/cmodules/zlib.o
 
-lib/framerd/leveldb.so : MODLIBS="-lleveldb"
-lib/framerd/leveldb.o: src/cmodules/leveldb.c
-lib/framerd/leveldb.so: src/cmodules/leveldb.o
-lib/framerd/leveldb.dylib: src/cmodules/leveldb.o ${CMODULE_DEPENDS}
+lib/kno/leveldb.so : MODLIBS="-lleveldb"
+lib/kno/leveldb.o: src/cmodules/leveldb.c
+lib/kno/leveldb.so: src/cmodules/leveldb.o
+lib/kno/leveldb.dylib: src/cmodules/leveldb.o ${CMODULE_DEPENDS}
 
-lib/framerd/rocksdb.so : MODLIBS="-lrocksdb"
-lib/framerd/rocksdb.o: src/cmodules/rocksdb.c
-lib/framerd/rocksdb.so: src/cmodules/rocksdb.o
-lib/framerd/rocksdb.dylib: src/cmodules/rocksdb.o ${CMODULE_DEPENDS}
+lib/kno/rocksdb.so : MODLIBS="-lrocksdb"
+lib/kno/rocksdb.o: src/cmodules/rocksdb.c
+lib/kno/rocksdb.so: src/cmodules/rocksdb.o
+lib/kno/rocksdb.dylib: src/cmodules/rocksdb.o ${CMODULE_DEPENDS}
 
-lib/framerd/gperftools.so : MODLIBS="-lprofiler"
-lib/framerd/gperftools.o: src/cmodules/gperftools.c
-lib/framerd/gperftools.so: src/cmodules/gperftools.o
-lib/framerd/gperftools.dylib: src/cmodules/gperftools.o ${CMODULE_DEPENDS}
+lib/kno/gperftools.so : MODLIBS="-lprofiler"
+lib/kno/gperftools.o: src/cmodules/gperftools.c
+lib/kno/gperftools.so: src/cmodules/gperftools.o
+lib/kno/gperftools.dylib: src/cmodules/gperftools.o ${CMODULE_DEPENDS}
 
-lib/framerd/sundown.so: src/cmodules/sundown.c $(SUNDOWN_OBJECTS)
+lib/kno/sundown.so: src/cmodules/sundown.c $(SUNDOWN_OBJECTS)
 	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/sundown.c $(SUNDOWN_OBJECTS)
 	@$(MSG) MKSO  $@ $<
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
-lib/framerd/sundown.dylib: \
+lib/kno/sundown.dylib: \
 	src/cmodules/sundown.c $(SUNDOWN_OBJECTS) ${CMODULE_DEPENDS}
 	@$(MACLIBTOOL) -install_name \
 		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
@@ -1178,11 +1178,11 @@ lib/framerd/sundown.dylib: \
 		src/cmodules/sundown.c $(SUNDOWN_OBJECTS)
 	@$(MSG) MACLIBTOOL  $@ $<
 
-lib/framerd/tidy.so: src/cmodules/tidy.c $(TIDY_OBJECTS)
+lib/kno/tidy.so: src/cmodules/tidy.c $(TIDY_OBJECTS)
 	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/tidy.c $(TIDY_OBJECTS)
 	@$(MSG) MKSO  $@ $<
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
-lib/framerd/tidy.dylib: \
+lib/kno/tidy.dylib: \
 	src/cmodules/tidy.c $(TIDY_OBJECTS) ${CMODULE_DEPENDS}
 	@$(MACLIBTOOL) -install_name \
 		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
@@ -1195,39 +1195,39 @@ src/python/parseltongue.o: src/python/parseltongue.c
 	$(CC) "-I@PYTHON2_INCLUDE_DIR@" $(CFLAGS) -o $@ -c $< ${MODLIBS}
 	@$(MSG) CC_PYTHON $@ $<
 
-lib/framerd/parseltongue.so: src/python/parseltongue.o
+lib/kno/parseltongue.so: src/python/parseltongue.o
 	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS} -l@PYTHON2_LIB@
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO  $@ $<
-lib/framerd/parseltongue.dylib: src/python/parseltongue.o ${CMODULE_DEPENDS}
+lib/kno/parseltongue.dylib: src/python/parseltongue.o ${CMODULE_DEPENDS}
 	@$(MACLIBTOOL) -install_name \
 		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
 		$(DYLIB_FLAGS) ${MODLIBS} -l@PYTHON2_LIB@ -o $@ $< 
 	@$(MSG) MACLIBTOOL  $@ $<
-lib/framerd/parseltongue.@FDMAJOR@.dylib: lib/framerd/parseltongue.dylib
+lib/kno/parseltongue.@FDMAJOR@.dylib: lib/kno/parseltongue.dylib
 	@ln -sf $(*F).dylib $@
 
-parseltongue: lib/framerd/parseltongue.@shared_suffix@
+parseltongue: lib/kno/parseltongue.@shared_suffix@
 
 install-parseltongue: ${CMODULES}/parseltongue.@shared_suffix@ \
 	${CMODULES}/parseltongue.@vshared_suffix@
 
 # Internationalization stuff
 
-$(LOCALEDIR)/%/LC_MESSAGES/framerd.mo: etc/intl/%.gmo
+$(LOCALEDIR)/%/LC_MESSAGES/kno.mo: etc/intl/%.gmo
 	@$(SUINSTALL) install -D $^ $@
 
-etc/intl/framerd.pot:
-	@XGETTEXT@ --from-code=utf-8 -dfdstorage -oetc/intl/framerd.pot -k_ \
-		$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
-etc/intl/%.po: etc/intl/framerd.pot
+etc/intl/kno.pot:
+	@XGETTEXT@ --from-code=utf-8 -dfdstorage -oetc/intl/kno.pot -k_ \
+		$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
+etc/intl/%.po: etc/intl/kno.pot
 	@MSGMERGE@ -U $@ $<
 etc/intl/%.gmo: etc/intl/%.po
 	@MSGFMT@ $^ -o $@ 
 
-install-i18n: $(LOCALEDIR)/fr/LC_MESSAGES/framerd.mo   \
-		$(LOCALEDIR)/es/LC_MESSAGES/framerd.mo \
-		$(LOCALEDIR)/nl/LC_MESSAGES/framerd.mo
+install-i18n: $(LOCALEDIR)/fr/LC_MESSAGES/kno.mo   \
+		$(LOCALEDIR)/es/LC_MESSAGES/kno.mo \
+		$(LOCALEDIR)/nl/LC_MESSAGES/kno.mo
 i18n: etc/intl/fr.gmo etc/intl/nl.gmo etc/intl/es.gmo
 
 # Packaging targets
@@ -1241,64 +1241,64 @@ cleandist cleanrpms cleandeb rpmclean debclean:
 	rm -f dist/debs.signed dist/debs.built dist/debs.done
 	rm -f dist/*.deb dist/*.tar dist/*.gz dist/*.dsc dist/*.changes dist/*.buildinfo
 	find dist -name "*.rpm" -writable | xargs -r rm
-	rm -rf staging/framerd*
+	rm -rf staging/kno*
 
 debfresh freshdeb:
 	make -s debclean
-	rm -f include/framerd/revision.h; make include/framerd/revision.h
+	rm -f include/kno/revision.h; make include/kno/revision.h
 	make -s debian
 
 debupdate:
-	@if [ "${DEBNAME}" = "framerd_${APTVERSION}" ]; then 	\
-	  echo "Debian build of FramerD is up to date"; 		\
+	@if [ "${DEBNAME}" = "kno_${APTVERSION}" ]; then 	\
+	  echo "Debian build of Kno is up to date"; 		\
 	else make debfresh; fi;
 
 # Creating staging areas from GIT
 
-staging/framerd-@FDVERSION@: include/framerd/revision.h \
-	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
-	@git archive --prefix=framerd-@FDVERSION@/ \
-	            -o staging/framerd-@FDVERSION@.tar HEAD
-	cd src/extmods; git archive --prefix=framerd-@FDVERSION@/src/extmods/ \
-	            -o ../../staging/framerd_modules-@FDVERSION@.tar HEAD;
-	cd staging; tar -xf framerd-@FDVERSION@.tar; rm framerd-@FDVERSION@.tar
-	cd staging; tar -xf framerd_modules-@FDVERSION@.tar; rm framerd_modules-@FDVERSION@.tar;
-	cp include/framerd/revision.h staging/framerd-@FDVERSION@/etc/revision.h;
-	cp dist/framerd-@FDMAJOR@.@FDMINOR@.spec staging/framerd-@FDVERSION@/dist
-staging/framerd_@FDVERSION@: include/framerd/revision.h \
-	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
-	@git archive --prefix=framerd_@FDVERSION@/ \
-	            -o staging/framerd_@FDVERSION@.tar HEAD;
-	cd src/extmods; git archive --prefix=framerd_@FDVERSION@/src/extmods/ \
-	            -o ../../staging/framerd_modules_@FDVERSION@.tar HEAD;
-	cd staging; tar -xf framerd_@FDVERSION@.tar; rm framerd_@FDVERSION@.tar;
-	cd staging; tar -xf framerd_modules_@FDVERSION@.tar; rm framerd_modules_@FDVERSION@.tar;
-	cp include/framerd/revision.h staging/framerd_@FDVERSION@/etc/revision.h;
-	cd staging; tar -czf $(DEBNAME).orig.tar.gz framerd_@FDVERSION@;
-	mv staging/framerd_@FDVERSION@/dist/debian staging/framerd_@FDVERSION@/debian;
-	etc/gitchangelog framerd ${CODENAME} < dist/debian/changelog \
-	   > staging/framerd_@FDVERSION@/debian/changelog;
-staging/framerd-@FDVERSION@.tar.gz: \
-	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
-	make -s staging/framerd-@FDVERSION@
-	tar -czf staging/framerd-@FDVERSION@.tar.gz -C staging framerd-@FDVERSION@
-	cd staging; ln -s ${DEBNAME}.tar.gz framerd_@FDVERSION@.tar.gz
+staging/kno-@FDVERSION@: include/kno/revision.h \
+	$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
+	@git archive --prefix=kno-@FDVERSION@/ \
+	            -o staging/kno-@FDVERSION@.tar HEAD
+	cd src/extmods; git archive --prefix=kno-@FDVERSION@/src/extmods/ \
+	            -o ../../staging/kno_modules-@FDVERSION@.tar HEAD;
+	cd staging; tar -xf kno-@FDVERSION@.tar; rm kno-@FDVERSION@.tar
+	cd staging; tar -xf kno_modules-@FDVERSION@.tar; rm kno_modules-@FDVERSION@.tar;
+	cp include/kno/revision.h staging/kno-@FDVERSION@/etc/revision.h;
+	cp dist/kno-@FDMAJOR@.@FDMINOR@.spec staging/kno-@FDVERSION@/dist
+staging/kno_@FDVERSION@: include/kno/revision.h \
+	$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
+	@git archive --prefix=kno_@FDVERSION@/ \
+	            -o staging/kno_@FDVERSION@.tar HEAD;
+	cd src/extmods; git archive --prefix=kno_@FDVERSION@/src/extmods/ \
+	            -o ../../staging/kno_modules_@FDVERSION@.tar HEAD;
+	cd staging; tar -xf kno_@FDVERSION@.tar; rm kno_@FDVERSION@.tar;
+	cd staging; tar -xf kno_modules_@FDVERSION@.tar; rm kno_modules_@FDVERSION@.tar;
+	cp include/kno/revision.h staging/kno_@FDVERSION@/etc/revision.h;
+	cd staging; tar -czf $(DEBNAME).orig.tar.gz kno_@FDVERSION@;
+	mv staging/kno_@FDVERSION@/dist/debian staging/kno_@FDVERSION@/debian;
+	etc/gitchangelog kno ${CODENAME} < dist/debian/changelog \
+	   > staging/kno_@FDVERSION@/debian/changelog;
+staging/kno-@FDVERSION@.tar.gz: \
+	$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
+	make -s staging/kno-@FDVERSION@
+	tar -czf staging/kno-@FDVERSION@.tar.gz -C staging kno-@FDVERSION@
+	cd staging; ln -s ${DEBNAME}.tar.gz kno_@FDVERSION@.tar.gz
 
-staging/framerd_@FDVERSION@.orig.tar.gz: \
-	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
-	make -s staging/framerd_@FDVERSION@
-	tar -czf staging/$(DEBNAME).orig.tar.gz -C staging framerd-@FDVERSION@
-	cd staging; ln -s ${DEBNAME}.orig.tar.gz framerd_@FDVERSION@.orig.tar.gz
+staging/kno_@FDVERSION@.orig.tar.gz: \
+	$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
+	make -s staging/kno_@FDVERSION@
+	tar -czf staging/$(DEBNAME).orig.tar.gz -C staging kno-@FDVERSION@
+	cd staging; ln -s ${DEBNAME}.orig.tar.gz kno_@FDVERSION@.orig.tar.gz
 
 # RPM rules
 
-dist/rpms.ready: staging/framerd-@FDVERSION@ \
-	staging/framerd-@FDVERSION@.tar.gz
+dist/rpms.ready: staging/kno-@FDVERSION@ \
+	staging/kno-@FDVERSION@.tar.gz
 	@buildrpm@ $(RPMFLAGS)  			\
 	   --define="_rpmdir $(RPMDIR)"			\
 	   --define="_srcrpmdir $(RPMDIR)" 		\
 	   --nodeps -ta 				\
-	    staging/framerd-@FDVERSION@.tar.gz && 	\
+	    staging/kno-@FDVERSION@.tar.gz && 	\
 	touch dist/rpms.ready
 dist/rpms.done: dist/rpms.ready
 	@if (test "x$(GPGID)" = "xnone"); then 			\
@@ -1307,17 +1307,17 @@ dist/rpms.done: dist/rpms.ready
 	   echo "Enter passphrase for the RPM signing key:"; 	\
 	   @rpm@ --addsign 					\
 		--define="__gpg_sign_cmd $(RPMGPG)"		\
-		$(RPMDIR)/framerd-@FDVERSION@-*.src.rpm 	\
-		$(RPMDIR)/*/framerd*-@FDVERSION@-*.rpm; 	\
+		$(RPMDIR)/kno-@FDVERSION@-*.src.rpm 	\
+		$(RPMDIR)/*/kno*-@FDVERSION@-*.rpm; 	\
 	   else 						\
 	     echo "Enter passphrase for '$(GPGID)':"; 		\
 	     @rpm@ --addsign --define="_gpg_name $(GPGID)" 	\
 		--define="__gpg_sign_cmd $(RPMGPG)"		\
-		$(RPMDIR)/framerd-@FDVERSION@*.src.rpm 		\
-		$(RPMDIR)/*/framerd*-@FDVERSION@-*.rpm; 	\
+		$(RPMDIR)/kno-@FDVERSION@*.src.rpm 		\
+		$(RPMDIR)/*/kno*-@FDVERSION@-*.rpm; 	\
 	fi && touch dist/rpms.done;
-	@ls -l $(RPMDIR)/framerd-@FDVERSION@-*.src.rpm \
-		$(RPMDIR)/*/framerd*-@FDVERSION@-*.rpm;
+	@ls -l $(RPMDIR)/kno-@FDVERSION@-*.src.rpm \
+		$(RPMDIR)/*/kno*-@FDVERSION@-*.rpm;
 
 rpmupdate update-rpms freshrpms: cleanrpms
 	rm -f dist/rpms.done dist/rpms.ready
@@ -1325,42 +1325,42 @@ rpmupdate update-rpms freshrpms: cleanrpms
 dist/rpms.zip: dist/rpms.done
 	@rm -f dist/rpms.zip
 	@zip dist/rpms.zip \
-		$(RPMDIR)/framerd*-@FDVERSION@-*.src.rpm \
-		$(RPMDIR)/*/framerd-*-@FDVERSION@-*.rpm
+		$(RPMDIR)/kno*-@FDVERSION@-*.src.rpm \
+		$(RPMDIR)/*/kno-*-@FDVERSION@-*.rpm
 
 # Rules for Debian building
 
-dist/debs.built: staging/framerd_@FDVERSION@
-	(cd staging/framerd_@FDVERSION@; \
+dist/debs.built: staging/kno_@FDVERSION@
+	(cd staging/kno_@FDVERSION@; \
 	 dpkg-buildpackage -sa -us -uc -b -rfakeroot) && \
 	touch dist/debs.built;
-dist/debsource.built: staging/framerd_@FDVERSION@
-	(cd staging/framerd_@FDVERSION@; \
+dist/debsource.built: staging/kno_@FDVERSION@
+	(cd staging/kno_@FDVERSION@; \
 	 dpkg-buildpackage -sa -us -uc -F -rfakeroot) && \
 	touch dist/debs.built dist/debsource.built;
 
 dist/debs.signed: dist/debs.built
 	(cd staging; debsign -p${GPG} --re-sign -k${GPGID} 	\
-		framerd_@FDVERSION@*.changes) && 		\
-	(cd staging; cp framerd_@FDVERSION@*.tar.?z ../dist) && \
-	(cd staging; mv framerd*_@FDVERSION@*.*               	\
-			sysv-framerd_@FDVERSION@*.deb  		\
-			upstart-framerd_@FDVERSION@*.deb  	\
-			systemd-framerd_@FDVERSION@*.deb  	\
-			libapache2-mod-fdserv_@FDVERSION@*.deb  \
-			elpa-fdconsole_@FDVERSION@*.deb  \
+		kno_@FDVERSION@*.changes) && 		\
+	(cd staging; cp kno_@FDVERSION@*.tar.?z ../dist) && \
+	(cd staging; mv kno*_@FDVERSION@*.*               	\
+			sysv-kno_@FDVERSION@*.deb  		\
+			upstart-kno_@FDVERSION@*.deb  	\
+			systemd-kno_@FDVERSION@*.deb  	\
+			libapache2-mod-knosrv_@FDVERSION@*.deb  \
+			elpa-knosh_@FDVERSION@*.deb  \
 			../dist) &&                             \
 	touch dist/debs.signed;
 dist/debsource.signed: dist/debsource.built
 	(cd staging; debsign -p${GPG} --re-sign -k${GPGID} 	\
-		framerd_@FDVERSION@*.changes) && 		\
-	(cd staging; cp framerd_@FDVERSION@*.tar.?z ../dist) && \
-	(cd staging; mv framerd*_@FDVERSION@*.*               	\
-			sysv-framerd_@FDVERSION@*.deb  		\
-			upstart-framerd_@FDVERSION@*.deb  	\
-			systemd-framerd_@FDVERSION@*.deb  	\
-			libapache2-mod-fdserv_@FDVERSION@*.deb  \
-			elpa-fdconsole_@FDVERSION@*.deb  \
+		kno_@FDVERSION@*.changes) && 		\
+	(cd staging; cp kno_@FDVERSION@*.tar.?z ../dist) && \
+	(cd staging; mv kno*_@FDVERSION@*.*               	\
+			sysv-kno_@FDVERSION@*.deb  		\
+			upstart-kno_@FDVERSION@*.deb  	\
+			systemd-kno_@FDVERSION@*.deb  	\
+			libapache2-mod-knosrv_@FDVERSION@*.deb  \
+			elpa-knosh_@FDVERSION@*.deb  \
 			../dist) &&                             \
 	touch dist/debsource.signed;
 	touch dist/debs.signed;
@@ -1371,9 +1371,9 @@ dist/debsource.done: dist/debsource.signed
 	touch dist/debsource.done dist/debs.done
 
 install-debian install-debs debinstall installdebs: dist/debs.done
-	@cd dist; @SUDO@ dpkg -i framerd*@FDVERSION@*.deb \
-		elpa-fdconsole*@FDVERSION@*.deb libapache2-mod-fdserv_@FDVERSION@*.deb \
-		systemd-framerd_@FDVERSION@*.deb
+	@cd dist; @SUDO@ dpkg -i kno*@FDVERSION@*.deb \
+		elpa-knosh*@FDVERSION@*.deb libapache2-mod-knosrv_@FDVERSION@*.deb \
+		systemd-kno_@FDVERSION@*.deb
 
 update-local-apt-repo: dist/debs.done
 	for change in dist/*.changes; do \
@@ -1493,16 +1493,16 @@ install-scheme-scripts: $(BININSTALLDIR) $(SCHEME_SCRIPTS)
 install-data: \
 	$(DESTDIR)@config_dir@/boot/ex_daemon.service   \
 	$(DESTDIR)@config_dir@/boot/ex_servlet.service  \
-	$(DESTDIR)@config_dir@/boot/framerd.target	\
+	$(DESTDIR)@config_dir@/boot/kno.target	\
 	$(DESTDIR)@config_dir@/boot/fdaemons.service	\
 	$(DESTDIR)@config_dir@/boot/fdweb.service	\
-	$(DESTDIR)@config_dir@/boot/framerd-rc.d 	\
-	$(DESTDIR)@config_dir@/boot/framerd.conf 	\
+	$(DESTDIR)@config_dir@/boot/kno-rc.d 	\
+	$(DESTDIR)@config_dir@/boot/kno.conf 	\
 	$(DESTDIR)@config_dir@/boot/logrotate
 
-install-fastcgi: $(BININSTALLDIR)/fdcgiexec@suffix@
-$(BININSTALLDIR)/fdcgiexec@suffix@:
-	@$(SYSINSTALL) -p @install_exe_opts@ exe/fdcgiexec@suffix@ $(BININSTALLDIR)
+install-fastcgi: $(BININSTALLDIR)/knocgi@suffix@
+$(BININSTALLDIR)/knocgi@suffix@:
+	@$(SYSINSTALL) -p @install_exe_opts@ exe/knocgi@suffix@ $(BININSTALLDIR)
 
 install-cmodules: @INSTALLCMODULES@
 install-dbmodules: @INSTALLDBMODULES@
@@ -1526,7 +1526,7 @@ install-gperftools: ${CMODULES}/gperftools.@shared_suffix@ ${CMODULES}/gperftool
 
 # Setup targets
 
-workdirs: $(DESTDIR)@framerd_rundir@ $(DESTDIR)@framerd_logdir@ \
+workdirs: $(DESTDIR)@kno_rundir@ $(DESTDIR)@kno_logdir@ \
 	$(DESTDIR)@daemon_rundir@ $(DESTDIR)@daemon_logdir@ \
 	$(DESTDIR)@servlet_rundir@ $(DESTDIR)@servlet_logdir@ \
 	$(DESTDIR)@bugjar@
@@ -1596,7 +1596,7 @@ install-safe-modules: $(DESTDIR)@builtin_safe_module_dir@ \
 
 install-support: $(DESTDIR)@share_dir@
 	cd $(BUILD)/etc; $(SYSINSTALL) @install_file_opts@ 	\
-		gdbinit makefile.include fdconsole.el 		\
+		gdbinit makefile.include knosh.el 		\
 		$(DESTDIR)@share_dir@
 	cd $(BUILD)/src/web; $(SYSINSTALL) @install_file_opts@ 	\
 		webinfo.fdcgi $(DESTDIR)@share_dir@
@@ -1622,54 +1622,54 @@ really-install-libscm:
 	$(SYSINSTALL) @install_file_opts@ src/libscm/brico/data/*		\
 	       $(DESTDIR)${LIBSCM}/brico/data;
 
-logdirs: $(DESTDIR)@framerd_logdir@ $(DESTDIR)@servlet_logdir@ \
+logdirs: $(DESTDIR)@kno_logdir@ $(DESTDIR)@servlet_logdir@ \
 	$(DESTDIR)@daemon_logdir@
 
-statedirs: $(DESTDIR)@rundir@/framerd \
+statedirs: $(DESTDIR)@rundir@/kno \
 	$(DESTDIR)@daemon_rundir@ \
 	$(DESTDIR)@servlet_rundir@ \
 	logdirs
 $(DESTDIR)/etc/init.d:
 	@$(SYSINSTALL) -m 0755 -d $(DESTDIR)/etc/init.d
-$(DESTDIR)/etc/init.d/framerd: etc/framerd-rc.d $(DESTDIR)/etc/init.d
-	@$(MSG) Installing FramerD init.d
+$(DESTDIR)/etc/init.d/kno: etc/kno-rc.d $(DESTDIR)/etc/init.d
+	@$(MSG) Installing Kno init.d
 	@$(SYSINSTALL) -m 0555 @admininstall@ \
-		   etc/framerd-rc.d $(DESTDIR)/etc/init.d/framerd
-$(DESTDIR)@framerd_rundir@:
-	@$(MSG) Installing FramerD run directory
+		   etc/kno-rc.d $(DESTDIR)/etc/init.d/kno
+$(DESTDIR)@kno_rundir@:
+	@$(MSG) Installing Kno run directory
 	@$(SYSINSTALL) -m 0775  @fdaemoninstall@ @admininstall@ -d \
-		   $(DESTDIR)@framerd_rundir@
-$(DESTDIR)@daemon_rundir@: $(DESTDIR)@framerd_rundir@
-	@$(MSG) Installing FramerD daemon run directory
+		   $(DESTDIR)@kno_rundir@
+$(DESTDIR)@daemon_rundir@: $(DESTDIR)@kno_rundir@
+	@$(MSG) Installing Kno daemon run directory
 	@$(SYSINSTALL) -m 0775  @fdaemoninstall@ @admininstall@ -d \
 		   $(DESTDIR)@daemon_rundir@
-$(DESTDIR)@servlet_rundir@: $(DESTDIR)@framerd_rundir@
-	@$(MSG) Installing FramerD servlet run directory
+$(DESTDIR)@servlet_rundir@: $(DESTDIR)@kno_rundir@
+	@$(MSG) Installing Kno servlet run directory
 	@$(SYSINSTALL) -m 0775  @wwwinstall@ @admininstall@ -d \
 		   $(DESTDIR)@servlet_rundir@
-$(DESTDIR)@framerd_logdir@:
-	@$(MSG) Installing FramerD log directory
+$(DESTDIR)@kno_logdir@:
+	@$(MSG) Installing Kno log directory
 	@$(SYSINSTALL) -m 0775 @fdaemoninstall@  @admininstall@ -d \
-		   $(DESTDIR)@framerd_logdir@
-$(DESTDIR)@bugjar@: $(DESTDIR)@framerd_logdir@
-	@$(MSG) Installing FramerD bugjar directory
+		   $(DESTDIR)@kno_logdir@
+$(DESTDIR)@bugjar@: $(DESTDIR)@kno_logdir@
+	@$(MSG) Installing Kno bugjar directory
 	@$(SYSINSTALL) -m 0777 @fdaemoninstall@  @admininstall@ -d \
 		   $(DESTDIR)@bugjar@
-$(DESTDIR)@daemon_logdir@:  $(DESTDIR)@framerd_logdir@
+$(DESTDIR)@daemon_logdir@:  $(DESTDIR)@kno_logdir@
 	@$(SYSINSTALL) -m 0775 @fdaemoninstall@ @admininstall@ \
 		-d $(DESTDIR)@daemon_logdir@
-$(DESTDIR)@servlet_logdir@: $(DESTDIR)@framerd_logdir@
+$(DESTDIR)@servlet_logdir@: $(DESTDIR)@kno_logdir@
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
 		-d $(DESTDIR)@servlet_logdir@
 
 $(DESTDIR)@config_dir@/boot:
 	@$(SYSINSTALL) @install_dir_opts@ $@
 
-setup-sysv: $(DESTDIR)/etc/init.d/framerd statedirs
+setup-sysv: $(DESTDIR)/etc/init.d/kno statedirs
 enable-sysv: setup-sysv
 	@if which update-rc.d; then \
 		$(MSG) Updating rc.d; \
-		$(SUINSTALL) update-rc.d framerd defaults; \
+		$(SUINSTALL) update-rc.d kno defaults; \
 	 fi
 
 info:
@@ -1678,18 +1678,18 @@ info:
 
 startupdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
-setup-upstart: $(DESTDIR)/etc/init/framerd.conf startupdirs
+setup-upstart: $(DESTDIR)/etc/init/kno.conf startupdirs
 
 $(DESTDIR)/etc/init:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)/etc/init
-$(DESTDIR)/etc/init/framerd.conf: etc/framerd.conf $(DESTDIR)/etc/init
-	@$(MSG) Installing framerd Upstart config to $(DESTDIR)/etc/init/framerd.conf
+$(DESTDIR)/etc/init/kno.conf: etc/kno.conf $(DESTDIR)/etc/init
+	@$(MSG) Installing kno Upstart config to $(DESTDIR)/etc/init/kno.conf
 	@$(SYSINSTALL) -m 0555 @admininstall@ \
-		   etc/framerd.conf $(DESTDIR)/etc/init/framerd.conf
+		   etc/kno.conf $(DESTDIR)/etc/init/kno.conf
 
 $(DESTDIR)@systemd_loc@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)@systemd_loc@
-setup-systemd: $(DESTDIR)@systemd_loc@/framerd.target \
+setup-systemd: $(DESTDIR)@systemd_loc@/kno.target \
 		$(DESTDIR)@systemd_loc@/fdaemons.service \
 		$(DESTDIR)@systemd_loc@/fdweb.service \
 		startupdirs
@@ -1701,12 +1701,12 @@ $(DESTDIR)@systemd_loc@/%: etc/% $(DESTDIR)@systemd_loc@
 	   ${SUDO} systemctl daemon-reload; 			\
 	fi
 
-setup-logrotate: etc/logrotate $(DESTDIR)/etc/logrotate.d/framerd logdirs
+setup-logrotate: etc/logrotate $(DESTDIR)/etc/logrotate.d/kno logdirs
 $(DESTDIR)/etc/logrotate.d:
 	@$(SYSINSTALL) -m 0755 -d $@
-$(DESTDIR)/etc/logrotate.d/framerd: etc/logrotate $(DESTDIR)/etc/logrotate.d
+$(DESTDIR)/etc/logrotate.d/kno: etc/logrotate $(DESTDIR)/etc/logrotate.d
 	@$(MSG) Installing logrotate script
-	@$(SYSINSTALL) -T -m 0644 etc/logrotate $(DESTDIR)/etc/logrotate.d/framerd
+	@$(SYSINSTALL) -T -m 0644 etc/logrotate $(DESTDIR)/etc/logrotate.d/kno
 
 setup-allboot: setup-sysv setup-upstart setup-systemd
 
@@ -1770,31 +1770,31 @@ build-setup.redhat:
 
 .PHONY: debian-build-setup rpm-build-setup
 
-# The mod_fdserv module
+# The mod_knosrv module
 
-src/apache2/mod_fdserv.so: src/apache2/mod_fdserv.c @abs_top_srcdir@/fileinfo
-	@$(ECHO) "#define _FILEINFO \""`@abs_top_srcdir@/fileinfo src/apache2/mod_fdserv.c .`"\"" \
-		> src/apache2/mod_fdserv_fileinfo.h
-	${APXS} -DUSEDTBLOCK=@USEDTBLOCK@ -DDEBUG_FDSERV=$(DEBUG_FDSERV) \
-		-c src/apache2/mod_fdserv.c
+src/apache2/mod_knosrv.so: src/apache2/mod_knosrv.c @abs_top_srcdir@/fileinfo
+	@$(ECHO) "#define _FILEINFO \""`@abs_top_srcdir@/fileinfo src/apache2/mod_knosrv.c .`"\"" \
+		> src/apache2/mod_knosrv_fileinfo.h
+	${APXS} -DUSEDTBLOCK=@USEDTBLOCK@ -DDEBUG_KNOSRV=$(DEBUG_KNOSRV) \
+		-c src/apache2/mod_knosrv.c
 
-mod_fdserv: src/apache2/mod_fdserv.so
+mod_knosrv: src/apache2/mod_knosrv.so
 
 # For OSX, try this
-# apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a -i -c src/apache2/mod_fdserv.c
-install-fdserv: src/apache2/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
+# apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a -i -c src/apache2/mod_knosrv.c
+install-knosrv: src/apache2/mod_knosrv.so $(DESTDIR)@apache_modinfo@ \
 	$(DESTDIR)@apache_modules_dir@ $(DESTDIR)@servlet_logdir@
-	@cd etc; $(SYSINSTALL) @install_file_opts@ fdserv.conf \
+	@cd etc; $(SYSINSTALL) @install_file_opts@ knosrv.conf \
 			$(DESTDIR)@apache_modinfo@;
-	@cd etc; $(SYSINSTALL) @install_file_opts@ fdserv.load \
+	@cd etc; $(SYSINSTALL) @install_file_opts@ knosrv.load \
 			$(DESTDIR)@apache_modinfo@;
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
-			-d $(DESTDIR)@rundir@/fdserv;
-	@cd src/apache2; if test -f mod_fdserv.so; \
-		then $(SUINSTALL) ${APXS} -i mod_fdserv.so; \
-		else $(SUINSTALL) ${APXS} -i mod_fdserv.la; \
+			-d $(DESTDIR)@rundir@/knosrv;
+	@cd src/apache2; if test -f mod_knosrv.so; \
+		then $(SUINSTALL) ${APXS} -i mod_knosrv.so; \
+		else $(SUINSTALL) ${APXS} -i mod_knosrv.la; \
 		fi
-	@echo Installed fdserv module with @rundir@/fdserv @logdir@/fdserv
+	@echo Installed knosrv module with @rundir@/knosrv @logdir@/knosrv
 
 $(DESTDIR)@apache_modules_dir@:
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
@@ -1803,20 +1803,20 @@ $(DESTDIR)@apache_modinfo@:
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
 		-d $(DESTDIR)@apache_modinfo@
 
-update-fdserv: src/apache2/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
+update-knosrv: src/apache2/mod_knosrv.so $(DESTDIR)@apache_modinfo@ \
 		$(DESTDIR)@apache_modules_dir@
-	@$(MSG) "STOPPING and STARTING Apache to INSTALL NEW mod_fdserv"
+	@$(MSG) "STOPPING and STARTING Apache to INSTALL NEW mod_knosrv"
 	@$(MSG) "THIS REQUIRES sudo PRIVILEGES; you may be prompted for your password"
 	sudo apachectl stop
-	cd etc; sudo ${INSTALL} @install_file_opts@ fdserv.conf fdserv.load \
+	cd etc; sudo ${INSTALL} @install_file_opts@ knosrv.conf knosrv.load \
 			$(DESTDIR)@apache_modinfo@;
 	$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
-			-d $(DESTDIR)@rundir@/fdserv;
+			-d $(DESTDIR)@rundir@/knosrv;
 	$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
-			-d $(DESTDIR)@logdir@/fdserv;
-	cd src/apache2; if test -f mod_fdserv.so; \
-		then sudo ${APXS} -i mod_fdserv.so; \
-		else sudo ${APXS} -i mod_fdserv.la; fi
+			-d $(DESTDIR)@logdir@/knosrv;
+	cd src/apache2; if test -f mod_knosrv.so; \
+		then sudo ${APXS} -i mod_knosrv.so; \
+		else sudo ${APXS} -i mod_knosrv.la; fi
 	sleep 5; sudo apachectl start
 
 # Test targets
@@ -1835,7 +1835,7 @@ tests: testclean
 	 echo "#### Can't test primitives on protected files, enable with 'make private_files'"; \
 	 fi;
 
-tests.log: tests/fdexec tests/makefile.in makefile
+tests.log: tests/knox tests/makefile.in makefile
 	@echo "#### Running test scripts, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@echo "#### Note that killed/exited messages for the 'countup' scripts are normal"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
@@ -1843,7 +1843,7 @@ tests.log: tests/fdexec tests/makefile.in makefile
 	 cp tests.log tests/logs/tests-$${DATE}.log; \
 	 sort tests/timing.log -k 2 > tests/logs/timing-$${DATE}.log;
 
-libtests.log: tests/fdexec tests/makefile.in
+libtests.log: tests/knox tests/makefile.in
 	@echo "#### Running libtests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; \
@@ -1851,7 +1851,7 @@ libtests.log: tests/fdexec tests/makefile.in
 	 cp libtests.log tests/logs/libtests-$${DATE}.log;
 libtests: libtests.log
 
-tests/memtests.log: tests/fdexec tests/makefile.in
+tests/memtests.log: tests/knox tests/makefile.in
 	@echo "#### Running memory tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; \
@@ -1859,14 +1859,14 @@ tests/memtests.log: tests/fdexec tests/makefile.in
 	 cp memtests.log tests/logs/memtests-`date +%d%b%yT%T`.log;
 memtests: memtests.log
 
-tests/leaktests.log: tests/fdexec tests/makefile.in
+tests/leaktests.log: tests/knox tests/makefile.in
 	@echo "#### Running leak tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; make -s -C tests -k -j leaktests 2>&1 > leaktests.log && \
 	cp leaktests.log tests/logs/leaktests-`date +%d%b%yT%T`.log;
 leaktests: leaktests.log
 
-tests/schemetests.log: tests/fdexec tests/makefile.in
+tests/schemetests.log: tests/knox tests/makefile.in
 	@echo "#### Running scheme tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; \
@@ -1874,7 +1874,7 @@ tests/schemetests.log: tests/fdexec tests/makefile.in
 	 cp schemtests.log tests/logs/schemetests-`date +%d%b%yT%T`.log;
 schemetests: schemetests.log
 
-tests/cmdtests.log: tests/fdexec tests/makefile.in
+tests/cmdtests.log: tests/knox tests/makefile.in
 	@echo "#### Running command tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; \
@@ -1882,7 +1882,7 @@ tests/cmdtests.log: tests/fdexec tests/makefile.in
 	 cp tests/cmdtests.log tests/logs/cmdtests-`date +%d%b%yT%T`.log;
 cmdtests: tests/cmdtests.log
 
-tests/dbtests.log: tests/fdexec tests/makefile.in
+tests/dbtests.log: tests/knox tests/makefile.in
 	@echo "#### Running database tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; \
@@ -1926,22 +1926,22 @@ DIY/mongo-c-driver/built:
 update-modules:
 	git submodule update --remote --merge src/extmods
 
-.PHONY: fdserv update-fdserv install-fdserv update-modules
+.PHONY: knosrv update-knosrv install-knosrv update-modules
 
 # Tracking revision information
 
-include/framerd/revision.h: $(FRAMERD_SOURCES) $(FRAMERD_HEADERS) makefile
+include/kno/revision.h: $(KNO_SOURCES) $(KNO_HEADERS) makefile
 	@if test -f etc/revision.h; then				\
 	    cp etc/revision.h etc/use_revision.h; 			\
 	elif $(GITDESCRIBE) > /dev/null 2>&1; then			\
-	    echo "#define FRAMERD_REVISION \""`@GITDESCRIBE@`"\"" 	\
+	    echo "#define KNO_REVISION \""`@GITDESCRIBE@`"\"" 	\
 		> etc/use_revision.h; 					\
 	    echo >> etc/use_revision.h;					\
-	    echo "#define FRAMERD_BRANCH \"${GITBRANCH}\"" \
+	    echo "#define KNO_BRANCH \"${GITBRANCH}\"" \
 		>> etc/use_revision.h; 					\
-	else echo "#define FRAMERD_REVISION \"@FDVERSION@-exported\""	\
+	else echo "#define KNO_REVISION \"@FDVERSION@-exported\""	\
 		> etc/use_revision.h; 					\
-	    echo "#define FRAMERD_BRANCH \"exported\"" >> 		\
+	    echo "#define KNO_BRANCH \"exported\"" >> 		\
 		etc/use_revision.h; 					\
 	fi;
 	@if test ! -f $@; then 						\
@@ -1963,17 +1963,17 @@ $(DRIVER_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) $(REVISION_H)
 $(SCHEME_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
 	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H)
 $(WEB_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
-	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H) ./include/framerd/fdweb.h
+	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H) ./include/kno/fdweb.h
 $(TEXT_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
-	$(APPLY_HEADERS) $(REVISION_H) $(SCHEME_HEADERS) ./include/framerd/texttools.h
+	$(APPLY_HEADERS) $(REVISION_H) $(SCHEME_HEADERS) ./include/kno/texttools.h
 $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS): .buildmode
 $(STORAGE_OBJS) $(DRIVER_OBJS): .buildmode
 $(SCHEME_OBJS): .buildmode
 $(WEB_OBJS) $(TEXT_OBJS): .buildmode
 $(CMODULE_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
 	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H) .buildmode
-src/eval/choiceops.o src/prims/seqprims.o: include/framerd/sorting.h
-src/prims/procprims.o: include/framerd/procprims.h
+src/eval/choiceops.o src/prims/seqprims.o: include/kno/sorting.h
+src/prims/procprims.o: include/kno/procprims.h
 # Driver dependencies
 src/drivers/filepool.o: src/drivers/headers/filepool.h
 src/drivers/fileindex.o: src/drivers/headers/fileindex.h

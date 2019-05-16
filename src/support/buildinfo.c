@@ -1,7 +1,7 @@
 /* Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -9,54 +9,54 @@
 #define _FILEINFO __FILE__
 #endif
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/cons.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/cons.h"
 
 static lispval build_info=VOID;
-static lispval _fd_features_symbol;
+static lispval _kno_features_symbol;
 
 #define config_int(var) \
-  fd_store(build_info,fd_intern(# var),FD_INT(var));
+  kno_store(build_info,kno_intern(# var),KNO_INT(var));
 #define config_bool(var) \
-  fd_add(build_info,_fd_features_symbol,fd_intern(# var));
+  kno_add(build_info,_kno_features_symbol,kno_intern(# var));
 
 #define config_string(var) config_string_helper(# var,var)
 
 static void config_string_helper(u8_string var,u8_string val)
 {
   lispval string=lispval_string(val);
-  fd_store(build_info,fd_intern(var),string);
-  fd_decref(string);
+  kno_store(build_info,kno_intern(var),string);
+  kno_decref(string);
 }
 
-FD_EXPORT lispval fd_get_build_info()
+KNO_EXPORT lispval kno_get_build_info()
 {
-  return fd_incref(build_info);
+  return kno_incref(build_info);
 }
 
-FD_EXPORT lispval config_get_build_info(lispval var,void *data)
+KNO_EXPORT lispval config_get_build_info(lispval var,void *data)
 {
-  return fd_incref(build_info);
+  return kno_incref(build_info);
 }
 
-FD_EXPORT void fd_init_build_info()
+KNO_EXPORT void kno_init_build_info()
 {
-  _fd_features_symbol=fd_intern("FEATURES");
+  _kno_features_symbol=kno_intern("FEATURES");
   if (VOIDP(build_info))
-    build_info=fd_make_slotmap(64,0,NULL);
+    build_info=kno_make_slotmap(64,0,NULL);
 
-#ifdef FD_WORDS_ARE_ALIGNED
-  config_bool(FD_WORDS_ARE_ALIGNED);
+#ifdef KNO_WORDS_ARE_ALIGNED
+  config_bool(KNO_WORDS_ARE_ALIGNED);
 #endif
 #ifdef HAVE_STDATOMIC_H
   config_bool(HAVE_STDATOMIC_H);
 #endif
-#ifdef FD_SHARE_DIR
-  config_string(FD_SHARE_DIR);
+#ifdef KNO_SHARE_DIR
+  config_string(KNO_SHARE_DIR);
 #endif
-#ifdef FD_PROFILING_ENABLED
-  config_bool(FD_PROFILING_ENABLED);
+#ifdef KNO_PROFILING_ENABLED
+  config_bool(KNO_PROFILING_ENABLED);
 #endif
 
   config_int(SIZEOF_INT);
@@ -69,65 +69,65 @@ FD_EXPORT void fd_init_build_info()
   config_int(SIZEOF_SIZE_T);
   config_int(SIZEOF_LISPVAL);
 
-#ifdef FD_DEFAULT_MALLOC
-  config_string(FD_DEFAULT_MALLOC);
+#ifdef KNO_DEFAULT_MALLOC
+  config_string(KNO_DEFAULT_MALLOC);
 #endif
 
-#ifdef FD_EXEC_WRAPPER
-  config_string(FD_EXEC_WRAPPER);
+#ifdef KNO_EXEC_WRAPPER
+  config_string(KNO_EXEC_WRAPPER);
 #endif
-#ifdef FD_LOCAL_MODULE_DIR
-  config_string(FD_LOCAL_MODULE_DIR);
+#ifdef KNO_LOCAL_MODULE_DIR
+  config_string(KNO_LOCAL_MODULE_DIR);
 #endif
-#ifdef FD_LOCAL_SAFE_MODULE_DIR
-  config_string(FD_LOCAL_SAFE_MODULE_DIR);
+#ifdef KNO_LOCAL_SAFE_MODULE_DIR
+  config_string(KNO_LOCAL_SAFE_MODULE_DIR);
 #endif
-#ifdef FD_INSTALLED_MODULE_DIR
-  config_string(FD_INSTALLED_MODULE_DIR);
+#ifdef KNO_INSTALLED_MODULE_DIR
+  config_string(KNO_INSTALLED_MODULE_DIR);
 #endif
-#ifdef FD_INSTALLED_SAFE_MODULE_DIR
-  config_string(FD_INSTALLED_SAFE_MODULE_DIR);
+#ifdef KNO_INSTALLED_SAFE_MODULE_DIR
+  config_string(KNO_INSTALLED_SAFE_MODULE_DIR);
 #endif
-#ifdef FD_BUILTIN_MODULE_DIR
-  config_string(FD_BUILTIN_MODULE_DIR);
+#ifdef KNO_BUILTIN_MODULE_DIR
+  config_string(KNO_BUILTIN_MODULE_DIR);
 #endif
-#ifdef FD_BUILTIN_SAFE_MODULE_DIR
-  config_string(FD_BUILTIN_SAFE_MODULE_DIR);
-#endif
-
-#ifdef FD_LIBSCM_DIR
-  config_string(FD_LIBSCM_DIR);
-#endif
-#ifdef FD_BOOT_CONFIG
-  config_string(FD_BOOT_CONFIG);
-#endif
-#ifdef FD_EXEC
-  config_string(FD_EXEC);
-#endif
-#ifdef FD_DBSERVER
-  config_string(FD_DBSERVER);
+#ifdef KNO_BUILTIN_SAFE_MODULE_DIR
+  config_string(KNO_BUILTIN_SAFE_MODULE_DIR);
 #endif
 
-#ifdef FD_LARGEFILES_ENABLED
-  config_bool(FD_LARGEFILES_ENABLED);
+#ifdef KNO_LIBSCM_DIR
+  config_string(KNO_LIBSCM_DIR);
 #endif
-#ifdef FD_PREFETCHING_ENABLED
-  config_bool(FD_PREFETCHING_ENABLED);
+#ifdef KNO_BOOT_CONFIG
+  config_string(KNO_BOOT_CONFIG);
 #endif
-#ifdef FD_PROFILING_ENABLED
-  config_bool(FD_PROFILING_ENABLED);
+#ifdef KNO_EXEC
+  config_string(KNO_EXEC);
 #endif
-#ifdef FD_CALLTRACK_ENABLED
-  config_bool(FD_CALLTRACK_ENABLED);
+#ifdef KNO_DBSERVER
+  config_string(KNO_DBSERVER);
 #endif
-#ifdef FD_FILECONFIG_ENABLED
-  config_bool(FD_FILECONFIG_ENABLED);
+
+#ifdef KNO_LARGEFILES_ENABLED
+  config_bool(KNO_LARGEFILES_ENABLED);
 #endif
-#ifdef FD_HTMLDUMP_ENABLED
-  config_bool(FD_HTMLDUMP_ENABLED);
+#ifdef KNO_PREFETCHING_ENABLED
+  config_bool(KNO_PREFETCHING_ENABLED);
 #endif
-#ifdef FD_IPEVAL_ENABLED
-  config_bool(FD_IPEVAL_ENABLED);
+#ifdef KNO_PROFILING_ENABLED
+  config_bool(KNO_PROFILING_ENABLED);
+#endif
+#ifdef KNO_CALLTRACK_ENABLED
+  config_bool(KNO_CALLTRACK_ENABLED);
+#endif
+#ifdef KNO_FILECONFIG_ENABLED
+  config_bool(KNO_FILECONFIG_ENABLED);
+#endif
+#ifdef KNO_HTMLDUMP_ENABLED
+  config_bool(KNO_HTMLDUMP_ENABLED);
+#endif
+#ifdef KNO_IPEVAL_ENABLED
+  config_bool(KNO_IPEVAL_ENABLED);
 #endif
 
 #ifdef HAVE_STDATOMIC_H
@@ -468,45 +468,45 @@ FD_EXPORT void fd_init_build_info()
 #endif
 
 #if (WORDS_BIGENDIAN)
-  fd_add(build_info,fd_intern("BYTE_ORDER"),
-         fd_intern("LITTLE_ENDIAN"));
+  kno_add(build_info,kno_intern("BYTE_ORDER"),
+         kno_intern("LITTLE_ENDIAN"));
 #else
-  fd_add(build_info,fd_intern("BYTE_ORDER"),
-         fd_intern("BIG_ENDIAN"));
+  kno_add(build_info,kno_intern("BYTE_ORDER"),
+         kno_intern("BIG_ENDIAN"));
 #endif
 
-  config_string(FD_VERSION);
-  config_string(FRAMERD_REVISION);
-  config_string(FD_SHARE_DIR);
-  config_string(FD_DATA_DIR);
-  config_string(FD_RUN_DIR);
-  config_string(FD_LOG_DIR);
-  config_string(FD_SERVLET_LOG_DIR);
-  config_string(FD_DAEMON_RUN_DIR);
-  config_string(FD_SERVLET_RUN_DIR);
-  config_string(FD_DAEMON_LOG_DIR);
-  config_string(FD_WEBUSER);
-  config_string(FD_WEBGROUP);
-  config_string(FD_DAEMON);
-  config_string(FD_ADMIN_GROUP);
-  config_string(FD_CONFIG_FILE_PATH);
-  config_string(FD_DEFAULT_LOADPATH);
-  config_string(FD_DEFAULT_SAFE_LOADPATH);
-  config_string(FD_DEFAULT_DLOADPATH);
-  config_string(FD_DLOAD_SUFFIX);
-  config_string(FD_EXEC);
-  config_string(FD_DBSERVER);
-  config_string(FD_EXEC_WRAPPER);
-  config_string(FD_LOCAL_MODULE_DIR);
-  config_string(FD_LOCAL_SAFE_MODULE_DIR);
-  config_string(FD_INSTALLED_MODULE_DIR);
-  config_string(FD_INSTALLED_SAFE_MODULE_DIR);
-  config_string(FD_BUILTIN_MODULE_DIR);
-  config_string(FD_BUILTIN_SAFE_MODULE_DIR);
-  config_string(FD_UNPACKAGE_DIR);
+  config_string(KNO_VERSION);
+  config_string(KNO_REVISION);
+  config_string(KNO_SHARE_DIR);
+  config_string(KNO_DATA_DIR);
+  config_string(KNO_RUN_DIR);
+  config_string(KNO_LOG_DIR);
+  config_string(KNO_SERVLET_LOG_DIR);
+  config_string(KNO_DAEMON_RUN_DIR);
+  config_string(KNO_SERVLET_RUN_DIR);
+  config_string(KNO_DAEMON_LOG_DIR);
+  config_string(KNO_WEBUSER);
+  config_string(KNO_WEBGROUP);
+  config_string(KNO_DAEMON);
+  config_string(KNO_ADMIN_GROUP);
+  config_string(KNO_CONFIG_FILE_PATH);
+  config_string(KNO_DEFAULT_LOADPATH);
+  config_string(KNO_DEFAULT_SAFE_LOADPATH);
+  config_string(KNO_DEFAULT_DLOADPATH);
+  config_string(KNO_DLOAD_SUFFIX);
+  config_string(KNO_EXEC);
+  config_string(KNO_DBSERVER);
+  config_string(KNO_EXEC_WRAPPER);
+  config_string(KNO_LOCAL_MODULE_DIR);
+  config_string(KNO_LOCAL_SAFE_MODULE_DIR);
+  config_string(KNO_INSTALLED_MODULE_DIR);
+  config_string(KNO_INSTALLED_SAFE_MODULE_DIR);
+  config_string(KNO_BUILTIN_MODULE_DIR);
+  config_string(KNO_BUILTIN_SAFE_MODULE_DIR);
+  config_string(KNO_UNPACKAGE_DIR);
 
-#ifdef FD_WITH_FILE_LOCKING
-  config_bool(FD_WITH_FILE_LOCKING);
+#ifdef KNO_WITH_FILE_LOCKING
+  config_bool(KNO_WITH_FILE_LOCKING);
 #endif
 #ifdef TIME_WITH_SYS_TIME
   config_bool(TIME_WITH_SYS_TIME);
@@ -523,17 +523,17 @@ FD_EXPORT void fd_init_build_info()
 #ifdef TM_IN_SYS_TIME
   config_bool(TM_IN_SYS_TIME);
 #endif
-#ifdef FD_WITH_EXIF
-  config_bool(FD_WITH_EXIF);
+#ifdef KNO_WITH_EXIF
+  config_bool(KNO_WITH_EXIF);
 #endif
-#ifdef FD_WITH_PROFILING
-  config_bool(FD_WITH_PROFILING);
+#ifdef KNO_WITH_PROFILING
+  config_bool(KNO_WITH_PROFILING);
 #endif
-#ifdef FD_WITH_PROFILER
-  config_bool(FD_WITH_PROFILER);
+#ifdef KNO_WITH_PROFILER
+  config_bool(KNO_WITH_PROFILER);
 #endif
-#ifdef FD_ENABLE_FFI
-  config_bool(FD_ENABLE_FFI);
+#ifdef KNO_ENABLE_FFI
+  config_bool(KNO_ENABLE_FFI);
 #endif
 #ifdef WITH_GOOGLE_PROFILER
   config_bool(WITH_GOOGLE_PROFILER);
@@ -545,44 +545,44 @@ FD_EXPORT void fd_init_build_info()
   config_bool(U8_THREAD_DEBUG);
 #endif
 
-#ifdef FD_MAJOR_VERSION
-  config_int(FD_MAJOR_VERSION);
+#ifdef KNO_MAJOR_VERSION
+  config_int(KNO_MAJOR_VERSION);
 #endif
-#ifdef FD_MINOR_VERSION
-  config_int(FD_MINOR_VERSION);
+#ifdef KNO_MINOR_VERSION
+  config_int(KNO_MINOR_VERSION);
 #endif
-#ifdef FD_RELEASE_VERSION
-  config_int(FD_RELEASE_VERSION);
-#endif
-
-#ifdef FD_ENABLE_LOCKFREE
-  config_bool(FD_ENABLE_LOCKFREE);
-#endif
-#ifdef FD_FORCE_TLS
-  config_bool(FD_FORCE_TLS);
-#endif
-#ifdef FD_GLOBAL_IPEVAL
-  config_bool(FD_GLOBAL_IPEVAL);
-#endif
-#ifdef FD_WITH_CURL
-  config_bool(FD_WITH_CURL);
-#endif
-#ifdef FD_WITH_EDITLINE
-  config_bool(FD_WITH_EDITLINE);
-#endif
-#ifdef FD_N_PTRLOCKS
-  config_int(FD_N_PTRLOCKS);
+#ifdef KNO_RELEASE_VERSION
+  config_int(KNO_RELEASE_VERSION);
 #endif
 
-#ifdef FD_BUGJAR_DIR
-  config_string(FD_BUGJAR_DIR);
+#ifdef KNO_ENABLE_LOCKFREE
+  config_bool(KNO_ENABLE_LOCKFREE);
+#endif
+#ifdef KNO_FORCE_TLS
+  config_bool(KNO_FORCE_TLS);
+#endif
+#ifdef KNO_GLOBAL_IPEVAL
+  config_bool(KNO_GLOBAL_IPEVAL);
+#endif
+#ifdef KNO_WITH_CURL
+  config_bool(KNO_WITH_CURL);
+#endif
+#ifdef KNO_WITH_EDITLINE
+  config_bool(KNO_WITH_EDITLINE);
+#endif
+#ifdef KNO_N_PTRLOCKS
+  config_int(KNO_N_PTRLOCKS);
 #endif
 
-  fd_register_config("BUILDINFO",
+#ifdef KNO_BUGJAR_DIR
+  config_string(KNO_BUGJAR_DIR);
+#endif
+
+  kno_register_config("BUILDINFO",
                      "Information about compile-time features",
                      config_get_build_info,NULL,NULL);
 
-  struct FD_SLOTMAP *table= (fd_slotmap) build_info;
+  struct KNO_SLOTMAP *table= (kno_slotmap) build_info;
   table->table_readonly=1;
 }
 

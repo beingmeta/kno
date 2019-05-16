@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -9,8 +9,8 @@
 #define _FILEINFO __FILE__
 #endif
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
 #include <libu8/u8rusage.h>
 #include <libu8/u8logging.h>
 #include <stdarg.h>
@@ -22,138 +22,138 @@
 #endif
 
 static int lisp_types_initialized = 0;
-double fd_load_start = -1.0;
+double kno_load_start = -1.0;
 
-u8_condition fd_NoMethod=_("Method not supported");
+u8_condition kno_NoMethod=_("Method not supported");
 
-u8_string fd_version = FD_VERSION;
-u8_string fd_revision = FRAMERD_REVISION;
-int fd_major_version = FD_MAJOR_VERSION;
-int fd_minor_version = FD_MINOR_VERSION;
-int fd_release_version = FD_RELEASE_VERSION;
+u8_string kno_version = KNO_VERSION;
+u8_string kno_revision = KNO_REVISION;
+int kno_major_version = KNO_MAJOR_VERSION;
+int kno_minor_version = KNO_MINOR_VERSION;
+int kno_release_version = KNO_RELEASE_VERSION;
 
-FD_EXPORT u8_string fd_getversion(){return FD_VERSION;}
-FD_EXPORT u8_string fd_getrevision(){return FRAMERD_REVISION;}
-FD_EXPORT int fd_getmajorversion(){return FD_MAJOR_VERSION;}
+KNO_EXPORT u8_string kno_getversion(){return KNO_VERSION;}
+KNO_EXPORT u8_string kno_getrevision(){return KNO_REVISION;}
+KNO_EXPORT int kno_getmajorversion(){return KNO_MAJOR_VERSION;}
 
 /* Initialization procedures */
 
-extern void fd_init_choices_c(void);
-extern void fd_init_tables_c(void);
+extern void kno_init_choices_c(void);
+extern void kno_init_tables_c(void);
 
 static void register_header_files()
 {
-  u8_register_source_file(FRAMERD_CONFIG_H_INFO);
-  u8_register_source_file(FRAMERD_SUPPORT_H_INFO);
-  u8_register_source_file(FRAMERD_MALLOC_H_INFO);
-  u8_register_source_file(FRAMERD_COMMON_H_INFO);
-  u8_register_source_file(FRAMERD_DEFINES_H_INFO);
-  u8_register_source_file(FRAMERD_PTR_H_INFO);
-  u8_register_source_file(FRAMERD_CONS_H_INFO);
-  u8_register_source_file(FRAMERD_DTYPE_H_INFO);
-  u8_register_source_file(FRAMERD_CHOICES_H_INFO);
-  u8_register_source_file(FRAMERD_TABLES_H_INFO);
-  u8_register_source_file(FRAMERD_DTYPEIO_H_INFO);
+  u8_register_source_file(KNO_CONFIG_H_INFO);
+  u8_register_source_file(KNO_SUPPORT_H_INFO);
+  u8_register_source_file(KNO_MALLOC_H_INFO);
+  u8_register_source_file(KNO_COMMON_H_INFO);
+  u8_register_source_file(KNO_DEFINES_H_INFO);
+  u8_register_source_file(KNO_PTR_H_INFO);
+  u8_register_source_file(KNO_CONS_H_INFO);
+  u8_register_source_file(KNO_DTYPE_H_INFO);
+  u8_register_source_file(KNO_CHOICES_H_INFO);
+  u8_register_source_file(KNO_TABLES_H_INFO);
+  u8_register_source_file(KNO_DTYPEIO_H_INFO);
 }
 
 static void init_type_names()
 {
-  fd_type_names[fd_oid_type]=_("oid");
-  fd_type_names[fd_fixnum_type]=_("fixnum");
-  fd_type_names[fd_cons_type]=_("cons");
-  fd_type_names[fd_immediate_type]=_("immediate");
-  fd_type_names[fd_constant_type]=_("constant");
-  fd_type_names[fd_character_type]=_("character");
-  fd_type_names[fd_symbol_type]=_("symbol");
-  fd_type_names[fd_fcnid_type]=_("fcnid");
-  fd_type_names[fd_lexref_type]=_("lexref");
-  fd_type_names[fd_opcode_type]=_("opcode");
-  fd_type_names[fd_type_type]=_("typeref");
-  fd_type_names[fd_coderef_type]=_("cdrcode");
-  fd_type_names[fd_pool_type]=_("pool");
-  fd_type_names[fd_index_type]=_("index");
-  fd_type_names[fd_histref_type]=_("histref");
+  kno_type_names[kno_oid_type]=_("oid");
+  kno_type_names[kno_fixnum_type]=_("fixnum");
+  kno_type_names[kno_cons_type]=_("cons");
+  kno_type_names[kno_immediate_type]=_("immediate");
+  kno_type_names[kno_constant_type]=_("constant");
+  kno_type_names[kno_character_type]=_("character");
+  kno_type_names[kno_symbol_type]=_("symbol");
+  kno_type_names[kno_fcnid_type]=_("fcnid");
+  kno_type_names[kno_lexref_type]=_("lexref");
+  kno_type_names[kno_opcode_type]=_("opcode");
+  kno_type_names[kno_type_type]=_("typeref");
+  kno_type_names[kno_coderef_type]=_("cdrcode");
+  kno_type_names[kno_pool_type]=_("pool");
+  kno_type_names[kno_index_type]=_("index");
+  kno_type_names[kno_histref_type]=_("histref");
 
-  fd_type_names[fd_string_type]=_("string");
-  fd_type_names[fd_packet_type]=_("packet");
-  fd_type_names[fd_secret_type]=_("secret");
-  fd_type_names[fd_bigint_type]=_("bigint");
-  fd_type_names[fd_pair_type]=_("pair");
+  kno_type_names[kno_string_type]=_("string");
+  kno_type_names[kno_packet_type]=_("packet");
+  kno_type_names[kno_secret_type]=_("secret");
+  kno_type_names[kno_bigint_type]=_("bigint");
+  kno_type_names[kno_pair_type]=_("pair");
 
-  fd_type_names[fd_compound_type]=_("compound");
-  fd_type_names[fd_choice_type]=_("choice");
-  fd_type_names[fd_prechoice_type]=_("prechoice");
-  fd_type_names[fd_qchoice_type]=_("quoted choice");
-  fd_type_names[fd_vector_type]=_("vector");
-  fd_type_names[fd_matrix_type]=_("matrix");
-  fd_type_names[fd_numeric_vector_type]=_("numvec");
+  kno_type_names[kno_compound_type]=_("compound");
+  kno_type_names[kno_choice_type]=_("choice");
+  kno_type_names[kno_prechoice_type]=_("prechoice");
+  kno_type_names[kno_qchoice_type]=_("quoted choice");
+  kno_type_names[kno_vector_type]=_("vector");
+  kno_type_names[kno_matrix_type]=_("matrix");
+  kno_type_names[kno_numeric_vector_type]=_("numvec");
 
-  fd_type_names[fd_slotmap_type]=_("slotmap");
-  fd_type_names[fd_schemap_type]=_("schemap");
-  fd_type_names[fd_hashtable_type]=_("hashtable");
-  fd_type_names[fd_hashset_type]=_("hashset");
+  kno_type_names[kno_slotmap_type]=_("slotmap");
+  kno_type_names[kno_schemap_type]=_("schemap");
+  kno_type_names[kno_hashtable_type]=_("hashtable");
+  kno_type_names[kno_hashset_type]=_("hashset");
 
-  fd_type_names[fd_cprim_type]=_("builtin function");
-  fd_type_names[fd_lexenv_type]=_("environment");
-  fd_type_names[fd_evalfn_type]=_("evalfn");
-  fd_type_names[fd_macro_type]=_("macro");
-  fd_type_names[fd_dtproc_type]=_("dtproc");
-  fd_type_names[fd_stackframe_type]=_("stackframe");
-  fd_type_names[fd_tailcall_type]=_("tailcall");
-  fd_type_names[fd_lambda_type]=_("lambda procedure");
-  fd_type_names[fd_code_type]=_("bytecode");
-  fd_type_names[fd_ffi_type]=_("foreign function");
-  fd_type_names[fd_exception_type]=_("error");
+  kno_type_names[kno_cprim_type]=_("builtin function");
+  kno_type_names[kno_lexenv_type]=_("environment");
+  kno_type_names[kno_evalfn_type]=_("evalfn");
+  kno_type_names[kno_macro_type]=_("macro");
+  kno_type_names[kno_dtproc_type]=_("dtproc");
+  kno_type_names[kno_stackframe_type]=_("stackframe");
+  kno_type_names[kno_tailcall_type]=_("tailcall");
+  kno_type_names[kno_lambda_type]=_("lambda procedure");
+  kno_type_names[kno_code_type]=_("bytecode");
+  kno_type_names[kno_ffi_type]=_("foreign function");
+  kno_type_names[kno_exception_type]=_("error");
 
-  fd_type_names[fd_complex_type]=_("complex");
-  fd_type_names[fd_rational_type]=_("rational");
-  fd_type_names[fd_flonum_type]=_("flonum");
+  kno_type_names[kno_complex_type]=_("complex");
+  kno_type_names[kno_rational_type]=_("rational");
+  kno_type_names[kno_flonum_type]=_("flonum");
 
-  fd_type_names[fd_timestamp_type]=_("timestamp");
-  fd_type_names[fd_uuid_type]=_("UUID");
+  kno_type_names[kno_timestamp_type]=_("timestamp");
+  kno_type_names[kno_uuid_type]=_("UUID");
 
-  fd_type_names[fd_mystery_type]=_("mystery");
-  fd_type_names[fd_port_type]=_("ioport");
-  fd_type_names[fd_stream_type]=_("stream");
+  kno_type_names[kno_mystery_type]=_("mystery");
+  kno_type_names[kno_port_type]=_("ioport");
+  kno_type_names[kno_stream_type]=_("stream");
 
-  fd_type_names[fd_regex_type]=_("regex");
-  fd_type_names[fd_numeric_vector_type]=_("numeric vector");
+  kno_type_names[kno_regex_type]=_("regex");
+  kno_type_names[kno_numeric_vector_type]=_("numeric vector");
 
-  fd_type_names[fd_consblock_type]=_("consblock");
+  kno_type_names[kno_consblock_type]=_("consblock");
 
-  fd_type_names[fd_rawptr_type]=_("raw pointer");
-  fd_type_names[fd_dtserver_type]=_("dtype server");
-  fd_type_names[fd_bloom_filter_type]=_("bloom filter");
+  kno_type_names[kno_rawptr_type]=_("raw pointer");
+  kno_type_names[kno_dtserver_type]=_("dtype server");
+  kno_type_names[kno_bloom_filter_type]=_("bloom filter");
 }
 
 static int lisp_types_version = 101;
 
-FD_EXPORT void fd_init_cons_c(void);
-FD_EXPORT void fd_init_compare_c(void);
-FD_EXPORT void fd_init_recycle_c(void);
-FD_EXPORT void fd_init_copy_c(void);
-FD_EXPORT void fd_init_compare_c(void);
-FD_EXPORT void fd_init_compounds_c(void);
-FD_EXPORT void fd_init_misctypes_c(void);
-FD_EXPORT void fd_init_oids_c(void);
-FD_EXPORT void fd_init_textio_c(void);
-FD_EXPORT void fd_init_parse_c(void);
-FD_EXPORT void fd_init_unparse_c(void);
-FD_EXPORT void fd_init_pprint_c(void);
-FD_EXPORT void fd_init_ports_c(void);
-FD_EXPORT void fd_init_dtread_c(void);
-FD_EXPORT void fd_init_dtwrite_c(void);
-FD_EXPORT void fd_init_tables_c(void);
-FD_EXPORT void fd_init_symbols_c(void);
-FD_EXPORT void fd_init_numbers_c(void);
-FD_EXPORT void fd_init_choices_c(void);
-FD_EXPORT void fd_init_support_c(void);
-FD_EXPORT void fd_init_consblocks_c(void);
-FD_EXPORT void fd_init_sequences_c(void);
-FD_EXPORT void fd_init_fcnids_c(void);
-FD_EXPORT void fd_init_stacks_c(void);
-FD_EXPORT void fd_init_apply_c(void);
-FD_EXPORT void fd_init_build_info(void);
+KNO_EXPORT void kno_init_cons_c(void);
+KNO_EXPORT void kno_init_compare_c(void);
+KNO_EXPORT void kno_init_recycle_c(void);
+KNO_EXPORT void kno_init_copy_c(void);
+KNO_EXPORT void kno_init_compare_c(void);
+KNO_EXPORT void kno_init_compounds_c(void);
+KNO_EXPORT void kno_init_misctypes_c(void);
+KNO_EXPORT void kno_init_oids_c(void);
+KNO_EXPORT void kno_init_textio_c(void);
+KNO_EXPORT void kno_init_parse_c(void);
+KNO_EXPORT void kno_init_unparse_c(void);
+KNO_EXPORT void kno_init_pprint_c(void);
+KNO_EXPORT void kno_init_ports_c(void);
+KNO_EXPORT void kno_init_dtread_c(void);
+KNO_EXPORT void kno_init_dtwrite_c(void);
+KNO_EXPORT void kno_init_tables_c(void);
+KNO_EXPORT void kno_init_symbols_c(void);
+KNO_EXPORT void kno_init_numbers_c(void);
+KNO_EXPORT void kno_init_choices_c(void);
+KNO_EXPORT void kno_init_support_c(void);
+KNO_EXPORT void kno_init_consblocks_c(void);
+KNO_EXPORT void kno_init_sequences_c(void);
+KNO_EXPORT void kno_init_fcnids_c(void);
+KNO_EXPORT void kno_init_stacks_c(void);
+KNO_EXPORT void kno_init_apply_c(void);
+KNO_EXPORT void kno_init_build_info(void);
 
 static double format_secs(double secs,char **units)
 {
@@ -165,14 +165,14 @@ static double format_secs(double secs,char **units)
   if (secs>3600*24) {*units="d"; return secs/3600;}
   return secs;
 }
-FD_EXPORT void fd_log_status(u8_condition why)
+KNO_EXPORT void kno_log_status(u8_condition why)
 {
   struct rusage usage;
   int retval = u8_getrusage(0,&usage);
   if (why==NULL) why="Status";
   if (retval<0) {
     u8_log(LOG_CRIT,_("RUSAGE Failed"),
-           "During a call to fd_log_status (%s)",why);
+           "During a call to kno_log_status (%s)",why);
     return;}
   else {
     /* long membytes = (usage.ru_idrss+usage.ru_isrss); double memsize; */
@@ -192,19 +192,19 @@ FD_EXPORT void fd_log_status(u8_condition why)
     else {heapsize = floor(((double)heapbytes)/1000); heapu="KB";}
     u8_log(U8_LOG_MSG,why,
            "%s %s<%ld> elapsed %.3f%s (u=%.3f%s,s=%.3f%s), heap=%.0f%s\n",
-           FRAMERD_REVISION,u8_appid(),getpid(),
+           KNO_REVISION,u8_appid(),getpid(),
            elapsed,etu,usertime,utu,systime,stu,
            heapsize,heapu);}
 }
 
-FD_EXPORT int fd_init_lisp_types()
+KNO_EXPORT int kno_init_lisp_types()
 {
   int u8_version;
 #if ((HAVE_LIBDUMA)&&(HAVE_DUMA_H))
   DUMA_SET_ALIGNMENT(4);
 #endif
   if (lisp_types_initialized) return lisp_types_initialized;
-  fd_load_start = u8_elapsed_time();
+  kno_load_start = u8_elapsed_time();
   u8_version = u8_initialize();
   lisp_types_initialized = lisp_types_version*u8_version;
 
@@ -212,31 +212,31 @@ FD_EXPORT int fd_init_lisp_types()
 
   register_header_files();
 
-  u8_init_rwlock(&fd_symbol_lock);
-  fd_init_cons_c();
+  u8_init_rwlock(&kno_symbol_lock);
+  kno_init_cons_c();
   init_type_names();
-  fd_init_recycle_c();
-  fd_init_copy_c();
-  fd_init_compare_c();
-  fd_init_compounds_c();
-  fd_init_misctypes_c();
-  fd_init_oids_c();
-  fd_init_unparse_c();
-  fd_init_pprint_c();
-  fd_init_parse_c();
-  fd_init_tables_c();
-  fd_init_symbols_c();
-  fd_init_support_c();
-  fd_init_dtread_c();
-  fd_init_dtwrite_c();
-  fd_init_numbers_c();
-  fd_init_choices_c();
-  fd_init_stacks_c();
-  fd_init_apply_c();
-  fd_init_sequences_c();
-  fd_init_consblocks_c();
-  fd_init_fcnids_c();
-  fd_init_build_info();
+  kno_init_recycle_c();
+  kno_init_copy_c();
+  kno_init_compare_c();
+  kno_init_compounds_c();
+  kno_init_misctypes_c();
+  kno_init_oids_c();
+  kno_init_unparse_c();
+  kno_init_pprint_c();
+  kno_init_parse_c();
+  kno_init_tables_c();
+  kno_init_symbols_c();
+  kno_init_support_c();
+  kno_init_dtread_c();
+  kno_init_dtwrite_c();
+  kno_init_numbers_c();
+  kno_init_choices_c();
+  kno_init_stacks_c();
+  kno_init_apply_c();
+  kno_init_sequences_c();
+  kno_init_consblocks_c();
+  kno_init_fcnids_c();
+  kno_init_build_info();
 
   u8_threadcheck();
 

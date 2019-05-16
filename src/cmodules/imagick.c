@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* imagemagick.c
-   This implements FramerD bindings to the MagickWand API
+   This implements Kno bindings to the MagickWand API
    Copyright (C) 2012-2019 beingmeta, inc.
 */
 
@@ -10,14 +10,14 @@
 #endif
 
 /* This avoids potential conflicts with OpenMP */
-#define FD_INLINE_REFCOUNTS 0
+#define KNO_INLINE_REFCOUNTS 0
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/eval.h"
-#include "framerd/numbers.h"
-#include "framerd/sequences.h"
-#include "framerd/texttools.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/eval.h"
+#include "kno/numbers.h"
+#include "kno/sequences.h"
+#include "kno/texttools.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8printf.h>
@@ -31,14 +31,14 @@
 #include <math.h>
 
 u8_condition MagickWandError="ImageMagicWand error";
-fd_ptr_type fd_imagick_type = 0;
+kno_ptr_type kno_imagick_type = 0;
 
-FD_EXPORT int fd_init_imagick(void) FD_LIBINIT_FN;
+KNO_EXPORT int kno_init_imagick(void) KNO_LIBINIT_FN;
 
-typedef struct FD_IMAGICK {
-  FD_CONS_HEADER;
-  MagickWand *wand;} FD_IMAGICK;
-typedef struct FD_IMAGICK *fd_imagick;
+typedef struct KNO_IMAGICK {
+  KNO_CONS_HEADER;
+  MagickWand *wand;} KNO_IMAGICK;
+typedef struct KNO_IMAGICK *kno_imagick;
 
 /* Data for conversions */
 
@@ -143,30 +143,30 @@ void grabmagickerr(u8_context cxt,MagickWand *wand)
 
 static int unparse_imagick(struct U8_OUTPUT *out,lispval x)
 {
-  struct FD_IMAGICK *wrapper = (struct FD_IMAGICK *)x;
+  struct KNO_IMAGICK *wrapper = (struct KNO_IMAGICK *)x;
   u8_printf(out,"#<IMAGICK %lx>",((unsigned long)(wrapper->wand)));
   return 1;
 }
 
-static void recycle_imagick(struct FD_RAW_CONS *c)
+static void recycle_imagick(struct KNO_RAW_CONS *c)
 {
-  struct FD_IMAGICK *wrapper = (struct FD_IMAGICK *)c;
+  struct KNO_IMAGICK *wrapper = (struct KNO_IMAGICK *)c;
   DestroyMagickWand(wrapper->wand);
-  if (!(FD_STATIC_CONSP(c))) u8_free(c);
+  if (!(KNO_STATIC_CONSP(c))) u8_free(c);
 }
 
 lispval file2imagick(lispval arg)
 {
   MagickWand *wand;
   MagickBooleanType retval;
-  struct FD_IMAGICK *fdwand = u8_alloc(struct FD_IMAGICK);
-  FD_INIT_FRESH_CONS(fdwand,fd_imagick_type);
+  struct KNO_IMAGICK *fdwand = u8_alloc(struct KNO_IMAGICK);
+  KNO_INIT_FRESH_CONS(fdwand,kno_imagick_type);
   fdwand->wand = wand = NewMagickWand();
-  retval = MagickReadImage(wand,FD_CSTRING(arg));
+  retval = MagickReadImage(wand,KNO_CSTRING(arg));
   if (retval == MagickFalse) {
     grabmagickerr("file2imagick",wand);
     u8_free(wand); u8_free(fdwand);
-    return FD_ERROR_VALUE;}
+    return KNO_ERROR_VALUE;}
   else {
     U8_CLEAR_ERRNO();
     return (lispval)fdwand;}
@@ -176,15 +176,15 @@ lispval packet2imagick(lispval arg)
 {
   MagickWand *wand;
   MagickBooleanType retval;
-  struct FD_IMAGICK *fdwand = u8_alloc(struct FD_IMAGICK);
-  FD_INIT_FRESH_CONS(fdwand,fd_imagick_type);
+  struct KNO_IMAGICK *fdwand = u8_alloc(struct KNO_IMAGICK);
+  KNO_INIT_FRESH_CONS(fdwand,kno_imagick_type);
   fdwand->wand = wand = NewMagickWand();
   retval = MagickReadImageBlob
-    (fdwand->wand,FD_PACKET_DATA(arg),FD_PACKET_LENGTH(arg));
+    (fdwand->wand,KNO_PACKET_DATA(arg),KNO_PACKET_LENGTH(arg));
   if (retval == MagickFalse) {
     grabmagickerr("file2imagick",wand);
     u8_free(wand); u8_free(fdwand);
-    return FD_ERROR_VALUE;}
+    return KNO_ERROR_VALUE;}
   else {
     U8_CLEAR_ERRNO();
     return (lispval)fdwand;}
@@ -193,31 +193,31 @@ lispval packet2imagick(lispval arg)
 lispval imagick2file(lispval fdwand,lispval filename)
 {
   MagickBooleanType retval;
-  struct FD_IMAGICK *wrapper=
-    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
+  struct KNO_IMAGICK *wrapper=
+    kno_consptr(struct KNO_IMAGICK *,fdwand,kno_imagick_type);
   MagickWand *wand = wrapper->wand;
-  retval = MagickWriteImage(wand,FD_CSTRING(filename));
+  retval = MagickWriteImage(wand,KNO_CSTRING(filename));
   if (retval == MagickFalse) {
     grabmagickerr("imagick2file",wand);
-    return FD_ERROR_VALUE;}
+    return KNO_ERROR_VALUE;}
   else {
     U8_CLEAR_ERRNO();
-    return fd_incref(fdwand);}
+    return kno_incref(fdwand);}
 }
 
 lispval imagick2packet(lispval fdwand)
 {
   unsigned char *data = NULL; size_t n_bytes;
-  struct FD_IMAGICK *wrapper=
-    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
+  struct KNO_IMAGICK *wrapper=
+    kno_consptr(struct KNO_IMAGICK *,fdwand,kno_imagick_type);
   MagickWand *wand = wrapper->wand;
   MagickResetIterator(wand);
   data = MagickGetImageBlob(wand,&n_bytes);
   if (data == NULL) {
     grabmagickerr("imagick2packet",wand);
-    return FD_ERROR_VALUE;}
+    return KNO_ERROR_VALUE;}
   else {
-    lispval packet = fd_make_packet(NULL,n_bytes,data);
+    lispval packet = kno_make_packet(NULL,n_bytes,data);
     MagickRelinquishMemory(data);
     U8_CLEAR_ERRNO();
     return packet;}
@@ -225,11 +225,11 @@ lispval imagick2packet(lispval fdwand)
 
 lispval imagick2imagick(lispval fdwand)
 {
-  struct FD_IMAGICK *wrapper=
-    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
-  struct FD_IMAGICK *fresh = u8_alloc(struct FD_IMAGICK);
+  struct KNO_IMAGICK *wrapper=
+    kno_consptr(struct KNO_IMAGICK *,fdwand,kno_imagick_type);
+  struct KNO_IMAGICK *fresh = u8_alloc(struct KNO_IMAGICK);
   MagickWand *wand = CloneMagickWand(wrapper->wand);
-  FD_INIT_FRESH_CONS(fresh,fd_imagick_type);
+  KNO_INIT_FRESH_CONS(fresh,kno_imagick_type);
   fresh->wand = wand;
   U8_CLEAR_ERRNO();
   return (lispval)fresh;
@@ -243,41 +243,41 @@ static lispval line_interlace, plane_interlace, partition_interlace;
 static lispval imagick_table_get(lispval fdwand,lispval field,lispval dflt)
 {
   /* enum result_type {imbool,imint,imdouble,imsize,imbox,imtrans} rt; */
-  struct FD_IMAGICK *wrapper=
-    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
+  struct KNO_IMAGICK *wrapper=
+    kno_consptr(struct KNO_IMAGICK *,fdwand,kno_imagick_type);
   MagickWand *wand = wrapper->wand;
-  if (FD_EQ(field,format)) {
+  if (KNO_EQ(field,format)) {
     const char *fmt = MagickGetImageFormat(wand);
     return lispval_string((char *)fmt);}
 #if (MagickLibVersion>0x670)
-  else if (FD_EQ(field,resolution)) {
+  else if (KNO_EQ(field,resolution)) {
     double x = 0, y = 0;
     /* MagickBooleanType rv = */
     MagickGetResolution(wand,&x,&y);
-    return fd_conspair(fd_make_double(x),fd_make_double(y));}
+    return kno_conspair(kno_make_double(x),kno_make_double(y));}
 #endif
-  else if (FD_EQ(field,interlace)) {
+  else if (KNO_EQ(field,interlace)) {
     InterlaceType it = MagickGetInterlaceScheme(wand);
     if (it == NoInterlace)
-      return FD_FALSE;
+      return KNO_FALSE;
     else if (it == LineInterlace)
       return line_interlace;
     else if (it == PlaneInterlace)
       return plane_interlace;
     else if (it == PartitionInterlace)
       return partition_interlace;
-    else return FD_EMPTY_CHOICE;}
-  else if (FD_EQ(field,size)) {
+    else return KNO_EMPTY_CHOICE;}
+  else if (KNO_EQ(field,size)) {
     size_t w = MagickGetImageWidth(wand);
     size_t h = MagickGetImageHeight(wand);
-    return fd_conspair(FD_INT(w),FD_INT(h));}
-  else if (FD_EQ(field,width)) {
+    return kno_conspair(KNO_INT(w),KNO_INT(h));}
+  else if (KNO_EQ(field,width)) {
     size_t w = MagickGetImageWidth(wand);
-    return FD_INT(w);}
-  else if (FD_EQ(field,height)) {
+    return KNO_INT(w);}
+  else if (KNO_EQ(field,height)) {
     size_t h = MagickGetImageHeight(wand);
-    return FD_INT(h);}
-  else return FD_VOID;
+    return KNO_INT(h);}
+  else return KNO_VOID;
 }
 
 static FilterTypes default_filter = TriangleFilter;
@@ -285,12 +285,12 @@ static FilterTypes default_filter = TriangleFilter;
 static FilterTypes getfilter(lispval arg,u8_string cxt)
 {
   u8_string name = NULL;
-  if ((FD_VOIDP(arg))||(FD_FALSEP(arg)))
+  if ((KNO_VOIDP(arg))||(KNO_FALSEP(arg)))
     return default_filter;
-  else if (FD_SYMBOLP(arg))
-    name = FD_SYMBOL_NAME(arg);
-  else if (FD_STRINGP(arg))
-    name = FD_CSTRING(arg);
+  else if (KNO_SYMBOLP(arg))
+    name = KNO_SYMBOL_NAME(arg);
+  else if (KNO_STRINGP(arg))
+    name = KNO_CSTRING(arg);
   else name = NULL;
   if (name == NULL) {
     u8_log(LOG_WARN,cxt,"Bad filter arg %q",arg);
@@ -317,26 +317,26 @@ static FilterTypes getfilter(lispval arg,u8_string cxt)
 static lispval imagick_format(lispval fdwand,lispval format)
 {
   MagickBooleanType retval;
-  struct FD_IMAGICK *wrapper=
-    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
+  struct KNO_IMAGICK *wrapper=
+    kno_consptr(struct KNO_IMAGICK *,fdwand,kno_imagick_type);
   MagickWand *wand = wrapper->wand;
-  retval = MagickSetImageFormat(wand,FD_CSTRING(format));
+  retval = MagickSetImageFormat(wand,KNO_CSTRING(format));
   if (retval == MagickFalse) {
     grabmagickerr("imagick_format",wand);
-    return FD_ERROR_VALUE;}
-  else return fd_incref(fdwand);
+    return KNO_ERROR_VALUE;}
+  else return kno_incref(fdwand);
 }
 
 static lispval imagick_fit(lispval fdwand,lispval w_arg,lispval h_arg,
                           lispval filter,lispval blur)
 {
   MagickBooleanType retval;
-  struct FD_IMAGICK *wrapper=
-    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
+  struct KNO_IMAGICK *wrapper=
+    kno_consptr(struct KNO_IMAGICK *,fdwand,kno_imagick_type);
   MagickWand *wand = wrapper->wand;
-  if (!(FD_UINTP(w_arg))) return fd_type_error("uint","imagick_fit",w_arg);
-  else if (!(FD_UINTP(h_arg))) return fd_type_error("uint","imagick_fit",h_arg);
-  int width = FD_FIX2INT(w_arg), height = FD_FIX2INT(h_arg);
+  if (!(KNO_UINTP(w_arg))) return kno_type_error("uint","imagick_fit",w_arg);
+  else if (!(KNO_UINTP(h_arg))) return kno_type_error("uint","imagick_fit",h_arg);
+  int width = KNO_FIX2INT(w_arg), height = KNO_FIX2INT(h_arg);
   size_t iwidth = MagickGetImageWidth(wand);
   size_t iheight = MagickGetImageHeight(wand);
   size_t target_width, target_height;
@@ -348,36 +348,36 @@ static lispval imagick_fit(lispval fdwand,lispval w_arg,lispval h_arg,
   retval = MagickResizeImage
     (wand,target_width,target_height,
      getfilter(filter,"imagick_fit"),
-     ((FD_VOIDP(blur))?(1.0):(FD_FLONUM(blur))));
+     ((KNO_VOIDP(blur))?(1.0):(KNO_FLONUM(blur))));
   if (retval == MagickFalse) {
     grabmagickerr("imagick_fit",wand);
-    return FD_ERROR_VALUE;}
+    return KNO_ERROR_VALUE;}
   else {
     U8_CLEAR_ERRNO();
-    return fd_incref(fdwand);}
+    return kno_incref(fdwand);}
 }
 
 static lispval imagick_interlace(lispval fdwand,lispval scheme)
 {
   MagickBooleanType retval;
-  struct FD_IMAGICK *wrapper=
-    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
+  struct KNO_IMAGICK *wrapper=
+    kno_consptr(struct KNO_IMAGICK *,fdwand,kno_imagick_type);
   MagickWand *wand = wrapper->wand;
   InterlaceType it;
-  if ((FD_FALSEP(scheme))||(FD_VOIDP(scheme)))
+  if ((KNO_FALSEP(scheme))||(KNO_VOIDP(scheme)))
     it = NoInterlace;
   else if (scheme == line_interlace) it = LineInterlace;
   else if (scheme == plane_interlace) it = PlaneInterlace;
   else if (scheme == partition_interlace) it = PartitionInterlace;
-  else return fd_type_error
+  else return kno_type_error
          ("MagickWand Interlace type","imagick_interlace",scheme);
   retval = MagickSetInterlaceScheme(wand,it);
   if (retval == MagickFalse) {
     grabmagickerr("imagick_fit",wand);
-    return FD_ERROR_VALUE;}
+    return KNO_ERROR_VALUE;}
   else {
     U8_CLEAR_ERRNO();
-    return fd_incref(fdwand);}
+    return kno_incref(fdwand);}
 }
 
 static lispval imagick_extend(lispval fdwand,lispval w_arg,lispval h_arg,
@@ -385,91 +385,91 @@ static lispval imagick_extend(lispval fdwand,lispval w_arg,lispval h_arg,
                              lispval bgcolor)
 {
   MagickBooleanType retval;
-  struct FD_IMAGICK *wrapper=
-    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
+  struct KNO_IMAGICK *wrapper=
+    kno_consptr(struct KNO_IMAGICK *,fdwand,kno_imagick_type);
   MagickWand *wand = wrapper->wand;
-  if (!(FD_UINTP(w_arg))) return fd_type_error("uint","imagick_fit",w_arg);
-  if (!(FD_UINTP(h_arg))) return fd_type_error("uint","imagick_fit",h_arg);
-  if (!(FD_UINTP(x_arg))) return fd_type_error("uint","imagick_fit",x_arg);
-  if (!(FD_UINTP(y_arg))) return fd_type_error("uint","imagick_fit",y_arg);
-  size_t width = FD_FIX2INT(w_arg), height = FD_FIX2INT(h_arg);
-  size_t xoff = FD_FIX2INT(x_arg), yoff = FD_FIX2INT(y_arg);
-  if (FD_STRINGP(bgcolor)) {
+  if (!(KNO_UINTP(w_arg))) return kno_type_error("uint","imagick_fit",w_arg);
+  if (!(KNO_UINTP(h_arg))) return kno_type_error("uint","imagick_fit",h_arg);
+  if (!(KNO_UINTP(x_arg))) return kno_type_error("uint","imagick_fit",x_arg);
+  if (!(KNO_UINTP(y_arg))) return kno_type_error("uint","imagick_fit",y_arg);
+  size_t width = KNO_FIX2INT(w_arg), height = KNO_FIX2INT(h_arg);
+  size_t xoff = KNO_FIX2INT(x_arg), yoff = KNO_FIX2INT(y_arg);
+  if (KNO_STRINGP(bgcolor)) {
     PixelWand *color = NewPixelWand();
-    PixelSetColor(color,FD_CSTRING(bgcolor));
+    PixelSetColor(color,KNO_CSTRING(bgcolor));
     MagickSetImageBackgroundColor(wand,color);
     DestroyPixelWand(color);}
   retval = MagickExtentImage(wand,width,height,xoff,yoff);
   if (retval == MagickFalse) {
     grabmagickerr("imagick_extend",wand);
-    return FD_ERROR_VALUE;}
+    return KNO_ERROR_VALUE;}
   else {
     U8_CLEAR_ERRNO();
-    return fd_incref(fdwand);}
+    return kno_incref(fdwand);}
 }
 
 static lispval imagick_charcoal(lispval fdwand,lispval radius,lispval sigma)
 {
   MagickBooleanType retval;
-  struct FD_IMAGICK *wrapper=
-    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
+  struct KNO_IMAGICK *wrapper=
+    kno_consptr(struct KNO_IMAGICK *,fdwand,kno_imagick_type);
   MagickWand *wand = wrapper->wand;
-  double r = FD_FLONUM(radius), s = FD_FLONUM(sigma);
+  double r = KNO_FLONUM(radius), s = KNO_FLONUM(sigma);
   retval = MagickCharcoalImage(wand,r,s);
   if (retval == MagickFalse) {
     grabmagickerr("imagick_charcoal",wand);
-    return FD_ERROR_VALUE;}
+    return KNO_ERROR_VALUE;}
   else {
     U8_CLEAR_ERRNO();
-    return fd_incref(fdwand);}
+    return kno_incref(fdwand);}
 }
 
 static lispval imagick_emboss(lispval fdwand,lispval radius,lispval sigma)
 {
   MagickBooleanType retval;
-  struct FD_IMAGICK *wrapper=
-    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
+  struct KNO_IMAGICK *wrapper=
+    kno_consptr(struct KNO_IMAGICK *,fdwand,kno_imagick_type);
   MagickWand *wand = wrapper->wand;
-  double r = FD_FLONUM(radius), s = FD_FLONUM(sigma);
+  double r = KNO_FLONUM(radius), s = KNO_FLONUM(sigma);
   retval = MagickEmbossImage(wand,r,s);
   if (retval == MagickFalse) {
     grabmagickerr("imagick_emboss",wand);
-    return FD_ERROR_VALUE;}
+    return KNO_ERROR_VALUE;}
   else {
     U8_CLEAR_ERRNO();
-    return fd_incref(fdwand);}
+    return kno_incref(fdwand);}
 }
 
 static lispval imagick_blur(lispval fdwand,lispval radius,lispval sigma)
 {
   MagickBooleanType retval;
-  struct FD_IMAGICK *wrapper=
-    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
+  struct KNO_IMAGICK *wrapper=
+    kno_consptr(struct KNO_IMAGICK *,fdwand,kno_imagick_type);
   MagickWand *wand = wrapper->wand;
-  double r = FD_FLONUM(radius), s = FD_FLONUM(sigma);
+  double r = KNO_FLONUM(radius), s = KNO_FLONUM(sigma);
   retval = MagickGaussianBlurImage(wand,r,s);
   if (retval == MagickFalse) {
     grabmagickerr("imagick_blur",wand);
-    return FD_ERROR_VALUE;}
+    return KNO_ERROR_VALUE;}
   else {
     U8_CLEAR_ERRNO();
-    return fd_incref(fdwand);}
+    return kno_incref(fdwand);}
 }
 
 static lispval imagick_edge(lispval fdwand,lispval radius)
 {
   MagickBooleanType retval;
-  struct FD_IMAGICK *wrapper=
-    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
+  struct KNO_IMAGICK *wrapper=
+    kno_consptr(struct KNO_IMAGICK *,fdwand,kno_imagick_type);
   MagickWand *wand = wrapper->wand;
-  double r = FD_FLONUM(radius);
+  double r = KNO_FLONUM(radius);
   retval = MagickEdgeImage(wand,r);
   if (retval == MagickFalse) {
     grabmagickerr("imagick_edge",wand);
-    return FD_ERROR_VALUE;}
+    return KNO_ERROR_VALUE;}
   else {
     U8_CLEAR_ERRNO();
-    return fd_incref(fdwand);}
+    return kno_incref(fdwand);}
 }
 
 
@@ -478,303 +478,303 @@ static lispval imagick_crop(lispval fdwand,
                            lispval xoff,lispval yoff)
 {
   MagickBooleanType retval;
-  struct FD_IMAGICK *wrapper=
-    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
+  struct KNO_IMAGICK *wrapper=
+    kno_consptr(struct KNO_IMAGICK *,fdwand,kno_imagick_type);
   MagickWand *wand = wrapper->wand;
-  size_t w = fd_getint(width), h = fd_getint(height);
-  ssize_t x = fd_getint(xoff), y = fd_getint(yoff);
+  size_t w = kno_getint(width), h = kno_getint(height);
+  ssize_t x = kno_getint(xoff), y = kno_getint(yoff);
   retval = MagickCropImage(wand,w,h,x,y);
   if (retval == MagickFalse) {
     grabmagickerr("imagick_crop",wand);
-    return FD_ERROR_VALUE;}
+    return KNO_ERROR_VALUE;}
   else {
     U8_CLEAR_ERRNO();
-    return fd_incref(fdwand);}
+    return kno_incref(fdwand);}
 }
 
 static lispval imagick_flip(lispval fdwand)
 {
   MagickBooleanType retval;
-  struct FD_IMAGICK *wrapper=
-    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
+  struct KNO_IMAGICK *wrapper=
+    kno_consptr(struct KNO_IMAGICK *,fdwand,kno_imagick_type);
   MagickWand *wand = wrapper->wand;
   retval = MagickFlipImage(wand);
   if (retval == MagickFalse) {
     grabmagickerr("imagick_flip",wand);
-    return FD_ERROR_VALUE;}
+    return KNO_ERROR_VALUE;}
   else {
     U8_CLEAR_ERRNO();
-    return fd_incref(fdwand);}
+    return kno_incref(fdwand);}
 }
 
 static lispval imagick_flop(lispval fdwand)
 {
   MagickBooleanType retval;
-  struct FD_IMAGICK *wrapper=
-    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
+  struct KNO_IMAGICK *wrapper=
+    kno_consptr(struct KNO_IMAGICK *,fdwand,kno_imagick_type);
   MagickWand *wand = wrapper->wand;
   retval = MagickFlopImage(wand);
   if (retval == MagickFalse) {
     grabmagickerr("imagick_flop",wand);
-    return FD_ERROR_VALUE;}
+    return KNO_ERROR_VALUE;}
   else {
     U8_CLEAR_ERRNO();
-    return fd_incref(fdwand);}
+    return kno_incref(fdwand);}
 }
 
 static lispval imagick_equalize(lispval fdwand)
 {
   MagickBooleanType retval;
-  struct FD_IMAGICK *wrapper=
-    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
+  struct KNO_IMAGICK *wrapper=
+    kno_consptr(struct KNO_IMAGICK *,fdwand,kno_imagick_type);
   MagickWand *wand = wrapper->wand;
   retval = MagickEqualizeImage(wand);
   if (retval == MagickFalse) {
     grabmagickerr("imagick_equalize",wand);
-    return FD_ERROR_VALUE;}
+    return KNO_ERROR_VALUE;}
   else {
     U8_CLEAR_ERRNO();
-    return fd_incref(fdwand);}
+    return kno_incref(fdwand);}
 }
 
 static lispval imagick_despeckle(lispval fdwand)
 {
   MagickBooleanType retval;
-  struct FD_IMAGICK *wrapper=
-    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
+  struct KNO_IMAGICK *wrapper=
+    kno_consptr(struct KNO_IMAGICK *,fdwand,kno_imagick_type);
   MagickWand *wand = wrapper->wand;
   retval = MagickDespeckleImage(wand);
   if (retval == MagickFalse) {
     grabmagickerr("imagick_despeckle",wand);
-    return FD_ERROR_VALUE;}
+    return KNO_ERROR_VALUE;}
   else {
     U8_CLEAR_ERRNO();
-    return fd_incref(fdwand);}
+    return kno_incref(fdwand);}
 }
 
 static lispval imagick_enhance(lispval fdwand)
 {
   MagickBooleanType retval;
-  struct FD_IMAGICK *wrapper=
-    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
+  struct KNO_IMAGICK *wrapper=
+    kno_consptr(struct KNO_IMAGICK *,fdwand,kno_imagick_type);
   MagickWand *wand = wrapper->wand;
   retval = MagickEnhanceImage(wand);
   if (retval == MagickFalse) {
     grabmagickerr("imagick_enhance",wand);
-    return FD_ERROR_VALUE;}
+    return KNO_ERROR_VALUE;}
   else {
     U8_CLEAR_ERRNO();
-    return fd_incref(fdwand);}
+    return kno_incref(fdwand);}
 }
 
 static lispval imagick_deskew(lispval fdwand,lispval threshold)
 {
   MagickBooleanType retval;
-  struct FD_IMAGICK *wrapper=
-    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
+  struct KNO_IMAGICK *wrapper=
+    kno_consptr(struct KNO_IMAGICK *,fdwand,kno_imagick_type);
   MagickWand *wand = wrapper->wand;
-  double t = FD_FLONUM(threshold);
+  double t = KNO_FLONUM(threshold);
   retval = MagickEdgeImage(wand,t);
   if (retval == MagickFalse) {
     grabmagickerr("imagick_deskew",wand);
-    return FD_ERROR_VALUE;}
+    return KNO_ERROR_VALUE;}
   else {
     U8_CLEAR_ERRNO();
-    return fd_incref(fdwand);}
+    return kno_incref(fdwand);}
 }
 
 static lispval imagick_display(lispval fdwand,lispval display_name)
 {
   MagickBooleanType retval;
-  struct FD_IMAGICK *wrapper=
-    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
+  struct KNO_IMAGICK *wrapper=
+    kno_consptr(struct KNO_IMAGICK *,fdwand,kno_imagick_type);
   MagickWand *wand = wrapper->wand;
   u8_string display=
-    ((FD_VOIDP(display_name))?((u8_string)":0.0"):(FD_CSTRING(display_name)));
+    ((KNO_VOIDP(display_name))?((u8_string)":0.0"):(KNO_CSTRING(display_name)));
   retval = MagickDisplayImage(wand,display);
   if (retval == MagickFalse) {
     grabmagickerr("imagick_display",wand);
-    return FD_ERROR_VALUE;}
+    return KNO_ERROR_VALUE;}
   else {
     U8_CLEAR_ERRNO();
-    return fd_incref(fdwand);}
+    return kno_incref(fdwand);}
 }
 
 static lispval imagick_get(lispval fdwand,lispval property,lispval dflt)
 {
-  struct FD_IMAGICK *wrapper=
-    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
+  struct KNO_IMAGICK *wrapper=
+    kno_consptr(struct KNO_IMAGICK *,fdwand,kno_imagick_type);
   MagickWand *wand = wrapper->wand;
-  const char *pname = ((FD_SYMBOLP(property))?(FD_SYMBOL_NAME(property)):
-                     (FD_STRINGP(property))?(FD_CSTRING(property)):(NULL));
+  const char *pname = ((KNO_SYMBOLP(property))?(KNO_SYMBOL_NAME(property)):
+                     (KNO_STRINGP(property))?(KNO_CSTRING(property)):(NULL));
   char *value = MagickGetImageProperty(wand,pname);
   if (value) {
-    lispval stringval = fd_make_string(NULL,-1,value);
+    lispval stringval = kno_make_string(NULL,-1,value);
     MagickRelinquishMemory(value);
     return stringval;}
-  else if (FD_VOIDP(dflt))
-    return FD_EMPTY_CHOICE;
-  else return fd_incref(dflt);
+  else if (KNO_VOIDP(dflt))
+    return KNO_EMPTY_CHOICE;
+  else return kno_incref(dflt);
 }
 
 static lispval imagick_getkeys(lispval fdwand)
 {
-  struct FD_IMAGICK *wrapper=
-    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
+  struct KNO_IMAGICK *wrapper=
+    kno_consptr(struct KNO_IMAGICK *,fdwand,kno_imagick_type);
   MagickWand *wand = wrapper->wand;
   size_t n_keys = 0;
   char **properties = MagickGetImageProperties(wand,"",&n_keys);
   if (properties) {
-    lispval results = FD_EMPTY_CHOICE;
+    lispval results = KNO_EMPTY_CHOICE;
     int i = 0; while (i<n_keys) {
       char *pname = properties[i++];
-      lispval key = fd_make_string(NULL,-1,pname);
-      FD_ADD_TO_CHOICE(results,key);}
+      lispval key = kno_make_string(NULL,-1,pname);
+      KNO_ADD_TO_CHOICE(results,key);}
     MagickRelinquishMemory(properties);
     return results;}
-  else return FD_VOID;
+  else return KNO_VOID;
 }
 
 static long long int imagick_init = 0;
 
 static void init_symbols()
 {
-  format = fd_intern("FORMAT");
-  resolution = fd_intern("RESOLUTION");
+  format = kno_intern("FORMAT");
+  resolution = kno_intern("RESOLUTION");
 
-  size = fd_intern("SIZE");
-  width = fd_intern("WIDTH");
-  height = fd_intern("HEIGHT");
-  interlace = fd_intern("INTERLACE");
-  line_interlace = fd_intern("LINE");
-  plane_interlace = fd_intern("PLANE");
-  partition_interlace = fd_intern("PARITION");
+  size = kno_intern("SIZE");
+  width = kno_intern("WIDTH");
+  height = kno_intern("HEIGHT");
+  interlace = kno_intern("INTERLACE");
+  line_interlace = kno_intern("LINE");
+  plane_interlace = kno_intern("PLANE");
+  partition_interlace = kno_intern("PARITION");
 
 }
 
-int fd_init_imagick()
+int kno_init_imagick()
 {
   lispval imagick_module;
   if (imagick_init) return 0;
   else imagick_init = u8_millitime();
-  imagick_module = fd_new_cmodule("IMAGICK",(FD_MODULE_SAFE),fd_init_imagick);
+  imagick_module = kno_new_cmodule("IMAGICK",(KNO_MODULE_SAFE),kno_init_imagick);
 
-  fd_imagick_type = fd_register_cons_type("IMAGICK");
-  fd_unparsers[fd_imagick_type]=unparse_imagick;
-  fd_recyclers[fd_imagick_type]=recycle_imagick;
+  kno_imagick_type = kno_register_cons_type("IMAGICK");
+  kno_unparsers[kno_imagick_type]=unparse_imagick;
+  kno_recyclers[kno_imagick_type]=recycle_imagick;
 
   init_symbols();
 
-  fd_tablefns[fd_imagick_type]=u8_alloc(struct FD_TABLEFNS);
-  fd_tablefns[fd_imagick_type]->get = (fd_table_get_fn)imagick_table_get;
-  fd_tablefns[fd_imagick_type]->add = NULL;
-  fd_tablefns[fd_imagick_type]->drop = NULL;
-  fd_tablefns[fd_imagick_type]->store = NULL;
-  fd_tablefns[fd_imagick_type]->test = NULL;
-  fd_tablefns[fd_imagick_type]->getsize = NULL;
-  fd_tablefns[fd_imagick_type]->keys = NULL;
+  kno_tablefns[kno_imagick_type]=u8_alloc(struct KNO_TABLEFNS);
+  kno_tablefns[kno_imagick_type]->get = (kno_table_get_fn)imagick_table_get;
+  kno_tablefns[kno_imagick_type]->add = NULL;
+  kno_tablefns[kno_imagick_type]->drop = NULL;
+  kno_tablefns[kno_imagick_type]->store = NULL;
+  kno_tablefns[kno_imagick_type]->test = NULL;
+  kno_tablefns[kno_imagick_type]->getsize = NULL;
+  kno_tablefns[kno_imagick_type]->keys = NULL;
 
-  fd_idefn(imagick_module,
-           fd_make_cprim1x("FILE->IMAGICK",file2imagick,1,
-                           fd_string_type,FD_VOID));
-  fd_idefn(imagick_module,
-           fd_make_cprim1x("PACKET->IMAGICK",packet2imagick,1,
-                           fd_packet_type,FD_VOID));
-  fd_idefn(imagick_module,
-           fd_make_cprim2x("IMAGICK->FILE",imagick2file,1,
-                           fd_imagick_type,FD_VOID,
-                           fd_string_type,FD_VOID));
-  fd_idefn(imagick_module,
-           fd_make_cprim1x("IMAGICK->PACKET",imagick2packet,1,
-                           fd_imagick_type,FD_VOID));
+  kno_idefn(imagick_module,
+           kno_make_cprim1x("FILE->IMAGICK",file2imagick,1,
+                           kno_string_type,KNO_VOID));
+  kno_idefn(imagick_module,
+           kno_make_cprim1x("PACKET->IMAGICK",packet2imagick,1,
+                           kno_packet_type,KNO_VOID));
+  kno_idefn(imagick_module,
+           kno_make_cprim2x("IMAGICK->FILE",imagick2file,1,
+                           kno_imagick_type,KNO_VOID,
+                           kno_string_type,KNO_VOID));
+  kno_idefn(imagick_module,
+           kno_make_cprim1x("IMAGICK->PACKET",imagick2packet,1,
+                           kno_imagick_type,KNO_VOID));
 
-  fd_idefn(imagick_module,
-           fd_make_cprim1x("IMAGICK/CLONE",imagick2imagick,1,
-                           fd_imagick_type,FD_VOID));
+  kno_idefn(imagick_module,
+           kno_make_cprim1x("IMAGICK/CLONE",imagick2imagick,1,
+                           kno_imagick_type,KNO_VOID));
 
-  fd_idefn(imagick_module,
-           fd_make_cprim5x("IMAGICK/FIT",imagick_fit,3,
-                           fd_imagick_type,FD_VOID,
-                           fd_fixnum_type,FD_VOID,
-                           fd_fixnum_type,FD_VOID,
-                           -1,FD_VOID,fd_flonum_type,FD_VOID));
-  fd_idefn(imagick_module,
-           fd_make_cprim2x("IMAGICK/FORMAT",imagick_format,2,
-                           fd_imagick_type,FD_VOID,
-                           fd_string_type,FD_VOID));
+  kno_idefn(imagick_module,
+           kno_make_cprim5x("IMAGICK/FIT",imagick_fit,3,
+                           kno_imagick_type,KNO_VOID,
+                           kno_fixnum_type,KNO_VOID,
+                           kno_fixnum_type,KNO_VOID,
+                           -1,KNO_VOID,kno_flonum_type,KNO_VOID));
+  kno_idefn(imagick_module,
+           kno_make_cprim2x("IMAGICK/FORMAT",imagick_format,2,
+                           kno_imagick_type,KNO_VOID,
+                           kno_string_type,KNO_VOID));
 
-  fd_idefn(imagick_module,
-           fd_make_cprim2x("IMAGICK/INTERLACE",imagick_interlace,2,
-                           fd_imagick_type,FD_VOID,
-                           -1,FD_VOID));
+  kno_idefn(imagick_module,
+           kno_make_cprim2x("IMAGICK/INTERLACE",imagick_interlace,2,
+                           kno_imagick_type,KNO_VOID,
+                           -1,KNO_VOID));
 
-  fd_idefn(imagick_module,
-           fd_make_cprim6x("IMAGICK/EXTEND",imagick_extend,3,
-                           fd_imagick_type,FD_VOID,
-                           fd_fixnum_type,FD_VOID,
-                           fd_fixnum_type,FD_VOID,
-                           fd_fixnum_type,FD_VOID,
-                           fd_fixnum_type,FD_VOID,
-                           -1,FD_VOID));
+  kno_idefn(imagick_module,
+           kno_make_cprim6x("IMAGICK/EXTEND",imagick_extend,3,
+                           kno_imagick_type,KNO_VOID,
+                           kno_fixnum_type,KNO_VOID,
+                           kno_fixnum_type,KNO_VOID,
+                           kno_fixnum_type,KNO_VOID,
+                           kno_fixnum_type,KNO_VOID,
+                           -1,KNO_VOID));
 
-  fd_idefn(imagick_module,
-           fd_make_cprim3x("IMAGICK/CHARCOAL",imagick_charcoal,3,
-                           fd_imagick_type,FD_VOID,
-                           fd_flonum_type,FD_VOID,
-                           fd_flonum_type,FD_VOID));
-  fd_idefn(imagick_module,
-           fd_make_cprim3x("IMAGICK/EMBOSS",imagick_emboss,3,
-                           fd_imagick_type,FD_VOID,
-                           fd_flonum_type,FD_VOID,
-                           fd_flonum_type,FD_VOID));
-  fd_idefn(imagick_module,
-           fd_make_cprim3x("IMAGICK/BLUR",imagick_blur,3,
-                           fd_imagick_type,FD_VOID,
-                           fd_flonum_type,FD_VOID,
-                           fd_flonum_type,FD_VOID));
-  fd_idefn(imagick_module,
-           fd_make_cprim2x("IMAGICK/EDGE",imagick_edge,2,
-                           fd_imagick_type,FD_VOID,
-                           fd_flonum_type,FD_VOID));
-  fd_idefn(imagick_module,
-           fd_make_cprim5x("IMAGICK/CROP",imagick_crop,3,
-                           fd_imagick_type,FD_VOID,
-                           fd_fixnum_type,FD_VOID,
-                           fd_fixnum_type,FD_VOID,
-                           fd_fixnum_type,FD_INT(0),
-                           fd_fixnum_type,FD_INT(0)));
-  fd_idefn(imagick_module,
-           fd_make_cprim2x("IMAGICK/DESKEW",imagick_deskew,2,
-                           fd_imagick_type,FD_VOID,
-                           fd_flonum_type,FD_VOID));
+  kno_idefn(imagick_module,
+           kno_make_cprim3x("IMAGICK/CHARCOAL",imagick_charcoal,3,
+                           kno_imagick_type,KNO_VOID,
+                           kno_flonum_type,KNO_VOID,
+                           kno_flonum_type,KNO_VOID));
+  kno_idefn(imagick_module,
+           kno_make_cprim3x("IMAGICK/EMBOSS",imagick_emboss,3,
+                           kno_imagick_type,KNO_VOID,
+                           kno_flonum_type,KNO_VOID,
+                           kno_flonum_type,KNO_VOID));
+  kno_idefn(imagick_module,
+           kno_make_cprim3x("IMAGICK/BLUR",imagick_blur,3,
+                           kno_imagick_type,KNO_VOID,
+                           kno_flonum_type,KNO_VOID,
+                           kno_flonum_type,KNO_VOID));
+  kno_idefn(imagick_module,
+           kno_make_cprim2x("IMAGICK/EDGE",imagick_edge,2,
+                           kno_imagick_type,KNO_VOID,
+                           kno_flonum_type,KNO_VOID));
+  kno_idefn(imagick_module,
+           kno_make_cprim5x("IMAGICK/CROP",imagick_crop,3,
+                           kno_imagick_type,KNO_VOID,
+                           kno_fixnum_type,KNO_VOID,
+                           kno_fixnum_type,KNO_VOID,
+                           kno_fixnum_type,KNO_INT(0),
+                           kno_fixnum_type,KNO_INT(0)));
+  kno_idefn(imagick_module,
+           kno_make_cprim2x("IMAGICK/DESKEW",imagick_deskew,2,
+                           kno_imagick_type,KNO_VOID,
+                           kno_flonum_type,KNO_VOID));
 
-  fd_idefn(imagick_module,
-           fd_make_cprim2x("IMAGICK/DISPLAY",imagick_display,1,
-                           fd_imagick_type,FD_VOID,
-                           fd_string_type,FD_VOID));
+  kno_idefn(imagick_module,
+           kno_make_cprim2x("IMAGICK/DISPLAY",imagick_display,1,
+                           kno_imagick_type,KNO_VOID,
+                           kno_string_type,KNO_VOID));
 
-  fd_idefn(imagick_module,
-           fd_make_cprim1x("IMAGICK/FLIP",imagick_flip,1,
-                           fd_imagick_type,FD_VOID));
-  fd_idefn(imagick_module,
-           fd_make_cprim1x("IMAGICK/FLOP",imagick_flop,1,
-                           fd_imagick_type,FD_VOID));
-  fd_idefn(imagick_module,
-           fd_make_cprim1x("IMAGICK/EQUALIZE",imagick_equalize,1,
-                           fd_imagick_type,FD_VOID));
-  fd_idefn(imagick_module,
-           fd_make_cprim1x("IMAGICK/DESPECKLE",imagick_despeckle,1,
-                           fd_imagick_type,FD_VOID));
-  fd_idefn(imagick_module,
-           fd_make_cprim1x("IMAGICK/ENHANCE",imagick_enhance,1,
-                           fd_imagick_type,FD_VOID));
-  fd_idefn(imagick_module,
-           fd_make_cprim1x("IMAGICK/KEYS",imagick_getkeys,1,
-                           fd_imagick_type,FD_VOID));
-  fd_idefn(imagick_module,
-           fd_make_cprim3x("IMAGICK/GET",imagick_get,2,
-                           fd_imagick_type,FD_VOID,
-                           -1,FD_VOID,-1,FD_VOID));
+  kno_idefn(imagick_module,
+           kno_make_cprim1x("IMAGICK/FLIP",imagick_flip,1,
+                           kno_imagick_type,KNO_VOID));
+  kno_idefn(imagick_module,
+           kno_make_cprim1x("IMAGICK/FLOP",imagick_flop,1,
+                           kno_imagick_type,KNO_VOID));
+  kno_idefn(imagick_module,
+           kno_make_cprim1x("IMAGICK/EQUALIZE",imagick_equalize,1,
+                           kno_imagick_type,KNO_VOID));
+  kno_idefn(imagick_module,
+           kno_make_cprim1x("IMAGICK/DESPECKLE",imagick_despeckle,1,
+                           kno_imagick_type,KNO_VOID));
+  kno_idefn(imagick_module,
+           kno_make_cprim1x("IMAGICK/ENHANCE",imagick_enhance,1,
+                           kno_imagick_type,KNO_VOID));
+  kno_idefn(imagick_module,
+           kno_make_cprim1x("IMAGICK/KEYS",imagick_getkeys,1,
+                           kno_imagick_type,KNO_VOID));
+  kno_idefn(imagick_module,
+           kno_make_cprim3x("IMAGICK/GET",imagick_get,2,
+                           kno_imagick_type,KNO_VOID,
+                           -1,KNO_VOID,-1,KNO_VOID));
 
   MagickWandGenesis();
   atexit(magickwand_atexit);

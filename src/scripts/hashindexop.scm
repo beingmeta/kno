@@ -33,7 +33,7 @@
 	(else (set! last-log (elapsed-time)) #t)))
 
 (define get-keyinfo 
-  (ffi/proc "fd_hashindex_keyinfo" #f 'lisp 'lisp 'lisp 'lisp))
+  (ffi/proc "kno_hashindex_keyinfo" #f 'lisp 'lisp 'lisp 'lisp))
 
 ;;; MT/MAP
 

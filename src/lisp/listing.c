@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -9,29 +9,29 @@
 #define _FILEINFO __FILE__
 #endif
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/compounds.h"
-#include "framerd/sequences.h"
-#include "framerd/history.h"
-#include "framerd/storage.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/compounds.h"
+#include "kno/sequences.h"
+#include "kno/history.h"
+#include "kno/storage.h"
 
 #include "libu8/u8printf.h"
 #include "libu8/u8strings.h"
 
 
 #define LISTABLEP(x)                                                    \
-  ( (FD_CHOICEP(x)) || (FD_VECTORP(x)) || (FD_PAIRP(x)) ||              \
-    (FD_SLOTMAPP(x)) || (FD_SCHEMAPP(x)) || (FD_PRECHOICEP(x)) ||       \
-    (FD_COMPOUND_VECTORP(x)) )
+  ( (KNO_CHOICEP(x)) || (KNO_VECTORP(x)) || (KNO_PAIRP(x)) ||              \
+    (KNO_SLOTMAPP(x)) || (KNO_SCHEMAPP(x)) || (KNO_PRECHOICEP(x)) ||       \
+    (KNO_COMPOUND_VECTORP(x)) )
 #define SHORTP(x) \
-  ((FD_SYMBOLP(x)) || (FD_NUMBERP(x)) || \
-   ( (FD_STRINGP(x)) && (FD_STRLEN(x) < 17) ) )
+  ((KNO_SYMBOLP(x)) || (KNO_NUMBERP(x)) || \
+   ( (KNO_STRINGP(x)) && (KNO_STRLEN(x) < 17) ) )
 #define UNLISTABLEP(x) \
   ( (! (LISTABLEP(x)) ) ||                      \
-    ( (FD_PAIRP(x)) && (SHORTP(FD_CAR(x))) && (SHORTP(FD_CDR(x))) ) )
+    ( (KNO_PAIRP(x)) && (SHORTP(KNO_CAR(x))) && (SHORTP(KNO_CDR(x))) ) )
 #define ODDPAIRP(x) \
-  ( (FD_PAIRP(x)) && (SHORTP(FD_CAR(x))) && (SHORTP(FD_CDR(x))) )
+  ( (KNO_PAIRP(x)) && (SHORTP(KNO_CAR(x))) && (SHORTP(KNO_CDR(x))) )
 
 
 static int list_length(lispval scan)
@@ -39,8 +39,8 @@ static int list_length(lispval scan)
   int len = 0;
   while (1)
     if (NILP(scan)) return len;
-    else if (FD_PAIRP(scan)) {
-      scan = FD_CDR(scan); len++;}
+    else if (KNO_PAIRP(scan)) {
+      scan = KNO_CDR(scan); len++;}
     else return len+1;
 }
 
@@ -49,11 +49,11 @@ static int list_elements(u8_output out,
                          u8_string label,
                          u8_string pathref,
                          u8_string indent,
-                         fd_listobj_fn eltfn,
+                         kno_listobj_fn eltfn,
                          int width,
                          int detail,
                          int depth);
-static void output_key(u8_output out,lispval key,fd_listobj_fn eltfn);
+static void output_key(u8_output out,lispval key,kno_listobj_fn eltfn);
 
 static void custom_eltfn_error(lispval item)
 {
@@ -68,35 +68,35 @@ static void custom_eltfn_error(lispval item)
   if (ex) u8_free_exception(ex,0);
 }
 
-static int list_item(u8_output out,lispval item,fd_listobj_fn eltfn)
+static int list_item(u8_output out,lispval item,kno_listobj_fn eltfn)
 {
   if (eltfn == NULL)
-    fd_unparse(out,item);
-  else if ( (FD_OIDP(item)) || (FD_COMPOUNDP(item))  ) {
+    kno_unparse(out,item);
+  else if ( (KNO_OIDP(item)) || (KNO_COMPOUNDP(item))  ) {
     lispval alt = eltfn(item);
-    if (FD_VOIDP(alt))
-      fd_unparse(out,item);
-    else if (FD_ABORTP(alt)) {
+    if (KNO_VOIDP(alt))
+      kno_unparse(out,item);
+    else if (KNO_ABORTP(alt)) {
       custom_eltfn_error(item);
-      fd_unparse(out,alt);}
+      kno_unparse(out,alt);}
     else {
-      fd_unparse(out,alt);
-      fd_decref(alt);}}
+      kno_unparse(out,alt);
+      kno_decref(alt);}}
   else {
-    fd_unparse(out,item);}
+    kno_unparse(out,item);}
   return 0;
 }
 
 static void list_table(u8_output out,lispval table,
                        u8_string label,u8_string pathref,int path,
                        u8_string indent,
-                       fd_listobj_fn eltfn,
+                       kno_listobj_fn eltfn,
                        int width,
                        int detail,
                        int depth)
 {
-  lispval keys = fd_getkeys(table);
-  int count = 0, n_keys = FD_CHOICE_SIZE(keys);
+  lispval keys = kno_getkeys(table);
+  int count = 0, n_keys = KNO_CHOICE_SIZE(keys);
   int show_keys = ( detail <= 0) ? (n_keys) :
     (n_keys < (detail+5) ) ? (n_keys) :
     (n_keys >= detail) ? (detail) : (n_keys);
@@ -110,7 +110,7 @@ static void list_table(u8_output out,lispval table,
     (detail > 0) ? ((detail/2)+1) :
     (((-detail)/2)+1);
   if (label == NULL) label = full_pathref;
-  u8_string prefix = (FD_SCHEMAPP(table)) ? ("") : ("#");
+  u8_string prefix = (KNO_SCHEMAPP(table)) ? ("") : ("#");
   if (n_keys == 0) {
     u8_printf(out,"%s[]",prefix);
     return;}
@@ -119,7 +119,7 @@ static void list_table(u8_output out,lispval table,
   else u8_printf(out,"%s[;; %s (%d slots)",prefix,U8S(label),n_keys);
   DO_CHOICES(key,keys) {
     if (count >= show_keys) {
-      FD_STOP_DO_CHOICES;
+      KNO_STOP_DO_CHOICES;
       break;}
     u8_byte label_buf[64] = { 0 };
     u8_byte val_pathbuf[64] = { 0 };
@@ -129,22 +129,22 @@ static void list_table(u8_output out,lispval table,
     u8_string val_label = (full_pathref) ?
       (u8_sprintf(label_buf,64,"%s.%q",full_pathref,key)) :
       (NULL);
-    lispval val = fd_get(table,key,FD_EMPTY_CHOICE);
+    lispval val = kno_get(table,key,KNO_EMPTY_CHOICE);
     if (EMPTYP(val)) {
       u8_printf(out,"\n%s  ",indent);
       output_key(out,key,eltfn);
       u8_puts(out," \t#> {} \t;;no values");}
     else {
-      if ( (FD_CHOICEP(val)) || (FD_VECTORP(val)) ||
-           ( (FD_PAIRP(val)) &&
-             (!(FD_SYMBOLP(FD_CAR(val)))) &&
+      if ( (KNO_CHOICEP(val)) || (KNO_VECTORP(val)) ||
+           ( (KNO_PAIRP(val)) &&
+             (!(KNO_SYMBOLP(KNO_CAR(val)))) &&
              (!(ODDPAIRP(val)) ) ) ) {
         u8_printf(out,"\n%s  ",indent);
         output_key(out,key,eltfn);
         u8_puts(out," #> ");
         list_elements(out,val,val_label,val_pathref,
                       val_indent,eltfn,width,val_detail,depth+1);}
-      else if ( (FD_SLOTMAPP(val)) || (FD_SCHEMAPP(val)) ) {
+      else if ( (KNO_SLOTMAPP(val)) || (KNO_SCHEMAPP(val)) ) {
         u8_printf(out,"\n%s  ",indent);
         output_key(out,key,eltfn);
         u8_puts(out," #> ");
@@ -163,7 +163,7 @@ static void list_table(u8_output out,lispval table,
         else {
           /* Reset to zero */
           tmp.u8_write=tmp.u8_outbuf; tmp.u8_outbuf[0]='\0';
-          fd_pprint(tmpout,val,val_indent,3,3,width);
+          kno_pprint(tmpout,val,val_indent,3,3,width);
           if (full_pathref)
             u8_printf(out,"\n%s  %q #> ;;=%s.%q\n%s%s",
                       indent,key,full_pathref,key,
@@ -172,7 +172,7 @@ static void list_table(u8_output out,lispval table,
                          indent,key,val_indent,tmp.u8_outbuf);}
         u8_close_output(tmpout);}
       u8_flush(out);}
-    fd_decref(val);
+    kno_decref(val);
     count++;}
   if ( (label) && (n_keys > show_keys) )
     u8_printf(out,"\n%s  ] ;;... %d/%d more slots in %s ....",
@@ -185,25 +185,25 @@ static void list_table(u8_output out,lispval table,
   else u8_puts(out," ]");
 }
 
-static void output_key(u8_output out,lispval key,fd_listobj_fn eltfn)
+static void output_key(u8_output out,lispval key,kno_listobj_fn eltfn)
 {
-  if ( (eltfn) && ( (FD_OIDP(key)) || (FD_COMPOUNDP(key)) ) ) {
+  if ( (eltfn) && ( (KNO_OIDP(key)) || (KNO_COMPOUNDP(key)) ) ) {
     lispval alt = eltfn(key);
-    if (FD_VOIDP(alt))
-      fd_unparse(out,key);
-    else if (FD_ABORTP(alt)) {
+    if (KNO_VOIDP(alt))
+      kno_unparse(out,key);
+    else if (KNO_ABORTP(alt)) {
       custom_eltfn_error(key);
-      fd_unparse(out,alt);}
+      kno_unparse(out,alt);}
     else {
-      fd_unparse(out,alt);
-      fd_decref(alt);}}
-  else fd_unparse(out,key);
+      kno_unparse(out,alt);
+      kno_decref(alt);}}
+  else kno_unparse(out,key);
 }
 
 static void list_element(u8_output out,lispval elt,
                          u8_string pathref,int path,
                          u8_string indent,
-                         fd_listobj_fn eltfn,
+                         kno_listobj_fn eltfn,
                          int width,
                          int detail,
                          int depth)
@@ -228,8 +228,8 @@ static void list_element(u8_output out,lispval elt,
     else if (pathref)
       u8_printf(out,"\n%s;; %s=\n%s",indent,pathref,indent);
     else u8_printf(out,"\n%s",indent);
-    fd_pprint(out,elt,indent,3,3,width);}
-  else if ( (FD_SLOTMAPP(elt)) || (FD_SCHEMAPP(elt)) ) {
+    kno_pprint(out,elt,indent,3,3,width);}
+  else if ( (KNO_SLOTMAPP(elt)) || (KNO_SCHEMAPP(elt)) ) {
     u8_printf(out,"\n%s",indent);
     list_table(out,elt,NULL,pathref,path,indent,eltfn,width,3,depth);}
   else {
@@ -245,7 +245,7 @@ static int list_elements(u8_output out,
                          u8_string label,
                          u8_string pathref,
                          u8_string indent,
-                         fd_listobj_fn eltfn,
+                         kno_listobj_fn eltfn,
                          int width,
                          int detail,
                          int depth)
@@ -254,21 +254,21 @@ static int list_elements(u8_output out,
   u8_byte indentbuf[64] = { 0 }, startbuf[128] = { 0 };
   u8_string start, end, elt_indent;
 
-  if (FD_CHOICEP(result)) {
-    n_elts = FD_CHOICE_SIZE(result);
+  if (KNO_CHOICEP(result)) {
+    n_elts = KNO_CHOICE_SIZE(result);
     elt_indent = u8_sprintf(indentbuf,64,"%s ",indent);
     start = "{"; end="}";}
-  else if (FD_VECTORP(result)) {
-    n_elts = FD_VECTOR_LENGTH(result);
+  else if (KNO_VECTORP(result)) {
+    n_elts = KNO_VECTOR_LENGTH(result);
     elt_indent = u8_sprintf(indentbuf,64,"%s  ",indent);
     start = "#("; end = ")";}
-  else if (FD_COMPOUND_VECTORP(result))  {
-    lispval tag = FD_COMPOUND_TAG(result);
-    n_elts = FD_COMPOUND_LENGTH(result);
+  else if (KNO_COMPOUND_VECTORP(result))  {
+    lispval tag = KNO_COMPOUND_TAG(result);
+    n_elts = KNO_COMPOUND_LENGTH(result);
     elt_indent = u8_sprintf(indentbuf,64,"%s    ",indent);
     start = u8_bprintf(startbuf,"#%%(%q",tag);
     end = ")";}
-  else if (FD_PAIRP(result)) {
+  else if (KNO_PAIRP(result)) {
     n_elts = list_length(result);
     elt_indent = u8_sprintf(indentbuf,64,"%s ",indent);
     start = "("; end = ")";}
@@ -286,20 +286,20 @@ static int list_elements(u8_output out,
                  start,U8S(label),show_elts,n_elts);
 
   if (CHOICEP(result)) {
-    FD_DO_CHOICES(elt,result) {
+    KNO_DO_CHOICES(elt,result) {
       if ((show_elts>0) && (count<show_elts)) {
         list_element(out,elt,pathref,count,elt_indent,
                      eltfn,width,detail,depth+1);
         count++;}
-      else {FD_STOP_DO_CHOICES; break;}}}
+      else {KNO_STOP_DO_CHOICES; break;}}}
   else if (VECTORP(result)) {
     lispval *elts = VEC_DATA(result);
     while (count<show_elts) {
       list_element(out,elts[count],pathref,count,elt_indent,
                    eltfn,width,detail,depth+1);
       count++;}}
-  else if (FD_COMPOUND_VECTORP(result)) {
-    lispval *elts = FD_COMPOUND_ELTS(result);
+  else if (KNO_COMPOUND_VECTORP(result)) {
+    lispval *elts = KNO_COMPOUND_ELTS(result);
     while (count<show_elts) {
       list_element(out,elts[count],pathref,count,elt_indent,
                    eltfn,width,detail,depth+1);
@@ -308,9 +308,9 @@ static int list_elements(u8_output out,
     lispval scan = result;
     while (count<show_elts)
       if (PAIRP(scan)) {
-        list_element(out,FD_CAR(scan),pathref,count,elt_indent,
+        list_element(out,KNO_CAR(scan),pathref,count,elt_indent,
                      eltfn,width,detail,depth+1);
-        scan = FD_CDR(scan);
+        scan = KNO_CDR(scan);
         count++;}
       else {
         u8_printf(out,"\n%s. ;; improper list",elt_indent);
@@ -334,38 +334,38 @@ static int list_elements(u8_output out,
   return show_elts;
 }
 
-FD_EXPORT int fd_list_object(u8_output out,
+KNO_EXPORT int kno_list_object(u8_output out,
                              lispval result,
                              u8_string label,
                              u8_string pathref,
                              u8_string indent,
-                             fd_listobj_fn eltfn,
+                             kno_listobj_fn eltfn,
                              int width,
                              int detail)
 {
   if (VOIDP(result)) return 0;
-  if ((FD_CHOICEP(result)) ||
-      (FD_VECTORP(result)) ||
-      (FD_COMPOUND_VECTORP(result)) ||
+  if ((KNO_CHOICEP(result)) ||
+      (KNO_VECTORP(result)) ||
+      (KNO_COMPOUND_VECTORP(result)) ||
       (PAIRP(result))) {
     list_elements(out,result,label,pathref,indent,eltfn,width,detail,0);
     return 1;}
-  else if ( (FD_SLOTMAPP(result)) || (FD_SCHEMAPP(result)) ) {
+  else if ( (KNO_SLOTMAPP(result)) || (KNO_SCHEMAPP(result)) ) {
     list_table(out,result,label,pathref,-1,indent,eltfn,width,detail,0);
     return 1;}
-  else if (FD_STRINGP(result)) {
+  else if (KNO_STRINGP(result)) {
     if (detail <= 0) {
-      if (FD_STRLEN(result) > width)
+      if (KNO_STRLEN(result) > width)
         u8_printf(out,";; %s (%d chars)\n%s%lq",
-                  U8S(pathref),FD_STRLEN(result),indent,result);
+                  U8S(pathref),KNO_STRLEN(result),indent,result);
       else u8_printf(out,"%lq ;; %s (%d chars)",
                      result,U8ALT(pathref,""),
-                     FD_STRLEN(result));}
-    else if (FD_STRLEN(result) > width)
+                     KNO_STRLEN(result));}
+    else if (KNO_STRLEN(result) > width)
       u8_printf(out,";; %s (%d chars)\n%s%q",
-                U8S(pathref),FD_STRLEN(result),indent,result);
+                U8S(pathref),KNO_STRLEN(result),indent,result);
     else u8_printf(out,"%q ;; %s (%d chars)",
-                   result,U8S(pathref),FD_STRLEN(result));
+                   result,U8S(pathref),KNO_STRLEN(result));
     return 1;}
   else {
     if ( (width <= 0) && (pathref) )
@@ -374,7 +374,7 @@ FD_EXPORT int fd_list_object(u8_output out,
       u8_printf(out,"%q",result);
     else {
       U8_SUB_STREAM(tmp,1000,out);
-      fd_pprint(tmpout,result,indent,4,4,width);
+      kno_pprint(tmpout,result,indent,4,4,width);
       if (pathref) {
         if (strchr(tmp.u8_outbuf,'\n'))
           u8_printf(out,"%s\n%s%s",pathref,indent,tmp.u8_outbuf);
@@ -388,7 +388,7 @@ FD_EXPORT int fd_list_object(u8_output out,
 
 static int scheme_listing_initialized = 0;
 
-FD_EXPORT void fd_init_listing_c()
+KNO_EXPORT void kno_init_listing_c()
 {
   if (scheme_listing_initialized) return;
   else scheme_listing_initialized = 1;

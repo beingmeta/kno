@@ -1,6 +1,6 @@
 # -*- Mode: Makefile; -*-
 # Copyright (C) 2004-2019 beingmeta, inc
-# This file is a part of beingmeta's FramerD implementation
+# This file is a part of beingmeta's Kno implementation
 
 CC	= @CC@
 XCFLAGS=
@@ -29,11 +29,11 @@ shared_suffix	= @shared_suffix@
 vshared_suffix	= @vshared_suffix@
 mshared_suffix	= @mshared_suffix@
 configdir	= @config_dir@
-INCINSTALLDIR	= $(DESTDIR)@prefix@/include/framerd
+INCINSTALLDIR	= $(DESTDIR)@prefix@/include/kno
 LIBINSTALLDIR	= $(DESTDIR)@libdir@
 BININSTALLDIR	= $(DESTDIR)@exec_prefix@/bin
 LOCALEDIR	= $(DESTDIR)@exec_prefix@/share/locale
-DATAINSTALLDIR	= $(DESTDIR)@datadir@/framerd/data
+DATAINSTALLDIR	= $(DESTDIR)@datadir@/kno/data
 APXS		= @APXS@ -S LIBEXECDIR=$(DESTDIR)@apache_modules_dir@
 PPROF_PATH      = @GOOGLE_PPROF@
 CLEAN		= @CLEAN@
@@ -52,7 +52,7 @@ MACLIBTOOL	= $(CC) -dynamiclib -single_module \
 			$(LDFLAGS) $(LIBS)
 BUILD		= `pwd`
 BUILDMODE       := `cat buildmode || echo none`
-DEBUG_FDSERV    = 0
+DEBUG_KNOSRV    = 0
 RPMFLAGS	= @RPMFLAGS@
 RPMDIR		= @RPMDIR@
 GPGID		= @GPGID@

@@ -1,12 +1,12 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
-#include "framerd/dtype.h"
-#include "framerd/streams.h"
+#include "kno/dtype.h"
+#include "kno/streams.h"
 
 #include <strings.h>
 #include <stdlib.h>
@@ -30,13 +30,13 @@ double get_elapsed()
       (now.tv_usec-start.tv_usec)*0.000001;}
 }
 
-#define SLOTMAP(x)   (fd_constpr(struct FD_SLOTMAP *,x,fd_slotmap_type))
-#define HASHTABLE(x) (fd_consptr(,struct FD_HASHTABLE *,x,fd_hashtable_type))
+#define SLOTMAP(x)   (kno_constpr(struct KNO_SLOTMAP *,x,kno_slotmap_type))
+#define HASHTABLE(x) (kno_consptr(,struct KNO_HASHTABLE *,x,kno_hashtable_type))
 
 static void report_on_hashtable(lispval ht)
 {
   int n_slots, n_keys, n_buckets, n_collisions, max_bucket, n_vals, max_vals;
-  fd_hashtable_stats(FD_GET_CONS(ht,fd_hashtable_type,struct FD_HASHTABLE *),
+  kno_hashtable_stats(KNO_GET_CONS(ht,kno_hashtable_type,struct KNO_HASHTABLE *),
 		     &n_slots,&n_keys,&n_buckets,&n_collisions,&max_bucket,
 		     &n_vals,&max_vals);
   fprintf(stderr,"Table distributes %d keys over %d slots in %d buckets\n",
@@ -50,15 +50,15 @@ static void report_on_hashtable(lispval ht)
 
 int main(int argc,char **argv)
 {
-  struct FD_STREAM *in; lispval ht;
-  struct FD_INBUF *inbuf;
-  FD_DO_LIBINIT(fd_init_lisp_types);
-  in = fd_open_file(argv[1],FD_FILE_READ);
-  inbuf = fd_readbuf(in);
-  ht = fd_read_dtype(inbuf);
-  fd_close_stream(in,FD_STREAM_CLOSE_FULL);
+  struct KNO_STREAM *in; lispval ht;
+  struct KNO_INBUF *inbuf;
+  KNO_DO_LIBINIT(kno_init_lisp_types);
+  in = kno_open_file(argv[1],KNO_FILE_READ);
+  inbuf = kno_readbuf(in);
+  ht = kno_read_dtype(inbuf);
+  kno_close_stream(in,KNO_STREAM_CLOSE_FULL);
   report_on_hashtable(ht);
-  fd_decref(ht); ht = FD_VOID;
+  kno_decref(ht); ht = KNO_VOID;
   exit(0);
 }
 

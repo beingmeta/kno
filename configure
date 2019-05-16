@@ -582,7 +582,7 @@ PACKAGE_STRING=
 PACKAGE_BUGREPORT=
 PACKAGE_URL=
 
-ac_unique_file="include/framerd/dtype.h"
+ac_unique_file="include/kno/dtype.h"
 # Factoring default headers for most tests.
 ac_includes_default="\
 #include <stdio.h>
@@ -773,8 +773,8 @@ servlet_rundir
 daemon_bugjar
 daemon_logdir
 daemon_rundir
-framerd_logdir
-framerd_rundir
+kno_logdir
+kno_rundir
 bugjar
 logdir
 rundir
@@ -849,6 +849,7 @@ infodir
 docdir
 oldincludedir
 includedir
+runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -1015,6 +1016,7 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
+runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE}'
@@ -1267,6 +1269,15 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
+  -runstatedir | --runstatedir | --runstatedi | --runstated \
+  | --runstate | --runstat | --runsta | --runst | --runs \
+  | --run | --ru | --r)
+    ac_prev=runstatedir ;;
+  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
+  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
+  | --run=* | --ru=* | --r=*)
+    runstatedir=$ac_optarg ;;
+
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1404,7 +1415,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir
+		libdir localedir mandir runstatedir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1557,6 +1568,7 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
+  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -1642,7 +1654,7 @@ Optional Packages:
 --without-crypto Compile the crypto module
 --with-codename for distribution
 --with-admin-group Install files with admin group and group write permissions
---with-fdaemon The identity (user) for FramerD servers to run as
+--with-fdaemon The identity (user) for Kno servers to run as
 --with-rundir The default location for server state files
 --with-logdir The default location for log files
 --with-bugjar The default location for bugjar reports
@@ -1671,14 +1683,14 @@ Optional Packages:
 --without-mmap build without using mmap
 --without-tls Force use of threadlocal storage
 --with-nptrlocks Sets the number of pointer hash locks to use
---without-editline Use the editline with fdconsole
+--without-editline Use the editline with knosh
 --without-libu8 Use libu8 includes
 --without-sudo use sudo with install
 --without-fastcgi Use fastcgi
 --without-mysql Use alternate mysql lib
 --without-sundown Compile the sundown module
 --without-global-ipeval Use global lock and variables for ipeval
---without-parseltongue Build parseltongue libraries for connecting FramerD and Python
+--without-parseltongue Build parseltongue libraries for connecting Kno and Python
 --without-curl Use libcurl in fdweb
 --without-dns Use dns in web
 --without-exif Use libexif in fdweb
@@ -2964,7 +2976,7 @@ dynamic_cflag=""
 xstatic_exe_libs=""
 xstatic_scheme_libs=""
 xdynamic_scheme_libs=""
-scheme_builtins_init="fd_init_scheme()"
+scheme_builtins_init="kno_init_scheme()"
 definefileinfo=""
 versionsh=""
 suffix=""
@@ -3028,18 +3040,18 @@ GITDESCRIBE=""
 TAGS="TAGS SCHEMETAGS"
 LIBSCM="\${REVISION}"
 default_source_dir="\$prefix/src"
-default_config_dir="\$prefix/etc/framerd"
-local_config="\$prefix/etc/framerd"
-shared_config="\$prefix/etc/framerd"
+default_config_dir="\$prefix/etc/kno"
+local_config="\$prefix/etc/kno"
+shared_config="\$prefix/etc/kno"
 rundir=$localstatedir/run
 logdir=$localstatedir/log
-framerd_rundir="$rundir/framerd"
-framerd_logdir="$logdir/framerd"
-daemon_logdir="$framerd_logdir/daemons"
-servlet_logdir="$framerd_logdir/servlets"
-daemon_rundir="$framerd_rundir/daemons"
-servlet_rundir="$framerd_rundir/servlets"
-default_bugjar="$framerd_logdir/bugjar"
+kno_rundir="$rundir/kno"
+kno_logdir="$logdir/kno"
+daemon_logdir="$kno_logdir/daemons"
+servlet_logdir="$kno_logdir/servlets"
+daemon_rundir="$kno_rundir/daemons"
+servlet_rundir="$kno_rundir/servlets"
+default_bugjar="$kno_logdir/bugjar"
 share_dir=""
 data_dir=""
 archflags=""
@@ -3051,7 +3063,7 @@ with_hyphenate_default="yes"
 use_dtblock_default="yes"
 default_bootsystem="none"
 BOOTSETUP="none"
-CFLAGS="-DLIBU8_SOURCE -DFRAMERD_SOURCE -fPIC"
+CFLAGS="-DLIBU8_SOURCE -DKNO_SOURCE -fPIC"
 OPTFLAGS=
 XOPTFLAGS=
 CLANG=no
@@ -3095,7 +3107,7 @@ small_test_size=64
 use_duma_lib="no"
 custom_malloc=""
 using_malloc=""
-default_malloc=${FD_DEFAULT_MALLOC:-libc}
+default_malloc=${KNO_DEFAULT_MALLOC:-libc}
 gperftools=""
 asan=""
 static_libgcc="no"
@@ -3140,7 +3152,7 @@ ac_config_sub="$SHELL $ac_aux_dir/config.sub"  # Please don't use this var.
 ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
-ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
 
 
 
@@ -4137,7 +4149,7 @@ fi
 
 if test "$with_execwrapper" != ""; then
   cat >>confdefs.h <<_ACEOF
-#define FD_EXEC_WRAPPER "$with_execwrapper"
+#define KNO_EXEC_WRAPPER "$with_execwrapper"
 _ACEOF
 
 fi
@@ -5732,19 +5744,19 @@ fi
 CFLAGS="-I$prefix/include/$host/ $CFLAGS"
 
 cat >>confdefs.h <<_ACEOF
-#define FD_VERSION "$FDVERSION"
+#define KNO_VERSION "$FDVERSION"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
-#define FD_MAJOR_VERSION $FDMAJOR
+#define KNO_MAJOR_VERSION $FDMAJOR
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
-#define FD_MINOR_VERSION $FDMINOR
+#define KNO_MINOR_VERSION $FDMINOR
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
-#define FD_RELEASE_VERSION $FDRELEASE
+#define KNO_RELEASE_VERSION $FDRELEASE
 _ACEOF
 
 
@@ -6096,7 +6108,7 @@ fi;
 
 
 
-$as_echo "#define FD_WORDS_ARE_ALIGNED 1" >>confdefs.h
+$as_echo "#define KNO_WORDS_ARE_ALIGNED 1" >>confdefs.h
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uid_t in sys/types.h" >&5
 $as_echo_n "checking for uid_t in sys/types.h... " >&6; }
@@ -6765,7 +6777,7 @@ fi
 
 if test "$with_fileinfo" = "yes" ; then
    definefileinfo="-D_FILEINFO=\"\\\"\`./fileinfo ./$< .\`\\\"\""
-   versionsh="include/framerd/versions.h"
+   versionsh="include/kno/versions.h"
 fi
 
 
@@ -6778,7 +6790,7 @@ fi
 
 if ! test "${with_stackcheck}" = "no"; then
    cat >>confdefs.h <<_ACEOF
-#define FD_STACKCHECK 1
+#define KNO_STACKCHECK 1
 _ACEOF
 
 fi
@@ -6794,7 +6806,7 @@ else
 fi
 
 if test $with_profiling = "yes"; then
-  $as_echo "#define FD_WITH_PROFILING 1" >>confdefs.h
+  $as_echo "#define KNO_WITH_PROFILING 1" >>confdefs.h
 
   PROFILING="-O0 -pg -fno-inline -fprofile-arcs -ftest-coverage"
 else
@@ -7108,7 +7120,7 @@ fi
 
 if test ! -z "$using_malloc"; then
    cat >>confdefs.h <<_ACEOF
-#define FD_DEFAULT_MALLOC "$using_malloc"
+#define KNO_DEFAULT_MALLOC "$using_malloc"
 _ACEOF
 
 fi;
@@ -7330,7 +7342,7 @@ if test "x$ac_cv_lib_profiler_ProfilerStart" = xyes; then :
   EXELIBS="-lprofiler $EXELIBS"
 fi
 
-    CMODULES="lib/framerd/gperftools.${shared_suffix} ${CMODULES}"
+    CMODULES="lib/kno/gperftools.${shared_suffix} ${CMODULES}"
     INSTALLCMODULES="install-gperftools ${INSTALLCMODULES}"
   elif test "$gperftools" = "minimal"; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_minimal" >&5
@@ -7503,8 +7515,8 @@ done
 fi
 
 if test "${VALGRIND}" != "none" && test -z "${custom_malloc}"; then
-  MEMTEST_CMD="FD_INVALGRIND=yes valgrind --tool=memcheck --num-callers=24"
-  LEAKTESTER="FD_INVALGRIND=yes valgrind --tool=memcheck --leak-check=full --num-callers=24"
+  MEMTEST_CMD="KNO_INVALGRIND=yes valgrind --tool=memcheck --num-callers=24"
+  LEAKTESTER="KNO_INVALGRIND=yes valgrind --tool=memcheck --leak-check=full --num-callers=24"
 fi
 
 # libu8 configuration
@@ -7664,7 +7676,7 @@ else
 fi
 
 if test $with_crypto = "yes"; then
-  CMODULES="lib/framerd/crypto.$shared_suffix ${CMODULES}"
+  CMODULES="lib/kno/crypto.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-crypto ${INSTALLCMODULES}"
 fi
 
@@ -7767,13 +7779,13 @@ done
 test -n "$rpm" || rpm=""rpm""
 
 
-### System users, groups, and paths for FramerD
+### System users, groups, and paths for Kno
 
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for group default_admin_group" >&5
 $as_echo_n "checking for group default_admin_group... " >&6; }
   found_group="none";
-  for group in framerd _framerd adm admin;
+  for group in kno _kno adm admin;
   do if grep ^$group: /etc/group > /dev/null;
   then
 	found_group=$group;
@@ -7868,7 +7880,7 @@ else
 fi
 
 cat >>confdefs.h <<_ACEOF
-#define FD_ADMIN_GROUP "$admin_group"
+#define KNO_ADMIN_GROUP "$admin_group"
 _ACEOF
 
 
@@ -7891,7 +7903,7 @@ else
 fi
 
 cat >>confdefs.h <<_ACEOF
-#define FD_DAEMON "$fdaemon"
+#define KNO_DAEMON "$fdaemon"
 _ACEOF
 
 
@@ -7905,7 +7917,7 @@ fi
 
 rundir=$with_rundir
 cat >>confdefs.h <<_ACEOF
-#define FD_RUN_DIR "$rundir"
+#define KNO_RUN_DIR "$rundir"
 _ACEOF
 
 
@@ -7930,27 +7942,27 @@ fi
 bugjar=$with_bugjar
 
 cat >>confdefs.h <<_ACEOF
-#define FD_LOG_DIR "$logdir"
+#define KNO_LOG_DIR "$logdir"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
-#define FD_DAEMON_LOG_DIR "$daemon_logdir"
+#define KNO_DAEMON_LOG_DIR "$daemon_logdir"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
-#define FD_SERVLET_LOG_DIR "$servlet_logdir"
+#define KNO_SERVLET_LOG_DIR "$servlet_logdir"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
-#define FD_DAEMON_RUN_DIR "$daemon_rundir"
+#define KNO_DAEMON_RUN_DIR "$daemon_rundir"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
-#define FD_SERVLET_RUN_DIR "$daemon_rundir"
+#define KNO_SERVLET_RUN_DIR "$daemon_rundir"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
-#define FD_BUGJAR_ROOT "$bugjar"
+#define KNO_BUGJAR_ROOT "$bugjar"
 _ACEOF
 
 
@@ -7991,11 +8003,11 @@ else
 fi
 
 cat >>confdefs.h <<_ACEOF
-#define FD_WEBUSER "$webuser"
+#define KNO_WEBUSER "$webuser"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
-#define FD_WEBGROUP "$webgroup"
+#define KNO_WEBGROUP "$webgroup"
 _ACEOF
 
 
@@ -8064,7 +8076,7 @@ if test ! -z "$APXS"; then
   else apache_modinfo=$apache_conf_dir;
   fi;
 else
-  echo "Warning: No apache development environment, can't build mod_fdserv"
+  echo "Warning: No apache development environment, can't build mod_knosrv"
 fi
 
 
@@ -8178,7 +8190,7 @@ elif test "${ac_cv_lib_ffi_ffi_prep_cif}" != "yes"; then
    missing="${missing} ffi";
 fi
 
-DEFAULT_DLOADPATH="${prefix}/lib/framerd/%.${vshared_suffix}:${prefix}/lib/%.${vshared_suffix}:${prefix}/lib/lib%.${vshared_suffix}:${prefix}/lib/framerd/%.${mmshared_suffix}:${prefix}/lib/%.${mmshared_suffix}:${prefix}/lib/lib%.${mmshared_suffix}:${prefix}/lib/framerd/%.${mshared_suffix}:${prefix}/lib/%.${mshared_suffix}:${prefix}/lib/lib%.${mshared_suffix}:${prefix}/lib/framerd/%.${shared_suffix}:${prefix}/lib/%.${shared_suffix}:${prefix}/lib/lib%.${shared_suffix}:"
+DEFAULT_DLOADPATH="${prefix}/lib/kno/%.${vshared_suffix}:${prefix}/lib/%.${vshared_suffix}:${prefix}/lib/lib%.${vshared_suffix}:${prefix}/lib/kno/%.${mmshared_suffix}:${prefix}/lib/%.${mmshared_suffix}:${prefix}/lib/lib%.${mmshared_suffix}:${prefix}/lib/kno/%.${mshared_suffix}:${prefix}/lib/%.${mshared_suffix}:${prefix}/lib/lib%.${mshared_suffix}:${prefix}/lib/kno/%.${shared_suffix}:${prefix}/lib/%.${shared_suffix}:${prefix}/lib/lib%.${shared_suffix}:"
 
 
 # Check whether --with-arch was given.
@@ -8560,10 +8572,10 @@ else
 fi
 
 if test "${with_extended_profiling}" != "no"; then
-   $as_echo "#define FD_EXTENDED_PROFILING 1" >>confdefs.h
+   $as_echo "#define KNO_EXTENDED_PROFILING 1" >>confdefs.h
 
 else
-   $as_echo "#define FD_EXTENDED_PROFILING 0" >>confdefs.h
+   $as_echo "#define KNO_EXTENDED_PROFILING 0" >>confdefs.h
 
 fi;
 
@@ -8573,11 +8585,11 @@ fi;
 if test "${with_share_dir+set}" = set; then :
   withval=$with_share_dir;
 else
-  with_share_dir=$prefix/share/framerd
+  with_share_dir=$prefix/share/kno
 fi
 
 cat >>confdefs.h <<_ACEOF
-#define FD_SHARE_DIR "$with_share_dir"
+#define KNO_SHARE_DIR "$with_share_dir"
 _ACEOF
 
 share_dir=$with_share_dir
@@ -8591,15 +8603,15 @@ else
 fi
 
 cat >>confdefs.h <<_ACEOF
-#define FD_DATA_DIR "$with_data_dir"
+#define KNO_DATA_DIR "$with_data_dir"
 _ACEOF
 
 data_dir=$with_data_dir
 
 if test $prefix == "/usr"; then
-   default_config_dir=/etc/framerd;
+   default_config_dir=/etc/kno;
 else
-   default_config_dir=$prefix/etc/framerd;
+   default_config_dir=$prefix/etc/kno;
 fi
 
 
@@ -8632,7 +8644,7 @@ fi
 shared_config=$with_shared_config
 
 cat >>confdefs.h <<_ACEOF
-#define FD_CONFIG_FILE_PATH "$with_local_config/%:$with_shared_config/%"
+#define KNO_CONFIG_FILE_PATH "$with_local_config/%:$with_shared_config/%"
 _ACEOF
 
 
@@ -8698,13 +8710,13 @@ fi
 
 if test "$with_libscm" == "version"; then
    cat >>confdefs.h <<_ACEOF
-#define FD_LIBSCM_DIR "$share_dir/libscm/framerd-$FDVERSION"
+#define KNO_LIBSCM_DIR "$share_dir/libscm/kno-$FDVERSION"
 _ACEOF
 
-   LIBSCM="$share_dir/libscm/framerd-$FDVERSION";
+   LIBSCM="$share_dir/libscm/kno-$FDVERSION";
 elif test ! -z "$with_libscm"; then
    cat >>confdefs.h <<_ACEOF
-#define FD_LIBSCM_DIR "$with_libscm"
+#define KNO_LIBSCM_DIR "$with_libscm"
 _ACEOF
 
    LIBSCM=$with_libscm
@@ -8746,40 +8758,40 @@ if test ! -z ${with_loadpath}; then
 fi;
 
 cat >>confdefs.h <<_ACEOF
-#define FD_LOCAL_MODULE_DIR "$local_module_dir"
+#define KNO_LOCAL_MODULE_DIR "$local_module_dir"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
-#define FD_LOCAL_SAFE_MODULE_DIR "$local_safe_module_dir"
+#define KNO_LOCAL_SAFE_MODULE_DIR "$local_safe_module_dir"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
-#define FD_INSTALLED_MODULE_DIR "$installed_module_dir"
+#define KNO_INSTALLED_MODULE_DIR "$installed_module_dir"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
-#define FD_INSTALLED_SAFE_MODULE_DIR "$installed_safe_module_dir"
+#define KNO_INSTALLED_SAFE_MODULE_DIR "$installed_safe_module_dir"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
-#define FD_BUILTIN_MODULE_DIR "$builtin_module_dir"
+#define KNO_BUILTIN_MODULE_DIR "$builtin_module_dir"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
-#define FD_BUILTIN_SAFE_MODULE_DIR "$builtin_safe_module_dir"
+#define KNO_BUILTIN_SAFE_MODULE_DIR "$builtin_safe_module_dir"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
-#define FD_UNPACKAGE_DIR "$unpackage_dir"
+#define KNO_UNPACKAGE_DIR "$unpackage_dir"
 _ACEOF
 
 
 cat >>confdefs.h <<_ACEOF
-#define FD_DEFAULT_LOADPATH "$module_path"
+#define KNO_DEFAULT_LOADPATH "$module_path"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
-#define FD_DEFAULT_SAFE_LOADPATH "$safe_module_path"
+#define KNO_DEFAULT_SAFE_LOADPATH "$safe_module_path"
 _ACEOF
 
 
@@ -8792,26 +8804,26 @@ else
 fi
 
 cat >>confdefs.h <<_ACEOF
-#define FD_BOOT_CONFIG "$with_boot_config"
+#define KNO_BOOT_CONFIG "$with_boot_config"
 _ACEOF
 
 
 if test $exec_prefix = "NONE"; then
   cat >>confdefs.h <<_ACEOF
-#define FD_EXEC "$prefix/bin/fdexec"
+#define KNO_EXEC "$prefix/bin/knox"
 _ACEOF
 
   cat >>confdefs.h <<_ACEOF
-#define FD_DBSERVER "$prefix/bin/fdserver"
+#define KNO_DBSERVER "$prefix/bin/knod"
 _ACEOF
 
 else
   cat >>confdefs.h <<_ACEOF
-#define FD_EXEC "$exec_prefix/bin/fdexec"
+#define KNO_EXEC "$exec_prefix/bin/knox"
 _ACEOF
 
   cat >>confdefs.h <<_ACEOF
-#define FD_DBSERVER "$prefix/bin/fdserver"
+#define KNO_DBSERVER "$prefix/bin/knod"
 _ACEOF
 
 fi
@@ -8819,7 +8831,7 @@ fi
 ### Dynamic library load paths
 
 cat >>confdefs.h <<_ACEOF
-#define FD_DLOAD_SUFFIX "$shared_suffix"
+#define KNO_DLOAD_SUFFIX "$shared_suffix"
 _ACEOF
 
 
@@ -8832,7 +8844,7 @@ else
 fi
 
 cat >>confdefs.h <<_ACEOF
-#define FD_DEFAULT_DLOADPATH "$with_dload_path"
+#define KNO_DEFAULT_DLOADPATH "$with_dload_path"
 _ACEOF
 
 
@@ -9419,11 +9431,11 @@ fi
 
 if test "$enable_async" = "yes"; then
   DEFAULTISASYNC=1
-  $as_echo "#define FD_DEFAULT_ASYNC 1" >>confdefs.h
+  $as_echo "#define KNO_DEFAULT_ASYNC 1" >>confdefs.h
 
 else
   DEFAULTISASYNC=0
-  $as_echo "#define FD_DEFAULT_ASYNC 0" >>confdefs.h
+  $as_echo "#define KNO_DEFAULT_ASYNC 0" >>confdefs.h
 
 fi
 
@@ -9437,11 +9449,11 @@ fi
 
 if test "$enable_dtblock" = "yes"; then
   USEDTBLOCK=1
-  $as_echo "#define FD_USE_DTBLOCK 1" >>confdefs.h
+  $as_echo "#define KNO_USE_DTBLOCK 1" >>confdefs.h
 
 else
   USEDTBLOCK=0
-  $as_echo "#define FD_USE_DTBLOCK 0" >>confdefs.h
+  $as_echo "#define KNO_USE_DTBLOCK 0" >>confdefs.h
 
 fi
 
@@ -9561,7 +9573,7 @@ else
 fi
 
 if test $with_mmap == "no"; then
-   $as_echo "#define FD_WITHOUT_MMAP 1" >>confdefs.h
+   $as_echo "#define KNO_WITHOUT_MMAP 1" >>confdefs.h
 
 fi
 
@@ -10459,10 +10471,10 @@ else
 fi
 
 if test $with_tls = "yes"; then
-  $as_echo "#define FD_FORCE_TLS 1" >>confdefs.h
+  $as_echo "#define KNO_FORCE_TLS 1" >>confdefs.h
 
 else
-  $as_echo "#define FD_FORCE_TLS 0" >>confdefs.h
+  $as_echo "#define KNO_FORCE_TLS 0" >>confdefs.h
 
 fi
 
@@ -10474,7 +10486,7 @@ fi
 
 if test ! -z $with_nptrlocks; then
    cat >>confdefs.h <<_ACEOF
-#define FD_N_PTRLOCKS $with_nptrlocks
+#define KNO_N_PTRLOCKS $with_nptrlocks
 _ACEOF
 
 fi
@@ -10513,10 +10525,10 @@ else
 fi
 
 if test "$enable_lockfree" = "yes"; then
-  $as_echo "#define FD_ENABLE_LOCKFREE 1" >>confdefs.h
+  $as_echo "#define KNO_ENABLE_LOCKFREE 1" >>confdefs.h
 
 else
-  $as_echo "#define FD_ENABLE_LOCKFREE 0" >>confdefs.h
+  $as_echo "#define KNO_ENABLE_LOCKFREE 0" >>confdefs.h
 
 fi
 
@@ -10569,7 +10581,7 @@ fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 
 
-### Use editline in fdconsole
+### Use editline in knosh
 
 
 # Check whether --with-editline was given.
@@ -10638,10 +10650,10 @@ _ACEOF
 
 fi
 
-  $as_echo "#define FD_WITH_EDITLINE 1" >>confdefs.h
+  $as_echo "#define KNO_WITH_EDITLINE 1" >>confdefs.h
 
 else
-  $as_echo "#define FD_WITH_EDITLINE 0" >>confdefs.h
+  $as_echo "#define KNO_WITH_EDITLINE 0" >>confdefs.h
 
 fi
 
@@ -10869,10 +10881,10 @@ fi
    if test "${enable_leveldb}" = "yes" &&
       test "${ac_cv_header_leveldb_c_h}" = "yes" &&
       test "${leveldb_ok}" = "yes"; then
-      DBMODULES="${DBMODULES} lib/framerd/leveldb.${shared_suffix}";
+      DBMODULES="${DBMODULES} lib/kno/leveldb.${shared_suffix}";
      INSTALLDBMODULES="${INSTALLDBMODULES} install-leveldb";
    elif test "${enable_leveldb}" = "force"; then
-     DBMODULES="lib/framerd/leveldb.${shared_suffix} ${DBMODULES}";
+     DBMODULES="lib/kno/leveldb.${shared_suffix} ${DBMODULES}";
      INSTALLDBMODULES="${INSTALLDBMODULES} install-leveldb";
      force_enabled="leveldb ${force_enabled}";
    else
@@ -10951,10 +10963,10 @@ fi
    if test "${enable_rocksdb}" = "yes" &&
       test "${ac_cv_header_rocksdb_c_h}" = "yes";
       test "${rocksdb_ok}" = "yes"; then
-     DBMODULES="lib/framerd/rocksdb.${shared_suffix} ${DBMODULES}";
+     DBMODULES="lib/kno/rocksdb.${shared_suffix} ${DBMODULES}";
      INSTALLDBMODULES="install-rocksdb ${INSTALLDBMODULES}";
    elif test "${enable_rocksdb}" = "force"; then
-     DBMODULES="lib/framerd/rocksdb.${shared_suffix} ${DBMODULES}";
+     DBMODULES="lib/kno/rocksdb.${shared_suffix} ${DBMODULES}";
      INSTALLDBMODULES="install-rocksdb ${INSTALLDBMODULES}";
      force_enabled="rocksdb ${force_enabled}";
    else
@@ -10980,10 +10992,10 @@ if test "$enable_imagick" = "yes" &&
    $pkg_config --exists MagickWand; then
   IMAGICK_CFLAGS=`$pkg_config MagickWand --cflags`;
   IMAGICK_LDFLAGS=`$pkg_config MagickWand --libs`;
-  CMODULES="lib/framerd/imagick.$shared_suffix ${CMODULES}";
+  CMODULES="lib/kno/imagick.$shared_suffix ${CMODULES}";
   INSTALLCMODULES="install-imagick ${INSTALLCMODULES}";
 elif test "$enable_imagick" = "force"; then
-  CMODULES="lib/framerd/imagick.$shared_suffix ${CMODULES}";
+  CMODULES="lib/kno/imagick.$shared_suffix ${CMODULES}";
   INSTALLCMODULES="install-imagick ${INSTALLCMODULES}";
 elif test "$enable_imagick" = "yes"; then
   auto_disabled="imagick ${auto_disabled}";
@@ -11053,7 +11065,7 @@ fi
 
 if test "${ac_cv_header_archive_h}" == "yes" && \
    test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
-  CMODULES="lib/framerd/libarchive.${shared_suffix} ${CMODULES}"
+  CMODULES="lib/kno/libarchive.${shared_suffix} ${CMODULES}"
   INSTALLCMODULES="install-libarchive ${INSTALLCMODULES}"
 else
   missing="libarchive ${missing}"
@@ -11140,14 +11152,14 @@ done
     CFLAGS="${CFLAGS} ${LIBZIP_CFLAGS}"
     CPPFLAGS="${CPPFLAGS} ${LIBZIP_CFLAGS}"
     LDFLAGS="${LDFLAGS} ${LIBZIP_LDFLAGS}"
-    CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}";
+    CMODULES="lib/kno/ziptools.$shared_suffix ${CMODULES}";
     INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}";
   elif test "$have_zip_h" = "yes" &&
        test "$have_libzip" = "yes"; then
-    CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}";
+    CMODULES="lib/kno/ziptools.$shared_suffix ${CMODULES}";
     INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}";
   elif test "$enable_ziptools" = "force"; then
-    CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}";
+    CMODULES="lib/kno/ziptools.$shared_suffix ${CMODULES}";
     INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}";
     force_enabled="ziptools ${force_enabled}";
   else
@@ -11174,12 +11186,12 @@ if test "$enable_mongodb" = "yes" ||
      $pkg_config --exists libmongoc-1.0; then
     MONGODB_CFLAGS=`$pkg_config libmongoc-1.0 --cflags`
     MONGODB_LDFLAGS=`$pkg_config libmongoc-1.0 --libs`
-    DBMODULES="lib/framerd/mongodb.$shared_suffix ${DBMODULES}";
+    DBMODULES="lib/kno/mongodb.$shared_suffix ${DBMODULES}";
     INSTALLDBMODULES="install-mongodb ${INSTALLDBMODULES}";
     MONGODB_ENABLED=yes
   elif test "$enable_mongodb" = "force"; then
     force_enabled="mongodb ${force_enabled}";
-    DBMODULES="lib/framerd/mongodb.$shared_suffix ${DBMODULES}";
+    DBMODULES="lib/kno/mongodb.$shared_suffix ${DBMODULES}";
     INSTALLDBMODULES="install-mongodb ${INSTALLDBMODULES}";
     MONGODB_ENABLED=yes
   else
@@ -11189,7 +11201,7 @@ elif test "$enable_mongodb" = "bundled"; then
     MONGODB_BUNDLED=mongodb.bundled
     MONGODB_CFLAGS="-I./include/bson -I./include/mongoc"
     MONGODB_LDFLAGS="-Wl,--whole-archive -Wl,-Bstatic -lmongoc -Wl,--no-whole-archive  -lbson -Wl,-Bdynamic"
-    DBMODULES="lib/framerd/mongodb.$shared_suffix ${DBMODULES}";
+    DBMODULES="lib/kno/mongodb.$shared_suffix ${DBMODULES}";
     INSTALLDBMODULES="install-mongodb ${INSTALLDBMODULES}";
 else
     manually_disabled="mongodb ${manually_disabled}";
@@ -11311,7 +11323,7 @@ elif test "$with_mysql" != "no"; then
 fi
 
 if test "$with_mysql" != "no"; then
-  DBMODULES="lib/framerd/mysql.$shared_suffix ${DBMODULES}"
+  DBMODULES="lib/kno/mysql.$shared_suffix ${DBMODULES}"
   INSTALLDBMODULES="install-mysql ${INSTALLDBMODULES}"
 else
   missing="mysql ${missing}"
@@ -11433,7 +11445,7 @@ if test "x$ac_cv_lib_odbc_SQLNumResultCols" = xyes; then :
 fi
 
      if test ! -z "${ODBC_LIBS}"; then
-       DBMODULES="lib/framerd/odbc.$shared_suffix ${DBMODULES}"
+       DBMODULES="lib/kno/odbc.$shared_suffix ${DBMODULES}"
        INSTALLDBMODULES="install-odbc ${INSTALLDBMODULES}"
        odbc_included=yes
      fi;
@@ -11542,7 +11554,7 @@ if test "x$ac_cv_lib_sqlite3_sqlite3_open_v2" = xyes; then :
 fi
 
   if test "$sqlite3_ok" = "yes"; then
-    DBMODULES="lib/framerd/sqlite.$shared_suffix ${DBMODULES}";
+    DBMODULES="lib/kno/sqlite.$shared_suffix ${DBMODULES}";
     INSTALLDBMODULES="install-sqlite ${INSTALLDBMODULES}";
     sqlite_included=no
     if test "${sqlite3v2_ok}" == "yes"; then
@@ -11684,7 +11696,7 @@ fi
 fi
 
 if (test "$have_libz" = "yes"); then
-  CMODULES="lib/framerd/zlib.$shared_suffix ${CMODULES}"
+  CMODULES="lib/kno/zlib.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-zlib ${INSTALLCMODULES}"
 fi
 
@@ -11889,7 +11901,7 @@ fi
 
 
 if test "$enable_tidy" = "yes"; then
-  CMODULES="lib/framerd/tidy.$shared_suffix ${CMODULES}"
+  CMODULES="lib/kno/tidy.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-tidy ${INSTALLCMODULES}"
 fi
 
@@ -11962,11 +11974,11 @@ fi
 if test "$enable_hyphenate" = "yes" &&
    test "$ac_cv_header_hyphen_h" = "yes" &&
    test "$hyphen_ok" = "yes"; then
-  CMODULES="lib/framerd/hyphenate.$shared_suffix ${CMODULES}"
+  CMODULES="lib/kno/hyphenate.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-hyphenate ${INSTALLCMODULES}"
   DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
 elif test "$enable_hyphenate" = "force"; then
-  CMODULES="lib/framerd/hyphenate.$shared_suffix ${CMODULES}"
+  CMODULES="lib/kno/hyphenate.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-hyphenate ${INSTALLCMODULES}"
   DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
   force_enabled="hyphenate ${force_enabled}";
@@ -12058,10 +12070,10 @@ else
 fi
 
 if test $enable_largefiles = "yes"; then
-  $as_echo "#define FD_LARGEFILES_ENABLED 1" >>confdefs.h
+  $as_echo "#define KNO_LARGEFILES_ENABLED 1" >>confdefs.h
 
 else
-  $as_echo "#define FD_LARGEFILES_ENABLED 0" >>confdefs.h
+  $as_echo "#define KNO_LARGEFILES_ENABLED 0" >>confdefs.h
 
 fi
 
@@ -12076,7 +12088,7 @@ else
 fi
 
 if test "$with_sundown" = "yes"; then
-  CMODULES="lib/framerd/sundown.$shared_suffix ${CMODULES}"
+  CMODULES="lib/kno/sundown.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-sundown ${INSTALLCMODULES}"
 fi
 
@@ -12090,10 +12102,10 @@ else
 fi
 
 if test $enable_prefetching = "yes"; then
-  $as_echo "#define FD_PREFETCHING_ENABLED 1" >>confdefs.h
+  $as_echo "#define KNO_PREFETCHING_ENABLED 1" >>confdefs.h
 
 else
-  $as_echo "#define FD_PREFETCHING_ENABLED 0" >>confdefs.h
+  $as_echo "#define KNO_PREFETCHING_ENABLED 0" >>confdefs.h
 
 fi
 
@@ -12105,10 +12117,10 @@ else
 fi
 
 if test "$enable_fileconfig" = "yes"; then
-  $as_echo "#define FD_FILECONFIG_ENABLED 1" >>confdefs.h
+  $as_echo "#define KNO_FILECONFIG_ENABLED 1" >>confdefs.h
 
 else
-  $as_echo "#define FD_FILECONFIG_ENABLED 0" >>confdefs.h
+  $as_echo "#define KNO_FILECONFIG_ENABLED 0" >>confdefs.h
 
 fi
 
@@ -12120,11 +12132,11 @@ else
 fi
 
 if test $enable_htmldump = "yes"; then
-  scheme_builtins_init="$scheme_builtins_init; fd_init_fdweb()"
+  scheme_builtins_init="$scheme_builtins_init; kno_init_fdweb()"
   xdynamic_scheme_libs="$xdynamic_scheme_libs -lfdweb${suffix}"
   xstatic_exe_libs="lib/libfdweb${suffix}.a $xstatic_exe_libs"
   xstatic_scheme_libs=" ../../lib/libfdweb${suffix}.a $xstatic_scheme_libs"
-  $as_echo "#define FD_HTMLDUMP_ENABLED 1" >>confdefs.h
+  $as_echo "#define KNO_HTMLDUMP_ENABLED 1" >>confdefs.h
 
 fi
 
@@ -12138,10 +12150,10 @@ fi
 if test $enable_ipeval = "yes"; then
   ipevalo=src/storage/ipeval.o
   ipevalprimso=src/prims/ipevalprims.o
-  $as_echo "#define FD_IPEVAL_ENABLED 1" >>confdefs.h
+  $as_echo "#define KNO_IPEVAL_ENABLED 1" >>confdefs.h
 
 else
-  $as_echo "#define FD_IPEVAL_ENABLED 0" >>confdefs.h
+  $as_echo "#define KNO_IPEVAL_ENABLED 0" >>confdefs.h
 
 fi
 
@@ -12154,10 +12166,10 @@ else
 fi
 
 if test $with_global_ipeval = "yes"; then
-  $as_echo "#define FD_GLOBAL_IPEVAL 1" >>confdefs.h
+  $as_echo "#define KNO_GLOBAL_IPEVAL 1" >>confdefs.h
 
 else
-  $as_echo "#define FD_GLOBAL_IPEVAL 0" >>confdefs.h
+  $as_echo "#define KNO_GLOBAL_IPEVAL 0" >>confdefs.h
 
 fi
 
@@ -12333,7 +12345,7 @@ fi
 
 fi;
 if test "$with_parseltongue" = "yes" &&  test ! -z "${ax_python2_lib}"; then
-   CMODULES="lib/framerd/parseltongue.$shared_suffix ${CMODULES}"
+   CMODULES="lib/kno/parseltongue.$shared_suffix ${CMODULES}"
    INSTALLCMODULES="install-parseltongue ${INSTALLCMODULES}"
 fi
 
@@ -12445,12 +12457,12 @@ fi
 
 done
 
-  $as_echo "#define FD_WITH_CURL 1" >>confdefs.h
+  $as_echo "#define KNO_WITH_CURL 1" >>confdefs.h
 
   curlo="src/web/curl.o"
   curlconfig="\`curl-config --libs\`"
 else
-  $as_echo "#define FD_WITH_CURL 0" >>confdefs.h
+  $as_echo "#define KNO_WITH_CURL 0" >>confdefs.h
 
   missing="curl ${missing}"
 fi
@@ -12599,11 +12611,11 @@ _ACEOF
 
 fi
 
-  $as_echo "#define FD_WITH_DNS 1" >>confdefs.h
+  $as_echo "#define KNO_WITH_DNS 1" >>confdefs.h
 
   ldnso="src/web/ldns.o"
 else
-  $as_echo "#define FD_WITH_DNS 0" >>confdefs.h
+  $as_echo "#define KNO_WITH_DNS 0" >>confdefs.h
 
   missing="ldns ${missing}"
 fi
@@ -12679,7 +12691,7 @@ fi
 
 done
 
-  CMODULES="lib/framerd/exif.$shared_suffix ${CMODULES}"
+  CMODULES="lib/kno/exif.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-exif ${INSTALLCMODULES}"
 else
   missing="curl ${missing}"
@@ -12798,7 +12810,7 @@ fi
 
   if ( (test "$have_png_h" = "yes") && (test "$have_qrencode_h" = "yes") &&
        (test "$libpng_ok" = "yes") && (test "$qrcode_ok" = "yes") ); then
-    CMODULES="lib/framerd/qrcode.$shared_suffix ${CMODULES}"
+    CMODULES="lib/kno/qrcode.$shared_suffix ${CMODULES}"
     INSTALLCMODULES="install-qrcode ${INSTALLCMODULES}"
   else
     missing="qrcode ${missing}"
@@ -12862,7 +12874,7 @@ fi
 ### These are components to preload
 
 cat >>confdefs.h <<_ACEOF
-#define FD_SCHEME_BUILTINS $scheme_builtins_init
+#define KNO_SCHEME_BUILTINS $scheme_builtins_init
 _ACEOF
 
 
@@ -12881,7 +12893,7 @@ fi;
 
 ### Here's where stuff gets made
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/makefile DIY/makefile etc/gdbinit exe/.gdbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind tests/lisp/.gdbinit tests/storage/.gdbinit tests/.valgrind etc/fd_start_servlets etc/fd_start_daemons etc/fd_stop_jobs etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl etc/fdgdb etc/fdbgexec etc/fdsetconfig etc/fdgetconfig etc/fdconfig tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/fdexectest src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/fdjob etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/ex_servlet.service etc/ex_daemon.service etc/fdaemons.service etc/fdweb.service etc/framerd.service etc/FramerD.plist etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-4.3.spec"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/makefile DIY/makefile etc/gdbinit exe/.gdbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind tests/lisp/.gdbinit tests/storage/.gdbinit tests/.valgrind etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup etc/knosignal etc/knoinject etc/knostatus etc/knolog etc/knoreload etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec etc/knosetconfig etc/knogetconfig etc/knoconfig tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/fdpkg.scm etc/OSXStartupItem/KNO etc/knojob etc/logrotate etc/kno-rc.d etc/kno.conf etc/ex_servlet.service etc/ex_daemon.service etc/knodaemons.service etc/knoweb.service etc/kno.service etc/KNO.plist etc/knosrv.conf etc/knosrv.load etc/install-script dist/kno-4.3.spec"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -13580,8 +13592,8 @@ cat >>$CONFIG_STATUS <<\_ACEOF || ac_write_fail=1
 for ac_config_target in $ac_config_targets
 do
   case $ac_config_target in
-    "include/framerd/fdsource.h") CONFIG_HEADERS="$CONFIG_HEADERS include/framerd/fdsource.h" ;;
-    "include/framerd/config.h") CONFIG_HEADERS="$CONFIG_HEADERS include/framerd/config.h" ;;
+    "include/kno/knosource.h") CONFIG_HEADERS="$CONFIG_HEADERS include/kno/knosource.h" ;;
+    "include/kno/config.h") CONFIG_HEADERS="$CONFIG_HEADERS include/kno/config.h" ;;
     "makefile") CONFIG_FILES="$CONFIG_FILES makefile" ;;
     "etc/version") CONFIG_FILES="$CONFIG_FILES etc/version" ;;
     "etc/makefile.include") CONFIG_FILES="$CONFIG_FILES etc/makefile.include" ;;
@@ -13598,48 +13610,48 @@ do
     "tests/lisp/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/lisp/.gdbinit" ;;
     "tests/storage/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/storage/.gdbinit" ;;
     "tests/.valgrind") CONFIG_FILES="$CONFIG_FILES tests/.valgrind" ;;
-    "etc/fd_start_servlets") CONFIG_FILES="$CONFIG_FILES etc/fd_start_servlets" ;;
-    "etc/fd_start_daemons") CONFIG_FILES="$CONFIG_FILES etc/fd_start_daemons" ;;
-    "etc/fd_stop_jobs") CONFIG_FILES="$CONFIG_FILES etc/fd_stop_jobs" ;;
-    "etc/fdstart") CONFIG_FILES="$CONFIG_FILES etc/fdstart" ;;
-    "etc/fdstop") CONFIG_FILES="$CONFIG_FILES etc/fdstop" ;;
-    "etc/fdstartall") CONFIG_FILES="$CONFIG_FILES etc/fdstartall" ;;
-    "etc/fdstopall") CONFIG_FILES="$CONFIG_FILES etc/fdstopall" ;;
-    "etc/fdcleanup") CONFIG_FILES="$CONFIG_FILES etc/fdcleanup" ;;
-    "etc/fdsignal") CONFIG_FILES="$CONFIG_FILES etc/fdsignal" ;;
-    "etc/fdinject") CONFIG_FILES="$CONFIG_FILES etc/fdinject" ;;
-    "etc/fdstatus") CONFIG_FILES="$CONFIG_FILES etc/fdstatus" ;;
-    "etc/fdlog") CONFIG_FILES="$CONFIG_FILES etc/fdlog" ;;
-    "etc/fdreload") CONFIG_FILES="$CONFIG_FILES etc/fdreload" ;;
-    "etc/fdrestart") CONFIG_FILES="$CONFIG_FILES etc/fdrestart" ;;
-    "etc/fdctl") CONFIG_FILES="$CONFIG_FILES etc/fdctl" ;;
-    "etc/fdgdb") CONFIG_FILES="$CONFIG_FILES etc/fdgdb" ;;
-    "etc/fdbgexec") CONFIG_FILES="$CONFIG_FILES etc/fdbgexec" ;;
-    "etc/fdsetconfig") CONFIG_FILES="$CONFIG_FILES etc/fdsetconfig" ;;
-    "etc/fdgetconfig") CONFIG_FILES="$CONFIG_FILES etc/fdgetconfig" ;;
-    "etc/fdconfig") CONFIG_FILES="$CONFIG_FILES etc/fdconfig" ;;
+    "etc/kno_start_servlets") CONFIG_FILES="$CONFIG_FILES etc/kno_start_servlets" ;;
+    "etc/kno_start_daemons") CONFIG_FILES="$CONFIG_FILES etc/kno_start_daemons" ;;
+    "etc/kno_stop_jobs") CONFIG_FILES="$CONFIG_FILES etc/kno_stop_jobs" ;;
+    "etc/knostart") CONFIG_FILES="$CONFIG_FILES etc/knostart" ;;
+    "etc/knostop") CONFIG_FILES="$CONFIG_FILES etc/knostop" ;;
+    "etc/knostartall") CONFIG_FILES="$CONFIG_FILES etc/knostartall" ;;
+    "etc/knostopall") CONFIG_FILES="$CONFIG_FILES etc/knostopall" ;;
+    "etc/knocleanup") CONFIG_FILES="$CONFIG_FILES etc/knocleanup" ;;
+    "etc/knosignal") CONFIG_FILES="$CONFIG_FILES etc/knosignal" ;;
+    "etc/knoinject") CONFIG_FILES="$CONFIG_FILES etc/knoinject" ;;
+    "etc/knostatus") CONFIG_FILES="$CONFIG_FILES etc/knostatus" ;;
+    "etc/knolog") CONFIG_FILES="$CONFIG_FILES etc/knolog" ;;
+    "etc/knoreload") CONFIG_FILES="$CONFIG_FILES etc/knoreload" ;;
+    "etc/knorestart") CONFIG_FILES="$CONFIG_FILES etc/knorestart" ;;
+    "etc/knoctl") CONFIG_FILES="$CONFIG_FILES etc/knoctl" ;;
+    "etc/knogdb") CONFIG_FILES="$CONFIG_FILES etc/knogdb" ;;
+    "etc/knodbgexec") CONFIG_FILES="$CONFIG_FILES etc/knodbgexec" ;;
+    "etc/knosetconfig") CONFIG_FILES="$CONFIG_FILES etc/knosetconfig" ;;
+    "etc/knogetconfig") CONFIG_FILES="$CONFIG_FILES etc/knogetconfig" ;;
+    "etc/knoconfig") CONFIG_FILES="$CONFIG_FILES etc/knoconfig" ;;
     "tests/testenv.sh") CONFIG_FILES="$CONFIG_FILES tests/testenv.sh" ;;
     "tests/xtest") CONFIG_FILES="$CONFIG_FILES tests/xtest" ;;
     "tests/runtest") CONFIG_FILES="$CONFIG_FILES tests/runtest" ;;
     "tests/memtest") CONFIG_FILES="$CONFIG_FILES tests/memtest" ;;
     "tests/leaktest") CONFIG_FILES="$CONFIG_FILES tests/leaktest" ;;
-    "tests/fdexectest") CONFIG_FILES="$CONFIG_FILES tests/fdexectest" ;;
+    "tests/knoxtest") CONFIG_FILES="$CONFIG_FILES tests/knoxtest" ;;
     "src/scripts/fdpkg.scm") CONFIG_FILES="$CONFIG_FILES src/scripts/fdpkg.scm" ;;
-    "etc/OSXStartupItem/FramerD") CONFIG_FILES="$CONFIG_FILES etc/OSXStartupItem/FramerD" ;;
-    "etc/fdjob") CONFIG_FILES="$CONFIG_FILES etc/fdjob" ;;
+    "etc/OSXStartupItem/KNO") CONFIG_FILES="$CONFIG_FILES etc/OSXStartupItem/KNO" ;;
+    "etc/knojob") CONFIG_FILES="$CONFIG_FILES etc/knojob" ;;
     "etc/logrotate") CONFIG_FILES="$CONFIG_FILES etc/logrotate" ;;
-    "etc/framerd-rc.d") CONFIG_FILES="$CONFIG_FILES etc/framerd-rc.d" ;;
-    "etc/framerd.conf") CONFIG_FILES="$CONFIG_FILES etc/framerd.conf" ;;
+    "etc/kno-rc.d") CONFIG_FILES="$CONFIG_FILES etc/kno-rc.d" ;;
+    "etc/kno.conf") CONFIG_FILES="$CONFIG_FILES etc/kno.conf" ;;
     "etc/ex_servlet.service") CONFIG_FILES="$CONFIG_FILES etc/ex_servlet.service" ;;
     "etc/ex_daemon.service") CONFIG_FILES="$CONFIG_FILES etc/ex_daemon.service" ;;
-    "etc/fdaemons.service") CONFIG_FILES="$CONFIG_FILES etc/fdaemons.service" ;;
-    "etc/fdweb.service") CONFIG_FILES="$CONFIG_FILES etc/fdweb.service" ;;
-    "etc/framerd.service") CONFIG_FILES="$CONFIG_FILES etc/framerd.service" ;;
-    "etc/FramerD.plist") CONFIG_FILES="$CONFIG_FILES etc/FramerD.plist" ;;
-    "etc/fdserv.conf") CONFIG_FILES="$CONFIG_FILES etc/fdserv.conf" ;;
-    "etc/fdserv.load") CONFIG_FILES="$CONFIG_FILES etc/fdserv.load" ;;
+    "etc/knodaemons.service") CONFIG_FILES="$CONFIG_FILES etc/knodaemons.service" ;;
+    "etc/knoweb.service") CONFIG_FILES="$CONFIG_FILES etc/knoweb.service" ;;
+    "etc/kno.service") CONFIG_FILES="$CONFIG_FILES etc/kno.service" ;;
+    "etc/KNO.plist") CONFIG_FILES="$CONFIG_FILES etc/KNO.plist" ;;
+    "etc/knosrv.conf") CONFIG_FILES="$CONFIG_FILES etc/knosrv.conf" ;;
+    "etc/knosrv.load") CONFIG_FILES="$CONFIG_FILES etc/knosrv.load" ;;
     "etc/install-script") CONFIG_FILES="$CONFIG_FILES etc/install-script" ;;
-    "dist/framerd-4.3.spec") CONFIG_FILES="$CONFIG_FILES dist/framerd-4.3.spec" ;;
+    "dist/kno-4.3.spec") CONFIG_FILES="$CONFIG_FILES dist/kno-4.3.spec" ;;
     "default") CONFIG_COMMANDS="$CONFIG_COMMANDS default" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
@@ -14196,7 +14208,7 @@ $as_echo "$as_me: executing $ac_file commands" >&6;}
 
 
   case $ac_file$ac_mode in
-    "default":C) chmod a+x etc/fd* tests/*test ;;
+    "default":C) chmod a+x etc/kno* tests/*test ;;
 
   esac
 done # for ac_tag
@@ -14249,12 +14261,12 @@ if test ! -z "$auto_disabled"; then
 if test ! -z "$force_enabled"; then
    echo "+++ These components were enabled by force and may have issues: $force_enabled"; fi
 if test "$enable_ipeval" = "yes"; then
-   echo "+++ You've configured FramerD to use iterated partial evaluation";
+   echo "+++ You've configured Kno to use iterated partial evaluation";
    echo "+++ Use of the resulting software may be restricted by patent law. ";
    echo "+++ Contact beingmeta (licensing@beingmeta.com) for more information.";
-   echo "+++ Thanks for using FramerD!";
+   echo "+++ Thanks for using Kno!";
 else
-   echo "+++ Thanks for using FramerD!";
+   echo "+++ Thanks for using Kno!";
 fi
 
 # Emacs local variables

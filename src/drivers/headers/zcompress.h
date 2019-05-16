@@ -4,8 +4,8 @@
 #include <snappy-c.h>
 #endif
 
-#ifndef FD_INIT_ZBUF_SIZE
-#define FD_INIT_ZBUF_SIZE 24000
+#ifndef KNO_INIT_ZBUF_SIZE
+#define KNO_INIT_ZBUF_SIZE 24000
 #endif
 
 /* Compression functions */
@@ -42,7 +42,7 @@ static U8_MAYBE_UNUSED unsigned char *do_zuncompress
     *dbytes = dsize;
     return dbuf;}
   else {
-    fd_seterr2(error,"do_zuncompress");
+    kno_seterr2(error,"do_zuncompress");
     if (dbuf != init_dbuf) u8_free(dbuf);
     return NULL;}
 }
@@ -81,6 +81,6 @@ static U8_MAYBE_UNUSED unsigned char *do_zcompress
     *cbytes = csize;
     return cbuf;}
   else {
-    fd_seterr2(error,"do_zcompress");
+    kno_seterr2(error,"do_zcompress");
     return NULL;}
 }

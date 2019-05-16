@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -9,14 +9,14 @@
 #define _FILEINFO __FILE__
 #endif
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
 
 #include "libu8/u8memlist.h"
 
-lispval *fd_symbol_names;
-int fd_n_symbols = 0, fd_max_symbols = 0, fd_initial_symbols = 4096;
-struct FD_SYMBOL_TABLE fd_symbol_table;
+lispval *kno_symbol_names;
+int kno_n_symbols = 0, kno_max_symbols = 0, kno_initial_symbols = 4096;
+struct KNO_SYMBOL_TABLE kno_symbol_table;
 
 lispval FDSYM_ADD, FDSYM_ADJUNCT, FDSYM_ALL, FDSYM_ALWAYS;
 lispval FDSYM_BLOCKSIZE, FDSYM_BUFSIZE;
@@ -39,13 +39,13 @@ lispval FDSYM_SOURCE, FDSYM_STAR, FDSYM_STORE, FDSYM_STRING, FDSYM_SUFFIX;
 lispval FDSYM_TAG, FDSYM_TEST, FDSYM_TEXT, FDSYM_TYPE;
 lispval FDSYM_VERSION, FDSYM_VOID;
 
-u8_rwlock fd_symbol_lock;
+u8_rwlock kno_symbol_lock;
 static u8_memlist old_symbol_data = NULL;
 
 #define MYSTERIOUS_MULTIPLIER 2654435769U
 #define MYSTERIOUS_MODULUS 256001281
 
-FD_FASTOP unsigned int mult_hash_bytes(const unsigned char *start,int len)
+KNO_FASTOP unsigned int mult_hash_bytes(const unsigned char *start,int len)
 {
   unsigned int h = 0;
   unsigned *istart = (unsigned int *)start, asint = 0;
@@ -65,20 +65,20 @@ static void init_builtin_symbols(void);
 
 static void init_symbol_tables()
 {
-  u8_write_lock(&fd_symbol_lock);
-  if (fd_max_symbols) {
-    u8_rw_unlock(&fd_symbol_lock); return;}
+  u8_write_lock(&kno_symbol_lock);
+  if (kno_max_symbols) {
+    u8_rw_unlock(&kno_symbol_lock); return;}
   else {
-    int new_max = ((fd_max_symbols) ? (fd_max_symbols) : (fd_initial_symbols));
-    int new_size = fd_get_hashtable_size(new_max*2);
-    struct FD_SYMBOL_ENTRY **new_entries = u8_alloc_n(new_size,fd_symbol_entry);
+    int new_max = ((kno_max_symbols) ? (kno_max_symbols) : (kno_initial_symbols));
+    int new_size = kno_get_hashtable_size(new_max*2);
+    struct KNO_SYMBOL_ENTRY **new_entries = u8_alloc_n(new_size,kno_symbol_entry);
     lispval *new_symbol_names = u8_alloc_n(new_max,lispval);
     int i = 0, lim = new_size; while (i < lim) new_entries[i++]=NULL;
     i = 0; lim = new_max; while (i < lim) new_symbol_names[i++]=VOID;
-    fd_symbol_table.table_size = new_size;
-    fd_symbol_table.fd_symbol_entries = new_entries;
-    fd_symbol_names = new_symbol_names; fd_max_symbols = new_max;
-    u8_rw_unlock(&fd_symbol_lock);
+    kno_symbol_table.table_size = new_size;
+    kno_symbol_table.kno_symbol_entries = new_entries;
+    kno_symbol_names = new_symbol_names; kno_max_symbols = new_max;
+    u8_rw_unlock(&kno_symbol_lock);
     init_builtin_symbols();
   }
 }
@@ -86,91 +86,91 @@ static void init_symbol_tables()
 static void init_builtin_symbols()
 {
   /* Make these low-numberd symbols to have them early in sorts */
-  fd_intern("%ID"); fd_intern("NAME"); fd_intern("ID"); fd_intern("_ID");
-  fd_intern("LABEL");
+  kno_intern("%ID"); kno_intern("NAME"); kno_intern("ID"); kno_intern("_ID");
+  kno_intern("LABEL");
 
   /* Here they are in alphabetical order */
-  FDSYM_ADD = fd_intern("ADD");
-  FDSYM_ADJUNCT = fd_intern("ADJUNCT");
-  FDSYM_ALL = fd_intern("ALL");
-  FDSYM_ALWAYS = fd_intern("ALWAYS");
-  FDSYM_BLOCKSIZE = fd_intern("BLOCKSIZE");
-  FDSYM_BUFSIZE = fd_intern("BUFSIZE");
-  FDSYM_CACHELEVEL = fd_intern("CACHELEVEL");
-  FDSYM_CACHESIZE = fd_intern("CACHESIZE");
-  FDSYM_CONS = fd_intern("CONS");
-  FDSYM_CONTENT = fd_intern("CONTENT");
-  FDSYM_CREATE = fd_intern("CREATE");
-  FDSYM_CREATE = fd_intern("FILE");
-  FDSYM_DEFAULT = fd_intern("DEFAULT");
-  FDSYM_DOT = fd_intern(".");
-  FDSYM_DROP = fd_intern("DROP");
-  FDSYM_ENCODING = fd_intern("ENCODING");
-  FDSYM_EQUALS = fd_intern("=");
-  FDSYM_ERROR = fd_intern("ERROR");
-  FDSYM_FILE = fd_intern("FILE");
-  FDSYM_FILENAME = fd_intern("FILENAME");
-  FDSYM_FLAGS = fd_intern("FLAGS");
-  FDSYM_FORMAT = fd_intern("FORMAT");
-  FDSYM_FRONT = fd_intern("FRONT");
-  FDSYM_INPUT = fd_intern("INPUT");
-  FDSYM_ISADJUNCT = fd_intern("ISADJUNCT");
-  FDSYM_KEYSLOT = fd_intern("KEYSLOT");
-  FDSYM_LABEL = fd_intern("LABEL");
-  FDSYM_LAZY = fd_intern("LAZY");
-  FDSYM_LENGTH = fd_intern("LENGTH");
-  FDSYM_LOGLEVEL = fd_intern("LOGLEVEL");
-  FDSYM_MAIN = fd_intern("MAIN");
-  FDSYM_MERGE = fd_intern("MERGE");
-  FDSYM_METADATA = fd_intern("METADATA");
-  FDSYM_MINUS = fd_intern("-");
-  FDSYM_MODULE = fd_intern("MODULE");
-  FDSYM_NAME = fd_intern("NAME");
-  FDSYM_NO = fd_intern("NO");
-  FDSYM_NONE = fd_intern("NONE");
-  FDSYM_NOT = fd_intern("NOT");
-  FDSYM_OPT = fd_intern("OPT");
-  FDSYM_OPTS = fd_intern("OPTS");
-  FDSYM_OUTPUT = fd_intern("OUTPUT");
-  FDSYM_PCTID = fd_intern("%ID");
-  FDSYM_PLUS = fd_intern("+");
-  FDSYM_PREFIX = fd_intern("PREFIX");
-  FDSYM_PROPS = fd_intern("PROPS");
-  FDSYM_QMARK = fd_intern("?");
-  FDSYM_QUOTE = fd_intern("QUOTE");
-  FDSYM_READONLY = fd_intern("READONLY");
-  FDSYM_SEP = fd_intern("SEP");
-  FDSYM_SET = fd_intern("SET");
-  FDSYM_SIZE = fd_intern("SIZE");
-  FDSYM_SORT = fd_intern("SORT");
-  FDSYM_SORTED = fd_intern("SORTED");
-  FDSYM_SOURCE = fd_intern("SOURCE");
-  FDSYM_STAR = fd_intern("*");
-  FDSYM_STORE = fd_intern("STORE");
-  FDSYM_STRING = fd_intern("STRING");
-  FDSYM_SUFFIX = fd_intern("SUFFIX");
-  FDSYM_TAG = fd_intern("TAG");
-  FDSYM_TEST = fd_intern("TEST");
-  FDSYM_TEXT = fd_intern("TEXT");
-  FDSYM_TYPE = fd_intern("TYPE");
-  FDSYM_VERSION = fd_intern("VERSION");
-  FDSYM_VOID = fd_intern("VOID");
+  FDSYM_ADD = kno_intern("ADD");
+  FDSYM_ADJUNCT = kno_intern("ADJUNCT");
+  FDSYM_ALL = kno_intern("ALL");
+  FDSYM_ALWAYS = kno_intern("ALWAYS");
+  FDSYM_BLOCKSIZE = kno_intern("BLOCKSIZE");
+  FDSYM_BUFSIZE = kno_intern("BUFSIZE");
+  FDSYM_CACHELEVEL = kno_intern("CACHELEVEL");
+  FDSYM_CACHESIZE = kno_intern("CACHESIZE");
+  FDSYM_CONS = kno_intern("CONS");
+  FDSYM_CONTENT = kno_intern("CONTENT");
+  FDSYM_CREATE = kno_intern("CREATE");
+  FDSYM_CREATE = kno_intern("FILE");
+  FDSYM_DEFAULT = kno_intern("DEFAULT");
+  FDSYM_DOT = kno_intern(".");
+  FDSYM_DROP = kno_intern("DROP");
+  FDSYM_ENCODING = kno_intern("ENCODING");
+  FDSYM_EQUALS = kno_intern("=");
+  FDSYM_ERROR = kno_intern("ERROR");
+  FDSYM_FILE = kno_intern("FILE");
+  FDSYM_FILENAME = kno_intern("FILENAME");
+  FDSYM_FLAGS = kno_intern("FLAGS");
+  FDSYM_FORMAT = kno_intern("FORMAT");
+  FDSYM_FRONT = kno_intern("FRONT");
+  FDSYM_INPUT = kno_intern("INPUT");
+  FDSYM_ISADJUNCT = kno_intern("ISADJUNCT");
+  FDSYM_KEYSLOT = kno_intern("KEYSLOT");
+  FDSYM_LABEL = kno_intern("LABEL");
+  FDSYM_LAZY = kno_intern("LAZY");
+  FDSYM_LENGTH = kno_intern("LENGTH");
+  FDSYM_LOGLEVEL = kno_intern("LOGLEVEL");
+  FDSYM_MAIN = kno_intern("MAIN");
+  FDSYM_MERGE = kno_intern("MERGE");
+  FDSYM_METADATA = kno_intern("METADATA");
+  FDSYM_MINUS = kno_intern("-");
+  FDSYM_MODULE = kno_intern("MODULE");
+  FDSYM_NAME = kno_intern("NAME");
+  FDSYM_NO = kno_intern("NO");
+  FDSYM_NONE = kno_intern("NONE");
+  FDSYM_NOT = kno_intern("NOT");
+  FDSYM_OPT = kno_intern("OPT");
+  FDSYM_OPTS = kno_intern("OPTS");
+  FDSYM_OUTPUT = kno_intern("OUTPUT");
+  FDSYM_PCTID = kno_intern("%ID");
+  FDSYM_PLUS = kno_intern("+");
+  FDSYM_PREFIX = kno_intern("PREFIX");
+  FDSYM_PROPS = kno_intern("PROPS");
+  FDSYM_QMARK = kno_intern("?");
+  FDSYM_QUOTE = kno_intern("QUOTE");
+  FDSYM_READONLY = kno_intern("READONLY");
+  FDSYM_SEP = kno_intern("SEP");
+  FDSYM_SET = kno_intern("SET");
+  FDSYM_SIZE = kno_intern("SIZE");
+  FDSYM_SORT = kno_intern("SORT");
+  FDSYM_SORTED = kno_intern("SORTED");
+  FDSYM_SOURCE = kno_intern("SOURCE");
+  FDSYM_STAR = kno_intern("*");
+  FDSYM_STORE = kno_intern("STORE");
+  FDSYM_STRING = kno_intern("STRING");
+  FDSYM_SUFFIX = kno_intern("SUFFIX");
+  FDSYM_TAG = kno_intern("TAG");
+  FDSYM_TEST = kno_intern("TEST");
+  FDSYM_TEXT = kno_intern("TEXT");
+  FDSYM_TYPE = kno_intern("TYPE");
+  FDSYM_VERSION = kno_intern("VERSION");
+  FDSYM_VOID = kno_intern("VOID");
 }
 
 static void grow_symbol_tables()
 {
-  int new_max = fd_max_symbols*2;
-  int new_size = fd_get_hashtable_size(new_max*2);
-  struct FD_SYMBOL_ENTRY **old_entries = fd_symbol_table.fd_symbol_entries;
-  struct FD_SYMBOL_ENTRY **new_entries = u8_alloc_n(new_size,fd_symbol_entry);
+  int new_max = kno_max_symbols*2;
+  int new_size = kno_get_hashtable_size(new_max*2);
+  struct KNO_SYMBOL_ENTRY **old_entries = kno_symbol_table.kno_symbol_entries;
+  struct KNO_SYMBOL_ENTRY **new_entries = u8_alloc_n(new_size,kno_symbol_entry);
   lispval *new_symbol_names = u8_alloc_n(new_max,lispval);
   {
-    int i = 0, lim = fd_symbol_table.table_size;
+    int i = 0, lim = kno_symbol_table.table_size;
     while (i < new_size) new_entries[i++]=NULL;
     i = 0; while (i < lim)
       if (old_entries[i] == NULL) i++;
       else {
-        struct FD_SYMBOL_ENTRY *entry = old_entries[i];
+        struct KNO_SYMBOL_ENTRY *entry = old_entries[i];
         int probe=
           mult_hash_bytes(entry->sym_pname.str_bytes,
                           entry->sym_pname.str_bytelen)%new_size;
@@ -181,22 +181,22 @@ static void grow_symbol_tables()
         new_entries[probe]=entry;
         i++;}
     old_symbol_data = u8_cons_list(old_entries,old_symbol_data,0);
-    fd_symbol_table.fd_symbol_entries = new_entries;
-    fd_symbol_table.table_size = new_size;}
+    kno_symbol_table.kno_symbol_entries = new_entries;
+    kno_symbol_table.table_size = new_size;}
   {
-    int i = 0, lim = fd_n_symbols; lispval *old_symbol_names;
-    while (i < lim) {new_symbol_names[i]=fd_symbol_names[i]; i++;}
-    old_symbol_names = fd_symbol_names;
-    fd_symbol_names = new_symbol_names;
+    int i = 0, lim = kno_n_symbols; lispval *old_symbol_names;
+    while (i < lim) {new_symbol_names[i]=kno_symbol_names[i]; i++;}
+    old_symbol_names = kno_symbol_names;
+    kno_symbol_names = new_symbol_names;
     old_symbol_data = u8_cons_list(old_symbol_names,old_symbol_data,0);}
-  fd_max_symbols = new_max;
+  kno_max_symbols = new_max;
 }
 
 lispval probe_symbol(u8_string bytes,int len)
 {
-  struct FD_SYMBOL_ENTRY **entries = fd_symbol_table.fd_symbol_entries;
-  int probe, size = fd_symbol_table.table_size;
-  if ((fd_n_symbols == 0)||(fd_max_symbols == 0)) return VOID;
+  struct KNO_SYMBOL_ENTRY **entries = kno_symbol_table.kno_symbol_entries;
+  int probe, size = kno_symbol_table.table_size;
+  if ((kno_n_symbols == 0)||(kno_max_symbols == 0)) return VOID;
   probe = mult_hash_bytes(bytes,len)%size;
   while (entries[probe]) {
     if (len == entries[probe]->sym_pname.str_bytelen)
@@ -205,21 +205,21 @@ lispval probe_symbol(u8_string bytes,int len)
     probe++;
     if (probe >= size) probe = 0;}
   if (entries[probe]) {
-    return FD_ID2SYMBOL(entries[probe]->symid);}
+    return KNO_ID2SYMBOL(entries[probe]->symid);}
   else return VOID;
 }
 
-lispval fd_make_symbol(u8_string bytes,int len)
+lispval kno_make_symbol(u8_string bytes,int len)
 {
-  if (fd_max_symbols == 0) init_symbol_tables();
+  if (kno_max_symbols == 0) init_symbol_tables();
   if (len<0) len=strlen(bytes);
   lispval sym=probe_symbol(bytes,len);
   if (SYMBOLP(sym))
     return sym;
   else {
-    u8_write_lock(&fd_symbol_lock);
-    struct FD_SYMBOL_ENTRY **entries = fd_symbol_table.fd_symbol_entries;
-    int size = fd_symbol_table.table_size;
+    u8_write_lock(&kno_symbol_lock);
+    struct KNO_SYMBOL_ENTRY **entries = kno_symbol_table.kno_symbol_entries;
+    int size = kno_symbol_table.table_size;
     int hash = mult_hash_bytes(bytes,len);
     int probe = hash%size;
     while (PRED_TRUE(entries[probe]!=NULL)) {
@@ -231,39 +231,39 @@ lispval fd_make_symbol(u8_string bytes,int len)
       probe++; if (probe>=size) probe = 0;}
     if (entries[probe]) {
       int id = entries[probe]->symid;
-      u8_rw_unlock(&fd_symbol_lock);
-      return FD_ID2SYMBOL(id);}
+      u8_rw_unlock(&kno_symbol_lock);
+      return KNO_ID2SYMBOL(id);}
     else {
-      if (fd_n_symbols >= fd_max_symbols) {
+      if (kno_n_symbols >= kno_max_symbols) {
         grow_symbol_tables();
-        u8_rw_unlock(&fd_symbol_lock);
-        return fd_make_symbol(bytes,len);}
+        u8_rw_unlock(&kno_symbol_lock);
+        return kno_make_symbol(bytes,len);}
       else {
-        int id = fd_n_symbols++;
+        int id = kno_n_symbols++;
         u8_string pname = u8_strdup(bytes);
-        entries[probe]=u8_alloc(struct FD_SYMBOL_ENTRY);
+        entries[probe]=u8_alloc(struct KNO_SYMBOL_ENTRY);
         entries[probe]->symid = id;
-        fd_init_string(&(entries[probe]->sym_pname),len,pname);
-        fd_symbol_names[id]=LISP_CONS(&(entries[probe]->sym_pname));
-        u8_rw_unlock(&fd_symbol_lock);
-        return FD_ID2SYMBOL(id);}}}
+        kno_init_string(&(entries[probe]->sym_pname),len,pname);
+        kno_symbol_names[id]=LISP_CONS(&(entries[probe]->sym_pname));
+        u8_rw_unlock(&kno_symbol_lock);
+        return KNO_ID2SYMBOL(id);}}}
 }
 
-lispval fd_probe_symbol(u8_string bytes,int len)
+lispval kno_probe_symbol(u8_string bytes,int len)
 {
   if (len<0) len=strlen(bytes);
-  u8_read_lock(&fd_symbol_lock);
+  u8_read_lock(&kno_symbol_lock);
   lispval sym = probe_symbol(bytes,len);
-  u8_rw_unlock(&fd_symbol_lock);
+  u8_rw_unlock(&kno_symbol_lock);
   return sym;
 }
 
-FD_EXPORT lispval fd_intern(u8_string string)
+KNO_EXPORT lispval kno_intern(u8_string string)
 {
-  return fd_make_symbol(string,strlen(string));
+  return kno_make_symbol(string,strlen(string));
 }
 
-FD_EXPORT lispval fd_symbolize(u8_string string)
+KNO_EXPORT lispval kno_symbolize(u8_string string)
 {
   const u8_byte *scan = string;
   U8_STATIC_OUTPUT(name,64);
@@ -271,17 +271,17 @@ FD_EXPORT lispval fd_symbolize(u8_string string)
   while (c>=0) {
     u8_putc(nameout,u8_toupper(c));
     c = u8_sgetc(&scan);}
-  lispval result = fd_make_symbol(name.u8_outbuf,name.u8_write-name.u8_outbuf);
+  lispval result = kno_make_symbol(name.u8_outbuf,name.u8_write-name.u8_outbuf);
   u8_close((u8_stream)nameout);
   return result;
 }
 
-FD_EXPORT lispval fd_all_symbols()
+KNO_EXPORT lispval kno_all_symbols()
 {
   lispval results = EMPTY;
-  int i = 0, n = fd_n_symbols;
+  int i = 0, n = kno_n_symbols;
   while (i < n) {
-    lispval sym = FD_ID2SYMBOL(i);
+    lispval sym = KNO_ID2SYMBOL(i);
     CHOICE_ADD(results,sym);
     i++;}
   return results;
@@ -291,25 +291,25 @@ FD_EXPORT lispval fd_all_symbols()
 
 static int check_symbol(lispval x)
 {
-  int id = FD_SYMBOL2ID(x);
-  return (id<fd_n_symbols);
+  int id = KNO_SYMBOL2ID(x);
+  return (id<kno_n_symbols);
 }
 
-void fd_init_symbols_c()
+void kno_init_symbols_c()
 {
-  fd_immediate_checkfns[fd_symbol_type]=check_symbol;
+  kno_immediate_checkfns[kno_symbol_type]=check_symbol;
   u8_register_source_file(_FILEINFO);
 }
 
 #if 0
-FD_EXPORT
+KNO_EXPORT
 static int n_refs = 0, n_probes = 0;
-void fd_list_symbol_table()
+void kno_list_symbol_table()
 {
-  int i = 0, size = fd_symbol_table.size;
-  struct FD_SYMBOL_ENTRY **entries = fd_symbol_table.entries;
+  int i = 0, size = kno_symbol_table.size;
+  struct KNO_SYMBOL_ENTRY **entries = kno_symbol_table.entries;
   fprintf(stderr,"%d symbols, %d max symbols\n",
-          fd_n_symbols,fd_max_symbols);
+          kno_n_symbols,kno_max_symbols);
   fprintf(stderr,"%d refs, %d probes\n",n_refs,n_probes);
   while (i < size)
     if (entries[i]) {

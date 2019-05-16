@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -9,18 +9,18 @@
 #define _FILEINFO __FILE__
 #endif
 
-#include "framerd/components/storage_layer.h"
-#define FD_INLINE_POOLS 1
-#define FD_INLINE_BUFIO 1
+#include "kno/components/storage_layer.h"
+#define KNO_INLINE_POOLS 1
+#define KNO_INLINE_BUFIO 1
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/numbers.h"
-#include "framerd/storage.h"
-#include "framerd/streams.h"
-#include "framerd/pools.h"
-#include "framerd/indexes.h"
-#include "framerd/drivers.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/numbers.h"
+#include "kno/storage.h"
+#include "kno/streams.h"
+#include "kno/pools.h"
+#include "kno/indexes.h"
+#include "kno/drivers.h"
 
 #include "headers/oidpool.h"
 
@@ -31,7 +31,7 @@
 
 #include <zlib.h>
 
-#if (FD_USE_MMAP)
+#if (KNO_USE_MMAP)
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -42,43 +42,43 @@
 /* Locking oid pool streams */
 
 #define POOLFILE_LOCKEDP(op)                                            \
-  (U8_BITP((op->pool_stream.stream_flags),FD_STREAM_FILE_LOCKED))
+  (U8_BITP((op->pool_stream.stream_flags),KNO_STREAM_FILE_LOCKED))
 
-FD_FASTOP int LOCK_POOLSTREAM(fd_oidpool op,u8_string caller)
+KNO_FASTOP int LOCK_POOLSTREAM(kno_oidpool op,u8_string caller)
 {
-  fd_lock_stream(&(op->pool_stream));
+  kno_lock_stream(&(op->pool_stream));
   if (op->pool_stream.stream_fileno < 0) {
     u8_seterr("PoolStreamClosed",caller,u8_strdup(op->poolid));
-    fd_unlock_stream(&(op->pool_stream));
+    kno_unlock_stream(&(op->pool_stream));
     return -1;}
   else return 1;
 }
 
-#define UNLOCK_POOLSTREAM(op) fd_unlock_stream(&(op->pool_stream))
+#define UNLOCK_POOLSTREAM(op) kno_unlock_stream(&(op->pool_stream))
 
-static void update_modtime(struct FD_OIDPOOL *fp);
-static void reload_offdata(struct FD_OIDPOOL *fp,int lock);
+static void update_modtime(struct KNO_OIDPOOL *fp);
+static void reload_offdata(struct KNO_OIDPOOL *fp,int lock);
 
-static struct FD_POOL_HANDLER oidpool_handler;
+static struct KNO_POOL_HANDLER oidpool_handler;
 
-u8_condition fd_InvalidSchemaDef=_("Invalid schema definition data");
-u8_condition fd_InvalidSchemaRef=_("Invalid encoded schema reference");
-u8_condition fd_SchemaInconsistency=_("Inconsistent schema reference and value data");
+u8_condition kno_InvalidSchemaDef=_("Invalid schema definition data");
+u8_condition kno_InvalidSchemaRef=_("Invalid encoded schema reference");
+u8_condition kno_SchemaInconsistency=_("Inconsistent schema reference and value data");
 
 static u8_condition InvalidOffset=_("Invalid offset in OIDPOOL");
 
-#define FD_OIDPOOL_LOAD_POS      0x10
+#define KNO_OIDPOOL_LOAD_POS      0x10
 
-#define FD_OIDPOOL_LABEL_POS             0x18
-#define FD_OIDPOOL_METADATA_POS          0x24
-#define FD_OIDPOOL_SCHEMAS_POS           0x30
+#define KNO_OIDPOOL_LABEL_POS             0x18
+#define KNO_OIDPOOL_METADATA_POS          0x24
+#define KNO_OIDPOOL_SCHEMAS_POS           0x30
 
-#define FD_OIDPOOL_FETCHBUF_SIZE 8000
+#define KNO_OIDPOOL_FETCHBUF_SIZE 8000
 
 /* OIDPOOLs are the next generation of object pool data file.  While
    previous formats have all stored OIDs for years and years, OIDPOOLs
    are supposed to be the best to date and somewhat paradigmatic.
-   The design focuses on performance and extensibility.  With FD_HASHINDEX,
+   The design focuses on performance and extensibility.  With KNO_HASHINDEX,
    it became clear that storing offset sizes helped with performance and
    with the use of compression, it becomes even more relevant.
    OIDPOOLs are also the first native files to support files >4GB and
@@ -144,29 +144,29 @@ static u8_condition InvalidOffset=_("Invalid offset in OIDPOOL");
 typedef long long int ll;
 typedef unsigned long long ull;
 
-static ssize_t get_chunk_ref_size(fd_oidpool p)
+static ssize_t get_chunk_ref_size(kno_oidpool p)
 {
   switch (p->pool_offtype) {
-  case FD_B32: case FD_B40:
+  case KNO_B32: case KNO_B40:
     return 8;
-  case FD_B64: return 12;}
+  case KNO_B64: return 12;}
   return -1;
 }
 
-static fd_size_t get_maxpos(fd_oidpool p)
+static kno_size_t get_maxpos(kno_oidpool p)
 {
   switch (p->pool_offtype) {
-  case FD_B32:
-    return ((fd_size_t)(((fd_size_t)1)<<32));
-  case FD_B40:
-    return ((fd_size_t)(((fd_size_t)1)<<40));
-  case FD_B64:
-    return ((fd_size_t)(((fd_size_t)1)<<63));
+  case KNO_B32:
+    return ((kno_size_t)(((kno_size_t)1)<<32));
+  case KNO_B40:
+    return ((kno_size_t)(((kno_size_t)1)<<40));
+  case KNO_B64:
+    return ((kno_size_t)(((kno_size_t)1)<<63));
   default:
     return -1;}
 }
 
-static size_t get_offdata_length(fd_oidpool p)
+static size_t get_offdata_length(kno_oidpool p)
 {
   size_t ref_size = get_chunk_ref_size(p);
   return ref_size*(p->pool_capacity);
@@ -176,126 +176,126 @@ static size_t get_offdata_length(fd_oidpool p)
 
 /* Making and opening oidpools */
 
-static int init_schemas(fd_oidpool,lispval);
+static int init_schemas(kno_oidpool,lispval);
 
-static fd_pool open_oidpool(u8_string fname,
-                            fd_storage_flags open_flags,
+static kno_pool open_oidpool(u8_string fname,
+                            kno_storage_flags open_flags,
                             lispval opts)
 {
-  FD_OID base = FD_NULL_OID_INIT;
+  KNO_OID base = KNO_NULL_OID_INIT;
   unsigned int hi, lo, magicno, capacity, load, oidpool_format;
-  fd_off_t label_loc, schemas_loc; lispval label;
-  struct FD_OIDPOOL *pool = u8_alloc(struct FD_OIDPOOL);
-  int read_only = U8_BITP(open_flags,FD_STORAGE_READ_ONLY) ||
+  kno_off_t label_loc, schemas_loc; lispval label;
+  struct KNO_OIDPOOL *pool = u8_alloc(struct KNO_OIDPOOL);
+  int read_only = U8_BITP(open_flags,KNO_STORAGE_READ_ONLY) ||
     (!(u8_file_writablep(fname)));
-  fd_stream_mode mode=
-    ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
-  long long cache_level = fd_getfixopt(opts,"CACHELEVEL",fd_default_cache_level);
-  int stream_flags = FD_STREAM_CAN_SEEK | FD_STREAM_NEEDS_LOCK |
-    ( (read_only) ? (FD_STREAM_READ_ONLY) : (0) ) |
-    ( (cache_level>=3) ? (FD_STREAM_USEMMAP) : (0) );
+  kno_stream_mode mode=
+    ((read_only) ? (KNO_FILE_READ) : (KNO_FILE_MODIFY));
+  long long cache_level = kno_getfixopt(opts,"CACHELEVEL",kno_default_cache_level);
+  int stream_flags = KNO_STREAM_CAN_SEEK | KNO_STREAM_NEEDS_LOCK |
+    ( (read_only) ? (KNO_STREAM_READ_ONLY) : (0) ) |
+    ( (cache_level>=3) ? (KNO_STREAM_USEMMAP) : (0) );
   u8_string realpath = u8_realpath(fname,NULL);
   u8_string abspath = u8_abspath(fname,NULL);
-  struct FD_STREAM *stream=
-    fd_init_file_stream(&(pool->pool_stream),fname,
-                        mode,stream_flags,fd_driver_bufsize);
-  struct FD_INBUF *instream = (stream) ? (fd_readbuf(stream)) : (NULL);
+  struct KNO_STREAM *stream=
+    kno_init_file_stream(&(pool->pool_stream),fname,
+                        mode,stream_flags,kno_driver_bufsize);
+  struct KNO_INBUF *instream = (stream) ? (kno_readbuf(stream)) : (NULL);
 
   if (instream == NULL) {
     u8_seterr("FileNotFound","open_oidpool",u8_strdup(fname));
     return NULL;}
 
   /* See if it ended up read only */
-  if ((stream->stream_flags)&(FD_STREAM_READ_ONLY)) read_only = 1;
-  stream->stream_flags &= ~FD_STREAM_IS_CONSED;
-  magicno = fd_read_4bytes(instream);
+  if ((stream->stream_flags)&(KNO_STREAM_READ_ONLY)) read_only = 1;
+  stream->stream_flags &= ~KNO_STREAM_IS_CONSED;
+  magicno = kno_read_4bytes(instream);
 
-  if (magicno != FD_OIDPOOL_MAGIC_NUMBER) {
-    fd_close_stream(stream,0);
+  if (magicno != KNO_OIDPOOL_MAGIC_NUMBER) {
+    kno_close_stream(stream,0);
     u8_seterr("Not an OIDPool","open_oidpool",u8_strdup(fname));
     return NULL;}
 
   /* Read POOL base etc. */
-  hi = fd_read_4bytes(instream); lo = fd_read_4bytes(instream);
-  FD_SET_OID_HI(base,hi); FD_SET_OID_LO(base,lo);
-  pool->pool_capacity = capacity = fd_read_4bytes(instream);
-  pool->pool_load = load = fd_read_4bytes(instream);
-  oidpool_format = fd_read_4bytes(instream);
+  hi = kno_read_4bytes(instream); lo = kno_read_4bytes(instream);
+  KNO_SET_OID_HI(base,hi); KNO_SET_OID_LO(base,lo);
+  pool->pool_capacity = capacity = kno_read_4bytes(instream);
+  pool->pool_load = load = kno_read_4bytes(instream);
+  oidpool_format = kno_read_4bytes(instream);
   pool->oidpool_format = oidpool_format;
 
   if (load > capacity) {
-    u8_logf(LOG_CRIT,fd_PoolOverflow,
+    u8_logf(LOG_CRIT,kno_PoolOverflow,
             "The oidpool %s specifies a load (%lld) > its capacity (%lld)",
             fname,load,capacity);
     pool->pool_load=load=capacity;}
 
-  if ((U8_BITP(oidpool_format,FD_OIDPOOL_READ_ONLY))&&
-      (!(fd_testopt(opts,FDSYM_READONLY,FD_FALSE)))) {
+  if ((U8_BITP(oidpool_format,KNO_OIDPOOL_READ_ONLY))&&
+      (!(kno_testopt(opts,FDSYM_READONLY,KNO_FALSE)))) {
     /* If the pool is intrinsically read-only, make it so. */
-    fd_unlock_stream(stream);
-    fd_close_stream(stream,0);
-    fd_init_file_stream(stream,fname,FD_FILE_READ,-1,fd_driver_bufsize);
-    fd_lock_stream(stream);
-    fd_setpos(stream,FD_OIDPOOL_LABEL_POS);
-    open_flags |= FD_STORAGE_READ_ONLY;}
+    kno_unlock_stream(stream);
+    kno_close_stream(stream,0);
+    kno_init_file_stream(stream,fname,KNO_FILE_READ,-1,kno_driver_bufsize);
+    kno_lock_stream(stream);
+    kno_setpos(stream,KNO_OIDPOOL_LABEL_POS);
+    open_flags |= KNO_STORAGE_READ_ONLY;}
 
-  if (U8_BITP(oidpool_format,FD_OIDPOOL_ADJUNCT))
-    open_flags |= FD_POOL_ADJUNCT;
-  if (U8_BITP(oidpool_format,FD_OIDPOOL_SPARSE))
-    open_flags |= FD_POOL_SPARSE;
+  if (U8_BITP(oidpool_format,KNO_OIDPOOL_ADJUNCT))
+    open_flags |= KNO_POOL_ADJUNCT;
+  if (U8_BITP(oidpool_format,KNO_OIDPOOL_SPARSE))
+    open_flags |= KNO_POOL_SPARSE;
 
   pool->pool_offtype =
-    (fd_offset_type)((oidpool_format)&(FD_OIDPOOL_OFFMODE));
+    (kno_offset_type)((oidpool_format)&(KNO_OIDPOOL_OFFMODE));
   pool->oidpool_compression=
-    (fd_compress_type)(((oidpool_format)&(FD_OIDPOOL_COMPRESSION))>>3);
+    (kno_compress_type)(((oidpool_format)&(KNO_OIDPOOL_COMPRESSION))>>3);
 
-  fd_init_pool((fd_pool)pool,base,capacity,&oidpool_handler,
+  kno_init_pool((kno_pool)pool,base,capacity,&oidpool_handler,
                fname,abspath,realpath,
-               FD_STORAGE_ISPOOL,FD_VOID,opts);
+               KNO_STORAGE_ISPOOL,KNO_VOID,opts);
   pool->pool_flags=open_flags;
   u8_free(realpath);
   u8_free(abspath);
 
   /* Get the label */
-  label_loc = fd_read_8bytes(instream);
-  /* label_size = */ fd_read_4bytes(instream);
+  label_loc = kno_read_8bytes(instream);
+  /* label_size = */ kno_read_4bytes(instream);
   /* Skip the metadata field */
-  fd_read_8bytes(instream);
-  fd_read_4bytes(instream); /* Ignore size */
+  kno_read_8bytes(instream);
+  kno_read_4bytes(instream); /* Ignore size */
   /* Read and initialize the schemas_loc */
-  schemas_loc = fd_read_8bytes(instream);
-  fd_read_4bytes(instream); /* Ignore size */
+  schemas_loc = kno_read_8bytes(instream);
+  kno_read_4bytes(instream); /* Ignore size */
   if (label_loc) {
-    if (fd_setpos(stream,label_loc)>0) {
-      label = fd_read_dtype(instream);
+    if (kno_setpos(stream,label_loc)>0) {
+      label = kno_read_dtype(instream);
       if (STRINGP(label)) pool->pool_label = u8_strdup(CSTRING(label));
-      else u8_logf(LOG_WARN,fd_BadFilePoolLabel,fd_lisp2string(label));
-      fd_decref(label);}
+      else u8_logf(LOG_WARN,kno_BadFilePoolLabel,kno_lisp2string(label));
+      kno_decref(label);}
     else {
-      fd_seterr(fd_BadFilePoolLabel,"open_oidpool","bad label loc",
-                FD_INT(label_loc));
-      fd_close_stream(stream,0);
+      kno_seterr(kno_BadFilePoolLabel,"open_oidpool","bad label loc",
+                KNO_INT(label_loc));
+      kno_close_stream(stream,0);
       u8_free(pool);
       return NULL;}}
   if (schemas_loc) {
     lispval schemas;
-    fd_setpos(stream,schemas_loc);
-    schemas = fd_read_dtype(instream);
+    kno_setpos(stream,schemas_loc);
+    schemas = kno_read_dtype(instream);
     init_schemas(pool,schemas);
-    fd_decref(schemas);}
+    kno_decref(schemas);}
   else init_schemas(pool,VOID);
   /* Offsets size is the malloc'd size (in unsigned ints) of the offsets.
      We don't fill this in until we actually need it. */
   pool->pool_offdata = NULL;
   if (read_only)
-    U8_SETBITS(pool->pool_flags,FD_STORAGE_READ_ONLY);
-  else U8_CLEARBITS(pool->pool_flags,FD_STORAGE_READ_ONLY);
-  fd_register_pool((fd_pool)pool);
+    U8_SETBITS(pool->pool_flags,KNO_STORAGE_READ_ONLY);
+  else U8_CLEARBITS(pool->pool_flags,KNO_STORAGE_READ_ONLY);
+  kno_register_pool((kno_pool)pool);
   update_modtime(pool);
-  return (fd_pool)pool;
+  return (kno_pool)pool;
 }
 
-static void update_modtime(struct FD_OIDPOOL *fp)
+static void update_modtime(struct KNO_OIDPOOL *fp)
 {
   struct stat fileinfo;
   if ((fstat(fp->pool_stream.stream_fileno,&fileinfo))<0)
@@ -305,11 +305,11 @@ static void update_modtime(struct FD_OIDPOOL *fp)
 
 /* Maintaing the schema table */
 
-static int init_schema_entry(struct FD_SCHEMA_ENTRY *e,int pos,lispval vec);
+static int init_schema_entry(struct KNO_SCHEMA_ENTRY *e,int pos,lispval vec);
 static int compare_schema_vals(const void *p1,const void *p2);
 static void sort_schema(lispval *v,int n);
 
-static int init_schemas(fd_oidpool op,lispval schema_vec)
+static int init_schemas(kno_oidpool op,lispval schema_vec)
 {
   if (!(VECTORP(schema_vec))) {
     op->oidpool_n_schemas = 0;
@@ -319,8 +319,8 @@ static int init_schemas(fd_oidpool op,lispval schema_vec)
     return 0;}
   else {
     int i = 0, n = VEC_LEN(schema_vec), max_slotids = 0;
-    struct FD_SCHEMA_ENTRY *schemas = u8_alloc_n(n,FD_SCHEMA_ENTRY);
-    struct FD_SCHEMA_LOOKUP *schbyval = u8_alloc_n(n,FD_SCHEMA_LOOKUP);
+    struct KNO_SCHEMA_ENTRY *schemas = u8_alloc_n(n,KNO_SCHEMA_ENTRY);
+    struct KNO_SCHEMA_LOOKUP *schbyval = u8_alloc_n(n,KNO_SCHEMA_LOOKUP);
     while (i<n) {
       lispval slotids = VEC_REF(schema_vec,i);
       int n_slotids;
@@ -328,8 +328,8 @@ static int init_schemas(fd_oidpool op,lispval schema_vec)
       else {
         u8_free(schemas);
         u8_free(schbyval);
-        return fd_reterr
-          (fd_InvalidSchemaDef,"oidpool/init_schemas",NULL,schema_vec);}
+        return kno_reterr
+          (kno_InvalidSchemaDef,"oidpool/init_schemas",NULL,schema_vec);}
       if (n_slotids>max_slotids) max_slotids = n_slotids;
       init_schema_entry(&(schemas[i]),i,slotids);
       schbyval[i].op_schema_id = i; schbyval[i].op_nslots = n_slotids;
@@ -337,12 +337,12 @@ static int init_schemas(fd_oidpool op,lispval schema_vec)
       i++;}
     op->oidpool_schemas = schemas; op->oidpool_schbyval = schbyval;
     op->oidpool_max_slotids = max_slotids; op->oidpool_n_schemas = n;
-    qsort(schbyval,n,sizeof(struct FD_SCHEMA_LOOKUP),
+    qsort(schbyval,n,sizeof(struct KNO_SCHEMA_LOOKUP),
           compare_schema_vals);
     return n;}
 }
 
-static int init_schema_entry(struct FD_SCHEMA_ENTRY *e,int pos,lispval vec)
+static int init_schema_entry(struct KNO_SCHEMA_ENTRY *e,int pos,lispval vec)
 {
   int i = 0, len = VEC_LEN(vec);
   lispval *slotids = u8_alloc_n((len+1),lispval);
@@ -350,17 +350,17 @@ static int init_schema_entry(struct FD_SCHEMA_ENTRY *e,int pos,lispval vec)
   unsigned int *mapout = u8_alloc_n(len,unsigned int);
   e->op_schema_id = pos;
   e->op_nslots = len;
-  e->normal = fd_incref(vec);
+  e->normal = kno_incref(vec);
   e->op_slotids = slotids;
   e->op_slotmapin = mapin;
   e->op_slotmapout = mapout;
   while (i<len) {
     lispval val = VEC_REF(vec,i);
-    slotids[i]=fd_incref(val);
+    slotids[i]=kno_incref(val);
     i++;}
   sort_schema(slotids,len);
   /* This will make it fast to get the pos from the schema pointer */
-  slotids[len]=FD_INT(pos);
+  slotids[len]=KNO_INT(pos);
   i = 0; while (i<len) {
     lispval val = VEC_REF(vec,i);
     int j = 0; while (j<len)
@@ -374,8 +374,8 @@ static int init_schema_entry(struct FD_SCHEMA_ENTRY *e,int pos,lispval vec)
 
 static int compare_schema_vals(const void *p1,const void *p2)
 {
-  struct FD_SCHEMA_LOOKUP *se1 = (struct FD_SCHEMA_LOOKUP *)p1;
-  struct FD_SCHEMA_LOOKUP *se2 = (struct FD_SCHEMA_LOOKUP *)p2;
+  struct KNO_SCHEMA_LOOKUP *se1 = (struct KNO_SCHEMA_LOOKUP *)p1;
+  struct KNO_SCHEMA_LOOKUP *se2 = (struct KNO_SCHEMA_LOOKUP *)p2;
   if (se1->op_nslots<se2->op_nslots) return -1;
   else if (se1->op_nslots>se2->op_nslots) return 1;
   else {
@@ -387,7 +387,7 @@ static int compare_schema_vals(const void *p1,const void *p2)
     return 0;}
 }
 
-static int compare_schemas(struct FD_SCHEMA_LOOKUP *e,lispval *slotids,int n)
+static int compare_schemas(struct KNO_SCHEMA_LOOKUP *e,lispval *slotids,int n)
 {
   if (n<e->op_nslots) return -1;
   else if (n>e->op_nslots) return 1;
@@ -400,14 +400,14 @@ static int compare_schemas(struct FD_SCHEMA_LOOKUP *e,lispval *slotids,int n)
     return 0;}
 }
 
-static int find_schema_byval(fd_oidpool op,lispval *slotids,int n)
+static int find_schema_byval(kno_oidpool op,lispval *slotids,int n)
 {
   int size = op->oidpool_n_schemas, cmp;
-  struct FD_SCHEMA_LOOKUP *table = op->oidpool_schbyval;
-  struct FD_SCHEMA_LOOKUP *max = table+size;
-  struct FD_SCHEMA_LOOKUP *top = max;
-  struct FD_SCHEMA_LOOKUP *bot = table;
-  struct FD_SCHEMA_LOOKUP *middle = bot+(size)/2;
+  struct KNO_SCHEMA_LOOKUP *table = op->oidpool_schbyval;
+  struct KNO_SCHEMA_LOOKUP *max = table+size;
+  struct KNO_SCHEMA_LOOKUP *top = max;
+  struct KNO_SCHEMA_LOOKUP *bot = table;
+  struct KNO_SCHEMA_LOOKUP *middle = bot+(size)/2;
   while (top>bot) {
     cmp = compare_schemas(middle,slotids,n);
     if (cmp==0) return middle->op_schema_id;
@@ -421,7 +421,7 @@ static int find_schema_byval(fd_oidpool op,lispval *slotids,int n)
   else return -1;
 }
 
-FD_FASTOP void lispv_swap(lispval *a,lispval *b)
+KNO_FASTOP void lispv_swap(lispval *a,lispval *b)
 {
   lispval t;
   t = *a;
@@ -443,8 +443,8 @@ static void sort_schema(lispval *v,int n)
     ln = j;
     rn = n - ++j;
     if (ln < rn) {
-      fd_sort_schema(ln, v); v += j; n = rn;}
-    else {fd_sort_schema(rn,v + j); n = ln;}}
+      kno_sort_schema(ln, v); v += j; n = rn;}
+    else {kno_sort_schema(rn,v + j); n = ln;}}
 }
 
 U8_MAYBE_UNUSED static int schema_sortedp(lispval *v,int n)
@@ -456,17 +456,17 @@ U8_MAYBE_UNUSED static int schema_sortedp(lispval *v,int n)
 }
 
 /* These assume that the pool itself is locked */
-static int write_oidpool_load(fd_oidpool op)
+static int write_oidpool_load(kno_oidpool op)
 {
-  if (FD_POOLSTREAM_LOCKEDP(op)) {
+  if (KNO_POOLSTREAM_LOCKEDP(op)) {
     /* Update the load */
     long long load;
-    fd_stream stream = &(op->pool_stream);
-    load = fd_read_4bytes_at(stream,16,FD_ISLOCKED);
+    kno_stream stream = &(op->pool_stream);
+    load = kno_read_4bytes_at(stream,16,KNO_ISLOCKED);
     if (load<0) {
       return -1;}
     else if (op->pool_load>load) {
-      int rv = fd_write_4bytes_at(stream,op->pool_load,16);
+      int rv = kno_write_4bytes_at(stream,op->pool_load,16);
       if (rv<0) return rv;
       else return rv;}
     else {
@@ -474,43 +474,43 @@ static int write_oidpool_load(fd_oidpool op)
   else return 0;
 }
 
-static int read_oidpool_load(fd_oidpool op)
+static int read_oidpool_load(kno_oidpool op)
 {
   long long load;
-  fd_stream stream = &(op->pool_stream);
-  if (FD_POOLSTREAM_LOCKEDP(op)) {
+  kno_stream stream = &(op->pool_stream);
+  if (KNO_POOLSTREAM_LOCKEDP(op)) {
     return op->pool_load;}
   else if (op->pool_load == op->pool_capacity)
     return op->pool_load;
-  else if (fd_streamctl(stream,fd_stream_lockfile,NULL)<0)
+  else if (kno_streamctl(stream,kno_stream_lockfile,NULL)<0)
     return -1;
-  load = fd_read_4bytes_at(stream,16,FD_ISLOCKED);
+  load = kno_read_4bytes_at(stream,16,KNO_ISLOCKED);
   if (load<0) {
-    fd_streamctl(stream,fd_stream_unlockfile,NULL);
+    kno_streamctl(stream,kno_stream_unlockfile,NULL);
     return -1;}
-  fd_streamctl(stream,fd_stream_unlockfile,NULL);
+  kno_streamctl(stream,kno_stream_unlockfile,NULL);
   op->pool_load = load;
   return load;
 }
 
 /* Lock the underlying OIDpool */
 
-static int lock_oidpool_file(struct FD_OIDPOOL *op,int use_mutex)
+static int lock_oidpool_file(struct KNO_OIDPOOL *op,int use_mutex)
 {
   if (POOLFILE_LOCKEDP(op)) return 1;
-  else if ((op->pool_flags)&(FD_STORAGE_READ_ONLY))
+  else if ((op->pool_flags)&(KNO_STORAGE_READ_ONLY))
     return 0;
   else {
-    struct FD_STREAM *s = &(op->pool_stream);
+    struct KNO_STREAM *s = &(op->pool_stream);
     struct stat fileinfo;
-    if (use_mutex) fd_lock_pool_struct((fd_pool)op,1);
+    if (use_mutex) kno_lock_pool_struct((kno_pool)op,1);
     if (POOLFILE_LOCKEDP(op)) {
       /* Another thread got here first */
-      if (use_mutex) fd_unlock_pool_struct((fd_pool)op);
+      if (use_mutex) kno_unlock_pool_struct((kno_pool)op);
       return 1;}
     LOCK_POOLSTREAM(op,"lock_oidpool_file");
-    if (fd_streamctl(s,fd_stream_lockfile,NULL)==0) {
-      if (use_mutex) fd_unlock_pool_struct((fd_pool)op);
+    if (kno_streamctl(s,kno_stream_lockfile,NULL)==0) {
+      if (use_mutex) kno_unlock_pool_struct((kno_pool)op);
       UNLOCK_POOLSTREAM(op);
       return 0;}
     fstat( s->stream_fileno, &fileinfo);
@@ -519,45 +519,45 @@ static int lock_oidpool_file(struct FD_OIDPOOL *op,int use_mutex)
       read_oidpool_load(op);
       if (op->pool_offdata) reload_offdata(op,0);
       else {
-        fd_reset_hashtable(&(op->pool_cache),-1,1);
-        fd_reset_hashtable(&(op->pool_changes),32,1);}}
-    if (use_mutex) fd_unlock_pool_struct((fd_pool)op);
+        kno_reset_hashtable(&(op->pool_cache),-1,1);
+        kno_reset_hashtable(&(op->pool_changes),32,1);}}
+    if (use_mutex) kno_unlock_pool_struct((kno_pool)op);
     UNLOCK_POOLSTREAM(op);
     return 1;}
 }
 
 /* Methods */
 
-static int oidpool_load(fd_pool p)
+static int oidpool_load(kno_pool p)
 {
-  fd_oidpool op = (fd_oidpool)p;
-  if (FD_OIDPOOL_LOCKED(op))
+  kno_oidpool op = (kno_oidpool)p;
+  if (KNO_OIDPOOL_LOCKED(op))
     /* If we have the file locked, the stored load is good. */
     return op->pool_load;
   else {
     /* Otherwise, we need to read the load from the file */
     int load;
-    fd_lock_pool_struct((fd_pool)op,1);
-    fd_lock_stream(&(op->pool_stream));
+    kno_lock_pool_struct((kno_pool)op,1);
+    kno_lock_stream(&(op->pool_stream));
     load = read_oidpool_load(op);
-    fd_unlock_stream(&(op->pool_stream));
-    fd_unlock_pool_struct((fd_pool)op);
+    kno_unlock_stream(&(op->pool_stream));
+    kno_unlock_pool_struct((kno_pool)op);
     return load;}
 }
 
-static lispval read_oid_value(fd_oidpool op,
-                              fd_inbuf in,
+static lispval read_oid_value(kno_oidpool op,
+                              kno_inbuf in,
                               const u8_string cxt)
 {
   int zip_code;
-  zip_code = fd_read_zint(in);
+  zip_code = kno_read_zint(in);
   if (PRED_FALSE(zip_code>(op->oidpool_n_schemas)))
-    return fd_err(fd_InvalidSchemaRef,"oidpool_fetch",op->poolid,VOID);
+    return kno_err(kno_InvalidSchemaRef,"oidpool_fetch",op->poolid,VOID);
   else if (zip_code==0)
-    return fd_read_dtype(in);
+    return kno_read_dtype(in);
   else {
-    struct FD_SCHEMA_ENTRY *se = &(op->oidpool_schemas[zip_code-1]);
-    int n_vals = fd_read_zint(in), n_slotids = se->op_nslots;
+    struct KNO_SCHEMA_ENTRY *se = &(op->oidpool_schemas[zip_code-1]);
+    int n_vals = kno_read_zint(in), n_slotids = se->op_nslots;
     if (PRED_TRUE(n_vals == n_slotids)) {
       lispval *values = u8_alloc_n(n_vals,lispval);
       unsigned int i = 0, *mapin = se->op_slotmapin;
@@ -565,112 +565,112 @@ static lispval read_oid_value(fd_oidpool op,
          schema sorting done in memory for fast lookup. That
          translation is stored in the mapin field. */
       while (i<n_vals) {
-        values[mapin[i]]=fd_read_dtype(in); i++;}
-      return fd_make_schemap(NULL,n_vals,FD_SCHEMAP_SORTED|FD_SCHEMAP_TAGGED,
+        values[mapin[i]]=kno_read_dtype(in); i++;}
+      return kno_make_schemap(NULL,n_vals,KNO_SCHEMAP_SORTED|KNO_SCHEMAP_TAGGED,
                              se->op_slotids,values);}
-    else return fd_err(fd_SchemaInconsistency,cxt,op->poolid,VOID);}
+    else return kno_err(kno_SchemaInconsistency,cxt,op->poolid,VOID);}
 }
 
-static lispval read_oid_value_at(fd_oidpool op,
-                                 FD_CHUNK_REF ref,
+static lispval read_oid_value_at(kno_oidpool op,
+                                 KNO_CHUNK_REF ref,
                                  const u8_string cxt)
 {
   if (ref.off<=0) return VOID;
   else {
     int free_buf=0;
-    unsigned char _buf[FD_OIDPOOL_FETCHBUF_SIZE], *buf;
-    if (ref.size>FD_OIDPOOL_FETCHBUF_SIZE) {
+    unsigned char _buf[KNO_OIDPOOL_FETCHBUF_SIZE], *buf;
+    if (ref.size>KNO_OIDPOOL_FETCHBUF_SIZE) {
       buf = u8_malloc(ref.size);
       free_buf = 1;}
     else buf = _buf;
     if (buf == NULL)
-      return FD_ERROR;
-    else if ((fd_read_block(&(op->pool_stream),buf,ref.size,ref.off,1))<0) {
+      return KNO_ERROR;
+    else if ((kno_read_block(&(op->pool_stream),buf,ref.size,ref.off,1))<0) {
       if (free_buf) u8_free(buf);
-      return FD_ERROR;}
-    else if (op->oidpool_compression == FD_NOCOMPRESS)
+      return KNO_ERROR;}
+    else if (op->oidpool_compression == KNO_NOCOMPRESS)
       if (free_buf) {
-        FD_INBUF in = { 0 };
-        FD_INIT_BYTE_INPUT(&in,buf,ref.size);
+        KNO_INBUF in = { 0 };
+        KNO_INIT_BYTE_INPUT(&in,buf,ref.size);
         lispval result = read_oid_value(op,&in,cxt);
         u8_free(buf);
         return result;}
       else {
-        FD_INBUF in = { 0 };
-        FD_INIT_BYTE_INPUT(&in,buf,ref.size);
+        KNO_INBUF in = { 0 };
+        KNO_INIT_BYTE_INPUT(&in,buf,ref.size);
         return read_oid_value(op,&in,cxt);}
     else {
-      unsigned char _ubuf[FD_OIDPOOL_FETCHBUF_SIZE*3], *ubuf=_ubuf;
-      size_t ubuf_size = FD_OIDPOOL_FETCHBUF_SIZE*3;
+      unsigned char _ubuf[KNO_OIDPOOL_FETCHBUF_SIZE*3], *ubuf=_ubuf;
+      size_t ubuf_size = KNO_OIDPOOL_FETCHBUF_SIZE*3;
       switch (op->oidpool_compression) {
-      case FD_ZLIB:
-        if (ref.size>FD_OIDPOOL_FETCHBUF_SIZE)
+      case KNO_ZLIB:
+        if (ref.size>KNO_OIDPOOL_FETCHBUF_SIZE)
           ubuf = do_zuncompress(buf,ref.size,&ubuf_size,NULL);
         else ubuf = do_zuncompress(buf,ref.size,&ubuf_size,_ubuf);
         break;
       default:
         if (free_buf) u8_free(buf);
         if (ubuf!=_ubuf) u8_free(ubuf);
-        return fd_err(_("Bad compress level"),"oidpool_fetch",op->poolid,
+        return kno_err(_("Bad compress level"),"oidpool_fetch",op->poolid,
                       VOID);}
       if (ubuf == NULL) {
         if (free_buf) u8_free(buf);
         if (ubuf!=_ubuf) u8_free(ubuf);
-        return FD_ERROR;}
+        return KNO_ERROR;}
       else if ((free_buf) || (ubuf!=_ubuf)) {
-        FD_INBUF in = { 0 }; lispval result;
-        FD_INIT_BYTE_INPUT(&in,ubuf,ubuf_size);
+        KNO_INBUF in = { 0 }; lispval result;
+        KNO_INIT_BYTE_INPUT(&in,ubuf,ubuf_size);
         result = read_oid_value(op,&in,cxt);
         if (free_buf) u8_free(buf);
         if (ubuf!=_ubuf) u8_free(ubuf);
         return result;}
       else {
-        FD_INBUF in = { 0 };
-        FD_INIT_BYTE_INPUT(&in,ubuf,ubuf_size);
+        KNO_INBUF in = { 0 };
+        KNO_INIT_BYTE_INPUT(&in,ubuf,ubuf_size);
         return read_oid_value(op,&in,cxt);}}}
 }
 
-static lispval oidpool_fetch(fd_pool p,lispval oid)
+static lispval oidpool_fetch(kno_pool p,lispval oid)
 {
-  fd_oidpool op = (fd_oidpool)p;
-  FD_OID addr = FD_OID_ADDR(oid);
-  int offset = FD_OID_DIFFERENCE(addr,op->pool_base);
+  kno_oidpool op = (kno_oidpool)p;
+  KNO_OID addr = KNO_OID_ADDR(oid);
+  int offset = KNO_OID_DIFFERENCE(addr,op->pool_base);
   if (PRED_FALSE( offset >= op->pool_load )) {
     /* Double check by fetching the load */
     if ( offset >= (oidpool_load(p)) ) {
-      if ( (p->pool_flags) & (FD_POOL_ADJUNCT) ) {
-        return FD_EMPTY_CHOICE;}
-      else return FD_UNALLOCATED_OID;}}
+      if ( (p->pool_flags) & (KNO_POOL_ADJUNCT) ) {
+        return KNO_EMPTY_CHOICE;}
+      else return KNO_UNALLOCATED_OID;}}
 
   unsigned int *offdata = op->pool_offdata;
   unsigned int offdata_len = op->pool_capacity;
   if (offdata) {
-    FD_CHUNK_REF ref=
-      fd_get_chunk_ref(offdata,op->pool_offtype,offset,offdata_len);
-    if (ref.off<0) return FD_ERROR;
+    KNO_CHUNK_REF ref=
+      kno_get_chunk_ref(offdata,op->pool_offtype,offset,offdata_len);
+    if (ref.off<0) return KNO_ERROR;
     else if (ref.off==0)
       return EMPTY;
     else {
       lispval value;
-      fd_lock_stream(&(op->pool_stream));
+      kno_lock_stream(&(op->pool_stream));
       value = read_oid_value_at(op,ref,"oidpool_fetch");
-      fd_unlock_stream(&(op->pool_stream));
+      kno_unlock_stream(&(op->pool_stream));
       return value;}}
   else {
-    fd_lock_stream(&(op->pool_stream)); {
-      fd_stream stream = &(op->pool_stream);
-      FD_CHUNK_REF ref =
-        fd_fetch_chunk_ref(stream,256,op->pool_offtype,offset,1);
+    kno_lock_stream(&(op->pool_stream)); {
+      kno_stream stream = &(op->pool_stream);
+      KNO_CHUNK_REF ref =
+        kno_fetch_chunk_ref(stream,256,op->pool_offtype,offset,1);
       if (ref.off<0) {
-        fd_unlock_stream(&(op->pool_stream));
-        return FD_ERROR;}
+        kno_unlock_stream(&(op->pool_stream));
+        return KNO_ERROR;}
       else if (ref.off==0) {
-        fd_unlock_stream(&(op->pool_stream));
+        kno_unlock_stream(&(op->pool_stream));
         return EMPTY;}
       else {
         lispval value;
         value = read_oid_value_at(op,ref,"oidpool_fetch");
-        fd_unlock_stream(&(op->pool_stream));
+        kno_unlock_stream(&(op->pool_stream));
         return value;}}}
 }
 
@@ -682,9 +682,9 @@ static int compare_offsets(const void *x1,const void *x2)
   else return 0;
 }
 
-static lispval *oidpool_fetchn(fd_pool p,int n,lispval *oids)
+static lispval *oidpool_fetchn(kno_pool p,int n,lispval *oids)
 {
-  fd_oidpool op = (fd_oidpool)p; FD_OID base = p->pool_base;
+  kno_oidpool op = (kno_oidpool)p; KNO_OID base = p->pool_base;
   lispval *values = u8_big_alloc_n(n,lispval);
   if (op->pool_offdata == NULL) {
     /* Don't bother being clever if you don't even have an offsets
@@ -697,19 +697,19 @@ static lispval *oidpool_fetchn(fd_pool p,int n,lispval *oids)
     unsigned int offdata_len = op->pool_capacity;
     struct OIDPOOL_FETCH_SCHEDULE *schedule=
       u8_big_alloc_n(n,struct OIDPOOL_FETCH_SCHEDULE);
-    fd_lock_stream(&(op->pool_stream));
+    kno_lock_stream(&(op->pool_stream));
     int i = 0;
     while (i<n) {
-      lispval oid = oids[i]; FD_OID addr = FD_OID_ADDR(oid);
-      unsigned int off = FD_OID_DIFFERENCE(addr,base);
+      lispval oid = oids[i]; KNO_OID addr = KNO_OID_ADDR(oid);
+      unsigned int off = KNO_OID_DIFFERENCE(addr,base);
       schedule[i].value_at = i;
       schedule[i].location =
-        fd_get_chunk_ref(offdata,op->pool_offtype,off,offdata_len);
+        kno_get_chunk_ref(offdata,op->pool_offtype,off,offdata_len);
       if (schedule[i].location.off<0) {
-        fd_seterr(InvalidOffset,"oidpool_fetchn",p->poolid,oid);
+        kno_seterr(InvalidOffset,"oidpool_fetchn",p->poolid,oid);
         u8_big_free(schedule);
         u8_big_free(values);
-        fd_unlock_stream(&(op->pool_stream));
+        kno_unlock_stream(&(op->pool_stream));
         return NULL;}
       else i++;}
     /* Sort to try and take advantage of locality */
@@ -717,41 +717,41 @@ static lispval *oidpool_fetchn(fd_pool p,int n,lispval *oids)
           compare_offsets);
     i = 0; while (i<n) {
       lispval value = read_oid_value_at(op,schedule[i].location,"oidpool_fetchn");
-      if (FD_ABORTP(value)) {
-        int j = 0; while (j<i) { fd_decref(values[j]); j++;}
+      if (KNO_ABORTP(value)) {
+        int j = 0; while (j<i) { kno_decref(values[j]); j++;}
         u8_big_free(schedule);
         u8_big_free(values);
         u8_condition c = (u8_current_exception) ?       \
           (u8_current_exception->u8x_cond) :
           NULL;
         // Add more debugging context
-        fd_seterr(c,"oidpool_fetchn/read",op->poolid,
+        kno_seterr(c,"oidpool_fetchn/read",op->poolid,
                   oids[schedule[i].value_at]);
-        fd_unlock_stream(&(op->pool_stream));
+        kno_unlock_stream(&(op->pool_stream));
         return NULL;}
       else values[schedule[i].value_at]=value;
       i++;}
-    fd_unlock_stream(&(op->pool_stream));
+    kno_unlock_stream(&(op->pool_stream));
     u8_big_free(schedule);
     return values;}
 }
 
-static int get_schema_id(fd_oidpool op,lispval value)
+static int get_schema_id(kno_oidpool op,lispval value)
 {
-  if ( (SCHEMAPP(value)) && (FD_SCHEMAP_SORTEDP(value)) ) {
-    struct FD_SCHEMAP *sm = (fd_schemap)value;
+  if ( (SCHEMAPP(value)) && (KNO_SCHEMAP_SORTEDP(value)) ) {
+    struct KNO_SCHEMAP *sm = (kno_schemap)value;
     lispval *slotids = sm->table_schema, size = sm->schema_length;
     if (sm->schemap_tagged) {
       lispval pos = slotids[size];
-      int intpos = fd_getint(pos);
+      int intpos = kno_getint(pos);
       if ((intpos<op->oidpool_n_schemas) &&
           (op->oidpool_schemas[intpos].op_slotids == slotids))
         return intpos;}
     return find_schema_byval(op,slotids,size);}
   else if (SLOTMAPP(value)) {
     lispval _tmp_slotids[32], *tmp_slotids;
-    struct FD_SLOTMAP *sm = (fd_slotmap)value;
-    int i = 0, size = FD_XSLOTMAP_NUSED(sm);
+    struct KNO_SLOTMAP *sm = (kno_slotmap)value;
+    int i = 0, size = KNO_XSLOTMAP_NUSED(sm);
     if (size<32)
       tmp_slotids=_tmp_slotids;
     else tmp_slotids = u8_alloc_n(size,lispval);
@@ -767,55 +767,55 @@ static int get_schema_id(fd_oidpool op,lispval value)
   else return -1;
 }
 
-static int oidpool_write_value(lispval value,fd_stream stream,
-                               fd_oidpool p,struct FD_OUTBUF *tmpout,
+static int oidpool_write_value(lispval value,kno_stream stream,
+                               kno_oidpool p,struct KNO_OUTBUF *tmpout,
                                unsigned char **zbuf,int *zbuf_size)
 {
-  fd_outbuf outstream = fd_writebuf(stream);
-  if ((p->oidpool_compression == FD_NOCOMPRESS) &&
+  kno_outbuf outstream = kno_writebuf(stream);
+  if ((p->oidpool_compression == KNO_NOCOMPRESS) &&
       (p->oidpool_n_schemas==0)) {
-    fd_write_byte(outstream,0);
-    return 1+fd_write_dtype(outstream,value);}
+    kno_write_byte(outstream,0);
+    return 1+kno_write_dtype(outstream,value);}
   tmpout->bufwrite = tmpout->buffer;
   if (p->oidpool_n_schemas==0) {
-    fd_write_byte(tmpout,0);
-    fd_write_dtype(tmpout,value);}
+    kno_write_byte(tmpout,0);
+    kno_write_dtype(tmpout,value);}
   else if ((SCHEMAPP(value)) || (SLOTMAPP(value))) {
     int schema_id = get_schema_id(p,value);
     if (schema_id<0) {
-      fd_write_byte(tmpout,0);
-      fd_write_dtype(tmpout,value);}
+      kno_write_byte(tmpout,0);
+      kno_write_dtype(tmpout,value);}
     else {
-      struct FD_SCHEMA_ENTRY *se = &(p->oidpool_schemas[schema_id]);
-      fd_write_zint(tmpout,schema_id+1);
+      struct KNO_SCHEMA_ENTRY *se = &(p->oidpool_schemas[schema_id]);
+      kno_write_zint(tmpout,schema_id+1);
       if (SCHEMAPP(value)) {
-        struct FD_SCHEMAP *sm = (fd_schemap)value;
+        struct KNO_SCHEMAP *sm = (kno_schemap)value;
         lispval *values = sm->schema_values;
         int i = 0, size = sm->schema_length;
-        fd_write_zint(tmpout,size);
+        kno_write_zint(tmpout,size);
         while (i<size) {
-          fd_write_dtype(tmpout,values[se->op_slotmapout[i]]);
+          kno_write_dtype(tmpout,values[se->op_slotmapout[i]]);
           i++;}}
       else {
-        struct FD_SLOTMAP *sm = (fd_slotmap)value;
-        struct FD_KEYVAL *data = sm->sm_keyvals;
-        int i = 0, size = FD_XSLOTMAP_NUSED(sm);
-        fd_write_zint(tmpout,size);
+        struct KNO_SLOTMAP *sm = (kno_slotmap)value;
+        struct KNO_KEYVAL *data = sm->sm_keyvals;
+        int i = 0, size = KNO_XSLOTMAP_NUSED(sm);
+        kno_write_zint(tmpout,size);
         while (i<size) {
-          fd_write_dtype(tmpout,data[se->op_slotmapin[i]].kv_val);
+          kno_write_dtype(tmpout,data[se->op_slotmapin[i]].kv_val);
           i++;}}}}
   else {
-    fd_write_byte(tmpout,0);
-    fd_write_dtype(tmpout,value);}
-  if (p->oidpool_compression == FD_NOCOMPRESS) {
-    fd_write_bytes(outstream,tmpout->buffer,tmpout->bufwrite-tmpout->buffer);
+    kno_write_byte(tmpout,0);
+    kno_write_dtype(tmpout,value);}
+  if (p->oidpool_compression == KNO_NOCOMPRESS) {
+    kno_write_bytes(outstream,tmpout->buffer,tmpout->bufwrite-tmpout->buffer);
     return tmpout->bufwrite-tmpout->buffer;}
-  else if (p->oidpool_compression == FD_ZLIB) {
-    unsigned char _cbuf[FD_OIDPOOL_FETCHBUF_SIZE], *cbuf;
-    size_t cbuf_size = FD_OIDPOOL_FETCHBUF_SIZE;
+  else if (p->oidpool_compression == KNO_ZLIB) {
+    unsigned char _cbuf[KNO_OIDPOOL_FETCHBUF_SIZE], *cbuf;
+    size_t cbuf_size = KNO_OIDPOOL_FETCHBUF_SIZE;
     cbuf = do_zcompress(tmpout->buffer,tmpout->bufwrite-tmpout->buffer,
                         &cbuf_size,_cbuf,9);
-    fd_write_bytes(outstream,cbuf,cbuf_size);
+    kno_write_bytes(outstream,cbuf,cbuf_size);
     if (cbuf!=_cbuf) u8_free(cbuf);
     return cbuf_size;}
   else {
@@ -825,50 +825,50 @@ static int oidpool_write_value(lispval value,fd_stream stream,
 }
 
 static ssize_t write_offdata
-(struct FD_OIDPOOL *bp, fd_stream stream,
+(struct KNO_OIDPOOL *bp, kno_stream stream,
  int n, struct OIDPOOL_SAVEINFO *saveinfo);
 
-static int oidpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
+static int oidpool_storen(kno_pool p,int n,lispval *oids,lispval *values)
 {
-  FD_OID base = p->pool_base;
-  int isadjunct = (p->pool_flags) & (FD_POOL_ADJUNCT);
-  fd_oidpool op = (fd_oidpool)p;
-  struct FD_STREAM *stream = &(op->pool_stream);
-  struct FD_OUTBUF *outstream = fd_writebuf(stream);
+  KNO_OID base = p->pool_base;
+  int isadjunct = (p->pool_flags) & (KNO_POOL_ADJUNCT);
+  kno_oidpool op = (kno_oidpool)p;
+  struct KNO_STREAM *stream = &(op->pool_stream);
+  struct KNO_OUTBUF *outstream = kno_writebuf(stream);
   if ((LOCK_POOLSTREAM(op,"oidpool_storen"))<0) return -1;
   double started = u8_elapsed_time();
   u8_logf(LOG_INFO,"OidpoolStore",
           "Storing %d oid values in oidpool %s",n,p->poolid);
   struct OIDPOOL_SAVEINFO *saveinfo=
     u8_big_alloc_n(n,struct OIDPOOL_SAVEINFO);
-  struct FD_OUTBUF tmpout = { 0 };
-  unsigned char *zbuf = u8_malloc(FD_INIT_ZBUF_SIZE);
-  unsigned int i = 0, zbuf_size = FD_INIT_ZBUF_SIZE;
+  struct KNO_OUTBUF tmpout = { 0 };
+  unsigned char *zbuf = u8_malloc(KNO_INIT_ZBUF_SIZE);
+  unsigned int i = 0, zbuf_size = KNO_INIT_ZBUF_SIZE;
   unsigned int init_buflen = 2048*n;
   size_t maxpos = get_maxpos(op);
   unsigned int new_load = op->pool_load;
-  fd_off_t endpos;
+  kno_off_t endpos;
   if (init_buflen>262144) init_buflen = 262144;
-  FD_INIT_BYTE_OUTPUT(&tmpout,init_buflen);
-  endpos = fd_endpos(stream);
-  if ((op->oidpool_format)&(FD_OIDPOOL_DTYPEV2))
-    tmpout.buf_flags = tmpout.buf_flags|FD_USE_DTYPEV2|FD_IS_WRITING;
+  KNO_INIT_BYTE_OUTPUT(&tmpout,init_buflen);
+  endpos = kno_endpos(stream);
+  if ((op->oidpool_format)&(KNO_OIDPOOL_DTYPEV2))
+    tmpout.buf_flags = tmpout.buf_flags|KNO_USE_DTYPEV2|KNO_IS_WRITING;
   while (i<n) {
-    FD_OID addr = FD_OID_ADDR(oids[i]);
-    unsigned int offset = FD_OID_DIFFERENCE(addr,base);
+    KNO_OID addr = KNO_OID_ADDR(oids[i]);
+    unsigned int offset = KNO_OID_DIFFERENCE(addr,base);
     lispval value = values[i];
     int n_bytes = oidpool_write_value(value,stream,op,&tmpout,&zbuf,&zbuf_size);
     if (n_bytes<0) {
       u8_free(zbuf);
       u8_big_free(saveinfo);
-      fd_close_outbuf(&tmpout);
+      kno_close_outbuf(&tmpout);
       UNLOCK_POOLSTREAM(op);
       return n_bytes;}
     if ((endpos+n_bytes)>=maxpos) {
       u8_free(zbuf);
       u8_big_free(saveinfo);
-      fd_close_outbuf(&tmpout);
-      u8_seterr(fd_DataFileOverflow,"oidpool_storen",
+      kno_close_outbuf(&tmpout);
+      u8_seterr(kno_DataFileOverflow,"oidpool_storen",
                 u8_strdup(p->poolid));
       UNLOCK_POOLSTREAM(op);
       return -1;}
@@ -877,48 +877,48 @@ static int oidpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
 
     saveinfo[i].chunk.off = endpos;
     saveinfo[i].chunk.size = n_bytes;
-    saveinfo[i].oidoff = FD_OID_DIFFERENCE(addr,base);
+    saveinfo[i].oidoff = KNO_OID_DIFFERENCE(addr,base);
 
     endpos = endpos+n_bytes;
     i++;}
-  fd_close_outbuf(&tmpout);
+  kno_close_outbuf(&tmpout);
   u8_free(zbuf);
 
-  fd_lock_pool_struct(p,1);
+  kno_lock_pool_struct(p,1);
   write_offdata(op,stream,n,saveinfo);
   op->pool_load = new_load;
   write_oidpool_load(op);
 
   u8_big_free(saveinfo);
-  fd_start_write(stream,0);
-  fd_write_4bytes(outstream,FD_OIDPOOL_MAGIC_NUMBER);
-  fd_flush_stream(stream);
+  kno_start_write(stream,0);
+  kno_write_4bytes(outstream,KNO_OIDPOOL_MAGIC_NUMBER);
+  kno_flush_stream(stream);
   fsync(stream->stream_fileno);
   u8_logf(LOG_NOTICE,"OidpoolStore",
           "Stored %d oid values in oidpool %s in %f seconds",
           n,p->poolid,u8_elapsed_time()-started);
   UNLOCK_POOLSTREAM(op);
-  fd_unlock_pool_struct(p);
+  kno_unlock_pool_struct(p);
   return n;
 }
 
-static int oidpool_commit(fd_pool p,fd_commit_phase phase,
-                          struct FD_POOL_COMMITS *commits)
+static int oidpool_commit(kno_pool p,kno_commit_phase phase,
+                          struct KNO_POOL_COMMITS *commits)
 {
-  struct FD_OIDPOOL *op = (fd_oidpool) p;
+  struct KNO_OIDPOOL *op = (kno_oidpool) p;
   int chunk_ref_size = get_chunk_ref_size(op);
   switch (phase) {
-  case fd_commit_start:
-    return fd_write_rollback("oidpool_commit",
+  case kno_commit_start:
+    return kno_write_rollback("oidpool_commit",
                              p->poolid,p->pool_source,
                              (256+(chunk_ref_size*p->pool_capacity)));
-  case fd_commit_write: {
+  case kno_commit_write: {
     return oidpool_storen(p,commits->commit_count,
                           commits->commit_oids,
                           commits->commit_vals);}
-  case fd_commit_sync:
+  case kno_commit_sync:
     return 0;
-  case fd_commit_cleanup: {
+  case kno_commit_cleanup: {
     u8_string source = p->pool_source;
     u8_string rollback_file = u8_mkstring("%s.rollback",source);
     if (u8_file_existsp(rollback_file)) {
@@ -934,11 +934,11 @@ static int oidpool_commit(fd_pool p,fd_commit_phase phase,
       u8_logf(LOG_WARN,"Rollback file %s was deleted",rollback_file);
       u8_free(rollback_file);
       return -1;}}
-  case fd_commit_rollback: {
+  case kno_commit_rollback: {
     u8_string source = p->pool_source;
     u8_string rollback_file = u8_mkstring("%s.rollback",source);
     if (u8_file_existsp(rollback_file)) {
-      ssize_t rv = fd_apply_head(rollback_file,source);
+      ssize_t rv = kno_apply_head(rollback_file,source);
       u8_free(rollback_file);
       if (rv<0) return -1; else return 1;}
     else {
@@ -958,24 +958,24 @@ static int oidpool_commit(fd_pool p,fd_commit_phase phase,
 /* Three different ways to write offdata */
 
 static ssize_t mmap_write_offdata
-(struct FD_OIDPOOL *op,fd_stream stream,
+(struct KNO_OIDPOOL *op,kno_stream stream,
  int n, struct OIDPOOL_SAVEINFO *saveinfo,
  unsigned int min_off,unsigned int max_off);
 static ssize_t cache_write_offdata
-(struct FD_OIDPOOL *op,fd_stream stream,
+(struct KNO_OIDPOOL *op,kno_stream stream,
  int n, struct OIDPOOL_SAVEINFO *saveinfo,
  unsigned int min_off,unsigned int max_off);
 static ssize_t direct_write_offdata
-(struct FD_OIDPOOL *op,fd_stream stream,
+(struct KNO_OIDPOOL *op,kno_stream stream,
  int n, struct OIDPOOL_SAVEINFO *saveinfo);
 
 static ssize_t write_offdata
-(struct FD_OIDPOOL *op, fd_stream stream,
+(struct KNO_OIDPOOL *op, kno_stream stream,
  int n, struct OIDPOOL_SAVEINFO *saveinfo)
 {
   unsigned int min_off=op->pool_load,  max_off=0, i=0;
-  fd_offset_type offtype = op->pool_offtype;
-  if (!((offtype == FD_B32)||(offtype = FD_B40)||(offtype = FD_B64))) {
+  kno_offset_type offtype = op->pool_offtype;
+  if (!((offtype == KNO_B32)||(offtype = KNO_B40)||(offtype = KNO_B64))) {
     u8_logf(LOG_WARN,"Corrupted oidpool struct",
             "Bad offset type code (%d) for %s",(int)offtype,op->poolid);
     u8_seterr("CorruptedOidpoolStruct","oidpool:write_offdata",
@@ -989,19 +989,19 @@ static ssize_t write_offdata
       if (oidoff<min_off) min_off = oidoff;}
 
   if (op->pool_offdata) {
-#if FD_USE_MMAP
+#if KNO_USE_MMAP
     ssize_t result=mmap_write_offdata(op,stream,n,saveinfo,min_off,max_off);
     if (result>=0) return result;
 #endif
     result=cache_write_offdata(op,stream,n,saveinfo,min_off,max_off);
     if (result>=0) {
-      fd_clear_errors(0);
+      kno_clear_errors(0);
       return result;}}
   return direct_write_offdata(op,stream,n,saveinfo);
 }
 
 static ssize_t mmap_write_offdata
-(struct FD_OIDPOOL *op,fd_stream stream,
+(struct KNO_OIDPOOL *op,kno_stream stream,
  int n, struct OIDPOOL_SAVEINFO *saveinfo,
  unsigned int min_off,unsigned int max_off)
 {
@@ -1012,7 +1012,7 @@ static ssize_t mmap_write_offdata
 
   unsigned int *offdata = NULL;
   size_t byte_length =
-    (op->pool_flags&FD_POOL_ADJUNCT) ?
+    (op->pool_flags&KNO_POOL_ADJUNCT) ?
     (chunk_ref_size*(op->pool_capacity)) :
     (chunk_ref_size*(op->pool_load));
   /* Map a second version of offdata to modify */
@@ -1028,27 +1028,27 @@ static ssize_t mmap_write_offdata
     return -1;}
   else offdata = memblock+64;
   switch (op->pool_offtype) {
-  case FD_B64: {
+  case KNO_B64: {
     int k = 0; while (k<n) {
       unsigned int oidoff = saveinfo[k].oidoff;
-      offdata[oidoff*3]=fd_net_order((saveinfo[k].chunk.off)>>32);
-      offdata[oidoff*3+1]=fd_net_order((saveinfo[k].chunk.off)&(0xFFFFFFFF));
-      offdata[oidoff*3+2]=fd_net_order(saveinfo[k].chunk.size);
+      offdata[oidoff*3]=kno_net_order((saveinfo[k].chunk.off)>>32);
+      offdata[oidoff*3+1]=kno_net_order((saveinfo[k].chunk.off)&(0xFFFFFFFF));
+      offdata[oidoff*3+2]=kno_net_order(saveinfo[k].chunk.size);
       k++;}
     break;}
-  case FD_B32: {
+  case KNO_B32: {
     int k = 0; while (k<n) {
       unsigned int oidoff = saveinfo[k].oidoff;
-      offdata[oidoff*2]=fd_net_order(saveinfo[k].chunk.off);
-      offdata[oidoff*2+1]=fd_net_order(saveinfo[k].chunk.size);
+      offdata[oidoff*2]=kno_net_order(saveinfo[k].chunk.off);
+      offdata[oidoff*2+1]=kno_net_order(saveinfo[k].chunk.size);
       k++;}
     break;}
-  case FD_B40: {
+  case KNO_B40: {
     int k = 0; while (k<n) {
       unsigned int oidoff = saveinfo[k].oidoff, w1 = 0, w2 = 0;
-      fd_convert_FD_B40_ref(saveinfo[k].chunk,&w1,&w2);
-      offdata[oidoff*2]=fd_net_order(w1);
-      offdata[oidoff*2+1]=fd_net_order(w2);
+      kno_convert_KNO_B40_ref(saveinfo[k].chunk,&w1,&w2);
+      offdata[oidoff*2]=kno_net_order(w1);
+      offdata[oidoff*2+1]=kno_net_order(w2);
       k++;}
     break;}
   default:
@@ -1070,7 +1070,7 @@ static ssize_t mmap_write_offdata
 }
 
 static ssize_t cache_write_offdata
-(struct FD_OIDPOOL *op,fd_stream stream,
+(struct KNO_OIDPOOL *op,kno_stream stream,
  int n, struct OIDPOOL_SAVEINFO *saveinfo,
  unsigned int min_off,unsigned int max_off)
 {
@@ -1084,7 +1084,7 @@ static ssize_t cache_write_offdata
   memcpy(offdata,op->pool_offdata+offdata_modified_start,
          offdata_modified_length);
   switch (op->pool_offtype) {
-  case FD_B64: {
+  case KNO_B64: {
     int k = 0; while (k<n) {
       unsigned int oidoff = saveinfo[k].oidoff;
       offdata[oidoff*3]=(saveinfo[k].chunk.off)>>32;
@@ -1092,17 +1092,17 @@ static ssize_t cache_write_offdata
       offdata[oidoff*3+2]=saveinfo[k].chunk.size;
       k++;}
     break;}
-  case FD_B32: {
+  case KNO_B32: {
     int k = 0; while (k<n) {
       unsigned int oidoff = saveinfo[k].oidoff;
       offdata[oidoff*2]=saveinfo[k].chunk.off;
       offdata[oidoff*2+1]=saveinfo[k].chunk.size;
       k++;}
     break;}
-  case FD_B40: {
+  case KNO_B40: {
     int k = 0; while (k<n) {
       unsigned int oidoff = saveinfo[k].oidoff, w1 = 0, w2 = 0;
-      fd_convert_FD_B40_ref(saveinfo[k].chunk,&w1,&w2);
+      kno_convert_KNO_B40_ref(saveinfo[k].chunk,&w1,&w2);
       offdata[oidoff*2]=w1;
       offdata[oidoff*2+1]=w2;
       k++;}
@@ -1111,40 +1111,40 @@ static ssize_t cache_write_offdata
     u8_logf(LOG_WARN,"Bad offset type for %s",op->poolid);
     u8_big_free(saveinfo);
     exit(-1);}
-  fd_setpos(stream,256+offdata_modified_start);
-  fd_write_ints(stream,offdata_modified_length,offdata);
+  kno_setpos(stream,256+offdata_modified_start);
+  kno_write_ints(stream,offdata_modified_length,offdata);
   u8_big_free(offdata);
   return n;
 }
 
-static ssize_t direct_write_offdata(struct FD_OIDPOOL *op,fd_stream stream,
+static ssize_t direct_write_offdata(struct KNO_OIDPOOL *op,kno_stream stream,
                                     int n, struct OIDPOOL_SAVEINFO *saveinfo)
 {
-  fd_outbuf outstream = fd_writebuf(stream);
+  kno_outbuf outstream = kno_writebuf(stream);
   switch (op->pool_offtype) {
-  case FD_B32: {
+  case KNO_B32: {
     int k = 0; while (k<n) {
       unsigned int oidoff = saveinfo[k].oidoff;
-      fd_setpos(stream,256+oidoff*8);
-      fd_write_4bytes(outstream,saveinfo[k].chunk.off);
-      fd_write_4bytes(outstream,saveinfo[k].chunk.size);
+      kno_setpos(stream,256+oidoff*8);
+      kno_write_4bytes(outstream,saveinfo[k].chunk.off);
+      kno_write_4bytes(outstream,saveinfo[k].chunk.size);
       k++;}
     break;}
-  case FD_B40: {
+  case KNO_B40: {
     int k = 0; while (k<n) {
       unsigned int oidoff = saveinfo[k].oidoff, w1 = 0, w2 = 0;
-      fd_setpos(stream,256+oidoff*8);
-      fd_convert_FD_B40_ref(saveinfo[k].chunk,&w1,&w2);
-      fd_write_4bytes(outstream,w1);
-      fd_write_4bytes(outstream,w2);
+      kno_setpos(stream,256+oidoff*8);
+      kno_convert_KNO_B40_ref(saveinfo[k].chunk,&w1,&w2);
+      kno_write_4bytes(outstream,w1);
+      kno_write_4bytes(outstream,w2);
       k++;}
     break;}
-  case FD_B64: {
+  case KNO_B64: {
     int k = 0; while (k<n) {
       unsigned int oidoff = saveinfo[k].oidoff;
-      fd_setpos(stream,256+oidoff*12);
-      fd_write_8bytes(outstream,saveinfo[k].chunk.off);
-      fd_write_4bytes(outstream,saveinfo[k].chunk.size);
+      kno_setpos(stream,256+oidoff*12);
+      kno_write_8bytes(outstream,saveinfo[k].chunk.off);
+      kno_write_4bytes(outstream,saveinfo[k].chunk.size);
       k++;}
     break;}
   default:
@@ -1156,92 +1156,92 @@ static ssize_t direct_write_offdata(struct FD_OIDPOOL *op,fd_stream stream,
 
 /* Allocating OIDs */
 
-static lispval oidpool_alloc(fd_pool p,int n)
+static lispval oidpool_alloc(kno_pool p,int n)
 {
   lispval results = EMPTY; int i = 0;
-  fd_oidpool op = (fd_oidpool)p;
-  FD_OID base = op->pool_base;
+  kno_oidpool op = (kno_oidpool)p;
+  KNO_OID base = op->pool_base;
   unsigned int start;
-  fd_lock_pool_struct((fd_pool)op,1);
-  if (!(FD_OIDPOOL_LOCKED(op))) lock_oidpool_file(op,0);
+  kno_lock_pool_struct((kno_pool)op,1);
+  if (!(KNO_OIDPOOL_LOCKED(op))) lock_oidpool_file(op,0);
   if (op->pool_load+n>=op->pool_capacity) {
-    fd_unlock_pool_struct((fd_pool)op);
-    return fd_err(fd_ExhaustedPool,"oidpool_alloc",p->poolid,VOID);}
+    kno_unlock_pool_struct((kno_pool)op);
+    return kno_err(kno_ExhaustedPool,"oidpool_alloc",p->poolid,VOID);}
   start=op->pool_load; op->pool_load+=n;
-  fd_unlock_pool_struct(p);
+  kno_unlock_pool_struct(p);
   while (i < n) {
-    FD_OID new_addr = FD_OID_PLUS(base,start+i);
-    lispval new_oid = fd_make_oid(new_addr);
+    KNO_OID new_addr = KNO_OID_PLUS(base,start+i);
+    lispval new_oid = kno_make_oid(new_addr);
     CHOICE_ADD(results,new_oid);
     i++;}
-  return fd_simplify_choice(results);
+  return kno_simplify_choice(results);
 }
 
 /* Locking */
 
-static int oidpool_lock(fd_pool p,lispval oids)
+static int oidpool_lock(kno_pool p,lispval oids)
 {
-  struct FD_OIDPOOL *fp = (struct FD_OIDPOOL *)p;
+  struct KNO_OIDPOOL *fp = (struct KNO_OIDPOOL *)p;
   int retval = lock_oidpool_file(fp,1);
   return retval;
 }
 
-static int oidpool_unlock(fd_pool p,lispval oids)
+static int oidpool_unlock(kno_pool p,lispval oids)
 {
-  struct FD_OIDPOOL *fp = (struct FD_OIDPOOL *)p;
+  struct KNO_OIDPOOL *fp = (struct KNO_OIDPOOL *)p;
   if (fp->pool_changes.table_n_keys == 0)
     /* This unlocks the underlying file, not the stream itself */
-    fd_streamctl(&(fp->pool_stream),fd_stream_unlockfile,NULL);
+    kno_streamctl(&(fp->pool_stream),kno_stream_unlockfile,NULL);
   return 1;
 }
 
 /* Setting the cachelevel */
 
-static void oidpool_setcache(fd_pool p,int level)
+static void oidpool_setcache(kno_pool p,int level)
 {
-  fd_oidpool op = (fd_oidpool)p;
+  kno_oidpool op = (kno_oidpool)p;
   int chunk_ref_size = get_chunk_ref_size(op);
   if (chunk_ref_size<0) {
-    u8_logf(LOG_WARN,fd_CorruptedPool,"Pool structure invalid: %s",p->poolid);
+    u8_logf(LOG_WARN,kno_CorruptedPool,"Pool structure invalid: %s",p->poolid);
     return;}
   if ( ( (level<2) && (op->pool_offdata == NULL) ) ||
        ( (level==2) && ( op->pool_offdata != NULL ) ) )
     return;
-  fd_lock_pool_struct((fd_pool)op,1);
+  kno_lock_pool_struct((kno_pool)op,1);
   if ( ( (level<2) && (op->pool_offdata == NULL) ) ||
        ( (level==2) && ( op->pool_offdata != NULL ) ) ) {
-    fd_unlock_pool_struct((fd_pool)op);
+    kno_unlock_pool_struct((kno_pool)op);
     return;}
-#if (!(FD_USE_MMAP))
+#if (!(KNO_USE_MMAP))
   if (level < 2) {
     if (op->pool_offdata) {
       u8_big_free(op->pool_offdata);
       op->pool_offdata = NULL;}
-    fd_unlock_pool_struct((fd_pool)op);
+    kno_unlock_pool_struct((kno_pool)op);
     return;}
   else {
     unsigned int *offsets;
-    fd_stream s = &(op->pool_stream);
-    fd_inbuf ins = fd_readbuf(s);
+    kno_stream s = &(op->pool_stream);
+    kno_inbuf ins = kno_readbuf(s);
     if (LOCK_POOLSTREAM(op)<0) {
-      fd_clear_errors(1);}
+      kno_clear_errors(1);}
     else {
       size_t offsets_size = chunk_ref_size*(op->pool_load);
-      fd_stream_start_read(s);
-      fd_setpos(s,12);
-      op->pool_load = load = fd_read_4bytes(ins);
+      kno_stream_start_read(s);
+      kno_setpos(s,12);
+      op->pool_load = load = kno_read_4bytes(ins);
       offsets = u8_big_alloc(offsets_size);
-      fd_setpos(s,24);
-      fd_read_ints(ins,load,offsets);
+      kno_setpos(s,24);
+      kno_read_ints(ins,load,offsets);
       op->pool_offdata = offsets;
       UNLOCK_POOLSTREAM(op);}
-    fd_unlock_pool_struct((fd_pool)op);
+    kno_unlock_pool_struct((kno_pool)op);
     return;}
-#else /* FD_USE_MMAP */
+#else /* KNO_USE_MMAP */
   int stream_flags=op->pool_stream.stream_flags;
 
-  if ( (level < 3) && (U8_BITP(stream_flags,FD_STREAM_MMAPPED)) )
-    fd_setbufsize(&(op->pool_stream),fd_filestream_bufsize);
+  if ( (level < 3) && (U8_BITP(stream_flags,KNO_STREAM_MMAPPED)) )
+    kno_setbufsize(&(op->pool_stream),kno_filestream_bufsize);
 
   if ( (level < 2) && (op->pool_offdata) ) {
     /* Unmap the offsets cache */
@@ -1265,13 +1265,13 @@ static void oidpool_setcache(fd_pool p,int level)
     u8_logf(LOG_WARN,"PoolStreamClosed",
             "During oidpool_setcache for %s",op->poolid);
     UNLOCK_POOLSTREAM(op);
-    fd_unlock_pool_struct((fd_pool)op);
+    kno_unlock_pool_struct((kno_pool)op);
     return;}
 
   /* Everything below here requires a file descriptor */
 
-  if ( (level >= 3) && (!(U8_BITP(stream_flags,FD_STREAM_MMAPPED)) ) )
-    fd_setbufsize(&(op->pool_stream),-1);
+  if ( (level >= 3) && (!(U8_BITP(stream_flags,KNO_STREAM_MMAPPED)) ) )
+    kno_setbufsize(&(op->pool_stream),-1);
 
   if ( (level >= 2) && (op->pool_offdata == NULL) ) {
     unsigned int *offsets, *newmmap;
@@ -1292,20 +1292,20 @@ static void oidpool_setcache(fd_pool p,int level)
       op->pool_offdata = offsets = newmmap+64;} }
 
   UNLOCK_POOLSTREAM(op);
-  fd_unlock_pool_struct((fd_pool)op);
-#endif /* FD_USE_MMAP */
+  kno_unlock_pool_struct((kno_pool)op);
+#endif /* KNO_USE_MMAP */
 }
 
-#if FD_USE_MMAP
-static void reload_offdata(fd_oidpool op,int lock) {}
+#if KNO_USE_MMAP
+static void reload_offdata(kno_oidpool op,int lock) {}
 #else
-static void reload_offdata(fd_oidpool op)
+static void reload_offdata(kno_oidpool op)
 {
   unsigned int *offdata = op->pool_offdata;
   if (offdata==NULL) return;
   double start = u8_elapsed_time();
-  fd_stream stream = &(op->pool_stream);
-  fd_inbuf  readbuf = fd_readbuf(stream);
+  kno_stream stream = &(op->pool_stream);
+  kno_inbuf  readbuf = kno_readbuf(stream);
   /* Read new offsets table, compare it with the current, and
      only void those OIDs */
   unsigned int load;
@@ -1314,9 +1314,9 @@ static void reload_offdata(fd_oidpool op)
             "During oidpool_reload_offdata for %s",op->poolid);
     UNLOCK_POOLSTREAM(op);
     return;}
-  fd_setpos(s,0x10); new_load = fd_read_4bytes(ins);
-  fd_setpos(s,0x100);
-  fd_read_ints(ins,new_load,offdata);
+  kno_setpos(s,0x10); new_load = kno_read_4bytes(ins);
+  kno_setpos(s,0x100);
+  kno_read_ints(ins,new_load,offdata);
   /* We need to clear cached values whose offsets have changed */
   op->pool_load = new_load;
   update_modtime(op);
@@ -1327,12 +1327,12 @@ static void reload_offdata(fd_oidpool op)
 }
 #endif
 
-static void oidpool_close(fd_pool p)
+static void oidpool_close(kno_pool p)
 {
-  fd_oidpool op = (fd_oidpool)p;
-  fd_lock_pool_struct(p,1);
+  kno_oidpool op = (kno_oidpool)p;
+  kno_lock_pool_struct(p,1);
   /* Close the stream */
-  fd_close_stream(&(op->pool_stream),0);
+  kno_close_stream(&(op->pool_stream),0);
   size_t offdata_length = 256+((op->pool_capacity)*get_chunk_ref_size(op));
   if (op->pool_offdata) {
     unsigned int *offdata=op->pool_offdata;
@@ -1340,7 +1340,7 @@ static void oidpool_close(fd_pool p)
     /* TODO: Be more careful about freeing/unmapping the
        offdata. Users might get a seg fault rather than a "file not
        open error". */
-#if FD_USE_MMAP
+#if KNO_USE_MMAP
     /* Since we were just reading, the buffer was only as big
        as the load, not the capacity. */
     int retval = munmap(offdata-64,offdata_length);
@@ -1352,55 +1352,55 @@ static void oidpool_close(fd_pool p)
     u8_big_free(op->pool_offdata);
 #endif
     op->pool_cache_level = -1;}
-  fd_unlock_pool_struct(p);
+  kno_unlock_pool_struct(p);
 }
 
-static void oidpool_setbuf(fd_pool p,ssize_t bufsize)
+static void oidpool_setbuf(kno_pool p,ssize_t bufsize)
 {
-  fd_oidpool op = (fd_oidpool)p;
-  fd_lock_pool_struct(p,1);
-  fd_setbufsize(&(op->pool_stream),bufsize);
-  fd_unlock_pool_struct(p);
+  kno_oidpool op = (kno_oidpool)p;
+  kno_lock_pool_struct(p,1);
+  kno_setbufsize(&(op->pool_stream),bufsize);
+  kno_unlock_pool_struct(p);
 }
 
 /* Creating oidpool */
 
-static unsigned int get_oidpool_format(fd_storage_flags sflags,lispval opts)
+static unsigned int get_oidpool_format(kno_storage_flags sflags,lispval opts)
 {
   unsigned int flags = 0;
-  lispval offtype = fd_intern("OFFTYPE");
-  lispval compression = fd_intern("COMPRESSION");
-  if ( fd_testopt(opts,offtype,fd_intern("B64"))  ||
-       fd_testopt(opts,offtype,FD_INT(64)))
-    flags |= FD_B64;
-  else if ( fd_testopt(opts,offtype,fd_intern("B40"))  ||
-            fd_testopt(opts,offtype,FD_INT(40)))
-    flags |= FD_B40;
-  else if ( fd_testopt(opts,offtype,fd_intern("B32"))  ||
-            fd_testopt(opts,offtype,FD_INT(32)))
-    flags |= FD_B32;
-  else flags |= FD_B40;
+  lispval offtype = kno_intern("OFFTYPE");
+  lispval compression = kno_intern("COMPRESSION");
+  if ( kno_testopt(opts,offtype,kno_intern("B64"))  ||
+       kno_testopt(opts,offtype,KNO_INT(64)))
+    flags |= KNO_B64;
+  else if ( kno_testopt(opts,offtype,kno_intern("B40"))  ||
+            kno_testopt(opts,offtype,KNO_INT(40)))
+    flags |= KNO_B40;
+  else if ( kno_testopt(opts,offtype,kno_intern("B32"))  ||
+            kno_testopt(opts,offtype,KNO_INT(32)))
+    flags |= KNO_B32;
+  else flags |= KNO_B40;
 
-  if (fd_testopt(opts,compression,fd_intern("ZLIB")))
-    flags |= ((FD_ZLIB)<<3);
-  else if (fd_testopt(opts,compression,VOID))
-    flags |= ((FD_ZLIB)<<3);
+  if (kno_testopt(opts,compression,kno_intern("ZLIB")))
+    flags |= ((KNO_ZLIB)<<3);
+  else if (kno_testopt(opts,compression,VOID))
+    flags |= ((KNO_ZLIB)<<3);
   else {}
 
-  if (fd_testopt(opts,fd_intern("DTYPEV2"),VOID))
-    flags |= FD_OIDPOOL_DTYPEV2;
+  if (kno_testopt(opts,kno_intern("DTYPEV2"),VOID))
+    flags |= KNO_OIDPOOL_DTYPEV2;
 
-  if ( (sflags) & (FD_STORAGE_READ_ONLY) ||
-       (fd_testopt(opts,fd_intern("READONLY"),VOID)) )
-    flags |= FD_OIDPOOL_READ_ONLY;
+  if ( (sflags) & (KNO_STORAGE_READ_ONLY) ||
+       (kno_testopt(opts,kno_intern("READONLY"),VOID)) )
+    flags |= KNO_OIDPOOL_READ_ONLY;
 
-  if ( (fd_testopt(opts,FDSYM_ISADJUNCT,VOID)) ||
-       (fd_testopt(opts,FDSYM_FLAGS,FDSYM_ISADJUNCT)) )
-    flags |= FD_OIDPOOL_ADJUNCT;
+  if ( (kno_testopt(opts,FDSYM_ISADJUNCT,VOID)) ||
+       (kno_testopt(opts,FDSYM_FLAGS,FDSYM_ISADJUNCT)) )
+    flags |= KNO_OIDPOOL_ADJUNCT;
 
-  if ( (sflags) & (FD_POOL_ADJUNCT) ||
-       (fd_testopt(opts,fd_intern("SPARSE"),VOID)) )
-    flags |= FD_OIDPOOL_SPARSE;
+  if ( (sflags) & (KNO_POOL_ADJUNCT) ||
+       (kno_testopt(opts,kno_intern("SPARSE"),VOID)) )
+    flags |= KNO_OIDPOOL_SPARSE;
 
 
   return flags;
@@ -1408,15 +1408,15 @@ static unsigned int get_oidpool_format(fd_storage_flags sflags,lispval opts)
 
 static int make_oidpool
 (u8_string fname,u8_string label,
- FD_OID base,unsigned int capacity,unsigned int load,
+ KNO_OID base,unsigned int capacity,unsigned int load,
  unsigned int oidpool_format,lispval schemas_init,
  time_t ctime,time_t mtime,int cycles)
 {
   time_t now = time(NULL);
-  fd_off_t schemas_pos = 0, metadata_pos = 0, label_pos = 0;
+  kno_off_t schemas_pos = 0, metadata_pos = 0, label_pos = 0;
   size_t schemas_size = 0, metadata_size = 0, label_size = 0;
   if (load>capacity) {
-    u8_seterr(fd_PoolOverflow,"make_bigpool",
+    u8_seterr(kno_PoolOverflow,"make_bigpool",
               u8_sprintf(NULL,256,
                          "Specified load (%u) > capacity (%u) for '%s'",
                          load,capacity,fname));
@@ -1424,245 +1424,245 @@ static int make_oidpool
   if (ctime<0) ctime = now;
   if (mtime<0) mtime = now;
 
-  struct FD_STREAM _stream, *stream=
-    fd_init_file_stream(&_stream,fname,FD_FILE_CREATE,-1,fd_driver_bufsize);
-  fd_outbuf outstream = (stream) ? (fd_writebuf(stream)) : (NULL);
-  fd_offset_type offtype =
-    (fd_offset_type) ((oidpool_format)&(FD_OIDPOOL_OFFMODE));
+  struct KNO_STREAM _stream, *stream=
+    kno_init_file_stream(&_stream,fname,KNO_FILE_CREATE,-1,kno_driver_bufsize);
+  kno_outbuf outstream = (stream) ? (kno_writebuf(stream)) : (NULL);
+  kno_offset_type offtype =
+    (kno_offset_type) ((oidpool_format)&(KNO_OIDPOOL_OFFMODE));
   if (outstream == NULL) return -1;
-  else if ((stream->stream_flags)&FD_STREAM_READ_ONLY) {
-    fd_seterr3(fd_CantWrite,"fd_make_oidpool",fname);
-    fd_free_stream(stream);
+  else if ((stream->stream_flags)&KNO_STREAM_READ_ONLY) {
+    kno_seterr3(kno_CantWrite,"kno_make_oidpool",fname);
+    kno_free_stream(stream);
     return -1;}
 
   u8_logf(LOG_INFO,"CreateOIDPool",
           "Creating an oidpool '%s' for %u OIDs based at %x/%x",
-          fname,capacity,FD_OID_HI(base),FD_OID_LO(base));
+          fname,capacity,KNO_OID_HI(base),KNO_OID_LO(base));
 
-  stream->stream_flags &= ~FD_STREAM_IS_CONSED;
-  fd_lock_stream(stream);
-  fd_setpos(stream,0);
-  fd_write_4bytes(outstream,FD_OIDPOOL_MAGIC_NUMBER);
-  fd_write_4bytes(outstream,FD_OID_HI(base));
-  fd_write_4bytes(outstream,FD_OID_LO(base));
-  fd_write_4bytes(outstream,capacity);
-  fd_write_4bytes(outstream,load);
-  fd_write_4bytes(outstream,oidpool_format);
+  stream->stream_flags &= ~KNO_STREAM_IS_CONSED;
+  kno_lock_stream(stream);
+  kno_setpos(stream,0);
+  kno_write_4bytes(outstream,KNO_OIDPOOL_MAGIC_NUMBER);
+  kno_write_4bytes(outstream,KNO_OID_HI(base));
+  kno_write_4bytes(outstream,KNO_OID_LO(base));
+  kno_write_4bytes(outstream,capacity);
+  kno_write_4bytes(outstream,load);
+  kno_write_4bytes(outstream,oidpool_format);
 
-  fd_write_8bytes(outstream,0); /* Pool label */
-  fd_write_4bytes(outstream,0); /* Pool label */
+  kno_write_8bytes(outstream,0); /* Pool label */
+  kno_write_4bytes(outstream,0); /* Pool label */
 
-  fd_write_8bytes(outstream,0); /* metdata */
-  fd_write_4bytes(outstream,0); /* metdata */
+  kno_write_8bytes(outstream,0); /* metdata */
+  kno_write_4bytes(outstream,0); /* metdata */
 
-  fd_write_8bytes(outstream,0); /* schema data */
-  fd_write_4bytes(outstream,0); /* schema data */
+  kno_write_8bytes(outstream,0); /* schema data */
+  kno_write_4bytes(outstream,0); /* schema data */
 
   /* Write the index creation time */
-  fd_write_4bytes(outstream,0);
-  fd_write_4bytes(outstream,((unsigned int)ctime));
+  kno_write_4bytes(outstream,0);
+  kno_write_4bytes(outstream,((unsigned int)ctime));
 
   /* Write the index repack time */
-  fd_write_4bytes(outstream,0);
-  fd_write_4bytes(outstream,((unsigned int)now));
+  kno_write_4bytes(outstream,0);
+  kno_write_4bytes(outstream,((unsigned int)now));
 
   /* Write the index modification time */
-  fd_write_4bytes(outstream,0);
-  fd_write_4bytes(outstream,((unsigned int)mtime));
+  kno_write_4bytes(outstream,0);
+  kno_write_4bytes(outstream,((unsigned int)mtime));
 
   /* Write the number of repack cycles */
   if (mtime<0) mtime = now;
-  fd_write_4bytes(outstream,0);
-  fd_write_4bytes(outstream,cycles);
+  kno_write_4bytes(outstream,0);
+  kno_write_4bytes(outstream,cycles);
 
   /* Fill the rest of the space. */
   {
-    int i = 0, bytes_to_write = 256-fd_getpos(stream);
+    int i = 0, bytes_to_write = 256-kno_getpos(stream);
     while (i<bytes_to_write) {
-      fd_write_byte(outstream,0); i++;}}
+      kno_write_byte(outstream,0); i++;}}
 
   /* Write the top level bucket table */
   {
     int i = 0;
-    if ((offtype == FD_B32) || (offtype == FD_B40))
+    if ((offtype == KNO_B32) || (offtype == KNO_B40))
       while (i<capacity) {
-        fd_write_4bytes(outstream,0);
-        fd_write_4bytes(outstream,0);
+        kno_write_4bytes(outstream,0);
+        kno_write_4bytes(outstream,0);
         i++;}
     else {
       while (i<capacity) {
-        fd_write_8bytes(outstream,0);
-        fd_write_4bytes(outstream,0);
+        kno_write_8bytes(outstream,0);
+        kno_write_4bytes(outstream,0);
         i++;}}}
 
   if (label) {
     int len = strlen(label);
-    label_pos = fd_getpos(stream);
-    fd_write_byte(outstream,dt_string);
-    fd_write_4bytes(outstream,len);
-    fd_write_bytes(outstream,label,len);
-    label_size = fd_getpos(stream)-label_pos;}
+    label_pos = kno_getpos(stream);
+    kno_write_byte(outstream,dt_string);
+    kno_write_4bytes(outstream,len);
+    kno_write_bytes(outstream,label,len);
+    label_size = kno_getpos(stream)-label_pos;}
 
   /* Write the schemas */
   if (VECTORP(schemas_init)) {
-    schemas_pos = fd_getpos(stream);
-    fd_write_dtype(outstream,schemas_init);
-    schemas_size = fd_getpos(stream)-schemas_pos;}
+    schemas_pos = kno_getpos(stream);
+    kno_write_dtype(outstream,schemas_init);
+    schemas_size = kno_getpos(stream)-schemas_pos;}
 
   if (label_pos) {
-    fd_setpos(stream,FD_OIDPOOL_LABEL_POS);
-    fd_write_8bytes(outstream,label_pos);
-    fd_write_4bytes(outstream,label_size);}
+    kno_setpos(stream,KNO_OIDPOOL_LABEL_POS);
+    kno_write_8bytes(outstream,label_pos);
+    kno_write_4bytes(outstream,label_size);}
   if (metadata_pos) {
-    fd_setpos(stream,FD_OIDPOOL_METADATA_POS);
-    fd_write_8bytes(outstream,metadata_pos);
-    fd_write_4bytes(outstream,metadata_size);}
+    kno_setpos(stream,KNO_OIDPOOL_METADATA_POS);
+    kno_write_8bytes(outstream,metadata_pos);
+    kno_write_4bytes(outstream,metadata_size);}
   if (schemas_pos) {
-    fd_setpos(stream,FD_OIDPOOL_SCHEMAS_POS);
-    fd_write_8bytes(outstream,schemas_pos);
-    fd_write_4bytes(outstream,schemas_size);}
+    kno_setpos(stream,KNO_OIDPOOL_SCHEMAS_POS);
+    kno_write_8bytes(outstream,schemas_pos);
+    kno_write_4bytes(outstream,schemas_size);}
 
-  fd_flush_stream(stream);
-  fd_unlock_stream(stream);
-  fd_close_stream(stream,FD_STREAM_FREEDATA);
+  kno_flush_stream(stream);
+  kno_unlock_stream(stream);
+  kno_close_stream(stream,KNO_STREAM_FREEDATA);
   return 0;
 }
 
 static
-fd_pool oidpool_create
+kno_pool oidpool_create
 (u8_string spec,void *type_data,
- fd_storage_flags storage_flags,
+ kno_storage_flags storage_flags,
  lispval opts)
 {
-  lispval base_oid = fd_getopt(opts,fd_intern("BASE"),VOID);
-  lispval capacity_arg = fd_getopt(opts,fd_intern("CAPACITY"),VOID);
-  lispval load_arg = fd_getopt(opts,fd_intern("LOAD"),FD_FIXZERO);
-  lispval label = fd_getopt(opts,FDSYM_LABEL,VOID);
-  lispval schemas = fd_getopt(opts,fd_intern("SCHEMAS"),VOID);
+  lispval base_oid = kno_getopt(opts,kno_intern("BASE"),VOID);
+  lispval capacity_arg = kno_getopt(opts,kno_intern("CAPACITY"),VOID);
+  lispval load_arg = kno_getopt(opts,kno_intern("LOAD"),KNO_FIXZERO);
+  lispval label = kno_getopt(opts,FDSYM_LABEL,VOID);
+  lispval schemas = kno_getopt(opts,kno_intern("SCHEMAS"),VOID);
   unsigned int capacity, load;
   int rv = 0;
   if (u8_file_existsp(spec)) {
-    fd_seterr(_("FileAlreadyExists"),"oidpool_create",spec,VOID);
+    kno_seterr(_("FileAlreadyExists"),"oidpool_create",spec,VOID);
     return NULL;}
   else if (!(OIDP(base_oid))) {
-    fd_seterr("Not a base oid","oidpool_create",spec,base_oid);
+    kno_seterr("Not a base oid","oidpool_create",spec,base_oid);
     rv = -1;}
-  else if (FD_ISINT(capacity_arg)) {
-    int capval = fd_getint(capacity_arg);
+  else if (KNO_ISINT(capacity_arg)) {
+    int capval = kno_getint(capacity_arg);
     if (capval<=0) {
-      fd_seterr("Not a valid capacity","oidpool_create",
+      kno_seterr("Not a valid capacity","oidpool_create",
                 spec,capacity_arg);
       rv = -1;}
     else capacity = capval;}
   else {
-    fd_seterr("Not a valid capacity","oidpool_create",spec,capacity_arg);
+    kno_seterr("Not a valid capacity","oidpool_create",spec,capacity_arg);
     rv = -1;}
   if (rv<0) {}
-  else if (FD_ISINT(load_arg)) {
-    int loadval = fd_getint(load_arg);
+  else if (KNO_ISINT(load_arg)) {
+    int loadval = kno_getint(load_arg);
     if (loadval<0) {
-      fd_seterr("Not a valid load","oidpool_create",spec,load_arg);
+      kno_seterr("Not a valid load","oidpool_create",spec,load_arg);
       rv = -1;}
     else if (loadval > capacity) {
-      fd_seterr(fd_PoolOverflow,"oidpool_create",spec,load_arg);
+      kno_seterr(kno_PoolOverflow,"oidpool_create",spec,load_arg);
       rv = -1;}
     else load = loadval;}
   else if ( (FALSEP(load_arg)) || (EMPTYP(load_arg)) ||
-            (VOIDP(load_arg)) || (load_arg == FD_DEFAULT_VALUE))
+            (VOIDP(load_arg)) || (load_arg == KNO_DEFAULT_VALUE))
     load=0;
   else {
-    fd_seterr("Not a valid load","oidpool_create",
+    kno_seterr("Not a valid load","oidpool_create",
               spec,load_arg);
     rv = -1;}
   if (rv<0) return NULL;
   else rv = make_oidpool(spec,
                          ((STRINGP(label)) ? (CSTRING(label)) : (spec)),
-                         FD_OID_ADDR(base_oid),capacity,load,
+                         KNO_OID_ADDR(base_oid),capacity,load,
                          get_oidpool_format(storage_flags,opts),
                          schemas,
                          time(NULL),
                          time(NULL),1);
   if (rv>=0) {
-    fd_set_file_opts(spec,opts);
-    return fd_open_pool(spec,storage_flags,opts);}
+    kno_set_file_opts(spec,opts);
+    return kno_open_pool(spec,storage_flags,opts);}
   else return NULL;
 }
 
 /* OIDPOOL get oids */
 
-static lispval oidpool_getoids(fd_oidpool op)
+static lispval oidpool_getoids(kno_oidpool op)
 {
   if (op->pool_cache_level<0) {
-    fd_pool_setcache((fd_pool)op,fd_default_cache_level);}
+    kno_pool_setcache((kno_pool)op,kno_default_cache_level);}
   lispval results = EMPTY;
-  FD_OID base = op->pool_base;
+  KNO_OID base = op->pool_base;
   unsigned int i=0, load=op->pool_load;
-  fd_stream stream = &(op->pool_stream);
+  kno_stream stream = &(op->pool_stream);
   if (op->pool_offdata) {
     unsigned int *offdata = op->pool_offdata;
     unsigned int offdata_len = op->pool_capacity;
     while (i<load) {
-      struct FD_CHUNK_REF ref=
-        fd_get_chunk_ref(offdata,op->pool_offtype,i,offdata_len);
+      struct KNO_CHUNK_REF ref=
+        kno_get_chunk_ref(offdata,op->pool_offtype,i,offdata_len);
       if (ref.off>0) {
-        FD_OID addr = FD_OID_PLUS(base,i);
-        FD_ADD_TO_CHOICE(results,fd_make_oid(addr));}
+        KNO_OID addr = KNO_OID_PLUS(base,i);
+        KNO_ADD_TO_CHOICE(results,kno_make_oid(addr));}
       i++;}}
   else while (i<load) {
-      struct FD_CHUNK_REF ref=
-        fd_fetch_chunk_ref(stream,256,op->pool_offtype,i,0);
+      struct KNO_CHUNK_REF ref=
+        kno_fetch_chunk_ref(stream,256,op->pool_offtype,i,0);
       if (ref.off>0) {
-        FD_OID addr = FD_OID_PLUS(base,i);
-        FD_ADD_TO_CHOICE(results,fd_make_oid(addr));}
+        KNO_OID addr = KNO_OID_PLUS(base,i);
+        KNO_ADD_TO_CHOICE(results,kno_make_oid(addr));}
       i++;}
   return results;
 }
 
 /* OIDPOOL ops */
 
-static lispval oidpool_ctl(fd_pool p,lispval op,int n,lispval *args)
+static lispval oidpool_ctl(kno_pool p,lispval op,int n,lispval *args)
 {
-  struct FD_OIDPOOL *fp = (struct FD_OIDPOOL *)p;
+  struct KNO_OIDPOOL *fp = (struct KNO_OIDPOOL *)p;
   if ((n>0)&&(args == NULL))
-    return fd_err("BadPoolOpCall","oidpool_op",fp->poolid,VOID);
+    return kno_err("BadPoolOpCall","oidpool_op",fp->poolid,VOID);
   else if (n<0)
-    return fd_err("BadPoolOpCall","oidpool_op",fp->poolid,VOID);
-  else if (op == fd_cachelevel_op) {
+    return kno_err("BadPoolOpCall","oidpool_op",fp->poolid,VOID);
+  else if (op == kno_cachelevel_op) {
     if (n==0)
-      return FD_INT(fp->pool_cache_level);
+      return KNO_INT(fp->pool_cache_level);
     else {
       lispval arg = (args)?(args[0]):(VOID);
       if ((FIXNUMP(arg))&&(FIX2INT(arg)>=0)&&
           (FIX2INT(arg)<0x100)) {
         oidpool_setcache(p,FIX2INT(arg));
-        return FD_INT(fp->pool_cache_level);}
-      else return fd_type_error
+        return KNO_INT(fp->pool_cache_level);}
+      else return kno_type_error
              (_("cachelevel"),"oidpool_op/cachelevel",arg);}}
-  else if (op == fd_reload_op) {
+  else if (op == kno_reload_op) {
     if (fp->pool_offdata) reload_offdata(fp,0);
-    fd_pool_swapout((fd_pool)fp,((n==0)?(FD_VOID):(args[0])));
-    return FD_TRUE;}
-  else if (op == fd_bufsize_op) {
+    kno_pool_swapout((kno_pool)fp,((n==0)?(KNO_VOID):(args[0])));
+    return KNO_TRUE;}
+  else if (op == kno_bufsize_op) {
     if (n==0)
-      return FD_INT(fp->pool_stream.buf.raw.buflen);
+      return KNO_INT(fp->pool_stream.buf.raw.buflen);
     else if (FIXNUMP(args[0])) {
       oidpool_setbuf(p,FIX2INT(args[0]));
-      return FD_INT(fp->pool_stream.buf.raw.buflen);}
-    else return fd_type_error("buffer size","oidpool_op/bufsize",args[0]);}
-  else if (op == fd_capacity_op)
-    return FD_INT(fp->pool_capacity);
-  else if (op == fd_load_op)
-    return FD_INT(fp->pool_load);
-  else if (op == fd_keys_op) {
+      return KNO_INT(fp->pool_stream.buf.raw.buflen);}
+    else return kno_type_error("buffer size","oidpool_op/bufsize",args[0]);}
+  else if (op == kno_capacity_op)
+    return KNO_INT(fp->pool_capacity);
+  else if (op == kno_load_op)
+    return KNO_INT(fp->pool_load);
+  else if (op == kno_keys_op) {
     lispval keys = oidpool_getoids(fp);
-    return fd_simplify_choice(keys);}
-  else return fd_default_poolctl(p,op,n,args);
+    return kno_simplify_choice(keys);}
+  else return kno_default_poolctl(p,op,n,args);
 }
 
 /* Initializing the driver module */
 
-static struct FD_POOL_HANDLER oidpool_handler={
-  "oidpool", 1, sizeof(struct FD_OIDPOOL), 12,
+static struct KNO_POOL_HANDLER oidpool_handler={
+  "oidpool", 1, sizeof(struct KNO_OIDPOOL), 12,
   oidpool_close, /* close */
   oidpool_alloc, /* alloc */
   oidpool_fetch, /* fetch */
@@ -1678,22 +1678,22 @@ static struct FD_POOL_HANDLER oidpool_handler={
   oidpool_ctl  /* poolctl */
 };
 
-FD_EXPORT void fd_init_oidpool_c()
+KNO_EXPORT void kno_init_oidpool_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  fd_register_pool_type
+  kno_register_pool_type
     ("oidpool",
      &oidpool_handler,
      open_oidpool,
-     fd_match_pool_file,
-     (void*)U8_INT2PTR(FD_OIDPOOL_MAGIC_NUMBER));
-  fd_register_pool_type
+     kno_match_pool_file,
+     (void*)U8_INT2PTR(KNO_OIDPOOL_MAGIC_NUMBER));
+  kno_register_pool_type
     ("damaged_oidpool",
      &oidpool_handler,
      open_oidpool,
-     fd_match_pool_file,
-     (void*)U8_INT2PTR(FD_OIDPOOL_TO_RECOVER));
+     kno_match_pool_file,
+     (void*)U8_INT2PTR(KNO_OIDPOOL_TO_RECOVER));
 
 }
 

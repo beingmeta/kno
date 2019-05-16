@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -10,42 +10,42 @@
 #endif
 
 #define U8_INLINE_IO 1
-#define FD_PROVIDE_FASTEVAL 1
+#define KNO_PROVIDE_FASTEVAL 1
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/storage.h"
-#include "framerd/pools.h"
-#include "framerd/frames.h"
-#include "framerd/tables.h"
-#include "framerd/eval.h"
-#include "framerd/ports.h"
-#include "framerd/fdweb.h"
-#include "framerd/pprint.h"
-#include "framerd/support.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/storage.h"
+#include "kno/pools.h"
+#include "kno/frames.h"
+#include "kno/tables.h"
+#include "kno/eval.h"
+#include "kno/ports.h"
+#include "kno/fdweb.h"
+#include "kno/pprint.h"
+#include "kno/support.h"
 
 /* If you  edit this file, you probably also want to edit bugjar.css */
 #include "backtrace_css.h"
 #include "backtrace_js.h"
 
-#include "framerd/support.h"
+#include "kno/support.h"
 
 #include <ctype.h>
 
-#define fast_eval(x,env) (fd_stack_eval(x,env,_stack,0))
+#define fast_eval(x,env) (kno_stack_eval(x,env,_stack,0))
 
-#ifndef FD_HTMLOUT_MAX
-#define FD_HTMLOUT_MAX 15000000
+#ifndef KNO_HTMLOUT_MAX
+#define KNO_HTMLOUT_MAX 15000000
 #endif
 
-ssize_t fd_htmlout_max = FD_HTMLOUT_MAX;
+ssize_t kno_htmlout_max = KNO_HTMLOUT_MAX;
 
 #include <libu8/u8xfiles.h>
 
 static void output_value(u8_output out,lispval val,
                          u8_string eltname,
                          u8_string classname);
-FD_EXPORT void fd_html_exception(u8_output s,u8_exception ex,int backtrace);
+KNO_EXPORT void kno_html_exception(u8_output s,u8_exception ex,int backtrace);
 
 static u8_string error_stylesheet=NULL;
 static u8_string error_javascript=NULL;
@@ -61,10 +61,10 @@ static void start_errorpage(u8_output s,
 {
   int isembedded = 0;
   s->u8_write = s->u8_outbuf;
-  lispval embeddedp = fd_req_get(embedded_symbol,VOID);
-  lispval req_style = fd_req_get(error_style_symbol,VOID);
-  lispval req_script = fd_req_get(error_script_symbol,VOID);
-  if ((FD_NOVOIDP(embeddedp)) || (FALSEP(embeddedp))) isembedded = 1;
+  lispval embeddedp = kno_req_get(embedded_symbol,VOID);
+  lispval req_style = kno_req_get(error_style_symbol,VOID);
+  lispval req_script = kno_req_get(error_script_symbol,VOID);
+  if ((KNO_NOVOIDP(embeddedp)) || (FALSEP(embeddedp))) isembedded = 1;
   if (STRINGP(embeddedp)) u8_puts(s,CSTRING(embeddedp));
   if (isembedded==0) {
     u8_printf(s,"%s\n%s\n",DEFAULT_DOCTYPE,DEFAULT_XMLPI);
@@ -75,9 +75,9 @@ static void start_errorpage(u8_output s,
     if ( (details) && (strlen(details)<40) )
       u8_printf(s," (%s)",details);
     u8_puts(s,"</title>\n");
-    u8_printf(s,"\n<style type='text/css'>%s</style>\n",FD_BACKTRACE_CSS);
+    u8_printf(s,"\n<style type='text/css'>%s</style>\n",KNO_BACKTRACE_CSS);
     u8_printf(s,"\n<script language='javascript'>\n%s\n</script>\n",
-              FD_BACKTRACE_JS);
+              KNO_BACKTRACE_JS);
     if (error_javascript) {
       if (strchr(error_javascript,'{'))
         u8_printf(s,"<script language ='javascript'>\n%s\n</script>\n",
@@ -90,14 +90,14 @@ static void start_errorpage(u8_output s,
                   error_stylesheet);
       else u8_printf(s,"<link href='%s' rel='stylesheet' type='text/css'/>\n",
                      error_stylesheet);}
-    if (FD_STRINGP(req_style)) {
-      u8_string rstyle = FD_CSTRING(req_style);
+    if (KNO_STRINGP(req_style)) {
+      u8_string rstyle = KNO_CSTRING(req_style);
       if (strchr(rstyle,'{'))
         u8_printf(s,"<style type='text/css'>\n%s\n</style>\n",rstyle);
       else u8_printf(s,"<link href='%s' rel='stylesheet' type='text/css'/>\n",
                      rstyle);}
-    if (FD_STRINGP(req_script)) {
-      u8_string rscript = FD_CSTRING(req_script);
+    if (KNO_STRINGP(req_script)) {
+      u8_string rscript = KNO_CSTRING(req_script);
       if (strchr(rscript,'{'))
         u8_printf(s,"<script language ='javascript'>\n%s\n</script>\n",rscript);
       else u8_printf(s,"<script src ='%s' language ='javascript'></script>\n",
@@ -106,8 +106,8 @@ static void start_errorpage(u8_output s,
   u8_puts(s,"<body id='ERRORPAGE'>\n");
 }
 
-FD_EXPORT
-void fd_xhtmldebugpage(u8_output s,u8_exception ex)
+KNO_EXPORT
+void kno_xhtmldebugpage(u8_output s,u8_exception ex)
 {
 
   start_errorpage(s,ex->u8x_cond,ex->u8x_context,ex->u8x_details);
@@ -116,20 +116,20 @@ void fd_xhtmldebugpage(u8_output s,u8_exception ex)
           "Sorry, there was an unexpected error processing your request"
           "</p>\n");
 
-  lispval backtrace = FD_U8X_STACK(ex);
+  lispval backtrace = KNO_U8X_STACK(ex);
 
   if (PAIRP(backtrace)) {
     u8_puts(s,"<div class='backtrace'>\n");
-    fd_html_backtrace(s,backtrace);
+    kno_html_backtrace(s,backtrace);
     u8_puts(s,"</div>\n");}
-  else if (FD_VECTORP(backtrace)) {
-    int i = 0, len = FD_VECTOR_LENGTH(backtrace);
+  else if (KNO_VECTORP(backtrace)) {
+    int i = 0, len = KNO_VECTOR_LENGTH(backtrace);
     u8_puts(s,"<pre class='backtrace'>\n");
     struct U8_OUTPUT btbuf; U8_INIT_OUTPUT(&btbuf,10000);
     while (i < len) {
-      lispval entry = FD_VECTOR_REF(backtrace,i);
-      fd_pprint_x(&btbuf,entry,NULL,2,2,0,NULL,NULL);
-      fd_emit_xmlcontent(s,btbuf.u8_outbuf);
+      lispval entry = KNO_VECTOR_REF(backtrace,i);
+      kno_pprint_x(&btbuf,entry,NULL,2,2,0,NULL,NULL);
+      kno_emit_xmlcontent(s,btbuf.u8_outbuf);
       u8_putc(s,'\n');
       btbuf.u8_write = btbuf.u8_outbuf;
       i++;}
@@ -138,15 +138,15 @@ void fd_xhtmldebugpage(u8_output s,u8_exception ex)
   else {
     u8_puts(s,"<pre class='backtrace'>\n");
     struct U8_OUTPUT btbuf; U8_INIT_OUTPUT(&btbuf,100000);
-    fd_pprint_x(&btbuf,backtrace,NULL,0,0,0,NULL,NULL);
-    fd_emit_xmlcontent(s,btbuf.u8_outbuf);
+    kno_pprint_x(&btbuf,backtrace,NULL,0,0,0,NULL,NULL);
+    kno_emit_xmlcontent(s,btbuf.u8_outbuf);
     u8_close_output(&btbuf);
     u8_puts(s,"</pre>\n");}
   u8_puts(s,"</body>\n</html>\n");
 }
 
-FD_EXPORT
-void fd_xhtmlerrorpage(u8_output s,u8_exception ex)
+KNO_EXPORT
+void kno_xhtmlerrorpage(u8_output s,u8_exception ex)
 {
   start_errorpage(s,ex->u8x_cond,ex->u8x_context,ex->u8x_details);
 
@@ -154,7 +154,7 @@ void fd_xhtmlerrorpage(u8_output s,u8_exception ex)
           "Sorry, there was an unexpected error processing your request"
           "</p>\n");
 
-  fd_html_exception(s,ex,0);
+  kno_html_exception(s,ex,0);
 
   u8_puts(s,"</body>\n</html>\n");
 }
@@ -165,64 +165,64 @@ static lispval debugpage2html_prim(lispval exception,lispval where)
   struct U8_EXCEPTION tempex={0};
   if ((VOIDP(exception))||(FALSEP(exception)))
     ex = u8_current_exception;
-  else if (FD_EXCEPTIONP(exception)) {
-    struct FD_EXCEPTION *xo=
-      fd_consptr(struct FD_EXCEPTION *,exception,fd_exception_type);
+  else if (KNO_EXCEPTIONP(exception)) {
+    struct KNO_EXCEPTION *xo=
+      kno_consptr(struct KNO_EXCEPTION *,exception,kno_exception_type);
     tempex.u8x_cond = xo->ex_condition;
     tempex.u8x_context = xo->ex_caller;
     tempex.u8x_details = xo->ex_details;
     tempex.u8x_xdata = (void *) xo;
-    tempex.u8x_free_xdata = fd_decref_embedded_exception;
+    tempex.u8x_free_xdata = kno_decref_embedded_exception;
     ex = &tempex;}
   else {
     u8_log(LOG_WARN,"debugpage2html_prim","Bad exception argument %q",exception);
     ex = u8_current_exception;}
-  if ((VOIDP(where))||(FD_TRUEP(where))) {
+  if ((VOIDP(where))||(KNO_TRUEP(where))) {
     u8_output s = u8_current_output;
-    fd_xhtmldebugpage(s,ex);
-    return FD_TRUE;}
+    kno_xhtmldebugpage(s,ex);
+    return KNO_TRUE;}
   else if (FALSEP(where)) {
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,4096);
-    fd_xhtmldebugpage(&out,ex);
-    return fd_init_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);}
-  else if (FD_PORTP(where)) {
-    struct FD_PORT *port = (fd_port) where;
-    fd_xhtmldebugpage(port->port_output,ex);
-    return FD_TRUE;}
-  else return FD_FALSE;
+    kno_xhtmldebugpage(&out,ex);
+    return kno_init_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);}
+  else if (KNO_PORTP(where)) {
+    struct KNO_PORT *port = (kno_port) where;
+    kno_xhtmldebugpage(port->port_output,ex);
+    return KNO_TRUE;}
+  else return KNO_FALSE;
 }
 
 static lispval backtrace2html_prim(lispval arg,lispval where)
 {
   u8_exception ex=NULL;
-  lispval backtrace=FD_VOID;
-  if ((VOIDP(arg))||(FALSEP(arg))||(arg == FD_DEFAULT_VALUE)) {
+  lispval backtrace=KNO_VOID;
+  if ((VOIDP(arg))||(FALSEP(arg))||(arg == KNO_DEFAULT_VALUE)) {
     ex = u8_current_exception;
-    if (ex) backtrace=FD_U8X_STACK(ex);}
+    if (ex) backtrace=KNO_U8X_STACK(ex);}
   else if (PAIRP(arg))
     backtrace=arg;
-  else if (FD_EXCEPTIONP(arg)) {
-    struct FD_EXCEPTION *xo=
-      fd_consptr(struct FD_EXCEPTION *,arg,fd_exception_type);
+  else if (KNO_EXCEPTIONP(arg)) {
+    struct KNO_EXCEPTION *xo=
+      kno_consptr(struct KNO_EXCEPTION *,arg,kno_exception_type);
     backtrace = xo->ex_stack;}
-  else return fd_err("Bad exception/backtrace","backtrace2html_prim",
+  else return kno_err("Bad exception/backtrace","backtrace2html_prim",
                      NULL,arg);
   if (!(PAIRP(backtrace)))
     return VOID;
-  else if ((VOIDP(where))||(FD_TRUEP(where))) {
+  else if ((VOIDP(where))||(KNO_TRUEP(where))) {
     u8_output s = u8_current_output;
-    fd_html_backtrace(s,backtrace);
-    return FD_TRUE;}
+    kno_html_backtrace(s,backtrace);
+    return KNO_TRUE;}
   else if (FALSEP(where)) {
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,4096);
-    fd_html_backtrace(&out,backtrace);
-    return fd_init_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);}
-  else return FD_FALSE;
+    kno_html_backtrace(&out,backtrace);
+    return kno_init_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);}
+  else return KNO_FALSE;
 }
 
 /* Output Scheme objects, mostly as tables */
 
-FD_EXPORT void fd_lisp2html(u8_output s,lispval v,u8_string tag,u8_string cl)
+KNO_EXPORT void kno_lisp2html(u8_output s,lispval v,u8_string tag,u8_string cl)
 {
   output_value(s,v,tag,cl);
 }
@@ -233,10 +233,10 @@ static lispval moduleid_symbol;
 
 static int isexprp(lispval expr)
 {
-  FD_DOLIST(elt,expr) {
+  KNO_DOLIST(elt,expr) {
     if ( (PAIRP(elt)) || (CHOICEP(elt)) ||
          (SLOTMAPP(elt)) || (SCHEMAPP(elt)) ||
-         (VECTORP(elt)) || (FD_CODEP(elt)))
+         (VECTORP(elt)) || (KNO_CODEP(elt)))
       return 0;}
   return 1;
 }
@@ -244,10 +244,10 @@ static int isexprp(lispval expr)
 static int isoptsp(lispval expr)
 {
   if (PAIRP(expr))
-    if ((SYMBOLP(FD_CAR(expr))) && (!(PAIRP(FD_CDR(expr)))))
+    if ((SYMBOLP(KNO_CAR(expr))) && (!(PAIRP(KNO_CDR(expr)))))
       return 1;
-    else return isoptsp(FD_CAR(expr)) && isoptsp(FD_CDR(expr));
-  else if ( (FD_CONSTANTP(expr)) || (SYMBOLP(expr)) )
+    else return isoptsp(KNO_CAR(expr)) && isoptsp(KNO_CDR(expr));
+  else if ( (KNO_CONSTANTP(expr)) || (SYMBOLP(expr)) )
     return 1;
   else if ( (SCHEMAPP(expr)) || (SLOTMAPP(expr)) )
     return 1;
@@ -257,41 +257,41 @@ static int isoptsp(lispval expr)
 static void output_opts(u8_output out,lispval expr)
 {
   if (PAIRP(expr))
-    if ( (SYMBOLP(FD_CAR(expr))) && (!(PAIRP(FD_CDR(expr)))) ) {
+    if ( (SYMBOLP(KNO_CAR(expr))) && (!(PAIRP(KNO_CDR(expr)))) ) {
       u8_printf(out,"\n <tr><th class='optname'>%s</th>\n       ",
-                SYM_NAME(FD_CAR(expr)));
-      output_value(out,FD_CDR(expr),"td","optval");
+                SYM_NAME(KNO_CAR(expr)));
+      output_value(out,KNO_CDR(expr),"td","optval");
       u8_printf(out,"</tr>");}
     else {
-      output_opts(out,FD_CAR(expr));
-      output_opts(out,FD_CDR(expr));}
+      output_opts(out,KNO_CAR(expr));
+      output_opts(out,KNO_CDR(expr));}
   else if (NILP(expr)) {}
   else if (SYMBOLP(expr))
     u8_printf(out,"\n <tr><th class='optname'>%s</th><td>%s</td></tr>",
               SYM_NAME(expr),SYM_NAME(expr));
   else if ( (SCHEMAPP(expr)) || (SLOTMAPP(expr)) ) {
-    lispval keys=fd_getkeys(expr);
+    lispval keys=kno_getkeys(expr);
     DO_CHOICES(key,keys) {
-      lispval optval=fd_get(expr,key,VOID);
+      lispval optval=kno_get(expr,key,VOID);
       if (SYMBOLP(key))
         u8_printf(out,"\n <tr><th class='optname'>%s</th>",
                   SYM_NAME(expr));
       else u8_printf(out,"\n <tr><th class='optkey'>%q</th>",expr);
       output_value(out,optval,"td","optval");
       u8_printf(out,"</tr>");
-      fd_decref(optval);}
-    fd_decref(keys);}
+      kno_decref(optval);}
+    kno_decref(keys);}
 }
 
 
-FD_EXPORT
-void fd_html_exception(u8_output s,u8_exception ex,int backtrace)
+KNO_EXPORT
+void kno_html_exception(u8_output s,u8_exception ex,int backtrace)
 {
-  lispval irritant=fd_get_irritant(ex);
+  lispval irritant=kno_get_irritant(ex);
   u8_string i_string=NULL; int overflow=0;
   U8_FIXED_OUTPUT(tmp,32);
   if (!(VOIDP(irritant))) {
-    fd_unparse(&tmp,irritant);
+    kno_unparse(&tmp,irritant);
     i_string=tmp.u8_outbuf;
     overflow=(tmp.u8_streaminfo&U8_STREAM_OVERFLOW);}
   else i_string=NULL;
@@ -314,24 +314,24 @@ void fd_html_exception(u8_output s,u8_exception ex,int backtrace)
   }
   u8_puts(s,"\n</div>\n"); /* exception */
   if (backtrace) {
-    lispval backtrace=FD_U8X_STACK(ex);
+    lispval backtrace=KNO_U8X_STACK(ex);
     if (PAIRP(backtrace))
-      fd_html_backtrace(s,backtrace);
-    fd_decref(backtrace);}
+      kno_html_backtrace(s,backtrace);
+    kno_decref(backtrace);}
 }
 
 static void output_value(u8_output out,lispval val,
                          u8_string eltname,
                          u8_string classname)
 {
-  if ( (out->u8_write - out->u8_outbuf) >= fd_htmlout_max)
+  if ( (out->u8_write - out->u8_outbuf) >= kno_htmlout_max)
     return;
   else if (STRINGP(val))
     if (STRLEN(val)>42)
       u8_printf(out," <%s class='%s long string' title='%d characters'>“%k”</%s>",
-                eltname,classname,STRLEN(val),FD_CSTRING(val),eltname);
+                eltname,classname,STRLEN(val),KNO_CSTRING(val),eltname);
     else u8_printf(out," <%s class='%s string' title='% characters'>“%k”</%s>",
-                   eltname,classname,STRLEN(val),FD_CSTRING(val),eltname);
+                   eltname,classname,STRLEN(val),KNO_CSTRING(val),eltname);
   else if (SYMBOLP(val))
     u8_printf(out," <%s class='%s symbol'>%k</%s>",
               eltname,classname,SYM_NAME(val),eltname);
@@ -352,21 +352,21 @@ static void output_value(u8_output out,lispval val,
         i++;}
       u8_printf(out,")</ol>");}}
   else if ( (SLOTMAPP(val)) || (SCHEMAPP(val)) ) {
-    lispval keys=fd_getkeys(val);
-    int n_keys=FD_CHOICE_SIZE(keys);
+    lispval keys=kno_getkeys(val);
+    int n_keys=KNO_CHOICE_SIZE(keys);
     if (n_keys==0)
       u8_printf(out," <%s class='%s map'>#[]</%s>",eltname,classname,eltname);
     else if (n_keys==1) {
-      lispval value=fd_get(val,keys,VOID);
+      lispval value=kno_get(val,keys,VOID);
       u8_printf(out," <%s class='%s map'>#[<span class='slotid'>%lk</span> ",
                 eltname,classname,keys);
       output_value(out,value,"span","slotvalue");
       u8_printf(out," ]</%s>",eltname);
-      fd_decref(value);}
+      kno_decref(value);}
     else {
       u8_printf(out,"\n<div class='%s map'>",classname);
       int i=0; DO_CHOICES(key,keys) {
-        lispval value=fd_get(val,key,VOID);
+        lispval value=kno_get(val,key,VOID);
         u8_printf(out,"\n  <div class='%s keyval keyval%d'>",classname,i);
         output_value(out,key,"span","key");
         if (CHOICEP(value)) u8_puts(out," <span class='slotvals'>");
@@ -375,11 +375,11 @@ static void output_value(u8_output out,lispval val,
             output_value(out,value,"span","slotval");}}
         if (CHOICEP(value)) u8_puts(out," </span>");
         u8_printf(out,"</div>");
-        fd_decref(value);
+        kno_decref(value);
         i++;}
       u8_printf(out,"\n</div>",classname);}}
   else if (PAIRP(val)) {
-    u8_string tmp = fd_lisp2string(val);
+    u8_string tmp = kno_lisp2string(val);
     if (strlen(tmp)< 50)
       u8_printf(out,"<%s class='%s listval'>%s</%s>",
                 eltname,classname,tmp,eltname);
@@ -389,20 +389,20 @@ static void output_value(u8_output out,lispval val,
       u8_printf(out,"\n</table>\n",classname);}
     else if (isexprp(val)) {
       u8_printf(out,"\n<pre class='listexpr'>");
-      fd_pprint(out,val,"",0,0,60);
+      kno_pprint(out,val,"",0,0,60);
       u8_printf(out,"\n</pre>");}
     else {
       lispval scan=val;
       u8_printf(out," <ol class='%s list'>",classname);
       while (PAIRP(scan)) {
-        lispval car=FD_CAR(val); scan=FD_CDR(scan);
+        lispval car=KNO_CAR(val); scan=KNO_CDR(scan);
         output_value(out,car,"li","listelt");}
       if (!(NILP(scan)))
         output_value(out,scan,"li","cdrelt");
       u8_printf(out,"\n</ol>");}
     u8_free(tmp);}
   else if (CHOICEP(val)) {
-    int size=FD_CHOICE_SIZE(val), i=0;
+    int size=KNO_CHOICE_SIZE(val), i=0;
     if (size<7)
       u8_printf(out," <ul class='%s short choice'>{",classname);
     else u8_printf(out," <ul class='%s choice'>{",classname);
@@ -412,20 +412,20 @@ static void output_value(u8_output out,lispval val,
       i++;}
     u8_printf(out,"}</ul>");}
   else if (PACKETP(val))
-    if (FD_PACKET_LENGTH(val)>128)
+    if (KNO_PACKET_LENGTH(val)>128)
       u8_printf(out," <%s class='%s long packet'>%lk</%s>",
                 eltname,classname,val,eltname);
     else u8_printf(out," <%s class='%s packet'>%lk</%s>",
                    eltname,classname,val,eltname);
   else {
-    fd_ptr_type ptrtype=FD_PTR_TYPE(val);
-    if (fd_type_names[ptrtype])
+    kno_ptr_type ptrtype=KNO_PTR_TYPE(val);
+    if (kno_type_names[ptrtype])
       u8_printf(out," <%s class='%s %s'>%lk</%s>",
-                eltname,classname,fd_type_names[ptrtype],
+                eltname,classname,kno_type_names[ptrtype],
                 val,eltname);}
 }
 
-#define INTVAL(x)    ((FIXNUMP(x))?(FD_INT(x)):(-1))
+#define INTVAL(x)    ((FIXNUMP(x))?(KNO_INT(x)):(-1))
 #define STRINGVAL(x) ((STRINGP(x))?(CSTRING(x)):((u8_string)"uninitialized"))
 
 static void output_stack_frame(u8_output out,lispval entry)
@@ -445,7 +445,7 @@ static void output_stack_frame(u8_output out,lispval entry)
               "   <span class='label'>%s</span>"
               "   <span class='depth'>%d</span>"
               "   <span class='type'>%s</span>",
-              STRINGVAL(label),FD_INT(depth),STRINGVAL(type));
+              STRINGVAL(label),KNO_INT(depth),STRINGVAL(type));
     if (STRINGP(status))
       u8_printf(out,"\n  <p class='status'>%s</p>\n",CSTRING(status));
     u8_puts(out,"</div>"); /* class='head' */
@@ -454,7 +454,7 @@ static void output_stack_frame(u8_output out,lispval entry)
     if (FALSEP(args)) {
       if (PAIRP(op)) {
         u8_puts(out,"\n  <pre class='eval expr'>\n");
-        fd_pprint(out,op,NULL,0,0,100);
+        kno_pprint(out,op,NULL,0,0,100);
         u8_puts(out,"\n  </pre>");}
       else u8_printf(out,"\n  <div class='eval'>%lk</div>",op);}
     else {
@@ -467,16 +467,16 @@ static void output_stack_frame(u8_output out,lispval entry)
         i++;}
       u8_puts(out,"\n  </div>\n");} /* class='call' */
     if (TABLEP(env)) {
-      lispval vars=fd_getkeys(env);
+      lispval vars=kno_getkeys(env);
       u8_printf(out,"<div class='bindings'>");
       DO_CHOICES(var,vars) {
-        if ( (out->u8_write - out->u8_outbuf) >= fd_htmlout_max) {
-          FD_STOP_DO_CHOICES;
+        if ( (out->u8_write - out->u8_outbuf) >= kno_htmlout_max) {
+          KNO_STOP_DO_CHOICES;
           break;}
         else if (SYMBOLP(var)) {
-          lispval val=fd_get(env,var,VOID);
+          lispval val=kno_get(env,var,VOID);
           u8_puts(out,"\n <div class='binding'>");
-          if ((val == VOID) || (val == FD_UNBOUND))
+          if ((val == VOID) || (val == KNO_UNBOUND))
             u8_printf(out,"<span class='varname'>%s</span> "
                       "<span class='evalsto'>⇒</span> "
                       "<span class='unbound'>UNBOUND</span>",
@@ -489,7 +489,7 @@ static void output_stack_frame(u8_output out,lispval entry)
                 u8_printf(out,
                           "<span class='values'>"
                           "<span class='nvals'>(%d values)</span> ",
-                          FD_CHOICE_SIZE(val));
+                          KNO_CHOICE_SIZE(val));
               {DO_CHOICES(v,val) {
                   output_value(out,v,"span","value");}}
               if (CHOICEP(val)) u8_puts(out," </span> ");}}
@@ -500,19 +500,19 @@ static void output_stack_frame(u8_output out,lispval entry)
   else {
     U8_STATIC_OUTPUT(pprinted,4096);
     u8_puts(out,"\n <pre class='lispobj'>\n");
-    fd_pprint(&pprinted,entry,NULL,0,0,80);
-    fd_emit_xmlcontent(out,pprinted.u8_outbuf);
+    kno_pprint(&pprinted,entry,NULL,0,0,80);
+    kno_emit_xmlcontent(out,pprinted.u8_outbuf);
     u8_puts(out,"\n</pre>\n");
     u8_close_output(&pprinted);}
 }
 
-FD_EXPORT
-void fd_html_backtrace(u8_output out,lispval backtrace)
+KNO_EXPORT
+void kno_html_backtrace(u8_output out,lispval backtrace)
 {
   /* Output the backtrace */
   lispval scan=backtrace; while (PAIRP(scan)) {
-    if ( (out->u8_write - out->u8_outbuf) >= fd_htmlout_max) return;
-    lispval entry=FD_CAR(scan); scan=FD_CDR(scan);
+    if ( (out->u8_write - out->u8_outbuf) >= kno_htmlout_max) return;
+    lispval entry=KNO_CAR(scan); scan=KNO_CDR(scan);
     output_stack_frame(out,entry);}
 }
 
@@ -527,17 +527,17 @@ static void output_xhtml_table(U8_OUTPUT *out,lispval tbl,lispval keys,
   else if (HASHTABLEP(tbl))
     u8_printf(out,"<tr><th colspan='2' class='header'>%lk</th></tr>\n",tbl);
   else u8_printf(out,"<tr><th colspan='2' class='header'>%s</th></tr>\n",
-                 fd_type_names[FD_PTR_TYPE(tbl)]);
+                 kno_type_names[KNO_PTR_TYPE(tbl)]);
   {
     DO_CHOICES(key,keys) {
-      if ( (out->u8_write - out->u8_outbuf) >= fd_htmlout_max) {
-        FD_STOP_DO_CHOICES; return;}
+      if ( (out->u8_write - out->u8_outbuf) >= kno_htmlout_max) {
+        KNO_STOP_DO_CHOICES; return;}
       lispval _value=
-        ((OIDP(tbl)) ? (fd_frame_get(tbl,key)) :
-         (fd_get(tbl,key,EMPTY)));
-      lispval values = fd_simplify_choice(_value);
+        ((OIDP(tbl)) ? (kno_frame_get(tbl,key)) :
+         (kno_get(tbl,key,EMPTY)));
+      lispval values = kno_simplify_choice(_value);
       u8_printf(out,"  <tr><th>");
-      fd_xmlout_helper(out,NULL,key,xmloidfn,NULL);
+      kno_xmlout_helper(out,NULL,key,xmloidfn,NULL);
       if (EMPTYP(values))
         u8_printf(out,"</th>\n    <td class='novalues'>No values</td></tr>\n");
       else if (CHOICEP(values)) {
@@ -548,49 +548,49 @@ static void output_xhtml_table(U8_OUTPUT *out,lispval tbl,lispval keys,
             first_item = 0;}
           else
             u8_puts(out,"        <div class='value'>");
-          fd_xmlout_helper(out,NULL,value,xmloidfn,NULL);
+          kno_xmlout_helper(out,NULL,value,xmloidfn,NULL);
           u8_puts(out,"</div> \n");}
         u8_printf(out,"    </td></tr>\n");}
       else {
         u8_printf(out,"</th>\n      <td class='singlevalue'>");
-        fd_xmlout_helper(out,NULL,values,xmloidfn,NULL);
+        kno_xmlout_helper(out,NULL,values,xmloidfn,NULL);
         u8_printf(out,"</td></tr>\n");}}}
   u8_printf(out,"</table>\n");
 }
 
-static lispval table2html_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+static lispval table2html_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   u8_string classname = NULL;
   U8_OUTPUT *out = u8_current_output;
-  lispval xmloidfn = fd_symeval(xmloidfn_symbol,env);
+  lispval xmloidfn = kno_symeval(xmloidfn_symbol,env);
   lispval tables, classarg, slotids;
-  tables = fd_eval(fd_get_arg(expr,1),env);
-  if (FD_ABORTP(tables))return tables;
+  tables = kno_eval(kno_get_arg(expr,1),env);
+  if (KNO_ABORTP(tables))return tables;
   else if (VOIDP(tables))
-    return fd_err(fd_SyntaxError,"table2html_evalfn",NULL,expr);
-  classarg = fd_eval(fd_get_arg(expr,2),env);
-  if (FD_ABORTP(classarg)) {
-    fd_decref(tables); return classarg;}
+    return kno_err(kno_SyntaxError,"table2html_evalfn",NULL,expr);
+  classarg = kno_eval(kno_get_arg(expr,2),env);
+  if (KNO_ABORTP(classarg)) {
+    kno_decref(tables); return classarg;}
   else if (STRINGP(classarg)) classname = CSTRING(classarg);
   else if ((VOIDP(classarg)) || (FALSEP(classarg))) {}
   else {
-    fd_decref(tables);
-    return fd_type_error(_("string"),"table2html_evalfn",classarg);}
-  slotids = fd_eval(fd_get_arg(expr,3),env);
-  if (FD_ABORTP(slotids)) {
-    fd_decref(tables); fd_decref(classarg); return slotids;}
+    kno_decref(tables);
+    return kno_type_error(_("string"),"table2html_evalfn",classarg);}
+  slotids = kno_eval(kno_get_arg(expr,3),env);
+  if (KNO_ABORTP(slotids)) {
+    kno_decref(tables); kno_decref(classarg); return slotids;}
   {
     DO_CHOICES(table,tables)
       if (TABLEP(table)) {
-        lispval keys = ((VOIDP(slotids)) ? (fd_getkeys(table)) : (slotids));
+        lispval keys = ((VOIDP(slotids)) ? (kno_getkeys(table)) : (slotids));
         if (classname)
           output_xhtml_table(out,table,keys,classname,xmloidfn);
         else if (OIDP(table))
           output_xhtml_table(out,table,keys,"frame_table",xmloidfn);
         else output_xhtml_table(out,table,keys,"table_table",xmloidfn);}
       else {
-        fd_decref(tables); fd_decref(classarg); fd_decref(slotids);
-        return fd_type_error(_("table"),"table2html_evalfn",table);}}
+        kno_decref(tables); kno_decref(classarg); kno_decref(slotids);
+        return kno_type_error(_("table"),"table2html_evalfn",table);}}
   return VOID;
 }
 
@@ -602,62 +602,62 @@ static lispval obj2html_prim(lispval obj,lispval tag)
     u8_string s = CSTRING(tag);
     u8_string dot = strchr(s,'.');
     if ((dot)&&((dot-s)>50))
-      return fd_type_error("HTML tag.class","obj2html_prim",tag);
+      return kno_type_error("HTML tag.class","obj2html_prim",tag);
     else if (dot) {
       memcpy(tagbuf,s,dot-s); tagbuf[dot-s]='\0';
       tagname = tagbuf; classname = dot+1;}
     else tagname = s;}
   else if (SYMBOLP(tag)) tagname = SYM_NAME(tag);
   else if ((VOIDP(tag))||(FALSEP(tag))) {}
-  else return fd_type_error("HTML tag.class","obj2html_prim",tag);
+  else return kno_type_error("HTML tag.class","obj2html_prim",tag);
   output_value(s,obj,tagname,classname);
   return VOID;
 }
 
-FD_EXPORT void fd_init_htmlout_c()
+KNO_EXPORT void kno_init_htmlout_c()
 {
-  lispval fdweb_module=fd_new_module("FDWEB",(0));
-  lispval safe_module=fd_new_module("FDWEB",(FD_MODULE_SAFE));
-  lispval xhtml_module=fd_new_module("XHTML",FD_MODULE_SAFE);
+  lispval fdweb_module=kno_new_module("FDWEB",(0));
+  lispval safe_module=kno_new_module("FDWEB",(KNO_MODULE_SAFE));
+  lispval xhtml_module=kno_new_module("XHTML",KNO_MODULE_SAFE);
 
-  lispval debug2html = fd_make_cprim2("DEBUGPAGE->HTML",debugpage2html_prim,0);
-  lispval backtrace2html = fd_make_cprim2("BACKTRACE->HTML",backtrace2html_prim,0);
+  lispval debug2html = kno_make_cprim2("DEBUGPAGE->HTML",debugpage2html_prim,0);
+  lispval backtrace2html = kno_make_cprim2("BACKTRACE->HTML",backtrace2html_prim,0);
 
-  fd_defn(fdweb_module,debug2html);
-  fd_defn(fdweb_module,backtrace2html);
+  kno_defn(fdweb_module,debug2html);
+  kno_defn(fdweb_module,backtrace2html);
 
-  fd_defn(safe_module,debug2html);
-  fd_defn(safe_module,backtrace2html);
+  kno_defn(safe_module,debug2html);
+  kno_defn(safe_module,backtrace2html);
 
-  fd_defn(xhtml_module,debug2html);
-  fd_defn(xhtml_module,backtrace2html);
+  kno_defn(xhtml_module,debug2html);
+  kno_defn(xhtml_module,backtrace2html);
 
-  fd_def_evalfn(xhtml_module,"TABLE->HTML","",table2html_evalfn);
-  fd_idefn(xhtml_module,fd_make_cprim2("OBJ->HTML",obj2html_prim,1));
+  kno_def_evalfn(xhtml_module,"TABLE->HTML","",table2html_evalfn);
+  kno_idefn(xhtml_module,kno_make_cprim2("OBJ->HTML",obj2html_prim,1));
 
-  fd_decref(debug2html);
-  fd_decref(backtrace2html);
+  kno_decref(debug2html);
+  kno_decref(backtrace2html);
 
-  xmloidfn_symbol = fd_intern("%XMLOID");
-  id_symbol = fd_intern("%ID");
-  href_symbol = fd_intern("HREF");
-  class_symbol = fd_intern("CLASS");
-  obj_name = fd_intern("OBJ-NAME");
-  quote_symbol = fd_intern("QUOTE");
-  xmltag_symbol = fd_intern("%XMLTAG");
-  rawtag_symbol = fd_intern("%RAWTAG");
-  browseinfo_symbol = fd_intern("BROWSEINFO");
-  embedded_symbol = fd_intern("%EMBEDDED");
-  error_style_symbol = fd_intern("%ERRORSTYLE");
-  error_script_symbol = fd_intern("%ERRORSCRIPT");
-  modules_symbol = fd_intern("%MODULES");
-  xml_env_symbol = fd_intern("%XMLENV");
+  xmloidfn_symbol = kno_intern("%XMLOID");
+  id_symbol = kno_intern("%ID");
+  href_symbol = kno_intern("HREF");
+  class_symbol = kno_intern("CLASS");
+  obj_name = kno_intern("OBJ-NAME");
+  quote_symbol = kno_intern("QUOTE");
+  xmltag_symbol = kno_intern("%XMLTAG");
+  rawtag_symbol = kno_intern("%RAWTAG");
+  browseinfo_symbol = kno_intern("BROWSEINFO");
+  embedded_symbol = kno_intern("%EMBEDDED");
+  error_style_symbol = kno_intern("%ERRORSTYLE");
+  error_script_symbol = kno_intern("%ERRORSCRIPT");
+  modules_symbol = kno_intern("%MODULES");
+  xml_env_symbol = kno_intern("%XMLENV");
 
-  moduleid_symbol = fd_intern("%MODULEID");
+  moduleid_symbol = kno_intern("%MODULEID");
 
-  fd_register_config
+  kno_register_config
     ("ERRORSTYLESHEET",_("Default style sheet for web errors"),
-     fd_sconfig_get,fd_sconfig_set,&error_stylesheet);
+     kno_sconfig_get,kno_sconfig_set,&error_stylesheet);
 
   u8_register_source_file(_FILEINFO);
 

@@ -1,0 +1,25 @@
+[Unit]
+Description=Kno servlet starter
+Requires=network.target local-fs.target
+After=fdaemons.service upsource.target
+
+[Service]
+Type=forking
+RemainAfterExit=true
+Environment=KNO_LAUNCHER=fdweb.service RUNUSER=@webuser@ RUNGROUP=@webgroup@
+PassEnvironment=KNO_LAUNCHER RUNUSER RUNGROUP
+TimeoutStartSec=300
+TimeoutStopSec=300
+ExecStartPre=@MKDIR@ -p @servlet_rundir@ @servlet_logdir@
+ExecStartPre=@CHOWN@ @webuser@ @servlet_rundir@ @servlet_logdir@
+ExecStartPre=@CHGRP@ @admin_group@ @servlet_rundir@ @servlet_logdir@
+ExecStartPre=@CHMOD@ g+rwx @servlet_rundir@ @servlet_logdir@
+ExecStart=@BINDIR@/kno_start_servlets @config_dir@/servlets
+ExecStartPost=@TOUCHFILE@ @kno_rundir@/servlets/_started
+ExecStartPost=@DELETEFILE@ -f @kno_rundir@/_sysv @kno_rundir@/_upstart
+ExecStartPost=@COPYFILE@ @kno_rundir@/servlets/_started @kno_rundir@/servlets/_systemd
+ExecStop=@BINDIR@/kno_stop_jobs @servlet_rundir@
+ExecStopPost=@DELETEFILE@ -f @kno_rundir@/servlets/_started @kno_rundir@/servlets/_systemd
+
+[Install]
+WantedBy=default.target

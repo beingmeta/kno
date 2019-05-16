@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -9,13 +9,13 @@
 #define _FILEINFO __FILE__
 #endif
 
-#include "framerd/components/storage_layer.h"
-#define FD_INLINE_BUFIO 1
-#define FD_INLINE_STREAMIO 1
+#include "kno/components/storage_layer.h"
+#define KNO_INLINE_BUFIO 1
+#define KNO_INLINE_STREAMIO 1
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/streams.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/streams.h"
 
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
@@ -48,7 +48,7 @@
 
 */
 
-FD_EXPORT void fd_init_simpleindex_c()
+KNO_EXPORT void kno_init_simpleindex_c()
 {
   u8_register_source_file(_FILEINFO);
 }

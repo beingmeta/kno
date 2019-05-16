@@ -13,19 +13,19 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/eval.h"
-#include "framerd/numbers.h"
-#include "framerd/sequences.h"
-#include "framerd/texttools.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/eval.h"
+#include "kno/numbers.h"
+#include "kno/sequences.h"
+#include "kno/texttools.h"
 
-#define FD_INLINE_X2VEC 1
+#define KNO_INLINE_X2VEC 1
 
 #include "x2vec.h"
 
-typedef struct FD_X2VEC_CONTEXT *x2vec_context;
-typedef struct FD_X2VEC_WORD *x2vec_word;
+typedef struct KNO_X2VEC_CONTEXT *x2vec_context;
+typedef struct KNO_X2VEC_WORD *x2vec_word;
 
 #include <libu8/libu8.h>
 #include <libu8/u8printf.h>
@@ -73,7 +73,7 @@ typedef struct FD_X2VEC_WORD *x2vec_word;
 static u8_condition InvalidOpSeparator = _("Invalid opt separator");
 static int default_num_threads=2;
 
-fd_ptr_type fd_x2vec_type;
+kno_ptr_type kno_x2vec_type;
 
 static lispval hidden_size, window_symbol, hash_reduce_symbol, min_count_symbol;
 static lispval n_clusters_symbol, n_cluster_rounds_symbol;
@@ -85,27 +85,27 @@ static lispval negsamp_symbol, hisoftmax_symbol, hash_max_symbol;
 static lispval mode_symbol, bag_of_words_symbol, skipgram_symbol;
 static lispval num_threads_symbol;
 
-static int default_hidden_size=FD_X2VEC_HIDDEN_SIZE;
-static int default_window=FD_X2VEC_WINDOW;
+static int default_hidden_size=KNO_X2VEC_HIDDEN_SIZE;
+static int default_window=KNO_X2VEC_WINDOW;
 /* This is the number used to toss out vocabulary entries while the vocabulary is growing */
-static int default_hash_reduce=FD_X2VEC_HASH_REDUCE;
+static int default_hash_reduce=KNO_X2VEC_HASH_REDUCE;
 /* This is the number used to toss out vocabulary entries before sorting/finalizing */
-static int default_min_count=FD_X2VEC_MIN_COUNT;
-static int default_n_clusters=FD_X2VEC_N_CLUSTERS;
-static int default_n_cluster_rounds=FD_X2VEC_N_CLUSTER_ROUNDS;
-static int default_unigrams_size=FD_X2VEC_UNIGRAMS_SIZE;
-static int default_vocab_size=FD_X2VEC_VOCAB_SIZE;
-static float default_init_alpha=FD_X2VEC_INIT_ALPHA;
-static float default_subsample=FD_X2VEC_SUBSAMPLE;
-static int default_negsamp=FD_X2VEC_NEGSAMP;
-static int default_hisoft=FD_X2VEC_HISOFT;
-static int default_cbow=FD_X2VEC_CBOW;
-static int default_loglevel=FD_X2VEC_LOGLEVEL;
-static int default_logfreq=FD_X2VEC_LOGFREQ;
-static size_t default_hash_size=FD_X2VEC_HASH_SIZE;
-static size_t default_hash_max=FD_X2VEC_HASH_MAX;
-static size_t default_exp_slots=FD_X2VEC_EXP_SLOTS;
-static size_t default_exp_max=FD_X2VEC_EXP_MAX;
+static int default_min_count=KNO_X2VEC_MIN_COUNT;
+static int default_n_clusters=KNO_X2VEC_N_CLUSTERS;
+static int default_n_cluster_rounds=KNO_X2VEC_N_CLUSTER_ROUNDS;
+static int default_unigrams_size=KNO_X2VEC_UNIGRAMS_SIZE;
+static int default_vocab_size=KNO_X2VEC_VOCAB_SIZE;
+static float default_init_alpha=KNO_X2VEC_INIT_ALPHA;
+static float default_subsample=KNO_X2VEC_SUBSAMPLE;
+static int default_negsamp=KNO_X2VEC_NEGSAMP;
+static int default_hisoft=KNO_X2VEC_HISOFT;
+static int default_cbow=KNO_X2VEC_CBOW;
+static int default_loglevel=KNO_X2VEC_LOGLEVEL;
+static int default_logfreq=KNO_X2VEC_LOGFREQ;
+static size_t default_hash_size=KNO_X2VEC_HASH_SIZE;
+static size_t default_hash_max=KNO_X2VEC_HASH_MAX;
+static size_t default_exp_slots=KNO_X2VEC_EXP_SLOTS;
+static size_t default_exp_max=KNO_X2VEC_EXP_MAX;
 
 static int show_progress=0;
 
@@ -136,19 +136,19 @@ static real block_train(x2vec_context x2v,
 
 /* Export static defs */
 
-FD_EXPORT int _fd_x2vec_vocabid(x2vec_context x2vcxt,u8_string word)
+KNO_EXPORT int _kno_x2vec_vocabid(x2vec_context x2vcxt,u8_string word)
 {
-  return fd_x2vec_vocabid(x2vcxt,word);
+  return kno_x2vec_vocabid(x2vcxt,word);
 }
 
-FD_EXPORT int _fd_x2vec_hash(x2vec_context x2vcxt,u8_string word)
+KNO_EXPORT int _kno_x2vec_hash(x2vec_context x2vcxt,u8_string word)
 {
-  return fd_x2vec_hash(x2vcxt,word);
+  return kno_x2vec_hash(x2vcxt,word);
 }
 
-FD_EXPORT float *_fd_x2vec_get(x2vec_context x2vcxt,u8_string word)
+KNO_EXPORT float *_kno_x2vec_get(x2vec_context x2vcxt,u8_string word)
 {
-  return fd_x2vec_get(x2vcxt,word);
+  return kno_x2vec_get(x2vcxt,word);
 }
 
 /* Utility macros */
@@ -166,8 +166,8 @@ static void *safe_malloc(size_t n_bytes,u8_context context)
   void *result = u8_malloc(n_bytes);
   if (result == NULL) {
     u8_byte *buf=u8_malloc(64);
-    sprintf(buf,"%llu",FD_LONGVAL(n_bytes));
-    u8_raise(fd_MallocFailed,context,buf);
+    sprintf(buf,"%llu",KNO_LONGVAL(n_bytes));
+    u8_raise(kno_MallocFailed,context,buf);
     return NULL;}
   else return result;
 }
@@ -180,7 +180,7 @@ static void *safe_calloc(size_t n_elts,size_t elt_size,u8_context context)
     sprintf(buf,"%llux{%llu}",
 	    (unsigned long long) n_elts,
 	    (unsigned long long) elt_size);
-    u8_raise(fd_MallocFailed,context,buf);
+    u8_raise(kno_MallocFailed,context,buf);
     return NULL;}
   else return result;
 }
@@ -188,14 +188,14 @@ static void *safe_calloc(size_t n_elts,size_t elt_size,u8_context context)
 static long long getintopt(lispval opts,lispval sym,
 			   long long dflt)
 {
-  lispval v=fd_getopt(opts,sym,FD_VOID);
-  if (FD_FIXNUMP(v))
-    return FD_FIX2INT(v);
-  else if ((FD_VOIDP(v))||(FD_FALSEP(v)))
+  lispval v=kno_getopt(opts,sym,KNO_VOID);
+  if (KNO_FIXNUMP(v))
+    return KNO_FIX2INT(v);
+  else if ((KNO_VOIDP(v))||(KNO_FALSEP(v)))
     return dflt;
-  else if (FD_BIGINTP(v)) {
-    long long intv=fd_bigint_to_long_long((struct FD_BIGINT *)v);
-    fd_decref(v);
+  else if (KNO_BIGINTP(v)) {
+    long long intv=kno_bigint_to_long_long((struct KNO_BIGINT *)v);
+    kno_decref(v);
     return intv;}
   else {
     u8_log(LOG_WARN,"Bad integer option value",
@@ -205,34 +205,34 @@ static long long getintopt(lispval opts,lispval sym,
 
 static real getrealopt(lispval opts,lispval sym,real dflt)
 {
-  lispval v = fd_getopt(opts,sym,FD_VOID);
-  if ((FD_VOIDP(v))||(FD_FALSEP(v)))
+  lispval v = kno_getopt(opts,sym,KNO_VOID);
+  if ((KNO_VOIDP(v))||(KNO_FALSEP(v)))
     return dflt;
-  else if (FD_FLONUMP(v)) {
-    double realval=FD_FLONUM(v);
-    fd_decref(v);
+  else if (KNO_FLONUMP(v)) {
+    double realval=KNO_FLONUM(v);
+    kno_decref(v);
     return (real) realval;}
   else return dflt;
 }
 
 static long long getboolopt(lispval opts,lispval sym,int dflt)
 {
-  lispval v=fd_getopt(opts,sym,FD_VOID);
-  if (FD_VOIDP(v)) 
+  lispval v=kno_getopt(opts,sym,KNO_VOID);
+  if (KNO_VOIDP(v)) 
     return dflt;
-  else if (FD_FIXNUMP(v)) {
-    int fv=FD_FIX2INT(v);
+  else if (KNO_FIXNUMP(v)) {
+    int fv=KNO_FIX2INT(v);
     if (fv>0) return 1; else return 0;}
-  else if (FD_FALSEP(v))
+  else if (KNO_FALSEP(v))
     return 0;
-  else if (FD_TRUEP(v))
+  else if (KNO_TRUEP(v))
     return 1;
   else {
     int bv=-1;
-    if (FD_STRINGP(v))
-      bv=fd_boolstring(FD_CSTRING(v),dflt);
-    else if (FD_SYMBOLP(v))
-      bv=fd_boolstring(FD_SYMBOL_NAME(v),dflt);
+    if (KNO_STRINGP(v))
+      bv=kno_boolstring(KNO_CSTRING(v),dflt);
+    else if (KNO_SYMBOLP(v))
+      bv=kno_boolstring(KNO_SYMBOL_NAME(v),dflt);
     else {}
     if (bv<0) {
       u8_log(LOG_WARN,"Bad boolean option value",
@@ -275,13 +275,13 @@ static float cosim_float(int n,float *x,float *y,int normalized)
 
 static lispval normalized_floatvec(int n,float *vec)
 {
-  lispval result=fd_make_float_vector(n,vec);
-  float *elts=FD_NUMVEC_FLOATS(result);
+  lispval result=kno_make_float_vector(n,vec);
+  float *elts=KNO_NUMVEC_FLOATS(result);
   float len=0; int i=0; while (i<n) {
     len=len+elts[i]*elts[i]; i++;}
   if (len==0) {
-    fd_decref(result);
-    return FD_EMPTY_CHOICE;}
+    kno_decref(result);
+    return KNO_EMPTY_CHOICE;}
   else len=sqrt(len);
   i=0; while (i<n) {elts[i]=elts[i]/len; i++;}
   return result;
@@ -316,12 +316,12 @@ static int vocab_add(x2vec_context x2v,
   if (vocab_size + n_opts + 2 >= vocab_alloc_size) {
     size_t new_size = vocab_alloc_size+16384;
     x2vec_word new_vocab = (x2vec_word)
-      realloc(vocab, new_size * sizeof(struct FD_X2VEC_WORD));
+      realloc(vocab, new_size * sizeof(struct KNO_X2VEC_WORD));
     u8_log(x2v->x2vec_loglevel+1,"X2Vec/vocab_add",
            "Growing vocab from %lld to %lld entries",
            vocab_alloc_size,new_size);
     if (new_vocab==NULL) {
-      u8_raise(fd_MallocFailed,"x2vec/add_word_to_vocab",u8_strdup(word));}
+      u8_raise(kno_MallocFailed,"x2vec/add_word_to_vocab",u8_strdup(word));}
     x2v->x2vec_vocab_alloc_size = vocab_alloc_size = new_size;
     x2v->x2vec_vocab = vocab = new_vocab;
     if (vocabp) *vocabp=new_vocab;}
@@ -330,7 +330,7 @@ static int vocab_add(x2vec_context x2v,
   vocab_size++; x2v->x2vec_vocab_size=vocab_size;
   if (x2v->x2vec_vocab_size > (x2v->x2vec_vocab_hash_size * 0.7))
     hash_overflow(x2v);
-  hash = fd_x2vec_hash(x2v,word);
+  hash = kno_x2vec_hash(x2v,word);
   while (vocab_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
   word_ref = vocab_size - 1;
   vocab_hash[hash] = word_ref;
@@ -368,7 +368,7 @@ static int vocab_ref(x2vec_context x2vcxt,
   int *vocab_hash = x2vcxt->x2vec_vocab_hash;
   if (vocab_hash) {
     size_t vocab_hash_size = x2vcxt->x2vec_vocab_hash_size;
-    unsigned int hash=fd_x2vec_hash(x2vcxt,word);
+    unsigned int hash=kno_x2vec_hash(x2vcxt,word);
     while (1) {
       if (vocab_hash[hash] == -1) break;
       if (!strcmp(word, vocab[vocab_hash[hash]].word)) {
@@ -398,7 +398,7 @@ static int vocab_init(x2vec_context x2vcxt,u8_string word,int i)
   size_t vocab_hash_size = x2vcxt->x2vec_vocab_hash_size;
   vocab[i].word = u8_strdup(word);
   vocab[i].count = 0;
-  hash = fd_x2vec_hash(x2vcxt,word);
+  hash = kno_x2vec_hash(x2vcxt,word);
   while (vocab_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
   vocab_hash[hash] = i;
   return i;
@@ -412,53 +412,53 @@ static long long import_vocab(x2vec_context x2vcxt,lispval data)
   else {
     int fresh=(x2vcxt->x2vec_vocab_size==0);
     x2vec_word vocab = init_vocab_tables(x2vcxt,-1);
-    if (FD_CHOICEP(data)) {
-      FD_DO_CHOICES(entry,data) {
-        if (FD_PAIRP(entry)) {
-          lispval word=FD_CAR(entry), num=FD_CDR(entry);
-          long wd = ((fresh)?(vocab_add(x2vcxt,FD_CSTRING(word),0,&vocab)):
-                     (vocab_ref(x2vcxt,FD_CSTRING(word),&vocab)));
+    if (KNO_CHOICEP(data)) {
+      KNO_DO_CHOICES(entry,data) {
+        if (KNO_PAIRP(entry)) {
+          lispval word=KNO_CAR(entry), num=KNO_CDR(entry);
+          long wd = ((fresh)?(vocab_add(x2vcxt,KNO_CSTRING(word),0,&vocab)):
+                     (vocab_ref(x2vcxt,KNO_CSTRING(word),&vocab)));
           if (fresh)
-            vocab[wd].count = FD_INT(num);
-          else vocab[wd].count += FD_INT(num);}
-        else if (FD_STRINGP(entry)) {
-          long wd = ((fresh)?(vocab_add(x2vcxt,FD_CSTRING(entry),0,&vocab)):
-                     (vocab_ref(x2vcxt,FD_CSTRING(entry),&vocab)));
+            vocab[wd].count = KNO_INT(num);
+          else vocab[wd].count += KNO_INT(num);}
+        else if (KNO_STRINGP(entry)) {
+          long wd = ((fresh)?(vocab_add(x2vcxt,KNO_CSTRING(entry),0,&vocab)):
+                     (vocab_ref(x2vcxt,KNO_CSTRING(entry),&vocab)));
           if (fresh) vocab[wd].count = 1;
           else vocab[wd].count++;}
         else {
           u8_log(LOG_WARN,"Bad Vocab import","Couldn't use %q",entry);}}}
-    else if (FD_VECTORP(data)) {
-      struct FD_VECTOR *vec=(struct FD_VECTOR *)data;
+    else if (KNO_VECTORP(data)) {
+      struct KNO_VECTOR *vec=(struct KNO_VECTOR *)data;
       lispval *elts=vec->vec_elts;
       int i=0, len=vec->vec_length; while (i<len) {
         lispval elt=elts[i];
-        if (FD_STRINGP(elt)) {
-          u8_string text = FD_CSTRING(elt);
+        if (KNO_STRINGP(elt)) {
+          u8_string text = KNO_CSTRING(elt);
           int wd = vocab_ref(x2vcxt,text,NULL);
           vocab[wd].count++;}
         else {
           u8_log(LOG_WARN,"BadImportItem", "Bad text input item %q",elt);}
         i++;}}
-    else if (FD_TABLEP(data)) {
-      lispval keys=fd_getkeys(data);
-      FD_DO_CHOICES(key,keys) {
-        if (FD_STRINGP(key)) {
-          lispval value=fd_get(data,key,FD_VOID);
-          if ((FD_FIXNUMP(value))||(FD_BIGINTP(value))) {
-            u8_string text=FD_CSTRING(key);
+    else if (KNO_TABLEP(data)) {
+      lispval keys=kno_getkeys(data);
+      KNO_DO_CHOICES(key,keys) {
+        if (KNO_STRINGP(key)) {
+          lispval value=kno_get(data,key,KNO_VOID);
+          if ((KNO_FIXNUMP(value))||(KNO_BIGINTP(value))) {
+            u8_string text=KNO_CSTRING(key);
             int wd=vocab_ref(x2vcxt,u8_strdup(text),&vocab);
-            long long count=FD_FIXNUMP(value)? (FD_FIX2INT(value)) :
-              (fd_bigint_to_long_long((fd_bigint)value));
+            long long count=KNO_FIXNUMP(value)? (KNO_FIX2INT(value)) :
+              (kno_bigint_to_long_long((kno_bigint)value));
             if (fresh) vocab[wd].count = count;
             else vocab[wd].count += count;
-            fd_decref(value);}
+            kno_decref(value);}
           else {
             u8_log(LOG_WARN,"BadWordCount",
                    "Invalid word count value for %q: %q",key,value);
-            fd_decref(value);}}
+            kno_decref(value);}}
         else {}}
-      fd_decref(keys);}
+      kno_decref(keys);}
     return x2vcxt->x2vec_vocab_size;}
 }
 
@@ -474,21 +474,21 @@ static long long init_vocab(x2vec_context x2v,lispval traindata)
     size_t vocab_hash_size = x2v->x2vec_vocab_hash_size;
     u8_log(x2v->x2vec_loglevel,"X2Vec/Vocab/Init",
            "Initializing vocabulary from %d words of training data\n\t%q",
-           FD_VECTOR_LENGTH(traindata),
+           KNO_VECTOR_LENGTH(traindata),
            (lispval)x2v);
     for (hash_i = 0; hash_i < vocab_hash_size; hash_i++) 
       vocab_hash[hash_i] = -1;
     if (fresh)
       vocab_add(x2v,(char *)"</s>",0,&vocab);
     else vocab_ref(x2v,(char *)"</s>",&vocab);
-    if (FD_VECTORP(traindata)) {
-      struct FD_VECTOR *vec =
-        FD_GET_CONS(traindata,fd_vector_type,struct FD_VECTOR *);
+    if (KNO_VECTORP(traindata)) {
+      struct KNO_VECTOR *vec =
+        KNO_GET_CONS(traindata,kno_vector_type,struct KNO_VECTOR *);
       lispval *data = vec->vec_elts; int lim=vec->vec_length;
       int ref=0; while (ref<lim) {
         lispval word=data[ref];
-        if (FD_STRINGP(word)) {
-          u8_string text = FD_CSTRING(word);
+        if (KNO_STRINGP(word)) {
+          u8_string text = KNO_CSTRING(word);
           long wd = vocab_ref(x2v,text,&vocab);
           vocab[wd].count++;}
         else u8_log(LOG_WARN,"BadTrainingInput",
@@ -498,7 +498,7 @@ static long long init_vocab(x2vec_context x2v,lispval traindata)
         ref++;}}
     u8_log(x2v->x2vec_loglevel,"X2Vec/Vocab/Init",
            "Selected %lld words from %d words of training data\n\t%q",
-           x2v->x2vec_vocab_size,FD_VECTOR_LENGTH(traindata),
+           x2v->x2vec_vocab_size,KNO_VECTOR_LENGTH(traindata),
            (lispval)x2v);
     return x2v->x2vec_vocab_size;}
 }
@@ -516,7 +516,7 @@ static void sort_vocab(x2vec_context x2v)
   int min_count= x2v->x2vec_min_count;
   double start = u8_elapsed_time();
   // Sort the vocabulary and keep </s> at the first position
-  qsort(&vocab[1], vocab_size - 1, sizeof(struct FD_X2VEC_WORD), vocab_compare);
+  qsort(&vocab[1], vocab_size - 1, sizeof(struct KNO_X2VEC_WORD), vocab_compare);
   /* Reset the hash table */
   for (a = 0; a < vocab_hash_size; a++) vocab_hash[a] = -1;
   train_words = 0;
@@ -525,7 +525,7 @@ static void sort_vocab(x2vec_context x2v)
     if (vocab[a].count < min_count) break;
     else {
       // Hash will be re-computed, as after the sorting it is not actual
-      hash=fd_x2vec_hash(x2v,vocab[a].word);
+      hash=kno_x2vec_hash(x2v,vocab[a].word);
       while (vocab_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
       vocab_hash[hash] = a;
       train_words += vocab[a].count;}}
@@ -541,9 +541,9 @@ static void sort_vocab(x2vec_context x2v)
   
   /* We realloc to just keep the entries we are using */
   new_vocab = (x2vec_word)
-    realloc(vocab, (vocab_size + 1) * sizeof(struct FD_X2VEC_WORD));
+    realloc(vocab, (vocab_size + 1) * sizeof(struct KNO_X2VEC_WORD));
   if (new_vocab==NULL) {
-    u8_raise(fd_MallocFailed,"x2vec/sort_vocab",NULL);}
+    u8_raise(kno_MallocFailed,"x2vec/sort_vocab",NULL);}
 
   // Allocate memory for the binary tree construction
   for (a = 0; a < vocab_size; a++) {
@@ -590,7 +590,7 @@ static void reduce_vocab(x2vec_context x2v)
   for (a = 0; a < vocab_hash_size; a++) vocab_hash[a] = -1;
   for (a = 0; a < vocab_size; a++) {
     // Hash will be re-computed, as it is not accurate any longer
-    hash = fd_x2vec_hash(x2v,vocab[a].word);
+    hash = kno_x2vec_hash(x2v,vocab[a].word);
     while (vocab_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
     vocab_hash[hash] = a;}
 
@@ -733,7 +733,7 @@ static void init_nn(x2vec_context x2v)
     else if (memalign_rv==EINVAL) {
       u8_raise(_("Not enough memory"),"x2vec/init_nn/syn0",NULL);}
     else if ((x2v->x2vec_syn0) == NULL) {
-      u8_raise(fd_MallocFailed,"x2vec/init_nn/syn0",NULL);}
+      u8_raise(kno_MallocFailed,"x2vec/init_nn/syn0",NULL);}
     else syn0=x2v->x2vec_syn0;}
   else syn0=x2v->x2vec_syn0;
 
@@ -745,7 +745,7 @@ static void init_nn(x2vec_context x2v)
     else if (memalign_rv==EINVAL) {
       u8_raise(_("Not enough memory"),"x2vec/init_nn/syn1",NULL);}
     else if ((x2v->x2vec_syn1) == NULL) {
-      u8_raise(fd_MallocFailed,"x2vec/init_nn/syn1",NULL);}
+      u8_raise(kno_MallocFailed,"x2vec/init_nn/syn1",NULL);}
     else syn1=x2v->x2vec_syn1;
 
     for (b = 0; b < hidden_size; b++) {
@@ -760,7 +760,7 @@ static void init_nn(x2vec_context x2v)
     else if (memalign_rv==EINVAL) {
       u8_raise(_("Not enough memory"),"x2vec/init_nn/syn1neg",NULL);}
     else if ((x2v->x2vec_syn1neg) == NULL) {
-      u8_raise(fd_MallocFailed,"x2vec/init_nn/syn1neg",NULL);}
+      u8_raise(kno_MallocFailed,"x2vec/init_nn/syn1neg",NULL);}
     else syn1neg=x2v->x2vec_syn1neg;
 
     for (b = 0; b < hidden_size; b++) {
@@ -778,7 +778,7 @@ static void init_nn(x2vec_context x2v)
 
 void *training_threadproc(void *state)
 {
-  struct FD_X2VEC_STATE *x2vs=(struct FD_X2VEC_STATE *)state;
+  struct KNO_X2VEC_STATE *x2vs=(struct KNO_X2VEC_STATE *)state;
   x2vec_context x2v=x2vs->x2vec_x2vcxt;
   x2vec_word vocab = x2v->x2vec_vocab;
   double start=x2vs->x2vec_start; 
@@ -796,7 +796,7 @@ void *training_threadproc(void *state)
   long long word_count = 0, last_word_count = 0, block[X2VEC_MAX_BLOCK_LENGTH + 1];
   long long l1, l2, c, target, label;
   int hidden_size = x2v->x2vec_hidden_size, window = x2v->x2vec_window;
-  struct FD_VECTOR *vec=FD_GET_CONS(input,fd_vector_type,struct FD_VECTOR *);
+  struct KNO_VECTOR *vec=KNO_GET_CONS(input,kno_vector_type,struct KNO_VECTOR *);
   int vec_len = vec->vec_length, vec_pos=(vec_len/n_threads)*thread_i;
   lispval *vec_data = vec->vec_elts;
   real *hidden = (real *)
@@ -837,8 +837,8 @@ void *training_threadproc(void *state)
     if (block_length == 0) {
       while (vec_pos<vec_len) {
 	lispval input = vec_data[vec_pos++];
-	if (FD_STRINGP(input)) 
-	  word = fd_x2vec_vocabid(x2v,FD_CSTRING(input));
+	if (KNO_STRINGP(input)) 
+	  word = kno_x2vec_vocabid(x2v,KNO_CSTRING(input));
 	else continue;
 	if (word < 0) continue;
         word_count++;
@@ -997,7 +997,7 @@ void *training_threadproc(void *state)
     /* while (vec_pos < vec_len) */}
   free(hidden);
   free(errv);
-  fd_decref(opts);
+  kno_decref(opts);
   pthread_exit(NULL);
 }
 
@@ -1191,7 +1191,7 @@ static real block_train(x2vec_context x2v,
 
 void *modular_training_threadproc(void *state)
 {
-  struct FD_X2VEC_STATE *x2vs=(struct FD_X2VEC_STATE *)state;
+  struct KNO_X2VEC_STATE *x2vs=(struct KNO_X2VEC_STATE *)state;
   x2vec_context x2v=x2vs->x2vec_x2vcxt;
   x2vec_word vocab = x2v->x2vec_vocab;
   double start=x2vs->x2vec_start; 
@@ -1202,7 +1202,7 @@ void *modular_training_threadproc(void *state)
   long long word;
   long long word_count = 0, last_word_count = 0, block[X2VEC_MAX_BLOCK_LENGTH + 1];
   int hidden_size = x2v->x2vec_hidden_size;
-  struct FD_VECTOR *vec=FD_GET_CONS(input,fd_vector_type,struct FD_VECTOR *);
+  struct KNO_VECTOR *vec=KNO_GET_CONS(input,kno_vector_type,struct KNO_VECTOR *);
   int vec_len = vec->vec_length, vec_pos=(vec_len/n_threads)*thread_i;
   lispval *vec_data = vec->vec_elts;
   real *hidden = (real *)
@@ -1241,8 +1241,8 @@ void *modular_training_threadproc(void *state)
         alpha = starting_alpha * 0.0001;}
     while (vec_pos<vec_len) {
       lispval input = vec_data[vec_pos++];
-      if (FD_STRINGP(input)) 
-        word = fd_x2vec_vocabid(x2v,FD_CSTRING(input));
+      if (KNO_STRINGP(input)) 
+        word = kno_x2vec_vocabid(x2v,KNO_CSTRING(input));
       else continue;
       if (word < 0) continue;
       word_count++;
@@ -1267,7 +1267,7 @@ void *modular_training_threadproc(void *state)
     /* while (vec_pos < vec_len) */}
   free(hidden);
   free(errv);
-  fd_decref(opts);
+  kno_decref(opts);
   pthread_exit(NULL);
 }
 
@@ -1277,12 +1277,12 @@ static void train_model(x2vec_context x2v,
 			lispval opts)
 {
   long a;
-  lispval xopts=(FD_VOIDP(opts))?(fd_incref(x2v->x2vec_opts)):
-    (fd_make_pair(opts,x2v->x2vec_opts));
+  lispval xopts=(KNO_VOIDP(opts))?(kno_incref(x2v->x2vec_opts)):
+    (kno_make_pair(opts,x2v->x2vec_opts));
   int n_threads = getintopt(xopts,num_threads_symbol,default_num_threads);
   pthread_t *pt = (pthread_t *)malloc(n_threads * sizeof(pthread_t));
-  struct FD_X2VEC_STATE *thread_states =
-    safe_calloc(n_threads,sizeof(struct FD_X2VEC_STATE),
+  struct KNO_X2VEC_STATE *thread_states =
+    safe_calloc(n_threads,sizeof(struct KNO_X2VEC_STATE),
 		"x2v/TrainModel/threadstates");
   double start, now;
   int stop=0;
@@ -1290,7 +1290,7 @@ static void train_model(x2vec_context x2v,
 
   init_exp_table(x2v);
 
-  if (FD_VOIDP(vocab)) {
+  if (KNO_VOIDP(vocab)) {
     if (x2v->x2vec_vocab==NULL) {
       init_vocab(x2v,training);}
     else u8_log(x2v->x2vec_loglevel,"X2Vec/Vocab/Init",
@@ -1309,18 +1309,18 @@ static void train_model(x2vec_context x2v,
   u8_log(x2v->x2vec_loglevel,"X2Vec/Train",
          "Training %s%s%swith %d threads over %d tokens and %d terms\n\t%q",
          QUOTE_LABEL(x2v->x2vec_label),n_threads,
-         FD_VECTOR_LENGTH(training), x2v->x2vec_vocab_size,
+         KNO_VECTOR_LENGTH(training), x2v->x2vec_vocab_size,
          (lispval)x2v);
 
   /* Start all the threads */
   for (a = 0; a < n_threads; a++) {
-    struct FD_X2VEC_STATE *tstate=&(thread_states[a]);
+    struct KNO_X2VEC_STATE *tstate=&(thread_states[a]);
     tstate->x2vec_x2vcxt=x2v; tstate->x2vec_input=training;
-    tstate->x2vec_opts=xopts; fd_incref(xopts);
+    tstate->x2vec_opts=xopts; kno_incref(xopts);
     tstate->x2vec_thread_i=a; tstate->x2vec_n_threads=n_threads;
     tstate->x2vec_start=start; tstate->x2vec_stop=&stop;
     pthread_create(&pt[a], NULL, training_threadproc, (void *) tstate);}
-  fd_decref(xopts);
+  kno_decref(xopts);
   /* Wait for all of the threads to finish */
   for (a = 0; a < n_threads; a++) {
     pthread_join(pt[a], NULL);}
@@ -1330,16 +1330,16 @@ static void train_model(x2vec_context x2v,
   u8_log(x2v->x2vec_loglevel,"X2Vec/Train/Done",
          "Finished training %s%s%sin %.2fs over %d inputs and %d terms using %d threads\n\t%q",
          QUOTE_LABEL(x2v->x2vec_label),now-start,
-         FD_VECTOR_LENGTH(training),x2v->x2vec_vocab_size,n_threads,
+         KNO_VECTOR_LENGTH(training),x2v->x2vec_vocab_size,n_threads,
          (lispval)x2v);
 
   if ((x2v->x2vec_n_clusters)&&(x2v->x2vec_word2cluster==NULL)) {
-    lispval nc=fd_getopt(x2v->x2vec_opts,n_clusters_symbol,FD_VOID);
-    if (FD_FIXNUMP(nc))
+    lispval nc=kno_getopt(x2v->x2vec_opts,n_clusters_symbol,KNO_VOID);
+    if (KNO_FIXNUMP(nc))
       x2v->x2vec_word2cluster=
-        fd_x2vec_classify(x2v,x2v->x2vec_n_clusters,x2v->x2vec_n_cluster_rounds,
+        kno_x2vec_classify(x2v,x2v->x2vec_n_clusters,x2v->x2vec_n_cluster_rounds,
                           &(x2v->x2vec_centers));
-    else fd_decref(nc);}
+    else kno_decref(nc);}
 }
 
 static void modular_train_model(x2vec_context x2v,
@@ -1348,12 +1348,12 @@ static void modular_train_model(x2vec_context x2v,
                                 lispval opts)
 {
   long a;
-  lispval xopts=(FD_VOIDP(opts))?(fd_incref(x2v->x2vec_opts)):
-    (fd_make_pair(opts,x2v->x2vec_opts));
+  lispval xopts=(KNO_VOIDP(opts))?(kno_incref(x2v->x2vec_opts)):
+    (kno_make_pair(opts,x2v->x2vec_opts));
   int n_threads = getintopt(xopts,num_threads_symbol,default_num_threads);
   pthread_t *pt = (pthread_t *)malloc(n_threads * sizeof(pthread_t));
-  struct FD_X2VEC_STATE *thread_states =
-    safe_calloc(n_threads,sizeof(struct FD_X2VEC_STATE),
+  struct KNO_X2VEC_STATE *thread_states =
+    safe_calloc(n_threads,sizeof(struct KNO_X2VEC_STATE),
 		"x2v/TrainModel/threadstates");
   double start, now;
   int stop=0;
@@ -1361,7 +1361,7 @@ static void modular_train_model(x2vec_context x2v,
 
   init_exp_table(x2v);
 
-  if (FD_VOIDP(vocab)) {
+  if (KNO_VOIDP(vocab)) {
     if (x2v->x2vec_vocab==NULL) {
       init_vocab(x2v,training);}
     else u8_log(x2v->x2vec_loglevel,"X2Vec/Vocab/Init",
@@ -1380,18 +1380,18 @@ static void modular_train_model(x2vec_context x2v,
   u8_log(x2v->x2vec_loglevel,"X2Vec/Train",
          "Training %s%s%swith %d threads over %d tokens and %d terms\n\t%q",
          QUOTE_LABEL(x2v->x2vec_label),n_threads,
-         FD_VECTOR_LENGTH(training), x2v->x2vec_vocab_size,
+         KNO_VECTOR_LENGTH(training), x2v->x2vec_vocab_size,
          (lispval)x2v);
 
   /* Start all the threads */
   for (a = 0; a < n_threads; a++) {
-    struct FD_X2VEC_STATE *tstate=&(thread_states[a]);
+    struct KNO_X2VEC_STATE *tstate=&(thread_states[a]);
     tstate->x2vec_x2vcxt=x2v; tstate->x2vec_input=training;
-    tstate->x2vec_opts=xopts; fd_incref(xopts);
+    tstate->x2vec_opts=xopts; kno_incref(xopts);
     tstate->x2vec_thread_i=a; tstate->x2vec_n_threads=n_threads;
     tstate->x2vec_start=start; tstate->x2vec_stop=&stop;
     pthread_create(&pt[a], NULL, modular_training_threadproc, (void *) tstate);}
-  fd_decref(xopts);
+  kno_decref(xopts);
   /* Wait for all of the threads to finish */
   for (a = 0; a < n_threads; a++) {
     pthread_join(pt[a], NULL);}
@@ -1401,21 +1401,21 @@ static void modular_train_model(x2vec_context x2v,
   u8_log(x2v->x2vec_loglevel,"X2Vec/Train/Done",
          "Finished training %s%s%sin %.2fs over %d inputs and %d terms using %d threads\n\t%q",
          QUOTE_LABEL(x2v->x2vec_label),now-start,
-         FD_VECTOR_LENGTH(training),x2v->x2vec_vocab_size,n_threads,
+         KNO_VECTOR_LENGTH(training),x2v->x2vec_vocab_size,n_threads,
          (lispval)x2v);
 
   if ((x2v->x2vec_n_clusters)&&(x2v->x2vec_word2cluster==NULL)) {
-    lispval nc=fd_getopt(x2v->x2vec_opts,n_clusters_symbol,FD_VOID);
-    if (FD_FIXNUMP(nc))
+    lispval nc=kno_getopt(x2v->x2vec_opts,n_clusters_symbol,KNO_VOID);
+    if (KNO_FIXNUMP(nc))
       x2v->x2vec_word2cluster=
-        fd_x2vec_classify(x2v,x2v->x2vec_n_clusters,x2v->x2vec_n_cluster_rounds,
+        kno_x2vec_classify(x2v,x2v->x2vec_n_clusters,x2v->x2vec_n_cluster_rounds,
                           &(x2v->x2vec_centers));
-    else fd_decref(nc);}
+    else kno_decref(nc);}
 }
 
 /* Computing classes from vectors */
 
-FD_EXPORT int *fd_x2vec_classify(x2vec_context x2v,
+KNO_EXPORT int *kno_x2vec_classify(x2vec_context x2v,
                                  int n_clusters,int n_rounds,
                                  real **save_centers)
 {
@@ -1510,7 +1510,7 @@ static void init_unigrams(x2vec_context x2vcxt)
   if (unigrams==NULL) {
     unigrams = x2vcxt->x2vec_unigrams = (int *)malloc(unigrams_size * sizeof(int));
     if (unigrams == NULL) {
-      u8_raise(fd_MallocFailed,"init_unigrams",NULL);}}
+      u8_raise(kno_MallocFailed,"init_unigrams",NULL);}}
 
   for (a = 0; a < vocab_size; a++) {
     train_words_pow += pow(vocab[a].count, power);}
@@ -1546,8 +1546,8 @@ static x2vec_word init_vocab_tables
     for (vocab_i = 0; vocab_i < vocab_hash_size; vocab_i++) 
       vocab_hash[vocab_i] = -1;}
   if (x2v->x2vec_vocab) return x2v->x2vec_vocab;
-  vocab = x2v->x2vec_vocab = u8_alloc_n(vocab_alloc_size,struct FD_X2VEC_WORD);
-  memset(x2v->x2vec_vocab,0,vocab_alloc_size*sizeof(struct FD_X2VEC_WORD));
+  vocab = x2v->x2vec_vocab = u8_alloc_n(vocab_alloc_size,struct KNO_X2VEC_WORD);
+  memset(x2v->x2vec_vocab,0,vocab_alloc_size*sizeof(struct KNO_X2VEC_WORD));
   return vocab;
 }
 
@@ -1593,85 +1593,85 @@ static void grow_vocab_hash(x2vec_context x2v)
     for (hash_i = 0; hash_i < new_size; hash_i++) 
       new_hashtable[hash_i] = -1;
     for (vocab_i = 0; vocab_i < vocab_size; vocab_i++) {
-      struct FD_X2VEC_WORD v=vocab[vocab_i];
-      int hash = fd_x2vec_hash(x2v,v.word);
+      struct KNO_X2VEC_WORD v=vocab[vocab_i];
+      int hash = kno_x2vec_hash(x2v,v.word);
       while (new_hashtable[hash] != -1)
         hash = (hash + 1) % vocab_hash_size;
       new_hashtable[hash]=vocab_i;}}
   else {
-    u8_log(LOG_WARN,fd_MallocFailed,
+    u8_log(LOG_WARN,kno_MallocFailed,
            "Couldn't access memory to grow vocabulary hash table");
     x2v->x2vec_vocab_hash_max=0;}
 }
 
 /* Initializing the network from saved data */
 
-FD_EXPORT lispval fd_x2vec_init(x2vec_context x2vcxt,lispval init)
+KNO_EXPORT lispval kno_x2vec_init(x2vec_context x2vcxt,lispval init)
 {
   size_t hidden_size=x2vcxt->x2vec_hidden_size; int memalign_rv;
   int init_vocab=x2vcxt->x2vec_vocab==NULL;
-  if (FD_TABLEP(init)) {
-    int i=0; lispval keys=fd_getkeys(init);
-    size_t vocab_size=(init_vocab)?(FD_CHOICE_SIZE(keys)):
+  if (KNO_TABLEP(init)) {
+    int i=0; lispval keys=kno_getkeys(init);
+    size_t vocab_size=(init_vocab)?(KNO_CHOICE_SIZE(keys)):
       (x2vcxt->x2vec_vocab_size);
     size_t syn0_size=vocab_size*hidden_size;
     memalign_rv=posix_memalign((void **)&(x2vcxt->x2vec_syn0), 
                                128, syn0_size * sizeof(real));
     if (memalign_rv==EINVAL) {
-      u8_raise(_("Bad posix_memalign argument"),"x2vec/fd_init_vecs",NULL);}
+      u8_raise(_("Bad posix_memalign argument"),"x2vec/kno_init_vecs",NULL);}
     else if (memalign_rv==EINVAL) {
-      u8_raise(_("Not enough memory"),"x2vec/fd_init_vecs",NULL);}
+      u8_raise(_("Not enough memory"),"x2vec/kno_init_vecs",NULL);}
     else if ((x2vcxt->x2vec_syn1neg) == NULL) {
-      u8_raise(fd_MallocFailed,"x2vec/fd_init_vecs",NULL);}
+      u8_raise(kno_MallocFailed,"x2vec/kno_init_vecs",NULL);}
     else {
       real *syn0=x2vcxt->x2vec_syn0;
       x2vec_word vocab=(init_vocab)?
         (init_vocab_tables(x2vcxt,vocab_size)):
         (x2vcxt->x2vec_vocab);
-      FD_DO_CHOICES(key,keys) {
-	if (FD_STRINGP(key)) {
-	  lispval v=fd_get(init,key,FD_VOID);
-	  if (FD_VOIDP(v)) {}
-	  else if ((FD_PRIM_TYPEP(v,fd_numeric_vector_type))&&
-		   ((FD_NUMVEC_TYPE(v)==fd_float_elt)||
-		    (FD_NUMVEC_TYPE(v)==fd_double_elt))) {
-	    int n=FD_NUMVEC_LENGTH(v);
+      KNO_DO_CHOICES(key,keys) {
+	if (KNO_STRINGP(key)) {
+	  lispval v=kno_get(init,key,KNO_VOID);
+	  if (KNO_VOIDP(v)) {}
+	  else if ((KNO_PRIM_TYPEP(v,kno_numeric_vector_type))&&
+		   ((KNO_NUMVEC_TYPE(v)==kno_float_elt)||
+		    (KNO_NUMVEC_TYPE(v)==kno_double_elt))) {
+	    int n=KNO_NUMVEC_LENGTH(v);
 	    float *write=&syn0[i*hidden_size];
-	    if (FD_NUMVEC_TYPE(v)==fd_float_elt) {
-	      fd_float *f=FD_NUMVEC_FLOATS(v);
+	    if (KNO_NUMVEC_TYPE(v)==kno_float_elt) {
+	      kno_float *f=KNO_NUMVEC_FLOATS(v);
 	      int i=0; while (i<n) {write[i]=f[i]; i++;}}
 	    else {
-	      fd_double *d=FD_NUMVEC_DOUBLES(v);
+	      kno_double *d=KNO_NUMVEC_DOUBLES(v);
 	      int i=0; while (i<n) {write[i]=(float)d[i]; i++;}}
-	    if (init_vocab) init_vocab_word(&vocab[i],FD_CSTRING(key),1);}
-	  else if (FD_PRIM_TYPEP(v,fd_vector_type)) {
-	    int n=FD_VECTOR_LENGTH(v);
-	    lispval *elts=FD_VECTOR_ELTS(v);
+	    if (init_vocab) init_vocab_word(&vocab[i],KNO_CSTRING(key),1);}
+	  else if (KNO_PRIM_TYPEP(v,kno_vector_type)) {
+	    int n=KNO_VECTOR_LENGTH(v);
+	    lispval *elts=KNO_VECTOR_ELTS(v);
 	    float *f=&syn0[i*hidden_size];
 	    int i=0; while (i<n) {
 	      lispval elt=elts[i];
-	      if (FD_FLONUMP(elt)) {
-		f[i]=FD_FLONUM(elt);}
+	      if (KNO_FLONUMP(elt)) {
+		f[i]=KNO_FLONUM(elt);}
 	      else {
 		u8_log(LOGWARN,"BadX2VecValue","%q is not a flonum",elt);}
 	      i++;}
 	    if (init_vocab)
-	      init_vocab_word(&vocab[i],FD_CSTRING(key),1);}
+	      init_vocab_word(&vocab[i],KNO_CSTRING(key),1);}
 	  else {
 	    u8_log(LOGWARN,"BadX2VecValue",
 		   "%q is not a vector or float vector",v);}
-	  fd_decref(v);
+	  kno_decref(v);
 	  i++;}
 	else {}}}
-    fd_decref(keys);
-    return FD_VOID;}
-  else return FD_VOID;
+    kno_decref(keys);
+    return KNO_VOID;}
+  else return KNO_VOID;
 }
 
-FD_EXPORT int fd_x2vec_import_vocab(x2vec_context x2vcxt,lispval data)
+KNO_EXPORT int kno_x2vec_import_vocab(x2vec_context x2vcxt,lispval data)
 {
   if (x2vcxt->x2vec_vocab_locked) {
-    fd_seterr(_("X2Vec/Vocab/Init/error"),"fd_init_vocab",
+    kno_seterr(_("X2Vec/Vocab/Init/error"),"kno_init_vocab",
               "Vocabulary locked for %q",(lispval)x2vcxt);
     return -1;}
   else {
@@ -1681,18 +1681,18 @@ FD_EXPORT int fd_x2vec_import_vocab(x2vec_context x2vcxt,lispval data)
 
 /* Creating an X2VEC context */
 
-FD_EXPORT x2vec_context fd_init_x2vec(x2vec_context x2v,lispval opts)
+KNO_EXPORT x2vec_context kno_init_x2vec(x2vec_context x2v,lispval opts)
 {
-  lispval label=fd_getopt(opts,label_symbol,FD_VOID);
-  lispval optsep=fd_getopt(opts,optsep_symbol,FD_VOID);
+  lispval label=kno_getopt(opts,label_symbol,KNO_VOID);
+  lispval optsep=kno_getopt(opts,optsep_symbol,KNO_VOID);
   size_t vocab_alloc_size;
 
   if (x2v==NULL) {
-    x2v=u8_alloc(struct FD_X2VEC_CONTEXT);
-    FD_INIT_FRESH_CONS(x2v,fd_x2vec_type);}
+    x2v=u8_alloc(struct KNO_X2VEC_CONTEXT);
+    KNO_INIT_FRESH_CONS(x2v,kno_x2vec_type);}
   else {
-    FD_INIT_STATIC_CONS(x2v,fd_x2vec_type);}
-  x2v->x2vec_opts=opts; fd_incref(opts);
+    KNO_INIT_STATIC_CONS(x2v,kno_x2vec_type);}
+  x2v->x2vec_opts=opts; kno_incref(opts);
 
   x2v->x2vec_vocab_alloc_size = vocab_alloc_size = 
     getintopt(opts,vocab_size_symbol,default_vocab_size);
@@ -1728,89 +1728,89 @@ FD_EXPORT x2vec_context fd_init_x2vec(x2vec_context x2v,lispval opts)
   x2v->x2vec_loglevel=getintopt(opts,loglevel_symbol,default_loglevel);
   x2v->x2vec_logfreq=getintopt(opts,logfreq_symbol,default_logfreq);
 
-  if (fd_testopt(opts,mode_symbol,bag_of_words_symbol))
+  if (kno_testopt(opts,mode_symbol,bag_of_words_symbol))
     x2v->x2vec_bag_of_words=1;
-  else if (fd_testopt(opts,mode_symbol,skipgram_symbol))
+  else if (kno_testopt(opts,mode_symbol,skipgram_symbol))
     x2v->x2vec_bag_of_words=0;
   else x2v->x2vec_bag_of_words=default_cbow;
 
-  if (FD_STRINGP(label))
-    x2v->x2vec_label=u8_strdup(FD_CSTRING(label));
-  else if (FD_SYMBOLP(label))
-    x2v->x2vec_label=u8_strdup(FD_SYMBOL_NAME(label));
-  else if ((FD_PAIRP(label))||(FD_VECTORP(label))||(FD_NUMBERP(label)))
-    x2v->x2vec_label=fd_lisp2string(label);
+  if (KNO_STRINGP(label))
+    x2v->x2vec_label=u8_strdup(KNO_CSTRING(label));
+  else if (KNO_SYMBOLP(label))
+    x2v->x2vec_label=u8_strdup(KNO_SYMBOL_NAME(label));
+  else if ((KNO_PAIRP(label))||(KNO_VECTORP(label))||(KNO_NUMBERP(label)))
+    x2v->x2vec_label=kno_lisp2string(label);
   else {}
 
-  if (FD_STRINGP(optsep)) {
-    if (FD_STRLEN(optsep)==1)
-      x2v->x2vec_opt_sep=FD_CSTRING(optsep)[0];
+  if (KNO_STRINGP(optsep)) {
+    if (KNO_STRLEN(optsep)==1)
+      x2v->x2vec_opt_sep=KNO_CSTRING(optsep)[0];
     else {
       u8_log(LOGWARN,InvalidOpSeparator,
              "Ignoring multi-character opt separator %q",optsep);}}
-  else if (FD_CHARACTERP(optsep)) {
-    int code=FD_CHAR2CODE(optsep);
+  else if (KNO_CHARACTERP(optsep)) {
+    int code=KNO_CHAR2CODE(optsep);
     if (code<0x80) {
-      x2v->x2vec_opt_sep=FD_CSTRING(optsep)[0];}
+      x2v->x2vec_opt_sep=KNO_CSTRING(optsep)[0];}
     else {
       u8_log(LOGWARN,InvalidOpSeparator,
              "Ignoring non-ascii opt separator %q",optsep);}}
-  else if (FD_FIXNUMP(optsep)) {
-    int code=FD_FIX2INT(optsep);
+  else if (KNO_FIXNUMP(optsep)) {
+    int code=KNO_FIX2INT(optsep);
     if (code<0x80) {
-      x2v->x2vec_opt_sep=FD_CSTRING(optsep)[0];}
+      x2v->x2vec_opt_sep=KNO_CSTRING(optsep)[0];}
     else {
       u8_log(LOGWARN,InvalidOpSeparator,
              "Ignoring non-ascii opt separator %q",optsep);}}
-  else if (FD_VOIDP(optsep)) {}
+  else if (KNO_VOIDP(optsep)) {}
   else {
     u8_log(LOGWARN,InvalidOpSeparator,
            "Ignoring invalid word opt separator %q",optsep);}
 
-  fd_decref(label);
-  fd_decref(optsep);
+  kno_decref(label);
+  kno_decref(optsep);
 
   return x2v;
 }
 
-FD_EXPORT x2vec_context fd_x2vec_start
+KNO_EXPORT x2vec_context kno_x2vec_start
 (lispval opts,lispval training_data,lispval vocab_init)
 {
-  x2vec_context x2v = fd_init_x2vec(NULL,opts);
+  x2vec_context x2v = kno_init_x2vec(NULL,opts);
 
-  if ( (FD_VOIDP(training_data)) && (FD_VOIDP(vocab_init)) ) 
+  if ( (KNO_VOIDP(training_data)) && (KNO_VOIDP(vocab_init)) ) 
     return x2v;
-  else if (FD_VECTORP(training_data)) {fd_incref(training_data);}
-  else if (FD_STRINGP(training_data)) {
-    lispval wordvec=fd_words2vector(FD_CSTRING(training_data),0);
+  else if (KNO_VECTORP(training_data)) {kno_incref(training_data);}
+  else if (KNO_STRINGP(training_data)) {
+    lispval wordvec=kno_words2vector(KNO_CSTRING(training_data),0);
     training_data=wordvec;}
   else {
-    fd_seterr(fd_TypeError,"fd_start_x2vec","training data",FD_VOID);
+    kno_seterr(kno_TypeError,"kno_start_x2vec","training data",KNO_VOID);
     return NULL;}
   train_model(x2v,training_data,vocab_init,opts);
 
-  fd_decref(training_data);
+  kno_decref(training_data);
 
   return x2v;
 }
 
-FD_EXPORT x2vec_context fd_x2vec_modular_start
+KNO_EXPORT x2vec_context kno_x2vec_modular_start
 (lispval opts,lispval training_data,lispval vocab_init)
 {
-  x2vec_context x2v = fd_init_x2vec(NULL,opts);
+  x2vec_context x2v = kno_init_x2vec(NULL,opts);
 
-  if ( (FD_VOIDP(training_data)) && (FD_VOIDP(vocab_init)) ) 
+  if ( (KNO_VOIDP(training_data)) && (KNO_VOIDP(vocab_init)) ) 
     return x2v;
-  else if (FD_VECTORP(training_data)) {fd_incref(training_data);}
-  else if (FD_STRINGP(training_data)) {
-    lispval wordvec=fd_words2vector(FD_CSTRING(training_data),0);
+  else if (KNO_VECTORP(training_data)) {kno_incref(training_data);}
+  else if (KNO_STRINGP(training_data)) {
+    lispval wordvec=kno_words2vector(KNO_CSTRING(training_data),0);
     training_data=wordvec;}
   else {
-    fd_seterr(fd_TypeError,"fd_start_x2vec","training data",FD_VOID);
+    kno_seterr(kno_TypeError,"kno_start_x2vec","training data",KNO_VOID);
     return NULL;}
   modular_train_model(x2v,training_data,vocab_init,opts);
 
-  fd_decref(training_data);
+  kno_decref(training_data);
 
   return x2v;
 }
@@ -1818,40 +1818,40 @@ FD_EXPORT x2vec_context fd_x2vec_modular_start
 static lispval x2vec_start_prim(lispval opts,lispval data,lispval vocab)
 {
 
-  x2vec_context x2v=fd_x2vec_start(opts,data,vocab);
+  x2vec_context x2v=kno_x2vec_start(opts,data,vocab);
   if (x2v==NULL)
-    return FD_ERROR_VALUE;
+    return KNO_ERROR_VALUE;
   else return (lispval) x2v;
 }
 
 static lispval x2vec_modular_start_prim(lispval opts,lispval data,lispval vocab)
 {
-  x2vec_context x2v=fd_x2vec_modular_start(opts,data,vocab);
+  x2vec_context x2v=kno_x2vec_modular_start(opts,data,vocab);
   if (x2v==NULL)
-    return FD_ERROR_VALUE;
+    return KNO_ERROR_VALUE;
   else return (lispval) x2v;
 }
 
 static lispval x2vec_train_prim(lispval x2v_arg,lispval input,lispval alpha_arg)
 {
   x2vec_context x2v=(x2vec_context ) x2v_arg;
-  double alpha = ((FD_VOIDP(alpha_arg))?(x2v->x2vec_alpha):
-                  (FD_FLONUM(alpha_arg)));
+  double alpha = ((KNO_VOIDP(alpha_arg))?(x2v->x2vec_alpha):
+                  (KNO_FLONUM(alpha_arg)));
   double result=0;
-  int vec_i=0, vec_length=FD_VECTOR_LENGTH(input), block_length=0;
-  lispval *vec_elts = FD_VECTOR_ELTS(input);
+  int vec_i=0, vec_length=KNO_VECTOR_LENGTH(input), block_length=0;
+  lispval *vec_elts = KNO_VECTOR_ELTS(input);
   long long *block = u8_alloc_n(vec_length,long long);
   while ( vec_i<vec_length ) {
     lispval elt=vec_elts[vec_i++];
-    if (!(FD_STRINGP(elt))) continue;
-    long long word = vocab_ref(x2v,FD_CSTRING(elt),NULL);
+    if (!(KNO_STRINGP(elt))) continue;
+    long long word = vocab_ref(x2v,KNO_CSTRING(elt),NULL);
     if (word>=0) block[block_length++]=word;}
 
   result = block_train(x2v,block,block_length,alpha,NULL,NULL,NULL);
 
   u8_free(block);
 
-  return fd_make_flonum( result );
+  return kno_make_flonum( result );
 }
 
 static lispval x2vec_add_vocab_prim(lispval x2varg,lispval vocab)
@@ -1859,8 +1859,8 @@ static lispval x2vec_add_vocab_prim(lispval x2varg,lispval vocab)
   x2vec_context x2v=(x2vec_context )x2varg;
   long long retval=import_vocab(x2v,vocab);
   if (retval<0) 
-    return FD_ERROR_VALUE;
-  else return FD_INT2DTYPE(retval);
+    return KNO_ERROR_VALUE;
+  else return KNO_INT2DTYPE(retval);
 }
 
 /* Getting stuff out to Scheme */
@@ -1870,10 +1870,10 @@ static lispval x2vec_inputs_prim(lispval arg)
   x2vec_context x2v = (x2vec_context ) arg;
   int i=0, n=x2v->x2vec_vocab_size;
   x2vec_word words=x2v->x2vec_vocab;
-  lispval result=fd_make_vector(n,NULL);
+  lispval result=kno_make_vector(n,NULL);
   while (i<n) {
-    lispval s=fd_make_string(NULL,-1,words[i].word);
-    FD_VECTOR_SET(result,i,s);
+    lispval s=kno_make_string(NULL,-1,words[i].word);
+    KNO_VECTOR_SET(result,i,s);
     i++;}
   return result;
 }
@@ -1883,24 +1883,24 @@ static lispval x2vec_counts_prim(lispval arg,lispval word)
   x2vec_context x2v = (x2vec_context ) arg;
   int i=0, n=x2v->x2vec_vocab_size;
   x2vec_word words=x2v->x2vec_vocab;
-  if (FD_VOIDP(word)) {
-    lispval result=fd_make_hashtable(NULL,n);
-    fd_hashtable h=(fd_hashtable) result;
+  if (KNO_VOIDP(word)) {
+    lispval result=kno_make_hashtable(NULL,n);
+    kno_hashtable h=(kno_hashtable) result;
     while (i<n) {
-      lispval s=fd_make_string(NULL,-1,words[i].word);
-      lispval v=FD_INT2DTYPE(words[i].count);
-      fd_hashtable_op(h,fd_table_store_noref,s,v);
+      lispval s=kno_make_string(NULL,-1,words[i].word);
+      lispval v=KNO_INT2DTYPE(words[i].count);
+      kno_hashtable_op(h,kno_table_store_noref,s,v);
       i++;}
     return result;}
-  else if (FD_STRINGP(word)) {
-    u8_string s=FD_CSTRING(word);
-    int id=fd_x2vec_vocabid(x2v,s);
-    if (id<0) return FD_EMPTY_CHOICE;
+  else if (KNO_STRINGP(word)) {
+    u8_string s=KNO_CSTRING(word);
+    int id=kno_x2vec_vocabid(x2v,s);
+    if (id<0) return KNO_EMPTY_CHOICE;
     else {
       x2vec_word vocab=x2v->x2vec_vocab;
       int count=vocab[id].count;
-      return FD_INT2DTYPE(count);}}
-  else return fd_type_error("string","x2vec_counts_prim",word);
+      return KNO_INT2DTYPE(count);}}
+  else return kno_type_error("string","x2vec_counts_prim",word);
 }
 
 static lispval x2vec_get_prim(lispval arg,lispval term)
@@ -1909,13 +1909,13 @@ static lispval x2vec_get_prim(lispval arg,lispval term)
   size_t hidden_size=x2v->x2vec_hidden_size;
   real *syn0=x2v->x2vec_syn0;
   if (syn0==NULL)
-    return FD_EMPTY_CHOICE;
-  else if (FD_STRINGP(term)) {
-    int i=fd_x2vec_vocabid(x2v,FD_CSTRING(term));
-    if (i<0) return FD_EMPTY_CHOICE;
+    return KNO_EMPTY_CHOICE;
+  else if (KNO_STRINGP(term)) {
+    int i=kno_x2vec_vocabid(x2v,KNO_CSTRING(term));
+    if (i<0) return KNO_EMPTY_CHOICE;
     else {
       return normalized_floatvec(hidden_size,&(syn0[i*hidden_size]));}}
-  else return fd_type_error(_("string"),"x2vec_get_prim",term);
+  else return kno_type_error(_("string"),"x2vec_get_prim",term);
 }
 
 static lispval x2vec_vectors_prim(lispval arg)
@@ -1926,17 +1926,17 @@ static lispval x2vec_vectors_prim(lispval arg)
   x2vec_word vocab=x2v->x2vec_vocab;
   real *syn0=x2v->x2vec_syn0;
   if (syn0==NULL)
-    return FD_EMPTY_CHOICE;
+    return KNO_EMPTY_CHOICE;
   else {
-    struct FD_HASHTABLE *ht=(fd_hashtable)
-      fd_make_hashtable(NULL,vocab_size+vocab_size/2);
+    struct KNO_HASHTABLE *ht=(kno_hashtable)
+      kno_make_hashtable(NULL,vocab_size+vocab_size/2);
     int i=0; 
     while (i<vocab_size) {
       u8_string word=vocab[i].word;
-      lispval key=fd_make_string(NULL,-1,word);
+      lispval key=kno_make_string(NULL,-1,word);
       lispval result=normalized_floatvec(hidden_size,&(syn0[i*hidden_size]));
-      fd_hashtable_store(ht,key,result);
-      fd_decref(key); fd_decref(result);
+      kno_hashtable_store(ht,key,result);
+      kno_decref(key); kno_decref(result);
       i++;}
     return (lispval)ht;}
 }
@@ -1944,20 +1944,20 @@ static lispval x2vec_vectors_prim(lispval arg)
 static lispval x2vec_getclassvec_prim(lispval arg,lispval n_clusters,lispval n_rounds)
 {
   x2vec_context x2v = (x2vec_context ) arg;
-  int n=(FD_VOIDP(n_clusters))?(x2v->x2vec_n_clusters):(FD_FIX2INT(n_clusters));
-  int rounds=(FD_VOIDP(n_rounds))?(x2v->x2vec_n_cluster_rounds):(FD_FIX2INT(n_rounds));
+  int n=(KNO_VOIDP(n_clusters))?(x2v->x2vec_n_clusters):(KNO_FIX2INT(n_clusters));
+  int rounds=(KNO_VOIDP(n_rounds))?(x2v->x2vec_n_cluster_rounds):(KNO_FIX2INT(n_rounds));
   int n_words=x2v->x2vec_vocab_size;
   if ((x2v->x2vec_word2cluster)&&
-      ((FD_VOIDP(n_clusters))||
-       ((FD_FIX2INT(n_clusters))==x2v->x2vec_n_clusters))&&
-      ((FD_VOIDP(n_rounds))||
-       ((FD_FIX2INT(n_rounds))==x2v->x2vec_n_cluster_rounds))) {
+      ((KNO_VOIDP(n_clusters))||
+       ((KNO_FIX2INT(n_clusters))==x2v->x2vec_n_clusters))&&
+      ((KNO_VOIDP(n_rounds))||
+       ((KNO_FIX2INT(n_rounds))==x2v->x2vec_n_cluster_rounds))) {
     int *word2cluster=x2v->x2vec_word2cluster;
-    lispval result=fd_make_int_vector(n_words,word2cluster);
+    lispval result=kno_make_int_vector(n_words,word2cluster);
     return result;}
   else {
-    int *word2cluster=fd_x2vec_classify(x2v,n,rounds,&(x2v->x2vec_centers));
-    lispval result=fd_make_int_vector(n_words,word2cluster);
+    int *word2cluster=kno_x2vec_classify(x2v,n,rounds,&(x2v->x2vec_centers));
+    lispval result=kno_make_int_vector(n_words,word2cluster);
     if (n==x2v->x2vec_n_clusters) 
       x2v->x2vec_word2cluster=word2cluster;
     else u8_free(word2cluster);
@@ -1968,36 +1968,36 @@ static lispval x2vec_getclusters_prim(lispval arg,lispval n_clusters,lispval n_r
 {
   x2vec_context x2v = (x2vec_context ) arg;
   int class_i=0, vocab_i=0, *word2cluster=NULL;
-  int n=(FD_VOIDP(n_clusters))?(x2v->x2vec_n_clusters):(FD_FIX2INT(n_clusters));
-  int rounds=(FD_VOIDP(n_rounds))?(x2v->x2vec_n_cluster_rounds):(FD_FIX2INT(n_rounds));
-  struct FD_HASHSET **sets=u8_alloc_n(n,struct FD_HASHSET *);
+  int n=(KNO_VOIDP(n_clusters))?(x2v->x2vec_n_clusters):(KNO_FIX2INT(n_clusters));
+  int rounds=(KNO_VOIDP(n_rounds))?(x2v->x2vec_n_cluster_rounds):(KNO_FIX2INT(n_rounds));
+  struct KNO_HASHSET **sets=u8_alloc_n(n,struct KNO_HASHSET *);
   x2vec_word vocab=x2v->x2vec_vocab;
   ssize_t vocab_size=x2v->x2vec_vocab_size;
-  lispval result=FD_VOID;
+  lispval result=KNO_VOID;
   if ((n==x2v->x2vec_n_clusters)&&(rounds=x2v->x2vec_n_cluster_rounds)) {
     if (x2v->x2vec_word2cluster) 
       word2cluster=x2v->x2vec_word2cluster;
     else 
       word2cluster=x2v->x2vec_word2cluster=
-        fd_x2vec_classify(x2v,x2v->x2vec_n_clusters,x2v->x2vec_n_cluster_rounds,
+        kno_x2vec_classify(x2v,x2v->x2vec_n_clusters,x2v->x2vec_n_cluster_rounds,
                           &(x2v->x2vec_centers));}
-  else word2cluster=fd_x2vec_classify(x2v,n,rounds,NULL);
+  else word2cluster=kno_x2vec_classify(x2v,n,rounds,NULL);
   class_i=0; while (class_i<n) {
-    struct FD_HASHSET *hs=u8_alloc(struct FD_HASHSET);
-    fd_init_hashset(hs,(2*(vocab_size/n))+17,0);
+    struct KNO_HASHSET *hs=u8_alloc(struct KNO_HASHSET);
+    kno_init_hashset(hs,(2*(vocab_size/n))+17,0);
     sets[class_i++]=hs;}
   vocab_i=0; while (vocab_i<vocab_size) {
     int cluster_id=word2cluster[vocab_i]; 
     if (cluster_id<n) {
       lispval string=lispval_string(vocab[vocab_i].word);
-      fd_hashset_add_raw(sets[cluster_id],string); 
-      fd_decref(string);}
+      kno_hashset_add_raw(sets[cluster_id],string); 
+      kno_decref(string);}
     else {
       u8_log(LOGWARN,"X2Vec/Cluster","Cluster ID out of range");}
     vocab_i++;}
   if (word2cluster!=x2v->x2vec_word2cluster)
     u8_free(word2cluster);
-  result=fd_make_vector(n,(lispval *)sets);
+  result=kno_make_vector(n,(lispval *)sets);
   u8_free(sets);
   return result;
 }
@@ -2006,9 +2006,9 @@ static lispval x2vec_getcenters_prim(lispval arg,lispval n_clusters,lispval n_ro
 {
   x2vec_context x2v = (x2vec_context ) arg;
   int class_i=0, *word2cluster=NULL, vec_size=x2v->x2vec_hidden_size;
-  int n=(FD_VOIDP(n_clusters))?(x2v->x2vec_n_clusters):(FD_FIX2INT(n_clusters));
-  int rounds=(FD_VOIDP(n_rounds))?(x2v->x2vec_n_cluster_rounds):(FD_FIX2INT(n_rounds));
-  lispval result=FD_VOID;
+  int n=(KNO_VOIDP(n_clusters))?(x2v->x2vec_n_clusters):(KNO_FIX2INT(n_clusters));
+  int rounds=(KNO_VOIDP(n_rounds))?(x2v->x2vec_n_cluster_rounds):(KNO_FIX2INT(n_rounds));
+  lispval result=KNO_VOID;
   real *centers;
   if ((n==x2v->x2vec_n_clusters)&&(rounds=x2v->x2vec_n_cluster_rounds)) {
     if (x2v->x2vec_word2cluster) {
@@ -2016,13 +2016,13 @@ static lispval x2vec_getcenters_prim(lispval arg,lispval n_clusters,lispval n_ro
       centers=x2v->x2vec_centers;}
     else {
       word2cluster=x2v->x2vec_word2cluster=
-        fd_x2vec_classify(x2v,x2v->x2vec_n_clusters,x2v->x2vec_n_cluster_rounds,&centers);
+        kno_x2vec_classify(x2v,x2v->x2vec_n_clusters,x2v->x2vec_n_cluster_rounds,&centers);
       x2v->x2vec_centers=centers;}}
-  else word2cluster=fd_x2vec_classify(x2v,n,rounds,&centers);
-  result=fd_make_vector(n,NULL);
+  else word2cluster=kno_x2vec_classify(x2v,n,rounds,&centers);
+  result=kno_make_vector(n,NULL);
   class_i=0; while (class_i<n) {
-    lispval center=fd_make_float_vector(vec_size,centers+class_i);
-    FD_VECTOR_SET(result,class_i,center);
+    lispval center=kno_make_float_vector(vec_size,centers+class_i);
+    KNO_VECTOR_SET(result,class_i,center);
     class_i++;}
   if (centers!=x2v->x2vec_centers)
     u8_free(centers);
@@ -2033,7 +2033,7 @@ static lispval x2vec_getcenters_prim(lispval arg,lispval n_clusters,lispval n_ro
 
 static lispval x2vec_cosim_prim(lispval term1,lispval term2,lispval x2varg)
 {
-  x2vec_context x2v=(FD_VOIDP(x2varg))?(NULL):
+  x2vec_context x2v=(KNO_VOIDP(x2varg))?(NULL):
     ((x2vec_context )x2varg);
   int len1=0, len2=0, free1=0, free2=0;
   float *vec1=get_float_vec(x2v,term1,&len1,&free1);
@@ -2043,116 +2043,116 @@ static lispval x2vec_cosim_prim(lispval term1,lispval term2,lispval x2varg)
       float r=cosim_float(len1,vec1,vec2,0);
       if (free1) u8_free(vec1);
       if (free2) u8_free(vec2);
-      return fd_make_flonum(r);}
-    else return fd_make_flonum(cosim_float(len1,vec1,vec2,0));}
+      return kno_make_flonum(r);}
+    else return kno_make_flonum(cosim_float(len1,vec1,vec2,0));}
   else {
     if ((vec1)&&(vec2)) {
       u8_byte buf[100];
-      fd_seterr(_("vector lengths differ"),"x2vec_cosim_prim",
+      kno_seterr(_("vector lengths differ"),"x2vec_cosim_prim",
                 u8_sprintf(buf,100,"%d != %d",len1,len2),
-                FD_VOID);}
+                KNO_VOID);}
     if (free1) u8_free(vec1);
     if (free2) u8_free(vec2);
-    return FD_ERROR_VALUE;}
+    return KNO_ERROR_VALUE;}
 }
 
 static float *get_float_vec(x2vec_context x2v,
                             lispval arg,int *lenp,int *freep)
 {
-  if ((FD_NUMERIC_VECTORP(arg))&&
-      (FD_NUMVEC_TYPE(arg)==fd_float_elt)) {
-    *lenp=FD_NUMVEC_LENGTH(arg);
-    return FD_NUMVEC_FLOATS(arg);}
-  else if ((FD_NUMERIC_VECTORP(arg))&&
-           (FD_NUMVEC_TYPE(arg)==fd_double_elt)) {
-    int i=0, n=FD_NUMVEC_LENGTH(arg);
-    fd_double *elts=FD_NUMVEC_DOUBLES(arg);
+  if ((KNO_NUMERIC_VECTORP(arg))&&
+      (KNO_NUMVEC_TYPE(arg)==kno_float_elt)) {
+    *lenp=KNO_NUMVEC_LENGTH(arg);
+    return KNO_NUMVEC_FLOATS(arg);}
+  else if ((KNO_NUMERIC_VECTORP(arg))&&
+           (KNO_NUMVEC_TYPE(arg)==kno_double_elt)) {
+    int i=0, n=KNO_NUMVEC_LENGTH(arg);
+    kno_double *elts=KNO_NUMVEC_DOUBLES(arg);
     real *result=u8_alloc_n(n,float);
     while (i<n) {result[i]=(float)elts[i]; i++;}
     *lenp=n; *freep=1;
     return result;}
-  else if (FD_VECTORP(arg)) {
-    int i=0, n=FD_VECTOR_LENGTH(arg);
-    lispval *elts=FD_VECTOR_ELTS(arg);
+  else if (KNO_VECTORP(arg)) {
+    int i=0, n=KNO_VECTOR_LENGTH(arg);
+    lispval *elts=KNO_VECTOR_ELTS(arg);
     real *result=u8_alloc_n(n,float);
     while (i<n) {
       lispval elt=*elts;
-      if (FD_FLONUMP(elt)) {
-        fd_double d=FD_FLONUM(elt);
+      if (KNO_FLONUMP(elt)) {
+        kno_double d=KNO_FLONUM(elt);
         result[i]=(float)d;}
-      else if (FD_NUMBERP(elt)) {
-        fd_double d=fd_todouble(elt);
+      else if (KNO_NUMBERP(elt)) {
+        kno_double d=kno_todouble(elt);
         result[i]=(float)d;}
-      else if (FD_TRUEP(elt)) {
+      else if (KNO_TRUEP(elt)) {
         result[i]=(float)1;}
-      else if (FD_FALSEP(elt)) {
+      else if (KNO_FALSEP(elt)) {
         result[i]=(float)0;}
       else {
-        fd_incref(arg);
-        fd_seterr(fd_TypeError,"get_float_vec","numeric element",arg);
+        kno_incref(arg);
+        kno_seterr(kno_TypeError,"get_float_vec","numeric element",arg);
         u8_free(result);
         return NULL;}
       i++; elts++;}
     *lenp=n; *freep=1;
     return result;}
-  else if (FD_STRINGP(arg)) {
+  else if (KNO_STRINGP(arg)) {
     if (x2v) {
-      float *v=fd_x2vec_get(x2v,FD_CSTRING(arg));
+      float *v=kno_x2vec_get(x2v,KNO_CSTRING(arg));
       *lenp=x2v->x2vec_hidden_size;
       return v;}
     else {
-      fd_seterr(_("Not a vector"),"get_float_vec",FD_CSTRING(arg),FD_VOID);
+      kno_seterr(_("Not a vector"),"get_float_vec",KNO_CSTRING(arg),KNO_VOID);
       return NULL;}}
-  else if (FD_FIXNUMP(arg)) {
-    int id=FD_FIX2INT(arg);
+  else if (KNO_FIXNUMP(arg)) {
+    int id=KNO_FIX2INT(arg);
     if ((x2v)&&(id>=0)&&(id<x2v->x2vec_vocab_size)) {
       float *v=&((x2v->x2vec_syn0)[id*(x2v->x2vec_hidden_size)]);
       *lenp=x2v->x2vec_hidden_size;
       return v;}
     else if (x2v) {
-      fd_seterr(_("Invalid vocab ID"),"get_float_vec",NULL,arg);
+      kno_seterr(_("Invalid vocab ID"),"get_float_vec",NULL,arg);
       return NULL;}
     else {
-      fd_seterr(_("No X2VEC available"),"get_float_vec",
-                FD_CSTRING(arg),FD_VOID);
+      kno_seterr(_("No X2VEC available"),"get_float_vec",
+                KNO_CSTRING(arg),KNO_VOID);
       return NULL;}}
   else if (x2v) {
-    fd_incref(arg); 
-    fd_seterr(_("not a string, id, or vector"),"get_float_vec",NULL,arg);
+    kno_incref(arg); 
+    kno_seterr(_("not a string, id, or vector"),"get_float_vec",NULL,arg);
     return NULL;}
   else {
-    fd_seterr(_("not a vector"),"get_float_vec",NULL,arg); fd_incref(arg);
+    kno_seterr(_("not a vector"),"get_float_vec",NULL,arg); kno_incref(arg);
     return NULL;}
 }
 
 /* Reading a vector file */
 
-FD_EXPORT x2vec_context fd_x2vec_read(u8_string filename,lispval opts)
+KNO_EXPORT x2vec_context kno_x2vec_read(u8_string filename,lispval opts)
 {
   FILE *f = u8_fopen(filename,"rb");
   if (f==NULL) {
-    u8_seterr(fd_FileNotFound,"fd_x2vec_read",u8_strdup(filename));
+    u8_seterr(kno_FileNotFound,"kno_x2vec_read",u8_strdup(filename));
     return NULL;}
   else {
-    x2vec_context x2v = fd_init_x2vec(NULL,opts);
+    x2vec_context x2v = kno_init_x2vec(NULL,opts);
     if (x2v->x2vec_label==NULL) x2v->x2vec_label=u8_strdup(filename);
     if (read_vectors(x2v,f)<0) {
       lispval dtypeval=(lispval)x2v;
       fclose(f);
-      fd_decref(dtypeval);
+      kno_decref(dtypeval);
       return NULL;}
     else return x2v;}
 }
 
 static lispval x2vec_read_prim(lispval filename,lispval opts)
 {
-  u8_string path=FD_CSTRING(filename);
+  u8_string path=KNO_CSTRING(filename);
   if (u8_file_existsp(path)) {
-    x2vec_context x2v=fd_x2vec_read(path,opts);
+    x2vec_context x2v=kno_x2vec_read(path,opts);
     if (x2v==NULL)
-      return FD_ERROR_VALUE;
+      return KNO_ERROR_VALUE;
     else return (lispval) x2v;}
-  else return fd_err(fd_FileNotFound,"x2vec_read_prim",NULL,filename);
+  else return kno_err(kno_FileNotFound,"x2vec_read_prim",NULL,filename);
 }
 
 static long long read_vectors(x2vec_context x2v,FILE *f)
@@ -2161,18 +2161,18 @@ static long long read_vectors(x2vec_context x2v,FILE *f)
   x2vec_word vocab;
   int *vocab_hash; float *vecs;
   if (fscanf(f,"%ld",&n_words)<1) {
-    fd_seterr(_("Bad vector data file"),"read_vectors",NULL,FD_VOID);
+    kno_seterr(_("Bad vector data file"),"read_vectors",NULL,KNO_VOID);
     return -1;}
   else if (fscanf(f,"%ld",&n_dimensions)<1) {
-    fd_seterr(_("Bad vector data file"),"read_vectors",NULL,FD_VOID);
+    kno_seterr(_("Bad vector data file"),"read_vectors",NULL,KNO_VOID);
     return -1;}
   else {
     u8_log(x2v->x2vec_loglevel,"x2vec/ReadVectors",
            "Reading vector data for %d words x %d dimensions",
            n_words,n_dimensions);
-    x2v->x2vec_vocab=vocab=u8_alloc_n(n_words,struct FD_X2VEC_WORD);
+    x2v->x2vec_vocab=vocab=u8_alloc_n(n_words,struct KNO_X2VEC_WORD);
     x2v->x2vec_vocab_size=n_words; x2v->x2vec_vocab_alloc_size=n_dimensions;
-    x2v->x2vec_vocab_hash_size=vocab_hash_size=fd_get_hashtable_size(2*n_words);
+    x2v->x2vec_vocab_hash_size=vocab_hash_size=kno_get_hashtable_size(2*n_words);
     x2v->x2vec_vocab_hash=vocab_hash=init_vocab_hash(vocab_hash_size);
     x2v->x2vec_syn0=vecs=u8_alloc_n(n_dimensions*n_words,float);
     x2v->x2vec_hidden_size=n_dimensions;
@@ -2180,17 +2180,17 @@ static long long read_vectors(x2vec_context x2v,FILE *f)
       char buf[64], ch; /* float len=0; */
       float *vec=vecs+(i*n_dimensions);
       if (fscanf(f,"%s%c",buf,&ch)<1) {
-        fd_seterr(_("Bad vector data file"),"read_vectors",NULL,FD_VOID);
+        kno_seterr(_("Bad vector data file"),"read_vectors",NULL,KNO_VOID);
         return -1;}
       else {
         vocab_init(x2v,buf,i);
         if ((fread(vec+j, sizeof(float), n_dimensions, f))!=n_dimensions) {
-          fd_seterr(_("Bad vector data file"),"read_vectors",NULL,FD_VOID);
+          kno_seterr(_("Bad vector data file"),"read_vectors",NULL,KNO_VOID);
           return -1;}
         /*
           for ( j = 0; j < n_dimensions; j++ )
           if ((fread(vec+j, sizeof(float), 1, f))!=1) {
-          fd_seterr(_("Bad vector data file"),"read_vectors",NULL,FD_VOID);
+          kno_seterr(_("Bad vector data file"),"read_vectors",NULL,KNO_VOID);
           return -1;}
           for ( j = 0; j< n_dimensions; j++ ) 
           len = len + ( vec[j] * vec[j] );
@@ -2203,7 +2203,7 @@ static long long read_vectors(x2vec_context x2v,FILE *f)
 
 /* Handlers */
 
-static void recycle_x2vec(struct FD_RAW_CONS *c)
+static void recycle_x2vec(struct KNO_RAW_CONS *c)
 {
   x2vec_context x2v=(x2vec_context )c;
   x2vec_word vocab=x2v->x2vec_vocab;
@@ -2234,120 +2234,120 @@ static int unparse_x2vec(struct U8_OUTPUT *out,lispval x)
             ((x2v->x2vec_vocab_locked)?(U8S0()):(U8STR("~"))),
             x2v->x2vec_vocab_size,
             x2v->x2vec_hidden_size,
-            FD_LONGVAL(x2v));
+            KNO_LONGVAL(x2v));
   return 1;
 }
 
 /* Initialization */
 
-FD_EXPORT int fd_init_x2vec_c(void) FD_LIBINIT_FN;
+KNO_EXPORT int kno_init_x2vec_c(void) KNO_LIBINIT_FN;
 static long long int x2vec_initialized=0;
 
 static void init_x2vec_symbols(void);
 
-FD_EXPORT int fd_init_x2vec_c()
+KNO_EXPORT int kno_init_x2vec_c()
 {
   lispval module;
   if (x2vec_initialized) return 0;
   x2vec_initialized=u8_millitime();
 
-  fd_init_texttools();
+  kno_init_texttools();
 
-  fd_x2vec_type=fd_register_cons_type("X2VEC");
-  fd_recyclers[fd_x2vec_type]=recycle_x2vec;
-  fd_unparsers[fd_x2vec_type]=unparse_x2vec;
+  kno_x2vec_type=kno_register_cons_type("X2VEC");
+  kno_recyclers[kno_x2vec_type]=recycle_x2vec;
+  kno_unparsers[kno_x2vec_type]=unparse_x2vec;
 
   init_x2vec_symbols();
 
-  module=fd_new_cmodule("X2VEC",(FD_MODULE_SAFE),fd_init_x2vec_c);
+  module=kno_new_cmodule("X2VEC",(KNO_MODULE_SAFE),kno_init_x2vec_c);
 
-  fd_idefn(module,fd_make_cprim3("X2VEC/START",x2vec_start_prim,1));
-  fd_idefn(module,fd_make_cprim3("X2VEC/MSTART",x2vec_modular_start_prim,1));
-  fd_idefn(module,fd_make_cprim2("X2VEC/READ",x2vec_read_prim,1));
-  fd_idefn(module,fd_make_cprim2x("X2VEC/VOCAB!",x2vec_add_vocab_prim,2,
-                                  fd_x2vec_type,-1,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim3x
+  kno_idefn(module,kno_make_cprim3("X2VEC/START",x2vec_start_prim,1));
+  kno_idefn(module,kno_make_cprim3("X2VEC/MSTART",x2vec_modular_start_prim,1));
+  kno_idefn(module,kno_make_cprim2("X2VEC/READ",x2vec_read_prim,1));
+  kno_idefn(module,kno_make_cprim2x("X2VEC/VOCAB!",x2vec_add_vocab_prim,2,
+                                  kno_x2vec_type,-1,-1,KNO_VOID));
+  kno_idefn(module,kno_make_cprim3x
            ("X2VEC/TRAIN",x2vec_train_prim,2,
-            fd_x2vec_type,-1,fd_vector_type,FD_VOID,
-            fd_flonum_type,FD_VOID));
+            kno_x2vec_type,-1,kno_vector_type,KNO_VOID,
+            kno_flonum_type,KNO_VOID));
 
-  fd_idefn(module,fd_make_cprim1x
-           ("X2VEC/INPUTS",x2vec_inputs_prim,1,fd_x2vec_type,FD_VOID));
-  fd_idefn(module,fd_make_cprim2x
-           ("X2VEC/COUNTS",x2vec_counts_prim,1,fd_x2vec_type,FD_VOID,fd_string_type,FD_VOID));
-  fd_idefn(module,fd_make_cprim1x("X2VEC/VECTORS",x2vec_vectors_prim,1,fd_x2vec_type,FD_VOID));
-  fd_idefn(module,fd_make_cprim2x
+  kno_idefn(module,kno_make_cprim1x
+           ("X2VEC/INPUTS",x2vec_inputs_prim,1,kno_x2vec_type,KNO_VOID));
+  kno_idefn(module,kno_make_cprim2x
+           ("X2VEC/COUNTS",x2vec_counts_prim,1,kno_x2vec_type,KNO_VOID,kno_string_type,KNO_VOID));
+  kno_idefn(module,kno_make_cprim1x("X2VEC/VECTORS",x2vec_vectors_prim,1,kno_x2vec_type,KNO_VOID));
+  kno_idefn(module,kno_make_cprim2x
            ("X2VEC/GET",x2vec_get_prim,2,
-            fd_x2vec_type,FD_VOID,fd_string_type,FD_VOID));
-  fd_idefn(module,fd_make_cprim3x
+            kno_x2vec_type,KNO_VOID,kno_string_type,KNO_VOID));
+  kno_idefn(module,kno_make_cprim3x
            ("X2VEC/COSIM",x2vec_cosim_prim,2,
-            -1,FD_VOID,-1,FD_VOID,fd_x2vec_type,FD_VOID));
-  fd_idefn(module,fd_make_cprim3x
+            -1,KNO_VOID,-1,KNO_VOID,kno_x2vec_type,KNO_VOID));
+  kno_idefn(module,kno_make_cprim3x
            ("X2VEC/CLASSVEC",x2vec_getclassvec_prim,1,
-            fd_x2vec_type,FD_VOID,fd_fixnum_type,FD_VOID,fd_fixnum_type,FD_VOID));
-  fd_idefn(module,fd_make_cprim3x
+            kno_x2vec_type,KNO_VOID,kno_fixnum_type,KNO_VOID,kno_fixnum_type,KNO_VOID));
+  kno_idefn(module,kno_make_cprim3x
            ("X2VEC/CLUSTERS",x2vec_getclusters_prim,1,
-            fd_x2vec_type,FD_VOID,fd_fixnum_type,FD_VOID,fd_fixnum_type,FD_VOID));
-  fd_idefn(module,fd_make_cprim3x
+            kno_x2vec_type,KNO_VOID,kno_fixnum_type,KNO_VOID,kno_fixnum_type,KNO_VOID));
+  kno_idefn(module,kno_make_cprim3x
            ("X2VEC/CENTERS",x2vec_getcenters_prim,1,
-            fd_x2vec_type,FD_VOID,fd_fixnum_type,FD_VOID,fd_fixnum_type,FD_VOID));
-  fd_defalias(module,"X2VEC/DISTANCE","X2VEC/COSIM");
-  fd_defalias(module,"COSIM","X2VEC/COSIM");
+            kno_x2vec_type,KNO_VOID,kno_fixnum_type,KNO_VOID,kno_fixnum_type,KNO_VOID));
+  kno_defalias(module,"X2VEC/DISTANCE","X2VEC/COSIM");
+  kno_defalias(module,"COSIM","X2VEC/COSIM");
   
-  fd_register_config("X2VEC:MONITOR",
+  kno_register_config("X2VEC:MONITOR",
                      "How often to update the progress display during training",
-                     fd_boolconfig_get,fd_boolconfig_set,&show_progress);
-  fd_register_config("X2VEC:VECSIZE",
+                     kno_boolconfig_get,kno_boolconfig_set,&show_progress);
+  kno_register_config("X2VEC:VECSIZE",
                      "How many elements in the item vectors (the hidden layer size)",
-                     fd_intconfig_get,fd_intconfig_set,&default_hidden_size);
-  fd_register_config("X2VEC:WINDOW",
+                     kno_intconfig_get,kno_intconfig_set,&default_hidden_size);
+  kno_register_config("X2VEC:WINDOW",
                      "The context window for the training algorithm",
-                     fd_intconfig_get,fd_intconfig_set,&default_window);
-  fd_register_config("X2VEC:MINCOUNT",
+                     kno_intconfig_get,kno_intconfig_set,&default_window);
+  kno_register_config("X2VEC:MINCOUNT",
                      "The minimum frequency for terms to be used in training",
-                     fd_intconfig_get,fd_intconfig_set,&default_min_count);
-  fd_register_config("X2VEC:HASHMAX",
+                     kno_intconfig_get,kno_intconfig_set,&default_min_count);
+  kno_register_config("X2VEC:HASHMAX",
                      "The maximum size for growing the input hashtable",
-                     fd_intconfig_get,fd_intconfig_set,&default_hash_max);
-  fd_register_config("X2VEC:HASHSIZE",
+                     kno_intconfig_get,kno_intconfig_set,&default_hash_max);
+  kno_register_config("X2VEC:HASHSIZE",
                      "Initial size for the vocabulary hash table",
-                     fd_intconfig_get,fd_intconfig_set,&default_vocab_size);
-  fd_register_config("X2VEC:HASHREDUCE",
+                     kno_intconfig_get,kno_intconfig_set,&default_vocab_size);
+  kno_register_config("X2VEC:HASHREDUCE",
                      "Threshold for reducing the vocabulary when the hashtable overflows",
-                     fd_intconfig_get,fd_intconfig_set,&default_hash_reduce);
-  fd_register_config("X2VEC:TABLESIZE",
+                     kno_intconfig_get,kno_intconfig_set,&default_hash_reduce);
+  kno_register_config("X2VEC:TABLESIZE",
                      "The maximum size for growing the input hahstable",
-                     fd_intconfig_get,fd_intconfig_set,&default_unigrams_size);
-  fd_register_config("X2VEC:CBOW",
+                     kno_intconfig_get,kno_intconfig_set,&default_unigrams_size);
+  kno_register_config("X2VEC:CBOW",
                      "Whether to use CBOW (Continuous Bag Of Words) for training",
-                     fd_boolconfig_get,fd_boolconfig_set,&default_cbow);
-  fd_register_config("X2VEC:VOCABSIZE",
+                     kno_boolconfig_get,kno_boolconfig_set,&default_cbow);
+  kno_register_config("X2VEC:VOCABSIZE",
                      "The initial size for the vocabulary table",
-                     fd_intconfig_get,fd_intconfig_set,&default_vocab_size);
-  fd_register_config("X2VEC:NCLASSES",
+                     kno_intconfig_get,kno_intconfig_set,&default_vocab_size);
+  kno_register_config("X2VEC:NCLASSES",
                      "How many classes to generate by default",
-                     fd_intconfig_get,fd_intconfig_set,&default_n_clusters);
+                     kno_intconfig_get,kno_intconfig_set,&default_n_clusters);
   
-  fd_register_config("X2VEC:ALPHA","The default initial training rate",
-                     fd_dblconfig_get,fd_dblconfig_set,&default_init_alpha);
-  fd_register_config("X2VEC:SUBSAMPLE",
+  kno_register_config("X2VEC:ALPHA","The default initial training rate",
+                     kno_dblconfig_get,kno_dblconfig_set,&default_init_alpha);
+  kno_register_config("X2VEC:SUBSAMPLE",
                      "The threshold for subsampling during training",
-                     fd_dblconfig_get,fd_dblconfig_set,&default_subsample);
-  fd_register_config("X2VEC:NEGATIVE",
+                     kno_dblconfig_get,kno_dblconfig_set,&default_subsample);
+  kno_register_config("X2VEC:NEGATIVE",
                      "The number of negative samples to use during training",
-                     fd_dblconfig_get,fd_dblconfig_set,&default_subsample);
+                     kno_dblconfig_get,kno_dblconfig_set,&default_subsample);
 
-  fd_register_config("X2VEC:LOGFREQ",
+  kno_register_config("X2VEC:LOGFREQ",
                      "How often to log trainining (roughly every n*10000 words)",
-                     fd_intconfig_get,fd_intconfig_set,&default_logfreq);
+                     kno_intconfig_get,kno_intconfig_set,&default_logfreq);
 
-  fd_register_config("X2VEC:EXPMAX",
+  kno_register_config("X2VEC:EXPMAX",
                      "The maximum/minimum value for estimated exponents",
-                     fd_dblconfig_get,fd_dblconfig_set,
+                     kno_dblconfig_get,kno_dblconfig_set,
                      &default_exp_max);
-  fd_register_config("X2VEC:EXP-PRECISION",
+  kno_register_config("X2VEC:EXP-PRECISION",
                      "The maximum/minimum value for estimated exponents",
-                     fd_intconfig_get,fd_intconfig_set,
+                     kno_intconfig_get,kno_intconfig_set,
                      &default_exp_slots);
 
 
@@ -2358,35 +2358,35 @@ FD_EXPORT int fd_init_x2vec_c()
 
 static void init_x2vec_symbols()
 {
-  label_symbol=fd_intern("LABEL");
-  hidden_size=fd_intern("VECSIZE");
-  window_symbol=fd_intern("WINDOW");
-  num_threads_symbol=fd_intern("NTHREADS");
-  hash_reduce_symbol=fd_intern("HASHREDUCE");
-  min_count_symbol=fd_intern("MIN-COUNT");
-  n_clusters_symbol=fd_intern("N-CLASSES");
-  n_cluster_rounds_symbol=fd_intern("N-ROUNDS");
-  unigrams_size_symbol=fd_intern("UNIGRAMS-SIZE");
-  vocab_size_symbol=fd_intern("VOCAB-SIZE");
-  hash_size_symbol=fd_intern("HASHSIZE");
-  alpha_symbol=fd_intern("ALPHA");
-  subsample_symbol=fd_intern("SUBSAMPLE");
-  negsamp_symbol=fd_intern("NEGSAMP");
-  hisoftmax_symbol=fd_intern("HISOFTMAX");
-  mode_symbol=fd_intern("MODE");
-  bag_of_words_symbol=FD_EMPTY_CHOICE;
-  FD_ADD_TO_CHOICE(bag_of_words_symbol,fd_intern("BAG_OF_WORDS"));
-  FD_ADD_TO_CHOICE(bag_of_words_symbol,fd_intern("BAG-OF-WORDS"));
-  FD_ADD_TO_CHOICE(bag_of_words_symbol,fd_intern("BAGOFWORDS"));
-  FD_ADD_TO_CHOICE(bag_of_words_symbol,fd_intern("BOW"));
-  skipgram_symbol=FD_EMPTY_CHOICE;
-  FD_ADD_TO_CHOICE(skipgram_symbol,fd_intern("SKIPGRAM"));
-  hash_max_symbol=fd_intern("HASHMAX");
-  exp_max_symbol=fd_intern("EXPMAX");
-  exp_slots_symbol=fd_intern("EXPSLOTS");
-  loglevel_symbol=fd_intern("LOGLEVEL");
-  logfreq_symbol=fd_intern("LOGFREQ");
-  optsep_symbol=fd_intern("OPTSEP");
+  label_symbol=kno_intern("LABEL");
+  hidden_size=kno_intern("VECSIZE");
+  window_symbol=kno_intern("WINDOW");
+  num_threads_symbol=kno_intern("NTHREADS");
+  hash_reduce_symbol=kno_intern("HASHREDUCE");
+  min_count_symbol=kno_intern("MIN-COUNT");
+  n_clusters_symbol=kno_intern("N-CLASSES");
+  n_cluster_rounds_symbol=kno_intern("N-ROUNDS");
+  unigrams_size_symbol=kno_intern("UNIGRAMS-SIZE");
+  vocab_size_symbol=kno_intern("VOCAB-SIZE");
+  hash_size_symbol=kno_intern("HASHSIZE");
+  alpha_symbol=kno_intern("ALPHA");
+  subsample_symbol=kno_intern("SUBSAMPLE");
+  negsamp_symbol=kno_intern("NEGSAMP");
+  hisoftmax_symbol=kno_intern("HISOFTMAX");
+  mode_symbol=kno_intern("MODE");
+  bag_of_words_symbol=KNO_EMPTY_CHOICE;
+  KNO_ADD_TO_CHOICE(bag_of_words_symbol,kno_intern("BAG_OF_WORDS"));
+  KNO_ADD_TO_CHOICE(bag_of_words_symbol,kno_intern("BAG-OF-WORDS"));
+  KNO_ADD_TO_CHOICE(bag_of_words_symbol,kno_intern("BAGOFWORDS"));
+  KNO_ADD_TO_CHOICE(bag_of_words_symbol,kno_intern("BOW"));
+  skipgram_symbol=KNO_EMPTY_CHOICE;
+  KNO_ADD_TO_CHOICE(skipgram_symbol,kno_intern("SKIPGRAM"));
+  hash_max_symbol=kno_intern("HASHMAX");
+  exp_max_symbol=kno_intern("EXPMAX");
+  exp_slots_symbol=kno_intern("EXPSLOTS");
+  loglevel_symbol=kno_intern("LOGLEVEL");
+  logfreq_symbol=kno_intern("LOGFREQ");
+  optsep_symbol=kno_intern("OPTSEP");
 }
 
 /* Emacs local variables

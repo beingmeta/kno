@@ -1,0 +1,31 @@
+# This systemd unit is deprecated in favor of kno.target and
+#  fdweb.service and fdaemons.service
+[Unit]
+Description=Kno service(s) starter
+Requires=network.target local-fs.target
+Conflicts=fdaemons.in fdweb.in
+After=upsource.target
+
+[Service]
+Type=forking
+RemainAfterExit=true
+Environment=KNO_LAUNCHER=kno.service
+PassEnvironment=KNO_LAUNCHER
+ExecStartPre=@MKDIR@ -p @daemon_rundir@ @daemon_logdir@ @servlet_rundir@ @servlet_logdir@
+ExecStartPre=@CHOWN@ @webuser@ @servlet_rundir@ @servlet_logdir@
+ExecStartPre=@CHOWN@ @fdaemon@ @daemon_rundir@ @daemon_logdir@
+ExecStartPre=@CHGRP@ @admin_group@ @servlet_rundir@ @servlet_logdir@
+ExecStartPre=@CHGRP@ @admin_group@ @daemon_rundir@ @daemon_logdir@
+ExecStartPre=@CHMOD@ g+rwx @servlet_rundir@  @servlet_logdir@
+ExecStartPre=@CHMOD@ g+rwx @daemon_rundir@ @daemon_logdir@
+ExecStart=@BINDIR@/kno_start_daemons @config_dir@/daemons; @BINDIR@/kno_start_servlets @config_dir@/servlets
+ExecStartPost=@TOUCHFILE@ @kno_rundir@/_started
+ExecStartPost=@DELETEFILE@ -f @kno_rundir@/_sysv @kno_rundir@/_upstart
+ExecStartPost=@COPYFILE@ @kno_rundir@/_started @kno_rundir@/_systemd
+ExecStop=@BINDIR@/kno_stop_jobs @daemon_rundir@; @BINDIR@/kno_stop_jobs @servlet_rundir@
+ExecStopPost=@DELETEFILE@ -f @kno_rundir@/_started @kno_rundir@/_systemd
+
+#This should keep the system from running this service, now divided
+# into fdweb and fdaemons, automatically
+[Install]
+#WantedBy=default.target

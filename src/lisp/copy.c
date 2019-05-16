@@ -1,7 +1,7 @@
 /* Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -9,215 +9,215 @@
 #define _FILEINFO __FILE__
 #endif
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/compounds.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/compounds.h"
 
 #if 0 /* From cons.h */
-#define FD_DEEP_COPY 2   /* Make a deep copy */
-#define FD_FULL_COPY 4   /* Copy non-static objects */
-#define FD_STRICT_COPY 8 /* Require methods for all objects */
-#define FD_STATIC_COPY 16 /* Declare all copied objects static (this leaks) */
-#define FD_COPY_TERMINALS 32 /* Copy even terminal objects */
+#define KNO_DEEP_COPY 2   /* Make a deep copy */
+#define KNO_FULL_COPY 4   /* Copy non-static objects */
+#define KNO_STRICT_COPY 8 /* Require methods for all objects */
+#define KNO_STATIC_COPY 16 /* Declare all copied objects static (this leaks) */
+#define KNO_COPY_TERMINALS 32 /* Copy even terminal objects */
 #endif
 
-FD_FASTOP lispval copy_elt(lispval elt,int flags)
+KNO_FASTOP lispval copy_elt(lispval elt,int flags)
 {
-  if (FD_CONSP(elt)) {
-    if (FD_STATIC_CONSP(elt))
-      return fd_copier(elt,flags);
-    else if (! ( (flags) & (FD_FULL_COPY) ) )
-      return fd_incref(elt);
+  if (KNO_CONSP(elt)) {
+    if (KNO_STATIC_CONSP(elt))
+      return kno_copier(elt,flags);
+    else if (! ( (flags) & (KNO_FULL_COPY) ) )
+      return kno_incref(elt);
     else {
-      struct FD_CONS *cons = (fd_cons) elt;
-      fd_ptr_type cons_type = FD_CONS_TYPE(cons);
+      struct KNO_CONS *cons = (kno_cons) elt;
+      kno_ptr_type cons_type = KNO_CONS_TYPE(cons);
       switch (cons_type) {
-      case fd_packet_type: case fd_string_type:
-      case fd_secret_type: case fd_bigint_type:
-      case fd_cprim_type: case fd_evalfn_type:
-      case fd_macro_type: case fd_dtproc_type:
-      case fd_ffi_type: case fd_timestamp_type:
-      case fd_uuid_type: case fd_mystery_type:
-      case fd_rawptr_type: case fd_regex_type:
-      case fd_port_type: case fd_stream_type:
-      case fd_dtserver_type: case fd_bloom_filter_type:
-        if ( (flags) & (FD_COPY_TERMINALS) )
-          return fd_copier(elt,flags);
-        else return fd_incref(elt);
+      case kno_packet_type: case kno_string_type:
+      case kno_secret_type: case kno_bigint_type:
+      case kno_cprim_type: case kno_evalfn_type:
+      case kno_macro_type: case kno_dtproc_type:
+      case kno_ffi_type: case kno_timestamp_type:
+      case kno_uuid_type: case kno_mystery_type:
+      case kno_rawptr_type: case kno_regex_type:
+      case kno_port_type: case kno_stream_type:
+      case kno_dtserver_type: case kno_bloom_filter_type:
+        if ( (flags) & (KNO_COPY_TERMINALS) )
+          return kno_copier(elt,flags);
+        else return kno_incref(elt);
       default:
-        return fd_copier(elt,flags);}}}
+        return kno_copier(elt,flags);}}}
   else return elt;
 }
 
 
-FD_EXPORT
-/* fd_deep_copy:
+KNO_EXPORT
+/* kno_deep_copy:
     Arguments: a dtype pointer
     Returns: a dtype pointer
   This returns a copy of its argument, possibly recurring to sub objects,
   with lots of options. */
-lispval fd_copier(lispval x,int flags)
+lispval kno_copier(lispval x,int flags)
 {
-  int static_copy = U8_BITP(flags,FD_STATIC_COPY);
+  int static_copy = U8_BITP(flags,KNO_STATIC_COPY);
   if (ATOMICP(x))
     return x;
   else {
-    fd_ptr_type ctype = FD_CONS_TYPE(FD_CONS_DATA(x));
+    kno_ptr_type ctype = KNO_CONS_TYPE(KNO_CONS_DATA(x));
     switch (ctype) {
-    case fd_pair_type: {
+    case kno_pair_type: {
       lispval result = NIL, *tail = &result, scan = x;
-      while (TYPEP(scan,fd_pair_type)) {
-        struct FD_PAIR *p = FD_CONSPTR(fd_pair,scan);
-        struct FD_PAIR *newpair = u8_alloc(struct FD_PAIR);
+      while (TYPEP(scan,kno_pair_type)) {
+        struct KNO_PAIR *p = KNO_CONSPTR(kno_pair,scan);
+        struct KNO_PAIR *newpair = u8_alloc(struct KNO_PAIR);
         lispval car = p->car;
-        FD_INIT_CONS(newpair,fd_pair_type);
-        if (static_copy) {FD_MAKE_STATIC(result);}
+        KNO_INIT_CONS(newpair,kno_pair_type);
+        if (static_copy) {KNO_MAKE_STATIC(result);}
         newpair->car = copy_elt(car,flags);
         *tail = (lispval)newpair;
         tail = &(newpair->cdr);
         scan = p->cdr;}
       if (CONSP(scan))
-        *tail = fd_copier(scan,flags);
+        *tail = kno_copier(scan,flags);
       else *tail = scan;
-      if (static_copy) {FD_MAKE_STATIC(result);}
+      if (static_copy) {KNO_MAKE_STATIC(result);}
       return result;}
-    case fd_vector_type: case fd_code_type: {
-      struct FD_VECTOR *v = FD_CONSPTR(fd_vector,x);
+    case kno_vector_type: case kno_code_type: {
+      struct KNO_VECTOR *v = KNO_CONSPTR(kno_vector,x);
       lispval *olddata = v->vec_elts; int i = 0, len = v->vec_length;
-      lispval result = ((ctype == fd_vector_type)?
-                        (fd_empty_vector(len)):
-                        (fd_init_code(NULL,len,NULL)));
-      lispval *newdata = FD_VECTOR_ELTS(result);
+      lispval result = ((ctype == kno_vector_type)?
+                        (kno_empty_vector(len)):
+                        (kno_init_code(NULL,len,NULL)));
+      lispval *newdata = KNO_VECTOR_ELTS(result);
       while (i<len) {
         lispval v = olddata[i];
         newdata[i++]=copy_elt(v,flags);}
-      if (static_copy) {FD_MAKE_STATIC(result);}
+      if (static_copy) {KNO_MAKE_STATIC(result);}
       return result;}
-    case fd_string_type: {
-      struct FD_STRING *s = FD_CONSPTR(fd_string,x);
-      lispval result = fd_make_string(NULL,s->str_bytelen,s->str_bytes);
-      if (static_copy) {FD_MAKE_STATIC(result);}
+    case kno_string_type: {
+      struct KNO_STRING *s = KNO_CONSPTR(kno_string,x);
+      lispval result = kno_make_string(NULL,s->str_bytelen,s->str_bytes);
+      if (static_copy) {KNO_MAKE_STATIC(result);}
       return result;}
-    case fd_packet_type: case fd_secret_type: {
-      struct FD_STRING *s = FD_CONSPTR(fd_string,x);
+    case kno_packet_type: case kno_secret_type: {
+      struct KNO_STRING *s = KNO_CONSPTR(kno_string,x);
       lispval result;
-      if (ctype == fd_secret_type) {
-        result = fd_make_packet(NULL,s->str_bytelen,s->str_bytes);
-        FD_SET_CONS_TYPE(result,fd_secret_type);
+      if (ctype == kno_secret_type) {
+        result = kno_make_packet(NULL,s->str_bytelen,s->str_bytes);
+        KNO_SET_CONS_TYPE(result,kno_secret_type);
         return result;}
-      else result = fd_make_packet(NULL,s->str_bytelen,s->str_bytes);
-      if (static_copy) {FD_MAKE_STATIC(result);}
+      else result = kno_make_packet(NULL,s->str_bytelen,s->str_bytes);
+      if (static_copy) {KNO_MAKE_STATIC(result);}
       return result;}
-    case fd_choice_type: {
-      int n = FD_CHOICE_SIZE(x);
-      int choice_flags = (FD_ATOMIC_CHOICEP(x))?
-        (FD_CHOICE_ISATOMIC):
-        (FD_CHOICE_ISCONSES);
-      struct FD_CHOICE *copy = fd_alloc_choice(n);
-      const lispval *read = FD_CHOICE_DATA(x), *limit = read+n;
+    case kno_choice_type: {
+      int n = KNO_CHOICE_SIZE(x);
+      int choice_flags = (KNO_ATOMIC_CHOICEP(x))?
+        (KNO_CHOICE_ISATOMIC):
+        (KNO_CHOICE_ISCONSES);
+      struct KNO_CHOICE *copy = kno_alloc_choice(n);
+      const lispval *read = KNO_CHOICE_DATA(x), *limit = read+n;
       lispval *write = (lispval *)&(copy->choice_0);
       lispval result;
-      if (FD_ATOMIC_CHOICEP(x))
+      if (KNO_ATOMIC_CHOICEP(x))
         memcpy(write,read,LISPVEC_BYTELEN(n));
       else while (read<limit) {
           lispval v = *read++, c = copy_elt(v,flags);
           *write++=c;}
-      result = fd_init_choice(copy,n,NULL,choice_flags);
-      if (static_copy) {FD_MAKE_STATIC(result);}
+      result = kno_init_choice(copy,n,NULL,choice_flags);
+      if (static_copy) {KNO_MAKE_STATIC(result);}
       return result;}
     default:
-      if (fd_copiers[ctype]) {
-        lispval copy = (fd_copiers[ctype])(x,flags);
-        if ((static_copy) && (copy!=x)) {FD_MAKE_STATIC(copy);}
+      if (kno_copiers[ctype]) {
+        lispval copy = (kno_copiers[ctype])(x,flags);
+        if ((static_copy) && (copy!=x)) {KNO_MAKE_STATIC(copy);}
         return copy;}
-      else if (!(FD_MALLOCD_CONSP((fd_cons)x)))
-        return fd_err(fd_NoMethod,"fd_copier/static",
-                      fd_type_names[ctype],VOID);
-      else if ((flags)&(FD_STRICT_COPY))
-        return fd_err(fd_NoMethod,"fd_copier",fd_type_names[ctype],x);
-      else {fd_incref(x); return x;}}}
+      else if (!(KNO_MALLOCD_CONSP((kno_cons)x)))
+        return kno_err(kno_NoMethod,"kno_copier/static",
+                      kno_type_names[ctype],VOID);
+      else if ((flags)&(KNO_STRICT_COPY))
+        return kno_err(kno_NoMethod,"kno_copier",kno_type_names[ctype],x);
+      else {kno_incref(x); return x;}}}
 }
 
-FD_EXPORT
-lispval fd_deep_copy(lispval x)
+KNO_EXPORT
+lispval kno_deep_copy(lispval x)
 {
-  return fd_copier(x,(FD_DEEP_COPY|FD_FULL_COPY));
+  return kno_copier(x,(KNO_DEEP_COPY|KNO_FULL_COPY));
 }
 
-FD_EXPORT
-lispval fd_static_copy(lispval x)
+KNO_EXPORT
+lispval kno_static_copy(lispval x)
 {
-  return fd_copier(x,(FD_DEEP_COPY|FD_FULL_COPY|FD_STATIC_COPY));
+  return kno_copier(x,(KNO_DEEP_COPY|KNO_FULL_COPY|KNO_STATIC_COPY));
 }
 
-FD_EXPORT
+KNO_EXPORT
 /* Copies a vector of LISP pointers */
-lispval *fd_copy_vec(lispval *vec,size_t n,lispval *into,int flags)
+lispval *kno_copy_vec(lispval *vec,size_t n,lispval *into,int flags)
 {
   lispval *dest = (into == NULL)?(u8_alloc_n(n,lispval)):(into);
   int i = 0; while (i<n) {
     lispval elt = vec[i];
-    if (elt == FD_NULL)
+    if (elt == KNO_NULL)
       break;
     else if (!(CONSP(elt)))
       dest[i]=elt;
-    else if (U8_BITP(flags,FD_DEEP_COPY)) {
-      dest[i]=fd_copier(elt,flags);}
+    else if (U8_BITP(flags,KNO_DEEP_COPY)) {
+      dest[i]=kno_copier(elt,flags);}
     else
-      dest[i]=fd_incref(elt);
+      dest[i]=kno_incref(elt);
     i++;}
-  while (i<n) dest[i++]=FD_NULL;
+  while (i<n) dest[i++]=KNO_NULL;
   return dest;
 }
 
-FD_EXPORT
-/* fd_copy:
+KNO_EXPORT
+/* kno_copy:
     Arguments: a dtype pointer
     Returns: a dtype pointer
   If the argument is a malloc'd cons, this just increfs it.
   If it is a static cons, it does a deep copy. */
-lispval fd_copy(lispval x)
+lispval kno_copy(lispval x)
 {
   if (!(CONSP(x))) return x;
-  else if (FD_MALLOCD_CONSP(((fd_cons)x)))
-    return fd_incref(x);
-  else return fd_copier(x,0);
+  else if (KNO_MALLOCD_CONSP(((kno_cons)x)))
+    return kno_incref(x);
+  else return kno_copier(x,0);
 }
 
 static lispval copy_compound(lispval x,int flags)
 {
-  struct FD_COMPOUND *xc = fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);
+  struct KNO_COMPOUND *xc = kno_consptr(struct KNO_COMPOUND *,x,kno_compound_type);
   if (xc->compound_isopaque) {
-    fd_incref(x);
+    kno_incref(x);
     return x;}
   else {
     int i = 0, n = xc->compound_length;
-    struct FD_COMPOUND *nc = u8_malloc(sizeof(FD_COMPOUND)+(n-1)*LISPVAL_LEN);
+    struct KNO_COMPOUND *nc = u8_malloc(sizeof(KNO_COMPOUND)+(n-1)*LISPVAL_LEN);
     lispval *data = &(xc->compound_0), *write = &(nc->compound_0);
-    FD_INIT_CONS(nc,fd_compound_type);
+    KNO_INIT_CONS(nc,kno_compound_type);
     if (xc->compound_ismutable) u8_init_mutex(&(nc->compound_lock));
     nc->compound_ismutable = xc->compound_ismutable;
     nc->compound_isopaque = xc->compound_isopaque;
-    nc->compound_typetag = fd_incref(xc->compound_typetag);
+    nc->compound_typetag = kno_incref(xc->compound_typetag);
     nc->compound_length = xc->compound_length;
     nc->compound_off = xc->compound_off;
     if (flags)
       while (i<n) {
-        *write = fd_copier(data[i],flags);
+        *write = kno_copier(data[i],flags);
         write++;
         i++;}
     else while (i<n) {
-        *write = fd_incref(data[i]);
+        *write = kno_incref(data[i]);
         write++;
         i++;}
     return LISP_CONS(nc);}
 }
 
-void fd_init_copy_c()
+void kno_init_copy_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  fd_copiers[fd_compound_type]=copy_compound;
+  kno_copiers[kno_compound_type]=copy_compound;
 
 }
 

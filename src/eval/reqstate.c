@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -9,16 +9,16 @@
 #define _FILEINFO __FILE__
 #endif
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/eval.h"
-#include "framerd/storage.h"
-#include "framerd/pools.h"
-#include "framerd/indexes.h"
-#include "framerd/frames.h"
-#include "framerd/streams.h"
-#include "framerd/dtypeio.h"
-#include "framerd/ports.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/eval.h"
+#include "kno/storage.h"
+#include "kno/pools.h"
+#include "kno/indexes.h"
+#include "kno/frames.h"
+#include "kno/streams.h"
+#include "kno/dtypeio.h"
+#include "kno/ports.h"
 
 #include <ctype.h>
 
@@ -26,9 +26,9 @@ static lispval reqgetvar(lispval cgidata,lispval var)
 {
   int noparse=
     ((SYMBOLP(var))&&((SYM_NAME(var))[0]=='%'));
-  lispval name = ((noparse)?(fd_intern(SYM_NAME(var)+1)):(var));
-  lispval val = ((TABLEP(cgidata))?(fd_get(cgidata,name,VOID)):
-              (fd_req_get(name,VOID)));
+  lispval name = ((noparse)?(kno_intern(SYM_NAME(var)+1)):(var));
+  lispval val = ((TABLEP(cgidata))?(kno_get(cgidata,name,VOID)):
+              (kno_req_get(name,VOID)));
   if (VOIDP(val)) return val;
   else if ((noparse)&&(STRINGP(val)))
     return val;
@@ -36,53 +36,53 @@ static lispval reqgetvar(lispval cgidata,lispval var)
     u8_string data = CSTRING(val);
     if (*data=='\0') return val;
     else if (strchr("@{#(",data[0])) {
-      lispval parsed = fd_parse_arg(data);
-      fd_decref(val); return parsed;}
+      lispval parsed = kno_parse_arg(data);
+      kno_decref(val); return parsed;}
     else if (isdigit(data[0])) {
-      lispval parsed = fd_parse_arg(data);
+      lispval parsed = kno_parse_arg(data);
       if (NUMBERP(parsed)) {
-        fd_decref(val); return parsed;}
+        kno_decref(val); return parsed;}
       else {
-        fd_decref(parsed); return val;}}
+        kno_decref(parsed); return val;}}
     else if (*data == ':')
       if (data[1]=='\0')
         return lispval_string(data);
       else {
-        lispval arg = fd_parse(data+1);
-        if (FD_ABORTP(arg)) {
-          u8_log(LOG_WARN,fd_ParseArgError,"Bad colon spec arg '%s'",arg);
-          fd_clear_errors(1);
+        lispval arg = kno_parse(data+1);
+        if (KNO_ABORTP(arg)) {
+          u8_log(LOG_WARN,kno_ParseArgError,"Bad colon spec arg '%s'",arg);
+          kno_clear_errors(1);
           return lispval_string(data);}
         else return arg;}
     else if (*data == '\\') {
       lispval shorter = lispval_string(data+1);
-      fd_decref(val);
+      kno_decref(val);
       return shorter;}
     else return val;}
   else if ((CHOICEP(val))||(PRECHOICEP(val))) {
     lispval result = EMPTY;
     DO_CHOICES(v,val) {
       if (!(STRINGP(v))) {
-        fd_incref(v); CHOICE_ADD(result,v);}
+        kno_incref(v); CHOICE_ADD(result,v);}
       else {
         u8_string data = CSTRING(v); lispval parsed = v;
         if (*data=='\\') parsed = lispval_string(data+1);
-        else if ((*data==':')&&(data[1]=='\0')) {fd_incref(parsed);}
+        else if ((*data==':')&&(data[1]=='\0')) {kno_incref(parsed);}
         else if (*data==':')
-          parsed = fd_parse(data+1);
+          parsed = kno_parse(data+1);
         else if ((isdigit(*data))||(*data=='+')||(*data=='-')||(*data=='.')) {
-          parsed = fd_parse_arg(data);
+          parsed = kno_parse_arg(data);
           if (!(NUMBERP(parsed))) {
-            fd_decref(parsed); parsed = v; fd_incref(parsed);}}
+            kno_decref(parsed); parsed = v; kno_incref(parsed);}}
         else if ( (noparse==0) && (strchr("@{#(",data[0])) )
-          parsed = fd_parse_arg(data);
-        else fd_incref(parsed);
-        if (FD_ABORTP(parsed)) {
-          u8_log(LOG_WARN,fd_ParseArgError,"Bad LISP arg '%s'",data);
-          fd_clear_errors(1);
-          parsed = v; fd_incref(v);}
+          parsed = kno_parse_arg(data);
+        else kno_incref(parsed);
+        if (KNO_ABORTP(parsed)) {
+          u8_log(LOG_WARN,kno_ParseArgError,"Bad LISP arg '%s'",data);
+          kno_clear_errors(1);
+          parsed = v; kno_incref(v);}
         CHOICE_ADD(result,parsed);}}
-    fd_decref(val);
+    kno_decref(val);
     return result;}
   else return val;
 }
@@ -92,15 +92,15 @@ static lispval reqgetvar(lispval cgidata,lispval var)
 static lispval reqcall_prim(lispval proc)
 {
   lispval value = VOID;
-  if (!(FD_APPLICABLEP(proc)))
-    value = fd_type_error("applicable","cgicall",proc);
+  if (!(KNO_APPLICABLEP(proc)))
+    value = kno_type_error("applicable","cgicall",proc);
   else {
-    lispval fn = fd_fcnid_ref(proc);
-    if (FD_LAMBDAP(fn))
-      value=fd_xapply_lambda((fd_lambda)fn,
+    lispval fn = kno_fcnid_ref(proc);
+    if (KNO_LAMBDAP(fn))
+      value=kno_xapply_lambda((kno_lambda)fn,
                              (void *)VOID,
                              (lispval (*)(void *,lispval))reqgetvar);
-    else value = fd_apply(fn,0,NULL);}
+    else value = kno_apply(fn,0,NULL);}
   return value;
 }
 
@@ -108,16 +108,16 @@ static lispval reqget_prim(lispval vars,lispval dflt)
 {
   lispval results = EMPTY; int found = 0;
   DO_CHOICES(var,vars) {
-    lispval name = ((STRINGP(var))?(fd_intern(CSTRING(var))):(var));
-    lispval val = fd_req_get(name,VOID);
+    lispval name = ((STRINGP(var))?(kno_intern(CSTRING(var))):(var));
+    lispval val = kno_req_get(name,VOID);
     if (!(VOIDP(val))) {
       found = 1; CHOICE_ADD(results,val);}}
-  if (found) return fd_simplify_choice(results);
+  if (found) return kno_simplify_choice(results);
   else if (VOIDP(dflt)) return EMPTY;
   else if (QCHOICEP(dflt)) {
-    struct FD_QCHOICE *qc = FD_XQCHOICE(dflt);
-    return fd_make_simple_choice(qc->qchoiceval);}
-  else return fd_incref(dflt);
+    struct KNO_QCHOICE *qc = KNO_XQCHOICE(dflt);
+    return kno_make_simple_choice(qc->qchoiceval);}
+  else return kno_incref(dflt);
 }
 
 static lispval reqval_prim(lispval vars,lispval dflt)
@@ -125,22 +125,22 @@ static lispval reqval_prim(lispval vars,lispval dflt)
   lispval results = EMPTY; int found = 0;
   DO_CHOICES(var,vars) {
     lispval val;
-    if (STRINGP(var)) var = fd_intern(CSTRING(var));
-    val = fd_req_get(var,VOID);
+    if (STRINGP(var)) var = kno_intern(CSTRING(var));
+    val = kno_req_get(var,VOID);
     if (VOIDP(val)) {}
     else if (STRINGP(val)) {
-      lispval parsed = fd_parse_arg(CSTRING(val));
-      fd_decref(val);
+      lispval parsed = kno_parse_arg(CSTRING(val));
+      kno_decref(val);
       CHOICE_ADD(results,parsed);
       found = 1;}
     else if (CHOICEP(val)) {
       DO_CHOICES(v,val) {
         if (STRINGP(v)) {
-          lispval parsed = fd_parse_arg(CSTRING(v));
+          lispval parsed = kno_parse_arg(CSTRING(v));
           CHOICE_ADD(results,parsed);}
         else {
-          fd_incref(v); CHOICE_ADD(results,v);}}
-      fd_decref(val);
+          kno_incref(v); CHOICE_ADD(results,v);}}
+      kno_decref(val);
       found = 1;}
     else {
       CHOICE_ADD(results,val);
@@ -148,166 +148,166 @@ static lispval reqval_prim(lispval vars,lispval dflt)
   if (found) return results;
   else if (VOIDP(dflt)) return EMPTY;
   else if (QCHOICEP(dflt)) {
-    struct FD_QCHOICE *qc = FD_XQCHOICE(dflt);
-    return fd_make_simple_choice(qc->qchoiceval);}
-  else return fd_incref(dflt);
+    struct KNO_QCHOICE *qc = KNO_XQCHOICE(dflt);
+    return kno_make_simple_choice(qc->qchoiceval);}
+  else return kno_incref(dflt);
 }
 
-static lispval hashcolon_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+static lispval hashcolon_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval var = fd_get_arg(expr,1);
+  lispval var = kno_get_arg(expr,1);
   if (VOIDP(var))
-    return fd_err(fd_SyntaxError,"hashcolon_evalfn",NULL,expr);
+    return kno_err(kno_SyntaxError,"hashcolon_evalfn",NULL,expr);
   else return reqget_prim(var,EMPTY);
 }
 
-static lispval hashcoloncolon_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+static lispval hashcoloncolon_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval var = fd_get_arg(expr,1);
+  lispval var = kno_get_arg(expr,1);
   if (VOIDP(var))
-    return fd_err(fd_SyntaxError,"hashcoloncolon_evalfn",NULL,expr);
+    return kno_err(kno_SyntaxError,"hashcoloncolon_evalfn",NULL,expr);
   else {
     lispval val = reqget_prim(var,EMPTY);
     if (STRINGP(val)) {
-      lispval result = fd_parse_arg(CSTRING(val));
-      fd_decref(val);
+      lispval result = kno_parse_arg(CSTRING(val));
+      kno_decref(val);
       return result;}
     else return val;}
 }
 
-static lispval hashcolondollar_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+static lispval hashcolondollar_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval var = fd_get_arg(expr,1);
+  lispval var = kno_get_arg(expr,1);
   if (VOIDP(var))
-    return fd_err(fd_SyntaxError,"hashcoloncolon_evalfn",NULL,expr);
+    return kno_err(kno_SyntaxError,"hashcoloncolon_evalfn",NULL,expr);
   else {
     lispval val = reqget_prim(var,VOID);
     if (STRINGP(val)) {
-      lispval result = fd_parse_arg(CSTRING(val));
-      fd_decref(val);
+      lispval result = kno_parse_arg(CSTRING(val));
+      kno_decref(val);
       return result;}
     else if (VOIDP(val))
-      return fd_make_string(NULL,0,"");
+      return kno_make_string(NULL,0,"");
     else {
       lispval result; struct U8_OUTPUT out;
-      U8_INIT_OUTPUT(&out,64); fd_unparse(&out,val);
-      result = fd_stream_string(&out);
+      U8_INIT_OUTPUT(&out,64); kno_unparse(&out,val);
+      result = kno_stream_string(&out);
       u8_free(out.u8_outbuf);
       return result;}}
 }
 
-static lispval hashcolonquestion_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+static lispval hashcolonquestion_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval var = fd_get_arg(expr,1);
+  lispval var = kno_get_arg(expr,1);
   if (VOIDP(var))
-    return fd_err(fd_SyntaxError,"hashcoloncolon_evalfn",NULL,expr);
-  else if (fd_req_test(var,VOID))
-    return FD_TRUE;
-  else return FD_FALSE;
+    return kno_err(kno_SyntaxError,"hashcoloncolon_evalfn",NULL,expr);
+  else if (kno_req_test(var,VOID))
+    return KNO_TRUE;
+  else return KNO_FALSE;
 }
 
 static lispval reqtest_prim(lispval vars,lispval val)
 {
   DO_CHOICES(var,vars) {
-    lispval name = ((STRINGP(var))?(fd_intern(CSTRING(var))):(var));
-    int retval = fd_req_test(name,val);
+    lispval name = ((STRINGP(var))?(kno_intern(CSTRING(var))):(var));
+    int retval = kno_req_test(name,val);
     if (retval<0) {
-      FD_STOP_DO_CHOICES;
-      return FD_ERROR;}
+      KNO_STOP_DO_CHOICES;
+      return KNO_ERROR;}
     else if (retval) {
-      FD_STOP_DO_CHOICES;
-      return FD_TRUE;}
+      KNO_STOP_DO_CHOICES;
+      return KNO_TRUE;}
     else {}}
-  return FD_FALSE;
+  return KNO_FALSE;
 }
 
 static lispval reqset_prim(lispval vars,lispval value)
 {
   {DO_CHOICES(var,vars) {
-      lispval name = ((STRINGP(var))?(fd_intern(CSTRING(var))):(var));
-      fd_req_store(name,value);}}
+      lispval name = ((STRINGP(var))?(kno_intern(CSTRING(var))):(var));
+      kno_req_store(name,value);}}
   return VOID;
 }
 
 static lispval reqadd_prim(lispval vars,lispval value)
 {
   {DO_CHOICES(var,vars) {
-      lispval name = ((STRINGP(var))?(fd_intern(CSTRING(var))):(var));
-      fd_req_add(name,value);}}
+      lispval name = ((STRINGP(var))?(kno_intern(CSTRING(var))):(var));
+      kno_req_add(name,value);}}
   return VOID;
 }
 
 static lispval reqdrop_prim(lispval vars,lispval value)
 {
   {DO_CHOICES(var,vars) {
-      lispval name = ((STRINGP(var))?(fd_intern(CSTRING(var))):(var));
-      fd_req_drop(name,value);}}
+      lispval name = ((STRINGP(var))?(kno_intern(CSTRING(var))):(var));
+      kno_req_drop(name,value);}}
   return VOID;
 }
 
 static lispval reqpush_prim(lispval vars,lispval values)
 {
   {DO_CHOICES(var,vars) {
-      lispval name = ((STRINGP(var))?(fd_intern(CSTRING(var))):(var));
+      lispval name = ((STRINGP(var))?(kno_intern(CSTRING(var))):(var));
       DO_CHOICES(value,values) {
-        fd_req_push(name,value);}}}
+        kno_req_push(name,value);}}}
   return VOID;
 }
 
 lispval reqdata_prim()
 {
-  return fd_req_call(fd_deep_copy);
+  return kno_req_call(kno_deep_copy);
 }
 
-static lispval withreq_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+static lispval withreq_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval body = fd_get_body(expr,1), result = VOID;
-  fd_use_reqinfo(FD_TRUE); fd_reqlog(1);
-  {FD_DOLIST(ex,body) {
-      if (FD_ABORTP(result)) {
-        fd_use_reqinfo(EMPTY);
-        fd_reqlog(-1);
+  lispval body = kno_get_body(expr,1), result = VOID;
+  kno_use_reqinfo(KNO_TRUE); kno_reqlog(1);
+  {KNO_DOLIST(ex,body) {
+      if (KNO_ABORTP(result)) {
+        kno_use_reqinfo(EMPTY);
+        kno_reqlog(-1);
         return result;}
-      fd_decref(result);
-      result = fd_eval(ex,env);}}
-  fd_use_reqinfo(EMPTY);
-  fd_reqlog(-1);
+      kno_decref(result);
+      result = kno_eval(ex,env);}}
+  kno_use_reqinfo(EMPTY);
+  kno_reqlog(-1);
   return result;
 }
 
 static lispval req_livep_prim()
 {
-  if (fd_isreqlive()) return FD_TRUE;
-  else return FD_FALSE;
+  if (kno_isreqlive()) return KNO_TRUE;
+  else return KNO_FALSE;
 }
 
-FD_EXPORT lispval reqgetlog_prim()
+KNO_EXPORT lispval reqgetlog_prim()
 {
-  struct U8_OUTPUT *log = fd_reqlog(0);
-  if (!(log)) return FD_FALSE;
+  struct U8_OUTPUT *log = kno_reqlog(0);
+  if (!(log)) return KNO_FALSE;
   else {
     int len = log->u8_write-log->u8_outbuf;
-    if (len==0) return FD_FALSE;
-    else return fd_make_string(NULL,len,log->u8_outbuf);}
+    if (len==0) return KNO_FALSE;
+    else return kno_make_string(NULL,len,log->u8_outbuf);}
 }
 
-FD_EXPORT lispval reqloglen_prim()
+KNO_EXPORT lispval reqloglen_prim()
 {
-  struct U8_OUTPUT *log = fd_reqlog(0);
-  if (!(log)) return FD_FALSE;
+  struct U8_OUTPUT *log = kno_reqlog(0);
+  if (!(log)) return KNO_FALSE;
   else {
     int len = log->u8_write-log->u8_outbuf;
-    return FD_INT(len);}
+    return KNO_INT(len);}
 }
 
-FD_EXPORT lispval reqlog_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+KNO_EXPORT lispval reqlog_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   struct U8_XTIME xt;
-  struct U8_OUTPUT *reqout = fd_reqlog(1);
+  struct U8_OUTPUT *reqout = kno_reqlog(1);
   u8_string cond = NULL, cxt = NULL;
   long long body_off = 1, level = -1;
-  lispval arg1 = fd_get_arg(expr,1), arg2 = fd_get_arg(expr,2);
-  lispval arg3 = fd_get_arg(expr,3), body, outval;
+  lispval arg1 = kno_get_arg(expr,1), arg2 = kno_get_arg(expr,2);
+  lispval arg3 = kno_get_arg(expr,3), body, outval;
   if (FIXNUMP(arg1)) {
     level = FIX2INT(arg1); body_off++;
     arg1 = arg2; arg2 = arg3; arg3 = VOID;}
@@ -326,45 +326,45 @@ FD_EXPORT lispval reqlog_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   if (cond) u8_printf(reqout,"\n\t<condition>%s</condition>",cond);
   if (cxt) u8_printf(reqout,"\n\t<context>%s</context>",cxt);
   u8_printf(reqout,"\n\t<message>\n");
-  body = fd_get_body(expr,body_off);
-  outval = fd_printout_to(reqout,body,env);
+  body = kno_get_body(expr,body_off);
+  outval = kno_printout_to(reqout,body,env);
   u8_printf(reqout,"\n\t</message>");
   u8_printf(reqout,"\n</logentry>\n");
-  fd_decref(body);
-  if (FD_ABORTP(outval)) {
+  kno_decref(body);
+  if (KNO_ABORTP(outval)) {
     return outval;}
   else return VOID;
 }
 
-FD_EXPORT void fd_init_reqstate_c()
+KNO_EXPORT void kno_init_reqstate_c()
 {
-  lispval module = fd_scheme_module;
+  lispval module = kno_scheme_module;
 
   u8_register_source_file(_FILEINFO);
 
-  fd_idefn(module,fd_make_cprim1("REQ/CALL",reqcall_prim,1));
-  fd_idefn(module,fd_make_ndprim(fd_make_cprim2("REQ/GET",reqget_prim,1)));
-  fd_idefn(module,fd_make_ndprim(fd_make_cprim2("REQ/VAL",reqval_prim,1)));
-  fd_idefn(module,fd_make_ndprim(fd_make_cprim2("REQ/TEST",reqtest_prim,1)));
-  fd_idefn(module,fd_make_ndprim(fd_make_cprim2("REQ/SET!",reqset_prim,2)));
-  fd_idefn(module,fd_make_cprim2("REQ/ADD!",reqadd_prim,2));
-  fd_idefn(module,fd_make_cprim2("REQ/DROP!",reqdrop_prim,1));
-  fd_idefn(module,fd_make_cprim2("REQ/PUSH!",reqpush_prim,2));
-  fd_idefn(module,fd_make_cprim0("REQ/LIVE?",req_livep_prim));
-  fd_def_evalfn(module,"#:","",hashcolon_evalfn);
-  fd_def_evalfn(module,"#::","",hashcoloncolon_evalfn);
-  fd_def_evalfn(module,"#:$","",hashcolondollar_evalfn);
-  fd_def_evalfn(module,"#:?","",hashcolonquestion_evalfn);
+  kno_idefn(module,kno_make_cprim1("REQ/CALL",reqcall_prim,1));
+  kno_idefn(module,kno_make_ndprim(kno_make_cprim2("REQ/GET",reqget_prim,1)));
+  kno_idefn(module,kno_make_ndprim(kno_make_cprim2("REQ/VAL",reqval_prim,1)));
+  kno_idefn(module,kno_make_ndprim(kno_make_cprim2("REQ/TEST",reqtest_prim,1)));
+  kno_idefn(module,kno_make_ndprim(kno_make_cprim2("REQ/SET!",reqset_prim,2)));
+  kno_idefn(module,kno_make_cprim2("REQ/ADD!",reqadd_prim,2));
+  kno_idefn(module,kno_make_cprim2("REQ/DROP!",reqdrop_prim,1));
+  kno_idefn(module,kno_make_cprim2("REQ/PUSH!",reqpush_prim,2));
+  kno_idefn(module,kno_make_cprim0("REQ/LIVE?",req_livep_prim));
+  kno_def_evalfn(module,"#:","",hashcolon_evalfn);
+  kno_def_evalfn(module,"#::","",hashcoloncolon_evalfn);
+  kno_def_evalfn(module,"#:$","",hashcolondollar_evalfn);
+  kno_def_evalfn(module,"#:?","",hashcolonquestion_evalfn);
 
-  fd_def_evalfn(module,"REQLOG","",reqlog_evalfn);
-  fd_def_evalfn(module,"REQ/LOG!","",reqlog_evalfn);
-  fd_idefn(module,fd_make_cprim0("REQ/GETLOG",reqgetlog_prim));
-  fd_idefn(module,fd_make_cprim0("REQ/LOGLEN",reqloglen_prim));
+  kno_def_evalfn(module,"REQLOG","",reqlog_evalfn);
+  kno_def_evalfn(module,"REQ/LOG!","",reqlog_evalfn);
+  kno_idefn(module,kno_make_cprim0("REQ/GETLOG",reqgetlog_prim));
+  kno_idefn(module,kno_make_cprim0("REQ/LOGLEN",reqloglen_prim));
 
-  fd_idefn(module,fd_make_cprim0("REQ/DATA",reqdata_prim));
+  kno_idefn(module,kno_make_cprim0("REQ/DATA",reqdata_prim));
 
-  fd_idefn(module,fd_make_cprim0("REQ/DATA",reqdata_prim));
-  fd_def_evalfn(module,"WITH/REQUEST","",withreq_evalfn);
+  kno_idefn(module,kno_make_cprim0("REQ/DATA",reqdata_prim));
+  kno_def_evalfn(module,"WITH/REQUEST","",withreq_evalfn);
 
 }
 

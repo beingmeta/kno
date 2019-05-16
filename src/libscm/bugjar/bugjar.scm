@@ -20,7 +20,7 @@
 
 (define-init bugjar/saveroot
   (if (config 'logdir)
-      (glom (mkpath (mkpath (config 'logdir) "framerd")
+      (glom (mkpath (mkpath (config 'logdir) "kno")
 		    "bugjar") "/")
       "/tmp/bugjar/"))
 (define-init bugjar/webroot #f)

@@ -1,0 +1,3 @@
+<IfModule !knosrv_module>
+  LoadModule knosrv_module      @apache_modules_dir@/mod_knosrv.so
+</IfModule>

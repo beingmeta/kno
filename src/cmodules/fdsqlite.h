@@ -1,8 +1,8 @@
 #include <sqlite.h>
 
-typedef struct FD_SQLITE {
-  FD_CONS_HEADER; sqlite *db;} FD_SQLITE;
-typedef struct FD_SQLITE *fd_sqlite;
+typedef struct KNO_SQLITE {
+  KNO_CONS_HEADER; sqlite *db;} KNO_SQLITE;
+typedef struct KNO_SQLITE *kno_sqlite;
 
-FD_EXPORT fd_ptr_type fd_sqlite_type;
+KNO_EXPORT kno_ptr_type kno_sqlite_type;
 

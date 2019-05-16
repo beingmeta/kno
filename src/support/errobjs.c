@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -9,10 +9,10 @@
 #define _FILEINFO __FILE__
 #endif
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/numbers.h"
-#include "framerd/apply.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/numbers.h"
+#include "kno/apply.h"
 
 #include <libu8/u8signals.h>
 #include <libu8/u8pathfns.h>
@@ -28,7 +28,7 @@
 #include <libu8/u8elapsed.h>
 #include <libu8/u8netfns.h>
 #include <libu8/u8printf.h>
-#if FD_FILECONFIG_ENABLED
+#if KNO_FILECONFIG_ENABLED
 #include <libu8/u8filefns.h>
 #include <libu8/libu8io.h>
 #endif
@@ -37,95 +37,95 @@ static int max_irritant_len=256;
 
 static lispval stack_entry_symbol, exception_stack_symbol;
 
-int fd_log_stack_max = 500;
-int fd_sum_stack_max = 200;
+int kno_log_stack_max = 500;
+int kno_sum_stack_max = 200;
 
 /* Managing error data */
 
-FD_EXPORT void fd_decref_u8x_xdata(void *ptr)
+KNO_EXPORT void kno_decref_u8x_xdata(void *ptr)
 {
   lispval v = (lispval)ptr;
-  fd_decref(v);
+  kno_decref(v);
 }
 
-FD_EXPORT void fd_decref_embedded_exception(void *ptr)
+KNO_EXPORT void kno_decref_embedded_exception(void *ptr)
 {
   lispval v = (lispval)ptr;
-  fd_decref(v);
+  kno_decref(v);
 }
 
 static lispval get_exception_context(u8_exception ex)
 {
   if (ex == NULL)
-    return FD_VOID;
+    return KNO_VOID;
   else {
     int depth = 0; u8_exception scan = ex;
     while (scan) {
       scan = scan->u8x_prev;
       depth++;}
-    lispval stack_vec = fd_make_vector(depth,NULL);
+    lispval stack_vec = kno_make_vector(depth,NULL);
     int i=0; scan = ex; while (scan) {
-      lispval irritant = fd_get_irritant(scan);
-      lispval entry = fd_init_exception
+      lispval irritant = kno_get_irritant(scan);
+      lispval entry = kno_init_exception
         (NULL,scan->u8x_cond,scan->u8x_context,
-         u8_strdup(scan->u8x_details),fd_incref(irritant),
-         FD_FALSE,FD_VOID,
+         u8_strdup(scan->u8x_details),kno_incref(irritant),
+         KNO_FALSE,KNO_VOID,
          NULL,-1,-1,-1);
-      FD_VECTOR_SET(stack_vec,i,entry);
+      KNO_VECTOR_SET(stack_vec,i,entry);
       scan = scan->u8x_prev;
       i++;}
-    struct FD_KEYVAL init_kv = { exception_stack_symbol, stack_vec};
-    return fd_make_slotmap(4,1,&init_kv);}
+    struct KNO_KEYVAL init_kv = { exception_stack_symbol, stack_vec};
+    return kno_make_slotmap(4,1,&init_kv);}
 }
 
-FD_EXPORT void fd_seterr
+KNO_EXPORT void kno_seterr
   (u8_condition c,u8_context caller,u8_string details,lispval irritant)
 {
   u8_exception ex = u8_current_exception;
   u8_condition condition = (c) ? (c) : (ex) ? (ex->u8x_cond) :
     ((u8_condition)"Unknown (NULL) error");
-  struct FD_EXCEPTION *exo = (ex) ? (fd_exception_object(ex)) : (NULL);
-  lispval backtrace = ( (exo) && (FD_CONSP(exo->ex_stack)) ) ?
-    (fd_incref(exo->ex_stack)) :
-    (fd_get_backtrace(fd_stackptr));
-  lispval context = (ex) ? (get_exception_context(ex)) : (FD_VOID);
-  lispval exception = fd_init_exception
+  struct KNO_EXCEPTION *exo = (ex) ? (kno_exception_object(ex)) : (NULL);
+  lispval backtrace = ( (exo) && (KNO_CONSP(exo->ex_stack)) ) ?
+    (kno_incref(exo->ex_stack)) :
+    (kno_get_backtrace(kno_stackptr));
+  lispval context = (ex) ? (get_exception_context(ex)) : (KNO_VOID);
+  lispval exception = kno_init_exception
     (NULL,condition,caller,u8_strdup(details),
      irritant,backtrace,context,
      u8_sessionid(),
      u8_elapsed_time(),
      u8_elapsed_base(),
      u8_threadid());
-  fd_incref(irritant);
+  kno_incref(irritant);
   u8_push_exception(condition,caller,u8_strdup(details),
-                    (void *)exception,fd_decref_embedded_exception);
+                    (void *)exception,kno_decref_embedded_exception);
 }
 
-FD_EXPORT void fd_restore_exception(struct FD_EXCEPTION *exo)
+KNO_EXPORT void kno_restore_exception(struct KNO_EXCEPTION *exo)
 {
-  fd_incref((lispval)exo);
+  kno_incref((lispval)exo);
   u8_push_exception(exo->ex_condition,exo->ex_caller,
                     u8_strdup(exo->ex_details),
-                    (void *)exo,fd_decref_embedded_exception);
+                    (void *)exo,kno_decref_embedded_exception);
 }
 
-FD_EXPORT lispval fd_wrap_exception(u8_exception ex)
+KNO_EXPORT lispval kno_wrap_exception(u8_exception ex)
 {
   if (ex == NULL) ex = u8_current_exception;
-  lispval exception = fd_get_exception(ex);
-  if (!(FD_VOIDP(exception)))
-    return fd_incref(exception);
+  lispval exception = kno_get_exception(ex);
+  if (!(KNO_VOIDP(exception)))
+    return kno_incref(exception);
   else {
     u8_condition condition = (ex) ? (ex->u8x_cond) :
       ((u8_condition)"missingCondition");
     u8_context caller = (ex) ? (ex->u8x_context) : (NULL);
     u8_string details = (ex) ? (ex->u8x_details) : (NULL);
-    lispval irritant = (ex) ? (fd_get_irritant(ex)) : (FD_VOID);
-    lispval backtrace = fd_get_backtrace(fd_stackptr);
-    return fd_init_exception(NULL,condition,caller,
+    lispval irritant = (ex) ? (kno_get_irritant(ex)) : (KNO_VOID);
+    lispval backtrace = kno_get_backtrace(kno_stackptr);
+    return kno_init_exception(NULL,condition,caller,
                              u8_strdup(details),
-                             fd_incref(irritant),
-                             backtrace,FD_VOID,
+                             kno_incref(irritant),
+                             backtrace,KNO_VOID,
                              u8_sessionid(),
                              ex->u8x_moment,
                              u8_elapsed_base(),
@@ -134,51 +134,51 @@ FD_EXPORT lispval fd_wrap_exception(u8_exception ex)
 
 /* This gets the 'actual' irritant from a u8_exception, extracting it
    from the underlying u8_condition (if that's an irritant) */
-FD_EXPORT lispval fd_get_irritant(u8_exception ex)
+KNO_EXPORT lispval kno_get_irritant(u8_exception ex)
 {
-  if (ex->u8x_free_xdata == fd_decref_embedded_exception) {
+  if (ex->u8x_free_xdata == kno_decref_embedded_exception) {
     lispval irritant = (lispval) ex->u8x_xdata;
-    if (FD_EXCEPTIONP(irritant)) {
-      struct FD_EXCEPTION *exo = (fd_exception) irritant;
+    if (KNO_EXCEPTIONP(irritant)) {
+      struct KNO_EXCEPTION *exo = (kno_exception) irritant;
       return exo->ex_irritant;}
     else return irritant;}
-  else if (ex->u8x_free_xdata == fd_decref_u8x_xdata)
+  else if (ex->u8x_free_xdata == kno_decref_u8x_xdata)
     return (lispval) ex->u8x_xdata;
-  else return FD_VOID;
+  else return KNO_VOID;
 }
 
 /* This gets the 'actual' irritant from a u8_exception, extracting it
    from the underlying u8_condition (if that's an irritant) */
-FD_EXPORT lispval fd_get_exception(u8_exception ex)
+KNO_EXPORT lispval kno_get_exception(u8_exception ex)
 {
-  if (ex->u8x_free_xdata == fd_decref_embedded_exception) {
+  if (ex->u8x_free_xdata == kno_decref_embedded_exception) {
     lispval irritant = (lispval) ex->u8x_xdata;
-    if (FD_EXCEPTIONP(irritant))
+    if (KNO_EXCEPTIONP(irritant))
       return irritant;
-    else return FD_VOID;}
-  else return FD_VOID;
+    else return KNO_VOID;}
+  else return KNO_VOID;
 }
 
 /* This gets the 'actual' irritant from a u8_exception, extracting it
    from the underlying u8_condition (if that's an irritant) */
-FD_EXPORT struct FD_EXCEPTION *fd_exception_object(u8_exception ex)
+KNO_EXPORT struct KNO_EXCEPTION *kno_exception_object(u8_exception ex)
 {
-  if (ex->u8x_free_xdata == fd_decref_embedded_exception) {
+  if (ex->u8x_free_xdata == kno_decref_embedded_exception) {
     lispval irritant = (lispval) ex->u8x_xdata;
-    if (FD_EXCEPTIONP(irritant))
-      return (fd_exception) irritant;
+    if (KNO_EXCEPTIONP(irritant))
+      return (kno_exception) irritant;
     else return NULL;}
   else return NULL;
 }
 
-FD_EXPORT void fd_raise
+KNO_EXPORT void kno_raise
   (u8_condition c,u8_context cxt,u8_string details,lispval irritant)
 {
-  fd_seterr(c,cxt,details,irritant);
+  kno_seterr(c,cxt,details,irritant);
   u8_raise(c,cxt,u8dup(details));
 }
 
-FD_EXPORT int fd_poperr
+KNO_EXPORT int kno_poperr
   (u8_condition *c,u8_context *cxt,u8_string *details,lispval *irritant)
 {
   u8_exception current = u8_current_exception;
@@ -192,7 +192,7 @@ FD_EXPORT int fd_poperr
     current->u8x_details = NULL;}
   if (irritant) {
     if ((current->u8x_xdata) &&
-        (current->u8x_free_xdata == fd_decref_u8x_xdata)) {
+        (current->u8x_free_xdata == kno_decref_u8x_xdata)) {
       /* Likewise for the irritant */
       *irritant = (lispval)(current->u8x_xdata);
       current->u8x_xdata = NULL;
@@ -202,71 +202,71 @@ FD_EXPORT int fd_poperr
   return 1;
 }
 
-FD_EXPORT lispval fd_exception_xdata(u8_exception ex)
+KNO_EXPORT lispval kno_exception_xdata(u8_exception ex)
 {
-  if ((ex->u8x_xdata) && (FD_XDATA_ISLISP(ex)))
+  if ((ex->u8x_xdata) && (KNO_XDATA_ISLISP(ex)))
     return (lispval)(ex->u8x_xdata);
   else return VOID;
 }
 
-FD_EXPORT int fd_reterr
+KNO_EXPORT int kno_reterr
   (u8_condition c,u8_context cxt,u8_string details,lispval irritant)
 {
-  fd_seterr(c,cxt,details,irritant);
+  kno_seterr(c,cxt,details,irritant);
   return -1;
 }
 
-FD_EXPORT int fd_interr(lispval x)
+KNO_EXPORT int kno_interr(lispval x)
 {
   return -1;
 }
 
-FD_EXPORT lispval fd_err
+KNO_EXPORT lispval kno_err
   (u8_condition ex,u8_context cxt,u8_string details,lispval irritant)
 {
-  if (FD_CHECK_PTR(irritant)) {
+  if (KNO_CHECK_PTR(irritant)) {
     if (details)
-      fd_seterr(ex,cxt,details,irritant);
-    else fd_seterr(ex,cxt,NULL,irritant);}
+      kno_seterr(ex,cxt,details,irritant);
+    else kno_seterr(ex,cxt,NULL,irritant);}
   else if (details)
-    fd_seterr(ex,cxt,details,VOID);
-  else fd_seterr(ex,cxt,NULL,VOID);
-  return FD_ERROR;
+    kno_seterr(ex,cxt,details,VOID);
+  else kno_seterr(ex,cxt,NULL,VOID);
+  return KNO_ERROR;
 }
 
-FD_EXPORT lispval fd_type_error(u8_string type_name,u8_context cxt,lispval irritant)
+KNO_EXPORT lispval kno_type_error(u8_string type_name,u8_context cxt,lispval irritant)
 {
   u8_byte buf[512];
   u8_string msg = u8_sprintf(buf,512,_("object is not a %m"),type_name);
-  fd_seterr(fd_TypeError,cxt,msg,irritant);
-  return FD_TYPE_ERROR;
+  kno_seterr(kno_TypeError,cxt,msg,irritant);
+  return KNO_TYPE_ERROR;
 }
 
-FD_EXPORT void fd_set_type_error(u8_string type_name,lispval irritant)
+KNO_EXPORT void kno_set_type_error(u8_string type_name,lispval irritant)
 {
   u8_byte buf[512];
   u8_string msg = u8_sprintf(buf,512,_("object is not a %m"),type_name);
-  fd_seterr(fd_TypeError,NULL,msg,irritant);
+  kno_seterr(kno_TypeError,NULL,msg,irritant);
 }
 
-FD_EXPORT
-void fd_print_exception(U8_OUTPUT *out,u8_exception ex)
+KNO_EXPORT
+void kno_print_exception(U8_OUTPUT *out,u8_exception ex)
 {
   u8_printf(out,";;(ERROR %m)",ex->u8x_cond);
   if (ex->u8x_details) u8_printf(out," %m",ex->u8x_details);
   if (ex->u8x_context) u8_printf(out," (%s)",ex->u8x_context);
   u8_printf(out,"\n");
   if (ex->u8x_xdata) {
-    lispval irritant = fd_exception_xdata(ex);
+    lispval irritant = kno_exception_xdata(ex);
     u8_puts(out,";; ");
-    fd_pprint(out,irritant,";; ",0,3,100);}
+    kno_pprint(out,irritant,";; ",0,3,100);}
 }
 
-FD_EXPORT
-void fd_log_exception(u8_exception ex)
+KNO_EXPORT
+void kno_log_exception(u8_exception ex)
 {
   if (ex->u8x_xdata) {
-    lispval irritant = fd_get_irritant(ex);
+    lispval irritant = kno_get_irritant(ex);
     u8_log(LOG_WARN,ex->u8x_cond,"%m (%m)\n\t%Q",
            (U8ALT((ex->u8x_details),((U8S0())))),
            (U8ALT((ex->u8x_context),((U8S0())))),
@@ -276,8 +276,8 @@ void fd_log_exception(u8_exception ex)
               (U8ALT((ex->u8x_context),((U8S0())))));
 }
 
-FD_EXPORT
-void fd_output_exception(u8_output out,u8_exception ex)
+KNO_EXPORT
+void kno_output_exception(u8_output out,u8_exception ex)
 {
   u8_puts(out,";; !! ");
   u8_puts(out,ex->u8x_cond);
@@ -289,26 +289,26 @@ void fd_output_exception(u8_output out,u8_exception ex)
     u8_puts(out," (");
     u8_puts(out,ex->u8x_details);
     u8_puts(out,")");}
-  if (ex->u8x_free_xdata == fd_decref_u8x_xdata) {
-    lispval irritant=fd_get_irritant(ex);
+  if (ex->u8x_free_xdata == kno_decref_u8x_xdata) {
+    lispval irritant=kno_get_irritant(ex);
     if (VOIDP(irritant)) {}
     else if ( (PAIRP(irritant)) ||
               (VECTORP(irritant)) ||
               (SLOTMAPP(irritant)) ||
               (SCHEMAPP(irritant)) ) {
       u8_puts(out," irritant:\n    ");
-      fd_pprint(out,irritant,"    ",0,4,120);}
+      kno_pprint(out,irritant,"    ",0,4,120);}
     else if ( (STRINGP(irritant)) &&
               (STRLEN(irritant)>40) ) {
       u8_puts(out," irritant (string):\n    ");
-      fd_unparse(out,irritant);}
+      kno_unparse(out,irritant);}
     else {
       u8_puts(out," irritant=");
-      fd_unparse(out,irritant);}}
+      kno_unparse(out,irritant);}}
   u8_putc(out,'\n');
 }
 
-FD_EXPORT
+KNO_EXPORT
 void sum_exception(u8_output out,u8_exception ex)
 {
   if (ex->u8x_cond)
@@ -324,34 +324,34 @@ void sum_exception(u8_output out,u8_exception ex)
     u8_puts(out,")");}
 }
 
-FD_EXPORT
-void fd_output_errstack(u8_output out,u8_exception ex)
+KNO_EXPORT
+void kno_output_errstack(u8_output out,u8_exception ex)
 {
   if (ex==NULL) ex=u8_current_exception;
   u8_exception scan = ex;
   while (scan) {
-    fd_output_exception(out,scan);
+    kno_output_exception(out,scan);
     scan=scan->u8x_prev;}
-  lispval stack = FD_U8X_STACK(ex);
-  if (!(FD_VOIDP(stack)))
-    fd_compact_backtrace(out,stack,fd_sum_stack_max);
+  lispval stack = KNO_U8X_STACK(ex);
+  if (!(KNO_VOIDP(stack)))
+    kno_compact_backtrace(out,stack,kno_sum_stack_max);
 }
 
-FD_EXPORT
-void fd_log_errstack(u8_exception ex,int loglevel,int w_irritant)
+KNO_EXPORT
+void kno_log_errstack(u8_exception ex,int loglevel,int w_irritant)
 {
   if (ex==NULL) ex=u8_current_exception;
   while (ex) {
-    lispval irritant = fd_get_irritant(ex);
+    lispval irritant = kno_get_irritant(ex);
     if (VOIDP(irritant))
       u8_log(loglevel,ex->u8x_cond,"@%s %s",ex->u8x_context,
              U8ALT(ex->u8x_details,""));
     else if ( (w_irritant) ||
-              (FD_IMMEDIATEP(irritant)) ||
+              (KNO_IMMEDIATEP(irritant)) ||
               (NUMBERP(irritant)) ||
-              (TYPEP(irritant,fd_timestamp_type)) ||
-              (TYPEP(irritant,fd_uuid_type)) ||
-              (TYPEP(irritant,fd_regex_type)) )
+              (TYPEP(irritant,kno_timestamp_type)) ||
+              (TYPEP(irritant,kno_uuid_type)) ||
+              (TYPEP(irritant,kno_regex_type)) )
       u8_log(loglevel,ex->u8x_cond,"%q @%s %s",
              irritant,ex->u8x_context,
              U8ALT(ex->u8x_details,""));
@@ -363,29 +363,29 @@ void fd_log_errstack(u8_exception ex,int loglevel,int w_irritant)
 
 static void compact_stack_entry(u8_output out,lispval entry)
 {
-  if (FD_COMPOUND_TYPEP(entry,stack_entry_symbol)) {
-    size_t    len = FD_COMPOUND_LENGTH(entry);
-    lispval *elts = FD_COMPOUND_ELTS(entry);
-    long long depth = ( (len>0) && (FD_FIXNUMP(elts[0])) ) ?
-      (FD_FIX2INT(elts[0])) : (-1);
-    u8_string type = ( (len>1) && (FD_STRINGP(elts[1])) ) ?
-      (FD_CSTRING(elts[1])) : (NULL);
-    u8_string label = ( (len>3) && (FD_STRINGP(elts[3])) ) ?
-      (FD_CSTRING(elts[3])) : (NULL);
+  if (KNO_COMPOUND_TYPEP(entry,stack_entry_symbol)) {
+    size_t    len = KNO_COMPOUND_LENGTH(entry);
+    lispval *elts = KNO_COMPOUND_ELTS(entry);
+    long long depth = ( (len>0) && (KNO_FIXNUMP(elts[0])) ) ?
+      (KNO_FIX2INT(elts[0])) : (-1);
+    u8_string type = ( (len>1) && (KNO_STRINGP(elts[1])) ) ?
+      (KNO_CSTRING(elts[1])) : (NULL);
+    u8_string label = ( (len>3) && (KNO_STRINGP(elts[3])) ) ?
+      (KNO_CSTRING(elts[3])) : (NULL);
     if (type == NULL) type = "?";
     if (label == NULL) label = "*";
     u8_printf(out,"%lld:%s:%s",depth,type,label);}
   else {}
 }
 
-FD_EXPORT void fd_compact_backtrace(u8_output out,lispval stack,int limit)
+KNO_EXPORT void kno_compact_backtrace(u8_output out,lispval stack,int limit)
 {
-  if (FD_VECTORP(stack)) {
-    int i = 0, len = FD_VECTOR_LENGTH(stack), count = 0;
+  if (KNO_VECTORP(stack)) {
+    int i = 0, len = KNO_VECTOR_LENGTH(stack), count = 0;
     if ( (limit > 0) && (len > limit) ) {
       int head_limit = limit-(limit/2);
       while (i < head_limit) {
-        lispval stack_entry = FD_VECTOR_REF(stack,i);
+        lispval stack_entry = KNO_VECTOR_REF(stack,i);
         compact_stack_entry(out,stack_entry);
         count++; i++;
         if ( (i < head_limit) && ((count%4) == 0) )
@@ -393,13 +393,13 @@ FD_EXPORT void fd_compact_backtrace(u8_output out,lispval stack,int limit)
       u8_printf(out,"\n... %d/%d calls ...\n",len-limit*2,len);
       i = len-(limit/2);
       while (i < len) {
-        lispval stack_entry = FD_VECTOR_REF(stack,i);
+        lispval stack_entry = KNO_VECTOR_REF(stack,i);
         compact_stack_entry(out,stack_entry);
         count++; i++;
         if ( (i < len) && ((count%4) == 0) )
           u8_puts(out,"\n  ");}}
     else while (i < len) {
-        lispval stack_entry = FD_VECTOR_REF(stack,i);
+        lispval stack_entry = KNO_VECTOR_REF(stack,i);
         compact_stack_entry(out,stack_entry);
         count++; i++;
         if ( (i < len) && ((count%4) == 0) )
@@ -408,30 +408,30 @@ FD_EXPORT void fd_compact_backtrace(u8_output out,lispval stack,int limit)
 
 static void output_stack_entry(u8_output out,lispval entry)
 {
-  if (FD_COMPOUND_TYPEP(entry,stack_entry_symbol)) {
-    ssize_t    len = FD_COMPOUND_LENGTH(entry);
-    lispval *elts = FD_COMPOUND_ELTS(entry);
-    long long depth = ( (len>0) && (FD_FIXNUMP(elts[0])) ) ?
-      (FD_FIX2INT(elts[0])) : (-1);
-    u8_string type = ( (len>1) && (FD_STRINGP(elts[1])) ) ?
-      (FD_CSTRING(elts[1])) : (NULL);
-    u8_string label = ( (len>3) && (FD_STRINGP(elts[3])) ) ?
-      (FD_CSTRING(elts[3])) : (NULL);
-    lispval op = (len > 2) ? (elts[2]) : (FD_VOID);
+  if (KNO_COMPOUND_TYPEP(entry,stack_entry_symbol)) {
+    ssize_t    len = KNO_COMPOUND_LENGTH(entry);
+    lispval *elts = KNO_COMPOUND_ELTS(entry);
+    long long depth = ( (len>0) && (KNO_FIXNUMP(elts[0])) ) ?
+      (KNO_FIX2INT(elts[0])) : (-1);
+    u8_string type = ( (len>1) && (KNO_STRINGP(elts[1])) ) ?
+      (KNO_CSTRING(elts[1])) : (NULL);
+    u8_string label = ( (len>3) && (KNO_STRINGP(elts[3])) ) ?
+      (KNO_CSTRING(elts[3])) : (NULL);
+    lispval op = (len > 2) ? (elts[2]) : (KNO_VOID);
     if (type == NULL) type = "?";
     if (label == NULL) label = "*";
     u8_printf(out,"%lld:%s:%s %q",depth,type,label,op);}
-  else fd_pprint(out,entry,0,0,0,111);
+  else kno_pprint(out,entry,0,0,0,111);
 }
 
-FD_EXPORT void fd_output_backtrace(u8_output out,lispval stack,int limit)
+KNO_EXPORT void kno_output_backtrace(u8_output out,lispval stack,int limit)
 {
-  if (FD_VECTORP(stack)) {
-    int i = 0, len = FD_VECTOR_LENGTH(stack), count = 0;
+  if (KNO_VECTORP(stack)) {
+    int i = 0, len = KNO_VECTOR_LENGTH(stack), count = 0;
     if ( (limit > 0) && (len > limit) ) {
       int head_limit = limit-(limit/2);
       while (i < head_limit) {
-        lispval stack_entry = FD_VECTOR_REF(stack,i);
+        lispval stack_entry = KNO_VECTOR_REF(stack,i);
         output_stack_entry(out,stack_entry);
         count++; i++;
         if ( (i < head_limit) && ((count%4) == 0) )
@@ -439,67 +439,67 @@ FD_EXPORT void fd_output_backtrace(u8_output out,lispval stack,int limit)
       u8_printf(out,"\n... %d/%d calls ...\n",len-limit*2,len);
       i = len-(limit/2);
       while (i < len) {
-        lispval stack_entry = FD_VECTOR_REF(stack,i);
+        lispval stack_entry = KNO_VECTOR_REF(stack,i);
         output_stack_entry(out,stack_entry);
         count++; i++;
         if ( (i < len) && ((count%4) == 0) )
           u8_puts(out,"\n  ");}}
     else while (i < len) {
-        lispval stack_entry = FD_VECTOR_REF(stack,i);
+        lispval stack_entry = KNO_VECTOR_REF(stack,i);
         output_stack_entry(out,stack_entry);
         count++; i++;
         if ( (i < len) && ((count%4) == 0) )
           u8_puts(out,"\n  ");}}
 }
 
-FD_EXPORT
-void fd_sum_exception(U8_OUTPUT *out,u8_exception ex)
+KNO_EXPORT
+void kno_sum_exception(U8_OUTPUT *out,u8_exception ex)
 {
   u8_exception scan = ex, prev = NULL;
   while (scan) {
     u8_puts(out,";; !! ");
     sum_exception(out,scan);
-    lispval stack = FD_U8X_STACK(scan);
-    if (!(FD_VOIDP(stack)))
-      fd_compact_backtrace(out,stack,fd_sum_stack_max);
+    lispval stack = KNO_U8X_STACK(scan);
+    if (!(KNO_VOIDP(stack)))
+      kno_compact_backtrace(out,stack,kno_sum_stack_max);
     prev=scan;
     scan=prev->u8x_prev;
     u8_putc(out,'\n');}
 }
 
-FD_EXPORT u8_string fd_errstring(u8_exception ex)
+KNO_EXPORT u8_string kno_errstring(u8_exception ex)
 {
   struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
   if (ex == NULL) ex = u8_current_exception;
   if (ex == NULL) return NULL;
   sum_exception(&out,ex);
-  lispval backtrace = FD_U8X_STACK(ex);
-  if (!(FD_VOIDP(backtrace)))
-    fd_compact_backtrace(&out,backtrace,fd_sum_stack_max);
+  lispval backtrace = KNO_U8X_STACK(ex);
+  if (!(KNO_VOIDP(backtrace)))
+    kno_compact_backtrace(&out,backtrace,kno_sum_stack_max);
   return out.u8_outbuf;
 }
 
-FD_EXPORT u8_condition fd_retcode_to_exception(lispval err)
+KNO_EXPORT u8_condition kno_retcode_to_exception(lispval err)
 {
   switch (err) {
-  case FD_EOF: case FD_EOD: return fd_UnexpectedEOD;
-  case FD_PARSE_ERROR: case FD_EOX: return fd_ParseError;
-  case FD_TYPE_ERROR: return fd_TypeError;
-  case FD_RANGE_ERROR: return fd_RangeError;
-  case FD_OOM: return fd_OutOfMemory;
-  case FD_DTYPE_ERROR: return fd_DTypeError;
-  default: return fd_UnknownError;
+  case KNO_EOF: case KNO_EOD: return kno_UnexpectedEOD;
+  case KNO_PARSE_ERROR: case KNO_EOX: return kno_ParseError;
+  case KNO_TYPE_ERROR: return kno_TypeError;
+  case KNO_RANGE_ERROR: return kno_RangeError;
+  case KNO_OOM: return kno_OutOfMemory;
+  case KNO_DTYPE_ERROR: return kno_DTypeError;
+  default: return kno_UnknownError;
   }
 }
 
-FD_EXPORT
-int fd_clear_errors(int report)
+KNO_EXPORT
+int kno_clear_errors(int report)
 {
   int n_errs = 0;
   u8_exception ex = u8_erreify(), scan = ex;
   while (scan) {
     if (report) {
-      u8_string sum = fd_errstring(scan);
+      u8_string sum = kno_errstring(scan);
       u8_logger(LOG_ERR,scan->u8x_cond,sum);
       u8_free(sum);}
     scan = scan->u8x_prev;
@@ -510,8 +510,8 @@ int fd_clear_errors(int report)
 
 /* Exception objects */
 
-FD_EXPORT lispval fd_init_exception
-   (struct FD_EXCEPTION *exo,
+KNO_EXPORT lispval kno_init_exception
+   (struct KNO_EXCEPTION *exo,
     u8_condition condition,u8_context caller,
     u8_string details,lispval irritant,
     lispval stack,lispval context,
@@ -520,8 +520,8 @@ FD_EXPORT lispval fd_init_exception
     time_t timebase,
     long long thread)
 {
-  if (exo == NULL) exo = u8_alloc(struct FD_EXCEPTION);
-  FD_INIT_CONS(exo,fd_exception_type);
+  if (exo == NULL) exo = u8_alloc(struct KNO_EXCEPTION);
+  KNO_INIT_CONS(exo,kno_exception_type);
   exo->ex_condition = condition;
   exo->ex_caller    = caller;
   exo->ex_moment    = moment;
@@ -537,9 +537,9 @@ FD_EXPORT lispval fd_init_exception
   return LISP_CONS(exo);
 }
 
-static ssize_t write_exception_dtype(struct FD_OUTBUF *out,lispval x)
+static ssize_t write_exception_dtype(struct KNO_OUTBUF *out,lispval x)
 {
-  struct FD_EXCEPTION *xo = (struct FD_EXCEPTION *)x;
+  struct KNO_EXCEPTION *xo = (struct KNO_EXCEPTION *)x;
   u8_condition condition = xo->ex_condition;
   u8_context caller = xo->ex_caller;
   u8_string details = xo->ex_details;
@@ -549,41 +549,41 @@ static ssize_t write_exception_dtype(struct FD_OUTBUF *out,lispval x)
   u8_string session = (xo->ex_session) ? (xo->ex_session) : (u8_sessionid());
   time_t timebase = xo->ex_timebase;
   double moment = xo->ex_moment;
-  lispval vector = fd_empty_vector(9);
-  FD_VECTOR_SET(vector,0,fd_intern(condition));
+  lispval vector = kno_empty_vector(9);
+  KNO_VECTOR_SET(vector,0,kno_intern(condition));
   if (caller) {
-    FD_VECTOR_SET(vector,1,fd_intern(caller));}
-  else {FD_VECTOR_SET(vector,1,FD_FALSE);}
+    KNO_VECTOR_SET(vector,1,kno_intern(caller));}
+  else {KNO_VECTOR_SET(vector,1,KNO_FALSE);}
   if (details) {
-    FD_VECTOR_SET(vector,2,lispval_string(details));}
-  else {FD_VECTOR_SET(vector,2,FD_FALSE);}
-  FD_VECTOR_SET(vector,3,fd_incref(irritant));
+    KNO_VECTOR_SET(vector,2,lispval_string(details));}
+  else {KNO_VECTOR_SET(vector,2,KNO_FALSE);}
+  KNO_VECTOR_SET(vector,3,kno_incref(irritant));
   if (!(VOIDP(backtrace)))
-    FD_VECTOR_SET(vector,4,fd_incref(backtrace));
-  else FD_VECTOR_SET(vector,4,FD_FALSE);
-  FD_VECTOR_SET(vector,5,fd_make_string(NULL,-1,session));
-  FD_VECTOR_SET(vector,6,fd_time2timestamp(timebase));
-  FD_VECTOR_SET(vector,7,fd_make_flonum(moment));
+    KNO_VECTOR_SET(vector,4,kno_incref(backtrace));
+  else KNO_VECTOR_SET(vector,4,KNO_FALSE);
+  KNO_VECTOR_SET(vector,5,kno_make_string(NULL,-1,session));
+  KNO_VECTOR_SET(vector,6,kno_time2timestamp(timebase));
+  KNO_VECTOR_SET(vector,7,kno_make_flonum(moment));
   if (!(VOIDP(context)))
-    FD_VECTOR_SET(vector,8,fd_incref(context));
-  else FD_VECTOR_SET(vector,8,FD_FALSE);
+    KNO_VECTOR_SET(vector,8,kno_incref(context));
+  else KNO_VECTOR_SET(vector,8,KNO_FALSE);
 
-  struct FD_OUTBUF tmpbuf;
+  struct KNO_OUTBUF tmpbuf;
   unsigned char bytes[16000];
-  FD_INIT_OUTBUF(&tmpbuf,bytes,16000,
-                 FD_IS_WRITING|FD_BUFFER_NO_FLUSH|FD_STATIC_BUFFER|
-                 FD_USE_DTYPEV2|FD_WRITE_OPAQUE);
-  fd_write_byte(&tmpbuf,dt_exception);
-  ssize_t base_len = fd_write_dtype(&tmpbuf,vector);
-  fd_decref(vector);
-  fd_write_bytes(out,tmpbuf.buffer,tmpbuf.bufwrite-tmpbuf.buffer);
-  fd_close_outbuf(&tmpbuf);
+  KNO_INIT_OUTBUF(&tmpbuf,bytes,16000,
+                 KNO_IS_WRITING|KNO_BUFFER_NO_FLUSH|KNO_STATIC_BUFFER|
+                 KNO_USE_DTYPEV2|KNO_WRITE_OPAQUE);
+  kno_write_byte(&tmpbuf,dt_exception);
+  ssize_t base_len = kno_write_dtype(&tmpbuf,vector);
+  kno_decref(vector);
+  kno_write_bytes(out,tmpbuf.buffer,tmpbuf.bufwrite-tmpbuf.buffer);
+  kno_close_outbuf(&tmpbuf);
   if (base_len<0)
     return -1;
   return 1+base_len;
 }
 
-FD_EXPORT lispval fd_restore_exception_dtype(lispval content)
+KNO_EXPORT lispval kno_restore_exception_dtype(lispval content)
 {
   /* Return an exception object if possible (content as expected)
      and a compound if there are any big surprises */
@@ -593,7 +593,7 @@ FD_EXPORT lispval fd_restore_exception_dtype(lispval content)
   u8_string sessionid = NULL;
   double moment = -1.0;
   time_t timebase = -1;
-  if (FD_TYPEP(content,fd_exception_type))
+  if (KNO_TYPEP(content,kno_exception_type))
     return content;
   else if (VECTORP(content)) {
     int len = VEC_LEN(content);
@@ -609,14 +609,14 @@ FD_EXPORT lispval fd_restore_exception_dtype(lispval content)
       if (SYMBOLP(condval))
         condname = SYM_NAME(condval);
       else if (STRINGP(condval)) {
-        lispval tmp = fd_probe_symbol(CSTRING(condval),STRLEN(condval));
-        if (FD_VOIDP(tmp)) {
-          u8_log(LOG_WARN,fd_DTypeError,"Bad non-symbolic condition name",
+        lispval tmp = kno_probe_symbol(CSTRING(condval),STRLEN(condval));
+        if (KNO_VOIDP(tmp)) {
+          u8_log(LOG_WARN,kno_DTypeError,"Bad non-symbolic condition name",
                  condval);
-          tmp=fd_intern(CSTRING(condval));}
+          tmp=kno_intern(CSTRING(condval));}
         condname = SYM_NAME(tmp);}
       else {
-        u8_log(LOG_WARN,fd_DTypeError,
+        u8_log(LOG_WARN,kno_DTypeError,
                "Bad condition (not a symbol) %q in exception serialization %q",
                condval,content);
         condname="BadCondName";}}
@@ -626,70 +626,70 @@ FD_EXPORT lispval fd_restore_exception_dtype(lispval content)
         caller = SYM_NAME(caller_val);
       else if (STRINGP(caller_val)) {
         lispval tmp =
-          fd_probe_symbol(CSTRING(caller_val),STRLEN(caller_val));
-        if (FD_VOIDP(tmp)) {
-          u8_log(LOG_WARN,fd_DTypeError,"Bad non-symbolic caller",
+          kno_probe_symbol(CSTRING(caller_val),STRLEN(caller_val));
+        if (KNO_VOIDP(tmp)) {
+          u8_log(LOG_WARN,kno_DTypeError,"Bad non-symbolic caller",
                  caller_val);
-          tmp=fd_intern(CSTRING(caller_val));}
+          tmp=kno_intern(CSTRING(caller_val));}
         caller = SYM_NAME(tmp);}
-      else if ( (FD_FALSEP(caller_val)) ||
-                (FD_EMPTYP(caller_val)) ||
-                (caller_val == FD_EMPTY_LIST) ||
-                (FD_VOIDP(caller_val)) )
+      else if ( (KNO_FALSEP(caller_val)) ||
+                (KNO_EMPTYP(caller_val)) ||
+                (caller_val == KNO_EMPTY_LIST) ||
+                (KNO_VOIDP(caller_val)) )
         caller = NULL;
       else {
-        u8_log(LOG_WARN,fd_DTypeError,
+        u8_log(LOG_WARN,kno_DTypeError,
                "Bad caller (not a symbol) %q in exception serialization %q",
                caller_val,content);
          caller="BadCaller";}}
     if (len > 2) {
       lispval details_val = VEC_REF(content,2);
-      if (FD_STRINGP(details_val))
+      if (KNO_STRINGP(details_val))
         details = u8_strdup(CSTRING(details_val));
       else details = NULL;}
     if (len > 3) {
-      irritant = VEC_REF(content,3); fd_incref(irritant);}
-    if ( (len > 4) && (FD_VECTORP(VEC_REF(content,4))) ) {
-      stack = VEC_REF(content,4); fd_incref(stack);}
-    if ( (len > 5) && (FD_STRINGP(VEC_REF(content,5))) )
+      irritant = VEC_REF(content,3); kno_incref(irritant);}
+    if ( (len > 4) && (KNO_VECTORP(VEC_REF(content,4))) ) {
+      stack = VEC_REF(content,4); kno_incref(stack);}
+    if ( (len > 5) && (KNO_STRINGP(VEC_REF(content,5))) )
       sessionid = u8_strdup(CSTRING(VEC_REF(content,5)));
     if (len > 6) {
       lispval tstamp = VEC_REF(content,6);
-      if (TYPEP(tstamp,fd_timestamp_type)) {
-        struct FD_TIMESTAMP *ts = (fd_timestamp) tstamp;
+      if (TYPEP(tstamp,kno_timestamp_type)) {
+        struct KNO_TIMESTAMP *ts = (kno_timestamp) tstamp;
         struct U8_XTIME *xt = &(ts->u8xtimeval);
         timebase = xt->u8_tick;}
-      else if (FD_FIXNUMP(tstamp))
-        timebase = (time_t) fd_getint(tstamp);
+      else if (KNO_FIXNUMP(tstamp))
+        timebase = (time_t) kno_getint(tstamp);
       else timebase=-1;}
-    if ( ( len > 7 ) && (FD_FLONUMP(VEC_REF(content,7))) ) {
+    if ( ( len > 7 ) && (KNO_FLONUMP(VEC_REF(content,7))) ) {
       lispval flonum = VEC_REF(content,7);
-      moment = FD_FLONUM(flonum);}
+      moment = KNO_FLONUM(flonum);}
     if (len > 8) {
       context = VEC_REF(content,8);
-      fd_incref(context);}
-    return fd_init_exception(NULL,condname,caller,
+      kno_incref(context);}
+    return kno_init_exception(NULL,condname,caller,
                              details,irritant,
                              stack,context,
                              sessionid,moment,
                              timebase,
                              -1);}
-  else if (FD_SYMBOLP(content)) {
-    return fd_init_exception
-      (NULL,FD_SYMBOL_NAME(content),
+  else if (KNO_SYMBOLP(content)) {
+    return kno_init_exception
+      (NULL,KNO_SYMBOL_NAME(content),
        NULL,NULL,content,
-       FD_VOID,FD_VOID,NULL,
+       KNO_VOID,KNO_VOID,NULL,
        -1,-1,-1);}
-  else if (FD_STRINGP(content)) {
-    return fd_init_exception
+  else if (KNO_STRINGP(content)) {
+    return kno_init_exception
       (NULL,"DtypeError",NULL,
-       u8_strdup(FD_CSTRING(content)),content,
-       FD_VOID,FD_VOID,NULL,
+       u8_strdup(KNO_CSTRING(content)),content,
+       KNO_VOID,KNO_VOID,NULL,
        -1,-1,-1);}
-  else return fd_init_exception
-         (NULL,fd_DTypeError,
-          "fd_restore_exception_dtype",NULL,content,
-          FD_VOID,FD_VOID,NULL,
+  else return kno_init_exception
+         (NULL,kno_DTypeError,
+          "kno_restore_exception_dtype",NULL,content,
+          KNO_VOID,KNO_VOID,NULL,
           u8_elapsed_time(),
           u8_elapsed_base(),
           u8_threadid());
@@ -697,13 +697,13 @@ FD_EXPORT lispval fd_restore_exception_dtype(lispval content)
 
 static lispval copy_exception(lispval x,int deep)
 {
-  struct FD_EXCEPTION *xo=
-    fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
-  return fd_init_exception(NULL,xo->ex_condition,xo->ex_caller,
+  struct KNO_EXCEPTION *xo=
+    kno_consptr(struct KNO_EXCEPTION *,x,kno_exception_type);
+  return kno_init_exception(NULL,xo->ex_condition,xo->ex_caller,
                            u8_strdup(xo->ex_details),
-                           fd_incref(xo->ex_irritant),
-                           fd_incref(xo->ex_stack),
-                           fd_incref(xo->ex_context),
+                           kno_incref(xo->ex_irritant),
+                           kno_incref(xo->ex_stack),
+                           kno_incref(xo->ex_context),
                            xo->ex_session,
                            xo->ex_moment,
                            xo->ex_timebase,
@@ -712,8 +712,8 @@ static lispval copy_exception(lispval x,int deep)
 
 static int unparse_exception(struct U8_OUTPUT *out,lispval x)
 {
-  struct FD_EXCEPTION *xo=
-    fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
+  struct KNO_EXCEPTION *xo=
+    kno_consptr(struct KNO_EXCEPTION *,x,kno_exception_type);
   u8_condition condition = xo->ex_condition;
   u8_context caller = xo->ex_caller;
   u8_string details = xo->ex_details;
@@ -735,18 +735,18 @@ static int unparse_exception(struct U8_OUTPUT *out,lispval x)
   return 1;
 }
 
-void fd_init_err_c()
+void kno_init_err_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  fd_copiers[fd_exception_type]=copy_exception;
-  if (fd_dtype_writers[fd_exception_type]==NULL)
-    fd_dtype_writers[fd_exception_type]=write_exception_dtype;
-  if (fd_unparsers[fd_exception_type]==NULL)
-    fd_unparsers[fd_exception_type]=unparse_exception;
+  kno_copiers[kno_exception_type]=copy_exception;
+  if (kno_dtype_writers[kno_exception_type]==NULL)
+    kno_dtype_writers[kno_exception_type]=write_exception_dtype;
+  if (kno_unparsers[kno_exception_type]==NULL)
+    kno_unparsers[kno_exception_type]=unparse_exception;
 
-  stack_entry_symbol=fd_intern("%%STACK");
-  exception_stack_symbol = fd_intern("EXCEPTION-STACK");
+  stack_entry_symbol=kno_intern("%%STACK");
+  exception_stack_symbol = kno_intern("EXCEPTION-STACK");
 }
 
 /* Emacs local variables

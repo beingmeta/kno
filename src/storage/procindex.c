@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -9,16 +9,16 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define FD_INLINE_BUFIO 1
-#include "framerd/components/storage_layer.h"
+#define KNO_INLINE_BUFIO 1
+#include "kno/components/storage_layer.h"
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/apply.h"
-#include "framerd/storage.h"
-#include "framerd/pools.h"
-#include "framerd/indexes.h"
-#include "framerd/drivers.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/apply.h"
+#include "kno/storage.h"
+#include "kno/pools.h"
+#include "kno/indexes.h"
+#include "kno/drivers.h"
 
 static u8_condition OddResult = _("ProcIndex/OddResult");
 
@@ -30,30 +30,30 @@ static u8_condition OddResult = _("ProcIndex/OddResult");
 
 static lispval indexopt(lispval opts,u8_string name)
 {
-  return fd_getopt(opts,fd_intern(name),VOID);
+  return kno_getopt(opts,kno_intern(name),VOID);
 }
 
-FD_EXPORT
-fd_index fd_make_procindex(lispval opts,lispval state,
+KNO_EXPORT
+kno_index kno_make_procindex(lispval opts,lispval state,
                            u8_string id,
                            u8_string source,
                            u8_string typeid)
 {
-  struct FD_PROCINDEX_METHODS *methods;
-  lispval index_type = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
-  lispval metadata = fd_getopt(opts,FDSYM_METADATA,FD_VOID);
-  struct FD_INDEX_TYPEINFO *typeinfo =
-    (FD_STRINGP(index_type)) ? 
-    (fd_get_index_typeinfo(FD_CSTRING(index_type))) :
-    (FD_SYMBOLP(index_type)) ? 
-    (fd_get_index_typeinfo(FD_SYMBOL_NAME(index_type))) :
+  struct KNO_PROCINDEX_METHODS *methods;
+  lispval index_type = kno_getopt(opts,FDSYM_TYPE,KNO_VOID);
+  lispval metadata = kno_getopt(opts,FDSYM_METADATA,KNO_VOID);
+  struct KNO_INDEX_TYPEINFO *typeinfo =
+    (KNO_STRINGP(index_type)) ? 
+    (kno_get_index_typeinfo(KNO_CSTRING(index_type))) :
+    (KNO_SYMBOLP(index_type)) ? 
+    (kno_get_index_typeinfo(KNO_SYMBOL_NAME(index_type))) :
     (NULL);
 
   if ( (typeinfo) && (typeinfo->type_data) )
-    methods = (struct FD_PROCINDEX_METHODS *) (typeinfo->type_data);
+    methods = (struct KNO_PROCINDEX_METHODS *) (typeinfo->type_data);
   else {
-    methods = u8_alloc(struct FD_PROCINDEX_METHODS);
-    memset(methods,0,sizeof(struct FD_PROCINDEX_METHODS));
+    methods = u8_alloc(struct KNO_PROCINDEX_METHODS);
+    memset(methods,0,sizeof(struct KNO_PROCINDEX_METHODS));
     methods->fetchfn = indexopt(opts,"FETCH");
     methods->fetchsizefn = indexopt(opts,"FETCHSIZE");
     methods->fetchnfn = indexopt(opts,"FETCHN");
@@ -65,175 +65,175 @@ fd_index fd_make_procindex(lispval opts,lispval state,
     methods->commitfn = indexopt(opts,"COMMIT");
     methods->closefn = indexopt(opts,"CLOSE");}
   
-  struct FD_PROCINDEX *pix = u8_alloc(struct FD_PROCINDEX);
-  unsigned int flags = FD_STORAGE_ISINDEX | FD_STORAGE_VIRTUAL;
-  memset(pix,0,sizeof(struct FD_PROCINDEX));
-  lispval source_opt = FD_VOID;
+  struct KNO_PROCINDEX *pix = u8_alloc(struct KNO_PROCINDEX);
+  unsigned int flags = KNO_STORAGE_ISINDEX | KNO_STORAGE_VIRTUAL;
+  memset(pix,0,sizeof(struct KNO_PROCINDEX));
+  lispval source_opt = KNO_VOID;
 
   int cache_level = -1;
 
   if (source == NULL) {
-    source_opt = fd_getopt(opts,FDSYM_SOURCE,FD_VOID);
-    if (FD_STRINGP(source_opt))
+    source_opt = kno_getopt(opts,FDSYM_SOURCE,KNO_VOID);
+    if (KNO_STRINGP(source_opt))
       source = CSTRING(source_opt);}
 
-  if (fd_testopt(opts,FDSYM_CACHELEVEL,FD_VOID)) {
-    lispval v = fd_getopt(opts,FDSYM_CACHELEVEL,FD_VOID);
-    if (FD_FALSEP(v))
+  if (kno_testopt(opts,FDSYM_CACHELEVEL,KNO_VOID)) {
+    lispval v = kno_getopt(opts,FDSYM_CACHELEVEL,KNO_VOID);
+    if (KNO_FALSEP(v))
       cache_level = 0;
-    else if (FD_FIXNUMP(v)) {
-      int ival=FD_FIX2INT(v);
+    else if (KNO_FIXNUMP(v)) {
+      int ival=KNO_FIX2INT(v);
       cache_level=ival;}
-    else if ( (FD_TRUEP(v)) || (v == FD_DEFAULT_VALUE) ) {}
+    else if ( (KNO_TRUEP(v)) || (v == KNO_DEFAULT_VALUE) ) {}
     else u8_logf(LOG_CRIT,"BadCacheLevel",
                  "Invalid cache level %q specified for procindex %s",
                  v,id);
-    fd_decref(v);}
+    kno_decref(v);}
 
-  if (fd_testopt(opts,fd_intern("READONLY"),FD_VOID))
-    flags |= FD_STORAGE_READ_ONLY;
-  if (!(fd_testopt(opts,fd_intern("REGISTER"),FD_VOID)))
-    flags |= FD_STORAGE_UNREGISTERED;
-  if (fd_testopt(opts,fd_intern("BACKGROUND"),FD_VOID)) {
-    flags |= FD_INDEX_IN_BACKGROUND;
-    flags &= ~FD_STORAGE_UNREGISTERED;}
+  if (kno_testopt(opts,kno_intern("READONLY"),KNO_VOID))
+    flags |= KNO_STORAGE_READ_ONLY;
+  if (!(kno_testopt(opts,kno_intern("REGISTER"),KNO_VOID)))
+    flags |= KNO_STORAGE_UNREGISTERED;
+  if (kno_testopt(opts,kno_intern("BACKGROUND"),KNO_VOID)) {
+    flags |= KNO_INDEX_IN_BACKGROUND;
+    flags &= ~KNO_STORAGE_UNREGISTERED;}
 
-  fd_init_index((fd_index)pix,
-                &fd_procindex_handler,
+  kno_init_index((kno_index)pix,
+                &kno_procindex_handler,
                 id,source,source,
                 flags,
                 metadata,
                 opts);
 
-  lispval init_metadata = fd_getopt(opts,FDSYM_METADATA,FD_VOID);
-  if (FD_SLOTMAPP(init_metadata)) {
-    struct FD_SLOTMAP *index_metadata = &(pix->index_metadata);
-    fd_copy_slotmap((fd_slotmap)init_metadata,index_metadata);}
-  fd_decref(init_metadata);
+  lispval init_metadata = kno_getopt(opts,FDSYM_METADATA,KNO_VOID);
+  if (KNO_SLOTMAPP(init_metadata)) {
+    struct KNO_SLOTMAP *index_metadata = &(pix->index_metadata);
+    kno_copy_slotmap((kno_slotmap)init_metadata,index_metadata);}
+  kno_decref(init_metadata);
 
-  pix->index_opts = fd_getopt(opts,fd_intern("OPTS"),FD_FALSE);
+  pix->index_opts = kno_getopt(opts,kno_intern("OPTS"),KNO_FALSE);
   pix->index_cache_level = cache_level;
   pix->index_methods     = methods;
 
-  fd_register_index((fd_index)pix);
-  pix->index_state = state; fd_incref(state);
+  kno_register_index((kno_index)pix);
+  pix->index_state = state; kno_incref(state);
   pix->index_typeid = u8_strdup(typeid);
 
-  fd_decref(source_opt);
+  kno_decref(source_opt);
 
-  return (fd_index)pix;
+  return (kno_index)pix;
 }
 
-static lispval procindex_fetch(fd_index ix,lispval key)
+static lispval procindex_fetch(kno_index ix,lispval key)
 {
-  struct FD_PROCINDEX *pix = (fd_procindex)ix;
-  lispval lp = fd_index2lisp(ix);
+  struct KNO_PROCINDEX *pix = (kno_procindex)ix;
+  lispval lp = kno_index2lisp(ix);
   lispval args[]={lp,pix->index_state,key};
   if (VOIDP(pix->index_methods->fetchfn))
-    return FD_EMPTY;
-  else return fd_dapply(pix->index_methods->fetchfn,3,args);
+    return KNO_EMPTY;
+  else return kno_dapply(pix->index_methods->fetchfn,3,args);
 }
 
-static int procindex_fetchsize(fd_index ix,lispval key)
+static int procindex_fetchsize(kno_index ix,lispval key)
 {
-  struct FD_PROCINDEX *pix = (fd_procindex)ix;
-  lispval lp = fd_index2lisp(ix);
+  struct KNO_PROCINDEX *pix = (kno_procindex)ix;
+  lispval lp = kno_index2lisp(ix);
   lispval args[]={lp,pix->index_state,key};
   if (VOIDP(pix->index_methods->fetchsizefn)) {
-    lispval v = fd_dapply(pix->index_methods->fetchfn,3,args);
-    if (FD_ABORTED(v))
+    lispval v = kno_dapply(pix->index_methods->fetchfn,3,args);
+    if (KNO_ABORTED(v))
       return -1;
-    int size = FD_CHOICE_SIZE(v);
-    fd_decref(v);
+    int size = KNO_CHOICE_SIZE(v);
+    kno_decref(v);
     return size;}
   else {
-    lispval size_value = fd_dapply(pix->index_methods->fetchsizefn,3,args);
-    if (FD_ABORTED(size_value))
+    lispval size_value = kno_dapply(pix->index_methods->fetchsizefn,3,args);
+    if (KNO_ABORTED(size_value))
       return -1;
-    else if ( (FD_FIXNUMP(size_value)) && (FD_FIX2INT(size_value)>=0) ) {
-      int ival = FD_FIX2INT(size_value);
-      fd_decref(size_value);
+    else if ( (KNO_FIXNUMP(size_value)) && (KNO_FIX2INT(size_value)>=0) ) {
+      int ival = KNO_FIX2INT(size_value);
+      kno_decref(size_value);
       return ival;}
     else {
-      fd_seterr(OddResult,"procpool_fetchsize",
+      kno_seterr(OddResult,"procpool_fetchsize",
                 ix->indexid,size_value);
-      fd_decref(size_value);
+      kno_decref(size_value);
       return -1;}}
 }
 
-static lispval *procindex_fetchn(fd_index ix,int n,const lispval *keys)
+static lispval *procindex_fetchn(kno_index ix,int n,const lispval *keys)
 {
-  struct FD_PROCINDEX *pix = (fd_procindex)ix;
-  lispval lp = fd_index2lisp(ix);
+  struct KNO_PROCINDEX *pix = (kno_procindex)ix;
+  lispval lp = kno_index2lisp(ix);
   if (VOIDP(pix->index_methods->fetchnfn)) {
     lispval *vals = u8_big_alloc_n(n,lispval);
     int i = 0; while (i<n) {
       lispval key = keys[i];
       lispval v = procindex_fetch(ix,key);
-      if (FD_ABORTED(v)) {
-        fd_decref_vec(vals,i);
+      if (KNO_ABORTED(v)) {
+        kno_decref_vec(vals,i);
         u8_big_free(vals);
         return NULL;}
       else vals[i++]=v;}
     return vals;}
   else {
-    struct FD_VECTOR vec={0};
-    FD_INIT_STATIC_CONS(&vec,fd_vector_type);
+    struct KNO_VECTOR vec={0};
+    KNO_INIT_STATIC_CONS(&vec,kno_vector_type);
     vec.vec_free_elts=0;
     vec.vec_length=n;
     vec.vec_elts= (lispval *) keys;
     lispval keyvec = (lispval) &vec;
     lispval args[] = {lp,pix->index_state,keyvec};
-    lispval result = fd_dapply(pix->index_methods->fetchnfn,3,args);
-    if (FD_ABORTED(result))
+    lispval result = kno_dapply(pix->index_methods->fetchnfn,3,args);
+    if (KNO_ABORTED(result))
       return NULL;
     else if (VECTORP(result)) {
       lispval *vals = u8_big_alloc_n(n,lispval);
       int i = 0; while (i<n) {
         lispval val = VEC_REF(result,i);
-        FD_VECTOR_SET(result,i,VOID);
+        KNO_VECTOR_SET(result,i,VOID);
         vals[i++]=val;}
-      fd_decref(result);
+      kno_decref(result);
       return vals;}
     else {
-      fd_seterr(OddResult,"procpool_fetchn",ix->indexid,result);
-      fd_decref(result);
+      kno_seterr(OddResult,"procpool_fetchn",ix->indexid,result);
+      kno_decref(result);
       return NULL;}}
 }
 
-static lispval *procindex_fetchkeys(fd_index ix,int *n_keys)
+static lispval *procindex_fetchkeys(kno_index ix,int *n_keys)
 {
-  struct FD_PROCINDEX *pix = (fd_procindex)ix;
-  lispval lp = fd_index2lisp(ix);
+  struct KNO_PROCINDEX *pix = (kno_procindex)ix;
+  lispval lp = kno_index2lisp(ix);
   if (VOIDP(pix->index_methods->fetchnfn)) {
     *n_keys=-1;
     return NULL;}
   else {
     lispval args[]={lp,pix->index_state};
-    lispval result = fd_dapply(pix->index_methods->fetchkeysfn,2,args);
-    if (FD_ABORTED(result)) {
+    lispval result = kno_dapply(pix->index_methods->fetchkeysfn,2,args);
+    if (KNO_ABORTED(result)) {
       *n_keys = -1;
       return NULL;}
-    if (FD_PRECHOICEP(result))
-      result=fd_simplify_choice(result);
+    if (KNO_PRECHOICEP(result))
+      result=kno_simplify_choice(result);
     if (VECTORP(result)) {
-      int n = FD_VECTOR_LENGTH(result);
+      int n = KNO_VECTOR_LENGTH(result);
       lispval *vals = u8_big_alloc_n(n,lispval);
       int i = 0; while (i<n) {
         lispval val = VEC_REF(result,i);
-        FD_VECTOR_SET(result,i,VOID);
+        KNO_VECTOR_SET(result,i,VOID);
         vals[i++]=val;}
-      fd_decref(result);
+      kno_decref(result);
       *n_keys=n;
       return vals;}
-    else if (FD_CHOICEP(result)) {
-      int i=0, n = FD_CHOICE_SIZE(result);
+    else if (KNO_CHOICEP(result)) {
+      int i=0, n = KNO_CHOICE_SIZE(result);
       lispval *vals = u8_big_alloc_n(n,lispval);
-      FD_DO_CHOICES(elt,result) {
-        vals[i++]=elt; fd_incref(elt);}
+      KNO_DO_CHOICES(elt,result) {
+        vals[i++]=elt; kno_incref(elt);}
       *n_keys=n;
       return vals;}
-    else if (FD_EMPTYP(result)) {
+    else if (KNO_EMPTYP(result)) {
       *n_keys = 0;
       return NULL;}
     else {
@@ -243,152 +243,152 @@ static lispval *procindex_fetchkeys(fd_index ix,int *n_keys)
       return vals;}}
 }
 
-static int copy_keyinfo(lispval info,struct FD_KEY_SIZE *keyinfo)
+static int copy_keyinfo(lispval info,struct KNO_KEY_SIZE *keyinfo)
 {
-  if ( (FD_PAIRP(info)) && (FD_INTEGERP(FD_CDR(info))) ) {
+  if ( (KNO_PAIRP(info)) && (KNO_INTEGERP(KNO_CDR(info))) ) {
     int retval = 0;
-    lispval key = FD_CAR(info);
-    lispval count = FD_CDR(info);
-    long long icount = fd_getint(count);
+    lispval key = KNO_CAR(info);
+    lispval count = KNO_CDR(info);
+    long long icount = kno_getint(count);
     if (icount>=0) {
       keyinfo->keysize_key   = key;
       keyinfo->keysize_count = icount;
       retval=1;}
-    if (FD_CONS_REFCOUNT(info) > 1) {
-      fd_incref(key);}
+    if (KNO_CONS_REFCOUNT(info) > 1) {
+      kno_incref(key);}
     else {
-      FD_SETCAR(info,FD_VOID);
-      FD_SETCDR(info,FD_VOID);
-      fd_decref(count);}
-    fd_decref(info);
+      KNO_SETCAR(info,KNO_VOID);
+      KNO_SETCDR(info,KNO_VOID);
+      kno_decref(count);}
+    kno_decref(info);
     return retval;}
   else return 0;
 }
 
 static
-struct FD_KEY_SIZE *procindex_fetchinfo
-(fd_index ix,fd_choice filter,int *n_ptr)
+struct KNO_KEY_SIZE *procindex_fetchinfo
+(kno_index ix,kno_choice filter,int *n_ptr)
 {
-  struct FD_PROCINDEX *pix = (fd_procindex)ix;
-  lispval lp = fd_index2lisp(ix);
+  struct KNO_PROCINDEX *pix = (kno_procindex)ix;
+  lispval lp = kno_index2lisp(ix);
   if (VOIDP(pix->index_methods->fetchinfofn)) {
     *n_ptr = -1;
     return NULL;}
   else {
     int key_count = 0;
     lispval args[]={lp,pix->index_state};
-    lispval result = fd_dapply(pix->index_methods->fetchinfofn,2,args);
-    if (FD_ABORTED(result)) {
+    lispval result = kno_dapply(pix->index_methods->fetchinfofn,2,args);
+    if (KNO_ABORTED(result)) {
       *n_ptr = -1;
       return NULL;}
     else if (VECTORP(result)) {
-      int n = FD_VECTOR_LENGTH(result);
-      struct FD_KEY_SIZE *info = u8_big_alloc_n(n,struct FD_KEY_SIZE);
+      int n = KNO_VECTOR_LENGTH(result);
+      struct KNO_KEY_SIZE *info = u8_big_alloc_n(n,struct KNO_KEY_SIZE);
       int i = 0; while (i<n) {
         lispval keysize_pair = VEC_REF(result,i);
-        FD_VECTOR_SET(result,i,VOID);
+        KNO_VECTOR_SET(result,i,VOID);
         if (copy_keyinfo(keysize_pair,&(info[key_count]))) key_count++;
         i++;}
-      fd_decref(result);
+      kno_decref(result);
       *n_ptr = key_count;
       return info;}
     else {
-      fd_seterr(OddResult,"procpool_fetchn",ix->indexid,result);
-      fd_decref(result);
+      kno_seterr(OddResult,"procpool_fetchn",ix->indexid,result);
+      kno_decref(result);
       *n_ptr = -1;
       return NULL;}}
 }
 
 
-static int procindex_commit(fd_index ix,fd_commit_phase phase,
-                            struct FD_INDEX_COMMITS *commits)
+static int procindex_commit(kno_index ix,kno_commit_phase phase,
+                            struct KNO_INDEX_COMMITS *commits)
 {
-  struct FD_PROCINDEX *pix = (fd_procindex)ix;
-  lispval lx = fd_index2lisp(ix);
+  struct KNO_PROCINDEX *pix = (kno_procindex)ix;
+  lispval lx = kno_index2lisp(ix);
   if (VOIDP(pix->index_methods->commitfn))
     return 0;
   else {
-    struct FD_SLOTMAP add_table = {0}, drop_table = {0}, store_table = {0};
-    fd_init_slotmap(&add_table,commits->commit_n_adds,
-                    (fd_keyval)(commits->commit_adds));
-    fd_init_slotmap(&drop_table,commits->commit_n_drops,
-                    (fd_keyval)(commits->commit_drops));
-    fd_init_slotmap(&store_table,commits->commit_n_stores,
-                    (fd_keyval)(commits->commit_stores));
+    struct KNO_SLOTMAP add_table = {0}, drop_table = {0}, store_table = {0};
+    kno_init_slotmap(&add_table,commits->commit_n_adds,
+                    (kno_keyval)(commits->commit_adds));
+    kno_init_slotmap(&drop_table,commits->commit_n_drops,
+                    (kno_keyval)(commits->commit_drops));
+    kno_init_slotmap(&store_table,commits->commit_n_stores,
+                    (kno_keyval)(commits->commit_stores));
     add_table.table_readonly=1;
     drop_table.table_readonly=1;
     store_table.table_readonly=1;
     lispval args[7]={lx,
                      pix->index_state,
-                     fd_commit_phases[phase],
+                     kno_commit_phases[phase],
                      (lispval)(&add_table),
                      (lispval)(&drop_table),
                      (lispval)(&store_table),
-                     ( (FD_VOIDP(commits->commit_metadata)) ? 
-                       (FD_FALSE) :
+                     ( (KNO_VOIDP(commits->commit_metadata)) ? 
+                       (KNO_FALSE) :
                        (commits->commit_metadata) )};
-    lispval result = fd_dapply(pix->index_methods->commitfn,7,args);
-    if (FD_ABORTED(result))
+    lispval result = kno_dapply(pix->index_methods->commitfn,7,args);
+    if (KNO_ABORTED(result))
       return -1;
     else {
-      if (FD_FIXNUMP(result)) {
-        int ival = FD_FIX2INT(result);
-        fd_decref(result);
+      if (KNO_FIXNUMP(result)) {
+        int ival = KNO_FIX2INT(result);
+        kno_decref(result);
         return ival;}
-      else if (FD_FALSEP(result))
+      else if (KNO_FALSEP(result))
         return 0;
-      else if (FD_TRUEP(result))
+      else if (KNO_TRUEP(result))
         return 1;
       else {
-        fd_seterr(OddResult,"procindex_commit",ix->indexid,result);
-        fd_decref(result);
+        kno_seterr(OddResult,"procindex_commit",ix->indexid,result);
+        kno_decref(result);
         return 1;}}}
 }
 
-static void procindex_close(fd_index ix)
+static void procindex_close(kno_index ix)
 {
-  struct FD_PROCINDEX *pix = (fd_procindex)ix;
-  lispval lp = fd_index2lisp(ix);
+  struct KNO_PROCINDEX *pix = (kno_procindex)ix;
+  lispval lp = kno_index2lisp(ix);
   if (VOIDP(pix->index_methods->closefn))
     return;
   else {
     lispval args[2]={lp,pix->index_state};
-    lispval result = fd_dapply(pix->index_methods->closefn,2,args);
-    fd_decref(result);
+    lispval result = kno_dapply(pix->index_methods->closefn,2,args);
+    kno_decref(result);
     return;}
 }
 
-static lispval procindex_ctl(fd_index ix,lispval opid,int n,lispval *args)
+static lispval procindex_ctl(kno_index ix,lispval opid,int n,lispval *args)
 {
-  struct FD_PROCINDEX *pix = (fd_procindex)ix;
-  lispval lx = fd_index2lisp(ix);
+  struct KNO_PROCINDEX *pix = (kno_procindex)ix;
+  lispval lx = kno_index2lisp(ix);
   if (VOIDP(pix->index_methods->ctlfn))
-    return fd_default_indexctl(ix,opid,n,args);
+    return kno_default_indexctl(ix,opid,n,args);
   else {
     lispval argbuf[n+3];
     argbuf[0]=lx; argbuf[1]=pix->index_state;
     argbuf[2]=opid;
     memcpy(argbuf+3,args,LISPVEC_BYTELEN(n));
-    lispval result = fd_dapply(pix->index_methods->ctlfn,n+3,argbuf);
-    if (result == FD_DEFAULT_VALUE)
-      return fd_default_indexctl(ix,opid,n,args);
+    lispval result = kno_dapply(pix->index_methods->ctlfn,n+3,argbuf);
+    if (result == KNO_DEFAULT_VALUE)
+      return kno_default_indexctl(ix,opid,n,args);
     else return result;}
 }
 
-static void recycle_procindex(fd_index ix)
+static void recycle_procindex(kno_index ix)
 {
-  struct FD_PROCINDEX *pix = (fd_procindex)ix;
-  fd_decref(pix->index_methods->fetchfn);
-  fd_decref(pix->index_methods->fetchsizefn);
-  fd_decref(pix->index_methods->fetchnfn);
-  fd_decref(pix->index_methods->prefetchfn);
-  fd_decref(pix->index_methods->fetchkeysfn);
-  fd_decref(pix->index_methods->fetchinfofn);
-  fd_decref(pix->index_methods->batchaddfn);
-  fd_decref(pix->index_methods->ctlfn);
-  fd_decref(pix->index_methods->commitfn);
-  fd_decref(pix->index_methods->closefn);
-  fd_decref(pix->index_state);
+  struct KNO_PROCINDEX *pix = (kno_procindex)ix;
+  kno_decref(pix->index_methods->fetchfn);
+  kno_decref(pix->index_methods->fetchsizefn);
+  kno_decref(pix->index_methods->fetchnfn);
+  kno_decref(pix->index_methods->prefetchfn);
+  kno_decref(pix->index_methods->fetchkeysfn);
+  kno_decref(pix->index_methods->fetchinfofn);
+  kno_decref(pix->index_methods->batchaddfn);
+  kno_decref(pix->index_methods->ctlfn);
+  kno_decref(pix->index_methods->commitfn);
+  kno_decref(pix->index_methods->closefn);
+  kno_decref(pix->index_state);
 
   if (pix->index_typeid) u8_free(pix->index_typeid);
   if (pix->index_source) u8_free(pix->index_source);
@@ -397,55 +397,55 @@ static void recycle_procindex(fd_index ix)
 
 /* Opening procindexs */
 
-static fd_index open_procindex(u8_string source,fd_storage_flags flags,lispval opts)
+static kno_index open_procindex(u8_string source,kno_storage_flags flags,lispval opts)
 {
-  lispval index_type = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
-  struct FD_INDEX_TYPEINFO *typeinfo =
-    (FD_STRINGP(index_type)) ? 
-    (fd_get_index_typeinfo(FD_CSTRING(index_type))) :
-    (FD_SYMBOLP(index_type)) ? 
-    (fd_get_index_typeinfo(FD_SYMBOL_NAME(index_type))) :
+  lispval index_type = kno_getopt(opts,FDSYM_TYPE,KNO_VOID);
+  struct KNO_INDEX_TYPEINFO *typeinfo =
+    (KNO_STRINGP(index_type)) ? 
+    (kno_get_index_typeinfo(KNO_CSTRING(index_type))) :
+    (KNO_SYMBOLP(index_type)) ? 
+    (kno_get_index_typeinfo(KNO_SYMBOL_NAME(index_type))) :
     (NULL);
-  struct FD_PROCINDEX_METHODS *methods = 
-    (struct FD_PROCINDEX_METHODS *) (typeinfo->type_data);
+  struct KNO_PROCINDEX_METHODS *methods = 
+    (struct KNO_PROCINDEX_METHODS *) (typeinfo->type_data);
   lispval source_arg = lispval_string(source);
   lispval args[] = { source_arg, opts };
-  lispval lp = fd_apply(methods->openfn,2,args);
-  fd_decref(args[0]);
-  if (FD_ABORTED(lp))
+  lispval lp = kno_apply(methods->openfn,2,args);
+  kno_decref(args[0]);
+  if (KNO_ABORTED(lp))
     return NULL;
-  else if (FD_INDEXP(lp))
-    return fd_lisp2index(lp);
+  else if (KNO_INDEXP(lp))
+    return kno_lisp2index(lp);
   else return NULL;
 }
 
-static fd_index procindex_create(u8_string spec,void *type_data,
-                                 fd_storage_flags storage_flags,
+static kno_index procindex_create(u8_string spec,void *type_data,
+                                 kno_storage_flags storage_flags,
                                  lispval opts)
 {
   lispval spec_arg = lispval_string(spec);
-  struct FD_PROCINDEX_METHODS *methods =
-    (struct FD_PROCINDEX_METHODS *) type_data;
+  struct KNO_PROCINDEX_METHODS *methods =
+    (struct KNO_PROCINDEX_METHODS *) type_data;
   lispval args[] = { spec_arg, opts };
-  lispval result = fd_apply(methods->createfn,2,args);
-  fd_decref(spec_arg);
-  if (FD_ABORTED(result))
+  lispval result = kno_apply(methods->createfn,2,args);
+  kno_decref(spec_arg);
+  if (KNO_ABORTED(result))
     return NULL;
-  else if (FD_VOIDP(result))
+  else if (KNO_VOIDP(result))
     return open_procindex(spec,storage_flags,opts);
-  else if (FD_INDEXP(result))
-    return fd_lisp2index(result);
+  else if (KNO_INDEXP(result))
+    return kno_lisp2index(result);
   else {
-    fd_seterr("NotAnIndex","procindex_create",spec,result);
+    kno_seterr("NotAnIndex","procindex_create",spec,result);
     return NULL;}
 }
 
-FD_EXPORT void fd_register_procindex(u8_string typename,lispval handlers)
+KNO_EXPORT void kno_register_procindex(u8_string typename,lispval handlers)
 {
-  lispval typesym = fd_symbolize(typename);
-  struct FD_PROCINDEX_METHODS *methods = u8_alloc(struct FD_PROCINDEX_METHODS);
+  lispval typesym = kno_symbolize(typename);
+  struct KNO_PROCINDEX_METHODS *methods = u8_alloc(struct KNO_PROCINDEX_METHODS);
 
-  memset(methods,0,sizeof(struct FD_PROCINDEX_METHODS));
+  memset(methods,0,sizeof(struct KNO_PROCINDEX_METHODS));
 
   methods->openfn = indexopt(handlers,"OPEN");
   methods->createfn = indexopt(handlers,"CREATE");
@@ -460,8 +460,8 @@ FD_EXPORT void fd_register_procindex(u8_string typename,lispval handlers)
   methods->commitfn = indexopt(handlers,"COMMIT");
   methods->closefn = indexopt(handlers,"CLOSE");
 
-  fd_register_index_type(FD_SYMBOL_NAME(typesym),
-                         &fd_procindex_handler,
+  kno_register_index_type(KNO_SYMBOL_NAME(typesym),
+                         &kno_procindex_handler,
                          open_procindex,
                          NULL,
                          methods);
@@ -469,8 +469,8 @@ FD_EXPORT void fd_register_procindex(u8_string typename,lispval handlers)
 
 /* The default procindex handler */
 
-struct FD_INDEX_HANDLER fd_procindex_handler={
-  "procindex", 1, sizeof(struct FD_PROCINDEX), 14,
+struct KNO_INDEX_HANDLER kno_procindex_handler={
+  "procindex", 1, sizeof(struct KNO_PROCINDEX), 14,
   procindex_close, /* close */
   procindex_commit, /* commit */
   procindex_fetch, /* fetch */
@@ -486,12 +486,12 @@ struct FD_INDEX_HANDLER fd_procindex_handler={
   procindex_ctl /* indexctl */
 };
 
-FD_EXPORT int fd_procindexp(fd_index ix)
+KNO_EXPORT int kno_procindexp(kno_index ix)
 {
-  return (ix->index_handler == &fd_procindex_handler);
+  return (ix->index_handler == &kno_procindex_handler);
 }
 
-FD_EXPORT void fd_init_procindex_c()
+KNO_EXPORT void kno_init_procindex_c()
 {
   u8_register_source_file(_FILEINFO);
 }

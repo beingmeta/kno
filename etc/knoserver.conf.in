@@ -1,0 +1,19 @@
+instance $CTL
+author "Ken Haase"
+description "Kno DType server"
+expect daemon
+console none
+respawn
+
+limit nofile 20000 20000
+limit core unlimited unlimited
+kill timeout 90 # wait 90s between SIGTERM and SIGKILL.
+
+env LOGDIR=@logdir@/kno
+setuid @fdaemon@
+setgid @admin_group@
+exec @prefix@/bin/knod ${CTL} STATEDIR=@daemon_rundir@
+
+
+
+

@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -9,16 +9,16 @@
 #define _FILEINFO __FILE__
 #endif
 
-#include "framerd/components/storage_layer.h"
+#include "kno/components/storage_layer.h"
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/bufio.h"
-#include "framerd/streams.h"
-#include "framerd/storage.h"
-#include "framerd/pools.h"
-#include "framerd/indexes.h"
-#include "framerd/drivers.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/bufio.h"
+#include "kno/streams.h"
+#include "kno/storage.h"
+#include "kno/pools.h"
+#include "kno/indexes.h"
+#include "kno/drivers.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8stringfns.h>
@@ -32,39 +32,39 @@ static lispval rev_symbol, gentime_symbol, packtime_symbol, modtime_symbol;
 static lispval adjuncts_symbol, wadjuncts_symbol;
 static lispval pooltype_symbol, indextype_symbol;
 
-lispval fd_cachelevel_op, fd_bufsize_op, fd_mmap_op, fd_preload_op;
-lispval fd_metadata_op, fd_raw_metadata_op, fd_reload_op;
-lispval fd_stats_op, fd_label_op, fd_populate_op, fd_swapout_op;
-lispval fd_getmap_op, fd_slotids_op, fd_baseoids_op;
-lispval fd_load_op, fd_capacity_op, fd_keycount_op;
-lispval fd_keys_op, fd_keycount_op, fd_partitions_op;
+lispval kno_cachelevel_op, kno_bufsize_op, kno_mmap_op, kno_preload_op;
+lispval kno_metadata_op, kno_raw_metadata_op, kno_reload_op;
+lispval kno_stats_op, kno_label_op, kno_populate_op, kno_swapout_op;
+lispval kno_getmap_op, kno_slotids_op, kno_baseoids_op;
+lispval kno_load_op, kno_capacity_op, kno_keycount_op;
+lispval kno_keys_op, kno_keycount_op, kno_partitions_op;
 
-u8_condition fd_MMAPError=_("MMAP Error");
-u8_condition fd_MUNMAPError=_("MUNMAP Error");
-u8_condition fd_CorruptedPool=_("Corrupted file pool");
-u8_condition fd_InvalidOffsetType=_("Invalid offset type");
-u8_condition fd_RecoveryRequired=_("RECOVERY");
+u8_condition kno_MMAPError=_("MMAP Error");
+u8_condition kno_MUNMAPError=_("MUNMAP Error");
+u8_condition kno_CorruptedPool=_("Corrupted file pool");
+u8_condition kno_InvalidOffsetType=_("Invalid offset type");
+u8_condition kno_RecoveryRequired=_("RECOVERY");
 
-u8_condition fd_UnknownPoolType=_("Unknown pool type");
-u8_condition fd_UnknownIndexType=_("Unknown index type");
+u8_condition kno_UnknownPoolType=_("Unknown pool type");
+u8_condition kno_UnknownIndexType=_("Unknown index type");
 
-u8_condition fd_CantOpenPool=_("Can't open pool");
-u8_condition fd_CantOpenIndex=_("Can't open index");
+u8_condition kno_CantOpenPool=_("Can't open pool");
+u8_condition kno_CantOpenIndex=_("Can't open index");
 
-u8_condition fd_CantFindPool=_("Can't find pool");
-u8_condition fd_CantFindIndex=_("Can't find index");
+u8_condition kno_CantFindPool=_("Can't find pool");
+u8_condition kno_CantFindIndex=_("Can't find index");
 
-u8_condition fd_PoolDriverError=_("Internal error with pool file");
-u8_condition fd_IndexDriverError=_("Internal error with index file");
+u8_condition kno_PoolDriverError=_("Internal error with pool file");
+u8_condition kno_IndexDriverError=_("Internal error with index file");
 
-u8_condition fd_PoolFileSizeOverflow=_("file pool overflowed file size");
-u8_condition fd_FileIndexSizeOverflow=_("file index overflowed file size");
+u8_condition kno_PoolFileSizeOverflow=_("file pool overflowed file size");
+u8_condition kno_FileIndexSizeOverflow=_("file index overflowed file size");
 
-int fd_acid_files = 1;
-size_t fd_driver_bufsize = FD_STORAGE_DRIVER_BUFSIZE;
+int kno_acid_files = 1;
+size_t kno_driver_bufsize = KNO_STORAGE_DRIVER_BUFSIZE;
 
-static fd_pool_typeinfo default_pool_type = NULL;
-static fd_index_typeinfo default_index_type = NULL;
+static kno_pool_typeinfo default_pool_type = NULL;
+static kno_index_typeinfo default_index_type = NULL;
 
 #define CHECK_ERRNO U8_CLEAR_ERRNO
 
@@ -74,8 +74,8 @@ static fd_index_typeinfo default_index_type = NULL;
 
 /* Matching word prefixes */
 
-FD_EXPORT
-u8_string fd_match4bytes(u8_string file,void *data)
+KNO_EXPORT
+u8_string kno_match4bytes(u8_string file,void *data)
 {
   u8_wideint magic_number = (u8_wideint) data;
   if (u8_file_existsp(file)) {
@@ -93,8 +93,8 @@ u8_string fd_match4bytes(u8_string file,void *data)
   else return NULL;
 }
 
-FD_EXPORT
-u8_string fd_netspecp(u8_string spec,void *ignored)
+KNO_EXPORT
+u8_string kno_netspecp(u8_string spec,void *ignored)
 {
   u8_byte *at = strchr(spec,'@'), *col = strchr(spec,':');
   if ((at == NULL)&&(col == NULL))
@@ -102,8 +102,8 @@ u8_string fd_netspecp(u8_string spec,void *ignored)
   else return spec;
 }
 
-FD_EXPORT
-int fd_same_sourcep(u8_string ref,u8_string source)
+KNO_EXPORT
+int kno_same_sourcep(u8_string ref,u8_string source)
 {
   if ( (source == NULL) || (ref == NULL) )
     return 0;
@@ -124,17 +124,17 @@ int fd_same_sourcep(u8_string ref,u8_string source)
 
 /* Opening pools */
 
-static struct FD_POOL_TYPEINFO *pool_typeinfo;
+static struct KNO_POOL_TYPEINFO *pool_typeinfo;
 static u8_mutex pool_typeinfo_lock;
 
-FD_EXPORT void fd_register_pool_type
+KNO_EXPORT void kno_register_pool_type
 (u8_string name,
- fd_pool_handler handler,
- fd_pool (*opener)(u8_string filename,fd_storage_flags flags,lispval opts),
+ kno_pool_handler handler,
+ kno_pool (*opener)(u8_string filename,kno_storage_flags flags,lispval opts),
  u8_string (*matcher)(u8_string filename,void *),
  void *type_data)
 {
-  struct FD_POOL_TYPEINFO *ptype;
+  struct KNO_POOL_TYPEINFO *ptype;
   u8_lock_mutex(&pool_typeinfo_lock);
   ptype = pool_typeinfo; while (ptype) {
     if (strcasecmp(name,ptype->pool_typename)==0) {
@@ -156,7 +156,7 @@ FD_EXPORT void fd_register_pool_type
   if (ptype) {
     u8_unlock_mutex(&pool_typeinfo_lock);
     return;}
-  ptype = u8_alloc(struct FD_POOL_TYPEINFO);
+  ptype = u8_alloc(struct KNO_POOL_TYPEINFO);
   ptype->pool_typename = u8_strdup(name);
   ptype->handler = handler;
   ptype->opener = opener;
@@ -167,10 +167,10 @@ FD_EXPORT void fd_register_pool_type
   u8_unlock_mutex(&pool_typeinfo_lock);
 }
 
-FD_EXPORT
-fd_pool_typeinfo fd_get_pool_typeinfo(u8_string name)
+KNO_EXPORT
+kno_pool_typeinfo kno_get_pool_typeinfo(u8_string name)
 {
-  struct FD_POOL_TYPEINFO *ptype = pool_typeinfo;
+  struct KNO_POOL_TYPEINFO *ptype = pool_typeinfo;
   if (name == NULL)
     return default_pool_type;
   else while (ptype) {
@@ -180,121 +180,121 @@ fd_pool_typeinfo fd_get_pool_typeinfo(u8_string name)
   return NULL;
 }
 
-FD_EXPORT fd_pool_typeinfo fd_set_default_pool_type(u8_string id)
+KNO_EXPORT kno_pool_typeinfo kno_set_default_pool_type(u8_string id)
 {
-  fd_pool_typeinfo info = (id) ?  (fd_get_pool_typeinfo(id)) :
+  kno_pool_typeinfo info = (id) ?  (kno_get_pool_typeinfo(id)) :
     (default_pool_type);
   if (info)
     default_pool_type = info;
   return info;
 }
 
-static fd_pool open_pool(fd_pool_typeinfo ptype,u8_string spec,
-                         fd_storage_flags flags,lispval opts)
+static kno_pool open_pool(kno_pool_typeinfo ptype,u8_string spec,
+                         kno_storage_flags flags,lispval opts)
 {
   u8_string search_spec = spec;
   if ( (strchr(search_spec,'@')==NULL) || (strchr(search_spec,':')==NULL) ) {
     if (u8_file_existsp(search_spec))
       search_spec = u8_realpath(spec,NULL);}
-  fd_pool found = (flags&FD_STORAGE_UNREGISTERED) ? (NULL) :
-    (fd_find_pool_by_source(search_spec));
+  kno_pool found = (flags&KNO_STORAGE_UNREGISTERED) ? (NULL) :
+    (kno_find_pool_by_source(search_spec));
   if (spec != search_spec) u8_free(search_spec);
-  fd_pool opened = (found) ? (found) :
+  kno_pool opened = (found) ? (found) :
     (ptype->opener(spec,flags,opts));
   if (opened==NULL) {
-    if (! ( flags & FD_STORAGE_NOERR) )
-      fd_seterr(fd_CantOpenPool,"fd_open_pool",spec,opts);
+    if (! ( flags & KNO_STORAGE_NOERR) )
+      kno_seterr(kno_CantOpenPool,"kno_open_pool",spec,opts);
     return opened;}
-  else if (fd_testopt(opts,wadjuncts_symbol,VOID)) {
-    lispval adjuncts=fd_getopt(opts,wadjuncts_symbol,EMPTY);
-    int rv=fd_set_adjuncts(opened,adjuncts);
-    fd_decref(adjuncts);
+  else if (kno_testopt(opts,wadjuncts_symbol,VOID)) {
+    lispval adjuncts=kno_getopt(opts,wadjuncts_symbol,EMPTY);
+    int rv=kno_set_adjuncts(opened,adjuncts);
+    kno_decref(adjuncts);
     if (rv<0) {
-      if (flags & FD_STORAGE_NOERR) {
-        u8_logf(LOG_CRIT,fd_AdjunctError,
+      if (flags & KNO_STORAGE_NOERR) {
+        u8_logf(LOG_CRIT,kno_AdjunctError,
                 "Opening pool '%s' with opts=%q",
                 opened->poolid,opts);
-        fd_clear_errors(1);}
+        kno_clear_errors(1);}
       else {
-        fd_seterr(fd_AdjunctError,"fd_open_pool",spec,opts);
+        kno_seterr(kno_AdjunctError,"kno_open_pool",spec,opts);
         return NULL;}}}
   lispval old_opts=opened->pool_opts;
-  opened->pool_opts=fd_incref(opts);
-  fd_decref(old_opts);
+  opened->pool_opts=kno_incref(opts);
+  kno_decref(old_opts);
   return opened;
 }
 
-FD_EXPORT
-fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,lispval opts)
+KNO_EXPORT
+kno_pool kno_open_pool(u8_string spec,kno_storage_flags flags,lispval opts)
 {
   CHECK_ERRNO();
-  if (flags<0) flags = fd_get_dbflags(opts,FD_STORAGE_ISPOOL);
-  struct FD_POOL_TYPEINFO *ptype = pool_typeinfo; while (ptype) {
+  if (flags<0) flags = kno_get_dbflags(opts,KNO_STORAGE_ISPOOL);
+  struct KNO_POOL_TYPEINFO *ptype = pool_typeinfo; while (ptype) {
     if (ptype->matcher) {
       u8_string use_spec = ptype->matcher(spec,ptype->type_data);
       if (use_spec) {
-        fd_pool found = (flags&FD_STORAGE_UNREGISTERED) ? (NULL) :
-          (fd_find_pool_by_source(use_spec));
-        fd_pool opened = (found) ? (found) :
+        kno_pool found = (flags&KNO_STORAGE_UNREGISTERED) ? (NULL) :
+          (kno_find_pool_by_source(use_spec));
+        kno_pool opened = (found) ? (found) :
           (ptype->opener(use_spec,flags,opts));
         if (use_spec!=spec) u8_free(use_spec);
         if (opened==NULL) {
-          fd_seterr(fd_CantOpenPool,"fd_open_pool",spec,opts);
+          kno_seterr(kno_CantOpenPool,"kno_open_pool",spec,opts);
           return opened;}
-        else if (fd_testopt(opts,wadjuncts_symbol,VOID)) {
-          lispval adjuncts=fd_getopt(opts,wadjuncts_symbol,EMPTY);
-          int rv=fd_set_adjuncts(opened,adjuncts);
-          fd_decref(adjuncts);
+        else if (kno_testopt(opts,wadjuncts_symbol,VOID)) {
+          lispval adjuncts=kno_getopt(opts,wadjuncts_symbol,EMPTY);
+          int rv=kno_set_adjuncts(opened,adjuncts);
+          kno_decref(adjuncts);
           if (rv<0) {
-            if (flags & FD_STORAGE_NOERR) {
-              u8_logf(LOG_CRIT,fd_AdjunctError,
+            if (flags & KNO_STORAGE_NOERR) {
+              u8_logf(LOG_CRIT,kno_AdjunctError,
                       "Opening pool '%s' with opts=%q",
                       opened->poolid,opts);
-              fd_clear_errors(1);}
+              kno_clear_errors(1);}
             else {
-              fd_seterr(fd_AdjunctError,"fd_open_pool",spec,opts);
+              kno_seterr(kno_AdjunctError,"kno_open_pool",spec,opts);
               return NULL;}}}
         lispval old_opts=opened->pool_opts;
-        opened->pool_opts=fd_incref(opts);
-        fd_decref(old_opts);
+        opened->pool_opts=kno_incref(opts);
+        kno_decref(old_opts);
         return opened;}
       CHECK_ERRNO();}
     ptype = ptype->next_type;}
-  lispval pool_typeid = fd_getopt(opts,pooltype_symbol,FD_VOID);
-  if (FD_VOIDP(pool_typeid))
-    pool_typeid = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
+  lispval pool_typeid = kno_getopt(opts,pooltype_symbol,KNO_VOID);
+  if (KNO_VOIDP(pool_typeid))
+    pool_typeid = kno_getopt(opts,FDSYM_TYPE,KNO_VOID);
   /* MODULE is an alias for type and 'may' have the additional
      semantics of being auto-loaded. */
-  if (FD_VOIDP(pool_typeid))
-    pool_typeid = fd_getopt(opts,FDSYM_MODULE,FD_VOID);
-  ptype = (FD_STRINGP(pool_typeid)) ?
-    (fd_get_pool_typeinfo(FD_CSTRING(pool_typeid))) :
-    (FD_SYMBOLP(pool_typeid)) ?
-    (fd_get_pool_typeinfo(FD_SYMBOL_NAME(pool_typeid))) :
+  if (KNO_VOIDP(pool_typeid))
+    pool_typeid = kno_getopt(opts,FDSYM_MODULE,KNO_VOID);
+  ptype = (KNO_STRINGP(pool_typeid)) ?
+    (kno_get_pool_typeinfo(KNO_CSTRING(pool_typeid))) :
+    (KNO_SYMBOLP(pool_typeid)) ?
+    (kno_get_pool_typeinfo(KNO_SYMBOL_NAME(pool_typeid))) :
     (NULL);
-  fd_decref(pool_typeid);
+  kno_decref(pool_typeid);
   if (ptype) {
     u8_string open_spec = spec;
     if (ptype->matcher) {
       open_spec = ptype->matcher(spec,ptype->type_data);
       if (open_spec==NULL) {
         unsigned char buf[200];
-        fd_seterr(fd_CantOpenPool,"fd_open_pool",
+        kno_seterr(kno_CantOpenPool,"kno_open_pool",
                   u8_sprintf(buf,200,"(%s)%s",ptype->pool_typename,spec),
                   opts);
         return NULL;}}
-    fd_pool p = open_pool(ptype,open_spec,flags,opts);
+    kno_pool p = open_pool(ptype,open_spec,flags,opts);
     if (open_spec != spec) u8_free(open_spec);
     return p;}
-  if (!(flags & FD_STORAGE_NOERR))
-    fd_seterr(fd_UnknownPoolType,"fd_open_pool",spec,opts);
+  if (!(flags & KNO_STORAGE_NOERR))
+    kno_seterr(kno_UnknownPoolType,"kno_open_pool",spec,opts);
   return NULL;
 }
 
-FD_EXPORT
-fd_pool_handler fd_get_pool_handler(u8_string name)
+KNO_EXPORT
+kno_pool_handler kno_get_pool_handler(u8_string name)
 {
-  struct FD_POOL_TYPEINFO *ptype = fd_get_pool_typeinfo(name);
+  struct KNO_POOL_TYPEINFO *ptype = kno_get_pool_typeinfo(name);
   if (ptype)
     return ptype->handler;
   else return NULL;
@@ -304,59 +304,59 @@ typedef unsigned long long ull;
 
 static int fix_pool_opts(u8_string spec,lispval opts)
 {
-  lispval base_oid = fd_getopt(opts,fd_intern("BASE"),VOID);
-  lispval capacity_arg = fd_getopt(opts,fd_intern("CAPACITY"),VOID);
+  lispval base_oid = kno_getopt(opts,kno_intern("BASE"),VOID);
+  lispval capacity_arg = kno_getopt(opts,kno_intern("CAPACITY"),VOID);
   if (!(OIDP(base_oid))) {
-    fd_seterr("PoolBaseNotOID","fd_make_pool",spec,opts);
+    kno_seterr("PoolBaseNotOID","kno_make_pool",spec,opts);
     return -1;}
   else if (!(FIXNUMP(capacity_arg))) {
-    fd_seterr("PoolCapacityNotFixnum","fd_make_pool",spec,opts);
+    kno_seterr("PoolCapacityNotFixnum","kno_make_pool",spec,opts);
     return -1;}
   else {
-    FD_OID addr=FD_OID_ADDR(base_oid);
-    unsigned int lo=FD_OID_LO(addr);
-    int capacity=FD_FIX2INT(capacity_arg);
+    KNO_OID addr=KNO_OID_ADDR(base_oid);
+    unsigned int lo=KNO_OID_LO(addr);
+    int capacity=KNO_FIX2INT(capacity_arg);
     if (capacity<=0) {
-      fd_seterr("NegativePoolCapacity","fd_make_pool",spec,opts);
+      kno_seterr("NegativePoolCapacity","kno_make_pool",spec,opts);
       return -1;}
     else if (capacity>=0x40000000) {
-      fd_seterr("PoolCapacityTooLarge","fd_make_pool",spec,opts);
+      kno_seterr("PoolCapacityTooLarge","kno_make_pool",spec,opts);
       return -1;}
     else {}
-    int span_pool=(capacity>FD_OID_BUCKET_SIZE);
-    if ((span_pool)&&(lo%FD_OID_BUCKET_SIZE)) {
-      fd_seterr("MisalignedBaseOID","fd_make_pool",spec,opts);
+    int span_pool=(capacity>KNO_OID_BUCKET_SIZE);
+    if ((span_pool)&&(lo%KNO_OID_BUCKET_SIZE)) {
+      kno_seterr("MisalignedBaseOID","kno_make_pool",spec,opts);
       return -1;}
-    else if ((span_pool)&&(capacity%FD_OID_BUCKET_SIZE)) {
+    else if ((span_pool)&&(capacity%KNO_OID_BUCKET_SIZE)) {
       lispval opt_root=opts;
       unsigned int new_capacity =
-        (1+(capacity/FD_OID_BUCKET_SIZE))*FD_OID_BUCKET_SIZE;
+        (1+(capacity/KNO_OID_BUCKET_SIZE))*KNO_OID_BUCKET_SIZE;
       u8_logf(LOG_WARN,"FixingCapacity",
               "Rounding up the capacity of %s from %llu to 0x%llx",
               spec,(ull)capacity,(ull)new_capacity);
-      if (FD_PAIRP(opts)) opt_root=FD_CAR(opts);
-      int rv=fd_store(opt_root,fd_intern("CAPACITY"),
-                      FD_INT(new_capacity));
+      if (KNO_PAIRP(opts)) opt_root=KNO_CAR(opts);
+      int rv=kno_store(opt_root,kno_intern("CAPACITY"),
+                      KNO_INT(new_capacity));
       return rv;}
     /* TODO: Add more checks for non-spanning pools */
     else return 1;}
 }
 
-FD_EXPORT
-fd_pool fd_make_pool(u8_string spec,
+KNO_EXPORT
+kno_pool kno_make_pool(u8_string spec,
                      u8_string pooltype,
-                     fd_storage_flags flags,
+                     kno_storage_flags flags,
                      lispval opts)
 {
-  fd_pool_typeinfo ptype = fd_get_pool_typeinfo(pooltype);
+  kno_pool_typeinfo ptype = kno_get_pool_typeinfo(pooltype);
   if (ptype == NULL) {
-    fd_seterr3(fd_UnknownPoolType,"fd_make_pool",pooltype);
+    kno_seterr3(kno_UnknownPoolType,"kno_make_pool",pooltype);
     return NULL;}
   else if (ptype->handler == NULL) {
-    fd_seterr3(_("NoPoolHandler"),"fd_make_pool",pooltype);
+    kno_seterr3(_("NoPoolHandler"),"kno_make_pool",pooltype);
     return NULL;}
   else if (ptype->handler->create == NULL) {
-    fd_seterr3(_("NoCreateHandler"),"fd_make_pool",pooltype);
+    kno_seterr3(_("NoCreateHandler"),"kno_make_pool",pooltype);
     return NULL;}
   else if (fix_pool_opts(spec,opts)<0)
     return NULL;
@@ -365,17 +365,17 @@ fd_pool fd_make_pool(u8_string spec,
 
 /* Opening indexes */
 
-static struct FD_INDEX_TYPEINFO *index_typeinfo;
+static struct KNO_INDEX_TYPEINFO *index_typeinfo;
 static u8_mutex index_typeinfo_lock;
 
-FD_EXPORT void fd_register_index_type
+KNO_EXPORT void kno_register_index_type
 (u8_string name,
- fd_index_handler handler,
- fd_index (*opener)(u8_string filename,fd_storage_flags flags,lispval opts),
+ kno_index_handler handler,
+ kno_index (*opener)(u8_string filename,kno_storage_flags flags,lispval opts),
  u8_string (*matcher)(u8_string filename,void *),
  void *type_data)
 {
-  struct FD_INDEX_TYPEINFO *ixtype;
+  struct KNO_INDEX_TYPEINFO *ixtype;
   u8_lock_mutex(&index_typeinfo_lock);
   ixtype = index_typeinfo; while (ixtype) {
     if (strcasecmp(name,ixtype->index_typename)==0) {
@@ -403,7 +403,7 @@ FD_EXPORT void fd_register_index_type
   if (ixtype) {
     u8_unlock_mutex(&index_typeinfo_lock);
     return;}
-  ixtype = u8_alloc(struct FD_INDEX_TYPEINFO);
+  ixtype = u8_alloc(struct KNO_INDEX_TYPEINFO);
   ixtype->index_typename = u8_strdup(name);
   ixtype->handler = handler;
   ixtype->opener = opener;
@@ -414,9 +414,9 @@ FD_EXPORT void fd_register_index_type
   u8_unlock_mutex(&index_typeinfo_lock);
 }
 
-FD_EXPORT fd_index_typeinfo fd_get_index_typeinfo(u8_string name)
+KNO_EXPORT kno_index_typeinfo kno_get_index_typeinfo(u8_string name)
 {
-  struct FD_INDEX_TYPEINFO *ixtype = index_typeinfo;
+  struct KNO_INDEX_TYPEINFO *ixtype = index_typeinfo;
   if (name == NULL)
     return default_index_type;
   else while (ixtype) {
@@ -426,9 +426,9 @@ FD_EXPORT fd_index_typeinfo fd_get_index_typeinfo(u8_string name)
   return NULL;
 }
 
-FD_EXPORT fd_index_typeinfo fd_set_default_index_type(u8_string id)
+KNO_EXPORT kno_index_typeinfo kno_set_default_index_type(u8_string id)
 {
-  fd_index_typeinfo info = (id) ? (fd_get_index_typeinfo(id)) :
+  kno_index_typeinfo info = (id) ? (kno_get_index_typeinfo(id)) :
     (default_index_type);
   if (info)
     default_index_type=info;
@@ -436,87 +436,87 @@ FD_EXPORT fd_index_typeinfo fd_set_default_index_type(u8_string id)
 }
 
 
-static fd_index open_index(fd_index_typeinfo ixtype,u8_string spec,
-                           fd_storage_flags flags,lispval opts)
+static kno_index open_index(kno_index_typeinfo ixtype,u8_string spec,
+                           kno_storage_flags flags,lispval opts)
 {
   u8_string search_spec = spec;
   if ( (strchr(search_spec,'@')==NULL) || (strchr(search_spec,':')==NULL) ) {
     if (u8_file_existsp(search_spec))
       search_spec = u8_realpath(spec,NULL);}
-  fd_index found = (flags&FD_STORAGE_UNREGISTERED) ? (NULL) :
-    (fd_find_index_by_source(search_spec));
-  fd_index opened = (found) ? (found) : (ixtype->opener(spec,flags,opts));
+  kno_index found = (flags&KNO_STORAGE_UNREGISTERED) ? (NULL) :
+    (kno_find_index_by_source(search_spec));
+  kno_index opened = (found) ? (found) : (ixtype->opener(spec,flags,opts));
   if (search_spec != spec) u8_free(search_spec);
   if (opened==NULL) {
-    if (! ( flags & FD_STORAGE_NOERR) )
-      fd_seterr(fd_CantOpenIndex,"fd_open_index",spec,opts);
+    if (! ( flags & KNO_STORAGE_NOERR) )
+      kno_seterr(kno_CantOpenIndex,"kno_open_index",spec,opts);
     return opened;}
   lispval old_opts=opened->index_opts;
-  opened->index_opts=fd_incref(opts);
-  fd_decref(old_opts);
+  opened->index_opts=kno_incref(opts);
+  kno_decref(old_opts);
   return opened;
 }
 
-FD_EXPORT
-fd_index fd_open_index(u8_string spec,fd_storage_flags flags,lispval opts)
+KNO_EXPORT
+kno_index kno_open_index(u8_string spec,kno_storage_flags flags,lispval opts)
 {
   CHECK_ERRNO();
-  struct FD_INDEX_TYPEINFO *ixtype = index_typeinfo;
-  if (flags<0) flags = fd_get_dbflags(opts,FD_STORAGE_ISINDEX);
+  struct KNO_INDEX_TYPEINFO *ixtype = index_typeinfo;
+  if (flags<0) flags = kno_get_dbflags(opts,KNO_STORAGE_ISINDEX);
   while (ixtype) {
     if (ixtype->matcher) {
       u8_string use_spec = ixtype->matcher(spec,ixtype->type_data);
       if (use_spec) {
-        fd_index found = (flags&FD_STORAGE_UNREGISTERED) ? (NULL) :
-          (fd_find_index_by_source(use_spec));
-        fd_index opened = (found) ? (found) :
+        kno_index found = (flags&KNO_STORAGE_UNREGISTERED) ? (NULL) :
+          (kno_find_index_by_source(use_spec));
+        kno_index opened = (found) ? (found) :
           (ixtype->opener(use_spec,flags,opts));
         if (opened==NULL) {
-          fd_seterr(fd_CantOpenIndex,"fd_open_index",spec,opts);
+          kno_seterr(kno_CantOpenIndex,"kno_open_index",spec,opts);
           return opened;}
         if (use_spec!=spec) u8_free(use_spec);
         lispval old_opts=opened->index_opts;
-        opened->index_opts=fd_incref(opts);
-        fd_decref(old_opts);
+        opened->index_opts=kno_incref(opts);
+        kno_decref(old_opts);
         return opened;}
       else ixtype = ixtype->next_type;
       CHECK_ERRNO();}
     else ixtype = ixtype->next_type;}
-  lispval index_typeid = fd_getopt(opts,indextype_symbol,FD_VOID);
-  if (FD_VOIDP(index_typeid))
-    index_typeid = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
+  lispval index_typeid = kno_getopt(opts,indextype_symbol,KNO_VOID);
+  if (KNO_VOIDP(index_typeid))
+    index_typeid = kno_getopt(opts,FDSYM_TYPE,KNO_VOID);
   /* MODULE is an alias for type and 'may' have the additional
      semantics of being auto-loaded. */
-  if (FD_VOIDP(index_typeid))
-    index_typeid = fd_getopt(opts,FDSYM_MODULE,FD_VOID);
-  ixtype = (FD_STRINGP(index_typeid)) ?
-    (fd_get_index_typeinfo(FD_CSTRING(index_typeid))) :
-    (FD_SYMBOLP(index_typeid)) ?
-    (fd_get_index_typeinfo(FD_SYMBOL_NAME(index_typeid))) :
+  if (KNO_VOIDP(index_typeid))
+    index_typeid = kno_getopt(opts,FDSYM_MODULE,KNO_VOID);
+  ixtype = (KNO_STRINGP(index_typeid)) ?
+    (kno_get_index_typeinfo(KNO_CSTRING(index_typeid))) :
+    (KNO_SYMBOLP(index_typeid)) ?
+    (kno_get_index_typeinfo(KNO_SYMBOL_NAME(index_typeid))) :
     (NULL);
-  fd_decref(index_typeid);
+  kno_decref(index_typeid);
   if (ixtype) {
     u8_string open_spec = spec;
     if (ixtype->matcher) {
       open_spec = ixtype->matcher(spec,ixtype->type_data);
       if (open_spec == NULL) {
         unsigned char buf[200];
-        fd_seterr(fd_CantOpenIndex,"fd_open_index",
+        kno_seterr(kno_CantOpenIndex,"kno_open_index",
                   u8_sprintf(buf,200,"(%s)%s",ixtype->index_typename,spec),
                   opts);
         return NULL;}}
-    fd_index ix = open_index(ixtype,open_spec,flags,opts);
+    kno_index ix = open_index(ixtype,open_spec,flags,opts);
     if (open_spec != spec) u8_free(open_spec);
     return ix;}
-  if (!(flags & FD_STORAGE_NOERR))
-    fd_seterr(fd_UnknownIndexType,"fd_open_index",spec,opts);
+  if (!(flags & KNO_STORAGE_NOERR))
+    kno_seterr(kno_UnknownIndexType,"kno_open_index",spec,opts);
   return NULL;
 }
 
-FD_EXPORT
-fd_index_handler fd_get_index_handler(u8_string name)
+KNO_EXPORT
+kno_index_handler kno_get_index_handler(u8_string name)
 {
-  struct FD_INDEX_TYPEINFO *ixtype = index_typeinfo;
+  struct KNO_INDEX_TYPEINFO *ixtype = index_typeinfo;
   while (ixtype) {
     if ((strcasecmp(name,ixtype->index_typename))==0)
       return ixtype->handler;
@@ -524,54 +524,54 @@ fd_index_handler fd_get_index_handler(u8_string name)
   return NULL;
 }
 
-FD_EXPORT
-fd_index fd_make_index(u8_string spec,
+KNO_EXPORT
+kno_index kno_make_index(u8_string spec,
                        u8_string indextype,
-                       fd_storage_flags flags,
+                       kno_storage_flags flags,
                        lispval opts)
 {
-  fd_index_typeinfo ixtype = fd_get_index_typeinfo(indextype);
+  kno_index_typeinfo ixtype = kno_get_index_typeinfo(indextype);
   if (ixtype == NULL) {
-    fd_seterr3(_("UnknownIndexType"),"fd_make_index",indextype);
+    kno_seterr3(_("UnknownIndexType"),"kno_make_index",indextype);
     return NULL;}
   else if (ixtype->handler == NULL) {
-    fd_seterr3(_("NoIndexHandler"),"fd_make_index",indextype);
+    kno_seterr3(_("NoIndexHandler"),"kno_make_index",indextype);
     return NULL;}
   else if (ixtype->handler->create == NULL) {
-    fd_seterr3(_("NoCreateHandler"),"fd_make_index",indextype);
+    kno_seterr3(_("NoCreateHandler"),"kno_make_index",indextype);
     return NULL;}
   else {
     if (FIXNUMP(opts)) {
-      lispval tmp_opts = fd_init_slotmap(NULL,3,NULL);
-      fd_store(tmp_opts,fd_intern("SIZE"),opts);
-      fd_index ix=ixtype->handler->create(spec,ixtype->type_data,
+      lispval tmp_opts = kno_init_slotmap(NULL,3,NULL);
+      kno_store(tmp_opts,kno_intern("SIZE"),opts);
+      kno_index ix=ixtype->handler->create(spec,ixtype->type_data,
                                           flags,tmp_opts);
-      fd_decref(tmp_opts);
+      kno_decref(tmp_opts);
       return ix;}
     else return ixtype->handler->create(spec,ixtype->type_data,flags,opts);}
 }
 
 /* OIDCODE maps */
 
-FD_EXPORT lispval _fd_get_baseoid(struct FD_OIDCODER *map,unsigned int oidcode)
+KNO_EXPORT lispval _kno_get_baseoid(struct KNO_OIDCODER *map,unsigned int oidcode)
 {
   if (oidcode > map->n_oids)
-    return FD_VOID;
+    return KNO_VOID;
   else return map->baseoids[oidcode];
 }
 
-FD_EXPORT int _fd_get_oidcode(struct FD_OIDCODER *map,int oidbaseid)
+KNO_EXPORT int _kno_get_oidcode(struct KNO_OIDCODER *map,int oidbaseid)
 {
   if (oidbaseid > map->max_baseid)
     return -1;
   else return map->oidcodes[oidbaseid];
 }
 
-FD_EXPORT int fd_add_oidcode(struct FD_OIDCODER *map,lispval oid)
+KNO_EXPORT int kno_add_oidcode(struct KNO_OIDCODER *map,lispval oid)
 {
   if (map->oidcodes == NULL) return -1;
-  int baseid = FD_OID_BASE_ID(oid);
-  lispval baseoid = FD_CONSTRUCT_OID(baseid,0);
+  int baseid = KNO_OID_BASE_ID(oid);
+  lispval baseoid = KNO_CONSTRUCT_OID(baseid,0);
   if (baseid <= map->max_baseid) {
     int v = map->oidcodes[baseid];
     if (v>0) return v;}
@@ -593,7 +593,7 @@ FD_EXPORT int fd_add_oidcode(struct FD_OIDCODER *map,lispval oid)
     lispval *new_oids = u8_malloc(sizeof(lispval)*new_len);
     memcpy(new_oids,cur_oids,sizeof(lispval)*len);
     int i = len; while (i<new_len) {
-      new_oids[i++]=FD_FALSE;}
+      new_oids[i++]=KNO_FALSE;}
     if (new_oids) {
       map->baseoids = new_oids;
       map->oids_len = new_len;}
@@ -606,7 +606,7 @@ FD_EXPORT int fd_add_oidcode(struct FD_OIDCODER *map,lispval oid)
   return code;
 }
 
-FD_EXPORT void fd_init_oidcoder(struct FD_OIDCODER *oidmap,
+KNO_EXPORT void kno_init_oidcoder(struct KNO_OIDCODER *oidmap,
                                 int oids_len,lispval *oids)
 {
   lispval *baseoids;
@@ -625,28 +625,28 @@ FD_EXPORT void fd_init_oidcoder(struct FD_OIDCODER *oidmap,
     return;}
   else if (oids == NULL) {
     baseoids = u8_alloc_n(oids_len,lispval);
-    int i=0; while (i<oids_len) oids[i++]=FD_FALSE;}
+    int i=0; while (i<oids_len) oids[i++]=KNO_FALSE;}
   else {
     baseoids = u8_alloc_n(oids_len,lispval);
     int i=0; while (i<oids_len) {
       lispval init = oids[i];
-      if ( (init) && (FD_OIDP(init)) )
+      if ( (init) && (KNO_OIDP(init)) )
         baseoids[i++] = init;
-      else baseoids[i++] = FD_FALSE;}}
+      else baseoids[i++] = KNO_FALSE;}}
   int i = 0, codes_len = 1024, max_baseid=-1, last_oid = -1;
-  while (codes_len < fd_n_base_oids) codes_len = codes_len*2;
+  while (codes_len < kno_n_base_oids) codes_len = codes_len*2;
   codes = u8_alloc_n(codes_len,unsigned int);
   i = 0; while (i<codes_len) codes[i++]= -1;
   i = 0; while (i<oids_len) {
       lispval baseoid = baseoids[i];
-      if (FD_OIDP(baseoid)) {
-        int baseid    = FD_OID_BASE_ID(baseoid);
+      if (KNO_OIDP(baseoid)) {
+        int baseid    = KNO_OID_BASE_ID(baseoid);
         baseoids[i]   = baseoid;
         if (codes[baseid] != -1) {
-          FD_OID addr = FD_OID_ADDR(baseoid);
+          KNO_OID addr = KNO_OID_ADDR(baseoid);
           u8_log(LOG_WARN,"Duplicate baseoid",
                  "The baseoid @%llx/%llx (baseid=%d) is coded at %d and %d",
-                 FD_OID_LO(addr),FD_OID_HI(addr),baseid,
+                 KNO_OID_LO(addr),KNO_OID_HI(addr),baseid,
                  i,codes[baseid]);}
         codes[baseid] = i;
         if (baseid > max_baseid) max_baseid = baseid;
@@ -661,12 +661,12 @@ FD_EXPORT void fd_init_oidcoder(struct FD_OIDCODER *oidmap,
   oidmap->max_baseid  = max_baseid;
 }
 
-FD_EXPORT struct FD_OIDCODER fd_copy_oidcodes(fd_oidcoder src)
+KNO_EXPORT struct KNO_OIDCODER kno_copy_oidcodes(kno_oidcoder src)
 {
   if (src->baseoids) {
     u8_read_lock(&(src->rwlock));
 
-    struct FD_OIDCODER oc = *src;
+    struct KNO_OIDCODER oc = *src;
     memset(&(oc.rwlock),0,sizeof(oc.rwlock));   /* Just to be tidy */
     oc.baseoids = u8_memdup((SIZEOF_LISPVAL*oc.oids_len),oc.baseoids);
     oc.oidcodes = u8_memdup((SIZEOF_UINT*oc.codes_len),oc.oidcodes);
@@ -674,11 +674,11 @@ FD_EXPORT struct FD_OIDCODER fd_copy_oidcodes(fd_oidcoder src)
 
     return oc;}
   else {
-    struct FD_OIDCODER oc = { 0 };
+    struct KNO_OIDCODER oc = { 0 };
     return oc;}
 }
 
-FD_EXPORT void fd_update_oidcodes(fd_oidcoder dest,fd_oidcoder src)
+KNO_EXPORT void kno_update_oidcodes(kno_oidcoder dest,kno_oidcoder src)
 {
   u8_write_lock(&(dest->rwlock));
   lispval *old_baseoids = dest->baseoids;
@@ -694,79 +694,79 @@ FD_EXPORT void fd_update_oidcodes(fd_oidcoder dest,fd_oidcoder src)
   if (old_oidcodes) u8_free(old_oidcodes);
 }
 
-FD_EXPORT void fd_recycle_oidcoder(struct FD_OIDCODER *oc)
+KNO_EXPORT void kno_recycle_oidcoder(struct KNO_OIDCODER *oc)
 {
   if (oc->baseoids) u8_free(oc->baseoids);
   if (oc->oidcodes) u8_free(oc->oidcodes);
-  memset(oc,0,sizeof(struct FD_OIDCODER));
+  memset(oc,0,sizeof(struct KNO_OIDCODER));
 }
 
-FD_EXPORT lispval fd_baseoids_arg(lispval arg)
+KNO_EXPORT lispval kno_baseoids_arg(lispval arg)
 {
-  if ( (FD_FALSEP(arg)) || (FD_VOIDP(arg)) ||
-       ( (FD_FIXNUMP(arg)) && (FD_FIX2INT(arg) == 0)) )
-    return FD_VOID;
-  else if (FD_TRUEP(arg)) {
-    lispval vec = fd_empty_vector(4);
-    int i=0; while (i<4) {FD_VECTOR_SET(vec,i,FD_FALSE); i++;}
+  if ( (KNO_FALSEP(arg)) || (KNO_VOIDP(arg)) ||
+       ( (KNO_FIXNUMP(arg)) && (KNO_FIX2INT(arg) == 0)) )
+    return KNO_VOID;
+  else if (KNO_TRUEP(arg)) {
+    lispval vec = kno_empty_vector(4);
+    int i=0; while (i<4) {KNO_VECTOR_SET(vec,i,KNO_FALSE); i++;}
     return vec;}
-  else if (FD_FIXNUMP(arg)) {
-    long long n = FD_FIX2INT(arg);
-    if (n<0) return FD_ERROR_VALUE;
-    lispval vec = fd_empty_vector(n);
-    int i=0; while (i<n) {FD_VECTOR_SET(vec,i,FD_FALSE); i++;}
+  else if (KNO_FIXNUMP(arg)) {
+    long long n = KNO_FIX2INT(arg);
+    if (n<0) return KNO_ERROR_VALUE;
+    lispval vec = kno_empty_vector(n);
+    int i=0; while (i<n) {KNO_VECTOR_SET(vec,i,KNO_FALSE); i++;}
     return vec;}
-  else if (FD_VECTORP(arg)) {
-    int i = 0, n = FD_VECTOR_LENGTH(arg);
+  else if (KNO_VECTORP(arg)) {
+    int i = 0, n = KNO_VECTOR_LENGTH(arg);
     while (i<n) {
-      lispval elt = FD_VECTOR_REF(arg,i);
-      if (FD_OIDP(elt)) i++;
-      else if ( (FD_FALSEP(elt)) || (FD_VOIDP(elt)) ) {
-        FD_VECTOR_SET(arg,i,FD_FALSE);
+      lispval elt = KNO_VECTOR_REF(arg,i);
+      if (KNO_OIDP(elt)) i++;
+      else if ( (KNO_FALSEP(elt)) || (KNO_VOIDP(elt)) ) {
+        KNO_VECTOR_SET(arg,i,KNO_FALSE);
         i++;}
-      else return FD_ERROR_VALUE;}
-    return fd_incref(arg);}
-  else if (FD_CHOICEP(arg)) {
-    const lispval *elts = FD_CHOICE_ELTS(arg);
-    int i = 0, n = FD_CHOICE_SIZE(arg);
+      else return KNO_ERROR_VALUE;}
+    return kno_incref(arg);}
+  else if (KNO_CHOICEP(arg)) {
+    const lispval *elts = KNO_CHOICE_ELTS(arg);
+    int i = 0, n = KNO_CHOICE_SIZE(arg);
     while (i<n) {
       lispval elt = elts[i];
-      if (FD_OIDP(elt)) i++;
-      else return FD_ERROR_VALUE;}
-    return fd_make_vector(n,(lispval *)elts);}
-  else return FD_ERROR_VALUE;
+      if (KNO_OIDP(elt)) i++;
+      else return KNO_ERROR_VALUE;}
+    return kno_make_vector(n,(lispval *)elts);}
+  else return KNO_ERROR_VALUE;
 }
 
 /* Slot codes */
 
-FD_EXPORT lispval _fd_code2slotid(struct FD_SLOTCODER *sc,unsigned int code)
+KNO_EXPORT lispval _kno_code2slotid(struct KNO_SLOTCODER *sc,unsigned int code)
 {
   if (sc->slotids == NULL)
-    return FD_ERROR;
+    return KNO_ERROR;
   else if (code < sc->n_slotcodes)
     return sc->slotids->vec_elts[code];
-  else return FD_ERROR;
+  else return KNO_ERROR;
 }
 
-FD_EXPORT int _fd_slotid2code(struct FD_SLOTCODER *sc,lispval slotid)
+KNO_EXPORT int _kno_slotid2code(struct KNO_SLOTCODER *sc,lispval slotid)
 {
   if (sc->n_slotcodes <= 0)
     return -1;
   else {
-    struct FD_KEYVAL *kv =
-      fd_sortvec_get(slotid,sc->lookup->sm_keyvals,sc->lookup->n_slots);
+    struct KNO_KEYVAL *kv =
+      kno_sortvec_get(slotid,sc->lookup->sm_keyvals,sc->lookup->n_slots);
     if (kv) {
       lispval v = kv->kv_val;
-      if (FD_FIXNUMP(v))
-        return FD_FIX2INT(v);
+      if (KNO_FIXNUMP(v))
+        return KNO_FIX2INT(v);
       else return -1;}
     else return -1;}
 }
 
 static int cmp_slotkeys(const void *vx,const void *vy)
 {
-  const struct FD_KEYVAL *kvx = vx;
-  const struct FD_KEYVAL *kvy = vy;
+  const struct KNO_KEYVAL *kvx = vx;
+  const struct KNO_KEYVAL *kvy = vy;
   if (kvx->kv_key < kvy->kv_key)
     return -1;
   else if (kvx->kv_key == kvy->kv_key)
@@ -774,113 +774,113 @@ static int cmp_slotkeys(const void *vx,const void *vy)
   else return 1;
 }
 
-FD_EXPORT int fd_add_slotcode(struct FD_SLOTCODER *sc,lispval slotid)
+KNO_EXPORT int kno_add_slotcode(struct KNO_SLOTCODER *sc,lispval slotid)
 {
   if (sc->slotids == NULL) return -1;
-  int probe = fd_slotid2code(sc,slotid);
+  int probe = kno_slotid2code(sc,slotid);
   if (! ( (OIDP(slotid)) || (SYMBOLP(slotid)) ) ) return -1;
   if (probe>=0)
     return probe;
   if (sc->n_slotcodes >= sc->slotids->vec_length) {
     size_t len = sc->slotids->vec_length;
     size_t new_len = (len<8) ? (16) : (len*2);
-    lispval new_vec = fd_make_vector(new_len,NULL);
-    lispval new_lookup = fd_make_slotmap(new_len,len,NULL);
-    lispval *slotids = FD_VECTOR_ELTS(((lispval)(sc->slotids)));
-    struct FD_KEYVAL *keyvals = FD_XSLOTMAP_KEYVALS(sc->lookup);
-    struct FD_SLOTMAP *new_slotmap = (fd_slotmap) new_lookup;
-    struct FD_KEYVAL *new_keyvals = FD_XSLOTMAP_KEYVALS(new_slotmap);
+    lispval new_vec = kno_make_vector(new_len,NULL);
+    lispval new_lookup = kno_make_slotmap(new_len,len,NULL);
+    lispval *slotids = KNO_VECTOR_ELTS(((lispval)(sc->slotids)));
+    struct KNO_KEYVAL *keyvals = KNO_XSLOTMAP_KEYVALS(sc->lookup);
+    struct KNO_SLOTMAP *new_slotmap = (kno_slotmap) new_lookup;
+    struct KNO_KEYVAL *new_keyvals = KNO_XSLOTMAP_KEYVALS(new_slotmap);
     new_slotmap->sm_sort_keyvals = 1;
     int i = 0, lim = sc->n_slotcodes;
     while (i < lim) {
       lispval slotid = slotids[i];
       lispval slotkey = keyvals[i].kv_key;
-      FD_VECTOR_SET(new_vec,i,slotid);
+      KNO_VECTOR_SET(new_vec,i,slotid);
       new_keyvals[i].kv_key = slotkey;
       new_keyvals[i].kv_val = keyvals[i].kv_val;;
-      fd_incref(slotid);
-      fd_incref(slotkey);
+      kno_incref(slotid);
+      kno_incref(slotkey);
       i++;}
     lispval old_slotids = (lispval) sc->slotids;
     lispval old_lookup = (lispval) sc->lookup;
-    sc->slotids = (fd_vector) new_vec;
-    sc->lookup = (fd_slotmap) new_lookup;
-    fd_decref(old_slotids);
-    fd_decref(old_lookup);}
+    sc->slotids = (kno_vector) new_vec;
+    sc->lookup = (kno_slotmap) new_lookup;
+    kno_decref(old_slotids);
+    kno_decref(old_lookup);}
   if (sc->n_slotcodes < sc->slotids->vec_length) {
     lispval vec = (lispval) sc->slotids;
-    struct FD_SLOTMAP *map = sc->lookup;
+    struct KNO_SLOTMAP *map = sc->lookup;
     int new_code = sc->n_slotcodes++;
-    FD_VECTOR_SET(vec,new_code,slotid);
-    fd_slotmap_store(map,slotid,FD_INT2FIX(new_code));
+    KNO_VECTOR_SET(vec,new_code,slotid);
+    kno_slotmap_store(map,slotid,KNO_INT2FIX(new_code));
     return new_code;}
   return -1;
 }
 
-FD_EXPORT int fd_init_slotcoder(struct FD_SLOTCODER *sc,
+KNO_EXPORT int kno_init_slotcoder(struct KNO_SLOTCODER *sc,
                                 int slotids_len,
                                 lispval *slotids)
 {
   if (sc->slotids) {
-    fd_decref((lispval)(sc->slotids));
+    kno_decref((lispval)(sc->slotids));
     sc->slotids = NULL;}
   if (sc->lookup) {
-    fd_decref((lispval)(sc->lookup));
+    kno_decref((lispval)(sc->lookup));
     sc->lookup = NULL;}
   if ( (slotids_len>=0) || (slotids) ) {
-    lispval slot_vec = fd_make_vector(slotids_len,slotids);
-    lispval lookup = fd_make_slotmap(slotids_len,0,NULL);
-    struct FD_KEYVAL *keyvals = FD_SLOTMAP_KEYVALS(lookup);
+    lispval slot_vec = kno_make_vector(slotids_len,slotids);
+    lispval lookup = kno_make_slotmap(slotids_len,0,NULL);
+    struct KNO_KEYVAL *keyvals = KNO_SLOTMAP_KEYVALS(lookup);
     int i = 0, j = 0; while (i < slotids_len) {
-      lispval slotid = (slotids) ? (slotids[i]) : (FD_FALSE);
-      if ( (FD_SYMBOLP(slotid)) || (FD_OIDP(slotid)) ) {
+      lispval slotid = (slotids) ? (slotids[i]) : (KNO_FALSE);
+      if ( (KNO_SYMBOLP(slotid)) || (KNO_OIDP(slotid)) ) {
         keyvals[j].kv_key = slotid;
-        keyvals[j].kv_val = FD_INT2FIX(j);
-        FD_VECTOR_SET(slot_vec,j,slotid);
+        keyvals[j].kv_val = KNO_INT2FIX(j);
+        KNO_VECTOR_SET(slot_vec,j,slotid);
         j++;}
       i++;}
-    sc->slotids = (fd_vector) slot_vec;
-    sc->lookup = (fd_slotmap) lookup;
+    sc->slotids = (kno_vector) slot_vec;
+    sc->lookup = (kno_slotmap) lookup;
     sc->lookup->n_slots = j;
     sc->lookup->sm_sort_keyvals = 1;
-    qsort(keyvals,j,FD_KEYVAL_LEN,cmp_slotkeys);
+    qsort(keyvals,j,KNO_KEYVAL_LEN,cmp_slotkeys);
     sc->n_slotcodes = j;
     sc->init_n_slotcodes = j;
     return slotids_len;}
   else {
     sc->n_slotcodes = 0;
     sc->init_n_slotcodes = 0;
-    sc->slotids = (fd_vector)  NULL;
-    sc->lookup  = (fd_slotmap) NULL;
+    sc->slotids = (kno_vector)  NULL;
+    sc->lookup  = (kno_slotmap) NULL;
     return 0;}
 }
 
-FD_EXPORT struct FD_SLOTCODER fd_copy_slotcodes(fd_slotcoder src)
+KNO_EXPORT struct KNO_SLOTCODER kno_copy_slotcodes(kno_slotcoder src)
 {
   if (src->slotids) {
     u8_read_lock(&(src->rwlock));
-    struct FD_SLOTCODER sc = *src;
+    struct KNO_SLOTCODER sc = *src;
     memset(&(sc.rwlock),0,sizeof(sc.rwlock));   /* Just to be tidy */
-    sc.slotids = (fd_vector) fd_copy((lispval)sc.slotids);
-    sc.lookup = (fd_slotmap) fd_copy((lispval)sc.lookup);
+    sc.slotids = (kno_vector) kno_copy((lispval)sc.slotids);
+    sc.lookup = (kno_slotmap) kno_copy((lispval)sc.lookup);
     u8_rw_unlock(&(src->rwlock));
     return sc;}
   else {
-    struct FD_SLOTCODER sc = { 0 };
+    struct KNO_SLOTCODER sc = { 0 };
     return sc;}
 }
 
-FD_EXPORT void fd_update_slotcodes(fd_slotcoder dest,fd_slotcoder src)
+KNO_EXPORT void kno_update_slotcodes(kno_slotcoder dest,kno_slotcoder src)
 {
   u8_write_lock(&(dest->rwlock));
-  struct FD_VECTOR *old_vec = dest->slotids;
-  struct FD_SLOTMAP *old_map = dest->lookup;
+  struct KNO_VECTOR *old_vec = dest->slotids;
+  struct KNO_SLOTMAP *old_map = dest->lookup;
   dest->n_slotcodes = src->n_slotcodes;
   dest->slotids = src->slotids;
   dest->lookup = src->lookup;
   u8_rw_unlock(& dest->rwlock);
-  if (old_vec) fd_decref((lispval)old_vec);
-  if (old_map) fd_decref((lispval)old_map);
+  if (old_vec) kno_decref((lispval)old_vec);
+  if (old_map) kno_decref((lispval)old_map);
 }
 
 #define DTOUT(lenvar,out) \
@@ -889,109 +889,109 @@ FD_EXPORT void fd_update_slotcodes(fd_slotcoder dest,fd_slotcoder src)
     if (_outlen<0) lenvar = -1; \
     else lenvar += _outlen;}
 
-FD_EXPORT void fd_recycle_slotcoder(struct FD_SLOTCODER *sc)
+KNO_EXPORT void kno_recycle_slotcoder(struct KNO_SLOTCODER *sc)
 {
   u8_destroy_rwlock(&(sc->rwlock));
-  if (sc->slotids) fd_decref(((lispval)(sc->slotids)));
-  if (sc->lookup) fd_decref(((lispval)(sc->lookup)));
-  memset(sc,0,sizeof(struct FD_SLOTCODER));
+  if (sc->slotids) kno_decref(((lispval)(sc->slotids)));
+  if (sc->lookup) kno_decref(((lispval)(sc->lookup)));
+  memset(sc,0,sizeof(struct KNO_SLOTCODER));
 }
 
-FD_EXPORT lispval fd_slotids_arg(lispval arg)
+KNO_EXPORT lispval kno_slotids_arg(lispval arg)
 {
-  if ( (FD_FALSEP(arg)) || (FD_VOIDP(arg)) ||
-       ( (FD_FIXNUMP(arg)) && (FD_FIX2INT(arg) == 0)) )
-    return FD_VOID;
-  else if (FD_FIXNUMP(arg)) {
-    long long n = FD_FIX2INT(arg);
-    if (n<0) return FD_ERROR_VALUE;
-    lispval vec = fd_empty_vector(n);
-    int i=0; while (i<n) {FD_VECTOR_SET(vec,i,FD_FALSE); i++;}
+  if ( (KNO_FALSEP(arg)) || (KNO_VOIDP(arg)) ||
+       ( (KNO_FIXNUMP(arg)) && (KNO_FIX2INT(arg) == 0)) )
+    return KNO_VOID;
+  else if (KNO_FIXNUMP(arg)) {
+    long long n = KNO_FIX2INT(arg);
+    if (n<0) return KNO_ERROR_VALUE;
+    lispval vec = kno_empty_vector(n);
+    int i=0; while (i<n) {KNO_VECTOR_SET(vec,i,KNO_FALSE); i++;}
     return vec;}
-  else if (FD_TRUEP(arg)) {
-    lispval vec = fd_empty_vector(4);
-    int i=0; while (i<4) {FD_VECTOR_SET(vec,i,FD_FALSE); i++;}
+  else if (KNO_TRUEP(arg)) {
+    lispval vec = kno_empty_vector(4);
+    int i=0; while (i<4) {KNO_VECTOR_SET(vec,i,KNO_FALSE); i++;}
     return vec;}
-  else if (FD_VECTORP(arg)) {
-    int i = 0, n = FD_VECTOR_LENGTH(arg);
+  else if (KNO_VECTORP(arg)) {
+    int i = 0, n = KNO_VECTOR_LENGTH(arg);
     while (i<n) {
-      lispval elt = FD_VECTOR_REF(arg,i);
-      if ( (FD_OIDP(elt)) || (FD_SYMBOLP(elt)) ) i++;
-      else if ( (FD_FALSEP(elt)) || (FD_VOIDP(elt)) ) {
-        FD_VECTOR_SET(arg,i,FD_FALSE);
+      lispval elt = KNO_VECTOR_REF(arg,i);
+      if ( (KNO_OIDP(elt)) || (KNO_SYMBOLP(elt)) ) i++;
+      else if ( (KNO_FALSEP(elt)) || (KNO_VOIDP(elt)) ) {
+        KNO_VECTOR_SET(arg,i,KNO_FALSE);
         i++;}
-      else return FD_ERROR_VALUE;}
-    return fd_incref(arg);}
-  else if (FD_CHOICEP(arg)) {
-    const lispval *elts = FD_CHOICE_ELTS(arg);
-    int i = 0, n = FD_CHOICE_SIZE(arg);
+      else return KNO_ERROR_VALUE;}
+    return kno_incref(arg);}
+  else if (KNO_CHOICEP(arg)) {
+    const lispval *elts = KNO_CHOICE_ELTS(arg);
+    int i = 0, n = KNO_CHOICE_SIZE(arg);
     while (i<n) {
       lispval elt = elts[i];
-      if ( (FD_OIDP(elt)) || (FD_SYMBOLP(elt)) ) i++;
-      else return FD_ERROR_VALUE;}
-    return fd_make_vector(n,(lispval *) elts);}
-  else return FD_ERROR_VALUE;
+      if ( (KNO_OIDP(elt)) || (KNO_SYMBOLP(elt)) ) i++;
+      else return KNO_ERROR_VALUE;}
+    return kno_make_vector(n,(lispval *) elts);}
+  else return KNO_ERROR_VALUE;
 }
 
-FD_EXPORT ssize_t fd_encode_slotmap(struct FD_OUTBUF *out,
+KNO_EXPORT ssize_t kno_encode_slotmap(struct KNO_OUTBUF *out,
                                     lispval value,
-                                    struct FD_SLOTCODER *slotcodes)
+                                    struct KNO_SLOTCODER *slotcodes)
 {
-  if ( (slotcodes) && (slotcodes->slotids) && (FD_SLOTMAPP(value)) ) {
+  if ( (slotcodes) && (slotcodes->slotids) && (KNO_SLOTMAPP(value)) ) {
     ssize_t dtype_len = 0;
-    struct FD_SLOTMAP *map = (fd_slotmap) value;
+    struct KNO_SLOTMAP *map = (kno_slotmap) value;
     int n_slots = map->n_slots;
-    struct FD_KEYVAL *kv = map->sm_keyvals;
-    DTOUT(dtype_len,fd_write_byte(out,0xFF));
-    DTOUT(dtype_len,fd_write_zint(out,n_slots));
+    struct KNO_KEYVAL *kv = map->sm_keyvals;
+    DTOUT(dtype_len,kno_write_byte(out,0xFF));
+    DTOUT(dtype_len,kno_write_zint(out,n_slots));
     int i=0; while (i<n_slots) {
       lispval key = kv[i].kv_key;
       lispval val = kv[i].kv_val;
       int code = -1;
-      if ( (FD_SYMBOLP(key)) || (FD_OIDP(key)) ) {
-        code = fd_slotid2code(slotcodes,key);
+      if ( (KNO_SYMBOLP(key)) || (KNO_OIDP(key)) ) {
+        code = kno_slotid2code(slotcodes,key);
         if (code<0)
-          code = fd_add_slotcode(slotcodes,key);}
+          code = kno_add_slotcode(slotcodes,key);}
       if (code<0) {
-        DTOUT(dtype_len,fd_write_dtype(out,key));
-        DTOUT(dtype_len,fd_write_dtype(out,val));}
+        DTOUT(dtype_len,kno_write_dtype(out,key));
+        DTOUT(dtype_len,kno_write_dtype(out,val));}
       else {
-        DTOUT(dtype_len,fd_write_byte(out,0xFE));
-        DTOUT(dtype_len,fd_write_zint(out,code));
-        DTOUT(dtype_len,fd_write_dtype(out,val));}
+        DTOUT(dtype_len,kno_write_byte(out,0xFE));
+        DTOUT(dtype_len,kno_write_zint(out,code));
+        DTOUT(dtype_len,kno_write_dtype(out,val));}
       i++;}
     return dtype_len;}
-  else return fd_write_dtype(out,value);
+  else return kno_write_dtype(out,value);
 }
 
-FD_EXPORT lispval fd_decode_slotmap(struct FD_INBUF *in,struct FD_SLOTCODER *slotcodes)
+KNO_EXPORT lispval kno_decode_slotmap(struct KNO_INBUF *in,struct KNO_SLOTCODER *slotcodes)
 {
   if ( (slotcodes) && (slotcodes->slotids) ) {
-    int byte = fd_probe_byte(in);
+    int byte = kno_probe_byte(in);
     if (byte == 0xFF) {
-      fd_read_byte(in); /* Already checked */ 
-      int n_slots = fd_read_zint(in);
-      lispval result = fd_make_slotmap(n_slots,n_slots,NULL);
-      if (FD_ABORTP(result)) return result;
-      struct FD_SLOTMAP *map = (fd_slotmap) result;
-      struct FD_KEYVAL *kv = map->sm_keyvals;
+      kno_read_byte(in); /* Already checked */ 
+      int n_slots = kno_read_zint(in);
+      lispval result = kno_make_slotmap(n_slots,n_slots,NULL);
+      if (KNO_ABORTP(result)) return result;
+      struct KNO_SLOTMAP *map = (kno_slotmap) result;
+      struct KNO_KEYVAL *kv = map->sm_keyvals;
       int i = 0; while (i<n_slots) {
         lispval key, val;
-        if (fd_probe_byte(in) == 0xFE) {
-          fd_read_byte(in); /* Already checked */ 
-          int code = fd_read_zint(in);
-          key = fd_code2slotid(slotcodes,code);}
-        else key = fd_read_dtype(in);
-        if (FD_ABORTP(key)) {
-          fd_decref(result); return key;}
+        if (kno_probe_byte(in) == 0xFE) {
+          kno_read_byte(in); /* Already checked */ 
+          int code = kno_read_zint(in);
+          key = kno_code2slotid(slotcodes,code);}
+        else key = kno_read_dtype(in);
+        if (KNO_ABORTP(key)) {
+          kno_decref(result); return key;}
         else kv[i].kv_key=key;
-        val = fd_read_dtype(in);
-        if (FD_ABORTP(val)) {
-          fd_decref(result); return val;}
+        val = kno_read_dtype(in);
+        if (KNO_ABORTP(val)) {
+          kno_decref(result); return val;}
         else kv[i].kv_val = val;
         i++;}
       return result;}}
-  return fd_read_dtype(in);
+  return kno_read_dtype(in);
 }
 
 /* Cleaning up dbfiles */
@@ -1016,17 +1016,17 @@ static int try_remove(u8_string file,u8_condition cond,u8_context caller)
   return rv;
 }
 
-FD_EXPORT int fd_write_rollback(u8_context caller,
+KNO_EXPORT int kno_write_rollback(u8_context caller,
                                 u8_string id,u8_string source,
                                 size_t size)
 {
   u8_string rollback_file = u8_mkstring("%s.rollback",source);
   u8_string commit_file = u8_mkstring("%s.commit",source);
-  int rv = try_remove(rollback_file,"LeftoverRollback","fd_write_rollback");
-  if (rv<0) try_remove(commit_file,"LeftoverCommit","fd_write_rollback");
-  else rv = try_remove(commit_file,"LeftoverCommit","fd_write_rollback");
+  int rv = try_remove(rollback_file,"LeftoverRollback","kno_write_rollback");
+  if (rv<0) try_remove(commit_file,"LeftoverCommit","kno_write_rollback");
+  else rv = try_remove(commit_file,"LeftoverCommit","kno_write_rollback");
   if (rv>=0) {
-    ssize_t save_rv = fd_save_head(source,rollback_file,size);
+    ssize_t save_rv = kno_save_head(source,rollback_file,size);
     if (save_rv<0) {
       u8_seterr("CantSaveRollback",caller,rollback_file);
       rollback_file = NULL;
@@ -1037,7 +1037,7 @@ FD_EXPORT int fd_write_rollback(u8_context caller,
   return 1;
 }
 
-FD_EXPORT int fd_check_rollback(u8_context caller,u8_string source)
+KNO_EXPORT int kno_check_rollback(u8_context caller,u8_string source)
 {
   u8_string rollback_file = u8_mkstring("%s.rollback",source);
   if (u8_file_existsp(rollback_file)) {
@@ -1046,18 +1046,18 @@ FD_EXPORT int fd_check_rollback(u8_context caller,u8_string source)
       int lock_rv = u8_lock_fd(source_fd,1);
       if (lock_rv<0) {
         u8_close_fd(source_fd);
-        u8_seterr("RollbackLockFailed","fd_check_rollback",u8_strdup(source));
+        u8_seterr("RollbackLockFailed","kno_check_rollback",u8_strdup(source));
         return -1;}
       u8_log(LOG_WARN,"Rollback",
              "Applying rollback file %s to %s (%s)",
              rollback_file,source,caller);
-      int rv = fd_apply_head(rollback_file,source);
+      int rv = kno_apply_head(rollback_file,source);
       if (rv<0) {
         if (errno) u8_graberrno(caller,source);
         u8_string err_file = u8_string_append(rollback_file,".bad",NULL);
         int move_rv = u8_movefile(rollback_file,err_file);
         if (move_rv<0) {
-          u8_graberrno("fd_check_rollback/cleanup",rollback_file);
+          u8_graberrno("kno_check_rollback/cleanup",rollback_file);
           u8_log(LOG_CRIT,"RollbackCleanupFailed",
                  "Couldn't move %s to %s",rollback_file,err_file);}
         u8_seterr("RollbackError",caller,u8_strdup(source));
@@ -1070,12 +1070,12 @@ FD_EXPORT int fd_check_rollback(u8_context caller,u8_string source)
         u8_string commit_file = u8_mkstring("%s.commit",source);
         if (u8_file_existsp(applied_file)) {
           int rm_rv = u8_removefile(applied_file);
-          if (rm_rv<0) fd_clear_errors(1);}
+          if (rm_rv<0) kno_clear_errors(1);}
         if (u8_file_existsp(commit_file)) {
           int rm_rv = u8_removefile(commit_file);
-          if (rm_rv<0) fd_clear_errors(1);}
+          if (rm_rv<0) kno_clear_errors(1);}
         int mv_rv = u8_movefile(rollback_file,applied_file);
-        if (mv_rv<0) fd_clear_errors(1);
+        if (mv_rv<0) kno_clear_errors(1);
         u8_free(commit_file);
         u8_free(applied_file);}
       u8_free(rollback_file);
@@ -1087,7 +1087,7 @@ FD_EXPORT int fd_check_rollback(u8_context caller,u8_string source)
   return 0;
 }
 
-FD_EXPORT int fd_remove_suffix(u8_string base,u8_string suffix)
+KNO_EXPORT int kno_remove_suffix(u8_string base,u8_string suffix)
 {
   size_t base_len = strlen(base);
   size_t full_len = base_len + strlen(suffix) + 1;
@@ -1100,11 +1100,11 @@ FD_EXPORT int fd_remove_suffix(u8_string base,u8_string suffix)
 
 /* Matching file pools/indexes */
 
-FD_EXPORT u8_string fd_match_pool_file(u8_string spec,void *data)
+KNO_EXPORT u8_string kno_match_pool_file(u8_string spec,void *data)
 {
   u8_string abspath=u8_abspath(spec,NULL);
   if ((u8_file_existsp(abspath)) &&
-      (fd_match4bytes(abspath,data)))
+      (kno_match4bytes(abspath,data)))
     return abspath;
   else if (u8_has_suffix(spec,".pool",1)) {
     u8_free(abspath);
@@ -1114,18 +1114,18 @@ FD_EXPORT u8_string fd_match_pool_file(u8_string spec,void *data)
     u8_string variation = u8_abspath(new_spec,NULL);
     u8_free(abspath); u8_free(new_spec);
     if ((u8_file_existsp(variation))&&
-        (fd_match4bytes(variation,data))) {
+        (kno_match4bytes(variation,data))) {
       return variation;}
     else {
       u8_free(variation);
       return NULL;}}
 }
 
-FD_EXPORT u8_string fd_match_index_file(u8_string spec,void *data)
+KNO_EXPORT u8_string kno_match_index_file(u8_string spec,void *data)
 {
   u8_string abspath=u8_abspath(spec,NULL);
   if ((u8_file_existsp(abspath)) &&
-      (fd_match4bytes(abspath,data)))
+      (kno_match4bytes(abspath,data)))
     return abspath;
   else if (u8_has_suffix(spec,".index",1)) {
     u8_free(abspath);
@@ -1135,7 +1135,7 @@ FD_EXPORT u8_string fd_match_index_file(u8_string spec,void *data)
     u8_string variation = u8_abspath(new_spec,NULL);
     u8_free(abspath); u8_free(new_spec);
     if ((u8_file_existsp(variation))&&
-        (fd_match4bytes(variation,data))) {
+        (kno_match4bytes(variation,data))) {
       return variation;}
     else {
       u8_free(variation);
@@ -1146,10 +1146,10 @@ FD_EXPORT u8_string fd_match_index_file(u8_string spec,void *data)
 
 static u8_uid get_owner(lispval spec)
 {
-  if (FD_UINTP(spec))
-    return (u8_uid) (FD_FIX2INT(spec));
-  else if (FD_STRINGP(spec)) {
-    u8_uid uid = u8_getuid(FD_CSTRING(spec));
+  if (KNO_UINTP(spec))
+    return (u8_uid) (KNO_FIX2INT(spec));
+  else if (KNO_STRINGP(spec)) {
+    u8_uid uid = u8_getuid(KNO_CSTRING(spec));
     if (uid>=0) return uid;}
   else {}
   u8_logf(LOG_WARN,"NoSuchUser",
@@ -1159,10 +1159,10 @@ static u8_uid get_owner(lispval spec)
 
 static u8_gid get_group(lispval spec)
 {
-  if (FD_UINTP(spec))
-    return (u8_gid) (FD_FIX2INT(spec));
-  else if (FD_STRINGP(spec)) {
-    u8_gid gid = u8_getgid(FD_CSTRING(spec));
+  if (KNO_UINTP(spec))
+    return (u8_gid) (KNO_FIX2INT(spec));
+  else if (KNO_STRINGP(spec)) {
+    u8_gid gid = u8_getgid(KNO_CSTRING(spec));
     if (gid>=0) return gid;}
   else {}
   u8_logf(LOG_WARN,"NoSuchGroup",
@@ -1170,19 +1170,19 @@ static u8_gid get_group(lispval spec)
   return (u8_gid) -1;
 }
 
-FD_EXPORT int fd_set_file_opts(u8_string filename,lispval opts)
+KNO_EXPORT int kno_set_file_opts(u8_string filename,lispval opts)
 {
-  lispval owner = fd_getopt(opts,fd_intern("OWNER"),FD_VOID);
-  lispval group = fd_getopt(opts,fd_intern("GROUP"),FD_VOID);
-  lispval mode = fd_getopt(opts,fd_intern("MODE"),FD_VOID);
+  lispval owner = kno_getopt(opts,kno_intern("OWNER"),KNO_VOID);
+  lispval group = kno_getopt(opts,kno_intern("GROUP"),KNO_VOID);
+  lispval mode = kno_getopt(opts,kno_intern("MODE"),KNO_VOID);
   int set_rv = 0;
-  if ( (FD_VOIDP(owner))  &&
-       (FD_VOIDP(group)) &&
-       (FD_VOIDP(mode)) )
+  if ( (KNO_VOIDP(owner))  &&
+       (KNO_VOIDP(group)) &&
+       (KNO_VOIDP(mode)) )
     return set_rv;
-  if (! ((FD_VOIDP(owner)) && (FD_VOIDP(group))) ) {
-    u8_uid file_owner = (FD_VOIDP(owner)) ? (-1) : (get_owner(owner));
-    u8_gid file_group = (FD_VOIDP(group)) ? (-1) : (get_group(group));
+  if (! ((KNO_VOIDP(owner)) && (KNO_VOIDP(group))) ) {
+    u8_uid file_owner = (KNO_VOIDP(owner)) ? (-1) : (get_owner(owner));
+    u8_gid file_group = (KNO_VOIDP(group)) ? (-1) : (get_group(group));
     if ( (file_owner >= 0) || (file_group >= 0) ) {
       const char *path = u8_tolibc(filename);
       int rv = chown(path,file_owner,file_group);
@@ -1199,11 +1199,11 @@ FD_EXPORT int fd_set_file_opts(u8_string filename,lispval opts)
                      filename,owner,group);
         return -1;}
       set_rv=1;}}
-  if (FD_VOIDP(mode))
+  if (KNO_VOIDP(mode))
     return set_rv;
-  else if ( (FD_UINTP(mode)) && ((FD_FIX2INT(mode)) < 512) ) {
+  else if ( (KNO_UINTP(mode)) && ((KNO_FIX2INT(mode)) < 512) ) {
     char *s = u8_tolibc(filename);
-    int rv = u8_chmod(s,((mode_t)(FD_FIX2INT(mode))));
+    int rv = u8_chmod(s,((mode_t)(KNO_FIX2INT(mode))));
     if (rv<0) {
       u8_logf(LOG_WARN,"FileOptsFailed",
               "Couldn't change file mode of '%s' to %q",filename,mode);
@@ -1217,69 +1217,69 @@ FD_EXPORT int fd_set_file_opts(u8_string filename,lispval opts)
 
 /* Initialization */
 
-void fd_init_mempool_c(void);
-void fd_init_extpool_c(void);
-void fd_init_extindex_c(void);
-void fd_init_procpool_c(void);
-void fd_init_procindex_c(void);
-void fd_init_aggregates_c(void);
-void fd_init_tempindex_c(void);
+void kno_init_mempool_c(void);
+void kno_init_extpool_c(void);
+void kno_init_extindex_c(void);
+void kno_init_procpool_c(void);
+void kno_init_procindex_c(void);
+void kno_init_aggregates_c(void);
+void kno_init_tempindex_c(void);
 
 static int drivers_c_initialized = 0;
 
-FD_EXPORT int fd_init_drivers_c()
+KNO_EXPORT int kno_init_drivers_c()
 {
   if (drivers_c_initialized) return drivers_c_initialized;
-  drivers_c_initialized = 307*fd_init_storage();
+  drivers_c_initialized = 307*kno_init_storage();
 
   u8_register_source_file(_FILEINFO);
 
-  fd_init_extindex_c();
-  fd_init_mempool_c();
-  fd_init_extpool_c();
-  fd_init_procpool_c();
-  fd_init_procindex_c();
-  fd_init_aggregates_c();
-  fd_init_tempindex_c();
+  kno_init_extindex_c();
+  kno_init_mempool_c();
+  kno_init_extpool_c();
+  kno_init_procpool_c();
+  kno_init_procindex_c();
+  kno_init_aggregates_c();
+  kno_init_tempindex_c();
 
-  rev_symbol = fd_intern("REV");
-  gentime_symbol = fd_intern("GENTIME");
-  packtime_symbol = fd_intern("PACKTIME");
-  modtime_symbol = fd_intern("MODTIME");
-  adjuncts_symbol = fd_intern("ADJUNCTS");
-  wadjuncts_symbol = fd_intern("W/ADJUNCTS");
+  rev_symbol = kno_intern("REV");
+  gentime_symbol = kno_intern("GENTIME");
+  packtime_symbol = kno_intern("PACKTIME");
+  modtime_symbol = kno_intern("MODTIME");
+  adjuncts_symbol = kno_intern("ADJUNCTS");
+  wadjuncts_symbol = kno_intern("W/ADJUNCTS");
 
-  fd_cachelevel_op=fd_intern("CACHELEVEL");
-  fd_bufsize_op=fd_intern("BUFSIZE");
-  fd_mmap_op=fd_intern("MMAP");
-  fd_preload_op=fd_intern("PRELOAD");
-  fd_swapout_op=fd_intern("SWAPOUT");
-  fd_reload_op=fd_intern("RELOAD");
-  fd_stats_op=fd_intern("STATS");
-  fd_label_op=fd_intern("LABEL");
-  fd_populate_op=fd_intern("POPULATE");
-  fd_getmap_op=fd_intern("GETMAP");
-  fd_slotids_op=fd_intern("SLOTIDS");
-  fd_baseoids_op=fd_intern("BASEOIDS");
-  fd_load_op=fd_intern("LOAD");
-  fd_capacity_op=fd_intern("CAPACITY");
-  fd_metadata_op=fd_intern("METADATA");
-  fd_raw_metadata_op=fd_intern("%METADATA");
-  fd_keys_op=fd_intern("KEYS");
-  fd_keycount_op=fd_intern("KEYCOUNT");
-  fd_partitions_op=fd_intern("PARTITIONS");
-  pooltype_symbol=fd_intern("POOLTYPE");
-  indextype_symbol=fd_intern("INDEXTYPE");
+  kno_cachelevel_op=kno_intern("CACHELEVEL");
+  kno_bufsize_op=kno_intern("BUFSIZE");
+  kno_mmap_op=kno_intern("MMAP");
+  kno_preload_op=kno_intern("PRELOAD");
+  kno_swapout_op=kno_intern("SWAPOUT");
+  kno_reload_op=kno_intern("RELOAD");
+  kno_stats_op=kno_intern("STATS");
+  kno_label_op=kno_intern("LABEL");
+  kno_populate_op=kno_intern("POPULATE");
+  kno_getmap_op=kno_intern("GETMAP");
+  kno_slotids_op=kno_intern("SLOTIDS");
+  kno_baseoids_op=kno_intern("BASEOIDS");
+  kno_load_op=kno_intern("LOAD");
+  kno_capacity_op=kno_intern("CAPACITY");
+  kno_metadata_op=kno_intern("METADATA");
+  kno_raw_metadata_op=kno_intern("%METADATA");
+  kno_keys_op=kno_intern("KEYS");
+  kno_keycount_op=kno_intern("KEYCOUNT");
+  kno_partitions_op=kno_intern("PARTITIONS");
+  pooltype_symbol=kno_intern("POOLTYPE");
+  indextype_symbol=kno_intern("INDEXTYPE");
 
   u8_init_mutex(&pool_typeinfo_lock);
   u8_init_mutex(&index_typeinfo_lock);
 
-  fd_register_config("ACIDFILES",
+  kno_register_config("ACIDFILES",
                      "Maintain acidity of individual file pools and indexes",
-                     fd_boolconfig_get,fd_boolconfig_set,&fd_acid_files);
-  fd_register_config("DRIVERBUFSIZE",
+                     kno_boolconfig_get,kno_boolconfig_set,&kno_acid_files);
+  kno_register_config("DRIVERBUFSIZE",
                      "The size of file streams used in database files",
-                     fd_sizeconfig_get,fd_sizeconfig_set,&fd_driver_bufsize);
+                     kno_sizeconfig_get,kno_sizeconfig_set,&kno_driver_bufsize);
 
 
   return drivers_c_initialized;

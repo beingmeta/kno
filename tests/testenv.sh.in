@@ -1,32 +1,32 @@
-FD_LIBSCM_DIR=@abs_top_srcdir@/src/libscm/
-export FD_LIBSCM_DIR
-FD_INIT_DLOADPATH=@abs_top_srcdir@/lib/framerd/%.@shared_suffix@:@abs_top_srcdir@/../lingo/%.@shared_suffix@:@prefix@/lib/framerd/%.@shared_suffix@
-export FD_INIT_DLOADPATH
-FD_INIT_LOADPATH=@abs_top_srcdir@/src/extmods:@abs_top_srcdir@/src/extmods/safe/:@default_module_path@
-export FD_INIT_LOADPATH
-FD_INIT_SAFELOADPATH=@abs_top_srcdir@/src/extmods/safe/:@default_safe_module_path@
-export=FD_INIT_SAFELOADPATH
-FD_LOADPATH=../src/extmods/:
-export FD_LOADPATH
-FD_DLOADPATH=../lib/framerd:
-export FD_DLOADPATH
+KNO_LIBSCM_DIR=@abs_top_srcdir@/src/libscm/
+export KNO_LIBSCM_DIR
+KNO_INIT_DLOADPATH=@abs_top_srcdir@/lib/kno/%.@shared_suffix@:@abs_top_srcdir@/../lingo/%.@shared_suffix@:@prefix@/lib/kno/%.@shared_suffix@
+export KNO_INIT_DLOADPATH
+KNO_INIT_LOADPATH=@abs_top_srcdir@/src/extmods:@abs_top_srcdir@/src/extmods/safe/:@default_module_path@
+export KNO_INIT_LOADPATH
+KNO_INIT_SAFELOADPATH=@abs_top_srcdir@/src/extmods/safe/:@default_safe_module_path@
+export=KNO_INIT_SAFELOADPATH
+KNO_LOADPATH=../src/extmods/:
+export KNO_LOADPATH
+KNO_DLOADPATH=../lib/kno:
+export KNO_DLOADPATH
 LD_LIBRARY_PATH=../lib
 export LD_LIBRARY_PATH
 DYLD_LIBRARY_PATH=../lib
 export DYLD_LIBRARY_PATH
 PPROF_PATH=@GOOGLE_PPROF@
 export PPROF_PATH
-FD_SKIP_DOTLOAD=yes
-export FD_SKIP_DOTLOAD
-FD_SHOWTIME=0.0
-export FD_SHOWTIME
-FD_DLOAD_TRACE=yes
-export FD_DLOAD_TRACE
-FD_HYPHENDICT=../src/cmodules/hyph_en_US.dic
-export FD_HYPHENDICT
-FD_DISPLAYMAXELTS=36
-export FD_DISPLAYMAXELTS=36
-FD_DISPLAYMAXCHARS=1024
-export FD_DISPLAYMAXCHARS=1024
-FD_FASTEXIT=no
-export FD_FASTEXIT=no
+KNO_SKIP_DOTLOAD=yes
+export KNO_SKIP_DOTLOAD
+KNO_SHOWTIME=0.0
+export KNO_SHOWTIME
+KNO_DLOAD_TRACE=yes
+export KNO_DLOAD_TRACE
+KNO_HYPHENDICT=../src/cmodules/hyph_en_US.dic
+export KNO_HYPHENDICT
+KNO_DISPLAYMAXELTS=36
+export KNO_DISPLAYMAXELTS=36
+KNO_DISPLAYMAXCHARS=1024
+export KNO_DISPLAYMAXCHARS=1024
+KNO_FASTEXIT=no
+export KNO_FASTEXIT=no

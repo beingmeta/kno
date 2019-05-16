@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -9,10 +9,10 @@
 #define _FILEINFO __FILE__
 #endif
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/numbers.h"
-#include "framerd/apply.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/numbers.h"
+#include "kno/apply.h"
 
 #include <libu8/u8signals.h>
 #include <libu8/u8pathfns.h>
@@ -28,7 +28,7 @@
 #include <libu8/u8elapsed.h>
 #include <libu8/u8netfns.h>
 #include <libu8/u8printf.h>
-#if FD_FILECONFIG_ENABLED
+#if KNO_FILECONFIG_ENABLED
 #include <libu8/u8filefns.h>
 #include <libu8/libu8io.h>
 #endif
@@ -40,12 +40,12 @@ struct sigaction sigaction_exit, sigaction_default;
 static sigset_t sigcatch_set, sigexit_set, sigdefault_set, sigabort_set;
 
 static sigset_t default_sigmask;
-sigset_t *fd_default_sigmask = &default_sigmask;
+sigset_t *kno_default_sigmask = &default_sigmask;
 
-struct sigaction *fd_sigaction_raise = &sigaction_raise;
-struct sigaction *fd_sigaction_abort = &sigaction_abort;
-struct sigaction *fd_sigaction_exit = &sigaction_exit;
-struct sigaction *fd_sigaction_default = &sigaction_default;
+struct sigaction *kno_sigaction_raise = &sigaction_raise;
+struct sigaction *kno_sigaction_abort = &sigaction_abort;
+struct sigaction *kno_sigaction_exit = &sigaction_exit;
+struct sigaction *kno_sigaction_default = &sigaction_default;
 
 static void siginfo_raise(int signum,siginfo_t *info,void *stuff)
 {
@@ -61,7 +61,7 @@ static void siginfo_raise(int signum,siginfo_t *info,void *stuff)
 
 static void siginfo_exit(int signum,siginfo_t *info,void *stuff)
 {
-  fd_signal_doexit(signum);
+  kno_signal_doexit(signum);
   exit(0);
 }
 
@@ -77,7 +77,7 @@ static lispval sigmask2dtype(sigset_t *mask)
   lispval result = EMPTY;
   int sig = 1; while (sig<32) {
     if (sigismember(mask,sig)) {
-      CHOICE_ADD(result,fd_intern(u8_signal_name(sig)));}
+      CHOICE_ADD(result,kno_intern(u8_signal_name(sig)));}
     sig++;}
   return result;
 }
@@ -95,7 +95,7 @@ static int arg2signum(lispval arg)
   if ((sig>1)&&(sig<32))
     return sig;
   else {
-    fd_seterr(fd_TypeError,"arg2signum",NULL,arg);
+    kno_seterr(kno_TypeError,"arg2signum",NULL,arg);
     return -1;}
 }
 
@@ -151,7 +151,7 @@ static int sigconfig_default_setfn(lispval var,lispval val,void *data)
                          "sigconfig_default_setfn");
 }
 
-void fd_init_signals_c()
+void kno_init_signals_c()
 {
   u8_register_source_file(_FILEINFO);
 
@@ -221,19 +221,19 @@ void fd_init_signals_c()
   sigaddset(&default_sigmask,SIGBUS);
 #endif
 
-  fd_register_config
+  kno_register_config
     ("SIGRAISE",_("SIGNALS to catch and return as errors"),
      sigconfig_getfn,sigconfig_catch_setfn,
      &sigcatch_set);
-  fd_register_config
+  kno_register_config
     ("SIGEXIT",_("Signals to trigger exits"),
      sigconfig_getfn,sigconfig_exit_setfn,
      &sigexit_set);
-  fd_register_config
+  kno_register_config
     ("SIGABORT",_("Signals to trigger exits"),
      sigconfig_getfn,sigconfig_abort_setfn,
      &sigabort_set);
-  fd_register_config
+  kno_register_config
     ("SIGDEFAULT",_("Signals to trigger exits"),
      sigconfig_getfn,sigconfig_default_setfn,
      &sigexit_set);

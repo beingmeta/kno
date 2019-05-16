@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -17,12 +17,12 @@
    The code is either -1 (drop), 0 (store), or 1 (add).
 */
 
-#define FD_MEMINDEX_MAGIC_NUMBER ((12<<24)|(7<<16)|(9<<8)|(24))
+#define KNO_MEMINDEX_MAGIC_NUMBER ((12<<24)|(7<<16)|(9<<8)|(24))
 
-typedef struct FD_MEMINDEX {
-  FD_INDEX_FIELDS;
+typedef struct KNO_MEMINDEX {
+  KNO_INDEX_FIELDS;
   unsigned int mix_loaded;
-  struct FD_HASHTABLE mix_map;
+  struct KNO_HASHTABLE mix_map;
   unsigned int mix_n_commits;
   unsigned int mix_n_keys, mix_n_entries;
   unsigned int mix_n_slotids, mix_added_slotids;
@@ -31,8 +31,8 @@ typedef struct FD_MEMINDEX {
   unsigned int mix_baseoids_length;
   lispval *mix_slotids, *mix_baseoids;
   size_t mix_valid_data;
-  struct FD_STREAM index_stream;} FD_LOG_INDEX;
-typedef struct FD_LOG_INDEX *fd_log_index;
+  struct KNO_STREAM index_stream;} KNO_LOG_INDEX;
+typedef struct KNO_LOG_INDEX *kno_log_index;
 
 /* Emacs local variables
    ;;;  Local variables: ***

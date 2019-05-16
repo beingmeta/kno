@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -11,12 +11,12 @@
 
 #define U8_LOGLEVEL (u8_getloglevel(curl_loglevel))
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/tables.h"
-#include "framerd/eval.h"
-#include "framerd/fdweb.h"
-#include "framerd/ports.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/tables.h"
+#include "kno/eval.h"
+#include "kno/fdweb.h"
+#include "kno/ports.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8stringfns.h>
@@ -39,7 +39,7 @@ static pthread_mutex_t *ssl_lockarray;
 
 static int curl_loglevel = LOG_NOTIFY;
 
-static u8_string default_user_agent="FramerD/CURL";
+static u8_string default_user_agent="Kno/CURL";
 
 static lispval curl_defaults, url_symbol;
 static lispval content_type_symbol, charset_symbol, pcontent_symbol;
@@ -64,15 +64,15 @@ static u8_condition CurlError=_("Internal libcurl error");
 
 static int max_redirects = -1;
 
-typedef struct FD_CURL_HANDLE {
-  FD_CONS_HEADER;
+typedef struct KNO_CURL_HANDLE {
+  KNO_CONS_HEADER;
   CURL *handle;
   struct curl_slist *headers;
   /* char curl_errbuf[CURL_ERROR_SIZE]; */
-  lispval initdata;} FD_CURL_HANDLE;
-typedef struct FD_CURL_HANDLE *fd_curl_handle;
+  lispval initdata;} KNO_CURL_HANDLE;
+typedef struct KNO_CURL_HANDLE *kno_curl_handle;
 
-FD_EXPORT struct FD_CURL_HANDLE *fd_open_curl_handle(void);
+KNO_EXPORT struct KNO_CURL_HANDLE *kno_open_curl_handle(void);
 
 typedef struct INBUF {
   unsigned char *bytes;
@@ -125,13 +125,13 @@ static size_t process_content_data(char *data,size_t elt_size,size_t n_elts,
           "Using %q to process %lld bytes into %q",
           handler,n_elts*elt_size,result);
   int data_len=n_elts*elt_size;
-  lispval packet=fd_make_packet(NULL,data_len,data);
+  lispval packet=kno_make_packet(NULL,data_len,data);
   lispval argvec[2]={packet,result};
-  lispval apply_result=fd_apply(handler,2,argvec);
-  fd_decref(packet);
-  if (FD_ABORTP(apply_result)) {
+  lispval apply_result=kno_apply(handler,2,argvec);
+  kno_decref(packet);
+  if (KNO_ABORTP(apply_result)) {
     u8_exception ex=u8_erreify();
-    state[2]=fd_wrap_exception(ex);
+    state[2]=kno_wrap_exception(ex);
     return 0;}
   else if (FALSEP(apply_result))
     return 0;
@@ -140,7 +140,7 @@ static size_t process_content_data(char *data,size_t elt_size,size_t n_elts,
   else return n_elts*elt_size;
 }
 
-fd_ptr_type fd_curl_type;
+kno_ptr_type kno_curl_type;
 
 void handle_content_type(char *value,lispval table)
 {
@@ -150,12 +150,12 @@ void handle_content_type(char *value,lispval table)
   while ((*end) && (!((*end==';') || (isspace(*end))))) end++;
   if (slash) *slash='\0';
   endbyte = *end; *end='\0';
-  major_type = fd_parse(value);
-  fd_store(table,FDSYM_TYPE,major_type);
+  major_type = kno_parse(value);
+  kno_store(table,FDSYM_TYPE,major_type);
   if (slash) *slash='/';
   full_type = lispval_string(value);
-  fd_add(table,FDSYM_TYPE,full_type); *end = endbyte;
-  fd_decref(major_type); fd_decref(full_type);
+  kno_add(table,FDSYM_TYPE,full_type); *end = endbyte;
+  kno_decref(major_type); kno_decref(full_type);
   if ((chset = (strstr(value,"charset=")))) {
     lispval chset_val;
     chset_end = chset = chset+8; if (*chset=='"') {
@@ -163,8 +163,8 @@ void handle_content_type(char *value,lispval table)
     else chset_end = strchr(chset,';');
     if (chset_end) *chset_end='\0';
     chset_val = lispval_string(chset);
-    fd_store(table,charset_symbol,chset_val);
-    fd_decref(chset_val);}
+    kno_store(table,charset_symbol,chset_val);
+    kno_decref(chset_val);}
 }
 
 static size_t handle_header(void *ptr,size_t size,size_t n,void *data)
@@ -183,39 +183,39 @@ static size_t handle_header(void *ptr,size_t size,size_t n,void *data)
     int add = 1;
     *valstart++='\0'; while (isspace(*valstart)) valstart++;
     if (!(TABLEP(val)))
-      *valptr = val = fd_empty_slotmap();
-    slotid = fd_parse(copy);
-    if (FD_EQ(slotid,content_type_symbol)) {
+      *valptr = val = kno_empty_slotmap();
+    slotid = kno_parse(copy);
+    if (KNO_EQ(slotid,content_type_symbol)) {
       handle_content_type(valstart,val);
       hval = lispval_string(valstart);
       add = 0;}
-    else if ((FD_EQ(slotid,content_length_symbol)) ||
-             (FD_EQ(slotid,response_code_slotid))) {
-      hval = fd_parse(valstart);
+    else if ((KNO_EQ(slotid,content_length_symbol)) ||
+             (KNO_EQ(slotid,response_code_slotid))) {
+      hval = kno_parse(valstart);
       add = 0;}
-    else if ((FD_EQ(slotid,date_symbol)) ||
-             (FD_EQ(slotid,last_modified_symbol))) {
+    else if ((KNO_EQ(slotid,date_symbol)) ||
+             (KNO_EQ(slotid,last_modified_symbol))) {
       time_t now, moment = curl_getdate(valstart,&now);
       struct U8_XTIME xt;
       u8_init_xtime(&xt,moment,u8_second,0,0,0);
-      hval = fd_make_timestamp(&xt);
+      hval = kno_make_timestamp(&xt);
       add = 0;}
     else hval = lispval_string(valstart);
-    if (add) fd_add(val,slotid,hval);
-    else fd_store(val,slotid,hval);
-    fd_decref(hval);
+    if (add) kno_add(val,slotid,hval);
+    else kno_store(val,slotid,hval);
+    kno_decref(hval);
     u8_free(copy);}
   else {
     hval = lispval_string(copy);
-    fd_add(val,header_symbol,hval);
-    fd_decref(hval);
+    kno_add(val,header_symbol,hval);
+    kno_decref(hval);
     u8_free(copy);}
   return byte_len;
 }
 
-FD_INLINE_FCN lispval addtexttype(lispval type)
+KNO_INLINE_FCN lispval addtexttype(lispval type)
 {
-  fd_incref(type);
+  kno_incref(type);
   CHOICE_ADD(text_types,type);
   return VOID;
 }
@@ -226,55 +226,55 @@ static void decl_text_type(u8_string string)
   CHOICE_ADD(text_types,stringval);
 }
 
-FD_INLINE_FCN struct FD_CURL_HANDLE *curl_err(u8_string cxt,int code)
+KNO_INLINE_FCN struct KNO_CURL_HANDLE *curl_err(u8_string cxt,int code)
 {
   u8_string details=u8_fromlibc((char *)curl_easy_strerror(code));
-  fd_seterr(CurlError,cxt,details,VOID);
+  kno_seterr(CurlError,cxt,details,VOID);
   u8_free(details);
   return NULL;
 }
 
-static int _curl_set(u8_string cxt,struct FD_CURL_HANDLE *h,
+static int _curl_set(u8_string cxt,struct KNO_CURL_HANDLE *h,
                      CURLoption option,void *v)
 {
   CURLcode retval = curl_easy_setopt(h->handle,option,v);
   if (retval) {
     u8_string details=u8_fromlibc((char *)curl_easy_strerror(retval));
     u8_free(h);
-    fd_seterr(CurlError,cxt,details,VOID);
+    kno_seterr(CurlError,cxt,details,VOID);
     u8_free(details);}
   return retval;
 }
 
-static int _curl_set2dtype(u8_string cxt,struct FD_CURL_HANDLE *h,
+static int _curl_set2dtype(u8_string cxt,struct KNO_CURL_HANDLE *h,
                            CURLoption option,
                            lispval f,lispval slotid)
 {
-  lispval v = fd_get(f,slotid,VOID);
-  if (FD_ABORTP(v))
-    return fd_interr(v);
+  lispval v = kno_get(f,slotid,VOID);
+  if (KNO_ABORTP(v))
+    return kno_interr(v);
   else if ((STRINGP(v))||
            (PACKETP(v))||
-           (TYPEP(v,fd_secret_type))) {
+           (TYPEP(v,kno_secret_type))) {
     CURLcode retval = curl_easy_setopt(h->handle,option,CSTRING(v));
     if (retval) {
       u8_string details=u8_fromlibc((char *)curl_easy_strerror(retval));
-      fd_seterr(CurlError,cxt,details,VOID);
-      u8_free(h); fd_decref(v);}
+      kno_seterr(CurlError,cxt,details,VOID);
+      u8_free(h); kno_decref(v);}
     return retval;}
   else if (FIXNUMP(v)) {
-    CURLcode retval = curl_easy_setopt(h->handle,option,(long)(fd_getint(v)));
+    CURLcode retval = curl_easy_setopt(h->handle,option,(long)(kno_getint(v)));
     if (retval) {
       u8_string details=u8_fromlibc((char *)curl_easy_strerror(retval));
-      fd_seterr(CurlError,cxt,details,FD_VOID);
-      u8_free(h); fd_decref(v);}
+      kno_seterr(CurlError,cxt,details,KNO_VOID);
+      u8_free(h); kno_decref(v);}
     return retval;}
   else {
-    fd_seterr(fd_TypeError,cxt,"string",v);
+    kno_seterr(kno_TypeError,cxt,"string",v);
     return -1;}
 }
 
-static int curl_add_header(fd_curl_handle ch,u8_string arg1,u8_string arg2)
+static int curl_add_header(kno_curl_handle ch,u8_string arg1,u8_string arg2)
 {
   struct curl_slist *cur = ch->headers, *newh;
   if (arg2==NULL)
@@ -289,16 +289,16 @@ static int curl_add_header(fd_curl_handle ch,u8_string arg1,u8_string arg2)
   else return 1;
 }
 
-static int curl_add_headers(fd_curl_handle ch,lispval val)
+static int curl_add_headers(kno_curl_handle ch,lispval val)
 {
   int retval = 0;
   DO_CHOICES(v,val)
     if (STRINGP(v))
       retval = curl_add_header(ch,CSTRING(v),NULL);
     else if (PACKETP(v))
-      retval = curl_add_header(ch,FD_PACKET_DATA(v),NULL);
+      retval = curl_add_header(ch,KNO_PACKET_DATA(v),NULL);
     else if (PAIRP(v)) {
-      lispval car = FD_CAR(v), cdr = FD_CDR(v); u8_string hdr = NULL;
+      lispval car = KNO_CAR(v), cdr = KNO_CDR(v); u8_string hdr = NULL;
       if ((SYMBOLP(car)) && (STRINGP(cdr)))
         hdr = u8_mkstring("%s: %s",SYM_NAME(car),CSTRING(cdr));
       else if ((STRINGP(car)) && (STRINGP(cdr)))
@@ -311,10 +311,10 @@ static int curl_add_headers(fd_curl_handle ch,lispval val)
       retval = curl_add_header(ch,hdr,NULL);
       u8_free(hdr);}
     else if (SLOTMAPP(v)) {
-      lispval keys = fd_getkeys(v);
+      lispval keys = kno_getkeys(v);
       DO_CHOICES(key,keys) {
         if ((retval>=0)&&((STRINGP(key))||(SYMBOLP(key)))) {
-          lispval kval = fd_get(v,key,EMPTY); u8_string hdr = NULL;
+          lispval kval = kno_get(v,key,EMPTY); u8_string hdr = NULL;
           if (SYMBOLP(key)) {
             if (STRINGP(kval))
               hdr = u8_mkstring("%s: %s",SYM_NAME(key),CSTRING(kval));
@@ -324,28 +324,28 @@ static int curl_add_headers(fd_curl_handle ch,lispval val)
           else hdr = u8_mkstring("%s: %q",CSTRING(key),kval);
           retval = curl_add_header(ch,hdr,NULL);
           u8_free(hdr);
-          fd_decref(kval);}}
-      fd_decref(keys);}
+          kno_decref(kval);}}
+      kno_decref(keys);}
     else {}
   return retval;
 }
 
-static int curl_set_bearer(fd_curl_handle ch,lispval v)
+static int curl_set_bearer(kno_curl_handle ch,lispval v)
 {
-  if ( (FD_STRINGP(v)) || (FD_PACKETP(v)) || (FD_SECRETP(v)) ) {
+  if ( (KNO_STRINGP(v)) || (KNO_PACKETP(v)) || (KNO_SECRETP(v)) ) {
     struct curl_slist *cur = ch->headers, *newh;
-    u8_string hdr = u8_mkstring("Authorization: Bearer %s",FD_CSTRING(v));
+    u8_string hdr = u8_mkstring("Authorization: Bearer %s",KNO_CSTRING(v));
     newh = curl_slist_append(cur,hdr);
     ch->headers = newh;
     /* Should check for errors */
     int rv = curl_easy_setopt(ch->handle,CURLOPT_HTTPHEADER,(void *)newh);
     if (rv != CURLE_OK) {
-      fd_seterr("CurlBearerFailed","curl_set_bearer",NULL,v);}
+      kno_seterr("CurlBearerFailed","curl_set_bearer",NULL,v);}
     u8_free(hdr);
     if (rv != CURLE_OK)
       return -1;
     else return 1;}
-  else if ( (FD_VOIDP(v)) || (FD_FALSEP(v)) || (FD_EMPTYP(v)) )
+  else if ( (KNO_VOIDP(v)) || (KNO_FALSEP(v)) || (KNO_EMPTYP(v)) )
     return 0;
   else {
     u8_log(LOGWARN,"CurlBearerFailed","Invalid bearer value of %q",v);
@@ -353,27 +353,27 @@ static int curl_set_bearer(fd_curl_handle ch,lispval v)
 }
 
 
-FD_EXPORT
-struct FD_CURL_HANDLE *fd_open_curl_handle()
+KNO_EXPORT
+struct KNO_CURL_HANDLE *kno_open_curl_handle()
 {
   int rv = 0;
-  struct FD_CURL_HANDLE *h = u8_alloc(struct FD_CURL_HANDLE);
+  struct KNO_CURL_HANDLE *h = u8_alloc(struct KNO_CURL_HANDLE);
 
 #define curl_set(hl,o,v) \
-  if ( (rv >= 0) && (_curl_set("fd_open_curl_handle",hl,o,(void *)v)) ) rv=-1;
+  if ( (rv >= 0) && (_curl_set("kno_open_curl_handle",hl,o,(void *)v)) ) rv=-1;
 #define curl_set2dtype(hl,o,f,s) \
-  if ( (rv>=0) && (_curl_set2dtype("fd_open_curl_handle",hl,o,f,s)) ) rv = -1;
+  if ( (rv>=0) && (_curl_set2dtype("kno_open_curl_handle",hl,o,f,s)) ) rv = -1;
 
-  FD_INIT_CONS(h,fd_curl_type);
+  KNO_INIT_CONS(h,kno_curl_type);
   h->handle = curl_easy_init();
   h->headers = NULL;
   h->initdata = EMPTY;
   if (h->handle == NULL) {
     u8_free(h);
-    fd_seterr(CurlError,"fd_open_curl_handle","curl_easy_init failed",VOID);
+    kno_seterr(CurlError,"kno_open_curl_handle","curl_easy_init failed",VOID);
     rv=-1;}
   if (rv >= 0)
-    u8_logf(LOG_INFO,"CURL","Creating CURL handle %llx",(FD_INTPTR) h->handle);
+    u8_logf(LOG_INFO,"CURL","Creating CURL handle %llx",(KNO_INTPTR) h->handle);
 
   if ( (rv >= 0) && (curl_loglevel > LOG_NOTIFY) ) {
     curl_easy_setopt(h->handle,CURLOPT_VERBOSE,1);}
@@ -387,45 +387,45 @@ struct FD_CURL_HANDLE *fd_open_curl_handle()
   curl_set(h,CURLOPT_WRITEFUNCTION,copy_content_data);
   curl_set(h,CURLOPT_HEADERFUNCTION,handle_header);
 
-  if (fd_test(curl_defaults,verifypeer_symbol,VOID))
+  if (kno_test(curl_defaults,verifypeer_symbol,VOID))
     curl_set(h,CURLOPT_SSL_VERIFYPEER,0);
-  if (fd_test(curl_defaults,verifyhost_symbol,VOID))
+  if (kno_test(curl_defaults,verifyhost_symbol,VOID))
     curl_set(h,CURLOPT_SSL_VERIFYHOST,0);
   curl_set(h,CURLOPT_SSLVERSION,CURL_SSLVERSION_DEFAULT);
 
-  if (fd_test(curl_defaults,useragent_symbol,VOID)) {
+  if (kno_test(curl_defaults,useragent_symbol,VOID)) {
     curl_set2dtype(h,CURLOPT_USERAGENT,curl_defaults,useragent_symbol);}
   else curl_set(h,CURLOPT_USERAGENT,default_user_agent);
-  if (fd_test(curl_defaults,basicauth_symbol,VOID)) {
+  if (kno_test(curl_defaults,basicauth_symbol,VOID)) {
     curl_set(h,CURLOPT_HTTPAUTH,CURLAUTH_BASIC);
     curl_set2dtype(h,CURLOPT_USERPWD,curl_defaults,basicauth_symbol);}
-  if (fd_test(curl_defaults,bearer_symbol,VOID)) {
-    lispval v = fd_get(curl_defaults,bearer_symbol,VOID);
+  if (kno_test(curl_defaults,bearer_symbol,VOID)) {
+    lispval v = kno_get(curl_defaults,bearer_symbol,VOID);
     curl_set_bearer(h,v);
-    fd_decref(v);}
-  if (fd_test(curl_defaults,authinfo_symbol,VOID)) {
+    kno_decref(v);}
+  if (kno_test(curl_defaults,authinfo_symbol,VOID)) {
     curl_set(h,CURLOPT_HTTPAUTH,CURLAUTH_ANY);
     curl_set2dtype(h,CURLOPT_USERPWD,curl_defaults,authinfo_symbol);}
-  if (fd_test(curl_defaults,referer_symbol,VOID))
+  if (kno_test(curl_defaults,referer_symbol,VOID))
     curl_set2dtype(h,CURLOPT_REFERER,curl_defaults,referer_symbol);
-  if (fd_test(curl_defaults,cookie_symbol,VOID))
+  if (kno_test(curl_defaults,cookie_symbol,VOID))
     curl_set2dtype(h,CURLOPT_REFERER,curl_defaults,cookie_symbol);
-  if (fd_test(curl_defaults,cookiejar_symbol,VOID))
+  if (kno_test(curl_defaults,cookiejar_symbol,VOID))
     curl_set2dtype(h,CURLOPT_REFERER,curl_defaults,cookiejar_symbol);
-  if (fd_test(curl_defaults,maxtime_symbol,VOID))
+  if (kno_test(curl_defaults,maxtime_symbol,VOID))
     curl_set2dtype(h,CURLOPT_TIMEOUT,curl_defaults,maxtime_symbol);
-  if (fd_test(curl_defaults,timeout_symbol,VOID))
+  if (kno_test(curl_defaults,timeout_symbol,VOID))
     curl_set2dtype(h,CURLOPT_CONNECTTIMEOUT,curl_defaults,timeout_symbol);
 
   if (rv >= 0) {
-   lispval http_headers = fd_get(curl_defaults,header_symbol,EMPTY);
+   lispval http_headers = kno_get(curl_defaults,header_symbol,EMPTY);
     curl_add_headers(h,http_headers);
-    fd_decref(http_headers);}
+    kno_decref(http_headers);}
 
   if (rv < 0) {
     curl_slist_free_all(h->headers);
     curl_easy_cleanup(h->handle);
-    fd_decref(h->initdata);
+    kno_decref(h->initdata);
     u8_free(h);
     return NULL;}
   else return h;
@@ -443,26 +443,26 @@ static char *getcurlerror(char *buf,int code)
   */
 }
 
-static void reset_curl_handle(struct FD_CURL_HANDLE *ch)
+static void reset_curl_handle(struct KNO_CURL_HANDLE *ch)
 {
   if (ch->headers) {
     curl_slist_free_all(ch->headers);
     ch->headers=NULL;
     curl_easy_setopt(ch->handle,CURLOPT_HTTPHEADER,(void *)NULL);}
-  if (FD_CONSP(ch->initdata)) {
-    fd_decref(ch->initdata);
+  if (KNO_CONSP(ch->initdata)) {
+    kno_decref(ch->initdata);
     ch->initdata=EMPTY;}
 }
 
-static void recycle_curl_handle(struct FD_RAW_CONS *c)
+static void recycle_curl_handle(struct KNO_RAW_CONS *c)
 {
-  struct FD_CURL_HANDLE *ch = (struct FD_CURL_HANDLE *)c;
-  u8_logf(LOG_INFO,"CURL","Freeing CURL handle %llx",(FD_INTPTR) ch->handle);
+  struct KNO_CURL_HANDLE *ch = (struct KNO_CURL_HANDLE *)c;
+  u8_logf(LOG_INFO,"CURL","Freeing CURL handle %llx",(KNO_INTPTR) ch->handle);
   /* curl_easy_setopt(ch->handle,CURLOPT_ERRORBUFFER,NULL); */
   curl_slist_free_all(ch->headers);
   curl_easy_cleanup(ch->handle);
-  fd_decref(ch->initdata);
-  if (FD_MALLOCD_CONSP(c)) u8_free(c);
+  kno_decref(ch->initdata);
+  if (KNO_MALLOCD_CONSP(c)) u8_free(c);
 }
 
 static int unparse_curl_handle(u8_output out,lispval x)
@@ -473,13 +473,13 @@ static int unparse_curl_handle(u8_output out,lispval x)
 
 static lispval curlhandlep(lispval arg)
 {
-  if (TYPEP(arg,fd_curl_type)) return FD_TRUE;
-  else return FD_FALSE;
+  if (TYPEP(arg,kno_curl_type)) return KNO_TRUE;
+  else return KNO_FALSE;
 }
 
 static lispval curlreset(lispval arg)
 {
-  struct FD_CURL_HANDLE *ch = (struct FD_CURL_HANDLE *)arg;
+  struct KNO_CURL_HANDLE *ch = (struct KNO_CURL_HANDLE *)arg;
 
   curl_easy_reset(ch->handle);
 
@@ -493,114 +493,114 @@ static lispval curlreset(lispval arg)
 }
 
 static lispval set_curlopt
-  (struct FD_CURL_HANDLE *ch,lispval opt,lispval val)
+  (struct KNO_CURL_HANDLE *ch,lispval opt,lispval val)
 {
-  if (FD_EQ(opt,referer_symbol))
+  if (KNO_EQ(opt,referer_symbol))
     if (STRINGP(val))
       curl_easy_setopt(ch->handle,CURLOPT_REFERER,CSTRING(val));
-    else return fd_type_error("string","set_curlopt",val);
-  else if (FD_EQ(opt,method_symbol))
+    else return kno_type_error("string","set_curlopt",val);
+  else if (KNO_EQ(opt,method_symbol))
     if (SYMBOLP(val))
       curl_easy_setopt(ch->handle,CURLOPT_CUSTOMREQUEST,SYM_NAME(val));
     else if (STRINGP(val))
       curl_easy_setopt(ch->handle,CURLOPT_CUSTOMREQUEST,CSTRING(val));
-    else return fd_type_error("symbol/method","set_curlopt",val);
-  else if (FD_EQ(opt,verbose_symbol)) {
+    else return kno_type_error("symbol/method","set_curlopt",val);
+  else if (KNO_EQ(opt,verbose_symbol)) {
     if ((FALSEP(val))||(EMPTYP(val)))
       curl_easy_setopt(ch->handle,CURLOPT_VERBOSE,0);
     else curl_easy_setopt(ch->handle,CURLOPT_VERBOSE,1);}
-  else if (FD_EQ(opt,useragent_symbol))
+  else if (KNO_EQ(opt,useragent_symbol))
     if (STRINGP(val))
       curl_easy_setopt(ch->handle,CURLOPT_USERAGENT,CSTRING(val));
     else if (FALSEP(val)) {}
-    else return fd_type_error("string","set_curlopt",val);
-  else if (FD_EQ(opt,authinfo_symbol))
+    else return kno_type_error("string","set_curlopt",val);
+  else if (KNO_EQ(opt,authinfo_symbol))
     if (STRINGP(val)) {
       curl_easy_setopt(ch->handle,CURLOPT_HTTPAUTH,CURLAUTH_ANY);
       curl_easy_setopt(ch->handle,CURLOPT_USERPWD,CSTRING(val));}
-    else return fd_type_error("string","set_curlopt",val);
-  else if (FD_EQ(opt,bearer_symbol)) {
+    else return kno_type_error("string","set_curlopt",val);
+  else if (KNO_EQ(opt,bearer_symbol)) {
     int rv = curl_set_bearer(ch,val);
-    if (rv < 0) return fd_type_error("string","set_curlopt",val);}
-  else if (FD_EQ(opt,basicauth_symbol))
-    if ((STRINGP(val))||(TYPEP(val,fd_secret_type))) {
+    if (rv < 0) return kno_type_error("string","set_curlopt",val);}
+  else if (KNO_EQ(opt,basicauth_symbol))
+    if ((STRINGP(val))||(TYPEP(val,kno_secret_type))) {
       curl_easy_setopt(ch->handle,CURLOPT_HTTPAUTH,CURLAUTH_BASIC);
       curl_easy_setopt(ch->handle,CURLOPT_USERPWD,CSTRING(val));}
-    else return fd_type_error("string","set_curlopt",val);
-  else if (FD_EQ(opt,cookie_symbol))
-    if ((STRINGP(val))||(TYPEP(val,fd_secret_type)))
+    else return kno_type_error("string","set_curlopt",val);
+  else if (KNO_EQ(opt,cookie_symbol))
+    if ((STRINGP(val))||(TYPEP(val,kno_secret_type)))
       curl_easy_setopt(ch->handle,CURLOPT_COOKIE,CSTRING(val));
-    else return fd_type_error("string","set_curlopt",val);
-  else if (FD_EQ(opt,cookiejar_symbol))
+    else return kno_type_error("string","set_curlopt",val);
+  else if (KNO_EQ(opt,cookiejar_symbol))
     if (STRINGP(val)) {
       curl_easy_setopt(ch->handle,CURLOPT_COOKIEFILE,CSTRING(val));
       curl_easy_setopt(ch->handle,CURLOPT_COOKIEJAR,CSTRING(val));}
-    else return fd_type_error("string","set_curlopt",val);
-  else if (FD_EQ(opt,header_symbol))
+    else return kno_type_error("string","set_curlopt",val);
+  else if (KNO_EQ(opt,header_symbol))
     curl_add_headers(ch,val);
-  else if (FD_EQ(opt,cainfo_symbol))
+  else if (KNO_EQ(opt,cainfo_symbol))
     if (STRINGP(val))
       curl_easy_setopt(ch->handle,CURLOPT_CAINFO,CSTRING(val));
-    else return fd_type_error("string","set_curlopt",val);
-  else if (FD_EQ(opt,verifyhost_symbol))
-    if (FD_UINTP(val))
+    else return kno_type_error("string","set_curlopt",val);
+  else if (KNO_EQ(opt,verifyhost_symbol))
+    if (KNO_UINTP(val))
       curl_easy_setopt(ch->handle,CURLOPT_SSL_VERIFYHOST,FIX2INT(val));
     else if (FALSEP(val))
       curl_easy_setopt(ch->handle,CURLOPT_SSL_VERIFYHOST,0);
-    else if (FD_TRUEP(val))
+    else if (KNO_TRUEP(val))
       curl_easy_setopt(ch->handle,CURLOPT_SSL_VERIFYHOST,2);
-    else return fd_type_error("symbol/method","set_curlopt",val);
-  else if ((FD_EQ(opt,timeout_symbol))||(FD_EQ(opt,maxtime_symbol))) {
+    else return kno_type_error("symbol/method","set_curlopt",val);
+  else if ((KNO_EQ(opt,timeout_symbol))||(KNO_EQ(opt,maxtime_symbol))) {
     if (FIXNUMP(val)) {
       curl_easy_setopt(ch->handle,CURLOPT_TIMEOUT,FIX2INT(val));}
-    else if (FD_FLONUMP(val)) {
-      double secs = FD_FLONUM(val);
+    else if (KNO_FLONUMP(val)) {
+      double secs = KNO_FLONUM(val);
       long int msecs = (long int)floor(secs*1000);
       curl_easy_setopt(ch->handle,CURLOPT_TIMEOUT_MS,msecs);}
-    else return fd_type_error("seconds","set_curlopt/timeout",val);}
-  else if (FD_EQ(opt,connect_timeout_symbol)) {
+    else return kno_type_error("seconds","set_curlopt/timeout",val);}
+  else if (KNO_EQ(opt,connect_timeout_symbol)) {
     if (FIXNUMP(val)) {
       curl_easy_setopt(ch->handle,CURLOPT_CONNECTTIMEOUT,FIX2INT(val));}
-    else if (FD_FLONUMP(val)) {
-      double secs = FD_FLONUM(val);
+    else if (KNO_FLONUMP(val)) {
+      double secs = KNO_FLONUM(val);
       long int msecs = (long int)floor(secs*1000);
       curl_easy_setopt(ch->handle,CURLOPT_CONNECTTIMEOUT_MS,msecs);}
-    else return fd_type_error("seconds","set_curlopt/connecttimeout",val);}
-  else if (FD_EQ(opt,connect_timeout_symbol)) {
+    else return kno_type_error("seconds","set_curlopt/connecttimeout",val);}
+  else if (KNO_EQ(opt,connect_timeout_symbol)) {
     if (FIXNUMP(val)) {
       curl_easy_setopt(ch->handle,CURLOPT_CONNECTTIMEOUT,FIX2INT(val));}
-    else if (FD_FLONUMP(val)) {
-      double secs = FD_FLONUM(val);
+    else if (KNO_FLONUMP(val)) {
+      double secs = KNO_FLONUM(val);
       long int msecs = (long int)floor(secs*1000);
       curl_easy_setopt(ch->handle,CURLOPT_CONNECTTIMEOUT_MS,msecs);}
-    else return fd_type_error("seconds","set_curlopt/connecttimeout",val);}
-  else if (FD_EQ(opt,accept_timeout_symbol)) {
+    else return kno_type_error("seconds","set_curlopt/connecttimeout",val);}
+  else if (KNO_EQ(opt,accept_timeout_symbol)) {
     if (FIXNUMP(val)) {
       curl_easy_setopt(ch->handle,CURLOPT_ACCEPTTIMEOUT_MS,
                        (1000*FIX2INT(val)));}
-    else if (FD_FLONUMP(val)) {
-      double secs = FD_FLONUM(val);
+    else if (KNO_FLONUMP(val)) {
+      double secs = KNO_FLONUM(val);
       long int msecs = (long int)floor(secs*1000);
       curl_easy_setopt(ch->handle,CURLOPT_ACCEPTTIMEOUT_MS,msecs);}
-    else return fd_type_error("seconds","set_curlopt/connecttimeout",val);}
-  else if (FD_EQ(opt,dns_symbol)) {
+    else return kno_type_error("seconds","set_curlopt/connecttimeout",val);}
+  else if (KNO_EQ(opt,dns_symbol)) {
     if ((STRINGP(val))&&(STRLEN(val)>0)) {
-      fd_incref(val); CHOICE_ADD(ch->initdata,val);
+      kno_incref(val); CHOICE_ADD(ch->initdata,val);
       curl_easy_setopt(ch->handle,CURLOPT_DNS_SERVERS,
                        CSTRING(val));}
     else if ((FALSEP(val))||(STRINGP(val))) {
       curl_easy_setopt(ch->handle,CURLOPT_DNS_SERVERS,NULL);}
     else if (SYMBOLP(val)) {
-      lispval cval = fd_config_get(SYM_NAME(val));
+      lispval cval = kno_config_get(SYM_NAME(val));
       if (!(STRINGP(cval)))
-        return fd_type_error("string config","set_curlopt/dns",val);
-      fd_incref(cval); CHOICE_ADD(ch->initdata,cval);
+        return kno_type_error("string config","set_curlopt/dns",val);
+      kno_incref(cval); CHOICE_ADD(ch->initdata,cval);
       curl_easy_setopt(ch->handle,CURLOPT_DNS_SERVERS,
                        CSTRING(cval));}
-    else return fd_type_error("string","set_curlopt/dns",val);}
-  else if (FD_EQ(opt,dnsip_symbol)) {
+    else return kno_type_error("string","set_curlopt/dns",val);}
+  else if (KNO_EQ(opt,dnsip_symbol)) {
     if ((STRINGP(val))&&(STRLEN(val)>0)) {
-      fd_incref(val); CHOICE_ADD(ch->initdata,val);
+      kno_incref(val); CHOICE_ADD(ch->initdata,val);
       if (strchr(CSTRING(val),':')) {
         curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP6,
                          CSTRING(val));}
@@ -611,10 +611,10 @@ static lispval set_curlopt
       curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP4,NULL);
       curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP6,NULL);}
     else if (SYMBOLP(val)) {
-      lispval cval = fd_config_get(SYM_NAME(val));
+      lispval cval = kno_config_get(SYM_NAME(val));
       if (!(STRINGP(cval)))
-        return fd_type_error("string config","set_curlopt/dns",val);
-      fd_incref(cval); CHOICE_ADD(ch->initdata,cval);
+        return kno_type_error("string config","set_curlopt/dns",val);
+      kno_incref(cval); CHOICE_ADD(ch->initdata,cval);
       if (STRLEN(cval)==0) {
         curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP4,NULL);
         curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP6,NULL);}
@@ -624,62 +624,62 @@ static lispval set_curlopt
       else {
         curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP4,
                          CSTRING(cval));}}
-    else return fd_type_error("string","set_curlopt/dns",val);}
-  else if (FD_EQ(opt,dns_cachelife_symbol)) {
-    if (FD_TRUEP(val)) {
+    else return kno_type_error("string","set_curlopt/dns",val);}
+  else if (KNO_EQ(opt,dns_cachelife_symbol)) {
+    if (KNO_TRUEP(val)) {
       curl_easy_setopt(ch->handle,CURLOPT_DNS_CACHE_TIMEOUT,-1);}
     else if (FALSEP(val)) {
       curl_easy_setopt(ch->handle,CURLOPT_DNS_CACHE_TIMEOUT,0);}
     else if (FIXNUMP(val)) {
       curl_easy_setopt(ch->handle,CURLOPT_DNS_CACHE_TIMEOUT,
                        FIX2INT(val));}
-    else if (FD_FLONUMP(val)) {
-      double secs = FD_FLONUM(val);
+    else if (KNO_FLONUMP(val)) {
+      double secs = KNO_FLONUM(val);
       long int msecs = (long int)floor(secs);
       curl_easy_setopt(ch->handle,CURLOPT_DNS_CACHE_TIMEOUT,msecs);}
-    else return fd_type_error("seconds","set_curlopt/connecttimeout",val);}
-  else if (FD_EQ(opt,follow_symbol)) {
-    if (FD_TRUEP(val)) {
+    else return kno_type_error("seconds","set_curlopt/connecttimeout",val);}
+  else if (KNO_EQ(opt,follow_symbol)) {
+    if (KNO_TRUEP(val)) {
       curl_easy_setopt(ch->handle,CURLOPT_FOLLOWLOCATION,1);
       if (max_redirects > 0)
         curl_easy_setopt(ch->handle,CURLOPT_MAXREDIRS,max_redirects);}
-    else if ( (FD_FIXNUMP(val)) && ((FD_FIX2INT(val))>0) ) {
-      long long count = FD_FIX2INT(val);
+    else if ( (KNO_FIXNUMP(val)) && ((KNO_FIX2INT(val))>0) ) {
+      long long count = KNO_FIX2INT(val);
       curl_easy_setopt(ch->handle,CURLOPT_FOLLOWLOCATION,1);
       curl_easy_setopt(ch->handle,CURLOPT_MAXREDIRS,count);}
     else curl_easy_setopt(ch->handle,CURLOPT_FOLLOWLOCATION,0);}
-  else if (FD_EQ(opt,fresh_connect_symbol)) {
-    if (FD_TRUEP(val)) {
+  else if (KNO_EQ(opt,fresh_connect_symbol)) {
+    if (KNO_TRUEP(val)) {
       curl_easy_setopt(ch->handle,CURLOPT_FRESH_CONNECT,1);}
     else curl_easy_setopt(ch->handle,CURLOPT_FRESH_CONNECT,0);}
-  else if (FD_EQ(opt,forbid_reuse_symbol)) {
-    if (FD_TRUEP(val)) {
+  else if (KNO_EQ(opt,forbid_reuse_symbol)) {
+    if (KNO_TRUEP(val)) {
       curl_easy_setopt(ch->handle,CURLOPT_FORBID_REUSE,1);}
     else curl_easy_setopt(ch->handle,CURLOPT_FORBID_REUSE,0);}
-  else if (FD_EQ(opt,filetime_symbol)) {
-    if (FD_TRUEP(val)) {
+  else if (KNO_EQ(opt,filetime_symbol)) {
+    if (KNO_TRUEP(val)) {
       curl_easy_setopt(ch->handle,CURLOPT_FILETIME,1);}
     else curl_easy_setopt(ch->handle,CURLOPT_FILETIME,0);}
-  else if (FD_EQ(opt,verifypeer_symbol))
+  else if (KNO_EQ(opt,verifypeer_symbol))
     if (FIXNUMP(val))
       curl_easy_setopt(ch->handle,CURLOPT_SSL_VERIFYPEER,FIX2INT(val));
     else if (FALSEP(val))
       curl_easy_setopt(ch->handle,CURLOPT_SSL_VERIFYPEER,0);
-    else if (FD_TRUEP(val))
+    else if (KNO_TRUEP(val))
       curl_easy_setopt(ch->handle,CURLOPT_SSL_VERIFYPEER,1);
-    else return fd_type_error("fixnum/boolean","set_curlopt",val);
-  else if (FD_EQ(opt,content_type_symbol))
+    else return kno_type_error("fixnum/boolean","set_curlopt",val);
+  else if (KNO_EQ(opt,content_type_symbol))
     if (STRINGP(val)) {
       u8_string ctype_header = u8_mkstring("Content-type: %s",CSTRING(val));
-      lispval hval = fd_lispstring(ctype_header);
+      lispval hval = kno_lispstring(ctype_header);
       curl_add_headers(ch,hval);
-      fd_decref(hval);}
-    else return fd_type_error(_("string"),"set_curl_handle/content-type",val);
-  else return fd_err(_("Unknown CURL option"),"set_curl_handle",
+      kno_decref(hval);}
+    else return kno_type_error(_("string"),"set_curl_handle/content-type",val);
+  else return kno_err(_("Unknown CURL option"),"set_curl_handle",
                      NULL,opt);
   if (CONSP(val)) {
-    fd_incref(val); CHOICE_ADD(ch->initdata,val);}
-  return FD_TRUE;
+    kno_incref(val); CHOICE_ADD(ch->initdata,val);}
+  return KNO_TRUE;
 }
 
 /* Fix URL */
@@ -696,22 +696,22 @@ static lispval fixurl(u8_string url)
       buf[1]=digits[c/16]; buf[2]=digits[c%16];
       u8_puts(&out,buf);}
     else u8_putc(&out,c);}
-  return fd_stream2string(&out);
+  return kno_stream2string(&out);
 }
 
 /* The core get function */
 
-static lispval handlefetchresult(struct FD_CURL_HANDLE *h,lispval result,INBUF *data);
+static lispval handlefetchresult(struct KNO_CURL_HANDLE *h,lispval result,INBUF *data);
 
-static lispval fetchurl(struct FD_CURL_HANDLE *h,u8_string urltext)
+static lispval fetchurl(struct KNO_CURL_HANDLE *h,u8_string urltext)
 {
   INBUF data; CURLcode retval;
   int consed_handle = 0;
-  lispval result = fd_empty_slotmap();
+  lispval result = kno_empty_slotmap();
   lispval url = fixurl(urltext);
-  fd_add(result,url_symbol,url); fd_decref(url);
+  kno_add(result,url_symbol,url); kno_decref(url);
   data.bytes = u8_malloc(8192); data.size = 0; data.limit = 8192;
-  if (h == NULL) {h = fd_open_curl_handle(); consed_handle = 1;}
+  if (h == NULL) {h = kno_open_curl_handle(); consed_handle = 1;}
   curl_easy_setopt(h->handle,CURLOPT_URL,CSTRING(url));
   curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,&data);
   curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
@@ -720,17 +720,17 @@ static lispval fetchurl(struct FD_CURL_HANDLE *h,u8_string urltext)
   if (retval!=CURLE_OK) {
     char buf[CURL_ERROR_SIZE];
     lispval errval=
-      fd_err(CurlError,"fetchurl",getcurlerror(buf,retval),url);
-    fd_decref(result);
+      kno_err(CurlError,"fetchurl",getcurlerror(buf,retval),url);
+    kno_decref(result);
     u8_free(data.bytes);
-    if (consed_handle) {fd_decref((lispval)h);}
+    if (consed_handle) {kno_decref((lispval)h);}
     return errval;}
   handlefetchresult(h,result,&data);
-  if (consed_handle) {fd_decref((lispval)h);}
+  if (consed_handle) {kno_decref((lispval)h);}
   return result;
 }
 
-static lispval streamurl(struct FD_CURL_HANDLE *h,
+static lispval streamurl(struct KNO_CURL_HANDLE *h,
                         u8_string urltext,
                         lispval handler,
                         const unsigned char *payload_type,
@@ -740,11 +740,11 @@ static lispval streamurl(struct FD_CURL_HANDLE *h,
   OUTBUF rdbuf;
   CURLcode retval;
   int consed_handle = 0;
-  lispval result = fd_empty_slotmap();
+  lispval result = kno_empty_slotmap();
   lispval url = fixurl(urltext);
   lispval stream_data[3]={handler,result,VOID};
-  fd_add(result,url_symbol,url); fd_decref(url);
-  if (h == NULL) {h = fd_open_curl_handle(); consed_handle = 1;}
+  kno_add(result,url_symbol,url); kno_decref(url);
+  if (h == NULL) {h = kno_open_curl_handle(); consed_handle = 1;}
   // Possibly add option for setting CURLOPT_PROGRESSFUNCTION with handler
   //  for curl handle and result.
   curl_easy_setopt(h->handle,CURLOPT_URL,CSTRING(url));
@@ -761,34 +761,34 @@ static lispval streamurl(struct FD_CURL_HANDLE *h,
     curl_easy_setopt(h->handle,CURLOPT_READDATA,&rdbuf);}
   retval = curl_easy_perform(h->handle);
   if (retval==CURLE_WRITE_ERROR) {
-    if (TYPEP(stream_data[2],fd_exception_type)) {
-      fd_exception exo=(fd_exception)stream_data[2];
-      fd_restore_exception(exo);
-      if (consed_handle) {fd_decref((lispval)h);}
-      return FD_ERROR;}
+    if (TYPEP(stream_data[2],kno_exception_type)) {
+      kno_exception exo=(kno_exception)stream_data[2];
+      kno_restore_exception(exo);
+      if (consed_handle) {kno_decref((lispval)h);}
+      return KNO_ERROR;}
     else {
-      if (consed_handle) {fd_decref((lispval)h);}
+      if (consed_handle) {kno_decref((lispval)h);}
       return result;}}
   else if (retval!=CURLE_OK) {
     char buf[CURL_ERROR_SIZE];
     lispval errval=
-      fd_err(CurlError,"fetchurl",getcurlerror(buf,retval),result);
-    fd_decref(result);
-    if (consed_handle) {fd_decref((lispval)h);}
+      kno_err(CurlError,"fetchurl",getcurlerror(buf,retval),result);
+    kno_decref(result);
+    if (consed_handle) {kno_decref((lispval)h);}
     return errval;}
-  if (consed_handle) {fd_decref((lispval)h);}
+  if (consed_handle) {kno_decref((lispval)h);}
   return result;
 }
 
-static lispval fetchurlhead(struct FD_CURL_HANDLE *h,u8_string urltext)
+static lispval fetchurlhead(struct KNO_CURL_HANDLE *h,u8_string urltext)
 {
   INBUF data; CURLcode retval;
   int consed_handle = 0;
-  lispval result = fd_empty_slotmap();
+  lispval result = kno_empty_slotmap();
   lispval url = fixurl(urltext);
-  fd_add(result,url_symbol,url); fd_decref(url);
+  kno_add(result,url_symbol,url); kno_decref(url);
   data.bytes = u8_malloc(8192); data.size = 0; data.limit = 8192;
-  if (h == NULL) {h = fd_open_curl_handle(); consed_handle = 1;}
+  if (h == NULL) {h = kno_open_curl_handle(); consed_handle = 1;}
   curl_easy_setopt(h->handle,CURLOPT_URL,CSTRING(url));
   curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,&data);
   curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
@@ -796,23 +796,23 @@ static lispval fetchurlhead(struct FD_CURL_HANDLE *h,u8_string urltext)
   retval = curl_easy_perform(h->handle);
   if (retval!=CURLE_OK) {
     char buf[CURL_ERROR_SIZE];
-    lispval errval = fd_err(CurlError,"fetchurl",getcurlerror(buf,retval),url);
-    fd_decref(result);
+    lispval errval = kno_err(CurlError,"fetchurl",getcurlerror(buf,retval),url);
+    kno_decref(result);
     u8_free(data.bytes);
-    if (consed_handle) {fd_decref((lispval)h);}
+    if (consed_handle) {kno_decref((lispval)h);}
     return errval;}
   handlefetchresult(h,result,&data);
-  if (consed_handle) {fd_decref((lispval)h);}
+  if (consed_handle) {kno_decref((lispval)h);}
   return result;
 }
 
-static lispval handlefetchresult(struct FD_CURL_HANDLE *h,lispval result,
+static lispval handlefetchresult(struct KNO_CURL_HANDLE *h,lispval result,
                                 INBUF *data)
 {
   lispval cval; long http_response = 0;
   int retval = curl_easy_getinfo(h->handle,CURLINFO_RESPONSE_CODE,&http_response);
   if (retval==0)
-    fd_add(result,response_code_slotid,FD_INT(http_response));
+    kno_add(result,response_code_slotid,KNO_INT(http_response));
   /* Add a trailing NUL, just in case we need it */
   if (data->size<data->limit) {
     unsigned char *buf = (unsigned char *)(data->bytes);
@@ -824,12 +824,12 @@ static lispval handlefetchresult(struct FD_CURL_HANDLE *h,lispval result,
     data->bytes = buf;
     buf[data->size]='\0';}
   if (data->size<0) cval = EMPTY;
-  else if ((fd_test(result,FDSYM_TYPE,text_types))&&
-           (!(fd_test(result,content_encoding_symbol,VOID))))
+  else if ((kno_test(result,FDSYM_TYPE,text_types))&&
+           (!(kno_test(result,content_encoding_symbol,VOID))))
     if (data->size==0)
-      cval = fd_block_string(data->size,data->bytes);
+      cval = kno_block_string(data->size,data->bytes);
     else {
-      lispval chset = fd_get(result,charset_symbol,VOID);
+      lispval chset = kno_get(result,charset_symbol,VOID);
       if (STRINGP(chset)) {
         U8_OUTPUT out;
         u8_encoding enc = u8_get_encoding(CSTRING(chset));
@@ -837,32 +837,32 @@ static lispval handlefetchresult(struct FD_CURL_HANDLE *h,lispval result,
           const unsigned char *scan = data->bytes;
           U8_INIT_OUTPUT(&out,data->size);
           u8_convert(enc,1,&out,&scan,data->bytes+data->size);
-          cval = fd_block_string(out.u8_write-out.u8_outbuf,out.u8_outbuf);}
+          cval = kno_block_string(out.u8_write-out.u8_outbuf,out.u8_outbuf);}
         else if (strstr(data->bytes,"\r\n"))
-          cval = fd_lispstring(u8_convert_crlfs(data->bytes));
-        else cval = fd_lispstring(u8_valid_copy(data->bytes));}
+          cval = kno_lispstring(u8_convert_crlfs(data->bytes));
+        else cval = kno_lispstring(u8_valid_copy(data->bytes));}
       else if (strstr(data->bytes,"\r\n"))
-        cval = fd_lispstring(u8_convert_crlfs(data->bytes));
-      else cval = fd_lispstring(u8_valid_copy(data->bytes));
+        cval = kno_lispstring(u8_convert_crlfs(data->bytes));
+      else cval = kno_lispstring(u8_valid_copy(data->bytes));
       u8_free(data->bytes);
-      fd_decref(chset);}
+      kno_decref(chset);}
   else {
-    cval = fd_make_packet(NULL,data->size,data->bytes);
+    cval = kno_make_packet(NULL,data->size,data->bytes);
     u8_free(data->bytes);}
-  fd_store(result,pcontent_symbol,cval);
+  kno_store(result,pcontent_symbol,cval);
   {
     char *urlbuf; long filetime;
     CURLcode rv = curl_easy_getinfo(h->handle,CURLINFO_EFFECTIVE_URL,&urlbuf);
     if (rv == CURLE_OK) {
       lispval eurl = lispval_string(urlbuf);
-      fd_add(result,eurl_slotid,eurl);
-      fd_decref(eurl);}
+      kno_add(result,eurl_slotid,eurl);
+      kno_decref(eurl);}
     rv = curl_easy_getinfo(h->handle,CURLINFO_FILETIME,&filetime);
     if ((rv == CURLE_OK) && (filetime>=0)) {
-      lispval ftime = fd_time2timestamp(filetime);
-      fd_add(result,filetime_slotid,ftime);
-      fd_decref(ftime);}}
-  fd_decref(cval);
+      lispval ftime = kno_time2timestamp(filetime);
+      kno_add(result,filetime_slotid,ftime);
+      kno_decref(ftime);}}
+  kno_decref(cval);
   return result;
 }
 
@@ -870,25 +870,25 @@ static lispval handlefetchresult(struct FD_CURL_HANDLE *h,lispval result,
 
 static lispval curl_arg(lispval arg,u8_context cxt)
 {
-  if (TYPEP(arg,fd_curl_type)) {
-    fd_incref(arg);
+  if (TYPEP(arg,kno_curl_type)) {
+    kno_incref(arg);
     return arg;}
   else if (TABLEP(arg)) {
-    lispval keys = fd_getkeys(arg);
-    struct FD_CURL_HANDLE *h = fd_open_curl_handle();
+    lispval keys = kno_getkeys(arg);
+    struct KNO_CURL_HANDLE *h = kno_open_curl_handle();
     DO_CHOICES(key,keys) {
-      lispval values = fd_get(arg,key,VOID);
+      lispval values = kno_get(arg,key,VOID);
       lispval setval = set_curlopt(h,key,values);
-      if (FD_ABORTP(setval)) {
-        fd_decref(keys);
-        recycle_curl_handle((fd_raw_cons)h);
+      if (KNO_ABORTP(setval)) {
+        kno_decref(keys);
+        recycle_curl_handle((kno_raw_cons)h);
         return setval;}
-      fd_decref(values);}
-    fd_decref(keys);
+      kno_decref(values);}
+    kno_decref(keys);
     return (lispval)h;}
   else if ((VOIDP(arg))||(FALSEP(arg)))
-    return (lispval) fd_open_curl_handle();
-  else return fd_type_error("curl handle",cxt,arg);
+    return (lispval) kno_open_curl_handle();
+  else return kno_type_error("curl handle",cxt,arg);
 }
 
 /* Primitives */
@@ -896,15 +896,15 @@ static lispval curl_arg(lispval arg,u8_context cxt)
 static lispval urlget(lispval url,lispval curl)
 {
   lispval result, conn = curl_arg(curl,"urlget");
-  if (FD_ABORTP(conn)) return conn;
-  else if (!(TYPEP(conn,fd_curl_type)))
-    return fd_type_error("CURLCONN","urlget",conn);
-  else if (!((STRINGP(url))||(TYPEP(url,fd_secret_type)))) {
-    result = fd_type_error("string","urlget",url);}
+  if (KNO_ABORTP(conn)) return conn;
+  else if (!(TYPEP(conn,kno_curl_type)))
+    return kno_type_error("CURLCONN","urlget",conn);
+  else if (!((STRINGP(url))||(TYPEP(url,kno_secret_type)))) {
+    result = kno_type_error("string","urlget",url);}
   else {
-    result = fetchurl((fd_curl_handle)conn,CSTRING(url));}
-  if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
-  fd_decref(conn);
+    result = fetchurl((kno_curl_handle)conn,CSTRING(url));}
+  if (conn == curl) reset_curl_handle((kno_curl_handle)conn);
+  kno_decref(conn);
   return result;
 }
 
@@ -912,38 +912,38 @@ static lispval urlstream(lispval url,lispval handler,
                          lispval payload,
                          lispval curl)
 {
-  if (!(FD_APPLICABLEP(handler)))
-    return fd_type_error("applicable","urlstream",handler);
+  if (!(KNO_APPLICABLEP(handler)))
+    return kno_type_error("applicable","urlstream",handler);
   lispval result, conn = curl_arg(curl,"urlstream");
-  if (FD_ABORTP(conn)) return conn;
-  else if (!(TYPEP(conn,fd_curl_type)))
-    return fd_type_error("CURLCONN","urlget",conn);
-  else if (!((STRINGP(url))||(TYPEP(url,fd_secret_type)))) {
-    result = fd_type_error("string","urlget",url);}
+  if (KNO_ABORTP(conn)) return conn;
+  else if (!(TYPEP(conn,kno_curl_type)))
+    return kno_type_error("CURLCONN","urlget",conn);
+  else if (!((STRINGP(url))||(TYPEP(url,kno_secret_type)))) {
+    result = kno_type_error("string","urlget",url);}
   else if (VOIDP(payload))
-    result = streamurl((fd_curl_handle)conn,CSTRING(url),
+    result = streamurl((kno_curl_handle)conn,CSTRING(url),
                        handler,NULL,NULL,0);
   else {
-    result = streamurl((fd_curl_handle)conn,CSTRING(url),
+    result = streamurl((kno_curl_handle)conn,CSTRING(url),
                        handler,CSTRING(payload),
                        "application/x-www-urlform-encoded",
                        STRLEN(payload));}
-  if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
-  fd_decref(conn);
+  if (conn == curl) reset_curl_handle((kno_curl_handle)conn);
+  kno_decref(conn);
   return result;
 }
 
 static lispval urlhead(lispval url,lispval curl)
 {
   lispval result, conn = curl_arg(curl,"urlhead");
-  if (FD_ABORTP(conn)) return conn;
-  else if (!(TYPEP(conn,fd_curl_type)))
-    return fd_type_error("CURLCONN","urlhead",conn);
-  else if (!((STRINGP(url))||(TYPEP(url,fd_secret_type))))
-    result = fd_type_error("string","urlhead",url);
-  result = fetchurlhead((fd_curl_handle)conn,CSTRING(url));
-  if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
-  fd_decref(conn);
+  if (KNO_ABORTP(conn)) return conn;
+  else if (!(TYPEP(conn,kno_curl_type)))
+    return kno_type_error("CURLCONN","urlhead",conn);
+  else if (!((STRINGP(url))||(TYPEP(url,kno_secret_type))))
+    result = kno_type_error("string","urlhead",url);
+  result = fetchurlhead((kno_curl_handle)conn,CSTRING(url));
+  if (conn == curl) reset_curl_handle((kno_curl_handle)conn);
+  kno_decref(conn);
   return result;
 }
 
@@ -952,22 +952,22 @@ static lispval urlput(lispval url,lispval content,lispval ctype,lispval curl)
   lispval conn;
   INBUF data; OUTBUF rdbuf; CURLcode retval;
   lispval result = VOID;
-  struct FD_CURL_HANDLE *h = NULL;
+  struct KNO_CURL_HANDLE *h = NULL;
   if (!((STRINGP(content))||(PACKETP(content))||(FALSEP(content))))
-    return fd_type_error("string or packet","urlput",content);
+    return kno_type_error("string or packet","urlput",content);
   else conn = curl_arg(curl,"urlput");
-  if (FD_ABORTP(conn)) return conn;
-  else if (!(TYPEP(conn,fd_curl_type))) {
-    return fd_type_error("CURLCONN","urlput",conn);}
-  else h = (fd_curl_handle)conn;
+  if (KNO_ABORTP(conn)) return conn;
+  else if (!(TYPEP(conn,kno_curl_type))) {
+    return kno_type_error("CURLCONN","urlput",conn);}
+  else h = (kno_curl_handle)conn;
   if (STRINGP(ctype))
     curl_add_header(h,"Content-Type",CSTRING(ctype));
-  else if ((TABLEP(curl)) && (fd_test(curl,content_type_symbol,VOID))) {}
+  else if ((TABLEP(curl)) && (kno_test(curl,content_type_symbol,VOID))) {}
   else if (STRINGP(content))
     curl_add_header(h,"Content-Type: text",NULL);
   else curl_add_header(h,"Content-Type: application",NULL);
   data.bytes = u8_malloc(8192); data.size = 0; data.limit = 8192;
-  result = fd_empty_slotmap();
+  result = kno_empty_slotmap();
   curl_easy_setopt(h->handle,CURLOPT_URL,CSTRING(url));
   curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,&data);
   curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
@@ -981,22 +981,22 @@ static lispval urlput(lispval url,lispval content,lispval ctype,lispval curl)
     rdbuf.end = (u8_byte *)CSTRING(content)+length;
     curl_easy_setopt(h->handle,CURLOPT_INFILESIZE,length);}
   else if (PACKETP(content)) {
-    size_t length = FD_PACKET_LENGTH(content);
-    rdbuf.scan = (u8_byte *)FD_PACKET_DATA(content);
-    rdbuf.end = (u8_byte *)FD_PACKET_DATA(content)+length;
+    size_t length = KNO_PACKET_LENGTH(content);
+    rdbuf.scan = (u8_byte *)KNO_PACKET_DATA(content);
+    rdbuf.end = (u8_byte *)KNO_PACKET_DATA(content)+length;
     curl_easy_setopt(h->handle,CURLOPT_INFILESIZE,length);}
   else {}
   retval = curl_easy_perform(h->handle);
   if (retval!=CURLE_OK) {
     char buf[CURL_ERROR_SIZE];
-    lispval errval = fd_err(CurlError,"urlput",getcurlerror(buf,retval),url);
-    fd_decref(result);
+    lispval errval = kno_err(CurlError,"urlput",getcurlerror(buf,retval),url);
+    kno_decref(result);
     u8_free(data.bytes);
-    fd_decref(conn);
+    kno_decref(conn);
     return errval;}
   else handlefetchresult(h,result,&data);
-  if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
-  fd_decref(conn);
+  if (conn == curl) reset_curl_handle((kno_curl_handle)conn);
+  kno_decref(conn);
   return result;
 }
 
@@ -1005,17 +1005,17 @@ static lispval urlput(lispval url,lispval content,lispval ctype,lispval curl)
 static lispval urlcontent(lispval url,lispval curl)
 {
   lispval result, conn = curl_arg(curl,"urlcontent"), content;
-  if (FD_ABORTP(conn)) return conn;
-  else if (!(TYPEP(conn,fd_curl_type)))
-    result = fd_type_error("CURLCONN","urlcontent",conn);
-  else result = fetchurl((fd_curl_handle)conn,CSTRING(url));
-  if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
-  fd_decref(conn);
-  if (FD_ABORTP(result)) {
+  if (KNO_ABORTP(conn)) return conn;
+  else if (!(TYPEP(conn,kno_curl_type)))
+    result = kno_type_error("CURLCONN","urlcontent",conn);
+  else result = fetchurl((kno_curl_handle)conn,CSTRING(url));
+  if (conn == curl) reset_curl_handle((kno_curl_handle)conn);
+  kno_decref(conn);
+  if (KNO_ABORTP(result)) {
     return result;}
   else {
-    content = fd_get(result,pcontent_symbol,EMPTY);
-    fd_decref(result);
+    content = kno_get(result,pcontent_symbol,EMPTY);
+    kno_decref(result);
     return content;}
 }
 
@@ -1024,20 +1024,20 @@ static lispval urlxml(lispval url,lispval xmlopt,lispval curl)
   INBUF data;
   lispval result, cval, conn = curl_arg(curl,"urlxml");
   int flags; long http_response = 0;
-  FD_CURL_HANDLE *h; CURLcode retval;
-  if (FD_ABORTP(conn)) return conn;
-  else if (!(TYPEP(conn,fd_curl_type)))
-    return fd_type_error("CURLCONN","urlxml",conn);
+  KNO_CURL_HANDLE *h; CURLcode retval;
+  if (KNO_ABORTP(conn)) return conn;
+  else if (!(TYPEP(conn,kno_curl_type)))
+    return kno_type_error("CURLCONN","urlxml",conn);
   else {
-    h = (fd_curl_handle)conn;
-    result = fd_empty_slotmap();}
-  flags = fd_xmlparseoptions(xmlopt);
+    h = (kno_curl_handle)conn;
+    result = kno_empty_slotmap();}
+  flags = kno_xmlparseoptions(xmlopt);
   /* Check that the XML options are okay */
   if (flags<0) {
-    fd_decref(result);
-    fd_decref(conn);
-    return FD_ERROR;}
-  fd_add(result,url_symbol,url);
+    kno_decref(result);
+    kno_decref(conn);
+    return KNO_ERROR;}
+  kno_add(result,url_symbol,url);
   data.bytes = u8_malloc(8192); data.size = 0; data.limit = 8192;
   curl_easy_setopt(h->handle,CURLOPT_URL,CSTRING(url));
   curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,&data);
@@ -1045,20 +1045,20 @@ static lispval urlxml(lispval url,lispval xmlopt,lispval curl)
   retval = curl_easy_perform(h->handle);
   if (retval!=CURLE_OK) {
     char buf[CURL_ERROR_SIZE];
-    lispval errval = fd_err(CurlError,"urlxml",getcurlerror(buf,retval),url);
-    fd_decref(result);
+    lispval errval = kno_err(CurlError,"urlxml",getcurlerror(buf,retval),url);
+    kno_decref(result);
     u8_free(data.bytes);
-    if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
-    fd_decref(conn);
+    if (conn == curl) reset_curl_handle((kno_curl_handle)conn);
+    kno_decref(conn);
     return errval;}
   retval = curl_easy_getinfo(h->handle,CURLINFO_RESPONSE_CODE,&http_response);
   if (retval!=CURLE_OK) {
     char buf[CURL_ERROR_SIZE];
-    lispval errval = fd_err(CurlError,"urlxml",getcurlerror(buf,retval),url);
-    fd_decref(result);
+    lispval errval = kno_err(CurlError,"urlxml",getcurlerror(buf,retval),url);
+    kno_decref(result);
     u8_free(data.bytes);
-    if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
-    fd_decref(conn);
+    if (conn == curl) reset_curl_handle((kno_curl_handle)conn);
+    kno_decref(conn);
     return errval;}
   if (data.size<data.limit) data.bytes[data.size]='\0';
   else {
@@ -1066,13 +1066,13 @@ static lispval urlxml(lispval url,lispval xmlopt,lispval curl)
     data.bytes[data.size]='\0';}
   if (data.size<=0) {
     if (data.size==0)
-      cval = fd_init_packet(NULL,data.size,data.bytes);
+      cval = kno_init_packet(NULL,data.size,data.bytes);
     else cval = EMPTY;}
-  else if ((fd_test(result,FDSYM_TYPE,text_types))&&
-           (!(fd_test(result,content_encoding_symbol,VOID)))) {
+  else if ((kno_test(result,FDSYM_TYPE,text_types))&&
+           (!(kno_test(result,content_encoding_symbol,VOID)))) {
     U8_INPUT in; u8_string buf;
-    struct FD_XML xmlnode, *xmlret;
-    lispval chset = fd_get(result,charset_symbol,VOID);
+    struct KNO_XML xmlnode, *xmlret;
+    lispval chset = kno_get(result,charset_symbol,VOID);
     if (STRINGP(chset)) {
       U8_OUTPUT out;
       u8_encoding enc = u8_get_encoding(CSTRING(chset));
@@ -1088,38 +1088,38 @@ static lispval urlxml(lispval url,lispval xmlopt,lispval curl)
     else {
       U8_INIT_STRING_INPUT(&in,data.size,data.bytes); buf = data.bytes;}
     if (http_response>=300) {
-      fd_seterr("HTTP error response","urlxml",CSTRING(url),
-                fd_init_string(NULL,in.u8_inlim-in.u8_inbuf,in.u8_inbuf));
-      if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
-      fd_decref(conn);
-      return FD_ERROR;}
-    fd_init_xml_node(&xmlnode,NULL,CSTRING(url));
+      kno_seterr("HTTP error response","urlxml",CSTRING(url),
+                kno_init_string(NULL,in.u8_inlim-in.u8_inbuf,in.u8_inbuf));
+      if (conn == curl) reset_curl_handle((kno_curl_handle)conn);
+      kno_decref(conn);
+      return KNO_ERROR;}
+    kno_init_xml_node(&xmlnode,NULL,CSTRING(url));
     xmlnode.xml_bits = flags;
-    xmlret = fd_walk_xml(&in,fd_default_contentfn,NULL,NULL,NULL,
-                       fd_default_popfn,
+    xmlret = kno_walk_xml(&in,kno_default_contentfn,NULL,NULL,NULL,
+                       kno_default_popfn,
                        &xmlnode);
-    if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
-    fd_decref(conn);
+    if (conn == curl) reset_curl_handle((kno_curl_handle)conn);
+    kno_decref(conn);
     if (xmlret) {
-      {FD_DOLIST(elt,xmlret->xml_head) {
+      {KNO_DOLIST(elt,xmlret->xml_head) {
         if (SLOTMAPP(elt)) {
-          lispval name = fd_get(elt,name_symbol,EMPTY);
-          if (SYMBOLP(name)) fd_add(result,name,elt);
+          lispval name = kno_get(elt,name_symbol,EMPTY);
+          if (SYMBOLP(name)) kno_add(result,name,elt);
           else if ((CHOICEP(name)) || (PRECHOICEP(name))) {
             DO_CHOICES(nm,name) {
-              if (SYMBOLP(nm)) fd_add(result,nm,elt);}}}}}
-      fd_store(result,pcontent_symbol,xmlret->xml_head);
-      u8_free(buf); fd_decref(xmlret->xml_head);
+              if (SYMBOLP(nm)) kno_add(result,nm,elt);}}}}}
+      kno_store(result,pcontent_symbol,xmlret->xml_head);
+      u8_free(buf); kno_decref(xmlret->xml_head);
       return result;}
     else {
-      fd_decref(result); u8_free(buf);
-      return FD_ERROR;}}
+      kno_decref(result); u8_free(buf);
+      return KNO_ERROR;}}
   else {
     lispval err;
-    cval = fd_make_packet(NULL,data.size,data.bytes);
-    fd_store(result,pcontent_symbol,cval); fd_decref(cval);
-    err = fd_err(NonTextualContent,"urlxml",CSTRING(url),result);
-    fd_decref(result);
+    cval = kno_make_packet(NULL,data.size,data.bytes);
+    kno_store(result,pcontent_symbol,cval); kno_decref(cval);
+    err = kno_err(NonTextualContent,"urlxml",CSTRING(url),result);
+    kno_decref(result);
     u8_free(data.bytes);
     return err;}
   return cval;
@@ -1130,15 +1130,15 @@ static lispval urlxml(lispval url,lispval xmlopt,lispval curl)
 static lispval responsetest(lispval response,int min,int max)
 {
   lispval status = ((TABLEP(response))?
-                    (fd_get(response,response_code_slotid,VOID)):
+                    (kno_get(response,response_code_slotid,VOID)):
                     (FIXNUMP(response))?(response):(VOID));
-  if ((FD_UINTP(status))&&
+  if ((KNO_UINTP(status))&&
       ((FIX2INT(status))>=min)&&
       ((FIX2INT(status))<max))
-    return FD_TRUE;
+    return KNO_TRUE;
   else {
-    if (TABLEP(response)) fd_decref(status);
-    return FD_FALSE;}
+    if (TABLEP(response)) kno_decref(status);
+    return KNO_FALSE;}
 }
 
 static lispval responseokp(lispval response)
@@ -1199,42 +1199,42 @@ static lispval responsegonep(lispval response)
 static lispval responsestatusprim(lispval response)
 {
   lispval status = ((TABLEP(response))?
-                    (fd_get(response,response_code_slotid,VOID)):
+                    (kno_get(response,response_code_slotid,VOID)):
                     (FIXNUMP(response))?(response):(VOID));
   if (!(FIXNUMP(status))) {
-    fd_decref(status);
-    return fd_type_error("HTTP response","responsestatusprim",response);}
+    kno_decref(status);
+    return kno_type_error("HTTP response","responsestatusprim",response);}
   else return status;
 }
 static lispval testresponseprim(lispval response,lispval arg1,lispval arg2)
 {
-  if (FD_AMBIGP(response)) {
+  if (KNO_AMBIGP(response)) {
     DO_CHOICES(r,response) {
       lispval result = testresponseprim(r,arg1,arg2);
-      if (FD_TRUEP(result)) {
-        FD_STOP_DO_CHOICES;
+      if (KNO_TRUEP(result)) {
+        KNO_STOP_DO_CHOICES;
         return result;}
-      fd_decref(result);}
-    return FD_FALSE;}
+      kno_decref(result);}
+    return KNO_FALSE;}
   else {
     lispval status = ((TABLEP(response))?
-                      (fd_get(response,response_code_slotid,VOID)):
+                      (kno_get(response,response_code_slotid,VOID)):
                       (FIXNUMP(response))?(response):(VOID));
     if (!(FIXNUMP(status))) {
-      if (TABLEP(response)) fd_decref(status);
-      return FD_FALSE;}
+      if (TABLEP(response)) kno_decref(status);
+      return KNO_FALSE;}
     if (VOIDP(arg2)) {
-      if (fd_choice_containsp(status,arg1))
-        return FD_TRUE;
-      else return FD_FALSE;}
-    else if ((FD_UINTP(arg1))&&(FD_UINTP(arg2))) {
+      if (kno_choice_containsp(status,arg1))
+        return KNO_TRUE;
+      else return KNO_FALSE;}
+    else if ((KNO_UINTP(arg1))&&(KNO_UINTP(arg2))) {
       int min = FIX2INT(arg1), max = FIX2INT(arg2);
       int rval = FIX2INT(status);
-      if ((rval>=min)&&(rval<max)) return FD_TRUE;
-      else return FD_FALSE;}
+      if ((rval>=min)&&(rval<max)) return KNO_TRUE;
+      else return KNO_FALSE;}
     else if (!(FIXNUMP(arg1)))
-      return fd_type_error("HTTP status","resptestprim",arg1);
-    else return fd_type_error("HTTP status","resptestprim",arg2);}
+      return kno_type_error("HTTP status","resptestprim",arg1);
+    else return kno_type_error("HTTP status","resptestprim",arg2);}
 }
 
 /* Opening URLs with options */
@@ -1242,48 +1242,48 @@ static lispval testresponseprim(lispval response,lispval arg1,lispval arg2)
 static lispval curlsetopt(lispval handle,lispval opt,lispval value)
 {
   if (FALSEP(handle)) {
-    if (FD_EQ(opt,header_symbol))
-      fd_add(curl_defaults,opt,value);
-    else fd_store(curl_defaults,opt,value);
-    return FD_TRUE;}
-  else if (TYPEP(handle,fd_curl_type)) {
-    struct FD_CURL_HANDLE *h = fd_consptr(fd_curl_handle,handle,fd_curl_type);
+    if (KNO_EQ(opt,header_symbol))
+      kno_add(curl_defaults,opt,value);
+    else kno_store(curl_defaults,opt,value);
+    return KNO_TRUE;}
+  else if (TYPEP(handle,kno_curl_type)) {
+    struct KNO_CURL_HANDLE *h = kno_consptr(kno_curl_handle,handle,kno_curl_type);
     return set_curlopt(h,opt,value);}
-  else return fd_type_error("curl handle","curlsetopt",handle);
+  else return kno_type_error("curl handle","curlsetopt",handle);
 }
 
 static lispval curlopen(int n,lispval *args)
 {
   if (n==0)
-    return (lispval) fd_open_curl_handle();
+    return (lispval) kno_open_curl_handle();
   else if (n==1) {
-    struct FD_CURL_HANDLE *ch = fd_open_curl_handle();
-    lispval spec = args[0], keys = fd_getkeys(spec);
+    struct KNO_CURL_HANDLE *ch = kno_open_curl_handle();
+    lispval spec = args[0], keys = kno_getkeys(spec);
     DO_CHOICES(key,keys) {
-      lispval v = fd_get(spec,key,VOID);
+      lispval v = kno_get(spec,key,VOID);
       if (!(VOIDP(v))) {
         lispval setval = set_curlopt(ch,key,v);
-        if (FD_ABORTP(setval)) {
+        if (KNO_ABORTP(setval)) {
           lispval conn = (lispval) ch;
-          FD_STOP_DO_CHOICES;
-          fd_decref(keys);
-          fd_decref(conn);
-          fd_decref(v);
+          KNO_STOP_DO_CHOICES;
+          kno_decref(keys);
+          kno_decref(conn);
+          kno_decref(v);
           return setval;}
-        else fd_decref(setval);}
-      fd_decref(v);}
-    fd_decref(keys);
+        else kno_decref(setval);}
+      kno_decref(v);}
+    kno_decref(keys);
     return (lispval) ch;}
   else if (n%2)
-    return fd_err(fd_SyntaxError,"CURLOPEN",NULL,VOID);
+    return kno_err(kno_SyntaxError,"CURLOPEN",NULL,VOID);
   else {
     int i = 0;
-    struct FD_CURL_HANDLE *ch = fd_open_curl_handle();
+    struct KNO_CURL_HANDLE *ch = kno_open_curl_handle();
     while (i<n) {
       lispval setv = set_curlopt(ch,args[i],args[i+1]);
-      if (FD_ABORTP(setv)) {
+      if (KNO_ABORTP(setv)) {
         lispval conn = (lispval) ch;
-        fd_decref(conn);
+        kno_decref(conn);
         return setv;}
       i = i+2;}
     return (lispval) ch;}
@@ -1294,26 +1294,26 @@ static lispval curlopen(int n,lispval *args)
 static lispval urlpost(int n,lispval *args)
 {
   INBUF data; CURLcode retval;
-  lispval result = VOID, conn, urlarg = VOID, curl=FD_VOID;
+  lispval result = VOID, conn, urlarg = VOID, curl=KNO_VOID;
   u8_string url; int start;
-  struct FD_CURL_HANDLE *h = NULL;
+  struct KNO_CURL_HANDLE *h = NULL;
   struct curl_httppost *post = NULL;
-  if (n<2) return fd_err(fd_TooFewArgs,"URLPOST",NULL,VOID);
+  if (n<2) return kno_err(kno_TooFewArgs,"URLPOST",NULL,VOID);
   else if (STRINGP(args[0])) {
     url = CSTRING(args[0]); urlarg = args[0];}
-  else if (TYPEP(args[0],fd_secret_type)) {
+  else if (TYPEP(args[0],kno_secret_type)) {
     url = CSTRING(args[0]); urlarg = args[0];}
-  else return fd_type_error("url","urlpost",args[0]);
-  if (TYPEP(args[1],fd_curl_type)) curl=args[1];
-  if ((TYPEP(args[1],fd_curl_type))||(TABLEP(args[1]))) {
+  else return kno_type_error("url","urlpost",args[0]);
+  if (TYPEP(args[1],kno_curl_type)) curl=args[1];
+  if ((TYPEP(args[1],kno_curl_type))||(TABLEP(args[1]))) {
     conn = curl_arg(args[1],"urlpost"); start = 2;}
   else {
     conn = curl_arg(VOID,"urlpost"); start = 1;}
-  if (!(TYPEP(conn,fd_curl_type))) {
-    return fd_type_error("CURLCONN","urlpost",conn);}
-  else h = (fd_curl_handle)conn;
+  if (!(TYPEP(conn,kno_curl_type))) {
+    return kno_type_error("CURLCONN","urlpost",conn);}
+  else h = (kno_curl_handle)conn;
   data.bytes = u8_malloc(8192); data.size = 0; data.limit = 8192;
-  result = fd_empty_slotmap();
+  result = kno_empty_slotmap();
   curl_easy_setopt(h->handle,CURLOPT_URL,url);
   curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,&data);
   curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
@@ -1325,18 +1325,18 @@ static lispval urlpost(int n,lispval *args)
       curl_easy_setopt(h->handle,CURLOPT_POSTFIELDS,
                        (char *) (CSTRING(args[start])));}
     else if (PACKETP(args[start])) {
-      size_t length = FD_PACKET_LENGTH(args[start]);
+      size_t length = KNO_PACKET_LENGTH(args[start]);
       curl_easy_setopt(h->handle,CURLOPT_POSTFIELDSIZE,length);
       curl_easy_setopt(h->handle,CURLOPT_POSTFIELDS,
-                       ((char *)(FD_PACKET_DATA(args[start]))));}
+                       ((char *)(KNO_PACKET_DATA(args[start]))));}
     else if (TABLEP(args[start])) {
       /* Construct form data */
       lispval postdata = args[start];
-      lispval keys = fd_getkeys(postdata);
+      lispval keys = kno_getkeys(postdata);
       struct U8_OUTPUT nameout; u8_byte _buf[128]; int initnameout = 1;
       struct curl_httppost *last = NULL;
       DO_CHOICES(key,keys) {
-        lispval val = fd_get(postdata,key,VOID);
+        lispval val = kno_get(postdata,key,VOID);
         u8_string keyname = NULL; size_t keylen; int nametype = CURLFORM_PTRNAME;
         if (EMPTYP(val)) continue;
         else if (SYMBOLP(key)) {
@@ -1347,14 +1347,14 @@ static lispval urlpost(int n,lispval *args)
           if (initnameout) {
             U8_INIT_STATIC_OUTPUT_BUF(nameout,128,_buf); initnameout = 0;}
           else nameout.u8_write = nameout.u8_outbuf;
-          fd_unparse(&nameout,key);
+          kno_unparse(&nameout,key);
           keyname = nameout.u8_outbuf;
           keylen = (nameout.u8_write-nameout.u8_outbuf)+1;
           nametype = CURLFORM_COPYNAME;}
         if (keyname == NULL) {
-          curl_formfree(post); fd_decref(conn);
+          curl_formfree(post); kno_decref(conn);
           if (!(initnameout)) u8_close_output(&nameout);
-          return fd_err(fd_TypeError,"CURLPOST",u8_strdup("bad form var"),key);}
+          return kno_err(kno_TypeError,"CURLPOST",u8_strdup("bad form var"),key);}
         else if (STRINGP(val)) {
           curl_formadd(&post,&last,
                        nametype,keyname,CURLFORM_NAMELENGTH,keylen,
@@ -1364,12 +1364,12 @@ static lispval urlpost(int n,lispval *args)
         else if (PACKETP(val))
           curl_formadd(&post,&last,
                        nametype,keyname,CURLFORM_NAMELENGTH,keylen,
-                       CURLFORM_PTRCONTENTS,FD_PACKET_DATA(val),
-                       CURLFORM_CONTENTSLENGTH,((size_t)FD_PACKET_LENGTH(val)),
+                       CURLFORM_PTRCONTENTS,KNO_PACKET_DATA(val),
+                       CURLFORM_CONTENTSLENGTH,((size_t)KNO_PACKET_LENGTH(val)),
                        CURLFORM_END);
         else {
           U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
-          fd_unparse(&out,val);
+          kno_unparse(&out,val);
           curl_formadd(&post,&last,
                        nametype,keyname,CURLFORM_NAMELENGTH,keylen,
                        CURLFORM_COPYCONTENTS,out.u8_outbuf,
@@ -1377,14 +1377,14 @@ static lispval urlpost(int n,lispval *args)
                        ((size_t)(out.u8_write-out.u8_outbuf)),
                        CURLFORM_END);
           u8_free(out.u8_outbuf);}
-        fd_decref(val);}
+        kno_decref(val);}
       if (!(initnameout)) u8_close_output(&nameout);
       curl_easy_setopt(h->handle, CURLOPT_HTTPPOST, post);
-      fd_decref(keys);}
+      kno_decref(keys);}
     else {
-      if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
-      fd_decref(conn);
-      return fd_err(fd_TypeError,"CURLPOST",u8_strdup("postdata"),
+      if (conn == curl) reset_curl_handle((kno_curl_handle)conn);
+      kno_decref(conn);
+      return kno_err(kno_TypeError,"CURLPOST",u8_strdup("postdata"),
                     args[start]);}
     retval = curl_easy_perform(h->handle);
     if (post) curl_formfree(post);}
@@ -1406,7 +1406,7 @@ static lispval urlpost(int n,lispval *args)
           U8_INIT_STATIC_OUTPUT_BUF(nameout,128,_buf);
           initnameout = 0;}
         else nameout.u8_write = nameout.u8_outbuf;
-        fd_unparse(&nameout,key);
+        kno_unparse(&nameout,key);
         keyname = nameout.u8_outbuf;
         keylen = nameout.u8_write-nameout.u8_outbuf;
         nametype = CURLFORM_COPYNAME;}
@@ -1414,9 +1414,9 @@ static lispval urlpost(int n,lispval *args)
       if (keyname == NULL) {
         if (!(initnameout)) u8_close_output(&nameout);
         curl_formfree(post);
-        if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
-        fd_decref(conn);
-        return fd_err(fd_TypeError,"CURLPOST",u8_strdup("bad form var"),key);}
+        if (conn == curl) reset_curl_handle((kno_curl_handle)conn);
+        kno_decref(conn);
+        return kno_err(kno_TypeError,"CURLPOST",u8_strdup("bad form var"),key);}
       else if (STRINGP(val))
         curl_formadd(&post,&last,
                      nametype,keyname,CURLFORM_NAMELENGTH,keylen,
@@ -1426,12 +1426,12 @@ static lispval urlpost(int n,lispval *args)
       else if (PACKETP(val))
         curl_formadd(&post,&last,
                      nametype,keyname,CURLFORM_NAMELENGTH,keylen,
-                     CURLFORM_PTRCONTENTS,FD_PACKET_DATA(val),
-                     CURLFORM_CONTENTSLENGTH,((size_t)FD_PACKET_LENGTH(val)),
+                     CURLFORM_PTRCONTENTS,KNO_PACKET_DATA(val),
+                     CURLFORM_CONTENTSLENGTH,((size_t)KNO_PACKET_LENGTH(val)),
                      CURLFORM_END);
       else {
         U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
-        fd_unparse(&out,val);
+        kno_unparse(&out,val);
         curl_formadd(&post,&last,
                      nametype,keyname,CURLFORM_NAMELENGTH,keylen,
                      CURLFORM_COPYCONTENTS,out.u8_outbuf,
@@ -1444,55 +1444,55 @@ static lispval urlpost(int n,lispval *args)
     retval = curl_easy_perform(h->handle);
     curl_formfree(post);}
   handlefetchresult(h,result,&data);
-  if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
-  fd_decref(conn);
+  if (conn == curl) reset_curl_handle((kno_curl_handle)conn);
+  kno_decref(conn);
   if (retval!=CURLE_OK) {
     char buf[CURL_ERROR_SIZE];
-    lispval errval = fd_err(CurlError,"fetchurl",getcurlerror(buf,retval),urlarg);
+    lispval errval = kno_err(CurlError,"fetchurl",getcurlerror(buf,retval),urlarg);
     return errval;}
   else return result;
 }
 
-static lispval urlpostdata_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+static lispval urlpostdata_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval urlarg = fd_get_arg(expr,1), url = fd_eval(urlarg,env);
+  lispval urlarg = kno_get_arg(expr,1), url = kno_eval(urlarg,env);
   lispval ctype, curl, conn, body = VOID;
   struct U8_OUTPUT out;
   INBUF data; OUTBUF rdbuf; CURLcode retval;
-  struct FD_CURL_HANDLE *h = NULL;
+  struct KNO_CURL_HANDLE *h = NULL;
   lispval result = VOID;
 
-  if (FD_ABORTP(url)) return url;
-  else if (!((STRINGP(url))||(TYPEP(url,fd_secret_type))))
-    return fd_type_error("url","urlpostdata_evalfn",url);
+  if (KNO_ABORTP(url)) return url;
+  else if (!((STRINGP(url))||(TYPEP(url,kno_secret_type))))
+    return kno_type_error("url","urlpostdata_evalfn",url);
   else {
-    ctype = fd_eval(fd_get_arg(expr,2),env);
-    body = fd_get_body(expr,3);}
+    ctype = kno_eval(kno_get_arg(expr,2),env);
+    body = kno_get_body(expr,3);}
 
-  if (FD_ABORTP(ctype)) {
-    fd_decref(url); return ctype;}
+  if (KNO_ABORTP(ctype)) {
+    kno_decref(url); return ctype;}
   else if (!(STRINGP(ctype))) {
-    fd_decref(url);
-    return fd_type_error("mime type","urlpostdata_evalfn",ctype);}
+    kno_decref(url);
+    return kno_type_error("mime type","urlpostdata_evalfn",ctype);}
   else {
-    curl = fd_eval(fd_get_arg(expr,3),env);
-    body = fd_get_body(expr,4);}
+    curl = kno_eval(kno_get_arg(expr,3),env);
+    body = kno_get_body(expr,4);}
 
   conn = curl_arg(curl,"urlpostdata");
 
-  if (FD_ABORTP(conn)) {
-    fd_decref(url); fd_decref(ctype); fd_decref(curl);
+  if (KNO_ABORTP(conn)) {
+    kno_decref(url); kno_decref(ctype); kno_decref(curl);
     return conn;}
-  else if (!(TYPEP(conn,fd_curl_type))) {
-    fd_decref(url); fd_decref(ctype); fd_decref(curl);
-    return fd_type_error("CURLCONN","urlpostdata_evalfn",conn);}
-  else h = fd_consptr(fd_curl_handle,conn,fd_curl_type);
+  else if (!(TYPEP(conn,kno_curl_type))) {
+    kno_decref(url); kno_decref(ctype); kno_decref(curl);
+    return kno_type_error("CURLCONN","urlpostdata_evalfn",conn);}
+  else h = kno_consptr(kno_curl_handle,conn,kno_curl_type);
 
   curl_add_header(h,"Content-Type",CSTRING(ctype));
 
   U8_INIT_OUTPUT(&out,8192);
 
-  fd_printout_to(&out,body,env);
+  kno_printout_to(&out,body,env);
 
   curl_easy_setopt(h->handle,CURLOPT_URL,CSTRING(url));
 
@@ -1506,22 +1506,22 @@ static lispval urlpostdata_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,&data);
   curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
   curl_easy_setopt(h->handle,CURLOPT_POST,1);
-  result = fd_empty_slotmap();
+  result = kno_empty_slotmap();
 
   retval = curl_easy_perform(h->handle);
 
   if (retval!=CURLE_OK) {
     char buf[CURL_ERROR_SIZE];
-    lispval errval = fd_err(CurlError,"fetchurl",getcurlerror(buf,retval),urlarg);
-    fd_decref(url); fd_decref(ctype); fd_decref(curl);
-    if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
-    fd_decref(conn);
+    lispval errval = kno_err(CurlError,"fetchurl",getcurlerror(buf,retval),urlarg);
+    kno_decref(url); kno_decref(ctype); kno_decref(curl);
+    if (conn == curl) reset_curl_handle((kno_curl_handle)conn);
+    kno_decref(conn);
     return errval;}
 
   handlefetchresult(h,result,&data);
-  fd_decref(url); fd_decref(ctype); fd_decref(curl);
-  if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
-  fd_decref(conn);
+  kno_decref(url); kno_decref(ctype); kno_decref(curl);
+  if (conn == curl) reset_curl_handle((kno_curl_handle)conn);
+  kno_decref(conn);
   return result;
 }
 
@@ -1536,46 +1536,46 @@ static u8_string url_source_fn(int fetch,u8_string uri,u8_string enc_name,
       ((strncmp(uri,"ftp:",4))==0)) {
     if (fetch)  {
       lispval result = fetchurl(NULL,uri);
-      lispval content = fd_get(result,pcontent_symbol,EMPTY);
+      lispval content = kno_get(result,pcontent_symbol,EMPTY);
       if (PACKETP(content)) {
         u8_encoding enc=
           ((enc_name == NULL)?(u8_get_default_encoding()):
            (strcasecmp(enc_name,"auto")==0)?
-           (u8_guess_encoding(FD_PACKET_DATA(content))):
+           (u8_guess_encoding(KNO_PACKET_DATA(content))):
            (u8_get_encoding(enc_name)));
         if (!(enc)) enc = u8_get_default_encoding();
         u8_string string_form = u8_make_string
-          (enc,FD_PACKET_DATA(content),
-           FD_PACKET_DATA(content)+FD_PACKET_LENGTH(content));
-        fd_decref(content);
+          (enc,KNO_PACKET_DATA(content),
+           KNO_PACKET_DATA(content)+KNO_PACKET_LENGTH(content));
+        kno_decref(content);
         content = lispval_string(string_form);}
       if (STRINGP(content)) {
-        lispval eurl = fd_get(result,eurl_slotid,VOID);
-        lispval filetime = fd_get(result,filetime_slotid,VOID);
+        lispval eurl = kno_get(result,eurl_slotid,VOID);
+        lispval filetime = kno_get(result,filetime_slotid,VOID);
         u8_string sdata = u8_strdup(CSTRING(content));
         if ((STRINGP(eurl))&&(path)) *path = u8_strdup(CSTRING(eurl));
-        if ((TYPEP(filetime,fd_timestamp_type))&&(timep))
-          *timep = u8_mktime(&(((fd_timestamp)filetime)->u8xtimeval));
-        fd_decref(filetime); fd_decref(eurl);
-        fd_decref(content); fd_decref(result);
+        if ((TYPEP(filetime,kno_timestamp_type))&&(timep))
+          *timep = u8_mktime(&(((kno_timestamp)filetime)->u8xtimeval));
+        kno_decref(filetime); kno_decref(eurl);
+        kno_decref(content); kno_decref(result);
         return sdata;}
       else {
-        fd_decref(content); fd_decref(result);
+        kno_decref(content); kno_decref(result);
         return NULL;}}
     else {
       lispval result = fetchurlhead(NULL,uri);
-      lispval status = fd_get(result,response_code_slotid,VOID);
+      lispval status = kno_get(result,response_code_slotid,VOID);
       if ((VOIDP(status))||
-          ((FD_UINTP(status))&&
+          ((KNO_UINTP(status))&&
            (FIX2INT(status)<200)&&
            (FIX2INT(status)>=400)))
         return NULL;
       else {
-        lispval eurl = fd_get(result,eurl_slotid,VOID);
-        lispval filetime = fd_get(result,filetime_slotid,VOID);
+        lispval eurl = kno_get(result,eurl_slotid,VOID);
+        lispval filetime = kno_get(result,filetime_slotid,VOID);
         if ((STRINGP(eurl))&&(path)) *path = u8_strdup(CSTRING(eurl));
-        if ((TYPEP(filetime,fd_timestamp_type))&&(timep))
-          *timep = u8_mktime(&(((fd_timestamp)filetime)->u8xtimeval));
+        if ((TYPEP(filetime,kno_timestamp_type))&&(timep))
+          *timep = u8_mktime(&(((kno_timestamp)filetime)->u8xtimeval));
         return "exists";}}}
   else return NULL;
 }
@@ -1650,69 +1650,69 @@ static void global_curl_cleanup()
 
 static int curl_initialized = 0;
 
-FD_EXPORT void fd_init_curl_c(void) FD_LIBINIT_FN;
+KNO_EXPORT void kno_init_curl_c(void) KNO_LIBINIT_FN;
 
-FD_EXPORT void fd_init_curl_c()
+KNO_EXPORT void kno_init_curl_c()
 {
   lispval module;
   if (curl_initialized) return;
   curl_initialized = 1;
-  fd_init_scheme();
+  kno_init_scheme();
 
   if (getenv("USERAGENT"))
     default_user_agent=u8_strdup(getenv("USERAGENT"));
   else default_user_agent=u8_strdup(default_user_agent);
 
-  module = fd_new_module("FDWEB",(0));
+  module = kno_new_module("FDWEB",(0));
 
-  fd_curl_type = fd_register_cons_type("CURLHANDLE");
-  fd_recyclers[fd_curl_type]=recycle_curl_handle;
-  fd_unparsers[fd_curl_type]=unparse_curl_handle;
+  kno_curl_type = kno_register_cons_type("CURLHANDLE");
+  kno_recyclers[kno_curl_type]=recycle_curl_handle;
+  kno_unparsers[kno_curl_type]=unparse_curl_handle;
 
   curl_global_init(CURL_GLOBAL_ALL|CURL_GLOBAL_SSL);
   init_ssl_locks();
   atexit(global_curl_cleanup);
 
-  url_symbol = fd_intern("URL");
-  pcontent_symbol = fd_intern("%CONTENT");
-  content_type_symbol = fd_intern("CONTENT-TYPE");
-  content_length_symbol = fd_intern("CONTENT-LENGTH");
-  content_encoding_symbol = fd_intern("CONTENT-ENCODING");
-  etag_symbol = fd_intern("ETAG");
-  charset_symbol = fd_intern("CHARSET");
-  header_symbol = fd_intern("HEADER");
-  referer_symbol = fd_intern("REFERER");
-  method_symbol = fd_intern("METHOD");
-  verbose_symbol = fd_intern("VERBOSE");
-  useragent_symbol = fd_intern("USERAGENT");
-  verifyhost_symbol = fd_intern("VERIFYHOST");
-  verifypeer_symbol = fd_intern("VERIFYPEER");
-  cainfo_symbol = fd_intern("CAINFO");
-  cookie_symbol = fd_intern("COOKIE");
-  cookiejar_symbol = fd_intern("COOKIEJAR");
-  authinfo_symbol = fd_intern("AUTHINFO");
-  basicauth_symbol = fd_intern("BASICAUTH");
-  bearer_symbol = fd_intern("BEARER");
-  date_symbol = fd_intern("DATE");
-  last_modified_symbol = fd_intern("LAST-MODIFIED");
-  name_symbol = fd_intern("NAME");
+  url_symbol = kno_intern("URL");
+  pcontent_symbol = kno_intern("%CONTENT");
+  content_type_symbol = kno_intern("CONTENT-TYPE");
+  content_length_symbol = kno_intern("CONTENT-LENGTH");
+  content_encoding_symbol = kno_intern("CONTENT-ENCODING");
+  etag_symbol = kno_intern("ETAG");
+  charset_symbol = kno_intern("CHARSET");
+  header_symbol = kno_intern("HEADER");
+  referer_symbol = kno_intern("REFERER");
+  method_symbol = kno_intern("METHOD");
+  verbose_symbol = kno_intern("VERBOSE");
+  useragent_symbol = kno_intern("USERAGENT");
+  verifyhost_symbol = kno_intern("VERIFYHOST");
+  verifypeer_symbol = kno_intern("VERIFYPEER");
+  cainfo_symbol = kno_intern("CAINFO");
+  cookie_symbol = kno_intern("COOKIE");
+  cookiejar_symbol = kno_intern("COOKIEJAR");
+  authinfo_symbol = kno_intern("AUTHINFO");
+  basicauth_symbol = kno_intern("BASICAUTH");
+  bearer_symbol = kno_intern("BEARER");
+  date_symbol = kno_intern("DATE");
+  last_modified_symbol = kno_intern("LAST-MODIFIED");
+  name_symbol = kno_intern("NAME");
   /* MAXTIME is the maximum time for a result, and TIMEOUT is the max time to
      establish a connection. */
-  maxtime_symbol = fd_intern("MAXTIME");
-  eurl_slotid = fd_intern("EFFECTIVE-URL");
-  filetime_slotid = fd_intern("FILETIME");
-  response_code_slotid = fd_intern("RESPONSE");
+  maxtime_symbol = kno_intern("MAXTIME");
+  eurl_slotid = kno_intern("EFFECTIVE-URL");
+  filetime_slotid = kno_intern("FILETIME");
+  response_code_slotid = kno_intern("RESPONSE");
 
-  timeout_symbol = fd_intern("TIMEOUT");
-  connect_timeout_symbol = fd_intern("CONNECT-TIMEOUT");
-  accept_timeout_symbol = fd_intern("ACCEPT-TIMEOUT");
-  dns_symbol = fd_intern("DNS");
-  dnsip_symbol = fd_intern("DNSIP");
-  dns_cachelife_symbol = fd_intern("DNSCACHELIFE");
-  fresh_connect_symbol = fd_intern("FRESHCONNECT");
-  forbid_reuse_symbol = fd_intern("NOREUSE");
-  filetime_symbol = fd_intern("FILETIME");
-  follow_symbol = fd_intern("FOLLOW");
+  timeout_symbol = kno_intern("TIMEOUT");
+  connect_timeout_symbol = kno_intern("CONNECT-TIMEOUT");
+  accept_timeout_symbol = kno_intern("ACCEPT-TIMEOUT");
+  dns_symbol = kno_intern("DNS");
+  dnsip_symbol = kno_intern("DNSIP");
+  dns_cachelife_symbol = kno_intern("DNSCACHELIFE");
+  fresh_connect_symbol = kno_intern("FRESHCONNECT");
+  forbid_reuse_symbol = kno_intern("NOREUSE");
+  filetime_symbol = kno_intern("FILETIME");
+  follow_symbol = kno_intern("FOLLOW");
 
   CHOICE_ADD(text_types,FDSYM_TEXT);
   decl_text_type("application/xml");
@@ -1720,71 +1720,71 @@ FD_EXPORT void fd_init_curl_c()
   decl_text_type("application/atom+xml");
   decl_text_type("application/json");
 
-  curl_defaults = fd_empty_slotmap();
+  curl_defaults = kno_empty_slotmap();
 
-  fd_def_evalfn(module,"URLPOSTOUT","",urlpostdata_evalfn);
+  kno_def_evalfn(module,"URLPOSTOUT","",urlpostdata_evalfn);
 
-  fd_idefn(module,fd_make_cprim2("URLGET",urlget,1));
-  fd_idefn4(module,"URLSTREAM",urlstream,1,
+  kno_idefn(module,kno_make_cprim2("URLGET",urlget,1));
+  kno_idefn4(module,"URLSTREAM",urlstream,1,
             "(URLSTREAM *url* *handler* [*curl*]) opens the remote URL *url* "
             "and calls *handler* on packets of data from the stream. A second "
             "argument to *handler* is a slotmap which will be returned when "
             "the *handler* either errs or returns #F",
-            fd_string_type,VOID,-1,VOID,
+            kno_string_type,VOID,-1,VOID,
             -1,VOID,-1,VOID);
-  fd_idefn(module,fd_make_cprim2("URLHEAD",urlhead,1));
-  fd_idefn(module,fd_make_cprimn("URLPOST",urlpost,1));
-  fd_idefn(module,fd_make_cprim4("URLPUT",urlput,2));
-  fd_idefn(module,fd_make_cprim2("URLCONTENT",urlcontent,1));
-  fd_idefn(module,fd_make_cprim3("URLXML",urlxml,1));
-  fd_idefn(module,fd_make_cprimn("CURL/OPEN",curlopen,0));
-  fd_defalias(module,"CURLOPEN","CURL/OPEN");
-  fd_idefn(module,fd_make_cprim3("CURL/SETOPT!",curlsetopt,2));
-  fd_defalias(module,"CURLSETOPT!","CURL/SETOPT!");
-  fd_idefn(module,fd_make_cprim1x
-           ("CURL/RESET!",curlreset,1,fd_curl_type,VOID));
-  fd_defalias(module,"CURLRESET!","CURL/RESET!");
-  fd_idefn(module,fd_make_cprim1("ADD-TEXT_TYPE!",addtexttype,1));
-  fd_idefn(module,fd_make_cprim1("CURL-HANDLE?",curlhandlep,1));
+  kno_idefn(module,kno_make_cprim2("URLHEAD",urlhead,1));
+  kno_idefn(module,kno_make_cprimn("URLPOST",urlpost,1));
+  kno_idefn(module,kno_make_cprim4("URLPUT",urlput,2));
+  kno_idefn(module,kno_make_cprim2("URLCONTENT",urlcontent,1));
+  kno_idefn(module,kno_make_cprim3("URLXML",urlxml,1));
+  kno_idefn(module,kno_make_cprimn("CURL/OPEN",curlopen,0));
+  kno_defalias(module,"CURLOPEN","CURL/OPEN");
+  kno_idefn(module,kno_make_cprim3("CURL/SETOPT!",curlsetopt,2));
+  kno_defalias(module,"CURLSETOPT!","CURL/SETOPT!");
+  kno_idefn(module,kno_make_cprim1x
+           ("CURL/RESET!",curlreset,1,kno_curl_type,VOID));
+  kno_defalias(module,"CURLRESET!","CURL/RESET!");
+  kno_idefn(module,kno_make_cprim1("ADD-TEXT_TYPE!",addtexttype,1));
+  kno_idefn(module,kno_make_cprim1("CURL-HANDLE?",curlhandlep,1));
 
-  fd_idefn(module,fd_make_cprim1("RESPONSE/OK?",responseokp,1));
-  fd_idefn(module,fd_make_cprim1("RESPONSE/REDIRECT?",
+  kno_idefn(module,kno_make_cprim1("RESPONSE/OK?",responseokp,1));
+  kno_idefn(module,kno_make_cprim1("RESPONSE/REDIRECT?",
                                  responseredirectp,1));
-  fd_idefn(module,fd_make_cprim1("RESPONSE/ERROR?",responseanyerrorp,1));
-  fd_idefn(module,fd_make_cprim1("RESPONSE/MYERROR?",responsemyerrorp,1));
-  fd_idefn(module,fd_make_cprim1("RESPONSE/SERVERERROR?",
+  kno_idefn(module,kno_make_cprim1("RESPONSE/ERROR?",responseanyerrorp,1));
+  kno_idefn(module,kno_make_cprim1("RESPONSE/MYERROR?",responsemyerrorp,1));
+  kno_idefn(module,kno_make_cprim1("RESPONSE/SERVERERROR?",
                                  responseservererrorp,1));
-  fd_idefn(module,fd_make_cprim1("RESPONSE/UNAUTHORIZED?",
+  kno_idefn(module,kno_make_cprim1("RESPONSE/UNAUTHORIZED?",
                                  responseunauthorizedp,1));
-  fd_idefn(module,fd_make_cprim1("RESPONSE/FORBIDDEN?",
+  kno_idefn(module,kno_make_cprim1("RESPONSE/FORBIDDEN?",
                                  responseforbiddenp,1));
-  fd_idefn(module,fd_make_cprim1("RESPONSE/TIMEOUT?",
+  kno_idefn(module,kno_make_cprim1("RESPONSE/TIMEOUT?",
                                  responsetimeoutp,1));
-  fd_idefn(module,fd_make_cprim1("RESPONSE/BADMETHOD?",
+  kno_idefn(module,kno_make_cprim1("RESPONSE/BADMETHOD?",
                                  responsebadmethodp,1));
-  fd_idefn(module,fd_make_cprim1("RESPONSE/NOTFOUND?",
+  kno_idefn(module,kno_make_cprim1("RESPONSE/NOTFOUND?",
                                  responsenotfoundp,1));
-  fd_idefn(module,fd_make_cprim1("RESPONSE/NOTFOUND?",
+  kno_idefn(module,kno_make_cprim1("RESPONSE/NOTFOUND?",
                                  responsenotfoundp,1));
-  fd_idefn(module,fd_make_cprim1("RESPONSE/GONE?",
+  kno_idefn(module,kno_make_cprim1("RESPONSE/GONE?",
                                  responsegonep,1));
-  fd_idefn(module,fd_make_cprim1("RESPONSE/STATUS",responsestatusprim,1));
-  fd_idefn(module,fd_make_ndprim
-           (fd_make_cprim3("RESPONSE/STATUS?",testresponseprim,2)));
+  kno_idefn(module,kno_make_cprim1("RESPONSE/STATUS",responsestatusprim,1));
+  kno_idefn(module,kno_make_ndprim
+           (kno_make_cprim3("RESPONSE/STATUS?",testresponseprim,2)));
 
-  fd_register_config
+  kno_register_config
     ("CURL:LOGLEVEL",_("Loglevel for debugging CURL calls"),
-     fd_intconfig_get,fd_loglevelconfig_set,&curl_loglevel);
+     kno_intconfig_get,kno_loglevelconfig_set,&curl_loglevel);
 
-  fd_register_config
+  kno_register_config
     ("CURL:USERAGENT",_("What CURL should use as the default user agent string"),
-     fd_sconfig_get,fd_sconfig_set,&default_user_agent);
+     kno_sconfig_get,kno_sconfig_set,&default_user_agent);
 
-  fd_register_config
+  kno_register_config
     ("CURL:REDIRECTS",_("Maximum number of redirects to allow"),
-     fd_intconfig_get,fd_intconfig_set,&max_redirects);
+     kno_intconfig_get,kno_intconfig_set,&max_redirects);
 
-  fd_register_sourcefn(url_source_fn,NULL);
+  kno_register_sourcefn(url_source_fn,NULL);
 
   u8_register_source_file(_FILEINFO);
 }

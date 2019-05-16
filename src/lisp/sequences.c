@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -9,15 +9,15 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define FD_INLINE_CHOICES 1
-#define FD_INLINE_FCNIDS 1
+#define KNO_INLINE_CHOICES 1
+#define KNO_INLINE_FCNIDS 1
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/compounds.h"
-#include "framerd/sequences.h"
-#include "framerd/numbers.h"
-#include "framerd/apply.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/compounds.h"
+#include "kno/sequences.h"
+#include "kno/numbers.h"
+#include "kno/apply.h"
 
 
 #include <libu8/libu8.h>
@@ -25,12 +25,12 @@
 
 #include <limits.h>
 
-struct FD_SEQFNS *fd_seqfns[FD_TYPE_MAX];
+struct KNO_SEQFNS *kno_seqfns[KNO_TYPE_MAX];
 
-#define FD_EQV(x,y) \
-  ((FD_EQ(x,y)) || \
+#define KNO_EQV(x,y) \
+  ((KNO_EQ(x,y)) || \
    ((NUMBERP(x)) && (NUMBERP(y)) && \
-    (fd_numcompare(x,y)==0)))
+    (kno_numcompare(x,y)==0)))
 
 #define string_start(bytes,i) ((i==0) ? (bytes) : (u8_substring(bytes,i)))
 
@@ -42,7 +42,7 @@ static lispval make_long_vector(int n,lispval *from_elts);
 
 static lispval *compound2vector(lispval x,int *lenp)
 {
-  struct FD_COMPOUND *compound = (fd_compound) x;
+  struct KNO_COMPOUND *compound = (kno_compound) x;
   if ((compound->compound_off)<0) {
     *lenp = -1;
     return NULL;}
@@ -53,202 +53,202 @@ static lispval *compound2vector(lispval x,int *lenp)
     return (&(compound->compound_0))+off;}
 }
 
-FD_FASTOP int seq_length(lispval x)
+KNO_FASTOP int seq_length(lispval x)
 {
-  int ctype = FD_PTR_TYPE(x);
+  int ctype = KNO_PTR_TYPE(x);
   switch (ctype) {
-  case fd_vector_type:
+  case kno_vector_type:
     return VEC_LEN(x);
-  case fd_compound_type: {
-    struct FD_COMPOUND *compound = (fd_compound) x;
+  case kno_compound_type: {
+    struct KNO_COMPOUND *compound = (kno_compound) x;
     if ( (compound->compound_off) < 0 )
       return -1;
     else return (compound->compound_length)-(compound->compound_off);}
     return VEC_LEN(x);
-  case fd_code_type:
-    return FD_CODE_LENGTH(x);
-  case fd_packet_type: case fd_secret_type:
-    return FD_PACKET_LENGTH(x);
-  case fd_numeric_vector_type:
-    return FD_NUMVEC_LENGTH(x);
-  case fd_string_type:
-    return u8_strlen_x(CSTRING(x),FD_STRING_LENGTH(x));
-  case fd_pair_type: {
+  case kno_code_type:
+    return KNO_CODE_LENGTH(x);
+  case kno_packet_type: case kno_secret_type:
+    return KNO_PACKET_LENGTH(x);
+  case kno_numeric_vector_type:
+    return KNO_NUMVEC_LENGTH(x);
+  case kno_string_type:
+    return u8_strlen_x(CSTRING(x),KNO_STRING_LENGTH(x));
+  case kno_pair_type: {
     int i = 0; lispval scan = x;
-    while (PAIRP(scan)) {i++; scan = FD_CDR(scan);}
+    while (PAIRP(scan)) {i++; scan = KNO_CDR(scan);}
     return i;}
   default:
     if (NILP(x)) return 0;
-    else if ((fd_seqfns[ctype]) && (fd_seqfns[ctype]->len) &&
-             ((fd_seqfns[ctype]->len) != fd_seq_length))
-      return (fd_seqfns[ctype]->len)(x);
+    else if ((kno_seqfns[ctype]) && (kno_seqfns[ctype]->len) &&
+             ((kno_seqfns[ctype]->len) != kno_seq_length))
+      return (kno_seqfns[ctype]->len)(x);
     else return -1;}
 }
 
-struct FD_SEQFNS *fd_seqfns[FD_TYPE_MAX];
-FD_EXPORT int fd_seq_length(lispval x)
+struct KNO_SEQFNS *kno_seqfns[KNO_TYPE_MAX];
+KNO_EXPORT int kno_seq_length(lispval x)
 {
   return seq_length(x);
 }
 
-FD_EXPORT lispval fd_seq_elt(lispval x,int i)
+KNO_EXPORT lispval kno_seq_elt(lispval x,int i)
 {
-  int ctype = FD_PTR_TYPE(x);
+  int ctype = KNO_PTR_TYPE(x);
   if (i<0)
-    return FD_RANGE_ERROR;
+    return KNO_RANGE_ERROR;
   else switch (ctype) {
-    case fd_vector_type:
-      if (i>=VEC_LEN(x)) return FD_RANGE_ERROR;
-      else return fd_incref(VEC_REF(x,i));
-    case fd_code_type:
-      if (i>=FD_CODE_LENGTH(x)) return FD_RANGE_ERROR;
-      else return fd_incref(FD_CODE_REF(x,i));
-    case fd_packet_type: case fd_secret_type:
-      if (i>=FD_PACKET_LENGTH(x)) return FD_RANGE_ERROR;
+    case kno_vector_type:
+      if (i>=VEC_LEN(x)) return KNO_RANGE_ERROR;
+      else return kno_incref(VEC_REF(x,i));
+    case kno_code_type:
+      if (i>=KNO_CODE_LENGTH(x)) return KNO_RANGE_ERROR;
+      else return kno_incref(KNO_CODE_REF(x,i));
+    case kno_packet_type: case kno_secret_type:
+      if (i>=KNO_PACKET_LENGTH(x)) return KNO_RANGE_ERROR;
       else {
-        int val = FD_PACKET_DATA(x)[i];
-        return FD_INT(val);}
-    case fd_compound_type: {
+        int val = KNO_PACKET_DATA(x)[i];
+        return KNO_INT(val);}
+    case kno_compound_type: {
       int len; lispval *elts = compound2vector(x,&len);
       if (elts == NULL) {
-        fd_seterr("NotACompoundVector","fd_seq_elt",NULL,x);
-        return FD_ERROR_VALUE;}
+        kno_seterr("NotACompoundVector","kno_seq_elt",NULL,x);
+        return KNO_ERROR_VALUE;}
       else if (i>=len)
-        return FD_RANGE_ERROR;
-      else return fd_incref(elts[i]);}
-    case fd_numeric_vector_type:
-      if (i>=FD_NUMVEC_LENGTH(x))
-        return FD_RANGE_ERROR;
-      else switch (FD_NUMVEC_TYPE(x)) {
-        case fd_short_elt:
-          return FD_SHORT2FIX(FD_NUMVEC_SHORT(x,i));
-        case fd_int_elt:
-          return FD_INT(FD_NUMVEC_INT(x,i));
-        case fd_long_elt:
-          return FD_INT(FD_NUMVEC_LONG(x,i));
-        case fd_float_elt:
-          return fd_make_flonum(FD_NUMVEC_FLOAT(x,i));
-        case fd_double_elt:
-          return fd_make_flonum(FD_NUMVEC_DOUBLE(x,i));
+        return KNO_RANGE_ERROR;
+      else return kno_incref(elts[i]);}
+    case kno_numeric_vector_type:
+      if (i>=KNO_NUMVEC_LENGTH(x))
+        return KNO_RANGE_ERROR;
+      else switch (KNO_NUMVEC_TYPE(x)) {
+        case kno_short_elt:
+          return KNO_SHORT2FIX(KNO_NUMVEC_SHORT(x,i));
+        case kno_int_elt:
+          return KNO_INT(KNO_NUMVEC_INT(x,i));
+        case kno_long_elt:
+          return KNO_INT(KNO_NUMVEC_LONG(x,i));
+        case kno_float_elt:
+          return kno_make_flonum(KNO_NUMVEC_FLOAT(x,i));
+        case kno_double_elt:
+          return kno_make_flonum(KNO_NUMVEC_DOUBLE(x,i));
         default:
-          return fd_err("Corrupted numvec","fd_seq_elt",NULL,fd_incref(x));}
-    case fd_pair_type: {
+          return kno_err("Corrupted numvec","kno_seq_elt",NULL,kno_incref(x));}
+    case kno_pair_type: {
       int j = 0; lispval scan = x;
       while (PAIRP(scan))
-        if (j == i) return fd_incref(FD_CAR(scan));
-        else {j++; scan = FD_CDR(scan);}
-      return FD_RANGE_ERROR;}
-    case fd_string_type: {
+        if (j == i) return kno_incref(KNO_CAR(scan));
+        else {j++; scan = KNO_CDR(scan);}
+      return KNO_RANGE_ERROR;}
+    case kno_string_type: {
       const u8_byte *sdata = CSTRING(x);
       const u8_byte *starts = string_start(sdata,i);
-      if ((starts) && (starts<sdata+FD_STRING_LENGTH(x))) {
+      if ((starts) && (starts<sdata+KNO_STRING_LENGTH(x))) {
         int c = u8_sgetc(&starts);
-        return FD_CODE2CHAR(c);}
-      else return FD_RANGE_ERROR;}
+        return KNO_CODE2CHAR(c);}
+      else return KNO_RANGE_ERROR;}
     default:
-      if (NILP(x)) return FD_RANGE_ERROR;
+      if (NILP(x)) return KNO_RANGE_ERROR;
       else if (EMPTYP(x)) return x;
-      else if ((fd_seqfns[ctype]) && (fd_seqfns[ctype]->elt) &&
-               ((fd_seqfns[ctype]->elt)!=fd_seq_elt))
-        return (fd_seqfns[ctype]->elt)(x,i);
-      else if (fd_seqfns[ctype]==NULL)
-        return fd_type_error(_("sequence"),"fd_seq_elt",x);
-      else return fd_err(fd_NoMethod,"fd_seq_elt",NULL,x);}
+      else if ((kno_seqfns[ctype]) && (kno_seqfns[ctype]->elt) &&
+               ((kno_seqfns[ctype]->elt)!=kno_seq_elt))
+        return (kno_seqfns[ctype]->elt)(x,i);
+      else if (kno_seqfns[ctype]==NULL)
+        return kno_type_error(_("sequence"),"kno_seq_elt",x);
+      else return kno_err(kno_NoMethod,"kno_seq_elt",NULL,x);}
 }
 
-FD_EXPORT lispval fd_slice(lispval x,int start,int end)
+KNO_EXPORT lispval kno_slice(lispval x,int start,int end)
 {
-  int ctype = FD_PTR_TYPE(x);
-  if (start<0) return FD_RANGE_ERROR;
+  int ctype = KNO_PTR_TYPE(x);
+  if (start<0) return KNO_RANGE_ERROR;
   else switch (ctype) {
-    case fd_vector_type: case fd_code_type: {
+    case kno_vector_type: case kno_code_type: {
       lispval *elts, *write, *read, *limit, result;
       if (end<0) end = VEC_LEN(x);
-      else if (start>VEC_LEN(x)) return FD_RANGE_ERROR;
-      else if (end>VEC_LEN(x)) return FD_RANGE_ERROR;
+      else if (start>VEC_LEN(x)) return KNO_RANGE_ERROR;
+      else if (end>VEC_LEN(x)) return KNO_RANGE_ERROR;
       write = elts = u8_alloc_n((end-start),lispval);
       read = VEC_DATA(x)+start; limit = VEC_DATA(x)+end;
       while (read<limit) {
-        lispval v = *read++; fd_incref(v); *write++=v;}
-      if (ctype == fd_vector_type)
-        result = fd_make_vector(end-start,elts);
-      else result = fd_make_code(end-start,elts);
+        lispval v = *read++; kno_incref(v); *write++=v;}
+      if (ctype == kno_vector_type)
+        result = kno_make_vector(end-start,elts);
+      else result = kno_make_code(end-start,elts);
       u8_free(elts);
       return result;}
-    case fd_packet_type: case fd_secret_type: {
-      const unsigned char *data = FD_PACKET_DATA(x);
-      if (end<0) end = FD_PACKET_LENGTH(x);
-      else if (end>FD_PACKET_LENGTH(x)) return VOID;
-      else if (ctype == fd_secret_type) {
-        lispval packet = fd_make_packet(NULL,end-start,data+start);
-        FD_SET_CONS_TYPE(packet,ctype);
+    case kno_packet_type: case kno_secret_type: {
+      const unsigned char *data = KNO_PACKET_DATA(x);
+      if (end<0) end = KNO_PACKET_LENGTH(x);
+      else if (end>KNO_PACKET_LENGTH(x)) return VOID;
+      else if (ctype == kno_secret_type) {
+        lispval packet = kno_make_packet(NULL,end-start,data+start);
+        KNO_SET_CONS_TYPE(packet,ctype);
         return packet;}
       else {}
-      return fd_make_packet(NULL,end-start,data+start);}
-    case fd_numeric_vector_type: {
-      int len = FD_NUMVEC_LENGTH(x), newlen;
-      if (start>len) return FD_RANGE_ERROR;
-      else if (end>len) return FD_RANGE_ERROR;
+      return kno_make_packet(NULL,end-start,data+start);}
+    case kno_numeric_vector_type: {
+      int len = KNO_NUMVEC_LENGTH(x), newlen;
+      if (start>len) return KNO_RANGE_ERROR;
+      else if (end>len) return KNO_RANGE_ERROR;
       else if (end<0) {
-        newlen = (FD_NUMVEC_LENGTH(x)+end)-start;
-        if (newlen<0) return FD_RANGE_ERROR;}
+        newlen = (KNO_NUMVEC_LENGTH(x)+end)-start;
+        if (newlen<0) return KNO_RANGE_ERROR;}
       else newlen = end-start;
-      switch (FD_NUMVEC_TYPE(x)) {
-      case fd_short_elt:
-        return fd_make_short_vector(newlen,FD_NUMVEC_SHORT_SLICE(x,start));
-      case fd_int_elt:
-        return fd_make_int_vector(newlen,FD_NUMVEC_INT_SLICE(x,start));
-      case fd_long_elt:
-        return fd_make_long_vector(newlen,FD_NUMVEC_LONG_SLICE(x,start));
-      case fd_float_elt:
-        return fd_make_float_vector(newlen,FD_NUMVEC_FLOAT_SLICE(x,start));
-      case fd_double_elt:
-        return fd_make_double_vector(newlen,FD_NUMVEC_DOUBLE_SLICE(x,start));
+      switch (KNO_NUMVEC_TYPE(x)) {
+      case kno_short_elt:
+        return kno_make_short_vector(newlen,KNO_NUMVEC_SHORT_SLICE(x,start));
+      case kno_int_elt:
+        return kno_make_int_vector(newlen,KNO_NUMVEC_INT_SLICE(x,start));
+      case kno_long_elt:
+        return kno_make_long_vector(newlen,KNO_NUMVEC_LONG_SLICE(x,start));
+      case kno_float_elt:
+        return kno_make_float_vector(newlen,KNO_NUMVEC_FLOAT_SLICE(x,start));
+      case kno_double_elt:
+        return kno_make_double_vector(newlen,KNO_NUMVEC_DOUBLE_SLICE(x,start));
       default:
-        return fd_err("Corrupted numvec","fd_seq_elt",NULL,fd_incref(x));}}
-    case fd_pair_type: {
+        return kno_err("Corrupted numvec","kno_seq_elt",NULL,kno_incref(x));}}
+    case kno_pair_type: {
       int j = 0; lispval scan = x, head = NIL, *tail = &head;
       while (PAIRP(scan))
         if (j == end) return head;
         else if (j>=start) {
-          lispval cons = fd_conspair(fd_incref(FD_CAR(scan)),NIL);
-          *tail = cons; tail = &(((struct FD_PAIR *)cons)->cdr);
-          j++; scan = FD_CDR(scan);}
-        else {j++; scan = FD_CDR(scan);}
-      if (j<start) return FD_RANGE_ERROR;
+          lispval cons = kno_conspair(kno_incref(KNO_CAR(scan)),NIL);
+          *tail = cons; tail = &(((struct KNO_PAIR *)cons)->cdr);
+          j++; scan = KNO_CDR(scan);}
+        else {j++; scan = KNO_CDR(scan);}
+      if (j<start) return KNO_RANGE_ERROR;
       else if (j<=end) return head;
       else {
-        fd_decref(head); return FD_RANGE_ERROR;}}
-    case fd_string_type: {
+        kno_decref(head); return KNO_RANGE_ERROR;}}
+    case kno_string_type: {
       const u8_byte *starts = string_start(CSTRING(x),start);
-      if (starts == NULL) return FD_RANGE_ERROR;
+      if (starts == NULL) return KNO_RANGE_ERROR;
       else if (end<0)
-        return fd_substring(starts,NULL);
+        return kno_substring(starts,NULL);
       else {
         const u8_byte *ends = u8_substring(starts,(end-start));
         if (ends)
-          return fd_substring(starts,ends);
-        else return FD_RANGE_ERROR;}}
+          return kno_substring(starts,ends);
+        else return KNO_RANGE_ERROR;}}
     default:
       if (NILP(x))
         if ((start == end) && (start == 0)) return NIL;
-        else return FD_RANGE_ERROR;
+        else return KNO_RANGE_ERROR;
       /* else if (EMPTYP(x)) return x; */
-      else if ((fd_seqfns[ctype]) && (fd_seqfns[ctype]->slice) &&
-               (fd_seqfns[ctype]->slice!=fd_slice))
-        return (fd_seqfns[ctype]->slice)(x,start,end);
-      else if (fd_seqfns[ctype]==NULL)
-        return fd_type_error(_("sequence"),"fd_slice",x);
-      else return fd_err(fd_NoMethod,"fd_slice",NULL,x);}
+      else if ((kno_seqfns[ctype]) && (kno_seqfns[ctype]->slice) &&
+               (kno_seqfns[ctype]->slice!=kno_slice))
+        return (kno_seqfns[ctype]->slice)(x,start,end);
+      else if (kno_seqfns[ctype]==NULL)
+        return kno_type_error(_("sequence"),"kno_slice",x);
+      else return kno_err(kno_NoMethod,"kno_slice",NULL,x);}
 }
 
 /* Element search functions */
 
-FD_EXPORT int fd_position(lispval key,lispval seq,int start,int limit)
+KNO_EXPORT int kno_position(lispval key,lispval seq,int start,int limit)
 {
-  int ctype = FD_PTR_TYPE(seq), len = seq_length(seq);
+  int ctype = KNO_PTR_TYPE(seq), len = seq_length(seq);
   if (len<0) {
-    fd_seterr("NotASequence","fd_position",NULL,seq);
+    kno_seterr("NotASequence","kno_position",NULL,seq);
     return -1;}
   int end = (limit<0)?(len+limit+1):(limit>len)?(len):(limit);
   int delta = (start<end)?(1):(-1);
@@ -258,40 +258,40 @@ FD_EXPORT int fd_position(lispval key,lispval seq,int start,int limit)
   else if (start>end)
     return -1;
   else switch (ctype) {
-    case fd_vector_type: case fd_code_type: {
-      lispval *data = FD_VECTOR_ELTS(seq);
+    case kno_vector_type: case kno_code_type: {
+      lispval *data = KNO_VECTOR_ELTS(seq);
       int i = start; while (i!=end) {
         if (LISP_EQUAL(key,data[i])) return i;
         else if (CHOICEP(data[i]))
-          if (fd_overlapp(key,data[i])) return i;
+          if (kno_overlapp(key,data[i])) return i;
           else i = i+delta;
         else i = i+delta;}
       return -1;}
-    case fd_compound_type: {
-      lispval *data = FD_COMPOUND_VECELTS(seq);
+    case kno_compound_type: {
+      lispval *data = KNO_COMPOUND_VECELTS(seq);
       int i = start; while (i!=end) {
         if (LISP_EQUAL(key,data[i])) return i;
         else if (CHOICEP(data[i]))
-          if (fd_overlapp(key,data[i])) return i;
+          if (kno_overlapp(key,data[i])) return i;
           else i = i+delta;
         else i = i+delta;}
       return -1;}
-    case fd_packet_type: case fd_secret_type: {
-      int intval = (FD_INTP(key))?(FIX2INT(key)):(-1);
-      if ((FD_UINTP(key))&&(intval>=0)&&(intval<0x100)) {
-        const unsigned char *data = FD_PACKET_DATA(seq);
+    case kno_packet_type: case kno_secret_type: {
+      int intval = (KNO_INTP(key))?(FIX2INT(key)):(-1);
+      if ((KNO_UINTP(key))&&(intval>=0)&&(intval<0x100)) {
+        const unsigned char *data = KNO_PACKET_DATA(seq);
         int i = start; while (i!=end) {
           if (intval == data[i]) return i;
           else i = i+delta;}
         return -1;}
       else return -1;}
-    case fd_numeric_vector_type:
+    case kno_numeric_vector_type:
       if (!(NUMBERP(key)))
         return -1;
-      else return fd_generic_position(key,seq,start,end);
-    case fd_string_type:
-      if (FD_CHARACTERP(key)) {
-        int code = FD_CHAR2CODE(key);
+      else return kno_generic_position(key,seq,start,end);
+    case kno_string_type:
+      if (KNO_CHARACTERP(key)) {
+        int code = KNO_CHAR2CODE(key);
         u8_string data = CSTRING(seq), found;
         u8_string lower = u8_substring(data,min);
         u8_string upper = u8_substring(lower,max-min);
@@ -311,42 +311,42 @@ FD_EXPORT int fd_position(lispval key,lispval seq,int start,int limit)
             else pos++;}
           return last_match;}}
       else return -1;
-    case fd_pair_type: {
+    case kno_pair_type: {
       int pos = 0; lispval scan = seq;
       if (start == end) return -1;
       while (PAIRP(scan))
-        if (pos<start) {pos++; scan = FD_CDR(scan);}
+        if (pos<start) {pos++; scan = KNO_CDR(scan);}
         else if (pos>=end) return -1;
-        else if (LISP_EQUAL(FD_CAR(scan),key)) return pos;
-        else {pos++; scan = FD_CDR(scan);}
+        else if (LISP_EQUAL(KNO_CAR(scan),key)) return pos;
+        else {pos++; scan = KNO_CDR(scan);}
       if ((pos<start) || ((end>0) && (pos<end))) return -2;
       else return -1;}
     default:
       if (NILP(seq)) return -1;
-      else if ((fd_seqfns[ctype]) && (fd_seqfns[ctype]->position) &&
-               ((fd_seqfns[ctype]->position)!=fd_position))
-        return (fd_seqfns[ctype]->position)(key,seq,start,end);
-      else if (fd_seqfns[ctype])
-        return fd_generic_position(key,seq,start,end);
+      else if ((kno_seqfns[ctype]) && (kno_seqfns[ctype]->position) &&
+               ((kno_seqfns[ctype]->position)!=kno_position))
+        return (kno_seqfns[ctype]->position)(key,seq,start,end);
+      else if (kno_seqfns[ctype])
+        return kno_generic_position(key,seq,start,end);
       else {
-        fd_seterr(_("Not a sequence"),"fd_position",NULL,seq); fd_incref(seq);
+        kno_seterr(_("Not a sequence"),"kno_position",NULL,seq); kno_incref(seq);
         return -3;}}
 }
 
-FD_EXPORT int fd_rposition(lispval key,lispval x,int start,int end)
+KNO_EXPORT int kno_rposition(lispval key,lispval x,int start,int end)
 {
   if (NILP(x)) return -1;
-  else if ((STRINGP(x)) && (FD_CHARACTERP(key)) &&
-           (FD_CHAR2CODE(key)<0x80)) {
+  else if ((STRINGP(x)) && (KNO_CHARACTERP(key)) &&
+           (KNO_CHAR2CODE(key)<0x80)) {
     u8_string data = CSTRING(x);
-    int code = FD_CHAR2CODE(key);
+    int code = KNO_CHAR2CODE(key);
     u8_string found = strrchr(data+start,code);
     if (found)
       if (found<data+end) return u8_charoffset(data,found-data);
       else return -1;
     else return -1;}
-  else switch (FD_PTR_TYPE(x)) {
-    case fd_vector_type: case fd_code_type: {
+  else switch (KNO_PTR_TYPE(x)) {
+    case kno_vector_type: case kno_code_type: {
       lispval *data = VEC_DATA(x);
       int len = VEC_LEN(x);
       if (end<0) end = len;
@@ -355,18 +355,18 @@ FD_EXPORT int fd_rposition(lispval key,lispval x,int start,int end)
       else while (start<end--)
              if (LISP_EQUAL(key,data[end])) return end;
       return -1;}
-    case fd_compound_type: {
-      lispval *data = FD_COMPOUND_VECELTS(x);
-      int len = FD_COMPOUND_VECLEN(x);
+    case kno_compound_type: {
+      lispval *data = KNO_COMPOUND_VECELTS(x);
+      int len = KNO_COMPOUND_VECLEN(x);
       if (end<0) end = len;
       if ((start<0) || (end<start) || (start>len) || (end>len))
         return -2;
       else while (start<end--)
              if (LISP_EQUAL(key,data[end])) return end;
       return -1;}
-    case fd_packet_type: case fd_secret_type: {
-      const unsigned char *data = FD_PACKET_DATA(x);
-      int len = FD_PACKET_LENGTH(x), keyval;
+    case kno_packet_type: case kno_secret_type: {
+      const unsigned char *data = KNO_PACKET_DATA(x);
+      int len = KNO_PACKET_LENGTH(x), keyval;
       if (end<0) end = len;
       if (FIXNUMP(key)) keyval = FIX2INT(key); else return -1;
       if ((keyval<0) || (keyval>255)) return -1;
@@ -378,13 +378,13 @@ FD_EXPORT int fd_rposition(lispval key,lispval x,int start,int end)
     default: {
       int last = -1, pos;
       while ((start<end) &&
-             (pos = fd_position(key,x,start,end))>=0) {
+             (pos = kno_position(key,x,start,end))>=0) {
         last = pos; start = pos+1;}
       return last;}}
 }
 
 /* Generic position */
-FD_EXPORT int fd_generic_position(lispval key,lispval x,int start,int end)
+KNO_EXPORT int kno_generic_position(lispval key,lispval x,int start,int end)
 {
   int len = seq_length(x);
   if (end<0) end = len+end;
@@ -392,18 +392,18 @@ FD_EXPORT int fd_generic_position(lispval key,lispval x,int start,int end)
     int tmp = start; start = end; end = tmp;}
   else {}
   if ((start<0)||(end<0))
-    return FD_RANGE_ERROR;
+    return KNO_RANGE_ERROR;
   else if (start>end)
     return -1;
   else {
     int delta = (start<end)?(1):(-1);
     int i = start; while (i<len) {
-      lispval elt = fd_seq_elt(x,i);
-      if (FD_EQUALP(elt,x)) {
-        fd_decref(elt);
+      lispval elt = kno_seq_elt(x,i);
+      if (KNO_EQUALP(elt,x)) {
+        kno_decref(elt);
         return i;}
       else {
-        fd_decref(elt);
+        kno_decref(elt);
         i = i+delta;}}
     return -1;}
 }
@@ -413,7 +413,7 @@ FD_EXPORT int fd_generic_position(lispval key,lispval x,int start,int end)
 static int packet_search(lispval subseq,lispval seq,int start,int end);
 static int vector_search(lispval subseq,lispval seq,int start,int end);
 
-FD_EXPORT int fd_search(lispval subseq,lispval seq,int start,int end)
+KNO_EXPORT int kno_search(lispval subseq,lispval seq,int start,int end)
 {
   if (start>=end) return -1;
   else if ((STRINGP(subseq)) && (STRINGP(seq))) {
@@ -431,44 +431,44 @@ FD_EXPORT int fd_search(lispval subseq,lispval seq,int start,int end)
       else return -1;}}
   else if (NILP(seq)) return -1;
   else {
-    int ctype = FD_PTR_TYPE(seq);
-    if ((fd_seqfns[ctype]) && (fd_seqfns[ctype]->search) &&
-        ((fd_seqfns[ctype]->search)!=fd_search))
-      return (fd_seqfns[ctype]->search)(subseq,seq,start,end);
+    int ctype = KNO_PTR_TYPE(seq);
+    if ((kno_seqfns[ctype]) && (kno_seqfns[ctype]->search) &&
+        ((kno_seqfns[ctype]->search)!=kno_search))
+      return (kno_seqfns[ctype]->search)(subseq,seq,start,end);
     else if ((PACKETP(seq)) && (PACKETP(subseq)))
       return packet_search(subseq,seq,start,end);
     else if ((VECTORP(seq)) && (VECTORP(subseq)))
       return vector_search(subseq,seq,start,end);
-    else return fd_generic_search(subseq,seq,start,end);}
+    else return kno_generic_search(subseq,seq,start,end);}
 }
 
-FD_EXPORT int fd_generic_search(lispval subseq,lispval seq,int start,int end)
+KNO_EXPORT int kno_generic_search(lispval subseq,lispval seq,int start,int end)
 {
   /* Generic implementation */
   int subseqlen = seq_length(subseq), pos = start;
-  lispval subseqstart = fd_seq_elt(subseq,0);
+  lispval subseqstart = kno_seq_elt(subseq,0);
   if (end<0) end = seq_length(seq);
-  while ((pos = fd_position(subseqstart,seq,pos,pos-subseqlen))>=0) {
+  while ((pos = kno_position(subseqstart,seq,pos,pos-subseqlen))>=0) {
     int i = 1, j = pos+1;
     while (i < subseqlen) {
-      lispval kelt = fd_seq_elt(subseq,i), velt = fd_seq_elt(seq,j);
+      lispval kelt = kno_seq_elt(subseq,i), velt = kno_seq_elt(seq,j);
       if ((LISP_EQUAL(kelt,velt)) ||
-          ((CHOICEP(velt)) && (fd_overlapp(kelt,velt)))) {
-        fd_decref(kelt); fd_decref(velt); i++; j++;}
-      else {fd_decref(kelt); fd_decref(velt); break;}}
+          ((CHOICEP(velt)) && (kno_overlapp(kelt,velt)))) {
+        kno_decref(kelt); kno_decref(velt); i++; j++;}
+      else {kno_decref(kelt); kno_decref(velt); break;}}
     if (i == subseqlen) {
-      fd_decref(subseqstart);
+      kno_decref(subseqstart);
       return pos;}
     else pos++;}
-  fd_decref(subseqstart);
+  kno_decref(subseqstart);
   return -1;
 }
 
 static int packet_search(lispval key,lispval x,int start,int end)
 {
-  int klen = FD_PACKET_LENGTH(key);
-  const unsigned char *kdata = FD_PACKET_DATA(key), first_byte = kdata[0];
-  const unsigned char *data = FD_PACKET_DATA(x), *scan, *lim = data+end;
+  int klen = KNO_PACKET_LENGTH(key);
+  const unsigned char *kdata = KNO_PACKET_DATA(key), first_byte = kdata[0];
+  const unsigned char *data = KNO_PACKET_DATA(x), *scan, *lim = data+end;
   if (klen>(end-start)) return -1;
   scan = data+start;
   while ((scan = memchr(scan,first_byte,lim-scan))) {
@@ -488,13 +488,13 @@ static int vector_search(lispval key,lispval x,int start,int end)
     if ((scan[0]==first_elt) ||
         (LISP_EQUAL(scan[0],first_elt)) ||
         ((CHOICEP(scan[0])) &&
-         (fd_overlapp(scan[0],first_elt)))) {
+         (kno_overlapp(scan[0],first_elt)))) {
       lispval *kscan = kdata+1, *klim = kdata+klen, *vscan = scan+1;
       while ((kscan<klim) &&
              ((*kscan== *vscan) ||
               (LISP_EQUAL(*kscan,*vscan)) ||
               ((CHOICEP(*vscan)) &&
-               (fd_overlapp(*kscan,*vscan))))) {
+               (kno_overlapp(*kscan,*vscan))))) {
         kscan++; vscan++;}
       if (kscan == klim) return scan-data;
       else scan++;}
@@ -504,13 +504,13 @@ static int vector_search(lispval key,lispval x,int start,int end)
 
 /* Creating and extracting data */
 
-/* fd_seq_elts:
+/* kno_seq_elts:
      Arguments: a lisp sequence and a pointer to an int
      Returns: a C vector of dtype pointers
    This returns a vector of dtype pointers representing the elements
      of the sequence.  For strings these are characters, for packets, they
      are ints. */
-lispval *fd_seq_elts(lispval seq,int *n)
+lispval *kno_seq_elts(lispval seq,int *n)
 {
   int len = seq_length(seq);
   if (len < 0) {
@@ -520,223 +520,223 @@ lispval *fd_seq_elts(lispval seq,int *n)
     *n = 0;
     return NULL;}
   else {
-    fd_ptr_type ctype = FD_PTR_TYPE(seq);
+    kno_ptr_type ctype = KNO_PTR_TYPE(seq);
     lispval *vec = u8_alloc_n(len,lispval);
     *n = len;
     switch (ctype) {
-    case fd_packet_type: case fd_secret_type: {
-      const unsigned char *packet = FD_PACKET_DATA(seq);
+    case kno_packet_type: case kno_secret_type: {
+      const unsigned char *packet = KNO_PACKET_DATA(seq);
       int i = 0; while (i < len) {
         int byte = packet[i];
-        vec[i]=FD_INT(byte); i++;}
+        vec[i]=KNO_INT(byte); i++;}
       break;}
-    case fd_string_type: {
+    case kno_string_type: {
       int i = 0;
-      const u8_byte *scan = FD_STRING_DATA(seq),
-        *limit = scan+FD_STRING_LENGTH(seq);
+      const u8_byte *scan = KNO_STRING_DATA(seq),
+        *limit = scan+KNO_STRING_LENGTH(seq);
       while (scan<limit)
         if (*scan=='\0') {
-          vec[i]=FD_CODE2CHAR(0); scan++; i++;}
+          vec[i]=KNO_CODE2CHAR(0); scan++; i++;}
         else {
           int ch = u8_sgetc(&scan);
           if (ch<0) break;
-          vec[i]=FD_CODE2CHAR(ch); i++;}
+          vec[i]=KNO_CODE2CHAR(ch); i++;}
       *n = i;
       break;}
-    case fd_vector_type: case fd_code_type: {
+    case kno_vector_type: case kno_code_type: {
       int i = 0;
       lispval *scan = VEC_DATA(seq),
         *limit = scan+VEC_LEN(seq);
       while (scan<limit) {
-        vec[i]=fd_incref(*scan);
+        vec[i]=kno_incref(*scan);
         scan++;
         i++;}
       break;}
-    case fd_compound_type: {
+    case kno_compound_type: {
       int i = 0, len; lispval *elts = compound2vector(seq,&len);
       if (elts == NULL) {
-        fd_seterr("NotACompoundVector","fd_seq_elts",NULL,seq);
+        kno_seterr("NotACompoundVector","kno_seq_elts",NULL,seq);
         *n = -1;
         return NULL;}
       while (i<len) {
         lispval v = elts[i];
-        vec[i] = fd_incref(v);
+        vec[i] = kno_incref(v);
         i++;}
       *n = len;
       break;}
-    case fd_numeric_vector_type: {
+    case kno_numeric_vector_type: {
       int i = 0;
-      switch (FD_NUMVEC_TYPE(seq)) {
-      case fd_short_elt: {
-        fd_short *shorts = FD_NUMVEC_SHORTS(seq);
-        while (i<len) {vec[i]=FD_SHORT2FIX(shorts[i]); i++;}
+      switch (KNO_NUMVEC_TYPE(seq)) {
+      case kno_short_elt: {
+        kno_short *shorts = KNO_NUMVEC_SHORTS(seq);
+        while (i<len) {vec[i]=KNO_SHORT2FIX(shorts[i]); i++;}
         break;}
-      case fd_int_elt: {
-        fd_int *ints = FD_NUMVEC_INTS(seq);
-        while (i<len) {vec[i]=FD_INT(ints[i]); i++;}
+      case kno_int_elt: {
+        kno_int *ints = KNO_NUMVEC_INTS(seq);
+        while (i<len) {vec[i]=KNO_INT(ints[i]); i++;}
         break;}
-      case fd_long_elt: {
-        fd_long *longs = FD_NUMVEC_LONGS(seq);
-        while (i<len) {vec[i]=FD_INT(longs[i]); i++;}
+      case kno_long_elt: {
+        kno_long *longs = KNO_NUMVEC_LONGS(seq);
+        while (i<len) {vec[i]=KNO_INT(longs[i]); i++;}
         break;}
-      case fd_float_elt: {
-        fd_float *floats = FD_NUMVEC_FLOATS(seq);
-        while (i<len) {vec[i]=fd_make_double(floats[i]); i++;}
+      case kno_float_elt: {
+        kno_float *floats = KNO_NUMVEC_FLOATS(seq);
+        while (i<len) {vec[i]=kno_make_double(floats[i]); i++;}
         break;}
-      case fd_double_elt: {
-        fd_double *doubles = FD_NUMVEC_DOUBLES(seq);
-        while (i<len) {vec[i]=fd_make_double(doubles[i]); i++;}
+      case kno_double_elt: {
+        kno_double *doubles = KNO_NUMVEC_DOUBLES(seq);
+        while (i<len) {vec[i]=kno_make_double(doubles[i]); i++;}
         break;}}
       break;}
-    case fd_pair_type: {
-      int i=0; lispval scan = seq; while (FD_PAIRP(scan)) {
-        lispval elt = fd_incref(FD_CAR(scan));
-        scan=FD_CDR(scan);
+    case kno_pair_type: {
+      int i=0; lispval scan = seq; while (KNO_PAIRP(scan)) {
+        lispval elt = kno_incref(KNO_CAR(scan));
+        scan=KNO_CDR(scan);
         vec[i++]=elt;}
-      if (!(FD_EMPTY_LISTP(scan))) {
-        fd_seterr("ImproperList","fd_seq_elts",NULL,seq);
-        fd_decref_vec(vec,len);
+      if (!(KNO_EMPTY_LISTP(scan))) {
+        kno_seterr("ImproperList","kno_seq_elts",NULL,seq);
+        kno_decref_vec(vec,len);
         u8_free(vec);
         vec=NULL;
         *n=-1;}
       break;}
     default:
-      if ((fd_seqfns[ctype]) && (fd_seqfns[ctype]->elts))
-        return (fd_seqfns[ctype]->elts)(seq,n);
+      if ((kno_seqfns[ctype]) && (kno_seqfns[ctype]->elts))
+        return (kno_seqfns[ctype]->elts)(seq,n);
       else return NULL;}
     return vec;}
 }
 
-FD_EXPORT
-/* fd_makeseq:
+KNO_EXPORT
+/* kno_makeseq:
     Arguments: a sequence type, a length, and a C vector of dtype pointers.
     Returns: a sequence
   Creates a sequence of the designated type out of the given elements. */
-lispval fd_makeseq(fd_ptr_type ctype,int n,lispval *v)
+lispval kno_makeseq(kno_ptr_type ctype,int n,lispval *v)
 {
-  if (ctype == fd_compound_type) ctype = fd_vector_type;
+  if (ctype == kno_compound_type) ctype = kno_vector_type;
   switch (ctype) {
-  case fd_string_type: {
+  case kno_string_type: {
     struct U8_OUTPUT out; int i = 0;
-    if (n==0) return fd_make_string(NULL,0,"");
+    if (n==0) return kno_make_string(NULL,0,"");
     U8_INIT_OUTPUT(&out,n*2);
     while (i < n) {
-      if (FD_CHARACTERP(v[i])) u8_putc(&out,FD_CHAR2CODE(v[i]));
-      else if (FD_UINTP(v[i])) u8_putc(&out,FIX2INT(v[i]));
+      if (KNO_CHARACTERP(v[i])) u8_putc(&out,KNO_CHAR2CODE(v[i]));
+      else if (KNO_UINTP(v[i])) u8_putc(&out,FIX2INT(v[i]));
       else {
         u8_free(out.u8_outbuf);
-        return fd_type_error(_("character"),"fd_makeseq",v[i]);}
+        return kno_type_error(_("character"),"kno_makeseq",v[i]);}
       i++;}
-    return fd_stream2string(&out);}
-  case fd_packet_type: case fd_secret_type: {
+    return kno_stream2string(&out);}
+  case kno_packet_type: case kno_secret_type: {
     lispval result = VOID;
     unsigned char *bytes = u8_malloc(n); int i = 0;
     while (i < n) {
-      if (FD_UINTP(v[i])) bytes[i]=FIX2INT(v[i]);
-      else if (FD_CHARACTERP(v[i])) {
-        unsigned int code = FD_CHAR2CODE(v[i]);
+      if (KNO_UINTP(v[i])) bytes[i]=FIX2INT(v[i]);
+      else if (KNO_CHARACTERP(v[i])) {
+        unsigned int code = KNO_CHAR2CODE(v[i]);
         bytes[i]=code&0xFF;}
       else {
         u8_free(bytes);
-        return fd_type_error(_("byte"),"fd_makeseq",v[i]);}
+        return kno_type_error(_("byte"),"kno_makeseq",v[i]);}
       i++;}
-    result = fd_make_packet(NULL,n,bytes);
-    if (ctype == fd_secret_type) {
-      FD_SET_CONS_TYPE(result,fd_secret_type);}
+    result = kno_make_packet(NULL,n,bytes);
+    if (ctype == kno_secret_type) {
+      KNO_SET_CONS_TYPE(result,kno_secret_type);}
     u8_free(bytes);
     return result;}
-  case fd_vector_type: {
-    int i = 0; while (i < n) {fd_incref(v[i]); i++;}
-    return fd_make_vector(n,v);}
-  case fd_code_type: {
-    int i = 0; while (i < n) {fd_incref(v[i]); i++;}
-    return fd_make_code(n,v);}
-  case fd_pair_type:
+  case kno_vector_type: {
+    int i = 0; while (i < n) {kno_incref(v[i]); i++;}
+    return kno_make_vector(n,v);}
+  case kno_code_type: {
+    int i = 0; while (i < n) {kno_incref(v[i]); i++;}
+    return kno_make_code(n,v);}
+  case kno_pair_type:
     if (n == 0) return NIL;
     else {
       lispval head = NIL, *tail = &head;
       int i = 0; while (i < n) {
-        lispval cons = fd_make_pair(v[i],NIL);
-        *tail = cons; tail = &(((struct FD_PAIR *)cons)->cdr);
+        lispval cons = kno_make_pair(v[i],NIL);
+        *tail = cons; tail = &(((struct KNO_PAIR *)cons)->cdr);
         i++;}
       return head;}
   default:
-    if ((fd_seqfns[ctype]) && (fd_seqfns[ctype]->make))
-      return (fd_seqfns[ctype]->make)(n,v);
-    else return fd_type_error(_("sequence type"),"fd_make_seq",VOID);}
+    if ((kno_seqfns[ctype]) && (kno_seqfns[ctype]->make))
+      return (kno_seqfns[ctype]->make)(n,v);
+    else return kno_type_error(_("sequence type"),"kno_make_seq",VOID);}
 }
 
 /* Complex primitives */
 
-FD_EXPORT lispval fd_reverse(lispval sequence)
+KNO_EXPORT lispval kno_reverse(lispval sequence)
 {
   if (NILP(sequence))
     return sequence;
-  else if (FD_PAIRP(sequence))
-    return fd_reverse_list(sequence);
+  else if (KNO_PAIRP(sequence))
+    return kno_reverse_list(sequence);
   else {
-    int i, j, len; lispval *elts = fd_seq_elts(sequence,&len), result;
+    int i, j, len; lispval *elts = kno_seq_elts(sequence,&len), result;
     lispval *tmp = ((len) ? (u8_alloc_n(len,lispval)) : (NULL));
     if (len) {
       i = 0; j = len-1; while (i < len) {tmp[j]=elts[i]; i++; j--;}}
-    if (TYPEP(sequence,fd_numeric_vector_type)) {
-      switch (FD_NUMVEC_TYPE(sequence)) {
-      case fd_float_elt:
+    if (TYPEP(sequence,kno_numeric_vector_type)) {
+      switch (KNO_NUMVEC_TYPE(sequence)) {
+      case kno_float_elt:
         result = make_float_vector(len,elts); break;
-      case fd_double_elt:
+      case kno_double_elt:
         result = make_double_vector(len,elts); break;
-      case fd_short_elt:
+      case kno_short_elt:
         result = make_short_vector(len,elts); break;
-      case fd_int_elt:
+      case kno_int_elt:
         result = make_int_vector(len,elts); break;
-      case fd_long_elt:
+      case kno_long_elt:
         result = make_long_vector(len,elts); break;}}
-    else result = fd_makeseq(FD_PTR_TYPE(sequence),len,tmp);
-    i = 0; while (i<len) {fd_decref(elts[i]); i++;}
+    else result = kno_makeseq(KNO_PTR_TYPE(sequence),len,tmp);
+    i = 0; while (i<len) {kno_decref(elts[i]); i++;}
     if (elts) u8_free(elts); if (tmp) u8_free(tmp);
     return result;}
 }
 
 typedef lispval *fdtypep;
 
-FD_EXPORT lispval fd_append(int n,lispval *sequences)
+KNO_EXPORT lispval kno_append(int n,lispval *sequences)
 {
   if (n == 0) return NIL;
   else {
-    fd_ptr_type result_type = FD_PTR_TYPE(sequences[0]);
+    kno_ptr_type result_type = KNO_PTR_TYPE(sequences[0]);
     lispval result, **elts, *_elts[16], *combined;
     int i = 0, k = 0, *lengths, _lengths[16], total_length = 0;
-    if (NILP(sequences[0])) result_type = fd_pair_type;
+    if (NILP(sequences[0])) result_type = kno_pair_type;
     if (n>16) {
       lengths = u8_alloc_n(n,int);
       elts = u8_alloc_n(n,fdtypep);}
     else {lengths=_lengths; elts=_elts;}
     while (i < n) {
       lispval seq = sequences[i];
-      if ((NILP(seq)) && (result_type == fd_pair_type)) {}
-      else if (FD_PTR_TYPE(seq) == result_type) {}
-      else if ((result_type == fd_secret_type)&&
-               ((FD_PTR_TYPE(seq) == fd_packet_type)||
-                (FD_PTR_TYPE(seq) == fd_string_type)))
-        result_type = fd_secret_type;
-      else if ((result_type == fd_packet_type)&&
-               (FD_PTR_TYPE(seq) == fd_secret_type))
-        result_type = fd_secret_type;
-      else if ((result_type == fd_string_type)&&
-               (FD_PTR_TYPE(seq) == fd_secret_type))
-        result_type = fd_secret_type;
-      else if ((result_type == fd_string_type)&&
-               (FD_PTR_TYPE(seq) == fd_packet_type))
-        result_type = fd_packet_type;
-      else if (FD_PTR_TYPE(seq) != result_type)
-        result_type = fd_vector_type;
+      if ((NILP(seq)) && (result_type == kno_pair_type)) {}
+      else if (KNO_PTR_TYPE(seq) == result_type) {}
+      else if ((result_type == kno_secret_type)&&
+               ((KNO_PTR_TYPE(seq) == kno_packet_type)||
+                (KNO_PTR_TYPE(seq) == kno_string_type)))
+        result_type = kno_secret_type;
+      else if ((result_type == kno_packet_type)&&
+               (KNO_PTR_TYPE(seq) == kno_secret_type))
+        result_type = kno_secret_type;
+      else if ((result_type == kno_string_type)&&
+               (KNO_PTR_TYPE(seq) == kno_secret_type))
+        result_type = kno_secret_type;
+      else if ((result_type == kno_string_type)&&
+               (KNO_PTR_TYPE(seq) == kno_packet_type))
+        result_type = kno_packet_type;
+      else if (KNO_PTR_TYPE(seq) != result_type)
+        result_type = kno_vector_type;
       else {}
-      elts[i]=fd_seq_elts(seq,&(lengths[i]));
+      elts[i]=kno_seq_elts(seq,&(lengths[i]));
       total_length = total_length+lengths[i];
       if (lengths[i]==0) i++;
       else if (elts[i]==NULL)  {
         if (n>16) {u8_free(lengths); u8_free(elts);}
-        return fd_type_error(_("sequence"),"fd_append",seq);}
+        return kno_type_error(_("sequence"),"kno_append",seq);}
       else i++;}
     combined = u8_alloc_n(total_length,lispval);
     i = 0; while (i < n) {
@@ -744,8 +744,8 @@ FD_EXPORT lispval fd_append(int n,lispval *sequences)
       while (j<lim) combined[k++]=seqelts[j++];
       u8_free(elts[i]);
       i++;}
-    result = fd_makeseq(result_type,total_length,combined);
-    i = 0; while (i<total_length) {fd_decref(combined[i]); i++;}
+    result = kno_makeseq(result_type,total_length,combined);
+    i = 0; while (i<total_length) {kno_decref(combined[i]); i++;}
     if (n>16) {u8_free(lengths); u8_free(elts);}
     u8_free(combined);
     return result;}
@@ -753,28 +753,28 @@ FD_EXPORT lispval fd_append(int n,lispval *sequences)
 
 /* removal */
 
-FD_EXPORT lispval fd_remove(lispval item,lispval sequence)
+KNO_EXPORT lispval kno_remove(lispval item,lispval sequence)
 {
-  if (!(FD_SEQUENCEP(sequence)))
-    return fd_type_error("sequence","fd_remove",sequence);
+  if (!(KNO_SEQUENCEP(sequence)))
+    return kno_type_error("sequence","kno_remove",sequence);
   else if (NILP(sequence)) return sequence;
   else {
     int i = 0, j = 0, removals = 0, len = seq_length(sequence);
-    fd_ptr_type result_type = FD_PTR_TYPE(sequence);
+    kno_ptr_type result_type = KNO_PTR_TYPE(sequence);
     lispval *results = u8_alloc_n(len,lispval), result;
     while (i < len) {
-      lispval elt = fd_seq_elt(sequence,i); i++;
-      if (LISP_EQUAL(elt,item)) {removals++; fd_decref(elt);}
+      lispval elt = kno_seq_elt(sequence,i); i++;
+      if (LISP_EQUAL(elt,item)) {removals++; kno_decref(elt);}
       else results[j++]=elt;}
     if (removals) {
-      result = fd_makeseq(result_type,j,results);
-      i = 0; while (i<j) {fd_decref(results[i]); i++;}
+      result = kno_makeseq(result_type,j,results);
+      i = 0; while (i<j) {kno_decref(results[i]); i++;}
       u8_free(results);
       return result;}
     else {
-      i = 0; while (i<j) {fd_decref(results[i]); i++;}
+      i = 0; while (i<j) {kno_decref(results[i]); i++;}
       u8_free(results);
-      return fd_incref(sequence);}}
+      return kno_incref(sequence);}}
 }
 
 
@@ -782,176 +782,176 @@ FD_EXPORT lispval fd_remove(lispval item,lispval sequence)
 
 static lispval make_short_vector(int n,lispval *from_elts)
 {
-  int i = 0; lispval vec = fd_make_numeric_vector(n,fd_short_elt);
-  fd_short *elts = FD_NUMVEC_SHORTS(vec);
+  int i = 0; lispval vec = kno_make_numeric_vector(n,kno_short_elt);
+  kno_short *elts = KNO_NUMVEC_SHORTS(vec);
   while (i<n) {
     lispval elt = from_elts[i];
-    if (FD_SHORTP(elt))
-      elts[i++]=(fd_short)(FIX2INT(elt));
+    if (KNO_SHORTP(elt))
+      elts[i++]=(kno_short)(FIX2INT(elt));
     else {
-      u8_free((struct FD_CONS *)vec); fd_incref(elt);
-      return fd_type_error(_("short element"),"make_short_vector",elt);}}
+      u8_free((struct KNO_CONS *)vec); kno_incref(elt);
+      return kno_type_error(_("short element"),"make_short_vector",elt);}}
   return vec;
 }
 
 static lispval make_int_vector(int n,lispval *from_elts)
 {
-  int i = 0; lispval vec = fd_make_numeric_vector(n,fd_int_elt);
-  fd_int *elts = FD_NUMVEC_INTS(vec);
+  int i = 0; lispval vec = kno_make_numeric_vector(n,kno_int_elt);
+  kno_int *elts = KNO_NUMVEC_INTS(vec);
   while (i<n) {
     lispval elt = from_elts[i];
-    if (FD_INTP(elt))
-      elts[i++]=((fd_int)(FIX2INT(elt)));
-    else if ((FD_BIGINTP(elt))&&
-             (fd_bigint_fits_in_word_p((fd_bigint)elt,sizeof(fd_int),1)))
-      elts[i++]=fd_bigint_to_long((fd_bigint)elt);
+    if (KNO_INTP(elt))
+      elts[i++]=((kno_int)(FIX2INT(elt)));
+    else if ((KNO_BIGINTP(elt))&&
+             (kno_bigint_fits_in_word_p((kno_bigint)elt,sizeof(kno_int),1)))
+      elts[i++]=kno_bigint_to_long((kno_bigint)elt);
     else {
-      u8_free((struct FD_CONS *)vec); fd_incref(elt);
-      return fd_type_error(_("int element"),"make_int_vector",elt);}}
+      u8_free((struct KNO_CONS *)vec); kno_incref(elt);
+      return kno_type_error(_("int element"),"make_int_vector",elt);}}
   return vec;
 }
 
 static lispval make_long_vector(int n,lispval *from_elts)
 {
-  int i = 0; lispval vec = fd_make_numeric_vector(n,fd_long_elt);
-  fd_long *elts = FD_NUMVEC_LONGS(vec);
+  int i = 0; lispval vec = kno_make_numeric_vector(n,kno_long_elt);
+  kno_long *elts = KNO_NUMVEC_LONGS(vec);
   while (i<n) {
     lispval elt = from_elts[i];
     if (FIXNUMP(elt))
-      elts[i++]=((fd_long)(FIX2INT(elt)));
-    else if (FD_BIGINTP(elt))
-      elts[i++]=fd_bigint_to_long_long((fd_bigint)elt);
+      elts[i++]=((kno_long)(FIX2INT(elt)));
+    else if (KNO_BIGINTP(elt))
+      elts[i++]=kno_bigint_to_long_long((kno_bigint)elt);
     else {
-      u8_free((struct FD_CONS *)vec); fd_incref(elt);
-      return fd_type_error(_("flonum element"),"make_long_vector",elt);}}
+      u8_free((struct KNO_CONS *)vec); kno_incref(elt);
+      return kno_type_error(_("flonum element"),"make_long_vector",elt);}}
   return vec;
 }
 
 static lispval make_float_vector(int n,lispval *from_elts)
 {
-  int i = 0; lispval vec = fd_make_numeric_vector(n,fd_float_elt);
-  float *elts = FD_NUMVEC_FLOATS(vec);
+  int i = 0; lispval vec = kno_make_numeric_vector(n,kno_float_elt);
+  float *elts = KNO_NUMVEC_FLOATS(vec);
   while (i<n) {
     lispval elt = from_elts[i];
-    if (FD_FLONUMP(elt))
-      elts[i++]=FD_FLONUM(elt);
+    if (KNO_FLONUMP(elt))
+      elts[i++]=KNO_FLONUM(elt);
     else if (NUMBERP(elt))
-      elts[i++]=fd_todouble(elt);
+      elts[i++]=kno_todouble(elt);
     else {
-      u8_free((struct FD_CONS *)vec); fd_incref(elt);
-      return fd_type_error(_("float element"),"make_float_vector",elt);}}
+      u8_free((struct KNO_CONS *)vec); kno_incref(elt);
+      return kno_type_error(_("float element"),"make_float_vector",elt);}}
   return vec;
 }
 
 static lispval make_double_vector(int n,lispval *from_elts)
 {
-  int i = 0; lispval vec = fd_make_numeric_vector(n,fd_double_elt);
-  double *elts = FD_NUMVEC_DOUBLES(vec);
+  int i = 0; lispval vec = kno_make_numeric_vector(n,kno_double_elt);
+  double *elts = KNO_NUMVEC_DOUBLES(vec);
   while (i<n) {
     lispval elt = from_elts[i];
-    if (FD_FLONUMP(elt))
-      elts[i++]=FD_FLONUM(elt);
+    if (KNO_FLONUMP(elt))
+      elts[i++]=KNO_FLONUM(elt);
     else if (NUMBERP(elt))
-      elts[i++]=fd_todouble(elt);
+      elts[i++]=kno_todouble(elt);
     else {
-      u8_free((struct FD_CONS *)vec); fd_incref(elt);
-      return fd_type_error(_("double(float) element"),"make_double_vector",elt);}}
+      u8_free((struct KNO_CONS *)vec); kno_incref(elt);
+      return kno_type_error(_("double(float) element"),"make_double_vector",elt);}}
   return vec;
 }
 
 /* Miscellaneous sequence creation functions */
 
 static lispval makepair(int n,lispval *elts) {
-  return fd_makeseq(fd_pair_type,n,elts);}
+  return kno_makeseq(kno_pair_type,n,elts);}
 static lispval makestring(int n,lispval *elts) {
-  return fd_makeseq(fd_string_type,n,elts);}
+  return kno_makeseq(kno_string_type,n,elts);}
 static lispval makepacket(int n,lispval *elts) {
-  return fd_makeseq(fd_packet_type,n,elts);}
+  return kno_makeseq(kno_packet_type,n,elts);}
 static lispval makesecret(int n,lispval *elts) {
-  return fd_makeseq(fd_secret_type,n,elts);}
+  return kno_makeseq(kno_secret_type,n,elts);}
 static lispval makevector(int n,lispval *elts) {
-  return fd_makeseq(fd_vector_type,n,elts);}
+  return kno_makeseq(kno_vector_type,n,elts);}
 static lispval makerail(int n,lispval *elts) {
-  return fd_makeseq(fd_code_type,n,elts);}
+  return kno_makeseq(kno_code_type,n,elts);}
 
-static struct FD_SEQFNS pair_seqfns={
-  fd_seq_length,
-  fd_seq_elt,
-  fd_slice,
-  fd_position,
-  fd_search,
-  fd_seq_elts,
+static struct KNO_SEQFNS pair_seqfns={
+  kno_seq_length,
+  kno_seq_elt,
+  kno_slice,
+  kno_position,
+  kno_search,
+  kno_seq_elts,
   makepair};
-static struct FD_SEQFNS string_seqfns={
-  fd_seq_length,
-  fd_seq_elt,
-  fd_slice,
-  fd_position,
-  fd_search,
-  fd_seq_elts,
+static struct KNO_SEQFNS string_seqfns={
+  kno_seq_length,
+  kno_seq_elt,
+  kno_slice,
+  kno_position,
+  kno_search,
+  kno_seq_elts,
   makestring};
-static struct FD_SEQFNS packet_seqfns={
-  fd_seq_length,
-  fd_seq_elt,
-  fd_slice,
-  fd_position,
-  fd_search,
-  fd_seq_elts,
+static struct KNO_SEQFNS packet_seqfns={
+  kno_seq_length,
+  kno_seq_elt,
+  kno_slice,
+  kno_position,
+  kno_search,
+  kno_seq_elts,
   makepacket};
-static struct FD_SEQFNS vector_seqfns={
-  fd_seq_length,
-  fd_seq_elt,
-  fd_slice,
-  fd_position,
-  fd_search,
-  fd_seq_elts,
+static struct KNO_SEQFNS vector_seqfns={
+  kno_seq_length,
+  kno_seq_elt,
+  kno_slice,
+  kno_position,
+  kno_search,
+  kno_seq_elts,
   makevector};
-static struct FD_SEQFNS numeric_vector_seqfns={
-  fd_seq_length,
-  fd_seq_elt,
-  fd_slice,
-  fd_position,
-  fd_search,
-  fd_seq_elts,
+static struct KNO_SEQFNS numeric_vector_seqfns={
+  kno_seq_length,
+  kno_seq_elt,
+  kno_slice,
+  kno_position,
+  kno_search,
+  kno_seq_elts,
   makevector};
-static struct FD_SEQFNS code_seqfns={
-  fd_seq_length,
-  fd_seq_elt,
-  fd_slice,
-  fd_position,
-  fd_search,
-  fd_seq_elts,
+static struct KNO_SEQFNS code_seqfns={
+  kno_seq_length,
+  kno_seq_elt,
+  kno_slice,
+  kno_position,
+  kno_search,
+  kno_seq_elts,
   makerail};
-static struct FD_SEQFNS secret_seqfns={
-  fd_seq_length,
+static struct KNO_SEQFNS secret_seqfns={
+  kno_seq_length,
   NULL,
   NULL,
   NULL,
   NULL,
   NULL,
   makesecret};
-static struct FD_SEQFNS compound_seqfns={
-  fd_seq_length,
-  fd_seq_elt,
+static struct KNO_SEQFNS compound_seqfns={
+  kno_seq_length,
+  kno_seq_elt,
   NULL,
-  fd_position,
-  fd_search,
-  fd_seq_elts,
+  kno_position,
+  kno_search,
+  kno_seq_elts,
   NULL};
 
 
-FD_EXPORT void fd_init_sequences_c()
+KNO_EXPORT void kno_init_sequences_c()
 {
-  int i = 0; while (i<FD_TYPE_MAX) fd_seqfns[i++]=NULL;
+  int i = 0; while (i<KNO_TYPE_MAX) kno_seqfns[i++]=NULL;
 
-  fd_seqfns[fd_pair_type]= &pair_seqfns;
-  fd_seqfns[fd_string_type]= &string_seqfns;
-  fd_seqfns[fd_packet_type]= &packet_seqfns;
-  fd_seqfns[fd_secret_type]= &secret_seqfns;
-  fd_seqfns[fd_vector_type]= &vector_seqfns;
-  fd_seqfns[fd_compound_type]= &compound_seqfns;
-  fd_seqfns[fd_code_type]= &code_seqfns;
-  fd_seqfns[fd_numeric_vector_type]= &numeric_vector_seqfns;
+  kno_seqfns[kno_pair_type]= &pair_seqfns;
+  kno_seqfns[kno_string_type]= &string_seqfns;
+  kno_seqfns[kno_packet_type]= &packet_seqfns;
+  kno_seqfns[kno_secret_type]= &secret_seqfns;
+  kno_seqfns[kno_vector_type]= &vector_seqfns;
+  kno_seqfns[kno_compound_type]= &compound_seqfns;
+  kno_seqfns[kno_code_type]= &code_seqfns;
+  kno_seqfns[kno_numeric_vector_type]= &numeric_vector_seqfns;
 
   u8_register_source_file(_FILEINFO);
 }

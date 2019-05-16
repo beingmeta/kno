@@ -1,15 +1,15 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/eval.h"
-#include "framerd/streams.h"
-#include "framerd/support.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/eval.h"
+#include "kno/streams.h"
+#include "kno/support.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8exceptions.h>
@@ -34,44 +34,44 @@ static u8_condition UnconfiguredSource="Unconfigured source";
 
 /* Getting sources */
 
-static struct FD_SOURCEFN *sourcefns = NULL;
+static struct KNO_SOURCEFN *sourcefns = NULL;
 static u8_mutex sourcefns_lock;
 
-FD_EXPORT u8_string fd_get_source
+KNO_EXPORT u8_string kno_get_source
   (u8_string path,u8_string enc,u8_string *basepathp,time_t *timep)
 {
-  struct FD_SOURCEFN *scan = sourcefns;
+  struct KNO_SOURCEFN *scan = sourcefns;
   while (scan) {
     u8_string basepath = NULL;
     u8_string data = scan->getsource
       (1,path,enc,&basepath,timep,scan->getsource_data);
     if (data) {
       *basepathp = basepath;
-      fd_clear_errors(0);
+      kno_clear_errors(0);
       return data;}
     else scan = scan->getsource_next;}
   return NULL;
 }
-FD_EXPORT int fd_probe_source
+KNO_EXPORT int kno_probe_source
   (u8_string path,u8_string *basepathp,time_t *timep)
 {
-  struct FD_SOURCEFN *scan = sourcefns;
+  struct KNO_SOURCEFN *scan = sourcefns;
   while (scan) {
     u8_string basepath = NULL;
     u8_string data = scan->getsource
       (0,path,NULL,&basepath,timep,scan->getsource_data);
     if (data) {
       *basepathp = basepath;
-      fd_clear_errors(0);
+      kno_clear_errors(0);
       return 1;}
     else scan = scan->getsource_next;}
   return 0;
 }
-FD_EXPORT void fd_register_sourcefn
+KNO_EXPORT void kno_register_sourcefn
 (u8_string (*fn)(int op,u8_string,u8_string,u8_string *,time_t *,void *),
  void *sourcefn_data)
 {
-  struct FD_SOURCEFN *new_entry = u8_alloc(struct FD_SOURCEFN);
+  struct KNO_SOURCEFN *new_entry = u8_alloc(struct KNO_SOURCEFN);
   u8_lock_mutex(&sourcefns_lock);
   new_entry->getsource = fn;
   new_entry->getsource_next = sourcefns;
@@ -84,32 +84,32 @@ static lispval loading_symbol;
 
 #define LOAD_CONTEXT_SIZE 40
 
-FD_EXPORT lispval fd_load_stream(u8_input loadstream,fd_lexenv env,
+KNO_EXPORT lispval kno_load_stream(u8_input loadstream,kno_lexenv env,
                                  u8_string sourcebase)
 {
-  u8_string outer_sourcebase = fd_bind_sourcebase(sourcebase);
+  u8_string outer_sourcebase = kno_bind_sourcebase(sourcebase);
   double start = u8_elapsed_time();
-  struct FD_STACK *_stack = fd_stackptr;
+  struct KNO_STACK *_stack = kno_stackptr;
   lispval postload = VOID;
   if (errno) {
     u8_log(LOG_WARN,u8_UnexpectedErrno,
            "Dangling errno value %d (%s) before loading %s",
            errno,u8_strerror(errno),sourcebase);
     errno = 0;}
-  FD_PUSH_STACK(load_stack,"loadsource",u8_strdup(sourcebase),VOID);
-  U8_SETBITS(load_stack->stack_flags,FD_STACK_FREE_LABEL);
+  KNO_PUSH_STACK(load_stack,"loadsource",u8_strdup(sourcebase),VOID);
+  U8_SETBITS(load_stack->stack_flags,KNO_STACK_FREE_LABEL);
   {
     /* This does a read/eval loop. */
     u8_byte context_buf[LOAD_CONTEXT_SIZE+1];
     lispval result = VOID;
     lispval expr = VOID, last_expr = VOID;
     double start_time;
-    fd_skip_whitespace(loadstream);
+    kno_skip_whitespace(loadstream);
     load_stack->stack_status=context_buf; context_buf[0]='\0';
-    while (!((FD_ABORTP(expr)) || (FD_EOFP(expr)))) {
-      fd_decref(result);
+    while (!((KNO_ABORTP(expr)) || (KNO_EOFP(expr)))) {
+      kno_decref(result);
       if ((trace_load_eval) ||
-          (fd_test(env->env_bindings,traceloadeval_symbol,FD_TRUE))) {
+          (kno_test(env->env_bindings,traceloadeval_symbol,KNO_TRUE))) {
         u8_log(LOG_WARN,LoadEval,"From %s, evaluating %q",sourcebase,expr);
         if (errno) {
           u8_log(LOG_WARN,"UnexpectedErrno",
@@ -118,22 +118,22 @@ FD_EXPORT lispval fd_load_stream(u8_input loadstream,fd_lexenv env,
           errno = 0;}
         start_time = u8_elapsed_time();}
       else start_time = -1.0;
-      result = fd_eval(expr,env);
-      if (FD_ABORTP(result)) {
-        if (FD_TROUBLEP(result)) {
+      result = kno_eval(expr,env);
+      if (KNO_ABORTP(result)) {
+        if (KNO_TROUBLEP(result)) {
           u8_exception ex = u8_current_exception;
           u8_log(LOG_ERR,ex->u8x_cond,
                  "Error (%s:%s) in %s while evaluating %q",
                  ((ex->u8x_context)?(ex->u8x_context):((u8_string)"")),
                  ((ex->u8x_details)?(ex->u8x_details):((u8_string)"")),
                  sourcebase,expr);}
-        fd_restore_sourcebase(outer_sourcebase);
-        fd_decref(last_expr); last_expr = VOID;
-        fd_decref(expr);
-        fd_pop_stack(load_stack);
+        kno_restore_sourcebase(outer_sourcebase);
+        kno_decref(last_expr); last_expr = VOID;
+        kno_decref(expr);
+        kno_pop_stack(load_stack);
         return result;}
       else if ((trace_load_eval) ||
-               (fd_test(env->env_bindings,traceloadeval_symbol,FD_TRUE))) {
+               (kno_test(env->env_bindings,traceloadeval_symbol,KNO_TRUE))) {
         if (start_time>0)
           u8_log(LOG_WARN,LoadEval,"Took %fs to evaluate %q",
                  u8_elapsed_time()-start_time,expr);
@@ -143,26 +143,26 @@ FD_EXPORT lispval fd_load_stream(u8_input loadstream,fd_lexenv env,
                  errno,u8_strerror(errno),expr);
           errno = 0;}}
       else {}
-      fd_decref(last_expr); last_expr = expr;
-      fd_skip_whitespace(loadstream);
+      kno_decref(last_expr); last_expr = expr;
+      kno_skip_whitespace(loadstream);
       if (loadstream->u8_inlim == loadstream->u8_read)
         context_buf[0]='\0';
       else u8_string2buf(loadstream->u8_read,context_buf,LOAD_CONTEXT_SIZE);
-      expr = fd_parse_expr(loadstream);}
-    if (expr == FD_EOF) {
-      fd_decref(last_expr);
+      expr = kno_parse_expr(loadstream);}
+    if (expr == KNO_EOF) {
+      kno_decref(last_expr);
       last_expr = VOID;}
-    else if (FD_TROUBLEP(expr)) {
-      fd_seterr(NULL,"fd_parse_expr",load_stack->stack_status,last_expr);
-      fd_decref(result); /* This is the previous result */
+    else if (KNO_TROUBLEP(expr)) {
+      kno_seterr(NULL,"kno_parse_expr",load_stack->stack_status,last_expr);
+      kno_decref(result); /* This is the previous result */
       last_expr = VOID;
       /* This is now also the result */
       result = expr;
-      fd_incref(expr);}
-    else if (FD_ABORTP(expr)) {
-      fd_decref(result);
+      kno_incref(expr);}
+    else if (KNO_ABORTP(expr)) {
+      kno_decref(result);
       result = expr;
-      fd_incref(expr);
+      kno_incref(expr);
       expr = VOID;}
     else {}
     /* Clear the stack status */
@@ -170,25 +170,25 @@ FD_EXPORT lispval fd_load_stream(u8_input loadstream,fd_lexenv env,
     if ((trace_load) || (trace_load_eval))
       u8_log(LOG_WARN,FileDone,"Loaded %s in %f seconds",
              sourcebase,u8_elapsed_time()-start);
-    postload = fd_symeval(postload_symbol,env);
-    if ((!(FD_ABORTP(result)))&&(!(VOIDP(postload)))) {
+    postload = kno_symeval(postload_symbol,env);
+    if ((!(KNO_ABORTP(result)))&&(!(VOIDP(postload)))) {
       if ((FALSEP(postload))||(EMPTYP(postload))) {}
-      else if (FD_APPLICABLEP(postload)) {
-        lispval post_result = fd_apply(postload,0,NULL);
-        if (FD_ABORTP(post_result)) {
-          fd_clear_errors(1);}
-        fd_decref(post_result);}
-      else u8_log(LOG_WARN,"fd_load_source",
+      else if (KNO_APPLICABLEP(postload)) {
+        lispval post_result = kno_apply(postload,0,NULL);
+        if (KNO_ABORTP(post_result)) {
+          kno_clear_errors(1);}
+        kno_decref(post_result);}
+      else u8_log(LOG_WARN,"kno_load_source",
                   "Postload method is not applicable: ",
                   postload);}
-    fd_decref(postload);
-    fd_restore_sourcebase(outer_sourcebase);
+    kno_decref(postload);
+    kno_restore_sourcebase(outer_sourcebase);
     if (last_expr == expr) {
-      fd_decref(last_expr);
+      kno_decref(last_expr);
       last_expr = VOID;}
     else {
-      fd_decref(expr);
-      fd_decref(last_expr);
+      kno_decref(expr);
+      kno_decref(last_expr);
       expr = VOID;
       last_expr = VOID;}
     if (errno) {
@@ -196,40 +196,40 @@ FD_EXPORT lispval fd_load_stream(u8_input loadstream,fd_lexenv env,
              "Dangling errno value %d (%s) after loading %s",
              errno,u8_strerror(errno),sourcebase);
       errno = 0;}
-    fd_pop_stack(load_stack);
+    kno_pop_stack(load_stack);
     return result;}
 }
 
-FD_EXPORT lispval fd_load_source_with_date
-  (u8_string sourceid,fd_lexenv env,u8_string enc_name,time_t *modtime)
+KNO_EXPORT lispval kno_load_source_with_date
+  (u8_string sourceid,kno_lexenv env,u8_string enc_name,time_t *modtime)
 {
   struct U8_INPUT stream;
   u8_string sourcebase = NULL;
   u8_string encoding = ((enc_name)?(enc_name):((u8_string)("auto")));
-  u8_string content = fd_get_source(sourceid,encoding,&sourcebase,modtime);
+  u8_string content = kno_get_source(sourceid,encoding,&sourcebase,modtime);
   if (content == NULL)
-    return FD_ERROR;
+    return KNO_ERROR;
   const u8_byte *input = content;
   if ((trace_load) || (trace_load_eval))
     u8_log(LOG_WARN,FileLoad,
            "Loading %s (%d bytes)",sourcebase,u8_strlen(content));
   if ((input[0]=='#') && (input[1]=='!')) input = strchr(input,'\n');
   U8_INIT_STRING_INPUT((&stream),-1,input);
-  lispval result = fd_load_stream(&stream,env,sourcebase);
+  lispval result = kno_load_stream(&stream,env,sourcebase);
   if (sourcebase) u8_free(sourcebase);
   u8_free(content);
   return result;
 }
 
-FD_EXPORT lispval fd_load_source
-  (u8_string sourceid,fd_lexenv env,u8_string enc_name)
+KNO_EXPORT lispval kno_load_source
+  (u8_string sourceid,kno_lexenv env,u8_string enc_name)
 {
-  return fd_load_source_with_date(sourceid,env,enc_name,NULL);
+  return kno_load_source_with_date(sourceid,env,enc_name,NULL);
 }
 
 static u8_string get_component(u8_string spec)
 {
-  u8_string base = fd_sourcebase();
+  u8_string base = kno_sourcebase();
   if (base) return u8_realpath(spec,base);
   else return u8_strdup(spec);
 }
@@ -238,47 +238,47 @@ static u8_string get_component(u8_string spec)
 
 static int trace_config_load = 0;
 
-FD_EXPORT int fd_load_config(u8_string sourceid)
+KNO_EXPORT int kno_load_config(u8_string sourceid)
 {
   struct U8_INPUT stream; int retval;
   u8_string sourcebase = NULL, outer_sourcebase;
-  u8_string content = fd_get_source(sourceid,NULL,&sourcebase,NULL);
+  u8_string content = kno_get_source(sourceid,NULL,&sourcebase,NULL);
   if (content == NULL) return -1;
   else if (sourcebase) {
-    outer_sourcebase = fd_bind_sourcebase(sourcebase);}
+    outer_sourcebase = kno_bind_sourcebase(sourcebase);}
   else outer_sourcebase = NULL;
   U8_INIT_STRING_INPUT((&stream),-1,content);
-  if ( (trace_load) || (trace_config_load) || (fd_trace_config) )
+  if ( (trace_load) || (trace_config_load) || (kno_trace_config) )
     u8_log(LOG_WARN,FileLoad,
            "Loading config %s (%d bytes)",sourcebase,u8_strlen(content));
-  retval = fd_read_config(&stream);
+  retval = kno_read_config(&stream);
   if (trace_load)
     u8_log(LOG_WARN,FileLoad,"Loaded config %s",sourcebase);
   if (sourcebase) {
-    fd_restore_sourcebase(outer_sourcebase);
+    kno_restore_sourcebase(outer_sourcebase);
     u8_free(sourcebase);}
   u8_free(content);
   return retval;
 }
 
-FD_EXPORT int fd_load_default_config(u8_string sourceid)
+KNO_EXPORT int kno_load_default_config(u8_string sourceid)
 {
   struct U8_INPUT stream; int retval;
   u8_string sourcebase = NULL, outer_sourcebase;
-  u8_string content = fd_get_source(sourceid,NULL,&sourcebase,NULL);
+  u8_string content = kno_get_source(sourceid,NULL,&sourcebase,NULL);
   if (content == NULL) return -1;
   else if (sourcebase) {
-    outer_sourcebase = fd_bind_sourcebase(sourcebase);}
+    outer_sourcebase = kno_bind_sourcebase(sourcebase);}
   else outer_sourcebase = NULL;
   U8_INIT_STRING_INPUT((&stream),-1,content);
-  if ( (trace_load) || (trace_config_load) || (fd_trace_config) )
+  if ( (trace_load) || (trace_config_load) || (kno_trace_config) )
     u8_log(LOG_WARN,FileLoad,
            "Loading config %s (%d bytes)",sourcebase,u8_strlen(content));
-  retval = fd_read_default_config(&stream);
+  retval = kno_read_default_config(&stream);
   if (trace_load)
     u8_log(LOG_WARN,FileLoad,"Loaded config %s",sourcebase);
   if (sourcebase) {
-    fd_restore_sourcebase(outer_sourcebase);
+    kno_restore_sourcebase(outer_sourcebase);
     u8_free(sourcebase);}
   u8_free(content);
   return retval;
@@ -286,31 +286,31 @@ FD_EXPORT int fd_load_default_config(u8_string sourceid)
 
 /* Scheme primitives */
 
-static lispval load_source_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+static lispval load_source_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval source_expr = fd_get_arg(expr,1), source, result;
-  lispval encname_expr = fd_get_arg(expr,2), encval = VOID;
+  lispval source_expr = kno_get_arg(expr,1), source, result;
+  lispval encname_expr = kno_get_arg(expr,2), encval = VOID;
   u8_string encname;
   if (VOIDP(source_expr))
-    return fd_err(fd_TooFewExpressions,"LOAD",NULL,expr);
-  else source = fd_eval(source_expr,env);
+    return kno_err(kno_TooFewExpressions,"LOAD",NULL,expr);
+  else source = kno_eval(source_expr,env);
   if (SYMBOLP(source)) {
-    lispval config_val = fd_config_get(SYM_NAME(source));
+    lispval config_val = kno_config_get(SYM_NAME(source));
     if (STRINGP(config_val)) {
       u8_log(LOG_NOTICE,"Config","Loading %s = %s",
              SYM_NAME(source),
              CSTRING(config_val));
       source = config_val;}
     else if (VOIDP(config_val)) {
-      return fd_err(UnconfiguredSource,"load_source",
+      return kno_err(UnconfiguredSource,"load_source",
                     "this source is not configured",
                     source_expr);}
-    else return fd_err(UnconfiguredSource,"load_source",
+    else return kno_err(UnconfiguredSource,"load_source",
                        "this source is misconfigured",
                        config_val);}
   if (!(STRINGP(source)))
-    return fd_type_error("filename","LOAD",source);
-  encval = fd_eval(encname_expr,env);
+    return kno_type_error("filename","LOAD",source);
+  encval = kno_eval(encname_expr,env);
   if (VOIDP(encval)) encname="auto";
   else if (STRINGP(encval))
     encname = CSTRING(encval);
@@ -318,50 +318,50 @@ static lispval load_source_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     encname = SYM_NAME(encval);
   else encname = NULL;
   while (!(HASHTABLEP(env->env_bindings))) env = env->env_parent;
-  result = fd_load_source(CSTRING(source),env,encname);
-  fd_decref(source); fd_decref(encval);
+  result = kno_load_source(CSTRING(source),env,encname);
+  kno_decref(source); kno_decref(encval);
   return result;
 }
 
 static lispval load_into_env_prim(lispval source,lispval envarg,lispval resultfn)
 {
-  lispval result = VOID; fd_lexenv env;
-  if (!((VOIDP(resultfn))||(FD_APPLICABLEP(resultfn))))
-    return fd_type_error("callback procedure","LOAD->ENV",envarg);
-  if ((VOIDP(envarg))||(FD_TRUEP(envarg)))
-    env = fd_working_lexenv();
+  lispval result = VOID; kno_lexenv env;
+  if (!((VOIDP(resultfn))||(KNO_APPLICABLEP(resultfn))))
+    return kno_type_error("callback procedure","LOAD->ENV",envarg);
+  if ((VOIDP(envarg))||(KNO_TRUEP(envarg)))
+    env = kno_working_lexenv();
   else if (FALSEP(envarg))
-    env = fd_safe_working_lexenv();
-  else if (FD_LEXENVP(envarg)) {
-    env = (fd_lexenv)envarg; fd_incref(envarg);}
+    env = kno_safe_working_lexenv();
+  else if (KNO_LEXENVP(envarg)) {
+    env = (kno_lexenv)envarg; kno_incref(envarg);}
   else if (TABLEP(envarg)) {
-    env = fd_new_lexenv(envarg,0);
-    fd_incref(envarg);}
-  else return fd_type_error("environment","LOAD->ENV",envarg);
-  result = fd_load_source(CSTRING(source),env,NULL);
-  if (FD_ABORTP(result)) {
-    fd_decref((lispval)env);
+    env = kno_new_lexenv(envarg,0);
+    kno_incref(envarg);}
+  else return kno_type_error("environment","LOAD->ENV",envarg);
+  result = kno_load_source(CSTRING(source),env,NULL);
+  if (KNO_ABORTP(result)) {
+    kno_decref((lispval)env);
     return result;}
-  if (FD_APPLICABLEP(resultfn)) {
-    lispval tmp = fd_apply(resultfn,1,&result);
-    fd_decref(tmp);}
-  fd_decref(result);
+  if (KNO_APPLICABLEP(resultfn)) {
+    lispval tmp = kno_apply(resultfn,1,&result);
+    kno_decref(tmp);}
+  kno_decref(result);
   return (lispval) env;
 }
 
-static lispval load_component_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+static lispval load_component_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval source_expr = fd_get_arg(expr,1), source, result;
-  lispval encname_expr = fd_get_arg(expr,2), encval = VOID;
+  lispval source_expr = kno_get_arg(expr,1), source, result;
+  lispval encname_expr = kno_get_arg(expr,2), encval = VOID;
   u8_string encname;
   if (VOIDP(source_expr))
-    return fd_err(fd_TooFewExpressions,"LOAD-COMPONENT",NULL,expr);
-  else source = fd_eval(source_expr,env);
-  if (FD_ABORTP(source))
+    return kno_err(kno_TooFewExpressions,"LOAD-COMPONENT",NULL,expr);
+  else source = kno_eval(source_expr,env);
+  if (KNO_ABORTP(source))
     return source;
   else if (!(STRINGP(source)))
-    return fd_type_error("filename","LOAD-COMPONENT",source);
-  encval = fd_eval(encname_expr,env);
+    return kno_type_error("filename","LOAD-COMPONENT",source);
+  encval = kno_eval(encname_expr,env);
   if (VOIDP(encval)) encname="auto";
   else if (STRINGP(encval))
     encname = CSTRING(encval);
@@ -371,10 +371,10 @@ static lispval load_component_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   while (!(HASHTABLEP(env->env_bindings))) env = env->env_parent;
   {
     u8_string abspath = get_component(CSTRING(source));
-    result = fd_load_source(abspath,env,encname);
+    result = kno_load_source(abspath,env,encname);
     u8_free(abspath);
   }
-  fd_decref(source); fd_decref(encval);
+  kno_decref(source); kno_decref(encval);
   return result;
 }
 
@@ -382,46 +382,46 @@ static lispval lisp_get_component(lispval string,lispval base)
 {
   if (VOIDP(base)) {
     u8_string fullpath = get_component(CSTRING(string));
-    return fd_lispstring(fullpath);}
+    return kno_lispstring(fullpath);}
   else {
     u8_string thepath = u8_realpath(CSTRING(string),CSTRING(base));
-    return fd_lispstring(thepath);}
+    return kno_lispstring(thepath);}
 }
 
-static lispval path_macro(lispval expr,fd_lexenv env,fd_stack ptr)
+static lispval path_macro(lispval expr,kno_lexenv env,kno_stack ptr)
 {
-  lispval arg = fd_get_arg(expr,1);
-  if (FD_STRINGP(arg)) {
-    u8_string fullpath = (fd_sourcebase()) ?
-      (fd_get_component(FD_CSTRING(arg))) :
-      (u8_abspath(FD_CSTRING(arg),NULL));
-    return fd_init_string(NULL,-1,fullpath);}
-  else return fd_err(fd_TypeError,"path_macro","string",arg);
+  lispval arg = kno_get_arg(expr,1);
+  if (KNO_STRINGP(arg)) {
+    u8_string fullpath = (kno_sourcebase()) ?
+      (kno_get_component(KNO_CSTRING(arg))) :
+      (u8_abspath(KNO_CSTRING(arg),NULL));
+    return kno_init_string(NULL,-1,fullpath);}
+  else return kno_err(kno_TypeError,"path_macro","string",arg);
 }
 
 static lispval lisp_load_config(lispval arg)
 {
   if (STRINGP(arg)) {
     u8_string abspath = u8_abspath(CSTRING(arg),NULL);
-    int retval = fd_load_config(abspath);
+    int retval = kno_load_config(abspath);
     u8_free(abspath);
     if (retval<0)
-      return FD_ERROR;
-    else return FD_INT(retval);}
+      return KNO_ERROR;
+    else return KNO_INT(retval);}
   else if (SYMBOLP(arg)) {
-    lispval config_val = fd_config_get(SYM_NAME(arg));
+    lispval config_val = kno_config_get(SYM_NAME(arg));
     if (STRINGP(config_val)) {
       lispval result = lisp_load_config(config_val);
-      fd_decref(config_val);
+      kno_decref(config_val);
       return result;}
     else if (VOIDP(config_val))
-      return fd_err(UnconfiguredSource,"lisp_load_config",
+      return kno_err(UnconfiguredSource,"lisp_load_config",
                     "this source is not configured",
                     arg);
-    else return fd_err(UnconfiguredSource,"lisp_load_config",
+    else return kno_err(UnconfiguredSource,"lisp_load_config",
                        "this source source is misconfigured",
                        config_val);}
-  else return fd_type_error
+  else return kno_type_error
          ("path or config symbol","lisp_load_config",arg);
 }
 
@@ -429,25 +429,25 @@ static lispval lisp_load_default_config(lispval arg)
 {
   if (STRINGP(arg)) {
     u8_string abspath = u8_abspath(CSTRING(arg),NULL);
-    int retval = fd_load_default_config(abspath);
+    int retval = kno_load_default_config(abspath);
     u8_free(abspath);
     if (retval<0)
-      return FD_ERROR;
-    else return FD_INT(retval);}
+      return KNO_ERROR;
+    else return KNO_INT(retval);}
   else if (SYMBOLP(arg)) {
-    lispval config_val = fd_config_get(SYM_NAME(arg));
+    lispval config_val = kno_config_get(SYM_NAME(arg));
     if (STRINGP(config_val)) {
       lispval result = lisp_load_default_config(config_val);
-      fd_decref(config_val);
+      kno_decref(config_val);
       return result;}
     else if (VOIDP(config_val))
-      return fd_err(UnconfiguredSource,"lisp_load_default_config",
+      return kno_err(UnconfiguredSource,"lisp_load_default_config",
                     "this source is not configured",
                     arg);
-    else return fd_err(UnconfiguredSource,"lisp_load_default_config",
+    else return kno_err(UnconfiguredSource,"lisp_load_default_config",
                        "this source is misconfigured",
                        config_val);}
-  else return fd_type_error
+  else return kno_type_error
          ("path or config symbol","lisp_load_default_config",arg);
 }
 
@@ -455,91 +455,91 @@ static lispval lisp_read_config(lispval arg)
 {
   struct U8_INPUT in; int retval;
   U8_INIT_STRING_INPUT(&in,STRLEN(arg),CSTRING(arg));
-  retval = fd_read_config(&in);
-  if (retval<0) return FD_ERROR;
-  else return FD_INT2DTYPE(retval);
+  retval = kno_read_config(&in);
+  if (retval<0) return KNO_ERROR;
+  else return KNO_INT2DTYPE(retval);
 }
 
 /* Lisp run */
 
-static lispval fd_run(u8_string source_file,struct U8_OUTPUT *out,
+static lispval kno_run(u8_string source_file,struct U8_OUTPUT *out,
                       int n,lispval *args)
 {
-  fd_lexenv env = fd_working_lexenv();
-  lispval load_result = fd_load_source(source_file,env,NULL);
-  if (FD_ABORTP(load_result)) {
-    fd_decref((lispval)env);
+  kno_lexenv env = kno_working_lexenv();
+  lispval load_result = kno_load_source(source_file,env,NULL);
+  if (KNO_ABORTP(load_result)) {
+    kno_decref((lispval)env);
     return load_result;}
   else {
-    lispval main_proc = fd_symeval(FDSYM_MAIN,env);
-    if (FD_VOIDP(main_proc)) {
+    lispval main_proc = kno_symeval(FDSYM_MAIN,env);
+    if (KNO_VOIDP(main_proc)) {
       u8_log(LOG_CRIT,"NoMain",
              "No (MAIN) was defined in '%s', returning last value",
              source_file);
       return load_result;}
-    else if (!(FD_APPLICABLEP(main_proc))) {
-      fd_seterr("BadMainProc","lisp_run_file",u8_strdup(source_file),main_proc);
-      fd_decref((lispval)env);
-      return FD_ERROR_VALUE;}
+    else if (!(KNO_APPLICABLEP(main_proc))) {
+      kno_seterr("BadMainProc","lisp_run_file",u8_strdup(source_file),main_proc);
+      kno_decref((lispval)env);
+      return KNO_ERROR_VALUE;}
     else {
       u8_output prev = u8_current_output;
       if (out) u8_set_default_output(out);
-      lispval result = fd_dapply(main_proc,n,args);
-      fd_decref((lispval)env);
-      fd_decref(load_result);
+      lispval result = kno_dapply(main_proc,n,args);
+      kno_decref((lispval)env);
+      kno_decref(load_result);
       if (out) u8_set_default_output(prev);
-      if (FD_ABORTP(result)) {
+      if (KNO_ABORTP(result)) {
         u8_exception ex = u8_erreify();
-        lispval exception_object = fd_wrap_exception(ex);
+        lispval exception_object = kno_wrap_exception(ex);
         u8_free_exception(ex,1);
         return exception_object;}
       else return result;}}
 }
 
-static lispval lisp_fdexec_file(int n,lispval *args)
+static lispval lisp_knox_file(int n,lispval *args)
 {
-  if ( (FD_STRINGP(args[0])) &&
-       (u8_file_existsp(FD_CSTRING(args[0]))) )
-    return fd_run(FD_CSTRING(args[0]),NULL,n-1,args+1);
-  else return fd_type_error("filename","lisp_run_file",args[0]);
+  if ( (KNO_STRINGP(args[0])) &&
+       (u8_file_existsp(KNO_CSTRING(args[0]))) )
+    return kno_run(KNO_CSTRING(args[0]),NULL,n-1,args+1);
+  else return kno_type_error("filename","lisp_run_file",args[0]);
 }
 
-static lispval lisp_fdexecout_file(int n,lispval *args)
+static lispval lisp_knoxout_file(int n,lispval *args)
 {
-  if ( (FD_STRINGP(args[0])) &&
-       (u8_file_existsp(FD_CSTRING(args[0]))) ) {
+  if ( (KNO_STRINGP(args[0])) &&
+       (u8_file_existsp(KNO_CSTRING(args[0]))) ) {
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,4096);
-    lispval result = fd_run(FD_CSTRING(args[0]),&out,n-1,args+1);
-    if (FD_ABORTP(result)) {
+    lispval result = kno_run(KNO_CSTRING(args[0]),&out,n-1,args+1);
+    if (KNO_ABORTP(result)) {
       if ( (out.u8_write-out.u8_outbuf) > 0) {
-        lispval output = fd_stream_string(&out);
+        lispval output = kno_stream_string(&out);
         u8_close_output(&out);
-        fd_seterr("RunFailed","lisp_run2string_file",
-                  u8_strdup(FD_CSTRING(args[0])),
+        kno_seterr("RunFailed","lisp_run2string_file",
+                  u8_strdup(KNO_CSTRING(args[0])),
                   output);
-        fd_decref(output);
+        kno_decref(output);
         return result;}
       else return result;}
     else {
-      lispval output = fd_stream_string(&out);
-      fd_decref(result);
+      lispval output = kno_stream_string(&out);
+      kno_decref(result);
       u8_close_output(&out);
       return output;}}
-  else return fd_type_error("filename","lisp_run_file",args[0]);
+  else return kno_type_error("filename","lisp_run_file",args[0]);
 }
 
 /* Config config */
 
 static u8_mutex config_file_lock;
 
-static FD_CONFIG_RECORD *config_records = NULL, *config_stack = NULL;
+static KNO_CONFIG_RECORD *config_records = NULL, *config_stack = NULL;
 
 static lispval get_config_files(lispval var,void U8_MAYBE_UNUSED *data)
 {
-  struct FD_CONFIG_RECORD *scan; lispval result = NIL;
+  struct KNO_CONFIG_RECORD *scan; lispval result = NIL;
   u8_lock_mutex(&config_file_lock);
   scan = config_records; while (scan) {
-    result = fd_conspair(lispval_string(scan->config_filename),result);
+    result = kno_conspair(lispval_string(scan->config_filename),result);
     scan = scan->loaded_after;}
   u8_unlock_mutex(&config_file_lock);
   return result;
@@ -553,32 +553,32 @@ static int add_config_file_helper(lispval var,lispval val,
   else if (STRLEN(val)==0) return 0;
   else {
     int retval;
-    struct FD_CONFIG_RECORD on_stack, *scan, *newrec;
-    u8_string sourcebase = fd_sourcebase();
+    struct KNO_CONFIG_RECORD on_stack, *scan, *newrec;
+    u8_string sourcebase = kno_sourcebase();
     u8_string pathname = u8_abspath(CSTRING(val),sourcebase);
     u8_lock_mutex(&config_file_lock);
     scan = config_stack; while (scan) {
       if (strcmp(scan->config_filename,pathname)==0) {
         u8_unlock_mutex(&config_file_lock);
-        if ( (fd_trace_config) || (trace_load) || (trace_config_load) )
+        if ( (kno_trace_config) || (trace_load) || (trace_config_load) )
           u8_log(LOGINFO,LoadConfig,
                  "Skipping redundant reload of %s from the config %q",
-                 FD_CSTRING(val),var);
+                 KNO_CSTRING(val),var);
         u8_free(pathname);
         return 0;}
       else scan = scan->loaded_after;}
-    if ( (fd_trace_config) || (trace_load) || (trace_config_load) )
+    if ( (kno_trace_config) || (trace_load) || (trace_config_load) )
       u8_log(LOGWARN,LoadConfig,
              "Loading the config file %s in response to a %q directive",
-             FD_CSTRING(val),var);
-    memset(&on_stack,0,sizeof(struct FD_CONFIG_RECORD));
+             KNO_CSTRING(val),var);
+    memset(&on_stack,0,sizeof(struct KNO_CONFIG_RECORD));
     on_stack.config_filename = pathname;
     on_stack.loaded_after = config_stack;
     config_stack = &on_stack;
     u8_unlock_mutex(&config_file_lock);
     if (isdflt)
-      retval = fd_load_default_config(pathname);
-    else retval = fd_load_config(pathname);
+      retval = kno_load_default_config(pathname);
+    else retval = kno_load_config(pathname);
     u8_lock_mutex(&config_file_lock);
     if (retval<0) {
       if (isopt) {
@@ -589,7 +589,7 @@ static int add_config_file_helper(lispval var,lispval val,
       u8_free(pathname); config_stack = on_stack.loaded_after;
       u8_unlock_mutex(&config_file_lock);
       return retval;}
-    newrec = u8_alloc(struct FD_CONFIG_RECORD);
+    newrec = u8_alloc(struct KNO_CONFIG_RECORD);
     newrec->config_filename = pathname;
     newrec->loaded_after = config_records;
     config_records = newrec;
@@ -615,67 +615,67 @@ static int add_default_config_file(lispval var,lispval val,void U8_MAYBE_UNUSED 
 
 /* Initialization */
 
-FD_EXPORT void fd_init_load_c()
+KNO_EXPORT void kno_init_load_c()
 {
   u8_register_source_file(_FILEINFO);
 
   u8_init_mutex(&sourcefns_lock);
   u8_init_mutex(&config_file_lock);
 
- after_symbol = fd_intern("AFTEREXPR");
- loading_symbol = fd_intern("%LOADING");
- traceloadeval_symbol = fd_intern("%TRACELOADEVAL");
- postload_symbol = fd_intern("%POSTLOAD");
+ after_symbol = kno_intern("AFTEREXPR");
+ loading_symbol = kno_intern("%LOADING");
+ traceloadeval_symbol = kno_intern("%TRACELOADEVAL");
+ postload_symbol = kno_intern("%POSTLOAD");
 
 
- fd_def_evalfn(fd_xscheme_module,"LOAD","",load_source_evalfn);
- fd_def_evalfn(fd_xscheme_module,"LOAD-COMPONENT","",load_component_evalfn);
+ kno_def_evalfn(kno_xscheme_module,"LOAD","",load_source_evalfn);
+ kno_def_evalfn(kno_xscheme_module,"LOAD-COMPONENT","",load_component_evalfn);
 
- fd_defn(fd_xscheme_module,
-         fd_make_cprim3x("LOAD->ENV",load_into_env_prim,1,
-                         fd_string_type,VOID,
-                         fd_lexenv_type,VOID,
+ kno_defn(kno_xscheme_module,
+         kno_make_cprim3x("LOAD->ENV",load_into_env_prim,1,
+                         kno_string_type,VOID,
+                         kno_lexenv_type,VOID,
                          -1,VOID));
 
- fd_idefn(fd_scheme_module,
-          fd_make_cprim1x("READ-CONFIG",lisp_read_config,1,
-                          fd_string_type,VOID));
- fd_idefn(fd_scheme_module,
-          fd_make_cprim1x("LOAD-CONFIG",lisp_load_config,1,
+ kno_idefn(kno_scheme_module,
+          kno_make_cprim1x("READ-CONFIG",lisp_read_config,1,
+                          kno_string_type,VOID));
+ kno_idefn(kno_scheme_module,
+          kno_make_cprim1x("LOAD-CONFIG",lisp_load_config,1,
                           -1,VOID));
- fd_idefn(fd_scheme_module,
-          fd_make_cprim1x("LOAD-DEFAULT-CONFIG",lisp_load_default_config,1,
+ kno_idefn(kno_scheme_module,
+          kno_make_cprim1x("LOAD-DEFAULT-CONFIG",lisp_load_default_config,1,
                           -1,VOID));
 
- fd_idefnN(fd_scheme_module,"FDEXEC",
-           lisp_fdexec_file,FD_NEEDS_1_ARG|FD_NDCALL,
+ kno_idefnN(kno_scheme_module,"KNOX",
+           lisp_knox_file,KNO_NEEDS_1_ARG|KNO_NDCALL,
            "Loads a file and applies its (main) procedure to the arguments");
- fd_idefnN(fd_scheme_module,"FDEXECOUT",
-           lisp_fdexecout_file,FD_NEEDS_1_ARG|FD_NDCALL,
+ kno_idefnN(kno_scheme_module,"KNOXOUT",
+           lisp_knoxout_file,KNO_NEEDS_1_ARG|KNO_NDCALL,
            "Loads a file and applies its (main) procedure to the arguments");
 
- fd_idefn(fd_scheme_module,
-          fd_make_cprim2x("GET-COMPONENT",lisp_get_component,1,
-                          fd_string_type,VOID,
-                          fd_string_type,VOID));
+ kno_idefn(kno_scheme_module,
+          kno_make_cprim2x("GET-COMPONENT",lisp_get_component,1,
+                          kno_string_type,VOID,
+                          kno_string_type,VOID));
 
-  fd_def_evalfn(fd_scheme_module,"#PATH",
+  kno_def_evalfn(kno_scheme_module,"#PATH",
                 "#:PATH\"init/foo.scm\" or #:PATH:home.scm\n"
                 "evaluates to an environment variable",
                 path_macro);
 
- fd_register_config("CONFIG","Add a CONFIG file/URI to process",
+ kno_register_config("CONFIG","Add a CONFIG file/URI to process",
                     get_config_files,add_config_file,NULL);
- fd_register_config("DEFAULTS","Add a CONFIG file/URI to process as defaults",
+ kno_register_config("DEFAULTS","Add a CONFIG file/URI to process as defaults",
                     get_config_files,add_default_config_file,NULL);
- fd_register_config("OPTCONFIG","Add an optional CONFIG file/URI to process",
+ kno_register_config("OPTCONFIG","Add an optional CONFIG file/URI to process",
                     get_config_files,add_opt_config_file,NULL);
- fd_register_config("TRACELOAD","Trace file load starts and ends",
-                    fd_boolconfig_get,fd_boolconfig_set,&trace_load);
- fd_register_config("TRACELOADCONFIG","Trace config file loading",
-                    fd_boolconfig_get,fd_boolconfig_set,&trace_config_load);
- fd_register_config("TRACELOADEVAL","Trace expressions while loading files",
-                    fd_boolconfig_get,fd_boolconfig_set,&trace_load_eval);
+ kno_register_config("TRACELOAD","Trace file load starts and ends",
+                    kno_boolconfig_get,kno_boolconfig_set,&trace_load);
+ kno_register_config("TRACELOADCONFIG","Trace config file loading",
+                    kno_boolconfig_get,kno_boolconfig_set,&trace_config_load);
+ kno_register_config("TRACELOADEVAL","Trace expressions while loading files",
+                    kno_boolconfig_get,kno_boolconfig_set,&trace_load_eval);
 }
 
 /* Emacs local variables

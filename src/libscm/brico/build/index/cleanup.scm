@@ -1,4 +1,4 @@
-#!/usr/bin/fdexec
+#!/usr/bin/knox
 ;;; -*- Mode: Scheme; -*-
 
 (config! 'cachelevel 2)

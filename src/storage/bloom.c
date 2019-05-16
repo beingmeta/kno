@@ -1,23 +1,23 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform.
+   This file is part of beingmeta's Kno platform.
 */
 
 #ifndef _FILEINFO
 #define _FILEINFO __FILE__
 #endif
 
-#define FD_INLINE_CHOICES 1
-#define FD_INLINE_TABLES 1
-#include "framerd/components/storage_layer.h"
+#define KNO_INLINE_CHOICES 1
+#define KNO_INLINE_TABLES 1
+#include "kno/components/storage_layer.h"
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/hash.h"
-#include "framerd/tables.h"
-#include "framerd/numbers.h"
-#include "framerd/bloom.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/hash.h"
+#include "kno/tables.h"
+#include "kno/numbers.h"
+#include "kno/bloom.h"
 
 #include <libu8/u8printf.h>
 
@@ -108,7 +108,7 @@ inline static int test_bit_set_bit(unsigned char * buf,
 }
 
 
-static int bloom_check_add(struct FD_BLOOM * bloom,
+static int bloom_check_add(struct KNO_BLOOM * bloom,
                            const void * buffer, int len, int add)
 {
   int hits = 0;
@@ -135,25 +135,25 @@ static int bloom_check_add(struct FD_BLOOM * bloom,
   return 0;
 }
 
-FD_EXPORT
-struct FD_BLOOM *
-fd_init_bloom_filter(struct FD_BLOOM *use_bloom,int entries,double error)
+KNO_EXPORT
+struct KNO_BLOOM *
+kno_init_bloom_filter(struct KNO_BLOOM *use_bloom,int entries,double error)
 {
-  struct FD_BLOOM *bloom = NULL;
+  struct KNO_BLOOM *bloom = NULL;
   if (entries < 1) {
-    fd_seterr(fd_TypeError,"fd_bloom_init","bad n_entries arg",FD_INT(entries));
+    kno_seterr(kno_TypeError,"kno_bloom_init","bad n_entries arg",KNO_INT(entries));
     return NULL;}
   else if (error <= 0) {
-    fd_seterr(fd_TypeError,"fd_bloom_init","bad allowed error value",
-              fd_make_double(error));
+    kno_seterr(kno_TypeError,"kno_bloom_init","bad allowed error value",
+              kno_make_double(error));
     return NULL;}
   else if (use_bloom == NULL)
-    bloom = u8_alloc(struct FD_BLOOM);
+    bloom = u8_alloc(struct KNO_BLOOM);
   else bloom = use_bloom;
 
   if (use_bloom) {
-    FD_SET_CONS_TYPE(bloom,fd_bloom_filter_type);}
-  else FD_INIT_CONS(bloom,fd_bloom_filter_type);
+    KNO_SET_CONS_TYPE(bloom,kno_bloom_filter_type);}
+  else KNO_INIT_CONS(bloom,kno_bloom_filter_type);
 
   bloom->entries = entries;
   bloom->error = error;
@@ -175,34 +175,34 @@ fd_init_bloom_filter(struct FD_BLOOM *use_bloom,int entries,double error)
 
   bloom->bf = u8_zmalloc(bloom->bytes);
   if (bloom->bf == NULL) {
-    u8_graberrno("fd_bloom_init:mallocbytes",NULL);
+    u8_graberrno("kno_bloom_init:mallocbytes",NULL);
     if (use_bloom == NULL) u8_free(bloom);
     return NULL;}
 
   return bloom;
 }
 
-FD_EXPORT struct FD_BLOOM *
-fd_import_bloom_filter(struct FD_BLOOM *use_bloom,
+KNO_EXPORT struct KNO_BLOOM *
+kno_import_bloom_filter(struct KNO_BLOOM *use_bloom,
                        int entries,double error,
                        const unsigned char *bytes,
                        size_t n_bytes)
 {
-  struct FD_BLOOM *bloom = NULL;
+  struct KNO_BLOOM *bloom = NULL;
   if (entries < 1) {
-    fd_seterr(fd_TypeError,"fd_bloom_init","bad n_entries arg",FD_INT(entries));
+    kno_seterr(kno_TypeError,"kno_bloom_init","bad n_entries arg",KNO_INT(entries));
     return NULL;}
   else if (error <= 0) {
-    fd_seterr(fd_TypeError,"fd_bloom_init","bad allowed error value",
-              fd_make_double(error));
+    kno_seterr(kno_TypeError,"kno_bloom_init","bad allowed error value",
+              kno_make_double(error));
     return NULL;}
   else if (use_bloom == NULL)
-    bloom = u8_alloc(struct FD_BLOOM);
+    bloom = u8_alloc(struct KNO_BLOOM);
   else bloom = use_bloom;
 
   if (use_bloom) {
-    FD_SET_CONS_TYPE(bloom,fd_bloom_filter_type);}
-  else FD_INIT_CONS(bloom,fd_bloom_filter_type);
+    KNO_SET_CONS_TYPE(bloom,kno_bloom_filter_type);}
+  else KNO_INIT_CONS(bloom,kno_bloom_filter_type);
 
   bloom->entries = entries;
   bloom->error = error;
@@ -221,7 +221,7 @@ fd_import_bloom_filter(struct FD_BLOOM *use_bloom,
   }
 
   if (bloom->bytes != n_bytes) {
-    u8_seterr("Bloom/BadLength","fd_import_bloom_filter",
+    u8_seterr("Bloom/BadLength","kno_import_bloom_filter",
               u8_mkstring("Inconsistent length %lld ≠ %lld (e=%f,n=%lld)",
                           (size_t)n_bytes,(size_t)bloom->bytes,
                           error,(long long)entries));
@@ -235,7 +235,7 @@ fd_import_bloom_filter(struct FD_BLOOM *use_bloom,
     bloom->bf = u8_memdup(bloom->bytes,bytes);
   else bloom->bf = u8_zmalloc(bloom->bytes);
   if (bloom->bf == NULL) {
-    u8_graberrno("fd_bloom_init:mallocbytes",NULL);
+    u8_graberrno("kno_bloom_init:mallocbytes",NULL);
     if (use_bloom == NULL) u8_free(bloom);
     return NULL;}
 
@@ -244,7 +244,7 @@ fd_import_bloom_filter(struct FD_BLOOM *use_bloom,
 
 /* Adding and checking primitives */
 
-int bloom_check_add_dtype(struct FD_BLOOM *bloom,lispval key,
+int bloom_check_add_dtype(struct KNO_BLOOM *bloom,lispval key,
                           int add,int raw,int err)
 {
   int rv=0;
@@ -252,45 +252,45 @@ int bloom_check_add_dtype(struct FD_BLOOM *bloom,lispval key,
     if (STRINGP(key))
       rv=bloom_check_add(bloom,CSTRING(key),STRLEN(key),add);
     else if (PACKETP(key))
-      rv=bloom_check_add(bloom,FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),add);
+      rv=bloom_check_add(bloom,KNO_PACKET_DATA(key),KNO_PACKET_LENGTH(key),add);
     else if (err) {
-      fd_seterr("Raw bloom arg wasn't a string or packet",
+      kno_seterr("Raw bloom arg wasn't a string or packet",
                 "bloom_check_add_dtype",NULL,key);
       return -1;}
     if (rv<0)
       u8_seterr("BadBloomFilter","bloom_check_add_dtype",NULL);
     return rv;}
   else {
-    FD_DECL_OUTBUF(out,1024);
-    size_t dtype_len = fd_write_dtype(&out,key);
+    KNO_DECL_OUTBUF(out,1024);
+    size_t dtype_len = kno_write_dtype(&out,key);
     if ( PRED_FALSE (dtype_len<0) ) {
       if (err) {
         if (u8_current_exception) u8_pop_exception();
         return 0;}
       else return -1;}
-    else if ( (out.buf_flags) & (FD_BUFFER_ALLOC) ) {
+    else if ( (out.buf_flags) & (KNO_BUFFER_ALLOC) ) {
       int rv=bloom_check_add(bloom,out.buffer,out.bufwrite-out.buffer,add);
-      fd_close_outbuf(&out);
+      kno_close_outbuf(&out);
       if (rv<0) u8_seterr("BadBloomFilter","bloom_check_add_dtype",NULL);
       return rv;}
     else return bloom_check_add(bloom,out.buffer,out.bufwrite-out.buffer,add);}
 }
 
-FD_EXPORT int fd_bloom_op(struct FD_BLOOM * bloom, lispval key,int flags)
+KNO_EXPORT int kno_bloom_op(struct KNO_BLOOM * bloom, lispval key,int flags)
 {
-  int raw=flags&FD_BLOOM_RAW, err=flags&FD_BLOOM_ERR;
-  int check=flags&FD_BLOOM_CHECK, add=flags&FD_BLOOM_ADD;
+  int raw=flags&KNO_BLOOM_RAW, err=flags&KNO_BLOOM_ERR;
+  int check=flags&KNO_BLOOM_CHECK, add=flags&KNO_BLOOM_ADD;
   if (PRECHOICEP(key)) {
-    lispval simple=fd_make_simple_choice(key);
-    int rv=fd_bloom_op(bloom,simple,flags);
-    fd_decref(simple);
+    lispval simple=kno_make_simple_choice(key);
+    int rv=kno_bloom_op(bloom,simple,flags);
+    kno_decref(simple);
     return rv;}
   else if (CHOICEP(key)) {
     unsigned int count=0;
     DO_CHOICES(elt,key) {
       int rv=bloom_check_add_dtype(bloom, elt, add, raw, err);
       if (rv<0) {
-        FD_STOP_DO_CHOICES;
+        KNO_STOP_DO_CHOICES;
         return rv;}
       else if ( (rv) && (check) )
         return 1;
@@ -301,13 +301,13 @@ FD_EXPORT int fd_bloom_op(struct FD_BLOOM * bloom, lispval key,int flags)
   else return bloom_check_add_dtype(bloom, key, add, raw, err);
 }
 
-int fd_bloom_checkbuf(struct FD_BLOOM * bloom, const void * buffer, int len)
+int kno_bloom_checkbuf(struct KNO_BLOOM * bloom, const void * buffer, int len)
 {
   return bloom_check_add(bloom, buffer, len, 0);
 }
 
 
-int fd_bloom_addbuf(struct FD_BLOOM * bloom, const void * buffer, int len)
+int kno_bloom_addbuf(struct KNO_BLOOM * bloom, const void * buffer, int len)
 {
   return bloom_check_add(bloom, buffer, len, 1);
 }
@@ -315,7 +315,7 @@ int fd_bloom_addbuf(struct FD_BLOOM * bloom, const void * buffer, int len)
 
 int unparse_bloom(u8_output out,lispval x)
 {
-  struct FD_BLOOM *filter = (struct FD_BLOOM *)x;
+  struct KNO_BLOOM *filter = (struct KNO_BLOOM *)x;
   u8_printf(out,"#<BLOOM #!%llx %lld/%lld(%f)>",
             (U8_PTR2INT(filter)),
             filter->bloom_adds,
@@ -325,75 +325,75 @@ int unparse_bloom(u8_output out,lispval x)
 }
 
 
-void recycle_bloom(struct FD_RAW_CONS *c)
+void recycle_bloom(struct KNO_RAW_CONS *c)
 {
-  struct FD_BLOOM * bloom = (struct FD_BLOOM *)c;
+  struct KNO_BLOOM * bloom = (struct KNO_BLOOM *)c;
   if (bloom->bf) free(bloom->bf);
-  if (!(FD_STATIC_CONSP(bloom))) {
-    memset(bloom,0,sizeof(struct FD_BLOOM));
+  if (!(KNO_STATIC_CONSP(bloom))) {
+    memset(bloom,0,sizeof(struct KNO_BLOOM));
     u8_free(bloom);}
 }
 
-static ssize_t dtype_bloom(struct FD_OUTBUF *out,lispval x)
+static ssize_t dtype_bloom(struct KNO_OUTBUF *out,lispval x)
 {
-  struct FD_BLOOM * bloom = (struct FD_BLOOM *)x;
-  fd_write_byte(out,dt_compound);
-  fd_write_byte(out,dt_symbol);
-  fd_write_4bytes(out,11);
-  fd_write_bytes(out,"bloomfilter",11);
-  lispval len_val = FD_INT(bloom->bytes);
-  lispval entries_val = FD_INT(bloom->entries);
-  struct FD_FLONUM err; memset(&err,0,sizeof(FD_FLONUM));
-  FD_INIT_STATIC_CONS(&err,fd_flonum_type);
+  struct KNO_BLOOM * bloom = (struct KNO_BLOOM *)x;
+  kno_write_byte(out,dt_compound);
+  kno_write_byte(out,dt_symbol);
+  kno_write_4bytes(out,11);
+  kno_write_bytes(out,"bloomfilter",11);
+  lispval len_val = KNO_INT(bloom->bytes);
+  lispval entries_val = KNO_INT(bloom->entries);
+  struct KNO_FLONUM err; memset(&err,0,sizeof(KNO_FLONUM));
+  KNO_INIT_STATIC_CONS(&err,kno_flonum_type);
   err.floval = bloom->error;
   unsigned char buf[100];
-  struct FD_OUTBUF header = { 0 }; FD_INIT_BYTE_OUTBUF(&header,buf,100);
-  fd_write_dtype(&header,len_val);
-  fd_write_dtype(&header,entries_val);
-  fd_write_dtype(&header,(lispval)&err);
-  fd_decref(len_val); fd_decref(entries_val);
+  struct KNO_OUTBUF header = { 0 }; KNO_INIT_BYTE_OUTBUF(&header,buf,100);
+  kno_write_dtype(&header,len_val);
+  kno_write_dtype(&header,entries_val);
+  kno_write_dtype(&header,(lispval)&err);
+  kno_decref(len_val); kno_decref(entries_val);
   size_t header_len = header.bufwrite-header.buffer;
   size_t packet_len = header_len + bloom->bytes;
-  fd_write_byte(out,dt_packet);
-  fd_write_4bytes(out,packet_len);
-  fd_write_bytes(out,header.buffer,header_len);
-  fd_write_bytes(out,bloom->bf,bloom->bytes);
+  kno_write_byte(out,dt_packet);
+  kno_write_4bytes(out,packet_len);
+  kno_write_bytes(out,header.buffer,header_len);
+  kno_write_bytes(out,bloom->bf,bloom->bytes);
   return 1 + 1 + 4 + 11 + 1 + 4 + header_len + bloom->bytes;
 }
 
-static lispval restore_bloom(lispval tag,lispval x,fd_compound_typeinfo e)
+static lispval restore_bloom(lispval tag,lispval x,kno_compound_typeinfo e)
 {
-  if (FD_PACKETP(x)) {
-    struct FD_INBUF in = { 0 };
-    FD_INIT_INBUF(&in,FD_PACKET_DATA(x),FD_PACKET_LENGTH(x),0);
-    lispval len_val = fd_read_dtype(&in);
-    lispval entries_val = fd_read_dtype(&in);
-    lispval err_val = fd_read_dtype(&in);
-    if ( (FIXNUMP(len_val)) && (FIXNUMP(entries_val)) && (FD_FLONUMP(err_val)) ) {
-      long long len = fd_getint(len_val);
-      long long entries = fd_getint(entries_val);
-      double err = FD_FLONUM(err_val);
+  if (KNO_PACKETP(x)) {
+    struct KNO_INBUF in = { 0 };
+    KNO_INIT_INBUF(&in,KNO_PACKET_DATA(x),KNO_PACKET_LENGTH(x),0);
+    lispval len_val = kno_read_dtype(&in);
+    lispval entries_val = kno_read_dtype(&in);
+    lispval err_val = kno_read_dtype(&in);
+    if ( (FIXNUMP(len_val)) && (FIXNUMP(entries_val)) && (KNO_FLONUMP(err_val)) ) {
+      long long len = kno_getint(len_val);
+      long long entries = kno_getint(entries_val);
+      double err = KNO_FLONUM(err_val);
       if ( (len > 0) && (entries > 0) && 
            ( len == (in.buflim-in.bufread) ) ) {
-        struct FD_BLOOM *filter =
-          fd_import_bloom_filter(NULL,entries,err,in.bufread,len);
+        struct KNO_BLOOM *filter =
+          kno_import_bloom_filter(NULL,entries,err,in.bufread,len);
         if (filter == NULL)
-          return FD_ERROR_VALUE;
+          return KNO_ERROR_VALUE;
         else return (lispval) filter;}
-      else return fd_err(fd_DTypeError,"bad bloom filter data",NULL,x);}
-    else return fd_err(fd_DTypeError,"bad bloom filter data",NULL,x);}
-  else return fd_err(fd_DTypeError,"bad bloom filter data",NULL,x);
+      else return kno_err(kno_DTypeError,"bad bloom filter data",NULL,x);}
+    else return kno_err(kno_DTypeError,"bad bloom filter data",NULL,x);}
+  else return kno_err(kno_DTypeError,"bad bloom filter data",NULL,x);
 }
 
-void fd_init_bloom_c()
+void kno_init_bloom_c()
 {
-  fd_unparsers[fd_bloom_filter_type]=unparse_bloom;
-  fd_recyclers[fd_bloom_filter_type]=recycle_bloom;
-  fd_dtype_writers[fd_bloom_filter_type]=dtype_bloom;
+  kno_unparsers[kno_bloom_filter_type]=unparse_bloom;
+  kno_recyclers[kno_bloom_filter_type]=recycle_bloom;
+  kno_dtype_writers[kno_bloom_filter_type]=dtype_bloom;
 
-  lispval bloom_tag = fd_intern("bloomfilter");
+  lispval bloom_tag = kno_intern("bloomfilter");
 
-  struct FD_COMPOUND_TYPEINFO *e=fd_register_compound(bloom_tag,NULL,NULL);
+  struct KNO_COMPOUND_TYPEINFO *e=kno_register_compound(bloom_tag,NULL,NULL);
   e->compound_restorefn = restore_bloom;
 
   u8_register_source_file(_FILEINFO);

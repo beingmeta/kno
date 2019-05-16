@@ -2,19 +2,19 @@ source @abs_top_srcdir@/etc/gdbinit
 directory @abs_top_srcdir@:@abs_top_srcdir@/../libu8:@abs_top_srcdir@/../lingo:@extra_sources@
 set env DYLD_LIBRARY_PATH @abs_top_srcdir@/lib
 set env LD_LIBRARY_PATH @abs_top_srcdir@/lib
-set env FD_INIT_DLOADPATH @abs_top_srcdir@/lib/framerd/%.@shared_suffix@:@abs_top_srcdir@/../lingo/%.@shared_suffix@:@prefix@/lib/framerd/%.@shared_suffix@
-set env FD_INIT_LOADPATH @abs_top_srcdir@/src/extmods/:@abs_top_srcdir@/src/extmods/safe/:@default_module_path@
-set env FD_INIT_SAFELOADPATH @abs_top_srcdir@/src/extmods/safe/:@default_safe_module_path@
-set env FD_UPDATEMODULES=5
-set env FD_SKIP_DOTLOAD yes
-set env FD_TRACECONFIGLOAD yes
-set env FD_DLOAD:TRACE yes
-set env FD_SHOWTIME 0.0
-set env FD_DISPLAYMAXELTS=36
-set env FD_DISPLAYMAXCHARS=1024
-set env FD_TRACEWEB=yes
-set env FD_WEBDEBUG=yes
-set env FD_WEBALLOWDEBUG=yes
-set env FD_HYPHENDICT=../src/cmodules/hyph_en_US.dic
-set env FD_LIBSCM_DIR=@abs_top_srcdir@/src/libscm/
+set env KNO_INIT_DLOADPATH @abs_top_srcdir@/lib/kno/%.@shared_suffix@:@abs_top_srcdir@/../lingo/%.@shared_suffix@:@prefix@/lib/kno/%.@shared_suffix@
+set env KNO_INIT_LOADPATH @abs_top_srcdir@/src/extmods/:@abs_top_srcdir@/src/extmods/safe/:@default_module_path@
+set env KNO_INIT_SAFELOADPATH @abs_top_srcdir@/src/extmods/safe/:@default_safe_module_path@
+set env KNO_UPDATEMODULES=5
+set env KNO_SKIP_DOTLOAD yes
+set env KNO_TRACECONFIGLOAD yes
+set env KNO_DLOAD:TRACE yes
+set env KNO_SHOWTIME 0.0
+set env KNO_DISPLAYMAXELTS=36
+set env KNO_DISPLAYMAXCHARS=1024
+set env KNO_TRACEWEB=yes
+set env KNO_WEBDEBUG=yes
+set env KNO_WEBALLOWDEBUG=yes
+set env KNO_HYPHENDICT=../src/cmodules/hyph_en_US.dic
+set env KNO_LIBSCM_DIR=@abs_top_srcdir@/src/libscm/
 source .gdbinit.local

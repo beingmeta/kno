@@ -4,7 +4,7 @@
 ;;; DON'T EDIT THIS FILE !!!
 ;;;
 ;;; The reference version of this module now in the src/libscm
-;;; directory of the FramerD/KNO source tree. Please edit the file in
+;;; directory of the Kno/KNO source tree. Please edit the file in
 ;;; src/libscm instead or move any added functionality to an extension
 ;;; module.
 
@@ -150,7 +150,7 @@
 
 (module-export! '{jsonp/open jsonp/close})
 
-;;; Converting a FramerD/Scheme object into an object that converts to
+;;; Converting a Kno/Scheme object into an object that converts to
 ;;; JSON better
 (defambda (exportjson object (opts #f) (toplevel #f) 
 		      (oidfn) (uuidfn) (slotkeyfn) (refslot))

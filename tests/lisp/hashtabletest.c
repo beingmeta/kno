@@ -1,11 +1,11 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
-#include "framerd/dtype.h"
+#include "kno/dtype.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8stdio.h>
@@ -18,73 +18,73 @@
 static lispval read_dtype_from_file(FILE *f)
 {
   lispval object;
-  struct FD_OUTBUF out = { 0 };
-  struct FD_INBUF in = { 0 };
+  struct KNO_OUTBUF out = { 0 };
+  struct KNO_INBUF in = { 0 };
   char buf[1024]; int delta = 0;
-  FD_INIT_BYTE_OUTPUT(&out,1024);
+  KNO_INIT_BYTE_OUTPUT(&out,1024);
   while ((delta = fread(buf,1,1024,f))) {
     if (delta<0)
       if (errno == EAGAIN) {}
       else u8_raise("Read error","u8recode",NULL);
-    else fd_write_bytes(&out,buf,delta);}
-  FD_INIT_BYTE_INPUT(&in,out.buffer,out.bufwrite-out.buffer);
-  object = fd_read_dtype(&in);
-  fd_close_outbuf(&out);
+    else kno_write_bytes(&out,buf,delta);}
+  KNO_INIT_BYTE_INPUT(&in,out.buffer,out.bufwrite-out.buffer);
+  object = kno_read_dtype(&in);
+  kno_close_outbuf(&out);
   return object;
 }
 
 static int write_dtype_to_file(lispval object,FILE *f)
 {
-  struct FD_OUTBUF out = { 0 };
+  struct KNO_OUTBUF out = { 0 };
   int retval;
-  FD_INIT_BYTE_OUTPUT(&out,1024);
-  fd_write_dtype(&out,object);
+  KNO_INIT_BYTE_OUTPUT(&out,1024);
+  kno_write_dtype(&out,object);
   retval = fwrite(out.buffer,1,out.bufwrite-out.buffer,f);
-  fd_close_outbuf(&out);
+  kno_close_outbuf(&out);
   return retval;
 }
 
-#define SLOTMAP(x) (fd_consptr(struct FD_SLOTMAP *,x,fd_slotmap_type))
-#define HASHTABLE(x) (fd_consptr(struct FD_HASHTABLE *,x,fd_hashtable_type))
+#define SLOTMAP(x) (kno_consptr(struct KNO_SLOTMAP *,x,kno_slotmap_type))
+#define HASHTABLE(x) (kno_consptr(struct KNO_HASHTABLE *,x,kno_hashtable_type))
 
-#define free_var(var) fd_decref(var); var = FD_VOID
+#define free_var(var) kno_decref(var); var = KNO_VOID
 
 int main(int argc,char **argv)
 {
   FILE *f = fopen(argv[1],"rb");
   lispval ht, slotid, value;
-  FD_DO_LIBINIT(fd_init_lisp_types);
+  KNO_DO_LIBINIT(kno_init_lisp_types);
   if (f) {
     ht = read_dtype_from_file(f); fclose(f);}
-  else ht = fd_make_hashtable(NULL,64);
+  else ht = kno_make_hashtable(NULL,64);
   if (argc == 2) {
-    lispval keys = fd_hashtable_keys(HASHTABLE(ht));
-    FD_DO_CHOICES(key,keys) {
-      lispval v = fd_hashtable_get(HASHTABLE(ht),key,FD_EMPTY_CHOICE);
+    lispval keys = kno_hashtable_keys(HASHTABLE(ht));
+    KNO_DO_CHOICES(key,keys) {
+      lispval v = kno_hashtable_get(HASHTABLE(ht),key,KNO_EMPTY_CHOICE);
       u8_fprintf(stderr,"%q=%q\n",key,v);}
     exit(0);}
-  slotid = fd_probe_symbol(argv[2],strlen(argv[2]));
-  slotid = fd_parse(argv[2]);
+  slotid = kno_probe_symbol(argv[2],strlen(argv[2]));
+  slotid = kno_parse(argv[2]);
   if (argc == 3) {
-    value = fd_hashtable_get(HASHTABLE(ht),slotid,FD_VOID);
+    value = kno_hashtable_get(HASHTABLE(ht),slotid,KNO_VOID);
     u8_fprintf(stderr,"%q=%q\n",slotid,value);
     free_var(value);}
   else if (argv[3][0] == '+') {
-    value = fd_parse(argv[3]+1);
-    fd_hashtable_add(HASHTABLE(ht),slotid,value);
+    value = kno_parse(argv[3]+1);
+    kno_hashtable_add(HASHTABLE(ht),slotid,value);
     f = fopen(argv[1],"wb");
     write_dtype_to_file(ht,f); fclose(f);}
   else if (argv[3][0] == '-') {
-    value = fd_parse(argv[3]+1);
-    fd_hashtable_drop(HASHTABLE(ht),slotid,value);
+    value = kno_parse(argv[3]+1);
+    kno_hashtable_drop(HASHTABLE(ht),slotid,value);
     f = fopen(argv[1],"wb");
     write_dtype_to_file(ht,f); fclose(f);}
   else {
-    value = fd_parse(argv[3]);
-    fd_hashtable_store(HASHTABLE(ht),slotid,value);
+    value = kno_parse(argv[3]);
+    kno_hashtable_store(HASHTABLE(ht),slotid,value);
     f = fopen(argv[1],"wb");
     write_dtype_to_file(ht,f); fclose(f);}
-  fd_decref(value);
+  kno_decref(value);
   free_var(ht);
   exit(0);
 }

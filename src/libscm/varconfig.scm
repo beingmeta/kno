@@ -4,7 +4,7 @@
 ;;; DON'T EDIT THIS FILE !!!
 ;;;
 ;;; The reference version of this module now in the src/libscm
-;;; directory of the FramerD/KNO source tree. Please edit that file
+;;; directory of the Kno/KNO source tree. Please edit that file
 ;;; instead.
 
 (in-module 'varconfig)

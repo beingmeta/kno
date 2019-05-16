@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2006-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -16,141 +16,141 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define FD_INLINE_FCNIDS 1
+#define KNO_INLINE_FCNIDS 1
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/apply.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/apply.h"
 
 #include <libu8/u8printf.h>
 
-#define FD_FCNID_MAX (FD_FCNID_NBLOCKS*FD_FCNID_BLOCKSIZE)
+#define KNO_FCNID_MAX (KNO_FCNID_NBLOCKS*KNO_FCNID_BLOCKSIZE)
 
-u8_condition fd_InvalidFCNID=_("Invalid persistent pointer reference");
-u8_condition fd_FCNIDOverflow=_("No more valid persistent pointers");
+u8_condition kno_InvalidFCNID=_("Invalid persistent pointer reference");
+u8_condition kno_FCNIDOverflow=_("No more valid persistent pointers");
 
-struct FD_CONS **_fd_fcnids[FD_FCNID_NBLOCKS];
-int _fd_fcnid_count = 0;
-u8_mutex _fd_fcnid_lock;
+struct KNO_CONS **_kno_fcnids[KNO_FCNID_NBLOCKS];
+int _kno_fcnid_count = 0;
+u8_mutex _kno_fcnid_lock;
 
-int _fd_leak_fcnids = 1;
+int _kno_leak_fcnids = 1;
 
-FD_EXPORT lispval fd_resolve_fcnid(lispval x)
+KNO_EXPORT lispval kno_resolve_fcnid(lispval x)
 {
-  return fd_fcnid_ref(x);
+  return kno_fcnid_ref(x);
 }
 
-FD_EXPORT lispval fd_register_fcnid(lispval x)
+KNO_EXPORT lispval kno_register_fcnid(lispval x)
 {
   int serialno;
   if (!(CONSP(x)))
-    return fd_type_error("cons","fd_register_fcnid",x);
-  u8_lock_mutex(&_fd_fcnid_lock);
-  if (_fd_fcnid_count>=FD_FCNID_MAX) {
-    u8_unlock_mutex(&_fd_fcnid_lock);
-    return fd_err(fd_FCNIDOverflow,"fd_register_fcnid",NULL,x);}
-  serialno=_fd_fcnid_count++;
-  if ((serialno%FD_FCNID_BLOCKSIZE)==0) {
-    struct FD_CONS **block = u8_alloc_n(FD_FCNID_BLOCKSIZE,struct FD_CONS *);
-    int i = 0, n = FD_FCNID_BLOCKSIZE;
+    return kno_type_error("cons","kno_register_fcnid",x);
+  u8_lock_mutex(&_kno_fcnid_lock);
+  if (_kno_fcnid_count>=KNO_FCNID_MAX) {
+    u8_unlock_mutex(&_kno_fcnid_lock);
+    return kno_err(kno_FCNIDOverflow,"kno_register_fcnid",NULL,x);}
+  serialno=_kno_fcnid_count++;
+  if ((serialno%KNO_FCNID_BLOCKSIZE)==0) {
+    struct KNO_CONS **block = u8_alloc_n(KNO_FCNID_BLOCKSIZE,struct KNO_CONS *);
+    int i = 0, n = KNO_FCNID_BLOCKSIZE;
     while (i<n) block[i++]=NULL;
-    _fd_fcnids[serialno/FD_FCNID_BLOCKSIZE]=block;}
-  fd_incref(x);
-  _fd_fcnids[serialno/FD_FCNID_BLOCKSIZE][serialno%FD_FCNID_BLOCKSIZE]=
-    (struct FD_CONS *)x;
-  u8_unlock_mutex(&_fd_fcnid_lock);
-  if (FD_FUNCTIONP(x)) {
-    struct FD_FUNCTION *f = (fd_function)x;
-    f->fcnid = LISPVAL_IMMEDIATE(fd_fcnid_type,serialno);}
-  return LISPVAL_IMMEDIATE(fd_fcnid_type,serialno);
+    _kno_fcnids[serialno/KNO_FCNID_BLOCKSIZE]=block;}
+  kno_incref(x);
+  _kno_fcnids[serialno/KNO_FCNID_BLOCKSIZE][serialno%KNO_FCNID_BLOCKSIZE]=
+    (struct KNO_CONS *)x;
+  u8_unlock_mutex(&_kno_fcnid_lock);
+  if (KNO_FUNCTIONP(x)) {
+    struct KNO_FUNCTION *f = (kno_function)x;
+    f->fcnid = LISPVAL_IMMEDIATE(kno_fcnid_type,serialno);}
+  return LISPVAL_IMMEDIATE(kno_fcnid_type,serialno);
 }
 
-FD_EXPORT lispval fd_set_fcnid(lispval id,lispval value)
+KNO_EXPORT lispval kno_set_fcnid(lispval id,lispval value)
 {
-  if (!(FD_FCNIDP(id)))
-    return fd_type_error("fcnid","fd_set_fcnid",id);
+  if (!(KNO_FCNIDP(id)))
+    return kno_type_error("fcnid","kno_set_fcnid",id);
   else if (!(CONSP(value)))
-    return fd_type_error("cons","fd_set_fcnid",value);
-  else if (!((FD_FUNCTIONP(value))||
-             (TYPEP(value,fd_evalfn_type))))
-    return fd_type_error("function/fexpr","fd_set_fcnid",value);
+    return kno_type_error("cons","kno_set_fcnid",value);
+  else if (!((KNO_FUNCTIONP(value))||
+             (TYPEP(value,kno_evalfn_type))))
+    return kno_type_error("function/fexpr","kno_set_fcnid",value);
   else {
-    u8_lock_mutex(&_fd_fcnid_lock);
-    int serialno = FD_GET_IMMEDIATE(id,fd_fcnid_type);
-    int block_num = serialno/FD_FCNID_BLOCKSIZE;
-    int block_off = serialno%FD_FCNID_BLOCKSIZE;
-    if (serialno>=_fd_fcnid_count) {
-      u8_unlock_mutex(&_fd_fcnid_lock);
-      return fd_err(fd_InvalidFCNID,"fd_set_fcnid",NULL,id);}
+    u8_lock_mutex(&_kno_fcnid_lock);
+    int serialno = KNO_GET_IMMEDIATE(id,kno_fcnid_type);
+    int block_num = serialno/KNO_FCNID_BLOCKSIZE;
+    int block_off = serialno%KNO_FCNID_BLOCKSIZE;
+    if (serialno>=_kno_fcnid_count) {
+      u8_unlock_mutex(&_kno_fcnid_lock);
+      return kno_err(kno_InvalidFCNID,"kno_set_fcnid",NULL,id);}
     else {
-      struct FD_CONS **block=_fd_fcnids[block_num];
-      struct FD_FUNCTION *fcn = (fd_function)value;
+      struct KNO_CONS **block=_kno_fcnids[block_num];
+      struct KNO_FUNCTION *fcn = (kno_function)value;
       if (!(block)) {
         /* We should never get here, but let's check anyway */
-        u8_unlock_mutex(&_fd_fcnid_lock);
-        return fd_err(fd_InvalidFCNID,"fd_set_fcnid",NULL,id);}
+        u8_unlock_mutex(&_kno_fcnid_lock);
+        return kno_err(kno_InvalidFCNID,"kno_set_fcnid",NULL,id);}
       else {
-        struct FD_CONS *current = block[block_off];
-        if (current == ((fd_cons)value)) {
-          u8_unlock_mutex(&_fd_fcnid_lock);
+        struct KNO_CONS *current = block[block_off];
+        if (current == ((kno_cons)value)) {
+          u8_unlock_mutex(&_kno_fcnid_lock);
           return id;}
-        block[block_off]=(fd_cons)value;
-        fd_incref(value);
+        block[block_off]=(kno_cons)value;
+        kno_incref(value);
         fcn->fcnid = id;
-        if (!(_fd_leak_fcnids)) {
+        if (!(_kno_leak_fcnids)) {
           /* This is dangerous if, for example, a module is being reloaded
              (and fcnid's redefined) while another thread is using the old
-             value. If this bothers you, set fd_leak_fcnids to 1. */
-          if (current) {fd_decref((lispval)current);}}
-        u8_unlock_mutex(&_fd_fcnid_lock);
+             value. If this bothers you, set kno_leak_fcnids to 1. */
+          if (current) {kno_decref((lispval)current);}}
+        u8_unlock_mutex(&_kno_fcnid_lock);
         return id;}}}
 }
 
-FD_EXPORT int fd_deregister_fcnid(lispval id,lispval value)
+KNO_EXPORT int kno_deregister_fcnid(lispval id,lispval value)
 {
-  if (!(FD_FCNIDP(id))) {
-    fd_seterr(fd_TypeError,"fd_degister_fcnid","fcnid",id);
+  if (!(KNO_FCNIDP(id))) {
+    kno_seterr(kno_TypeError,"kno_degister_fcnid","fcnid",id);
     return -1;}
   else if (!(CONSP(value)))
     return 0;
-  else if (!((FD_FUNCTIONP(value))||
-             (TYPEP(value,fd_evalfn_type))))
+  else if (!((KNO_FUNCTIONP(value))||
+             (TYPEP(value,kno_evalfn_type))))
     return 0;
   else {
-    u8_lock_mutex(&_fd_fcnid_lock);
-    int serialno = FD_GET_IMMEDIATE(id,fd_fcnid_type);
-    int block_num = serialno/FD_FCNID_BLOCKSIZE;
-    int block_off = serialno%FD_FCNID_BLOCKSIZE;
-    if (serialno>=_fd_fcnid_count) {
-      u8_unlock_mutex(&_fd_fcnid_lock);
-      fd_seterr(fd_InvalidFCNID,"fd_set_fcnid",NULL,id);
+    u8_lock_mutex(&_kno_fcnid_lock);
+    int serialno = KNO_GET_IMMEDIATE(id,kno_fcnid_type);
+    int block_num = serialno/KNO_FCNID_BLOCKSIZE;
+    int block_off = serialno%KNO_FCNID_BLOCKSIZE;
+    if (serialno>=_kno_fcnid_count) {
+      u8_unlock_mutex(&_kno_fcnid_lock);
+      kno_seterr(kno_InvalidFCNID,"kno_set_fcnid",NULL,id);
       return -1;}
     else {
-      struct FD_CONS **block=_fd_fcnids[block_num];
+      struct KNO_CONS **block=_kno_fcnids[block_num];
       if (!(block)) {
         /* We should never get here, but let's check anyway */
-        u8_unlock_mutex(&_fd_fcnid_lock);
-        fd_seterr(fd_InvalidFCNID,"fd_set_fcnid",NULL,id);
+        u8_unlock_mutex(&_kno_fcnid_lock);
+        kno_seterr(kno_InvalidFCNID,"kno_set_fcnid",NULL,id);
         return -1;}
       else {
-        struct FD_CONS *current = block[block_off];
+        struct KNO_CONS *current = block[block_off];
         /* No longer registered */
-        if (current!=((fd_cons)value)) {
-          u8_unlock_mutex(&_fd_fcnid_lock);
+        if (current!=((kno_cons)value)) {
+          u8_unlock_mutex(&_kno_fcnid_lock);
           return 0;}
-        else block[block_off]=(fd_cons)NULL;
-        u8_unlock_mutex(&_fd_fcnid_lock);
+        else block[block_off]=(kno_cons)NULL;
+        u8_unlock_mutex(&_kno_fcnid_lock);
         return 1;}}}
 }
 
 static int unparse_fcnid(u8_output out,lispval x)
 {
-  lispval lp = fd_fcnid_ref(x);
-  if (TYPEP(lp,fd_cprim_type)) {
-    struct FD_FUNCTION *fcn = (fd_function)lp;
+  lispval lp = kno_fcnid_ref(x);
+  if (TYPEP(lp,kno_cprim_type)) {
+    struct KNO_FUNCTION *fcn = (kno_function)lp;
     u8_string filename = fcn->fcn_filename;
     u8_byte arity[64]="", codes[64]="", numbuf[32], namebuf[64];
-    u8_string name = fd_fcn_sig(fcn,namebuf);
+    u8_string name = kno_fcn_sig(fcn,namebuf);
     if ((filename)&&(filename[0]=='\0')) filename = NULL;
     if (fcn->fcn_ndcall) strcat(codes,"∀");
     if ((fcn->fcn_arity<0)&&(fcn->fcn_min_arity<0))
@@ -171,29 +171,29 @@ static int unparse_fcnid(u8_output out,lispval x)
       strcat(arity,"]");}
     if (name)
       u8_printf(out,"#<~%d<Φ%s%s%s%s%s%s>>",
-                FD_GET_IMMEDIATE(x,fd_fcnid_type),
+                KNO_GET_IMMEDIATE(x,kno_fcnid_type),
                 codes,name,arity,U8OPTSTR("'",filename,"'"));
     else u8_printf(out,"#<~%d<Φ%s%s #!0x%llx%s%s%s>>",
-                   FD_GET_IMMEDIATE(x,fd_fcnid_type),codes,arity,
-                   u8_uitoa16((FD_PTRVAL(fcn)),numbuf),
+                   KNO_GET_IMMEDIATE(x,kno_fcnid_type),codes,arity,
+                   u8_uitoa16((KNO_PTRVAL(fcn)),numbuf),
                    U8OPTSTR(" '",filename,"'"));
     return 1;}
   else {
-    u8_printf(out,"#<~%ld %q>",FD_GET_IMMEDIATE(x,fd_fcnid_type),lp);
+    u8_printf(out,"#<~%ld %q>",KNO_GET_IMMEDIATE(x,kno_fcnid_type),lp);
     return 1;}
 }
 
-FD_EXPORT void fd_init_fcnids_c()
+KNO_EXPORT void kno_init_fcnids_c()
 {
-  fd_type_names[fd_fcnid_type]=_("function identifier");
-  fd_unparsers[fd_fcnid_type]=unparse_fcnid;
-  u8_init_mutex(&_fd_fcnid_lock);
+  kno_type_names[kno_fcnid_type]=_("function identifier");
+  kno_unparsers[kno_fcnid_type]=unparse_fcnid;
+  u8_init_mutex(&_kno_fcnid_lock);
   u8_register_source_file(_FILEINFO);
-  fd_register_config
+  kno_register_config
     ("FCNID:LEAK",
      "Leak values stored behind function IDs, to avoid use after free due "
      "to dangling references",
-     fd_boolconfig_get,fd_boolconfig_set,&_fd_leak_fcnids);
+     kno_boolconfig_get,kno_boolconfig_set,&_kno_leak_fcnids);
 }
 
 /* Emacs local variables

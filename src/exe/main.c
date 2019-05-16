@@ -71,15 +71,15 @@ static int isconfig(char *arg)
 
 /* Stack traces */
 
-static struct FD_STACK *_get_stack_frame(void *arg)
+static struct KNO_STACK *_get_stack_frame(void *arg)
 {
-  struct FD_STACK *curstack=fd_stackptr;
-  unsigned long long intval=FD_LONGVAL( arg);
+  struct KNO_STACK *curstack=kno_stackptr;
+  unsigned long long intval=KNO_LONGVAL( arg);
   if (arg==NULL)
     return curstack;
   else if ((intval < 100000) && (curstack) &&
            (intval <= (curstack->stack_depth))) {
-    struct FD_STACK *scan=curstack;
+    struct KNO_STACK *scan=curstack;
     while (scan) {
       if ( scan->stack_depth == intval )
         return scan;
@@ -87,10 +87,10 @@ static struct FD_STACK *_get_stack_frame(void *arg)
     if (scan==NULL)
       fprintf(stderr,"!! No stack frame %lld\n",intval);
     return NULL;}
-  else return (fd_stack)arg;
+  else return (kno_stack)arg;
 }
 
-static void stack_frame_label(u8_output out,struct FD_STACK *stack)
+static void stack_frame_label(u8_output out,struct KNO_STACK *stack)
 {
   if (stack->stack_label)
     u8_puts(out,stack->stack_label);
@@ -103,39 +103,39 @@ static void stack_frame_label(u8_output out,struct FD_STACK *stack)
     u8_printf(out,".%s",stack->stack_type);
 }
 
-FD_EXPORT void _fdbg_show_env(fd_lexenv start,int limit)
+KNO_EXPORT void _fdbg_show_env(kno_lexenv start,int limit)
 {
-  lispval moduleid = fd_intern("%MODULEID");
+  lispval moduleid = kno_intern("%MODULEID");
   int depth = 0;
-  fd_lexenv env=start;
+  kno_lexenv env=start;
   if (limit<0)  {
     lispval bindings = env->env_bindings;
-    lispval keys = fd_getkeys(bindings);
+    lispval keys = kno_getkeys(bindings);
     u8_byte buf[128];
-    FD_DO_CHOICES(key,keys) {
-      if (FD_SYMBOLP(key)) {
-        lispval val=fd_get(bindings,key,FD_VOID);
+    KNO_DO_CHOICES(key,keys) {
+      if (KNO_SYMBOLP(key)) {
+        lispval val=kno_get(bindings,key,KNO_VOID);
         u8_string vstring=u8_sprintf(buf,128,"%q",val);
-        fprintf(stderr,"  %s\t=\t%s\n",FD_SYMBOL_NAME(key),vstring);
-        fd_decref(val);}}
-    fd_decref(keys);}
+        fprintf(stderr,"  %s\t=\t%s\n",KNO_SYMBOL_NAME(key),vstring);
+        kno_decref(val);}}
+    kno_decref(keys);}
   else while ( (env) && (depth < limit) ) {
       lispval bindings = env->env_bindings;
-      fd_ptr_type btype = FD_PTR_TYPE(bindings);
-      lispval name = fd_get(bindings,moduleid,FD_VOID);
-      if (FD_VOIDP(name)) {
-        lispval keys = fd_getkeys(bindings);
+      kno_ptr_type btype = KNO_PTR_TYPE(bindings);
+      lispval name = kno_get(bindings,moduleid,KNO_VOID);
+      if (KNO_VOIDP(name)) {
+        lispval keys = kno_getkeys(bindings);
         u8_fprintf(stderr,"  env#%d %q\t\t\t(%s[%d]) 0x%llx/0x%llx\n",
-                   depth,keys,fd_type_names[btype],FD_CHOICE_SIZE(keys),
+                   depth,keys,kno_type_names[btype],KNO_CHOICE_SIZE(keys),
                    bindings,env);
-        fd_decref(keys);}
+        kno_decref(keys);}
       else u8_fprintf(stderr,"  env#%d module %q\t\t0x%llx\n",depth,name,env);
-      fd_decref(name);
+      kno_decref(name);
       env=env->env_parent;
       depth++;}
 }
 
-static void _concise_stack_frame(struct FD_STACK *stack)
+static void _concise_stack_frame(struct KNO_STACK *stack)
 {
   u8_string summary=NULL;
   lispval op = stack->stack_op;
@@ -151,19 +151,19 @@ static void _concise_stack_frame(struct FD_STACK *stack)
   else fprintf(stderr,"unitialized stack");
   if (stack->stack_args)
     fprintf(stderr,", %d args",stack->n_args);
-  if (FD_SYMBOLP(op))
+  if (KNO_SYMBOLP(op))
     fprintf(stderr,", op=%s",SYM_NAME(op));
-  else if (FD_FUNCTIONP(op)) {
-    struct FD_FUNCTION *fn=FD_XFUNCTION(op);
+  else if (KNO_FUNCTIONP(op)) {
+    struct KNO_FUNCTION *fn=KNO_XFUNCTION(op);
     if (fn->fcn_name)
       fprintf(stderr,", op=%s",fn->fcn_name);}
-  else if (TYPEP(op,fd_evalfn_type)) {
-    struct FD_EVALFN *evalfn=(fd_evalfn)op;
+  else if (TYPEP(op,kno_evalfn_type)) {
+    struct KNO_EVALFN *evalfn=(kno_evalfn)op;
     fprintf(stderr,", op=%s",evalfn->evalfn_name);}
   else {}
   if ((stack->stack_env) &&
       (SCHEMAPP(stack->stack_env->env_bindings))) {
-    struct FD_SCHEMAP *sm = (fd_schemap)stack->stack_env->env_bindings;
+    struct KNO_SCHEMAP *sm = (kno_schemap)stack->stack_env->env_bindings;
     lispval *schema=sm->table_schema;
     fprintf(stderr,", binding");
     int n=sm->schema_length, i=0; while (i<n) {
@@ -175,14 +175,14 @@ static void _concise_stack_frame(struct FD_STACK *stack)
   fprintf(stderr,"\n");
 }
 
-FD_EXPORT void _fdbg_show_stack_frame(void *arg)
+KNO_EXPORT void _fdbg_show_stack_frame(void *arg)
 {
-  struct FD_STACK *stack=_get_stack_frame(arg);
+  struct KNO_STACK *stack=_get_stack_frame(arg);
   _concise_stack_frame(stack);
   if (stack->stack_env) _fdbg_show_env(stack->stack_env,20);
   if (PAIRP(stack->stack_op))
     u8_fprintf(stderr,"%Q",stack->stack_op);
-  else if (FD_APPLICABLEP(stack->stack_op)) {
+  else if (KNO_APPLICABLEP(stack->stack_op)) {
     u8_fprintf(stderr,"Applying %q to",stack->stack_op);
     if (stack->n_args) {
       u8_byte buf[128];
@@ -197,29 +197,29 @@ FD_EXPORT void _fdbg_show_stack_frame(void *arg)
     _fdbg_show_env(stack->stack_env,-1);
 }
 
-FD_EXPORT lispval _fdbg_get_stack_arg(void *arg,int n)
+KNO_EXPORT lispval _fdbg_get_stack_arg(void *arg,int n)
 {
-  struct FD_STACK *stack=_get_stack_frame(arg);
+  struct KNO_STACK *stack=_get_stack_frame(arg);
   if (stack->stack_args)
     if ( (n>=0) && (n < (stack->n_args) ) )
       return stack->stack_args[n];
-    else return FD_NULL;
-  else return FD_NULL;
+    else return KNO_NULL;
+  else return KNO_NULL;
 }
 
-FD_EXPORT lispval _fdbg_get_stack_var(void *arg,u8_string varname)
+KNO_EXPORT lispval _fdbg_get_stack_var(void *arg,u8_string varname)
 {
-  struct FD_STACK *stack=_get_stack_frame(arg);
+  struct KNO_STACK *stack=_get_stack_frame(arg);
   if (stack->stack_env) {
-    lispval sym = fd_symbolize(varname);
-    return fd_symeval(sym,stack->stack_env);}
-  else return FD_NULL;
+    lispval sym = kno_symbolize(varname);
+    return kno_symeval(sym,stack->stack_env);}
+  else return KNO_NULL;
 }
 
-FD_EXPORT void _fdbg_show_stack(void *arg,int limit)
+KNO_EXPORT void _fdbg_show_stack(void *arg,int limit)
 {
   int count=0;
-  struct FD_STACK *stack=_get_stack_frame(arg);
+  struct KNO_STACK *stack=_get_stack_frame(arg);
   if (stack==NULL) {
     fprintf(stderr,"!! No stack\n");
     return;}
@@ -230,9 +230,9 @@ FD_EXPORT void _fdbg_show_stack(void *arg,int limit)
     if ( (limit > 0) && (count >= limit) ) break;}
 }
 
-FD_EXPORT void _fdbg_show_stack_env(void *arg)
+KNO_EXPORT void _fdbg_show_stack_env(void *arg)
 {
-  struct FD_STACK *stack=_get_stack_frame(arg);
+  struct KNO_STACK *stack=_get_stack_frame(arg);
   if (stack==NULL) {
     fprintf(stderr,"!! No stack\n");
     return;}

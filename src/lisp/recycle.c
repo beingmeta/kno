@@ -1,7 +1,7 @@
 /* Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -9,59 +9,59 @@
 #define _FILEINFO __FILE__
 #endif
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/compounds.h"
-#include "framerd/cons.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/compounds.h"
+#include "kno/cons.h"
 
 /* Builtin recyclers */
 
-static void recycle_string(struct FD_STRING *s)
+static void recycle_string(struct KNO_STRING *s)
 {
   if ( (s->str_bytes) && (s->str_freebytes) )
     u8_free(s->str_bytes);
   u8_free(s);
 }
 
-static void recycle_vector(struct FD_VECTOR *v)
+static void recycle_vector(struct KNO_VECTOR *v)
 {
   int len = v->vec_length;
   lispval *scan = v->vec_elts, *limit = scan+len;
   if (scan) {
     while (scan<limit) {
-      fd_decref(*scan);
+      kno_decref(*scan);
       scan++;}
     if (v->vec_free_elts) {
       if (v->vec_bigalloc_elts)
         u8_big_free(v->vec_elts);
       else u8_free(v->vec_elts);}}
-  if (!(FD_STATIC_CONSP(v))) {
+  if (!(KNO_STATIC_CONSP(v))) {
     if (v->vec_bigalloc)
       u8_big_free(v);
     else u8_free(v);}
 }
 
-static void recycle_choice(struct FD_CHOICE *cv)
+static void recycle_choice(struct KNO_CHOICE *cv)
 {
   if (!(cv->choice_isatomic)) {
     int len = cv->choice_size;
-    const lispval *scan = FD_XCHOICE_DATA(cv), *limit = scan+len;
-    if (scan) while (scan<limit) {fd_decref(*scan); scan++;}}
-  fd_free_choice(cv);
+    const lispval *scan = KNO_XCHOICE_DATA(cv), *limit = scan+len;
+    if (scan) while (scan<limit) {kno_decref(*scan); scan++;}}
+  kno_free_choice(cv);
 }
 
-static void recycle_qchoice(struct FD_QCHOICE *qc)
+static void recycle_qchoice(struct KNO_QCHOICE *qc)
 {
-  fd_decref(qc->qchoiceval);
+  kno_decref(qc->qchoiceval);
   u8_free(qc);
 }
 
 /* Recycling pairs directly */
 
-static void recycle_pair(struct FD_PAIR *pair)
+static void recycle_pair(struct KNO_PAIR *pair)
 {
   lispval car = pair->car, cdr = pair->cdr;
-  fd_decref(car); fd_decref(cdr);
+  kno_decref(car); kno_decref(cdr);
   u8_free(pair);
 }
 
@@ -69,101 +69,101 @@ static void recycle_pair(struct FD_PAIR *pair)
 
 /* We want to avoid deep call stacks for freeing long lists, so
    we iterate in the CDR direction. */
-static void recycle_list(struct FD_PAIR *pair)
+static void recycle_list(struct KNO_PAIR *pair)
 {
   lispval car = pair->car, cdr = pair->cdr;
-  fd_decref(car);
+  kno_decref(car);
   if (!(PAIRP(cdr))) {
-    fd_decref(cdr);
+    kno_decref(cdr);
     u8_free(pair);
     return;}
   else {
     u8_free(pair);
-    pair = (fd_pair)cdr;}
-#if FD_LOCKFREE_REFCOUNTS
+    pair = (kno_pair)cdr;}
+#if KNO_LOCKFREE_REFCOUNTS
   while (1) {
-    struct FD_REF_CONS *cons = (struct FD_REF_CONS *)pair;
-    if (FD_STATIC_CONSP(pair)) return;
+    struct KNO_REF_CONS *cons = (struct KNO_REF_CONS *)pair;
+    if (KNO_STATIC_CONSP(pair)) return;
     else {
       car = pair->car; cdr = pair->cdr;}
-    fd_consbits newbits = atomic_fetch_sub(&(cons->conshead),0x80)-0x80;
+    kno_consbits newbits = atomic_fetch_sub(&(cons->conshead),0x80)-0x80;
     if (newbits<0x80) {
-      fd_decref(car);
+      kno_decref(car);
       if (PAIRP(cdr)) {
         atomic_store(&(cons->conshead),(newbits|0xFFFFFF80));
         u8_free(pair);
-        pair = (fd_pair)cdr;}
+        pair = (kno_pair)cdr;}
       else {
         atomic_store(&(cons->conshead),(newbits|0xFFFFFF80));
-        fd_decref(cdr);
+        kno_decref(cdr);
         u8_free(pair);
         return;}}
     else return;}
 #else
   if (CONSP(cdr)) {
     if (PAIRP(cdr)) {
-      struct FD_PAIR *xcdr = (struct FD_PAIR *)cdr;
-      FD_LOCK_PTR(xcdr);
-      while (FD_CONS_REFCOUNT(xcdr)==1) {
+      struct KNO_PAIR *xcdr = (struct KNO_PAIR *)cdr;
+      KNO_LOCK_PTR(xcdr);
+      while (KNO_CONS_REFCOUNT(xcdr)==1) {
         car = xcdr->car; cdr = xcdr->cdr;
-        FD_UNLOCK_PTR(xcdr);
-        fd_decref(car);
+        KNO_UNLOCK_PTR(xcdr);
+        kno_decref(car);
         u8_free(xcdr); xcdr = NULL;
         if (PAIRP(cdr)) {
-          xcdr = (fd_pair)cdr;
-          FD_LOCK_PTR(xcdr);
+          xcdr = (kno_pair)cdr;
+          KNO_LOCK_PTR(xcdr);
           continue;}
         else break;}
-      if (xcdr) FD_UNLOCK_PTR(xcdr);
-      fd_decref(cdr);}
-    else fd_decref(cdr);}
+      if (xcdr) KNO_UNLOCK_PTR(xcdr);
+      kno_decref(cdr);}
+    else kno_decref(cdr);}
 #endif
 }
 
-static void recycle_uuid(struct FD_RAW_CONS *c)
+static void recycle_uuid(struct KNO_RAW_CONS *c)
 {
   u8_free(c);
 }
 
-static void recycle_exception(struct FD_RAW_CONS *c)
+static void recycle_exception(struct KNO_RAW_CONS *c)
 {
-  struct FD_EXCEPTION *exo = (struct FD_EXCEPTION *)c;
+  struct KNO_EXCEPTION *exo = (struct KNO_EXCEPTION *)c;
   if (exo->ex_details) u8_free(exo->ex_details);
-  fd_decref(exo->ex_irritant);
-  fd_decref(exo->ex_stack);
-  fd_decref(exo->ex_context);
+  kno_decref(exo->ex_irritant);
+  kno_decref(exo->ex_stack);
+  kno_decref(exo->ex_context);
   u8_free(exo);
 }
 
-static void recycle_timestamp(struct FD_RAW_CONS *c)
+static void recycle_timestamp(struct KNO_RAW_CONS *c)
 {
   u8_free(c);
 }
 
-static void recycle_regex(struct FD_RAW_CONS *c)
+static void recycle_regex(struct KNO_RAW_CONS *c)
 {
-  struct FD_REGEX *rx = (struct FD_REGEX *)c;
+  struct KNO_REGEX *rx = (struct KNO_REGEX *)c;
   regfree(&(rx->rxcompiled));
   u8_destroy_mutex(&(rx->rx_lock));
   u8_free(c);
 }
 
-static void recycle_rawptr(struct FD_RAW_CONS *c)
+static void recycle_rawptr(struct KNO_RAW_CONS *c)
 {
-  struct FD_RAWPTR *rawptr = (struct FD_RAWPTR *)c;
+  struct KNO_RAWPTR *rawptr = (struct KNO_RAWPTR *)c;
   if (rawptr->recycler)
     rawptr->recycler(rawptr->ptrval);
   if (rawptr->idstring) u8_free(rawptr->idstring);
   rawptr->ptrval   = NULL;
   rawptr->idstring = NULL;
-  fd_decref(rawptr->raw_typespec);
+  kno_decref(rawptr->raw_typespec);
 }
 
-static void recycle_compound(struct FD_RAW_CONS *c)
+static void recycle_compound(struct KNO_RAW_CONS *c)
 {
-  struct FD_COMPOUND *compound = (struct FD_COMPOUND *)c;
+  struct KNO_COMPOUND *compound = (struct KNO_COMPOUND *)c;
   lispval typetag = compound->compound_typetag;
-  struct FD_COMPOUND_TYPEINFO *typeinfo = fd_lookup_compound(typetag);
+  struct KNO_COMPOUND_TYPEINFO *typeinfo = kno_lookup_compound(typetag);
   if ( (typeinfo) && (typeinfo->compound_freefn) ) {
     int rv = (typeinfo->compound_freefn)((lispval)c,typeinfo);
     if (rv < 0) {
@@ -171,15 +171,15 @@ static void recycle_compound(struct FD_RAW_CONS *c)
              "Recycling %q compound: %q",typetag,compound);}}
   int i = 0, n = compound->compound_length;
   lispval *data = &(compound->compound_0);
-  while (i<n) {fd_decref(data[i]); i++;}
-  fd_decref(compound->compound_typetag);
+  while (i<n) {kno_decref(data[i]); i++;}
+  kno_decref(compound->compound_typetag);
   if (compound->compound_ismutable) u8_destroy_mutex(&(compound->compound_lock));
   u8_free(c);
 }
 
-static void recycle_mystery(struct FD_RAW_CONS *c)
+static void recycle_mystery(struct KNO_RAW_CONS *c)
 {
-  struct FD_MYSTERY_DTYPE *myst = (struct FD_MYSTERY_DTYPE *)c;
+  struct KNO_MYSTERY_DTYPE *myst = (struct KNO_MYSTERY_DTYPE *)c;
   if (myst->myst_dtcode&0x80)
     u8_free(myst->mystery_payload.elts);
   else u8_free(myst->mystery_payload.bytes);
@@ -188,81 +188,81 @@ static void recycle_mystery(struct FD_RAW_CONS *c)
 
 /* The main function */
 
-FD_EXPORT
-/* fd_recycle_cons:
-    Arguments: a pointer to an FD_CONS struct
+KNO_EXPORT
+/* kno_recycle_cons:
+    Arguments: a pointer to an KNO_CONS struct
     Returns: void
  Recycles a cons cell */
-void fd_recycle_cons(fd_raw_cons c)
+void kno_recycle_cons(kno_raw_cons c)
 {
-  int ctype = FD_CONS_TYPE(c);
+  int ctype = KNO_CONS_TYPE(c);
   switch (ctype) {
-  case fd_string_type: case fd_packet_type: case fd_secret_type:
-    recycle_string((struct FD_STRING *)c);
+  case kno_string_type: case kno_packet_type: case kno_secret_type:
+    recycle_string((struct KNO_STRING *)c);
     return;
-  case fd_vector_type: case fd_code_type:
-    recycle_vector((struct FD_VECTOR *)c);
+  case kno_vector_type: case kno_code_type:
+    recycle_vector((struct KNO_VECTOR *)c);
     return;
-  case fd_choice_type:
-    recycle_choice((struct FD_CHOICE *)c);
+  case kno_choice_type:
+    recycle_choice((struct KNO_CHOICE *)c);
     return;
-  case fd_pair_type:
-    recycle_list((struct FD_PAIR *)c);
+  case kno_pair_type:
+    recycle_list((struct KNO_PAIR *)c);
     return;
-  case fd_compound_type:
+  case kno_compound_type:
     recycle_compound(c);
     return;
-  case fd_rational_type: case fd_complex_type:
-    recycle_pair((struct FD_PAIR *)c);
+  case kno_rational_type: case kno_complex_type:
+    recycle_pair((struct KNO_PAIR *)c);
     return;
-  case fd_uuid_type: case fd_timestamp_type:
+  case kno_uuid_type: case kno_timestamp_type:
     u8_free(c);
     return;
-  case fd_regex_type:
+  case kno_regex_type:
     recycle_regex(c);
     return;
-  case fd_rawptr_type:
+  case kno_rawptr_type:
     recycle_rawptr(c);
     return;
-  case fd_qchoice_type:
-    recycle_qchoice((struct FD_QCHOICE *)c);
+  case kno_qchoice_type:
+    recycle_qchoice((struct KNO_QCHOICE *)c);
     return;
   default: {
-    if (fd_recyclers[ctype]) fd_recyclers[ctype](c);}
+    if (kno_recyclers[ctype]) kno_recyclers[ctype](c);}
   }
 }
 
-FD_EXPORT
+KNO_EXPORT
 /* Increfs the elements of a vector of LISP pointers */
-void fd_incref_vec(lispval *vec,size_t n)
+void kno_incref_vec(lispval *vec,size_t n)
 {
   int i = 0; while (i<n) {
     lispval elt = vec[i];
-    if ( (FD_CONSP(elt)) && (FD_STATIC_CONSP(elt) ) ) {
-      vec[i] = fd_copier(elt,FD_FULL_COPY);}
-    else fd_incref(elt);
+    if ( (KNO_CONSP(elt)) && (KNO_STATIC_CONSP(elt) ) ) {
+      vec[i] = kno_copier(elt,KNO_FULL_COPY);}
+    else kno_incref(elt);
     i++;}
 }
 
-FD_EXPORT
+KNO_EXPORT
 /* Decrefs the elements of a vector of LISP pointers */
-void fd_decref_vec(lispval *vec,size_t n)
+void kno_decref_vec(lispval *vec,size_t n)
 {
   int i = 0; while (i<n) {
     lispval elt = vec[i++];
-    fd_decref(elt);}
+    kno_decref(elt);}
 }
 
-void fd_init_recycle_c()
+void kno_init_recycle_c()
 {
 
-  fd_recyclers[fd_exception_type]=recycle_exception;
-  fd_recyclers[fd_mystery_type]=recycle_mystery;
-  fd_recyclers[fd_uuid_type]=recycle_uuid;
-  fd_recyclers[fd_timestamp_type]=recycle_timestamp;
-  fd_recyclers[fd_regex_type]=recycle_regex;
+  kno_recyclers[kno_exception_type]=recycle_exception;
+  kno_recyclers[kno_mystery_type]=recycle_mystery;
+  kno_recyclers[kno_uuid_type]=recycle_uuid;
+  kno_recyclers[kno_timestamp_type]=recycle_timestamp;
+  kno_recyclers[kno_regex_type]=recycle_regex;
 
-  fd_recyclers[fd_compound_type]=recycle_compound;
+  kno_recyclers[kno_compound_type]=recycle_compound;
 
   u8_register_source_file(_FILEINFO);
 }

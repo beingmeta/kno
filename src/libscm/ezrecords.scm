@@ -4,7 +4,7 @@
 (in-module 'ezrecords)
 
 ;;; This provides a dead simple RECORDS implementation 
-;;;  building on FramerD's built-in compounds.
+;;;  building on Kno's built-in compounds.
 
 (define (make-xref-generator off tag-expr)
   (lambda (expr) `(,compound-ref ,(cadr expr) ,off ',tag-expr)))

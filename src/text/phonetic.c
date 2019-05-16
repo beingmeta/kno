@@ -13,8 +13,8 @@
 
 #define U8_INLINE_IO 1
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8streamio.h>
@@ -40,7 +40,7 @@ static int soundex_class(int c)
     return 0;}
 }
 
-FD_EXPORT u8_string fd_soundex(u8_string string)
+KNO_EXPORT u8_string kno_soundex(u8_string string)
 {
   struct U8_OUTPUT out; int c, lastc;
   const u8_byte *s = string; u8_byte buf[8];
@@ -62,7 +62,7 @@ FD_EXPORT u8_string fd_soundex(u8_string string)
 
 /* This is a minor tweak on the regular metaphone algorithm because it
    preserves case information. */
-FD_EXPORT u8_string fd_metaphone(u8_string string,int sep)
+KNO_EXPORT u8_string kno_metaphone(u8_string string,int sep)
 {
   struct U8_OUTPUT out;
   char buf[32], *start, *scan;
@@ -207,7 +207,7 @@ FD_EXPORT u8_string fd_metaphone(u8_string string,int sep)
 
 /* Init (just register) */
 
-void fd_init_phonetic_c()
+void kno_init_phonetic_c()
 {
   u8_register_source_file(_FILEINFO);
 }

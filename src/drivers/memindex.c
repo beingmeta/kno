@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -9,17 +9,17 @@
 #define _FILEINFO __FILE__
 #endif
 
-#include "framerd/components/storage_layer.h"
-#define FD_INLINE_BUFIO 1
-#define FD_INLINE_CHOICES 1
-#define FD_FAST_CHOICE_CONTAINSP 1
+#include "kno/components/storage_layer.h"
+#define KNO_INLINE_BUFIO 1
+#define KNO_INLINE_CHOICES 1
+#define KNO_FAST_CHOICE_CONTAINSP 1
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/storage.h"
-#include "framerd/pools.h"
-#include "framerd/indexes.h"
-#include "framerd/drivers.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/storage.h"
+#include "kno/pools.h"
+#include "kno/indexes.h"
+#include "kno/drivers.h"
 
 #include "headers/memindex.h"
 
@@ -29,9 +29,9 @@
 
 static int memindex_map_init = 10000;
 
-static struct FD_INDEX_HANDLER memindex_handler;
+static struct KNO_INDEX_HANDLER memindex_handler;
 
-static ssize_t load_memindex(struct FD_MEMINDEX *memidx);
+static ssize_t load_memindex(struct KNO_MEMINDEX *memidx);
 
 static void truncate_failed(int fileno,u8_string file)
 {
@@ -47,56 +47,56 @@ static void truncate_failed(int fileno,u8_string file)
 
 /* The in-memory index */
 
-static lispval memindex_fetch(fd_index ix,lispval key)
+static lispval memindex_fetch(kno_index ix,lispval key)
 {
-  struct FD_MEMINDEX *mix = (struct FD_MEMINDEX *)ix;
+  struct KNO_MEMINDEX *mix = (struct KNO_MEMINDEX *)ix;
   if (! (mix->mix_loaded) ) load_memindex(mix);
-  return fd_hashtable_get(&(mix->mix_map),key,EMPTY);
+  return kno_hashtable_get(&(mix->mix_map),key,EMPTY);
 }
 
-static int memindex_fetchsize(fd_index ix,lispval key)
+static int memindex_fetchsize(kno_index ix,lispval key)
 {
-  struct FD_MEMINDEX *mix = (struct FD_MEMINDEX *)ix;
+  struct KNO_MEMINDEX *mix = (struct KNO_MEMINDEX *)ix;
   if (! (mix->mix_loaded) ) load_memindex(mix);
-  lispval v = fd_hashtable_get(&(mix->mix_map),key,EMPTY);
-  int size = FD_CHOICE_SIZE(v);
-  fd_decref(v);
+  lispval v = kno_hashtable_get(&(mix->mix_map),key,EMPTY);
+  int size = KNO_CHOICE_SIZE(v);
+  kno_decref(v);
   return size;
 }
 
-static lispval *memindex_fetchn(fd_index ix,int n,const lispval *keys)
+static lispval *memindex_fetchn(kno_index ix,int n,const lispval *keys)
 {
-  struct FD_MEMINDEX *mix = (struct FD_MEMINDEX *)ix;
+  struct KNO_MEMINDEX *mix = (struct KNO_MEMINDEX *)ix;
   if (! (mix->mix_loaded) ) load_memindex(mix);
-  struct FD_HASHTABLE *map = &(mix->mix_map);
+  struct KNO_HASHTABLE *map = &(mix->mix_map);
   lispval *results = u8_big_alloc_n(n,lispval);
-  fd_write_lock_table(map);
+  kno_write_lock_table(map);
   int i = 0; while (i<n) {
-    results[i]=fd_hashtable_get_nolock(map,keys[i],EMPTY);
+    results[i]=kno_hashtable_get_nolock(map,keys[i],EMPTY);
     i++;}
-  fd_unlock_table(map);
+  kno_unlock_table(map);
   return results;
 }
 
-static lispval *memindex_fetchkeys(fd_index ix,int *n)
+static lispval *memindex_fetchkeys(kno_index ix,int *n)
 {
-  struct FD_MEMINDEX *mix = (struct FD_MEMINDEX *)ix;
+  struct KNO_MEMINDEX *mix = (struct KNO_MEMINDEX *)ix;
   if (! (mix->mix_loaded) ) load_memindex(mix);
-  lispval keys = fd_hashtable_keys(&(mix->mix_map));
-  if (FD_PRECHOICEP(keys)) keys = fd_simplify_choice(keys);
-  if (FD_CHOICEP(keys)) {
-    int count = FD_CHOICE_SIZE(keys);
+  lispval keys = kno_hashtable_keys(&(mix->mix_map));
+  if (KNO_PRECHOICEP(keys)) keys = kno_simplify_choice(keys);
+  if (KNO_CHOICEP(keys)) {
+    int count = KNO_CHOICE_SIZE(keys);
     lispval *keyv = u8_big_alloc_n(count,lispval);
-    if (FD_CONS_REFCOUNT(keys) == 1) {
-      struct FD_CHOICE *ch = (fd_choice) keys;
-      memmove(keyv,FD_CHOICE_ELTS(keys),count*LISPVAL_LEN);
-      fd_free_choice(ch);}
+    if (KNO_CONS_REFCOUNT(keys) == 1) {
+      struct KNO_CHOICE *ch = (kno_choice) keys;
+      memmove(keyv,KNO_CHOICE_ELTS(keys),count*LISPVAL_LEN);
+      kno_free_choice(ch);}
     else {
-      const lispval *elts = FD_CHOICE_ELTS(keys);
+      const lispval *elts = KNO_CHOICE_ELTS(keys);
       int i=0; while (i<count) {
-        keyv[i] = fd_incref(elts[i]);
+        keyv[i] = kno_incref(elts[i]);
         i++;}
-      fd_decref(keys);}
+      kno_decref(keys);}
     *n=count;
     return keyv;}
   else {
@@ -106,89 +106,89 @@ static lispval *memindex_fetchkeys(fd_index ix,int *n)
 }
 
 struct FETCHINFO_STATE {
-  struct FD_KEY_SIZE *sizes;
-  struct FD_CHOICE *filter;
+  struct KNO_KEY_SIZE *sizes;
+  struct KNO_CHOICE *filter;
   int i, n;};
 
-static int gather_keysizes(struct FD_KEYVAL *kv,void *data)
+static int gather_keysizes(struct KNO_KEYVAL *kv,void *data)
 {
   struct FETCHINFO_STATE *state = (struct FETCHINFO_STATE *)data;
-  fd_choice filter=state->filter;
+  kno_choice filter=state->filter;
   int i = state->i;
   if (i<state->n) {
     lispval key = kv->kv_key;
     if ( (filter==NULL) || (fast_choice_containsp(key,filter)) ) {
       lispval value = kv->kv_val;
-      int size = FD_CHOICE_SIZE(value);
+      int size = KNO_CHOICE_SIZE(value);
       state->sizes[i].keysize_key = key;
-      fd_incref(key);
-      state->sizes[i].keysize_count = FD_INT(size);
+      kno_incref(key);
+      state->sizes[i].keysize_count = KNO_INT(size);
       state->i++;}}
   return 0;
 }
 
-static struct FD_KEY_SIZE *memindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
+static struct KNO_KEY_SIZE *memindex_fetchinfo(kno_index ix,kno_choice filter,int *n)
 {
-  struct FD_MEMINDEX *mix = (struct FD_MEMINDEX *)ix;
+  struct KNO_MEMINDEX *mix = (struct KNO_MEMINDEX *)ix;
   if (! (mix->mix_loaded) ) load_memindex(mix);
   int n_keys = (filter == NULL) ? (mix->mix_map.table_n_keys) :
-    (FD_XCHOICE_SIZE(filter));
-  struct FD_KEY_SIZE *keysizes = u8_big_alloc_n(n_keys,struct FD_KEY_SIZE);
+    (KNO_XCHOICE_SIZE(filter));
+  struct KNO_KEY_SIZE *keysizes = u8_big_alloc_n(n_keys,struct KNO_KEY_SIZE);
   struct FETCHINFO_STATE state={keysizes,filter,0,n_keys};
-  fd_for_hashtable_kv(&(mix->mix_map),gather_keysizes,(void *)&state,1);
+  kno_for_hashtable_kv(&(mix->mix_map),gather_keysizes,(void *)&state,1);
   *n = state.i;
   return keysizes;
 }
 
-static int memindex_save(struct FD_INDEX *ix,
-                         struct FD_CONST_KEYVAL *adds,int n_adds,
-                         struct FD_CONST_KEYVAL *drops,int n_drops,
-                         struct FD_CONST_KEYVAL *stores,int n_stores,
+static int memindex_save(struct KNO_INDEX *ix,
+                         struct KNO_CONST_KEYVAL *adds,int n_adds,
+                         struct KNO_CONST_KEYVAL *drops,int n_drops,
+                         struct KNO_CONST_KEYVAL *stores,int n_stores,
                          lispval changed_metadata)
 {
-  struct FD_MEMINDEX *memidx = (struct FD_MEMINDEX *)ix;
+  struct KNO_MEMINDEX *memidx = (struct KNO_MEMINDEX *)ix;
   unsigned long long n_changes = n_adds + n_drops + n_stores;
 
   if (n_changes == 0) return 0;
 
   /* Now write the adds and edits to disk */
-  fd_stream stream = &(memidx->index_stream);
-  fd_inbuf in = ( fd_lock_stream(stream), fd_start_read(stream,0x08) );
-  unsigned long long n_entries = fd_read_8bytes(in);
-  size_t end = fd_read_8bytes(in);
-  fd_outbuf out = fd_start_write(stream,end);
+  kno_stream stream = &(memidx->index_stream);
+  kno_inbuf in = ( kno_lock_stream(stream), kno_start_read(stream,0x08) );
+  unsigned long long n_entries = kno_read_8bytes(in);
+  size_t end = kno_read_8bytes(in);
+  kno_outbuf out = kno_start_write(stream,end);
 
   int i=0; while (i<n_adds) {
-    fd_write_byte(out,1);
-    fd_write_dtype(out,adds[i].kv_key);
-    fd_write_dtype(out,adds[i].kv_val);
+    kno_write_byte(out,1);
+    kno_write_dtype(out,adds[i].kv_key);
+    kno_write_dtype(out,adds[i].kv_val);
     i++;}
 
   i=0; while (i<n_drops) {
-    fd_write_byte(out,(unsigned char)-1);
-    fd_write_dtype(out,drops[i].kv_key);
-    fd_write_dtype(out,drops[i].kv_val);
+    kno_write_byte(out,(unsigned char)-1);
+    kno_write_dtype(out,drops[i].kv_key);
+    kno_write_dtype(out,drops[i].kv_val);
     i++;}
 
   i=0; while (i<n_stores) {
-    fd_write_byte(out,(unsigned char)0);
-    fd_write_dtype(out,stores[i].kv_key);
-    fd_write_dtype(out,stores[i].kv_val);
+    kno_write_byte(out,(unsigned char)0);
+    kno_write_dtype(out,stores[i].kv_key);
+    kno_write_dtype(out,stores[i].kv_val);
     i++;}
 
-  end = fd_getpos(stream);
+  end = kno_getpos(stream);
 
-  fd_setpos(stream,0x08); out = fd_writebuf(stream);
+  kno_setpos(stream,0x08); out = kno_writebuf(stream);
 
-  fd_write_8bytes(out,n_entries+n_changes);
-  fd_write_8bytes(out,end);
+  kno_write_8bytes(out,n_entries+n_changes);
+  kno_write_8bytes(out,end);
 
-  fd_flush_stream(stream);
+  kno_flush_stream(stream);
 
-  fd_unlock_stream(stream);
+  kno_unlock_stream(stream);
 
   if (memidx->mix_loaded) {
-    fd_reset_hashtable(&memidx->mix_map,17,1);
+    kno_reset_hashtable(&memidx->mix_map,17,1);
     memidx->mix_loaded=0;}
 
   u8_logf(LOG_NOTICE,"MemIndex/Finished",
@@ -198,21 +198,21 @@ static int memindex_save(struct FD_INDEX *ix,
   return n_changes;
 }
 
-static int memindex_commit(fd_index ix,fd_commit_phase phase,
-                           struct FD_INDEX_COMMITS *commit)
+static int memindex_commit(kno_index ix,kno_commit_phase phase,
+                           struct KNO_INDEX_COMMITS *commit)
 {
   switch (phase) {
-  case fd_commit_write: {
+  case kno_commit_write: {
     int rv = memindex_save(ix,
-                           (struct FD_CONST_KEYVAL *)commit->commit_adds,
+                           (struct KNO_CONST_KEYVAL *)commit->commit_adds,
                            commit->commit_n_adds,
-                           (struct FD_CONST_KEYVAL *)commit->commit_drops,
+                           (struct KNO_CONST_KEYVAL *)commit->commit_drops,
                            commit->commit_n_drops,
-                           (struct FD_CONST_KEYVAL *)commit->commit_stores,
+                           (struct KNO_CONST_KEYVAL *)commit->commit_stores,
                            commit->commit_n_stores,
                            commit->commit_metadata);
-    if (rv<0) commit->commit_phase = fd_commit_rollback;
-    else commit->commit_phase = fd_commit_flush;
+    if (rv<0) commit->commit_phase = kno_commit_rollback;
+    else commit->commit_phase = kno_commit_flush;
     return rv;}
   default: {
     u8_logf(LOG_INFO,"NoPhasedCommit",
@@ -222,52 +222,52 @@ static int memindex_commit(fd_index ix,fd_commit_phase phase,
   }
 }
 
-static int simplify_choice(struct FD_KEYVAL *kv,void *data)
+static int simplify_choice(struct KNO_KEYVAL *kv,void *data)
 {
   if (PRECHOICEP(kv->kv_val))
-    kv->kv_val = fd_simplify_choice(kv->kv_val);
+    kv->kv_val = kno_simplify_choice(kv->kv_val);
   return 0;
 }
 
-static ssize_t load_memindex(struct FD_MEMINDEX *memidx)
+static ssize_t load_memindex(struct KNO_MEMINDEX *memidx)
 {
-  struct FD_STREAM *stream = &(memidx->index_stream);
+  struct KNO_STREAM *stream = &(memidx->index_stream);
   if (memidx->mix_loaded) return 0;
-  else if (fd_lock_stream(stream)<0) return -1;
+  else if (kno_lock_stream(stream)<0) return -1;
   else if (memidx->mix_loaded) {
-    fd_unlock_stream(stream);
+    kno_unlock_stream(stream);
     return 0;}
-  fd_inbuf in = fd_start_read(stream,8);
-  long long i = 0, n_entries = fd_read_8bytes(in);
+  kno_inbuf in = kno_start_read(stream,8);
+  long long i = 0, n_entries = kno_read_8bytes(in);
   double started = u8_elapsed_time();
-  fd_hashtable mix_map = &(memidx->mix_map);
+  kno_hashtable mix_map = &(memidx->mix_map);
   u8_logf(LOG_INFO,"MemIndexLoad",
           "Loading %lld entries for '%s'",n_entries,memidx->indexid);
-  memidx->mix_valid_data = fd_read_8bytes(in);
+  memidx->mix_valid_data = kno_read_8bytes(in);
   int rv = ftruncate(stream->stream_fileno,memidx->mix_valid_data);
   if (rv<0) truncate_failed(stream->stream_fileno,stream->streamid);
-  fd_setpos(stream,256);
+  kno_setpos(stream,256);
   if (n_entries<memindex_map_init)
-    fd_resize_hashtable(mix_map,memindex_map_init);
-  else fd_resize_hashtable(mix_map,1.5*n_entries);
-  fd_write_lock_table(mix_map);
-  in = fd_readbuf(stream);
+    kno_resize_hashtable(mix_map,memindex_map_init);
+  else kno_resize_hashtable(mix_map,1.5*n_entries);
+  kno_write_lock_table(mix_map);
+  in = kno_readbuf(stream);
   while (i<n_entries) {
-    char op = fd_read_byte(in);
-    lispval key = fd_read_dtype(in);
-    lispval value = fd_read_dtype(in);
-    fd_hashtable_op_nolock
-      (mix_map,( (op<0) ? (fd_table_drop) :
-                 (op==0) ? (fd_table_store_noref):
-                 (fd_table_add_noref)),
+    char op = kno_read_byte(in);
+    lispval key = kno_read_dtype(in);
+    lispval value = kno_read_dtype(in);
+    kno_hashtable_op_nolock
+      (mix_map,( (op<0) ? (kno_table_drop) :
+                 (op==0) ? (kno_table_store_noref):
+                 (kno_table_add_noref)),
        key,value);
-    fd_decref(key);
-    if (op<0) fd_decref(value);
+    kno_decref(key);
+    if (op<0) kno_decref(value);
     i++;}
-  fd_for_hashtable_kv(mix_map,simplify_choice,NULL,0);
-  fd_unlock_table(mix_map);
+  kno_for_hashtable_kv(mix_map,simplify_choice,NULL,0);
+  kno_unlock_table(mix_map);
   memidx->mix_loaded = 1;
-  fd_unlock_stream(stream);
+  kno_unlock_stream(stream);
   u8_logf(LOG_NOTICE,"MemIndexLoad",
           "Loaded %lld entries for '%s' in %fs",
           n_entries,memidx->indexid,u8_elapsed_time()-started);
@@ -276,112 +276,112 @@ static ssize_t load_memindex(struct FD_MEMINDEX *memidx)
 
 static lispval preload_opt;
 
-static fd_index open_memindex(u8_string file,fd_storage_flags flags,
+static kno_index open_memindex(u8_string file,kno_storage_flags flags,
                               lispval opts)
 {
-  struct FD_MEMINDEX *memidx = u8_alloc(struct FD_MEMINDEX);
+  struct KNO_MEMINDEX *memidx = u8_alloc(struct KNO_MEMINDEX);
   u8_string abspath = u8_abspath(file,NULL);
   u8_string realpath = u8_realpath(file,NULL);
-  fd_init_index((fd_index)memidx,&memindex_handler,
+  kno_init_index((kno_index)memidx,&memindex_handler,
                 file,abspath,realpath,
-                flags|FD_STORAGE_NOSWAP,
+                flags|KNO_STORAGE_NOSWAP,
                 VOID,
                 opts);
-  struct FD_STREAM *stream=
-    fd_init_file_stream(&(memidx->index_stream),abspath,
-                        FD_FILE_MODIFY,-1,
-                        fd_driver_bufsize);
-  lispval preload = fd_getopt(opts,preload_opt,FD_TRUE);
+  struct KNO_STREAM *stream=
+    kno_init_file_stream(&(memidx->index_stream),abspath,
+                        KNO_FILE_MODIFY,-1,
+                        kno_driver_bufsize);
+  lispval preload = kno_getopt(opts,preload_opt,KNO_TRUE);
   u8_free(abspath); u8_free(realpath);
   if (!(stream)) return NULL;
-  stream->stream_flags &= ~FD_STREAM_IS_CONSED;
-  unsigned int magic_no = fd_read_4bytes(fd_readbuf(stream));
-  if (magic_no!=FD_MEMINDEX_MAGIC_NUMBER) {
-    fd_seterr(_("NotMemindex"),"open_memindex",file,VOID);
-    fd_close_stream(stream,0);
+  stream->stream_flags &= ~KNO_STREAM_IS_CONSED;
+  unsigned int magic_no = kno_read_4bytes(kno_readbuf(stream));
+  if (magic_no!=KNO_MEMINDEX_MAGIC_NUMBER) {
+    kno_seterr(_("NotMemindex"),"open_memindex",file,VOID);
+    kno_close_stream(stream,0);
     u8_free(memidx);
     return NULL;}
   else {
-    fd_inbuf in = fd_readbuf(stream);
-    unsigned U8_MAYBE_UNUSED int n_keys = fd_read_4bytes(in);
-    long long n_entries = fd_read_8bytes(in);
-    memidx->mix_valid_data = fd_read_8bytes(in);
+    kno_inbuf in = kno_readbuf(stream);
+    unsigned U8_MAYBE_UNUSED int n_keys = kno_read_4bytes(in);
+    long long n_entries = kno_read_8bytes(in);
+    memidx->mix_valid_data = kno_read_8bytes(in);
     int rv = ftruncate(stream->stream_fileno,memidx->mix_valid_data);
     if (rv<0) truncate_failed(stream->stream_fileno,stream->streamid);
-    fd_setpos(stream,256);
+    kno_setpos(stream,256);
     if (n_entries<memindex_map_init)
-      fd_init_hashtable(&(memidx->mix_map),memindex_map_init,NULL);
-    else fd_init_hashtable(&(memidx->mix_map),1.5*n_entries,NULL);
+      kno_init_hashtable(&(memidx->mix_map),memindex_map_init,NULL);
+    else kno_init_hashtable(&(memidx->mix_map),1.5*n_entries,NULL);
     if (!(FALSEP(preload)))
       load_memindex(memidx);
-    if (!(U8_BITP(flags,FD_STORAGE_UNREGISTERED)))
-      fd_register_index((fd_index)memidx);
-    return (fd_index)memidx;}
+    if (!(U8_BITP(flags,KNO_STORAGE_UNREGISTERED)))
+      kno_register_index((kno_index)memidx);
+    return (kno_index)memidx;}
 }
 
-static lispval memindex_ctl(fd_index ix,lispval op,int n,lispval *args)
+static lispval memindex_ctl(kno_index ix,lispval op,int n,lispval *args)
 {
-  struct FD_MEMINDEX *mix = (struct FD_MEMINDEX *)ix;
+  struct KNO_MEMINDEX *mix = (struct KNO_MEMINDEX *)ix;
   if ( ((n>0)&&(args == NULL)) || (n<0) )
-    return fd_err("BadIndexOpCall","hashindex_ctl",
+    return kno_err("BadIndexOpCall","hashindex_ctl",
                   mix->indexid,VOID);
-  else if (op == fd_cachelevel_op) {
+  else if (op == kno_cachelevel_op) {
     if (mix->mix_loaded)
-      return FD_INT(3);
-    else return FD_INT(0);}
-  else if (op == fd_getmap_op) {
+      return KNO_INT(3);
+    else return KNO_INT(0);}
+  else if (op == kno_getmap_op) {
     if (mix->mix_loaded==0) load_memindex(mix);
-    return (lispval) fd_copy_hashtable(NULL,&(mix->mix_map),1);}
-  else if (op == fd_preload_op) {
+    return (lispval) kno_copy_hashtable(NULL,&(mix->mix_map),1);}
+  else if (op == kno_preload_op) {
     if (mix->mix_loaded==0) load_memindex(mix);
-    return FD_TRUE;}
-  else if (op == fd_capacity_op)
+    return KNO_TRUE;}
+  else if (op == kno_capacity_op)
     return EMPTY;
-  else if (op == fd_swapout_op) {
+  else if (op == kno_swapout_op) {
     if (mix->mix_loaded) {
       mix->mix_loaded=0;
-      fd_reset_hashtable(&(mix->mix_map),17,1);
-      return FD_TRUE;}
-    return FD_INT(mix->mix_map.table_n_keys);}
-  else if (op == fd_load_op) {
+      kno_reset_hashtable(&(mix->mix_map),17,1);
+      return KNO_TRUE;}
+    return KNO_INT(mix->mix_map.table_n_keys);}
+  else if (op == kno_load_op) {
     if (mix->mix_loaded == 0) load_memindex(mix);
-    return FD_INT(mix->mix_map.table_n_keys);}
-  else if (op == fd_keycount_op) {
+    return KNO_INT(mix->mix_map.table_n_keys);}
+  else if (op == kno_keycount_op) {
     if (mix->mix_loaded == 0) load_memindex(mix);
-    return FD_INT(mix->mix_map.table_n_keys);}
-  else return fd_default_indexctl(ix,op,n,args);
+    return KNO_INT(mix->mix_map.table_n_keys);}
+  else return kno_default_indexctl(ix,op,n,args);
 }
 
-FD_EXPORT int fd_make_memindex(u8_string spec)
+KNO_EXPORT int kno_make_memindex(u8_string spec)
 {
-  struct FD_STREAM _stream;
-  struct FD_STREAM *stream=
-    fd_init_file_stream(&_stream,spec,FD_FILE_CREATE,-1,fd_driver_bufsize);
-  fd_outbuf out = fd_writebuf(stream);
+  struct KNO_STREAM _stream;
+  struct KNO_STREAM *stream=
+    kno_init_file_stream(&_stream,spec,KNO_FILE_CREATE,-1,kno_driver_bufsize);
+  kno_outbuf out = kno_writebuf(stream);
   int i = 24;
-  fd_write_4bytes(out,FD_MEMINDEX_MAGIC_NUMBER);
-  fd_write_4bytes(out,0); /* n_keys */
-  fd_write_8bytes(out,0); /* n_entries */
-  fd_write_8bytes(out,256); /* valid_data */
-  while (i<256) {fd_write_4bytes(out,0); i = i+4;}
-  fd_close_stream(stream,FD_STREAM_FREEDATA);
+  kno_write_4bytes(out,KNO_MEMINDEX_MAGIC_NUMBER);
+  kno_write_4bytes(out,0); /* n_keys */
+  kno_write_8bytes(out,0); /* n_entries */
+  kno_write_8bytes(out,256); /* valid_data */
+  while (i<256) {kno_write_4bytes(out,0); i = i+4;}
+  kno_close_stream(stream,KNO_STREAM_FREEDATA);
   return 1;
 }
 
-static fd_index memindex_create(u8_string spec,void *type_data,
-                                fd_storage_flags flags,
+static kno_index memindex_create(u8_string spec,void *type_data,
+                                kno_storage_flags flags,
                                 lispval opts)
 {
-  if (fd_make_memindex(spec)>=0) {
-    fd_set_file_opts(spec,opts);
-    return fd_open_index(spec,flags,VOID);}
+  if (kno_make_memindex(spec)>=0) {
+    kno_set_file_opts(spec,opts);
+    return kno_open_index(spec,flags,VOID);}
   else return NULL;
 }
 
 /* Initializing the driver module */
 
-static struct FD_INDEX_HANDLER memindex_handler={
-  "memindex", 1, sizeof(struct FD_MEMINDEX), 14,
+static struct KNO_INDEX_HANDLER memindex_handler={
+  "memindex", 1, sizeof(struct KNO_MEMINDEX), 14,
   NULL, /* close */
   memindex_commit, /* commit */
   memindex_fetch, /* fetch */
@@ -397,15 +397,15 @@ static struct FD_INDEX_HANDLER memindex_handler={
   memindex_ctl  /* indexctl */
 };
 
-FD_EXPORT void fd_init_memindex_c()
+KNO_EXPORT void kno_init_memindex_c()
 {
-  preload_opt = fd_intern("PRELOAD");
+  preload_opt = kno_intern("PRELOAD");
 
-  fd_register_index_type("memindex",
+  kno_register_index_type("memindex",
                          &memindex_handler,
                          open_memindex,
-                         fd_match_index_file,
-                         (void *) U8_INT2PTR(FD_MEMINDEX_MAGIC_NUMBER));
+                         kno_match_index_file,
+                         (void *) U8_INT2PTR(KNO_MEMINDEX_MAGIC_NUMBER));
 
   u8_register_source_file(_FILEINFO);
 }

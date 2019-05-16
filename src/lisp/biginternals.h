@@ -36,11 +36,11 @@ MIT in each case. */
 #undef BIGINT_NEGATIVE_P
 
 /* The memory model is based on the following definitions, and on the
-   definition of the type `fd_bigint'.  The only other special
+   definition of the type `kno_bigint'.  The only other special
    definition is `CHAR_BIT', which is defined in the Ansi C header
    file "limits.h". */
 
-/*MIT Scheme used longs for these.  FRAMERD likes 4byte chunks.*/
+/*MIT Scheme used longs for these.  KNO likes 4byte chunks.*/
 typedef int bigint_digit_type;
 typedef int bigint_length_type;
 
@@ -48,12 +48,12 @@ typedef int bigint_length_type;
 #define BIGINT_TO_POINTER(bigint) ((bigint_digit_type *) (bigint))
 #define BIGINT_REDUCE_LENGTH(target, source, length)			\
   (target) = (bigint_realloc ((source), (length)))
-#define BIGINT_DEALLOCATE(x) fd_decref((lispval)x)
+#define BIGINT_DEALLOCATE(x) kno_decref((lispval)x)
 #define BIGINT_FORCE_NEW_RESULTS
 #define fast register
 extern void abort ();
 
-#define BIGINT_EXCEPTION() u8_raise(fd_BigIntException,NULL,NULL)
+#define BIGINT_EXCEPTION() u8_raise(kno_BigIntException,NULL,NULL)
 
 
 #define BIGINT_DIGIT_LENGTH (((sizeof (bigint_digit_type)) * CHAR_BIT) - 2)
@@ -62,7 +62,7 @@ extern void abort ();
 #define BIGINT_RADIX_ROOT (((unsigned long) 1) << BIGINT_HALF_DIGIT_LENGTH)
 #define BIGINT_DIGIT_MASK	 (BIGINT_RADIX - 1)
 #define BIGINT_HALF_DIGIT_MASK	 (BIGINT_RADIX_ROOT - 1)
-#define CONS_HEADER_SIZE (sizeof(struct FD_CONS)/sizeof(bigint_digit_type))
+#define CONS_HEADER_SIZE (sizeof(struct KNO_CONS)/sizeof(bigint_digit_type))
 
 #define BIGINT_HEADER(bigint)					\
   ((BIGINT_TO_POINTER (bigint)) + CONS_HEADER_SIZE)

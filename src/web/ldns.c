@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -9,12 +9,12 @@
 #define _FILEINFO __FILE__
 #endif
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/tables.h"
-#include "framerd/eval.h"
-#include "framerd/fdweb.h"
-#include "framerd/ports.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/tables.h"
+#include "kno/eval.h"
+#include "kno/fdweb.h"
+#include "kno/ports.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8stringfns.h>
@@ -37,19 +37,19 @@ static lispval rdf2dtype ( ldns_rdf *field )
   switch (field_type) {
   case LDNS_RDF_TYPE_STR: {
     unsigned char *cdata = (unsigned char *) data;
-    return fd_make_string(NULL,cdata[0],cdata+1);}
+    return kno_make_string(NULL,cdata[0],cdata+1);}
   case LDNS_RDF_TYPE_TIME: {
     time_t tick = ldns_rdf2native_time_t( field );
-    return fd_time2timestamp(tick);}
+    return kno_time2timestamp(tick);}
   case LDNS_RDF_TYPE_INT8: {
     long long val = ldns_rdf2native_int8( field );
-    return FD_INT2DTYPE( val );}
+    return KNO_INT2DTYPE( val );}
   case LDNS_RDF_TYPE_INT16: {
     long long val = ldns_rdf2native_int16( field );
-    return FD_INT2DTYPE( val );}
+    return KNO_INT2DTYPE( val );}
   case LDNS_RDF_TYPE_INT32: {
     long long val = ldns_rdf2native_int32( field );
-    return FD_INT2DTYPE( val );}
+    return KNO_INT2DTYPE( val );}
   case LDNS_RDF_TYPE_DNAME: case LDNS_RDF_TYPE_A: case LDNS_RDF_TYPE_AAAA:
   case LDNS_RDF_TYPE_LOC: case LDNS_RDF_TYPE_TAG: case LDNS_RDF_TYPE_LONG_STR: {
     lispval result = VOID;
@@ -70,12 +70,12 @@ static lispval rdf2dtype ( ldns_rdf *field )
       rv = ldns_rdf2buffer_str_long_str( tmp, field );
     else {}
     if (rv != LDNS_STATUS_OK)
-      result = fd_err("Unexpected LDNS condition","rdf2dtype",NULL,VOID);
-    else result = fd_make_string(NULL,tmp->_position,tmp->_data);
+      result = kno_err("Unexpected LDNS condition","rdf2dtype",NULL,VOID);
+    else result = kno_make_string(NULL,tmp->_position,tmp->_data);
     ldns_buffer_free( tmp );
     return result;}
   default:
-    return fd_make_packet(NULL,size,(unsigned char *) data);
+    return kno_make_packet(NULL,size,(unsigned char *) data);
   }
 }
 
@@ -108,11 +108,11 @@ static lispval dns_query(lispval domain_arg,lispval type_arg)
             lispval value = rdf2dtype( fields[0] );
             CHOICE_ADD(results,value);}
           else {
-            lispval vec = fd_empty_vector(n_fields);
+            lispval vec = kno_empty_vector(n_fields);
             int j = 0; while (j < n_fields) {
               ldns_rdf *field = fields[j];
               lispval value = rdf2dtype( field );
-              FD_VECTOR_SET( vec, j, value);
+              KNO_VECTOR_SET( vec, j, value);
               j++;}
             CHOICE_ADD(results,vec);}}
         ldns_rr_list_deep_free( result_list );}}
@@ -124,21 +124,21 @@ static lispval dns_query(lispval domain_arg,lispval type_arg)
   return results;
 }
 
-FD_EXPORT void fd_init_dns_c(void) FD_LIBINIT_FN;
+KNO_EXPORT void kno_init_dns_c(void) KNO_LIBINIT_FN;
 
-FD_EXPORT void fd_init_dns_c()
+KNO_EXPORT void kno_init_dns_c()
 {
   lispval module;
   if (dns_initialized) return;
   dns_initialized = 1;
-  fd_init_scheme();
+  kno_init_scheme();
 
-  module = fd_new_module("FDWEB",(0));
+  module = kno_new_module("FDWEB",(0));
 
-  fd_idefn(module,fd_make_cprim2x
+  kno_idefn(module,kno_make_cprim2x
            ("DNS/GET",dns_query,1,
-            fd_string_type,VOID,
-            fd_symbol_type,VOID));
+            kno_string_type,VOID,
+            kno_symbol_type,VOID));
 
   u8_register_source_file(_FILEINFO);
 }

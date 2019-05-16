@@ -1,7 +1,7 @@
 !/* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -9,13 +9,13 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define FD_INLINE_BUFIO 1
-#define FD_INLINE_STREAMIO 1
-#include "framerd/components/storage_layer.h"
+#define KNO_INLINE_BUFIO 1
+#define KNO_INLINE_STREAMIO 1
+#include "kno/components/storage_layer.h"
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/streams.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/streams.h"
 
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
@@ -29,15 +29,15 @@
 #include <errno.h>
 #include <zlib.h>
 
-typedef struct FD_LOGFILE {
-  FD_CONS_HEADER;
+typedef struct KNO_LOGFILE {
+  KNO_CONS_HEADER;
   u8_string filename;
   long long logfile_n_entries;
   size_t    logfile_valid_size;
   time_t    logfile_last_sync;
   u8_mutex  logfile_lock;
-  struct FD_STREAM *stream;} *fd_logfile;
-typedef struct FD_LOGFILE FD_LOGFILE;
+  struct KNO_STREAM *stream;} *kno_logfile;
+typedef struct KNO_LOGFILE KNO_LOGFILE;
 
 /*
   A log file is a disk file consisting of a bunch of dtype representations
@@ -61,87 +61,87 @@ typedef struct FD_LOGFILE FD_LOGFILE;
   to rollback.
 
   Here are the functions:
-  open(file) creates the log file if desired, returns an FD_LOGFILE structure.
+  open(file) creates the log file if desired, returns an KNO_LOGFILE structure.
   modify(logfile) locks the underlying file and opens a stream at the end
   add(logfile,objects) writes objects and increments the in-memory object count
   precommit(logfile) writes a .commit file with a new header
   commit(logfile) updates the actual file
 */
 
-struct FD_LOGFILE *fd_open_logfile(u8_string filename)
+struct KNO_LOGFILE *kno_open_logfile(u8_string filename)
 {
-  fd_stream s;
-  struct FD_LOGFILE *lf = u8_alloc(struct FD_LOGFILE);
-  FD_INIT_CONS(lf,fd_logfile_type);
+  kno_stream s;
+  struct KNO_LOGFILE *lf = u8_alloc(struct KNO_LOGFILE);
+  KNO_INIT_CONS(lf,kno_logfile_type);
   lf->logfile_n_entries  = 0;
   lf->logfile_valid_size = 256;
   lf->logfile_last_sync  = time(NULL);
   lf->logfile_created    = time(NULL);
   u8_init_mutex(&(lf->logfile_lock));
   if (u8_file_existsp(filename)) {
-    s = fd_init_file_stream(&(lf->logfile_stream),filename,FD_FILE_READ,-1,-1);
-    long long magic_no = fd_read4bytes(s);
-    unsigned long long n_entries = fd_read8bytes(s);
-    ssize_t valid_size = fd_read8bytes(s);
-    time_t last_sync = (time_t) fd_read8bytes(s);
-    time_t created = (time_t) fd_read8bytes(s);
+    s = kno_init_file_stream(&(lf->logfile_stream),filename,KNO_FILE_READ,-1,-1);
+    long long magic_no = kno_read4bytes(s);
+    unsigned long long n_entries = kno_read8bytes(s);
+    ssize_t valid_size = kno_read8bytes(s);
+    time_t last_sync = (time_t) kno_read8bytes(s);
+    time_t created = (time_t) kno_read8bytes(s);
     if (magic_no != 0x106F11E0) {
-      fd_close_stream(s);
+      kno_close_stream(s);
       u8_free(lf->logfile_filename);
       u8_free(lf);
-      fd_seterr("InvalidMagicNo","fd_open_logfile",filename,FD_INT(magic_no));
+      kno_seterr("InvalidMagicNo","kno_open_logfile",filename,KNO_INT(magic_no));
       return NULL;}
     lf->logfile_n_entries = n_entries;
     if (last_sync > 0) lf->logfile_last_sync = last_sync;
     if (created > 0) lf->logfile_created = created;
     if (valid_size > 0) lf->logfile_valid_size = valid_size;}
   else {
-    s = fd_init_file_stream(&(lf->logfile_stream),filename,FD_FILE_CREATE,-1,-1);
-    fd_write_4bytes(s,0x106F11E0);
-    fd_write_8bytes(s,lf->logfile_n_entries);
-    fd_write_8bytes(s,lf->logfile_valid_size);
-    fd_write_8bytes(s,(long long) (lf->logfile_last_sync) );
-    fd_write_8bytes(s,(long long) (lf->logfile_created) );}
+    s = kno_init_file_stream(&(lf->logfile_stream),filename,KNO_FILE_CREATE,-1,-1);
+    kno_write_4bytes(s,0x106F11E0);
+    kno_write_8bytes(s,lf->logfile_n_entries);
+    kno_write_8bytes(s,lf->logfile_valid_size);
+    kno_write_8bytes(s,(long long) (lf->logfile_last_sync) );
+    kno_write_8bytes(s,(long long) (lf->logfile_created) );}
 
-  fd_open_file(filename,FD_FILE_READ);
+  kno_open_file(filename,KNO_FILE_READ);
 
   return lf;
 }
 
-struct FD_LOGFILE *fd_logfile_content(struct FD_LOGFILE *lf)
+struct KNO_LOGFILE *kno_logfile_content(struct KNO_LOGFILE *lf)
 {
   long long n = lf->logfile_n_entries;
-  fd_stream s = &(lf->logfile_stream);
-  if (n == 0) return FD_EMPTY;
+  kno_stream s = &(lf->logfile_stream);
+  if (n == 0) return KNO_EMPTY;
   else if (n==1) {
-    fd_lock_stream(s);
-    fd_setpos(s,256);
-    u8_inbuf in = fd_intbuf(s);
-    lispval v = fd_read_dtype(buf);
-    fd_unlock_stream(s);
+    kno_lock_stream(s);
+    kno_setpos(s,256);
+    u8_inbuf in = kno_intbuf(s);
+    lispval v = kno_read_dtype(buf);
+    kno_unlock_stream(s);
     return v;}
   else {
     int isatomic = 1;
-    struct FD_CHOICE *result = fd_alloc_choice(n);
-    lisvap *data  = FD_CHOICE_ELTS(result);
+    struct KNO_CHOICE *result = kno_alloc_choice(n);
+    lisvap *data  = KNO_CHOICE_ELTS(result);
     lisvap *write = data;
-    fd_lock_stream(s);
-    fd_setpos(s,256);
-    u8_inbuf in = fd_inbuf(s);
+    kno_lock_stream(s);
+    kno_setpos(s,256);
+    u8_inbuf in = kno_inbuf(s);
     int i =0; size_t valid_end = lf->logfile_valid_size;
     while (i < n) {
-      lispval v = fd_read_dtype(in);
-      ssize_t pos = fd_getpos(s);
-      if ( (atomic) && (FD_CONSP(v)) ) atomic=0;
+      lispval v = kno_read_dtype(in);
+      ssize_t pos = kno_getpos(s);
+      if ( (atomic) && (KNO_CONSP(v)) ) atomic=0;
       if (pos >= valid_size) break;}
-    fd_unlock_stream(s);
-    return fd_init_choice(result,write-data,NULL,
-                          ((atomic)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES)) |
-                          FD_CHOICE_DOSORT | FD_CHOICE_COMPRESS |
-                          FD_CHOICE_REALLOC);}
+    kno_unlock_stream(s);
+    return kno_init_choice(result,write-data,NULL,
+                          ((atomic)?(KNO_CHOICE_ISATOMIC):(KNO_CHOICE_ISCONSES)) |
+                          KNO_CHOICE_DOSORT | KNO_CHOICE_COMPRESS |
+                          KNO_CHOICE_REALLOC);}
 }
 
-FD_EXPORT void fd_init_logfiles_c()
+KNO_EXPORT void kno_init_logfiles_c()
 {
   u8_register_source_file(_FILEINFO);
 }

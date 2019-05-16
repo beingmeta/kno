@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -9,10 +9,10 @@
 #define _FILEINFO __FILE__
 #endif
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/numbers.h"
-#include "framerd/apply.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/numbers.h"
+#include "kno/apply.h"
 
 #include <libu8/u8signals.h>
 #include <libu8/u8pathfns.h>
@@ -26,7 +26,7 @@
 
 #include <libu8/libu8.h>
 #include <libu8/u8netfns.h>
-#if FD_FILECONFIG_ENABLED
+#if KNO_FILECONFIG_ENABLED
 #include <libu8/u8filefns.h>
 #include <libu8/libu8io.h>
 #endif
@@ -50,38 +50,38 @@
 #include <grp.h>
 #endif
 
-u8_condition fd_ArgvConfig=_("Config (argv)");
-u8_condition fd_CmdArg=_("Command arg");
-u8_condition fd_CmdLine=_("Command");
+u8_condition kno_ArgvConfig=_("Config (argv)");
+u8_condition kno_CmdArg=_("Command arg");
+u8_condition kno_CmdLine=_("Command");
 u8_condition SetRLimit=_("SetRLimit");
-u8_condition fd_ExitException=_("Unhandled exception at exit");
+u8_condition kno_ExitException=_("Unhandled exception at exit");
 
 static u8_mutex atexit_handlers_lock;
 
 #define PID_OPEN_FLAGS O_WRONLY|O_CREAT|O_EXCL
 u8_string pid_filename = NULL;
 
-int fd_in_doexit = 0;
-int fd_logcmd    = 0;
-int fd_exiting   = 0;
-int fd_exited    = 0;
+int kno_in_doexit = 0;
+int kno_logcmd    = 0;
+int kno_exiting   = 0;
+int kno_exited    = 0;
 
 /* This determines whether to memory should be freed while exiting */
-int fd_fast_exit = 0;
+int kno_fast_exit = 0;
 
 static u8_string logdir = NULL, sharedir = NULL, datadir = NULL;
 
-int fd_be_vewy_quiet = 0;
+int kno_be_vewy_quiet = 0;
 static int boot_message_delivered = 0;
 
 /* Processing argc,argv */
 
-lispval *fd_argv = NULL;
-int fd_argc = -1;
+lispval *kno_argv = NULL;
+int kno_argc = -1;
 
 static void set_vector_length(lispval vector,int len);
-static lispval exec_arg = FD_FALSE, lisp_argv = FD_FALSE, string_argv = FD_FALSE;
-static lispval raw_argv = FD_FALSE, config_argv = FD_FALSE;
+static lispval exec_arg = KNO_FALSE, lisp_argv = KNO_FALSE, string_argv = KNO_FALSE;
+static lispval raw_argv = KNO_FALSE, config_argv = KNO_FALSE;
 static u8_string exe_name = NULL;
 static int init_argc = 0;
 static size_t app_argc;
@@ -101,7 +101,7 @@ static void log_argv(int n,lispval *argv)
 
 /* This takes an argv, argc combination and processes the argv elements
    which are configs (var = value again) */
-FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
+KNO_EXPORT lispval *kno_handle_argv(int argc,char **argv,
                                   unsigned char *arg_mask,
                                   size_t *arglen_ptr)
 {
@@ -109,8 +109,8 @@ FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
     exe_name = u8_fromlibc(argv[0]);
     lispval interp = fdstring(exe_name);
     u8_string exec_path = NULL;
-    fd_set_config("INTERPRETER",interp);
-    fd_set_config("EXE",interp);
+    kno_set_config("INTERPRETER",interp);
+    kno_set_config("EXE",interp);
     if (exe_name[0]=='/')
       exec_path = exe_name;
     else if ( (u8_file_existsp("/proc/self/exe")) &&
@@ -121,37 +121,37 @@ FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
       exec_path = u8_abspath(exe_name,NULL);
     else {}
     if (exec_path == exe_name)
-      fd_set_config("EXECPATH",interp);
+      kno_set_config("EXECPATH",interp);
     else if (exec_path) {
-      lispval exec_val = fd_init_string(NULL,-1,exec_path);
-      fd_set_config("EXECPATH",exec_val);
-      fd_decref(exec_val);}
-    else fd_set_config("EXECPATH",interp);
-    fd_decref(interp);}
+      lispval exec_val = kno_init_string(NULL,-1,exec_path);
+      kno_set_config("EXECPATH",exec_val);
+      kno_decref(exec_val);}
+    else kno_set_config("EXECPATH",interp);
+    kno_decref(interp);}
 
-  if (fd_argv!=NULL)  {
+  if (kno_argv!=NULL)  {
     if ((init_argc>0) && (argc != init_argc))
       u8_log(LOG_WARN,"InconsistentArgv/c",
              "Trying to reprocess argv with a different argc (%d) length != %d",
              argc,init_argc);
-    if (arglen_ptr) *arglen_ptr = fd_argc;
-    return fd_argv;}
+    if (arglen_ptr) *arglen_ptr = kno_argc;
+    return kno_argv;}
   else if (argc<=0) {
-    u8_log(LOG_CRIT,"fd_handle_arg(invalid argv)",
+    u8_log(LOG_CRIT,"kno_handle_arg(invalid argv)",
            _("The argc length %d is not valid (>0)"),argc);
     return NULL;}
   else if (argv == NULL) {
-    u8_log(LOG_CRIT,"fd_handle_arg(invalid argv)",
+    u8_log(LOG_CRIT,"kno_handle_arg(invalid argv)",
            _("The argv argument cannot be NULL!"),argc);
     return NULL;}
   else {
     int i = 0, n = 0, config_i = 0;
-    lispval string_args = fd_make_vector(argc-1,NULL), string_arg = VOID;
-    lispval lisp_args = fd_make_vector(argc-1,NULL), lisp_arg = VOID;
-    lispval config_args = fd_make_vector(argc-1,NULL);
-    lispval raw_args = fd_make_vector(argc,NULL);
+    lispval string_args = kno_make_vector(argc-1,NULL), string_arg = VOID;
+    lispval lisp_args = kno_make_vector(argc-1,NULL), lisp_arg = VOID;
+    lispval config_args = kno_make_vector(argc-1,NULL);
+    lispval raw_args = kno_make_vector(argc,NULL);
     lispval *return_args = (arglen_ptr) ? (u8_alloc_n(argc-1,lispval)) : (NULL);
-    lispval *_fd_argv = u8_alloc_n(argc-1,lispval);
+    lispval *_kno_argv = u8_alloc_n(argc-1,lispval);
 
     u8_threadcheck();
 
@@ -160,7 +160,7 @@ FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
     while (i<argc) {
       char *carg = argv[i];
       u8_string arg = u8_fromlibc(carg), eq = strchr(arg,'=');
-      FD_VECTOR_SET(raw_args,i,lispval_string(arg));
+      KNO_VECTOR_SET(raw_args,i,lispval_string(arg));
       /* Don't include argv[0] in the arglists */
       if ( (i==0) || (arg_mask[i]) ) {
         /* Skip first and masked args */
@@ -169,28 +169,28 @@ FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
         continue;}
       else i++;
       if ((eq!=NULL) && (eq>arg) && (*(eq-1)!='\\')) {
-        int retval = (arg!=NULL) ? (fd_config_assignment(arg)) : (-1);
-        FD_VECTOR_SET(config_args,config_i,lispval_string(arg));
+        int retval = (arg!=NULL) ? (kno_config_assignment(arg)) : (-1);
+        KNO_VECTOR_SET(config_args,config_i,lispval_string(arg));
         config_i++;
         if (retval<0) {
           u8_log(LOG_CRIT,"FailedConfig",
                  "Couldn't handle the config argument `%s`",
                  (arg == NULL) ? ((u8_string)carg) : (arg));
           u8_clear_errors(0);}
-        else u8_log(LOG_INFO,fd_ArgvConfig,"   %s",arg);
+        else u8_log(LOG_INFO,kno_ArgvConfig,"   %s",arg);
         u8_free(arg);
         continue;}
       string_arg = lispval_string(arg);
-      /* Note that fd_parse_arg should always return at least a lisp
+      /* Note that kno_parse_arg should always return at least a lisp
          string */
-      lisp_arg = fd_parse_arg(arg);
+      lisp_arg = kno_parse_arg(arg);
       if (return_args) {
         return_args[n]=lisp_arg;
-        fd_incref(lisp_arg);}
-      _fd_argv[n]=lisp_arg; fd_incref(lisp_arg);
-      FD_VECTOR_SET(lisp_args,n,lisp_arg);
-      FD_VECTOR_SET(string_args,n,string_arg);
-      u8_log(LOG_INFO,fd_CmdArg,"[%d] %s => %q",n+1,arg,lisp_arg);
+        kno_incref(lisp_arg);}
+      _kno_argv[n]=lisp_arg; kno_incref(lisp_arg);
+      KNO_VECTOR_SET(lisp_args,n,lisp_arg);
+      KNO_VECTOR_SET(string_args,n,string_arg);
+      u8_log(LOG_INFO,kno_CmdArg,"[%d] %s => %q",n+1,arg,lisp_arg);
       u8_free(arg);
       n++;}
     set_vector_length(lisp_args,n);
@@ -201,8 +201,8 @@ FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
     config_argv = config_args;
     raw_argv = raw_args;
     app_argc = n;
-    fd_argv = _fd_argv;
-    fd_argc = n;
+    kno_argv = _kno_argv;
+    kno_argc = n;
     if (return_args) {
       if (arglen_ptr) *arglen_ptr = n;
       return return_args;}
@@ -212,7 +212,7 @@ FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
 static void set_vector_length(lispval vector,int len)
 {
   if (VECTORP(vector)) {
-    struct FD_VECTOR *vec = (struct FD_VECTOR *) vector;
+    struct KNO_VECTOR *vec = (struct KNO_VECTOR *) vector;
     if (len>=0) {
       vec->vec_length = len;
       return;}}
@@ -244,29 +244,29 @@ static int config_add_source_file(lispval var,lispval val,void *data)
     u8_register_source_file(stringval);
     return 1;}
   else {
-    fd_type_error(_("string"),"config_addsourcefile",val);
+    kno_type_error(_("string"),"config_addsourcefile",val);
     return -1;}
 }
 
 /* Termination */
 
-static struct FD_ATEXIT {
+static struct KNO_ATEXIT {
   lispval exitfn_handler;
   lispval exitfn_name;
-  struct FD_ATEXIT *exitfn_next;} *atexit_handlers = NULL;
+  struct KNO_ATEXIT *exitfn_next;} *atexit_handlers = NULL;
 static int n_atexit_handlers = 0;
 
 static lispval config_atexit_get(lispval var,void *data)
 {
-  struct FD_ATEXIT *scan; int i = 0; lispval result;
+  struct KNO_ATEXIT *scan; int i = 0; lispval result;
   u8_lock_mutex(&atexit_handlers_lock);
-  result = fd_make_vector(n_atexit_handlers,NULL);
+  result = kno_make_vector(n_atexit_handlers,NULL);
   scan = atexit_handlers; while (scan) {
     lispval handler = scan->exitfn_handler, result;
-    if (FD_VOIDP(scan->exitfn_name))
-      result=fd_incref(handler);
-    else result=fd_make_pair(scan->exitfn_name,handler);
-    FD_VECTOR_SET(result,i,result);
+    if (KNO_VOIDP(scan->exitfn_name))
+      result=kno_incref(handler);
+    else result=kno_make_pair(scan->exitfn_name,handler);
+    KNO_VECTOR_SET(result,i,result);
     scan = scan->exitfn_next;
     i++;}
   u8_unlock_mutex(&atexit_handlers_lock);
@@ -275,67 +275,67 @@ static lispval config_atexit_get(lispval var,void *data)
 
 static int config_atexit_set(lispval var,lispval val,void *data)
 {
-  lispval fn, name=FD_VOID;
-  if (FD_PAIRP(val)) {
-    name=FD_CAR(val); fn=FD_CDR(val);}
+  lispval fn, name=KNO_VOID;
+  if (KNO_PAIRP(val)) {
+    name=KNO_CAR(val); fn=KNO_CDR(val);}
   else fn=val;
-  if (!(FD_APPLICABLEP(fn))) {
-    fd_type_error("applicable","config_atexit",val);
+  if (!(KNO_APPLICABLEP(fn))) {
+    kno_type_error("applicable","config_atexit",val);
     return -1;}
   u8_lock_mutex(&atexit_handlers_lock);
-  struct FD_ATEXIT *scan=atexit_handlers;
+  struct KNO_ATEXIT *scan=atexit_handlers;
   while (scan) {
-    if ( (FD_EQUALP(name,scan->exitfn_name)) ||
+    if ( (KNO_EQUALP(name,scan->exitfn_name)) ||
          (fn==scan->exitfn_handler) ) {
       lispval oldfn=scan->exitfn_handler;
       int changed = (fn != oldfn);
       if (changed) {
-        fd_incref(fn);
+        kno_incref(fn);
         scan->exitfn_handler=fn;
-        fd_decref(oldfn);}
+        kno_decref(oldfn);}
       u8_unlock_mutex(&atexit_handlers_lock);
       return changed;}
     else scan=scan->exitfn_next;}
-  struct FD_ATEXIT *fresh = u8_malloc(sizeof(struct FD_ATEXIT));
+  struct KNO_ATEXIT *fresh = u8_malloc(sizeof(struct KNO_ATEXIT));
   fresh->exitfn_next = atexit_handlers;
   fresh->exitfn_name = name;
   fresh->exitfn_handler = fn;
-  fd_incref(val);
+  kno_incref(val);
   n_atexit_handlers++; atexit_handlers = fresh;
   u8_unlock_mutex(&atexit_handlers_lock);
   return 1;
 }
 
-FD_EXPORT void fd_doexit(lispval arg)
+KNO_EXPORT void kno_doexit(lispval arg)
 {
-  struct FD_ATEXIT *scan, *tmp;
-  if (fd_exited) return;
-  if (fd_in_doexit) {
-    u8_log(LOG_WARN,"RecursiveExit","Recursive fd_doexit");
+  struct KNO_ATEXIT *scan, *tmp;
+  if (kno_exited) return;
+  if (kno_in_doexit) {
+    u8_log(LOG_WARN,"RecursiveExit","Recursive kno_doexit");
     return;}
-  fd_in_doexit = 1;
-  fd_exiting = 1;
+  kno_in_doexit = 1;
+  kno_exiting = 1;
   if (atexit_handlers) {
     u8_lock_mutex(&atexit_handlers_lock);
-    u8_log(LOG_NOTICE,"fd_doexit","Running %d FramerD exit handlers",
+    u8_log(LOG_NOTICE,"kno_doexit","Running %d Kno exit handlers",
            n_atexit_handlers);
     scan = atexit_handlers; atexit_handlers = NULL;
     u8_unlock_mutex(&atexit_handlers_lock);
     while (scan) {
       lispval handler = scan->exitfn_handler, result = VOID;
-      u8_log(LOG_INFO,"fd_doexit","Running FramerD exit handler %q",handler);
-      if ((FD_FUNCTIONP(handler))&&(FD_FUNCTION_ARITY(handler)))
-        result = fd_apply(handler,1,&arg);
-      else result = fd_apply(handler,0,NULL);
-      if (FD_ABORTP(result)) {
-        fd_clear_errors(1);}
-      else fd_decref(result);
-      fd_decref(handler);
-      scan->exitfn_handler = FD_VOID;
+      u8_log(LOG_INFO,"kno_doexit","Running Kno exit handler %q",handler);
+      if ((KNO_FUNCTIONP(handler))&&(KNO_FUNCTION_ARITY(handler)))
+        result = kno_apply(handler,1,&arg);
+      else result = kno_apply(handler,0,NULL);
+      if (KNO_ABORTP(result)) {
+        kno_clear_errors(1);}
+      else kno_decref(result);
+      kno_decref(handler);
+      scan->exitfn_handler = KNO_VOID;
       tmp = scan;
       scan = scan->exitfn_next;
       u8_free(tmp);}}
-  else u8_log(LOG_DEBUG,"fd_doexit","No FramerD exit handlers!");
+  else u8_log(LOG_DEBUG,"kno_doexit","No Kno exit handlers!");
   if (pid_filename) {
     int rv = u8_removefile(pid_filename);
     if (rv<0) {
@@ -348,36 +348,36 @@ FD_EXPORT void fd_doexit(lispval arg)
     u8_free(pid_filename);
     pid_filename=NULL;}
 
-  if ( (fd_logcmd) && (fd_argc > 1) )
-    log_argv(fd_argc,fd_argv);
+  if ( (kno_logcmd) && (kno_argc > 1) )
+    log_argv(kno_argc,kno_argv);
 
-  if (fd_argv) {
-    int i = 0, n = fd_argc; while (i<n) {
-      lispval elt = fd_argv[i++];
-      fd_decref(elt);}
-    u8_free(fd_argv);
-    fd_argv = NULL;
-    fd_argc = -1;}
-  fd_decref(exec_arg); exec_arg = FD_FALSE;
-  fd_decref(lisp_argv); lisp_argv = FD_FALSE;
-  fd_decref(string_argv); string_argv = FD_FALSE;
-  fd_decref(raw_argv); raw_argv = FD_FALSE;
-  fd_decref(config_argv); config_argv = FD_FALSE;
-  fd_exited=1;
-  fd_exiting=1;
-  fd_in_doexit=0;
+  if (kno_argv) {
+    int i = 0, n = kno_argc; while (i<n) {
+      lispval elt = kno_argv[i++];
+      kno_decref(elt);}
+    u8_free(kno_argv);
+    kno_argv = NULL;
+    kno_argc = -1;}
+  kno_decref(exec_arg); exec_arg = KNO_FALSE;
+  kno_decref(lisp_argv); lisp_argv = KNO_FALSE;
+  kno_decref(string_argv); string_argv = KNO_FALSE;
+  kno_decref(raw_argv); raw_argv = KNO_FALSE;
+  kno_decref(config_argv); config_argv = KNO_FALSE;
+  kno_exited=1;
+  kno_exiting=1;
+  kno_in_doexit=0;
 }
 
 static void doexit_atexit()
 {
-  if ( (fd_exited) || (fd_in_doexit))
+  if ( (kno_exited) || (kno_in_doexit))
     return;
-  else fd_doexit(FD_FALSE);
+  else kno_doexit(KNO_FALSE);
 }
 
-FD_EXPORT void fd_signal_doexit(int sig)
+KNO_EXPORT void kno_signal_doexit(int sig)
 {
-  fd_doexit(FD_INT2FIX(sig));
+  kno_doexit(KNO_INT2FIX(sig));
 }
 
 
@@ -407,7 +407,7 @@ static struct NAMED_RLIMIT MAXFILES={"max number of open files",RLIMIT_NOFILE};
 static struct NAMED_RLIMIT MAXSTACK={"max tack size",RLIMIT_STACK};
 #endif
 
-FD_EXPORT lispval fd_config_rlimit_get(lispval ignored,void *vptr)
+KNO_EXPORT lispval kno_config_rlimit_get(lispval ignored,void *vptr)
 {
   struct rlimit rlim;
   struct NAMED_RLIMIT *nrl = (struct NAMED_RLIMIT *)vptr;
@@ -415,22 +415,22 @@ FD_EXPORT lispval fd_config_rlimit_get(lispval ignored,void *vptr)
   if (retval<0) {
     u8_condition cond = u8_strerror(errno);
     errno = 0;
-    return fd_err(cond,"rlimit_get",u8_strdup(nrl->name),VOID);}
+    return kno_err(cond,"rlimit_get",u8_strdup(nrl->name),VOID);}
   else if (rlim.rlim_cur == RLIM_INFINITY)
-    return FD_FALSE;
-  else return FD_INT((long long)(rlim.rlim_cur));
+    return KNO_FALSE;
+  else return KNO_INT((long long)(rlim.rlim_cur));
 }
 
-FD_EXPORT int fd_config_rlimit_set(lispval ignored,lispval v,void *vptr)
+KNO_EXPORT int kno_config_rlimit_set(lispval ignored,lispval v,void *vptr)
 {
   struct rlimit rlim;
   struct NAMED_RLIMIT *nrl = (struct NAMED_RLIMIT *)vptr;
   int retval = getrlimit(nrl->code,&rlim); rlim_t setval;
-  if ((FIXNUMP(v))||(FD_BIGINTP(v))) {
-    long lval = fd_getint(v);
+  if ((FIXNUMP(v))||(KNO_BIGINTP(v))) {
+    long lval = kno_getint(v);
     if (lval<0) {
-      fd_incref(v);
-      fd_seterr(fd_TypeError,"fd_config_rlimit_set",
+      kno_incref(v);
+      kno_seterr(kno_TypeError,"kno_config_rlimit_set",
                "resource limit (integer)",v);
       return -1;}
     else setval = lval;}
@@ -444,16 +444,16 @@ FD_EXPORT int fd_config_rlimit_set(lispval ignored,lispval v,void *vptr)
             (strcasecmp(CSTRING(v),"none")==0)))
     setval = (RLIM_INFINITY);
   else {
-    fd_incref(v);
-    fd_seterr(fd_TypeError,"fd_config_rlimit_set",
+    kno_incref(v);
+    kno_seterr(kno_TypeError,"kno_config_rlimit_set",
               "resource limit (integer)",v);
     return -1;}
   if (retval<0) {
     u8_condition cond = u8_strerror(errno); errno = 0;
-    return fd_err(cond,"rlimit_get",u8_strdup(nrl->name),VOID);}
+    return kno_err(cond,"rlimit_get",u8_strdup(nrl->name),VOID);}
   else if (setval>rlim.rlim_max) {
     /* Should be more informative */
-    fd_seterr(_("RLIMIT too high"),"set_rlimit",nrl->name,VOID);
+    kno_seterr(_("RLIMIT too high"),"set_rlimit",nrl->name,VOID);
     return -1;}
   if (setval == rlim.rlim_cur)
     u8_log(LOG_WARN,SetRLimit,
@@ -472,7 +472,7 @@ FD_EXPORT int fd_config_rlimit_set(lispval ignored,lispval v,void *vptr)
   retval = setrlimit(nrl->code,&rlim);
   if (retval<0) {
     u8_condition cond = u8_strerror(errno); errno = 0;
-    return fd_err(cond,"rlimit_set",u8_strdup(nrl->name),VOID);}
+    return kno_err(cond,"rlimit_set",u8_strdup(nrl->name),VOID);}
   else return 1;
 }
 #endif
@@ -495,13 +495,13 @@ static int config_setappid(lispval var,lispval val,void *data)
 static lispval config_getpid(lispval var,void *data)
 {
   pid_t pid = getpid();
-  return FD_INT(((unsigned long)pid));
+  return KNO_INT(((unsigned long)pid));
 }
 
 static lispval config_getppid(lispval var,void *data)
 {
   pid_t pid = getppid();
-  return FD_INT(((unsigned long)pid));
+  return KNO_INT(((unsigned long)pid));
 }
 
 static lispval config_getsessionid(lispval var,void *data)
@@ -520,13 +520,13 @@ static int config_setsessionid(lispval var,lispval val,void *data)
 static lispval config_getutf8warn(lispval var,void *data)
 {
   if (u8_config_utf8warn(-1))
-    return FD_TRUE;
-  else return FD_FALSE;
+    return KNO_TRUE;
+  else return KNO_FALSE;
 }
 
 static int config_setutf8warn(lispval var,lispval val,void *data)
 {
-  if (FD_TRUEP(val))
+  if (KNO_TRUEP(val))
     if (u8_config_utf8warn(1)) return 0;
     else return 1;
   else if (u8_config_utf8warn(0)) return 1;
@@ -536,13 +536,13 @@ static int config_setutf8warn(lispval var,lispval val,void *data)
 static lispval config_getutf8err(lispval var,void *data)
 {
   if (u8_config_utf8err(-1))
-    return FD_TRUE;
-  else return FD_FALSE;
+    return KNO_TRUE;
+  else return KNO_FALSE;
 }
 
 static int config_setutf8err(lispval var,lispval val,void *data)
 {
-  if (FD_TRUEP(val))
+  if (KNO_TRUEP(val))
     if (u8_config_utf8err(1)) return 0;
     else return 1;
   else if (u8_config_utf8err(0)) return 1;
@@ -557,19 +557,19 @@ static long long randomseed = 0x327b23c6;
 
 static lispval config_getrandomseed(lispval var,void *data)
 {
-  if (randomseed<FD_MAX_FIXNUM)
-    return FD_INT(randomseed);
-  else return (lispval)fd_long_long_to_bigint(randomseed);
+  if (randomseed<KNO_MAX_FIXNUM)
+    return KNO_INT(randomseed);
+  else return (lispval)kno_long_long_to_bigint(randomseed);
 }
 
 static int config_setrandomseed(lispval var,lispval val,void *data)
 {
-  if (((SYMBOLP(val)) && ((strcasecmp(FD_XSYMBOL_NAME(val),"TIME"))==0)) ||
+  if (((SYMBOLP(val)) && ((strcasecmp(KNO_XSYMBOL_NAME(val),"TIME"))==0)) ||
       ((STRINGP(val)) && ((strcasecmp(CSTRING(val),"TIME"))==0))) {
     time_t tick = time(NULL);
     if (tick<0) {
       u8_graberrno("time",NULL);
-      fd_seterr2(TimeFailed,"setrandomseed");
+      kno_seterr2(TimeFailed,"setrandomseed");
       return -1;}
     else {
       randomseed = (unsigned int)tick;
@@ -583,7 +583,7 @@ static int config_setrandomseed(lispval var,lispval val,void *data)
     u8_randomize(randomseed);
     return 1;}
   else {
-    fd_type_error("random seed (small fixnum)","config_setrandomseed",val);
+    kno_type_error("random seed (small fixnum)","config_setrandomseed",val);
     return -1;}
 }
 
@@ -591,7 +591,7 @@ static int config_setrandomseed(lispval var,lispval val,void *data)
 
 static u8_string runbase_config = NULL, runbase = NULL;
 
-FD_EXPORT u8_string fd_runbase_filename(u8_string suffix)
+KNO_EXPORT u8_string kno_runbase_filename(u8_string suffix)
 {
   if (runbase == NULL) {
     if (runbase_config == NULL) {
@@ -613,23 +613,23 @@ FD_EXPORT u8_string fd_runbase_filename(u8_string suffix)
 
 static lispval config_getrunbase(lispval var,void *data)
 {
-  if (runbase == NULL) return FD_FALSE;
+  if (runbase == NULL) return KNO_FALSE;
   else return lispval_string(runbase);
 }
 
 static int config_setrunbase(lispval var,lispval val,void *data)
 {
   if (runbase)
-    return fd_err("Runbase already set and used","config_set_runbase",runbase,VOID);
+    return kno_err("Runbase already set and used","config_set_runbase",runbase,VOID);
   else if (STRINGP(val)) {
     runbase_config = u8_strdup(CSTRING(val));
     return 1;}
-  else return fd_type_error(_("string"),"config_setrunbase",val);
+  else return kno_type_error(_("string"),"config_setrunbase",val);
 }
 
-/* fd_setapp */
+/* kno_setapp */
 
-FD_EXPORT void fd_setapp(u8_string spec,u8_string statedir)
+KNO_EXPORT void kno_setapp(u8_string spec,u8_string statedir)
 {
   if (strchr(spec,'/')) {
     u8_string fullpath=
@@ -671,10 +671,10 @@ static int resolve_uid(lispval val)
 #endif
     if ((retval<0)||(uinfo == NULL)) {
       if (errno) u8_graberr(errno,"resolve_uid",NULL);
-      fd_seterr("BadUser","resolve_uid",NULL,val);
+      kno_seterr("BadUser","resolve_uid",NULL,val);
       return (u8_uid) -1;}
     else return uinfo->pw_uid;}
-  else return fd_type_error("userid","resolve_uid",val);
+  else return kno_type_error("userid","resolve_uid",val);
 #else
   return -1;
 #endif
@@ -693,10 +693,10 @@ static int resolve_gid(lispval val)
 #endif
     if ((retval<0)||(ginfo == NULL)) {
       if (errno) u8_graberr(errno,"resolve_gid",NULL);
-      fd_seterr("BadGroup","resolve_gid",NULL,val);
+      kno_seterr("BadGroup","resolve_gid",NULL,val);
       return (u8_uid) -1;}
     else return ginfo->gr_gid;}
-  else return fd_type_error("groupid","resolve_gid",val);
+  else return kno_type_error("groupid","resolve_gid",val);
 #else
   return -1;
 #endif
@@ -734,12 +734,12 @@ static int resolve_gid(lispval val)
 static lispval config_getuser(lispval var,void *data)
 {
   u8_uid gid = GETUIDFN(); int ival = (int)gid;
-  return FD_INT2FIX(ival);
+  return KNO_INT2FIX(ival);
 }
 #else
-static lispval config_getuser(lispval var,void *fd_vecelts)
+static lispval config_getuser(lispval var,void *kno_vecelts)
 {
-  return FD_FALSE;
+  return KNO_FALSE;
 }
 #endif
 
@@ -754,15 +754,15 @@ static int config_setuser(lispval var,lispval val,void *data)
     if (rv<0) {
       u8_graberr(errno,"config_setuser",NULL);
       u8_log(LOG_CRIT,"Can't set user","Can't change user ID from %d",cur_uid);
-      fd_seterr("CantSetUser","config_setuser",NULL,uid);
+      kno_seterr("CantSetUser","config_setuser",NULL,uid);
       return -1;}
     return 1;}
 }
 #else
-static int config_setuser(lispval var,lispval val,void *fd_vecelts)
+static int config_setuser(lispval var,lispval val,void *kno_vecelts)
 {
   u8_log(LOG_CRIT,"Can't set user","Can't change user ID in this OS");
-  fd_seterr("SystemCantSetUser","config_setuser",NULL,val);
+  kno_seterr("SystemCantSetUser","config_setuser",NULL,val);
   return -1;
 }
 #endif
@@ -773,12 +773,12 @@ static int config_setuser(lispval var,lispval val,void *fd_vecelts)
 static lispval config_getgroup(lispval var,void *data)
 {
   u8_gid gid = GETGIDFN(); int i = (int)gid;
-  return FD_INT(i);
+  return KNO_INT(i);
 }
 #else
-static lispval config_getgroup(lispval var,void *fd_vecelts)
+static lispval config_getgroup(lispval var,void *kno_vecelts)
 {
-  return FD_FALSE;
+  return KNO_FALSE;
 }
 #endif
 
@@ -793,15 +793,15 @@ static int config_setgroup(lispval var,lispval val,void *data)
     if (rv<0) {
       u8_graberr(errno,"config_setgroup",NULL);
       u8_log(LOG_CRIT,"Can't set group","Can't change group ID from %d",cur_gid);
-      fd_seterr("CantSetGroup","config_setgroup",NULL,gid);
+      kno_seterr("CantSetGroup","config_setgroup",NULL,gid);
       return -1;}
     return 1;}
 }
 #else
-static int config_setgroup(lispval var,lispval val,void *fd_vecelts)
+static int config_setgroup(lispval var,lispval val,void *kno_vecelts)
 {
   u8_log(LOG_CRIT,"Can't set group","Can't change group ID in this OS");
-  fd_seterr("SystemCantSetGroup","config_setgroup",NULL,val);
+  kno_seterr("SystemCantSetGroup","config_setgroup",NULL,val);
   return -1;
 }
 #endif
@@ -810,16 +810,16 @@ static int config_setgroup(lispval var,lispval val,void *fd_vecelts)
 
 static int boot_config()
 {
-  u8_byte *config_string = (u8_byte *)u8_getenv("FD_BOOT_CONFIG");
+  u8_byte *config_string = (u8_byte *)u8_getenv("KNO_BOOT_CONFIG");
   u8_byte *scan, *end; int count = 0;
-  if (config_string == NULL) config_string = u8_strdup(FD_BOOT_CONFIG);
+  if (config_string == NULL) config_string = u8_strdup(KNO_BOOT_CONFIG);
   else config_string = u8_strdup(config_string);
   scan = config_string; end = strchr(scan,';');
   while (scan) {
     if (end == NULL) {
-      fd_config_assignment(scan); count++;
+      kno_config_assignment(scan); count++;
       break;}
-    *end='\0'; fd_config_assignment(scan); count++;
+    *end='\0'; kno_config_assignment(scan); count++;
     scan = end+1; end = strchr(scan,';');}
   u8_free(config_string);
   return count;
@@ -831,9 +831,9 @@ static int boot_config()
 #define COPYRIGHT_MESSAGE \
   "\nCopyright (C) beingmeta 2004-2019, all rights reserved"
 
-FD_EXPORT int fd_boot_message()
+KNO_EXPORT int kno_boot_message()
 {
-  if (fd_be_vewy_quiet) return 0;
+  if (kno_be_vewy_quiet) return 0;
   if (boot_message_delivered) return 0;
   struct U8_XTIME xt; u8_localtime(&xt,time(NULL));
   u8_uid uid = getuid();
@@ -846,10 +846,10 @@ FD_EXPORT int fd_boot_message()
          (unsigned long long)getpid(),
          u8_username(uid),u8_gethostname(),u8_getcwd(),
          curtime.u8_outbuf,
-         fd_getrevision(),u8_getrevision(),
+         kno_getrevision(),u8_getrevision(),
          COPYRIGHT_MESSAGE);
-  if ( (fd_logcmd) && (fd_argc > 1) )
-    log_argv(fd_argc,fd_argv);
+  if ( (kno_logcmd) && (kno_argc > 1) )
+    log_argv(kno_argc,kno_argv);
   boot_message_delivered = 1;
   return 1;
 }
@@ -864,9 +864,9 @@ static lispval rlimit_get(lispval symbol,void *rlimit_id)
   long long RLIMIT_ID = (long long) U8_PTR2INT(rlimit_id);
   int rv = getrlimit(RLIMIT_ID,&limit);
   if (rv<0) {
-    u8_graberr(errno,"rlimit_get",FD_SYMBOL_NAME(symbol));
-    return FD_ERROR;}
-  else return FD_INT(limit.rlim_cur);
+    u8_graberr(errno,"rlimit_get",KNO_SYMBOL_NAME(symbol));
+    return KNO_ERROR;}
+  else return KNO_INT(limit.rlim_cur);
 }
 
 static int rlimit_set(lispval symbol,lispval value,void *rlimit_id)
@@ -875,21 +875,21 @@ static int rlimit_set(lispval symbol,lispval value,void *rlimit_id)
   long long RLIMIT_ID = (long long) U8_PTR2INT(rlimit_id);
   int rv = getrlimit(RLIMIT_ID,&limit);
   if (rv<0) {
-    u8_graberr(errno,"rlimit_set",FD_SYMBOL_NAME(symbol));
+    u8_graberr(errno,"rlimit_set",KNO_SYMBOL_NAME(symbol));
     return -1;}
   else if (FIXNUMP(value))
     limit.rlim_cur = FIX2INT(value);
-  else if (FD_TRUEP(value))
+  else if (KNO_TRUEP(value))
     limit.rlim_cur = RLIM_INFINITY;
-  else if (TYPEP(value,fd_bigint_type))
+  else if (TYPEP(value,kno_bigint_type))
     limit.rlim_cur =
-      fd_bigint_to_long_long((struct FD_BIGINT *)(value));
+      kno_bigint_to_long_long((struct KNO_BIGINT *)(value));
   else {
-    fd_seterr(fd_TypeError,"rlimit_set",NULL,value);
+    kno_seterr(kno_TypeError,"rlimit_set",NULL,value);
     return -1;}
   rv = setrlimit(RLIMIT_ID,&limit);
   if (rv<0) {
-    u8_graberr(errno,"rlimit_set",FD_SYMBOL_NAME(symbol));
+    u8_graberr(errno,"rlimit_set",KNO_SYMBOL_NAME(symbol));
     return rv;}
   else return 1;
 }
@@ -902,8 +902,8 @@ u8_string stderr_filename = NULL;
 
 static int stdout_config_set(lispval var,lispval val,void *data)
 {
-  if (FD_STRINGP(val)) {
-    u8_string filename = FD_CSTRING(val);
+  if (KNO_STRINGP(val)) {
+    u8_string filename = KNO_CSTRING(val);
     int fd = (filename[0] == '+') ?
       (open(filename+1,O_WRONLY|O_APPEND|O_CREAT,0664)) :
       (open(filename,O_WRONLY|O_TRUNC|O_CREAT,0664));
@@ -914,14 +914,14 @@ static int stdout_config_set(lispval var,lispval val,void *data)
       close(fd);}
     return rv;}
   else {
-    fd_seterr("Not a filename","stdout_config_set",NULL,val);
+    kno_seterr("Not a filename","stdout_config_set",NULL,val);
     return -1;}
 }
 
 static int stderr_config_set(lispval var,lispval val,void *data)
 {
-  if (FD_STRINGP(val)) {
-    u8_string filename = FD_CSTRING(val);
+  if (KNO_STRINGP(val)) {
+    u8_string filename = KNO_CSTRING(val);
     u8_string *save_filename = data;
     int fd = (filename[0] == '+') ?
       (open(filename+1,O_WRONLY|O_APPEND|O_CREAT,0664)) :
@@ -936,16 +936,16 @@ static int stderr_config_set(lispval var,lispval val,void *data)
     else *save_filename = u8_strdup(filename);
     return rv;}
   else {
-    fd_seterr("Not a filename","stderr_config_set",NULL,val);
+    kno_seterr("Not a filename","stderr_config_set",NULL,val);
     return -1;}
 }
 
 static int stdin_config_set(lispval var,lispval val,void *data)
 {
-  if (FD_STRINGP(val)) {
-    u8_string filename = FD_CSTRING(val);
+  if (KNO_STRINGP(val)) {
+    u8_string filename = KNO_CSTRING(val);
     if (!(u8_file_existsp(filename))) {
-      fd_seterr("MissingFile","stdin_config_set",filename,FD_VOID);
+      kno_seterr("MissingFile","stdin_config_set",filename,KNO_VOID);
       return -1;}
     else {
       int fd = open(filename,O_RDONLY,0664), rv=0;
@@ -957,7 +957,7 @@ static int stdin_config_set(lispval var,lispval val,void *data)
         close(fd);}
       return rv;}}
   else {
-    fd_seterr("Not a filename","stdin_config_set",NULL,val);
+    kno_seterr("Not a filename","stdin_config_set",NULL,val);
     return -1;}
 }
 
@@ -966,15 +966,15 @@ static int stdin_config_set(lispval var,lispval val,void *data)
 static int pidfile_config_set(lispval var,lispval val,void *data)
 {
   u8_string filename=NULL, *fname_ptr = (u8_string *) data;
-  if (FD_STRINGP(val))
-    filename=u8_realpath(FD_CSTRING(val),NULL);
-  else if (FD_TRUEP(val)) {
+  if (KNO_STRINGP(val))
+    filename=u8_realpath(KNO_CSTRING(val),NULL);
+  else if (KNO_TRUEP(val)) {
     u8_string basename = u8_string_append(u8_appid(),".pid",NULL);
     filename=u8_abspath(basename,NULL);
     u8_free(basename);}
   else filename = NULL;
   if (filename == NULL) {
-    fd_seterr("BadPIDFilename","pidfile_config_set",NULL,val);
+    kno_seterr("BadPIDFilename","pidfile_config_set",NULL,val);
     return -1;}
   if (*fname_ptr) {
     if ( ( (*fname_ptr) == filename ) ||
@@ -1018,17 +1018,17 @@ static int pidfile_config_set(lispval var,lispval val,void *data)
 
 static void remove_pidfile()
 {
-  if ( (fd_exited) || (fd_in_doexit))
+  if ( (kno_exited) || (kno_in_doexit))
     return;
   else if (pid_filename) {
     if (u8_file_existsp(pid_filename))
       u8_removefile(pid_filename);}
-  else fd_doexit(FD_FALSE);
+  else kno_doexit(KNO_FALSE);
 }
 
 /* Full startup */
 
-void fd_init_startup_c()
+void kno_init_startup_c()
 {
   u8_register_source_file(_FILEINFO);
 
@@ -1039,108 +1039,108 @@ void fd_init_startup_c()
 
   boot_config();
 
-  fd_register_config("QUIET",_("Avoid unneccessary verbiage"),
-                     fd_intconfig_get,fd_boolconfig_set,&fd_be_vewy_quiet);
-  fd_register_config("PID",_("system process ID (read-only)"),
+  kno_register_config("QUIET",_("Avoid unneccessary verbiage"),
+                     kno_intconfig_get,kno_boolconfig_set,&kno_be_vewy_quiet);
+  kno_register_config("PID",_("system process ID (read-only)"),
                      config_getpid,NULL,NULL);
-  fd_register_config("PPID",_("parent's process ID (read-only)"),
+  kno_register_config("PPID",_("parent's process ID (read-only)"),
                      config_getppid,NULL,NULL);
 
-  fd_register_config("UTF8WARN",_("warn on bad UTF-8 sequences"),
+  kno_register_config("UTF8WARN",_("warn on bad UTF-8 sequences"),
                      config_getutf8warn,config_setutf8warn,NULL);
-  fd_register_config("UTF8ERR",_("fail (error) on bad UTF-8 sequences"),
+  kno_register_config("UTF8ERR",_("fail (error) on bad UTF-8 sequences"),
                      config_getutf8err,config_setutf8err,NULL);
-  fd_register_config("RANDOMSEED",_("random seed used for stochastic operations"),
+  kno_register_config("RANDOMSEED",_("random seed used for stochastic operations"),
                      config_getrandomseed,config_setrandomseed,NULL);
 
-  fd_register_config("CHECKUTF8",_("check that strings are valid UTF-8 on creation"),
-                     fd_boolconfig_get,fd_boolconfig_set,&fd_check_utf8);
+  kno_register_config("CHECKUTF8",_("check that strings are valid UTF-8 on creation"),
+                     kno_boolconfig_get,kno_boolconfig_set,&kno_check_utf8);
 
-  fd_register_config("APPID",_("application ID used in messages and SESSIONID"),
+  kno_register_config("APPID",_("application ID used in messages and SESSIONID"),
                      config_getappid,config_setappid,NULL);
 
-  fd_register_config("ARGV",
+  kno_register_config("ARGV",
                      _("the vector of args (before parsing) to the application (no configs)"),
-                     fd_lconfig_get,NULL,&raw_argv);
-  fd_register_config("RAWARGS",
+                     kno_lconfig_get,NULL,&raw_argv);
+  kno_register_config("RAWARGS",
                      _("the vector of args (before parsing) to the application (no configs)"),
-                     fd_lconfig_get,NULL,&raw_argv);
-  fd_register_config("CMDARGS",
+                     kno_lconfig_get,NULL,&raw_argv);
+  kno_register_config("CMDARGS",
                      _("the vector of parsed args to the application (no configs)"),
-     fd_lconfig_get,NULL,&lisp_argv);
-  fd_register_config("ARGS",
+     kno_lconfig_get,NULL,&lisp_argv);
+  kno_register_config("ARGS",
                      _("the vector of parsed args to the application (no configs)"),
-     fd_lconfig_get,NULL,&lisp_argv);
-  fd_register_config("STRINGARGS",
+     kno_lconfig_get,NULL,&lisp_argv);
+  kno_register_config("STRINGARGS",
                      _("the vector of args (before parsing) to the application (no configs)"),
-     fd_lconfig_get,NULL,&string_argv);
-  fd_register_config("CONFIGARGS",
+     kno_lconfig_get,NULL,&string_argv);
+  kno_register_config("CONFIGARGS",
                      _("config arguments passed to the application (unparsed)"),
-                     fd_lconfig_get,NULL,&config_argv);
-  fd_register_config("EXENAME",
+                     kno_lconfig_get,NULL,&config_argv);
+  kno_register_config("EXENAME",
                      _("the vector of args (before parsing) to the application (no configs)"),
-                     fd_lconfig_get,NULL,&exec_arg);
+                     kno_lconfig_get,NULL,&exec_arg);
 
 
 
-  fd_register_config("LOGCMD",_("Whether to display command line args on entry and exit"),
-                     fd_boolconfig_get,fd_boolconfig_set,&fd_logcmd);
+  kno_register_config("LOGCMD",_("Whether to display command line args on entry and exit"),
+                     kno_boolconfig_get,kno_boolconfig_set,&kno_logcmd);
 
 
 
-  fd_register_config("SESSIONID",_("unique session identifier"),
+  kno_register_config("SESSIONID",_("unique session identifier"),
                      config_getsessionid,config_setsessionid,NULL);
-  fd_register_config("FASTEXIT",_("whether to recycle session state on exit"),
-                     fd_boolconfig_get,fd_boolconfig_set,&fd_fast_exit);
-  fd_register_config("EXIT:FAST",_("whether to recycle session state on exit"),
-                     fd_boolconfig_get,fd_boolconfig_set,&fd_fast_exit);
-  fd_register_config("RUNUSER",_("Set the user ID for this process"),
+  kno_register_config("FASTEXIT",_("whether to recycle session state on exit"),
+                     kno_boolconfig_get,kno_boolconfig_set,&kno_fast_exit);
+  kno_register_config("EXIT:FAST",_("whether to recycle session state on exit"),
+                     kno_boolconfig_get,kno_boolconfig_set,&kno_fast_exit);
+  kno_register_config("RUNUSER",_("Set the user ID for this process"),
                      config_getuser,config_setuser,NULL);
-  fd_register_config("RUNGROUP",_("Set the group ID for this process"),
+  kno_register_config("RUNGROUP",_("Set the group ID for this process"),
                      config_getgroup,config_setgroup,NULL);
 
 
-  fd_register_config("RUNBASE",_("Path prefix for program state files"),
+  kno_register_config("RUNBASE",_("Path prefix for program state files"),
                      config_getrunbase,config_setrunbase,NULL);
 
-  fd_register_config("STDOUT",_("Redirect standard output to file"),
-                     fd_sconfig_get,stdout_config_set,&stdout_filename);
-  fd_register_config("STDERR",_("Redirect standard output to file"),
-                     fd_sconfig_get,stderr_config_set,&stderr_filename);
-  fd_register_config("STDIN",_("Redirect standard input to file"),
-                     fd_sconfig_get,stdin_config_set,&stdin_filename);
-  fd_register_config("PIDFILE",_("Write PID to file, delete on exit"),
-                     fd_sconfig_get,pidfile_config_set,&pid_filename);
+  kno_register_config("STDOUT",_("Redirect standard output to file"),
+                     kno_sconfig_get,stdout_config_set,&stdout_filename);
+  kno_register_config("STDERR",_("Redirect standard output to file"),
+                     kno_sconfig_get,stderr_config_set,&stderr_filename);
+  kno_register_config("STDIN",_("Redirect standard input to file"),
+                     kno_sconfig_get,stdin_config_set,&stdin_filename);
+  kno_register_config("PIDFILE",_("Write PID to file, delete on exit"),
+                     kno_sconfig_get,pidfile_config_set,&pid_filename);
 
 #if HAVE_SYS_RESOURCE_H
 #ifdef RLIMIT_CPU
-  fd_register_config("MAXCPU",_("Max CPU execution time limit"),
-                     fd_config_rlimit_get,fd_config_rlimit_set,
+  kno_register_config("MAXCPU",_("Max CPU execution time limit"),
+                     kno_config_rlimit_get,kno_config_rlimit_set,
                      (void *)&MAXCPU);
 #endif
 #ifdef RLIMIT_RSS
-  fd_register_config("MAXRSS",_("Max resident set (RSS) size"),
-                     fd_config_rlimit_get,fd_config_rlimit_set,
+  kno_register_config("MAXRSS",_("Max resident set (RSS) size"),
+                     kno_config_rlimit_get,kno_config_rlimit_set,
                      (void *)&MAXRSS);
 #endif
 #ifdef RLIMIT_CORE
-  fd_register_config("MAXCORE",_("Max core dump size"),
-                     fd_config_rlimit_get,fd_config_rlimit_set,
+  kno_register_config("MAXCORE",_("Max core dump size"),
+                     kno_config_rlimit_get,kno_config_rlimit_set,
                      (void *)&MAXCORE);
 #endif
 #ifdef RLIMIT_NPROC
-  fd_register_config("MAXNPROC",_("Max number of subprocesses"),
-                     fd_config_rlimit_get,fd_config_rlimit_set,
+  kno_register_config("MAXNPROC",_("Max number of subprocesses"),
+                     kno_config_rlimit_get,kno_config_rlimit_set,
                      (void *)&MAXNPROC);
 #endif
 #ifdef RLIMIT_NOFILE
-  fd_register_config("MAXFILES",_("Max number of open file descriptors"),
-                     fd_config_rlimit_get,fd_config_rlimit_set,
+  kno_register_config("MAXFILES",_("Max number of open file descriptors"),
+                     kno_config_rlimit_get,kno_config_rlimit_set,
                      (void *)&MAXFILES);
 #endif
 #ifdef RLIMIT_STACK
-  fd_register_config("MAXSTACK",_("Max stack depth"),
-                     fd_config_rlimit_get,fd_config_rlimit_set,
+  kno_register_config("MAXSTACK",_("Max stack depth"),
+                     kno_config_rlimit_get,kno_config_rlimit_set,
                      (void *)&MAXSTACK);
 #endif
 
@@ -1149,88 +1149,88 @@ void fd_init_startup_c()
 
 #if HAVE_SYS_RESOURCE_H
 #ifdef RLIMIT_CPU
-  fd_register_config("MAXCPU",_("Max CPU execution time limit"),
-                     fd_config_rlimit_get,fd_config_rlimit_set,
+  kno_register_config("MAXCPU",_("Max CPU execution time limit"),
+                     kno_config_rlimit_get,kno_config_rlimit_set,
                      (void *)&MAXCPU);
 #endif
 
 #ifdef RLIMIT_RSS
-  fd_register_config("MAXRSS",_("Max resident set (RSS) size"),
-                     fd_config_rlimit_get,fd_config_rlimit_set,
+  kno_register_config("MAXRSS",_("Max resident set (RSS) size"),
+                     kno_config_rlimit_get,kno_config_rlimit_set,
                      (void *)&MAXRSS);
 #endif
 #ifdef RLIMIT_CORE
-  fd_register_config("MAXCORE",_("Max core dump size"),
-                     fd_config_rlimit_get,fd_config_rlimit_set,
+  kno_register_config("MAXCORE",_("Max core dump size"),
+                     kno_config_rlimit_get,kno_config_rlimit_set,
                      (void *)&MAXCORE);
 #endif
 #ifdef RLIMIT_NPROC
-  fd_register_config("MAXNPROC",_("Max number of subprocesses"),
-                     fd_config_rlimit_get,fd_config_rlimit_set,
+  kno_register_config("MAXNPROC",_("Max number of subprocesses"),
+                     kno_config_rlimit_get,kno_config_rlimit_set,
                      (void *)&MAXNPROC);
 #endif
 #ifdef RLIMIT_NOFILE
-  fd_register_config("MAXFILES",_("Max number of open file descriptors"),
-                     fd_config_rlimit_get,fd_config_rlimit_set,
+  kno_register_config("MAXFILES",_("Max number of open file descriptors"),
+                     kno_config_rlimit_get,kno_config_rlimit_set,
                      (void *)&MAXFILES);
 #endif
 #ifdef RLIMIT_STACK
-  fd_register_config("MAXSTACK",_("Max stack depth"),
-                     fd_config_rlimit_get,fd_config_rlimit_set,
+  kno_register_config("MAXSTACK",_("Max stack depth"),
+                     kno_config_rlimit_get,kno_config_rlimit_set,
                      (void *)&MAXSTACK);
 #endif
 
 #endif
 
-  if (!(logdir)) logdir = u8_strdup(FD_LOG_DIR);
-  fd_register_config("LOGDIR",_("Root FramerD logging directories"),
-                     fd_sconfig_get,fd_sconfig_set,&logdir);
+  if (!(logdir)) logdir = u8_strdup(KNO_LOG_DIR);
+  kno_register_config("LOGDIR",_("Root Kno logging directories"),
+                     kno_sconfig_get,kno_sconfig_set,&logdir);
 
-  if (!(sharedir)) sharedir = u8_strdup(FD_SHARE_DIR);
-  fd_register_config("SHAREDIR",_("Shared config/data directory for FramerD"),
-                     fd_sconfig_get,fd_sconfig_set,&sharedir);
+  if (!(sharedir)) sharedir = u8_strdup(KNO_SHARE_DIR);
+  kno_register_config("SHAREDIR",_("Shared config/data directory for Kno"),
+                     kno_sconfig_get,kno_sconfig_set,&sharedir);
 
-  if (!(datadir)) datadir = u8_strdup(FD_DATA_DIR);
-  fd_register_config("DATADIR",_("Data directory for FramerD"),
-                     fd_sconfig_get,fd_sconfig_set,&datadir);
+  if (!(datadir)) datadir = u8_strdup(KNO_DATA_DIR);
+  kno_register_config("DATADIR",_("Data directory for Kno"),
+                     kno_sconfig_get,kno_sconfig_set,&datadir);
 
-  fd_register_config("SOURCES",_("Registered source files"),
+  kno_register_config("SOURCES",_("Registered source files"),
                      config_get_source_files,config_add_source_file,
                      &u8_log_show_procinfo);
 
-  fd_register_config("U8:MMAPTHRESH",
+  kno_register_config("U8:MMAPTHRESH",
                      _("Size at which u8_big_alloc starts using MMAP"),
-                     fd_sizeconfig_get,fd_sizeconfig_set,
+                     kno_sizeconfig_get,kno_sizeconfig_set,
                      &u8_mmap_threshold);
-  fd_register_config("HASH:BIGTHRESH",
+  kno_register_config("HASH:BIGTHRESH",
                      _("Number of buckets at which hashtables use bigalloc"),
-                     fd_sizeconfig_get,fd_sizeconfig_set,
-                     &fd_hash_bigthresh);
-  fd_register_config("BUFIO:BIGTHRESH",
+                     kno_sizeconfig_get,kno_sizeconfig_set,
+                     &kno_hash_bigthresh);
+  kno_register_config("BUFIO:BIGTHRESH",
                      _("Size of binary buffers to use bigalloc"),
-                     fd_sizeconfig_get,fd_sizeconfig_set,
-                     &fd_bigbuf_threshold);
+                     kno_sizeconfig_get,kno_sizeconfig_set,
+                     &kno_bigbuf_threshold);
 
-  fd_register_config("ATEXIT",_("Procedures to call on exit"),
+  kno_register_config("ATEXIT",_("Procedures to call on exit"),
                      config_atexit_get,config_atexit_set,NULL);
 
-  fd_register_config("EXITING",_("Whether this process is exiting"),
-                     fd_boolconfig_get,fd_boolconfig_set,&fd_exiting);
+  kno_register_config("EXITING",_("Whether this process is exiting"),
+                     kno_boolconfig_get,kno_boolconfig_set,&kno_exiting);
 
 
-  fd_register_config
+  kno_register_config
     ("CORELIMIT",_("Set core size limit"),
      rlimit_get,rlimit_set,(void *)RLIMIT_CORE);
-  fd_register_config
+  kno_register_config
     ("CPULIMIT",_("Set cpu time limit (in seconds)"),
      rlimit_get,rlimit_set,((void *)RLIMIT_CPU));
-  fd_register_config
+  kno_register_config
     ("RSSLIMIT",_("Set resident memory limit"),
      rlimit_get,rlimit_set,(void *)RLIMIT_RSS);
-  fd_register_config
+  kno_register_config
     ("VMEMLIMIT",_("Set total VMEM limit"),
      rlimit_get,rlimit_set,(void *)RLIMIT_AS);
-  fd_register_config
+  kno_register_config
     ("HEAPLIMIT",_("Set total heap (DATA segment) limit"),
      rlimit_get,rlimit_set,(void *)RLIMIT_DATA);
 

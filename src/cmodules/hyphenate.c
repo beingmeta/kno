@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2012-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -9,14 +9,14 @@
 #define _FILEINFO __FILE__
 #endif
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/eval.h"
-#include "framerd/storage.h"
-#include "framerd/pools.h"
-#include "framerd/indexes.h"
-#include "framerd/frames.h"
-#include "framerd/numbers.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/eval.h"
+#include "kno/storage.h"
+#include "kno/pools.h"
+#include "kno/indexes.h"
+#include "kno/frames.h"
+#include "kno/numbers.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8pathfns.h>
@@ -25,7 +25,7 @@
 
 #define EDGE_LEN 1
 
-FD_EXPORT int fd_init_hyphenate(void) FD_LIBINIT_FN;
+KNO_EXPORT int kno_init_hyphenate(void) KNO_LIBINIT_FN;
 
 static u8_string default_hyphenation_file = NULL;
 static HyphenDict *default_dict = NULL;
@@ -34,58 +34,58 @@ static long long int hyphenate_init = 0;
 
 static lispval hyphenate_word_prim(lispval string_arg)
 {
-  u8_string string = FD_CSTRING(string_arg);
-  int len = FD_STRLEN(string_arg);
-  if (len==0) return fd_incref(string_arg);
+  u8_string string = KNO_CSTRING(string_arg);
+  int len = KNO_STRLEN(string_arg);
+  if (len==0) return kno_incref(string_arg);
   else {
     char *hword = u8_malloc(len*2), *hyphens = u8_malloc(len+5);
     char ** rep = NULL; int * pos = NULL; int * cut = NULL;
     int retval = hnj_hyphen_hyphenate2(default_dict,string,len,hyphens,
                                      hword,&rep,&pos,&cut);
     if (retval) {
-      u8_free(hyphens); u8_free(hword); fd_incref(string_arg);
-      fd_seterr("Hyphenation error","get_hyphen_breaks",NULL,string_arg);
-      return FD_ERROR_VALUE;}
+      u8_free(hyphens); u8_free(hword); kno_incref(string_arg);
+      kno_seterr("Hyphenation error","get_hyphen_breaks",NULL,string_arg);
+      return KNO_ERROR_VALUE;}
     else {
-      lispval result = fd_make_string(NULL,-1,(u8_string)hword);
+      lispval result = kno_make_string(NULL,-1,(u8_string)hword);
       u8_free(hyphens); u8_free(hword);
       return result;}}
 }
 
 static lispval hyphen_breaks_prim(lispval string_arg)
 {
-  u8_string string = FD_CSTRING(string_arg);
-  int len = FD_STRLEN(string_arg);
-  if (len==0) return fd_empty_vector(0);
+  u8_string string = KNO_CSTRING(string_arg);
+  int len = KNO_STRLEN(string_arg);
+  if (len==0) return kno_empty_vector(0);
   else {
     char *hyphens = u8_malloc(len+5);
     char ** rep = NULL; int * pos = NULL; int * cut = NULL;
     int retval = hnj_hyphen_hyphenate2(default_dict,string,len,hyphens,
                                      NULL,&rep,&pos,&cut);
     if (retval) {
-      u8_free(hyphens); fd_incref(string_arg);
-      fd_seterr("Hyphenation error","get_hyphen_breaks",NULL,string_arg);
-      return FD_ERROR_VALUE;}
+      u8_free(hyphens); kno_incref(string_arg);
+      kno_seterr("Hyphenation error","get_hyphen_breaks",NULL,string_arg);
+      return KNO_ERROR_VALUE;}
     else {
       struct U8_OUTPUT out;
       const u8_byte *scan = string;
-      lispval result = FD_VOID, *elts;
+      lispval result = KNO_VOID, *elts;
       int i = 0, n_breaks = 0, seg = 0, cpos = 0, c = u8_sgetc(&scan); while (i<len) {
         if (hyphens[i++]&1) n_breaks++;}
-      result = fd_empty_vector(n_breaks+1);
-      elts = FD_VECTOR_DATA(result);
+      result = kno_empty_vector(n_breaks+1);
+      elts = KNO_VECTOR_DATA(result);
       U8_INIT_OUTPUT(&out,32);
       while (c>=0) {
         u8_putc(&out,c);
         if (hyphens[cpos]&1) {
-          lispval s = fd_make_string(NULL,out.u8_write-out.u8_outbuf,
+          lispval s = kno_make_string(NULL,out.u8_write-out.u8_outbuf,
                                   out.u8_outbuf);
           elts[seg++]=s;
           out.u8_write = out.u8_outbuf;}
         cpos = scan-string;
         c = u8_sgetc(&scan);}
       if (out.u8_write!=out.u8_outbuf) {
-        lispval s = fd_make_string(NULL,out.u8_write-out.u8_outbuf,
+        lispval s = kno_make_string(NULL,out.u8_write-out.u8_outbuf,
                                 out.u8_outbuf);
         elts[seg++]=s;
         out.u8_write = out.u8_outbuf;}
@@ -95,20 +95,20 @@ static lispval hyphen_breaks_prim(lispval string_arg)
 
 static lispval shyphenate_prim(lispval string_arg)
 {
-  u8_string string = FD_CSTRING(string_arg);
-  int len = FD_STRLEN(string_arg);
-  if (len==0) return fd_incref(string_arg);
+  u8_string string = KNO_CSTRING(string_arg);
+  int len = KNO_STRLEN(string_arg);
+  if (len==0) return kno_incref(string_arg);
   else {
     char *hyphens = u8_malloc(len+5);
     char ** rep = NULL; int * pos = NULL; int * cut = NULL;
     int retval = hnj_hyphen_hyphenate2(default_dict,string,len,hyphens,
                                      NULL,&rep,&pos,&cut);
     if (retval) {
-      u8_free(hyphens); fd_incref(string_arg);
-      fd_seterr("Hyphenation error","get_hyphen_breaks",NULL,string_arg);
-      return FD_ERROR_VALUE;}
+      u8_free(hyphens); kno_incref(string_arg);
+      kno_seterr("Hyphenation error","get_hyphen_breaks",NULL,string_arg);
+      return KNO_ERROR_VALUE;}
     else {
-      lispval result = FD_VOID;
+      lispval result = KNO_VOID;
       const u8_byte *scan = string;
       struct U8_OUTPUT out;
       int cpos = 0, c = u8_sgetc(&scan);
@@ -118,7 +118,7 @@ static lispval shyphenate_prim(lispval string_arg)
         if (hyphens[cpos]&1) u8_putc(&out,0xAD);
         cpos = scan-string;
         c = u8_sgetc(&scan);}
-      result = fd_make_string(NULL,out.u8_write-out.u8_outbuf,
+      result = kno_make_string(NULL,out.u8_write-out.u8_outbuf,
                             out.u8_outbuf);
       u8_free(out.u8_outbuf);
       return result;}}
@@ -151,13 +151,13 @@ static int hyphenout_helper(U8_OUTPUT *out,
 static lispval hyphenout_prim(lispval string_arg,lispval hyphen_arg)
 {
   U8_OUTPUT *output = u8_current_output;
-  u8_string string = FD_CSTRING(string_arg);
-  int len = FD_STRLEN(string_arg);
-  int hyphen_char = FD_CHAR2CODE(hyphen_arg);
+  u8_string string = KNO_CSTRING(string_arg);
+  int len = KNO_STRLEN(string_arg);
+  int hyphen_char = KNO_CHAR2CODE(hyphen_arg);
   const u8_byte *scan = string;
   struct U8_OUTPUT word;
   int c = u8_sgetc(&scan);
-  if (len==0) return FD_VOID;
+  if (len==0) return KNO_VOID;
   while ((c>=0)&&(!(u8_isalnum(c)))) {
     u8_putc(output,c); c = u8_sgetc(&scan);}
   U8_INIT_OUTPUT(&word,64);
@@ -193,20 +193,20 @@ static lispval hyphenout_prim(lispval string_arg,lispval hyphen_arg)
        hyphen_char);}
   u8_free(word.u8_outbuf);
   u8_flush(output);
-  return FD_VOID;
+  return KNO_VOID;
 }
 
 static lispval hyphenate_prim(lispval string_arg,lispval hyphen_arg)
 {
   lispval result;
   struct U8_OUTPUT out; U8_OUTPUT *output = &out;
-  u8_string string = FD_CSTRING(string_arg);
-  int len = FD_STRLEN(string_arg);
-  int hyphen_char = FD_CHAR2CODE(hyphen_arg);
+  u8_string string = KNO_CSTRING(string_arg);
+  int len = KNO_STRLEN(string_arg);
+  int hyphen_char = KNO_CHAR2CODE(hyphen_arg);
   const u8_byte *scan = string;
   struct U8_OUTPUT word;
   int c = u8_sgetc(&scan);
-  if (len==0) return fd_incref(string_arg);
+  if (len==0) return kno_incref(string_arg);
   U8_INIT_OUTPUT(&out,len*2);
   U8_INIT_OUTPUT(&word,64);
   while ((c>=0)&&(!(u8_isalnum(c)))) {
@@ -243,57 +243,57 @@ static lispval hyphenate_prim(lispval string_arg,lispval hyphen_arg)
       (output,word.u8_outbuf,word.u8_write-word.u8_outbuf,
        hyphen_char);}
   u8_free(word.u8_outbuf);
-  result = fd_make_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
+  result = kno_make_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
   u8_free(out.u8_outbuf);
   return result;
 }
 
-FD_EXPORT int fd_init_hyphenate()
+KNO_EXPORT int kno_init_hyphenate()
 {
   lispval hyphenate_module;
   if (hyphenate_init) return 0;
 
   hyphenate_init = u8_millitime();
 
-  fd_register_config("HYPHENDICT","Where the hyphenate module gets its data",
-                     fd_sconfig_get,fd_sconfig_set,&default_hyphenation_file);
+  kno_register_config("HYPHENDICT","Where the hyphenate module gets its data",
+                     kno_sconfig_get,kno_sconfig_set,&default_hyphenation_file);
 
   if (default_hyphenation_file)
     default_dict = hnj_hyphen_load(default_hyphenation_file);
   else {
-    u8_string dictfile = u8_mkpath(FD_DATA_DIR,"hyph_en_US.dic");
+    u8_string dictfile = u8_mkpath(KNO_DATA_DIR,"hyph_en_US.dic");
     if (u8_file_existsp(dictfile))
       default_dict = hnj_hyphen_load(dictfile);
     else {
-      u8_log(LOG_CRIT,fd_FileNotFound,
+      u8_log(LOG_CRIT,kno_FileNotFound,
              "Hyphenation dictionary %s does not exist!",
              dictfile);}
     u8_free(dictfile);}
 
   hyphenate_module =
-    fd_new_cmodule("HYPHENATE",(FD_MODULE_SAFE),fd_init_hyphenate);
+    kno_new_cmodule("HYPHENATE",(KNO_MODULE_SAFE),kno_init_hyphenate);
 
-  fd_idefn(hyphenate_module,
-           fd_make_cprim1x("HYPHENATE-WORD",
-                           hyphenate_word_prim,1,fd_string_type,FD_VOID));
-  fd_idefn(hyphenate_module,
-           fd_make_cprim1x("HYPHEN-BREAKS",
-                           hyphen_breaks_prim,1,fd_string_type,FD_VOID));
-  fd_idefn(hyphenate_module,
-           fd_make_cprim1x("SHYPHENATE",
-                           shyphenate_prim,1,fd_string_type,FD_VOID));
-  fd_idefn(hyphenate_module,
-           fd_make_cprim2x("HYPHENOUT",
+  kno_idefn(hyphenate_module,
+           kno_make_cprim1x("HYPHENATE-WORD",
+                           hyphenate_word_prim,1,kno_string_type,KNO_VOID));
+  kno_idefn(hyphenate_module,
+           kno_make_cprim1x("HYPHEN-BREAKS",
+                           hyphen_breaks_prim,1,kno_string_type,KNO_VOID));
+  kno_idefn(hyphenate_module,
+           kno_make_cprim1x("SHYPHENATE",
+                           shyphenate_prim,1,kno_string_type,KNO_VOID));
+  kno_idefn(hyphenate_module,
+           kno_make_cprim2x("HYPHENOUT",
                            hyphenout_prim,1,
-                           fd_string_type,FD_VOID,
-                           fd_character_type,FD_CODE2CHAR(0xAD)));
-  fd_idefn(hyphenate_module,
-           fd_make_cprim2x("HYPHENATE",
+                           kno_string_type,KNO_VOID,
+                           kno_character_type,KNO_CODE2CHAR(0xAD)));
+  kno_idefn(hyphenate_module,
+           kno_make_cprim2x("HYPHENATE",
                            hyphenate_prim,1,
-                           fd_string_type,FD_VOID,
-                           fd_character_type,FD_CODE2CHAR(0xAD)));
+                           kno_string_type,KNO_VOID,
+                           kno_character_type,KNO_CODE2CHAR(0xAD)));
 
-  fd_finish_module(hyphenate_module);
+  kno_finish_module(hyphenate_module);
 
   u8_register_source_file(_FILEINFO);
 

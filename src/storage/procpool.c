@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -9,17 +9,17 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define FD_INLINE_POOLS 1
-#define FD_INLINE_BUFIO 1
-#include "framerd/components/storage_layer.h"
+#define KNO_INLINE_POOLS 1
+#define KNO_INLINE_BUFIO 1
+#include "kno/components/storage_layer.h"
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/apply.h"
-#include "framerd/storage.h"
-#include "framerd/pools.h"
-#include "framerd/indexes.h"
-#include "framerd/drivers.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/apply.h"
+#include "kno/storage.h"
+#include "kno/pools.h"
+#include "kno/indexes.h"
+#include "kno/drivers.h"
 
 #include "libu8/u8printf.h"
 
@@ -34,43 +34,43 @@ static u8_condition CommitFailed = _("ProcPoolCommit Failed");
 
 static lispval poolopt(lispval opts,u8_string name)
 {
-  return fd_getopt(opts,fd_intern(name),VOID);
+  return kno_getopt(opts,kno_intern(name),VOID);
 }
 
-#define NO_METHODP(x) ( (FD_NULLP(x)) || (FD_VOIDP(x)) )
+#define NO_METHODP(x) ( (KNO_NULLP(x)) || (KNO_VOIDP(x)) )
 
-FD_EXPORT
-fd_pool fd_make_procpool(FD_OID base,
+KNO_EXPORT
+kno_pool kno_make_procpool(KNO_OID base,
                          unsigned int cap,unsigned int load,
                          lispval opts,lispval state,
                          u8_string label,
                          u8_string source)
 {
   if (load>cap) {
-    u8_seterr(fd_PoolOverflow,"fd_make_procpool",
+    u8_seterr(kno_PoolOverflow,"kno_make_procpool",
               u8_sprintf(NULL,256,
                          "Specified load (%u) > capacity (%u) for '%s'",
                          load,cap,(source)?(source):(label)));
     return NULL;}
 
-  struct FD_PROCPOOL *pp = u8_alloc(struct FD_PROCPOOL);
-  struct FD_PROCPOOL_METHODS *methods;
-  unsigned int flags = FD_STORAGE_ISPOOL;
-  lispval pool_type = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
-  lispval metadata = fd_getopt(opts,FDSYM_METADATA,FD_VOID);
-  struct FD_POOL_TYPEINFO *typeinfo =
-    (FD_STRINGP(pool_type)) ?
-    (fd_get_pool_typeinfo(FD_CSTRING(pool_type))) :
-    (FD_SYMBOLP(pool_type)) ? 
-    (fd_get_pool_typeinfo(FD_SYMBOL_NAME(pool_type))) :
+  struct KNO_PROCPOOL *pp = u8_alloc(struct KNO_PROCPOOL);
+  struct KNO_PROCPOOL_METHODS *methods;
+  unsigned int flags = KNO_STORAGE_ISPOOL;
+  lispval pool_type = kno_getopt(opts,FDSYM_TYPE,KNO_VOID);
+  lispval metadata = kno_getopt(opts,FDSYM_METADATA,KNO_VOID);
+  struct KNO_POOL_TYPEINFO *typeinfo =
+    (KNO_STRINGP(pool_type)) ?
+    (kno_get_pool_typeinfo(KNO_CSTRING(pool_type))) :
+    (KNO_SYMBOLP(pool_type)) ? 
+    (kno_get_pool_typeinfo(KNO_SYMBOL_NAME(pool_type))) :
     (NULL);
   int cache_level = -1;
 
   if ( (typeinfo) && (typeinfo->type_data) )
-    methods = (struct FD_PROCPOOL_METHODS *) (typeinfo->type_data);
+    methods = (struct KNO_PROCPOOL_METHODS *) (typeinfo->type_data);
   else {
-    methods = u8_alloc(struct FD_PROCPOOL_METHODS);
-    memset(methods,0,sizeof(struct FD_PROCPOOL_METHODS));
+    methods = u8_alloc(struct KNO_PROCPOOL_METHODS);
+    memset(methods,0,sizeof(struct KNO_PROCPOOL_METHODS));
     methods->allocfn = poolopt(opts,"ALLOC");
     methods->getloadfn = poolopt(opts,"GETLOAD");
     methods->fetchfn = poolopt(opts,"FETCH");
@@ -83,199 +83,199 @@ fd_pool fd_make_procpool(FD_OID base,
     methods->closefn = poolopt(opts,"CLOSE");
     methods->ctlfn = poolopt(opts,"POOLCTL");}
 
-  memset(pp,0,sizeof(struct FD_PROCPOOL));
-  lispval source_opt = FD_VOID;
+  memset(pp,0,sizeof(struct KNO_PROCPOOL));
+  lispval source_opt = KNO_VOID;
 
   if (source == NULL) {
-    source_opt = fd_getopt(opts,FDSYM_SOURCE,FD_VOID);
-    if (FD_STRINGP(source_opt))
+    source_opt = kno_getopt(opts,FDSYM_SOURCE,KNO_VOID);
+    if (KNO_STRINGP(source_opt))
       source = CSTRING(source_opt);}
 
-  if (fd_testopt(opts,FDSYM_CACHELEVEL,FD_VOID)) {
-    lispval v = fd_getopt(opts,FDSYM_CACHELEVEL,FD_VOID);
-    if (FD_FALSEP(v))
+  if (kno_testopt(opts,FDSYM_CACHELEVEL,KNO_VOID)) {
+    lispval v = kno_getopt(opts,FDSYM_CACHELEVEL,KNO_VOID);
+    if (KNO_FALSEP(v))
       cache_level=0;
-    else if (FD_FIXNUMP(v))
-      cache_level=FD_FIX2INT(v);
-    else if ( (FD_TRUEP(v)) || (v == FD_DEFAULT_VALUE) ) {}
+    else if (KNO_FIXNUMP(v))
+      cache_level=KNO_FIX2INT(v);
+    else if ( (KNO_TRUEP(v)) || (v == KNO_DEFAULT_VALUE) ) {}
     else u8_logf(LOG_CRIT,"BadCacheLevel",
                  "Invalid cache level %q specified for procpool %s",
                  v,label);
-    fd_decref(v);}
+    kno_decref(v);}
 
-  flags |= FD_POOL_SPARSE;
-  if (fd_testopt(opts,fd_intern("ADJUNCT"),FD_VOID))
-    flags |= FD_POOL_ADJUNCT;
-  if (fd_testopt(opts,fd_intern("READONLY"),FD_VOID))
-    flags |= FD_STORAGE_READ_ONLY;
-  if (fd_testopt(opts,fd_intern("VIRTUAL"),FD_VOID))
-    flags |= FD_STORAGE_VIRTUAL;
-  lispval rval = fd_getopt(opts,fd_intern("REGISTER"),FD_VOID);
-  if (FD_FALSEP(rval))
-    flags |= FD_STORAGE_UNREGISTERED;
-  else fd_decref(rval);
+  flags |= KNO_POOL_SPARSE;
+  if (kno_testopt(opts,kno_intern("ADJUNCT"),KNO_VOID))
+    flags |= KNO_POOL_ADJUNCT;
+  if (kno_testopt(opts,kno_intern("READONLY"),KNO_VOID))
+    flags |= KNO_STORAGE_READ_ONLY;
+  if (kno_testopt(opts,kno_intern("VIRTUAL"),KNO_VOID))
+    flags |= KNO_STORAGE_VIRTUAL;
+  lispval rval = kno_getopt(opts,kno_intern("REGISTER"),KNO_VOID);
+  if (KNO_FALSEP(rval))
+    flags |= KNO_STORAGE_UNREGISTERED;
+  else kno_decref(rval);
 
-  fd_init_pool((fd_pool)pp,base,cap,
-               &fd_procpool_handler,
+  kno_init_pool((kno_pool)pp,base,cap,
+               &kno_procpool_handler,
                label,source,source,
                flags,
                metadata,
                opts);
   pp->pool_methods = methods;
-  pp->pool_state   = state; fd_incref(state);
+  pp->pool_state   = state; kno_incref(state);
   pp->pool_label = u8_strdup(label);
   pp->pool_cache_level = cache_level;
 
-  if (fd_testopt(opts,fd_intern("TYPEID"),VOID)) {
+  if (kno_testopt(opts,kno_intern("TYPEID"),VOID)) {
     lispval idval = poolopt(opts,"TYPEID");
     if (STRINGP(idval))
       pp->pool_typeid = u8_strdup(CSTRING(idval));
     else if (SYMBOLP(idval))
-      pp->pool_typeid = u8_strdup(FD_SYMBOL_NAME(idval));
-    else if (FD_OIDP(idval)) {
-      FD_OID addr = FD_OID_ADDR(idval);
+      pp->pool_typeid = u8_strdup(KNO_SYMBOL_NAME(idval));
+    else if (KNO_OIDP(idval)) {
+      KNO_OID addr = KNO_OID_ADDR(idval);
       pp->pool_typeid =
-        u8_mkstring("@%lx/%lx",FD_OID_HI(addr),FD_OID_LO(addr));}
+        u8_mkstring("@%lx/%lx",KNO_OID_HI(addr),KNO_OID_LO(addr));}
     else u8_logf(LOG_WARN,"BadPoolTypeID","%q",idval);
-    fd_decref(idval);}
+    kno_decref(idval);}
 
-  fd_register_pool((fd_pool)pp);
-  fd_decref(metadata);
-  fd_decref(source_opt);
+  kno_register_pool((kno_pool)pp);
+  kno_decref(metadata);
+  kno_decref(source_opt);
 
-  return (fd_pool)pp;
+  return (kno_pool)pp;
 }
 
-static lispval procpool_fetch(fd_pool p,lispval oid)
+static lispval procpool_fetch(kno_pool p,lispval oid)
 {
-  struct FD_PROCPOOL *pp = (fd_procpool)p;
-  lispval lp = fd_pool2lisp(p);
+  struct KNO_PROCPOOL *pp = (kno_procpool)p;
+  lispval lp = kno_pool2lisp(p);
   lispval args[]={lp,pp->pool_state,oid};
   if (NO_METHODP(pp->pool_methods->fetchfn))
     return VOID;
-  else return fd_dapply(pp->pool_methods->fetchfn,3,args);
+  else return kno_dapply(pp->pool_methods->fetchfn,3,args);
 }
 
-static lispval *procpool_fetchn(fd_pool p,int n,lispval *oids)
+static lispval *procpool_fetchn(kno_pool p,int n,lispval *oids)
 {
-  struct FD_PROCPOOL *pp = (fd_procpool)p;
-  lispval lp = fd_pool2lisp(p);
+  struct KNO_PROCPOOL *pp = (kno_procpool)p;
+  lispval lp = kno_pool2lisp(p);
   if (NO_METHODP(pp->pool_methods->fetchnfn)) {
     lispval *vals = u8_big_alloc_n(n,lispval);
     int i = 0; while (i<n) {
       lispval oid = oids[i];
       lispval v = procpool_fetch(p,oid);
-      if (FD_ABORTED(v)) {
-        fd_decref_vec(vals,i);
+      if (KNO_ABORTED(v)) {
+        kno_decref_vec(vals,i);
         u8_big_free(vals);
         return NULL;}
       else vals[i++]=v;}
     return vals;}
   else {
-    lispval oidvec = fd_make_vector(n,oids);
+    lispval oidvec = kno_make_vector(n,oids);
     lispval args[]={lp,pp->pool_state,oidvec};
-    lispval result = fd_dapply(pp->pool_methods->fetchnfn,3,args);
-    fd_decref(oidvec);
-    if (FD_ABORTED(result)) {
-      fd_decref(oidvec);
+    lispval result = kno_dapply(pp->pool_methods->fetchnfn,3,args);
+    kno_decref(oidvec);
+    if (KNO_ABORTED(result)) {
+      kno_decref(oidvec);
       return NULL;}
     else if (VECTORP(result)) {
       lispval *vals = u8_big_alloc_n(n,lispval);
       int i = 0; while (i<n) {
         lispval val = VEC_REF(result,i);
-        FD_VECTOR_SET(result,i,VOID);
+        KNO_VECTOR_SET(result,i,VOID);
         vals[i++]=val;}
-      fd_decref(result);
+      kno_decref(result);
       return vals;}
     else {
-      fd_seterr(OddResult,"procpool_fetchn",p->poolid,result);
-      fd_decref(result);
+      kno_seterr(OddResult,"procpool_fetchn",p->poolid,result);
+      kno_decref(result);
       return NULL;}}
 }
 
-static int procpool_lock(fd_pool p,lispval oid)
+static int procpool_lock(kno_pool p,lispval oid)
 {
-  struct FD_PROCPOOL *pp = (fd_procpool)p;
-  lispval lp = fd_pool2lisp(p);
+  struct KNO_PROCPOOL *pp = (kno_procpool)p;
+  lispval lp = kno_pool2lisp(p);
   if (NO_METHODP(pp->pool_methods->lockfn))
     return 0;
   else {
     lispval args[]={lp,pp->pool_state,oid};
-    lispval result = fd_dapply(pp->pool_methods->lockfn,3,args);
-    if (FD_ABORTED(result)) return result;
+    lispval result = kno_dapply(pp->pool_methods->lockfn,3,args);
+    if (KNO_ABORTED(result)) return result;
     else if (FIXNUMP(result)) return result;
-    else if (FD_TRUEP(result)) return 1;
+    else if (KNO_TRUEP(result)) return 1;
     else if (FALSEP(result)) return 0;
     else if (EMPTYP(result)) return 0;
     else {
-      fd_seterr(OddResult,"procpool_lock",p->poolid,result);
-      fd_decref(result);
+      kno_seterr(OddResult,"procpool_lock",p->poolid,result);
+      kno_decref(result);
       return -1;}}
 }
 
-static int procpool_swapout(fd_pool p,lispval oid)
+static int procpool_swapout(kno_pool p,lispval oid)
 {
-  struct FD_PROCPOOL *pp = (fd_procpool)p;
-  lispval lp = fd_pool2lisp(p);
+  struct KNO_PROCPOOL *pp = (kno_procpool)p;
+  lispval lp = kno_pool2lisp(p);
   if (NO_METHODP(pp->pool_methods->swapoutfn))
     return 1;
   else {
     lispval args[]={lp,pp->pool_state,oid};
-    lispval result = fd_dapply(pp->pool_methods->swapoutfn,3,args);
+    lispval result = kno_dapply(pp->pool_methods->swapoutfn,3,args);
     if (FIXNUMP(result)) return result;
-    else if (FD_TRUEP(result)) return 1;
+    else if (KNO_TRUEP(result)) return 1;
     else if (FALSEP(result)) return 0;
     else if (EMPTYP(result)) return 0;
     else {
-      fd_seterr(OddResult,"procpool_swapout",p->poolid,result);
-      fd_decref(result);
+      kno_seterr(OddResult,"procpool_swapout",p->poolid,result);
+      kno_decref(result);
       return -1;}}
 }
 
-static lispval procpool_alloc(fd_pool p,int n)
+static lispval procpool_alloc(kno_pool p,int n)
 {
-  struct FD_PROCPOOL *pp = (fd_procpool)p;
-  lispval lp = fd_pool2lisp(p);
-  lispval n_arg = FD_INT(n);
+  struct KNO_PROCPOOL *pp = (kno_procpool)p;
+  lispval lp = kno_pool2lisp(p);
+  lispval n_arg = KNO_INT(n);
   lispval args[3]={lp,pp->pool_state,n_arg};
   if (NO_METHODP(pp->pool_methods->allocfn))
     return VOID;
-  else return fd_dapply(pp->pool_methods->allocfn,3,args);
+  else return kno_dapply(pp->pool_methods->allocfn,3,args);
 }
 
-static int procpool_release(fd_pool p,lispval oid)
+static int procpool_release(kno_pool p,lispval oid)
 {
-  struct FD_PROCPOOL *pp = (fd_procpool)p;
-  lispval lp = fd_pool2lisp(p);
+  struct KNO_PROCPOOL *pp = (kno_procpool)p;
+  lispval lp = kno_pool2lisp(p);
   if (NO_METHODP(pp->pool_methods->releasefn))
     return 0;
   else {
     lispval args[3]={lp,pp->pool_state,oid};
-    lispval result = fd_dapply(pp->pool_methods->releasefn,3,args);
-    if (FIXNUMP(result)) return fd_getint(result);
-    else if (FD_TRUEP(result)) return 1;
+    lispval result = kno_dapply(pp->pool_methods->releasefn,3,args);
+    if (FIXNUMP(result)) return kno_getint(result);
+    else if (KNO_TRUEP(result)) return 1;
     else if (FALSEP(result)) return 0;
-    else if (FD_ABORTED(result)) return -1;
+    else if (KNO_ABORTED(result)) return -1;
     else {
-      fd_seterr(OddResult,"procpool_release",p->poolid,result);
-      fd_decref(result);
+      kno_seterr(OddResult,"procpool_release",p->poolid,result);
+      kno_decref(result);
       return -1;}}
 }
 
-static int procpool_commit(fd_pool p,fd_commit_phase phase,
-                           struct FD_POOL_COMMITS *commits)
+static int procpool_commit(kno_pool p,kno_commit_phase phase,
+                           struct KNO_POOL_COMMITS *commits)
 {
-  struct FD_PROCPOOL *pp = (fd_procpool)p;
+  struct KNO_PROCPOOL *pp = (kno_procpool)p;
   if (NO_METHODP(pp->pool_methods->commitfn))
     return 0;
   else {
-    lispval lp = fd_pool2lisp(p);
-    lispval phase_sym = fd_commit_phases[phase];
-    u8_context phase_name = (FD_SYMBOLP(phase_sym)) ?
-      (FD_SYMBOL_NAME(phase_sym)) : U8S("badphase");
-    struct FD_VECTOR oidvec = { 0 }, valvec = { 0 };
-    FD_INIT_STATIC_CONS(&oidvec,fd_vector_type);
-    FD_INIT_STATIC_CONS(&valvec,fd_vector_type);
+    lispval lp = kno_pool2lisp(p);
+    lispval phase_sym = kno_commit_phases[phase];
+    u8_context phase_name = (KNO_SYMBOLP(phase_sym)) ?
+      (KNO_SYMBOL_NAME(phase_sym)) : U8S("badphase");
+    struct KNO_VECTOR oidvec = { 0 }, valvec = { 0 };
+    KNO_INIT_STATIC_CONS(&oidvec,kno_vector_type);
+    KNO_INIT_STATIC_CONS(&valvec,kno_vector_type);
     oidvec.vec_length = commits->commit_count;
     oidvec.vec_elts = commits->commit_oids;
     valvec.vec_length = commits->commit_count;
@@ -283,63 +283,63 @@ static int procpool_commit(fd_pool p,fd_commit_phase phase,
     lispval args[6] = { lp, pp->pool_state, phase_sym,
                         ((lispval)(&oidvec)),
                         ((lispval)(&valvec)),
-                        ( (FD_VOIDP(commits->commit_metadata)) ?
-                          (FD_FALSE) :
+                        ( (KNO_VOIDP(commits->commit_metadata)) ?
+                          (KNO_FALSE) :
                           (commits->commit_metadata) ) };
-    lispval result = fd_apply(pp->pool_methods->commitfn,6,args);
+    lispval result = kno_apply(pp->pool_methods->commitfn,6,args);
     if (FIXNUMP(result))
-      return FD_INT(result);
+      return KNO_INT(result);
     else if (FALSEP(result))
       return 0;
-    else if (FD_ABORTP(result)) {
-      fd_seterr(CommitFailed,phase_name,p->poolid,FD_VOID);
+    else if (KNO_ABORTP(result)) {
+      kno_seterr(CommitFailed,phase_name,p->poolid,KNO_VOID);
       return -1;}
-    else if (FD_TRUEP(result))
+    else if (KNO_TRUEP(result))
       return 1;
     else {
       u8_log(LOGCRIT,"ProcPoolCommit",
              "Returned bad value %q",result);
-      fd_seterr(CommitFailed,phase_name,p->poolid,result);
-      fd_decref(result);
+      kno_seterr(CommitFailed,phase_name,p->poolid,result);
+      kno_decref(result);
       return -1;}}
 }
 
-static void procpool_close(fd_pool p)
+static void procpool_close(kno_pool p)
 {
-  struct FD_PROCPOOL *pp = (fd_procpool)p;
-  lispval lp = fd_pool2lisp(p);
+  struct KNO_PROCPOOL *pp = (kno_procpool)p;
+  lispval lp = kno_pool2lisp(p);
   if (NO_METHODP(pp->pool_methods->closefn))
     return;
   else {
     lispval args[2]={lp,pp->pool_state};
-    lispval result = fd_dapply(pp->pool_methods->closefn,2,args);
-    fd_decref(result);
+    lispval result = kno_dapply(pp->pool_methods->closefn,2,args);
+    kno_decref(result);
     return;}
 }
 
-static int procpool_getload(fd_pool p)
+static int procpool_getload(kno_pool p)
 {
-  struct FD_PROCPOOL *pp = (fd_procpool)p;
-  lispval lp = fd_pool2lisp(p);
+  struct KNO_PROCPOOL *pp = (kno_procpool)p;
+  lispval lp = kno_pool2lisp(p);
   if (NO_METHODP(pp->pool_methods->getloadfn))
     return 0;
   else {
     lispval args[2]={lp,pp->pool_state};
-    lispval result = fd_dapply(pp->pool_methods->getloadfn,2,args);
-    if (FD_UINTP(result))
+    lispval result = kno_dapply(pp->pool_methods->getloadfn,2,args);
+    if (KNO_UINTP(result))
       return FIX2INT(result);
     else {
-      fd_seterr(OddResult,"procpool_getload",p->poolid,result);
-      fd_decref(result);
+      kno_seterr(OddResult,"procpool_getload",p->poolid,result);
+      kno_decref(result);
       return -1;}}
 }
 
-static lispval procpool_ctl(fd_pool p,lispval opid,int n,lispval *args)
+static lispval procpool_ctl(kno_pool p,lispval opid,int n,lispval *args)
 {
-  struct FD_PROCPOOL *pp = (fd_procpool)p;
-  lispval lp = fd_pool2lisp(p);
+  struct KNO_PROCPOOL *pp = (kno_procpool)p;
+  lispval lp = kno_pool2lisp(p);
   if (NO_METHODP(pp->pool_methods->ctlfn))
-    return fd_default_poolctl(p,opid,n,args);
+    return kno_default_poolctl(p,opid,n,args);
   else {
     lispval _argbuf[32], *argbuf=_argbuf;
     if ((n+3) > 32) argbuf = u8_alloc_n(n+3,lispval);
@@ -347,82 +347,82 @@ static lispval procpool_ctl(fd_pool p,lispval opid,int n,lispval *args)
     argbuf[2]=opid;
     memcpy(argbuf+3,args,LISPVEC_BYTELEN(n));
     if (argbuf==_argbuf)
-      return fd_dapply(pp->pool_methods->ctlfn,n+3,argbuf);
+      return kno_dapply(pp->pool_methods->ctlfn,n+3,argbuf);
     else {
-      lispval result = fd_dapply(pp->pool_methods->ctlfn,n+3,argbuf);
+      lispval result = kno_dapply(pp->pool_methods->ctlfn,n+3,argbuf);
       u8_free(argbuf);
       return result;}}
 }
 
-static void recycle_procpool(fd_pool p)
+static void recycle_procpool(kno_pool p)
 {
-  struct FD_PROCPOOL *pp = (fd_procpool)p;
-  fd_decref(pp->pool_state);
-  fd_decref(pp->pool_methods->allocfn);
-  fd_decref(pp->pool_methods->fetchfn);
-  fd_decref(pp->pool_methods->fetchnfn);
-  fd_decref(pp->pool_methods->lockfn);
-  fd_decref(pp->pool_methods->releasefn);
-  fd_decref(pp->pool_methods->getloadfn);
-  fd_decref(pp->pool_methods->swapoutfn);
-  fd_decref(pp->pool_methods->commitfn);
-  fd_decref(pp->pool_methods->metadatafn);
-  fd_decref(pp->pool_methods->createfn);
-  fd_decref(pp->pool_methods->closefn);
-  fd_decref(pp->pool_methods->ctlfn);
+  struct KNO_PROCPOOL *pp = (kno_procpool)p;
+  kno_decref(pp->pool_state);
+  kno_decref(pp->pool_methods->allocfn);
+  kno_decref(pp->pool_methods->fetchfn);
+  kno_decref(pp->pool_methods->fetchnfn);
+  kno_decref(pp->pool_methods->lockfn);
+  kno_decref(pp->pool_methods->releasefn);
+  kno_decref(pp->pool_methods->getloadfn);
+  kno_decref(pp->pool_methods->swapoutfn);
+  kno_decref(pp->pool_methods->commitfn);
+  kno_decref(pp->pool_methods->metadatafn);
+  kno_decref(pp->pool_methods->createfn);
+  kno_decref(pp->pool_methods->closefn);
+  kno_decref(pp->pool_methods->ctlfn);
   u8_free(pp->pool_methods);
   pp->pool_methods = NULL;
 }
 
-static fd_pool open_procpool(u8_string source,fd_storage_flags flags,lispval opts)
+static kno_pool open_procpool(u8_string source,kno_storage_flags flags,lispval opts)
 {
-  lispval pool_type = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
-  struct FD_POOL_TYPEINFO *typeinfo =
-    (FD_STRINGP(pool_type)) ?
-    (fd_get_pool_typeinfo(FD_CSTRING(pool_type))) :
-    (FD_SYMBOLP(pool_type)) ?
-    (fd_get_pool_typeinfo(FD_SYMBOL_NAME(pool_type))) :
+  lispval pool_type = kno_getopt(opts,FDSYM_TYPE,KNO_VOID);
+  struct KNO_POOL_TYPEINFO *typeinfo =
+    (KNO_STRINGP(pool_type)) ?
+    (kno_get_pool_typeinfo(KNO_CSTRING(pool_type))) :
+    (KNO_SYMBOLP(pool_type)) ?
+    (kno_get_pool_typeinfo(KNO_SYMBOL_NAME(pool_type))) :
     (NULL);
-  struct FD_PROCPOOL_METHODS *methods =
-    (struct FD_PROCPOOL_METHODS *) (typeinfo->type_data);
+  struct KNO_PROCPOOL_METHODS *methods =
+    (struct KNO_PROCPOOL_METHODS *) (typeinfo->type_data);
   lispval source_arg = lispval_string(source);
   lispval args[] = { source_arg, opts };
-  lispval lp = fd_apply(methods->openfn,2,args);
-  fd_decref(args[0]);
-  if (FD_POOLP(lp))
-    return fd_lisp2pool(lp);
+  lispval lp = kno_apply(methods->openfn,2,args);
+  kno_decref(args[0]);
+  if (KNO_POOLP(lp))
+    return kno_lisp2pool(lp);
   return NULL;
 }
 
-static fd_pool procpool_create(u8_string spec,void *type_data,
-                               fd_storage_flags storage_flags,
+static kno_pool procpool_create(u8_string spec,void *type_data,
+                               kno_storage_flags storage_flags,
                                lispval opts)
 {
   lispval spec_arg = lispval_string(spec);
-  struct FD_PROCPOOL_METHODS *methods =
-    (struct FD_PROCPOOL_METHODS *) type_data;
+  struct KNO_PROCPOOL_METHODS *methods =
+    (struct KNO_PROCPOOL_METHODS *) type_data;
   lispval args[] = { spec_arg, opts };
-  lispval result = fd_apply(methods->createfn,2,args);
-  if (FD_VOIDP(result)) {
-    fd_pool opened = open_procpool(spec,storage_flags,opts);
-    fd_decref(args[0]);
+  lispval result = kno_apply(methods->createfn,2,args);
+  if (KNO_VOIDP(result)) {
+    kno_pool opened = open_procpool(spec,storage_flags,opts);
+    kno_decref(args[0]);
     return opened;}
-  else fd_decref(args[0]);
-  if (FD_ABORTED(result))
+  else kno_decref(args[0]);
+  if (KNO_ABORTED(result))
     return NULL;
-  else if ( (FD_POOLP(result)) || (FD_TYPEP(result,fd_consed_pool_type)) )
-    return fd_lisp2pool(result);
+  else if ( (KNO_POOLP(result)) || (KNO_TYPEP(result,kno_consed_pool_type)) )
+    return kno_lisp2pool(result);
   else {
-    fd_seterr("NotAPool","procpool_create",spec,result);
+    kno_seterr("NotAPool","procpool_create",spec,result);
     return NULL;}
 }
 
-FD_EXPORT void fd_register_procpool(u8_string typename,lispval handlers)
+KNO_EXPORT void kno_register_procpool(u8_string typename,lispval handlers)
 {
-  lispval typesym = fd_symbolize(typename);
-  struct FD_PROCPOOL_METHODS *methods = u8_alloc(struct FD_PROCPOOL_METHODS);
+  lispval typesym = kno_symbolize(typename);
+  struct KNO_PROCPOOL_METHODS *methods = u8_alloc(struct KNO_PROCPOOL_METHODS);
 
-  memset(methods,0,sizeof(struct FD_PROCPOOL_METHODS));
+  memset(methods,0,sizeof(struct KNO_PROCPOOL_METHODS));
   methods->openfn = poolopt(handlers,"OPEN");
   methods->allocfn = poolopt(handlers,"ALLOC");
   methods->getloadfn = poolopt(handlers,"GETLOAD");
@@ -436,8 +436,8 @@ FD_EXPORT void fd_register_procpool(u8_string typename,lispval handlers)
   methods->closefn = poolopt(handlers,"CLOSE");
   methods->ctlfn = poolopt(handlers,"POOLCTL");
 
-  fd_register_pool_type(FD_SYMBOL_NAME(typesym),
-                        &fd_procpool_handler,
+  kno_register_pool_type(KNO_SYMBOL_NAME(typesym),
+                        &kno_procpool_handler,
                         open_procpool,
                         NULL,
                         methods);
@@ -445,8 +445,8 @@ FD_EXPORT void fd_register_procpool(u8_string typename,lispval handlers)
 
 /* The default procpool handler */
 
-struct FD_POOL_HANDLER fd_procpool_handler={
-  "procpool", 1, sizeof(struct FD_PROCPOOL), 12,
+struct KNO_POOL_HANDLER kno_procpool_handler={
+  "procpool", 1, sizeof(struct KNO_PROCPOOL), 12,
   procpool_close, /* close */
   procpool_alloc, /* alloc */
   procpool_fetch, /* fetch */
@@ -462,7 +462,7 @@ struct FD_POOL_HANDLER fd_procpool_handler={
   procpool_ctl  /* poolctl */
 };
 
-FD_EXPORT void fd_init_procpool_c()
+KNO_EXPORT void kno_init_procpool_c()
 {
   u8_register_source_file(_FILEINFO);
 }

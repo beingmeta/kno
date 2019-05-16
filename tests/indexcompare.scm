@@ -1,4 +1,4 @@
-#!./fdexec
+#!./knox
 ;;; -*- Mode: Scheme; text-encoding: utf-8 -*-
 
 (use-module '{logger stringfmts optimize varconfig})

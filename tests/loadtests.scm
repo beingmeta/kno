@@ -1,4 +1,4 @@
-#!./fdexec
+#!./knox
 
 (define (main (repeat (config 'repeat 100)) . args)
   (unless (number? repeat)

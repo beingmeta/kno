@@ -50,11 +50,11 @@
 ;;;    We implement this in indexing, so if P always R, we will find P
 ;;;    among (?? always R).
 ;;;   NEVER is symmetric, if P never Q then Q never P, this is
-;;;    implemented by FramerD inverses.
+;;;    implemented by Kno inverses.
 ;;;   SOMETIMES is symmetric, if P sometimes Q then Q sometimes P,
-;;;    this is implemented with FramerD inverses.
+;;;    this is implemented with Kno inverses.
 ;;;   SOMETIMES is implied by ALWAYS, if P always Q then P sometimes Q,
-;;;    this is implemnted with FramerD multislots
+;;;    this is implemnted with Kno multislots
 ;;;   SOMENOT is implied by NEVER, if P never Q then P somenot Q.
 
 ;;;   These also assume the assertion of relations through inverses,

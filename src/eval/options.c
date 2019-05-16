@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -9,25 +9,25 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define FD_INLINE_CHOICES 1
-#define FD_INLINE_TABLES 1
-#define FD_INLINE_FCNIDS 1
-#define FD_INLINE_STACKS 1
-#define FD_INLINE_LEXENV 1
+#define KNO_INLINE_CHOICES 1
+#define KNO_INLINE_TABLES 1
+#define KNO_INLINE_FCNIDS 1
+#define KNO_INLINE_STACKS 1
+#define KNO_INLINE_LEXENV 1
 
-#define FD_PROVIDE_FASTEVAL 1
+#define KNO_PROVIDE_FASTEVAL 1
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/support.h"
-#include "framerd/storage.h"
-#include "framerd/eval.h"
-#include "framerd/dtproc.h"
-#include "framerd/numbers.h"
-#include "framerd/sequences.h"
-#include "framerd/ports.h"
-#include "framerd/dtcall.h"
-#include "framerd/ffi.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/support.h"
+#include "kno/storage.h"
+#include "kno/eval.h"
+#include "kno/dtproc.h"
+#include "kno/numbers.h"
+#include "kno/sequences.h"
+#include "kno/ports.h"
+#include "kno/dtcall.h"
+#include "kno/ffi.h"
 
 #include "eval_internals.h"
 
@@ -40,75 +40,75 @@
 #include <pthread.h>
 #include <errno.h>
 
-static lispval getopt_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+static lispval getopt_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval opts = fd_stack_eval(fd_get_arg(expr,1),env,_stack,0);
-  if (FD_ABORTED(opts))
+  lispval opts = kno_stack_eval(kno_get_arg(expr,1),env,_stack,0);
+  if (KNO_ABORTED(opts))
     return opts;
   else {
-    lispval keys = fd_eval(fd_get_arg(expr,2),env);
-    if (FD_ABORTED(keys)) {
-      fd_decref(opts); return keys;}
+    lispval keys = kno_eval(kno_get_arg(expr,2),env);
+    if (KNO_ABORTED(keys)) {
+      kno_decref(opts); return keys;}
     else {
       lispval results = EMPTY;
       DO_CHOICES(opt,opts) {
         DO_CHOICES(key,keys) {
-          lispval v = fd_getopt(opt,key,VOID);
-          if (FD_ABORTED(v)) {
-            fd_decref(results); results = v;
-            FD_STOP_DO_CHOICES;}
+          lispval v = kno_getopt(opt,key,VOID);
+          if (KNO_ABORTED(v)) {
+            kno_decref(results); results = v;
+            KNO_STOP_DO_CHOICES;}
           else if (!(VOIDP(v))) {CHOICE_ADD(results,v);}}
-        if (FD_ABORTED(results)) {FD_STOP_DO_CHOICES;}}
-      fd_decref(keys);
-      fd_decref(opts);
-      if (FD_ABORTED(results)) {
+        if (KNO_ABORTED(results)) {KNO_STOP_DO_CHOICES;}}
+      kno_decref(keys);
+      kno_decref(opts);
+      if (KNO_ABORTED(results)) {
         return results;}
       else if (EMPTYP(results)) {
-        lispval dflt_expr = fd_get_arg(expr,3);
-        if (VOIDP(dflt_expr)) return FD_FALSE;
-        else return fd_stack_eval(dflt_expr,env,_stack,0);}
+        lispval dflt_expr = kno_get_arg(expr,3);
+        if (VOIDP(dflt_expr)) return KNO_FALSE;
+        else return kno_stack_eval(dflt_expr,env,_stack,0);}
       else return simplify_value(results);}}
 }
-static lispval tryopt_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+static lispval tryopt_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval opts = fd_stack_eval(fd_get_arg(expr,1),env,_stack,0);
-  lispval default_expr = fd_get_arg(expr,3);
-  if ( (FD_ABORTED(opts)) || (!(FD_TABLEP(opts))) ) {
-    if (FD_ABORTED(opts)) fd_clear_errors(0);
-    if (FD_VOIDP(default_expr)) {
-      return FD_FALSE;}
-    else if (!(FD_EVALP(default_expr)))
-      return fd_incref(default_expr);
-    else return fd_stack_eval(default_expr,env,_stack,0);}
+  lispval opts = kno_stack_eval(kno_get_arg(expr,1),env,_stack,0);
+  lispval default_expr = kno_get_arg(expr,3);
+  if ( (KNO_ABORTED(opts)) || (!(KNO_TABLEP(opts))) ) {
+    if (KNO_ABORTED(opts)) kno_clear_errors(0);
+    if (KNO_VOIDP(default_expr)) {
+      return KNO_FALSE;}
+    else if (!(KNO_EVALP(default_expr)))
+      return kno_incref(default_expr);
+    else return kno_stack_eval(default_expr,env,_stack,0);}
   else {
-    lispval keys = fd_eval(fd_get_arg(expr,2),env);
-    if (FD_ABORTED(keys)) {
-      fd_decref(opts);
+    lispval keys = kno_eval(kno_get_arg(expr,2),env);
+    if (KNO_ABORTED(keys)) {
+      kno_decref(opts);
       return keys;}
     else {
       lispval results = EMPTY;
       DO_CHOICES(opt,opts) {
         DO_CHOICES(key,keys) {
-          lispval v = fd_getopt(opt,key,VOID);
-          if (FD_ABORTED(v)) {
-            fd_clear_errors(0);
-            fd_decref(results);
-            results = FD_EMPTY_CHOICE;
-            FD_STOP_DO_CHOICES;
+          lispval v = kno_getopt(opt,key,VOID);
+          if (KNO_ABORTED(v)) {
+            kno_clear_errors(0);
+            kno_decref(results);
+            results = KNO_EMPTY_CHOICE;
+            KNO_STOP_DO_CHOICES;
             break;}
           else if (!(VOIDP(v))) {CHOICE_ADD(results,v);}}
-        if (FD_ABORTED(results)) {FD_STOP_DO_CHOICES;}}
-      fd_decref(keys); fd_decref(opts);
-      if (FD_ABORTED(results)) { /* Not sure this ever happens */
-        fd_clear_errors(0);
-        results=FD_EMPTY_CHOICE;}
+        if (KNO_ABORTED(results)) {KNO_STOP_DO_CHOICES;}}
+      kno_decref(keys); kno_decref(opts);
+      if (KNO_ABORTED(results)) { /* Not sure this ever happens */
+        kno_clear_errors(0);
+        results=KNO_EMPTY_CHOICE;}
       if (EMPTYP(results)) {
-        lispval dflt_expr = fd_get_arg(expr,3);
+        lispval dflt_expr = kno_get_arg(expr,3);
         if (VOIDP(dflt_expr))
-          return FD_FALSE;
-        else if (!(FD_EVALP(dflt_expr)))
-          return fd_incref(dflt_expr);
-        else return fd_stack_eval(dflt_expr,env,_stack,0);}
+          return KNO_FALSE;
+        else if (!(KNO_EVALP(dflt_expr)))
+          return kno_incref(dflt_expr);
+        else return kno_stack_eval(dflt_expr,env,_stack,0);}
       else return simplify_value(results);}}
 }
 static lispval getopt_prim(lispval opts,lispval keys,lispval dflt)
@@ -116,46 +116,46 @@ static lispval getopt_prim(lispval opts,lispval keys,lispval dflt)
   lispval results = EMPTY;
   DO_CHOICES(opt,opts) {
     DO_CHOICES(key,keys) {
-      lispval v = fd_getopt(opt,key,VOID);
+      lispval v = kno_getopt(opt,key,VOID);
       if (!(VOIDP(v))) {CHOICE_ADD(results,v);}}}
   if (EMPTYP(results)) {
-    fd_incref(dflt); return dflt;}
+    kno_incref(dflt); return dflt;}
   else return simplify_value(results);
 }
 static lispval testopt_prim(lispval opts,lispval key,lispval val)
 {
-  if (fd_testopt(opts,key,val))
-    return FD_TRUE;
-  else return FD_FALSE;
+  if (kno_testopt(opts,key,val))
+    return KNO_TRUE;
+  else return KNO_FALSE;
 }
 
 static int optionsp(lispval arg)
 {
-  if ( (FD_FALSEP(arg)) || (FD_NILP(arg)) || (FD_EMPTYP(arg)) )
+  if ( (KNO_FALSEP(arg)) || (KNO_NILP(arg)) || (KNO_EMPTYP(arg)) )
     return 1;
-  else if (FD_AMBIGP(arg)) {
-    FD_DO_CHOICES(elt,arg) {
+  else if (KNO_AMBIGP(arg)) {
+    KNO_DO_CHOICES(elt,arg) {
       if (! (optionsp(elt)) ) {
-        FD_STOP_DO_CHOICES;
+        KNO_STOP_DO_CHOICES;
         return 0;}}
     return 1;}
-  else if (FD_PAIRP(arg)) {
-    if (optionsp(FD_CAR(arg)))
-      return optionsp(FD_CDR(arg));
+  else if (KNO_PAIRP(arg)) {
+    if (optionsp(KNO_CAR(arg)))
+      return optionsp(KNO_CDR(arg));
     else return 0;}
-  else if ( (FD_TABLEP(arg)) &&
-            (!(FD_POOLP(arg))) &&
-            (!(FD_INDEXP(arg))) )
+  else if ( (KNO_TABLEP(arg)) &&
+            (!(KNO_POOLP(arg))) &&
+            (!(KNO_INDEXP(arg))) )
     return 1;
   else return 0;
 }
 static lispval optionsp_prim(lispval opts)
 {
   if (optionsp(opts))
-    return FD_TRUE;
-  else return FD_FALSE;
+    return KNO_TRUE;
+  else return KNO_FALSE;
 }
-#define nulloptsp(v) ( (v == FD_FALSE) || (v == FD_DEFAULT) )
+#define nulloptsp(v) ( (v == KNO_FALSE) || (v == KNO_DEFAULT) )
 static lispval opts_plus_prim(int n,lispval *args)
 {
   int i = 0, new_front = 0;
@@ -165,59 +165,59 @@ static lispval opts_plus_prim(int n,lispval *args)
      slotmaps to get *front*. This was made more complicated when
      schemaps started to be common elements in options lists.
   */
-  lispval back = FD_FALSE, front = FD_VOID;
+  lispval back = KNO_FALSE, front = KNO_VOID;
   if (n == 0)
-    return fd_make_slotmap(3,0,NULL);
+    return kno_make_slotmap(3,0,NULL);
   while (i < n) {
     lispval arg = args[i++];
-    if (FD_TABLEP(arg)) {
-      fd_incref(arg);
-      if (FD_FALSEP(back))
+    if (KNO_TABLEP(arg)) {
+      kno_incref(arg);
+      if (KNO_FALSEP(back))
         back = arg;
       else {
-        if (!(FD_VOIDP(front))) {
-          back = fd_init_pair(NULL,front,back);
-          front=FD_VOID;}
-        back = fd_init_pair(NULL,arg,back);}}
-    else if ( (nulloptsp(arg)) || (FD_EMPTYP(arg)) ) {}
+        if (!(KNO_VOIDP(front))) {
+          back = kno_init_pair(NULL,front,back);
+          front=KNO_VOID;}
+        back = kno_init_pair(NULL,arg,back);}}
+    else if ( (nulloptsp(arg)) || (KNO_EMPTYP(arg)) ) {}
     else {
-      if (FD_VOIDP(front)) {
-	front = fd_make_slotmap(n,0,NULL);
+      if (KNO_VOIDP(front)) {
+	front = kno_make_slotmap(n,0,NULL);
 	new_front = 1;}
       if (i < n) {
         lispval optval = args[i++];
-        if (FD_QCHOICEP(optval)) {
-          struct FD_QCHOICE *qc = (fd_qchoice) optval;
-          fd_add(front,arg,qc->qchoiceval);}
-        else fd_add(front,arg,optval);}
-      else fd_store(front,arg,FD_TRUE);}}
-  if (FD_VOIDP(front))
+        if (KNO_QCHOICEP(optval)) {
+          struct KNO_QCHOICE *qc = (kno_qchoice) optval;
+          kno_add(front,arg,qc->qchoiceval);}
+        else kno_add(front,arg,optval);}
+      else kno_store(front,arg,KNO_TRUE);}}
+  if (KNO_VOIDP(front))
     return back;
-  else if (FD_FALSEP(back)) {
+  else if (KNO_FALSEP(back)) {
     if (new_front == 0)
       return front;
-    else if ((FD_SLOTMAPP(front)) &&
-	     (FD_SLOTMAP_NSLOTS(front) == 0)) {
-      fd_decref(front);
-      return FD_FALSE;}
+    else if ((KNO_SLOTMAPP(front)) &&
+	     (KNO_SLOTMAP_NSLOTS(front) == 0)) {
+      kno_decref(front);
+      return KNO_FALSE;}
     else return front;}
-  else return fd_init_pair(NULL,front,back);
+  else return kno_init_pair(NULL,front,back);
 }
 
 
 /* Initialization */
 
-FD_EXPORT void fd_init_eval_getopt_c()
+KNO_EXPORT void kno_init_eval_getopt_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  fd_def_evalfn(fd_scheme_module,"GETOPT",
+  kno_def_evalfn(kno_scheme_module,"GETOPT",
                 "`(GETOPT *opts* *name* [*default*=#f])` returns any *name* "
                 "option defined in *opts* or *default* otherwise. "
                 "If *opts* or *name* are choices, this only returns *default* "
                 "if none of the alternatives yield results.",
                  getopt_evalfn);
-  fd_def_evalfn(fd_scheme_module,"TRYOPT",
+  kno_def_evalfn(kno_scheme_module,"TRYOPT",
                 "`(TRYOPT *opts* *name* [*default*=#f])` returns any *name* "
                 "option defined in *opts* or *default* otherwise. Any errors "
                 "during option resolution are ignored. "
@@ -225,26 +225,26 @@ FD_EXPORT void fd_init_eval_getopt_c()
                 "if none of the alternatives yield results. Note that the "
                 "*default*, if evaluated, may signal an error.",
                 tryopt_evalfn);
-  fd_idefn3(fd_scheme_module,"%GETOPT",getopt_prim,FD_NEEDS_2_ARGS|FD_NDCALL,
+  kno_idefn3(kno_scheme_module,"%GETOPT",getopt_prim,KNO_NEEDS_2_ARGS|KNO_NDCALL,
             "`(%GETOPT *opts* *name* [*default*=#f])` gets any *name* option "
             "from opts, returning *default* if there isn't any. This is a real "
             "procedure (unlike `GETOPT`) so that *default* will be evaluated even "
             "if the option exists and is returned.",
-            -1,VOID,fd_symbol_type,VOID,
-            -1,FD_FALSE);
-  fd_idefn3(fd_scheme_module,"TESTOPT",testopt_prim,2,
+            -1,VOID,kno_symbol_type,VOID,
+            -1,KNO_FALSE);
+  kno_idefn3(kno_scheme_module,"TESTOPT",testopt_prim,2,
             "`(TESTOPT *opts* *name* [*value*])` returns true if "
             "the option *name* is specified in *opts* and it includes "
             "*value* (if provided).",
-            -1,VOID,fd_symbol_type,VOID,
+            -1,VOID,kno_symbol_type,VOID,
             -1,VOID);
-  fd_idefn1(fd_scheme_module,"OPTS?",optionsp_prim,FD_NEEDS_1_ARG|FD_NDCALL,
+  kno_idefn1(kno_scheme_module,"OPTS?",optionsp_prim,KNO_NEEDS_1_ARG|KNO_NDCALL,
             "`(OPTS? *opts*)` returns true if *opts* is a valid options "
             "object.",
             -1,VOID);
-  fd_idefnN(fd_scheme_module,"OPTS+",opts_plus_prim,FD_NDCALL,
+  kno_idefnN(kno_scheme_module,"OPTS+",opts_plus_prim,KNO_NDCALL,
             "`(OPTS+ *add* *opts*)` or `(OPTS+ *optname* *value* *opts*) "
             "returns a new options object (a pair).");
-  fd_defalias(fd_scheme_module,"OPT+","OPTS+");
+  kno_defalias(kno_scheme_module,"OPT+","OPTS+");
 }
 

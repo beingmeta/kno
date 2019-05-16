@@ -15,11 +15,11 @@
     General Public License (GPL) Version 2, the GNU Lesser General Public
     License.
 
-    This program has been ported to beingmeta's FramerD library.
+    This program has been ported to beingmeta's Kno library.
 */
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
 
 #include <libu8/u8stringfns.h>
 
@@ -196,8 +196,8 @@ static int canonicalize_string(const u8_byte *string,char *copy,int space)
   else return 1;
 }
 
-FD_EXPORT
-/* fd_stem_english_word:
+KNO_EXPORT
+/* kno_stem_english_word:
      Arguments: an ASCII string
      Returns: a stemmed string (malloc'd)
 
@@ -205,7 +205,7 @@ FD_EXPORT
     is too long (more than 200 characters) it just gives up.  This
     returns a malloc'd string containing the porter stem.   Note that
     the porter stem is usually not itself a word you would recognize. */
-char *fd_stem_english_word(const u8_byte *original)
+char *kno_stem_english_word(const u8_byte *original)
 {
   char *copy; int do1b1 = 0, len = strlen(original);
   struct WORD w;

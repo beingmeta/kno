@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -9,107 +9,107 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define FD_INLINE_BUFIO 1
-#include "framerd/components/storage_layer.h"
+#define KNO_INLINE_BUFIO 1
+#include "kno/components/storage_layer.h"
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/apply.h"
-#include "framerd/storage.h"
-#include "framerd/pools.h"
-#include "framerd/indexes.h"
-#include "framerd/drivers.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/apply.h"
+#include "kno/storage.h"
+#include "kno/pools.h"
+#include "kno/indexes.h"
+#include "kno/drivers.h"
 
 lispval set_symbol, drop_symbol;
 
 /* FETCH indexes */
 
-FD_EXPORT
-fd_index fd_make_extindex
+KNO_EXPORT
+kno_index kno_make_extindex
 (u8_string name,lispval fetchfn,lispval commitfn,lispval state,
- fd_storage_flags flags,lispval opts)
+ kno_storage_flags flags,lispval opts)
 {
-  if (!(PRED_TRUE(FD_APPLICABLEP(fetchfn)))) {
-    fd_seterr(fd_TypeError,"fd_make_extindex","fetch function",
-              fd_incref(fetchfn));
+  if (!(PRED_TRUE(KNO_APPLICABLEP(fetchfn)))) {
+    kno_seterr(kno_TypeError,"kno_make_extindex","fetch function",
+              kno_incref(fetchfn));
     return NULL;}
-  else if (!(FD_ISFUNARG(commitfn))) {
-    fd_seterr(fd_TypeError,"fd_make_extindex","commit function",
-              fd_incref(commitfn));
+  else if (!(KNO_ISFUNARG(commitfn))) {
+    kno_seterr(kno_TypeError,"kno_make_extindex","commit function",
+              kno_incref(commitfn));
     return NULL;}
   else {
-    struct FD_EXTINDEX *fetchix = u8_alloc(struct FD_EXTINDEX);
-    FD_INIT_STRUCT(fetchix,struct FD_EXTINDEX);
-    fd_init_index((fd_index)fetchix,&fd_extindex_handler,
-                  name,NULL,NULL,flags,FD_VOID,opts);
+    struct KNO_EXTINDEX *fetchix = u8_alloc(struct KNO_EXTINDEX);
+    KNO_INIT_STRUCT(fetchix,struct KNO_EXTINDEX);
+    kno_init_index((kno_index)fetchix,&kno_extindex_handler,
+                  name,NULL,NULL,flags,KNO_VOID,opts);
     fetchix->index_cache_level = 1;
     if (VOIDP(commitfn))
-      U8_SETBITS(fetchix->index_flags,FD_STORAGE_READ_ONLY);
-    fetchix->fetchfn = fd_incref(fetchfn);
-    fetchix->commitfn = fd_incref(commitfn);
-    fetchix->state = fd_incref(state);
-    fd_register_index((fd_index)fetchix);
-    return (fd_index)fetchix;}
+      U8_SETBITS(fetchix->index_flags,KNO_STORAGE_READ_ONLY);
+    fetchix->fetchfn = kno_incref(fetchfn);
+    fetchix->commitfn = kno_incref(commitfn);
+    fetchix->state = kno_incref(state);
+    kno_register_index((kno_index)fetchix);
+    return (kno_index)fetchix;}
 }
 
-static lispval extindex_fetch(fd_index p,lispval key)
+static lispval extindex_fetch(kno_index p,lispval key)
 {
-  struct FD_EXTINDEX *xp = (fd_extindex)p;
+  struct KNO_EXTINDEX *xp = (kno_extindex)p;
   lispval state = xp->state, fetchfn = xp->fetchfn, value;
-  int arity = FD_FUNCTION_ARITY(fetchfn);
+  int arity = KNO_FUNCTION_ARITY(fetchfn);
   /* TODO: If key is a vector, we need to wrap it in another vector
      for the method, and then unwrap the value. */
-  if (FD_VECTORP(key)) {
-    struct FD_VECTOR vstruct;
-    FD_INIT_STATIC_CONS(&vstruct,fd_vector_type);
+  if (KNO_VECTORP(key)) {
+    struct KNO_VECTOR vstruct;
+    KNO_INIT_STATIC_CONS(&vstruct,kno_vector_type);
     vstruct.vec_length = 1;
     vstruct.vec_elts = &key;
     vstruct.vec_free_elts = 0;
     lispval value = VOID;
     if ( (VOIDP(state)) || (FALSEP(state)) || (arity == 1) )
-      value = fd_apply(fetchfn,1,&key);
+      value = kno_apply(fetchfn,1,&key);
     else {
       lispval args[2]; args[0]=key; args[1]=state;
-      value = fd_apply(fetchfn,2,args);}
-    if (FD_VECTORP(value)) {
-      lispval result = FD_VECTOR_REF(value,0);
-      fd_incref(result);
-      fd_decref(value);
+      value = kno_apply(fetchfn,2,args);}
+    if (KNO_VECTORP(value)) {
+      lispval result = KNO_VECTOR_REF(value,0);
+      kno_incref(result);
+      kno_decref(value);
       return result;}
-    else if (FD_ABORTED(value))
+    else if (KNO_ABORTED(value))
       return value;
-    else return fd_err("BadExtindexResult","extindex_fetch",
+    else return kno_err("BadExtindexResult","extindex_fetch",
                        xp->indexid,value);}
   else if ( (VOIDP(state)) || (FALSEP(state)) || (arity == 1) )
-    value = fd_apply(fetchfn,1,&key);
+    value = kno_apply(fetchfn,1,&key);
   else {
     lispval args[2]; args[0]=key; args[1]=state;
-    value = fd_apply(fetchfn,2,args);}
+    value = kno_apply(fetchfn,2,args);}
   return value;
 }
 
 /* This assumes that the FETCH function handles a vector intelligently,
    and just calls it on the vector of OIDs and extracts the data from
    the returned vector.  */
-static lispval *extindex_fetchn(fd_index p,int n,const lispval *keys)
+static lispval *extindex_fetchn(kno_index p,int n,const lispval *keys)
 {
-  struct FD_EXTINDEX *xp = (fd_extindex)p;
+  struct KNO_EXTINDEX *xp = (kno_extindex)p;
   lispval state = xp->state, fetchfn = xp->fetchfn, value = VOID;
-  int arity = FD_FUNCTION_ARITY(fetchfn);
-  struct FD_VECTOR vstruct;
+  int arity = KNO_FUNCTION_ARITY(fetchfn);
+  struct KNO_VECTOR vstruct;
   lispval vecarg;
-  FD_INIT_STATIC_CONS(&vstruct,fd_vector_type);
+  KNO_INIT_STATIC_CONS(&vstruct,kno_vector_type);
   vstruct.vec_length = n;
   vstruct.vec_elts = (lispval *) keys;
   vstruct.vec_free_elts = 0;
   vecarg = LISP_CONS(&vstruct);
   if ( (VOIDP(state)) || (FALSEP(state)) || (arity == 1) )
-    value = fd_apply(xp->fetchfn,1,&vecarg);
+    value = kno_apply(xp->fetchfn,1,&vecarg);
   else {
     lispval args[2]; args[0]=vecarg; args[1]=state;
-    value = fd_apply(xp->fetchfn,2,args);}
+    value = kno_apply(xp->fetchfn,2,args);}
   if (VECTORP(value)) {
-    struct FD_VECTOR *vstruct = (struct FD_VECTOR *)value;
+    struct KNO_VECTOR *vstruct = (struct KNO_VECTOR *)value;
     lispval *results = u8_big_alloc_n(n,lispval);
     memcpy(results,vstruct->vec_elts,LISPVEC_BYTELEN(n));
     /* Free the CONS itself (and maybe data), to avoid DECREF/INCREF
@@ -117,21 +117,21 @@ static lispval *extindex_fetchn(fd_index p,int n,const lispval *keys)
        *results*. */
     if (vstruct->vec_free_elts)
       u8_free(vstruct->vec_elts);
-    u8_free((struct FD_CONS *)value);
+    u8_free((struct KNO_CONS *)value);
     return results;}
-  else if (FD_ABORTED(value))
+  else if (KNO_ABORTED(value))
     return NULL;
   else NO_ELSE;
   /* It didnt' return a vector, which is its way of telling us that it
      needs to be fed a key at a time. */
-  fd_decref(value); value = FD_VOID;
+  kno_decref(value); value = KNO_VOID;
   lispval *values = u8_big_alloc_n(n,lispval);
   if ( (VOIDP(state)) || (FALSEP(state)) || (arity == 1) ) {
     int i = 0; while (i<n) {
       lispval key = keys[i];
-      lispval value = fd_apply(fetchfn,1,&key);
-      if (FD_ABORTP(value)) {
-        int j = 0; while (j<i) {fd_decref(values[j]); j++;}
+      lispval value = kno_apply(fetchfn,1,&key);
+      if (KNO_ABORTP(value)) {
+        int j = 0; while (j<i) {kno_decref(values[j]); j++;}
         u8_free(values);
         return NULL;}
       else values[i++]=value;}
@@ -140,63 +140,63 @@ static lispval *extindex_fetchn(fd_index p,int n,const lispval *keys)
     lispval args[2]; int i = 0; args[1]=state;
     i = 0; while (i<n) {
       lispval key = keys[i], value;
-      args[0]=key; value = fd_apply(fetchfn,2,args);
-      if (FD_ABORTP(value)) {
-        int j = 0; while (j<i) {fd_decref(values[j]); j++;}
+      args[0]=key; value = kno_apply(fetchfn,2,args);
+      if (KNO_ABORTP(value)) {
+        int j = 0; while (j<i) {kno_decref(values[j]); j++;}
         u8_free(values);
         return NULL;}
       else values[i++]=value;}
     return values;}
 }
 
-static int extindex_save(struct FD_INDEX *ix,
-                         struct FD_CONST_KEYVAL *adds,int n_adds,
-                         struct FD_CONST_KEYVAL *drops,int n_drops,
-                         struct FD_CONST_KEYVAL *stores,int n_stores,
+static int extindex_save(struct KNO_INDEX *ix,
+                         struct KNO_CONST_KEYVAL *adds,int n_adds,
+                         struct KNO_CONST_KEYVAL *drops,int n_drops,
+                         struct KNO_CONST_KEYVAL *stores,int n_stores,
                          lispval changed_metadata)
 {
-  struct FD_EXTINDEX *exi = (fd_extindex)ix;
-  lispval avec = fd_make_vector(n_adds,NULL);
-  lispval dvec = fd_make_vector(n_drops,NULL);
-  lispval svec = fd_make_vector(n_stores,NULL);
+  struct KNO_EXTINDEX *exi = (kno_extindex)ix;
+  lispval avec = kno_make_vector(n_adds,NULL);
+  lispval dvec = kno_make_vector(n_drops,NULL);
+  lispval svec = kno_make_vector(n_stores,NULL);
   int i = 0; while (i<n_adds) {
     lispval key = adds[i].kv_key, val = adds[i].kv_val;
-    lispval pair = fd_make_pair(key,val);
-    FD_VECTOR_SET(avec,i,pair);}
+    lispval pair = kno_make_pair(key,val);
+    KNO_VECTOR_SET(avec,i,pair);}
   i=0; while (i<n_drops) {
     lispval key = drops[i].kv_key, val = drops[i].kv_val;
-    lispval pair = fd_make_pair(key,val);
-    FD_VECTOR_SET(dvec,i,pair);}
+    lispval pair = kno_make_pair(key,val);
+    KNO_VECTOR_SET(dvec,i,pair);}
   i=0; while (i<n_stores) {
     lispval key = stores[i].kv_key, val = stores[i].kv_val;
-    lispval pair = fd_make_pair(key,val);
-    FD_VECTOR_SET(svec,i,pair);}
+    lispval pair = kno_make_pair(key,val);
+    KNO_VECTOR_SET(svec,i,pair);}
 
   lispval argv[4], result = VOID;
   argv[0]=avec;
   argv[1]=dvec;
   argv[2]=svec;
   argv[3]=exi->state;
-  result = fd_apply(exi->commitfn,((VOIDP(exi->state))?(3):(4)),argv);
-  fd_decref(argv[0]); fd_decref(argv[1]); fd_decref(argv[2]);
-  if (FD_ABORTED(result))
+  result = kno_apply(exi->commitfn,((VOIDP(exi->state))?(3):(4)),argv);
+  kno_decref(argv[0]); kno_decref(argv[1]); kno_decref(argv[2]);
+  if (KNO_ABORTED(result))
     return -1;
   else {
-    fd_decref(result);
+    kno_decref(result);
     return 1;}
 }
 
-static int extindex_commit(fd_index ix,fd_commit_phase phase,
-                           struct FD_INDEX_COMMITS *commit)
+static int extindex_commit(kno_index ix,kno_commit_phase phase,
+                           struct KNO_INDEX_COMMITS *commit)
 {
   switch (phase) {
-  case fd_commit_write: {
+  case kno_commit_write: {
     return extindex_save(ix,
-                         (struct FD_CONST_KEYVAL *)commit->commit_adds,
+                         (struct KNO_CONST_KEYVAL *)commit->commit_adds,
                          commit->commit_n_adds,
-                         (struct FD_CONST_KEYVAL *)commit->commit_drops,
+                         (struct KNO_CONST_KEYVAL *)commit->commit_drops,
                          commit->commit_n_drops,
-                         (struct FD_CONST_KEYVAL *)commit->commit_stores,
+                         (struct KNO_CONST_KEYVAL *)commit->commit_stores,
                          commit->commit_n_stores,
                          commit->commit_metadata);}
   default: {
@@ -207,18 +207,18 @@ static int extindex_commit(fd_index ix,fd_commit_phase phase,
   }
 }
 
-static void recycle_extindex(fd_index ix)
+static void recycle_extindex(kno_index ix)
 {
-  if (ix->index_handler== &fd_extindex_handler) {
-    struct FD_EXTINDEX *ei = (struct FD_EXTINDEX *)ix;
-    fd_decref(ei->fetchfn);
-    fd_decref(ei->commitfn);
-    fd_decref(ei->state);}
+  if (ix->index_handler== &kno_extindex_handler) {
+    struct KNO_EXTINDEX *ei = (struct KNO_EXTINDEX *)ix;
+    kno_decref(ei->fetchfn);
+    kno_decref(ei->commitfn);
+    kno_decref(ei->state);}
   u8_free(ix);
 }
 
-struct FD_INDEX_HANDLER fd_extindex_handler={
-  "extindexhandler", 1, sizeof(struct FD_EXTINDEX), 14,
+struct KNO_INDEX_HANDLER kno_extindex_handler={
+  "extindexhandler", 1, sizeof(struct KNO_EXTINDEX), 14,
   NULL, /* close */
   extindex_commit, /* commit */
   extindex_fetch, /* fetch */
@@ -231,18 +231,18 @@ struct FD_INDEX_HANDLER fd_extindex_handler={
   NULL, /* create */
   NULL,  /* walk */
   recycle_extindex,  /* recycle */
-  fd_default_indexctl  /* indexctl */
+  kno_default_indexctl  /* indexctl */
 };
 
-FD_EXPORT int fd_extindexp(fd_index ix)
+KNO_EXPORT int kno_extindexp(kno_index ix)
 {
-  return (ix->index_handler == &fd_extindex_handler);
+  return (ix->index_handler == &kno_extindex_handler);
 }
 
-FD_EXPORT void fd_init_extindex_c()
+KNO_EXPORT void kno_init_extindex_c()
 {
-  set_symbol = fd_intern("set");
-  drop_symbol = fd_intern("drop");
+  set_symbol = kno_intern("set");
+  drop_symbol = kno_intern("drop");
 
   u8_register_source_file(_FILEINFO);
 }

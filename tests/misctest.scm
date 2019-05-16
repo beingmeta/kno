@@ -64,7 +64,7 @@
 (applytester l2 cddr l4)
 
 ;; This is a regression test for the TEST primitive for slotmaps using
-;; fd_sortvec_get rather than fd_keyvec_get internally.
+;; kno_sortvec_get rather than kno_keyvec_get internally.
 (evaltest #t (and (test f1 'bar 8)
 		  (test f1 'foo 3)
 		  (test f2 'bar 8)

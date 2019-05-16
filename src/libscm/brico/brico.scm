@@ -2,7 +2,7 @@
 ;;; Copyright (C) 2005-2018 beingmeta, inc.  All rights reserved.
 
 (in-module 'brico)
-;;; Using the BRICO database from FramerD
+;;; Using the BRICO database from Kno
 
 (define %nosubst '{bricosource
 		   brico-pool brico-index brico.db

@@ -1,0 +1,20 @@
+#!@SCRIPT_SHELL@
+FILE=$1
+shift;
+abspath( ) {
+    file=$1
+    dir=$(dirname ${file})
+    absdir=$(\cd ${dir}; pwd)
+    base=$(basename ${file})
+    echo ${absdir}/${base};
+}
+KNOX=@BINDIR@/knox
+BASE=_$(basename ${FILE} .scm)
+FULLPATH=$(abspath ${FILE})
+RUNDIR=${RUNDIR:-$(pwd)}
+PPIDFILE=${RUNDIR}/${BASE}.ppid
+PIDFILE=${RUNDIR}/${BASE}.pid
+LOGDIR=${LOGDIR:-${RUNDIR}}
+LOGFILE=${LOGDIR}/${BASE}.log
+ERRFILE=${LOGDIR}/${BASE}.err
+exec u8run +daemon ${BASE} PIDFILE=${PIDFILE} PPIDFILE=${PPIDFILE} ${KNOX} ${FILE} $* LOGCMD=yes STDOUT=+${LOGFILE} STDERR=+${ERRFILE} RUNDIR=${RUNDIR} PIDFILE=${PIDFILE}

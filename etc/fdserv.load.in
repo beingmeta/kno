@@ -1,3 +1,0 @@
-<IfModule !fdserv_module>
-  LoadModule fdserv_module      @apache_modules_dir@/mod_fdserv.so
-</IfModule>

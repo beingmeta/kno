@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -9,19 +9,19 @@
 #define _FILEINFO __FILE__
 #endif
 
-/* #define FD_PROVIDE_FASTEVAL 1 */
+/* #define KNO_PROVIDE_FASTEVAL 1 */
 
-#include "framerd/fdsource.h"
+#include "kno/knosource.h"
 
-#include "framerd/dtype.h"
-#include "framerd/eval.h"
-#include "framerd/storage.h"
-#include "framerd/pools.h"
-#include "framerd/indexes.h"
-#include "framerd/frames.h"
-#include "framerd/numbers.h"
+#include "kno/dtype.h"
+#include "kno/eval.h"
+#include "kno/storage.h"
+#include "kno/pools.h"
+#include "kno/indexes.h"
+#include "kno/frames.h"
+#include "kno/numbers.h"
 
-#include "framerd/cprims.h"
+#include "kno/cprims.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8timefns.h>
@@ -48,7 +48,7 @@
 #include <sys/sysinfo.h>
 #endif
 
-u8_condition fd_MissingFeature=_("OS doesn't support operation");
+u8_condition kno_MissingFeature=_("OS doesn't support operation");
 
 /* Getting the current hostname */
 
@@ -56,13 +56,13 @@ DCLPRIM("GETHOSTNAME",hostname_prim,0,
         "Gets the assigned name for this computer")
 static lispval hostname_prim()
 {
-  return fd_lispstring(u8_gethostname());
+  return kno_lispstring(u8_gethostname());
 }
 
 DCLPRIM1("HOSTADDRS",hostaddrs_prim,0,
          "Gets the addresses associated with a hostname "
          "using the ldns library",
-         fd_string_type,FD_VOID)
+         kno_string_type,KNO_VOID)
 static lispval hostaddrs_prim(lispval hostname)
 {
   int addr_len = -1; unsigned int type = -1;
@@ -70,7 +70,7 @@ static lispval hostaddrs_prim(lispval hostname)
   lispval results = EMPTY;
   int i = 0;
   if (addrs == NULL) {
-    fd_clear_errors(1);
+    kno_clear_errors(1);
     return results;}
   else while (addrs[i]) {
       unsigned char *addr = addrs[i++]; lispval string;
@@ -78,7 +78,7 @@ static lispval hostaddrs_prim(lispval hostname)
       while (j<addr_len) {
         u8_printf(&out,((j>0)?(".%d"):("%d")),(int)addr[j]);
         j++;}
-      string = fd_init_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
+      string = kno_init_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
       CHOICE_ADD(results,string);}
   u8_free(addrs);
   return results;
@@ -90,25 +90,25 @@ DCLPRIM1("GETENV",getenv_prim,0,
          "Gets the value of *envvar* in the environment of "
          "the current process. Returns a string or #f if "
          "the environment variable is not defined.",
-         fd_string_type,FD_VOID)
+         kno_string_type,KNO_VOID)
 static lispval getenv_prim(lispval var)
 {
   u8_string enval = u8_getenv(CSTRING(var));
-  if (enval == NULL) return FD_FALSE;
-  else return fd_lispstring(enval);
+  if (enval == NULL) return KNO_FALSE;
+  else return kno_lispstring(enval);
 }
 
-static lispval getenv_macro(lispval expr,fd_lexenv env,fd_stack ptr)
+static lispval getenv_macro(lispval expr,kno_lexenv env,kno_stack ptr)
 {
-  lispval var = fd_get_arg(expr,1);
-  if ( (FD_STRINGP(var)) || (FD_SYMBOLP(var)) ) {
-    u8_string enval = (FD_SYMBOLP(var)) ?
-      (u8_getenv(FD_SYMBOL_NAME(var))) :
+  lispval var = kno_get_arg(expr,1);
+  if ( (KNO_STRINGP(var)) || (KNO_SYMBOLP(var)) ) {
+    u8_string enval = (KNO_SYMBOLP(var)) ?
+      (u8_getenv(KNO_SYMBOL_NAME(var))) :
       (u8_getenv(CSTRING(var)));
     if (enval == NULL)
-      return FD_FALSE;
-    else return fd_lispstring(enval);}
-  else return fd_err(fd_TypeError,"getenv_macro","string or symbol",var);
+      return KNO_FALSE;
+    else return kno_lispstring(enval);}
+  else return kno_err(kno_TypeError,"getenv_macro","string or symbol",var);
 }
 
 /* LOAD AVERAGE */
@@ -119,8 +119,8 @@ static lispval loadavg_prim()
 {
   double loadavg;
   int nsamples = getloadavg(&loadavg,1);
-  if (nsamples==1) return fd_make_flonum(loadavg);
-  else return FD_FALSE;
+  if (nsamples==1) return kno_make_flonum(loadavg);
+  else return KNO_FALSE;
 }
 
 DCLPRIM("LOADAVG",loadavgs_prim,0,
@@ -129,15 +129,15 @@ static lispval loadavgs_prim()
 {
   double loadavg[3]; int nsamples = getloadavg(loadavg,3);
   if (nsamples==1)
-    return fd_make_nvector(1,fd_make_flonum(loadavg[0]));
+    return kno_make_nvector(1,kno_make_flonum(loadavg[0]));
   else if (nsamples==2)
-    return fd_make_nvector
-      (2,fd_make_flonum(loadavg[0]),fd_make_flonum(loadavg[1]));
+    return kno_make_nvector
+      (2,kno_make_flonum(loadavg[0]),kno_make_flonum(loadavg[1]));
   else if (nsamples==3)
-    return fd_make_nvector
-      (3,fd_make_flonum(loadavg[0]),fd_make_flonum(loadavg[1]),
-       fd_make_flonum(loadavg[2]));
-  else return FD_FALSE;
+    return kno_make_nvector
+      (3,kno_make_flonum(loadavg[0]),kno_make_flonum(loadavg[1]),
+       kno_make_flonum(loadavg[2]));
+  else return KNO_FALSE;
 }
 
 /* RUSAGE */
@@ -178,16 +178,16 @@ static struct rusage init_rusage;
 
 static void add_intval(lispval table,lispval symbol,long long ival)
 {
-  lispval iptr = FD_INT(ival);
-  fd_add(table,symbol,iptr);
-  if (CONSP(iptr)) fd_decref(iptr);
+  lispval iptr = KNO_INT(ival);
+  kno_add(table,symbol,iptr);
+  if (CONSP(iptr)) kno_decref(iptr);
 }
 
 static void add_flonum(lispval table,lispval symbol,double fval)
 {
-  lispval flonum = fd_make_flonum(fval);
-  fd_add(table,symbol,flonum);
-  fd_decref(flonum);
+  lispval flonum = kno_make_flonum(fval);
+  kno_add(table,symbol,flonum);
+  kno_decref(flonum);
 }
 
 static u8_string get_malloc_info()
@@ -222,9 +222,9 @@ static lispval rusage_prim(lispval field)
   int pagesize = get_pagesize();
   memset(&r,0,sizeof(r));
   if (u8_getrusage(RUSAGE_SELF,&r)<0)
-    return FD_ERROR;
+    return KNO_ERROR;
   else if (VOIDP(field)) {
-    lispval result = fd_empty_slotmap();
+    lispval result = kno_empty_slotmap();
     pid_t pid = getpid(), ppid = getppid();
     ssize_t mem = u8_memusage(), vmem = u8_vmemusage();
     double memload = u8_memload(), vmemload = u8_vmemload();
@@ -273,25 +273,25 @@ static lispval rusage_prim(lispval field)
     add_flonum(result,memload_symbol,memload);
     add_flonum(result,vmemload_symbol,vmemload);
     add_intval(result,stacksize_symbol,u8_stack_size);
-    add_intval(result,nptrlocks_symbol,FD_N_PTRLOCKS);
+    add_intval(result,nptrlocks_symbol,KNO_N_PTRLOCKS);
     add_intval(result,pid_symbol,pid);
     add_intval(result,ppid_symbol,ppid);
     { /* Load average(s) */
       double loadavg[3]; int nsamples = getloadavg(loadavg,3);
       if (nsamples>0) {
-        lispval lval = fd_make_flonum(loadavg[0]), lvec = VOID;
-        fd_store(result,load_symbol,lval);
+        lispval lval = kno_make_flonum(loadavg[0]), lvec = VOID;
+        kno_store(result,load_symbol,lval);
         if (nsamples==1)
-          lvec = fd_make_nvector(1,fd_make_flonum(loadavg[0]));
+          lvec = kno_make_nvector(1,kno_make_flonum(loadavg[0]));
         else if (nsamples==2)
-          lvec = fd_make_nvector(2,fd_make_flonum(loadavg[0]),
-                                 fd_make_flonum(loadavg[1]));
-        else lvec = fd_make_nvector
-               (3,fd_make_flonum(loadavg[0]),
-                fd_make_flonum(loadavg[1]),
-                fd_make_flonum(loadavg[2]));
-        if (!(VOIDP(lvec))) fd_store(result,loadavg_symbol,lvec);
-        fd_decref(lval); fd_decref(lvec);}}
+          lvec = kno_make_nvector(2,kno_make_flonum(loadavg[0]),
+                                 kno_make_flonum(loadavg[1]));
+        else lvec = kno_make_nvector
+               (3,kno_make_flonum(loadavg[0]),
+                kno_make_flonum(loadavg[1]),
+                kno_make_flonum(loadavg[2]));
+        if (!(VOIDP(lvec))) kno_store(result,loadavg_symbol,lvec);
+        kno_decref(lval); kno_decref(lvec);}}
     { /* Elapsed time */
       double elapsed = u8_elapsed_time();
       double usecs = elapsed*1000000.0;
@@ -315,9 +315,9 @@ static lispval rusage_prim(lispval field)
       int available_pages = get_available_pages();
       long long physical_memory = get_physical_memory();
       long long available_memory = get_available_memory();
-      fd_add(result,n_cpus_symbol,FD_INT(n_cpus));
-      fd_add(result,max_cpus_symbol,FD_INT(max_cpus));
-      if (pagesize>0) fd_add(result,pagesize_symbol,FD_INT(pagesize));
+      kno_add(result,n_cpus_symbol,KNO_INT(n_cpus));
+      kno_add(result,max_cpus_symbol,KNO_INT(max_cpus));
+      if (pagesize>0) kno_add(result,pagesize_symbol,KNO_INT(pagesize));
       if (physical_pages>0)
         add_intval(result,physical_pages_symbol,physical_pages);
       if (available_pages>0)
@@ -329,138 +329,138 @@ static lispval rusage_prim(lispval field)
         add_intval(result,availablemb_symbol,available_memory/(1024*1024));
         add_intval(result,available_memory_symbol,available_memory);}}
 
-    return fd_read_sensors(result);}
+    return kno_read_sensors(result);}
 
-  else if (FD_EQ(field,cpusage_symbol)) {
+  else if (KNO_EQ(field,cpusage_symbol)) {
     double elapsed = u8_elapsed_time()*1000000.0;
     double stime = u8_dbltime(r.ru_stime);
     double utime = u8_dbltime(r.ru_utime);
     double cpusage = (stime+utime)*100.0/elapsed;
-    return fd_init_double(NULL,cpusage);}
-  else if (FD_EQ(field,data_symbol))
-    return FD_INT((r.ru_idrss*pagesize));
-  else if (FD_EQ(field,clock_symbol))
-    return fd_make_flonum(u8_elapsed_time());
-  else if (FD_EQ(field,stack_symbol))
-    return FD_INT((r.ru_isrss*pagesize));
-  else if (FD_EQ(field,private_symbol))
-    return FD_INT((r.ru_idrss+r.ru_isrss)*pagesize);
-  else if (FD_EQ(field,shared_symbol))
-    return FD_INT((r.ru_ixrss*pagesize));
-  else if (FD_EQ(field,rss_symbol))
-    return FD_INT((r.ru_maxrss*pagesize));
-  else if (FD_EQ(field,datakb_symbol))
-    return FD_INT((r.ru_idrss*pagesize)/1024);
-  else if (FD_EQ(field,stackkb_symbol))
-    return FD_INT((r.ru_isrss*pagesize)/1024);
-  else if (FD_EQ(field,stacksize_symbol))
-    return FD_INT(u8_stack_size);
-  else if (FD_EQ(field,privatekb_symbol))
-    return FD_INT(((r.ru_idrss+r.ru_isrss)*pagesize)/1024);
-  else if (FD_EQ(field,sharedkb_symbol))
-    return FD_INT((r.ru_ixrss*pagesize)/1024);
-  else if (FD_EQ(field,rsskb_symbol))
-    return FD_INT((r.ru_maxrss*pagesize)/1024);
-  else if (FD_EQ(field,utime_symbol))
-    return fd_make_flonum(u8_dbltime(r.ru_utime));
-  else if (FD_EQ(field,stime_symbol))
-    return fd_make_flonum(u8_dbltime(r.ru_stime));
-  else if (FD_EQ(field,memusage_symbol))
-    return FD_INT(u8_memusage());
-  else if (FD_EQ(field,vmemusage_symbol))
-    return FD_INT(u8_vmemusage());
-  else if (FD_EQ(field,nptrlocks_symbol))
-    return FD_INT(FD_N_PTRLOCKS);
-  else if (FD_EQ(field,mallocinfo_symbol)) {
+    return kno_init_double(NULL,cpusage);}
+  else if (KNO_EQ(field,data_symbol))
+    return KNO_INT((r.ru_idrss*pagesize));
+  else if (KNO_EQ(field,clock_symbol))
+    return kno_make_flonum(u8_elapsed_time());
+  else if (KNO_EQ(field,stack_symbol))
+    return KNO_INT((r.ru_isrss*pagesize));
+  else if (KNO_EQ(field,private_symbol))
+    return KNO_INT((r.ru_idrss+r.ru_isrss)*pagesize);
+  else if (KNO_EQ(field,shared_symbol))
+    return KNO_INT((r.ru_ixrss*pagesize));
+  else if (KNO_EQ(field,rss_symbol))
+    return KNO_INT((r.ru_maxrss*pagesize));
+  else if (KNO_EQ(field,datakb_symbol))
+    return KNO_INT((r.ru_idrss*pagesize)/1024);
+  else if (KNO_EQ(field,stackkb_symbol))
+    return KNO_INT((r.ru_isrss*pagesize)/1024);
+  else if (KNO_EQ(field,stacksize_symbol))
+    return KNO_INT(u8_stack_size);
+  else if (KNO_EQ(field,privatekb_symbol))
+    return KNO_INT(((r.ru_idrss+r.ru_isrss)*pagesize)/1024);
+  else if (KNO_EQ(field,sharedkb_symbol))
+    return KNO_INT((r.ru_ixrss*pagesize)/1024);
+  else if (KNO_EQ(field,rsskb_symbol))
+    return KNO_INT((r.ru_maxrss*pagesize)/1024);
+  else if (KNO_EQ(field,utime_symbol))
+    return kno_make_flonum(u8_dbltime(r.ru_utime));
+  else if (KNO_EQ(field,stime_symbol))
+    return kno_make_flonum(u8_dbltime(r.ru_stime));
+  else if (KNO_EQ(field,memusage_symbol))
+    return KNO_INT(u8_memusage());
+  else if (KNO_EQ(field,vmemusage_symbol))
+    return KNO_INT(u8_vmemusage());
+  else if (KNO_EQ(field,nptrlocks_symbol))
+    return KNO_INT(KNO_N_PTRLOCKS);
+  else if (KNO_EQ(field,mallocinfo_symbol)) {
     u8_string info=get_malloc_info();
     if (info)
-      return fd_init_string(NULL,-1,info);
+      return kno_init_string(NULL,-1,info);
     else return EMPTY;}
-  else if (FD_EQ(field,load_symbol)) {
+  else if (KNO_EQ(field,load_symbol)) {
     double loadavg; int nsamples = getloadavg(&loadavg,1);
-    if (nsamples>0) return fd_make_flonum(loadavg);
+    if (nsamples>0) return kno_make_flonum(loadavg);
     else return EMPTY;}
-  else if (FD_EQ(field,loadavg_symbol)) {
+  else if (KNO_EQ(field,loadavg_symbol)) {
     double loadavg[3]; int nsamples = getloadavg(loadavg,3);
     if (nsamples>0) {
       if (nsamples==1)
-        return fd_make_nvector(1,fd_make_flonum(loadavg[0]));
+        return kno_make_nvector(1,kno_make_flonum(loadavg[0]));
       else if (nsamples==2)
-        return fd_make_nvector(2,fd_make_flonum(loadavg[0]),
-                               fd_make_flonum(loadavg[1]));
-      else return fd_make_nvector
-             (3,fd_make_flonum(loadavg[0]),fd_make_flonum(loadavg[1]),
-              fd_make_flonum(loadavg[2]));}
-    else if (FD_EQ(field,pid_symbol))
-      return FD_INT((unsigned long)(getpid()));
-    else if (FD_EQ(field,ppid_symbol))
-      return FD_INT((unsigned long)(getppid()));
+        return kno_make_nvector(2,kno_make_flonum(loadavg[0]),
+                               kno_make_flonum(loadavg[1]));
+      else return kno_make_nvector
+             (3,kno_make_flonum(loadavg[0]),kno_make_flonum(loadavg[1]),
+              kno_make_flonum(loadavg[2]));}
+    else if (KNO_EQ(field,pid_symbol))
+      return KNO_INT((unsigned long)(getpid()));
+    else if (KNO_EQ(field,ppid_symbol))
+      return KNO_INT((unsigned long)(getppid()));
     else return EMPTY;}
-  else if (FD_EQ(field,n_cpus_symbol)) {
+  else if (KNO_EQ(field,n_cpus_symbol)) {
     int n_cpus = get_n_cpus();
-    if (n_cpus>0) return FD_INT(n_cpus);
+    if (n_cpus>0) return KNO_INT(n_cpus);
     else if (n_cpus==0) return EMPTY;
     else {
       u8_graberrno("rusage_prim/N_CPUS",NULL);
-      return FD_ERROR;}}
-  else if (FD_EQ(field,max_cpus_symbol)) {
+      return KNO_ERROR;}}
+  else if (KNO_EQ(field,max_cpus_symbol)) {
     int max_cpus = get_max_cpus();
-    if (max_cpus>0) return FD_INT(max_cpus);
+    if (max_cpus>0) return KNO_INT(max_cpus);
     else if (max_cpus==0) return EMPTY;
     else {
       u8_graberrno("rusage_prim/MAX_CPUS",NULL);
-      return FD_ERROR;}}
-  else if (FD_EQ(field,pagesize_symbol)) {
+      return KNO_ERROR;}}
+  else if (KNO_EQ(field,pagesize_symbol)) {
     int pagesize = get_pagesize();
-    if (pagesize>0) return FD_INT(pagesize);
+    if (pagesize>0) return KNO_INT(pagesize);
     else if (pagesize==0) return EMPTY;
     else {
       u8_graberrno("rusage_prim/PAGESIZE",NULL);
-      return FD_ERROR;}}
-  else if (FD_EQ(field,physical_pages_symbol)) {
+      return KNO_ERROR;}}
+  else if (KNO_EQ(field,physical_pages_symbol)) {
     int physical_pages = get_physical_pages();
-    if (physical_pages>0) return FD_INT(physical_pages);
+    if (physical_pages>0) return KNO_INT(physical_pages);
     else if (physical_pages==0) return EMPTY;
     else {
       u8_graberrno("rusage_prim/PHYSICAL_PAGES",NULL);
-      return FD_ERROR;}}
-  else if (FD_EQ(field,available_pages_symbol)) {
+      return KNO_ERROR;}}
+  else if (KNO_EQ(field,available_pages_symbol)) {
     int available_pages = get_available_pages();
-    if (available_pages>0) return FD_INT(available_pages);
+    if (available_pages>0) return KNO_INT(available_pages);
     else if (available_pages==0) return EMPTY;
     else {
       u8_graberrno("rusage_prim/AVAILABLE_PAGES",NULL);
-      return FD_ERROR;}}
-  else if (FD_EQ(field,physical_memory_symbol)) {
+      return KNO_ERROR;}}
+  else if (KNO_EQ(field,physical_memory_symbol)) {
     long long physical_memory = get_physical_memory();
-    if (physical_memory>0) return FD_INT(physical_memory);
+    if (physical_memory>0) return KNO_INT(physical_memory);
     else if (physical_memory==0) return EMPTY;
     else {
       u8_graberrno("rusage_prim/PHYSICAL_MEMORY",NULL);
-      return FD_ERROR;}}
-  else if (FD_EQ(field,physicalmb_symbol)) {
+      return KNO_ERROR;}}
+  else if (KNO_EQ(field,physicalmb_symbol)) {
     long long physical_memory = get_physical_memory();
-    if (physical_memory>0) return FD_INT(physical_memory/(1024*1024));
+    if (physical_memory>0) return KNO_INT(physical_memory/(1024*1024));
     else if (physical_memory==0) return EMPTY;
     else {
       u8_graberrno("rusage_prim/PHYSICAL_MEMORY",NULL);
-      return FD_ERROR;}}
-  else if (FD_EQ(field,available_memory_symbol)) {
+      return KNO_ERROR;}}
+  else if (KNO_EQ(field,available_memory_symbol)) {
     long long available_memory = get_available_memory();
-    if (available_memory>0) return FD_INT(available_memory);
+    if (available_memory>0) return KNO_INT(available_memory);
     else if (available_memory==0) return EMPTY;
     else {
       u8_graberrno("rusage_prim/AVAILABLE_MEMORY",NULL);
-      return FD_ERROR;}}
-  else if (FD_EQ(field,availablemb_symbol)) {
+      return KNO_ERROR;}}
+  else if (KNO_EQ(field,availablemb_symbol)) {
     long long available_memory = get_available_memory();
-    if (available_memory>0) return FD_INT(available_memory/(1024*1024));
+    if (available_memory>0) return KNO_INT(available_memory/(1024*1024));
     else if (available_memory==0) return EMPTY;
     else {
       u8_graberrno("rusage_prim/AVAILABLE_MEMORY",NULL);
-      return FD_ERROR;}}
+      return KNO_ERROR;}}
   else {
-    lispval val=fd_read_sensor(field);
+    lispval val=kno_read_sensor(field);
     if (VOIDP(val))
       return EMPTY;
     else return val;}
@@ -469,11 +469,11 @@ static lispval rusage_prim(lispval field)
 static int setprop(lispval result,u8_string field,char *value)
 {
   if ((value)&&(strcmp(value,"(none)"))) {
-    lispval slotid = fd_intern(field);
+    lispval slotid = kno_intern(field);
     u8_string svalue = u8_fromlibc(value);
     lispval lvalue = fdstring(svalue);
-    int rv = fd_store(result,slotid,lvalue);
-    fd_decref(lvalue);
+    int rv = kno_store(result,slotid,lvalue);
+    kno_decref(lvalue);
     u8_free(svalue);
     return rv;}
   else return 0;
@@ -487,7 +487,7 @@ static lispval uname_prim()
   struct utsname sysinfo;
   int rv = uname(&sysinfo);
   if (rv==0) {
-    lispval result = fd_init_slotmap(NULL,0,NULL);
+    lispval result = kno_init_slotmap(NULL,0,NULL);
     setprop(result,"OSNAME",sysinfo.sysname);
     setprop(result,"NODENAME",sysinfo.nodename);
     setprop(result,"RELEASE",sysinfo.release);
@@ -496,9 +496,9 @@ static lispval uname_prim()
     return result;}
   else {
     u8_graberr(errno,"uname_prim",NULL);
-    return FD_ERROR;}
+    return KNO_ERROR;}
 #else
-  return fd_init_slotmap(NULL,0,NULL);
+  return kno_init_slotmap(NULL,0,NULL);
 #endif
 }
 
@@ -507,7 +507,7 @@ DCLPRIM("GETPID",getpid_prim,0,
 static lispval getpid_prim()
 {
   pid_t pid = getpid();
-  return FD_INT(((unsigned long)pid));
+  return KNO_INT(((unsigned long)pid));
 }
 DCLPRIM("GETPPID",getppid_prim,0,
         "Gets the PID (process ID) for the parent of the "
@@ -515,7 +515,7 @@ DCLPRIM("GETPPID",getppid_prim,0,
 static lispval getppid_prim()
 {
   pid_t pid = getppid();
-  return FD_INT(((unsigned long)pid));
+  return KNO_INT(((unsigned long)pid));
 }
 
 DCLPRIM("STACKSIZE",stacksize_prim,0,
@@ -524,8 +524,8 @@ static lispval stacksize_prim()
 {
   ssize_t size = u8_stacksize();
   if (size<0)
-    return FD_ERROR;
-  else return FD_INT(size);
+    return KNO_ERROR;
+  else return KNO_INT(size);
 }
 
 DCLPRIM("THREADID",threadid_prim,0,
@@ -533,7 +533,7 @@ DCLPRIM("THREADID",threadid_prim,0,
 static lispval threadid_prim()
 {
   long long tid = u8_threadid();
-  return FD_INT(tid);
+  return KNO_INT(tid);
 }
 
 DCLPRIM("PROCSTRING",getprocstring_prim,0,
@@ -550,7 +550,7 @@ DCLPRIM("MEMUSAGE",memusage_prim,0,
 static lispval memusage_prim()
 {
   ssize_t size = u8_memusage();
-  return FD_INT(size);
+  return KNO_INT(size);
 }
 
 DCLPRIM("VMEMUSAGE",vmemusage_prim,0,
@@ -558,7 +558,7 @@ DCLPRIM("VMEMUSAGE",vmemusage_prim,0,
 static lispval vmemusage_prim()
 {
   ssize_t size = u8_vmemusage();
-  return FD_INT(size);
+  return KNO_INT(size);
 }
 
 DCLPRIM("PHYSMEM",physmem_prim,0,
@@ -566,7 +566,7 @@ DCLPRIM("PHYSMEM",physmem_prim,0,
 static lispval physmem_prim()
 {
   ssize_t size = u8_physmem();
-  return FD_INT(size);
+  return KNO_INT(size);
 }
 
 DCLPRIM("MEMLOAD",memload_prim,0,
@@ -574,7 +574,7 @@ DCLPRIM("MEMLOAD",memload_prim,0,
 static lispval memload_prim()
 {
   double load = u8_memload();
-  return fd_make_flonum(load);
+  return kno_make_flonum(load);
 }
 
 DCLPRIM("MEMLOAD",vmemload_prim,0,
@@ -582,7 +582,7 @@ DCLPRIM("MEMLOAD",vmemload_prim,0,
 static lispval vmemload_prim()
 {
   double vload = u8_vmemload();
-  return fd_make_flonum(vload);
+  return kno_make_flonum(vload);
 }
 
 DCLPRIM("USERTIME",usertime_prim,0,
@@ -592,13 +592,13 @@ static lispval usertime_prim()
   struct rusage r;
   memset(&r,0,sizeof(r));
   if (u8_getrusage(RUSAGE_SELF,&r)<0)
-    return FD_ERROR;
+    return KNO_ERROR;
   else {
     double msecs=
       (r.ru_utime.tv_sec*1000000.0+r.ru_utime.tv_usec*1.0)-
       (init_rusage.ru_utime.tv_sec*1000000.0+
        init_rusage.ru_utime.tv_usec*1.0);
-    return fd_init_double(NULL,msecs);}
+    return kno_init_double(NULL,msecs);}
 }
 
 DCLPRIM("SYSTIME",systime_prim,0,
@@ -608,13 +608,13 @@ static lispval systime_prim()
   struct rusage r;
   memset(&r,0,sizeof(r));
   if (u8_getrusage(RUSAGE_SELF,&r)<0)
-    return FD_ERROR;
+    return KNO_ERROR;
   else {
     double msecs=
       (r.ru_stime.tv_sec*1000000.0+r.ru_stime.tv_usec*1.0)-
       (init_rusage.ru_stime.tv_sec*1000000.0+
        init_rusage.ru_stime.tv_usec*1.0);
-    return fd_init_double(NULL,msecs);}
+    return kno_init_double(NULL,msecs);}
 }
 
 DCLPRIM("CPUSAGE",cpusage_prim,MAX_ARGS(1)|MIN_ARGS(0),
@@ -631,21 +631,21 @@ static lispval cpusage_prim(lispval arg)
     struct rusage r;
     memset(&r,0,sizeof(r));
     if (u8_getrusage(RUSAGE_SELF,&r)<0)
-      return FD_ERROR;
+      return KNO_ERROR;
     else {
-      lispval prelapsed = fd_get(arg,clock_symbol,VOID);
-      lispval prestime = fd_get(arg,stime_symbol,VOID);
-      lispval preutime = fd_get(arg,utime_symbol,VOID);
-      if ((FD_FLONUMP(prelapsed)) &&
-          (FD_FLONUMP(prestime)) &&
-          (FD_FLONUMP(preutime))) {
+      lispval prelapsed = kno_get(arg,clock_symbol,VOID);
+      lispval prestime = kno_get(arg,stime_symbol,VOID);
+      lispval preutime = kno_get(arg,utime_symbol,VOID);
+      if ((KNO_FLONUMP(prelapsed)) &&
+          (KNO_FLONUMP(prestime)) &&
+          (KNO_FLONUMP(preutime))) {
         double elapsed=
-          (u8_elapsed_time()-FD_FLONUM(prelapsed))*1000000.0;
-        double stime = (u8_dbltime(r.ru_stime)-FD_FLONUM(prestime));
-        double utime = u8_dbltime(r.ru_utime)-FD_FLONUM(preutime);
+          (u8_elapsed_time()-KNO_FLONUM(prelapsed))*1000000.0;
+        double stime = (u8_dbltime(r.ru_stime)-KNO_FLONUM(prestime));
+        double utime = u8_dbltime(r.ru_utime)-KNO_FLONUM(preutime);
         double cpusage = (stime+utime)*100.0/elapsed;
-        return fd_init_double(NULL,cpusage);}
-      else return fd_type_error(_("rusage"),"getcpusage",arg);}}
+        return kno_init_double(NULL,cpusage);}
+      else return kno_type_error(_("rusage"),"getcpusage",arg);}}
 }
 
 static int get_max_cpus()
@@ -654,7 +654,7 @@ static int get_max_cpus()
 #if ((HAVE_SYSCONF)&&(defined(_SC_NPROCESSORS_CONF)))
   retval = sysconf(_SC_NPROCESSORS_CONF);
   if (retval>0) return retval;
-  if (retval<0) fd_clear_errors(1);
+  if (retval<0) kno_clear_errors(1);
   return 1;
 #else
   return 1;
@@ -667,7 +667,7 @@ static int get_n_cpus()
 #if ((HAVE_SYSCONF)&&(defined(_SC_NPROCESSORS_ONLN)))
   retval = sysconf(_SC_NPROCESSORS_ONLN);
   if (retval>0) return retval;
-  if (retval<0) fd_clear_errors(1);
+  if (retval<0) kno_clear_errors(1);
   return 1;
 #elif (HAVE_SYSCONF)
   return get_max_cpus();
@@ -691,7 +691,7 @@ static int get_pagesize()
 #endif
   pagesize = retval;
   if (retval>0) return retval;
-  if (retval<0) fd_clear_errors(1);
+  if (retval<0) kno_clear_errors(1);
   return 0;
 }
 
@@ -700,7 +700,7 @@ static int get_physical_pages()
 #if ((HAVE_SYSCONF)&&(defined(_SC_PHYS_PAGES)))
   int retval = sysconf(_SC_PHYS_PAGES);
   if (retval>0) return retval;
-  if (retval<0) fd_clear_errors(1);
+  if (retval<0) kno_clear_errors(1);
 #endif
   return 0;
 }
@@ -710,7 +710,7 @@ static int get_available_pages()
 #if ((HAVE_SYSCONF)&&(defined(_SC_AVPHYS_PAGES)))
   int retval = sysconf(_SC_AVPHYS_PAGES);
   if (retval>0) return retval;
-  if (retval<0) fd_clear_errors(1);
+  if (retval<0) kno_clear_errors(1);
 #endif
   return 0;
 }
@@ -723,7 +723,7 @@ static long long get_physical_memory()
 #if ((HAVE_SYSCONF)&&(defined(_SC_PHYS_PAGES)))
   retval = sysconf(_SC_PHYS_PAGES);
   if (retval>0) return retval*pagesize;
-  if (retval<0) fd_clear_errors(1);
+  if (retval<0) kno_clear_errors(1);
 #endif
   return 0;
 }
@@ -736,109 +736,109 @@ static long long get_available_memory()
 #if ((HAVE_SYSCONF)&&(defined(_SC_AVPHYS_PAGES)))
   retval = sysconf(_SC_AVPHYS_PAGES);
   if (retval>0) return retval*pagesize;
-  if (retval<0) fd_clear_errors(1);
+  if (retval<0) kno_clear_errors(1);
 #endif
   return retval;
 }
 
 /* Initialization */
 
-FD_EXPORT void fd_init_procprims_c(void);
+KNO_EXPORT void kno_init_procprims_c(void);
 
-FD_EXPORT void fd_init_sysprims_c()
+KNO_EXPORT void kno_init_sysprims_c()
 {
   u8_register_source_file(_FILEINFO);
 
   u8_getrusage(RUSAGE_SELF,&init_rusage);
 
-  data_symbol = fd_intern("DATA");
-  datakb_symbol = fd_intern("DATAKB");
-  stack_symbol = fd_intern("STACK");
-  stackkb_symbol = fd_intern("STACKKB");
-  shared_symbol = fd_intern("SHARED");
-  sharedkb_symbol = fd_intern("SHAREDKB");
-  private_symbol = fd_intern("PRIVATE");
-  privatekb_symbol = fd_intern("PRIVATEKB");
-  rss_symbol = fd_intern("RESIDENT");
-  rsskb_symbol = fd_intern("RESIDENTKB");
-  utime_symbol = fd_intern("UTIME");
-  stime_symbol = fd_intern("STIME");
-  clock_symbol = fd_intern("CLOCK");
-  cpusage_symbol = fd_intern("CPUSAGE");
-  pid_symbol = fd_intern("PID");
-  ppid_symbol = fd_intern("PPID");
-  memusage_symbol = fd_intern("MEMUSAGE");
-  vmemusage_symbol = fd_intern("VMEMUSAGE");
-  memload_symbol = fd_intern("MEMLOAD");
-  vmemload_symbol = fd_intern("VMEMLOAD");
-  stacksize_symbol = fd_intern("STACKSIZE");
-  n_cpus_symbol = fd_intern("NCPUS");
-  max_cpus_symbol = fd_intern("MAXCPUS");
-  nptrlocks_symbol = fd_intern("NPTRLOCKS");
-  pagesize_symbol = fd_intern("PAGESIZE");
-  physical_pages_symbol = fd_intern("PHYSICAL-PAGES");
-  available_pages_symbol = fd_intern("AVAILABLE-PAGES");
-  physical_memory_symbol = fd_intern("PHYSICAL-MEMORY");
-  available_memory_symbol = fd_intern("AVAILABLE-MEMORY");
-  physicalmb_symbol = fd_intern("PHYSMB");
-  availablemb_symbol = fd_intern("AVAILMB");
-  cpusage_symbol = fd_intern("CPU%");
-  tcpusage_symbol = fd_intern("CPU%/CPU");
+  data_symbol = kno_intern("DATA");
+  datakb_symbol = kno_intern("DATAKB");
+  stack_symbol = kno_intern("STACK");
+  stackkb_symbol = kno_intern("STACKKB");
+  shared_symbol = kno_intern("SHARED");
+  sharedkb_symbol = kno_intern("SHAREDKB");
+  private_symbol = kno_intern("PRIVATE");
+  privatekb_symbol = kno_intern("PRIVATEKB");
+  rss_symbol = kno_intern("RESIDENT");
+  rsskb_symbol = kno_intern("RESIDENTKB");
+  utime_symbol = kno_intern("UTIME");
+  stime_symbol = kno_intern("STIME");
+  clock_symbol = kno_intern("CLOCK");
+  cpusage_symbol = kno_intern("CPUSAGE");
+  pid_symbol = kno_intern("PID");
+  ppid_symbol = kno_intern("PPID");
+  memusage_symbol = kno_intern("MEMUSAGE");
+  vmemusage_symbol = kno_intern("VMEMUSAGE");
+  memload_symbol = kno_intern("MEMLOAD");
+  vmemload_symbol = kno_intern("VMEMLOAD");
+  stacksize_symbol = kno_intern("STACKSIZE");
+  n_cpus_symbol = kno_intern("NCPUS");
+  max_cpus_symbol = kno_intern("MAXCPUS");
+  nptrlocks_symbol = kno_intern("NPTRLOCKS");
+  pagesize_symbol = kno_intern("PAGESIZE");
+  physical_pages_symbol = kno_intern("PHYSICAL-PAGES");
+  available_pages_symbol = kno_intern("AVAILABLE-PAGES");
+  physical_memory_symbol = kno_intern("PHYSICAL-MEMORY");
+  available_memory_symbol = kno_intern("AVAILABLE-MEMORY");
+  physicalmb_symbol = kno_intern("PHYSMB");
+  availablemb_symbol = kno_intern("AVAILMB");
+  cpusage_symbol = kno_intern("CPU%");
+  tcpusage_symbol = kno_intern("CPU%/CPU");
 
-  mallocd_symbol = fd_intern("MALLOCD");
-  heap_symbol = fd_intern("HEAP");
-  mallocinfo_symbol = fd_intern("MALLOCINFO");
-  tcmallocinfo_symbol = fd_intern("TCMALLOCINFO");
+  mallocd_symbol = kno_intern("MALLOCD");
+  heap_symbol = kno_intern("HEAP");
+  mallocinfo_symbol = kno_intern("MALLOCINFO");
+  tcmallocinfo_symbol = kno_intern("TCMALLOCINFO");
 
-  load_symbol = fd_intern("LOAD");
-  loadavg_symbol = fd_intern("LOADAVG");
+  load_symbol = kno_intern("LOAD");
+  loadavg_symbol = kno_intern("LOADAVG");
 
-  uptime_symbol=fd_intern("UPTIME");
-  nprocs_symbol=fd_intern("NPROCS");
-  free_swap_symbol=fd_intern("FREESWAP");
-  total_swap_symbol=fd_intern("TOTALSWAP");
-  swap_symbol=fd_intern("SWAP");
-  free_ram_symbol=fd_intern("FREERAM");
-  total_ram_symbol=fd_intern("TOTALRAM");
-  max_vmem_symbol=fd_intern("MAXVMEM");
+  uptime_symbol=kno_intern("UPTIME");
+  nprocs_symbol=kno_intern("NPROCS");
+  free_swap_symbol=kno_intern("FREESWAP");
+  total_swap_symbol=kno_intern("TOTALSWAP");
+  swap_symbol=kno_intern("SWAP");
+  free_ram_symbol=kno_intern("FREERAM");
+  total_ram_symbol=kno_intern("TOTALRAM");
+  max_vmem_symbol=kno_intern("MAXVMEM");
 
-  DECL_PRIM(hostname_prim,0,fd_scheme_module);
-  DECL_PRIM(hostaddrs_prim,1,fd_scheme_module);
-  DECL_PRIM(getenv_prim,1,fd_scheme_module);
+  DECL_PRIM(hostname_prim,0,kno_scheme_module);
+  DECL_PRIM(hostaddrs_prim,1,kno_scheme_module);
+  DECL_PRIM(getenv_prim,1,kno_scheme_module);
 
-  fd_idefn(fd_scheme_module,fd_make_cprim1("RUSAGE",rusage_prim,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("CPUSAGE",cpusage_prim,0));
+  kno_idefn(kno_scheme_module,kno_make_cprim1("RUSAGE",rusage_prim,0));
+  kno_idefn(kno_scheme_module,kno_make_cprim1("CPUSAGE",cpusage_prim,0));
 
-  DECL_PRIM(rusage_prim,1,fd_scheme_module);
-  DECL_PRIM(cpusage_prim,1,fd_scheme_module);
+  DECL_PRIM(rusage_prim,1,kno_scheme_module);
+  DECL_PRIM(cpusage_prim,1,kno_scheme_module);
 
-  DECL_PRIM(memusage_prim,0,fd_scheme_module);
+  DECL_PRIM(memusage_prim,0,kno_scheme_module);
 
-  DECL_PRIM(memusage_prim,0,fd_scheme_module);
-  DECL_PRIM(vmemusage_prim,0,fd_scheme_module);
-  DECL_PRIM(memload_prim,0,fd_scheme_module);
-  DECL_PRIM(vmemload_prim,0,fd_scheme_module);
-  DECL_PRIM(usertime_prim,0,fd_scheme_module);
-  DECL_PRIM(systime_prim,0,fd_scheme_module);
-  DECL_PRIM(physmem_prim,0,fd_scheme_module);
+  DECL_PRIM(memusage_prim,0,kno_scheme_module);
+  DECL_PRIM(vmemusage_prim,0,kno_scheme_module);
+  DECL_PRIM(memload_prim,0,kno_scheme_module);
+  DECL_PRIM(vmemload_prim,0,kno_scheme_module);
+  DECL_PRIM(usertime_prim,0,kno_scheme_module);
+  DECL_PRIM(systime_prim,0,kno_scheme_module);
+  DECL_PRIM(physmem_prim,0,kno_scheme_module);
 
-  DECL_PRIM(loadavg_prim,0,fd_scheme_module);
-  DECL_PRIM(loadavgs_prim,0,fd_scheme_module);
+  DECL_PRIM(loadavg_prim,0,kno_scheme_module);
+  DECL_PRIM(loadavgs_prim,0,kno_scheme_module);
 
-  DECL_PRIM(uname_prim,0,fd_scheme_module);
+  DECL_PRIM(uname_prim,0,kno_scheme_module);
 
-  DECL_PRIM(getpid_prim,0,fd_scheme_module);
-  DECL_PRIM(getppid_prim,0,fd_scheme_module);
-  DECL_PRIM(threadid_prim,0,fd_scheme_module);
-  DECL_PRIM(getprocstring_prim,0,fd_scheme_module);
-  DECL_PRIM(stacksize_prim,0,fd_scheme_module);
+  DECL_PRIM(getpid_prim,0,kno_scheme_module);
+  DECL_PRIM(getppid_prim,0,kno_scheme_module);
+  DECL_PRIM(threadid_prim,0,kno_scheme_module);
+  DECL_PRIM(getprocstring_prim,0,kno_scheme_module);
+  DECL_PRIM(stacksize_prim,0,kno_scheme_module);
 
-  fd_def_evalfn(fd_scheme_module,"#ENV",
+  kno_def_evalfn(kno_scheme_module,"#ENV",
                 "#:ENV\"HOME\" or #:ENV:HOME\n"
                 "evaluates to an environment variable",
                 getenv_macro);
 
-  fd_init_procprims_c();
+  kno_init_procprims_c();
 
 }
 

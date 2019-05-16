@@ -1,18 +1,18 @@
 # -*- Mode: Makefile; -*-
 # Copyright (C) 2004-2019 beingmeta, inc.
-# This file is a part of beingmeta's FramerD implementation
+# This file is a part of beingmeta's Kno implementation
 
 MAKEFLAGS = -s
-export FD_INIT_DLOADPATH=../lib/framerd/%..@shared_suffix@:../../tagger/c/%..@shared_suffix@:@prefix@/lib/framerd/%.@shared_suffix@
-export FD_INIT_LOADPATH=../src/libscm/:../src/extmods:@default_module_path@
-export FD_INIT_SAFELOADPATH=../src/libscm/:../src/extmods/safe/:@default_safe_module_path@
-export FD_LOADPATH=../src/libscm/:../src/extmods/:
-export FD_DLOADPATH=../lib/framerd
+export KNO_INIT_DLOADPATH=../lib/kno/%..@shared_suffix@:../../tagger/c/%..@shared_suffix@:@prefix@/lib/kno/%.@shared_suffix@
+export KNO_INIT_LOADPATH=../src/libscm/:../src/extmods:@default_module_path@
+export KNO_INIT_SAFELOADPATH=../src/libscm/:../src/extmods/safe/:@default_safe_module_path@
+export KNO_LOADPATH=../src/libscm/:../src/extmods/:
+export KNO_DLOADPATH=../lib/kno
 export LD_LIBRARY_PATH=../lib
 export DYLD_LIBRARY_PATH=../lib
 export PPROF_PATH      = @GOOGLE_PPROF@
-export FD_QUIET        = yes
-export FD_HYPHENDICT=../src/cmodules/hyph_en_US.dic
+export KNO_QUIET        = yes
+export KNO_HYPHENDICT=../src/cmodules/hyph_en_US.dic
 
 # Change this to echo to output test headers. Note that these aren't
 # much use when running tests with -j
@@ -21,7 +21,7 @@ header          = $(shell echo "\#")
 CC	   	= @CC@
 XCFLAGS    	=  
 CFLAGS     	=-I../include @CFLAGS@ @PROFILING@ @DREENTRANT@ @dynamic_cflag@ \
-                 -DFD_TESTCONFIG=1 -I../include $(XCFLAGS)
+                 -DKNO_TESTCONFIG=1 -I../include $(XCFLAGS)
 LDFLAGS    	= -L../lib @LDFLAGS@ $(EFENCE) @TESTLDFLAGS@ -L../lib
 RPATH      	= @rpath@
 RPATHFLAGS 	= @RPATHFLAGS@
@@ -61,7 +61,7 @@ LEAKTEST	= ${TEST_ENV} ${LEAKTEST_ENV} ${LEAKTESTER:-${TESTPROG}}
 FRAMETEST_FILES	= r4rs.scm misctest.scm seqtest.scm choicetest.scm frametest.scm
 TESTBASE	= tmptest
 TESTFILE	= ${TESTBASE}.file
-FDX		= ./fdexec
+FDX		= ./knox
 OIDPOOL		= POOLTYPE=oidpool
 BIGPOOL		= POOLTYPE=bigpool
 SNAPPY		= COMPRESSION=snappy
@@ -481,79 +481,79 @@ chainscripts: execscripts
 	  echo "FAILURE: chaintest.scm failed, log in chaintest.log"; fi
 	@${header} "■■■■■■■■ Done testing scripts which call CHAIN"
 
-fdbatch_normal:
-	@${header} "■■■■■■■■ Testing fdbatch execution success and cleanliness"
+knotask_normal:
+	@${header} "■■■■■■■■ Testing knotask execution success and cleanliness"
 	@rm -f _countup.log _countup.err _countup.done
 	@rm -f  _countup.finished _countup.died _countup.pid batchscripts.log
-	@@test_env@ ../dbg/fdbatch countup.scm "_countup.finished" 10 1 QUIET=yes LOGLEVEL=3;
+	@@test_env@ ../dbg/knotask countup.scm "_countup.finished" 10 1 QUIET=yes LOGLEVEL=3;
 	@sleep 3
 	@if (test ! -f _countup.pid); then \
-	   ./batchfail fdbatch _countup.pid NOT CREATED; fi;
+	   ./batchfail knotask _countup.pid NOT CREATED; fi;
 	@sleep 12;
-	@${header} This was written by fdbatch itself
+	@${header} This was written by knotask itself
 	@if (test ! -f _countup.done); then \
-	   ./batchfail fdbatch _countup.done MISSING; fi;
+	   ./batchfail knotask _countup.done MISSING; fi;
 	@${header} This was written by the script
 	@if (test ! -f _countup.finished); then \
-           ./batchfail fdbatch _countup.finished MISSING; fi;
+           ./batchfail knotask _countup.finished MISSING; fi;
 	@if (test ! -f _countup.err); then \
-	    ./batchfail fdbatch _countup.err MISSING; fi;
+	    ./batchfail knotask _countup.err MISSING; fi;
 	@if (test ! -f _countup.log); then \
-	   ./batchfail fdbatch _countup.log MISSING; fi;
+	   ./batchfail knotask _countup.log MISSING; fi;
 	@${header} These should have been deleted on successful exit
 	@if (test -f _countup.died); then \
-	   ./batchfail fdbatch _countup.died CREATED; fi;
+	   ./batchfail knotask _countup.died CREATED; fi;
 	@if (test -f _countup.pid); then \
-	   ./batchfail fdbatch _countup.pid STILL EXISTS; fi;
+	   ./batchfail knotask _countup.pid STILL EXISTS; fi;
 	@if test -f batchscripts.failed; then 	\
 	  rm batchscripts.failed; 		\
 	else echo "SUCCESS: batchscripts/normal test succeeded"; fi
-	@${header} "■■■■■■■■ "Done with fdbatch success test""
+	@${header} "■■■■■■■■ "Done with knotask success test""
 
-fdbatch_error: fdbatch_normal
-	@${header} "■■■■■■■■ "Starting fdbatch error test""
-	@@test_env@ ../dbg/fdbatch countup.scm ERROR=yes "_countup.finished" 10 1 QUIET=yes LOGLEVEL=3;
+knotask_error: knotask_normal
+	@${header} "■■■■■■■■ "Starting knotask error test""
+	@@test_env@ ../dbg/knotask countup.scm ERROR=yes "_countup.finished" 10 1 QUIET=yes LOGLEVEL=3;
 	@sleep 12;
 	@${header} This should have been deleted by the watch process
 	@if (test -f _countup.pid); then \
-	   ./batchfail fdbatch/errtest _countup.pid still exists; fi;
+	   ./batchfail knotask/errtest _countup.pid still exists; fi;
 	@if (test -f _countup.done); then \
-	   ./batchfail fdbatch/errtest _countup.done created; fi
+	   ./batchfail knotask/errtest _countup.done created; fi
 	@${header} This should have been created at exit
 	@if (test ! -f _countup.died); then 		\
-	   ./batchfail fdbatch/errtest countup.died not created; fi
+	   ./batchfail knotask/errtest countup.died not created; fi
 	@rm -f _countup.done _countup.finished _countup.died
 	@if test -f batchscripts.failed; then 	\
 	  rm batchscripts.failed; 		\
 	else echo "SUCCESS: batchscripts/onerror test succeeded"; fi
-	@${header} "■■■■■■■■ "Done with fdbatch error test""
+	@${header} "■■■■■■■■ "Done with knotask error test""
 
-fdbatch_signal: fdbatch_error
-	@${header} "■■■■■■■■ "Starting fdbatch kill test""
-	@@test_env@ ../dbg/fdbatch countup.scm "_countup.killed" 10 1 QUIET=yes LOGLEVEL=3;
+knotask_signal: knotask_error
+	@${header} "■■■■■■■■ "Starting knotask kill test""
+	@@test_env@ ../dbg/knotask countup.scm "_countup.killed" 10 1 QUIET=yes LOGLEVEL=3;
 	@sleep 3;
 	@kill -9 `cat _countup.pid`; sleep 12
 	@${header} This should have been deleted by the watch process
 	@if (test -f _countup.pid); then \
-	   ./batchfail fdbatch/killtest _countup.pid still exists; fi;
+	   ./batchfail knotask/killtest _countup.pid still exists; fi;
 	@${header} This should have been deleted by the watch process
 	@if (test -f _countup.done); then \
-	   ./batchfail fdbatch/killtest _countup.done exists; fi;
+	   ./batchfail knotask/killtest _countup.done exists; fi;
 	@${header} This should have been created at exit by the watch process
 	@if (test ! -f _countup.died); then \
-	   ./batchfail fdbatch/killtest _countup.died missing; fi;
+	   ./batchfail knotask/killtest _countup.died missing; fi;
 	@if test -f batchscripts.failed; then 	\
 	  rm batchscripts.failed; 		\
 	else echo "SUCCESS: batchscripts/onkill test succeeded"; fi;
 	@echo "RELAX: the 'Critical (Job terminated)' warning above was expected, so don't worry about it";
-	@${header} "■■■■■■■■ "Done with fdbatch kill test""
+	@${header} "■■■■■■■■ "Done with knotask kill test""
 
-batchscripts: fdbatch_signal
+batchscripts: knotask_signal
 
 chained_batchscripts:
 	@${header} "■■■■■■■■ Testing batch scripts which call CHAIN"
 	@rm -f _chaintest.*
-	@@test_env@ ../dbg/fdbatch chaintest.scm
+	@@test_env@ ../dbg/knotask chaintest.scm
 	@${header} "■■■■■■■■ Done testing batch scripts which call CHAIN"
 
 # ATEXIT tests

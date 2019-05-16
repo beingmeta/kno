@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -11,12 +11,12 @@
 
 #define U8_INLINE_IO 1
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/tables.h"
-#include "framerd/eval.h"
-#include "framerd/ports.h"
-#include "framerd/fdweb.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/tables.h"
+#include "kno/eval.h"
+#include "kno/ports.h"
+#include "kno/fdweb.h"
 
 #include <libu8/u8xfiles.h>
 #include <libu8/u8convert.h>
@@ -38,7 +38,7 @@ static lispval parse_fieldname(u8_string start,u8_string end)
   U8_INIT_STATIC_OUTPUT_BUF(out,128,buf);
   while (scan<end) {
     int c = *scan++; u8_putc(&out,toupper(c));}
-  fieldid = fd_intern(out.u8_outbuf);
+  fieldid = kno_intern(out.u8_outbuf);
   u8_close((u8_stream)&out);
   return fieldid;
 }
@@ -66,9 +66,9 @@ const u8_byte *parse_headers(lispval s,const u8_byte *start,const u8_byte *end)
         vstart = line_end+1;
       else {
         lispval slotval=
-          fd_lispstring(u8_mime_convert
+          kno_lispstring(u8_mime_convert
                          (hstream.u8_outbuf,hstream.u8_write));
-        fd_add(s,slotid,slotval); fd_decref(slotval); hstart = line_end+1;
+        kno_add(s,slotid,slotval); kno_decref(slotval); hstart = line_end+1;
         break;}}
     if (*hstart=='\n') return hstart+1;
     else if ((*hstart=='\r') && (hstart[1]=='\n')) return hstart+2;}
@@ -90,8 +90,8 @@ static void handle_parameters(lispval fields,const u8_byte *data)
       else if (*vstart=='\'') {vstart++; vend = strchr(vstart,'\'');}
       else vend = strchr(vstart,';');
       slotid = parse_fieldname(start,equals);
-      slotval = fd_substring(vstart,vend);
-      fd_store(fields,slotid,slotval); fd_decref(slotval);
+      slotval = kno_substring(vstart,vend);
+      kno_store(fields,slotid,slotval); kno_decref(slotval);
       if (vend == NULL) start = vend;
       else if (*vend==';') start = vend+1;
       else {start = strchr(vend,';'); if (start) start++;}}
@@ -101,26 +101,26 @@ static void handle_parameters(lispval fields,const u8_byte *data)
       while (u8_isspace(c)) {start = scan; c = u8_sgetc(&scan);}}}
 }
 
-FD_EXPORT
-lispval fd_handle_compound_mime_field(lispval fields,lispval slotid,lispval orig_slotid)
+KNO_EXPORT
+lispval kno_handle_compound_mime_field(lispval fields,lispval slotid,lispval orig_slotid)
 {
-  lispval value = fd_get(fields,slotid,VOID);
+  lispval value = kno_get(fields,slotid,VOID);
   if (VOIDP(value)) return VOID;
   else if (!(STRINGP(value))) {
-    lispval err = fd_err(fd_TypeError,"fd_handle_compound_mime_field",_("string"),value);
-    fd_decref(value); return err;}
+    lispval err = kno_err(kno_TypeError,"kno_handle_compound_mime_field",_("string"),value);
+    kno_decref(value); return err;}
   else {
     lispval major_type = VOID;
     u8_string data = CSTRING(value), start = data, end, scan;
-    if (SYMBOLP(orig_slotid)) fd_store(fields,orig_slotid,value);
+    if (SYMBOLP(orig_slotid)) kno_store(fields,orig_slotid,value);
     if ((end = (strchr(start,';')))) {
-      lispval segval = fd_substring(start,end);
-      fd_store(fields,slotid,segval); fd_decref(segval);}
+      lispval segval = kno_substring(start,end);
+      kno_store(fields,slotid,segval); kno_decref(segval);}
     if ((scan = strchr(start,'/')) && ((end == NULL) || (scan<end))) {
       major_type = parse_fieldname(start,scan);
-      fd_add(fields,slotid,major_type);}
+      kno_add(fields,slotid,major_type);}
     if (end) handle_parameters(fields,end+1);
-    fd_decref(value);
+    kno_decref(value);
     return major_type;}
 }
 
@@ -140,8 +140,8 @@ static lispval convert_data(const char *start,const char *end,
     len = end-start; data = u8_malloc(len); memcpy(data,start,len);}
   if ((could_be_string) && (!(STRINGP(dataenc))) &&
       (len<50000) && ((len==0)||(u8_validate(data,len))))
-    result = fd_make_string(NULL,len,data);
-  else result = fd_make_packet(NULL,len,data);
+    result = kno_make_string(NULL,len,data);
+  else result = kno_make_packet(NULL,len,data);
   u8_free(data);
   return result;
 }
@@ -172,14 +172,14 @@ static lispval convert_text(const char *start,const char *end,
   else encoding = NULL;
   scan = data; data_end = data+len;
   u8_convert(encoding,1,&out,&scan,data_end);
-  return fd_stream2string(&out);
+  return kno_stream2string(&out);
 }
 
 static lispval convert_content(const char *start,const char *end,
                               lispval majtype,lispval dataenc,lispval charenc)
 {
   if (end == NULL) end = start+strlen(start);
-  if ((STRINGP(charenc)) || (FD_EQ(majtype,FDSYM_TEXT)))
+  if ((STRINGP(charenc)) || (KNO_EQ(majtype,FDSYM_TEXT)))
     return convert_text(start,end,dataenc,charenc);
   else return convert_data(start,end,dataenc,VOIDP(majtype));
 }
@@ -199,32 +199,32 @@ static const char *find_boundary(const char *boundary,const char *scan,
   return NULL;
 }
 
-FD_EXPORT
-lispval fd_parse_multipart_mime(lispval slotmap,const char *start,const char *end)
+KNO_EXPORT
+lispval kno_parse_multipart_mime(lispval slotmap,const char *start,const char *end)
 {
   const char *scan = start; char *boundary; int boundary_len;
   lispval charenc, dataenc;
-  lispval majtype = fd_handle_compound_mime_field
+  lispval majtype = kno_handle_compound_mime_field
     (slotmap,content_type_slotid,VOID);
   lispval parts = NIL;
-  lispval sepval = fd_get(slotmap,separator_slotid,VOID);
+  lispval sepval = kno_get(slotmap,separator_slotid,VOID);
   if (!(STRINGP(sepval))) {
-    return fd_err(NoMultiPartSeparator,"fd_parse_mime",NULL,slotmap);}
-  fd_handle_compound_mime_field(slotmap,content_disposition_slotid,VOID);
-  charenc = fd_get(slotmap,charset_slotid,VOID);
-  dataenc = fd_get(slotmap,encoding_slotid,VOID);
+    return kno_err(NoMultiPartSeparator,"kno_parse_mime",NULL,slotmap);}
+  kno_handle_compound_mime_field(slotmap,content_disposition_slotid,VOID);
+  charenc = kno_get(slotmap,charset_slotid,VOID);
+  dataenc = kno_get(slotmap,encoding_slotid,VOID);
   boundary = u8_malloc(STRLEN(sepval)+5);
   strcpy(boundary,"\r\n--"); strcat(boundary,CSTRING(sepval));
   boundary_len = STRLEN(sepval)+4;
   start = scan; scan = find_boundary(boundary,start,end-start,boundary_len,1);
   if (scan == NULL) {
-    fd_store(slotmap,preamble_slotid,
+    kno_store(slotmap,preamble_slotid,
              convert_content(start,scan,majtype,dataenc,charenc));
-    fd_store(slotmap,parts_slotid,NIL);}
+    kno_store(slotmap,parts_slotid,NIL);}
   else {
     lispval *point = &parts;
     if (scan>start)
-      fd_store(slotmap,preamble_slotid,
+      kno_store(slotmap,preamble_slotid,
                convert_content(scan,end,majtype,dataenc,charenc));
     start = scan+boundary_len;
     while (start<end) {
@@ -238,69 +238,69 @@ lispval fd_parse_multipart_mime(lispval slotmap,const char *start,const char *en
       /* Find the end of the encapsluation */
       scan = find_boundary(boundary,start,end-start,boundary_len,0);
       if (scan)
-        new_pair = fd_conspair(fd_parse_mime(start,scan),NIL);
+        new_pair = kno_conspair(kno_parse_mime(start,scan),NIL);
       else new_pair=
-             fd_conspair(fd_parse_mime(start,end),NIL);
-      *point = new_pair; point = &(FD_CDR(new_pair));
+             kno_conspair(kno_parse_mime(start,end),NIL);
+      *point = new_pair; point = &(KNO_CDR(new_pair));
       if (scan == NULL)  break;
       else start = scan+boundary_len;}
-    fd_store(slotmap,parts_slotid,parts);}
+    kno_store(slotmap,parts_slotid,parts);}
   return parts;
 }
 
-FD_EXPORT
-lispval fd_parse_mime(const char *start,const char *end)
+KNO_EXPORT
+lispval kno_parse_mime(const char *start,const char *end)
 {
-  lispval slotmap = fd_empty_slotmap();
+  lispval slotmap = kno_empty_slotmap();
   const char *scan = parse_headers(slotmap,start,end);
-  lispval majtype = fd_handle_compound_mime_field
+  lispval majtype = kno_handle_compound_mime_field
     (slotmap,content_type_slotid,VOID);
   lispval charenc, dataenc;
-  fd_handle_compound_mime_field(slotmap,content_disposition_slotid,VOID);
-  if (FD_ABORTP(majtype))
+  kno_handle_compound_mime_field(slotmap,content_disposition_slotid,VOID);
+  if (KNO_ABORTP(majtype))
     return majtype;
-  charenc = fd_get(slotmap,charset_slotid,VOID);
-  dataenc = fd_get(slotmap,encoding_slotid,VOID);
-  if (fd_test(slotmap,content_type_slotid,multipart_symbol)) {
-    lispval parts = fd_parse_multipart_mime(slotmap,scan,end);
-    fd_decref(parts); return slotmap;}
+  charenc = kno_get(slotmap,charset_slotid,VOID);
+  dataenc = kno_get(slotmap,encoding_slotid,VOID);
+  if (kno_test(slotmap,content_type_slotid,multipart_symbol)) {
+    lispval parts = kno_parse_multipart_mime(slotmap,scan,end);
+    kno_decref(parts); return slotmap;}
   else {
     lispval content = convert_content(scan,end,majtype,dataenc,charenc);
-    fd_store(slotmap,content_slotid,content);
-    fd_decref(content);}
-  fd_decref(charenc); fd_decref(dataenc);
+    kno_store(slotmap,content_slotid,content);
+    kno_decref(content);}
+  kno_decref(charenc); kno_decref(dataenc);
   return slotmap;
 }
 
 static lispval parse_mime_data(lispval arg)
 {
   if (PACKETP(arg))
-    return fd_parse_mime(FD_PACKET_DATA(arg),
-                         FD_PACKET_DATA(arg)+FD_PACKET_LENGTH(arg));
+    return kno_parse_mime(KNO_PACKET_DATA(arg),
+                         KNO_PACKET_DATA(arg)+KNO_PACKET_LENGTH(arg));
   else if (STRINGP(arg))
-    return fd_parse_mime(CSTRING(arg),
+    return kno_parse_mime(CSTRING(arg),
                          CSTRING(arg)+STRLEN(arg));
-  else return fd_type_error(_("mime data"),"parse_mime_data",arg);
+  else return kno_type_error(_("mime data"),"parse_mime_data",arg);
 }
 
 
 /* Module initialization */
 
-void fd_init_mime_c()
+void kno_init_mime_c()
 {
-  lispval module = fd_new_module("FDWEB",(FD_MODULE_SAFE));
-  fd_idefn(module,fd_make_cprim1("PARSE-MIME",parse_mime_data,1));
+  lispval module = kno_new_module("FDWEB",(KNO_MODULE_SAFE));
+  kno_idefn(module,kno_make_cprim1("PARSE-MIME",parse_mime_data,1));
 
-  content_slotid = fd_intern("CONTENT");
-  charset_slotid = fd_intern("CHARSET");
-  encoding_slotid = fd_intern("CONTENT-TRANSFER-ENCODING");
-  content_type_slotid = fd_intern("CONTENT-TYPE");
-  content_disposition_slotid = fd_intern("CONTENT-DISPOSITION");
-  separator_slotid = fd_intern("BOUNDARY");
-  multipart_symbol = fd_intern("MULTIPART");
-  headers_slotid = fd_intern("HEADERS");
-  preamble_slotid = fd_intern("PREAMBLE");
-  parts_slotid = fd_intern("PARTS");
+  content_slotid = kno_intern("CONTENT");
+  charset_slotid = kno_intern("CHARSET");
+  encoding_slotid = kno_intern("CONTENT-TRANSFER-ENCODING");
+  content_type_slotid = kno_intern("CONTENT-TYPE");
+  content_disposition_slotid = kno_intern("CONTENT-DISPOSITION");
+  separator_slotid = kno_intern("BOUNDARY");
+  multipart_symbol = kno_intern("MULTIPART");
+  headers_slotid = kno_intern("HEADERS");
+  preamble_slotid = kno_intern("PREAMBLE");
+  parts_slotid = kno_intern("PARTS");
 
   u8_register_source_file(_FILEINFO);
 }

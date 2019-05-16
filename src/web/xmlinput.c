@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -11,12 +11,12 @@
 
 #define U8_INLINE_IO 1
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/tables.h"
-#include "framerd/eval.h"
-#include "framerd/ports.h"
-#include "framerd/fdweb.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/tables.h"
+#include "kno/eval.h"
+#include "kno/ports.h"
+#include "kno/fdweb.h"
 
 #include <libu8/u8xfiles.h>
 
@@ -30,13 +30,13 @@
 
 static lispval make_slotmap()
 {
-  lispval slotmap = fd_empty_slotmap();
-  if (!(FD_ABORTP(slotmap)))
-    fd_sort_slotmap(slotmap,1);
+  lispval slotmap = kno_empty_slotmap();
+  if (!(KNO_ABORTP(slotmap)))
+    kno_sort_slotmap(slotmap,1);
   return slotmap;
 }
 
-u8_condition fd_XMLParseError=_("XML parsing error");
+u8_condition kno_XMLParseError=_("XML parsing error");
 
 #define hasprefix(px,str) ((strncmp(px,str,strlen(px))==0))
 
@@ -67,12 +67,12 @@ static u8_string deentify(u8_string arg,u8_string lim)
   return out.u8_outbuf;
 }
 
-FD_EXPORT u8_string fd_deentify(u8_string arg,u8_string lim)
+KNO_EXPORT u8_string kno_deentify(u8_string arg,u8_string lim)
 {
   return deentify(arg,lim);
 }
 
-FD_EXPORT lispval fd_convert_entities(u8_string arg,u8_string lim)
+KNO_EXPORT lispval kno_convert_entities(u8_string arg,u8_string lim)
 {
   U8_OUTPUT out;
   const u8_byte *scan = arg;
@@ -88,7 +88,7 @@ FD_EXPORT lispval fd_convert_entities(u8_string arg,u8_string lim)
         u8_putc(&out,code); scan = end;
         c = u8_sgetc(&scan);}}
     else {u8_putc(&out,c); c = u8_sgetc(&scan);}
-  return fd_stream2string(&out);
+  return kno_stream2string(&out);
 }
 
 static lispval rawtag_symbol, content_symbol;
@@ -105,10 +105,10 @@ static lispval nsref2slotid(u8_string s)
 {
   u8_string colon = strchr(s,':');
   u8_string start = (((colon) && (colon[1]!='\0')) ? (colon+1) : (s));
-  lispval v = fd_parse(start);
-  if (FD_ABORTP(v)) {
-    fd_decref(v);
-    return fd_intern(start);}
+  lispval v = kno_parse(start);
+  if (KNO_ABORTP(v)) {
+    kno_decref(v);
+    return kno_intern(start);}
   else return v;
 }
 
@@ -155,7 +155,7 @@ static lispval decode_entities(lispval input)
   U8_INIT_OUTPUT(&out,STRLEN(input));
   while (c>=0) {
     u8_putc(&out,c); c = egetc(&scan);}
-  return fd_stream2string(&out);
+  return kno_stream2string(&out);
 }
 
 static u8_string block_elts[]=
@@ -232,8 +232,8 @@ static u8_string read_xmltag(u8_input in,u8_byte **buf,
   return out.u8_outbuf;
 }
 
-FD_EXPORT
-void *fd_walk_markup(U8_INPUT *in,
+KNO_EXPORT
+void *kno_walk_markup(U8_INPUT *in,
                      void *(*contentfn)(void *,u8_string),
                      void *(*markupfn)(void *,u8_string),
                      void *data)
@@ -255,44 +255,44 @@ void *fd_walk_markup(U8_INPUT *in,
 
 /* XML handling */
 
-static void set_elt_name(FD_XML *,u8_string);
+static void set_elt_name(KNO_XML *,u8_string);
 
-static void init_node(FD_XML *node,FD_XML *parent,u8_string name)
+static void init_node(KNO_XML *node,KNO_XML *parent,u8_string name)
 {
   node->xml_eltname = name;
   node->xml_head = NIL;
   node->xml_content_tail = NULL;
   node->xml_attribs = EMPTY;
   node->xml_parent = parent;
-  if (parent) node->xml_bits = ((parent->xml_bits)&(FD_XML_INHERIT_BITS));
-  else node->xml_bits = FD_XML_DEFAULT_BITS;
+  if (parent) node->xml_bits = ((parent->xml_bits)&(KNO_XML_INHERIT_BITS));
+  else node->xml_bits = KNO_XML_DEFAULT_BITS;
   node->xml_namespace = NULL; node->xml_nsmap = NULL;
   node->xml_size = 0; node->xml_limit = 0; node->xml_data = NULL;
-  if (((node->xml_bits)&(FD_XML_ISHTML)) && (strcasecmp(name,"P")==0))
-    node->xml_bits = node->xml_bits|FD_XML_INPARA;
+  if (((node->xml_bits)&(KNO_XML_ISHTML)) && (strcasecmp(name,"P")==0))
+    node->xml_bits = node->xml_bits|KNO_XML_INPARA;
 }
 
-static void init_node_attribs(struct FD_XML *node)
+static void init_node_attribs(struct KNO_XML *node)
 {
   if (EMPTYP(node->xml_attribs))
     node->xml_attribs = make_slotmap();
   set_elt_name(node,node->xml_eltname);
 }
 
-FD_EXPORT
-void fd_init_xml_node(FD_XML *node,FD_XML *parent,u8_string name)
+KNO_EXPORT
+void kno_init_xml_node(KNO_XML *node,KNO_XML *parent,u8_string name)
 {
   init_node(node,parent,name);
 }
 
-FD_EXPORT void fd_init_xml_attribs(struct FD_XML *node)
+KNO_EXPORT void kno_init_xml_attribs(struct KNO_XML *node)
 {
   if (EMPTYP(node->xml_attribs))
     node->xml_attribs = make_slotmap();
   set_elt_name(node,node->xml_eltname);
 }
 
-static void free_nsinfo(FD_XML *node)
+static void free_nsinfo(KNO_XML *node)
 {
   if (node->xml_nsmap) {
     int i = 0, lim = node->xml_size;
@@ -302,11 +302,11 @@ static void free_nsinfo(FD_XML *node)
   if (node->xml_namespace) u8_free(node->xml_namespace);
 }
 
-static void free_node(FD_XML *node,int full)
+static void free_node(KNO_XML *node,int full)
 {
   free_nsinfo(node);
-  fd_decref(node->xml_attribs);
-  fd_decref(node->xml_head);
+  kno_decref(node->xml_attribs);
+  kno_decref(node->xml_head);
   if (node->xml_eltname) u8_free(node->xml_eltname);
   if (full) u8_free(node);
 }
@@ -316,24 +316,24 @@ static lispval make_qid(u8_string eltname,u8_string namespace)
   if (namespace) {
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,32);
     u8_printf(&out,"{%s}%s",namespace,eltname);
-    return fd_stream2string(&out);}
+    return kno_stream2string(&out);}
   else return lispval_string(eltname);
 }
 
-FD_EXPORT lispval fd_make_qid(u8_string eltname,u8_string namespace)
+KNO_EXPORT lispval kno_make_qid(u8_string eltname,u8_string namespace)
 {
   return make_qid(eltname,namespace);
 }
 
-FD_EXPORT void fd_free_xml_node(FD_XML *node)
+KNO_EXPORT void kno_free_xml_node(KNO_XML *node)
 {
   free_nsinfo(node);
-  fd_decref(node->xml_attribs);
-  fd_decref(node->xml_head);
+  kno_decref(node->xml_attribs);
+  kno_decref(node->xml_head);
   if (node->xml_eltname) u8_free(node->xml_eltname);
 }
 
-static void ns_add(FD_XML *xml,u8_string prefix,u8_string url)
+static void ns_add(KNO_XML *xml,u8_string prefix,u8_string url)
 {
   int prefix_len = strlen(prefix), url_len = strlen(url);
   u8_byte *entry = u8_malloc(prefix_len+url_len+2);
@@ -347,11 +347,11 @@ static void ns_add(FD_XML *xml,u8_string prefix,u8_string url)
   xml->xml_nsmap[xml->xml_size++]=entry;
 }
 
-static u8_string ns_get(FD_XML *xml,u8_string s,u8_string *nsp)
+static u8_string ns_get(KNO_XML *xml,u8_string s,u8_string *nsp)
 {
   u8_byte *colon = strchr(s,':');
   if (colon == NULL) {
-    FD_XML *scan = xml; while (scan)
+    KNO_XML *scan = xml; while (scan)
       if (scan->xml_namespace) {
         *nsp = scan->xml_namespace; return s;}
       else scan = scan->xml_parent;
@@ -359,7 +359,7 @@ static u8_string ns_get(FD_XML *xml,u8_string s,u8_string *nsp)
     return s;}
   else {
     int prefix_len = (colon-s)+1;
-    FD_XML *scan = xml; while (scan)
+    KNO_XML *scan = xml; while (scan)
       if (scan->xml_nsmap) {
         int i = 0, len = scan->xml_size;
         u8_string *nsmap = scan->xml_nsmap;
@@ -374,13 +374,13 @@ static u8_string ns_get(FD_XML *xml,u8_string s,u8_string *nsp)
     return s;}
 }
 
-FD_EXPORT
-u8_string fd_xmlns_lookup(FD_XML *xml,u8_string s,u8_string *nsp)
+KNO_EXPORT
+u8_string kno_xmlns_lookup(KNO_XML *xml,u8_string s,u8_string *nsp)
 {
   return ns_get(xml,s,nsp);
 }
 
-static int process_nsattrib(FD_XML *xml,u8_string name,u8_string val)
+static int process_nsattrib(KNO_XML *xml,u8_string name,u8_string val)
 {
   u8_byte *nsprefix;
   if (EMPTYP(xml->xml_attribs)) init_node_attribs(xml);
@@ -388,15 +388,15 @@ static int process_nsattrib(FD_XML *xml,u8_string name,u8_string val)
     if (strlen(name)==5) {
       lispval nsval = lispval_string(val);
       xml->xml_namespace = u8_strdup(val);
-      fd_add(xml->xml_attribs,xmlns_symbol,nsval);
-      fd_decref(nsval);
+      kno_add(xml->xml_attribs,xmlns_symbol,nsval);
+      kno_decref(nsval);
       return 1;}
     else if ((nsprefix = (strchr(name,':')))) {
       lispval entry=
-        fd_conspair(lispval_string(nsprefix+1),lispval_string(val));
+        kno_conspair(lispval_string(nsprefix+1),lispval_string(val));
       ns_add(xml,nsprefix+1,val);
-      fd_add(xml->xml_attribs,xmlns_symbol,entry);
-      fd_decref(entry);
+      kno_add(xml->xml_attribs,xmlns_symbol,entry);
+      kno_decref(entry);
       return 1;}
     else return 0;
   else return 0;
@@ -412,63 +412,63 @@ static int allspacep(u8_string s)
 static lispval item2list(lispval item,int parse_entities)
 {
   if ((STRINGP(item)) && (parse_entities)) {
-    lispval result = fd_make_list(1,decode_entities(item));
-    fd_decref(item);
+    lispval result = kno_make_list(1,decode_entities(item));
+    kno_decref(item);
     return result;}
-  else return fd_make_list(1,item);
+  else return kno_make_list(1,item);
 }
 
-static void add_content(struct FD_XML *node,lispval item)
+static void add_content(struct KNO_XML *node,lispval item)
 {
   if ((STRINGP(item)) &&
-      (((FD_STRING_LENGTH(item))==0) ||
-       ((node->xml_bits&FD_XML_CRUSHSPACE)&&
+      (((KNO_STRING_LENGTH(item))==0) ||
+       ((node->xml_bits&KNO_XML_CRUSHSPACE)&&
         (allspacep(CSTRING(item)))))) {
-    fd_decref(item);
+    kno_decref(item);
     return;}
   else {
     lispval entry;
     if (STRINGP(item)) {
       int parse_entities=
-        (((node->xml_bits)&(FD_XML_DECODE_ENTITIES)) &&
+        (((node->xml_bits)&(KNO_XML_DECODE_ENTITIES)) &&
          (strchr(CSTRING(item),'&')!=NULL));
       entry = item2list(item,parse_entities);}
-    else entry = fd_make_list(1,item);
+    else entry = kno_make_list(1,item);
     if (node->xml_content_tail == NULL) {
       node->xml_head = entry;
-      node->xml_content_tail = (struct FD_PAIR *)entry;}
+      node->xml_content_tail = (struct KNO_PAIR *)entry;}
     else {
       node->xml_content_tail->cdr = entry;
-      node->xml_content_tail = (struct FD_PAIR *)entry;}}
+      node->xml_content_tail = (struct KNO_PAIR *)entry;}}
 }
-FD_EXPORT void fd_add_content(struct FD_XML *node,lispval item)
+KNO_EXPORT void kno_add_content(struct KNO_XML *node,lispval item)
 {
   add_content(node,item);
 }
 
-static void set_elt_name(FD_XML *xml,u8_string name)
+static void set_elt_name(KNO_XML *xml,u8_string name)
 {
   u8_string ns = NULL, eltname = ns_get(xml,name,&ns);
   lispval lispname = nsref2slotid(eltname);
   lispval qlispname = nsref2slotid(name);
-  if ((ns) && ((xml->xml_bits&FD_XML_NSFREE)==0)) {
+  if ((ns) && ((xml->xml_bits&KNO_XML_NSFREE)==0)) {
     lispval namespace = lispval_string(ns);
     lispval qname = make_qid(eltname,ns);
-    fd_store(xml->xml_attribs,rawtag_symbol,fd_intern(name));
-    fd_add(xml->xml_attribs,namespace_symbol,namespace);
-    fd_add(xml->xml_attribs,qname_symbol,qname);
-    fd_decref(namespace);
-    fd_decref(qname);}
-  fd_add(xml->xml_attribs,xmltag_symbol,lispname);
-  fd_add(xml->xml_attribs,qname_symbol,qlispname);
-  fd_decref(qlispname);
-  fd_decref(lispname);
+    kno_store(xml->xml_attribs,rawtag_symbol,kno_intern(name));
+    kno_add(xml->xml_attribs,namespace_symbol,namespace);
+    kno_add(xml->xml_attribs,qname_symbol,qname);
+    kno_decref(namespace);
+    kno_decref(qname);}
+  kno_add(xml->xml_attribs,xmltag_symbol,lispname);
+  kno_add(xml->xml_attribs,qname_symbol,qlispname);
+  kno_decref(qlispname);
+  kno_decref(lispname);
 }
 
 /* Parsing XML tags */
 
-FD_EXPORT
-int fd_parse_xmltag(u8_byte **scanner,u8_byte *end,
+KNO_EXPORT
+int kno_parse_xmltag(u8_byte **scanner,u8_byte *end,
                      const u8_byte **attribs,int max_attribs,
                      int sloppy)
 {
@@ -513,7 +513,7 @@ int fd_parse_xmltag(u8_byte **scanner,u8_byte *end,
           scan = (u8_byte *)lookahead;
           c = u8_sgetc(&lookahead);}}
       else {
-        fd_seterr3(fd_XMLParseError,"unclosed quote in attribute",
+        kno_seterr3(kno_XMLParseError,"unclosed quote in attribute",
                    xmlsnip(*scanner));
         return -1;}}
     else if (*scan=='"') {
@@ -533,7 +533,7 @@ int fd_parse_xmltag(u8_byte **scanner,u8_byte *end,
             scan = (u8_byte *)lookahead;
             c = u8_sgetc(&lookahead);}}
       else {
-        fd_seterr3(fd_XMLParseError,"unclosed quote in attribute",
+        kno_seterr3(kno_XMLParseError,"unclosed quote in attribute",
                    xmlsnip(*scanner));
         return -1;}}
     else if (*scan=='=') {
@@ -553,12 +553,12 @@ int fd_parse_xmltag(u8_byte **scanner,u8_byte *end,
   return n_attribs;
 }
 /* Old name, keeping around until the next ABI update */
-FD_EXPORT
-int fd_parse_element(u8_byte **scanner,u8_byte *end,
+KNO_EXPORT
+int kno_parse_element(u8_byte **scanner,u8_byte *end,
                      const u8_byte **elts,int max_elts,
                      int sloppy)
 {
-  return fd_parse_xmltag(scanner,end,elts,max_elts,sloppy);
+  return kno_parse_xmltag(scanner,end,elts,max_elts,sloppy);
 }
 
 
@@ -573,10 +573,10 @@ static int _tag_matchp(u8_string buf,u8_string tagname,int len)
 
 #define tagmatchp(buf,name) (_tag_matchp((buf),(name),(strlen(name))))
 
-FD_EXPORT
-fd_xmlelt_type fd_get_markup_type(u8_string buf,int len,int html)
+KNO_EXPORT
+kno_xmlelt_type kno_get_markup_type(u8_string buf,int len,int html)
 {
-  fd_xmlelt_type elt_type;
+  kno_xmlelt_type elt_type;
   const u8_byte *start = buf, *end = buf+(len-1);
   while ((start<end) && (isspace(*start))) start++;
   while ((end>start) && (isspace(*end))) end--;
@@ -602,8 +602,8 @@ fd_xmlelt_type fd_get_markup_type(u8_string buf,int len,int html)
 
 /* Attribute processing */
 
-static void process_attribs(int (*attribfn)(FD_XML *,u8_string,u8_string,int),
-                            FD_XML *xml,u8_string *attribs,int n)
+static void process_attribs(int (*attribfn)(KNO_XML *,u8_string,u8_string,int),
+                            KNO_XML *xml,u8_string *attribs,int n)
 {
   int i = 0; while (i< n) {
     u8_byte *item = (u8_byte *)attribs[i++], *end = item+strlen(item)-1;
@@ -625,115 +625,115 @@ static void process_attribs(int (*attribfn)(FD_XML *,u8_string,u8_string,int),
           val = scan; c = u8_sgetc(&scan);}}
       else val = equals+1;
       /* We don't have to worry about where the item ends
-         (that was handled by fd_parse_xmltag) but we do need to
+         (that was handled by kno_parse_xmltag) but we do need to
          strip off any quotes. */
       if ((c=='"')||(c=='\'')) {quote = c; val++;}
       *name_end='\0';
       if (*end == quote) *end='\0';
       if (process_nsattrib(xml,name,val)) {}
       else if ((attribfn) && (attribfn(xml,name,val,quote))) {}
-      else fd_default_attribfn(xml,name,val,quote);}
+      else kno_default_attribfn(xml,name,val,quote);}
     else if ((attribfn) && (attribfn(xml,item,NULL,-1))) {}
-    else fd_default_attribfn(xml,item,NULL,-1);}
+    else kno_default_attribfn(xml,item,NULL,-1);}
 }
 
 /* Defaults */
 
-FD_EXPORT
-void fd_default_contentfn(FD_XML *node,u8_string s,int len)
+KNO_EXPORT
+void kno_default_contentfn(KNO_XML *node,u8_string s,int len)
 {
   if (strncmp(s,"<!--",4)==0) {
     lispval cnode = make_slotmap();
-    lispval comment_string = fd_substring(s+4,s+(len-3));
-    lispval comment_content = fd_conspair(comment_string,NIL);
-    fd_store(cnode,xmltag_symbol,comment_symbol);
-    fd_store(cnode,content_symbol,comment_content);
-    fd_decref(comment_content);
+    lispval comment_string = kno_substring(s+4,s+(len-3));
+    lispval comment_content = kno_conspair(comment_string,NIL);
+    kno_store(cnode,xmltag_symbol,comment_symbol);
+    kno_store(cnode,content_symbol,comment_content);
+    kno_decref(comment_content);
     add_content(node,cnode);}
   else if (strncmp(s,"<![CDATA[",9)==0) {
     lispval cnode = make_slotmap();
-    lispval cdata_string = fd_substring(s+9,s+(len-3));
-    lispval cdata_content = fd_conspair(cdata_string,NIL);
-    fd_store(cnode,xmltag_symbol,cdata_symbol);
-    fd_store(cnode,content_symbol,cdata_content);
-    fd_decref(cdata_content);
+    lispval cdata_string = kno_substring(s+9,s+(len-3));
+    lispval cdata_content = kno_conspair(cdata_string,NIL);
+    kno_store(cnode,xmltag_symbol,cdata_symbol);
+    kno_store(cnode,content_symbol,cdata_content);
+    kno_decref(cdata_content);
     add_content(node,cnode);}
-  else add_content(node,fd_make_string(NULL,len,s));
+  else add_content(node,kno_make_string(NULL,len,s));
 }
 
-FD_EXPORT
-void fd_default_pifn(FD_XML *node,u8_string s,int len)
+KNO_EXPORT
+void kno_default_pifn(KNO_XML *node,u8_string s,int len)
 {
   u8_byte *buf = u8_malloc(len+3);
   strcpy(buf,"<"); strcat(buf,s); strcat(buf+len,">");
-  add_content(node,fd_init_string(NULL,len+2,buf));
+  add_content(node,kno_init_string(NULL,len+2,buf));
 }
 
-static int slotify_nodep(FD_XML *node)
+static int slotify_nodep(KNO_XML *node)
 {
-  if ((node->xml_bits&FD_XML_NOEMPTY)==0) return 1;
+  if ((node->xml_bits&KNO_XML_NOEMPTY)==0) return 1;
   else if (PAIRP(node->xml_head)) return 1;
   else if (EMPTYP(node->xml_attribs)) return 0;
   else if (!(SLOTMAPP(node->xml_attribs)))
     /* Not sure this case ever happens */
     return 1;
-  else if (FD_SLOTMAP_NUSED(node->xml_attribs)>1) return 1;
+  else if (KNO_SLOTMAP_NUSED(node->xml_attribs)>1) return 1;
   else return 0;
 }
 
 static void cleanup_attribs(lispval table);
 
-FD_EXPORT
-FD_XML *fd_default_popfn(FD_XML *node)
+KNO_EXPORT
+KNO_XML *kno_default_popfn(KNO_XML *node)
 {
   if (EMPTYP(node->xml_attribs)) init_node_attribs(node);
   if (PAIRP(node->xml_head))
-    fd_add(node->xml_attribs,content_symbol,node->xml_head);
+    kno_add(node->xml_attribs,content_symbol,node->xml_head);
   cleanup_attribs(node->xml_attribs);
-  if (((node->xml_bits&FD_XML_NOCONTENTS)==0) ||
+  if (((node->xml_bits&KNO_XML_NOCONTENTS)==0) ||
       (node->xml_parent == NULL) ||
       (node->xml_parent->xml_parent == NULL)) {
     if (node->xml_parent!=NULL) {
       add_content(node->xml_parent,node->xml_attribs);
       node->xml_attribs = EMPTY;}}
-  if ((node->xml_bits&FD_XML_SLOTIFY) && (slotify_nodep(node))) {
+  if ((node->xml_bits&KNO_XML_SLOTIFY) && (slotify_nodep(node))) {
     lispval slotid;
     if (EMPTYP(node->xml_parent->xml_attribs))
       init_node_attribs(node->xml_parent);
-    slotid = fd_get(node->xml_attribs,xmltag_symbol,EMPTY);
-    if ((node->xml_bits)&FD_XML_KEEP_RAW)
-      add_content(node->xml_parent,fd_incref(node->xml_attribs));
-    node->xml_parent->xml_bits = node->xml_parent->xml_bits|FD_XML_HASDATA;
+    slotid = kno_get(node->xml_attribs,xmltag_symbol,EMPTY);
+    if ((node->xml_bits)&KNO_XML_KEEP_RAW)
+      add_content(node->xml_parent,kno_incref(node->xml_attribs));
+    node->xml_parent->xml_bits = node->xml_parent->xml_bits|KNO_XML_HASDATA;
     if ((PAIRP(node->xml_head)) &&
-        (!((node->xml_bits)&FD_XML_HASDATA)) &&
-        (!(PAIRP(FD_CDR(node->xml_head)))))
-      fd_add(node->xml_parent->xml_attribs,slotid,FD_CAR(node->xml_head));
-    else fd_add(node->xml_parent->xml_attribs,slotid,node->xml_attribs);}
+        (!((node->xml_bits)&KNO_XML_HASDATA)) &&
+        (!(PAIRP(KNO_CDR(node->xml_head)))))
+      kno_add(node->xml_parent->xml_attribs,slotid,KNO_CAR(node->xml_head));
+    else kno_add(node->xml_parent->xml_attribs,slotid,node->xml_attribs);}
   return node->xml_parent;
 }
 
 static void cleanup_attribs(lispval table)
 {
   if (SLOTMAPP(table)) {
-    struct FD_SLOTMAP *sm = (struct FD_SLOTMAP *)table;
-    struct FD_KEYVAL *scan, *limit; int unlock = 0, size;
+    struct KNO_SLOTMAP *sm = (struct KNO_SLOTMAP *)table;
+    struct KNO_KEYVAL *scan, *limit; int unlock = 0, size;
     if (sm->table_uselock) { u8_read_lock(&sm->table_rwlock); unlock = 1;}
-    size = FD_XSLOTMAP_NUSED(sm); scan = sm->sm_keyvals; limit = scan+size;
+    size = KNO_XSLOTMAP_NUSED(sm); scan = sm->sm_keyvals; limit = scan+size;
     if (size==0) {
       if (unlock) u8_rw_unlock(&sm->table_rwlock);
       return;}
     while (scan < limit) {
       lispval val = scan->kv_val;
       if (PRECHOICEP(val))
-        scan->kv_val = fd_simplify_choice(val);
+        scan->kv_val = kno_simplify_choice(val);
       scan++;}
     if (unlock) u8_rw_unlock(&sm->table_rwlock);}
 }
 
-FD_EXPORT
-FD_XML *fd_xml_push
-  (FD_XML *newnode,FD_XML *node,fd_xmlelt_type type,
-   int (*attribfn)(FD_XML *,u8_string,u8_string,int),
+KNO_EXPORT
+KNO_XML *kno_xml_push
+  (KNO_XML *newnode,KNO_XML *node,kno_xmlelt_type type,
+   int (*attribfn)(KNO_XML *,u8_string,u8_string,int),
    u8_string *elts,int n_elts)
 {
   u8_string name = u8_strdup(elts[0]);
@@ -743,15 +743,15 @@ FD_XML *fd_xml_push
   return newnode;
 }
 
-static lispval fd_lispify(u8_string arg)
+static lispval kno_lispify(u8_string arg)
 {
-  if (*arg==':') return fd_parse(arg+1);
+  if (*arg==':') return kno_parse(arg+1);
   else return lispval_string(arg);
 }
 
 static lispval parse_attribname(u8_string string)
 {
-  lispval parsed = fd_parse(string);
+  lispval parsed = kno_parse(string);
   if ((SYMBOLP(parsed))||(OIDP(parsed))) return parsed;
   else {
     u8_log(LOG_WARNING,"BadAttribName",
@@ -761,42 +761,42 @@ static lispval parse_attribname(u8_string string)
 
 static lispval attribids;
 
-FD_EXPORT
-int fd_default_attribfn(FD_XML *xml,u8_string name,u8_string val,int quote)
+KNO_EXPORT
+int kno_default_attribfn(KNO_XML *xml,u8_string name,u8_string val,int quote)
 {
   u8_string namespace, attrib_name = ns_get(xml,name,&namespace);
   lispval slotid = parse_attribname(name);
   lispval slotval = ((val)?
                   (((val[0]=='\0')||(val[0]=='#')) ?
                    (lispval_string(val)) :
-                   (quote<0) ? (fd_lispify(val)) :
-                   (fd_convert_entities(val,NULL))) :
-                  (FD_FALSE));
+                   (quote<0) ? (kno_lispify(val)) :
+                   (kno_convert_entities(val,NULL))) :
+                  (KNO_FALSE));
   lispval attrib_entry = VOID;
   if (EMPTYP(xml->xml_attribs)) init_node_attribs(xml);
-  xml->xml_bits = xml->xml_bits|FD_XML_HASDATA;
-  fd_add(xml->xml_attribs,slotid,slotval);
+  xml->xml_bits = xml->xml_bits|KNO_XML_HASDATA;
+  kno_add(xml->xml_attribs,slotid,slotval);
   if (namespace) {
-    fd_add(xml->xml_attribs,parse_attribname(attrib_name),slotval);
+    kno_add(xml->xml_attribs,parse_attribname(attrib_name),slotval);
     attrib_entry=
-      fd_make_nvector(3,lispval_string(name),make_qid(attrib_name,namespace),
+      kno_make_nvector(3,lispval_string(name),make_qid(attrib_name,namespace),
                       slotval);}
   else attrib_entry=
-         fd_make_nvector(3,lispval_string(name),FD_FALSE,slotval);
-  fd_add(xml->xml_attribs,attribids,slotid);
-  fd_add(xml->xml_attribs,attribs_symbol,attrib_entry);
-  fd_decref(attrib_entry);
+         kno_make_nvector(3,lispval_string(name),KNO_FALSE,slotval);
+  kno_add(xml->xml_attribs,attribids,slotid);
+  kno_add(xml->xml_attribs,attribs_symbol,attrib_entry);
+  kno_decref(attrib_entry);
   return 1;
 }
 
 /* This attribute function always stores strings and never parses the args. */
 
-static FD_XML *autoclose(FD_XML *node,u8_string name,
-                         FD_XML *(*popfn)(FD_XML *))
+static KNO_XML *autoclose(KNO_XML *node,u8_string name,
+                         KNO_XML *(*popfn)(KNO_XML *))
 {
-  FD_XML *scan = node->xml_parent; while (scan)
+  KNO_XML *scan = node->xml_parent; while (scan)
     if (strcmp(scan->xml_eltname,name)==0) {
-      FD_XML *freescan = node, *retval, *next;
+      KNO_XML *freescan = node, *retval, *next;
       while (freescan) {
         if (freescan == scan) break;
         if ((retval = popfn(freescan))!=freescan->xml_parent)
@@ -813,19 +813,19 @@ static FD_XML *autoclose(FD_XML *node,u8_string name,
 
 static
 /* This is the inner step of the XML parsing loop. */
-FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
+KNO_XML *xmlstep(KNO_XML *node,kno_xmlelt_type type,
                 u8_string *elts,int n_elts,
-                int (*attribfn)(FD_XML *,u8_string,u8_string,int),
-                FD_XML *(*pushfn)(FD_XML *,fd_xmlelt_type,u8_string *,int),
-                FD_XML *(*popfn)(FD_XML *))
+                int (*attribfn)(KNO_XML *,u8_string,u8_string,int),
+                KNO_XML *(*pushfn)(KNO_XML *,kno_xmlelt_type,u8_string *,int),
+                KNO_XML *(*popfn)(KNO_XML *))
 {
   switch (type) {
   case xmlempty:
     if (pushfn) {
-      struct FD_XML *newnode = pushfn(node,type,elts,n_elts);
+      struct KNO_XML *newnode = pushfn(node,type,elts,n_elts);
       if (EMPTYP(node->xml_attribs)) init_node_attribs(node);
       if (newnode != node) {
-        struct FD_XML *retnode;
+        struct KNO_XML *retnode;
         retnode = popfn(newnode);
         if (retnode!=newnode)
           free_node(newnode,1);
@@ -833,7 +833,7 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
       else {}
       return node;}
     else {
-      struct FD_XML newnode, *retnode;
+      struct KNO_XML newnode, *retnode;
       u8_string name = u8_strdup(elts[0]);
       init_node(&newnode,node,name);
       process_attribs(attribfn,&newnode,elts+1,n_elts-1);
@@ -842,21 +842,21 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
       free_node(&newnode,0);
       return retnode;}
   case xmlclose:
-    if ((((node->xml_bits)&(FD_XML_FOLDCASE)) ?
+    if ((((node->xml_bits)&(KNO_XML_FOLDCASE)) ?
          (strcasecmp(node->xml_eltname,elts[0])) :
          (strcmp(node->xml_eltname,elts[0])))
         ==0) {
-      struct FD_XML *retnode;
+      struct KNO_XML *retnode;
       if (EMPTYP(node->xml_attribs)) init_node_attribs(node);
       if ((NILP(node->xml_head)) &&
-          (!(node->xml_bits&FD_XML_NOEMPTY)))
-        node->xml_head = fd_conspair(fd_init_string(NULL,0,NULL),NIL);
+          (!(node->xml_bits&KNO_XML_NOEMPTY)))
+        node->xml_head = kno_conspair(kno_init_string(NULL,0,NULL),NIL);
       retnode = popfn(node);
       if (retnode!=node)
         free_node(node,1);
       return retnode;}
-    else if ((node->xml_bits&FD_XML_EMPTY_CLOSE) && (elts[0][0]=='\0')) {
-      struct FD_XML *retnode;
+    else if ((node->xml_bits&KNO_XML_EMPTY_CLOSE) && (elts[0][0]=='\0')) {
+      struct KNO_XML *retnode;
       if (EMPTYP(node->xml_attribs)) init_node_attribs(node);
       retnode = popfn(node);
       if (retnode!=node)
@@ -864,19 +864,19 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
       return retnode;}
     else {
       u8_byte buf[100];
-      if (node->xml_bits&FD_XML_AUTOCLOSE) {
-        FD_XML *closenode = NULL;
+      if (node->xml_bits&KNO_XML_AUTOCLOSE) {
+        KNO_XML *closenode = NULL;
         if (EMPTYP(node->xml_attribs)) init_node_attribs(node);
         closenode = autoclose(node,elts[0],popfn);
         if (closenode) {
-          struct FD_XML *retnode;
+          struct KNO_XML *retnode;
           retnode = popfn(closenode);
           if (retnode!=closenode)
             free_node(closenode,1);
           return retnode;}}
-      if ((node->xml_bits)&(FD_XML_BADCLOSE))
+      if ((node->xml_bits)&(KNO_XML_BADCLOSE))
         return node;
-      else fd_seterr(fd_XMLParseError,"inconsistent close tag",
+      else kno_seterr(kno_XMLParseError,"inconsistent close tag",
                      u8_sprintf(buf,100,"</%s> closes <%s>",
                                 elts[0],node->xml_eltname),
                      VOID);
@@ -884,18 +884,18 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
   case xmlopen:
     if (pushfn) return pushfn(node,type,elts,n_elts);
     else {
-      FD_XML *newnode = u8_alloc(struct FD_XML);
+      KNO_XML *newnode = u8_alloc(struct KNO_XML);
       u8_string name = u8_strdup(elts[0]);
-      if ((node->xml_bits&FD_XML_ISHTML) &&
+      if ((node->xml_bits&KNO_XML_ISHTML) &&
           (check_pair(node->xml_eltname,elts[0],html_autoclose))) {
-        FD_XML *popped = popfn(node);
+        KNO_XML *popped = popfn(node);
         if (popped!=node)
           free_node(node,1);
         node = popped;}
-      else if (((node->xml_bits)&(FD_XML_INPARA))&&
+      else if (((node->xml_bits)&(KNO_XML_INPARA))&&
                (block_elementp(elts[0]))) {
-        while ((node) && ((node->xml_bits)&(FD_XML_INPARA))) {
-          FD_XML *popped = popfn(node);
+        while ((node) && ((node->xml_bits)&(KNO_XML_INPARA))) {
+          KNO_XML *popped = popfn(node);
           if (popped!=node) free_node(node,1);
           node = popped;}}
       init_node(newnode,node,name);
@@ -906,21 +906,21 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
     return node;}
 }
 
-FD_EXPORT
-void *fd_walk_xml(U8_INPUT *in,
-                  void (*contentfn)(FD_XML *,u8_string,int),
-                  FD_XML *(*pifn)(U8_INPUT *,FD_XML *,u8_string,int),
-                  int (*attribfn)(FD_XML *,u8_string,u8_string,int),
-                  FD_XML *(*pushfn)(FD_XML *,fd_xmlelt_type,u8_string *,int),
-                  FD_XML *(*popfn)(FD_XML *),
-                  FD_XML *root)
+KNO_EXPORT
+void *kno_walk_xml(U8_INPUT *in,
+                  void (*contentfn)(KNO_XML *,u8_string,int),
+                  KNO_XML *(*pifn)(U8_INPUT *,KNO_XML *,u8_string,int),
+                  int (*attribfn)(KNO_XML *,u8_string,u8_string,int),
+                  KNO_XML *(*pushfn)(KNO_XML *,kno_xmlelt_type,u8_string *,int),
+                  KNO_XML *(*popfn)(KNO_XML *),
+                  KNO_XML *root)
 {
   ssize_t bufsize = 1024, size = bufsize;
-  FD_XML *node = root;
+  KNO_XML *node = root;
   u8_byte *buf = u8_malloc(1024); const u8_byte *rbuf;
   while (1) {
-    fd_xmlelt_type type;
-    if (FD_INTERRUPTED()) {
+    kno_xmlelt_type type;
+    if (KNO_INTERRUPTED()) {
       u8_free(buf);
       return NULL;}
     else if ((rbuf = readbuf(in,&buf,&bufsize,&size,"<")) == NULL) {
@@ -928,18 +928,18 @@ void *fd_walk_xml(U8_INPUT *in,
         contentfn(node,in->u8_read,in->u8_inlim-in->u8_read);
       break;}
     else if (size<0) {
-      fd_seterr3(fd_XMLParseError,"end of input",xmlsnip(in->u8_read));
+      kno_seterr3(kno_XMLParseError,"end of input",xmlsnip(in->u8_read));
       u8_free(buf);
       return NULL;}
     else if ((size>0)&&(contentfn)) contentfn(node,buf,size);
     else {}
     if ((rbuf = read_xmltag(in,&buf,&bufsize,&size)) == NULL) {
-      fd_seterr3(fd_XMLParseError,"end of input",xmlsnip(in->u8_read));
+      kno_seterr3(kno_XMLParseError,"end of input",xmlsnip(in->u8_read));
       u8_free(buf);
       return NULL;}
-    else type = fd_get_markup_type(buf,size,((node->xml_bits)&FD_XML_ISHTML));
+    else type = kno_get_markup_type(buf,size,((node->xml_bits)&KNO_XML_ISHTML));
     if (type == xmlpi) {
-      FD_XML *result;
+      KNO_XML *result;
       if (pifn) {
         if ((result = pifn(in,node,buf,size)) == NULL)
           return NULL;}
@@ -1003,17 +1003,17 @@ void *fd_walk_xml(U8_INPUT *in,
       int n_elts;
       if ((type == xmlempty)&&(buf[size-1]=='/')) {
         buf[size-1]='\0'; size--;}
-      n_elts = fd_parse_xmltag
-        (&scan,buf+size,elts,32,((node->xml_bits)&(FD_XML_BADATTRIB)));
+      n_elts = kno_parse_xmltag
+        (&scan,buf+size,elts,32,((node->xml_bits)&(KNO_XML_BADATTRIB)));
       if (n_elts<0) {
-        fd_seterr3(fd_XMLParseError,"xmlstep",xmlsnip(scan));
+        kno_seterr3(kno_XMLParseError,"xmlstep",xmlsnip(scan));
         u8_free(buf);
         return NULL;}
       node = xmlstep(node,type,elts,n_elts,attribfn,pushfn,popfn);}
     if (node == NULL) break;}
   while ((node)&&(node!=root)&&
-         ((node->xml_bits)&(FD_XML_AUTOCLOSE))) {
-    struct FD_XML *next = popfn(node);
+         ((node->xml_bits)&(KNO_XML_AUTOCLOSE))) {
+    struct KNO_XML *next = popfn(node);
     free_node(node,1);
     if (next) node = next; else break;}
   u8_free(buf);
@@ -1022,106 +1022,106 @@ void *fd_walk_xml(U8_INPUT *in,
 
 /* A standard XML walker */
 
-FD_EXPORT int fd_xmlparseoptions(lispval x)
+KNO_EXPORT int kno_xmlparseoptions(lispval x)
 {
-  if (FD_UINTP(x)) return FIX2INT(x);
-  else if (FALSEP(x)) return FD_SLOPPY_XML;
-  else if (FD_DEFAULTP(x)) return 0;
-  else if (FD_TRUEP(x)) return 0;
+  if (KNO_UINTP(x)) return FIX2INT(x);
+  else if (FALSEP(x)) return KNO_SLOPPY_XML;
+  else if (KNO_DEFAULTP(x)) return 0;
+  else if (KNO_TRUEP(x)) return 0;
   else if (VOIDP(x)) return 0;
   else if (SYMBOLP(x))
-    if (FD_EQ(x,sloppy_symbol))
-      return FD_SLOPPY_XML;
-    else if (FD_EQ(x,data_symbol))
-      return FD_DATA_XML;
-    else if (FD_EQ(x,decode_symbol))
-      return FD_XML_DECODE_ENTITIES;
-    else if (FD_EQ(x,keepraw_symbol))
-      return FD_XML_KEEP_RAW;
-    else if (FD_EQ(x,crushspace_symbol))
-      return FD_XML_CRUSHSPACE;
-    else if (FD_EQ(x,slotify_symbol))
-      return FD_XML_SLOTIFY;
-    else if (FD_EQ(x,nocontents_symbol))
-      return FD_XML_NOCONTENTS;
-    else if (FD_EQ(x,ishtml_symbol))
-      return FD_XML_ISHTML;
-    else if (FD_EQ(x,nsfree_symbol))
-      return FD_XML_NSFREE;
-    else if (FD_EQ(x,autoclose_symbol))
-      return FD_XML_AUTOCLOSE;
-    else if (FD_EQ(x,noempty_symbol))
-      return FD_XML_NOEMPTY;
+    if (KNO_EQ(x,sloppy_symbol))
+      return KNO_SLOPPY_XML;
+    else if (KNO_EQ(x,data_symbol))
+      return KNO_DATA_XML;
+    else if (KNO_EQ(x,decode_symbol))
+      return KNO_XML_DECODE_ENTITIES;
+    else if (KNO_EQ(x,keepraw_symbol))
+      return KNO_XML_KEEP_RAW;
+    else if (KNO_EQ(x,crushspace_symbol))
+      return KNO_XML_CRUSHSPACE;
+    else if (KNO_EQ(x,slotify_symbol))
+      return KNO_XML_SLOTIFY;
+    else if (KNO_EQ(x,nocontents_symbol))
+      return KNO_XML_NOCONTENTS;
+    else if (KNO_EQ(x,ishtml_symbol))
+      return KNO_XML_ISHTML;
+    else if (KNO_EQ(x,nsfree_symbol))
+      return KNO_XML_NSFREE;
+    else if (KNO_EQ(x,autoclose_symbol))
+      return KNO_XML_AUTOCLOSE;
+    else if (KNO_EQ(x,noempty_symbol))
+      return KNO_XML_NOEMPTY;
     else {
-      fd_seterr(fd_TypeError,"xmlparsearg",_("xmlparse option"),x);
+      kno_seterr(kno_TypeError,"xmlparsearg",_("xmlparse option"),x);
       return -1;}
   else if (CHOICEP(x)) {
     int flags = 0;
     DO_CHOICES(opt,x) {
-      int flag = fd_xmlparseoptions(opt);
+      int flag = kno_xmlparseoptions(opt);
       if (flag<0) return -1;
       else flags = flags|flag;}
     return flags;}
   else if (PAIRP(x)) {
     int flags = 0;
-    FD_DOLIST(opt,x) {
-      int flag = fd_xmlparseoptions(opt);
+    KNO_DOLIST(opt,x) {
+      int flag = kno_xmlparseoptions(opt);
       if (flag<0) return -1;
       else flags = flags|flag;}
     return flags;}
   else {
-    fd_seterr(fd_TypeError,"xmlparsearg",_("xmlparse option"),x);
+    kno_seterr(kno_TypeError,"xmlparsearg",_("xmlparse option"),x);
     return -1;}
 }
 
 #define FORCE_CLOSE_FLAGS \
-  ((FD_XML_AUTOCLOSE)|(FD_XML_BADCLOSE)|(FD_XML_ISHTML))
+  ((KNO_XML_AUTOCLOSE)|(KNO_XML_BADCLOSE)|(KNO_XML_ISHTML))
 
 static lispval xmlparse_core(lispval input,int flags)
 {
-  struct FD_XML xml_root, *root = &xml_root, *retval;
+  struct KNO_XML xml_root, *root = &xml_root, *retval;
   struct U8_INPUT *in, _in;
-  if (flags<0) return FD_ERROR;
-  if (FD_PORTP(input)) {
-    struct FD_PORT *p = fd_consptr(struct FD_PORT *,input,fd_port_type);
+  if (flags<0) return KNO_ERROR;
+  if (KNO_PORTP(input)) {
+    struct KNO_PORT *p = kno_consptr(struct KNO_PORT *,input,kno_port_type);
     in = p->port_input;}
   else if (STRINGP(input)) {
     U8_INIT_STRING_INPUT(&_in,STRLEN(input),CSTRING(input));
     in = &_in;}
   else if (PACKETP(input)) {
-    U8_INIT_STRING_INPUT(&_in,FD_PACKET_LENGTH(input),FD_PACKET_DATA(input));
+    U8_INIT_STRING_INPUT(&_in,KNO_PACKET_LENGTH(input),KNO_PACKET_DATA(input));
     in = &_in;}
-  else return fd_type_error(_("string or port"),"xmlparse",input);
+  else return kno_type_error(_("string or port"),"xmlparse",input);
   init_node(root,NULL,u8_strdup("top")); xml_root.xml_bits = flags;
-  retval = fd_walk_xml(in,fd_default_contentfn,NULL,NULL,NULL,
-                     fd_default_popfn,
+  retval = kno_walk_xml(in,kno_default_contentfn,NULL,NULL,NULL,
+                     kno_default_popfn,
                      root);
   if (retval == NULL) {
     size_t errpos=_in.u8_read-_in.u8_inbuf;
-    fd_seterr("XMLPARSE error","xmlparse_core",NULL,FD_INT(errpos));
+    kno_seterr("XMLPARSE error","xmlparse_core",NULL,KNO_INT(errpos));
     free_node(root,0);
-    return FD_ERROR;}
+    return KNO_ERROR;}
   else if ( (retval!=root) &&
             (!(((retval->xml_bits) & (FORCE_CLOSE_FLAGS)) ||
                ((root->xml_bits)  & (FORCE_CLOSE_FLAGS)) ))) {
-    struct FD_XML *cleanup = retval, *next;
+    struct KNO_XML *cleanup = retval, *next;
     while ((cleanup)&&(cleanup!=root)) {
-      fd_seterr("XMLPARSE error","xmlparse_core",cleanup->xml_eltname,
+      kno_seterr("XMLPARSE error","xmlparse_core",cleanup->xml_eltname,
                 cleanup->xml_attribs);
       next = cleanup->xml_parent;
       free_node(cleanup,1);
       cleanup = next;}
     free_node(root,0);
-    return FD_ERROR;}
+    return KNO_ERROR;}
 
   if (retval!=root) {
-    struct FD_XML *scan = retval;
+    struct KNO_XML *scan = retval;
     while ((scan)&&(scan!=root)) {
-      struct FD_XML *next = fd_default_popfn(scan);
+      struct KNO_XML *next = kno_default_popfn(scan);
       free_node(scan,1);
       scan = next;}}
 
-  lispval result = fd_incref(root->xml_head);
+  lispval result = kno_incref(root->xml_head);
   free_node(root,0);
   return result;
 }
@@ -1129,57 +1129,57 @@ static lispval xmlparse_core(lispval input,int flags)
 static lispval xmlparse(lispval input,lispval options)
 {
   if (CHOICEP(input)) {
-    int flags = fd_xmlparseoptions(options);
+    int flags = kno_xmlparseoptions(options);
     lispval results = EMPTY;
     DO_CHOICES(in,input) {
       lispval result = xmlparse_core(in,flags);
       CHOICE_ADD(results,result);}
     return results;}
   else if (QCHOICEP(input))
-    return xmlparse(FD_XQCHOICE(input)->qchoiceval,options);
-  else return xmlparse_core(input,fd_xmlparseoptions(options));
+    return xmlparse(KNO_XQCHOICE(input)->qchoiceval,options);
+  else return xmlparse_core(input,kno_xmlparseoptions(options));
 }
 
 /* Parsing FDXML */
 
 static lispval fdxml_load(lispval input,lispval sloppy)
 {
-  int flags = FD_XML_KEEP_RAW;
-  struct FD_XML *parsed;
+  int flags = KNO_XML_KEEP_RAW;
+  struct KNO_XML *parsed;
   struct U8_INPUT *in, _in;
-  if (flags<0) return FD_ERROR;
-  if (FD_PORTP(input)) {
-    struct FD_PORT *p = fd_consptr(struct FD_PORT *,input,fd_port_type);
+  if (flags<0) return KNO_ERROR;
+  if (KNO_PORTP(input)) {
+    struct KNO_PORT *p = kno_consptr(struct KNO_PORT *,input,kno_port_type);
     in = p->port_input;}
   else if (STRINGP(input)) {
     U8_INIT_STRING_INPUT(&_in,STRLEN(input),CSTRING(input));
     in = &_in;}
   else if (PACKETP(input)) {
-    U8_INIT_STRING_INPUT(&_in,FD_PACKET_LENGTH(input),FD_PACKET_DATA(input));
+    U8_INIT_STRING_INPUT(&_in,KNO_PACKET_LENGTH(input),KNO_PACKET_DATA(input));
     in = &_in;}
-  else return fd_type_error(_("string or port"),"xmlparse",input);
-  if (FD_UINTP(sloppy))
+  else return kno_type_error(_("string or port"),"xmlparse",input);
+  if (KNO_UINTP(sloppy))
     flags = FIX2INT(sloppy);
   else if (!((VOIDP(sloppy)) || (FALSEP(sloppy))))
-    flags = flags|FD_SLOPPY_XML;
+    flags = flags|KNO_SLOPPY_XML;
   else {}
-  parsed = fd_load_fdxml(in,flags);
+  parsed = kno_load_fdxml(in,flags);
   if (parsed) {
-    lispval result = fd_incref(parsed->xml_head);
+    lispval result = kno_incref(parsed->xml_head);
     lispval lispenv = (lispval)(parsed->xml_data);
     free_node(parsed,1);
-    return fd_conspair(lispenv,result);}
-  else return FD_ERROR;
+    return kno_conspair(lispenv,result);}
+  else return KNO_ERROR;
 }
 
 static lispval fdxml_read(lispval input,lispval sloppy)
 {
-  int flags = FD_XML_KEEP_RAW;
-  struct FD_XML *parsed;
+  int flags = KNO_XML_KEEP_RAW;
+  struct KNO_XML *parsed;
   struct U8_INPUT *in, _in;
-  if (flags<0) return FD_ERROR;
-  if (FD_PORTP(input)) {
-    struct FD_PORT *p = fd_consptr(struct FD_PORT *,input,fd_port_type);
+  if (flags<0) return KNO_ERROR;
+  if (KNO_PORTP(input)) {
+    struct KNO_PORT *p = kno_consptr(struct KNO_PORT *,input,kno_port_type);
     in = p->port_input;}
   else if ((STRINGP(input))&&(strchr(CSTRING(input),'<') == NULL))
     return fdxml_load(input,sloppy);
@@ -1187,72 +1187,72 @@ static lispval fdxml_read(lispval input,lispval sloppy)
     U8_INIT_STRING_INPUT(&_in,STRLEN(input),CSTRING(input));
     in = &_in;}
   else if (PACKETP(input)) {
-    U8_INIT_STRING_INPUT(&_in,FD_PACKET_LENGTH(input),FD_PACKET_DATA(input));
+    U8_INIT_STRING_INPUT(&_in,KNO_PACKET_LENGTH(input),KNO_PACKET_DATA(input));
     in = &_in;}
-  else return fd_type_error(_("string or port"),"xmlparse",input);
-  if (FD_UINTP(sloppy))
+  else return kno_type_error(_("string or port"),"xmlparse",input);
+  if (KNO_UINTP(sloppy))
     flags = FIX2INT(sloppy);
   else if (!((VOIDP(sloppy)) || (FALSEP(sloppy))))
-    flags = flags|FD_SLOPPY_XML;
+    flags = flags|KNO_SLOPPY_XML;
   else {}
-  parsed = fd_parse_fdxml(in,flags);
+  parsed = kno_parse_fdxml(in,flags);
   if (parsed) {
     lispval result = parsed->xml_head;
-    fd_incref(result);
+    kno_incref(result);
     free_node(parsed,1);
     return result;}
-  else return FD_ERROR;
+  else return KNO_ERROR;
 }
 
-FD_EXPORT lispval fd_fdxml_arg(lispval input)
+KNO_EXPORT lispval kno_fdxml_arg(lispval input)
 {
-  return fdxml_read(input,FD_INT(FD_XML_SLOPPY|FD_XML_KEEP_RAW));
+  return fdxml_read(input,KNO_INT(KNO_XML_SLOPPY|KNO_XML_KEEP_RAW));
 }
 
 /* Initialization functions */
 
-FD_EXPORT void fd_init_xmlinput_c()
+KNO_EXPORT void kno_init_xmlinput_c()
 {
-  lispval full_module = fd_new_module("FDWEB",0);
-  lispval safe_module = fd_new_module("FDWEB",(FD_MODULE_SAFE));
-  lispval xmlparse_prim = fd_make_ndprim(fd_make_cprim2("XMLPARSE",xmlparse,1));
+  lispval full_module = kno_new_module("FDWEB",0);
+  lispval safe_module = kno_new_module("FDWEB",(KNO_MODULE_SAFE));
+  lispval xmlparse_prim = kno_make_ndprim(kno_make_cprim2("XMLPARSE",xmlparse,1));
   lispval fdxml_load_prim=
-    fd_make_ndprim(fd_make_cprim2("FDXML/LOAD",fdxml_load,1));
+    kno_make_ndprim(kno_make_cprim2("FDXML/LOAD",fdxml_load,1));
   lispval fdxml_read_prim=
-    fd_make_ndprim(fd_make_cprim2("FDXML/PARSE",fdxml_read,1));
-  fd_defn(full_module,xmlparse_prim); fd_idefn(safe_module,xmlparse_prim);
-  fd_defn(full_module,fdxml_read_prim); fd_idefn(safe_module,fdxml_read_prim);
-  fd_defn(full_module,fdxml_load_prim);
+    kno_make_ndprim(kno_make_cprim2("FDXML/PARSE",fdxml_read,1));
+  kno_defn(full_module,xmlparse_prim); kno_idefn(safe_module,xmlparse_prim);
+  kno_defn(full_module,fdxml_read_prim); kno_idefn(safe_module,fdxml_read_prim);
+  kno_defn(full_module,fdxml_load_prim);
 
-  fd_defn(full_module,xmlparse_prim); fd_idefn(safe_module,xmlparse_prim);
-  fd_defn(full_module,fdxml_read_prim); fd_idefn(safe_module,fdxml_read_prim);
+  kno_defn(full_module,xmlparse_prim); kno_idefn(safe_module,xmlparse_prim);
+  kno_defn(full_module,fdxml_read_prim); kno_idefn(safe_module,fdxml_read_prim);
 
-  attribs_symbol = fd_intern("%ATTRIBS");
-  type_symbol = fd_intern("%TYPE");
+  attribs_symbol = kno_intern("%ATTRIBS");
+  type_symbol = kno_intern("%TYPE");
 
-  namespace_symbol = fd_intern("%NAMESPACE");
-  xmltag_symbol = fd_intern("%XMLTAG");
-  rawtag_symbol = fd_intern("%RAWTAG");
-  qname_symbol = fd_intern("%QNAME");
-  xmlns_symbol = fd_intern("%XMLNS");
-  content_symbol = fd_intern("%CONTENT");
+  namespace_symbol = kno_intern("%NAMESPACE");
+  xmltag_symbol = kno_intern("%XMLTAG");
+  rawtag_symbol = kno_intern("%RAWTAG");
+  qname_symbol = kno_intern("%QNAME");
+  xmlns_symbol = kno_intern("%XMLNS");
+  content_symbol = kno_intern("%CONTENT");
 
-  comment_symbol = fd_intern("%COMMENT");
-  cdata_symbol = fd_intern("%CDATA");
+  comment_symbol = kno_intern("%COMMENT");
+  cdata_symbol = kno_intern("%CDATA");
 
-  attribids = fd_intern("%ATTRIBIDS");
+  attribids = kno_intern("%ATTRIBIDS");
 
-  sloppy_symbol = fd_intern("SLOPPY");
-  decode_symbol = fd_intern("DECODE");
-  keepraw_symbol = fd_intern("KEEPRAW");
-  crushspace_symbol = fd_intern("CRUSHSPACE");
-  slotify_symbol = fd_intern("SLOTIFY");
-  nocontents_symbol = fd_intern("NOCONTENTS");
-  ishtml_symbol = fd_intern("HTML");
-  nsfree_symbol = fd_intern("NSFREE");
-  autoclose_symbol = fd_intern("AUTOCLOSE");
-  noempty_symbol = fd_intern("NOEMPTY");
-  data_symbol = fd_intern("DATA");
+  sloppy_symbol = kno_intern("SLOPPY");
+  decode_symbol = kno_intern("DECODE");
+  keepraw_symbol = kno_intern("KEEPRAW");
+  crushspace_symbol = kno_intern("CRUSHSPACE");
+  slotify_symbol = kno_intern("SLOTIFY");
+  nocontents_symbol = kno_intern("NOCONTENTS");
+  ishtml_symbol = kno_intern("HTML");
+  nsfree_symbol = kno_intern("NSFREE");
+  autoclose_symbol = kno_intern("AUTOCLOSE");
+  noempty_symbol = kno_intern("NOEMPTY");
+  data_symbol = kno_intern("DATA");
 
   u8_register_source_file(_FILEINFO);
 }

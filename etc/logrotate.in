@@ -9,7 +9,7 @@
    delaycompress
    missingok
    dateext
-   # The right thing would be to have fdserv processes
+   # The right thing would be to have knosrv processes
    #  get HUP signals which cause them to reopen their log files.
    # But we'll do this for now, which leaves a small window for
    #  missing logs
@@ -26,7 +26,7 @@
    delaycompress
    missingok
    dateext
-   # The right thing would be to have fdserver processes
+   # The right thing would be to have knod processes
    #  get HUP signals which cause them to reopen their log files.
    # But we'll do this for now, which leaves a small window for
    #  missing logs

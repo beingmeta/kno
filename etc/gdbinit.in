@@ -1,9 +1,9 @@
-directory @source_dir@/framerd:@source_dir@/libu8:@source_dir@/lingo:@extra_sources@
+directory @source_dir@/kno:@source_dir@/libu8:@source_dir@/lingo:@extra_sources@
 set env UNDERGDB=yes
 set env STDLOG=yes
-set env FD_FOREGROUND=yes
-set env FD_IGNORELEFTOVERS=yes
-set env FD_STEALSOCKETS=yes
+set env KNO_FOREGROUND=yes
+set env KNO_IGNORELEFTOVERS=yes
+set env KNO_STEALSOCKETS=yes
 set env DUMA_ALIGNMENT=4
 set env PPROF_PATH=/usr/bin/gpprof
 set env MSAN_SYMBOLIZER_PATH=/usr/bin/llvm-symbolizer
@@ -113,140 +113,140 @@ define xp
 end
 
 define lisp
-  printf "%s\n",fd_lisp2string($arg0)
+  printf "%s\n",kno_lisp2string($arg0)
 end
 define lispval
-  printf "%s\n",fd_lisp2string($arg0)
+  printf "%s\n",kno_lisp2string($arg0)
 end
 
 define showtype
-  printf "type of 0x%llx is 0x%x: %s\n",((lispval)$arg0),(((($arg0)&0x03)==2)?(fd_fixnum_type):((($arg0)&0x3)==3)?(fd_oid_type):((($arg0)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($arg0))->conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04))),fd_type_names[(((($arg0)&0x03)==2)?(fd_fixnum_type):((($arg0)&0x3)==3)?(fd_oid_type):((($arg0)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($arg0))->conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04)))]
+  printf "type of 0x%llx is 0x%x: %s\n",((lispval)$arg0),(((($arg0)&0x03)==2)?(kno_fixnum_type):((($arg0)&0x3)==3)?(kno_oid_type):((($arg0)&0x3)==0)?((enum KNO_PTR_TYPE)(((((struct KNO_CONS *)($arg0))->conshead)&0x7F)+0x84)):((enum KNO_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04))),kno_type_names[(((($arg0)&0x03)==2)?(kno_fixnum_type):((($arg0)&0x3)==3)?(kno_oid_type):((($arg0)&0x3)==0)?((enum KNO_PTR_TYPE)(((((struct KNO_CONS *)($arg0))->conshead)&0x7F)+0x84)):((enum KNO_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04)))]
 end
 define showtypename
-  printf "object type is 0x%x: %s\n",_fd_ptr_type($arg0),fd_type_names[_fd_ptr_type($arg0)]
+  printf "object type is 0x%x: %s\n",_kno_ptr_type($arg0),kno_type_names[_kno_ptr_type($arg0)]
 end
 define lispout
-  call _fd_lisp2stderr($arg0)
+  call _kno_lisp2stderr($arg0)
 end
 define unparse
-  call _fd_lisp2stderr($arg0)
+  call _kno_lisp2stderr($arg0)
 end
 define refcount
   if (((lispval)$arg0)&3)
   print "not a cons" 
   else
-  printf "object refcount=%d\n",((((struct FD_CONS *)$arg0)->conshead)>>7)
-  print ((struct FD_CONS *)($arg0))
+  printf "object refcount=%d\n",((((struct KNO_CONS *)$arg0)->conshead)>>7)
+  print ((struct KNO_CONS *)($arg0))
   end
 end
 define watchcons
-  watch -l ((struct FD_CONS *)($arg0))->conshead
+  watch -l ((struct KNO_CONS *)($arg0))->conshead
 end
 define showstruct 
   print/x *((struct $arg1 *)($arg0))
 end
 define showcons
-  print/x ((struct FD_CONS *)($arg0))
+  print/x ((struct KNO_CONS *)($arg0))
 end
 define showfield
   print/x ((struct $arg1 *)($arg0))->$arg2
 end
 define showstring
   set print elements 0
-  print ((struct FD_STRING *)($arg0))->str_bytes
+  print ((struct KNO_STRING *)($arg0))->str_bytes
   set print elements 16
 end
 define showsymbol
-  printf "%s\n",((struct FD_STRING *)(fd_symbol_names[((($arg0)>>2)&(0x7FFFFF))]))->str_bytes
+  printf "%s\n",((struct KNO_STRING *)(kno_symbol_names[((($arg0)>>2)&(0x7FFFFF))]))->str_bytes
 end
 define showoid
-  print/x (fd_base_oids[(($arg0>>2)&(_FD_OID_BUCKET_MASK)]+($arg0>>(_FD_OID_BUCKET_WIDTH+2)))
+  print/x (kno_base_oids[(($arg0>>2)&(_KNO_OID_BUCKET_MASK)]+($arg0>>(_KNO_OID_BUCKET_WIDTH+2)))
 end
 define oid
-  printf "  @%x/%x\n",((fd_base_oids[(($arg0>>2)&(_FD_OID_BUCKET_MASK))])>>32),(((fd_base_oids[(($arg0>>2)&(_FD_OID_BUCKET_MASK))])&0xFFFFFFFF)|(($arg0&(0x7FFFFF))>>(_FD_OID_BUCKET_WIDTH+2)))
+  printf "  @%x/%x\n",((kno_base_oids[(($arg0>>2)&(_KNO_OID_BUCKET_MASK))])>>32),(((kno_base_oids[(($arg0>>2)&(_KNO_OID_BUCKET_MASK))])&0xFFFFFFFF)|(($arg0&(0x7FFFFF))>>(_KNO_OID_BUCKET_WIDTH+2)))
 end
 define showcar
-  print/x (((struct FD_PAIR *)$arg0)->car)
+  print/x (((struct KNO_PAIR *)$arg0)->car)
   showtype $
 end
 define showcdr
-  print/x (((struct FD_PAIR *)$arg0)->cdr)
+  print/x (((struct KNO_PAIR *)$arg0)->cdr)
   showtype $
 end
 define showvelt
-   print/x ((((struct FD_VECTOR *)$arg0)->vec_elts)[$arg1])
+   print/x ((((struct KNO_VECTOR *)$arg0)->vec_elts)[$arg1])
    showtype $
 end
 define showcelt
-  print/x ((&((struct FD_CHOICE *)$arg0)->choice_0)[$arg1])
+  print/x ((&((struct KNO_CHOICE *)$arg0)->choice_0)[$arg1])
   showtype $  
 end
 define celt
-  printf "%s\n",fd_lisp2string(((&((struct FD_CHOICE *)$arg0)->choice_0)[$arg1]))
-  print/x ((&((struct FD_CHOICE *)$arg0)->choice_0)[$arg1])
+  printf "%s\n",kno_lisp2string(((&((struct KNO_CHOICE *)$arg0)->choice_0)[$arg1]))
+  print/x ((&((struct KNO_CHOICE *)$arg0)->choice_0)[$arg1])
   showtype $
 define oidinfo
-  printf "oidinfo: %s\n", (_fd_oid_info($arg0))
+  printf "oidinfo: %s\n", (_kno_oid_info($arg0))
 end
 define showchoice
-  printf "data=%d\n",(&(((struct FD_CHOICE *)$arg0)->choice_0))
-  printf "size=%d\n",((((struct FD_CHOICE *)$arg0)->choice_size)&(0x7FFFFFFF))
-  print (*((struct FD_CHOICE *)$arg0))
+  printf "data=%d\n",(&(((struct KNO_CHOICE *)$arg0)->choice_0))
+  printf "size=%d\n",((((struct KNO_CHOICE *)$arg0)->choice_size)&(0x7FFFFFFF))
+  print (*((struct KNO_CHOICE *)$arg0))
 end
 define showvec
-  printf "data=%d\n",(&(((struct FD_VECTOR *)$arg0)->vec_elts))
-  printf "size=%d\n",(((struct FD_VECTOR *)$arg0)->vec_length)
-  print (*((struct FD_VECTOR *)$arg0))
+  printf "data=%d\n",(&(((struct KNO_VECTOR *)$arg0)->vec_elts))
+  printf "size=%d\n",(((struct KNO_VECTOR *)$arg0)->vec_length)
+  print (*((struct KNO_VECTOR *)$arg0))
 end
 define showvelt
-  printf "data=%d\n",(&(((struct FD_CHOICE *)$arg0)->vec_elts))
-  printf "size=%d\n",((((struct FD_CHOICE *)$arg0)->vec_length)&(0x7FFFFFFF))
-  print ((((struct FD_VECTOR *)$arg0)->vec_elts)[$arg1])
+  printf "data=%d\n",(&(((struct KNO_CHOICE *)$arg0)->vec_elts))
+  printf "size=%d\n",((((struct KNO_CHOICE *)$arg0)->vec_length)&(0x7FFFFFFF))
+  print ((((struct KNO_VECTOR *)$arg0)->vec_elts)[$arg1])
   showtype $
 end
 define velt
-  printf "%s\n",fd_lisp2string(((((struct FD_VECTOR *)$arg0)->vec_elts)[$arg1]))
-  print ((((struct FD_VECTOR *)$arg0)->vec_elts)[$arg1])
+  printf "%s\n",kno_lisp2string(((((struct KNO_VECTOR *)$arg0)->vec_elts)[$arg1]))
+  print ((((struct KNO_VECTOR *)$arg0)->vec_elts)[$arg1])
   showtype $
 end
 define showflo
-  print (((struct FD_FLONUM *)($arg0))->floval)
+  print (((struct KNO_FLONUM *)($arg0))->floval)
 end
 define schemap
-  printf "schema=%d\n",(&(((struct FD_SCHEMAP *)$arg0)->table_schema))
-  printf "values=%d\n",(&(((struct FD_SCHEMAP *)$arg0)->schema_values))
-  printf "size=%d\n",(((struct FD_SCHEMAP *)$arg0)->schema_length)
-  print (*((struct FD_SCHEMAP *)$arg0))
+  printf "schema=%d\n",(&(((struct KNO_SCHEMAP *)$arg0)->table_schema))
+  printf "values=%d\n",(&(((struct KNO_SCHEMAP *)$arg0)->schema_values))
+  printf "size=%d\n",(((struct KNO_SCHEMAP *)$arg0)->schema_length)
+  print (*((struct KNO_SCHEMAP *)$arg0))
 end
 define showschemapk
-  print (((struct FD_SCHEMAP *)$arg0)->table_schema)[$arg1]
+  print (((struct KNO_SCHEMAP *)$arg0)->table_schema)[$arg1]
   showtype $
 end
 define showschemapv
-  print (((struct FD_SCHEMAP *)$arg0)->schema_values)[$arg1]
+  print (((struct KNO_SCHEMAP *)$arg0)->schema_values)[$arg1]
   showtype $
 end
 define slotmap
-  printf "keyvals=%d\n",(&(((struct FD_SLOTMAP *)$arg0)->sm_keyvals))
-  printf "size=%d\n",((((struct FD_SLOTMAP *)$arg0)->n_slots)&0x3FFFFFFF)
-  printf "space=%d\n",((((struct FD_SLOTMAP *)$arg0)->n_allocd)&0x3FFFFFFF)
-  print (*((struct FD_SLOTMAP *)$arg0))
+  printf "keyvals=%d\n",(&(((struct KNO_SLOTMAP *)$arg0)->sm_keyvals))
+  printf "size=%d\n",((((struct KNO_SLOTMAP *)$arg0)->n_slots)&0x3FFFFFFF)
+  printf "space=%d\n",((((struct KNO_SLOTMAP *)$arg0)->n_allocd)&0x3FFFFFFF)
+  print (*((struct KNO_SLOTMAP *)$arg0))
 end
 define slotmapkv
-  print &((((fd_slotmap)($arg0))->sm_keyvals)[($arg1)])
-  showtype ((((fd_slotmap)($arg0))->sm_keyvals)[($arg1)].kv_key)
-  showtype ((((fd_slotmap)($arg0))->sm_keyvals)[($arg1)].kv_val)
+  print &((((kno_slotmap)($arg0))->sm_keyvals)[($arg1)])
+  showtype ((((kno_slotmap)($arg0))->sm_keyvals)[($arg1)].kv_key)
+  showtype ((((kno_slotmap)($arg0))->sm_keyvals)[($arg1)].kv_val)
 end
 define showslotmapv
-  print ((((fd_slotmap)$arg0)->sm_keyvals)[($arg1)].kv_val)
+  print ((((kno_slotmap)$arg0)->sm_keyvals)[($arg1)].kv_val)
   showtype $
 end
 define findelt
-  print _fd_find_elt($arg0,$arg1,$arg2)
+  print _kno_find_elt($arg0,$arg1,$arg2)
   showtype $
 end
 define inchoicep
-  print _fd_find_elt($arg0,&(((struct FD_CHOICE *)$arg1)->choice_0),(((struct FD_CHOICE *)$arg1)->choice_size))
+  print _kno_find_elt($arg0,&(((struct KNO_CHOICE *)$arg1)->choice_0),(((struct KNO_CHOICE *)$arg1)->choice_size))
   showtype $
 end
 define rawpos
@@ -264,7 +264,7 @@ set overload-resolution off
 break u8_log_break
 break u8_new_exception
 break u8_utf8_warning
-break _fd_debug
+break _kno_debug
 break _u8_dbg
 break u8_raise
 break TCMalloc_Printer::printf
@@ -298,21 +298,21 @@ end
 
 # Init Framer print limits (init done through the config interface)
 define set_fdmaxelts
-  set env FD_DISPLAYMAXELTS=36
-  set env FD_DISPLAYMAXCHARS=1024
+  set env KNO_DISPLAYMAXELTS=36
+  set env KNO_DISPLAYMAXCHARS=1024
 end
 
 define reset_fdmaxelts
-  unset env FD_DISPLAYMAXELTS
-  unset env FD_DISPLAYMAXCHARS
+  unset env KNO_DISPLAYMAXELTS
+  unset env KNO_DISPLAYMAXCHARS
 end
 
 define trace_server
-  set env FD_U8LOGLISTEN=yes
-  set env FD_U8LOGCONNECT=yes
-  set env FD_U8LOGTRANSACT=yes
-  set env FD_LOGTRANSFER=yes
-  set env FD_LOGLEVEL=8
+  set env KNO_U8LOGLISTEN=yes
+  set env KNO_U8LOGCONNECT=yes
+  set env KNO_U8LOGTRANSACT=yes
+  set env KNO_LOGTRANSFER=yes
+  set env KNO_LOGLEVEL=8
 end
 
 define debug_tempsrv
@@ -321,29 +321,29 @@ end
 
 define trace_tempsrv
   set args tempsrv.fdz
-  set env FD_U8LOGLISTEN=yes
-  set env FD_U8LOGCONNECT=yes
-  set env FD_U8LOGTRANSACT=yes
-  set env FD_U8LOGTRANSFER=yes
-  set env FD_LOGLEVEL=8
+  set env KNO_U8LOGLISTEN=yes
+  set env KNO_U8LOGCONNECT=yes
+  set env KNO_U8LOGTRANSACT=yes
+  set env KNO_U8LOGTRANSFER=yes
+  set env KNO_LOGLEVEL=8
 end
 
 define useinstalledmodules
-  unset environment FD_INIT_LOADPATH
-  unset environment FD_INIT_DLOADPATH
-  unset environment FD_INIT_SAFELOADPATH
+  unset environment KNO_INIT_LOADPATH
+  unset environment KNO_INIT_DLOADPATH
+  unset environment KNO_INIT_SAFELOADPATH
 end
 
 define staticweb
-    set args /var/run/fdserv/static.sock
+    set args /var/run/knosrv/static.sock
 end
 
 define dotload
-  unset environment FD_SKIP_DOTLOAD
+  unset environment KNO_SKIP_DOTLOAD
 end
 
 define dontload
-  set env FD_SKIP_DOTLOAD yes
+  set env KNO_SKIP_DOTLOAD yes
 end
 
 define cast
@@ -385,12 +385,12 @@ end
 
 define stackarg
   print/x _fdbg_get_stack_arg($arg0,$arg1)
-  printf "type of 0x%llx is 0x%x: %s\n",((lispval)$),(((($)&0x03)==2)?(fd_fixnum_type):((($)&0x3)==3)?(fd_oid_type):((($)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($))->conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($)>>25)&0x7f)+0x04))),fd_type_names[(((($)&0x03)==2)?(fd_fixnum_type):((($)&0x3)==3)?(fd_oid_type):((($)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($))->conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($)>>25)&0x7f)+0x04)))]
+  printf "type of 0x%llx is 0x%x: %s\n",((lispval)$),(((($)&0x03)==2)?(kno_fixnum_type):((($)&0x3)==3)?(kno_oid_type):((($)&0x3)==0)?((enum KNO_PTR_TYPE)(((((struct KNO_CONS *)($))->conshead)&0x7F)+0x84)):((enum KNO_PTR_TYPE)(((($)>>25)&0x7f)+0x04))),kno_type_names[(((($)&0x03)==2)?(kno_fixnum_type):((($)&0x3)==3)?(kno_oid_type):((($)&0x3)==0)?((enum KNO_PTR_TYPE)(((((struct KNO_CONS *)($))->conshead)&0x7F)+0x84)):((enum KNO_PTR_TYPE)(((($)>>25)&0x7f)+0x04)))]
 end
 
 define stackvar
   print/x _fdbg_get_stack_var($arg0,"$arg1")
-  printf "type of 0x%llx is 0x%x: %s\n",((lispval)$),(((($)&0x03)==2)?(fd_fixnum_type):((($)&0x3)==3)?(fd_oid_type):((($)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($))->conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($)>>25)&0x7f)+0x04))),fd_type_names[(((($)&0x03)==2)?(fd_fixnum_type):((($)&0x3)==3)?(fd_oid_type):((($)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($))->conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($)>>25)&0x7f)+0x04)))]
+  printf "type of 0x%llx is 0x%x: %s\n",((lispval)$),(((($)&0x03)==2)?(kno_fixnum_type):((($)&0x3)==3)?(kno_oid_type):((($)&0x3)==0)?((enum KNO_PTR_TYPE)(((((struct KNO_CONS *)($))->conshead)&0x7F)+0x84)):((enum KNO_PTR_TYPE)(((($)>>25)&0x7f)+0x04))),kno_type_names[(((($)&0x03)==2)?(kno_fixnum_type):((($)&0x3)==3)?(kno_oid_type):((($)&0x3)==0)?((enum KNO_PTR_TYPE)(((((struct KNO_CONS *)($))->conshead)&0x7F)+0x84)):((enum KNO_PTR_TYPE)(((($)>>25)&0x7f)+0x04)))]
 end
 
 
@@ -406,6 +406,6 @@ define stackenv
 end
 
 # Init some tracing configurations
-set env FD_DLOAD:TRACE=yes
+set env KNO_DLOAD:TRACE=yes
 # This is for OS X > Sierra
 # set startup-with-shell off

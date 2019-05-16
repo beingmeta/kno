@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -9,22 +9,22 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define FD_PROVIDE_FASTEVAL 1
+#define KNO_PROVIDE_FASTEVAL 1
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/numbers.h"
-#include "framerd/apply.h"
-#include "framerd/storage.h"
-#include "framerd/pools.h"
-#include "framerd/indexes.h"
-#include "framerd/frames.h"
-#include "framerd/eval.h"
-#include "framerd/ports.h"
-#include "framerd/fileprims.h"
-#include "framerd/procprims.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/numbers.h"
+#include "kno/apply.h"
+#include "kno/storage.h"
+#include "kno/pools.h"
+#include "kno/indexes.h"
+#include "kno/frames.h"
+#include "kno/eval.h"
+#include "kno/ports.h"
+#include "kno/fileprims.h"
+#include "kno/procprims.h"
 
-#include "framerd/cprims.h"
+#include "kno/cprims.h"
 
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
@@ -34,7 +34,7 @@
 #include <libu8/u8netfns.h>
 #include <libu8/u8xfiles.h>
 
-#define fast_eval(x,env) (_fd_fast_eval(x,env,_stack,0))
+#define fast_eval(x,env) (_kno_fast_eval(x,env,_stack,0))
 
 #include <stdlib.h>
 
@@ -78,20 +78,20 @@ static lispval id_symbol, stdin_symbol, stdout_symbol, stderr_symbol;
 
 static int handle_procopts(lispval opts);
 
-#define FD_IS_SCHEME 1
-#define FD_DO_FORK 2
-#define FD_DO_WAIT 4
-#define FD_DO_LOOKUP 8
+#define KNO_IS_SCHEME 1
+#define KNO_DO_FORK 2
+#define KNO_DO_WAIT 4
+#define KNO_DO_LOOKUP 8
 
 static lispval exec_helper(u8_context caller,
                            int flags,lispval opts,
                            int n,lispval *args)
 {
   if (!(STRINGP(args[0])))
-    return fd_type_error("pathname",caller,args[0]);
-  else if ((!(flags&(FD_DO_LOOKUP|FD_IS_SCHEME)))&&
+    return kno_type_error("pathname",caller,args[0]);
+  else if ((!(flags&(KNO_DO_LOOKUP|KNO_IS_SCHEME)))&&
            (!(u8_file_existsp(CSTRING(args[0])))))
-    return fd_type_error("real file",caller,args[0]);
+    return kno_type_error("real file",caller,args[0]);
   else {
     pid_t pid;
     char **argv;
@@ -105,21 +105,21 @@ static lispval exec_helper(u8_context caller,
         else break;}}
     else {}
     if ( (n>1) && (SLOTMAPP(args[1])) ) {
-      lispval keys = fd_getkeys(args[1]);
-      max_argc = max_argc+FD_CHOICE_SIZE(keys);}
+      lispval keys = kno_getkeys(args[1]);
+      max_argc = max_argc+KNO_CHOICE_SIZE(keys);}
     argv = u8_alloc_n(max_argc,char *);
-    if (flags&FD_IS_SCHEME) {
-      argv[argc++]=filename = ((u8_byte *)u8_strdup(FD_EXEC));
+    if (flags&KNO_IS_SCHEME) {
+      argv[argc++]=filename = ((u8_byte *)u8_strdup(KNO_EXEC));
       argv[argc++]=(u8_byte *)u8_tolibc(arg1);}
     else if (strchr(arg1,' ')) {
-#ifndef FD_EXEC_WRAPPER
+#ifndef KNO_EXEC_WRAPPER
       u8_free(argv);
-      return fd_err(_("No exec wrapper to handle env args"),
+      return kno_err(_("No exec wrapper to handle env args"),
                     caller,NULL,args[0]);
 #else
       char *argcopy = u8_tolibc(arg1), *start = argcopy;
       char *scan = strchr(start,' ');
-      argv[argc++] = filename = (u8_byte *)u8_strdup(FD_EXEC_WRAPPER);
+      argv[argc++] = filename = (u8_byte *)u8_strdup(KNO_EXEC_WRAPPER);
       while (scan) {
         *scan='\0'; argv[argc++]=start;
         start = scan+1; while (isspace(*start)) start++;
@@ -128,18 +128,18 @@ static lispval exec_helper(u8_context caller,
 #endif
     }
     else {
-#ifdef FD_EXEC_WRAPPER
-      argv[argc++]=filename = (u8_byte *)u8_strdup(FD_EXEC_WRAPPER);
+#ifdef KNO_EXEC_WRAPPER
+      argv[argc++]=filename = (u8_byte *)u8_strdup(KNO_EXEC_WRAPPER);
 #endif
       if (filename)
         argv[argc++]=u8_tolibc(arg1);
       else argv[argc++]=filename = (u8_byte *)u8_tolibc(arg1);}
     if ((n>1)&&(SLOTMAPP(args[1]))) {
       lispval params = args[1];
-      lispval keys = fd_getkeys(args[1]);
+      lispval keys = kno_getkeys(args[1]);
       DO_CHOICES(key,keys) {
         if ((SYMBOLP(key))||(STRINGP(key))) {
-          lispval value = fd_get(params,key,VOID);
+          lispval value = kno_get(params,key,VOID);
           if (!(VOIDP(value))) {
             struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
             u8_string stringval = NULL;
@@ -148,49 +148,49 @@ static lispval exec_helper(u8_context caller,
             if (stringval) u8_puts(&out,stringval);
             u8_putc(&out,'=');
             if (STRINGP(value)) u8_puts(&out,CSTRING(value));
-            else fd_unparse(&out,value);
+            else kno_unparse(&out,value);
             argv[argc++]=out.u8_outbuf;
-            fd_decref(value);}}}
+            kno_decref(value);}}}
         i++;}
     while (i<n) {
       if (STRINGP(args[i]))
         argv[argc++]=u8_tolibc(CSTRING(args[i++]));
       else {
-        u8_string as_string = fd_lisp2string(args[i++]);
+        u8_string as_string = kno_lisp2string(args[i++]);
         char *as_libc_string = u8_tolibc(as_string);
         argv[argc++]=as_libc_string; u8_free(as_string);}}
     argv[argc++]=NULL;
-    if ((flags&FD_DO_FORK)&&((pid = (fork())))) {
+    if ((flags&KNO_DO_FORK)&&((pid = (fork())))) {
       i = 0; while (i<argc) {
         if (argv[i]) u8_free(argv[i++]); else i++;}
       u8_free(argv);
 #if HAVE_WAITPID
-      if (flags&FD_DO_WAIT) {
+      if (flags&KNO_DO_WAIT) {
         unsigned int retval = -1;
         waitpid(pid,&retval,0);
-        return FD_INT(retval);}
+        return KNO_INT(retval);}
 #endif
-      return FD_INT(pid);}
+      return KNO_INT(pid);}
     handle_procopts(opts);
-    if (flags&FD_IS_SCHEME)
-      retval = execvp(FD_EXEC,argv);
-    else if (flags&FD_DO_LOOKUP)
+    if (flags&KNO_IS_SCHEME)
+      retval = execvp(KNO_EXEC,argv);
+    else if (flags&KNO_DO_LOOKUP)
       retval = execvp(filename,argv);
     else retval = execvp(filename,argv);
     u8_log(LOG_CRIT,caller,"Fork exec failed (%d/%d:%s) with %s %s (%d)",
            retval,errno,strerror(errno),
            filename,argv[0],argc);
     /* We call abort in this case because we've forked but couldn't
-       exec and we don't want this FramerD executable to exit normally. */
-    if (flags&FD_DO_FORK) {
+       exec and we don't want this Kno executable to exit normally. */
+    if (flags&KNO_DO_FORK) {
       u8_graberrno(caller,filename);
-      return FD_ERROR;}
+      return KNO_ERROR;}
     else {
-      fd_clear_errors(1);
+      kno_clear_errors(1);
       abort();}}
 }
 
-DCLPRIM("EXEC",exec_prim,MIN_ARGS(1)|FD_VAR_ARGS,
+DCLPRIM("EXEC",exec_prim,MIN_ARGS(1)|KNO_VAR_ARGS,
         "`(EXEC *command* [*envmap*] [*args*...])` replaces "
         "the current application with an execution of "
         "*command* (a string) to *args* (also strings).\n"
@@ -201,10 +201,10 @@ DCLPRIM("EXEC",exec_prim,MIN_ARGS(1)|FD_VAR_ARGS,
         "should be the path of an executable program file.")
 static lispval exec_prim(int n,lispval *args)
 {
-  return exec_helper("exec_prim",0,n,FD_FALSE,args);
+  return exec_helper("exec_prim",0,n,KNO_FALSE,args);
 }
 
-DCLPRIM("EXEC/CMD",exec_cmd_prim,MIN_ARGS(1)|FD_VAR_ARGS,
+DCLPRIM("EXEC/CMD",exec_cmd_prim,MIN_ARGS(1)|KNO_VAR_ARGS,
         "`(EXEC/CMD *command* [*envmap*] [*args*...])` replaces "
         "the current application with an execution of "
         "*command* (a string) to *args* (also strings).\n"
@@ -216,23 +216,23 @@ DCLPRIM("EXEC/CMD",exec_cmd_prim,MIN_ARGS(1)|FD_VAR_ARGS,
         "the path of an executable program file.")
 static lispval exec_cmd_prim(int n,lispval *args)
 {
-  return exec_helper("exec_cmd_prim",FD_DO_LOOKUP,n,FD_FALSE,args);
+  return exec_helper("exec_cmd_prim",KNO_DO_LOOKUP,n,KNO_FALSE,args);
 }
 
-DCLPRIM("FDEXEC",fdexec_prim,MIN_ARGS(1)|FD_VAR_ARGS,
-        "`(FDEXEC *scheme_file* [*envmap*] [*args*...])` replaces "
-        "the current application with a FramerD process reading "
+DCLPRIM("KNOX",knox_prim,MIN_ARGS(1)|KNO_VAR_ARGS,
+        "`(KNOX *scheme_file* [*envmap*] [*args*...])` replaces "
+        "the current application with a Kno process reading "
         "the file *scheme_file* and applying the file's `MAIN` "
         "definition to the results of parsing *args* (also strings).\n"
         "*envmap*, if provided, specifies CONFIG settings for the "
         "reading and execution of *scheme-file*. Environment variables "
         "can also be explicitly provided in the string *command*.\n")
-static lispval fdexec_prim(int n,lispval *args)
+static lispval knox_prim(int n,lispval *args)
 {
-  return exec_helper("fdexec_prim",FD_IS_SCHEME,n,FD_FALSE,args);
+  return exec_helper("knox_prim",KNO_IS_SCHEME,n,KNO_FALSE,args);
 }
 
-DCLPRIM("FORK",fork_prim,MIN_ARGS(1)|FD_VAR_ARGS,
+DCLPRIM("FORK",fork_prim,MIN_ARGS(1)|KNO_VAR_ARGS,
         "`(FORK *command* [*envmap*] [*args*...])` 'forks' "
         "a new process executing *command* (a string) for "
         "*args* (also strings). It returns the PID of the new process.\n"
@@ -247,12 +247,12 @@ static lispval fork_prim(int n,lispval *args)
     pid_t pid = fork();
     if (pid) {
       long long int_pid = (long long) pid;
-      return FD_INT2DTYPE(int_pid);}
-    else return FD_FALSE;}
-  else return exec_helper("fork_prim",FD_DO_FORK,n,FD_FALSE,args);
+      return KNO_INT2DTYPE(int_pid);}
+    else return KNO_FALSE;}
+  else return exec_helper("fork_prim",KNO_DO_FORK,n,KNO_FALSE,args);
 }
 
-DCLPRIM("FORK/CMD",fork_cmd_prim,MIN_ARGS(1)|FD_VAR_ARGS,
+DCLPRIM("FORK/CMD",fork_cmd_prim,MIN_ARGS(1)|KNO_VAR_ARGS,
         "`(FOR/CMD *command* [*envmap*] [*args*...])` 'forks' "
         "a new process executing *command* (a string) "
         "with *args* (also strings). It returns the PID of the "
@@ -265,12 +265,12 @@ DCLPRIM("FORK/CMD",fork_cmd_prim,MIN_ARGS(1)|FD_VAR_ARGS,
         "the path of an executable program file.")
 static lispval fork_cmd_prim(int n,lispval *args)
 {
-  return exec_helper("fork_cmd_prim",(FD_DO_FORK|FD_DO_LOOKUP),n,FD_FALSE,args);
+  return exec_helper("fork_cmd_prim",(KNO_DO_FORK|KNO_DO_LOOKUP),n,KNO_FALSE,args);
 }
 
-DCLPRIM("FDFORK",fdfork_prim,MIN_ARGS(1)|FD_VAR_ARGS,
+DCLPRIM("FDFORK",fdfork_prim,MIN_ARGS(1)|KNO_VAR_ARGS,
         "`(FDFORK *scheme_file* [*envmap*] [*args*...])` 'forks' "
-        "a new FramerD process reading the file *scheme_file* and "
+        "a new Kno process reading the file *scheme_file* and "
         "applying the file's `MAIN` definition to the results of "
         "parsing *args* (also strings).  It returns the PID of the "
         "new process.\n"
@@ -279,10 +279,10 @@ DCLPRIM("FDFORK",fdfork_prim,MIN_ARGS(1)|FD_VAR_ARGS,
         "can also be explicitly provided in the string *command*.\n")
 static lispval fdfork_prim(int n,lispval *args)
 {
-  return exec_helper("fdfork_prim",(FD_IS_SCHEME|FD_DO_FORK),n,FD_FALSE,args);
+  return exec_helper("fdfork_prim",(KNO_IS_SCHEME|KNO_DO_FORK),n,KNO_FALSE,args);
 }
 
-DCLPRIM("FORK/WAIT",fork_wait_prim,MIN_ARGS(1)|FD_VAR_ARGS,
+DCLPRIM("FORK/WAIT",fork_wait_prim,MIN_ARGS(1)|KNO_VAR_ARGS,
         "`(FORK *command* [*envmap*] [*args*...])` 'forks' "
         "a new process executing *command* (a string) for "
         "*args* (also strings). It waits for this process to "
@@ -294,10 +294,10 @@ DCLPRIM("FORK/WAIT",fork_wait_prim,MIN_ARGS(1)|FD_VAR_ARGS,
         "should be the path of an executable program file.")
 static lispval fork_wait_prim(int n,lispval *args)
 {
-  return exec_helper("fork_wait_prim",(FD_DO_FORK|FD_DO_WAIT),n,FD_FALSE,args);
+  return exec_helper("fork_wait_prim",(KNO_DO_FORK|KNO_DO_WAIT),n,KNO_FALSE,args);
 }
 
-DCLPRIM("FORK/CMD/WAIT",fork_cmd_wait_prim,MIN_ARGS(1)|FD_VAR_ARGS,
+DCLPRIM("FORK/CMD/WAIT",fork_cmd_wait_prim,MIN_ARGS(1)|KNO_VAR_ARGS,
         "`(FOR/CMD *command* [*envmap*] [*args*...])` 'forks' "
         "a new process executing *command* (a string) "
         "with *args* (also strings). It waits for this process to "
@@ -311,12 +311,12 @@ DCLPRIM("FORK/CMD/WAIT",fork_cmd_wait_prim,MIN_ARGS(1)|FD_VAR_ARGS,
 static lispval fork_cmd_wait_prim(int n,lispval *args)
 {
   return exec_helper("fork_cmd_wait_prim",
-                     (FD_DO_FORK|FD_DO_LOOKUP|FD_DO_WAIT),n,FD_FALSE,args);
+                     (KNO_DO_FORK|KNO_DO_LOOKUP|KNO_DO_WAIT),n,KNO_FALSE,args);
 }
 
-DCLPRIM("FDFORK/WAIT",fdfork_wait_prim,MIN_ARGS(1)|FD_VAR_ARGS,
+DCLPRIM("FDFORK/WAIT",fdfork_wait_prim,MIN_ARGS(1)|KNO_VAR_ARGS,
         "`(FDFORK *scheme_file* [*envmap*] [*args*...])` 'forks' "
-        "a new FramerD process reading the file *scheme_file* and "
+        "a new Kno process reading the file *scheme_file* and "
         "applying the file's `MAIN` definition to the results of "
         "parsing *args* (also strings).  It waits for this process to "
         "return and returns its exit status.\n"
@@ -326,18 +326,18 @@ DCLPRIM("FDFORK/WAIT",fdfork_wait_prim,MIN_ARGS(1)|FD_VAR_ARGS,
 static lispval fdfork_wait_prim(int n,lispval *args)
 {
   return exec_helper("fdfork_wait_prim",
-                     (FD_IS_SCHEME|FD_DO_FORK|FD_DO_WAIT),
-                     n,FD_FALSE,args);
+                     (KNO_IS_SCHEME|KNO_DO_FORK|KNO_DO_WAIT),
+                     n,KNO_FALSE,args);
 }
 
 /* SUBJOBs */
 
-fd_ptr_type fd_subjob_type;
+kno_ptr_type kno_subjob_type;
 
 #define PIPE_FLAGS O_NONBLOCK
 #define STDOUT_FILE_MODE (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)
 #define STDERR_FILE_MODE (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)
-#define SUBJOB_EXEC_FLAGS FD_DO_LOOKUP
+#define SUBJOB_EXEC_FLAGS KNO_DO_LOOKUP
 
 #if HAVE_PIPE2
 static int setup_pipe(int fds[2])
@@ -366,7 +366,7 @@ static int dodup(int from,int to,u8_string stream,u8_string id)
 
 static u8_string makeid(int n,lispval *args);
 
-DCLPRIM("SUBJOB/OPEN",subjob_open,MIN_ARGS(1)|FD_VAR_ARGS,
+DCLPRIM("SUBJOB/OPEN",subjob_open,MIN_ARGS(1)|KNO_VAR_ARGS,
         "`(SUBJOB/OPEN *opts* *command* [*envmap*] [*args*...])` "
         "'forks' a new process applying *command* to *args* and "
         "creates a **subjob** object for the process.\n"
@@ -391,59 +391,59 @@ DCLPRIM("SUBJOB/OPEN",subjob_open,MIN_ARGS(1)|FD_VAR_ARGS,
 static lispval subjob_open(int n,lispval *args)
 {
   lispval opts = args[0];
-  lispval idstring = fd_getopt(opts,id_symbol,FD_VOID);
-  lispval infile   = fd_getopt(opts,stdin_symbol,FD_VOID);
-  lispval outfile  = fd_getopt(opts,stdout_symbol,FD_VOID);
-  lispval errfile  = fd_getopt(opts,stderr_symbol,FD_VOID);
+  lispval idstring = kno_getopt(opts,id_symbol,KNO_VOID);
+  lispval infile   = kno_getopt(opts,stdin_symbol,KNO_VOID);
+  lispval outfile  = kno_getopt(opts,stdout_symbol,KNO_VOID);
+  lispval errfile  = kno_getopt(opts,stderr_symbol,KNO_VOID);
   int in_fd[2], out_fd[2], err_fd[2];
-  int *in  = (FD_TRUEP(infile)) ? (in_fd) : (NULL);
-  int *out = (FD_TRUEP(outfile)) ? (out_fd) : (NULL);
-  int *err = (FD_TRUEP(errfile)) ? (err_fd) : (NULL);
-  u8_string id = (FD_STRINGP(idstring)) ?
-    (u8_strdup(FD_CSTRING(idstring))) :
+  int *in  = (KNO_TRUEP(infile)) ? (in_fd) : (NULL);
+  int *out = (KNO_TRUEP(outfile)) ? (out_fd) : (NULL);
+  int *err = (KNO_TRUEP(errfile)) ? (err_fd) : (NULL);
+  u8_string id = (KNO_STRINGP(idstring)) ?
+    (u8_strdup(KNO_CSTRING(idstring))) :
     (makeid(n-1,args+1));
   /* Get pipes */
   if ( (in) && ( (setup_pipe(in)) < 0) ) {
-    lispval err = fd_err("PipeFailed","open_subjob",NULL,FD_VOID);
+    lispval err = kno_err("PipeFailed","open_subjob",NULL,KNO_VOID);
     return err;}
   else if ( (out) && ( (setup_pipe(out)) < 0) ) {
-    lispval err = fd_err("PipeFailed","open_subjob",NULL,FD_VOID);
+    lispval err = kno_err("PipeFailed","open_subjob",NULL,KNO_VOID);
     if (in) {close(in[0]); close(in[1]);}
     return err;}
   else if ( (err) && ( (setup_pipe(err)) < 0) ) {
-    lispval err = fd_err("PipeFailed","open_subjob",NULL,FD_VOID);
+    lispval err = kno_err("PipeFailed","open_subjob",NULL,KNO_VOID);
     if (in) {close(in[0]); close(in[1]);}
     if (out) {close(out[0]); close(out[1]);}
     return err;}
   else {
     pid_t pid = fork();
     if (pid) {
-      struct FD_SUBJOB *subjob = u8_alloc(struct FD_SUBJOB);
-      FD_INIT_CONS(subjob,fd_subjob_type);
+      struct KNO_SUBJOB *subjob = u8_alloc(struct KNO_SUBJOB);
+      KNO_INIT_CONS(subjob,kno_subjob_type);
       if (in) close(in[0]);
       if (out) close(out[1]);
       if (err) close(err[1]);
       subjob->subjob_pid = pid;
       subjob->subjob_id = id;
 
-      subjob->subjob_stdin = (in == NULL) ? (fd_incref(infile)) :
-        fd_make_port(NULL,(u8_output)u8_open_xoutput(in[1],NULL),
+      subjob->subjob_stdin = (in == NULL) ? (kno_incref(infile)) :
+        kno_make_port(NULL,(u8_output)u8_open_xoutput(in[1],NULL),
                      u8_mkstring("(in)%s",id));
       if (in) u8_set_blocking(in[1],1);
 
-      subjob->subjob_stdout = (out == NULL) ? (fd_incref(outfile)) :
-        fd_make_port((u8_input)u8_open_xinput(out[0],NULL),NULL,
+      subjob->subjob_stdout = (out == NULL) ? (kno_incref(outfile)) :
+        kno_make_port((u8_input)u8_open_xinput(out[0],NULL),NULL,
                      u8_mkstring("(out)%s",id));
       if (out) u8_set_blocking(out[0],1);
 
-      subjob->subjob_stderr = (err == NULL) ? (fd_incref(errfile)) :
-        fd_make_port((u8_input)u8_open_xinput(err[0],NULL),NULL,
+      subjob->subjob_stderr = (err == NULL) ? (kno_incref(errfile)) :
+        kno_make_port((u8_input)u8_open_xinput(err[0],NULL),NULL,
                      u8_mkstring("(err)%s",id));
       if (err) u8_set_blocking(err[0],1);
 
-      fd_decref(infile);
-      fd_decref(outfile);
-      fd_decref(errfile);
+      kno_decref(infile);
+      kno_decref(outfile);
+      kno_decref(errfile);
       return (lispval) subjob;}
     else {
       int rv = 0;
@@ -458,13 +458,13 @@ static lispval subjob_open(int n,lispval *args)
         u8_set_blocking(err[1],1);}
       if (in)
         rv = dodup(in[0],STDIN_FILENO,"stdin",id);
-      else if (FD_STRINGP(infile)) {
-        int new_stdin = u8_open_fd(FD_CSTRING(infile),O_RDONLY,0);
+      else if (KNO_STRINGP(infile)) {
+        int new_stdin = u8_open_fd(KNO_CSTRING(infile),O_RDONLY,0);
         if (new_stdin<0) {
           u8_exception ex = u8_pop_exception();
           u8_log(LOGCRIT,RedirectFailed,
                  "Couldn't open stdin %s (%s:%s)",
-                 FD_CSTRING(infile),ex->u8x_cond,ex->u8x_details);
+                 KNO_CSTRING(infile),ex->u8x_cond,ex->u8x_details);
           u8_free_exception(ex,0);
           rv=new_stdin;}
         else rv = dodup(in[0],STDIN_FILENO,"stdin",id);}
@@ -472,14 +472,14 @@ static lispval subjob_open(int n,lispval *args)
       if (rv<0) {}
       else if (out)
         rv = dodup(out[1],STDOUT_FILENO,"stdout",id);
-      else if (FD_STRINGP(outfile)) {
-        int new_stdout = u8_open_fd(FD_CSTRING(outfile),
+      else if (KNO_STRINGP(outfile)) {
+        int new_stdout = u8_open_fd(KNO_CSTRING(outfile),
                                     O_WRONLY|O_CREAT,
                                     STDOUT_FILE_MODE);
         if (new_stdout<0) {
           u8_exception ex = u8_pop_exception();
           u8_log(LOGCRIT,"Couldn't open stdout %s (%s:%s)",
-                 FD_CSTRING(outfile));
+                 KNO_CSTRING(outfile));
           u8_free_exception(ex,0);
           rv=new_stdout;}
         else rv = dodup(new_stdout,STDOUT_FILENO,"stdin",id);}
@@ -487,27 +487,27 @@ static lispval subjob_open(int n,lispval *args)
       if (rv<0) {}
       else if (err)
         rv = dodup(err[1],STDERR_FILENO,"stderr",id);
-      else if (FD_STRINGP(errfile)) {
-        int new_stderr = u8_open_fd(FD_CSTRING(errfile),
+      else if (KNO_STRINGP(errfile)) {
+        int new_stderr = u8_open_fd(KNO_CSTRING(errfile),
                                     O_WRONLY|O_CREAT,
                                     STDERR_FILE_MODE);
         if (new_stderr<0) {
           u8_exception ex = u8_pop_exception();
           u8_log(LOGCRIT,"Couldn't open stderr %s (%s:%s)",
-                 FD_CSTRING(errfile),
+                 KNO_CSTRING(errfile),
                  ex->u8x_cond,ex->u8x_details);
           u8_free_exception(ex,0);
           rv=new_stderr;}
         else rv = dodup(new_stderr,STDERR_FILENO,"stderr",id);}
       else NO_ELSE;
       if (rv<0) {exit(1);}
-      int exec_result = exec_helper("fd_subjob",SUBJOB_EXEC_FLAGS,
+      int exec_result = exec_helper("kno_subjob",SUBJOB_EXEC_FLAGS,
                                     n-1,opts,args+1);
       if (exec_result < 0) {
         u8_log(LOG_CRIT,"ExecFailed","Couldn't launch subjob %s",id);
         exit(1);}
       /* Never reached */
-      return FD_VOID;}
+      return KNO_VOID;}
   }
 }
 
@@ -517,10 +517,10 @@ static u8_string makeid(int n,lispval *args)
   int i = 0; while (i<n) {
     lispval v = args[i];
     if (i>0) u8_putc(&idout,' ');
-    if (FD_STRINGP(v)) {
-      u8_string s = FD_CSTRING(v);
+    if (KNO_STRINGP(v)) {
+      u8_string s = KNO_CSTRING(v);
       if (strchr(s,' '))
-        fd_unparse(&idout,v);
+        kno_unparse(&idout,v);
       else u8_puts(&idout,s);}
     else u8_printf(&idout,"'%q'",v);
     i++;}
@@ -529,43 +529,43 @@ static u8_string makeid(int n,lispval *args)
 
 static int unparse_subjob(u8_output out,lispval x)
 {
-  struct FD_SUBJOB *sj = (struct FD_SUBJOB *)x;
+  struct KNO_SUBJOB *sj = (struct KNO_SUBJOB *)x;
   u8_printf(out,"#<SUBJOB/%s>",sj->subjob_id);
   return 1;
 }
 
-static void recycle_subjob(struct FD_RAW_CONS *c)
+static void recycle_subjob(struct KNO_RAW_CONS *c)
 {
-  struct FD_SUBJOB *sj = (struct FD_SUBJOB *)c;
-  fd_decref(sj->subjob_stdin); sj->subjob_stdin=FD_VOID;
-  fd_decref(sj->subjob_stdout); sj->subjob_stdout=FD_VOID;
-  fd_decref(sj->subjob_stderr); sj->subjob_stderr=FD_VOID;
+  struct KNO_SUBJOB *sj = (struct KNO_SUBJOB *)c;
+  kno_decref(sj->subjob_stdin); sj->subjob_stdin=KNO_VOID;
+  kno_decref(sj->subjob_stdout); sj->subjob_stdout=KNO_VOID;
+  kno_decref(sj->subjob_stderr); sj->subjob_stderr=KNO_VOID;
   u8_free(sj->subjob_id);
-  if (!(FD_STATIC_CONSP(c))) u8_free(c);
+  if (!(KNO_STATIC_CONSP(c))) u8_free(c);
 }
 
 DCLPRIM("SUBJOB/PID",subjob_pid,MIN_ARGS(1)|MAX_ARGS(1),
         "Returns the numeric process ID for the subjob")
 static lispval subjob_pid(lispval subjob)
 {
-  struct FD_SUBJOB *sj = (fd_subjob) subjob;
-  return FD_INT(sj->subjob_pid);
+  struct KNO_SUBJOB *sj = (kno_subjob) subjob;
+  return KNO_INT(sj->subjob_pid);
 }
 
 DCLPRIM("SUBJOB/STDIN",subjob_stdin,MIN_ARGS(1)|MAX_ARGS(1),
         "Returns an output port for sending to the subjob.")
 static lispval subjob_stdin(lispval subjob)
 {
-  struct FD_SUBJOB *sj = (fd_subjob) subjob;
-  return fd_incref(sj->subjob_stdin);
+  struct KNO_SUBJOB *sj = (kno_subjob) subjob;
+  return kno_incref(sj->subjob_stdin);
 }
 
 DCLPRIM("SUBJOB/STDOUT",subjob_stdout,MIN_ARGS(1)|MAX_ARGS(1),
         "Returns an input port for reading the output of subjob.")
 static lispval subjob_stdout(lispval subjob)
 {
-  struct FD_SUBJOB *sj = (fd_subjob) subjob;
-  return fd_incref(sj->subjob_stdout);
+  struct KNO_SUBJOB *sj = (kno_subjob) subjob;
+  return kno_incref(sj->subjob_stdout);
 }
 
 DCLPRIM("SUBJOB/STDERR",subjob_stderr,MIN_ARGS(1)|MAX_ARGS(1),
@@ -573,8 +573,8 @@ DCLPRIM("SUBJOB/STDERR",subjob_stderr,MIN_ARGS(1)|MAX_ARGS(1),
         " of subjob.")
 static lispval subjob_stderr(lispval subjob)
 {
-  struct FD_SUBJOB *sj = (fd_subjob) subjob;
-  return fd_incref(sj->subjob_stderr);
+  struct KNO_SUBJOB *sj = (kno_subjob) subjob;
+  return kno_incref(sj->subjob_stderr);
 }
 
 DCLPRIM("SUBJOB/SIGNAL",subjob_signal,MIN_ARGS(2)|MAX_ARGS(2),
@@ -582,17 +582,17 @@ DCLPRIM("SUBJOB/SIGNAL",subjob_signal,MIN_ARGS(2)|MAX_ARGS(2),
         "*signal* to the process executing *subjob*.")
 static lispval subjob_signal(lispval subjob,lispval sigval)
 {
-  struct FD_SUBJOB *sj = (fd_subjob) subjob;
-  int sig = FD_INT(sigval);
+  struct KNO_SUBJOB *sj = (kno_subjob) subjob;
+  int sig = KNO_INT(sigval);
   int pid = sj->subjob_pid;
   if ((sig>0)&&(sig<256)) {
     int rv = kill(pid,sig);
     if (rv<0) {
       char buf[128]; sprintf(buf,"pid=%ld;sig=%d",(long int)pid,sig);
       u8_graberrno("subjob_signal",u8_strdup(buf));
-      return FD_ERROR;}
-    else return FD_TRUE;}
-  else return fd_type_error("signal","subjob_signal",sigval);
+      return KNO_ERROR;}
+    else return KNO_TRUE;}
+  else return kno_type_error("signal","subjob_signal",sigval);
 }
 
 /* EXIT functions */
@@ -602,7 +602,7 @@ DCLPRIM("EXIT",exit_prim,MIN_ARGS(0)|MAX_ARGS(1),
         "a return code of *retval* (defaults to 0)")
 static lispval exit_prim(lispval arg)
 {
-  if (FD_INTP(arg))
+  if (KNO_INTP(arg))
     exit(FIX2INT(arg));
   else exit(0);
   return VOID;
@@ -614,8 +614,8 @@ DCLPRIM("EXIT/FAST",fast_exit_prim,MIN_ARGS(0)|MAX_ARGS(1),
         "which will just be returned to the OS after exit.")
 static lispval fast_exit_prim(lispval arg)
 {
-  fd_fast_exit=1;
-  if (FD_INTP(arg))
+  kno_fast_exit=1;
+  if (KNO_INTP(arg))
     exit(FIX2INT(arg));
   else exit(0);
   return VOID;
@@ -626,21 +626,21 @@ static lispval fast_exit_prim(lispval arg)
 DCLPRIM1("PID?",ispid_prim,MIN_ARGS(1),
          "Returns #t if it's argument is a current and valid "
          "process ID.",
-         fd_fixnum_type,FD_VOID)
+         kno_fixnum_type,KNO_VOID)
 static lispval ispid_prim(lispval pid_arg)
 {
   pid_t pid = FIX2INT(pid_arg);
   int rv = kill(pid,0);
   if (rv<0) {
-    errno = 0; return FD_FALSE;}
-  else return FD_TRUE;
+    errno = 0; return KNO_FALSE;}
+  else return KNO_TRUE;
 }
 
 DCLPRIM2("PID/KILL!",pid_kill_prim,MIN_ARGS(1),
          "`(PID/KILL *process* [*signal*])` "
          "sends *signal* (default is ) to "
          "*process*.",
-         -1,FD_VOID,-1,FD_VOID)
+         -1,KNO_VOID,-1,KNO_VOID)
 static lispval pid_kill_prim(lispval pid_arg,lispval sig_arg)
 {
   pid_t pid = FIX2INT(pid_arg);
@@ -650,50 +650,50 @@ static lispval pid_kill_prim(lispval pid_arg,lispval sig_arg)
     if (rv<0) {
       char buf[128]; sprintf(buf,"pid=%ld;sig=%d",(long int)pid,sig);
       u8_graberrno("os_kill_prim",u8_strdup(buf));
-      return FD_ERROR;}
-    else return FD_TRUE;}
-  else return fd_type_error("signal","pid_kill_prim",sig_arg);
+      return KNO_ERROR;}
+    else return KNO_TRUE;}
+  else return kno_type_error("signal","pid_kill_prim",sig_arg);
 }
 
 /* Generic rlimits */
 
-lispval fd_rlimit_codes = FD_EMPTY;
+lispval kno_rlimit_codes = KNO_EMPTY;
 
 DCLPRIM2("GETRLIMIT",getrlimit_prim,MAX_ARGS(2)|MIN_ARGS(1),
          "`(GETRLIMIT *resource* [*getmax*])` gets the *resource* "
          "resource limit for the current process. If *getmax* is true, "
          "gets the maximum resource limit.",
-         fd_symbol_type,FD_VOID,-1,FD_VOID)
+         kno_symbol_type,KNO_VOID,-1,KNO_VOID)
 static lispval getrlimit_prim(lispval resname,lispval which)
 {
   struct rlimit lim;
   long long resnum = -1;
-  lispval rescode = fd_get(fd_rlimit_codes,resname,FD_VOID);
-  if (FD_UINTP(rescode))
-    resnum = FD_FIX2INT(rescode);
-  else return fd_err(_("BadRLIMITKey"),"setrlimit_prim",NULL,resname);
+  lispval rescode = kno_get(kno_rlimit_codes,resname,KNO_VOID);
+  if (KNO_UINTP(rescode))
+    resnum = KNO_FIX2INT(rescode);
+  else return kno_err(_("BadRLIMITKey"),"setrlimit_prim",NULL,resname);
   int rv = getrlimit(resnum,&lim);
   if (rv < 0) {
     u8_string errstring = u8_strerror(errno); errno=0;
-    return fd_err("RLimitFailed","getrlimit_prim",errstring,resname);}
-  if (FD_TRUEP(which)) {
+    return kno_err("RLimitFailed","getrlimit_prim",errstring,resname);}
+  if (KNO_TRUEP(which)) {
     long long curlim = (long long) lim.rlim_cur;
     long long maxlim = (long long) lim.rlim_max;
-    return fd_init_pair(NULL,
-                        ( (curlim<0) ? (FD_FALSE) : (FD_INT(curlim)) ),
-                        ( (maxlim<0) ? (FD_FALSE) : (FD_INT(maxlim)) ));}
+    return kno_init_pair(NULL,
+                        ( (curlim<0) ? (KNO_FALSE) : (KNO_INT(curlim)) ),
+                        ( (maxlim<0) ? (KNO_FALSE) : (KNO_INT(maxlim)) ));}
   else {
     long long curlim = (long long) lim.rlim_cur;
     if (curlim < 0)
-      return FD_FALSE;
-    else return FD_INT(curlim);}
+      return KNO_FALSE;
+    else return KNO_INT(curlim);}
 }
 
 DCLPRIM3("SETRLIMIT!",setrlimit_prim,MAX_ARGS(2)|MIN_ARGS(2),
          "`(SETRLIMIT! *resource* *value* [*setmax*])` sets the resource "
          "limit *resource* (symbol) to *value* for the current process. If "
          "*setmax* is true, sets the maximium resource value if allowed.",
-         fd_symbol_type,FD_VOID,-1,FD_VOID,-1,FD_VOID)
+         kno_symbol_type,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID)
 static lispval setrlimit_prim(lispval resname,lispval limit_val,
                               lispval setmax_arg)
 {
@@ -701,40 +701,40 @@ static lispval setrlimit_prim(lispval resname,lispval limit_val,
   struct rlimit lim;
   long long resnum = -1;
   long long resval = -1;
-  lispval rescode = fd_get(fd_rlimit_codes,resname,FD_VOID);
-  int setmax = (FD_TRUEP(setmax_arg));
-  if (FD_UINTP(rescode))
-    resnum = FD_FIX2INT(rescode);
-  else return fd_err(_("BadRLIMITKey"),"setrlimit_prim",NULL,resname);
-  if (FD_UINTP(limit_val))
-    resval = FD_FIX2INT(limit_val);
-  else if ( (FD_FIXNUMP(limit_val)) || (FD_FALSEP(limit_val)) )
+  lispval rescode = kno_get(kno_rlimit_codes,resname,KNO_VOID);
+  int setmax = (KNO_TRUEP(setmax_arg));
+  if (KNO_UINTP(rescode))
+    resnum = KNO_FIX2INT(rescode);
+  else return kno_err(_("BadRLIMITKey"),"setrlimit_prim",NULL,resname);
+  if (KNO_UINTP(limit_val))
+    resval = KNO_FIX2INT(limit_val);
+  else if ( (KNO_FIXNUMP(limit_val)) || (KNO_FALSEP(limit_val)) )
     resval = RLIM_INFINITY;
-  else return fd_err(fd_TypeError,"setrlimit_prim",NULL,limit_val);
-  int rv = getrlimit(FD_FIX2INT(rescode),&lim);
+  else return kno_err(kno_TypeError,"setrlimit_prim",NULL,limit_val);
+  int rv = getrlimit(KNO_FIX2INT(rescode),&lim);
   if (rv < 0) {
     u8_string errstring = u8_strerror(errno); errno=0;
-    return fd_err("RLimitFailed","setrlimit_prim/getrlimit",errstring,resname);}
+    return kno_err("RLimitFailed","setrlimit_prim/getrlimit",errstring,resname);}
   if (setmax)
     lim.rlim_max = resval;
   else lim.rlim_cur = resval;
   rv = setrlimit(resnum,&lim);
   if (rv < 0) {
     u8_string errstring = u8_strerror(errno); errno=0;
-    return fd_err(_("SetRLIMITFailed"),"setrlimit_prim",errstring,resname);}
-  return FD_TRUE;
+    return kno_err(_("SetRLIMITFailed"),"setrlimit_prim",errstring,resname);}
+  return KNO_TRUE;
 }
 
 /* RLIMIT tables */
 
 #define DECL_RLIMIT(name) \
-  fd_store(fd_rlimit_codes,fd_intern(# name),FD_INT(name))
+  kno_store(kno_rlimit_codes,kno_intern(# name),KNO_INT(name))
 #define DECL_RLIMIT_ALIAS(alias,code)                                 \
-  fd_store(fd_rlimit_codes,fd_intern(alias),FD_INT(code))
+  kno_store(kno_rlimit_codes,kno_intern(alias),KNO_INT(code))
 
 static void init_rlimit_codes()
 {
-  fd_rlimit_codes = fd_empty_slotmap();
+  kno_rlimit_codes = kno_empty_slotmap();
   DECL_RLIMIT(RLIMIT_AS);
   DECL_RLIMIT_ALIAS("VMEM",RLIMIT_AS);
   DECL_RLIMIT(RLIMIT_CORE);
@@ -777,34 +777,34 @@ static void init_rlimit_codes()
 
 /* Handling procopts */
 
-static lispval nice_symbol = FD_VOID;
+static lispval nice_symbol = KNO_VOID;
 
 static int handle_procopts(lispval opts)
 {
-  if ( (FD_FALSEP(opts)) || (FD_VOIDP(opts)) ) return 0;
-  lispval limit_keys = fd_getkeys(fd_rlimit_codes);
+  if ( (KNO_FALSEP(opts)) || (KNO_VOIDP(opts)) ) return 0;
+  lispval limit_keys = kno_getkeys(kno_rlimit_codes);
   DO_CHOICES(opt,limit_keys) {
-    lispval optval = fd_getopt(opts,opt,FD_VOID);
-    if (FD_VOIDP(optval)) continue;
+    lispval optval = kno_getopt(opts,opt,KNO_VOID);
+    if (KNO_VOIDP(optval)) continue;
     else {
-      lispval setval = setrlimit_prim(opt,optval,FD_FALSE);
-      if (FD_ABORTP(setval)) {
+      lispval setval = setrlimit_prim(opt,optval,KNO_FALSE);
+      if (KNO_ABORTP(setval)) {
         u8_log(LOGWARN,"RlimitFailed","Couldn't set %q",opt);
-        fd_clear_errors(1);}
+        kno_clear_errors(1);}
       else u8_log(LOGNOTICE,"RlimitChanged","Set %q to %q",opt,optval);
-      fd_decref(optval);}}
-  fd_decref(limit_keys);
-  lispval niceval = fd_getopt(opts,nice_symbol,FD_VOID);
-  if (FD_FIXNUMP(niceval)) {
-    int nv = FD_FIX2INT(niceval); errno = 0;
+      kno_decref(optval);}}
+  kno_decref(limit_keys);
+  lispval niceval = kno_getopt(opts,nice_symbol,KNO_VOID);
+  if (KNO_FIXNUMP(niceval)) {
+    int nv = KNO_FIX2INT(niceval); errno = 0;
     int rv = nice(nv);
     if (errno) {
       u8_string errstring = u8_strerror(errno); errno=0;
       u8_log(LOGCRIT,"ReNiceFailed","With %s, setting to %d",
-             errstring,FD_FIX2INT(niceval));}
-    else u8_log(LOGNOTICE,"Renice","To %d for %d",rv,FD_FIX2INT(niceval));
+             errstring,KNO_FIX2INT(niceval));}
+    else u8_log(LOGNOTICE,"Renice","To %d for %d",rv,KNO_FIX2INT(niceval));
     return 0;}
-  else if (!(FD_VOIDP(niceval))) {
+  else if (!(KNO_VOIDP(niceval))) {
     u8_log(LOGWARN,"BadNiceValue","handle_procopts %q",niceval);
     return -1;}
   else return 0;
@@ -814,30 +814,30 @@ static int handle_procopts(lispval opts)
 
 DCLPRIM1("NICE",nice_prim,MIN_ARGS(0),
          "Returns or adjusts the priority for the current process",
-         fd_fixnum_type,FD_VOID)
+         kno_fixnum_type,KNO_VOID)
 static lispval nice_prim(lispval delta_arg)
 {
-  int delta = (!(FD_FIXNUMP(delta_arg))) ? (0) : (FD_FIX2INT(delta_arg));
+  int delta = (!(KNO_FIXNUMP(delta_arg))) ? (0) : (KNO_FIX2INT(delta_arg));
   errno = 0;
   int rv = nice(delta);
   if (errno) {
     u8_string errstring = u8_strerror(errno); errno=0;
-    return fd_err("NiceFailed","nice_prim",errstring,delta);}
-  else return FD_INT(rv);
+    return kno_err("NiceFailed","nice_prim",errstring,delta);}
+  else return KNO_INT(rv);
 }
 
 /* The init function */
 
 static int scheme_procprims_initialized = 0;
 
-FD_EXPORT void fd_init_procprims_c()
+KNO_EXPORT void kno_init_procprims_c()
 {
   lispval procprims_module;
   if (scheme_procprims_initialized) return;
   scheme_procprims_initialized = 1;
-  fd_init_scheme();
+  kno_init_scheme();
   procprims_module =
-    fd_new_cmodule("PROCPRIMS",(FD_MODULE_DEFAULT),fd_init_procprims_c);
+    kno_new_cmodule("PROCPRIMS",(KNO_MODULE_DEFAULT),kno_init_procprims_c);
   u8_register_source_file(_FILEINFO);
 
   init_rlimit_codes();
@@ -847,7 +847,7 @@ FD_EXPORT void fd_init_procprims_c()
   DECL_PRIM_N(fork_prim,procprims_module);
   DECL_PRIM_N(fork_cmd_prim,procprims_module);
 
-  DECL_PRIM_N(fdexec_prim,procprims_module);
+  DECL_PRIM_N(knox_prim,procprims_module);
   DECL_PRIM_N(fdfork_prim,procprims_module);
 
 #if HAVE_WAITPID
@@ -858,19 +858,19 @@ FD_EXPORT void fd_init_procprims_c()
 
   DECL_PRIM(nice_prim,1,procprims_module);
 
-  fd_subjob_type = fd_register_cons_type("subjob");
-  fd_unparsers[fd_subjob_type] = unparse_subjob;
-  fd_recyclers[fd_subjob_type] = recycle_subjob;
+  kno_subjob_type = kno_register_cons_type("subjob");
+  kno_unparsers[kno_subjob_type] = unparse_subjob;
+  kno_recyclers[kno_subjob_type] = recycle_subjob;
 
-  id_symbol = fd_intern("ID");
-  stdin_symbol = fd_intern("STDIN");
-  stdout_symbol = fd_intern("STDOUT");
-  stderr_symbol = fd_intern("STDERR");
-  nice_symbol = fd_intern("NICE");
+  id_symbol = kno_intern("ID");
+  stdin_symbol = kno_intern("STDIN");
+  stdout_symbol = kno_intern("STDOUT");
+  stderr_symbol = kno_intern("STDERR");
+  nice_symbol = kno_intern("NICE");
 
   DECL_PRIM_N(subjob_open,procprims_module);
 
-  int subjob_prim_types[1] = { fd_subjob_type };
+  int subjob_prim_types[1] = { kno_subjob_type };
   DECL_PRIM_ARGS(subjob_pid,1,procprims_module,
                  subjob_prim_types,NULL);
   DECL_PRIM_ARGS(subjob_stdin,1,procprims_module,
@@ -880,7 +880,7 @@ FD_EXPORT void fd_init_procprims_c()
   DECL_PRIM_ARGS(subjob_stderr,1,procprims_module,
                  subjob_prim_types,NULL);
 
-  int subjob_signal_types[2] = { fd_subjob_type, fd_fixnum_type };
+  int subjob_signal_types[2] = { kno_subjob_type, kno_fixnum_type };
   DECL_PRIM_ARGS(subjob_signal,2,procprims_module,
                  subjob_signal_types,NULL);
 
@@ -889,10 +889,10 @@ FD_EXPORT void fd_init_procprims_c()
   DECL_PRIM(exit_prim,1,procprims_module);
   DECL_PRIM(fast_exit_prim,1,procprims_module);
 
-  DECL_PRIM(getrlimit_prim,2,fd_scheme_module);
-  DECL_PRIM(setrlimit_prim,3,fd_scheme_module);
+  DECL_PRIM(getrlimit_prim,2,kno_scheme_module);
+  DECL_PRIM(setrlimit_prim,3,kno_scheme_module);
 
-  fd_finish_module(procprims_module);
+  kno_finish_module(procprims_module);
 }
 
 /* Emacs local variables

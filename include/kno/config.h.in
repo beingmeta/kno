@@ -1,0 +1,627 @@
+/* -*- Mode: C; Character-encoding: utf-8; -*- */
+
+/* Copyright (C) 2004-2019 beingmeta, inc.
+
+   This file is part of beingmeta's Kno implementation of Kno and
+   is copyright and a valuable trade secret of beingmeta, inc.  */
+
+#ifndef KNO_CONFIG_H
+#define KNO_CONFIG_H 1
+#ifndef KNO_CONFIG_H_INFO
+#define KNO_CONFIG_H_INFO "include/kno/config.h"
+#endif
+
+/* Define the Kno version (originates in configure.ac) */
+#undef KNO_VERSION
+#undef KNO_MAJOR_VERSION
+#undef KNO_MINOR_VERSION
+#undef KNO_RELEASE_VERSION
+
+/* Define if you don't have off_t */
+#undef off_t
+
+/* Define if integers should be aligned  */
+#undef KNO_WORDS_ARE_ALIGNED
+
+/* Whether you can use the stdatomic.h header file */
+#undef HAVE_STDATOMIC_H
+
+/* Whether you can use the stdatomic.h header file */
+#undef KNO_ENABLE_LOCKFREE
+
+/* Define to specify whether file locking works  */
+#undef KNO_WITH_FILE_LOCKING
+
+/* Define to specify whether large files are to be used  */
+#undef KNO_LARGEFILES_ENABLED
+
+/* Define to have frame operations prefetch when possible */
+#undef KNO_PREFETCHING_ENABLED
+
+/* Define if profiling is enabled.  */
+#undef KNO_PROFILING_ENABLED
+
+/* Define if you have the <pthread.h> header file.  */
+#undef HAVE_PTHREAD_H
+
+/* Check some non portable pthread functions */
+#undef HAVE_PTHREAD_TRYJOIN_NP
+#undef HAVE_PTHREAD_TIMEDJOIN_NP
+
+/* Define if you might need to set a crypto locking fallback (for multi-threaded CURL https) */
+#undef HAVE_CRYPTO_SET_LOCKING_CALLBACK
+
+/* Define if you have the uchar type.  */
+#undef HAVE_UCHAR
+
+/* Define as __inline if that's what the C compiler calls it.  */
+#undef inline
+
+/* Define if you can safely include both <sys/time.h> and <time.h>.  */
+#undef TIME_WITH_SYS_TIME
+
+/* Define if your <sys/time.h> declares struct tm.  */
+#undef TM_IN_SYS_TIME
+
+/* Define if you have <resource.h> declares struct tm.  */
+#undef HAVE_SYS_FILE_H
+
+/* Define if you have stat.st_mtim  */
+#undef HAVE_STRUCT_STAT_ST_MTIM
+
+/* Define if you have stat.st_mtimespec  */
+#undef HAVE_STRUCT_STAT_ST_MTIMESPEC
+
+/* Define if you have the dladdr() function for getting shared library
+   information */
+#undef HAVE_DLFCN_H
+
+/* Define if you have the dladdr() function for getting shared library
+   information */
+#undef HAVE_DLADDR
+
+/* Define if you have <resource.h> declares struct tm.  */
+#undef HAVE_SYS_RESOURCE_H
+
+/* Define if you have <sys/resource.h> declares struct tm.  */
+#undef HAVE_RESOURCE_H
+
+/* Whether we have extended profiling */
+#undef KNO_EXTENDED_PROFILING
+
+/* Define if you have rusage.ru_inblock.  */
+#undef HAVE_STRUCT_RUSAGE_RU_INBLOCK
+
+/* Define if you have rusage.ru_nivcsw.  */
+#undef HAVE_STRUCT_RUSAGE_RU_NIVCSW
+
+/* Define if you have rusage.ru_nvcsw.  */
+#undef HAVE_STRUCT_RUSAGE_RU_NVCSW
+
+/* Define if you have rusage.ru_majflt.  */
+#undef HAVE_STRUCT_RUSAGE_RU_MAJFLT
+
+/* Define if you have rusage.ru_nswap.  */
+#undef HAVE_STRUCT_RUSAGE_RU_NSWAP
+
+/* Define if you have the RUSAGE_THREAD symbol (enum or macro).  */
+#undef HAVE_DECL_RUSAGE_THREAD
+
+/* Define if you have <sys/types.h> */
+#undef HAVE_SYS_TYPES_H
+
+/* Define if you have <sys/wait.h> */
+#undef HAVE_SYS_WAIT_H
+
+/* Define if you have <obstack.h> */
+#undef HAVE_OBSTACK_H
+
+/* Define if you have <signal.h> */
+#undef HAVE_SIGNAL_H
+
+/* Define if your processor stores words with the most significant
+   byte first (like Motorola and SPARC, unlike Intel and VAX).  */
+#undef WORDS_BIGENDIAN
+
+/* The number of bytes in an int.  */
+#undef SIZEOF_INT
+
+/* The number of bytes in a short.  */
+#undef SIZEOF_SHORT
+
+/* The number of bytes in a long.  */
+#undef SIZEOF_LONG
+
+/* The number of bytes in a long long.  */
+#undef SIZEOF_LONG_LONG
+
+/* The number of bytes in a pointer.  */
+#undef SIZEOF_VOID_P
+
+/* The number of bytes in a time_t value.  */
+#undef SIZEOF_TIME_T
+
+/* The number of bytes in an off_t value.  */
+#undef SIZEOF_OFF_T
+
+/* The number of bytes in a size_t value.  */
+#undef SIZEOF_SIZE_T
+
+/* Define if you have the strdup function.  */
+#undef HAVE_STRDUP
+
+/* Define if you have the strndup function.  */
+#undef HAVE_STRNDUP
+
+/* Define if you have the flock function.  */
+#undef HAVE_FLOCK
+
+/* Define if you have the flock function.  */
+#undef HAVE_LOCKF
+
+/* Define if you have the flock function.  */
+#undef HAVE_FCNTL
+
+/* Define if you have a sys/sysinfo.h function.  */
+#undef HAVE_SYS_SYSINFO_H
+
+/* Define if you have a sys/sysinfo.h function.  */
+#undef HAVE_SYSINFO
+
+/* Define if you have a sysconf function.  */
+#undef HAVE_SYSCONF
+
+/* Define if you have a sysctl function.  */
+#undef HAVE_SYSCTL
+
+/* Define if you have the flock function.  */
+#undef HAVE_PREAD
+
+/* Define if you have the flock function.  */
+#undef HAVE_MMAP
+
+/* Define to specify whether file locking works  */
+#undef KNO_WITHOUT_MMAP
+
+/* Define if you have the mkstemp function.  */
+#undef HAVE_MKSTEMP
+
+/* Define if you have the fseeko function (for large files).  */
+#undef HAVE_FSEEKO
+
+/* Define if you have the realpath function.  */
+#undef HAVE_REALPATH
+
+/* Define if you have the sys/utsname.h header for uname()  */
+#undef HAVE_SYS_UTSNAME_H
+
+/* Define if you have the uname() library function.  */
+#undef HAVE_UNAME
+
+/* Define if you have the statfs() library function.  */
+#undef HAVE_STATFS
+
+/* Define if you have the pipe() library function.  */
+#undef HAVE_PIPE
+
+/* Define if you have the pipe2() library function.  */
+#undef HAVE_PIPE2
+
+/* Define if you have the sleep library function.  */
+#undef HAVE_SLEEP
+
+/* Define if you have the nanosleep library function.  */
+#undef HAVE_NANOSLEEP
+
+/* Define if you have the getuid library function.  */
+#undef HAVE_GETUID
+
+/* Define if you have the geteuid library function.  */
+#undef HAVE_GETEUID
+
+/* Define if you have the getgid library function.  */
+#undef HAVE_GETGID
+
+/* Define if you have the getegid library function.  */
+#undef HAVE_GETEGID
+
+/* Define if you have the setuid library function.  */
+#undef HAVE_SETUID
+
+/* Define if you have the seteuid library function.  */
+#undef HAVE_SETEUID
+
+/* Define if you have the setgid library function.  */
+#undef HAVE_SETGID
+
+/* Define if you have the setegid library function.  */
+#undef HAVE_SETEGID
+
+/* Define if you have the setegid library function.  */
+#undef HAVE_GETUMASK
+
+/* Define if you have the getpwnam library function.  */
+#undef HAVE_GETPWNAM
+
+/* Define if you have the getpwnam_r library function.  */
+#undef HAVE_GETPWNAM_R
+
+/* Define if you have the getgrnam library function.  */
+#undef HAVE_GETGRNAM
+
+/* Define if you have the getgrnam_r library function.  */
+#undef HAVE_GETGRNAM_R
+
+/* Define if you have the unistd.h header.  */
+#undef HAVE_UNISTD_H
+
+/* Define if you have the sys/stat.h header.  */
+#undef HAVE_SYS_STAT_H
+
+/* Define if you have the sys/vfs.h header.  */
+#undef HAVE_SYS_VFS_H
+
+/* Define if you have the sys/vfs.h header.  */
+#undef HAVE_SYS_STATFS_H
+
+/* Define if you have the <pwd.h> header file.  */
+#undef HAVE_PWD_H
+
+/* Define if you can safely include both <sys/time.h> and <time.h>.  */
+#undef TIME_WITH_SYS_TIME
+
+/* Define if your <sys/time.h> declares struct tm.  */
+#undef TM_IN_SYS_TIME
+
+/* Define if you have the strftime function.  */
+#undef HAVE_STRFTIME
+
+/* Define if you have the gettimeofday function.  */
+#undef HAVE_GETTIMEOFDAY
+
+/* Define if you have the ftime function.  */
+#undef HAVE_FTIME
+
+/* Define if your struct tm has tm_zone.  */
+#undef HAVE_TM_ZONE
+
+/* Define if your struct tm has tm_gmtoff.  */
+#undef HAVE_TM_GMTOFF
+
+/* Define if you have reentrant localtime.  */
+#undef HAVE_LOCALTIME_R
+
+/* Define if you have reentrant gmtime.  */
+#undef HAVE_GMTIME_R
+
+/* Define if you have sigprocmask.  */
+#undef HAVE_SIGPROCMASK
+
+/* Define if you have sigsetmask.  */
+#undef HAVE_SIGSETMASK
+
+/* Define if constructor attributes are supported */
+#undef HAVE_CONSTRUCTOR_ATTRIBUTES
+
+/* Define if you have a __thread storage class.  */
+#undef HAVE_THREAD_STORAGE_CLASS
+
+/* Define if you have the __builtin_expect operator */
+#undef HAVE_BUILTIN_EXPECT
+
+/* Define if you have the __builtin_prefetch operator */
+#undef HAVE_BUILTIN_PREFETCH
+
+/* Define if you want to use TLS instead of __thread declarations */
+#undef KNO_FORCE_TLS
+
+/* Define if you are compiling with calltrack profiling.  */
+#undef KNO_CALLTRACK_ENABLED
+
+/* Define if file based configuration is built in. */
+#undef KNO_FILECONFIG_ENABLED
+
+/* Define if console dumping of backtraces to HTML is enabled. */
+#undef KNO_HTMLDUMP_ENABLED
+
+/* Define if you are using a global lock and vars for IPEVAL.  */
+#undef KNO_IPEVAL_ENABLED
+
+/* Define if you are using a global lock and vars for IPEVAL.  */
+#undef KNO_GLOBAL_IPEVAL
+
+/* Define if fdweb is linking with curl */
+#undef KNO_WITH_CURL
+
+/* Define if knosh is linking with editline */
+#undef KNO_WITH_EDITLINE
+
+/* Define if the editline header files exist */
+#undef HAVE_HISTEDIT_H
+
+/* Define if the editline/readline header file exists */
+#undef HAVE_EDITLINE_READLINE_H
+
+/* Define if knosh is linking with editline */
+#undef HAVE_LIBEDIT
+
+/* Define if you have the CURL header file */
+#undef HAVE_CURL_CURL_H
+
+/* Define if fdweb is linking with curl */
+#undef KNO_WITH_EXIF
+
+/* Define if you have the EXIF header file */
+#undef HAVE_LIBEXIF_EXIF_DATA_H
+
+/* The root data directory */
+#undef KNO_SHARE_DIR
+
+/* The root data directory */
+#undef KNO_DATA_DIR
+
+/* The root state directory */
+#undef KNO_RUN_DIR
+
+/* The root log directory */
+#undef KNO_LOG_DIR
+
+/* The servlet log directory */
+#undef KNO_SERVLET_LOG_DIR
+
+/* The server log directory */
+#undef KNO_DAEMON_RUN_DIR
+
+/* The servlet log directory */
+#undef KNO_SERVLET_RUN_DIR
+
+/* The server log directory */
+#undef KNO_DAEMON_LOG_DIR
+
+/* The root log directory */
+#undef KNO_BUGJAR_DIR
+
+/* Where to find config information */
+#undef KNO_CONFIG_FILE_PATH
+
+/* Where to find module files */
+#undef KNO_DEFAULT_LOADPATH
+
+/* Where to find "safe" module files */
+#undef KNO_DEFAULT_SAFE_LOADPATH
+
+/* Where to find dynamic loading files (.dll, .so, .dylib, etc) */
+#undef KNO_DEFAULT_DLOADPATH
+
+/* Where to find dynamic loading files (.dll, .so, .dylib, etc) */
+#undef KNO_DLOAD_SUFFIX
+
+/* The code to initialize built-in scheme modules */
+#undef KNO_SCHEME_BUILTINS
+
+/* Where libscm (bundled scheme modules) are located */
+#undef KNO_LIBSCM_DIR
+
+/* The string of semicolon separated config assignments processed at startup */
+#undef KNO_BOOT_CONFIG
+
+/* This is where the knox exectuable will be installed */
+#undef KNO_EXEC
+
+/* This is where the knod executable will be installed */
+#undef KNO_DBSERVER
+
+/* Whether we're being built with the GNU profiling tools */
+#undef KNO_WITH_PROFILING
+
+/* Whether we're being built with the Google perftools profiling tools */
+#undef KNO_WITH_PROFILER
+
+/* Whether we've got the profiler headers */
+#undef HAVE_GOOGLE_PROFILER_H
+
+/* Whether we've got the profiler headers */
+#undef HAVE_LIBPROFILER
+
+/* Whether we've got the perftools heap profiler */
+#undef HAVE_GPERFTOOLS_HEAP_PROFILER_H
+
+/* Whether we've got the perftools heap profiler */
+#undef HAVE_GPERFTOOLS_HEAP_CHECKER_H
+
+/* Whether we've got the perftools heap profiler */
+#undef HAVE_GPERFTOOLS_PROFILER_H
+
+/* Whether we have Google's malloc extension header */
+#undef HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H
+
+/* Whether we've got ODBC headers */
+#undef HAVE_SQL_H
+
+/* Whether we've got SQLITE3 headers */
+#undef HAVE_SQLITE3_H
+
+/* Whether we've got the v2 functions */
+#undef HAVE_SQLITE3_V2
+
+/* Whether you can built in FFI support*/
+#undef KNO_ENABLE_FFI
+
+/* Whether we have the FFI headers */
+#undef HAVE_FFI_FFI_H
+
+/* Whether we have the FFI/FFI headers */
+#undef HAVE_FFI_H
+
+/* Whether we have the libffi library */
+#undef HAVE_LIBFFI
+
+/* Whether we have the libarchive headers */
+#undef HAVE_ARCHIVE_H
+
+/* Whether we have the libarchive library */
+#undef HAVE_LIBARCHIVE
+
+/* Whether we're linking agains the duma malloc debugging library */
+#undef HAVE_LIBDUMA
+
+/* Whether we're linking agains the duma malloc debugging library */
+#undef HAVE_DUMA_H
+
+/* Whether we've got malloc.h */
+#undef HAVE_MALLOC_H
+
+/* Whether we've got malloc/malloc.h */
+#undef HAVE_MALLOC_MALLOC_H
+
+/* Whether we've got mcheck.h */
+#undef HAVE_MCHECK_H
+
+/* Check for MacOS malloc info function */
+#undef HAVE_MALLOC_ZONE_STATISTICS
+
+/* Whether we have the mstats function */
+#undef HAVE_MALLINFO
+
+/* Whether we have the malloc_info function */
+#undef HAVE_MALLOC_INFO
+
+/* Whether we have the malloc_info function */
+#undef HAVE_OPEN_MEMSTREAM
+
+/* Whether we have the mstats function */
+#undef HAVE_MSTATS
+
+/* Whether we have the mtrace function */
+#undef HAVE_MTRACE
+
+/* Whether we're using the Google profiler library */
+#undef WITH_GOOGLE_PROFILER
+
+/* Whether we're using the Google profiler library */
+#undef HAVE_HUNSPELL_ADD_DIC
+
+/* Whether we're using the Google profiler library */
+#undef HAVE_GOOGLE_PROFILER_H
+
+/* Whether we're using fastcgi in fastcgiexec */
+#undef WITH_FASTCGI
+
+/* Whether we have the fastcgi header file */
+#undef HAVE_FCGIAPP_H
+
+/* Whether we have the fcgi lib */
+#undef HAVE_LIBFCGI
+
+/* Whether we have the fcgi lib */
+#undef HAVE_UCHAR
+
+/* Whether we have the magick_wand.h header file */
+#undef HAVE_MAGICK_WAND_H
+
+/* Whether we have the tidy/tidy.h header file */
+#undef HAVE_TIDY_TIDY_H
+
+/* Whether we have the tidybuffio.h header file */
+#undef HAVE_TIDY_TIDYBUFFIO_H
+
+/* Whether we have the tidy.h header file */
+#undef HAVE_TIDY_H
+
+/* Whether we have the tidybuffio.h header file */
+#undef HAVE_TIDYBUFFIO_H
+
+/* Whether we have the waitpid function */
+#undef HAVE_WAITPID
+
+/* Whether we have the wait4 function */
+#undef HAVE_WAIT4
+
+/* Whether we have the zlib c header file */
+#undef HAVE_ZLIB_H
+
+/* Whether we have the libz compression library */
+#undef HAVE_LIBZ
+
+/* Whether we have the libsnappy c header file */
+#undef HAVE_SNAPPYC_H
+
+/* Whether we have the snappy library */
+#undef HAVE_LIBSNAPPY
+
+/* Whether we have the zlib c header file */
+#undef HAVE_ZSTD_H
+
+/* Whether we have the zstd library */
+#undef HAVE_LIBZSTD
+
+/* whether our version of zstd has ZSTD_getFrameContentSize */
+#undef HAVE_ZSTD_GETFRAMECONTENTSIZE
+
+/* whether we have the libzip library */
+#undef HAVE_LIBZIP
+
+/* Whether we have the libzip set_extra function */
+#undef HAVE_ZIP_SET_FILE_EXTRA
+
+/* Whether we have the libzip set_comment function */
+#undef HAVE_ZIP_SET_FILE_COMMENT
+
+/* Whether we have the libzip set_compression function */
+#undef HAVE_ZIP_SET_FILE_COMPRESSION
+
+/* Whether we have the zstd c header file */
+#undef HAVE_ZSTD_H
+
+/* Whether to assume async support in servers (by default) */
+#undef KNO_USE_DTBLOCK
+
+/* Whether to assume async support in servers (by default) */
+#undef KNO_DEFAULT_ASYNC
+
+/* The name of the program for wrapping exec calls (usually /bin/env) */
+#undef KNO_EXEC_WRAPPER
+
+/* What kind of sanitization (if any) is being applied */
+#undef KNO_STACKCHECK
+
+/* Whether to enable libu8's lock debugging */
+#undef U8_THREAD_DEBUG
+
+/* The name of the default malloc library (used by executables) */
+#undef KNO_DEFAULT_MALLOC
+
+/* Default web (servlet) user */
+#undef KNO_WEBUSER
+
+/* Default web (servlet) group */
+#undef KNO_WEBGROUP
+
+/* Default daemon user */
+#undef KNO_DAEMON
+
+/* Default admin group */
+#undef KNO_ADMIN_GROUP
+
+/* Default module dirs */
+#undef KNO_LOCAL_MODULE_DIR
+#undef KNO_LOCAL_SAFE_MODULE_DIR
+#undef KNO_INSTALLED_MODULE_DIR
+#undef KNO_INSTALLED_SAFE_MODULE_DIR
+#undef KNO_BUILTIN_MODULE_DIR
+#undef KNO_BUILTIN_SAFE_MODULE_DIR
+
+/* Where packages are unpacked */
+#undef KNO_UNPACKAGE_DIR
+
+/* The number of pointer locks to use */
+#undef KNO_N_PTRLOCKS
+
+#endif
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debugging;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

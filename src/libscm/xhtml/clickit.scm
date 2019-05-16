@@ -345,7 +345,7 @@
 	   (real-args (if (string? head) (cdr args) args)))
       `(let ((_watchstart #f) (_watchval #f)
 	     (_tagname ,tagname))
-	 (,xmlblock `(,_tagname (class "framerdwatch"))
+	 (,xmlblock `(,_tagname (class "knowatch"))
 	     (if ,(string? head) "[%CALL " "[%WATCH ")
 	   (if ,(string? head)
 	       (,xmlblock (span (class "head")) ,head)
@@ -359,7 +359,7 @@
 	 (set! _watchstart (elapsed-time))
 	 (set! _watchval ,head)
 	 (unless ,(string? head)
-	   (,xmlblock `(,_tagname (class "framerdwatch"))
+	   (,xmlblock `(,_tagname (class "knowatch"))
 	       "[%RETURN "
 	     "(" (- (elapsed-time) _watchstart) " secs)"
 	     (,xmlblock (span (class "call")) ',head)

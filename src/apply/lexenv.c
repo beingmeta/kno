@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2015-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -9,15 +9,15 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define FD_INLINE_FCNIDS 1
-#define FD_INLINE_STACKS 1
-#define FD_INLINE_LEXENV 1
-#define FD_INLINE_APPLY  1
+#define KNO_INLINE_FCNIDS 1
+#define KNO_INLINE_STACKS 1
+#define KNO_INLINE_LEXENV 1
+#define KNO_INLINE_APPLY  1
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/lexenv.h"
-#include "framerd/apply.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/lexenv.h"
+#include "kno/apply.h"
 
 #include <libu8/u8printf.h>
 #include <libu8/u8contour.h>
@@ -33,72 +33,72 @@
 
 static lispval moduleid_symbol;
 
-static fd_lexenv copy_lexenv(fd_lexenv env);
+static kno_lexenv copy_lexenv(kno_lexenv env);
 
-FD_EXPORT
-fd_lexenv dynamic_lexenv(fd_lexenv env)
+KNO_EXPORT
+kno_lexenv dynamic_lexenv(kno_lexenv env)
 {
   if (env->env_copy)
     return env->env_copy;
   else {
-    fd_lexenv parent = (env->env_parent) ?
+    kno_lexenv parent = (env->env_parent) ?
       (copy_lexenv(env->env_parent)) :
       (NULL);
     lispval bindings =
-      (FD_STATIC_CONSP(FD_CONS_DATA(env->env_bindings))) ?
-      (fd_copy(env->env_bindings)) :
-      (fd_incref(env->env_bindings));
-    FD_LOCK_PTR((void *)env);
+      (KNO_STATIC_CONSP(KNO_CONS_DATA(env->env_bindings))) ?
+      (kno_copy(env->env_bindings)) :
+      (kno_incref(env->env_bindings));
+    KNO_LOCK_PTR((void *)env);
     if (env->env_copy) {
-      fd_decref(bindings);
-      fd_decref((lispval)parent);
-      FD_UNLOCK_PTR((void *)env);
+      kno_decref(bindings);
+      kno_decref((lispval)parent);
+      KNO_UNLOCK_PTR((void *)env);
       return env->env_copy;}
     else  {
-      struct FD_LEXENV *newenv = u8_alloc(struct FD_LEXENV);
-      FD_INIT_FRESH_CONS(newenv,fd_lexenv_type);
-      newenv->env_exports = fd_incref(env->env_exports);
+      struct KNO_LEXENV *newenv = u8_alloc(struct KNO_LEXENV);
+      KNO_INIT_FRESH_CONS(newenv,kno_lexenv_type);
+      newenv->env_exports = kno_incref(env->env_exports);
       newenv->env_parent = parent;
       newenv->env_bindings = bindings;
       newenv->env_copy = newenv;
       env->env_copy = newenv;
-      FD_UNLOCK_PTR((void *)env);
+      KNO_UNLOCK_PTR((void *)env);
       return newenv;}}
 }
 
-static fd_lexenv copy_lexenv(fd_lexenv env)
+static kno_lexenv copy_lexenv(kno_lexenv env)
 {
-  fd_lexenv dynamic = (env->env_copy) ? (env->env_copy) :
+  kno_lexenv dynamic = (env->env_copy) ? (env->env_copy) :
     (dynamic_lexenv(env));
-  return (fd_lexenv) fd_incref((lispval)dynamic);
+  return (kno_lexenv) kno_incref((lispval)dynamic);
 }
 
 static lispval lisp_copy_lexenv(lispval env,int deep)
 {
-  return (lispval) copy_lexenv((fd_lexenv)env);
+  return (lispval) copy_lexenv((kno_lexenv)env);
 }
 
-FD_EXPORT fd_lexenv fd_copy_env(fd_lexenv env)
+KNO_EXPORT kno_lexenv kno_copy_env(kno_lexenv env)
 {
   if (env == NULL) return env;
   else if (env->env_copy) {
     lispval existing = (lispval)env->env_copy;
-    fd_incref(existing);
+    kno_incref(existing);
     return env->env_copy;}
   else {
-    fd_lexenv fresh = dynamic_lexenv(env);
+    kno_lexenv fresh = dynamic_lexenv(env);
     lispval ref = (lispval)fresh;
-    fd_incref(ref);
+    kno_incref(ref);
     return fresh;}
 }
 
-static void recycle_lexenv(struct FD_RAW_CONS *envp)
+static void recycle_lexenv(struct KNO_RAW_CONS *envp)
 {
-  struct FD_LEXENV *env = (struct FD_LEXENV *)envp;
-  fd_decref(env->env_bindings); fd_decref(env->env_exports);
-  if (env->env_parent) fd_decref((lispval)(env->env_parent));
-  if (!(FD_STATIC_CONSP(envp))) {
-    memset(env,0,sizeof(struct FD_LEXENV));
+  struct KNO_LEXENV *env = (struct KNO_LEXENV *)envp;
+  kno_decref(env->env_bindings); kno_decref(env->env_exports);
+  if (env->env_parent) kno_decref((lispval)(env->env_parent));
+  if (!(KNO_STATIC_CONSP(envp))) {
+    memset(env,0,sizeof(struct KNO_LEXENV));
     u8_free(envp);}
 }
 
@@ -108,19 +108,19 @@ static void recycle_lexenv(struct FD_RAW_CONS *envp)
 static int env_recycle_depth = 42;
 
 struct ENVCOUNT_STATE {
-  fd_lexenv env;
+  kno_lexenv env;
   int count;};
 
 static int envcountproc(lispval v,void *data)
 {
   struct ENVCOUNT_STATE *state = (struct ENVCOUNT_STATE *)data;
-  fd_lexenv env = state->env;
+  kno_lexenv env = state->env;
   if (!(CONSP(v)))
     return 1;
-  else if (FD_STATICP(v))
+  else if (KNO_STATICP(v))
     return 0;
-  else if (FD_LEXENVP(v)) {
-    fd_lexenv scan = (fd_lexenv)v;
+  else if (KNO_LEXENVP(v)) {
+    kno_lexenv scan = (kno_lexenv)v;
     while (scan)
       if ( (scan == env) ||
            (scan->env_copy == env) ) {
@@ -131,15 +131,15 @@ static int envcountproc(lispval v,void *data)
   else return 1;
 }
 
-static int count_envrefs(lispval root,fd_lexenv env,int depth)
+static int count_envrefs(lispval root,kno_lexenv env,int depth)
 {
   struct ENVCOUNT_STATE state={env,0};
-  fd_walk(envcountproc,root,&state,FD_WALK_CONSES,depth);
+  kno_walk(envcountproc,root,&state,KNO_WALK_CONSES,depth);
   return state.count;
 }
 
-FD_EXPORT
-/* fd_recycle_lexenv:
+KNO_EXPORT
+/* kno_recycle_lexenv:
      Arguments: a lisp pointer to an environment
      Returns: 1 if the environment was recycled.
  This handles circular environment problems.  The problem is that environments
@@ -149,41 +149,41 @@ FD_EXPORT
    are one more than the environment's reference count, then you can recycle
    the entire environment.
 */
-int fd_recycle_lexenv(fd_lexenv env)
+int kno_recycle_lexenv(kno_lexenv env)
 {
-  int refcount = FD_CONS_REFCOUNT(env);
+  int refcount = KNO_CONS_REFCOUNT(env);
   if (refcount==0) return 0; /* Stack cons */
   else if (refcount==1) { /* Normal GC */
-    fd_decref((lispval)env);
+    kno_decref((lispval)env);
     return 1;}
   else {
     int env_refs = count_envrefs(env->env_bindings,env,env_recycle_depth);
     if (env_refs == refcount) {
-      struct FD_RAW_CONS *envstruct = (struct FD_RAW_CONS *)env;
-      fd_decref(env->env_bindings);
-      fd_decref(env->env_exports);
+      struct KNO_RAW_CONS *envstruct = (struct KNO_RAW_CONS *)env;
+      kno_decref(env->env_bindings);
+      kno_decref(env->env_exports);
       if (env->env_parent)
-        fd_decref((lispval)(env->env_parent));
+        kno_decref((lispval)(env->env_parent));
       envstruct->conshead = (0xFFFFFF80|(env->conshead&0x7F));
       u8_free(env);
       return 1;}
     else {
-      fd_decref((lispval)env);
+      kno_decref((lispval)env);
       return 0;}}
 }
 
-FD_EXPORT
-void _fd_free_lexenv(fd_lexenv env)
+KNO_EXPORT
+void _kno_free_lexenv(kno_lexenv env)
 {
-  fd_free_lexenv(env);
+  kno_free_lexenv(env);
 }
 
 static int unparse_lexenv(u8_output out,lispval x)
 {
-  struct FD_LEXENV *env=
-    fd_consptr(struct FD_LEXENV *,x,fd_lexenv_type);
+  struct KNO_LEXENV *env=
+    kno_consptr(struct KNO_LEXENV *,x,kno_lexenv_type);
   if (HASHTABLEP(env->env_bindings)) {
-    lispval ids = fd_get(env->env_bindings,moduleid_symbol,EMPTY);
+    lispval ids = kno_get(env->env_bindings,moduleid_symbol,EMPTY);
     lispval mid = VOID;
     /* The symbol in the module_id binding is the actual module name,
        if it is a module (at least a registered one). */
@@ -196,68 +196,68 @@ static int unparse_lexenv(u8_output out,lispval x)
 }
 
 /* Of course this doesn't preserve "eqness" in any way */
-static ssize_t lexenv_dtype(struct FD_OUTBUF *out,lispval x)
+static ssize_t lexenv_dtype(struct KNO_OUTBUF *out,lispval x)
 {
-  struct FD_LEXENV *env=
-    fd_consptr(struct FD_LEXENV *,x,fd_lexenv_type);
+  struct KNO_LEXENV *env=
+    kno_consptr(struct KNO_LEXENV *,x,kno_lexenv_type);
   u8_string modname=NULL,  modfile=NULL;
   if (HASHTABLEP(env->env_bindings)) {
-    lispval ids = fd_get(env->env_bindings,moduleid_symbol,EMPTY);
+    lispval ids = kno_get(env->env_bindings,moduleid_symbol,EMPTY);
     DO_CHOICES(id,ids) {
       if (SYMBOLP(id))
         modname=SYM_NAME(id);
       else if (STRINGP(id))
         modfile=CSTRING(id);
       else {}}}
-  u8_byte buf[200]; struct FD_OUTBUF tmp = { 0 };
-  FD_INIT_OUTBUF(&tmp,buf,200,0);
+  u8_byte buf[200]; struct KNO_OUTBUF tmp = { 0 };
+  KNO_INIT_OUTBUF(&tmp,buf,200,0);
   if ((modname)||(modfile)) {
     u8_byte *tagname="%MODULE";
     int n_elts = ((modname)&&(modfile)) ? (2) : (1);
-    fd_write_byte(&tmp,dt_compound);
-    fd_write_byte(&tmp,dt_symbol);
-    fd_write_4bytes(&tmp,strlen(tagname));
-    fd_write_bytes(&tmp,tagname,strlen(tagname));
-    fd_write_byte(&tmp,dt_vector);
-    fd_write_4bytes(&tmp,n_elts);
+    kno_write_byte(&tmp,dt_compound);
+    kno_write_byte(&tmp,dt_symbol);
+    kno_write_4bytes(&tmp,strlen(tagname));
+    kno_write_bytes(&tmp,tagname,strlen(tagname));
+    kno_write_byte(&tmp,dt_vector);
+    kno_write_4bytes(&tmp,n_elts);
     size_t len=strlen(modname);
-    fd_write_byte(&tmp,dt_symbol);
-    fd_write_4bytes(&tmp,len);
-    fd_write_bytes(&tmp,modname,len);
+    kno_write_byte(&tmp,dt_symbol);
+    kno_write_4bytes(&tmp,len);
+    kno_write_bytes(&tmp,modname,len);
     if (modfile) {
       size_t len=strlen(modfile);
-      fd_write_byte(&tmp,dt_string);
-      fd_write_4bytes(&tmp,len);
-      fd_write_bytes(&tmp,modfile,len);}}
+      kno_write_byte(&tmp,dt_string);
+      kno_write_4bytes(&tmp,len);
+      kno_write_bytes(&tmp,modfile,len);}}
   else {
     u8_byte *tagname="%LEXENV";
-    fd_write_byte(&tmp,dt_compound);
-    fd_write_byte(&tmp,dt_symbol);
-    fd_write_4bytes(&tmp,strlen(tagname));
-    fd_write_bytes(&tmp,tagname,strlen(tagname));
-    fd_write_byte(&tmp,dt_vector);
-    fd_write_4bytes(&tmp,1);
+    kno_write_byte(&tmp,dt_compound);
+    kno_write_byte(&tmp,dt_symbol);
+    kno_write_4bytes(&tmp,strlen(tagname));
+    kno_write_bytes(&tmp,tagname,strlen(tagname));
+    kno_write_byte(&tmp,dt_vector);
+    kno_write_4bytes(&tmp,1);
     unsigned char buf[32], *numstring=
-      u8_uitoa16(FD_LONGVAL(x),buf);
+      u8_uitoa16(KNO_LONGVAL(x),buf);
     size_t len=strlen(numstring);
-    fd_write_byte(&tmp,dt_string);
-    fd_write_4bytes(&tmp,(len+2));
-    fd_write_bytes(&tmp,"#!",2);
-    fd_write_bytes(&tmp,numstring,len);}
+    kno_write_byte(&tmp,dt_string);
+    kno_write_4bytes(&tmp,(len+2));
+    kno_write_bytes(&tmp,"#!",2);
+    kno_write_bytes(&tmp,numstring,len);}
   ssize_t n_bytes=tmp.bufwrite-tmp.buffer;
-  fd_write_bytes(out,tmp.buffer,n_bytes);
-  fd_close_outbuf(&tmp);
+  kno_write_bytes(out,tmp.buffer,n_bytes);
+  kno_close_outbuf(&tmp);
   return n_bytes;
 }
 
-FD_EXPORT void fd_init_lexenv_c()
+KNO_EXPORT void kno_init_lexenv_c()
 {
-  moduleid_symbol = fd_intern("%MODULEID");
+  moduleid_symbol = kno_intern("%MODULEID");
 
-  fd_unparsers[fd_lexenv_type]=unparse_lexenv;
-  fd_copiers[fd_lexenv_type]=lisp_copy_lexenv;
-  fd_recyclers[fd_lexenv_type]=recycle_lexenv;
-  fd_dtype_writers[fd_lexenv_type]=lexenv_dtype;
+  kno_unparsers[kno_lexenv_type]=unparse_lexenv;
+  kno_copiers[kno_lexenv_type]=lisp_copy_lexenv;
+  kno_recyclers[kno_lexenv_type]=recycle_lexenv;
+  kno_dtype_writers[kno_lexenv_type]=lexenv_dtype;
 
 }
 

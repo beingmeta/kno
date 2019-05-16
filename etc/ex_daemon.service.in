@@ -6,16 +6,16 @@ After=fdaemons.service upsource.target
 [Service]
 Type=simple
 RemainAfterExit=true
-Environment=FD_LAUNCHER=%%NAME%%.service RUNUSER=@fdaemon@ RUNGROUP=@admin_group@ RUNDIR=@framerd_rundir@/daemons/ LOGDIR=@framerd_logdir@/daemons/
-PassEnvironment=FD_LAUNCHER RUNUSER RUNGROUP
+Environment=KNO_LAUNCHER=%%NAME%%.service RUNUSER=@fdaemon@ RUNGROUP=@admin_group@ RUNDIR=@kno_rundir@/daemons/ LOGDIR=@kno_logdir@/daemons/
+PassEnvironment=KNO_LAUNCHER RUNUSER RUNGROUP
 TimeoutStartSec=900
 TimeoutStopSec=300
-ExecStartPre=/bin/mkdir -p @framerd_rundir@/daemons/ @framerd_logdir@/daemons/ @framerd_logdir@/bugjar/
-ExecStartPre=/bin/chown @fdaemon@ @framerd_rundir@/daemons/ @framerd_logdir@/daemons/ @framerd_logdir@/bugjar/
-ExecStartPre=/bin/chgrp @admin_group@ @framerd_rundir@/daemons/ @framerd_logdir@/daemons/ @framerd_logdir@/bugjar/
-ExecStartPre=/bin/chmod g+rwx @framerd_rundir@/daemons/ @framerd_logdir@/daemons/
-ExecStartPre=/bin/chmod go+rwx @framerd_logdir@/bugjar/
-ExecStart=@prefix/fdserver %%CTL%%
+ExecStartPre=/bin/mkdir -p @kno_rundir@/daemons/ @kno_logdir@/daemons/ @kno_logdir@/bugjar/
+ExecStartPre=/bin/chown @fdaemon@ @kno_rundir@/daemons/ @kno_logdir@/daemons/ @kno_logdir@/bugjar/
+ExecStartPre=/bin/chgrp @admin_group@ @kno_rundir@/daemons/ @kno_logdir@/daemons/ @kno_logdir@/bugjar/
+ExecStartPre=/bin/chmod g+rwx @kno_rundir@/daemons/ @kno_logdir@/daemons/
+ExecStartPre=/bin/chmod go+rwx @kno_logdir@/bugjar/
+ExecStart=@prefix/knod %%CTL%%
 
 [Install]
 WantedBy=default.target

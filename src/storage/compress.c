@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -9,14 +9,14 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define FD_INLINE_BUFIO 1
-#define FD_INLINE_STREAMIO 1
-#include "framerd/components/storage_layer.h"
+#define KNO_INLINE_BUFIO 1
+#define KNO_INLINE_STREAMIO 1
+#include "kno/components/storage_layer.h"
 
-#include "framerd/fdsource.h"
-#include "framerd/dtype.h"
-#include "framerd/streams.h"
-#include "framerd/storage.h"
+#include "kno/knosource.h"
+#include "kno/dtype.h"
+#include "kno/streams.h"
+#include "kno/storage.h"
 
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
@@ -36,12 +36,12 @@
 #include <zstd.h>
 #endif
 
-#ifndef FD_INIT_ZBUF_SIZE
-#define FD_INIT_ZBUF_SIZE 24000
+#ifndef KNO_INIT_ZBUF_SIZE
+#define KNO_INIT_ZBUF_SIZE 24000
 #endif
 
-#ifndef FD_DEFAULT_ZSTDLEVEL
-#define FD_DEFAULT_ZSTDLEVEL 17
+#ifndef KNO_DEFAULT_ZSTDLEVEL
+#define KNO_DEFAULT_ZSTDLEVEL 17
 #endif
 
 /* Getting compression type from options */
@@ -49,48 +49,48 @@
 static lispval compression_symbol, snappy_symbol, none_symbol, no_symbol;
 static lispval libz_symbol, zlib_symbol, zlib9_symbol, zstd_symbol;
 
-#define DEFAULT_COMPRESSION FD_ZLIB
+#define DEFAULT_COMPRESSION KNO_ZLIB
 
-FD_EXPORT
-fd_compress_type fd_compression_type(lispval opts,fd_compress_type dflt)
+KNO_EXPORT
+kno_compress_type kno_compression_type(lispval opts,kno_compress_type dflt)
 {
-  if (FD_SYMBOLP(opts)) {
+  if (KNO_SYMBOLP(opts)) {
     if (opts == snappy_symbol)
-    return FD_SNAPPY;
+    return KNO_SNAPPY;
   else if (opts == zstd_symbol)
-    return FD_ZSTD;
+    return KNO_ZSTD;
   else if ( (opts == zlib_symbol) || (opts == libz_symbol) )
-    return FD_ZLIB;
+    return KNO_ZLIB;
   else if ( (opts == zlib9_symbol) ||
-	    (opts == FD_INT(9)) )
-    return FD_ZLIB9;
-  else if ( (opts == FDSYM_NO) || (opts == FD_INT(0)) )
-    return FD_NOCOMPRESS;
+	    (opts == KNO_INT(9)) )
+    return KNO_ZLIB9;
+  else if ( (opts == FDSYM_NO) || (opts == KNO_INT(0)) )
+    return KNO_NOCOMPRESS;
   else if (opts == snappy_symbol)
-    return FD_SNAPPY;
+    return KNO_SNAPPY;
   else return dflt;}
-  else if (fd_testopt(opts,compression_symbol,FD_FALSE))
-    return FD_NOCOMPRESS;
-  else if (fd_testopt(opts,compression_symbol,snappy_symbol))
-    return FD_SNAPPY;
-  else if ( (fd_testopt(opts,compression_symbol,FD_TRUE)) ||
-	    (fd_testopt(opts,compression_symbol,FD_DEFAULT_VALUE)) ||
-	    (fd_testopt(opts,compression_symbol,FDSYM_DEFAULT)) )
+  else if (kno_testopt(opts,compression_symbol,KNO_FALSE))
+    return KNO_NOCOMPRESS;
+  else if (kno_testopt(opts,compression_symbol,snappy_symbol))
+    return KNO_SNAPPY;
+  else if ( (kno_testopt(opts,compression_symbol,KNO_TRUE)) ||
+	    (kno_testopt(opts,compression_symbol,KNO_DEFAULT_VALUE)) ||
+	    (kno_testopt(opts,compression_symbol,FDSYM_DEFAULT)) )
     return dflt;
-  else if (fd_testopt(opts,compression_symbol,zstd_symbol))
-    return FD_ZSTD;
-  else if ( (fd_testopt(opts,compression_symbol,zlib_symbol)) ||
-	    (fd_testopt(opts,compression_symbol,libz_symbol)) )
-    return FD_ZLIB;
-  else if ( (fd_testopt(opts,compression_symbol,zlib9_symbol)) ||
-	    (fd_testopt(opts,compression_symbol,FD_INT(9))) )
-    return FD_ZLIB9;
-  else if ( (fd_testopt(opts,compression_symbol,FDSYM_NO)) ||
-	    (fd_testopt(opts,compression_symbol,FD_INT(0))) )
-    return FD_NOCOMPRESS;
-  else if ( (fd_testopt(opts,compression_symbol,FD_TRUE)) ||
-	    (fd_testopt(opts,compression_symbol,FD_DEFAULT_VALUE)) ||
-	    (fd_testopt(opts,compression_symbol,FDSYM_DEFAULT)) ) {
+  else if (kno_testopt(opts,compression_symbol,zstd_symbol))
+    return KNO_ZSTD;
+  else if ( (kno_testopt(opts,compression_symbol,zlib_symbol)) ||
+	    (kno_testopt(opts,compression_symbol,libz_symbol)) )
+    return KNO_ZLIB;
+  else if ( (kno_testopt(opts,compression_symbol,zlib9_symbol)) ||
+	    (kno_testopt(opts,compression_symbol,KNO_INT(9))) )
+    return KNO_ZLIB9;
+  else if ( (kno_testopt(opts,compression_symbol,FDSYM_NO)) ||
+	    (kno_testopt(opts,compression_symbol,KNO_INT(0))) )
+    return KNO_NOCOMPRESS;
+  else if ( (kno_testopt(opts,compression_symbol,KNO_TRUE)) ||
+	    (kno_testopt(opts,compression_symbol,KNO_DEFAULT_VALUE)) ||
+	    (kno_testopt(opts,compression_symbol,FDSYM_DEFAULT)) ) {
     if (dflt)
       return dflt;
     else return DEFAULT_COMPRESSION;}
@@ -104,7 +104,7 @@ static unsigned char *just_copy
 {
   unsigned char *copy = u8_big_alloc(source_len);
   if (copy == NULL) {
-    u8_seterr(u8_MallocFailed,"fd_compress",NULL);
+    u8_seterr(u8_MallocFailed,"kno_compress",NULL);
     return NULL;}
   memcpy(copy,source,source_len);
   *destlen = source_len;
@@ -147,7 +147,7 @@ static unsigned char *do_zuncompress
     *dbytes = dsize;
     return dbuf;}
   else {
-    fd_seterr2(error,"do_zuncompress");
+    kno_seterr2(error,"do_zuncompress");
     if (dbuf != init_dbuf) u8_big_free(dbuf);
     return NULL;}
 }
@@ -186,7 +186,7 @@ static U8_MAYBE_UNUSED unsigned char *do_zcompress
     *cbytes = csize;
     return cbuf;}
   else {
-    fd_seterr2(error,"do_zcompress");
+    kno_seterr2(error,"do_zcompress");
     return NULL;}
 }
 
@@ -296,46 +296,46 @@ static unsigned char *do_zstd_uncompress
 
 /* Exported compression functions */
 
-FD_EXPORT unsigned char *fd_compress
-(fd_compress_type ctype,ssize_t *result_size,
+KNO_EXPORT unsigned char *kno_compress
+(kno_compress_type ctype,ssize_t *result_size,
  const unsigned char *source,size_t source_len,
  void *state)
 {
   switch (ctype) {
-  case FD_NOCOMPRESS:
+  case KNO_NOCOMPRESS:
     return just_copy(result_size,source,source_len);
-  case FD_ZLIB:
+  case KNO_ZLIB:
     return do_zcompress(source,source_len,result_size,NULL,6);
-  case FD_ZLIB9:
+  case KNO_ZLIB9:
     return do_zcompress(source,source_len,result_size,NULL,9);
-  case FD_SNAPPY:
+  case KNO_SNAPPY:
     return do_snappy_compress(result_size,source,source_len);
-  case FD_ZSTD:
+  case KNO_ZSTD:
     return do_zstd_compress(result_size,source,source_len,
-			    FD_DEFAULT_ZSTDLEVEL,state);
+			    KNO_DEFAULT_ZSTDLEVEL,state);
   default:
-    u8_seterr("BadCompressMethod","fd_compress",NULL);
+    u8_seterr("BadCompressMethod","kno_compress",NULL);
     return NULL;}
 }
 
-FD_EXPORT unsigned char *fd_uncompress
-(fd_compress_type ctype,ssize_t *result_size,
+KNO_EXPORT unsigned char *kno_uncompress
+(kno_compress_type ctype,ssize_t *result_size,
  const unsigned char *source,size_t source_len,
  void *state)
 {
   switch (ctype) {
-  case FD_NOCOMPRESS:
+  case KNO_NOCOMPRESS:
     return just_copy(result_size,source,source_len);
-  case FD_ZLIB:
+  case KNO_ZLIB:
     return do_zuncompress(source,source_len,result_size,NULL);
-  case FD_ZLIB9:
+  case KNO_ZLIB9:
     return do_zuncompress(source,source_len,result_size,NULL);
-  case FD_SNAPPY:
+  case KNO_SNAPPY:
     return do_snappy_uncompress(result_size,source,source_len);
-  case FD_ZSTD:
+  case KNO_ZSTD:
     return do_zstd_uncompress(result_size,source,source_len,state);
   default:
-    u8_seterr("BadCompressMethod","fd_compress",NULL);
+    u8_seterr("BadCompressMethod","kno_compress",NULL);
     return NULL;}
 }
 
@@ -343,19 +343,19 @@ FD_EXPORT unsigned char *fd_uncompress
 
 static time_t compress_c_initialized = 0;
 
-FD_EXPORT void fd_init_compress_c()
+KNO_EXPORT void kno_init_compress_c()
 {
   if (compress_c_initialized) return;
   else compress_c_initialized = time(NULL);
 
-  compression_symbol = fd_intern("COMPRESSION");
-  snappy_symbol = fd_intern("SNAPPY");
-  zlib_symbol = fd_intern("ZLIB");
-  zlib9_symbol = fd_intern("ZLIB9");
-  libz_symbol = fd_intern("LIBZ");
-  zstd_symbol = fd_intern("ZSTD");
-  no_symbol = fd_intern("NO");
-  none_symbol = fd_intern("NONE");
+  compression_symbol = kno_intern("COMPRESSION");
+  snappy_symbol = kno_intern("SNAPPY");
+  zlib_symbol = kno_intern("ZLIB");
+  zlib9_symbol = kno_intern("ZLIB9");
+  libz_symbol = kno_intern("LIBZ");
+  zstd_symbol = kno_intern("ZSTD");
+  no_symbol = kno_intern("NO");
+  none_symbol = kno_intern("NONE");
 
   u8_register_source_file(_FILEINFO);
 }

@@ -1,0 +1,11 @@
+<IfModule !knosrv_module>
+  LoadModule knosrv_module      @apache_modules_dir@/mod_knosrv.so
+</IfModule>
+<IfModule mod_knosrv.c>
+        AddHandler knosrv .fdcgi .fdxml
+	KnoSrvExecutable @prefix@/bin/knosrv
+	KnoSrvUser @webuser@
+	KnoSrvGroup @admin_group@
+	KnoSrvPrefix @servlet_rundir@
+	KnoSrvLogPrefix @servlet_logdir@
+</IfModule>

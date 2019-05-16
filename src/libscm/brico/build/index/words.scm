@@ -1,4 +1,4 @@
-#!/usr/bin/fdexec
+#!/usr/bin/knox
 ;;; -*- Mode: Scheme; -*-
 
 (load-component "common.scm")

@@ -1,12 +1,12 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
-#include "framerd/dtype.h"
-#include "framerd/streams.h"
+#include "kno/dtype.h"
+#include "kno/streams.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8stdio.h>
@@ -33,13 +33,13 @@ double get_elapsed()
       (now.tv_usec-start.tv_usec)*0.000001;}
 }
 
-#define SLOTMAP(x) (FD_GET_CONS(struct FD_SLOTMAP *,x,fd_slotmap_type))
-#define HASHTABLE(x) (FD_GET_CONS(struct FD_HASHTABLE *,x,fd_slotmap_type))
+#define SLOTMAP(x) (KNO_GET_CONS(struct KNO_SLOTMAP *,x,kno_slotmap_type))
+#define HASHTABLE(x) (KNO_GET_CONS(struct KNO_HASHTABLE *,x,kno_slotmap_type))
 
 static void report_on_hashtable(lispval ht)
 {
   int n_slots, n_keys, n_buckets, n_collisions, max_bucket, n_vals, max_vals;
-  fd_hashtable_stats(fd_consptr(struct FD_HASHTABLE *,ht,fd_hashtable_type),
+  kno_hashtable_stats(kno_consptr(struct KNO_HASHTABLE *,ht,kno_hashtable_type),
 		     &n_slots,&n_keys,&n_buckets,&n_collisions,&max_bucket,
 		     &n_vals,&max_vals);
   u8_fprintf
@@ -57,40 +57,40 @@ static void report_on_hashtable(lispval ht)
 
 int main(int argc,char **argv)
 {
-  lispval ht, item, key = FD_VOID; int i = 0;
-  struct FD_STREAM *in, *out;
-  struct FD_INBUF *inbuf;
+  lispval ht, item, key = KNO_VOID; int i = 0;
+  struct KNO_STREAM *in, *out;
+  struct KNO_INBUF *inbuf;
   double span;
-  FD_DO_LIBINIT(fd_init_lisp_types);
+  KNO_DO_LIBINIT(kno_init_lisp_types);
   span = get_elapsed(); /* Start the timer */
-  ht = fd_make_hashtable(NULL,64);
-  in = fd_open_file(argv[1],FD_FILE_READ);
+  ht = kno_make_hashtable(NULL,64);
+  in = kno_open_file(argv[1],KNO_FILE_READ);
   if (in == NULL) {
     u8_log(LOG_ERR,"No such file","Couldn't open file %s",argv[1]);
     exit(1);}
-  else inbuf = fd_readbuf(in);
-  fd_setbufsize(in,65536*2);
-  item = fd_read_dtype(inbuf); i = 1;
-  while (!(FD_EODP(item))) {
+  else inbuf = kno_readbuf(in);
+  kno_setbufsize(in,65536*2);
+  item = kno_read_dtype(inbuf); i = 1;
+  while (!(KNO_EODP(item))) {
     if (i%100000 == 0) {
       double tmp = get_elapsed();
-      u8_fprintf(stderr,"%d: %f %f %ld\n",i,tmp,(tmp-span),fd_getpos(in));
+      u8_fprintf(stderr,"%d: %f %f %ld\n",i,tmp,(tmp-span),kno_getpos(in));
       span = tmp;}
-    if (FD_PAIRP(item)) {
-      fd_decref(key); key = fd_incref(item);}
-    else fd_hashtable_add
-	   (fd_consptr(struct FD_HASHTABLE *,ht,fd_hashtable_type),
+    if (KNO_PAIRP(item)) {
+      kno_decref(key); key = kno_incref(item);}
+    else kno_hashtable_add
+	   (kno_consptr(struct KNO_HASHTABLE *,ht,kno_hashtable_type),
 	    key,item);
-    fd_decref(item); item = fd_read_dtype(inbuf);
+    kno_decref(item); item = kno_read_dtype(inbuf);
     i = i+1;}
   report_on_hashtable(ht);
-  fd_close_stream(in,FD_STREAM_CLOSE_FULL);
-  out = fd_open_file(argv[2],FD_FILE_CREATE);
+  kno_close_stream(in,KNO_STREAM_CLOSE_FULL);
+  out = kno_open_file(argv[2],KNO_FILE_CREATE);
   if (out) {
-    struct FD_OUTBUF *outbuf = fd_writebuf(out);
-    fd_write_dtype(outbuf,ht);
-    fd_close_stream(out,FD_STREAM_CLOSE_FULL);}
-  fd_decref(ht); ht = FD_VOID;
+    struct KNO_OUTBUF *outbuf = kno_writebuf(out);
+    kno_write_dtype(outbuf,ht);
+    kno_close_stream(out,KNO_STREAM_CLOSE_FULL);}
+  kno_decref(ht); ht = KNO_VOID;
   exit(0);
 }
 

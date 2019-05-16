@@ -1,11 +1,11 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2019 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright
+   This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
-#include "framerd/dtype.h"
+#include "kno/dtype.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8stdio.h>
@@ -16,12 +16,12 @@
 
 static int write_dtype_to_file(lispval object,FILE *f)
 {
-  struct FD_OUTBUF out = { 0 };
+  struct KNO_OUTBUF out = { 0 };
   int n;
-  FD_INIT_BYTE_OUTPUT(&out,1024);
-  fd_write_dtype(&out,object);
+  KNO_INIT_BYTE_OUTPUT(&out,1024);
+  kno_write_dtype(&out,object);
   n = fwrite(out.buffer,1,out.bufwrite-out.buffer,f);
-  fd_close_outbuf(&out);
+  kno_close_outbuf(&out);
   return n;
 }
 
@@ -49,16 +49,16 @@ int main(int argc,char **argv)
 {
   lispval object;
   FILE *f = fopen(argv[1],"wb");
-  FD_DO_LIBINIT(fd_init_lisp_types);
+  KNO_DO_LIBINIT(kno_init_lisp_types);
   if ((argv[2][0]=='-') && (argv[2][1]=='f')) {
     unsigned char *buf = read_text_file(argv[2]+2);
-    object = fd_parse(buf);
+    object = kno_parse(buf);
     u8_free(buf);}
-  else object = fd_parse(argv[2]);
+  else object = kno_parse(argv[2]);
   write_dtype_to_file(object,f);
   u8_fprintf(stdout,"Dumped the %s %q\n",
-             fd_type_names[FD_PTR_TYPE(object)],object);
-  fd_decref(object); object = FD_VOID;
+             kno_type_names[KNO_PTR_TYPE(object)],object);
+  kno_decref(object); object = KNO_VOID;
   fclose(f);
   exit(0);
 }

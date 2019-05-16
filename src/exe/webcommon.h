@@ -1,12 +1,12 @@
-FD_EXPORT void fd_init_fdweb(void);
-FD_EXPORT void fd_init_texttools(void);
+KNO_EXPORT void kno_init_fdweb(void);
+KNO_EXPORT void kno_init_texttools(void);
 
 /* Logging declarations */
 static u8_mutex log_lock;
 static u8_string urllogname = NULL;
 static FILE *urllog = NULL;
 static u8_string reqlogname = NULL;
-static fd_stream reqlog = NULL;
+static kno_stream reqlog = NULL;
 static int reqloglevel = 0;
 static int traceweb = 0;
 static int webdebug = 0;
@@ -21,7 +21,7 @@ static MU int trace_cgidata = 0;
 static MU int use_threadcache = 0;
 
 /* When non-null, this overrides the document root coming from the
-   server.  It is for cases where fdservlet is running on a different
+   server.  It is for cases where knosrv is running on a different
    machine than the HTTP server. */
 static u8_string docroot = NULL;
 
@@ -33,11 +33,11 @@ static char *portfile = NULL;
 static char *pidfile = NULL;
 static int U8_MAYBE_UNUSED pid_fd = -1;
 
-#define FD_REQERRS 1 /* records only transactions which return errors */
-#define FD_ALLREQS 2 /* records all requests */
-#define FD_ALLRESP 3 /* records all requests and the response set back */
+#define KNO_REQERRS 1 /* records only transactions which return errors */
+#define KNO_ALLREQS 2 /* records all requests */
+#define KNO_ALLRESP 3 /* records all requests and the response set back */
 
-static fd_lexenv server_env = NULL;
+static kno_lexenv server_env = NULL;
 
 static MU lispval main_symbol, webmain_symbol, setup_symbol, loadtime_symbol;
 static MU lispval cgisymbol, script_filename, reqstart_symbol, reqtick_symbol;
@@ -57,174 +57,174 @@ static MU lispval errorpage_symbol, crisispage_symbol;
 static MU lispval redirect_slotid, xredirect_slotid;
 static MU lispval sendfile_slotid, filedata_slotid;
 
-static lispval default_errorpage = FD_VOID;
-static lispval default_crisispage = FD_VOID;
-static lispval default_notfoundpage = FD_VOID;
-static lispval default_nocontentpage = FD_VOID;
+static lispval default_errorpage = KNO_VOID;
+static lispval default_crisispage = KNO_VOID;
+static lispval default_notfoundpage = KNO_VOID;
+static lispval default_nocontentpage = KNO_VOID;
 
-static lispval webmain = FD_VOID;
+static lispval webmain = KNO_VOID;
 
 static void init_webcommon_symbols()
 {
-  uri_slotid = fd_intern("REQUEST_URI");
-  query_slotid = fd_intern("QUERY_STRING");
-  main_symbol = fd_intern("MAIN");
-  reqstart_symbol = fd_intern("_REQSTART");
-  reqtick_symbol = fd_intern("_REQTICK");
-  loadtime_symbol = fd_intern("_LOADTIME");
-  webmain_symbol = fd_intern("WEBMAIN");
-  setup_symbol = fd_intern("SETUP");
-  cgisymbol = fd_intern("CGIDATA");
-  script_filename = fd_intern("SCRIPT_FILENAME");
-  document_root = fd_intern("DOCUMENT_ROOT");
-  doctype_slotid = fd_intern("DOCTYPE");
-  xmlpi_slotid = fd_intern("XMLPI");
-  content_type = fd_intern("CONTENT-TYPE");
-  content_slotid = fd_intern("CONTENT");
-  sendfile_slotid = fd_intern("_SENDFILE");
-  cleanup_slotid = fd_intern("CLEANUP");
-  html_headers = fd_intern("HTML-HEADERS");
-  http_headers = fd_intern("HTTP-HEADERS");
-  tracep_slotid = fd_intern("TRACEP");
-  err_symbol = fd_intern("%ERR");
-  status_symbol = fd_intern("STATUS");
-  response_symbol = fd_intern("%RESPONSE");
-  browseinfo_symbol = fd_intern("BROWSEINFO");
-  threadcache_symbol = fd_intern("%THREADCACHE");
-  referer_slotid = fd_intern("HTTP_REFERER");
-  remote_info = fd_intern("REMOTE_INFO");
-  forcelog_slotid = fd_intern("FORCELOG");
-  webdebug_symbol = fd_intern("WEBDEBUG");
-  errorpage_symbol = fd_intern("ERRORPAGE");
-  crisispage_symbol = fd_intern("CRISISPAGE");
-  output_symbol = fd_intern("OUTPUT");
-  error_symbol = fd_intern("REQERROR");
-  reqdata_symbol = fd_intern("REQDATA");
-  request_method = fd_intern("REQUEST_METHOD");
-  redirect_slotid = fd_intern("_REDIRECT");
-  xredirect_slotid = fd_intern("_XREDIRECT");
-  filedata_slotid = fd_intern("_FILEDATA");
-  remote_port = fd_intern("REMOTE_PORT");
-  remote_host = fd_intern("REMOTE_HOST");
-  remote_user = fd_intern("REMOTE_USER");
-  remote_addr = fd_intern("REMOTE_ADDR");
+  uri_slotid = kno_intern("REQUEST_URI");
+  query_slotid = kno_intern("QUERY_STRING");
+  main_symbol = kno_intern("MAIN");
+  reqstart_symbol = kno_intern("_REQSTART");
+  reqtick_symbol = kno_intern("_REQTICK");
+  loadtime_symbol = kno_intern("_LOADTIME");
+  webmain_symbol = kno_intern("WEBMAIN");
+  setup_symbol = kno_intern("SETUP");
+  cgisymbol = kno_intern("CGIDATA");
+  script_filename = kno_intern("SCRIPT_FILENAME");
+  document_root = kno_intern("DOCUMENT_ROOT");
+  doctype_slotid = kno_intern("DOCTYPE");
+  xmlpi_slotid = kno_intern("XMLPI");
+  content_type = kno_intern("CONTENT-TYPE");
+  content_slotid = kno_intern("CONTENT");
+  sendfile_slotid = kno_intern("_SENDFILE");
+  cleanup_slotid = kno_intern("CLEANUP");
+  html_headers = kno_intern("HTML-HEADERS");
+  http_headers = kno_intern("HTTP-HEADERS");
+  tracep_slotid = kno_intern("TRACEP");
+  err_symbol = kno_intern("%ERR");
+  status_symbol = kno_intern("STATUS");
+  response_symbol = kno_intern("%RESPONSE");
+  browseinfo_symbol = kno_intern("BROWSEINFO");
+  threadcache_symbol = kno_intern("%THREADCACHE");
+  referer_slotid = kno_intern("HTTP_REFERER");
+  remote_info = kno_intern("REMOTE_INFO");
+  forcelog_slotid = kno_intern("FORCELOG");
+  webdebug_symbol = kno_intern("WEBDEBUG");
+  errorpage_symbol = kno_intern("ERRORPAGE");
+  crisispage_symbol = kno_intern("CRISISPAGE");
+  output_symbol = kno_intern("OUTPUT");
+  error_symbol = kno_intern("REQERROR");
+  reqdata_symbol = kno_intern("REQDATA");
+  request_method = kno_intern("REQUEST_METHOD");
+  redirect_slotid = kno_intern("_REDIRECT");
+  xredirect_slotid = kno_intern("_XREDIRECT");
+  filedata_slotid = kno_intern("_FILEDATA");
+  remote_port = kno_intern("REMOTE_PORT");
+  remote_host = kno_intern("REMOTE_HOST");
+  remote_user = kno_intern("REMOTE_USER");
+  remote_addr = kno_intern("REMOTE_ADDR");
 }
 
 /* Preflight/postflight */
 
-static lispval preflight = FD_EMPTY_LIST;
+static lispval preflight = KNO_EMPTY_LIST;
 
 static int preflight_set(lispval var,lispval val,void *data)
 {
-  struct FD_FUNCTION *vf;
-  if (!(FD_APPLICABLEP(val)))
-    return fd_reterr(fd_TypeError,"preflight_set",u8_strdup("applicable"),val);
-  if (FD_FUNCTIONP(val)) {
-    vf = FD_DTYPE2FCN(val);
+  struct KNO_FUNCTION *vf;
+  if (!(KNO_APPLICABLEP(val)))
+    return kno_reterr(kno_TypeError,"preflight_set",u8_strdup("applicable"),val);
+  if (KNO_FUNCTIONP(val)) {
+    vf = KNO_DTYPE2FCN(val);
     if ((vf)&&(vf->fcn_name)&&(vf->fcn_filename)) {
-      lispval scan = preflight; while (FD_PAIRP(scan)) {
-        lispval fn = FD_CAR(scan);
+      lispval scan = preflight; while (KNO_PAIRP(scan)) {
+        lispval fn = KNO_CAR(scan);
         if (val == fn) return 0;
-        else if (FD_FUNCTIONP(fn)) {
-          struct FD_FUNCTION *f = FD_DTYPE2FCN(fn);
+        else if (KNO_FUNCTIONP(fn)) {
+          struct KNO_FUNCTION *f = KNO_DTYPE2FCN(fn);
           if ((f->fcn_name)&&(f->fcn_filename)&&
               (strcmp(f->fcn_name,vf->fcn_name)==0)&&
               (strcmp(f->fcn_filename,vf->fcn_filename)==0)) {
-            struct FD_PAIR *p = fd_consptr(struct FD_PAIR *,scan,fd_pair_type);
-            p->car = val; fd_incref(val); fd_decref(fn);
+            struct KNO_PAIR *p = kno_consptr(struct KNO_PAIR *,scan,kno_pair_type);
+            p->car = val; kno_incref(val); kno_decref(fn);
             return 0;}}
-        scan = FD_CDR(scan);}}
-    preflight = fd_conspair(val,preflight);
-    fd_incref(val);
+        scan = KNO_CDR(scan);}}
+    preflight = kno_conspair(val,preflight);
+    kno_incref(val);
     return 1;}
   else {
-    lispval scan = preflight; while (FD_PAIRP(scan)) {
-      lispval fn = FD_CAR(scan);
+    lispval scan = preflight; while (KNO_PAIRP(scan)) {
+      lispval fn = KNO_CAR(scan);
       if (val == fn) return 0;
-      scan = FD_CDR(scan);}
-    preflight = fd_conspair(val,preflight);
-    fd_incref(val);
+      scan = KNO_CDR(scan);}
+    preflight = kno_conspair(val,preflight);
+    kno_incref(val);
     return 1;}
 }
 
 static lispval preflight_get(lispval var,void *data)
 {
-  return fd_incref(preflight);
+  return kno_incref(preflight);
 }
 
 static MU lispval run_preflight()
 {
-  FD_DOLIST(fn,preflight) {
-    lispval v = fd_apply(fn,0,NULL);
-    if (FD_ABORTP(v)) return v;
-    else if (FD_VOIDP(v)) {}
-    else if (FD_EMPTY_CHOICEP(v)) {}
-    else if (FD_FALSEP(v)) {}
+  KNO_DOLIST(fn,preflight) {
+    lispval v = kno_apply(fn,0,NULL);
+    if (KNO_ABORTP(v)) return v;
+    else if (KNO_VOIDP(v)) {}
+    else if (KNO_EMPTY_CHOICEP(v)) {}
+    else if (KNO_FALSEP(v)) {}
     else return v;}
-  return FD_FALSE;
+  return KNO_FALSE;
 }
 
-static lispval postflight = FD_EMPTY_LIST;
+static lispval postflight = KNO_EMPTY_LIST;
 
 static int postflight_set(lispval var,lispval val,void *data)
 {
-  struct FD_FUNCTION *vf;
-  if (!(FD_APPLICABLEP(val)))
-    return fd_reterr(fd_TypeError,"postflight_set",u8_strdup("applicable"),val);
-  if (FD_FUNCTIONP(val)) {
-    vf = FD_DTYPE2FCN(val);
+  struct KNO_FUNCTION *vf;
+  if (!(KNO_APPLICABLEP(val)))
+    return kno_reterr(kno_TypeError,"postflight_set",u8_strdup("applicable"),val);
+  if (KNO_FUNCTIONP(val)) {
+    vf = KNO_DTYPE2FCN(val);
     if ((vf)&&(vf->fcn_name)&&(vf->fcn_filename)) {
-      lispval scan = postflight; while (FD_PAIRP(scan)) {
-        lispval fn = FD_CAR(scan);
+      lispval scan = postflight; while (KNO_PAIRP(scan)) {
+        lispval fn = KNO_CAR(scan);
         if (val == fn) return 0;
-        else if (FD_FUNCTIONP(fn)) {
-          struct FD_FUNCTION *f = FD_DTYPE2FCN(fn);
+        else if (KNO_FUNCTIONP(fn)) {
+          struct KNO_FUNCTION *f = KNO_DTYPE2FCN(fn);
           if ((f->fcn_name)&&(f->fcn_filename)&&
               (strcmp(f->fcn_name,vf->fcn_name)==0)&&
               (strcmp(f->fcn_filename,vf->fcn_filename)==0)) {
-            struct FD_PAIR *p = fd_consptr(struct FD_PAIR *,scan,fd_pair_type);
-            p->car = val; fd_incref(val); fd_decref(fn);
+            struct KNO_PAIR *p = kno_consptr(struct KNO_PAIR *,scan,kno_pair_type);
+            p->car = val; kno_incref(val); kno_decref(fn);
             return 0;}}
-        scan = FD_CDR(scan);}}
-    postflight = fd_conspair(val,postflight);
-    fd_incref(val);
+        scan = KNO_CDR(scan);}}
+    postflight = kno_conspair(val,postflight);
+    kno_incref(val);
     return 1;}
   else {
-    lispval scan = postflight; while (FD_PAIRP(scan)) {
-      lispval fn = FD_CAR(scan);
+    lispval scan = postflight; while (KNO_PAIRP(scan)) {
+      lispval fn = KNO_CAR(scan);
       if (val == fn) return 0;
-      scan = FD_CDR(scan);}
-    postflight = fd_conspair(val,postflight);
-    fd_incref(val);
+      scan = KNO_CDR(scan);}
+    postflight = kno_conspair(val,postflight);
+    kno_incref(val);
     return 1;}
 }
 
 static lispval postflight_get(lispval var,void *data)
 {
-  return fd_incref(postflight);
+  return kno_incref(postflight);
 }
 
 static MU void run_postflight()
 {
-  FD_DOLIST(fn,postflight) {
-    lispval v = fd_apply(fn,0,NULL);
-    if (FD_ABORTP(v)) {
+  KNO_DOLIST(fn,postflight) {
+    lispval v = kno_apply(fn,0,NULL);
+    if (KNO_ABORTP(v)) {
       u8_log(LOG_CRIT,"postflight","Error from postflight %q",fn);
-      fd_clear_errors(1);}
-    fd_decref(v);}
+      kno_clear_errors(1);}
+    kno_decref(v);}
 }
 
 /* Miscellaneous Server functions */
 
 static lispval get_boot_time()
 {
-  return fd_make_timestamp(&boot_time);
+  return kno_make_timestamp(&boot_time);
 }
 
 static lispval get_uptime()
 {
   struct U8_XTIME now; u8_now(&now);
-  return fd_init_double(NULL,u8_xtime_diff(&now,&boot_time));
+  return kno_init_double(NULL,u8_xtime_diff(&now,&boot_time));
 }
 
 /* URLLOG config */
@@ -235,8 +235,8 @@ static lispval get_uptime()
 
 static int urllog_set(lispval var,lispval val,void *data)
 {
-  if (FD_STRINGP(val)) {
-    u8_string filename = FD_CSTRING(val);
+  if (KNO_STRINGP(val)) {
+    u8_string filename = KNO_CSTRING(val);
     u8_lock_mutex(&log_lock);
     if (urllog) {
       fclose(urllog); urllog = NULL;
@@ -251,22 +251,22 @@ static int urllog_set(lispval var,lispval val,void *data)
       u8_free(tmp);
       return 1;}
     else return -1;}
-  else if (FD_FALSEP(val)) {
+  else if (KNO_FALSEP(val)) {
     u8_lock_mutex(&log_lock);
     if (urllog) {
       fclose(urllog); urllog = NULL;
       u8_free(urllogname); urllogname = NULL;}
     u8_unlock_mutex(&log_lock);
     return 0;}
-  else return fd_reterr
-         (fd_TypeError,"config_set_urllog",u8_strdup(_("string")),val);
+  else return kno_reterr
+         (kno_TypeError,"config_set_urllog",u8_strdup(_("string")),val);
 }
 
 static lispval urllog_get(lispval var,void *data)
 {
   if (urllog)
     return lispval_string(urllogname);
-  else return FD_FALSE;
+  else return KNO_FALSE;
 }
 
 /* REQLOG config */
@@ -277,55 +277,55 @@ static lispval urllog_get(lispval var,void *data)
 
    The reqloglevel determines which transactions are put in the reqlog.  There
    are currently three levels:
-    1 (FD_REQERRS) records only transactions which return errors.
-    2 (FD_ALLREQS) records all requests.
-    3 (FD_ALLRESP) records all requests and the response set back.
+    1 (KNO_REQERRS) records only transactions which return errors.
+    2 (KNO_ALLREQS) records all requests.
+    3 (KNO_ALLRESP) records all requests and the response set back.
 */
 
 static int reqlog_set(lispval var,lispval val,void *data)
 {
-  if (FD_STRINGP(val)) {
-    u8_string filename = FD_CSTRING(val);
+  if (KNO_STRINGP(val)) {
+    u8_string filename = KNO_CSTRING(val);
     u8_lock_mutex(&log_lock);
     if ((reqlogname) && (strcmp(filename,reqlogname)==0)) {
-      fd_flush_stream(reqlog);
+      kno_flush_stream(reqlog);
       u8_unlock_mutex(&log_lock);
       return 0;}
     else if (reqlog) {
-      fd_close_stream(reqlog,0); reqlog = NULL;
+      kno_close_stream(reqlog,0); reqlog = NULL;
       u8_free(reqlogname); reqlogname = NULL;}
-    reqlog = u8_alloc(struct FD_STREAM);
-    if (fd_init_file_stream(reqlog,filename,
-                            FD_FILE_WRITE,-1,
+    reqlog = u8_alloc(struct KNO_STREAM);
+    if (kno_init_file_stream(reqlog,filename,
+                            KNO_FILE_WRITE,-1,
                             30000)) {
       u8_string logstart=
         u8_mkstring("# Log open %*lt for %s",u8_sessionid());
-      lispval logstart_entry = fd_lispstring(logstart);
-      fd_endpos(reqlog);
+      lispval logstart_entry = kno_lispstring(logstart);
+      kno_endpos(reqlog);
       reqlogname = u8_strdup(filename);
-      fd_write_dtype(fd_writebuf(reqlog),logstart_entry);
-      fd_decref(logstart_entry);
+      kno_write_dtype(kno_writebuf(reqlog),logstart_entry);
+      kno_decref(logstart_entry);
       u8_unlock_mutex(&log_lock);
       return 1;}
     else {
       u8_unlock_mutex(&log_lock);
       u8_free(reqlog); return -1;}}
-  else if (FD_FALSEP(val)) {
+  else if (KNO_FALSEP(val)) {
     u8_lock_mutex(&log_lock);
     if (reqlog) {
-      fd_close_stream(reqlog,0); reqlog = NULL;
+      kno_close_stream(reqlog,0); reqlog = NULL;
       u8_free(reqlogname); reqlogname = NULL;}
     u8_unlock_mutex(&log_lock);
     return 0;}
-  else return fd_reterr
-         (fd_TypeError,"config_set_urllog",u8_strdup(_("string")),val);
+  else return kno_reterr
+         (kno_TypeError,"config_set_urllog",u8_strdup(_("string")),val);
 }
 
 static lispval reqlog_get(lispval var,void *data)
 {
   if (reqlog)
     return lispval_string(reqlogname);
-  else return FD_FALSE;
+  else return KNO_FALSE;
 }
 
 /* Logging primitive */
@@ -336,68 +336,68 @@ static void dolog
   u8_lock_mutex(&log_lock);
   if (trace_cgidata) {
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);
-    fd_pprint(&out,cgidata,NULL,2,0,50);
+    kno_pprint(&out,cgidata,NULL,2,0,50);
     fputs(out.u8_outbuf,stderr); fputc('\n',stderr);
     u8_free(out.u8_outbuf);}
-  if (FD_NULLP(val)) {
+  if (KNO_NULLP(val)) {
     /* This is pre execution */
     if (urllog) {
-      lispval uri = fd_get(cgidata,uri_slotid,FD_VOID);
+      lispval uri = kno_get(cgidata,uri_slotid,KNO_VOID);
       u8_string tmp = u8_mkstring(">%s\n@%*lt %g/%g\n",
-                                FD_CSTRING(uri),
+                                KNO_CSTRING(uri),
                                 exectime,
                                 u8_elapsed_time());
       fputs(tmp,urllog); u8_free(tmp);
-      fd_decref(uri);}}
-  else if (FD_ABORTP(val)) {
+      kno_decref(uri);}}
+  else if (KNO_ABORTP(val)) {
     if (urllog) {
-      lispval uri = fd_get(cgidata,uri_slotid,FD_VOID); u8_string tmp;
-      if (FD_TROUBLEP(val)) {
+      lispval uri = kno_get(cgidata,uri_slotid,KNO_VOID); u8_string tmp;
+      if (KNO_TROUBLEP(val)) {
         u8_exception ex = u8_erreify();
         if (ex == NULL)
-          tmp = u8_mkstring("!%s\n@%*lt %g/%g (mystery error)\n",FD_CSTRING(uri),
+          tmp = u8_mkstring("!%s\n@%*lt %g/%g (mystery error)\n",KNO_CSTRING(uri),
                           exectime,u8_elapsed_time());
 
         else if (ex->u8x_context)
-          tmp = u8_mkstring("!%s\n@%*lt %g/%g %s %s\n",FD_CSTRING(uri),
+          tmp = u8_mkstring("!%s\n@%*lt %g/%g %s %s\n",KNO_CSTRING(uri),
                           exectime,u8_elapsed_time(),
                           ex->u8x_cond,ex->u8x_context);
-        else tmp = u8_mkstring("!%s\n@%*lt %g/%g %s\n",FD_CSTRING(uri),
+        else tmp = u8_mkstring("!%s\n@%*lt %g/%g %s\n",KNO_CSTRING(uri),
                              exectime,u8_elapsed_time(),ex->u8x_cond);}
-      else tmp = u8_mkstring("!%s\n@%*lt %g/%g %q\n",FD_CSTRING(uri),
+      else tmp = u8_mkstring("!%s\n@%*lt %g/%g %q\n",KNO_CSTRING(uri),
                            exectime,u8_elapsed_time(),val);
       fputs(tmp,urllog); u8_free(tmp);}
     if (reqlog) {
-      fd_store(cgidata,err_symbol,val);
-      fd_write_dtype(fd_writebuf(reqlog),cgidata);}}
+      kno_store(cgidata,err_symbol,val);
+      kno_write_dtype(kno_writebuf(reqlog),cgidata);}}
   else {
     if (urllog) {
-      lispval uri = fd_get(cgidata,uri_slotid,FD_VOID);
-      u8_string tmp = u8_mkstring("<%s\n@%*lt %ld %g/%g\n",FD_CSTRING(uri),
+      lispval uri = kno_get(cgidata,uri_slotid,KNO_VOID);
+      u8_string tmp = u8_mkstring("<%s\n@%*lt %ld %g/%g\n",KNO_CSTRING(uri),
                                 len,exectime,u8_elapsed_time());
       fputs(tmp,urllog); u8_free(tmp);}
     if ((reqlog) && (reqloglevel>2))
-      fd_store(cgidata,response_symbol,lispval_string(response));
+      kno_store(cgidata,response_symbol,lispval_string(response));
     if ((reqlog) && (reqloglevel>1))
-      fd_write_dtype(fd_writebuf(reqlog),cgidata);}
+      kno_write_dtype(kno_writebuf(reqlog),cgidata);}
   u8_unlock_mutex(&log_lock);
 }
 
 /* Preloads */
 
-struct FD_PRELOAD_LIST {
+struct KNO_PRELOAD_LIST {
   u8_string preload_filename;
   time_t preload_mtime;
-  struct FD_PRELOAD_LIST *next_preload;} *preloads = NULL;
+  struct KNO_PRELOAD_LIST *next_preload;} *preloads = NULL;
 
 static u8_mutex preload_lock;
 
 static lispval preload_get(lispval var,void *ignored)
 {
-  lispval results = FD_EMPTY_LIST; struct FD_PRELOAD_LIST *scan;
+  lispval results = KNO_EMPTY_LIST; struct KNO_PRELOAD_LIST *scan;
   u8_lock_mutex(&preload_lock);
   scan = preloads; while (scan) {
-    results = fd_conspair(lispval_string(scan->preload_filename),results);
+    results = kno_conspair(lispval_string(scan->preload_filename),results);
     scan = scan->next_preload;}
   u8_unlock_mutex(&preload_lock);
   return results;
@@ -405,18 +405,18 @@ static lispval preload_get(lispval var,void *ignored)
 
 static int preload_set(lispval var,lispval val,void *ignored)
 {
-  if (!(FD_STRINGP(val)))
-    return fd_reterr
-      (fd_TypeError,"preload_config_set",u8_strdup("string"),val);
-  else if (FD_STRLEN(val)==0)
+  if (!(KNO_STRINGP(val)))
+    return kno_reterr
+      (kno_TypeError,"preload_config_set",u8_strdup("string"),val);
+  else if (KNO_STRLEN(val)==0)
     return 0;
   else {
-    struct FD_PRELOAD_LIST *scan;
-    u8_string filename = FD_CSTRING(val), abspath;
+    struct KNO_PRELOAD_LIST *scan;
+    u8_string filename = KNO_CSTRING(val), abspath;
     time_t mtime;
     if (!(u8_file_existsp(filename)))
-      return fd_reterr(fd_FileNotFound,"preload_config_set",
-                       u8_strdup(filename),FD_VOID);
+      return kno_reterr(kno_FileNotFound,"preload_config_set",
+                       u8_strdup(filename),KNO_VOID);
     u8_lock_mutex(&preload_lock);
     scan = preloads; while (scan) {
       if (strcmp(filename,scan->preload_filename)==0) {
@@ -425,8 +425,8 @@ static int preload_set(lispval var,lispval val,void *ignored)
         u8_unlock_mutex(&preload_lock);
         return 0;}
       else scan = scan->next_preload;}
-    if (server_env == NULL) server_env = fd_working_lexenv();
-    scan = u8_alloc(struct FD_PRELOAD_LIST);
+    if (server_env == NULL) server_env = kno_working_lexenv();
+    scan = u8_alloc(struct KNO_PRELOAD_LIST);
     scan->preload_filename = abspath = u8_abspath(filename,NULL);
     scan->preload_mtime = (time_t)-1;
     scan->next_preload = preloads;
@@ -442,7 +442,7 @@ static int update_preloads()
 {
   if ((last_preload_update<0) ||
       ((u8_elapsed_time()-last_preload_update)>1.0)) {
-    struct FD_PRELOAD_LIST *scan; int n_reloads = 0;
+    struct KNO_PRELOAD_LIST *scan; int n_reloads = 0;
     u8_lock_mutex(&preload_lock);
     if ((u8_elapsed_time()-last_preload_update)<1.0) {
       u8_unlock_mutex(&preload_lock);
@@ -452,11 +452,11 @@ static int update_preloads()
       if (mtime>scan->preload_mtime) {
         lispval load_result;
         u8_unlock_mutex(&preload_lock);
-        load_result = fd_load_source(scan->preload_filename,server_env,"auto");
-        if (FD_ABORTP(load_result)) {
-          return fd_interr(load_result);}
+        load_result = kno_load_source(scan->preload_filename,server_env,"auto");
+        if (KNO_ABORTP(load_result)) {
+          return kno_interr(load_result);}
         n_reloads++;
-        fd_decref(load_result);
+        kno_decref(load_result);
         u8_lock_mutex(&preload_lock);
         if (mtime>scan->preload_mtime)
           scan->preload_mtime = mtime;}
@@ -467,32 +467,32 @@ static int update_preloads()
   else return 0;
 }
 
-static lispval get_web_handler(fd_lexenv env,u8_string src)
+static lispval get_web_handler(kno_lexenv env,u8_string src)
 {
-  lispval handler = fd_symeval(webmain_symbol,env);
-  if ( (FD_DEFAULTP(handler)) ||
-       (FD_VOIDP(handler))    ||
-       (FD_UNBOUNDP(handler)) ||
-       (FD_ABORTP(handler)) )
-    handler = fd_symeval(main_symbol,env);
-  if ( (FD_DEFAULTP(handler)) ||
-       (FD_VOIDP(handler))    ||
-       (FD_UNBOUNDP(handler)) ||
-       (FD_ABORTP(handler)) )
-    handler = fd_incref(webmain);
-  if (!(FD_APPLICABLEP(handler))) {
+  lispval handler = kno_symeval(webmain_symbol,env);
+  if ( (KNO_DEFAULTP(handler)) ||
+       (KNO_VOIDP(handler))    ||
+       (KNO_UNBOUNDP(handler)) ||
+       (KNO_ABORTP(handler)) )
+    handler = kno_symeval(main_symbol,env);
+  if ( (KNO_DEFAULTP(handler)) ||
+       (KNO_VOIDP(handler))    ||
+       (KNO_UNBOUNDP(handler)) ||
+       (KNO_ABORTP(handler)) )
+    handler = kno_incref(webmain);
+  if (!(KNO_APPLICABLEP(handler))) {
       u8_log(LOG_CRIT,"ServletMainNotApplicable",
              "From default environment: %q",handler);
-      fd_seterr("ServletMainNotApplicable","get_web_handler",
+      kno_seterr("ServletMainNotApplicable","get_web_handler",
                 src,handler);
-      return FD_ERROR;}
+      return KNO_ERROR;}
   else return handler;
 }
 
 /* Getting content for pages */
 
 static u8_mutex pagemap_lock;
-static FD_HASHTABLE pagemap;
+static KNO_HASHTABLE pagemap;
 
 static int whitespace_stringp(u8_string s)
 {
@@ -507,138 +507,138 @@ static int whitespace_stringp(u8_string s)
 
 static lispval loadcontent(lispval path)
 {
-  u8_string pathname = FD_CSTRING(path), oldsource;
+  u8_string pathname = KNO_CSTRING(path), oldsource;
   double load_start = u8_elapsed_time();
   u8_string content = u8_filestring(pathname,NULL);
   if (traceweb>0)
     u8_log(LOG_NOTICE,"LOADING","Loading %s",pathname);
   if (!(content)) {
-    u8_seterr(fd_FileNotFound,"loadcontent",u8_strdup(pathname));
-    return FD_ERROR_VALUE;}
+    u8_seterr(kno_FileNotFound,"loadcontent",u8_strdup(pathname));
+    return KNO_ERROR_VALUE;}
   if (content[0]=='<') {
-    U8_INPUT in; FD_XML *xml; fd_lexenv env;
+    U8_INPUT in; KNO_XML *xml; kno_lexenv env;
     lispval lenv, ldata, parsed;
     U8_INIT_STRING_INPUT(&in,strlen(content),content);
-    oldsource = fd_bind_sourcebase(pathname);
-    xml = fd_read_fdxml(&in,(FD_SLOPPY_XML|FD_XML_KEEP_RAW));
-    fd_restore_sourcebase(oldsource);
+    oldsource = kno_bind_sourcebase(pathname);
+    xml = kno_read_fdxml(&in,(KNO_SLOPPY_XML|KNO_XML_KEEP_RAW));
+    kno_restore_sourcebase(oldsource);
     if (xml == NULL) {
       u8_free(content);
       if (u8_current_exception == NULL) {
         u8_seterr("BadFDXML","loadconfig/fdxml",u8_strdup(pathname));}
       u8_log(LOG_CRIT,Startup,"ERROR","Error parsing %s",pathname);
-      return FD_ERROR_VALUE;}
+      return KNO_ERROR_VALUE;}
     parsed = xml->xml_head;
-    while ((FD_PAIRP(parsed)) &&
-           (FD_STRINGP(FD_CAR(parsed))) &&
-           (whitespace_stringp(FD_CSTRING(FD_CAR(parsed))))) {
-      struct FD_PAIR *old_parsed = (struct FD_PAIR *)parsed;
-      parsed = FD_CDR(parsed);
-      old_parsed->cdr = FD_EMPTY_LIST;}
+    while ((KNO_PAIRP(parsed)) &&
+           (KNO_STRINGP(KNO_CAR(parsed))) &&
+           (whitespace_stringp(KNO_CSTRING(KNO_CAR(parsed))))) {
+      struct KNO_PAIR *old_parsed = (struct KNO_PAIR *)parsed;
+      parsed = KNO_CDR(parsed);
+      old_parsed->cdr = KNO_EMPTY_LIST;}
     ldata = parsed;
-    env = (fd_lexenv)xml->xml_data; lenv = (lispval)env;
+    env = (kno_lexenv)xml->xml_data; lenv = (lispval)env;
     if (traceweb>0)
       u8_log(LOG_NOTICE,"LOADED","Loaded %s in %f secs",
                 pathname,u8_elapsed_time()-load_start);
-    fd_incref(ldata); fd_incref(lenv);
+    kno_incref(ldata); kno_incref(lenv);
     u8_free(content);
-    fd_free_xml_node(xml);
+    kno_free_xml_node(xml);
     u8_free(xml);
 
-    return fd_conspair(ldata,lenv);}
+    return kno_conspair(ldata,lenv);}
   else {
-    fd_lexenv newenv=
-      ((server_env) ? (fd_make_env(fd_make_hashtable(NULL,17),server_env)) :
-       (fd_working_lexenv()));
-    lispval load_result = fd_load_source(pathname,newenv,NULL);
+    kno_lexenv newenv=
+      ((server_env) ? (kno_make_env(kno_make_hashtable(NULL,17),server_env)) :
+       (kno_working_lexenv()));
+    lispval load_result = kno_load_source(pathname,newenv,NULL);
     /* We reload the file.  There should really be an API call to
-       evaluate a source string (fd_eval_source?).  This could then
+       evaluate a source string (kno_eval_source?).  This could then
        use that. */
     u8_free(content);
-    if (FD_TROUBLEP(load_result)) {
+    if (KNO_TROUBLEP(load_result)) {
       if (u8_current_exception == NULL) {
         u8_seterr("LoadSourceFailed","loadcontent/scheme",
                   u8_strdup(pathname));}
       return load_result;}
-    fd_decref(load_result);
+    kno_decref(load_result);
     lispval main_proc = get_web_handler(newenv,pathname);
     if (traceweb>0)
       u8_log(LOG_NOTICE,"LOADED","Loaded %s in %f secs, \nwebmain=%q",
              pathname,u8_elapsed_time()-load_start,main_proc);
-    return fd_conspair(main_proc,(lispval)newenv);}
+    return kno_conspair(main_proc,(lispval)newenv);}
 }
 
 static lispval update_pagemap(lispval path)
 {
   struct stat fileinfo; struct U8_XTIME mtime;
-  char *lpath = u8_localpath(FD_CSTRING(path));
+  char *lpath = u8_localpath(KNO_CSTRING(path));
   int retval = stat(lpath,&fileinfo);
   if (retval<0) {
     u8_log(LOG_CRIT,"StatFailed","Stat on %s failed (errno=%d)",
            lpath,errno);
     u8_graberrno("getcontent",lpath);
-    return FD_ERROR_VALUE;}
+    return KNO_ERROR_VALUE;}
   u8_init_xtime(&mtime,fileinfo.st_mtime,u8_second,0,0,0);
   lispval content = loadcontent(path);
-  if (FD_ABORTP(content)) {
+  if (KNO_ABORTP(content)) {
     u8_free(lpath);
     return content;}
   lispval pagemap_value =
-    fd_conspair(fd_make_timestamp(&mtime),
-                fd_incref(content));
-  fd_hashtable_store(&pagemap,path,pagemap_value);
-  fd_decref(pagemap_value);
+    kno_conspair(kno_make_timestamp(&mtime),
+                kno_incref(content));
+  kno_hashtable_store(&pagemap,path,pagemap_value);
+  kno_decref(pagemap_value);
   u8_free(lpath);
   return content;
 }
 
 static lispval getcontent(lispval path)
 {
-  if ( (FD_STRINGP(path)) &&
-       (u8_file_existsp(FD_CSTRING(path)))) {
+  if ( (KNO_STRINGP(path)) &&
+       (u8_file_existsp(KNO_CSTRING(path)))) {
     struct stat fileinfo; struct U8_XTIME mtime;
-    char *lpath = u8_localpath(FD_CSTRING(path));
+    char *lpath = u8_localpath(KNO_CSTRING(path));
     int retval = stat(lpath,&fileinfo);
     if (retval<0) {
       u8_log(LOG_CRIT,"StatFailed","Stat on %s failed (errno=%d)",
              lpath,errno);
       u8_graberrno("getcontent",lpath);
-      return FD_ERROR_VALUE;}
+      return KNO_ERROR_VALUE;}
     else u8_init_xtime(&mtime,fileinfo.st_mtime,u8_second,0,0,0);
-    lispval pagemap_value = fd_hashtable_get(&pagemap,path,FD_VOID);
-    if (FD_VOIDP(pagemap_value)) {
+    lispval pagemap_value = kno_hashtable_get(&pagemap,path,KNO_VOID);
+    if (KNO_VOIDP(pagemap_value)) {
       u8_lock_mutex(&pagemap_lock);
-      pagemap_value = fd_hashtable_get(&pagemap,path,FD_VOID);
-      if (FD_VOIDP(pagemap_value)) {
+      pagemap_value = kno_hashtable_get(&pagemap,path,KNO_VOID);
+      if (KNO_VOIDP(pagemap_value)) {
         lispval content = update_pagemap(path);
         u8_unlock_mutex(&pagemap_lock);
         return content;}
       else {
-        lispval content=FD_CDR(pagemap_value);
-        fd_incref(content);
-        fd_decref(pagemap_value);
+        lispval content=KNO_CDR(pagemap_value);
+        kno_incref(content);
+        kno_decref(pagemap_value);
         u8_unlock_mutex(&pagemap_lock);
         return content;}}
-    lispval tval = FD_CAR(pagemap_value), cval = FD_CDR(pagemap_value);
-    struct FD_TIMESTAMP *lmtime=
-      fd_consptr(fd_timestamp,tval,fd_timestamp_type);
+    lispval tval = KNO_CAR(pagemap_value), cval = KNO_CDR(pagemap_value);
+    struct KNO_TIMESTAMP *lmtime=
+      kno_consptr(kno_timestamp,tval,kno_timestamp_type);
     if ( (fileinfo.st_mtime) <= (lmtime->u8xtimeval.u8_tick) )
       /* Loaded version up to date */
-      return fd_incref(cval);
+      return kno_incref(cval);
     u8_lock_mutex(&pagemap_lock);
-    fd_decref(pagemap_value);
-    pagemap_value = fd_hashtable_get(&pagemap,path,FD_VOID);
-    if (FD_VOIDP(pagemap_value)) {
+    kno_decref(pagemap_value);
+    pagemap_value = kno_hashtable_get(&pagemap,path,KNO_VOID);
+    if (KNO_VOIDP(pagemap_value)) {
       /* This *should* never happen, but we check anyway */
       lispval content = update_pagemap(path);
       u8_unlock_mutex(&pagemap_lock);
       return content;}
-    tval = FD_CAR(pagemap_value);
-    cval = FD_CDR(pagemap_value);
-    lmtime = fd_consptr(fd_timestamp,tval,fd_timestamp_type);
+    tval = KNO_CAR(pagemap_value);
+    cval = KNO_CDR(pagemap_value);
+    lmtime = kno_consptr(kno_timestamp,tval,kno_timestamp_type);
     if ( (fileinfo.st_mtime) <= (lmtime->u8xtimeval.u8_tick) ) {
       /* Loaded version made up to date before while we got the lock  */
-      fd_incref(cval);
+      kno_incref(cval);
       u8_unlock_mutex(&pagemap_lock);
       u8_free(lpath);
       return cval;}
@@ -647,101 +647,101 @@ static lispval getcontent(lispval path)
       u8_unlock_mutex(&pagemap_lock);
       u8_free(lpath);
       return content;}}
-  else if (FD_STRINGP(path)) {
+  else if (KNO_STRINGP(path)) {
     lispval handler = (server_env) ? (get_web_handler(server_env,NULL)) :
-      (FD_VOID);
-    if (FD_ABORTP(handler)) 
+      (KNO_VOID);
+    if (KNO_ABORTP(handler)) 
       return handler;
-    else if (FD_APPLICABLEP(handler))
+    else if (KNO_APPLICABLEP(handler))
       return handler;
     else {
-      u8_log(LOG_CRIT,"FileNotFound","Content file %s",FD_CSTRING(path));
-      return fd_err(fd_FileNotFound,"getcontent",NULL,path);}}
+      u8_log(LOG_CRIT,"FileNotFound","Content file %s",KNO_CSTRING(path));
+      return kno_err(kno_FileNotFound,"getcontent",NULL,path);}}
   else {
     u8_log(LOG_CRIT,"BadPathArg","To getcontent");
-    return fd_type_error("pathname","getcontent",path);}
+    return kno_type_error("pathname","getcontent",path);}
 }
 
 /* Check threadcache */
 
-static MU struct FD_THREAD_CACHE *checkthreadcache(fd_lexenv env)
+static MU struct KNO_THREAD_CACHE *checkthreadcache(kno_lexenv env)
 {
-  lispval tcval = fd_symeval(threadcache_symbol,env);
-  if (FD_FALSEP(tcval)) return NULL;
-  else if ((FD_VOIDP(tcval))&&(!(use_threadcache)))
+  lispval tcval = kno_symeval(threadcache_symbol,env);
+  if (KNO_FALSEP(tcval)) return NULL;
+  else if ((KNO_VOIDP(tcval))&&(!(use_threadcache)))
     return NULL;
-  else return fd_use_threadcache();
+  else return kno_use_threadcache();
 }
 
 /* Init configs */
 
 static void init_webcommon_data()
 {
-  FD_INIT_STATIC_CONS(&pagemap,fd_hashtable_type);
-  fd_make_hashtable(&pagemap,0);
+  KNO_INIT_STATIC_CONS(&pagemap,kno_hashtable_type);
+  kno_make_hashtable(&pagemap,0);
   u8_init_mutex(&pagemap_lock);
 }
 
 static void init_webcommon_configs()
 {
-  fd_register_config("TRACEWEB",_("Trace all web transactions"),
-                     fd_boolconfig_get,fd_boolconfig_set,&traceweb);
-  fd_register_config("WEBDEBUG",_("Show backtraces on errors"),
-                     fd_boolconfig_get,fd_boolconfig_set,&webdebug);
-  fd_register_config("WEBALLOWDEBUG",_("Allow requests to specify debugging"),
-                     fd_boolconfig_get,fd_boolconfig_set,&weballowdebug);
-  fd_register_config("LOGSTACK",_("Log error stacktraces"),
-                     fd_boolconfig_get,fd_boolconfig_set,&logstack);
-  fd_register_config("ERRORPAGE",_("Default error page for web errors"),
-                     fd_lconfig_get,fd_lconfig_set,&default_errorpage);
-  fd_register_config
+  kno_register_config("TRACEWEB",_("Trace all web transactions"),
+                     kno_boolconfig_get,kno_boolconfig_set,&traceweb);
+  kno_register_config("WEBDEBUG",_("Show backtraces on errors"),
+                     kno_boolconfig_get,kno_boolconfig_set,&webdebug);
+  kno_register_config("WEBALLOWDEBUG",_("Allow requests to specify debugging"),
+                     kno_boolconfig_get,kno_boolconfig_set,&weballowdebug);
+  kno_register_config("LOGSTACK",_("Log error stacktraces"),
+                     kno_boolconfig_get,kno_boolconfig_set,&logstack);
+  kno_register_config("ERRORPAGE",_("Default error page for web errors"),
+                     kno_lconfig_get,kno_lconfig_set,&default_errorpage);
+  kno_register_config
     ("CRISISPAGE",
      _("Default crisis page (for when the error page yields an error)"),
-     fd_lconfig_get,fd_lconfig_set,&default_crisispage);
-  fd_register_config
+     kno_lconfig_get,kno_lconfig_set,&default_crisispage);
+  kno_register_config
     ("NOTFOUNDPAGE",
      _("Default not found page (for when specified content isn't found)"),
-     fd_lconfig_get,fd_lconfig_set,&default_notfoundpage);
-  fd_register_config
+     kno_lconfig_get,kno_lconfig_set,&default_notfoundpage);
+  kno_register_config
     ("NOCONTENTPAGE",
      _("Default no content page (for when content fetch failed generically)"),
-     fd_lconfig_get,fd_lconfig_set,&default_nocontentpage);
+     kno_lconfig_get,kno_lconfig_set,&default_nocontentpage);
 
-  fd_register_config("PRELOAD",
+  kno_register_config("PRELOAD",
                      _("Files to preload into the shared environment"),
                      preload_get,preload_set,NULL);
-  fd_register_config("URLLOG",_("Where to write URLs where were requested"),
+  kno_register_config("URLLOG",_("Where to write URLs where were requested"),
                      urllog_get,urllog_set,NULL);
-  fd_register_config("REQLOG",_("Where to write request objects"),
+  kno_register_config("REQLOG",_("Where to write request objects"),
                      reqlog_get,reqlog_set,NULL);
-  fd_register_config("REQLOGLEVEL",_("Level of transaction logging"),
-                     fd_intconfig_get,fd_intconfig_set,&reqloglevel);
-  fd_register_config("THREADCACHE",_("Use per-request thread cache"),
-                     fd_boolconfig_get,fd_boolconfig_set,&use_threadcache);
-  fd_register_config("TRACECGI",_("Whether to log all cgidata"),
-                     fd_boolconfig_get,fd_boolconfig_set,&trace_cgidata);
-  fd_register_config("DOCROOT",
+  kno_register_config("REQLOGLEVEL",_("Level of transaction logging"),
+                     kno_intconfig_get,kno_intconfig_set,&reqloglevel);
+  kno_register_config("THREADCACHE",_("Use per-request thread cache"),
+                     kno_boolconfig_get,kno_boolconfig_set,&use_threadcache);
+  kno_register_config("TRACECGI",_("Whether to log all cgidata"),
+                     kno_boolconfig_get,kno_boolconfig_set,&trace_cgidata);
+  kno_register_config("DOCROOT",
                      _("File base (directory) for resolving requests"),
-                     fd_sconfig_get,fd_sconfig_set,&docroot);
-  fd_register_config("PREFLIGHT",
+                     kno_sconfig_get,kno_sconfig_set,&docroot);
+  kno_register_config("PREFLIGHT",
                      _("Preflight (before request handling) procedures"),
                      preflight_get,preflight_set,NULL);
-  fd_register_config("POSTFLIGHT",
+  kno_register_config("POSTFLIGHT",
                      _("POSTFLIGHT (before request handling) procedures"),
                      postflight_get,postflight_set,NULL);
 
-  fd_register_config("WEBMAIN",
+  kno_register_config("WEBMAIN",
                      _("WEBMAIN default procedure for handling requests"),
-                     fd_lconfig_get,fd_lconfig_set,&webmain);
+                     kno_lconfig_get,kno_lconfig_set,&webmain);
 
-  fd_autoload_config("WEBMOD","WEBLOAD","WEBINITS");
+  kno_autoload_config("WEBMOD","WEBLOAD","WEBINITS");
 }
 
 static void shutdown_server(void);
 
 static void webcommon_shutdown(u8_condition why)
 {
-  u8_string exit_filename = fd_runbase_filename(".exit");
+  u8_string exit_filename = kno_runbase_filename(".exit");
   FILE *exitfile = u8_fopen(exit_filename,"w");
   u8_log(LOG_CRIT,"web_shutdown","Shutting down server on %s",
          ((why == NULL)?((u8_condition)"a whim"):(why)));
@@ -752,7 +752,7 @@ static void webcommon_shutdown(u8_condition why)
     u8_removefile(pidfile);}
   pidfile = NULL;
   if (pagemap.conshead)
-    fd_recycle_hashtable(&pagemap);
+    kno_recycle_hashtable(&pagemap);
   if (exitfile) {
     struct U8_XTIME xt; struct U8_OUTPUT out;
     char timebuf[64]; double elapsed = u8_elapsed_time();
@@ -873,21 +873,21 @@ static void init_webcommon_finalize()
 static lispval webcommon_adjust_docroot(lispval cgidata,u8_string docroot)
 {
   if (docroot) {
-    lispval incoming_docroot = fd_get(cgidata,document_root,FD_VOID);
-    if (FD_STRINGP(incoming_docroot)) {
-      lispval scriptname = fd_get(cgidata,script_filename,FD_VOID);
+    lispval incoming_docroot = kno_get(cgidata,document_root,KNO_VOID);
+    if (KNO_STRINGP(incoming_docroot)) {
+      lispval scriptname = kno_get(cgidata,script_filename,KNO_VOID);
       lispval lisp_docroot = lispval_string(docroot);
-      fd_store(cgidata,document_root,lisp_docroot);
-      if ((FD_STRINGP(scriptname))&&
-          ((strncmp(FD_CSTRING(scriptname),FD_CSTRING(incoming_docroot),
-                    FD_STRLEN(incoming_docroot)))==0)) {
+      kno_store(cgidata,document_root,lisp_docroot);
+      if ((KNO_STRINGP(scriptname))&&
+          ((strncmp(KNO_CSTRING(scriptname),KNO_CSTRING(incoming_docroot),
+                    KNO_STRLEN(incoming_docroot)))==0)) {
         u8_string local_scriptname = u8_string_append
-          (docroot,FD_CSTRING(scriptname)+FD_STRLEN(incoming_docroot),NULL);
-        lispval new_scriptname = fd_init_string(NULL,-1,local_scriptname);
-        fd_store(cgidata,script_filename,new_scriptname);
-        fd_decref(new_scriptname);}
-      fd_decref(lisp_docroot); fd_decref(scriptname);}
-    fd_decref(incoming_docroot);
+          (docroot,KNO_CSTRING(scriptname)+KNO_STRLEN(incoming_docroot),NULL);
+        lispval new_scriptname = kno_init_string(NULL,-1,local_scriptname);
+        kno_store(cgidata,script_filename,new_scriptname);
+        kno_decref(new_scriptname);}
+      kno_decref(lisp_docroot); kno_decref(scriptname);}
+    kno_decref(incoming_docroot);
     return cgidata;}
   else return cgidata;
 }

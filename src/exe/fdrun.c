@@ -1,5 +1,5 @@
-static u8_string logdir = "/var/log/framerd/";
-static u8_string rundir = "/var/run/framerd/";
+static u8_string logdir = "/var/log/kno/";
+static u8_string rundir = "/var/run/kno/";
 
 char **envargs(char *argvec,int *argcount)
 {
