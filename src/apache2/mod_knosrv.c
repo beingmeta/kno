@@ -144,7 +144,7 @@ typedef unsigned int INTPOINTER;
 #endif
 
 #define KNOSRV_MAGIC_TYPE "application/x-httpd-knosrv"
-#define FDSTATUS_MAGIC_TYPE "application/x-httpd-fdstatus"
+#define FDSTATUS_MAGIC_TYPE "application/x-httpd-knostatus"
 
 #ifndef DEFAULT_KEEP_SOCKS
 #define DEFAULT_KEEP_SOCKS 2
@@ -157,20 +157,20 @@ typedef unsigned int INTPOINTER;
 /* This is where cross-server consing for the entire module happens. */
 static apr_pool_t *knosrv_pool;
 
-typedef enum {filesock,aprsock,badsock=0} fdsocktype;
+typedef enum { filesock, aprsock, badsock=0 } knosocktype;
 
-typedef struct KNOSOCKET {
-  fdsocktype socktype;
+typedef struct KNO_SOCKET {
+  knosocktype socktype;
   const char *sockname;
-  struct KNOSERVLET *servlet;
+  struct KNO_SERVLET *servlet;
   int socket_index, busy, closed;
   union { int fd; apr_socket_t *apr;}
     conn;}
-  KNOSOCKET;
-typedef struct KNOSOCKET *knosocket;
+  KNO_SOCKET;
+typedef struct KNO_SOCKET *knosocket;
 
-typedef struct KNOSERVLET {
-  fdsocktype socktype;
+typedef struct KNO_SERVLET {
+  knosocktype socktype;
   const char *sockname;
   apr_time_t spawning, spawned;
   apr_proc_t proc;
@@ -187,12 +187,12 @@ typedef struct KNOSERVLET {
   int keep_socks; /* How many sockets to keep open */
   int n_busy; /* How many sockets are currently busy */
   int n_ephemeral;
-  struct KNOSOCKET *sockets;} KNOSERVLET;
-typedef struct KNOSERVLET *knoservlet;
+  struct KNO_SOCKET *sockets;} KNO_SERVLET;
+typedef struct KNO_SERVLET *knoservlet;
 
 module AP_MODULE_DECLARE_DATA knosrv_module;
 
-static struct KNOSERVLET *servlets;
+static struct KNO_SERVLET *servlets;
 static int n_servlets=0, max_servlets=-1;
 static apr_thread_mutex_t *servlets_lock;
 
@@ -1079,40 +1079,40 @@ static const char *log_file(cmd_parms *parms,void *mconfig,const char *arg)
 static const command_rec knosrv_cmds[] =
 {
   AP_INIT_TAKE1
-  ("KnoservletDTBlock", using_dtblock, NULL, OR_ALL,
+  ("KnoServletDTBlock", using_dtblock, NULL, OR_ALL,
    "whether to use the DTBlock DType representation to send requests"),
-  AP_INIT_TAKE1("KnoservletKeep", servlet_keep, NULL, OR_ALL,
+  AP_INIT_TAKE1("KnoServletKeep", servlet_keep, NULL, OR_ALL,
 		"how many connections to the servlet to keep open"),
-  AP_INIT_TAKE1("KnoservletMax", servlet_maxconn, NULL, OR_ALL,
+  AP_INIT_TAKE1("KnoServletMax", servlet_maxconn, NULL, OR_ALL,
 		"the total number of servlet connections to keep alive"),
 
   /* Everything below here is stuff about how to start a servlet */
-  AP_INIT_TAKE1("KnoservletSpawn", servlet_spawn, NULL, OR_ALL,
+  AP_INIT_TAKE1("KnoServletSpawn", servlet_spawn, NULL, OR_ALL,
 		"How long to wait for servlets to start (on=5s, off=0)"),
-  AP_INIT_TAKE1("KnoservletExecutable", servlet_executable, NULL, OR_ALL,
+  AP_INIT_TAKE1("KnoServletExecutable", servlet_executable, NULL, OR_ALL,
 		"the executable used to start a servlet"),
-  AP_INIT_TAKE1("KnoservletWait", servlet_wait, NULL, OR_ALL,
+  AP_INIT_TAKE1("KnoServletWait", servlet_wait, NULL, OR_ALL,
 		"the number of seconds to wait for the servlet to startup"),
-  AP_INIT_TAKE2("KnoservletConfig", servlet_config, NULL, OR_ALL,
+  AP_INIT_TAKE2("KnoServletConfig", servlet_config, NULL, OR_ALL,
 		"configuration parameters to the servlet"),
-  AP_INIT_TAKE2("KnoservletEnv", servlet_env, NULL, OR_ALL,
+  AP_INIT_TAKE2("KnoServletEnv", servlet_env, NULL, OR_ALL,
 		"environment variables for servlet execution"),
-  AP_INIT_TAKE2("KnoservletParam", servlet_param, NULL, OR_ALL,
+  AP_INIT_TAKE2("KnoServletParam", servlet_param, NULL, OR_ALL,
 		"CGI parameters to pass with each request to the servlet"),
-  AP_INIT_TAKE1("KnoservletUser", servlet_user, NULL, RSRC_CONF,
+  AP_INIT_TAKE1("KnoServletUser", servlet_user, NULL, RSRC_CONF,
 	       "the user whom the knoservlet will run as"),
-  AP_INIT_TAKE1("KnoservletGroup", servlet_group, NULL, RSRC_CONF,
+  AP_INIT_TAKE1("KnoServletGroup", servlet_group, NULL, RSRC_CONF,
 	       "the group whom the knoservlet will run as"),
 
-  AP_INIT_TAKE1("KnoservletPrefix", socket_prefix, NULL, OR_ALL,
+  AP_INIT_TAKE1("KnoServletPrefix", socket_prefix, NULL, OR_ALL,
 	       "the prefix to be appended to socket names"),
-  AP_INIT_TAKE1("KnoservletSocket", socket_spec, NULL, OR_ALL,
+  AP_INIT_TAKE1("KnoServletSocket", socket_spec, NULL, OR_ALL,
 	       "the socket file to be used for a particular script"),
-  AP_INIT_TAKE1("KnoservletLogPrefix", log_prefix, NULL, OR_ALL,
+  AP_INIT_TAKE1("KnoServletLogPrefix", log_prefix, NULL, OR_ALL,
 	       "the prefix for the logfile to be used for scripts"),
-  AP_INIT_TAKE1("KnoservletLog", log_file, NULL, OR_ALL,
+  AP_INIT_TAKE1("KnoServletLog", log_file, NULL, OR_ALL,
 	       "the logfile to be used for scripts"),
-  AP_INIT_TAKE1("KnoservletLogSync", log_sync, NULL, OR_ALL,
+  AP_INIT_TAKE1("KnoServletLogSync", log_sync, NULL, OR_ALL,
 	       "whether to write to the log synchronously"),
   {NULL}
 };
@@ -1584,16 +1584,16 @@ static knoservlet servlet_set_keep_socks(knoservlet s,int keep_socks)
       apr_thread_mutex_unlock(s->lock);
       return s;}
     else {
-      struct KNOSOCKET *fresh=
-	apr_pcalloc(knosrv_pool,sizeof(struct KNOSOCKET)*keep_socks);
+      struct KNO_SOCKET *fresh=
+	apr_pcalloc(knosrv_pool,sizeof(struct KNO_SOCKET)*keep_socks);
       ap_log_error(APLOG_MARK,APLOG_CRIT,OK,s->server,
 		   "Growing socket pool for %s from %d/%d to %d/%d",
 		   s->sockname,s->n_socks,s->keep_socks,s->n_socks,keep_socks);
       if (s->n_socks) {
-	memcpy(fresh,s->sockets,(sizeof(struct KNOSOCKET))*(s->n_socks));}
+	memcpy(fresh,s->sockets,(sizeof(struct KNO_SOCKET))*(s->n_socks));}
       if (fresh) {
-	memset(fresh+((sizeof(struct KNOSOCKET))*(s->keep_socks)),0,
-	       ((sizeof(struct KNOSOCKET))*(keep_socks-s->n_socks)));
+	memset(fresh+((sizeof(struct KNO_SOCKET))*(s->keep_socks)),0,
+	       ((sizeof(struct KNO_SOCKET))*(keep_socks-s->n_socks)));
 	s->sockets=fresh; s->keep_socks=keep_socks;
 	apr_thread_mutex_unlock(s->lock);
 	return s;}
@@ -1627,10 +1627,10 @@ static knoservlet add_servlet(struct request_rec *r,const char *sockname,
     /* Grow the table of servlets if needed */
     int old_max=max_servlets;
     int new_max=max_servlets+KNOSRV_INIT_SERVLETS;
-    struct KNOSERVLET *newvec=(struct KNOSERVLET *)
+    struct KNO_SERVLET *newvec=(struct KNO_SERVLET *)
       prealloc(knosrv_pool,(char *)servlets,
-	       sizeof(struct KNOSERVLET)*new_max,
-	       sizeof(struct KNOSERVLET)*old_max);
+	       sizeof(struct KNO_SERVLET)*new_max,
+	       sizeof(struct KNO_SERVLET)*old_max);
     if (newvec) {
       servlets=newvec; max_servlets=new_max;}
     else {
@@ -1649,7 +1649,7 @@ static knoservlet add_servlet(struct request_rec *r,const char *sockname,
     ap_log_error(APLOG_MARK,APLOG_NOTICE,OK,r->server,
 		 "Adding new servlet for %s at #%d, keep=%d, max=%d",
 		 sockname,i,keep_socks,max_socks);
-    memset(servlet,0,sizeof(struct KNOSERVLET));
+    memset(servlet,0,sizeof(struct KNO_SERVLET));
     servlet->sockname=apr_pstrdup(knosrv_pool,sockname);
     servlet->server=r->server; servlet->servlet_index=i;
     servlet->spawning=0; servlet->spawned=0;
@@ -1737,14 +1737,14 @@ static int get_servlet_wait(request_rec *r);
 
 /* Opens a servlet socket, either a cached one (if given != NULL) or a
    new one (malloc) */
-static knosocket servlet_open(knoservlet s,struct KNOSOCKET *given,request_rec *r)
+static knosocket servlet_open(knoservlet s,struct KNO_SOCKET *given,request_rec *r)
 {
-  struct KNOSOCKET *result; apr_pool_t *pool; int one=1, dospawn=-1, wait=-1;
+  struct KNO_SOCKET *result; apr_pool_t *pool; int one=1, dospawn=-1, wait=-1;
   if (given) pool=knosrv_pool; else pool=r->pool;
   if (given) result=given;
   else {
-    result=apr_pcalloc(pool,sizeof(struct KNOSOCKET));
-    memset(result,0,sizeof(struct KNOSOCKET));}
+    result=apr_pcalloc(pool,sizeof(struct KNO_SOCKET));
+    memset(result,0,sizeof(struct KNO_SOCKET));}
 
 #if DEBUG_CONNECT
   ap_log_rerror
@@ -1876,7 +1876,7 @@ static knosocket servlet_connect(knoservlet s,request_rec *r)
     int i=0; int lim=s->n_socks; int closed=-1;
     if (s->n_socks>s->n_busy) {
       /* There should be a free open socket to reuse, so we scan */
-      struct KNOSOCKET *sockets=s->sockets;
+      struct KNO_SOCKET *sockets=s->sockets;
       while (i<lim) {
 	ap_log_error(APLOG_MARK,LOGDEBUG,OK,s->server,
 		     "Checking %s #%d/%d busy=%d closed=%d",
@@ -1899,7 +1899,7 @@ static knosocket servlet_connect(knoservlet s,request_rec *r)
     else i=s->n_socks;
     if (closed>=0) {
       /* If there's a closed socket < i, try to use that. */
-      struct KNOSOCKET *sockets=s->sockets; knosocket sock;
+      struct KNO_SOCKET *sockets=s->sockets; knosocket sock;
       ap_log_rerror(APLOG_MARK,SOCKET_LOGLEVEL,OK,r,"Reopening %s",
 		    ksocketinfo(&(sockets[closed]),infobuf));
       sock=servlet_open(s,&(sockets[closed]),r); 
@@ -1932,7 +1932,7 @@ static knosocket servlet_connect(knoservlet s,request_rec *r)
 	return sock;}}
     else {
       /* i should be the same as n_socks, so we try to open that socket. */
-      struct KNOSOCKET *sockets=s->sockets;
+      struct KNO_SOCKET *sockets=s->sockets;
       knosocket sock=servlet_open(s,&(sockets[i]),r);
       if (sock) {
 	s->n_socks++; s->n_busy++; sock->socket_index=i;
@@ -2006,7 +2006,7 @@ static int servlet_recycle_socket(knoservlet servlet,knosocket sock)
     else if (sock->socktype==filesock) {
       if (sock->conn.fd>0) close(sock->conn.fd);}
     else {}
-    memset(sock,0,sizeof(struct KNOSOCKET));
+    memset(sock,0,sizeof(struct KNO_SOCKET));
     return 0;}
   else {
     int i=sock->socket_index;
@@ -2136,7 +2136,7 @@ static apr_status_t close_servlets(void *data)
   while (i<lim) {
     knoservlet s=&(servlets[i++]);
     int j=0, n_socks;
-    struct KNOSOCKET *sockets;
+    struct KNO_SOCKET *sockets;
     apr_thread_mutex_lock(s->lock);
     sockets=s->sockets; n_socks=s->n_socks;
     while (j<n_socks) {
@@ -2160,7 +2160,7 @@ static apr_status_t close_servlets(void *data)
 static int reset_servlet(knoservlet s,apr_pool_t *p,int locked)
 {
   int j=0, n_socks, n_closed=0;
-  struct KNOSOCKET *sockets;
+  struct KNO_SOCKET *sockets;
   if (locked==0) apr_thread_mutex_lock(s->lock);
   sockets=s->sockets; n_socks=s->n_socks;
 
@@ -2784,10 +2784,10 @@ static int knosrv_handler(request_rec *r)
 	(r->method_number == M_DELETE) ||
 	(r->method_number == M_OPTIONS)))
     return DECLINED;
-  else if ( (STRMATCH(r->handler, "knoservlet")) ||
+  else if ( (STRMATCH(r->handler, "knosrv")) ||
 	    (STRMATCH(r->handler, KNOSRV_MAGIC_TYPE)) )
     status_request=0;
-  else if ( (STRMATCH(r->handler, "fdstatus")) ||
+  else if ( (STRMATCH(r->handler, "knostatus")) ||
 	    (STRMATCH(r->handler, FDSTATUS_MAGIC_TYPE)) )
     status_request=1;
   else return DECLINED;
@@ -2807,7 +2807,7 @@ static int knosrv_handler(request_rec *r)
     if (errno) error=strerror(errno); else error="no servlet";
     errno=0;}
   else if (status_request) {
-    struct KNOSERVLET *srv=servlet;
+    struct KNO_SERVLET *srv=servlet;
     r->content_type="text/plain";
     ap_send_http_header(r);
     ap_rprintf(r,"Servlet #%d %s\n",srv->servlet_index,srv->sockname);
@@ -3068,7 +3068,7 @@ static void knosrv_init(apr_pool_t *p,server_rec *s)
   socketname_table=apr_table_make(p,64);
   knosrv_pool=p;
   apr_thread_mutex_create(&servlets_lock,APR_THREAD_MUTEX_DEFAULT,knosrv_pool);
-  servlets=apr_pcalloc(knosrv_pool,sizeof(struct KNOSERVLET)*(KNOSRV_INIT_SERVLETS));
+  servlets=apr_pcalloc(knosrv_pool,sizeof(struct KNO_SERVLET)*(KNOSRV_INIT_SERVLETS));
   max_servlets=KNOSRV_INIT_SERVLETS;
   /* apr_pool_cleanup_register(p,p,close_servlets,NULL); */
   #if ((APR_MAJOR_VERSION>=1)&&(APR_MAJOR_VERSION>=4))

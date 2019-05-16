@@ -64,8 +64,8 @@
 
 #include "main.c"
 
-static u8_condition ServletStartup=_("KNOlet/STARTUP");
-static u8_condition ServletAbort=_("KNOlet/ABORT");
+static u8_condition ServletStartup=_("Servlet/STARTUP");
+static u8_condition ServletAbort=_("Servlet/ABORT");
 static u8_condition NoServers=_("No servers configured");
 #define Startup ServletStartup
 
@@ -146,7 +146,7 @@ static int check_for_injection()
     u8_string temp_file = u8_string_append(inject_file,".loading",NULL);
     int rv = u8_movefile(inject_file,temp_file);
     if (rv<0) {
-      u8_log(LOG_WARN,"KNOlet/InjectionIgnored",
+      u8_log(LOG_WARN,"Servlet/InjectionIgnored",
              "Can't stage injection file %s to %s",
              inject_file,temp_file);
       kno_clear_errors(1);
@@ -155,43 +155,43 @@ static int check_for_injection()
     else {
       u8_string content = u8_filestring(temp_file,NULL);
       if (content == NULL)  {
-        u8_log(LOG_WARN,"KNOlet/InjectionCantRead",
+        u8_log(LOG_WARN,"Servlet/InjectionCantRead",
                "Can't read %s",temp_file);
         kno_clear_errors(1);
         u8_free(temp_file);
         return -1;}
       else {
         lispval result;
-        u8_log(LOG_WARN,"KNOlet/InjectLoad",
+        u8_log(LOG_WARN,"Servlet/InjectLoad",
                "From %s\n\"%s\"",temp_file,content);
         result = kno_load_source(temp_file,server_env,NULL);
         if (KNO_ABORTP(result)) {
           u8_exception ex = u8_current_exception;
           if (!(ex)) {
-            u8_log(LOG_CRIT,"KNOlet/InjectError",
+            u8_log(LOG_CRIT,"Servlet/InjectError",
                    "Unknown error processing injection from %s: \"%s\"",
                    inject_file,content);}
           else if ((ex->u8x_context!=NULL)&&
                    (ex->u8x_details!=NULL))
-            u8_log(LOG_CRIT,"KNOlet/InjectionError",
+            u8_log(LOG_CRIT,"Servlet/InjectionError",
                    "Error %s (%s) processing injection %s: %s\n\"%s\"",
                    ex->u8x_cond,ex->u8x_context,inject_file,
                    ex->u8x_details,content);
           else if (ex->u8x_context!=NULL)
-            u8_log(LOG_CRIT,"KNOlet/InjectionError",
+            u8_log(LOG_CRIT,"Servlet/InjectionError",
                    "Error %s (%s) processing injection %s\n\"%s\"",
                    ex->u8x_cond,ex->u8x_context,inject_file,content);
-          else u8_log(LOG_CRIT,"KNOlet/InjectionError",
+          else u8_log(LOG_CRIT,"Servlet/InjectionError",
                       "Error %s processing injection %s\n\"%s\"",
                       ex->u8x_cond,inject_file,content);
           kno_clear_errors(1);
           return -1;}
         else {
-          u8_log(LOG_WARN,"KNOlet/InjectionDone",
+          u8_log(LOG_WARN,"Servlet/InjectionDone",
                  "Finished from %s",inject_file);}
         rv = u8_removefile(temp_file);
         if (rv<0) {
-          u8_log(LOG_CRIT,"KNOlet/InjectionCleanup",
+          u8_log(LOG_CRIT,"Servlet/InjectionCleanup",
                  "Error removing %s",temp_file);
           kno_clear_errors(1);}
         kno_decref(result);
@@ -397,7 +397,7 @@ static void update_status()
     if ((statlog_interval>=0)&&(now>(last_statlog+statlog_interval))) {
       last_statlog = now;
       if (log_status>0)
-        u8_log(log_status,"KNOlet",STATUS_LOG_SNAPSHOT,elapsed,
+        u8_log(log_status,"Servlet",STATUS_LOG_SNAPSHOT,elapsed,
                kno_servlet.n_busy,kno_servlet.n_queued,
                kno_servlet.n_clients,kno_servlet.n_threads,
                kno_servlet.n_accepted,kno_servlet.n_trans,kno_servlet.n_errs,
@@ -493,7 +493,7 @@ static void cleanup_pid_file()
     if (pid_fd>=0) {
       int lv = lock_fd(pid_fd,0,0);
       if (lv<0) {
-        u8_log(LOG_CRIT,"KNOlet/cleanup",
+        u8_log(LOG_CRIT,"Servlet/cleanup",
                "Waiting to release lock on PID file %s",pid_file);
         errno = 0; lv = lock_fd(pid_fd,0,1);}
       if (lv<0) {
@@ -531,7 +531,7 @@ static int write_pid_file()
     time_t mtime = fileinfo.st_mtime;
     u8_uid uid = fileinfo.st_uid;
     u8_string uname = u8_username(uid);
-    u8_log(LOG_WARN,"KNOlet/Leftover PID file",
+    u8_log(LOG_WARN,"Servlet/Leftover PID file",
            "File %s created %t, modified %t, owned by %s (%d)",
            abspath,ctime,mtime,uname,uid);
     if (uname) u8_free(uname);}
@@ -544,7 +544,7 @@ static int write_pid_file()
     return -1;}
   lv = lock_fd(pid_fd,1,0);
   if (lv<0) {
-    u8_log(LOG_CRIT,"KNOlet/write_pid_file",
+    u8_log(LOG_CRIT,"Servlet/write_pid_file",
            "Can't get lock on PID file %s",
            pid_file);
     u8_graberr(errno,"write_pid_file",u8_strdup(pid_file));
@@ -553,7 +553,7 @@ static int write_pid_file()
     return -1;}
   else {
     if (exists)
-      u8_log(LOG_WARN,"KNOlet/write_pid_file",
+      u8_log(LOG_WARN,"Servlet/write_pid_file",
              "Bogarted existing PID file %s",abspath);
     sprintf(buf,"%d\n",getpid());
     int rv = write(pid_fd,buf,strlen(buf));
@@ -769,7 +769,7 @@ static int config_set_u8server_flag(lispval var,lispval val,void *data)
                  ((s[0]=='N')||(s[0]=='n'))?(0):
                  (-1));
       if (guess<0) {
-        u8_log(LOG_WARN,"KNOlet/SERVERFLAG",
+        u8_log(LOG_WARN,"Servlet/SERVERFLAG",
                "Unknown boolean setting %s",s);
         return kno_reterr(kno_TypeError,"setserverflag","boolean value",val);}
       else u8_log(LOG_WARN,"FDSerlvet/SERVERFLAG",
@@ -796,7 +796,7 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
   U8_INIT_STATIC_OUTPUT((consed->out),8192);
   u8_set_nodelay(sock,1);
   consed->cgidata = VOID;
-  u8_log(LOG_INFO,"KNOlet/open","Created web client (#%lx) %s",
+  u8_log(LOG_INFO,"Servlet/open","Created web client (#%lx) %s",
          consed,
          ((consed->idstring == NULL)?((u8_string)""):(consed->idstring)));
   return (u8_client) consed;
@@ -934,7 +934,7 @@ static int webservefn(u8_client ucl)
     cgidata = kno_read_dtype(inbuf);
     if (cgidata == KNO_EOD) {
       if (traceweb>0)
-        u8_log(LOG_NOTICE,"KNOlet/webservefn",
+        u8_log(LOG_NOTICE,"Servlet/webservefn",
                "Client %s (sock=%d) closing",
                client->idstring,client->socket);
       if (ucl->status) {u8_free(ucl->status); ucl->status = NULL;}
@@ -942,8 +942,8 @@ static int webservefn(u8_client ucl)
       u8_client_close(ucl);
       return -1;}
     else if (!(TABLEP(cgidata))) {
-      u8_log(LOG_CRIT,"KNOlet/webservefn",
-             "Bad knolet request on client %s (sock=%d), closing",
+      u8_log(LOG_CRIT,"Servlet/webservefn",
+             "Bad servlet request on client %s (sock=%d), closing",
              client->idstring,client->socket);
       if (ucl->status) {u8_free(ucl->status); ucl->status = NULL;}
       u8_client_done(ucl);
@@ -1140,13 +1140,13 @@ static int webservefn(u8_client ucl)
     if ((!(KNO_VOIDP(content)))&&
         (!((STRINGP(content))||(PACKETP(content))))) {
       kno_decref(result);
-      result = kno_err(kno_TypeError,"KNOlet/content","string or packet",
+      result = kno_err(kno_TypeError,"Servlet/content","string or packet",
                       content);}
     else if ((!(KNO_VOIDP(retfile)))&&
              ((!(STRINGP(retfile)))||
               (!(u8_file_existsp(CSTRING(retfile)))))) {
       kno_decref(result);
-      result = kno_err(u8_CantOpenFile,"KNOlet/retfile","existing filename",
+      result = kno_err(u8_CantOpenFile,"Servlet/retfile","existing filename",
                       retfile);}}
   /* Output is done, so stop writing */
   if (!(KNO_TROUBLEP(result))) u8_set_default_output(NULL);
@@ -1370,7 +1370,7 @@ static int webservefn(u8_client ucl)
         else {/* To be written */}}}
     else if ((STRINGP(retfile))&&(kno_sendfile_header)) {
       u8_byte *copy;
-      u8_log(LOG_NOTICE,"KNOlet/Sendfile","Using %s to pass %s (#%lx)",
+      u8_log(LOG_NOTICE,"Servlet/Sendfile","Using %s to pass %s (#%lx)",
              kno_sendfile_header,CSTRING(retfile),(unsigned long)ucl);
       /* The web server supports a sendfile header, so we use that */
       u8_printf(&httphead,"\r\n");
@@ -1385,7 +1385,7 @@ static int webservefn(u8_client ucl)
       if ((stat(filename,&fileinfo)==0)&&(f = u8_fopen(filename,"rb")))  {
         int bytes_read = 0;
         unsigned char *filebuf = NULL; kno_off_t total_len = -1;
-        u8_log(LOG_NOTICE,"KNOlet/Sendfile","Returning content of %s (#%lx)",
+        u8_log(LOG_NOTICE,"Servlet/Sendfile","Returning content of %s (#%lx)",
                CSTRING(retfile),(unsigned long)ucl);
         u8_printf(&httphead,"Content-length: %ld\r\n\r\n",
                   (long int)(fileinfo.st_size));
@@ -1406,7 +1406,7 @@ static int webservefn(u8_client ucl)
             to_read = to_read-bytes_read;}
           if (((server->flags)&(U8_SERVER_LOG_TRANSACT))||
               ((client->flags)&(U8_CLIENT_LOG_TRANSACT)))
-            u8_log(LOG_WARN,"KNOlet/Buffering/file",
+            u8_log(LOG_WARN,"Servlet/Buffering/file",
                    "Queued %d+%d=%d file bytes of 0x%lx for output (#%lx)",
                    http_len,to_read,total_len,(unsigned long)filebuf,
                    (unsigned long)ucl);
@@ -1425,10 +1425,10 @@ static int webservefn(u8_client ucl)
               if (retval<0) break;}
             return_code = 0;}}}
       else {
-        u8_log(LOG_NOTICE,"KNOlet/Sendfile",
+        u8_log(LOG_NOTICE,"Servlet/Sendfile",
                "The content file %s does not exist (#%lx)",
                CSTRING(retfile),(unsigned long)ucl);
-        u8_seterr(kno_FileNotFound,"knolet/sendfile",
+        u8_seterr(kno_FileNotFound,"servlet/sendfile",
                   u8_strdup(CSTRING(retfile)));
         result = KNO_ERROR_VALUE;}}
     else if (STRINGP(content)) {
@@ -1445,7 +1445,7 @@ static int webservefn(u8_client ucl)
         u8_client_write_x(ucl,outbuf,bundle_len,0,U8_CLIENT_WRITE_OWNBUF);
         if (((server->flags)&(U8_SERVER_LOG_TRANSACT))||
             ((client->flags)&(U8_CLIENT_LOG_TRANSACT)))
-          u8_log(LOG_WARN,"KNOlet/Buffering/text",
+          u8_log(LOG_WARN,"Servlet/Buffering/text",
                  "Queued %d+%d=%d string bytes of 0x%lx for output (#%lx)",
                  http_len,content_len,bundle_len,(unsigned long)outbuf,
                  (unsigned long)ucl);
@@ -1467,7 +1467,7 @@ static int webservefn(u8_client ucl)
         memcpy(outbuf+http_len,KNO_PACKET_DATA(content),content_len);
         if (((server->flags)&(U8_SERVER_LOG_TRANSACT))||
             ((client->flags)&(U8_CLIENT_LOG_TRANSACT)))
-          u8_log(LOG_WARN,"KNOlet/buffering/packet",
+          u8_log(LOG_WARN,"Servlet/buffering/packet",
                  "Queued %d+%d=%d packet bytes of 0x%lx for output (#%lx)",
                  http_len,content_len,bundle_len,(unsigned long)outbuf,
                  (unsigned long)ucl);
@@ -1487,12 +1487,12 @@ static int webservefn(u8_client ucl)
     /* If we're not still in the transaction, call u8_client_done() */
     /* if (!(return_code)) {u8_client_done(ucl);} */
     if ((forcelog)||(traceweb>2))
-      u8_log(LOG_NOTICE,"KNOlet/HTTPHEAD",
+      u8_log(LOG_NOTICE,"Servlet/HTTPHEAD",
              "(#%lx) HTTPHEAD=%s",(unsigned long)ucl,httphead.u8_outbuf);
     u8_free(httphead.u8_outbuf); u8_free(htmlhead.u8_outbuf);
     kno_decref(content); kno_decref(traceval); kno_decref(retfile);
     if (retval<0)
-      u8_log(LOG_ERROR,"KNOlet/BADRET",
+      u8_log(LOG_ERROR,"Servlet/BADRET",
              "Bad retval from writing data (#%lx)",(unsigned long)ucl);
     if ((reqlog) || (urllog) || (trace_cgidata) || (tracep))
       dolog(cgidata,result,client->out.u8_outbuf,
@@ -1521,14 +1521,14 @@ static int webservefn(u8_client ucl)
     lispval sendfile = kno_get(cgidata,sendfile_slotid,VOID);
     lispval xredirect = kno_get(cgidata,xredirect_slotid,VOID);
     if (!(KNO_VOIDP(redirect)))
-      u8_log(LOG_NOTICE,"KNOlet/REQUEST/REDIRECT","to %q",redirect);
+      u8_log(LOG_NOTICE,"Servlet/REQUEST/REDIRECT","to %q",redirect);
     else if (!(KNO_VOIDP(xredirect)))
-      u8_log(LOG_NOTICE,"KNOlet/REQUEST/XREDIRECT","to %q",xredirect);
+      u8_log(LOG_NOTICE,"Servlet/REQUEST/XREDIRECT","to %q",xredirect);
     else if (!(KNO_VOIDP(sendfile)))
-      u8_log(LOG_NOTICE,"KNOlet/REQUEST/SENDFILE","to %q",sendfile);
+      u8_log(LOG_NOTICE,"Servlet/REQUEST/SENDFILE","to %q",sendfile);
     else {}
     if ((KNO_VOIDP(query))||((STRINGP(query))&&(STRLEN(query)==0)))
-      u8_log(LOG_NOTICE,"KNOlet/REQUEST/DONE",
+      u8_log(LOG_NOTICE,"Servlet/REQUEST/DONE",
              "%q (%d) %s %d=%d+%d+%d bytes (#%lx)\n\t< %q %s\n\t< generated "
              "by %q\n\t< taking %f = setup:%f+req:%f+run:%f+write:%f secs, "
              "stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
@@ -1608,7 +1608,7 @@ static int webservefn(u8_client ucl)
 static int close_webclient(u8_client ucl)
 {
   kno_webconn client = (kno_webconn)ucl;
-  u8_log(LOG_INFO,"KNOlet/close","Closing web client %s (#%lx#%d.%d)",
+  u8_log(LOG_INFO,"Servlet/close","Closing web client %s (#%lx#%d.%d)",
          ucl->idstring,ucl,ucl->clientid,ucl->socket);
   kno_decref(client->cgidata); client->cgidata = VOID;
   /* kno_close_stream(&(client->in),KNO_STREAM_NOCLOSE); */
@@ -1621,7 +1621,7 @@ static int reuse_webclient(u8_client ucl)
 {
   kno_webconn client = (kno_webconn)ucl;
   lispval cgidata = client->cgidata;
-  u8_log(LOG_INFO,"KNOlet/reuse","Reusing web client %s (#%lx)",
+  u8_log(LOG_INFO,"Servlet/reuse","Reusing web client %s (#%lx)",
          ucl->idstring,ucl);
   kno_decref(cgidata); client->cgidata = VOID;
   return 1;
@@ -1647,7 +1647,7 @@ static void shutdown_servlet(u8_condition reason)
     if (!(spec)) {}
     else if (strchr(spec,'/')) {
       if (remove(spec)<0)
-        u8_log(LOG_WARN,"KNOlet/shutdown",
+        u8_log(LOG_WARN,"Servlet/shutdown",
                "Couldn't remove portfile %s",spec);
       u8_free(spec); ports[i]=NULL;}
     else {u8_free(spec); ports[i]=NULL;}
@@ -1659,7 +1659,7 @@ static void shutdown_servlet(u8_condition reason)
     u8_string filename = pidfile; pidfile = NULL;
     int retval = (u8_file_existsp(filename))?(u8_removefile(filename)):(0);
     if (retval<0)
-      u8_log(LOG_WARN,"KNOlet/shutdown",
+      u8_log(LOG_WARN,"Servlet/shutdown",
              "Couldn't remove pid file %s",pidfile);
     u8_free(filename);}
 }
@@ -1791,21 +1791,21 @@ static int start_servers()
     int add_port = 0;
     if ((strchr(port,'/')) && (u8_file_existsp(port))) {
       if (! (socketp(port)) )
-        u8_log(LOG_CRIT,"KNOlet/start",
+        u8_log(LOG_CRIT,"Servlet/start",
                "File %s exists and is not a socket",port);
       else if (stealsockets) {
         int retval = u8_removefile(port);
         if (retval<0)
-          u8_log(LOG_CRIT,"KNOlet/start",
+          u8_log(LOG_CRIT,"Servlet/start",
                  "Couldn't remove existing socket file %s",port);
         else add_port=1;}
       else {
-        u8_log(LOG_WARN,"KNOlet/start",
+        u8_log(LOG_WARN,"Servlet/start",
                "Socket file %s already exists",port);}}
     else add_port=1;
     int retval = (add_port) ? (add_server(port)) : (0);
     if (retval<0) {
-      u8_log(LOG_CRIT,"KNOlet/START","Couldn't start server %s",ports[i]);
+      u8_log(LOG_CRIT,"Servlet/START","Couldn't start server %s",ports[i]);
       u8_clear_errors(1);}
     else added++;
     i++;}
@@ -1925,10 +1925,10 @@ static lispval notfoundpage()
 KNO_EXPORT int kno_init_drivers(void);
 static int run_servlet(u8_string socket_spec);
 
-static void exit_knolet()
+static void exit_servlet()
 {
   if (!(kno_be_vewy_quiet))
-    kno_log_status("Exit(knolet)");
+    kno_log_status("Exit(servlet)");
 }
 
 int main(int argc,char **argv)
@@ -1970,7 +1970,7 @@ int main(int argc,char **argv)
   /* Find the socket spec (the non-config arg) */
   i = 1; while (i<argc) {
     if (isconfig(argv[i])) {
-      u8_log(LOG_NOTICE,"KNOletConfig","    %s",argv[i]);
+      u8_log(LOG_NOTICE,"ServletConfig","    %s",argv[i]);
       i++;}
     else if (socket_spec) i++;
     else {
@@ -2065,12 +2065,12 @@ int main(int argc,char **argv)
     u8_free(sockets_dir);}
 
   register_servlet_configs();
-  atexit(exit_knolet);
+  atexit(exit_servlet);
 
   /* Process the command line */
   kno_handle_argv(argc,argv,arg_mask,NULL);
 
-  KNO_NEW_STACK(((struct KNO_STACK *)NULL),"knolet",NULL,VOID);
+  KNO_NEW_STACK(((struct KNO_STACK *)NULL),"servlet",NULL,VOID);
   _stack->stack_label=u8_strdup(u8_appid());
   U8_SETBITS(_stack->stack_flags,KNO_STACK_FREE_LABEL);
 
@@ -2082,10 +2082,10 @@ int main(int argc,char **argv)
         unsigned char *arg = argv[i++];
         if (arg == socket_spec) u8_puts(&out," @");
         else {u8_putc(&out,' '); u8_puts(&out,arg);}}
-      u8_log(LOG_WARN,Startup,"Starting beingmeta knolet %s with\n  %s",
+      u8_log(LOG_WARN,Startup,"Starting beingmeta servlet %s with\n  %s",
              socket_spec,out.u8_outbuf);
       u8_close((U8_STREAM *)&out);}
-    else u8_log(LOG_WARN,Startup,"Starting beingmeta knolet %s",socket_spec);
+    else u8_log(LOG_WARN,Startup,"Starting beingmeta servlet %s",socket_spec);
     u8_log(LOG_WARN,Startup,"Copyright (C) beingmeta 2004-2019, all rights reserved");}
 
   if (socket_spec) {
@@ -2151,13 +2151,13 @@ int main(int argc,char **argv)
      of other problems too! */
   u8_init_mutex(&log_lock);
 
-  u8_log(LOG_NOTICE,Startup,"KNOlet %s",socket_spec);
+  u8_log(LOG_NOTICE,Startup,"Servlet %s",socket_spec);
 
   if (!(KNO_VOIDP(default_notfoundpage)))
     u8_log(LOG_NOTICE,"SetPageNotFound","Handler=%q",default_notfoundpage);
   if (!socket_spec) {
-    u8_log(LOG_CRIT,"USAGE","knolet <socket> [config]*");
-    fprintf(stderr,"Usage: knolet <socket> [config]*\n");
+    u8_log(LOG_CRIT,"USAGE","knosrv <socket> [config]*");
+    fprintf(stderr,"Usage: knosrv <socket> [config]*\n");
     exit(1);}
 
   kno_setapp(socket_spec,NULL);
@@ -2201,7 +2201,7 @@ static int run_servlet(u8_string socket_spec)
   if ((strchr(socket_spec,'/'))&&
       (u8_file_existsp(socket_spec))&&
       (!((stealsockets)||(getenv("KNO_STEALSOCKETS"))))) {
-    u8_log(LOG_CRIT,"KNOlet/launch",
+    u8_log(LOG_CRIT,"Servlet/launch",
            "Socket file %s already exists!",socket_spec);
     exit(1);}
 
@@ -2241,10 +2241,10 @@ static int run_servlet(u8_string socket_spec)
     exit(1);}
 
   u8_log(LOG_INFO,ServletStartup,
-         "Kno (%s) KNOlet running, %d/%d pools/indexes",
+         "KNO (%s) Servlet running, %d/%d pools/indexes",
          KNO_REVISION,kno_n_pools,
          kno_n_primary_indexes+kno_n_secondary_indexes);
-  u8_message("beingmeta Kno, (C) beingmeta 2004-2019, all rights reserved");
+  u8_message("beingmeta KNO, (C) beingmeta 2004-2019, all rights reserved");
   if (kno_servlet.n_servers>0) {
     u8_log(LOG_WARN,ServletStartup,"Listening on %d addresses",
            kno_servlet.n_servers);
@@ -2255,7 +2255,7 @@ static int run_servlet(u8_string socket_spec)
     exit(-1);
     return -1;}
 
-  u8_message("KNOlet, normal exit of u8_server_loop()");
+  u8_message("Servlet, normal exit of u8_server_loop()");
 
   shutdown_servlet(shutdown_reason);
 

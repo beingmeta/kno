@@ -57,7 +57,7 @@ static History *edithistory;
 
 static lispval command_tag;
 
-#define EVAL_PROMPT "#|fdconsole>|# "
+#define EVAL_PROMPT "#|kno>|# "
 static u8_string eval_prompt = EVAL_PROMPT;
 static int set_prompt(lispval ignored,lispval v,void *vptr)
 {
@@ -313,7 +313,7 @@ otherwise read string until space,
 
   Using temp file state.
   Have ==foo store the last value into the file FOO.dtype
-   in a temporary directory (FDCONSOLETMP)
+   in a temporary directory (KNOSHTMP)
   Have #=foo fetch that value if it exists.
 
 */
@@ -502,14 +502,14 @@ static lispval console_read(u8_input in,kno_lexenv env)
 
 
 
-static void exit_fdconsole()
+static void exit_knosh()
 {
   if (!(quiet_console)) {
     if (run_start<0)
       u8_message("<%ld> Exiting Kno (%s) console before we even started!",
                  (long)getpid(),KNO_REVISION);
     else if (!(kno_be_vewy_quiet))
-      kno_log_status("Exit(fdconsole)");
+      kno_log_status("Exit(knosh)");
     else {}}
   close_consoles();
 #if USING_EDITLINE
@@ -811,7 +811,7 @@ int main(int argc,char **argv)
     ("SHOWBACKTRACE",_("Whether to always output backtraces to stderr"),
      kno_boolconfig_get,kno_boolconfig_set,&show_backtrace);
   kno_register_config
-    ("DOTLOAD",_("Whether load .fdconsole or other dot files"),
+    ("DOTLOAD",_("Whether load .knosh or other dot files"),
      kno_boolconfig_get,kno_boolconfig_set,&dotload);
   kno_register_config
     ("BUGLOG",_("Where to dump console errors"),
@@ -824,12 +824,12 @@ int main(int argc,char **argv)
   inconsole = in;
   outconsole = out;
   errconsole = err;
-  atexit(exit_fdconsole);
+  atexit(exit_knosh);
 
   kno_autoload_config("LOADMOD","LOADFILE","INITS");
 
-  if (u8_has_suffix(argv[0],"/fdconsole",0))
-    u8_default_appid("fdconsole");
+  if (u8_has_suffix(argv[0],"/knosh",0))
+    u8_default_appid("knosh");
   else if (u8_has_suffix(argv[0],"/fdsh",0))
     u8_default_appid("fdsh");
   else if (u8_has_suffix(argv[0],"/fdshell",0))
@@ -853,7 +853,7 @@ int main(int argc,char **argv)
 
   kno_handle_argv(argc,argv,arg_mask,NULL);
 
-  KNO_NEW_STACK(((struct KNO_STACK *)NULL),"fdconsole",NULL,VOID);
+  KNO_NEW_STACK(((struct KNO_STACK *)NULL),"knosh",NULL,VOID);
   _stack->stack_label=u8_strdup(u8_appid());
   U8_SETBITS(_stack->stack_flags,KNO_STACK_FREE_LABEL);
 
@@ -891,7 +891,7 @@ int main(int argc,char **argv)
   else {}
 
   /* This is argv[0], the name of the executable by which we
-     entered fdconsole. */
+     entered knosh. */
   {
     lispval interpval = kno_lispstring(u8_fromlibc(argv[0]));
     kno_set_config("INTERPRETER",interpval);
@@ -922,16 +922,16 @@ int main(int argc,char **argv)
                  u8_appid(),show_startup_time,units,kno_n_pools,
                  kno_n_primary_indexes+kno_n_secondary_indexes);}
   if (dotload) {
-    u8_string home_config = u8_realpath("~/.fdconfig",NULL);
-    u8_string cwd_config = u8_realpath(".fdconfig",NULL);
+    u8_string home_config = u8_realpath("~/.knoconfig",NULL);
+    u8_string cwd_config = u8_realpath(".knoconfig",NULL);
     int not_in_kansas = strcmp(home_config,cwd_config);
-    dotloader("~/.fdconfig",NULL);
-    if (not_in_kansas) dotloader(".fdconfig",NULL);
-    dotloader("~/.fdconsole",env);
-    if (not_in_kansas) dotloader(".fdconsole",env);
+    dotloader("~/.knoconfig",NULL);
+    if (not_in_kansas) dotloader(".knoconfig",NULL);
+    dotloader("~/.knosh",env);
+    if (not_in_kansas) dotloader(".knosh",env);
     u8_free(home_config);
     u8_free(cwd_config);}
-  else u8_message("Warning: .fdconfig/.fdconsole files are suppressed");
+  else u8_message("Warning: .knoconfig/.knosh files are suppressed");
 
 #if USING_EDITLINE
   if (!(getenv("INSIDE_EMACS"))) {

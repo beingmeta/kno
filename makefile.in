@@ -1596,7 +1596,7 @@ install-safe-modules: $(DESTDIR)@builtin_safe_module_dir@ \
 
 install-support: $(DESTDIR)@share_dir@
 	cd $(BUILD)/etc; $(SYSINSTALL) @install_file_opts@ 	\
-		gdbinit makefile.include knosh.el 		\
+		gdbinit makefile.include knolang.el 		\
 		$(DESTDIR)@share_dir@
 	cd $(BUILD)/src/web; $(SYSINSTALL) @install_file_opts@ 	\
 		webinfo.fdcgi $(DESTDIR)@share_dir@

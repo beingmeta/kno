@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-04-28 16:27-0400\n"
+"POT-Creation-Date: 2019-05-16 21:56+0000\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -124,7 +124,7 @@ msgstr ""
 #: src/lisp/sequences.c:155 src/lisp/sequences.c:241 src/lisp/sequences.c:739
 #: src/eval/opcode_defs.c:98 src/eval/opcode_defs.c:105
 #: src/eval/opcode_defs.c:331 src/eval/opcode_defs.c:335
-#: src/prims/dbprims.c:2712 src/prims/dbprims.c:2714 src/prims/seqprims.c:324
+#: src/prims/dbprims.c:2715 src/prims/dbprims.c:2717 src/prims/seqprims.c:324
 #: src/prims/seqprims.c:332 src/prims/seqprims.c:338 src/prims/seqprims.c:354
 #: src/prims/seqprims.c:482 src/prims/seqprims.c:513 src/prims/seqprims.c:530
 #: src/prims/seqprims.c:547 src/prims/seqprims.c:564 src/prims/seqprims.c:585
@@ -382,15 +382,15 @@ msgid "oid"
 msgstr ""
 
 #: src/lisp/lisp.c:62 src/support/config.c:703 src/eval/eval.c:1341
-#: src/eval/opcode_defs.c:106 src/prims/dbprims.c:2651
+#: src/eval/opcode_defs.c:106 src/prims/dbprims.c:2654
 #: src/prims/portprims.c:537 src/eval/choiceops.c:1220
 #: src/eval/choiceops.c:1253 src/eval/choiceops.c:1272
 #: src/eval/choiceops.c:1303 src/eval/choiceops.c:1314
 #: src/eval/choiceops.c:1318 src/eval/choiceops.c:1319 src/prims/seqprims.c:334
 #: src/prims/seqprims.c:357 src/text/texttools.c:2145 src/text/match.c:3593
 #: src/text/match.c:3610 src/text/match.c:3639 src/text/match.c:3671
-#: src/exe/fdservlet.c:271 src/exe/fdservlet.c:286 src/exe/fdservlet.c:304
-#: src/exe/fdservlet.c:320
+#: src/exe/knosrv.c:271 src/exe/knosrv.c:286 src/exe/knosrv.c:304
+#: src/exe/knosrv.c:320
 msgid "fixnum"
 msgstr ""
 
@@ -431,14 +431,14 @@ msgstr ""
 msgid "cdrcode"
 msgstr ""
 
-#: src/lisp/lisp.c:73 src/storage/pools.c:2789 src/prims/dbprims.c:251
-#: src/prims/dbprims.c:1571
+#: src/lisp/lisp.c:73 src/storage/pools.c:2793 src/prims/dbprims.c:251
+#: src/prims/dbprims.c:1574
 msgid "pool"
 msgstr ""
 
 #: src/lisp/lisp.c:74 src/storage/indexes.c:1132 src/storage/indexes.c:2384
-#: src/storage/slotindexes.c:227 src/prims/dbprims.c:648
-#: src/prims/dbprims.c:1545 src/prims/dbprims.c:1557 src/prims/dbprims.c:1582
+#: src/storage/slotindexes.c:227 src/prims/dbprims.c:651
+#: src/prims/dbprims.c:1548 src/prims/dbprims.c:1560 src/prims/dbprims.c:1585
 msgid "index"
 msgstr ""
 
@@ -447,7 +447,7 @@ msgid "histref"
 msgstr ""
 
 #: src/lisp/lisp.c:77 src/support/config.c:632 src/support/config.c:651
-#: src/support/config.c:670 src/support/startup.c:247 src/support/startup.c:627
+#: src/support/config.c:670 src/support/startup.c:247 src/support/startup.c:630
 #: src/prims/dbprims.c:282 src/prims/dbprims.c:300 src/prims/dbprims.c:318
 #: src/prims/portprims.c:181 src/prims/portprims.c:459
 #: src/prims/portprims.c:543 src/prims/streamprims.c:376
@@ -457,10 +457,10 @@ msgstr ""
 #: src/prims/streamprims.c:612 src/prims/stringprims.c:466
 #: src/prims/stringprims.c:644 src/prims/stringprims.c:670
 #: src/prims/stringprims.c:1549 src/prims/fileprims.c:271
-#: src/prims/fileprims.c:560 src/web/cgiexec.c:1282 src/web/cgiexec.c:1309
+#: src/prims/fileprims.c:560 src/web/cgiexec.c:1286 src/web/cgiexec.c:1313
 #: src/web/htmlout.c:578 src/web/uriprims.c:393 src/web/mime.c:110
-#: src/web/curl.c:636 src/text/texttools.c:141 src/text/texttools.c:168
-#: src/text/texttools.c:540 src/exe/fdservlet.c:253 src/exe/webcommon.h:262
+#: src/web/curl.c:677 src/text/texttools.c:141 src/text/texttools.c:168
+#: src/text/texttools.c:540 src/exe/knosrv.c:253 src/exe/webcommon.h:262
 #: src/exe/webcommon.h:321
 msgid "string"
 msgstr ""
@@ -758,19 +758,19 @@ msgid "size_t sized value"
 msgstr ""
 
 #: src/support/config.c:1009
-msgid "Get the FramerD version string"
+msgid "Get the Kno version string"
 msgstr ""
 
 #: src/support/config.c:1012
-msgid "Get the FramerD revision identifier"
+msgid "Get the Kno revision identifier"
 msgstr ""
 
 #: src/support/config.c:1015
-msgid "Get the FramerD branch name"
+msgid "Get the Kno branch name"
 msgstr ""
 
 #: src/support/config.c:1018
-msgid "Get the FramerD major version number"
+msgid "Get the Kno major version number"
 msgstr ""
 
 #: src/support/config.c:1021
@@ -805,13 +805,13 @@ msgstr ""
 msgid "The default group for the ucrrent process"
 msgstr ""
 
-#: src/support/errobjs.c:239 src/support/errobjs.c:247 src/eval/modules.c:73
+#: src/support/errobjs.c:240 src/support/errobjs.c:248 src/eval/modules.c:73
 #: src/eval/modules.c:97
 #, c-format
 msgid "object is not a %m"
 msgstr ""
 
-#: src/support/errobjs.c:589
+#: src/support/errobjs.c:590
 msgid "Poorly Restored Error"
 msgstr ""
 
@@ -872,7 +872,7 @@ msgid "additional log functions"
 msgstr ""
 
 #: src/support/logging.c:353
-msgid "whether to use FramerD per-request logging"
+msgid "whether to use Kno per-request logging"
 msgstr ""
 
 #: src/support/logging.c:357
@@ -912,175 +912,175 @@ msgstr ""
 msgid "The argv argument cannot be NULL!"
 msgstr ""
 
-#: src/support/startup.c:456
+#: src/support/startup.c:459
 msgid "RLIMIT too high"
 msgstr ""
 
-#: src/support/startup.c:844
+#: src/support/startup.c:847
 #, c-format
 msgid ""
 "(%s:%lld) %-s@%-s:%-s (%s)\n"
 "%s %s%s"
 msgstr ""
 
-#: src/support/startup.c:1042
+#: src/support/startup.c:1045
 msgid "Avoid unneccessary verbiage"
 msgstr ""
 
-#: src/support/startup.c:1044
+#: src/support/startup.c:1047
 msgid "system process ID (read-only)"
 msgstr ""
 
-#: src/support/startup.c:1046
+#: src/support/startup.c:1049
 msgid "parent's process ID (read-only)"
 msgstr ""
 
-#: src/support/startup.c:1049
+#: src/support/startup.c:1052
 msgid "warn on bad UTF-8 sequences"
 msgstr ""
 
-#: src/support/startup.c:1051
+#: src/support/startup.c:1054
 msgid "fail (error) on bad UTF-8 sequences"
 msgstr ""
 
-#: src/support/startup.c:1053
+#: src/support/startup.c:1056
 msgid "random seed used for stochastic operations"
 msgstr ""
 
-#: src/support/startup.c:1056
+#: src/support/startup.c:1059
 msgid "check that strings are valid UTF-8 on creation"
 msgstr ""
 
-#: src/support/startup.c:1059
+#: src/support/startup.c:1062
 msgid "application ID used in messages and SESSIONID"
 msgstr ""
 
-#: src/support/startup.c:1063 src/support/startup.c:1066
-#: src/support/startup.c:1075 src/support/startup.c:1081
+#: src/support/startup.c:1066 src/support/startup.c:1069
+#: src/support/startup.c:1078 src/support/startup.c:1084
 msgid "the vector of args (before parsing) to the application (no configs)"
 msgstr ""
 
-#: src/support/startup.c:1069 src/support/startup.c:1072
+#: src/support/startup.c:1072 src/support/startup.c:1075
 msgid "the vector of parsed args to the application (no configs)"
 msgstr ""
 
-#: src/support/startup.c:1078
+#: src/support/startup.c:1081
 msgid "config arguments passed to the application (unparsed)"
 msgstr ""
 
-#: src/support/startup.c:1086
+#: src/support/startup.c:1089
 msgid "Whether to display command line args on entry and exit"
 msgstr ""
 
-#: src/support/startup.c:1091
+#: src/support/startup.c:1094
 msgid "unique session identifier"
 msgstr ""
 
-#: src/support/startup.c:1093 src/support/startup.c:1095
+#: src/support/startup.c:1096 src/support/startup.c:1098
 msgid "whether to recycle session state on exit"
 msgstr ""
 
-#: src/support/startup.c:1097
+#: src/support/startup.c:1100
 msgid "Set the user ID for this process"
 msgstr ""
 
-#: src/support/startup.c:1099
+#: src/support/startup.c:1102
 msgid "Set the group ID for this process"
 msgstr ""
 
-#: src/support/startup.c:1103
+#: src/support/startup.c:1106
 msgid "Path prefix for program state files"
 msgstr ""
 
-#: src/support/startup.c:1106 src/support/startup.c:1108
+#: src/support/startup.c:1109 src/support/startup.c:1111
 msgid "Redirect standard output to file"
 msgstr ""
 
-#: src/support/startup.c:1110
+#: src/support/startup.c:1113
 msgid "Redirect standard input to file"
 msgstr ""
 
-#: src/support/startup.c:1112
+#: src/support/startup.c:1115
 msgid "Write PID to file, delete on exit"
 msgstr ""
 
-#: src/support/startup.c:1117 src/support/startup.c:1152
+#: src/support/startup.c:1120 src/support/startup.c:1155
 msgid "Max CPU execution time limit"
 msgstr ""
 
-#: src/support/startup.c:1122 src/support/startup.c:1158
+#: src/support/startup.c:1125 src/support/startup.c:1161
 msgid "Max resident set (RSS) size"
 msgstr ""
 
-#: src/support/startup.c:1127 src/support/startup.c:1163
+#: src/support/startup.c:1130 src/support/startup.c:1166
 msgid "Max core dump size"
 msgstr ""
 
-#: src/support/startup.c:1132 src/support/startup.c:1168
+#: src/support/startup.c:1135 src/support/startup.c:1171
 msgid "Max number of subprocesses"
 msgstr ""
 
-#: src/support/startup.c:1137 src/support/startup.c:1173
+#: src/support/startup.c:1140 src/support/startup.c:1176
 msgid "Max number of open file descriptors"
 msgstr ""
 
-#: src/support/startup.c:1142 src/support/startup.c:1178
+#: src/support/startup.c:1145 src/support/startup.c:1181
 msgid "Max stack depth"
 msgstr ""
 
-#: src/support/startup.c:1186
-msgid "Root FramerD logging directories"
+#: src/support/startup.c:1189
+msgid "Root Kno logging directories"
 msgstr ""
 
-#: src/support/startup.c:1190
-msgid "Shared config/data directory for FramerD"
-msgstr ""
-
-#: src/support/startup.c:1194
-msgid "Data directory for FramerD"
+#: src/support/startup.c:1193
+msgid "Shared config/data directory for Kno"
 msgstr ""
 
 #: src/support/startup.c:1197
+msgid "Data directory for Kno"
+msgstr ""
+
+#: src/support/startup.c:1200
 msgid "Registered source files"
 msgstr ""
 
-#: src/support/startup.c:1202
+#: src/support/startup.c:1205
 msgid "Size at which u8_big_alloc starts using MMAP"
 msgstr ""
 
-#: src/support/startup.c:1206
+#: src/support/startup.c:1209
 msgid "Number of buckets at which hashtables use bigalloc"
 msgstr ""
 
-#: src/support/startup.c:1210
+#: src/support/startup.c:1213
 msgid "Size of binary buffers to use bigalloc"
 msgstr ""
 
-#: src/support/startup.c:1214
+#: src/support/startup.c:1217
 msgid "Procedures to call on exit"
 msgstr ""
 
-#: src/support/startup.c:1217
+#: src/support/startup.c:1220
 msgid "Whether this process is exiting"
 msgstr ""
 
-#: src/support/startup.c:1222
+#: src/support/startup.c:1225
 msgid "Set core size limit"
 msgstr ""
 
-#: src/support/startup.c:1225
+#: src/support/startup.c:1228
 msgid "Set cpu time limit (in seconds)"
 msgstr ""
 
-#: src/support/startup.c:1228
+#: src/support/startup.c:1231
 msgid "Set resident memory limit"
 msgstr ""
 
-#: src/support/startup.c:1231
+#: src/support/startup.c:1234
 msgid "Set total VMEM limit"
 msgstr ""
 
-#: src/support/startup.c:1234
+#: src/support/startup.c:1237
 msgid "Set total heap (DATA segment) limit"
 msgstr ""
 
@@ -1114,7 +1114,7 @@ msgid "profiling not built"
 msgstr ""
 
 #: src/apply/apply.c:60
-msgid "Stack checking is not available in this build of FramerD"
+msgid "Stack checking is not available in this build of Kno"
 msgstr ""
 
 #: src/apply/apply.c:62
@@ -1157,7 +1157,7 @@ msgstr ""
 msgid "Functions declared for profiling"
 msgstr ""
 
-#: src/apply/stacks.c:297
+#: src/apply/stacks.c:308
 msgid "Whether to include raw ops in stacks when source is available"
 msgstr ""
 
@@ -1229,12 +1229,12 @@ msgstr ""
 msgid "Error getting metadata"
 msgstr ""
 
-#: src/storage/storage.c:378 src/storage/pools.c:2671 src/prims/dbprims.c:1193
-#: src/prims/dbprims.c:1204 src/prims/dbprims.c:1212 src/prims/dbprims.c:1220
-#: src/prims/dbprims.c:1261 src/prims/dbprims.c:1274 src/prims/dbprims.c:1290
-#: src/prims/dbprims.c:1302 src/prims/dbprims.c:1313 src/prims/dbprims.c:1331
-#: src/prims/dbprims.c:1367 src/prims/dbprims.c:1381 src/prims/dbprims.c:2646
-#: src/prims/dbprims.c:2725
+#: src/storage/storage.c:378 src/storage/pools.c:2675 src/prims/dbprims.c:1196
+#: src/prims/dbprims.c:1207 src/prims/dbprims.c:1215 src/prims/dbprims.c:1223
+#: src/prims/dbprims.c:1264 src/prims/dbprims.c:1277 src/prims/dbprims.c:1293
+#: src/prims/dbprims.c:1305 src/prims/dbprims.c:1316 src/prims/dbprims.c:1334
+#: src/prims/dbprims.c:1370 src/prims/dbprims.c:1384 src/prims/dbprims.c:2649
+#: src/prims/dbprims.c:2728
 msgid "pool spec"
 msgstr ""
 
@@ -1645,28 +1645,28 @@ msgstr ""
 msgid "Swapping out oids in pool %s"
 msgstr ""
 
-#: src/storage/pools.c:1147
+#: src/storage/pools.c:1148
 #, c-format
 msgid "Couldn't rollback %d changes%s to %s"
 msgstr ""
 
-#: src/storage/pools.c:1606 include/framerd/pools.h:402
+#: src/storage/pools.c:1610 include/kno/pools.h:402
 msgid "Corrupted pool table"
 msgstr ""
 
-#: src/storage/pools.c:1738
+#: src/storage/pools.c:1742
 msgid "not a pool"
 msgstr ""
 
-#: src/storage/pools.c:2658
+#: src/storage/pools.c:2662
 msgid "Config mis-config"
 msgstr ""
 
-#: src/storage/pools.c:2794
+#: src/storage/pools.c:2798
 msgid "raw pool"
 msgstr ""
 
-#: src/storage/pools.c:2851
+#: src/storage/pools.c:2855
 msgid "Default location for new OID allocation"
 msgstr ""
 
@@ -1915,7 +1915,7 @@ msgstr ""
 
 #: src/eval/eval.c:1007 src/eval/opcode_defs.c:382 src/eval/opcode_defs.c:472
 #: src/eval/opcode_defs.c:497 src/eval/opcode_defs.c:605
-#: src/eval/opcode_defs.c:660
+#: src/eval/opcode_defs.c:662
 msgid "Invalid opcode"
 msgstr ""
 
@@ -1940,7 +1940,7 @@ msgid "number|string"
 msgstr ""
 
 #: src/eval/opcode_defs.c:462 src/eval/opcode_defs.c:466
-#: src/eval/opcode_defs.c:470 src/prims/dbprims.c:1825
+#: src/eval/opcode_defs.c:470 src/prims/dbprims.c:1828
 #: src/prims/tableprims.c:725 src/prims/tableprims.c:747
 #: src/prims/tableprims.c:776 src/prims/tableprims.c:846 src/web/htmlout.c:593
 #: src/web/uriprims.c:197 src/web/uriprims.c:199 src/web/uriprims.c:295
@@ -2151,7 +2151,7 @@ msgstr ""
 msgid "namefn"
 msgstr ""
 
-#: src/prims/dbprims.c:362 src/prims/dbprims.c:1863 src/prims/dbprims.c:1875
+#: src/prims/dbprims.c:362 src/prims/dbprims.c:1866 src/prims/dbprims.c:1878
 msgid "index spec"
 msgstr ""
 
@@ -2163,50 +2163,50 @@ msgstr ""
 msgid "BadIndexType"
 msgstr ""
 
-#: src/prims/dbprims.c:644
+#: src/prims/dbprims.c:647
 msgid "eternal (not-ephemeral) index"
 msgstr ""
 
-#: src/prims/dbprims.c:649
+#: src/prims/dbprims.c:652
 msgid "aggregate index"
 msgstr ""
 
-#: src/prims/dbprims.c:928 src/prims/dbprims.c:946
+#: src/prims/dbprims.c:931 src/prims/dbprims.c:949
 msgid "slotid"
 msgstr ""
 
-#: src/prims/dbprims.c:994 src/prims/dbprims.c:999 src/prims/dbprims.c:1018
-#: src/prims/dbprims.c:1040
+#: src/prims/dbprims.c:997 src/prims/dbprims.c:1002 src/prims/dbprims.c:1021
+#: src/prims/dbprims.c:1043
 msgid "pool, index, or OIDs"
 msgstr ""
 
-#: src/prims/dbprims.c:1065 src/prims/dbprims.c:1415 src/prims/dbprims.c:1595
-#: src/prims/dbprims.c:1610
+#: src/prims/dbprims.c:1068 src/prims/dbprims.c:1418 src/prims/dbprims.c:1598
+#: src/prims/dbprims.c:1613
 msgid "pool or index"
 msgstr ""
 
-#: src/prims/dbprims.c:1229 src/prims/dbprims.c:1233 src/prims/dbprims.c:1238
-#: src/prims/dbprims.c:1243
+#: src/prims/dbprims.c:1232 src/prims/dbprims.c:1236 src/prims/dbprims.c:1241
+#: src/prims/dbprims.c:1246
 msgid "pool offset"
 msgstr ""
 
-#: src/prims/dbprims.c:1794
+#: src/prims/dbprims.c:1797
 msgid "value test"
 msgstr ""
 
-#: src/prims/dbprims.c:2126
+#: src/prims/dbprims.c:2129
 msgid "test relation"
 msgstr ""
 
-#: src/prims/dbprims.c:2239
+#: src/prims/dbprims.c:2242
 msgid "test object"
 msgstr ""
 
-#: src/prims/dbprims.c:2705
+#: src/prims/dbprims.c:2708
 msgid "wrong number of args"
 msgstr ""
 
-#: src/prims/dbprims.c:2829 src/prims/dbprims.c:2847
+#: src/prims/dbprims.c:2832 src/prims/dbprims.c:2850
 msgid "offset base"
 msgstr ""
 
@@ -2637,27 +2637,27 @@ msgstr ""
 msgid "malformed cookie"
 msgstr ""
 
-#: src/web/cgiexec.c:1445
+#: src/web/cgiexec.c:1450
 msgid "Functions to execute between parsing and responding to a CGI request"
 msgstr ""
 
-#: src/web/cgiexec.c:1449
+#: src/web/cgiexec.c:1454
 msgid "Header for using the web server's X-SENDFILE functionality"
 msgstr ""
 
-#: src/web/cgiexec.c:1453
+#: src/web/cgiexec.c:1458
 msgid "Header for using the web server's X-REDIRECT functionality"
 msgstr ""
 
-#: src/web/cgiexec.c:1456
-msgid "Whether to log CGI bindings passed to FramerD"
+#: src/web/cgiexec.c:1461
+msgid "Whether to log CGI bindings passed to Kno"
 msgstr ""
 
-#: src/web/cgiexec.c:1460
+#: src/web/cgiexec.c:1465
 msgid "Whether to parse REST query args when there is POST data"
 msgstr ""
 
-#: src/web/cgiexec.c:1463
+#: src/web/cgiexec.c:1468
 msgid "Fields to avoid binding directly for CGI requests"
 msgstr ""
 
@@ -2697,19 +2697,19 @@ msgstr ""
 msgid "Internal libcurl error"
 msgstr ""
 
-#: src/web/curl.c:637
+#: src/web/curl.c:678
 msgid "Unknown CURL option"
 msgstr ""
 
-#: src/web/curl.c:1734
+#: src/web/curl.c:1776
 msgid "Loglevel for debugging CURL calls"
 msgstr ""
 
-#: src/web/curl.c:1738
+#: src/web/curl.c:1780
 msgid "What CURL should use as the default user agent string"
 msgstr ""
 
-#: src/web/curl.c:1742
+#: src/web/curl.c:1784
 msgid "Maximum number of redirects to allow"
 msgstr ""
 
@@ -2773,362 +2773,362 @@ msgstr ""
 msgid "positive fixnum"
 msgstr ""
 
-#: src/exe/fdconsole.c:75
+#: src/exe/knosh.c:75
 msgid "prompt is not a string"
 msgstr ""
 
-#: src/exe/fdconsole.c:86
+#: src/exe/knosh.c:86
 #, c-format
 msgid ";; Done in %f seconds, with %d/%d object/index loads\n"
 msgstr ""
 
-#: src/exe/fdconsole.c:88
+#: src/exe/knosh.c:88
 #, c-format
 msgid ";; %s computed in %f seconds, %d/%d object/index loads\n"
 msgstr ""
 
-#: src/exe/fdconsole.c:760
+#: src/exe/knosh.c:760
 msgid "Threshold for displaying execution time"
 msgstr ""
 
-#: src/exe/fdconsole.c:762
+#: src/exe/knosh.c:762
 msgid "Eval prompt (within #||#s)"
 msgstr ""
 
-#: src/exe/fdconsole.c:766
+#: src/exe/knosh.c:766
 msgid "Max number of string characters to display in debug message"
 msgstr ""
 
-#: src/exe/fdconsole.c:770
+#: src/exe/knosh.c:770
 msgid "Max number of sequence/choice elements to display in debug message"
 msgstr ""
 
-#: src/exe/fdconsole.c:773
+#: src/exe/knosh.c:773
 msgid "Whether to minimize console output"
 msgstr ""
 
-#: src/exe/fdconsole.c:776
+#: src/exe/knosh.c:776
 msgid "Report startup times when longer than N seconds"
 msgstr ""
 
-#: src/exe/fdconsole.c:780
+#: src/exe/knosh.c:780
 msgid "Number of characters available for pretty-printing console output"
 msgstr ""
 
-#: src/exe/fdconsole.c:784
+#: src/exe/knosh.c:784
 msgid "Number of elements to initially show in displaying results"
 msgstr ""
 
-#: src/exe/fdconsole.c:787
+#: src/exe/knosh.c:787
 msgid "Where to create directories for saving backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:790
+#: src/exe/knosh.c:790
 msgid "The base URL for referencing HTML backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:793
+#: src/exe/knosh.c:793
 msgid "The command to use to open saved backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:796
+#: src/exe/knosh.c:796
 msgid "Whether to dump HTML versions of backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:799
+#: src/exe/knosh.c:799
 msgid "Whether to dump LISP object versions of backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:802
+#: src/exe/knosh.c:802
 msgid "Whether to dump binary DTYPE versions of backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:805
+#: src/exe/knosh.c:805
 msgid "Whether to plaintext versions of backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:808
+#: src/exe/knosh.c:808
 msgid "Whether to always save backtraces in the history"
 msgstr ""
 
-#: src/exe/fdconsole.c:811
+#: src/exe/knosh.c:811
 msgid "Whether to always output backtraces to stderr"
 msgstr ""
 
-#: src/exe/fdconsole.c:814
-msgid "Whether load .fdconsole or other dot files"
+#: src/exe/knosh.c:814
+msgid "Whether load .knosh or other dot files"
 msgstr ""
 
-#: src/exe/fdconsole.c:817
+#: src/exe/knosh.c:817
 msgid "Where to dump console errors"
 msgstr ""
 
-#: src/exe/fdconsole.c:863 src/exe/fdexec.c:242 src/exe/fdexec.c:247
+#: src/exe/knosh.c:863 src/exe/knox.c:242 src/exe/knox.c:247
 msgid "File to wait to exist before starting"
 msgstr ""
 
-#: src/exe/fdconsole.c:949
+#: src/exe/knosh.c:949
 msgid "Whether to use EDITLINE for the console"
 msgstr ""
 
-#: src/exe/fdconsole.c:979
+#: src/exe/knosh.c:979
 msgid ";; Bound %q\n"
 msgstr ""
 
-#: src/exe/fdconsole.c:980
+#: src/exe/knosh.c:980
 msgid ";; Bad command result %q\n"
 msgstr ""
 
-#: src/exe/fdexec.c:58
+#: src/exe/knox.c:58
 msgid "FILEWAIT"
 msgstr ""
 
-#: src/exe/fdexec.c:84
+#: src/exe/knox.c:84
 msgid "Too many configs to CHAIN"
 msgstr ""
 
-#: src/exe/fdexec.c:232
+#: src/exe/knox.c:232
 msgid "Max number of chars in strings output in error reports"
 msgstr ""
 
-#: src/exe/fdexec.c:237
+#: src/exe/knox.c:237
 msgid "Max number of sequence/choice elements to display in error reports"
 msgstr ""
 
-#: src/exe/fdexec.c:252
+#: src/exe/knox.c:252
 msgid "Don't read source from STDIN when needed"
 msgstr ""
 
-#: src/exe/fdexec.c:257
+#: src/exe/knox.c:257
 msgid "The name of the (main) routine for this file"
 msgstr ""
 
-#: src/exe/fdexec.c:262
+#: src/exe/knox.c:262
 msgid "The name of the root file being executed for this application"
 msgstr ""
 
-#: src/exe/fdbatch.c:171 src/exe/fdbatch.c:175
+#: src/exe/knotask.c:171 src/exe/knotask.c:175
 msgid "Whether to extend existing log files or truncate them"
 msgstr ""
 
-#: src/exe/fdservlet.c:67
-msgid "FDServlet/STARTUP"
+#: src/exe/knosrv.c:67
+msgid "Servlet/STARTUP"
 msgstr ""
 
-#: src/exe/fdservlet.c:68
-msgid "FDServlet/ABORT"
+#: src/exe/knosrv.c:68
+msgid "Servlet/ABORT"
 msgstr ""
 
-#: src/exe/fdservlet.c:69
+#: src/exe/knosrv.c:69
 msgid "No servers configured"
 msgstr ""
 
-#: src/exe/fdservlet.c:1823
+#: src/exe/knosrv.c:1823
 msgid "Trace web transactions over N seconds"
 msgstr ""
 
-#: src/exe/fdservlet.c:1826 src/exe/fdcgiexec.c:689 src/exe/fdserver.c:1185
+#: src/exe/knosrv.c:1826 src/exe/knocgi.c:689 src/exe/knod.c:1185
 msgid "Number of pending connection requests allowed"
 msgstr ""
 
-#: src/exe/fdservlet.c:1828 src/exe/fdserver.c:1188
+#: src/exe/knosrv.c:1828 src/exe/knod.c:1188
 msgid "Max number of requests to keep queued"
 msgstr ""
 
-#: src/exe/fdservlet.c:1831
+#: src/exe/knosrv.c:1831
 msgid "Max number of concurrent connections to allow (NYI)"
 msgstr ""
 
-#: src/exe/fdservlet.c:1834 src/exe/fdserver.c:1192
+#: src/exe/knosrv.c:1834 src/exe/knod.c:1192
 msgid "Number of clients to prepare for/grow by"
 msgstr ""
 
-#: src/exe/fdservlet.c:1837 src/exe/fdservlet.c:1840 src/exe/fdcgiexec.c:691
-#: src/exe/fdserver.c:1195
+#: src/exe/knosrv.c:1837 src/exe/knosrv.c:1840 src/exe/knocgi.c:691
+#: src/exe/knod.c:1195
 msgid "Number of threads in the thread pool"
 msgstr ""
 
-#: src/exe/fdservlet.c:1843
+#: src/exe/knosrv.c:1843
 msgid "File for recording status reports"
 msgstr ""
 
-#: src/exe/fdservlet.c:1846
+#: src/exe/knosrv.c:1846
 msgid "Milliseconds (roughly) between updates to .status"
 msgstr ""
 
-#: src/exe/fdservlet.c:1849
+#: src/exe/knosrv.c:1849
 msgid "Milliseconds (roughly) between logging status information"
 msgstr ""
 
-#: src/exe/fdservlet.c:1852 src/exe/fdserver.c:1261
+#: src/exe/knosrv.c:1852 src/exe/knod.c:1261
 msgid "How long (μs) to wait for tasks during shutdown"
 msgstr ""
 
-#: src/exe/fdservlet.c:1856 src/exe/fdserver.c:1169
+#: src/exe/knosrv.c:1856 src/exe/knod.c:1169
 msgid "Remove existing socket files with extreme prejudice"
 msgstr ""
 
-#: src/exe/fdservlet.c:1860
+#: src/exe/knosrv.c:1860
 msgid "Whether to check for existing PID files"
 msgstr ""
 
-#: src/exe/fdservlet.c:1864
+#: src/exe/knosrv.c:1864
 msgid "Ports for listening for connections"
 msgstr ""
 
-#: src/exe/fdservlet.c:1866 src/exe/fdserver.c:1257
+#: src/exe/knosrv.c:1866 src/exe/knod.c:1257
 msgid "Whether to run in asynchronous mode"
 msgstr ""
 
-#: src/exe/fdservlet.c:1870
+#: src/exe/knosrv.c:1870
 msgid "Whether to have libu8 log each monitored address"
 msgstr ""
 
-#: src/exe/fdservlet.c:1874
+#: src/exe/knosrv.c:1874
 msgid "Timeout for the poll loop (lower bound of status updates)"
 msgstr ""
 
-#: src/exe/fdservlet.c:1878 src/exe/fdserver.c:1222
+#: src/exe/knosrv.c:1878 src/exe/knod.c:1222
 msgid "Whether to have libu8 log each connection"
 msgstr ""
 
-#: src/exe/fdservlet.c:1882 src/exe/fdserver.c:1227
+#: src/exe/knosrv.c:1882 src/exe/knod.c:1227
 msgid "Whether to have libu8 log each transaction"
 msgstr ""
 
-#: src/exe/fdservlet.c:1886
+#: src/exe/knosrv.c:1886
 msgid "Whether to have libu8 log queue activity"
 msgstr ""
 
-#: src/exe/fdservlet.c:1892
+#: src/exe/knosrv.c:1892
 msgid "Whether to have libu8 log data transmission/receiption"
 msgstr ""
 
-#: src/exe/fdservlet.c:1899 src/exe/fdserver.c:1239
+#: src/exe/knosrv.c:1899 src/exe/knod.c:1239
 msgid "Whether to support thread-asynchronous transactions"
 msgstr ""
 
-#: src/exe/fdcgiexec.c:52
-msgid "FDCGIEXEC/Startup"
+#: src/exe/knocgi.c:52
+msgid "KNOCGI/Startup"
 msgstr ""
 
-#: src/exe/fdcgiexec.c:693
+#: src/exe/knocgi.c:693
 msgid "The socket file used by this server for use with external versions"
 msgstr ""
 
-#: src/exe/fdserver.c:80
+#: src/exe/knod.c:80
 msgid "Bad port spec"
 msgstr ""
 
-#: src/exe/fdserver.c:81
+#: src/exe/knod.c:81
 msgid "Bad client request"
 msgstr ""
 
-#: src/exe/fdserver.c:82
+#: src/exe/knod.c:82
 msgid "NoServers"
 msgstr ""
 
-#: src/exe/fdserver.c:83
+#: src/exe/knod.c:83
 msgid "Startup"
 msgstr ""
 
-#: src/exe/fdserver.c:84
-msgid "FDServer/ABORT"
+#: src/exe/knod.c:84
+msgid "KNODaemon/ABORT"
 msgstr ""
 
-#: src/exe/fdserver.c:85
-msgid "FDServer/CONFIG"
+#: src/exe/knod.c:85
+msgid "KNODaemon/CONFIG"
 msgstr ""
 
-#: src/exe/fdserver.c:86
-msgid "FDServer/STARTUP"
+#: src/exe/knod.c:86
+msgid "KNODaemon/STARTUP"
 msgstr ""
 
-#: src/exe/fdserver.c:87
-msgid "FDServer/SHUTDOWN"
+#: src/exe/knod.c:87
+msgid "KNODaemon/SHUTDOWN"
 msgstr ""
 
-#: src/exe/fdserver.c:91
+#: src/exe/knod.c:91
 msgid "Incoming"
 msgstr ""
 
-#: src/exe/fdserver.c:91
+#: src/exe/knod.c:91
 msgid "Outgoing"
 msgstr ""
 
-#: src/exe/fdserver.c:221
+#: src/exe/knod.c:221
 msgid "Log file error"
 msgstr ""
 
-#: src/exe/fdserver.c:1172
-msgid "Loglevel for fdserver itself"
+#: src/exe/knod.c:1172
+msgid "Loglevel for knodaemon itself"
 msgstr ""
 
-#: src/exe/fdserver.c:1175
+#: src/exe/knod.c:1175
 msgid "Whether to run in the foreground"
 msgstr ""
 
-#: src/exe/fdserver.c:1178
+#: src/exe/knod.c:1178
 msgid "Whether to enable auto-restart"
 msgstr ""
 
-#: src/exe/fdserver.c:1181
+#: src/exe/knod.c:1181
 msgid "Whether to wait for the servlet PID file"
 msgstr ""
 
-#: src/exe/fdserver.c:1198
+#: src/exe/knod.c:1198
 msgid "modules to provide in the server environment"
 msgstr ""
 
-#: src/exe/fdserver.c:1201
+#: src/exe/knod.c:1201
 msgid "whether to provide full scheme interpreter"
 msgstr ""
 
-#: src/exe/fdserver.c:1204
+#: src/exe/knod.c:1204
 msgid "Whether to log each request and response"
 msgstr ""
 
-#: src/exe/fdserver.c:1207
+#: src/exe/knod.c:1207
 msgid "Whether to log each transaction"
 msgstr ""
 
-#: src/exe/fdserver.c:1211
+#: src/exe/knod.c:1211
 msgid "Whether to log errors returned by the server to clients"
 msgstr ""
 
-#: src/exe/fdserver.c:1215
+#: src/exe/knod.c:1215
 msgid "Whether to include a detailed backtrace when logging errors"
 msgstr ""
 
-#: src/exe/fdserver.c:1218
+#: src/exe/knod.c:1218
 msgid "Line width for logged backtraces"
 msgstr ""
 
-#: src/exe/fdserver.c:1233
+#: src/exe/knod.c:1233
 msgid "Whether to have libu8 log all data transfers"
 msgstr ""
 
-#: src/exe/fdserver.c:1245
+#: src/exe/knod.c:1245
 msgid "Max number of string characters to display in debug messages"
 msgstr ""
 
-#: src/exe/fdserver.c:1250
+#: src/exe/knod.c:1250
 msgid "Max number of object elements to display in debug messages"
 msgstr ""
 
-#: src/exe/fdserver.c:1254
+#: src/exe/knod.c:1254
 msgid "Where to write server pid/nid files"
 msgstr ""
 
-#: src/exe/fdserver.c:1265
+#: src/exe/knod.c:1265
 msgid "Whether to automatically reload changed files"
 msgstr ""
 
-#: src/exe/fdserver.c:1269
-msgid "Whether to disable exported FramerD DB API"
+#: src/exe/knod.c:1269
+msgid "Whether to disable exported Kno DB API"
 msgstr ""
 
-#: src/exe/fdserver.c:1411
+#: src/exe/knod.c:1411
 msgid "port or port@host to listen on"
 msgstr ""
 
@@ -3173,18 +3173,18 @@ msgid "BSON input error"
 msgstr ""
 
 #: src/cmodules/mongodb.c:42
-msgid "BSON/FramerD compound overflow"
+msgid "BSON/Kno compound overflow"
 msgstr ""
 
-#: src/cmodules/mongodb.c:122
+#: src/cmodules/mongodb.c:123
 msgid "MongoDB/getclient"
 msgstr ""
 
-#: src/cmodules/mongodb.c:126
+#: src/cmodules/mongodb.c:127
 msgid "MongoDB/gotclient"
 msgstr ""
 
-#: src/cmodules/mongodb.c:134
+#: src/cmodules/mongodb.c:135
 msgid "MongoDB/freeclient"
 msgstr ""
 
@@ -3196,7 +3196,7 @@ msgstr ""
 msgid "MongoDB collection"
 msgstr ""
 
-#: src/cmodules/mongodb.c:1813 src/cmodules/mongodb.c:1908
+#: src/cmodules/mongodb.c:1856 src/cmodules/mongodb.c:1957
 msgid "MongoDB"
 msgstr ""
 

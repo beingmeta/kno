@@ -301,7 +301,8 @@ static int config_atexit_set(lispval var,lispval val,void *data)
   fresh->exitfn_name = name;
   fresh->exitfn_handler = fn;
   kno_incref(val);
-  n_atexit_handlers++; atexit_handlers = fresh;
+  n_atexit_handlers++;
+  atexit_handlers = fresh;
   u8_unlock_mutex(&atexit_handlers_lock);
   return 1;
 }
@@ -350,6 +351,8 @@ KNO_EXPORT void kno_doexit(lispval arg)
 
   if ( (kno_logcmd) && (kno_argc > 1) )
     log_argv(kno_argc,kno_argv);
+
+  kno_log_status("EXIT");
 
   if (kno_argv) {
     int i = 0, n = kno_argc; while (i<n) {
