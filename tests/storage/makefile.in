@@ -59,15 +59,15 @@ all: $(TESTBIN) $(SHAREDBIN)
 	@$(CC) $(CFLAGS) -o $@ $<
 	@echo CC $@ $<
 
-$(TESTBIN): ../../lib/libfddrivers@suffix@.a 	\
-	../../lib/libfdstorage@suffix@.a 		\
-	../../lib/libfdcore@suffix@.a
+$(TESTBIN): ../../lib/libknodrivers@suffix@.a 	\
+	../../lib/libknostorage@suffix@.a 		\
+	../../lib/libknocore@suffix@.a
 
 # Note that we don't add @suffix@ to these executables because they're
 # never installed
-%: %.c ../../lib/libfddrivers@suffix@.a 	\
-	../../lib/libfdstorage@suffix@.a 		\
-	../../lib/libfdcore@suffix@.a
+%: %.c ../../lib/libknodrivers@suffix@.a 	\
+	../../lib/libknostorage@suffix@.a 		\
+	../../lib/libknocore@suffix@.a
 	@echo MKTEST_STATIC $@
 	@$(CC) $(CFLAGS) $(EXEFLAGS) @STATICLDFLAGS@ $(LDFLAGS) $(EXELIBS) -o $@ $^ \
 		$(LIBS) $(EXELIBS)
@@ -77,12 +77,12 @@ $(TESTBIN): ../../lib/libfddrivers@suffix@.a 	\
 	@echo MKTEST_SHARED $@
 	@$(CC) $(CFLAGS) $(EXEFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) $(EXELIBS) \
 		-lfdcore@suffix@ -lfdstorage@suffix@ -lfddrivers@suffix@ $(LIBS) $(EXELIBS)
-../../lib/libfdcore@suffix@.a:
-	cd ../..; make lib/libfdcore@suffix@.a
-../../lib/libfdstorage@suffix@.a:
-	cd ../..; make lib/libfdstorage@suffix@.a
-../../lib/libfddrivers@suffix@.a:
-	cd ../..; make lib/libfddrivers@suffix@.a
+../../lib/libknocore@suffix@.a:
+	cd ../..; make lib/libknocore@suffix@.a
+../../lib/libknostorage@suffix@.a:
+	cd ../..; make lib/libknostorage@suffix@.a
+../../lib/libknodrivers@suffix@.a:
+	cd ../..; make lib/libknodrivers@suffix@.a
 
 clean:
 	rm -f $(TESTBIN)

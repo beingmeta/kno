@@ -275,7 +275,7 @@ bigbricotests: ../data/brico.dump
 
 # Note that we don't add @suffix@ to these executables because they're
 # never installed
-$(TESTBIN): ../../src/storage/streams.o ../../lib/libfdcore@suffix@.a
+$(TESTBIN): ../../src/storage/streams.o ../../lib/libknocore@suffix@.a
 %: %.c
 	@echo MKTEST_STATIC $@
 	$(CC) $(CFLAGS) $(EXEFLAGS) @STATICLDFLAGS@ $(LDFLAGS) -o $@ $^ $(LIBS) $(EXELIBS)
@@ -287,10 +287,10 @@ $(TESTBIN): ../../src/storage/streams.o ../../lib/libfdcore@suffix@.a
 		../../src/storage/streams.o $(LIBS) -lfdcore@suffix@ \
 		$(LIBS) $(EXELIBS)
 
-../../lib/libfdcore@suffix@.a:
-	cd ../..; make lib/libfdcore.a
+../../lib/libknocore@suffix@.a:
+	cd ../..; make lib/libknocore.a
 ../../src/storage/streams.o:
-	cd ../..; make lib/libfdstorage.a
+	cd ../..; make lib/libknostorage.a
 
 testclean:
 	@rm -f *.data *.dump *.table *.sorted
