@@ -5,13 +5,13 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef KNO_FDWEB_H
-#define KNO_FDWEB_H 1
-#ifndef KNO_FDWEB_H_INFO
-#define KNO_FDWEB_H_INFO "include/kno/fdweb.h"
+#ifndef KNO_WEBTOOLS_H
+#define KNO_WEBTOOLS_H 1
+#ifndef KNO_WEBTOOLS_H_INFO
+#define KNO_WEBTOOLS_H_INFO "include/kno/webtools.h"
 #endif
 
-KNO_EXPORT void kno_init_fdweb(void) KNO_LIBINIT_FN;
+KNO_EXPORT void kno_init_webtools(void) KNO_LIBINIT_FN;
 
 /* XML input */
 
@@ -211,7 +211,7 @@ KNO_EXPORT void kno_init_json_c(void);
 #define DEFAULT_XMLPI \
   "<?xml version='1.0' charset='utf-8' ?>"
 
-#endif /* KNO_FDWEB_H */
+#endif /* KNO_WEBTOOLS_H */
 
 /* Emacs local variables
    ;;;  Local variables: ***

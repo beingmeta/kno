@@ -1,0 +1,2 @@
+mod src/apache2/mod_knoweb.so
+mod debian/knoweb.load

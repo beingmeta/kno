@@ -16,7 +16,7 @@
 #include "kno/tables.h"
 #include "kno/eval.h"
 #include "kno/ports.h"
-#include "kno/fdweb.h"
+#include "kno/webtools.h"
 
 #include <libu8/u8xfiles.h>
 #include <libu8/u8stringfns.h>
@@ -740,8 +740,8 @@ static lispval fdscripturlplus(int n,lispval *args)
 
 KNO_EXPORT void kno_init_urifns_c()
 {
-  lispval module = kno_new_module("FDWEB",(0));
-  lispval safe_module = kno_new_module("FDWEB",(1));
+  lispval module = kno_new_module("WEBTOOLS",(0));
+  lispval safe_module = kno_new_module("WEBTOOLS",(1));
 
   scheme_symbol = kno_intern("SCHEME");
   userinfo_symbol = kno_intern("USERINFO");

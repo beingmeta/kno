@@ -1,0 +1,3 @@
+etc/apache2/mods-available/knoweb.conf
+etc/apache2/mods-available/knoweb.load
+usr/lib/apache2/modules/mod_knoweb.so

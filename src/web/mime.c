@@ -16,7 +16,7 @@
 #include "kno/tables.h"
 #include "kno/eval.h"
 #include "kno/ports.h"
-#include "kno/fdweb.h"
+#include "kno/webtools.h"
 
 #include <libu8/u8xfiles.h>
 #include <libu8/u8convert.h>
@@ -288,7 +288,7 @@ static lispval parse_mime_data(lispval arg)
 
 void kno_init_mime_c()
 {
-  lispval module = kno_new_module("FDWEB",(KNO_MODULE_SAFE));
+  lispval module = kno_new_module("WEBTOOLS",(KNO_MODULE_SAFE));
   kno_idefn(module,kno_make_cprim1("PARSE-MIME",parse_mime_data,1));
 
   content_slotid = kno_intern("CONTENT");

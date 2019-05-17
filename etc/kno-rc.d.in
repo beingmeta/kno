@@ -16,7 +16,7 @@
 ### END INIT INFO
 
 export KNOD=@prefix@/bin/knod
-export KNOSRV=@prefix@/bin/knosrv
+export KNOWEB=@prefix@/bin/knoweb
 export FDAEMON_USER=@fdaemon@
 export FDAEMON_GROUP=@admin_group@
 export WEB_USER=@webuser@

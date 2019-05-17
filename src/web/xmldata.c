@@ -12,7 +12,7 @@
 #include "kno/tables.h"
 #include "kno/eval.h"
 #include "kno/ports.h"
-#include "kno/fdweb.h"
+#include "kno/webtools.h"
 
 #include <libu8/u8xfiles.h>
 #include <libu8/u8stringfns.h>
@@ -189,8 +189,8 @@ static lispval xmlcontent(lispval doc,lispval attrib_id)
 KNO_EXPORT
 void kno_init_xmldata_c()
 {
-  lispval safe_module = kno_new_module("FDWEB",(0));
-  lispval module = kno_new_module("FDWEB",(KNO_MODULE_SAFE));
+  lispval safe_module = kno_new_module("WEBTOOLS",(0));
+  lispval module = kno_new_module("WEBTOOLS",(KNO_MODULE_SAFE));
 
   kno_idefn(module,kno_make_cprim2("XMLATTRIB",xmlattrib,2));
   kno_idefn(module,kno_make_cprim2("XMLGET",xmlget,2));

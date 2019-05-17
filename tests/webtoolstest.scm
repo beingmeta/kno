@@ -1,6 +1,6 @@
 (load-component "common.scm")
 
-(use-module 'fdweb)
+(use-module 'webtools)
 
 (define test-input-1
   "<p a='b' c ='d' e= 'f' g = 'h' i=j k =l m= n o = p>some text</p>")

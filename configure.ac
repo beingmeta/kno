@@ -896,7 +896,7 @@ AC_DEFINE_UNQUOTED(KNO_BUGJAR_ROOT,"$bugjar")
 ### Users and Groups
 
 dnl Specifies the user which the Web server runs as
-dnl This is used to set up the directories used by knosrv
+dnl This is used to set up the directories used by knoweb
 AC_ARG_WITH(webuser,--with-webuser The user for the webserver,,with_webuser=$default_webuser)
 if test "$with_webuser" != "none"; then
    webuser=$with_webuser
@@ -907,7 +907,7 @@ else
 fi
 
 dnl Specifies the group which the Web server runs as
-dnl This is used to set up the directories used by knosrv
+dnl This is used to set up the directories used by knoweb
 AC_ARG_WITH(webgroup,--with-webgroup The group for the webserver,,with_webgroup=$default_webgroup)
 if test "$with_webgroup" != "none" && test "$chowning" = "yes"; then
    webgroup=$with_webgroup
@@ -982,7 +982,7 @@ if test ! -z "$APXS"; then
   else apache_modinfo=$apache_conf_dir;
   fi;
 else
-  echo "Warning: No apache development environment, can't build mod_knosrv"
+  echo "Warning: No apache development environment, can't build mod_knoweb"
 fi
 
 dnl Allow overrides of APXS apacheinfo and apachelib
@@ -1771,14 +1771,14 @@ else
   AC_DEFINE(KNO_FILECONFIG_ENABLED,0)
 fi
 
-dnl This integrates the fdweb module into executables by default; otherwise
+dnl This integrates the webtools module into executables by default; otherwise
 dnl  it is built and installed as a plugin library
 AC_ARG_ENABLE(htmldump,--en[dis]able-htmldump write HTML backtraces,,enable_htmldump="yes")
 if test $enable_htmldump = "yes"; then
-  scheme_builtins_init="$scheme_builtins_init; kno_init_fdweb()"
-  xdynamic_scheme_libs="$xdynamic_scheme_libs -lfdweb${suffix}"
-  xstatic_exe_libs="lib/libfdweb${suffix}.a $xstatic_exe_libs"
-  xstatic_scheme_libs=" ../../lib/libfdweb${suffix}.a $xstatic_scheme_libs"
+  scheme_builtins_init="$scheme_builtins_init; kno_init_webtools()"
+  xdynamic_scheme_libs="$xdynamic_scheme_libs -lknoweb${suffix}"
+  xstatic_exe_libs="lib/libknoweb${suffix}.a $xstatic_exe_libs"
+  xstatic_scheme_libs=" ../../lib/libknoweb${suffix}.a $xstatic_scheme_libs"
   AC_DEFINE(KNO_HTMLDUMP_ENABLED,1)
 fi
 
@@ -1815,7 +1815,7 @@ fi
 
 dnl Build with primitives accessing libcurl, if it is available
 AC_CHECK_LIB(curl,curl_easy_init,curl_default="yes")
-AC_ARG_WITH(curl,--with[out]-curl Use libcurl in fdweb,,with_curl=$curl_default)
+AC_ARG_WITH(curl,--with[out]-curl Use libcurl in webtools,,with_curl=$curl_default)
 if test $with_curl = "yes"; then
   AC_CHECK_LIB(curl,curl_easy_init)
   AC_CHECK_HEADERS(curl/curl.h)
@@ -1827,7 +1827,7 @@ else
   missing="curl ${missing}"
 fi
 
-## Providing DNS functions in fdweb
+## Providing DNS functions in webtools
 
 dnl Build with primitives accessing DNS resolution functions, if available
 AC_CHECK_HEADERS(resolv.h)
@@ -1850,7 +1850,7 @@ fi
 dnl Build with primitives accessing libexif, if it is available
 AC_CHECK_LIB(exif,exif_data_new_from_data,exif_default="yes")
 AC_CHECK_HEADER(libexif/exif-data.h,exif_default=$exif_default,exif_default="no")
-AC_ARG_WITH(exif,--with[out]-exif Use libexif in fdweb,,with_exif=$exif_default)
+AC_ARG_WITH(exif,--with[out]-exif Use libexif in webtools,,with_exif=$exif_default)
 if test "$with_exif" = "yes"; then
   AC_CHECK_HEADERS(libexif/exif-data.h)
   CMODULES="lib/kno/exif.$shared_suffix ${CMODULES}"
@@ -1957,19 +1957,22 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   tests/runtest tests/memtest
 	   tests/leaktest tests/knoxtest
 	   src/scripts/knopkg.scm
-	   etc/OSXStartupItem/KNO
 	   etc/knojob
 	   etc/logrotate
 	   etc/kno-rc.d
-	   etc/kno.conf
-	   etc/ex_servlet.service
-	   etc/ex_daemon.service
-	   etc/knod.service
-	   etc/knoweb.service
-	   etc/kno.service
-	   etc/KNO.plist
-	   etc/knosrv.conf 
-	   etc/knosrv.load
+	   etc/upstart/kno.conf
+	   etc/upstart/knod.conf
+	   etc/upstart/knoweb.conf
+	   etc/upstart/ex_knoweb.conf
+	   etc/systemd/ex_servlet.service
+	   etc/systemd/ex_daemon.service
+	   etc/systemd/knod.service
+	   etc/systemd/knoweb.service
+	   etc/systemd/kno.service
+	   etc/macos/OSXStartupItem/KNO
+	   etc/macos/KNO.plist
+	   etc/knoweb.conf 
+	   etc/knoweb.load
 	   etc/install-script 
 	   dist/kno-4.3.spec],
 	   [chmod a+x etc/kno* tests/*test])

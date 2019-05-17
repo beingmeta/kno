@@ -16,7 +16,7 @@
 #include "kno/tables.h"
 #include "kno/eval.h"
 #include "kno/ports.h"
-#include "kno/fdweb.h"
+#include "kno/webtools.h"
 
 #include <libu8/u8xfiles.h>
 #include <libu8/u8convert.h>
@@ -133,7 +133,7 @@ static lispval mailout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 void kno_init_email_c()
 {
-  lispval unsafe_module = kno_new_cmodule("FDWEB",(0),kno_init_email_c);
+  lispval unsafe_module = kno_new_cmodule("WEBTOOLS",(0),kno_init_email_c);
 
   kno_idefn(unsafe_module,kno_make_cprim5("SMTP",smtp_function,3));
   kno_def_evalfn(unsafe_module,"MAILOUT","",mailout_evalfn);

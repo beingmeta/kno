@@ -20,7 +20,7 @@
 #include "kno/tables.h"
 #include "kno/eval.h"
 #include "kno/ports.h"
-#include "kno/fdweb.h"
+#include "kno/webtools.h"
 #include "kno/support.h"
 
 #include "kno/support.h"
@@ -1162,8 +1162,8 @@ static u8_string markup_printf_handler
 
 KNO_EXPORT void kno_init_xmloutput_c()
 {
-  lispval fdweb_module = kno_new_module("FDWEB",(0));
-  lispval safe_fdweb_module = kno_new_module("FDWEB",(KNO_MODULE_SAFE));
+  lispval webtools_module = kno_new_module("WEBTOOLS",(0));
+  lispval safe_webtools_module = kno_new_module("WEBTOOLS",(KNO_MODULE_SAFE));
   lispval xhtml_module = kno_new_module("XHTML",KNO_MODULE_SAFE);
 
   lispval markup_prim = kno_make_evalfn("markup",markup_evalfn);
@@ -1186,33 +1186,33 @@ KNO_EXPORT void kno_init_xmloutput_c()
 
   u8_printf_handlers['k']=markup_printf_handler;
 
-  kno_store(safe_fdweb_module,kno_intern("XMLOUT"),xmlout_prim);
-  kno_store(safe_fdweb_module,kno_intern("XMLBLOCK"),xmlblock_prim);
-  kno_store(safe_fdweb_module,kno_intern("XMLBLOCKN"),xmlblockn_prim);
-  kno_store(safe_fdweb_module,kno_intern("XMLELT"),xmlelt_prim);
-  kno_defn(safe_fdweb_module,xmlempty_proc);
-  kno_defn(safe_fdweb_module,xmlify_proc);
-  kno_store(safe_fdweb_module,kno_intern("MARKUPFN"),markup_prim);
-  kno_store(safe_fdweb_module,kno_intern("MARKUP*FN"),markupstar_prim);
-  kno_store(safe_fdweb_module,kno_intern("BLOCKMARKUPFN"),markupblock_prim);
-  kno_store(safe_fdweb_module,kno_intern("BLOCKMARKUP*FN"),markupstarblock_prim);
-  kno_store(safe_fdweb_module,kno_intern("EMPTYMARKUPFN"),emptymarkup_prim);
-  kno_def_evalfn(safe_fdweb_module,"SOAPENVELOPE","",soapenvelope_evalfn);
-  kno_defn(safe_fdweb_module,kno_make_cprim3("XML->STRING",xml2string_prim,1));
+  kno_store(safe_webtools_module,kno_intern("XMLOUT"),xmlout_prim);
+  kno_store(safe_webtools_module,kno_intern("XMLBLOCK"),xmlblock_prim);
+  kno_store(safe_webtools_module,kno_intern("XMLBLOCKN"),xmlblockn_prim);
+  kno_store(safe_webtools_module,kno_intern("XMLELT"),xmlelt_prim);
+  kno_defn(safe_webtools_module,xmlempty_proc);
+  kno_defn(safe_webtools_module,xmlify_proc);
+  kno_store(safe_webtools_module,kno_intern("MARKUPFN"),markup_prim);
+  kno_store(safe_webtools_module,kno_intern("MARKUP*FN"),markupstar_prim);
+  kno_store(safe_webtools_module,kno_intern("BLOCKMARKUPFN"),markupblock_prim);
+  kno_store(safe_webtools_module,kno_intern("BLOCKMARKUP*FN"),markupstarblock_prim);
+  kno_store(safe_webtools_module,kno_intern("EMPTYMARKUPFN"),emptymarkup_prim);
+  kno_def_evalfn(safe_webtools_module,"SOAPENVELOPE","",soapenvelope_evalfn);
+  kno_defn(safe_webtools_module,kno_make_cprim3("XML->STRING",xml2string_prim,1));
 
-  kno_store(fdweb_module,kno_intern("XMLOUT"),xmlout_prim);
-  kno_store(fdweb_module,kno_intern("XMLBLOCK"),xmlblock_prim);
-  kno_store(fdweb_module,kno_intern("XMLBLOCKN"),xmlblockn_prim);
-  kno_store(fdweb_module,kno_intern("XMLELT"),xmlelt_prim);
-  kno_defn(fdweb_module,xmlempty_proc);
-  kno_defn(fdweb_module,xmlify_proc);
-  kno_store(fdweb_module,kno_intern("MARKUPFN"),markup_prim);
-  kno_store(fdweb_module,kno_intern("MARKUP*FN"),markupstar_prim);
-  kno_store(fdweb_module,kno_intern("BLOCKMARKUPFN"),markupblock_prim);
-  kno_store(fdweb_module,kno_intern("BLOCKMARKUP*FN"),markupstarblock_prim);
-  kno_store(fdweb_module,kno_intern("EMPTYMARKUPFN"),emptymarkup_prim);
-  kno_def_evalfn(fdweb_module,"SOAPENVELOPE","",soapenvelope_evalfn);
-  kno_defn(fdweb_module,kno_make_cprim3("XML->STRING",xml2string_prim,1));
+  kno_store(webtools_module,kno_intern("XMLOUT"),xmlout_prim);
+  kno_store(webtools_module,kno_intern("XMLBLOCK"),xmlblock_prim);
+  kno_store(webtools_module,kno_intern("XMLBLOCKN"),xmlblockn_prim);
+  kno_store(webtools_module,kno_intern("XMLELT"),xmlelt_prim);
+  kno_defn(webtools_module,xmlempty_proc);
+  kno_defn(webtools_module,xmlify_proc);
+  kno_store(webtools_module,kno_intern("MARKUPFN"),markup_prim);
+  kno_store(webtools_module,kno_intern("MARKUP*FN"),markupstar_prim);
+  kno_store(webtools_module,kno_intern("BLOCKMARKUPFN"),markupblock_prim);
+  kno_store(webtools_module,kno_intern("BLOCKMARKUP*FN"),markupstarblock_prim);
+  kno_store(webtools_module,kno_intern("EMPTYMARKUPFN"),emptymarkup_prim);
+  kno_def_evalfn(webtools_module,"SOAPENVELOPE","",soapenvelope_evalfn);
+  kno_defn(webtools_module,kno_make_cprim3("XML->STRING",xml2string_prim,1));
 
   kno_def_evalfn(xhtml_module,"ANCHOR","",doanchor_evalfn);
   kno_def_evalfn(xhtml_module,"ANCHOR*","",doanchor_star_evalfn);
@@ -1264,21 +1264,21 @@ KNO_EXPORT void kno_init_xmloutput_c()
   kno_store(xhtml_module,kno_intern("BR"),emptymarkup_prim);
   kno_store(xhtml_module,kno_intern("HR"),emptymarkup_prim);
 
-  kno_def_evalfn(fdweb_module,"XMLEVAL","",xmleval_evalfn);
-  kno_def_evalfn(safe_fdweb_module,"XMLEVAL","",xmleval_evalfn);
-  kno_def_evalfn(fdweb_module,"XMLOPEN","",xmlopen_evalfn);
-  kno_def_evalfn(safe_fdweb_module,"XMLOPEN","",xmlopen_evalfn);
-  kno_def_evalfn(fdweb_module,"XMLSTART","",xmlstart_evalfn);
-  kno_def_evalfn(safe_fdweb_module,"XMLSTART","",xmlstart_evalfn);
+  kno_def_evalfn(webtools_module,"XMLEVAL","",xmleval_evalfn);
+  kno_def_evalfn(safe_webtools_module,"XMLEVAL","",xmleval_evalfn);
+  kno_def_evalfn(webtools_module,"XMLOPEN","",xmlopen_evalfn);
+  kno_def_evalfn(safe_webtools_module,"XMLOPEN","",xmlopen_evalfn);
+  kno_def_evalfn(webtools_module,"XMLSTART","",xmlstart_evalfn);
+  kno_def_evalfn(safe_webtools_module,"XMLSTART","",xmlstart_evalfn);
   {
     lispval xmlcloseprim=
       kno_make_cprim1("XMLCLOSE",xmlclose_prim,1);
     lispval xmlendprim=
       kno_make_cprim1("XMLEND",xmlend_prim,1);
-    kno_defn(fdweb_module,xmlcloseprim);
-    kno_idefn(safe_fdweb_module,xmlcloseprim);
-    kno_defn(fdweb_module,xmlendprim);
-    kno_idefn(safe_fdweb_module,xmlendprim);}
+    kno_defn(webtools_module,xmlcloseprim);
+    kno_idefn(safe_webtools_module,xmlcloseprim);
+    kno_defn(webtools_module,xmlendprim);
+    kno_idefn(safe_webtools_module,xmlendprim);}
 
   /* Not strictly XML of course, but a neighbor */
   kno_def_evalfn(xhtml_module,"JAVASCRIPT","",javascript_evalfn);

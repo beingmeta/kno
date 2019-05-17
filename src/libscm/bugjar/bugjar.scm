@@ -3,7 +3,7 @@
 
 (in-module 'bugjar)
 
-(use-module '{fdweb xhtml texttools xhtml/tableout gpath condense})
+(use-module '{webtools xhtml texttools xhtml/tableout gpath condense})
 (use-module '{varconfig stringfmts getcontent mimetable logger})
 (define %used_modules '{varconfig})
 

@@ -330,7 +330,7 @@
 /* Define if you are using a global lock and vars for IPEVAL.  */
 #undef KNO_GLOBAL_IPEVAL
 
-/* Define if fdweb is linking with curl */
+/* Define if webtools is linking with curl */
 #undef KNO_WITH_CURL
 
 /* Define if knosh is linking with editline */
@@ -348,7 +348,7 @@
 /* Define if you have the CURL header file */
 #undef HAVE_CURL_CURL_H
 
-/* Define if fdweb is linking with curl */
+/* Define if webtools is linking with curl */
 #undef KNO_WITH_EXIF
 
 /* Define if you have the EXIF header file */

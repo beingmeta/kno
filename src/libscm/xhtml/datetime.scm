@@ -4,7 +4,7 @@
 (in-module 'xhtml/datetime)
 
 (use-module '{reflection texttools})
-(use-module '{fdweb xhtml i18n})
+(use-module '{webtools xhtml i18n})
 (use-module 'parsetime)
 
 (module-export! 'time->html)

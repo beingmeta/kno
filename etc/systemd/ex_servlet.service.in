@@ -15,7 +15,7 @@ ExecStartPre=/bin/chown @fdaemon@ @kno_rundir@/servlets/ @kno_logdir@/servlets/ 
 ExecStartPre=/bin/chgrp @admin_group@ @kno_rundir@/servlets/ @kno_logdir@/servlets/ @kno_logdir@/bugjar/
 ExecStartPre=/bin/chmod g+rwx @kno_rundir@/servlets/ @kno_logdir@/servlets/
 ExecStartPre=/bin/chmod go+rwx @kno_logdir@/bugjar/
-ExecStart=@prefix@/bin/knosrv @kno_rundir@/servlets/%%NAME%.sock CONFIG=@config_dir@/config_files/%%NAME%%_servlet.cfg
+ExecStart=@prefix@/bin/knoweb @kno_rundir@/servlets/%%NAME%.sock CONFIG=@config_dir@/config_files/%%NAME%%_servlet.cfg
 
 [Install]
 WantedBy=default.target

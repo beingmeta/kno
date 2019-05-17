@@ -1,2 +1,0 @@
-mod src/apache2/mod_knosrv.so
-mod debian/knosrv.load

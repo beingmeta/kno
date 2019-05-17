@@ -16,7 +16,7 @@
 #include "kno/numbers.h"
 #include "kno/eval.h"
 #include "kno/storage.h"
-#include "kno/fdweb.h"
+#include "kno/webtools.h"
 #include "kno/ports.h"
 #include "kno/fileprims.h"
 
@@ -51,7 +51,7 @@
 
 static u8_condition Startup=_("KNOCGI/Startup");
 
-KNO_EXPORT void kno_init_fdweb(void);
+KNO_EXPORT void kno_init_webtools(void);
 KNO_EXPORT void kno_init_texttools(void);
 
 #include "webcommon.h"
@@ -671,7 +671,7 @@ int main(int argc,char **argv)
   KNO_INIT_SCHEME_BUILTINS();
 #endif
 
-  kno_init_fdweb();
+  kno_init_webtools();
   kno_init_drivers();
 
   atexit(webcommon_atexit);

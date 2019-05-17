@@ -4,9 +4,9 @@
 (in-module 'xhtml/clickit)
 
 ;;; This provides various XHTML widgets which use stylesheets and
-;;;  javascript provided by fdweb.css and fdweb.js respectively.
+;;;  javascript provided by webtools.css and webtools.js respectively.
 
-(use-module 'fdweb)
+(use-module 'webtools)
 (use-module 'xhtml)
 
 

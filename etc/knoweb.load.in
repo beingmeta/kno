@@ -1,0 +1,3 @@
+<IfModule !knoweb_module>
+  LoadModule knoweb_module      @apache_modules_dir@/mod_knoweb.so
+</IfModule>

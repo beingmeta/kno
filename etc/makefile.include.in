@@ -52,7 +52,7 @@ MACLIBTOOL	= $(CC) -dynamiclib -single_module \
 			$(LDFLAGS) $(LIBS)
 BUILD		= `pwd`
 BUILDMODE       := `cat buildmode || echo none`
-DEBUG_KNOSRV    = 0
+DEBUG_KNOWEB    = 0
 RPMFLAGS	= @RPMFLAGS@
 RPMDIR		= @RPMDIR@
 GPGID		= @GPGID@

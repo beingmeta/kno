@@ -4,7 +4,7 @@
 
 (in-module 'xhtml/tableout)
 
-(use-module '{fdweb xhtml})
+(use-module '{webtools xhtml})
 
 (module-export! '{tableout tableout/value})
 

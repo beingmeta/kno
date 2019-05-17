@@ -1,6 +1,6 @@
 ;;; -*- Mode: Scheme -*-
 
-(use-module '{fdweb optimize mttools varconfig 
+(use-module '{webtools optimize mttools varconfig 
 	      stringfmts logger fifo 
 	      flexdb flexdb/flexpools})
 

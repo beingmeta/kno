@@ -3,7 +3,7 @@
 
 (in-module 'xhtml/buglog)
 
-(use-module '{fdweb xhtml xhtml/tableout texttools})
+(use-module '{webtools xhtml xhtml/tableout texttools})
 (use-module '{varconfig stringfmts logger rulesets crypto getcontent ezrecords})
 (module-export! 'buglog)
 

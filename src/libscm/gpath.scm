@@ -38,7 +38,7 @@
        (define (zipfile? x) #f)
        (define (zip/add! . args) #f)))
 
-(use-module '{fileio aws/s3 varconfig logger fdweb 
+(use-module '{fileio aws/s3 varconfig logger webtools 
 	      texttools mimetable ezrecords hashfs zipfs})
 (define-init %loglevel %notice%)
 

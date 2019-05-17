@@ -18,7 +18,7 @@
 #include "kno/eval.h"
 #include "kno/storage.h"
 #include "kno/ports.h"
-#include "kno/fdweb.h"
+#include "kno/webtools.h"
 #include "kno/support.h"
 
 #include <libu8/libu8.h>
@@ -1319,7 +1319,7 @@ KNO_EXPORT void kno_init_cgiexec_c()
   if (cgiexec_initialized) return;
   cgiexec_initialized = 1;
   kno_init_scheme();
-  module = kno_new_cmodule("FDWEB",(0),kno_init_cgiexec_c);
+  module = kno_new_cmodule("WEBTOOLS",(0),kno_init_cgiexec_c);
   xhtmlout_module = kno_new_cmodule("XHTML",KNO_MODULE_SAFE,kno_init_cgiexec_c);
 
   u8_init_mutex(&protected_cgi_lock);

@@ -17,7 +17,7 @@
 #include "kno/numbers.h"
 #include "kno/eval.h"
 #include "kno/storage.h"
-#include "kno/fdweb.h"
+#include "kno/webtools.h"
 #include "kno/ports.h"
 #include "kno/fileprims.h"
 
@@ -134,7 +134,7 @@ static int poll_timeout = DEFAULT_POLL_TIMEOUT;
 struct U8_SERVER kno_servlet;
 static int server_running = 0;
 
-static u8_condition knosrvWriteError="KNOServlet write error";
+static u8_condition knowebWriteError="KNOServlet write error";
 
 /* Checking for (good) injections */
 
@@ -725,16 +725,16 @@ static int output_content(kno_webconn ucl,lispval content)
   if (STRINGP(content)) {
     ssize_t rv = u8_writeall(ucl->socket,CSTRING(content),STRLEN(content));
     if (rv<0) {
-      u8_log(LOG_CRIT,knosrvWriteError,
-             "Unexpected error writing %ld bytes to mod_knosrv",
+      u8_log(LOG_CRIT,knowebWriteError,
+             "Unexpected error writing %ld bytes to mod_knoweb",
              STRLEN(content));
       return rv;}
     return STRLEN(content);}
   else if (KNO_PACKETP(content)) {
     ssize_t rv = u8_writeall(ucl->socket,KNO_PACKET_DATA(content),KNO_PACKET_LENGTH(content));
     if (rv<0) {
-      u8_log(LOG_CRIT,knosrvWriteError,
-             "Unexpected error writing %ld bytes to mod_knosrv",
+      u8_log(LOG_CRIT,knowebWriteError,
+             "Unexpected error writing %ld bytes to mod_knoweb",
              STRLEN(content));
       return rv;}
     return KNO_PACKET_LENGTH(content);}
@@ -1712,7 +1712,7 @@ static int add_server(u8_string spec)
   return 0;
 }
 
-static int addknosrvport(lispval var,lispval val,void *data)
+static int addknowebport(lispval var,lispval val,void *data)
 {
   u8_string new_port = NULL;
   u8_lock_mutex(&server_port_lock);
@@ -1756,7 +1756,7 @@ static int addknosrvport(lispval var,lispval val,void *data)
   return 0;
 }
 
-static lispval getknosrvports(lispval var,void *data)
+static lispval getknowebports(lispval var,void *data)
 {
   lispval result = EMPTY;
   int i = 0, lim = n_ports;
@@ -1862,7 +1862,7 @@ static void register_servlet_configs()
 
 
   kno_register_config("PORT",_("Ports for listening for connections"),
-                     getknosrvports,addknosrvport,NULL);
+                     getknowebports,addknowebport,NULL);
   kno_register_config("ASYNCMODE",_("Whether to run in asynchronous mode"),
                      kno_boolconfig_get,kno_boolconfig_set,&async_mode);
 
@@ -2042,7 +2042,7 @@ int main(int argc,char **argv)
      from the processing of the configuration variables themselves
      (where lots of errors could happen); second, we want to be able
      to set this in the environment we wrap around calls (which is how
-     mod_knosrv does it). */
+     mod_knoweb does it). */
   if (logfile) {
     int logsync = ((getenv("LOGSYNC") == NULL)?(0):(O_SYNC));
     int log_fd = open(logfile,O_RDWR|O_APPEND|O_CREAT|logsync,0644);
@@ -2126,7 +2126,7 @@ int main(int argc,char **argv)
   kno_register_module("DBSERV",kno_incref(kno_dbserv_module),KNO_MODULE_SAFE);
   kno_finish_module(kno_dbserv_module);
 
-  kno_init_fdweb();
+  kno_init_webtools();
   kno_init_drivers();
 
   init_webcommon_data();
@@ -2156,8 +2156,8 @@ int main(int argc,char **argv)
   if (!(KNO_VOIDP(default_notfoundpage)))
     u8_log(LOG_NOTICE,"SetPageNotFound","Handler=%q",default_notfoundpage);
   if (!socket_spec) {
-    u8_log(LOG_CRIT,"USAGE","knosrv <socket> [config]*");
-    fprintf(stderr,"Usage: knosrv <socket> [config]*\n");
+    u8_log(LOG_CRIT,"USAGE","knoweb <socket> [config]*");
+    fprintf(stderr,"Usage: knoweb <socket> [config]*\n");
     exit(1);}
 
   kno_setapp(socket_spec,NULL);

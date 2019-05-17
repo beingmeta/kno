@@ -3,7 +3,7 @@
 
 (in-module 'xhtml/auth)
 
-(use-module '{fdweb texttools})
+(use-module '{webtools texttools})
 (use-module '{varconfig logger crypto ezrecords})
 (define %used_modules '{varconfig ezrecords})
 

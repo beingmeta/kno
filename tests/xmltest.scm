@@ -1,6 +1,6 @@
 (load-component "common.scm")
 
-(use-module 'fdweb)
+(use-module 'webtools)
 
 (define xml-test-input-1
   "<p title='check if x > 8'>x is a value.</p>")

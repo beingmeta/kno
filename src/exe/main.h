@@ -1,7 +1,7 @@
 #include <libu8/u8stdio.h>
 #include <errno.h>
 
-KNO_EXPORT void kno_init_fdweb(void);
+KNO_EXPORT void kno_init_webtools(void);
 KNO_EXPORT void kno_init_texttools(void);
 
 KNO_EXPORT int *kno_main_errno_ptr;

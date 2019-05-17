@@ -286,7 +286,7 @@ int do_main(int argc,char **argv,
 
 #if ((!(HAVE_CONSTRUCTOR_ATTRIBUTES)) || (KNO_TESTCONFIG))
   kno_init_texttools();
-  kno_init_fdweb();
+  kno_init_webtools();
 #else
   KNO_INIT_SCHEME_BUILTINS();
 #endif

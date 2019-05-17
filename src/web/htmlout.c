@@ -20,7 +20,7 @@
 #include "kno/tables.h"
 #include "kno/eval.h"
 #include "kno/ports.h"
-#include "kno/fdweb.h"
+#include "kno/webtools.h"
 #include "kno/pprint.h"
 #include "kno/support.h"
 
@@ -616,15 +616,15 @@ static lispval obj2html_prim(lispval obj,lispval tag)
 
 KNO_EXPORT void kno_init_htmlout_c()
 {
-  lispval fdweb_module=kno_new_module("FDWEB",(0));
-  lispval safe_module=kno_new_module("FDWEB",(KNO_MODULE_SAFE));
+  lispval webtools_module=kno_new_module("WEBTOOLS",(0));
+  lispval safe_module=kno_new_module("WEBTOOLS",(KNO_MODULE_SAFE));
   lispval xhtml_module=kno_new_module("XHTML",KNO_MODULE_SAFE);
 
   lispval debug2html = kno_make_cprim2("DEBUGPAGE->HTML",debugpage2html_prim,0);
   lispval backtrace2html = kno_make_cprim2("BACKTRACE->HTML",backtrace2html_prim,0);
 
-  kno_defn(fdweb_module,debug2html);
-  kno_defn(fdweb_module,backtrace2html);
+  kno_defn(webtools_module,debug2html);
+  kno_defn(webtools_module,backtrace2html);
 
   kno_defn(safe_module,debug2html);
   kno_defn(safe_module,backtrace2html);

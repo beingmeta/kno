@@ -20,22 +20,22 @@
 #include "kno/tables.h"
 #include "kno/eval.h"
 #include "kno/ports.h"
-#include "kno/fdweb.h"
+#include "kno/webtools.h"
 #include "kno/support.h"
 
-static int fdweb_init_done = 0;
+static int webtools_init_done = 0;
 
-KNO_EXPORT void kno_init_fdweb()
+KNO_EXPORT void kno_init_webtools()
 {
-  if (fdweb_init_done) return;
+  if (webtools_init_done) return;
   else {
     int fdscheme_version = kno_init_scheme();
-    lispval fdweb_module = kno_new_cmodule("FDWEB",0,kno_init_fdweb);
-    lispval safe_fdweb_module =
-      kno_new_cmodule("FDWEB",(KNO_MODULE_SAFE),kno_init_fdweb);
+    lispval webtools_module = kno_new_cmodule("WEBTOOLS",0,kno_init_webtools);
+    lispval safe_webtools_module =
+      kno_new_cmodule("WEBTOOLS",(KNO_MODULE_SAFE),kno_init_webtools);
     lispval xhtml_module =
-      kno_new_cmodule("XHTML",KNO_MODULE_SAFE,kno_init_fdweb);
-    fdweb_init_done = fdscheme_version;
+      kno_new_cmodule("XHTML",KNO_MODULE_SAFE,kno_init_webtools);
+    webtools_init_done = fdscheme_version;
     kno_init_xmloutput_c();
     kno_init_htmlout_c();
     kno_init_xmldata_c();
@@ -49,13 +49,13 @@ KNO_EXPORT void kno_init_fdweb()
 #if (KNO_WITH_CURL)
     kno_init_curl_c();
 #endif
-    kno_finish_module(safe_fdweb_module);
-    kno_finish_module(fdweb_module);
+    kno_finish_module(safe_webtools_module);
+    kno_finish_module(webtools_module);
     kno_finish_module(xhtml_module);}
 
   u8_threadcheck();
 
-  u8_register_source_file(KNO_FDWEB_H_INFO);
+  u8_register_source_file(KNO_WEBTOOLS_H_INFO);
   u8_register_source_file(_FILEINFO);
 }
 

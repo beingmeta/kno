@@ -10,7 +10,7 @@
 
 (in-module 'jsonout)
 
-(use-module '{fdweb varconfig})
+(use-module '{webtools varconfig})
 
 (define json-lisp-prefix ":")
 

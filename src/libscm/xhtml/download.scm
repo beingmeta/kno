@@ -3,7 +3,7 @@
 
 (in-module 'xhtml/download)
 
-(use-module '{fdweb xhtml reflection mimetable varconfig})
+(use-module '{webtools xhtml reflection mimetable varconfig})
 (define %used_modules '{varconfig})
 
 (define havezip (get-module 'ziptools))

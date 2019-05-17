@@ -36,7 +36,7 @@ CORE_LIBS  	= ../lib/libfdscheme@suffix@.a       \
 	          ../lib/libfddrivers@suffix@.a \
 	          ../lib/libfdstorage@suffix@.a     \
 	          ../lib/libfdcore@suffix@.a
-EXTRA_LIBS 	= ../lib/libtexttools@suffix@.a ../lib/libfdweb@suffix@.a
+EXTRA_LIBS 	= ../lib/libtexttools@suffix@.a ../lib/libwebtools@suffix@.a
 DESTDIR		=
 prefix		= @prefix@
 exec_prefix	= @exec_prefix@
@@ -108,7 +108,7 @@ libtests: scheme optscheme slotmaps tables pools indexes db
 cmdtests: execscripts chainscripts batchscripts chained_batchscripts utilscripts
 
 schemetest schemetests scheme: r4rs exceptions choices sequences breaks numvecs reflect hashsets \
-	picktest cachecall texttools fdweb timefns threads i18n misc gctests profiling \
+	picktest cachecall texttools webtools timefns threads i18n misc gctests profiling \
 	fileprims xml crypto
 optscheme:
 	@${header} "■■■■■■■■ Running optimized scheme tests ${RUNCONF}"
@@ -170,9 +170,9 @@ cachecall:
 texttools texttest:
 	@${RUN} ${FDX} texttest.scm ${RUNCONF}
 	@${header} "■■■■ Completed texttools tests ${RUNCONF}"
-fdweb fdwebtest:
-	@${RUN} ${FDX} fdwebtest.scm ${RUNCONF}
-	@${header} "■■■■ Completed fdweb tests ${RUNCONF}"
+webtools webtoolstest:
+	@${RUN} ${FDX} webtoolstest.scm ${RUNCONF}
+	@${header} "■■■■ Completed webtools tests ${RUNCONF}"
 timefns:
 	@${RUN} ${FDX} timefns.scm ${RUNCONF}
 	@${header} "■■■■ Completed timefns tests ${RUNCONF}"

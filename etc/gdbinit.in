@@ -335,7 +335,7 @@ define useinstalledmodules
 end
 
 define staticweb
-    set args /var/run/knosrv/static.sock
+    set args /var/run/knoweb/static.sock
 end
 
 define dotload

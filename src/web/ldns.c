@@ -13,7 +13,7 @@
 #include "kno/dtype.h"
 #include "kno/tables.h"
 #include "kno/eval.h"
-#include "kno/fdweb.h"
+#include "kno/webtools.h"
 #include "kno/ports.h"
 
 #include <libu8/libu8io.h>
@@ -133,7 +133,7 @@ KNO_EXPORT void kno_init_dns_c()
   dns_initialized = 1;
   kno_init_scheme();
 
-  module = kno_new_module("FDWEB",(0));
+  module = kno_new_module("WEBTOOLS",(0));
 
   kno_idefn(module,kno_make_cprim2x
            ("DNS/GET",dns_query,1,

@@ -4,7 +4,7 @@
 
 (in-module 'xhtml/exceptions)
 
-(use-module '{fdweb xhtml})
+(use-module '{webtools xhtml})
 
 (module-export! '{exception->html})
 

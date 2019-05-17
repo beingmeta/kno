@@ -62,7 +62,7 @@ MACLIBTOOL	= $(CC) -dynamiclib -single_module -undefined dynamic_lookup \
 BUILD		= `pwd`
 BUILDMODE       := `cat .buildmode || echo none`
 LINKEDWITH      := `cat .malloc || echo standard libraries`
-DEBUG_KNOSRV    = 0
+DEBUG_KNOWEB    = 0
 RPMFLAGS	= @RPMFLAGS@
 RPMDIR		= @RPMDIR@
 GPG		= @GPG@
@@ -118,7 +118,7 @@ DRIVERS_H=include/kno/drivers.h
 SCHEME_HEADERS=include/kno/eval.h include/kno/threads.h \
 	include/kno/opcodes.h include/kno/seqprims.h \
 	include/kno/procprims.h
-LIB_HEADERS=include/kno/texttools.h include/kno/fdweb.h \
+LIB_HEADERS=include/kno/texttools.h include/kno/webtools.h \
 		include/kno/mongodb.h \
 	        include/kno/leveldb.h \
 	        include/kno/rocksdb.h
@@ -240,7 +240,7 @@ SCHEME_OBJS=\
 	src/eval/history.o
 
 WEB_OBJS=\
-	src/web/fdweb.o \
+	src/web/webtools.o \
 	src/web/xmloutput.o \
 	src/web/htmlout.o \
 	src/web/xmlinput.o \
@@ -358,12 +358,12 @@ CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
 	     ${SUNDOWN_OBJS} ${TIDY_OBJECTS}
 
 EXECUTABLES=exe/knox@suffix@ exe/knosh@suffix@ exe/knotask@suffix@  \
-	    exe/knosrv@suffix@ exe/knod@suffix@
+	    exe/knoweb@suffix@ exe/knod@suffix@
 STATIC_EXECUTABLES=static/knox@suffix@ static/knosh@suffix@ \
 	static/knotask@suffix@ \
-	static/knosrv@suffix@ static/knod@suffix@
+	static/knoweb@suffix@ static/knod@suffix@
 DEBUG_EXECUTABLES=dbg/knox dbg/knosh \
-	dbg/knotask dbg/knosrv dbg/knod
+	dbg/knotask dbg/knoweb dbg/knod
 SHELL_SCRIPTS=etc/knosetconfig etc/knogetconfig etc/knoconfig \
 	etc/knostart etc/knostop etc/knostartall etc/knostopall \
 	etc/kno_start_daemons etc/kno_start_servlets etc/kno_stop_jobs \
@@ -447,7 +447,7 @@ KNO_SOURCES=\
 	src/prims/timeprims.c src/prims/sysprims.c 				\
 	src/prims/extdbprims.c                    				\
 	src/eval/reqstate.c                                          		\
-	src/web/fdweb.c src/web/json.c src/web/ldns.c            		\
+	src/web/webtools.c src/web/json.c src/web/ldns.c            		\
 	src/web/xmloutput.c src/web/xmlinput.c src/web/xmldata.c 		\
 	src/web/xmleval.c src/web/cgiexec.c src/web/htmlout.c 			\
 	src/web/uriprims.c src/web/mime.c src/web/email.c src/web/curl.c	\
@@ -455,7 +455,7 @@ KNO_SOURCES=\
 	src/text/porter.c src/text/phonetic.c                			\
 	src/exe/knosh.c                                            		\
 	src/exe/knox.c src/exe/knotask.c                             		\
-	src/exe/knosrv.c src/exe/knocgi.c src/exe/knod.c
+	src/exe/knoweb.c src/exe/knocgi.c src/exe/knod.c
 
 CMODULE_SOURCES=\
 	src/cmodules/odbc.c src/cmodules/sqlite.c 				\
@@ -642,7 +642,7 @@ exe/%@suffix@: src/exe/%.c ${CONFIG_HDRS}
 		-o $@ $<                                           \
 		-lknodbserv@suffix@                 	 	   \
 		@xdynamic_scheme_libs@                             \
-		-lknotext@suffix@ -lknoscheme@suffix@ \
+		-lknoweb@suffix@ -lknotext@suffix@ -lknoscheme@suffix@ \
 		-lknodrivers@suffix@ -lknostorage@suffix@ -lknocore@suffix@ \
 	        -lu8stdio $(LIBS) $(EXELIBS)
 	@$(MSG) MKEXE $@ $<
@@ -755,9 +755,9 @@ src/cmodules/ext/tidy5/%.o: src/cmodules/ext/tidy5/%.c $(SUNDOWN_H_FILES)
 
 exe/knox@suffix@ exe/knotask@suffix@ exe/knosh@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
-exe/knocgi@suffix@ exe/knod@suffix@ exe/knosrv@suffix@: \
+exe/knocgi@suffix@ exe/knod@suffix@ exe/knoweb@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
-exe/knocgi@suffix@ exe/knosrv@suffix@: src/exe/webcommon.h
+exe/knocgi@suffix@ exe/knoweb@suffix@: src/exe/webcommon.h
 
 # Custom rules for making include files with CSS headers
 src/web/htmlout.o: src/web/backtrace_css.h src/web/backtrace_js.h src/web/backtrace.css src/web/backtrace.js
@@ -791,11 +791,11 @@ dbtestbin: libs tests/storage/makefile tests/storage/.gdbinit
 cmodules: dbmodules @CMODULES@
 dbmodules: @DBMODULES@
 
-dbg/knosrv.webuser: dbg/knosrv
+dbg/knoweb.webuser: dbg/knoweb
 	@echo "Making" $@
-	@cp dbg/knosrv dbg/knosrv.webuser
-	@sudo chown @webuser@:@admin_group@ dbg/knosrv.webuser
-	@sudo chmod ug+s dbg/knosrv.webuser
+	@cp dbg/knoweb dbg/knoweb.webuser
+	@sudo chown @webuser@:@admin_group@ dbg/knoweb.webuser
+	@sudo chmod ug+s dbg/knoweb.webuser
 
 # Uninstall
 
@@ -861,8 +861,7 @@ TAGS: makefile.in configure.ac include/kno/config.h.in		\
 	@etags -o TAGS -a tests/lisp/*.c tests/storage/*.c tests/*.scm;
 	@etags -o TAGS -a src/cmodules/*.c;
 	@etags -o TAGS -a src/scripts/*.scm;
-	@find src/libscm/ -name "*.scm" -type f | grep -v /module.scm | \
-		xargs etags -a -o TAGS;
+	@find src/libscm/ -name "*.scm" -type f | xargs etags -a -o TAGS;
 
 CTAGS: makefile.in configure.ac include/kno/config.h.in	\
 	tests/lisp/*.c tests/storage/*.c tests/*.c	\
@@ -927,7 +926,7 @@ clean: tidy
 	rm -f lib/kno/*@suffix@.so lib/kno/*@suffix@.so.* 
 	rm -f lib/kno/*.dylib
 	rm -f exe/knox@suffix@ exe/knotask@suffix@
-	rm -f exe/knosrv@suffix@ exe/knod@suffix@
+	rm -f exe/knoweb@suffix@ exe/knod@suffix@
 	rm -f exe/knosh@suffix@ exe/knocgi@suffix@
 	rm -f TAGS
 	cd tests/lisp; make -s clean
@@ -1347,7 +1346,7 @@ dist/debs.signed: dist/debs.built
 			sysv-kno_@KNO_VERSION@*.deb  		\
 			upstart-kno_@KNO_VERSION@*.deb  	\
 			systemd-kno_@KNO_VERSION@*.deb  	\
-			libapache2-mod-knosrv_@KNO_VERSION@*.deb  \
+			libapache2-mod-knoweb_@KNO_VERSION@*.deb  \
 			elpa-knosh_@KNO_VERSION@*.deb  \
 			../dist) &&                             \
 	touch dist/debs.signed;
@@ -1359,7 +1358,7 @@ dist/debsource.signed: dist/debsource.built
 			sysv-kno_@KNO_VERSION@*.deb  		\
 			upstart-kno_@KNO_VERSION@*.deb  	\
 			systemd-kno_@KNO_VERSION@*.deb  	\
-			libapache2-mod-knosrv_@KNO_VERSION@*.deb  \
+			libapache2-mod-knoweb_@KNO_VERSION@*.deb  \
 			elpa-knosh_@KNO_VERSION@*.deb  \
 			../dist) &&                             \
 	touch dist/debsource.signed;
@@ -1372,7 +1371,7 @@ dist/debsource.done: dist/debsource.signed
 
 install-debian install-debs debinstall installdebs: dist/debs.done
 	@cd dist; @SUDO@ dpkg -i kno*@KNO_VERSION@*.deb \
-		elpa-knosh*@KNO_VERSION@*.deb libapache2-mod-knosrv_@KNO_VERSION@*.deb \
+		elpa-knosh*@KNO_VERSION@*.deb libapache2-mod-knoweb_@KNO_VERSION@*.deb \
 		systemd-kno_@KNO_VERSION@*.deb
 
 update-local-apt-repo: dist/debs.done
@@ -1682,10 +1681,10 @@ setup-upstart: $(DESTDIR)/etc/init/kno.conf startupdirs
 
 $(DESTDIR)/etc/init:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)/etc/init
-$(DESTDIR)/etc/init/kno.conf: etc/kno.conf $(DESTDIR)/etc/init
+$(DESTDIR)/etc/init/kno.conf: etc/upstart/kno.conf $(DESTDIR)/etc/init
 	@$(MSG) Installing kno Upstart config to $(DESTDIR)/etc/init/kno.conf
 	@$(SYSINSTALL) -m 0555 @admininstall@ \
-		   etc/kno.conf $(DESTDIR)/etc/init/kno.conf
+		   etc/upstart/kno.conf $(DESTDIR)/etc/init/kno.conf
 
 $(DESTDIR)@systemd_loc@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)@systemd_loc@
@@ -1693,7 +1692,7 @@ setup-systemd: $(DESTDIR)@systemd_loc@/kno.target \
 		$(DESTDIR)@systemd_loc@/knod.service \
 		$(DESTDIR)@systemd_loc@/knoweb.service \
 		startupdirs
-$(DESTDIR)@systemd_loc@/%: etc/% $(DESTDIR)@systemd_loc@
+$(DESTDIR)@systemd_loc@/%: etc/systemd/% $(DESTDIR)@systemd_loc@
 	@$(MSG) Installing systemd config in $@
 	@$(SYSINSTALL) -m 0444 @admininstall@ $< $@
 	@if test -z "${DESTDIR}" && test ! -z "${SUDO}"; then 	\
@@ -1770,31 +1769,31 @@ build-setup.redhat:
 
 .PHONY: debian-build-setup rpm-build-setup
 
-# The mod_knosrv module
+# The mod_knoweb module
 
-src/apache2/mod_knosrv.so: src/apache2/mod_knosrv.c @abs_top_srcdir@/fileinfo
-	@$(ECHO) "#define _FILEINFO \""`@abs_top_srcdir@/fileinfo src/apache2/mod_knosrv.c .`"\"" \
-		> src/apache2/mod_knosrv_fileinfo.h
-	${APXS} -DUSEDTBLOCK=@USEDTBLOCK@ -DDEBUG_KNOSRV=$(DEBUG_KNOSRV) \
-		-c src/apache2/mod_knosrv.c
+src/apache2/mod_knoweb.so: src/apache2/mod_knoweb.c @abs_top_srcdir@/fileinfo
+	@$(ECHO) "#define _FILEINFO \""`@abs_top_srcdir@/fileinfo src/apache2/mod_knoweb.c .`"\"" \
+		> src/apache2/mod_knoweb_fileinfo.h
+	${APXS} -DUSEDTBLOCK=@USEDTBLOCK@ -DDEBUG_KNOWEB=$(DEBUG_KNOWEB) \
+		-c src/apache2/mod_knoweb.c
 
-mod_knosrv: src/apache2/mod_knosrv.so
+mod_knoweb: src/apache2/mod_knoweb.so
 
 # For OSX, try this
-# apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a -i -c src/apache2/mod_knosrv.c
-install-knosrv: src/apache2/mod_knosrv.so $(DESTDIR)@apache_modinfo@ \
+# apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a -i -c src/apache2/mod_knoweb.c
+install-knoweb: src/apache2/mod_knoweb.so $(DESTDIR)@apache_modinfo@ \
 	$(DESTDIR)@apache_modules_dir@ $(DESTDIR)@servlet_logdir@
-	@cd etc; $(SYSINSTALL) @install_file_opts@ knosrv.conf \
+	@cd etc; $(SYSINSTALL) @install_file_opts@ knoweb.conf \
 			$(DESTDIR)@apache_modinfo@;
-	@cd etc; $(SYSINSTALL) @install_file_opts@ knosrv.load \
+	@cd etc; $(SYSINSTALL) @install_file_opts@ knoweb.load \
 			$(DESTDIR)@apache_modinfo@;
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
-			-d $(DESTDIR)@rundir@/knosrv;
-	@cd src/apache2; if test -f mod_knosrv.so; \
-		then $(SUINSTALL) ${APXS} -i mod_knosrv.so; \
-		else $(SUINSTALL) ${APXS} -i mod_knosrv.la; \
+			-d $(DESTDIR)@rundir@/knoweb;
+	@cd src/apache2; if test -f mod_knoweb.so; \
+		then $(SUINSTALL) ${APXS} -i mod_knoweb.so; \
+		else $(SUINSTALL) ${APXS} -i mod_knoweb.la; \
 		fi
-	@echo Installed knosrv module with @rundir@/knosrv @logdir@/knosrv
+	@echo Installed knoweb module with @rundir@/knoweb @logdir@/knoweb
 
 $(DESTDIR)@apache_modules_dir@:
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
@@ -1803,20 +1802,20 @@ $(DESTDIR)@apache_modinfo@:
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
 		-d $(DESTDIR)@apache_modinfo@
 
-update-knosrv: src/apache2/mod_knosrv.so $(DESTDIR)@apache_modinfo@ \
+update-knoweb: src/apache2/mod_knoweb.so $(DESTDIR)@apache_modinfo@ \
 		$(DESTDIR)@apache_modules_dir@
-	@$(MSG) "STOPPING and STARTING Apache to INSTALL NEW mod_knosrv"
+	@$(MSG) "STOPPING and STARTING Apache to INSTALL NEW mod_knoweb"
 	@$(MSG) "THIS REQUIRES sudo PRIVILEGES; you may be prompted for your password"
 	sudo apachectl stop
-	cd etc; sudo ${INSTALL} @install_file_opts@ knosrv.conf knosrv.load \
+	cd etc; sudo ${INSTALL} @install_file_opts@ knoweb.conf knoweb.load \
 			$(DESTDIR)@apache_modinfo@;
 	$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
-			-d $(DESTDIR)@rundir@/knosrv;
+			-d $(DESTDIR)@rundir@/knoweb;
 	$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
-			-d $(DESTDIR)@logdir@/knosrv;
-	cd src/apache2; if test -f mod_knosrv.so; \
-		then sudo ${APXS} -i mod_knosrv.so; \
-		else sudo ${APXS} -i mod_knosrv.la; fi
+			-d $(DESTDIR)@logdir@/knoweb;
+	cd src/apache2; if test -f mod_knoweb.so; \
+		then sudo ${APXS} -i mod_knoweb.so; \
+		else sudo ${APXS} -i mod_knoweb.la; fi
 	sleep 5; sudo apachectl start
 
 # Test targets
@@ -1926,7 +1925,7 @@ DIY/mongo-c-driver/built:
 update-modules:
 	git submodule update --remote --merge src/extmods
 
-.PHONY: knosrv update-knosrv install-knosrv update-modules
+.PHONY: knoweb update-knoweb install-knoweb update-modules
 
 # Tracking revision information
 
@@ -1963,7 +1962,7 @@ $(DRIVER_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) $(REVISION_H)
 $(SCHEME_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
 	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H)
 $(WEB_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
-	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H) ./include/kno/fdweb.h
+	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H) ./include/kno/webtools.h
 $(TEXT_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
 	$(APPLY_HEADERS) $(REVISION_H) $(SCHEME_HEADERS) ./include/kno/texttools.h
 $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS): .buildmode

@@ -3,7 +3,7 @@
 
 (in-module 'bugjar/html)
 
-(use-module '{fdweb xhtml bugjar condense getcontent logger})
+(use-module '{webtools xhtml bugjar condense getcontent logger})
 
 (define-init %loglevel %notice%)
 

@@ -8,7 +8,7 @@
 #ifndef KNO_FDREGEX_H
 #define KNO_FDREGEX_H 1
 #ifndef KNO_FDREGEX_H_INFO
-#define KNO_FDREGEX_H_INFO "include/kno/fdweb.h"
+#define KNO_FDREGEX_H_INFO "include/kno/webtools.h"
 #endif
 
 enum KNO_REGEX_OP {

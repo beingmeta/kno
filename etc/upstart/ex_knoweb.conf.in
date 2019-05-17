@@ -11,7 +11,7 @@ kill timeout 90 # wait 90s between SIGTERM and SIGKILL.
 
 setuid @webuser@
 setgid @admin_group@
-env LOGDIR=@logdir@/knosrv
+env LOGDIR=@logdir@/knoweb
 export CONFIG
 pre-start script
 	  touch @servlet_rundir@/${SOCKET}.nospawn
@@ -19,4 +19,4 @@ end script
 post-stop script
 	  rm @servlet_rundir@/${SOCKET}.nospawn
 end script
-exec @prefix@/bin/knosrv ${SOCKET} CONFIG=${CONFIG}
+exec @prefix@/bin/knoweb ${SOCKET} CONFIG=${CONFIG}

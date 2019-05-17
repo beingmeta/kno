@@ -22,7 +22,7 @@
 #include "kno/fileprims.h"
 
 #if KNO_HTMLDUMP_ENABLED
-#include "kno/fdweb.h"
+#include "kno/webtools.h"
 #endif
 
 #include <libu8/libu8io.h>
@@ -742,7 +742,7 @@ int main(int argc,char **argv)
 
   /* Initialize builtin scheme modules.
      These include all modules specified by (e.g.):
-     configure --enable-fdweb */
+     configure --enable-webtools */
 #if ((HAVE_CONSTRUCTOR_ATTRIBUTES) && (!(KNO_TESTCONFIG)))
   KNO_INIT_SCHEME_BUILTINS();
 #else
@@ -751,7 +751,7 @@ int main(int argc,char **argv)
      explicitly (since the "onload" initializers may not be invoked). */
   kno_init_schemeio();
   kno_init_texttools();
-  kno_init_fdweb();
+  kno_init_webtools();
 #endif
 
   eval_prompt = u8_strdup(EVAL_PROMPT);

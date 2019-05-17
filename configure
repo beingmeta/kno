@@ -1691,9 +1691,9 @@ Optional Packages:
 --without-sundown Compile the sundown module
 --without-global-ipeval Use global lock and variables for ipeval
 --without-parseltongue Build parseltongue libraries for connecting Kno and Python
---without-curl Use libcurl in fdweb
+--without-curl Use libcurl in webtools
 --without-dns Use dns in web
---without-exif Use libexif in fdweb
+--without-exif Use libexif in webtools
 --without-qrcode Create qrcode binary module
 --with-bootsystem Setup boot method
 --with-systemd Specify systemd install directory
@@ -8076,7 +8076,7 @@ if test ! -z "$APXS"; then
   else apache_modinfo=$apache_conf_dir;
   fi;
 else
-  echo "Warning: No apache development environment, can't build mod_knosrv"
+  echo "Warning: No apache development environment, can't build mod_knoweb"
 fi
 
 
@@ -12132,10 +12132,10 @@ else
 fi
 
 if test $enable_htmldump = "yes"; then
-  scheme_builtins_init="$scheme_builtins_init; kno_init_fdweb()"
-  xdynamic_scheme_libs="$xdynamic_scheme_libs -lfdweb${suffix}"
-  xstatic_exe_libs="lib/libfdweb${suffix}.a $xstatic_exe_libs"
-  xstatic_scheme_libs=" ../../lib/libfdweb${suffix}.a $xstatic_scheme_libs"
+  scheme_builtins_init="$scheme_builtins_init; kno_init_webtools()"
+  xdynamic_scheme_libs="$xdynamic_scheme_libs -lknoweb${suffix}"
+  xstatic_exe_libs="lib/libknoweb${suffix}.a $xstatic_exe_libs"
+  xstatic_scheme_libs=" ../../lib/libknoweb${suffix}.a $xstatic_scheme_libs"
   $as_echo "#define KNO_HTMLDUMP_ENABLED 1" >>confdefs.h
 
 fi
@@ -12467,7 +12467,7 @@ else
   missing="curl ${missing}"
 fi
 
-## Providing DNS functions in fdweb
+## Providing DNS functions in webtools
 
 for ac_header in resolv.h
 do :
@@ -12893,7 +12893,7 @@ fi;
 
 ### Here's where stuff gets made
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/makefile DIY/makefile etc/gdbinit exe/.gdbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind tests/lisp/.gdbinit tests/storage/.gdbinit tests/.valgrind etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup etc/knosignal etc/knoinject etc/knostatus etc/knolog etc/knoreload etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec etc/knosetconfig etc/knogetconfig etc/knoconfig tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm etc/OSXStartupItem/KNO etc/knojob etc/logrotate etc/kno-rc.d etc/kno.conf etc/ex_servlet.service etc/ex_daemon.service etc/knod.service etc/knoweb.service etc/kno.service etc/KNO.plist etc/knosrv.conf etc/knosrv.load etc/install-script dist/kno-4.3.spec"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/makefile DIY/makefile etc/gdbinit exe/.gdbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind tests/lisp/.gdbinit tests/storage/.gdbinit tests/.valgrind etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup etc/knosignal etc/knoinject etc/knostatus etc/knolog etc/knoreload etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec etc/knosetconfig etc/knogetconfig etc/knoconfig tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm etc/knojob etc/logrotate etc/kno-rc.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoweb.conf etc/upstart/ex_knoweb.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/knod.service etc/systemd/knoweb.service etc/systemd/kno.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/knoweb.conf etc/knoweb.load etc/install-script dist/kno-4.3.spec"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -13637,19 +13637,22 @@ do
     "tests/leaktest") CONFIG_FILES="$CONFIG_FILES tests/leaktest" ;;
     "tests/knoxtest") CONFIG_FILES="$CONFIG_FILES tests/knoxtest" ;;
     "src/scripts/knopkg.scm") CONFIG_FILES="$CONFIG_FILES src/scripts/knopkg.scm" ;;
-    "etc/OSXStartupItem/KNO") CONFIG_FILES="$CONFIG_FILES etc/OSXStartupItem/KNO" ;;
     "etc/knojob") CONFIG_FILES="$CONFIG_FILES etc/knojob" ;;
     "etc/logrotate") CONFIG_FILES="$CONFIG_FILES etc/logrotate" ;;
     "etc/kno-rc.d") CONFIG_FILES="$CONFIG_FILES etc/kno-rc.d" ;;
-    "etc/kno.conf") CONFIG_FILES="$CONFIG_FILES etc/kno.conf" ;;
-    "etc/ex_servlet.service") CONFIG_FILES="$CONFIG_FILES etc/ex_servlet.service" ;;
-    "etc/ex_daemon.service") CONFIG_FILES="$CONFIG_FILES etc/ex_daemon.service" ;;
-    "etc/knod.service") CONFIG_FILES="$CONFIG_FILES etc/knod.service" ;;
-    "etc/knoweb.service") CONFIG_FILES="$CONFIG_FILES etc/knoweb.service" ;;
-    "etc/kno.service") CONFIG_FILES="$CONFIG_FILES etc/kno.service" ;;
-    "etc/KNO.plist") CONFIG_FILES="$CONFIG_FILES etc/KNO.plist" ;;
-    "etc/knosrv.conf") CONFIG_FILES="$CONFIG_FILES etc/knosrv.conf" ;;
-    "etc/knosrv.load") CONFIG_FILES="$CONFIG_FILES etc/knosrv.load" ;;
+    "etc/upstart/kno.conf") CONFIG_FILES="$CONFIG_FILES etc/upstart/kno.conf" ;;
+    "etc/upstart/knod.conf") CONFIG_FILES="$CONFIG_FILES etc/upstart/knod.conf" ;;
+    "etc/upstart/knoweb.conf") CONFIG_FILES="$CONFIG_FILES etc/upstart/knoweb.conf" ;;
+    "etc/upstart/ex_knoweb.conf") CONFIG_FILES="$CONFIG_FILES etc/upstart/ex_knoweb.conf" ;;
+    "etc/systemd/ex_servlet.service") CONFIG_FILES="$CONFIG_FILES etc/systemd/ex_servlet.service" ;;
+    "etc/systemd/ex_daemon.service") CONFIG_FILES="$CONFIG_FILES etc/systemd/ex_daemon.service" ;;
+    "etc/systemd/knod.service") CONFIG_FILES="$CONFIG_FILES etc/systemd/knod.service" ;;
+    "etc/systemd/knoweb.service") CONFIG_FILES="$CONFIG_FILES etc/systemd/knoweb.service" ;;
+    "etc/systemd/kno.service") CONFIG_FILES="$CONFIG_FILES etc/systemd/kno.service" ;;
+    "etc/macos/OSXStartupItem/KNO") CONFIG_FILES="$CONFIG_FILES etc/macos/OSXStartupItem/KNO" ;;
+    "etc/macos/KNO.plist") CONFIG_FILES="$CONFIG_FILES etc/macos/KNO.plist" ;;
+    "etc/knoweb.conf") CONFIG_FILES="$CONFIG_FILES etc/knoweb.conf" ;;
+    "etc/knoweb.load") CONFIG_FILES="$CONFIG_FILES etc/knoweb.load" ;;
     "etc/install-script") CONFIG_FILES="$CONFIG_FILES etc/install-script" ;;
     "dist/kno-4.3.spec") CONFIG_FILES="$CONFIG_FILES dist/kno-4.3.spec" ;;
     "default") CONFIG_COMMANDS="$CONFIG_COMMANDS default" ;;

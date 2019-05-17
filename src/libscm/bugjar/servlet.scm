@@ -3,7 +3,7 @@
 
 (in-module 'bugjar/servlet)
 
-(use-module '{fdweb xhtml texttools})
+(use-module '{webtools xhtml texttools})
 (use-module '{varconfig logger})
 (use-module '{gpath condense})
 (use-module '{bugjar bugjar/html})

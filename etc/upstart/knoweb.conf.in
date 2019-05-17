@@ -1,0 +1,43 @@
+start on (net-device-up and
+          local-filesystems and
+	  runlevel [345] and
+          rc started)
+stop on runlevel [!2345]
+
+author "Ken Haase"
+description "Kno servlets"
+expect none
+console log
+
+pre-start script
+   mkdir -p @servlet_rundir@
+   mkdir -p @logdir@/knoweb
+   chown @webuser@ @servlet_rundir@ @logdir@/knoweb
+   chgrp @admin_group@ @servlet_rundir@ @logdir@/knoweb
+   chmod g+rwx @servlet_rundir@  @logdir@/knoweb
+end script
+
+post-start script
+   for sock in $(find @config_dir@/servlets/ -name "*.sock" -mindepth 1 -maxdepth 1);
+     do if (readlink ${sock}>/dev/null);
+        then touch @servlet_rundir@/`basename ${sock}`.nospawn;
+	     LOGFILE=@servlet_logdir@/`basename ${sock} .sock`.log \
+               knoweb @servlet_rundir@/`basename ${sock}` CONFIG=`readlink ${sock}` \
+	         STATEDIR=@servlet_rundir@ RESTART=1 PIDWAIT=no;
+        else touch @servlet_rundir@/`basename ${sock}`.nospawn;
+	     LOGFILE=@servlet_logdir@/`basename ${sock} .sock`.log \
+ 	       knoweb @servlet_rundir@er/`basename ${sock}` CONFIG=${sock} \
+	         STATEDIR=@servlet_rundir@ RESTART=1 PIDWAIT=no; fi;
+     done;
+end script
+
+post-stop script
+   for ppid in @servlet_rundir@/*.ppid;
+       do kill `cat $ppid` || true; 
+          rm -f  @servlet_rundir@/`basename $ppid .ppid`.nospawn
+       done
+end script
+
+
+
+

@@ -15,7 +15,7 @@
 #include "kno/dtype.h"
 #include "kno/tables.h"
 #include "kno/eval.h"
-#include "kno/fdweb.h"
+#include "kno/webtools.h"
 #include "kno/ports.h"
 
 #include <libu8/libu8io.h>
@@ -1663,7 +1663,7 @@ KNO_EXPORT void kno_init_curl_c()
     default_user_agent=u8_strdup(getenv("USERAGENT"));
   else default_user_agent=u8_strdup(default_user_agent);
 
-  module = kno_new_module("FDWEB",(0));
+  module = kno_new_module("WEBTOOLS",(0));
 
   kno_curl_type = kno_register_cons_type("CURLHANDLE");
   kno_recyclers[kno_curl_type]=recycle_curl_handle;

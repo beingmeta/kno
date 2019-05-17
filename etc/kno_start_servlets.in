@@ -13,7 +13,7 @@ fi;
 export KNO_LAUNCHER=${KNO_LAUNCHER:-kno_start_servlets} 
 export LAUNCHCFG="LAUNCHER=${KNO_LAUNCHER}" 
 export COMMONCFG="RESTART=1 PIDWAIT=no STEALSOCKETS=yes" 
-export KNOSRV=@BINDIR@/knosrv
+export KNOWEB=@BINDIR@/knoweb
 export RUNDIR=@servlet_rundir@
 export U8RUNFLAGS="RUNDIR=${RUNDIR} RESTART=always WAIT=1 BACKOFF=5 MAXWAIT=60";
 export SERVLETCFG="${COMMONCFG} STATEDIR=${RUNDIR} FDSTART=${ROOTDIR} BUGDIR=@bugjar@";
@@ -35,7 +35,7 @@ servlet ( ) {
     echo "Starting servlet manager ${name} for ${file}";
     if (${READLINK} ${file}>/dev/null); then
 	u8run ${DAEMON} ${name} ${U8RUNFLAGS} \
-	      ${KNOSRV} @servlet_rundir@/${name}.sock ${LAUNCHCFG} \
+	      ${KNOWEB} @servlet_rundir@/${name}.sock ${LAUNCHCFG} \
 	      RUNDIR=@servlet_rundir@ LOGFILE=@servlet_logdir@/${name}.log \
 	      CONFIG=`${READLINK} ${file}` ${SERVLETCFG} ${XARGS};
     else echo "Missing servlet controller "${file} " linked to " `readlink -m ${file}`;

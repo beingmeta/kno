@@ -1,4 +1,4 @@
-(use-module '{fdweb jsonout})
+(use-module '{webtools jsonout})
 
 (define string1 "{\"c\": \":SEA\", \"b\": \"bee\", \"a\": 3}")
 

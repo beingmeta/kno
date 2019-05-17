@@ -35,7 +35,7 @@ for TARGET in ${TARGETS}; do
        then sudo touch @servlet_rundir@/`basename ${sock}`.nospawn;
 	    echo "Starting servlet manager for ${sock}";
 	    ${WEBSTART} LOGFILE=@servlet_logdir@/`basename ${sock} .sock`.log \
-		 knosrv @servlet_rundir@/`basename ${sock}` ${LAUNCHCFG} \
+		 knoweb @servlet_rundir@/`basename ${sock}` ${LAUNCHCFG} \
 		 CONFIG=`${READLINK} ${sock}` ${SERVLETCFG} ${XARGS};
        else echo "Missing servlet controller " ${sock} " linked to " `readlink -m ${sock}`;
        fi;
@@ -48,7 +48,7 @@ for TARGET in ${TARGETS}; do
        then sudo touch @servlet_rundir@/`basename ${cfg} .cfg`.nospawn;
 	    echo "Starting servlet manager using ${cfg}";
 	    ${WEBSTART} LOGFILE=@servlet_logdir@/`basename ${cfg} .cfg`.log \
-		 knosrv @servlet_rundir@/`basename ${cfg} .cfg`.sock ${LAUNCHCFG} \
+		 knoweb @servlet_rundir@/`basename ${cfg} .cfg`.sock ${LAUNCHCFG} \
 		 CONFIG=`${READLINK} ${cfg}` ${SERVLETCFG} ${XARGS};
        else echo "Missing servlet controller " ${cfg} " linked to missing " `readlink -m ${cfg}`;
        fi;
@@ -61,7 +61,7 @@ for TARGET in ${TARGETS}; do
        then sudo touch @servlet_rundir@/`basename ${addr}`.nospawn;
 	    echo "Starting servlet manager using ${addr}";
 	    ${WEBSTART} LOGFILE=@servlet_logdir@/`basename ${addr}`.log \
-		 knosrv @servlet_rundir@/`basename ${addr}` ${LAUNCHCFG} \
+		 knoweb @servlet_rundir@/`basename ${addr}` ${LAUNCHCFG} \
 		 CONFIG=`${READLINK} ${addr}` ${SERVLETCFG} ${XARGS};
        else echo "Missing servlet controller " ${addr} " linked to missing " `readlink -m ${addr}`;
        fi;
@@ -74,11 +74,11 @@ for TARGET in ${TARGETS}; do
     do if (readlink ${addr}>/dev/null);
        then echo "Starting servlet manager for ${addr}";
 	    ${WEBSTART} LOGFILE=@servlet_logdir@/${addr}.log \
-			knosrv `basename ${addr}` \
+			knoweb `basename ${addr}` \
 			${LAUNCHCFG} CONFIG=`readlink ${addr}` ${SERVLETCFG} ${XARGS};
        else echo "Starting servlet manager for ${addr}";
 	    ${WEBSTART} LOGFILE=@servlet_logdir@/${addr}.log \
-			knosrv `basename ${addr}`        \
+			knoweb `basename ${addr}`        \
 			${LAUNCHCFG} CONFIG=${addr} ${SERVLETCFG} ${XARGS};
        fi;
     done;

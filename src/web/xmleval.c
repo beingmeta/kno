@@ -17,7 +17,7 @@
 #include "kno/eval.h"
 #include "kno/apply.h"
 #include "kno/ports.h"
-#include "kno/fdweb.h"
+#include "kno/webtools.h"
 #include "kno/sequences.h"
 #include "kno/fileprims.h"
 

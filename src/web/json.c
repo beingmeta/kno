@@ -16,7 +16,7 @@
 #include "kno/eval.h"
 #include "kno/tables.h"
 #include "kno/ports.h"
-#include "kno/fdweb.h"
+#include "kno/webtools.h"
 
 #include <libu8/u8xfiles.h>
 
@@ -601,8 +601,8 @@ static lispval jsonstring(lispval x,lispval flags_arg,lispval slotfn,
 
 KNO_EXPORT void kno_init_json_c()
 {
-  lispval module = kno_new_module("FDWEB",(KNO_MODULE_SAFE));
-  lispval unsafe_module = kno_new_module("FDWEB",0);
+  lispval module = kno_new_module("WEBTOOLS",(KNO_MODULE_SAFE));
+  lispval unsafe_module = kno_new_module("WEBTOOLS",0);
 
   kno_idefn3(module,"JSONPARSE",jsonparseprim,1,
             "(JSONPARSE *string*) Parse the JSON in *string* into a LISP object",

@@ -6,9 +6,9 @@ LIBRARY=${5:-/Library}
 ETC=${6:-/etc}
 if test -d ${LIBRARY}/StartupItems -a -f ${ETC}/hostconfig;  
    then ${INSTALL_DIR} /Library/StartupItems/FramerD;
-	${INSTALL_EXE} etc/OSXStartupItem/FramerD \
+	${INSTALL_EXE} etc/macos/OSXStartupItem/FramerD \
 		       ${LIBRARY}/StartupItems/FramerD;             
-	${INSTALL_FILE} etc/OSXStartupItem/StartupParameters.plist \
+	${INSTALL_FILE} etc/macos/OSXStartupItem/StartupParameters.plist \
 		        ${LIBRARY}/StartupItems/FramerD;
 	if grep "^FRAMERD=" ${ETC}/hostconfig;                  
 	   then echo "!!! Not overriding existing FRAMERD hostconfig";

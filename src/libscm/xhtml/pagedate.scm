@@ -4,7 +4,7 @@
 
 (in-module 'xhtml/pagedate)
 
-(use-module '{fdweb})
+(use-module '{webtools})
 
 (module-export! '{pagedate pagedate!})
 
