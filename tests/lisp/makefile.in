@@ -284,7 +284,7 @@ $(TESTBIN): ../../src/storage/streams.o ../../lib/libknocore@suffix@.a
 %.shared: %.c
 	@echo MKTEST_SHARED $@
 	@$(CC) $(CFLAGS) $(EXEFLAGS) $(LDFLAGS) -o $@ $^ \
-		../../src/storage/streams.o $(LIBS) -lfdcore@suffix@ \
+		../../src/storage/streams.o $(LIBS) -lknocore@suffix@ \
 		$(LIBS) $(EXELIBS)
 
 ../../lib/libknocore@suffix@.a:

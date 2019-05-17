@@ -76,7 +76,7 @@ $(TESTBIN): ../../lib/libknodrivers@suffix@.a 	\
 %.shared: %.c
 	@echo MKTEST_SHARED $@
 	@$(CC) $(CFLAGS) $(EXEFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) $(EXELIBS) \
-		-lfdcore@suffix@ -lfdstorage@suffix@ -lfddrivers@suffix@ $(LIBS) $(EXELIBS)
+		-lknocore@suffix@ -lknostorage@suffix@ -lknodrivers@suffix@ $(LIBS) $(EXELIBS)
 ../../lib/libknocore@suffix@.a:
 	cd ../..; make lib/libknocore@suffix@.a
 ../../lib/libknostorage@suffix@.a:
