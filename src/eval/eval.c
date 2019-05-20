@@ -70,20 +70,6 @@ u8_condition
 
 /* Reading from expressions */
 
-static lispval getsym(u8_string s)
-{
-  u8_string scan = s;
-  size_t len = strlen(s);
-  if (len == 0) return kno_intern("");
-  U8_STATIC_OUTPUT(lower,len);
-  int c = u8_sgetc(&scan);
-  while (c >= 0) {
-    int lowered = u8_tolower(c);
-    u8_putc(&lower,lowered);
-    c=u8_sgetc(&scan);}
-  return kno_intern(lower.u8_outbuf);
-}
-
 KNO_EXPORT lispval _kno_get_arg(lispval expr,int i)
 {
   return kno_get_arg(expr,i);
@@ -1040,7 +1026,7 @@ KNO_EXPORT void kno_defspecial(lispval mod,u8_string name,kno_eval_handler fn)
   f->evalfn_name = u8_strdup(name);
   f->evalfn_handler = fn;
   f->evalfn_filename = NULL;
-  kno_store(mod,kno_symbolize(name),LISP_CONS(f));
+  kno_store(mod,kno_getsym(name),LISP_CONS(f));
   f->evalfn_moduleid = kno_get(mod,moduleid_symbol,KNO_VOID);
   kno_decref(LISP_CONS(f));
 }
@@ -1055,7 +1041,7 @@ KNO_EXPORT void kno_new_evalfn(lispval mod,u8_string name,
   f->evalfn_handler = fn;
   f->evalfn_filename = filename;
   f->evalfn_documentation = doc;
-  kno_store(mod,kno_symbolize(name),LISP_CONS(f));
+  kno_store(mod,kno_getsym(name),LISP_CONS(f));
   f->evalfn_moduleid = kno_get(mod,moduleid_symbol,KNO_VOID);
   kno_decref(LISP_CONS(f));
 }

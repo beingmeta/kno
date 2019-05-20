@@ -211,7 +211,7 @@ KNO_EXPORT lispval _fdbg_get_stack_var(void *arg,u8_string varname)
 {
   struct KNO_STACK *stack=_get_stack_frame(arg);
   if (stack->stack_env) {
-    lispval sym = kno_symbolize(varname);
+    lispval sym = kno_getsym(varname);
     return kno_symeval(sym,stack->stack_env);}
   else return KNO_NULL;
 }

@@ -442,7 +442,7 @@ static kno_index procindex_create(u8_string spec,void *type_data,
 
 KNO_EXPORT void kno_register_procindex(u8_string typename,lispval handlers)
 {
-  lispval typesym = kno_symbolize(typename);
+  lispval typesym = kno_getsym(typename);
   struct KNO_PROCINDEX_METHODS *methods = u8_alloc(struct KNO_PROCINDEX_METHODS);
 
   memset(methods,0,sizeof(struct KNO_PROCINDEX_METHODS));

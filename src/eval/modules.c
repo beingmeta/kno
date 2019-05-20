@@ -171,7 +171,7 @@ KNO_EXPORT lispval kno_new_module(char *name,int flags)
 {
   lispval module_name, module, as_stored;
   if (kno_scheme_initialized==0) kno_init_scheme();
-  module_name = kno_symbolize(name);
+  module_name = kno_getsym(name);
   module = kno_make_hashtable(NULL,0);
   kno_add(module,moduleid_symbol,module_name);
   if (flags&KNO_MODULE_SAFE)

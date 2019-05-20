@@ -198,8 +198,8 @@ static lispval json_intern(U8_INPUT *in,int flags)
     return result;}
   else {
     lispval result = (((good_symbol)&&(out.u8_write-out.u8_outbuf))?
-                   (kno_parse(out.u8_outbuf)):
-                   (kno_stream_string(&out)));
+                      (kno_parse(out.u8_outbuf)):
+                      (kno_stream_string(&out)));
     if (KNO_ABORTP(result))
       result = parse_error(&out,result,flags&KNO_JSON_VERBOSE);
     if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);

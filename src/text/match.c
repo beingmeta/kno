@@ -226,20 +226,6 @@ kno_ptr_type kno_txclosure_type;
 static lispval subst_symbol;
 static lispval match_env;
 
-static lispval getsym(u8_string s)
-{
-  u8_string scan = s;
-  size_t len = strlen(s);
-  if (len == 0) return kno_intern("");
-  U8_STATIC_OUTPUT(lower,len);
-  int c = u8_sgetc(&scan);
-  while (c >= 0) {
-    int lowered = u8_tolower(c);
-    u8_putc(&lower,lowered);
-    c=u8_sgetc(&scan);}
-  return kno_intern(lower.u8_outbuf);
-}
-
 #define string_ref(s) ((*(s) < 0x80) ? (*(s)) : (u8_string_ref(s)))
 
 #define KNO_MATCH_SPECIAL \
@@ -369,7 +355,7 @@ void kno_add_match_operator
   (u8_string label,
    tx_matchfn matcher,tx_searchfn searcher,tx_extractfn extract)
 {
-  lispval sym = kno_symbolize(label);
+  lispval sym = kno_getsym(label);
   struct KNO_TEXTMATCH_OPERATOR *scan = match_operators, *limit = scan+n_match_operators;
   while (scan < limit) if (KNO_EQ(scan->kno_matchop,sym)) break; else scan++;
   if (scan < limit) {scan->kno_matcher = matcher; return;}

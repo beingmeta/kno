@@ -2716,7 +2716,7 @@ static void bson_read_step(KNO_BSON_INPUT b,int flags,
     int sc = slotcode((u8_string)field);
     if (sc<0) slotid = kno_make_string(NULL,-1,(unsigned char *)field);
     else if (sc==0) {
-      slotid = kno_symbolize((unsigned char *)field);
+      slotid = kno_getsym((unsigned char *)field);
       symbolized = 1;}
     else slotid = kno_intern((unsigned char *)field);}
   else slotid = kno_make_string(NULL,-1,(unsigned char *)field);
@@ -3020,7 +3020,7 @@ static lispval mongovecp(lispval arg)
 
 static void add_to_mongo_opmap(u8_string keystring)
 {
-  lispval key = kno_symbolize(keystring);
+  lispval key = kno_getsym(keystring);
   struct KNO_KEYVAL *entry=
     kno_sortvec_insert(key,&mongo_opmap,
                       &mongo_opmap_size,

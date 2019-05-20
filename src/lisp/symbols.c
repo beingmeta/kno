@@ -265,7 +265,7 @@ KNO_EXPORT lispval kno_intern(u8_string string)
   return kno_make_symbol(string,strlen(string));
 }
 
-KNO_EXPORT lispval kno_symbolize(u8_string string)
+KNO_EXPORT lispval kno_getsym(u8_string string)
 {
   const u8_byte *scan = string;
   U8_STATIC_OUTPUT(name,64);

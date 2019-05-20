@@ -419,7 +419,7 @@ static kno_pool procpool_create(u8_string spec,void *type_data,
 
 KNO_EXPORT void kno_register_procpool(u8_string typename,lispval handlers)
 {
-  lispval typesym = kno_symbolize(typename);
+  lispval typesym = kno_getsym(typename);
   struct KNO_PROCPOOL_METHODS *methods = u8_alloc(struct KNO_PROCPOOL_METHODS);
 
   memset(methods,0,sizeof(struct KNO_PROCPOOL_METHODS));

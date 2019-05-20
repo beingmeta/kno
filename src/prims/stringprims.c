@@ -597,7 +597,7 @@ static lispval symbolize_cprim(lispval arg)
   if (KNO_SYMBOLP(arg))
     return arg;
   else if (KNO_STRINGP(arg))
-    return kno_symbolize(KNO_CSTRING(arg));
+    return kno_getsym(KNO_CSTRING(arg));
   else return kno_err("NotAString","symbolize_cprim",NULL,arg);
 }
 

@@ -145,17 +145,17 @@ static lispval procedure_symbol(lispval x)
   if (KNO_APPLICABLEP(x)) {
     struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
     if (f->fcn_name)
-      return kno_symbolize(f->fcn_name);
+      return kno_getsym(f->fcn_name);
     else return KNO_FALSE;}
   else if (TYPEP(x,kno_evalfn_type)) {
     struct KNO_EVALFN *sf = GETEVALFN(x);
     if (sf->evalfn_name)
-      return kno_symbolize(sf->evalfn_name);
+      return kno_getsym(sf->evalfn_name);
     else return KNO_FALSE;}
   else if (TYPEP(x,kno_macro_type)) {
     struct KNO_MACRO *m = (kno_macro) x;
     if (m->macro_name)
-      return kno_symbolize(m->macro_name);
+      return kno_getsym(m->macro_name);
     else return KNO_FALSE;}
   else return kno_type_error(_("function"),"procedure_symbol",x);
 }

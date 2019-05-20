@@ -1144,24 +1144,10 @@ static void recycle_tail_call(struct KNO_RAW_CONS *c)
 
 static u8_condition DefnFailed=_("Definition Failed");
 
-static lispval getsym(u8_string s)
-{
-  u8_string scan = s;
-  size_t len = strlen(s);
-  if (len == 0) return kno_intern("");
-  U8_STATIC_OUTPUT(lower,len);
-  int c = u8_sgetc(&scan);
-  while (c >= 0) {
-    int lowered = u8_tolower(c);
-    u8_putc(&lower,lowered);
-    c=u8_sgetc(&scan);}
-  return kno_intern(lower.u8_outbuf);
-}
-
 KNO_EXPORT void kno_defn(lispval table,lispval fcn)
 {
   struct KNO_FUNCTION *f = kno_consptr(struct KNO_FUNCTION *,fcn,kno_cprim_type);
-  if (kno_store(table,kno_symbolize(f->fcn_name),fcn)<0)
+  if (kno_store(table,kno_getsym(f->fcn_name),fcn)<0)
     u8_raise(DefnFailed,"kno_defn",NULL);
   if ( (KNO_NULLP(f->fcn_moduleid)) || (KNO_VOIDP(f->fcn_moduleid)) ) {
     lispval moduleid = kno_get(table,moduleid_symbol,KNO_VOID);
@@ -1171,7 +1157,7 @@ KNO_EXPORT void kno_defn(lispval table,lispval fcn)
 KNO_EXPORT void kno_idefn(lispval table,lispval fcn)
 {
   struct KNO_FUNCTION *f = kno_consptr(struct KNO_FUNCTION *,fcn,kno_cprim_type);
-  if (kno_store(table,kno_symbolize(f->fcn_name),fcn)<0)
+  if (kno_store(table,kno_getsym(f->fcn_name),fcn)<0)
     u8_raise(DefnFailed,"kno_defn",NULL);
   if ( (KNO_NULLP(f->fcn_moduleid)) || (KNO_VOIDP(f->fcn_moduleid)) ) {
     lispval moduleid = kno_get(table,moduleid_symbol,KNO_VOID);
@@ -1181,8 +1167,8 @@ KNO_EXPORT void kno_idefn(lispval table,lispval fcn)
 
 KNO_EXPORT void kno_defalias(lispval table,u8_string to,u8_string from)
 {
-  lispval to_symbol = kno_symbolize(to);
-  lispval from_symbol = kno_symbolize(from);
+  lispval to_symbol = kno_getsym(to);
+  lispval from_symbol = kno_getsym(from);
   lispval v = kno_get(table,from_symbol,VOID);
   kno_store(table,to_symbol,v);
   kno_decref(v);
@@ -1192,8 +1178,8 @@ KNO_EXPORT void kno_defalias2(lispval table,
                             u8_string to,lispval src,
                             u8_string from)
 {
-  lispval to_symbol = kno_symbolize(to);
-  lispval from_symbol = kno_symbolize(from);
+  lispval to_symbol = kno_getsym(to);
+  lispval from_symbol = kno_getsym(from);
   lispval v = kno_get(src,from_symbol,VOID);
   kno_store(table,to_symbol,v);
   kno_decref(v);
@@ -1241,7 +1227,7 @@ KNO_EXPORT void kno_init_apply_c()
   int i = 0; while (i < KNO_TYPE_MAX) kno_applyfns[i++]=NULL;
   i = 0; while (i < KNO_TYPE_MAX) kno_functionp[i++]=0;
 
-  moduleid_symbol = kno_symbolize("%MODULEID");
+  moduleid_symbol = kno_getsym("%MODULEID");
 
   kno_functionp[kno_fcnid_type]=1;
 
