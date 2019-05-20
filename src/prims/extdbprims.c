@@ -311,12 +311,12 @@ KNO_EXPORT void kno_init_extdbprims_c()
   if (extdb_initialized) return;
   extdb_initialized = 1;
   kno_init_scheme();
-  extdb_module = kno_new_cmodule("EXTDB",(0),kno_init_extdbprims_c);
+  extdb_module = kno_new_cmodule("extdb",(0),kno_init_extdbprims_c);
   u8_register_source_file(_FILEINFO);
 
   u8_init_mutex(&extdb_handlers_lock);
 
-  exec_enabled_symbol = kno_intern("%EXECOK");
+  exec_enabled_symbol = kno_intern("%execok");
 
   kno_extdb_type = kno_register_cons_type("EXTDB");
   kno_recyclers[kno_extdb_type]=recycle_extdb;

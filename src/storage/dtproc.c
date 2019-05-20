@@ -112,7 +112,7 @@ static lispval dtapply(struct KNO_DTPROC *dtp,int n,lispval *args)
 
 KNO_EXPORT void kno_init_dtproc_c()
 {
-  quote_symbol = kno_intern("QUOTE");
+  quote_symbol = kno_intern("quote");
 
   u8_register_source_file(_FILEINFO);
   u8_register_source_file(KNO_DTPROC_H_INFO);

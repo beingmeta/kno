@@ -420,9 +420,9 @@
   "so it's relatively generic."
   (+ x y))
 
-(applytest "`(ADD2NUMBERS x y)`\nThis procedure adds 2 numbers and returns the result"
+(applytest "`(add2numbers x y)`\nThis procedure adds 2 numbers and returns the result"
 	   procedure-documentation add2numbers)
-(applytest "`(ADD2NUMBERS.LONGDOC x y)`\nThis procedure adds 2 numbers and returns the result.\nIt uses the underlying +/-/etc arithmetic operators, \nso it's relatively generic."
+(applytest "`(add2numbers.longdoc x y)`\nThis procedure adds 2 numbers and returns the result.\nIt uses the underlying +/-/etc arithmetic operators, \nso it's relatively generic."
 	   procedure-documentation add2numbers.longdoc)
 
 ;; This checks a bug where errors in an else were ignored

@@ -523,7 +523,7 @@ KNO_EXPORT void kno_init_binders_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  moduleid_symbol = kno_intern("%MODULEID");
+  moduleid_symbol = kno_intern("%moduleid");
 
   u8_init_mutex(&sassign_lock);
 

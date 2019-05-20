@@ -685,7 +685,7 @@ KNO_EXPORT void kno_init_oidobj_c()
 
   kno_adjunct_slotids = EMPTY;
 
-  padjslotid=kno_intern("%ADJUNCT_SLOTID");
+  padjslotid=kno_intern("%adjunct_slotid");
 
   /* Table functions for OIDs */
   kno_tablefns[kno_oid_type]=u8_alloc(struct KNO_TABLEFNS);

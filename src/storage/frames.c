@@ -711,11 +711,11 @@ KNO_EXPORT void kno_init_frames_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  get_methods = kno_intern("GET-METHODS");
-  compute_methods = kno_intern("COMPUTE-METHODS");
-  test_methods = kno_intern("TEST-METHODS");
-  add_effects = kno_intern("ADD-EFFECTS");
-  drop_effects = kno_intern("DROP-EFFECTS");
+  get_methods = kno_intern("get-methods");
+  compute_methods = kno_intern("compute-methods");
+  test_methods = kno_intern("test-methods");
+  add_effects = kno_intern("add-effects");
+  drop_effects = kno_intern("drop-effects");
 
   KNO_INIT_STATIC_CONS(&slot_caches,kno_hashtable_type);
   KNO_INIT_STATIC_CONS(&test_caches,kno_hashtable_type);

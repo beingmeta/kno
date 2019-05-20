@@ -619,7 +619,7 @@ KNO_EXPORT void kno_init_dtwrite_c()
 
   kno_dtype_writers[kno_compound_type]=dtype_compound;
 
-  error_symbol = kno_intern("%ERROR");
+  error_symbol = kno_intern("%error");
 
   kno_compound_unparser("%OPAQUE",opaque_unparser);
 

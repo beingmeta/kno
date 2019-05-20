@@ -90,11 +90,11 @@ kno_index kno_make_procindex(lispval opts,lispval state,
                  v,id);
     kno_decref(v);}
 
-  if (kno_testopt(opts,kno_intern("READONLY"),KNO_VOID))
+  if (kno_testopt(opts,kno_intern("readonly"),KNO_VOID))
     flags |= KNO_STORAGE_READ_ONLY;
-  if (!(kno_testopt(opts,kno_intern("REGISTER"),KNO_VOID)))
+  if (!(kno_testopt(opts,kno_intern("register"),KNO_VOID)))
     flags |= KNO_STORAGE_UNREGISTERED;
-  if (kno_testopt(opts,kno_intern("BACKGROUND"),KNO_VOID)) {
+  if (kno_testopt(opts,kno_intern("background"),KNO_VOID)) {
     flags |= KNO_INDEX_IN_BACKGROUND;
     flags &= ~KNO_STORAGE_UNREGISTERED;}
 
@@ -111,7 +111,7 @@ kno_index kno_make_procindex(lispval opts,lispval state,
     kno_copy_slotmap((kno_slotmap)init_metadata,index_metadata);}
   kno_decref(init_metadata);
 
-  pix->index_opts = kno_getopt(opts,kno_intern("OPTS"),KNO_FALSE);
+  pix->index_opts = kno_getopt(opts,kno_intern("opts"),KNO_FALSE);
   pix->index_cache_level = cache_level;
   pix->index_methods     = methods;
 

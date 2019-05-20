@@ -836,8 +836,8 @@ int main(int argc,char **argv)
     u8_default_appid("fdshell");
   else u8_default_appid(argv[0]);
   setlocale(LC_ALL,"");
-  that_symbol = kno_intern("THAT");
-  histref_symbol = kno_intern("%HISTREF");
+  that_symbol = kno_intern("that");
+  histref_symbol = kno_intern("%histref");
   command_tag = kno_intern(".command.");
 
   /* Process config fields in the arguments,
@@ -903,8 +903,8 @@ int main(int argc,char **argv)
   kno_defspecial((lispval)env,"%HISTREF",histref_evalfn);
   kno_idefn0((lispval)env,"%HISTORY",history_prim,
             "Returns the current history object");
-  history_symbol = kno_intern("%HISTORY");
-  histref_symbol = kno_intern("%HISTREF");
+  history_symbol = kno_intern("%history");
+  histref_symbol = kno_intern("%histref");
 
   kno_set_config("BOOTED",kno_time2timestamp(boot_time));
   run_start = u8_elapsed_time();
@@ -954,7 +954,7 @@ int main(int argc,char **argv)
 
   kno_set_config("SIGRAISE",KNO_INT(SIGINT));
 
-  lispval _err_symbol = kno_intern("_ERR");
+  lispval _err_symbol = kno_intern("_err");
   kno_bind_value(_err_symbol,KNO_FALSE,env);
 
   while (1) { /* ((c = skip_whitespace((u8_input)in))>=0) */

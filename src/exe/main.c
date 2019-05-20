@@ -105,7 +105,7 @@ static void stack_frame_label(u8_output out,struct KNO_STACK *stack)
 
 KNO_EXPORT void _fdbg_show_env(kno_lexenv start,int limit)
 {
-  lispval moduleid = kno_intern("%MODULEID");
+  lispval moduleid = kno_intern("%moduleid");
   int depth = 0;
   kno_lexenv env=start;
   if (limit<0)  {

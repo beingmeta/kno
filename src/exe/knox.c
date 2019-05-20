@@ -225,7 +225,7 @@ int do_main(int argc,char **argv,
 
   kno_set_app_env(env);
 
-  main_symbol = real_main = kno_intern("MAIN");
+  main_symbol = real_main = kno_intern("main");
 
   kno_register_config
     ("DEBUGMAXCHARS",

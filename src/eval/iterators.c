@@ -388,8 +388,8 @@ static lispval comment_evalfn(lispval comment_expr,kno_lexenv env,kno_stack stac
 
 KNO_EXPORT void kno_init_iterators_c()
 {
-  moduleid_symbol = kno_intern("%MODULEID");
-  iter_var = kno_intern("%ITER");
+  moduleid_symbol = kno_intern("%moduleid");
+  iter_var = kno_intern("%iter");
 
   u8_register_source_file(_FILEINFO);
 

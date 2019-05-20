@@ -297,17 +297,17 @@ KNO_EXPORT void kno_init_netpool_c()
 
   u8_init_mutex(&client_id_lock);
 
-  pool_data_symbol = kno_intern("POOL-DATA");
-  new_oid_symbol = kno_intern("NEW-OID");
-  oid_value_symbol = kno_intern("OID-VALUE");
-  lock_oid_symbol = kno_intern("LOCK-OID");
-  unlock_oid_symbol = kno_intern("UNLOCK-OID");
-  clear_oid_lock_symbol = kno_intern("CLEAR-OID-LOCK");
-  fetch_oids_symbol = kno_intern("FETCH-OIDS");
-  bulk_commit_symbol = kno_intern("BULK-COMMIT");
-  get_load_symbol = kno_intern("GET-LOAD");
-  boundp = kno_intern("BOUND?");
-  quote_symbol = kno_intern("QUOTE");
+  pool_data_symbol = kno_intern("pool-data");
+  new_oid_symbol = kno_intern("new-oid");
+  oid_value_symbol = kno_intern("oid-value");
+  lock_oid_symbol = kno_intern("lock-oid");
+  unlock_oid_symbol = kno_intern("unlock-oid");
+  clear_oid_lock_symbol = kno_intern("clear-oid-lock");
+  fetch_oids_symbol = kno_intern("fetch-oids");
+  bulk_commit_symbol = kno_intern("bulk-commit");
+  get_load_symbol = kno_intern("get-load");
+  boundp = kno_intern("bound?");
+  quote_symbol = kno_intern("quote");
 
   kno_register_pool_type
     ("network_pool",

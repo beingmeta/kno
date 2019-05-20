@@ -442,13 +442,13 @@ static lispval zipfeatures_prim()
 {
   lispval result = KNO_EMPTY_CHOICE;
 #if (HAVE_ZIP_SET_FILE_EXTRA)
-  KNO_ADD_TO_CHOICE(result,kno_intern("EXTRA"));
+  KNO_ADD_TO_CHOICE(result,kno_intern("extra"));
 #endif
 #if (HAVE_ZIP_SET_FILE_COMMENT)
-  KNO_ADD_TO_CHOICE(result,kno_intern("COMMENT"));
+  KNO_ADD_TO_CHOICE(result,kno_intern("comment"));
 #endif
 #if (HAVE_ZIP_SET_FILE_COMPRESSION)
-  KNO_ADD_TO_CHOICE(result,kno_intern("COMPRESSION"));
+  KNO_ADD_TO_CHOICE(result,kno_intern("compression"));
 #endif
   return result;
 }
@@ -466,7 +466,7 @@ KNO_EXPORT int kno_init_ziptools()
 
   ziptools_init = u8_millitime();
   ziptools_module =
-    kno_new_cmodule("ZIPTOOLS",(KNO_MODULE_SAFE),kno_init_ziptools);
+    kno_new_cmodule("ziptools",(KNO_MODULE_SAFE),kno_init_ziptools);
 
   kno_zipfile_type = kno_register_cons_type("ZIPFILE");
 

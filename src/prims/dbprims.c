@@ -4011,20 +4011,20 @@ KNO_EXPORT void kno_init_dbprims_c()
             kno_bloom_filter_type,VOID);
 
 
-  id_symbol = kno_intern("%ID");
-  padjuncts_symbol = kno_intern("%ADJUNCTS");
-  pools_symbol = kno_intern("POOLS");
-  indexes_symbol = kno_intern("INDEXES");
-  drop_symbol = kno_intern("DROP");
-  flags_symbol = kno_intern("FLAGS");
-  register_symbol = kno_intern("REGISTER");
-  readonly_symbol = kno_intern("READONLY");
-  phased_symbol = kno_intern("PHASED");
+  id_symbol = kno_intern("%id");
+  padjuncts_symbol = kno_intern("%adjuncts");
+  pools_symbol = kno_intern("pools");
+  indexes_symbol = kno_intern("indexes");
+  drop_symbol = kno_intern("drop");
+  flags_symbol = kno_intern("flags");
+  register_symbol = kno_intern("register");
+  readonly_symbol = kno_intern("readonly");
+  phased_symbol = kno_intern("phased");
 
-  sparse_symbol    = kno_intern("SPARSE");
-  adjunct_symbol    = kno_intern("ADJUNCT");
-  background_symbol = kno_intern("BACKGROUND");
-  repair_symbol = kno_intern("REPAIR");
+  sparse_symbol    = kno_intern("sparse");
+  adjunct_symbol    = kno_intern("adjunct");
+  background_symbol = kno_intern("background");
+  repair_symbol = kno_intern("repair");
 
 }
 

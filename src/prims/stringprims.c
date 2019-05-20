@@ -1822,7 +1822,7 @@ KNO_EXPORT void kno_init_stringprims_c()
 
   kno_def_evalfn(kno_scheme_module,"TEXTIF","",textif_evalfn);
 
-  entity_escape = kno_intern("ENTITIES");
+  entity_escape = kno_intern("entities");
 }
 
 /* Emacs local variables

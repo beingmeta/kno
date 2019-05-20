@@ -42,7 +42,7 @@ KNO_EXPORT lispval config_get_build_info(lispval var,void *data)
 
 KNO_EXPORT void kno_init_build_info()
 {
-  _kno_features_symbol=kno_intern("FEATURES");
+  _kno_features_symbol=kno_intern("features");
   if (VOIDP(build_info))
     build_info=kno_make_slotmap(64,0,NULL);
 
@@ -468,11 +468,11 @@ KNO_EXPORT void kno_init_build_info()
 #endif
 
 #if (WORDS_BIGENDIAN)
-  kno_add(build_info,kno_intern("BYTE_ORDER"),
-         kno_intern("LITTLE_ENDIAN"));
+  kno_add(build_info,kno_intern("byte_order"),
+         kno_intern("little_endian"));
 #else
-  kno_add(build_info,kno_intern("BYTE_ORDER"),
-         kno_intern("BIG_ENDIAN"));
+  kno_add(build_info,kno_intern("byte_order"),
+         kno_intern("big_endian"));
 #endif
 
   config_string(KNO_VERSION);

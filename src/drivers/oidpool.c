@@ -1368,30 +1368,30 @@ static void oidpool_setbuf(kno_pool p,ssize_t bufsize)
 static unsigned int get_oidpool_format(kno_storage_flags sflags,lispval opts)
 {
   unsigned int flags = 0;
-  lispval offtype = kno_intern("OFFTYPE");
-  lispval compression = kno_intern("COMPRESSION");
-  if ( kno_testopt(opts,offtype,kno_intern("B64"))  ||
+  lispval offtype = kno_intern("offtype");
+  lispval compression = kno_intern("compression");
+  if ( kno_testopt(opts,offtype,kno_intern("b64"))  ||
        kno_testopt(opts,offtype,KNO_INT(64)))
     flags |= KNO_B64;
-  else if ( kno_testopt(opts,offtype,kno_intern("B40"))  ||
+  else if ( kno_testopt(opts,offtype,kno_intern("b40"))  ||
             kno_testopt(opts,offtype,KNO_INT(40)))
     flags |= KNO_B40;
-  else if ( kno_testopt(opts,offtype,kno_intern("B32"))  ||
+  else if ( kno_testopt(opts,offtype,kno_intern("b32"))  ||
             kno_testopt(opts,offtype,KNO_INT(32)))
     flags |= KNO_B32;
   else flags |= KNO_B40;
 
-  if (kno_testopt(opts,compression,kno_intern("ZLIB")))
+  if (kno_testopt(opts,compression,kno_intern("zlib")))
     flags |= ((KNO_ZLIB)<<3);
   else if (kno_testopt(opts,compression,VOID))
     flags |= ((KNO_ZLIB)<<3);
   else {}
 
-  if (kno_testopt(opts,kno_intern("DTYPEV2"),VOID))
+  if (kno_testopt(opts,kno_intern("dtypev2"),VOID))
     flags |= KNO_OIDPOOL_DTYPEV2;
 
   if ( (sflags) & (KNO_STORAGE_READ_ONLY) ||
-       (kno_testopt(opts,kno_intern("READONLY"),VOID)) )
+       (kno_testopt(opts,kno_intern("readonly"),VOID)) )
     flags |= KNO_OIDPOOL_READ_ONLY;
 
   if ( (kno_testopt(opts,FDSYM_ISADJUNCT,VOID)) ||
@@ -1399,7 +1399,7 @@ static unsigned int get_oidpool_format(kno_storage_flags sflags,lispval opts)
     flags |= KNO_OIDPOOL_ADJUNCT;
 
   if ( (sflags) & (KNO_POOL_ADJUNCT) ||
-       (kno_testopt(opts,kno_intern("SPARSE"),VOID)) )
+       (kno_testopt(opts,kno_intern("sparse"),VOID)) )
     flags |= KNO_OIDPOOL_SPARSE;
 
 
@@ -1534,11 +1534,11 @@ kno_pool oidpool_create
  kno_storage_flags storage_flags,
  lispval opts)
 {
-  lispval base_oid = kno_getopt(opts,kno_intern("BASE"),VOID);
-  lispval capacity_arg = kno_getopt(opts,kno_intern("CAPACITY"),VOID);
-  lispval load_arg = kno_getopt(opts,kno_intern("LOAD"),KNO_FIXZERO);
+  lispval base_oid = kno_getopt(opts,kno_intern("base"),VOID);
+  lispval capacity_arg = kno_getopt(opts,kno_intern("capacity"),VOID);
+  lispval load_arg = kno_getopt(opts,kno_intern("load"),KNO_FIXZERO);
   lispval label = kno_getopt(opts,FDSYM_LABEL,VOID);
-  lispval schemas = kno_getopt(opts,kno_intern("SCHEMAS"),VOID);
+  lispval schemas = kno_getopt(opts,kno_intern("schemas"),VOID);
   unsigned int capacity, load;
   int rv = 0;
   if (u8_file_existsp(spec)) {

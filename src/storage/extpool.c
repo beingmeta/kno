@@ -268,8 +268,8 @@ struct KNO_POOL_HANDLER kno_extpool_handler={
 
 KNO_EXPORT void kno_init_extpool_c()
 {
-  lock_symbol = kno_intern("LOCK");
-  unlock_symbol = kno_intern("UNLOCK");
+  lock_symbol = kno_intern("lock");
+  unlock_symbol = kno_intern("unlock");
 
   u8_register_source_file(_FILEINFO);
 }

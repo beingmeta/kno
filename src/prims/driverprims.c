@@ -191,13 +191,13 @@ KNO_EXPORT void kno_init_driverfns_c()
 {
   lispval driverfns_module;
 
-  baseoids_symbol = kno_intern("%BASEOIDS");
+  baseoids_symbol = kno_intern("%baseoids");
 
   if (scheme_driverfns_initialized) return;
   scheme_driverfns_initialized = 1;
   kno_init_scheme();
   kno_init_drivers();
-  driverfns_module = kno_new_cmodule("DRIVERFNS",(KNO_MODULE_DEFAULT),
+  driverfns_module = kno_new_cmodule("driverfns",(KNO_MODULE_DEFAULT),
                                     kno_init_driverfns_c);
   u8_register_source_file(_FILEINFO);
 

@@ -635,13 +635,13 @@ KNO_EXPORT void kno_init_json_c()
             -1,VOID,-1,KNO_INT(KNO_JSON_DEFAULTS),
             -1,VOID,-1,VOID,-1,VOID);
 
-  symbolize_symbol=kno_intern("SYMBOLIZE");
-  colonize_symbol=kno_intern("COLONIZE");
-  rawids_symbol=kno_intern("RAWIDS");
-  ticks_symbol=kno_intern("TICKS");
-  ticklets_symbol=kno_intern("TICKLETS");
-  verbose_symbol=kno_intern("VERBOSE");
-  strict_symbol=kno_intern("STRICT");
+  symbolize_symbol=kno_intern("symbolize");
+  colonize_symbol=kno_intern("colonize");
+  rawids_symbol=kno_intern("rawids");
+  ticks_symbol=kno_intern("ticks");
+  ticklets_symbol=kno_intern("ticklets");
+  verbose_symbol=kno_intern("verbose");
+  strict_symbol=kno_intern("strict");
 
   u8_register_source_file(_FILEINFO);
 }

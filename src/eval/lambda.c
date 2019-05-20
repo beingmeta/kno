@@ -1009,10 +1009,10 @@ KNO_EXPORT void kno_init_lambdas_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  tail_symbol = kno_intern("%TAIL");
-  decls_symbol = kno_intern("%DECLS");
-  flags_symbol = kno_intern("FLAGS");
-  moduleid_symbol = kno_intern("%MODULEID");
+  tail_symbol = kno_intern("%tail");
+  decls_symbol = kno_intern("%decls");
+  flags_symbol = kno_intern("flags");
+  moduleid_symbol = kno_intern("%moduleid");
 
   kno_applyfns[kno_lambda_type]=apply_lambda;
   kno_functionp[kno_lambda_type]=1;

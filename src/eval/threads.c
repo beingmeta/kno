@@ -1103,9 +1103,9 @@ KNO_EXPORT void kno_init_threads_c()
             "wait for the result, use THREAD/JOIN.",
             kno_thread_type,VOID);
 
-  timeout_symbol = kno_intern("TIMEOUT");
-  logexit_symbol = kno_intern("LOGEXIT");
-  void_symbol = kno_intern("VOID");
+  timeout_symbol = kno_intern("timeout");
+  logexit_symbol = kno_intern("logexit");
+  void_symbol = kno_intern("void");
 
   kno_idefn(kno_scheme_module,kno_make_cprim0("MAKE-CONDVAR",make_condvar));
   kno_idefn(kno_scheme_module,kno_make_cprim2("CONDVAR-WAIT",condvar_wait,1));

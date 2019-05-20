@@ -104,13 +104,13 @@ kno_pool kno_make_procpool(KNO_OID base,
     kno_decref(v);}
 
   flags |= KNO_POOL_SPARSE;
-  if (kno_testopt(opts,kno_intern("ADJUNCT"),KNO_VOID))
+  if (kno_testopt(opts,kno_intern("adjunct"),KNO_VOID))
     flags |= KNO_POOL_ADJUNCT;
-  if (kno_testopt(opts,kno_intern("READONLY"),KNO_VOID))
+  if (kno_testopt(opts,kno_intern("readonly"),KNO_VOID))
     flags |= KNO_STORAGE_READ_ONLY;
-  if (kno_testopt(opts,kno_intern("VIRTUAL"),KNO_VOID))
+  if (kno_testopt(opts,kno_intern("virtual"),KNO_VOID))
     flags |= KNO_STORAGE_VIRTUAL;
-  lispval rval = kno_getopt(opts,kno_intern("REGISTER"),KNO_VOID);
+  lispval rval = kno_getopt(opts,kno_intern("register"),KNO_VOID);
   if (KNO_FALSEP(rval))
     flags |= KNO_STORAGE_UNREGISTERED;
   else kno_decref(rval);
@@ -126,7 +126,7 @@ kno_pool kno_make_procpool(KNO_OID base,
   pp->pool_label = u8_strdup(label);
   pp->pool_cache_level = cache_level;
 
-  if (kno_testopt(opts,kno_intern("TYPEID"),VOID)) {
+  if (kno_testopt(opts,kno_intern("typeid"),VOID)) {
     lispval idval = poolopt(opts,"TYPEID");
     if (STRINGP(idval))
       pp->pool_typeid = u8_strdup(CSTRING(idval));

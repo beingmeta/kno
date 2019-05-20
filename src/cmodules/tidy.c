@@ -255,11 +255,11 @@ KNO_EXPORT int kno_init_tidy()
   if (tidy_init) return 0;
 
   tidy_init = u8_millitime();
-  doctype_symbol = kno_intern("DOCTYPE");
-  dontfix_symbol = kno_intern("DONTFIX");
-  xhtml_symbol = kno_intern("XHTML");
-  wrap_symbol = kno_intern("WRAP");
-  tidy_module = kno_new_cmodule("TIDY",(KNO_MODULE_SAFE),kno_init_tidy);
+  doctype_symbol = kno_intern("doctype");
+  dontfix_symbol = kno_intern("dontfix");
+  xhtml_symbol = kno_intern("xhtml");
+  wrap_symbol = kno_intern("wrap");
+  tidy_module = kno_new_cmodule("tidy",(KNO_MODULE_SAFE),kno_init_tidy);
 
   kno_idefn(tidy_module,
            kno_make_cprim3x("TIDY5",tidy_prim,1,

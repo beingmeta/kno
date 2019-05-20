@@ -837,7 +837,7 @@ KNO_EXPORT void kno_init_procprims_c()
   scheme_procprims_initialized = 1;
   kno_init_scheme();
   procprims_module =
-    kno_new_cmodule("PROCPRIMS",(KNO_MODULE_DEFAULT),kno_init_procprims_c);
+    kno_new_cmodule("procprims",(KNO_MODULE_DEFAULT),kno_init_procprims_c);
   u8_register_source_file(_FILEINFO);
 
   init_rlimit_codes();
@@ -862,11 +862,11 @@ KNO_EXPORT void kno_init_procprims_c()
   kno_unparsers[kno_subjob_type] = unparse_subjob;
   kno_recyclers[kno_subjob_type] = recycle_subjob;
 
-  id_symbol = kno_intern("ID");
-  stdin_symbol = kno_intern("STDIN");
-  stdout_symbol = kno_intern("STDOUT");
-  stderr_symbol = kno_intern("STDERR");
-  nice_symbol = kno_intern("NICE");
+  id_symbol = kno_intern("id");
+  stdin_symbol = kno_intern("stdin");
+  stdout_symbol = kno_intern("stdout");
+  stderr_symbol = kno_intern("stderr");
+  nice_symbol = kno_intern("nice");
 
   DECL_PRIM_N(subjob_open,procprims_module);
 

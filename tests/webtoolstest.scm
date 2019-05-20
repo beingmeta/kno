@@ -42,6 +42,6 @@
 	%QNAME  P %ATTRIBIDS  TITLE 
 	TITLE (%XMLEVAL GLOM 'ALPHA 2 #f 'OMEGA)])))
 (applytester test-result-4 fdxml/parse test-input-4)
-(evaltest "<p title=\"ALPHA2OMEGA\">Two plus three is 5.</p>"
+(evaltest "<p title=\"alpha2omega\">Two plus three is 5.</p>"
 	  (xml->string test-result-4))
 

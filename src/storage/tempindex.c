@@ -151,7 +151,7 @@ KNO_EXPORT void kno_init_tempindex_c()
                          open_tempindex,
                          NULL,
                          NULL);
-  register_symbol = kno_intern("REGISTER");
+  register_symbol = kno_intern("register");
 
   kno_register_config("TEMPINDEX:SIZE","default size for tempindex caches",
                      kno_intconfig_get,kno_intconfig_set,

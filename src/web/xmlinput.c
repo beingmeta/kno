@@ -1227,32 +1227,32 @@ KNO_EXPORT void kno_init_xmlinput_c()
   kno_defn(full_module,xmlparse_prim); kno_idefn(safe_module,xmlparse_prim);
   kno_defn(full_module,fdxml_read_prim); kno_idefn(safe_module,fdxml_read_prim);
 
-  attribs_symbol = kno_intern("%ATTRIBS");
-  type_symbol = kno_intern("%TYPE");
+  attribs_symbol = kno_intern("%attribs");
+  type_symbol = kno_intern("%type");
 
-  namespace_symbol = kno_intern("%NAMESPACE");
-  xmltag_symbol = kno_intern("%XMLTAG");
-  rawtag_symbol = kno_intern("%RAWTAG");
-  qname_symbol = kno_intern("%QNAME");
-  xmlns_symbol = kno_intern("%XMLNS");
-  content_symbol = kno_intern("%CONTENT");
+  namespace_symbol = kno_intern("%namespace");
+  xmltag_symbol = kno_intern("%xmltag");
+  rawtag_symbol = kno_intern("%rawtag");
+  qname_symbol = kno_intern("%qname");
+  xmlns_symbol = kno_intern("%xmlns");
+  content_symbol = kno_intern("%content");
 
-  comment_symbol = kno_intern("%COMMENT");
-  cdata_symbol = kno_intern("%CDATA");
+  comment_symbol = kno_intern("%comment");
+  cdata_symbol = kno_intern("%cdata");
 
-  attribids = kno_intern("%ATTRIBIDS");
+  attribids = kno_intern("%attribids");
 
-  sloppy_symbol = kno_intern("SLOPPY");
-  decode_symbol = kno_intern("DECODE");
-  keepraw_symbol = kno_intern("KEEPRAW");
-  crushspace_symbol = kno_intern("CRUSHSPACE");
-  slotify_symbol = kno_intern("SLOTIFY");
-  nocontents_symbol = kno_intern("NOCONTENTS");
-  ishtml_symbol = kno_intern("HTML");
-  nsfree_symbol = kno_intern("NSFREE");
-  autoclose_symbol = kno_intern("AUTOCLOSE");
-  noempty_symbol = kno_intern("NOEMPTY");
-  data_symbol = kno_intern("DATA");
+  sloppy_symbol = kno_intern("sloppy");
+  decode_symbol = kno_intern("decode");
+  keepraw_symbol = kno_intern("keepraw");
+  crushspace_symbol = kno_intern("crushspace");
+  slotify_symbol = kno_intern("slotify");
+  nocontents_symbol = kno_intern("nocontents");
+  ishtml_symbol = kno_intern("html");
+  nsfree_symbol = kno_intern("nsfree");
+  autoclose_symbol = kno_intern("autoclose");
+  noempty_symbol = kno_intern("noempty");
+  data_symbol = kno_intern("data");
 
   u8_register_source_file(_FILEINFO);
 }

@@ -134,7 +134,7 @@ static int unparse_consblock(struct U8_OUTPUT *out,lispval x)
 
 void kno_init_consblocks_c()
 {
-  coderef_symbol = kno_intern("%CODEREF");
+  coderef_symbol = kno_intern("%coderef");
 
   kno_recyclers[kno_consblock_type] = recycle_consblock;
   kno_unparsers[kno_consblock_type] = unparse_consblock;

@@ -158,11 +158,11 @@ KNO_EXPORT int kno_init_gperftools()
 {
   if (gperftools_init) return 0;
   gperftools_init = u8_millitime();
-  lispval gperftools_module = kno_new_cmodule("GPERFTOOLS",0,kno_init_gperftools);
+  lispval gperftools_module = kno_new_cmodule("gperftools",0,kno_init_gperftools);
 
-  kno_add_sensor(kno_intern("MALLOCD"),mallocd_sensor);
-  kno_add_sensor(kno_intern("HEAPSIZE"),heapsize_sensor);
-  kno_add_sensor(kno_intern("MALLOCINFO"),mallocinfo_sensor);
+  kno_add_sensor(kno_intern("mallocd"),mallocd_sensor);
+  kno_add_sensor(kno_intern("heapsize"),heapsize_sensor);
+  kno_add_sensor(kno_intern("mallocinfo"),mallocinfo_sensor);
 
 #if HAVE_GPERFTOOLS_HEAP_PROFILER_H
   kno_idefn(kno_xscheme_module,

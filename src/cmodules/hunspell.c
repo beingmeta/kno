@@ -155,7 +155,7 @@ KNO_EXPORT int kno_init_hunspell()
     return 0;
   else hunspell_init = u8_millitime();
   lispval hunspell_module =
-    kno_new_cmodule("HUNSPELL",(KNO_MODULE_SAFE),kno_init_hunspell);;
+    kno_new_cmodule("hunspell",(KNO_MODULE_SAFE),kno_init_hunspell);;
 
   kno_idefn2(hunspell_module,"HUNSPELL/OPEN",hunspell_open,1,
             "(hunspell/open *affixes* *dictionary* [*key*]) "
@@ -192,7 +192,7 @@ KNO_EXPORT int kno_init_hunspell()
             kno_rawptr_type,KNO_VOID,
             kno_string_type,KNO_VOID);
 
-  hunspell_symbol = kno_intern("HUNSPELL");
+  hunspell_symbol = kno_intern("hunspell");
 
   kno_finish_module(hunspell_module);
 

@@ -1764,63 +1764,63 @@ KNO_EXPORT void kno_init_xmleval_c()
   kno_def_evalfn(addtomod,"INTERSECTION","",fdxml_intersection);
   kno_def_evalfn(addtomod,"BINDING","",fdxml_binding);
 
-  xmleval_tag = kno_intern("%XMLEVAL");
-  xmleval2expr_tag = kno_intern("%XMLEVAL2EXPR");
-  get_symbol = kno_intern("GET");
-  elt_symbol = kno_intern("ELT");
-  raw_markup = kno_intern("%MARKUP");
-  content_slotid = kno_intern("%CONTENT");
-  xmltag_symbol = kno_intern("%XMLTAG");
-  rawtag_symbol = kno_intern("%RAWTAG");
-  qname_slotid = kno_intern("%QNAME");
-  attribs_slotid = kno_intern("%ATTRIBS");
-  attribids_slotid = kno_intern("%ATTRIBIDS");
-  comment_symbol = kno_intern("%COMMENT");
-  cdata_symbol = kno_intern("%CDATA");
+  xmleval_tag = kno_intern("%xmleval");
+  xmleval2expr_tag = kno_intern("%xmleval2expr");
+  get_symbol = kno_intern("get");
+  elt_symbol = kno_intern("elt");
+  raw_markup = kno_intern("%markup");
+  content_slotid = kno_intern("%content");
+  xmltag_symbol = kno_intern("%xmltag");
+  rawtag_symbol = kno_intern("%rawtag");
+  qname_slotid = kno_intern("%qname");
+  attribs_slotid = kno_intern("%attribs");
+  attribids_slotid = kno_intern("%attribids");
+  comment_symbol = kno_intern("%comment");
+  cdata_symbol = kno_intern("%cdata");
 
-  xattrib_slotid = kno_intern("XATTRIB");
-  id_symbol = kno_intern("ID");
-  bind_symbol = kno_intern("BIND");
+  xattrib_slotid = kno_intern("xattrib");
+  id_symbol = kno_intern("id");
+  bind_symbol = kno_intern("bind");
 
-  test_symbol = kno_intern("TEST");
-  if_symbol = kno_intern("IF");
-  pif_symbol = kno_intern("%IF");
-  predicate_symbol = kno_intern("PREDICATE");
-  else_symbol = kno_intern("ELSE");
+  test_symbol = kno_intern("test");
+  if_symbol = kno_intern("if");
+  pif_symbol = kno_intern("%if");
+  predicate_symbol = kno_intern("predicate");
+  else_symbol = kno_intern("else");
 
-  xml_env_symbol = kno_intern("%XMLENV");
-  xattrib_overlay = kno_intern("%XATTRIB");
-  piescape_symbol = kno_intern("%PIESCAPE");
-  xmlns_symbol = kno_intern("%XMLNS");
+  xml_env_symbol = kno_intern("%xmlenv");
+  xattrib_overlay = kno_intern("%xattrib");
+  piescape_symbol = kno_intern("%piescape");
+  xmlns_symbol = kno_intern("%xmlns");
 
-  iter_var = kno_intern("%ITER");
-  value_symbol = kno_intern("VALUE");
-  each_symbol = kno_intern("EACH");
-  count_symbol = kno_intern("COUNT");
-  sequence_symbol = kno_intern("SEQ");
-  choice_symbol = kno_intern("CHOICE");
-  max_symbol = kno_intern("MAX");
-  min_symbol = kno_intern("MIN");
+  iter_var = kno_intern("%iter");
+  value_symbol = kno_intern("value");
+  each_symbol = kno_intern("each");
+  count_symbol = kno_intern("count");
+  sequence_symbol = kno_intern("seq");
+  choice_symbol = kno_intern("choice");
+  max_symbol = kno_intern("max");
+  min_symbol = kno_intern("min");
 
-  index_symbol = kno_intern("INDEX");
-  with_symbol = kno_intern("WITH");
-  slot_symbol = kno_intern("SLOT");
-  value_symbol = kno_intern("VALUE");
+  index_symbol = kno_intern("index");
+  with_symbol = kno_intern("with");
+  slot_symbol = kno_intern("slot");
+  value_symbol = kno_intern("value");
 
-  pblank_symbol = kno_intern("%BLANK");
-  xmlnode_symbol = kno_intern("XMLNODE");
-  pnode_symbol = kno_intern("%NODE");
-  xmlbody_symbol = kno_intern("XMLBODY");
-  pbody_symbol = kno_intern("%BODY");
-  env_symbol = kno_intern("%ENV");
+  pblank_symbol = kno_intern("%blank");
+  xmlnode_symbol = kno_intern("xmlnode");
+  pnode_symbol = kno_intern("%node");
+  xmlbody_symbol = kno_intern("xmlbody");
+  pbody_symbol = kno_intern("%body");
+  env_symbol = kno_intern("%env");
 
-  attribids = kno_intern("%ATTRIBIDS");
+  attribids = kno_intern("%attribids");
 
-  begin_symbol = kno_intern("BEGIN");
-  quote_symbol = kno_intern("QUOTE");
-  xmlarg_symbol = kno_intern("%XMLARG");
-  doseq_symbol = kno_intern("DOSEQ");
-  fdxml_define_body = kno_make_list(2,kno_intern("XMLEVAL"),xmlarg_symbol);
+  begin_symbol = kno_intern("begin");
+  quote_symbol = kno_intern("quote");
+  xmlarg_symbol = kno_intern("%xmlarg");
+  doseq_symbol = kno_intern("doseq");
+  fdxml_define_body = kno_make_list(2,kno_intern("xmleval"),xmlarg_symbol);
 
   kno_register_config
     ("CACHEMARKUP",_("Whether to cache markup generated from unparsing XML"),

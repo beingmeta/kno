@@ -796,9 +796,9 @@ int kno_make_file_pool
 static kno_pool filepool_create(u8_string spec,void *type_data,
                                kno_storage_flags flags,lispval opts)
 {
-  lispval base_oid = kno_getopt(opts,kno_intern("BASE"),VOID);
-  lispval capacity_arg = kno_getopt(opts,kno_intern("CAPACITY"),VOID);
-  lispval load_arg = kno_getopt(opts,kno_intern("LOAD"),KNO_FIXZERO);
+  lispval base_oid = kno_getopt(opts,kno_intern("base"),VOID);
+  lispval capacity_arg = kno_getopt(opts,kno_intern("capacity"),VOID);
+  lispval load_arg = kno_getopt(opts,kno_intern("load"),KNO_FIXZERO);
   unsigned int capacity, load;
   unsigned int magic_number = (unsigned int)((unsigned long)type_data);
   int rv = 0;

@@ -1186,11 +1186,11 @@ KNO_EXPORT void kno_init_eval_debug_c()
     ("GPROFILE","Set filename for the Google CPU profiler",
      kno_sconfig_get,kno_sconfig_set,&cpu_profilename);
 
-  profile_symbol = kno_intern("%PROFILE");
-  unquote_symbol = kno_intern("UNQUOTE");
-  else_symbol = kno_intern("ELSE");
+  profile_symbol = kno_intern("%profile");
+  unquote_symbol = kno_intern("unquote");
+  else_symbol = kno_intern("else");
   apply_marker = kno_intern("=>");
-  logcxt_symbol = kno_intern("LOGCXT");
+  logcxt_symbol = kno_intern("logcxt");
 }
 
 /* Emacs local variables

@@ -1204,8 +1204,8 @@ KNO_EXPORT void kno_init_arith_c()
   arithdef2("ATAN2",latan2,atan2);
   arithdef2("POW~",lpow,lpow);
 
-  kno_store(kno_scheme_module,kno_intern("MAX-FIXNUM"),kno_max_fixnum);
-  kno_store(kno_scheme_module,kno_intern("MIN-FIXNUM"),kno_min_fixnum);
+  kno_store(kno_scheme_module,kno_intern("max-fixnum"),kno_max_fixnum);
+  kno_store(kno_scheme_module,kno_intern("min-fixnum"),kno_min_fixnum);
 
   kno_idefn(kno_scheme_module,kno_make_cprimn("+",plus_lexpr,-1));
   kno_idefn(kno_scheme_module,kno_make_cprimn("-",minus_lexpr,-1));

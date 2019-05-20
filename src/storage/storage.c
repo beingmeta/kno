@@ -650,34 +650,34 @@ KNO_EXPORT int kno_init_storage()
 #endif
   kno_init_methods_c();
 
-  id_symbol = kno_intern("%ID");
-  flags_symbol = kno_intern("FLAGS");
-  background_symbol = kno_intern("BACKGROUND");
-  readonly_symbol = kno_intern("READONLY");
-  repair_symbol = kno_intern("REPAIR");
-  sparse_symbol = kno_intern("SPARSE");
-  register_symbol = kno_intern("REGISTER");
-  phased_symbol = kno_intern("PHASED");
-  slotcodes_symbol = kno_intern("SLOTCODES");
-  oidcodes_symbol = kno_intern("OIDCODES");
-  virtual_symbol = kno_intern("VIRTUAL");
+  id_symbol = kno_intern("%id");
+  flags_symbol = kno_intern("flags");
+  background_symbol = kno_intern("background");
+  readonly_symbol = kno_intern("readonly");
+  repair_symbol = kno_intern("repair");
+  sparse_symbol = kno_intern("sparse");
+  register_symbol = kno_intern("register");
+  phased_symbol = kno_intern("phased");
+  slotcodes_symbol = kno_intern("slotcodes");
+  oidcodes_symbol = kno_intern("oidcodes");
+  virtual_symbol = kno_intern("virtual");
 
   kno_set_oid_parser(better_parse_oid);
   kno_unparsers[kno_oid_type]=better_unparse_oid;
-  oid_name_slotids = kno_make_list(2,kno_intern("%ID"),kno_intern("OBJ-NAME"));
+  oid_name_slotids = kno_make_list(2,kno_intern("%id"),kno_intern("obj-name"));
 
   u8_init_mutex(&kno_swapcheck_lock);
   u8_init_mutex(&onsave_handlers_lock);
   u8_init_mutex(&dosave_lock);
 
-  kno_commit_phases[0] = kno_intern("NONE");
-  kno_commit_phases[1] = kno_intern("START");
-  kno_commit_phases[2] = kno_intern("WRITE");
-  kno_commit_phases[3] = kno_intern("SYNC");
-  kno_commit_phases[4] = kno_intern("ROLLBACK");
-  kno_commit_phases[5] = kno_intern("FLUSH");
-  kno_commit_phases[6] = kno_intern("CLEANUP");
-  kno_commit_phases[7] = kno_intern("DONE");
+  kno_commit_phases[0] = kno_intern("none");
+  kno_commit_phases[1] = kno_intern("start");
+  kno_commit_phases[2] = kno_intern("write");
+  kno_commit_phases[3] = kno_intern("sync");
+  kno_commit_phases[4] = kno_intern("rollback");
+  kno_commit_phases[5] = kno_intern("flush");
+  kno_commit_phases[6] = kno_intern("cleanup");
+  kno_commit_phases[7] = kno_intern("done");
 
   u8_threadcheck();
 

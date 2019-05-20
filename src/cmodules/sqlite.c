@@ -788,7 +788,7 @@ KNO_EXPORT int kno_init_sqlite()
 {
   lispval module;
   if (sqlite_init) return 0;
-  module = kno_new_cmodule("SQLITE",0,kno_init_sqlite);
+  module = kno_new_cmodule("sqlite",0,kno_init_sqlite);
 
   sqlite_handler.execute = sqliteexechandler;
   sqlite_handler.makeproc = sqlitemakeprochandler;
@@ -807,14 +807,14 @@ KNO_EXPORT int kno_init_sqlite()
                                  kno_extdb_type,KNO_VOID));
   sqlite_init = u8_millitime();
 
-  merge_symbol = kno_intern("%MERGE");
-  sorted_symbol = kno_intern("%SORTED");
-  readonly_symbol = kno_intern("READONLY");
-  create_symbol = kno_intern("CREATE");
-  sharedcache_symbol = kno_intern("SHAREDCACHE");
-  privatecache_symbol = kno_intern("PRIVATECACHE");
-  vfs_symbol = kno_intern("VFS");
-  execok_symbol = kno_intern("EXEC/OK");
+  merge_symbol = kno_intern("%merge");
+  sorted_symbol = kno_intern("%sorted");
+  readonly_symbol = kno_intern("readonly");
+  create_symbol = kno_intern("create");
+  sharedcache_symbol = kno_intern("sharedcache");
+  privatecache_symbol = kno_intern("privatecache");
+  vfs_symbol = kno_intern("vfs");
+  execok_symbol = kno_intern("exec/ok");
 
   kno_finish_module(module);
 

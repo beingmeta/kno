@@ -998,12 +998,12 @@ void kno_init_config_c()
   u8_init_mutex(&config_lookup_lock);
   u8_init_mutex(&config_register_lock);
 
-  path_macro = kno_intern("#PATH");
-  glom_macro = kno_intern("#GLOM");
-  config_macro = kno_intern("#CONFIG");
-  now_macro = kno_intern("#NOW");
-  env_macro = kno_intern("#ENV");
-  source_macro = kno_intern("#SOURCE");
+  path_macro = kno_intern("#path");
+  glom_macro = kno_intern("#glom");
+  config_macro = kno_intern("#config");
+  now_macro = kno_intern("#now");
+  env_macro = kno_intern("#env");
+  source_macro = kno_intern("#source");
 
   kno_register_config
     ("FDVERSION",_("Get the Kno version string"),

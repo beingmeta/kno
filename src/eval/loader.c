@@ -791,27 +791,27 @@ KNO_EXPORT void kno_init_loader_c()
   if (scheme_loader_initialized) return;
   scheme_loader_initialized = 1;
   kno_init_scheme();
-  loader_module = kno_new_cmodule("LOADER",(KNO_MODULE_DEFAULT),kno_init_loader_c);
+  loader_module = kno_new_cmodule("loader",(KNO_MODULE_DEFAULT),kno_init_loader_c);
   u8_register_source_file(_FILEINFO);
 
   u8_init_mutex(&load_record_lock);
   u8_init_mutex(&update_modules_lock);
 
-  moduleid_symbol = kno_intern("%MODULEID");
-  source_symbol = kno_intern("%SOURCE");
-  loadstamps_symbol = kno_intern("%LOADSTAMPS");
+  moduleid_symbol = kno_intern("%moduleid");
+  source_symbol = kno_intern("%source");
+  loadstamps_symbol = kno_intern("%loadstamps");
 
   /* Setup load paths */
   {u8_string path = u8_getenv("KNO_INIT_LOADPATH");
     lispval v = ((path) ? (kno_lispstring(path)) :
                 (lispval_string(KNO_DEFAULT_LOADPATH)));
-    loadpath_config_set(kno_intern("LOADPATH"),v,&loadpath);
+    loadpath_config_set(kno_intern("loadpath"),v,&loadpath);
     kno_decref(v);}
 
   {u8_string path = u8_getenv("KNO_INIT_SAFELOADPATH");
     lispval v = ((path) ? (kno_lispstring(path)) :
                 (lispval_string(KNO_DEFAULT_SAFE_LOADPATH)));
-    loadpath_config_set(kno_intern("SAFELOADPATH"),v,&safe_loadpath);
+    loadpath_config_set(kno_intern("safeloadpath"),v,&safe_loadpath);
     kno_decref(v);}
 
   {u8_string dir=u8_getenv("KNO_LIBSCM_DIR");

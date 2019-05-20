@@ -638,22 +638,22 @@ KNO_EXPORT void kno_init_htmlout_c()
   kno_decref(debug2html);
   kno_decref(backtrace2html);
 
-  xmloidfn_symbol = kno_intern("%XMLOID");
-  id_symbol = kno_intern("%ID");
-  href_symbol = kno_intern("HREF");
-  class_symbol = kno_intern("CLASS");
-  obj_name = kno_intern("OBJ-NAME");
-  quote_symbol = kno_intern("QUOTE");
-  xmltag_symbol = kno_intern("%XMLTAG");
-  rawtag_symbol = kno_intern("%RAWTAG");
-  browseinfo_symbol = kno_intern("BROWSEINFO");
-  embedded_symbol = kno_intern("%EMBEDDED");
-  error_style_symbol = kno_intern("%ERRORSTYLE");
-  error_script_symbol = kno_intern("%ERRORSCRIPT");
-  modules_symbol = kno_intern("%MODULES");
-  xml_env_symbol = kno_intern("%XMLENV");
+  xmloidfn_symbol = kno_intern("%xmloid");
+  id_symbol = kno_intern("%id");
+  href_symbol = kno_intern("href");
+  class_symbol = kno_intern("class");
+  obj_name = kno_intern("obj-name");
+  quote_symbol = kno_intern("quote");
+  xmltag_symbol = kno_intern("%xmltag");
+  rawtag_symbol = kno_intern("%rawtag");
+  browseinfo_symbol = kno_intern("browseinfo");
+  embedded_symbol = kno_intern("%embedded");
+  error_style_symbol = kno_intern("%errorstyle");
+  error_script_symbol = kno_intern("%errorscript");
+  modules_symbol = kno_intern("%modules");
+  xml_env_symbol = kno_intern("%xmlenv");
 
-  moduleid_symbol = kno_intern("%MODULEID");
+  moduleid_symbol = kno_intern("%moduleid");
 
   kno_register_config
     ("ERRORSTYLESHEET",_("Default style sheet for web errors"),

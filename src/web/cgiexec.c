@@ -1319,8 +1319,8 @@ KNO_EXPORT void kno_init_cgiexec_c()
   if (cgiexec_initialized) return;
   cgiexec_initialized = 1;
   kno_init_scheme();
-  module = kno_new_cmodule("WEBTOOLS",(0),kno_init_cgiexec_c);
-  xhtmlout_module = kno_new_cmodule("XHTML",KNO_MODULE_SAFE,kno_init_cgiexec_c);
+  module = kno_new_cmodule("webtools",(0),kno_init_cgiexec_c);
+  xhtmlout_module = kno_new_cmodule("xhtml",KNO_MODULE_SAFE,kno_init_cgiexec_c);
 
   u8_init_mutex(&protected_cgi_lock);
 
@@ -1370,80 +1370,80 @@ KNO_EXPORT void kno_init_cgiexec_c()
            kno_make_cprim1x("JAVASCRIPT!",add_javascript,1,
                            kno_string_type,VOID));
 
-  tail_symbol = kno_intern("%TAIL");
-  browseinfo_symbol = kno_intern("BROWSEINFO");
-  mapurlfn_symbol = kno_intern("MAPURLFN");
+  tail_symbol = kno_intern("%tail");
+  browseinfo_symbol = kno_intern("browseinfo");
+  mapurlfn_symbol = kno_intern("mapurlfn");
 
-  accept_type = kno_intern("HTTP_ACCEPT");
-  accept_language = kno_intern("HTTP_ACCEPT_LANGUAGE");
-  accept_encoding = kno_intern("HTTP_ACCEPT_ENCODING");
-  accept_charset = kno_intern("HTTP_ACCEPT_CHARSET");
-  http_referrer = kno_intern("HTTP_REFERRER");
+  accept_type = kno_intern("http_accept");
+  accept_language = kno_intern("http_accept_language");
+  accept_encoding = kno_intern("http_accept_encoding");
+  accept_charset = kno_intern("http_accept_charset");
+  http_referrer = kno_intern("http_referrer");
 
-  http_cookie = kno_intern("HTTP_COOKIE");
-  outcookies_symbol = kno_intern("_COOKIES%OUT");
-  incookies_symbol = kno_intern("_COOKIES%IN");
-  bad_cookie = kno_intern("_BADCOOKIES");
-  cookiedata_symbol = kno_intern("_COOKIEDATA");
+  http_cookie = kno_intern("http_cookie");
+  outcookies_symbol = kno_intern("_cookies%out");
+  incookies_symbol = kno_intern("_cookies%in");
+  bad_cookie = kno_intern("_badcookies");
+  cookiedata_symbol = kno_intern("_cookiedata");
 
-  server_port = kno_intern("SERVER_PORT");
-  remote_port = kno_intern("REMOTE_PORT");
-  request_method = kno_intern("REQUEST_METHOD");
-  request_uri = kno_intern("REQUEST_URI");
+  server_port = kno_intern("server_port");
+  remote_port = kno_intern("remote_port");
+  request_method = kno_intern("request_method");
+  request_uri = kno_intern("request_uri");
 
-  query_string = kno_intern("QUERY_STRING");
-  query_elts = kno_intern("QELTS");
-  query = kno_intern("QUERY");
+  query_string = kno_intern("query_string");
+  query_elts = kno_intern("qelts");
+  query = kno_intern("query");
 
-  get_method = kno_intern("GET");
-  post_method = kno_intern("POST");
+  get_method = kno_intern("get");
+  post_method = kno_intern("post");
 
-  status_field = kno_intern("STATUS");
-  redirect_field = kno_intern("_REDIRECT");
-  sendfile_field = kno_intern("_SENDFILE");
-  xredirect_field = kno_intern("_XREDIRECT");
-  http_headers = kno_intern("HTTP-HEADERS");
-  html_headers = kno_intern("HTML-HEADERS");
+  status_field = kno_intern("status");
+  redirect_field = kno_intern("_redirect");
+  sendfile_field = kno_intern("_sendfile");
+  xredirect_field = kno_intern("_xredirect");
+  http_headers = kno_intern("http-headers");
+  html_headers = kno_intern("html-headers");
 
-  content_type = kno_intern("CONTENT-TYPE");
-  cgi_content_type = kno_intern("CONTENT_TYPE");
-  incoming_content_type = kno_intern("INCOMING-CONTENT-TYPE");
-  content_slotid = kno_intern("CONTENT");
-  content_length = kno_intern("CONTENT-LENGTH");
-  incoming_content_length = kno_intern("INCOMING-CONTENT-LENGTH");
+  content_type = kno_intern("content-type");
+  cgi_content_type = kno_intern("content_type");
+  incoming_content_type = kno_intern("incoming-content-type");
+  content_slotid = kno_intern("content");
+  content_length = kno_intern("content-length");
+  incoming_content_length = kno_intern("incoming-content-length");
 
-  doctype_slotid = kno_intern("DOCTYPE");
-  xmlpi_slotid = kno_intern("XMLPI");
-  html_attribs_slotid = kno_intern("%HTML");
-  body_attribs_slotid = kno_intern("%BODY");
-  body_classes_slotid = kno_intern("%BODYCLASSES");
-  html_classes_slotid = kno_intern("%HTMLCLASSES");
-  class_symbol = kno_intern("CLASS");
+  doctype_slotid = kno_intern("doctype");
+  xmlpi_slotid = kno_intern("xmlpi");
+  html_attribs_slotid = kno_intern("%html");
+  body_attribs_slotid = kno_intern("%body");
+  body_classes_slotid = kno_intern("%bodyclasses");
+  html_classes_slotid = kno_intern("%htmlclasses");
+  class_symbol = kno_intern("class");
 
-  post_data_slotid = kno_intern("POST_DATA");
+  post_data_slotid = kno_intern("post_data");
   multipart_form_data = lispval_string("multipart/form-data");
   www_form_urlencoded = lispval_string("application/x-www-form-urlencoded");
 
-  filename_slotid = kno_intern("FILENAME");
-  name_slotid = kno_intern("NAME");
-  parts_slotid = kno_intern("PARTS");
+  filename_slotid = kno_intern("filename");
+  name_slotid = kno_intern("name");
+  parts_slotid = kno_intern("parts");
 
-  remote_user_symbol = kno_intern("REMOTE_USER");
-  remote_host_symbol = kno_intern("REMOTE_HOST");
-  remote_addr_symbol = kno_intern("REMOTE_ADDR");
-  remote_ident_symbol = kno_intern("REMOTE_IDENT");
-  remote_agent_symbol = kno_intern("HTTP_USER_AGENT");
-  remote_info_symbol = kno_intern("REMOTE_INFO");
+  remote_user_symbol = kno_intern("remote_user");
+  remote_host_symbol = kno_intern("remote_host");
+  remote_addr_symbol = kno_intern("remote_addr");
+  remote_ident_symbol = kno_intern("remote_ident");
+  remote_agent_symbol = kno_intern("http_user_agent");
+  remote_info_symbol = kno_intern("remote_info");
 
-  params_symbol = kno_intern("_PARAMS");
+  params_symbol = kno_intern("_params");
 
-  ipeval_symbol = kno_intern("_IPEVAL");
+  ipeval_symbol = kno_intern("_ipeval");
 
-  protected_params[n_protected_params++] = kno_intern("STATUS");
-  protected_params[n_protected_params++] = kno_intern("AUTHORIZATION");
-  protected_params[n_protected_params++] = kno_intern("SCRIPT_FILENAME");
-  protected_params[n_protected_params++] = kno_intern("REQUEST_METHOD");
-  protected_params[n_protected_params++] = kno_intern("DOCUMENT_ROOT");
+  protected_params[n_protected_params++] = kno_intern("status");
+  protected_params[n_protected_params++] = kno_intern("authorization");
+  protected_params[n_protected_params++] = kno_intern("script_filename");
+  protected_params[n_protected_params++] = kno_intern("request_method");
+  protected_params[n_protected_params++] = kno_intern("document_root");
 
   kno_register_config
     ("CGIPREP",

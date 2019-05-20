@@ -522,7 +522,7 @@ KNO_EXPORT int kno_init_odbc()
   odbc_initialized = 1;
   kno_init_scheme();
 
-  module = kno_new_cmodule("ODBC",(0),kno_init_odbc);
+  module = kno_new_cmodule("odbc",(0),kno_init_odbc);
 
   odbc_handler.execute = odbcexechandler;
   odbc_handler.makeproc = odbcmakeprochandler;
@@ -539,7 +539,7 @@ KNO_EXPORT int kno_init_odbc()
             kno_odbc_type,KNO_VOID,kno_symbol_type,KNO_VOID));
 #endif
 
-  merge_symbol = kno_intern("%MERGE");
+  merge_symbol = kno_intern("%merge");
 
   kno_finish_module(module);
 

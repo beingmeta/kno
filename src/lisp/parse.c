@@ -299,7 +299,7 @@ lispval kno_lookup_constname(u8_string s)
   return lookup_constname(s,1);
 }
 
-static int copy_atom(u8_input s,u8_output a,int upcase)
+static int copy_atom(u8_input s,u8_output a,int normcase)
 {
   int c = u8_getc(s), vbar = 0;
   if (c=='|') {vbar = 1; c = u8_getc(s);}
@@ -310,9 +310,9 @@ static int copy_atom(u8_input s,u8_output a,int upcase)
       realc = read_escape(s);
       u8_putc(a,realc);}
     else if (vbar) u8_putc(a,c);
-    else if (upcase) {
-      int upper = u8_toupper(c);
-      u8_putc(a,upper);}
+    else if (normcase) {
+      int lower = u8_tolower(c);
+      u8_putc(a,lower);}
     else u8_putc(a,c);
     c = u8_getc(s);}
   if (c>=0) u8_ungetc(s,c);
@@ -322,7 +322,8 @@ static int copy_atom(u8_input s,u8_output a,int upcase)
 lispval kno_parse_atom(u8_string start,int len)
 {
   /* fprintf(stderr,"kno_parse_atom %d: %s\n",len,start); */
-  if (PRED_FALSE(len==0)) return KNO_EOX;
+  if (PRED_FALSE(len==0))
+    return KNO_EOX;
   else if ((start[0]=='#')&&(start[1]=='U')) { /* It's a UUID */
     struct KNO_UUID *uuid = u8_alloc(struct KNO_UUID);
     KNO_INIT_CONS(uuid,kno_uuid_type);
@@ -342,15 +343,12 @@ lispval kno_parse_atom(u8_string start,int len)
     if (kno_interpret_pointers) {
       unsigned long long pval;
       if (sscanf(start+2,"%llx",&pval)!=1)
-        return kno_err
-          (kno_BadPointerRef,"kno_parse_atom",u8_strdup(start),VOID);
+        return kno_err(kno_BadPointerRef,"kno_parse_atom",start,VOID);
       else if (KNO_CHECK_PTR(pval))
         return kno_incref((lispval)pval);
-      else return kno_err
-             (kno_BadPointerRef,"kno_parse_atom",u8_strdup(start),VOID);}
+      else return kno_err(kno_BadPointerRef,"kno_parse_atom",start,VOID);}
     else return kno_err
-           (kno_NoPointerExpressions,"kno_parse_atom",
-            u8_strdup(start),VOID);}
+           (kno_NoPointerExpressions,"kno_parse_atom",start,VOID);}
   else if (start[0]=='#') { /* Look it up */
     lispval value = lookup_constname(start,1);
     if (value != KNO_NULL) return value;
@@ -1273,8 +1271,8 @@ lispval kno_parser(u8_input in)
           punct_code_arg = kno_parser(in);
           return kno_make_list(2,punct_code,punct_code_arg);}}
       else switch (ch) {
-        case 'U': return parse_atom(in,inchar,ch,1); /* UUID */
-        case 'T': return parse_atom(in,inchar,ch,1); /* TIMESTAMP */
+        case 'U': return parse_atom(in,inchar,ch,0); /* UUID */
+        case 'T': return parse_atom(in,inchar,ch,0); /* TIMESTAMP */
         case 'X': case 'B': case 'x': case 'b': {
           int probec = u8_probec(in);
           if (probec == '"')
@@ -1289,16 +1287,16 @@ lispval kno_parser(u8_input in)
       return parse_atom(in,-1,-1,1);}
 }
 
-static lispval parse_atom(u8_input in,int ch1,int ch2,int upcase)
+static lispval parse_atom(u8_input in,int ch1,int ch2,int normcase)
 {
   /* Parse an atom, i.e. a printed representation which doesn't
      contain any special spaces or other special characters */
   struct U8_OUTPUT tmpbuf; char buf[128];
   lispval result; U8_MAYBE_UNUSED int c;
   U8_INIT_STATIC_OUTPUT_BUF(tmpbuf,128,buf);
-  if (ch1>=0) u8_putc(&tmpbuf,((upcase) ? (u8_toupper(ch1)) : (ch1)));
-  if (ch2>=0) u8_putc(&tmpbuf,((upcase) ? (u8_toupper(ch2)) : (ch2)));
-  c = copy_atom(in,&tmpbuf,upcase);
+  if (ch1>=0) u8_putc(&tmpbuf,((normcase) ? (u8_tolower(ch1)) : (ch1)));
+  if (ch2>=0) u8_putc(&tmpbuf,((normcase) ? (u8_tolower(ch2)) : (ch2)));
+  c = copy_atom(in,&tmpbuf,normcase);
   if (tmpbuf.u8_write == tmpbuf.u8_outbuf)
     result = KNO_EOX;
   else if (ch1 == '|')
@@ -1532,13 +1530,13 @@ KNO_EXPORT void kno_init_parse_c()
 
   u8_init_rwlock(&constnames_lock);
 
-  quote_symbol = kno_intern("QUOTE");
-  quasiquote_symbol = kno_intern("QUASIQUOTE");
-  unquote_symbol = kno_intern("UNQUOTE");
-  unquotestar_symbol = kno_intern("UNQUOTE*");
-  histref_symbol = kno_intern("%HISTREF");
-  comment_symbol = kno_intern("COMMENT");
-  opaque_tag = kno_intern("%OPAQUE");
+  quote_symbol = kno_intern("quote");
+  quasiquote_symbol = kno_intern("quasiquote");
+  unquote_symbol = kno_intern("unquote");
+  unquotestar_symbol = kno_intern("unquote*");
+  histref_symbol = kno_intern("%histref");
+  comment_symbol = kno_intern("comment");
+  opaque_tag = kno_intern("%opaque");
   struct_eval_symbol = kno_intern("#.");
 }
 

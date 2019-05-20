@@ -1081,21 +1081,21 @@ static void recycle_port(struct KNO_RAW_CONS *c)
 
 static void init_portprims_symbols()
 {
-  column_symbol=kno_intern("COLUMN");
-  depth_symbol=kno_intern("DEPTH");
-  maxcol_symbol=kno_intern("MAXCOL");
-  width_symbol=kno_intern("WIDTH");
-  margin_symbol=kno_intern("MARGIN");
-  maxelts_symbol=kno_intern("MAXELTS");
-  maxchars_symbol=kno_intern("MAXCHARS");
-  maxbytes_symbol=kno_intern("MAXBYTES");
-  maxkeys_symbol=kno_intern("MAXKEYS");
-  listmax_symbol=kno_intern("LISTMAX");
-  vecmax_symbol=kno_intern("VECMAX");
-  choicemax_symbol=kno_intern("CHOICEMAX");
-  label_symbol = kno_intern("LABEL");
-  output_symbol = kno_intern("OUTPUT");
-  detail_symbol = kno_intern("DETAIL");
+  column_symbol=kno_intern("column");
+  depth_symbol=kno_intern("depth");
+  maxcol_symbol=kno_intern("maxcol");
+  width_symbol=kno_intern("width");
+  margin_symbol=kno_intern("margin");
+  maxelts_symbol=kno_intern("maxelts");
+  maxchars_symbol=kno_intern("maxchars");
+  maxbytes_symbol=kno_intern("maxbytes");
+  maxkeys_symbol=kno_intern("maxkeys");
+  listmax_symbol=kno_intern("listmax");
+  vecmax_symbol=kno_intern("vecmax");
+  choicemax_symbol=kno_intern("choicemax");
+  label_symbol = kno_intern("label");
+  output_symbol = kno_intern("output");
+  detail_symbol = kno_intern("detail");
 }
 
 /* The init function */

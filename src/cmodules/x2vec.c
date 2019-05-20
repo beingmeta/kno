@@ -2259,7 +2259,7 @@ KNO_EXPORT int kno_init_x2vec_c()
 
   init_x2vec_symbols();
 
-  module=kno_new_cmodule("X2VEC",(KNO_MODULE_SAFE),kno_init_x2vec_c);
+  module=kno_new_cmodule("x2vec",(KNO_MODULE_SAFE),kno_init_x2vec_c);
 
   kno_idefn(module,kno_make_cprim3("X2VEC/START",x2vec_start_prim,1));
   kno_idefn(module,kno_make_cprim3("X2VEC/MSTART",x2vec_modular_start_prim,1));
@@ -2358,35 +2358,35 @@ KNO_EXPORT int kno_init_x2vec_c()
 
 static void init_x2vec_symbols()
 {
-  label_symbol=kno_intern("LABEL");
-  hidden_size=kno_intern("VECSIZE");
-  window_symbol=kno_intern("WINDOW");
-  num_threads_symbol=kno_intern("NTHREADS");
-  hash_reduce_symbol=kno_intern("HASHREDUCE");
-  min_count_symbol=kno_intern("MIN-COUNT");
-  n_clusters_symbol=kno_intern("N-CLASSES");
-  n_cluster_rounds_symbol=kno_intern("N-ROUNDS");
-  unigrams_size_symbol=kno_intern("UNIGRAMS-SIZE");
-  vocab_size_symbol=kno_intern("VOCAB-SIZE");
-  hash_size_symbol=kno_intern("HASHSIZE");
-  alpha_symbol=kno_intern("ALPHA");
-  subsample_symbol=kno_intern("SUBSAMPLE");
-  negsamp_symbol=kno_intern("NEGSAMP");
-  hisoftmax_symbol=kno_intern("HISOFTMAX");
-  mode_symbol=kno_intern("MODE");
+  label_symbol=kno_intern("label");
+  hidden_size=kno_intern("vecsize");
+  window_symbol=kno_intern("window");
+  num_threads_symbol=kno_intern("nthreads");
+  hash_reduce_symbol=kno_intern("hashreduce");
+  min_count_symbol=kno_intern("min-count");
+  n_clusters_symbol=kno_intern("n-classes");
+  n_cluster_rounds_symbol=kno_intern("n-rounds");
+  unigrams_size_symbol=kno_intern("unigrams-size");
+  vocab_size_symbol=kno_intern("vocab-size");
+  hash_size_symbol=kno_intern("hashsize");
+  alpha_symbol=kno_intern("alpha");
+  subsample_symbol=kno_intern("subsample");
+  negsamp_symbol=kno_intern("negsamp");
+  hisoftmax_symbol=kno_intern("hisoftmax");
+  mode_symbol=kno_intern("mode");
   bag_of_words_symbol=KNO_EMPTY_CHOICE;
-  KNO_ADD_TO_CHOICE(bag_of_words_symbol,kno_intern("BAG_OF_WORDS"));
-  KNO_ADD_TO_CHOICE(bag_of_words_symbol,kno_intern("BAG-OF-WORDS"));
-  KNO_ADD_TO_CHOICE(bag_of_words_symbol,kno_intern("BAGOFWORDS"));
-  KNO_ADD_TO_CHOICE(bag_of_words_symbol,kno_intern("BOW"));
+  KNO_ADD_TO_CHOICE(bag_of_words_symbol,kno_intern("bag_of_words"));
+  KNO_ADD_TO_CHOICE(bag_of_words_symbol,kno_intern("bag-of-words"));
+  KNO_ADD_TO_CHOICE(bag_of_words_symbol,kno_intern("bagofwords"));
+  KNO_ADD_TO_CHOICE(bag_of_words_symbol,kno_intern("bow"));
   skipgram_symbol=KNO_EMPTY_CHOICE;
-  KNO_ADD_TO_CHOICE(skipgram_symbol,kno_intern("SKIPGRAM"));
-  hash_max_symbol=kno_intern("HASHMAX");
-  exp_max_symbol=kno_intern("EXPMAX");
-  exp_slots_symbol=kno_intern("EXPSLOTS");
-  loglevel_symbol=kno_intern("LOGLEVEL");
-  logfreq_symbol=kno_intern("LOGFREQ");
-  optsep_symbol=kno_intern("OPTSEP");
+  KNO_ADD_TO_CHOICE(skipgram_symbol,kno_intern("skipgram"));
+  hash_max_symbol=kno_intern("hashmax");
+  exp_max_symbol=kno_intern("expmax");
+  exp_slots_symbol=kno_intern("expslots");
+  loglevel_symbol=kno_intern("loglevel");
+  logfreq_symbol=kno_intern("logfreq");
+  optsep_symbol=kno_intern("optsep");
 }
 
 /* Emacs local variables

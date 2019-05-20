@@ -639,16 +639,16 @@ static long long int imagick_init = 0;
 
 static void init_symbols()
 {
-  format = kno_intern("FORMAT");
-  resolution = kno_intern("RESOLUTION");
+  format = kno_intern("format");
+  resolution = kno_intern("resolution");
 
-  size = kno_intern("SIZE");
-  width = kno_intern("WIDTH");
-  height = kno_intern("HEIGHT");
-  interlace = kno_intern("INTERLACE");
-  line_interlace = kno_intern("LINE");
-  plane_interlace = kno_intern("PLANE");
-  partition_interlace = kno_intern("PARITION");
+  size = kno_intern("size");
+  width = kno_intern("width");
+  height = kno_intern("height");
+  interlace = kno_intern("interlace");
+  line_interlace = kno_intern("line");
+  plane_interlace = kno_intern("plane");
+  partition_interlace = kno_intern("parition");
 
 }
 
@@ -657,7 +657,7 @@ int kno_init_imagick()
   lispval imagick_module;
   if (imagick_init) return 0;
   else imagick_init = u8_millitime();
-  imagick_module = kno_new_cmodule("IMAGICK",(KNO_MODULE_SAFE),kno_init_imagick);
+  imagick_module = kno_new_cmodule("imagick",(KNO_MODULE_SAFE),kno_init_imagick);
 
   kno_imagick_type = kno_register_cons_type("IMAGICK");
   kno_unparsers[kno_imagick_type]=unparse_imagick;

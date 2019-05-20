@@ -2572,7 +2572,7 @@ void kno_init_texttools()
   u8_register_source_file(_FILEINFO);
   texttools_init = fdscheme_version;
   texttools_module =
-    kno_new_cmodule("TEXTTOOLS",(KNO_MODULE_SAFE),kno_init_texttools);
+    kno_new_cmodule("texttools",(KNO_MODULE_SAFE),kno_init_texttools);
   kno_init_match_c();
   kno_init_phonetic_c();
   kno_idefn(texttools_module,kno_make_cprim1("MD5",md5_prim,1));
@@ -2835,7 +2835,7 @@ void kno_init_texttools()
                            kno_string_type,VOID));
 
 
-  subst_symbol = kno_intern("SUBST");
+  subst_symbol = kno_intern("subst");
 
   u8_threadcheck();
 

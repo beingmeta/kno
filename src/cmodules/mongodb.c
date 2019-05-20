@@ -604,7 +604,7 @@ static mongoc_uri_t *setup_mongoc_uri(mongoc_uri_t *info,lispval opts)
 {
   if (info == NULL) return info;
   u8_string dbname = mongoc_uri_get_database(info);
-  lispval dbarg   = kno_getopt(opts,kno_intern("DBNAME"),KNO_VOID);
+  lispval dbarg   = kno_getopt(opts,kno_intern("dbname"),KNO_VOID);
   if ( (dbname) &&
        ((KNO_VOIDP(dbarg)) || (KNO_FALSEP(dbarg)) || (KNO_DEFAULTP(dbarg)) ) ) {}
   else if ((KNO_VOIDP(dbarg)) || (KNO_FALSEP(dbarg)) || (KNO_DEFAULTP(dbarg)) ) {
@@ -637,11 +637,11 @@ static mongoc_uri_t *setup_mongoc_uri(mongoc_uri_t *info,lispval opts)
     return NULL;}
 #endif
 
-  lispval appname = kno_getopt(opts,kno_intern("APPNAME"),KNO_VOID);
-  lispval timeout = kno_getopt(opts,kno_intern("TIMEOUT"),KNO_VOID);
-  lispval ctimeout = kno_getopt(opts,kno_intern("CTIMEOUT"),KNO_VOID);
-  lispval stimeout = kno_getopt(opts,kno_intern("STIMEOUT"),KNO_VOID);
-  lispval maxpool = kno_getopt(opts,kno_intern("MAXPOOL"),KNO_VOID);
+  lispval appname = kno_getopt(opts,kno_intern("appname"),KNO_VOID);
+  lispval timeout = kno_getopt(opts,kno_intern("timeout"),KNO_VOID);
+  lispval ctimeout = kno_getopt(opts,kno_intern("ctimeout"),KNO_VOID);
+  lispval stimeout = kno_getopt(opts,kno_intern("stimeout"),KNO_VOID);
+  lispval maxpool = kno_getopt(opts,kno_intern("maxpool"),KNO_VOID);
 #if MONGOC_CHECK_VERSION(1,6,0)
   if (!(KNO_VOIDP(timeout))) {
     set_uri_opt(info,MONGOC_URI_SOCKETTIMEOUTMS,timeout);
@@ -3339,9 +3339,9 @@ KNO_EXPORT int kno_init_mongodb()
 
   init_mongo_opmap();
 
-  module = kno_new_cmodule("MONGODB",(KNO_MODULE_SAFE),kno_init_mongodb);
+  module = kno_new_cmodule("mongodb",(KNO_MODULE_SAFE),kno_init_mongodb);
 
-  idsym = kno_intern("_ID");
+  idsym = kno_intern("_id");
   maxkey = kno_intern("mongomax");
   minkey = kno_intern("mongomin");
   oidtag = kno_intern("mongoid");
@@ -3349,68 +3349,68 @@ KNO_EXPORT int kno_init_mongodb()
   mongouser = kno_intern("mongouser");
   mongomd5 = kno_intern("md5hash");
 
-  skipsym = kno_intern("SKIP");
-  limitsym = kno_intern("LIMIT");
-  batchsym = kno_intern("BATCH");
-  fieldssym = kno_intern("FIELDS");
-  upsertsym = kno_intern("UPSERT");
-  singlesym = kno_intern("SINGLE");
-  wtimeoutsym = kno_intern("WTIMEOUT");
-  writesym = kno_intern("WRITE");
-  readsym = kno_intern("READ");
-  returnsym = kno_intern("RETURN");
-  originalsym = kno_intern("ORIGINAL");
-  newsym = kno_intern("NEW");
-  removesym = kno_intern("REMOVE");
-  softfailsym = kno_intern("SOFTFAIL");
+  skipsym = kno_intern("skip");
+  limitsym = kno_intern("limit");
+  batchsym = kno_intern("batch");
+  fieldssym = kno_intern("fields");
+  upsertsym = kno_intern("upsert");
+  singlesym = kno_intern("single");
+  wtimeoutsym = kno_intern("wtimeout");
+  writesym = kno_intern("write");
+  readsym = kno_intern("read");
+  returnsym = kno_intern("return");
+  originalsym = kno_intern("original");
+  newsym = kno_intern("new");
+  removesym = kno_intern("remove");
+  softfailsym = kno_intern("softfail");
 
-  sslsym = kno_intern("SSL");
-  smoketest_sym = kno_intern("SMOKETEST");
-  certfile = kno_intern("CERTFILE");
-  certpass = kno_intern("CERTPASS");
-  cafilesym = kno_intern("CAFILE");
-  cadirsym = kno_intern("CADIR");
-  crlsym = kno_intern("CRLFILE");
+  sslsym = kno_intern("ssl");
+  smoketest_sym = kno_intern("smoketest");
+  certfile = kno_intern("certfile");
+  certpass = kno_intern("certpass");
+  cafilesym = kno_intern("cafile");
+  cadirsym = kno_intern("cadir");
+  crlsym = kno_intern("crlfile");
 
-  mongovec_symbol = kno_intern("%MONGOVEC");
+  mongovec_symbol = kno_intern("%mongovec");
 
-  bsonflags = kno_intern("BSON");
-  raw = kno_intern("RAW");
-  slotify = kno_intern("SLOTIFY");
-  slotifyin = kno_intern("SLOTIFY/IN");
-  slotifyout = kno_intern("SLOTIFY/OUT");
-  colonize = kno_intern("COLONIZE");
-  colonizein = kno_intern("COLONIZE/IN");
-  colonizeout = kno_intern("COLONIZE/OUT");
-  logopsym = kno_intern("LOGOPS");
-  choices = kno_intern("CHOICES");
-  nochoices = kno_intern("NOCHOICES");
-  fieldmap_symbol = kno_intern("FIELDMAP");
+  bsonflags = kno_intern("bson");
+  raw = kno_intern("raw");
+  slotify = kno_intern("slotify");
+  slotifyin = kno_intern("slotify/in");
+  slotifyout = kno_intern("slotify/out");
+  colonize = kno_intern("colonize");
+  colonizein = kno_intern("colonize/in");
+  colonizeout = kno_intern("colonize/out");
+  logopsym = kno_intern("logops");
+  choices = kno_intern("choices");
+  nochoices = kno_intern("nochoices");
+  fieldmap_symbol = kno_intern("fieldmap");
 
-  dbname_symbol = kno_intern("DBNAME");
-  username_symbol = kno_intern("USERNAME");
-  auth_symbol = kno_intern("AUTHENTICATION");
-  hosts_symbol = kno_intern("HOSTS");
-  connections_symbol = kno_intern("CONNECTIONS");
-  fdtag_symbol = kno_intern("%FDTAG");
-  fdparse_symbol = kno_intern("%FDPARSE");
+  dbname_symbol = kno_intern("dbname");
+  username_symbol = kno_intern("username");
+  auth_symbol = kno_intern("authentication");
+  hosts_symbol = kno_intern("hosts");
+  connections_symbol = kno_intern("connections");
+  fdtag_symbol = kno_intern("%fdtag");
+  fdparse_symbol = kno_intern("%fdparse");
 
-  primarysym = kno_intern("PRIMARY");
-  primarypsym = kno_intern("PRIMARY+");
-  secondarysym = kno_intern("SECONDARY");
-  secondarypsym = kno_intern("SECONDARY+");
-  nearestsym = kno_intern("NEAREST");
+  primarysym = kno_intern("primary");
+  primarypsym = kno_intern("primary+");
+  secondarysym = kno_intern("secondary");
+  secondarypsym = kno_intern("secondary+");
+  nearestsym = kno_intern("nearest");
 
   dotcar_symbol = kno_intern(">car>");
   dotcdr_symbol = kno_intern(">cdr>");
 
-  poolmaxsym = kno_intern("POOLMAX");
+  poolmaxsym = kno_intern("poolmax");
 
-  symslots_symbol = kno_intern("SYMSLOTS");
-  vecslots_symbol = kno_intern("VECSLOTS");
-  rawslots_symbol = kno_intern("RAWSLOTS");
+  symslots_symbol = kno_intern("symslots");
+  vecslots_symbol = kno_intern("vecslots");
+  rawslots_symbol = kno_intern("rawslots");
 
-  mongo_timestamp_tag = kno_intern("MONGOTIME");
+  mongo_timestamp_tag = kno_intern("mongotime");
 
   kno_mongoc_server = kno_register_cons_type("MongoDB client");
   kno_mongoc_collection = kno_register_cons_type("MongoDB collection");
@@ -3568,13 +3568,13 @@ KNO_EXPORT int kno_init_mongodb()
                      "always have vector values",
                      multislots_config_get,multislots_config_add,NULL);
 
-  add_vecslot(kno_intern("$EACH"));
-  add_vecslot(kno_intern("$IN"));
-  add_vecslot(kno_intern("$NIN"));
-  add_vecslot(kno_intern("$ALL"));
-  add_vecslot(kno_intern("$AND"));
-  add_vecslot(kno_intern("$OR"));
-  add_vecslot(kno_intern("$NOR"));
+  add_vecslot(kno_intern("$each"));
+  add_vecslot(kno_intern("$in"));
+  add_vecslot(kno_intern("$nin"));
+  add_vecslot(kno_intern("$all"));
+  add_vecslot(kno_intern("$and"));
+  add_vecslot(kno_intern("$or"));
+  add_vecslot(kno_intern("$nor"));
 
   kno_finish_module(module);
 

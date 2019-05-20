@@ -2799,36 +2799,36 @@ KNO_EXPORT void kno_init_pools_c()
 
   _kno_oid_info=_more_oid_info;
 
-  lock_symbol = kno_intern("LOCK");
-  unlock_symbol = kno_intern("UNLOCK");
+  lock_symbol = kno_intern("lock");
+  unlock_symbol = kno_intern("unlock");
 
-  base_slot=kno_intern("BASE");
-  capacity_slot=kno_intern("CAPACITY");
-  cachelevel_slot=kno_intern("CACHELEVEL");
-  label_slot=kno_intern("LABEL");
-  poolid_slot=kno_intern("POOLID");
-  source_slot=kno_intern("SOURCE");
-  adjuncts_slot=kno_intern("ADJUNCTS");
-  _adjuncts_slot=kno_intern("_ADJUNCTS");
-  cached_slot=kno_intern("CACHED");
-  locked_slot=kno_intern("LOCKED");
-  flags_slot=kno_intern("FLAGS");
-  registered_slot=kno_intern("REGISTERED");
-  opts_slot=kno_intern("OPTS");
-  core_slot=kno_intern("CORE");
+  base_slot=kno_intern("base");
+  capacity_slot=kno_intern("capacity");
+  cachelevel_slot=kno_intern("cachelevel");
+  label_slot=kno_intern("label");
+  poolid_slot=kno_intern("poolid");
+  source_slot=kno_intern("source");
+  adjuncts_slot=kno_intern("adjuncts");
+  _adjuncts_slot=kno_intern("_adjuncts");
+  cached_slot=kno_intern("cached");
+  locked_slot=kno_intern("locked");
+  flags_slot=kno_intern("flags");
+  registered_slot=kno_intern("registered");
+  opts_slot=kno_intern("opts");
+  core_slot=kno_intern("core");
 
   read_only_flag=FDSYM_READONLY;
-  unregistered_flag=kno_intern("UNREGISTERED");
-  registered_flag=kno_intern("REGISTERED");
-  noswap_flag=kno_intern("NOSWAP");
-  noerr_flag=kno_intern("NOERR");
-  phased_flag=kno_intern("PHASED");
-  sparse_flag=kno_intern("SPARSE");
-  background_flag=kno_intern("BACKGROUND");
-  virtual_flag=kno_intern("VIRTUAL");
-  nolocks_flag=kno_intern("NOLOCKS");
+  unregistered_flag=kno_intern("unregistered");
+  registered_flag=kno_intern("registered");
+  noswap_flag=kno_intern("noswap");
+  noerr_flag=kno_intern("noerr");
+  phased_flag=kno_intern("phased");
+  sparse_flag=kno_intern("sparse");
+  background_flag=kno_intern("background");
+  virtual_flag=kno_intern("virtual");
+  nolocks_flag=kno_intern("nolocks");
 
-  metadata_readonly_props = kno_intern("_READONLY_PROPS");
+  metadata_readonly_props = kno_intern("_readonly_props");
 
   memset(&kno_top_pools,0,sizeof(kno_top_pools));
   memset(&kno_pools_by_serialno,0,sizeof(kno_top_pools));
@@ -2839,7 +2839,7 @@ KNO_EXPORT void kno_init_pools_c()
 
   {
     struct KNO_COMPOUND_TYPEINFO *e =
-      kno_register_compound(kno_intern("POOL"),NULL,NULL);
+      kno_register_compound(kno_intern("pool"),NULL,NULL);
     e->compound_parser = pool_parsefn;}
 
   KNO_INIT_STATIC_CONS(&poolid_table,kno_hashtable_type);

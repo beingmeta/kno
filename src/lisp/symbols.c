@@ -14,6 +14,8 @@
 
 #include "libu8/u8memlist.h"
 
+int kno_flipcase_fix = 1;
+
 lispval *kno_symbol_names;
 int kno_n_symbols = 0, kno_max_symbols = 0, kno_initial_symbols = 4096;
 struct KNO_SYMBOL_TABLE kno_symbol_table;
@@ -86,75 +88,75 @@ static void init_symbol_tables()
 static void init_builtin_symbols()
 {
   /* Make these low-numberd symbols to have them early in sorts */
-  kno_intern("%ID"); kno_intern("NAME"); kno_intern("ID"); kno_intern("_ID");
-  kno_intern("LABEL");
+  kno_intern("%id"); kno_intern("name"); kno_intern("id"); kno_intern("_id");
+  kno_intern("label");
 
   /* Here they are in alphabetical order */
-  FDSYM_ADD = kno_intern("ADD");
-  FDSYM_ADJUNCT = kno_intern("ADJUNCT");
-  FDSYM_ALL = kno_intern("ALL");
-  FDSYM_ALWAYS = kno_intern("ALWAYS");
-  FDSYM_BLOCKSIZE = kno_intern("BLOCKSIZE");
-  FDSYM_BUFSIZE = kno_intern("BUFSIZE");
-  FDSYM_CACHELEVEL = kno_intern("CACHELEVEL");
-  FDSYM_CACHESIZE = kno_intern("CACHESIZE");
-  FDSYM_CONS = kno_intern("CONS");
-  FDSYM_CONTENT = kno_intern("CONTENT");
-  FDSYM_CREATE = kno_intern("CREATE");
-  FDSYM_CREATE = kno_intern("FILE");
-  FDSYM_DEFAULT = kno_intern("DEFAULT");
+  FDSYM_ADD = kno_intern("add");
+  FDSYM_ADJUNCT = kno_intern("adjunct");
+  FDSYM_ALL = kno_intern("all");
+  FDSYM_ALWAYS = kno_intern("always");
+  FDSYM_BLOCKSIZE = kno_intern("blocksize");
+  FDSYM_BUFSIZE = kno_intern("bufsize");
+  FDSYM_CACHELEVEL = kno_intern("cachelevel");
+  FDSYM_CACHESIZE = kno_intern("cachesize");
+  FDSYM_CONS = kno_intern("cons");
+  FDSYM_CONTENT = kno_intern("content");
+  FDSYM_CREATE = kno_intern("create");
+  FDSYM_CREATE = kno_intern("file");
+  FDSYM_DEFAULT = kno_intern("default");
   FDSYM_DOT = kno_intern(".");
-  FDSYM_DROP = kno_intern("DROP");
-  FDSYM_ENCODING = kno_intern("ENCODING");
+  FDSYM_DROP = kno_intern("drop");
+  FDSYM_ENCODING = kno_intern("encoding");
   FDSYM_EQUALS = kno_intern("=");
-  FDSYM_ERROR = kno_intern("ERROR");
-  FDSYM_FILE = kno_intern("FILE");
-  FDSYM_FILENAME = kno_intern("FILENAME");
-  FDSYM_FLAGS = kno_intern("FLAGS");
-  FDSYM_FORMAT = kno_intern("FORMAT");
-  FDSYM_FRONT = kno_intern("FRONT");
-  FDSYM_INPUT = kno_intern("INPUT");
-  FDSYM_ISADJUNCT = kno_intern("ISADJUNCT");
-  FDSYM_KEYSLOT = kno_intern("KEYSLOT");
-  FDSYM_LABEL = kno_intern("LABEL");
-  FDSYM_LAZY = kno_intern("LAZY");
-  FDSYM_LENGTH = kno_intern("LENGTH");
-  FDSYM_LOGLEVEL = kno_intern("LOGLEVEL");
-  FDSYM_MAIN = kno_intern("MAIN");
-  FDSYM_MERGE = kno_intern("MERGE");
-  FDSYM_METADATA = kno_intern("METADATA");
+  FDSYM_ERROR = kno_intern("error");
+  FDSYM_FILE = kno_intern("file");
+  FDSYM_FILENAME = kno_intern("filename");
+  FDSYM_FLAGS = kno_intern("flags");
+  FDSYM_FORMAT = kno_intern("format");
+  FDSYM_FRONT = kno_intern("front");
+  FDSYM_INPUT = kno_intern("input");
+  FDSYM_ISADJUNCT = kno_intern("isadjunct");
+  FDSYM_KEYSLOT = kno_intern("keyslot");
+  FDSYM_LABEL = kno_intern("label");
+  FDSYM_LAZY = kno_intern("lazy");
+  FDSYM_LENGTH = kno_intern("length");
+  FDSYM_LOGLEVEL = kno_intern("loglevel");
+  FDSYM_MAIN = kno_intern("main");
+  FDSYM_MERGE = kno_intern("merge");
+  FDSYM_METADATA = kno_intern("metadata");
   FDSYM_MINUS = kno_intern("-");
-  FDSYM_MODULE = kno_intern("MODULE");
-  FDSYM_NAME = kno_intern("NAME");
-  FDSYM_NO = kno_intern("NO");
-  FDSYM_NONE = kno_intern("NONE");
-  FDSYM_NOT = kno_intern("NOT");
-  FDSYM_OPT = kno_intern("OPT");
-  FDSYM_OPTS = kno_intern("OPTS");
-  FDSYM_OUTPUT = kno_intern("OUTPUT");
-  FDSYM_PCTID = kno_intern("%ID");
+  FDSYM_MODULE = kno_intern("module");
+  FDSYM_NAME = kno_intern("name");
+  FDSYM_NO = kno_intern("no");
+  FDSYM_NONE = kno_intern("none");
+  FDSYM_NOT = kno_intern("not");
+  FDSYM_OPT = kno_intern("opt");
+  FDSYM_OPTS = kno_intern("opts");
+  FDSYM_OUTPUT = kno_intern("output");
+  FDSYM_PCTID = kno_intern("%id");
   FDSYM_PLUS = kno_intern("+");
-  FDSYM_PREFIX = kno_intern("PREFIX");
-  FDSYM_PROPS = kno_intern("PROPS");
+  FDSYM_PREFIX = kno_intern("prefix");
+  FDSYM_PROPS = kno_intern("props");
   FDSYM_QMARK = kno_intern("?");
-  FDSYM_QUOTE = kno_intern("QUOTE");
-  FDSYM_READONLY = kno_intern("READONLY");
-  FDSYM_SEP = kno_intern("SEP");
-  FDSYM_SET = kno_intern("SET");
-  FDSYM_SIZE = kno_intern("SIZE");
-  FDSYM_SORT = kno_intern("SORT");
-  FDSYM_SORTED = kno_intern("SORTED");
-  FDSYM_SOURCE = kno_intern("SOURCE");
+  FDSYM_QUOTE = kno_intern("quote");
+  FDSYM_READONLY = kno_intern("readonly");
+  FDSYM_SEP = kno_intern("sep");
+  FDSYM_SET = kno_intern("set");
+  FDSYM_SIZE = kno_intern("size");
+  FDSYM_SORT = kno_intern("sort");
+  FDSYM_SORTED = kno_intern("sorted");
+  FDSYM_SOURCE = kno_intern("source");
   FDSYM_STAR = kno_intern("*");
-  FDSYM_STORE = kno_intern("STORE");
-  FDSYM_STRING = kno_intern("STRING");
-  FDSYM_SUFFIX = kno_intern("SUFFIX");
-  FDSYM_TAG = kno_intern("TAG");
-  FDSYM_TEST = kno_intern("TEST");
-  FDSYM_TEXT = kno_intern("TEXT");
-  FDSYM_TYPE = kno_intern("TYPE");
-  FDSYM_VERSION = kno_intern("VERSION");
-  FDSYM_VOID = kno_intern("VOID");
+  FDSYM_STORE = kno_intern("store");
+  FDSYM_STRING = kno_intern("string");
+  FDSYM_SUFFIX = kno_intern("suffix");
+  FDSYM_TAG = kno_intern("tag");
+  FDSYM_TEST = kno_intern("test");
+  FDSYM_TEXT = kno_intern("text");
+  FDSYM_TYPE = kno_intern("type");
+  FDSYM_VERSION = kno_intern("version");
+  FDSYM_VOID = kno_intern("void");
 }
 
 static void grow_symbol_tables()
@@ -269,7 +271,7 @@ KNO_EXPORT lispval kno_symbolize(u8_string string)
   U8_STATIC_OUTPUT(name,64);
   int c = u8_sgetc(&scan);
   while (c>=0) {
-    u8_putc(nameout,u8_toupper(c));
+    u8_putc(nameout,u8_tolower(c));
     c = u8_sgetc(&scan);}
   lispval result = kno_make_symbol(name.u8_outbuf,name.u8_write-name.u8_outbuf);
   u8_close((u8_stream)nameout);

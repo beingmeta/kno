@@ -2394,34 +2394,34 @@ KNO_EXPORT void kno_init_indexes_c()
   secondary_indexes     = u8_malloc(64*sizeof(kno_index));
   secondary_indexes_len = 64;
 
-  kno_index_hashop=kno_intern("HASH");
-  kno_index_slotsop=kno_intern("SLOTIDS");
-  kno_index_bucketsop=kno_intern("BUCKETS");
+  kno_index_hashop=kno_intern("hash");
+  kno_index_slotsop=kno_intern("slotids");
+  kno_index_bucketsop=kno_intern("buckets");
 
-  cachelevel_slot=kno_intern("CACHELEVEL");
-  indexid_slot=kno_intern("INDEXID");
-  source_slot=kno_intern("SOURCE");
-  realpath_slot=kno_intern("REALPATH");
-  cached_slot=kno_intern("CACHED");
-  adds_slot=kno_intern("ADDS");
-  edits_slot=kno_intern("EDITS");
-  drops_slot=kno_intern("DROPS");
-  replaced_slot=kno_intern("REPLACED");
-  flags_slot=kno_intern("FLAGS");
-  registered_slot=kno_intern("REGISTERED");
-  opts_slot=kno_intern("OPTS");
+  cachelevel_slot=kno_intern("cachelevel");
+  indexid_slot=kno_intern("indexid");
+  source_slot=kno_intern("source");
+  realpath_slot=kno_intern("realpath");
+  cached_slot=kno_intern("cached");
+  adds_slot=kno_intern("adds");
+  edits_slot=kno_intern("edits");
+  drops_slot=kno_intern("drops");
+  replaced_slot=kno_intern("replaced");
+  flags_slot=kno_intern("flags");
+  registered_slot=kno_intern("registered");
+  opts_slot=kno_intern("opts");
 
   read_only_flag=FDSYM_READONLY;
-  unregistered_flag=kno_intern("UNREGISTERED");
-  registered_flag=kno_intern("REGISTERED");
-  noswap_flag=kno_intern("NOSWAP");
-  noerr_flag=kno_intern("NOERR");
-  phased_flag=kno_intern("PHASED");
-  background_flag=kno_intern("BACKGROUND");
+  unregistered_flag=kno_intern("unregistered");
+  registered_flag=kno_intern("registered");
+  noswap_flag=kno_intern("noswap");
+  noerr_flag=kno_intern("noerr");
+  phased_flag=kno_intern("phased");
+  background_flag=kno_intern("background");
 
   {
     struct KNO_COMPOUND_TYPEINFO *e =
-      kno_register_compound(kno_intern("INDEX"),NULL,NULL);
+      kno_register_compound(kno_intern("index"),NULL,NULL);
     e->compound_parser = index_parsefn;}
 
   kno_tablefns[kno_index_type]=u8_alloc(struct KNO_TABLEFNS);
@@ -2447,7 +2447,7 @@ KNO_EXPORT void kno_init_indexes_c()
   kno_copiers[kno_consed_index_type]=copy_consed_index;
 
   kno_unparsers[kno_index_type]=unparse_index;
-  metadata_readonly_props = kno_intern("_READONLY_PROPS");
+  metadata_readonly_props = kno_intern("_readonly_props");
 
   u8_init_rwlock(&indexes_lock);
   u8_init_mutex(&background_lock);

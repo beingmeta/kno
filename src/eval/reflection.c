@@ -145,17 +145,17 @@ static lispval procedure_symbol(lispval x)
   if (KNO_APPLICABLEP(x)) {
     struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
     if (f->fcn_name)
-      return kno_intern(f->fcn_name);
+      return kno_symbolize(f->fcn_name);
     else return KNO_FALSE;}
   else if (TYPEP(x,kno_evalfn_type)) {
     struct KNO_EVALFN *sf = GETEVALFN(x);
     if (sf->evalfn_name)
-      return kno_intern(sf->evalfn_name);
+      return kno_symbolize(sf->evalfn_name);
     else return KNO_FALSE;}
   else if (TYPEP(x,kno_macro_type)) {
     struct KNO_MACRO *m = (kno_macro) x;
     if (m->macro_name)
-      return kno_intern(m->macro_name);
+      return kno_symbolize(m->macro_name);
     else return KNO_FALSE;}
   else return kno_type_error(_("function"),"procedure_symbol",x);
 }
@@ -973,16 +973,16 @@ static lispval get_all_modules_prim()
 KNO_EXPORT void kno_init_reflection_c()
 {
   lispval module =
-    kno_new_cmodule("REFLECTION",KNO_MODULE_SAFE,kno_init_reflection_c);
+    kno_new_cmodule("reflection",KNO_MODULE_SAFE,kno_init_reflection_c);
 
   lispval apropos_cprim = kno_make_cprim1("APROPOS",apropos_prim,1);
   kno_idefn(module,apropos_cprim);
   kno_defn(kno_scheme_module,apropos_cprim);
 
-  moduleid_symbol = kno_intern("%MODULEID");
-  source_symbol = kno_intern("%SOURCE");
-  safe_symbol = kno_intern("%SAFEMOD");
-  call_profile_symbol = kno_intern("%CALLPROFILE");
+  moduleid_symbol = kno_intern("%moduleid");
+  source_symbol = kno_intern("%source");
+  safe_symbol = kno_intern("%safemod");
+  call_profile_symbol = kno_intern("%callprofile");
 
   kno_idefn1(module,"MACRO?",macrop,1,
             "Returns true if its argument is an evaluator macro",

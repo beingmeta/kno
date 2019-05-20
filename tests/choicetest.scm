@@ -88,7 +88,7 @@
 
 ;;; Test homogenous/heterogenous merges
 (define homogenous-choices
-  #({1 2 3} {"one" "two" "three"} {une deux trois}))
+  #({1 2 3} {"ONE" "TWO" "THREE"} {une deux trois}))
 (define hresult {})
 (evaltest #t
 	  (begin (set! hresult (elt homogenous-choices (choice 0 1 2)))
@@ -101,8 +101,8 @@
       (if (symbol? x) (symbol->string x)
 	x))))
 (evaltest
- '{1 2 3 une deux trois "one" "two" "three"
-     2 4 6 |one| |two| |three| "UNE" "DEUX" "TROIS"}
+ '{1 2 3 une deux trois "ONE" "TWO" "THREE"
+     2 4 6 |ONE| |TWO| |THREE| "une" "deux" "trois"}
  (begin (do-choices (x hresult)
 	  (set+! hresult (convert-arg x)))
 	hresult))

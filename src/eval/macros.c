@@ -102,8 +102,8 @@ KNO_EXPORT void kno_init_macros_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  moduleid_symbol = kno_intern("%MODULEID");
-  lambda_symbol = kno_intern("LAMBDA");
+  moduleid_symbol = kno_intern("%moduleid");
+  lambda_symbol = kno_intern("lambda");
 
   kno_walkers[kno_macro_type]=walk_macro;
   kno_unparsers[kno_macro_type]=unparse_macro;

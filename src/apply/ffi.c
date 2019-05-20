@@ -463,26 +463,26 @@ KNO_EXPORT void kno_init_ffi_c()
   kno_functionp[kno_ffi_type]=1;
   kno_applyfns[kno_ffi_type]=(kno_applyfn)kno_ffi_call;
 
-  void_symbol = kno_intern("VOID");
-  double_symbol = kno_intern("DOUBLE");
-  float_symbol = kno_intern("FLOAT");
-  uint_symbol = kno_intern("UINT");
-  int_symbol = kno_intern("INT");
-  ushort_symbol = kno_intern("USHORT");
-  short_symbol = kno_intern("SHORT");
-  ulong_symbol = kno_intern("ULONG");
-  long_symbol = kno_intern("LONG");
-  uchar_symbol = kno_intern("UCHAR");
-  byte_symbol = kno_intern("BYTE");
-  size_symbol = kno_intern("SIZE");
-  char_symbol = kno_intern("CHAR");
-  string_symbol = kno_intern("STRING");
-  packet_symbol = kno_intern("PACKET");
-  ptr_symbol = kno_intern("PTR");
-  cons_symbol = kno_intern("CONS");
-  lisp_symbol = kno_intern("LISP");
+  void_symbol = kno_intern("void");
+  double_symbol = kno_intern("double");
+  float_symbol = kno_intern("float");
+  uint_symbol = kno_intern("uint");
+  int_symbol = kno_intern("int");
+  ushort_symbol = kno_intern("ushort");
+  short_symbol = kno_intern("short");
+  ulong_symbol = kno_intern("ulong");
+  long_symbol = kno_intern("long");
+  uchar_symbol = kno_intern("uchar");
+  byte_symbol = kno_intern("byte");
+  size_symbol = kno_intern("size");
+  char_symbol = kno_intern("char");
+  string_symbol = kno_intern("string");
+  packet_symbol = kno_intern("packet");
+  ptr_symbol = kno_intern("ptr");
+  cons_symbol = kno_intern("cons");
+  lisp_symbol = kno_intern("lisp");
 
-  basetype_symbol = kno_intern("BASETYPE");
+  basetype_symbol = kno_intern("basetype");
 
   u8_register_source_file(_FILEINFO);
 }
@@ -493,28 +493,28 @@ KNO_EXPORT void kno_init_ffi_c()
   kno_type_names[kno_ffi_type]="foreign-function";
   kno_dtype_writers[kno_ffi_type]=NULL;
 
-  void_symbol = kno_intern("VOID");
-  double_symbol = kno_intern("DOUBLE");
-  float_symbol = kno_intern("FLOAT");
-  uint_symbol = kno_intern("UINT");
-  int_symbol = kno_intern("INT");
-  ushort_symbol = kno_intern("USHORT");
-  short_symbol = kno_intern("SHORT");
-  ulong_symbol = kno_intern("ULONG");
-  long_symbol = kno_intern("LONG");
-  uchar_symbol = kno_intern("UCHAR");
-  byte_symbol = kno_intern("BYTE");
-  size_symbol = kno_intern("SIZE");
-  char_symbol = kno_intern("CHAR");
-  string_symbol = kno_intern("STRING");
-  packet_symbol = kno_intern("PACKET");
-  ptr_symbol = kno_intern("PTR");
-  cons_symbol = kno_intern("CONS");
-  lisp_symbol = kno_intern("LISP");
-  lispref_symbol = kno_intern("LISPREF");
-  strcpy_symbol = kno_intern("STRCPY");
+  void_symbol = kno_intern("void");
+  double_symbol = kno_intern("double");
+  float_symbol = kno_intern("float");
+  uint_symbol = kno_intern("uint");
+  int_symbol = kno_intern("int");
+  ushort_symbol = kno_intern("ushort");
+  short_symbol = kno_intern("short");
+  ulong_symbol = kno_intern("ulong");
+  long_symbol = kno_intern("long");
+  uchar_symbol = kno_intern("uchar");
+  byte_symbol = kno_intern("byte");
+  size_symbol = kno_intern("size");
+  char_symbol = kno_intern("char");
+  string_symbol = kno_intern("string");
+  packet_symbol = kno_intern("packet");
+  ptr_symbol = kno_intern("ptr");
+  cons_symbol = kno_intern("cons");
+  lisp_symbol = kno_intern("lisp");
+  lispref_symbol = kno_intern("lispref");
+  strcpy_symbol = kno_intern("strcpy");
 
-  basetype_symbol = kno_intern("BASETYPE");
+  basetype_symbol = kno_intern("basetype");
 
   u8_register_source_file(_FILEINFO);
 }

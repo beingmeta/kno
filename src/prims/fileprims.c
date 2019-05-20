@@ -1593,7 +1593,7 @@ KNO_EXPORT void kno_init_fileprims_c()
   scheme_fileio_initialized = 1;
   kno_init_scheme();
   fileio_module =
-    kno_new_cmodule("FILEIO",(KNO_MODULE_DEFAULT),kno_init_fileprims_c);
+    kno_new_cmodule("fileio",(KNO_MODULE_DEFAULT),kno_init_fileprims_c);
   u8_register_source_file(_FILEINFO);
 
 
@@ -1852,13 +1852,13 @@ KNO_EXPORT void kno_init_fileprims_c()
 
   atexit(remove_tempdirs);
 
-  snapshotvars = kno_intern("%SNAPVARS");
-  snapshotconfig = kno_intern("%SNAPCONFIG");
-  snapshotfile = kno_intern("%SNAPSHOTFILE");
-  configinfo = kno_intern("%CONFIGINFO");
+  snapshotvars = kno_intern("%snapvars");
+  snapshotconfig = kno_intern("%snapconfig");
+  snapshotfile = kno_intern("%snapshotfile");
+  configinfo = kno_intern("%configinfo");
 
-  noblock_symbol = kno_intern("NOBLOCK");
-  nodelay_symbol = kno_intern("NODELAY");
+  noblock_symbol = kno_intern("noblock");
+  nodelay_symbol = kno_intern("nodelay");
 
   kno_def_evalfn(fileio_module,"SNAPSHOT","",snapshot_evalfn);
   kno_def_evalfn(fileio_module,"SNAPBACK","",snapback_evalfn);

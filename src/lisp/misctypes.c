@@ -272,15 +272,15 @@ void kno_init_misctypes_c()
 
   kno_unparsers[kno_timestamp_type]=unparse_timestamp;
 
-  uuid_symbol = kno_intern("UUID");
+  uuid_symbol = kno_intern("uuid");
   {
     struct KNO_COMPOUND_TYPEINFO *e = 
       kno_register_compound(uuid_symbol,NULL,NULL);
     e->compound_dumpfn = uuid_dump;
     e->compound_restorefn = uuid_restore;}
 
-  timestamp_symbol = kno_intern("TIMESTAMP");
-  timestamp0_symbol = kno_intern("TIMESTAMP0");
+  timestamp_symbol = kno_intern("timestamp");
+  timestamp0_symbol = kno_intern("timestamp0");
   {
     struct KNO_COMPOUND_TYPEINFO *e=
       kno_register_compound(timestamp_symbol,NULL,NULL);

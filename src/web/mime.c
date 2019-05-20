@@ -291,16 +291,16 @@ void kno_init_mime_c()
   lispval module = kno_new_module("WEBTOOLS",(KNO_MODULE_SAFE));
   kno_idefn(module,kno_make_cprim1("PARSE-MIME",parse_mime_data,1));
 
-  content_slotid = kno_intern("CONTENT");
-  charset_slotid = kno_intern("CHARSET");
-  encoding_slotid = kno_intern("CONTENT-TRANSFER-ENCODING");
-  content_type_slotid = kno_intern("CONTENT-TYPE");
-  content_disposition_slotid = kno_intern("CONTENT-DISPOSITION");
-  separator_slotid = kno_intern("BOUNDARY");
-  multipart_symbol = kno_intern("MULTIPART");
-  headers_slotid = kno_intern("HEADERS");
-  preamble_slotid = kno_intern("PREAMBLE");
-  parts_slotid = kno_intern("PARTS");
+  content_slotid = kno_intern("content");
+  charset_slotid = kno_intern("charset");
+  encoding_slotid = kno_intern("content-transfer-encoding");
+  content_type_slotid = kno_intern("content-type");
+  content_disposition_slotid = kno_intern("content-disposition");
+  separator_slotid = kno_intern("boundary");
+  multipart_symbol = kno_intern("multipart");
+  headers_slotid = kno_intern("headers");
+  preamble_slotid = kno_intern("preamble");
+  parts_slotid = kno_intern("parts");
 
   u8_register_source_file(_FILEINFO);
 }

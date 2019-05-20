@@ -47,7 +47,7 @@ static lispval set_cdr(lispval pair,lispval value)
 
 KNO_EXPORT void kno_init_side_effects_c()
 {
-  lispval module = kno_new_cmodule("SIDE-EFFECTS",KNO_MODULE_SAFE,
+  lispval module = kno_new_cmodule("side-effects",KNO_MODULE_SAFE,
                                   kno_init_side_effects_c);
   kno_idefn(module,kno_make_cprim3x("VECTOR-SET!",vector_set,3,
                                   kno_vector_type,VOID,

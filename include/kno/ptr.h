@@ -764,6 +764,8 @@ KNO_EXPORT lispval kno_intern(u8_string string);
 KNO_EXPORT lispval kno_symbolize(u8_string string);
 KNO_EXPORT lispval kno_all_symbols(void);
 
+KNO_EXPORT int kno_flipcase_fix;
+
 KNO_EXPORT lispval FDSYM_ADD, FDSYM_ADJUNCT, FDSYM_ALL, FDSYM_ALWAYS;
 KNO_EXPORT lispval FDSYM_BLOCKSIZE, FDSYM_BUFSIZE;
 KNO_EXPORT lispval FDSYM_CACHELEVEL, FDSYM_CACHESIZE;

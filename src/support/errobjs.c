@@ -745,8 +745,8 @@ void kno_init_err_c()
   if (kno_unparsers[kno_exception_type]==NULL)
     kno_unparsers[kno_exception_type]=unparse_exception;
 
-  stack_entry_symbol=kno_intern("%%STACK");
-  exception_stack_symbol = kno_intern("EXCEPTION-STACK");
+  stack_entry_symbol=kno_intern("%%stack");
+  exception_stack_symbol = kno_intern("exception-stack");
 }
 
 /* Emacs local variables

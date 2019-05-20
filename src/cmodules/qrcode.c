@@ -178,15 +178,15 @@ KNO_EXPORT int kno_init_qrcode()
 {
   lispval module;
   if (qrencode_init) return 0;
-  module = kno_new_cmodule("QRCODE",0,kno_init_qrcode);
-  l_sym = kno_intern("L");
-  m_sym = kno_intern("M");
-  q_sym = kno_intern("Q");
-  h_sym = kno_intern("H");
-  dotsize_symbol = kno_intern("DOTSIZE");
-  margin_symbol = kno_intern("MARGIN");
-  version_symbol = kno_intern("VERSION");
-  robustness_symbol = kno_intern("ROBUSTNESS");
+  module = kno_new_cmodule("qrcode",0,kno_init_qrcode);
+  l_sym = kno_intern("l");
+  m_sym = kno_intern("m");
+  q_sym = kno_intern("q");
+  h_sym = kno_intern("h");
+  dotsize_symbol = kno_intern("dotsize");
+  margin_symbol = kno_intern("margin");
+  version_symbol = kno_intern("version");
+  robustness_symbol = kno_intern("robustness");
 
 
   kno_defn(module,

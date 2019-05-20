@@ -1090,10 +1090,10 @@ kno_pool kno_make_leveldb_pool(u8_string path,
     lispval given_load = get_prop(dbptr,"\377LOAD",KNO_VOID);
     lispval cur_label = get_prop(dbptr,"\377LABEL",KNO_VOID);
     lispval cur_metadata = get_prop(dbptr,"\377METADATA",KNO_VOID);
-    lispval ctime_val = kno_getopt(opts,kno_intern("CTIME"),KNO_VOID);
-    lispval mtime_val = kno_getopt(opts,kno_intern("MTIME"),KNO_VOID);
-    lispval generation_val = kno_getopt(opts,kno_intern("GENERATION"),KNO_VOID);
-    lispval slotids = kno_getopt(opts,kno_intern("SLOTIDS"),KNO_VOID);
+    lispval ctime_val = kno_getopt(opts,kno_intern("ctime"),KNO_VOID);
+    lispval mtime_val = kno_getopt(opts,kno_intern("mtime"),KNO_VOID);
+    lispval generation_val = kno_getopt(opts,kno_intern("generation"),KNO_VOID);
+    lispval slotids = kno_getopt(opts,kno_intern("slotids"),KNO_VOID);
 
     u8_string realpath = u8_realpath(path,NULL);
     u8_string abspath = u8_abspath(path,NULL);
@@ -1452,10 +1452,10 @@ static kno_pool leveldb_pool_create(u8_string spec,void *type_data,
                                    kno_storage_flags storage_flags,
                                    lispval opts)
 {
-  lispval base_oid = kno_getopt(opts,kno_intern("BASE"),VOID);
-  lispval capacity_arg = kno_getopt(opts,kno_intern("CAPACITY"),VOID);
-  lispval load_arg = kno_getopt(opts,kno_intern("LOAD"),VOID);
-  lispval metadata = kno_getopt(opts,kno_intern("METADATA"),VOID);
+  lispval base_oid = kno_getopt(opts,kno_intern("base"),VOID);
+  lispval capacity_arg = kno_getopt(opts,kno_intern("capacity"),VOID);
+  lispval load_arg = kno_getopt(opts,kno_intern("load"),VOID);
+  lispval metadata = kno_getopt(opts,kno_intern("metadata"),VOID);
   unsigned int capacity;
   kno_pool dbpool = NULL;
   int rv = 0;
@@ -2390,7 +2390,7 @@ KNO_EXPORT int kno_init_leveldb()
   kno_tablefns[kno_leveldb_type]->get = leveldb_table_get;
   kno_tablefns[kno_leveldb_type]->store = leveldb_table_store;
 
-  module = kno_new_cmodule("LEVELDB",0,kno_init_leveldb);
+  module = kno_new_cmodule("leveldb",0,kno_init_leveldb);
 
   kno_idefn(module,kno_make_cprim2x("LEVELDB/OPEN",leveldb_open_prim,1,
                                   kno_string_type,KNO_VOID,

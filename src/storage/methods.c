@@ -717,18 +717,18 @@ static lispval clear_implies_effect(lispval f,lispval slotid,lispval v)
 
 static void init_symbols()
 {
-  frame_symbol = kno_intern("FRAME");
-  slot_symbol = kno_intern("SLOTID");
-  value_symbol = kno_intern("VALUE");
-  through_slot = kno_intern("THROUGH");
-  key_slot = kno_intern("KEY");
-  derive_slot = kno_intern("DERIVATION");
-  inverse_slot = kno_intern("INVERSE");
-  closure_of_slot = kno_intern("CLOSURE-OF");
-  multi_slot = kno_intern("SLOTS");
-  multi_primary_slot = kno_intern("PRIMARY-SLOT");
-  index_slot = kno_intern("INDEX");
-  implies_slot = kno_intern("IMPLIES");
+  frame_symbol = kno_intern("frame");
+  slot_symbol = kno_intern("slotid");
+  value_symbol = kno_intern("value");
+  through_slot = kno_intern("through");
+  key_slot = kno_intern("key");
+  derive_slot = kno_intern("derivation");
+  inverse_slot = kno_intern("inverse");
+  closure_of_slot = kno_intern("closure-of");
+  multi_slot = kno_intern("slots");
+  multi_primary_slot = kno_intern("primary-slot");
+  index_slot = kno_intern("index");
+  implies_slot = kno_intern("implies");
 }
 
 static lispval lisp_add(lispval f,lispval s,lispval v)
@@ -765,9 +765,9 @@ KNO_EXPORT void kno_init_methods_c()
     lispval invgetbase = kno_make_cprim2("FD:INVERSE-GETBASE",inverse_getbase_method,2);
     lispval invtest = kno_make_cprim3("FD:INVERSE-TEST",inverse_test_method,3);
     kno_defn(m,invget); kno_defn(m,invtest); kno_defn(m,invgetbase);
-    kno_store(m,kno_intern("FD:INV-GET"),invget);
-    kno_store(m,kno_intern("FD:INV-GETBASE"),invgetbase);
-    kno_store(m,kno_intern("FD:INV-TEST"),invtest);}
+    kno_store(m,kno_intern("fd:inv-get"),invget);
+    kno_store(m,kno_intern("fd:inv-getbase"),invgetbase);
+    kno_store(m,kno_intern("fd:inv-test"),invtest);}
 
   kno_defn(m,kno_make_cprim2("FD:ASSOC-GET",assoc_get_method,2));
   kno_defn(m,kno_make_cprim3("FD:ASSOC-TEST",assoc_test_method,2));

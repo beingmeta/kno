@@ -419,7 +419,7 @@ static lispval archive_stat(lispval port)
   else info = in->entry_info;
 
   lispval bytes_read = KNO_INT(in->bytes_read);
-  kno_store(info,kno_intern("BYTEPOS"),bytes_read);
+  kno_store(info,kno_intern("bytepos"),bytes_read);
   kno_decref(bytes_read);
 
   return kno_incref(info);
@@ -432,7 +432,7 @@ KNO_EXPORT int kno_init_libarchive()
     return libarchive_initialized;
   else libarchive_initialized = u8_millitime();
 
-  module = kno_new_cmodule("LIBARCHIVE",0,kno_init_libarchive);
+  module = kno_new_cmodule("libarchive",0,kno_init_libarchive);
 
   kno_libarchive_type = kno_register_cons_type("archive");
   kno_unparsers[kno_libarchive_type] = unparse_archive;

@@ -262,32 +262,32 @@ KNO_EXPORT void kno_init_netindex_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  boundp = kno_intern("BOUND?");
-  quote = kno_intern("QUOTE");
-  set_symbol = kno_intern("SET");
-  drop_symbol = kno_intern("DROP");
+  boundp = kno_intern("bound?");
+  quote = kno_intern("quote");
+  set_symbol = kno_intern("set");
+  drop_symbol = kno_intern("drop");
 
-  iserver_writable = kno_intern("ISERVER-WRITABLE?");
-  iserver_fetchkeys = kno_intern("ISERVER-KEYS");
-  iserver_changes = kno_intern("ISERVER-CHANGES");
-  iserver_fetch = kno_intern("ISERVER-GET");
-  iserver_fetchsize = kno_intern("ISERVER-GET-SIZE");
-  iserver_add = kno_intern("ISERVER-ADD!");
-  iserver_drop = kno_intern("ISERVER-DROP!");
-  iserver_fetchn = kno_intern("ISERVER-BULK-GET");
-  iserver_addn = kno_intern("ISERVER-BULK-ADD!");
-  iserver_reset = kno_intern("ISERVER-RESET!");
+  iserver_writable = kno_intern("iserver-writable?");
+  iserver_fetchkeys = kno_intern("iserver-keys");
+  iserver_changes = kno_intern("iserver-changes");
+  iserver_fetch = kno_intern("iserver-get");
+  iserver_fetchsize = kno_intern("iserver-get-size");
+  iserver_add = kno_intern("iserver-add!");
+  iserver_drop = kno_intern("iserver-drop!");
+  iserver_fetchn = kno_intern("iserver-bulk-get");
+  iserver_addn = kno_intern("iserver-bulk-add!");
+  iserver_reset = kno_intern("iserver-reset!");
 
-  ixserver_writable = kno_intern("IXSERVER-WRITABLE?");
-  ixserver_fetchkeys = kno_intern("IXSERVER-KEYS");
-  ixserver_changes = kno_intern("IXSERVER-CHANGES");
-  ixserver_fetch = kno_intern("IXSERVER-GET");
-  ixserver_fetchsize = kno_intern("IXSERVER-GET-SIZE");
-  ixserver_add = kno_intern("IXSERVER-ADD!");
-  ixserver_drop = kno_intern("IXSERVER-DROP!");
-  ixserver_fetchn = kno_intern("IXSERVER-BULK-GET");
-  ixserver_addn = kno_intern("IXSERVER-BULK-ADD!");
-  iserver_reset = kno_intern("IXSERVER-RESET!");
+  ixserver_writable = kno_intern("ixserver-writable?");
+  ixserver_fetchkeys = kno_intern("ixserver-keys");
+  ixserver_changes = kno_intern("ixserver-changes");
+  ixserver_fetch = kno_intern("ixserver-get");
+  ixserver_fetchsize = kno_intern("ixserver-get-size");
+  ixserver_add = kno_intern("ixserver-add!");
+  ixserver_drop = kno_intern("ixserver-drop!");
+  ixserver_fetchn = kno_intern("ixserver-bulk-get");
+  ixserver_addn = kno_intern("ixserver-bulk-add!");
+  iserver_reset = kno_intern("ixserver-reset!");
 
   kno_register_index_type
     ("network_index",

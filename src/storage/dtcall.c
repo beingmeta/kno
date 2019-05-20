@@ -233,7 +233,7 @@ KNO_EXPORT lispval kno_dtcall_nrx(struct U8_CONNPOOL *cp,int doeval,int n,...)
 
 KNO_EXPORT void kno_init_dtcall_c()
 {
-  quote_symbol = kno_intern("QUOTE");
+  quote_symbol = kno_intern("quote");
   kno_register_config("ASYNC",
                      _("Assume asynchronous DType servers"),
                      kno_boolconfig_get,kno_boolconfig_set,&default_async);

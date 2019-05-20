@@ -297,20 +297,20 @@ void kno_init_compare_c()
   kno_comparators[kno_timestamp_type]=compare_timestamps;
   kno_comparators[kno_uuid_type]=compare_uuids;
 
-  compare_quick = kno_intern("QUICK");
-  compare_recursive = kno_intern("RECURSIVE");
-  compare_elts = kno_intern("ELTS");
-  compare_natural = kno_intern("NATURAL");
-  compare_natsort = kno_intern("NATSORT");
-  compare_numeric = kno_intern("NUMERIC");
-  compare_lexical = kno_intern("LEXICAL");
-  compare_alphabetical = kno_intern("ALPHABETICAL");
-  compare_ci = kno_intern("CI");
-  compare_ic = kno_intern("IC");
-  compare_caseinsensitive = kno_intern("CASEINSENSITIVE");
-  compare_case_insensitive = kno_intern("CASE-INSENSITIVE");
-  compare_nocase = kno_intern("NOCASE");
-  compare_full = kno_intern("FULL");
+  compare_quick = kno_intern("quick");
+  compare_recursive = kno_intern("recursive");
+  compare_elts = kno_intern("elts");
+  compare_natural = kno_intern("natural");
+  compare_natsort = kno_intern("natsort");
+  compare_numeric = kno_intern("numeric");
+  compare_lexical = kno_intern("lexical");
+  compare_alphabetical = kno_intern("alphabetical");
+  compare_ci = kno_intern("ci");
+  compare_ic = kno_intern("ic");
+  compare_caseinsensitive = kno_intern("caseinsensitive");
+  compare_case_insensitive = kno_intern("case-insensitive");
+  compare_nocase = kno_intern("nocase");
+  compare_full = kno_intern("full");
 }
 
 /* Emacs local variables

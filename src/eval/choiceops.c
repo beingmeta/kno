@@ -1473,14 +1473,14 @@ KNO_EXPORT void kno_init_choicefns_c()
     lispval qc_prim=
       kno_make_ndprim(kno_make_cprimn("QCHOICE",qchoice_prim,0));
     kno_idefn(kno_scheme_module,qc_prim);
-    kno_store(kno_scheme_module,kno_intern("QC"),qc_prim);
+    kno_store(kno_scheme_module,kno_intern("qc"),qc_prim);
   }
 
   {
     lispval qcx_prim=
       kno_make_ndprim(kno_make_cprimn("QCHOICEX",qchoicex_prim,0));
     kno_idefn(kno_scheme_module,qcx_prim);
-    kno_store(kno_scheme_module,kno_intern("QCX"),qcx_prim);
+    kno_store(kno_scheme_module,kno_intern("qcx"),qcx_prim);
   }
 
   kno_idefn(kno_scheme_module,
@@ -1504,7 +1504,7 @@ KNO_EXPORT void kno_init_choicefns_c()
     lispval empty_prim=
       kno_make_ndprim(kno_make_cprim1("EMPTY?",emptyp,1));
     kno_idefn(kno_scheme_module,empty_prim);
-    kno_store(kno_scheme_module,kno_intern("FAIL?"),empty_prim);
+    kno_store(kno_scheme_module,kno_intern("fail?"),empty_prim);
     kno_store(kno_scheme_module,kno_intern("∄"),empty_prim);
   }
 
@@ -1538,8 +1538,8 @@ KNO_EXPORT void kno_init_choicefns_c()
     lispval unique_prim=
       kno_make_ndprim(kno_make_cprim1("UNIQUE?",singletonp,1));
     kno_idefn(kno_scheme_module,unique_prim);
-    kno_store(kno_scheme_module,kno_intern("SINGLETON?"),unique_prim);
-    kno_store(kno_scheme_module,kno_intern("SOLE?"),unique_prim);}
+    kno_store(kno_scheme_module,kno_intern("singleton?"),unique_prim);
+    kno_store(kno_scheme_module,kno_intern("sole?"),unique_prim);}
 
   kno_def_evalfn(kno_scheme_module,"QCHOICE?","",qchoicep_evalfn);
 
@@ -1644,9 +1644,9 @@ KNO_EXPORT void kno_init_choicefns_c()
   kno_defalias(kno_scheme_module,"NMIN->VECTOR","MIN/SORTED");
 
 
-  lexical_symbol = kno_intern("LEXICAL");
-  lexci_symbol = kno_intern("LEXICAL/CI");
-  collate_symbol = kno_intern("COLLATE");
+  lexical_symbol = kno_intern("lexical");
+  lexci_symbol = kno_intern("lexical/ci");
+  collate_symbol = kno_intern("collate");
 
 }
 

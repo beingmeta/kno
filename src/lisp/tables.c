@@ -4697,7 +4697,7 @@ void kno_init_tables_c()
       are foud in xtable.c */
   {
     struct KNO_COMPOUND_TYPEINFO *e=
-      kno_register_compound(kno_intern("HASHTABLE"),NULL,NULL);
+      kno_register_compound(kno_intern("hashtable"),NULL,NULL);
     e->compound_restorefn=restore_hashtable;
   }
 }

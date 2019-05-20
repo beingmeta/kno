@@ -308,11 +308,11 @@ void kno_init_stacks_c()
      _("Whether to include raw ops in stacks when source is available"),
      kno_boolconfig_get,kno_boolconfig_set,&tidy_stack_frames);
 
-  opaque_symbol = kno_intern("%OPAQUE");
-  stack_entry_symbol = kno_intern("_STACK");
+  opaque_symbol = kno_intern("%opaque");
+  stack_entry_symbol = kno_intern("_stack");
   stack_target_symbol = kno_intern("$<<*eval*>>$");
-  pbound_symbol = kno_intern("%BOUND");
-  pargs_symbol = kno_intern("%ARGS");
+  pbound_symbol = kno_intern("%bound");
+  pargs_symbol = kno_intern("%args");
 
   null_sym = kno_intern("#null");
   unbound_sym = kno_intern("#unbound");

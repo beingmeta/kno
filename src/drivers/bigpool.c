@@ -422,7 +422,7 @@ static kno_pool recover_bigpool(u8_string fname,kno_storage_flags open_flags,
       u8_free(rollback_applied);
       u8_free(rollback_file);
       return opened;}
-    else if (! (kno_testopt(opts,kno_intern("FIXUP"),KNO_VOID))) {
+    else if (! (kno_testopt(opts,kno_intern("fixup"),KNO_VOID))) {
       kno_seterr("RecoveryFailed","recover_bigpool",fname,KNO_VOID);
       u8_free(rollback_file);
       return NULL;}
@@ -442,7 +442,7 @@ static kno_pool recover_bigpool(u8_string fname,kno_storage_flags open_flags,
       else {
         u8_free(rollback_file);
         u8_free(rollback_failed);}}}
-  else if (! (kno_testopt(opts,kno_intern("FIXUP"),KNO_VOID)) ) {
+  else if (! (kno_testopt(opts,kno_intern("fixup"),KNO_VOID)) ) {
     u8_seterr("NoRollbackFile",
               "The bigpool file %s doesn't have a rollback file %s",
               rollback_file);
@@ -2081,35 +2081,35 @@ static lispval bigpool_ctl(kno_pool p,lispval op,int n,lispval *args)
     if ( bp->bigpool_format & KNO_BIGPOOL_ADJUNCT )
       kno_add(base,FDSYM_FORMAT,FDSYM_ADJUNCT);
     if ( bp->bigpool_format & KNO_BIGPOOL_DTYPEV2 )
-      kno_add(base,FDSYM_FORMAT,kno_intern("DTYPEV2"));
+      kno_add(base,FDSYM_FORMAT,kno_intern("dtypev2"));
     if ( bp->bigpool_format & KNO_BIGPOOL_SPARSE )
-      kno_add(base,FDSYM_FORMAT,kno_intern("SPARSE"));
+      kno_add(base,FDSYM_FORMAT,kno_intern("sparse"));
     if ( bp->pool_offtype == KNO_B32) {
-      kno_store(base,offmode_symbol,kno_intern("B32"));
-      kno_add(base,FDSYM_FORMAT,kno_intern("B32"));}
+      kno_store(base,offmode_symbol,kno_intern("b32"));
+      kno_add(base,FDSYM_FORMAT,kno_intern("b32"));}
     else if ( bp->pool_offtype == KNO_B40) {
-      kno_store(base,offmode_symbol,kno_intern("B40"));
-      kno_add(base,FDSYM_FORMAT,kno_intern("B40"));}
+      kno_store(base,offmode_symbol,kno_intern("b40"));
+      kno_add(base,FDSYM_FORMAT,kno_intern("b40"));}
     else if ( bp->pool_offtype == KNO_B64) {
-      kno_store(base,offmode_symbol,kno_intern("B64"));
-      kno_add(base,FDSYM_FORMAT,kno_intern("B64"));}
-    else kno_store(base,offmode_symbol,kno_intern("!!INVALID!!"));
+      kno_store(base,offmode_symbol,kno_intern("b64"));
+      kno_add(base,FDSYM_FORMAT,kno_intern("b64"));}
+    else kno_store(base,offmode_symbol,kno_intern("!!invalid!!"));
     if ( bp->pool_compression == KNO_NOCOMPRESS ) {
       kno_store(base,compression_symbol,KNO_FALSE);
-      kno_add(base,FDSYM_FORMAT,kno_intern("NOCOMPRESS"));}
+      kno_add(base,FDSYM_FORMAT,kno_intern("nocompress"));}
     else if ( bp->pool_compression == KNO_ZLIB ) {
-      kno_store(base,compression_symbol,kno_intern("ZLIB"));
-      kno_add(base,FDSYM_FORMAT,kno_intern("ZLIB"));}
+      kno_store(base,compression_symbol,kno_intern("zlib"));
+      kno_add(base,FDSYM_FORMAT,kno_intern("zlib"));}
     else if ( bp->pool_compression == KNO_ZLIB9 ) {
-      kno_store(base,compression_symbol,kno_intern("ZLIB9"));
-      kno_add(base,FDSYM_FORMAT,kno_intern("ZLIB9"));}
+      kno_store(base,compression_symbol,kno_intern("zlib9"));
+      kno_add(base,FDSYM_FORMAT,kno_intern("zlib9"));}
     else if ( bp->pool_compression == KNO_SNAPPY ) {
-      kno_store(base,compression_symbol,kno_intern("SNAPPY"));
-      kno_add(base,FDSYM_FORMAT,kno_intern("SNAPPY"));}
+      kno_store(base,compression_symbol,kno_intern("snappy"));
+      kno_add(base,FDSYM_FORMAT,kno_intern("snappy"));}
     else if ( bp->pool_compression == KNO_ZSTD ) {
-      kno_store(base,compression_symbol,kno_intern("ZSTD"));
-      kno_add(base,FDSYM_FORMAT,kno_intern("ZSTD"));}
-    else kno_store(base,compression_symbol,kno_intern("!!INVALID!!"));
+      kno_store(base,compression_symbol,kno_intern("zstd"));
+      kno_add(base,FDSYM_FORMAT,kno_intern("zstd"));}
+    else kno_store(base,compression_symbol,kno_intern("!!invalid!!"));
     kno_add(base,metadata_readonly_props,load_symbol);
     kno_add(base,metadata_readonly_props,slotids_symbol);
     kno_add(base,metadata_readonly_props,compression_symbol);
@@ -2124,13 +2124,13 @@ static lispval bigpool_ctl(kno_pool p,lispval op,int n,lispval *args)
     if ( bp->pool_compression == KNO_NOCOMPRESS )
       return KNO_FALSE;
     else if ( bp->pool_compression == KNO_ZLIB )
-      return kno_intern("ZLIB");
+      return kno_intern("zlib");
     else if ( bp->pool_compression == KNO_ZLIB9 )
-      return kno_intern("ZLIB9");
+      return kno_intern("zlib9");
     else if ( bp->pool_compression == KNO_SNAPPY )
-      return kno_intern("SNAPPY");
+      return kno_intern("snappy");
     else if ( bp->pool_compression == KNO_ZSTD )
-      return kno_intern("ZSTD");
+      return kno_intern("zstd");
     else {
       kno_seterr("BadCompressionType","bigpool_ctl",bp->poolid,KNO_VOID);
       return KNO_ERROR;}}
@@ -2163,7 +2163,7 @@ static lispval bigpool_ctl(kno_pool p,lispval op,int n,lispval *args)
       lispval timestamp = kno_make_timestamp(NULL);
       lispval record = kno_make_nvector(3,kno_incref(args[0]),timestamp,sessionid);
       kno_store(((lispval)(&(p->pool_metadata))),
-               kno_intern("LOAD_CHANGED"),record);
+               kno_intern("load_changed"),record);
       bp->pool_load = KNO_FIX2INT(loadval);
       return record;}
     else return kno_type_error("pool load","bigpool_ctl",args[0]);}
@@ -2178,26 +2178,26 @@ static lispval bigpool_ctl(kno_pool p,lispval op,int n,lispval *args)
 static unsigned int get_bigpool_format(kno_storage_flags sflags,lispval opts)
 {
   unsigned int flags = 0;
-  lispval offtype = kno_intern("OFFTYPE");
-  if ( kno_testopt(opts,offtype,kno_intern("B64"))  ||
+  lispval offtype = kno_intern("offtype");
+  if ( kno_testopt(opts,offtype,kno_intern("b64"))  ||
        kno_testopt(opts,offtype,KNO_INT(64))        ||
-       kno_testopt(opts,FDSYM_FLAGS,kno_intern("B64")))
+       kno_testopt(opts,FDSYM_FLAGS,kno_intern("b64")))
     flags |= KNO_B64;
-  else if ( kno_testopt(opts,offtype,kno_intern("B40"))  ||
+  else if ( kno_testopt(opts,offtype,kno_intern("b40"))  ||
             kno_testopt(opts,offtype,KNO_INT(40))        ||
-            kno_testopt(opts,FDSYM_FLAGS,kno_intern("B40")) )
+            kno_testopt(opts,FDSYM_FLAGS,kno_intern("b40")) )
     flags |= KNO_B40;
-  else if ( kno_testopt(opts,offtype,kno_intern("B32"))  ||
+  else if ( kno_testopt(opts,offtype,kno_intern("b32"))  ||
             kno_testopt(opts,offtype,KNO_INT(32))        ||
-            kno_testopt(opts,FDSYM_FLAGS,kno_intern("B40")) )
+            kno_testopt(opts,FDSYM_FLAGS,kno_intern("b40")) )
     flags |= KNO_B32;
   else flags |= KNO_B40;
 
   flags |= ((kno_compression_type(opts,KNO_NOCOMPRESS))<<3);
 
-  if ( kno_testopt(opts,kno_intern("DTYPEV2"),VOID) ||
-       kno_testopt(opts,FDSYM_FLAGS,kno_intern("DTYPEV2")) ||
-       kno_testopt(opts,FDSYM_FORMAT,kno_intern("DTYPEV2")) )
+  if ( kno_testopt(opts,kno_intern("dtypev2"),VOID) ||
+       kno_testopt(opts,FDSYM_FLAGS,kno_intern("dtypev2")) ||
+       kno_testopt(opts,FDSYM_FORMAT,kno_intern("dtypev2")) )
     flags |= KNO_BIGPOOL_DTYPEV2;
 
   if ( (kno_testopt(opts,FDSYM_READONLY,VOID)) )
@@ -2210,7 +2210,7 @@ static unsigned int get_bigpool_format(kno_storage_flags sflags,lispval opts)
     flags |= KNO_BIGPOOL_ADJUNCT;
 
   if ( ( (sflags) & (KNO_POOL_SPARSE) ) ||
-       (kno_testopt(opts,kno_intern("SPARSE"),VOID)) )
+       (kno_testopt(opts,kno_intern("sparse"),VOID)) )
     flags |= KNO_BIGPOOL_SPARSE;
 
   return flags;
@@ -2220,15 +2220,15 @@ static kno_pool bigpool_create(u8_string spec,void *type_data,
                               kno_storage_flags storage_flags,
                               lispval opts)
 {
-  lispval base_oid = kno_getopt(opts,kno_intern("BASE"),VOID);
-  lispval capacity_arg = kno_getopt(opts,kno_intern("CAPACITY"),VOID);
-  lispval load_arg = kno_getopt(opts,kno_intern("LOAD"),KNO_FIXZERO);
+  lispval base_oid = kno_getopt(opts,kno_intern("base"),VOID);
+  lispval capacity_arg = kno_getopt(opts,kno_intern("capacity"),VOID);
+  lispval load_arg = kno_getopt(opts,kno_intern("load"),KNO_FIXZERO);
   lispval label = kno_getopt(opts,FDSYM_LABEL,VOID);
-  lispval slotcodes = kno_getopt(opts,kno_intern("SLOTIDS"),VOID);
-  lispval metadata_init = kno_getopt(opts,kno_intern("METADATA"),VOID);
-  lispval ctime_opt = kno_getopt(opts,kno_intern("CTIME"),KNO_VOID);
-  lispval mtime_opt = kno_getopt(opts,kno_intern("MTIME"),KNO_VOID);
-  lispval generation_opt = kno_getopt(opts,kno_intern("GENERATION"),KNO_VOID);
+  lispval slotcodes = kno_getopt(opts,kno_intern("slotids"),VOID);
+  lispval metadata_init = kno_getopt(opts,kno_intern("metadata"),VOID);
+  lispval ctime_opt = kno_getopt(opts,kno_intern("ctime"),KNO_VOID);
+  lispval mtime_opt = kno_getopt(opts,kno_intern("mtime"),KNO_VOID);
+  lispval generation_opt = kno_getopt(opts,kno_intern("generation"),KNO_VOID);
   time_t now=time(NULL), ctime, mtime;
   long long generation=1;
   unsigned int flags = get_bigpool_format(storage_flags,opts);
@@ -2287,10 +2287,10 @@ static kno_pool bigpool_create(u8_string spec,void *type_data,
   else generation=1;
 
   lispval metadata = VOID;
-  lispval created_symbol = kno_intern("CREATED");
-  lispval packed_symbol = kno_intern("PACKED");
-  lispval init_opts = kno_intern("INITOPTS");
-  lispval make_opts = kno_intern("MAKEOPTS");
+  lispval created_symbol = kno_intern("created");
+  lispval packed_symbol = kno_intern("packed");
+  lispval init_opts = kno_intern("initopts");
+  lispval make_opts = kno_intern("makeopts");
 
   if (KNO_TABLEP(metadata_init))
     metadata = kno_deep_copy(metadata_init);
@@ -2366,11 +2366,11 @@ KNO_EXPORT void kno_init_bigpool_c()
      kno_match_pool_file,
      (void*)U8_INT2PTR(KNO_BIGPOOL_TO_RECOVER));
 
-  load_symbol=kno_intern("LOAD");
-  slotids_symbol=kno_intern("SLOTIDS");
-  compression_symbol=kno_intern("COMPRESSION");
-  offmode_symbol=kno_intern("OFFMODE");
-  metadata_readonly_props = kno_intern("_READONLY_PROPS");
+  load_symbol=kno_intern("load");
+  slotids_symbol=kno_intern("slotids");
+  compression_symbol=kno_intern("compression");
+  offmode_symbol=kno_intern("offmode");
+  metadata_readonly_props = kno_intern("_readonly_props");
 
   kno_register_config("BIGPOOL:LOGLEVEL",
                      "The default loglevel for bigpools",

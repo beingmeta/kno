@@ -426,7 +426,7 @@ static kno_index recover_hashindex(u8_string fname,kno_storage_flags open_flags,
         u8_removefile(recovery_file);
         u8_free(recovery_file);
         return opened;}
-      if (! (kno_testopt(opts,kno_intern("FIXUP"),KNO_VOID))) {
+      if (! (kno_testopt(opts,kno_intern("fixup"),KNO_VOID))) {
         kno_seterr("RecoveryFailed","recover_hashindex",fname,KNO_VOID);
         return NULL;}
       else {
@@ -436,7 +436,7 @@ static kno_index recover_hashindex(u8_string fname,kno_storage_flags open_flags,
   else u8_logf(LOG_CRIT,CorruptedHashIndex,
                "The hashindex file %s doesn't have a recovery file %s",
                fname,recovery_file);
-  if (kno_testopt(opts,kno_intern("FIXUP"),KNO_VOID)) {
+  if (kno_testopt(opts,kno_intern("fixup"),KNO_VOID)) {
     char *src = u8_tolibc(fname);
     KNO_DECL_OUTBUF(headbuf,256);
     unsigned int magicno = KNO_HASHINDEX_MAGIC_NUMBER;
@@ -3166,23 +3166,23 @@ static void hashindex_recycle(kno_index ix)
 static int interpret_hashindex_flags(lispval opts)
 {
   int flags = 0;
-  lispval offtype = kno_intern("OFFTYPE");
-  if ( kno_testopt(opts,offtype,kno_intern("B64"))  ||
+  lispval offtype = kno_intern("offtype");
+  if ( kno_testopt(opts,offtype,kno_intern("b64"))  ||
        kno_testopt(opts,offtype,KNO_INT(64))        ||
-       kno_testopt(opts,FDSYM_FLAGS,kno_intern("B64")))
+       kno_testopt(opts,FDSYM_FLAGS,kno_intern("b64")))
     flags |= (KNO_B64<<4);
-  else if ( kno_testopt(opts,offtype,kno_intern("B40"))  ||
+  else if ( kno_testopt(opts,offtype,kno_intern("b40"))  ||
             kno_testopt(opts,offtype,KNO_INT(40))        ||
-            kno_testopt(opts,FDSYM_FLAGS,kno_intern("B40")) )
+            kno_testopt(opts,FDSYM_FLAGS,kno_intern("b40")) )
     flags |= (KNO_B40<<4);
-  else if ( kno_testopt(opts,offtype,kno_intern("B32"))  ||
+  else if ( kno_testopt(opts,offtype,kno_intern("b32"))  ||
             kno_testopt(opts,offtype,KNO_INT(32))        ||
-            kno_testopt(opts,FDSYM_FLAGS,kno_intern("B32")))
+            kno_testopt(opts,FDSYM_FLAGS,kno_intern("b32")))
     flags |= (KNO_B32<<4);
   else flags |= (KNO_B40<<4);
 
-  if ( kno_testopt(opts,kno_intern("DTYPEV2"),VOID) ||
-       kno_testopt(opts,FDSYM_FLAGS,kno_intern("DTYPEV2")) )
+  if ( kno_testopt(opts,kno_intern("dtypev2"),VOID) ||
+       kno_testopt(opts,FDSYM_FLAGS,kno_intern("dtypev2")) )
     flags |= KNO_HASHINDEX_DTYPEV2;
 
   return flags;
@@ -3193,14 +3193,14 @@ static kno_index hashindex_create(u8_string spec,void *typedata,
                                  lispval opts)
 {
   int rv = 0;
-  lispval metadata_init = kno_getopt(opts,kno_intern("METADATA"),KNO_VOID);
+  lispval metadata_init = kno_getopt(opts,kno_intern("metadata"),KNO_VOID);
   lispval slotids_arg=KNO_VOID, slotids_init =
-    kno_getopt(opts,kno_intern("SLOTIDS"),VOID);
+    kno_getopt(opts,kno_intern("slotids"),VOID);
   lispval baseoids_arg=KNO_VOID, baseoids_init =
-    kno_getopt(opts,kno_intern("BASEOIDS"),VOID);
-  lispval buckets_arg = kno_getopt(opts,kno_intern("BUCKETS"),KNO_VOID);
+    kno_getopt(opts,kno_intern("baseoids"),VOID);
+  lispval buckets_arg = kno_getopt(opts,kno_intern("buckets"),KNO_VOID);
   lispval size_arg = kno_getopt(opts,FDSYM_SIZE,KNO_INT(hashindex_default_size));
-  lispval hashconst = kno_getopt(opts,kno_intern("HASHCONST"),KNO_FIXZERO);
+  lispval hashconst = kno_getopt(opts,kno_intern("hashconst"),KNO_FIXZERO);
   int n_buckets = hashindex_default_size;
   if (KNO_FIXNUMP(buckets_arg))
     /* A negative number indicates an exact number of buckets */
@@ -3230,10 +3230,10 @@ static kno_index hashindex_create(u8_string spec,void *typedata,
   kno_decref(baseoids_init);
 
   lispval metadata = VOID;
-  lispval created_symbol = kno_intern("CREATED");
-  lispval assembled_symbol = kno_intern("ASSEMBLED");
-  lispval init_opts = kno_intern("INITOPTS");
-  lispval make_opts = kno_intern("MAKEOPTS");
+  lispval created_symbol = kno_intern("created");
+  lispval assembled_symbol = kno_intern("assembled");
+  lispval init_opts = kno_intern("initopts");
+  lispval make_opts = kno_intern("makeopts");
 
   if (KNO_TABLEP(metadata_init)) {
     metadata = kno_deep_copy(metadata_init);}
@@ -3309,20 +3309,20 @@ static lispval hashindex_stats(struct KNO_HASHINDEX *hx)
 {
   lispval result = kno_empty_slotmap();
   int n_filled = 0, maxk = 0, n_singles = 0, n2sum = 0;
-  kno_add(result,kno_intern("NBUCKETS"),KNO_INT(hx->index_n_buckets));
-  kno_add(result,kno_intern("NKEYS"),KNO_INT(hx->table_n_keys));
-  kno_add(result,kno_intern("NBASEOIDS"),KNO_INT((hx->index_oidcodes.n_oids)));
-  kno_add(result,kno_intern("NSLOTIDS"),KNO_INT(hx->index_slotcodes.n_slotcodes));
+  kno_add(result,kno_intern("nbuckets"),KNO_INT(hx->index_n_buckets));
+  kno_add(result,kno_intern("nkeys"),KNO_INT(hx->table_n_keys));
+  kno_add(result,kno_intern("nbaseoids"),KNO_INT((hx->index_oidcodes.n_oids)));
+  kno_add(result,kno_intern("nslotids"),KNO_INT(hx->index_slotcodes.n_slotcodes));
   hashindex_getstats(hx,&n_filled,&maxk,&n_singles,&n2sum);
-  kno_add(result,kno_intern("NFILLED"),KNO_INT(n_filled));
-  kno_add(result,kno_intern("NSINGLES"),KNO_INT(n_singles));
-  kno_add(result,kno_intern("MAXKEYS"),KNO_INT(maxk));
-  kno_add(result,kno_intern("N2SUM"),KNO_INT(n2sum));
+  kno_add(result,kno_intern("nfilled"),KNO_INT(n_filled));
+  kno_add(result,kno_intern("nsingles"),KNO_INT(n_singles));
+  kno_add(result,kno_intern("maxkeys"),KNO_INT(maxk));
+  kno_add(result,kno_intern("n2sum"),KNO_INT(n2sum));
   {
     double avg = (hx->table_n_keys*1.0)/(n_filled*1.0);
     double sd2 = (n2sum*1.0)/(n_filled*n_filled*1.0);
-    kno_add(result,kno_intern("MEAN"),kno_make_flonum(avg));
-    kno_add(result,kno_intern("SD2"),kno_make_flonum(sd2));
+    kno_add(result,kno_intern("mean"),kno_make_flonum(avg));
+    kno_add(result,kno_intern("sd2"),kno_make_flonum(sd2));
   }
   return result;
 }
@@ -3910,21 +3910,21 @@ static struct KNO_INDEX_HANDLER hashindex_handler={
 
 KNO_EXPORT void kno_init_hashindex_c()
 {
-  set_symbol = kno_intern("SET");
-  drop_symbol = kno_intern("DROP");
-  keycounts_symbol = kno_intern("KEYCOUNTS");
-  slotids_symbol = kno_intern("SLOTIDS");
-  baseoids_symbol = kno_intern("BASEOIDS");
-  buckets_symbol = kno_intern("BUCKETS");
-  nkeys_symbol = kno_intern("KEYS");
+  set_symbol = kno_intern("set");
+  drop_symbol = kno_intern("drop");
+  keycounts_symbol = kno_intern("keycounts");
+  slotids_symbol = kno_intern("slotids");
+  baseoids_symbol = kno_intern("baseoids");
+  buckets_symbol = kno_intern("buckets");
+  nkeys_symbol = kno_intern("keys");
 
-  metadata_readonly_props = kno_intern("_READONLY_PROPS");
+  metadata_readonly_props = kno_intern("_readonly_props");
 
-  keyinfo_schema[0] = kno_intern("KEY");
-  keyinfo_schema[1] = kno_intern("COUNT");
-  keyinfo_schema[2] = kno_intern("BUCKET");
-  keyinfo_schema[3] = kno_intern("HASH");
-  keyinfo_schema[4] = kno_intern("VALUE");
+  keyinfo_schema[0] = kno_intern("key");
+  keyinfo_schema[1] = kno_intern("count");
+  keyinfo_schema[2] = kno_intern("bucket");
+  keyinfo_schema[3] = kno_intern("hash");
+  keyinfo_schema[4] = kno_intern("value");
 
   u8_register_source_file(_FILEINFO);
 

@@ -267,12 +267,12 @@ void kno_init_compounds_c()
   kno_compound_descriptor_type=
     kno_init_compound
     (NULL,VOID,KNO_COMPOUND_MUTABLE,9,
-     kno_intern("COMPOUNDTYPE"),0,KNO_INT(9),
+     kno_intern("compoundtype"),0,KNO_INT(9),
      kno_make_nvector(9,FDSYM_TAG,FDSYM_LENGTH,
-		     kno_intern("FIELDS"),kno_intern("INITFN"),
-		     kno_intern("FREEFN"),kno_intern("COMPAREFN"),
-		     kno_intern("STRINGFN"),kno_intern("DUMPFN"),
-		     kno_intern("RESTOREFN")),
+		     kno_intern("fields"),kno_intern("initfn"),
+		     kno_intern("freefn"),kno_intern("comparefn"),
+		     kno_intern("stringfn"),kno_intern("dumpfn"),
+		     kno_intern("restorefn")),
      KNO_FALSE,KNO_FALSE,KNO_FALSE,KNO_FALSE,
      KNO_FALSE,KNO_FALSE);
   ((kno_compound)kno_compound_descriptor_type)

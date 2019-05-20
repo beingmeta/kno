@@ -348,14 +348,14 @@ KNO_EXPORT void kno_init_compress_c()
   if (compress_c_initialized) return;
   else compress_c_initialized = time(NULL);
 
-  compression_symbol = kno_intern("COMPRESSION");
-  snappy_symbol = kno_intern("SNAPPY");
-  zlib_symbol = kno_intern("ZLIB");
-  zlib9_symbol = kno_intern("ZLIB9");
-  libz_symbol = kno_intern("LIBZ");
-  zstd_symbol = kno_intern("ZSTD");
-  no_symbol = kno_intern("NO");
-  none_symbol = kno_intern("NONE");
+  compression_symbol = kno_intern("compression");
+  snappy_symbol = kno_intern("snappy");
+  zlib_symbol = kno_intern("zlib");
+  zlib9_symbol = kno_intern("zlib9");
+  libz_symbol = kno_intern("libz");
+  zstd_symbol = kno_intern("zstd");
+  no_symbol = kno_intern("no");
+  none_symbol = kno_intern("none");
 
   u8_register_source_file(_FILEINFO);
 }

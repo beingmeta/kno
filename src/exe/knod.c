@@ -757,135 +757,135 @@ static lispval get_server_status()
   lispval result = kno_init_slotmap(NULL,0,NULL);
   struct U8_SERVER_STATS stats, livestats, curstats;
 
-  kno_store(result,kno_intern("NTHREADS"),KNO_INT(dtype_server.n_threads));
-  kno_store(result,kno_intern("NQUEUED"),KNO_INT(dtype_server.n_queued));
-  kno_store(result,kno_intern("NBUSY"),KNO_INT(dtype_server.n_busy));
-  kno_store(result,kno_intern("NCLIENTS"),KNO_INT(dtype_server.n_clients));
-  kno_store(result,kno_intern("TOTALTRANS"),KNO_INT(dtype_server.n_trans));
-  kno_store(result,kno_intern("TOTALCONN"),KNO_INT(dtype_server.n_accepted));
+  kno_store(result,kno_intern("nthreads"),KNO_INT(dtype_server.n_threads));
+  kno_store(result,kno_intern("nqueued"),KNO_INT(dtype_server.n_queued));
+  kno_store(result,kno_intern("nbusy"),KNO_INT(dtype_server.n_busy));
+  kno_store(result,kno_intern("nclients"),KNO_INT(dtype_server.n_clients));
+  kno_store(result,kno_intern("totaltrans"),KNO_INT(dtype_server.n_trans));
+  kno_store(result,kno_intern("totalconn"),KNO_INT(dtype_server.n_accepted));
 
   u8_server_statistics(&dtype_server,&stats);
   u8_server_livestats(&dtype_server,&livestats);
   u8_server_curstats(&dtype_server,&curstats);
 
-  kno_store(result,kno_intern("NACTIVE"),KNO_INT(stats.n_active));
-  kno_store(result,kno_intern("NREADING"),KNO_INT(stats.n_reading));
-  kno_store(result,kno_intern("NWRITING"),KNO_INT(stats.n_writing));
-  kno_store(result,kno_intern("NXBUSY"),KNO_INT(stats.n_busy));
+  kno_store(result,kno_intern("nactive"),KNO_INT(stats.n_active));
+  kno_store(result,kno_intern("nreading"),KNO_INT(stats.n_reading));
+  kno_store(result,kno_intern("nwriting"),KNO_INT(stats.n_writing));
+  kno_store(result,kno_intern("nxbusy"),KNO_INT(stats.n_busy));
 
   if (stats.tcount>0) {
-    kno_store(result,kno_intern("TRANSAVG"),
+    kno_store(result,kno_intern("transavg"),
              kno_make_flonum(((double)stats.tsum)/
                             (((double)stats.tcount))));
-    kno_store(result,kno_intern("TRANSMAX"),KNO_INT(stats.tmax));
-    kno_store(result,kno_intern("TRANSCOUNT"),KNO_INT(stats.tcount));}
+    kno_store(result,kno_intern("transmax"),KNO_INT(stats.tmax));
+    kno_store(result,kno_intern("transcount"),KNO_INT(stats.tcount));}
 
   if (stats.qcount>0) {
-    kno_store(result,kno_intern("QUEUEAVG"),
+    kno_store(result,kno_intern("queueavg"),
              kno_make_flonum(((double)stats.qsum)/
                             (((double)stats.qcount))));
-    kno_store(result,kno_intern("QUEUEMAX"),KNO_INT(stats.qmax));
-    kno_store(result,kno_intern("QUEUECOUNT"),KNO_INT(stats.qcount));}
+    kno_store(result,kno_intern("queuemax"),KNO_INT(stats.qmax));
+    kno_store(result,kno_intern("queuecount"),KNO_INT(stats.qcount));}
 
   if (stats.rcount>0) {
-    kno_store(result,kno_intern("READAVG"),
+    kno_store(result,kno_intern("readavg"),
              kno_make_flonum(((double)stats.rsum)/
                             (((double)stats.rcount))));
-    kno_store(result,kno_intern("READMAX"),KNO_INT(stats.rmax));
-    kno_store(result,kno_intern("READCOUNT"),KNO_INT(stats.rcount));}
+    kno_store(result,kno_intern("readmax"),KNO_INT(stats.rmax));
+    kno_store(result,kno_intern("readcount"),KNO_INT(stats.rcount));}
 
   if (stats.wcount>0) {
-    kno_store(result,kno_intern("WRITEAVG"),
+    kno_store(result,kno_intern("writeavg"),
              kno_make_flonum(((double)stats.wsum)/
                             (((double)stats.wcount))));
-    kno_store(result,kno_intern("WRITEMAX"),KNO_INT(stats.wmax));
-    kno_store(result,kno_intern("WRITECOUNT"),KNO_INT(stats.wcount));}
+    kno_store(result,kno_intern("writemax"),KNO_INT(stats.wmax));
+    kno_store(result,kno_intern("writecount"),KNO_INT(stats.wcount));}
 
   if (stats.xcount>0) {
-    kno_store(result,kno_intern("EXECAVG"),
+    kno_store(result,kno_intern("execavg"),
              kno_make_flonum(((double)stats.xsum)/
                             (((double)stats.xcount))));
-    kno_store(result,kno_intern("EXECMAX"),KNO_INT(stats.xmax));
-    kno_store(result,kno_intern("EXECCOUNT"),KNO_INT(stats.xcount));}
+    kno_store(result,kno_intern("execmax"),KNO_INT(stats.xmax));
+    kno_store(result,kno_intern("execcount"),KNO_INT(stats.xcount));}
 
   if (livestats.tcount>0) {
-    kno_store(result,kno_intern("LIVE/TRANSAVG"),
+    kno_store(result,kno_intern("live/transavg"),
              kno_make_flonum(((double)livestats.tsum)/
                             (((double)livestats.tcount))));
-    kno_store(result,kno_intern("LIVE/TRANSMAX"),KNO_INT(livestats.tmax));
-    kno_store(result,kno_intern("LIVE/TRANSCOUNT"),
+    kno_store(result,kno_intern("live/transmax"),KNO_INT(livestats.tmax));
+    kno_store(result,kno_intern("live/transcount"),
              KNO_INT(livestats.tcount));}
 
   if (livestats.qcount>0) {
-    kno_store(result,kno_intern("LIVE/QUEUEAVG"),
+    kno_store(result,kno_intern("live/queueavg"),
              kno_make_flonum(((double)livestats.qsum)/
                             (((double)livestats.qcount))));
-    kno_store(result,kno_intern("LIVE/QUEUEMAX"),KNO_INT(livestats.qmax));
-    kno_store(result,kno_intern("LIVE/QUEUECOUNT"),
+    kno_store(result,kno_intern("live/queuemax"),KNO_INT(livestats.qmax));
+    kno_store(result,kno_intern("live/queuecount"),
              KNO_INT(livestats.qcount));}
 
   if (livestats.rcount>0) {
-    kno_store(result,kno_intern("LIVE/READAVG"),
+    kno_store(result,kno_intern("live/readavg"),
              kno_make_flonum(((double)livestats.rsum)/
                             (((double)livestats.rcount))));
-    kno_store(result,kno_intern("LIVE/READMAX"),KNO_INT(livestats.rmax));
-    kno_store(result,kno_intern("LIVE/READCOUNT"),
+    kno_store(result,kno_intern("live/readmax"),KNO_INT(livestats.rmax));
+    kno_store(result,kno_intern("live/readcount"),
              KNO_INT(livestats.rcount));}
 
   if (livestats.wcount>0) {
-    kno_store(result,kno_intern("LIVE/WRITEAVG"),
+    kno_store(result,kno_intern("live/writeavg"),
              kno_make_flonum(((double)livestats.wsum)/
                             (((double)livestats.wcount))));
-    kno_store(result,kno_intern("LIVE/WRITEMAX"),KNO_INT(livestats.wmax));
-    kno_store(result,kno_intern("LIVE/WRITECOUNT"),
+    kno_store(result,kno_intern("live/writemax"),KNO_INT(livestats.wmax));
+    kno_store(result,kno_intern("live/writecount"),
              KNO_INT(livestats.wcount));}
 
   if (livestats.xcount>0) {
-    kno_store(result,kno_intern("LIVE/EXECAVG"),
+    kno_store(result,kno_intern("live/execavg"),
              kno_make_flonum(((double)livestats.xsum)/
                             (((double)livestats.xcount))));
-    kno_store(result,kno_intern("LIVE/EXECMAX"),KNO_INT(livestats.xmax));
-    kno_store(result,kno_intern("LIVE/EXECCOUNT"),
+    kno_store(result,kno_intern("live/execmax"),KNO_INT(livestats.xmax));
+    kno_store(result,kno_intern("live/execcount"),
              KNO_INT(livestats.xcount));}
 
     if (curstats.tcount>0) {
-    kno_store(result,kno_intern("CUR/TRANSAVG"),
+    kno_store(result,kno_intern("cur/transavg"),
              kno_make_flonum(((double)curstats.tsum)/
                             (((double)curstats.tcount))));
-    kno_store(result,kno_intern("CUR/TRANSMAX"),KNO_INT(curstats.tmax));
-    kno_store(result,kno_intern("CUR/TRANSCOUNT"),
+    kno_store(result,kno_intern("cur/transmax"),KNO_INT(curstats.tmax));
+    kno_store(result,kno_intern("cur/transcount"),
              KNO_INT(curstats.tcount));}
 
   if (curstats.qcount>0) {
-    kno_store(result,kno_intern("CUR/QUEUEAVG"),
+    kno_store(result,kno_intern("cur/queueavg"),
              kno_make_flonum(((double)curstats.qsum)/
                             (((double)curstats.qcount))));
-    kno_store(result,kno_intern("CUR/QUEUEMAX"),KNO_INT(curstats.qmax));
-    kno_store(result,kno_intern("CUR/QUEUECOUNT"),
+    kno_store(result,kno_intern("cur/queuemax"),KNO_INT(curstats.qmax));
+    kno_store(result,kno_intern("cur/queuecount"),
              KNO_INT(curstats.qcount));}
 
   if (curstats.rcount>0) {
-    kno_store(result,kno_intern("CUR/READAVG"),
+    kno_store(result,kno_intern("cur/readavg"),
              kno_make_flonum(((double)curstats.rsum)/
                             (((double)curstats.rcount))));
-    kno_store(result,kno_intern("CUR/READMAX"),KNO_INT(curstats.rmax));
-    kno_store(result,kno_intern("CUR/READCOUNT"),
+    kno_store(result,kno_intern("cur/readmax"),KNO_INT(curstats.rmax));
+    kno_store(result,kno_intern("cur/readcount"),
              KNO_INT(curstats.rcount));}
 
   if (curstats.wcount>0) {
-    kno_store(result,kno_intern("CUR/WRITEAVG"),
+    kno_store(result,kno_intern("cur/writeavg"),
              kno_make_flonum(((double)curstats.wsum)/
                             (((double)curstats.wcount))));
-    kno_store(result,kno_intern("CUR/WRITEMAX"),KNO_INT(curstats.wmax));
-    kno_store(result,kno_intern("CUR/WRITECOUNT"),
+    kno_store(result,kno_intern("cur/writemax"),KNO_INT(curstats.wmax));
+    kno_store(result,kno_intern("cur/writecount"),
              KNO_INT(curstats.wcount));}
 
   if (curstats.xcount>0) {
-    kno_store(result,kno_intern("CUR/EXECAVG"),
+    kno_store(result,kno_intern("cur/execavg"),
              kno_make_flonum(((double)curstats.xsum)/
                             (((double)curstats.xcount))));
-    kno_store(result,kno_intern("CUR/EXECMAX"),KNO_INT(curstats.xmax));
-    kno_store(result,kno_intern("CUR/EXECCOUNT"),
+    kno_store(result,kno_intern("cur/execmax"),KNO_INT(curstats.xmax));
+    kno_store(result,kno_intern("cur/execcount"),
              KNO_INT(curstats.xcount));}
 
   return result;
@@ -1276,7 +1276,7 @@ static kno_lexenv init_core_env()
   kno_lexenv core_env = kno_safe_working_lexenv();
   lispval core_module = (lispval) core_env;
   kno_init_dbserv();
-  kno_register_module("DBSERV",kno_incref(kno_dbserv_module),KNO_MODULE_SAFE);
+  kno_register_module("dbserv",kno_incref(kno_dbserv_module),KNO_MODULE_SAFE);
   kno_finish_module(kno_dbserv_module);
 
   /* We add some special functions */
@@ -1350,8 +1350,8 @@ static int init_server_env(u8_string server_spec,kno_lexenv core_env)
       kno_decref((lispval)env);
       return -1;}
     else {
-      lispval startup_proc = kno_symeval(kno_intern("STARTUP"),env);
-      lispval shutdown_proc = kno_symeval(kno_intern("SHUTDOWN"),env);
+      lispval startup_proc = kno_symeval(kno_intern("startup"),env);
+      lispval shutdown_proc = kno_symeval(kno_intern("shutdown"),env);
       if (KNO_APPLICABLEP(shutdown_proc)) {
         KNO_ADD_TO_CHOICE(shutdown_procs,shutdown_proc);}
       kno_decref(result); result = VOID;

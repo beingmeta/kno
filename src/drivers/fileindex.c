@@ -1274,8 +1274,8 @@ static kno_index fileindex_create(u8_string spec,void *type_data,
                                  kno_storage_flags flags,
                                  lispval opts)
 {
-  lispval n_slots = kno_getopt(opts,kno_intern("SLOTS"),
-                              kno_getopt(opts,kno_intern("SIZE"),
+  lispval n_slots = kno_getopt(opts,kno_intern("slots"),
+                              kno_getopt(opts,kno_intern("size"),
                                         KNO_INT(fileindex_default_size)));
   if (!(KNO_UINTP(n_slots))) {
     kno_seterr("NumberOfIndexSlots","fileindex_create",spec,n_slots);
@@ -1312,11 +1312,11 @@ KNO_EXPORT void kno_init_fileindex_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  set_symbol = kno_intern("SET");
-  drop_symbol = kno_intern("DROP");
-  slotids_symbol = kno_intern("%%SLOTIDS");
-  slotids_slot = kno_intern("SLOTIDS");
-  buckets_slot = kno_intern("BUCKETS");
+  set_symbol = kno_intern("set");
+  drop_symbol = kno_intern("drop");
+  slotids_symbol = kno_intern("%%slotids");
+  slotids_slot = kno_intern("slotids");
+  buckets_slot = kno_intern("buckets");
   kno_register_index_type("fileindex",
                          &fileindex_handler,
                          open_fileindex,

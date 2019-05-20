@@ -485,8 +485,8 @@ KNO_EXPORT void kno_init_compoundfns_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  consfn_symbol = kno_intern("CONS");
-  stringfn_symbol = kno_intern("STRINGIFY");
+  consfn_symbol = kno_intern("cons");
+  stringfn_symbol = kno_intern("stringify");
 
   kno_idefn2(kno_scheme_module,"COMPOUND?",compoundp,1,
             "`(COMPOUND? *arg* [*tags*])` returns *arg* if it is "

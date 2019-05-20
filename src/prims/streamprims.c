@@ -773,7 +773,7 @@ KNO_EXPORT void kno_init_streamprims_c()
   kno_init_scheme();
   kno_init_drivers();
   streamprims_module =
-    kno_new_cmodule("STREAMPRIMS",(KNO_MODULE_DEFAULT),kno_init_streamprims_c);
+    kno_new_cmodule("streamprims",(KNO_MODULE_DEFAULT),kno_init_streamprims_c);
   u8_register_source_file(_FILEINFO);
 
   kno_idefn3(kno_scheme_module,"READ-DTYPE",read_dtype,1,

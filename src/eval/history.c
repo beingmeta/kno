@@ -356,8 +356,8 @@ KNO_EXPORT void kno_init_history_c()
   else scheme_history_initialized = 1;
   u8_register_source_file(_FILEINFO);
 
-  history_symbol = kno_intern("%HISTORY");
-  histref_symbol = kno_intern("%HISTREF");
+  history_symbol = kno_intern("%history");
+  histref_symbol = kno_intern("%histref");
 
   kno_resolve_histref = kno_get_histref;
 

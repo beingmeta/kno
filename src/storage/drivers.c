@@ -304,8 +304,8 @@ typedef unsigned long long ull;
 
 static int fix_pool_opts(u8_string spec,lispval opts)
 {
-  lispval base_oid = kno_getopt(opts,kno_intern("BASE"),VOID);
-  lispval capacity_arg = kno_getopt(opts,kno_intern("CAPACITY"),VOID);
+  lispval base_oid = kno_getopt(opts,kno_intern("base"),VOID);
+  lispval capacity_arg = kno_getopt(opts,kno_intern("capacity"),VOID);
   if (!(OIDP(base_oid))) {
     kno_seterr("PoolBaseNotOID","kno_make_pool",spec,opts);
     return -1;}
@@ -335,7 +335,7 @@ static int fix_pool_opts(u8_string spec,lispval opts)
               "Rounding up the capacity of %s from %llu to 0x%llx",
               spec,(ull)capacity,(ull)new_capacity);
       if (KNO_PAIRP(opts)) opt_root=KNO_CAR(opts);
-      int rv=kno_store(opt_root,kno_intern("CAPACITY"),
+      int rv=kno_store(opt_root,kno_intern("capacity"),
                       KNO_INT(new_capacity));
       return rv;}
     /* TODO: Add more checks for non-spanning pools */
@@ -543,7 +543,7 @@ kno_index kno_make_index(u8_string spec,
   else {
     if (FIXNUMP(opts)) {
       lispval tmp_opts = kno_init_slotmap(NULL,3,NULL);
-      kno_store(tmp_opts,kno_intern("SIZE"),opts);
+      kno_store(tmp_opts,kno_intern("size"),opts);
       kno_index ix=ixtype->handler->create(spec,ixtype->type_data,
                                           flags,tmp_opts);
       kno_decref(tmp_opts);
@@ -1172,9 +1172,9 @@ static u8_gid get_group(lispval spec)
 
 KNO_EXPORT int kno_set_file_opts(u8_string filename,lispval opts)
 {
-  lispval owner = kno_getopt(opts,kno_intern("OWNER"),KNO_VOID);
-  lispval group = kno_getopt(opts,kno_intern("GROUP"),KNO_VOID);
-  lispval mode = kno_getopt(opts,kno_intern("MODE"),KNO_VOID);
+  lispval owner = kno_getopt(opts,kno_intern("owner"),KNO_VOID);
+  lispval group = kno_getopt(opts,kno_intern("group"),KNO_VOID);
+  lispval mode = kno_getopt(opts,kno_intern("mode"),KNO_VOID);
   int set_rv = 0;
   if ( (KNO_VOIDP(owner))  &&
        (KNO_VOIDP(group)) &&
@@ -1242,34 +1242,34 @@ KNO_EXPORT int kno_init_drivers_c()
   kno_init_aggregates_c();
   kno_init_tempindex_c();
 
-  rev_symbol = kno_intern("REV");
-  gentime_symbol = kno_intern("GENTIME");
-  packtime_symbol = kno_intern("PACKTIME");
-  modtime_symbol = kno_intern("MODTIME");
-  adjuncts_symbol = kno_intern("ADJUNCTS");
-  wadjuncts_symbol = kno_intern("W/ADJUNCTS");
+  rev_symbol = kno_intern("rev");
+  gentime_symbol = kno_intern("gentime");
+  packtime_symbol = kno_intern("packtime");
+  modtime_symbol = kno_intern("modtime");
+  adjuncts_symbol = kno_intern("adjuncts");
+  wadjuncts_symbol = kno_intern("w/adjuncts");
 
-  kno_cachelevel_op=kno_intern("CACHELEVEL");
-  kno_bufsize_op=kno_intern("BUFSIZE");
-  kno_mmap_op=kno_intern("MMAP");
-  kno_preload_op=kno_intern("PRELOAD");
-  kno_swapout_op=kno_intern("SWAPOUT");
-  kno_reload_op=kno_intern("RELOAD");
-  kno_stats_op=kno_intern("STATS");
-  kno_label_op=kno_intern("LABEL");
-  kno_populate_op=kno_intern("POPULATE");
-  kno_getmap_op=kno_intern("GETMAP");
-  kno_slotids_op=kno_intern("SLOTIDS");
-  kno_baseoids_op=kno_intern("BASEOIDS");
-  kno_load_op=kno_intern("LOAD");
-  kno_capacity_op=kno_intern("CAPACITY");
-  kno_metadata_op=kno_intern("METADATA");
-  kno_raw_metadata_op=kno_intern("%METADATA");
-  kno_keys_op=kno_intern("KEYS");
-  kno_keycount_op=kno_intern("KEYCOUNT");
-  kno_partitions_op=kno_intern("PARTITIONS");
-  pooltype_symbol=kno_intern("POOLTYPE");
-  indextype_symbol=kno_intern("INDEXTYPE");
+  kno_cachelevel_op=kno_intern("cachelevel");
+  kno_bufsize_op=kno_intern("bufsize");
+  kno_mmap_op=kno_intern("mmap");
+  kno_preload_op=kno_intern("preload");
+  kno_swapout_op=kno_intern("swapout");
+  kno_reload_op=kno_intern("reload");
+  kno_stats_op=kno_intern("stats");
+  kno_label_op=kno_intern("label");
+  kno_populate_op=kno_intern("populate");
+  kno_getmap_op=kno_intern("getmap");
+  kno_slotids_op=kno_intern("slotids");
+  kno_baseoids_op=kno_intern("baseoids");
+  kno_load_op=kno_intern("load");
+  kno_capacity_op=kno_intern("capacity");
+  kno_metadata_op=kno_intern("metadata");
+  kno_raw_metadata_op=kno_intern("%metadata");
+  kno_keys_op=kno_intern("keys");
+  kno_keycount_op=kno_intern("keycount");
+  kno_partitions_op=kno_intern("partitions");
+  pooltype_symbol=kno_intern("pooltype");
+  indextype_symbol=kno_intern("indextype");
 
   u8_init_mutex(&pool_typeinfo_lock);
   u8_init_mutex(&index_typeinfo_lock);

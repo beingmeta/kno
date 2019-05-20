@@ -862,7 +862,7 @@ static lispval doanchor_star_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
     unpack_browseinfo(browseinfo,&uri,&class,NULL);
     if (has_class_attrib(attribs))
       kno_incref(attribs);
-    else attribs = kno_conspair(kno_intern("CLASS"),
+    else attribs = kno_conspair(kno_intern("class"),
                              kno_conspair(lispval_string(class),kno_incref(attribs)));
     tmpout.u8_write = tmpout.u8_outbuf;
     u8_printf(&tmpout,"%s:@%x/%x",uri,KNO_OID_HI(addr),(KNO_OID_LO(addr)));
@@ -1186,31 +1186,31 @@ KNO_EXPORT void kno_init_xmloutput_c()
 
   u8_printf_handlers['k']=markup_printf_handler;
 
-  kno_store(safe_webtools_module,kno_intern("XMLOUT"),xmlout_prim);
-  kno_store(safe_webtools_module,kno_intern("XMLBLOCK"),xmlblock_prim);
-  kno_store(safe_webtools_module,kno_intern("XMLBLOCKN"),xmlblockn_prim);
-  kno_store(safe_webtools_module,kno_intern("XMLELT"),xmlelt_prim);
+  kno_store(safe_webtools_module,kno_intern("xmlout"),xmlout_prim);
+  kno_store(safe_webtools_module,kno_intern("xmlblock"),xmlblock_prim);
+  kno_store(safe_webtools_module,kno_intern("xmlblockn"),xmlblockn_prim);
+  kno_store(safe_webtools_module,kno_intern("xmlelt"),xmlelt_prim);
   kno_defn(safe_webtools_module,xmlempty_proc);
   kno_defn(safe_webtools_module,xmlify_proc);
-  kno_store(safe_webtools_module,kno_intern("MARKUPFN"),markup_prim);
-  kno_store(safe_webtools_module,kno_intern("MARKUP*FN"),markupstar_prim);
-  kno_store(safe_webtools_module,kno_intern("BLOCKMARKUPFN"),markupblock_prim);
-  kno_store(safe_webtools_module,kno_intern("BLOCKMARKUP*FN"),markupstarblock_prim);
-  kno_store(safe_webtools_module,kno_intern("EMPTYMARKUPFN"),emptymarkup_prim);
+  kno_store(safe_webtools_module,kno_intern("markupfn"),markup_prim);
+  kno_store(safe_webtools_module,kno_intern("markup*fn"),markupstar_prim);
+  kno_store(safe_webtools_module,kno_intern("blockmarkupfn"),markupblock_prim);
+  kno_store(safe_webtools_module,kno_intern("blockmarkup*fn"),markupstarblock_prim);
+  kno_store(safe_webtools_module,kno_intern("emptymarkupfn"),emptymarkup_prim);
   kno_def_evalfn(safe_webtools_module,"SOAPENVELOPE","",soapenvelope_evalfn);
   kno_defn(safe_webtools_module,kno_make_cprim3("XML->STRING",xml2string_prim,1));
 
-  kno_store(webtools_module,kno_intern("XMLOUT"),xmlout_prim);
-  kno_store(webtools_module,kno_intern("XMLBLOCK"),xmlblock_prim);
-  kno_store(webtools_module,kno_intern("XMLBLOCKN"),xmlblockn_prim);
-  kno_store(webtools_module,kno_intern("XMLELT"),xmlelt_prim);
+  kno_store(webtools_module,kno_intern("xmlout"),xmlout_prim);
+  kno_store(webtools_module,kno_intern("xmlblock"),xmlblock_prim);
+  kno_store(webtools_module,kno_intern("xmlblockn"),xmlblockn_prim);
+  kno_store(webtools_module,kno_intern("xmlelt"),xmlelt_prim);
   kno_defn(webtools_module,xmlempty_proc);
   kno_defn(webtools_module,xmlify_proc);
-  kno_store(webtools_module,kno_intern("MARKUPFN"),markup_prim);
-  kno_store(webtools_module,kno_intern("MARKUP*FN"),markupstar_prim);
-  kno_store(webtools_module,kno_intern("BLOCKMARKUPFN"),markupblock_prim);
-  kno_store(webtools_module,kno_intern("BLOCKMARKUP*FN"),markupstarblock_prim);
-  kno_store(webtools_module,kno_intern("EMPTYMARKUPFN"),emptymarkup_prim);
+  kno_store(webtools_module,kno_intern("markupfn"),markup_prim);
+  kno_store(webtools_module,kno_intern("markup*fn"),markupstar_prim);
+  kno_store(webtools_module,kno_intern("blockmarkupfn"),markupblock_prim);
+  kno_store(webtools_module,kno_intern("blockmarkup*fn"),markupstarblock_prim);
+  kno_store(webtools_module,kno_intern("emptymarkupfn"),emptymarkup_prim);
   kno_def_evalfn(webtools_module,"SOAPENVELOPE","",soapenvelope_evalfn);
   kno_defn(webtools_module,kno_make_cprim3("XML->STRING",xml2string_prim,1));
 
@@ -1221,48 +1221,48 @@ KNO_EXPORT void kno_init_xmloutput_c()
   kno_def_evalfn(xhtml_module,"XHTML","",raw_xhtml_evalfn);
   kno_idefn(xhtml_module,kno_make_cprim0("NBSP",nbsp_prim));
 
-  kno_store(xhtml_module,kno_intern("DIV"),markupstarblock_prim);
-  kno_store(xhtml_module,kno_intern("SPAN"),markupstar_prim);
+  kno_store(xhtml_module,kno_intern("div"),markupstarblock_prim);
+  kno_store(xhtml_module,kno_intern("span"),markupstar_prim);
 
-  kno_store(xhtml_module,kno_intern("HGROUP"),markupblock_prim);
-  kno_store(xhtml_module,kno_intern("HGROUP*"),markupstarblock_prim);
+  kno_store(xhtml_module,kno_intern("hgroup"),markupblock_prim);
+  kno_store(xhtml_module,kno_intern("hgroup*"),markupstarblock_prim);
 
-  kno_store(xhtml_module,kno_intern("P"),markupblock_prim);
-  kno_store(xhtml_module,kno_intern("P*"),markupstarblock_prim);
-  kno_store(xhtml_module,kno_intern("H1"),markupblock_prim);
-  kno_store(xhtml_module,kno_intern("H1*"),markupstarblock_prim);
-  kno_store(xhtml_module,kno_intern("H2"),markupblock_prim);
-  kno_store(xhtml_module,kno_intern("H2*"),markupstarblock_prim);
-  kno_store(xhtml_module,kno_intern("H3"),markupblock_prim);
-  kno_store(xhtml_module,kno_intern("H3*"),markupstarblock_prim);
-  kno_store(xhtml_module,kno_intern("H4"),markupblock_prim);
-  kno_store(xhtml_module,kno_intern("H4*"),markupstarblock_prim);
+  kno_store(xhtml_module,kno_intern("p"),markupblock_prim);
+  kno_store(xhtml_module,kno_intern("p*"),markupstarblock_prim);
+  kno_store(xhtml_module,kno_intern("h1"),markupblock_prim);
+  kno_store(xhtml_module,kno_intern("h1*"),markupstarblock_prim);
+  kno_store(xhtml_module,kno_intern("h2"),markupblock_prim);
+  kno_store(xhtml_module,kno_intern("h2*"),markupstarblock_prim);
+  kno_store(xhtml_module,kno_intern("h3"),markupblock_prim);
+  kno_store(xhtml_module,kno_intern("h3*"),markupstarblock_prim);
+  kno_store(xhtml_module,kno_intern("h4"),markupblock_prim);
+  kno_store(xhtml_module,kno_intern("h4*"),markupstarblock_prim);
 
-  kno_store(xhtml_module,kno_intern("UL"),markupblock_prim);
-  kno_store(xhtml_module,kno_intern("UL*"),markupstarblock_prim);
-  kno_store(xhtml_module,kno_intern("LI"),markupblock_prim);
-  kno_store(xhtml_module,kno_intern("LI*"),markupstarblock_prim);
+  kno_store(xhtml_module,kno_intern("ul"),markupblock_prim);
+  kno_store(xhtml_module,kno_intern("ul*"),markupstarblock_prim);
+  kno_store(xhtml_module,kno_intern("li"),markupblock_prim);
+  kno_store(xhtml_module,kno_intern("li*"),markupstarblock_prim);
 
-  kno_store(xhtml_module,kno_intern("STRONG"),markup_prim);
-  kno_store(xhtml_module,kno_intern("EM"),markup_prim);
-  kno_store(xhtml_module,kno_intern("TT"),markup_prim);
-  kno_store(xhtml_module,kno_intern("DEFN"),markup_prim);
+  kno_store(xhtml_module,kno_intern("strong"),markup_prim);
+  kno_store(xhtml_module,kno_intern("em"),markup_prim);
+  kno_store(xhtml_module,kno_intern("tt"),markup_prim);
+  kno_store(xhtml_module,kno_intern("defn"),markup_prim);
 
-  kno_store(xhtml_module,kno_intern("FORM"),markupstarblock_prim);
+  kno_store(xhtml_module,kno_intern("form"),markupstarblock_prim);
 
-  kno_store(xhtml_module,kno_intern("TABLE"),markupblock_prim);
-  kno_store(xhtml_module,kno_intern("TABLE*"),markupstarblock_prim);
-  kno_store(xhtml_module,kno_intern("TR"),markupblock_prim);
-  kno_store(xhtml_module,kno_intern("TR*"),markupstarblock_prim);
-  kno_store(xhtml_module,kno_intern("TD"),markup_prim);
-  kno_store(xhtml_module,kno_intern("TD*"),markupstar_prim);
-  kno_store(xhtml_module,kno_intern("TH"),markup_prim);
-  kno_store(xhtml_module,kno_intern("TH*"),markupstar_prim);
+  kno_store(xhtml_module,kno_intern("table"),markupblock_prim);
+  kno_store(xhtml_module,kno_intern("table*"),markupstarblock_prim);
+  kno_store(xhtml_module,kno_intern("tr"),markupblock_prim);
+  kno_store(xhtml_module,kno_intern("tr*"),markupstarblock_prim);
+  kno_store(xhtml_module,kno_intern("td"),markup_prim);
+  kno_store(xhtml_module,kno_intern("td*"),markupstar_prim);
+  kno_store(xhtml_module,kno_intern("th"),markup_prim);
+  kno_store(xhtml_module,kno_intern("th*"),markupstar_prim);
 
-  kno_store(xhtml_module,kno_intern("IMG"),emptymarkup_prim);
-  kno_store(xhtml_module,kno_intern("INPUT"),emptymarkup_prim);
-  kno_store(xhtml_module,kno_intern("BR"),emptymarkup_prim);
-  kno_store(xhtml_module,kno_intern("HR"),emptymarkup_prim);
+  kno_store(xhtml_module,kno_intern("img"),emptymarkup_prim);
+  kno_store(xhtml_module,kno_intern("input"),emptymarkup_prim);
+  kno_store(xhtml_module,kno_intern("br"),emptymarkup_prim);
+  kno_store(xhtml_module,kno_intern("hr"),emptymarkup_prim);
 
   kno_def_evalfn(webtools_module,"XMLEVAL","",xmleval_evalfn);
   kno_def_evalfn(safe_webtools_module,"XMLEVAL","",xmleval_evalfn);
@@ -1291,19 +1291,19 @@ KNO_EXPORT void kno_init_xmloutput_c()
   kno_decref(xmlempty_proc); kno_decref(xmlify_proc);
   kno_decref(xmlelt_prim);
 
-  xmloidfn_symbol = kno_intern("%XMLOID");
-  id_symbol = kno_intern("%ID");
-  href_symbol = kno_intern("HREF");
-  class_symbol = kno_intern("CLASS");
-  obj_name = kno_intern("OBJ-NAME");
-  quote_symbol = kno_intern("QUOTE");
-  xmltag_symbol = kno_intern("%XMLTAG");
-  rawtag_symbol = kno_intern("%RAWTAG");
-  browseinfo_symbol = kno_intern("BROWSEINFO");
-  embedded_symbol = kno_intern("%EMBEDDED");
-  estylesheet_symbol = kno_intern("%ERRORSTYLE");
-  modules_symbol = kno_intern("%MODULES");
-  xml_env_symbol = kno_intern("%XMLENV");
+  xmloidfn_symbol = kno_intern("%xmloid");
+  id_symbol = kno_intern("%id");
+  href_symbol = kno_intern("href");
+  class_symbol = kno_intern("class");
+  obj_name = kno_intern("obj-name");
+  quote_symbol = kno_intern("quote");
+  xmltag_symbol = kno_intern("%xmltag");
+  rawtag_symbol = kno_intern("%rawtag");
+  browseinfo_symbol = kno_intern("browseinfo");
+  embedded_symbol = kno_intern("%embedded");
+  estylesheet_symbol = kno_intern("%errorstyle");
+  modules_symbol = kno_intern("%modules");
+  xml_env_symbol = kno_intern("%xmlenv");
 
   kno_register_config
     ("BROWSEINFO",

@@ -1471,7 +1471,7 @@ KNO_EXPORT int kno_init_mysql()
   u8_register_threadinit(init_thread_for_mysql);
   u8_register_threadexit(cleanup_thread_for_mysql);
 
-  module = kno_new_cmodule("MYSQL",0,kno_init_mysql);
+  module = kno_new_cmodule("mysql",0,kno_init_mysql);
 
   u8_init_mutex(&mysql_connect_lock);
 
@@ -1497,25 +1497,25 @@ KNO_EXPORT int kno_init_mysql()
   
   mysql_initialized = u8_millitime();
   
-  boolean_symbol = kno_intern("BOOLEAN");
-  merge_symbol = kno_intern("%MERGE");
-  noempty_symbol = kno_intern("%NOEMPTY");
-  sorted_symbol = kno_intern("%SORTED");
+  boolean_symbol = kno_intern("boolean");
+  merge_symbol = kno_intern("%merge");
+  noempty_symbol = kno_intern("%noempty");
+  sorted_symbol = kno_intern("%sorted");
 
-  port_symbol = kno_intern("PORT");
-  reconnect_symbol = kno_intern("RECONNECT");
-  ssl_symbol = kno_intern("SSL");
-  sslca_symbol = kno_intern("SSLCA");
-  sslcert_symbol = kno_intern("SSLCERT");
-  sslkey_symbol = kno_intern("SSLKEY");
-  sslcadir_symbol = kno_intern("SSLCADIR");
-  sslciphers_symbol = kno_intern("SSLCIPHERS");
+  port_symbol = kno_intern("port");
+  reconnect_symbol = kno_intern("reconnect");
+  ssl_symbol = kno_intern("ssl");
+  sslca_symbol = kno_intern("sslca");
+  sslcert_symbol = kno_intern("sslcert");
+  sslkey_symbol = kno_intern("sslkey");
+  sslcadir_symbol = kno_intern("sslcadir");
+  sslciphers_symbol = kno_intern("sslciphers");
 
-  timeout_symbol = kno_intern("TIMEOUT");
-  connect_timeout_symbol = kno_intern("CONNECT-TIMEOUT");
-  read_timeout_symbol = kno_intern("READ-TIMEOUT");
-  write_timeout_symbol = kno_intern("WRITE-TIMEOUT");
-  lazy_symbol = kno_intern("LAZYPROCS");
+  timeout_symbol = kno_intern("timeout");
+  connect_timeout_symbol = kno_intern("connect-timeout");
+  read_timeout_symbol = kno_intern("read-timeout");
+  write_timeout_symbol = kno_intern("write-timeout");
+  lazy_symbol = kno_intern("lazyprocs");
 
   kno_finish_module(module);
 

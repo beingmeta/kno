@@ -399,7 +399,7 @@ static struct KNO_INDEX_HANDLER memindex_handler={
 
 KNO_EXPORT void kno_init_memindex_c()
 {
-  preload_opt = kno_intern("PRELOAD");
+  preload_opt = kno_intern("preload");
 
   kno_register_index_type("memindex",
                          &memindex_handler,

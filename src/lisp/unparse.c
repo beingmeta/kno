@@ -59,10 +59,12 @@ static int emit_symbol_name(U8_OUTPUT *out,u8_string name)
   int c = u8_sgetc(&scan), needs_protection = 0;
   while (c>=0)
     if ((atombreakp(c)) ||
-        ((u8_islower(c)) && ((u8_toupper(c))!=c))) {
-      needs_protection = 1; break;}
+        ((u8_isupper(c)) && ((u8_tolower(c))!=c))) {
+      needs_protection = 1;
+      break;}
     else c = u8_sgetc(&scan);
-  if (needs_protection==0) u8_puts(out,name);
+  if (needs_protection==0)
+    u8_puts(out,name);
   else {
     const u8_byte *start = name, *scan = start;
     u8_putc(out,'|');
@@ -602,12 +604,12 @@ KNO_EXPORT void kno_init_unparse_c()
   kno_unparsers[kno_uuid_type]=unparse_uuid;
   kno_unparsers[kno_regex_type]=unparse_regex;
 
-  quote_symbol = kno_intern("QUOTE");
-  quasiquote_symbol = kno_intern("QUASIQUOTE");
-  unquote_symbol = kno_intern("UNQUOTE");
-  unquotestar_symbol = kno_intern("UNQUOTE*");
-  histref_symbol = kno_intern("%HISTREF");
-  comment_symbol = kno_intern("COMMENT");
+  quote_symbol = kno_intern("quote");
+  quasiquote_symbol = kno_intern("quasiquote");
+  unquote_symbol = kno_intern("unquote");
+  unquotestar_symbol = kno_intern("unquote*");
+  histref_symbol = kno_intern("%histref");
+  comment_symbol = kno_intern("comment");
 }
 
 /* Emacs local variables

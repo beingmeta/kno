@@ -743,16 +743,16 @@ KNO_EXPORT void kno_init_urifns_c()
   lispval module = kno_new_module("WEBTOOLS",(0));
   lispval safe_module = kno_new_module("WEBTOOLS",(1));
 
-  scheme_symbol = kno_intern("SCHEME");
-  userinfo_symbol = kno_intern("USERINFO");
-  hostname_symbol = kno_intern("HOSTNAME");
-  portno_symbol = kno_intern("PORT");
-  name_symbol = kno_intern("NAME");
-  path_symbol = kno_intern("PATH");
-  pathstring_symbol = kno_intern("PATHSTRING");
-  query_symbol = kno_intern("QUERY");
-  fragment_symbol = kno_intern("FRAGMENT");
-  colonize_symbol = kno_intern("COLONIZE");
+  scheme_symbol = kno_intern("scheme");
+  userinfo_symbol = kno_intern("userinfo");
+  hostname_symbol = kno_intern("hostname");
+  portno_symbol = kno_intern("port");
+  name_symbol = kno_intern("name");
+  path_symbol = kno_intern("path");
+  pathstring_symbol = kno_intern("pathstring");
+  query_symbol = kno_intern("query");
+  fragment_symbol = kno_intern("fragment");
+  colonize_symbol = kno_intern("colonize");
 
   kno_idefn(module,kno_make_cprim2x("PARSEURI",parseuri,1,
                                   kno_string_type,VOID,
@@ -828,7 +828,7 @@ KNO_EXPORT void kno_init_urifns_c()
   kno_defn(module,fdscripturl_proc);
   kno_defn(module,fdscripturlplus_proc);
 
-  kno_store(module,kno_intern("SCRIPTURL+"),scripturlplus_proc);
+  kno_store(module,kno_intern("scripturl+"),scripturlplus_proc);
 
   kno_idefn(safe_module,form_encode_proc);
   kno_idefn(safe_module,uriencode_proc);
@@ -840,7 +840,7 @@ KNO_EXPORT void kno_init_urifns_c()
   kno_idefn(safe_module,fdscripturl_proc);
   kno_idefn(safe_module,fdscripturlplus_proc);
 
-  kno_store(safe_module,kno_intern("SCRIPTURL+"),scripturlplus_proc);
+  kno_store(safe_module,kno_intern("scripturl+"),scripturlplus_proc);
 
   u8_register_source_file(_FILEINFO);
 }

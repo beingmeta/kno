@@ -171,7 +171,7 @@ KNO_EXPORT lispval kno_new_module(char *name,int flags)
 {
   lispval module_name, module, as_stored;
   if (kno_scheme_initialized==0) kno_init_scheme();
-  module_name = kno_intern(name);
+  module_name = kno_symbolize(name);
   module = kno_make_hashtable(NULL,0);
   kno_add(module,moduleid_symbol,module_name);
   if (flags&KNO_MODULE_SAFE)
@@ -1211,10 +1211,10 @@ void kno_init_module_tables()
   if (module_tables_initialized) return;
   else module_tables_initialized=1;
 
-  moduleid_symbol = kno_intern("%MODULEID");
-  safemod_symbol = kno_intern("%SAFEMOD");
-  loadstamp_symbol = kno_intern("%LOADSTAMP");
-  source_symbol = kno_intern("%SOURCE");
+  moduleid_symbol = kno_intern("%moduleid");
+  safemod_symbol = kno_intern("%safemod");
+  loadstamp_symbol = kno_intern("%loadstamp");
+  source_symbol = kno_intern("%source");
 
   KNO_INIT_STATIC_CONS(&module_map,kno_hashtable_type);
   kno_make_hashtable(&module_map,67);
@@ -1230,12 +1230,12 @@ void kno_init_module_tables()
   lispval default_safe_bindings = kno_make_hashtable(NULL,0);
   default_env = kno_make_env(default_bindings,kno_app_env);
   safe_default_env = kno_make_env(default_safe_bindings,NULL);
-  kno_store(default_bindings,kno_intern("%SOURCE"),KNO_FALSE);
-  kno_store(default_safe_bindings,kno_intern("%SOURCE"),KNO_FALSE);
+  kno_store(default_bindings,kno_intern("%source"),KNO_FALSE);
+  kno_store(default_safe_bindings,kno_intern("%source"),KNO_FALSE);
 
-  kno_register_module("SCHEME",kno_scheme_module,
+  kno_register_module("scheme",kno_scheme_module,
                      (KNO_MODULE_DEFAULT|KNO_MODULE_SAFE));
-  kno_register_module("XSCHEME",kno_xscheme_module,(KNO_MODULE_DEFAULT));
+  kno_register_module("xscheme",kno_xscheme_module,(KNO_MODULE_DEFAULT));
 }
 
 /* Initialization */

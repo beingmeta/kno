@@ -208,8 +208,8 @@ void kno_init_xmldata_c()
   kno_idefn(safe_module,kno_make_cprim2("XMLCONTENT",xmlcontent,1));
   kno_idefn(safe_module,kno_make_cprim2("XMLEMPTY?",xmlemptyp,1));
 
-  name_slotid = kno_intern("%XMLTAG");
-  content_slotid = kno_intern("%CONTENT");
+  name_slotid = kno_intern("%xmltag");
+  content_slotid = kno_intern("%content");
 }
 
 /* Emacs local variables

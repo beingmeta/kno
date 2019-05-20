@@ -622,10 +622,10 @@ KNO_EXPORT void kno_init_load_c()
   u8_init_mutex(&sourcefns_lock);
   u8_init_mutex(&config_file_lock);
 
- after_symbol = kno_intern("AFTEREXPR");
- loading_symbol = kno_intern("%LOADING");
- traceloadeval_symbol = kno_intern("%TRACELOADEVAL");
- postload_symbol = kno_intern("%POSTLOAD");
+ after_symbol = kno_intern("afterexpr");
+ loading_symbol = kno_intern("%loading");
+ traceloadeval_symbol = kno_intern("%traceloadeval");
+ postload_symbol = kno_intern("%postload");
 
 
  kno_def_evalfn(kno_xscheme_module,"LOAD","",load_source_evalfn);

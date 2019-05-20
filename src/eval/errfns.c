@@ -913,19 +913,19 @@ KNO_EXPORT void kno_init_errfns_c()
             "Returns the status of a stack entry",
             kno_compound_type,KNO_VOID);
 
-  stack_entry_symbol = kno_intern("_STACK");
-  condition_symbol = kno_intern("CONDITION");
-  caller_symbol = kno_intern("CALLER");
-  timebase_symbol = kno_intern("TIMEBASE");
-  moment_symbol = kno_intern("MOMENT");
-  thread_symbol = kno_intern("THREAD");
-  details_symbol = kno_intern("DETAILS");
-  session_symbol = kno_intern("SESSION");
-  context_symbol = kno_intern("CONTEXT");
-  irritant_symbol = kno_intern("IRRITANT");
-  stack_symbol = kno_intern("STACK");
-  env_tag = kno_intern("%ENV");
-  args_tag = kno_intern("%ARGS");
+  stack_entry_symbol = kno_intern("_stack");
+  condition_symbol = kno_intern("condition");
+  caller_symbol = kno_intern("caller");
+  timebase_symbol = kno_intern("timebase");
+  moment_symbol = kno_intern("moment");
+  thread_symbol = kno_intern("thread");
+  details_symbol = kno_intern("details");
+  session_symbol = kno_intern("session");
+  context_symbol = kno_intern("context");
+  irritant_symbol = kno_intern("irritant");
+  stack_symbol = kno_intern("stack");
+  env_tag = kno_intern("%env");
+  args_tag = kno_intern("%args");
 
 }
 

@@ -673,11 +673,11 @@ KNO_EXPORT void kno_init_pprint_c()
 
   u8_printf_handlers['Q']=lisp_pprintf_handler;
 
-  quote_symbol = kno_intern("QUOTE");
-  quasiquote_symbol = kno_intern("QUASIQUOTE");
-  unquote_symbol = kno_intern("UNQUOTE");
-  unquote_star_symbol = kno_intern("UNQUOTE*");
-  comment_symbol = kno_intern("COMMENT");
+  quote_symbol = kno_intern("quote");
+  quasiquote_symbol = kno_intern("quasiquote");
+  unquote_symbol = kno_intern("unquote");
+  unquote_star_symbol = kno_intern("unquote*");
+  comment_symbol = kno_intern("comment");
 
   pprint_default_rules = kno_make_hashtable(NULL,200);
 }

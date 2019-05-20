@@ -752,7 +752,7 @@ KNO_EXPORT void kno_init_dtread_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  error_symbol = kno_intern("%ERROR");
+  error_symbol = kno_intern("%error");
 
   kno_register_config
     ("USEDTBLOCK",_("Use the DTBLOCK dtype code when appropriate"),

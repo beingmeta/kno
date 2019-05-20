@@ -195,7 +195,7 @@ KNO_EXPORT int kno_init_crypto()
   if (crypto_init) return 0;
 
   crypto_init = u8_millitime();
-  crypto_module = kno_new_cmodule("CRYPTO",(KNO_MODULE_SAFE),kno_init_crypto);
+  crypto_module = kno_new_cmodule("crypto",(KNO_MODULE_SAFE),kno_init_crypto);
 
   u8_init_cryptofns();
 

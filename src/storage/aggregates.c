@@ -371,7 +371,7 @@ KNO_EXPORT int kno_aggregate_indexp(kno_index ix)
 KNO_EXPORT void kno_init_aggregates_c()
 {
   u8_register_source_file(_FILEINFO);
-  partitions_symbol = kno_intern("PARTITIONS");
+  partitions_symbol = kno_intern("partitions");
 
   kno_init_index(((kno_index)kno_background),
                 &aggregate_index_handler,

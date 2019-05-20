@@ -142,7 +142,7 @@ KNO_EXPORT int kno_init_zlib()
   if (zlib_init) return 0;
 
   zlib_init = u8_millitime();
-  zlib_module = kno_new_cmodule("ZLIB",(KNO_MODULE_SAFE),kno_init_zlib);
+  zlib_module = kno_new_cmodule("zlib",(KNO_MODULE_SAFE),kno_init_zlib);
 
   kno_idefn(zlib_module,
            kno_make_cprim2("ZLIB/COMPRESS",zlib_compress_prim,1));

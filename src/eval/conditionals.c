@@ -232,9 +232,9 @@ KNO_EXPORT void kno_init_conditionals_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  moduleid_symbol = kno_intern("%MODULEID");
+  moduleid_symbol = kno_intern("%moduleid");
   apply_marker = kno_intern("=>");
-  else_symbol = kno_intern("ELSE");
+  else_symbol = kno_intern("else");
 
   kno_def_evalfn(kno_scheme_module,"IF",
                 "(IF *test* *then* [*else*]) "

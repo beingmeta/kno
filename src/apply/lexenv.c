@@ -252,7 +252,7 @@ static ssize_t lexenv_dtype(struct KNO_OUTBUF *out,lispval x)
 
 KNO_EXPORT void kno_init_lexenv_c()
 {
-  moduleid_symbol = kno_intern("%MODULEID");
+  moduleid_symbol = kno_intern("%moduleid");
 
   kno_unparsers[kno_lexenv_type]=unparse_lexenv;
   kno_copiers[kno_lexenv_type]=lisp_copy_lexenv;
