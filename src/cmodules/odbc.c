@@ -329,16 +329,6 @@ static lispval get_colvalue
   else return result;
 }
 
-static lispval intern_upcase(u8_output out,u8_string s)
-{
-  int c = u8_sgetc(&s);
-  out->u8_write = out->u8_outbuf;
-  while (c>=0) {
-    u8_putc(out,u8_toupper(c));
-    c = u8_sgetc(&s);}
-  return kno_make_symbol(out->u8_outbuf,out->u8_write-out->u8_outbuf);
-}
-
 static lispval merge_symbol;
 
 static lispval get_stmt_results
@@ -379,7 +369,7 @@ static lispval get_stmt_results
       u8_free(colnames); u8_free(colinfo);
       u8_free(coltypes); u8_free(colsizes);
       return stmt_error(stmt,cxt,free_stmt);}
-    colnames[i]=intern_upcase(&out,name);
+    colnames[i]=kno_intern(name);
     colinfo[i]=((KNO_VOIDP(typeinfo)) ? (KNO_VOID) :
                 (kno_get(typeinfo,colnames[i],KNO_VOID)));
     coltypes[i]=sqltype;

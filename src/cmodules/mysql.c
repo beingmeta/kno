@@ -123,16 +123,6 @@ static u8_condition MySQL_Error=_("MySQL Error");
 static u8_condition MySQL_NoConvert=_("Can't convert value to SQL");
 static lispval merge_symbol, noempty_symbol, sorted_symbol;
 
-static lispval intern_upcase(u8_output out,u8_string s)
-{
-  int c = u8_sgetc(&s);
-  out->u8_write = out->u8_outbuf;
-  while (c>=0) {
-    u8_putc(out,u8_toupper(c));
-    c = u8_sgetc(&s);}
-  return kno_make_symbol(out->u8_outbuf,out->u8_write-out->u8_outbuf);
-}
-
 static unsigned char *_memdup(const unsigned char *data,int len)
 {
   unsigned char *duplicate = u8_alloc_n(len,unsigned char);
@@ -768,7 +758,7 @@ static int init_stmt_results
       u8_seterr(MySQL_Error,"mysql/init_stmt_results",u8_strdup(errmsg));
       return -1;}
     while (i<n_cols) {
-      mysqlproc_colnames[i]=intern_upcase(&out,fields[i].name);
+      mysqlproc_colnames[i]=kno_intern(fields[i].name);
       /* Synchronize the signed and unsigned fields to get error handling. */
       if ((fields[i].flags)&(UNSIGNED_FLAG)) outbound[i].is_unsigned = 1;
       /* TEXT fields are confusingly labelled with MYSQL_TYPE_BLOB.

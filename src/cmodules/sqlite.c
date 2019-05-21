@@ -56,16 +56,6 @@ static lispval merge_symbol, sorted_symbol;
 
 /* Utility functions */
 
-static lispval intern_upcase(u8_output out,u8_string s)
-{
-  int c = u8_sgetc(&s);
-  out->u8_write = out->u8_outbuf;
-  while (c>=0) {
-    u8_putc(out,u8_toupper(c));
-    c = u8_sgetc(&s);}
-  return kno_make_symbol(out->u8_outbuf,out->u8_write-out->u8_outbuf);
-}
-
 static unsigned char *_memdup(unsigned char *data,int len)
 {
   unsigned char *duplicate = u8_alloc_n(len,unsigned char);
@@ -591,8 +581,7 @@ static lispval sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,lispval colinfo)
      for SQL procedures. */
   while (i<n_cols) {
     lispval colname;
-    colnames[i]=colname=
-      intern_upcase(&out,(u8_string)sqlite3_column_name(stmt,i));
+    colnames[i]=colname=kno_intern((u8_string)sqlite3_column_name(stmt,i));
     colmaps[i]=(kno_getopt(colinfo,colname,KNO_VOID));
     i++;}
   while ((retval = sqlite3_step(stmt)) == SQLITE_ROW) {

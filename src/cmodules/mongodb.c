@@ -497,10 +497,8 @@ static int multislots_config_add(lispval var,lispval val,void *data)
   lispval sym = KNO_VOID;
   if (KNO_SYMBOLP(val))
     sym = val;
-  else if (KNO_STRINGP(val)) {
-    u8_string upper = u8_upcase(KNO_CSTRING(val));
-    sym = kno_intern(upper);
-    u8_free(upper);}
+  else if (KNO_STRINGP(val))
+    sym = kno_intern(CSTRING(val));
   else {
     kno_seterr("Not symbolic","mongodb/config_add_multislots",
               NULL,val);
@@ -2677,13 +2675,14 @@ KNO_EXPORT bson_t *kno_lisp2bson(lispval obj,int flags,lispval opts)
 #define slotify_char(c) \
     ((c=='_')||(c=='-')||(c=='%')||(c=='.')||(c=='/')||(c=='$')||(u8_isalnum(c)))
 
-/* -1 means don't slotify at all, 0 means symbolize, 1 means intern */
+/* -1 means don't slotify at all, 0 means getsym, 1 means intern */
 static int slotcode(u8_string s)
 {
   const u8_byte *scan = s; int c, i = 0, hasupper = 0;
   while ((c = u8_sgetc(&scan))>=0) {
     if (i>32) return -1;
-    if (!(slotify_char(c))) return -1; else i++;
+    if (!(slotify_char(c))) return -1;
+    else i++;
     if (u8_isupper(c)) hasupper = 1;}
   return hasupper;
 }
@@ -2694,7 +2693,7 @@ static lispval bson_read_choice(KNO_BSON_INPUT b,int flags);
 static void bson_read_step(KNO_BSON_INPUT b,int flags,
                            lispval into,lispval *loc)
 {
-  int symbolized = 0;
+  int symslot = 0;
   bson_iter_t *in = b.bson_iter;
   const unsigned char *field = bson_iter_key(in);
   const size_t field_len = strlen(field);
@@ -2714,10 +2713,11 @@ static void bson_read_step(KNO_BSON_INPUT b,int flags,
     slotid = kno_parse_arg((u8_string)field);
   else if (flags&KNO_MONGODB_SLOTIFY) {
     int sc = slotcode((u8_string)field);
-    if (sc<0) slotid = kno_make_string(NULL,-1,(unsigned char *)field);
+    if (sc<0)
+      slotid = kno_make_string(NULL,-1,(unsigned char *)field);
     else if (sc==0) {
       slotid = kno_getsym((unsigned char *)field);
-      symbolized = 1;}
+      symslot = 1;}
     else slotid = kno_intern((unsigned char *)field);}
   else slotid = kno_make_string(NULL,-1,(unsigned char *)field);
   lispval fieldmap = b.bson_fieldmap;
@@ -2886,7 +2886,7 @@ static void bson_read_step(KNO_BSON_INPUT b,int flags,
       else {}}
     else if (BSON_ITER_HOLDS_ARRAY(in)) {
       int choicevals = (flags&KNO_MONGODB_CHOICEVALS);
-      if ((choicevals)&&(symbolized))
+      if ( (choicevals) && (symslot) )
         value = bson_read_choice(b,flags);
       else value = bson_read_vector(b,flags);}
     else {
