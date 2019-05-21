@@ -58,7 +58,7 @@
 	 (for-choices (slot {#f sepindex})
 	   (if slot
 	       (let* ((slotstrings (elts (segment slot "^")))
-		      (slots (string->symbol slotstrings))
+		      (slots (string->symbol (downcase slotstrings)))
 		      (file (stringout source (doseq (each (lexsorted slotstrings))
 						(printout "_" (downcase each)))
 			      ".index"))

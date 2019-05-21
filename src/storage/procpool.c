@@ -34,7 +34,7 @@ static u8_condition CommitFailed = _("ProcPoolCommit Failed");
 
 static lispval poolopt(lispval opts,u8_string name)
 {
-  return kno_getopt(opts,kno_intern(name),VOID);
+  return kno_getopt(opts,kno_getsym(name),VOID);
 }
 
 #define NO_METHODP(x) ( (KNO_NULLP(x)) || (KNO_VOIDP(x)) )

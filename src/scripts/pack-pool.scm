@@ -32,7 +32,7 @@
 (unless (bound? symbolize)
   (define (symbolize s)
     (if (or (symbol? s)  (number? s)) s
-	(if (string? s) (string->symbol (upcase s))
+	(if (string? s) (string->symbol (downcase s))
 	    (irritant s |NotStringOrSymbol|)))))
 
 (define compression-type-map

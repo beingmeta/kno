@@ -43,7 +43,7 @@
   (if (= n 0)
       (reverse arglist)
       (temp-arglist (-1+ n)
-		    (cons (string->symbol (glom "_ARG_" n))
+		    (cons (string->symbol (glom "_arg_" n))
 			  arglist))))
 
 (when (config 'testoptimized #f)

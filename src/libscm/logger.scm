@@ -97,7 +97,7 @@
       (add! table
 	    (choice (car map)
 		    (symbol->string (car map))
-		    (downcase (symbol->string (car map)))
+		    (upcase (symbol->string (car map)))
 		    (string->symbol
 		     (glom "%" (symbol->string (car map))))
 		    (string->symbol

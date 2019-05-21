@@ -30,7 +30,7 @@ static u8_condition OddResult = _("ProcIndex/OddResult");
 
 static lispval indexopt(lispval opts,u8_string name)
 {
-  return kno_getopt(opts,kno_intern(name),VOID);
+  return kno_getopt(opts,kno_getsym(name),VOID);
 }
 
 KNO_EXPORT

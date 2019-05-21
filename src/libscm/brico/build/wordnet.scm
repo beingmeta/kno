@@ -30,7 +30,7 @@
 	   (set! wnrelease (get wordnet-release 'release)))
 	  ((and (string? val)
 		(or (test (?? '%id val) 'release)
-		    (test (?? '%id (string->symbol (upcase val))) 'release)))
+		    (test (?? '%id (string->symbol (downcase val))) 'release)))
 	   (set! wordnet-release (?? '%id val))
 	   (set! wnrelease (get wordnet-release 'release)))
 	  (else (error |InvalidRelease| val)))))

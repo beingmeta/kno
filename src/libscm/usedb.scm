@@ -73,7 +73,7 @@
 	   (usedb `#[pools ,(pick files string-ends-with? #("." (* (isalpha)) "pool"))
 		     indexes ,(pick files string-ends-with? #("." (* (isalpha)) "index"))
 		     configs ,(for-choices (config (pick files has-suffix ".xcfg"))
-				(cons (string->symbol (upcase (basename config ".xcfg")))
+				(cons (string->symbol (downcase (basename config ".xcfg")))
 				      (readfile config)))])))
 	((exists file-exists? (glom spec {".db" ".dbspec" ".dtype" ".lsd" ".scd"}))
 	 (usedb (smallest (pick (glom spec {".db" ".dbspec" ".dtype" ".lsd" ".scd"}) file-exists?))

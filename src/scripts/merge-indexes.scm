@@ -30,7 +30,7 @@
       arg 
       (if (has-prefix arg {"@" ":@"})
 	  (parse-arg arg)
-	  (string->symbol (upcase arg)))))
+	  (string->symbol (downcase arg)))))
 
 (define (temp-index file)
   (open-index file #[register #f cachelevel 1]))

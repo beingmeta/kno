@@ -14,7 +14,7 @@
       arg 
       (if (has-prefix arg {"@" ":@"})
 	  (parse-arg arg)
-	  (string->symbol (upcase arg)))))
+	  (string->symbol (downcase arg)))))
 
 (define (overwriting file)
   (when (file-exists? file)
