@@ -251,7 +251,7 @@ lispval kno_make_symbol(u8_string bytes,int len)
         return KNO_ID2SYMBOL(id);}}}
 }
 
-lispval kno_probe_symbol(u8_string bytes,int len)
+KNO_EXPORT lispval kno_probe_symbol(u8_string bytes,int len)
 {
   if (len<0) len=strlen(bytes);
   u8_read_lock(&kno_symbol_lock);
@@ -276,6 +276,28 @@ KNO_EXPORT lispval kno_getsym(u8_string string)
   lispval result = kno_make_symbol(name.u8_outbuf,name.u8_write-name.u8_outbuf);
   u8_close((u8_stream)nameout);
   return result;
+}
+
+KNO_EXPORT lispval kno_norm_symbol(u8_string bytes,int len)
+{
+  int string_case = 0;
+  u8_string scan = bytes, limit = bytes+len;
+  while (scan < limit) {
+    int c = u8_sgetc(&scan);
+    if (u8_islower(c)) {
+      if (string_case>0)
+        return kno_make_symbol(bytes,len);
+      else if (string_case == 0)
+        string_case = -1;}
+    else if (u8_isupper(c)) {
+      if (string_case<0)
+        return kno_make_symbol(bytes,len);
+      else if (string_case == 0)
+        string_case = 1;}
+    else NO_ELSE;}
+  if (string_case > 0)
+    return kno_getsym(bytes);
+  else return kno_make_symbol(bytes,len);
 }
 
 KNO_EXPORT lispval kno_all_symbols()

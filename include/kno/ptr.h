@@ -760,6 +760,7 @@ KNO_EXPORT u8_rwlock kno_symbol_lock;
 
 KNO_EXPORT lispval kno_make_symbol(u8_string string,int len);
 KNO_EXPORT lispval kno_probe_symbol(u8_string string,int len);
+KNO_EXPORT lispval kno_norm_symbol(u8_string string,int len);
 KNO_EXPORT lispval kno_intern(u8_string string);
 KNO_EXPORT lispval kno_getsym(u8_string string);
 KNO_EXPORT lispval kno_all_symbols(void);

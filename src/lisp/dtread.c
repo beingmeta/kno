@@ -36,6 +36,9 @@ static lispval error_symbol;
 
 #define newpos(pos,ptr,lim) ((((ptr)+pos) <= lim) ? (pos) : (-1))
 
+#define norm_symbol kno_norm_symbol
+/* Could be kno_make_symbol after the case flip is stable */
+
 static ssize_t validate_dtype(int pos,const unsigned char *ptr,
                           const unsigned char *lim)
 {
@@ -293,7 +296,7 @@ KNO_EXPORT lispval kno_read_dtype(struct KNO_INBUF *in)
         u8_byte data[257];
         memcpy(data,in->bufread,len); data[len]='\0';
         in->bufread += len;
-        return kno_make_symbol(data,len);}
+        return norm_symbol(data,len);}
     case dt_tiny_string:
       len = kno_read_byte(in);
       if (len<0)
@@ -312,7 +315,7 @@ KNO_EXPORT lispval kno_read_dtype(struct KNO_INBUF *in)
         unsigned char data[len+1];
         memcpy(data,in->bufread,len); data[len]='\0';
         in->bufread += len;
-        return kno_make_symbol(data,len);}
+        return norm_symbol(data,len);}
     case dt_vector:
       len = kno_read_4bytes(in);
       if (len < 0)
@@ -594,7 +597,7 @@ static lispval make_character_type(int code,int len,unsigned char *bytes)
     while (scan < limit) {
       int c = scan[0]<<8|scan[1]; scan = scan+2;
       u8_putc(&os,c);}
-    sym = kno_make_symbol(os.u8_outbuf,os.u8_write-os.u8_outbuf);
+    sym = norm_symbol(os.u8_outbuf,os.u8_write-os.u8_outbuf);
     u8_free(bytes); u8_free(os.u8_outbuf);
     return sym;}
   default:
