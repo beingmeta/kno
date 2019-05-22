@@ -14,7 +14,7 @@ usr/bin/knosh
 usr/bin/knox
 usr/bin/knod
 usr/bin/knotask
-usr/bin/knosrv
+usr/bin/knoweb
 usr/bin/make-oidpool
 usr/bin/hashindexop
 usr/bin/split-pool
@@ -42,7 +42,7 @@ usr/bin/knopkg
 etc/kno/servers
 etc/kno/boot/*
 usr/share/kno/gdbinit
-usr/share/kno/knolang.el
+usr/share/kno/knosh.el
 usr/share/kno/makefile.include
 usr/share/kno/webinfo.fdcgi
 usr/share/kno/data/hyph_en_US.dic

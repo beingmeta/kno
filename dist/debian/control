@@ -18,7 +18,7 @@ Description: Scalable knowledge base development and application platform
  Kno natively supports reading and and generation of XML, HTML, and
  MIME data.  Web services support has long included built-in support
  for processing CGI requests both directly and with fastcgi.  With
- version 2.4, Kno comes with mod_knosrv, a lightweight extension to
+ version 2.4, Kno comes with mod_knoweb, a lightweight extension to
  the Apache webserver for transparently managing persistent
  multi-threaded servlets responding to CGI requests.
  
@@ -48,10 +48,10 @@ Provides: kno-modules
 Description: This package directly provides hundreds of source (scheme) modules for
   use with Kno
 
-Package: libapache2-mod-knosrv
+Package: libapache2-mod-knoweb
 Architecture: any
 Depends: kno-core (= ${binary:Version}), apache2
-Description: The mod_knosrv module for KNO servlets under Apache
+Description: The mod_knoweb module for KNO servlets under Apache
 
 Package: kno-mysql
 Architecture: any
@@ -209,7 +209,7 @@ Depends: kno-core
 Conflicts: kno-upstart, kno-sysv
 Description: systemd init configuration for Kno
 
-Package: elpa-knolang
+Package: elpa-knosh
 Architecture: any
 Depends: ${misc:Depends}, ${elpa:Depends}
 Built-Using: ${misc:Built-Using}
@@ -222,7 +222,7 @@ Architecture: any
 Depends: ${misc:Depends}, kno-core, kno-builtin, kno-doc,
 	 kno-imagetools, kno-mysql, kno-mongodb,
 	 kno-sqlite, kno-sundown, kno-tidy,
-	 elpa-fdconsole
+	 elpa-knosh
 Description: Installs all standard Kno modules
 
 Package: kno-full-dbg
