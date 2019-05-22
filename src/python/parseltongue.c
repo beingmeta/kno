@@ -1122,13 +1122,8 @@ static lispval pyget(lispval obj,lispval key)
   if (FD_STRINGP(key))
     v = PyObject_GetAttrString(o,FD_STRDATA(key));
   else if (FD_SYMBOLP(key)) {
-    u8_string pname = FD_SYMBOL_NAME(key), scan = pname;
-    size_t buflen = strlen(pname)*2;
-    U8_STATIC_OUTPUT(keystring,buflen); int c;
-    while ( (c=u8_sgetc(&scan)) > 0) {
-      u8_putc(&keystring,u8_tolower(c));}
-    /* Should probably lowercase it or something smarter */
-    v = PyObject_GetAttrString(o,keystring.u8_outbuf);}
+    u8_string pname = FD_SYMBOL_NAME(key);
+    v = PyObject_GetAttrString(o,pname);}
   else {
     PyObject *k = lisp2py(key);
     v = PyObject_GetItem(o,k);
@@ -1148,13 +1143,8 @@ static lispval pyhas(lispval obj,lispval key)
   if (FD_STRINGP(key))
     has = PyObject_HasAttrString(o,FD_STRDATA(key));
   else if (FD_SYMBOLP(key)) {
-    u8_string pname = FD_SYMBOL_NAME(key), scan = pname;
-    size_t buflen = strlen(pname)*2;
-    U8_STATIC_OUTPUT(keystring,buflen); int c;
-    while ( (c=u8_sgetc(&scan)) > 0) {
-      u8_putc(&keystring,u8_tolower(c));}
-    /* Should probably lowercase it or something smarter */
-    has = PyObject_HasAttrString(o,keystring.u8_outbuf);}
+    u8_string pname = FD_SYMBOL_NAME(key);
+    has = PyObject_HasAttrString(o,pname);}
   else {
     PyObject *k = lisp2py(key);
     has = PyObject_HasAttr(o,k);
@@ -1249,15 +1239,8 @@ static lispval pyhandle(int n,lispval *lisp_args)
     name = PyUnicode_DecodeUTF8
       ((char *)FD_STRING_DATA(method),FD_STRING_LENGTH(method),"none");}
   else if (FD_SYMBOLP(method)) {
-    u8_string pname = FD_SYMBOL_NAME(method), scan = pname;
-    size_t buflen = strlen(pname)*2;
-    U8_STATIC_OUTPUT(keystring,buflen); int c;
-    while ( (c=u8_sgetc(&scan)) > 0) {
-      u8_putc(&keystring,u8_tolower(c));}
-    name = PyUnicode_DecodeUTF8
-      ((char *)keystring.u8_outbuf,
-       keystring.u8_write-keystring.u8_outbuf,
-       "none");}
+    u8_string pname = FD_SYMBOL_NAME(method);
+    name = PyUnicode_DecodeUTF8((char *)pname,strlen(pname),"none");}
   else return fd_type_error("method name","pyhandle",method);
   struct FD_PYTHON_OBJECT *pyo=(struct FD_PYTHON_OBJECT *) obj;
   PyObject *po = pyo->pyval;
@@ -1313,15 +1296,8 @@ static lispval pytry(int n,lispval *lisp_args)
     name = PyUnicode_DecodeUTF8
       ((char *)FD_STRING_DATA(method),FD_STRING_LENGTH(method),"none");}
   else if (FD_SYMBOLP(method)) {
-    u8_string pname = FD_SYMBOL_NAME(method), scan = pname;
-    size_t buflen = strlen(pname)*2;
-    U8_STATIC_OUTPUT(keystring,buflen); int c;
-    while ( (c=u8_sgetc(&scan)) > 0) {
-      u8_putc(&keystring,u8_tolower(c));}
-    name = PyUnicode_DecodeUTF8
-      ((char *)keystring.u8_outbuf,
-       keystring.u8_write-keystring.u8_outbuf,
-       "none");}
+    u8_string pname = FD_SYMBOL_NAME(method);
+    name = PyUnicode_DecodeUTF8((char *)pname,strlen(pname),"none");}
   else return fd_type_error("method name","pyhandle",method);
   struct FD_PYTHON_OBJECT *pyo=(struct FD_PYTHON_OBJECT *) obj;
   PyObject *po = pyo->pyval;
