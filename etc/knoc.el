@@ -1,5 +1,5 @@
 ;;; -*- Mode: emacs-lisp; lexical-binding: t; -*-
-;;; knosh.el --- emacs mode for the KNOsh console
+;;; knoc.el --- emacs mode for the Knoc console
 
 ;; Copyright (C) 2001-2016  beingmeta, inc
 
@@ -9,7 +9,7 @@
 
 ;;; Commentary:
 
-;; This package provides an emacs interaction mode for knosh, the KNO
+;; This package provides an emacs interaction mode for knoc, the KNO
 ;; REPL (read-eval-print loop). It also declares various indentation
 ;; rules for KNO Scheme functions.
 
@@ -29,11 +29,11 @@
 ;; We do this because we don't want console windows to have infinite undo
 (make-variable-buffer-local 'undo-limit)
 ;; The name of the KNO scheme module for a particular buffer
-(make-variable-buffer-local 'knosh-module)
+(make-variable-buffer-local 'knoc-module)
 ;; The initial code to send to the buffer
-(make-variable-buffer-local 'knosh-startup)
-;; The knosh command line
-(make-variable-buffer-local 'knosh-cmdline)
+(make-variable-buffer-local 'knoc-startup)
+;; The knoc command line
+(make-variable-buffer-local 'knoc-cmdline)
 
 (defvar *framerd-keywords*
   '("\\<do-choices-mt\\>" "\\<do-vector-mt\\>" "\\<for-choices-mt\\>"
@@ -302,13 +302,13 @@
 
 ;;;; Evaluating expressions in modules
 
-(defvar knosh-module)
+(defvar knoc-module)
 (defconst in-module-regexp
   "(in-module +'\\(\\(\\w\\|[/$.-_]\\)+\\)")
 
-(defun knosh-get-module-name ()
+(defun knoc-get-module-name ()
   "Returns the module name specified in the current buffer"
-  (if (and (boundp 'knosh-module) knosh-module) knosh-module
+  (if (and (boundp 'knoc-module) knoc-module) knoc-module
     (save-excursion
       (goto-char (point-min))
       (let* ((pos (search-forward-regexp in-module-regexp (point-max) t))
@@ -319,13 +319,13 @@
 ;	(if pos
 ;	    (message "Search found module name %s at %d" name pos)
 ;	  (message "Search failed to find module name"))
-	(if pos (setq knosh-module name))
+	(if pos (setq knoc-module name))
 	name))))
-(defun knosh-process () (scheme-proc))
+(defun knoc-process () (scheme-proc))
 
-(defun knosh-send-region (start end)
-  (let ((module (knosh-get-module-name))
-	(process (knosh-process)))
+(defun knoc-send-region (start end)
+  (let ((module (knoc-get-module-name))
+	(process (knoc-process)))
     (if (not (equal module ""))
 	(message "Sending %d characters into the %s module"
 		 (- end start) module))
@@ -337,24 +337,24 @@
 	(comint-send-string process ")\n")
       (comint-send-string process "\n"))))
 
-(defun knosh-send-definition ()
+(defun knoc-send-definition ()
   "Send the current definition to the inferior Scheme process."
   (interactive)
   (save-excursion
    (end-of-defun)
    (let ((end (point)))
      (beginning-of-defun)
-     (knosh-send-region (point) end))))
+     (knoc-send-region (point) end))))
 
 (defun scheme-send-last-sexp ()
   "Send the previous sexp to the inferior Scheme process."
   (interactive)
-  (knosh-send-region (save-excursion (backward-sexp) (point)) (point)))
+  (knoc-send-region (save-excursion (backward-sexp) (point)) (point)))
 
-(defun knosh-sender ()
+(defun knoc-sender ()
   (interactive)
-  (if mark-active (knosh-send-region (region-beginning) (region-end))
-    (knosh-send-definition)))
+  (if mark-active (knoc-send-region (region-beginning) (region-end))
+    (knoc-send-definition)))
 
 (defun split-command-line (string)
   (let ((where (string-match "[ \t]" string)))
@@ -384,34 +384,34 @@
       (put-text-property comint-last-output-start output-end 'read-only t))))
 (add-hook 'comint-output-filter-functions 'make-output-read-only)
 
-;;; Running an knosh
+;;; Running an knoc
 
-(defvar knosh-program "knosh")
-(defvar knosh-startup nil)
-(defvar knosh-cmdline nil)
+(defvar knoc-program "knoc")
+(defvar knoc-startup nil)
+(defvar knoc-cmdline nil)
 
-(defvar knosh-mode-hooks '())
+(defvar knoc-mode-hooks '())
 
 (autoload 'comint-check-proc "comint")
 
-(defun knosh (cmd)
-  "Run an inferior KNO scheme process, input and output via buffer *knosh*.
+(defun knoc (cmd)
+  "Run an inferior KNO scheme process, input and output via buffer *knoc*.
 With an arguments, prompts for a command and arguments to use.
-If there is a process already running in `*knosh*', switch to that buffer.
+If there is a process already running in `*knoc*', switch to that buffer.
 Runs the hooks `inferior-scheme-mode-hook' \(after the `comint-mode-hook' is
 run). \(Type \\[describe-mode] in the process buffer for a list of commands.)"
   (interactive
    (list (if current-prefix-arg
-	     (read-string "Run knosh: "
-			  (or knosh-cmdline
-			      knosh-program))
-	   (or knosh-cmdline
-	       knosh-program))))
+	     (read-string "Run knoc: "
+			  (or knoc-cmdline
+			      knoc-program))
+	   (or knoc-cmdline
+	       knoc-program))))
   (let ((bufname (or (and scheme-buffer
 			  (get-buffer-window scheme-buffer)
 			  scheme-buffer)
-		     "*knosh*"))
-	(comint-arg "knosh"))
+		     "*knoc*"))
+	(comint-arg "knoc"))
     (if (equal major-mode (intern "inferior-scheme-mode"))
 	(progn (setq bufname (buffer-name (current-buffer)))
 	       (setq comint-arg bufname)
@@ -426,27 +426,27 @@ run). \(Type \\[describe-mode] in the process buffer for a list of commands.)"
 	  (inferior-scheme-mode)))
     (setq scheme-program-name cmd)
     (setq scheme-buffer bufname)
-    (setq knosh-cmdline cmd)
+    (setq knoc-cmdline cmd)
     (pop-to-buffer bufname)
     (setq comint-prompt-regexp "^#|[^>]+>|")
-    (run-hooks 'knosh-mode-hooks)
-    ;; (message "Sending '%s'" knosh-startup)
-    (when knosh-startup
-      (comint-send-string (scheme-proc) (format "%s\n" knosh-startup)))))
+    (run-hooks 'knoc-mode-hooks)
+    ;; (message "Sending '%s'" knoc-startup)
+    (when knoc-startup
+      (comint-send-string (scheme-proc) (format "%s\n" knoc-startup)))))
 
 (defun fdstartup (string)
   (interactive "sStartup expressions: ")
-  (setq-local knosh-startup string))
+  (setq-local knoc-startup string))
 
-;;; Defining a mode hook to define knosh-sender
+;;; Defining a mode hook to define knoc-sender
 
-(defun knosh-scheme-mode-hook ()
+(defun knoc-scheme-mode-hook ()
   (interactive)
-  (local-set-key "\e\C-m" 'knosh-sender)
+  (local-set-key "\e\C-m" 'knoc-sender)
   (setq undo-limit 32)
   (font-lock-add-keywords 'scheme-mode *framerd-keywords*))
-(add-hook 'scheme-mode-hook 'knosh-scheme-mode-hook)
+(add-hook 'scheme-mode-hook 'knoc-scheme-mode-hook)
 
-(provide 'knosh)
-;;; knosh.el ends here
+(provide 'knoc)
+;;; knoc.el ends here
 
