@@ -7,6 +7,6 @@ usr/lib/libknodrivers.so
 usr/lib/libknodbserv.a
 usr/lib/libknoscheme.a
 usr/lib/libknoscheme.so
-usr/lib/libknoweb.a
-usr/lib/libknotext.a
+usr/lib/libknowebtools.a
+usr/lib/libknotexttools.a
 usr/include/kno/*.h

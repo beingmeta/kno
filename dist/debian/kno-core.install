@@ -3,8 +3,8 @@ usr/lib/libknostorage.so.*
 usr/lib/libknodrivers.so.*
 usr/lib/libknoscheme.so.*
 usr/lib/libknodbserv.so*
-usr/lib/libknoweb.so*
-usr/lib/libknotext.so*
+usr/lib/libknowebtools.so*
+usr/lib/libknotexttools.so*
 usr/lib/kno/crypto.so*
 usr/lib/kno/ziptools.so*
 usr/lib/kno/hyphenate.so*
