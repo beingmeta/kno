@@ -1,12 +1,12 @@
 /* C Mode */
 
-/* mod_knosrv.c
+/* mod_knoweb.c
    Copyright (C) 2002-2012 beingmeta, inc.  All Rights Reserved
    This is a Apache module supporting persistent FramerD servers
 
    For Apache 2.0:
-     Compile with: apxs2 -c mod_knosrv.c
-     Install with: apxs2 -i mod_knosrv.so
+     Compile with: apxs2 -c mod_knoweb.c
+     Install with: apxs2 -i mod_knoweb.so
 
 */
 
@@ -31,8 +31,8 @@
 #define DEBUG_ALL 0
 #endif
 
-#ifndef DEBUG_KNOSRV
-#define DEBUG_KNOSRV DEBUG_ALL
+#ifndef DEBUG_KNOWEB
+#define DEBUG_KNOWEB DEBUG_ALL
 #endif
 
 #ifndef DEBUG_CGIDATA
@@ -54,7 +54,7 @@
 #define LOGNOTICE APLOG_NOTICE
 #define LOGINFO APLOG_INFO
 
-#if DEBUG_KNOSRV
+#if DEBUG_KNOWEB
 #define LOGDEBUG APLOG_INFO
 #else
 #define LOGDEBUG APLOG_DEBUG
@@ -137,13 +137,13 @@ typedef unsigned int INTPOINTER;
 #endif
 #endif
 
-#define KNOSRV_INIT_SERVLETS 32
+#define KNOWEB_INIT_SERVLETS 32
 
 #if TRACK_EXECUTION_TIMES
 #include "sys/timeb.h"
 #endif
 
-#define KNOSRV_MAGIC_TYPE "application/x-httpd-knosrv"
+#define KNOWEB_MAGIC_TYPE "application/x-httpd-knoweb"
 #define FDSTATUS_MAGIC_TYPE "application/x-httpd-knostatus"
 
 #ifndef DEFAULT_KEEP_SOCKS
@@ -155,7 +155,7 @@ typedef unsigned int INTPOINTER;
 #endif
 
 /* This is where cross-server consing for the entire module happens. */
-static apr_pool_t *knosrv_pool;
+static apr_pool_t *knoweb_pool;
 
 typedef enum { filesock, aprsock, badsock=0 } knosocktype;
 
@@ -190,7 +190,7 @@ typedef struct KNO_SERVLET {
   struct KNO_SOCKET *sockets;} KNO_SERVLET;
 typedef struct KNO_SERVLET *knoservlet;
 
-module AP_MODULE_DECLARE_DATA knosrv_module;
+module AP_MODULE_DECLARE_DATA knoweb_module;
 
 static struct KNO_SERVLET *servlets;
 static int n_servlets=0, max_servlets=-1;
@@ -217,7 +217,7 @@ char version_info[256];
 
 static void init_version_info()
 {
-  sprintf(version_info,"mod_knosrv/%s",version_num);
+  sprintf(version_info,"mod_knoweb/%s",version_num);
 }
 
 /* Compatibility and utilities */
@@ -347,7 +347,7 @@ static char *convert_path(const char *spec,char *buf)
    string socket identifiers */
 static apr_table_t *socketname_table;
 
-struct KNOSRV_SERVER_CONFIG {
+struct KNOWEB_SERVER_CONFIG {
   const char *server_executable;
   const char **config_args;
   const char **req_params;
@@ -366,7 +366,7 @@ struct KNOSRV_SERVER_CONFIG {
      unsigned, leaving no way to signal an empty value.	 Go figure. */
   int uid; int gid;};
 
-struct KNOSRV_DIR_CONFIG {
+struct KNOWEB_DIR_CONFIG {
   const char *server_executable;
   const char **config_args;
   const char **req_params;
@@ -390,10 +390,10 @@ static const char *get_sockname(request_rec *r)
   cached=apr_table_get(socketname_table,location);
   if (cached) return cached;
   else {
-    struct KNOSRV_SERVER_CONFIG *sconfig=
-      ap_get_module_config(r->server->module_config,&knosrv_module);
-    struct KNOSRV_DIR_CONFIG *dconfig=
-      ap_get_module_config(r->per_dir_config,&knosrv_module);
+    struct KNOWEB_SERVER_CONFIG *sconfig=
+      ap_get_module_config(r->server->module_config,&knoweb_module);
+    struct KNOWEB_DIR_CONFIG *dconfig=
+      ap_get_module_config(r->per_dir_config,&knoweb_module);
     const char *socket_location=
       (((dconfig->socket_spec)!=NULL) ? (dconfig->socket_spec) :
        (convert_path(location,pathbuf)));
@@ -412,7 +412,7 @@ static const char *get_sockname(request_rec *r)
     
     ap_log_rerror
       (APLOG_MARK,LOGDEBUG,OK,r,
-       "KNOSRV get_sockname socket_location='%s', socket_prefix='%s', isdir=%d",
+       "KNOWEB get_sockname socket_location='%s', socket_prefix='%s', isdir=%d",
        socket_location,socket_prefix,
        isdirectoryp(r->pool,socket_prefix));
     
@@ -429,8 +429,8 @@ static const char *get_sockname(request_rec *r)
 
 static void *create_server_config(apr_pool_t *p,server_rec *s)
 {
-  struct KNOSRV_SERVER_CONFIG *config=
-    apr_palloc(p,sizeof(struct KNOSRV_SERVER_CONFIG));
+  struct KNOWEB_SERVER_CONFIG *config=
+    apr_palloc(p,sizeof(struct KNOWEB_SERVER_CONFIG));
   config->server_executable=NULL;
   config->config_args=NULL;
   config->req_params=NULL;
@@ -451,12 +451,12 @@ static void *create_server_config(apr_pool_t *p,server_rec *s)
 
 static void *merge_server_config(apr_pool_t *p,void *base,void *new)
 {
-  struct KNOSRV_SERVER_CONFIG *config=
-    apr_palloc(p,sizeof(struct KNOSRV_SERVER_CONFIG));
-  struct KNOSRV_SERVER_CONFIG *parent=base;
-  struct KNOSRV_SERVER_CONFIG *child=new;
+  struct KNOWEB_SERVER_CONFIG *config=
+    apr_palloc(p,sizeof(struct KNOWEB_SERVER_CONFIG));
+  struct KNOWEB_SERVER_CONFIG *parent=base;
+  struct KNOWEB_SERVER_CONFIG *child=new;
 
-  memset(config,0,sizeof(struct KNOSRV_SERVER_CONFIG));
+  memset(config,0,sizeof(struct KNOWEB_SERVER_CONFIG));
 
   if (child->uid <= 0) config->uid=parent->uid; else config->uid=child->uid;
   if (child->gid <= 0) config->gid=parent->gid; else config->gid=child->gid;
@@ -560,8 +560,8 @@ static void *merge_server_config(apr_pool_t *p,void *base,void *new)
 
 static void *create_dir_config(apr_pool_t *p,char *dir)
 {
-  struct KNOSRV_DIR_CONFIG *config=
-    apr_palloc(p,sizeof(struct KNOSRV_DIR_CONFIG));
+  struct KNOWEB_DIR_CONFIG *config=
+    apr_palloc(p,sizeof(struct KNOWEB_DIR_CONFIG));
   config->server_executable=NULL;
   config->config_args=NULL;
   config->req_params=NULL;
@@ -580,12 +580,12 @@ static void *create_dir_config(apr_pool_t *p,char *dir)
 
 static void *merge_dir_config(apr_pool_t *p,void *base,void *new)
 {
-  struct KNOSRV_DIR_CONFIG *config
-    =apr_palloc(p,sizeof(struct KNOSRV_DIR_CONFIG));
-  struct KNOSRV_DIR_CONFIG *parent=base;
-  struct KNOSRV_DIR_CONFIG *child=new;
+  struct KNOWEB_DIR_CONFIG *config
+    =apr_palloc(p,sizeof(struct KNOWEB_DIR_CONFIG));
+  struct KNOWEB_DIR_CONFIG *parent=base;
+  struct KNOWEB_DIR_CONFIG *child=new;
 
-  memset(config,0,sizeof(struct KNOSRV_DIR_CONFIG));
+  memset(config,0,sizeof(struct KNOWEB_DIR_CONFIG));
 
   if (child->max_socks <= 0)
     config->max_socks=parent->max_socks;
@@ -684,9 +684,9 @@ static void *merge_dir_config(apr_pool_t *p,void *base,void *new)
 /* The socket address or filename, relative to the socket prefix. */ 
 static const char *socket_spec(cmd_parms *parms,void *mconfig,const char *arg)
 {
-  struct KNOSRV_DIR_CONFIG *dconfig=mconfig;
-  struct KNOSRV_SERVER_CONFIG *sconfig=
-    ap_get_module_config(parms->server->module_config,&knosrv_module);
+  struct KNOWEB_DIR_CONFIG *dconfig=mconfig;
+  struct KNOWEB_SERVER_CONFIG *sconfig=
+    ap_get_module_config(parms->server->module_config,&knoweb_module);
   struct server_rec *srv=parms->server;
   const char *fullpath=NULL, *spec=NULL, *cpath=parms->path;
 
@@ -704,14 +704,14 @@ static const char *socket_spec(cmd_parms *parms,void *mconfig,const char *arg)
   
   if (!(fullpath))
     ap_log_error(APLOG_MARK,APLOG_INFO,OK,parms->server,
-		 "knosrv %s for '%s:%s' from %s",
+		 "knoweb %s for '%s:%s' from %s",
 		 spec,srv->server_hostname,cpath,srv->defn_name);
   else if (!(file_writablep(parms->pool,parms->server,fullpath)))
     ap_log_error(APLOG_MARK,APLOG_CRIT,OK,parms->server,
-		 "Unwritable knosrv %s (%s) for '%s:%s' from %s",
+		 "Unwritable knoweb %s (%s) for '%s:%s' from %s",
 		 fullpath,arg,srv->server_hostname,cpath,srv->defn_name);
   else ap_log_error(APLOG_MARK,APLOG_INFO,OK,parms->server,
-		    "knosrv %s (%s) for '%s:%s' from %s",
+		    "knoweb %s (%s) for '%s:%s' from %s",
 		    arg,fullpath,
 		    srv->server_hostname,cpath,srv->defn_name);
   return NULL;
@@ -722,8 +722,8 @@ static const char *socket_spec(cmd_parms *parms,void *mconfig,const char *arg)
 static const char *using_dtblock(cmd_parms *parms,void *mconfig,const char *arg)
 {
   LOG_CONFIG(parms,arg);
-  struct KNOSRV_SERVER_CONFIG *sconfig=
-    ap_get_module_config(parms->server->module_config,&knosrv_module);
+  struct KNOWEB_SERVER_CONFIG *sconfig=
+    ap_get_module_config(parms->server->module_config,&knoweb_module);
   if (!(arg))
     sconfig->use_dtblock=0;
   else if (!(*arg))
@@ -738,12 +738,12 @@ static const char *servlet_keep(cmd_parms *parms,void *mconfig,const char *arg)
 {
   LOG_CONFIG(parms,arg);
   if (parms->path) {
-    struct KNOSRV_DIR_CONFIG *dconfig=mconfig;
+    struct KNOWEB_DIR_CONFIG *dconfig=mconfig;
     int n_connections=atoi(arg);
     dconfig->keep_socks=n_connections;
     return NULL;}
   else {
-    struct KNOSRV_SERVER_CONFIG *sconfig=mconfig;
+    struct KNOWEB_SERVER_CONFIG *sconfig=mconfig;
     int n_connections=atoi(arg);
     sconfig->keep_socks=n_connections;
     return NULL;}
@@ -753,26 +753,26 @@ static const char *servlet_maxconn(cmd_parms *parms,void *mconfig,const char *ar
 {
   LOG_CONFIG(parms,arg);
   if (parms->path) {
-    struct KNOSRV_DIR_CONFIG *dconfig=mconfig;
+    struct KNOWEB_DIR_CONFIG *dconfig=mconfig;
     int n_connections=atoi(arg);
     dconfig->max_socks=n_connections;
     return NULL;}
   else {
-    struct KNOSRV_SERVER_CONFIG *sconfig=mconfig;
+    struct KNOWEB_SERVER_CONFIG *sconfig=mconfig;
     int n_connections=atoi(arg);
     sconfig->max_socks=n_connections;
     return NULL;}
 }
 
-/* How to run knosrv */
+/* How to run knoweb */
 
-/* Setting the knosrv executable for spawning new processes */
+/* Setting the knoweb executable for spawning new processes */
 static const char *servlet_executable
    (cmd_parms *parms,void *mconfig,const char *arg)
 {
-  struct KNOSRV_SERVER_CONFIG *sconfig=
-    ap_get_module_config(parms->server->module_config,&knosrv_module);
-  struct KNOSRV_DIR_CONFIG *dconfig=mconfig;
+  struct KNOWEB_SERVER_CONFIG *sconfig=
+    ap_get_module_config(parms->server->module_config,&knoweb_module);
+  struct KNOWEB_DIR_CONFIG *dconfig=mconfig;
   LOG_CONFIG(parms,arg);
   if (executable_filep(parms->pool,arg))
     if (parms->path) {
@@ -786,9 +786,9 @@ static const char *servlet_executable
 
 static const char *servlet_wait(cmd_parms *parms,void *mconfig,const char *arg)
 {
-  struct KNOSRV_SERVER_CONFIG *sconfig=
-    ap_get_module_config(parms->server->module_config,&knosrv_module);
-  struct KNOSRV_DIR_CONFIG *dconfig=mconfig;
+  struct KNOWEB_SERVER_CONFIG *sconfig=
+    ap_get_module_config(parms->server->module_config,&knoweb_module);
+  struct KNOWEB_DIR_CONFIG *dconfig=mconfig;
   char *end=NULL; long wait_interval=-1;
   LOG_CONFIG(parms,arg);
   if (*arg=='\0') {
@@ -808,9 +808,9 @@ static const char *servlet_wait(cmd_parms *parms,void *mconfig,const char *arg)
 
 static const char *servlet_spawn(cmd_parms *parms,void *mconfig,const char *arg)
 {
-  struct KNOSRV_SERVER_CONFIG *sconfig=
-    ap_get_module_config(parms->server->module_config,&knosrv_module);
-  struct KNOSRV_DIR_CONFIG *dconfig=mconfig;
+  struct KNOWEB_SERVER_CONFIG *sconfig=
+    ap_get_module_config(parms->server->module_config,&knoweb_module);
+  struct KNOWEB_DIR_CONFIG *dconfig=mconfig;
   int spawn_wait; char *end;
   LOG_CONFIG(parms,arg);
   if (strcasecmp(arg,"on")==0) spawn_wait=10;
@@ -839,25 +839,25 @@ static const char *log_sync(cmd_parms *parms,void *mconfig,const char *arg)
   int dosync=((*arg=='1')||(*arg=='y')||(*arg=='Y'));
   LOG_CONFIG(parms,arg);
   if (parms->path) {
-    struct KNOSRV_DIR_CONFIG *dconfig=(struct KNOSRV_DIR_CONFIG *)mconfig;
+    struct KNOWEB_DIR_CONFIG *dconfig=(struct KNOWEB_DIR_CONFIG *)mconfig;
     dconfig->log_sync=dosync;
     return NULL;}
   else {
-    struct KNOSRV_SERVER_CONFIG *sconfig=
-      ap_get_module_config(parms->server->module_config,&knosrv_module);
+    struct KNOWEB_SERVER_CONFIG *sconfig=
+      ap_get_module_config(parms->server->module_config,&knoweb_module);
     sconfig->log_sync=dosync;}
   return NULL;
 }
 
 static char **extend_config(apr_pool_t *p,char **config_args,const char *var,const char *val);
 
-/* Adding config variables to be passed to knosrv */
+/* Adding config variables to be passed to knoweb */
 static const char *servlet_config
   (cmd_parms *parms,void *mconfig,const char *arg1,const char *arg2)
 {
-  struct KNOSRV_DIR_CONFIG *dconfig=mconfig;
-  struct KNOSRV_SERVER_CONFIG *sconfig=
-    ap_get_module_config(parms->server->module_config,&knosrv_module);
+  struct KNOWEB_DIR_CONFIG *dconfig=mconfig;
+  struct KNOWEB_SERVER_CONFIG *sconfig=
+    ap_get_module_config(parms->server->module_config,&knoweb_module);
   apr_pool_t *p=parms->pool;
   if (parms->path) {
     dconfig->config_args=
@@ -869,13 +869,13 @@ static const char *servlet_config
     return NULL;}
 }
 
-/* Adding config variables to be passed to knosrv */
+/* Adding config variables to be passed to knoweb */
 static const char *servlet_env
   (cmd_parms *parms,void *mconfig,const char *arg1,const char *arg2)
 {
-  struct KNOSRV_DIR_CONFIG *dconfig=mconfig;
-  struct KNOSRV_SERVER_CONFIG *sconfig=
-    ap_get_module_config(parms->server->module_config,&knosrv_module);
+  struct KNOWEB_DIR_CONFIG *dconfig=mconfig;
+  struct KNOWEB_SERVER_CONFIG *sconfig=
+    ap_get_module_config(parms->server->module_config,&knoweb_module);
   apr_pool_t *p=parms->pool;
   if (parms->path) {
     dconfig->servlet_env=
@@ -918,13 +918,13 @@ static char **extend_config(apr_pool_t *p,char **config_args,const char *var,
 static char **extend_params(apr_pool_t *p,char **req_params,
 			    const char *var,const char *val);
 
-/* Adding config variables to be passed to knosrv */
+/* Adding config variables to be passed to knoweb */
 static const char *servlet_param
   (cmd_parms *parms,void *mconfig,const char *arg1,const char *arg2)
 {
-  struct KNOSRV_DIR_CONFIG *dconfig=mconfig;
-  struct KNOSRV_SERVER_CONFIG *sconfig=
-    ap_get_module_config(parms->server->module_config,&knosrv_module);
+  struct KNOWEB_DIR_CONFIG *dconfig=mconfig;
+  struct KNOWEB_SERVER_CONFIG *sconfig=
+    ap_get_module_config(parms->server->module_config,&knoweb_module);
   apr_pool_t *p=parms->pool;
   if (parms->path) {
     dconfig->req_params=
@@ -964,8 +964,8 @@ static char **extend_params(apr_pool_t *p,char **req_params,const
 /* What userid should run servlets */
 static const char *servlet_user(cmd_parms *parms,void *mconfig,const char *arg)
 {
-  struct KNOSRV_SERVER_CONFIG *sconfig=
-    ap_get_module_config(parms->server->module_config,&knosrv_module);
+  struct KNOWEB_SERVER_CONFIG *sconfig=
+    ap_get_module_config(parms->server->module_config,&knoweb_module);
   int uid=(int)ap_uname2id(arg);
   if (uid >= 0) {
     /* On some platforms (OS X), this condition can never happen,
@@ -978,8 +978,8 @@ static const char *servlet_user(cmd_parms *parms,void *mconfig,const char *arg)
 /* What the default group should be for running servlets */
 static const char *servlet_group(cmd_parms *parms,void *mconfig,const char *arg)
 {
-  struct KNOSRV_SERVER_CONFIG *sconfig=
-    ap_get_module_config(parms->server->module_config,&knosrv_module);
+  struct KNOWEB_SERVER_CONFIG *sconfig=
+    ap_get_module_config(parms->server->module_config,&knoweb_module);
   int gid=(int)ap_gname2id(arg);
   if (gid >= 0) {
     /* On some platforms (OS X), this condition can never happen,
@@ -992,9 +992,9 @@ static const char *servlet_group(cmd_parms *parms,void *mconfig,const char *arg)
 /* What prefix to use for servlet file sockets (also for .pid files)  */
 static const char *socket_prefix(cmd_parms *parms,void *mconfig,const char *arg)
 {
-  struct KNOSRV_DIR_CONFIG *dconfig=mconfig;
-  struct KNOSRV_SERVER_CONFIG *sconfig=
-    ap_get_module_config(parms->server->module_config,&knosrv_module);
+  struct KNOWEB_DIR_CONFIG *dconfig=mconfig;
+  struct KNOWEB_SERVER_CONFIG *sconfig=
+    ap_get_module_config(parms->server->module_config,&knoweb_module);
   const char *fullpath;
   if (arg[0]=='/') fullpath=arg;
   else fullpath=ap_server_root_relative(parms->pool,(char *)arg);
@@ -1021,9 +1021,9 @@ static const char *socket_prefix(cmd_parms *parms,void *mconfig,const char *arg)
 /* What prefix to use for log files */
 static const char *log_prefix(cmd_parms *parms,void *mconfig,const char *arg)
 {
-  struct KNOSRV_DIR_CONFIG *dconfig=mconfig;
-  struct KNOSRV_SERVER_CONFIG *sconfig=
-    ap_get_module_config(parms->server->module_config,&knosrv_module);
+  struct KNOWEB_DIR_CONFIG *dconfig=mconfig;
+  struct KNOWEB_SERVER_CONFIG *sconfig=
+    ap_get_module_config(parms->server->module_config,&knoweb_module);
   const char *fullpath;
   if (arg[0]=='/') fullpath=arg;
   else fullpath=ap_server_root_relative(parms->pool,(char *)arg);
@@ -1047,13 +1047,13 @@ static const char *log_prefix(cmd_parms *parms,void *mconfig,const char *arg)
   return NULL;
 }
 
-/* The log file to use for launched knosrv processes */
+/* The log file to use for launched knoweb processes */
 static const char *log_file(cmd_parms *parms,void *mconfig,const char *arg)
 {
-  struct KNOSRV_DIR_CONFIG *dconfig=mconfig;
-  struct KNOSRV_SERVER_CONFIG *sconfig=mconfig;
-  struct KNOSRV_SERVER_CONFIG *smodconfig=
-    ap_get_module_config(parms->server->module_config,&knosrv_module);
+  struct KNOWEB_DIR_CONFIG *dconfig=mconfig;
+  struct KNOWEB_SERVER_CONFIG *sconfig=mconfig;
+  struct KNOWEB_SERVER_CONFIG *smodconfig=
+    ap_get_module_config(parms->server->module_config,&knoweb_module);
   const char *log_prefix=NULL, *fullpath=NULL;
   if (parms->path)
     log_prefix=dconfig->log_prefix;
@@ -1076,43 +1076,43 @@ static const char *log_file(cmd_parms *parms,void *mconfig,const char *arg)
   return NULL;
 }
 
-static const command_rec knosrv_cmds[] =
+static const command_rec knoweb_cmds[] =
 {
   AP_INIT_TAKE1
-  ("KnoServletDTBlock", using_dtblock, NULL, OR_ALL,
+  ("KnoDTBlock", using_dtblock, NULL, OR_ALL,
    "whether to use the DTBlock DType representation to send requests"),
-  AP_INIT_TAKE1("KnoServletKeep", servlet_keep, NULL, OR_ALL,
+  AP_INIT_TAKE1("KnoKeep", servlet_keep, NULL, OR_ALL,
 		"how many connections to the servlet to keep open"),
-  AP_INIT_TAKE1("KnoServletMax", servlet_maxconn, NULL, OR_ALL,
+  AP_INIT_TAKE1("KnoMax", servlet_maxconn, NULL, OR_ALL,
 		"the total number of servlet connections to keep alive"),
 
   /* Everything below here is stuff about how to start a servlet */
-  AP_INIT_TAKE1("KnoServletSpawn", servlet_spawn, NULL, OR_ALL,
+  AP_INIT_TAKE1("KnoSpawn", servlet_spawn, NULL, OR_ALL,
 		"How long to wait for servlets to start (on=5s, off=0)"),
-  AP_INIT_TAKE1("KnoServletExecutable", servlet_executable, NULL, OR_ALL,
+  AP_INIT_TAKE1("KnoExecutable", servlet_executable, NULL, OR_ALL,
 		"the executable used to start a servlet"),
-  AP_INIT_TAKE1("KnoServletWait", servlet_wait, NULL, OR_ALL,
+  AP_INIT_TAKE1("KnoWait", servlet_wait, NULL, OR_ALL,
 		"the number of seconds to wait for the servlet to startup"),
-  AP_INIT_TAKE2("KnoServletConfig", servlet_config, NULL, OR_ALL,
+  AP_INIT_TAKE2("KnoConfig", servlet_config, NULL, OR_ALL,
 		"configuration parameters to the servlet"),
-  AP_INIT_TAKE2("KnoServletEnv", servlet_env, NULL, OR_ALL,
+  AP_INIT_TAKE2("KnoEnv", servlet_env, NULL, OR_ALL,
 		"environment variables for servlet execution"),
-  AP_INIT_TAKE2("KnoServletParam", servlet_param, NULL, OR_ALL,
+  AP_INIT_TAKE2("KnoParam", servlet_param, NULL, OR_ALL,
 		"CGI parameters to pass with each request to the servlet"),
-  AP_INIT_TAKE1("KnoServletUser", servlet_user, NULL, RSRC_CONF,
+  AP_INIT_TAKE1("KnoUser", servlet_user, NULL, RSRC_CONF,
 	       "the user whom the knoservlet will run as"),
-  AP_INIT_TAKE1("KnoServletGroup", servlet_group, NULL, RSRC_CONF,
+  AP_INIT_TAKE1("KnoGroup", servlet_group, NULL, RSRC_CONF,
 	       "the group whom the knoservlet will run as"),
 
-  AP_INIT_TAKE1("KnoServletPrefix", socket_prefix, NULL, OR_ALL,
+  AP_INIT_TAKE1("KnoPrefix", socket_prefix, NULL, OR_ALL,
 	       "the prefix to be appended to socket names"),
-  AP_INIT_TAKE1("KnoServletSocket", socket_spec, NULL, OR_ALL,
+  AP_INIT_TAKE1("KnoSocket", socket_spec, NULL, OR_ALL,
 	       "the socket file to be used for a particular script"),
-  AP_INIT_TAKE1("KnoServletLogPrefix", log_prefix, NULL, OR_ALL,
+  AP_INIT_TAKE1("KnoLogPrefix", log_prefix, NULL, OR_ALL,
 	       "the prefix for the logfile to be used for scripts"),
-  AP_INIT_TAKE1("KnoServletLog", log_file, NULL, OR_ALL,
+  AP_INIT_TAKE1("KnoLog", log_file, NULL, OR_ALL,
 	       "the logfile to be used for scripts"),
-  AP_INIT_TAKE1("KnoServletLogSync", log_sync, NULL, OR_ALL,
+  AP_INIT_TAKE1("KnoLogSync", log_sync, NULL, OR_ALL,
 	       "whether to write to the log synchronously"),
   {NULL}
 };
@@ -1121,7 +1121,7 @@ static const command_rec knosrv_cmds[] =
 
 static int spawn_knoservlet (knoservlet s,request_rec *r,apr_pool_t *);
 
-#define RUN_KNOSRV_PERMISSIONS \
+#define RUN_KNOWEB_PERMISSIONS \
  (APR_FPROT_UREAD | APR_FPROT_UWRITE | APR_FPROT_UEXECUTE | \
   APR_FPROT_GREAD | APR_FPROT_GWRITE | APR_FPROT_GEXECUTE | \
   APR_FPROT_WREAD |APR_FPROT_WEXECUTE)
@@ -1129,7 +1129,7 @@ static int spawn_knoservlet (knoservlet s,request_rec *r,apr_pool_t *);
 static int check_directory(apr_pool_t *p,const char *filename)
 {
   char *dirname=ap_make_dirstr_parent(p,filename);
-  int retval=apr_dir_make_recursive(dirname,RUN_KNOSRV_PERMISSIONS,p);
+  int retval=apr_dir_make_recursive(dirname,RUN_KNOWEB_PERMISSIONS,p);
   if (retval) return retval;
   else if (chown(dirname,ap_unixd_config.user_id,ap_unixd_config.group_id)<0)
     return 1;
@@ -1138,17 +1138,17 @@ static int check_directory(apr_pool_t *p,const char *filename)
 
 static const char *get_log_file(request_rec *r,const char *sockname) /* 2.0 */
 {
-  struct KNOSRV_SERVER_CONFIG *sconfig=
-    ap_get_module_config(r->server->module_config,&knosrv_module);
-  struct KNOSRV_DIR_CONFIG *dconfig=
-    ap_get_module_config(r->per_dir_config,&knosrv_module);
+  struct KNOWEB_SERVER_CONFIG *sconfig=
+    ap_get_module_config(r->server->module_config,&knoweb_module);
+  struct KNOWEB_DIR_CONFIG *dconfig=
+    ap_get_module_config(r->per_dir_config,&knoweb_module);
   const char *log_file=
     (((dconfig->log_file)!=NULL) ? (dconfig->log_file) :
      ((sconfig->log_file)!=NULL) ? (sconfig->log_file) : (NULL));
   const char *log_prefix=
     ((dconfig->log_prefix) ? (dconfig->log_prefix) :
      (sconfig->log_prefix) ? (sconfig->log_prefix) :
-     ap_server_root_relative(r->pool,"logs/knosrv/"));
+     ap_server_root_relative(r->pool,"logs/knoweb/"));
   
   ap_log_rerror
     (APLOG_MARK,APLOG_INFO,OK,r,
@@ -1178,8 +1178,8 @@ static const char *get_log_file(request_rec *r,const char *sockname) /* 2.0 */
 
 static int spawn_wait(knoservlet s,request_rec *r,apr_proc_t *p);
 static int start_servlet(request_rec *r,knoservlet s,
-			 struct KNOSRV_DIR_CONFIG *dconfig,
-			 struct KNOSRV_SERVER_CONFIG *sconfig);
+			 struct KNOWEB_DIR_CONFIG *dconfig,
+			 struct KNOWEB_SERVER_CONFIG *sconfig);
 
 static int spawn_knoservlet(knoservlet s,request_rec *r,apr_pool_t *p) 
 {
@@ -1189,10 +1189,10 @@ static int spawn_knoservlet(knoservlet s,request_rec *r,apr_pool_t *p)
      we can lanuch a process on (i.e. not us) */
   const char *nospawn=apr_pstrcat(p,sockname,".nospawn",NULL);
 
-  struct KNOSRV_SERVER_CONFIG *sconfig=
-    ap_get_module_config(r->server->module_config,&knosrv_module);
-  struct KNOSRV_DIR_CONFIG *dconfig=
-    ap_get_module_config(r->per_dir_config,&knosrv_module);
+  struct KNOWEB_SERVER_CONFIG *sconfig=
+    ap_get_module_config(r->server->module_config,&knoweb_module);
+  struct KNOWEB_DIR_CONFIG *dconfig=
+    ap_get_module_config(r->per_dir_config,&knoweb_module);
 
   server_rec *server=r->server;
   int servlet_wait=dconfig->servlet_wait;
@@ -1225,8 +1225,8 @@ static int spawn_knoservlet(knoservlet s,request_rec *r,apr_pool_t *p)
 }
 
 static int start_servlet(request_rec *r,knoservlet s,
-			 struct KNOSRV_DIR_CONFIG *dconfig,
-			 struct KNOSRV_SERVER_CONFIG *sconfig)
+			 struct KNOWEB_DIR_CONFIG *dconfig,
+			 struct KNOWEB_SERVER_CONFIG *sconfig)
 {
   apr_pool_t *p=r->pool;
   server_rec *server=r->server;
@@ -1333,7 +1333,7 @@ static int start_servlet(request_rec *r,knoservlet s,
     *write_argv++=gidconfig;}
     
   {
-    char *launchconfig=apr_psprintf(p,"LAUNCHER=mod_knosrv");
+    char *launchconfig=apr_psprintf(p,"LAUNCHER=mod_knoweb");
     *write_argv++=launchconfig;}
 
 
@@ -1522,12 +1522,12 @@ static int start_servlet(request_rec *r,knoservlet s,
 
 static int spawn_wait(knoservlet s,request_rec *r,apr_proc_t *proc)
 {
-  apr_pool_t *p=((r==NULL)?(knosrv_pool):(r->pool));
+  apr_pool_t *p=((r==NULL)?(knoweb_pool):(r->pool));
   const char *sockname=s->sockname;
-  struct KNOSRV_SERVER_CONFIG *sconfig=
-    ap_get_module_config(r->server->module_config,&knosrv_module);
-  struct KNOSRV_DIR_CONFIG *dconfig=
-    ap_get_module_config(r->per_dir_config,&knosrv_module);
+  struct KNOWEB_SERVER_CONFIG *sconfig=
+    ap_get_module_config(r->server->module_config,&knoweb_module);
+  struct KNOWEB_DIR_CONFIG *dconfig=
+    ap_get_module_config(r->per_dir_config,&knoweb_module);
   struct stat stat_data; int rv;
   int servlet_wait=dconfig->servlet_wait;
   int elapsed=0;
@@ -1585,7 +1585,7 @@ static knoservlet servlet_set_keep_socks(knoservlet s,int keep_socks)
       return s;}
     else {
       struct KNO_SOCKET *fresh=
-	apr_pcalloc(knosrv_pool,sizeof(struct KNO_SOCKET)*keep_socks);
+	apr_pcalloc(knoweb_pool,sizeof(struct KNO_SOCKET)*keep_socks);
       ap_log_error(APLOG_MARK,APLOG_CRIT,OK,s->server,
 		   "Growing socket pool for %s from %d/%d to %d/%d",
 		   s->sockname,s->n_socks,s->keep_socks,s->n_socks,keep_socks);
@@ -1626,9 +1626,9 @@ static knoservlet add_servlet(struct request_rec *r,const char *sockname,
   if (i>=max_servlets) {
     /* Grow the table of servlets if needed */
     int old_max=max_servlets;
-    int new_max=max_servlets+KNOSRV_INIT_SERVLETS;
+    int new_max=max_servlets+KNOWEB_INIT_SERVLETS;
     struct KNO_SERVLET *newvec=(struct KNO_SERVLET *)
-      prealloc(knosrv_pool,(char *)servlets,
+      prealloc(knoweb_pool,(char *)servlets,
 	       sizeof(struct KNO_SERVLET)*new_max,
 	       sizeof(struct KNO_SERVLET)*old_max);
     if (newvec) {
@@ -1650,7 +1650,7 @@ static knoservlet add_servlet(struct request_rec *r,const char *sockname,
 		 "Adding new servlet for %s at #%d, keep=%d, max=%d",
 		 sockname,i,keep_socks,max_socks);
     memset(servlet,0,sizeof(struct KNO_SERVLET));
-    servlet->sockname=apr_pstrdup(knosrv_pool,sockname);
+    servlet->sockname=apr_pstrdup(knoweb_pool,sockname);
     servlet->server=r->server; servlet->servlet_index=i;
     servlet->spawning=0; servlet->spawned=0;
     /* Initialize type and address/endpoint fields */
@@ -1684,7 +1684,7 @@ static knoservlet add_servlet(struct request_rec *r,const char *sockname,
 	return NULL;}
       retval=apr_sockaddr_info_get
 	(&(servlet->endpoint.addr),hostname,
-	 APR_UNSPEC,(short)portno,0,knosrv_pool);
+	 APR_UNSPEC,(short)portno,0,knoweb_pool);
       if (retval!=APR_SUCCESS) {
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_WARNING,OK,r,
@@ -1699,7 +1699,7 @@ static knoservlet add_servlet(struct request_rec *r,const char *sockname,
 	   "Got info for port %d at %s, addr=%s, port=%d",
 	   portno,hostname,rname,addr->port);}}
     apr_thread_mutex_create(&(servlet->lock),
-			    APR_THREAD_MUTEX_DEFAULT,knosrv_pool);
+			    APR_THREAD_MUTEX_DEFAULT,knoweb_pool);
     servlet->max_socks=max_socks;
     if (keep_socks>=0) {
       servlet_set_keep_socks(servlet,keep_socks);}
@@ -1740,7 +1740,7 @@ static int get_servlet_wait(request_rec *r);
 static knosocket servlet_open(knoservlet s,struct KNO_SOCKET *given,request_rec *r)
 {
   struct KNO_SOCKET *result; apr_pool_t *pool; int one=1, dospawn=-1, wait=-1;
-  if (given) pool=knosrv_pool; else pool=r->pool;
+  if (given) pool=knoweb_pool; else pool=r->pool;
   if (given) result=given;
   else {
     result=apr_pcalloc(pool,sizeof(struct KNO_SOCKET));
@@ -1776,7 +1776,7 @@ static knosocket servlet_open(knoservlet s,struct KNO_SOCKET *given,request_rec 
 	(APLOG_MARK,APLOG_CRIT,apr_get_os_error(),r,
 	 "Couldn't connect socket @ %s, spawning knoservlet",sockname);
       errno=0;
-      rv=spawn_knoservlet(s,r,knosrv_pool);
+      rv=spawn_knoservlet(s,r,knoweb_pool);
       if (rv<0) {
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_EMERG,apr_get_os_error(),r,
@@ -1860,10 +1860,10 @@ static knosocket servlet_open(knoservlet s,struct KNO_SOCKET *given,request_rec 
 
 static int get_servlet_wait(request_rec *r)
 {
-  struct KNOSRV_SERVER_CONFIG *sconfig=
-    ap_get_module_config(r->server->module_config,&knosrv_module);
-  struct KNOSRV_DIR_CONFIG *dconfig=
-    ap_get_module_config(r->per_dir_config,&knosrv_module);
+  struct KNOWEB_SERVER_CONFIG *sconfig=
+    ap_get_module_config(r->server->module_config,&knoweb_module);
+  struct KNOWEB_DIR_CONFIG *dconfig=
+    ap_get_module_config(r->per_dir_config,&knoweb_module);
   if (dconfig->servlet_wait>=0) return dconfig->servlet_wait;
   else if (sconfig->servlet_wait>=0) return sconfig->servlet_wait;
   else return DEFAULT_SERVLET_WAIT;
@@ -2084,10 +2084,10 @@ static int servlet_close_socket(knoservlet servlet,knosocket sock)
 static knoservlet request_servlet(request_rec *r)
 {
   const char *sockname=get_sockname(r);
-  struct KNOSRV_SERVER_CONFIG *sconfig=
-    ap_get_module_config(r->server->module_config,&knosrv_module);
-  struct KNOSRV_DIR_CONFIG *dconfig=
-    ap_get_module_config(r->per_dir_config,&knosrv_module);
+  struct KNOWEB_SERVER_CONFIG *sconfig=
+    ap_get_module_config(r->server->module_config,&knoweb_module);
+  struct KNOWEB_DIR_CONFIG *dconfig=
+    ap_get_module_config(r->per_dir_config,&knoweb_module);
   int keep_socks=sconfig->keep_socks, max_socks=sconfig->max_socks;
   knoservlet servlet;
   if (sockname)
@@ -2107,7 +2107,7 @@ static knoservlet request_servlet(request_rec *r)
   if (max_socks<=0) max_socks=DEFAULT_MAX_SOCKS;
   servlet=get_servlet(sockname);
   if (servlet) {
-#if DEBUG_KNOSRV
+#if DEBUG_KNOWEB
     ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
 		  "Found existing servlet @#%d for use with %s",
 		  servlet->servlet_index,servlet->sockname);
@@ -2132,7 +2132,7 @@ static apr_status_t close_servlets(void *data)
   apr_thread_mutex_lock(servlets_lock);
   lim=n_servlets;
   ap_log_perror(APLOG_MARK,APLOG_NOTICE,OK,p,
-		"mod_knosrv closing %d open servlets",lim);
+		"mod_knoweb closing %d open servlets",lim);
   while (i<lim) {
     knoservlet s=&(servlets[i++]);
     int j=0, n_socks;
@@ -2151,7 +2151,7 @@ static apr_status_t close_servlets(void *data)
       sock->closed=1; sock->busy=1;}
     apr_thread_mutex_unlock(s->lock);}
   ap_log_perror(APLOG_MARK,APLOG_INFO,OK,p,
-		"mod_knosrv closed %d open sockets across %d servlets",
+		"mod_knoweb closed %d open sockets across %d servlets",
 		sock_count,lim);
   apr_thread_mutex_unlock(servlets_lock);
   return OK;
@@ -2165,13 +2165,13 @@ static int reset_servlet(knoservlet s,apr_pool_t *p,int locked)
   sockets=s->sockets; n_socks=s->n_socks;
 
   ap_log_perror(APLOG_MARK,APLOG_INFO,OK,p,
-		"mod_knosrv Resetting servlet %s (%d sockets/%d busy)",
+		"mod_knoweb Resetting servlet %s (%d sockets/%d busy)",
 		s->sockname,n_socks,s->n_busy);
   
   while (j<n_socks) {
     knosocket sock=&(sockets[j++]);
     ap_log_perror(APLOG_MARK,APLOG_INFO,OK,p,
-		  "mod_knosrv Resetting socket#%d for %s",
+		  "mod_knoweb Resetting socket#%d for %s",
 		  j-1,s->sockname);
     if (sock->closed) continue;
     if (sock->socktype==filesock) {
@@ -2181,7 +2181,7 @@ static int reset_servlet(knoservlet s,apr_pool_t *p,int locked)
       apr_socket_close(sock->conn.apr);
       n_closed++;}
     else ap_log_perror(APLOG_MARK,APLOG_WARNING,OK,p,
-		       "mod_knosrv Weird socket entry (#%d) for %s",
+		       "mod_knoweb Weird socket entry (#%d) for %s",
 		       j-1,s->sockname);
     sock->closed=1; sock->busy=0;}
   s->n_busy=0;
@@ -2308,7 +2308,7 @@ static int write_table(BUFF *b,apr_table_t *tbl,request_rec *r)
     n_bytes=n_bytes+delta;
     if ((delta=buf_write_string(scan->val,b))<0) return -1;
     n_bytes=n_bytes+delta;
-#if DEBUG_KNOSRV
+#if DEBUG_KNOWEB
     ap_log_error
       (APLOG_MARK,LOGDEBUG,OK,
        r->server,"Buffered HTTP request data %s=%s",
@@ -2360,7 +2360,7 @@ static int write_cgidata
       n_bytes=n_bytes+delta;
       if ((delta=buf_write_string((char *)(pscan[1]),b))<0) return -1;
       n_bytes=n_bytes+delta;
-#if DEBUG_KNOSRV
+#if DEBUG_KNOWEB
       ap_log_error(APLOG_MARK,LOGDEBUG,OK,r->server,
 		   "Buffered servlet parameter %s=%s",
 		   pscan[0],pscan[1]);
@@ -2373,7 +2373,7 @@ static int write_cgidata
       n_bytes=n_bytes+delta;
       if ((delta=buf_write_string((char *)(pscan[1]),b))<0) return -1;
       n_bytes=n_bytes+delta;
-#if DEBUG_KNOSRV
+#if DEBUG_KNOWEB
       ap_log_error
 	(APLOG_MARK,LOGDEBUG,OK,
 	 r->server,"Buffered servlet parameter %s=%s",
@@ -2402,7 +2402,7 @@ static int write_cgidata
   return n_bytes;
 }
 
-/* Handling knosrv requests */
+/* Handling knoweb requests */
 
 struct HEAD_SCANNER {
   knosocket sock;
@@ -2424,10 +2424,10 @@ static int scan_fgets(char *buf,int n_bytes,void *stream)
       if (bytes[0] == '\n') break;
       rv=apr_socket_recv(sock,bytes,&bytes_read);}
     *write='\0';
-#if DEBUG_KNOSRV
+#if DEBUG_KNOWEB
     ap_log_error
       (APLOG_MARK,LOGDEBUG,rv,r->server,
-       "mod_knosrv/scan_fgets: Read header string %s from APR socket",buf);
+       "mod_knoweb/scan_fgets: Read header string %s from APR socket",buf);
 #endif
     if (write>=limit) return write-buf;
     else return write-buf;}
@@ -2440,10 +2440,10 @@ static int scan_fgets(char *buf,int n_bytes,void *stream)
       else *write++=bytes[0];
       if (bytes[0]=='\n') break;}
     *write='\0';
-#if DEBUG_KNOSRV
+#if DEBUG_KNOWEB
     ap_log_error
       (APLOG_MARK,APLOG_WARNING,OK,r->server,
-       "mod_knosrv/scan_fgets: Read header string %s from %d",buf,sock);
+       "mod_knoweb/scan_fgets: Read header string %s from %d",buf,sock);
 #endif
     if (write>=limit) return write-buf;
     else return write-buf;}
@@ -2766,7 +2766,7 @@ static int checkabort(request_rec *r,knoservlet servlet,knosocket sock,
 
 /* The main event handler */
 
-static int knosrv_handler(request_rec *r)
+static int knoweb_handler(request_rec *r)
 {
   apr_time_t started=apr_time_now(), connected, requested, computed, responded;
   BUFF *reqdata;
@@ -2777,10 +2777,10 @@ static int knosrv_handler(request_rec *r)
   const char *xredirect=NULL;
   int rv;
   struct HEAD_SCANNER scanner;
-  struct KNOSRV_SERVER_CONFIG *sconfig=
-    ap_get_module_config(r->server->module_config,&knosrv_module);
-  struct KNOSRV_DIR_CONFIG *dconfig=
-    ap_get_module_config(r->per_dir_config,&knosrv_module);
+  struct KNOWEB_SERVER_CONFIG *sconfig=
+    ap_get_module_config(r->server->module_config,&knoweb_module);
+  struct KNOWEB_DIR_CONFIG *dconfig=
+    ap_get_module_config(r->per_dir_config,&knoweb_module);
   int using_dtblock=((sconfig->use_dtblock<0)?(use_dtblock):
 		     ((sconfig->use_dtblock)?(1):(0)));
   int status_request=0;
@@ -2795,16 +2795,16 @@ static int knosrv_handler(request_rec *r)
 	(r->method_number == M_DELETE) ||
 	(r->method_number == M_OPTIONS)))
     return DECLINED;
-  else if ( (STRMATCH(r->handler, "knosrv")) ||
-	    (STRMATCH(r->handler, KNOSRV_MAGIC_TYPE)) )
+  else if ( (STRMATCH(r->handler, "knoweb")) ||
+	    (STRMATCH(r->handler, KNOWEB_MAGIC_TYPE)) )
     status_request=0;
   else if ( (STRMATCH(r->handler, "knostatus")) ||
 	    (STRMATCH(r->handler, FDSTATUS_MAGIC_TYPE)) )
     status_request=1;
   else return DECLINED;
-#if DEBUG_KNOSRV
+#if DEBUG_KNOWEB
   ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
-		"Entered knosrv_handler for %s from %s",
+		"Entered knoweb_handler for %s from %s",
 		r->filename,r->unparsed_uri);
 #endif
   if (r->connection->aborted)
@@ -3036,21 +3036,21 @@ static int knosrv_handler(request_rec *r)
   return OK;
 }
 
-static int knosrv_post_config(apr_pool_t *p,
+static int knoweb_post_config(apr_pool_t *p,
 			      apr_pool_t *plog,
 			      apr_pool_t *ptemp,
 			      server_rec *s)
 {
-  struct KNOSRV_SERVER_CONFIG *sconfig=
-    ap_get_module_config(s->module_config,&knosrv_module);
+  struct KNOWEB_SERVER_CONFIG *sconfig=
+    ap_get_module_config(s->module_config,&knoweb_module);
   ap_log_perror(APLOG_MARK,APLOG_NOTICE,OK,p,
-		"mod_knosrv v%s starting post config for Apache 2.x (%s)",
+		"mod_knoweb v%s starting post config for Apache 2.x (%s)",
 		version_num,_FILEINFO);
   if (sconfig->socket_prefix==NULL)
     sconfig->socket_prefix=apr_pstrdup(p,"/var/run/framerd/servlets/");
   if (sconfig->socket_prefix[0]=='/') {
     const char *dirname=sconfig->socket_prefix;
-    int retval=apr_dir_make_recursive(dirname,RUN_KNOSRV_PERMISSIONS,p);
+    int retval=apr_dir_make_recursive(dirname,RUN_KNOWEB_PERMISSIONS,p);
     if (retval)
       ap_log_error
 	(APLOG_MARK,APLOG_CRIT,retval,s,
@@ -3066,51 +3066,51 @@ static int knosrv_post_config(apr_pool_t *p,
   init_version_info();
   ap_add_version_component(p,version_info);
   ap_log_perror(APLOG_MARK,APLOG_NOTICE,OK,p,
-		"mod_knosrv v%s finished post config for Apache 2.x",
+		"mod_knoweb v%s finished post config for Apache 2.x",
 		version_num);
   return OK;
 }
 
-static void knosrv_init(apr_pool_t *p,server_rec *s)
+static void knoweb_init(apr_pool_t *p,server_rec *s)
 {
   ap_log_perror(APLOG_MARK,APLOG_INFO,OK,p,
-		"mod_knosrv v%s starting child init (%d) for Apache 2.x (%s)",
+		"mod_knoweb v%s starting child init (%d) for Apache 2.x (%s)",
 		version_num,(int)getpid(),_FILEINFO);
   socketname_table=apr_table_make(p,64);
-  knosrv_pool=p;
-  apr_thread_mutex_create(&servlets_lock,APR_THREAD_MUTEX_DEFAULT,knosrv_pool);
-  servlets=apr_pcalloc(knosrv_pool,sizeof(struct KNO_SERVLET)*(KNOSRV_INIT_SERVLETS));
-  max_servlets=KNOSRV_INIT_SERVLETS;
+  knoweb_pool=p;
+  apr_thread_mutex_create(&servlets_lock,APR_THREAD_MUTEX_DEFAULT,knoweb_pool);
+  servlets=apr_pcalloc(knoweb_pool,sizeof(struct KNO_SERVLET)*(KNOWEB_INIT_SERVLETS));
+  max_servlets=KNOWEB_INIT_SERVLETS;
   /* apr_pool_cleanup_register(p,p,close_servlets,NULL); */
   #if ((APR_MAJOR_VERSION>=1)&&(APR_MAJOR_VERSION>=4))
   apr_pool_pre_cleanup_register(p,p,close_servlets);
   #endif
   ap_log_perror(APLOG_MARK,APLOG_INFO,OK,p,
-		"mod_knosrv v%s finished child init (%d) for Apache 2.x",
+		"mod_knoweb v%s finished child init (%d) for Apache 2.x",
 		version_num,(int)getpid());
 }
 static void register_hooks(apr_pool_t *p)
 {
   /* static const char * const run_first[]={ "mod_mime",NULL }; */
-  ap_hook_handler(knosrv_handler, NULL, NULL, APR_HOOK_LAST);
-  ap_hook_child_init(knosrv_init, NULL, NULL, APR_HOOK_MIDDLE);
-  ap_hook_post_config(knosrv_post_config, NULL, NULL, APR_HOOK_MIDDLE);
+  ap_hook_handler(knoweb_handler, NULL, NULL, APR_HOOK_LAST);
+  ap_hook_child_init(knoweb_init, NULL, NULL, APR_HOOK_MIDDLE);
+  ap_hook_post_config(knoweb_post_config, NULL, NULL, APR_HOOK_MIDDLE);
 }
 
-module AP_MODULE_DECLARE_DATA knosrv_module =
+module AP_MODULE_DECLARE_DATA knoweb_module =
 {
     STANDARD20_MODULE_STUFF,
     create_dir_config,				/* dir config creater */
     merge_dir_config,				/* dir merger --- default is to override */
     create_server_config,			/* server config */
     merge_server_config,			/* merge server config */
-    knosrv_cmds,				/* command apr_table_t */
+    knoweb_cmds,				/* command apr_table_t */
     register_hooks				/* register hooks */
 };
 
 /* Emacs local variables
 ;;;  Local variables: ***
-;;;  compile-command: "cd ../..; make mod_knosrv" ***
+;;;  compile-command: "cd ../..; make mod_knoweb" ***
 ;;;  End: ***
 */
 
