@@ -333,7 +333,7 @@
 /* Define if webtools is linking with curl */
 #undef KNO_WITH_CURL
 
-/* Define if knosh is linking with editline */
+/* Define if knoc is linking with editline */
 #undef KNO_WITH_EDITLINE
 
 /* Define if the editline header files exist */
@@ -342,7 +342,7 @@
 /* Define if the editline/readline header file exists */
 #undef HAVE_EDITLINE_READLINE_H
 
-/* Define if knosh is linking with editline */
+/* Define if knoc is linking with editline */
 #undef HAVE_LIBEDIT
 
 /* Define if you have the CURL header file */

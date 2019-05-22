@@ -313,7 +313,7 @@ otherwise read string until space,
 
   Using temp file state.
   Have ==foo store the last value into the file FOO.dtype
-   in a temporary directory (KNOSHTMP)
+   in a temporary directory (KNOCTMP)
   Have #=foo fetch that value if it exists.
 
 */
@@ -502,14 +502,14 @@ static lispval console_read(u8_input in,kno_lexenv env)
 
 
 
-static void exit_knosh()
+static void exit_knoc()
 {
   if (!(quiet_console)) {
     if (run_start<0)
       u8_message("<%ld> Exiting Kno (%s) console before we even started!",
                  (long)getpid(),KNO_REVISION);
     else if (!(kno_be_vewy_quiet))
-      kno_log_status("Exit(knosh)");
+      kno_log_status("Exit(knoc)");
     else {}}
   close_consoles();
 #if USING_EDITLINE
@@ -811,7 +811,7 @@ int main(int argc,char **argv)
     ("SHOWBACKTRACE",_("Whether to always output backtraces to stderr"),
      kno_boolconfig_get,kno_boolconfig_set,&show_backtrace);
   kno_register_config
-    ("DOTLOAD",_("Whether load .knosh or other dot files"),
+    ("DOTLOAD",_("Whether load .knoc or other dot files"),
      kno_boolconfig_get,kno_boolconfig_set,&dotload);
   kno_register_config
     ("BUGLOG",_("Where to dump console errors"),
@@ -824,12 +824,12 @@ int main(int argc,char **argv)
   inconsole = in;
   outconsole = out;
   errconsole = err;
-  atexit(exit_knosh);
+  atexit(exit_knoc);
 
   kno_autoload_config("LOADMOD","LOADFILE","INITS");
 
-  if (u8_has_suffix(argv[0],"/knosh",0))
-    u8_default_appid("knosh");
+  if (u8_has_suffix(argv[0],"/knoc",0))
+    u8_default_appid("knoc");
   else if (u8_has_suffix(argv[0],"/fdsh",0))
     u8_default_appid("fdsh");
   else if (u8_has_suffix(argv[0],"/fdshell",0))
@@ -853,7 +853,7 @@ int main(int argc,char **argv)
 
   kno_handle_argv(argc,argv,arg_mask,NULL);
 
-  KNO_NEW_STACK(((struct KNO_STACK *)NULL),"knosh",NULL,VOID);
+  KNO_NEW_STACK(((struct KNO_STACK *)NULL),"knoc",NULL,VOID);
   _stack->stack_label=u8_strdup(u8_appid());
   U8_SETBITS(_stack->stack_flags,KNO_STACK_FREE_LABEL);
 
@@ -891,7 +891,7 @@ int main(int argc,char **argv)
   else {}
 
   /* This is argv[0], the name of the executable by which we
-     entered knosh. */
+     entered knoc. */
   {
     lispval interpval = kno_lispstring(u8_fromlibc(argv[0]));
     kno_set_config("INTERPRETER",interpval);
@@ -927,11 +927,11 @@ int main(int argc,char **argv)
     int not_in_kansas = strcmp(home_config,cwd_config);
     dotloader("~/.knoconfig",NULL);
     if (not_in_kansas) dotloader(".knoconfig",NULL);
-    dotloader("~/.knosh",env);
-    if (not_in_kansas) dotloader(".knosh",env);
+    dotloader("~/.knoc",env);
+    if (not_in_kansas) dotloader(".knoc",env);
     u8_free(home_config);
     u8_free(cwd_config);}
-  else u8_message("Warning: .knoconfig/.knosh files are suppressed");
+  else u8_message("Warning: .knoconfig/.knoc files are suppressed");
 
 #if USING_EDITLINE
   if (!(getenv("INSIDE_EMACS"))) {

@@ -357,12 +357,12 @@ CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
 	     src/cmodules/hyphenate.o \
 	     ${SUNDOWN_OBJS} ${TIDY_OBJECTS}
 
-EXECUTABLES=exe/knox@suffix@ exe/knosh@suffix@ exe/knotask@suffix@  \
+EXECUTABLES=exe/knox@suffix@ exe/knoc@suffix@ exe/knotask@suffix@  \
 	    exe/knoweb@suffix@ exe/knod@suffix@
-STATIC_EXECUTABLES=static/knox@suffix@ static/knosh@suffix@ \
+STATIC_EXECUTABLES=static/knox@suffix@ static/knoc@suffix@ \
 	static/knotask@suffix@ \
 	static/knoweb@suffix@ static/knod@suffix@
-DEBUG_EXECUTABLES=dbg/knox dbg/knosh dbg/knotask dbg/knoweb dbg/knod
+DEBUG_EXECUTABLES=dbg/knox dbg/knoc dbg/knotask dbg/knoweb dbg/knod
 SHELL_SCRIPTS=etc/knosetconfig etc/knogetconfig etc/knoconfig \
 	etc/knostart etc/knostop etc/knostartall etc/knostopall \
 	etc/kno_start_daemons etc/kno_start_servlets etc/kno_stop_jobs \
@@ -449,7 +449,7 @@ KNO_SOURCES=\
 	src/web/uriprims.c src/web/mime.c src/web/email.c src/web/curl.c	\
 	src/text/texttools.c src/text/match.c                			\
 	src/text/porter.c src/text/phonetic.c                			\
-	src/exe/knosh.c                                            		\
+	src/exe/knoc.c                                            		\
 	src/exe/knox.c src/exe/knotask.c                             		\
 	src/exe/knoweb.c src/exe/knocgi.c src/exe/knod.c
 
@@ -755,7 +755,7 @@ src/cmodules/ext/tidy5/%.o: src/cmodules/ext/tidy5/%.c $(SUNDOWN_H_FILES)
 	@$(CC) $(CFLAGS) -I./src/cmodules/ext/tidy5/ -o $@ -c $<
 	@$(MSG) CC "(TIDY5)" $@
 
-exe/knox@suffix@ exe/knotask@suffix@ exe/knosh@suffix@: \
+exe/knox@suffix@ exe/knotask@suffix@ exe/knoc@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
 exe/knocgi@suffix@ exe/knod@suffix@ exe/knoweb@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
@@ -929,7 +929,7 @@ clean: tidy
 	rm -f lib/kno/*.dylib
 	rm -f exe/knox@suffix@ exe/knotask@suffix@
 	rm -f exe/knoweb@suffix@ exe/knod@suffix@
-	rm -f exe/knosh@suffix@ exe/knocgi@suffix@
+	rm -f exe/knoc@suffix@ exe/knocgi@suffix@
 	rm -f TAGS
 	cd tests/lisp; make -s clean
 	cd tests/storage; make -s clean
@@ -1349,7 +1349,7 @@ dist/debs.signed: dist/debs.built
 			upstart-kno_@KNO_VERSION@*.deb  	\
 			systemd-kno_@KNO_VERSION@*.deb  	\
 			libapache2-mod-knoweb_@KNO_VERSION@*.deb  \
-			elpa-knosh_@KNO_VERSION@*.deb  \
+			elpa-knoc_@KNO_VERSION@*.deb  \
 			../dist) &&                             \
 	touch dist/debs.signed;
 dist/debsource.signed: dist/debsource.built
@@ -1361,7 +1361,7 @@ dist/debsource.signed: dist/debsource.built
 			upstart-kno_@KNO_VERSION@*.deb  	\
 			systemd-kno_@KNO_VERSION@*.deb  	\
 			libapache2-mod-knoweb_@KNO_VERSION@*.deb  \
-			elpa-knosh_@KNO_VERSION@*.deb  \
+			elpa-knoc_@KNO_VERSION@*.deb  \
 			../dist) &&                             \
 	touch dist/debsource.signed;
 	touch dist/debs.signed;
@@ -1373,7 +1373,7 @@ dist/debsource.done: dist/debsource.signed
 
 install-debian install-debs debinstall installdebs: dist/debs.done
 	@cd dist; @SUDO@ dpkg -i kno*@KNO_VERSION@*.deb \
-		elpa-knosh*@KNO_VERSION@*.deb libapache2-mod-knoweb_@KNO_VERSION@*.deb \
+		elpa-knoc*@KNO_VERSION@*.deb libapache2-mod-knoweb_@KNO_VERSION@*.deb \
 		systemd-kno_@KNO_VERSION@*.deb
 
 update-local-apt-repo: dist/debs.done
@@ -1597,7 +1597,7 @@ install-safe-modules: $(DESTDIR)@builtin_safe_module_dir@ \
 
 install-support: $(DESTDIR)@share_dir@
 	cd $(BUILD)/etc; $(SYSINSTALL) @install_file_opts@ 	\
-		gdbinit makefile.include knosh.el 		\
+		gdbinit makefile.include knoc.el 		\
 		$(DESTDIR)@share_dir@
 	cd $(BUILD)/src/web; $(SYSINSTALL) @install_file_opts@ 	\
 		webinfo.fdcgi $(DESTDIR)@share_dir@

@@ -1683,7 +1683,7 @@ Optional Packages:
 --without-mmap build without using mmap
 --without-tls Force use of threadlocal storage
 --with-nptrlocks Sets the number of pointer hash locks to use
---without-editline Use the editline with knosh
+--without-editline Use the editline with the kno console
 --without-libu8 Use libu8 includes
 --without-sudo use sudo with install
 --without-fastcgi Use fastcgi
@@ -10586,7 +10586,7 @@ fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 
 
-### Use editline in knosh
+### Use editline in kno console
 
 
 # Check whether --with-editline was given.
@@ -12898,7 +12898,7 @@ fi;
 
 ### Here's where stuff gets made
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/makefile DIY/makefile etc/gdbinit exe/.gdbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind tests/lisp/.gdbinit tests/storage/.gdbinit tests/.valgrind etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup etc/knosignal etc/knoinject etc/knostatus etc/knolog etc/knoreload etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec etc/knosetconfig etc/knogetconfig etc/knoconfig tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm etc/knojob etc/logrotate etc/kno-rc.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoweb.conf etc/upstart/ex_knoweb.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/knod.service etc/systemd/knoweb.service etc/systemd/kno.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/knoweb.conf etc/knoweb.load etc/install-script dist/kno-4.3.spec"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/makefile DIY/makefile etc/gdbinit exe/.gdbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind tests/lisp/.gdbinit tests/storage/.gdbinit tests/.valgrind etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup etc/knosignal etc/knoinject etc/knostatus etc/knolog etc/knoreload etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec etc/knosetconfig etc/knogetconfig etc/knoconfig tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm etc/knojob etc/logrotate etc/kno-rc.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoweb.conf etc/upstart/ex_knoweb.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/knod.service etc/systemd/knoweb.service etc/systemd/kno.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/apache/knoweb.conf etc/apache/knoweb.load etc/install-script dist/kno-4.3.spec"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -13656,8 +13656,8 @@ do
     "etc/systemd/kno.service") CONFIG_FILES="$CONFIG_FILES etc/systemd/kno.service" ;;
     "etc/macos/OSXStartupItem/KNO") CONFIG_FILES="$CONFIG_FILES etc/macos/OSXStartupItem/KNO" ;;
     "etc/macos/KNO.plist") CONFIG_FILES="$CONFIG_FILES etc/macos/KNO.plist" ;;
-    "etc/knoweb.conf") CONFIG_FILES="$CONFIG_FILES etc/knoweb.conf" ;;
-    "etc/knoweb.load") CONFIG_FILES="$CONFIG_FILES etc/knoweb.load" ;;
+    "etc/apache/knoweb.conf") CONFIG_FILES="$CONFIG_FILES etc/apache/knoweb.conf" ;;
+    "etc/apache/knoweb.load") CONFIG_FILES="$CONFIG_FILES etc/apache/knoweb.load" ;;
     "etc/install-script") CONFIG_FILES="$CONFIG_FILES etc/install-script" ;;
     "dist/kno-4.3.spec") CONFIG_FILES="$CONFIG_FILES dist/kno-4.3.spec" ;;
     "default") CONFIG_COMMANDS="$CONFIG_COMMANDS default" ;;

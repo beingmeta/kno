@@ -1358,10 +1358,10 @@ AC_TRY_COMPILE([
 	       [AC_MSG_RESULT(no)])
 
 
-### Use editline in knosh
+### Use editline in kno console
 
-dnl Use the editline library from knosh
-AC_ARG_WITH(editline,--with[out]-editline Use the editline with knosh,,with_editline="yes")
+dnl Use the editline library from kno console
+AC_ARG_WITH(editline,--with[out]-editline Use the editline with the kno console,,with_editline="yes")
 if test "$with_editline" = "yes"; then
   AC_CHECK_HEADERS(editline/readline.h histedit.h)
   AC_CHECK_LIB(edit,el_init)
@@ -1976,8 +1976,8 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/systemd/kno.service
 	   etc/macos/OSXStartupItem/KNO
 	   etc/macos/KNO.plist
-	   etc/knoweb.conf 
-	   etc/knoweb.load
+	   etc/apache/knoweb.conf 
+	   etc/apache/knoweb.load
 	   etc/install-script 
 	   dist/kno-4.3.spec],
 	   [chmod a+x etc/kno* tests/*test])
