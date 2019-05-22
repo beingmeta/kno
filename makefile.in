@@ -634,12 +634,14 @@ exe/scripts/%: src/scripts/%.scm
 	@$(MSG) MAKESCRIPT $@ $<
 
 exe/%@suffix@: src/exe/%.c ${CONFIG_HDRS}
-	$(CC) $(CFLAGS) $(LDFLAGS) $(EXEFLAGS)                  \
-		-o $@ $<                                           \
-		-lknodbserv@suffix@                 	 	   \
-		@xdynamic_scheme_libs@                             \
-		-lknoweb@suffix@ -lknotext@suffix@ -lknoscheme@suffix@ \
-		-lknodrivers@suffix@ -lknostorage@suffix@ -lknocore@suffix@ \
+	$(CC) $(CFLAGS) $(LDFLAGS) $(EXEFLAGS)                  	\
+		-o $@ $<                                           	\
+		-lknodbserv@suffix@                 	 	   	\
+		@xdynamic_scheme_libs@                             	\
+		-lknowebtools@suffix@ -lknotexttools@suffix@ 		\
+		-lknoscheme@suffix@ 					\
+		-lknodrivers@suffix@ -lknostorage@suffix@ 		\
+		-lknocore@suffix@ 					\
 	        -lu8stdio $(LIBS) $(EXELIBS)
 	@$(MSG) MKEXE $@ $<
 

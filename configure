@@ -12138,9 +12138,9 @@ fi
 
 if test $enable_htmldump = "yes"; then
   scheme_builtins_init="$scheme_builtins_init; kno_init_webtools()"
-  xdynamic_scheme_libs="$xdynamic_scheme_libs -lknoweb${suffix}"
-  xstatic_exe_libs="lib/libknoweb${suffix}.a $xstatic_exe_libs"
-  xstatic_scheme_libs=" ../../lib/libknoweb${suffix}.a $xstatic_scheme_libs"
+  xdynamic_scheme_libs="$xdynamic_scheme_libs -lknowebtools${suffix}"
+  xstatic_exe_libs="lib/libknowebtools${suffix}.a $xstatic_exe_libs"
+  xstatic_scheme_libs=" ../../lib/libknowebtools${suffix}.a $xstatic_scheme_libs"
   $as_echo "#define KNO_HTMLDUMP_ENABLED 1" >>confdefs.h
 
 fi
