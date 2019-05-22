@@ -373,10 +373,10 @@ KNO_EXPORT kno_outbuf _kno_start_write(kno_stream s,kno_off_t pos)
 /* Initialization functions */
 
 KNO_EXPORT struct KNO_STREAM *kno_init_stream(kno_stream stream,
-                                           u8_string streamid,
-                                           int fileno,
-                                           int flags,
-                                           ssize_t bufsiz)
+                                              u8_string streamid,
+                                              int fileno,
+                                              int flags,
+                                              ssize_t bufsiz)
 {
   struct KNO_RAWBUF *streambuf = &stream->buf.raw;
   if (bufsiz<0) bufsiz = kno_stream_bufsize;
@@ -415,8 +415,9 @@ KNO_EXPORT struct KNO_STREAM *kno_init_stream(kno_stream stream,
         errno = 0;}}
     else stream->stream_flags&=~KNO_STREAM_MMAPPED;}
 #endif
+  int buf_flags = (KNO_HEAP_BUFFER|KNO_IN_STREAM);
   unsigned char *buf = u8_malloc(bufsiz);
-  struct KNO_RAWBUF *bufptr = &(stream->buf.raw);
+  if (flags & KNO_STREAM_DTYPEV2) buf_flags |= KNO_USE_DTYPEV2;
   /* If you can't get a whole buffer, try smaller */
   while ((bufsiz>=1024) && (buf == NULL)) {
     u8_logf(LOG_WARN,"BigBuffer",
@@ -426,13 +427,13 @@ KNO_EXPORT struct KNO_STREAM *kno_init_stream(kno_stream stream,
   u8_init_mutex(&(stream->stream_lock));
   if (buf == NULL) bufsiz = 0;
   /* Initialize the buffer fields */
-  KNO_INIT_BYTE_INPUT((struct KNO_INBUF *)bufptr,buf,bufsiz);
-  bufptr->buflim      = bufptr->bufpoint;
-  bufptr->buf_fillfn  = stream_fillfn;
-  bufptr->buf_flushfn = stream_flushfn;
-  bufptr->buf_flags  |= (KNO_HEAP_BUFFER|KNO_IN_STREAM);
-  bufptr->buf_data    = (void *)stream;
-  bufptr->buflen      = bufsiz;
+  KNO_INIT_BYTE_INPUT((struct KNO_INBUF *)streambuf,buf,bufsiz);
+  streambuf->buflim      = streambuf->bufpoint;
+  streambuf->buf_fillfn  = stream_fillfn;
+  streambuf->buf_flushfn = stream_flushfn;
+  streambuf->buf_flags  |= buf_flags;
+  streambuf->buf_data    = (void *)stream;
+  streambuf->buflen      = bufsiz;
   return stream;
 }
 
@@ -997,7 +998,7 @@ KNO_EXPORT kno_off_t _kno_setpos(kno_stream s,kno_off_t pos)
     else {
       s->buf.raw.bufpoint = s->buf.raw.buflim;
       return kno_reterr(kno_OverSeek,"kno_setpos",
-                       u8s(s->streamid),KNO_INT(pos));}}
+                        u8s(s->streamid),KNO_INT(pos));}}
 
   /* This is optimized for the case where the new position is
      in the range we have buffered. */
@@ -1055,8 +1056,8 @@ KNO_EXPORT kno_off_t kno_movepos(kno_stream s,kno_off_t delta)
 }
 
 KNO_EXPORT ssize_t kno_read_block(kno_stream s,unsigned char *buf,
-                                size_t count,kno_off_t offset,
-                                int stream_locked)
+                                  size_t count,kno_off_t offset,
+                                  int stream_locked)
 {
 #if HAVE_PREAD
   return stream_pread(s,stream_locked,buf,count,offset);
@@ -1079,8 +1080,8 @@ static void unlock_stream_mmap(struct KNO_INBUF *out,void *streamptr)
 }
 
 KNO_EXPORT kno_inbuf kno_open_block(kno_stream s,kno_inbuf in,
-                                 kno_off_t offset,ssize_t len,
-                                 int stream_locked)
+                                    kno_off_t offset,ssize_t len,
+                                    int stream_locked)
 {
   if ((offset<0) || (len<0) ) {
     u8_seterr("InvalidOffsets","kno_open_block",s->streamid);
@@ -1344,10 +1345,10 @@ typedef unsigned long long ull;
 
 KNO_EXPORT KNO_CHUNK_REF
 kno_fetch_chunk_ref(struct KNO_STREAM *stream,
-                   kno_off_t base,
-                   kno_offset_type offtype,
-                   unsigned int offset,
-                   int locked)
+                    kno_off_t base,
+                    kno_offset_type offtype,
+                    unsigned int offset,
+                    int locked)
 {
   KNO_CHUNK_REF result={-1,-1};
   int chunk_size = kno_chunk_ref_size(offtype);
@@ -1505,11 +1506,11 @@ KNO_EXPORT lispval kno_read_dtype_from_file(u8_string filename)
     struct KNO_STREAM *stream = u8_alloc(struct KNO_STREAM);
     struct KNO_STREAM *opened=
       kno_init_file_stream(stream,filename,
-                          KNO_FILE_READ,
-                          KNO_STREAM_IS_CONSED|
-                          KNO_STREAM_READ_ONLY|
-                          ( (KNO_USE_MMAP) ? (KNO_STREAM_MMAPPED) : (0)),
-                          kno_filestream_bufsize);
+                           KNO_FILE_READ,
+                           KNO_STREAM_IS_CONSED|
+                           KNO_STREAM_READ_ONLY|
+                           ( (KNO_USE_MMAP) ? (KNO_STREAM_MMAPPED) : (0)),
+                           kno_filestream_bufsize);
     if (opened) {
       lispval result = VOID;
       struct KNO_INBUF *in = kno_readbuf(opened);
@@ -1529,14 +1530,14 @@ KNO_EXPORT lispval kno_read_dtype_from_file(u8_string filename)
 }
 
 KNO_EXPORT ssize_t kno_lisp2file(lispval object, u8_string filename,
-                               ssize_t bufsize,int zip)
+                                 ssize_t bufsize,int zip)
 {
   struct KNO_STREAM *stream = u8_alloc(struct KNO_STREAM);
   struct KNO_STREAM *opened=
     kno_init_file_stream(stream,filename,
-                        KNO_FILE_WRITE,
-                        KNO_STREAM_IS_CONSED,
-                        bufsize);
+                         KNO_FILE_WRITE,
+                         KNO_STREAM_IS_CONSED,
+                         bufsize);
   if (opened) {
     size_t len = (zip)?
       (kno_zwrite_dtype(kno_writebuf(opened),object)):
@@ -1566,8 +1567,8 @@ KNO_EXPORT void kno_init_streams_c()
   kno_recyclers[kno_stream_type]=recycle_stream;
 
   kno_register_config("STREAMS:LOGLEVEL",_("LOGLEVEL for binary streams"),
-                     kno_intconfig_get,kno_loglevelconfig_set,
-                     &stream_loglevel);
+                      kno_intconfig_get,kno_loglevelconfig_set,
+                      &stream_loglevel);
 
   u8_register_source_file(_FILEINFO);
 }

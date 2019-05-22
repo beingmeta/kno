@@ -278,7 +278,7 @@ KNO_EXPORT lispval kno_getsym(u8_string string)
   return result;
 }
 
-KNO_EXPORT lispval kno_norm_symbol(u8_string bytes,int len)
+KNO_EXPORT lispval kno_fixcase_symbol(u8_string bytes,int len)
 {
   int string_case = 0;
   u8_string scan = bytes, limit = bytes+len;

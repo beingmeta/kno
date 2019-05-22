@@ -46,6 +46,7 @@ int kno_storage_loglevel = LOG_NOTICE;
 int *kno_storage_loglevel_ptr = &kno_storage_loglevel;
 int kno_prefetch = KNO_PREFETCHING_ENABLED;
 int kno_require_mmap = KNO_USE_MMAP;
+int kno_norm_syms = 0;
 
 size_t kno_network_bufsize = KNO_NETWORK_BUFSIZE;
 
@@ -117,11 +118,12 @@ kno_get_dbflags(lispval opts,kno_storage_flags init_flags)
       flags |= KNO_POOL_SPARSE;
     kno_decref(flags_val);
     return flags;}
-  else if (FALSEP(opts))
-    if (init_flags&KNO_STORAGE_ISPOOL)
-      return (init_flags & (~(KNO_STORAGE_UNREGISTERED)));
-    else return (init_flags | KNO_STORAGE_UNREGISTERED);
-  else return init_flags;
+  else {
+    if (FALSEP(opts)) {
+      if (init_flags&KNO_STORAGE_ISPOOL)
+        return (init_flags & (~(KNO_STORAGE_UNREGISTERED)));
+      else return (init_flags | KNO_STORAGE_UNREGISTERED);}
+    else return init_flags;}
 }
 
 static lispval better_parse_oid(u8_string start,int len)
@@ -730,6 +732,11 @@ KNO_EXPORT int kno_init_storage()
      config_onsave_get,
      config_onsave_set,
      NULL);
+  kno_register_config
+    ("STORAGE:FIXSYMS",_("Whether to convert legacy uppercase to lowercase"),
+     kno_boolconfig_get,
+     kno_boolconfig_set,
+     &kno_norm_syms);
 
 
   return fdstorage_initialized;

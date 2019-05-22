@@ -1066,6 +1066,10 @@ void kno_init_config_c()
                      kno_constconfig_get,kno_readonly_config_set,
                      (void *) INT_MIN);
 
+  kno_register_config("DTYPES:FIXCASE","Normalize symbol case",
+                      kno_boolconfig_get,kno_boolconfig_set,
+                      &kno_dtype_fixcase);
+
   kno_register_config
     ("TRACECONFIG",_("whether to trace configuration"),
      kno_boolconfig_get,kno_boolconfig_set,&kno_trace_config);

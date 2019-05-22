@@ -53,6 +53,8 @@ typedef int kno_stream_flags;
 #define KNO_STREAM_IS_CONSED      (KNO_STREAM_FLAGS << 8)
 #define KNO_STREAM_OWNS_FILENO    (KNO_STREAM_FLAGS << 9)
 #define KNO_STREAM_MMAPPED        (KNO_STREAM_FLAGS << 10)
+/* DType related flags */
+#define KNO_STREAM_DTYPEV2        (KNO_STREAM_FLAGS << 16)
 
 #define KNO_DEFAULT_FILESTREAM_FLAGS \
   (KNO_STREAM_CAN_SEEK|KNO_STREAM_OWNS_FILENO)

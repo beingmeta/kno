@@ -32,15 +32,14 @@ static u8_mutex dtype_unpacker_lock;
 u8_condition kno_UnexpectedEOD=_("Unexpected end of data");
 u8_condition kno_DTypeError=_("Malformed DTYPE representation");
 
+int kno_dtype_fixcase;
+
 static lispval error_symbol;
 
 #define newpos(pos,ptr,lim) ((((ptr)+pos) <= lim) ? (pos) : (-1))
 
-#define norm_symbol kno_norm_symbol
-/* Could be kno_make_symbol after the case flip is stable */
-
 static ssize_t validate_dtype(int pos,const unsigned char *ptr,
-                          const unsigned char *lim)
+                              const unsigned char *lim)
 {
   if (pos < 0)
     return pos;
@@ -122,7 +121,7 @@ KNO_EXPORT lispval kno_make_mystery_vector(int,int,unsigned int,lispval *);
 static lispval read_packaged_dtype(int,struct KNO_INBUF *);
 
 static lispval *read_dtypes(int n,struct KNO_INBUF *in,
-                           lispval *why_not,lispval *into)
+                            lispval *why_not,lispval *into)
 {
   if (n==0) return NULL;
   else {
@@ -211,7 +210,7 @@ KNO_EXPORT lispval kno_read_dtype(struct KNO_INBUF *in)
         else {
           lispval new_pair=
             kno_init_pair(u8_alloc(struct KNO_PAIR),
-                         car,NIL);
+                          car,NIL);
           int dtcode = kno_read_byte(in);
           if (dtcode<0) {
             kno_decref(head);
@@ -239,38 +238,38 @@ KNO_EXPORT lispval kno_read_dtype(struct KNO_INBUF *in)
         kno_decref(car);
         return cdr;}
       else switch (code) {
-      case dt_compound: {
-        struct KNO_COMPOUND_TYPEINFO *e = kno_lookup_compound(car);
-        if ((e) && (e->compound_restorefn)) {
-          lispval result = e->compound_restorefn(car,cdr,e);
-          kno_decref(cdr);
-          return result;}
-        else {
-          int flags = KNO_COMPOUND_USEREF;
-          if (e) {
-            if (e->compound_isopaque)
-              flags |= KNO_COMPOUND_OPAQUE;
-            if (e->compound_ismutable)
-              flags |= KNO_COMPOUND_MUTABLE;
-            if (e->compound_istable)
-              flags |= KNO_COMPOUND_TABLE;
-            if (e->compound_istable)
-              flags |= KNO_COMPOUND_SEQUENCE;}
-          else if (KNO_VECTORP(cdr)) {
-            flags |= KNO_COMPOUND_SEQUENCE;}
-          else NO_ELSE;
-          if (KNO_VECTORP(cdr)) {
-            struct KNO_VECTOR *vec = (struct KNO_VECTOR *)cdr;
-            lispval result = kno_init_compound_from_elts
-              (NULL,car,flags,vec->vec_length,vec->vec_elts);
-            vec->vec_length = 0; vec->vec_elts = NULL;
+        case dt_compound: {
+          struct KNO_COMPOUND_TYPEINFO *e = kno_lookup_compound(car);
+          if ((e) && (e->compound_restorefn)) {
+            lispval result = e->compound_restorefn(car,cdr,e);
             kno_decref(cdr);
             return result;}
-          else return kno_init_compound(NULL,car,flags,1,cdr);}}
-      case dt_rational:
-        return _kno_make_rational(car,cdr);
-      case dt_complex:
-        return _kno_make_complex(car,cdr);}}
+          else {
+            int flags = KNO_COMPOUND_USEREF;
+            if (e) {
+              if (e->compound_isopaque)
+                flags |= KNO_COMPOUND_OPAQUE;
+              if (e->compound_ismutable)
+                flags |= KNO_COMPOUND_MUTABLE;
+              if (e->compound_istable)
+                flags |= KNO_COMPOUND_TABLE;
+              if (e->compound_istable)
+                flags |= KNO_COMPOUND_SEQUENCE;}
+            else if (KNO_VECTORP(cdr)) {
+              flags |= KNO_COMPOUND_SEQUENCE;}
+            else NO_ELSE;
+            if (KNO_VECTORP(cdr)) {
+              struct KNO_VECTOR *vec = (struct KNO_VECTOR *)cdr;
+              lispval result = kno_init_compound_from_elts
+                (NULL,car,flags,vec->vec_length,vec->vec_elts);
+              vec->vec_length = 0; vec->vec_elts = NULL;
+              kno_decref(cdr);
+              return result;}
+            else return kno_init_compound(NULL,car,flags,1,cdr);}}
+        case dt_rational:
+          return _kno_make_rational(car,cdr);
+        case dt_complex:
+          return _kno_make_complex(car,cdr);}}
     case dt_packet: case dt_string:
       len=kno_read_4bytes(in);
       if (len<0)
@@ -296,7 +295,9 @@ KNO_EXPORT lispval kno_read_dtype(struct KNO_INBUF *in)
         u8_byte data[257];
         memcpy(data,in->bufread,len); data[len]='\0';
         in->bufread += len;
-        return norm_symbol(data,len);}
+        if ( kno_dtype_fixcase )
+          return kno_fixcase_symbol(data,len);
+        else return kno_make_symbol(data,len);}
     case dt_tiny_string:
       len = kno_read_byte(in);
       if (len<0)
@@ -315,7 +316,9 @@ KNO_EXPORT lispval kno_read_dtype(struct KNO_INBUF *in)
         unsigned char data[len+1];
         memcpy(data,in->bufread,len); data[len]='\0';
         in->bufread += len;
-        return norm_symbol(data,len);}
+        if ( kno_dtype_fixcase )
+          return kno_fixcase_symbol(data,len);
+        else return kno_make_symbol(data,len);}
     case dt_vector:
       len = kno_read_4bytes(in);
       if (len < 0)
@@ -475,7 +478,7 @@ struct  KNO_DTYPE_PACKAGE {
 struct KNO_DTYPE_PACKAGE *kno_dtype_packages[64];
 
 KNO_EXPORT int kno_register_vector_unpacker
-  (unsigned int package,unsigned int code,kno_vector_unpacker f)
+(unsigned int package,unsigned int code,kno_vector_unpacker f)
 {
   int package_offset = package-0x40, code_offset = ((code-0x80)&(~(0x40)));
   int replaced = 0;
@@ -496,7 +499,7 @@ KNO_EXPORT int kno_register_vector_unpacker
 }
 
 KNO_EXPORT int kno_register_packet_unpacker
-  (unsigned int package,unsigned int code,kno_packet_unpacker f)
+(unsigned int package,unsigned int code,kno_packet_unpacker f)
 {
   int package_offset = package-0x40, code_offset = ((code)&(~(0x40)));
   int replaced = 0;
@@ -518,10 +521,10 @@ KNO_EXPORT int kno_register_packet_unpacker
 
 /* Reading packaged dtypes */
 
-static lispval make_character_type(int code,int len,unsigned char *data);
+static lispval make_character_type(int code,int len,unsigned char *data,int);
 
 static lispval read_packaged_dtype
-   (int package,struct KNO_INBUF *in)
+(int package,struct KNO_INBUF *in)
 {
   lispval *vector = NULL; unsigned char *packet = NULL;
   long long len;
@@ -553,7 +556,7 @@ static lispval read_packaged_dtype
   case dt_character_package:
     if (vectorp)
       return kno_make_mystery_vector(package,code,len,vector);
-    else return make_character_type(code,len,packet);
+    else return make_character_type(code,len,packet,in->buf_flags);
     break;
   default:
     if (vectorp)
@@ -562,7 +565,9 @@ static lispval read_packaged_dtype
   }
 }
 
-static lispval make_character_type(int code,int len,unsigned char *bytes)
+static lispval make_character_type(int code,
+                                   int len,unsigned char *bytes,
+                                   int dtflags)
 {
   switch (code) {
   case dt_ascii_char: {
@@ -597,8 +602,11 @@ static lispval make_character_type(int code,int len,unsigned char *bytes)
     while (scan < limit) {
       int c = scan[0]<<8|scan[1]; scan = scan+2;
       u8_putc(&os,c);}
-    sym = norm_symbol(os.u8_outbuf,os.u8_write-os.u8_outbuf);
-    u8_free(bytes); u8_free(os.u8_outbuf);
+    if ( kno_dtype_fixcase )
+      sym = kno_fixcase_symbol(os.u8_outbuf,os.u8_write-os.u8_outbuf);
+    else sym = kno_make_symbol(os.u8_outbuf,os.u8_write-os.u8_outbuf);
+    u8_free(bytes);
+    u8_free(os.u8_outbuf);
     return sym;}
   default:
     return kno_make_mystery_packet(dt_character_package,code,len,bytes);
@@ -606,7 +614,7 @@ static lispval make_character_type(int code,int len,unsigned char *bytes)
 }
 
 KNO_EXPORT lispval kno_make_mystery_packet
-  (int package,int typecode,unsigned int len,unsigned char *bytes)
+(int package,int typecode,unsigned int len,unsigned char *bytes)
 {
   struct KNO_MYSTERY_DTYPE *myst;
   int pkg_offset = package-0x40;
@@ -622,7 +630,7 @@ KNO_EXPORT lispval kno_make_mystery_packet
 }
 
 KNO_EXPORT lispval kno_make_mystery_vector
-  (int package,int typecode,unsigned int len,lispval *elts)
+(int package,int typecode,unsigned int len,lispval *elts)
 {
   struct KNO_MYSTERY_DTYPE *myst;
   int pkg_offset = package-0x40;
@@ -648,7 +656,7 @@ static lispval default_make_rational(lispval car,lispval cdr)
 }
 
 static void default_unpack_rational
-  (lispval x,lispval *car,lispval *cdr)
+(lispval x,lispval *car,lispval *cdr)
 {
   struct KNO_PAIR *p = kno_consptr(struct KNO_PAIR *,x,kno_rational_type);
   *car = p->car; *cdr = p->cdr;
@@ -664,7 +672,7 @@ static lispval default_make_complex(lispval car,lispval cdr)
 }
 
 static void default_unpack_complex
-  (lispval x,lispval *car,lispval *cdr)
+(lispval x,lispval *car,lispval *cdr)
 {
   struct KNO_PAIR *p = kno_consptr(struct KNO_PAIR *,x,kno_complex_type);
   *car = p->car;
@@ -681,7 +689,7 @@ static lispval default_make_double(double d)
 
 lispval(*_kno_make_rational)(lispval car,lispval cdr) = default_make_rational;
 void
-  (*_kno_unpack_rational)(lispval,lispval *,lispval *) = default_unpack_rational;
+(*_kno_unpack_rational)(lispval,lispval *,lispval *) = default_unpack_rational;
 lispval (*_kno_make_complex)(lispval car,lispval cdr) = default_make_complex;
 void (*_kno_unpack_complex)(lispval,lispval *,lispval *) = default_unpack_complex;
 lispval (*_kno_make_double)(double) = default_make_double;

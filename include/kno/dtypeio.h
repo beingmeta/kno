@@ -80,6 +80,8 @@ enum dt_kno_subtypes
     dt_schemap = 0xC5, dt_small_schemap = 0x85,};
 
 KNO_EXPORT int kno_use_dtblock;
+KNO_EXPORT int kno_dtype_fixcase;
+
 
 /* Arithmetic stubs */
 
