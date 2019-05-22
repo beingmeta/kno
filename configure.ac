@@ -1011,7 +1011,12 @@ elif test "${ac_cv_lib_ffi_ffi_prep_cif}" != "yes"; then
    missing="${missing} ffi";
 fi
 
-DEFAULT_DLOADPATH="${prefix}/lib/kno/%.${vshared_suffix}:${prefix}/lib/%.${vshared_suffix}:${prefix}/lib/libkno%.${vshared_suffix}:${prefix}/lib/lib%.${vshared_suffix}:${prefix}/lib/kno/%.${mmshared_suffix}:${prefix}/lib/%.${mmshared_suffix}:${prefix}/lib/libkno%.${mmshared_suffix}:${prefix}/lib/lib%.${mmshared_suffix}:${prefix}/lib/kno/%.${mshared_suffix}:${prefix}/lib/%.${mshared_suffix}:${prefix}/lib/lib%.${mshared_suffix}:${prefix}/lib/libkno%.${mshared_suffix}:${prefix}/lib/kno/%.${shared_suffix}:${prefix}/lib/%.${shared_suffix}:${prefix}/lib/libkno%.${shared_suffix}:${prefix}/lib/lib%.${shared_suffix}:"
+VSHARED_LOADPATH="${prefix}/lib/kno/%.${vshared_suffix}:${prefix}/lib/%.${vshared_suffix}:${prefix}/lib/libkno%.${vshared_suffix}"
+MMSHARED_LOADPATH="${prefix}/lib/kno/%.${mmshared_suffix}:${prefix}/lib/%.${mmshared_suffix}:${prefix}/lib/libkno%.${mmshared_suffix}"
+MSHARED_LOADPATH="${prefix}/lib/kno/%.${mshared_suffix}:${prefix}/lib/%.${mshared_suffix}:${prefix}/lib/libkno%.${mshared_suffix}"
+SHARED_LOADPATH="${prefix}/lib/kno/%.${shared_suffix}:${prefix}/lib/%.${shared_suffix}:${prefix}/lib/libkno%.${shared_suffix}"
+LSHARED_LOADPATH="${prefix}/lib/lib%.${vshared_suffix}:${prefix}/lib/lib%.${mmshared_suffix}:${prefix}/lib/lib%.${mshared_suffix}:${prefix}/lib/lib%.${shared_suffix}"
+DEFAULT_DLOADPATH="${VSHARED_LOADPATH}:${MMSHARED_LOADPATH}:${MSHARED_LOADPATH}:${SHARED_LOADPATH}"
 
 dnl For specifying default -arch flags for OSX
 AC_ARG_WITH(arch,--with[out]-arch build with particular --arch flags,,with_arch="")
