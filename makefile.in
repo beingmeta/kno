@@ -673,10 +673,10 @@ etc/%: etc/%.in ./config.status
 	@./config.status
 
 # We can selectively link some executables statically to avoid 
-# library dependencies with programs which will typicall run as daemons
+# library dependencies with programs which will typically run as daemons
 static/%@suffix@: src/exe/%.c $(STATIC_LIBS) ${REVISION_H} ${CONFIG_H}
 	@echo MKEXE_STATIC $@
-	$(CC) $(STATIC_CFLAGS) -o $@ $^ $(STATIC_LDFLAGS) -lu8stdio -lu8syslog $(LIBS) $(EXELIBS)
+	$(CC) $(STATIC_CFLAGS) -o $@ $^ $(STATIC_LDFLAGS) -lu8stdio -lu8syslog $(LIBS) $(EXELIBS) @xstatic_exe_libs@
 	@$(MSG) MKEXE_STATIC $@
 
 lib/%@suffix@.a:
