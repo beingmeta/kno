@@ -74,7 +74,7 @@ MEMINDEX	= INDEXTYPE=memindex
 OFFB40		= OFFTYPE=B40
 OFFB64		= OFFTYPE=B64
 OFFB32		= OFFTYPE=B32
-PACKINDEX	= ../src/scripts/pack-index.scm
+PACKINDEX	= ../src/scripts/repack-index.scm
 
 # Base targets
 

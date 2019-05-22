@@ -469,23 +469,23 @@ STATIC_LIBS=lib/libknocore@suffix@.a 	\
         lib/libknodbserv@suffix@.a 	\
 	lib/libknodrivers@suffix@.a  	\
 	lib/libknoscheme@suffix@.a 	\
-	lib/libknoweb@suffix@.a 		\
-	lib/libknotext@suffix@.a
+	lib/libknowebtools@suffix@.a 		\
+	lib/libknotexttools@suffix@.a
 
 SHARED_LIBS=lib/libknocore@suffix@.@shared_suffix@  		\
 	lib/libknostorage@suffix@.@shared_suffix@        	\
         lib/libknodrivers@suffix@.@shared_suffix@    		\
 	lib/libknodbserv@suffix@.@shared_suffix@     		\
 	lib/libknoscheme@suffix@.@shared_suffix@    		\
-	lib/libknoweb@suffix@.@shared_suffix@       		\
-	lib/libknotext@suffix@.@shared_suffix@		\
+	lib/libknowebtools@suffix@.@shared_suffix@       		\
+	lib/libknotexttools@suffix@.@shared_suffix@		\
 	lib/libknocore@suffix@.@mshared_suffix@  		\
 	lib/libknostorage@suffix@.@mshared_suffix@        	\
         lib/libknodrivers@suffix@.@mshared_suffix@    		\
 	lib/libknodbserv@suffix@.@mshared_suffix@     		\
 	lib/libknoscheme@suffix@.@mshared_suffix@    		\
-	lib/libknoweb@suffix@.@mshared_suffix@       		\
-	lib/libknotext@suffix@.@mshared_suffix@
+	lib/libknowebtools@suffix@.@mshared_suffix@       		\
+	lib/libknotexttools@suffix@.@mshared_suffix@
 
 SCHEME_MODULES=src/extmods/*.scm \
 	src/extmods/aws/*.scm \
@@ -802,7 +802,7 @@ dbg/knoweb.webuser: dbg/knoweb
 # Uninstall
 
 LIBBASE=libknocore libknostorage libknodrivers libknodbserv \
-	libknoscheme libknoweb libknotext
+	libknoscheme libknowebtools libknotexttools
 
 uninstall-core:
 	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(EXECUTABLES) knocgi
@@ -1005,13 +1005,13 @@ lib/libknoscheme@suffix@.dylib: $(SCHEME_OBJS) 			\
 	lib/libknocore@suffix@.dylib  lib/libknostorage@suffix@.dylib	\
         lib/libknodrivers@suffix@.dylib
 
-lib/libknoweb@suffix@.a: $(WEB_OBJS)
-lib/libknoweb@suffix@.so: $(WEB_OBJS) \
+lib/libknowebtools@suffix@.a: $(WEB_OBJS)
+lib/libknowebtools@suffix@.so: $(WEB_OBJS) \
 	lib/libknocore@suffix@.so \
 	lib/libknostorage@suffix@.so \
 	lib/libknodrivers@suffix@.so \
 	lib/libknoscheme@suffix@.so
-lib/libknoweb@suffix@.dylib: $(WEB_OBJS) \
+lib/libknowebtools@suffix@.dylib: $(WEB_OBJS) \
 	lib/libknoscheme@suffix@.dylib     \
 	lib/libknodrivers@suffix@.dylib     \
 	lib/libknostorage@suffix@.dylib         \
@@ -1022,11 +1022,11 @@ lib/libknoweb@suffix@.dylib: $(WEB_OBJS) \
 		-o $@ $(WEB_OBJS)
 	@$(MSG) MACLIBTOOL $@
 
-lib/libknotext@suffix@.a: $(TEXT_OBJS)
-lib/libknotext@suffix@.so: $(TEXT_OBJS) \
+lib/libknotexttools@suffix@.a: $(TEXT_OBJS)
+lib/libknotexttools@suffix@.so: $(TEXT_OBJS) \
 	lib/libknocore@suffix@.so lib/libknostorage@suffix@.so \
 	lib/libknostorage@suffix@.so lib/libknoscheme@suffix@.so
-lib/libknotext@suffix@.dylib: $(TEXT_OBJS) \
+lib/libknotexttools@suffix@.dylib: $(TEXT_OBJS) \
 	lib/libknoscheme@suffix@.dylib \
 	lib/libknodrivers@suffix@.dylib \
 	lib/libknostorage@suffix@.dylib \
@@ -1437,8 +1437,8 @@ install-static:  static-libs $(LIBINSTALLDIR)
 		$(LIBINSTALLDIR)/libknodrivers@suffix@.a   \
 		$(LIBINSTALLDIR)/libknodbserv@suffix@.a    \
 		$(LIBINSTALLDIR)/libknoscheme@suffix@.a   \
-		$(LIBINSTALLDIR)/libknoweb@suffix@.a      \
-		$(LIBINSTALLDIR)/libknotext@suffix@.a
+		$(LIBINSTALLDIR)/libknowebtools@suffix@.a      \
+		$(LIBINSTALLDIR)/libknotexttools@suffix@.a
 install-shared: install-status shared-libs $(LIBINSTALLDIR) 				\
     $(LIBINSTALLDIR)/libknocore@suffix@.@vshared_suffix@			\
     $(LIBINSTALLDIR)/libknocore@suffix@.@mmshared_suffix@		\
@@ -1460,14 +1460,14 @@ install-shared: install-status shared-libs $(LIBINSTALLDIR) 				\
     $(LIBINSTALLDIR)/libknoscheme@suffix@.@mmshared_suffix@		\
     $(LIBINSTALLDIR)/libknoscheme@suffix@.@mshared_suffix@		\
     $(LIBINSTALLDIR)/libknoscheme@suffix@.@shared_suffix@		\
-    $(LIBINSTALLDIR)/libknoweb@suffix@.@vshared_suffix@			\
-    $(LIBINSTALLDIR)/libknoweb@suffix@.@mmshared_suffix@			\
-    $(LIBINSTALLDIR)/libknoweb@suffix@.@mshared_suffix@			\
-    $(LIBINSTALLDIR)/libknoweb@suffix@.@shared_suffix@			\
-    $(LIBINSTALLDIR)/libknotext@suffix@.@vshared_suffix@		\
-    $(LIBINSTALLDIR)/libknotext@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libknotext@suffix@.@mshared_suffix@		\
-    $(LIBINSTALLDIR)/libknotext@suffix@.@shared_suffix@
+    $(LIBINSTALLDIR)/libknowebtools@suffix@.@vshared_suffix@			\
+    $(LIBINSTALLDIR)/libknowebtools@suffix@.@mmshared_suffix@			\
+    $(LIBINSTALLDIR)/libknowebtools@suffix@.@mshared_suffix@			\
+    $(LIBINSTALLDIR)/libknowebtools@suffix@.@shared_suffix@			\
+    $(LIBINSTALLDIR)/libknotexttools@suffix@.@vshared_suffix@		\
+    $(LIBINSTALLDIR)/libknotexttools@suffix@.@mmshared_suffix@		\
+    $(LIBINSTALLDIR)/libknotexttools@suffix@.@mshared_suffix@		\
+    $(LIBINSTALLDIR)/libknotexttools@suffix@.@shared_suffix@
 
 install-headers: $(INCINSTALLDIR)
 	@$(SYSINSTALL) -p @install_file_opts@		\
