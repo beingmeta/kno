@@ -1785,9 +1785,9 @@ mod_knoweb: src/apache2/mod_knoweb.so
 # apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a -i -c src/apache2/mod_knoweb.c
 install-knoweb: src/apache2/mod_knoweb.so $(DESTDIR)@apache_modinfo@ \
 	$(DESTDIR)@apache_modules_dir@ $(DESTDIR)@servlet_logdir@
-	@cd etc; $(SYSINSTALL) @install_file_opts@ knoweb.conf \
+	@cd etc/apache; $(SYSINSTALL) @install_file_opts@ knoweb.conf \
 			$(DESTDIR)@apache_modinfo@;
-	@cd etc; $(SYSINSTALL) @install_file_opts@ knoweb.load \
+	@cd etc/apache; $(SYSINSTALL) @install_file_opts@ knoweb.load \
 			$(DESTDIR)@apache_modinfo@;
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
 			-d $(DESTDIR)@rundir@/knoweb;
@@ -1809,7 +1809,7 @@ update-knoweb: src/apache2/mod_knoweb.so $(DESTDIR)@apache_modinfo@ \
 	@$(MSG) "STOPPING and STARTING Apache to INSTALL NEW mod_knoweb"
 	@$(MSG) "THIS REQUIRES sudo PRIVILEGES; you may be prompted for your password"
 	sudo apachectl stop
-	cd etc; sudo ${INSTALL} @install_file_opts@ knoweb.conf knoweb.load \
+	cd etc/apache; sudo ${INSTALL} @install_file_opts@ knoweb.conf knoweb.load \
 			$(DESTDIR)@apache_modinfo@;
 	$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
 			-d $(DESTDIR)@rundir@/knoweb;
