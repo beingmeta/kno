@@ -362,19 +362,15 @@ EXECUTABLES=exe/knox@suffix@ exe/knosh@suffix@ exe/knotask@suffix@  \
 STATIC_EXECUTABLES=static/knox@suffix@ static/knosh@suffix@ \
 	static/knotask@suffix@ \
 	static/knoweb@suffix@ static/knod@suffix@
-DEBUG_EXECUTABLES=dbg/knox dbg/knosh \
-	dbg/knotask dbg/knoweb dbg/knod
+DEBUG_EXECUTABLES=dbg/knox dbg/knosh dbg/knotask dbg/knoweb dbg/knod
 SHELL_SCRIPTS=etc/knosetconfig etc/knogetconfig etc/knoconfig \
 	etc/knostart etc/knostop etc/knostartall etc/knostopall \
 	etc/kno_start_daemons etc/kno_start_servlets etc/kno_stop_jobs \
 	etc/knosignal etc/knoinject etc/knostatus etc/knolog  \
 	etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec \
 	etc/knocleanup etc/knojob
-SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
-	       exe/scripts/hashindexop exe/scripts/reset-pool \
-               exe/scripts/make-oidpool exe/scripts/split-pool \
-	       exe/scripts/copy-pool exe/scripts/merge-indexes \
-	       exe/scripts/knopkg
+SCHEME_SCRIPTS=exe/scripts/repack-pool exe/scripts/repack-index \
+	       exe/scripts/knomerge exe/scripts/knopkg
 
 CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config $(DESTDIR)@share_dir@ \
 	$(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \

@@ -15,12 +15,9 @@ usr/bin/knox
 usr/bin/knod
 usr/bin/knotask
 usr/bin/knoweb
-usr/bin/make-oidpool
-usr/bin/hashindexop
-usr/bin/split-pool
-usr/bin/pack-index
-usr/bin/pack-pool
-usr/bin/merge-indexes
+usr/bin/repack-index
+usr/bin/repack-pool
+usr/bin/knomerge
 usr/bin/knogetconfig
 usr/bin/knosetconfig
 usr/bin/knosignal
