@@ -97,7 +97,7 @@ static int debug_kv(void *data,const char *key,const char *value)
 #define APACHE20 1
 #define APACHE13 0
 
-#include "mod_knosrv_fileinfo.h"
+#include "mod_knoweb_fileinfo.h"
 
 #if (APR_SIZEOF_VOIDP==8)
 typedef unsigned long long INTPOINTER;

@@ -741,6 +741,12 @@ $(BININSTALLDIR)/%: src/scripts/%.scm
 
 $(DESTDIR)@config_dir@/boot/%: etc/% $(DESTDIR)@config_dir@/boot
 	@$(SYSINSTALL) @install_file_opts@ $< $(DESTDIR)@config_dir@/boot
+$(DESTDIR)@config_dir@/boot/%.service: etc/systemd/%.service $(DESTDIR)@config_dir@/boot
+	@$(SYSINSTALL) @install_file_opts@ $< $@
+$(DESTDIR)@config_dir@/boot/%.target: etc/systemd/%.target $(DESTDIR)@config_dir@/boot
+	@$(SYSINSTALL) @install_file_opts@ $< $@
+$(DESTDIR)@config_dir@/boot/%.conf: etc/upstart/%.conf $(DESTDIR)@config_dir@/boot
+	@$(SYSINSTALL) @install_file_opts@ $< $@
 
 dist/%.changelog: dist/equivs.changelog
 	etc/make-equivs-changelog `basename $@ .changelog` dist/equivs.changelog > $@

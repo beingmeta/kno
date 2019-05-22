@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-05-16 21:56+0000\n"
+"POT-Creation-Date: 2019-05-22 12:38-0400\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Dutch <nl@li.org>\n"
@@ -275,11 +275,11 @@ msgstr ""
 msgid "Malformed DTYPE representation"
 msgstr ""
 
-#: src/lisp/dtread.c:758
+#: src/lisp/dtread.c:769
 msgid "Use the DTBLOCK dtype code when appropriate"
 msgstr ""
 
-#: src/lisp/dtread.c:761
+#: src/lisp/dtread.c:772
 msgid "whether to check returned and real dtype sizes"
 msgstr ""
 
@@ -347,11 +347,11 @@ msgstr ""
 msgid "Unterminated block (#|..|#) comment"
 msgstr ""
 
-#: src/lisp/parse.c:687
+#: src/lisp/parse.c:685
 msgid "Bad hex escape"
 msgstr ""
 
-#: src/lisp/parse.c:700 src/lisp/parse.c:710
+#: src/lisp/parse.c:698 src/lisp/parse.c:708
 msgid "Bad octal escape"
 msgstr ""
 
@@ -359,16 +359,16 @@ msgstr ""
 msgid "LISP expression unparse error"
 msgstr ""
 
-#: src/lisp/unparse.c:385
+#: src/lisp/unparse.c:387
 msgid "no handler"
 msgstr ""
 
-#: src/lisp/unparse.c:530
+#: src/lisp/unparse.c:532
 #, c-format
 msgid "#<MysteryVector 0x%x/0x%x %lld elements>"
 msgstr ""
 
-#: src/lisp/unparse.c:533
+#: src/lisp/unparse.c:535
 #, c-format
 msgid "#<MysteryPacket 0x%x/0x%x %lld bytes>"
 msgstr ""
@@ -389,8 +389,8 @@ msgstr ""
 #: src/eval/choiceops.c:1318 src/eval/choiceops.c:1319 src/prims/seqprims.c:334
 #: src/prims/seqprims.c:357 src/text/texttools.c:2145 src/text/match.c:3593
 #: src/text/match.c:3610 src/text/match.c:3639 src/text/match.c:3671
-#: src/exe/knosrv.c:271 src/exe/knosrv.c:286 src/exe/knosrv.c:304
-#: src/exe/knosrv.c:320
+#: src/exe/knoweb.c:271 src/exe/knoweb.c:286 src/exe/knoweb.c:304
+#: src/exe/knoweb.c:320
 msgid "fixnum"
 msgstr ""
 
@@ -460,7 +460,7 @@ msgstr ""
 #: src/prims/fileprims.c:560 src/web/cgiexec.c:1286 src/web/cgiexec.c:1313
 #: src/web/htmlout.c:578 src/web/uriprims.c:393 src/web/mime.c:110
 #: src/web/curl.c:677 src/text/texttools.c:141 src/text/texttools.c:168
-#: src/text/texttools.c:540 src/exe/knosrv.c:253 src/exe/webcommon.h:262
+#: src/text/texttools.c:540 src/exe/knoweb.c:253 src/exe/webcommon.h:262
 #: src/exe/webcommon.h:321
 msgid "string"
 msgstr ""
@@ -793,7 +793,7 @@ msgstr ""
 msgid "Get/set the current working directory"
 msgstr ""
 
-#: src/support/config.c:1070
+#: src/support/config.c:1074
 msgid "whether to trace configuration"
 msgstr ""
 
@@ -1229,7 +1229,7 @@ msgstr ""
 msgid "Error getting metadata"
 msgstr ""
 
-#: src/storage/storage.c:378 src/storage/pools.c:2675 src/prims/dbprims.c:1196
+#: src/storage/storage.c:380 src/storage/pools.c:2675 src/prims/dbprims.c:1196
 #: src/prims/dbprims.c:1207 src/prims/dbprims.c:1215 src/prims/dbprims.c:1223
 #: src/prims/dbprims.c:1264 src/prims/dbprims.c:1277 src/prims/dbprims.c:1293
 #: src/prims/dbprims.c:1305 src/prims/dbprims.c:1316 src/prims/dbprims.c:1334
@@ -1238,52 +1238,56 @@ msgstr ""
 msgid "pool spec"
 msgstr ""
 
-#: src/storage/storage.c:685
+#: src/storage/storage.c:687
 msgid "Sets a level of time/memory tradeoff [0-3], default 1"
 msgstr ""
 
-#: src/storage/storage.c:690
+#: src/storage/storage.c:692
 msgid "Default oid display level [0-3]"
 msgstr ""
 
-#: src/storage/storage.c:695
+#: src/storage/storage.c:697
 msgid "Default log level for database messages"
 msgstr ""
 
-#: src/storage/storage.c:699
+#: src/storage/storage.c:701
 msgid "Whether to prefetch for large operations"
 msgstr ""
 
-#: src/storage/storage.c:704
+#: src/storage/storage.c:706
 msgid "pools used for OID resolution"
 msgstr ""
 
-#: src/storage/storage.c:707
+#: src/storage/storage.c:709
 msgid "indexes opened"
 msgstr ""
 
-#: src/storage/storage.c:710
+#: src/storage/storage.c:712
 msgid "indexes in the default search background"
 msgstr ""
 
-#: src/storage/storage.c:715
+#: src/storage/storage.c:717
 msgid "Number of connections to keep for each DB server"
 msgstr ""
 
-#: src/storage/storage.c:718
+#: src/storage/storage.c:720
 msgid "Max number of connections (default) for each DB server"
 msgstr ""
 
-#: src/storage/storage.c:722
+#: src/storage/storage.c:724
 msgid "Number of connections to initially create for each DB server"
 msgstr ""
 
-#: src/storage/storage.c:726
+#: src/storage/storage.c:728
 msgid "Functions and slotids for lookup up objects by name (@?name)"
 msgstr ""
 
-#: src/storage/storage.c:729
+#: src/storage/storage.c:731
 msgid "Functions to run when saving databases"
+msgstr ""
+
+#: src/storage/storage.c:736
+msgid "Whether to convert legacy uppercase to lowercase"
 msgstr ""
 
 #: src/storage/streams.c:64
@@ -1342,19 +1346,19 @@ msgstr ""
 msgid "Not MMapped"
 msgstr ""
 
-#: src/storage/streams.c:624
+#: src/storage/streams.c:625
 msgid "StreamClosed"
 msgstr ""
 
-#: src/storage/streams.c:667
+#: src/storage/streams.c:668
 msgid "FreeingStaticStream"
 msgstr ""
 
-#: src/storage/streams.c:672
+#: src/storage/streams.c:673
 msgid "DanglingStreamPointers"
 msgstr ""
 
-#: src/storage/streams.c:1568
+#: src/storage/streams.c:1569
 msgid "LOGLEVEL for binary streams"
 msgstr ""
 
@@ -2122,7 +2126,7 @@ msgid "procedure"
 msgstr ""
 
 #: src/eval/reflection.c:566 src/eval/coreops.c:545 src/eval/coreops.c:601
-#: src/eval/coreops.c:613 src/cmodules/sqlite.c:164
+#: src/eval/coreops.c:613 src/cmodules/sqlite.c:154
 msgid "string or symbol"
 msgstr ""
 
@@ -2911,100 +2915,100 @@ msgstr ""
 msgid "Whether to extend existing log files or truncate them"
 msgstr ""
 
-#: src/exe/knosrv.c:67
+#: src/exe/knoweb.c:67
 msgid "Servlet/STARTUP"
 msgstr ""
 
-#: src/exe/knosrv.c:68
+#: src/exe/knoweb.c:68
 msgid "Servlet/ABORT"
 msgstr ""
 
-#: src/exe/knosrv.c:69
+#: src/exe/knoweb.c:69
 msgid "No servers configured"
 msgstr ""
 
-#: src/exe/knosrv.c:1823
+#: src/exe/knoweb.c:1823
 msgid "Trace web transactions over N seconds"
 msgstr ""
 
-#: src/exe/knosrv.c:1826 src/exe/knocgi.c:689 src/exe/knod.c:1185
+#: src/exe/knoweb.c:1826 src/exe/knocgi.c:689 src/exe/knod.c:1185
 msgid "Number of pending connection requests allowed"
 msgstr ""
 
-#: src/exe/knosrv.c:1828 src/exe/knod.c:1188
+#: src/exe/knoweb.c:1828 src/exe/knod.c:1188
 msgid "Max number of requests to keep queued"
 msgstr ""
 
-#: src/exe/knosrv.c:1831
+#: src/exe/knoweb.c:1831
 msgid "Max number of concurrent connections to allow (NYI)"
 msgstr ""
 
-#: src/exe/knosrv.c:1834 src/exe/knod.c:1192
+#: src/exe/knoweb.c:1834 src/exe/knod.c:1192
 msgid "Number of clients to prepare for/grow by"
 msgstr ""
 
-#: src/exe/knosrv.c:1837 src/exe/knosrv.c:1840 src/exe/knocgi.c:691
+#: src/exe/knoweb.c:1837 src/exe/knoweb.c:1840 src/exe/knocgi.c:691
 #: src/exe/knod.c:1195
 msgid "Number of threads in the thread pool"
 msgstr ""
 
-#: src/exe/knosrv.c:1843
+#: src/exe/knoweb.c:1843
 msgid "File for recording status reports"
 msgstr ""
 
-#: src/exe/knosrv.c:1846
+#: src/exe/knoweb.c:1846
 msgid "Milliseconds (roughly) between updates to .status"
 msgstr ""
 
-#: src/exe/knosrv.c:1849
+#: src/exe/knoweb.c:1849
 msgid "Milliseconds (roughly) between logging status information"
 msgstr ""
 
-#: src/exe/knosrv.c:1852 src/exe/knod.c:1261
+#: src/exe/knoweb.c:1852 src/exe/knod.c:1261
 msgid "How long (μs) to wait for tasks during shutdown"
 msgstr ""
 
-#: src/exe/knosrv.c:1856 src/exe/knod.c:1169
+#: src/exe/knoweb.c:1856 src/exe/knod.c:1169
 msgid "Remove existing socket files with extreme prejudice"
 msgstr ""
 
-#: src/exe/knosrv.c:1860
+#: src/exe/knoweb.c:1860
 msgid "Whether to check for existing PID files"
 msgstr ""
 
-#: src/exe/knosrv.c:1864
+#: src/exe/knoweb.c:1864
 msgid "Ports for listening for connections"
 msgstr ""
 
-#: src/exe/knosrv.c:1866 src/exe/knod.c:1257
+#: src/exe/knoweb.c:1866 src/exe/knod.c:1257
 msgid "Whether to run in asynchronous mode"
 msgstr ""
 
-#: src/exe/knosrv.c:1870
+#: src/exe/knoweb.c:1870
 msgid "Whether to have libu8 log each monitored address"
 msgstr ""
 
-#: src/exe/knosrv.c:1874
+#: src/exe/knoweb.c:1874
 msgid "Timeout for the poll loop (lower bound of status updates)"
 msgstr ""
 
-#: src/exe/knosrv.c:1878 src/exe/knod.c:1222
+#: src/exe/knoweb.c:1878 src/exe/knod.c:1222
 msgid "Whether to have libu8 log each connection"
 msgstr ""
 
-#: src/exe/knosrv.c:1882 src/exe/knod.c:1227
+#: src/exe/knoweb.c:1882 src/exe/knod.c:1227
 msgid "Whether to have libu8 log each transaction"
 msgstr ""
 
-#: src/exe/knosrv.c:1886
+#: src/exe/knoweb.c:1886
 msgid "Whether to have libu8 log queue activity"
 msgstr ""
 
-#: src/exe/knosrv.c:1892
+#: src/exe/knoweb.c:1892
 msgid "Whether to have libu8 log data transmission/receiption"
 msgstr ""
 
-#: src/exe/knosrv.c:1899 src/exe/knod.c:1239
+#: src/exe/knoweb.c:1899 src/exe/knod.c:1239
 msgid "Whether to support thread-asynchronous transactions"
 msgstr ""
 
@@ -3188,15 +3192,15 @@ msgstr ""
 msgid "MongoDB/freeclient"
 msgstr ""
 
-#: src/cmodules/mongodb.c:888
+#: src/cmodules/mongodb.c:886
 msgid "MissingDBName"
 msgstr ""
 
-#: src/cmodules/mongodb.c:989 src/cmodules/mongodb.c:1072
+#: src/cmodules/mongodb.c:987 src/cmodules/mongodb.c:1070
 msgid "MongoDB collection"
 msgstr ""
 
-#: src/cmodules/mongodb.c:1856 src/cmodules/mongodb.c:1957
+#: src/cmodules/mongodb.c:1854 src/cmodules/mongodb.c:1955
 msgid "MongoDB"
 msgstr ""
 
