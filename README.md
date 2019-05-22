@@ -1,61 +1,96 @@
-# This is FramerD
+# This is KNO
 
-**FramerD** is a platform and database for applications and services
-which leverage knowledge and context to deliver complex personalized
-results and interaction.
+**KNO** is a platform for symbolic computing at scale, especially
+  suited to symbolic artificial intelligence and qualitative data
+  analysis. *KNO* is based on the general architecture and data model
+  of [http://www.framerd.org/](FramerD) which has been stable (but
+  growing) for over twenty years with both experimental and commercial
+  deployments.  Earlier versions of KNO (known as FramerD) have been
+  deployed commercially in contexts with high availability to tens of
+  thousands of users and largely maintained by in-house sysops
+  administrators.
 
-*FramerD* databases readily include millions of searchable frames with
+**KNO** databases readily include millions of searchable frames with
 multiple properties and relations.  These databases can be distributed
-over multiple networked machines. FramerD has been deployed
-commercially in contexts with high availability to tens of thousands
-of users and largely maintained by in-house sysops administrators.
+over multiple networked machines. In experimental applications, KNO
+has supported over a billion frames.
 
-*FramerD* consists of four main components: 
+*KNO* consists of four main components: 
 
-* a **portable distributed object-oriented database** designed to
-  support the maintenance and sharing of knowledge bases. Unlike other
-  object-oriented databases, FramerD is optimized for the sort of
-  pointer-intensive data structures used by semantic networks, frame
-  systems, and many intelligent agent applications.
+* a **portable distributed schema-free graph database** designed to
+  support the maintenance and sharing of knowledge bases. KNO is
+  especially optimized for the sort of pointer-intensive data
+  structures used by semantic networks, frame systems, and many
+  intelligent agent applications. This database provides a simple and
+  flexible object and index model grounded in *drivers* for both
+  native database formats and external formats and services.
 
-* a **Scheme**-based flexible and performant scripting language with
-  special provisions for *Prolog*-style non-deterministic programming
-  and other common AI programming tropes.
+* a **Scheme**-based scripting language with special provisions for
+  Prolog-style non-deterministic programming and other common AI
+  programming tropes. It also includes various facilities from Common
+  Lisp, including generic sequences and a formatted output facility
+  inspired by Interlisp's `PRINTOUT`. This language and KNO's
+  underlying runtime are optimized for multi-threaded programming
+  with typesafe object implementations and a lock-free garbage
+  collector.
 
-* a versatile text processing library for matching, search, and
-  extraction; these are augmented by utilities for natural language
-  functions such as word stemming, simple morphology, and
-  quasi-phonetic transformations such as Soundex and Metaphone.
+* a range of high-performance utility libraries for:
+  * text processing pipelines, including composable pattern matchers,
+  stemmers and normalizers (e.g. Soundex or Metaphone), and
+  stream-based text matching;
+  * standard cryptographic functions as provided by the OpenSSL
+    libraries;
+  * web-centric computing including: XML/HTML, JSON, and MIME parsing;
+  support for Markdown and TIDY web document processors; bindings for
+  CURL, LDNS, and other network facilities.
+  * integration with external databases, including SQL databases
+  (MySQL, MariaDB, and SQLITE), NOSQL databases (MongoDB), and generic
+  file database libraries (RocksDB and LevelDB);
+  * image manipulation through bindings for the ImageMagick library and
+  other utility libraries including EXIF and QRENCODE.
+  * bindings for plumbing utilities like libarchive, zlib, and zip
+  tools.
 
-* a web application framework for implementing high performance web
-  applications and services; this is based on native C libraries for
-  parsing, generating, and transforming HTML, XML, and JSON
-  documents. In this framework, web applications use a custom Apache
-  module (`mod_fdserv`) to communicate with multi-threaded FramerD
+* a growing abundance of *source modules*, written in Scheme, for
+  document processing, utility computation, and access to external
+  APIs. These are listed [Source modules](below).
+
+* **parseltongue**, a native library for directly accessing Python
+  libraries and programs from within Scheme programs and modules, and
+  vice versa. This is in addition to the platform's support for
+  calling external C functions through `libffi`.
+
+* an application framework for implementing web applications and
+  services. In this framework, web applications use a custom Apache
+  module (`mod_knoweb`) to communicate with multi-threaded KNO
   *servlets* using a binary wire protocol.
 
-FramerD is implemented in ANSI C for Unix-based platforms including
-Linux and macOS.  In addition, Java libraries have been implemented
-for accessing FramerD databases and services directly from Java
-applications.
+KNO is implemented in ANSI C for Unix-based platforms including Linux
+and macOS.
 
 ## Background
 
 The [first version](https://www.beingmeta.com/pubs/FramerD.pdf) of
-FramerD was developed at [MIT's Media Laboratory](www.media.mit.edu)
-by Ken Haase. The laboratory's support, especially from its *News In
-the Future* program, is gratefully acknowledged. This version can be
-downloaded from
-[SourceForge](https://sourceforge.net/projects/framerd/).
+KNO, called FramerD, was developed at
+[MIT's Media Laboratory](www.media.mit.edu) by Kenneth Haase. The
+laboratory's support, especially from its *News In the Future*
+program, is gratefully acknowledged. This version can be downloaded
+from [SourceForge](https://sourceforge.net/projects/framerd/).
 
 Starting in 2005, [beingmeta](https://www.beingmeta.com/) began
-developing a new version of FramerD with a focus on scalability both
-down (to low-powered devices) and up (to multi-core high performance
-servers and workstations). This included optimizing the underlying C
-code for modern cache and pipeline-focused CPU architectures and the
-introduction of finer-grained thread locking.
+developing a new version of this platform with a focus on scalability
+both down (to low-powered devices) and up (to multi-core high
+performance servers and workstations). This included optimizing the
+underlying C code for modern cache and pipeline-focused CPU
+architectures, the introduction of finer-grained thread locking,
+implementation of a lock-free garbage collector, and a compiler to a
+SCHEME-like VM.
 
-**beingmeta**'s FramerD implementation also provides a novel query
+Originally called `Enterprise FramerD` or sometimes (confusingly) just
+`FramerD`, this was renamed **KNO** in May 2019 and released under an
+open source license (the GPLV2).
+
+**beingmeta**'s implementation of KNO provides a novel query
   optimization technique called *iterated partial evaluation*
   ([patent](https://www.beingmeta.com/pubs/ipeval_patent.pdf)) which
   can optimize complex high-latency queries by up to a factor of
@@ -63,66 +98,30 @@ introduction of finer-grained thread locking.
   query to bundle together data references to both reduce the number
   of round trips and allow remote data sources to optimize retrieval.
 
-## Native modules
+## Source modules
 
-FramerD provides loadable native (C-language) modules for:
-
-* cryptographic functions, including public and private key functions;
-
-* image manipulation (using the ImageMagick library), including
-  transforms, compression, and conversion;
-
-* access to MongoDB, MYSQL, SQLITE, and ODBC databases, including
-  dynamic type conversion;
-
-* QR code generation, EXIF image metadata extraction, HTML `tidy`ing,
-  Markdown rendering, text hyphenation, ZIP file manipulation, and
-  others.
-
-## "Source" modules
-
-FramerD comes bundled with modules written in it's native scripting
+KNO comes bundled with modules written in it's native scripting
 language (a variant of Scheme) to provide additional functions:
 
 * access to many AWS (Amazon Web Services) APIs, including S3, SQS,
   SES, EC2 and others;
-
 * libraries for DOM manipulation and processing, based on the
   representations generated by FramerD's native XML/HTML parser;
-
-* a profiling library using FramerD's built-in primitives for
-  execution profiling;
-
 * many tools for accessing the BRICO semantic knowledge base;
-
 * an extensible generic pathname facility (`gpath`) for working with a
   range of file-like data repositories (including S3, Dropbox,
   in-memory filesystems, zip files, and web resources);
-
 * a facility for checking and generating JWTs (Javascript Web Tokens)
   including both symmetric and asymmetric (public key) signatures;
-
 * various facilities for transforming objects to and from JSON
   (JavaScript Object Notation);
-
-* modules for advanced parsing of times and numbers;
-
+* modules for advanced parsing and rendering of times and numbers;
 * a lightweight implementation of records (`ezrecords`);
-
 * facilities for fine-grained logging of program activity;
-
-* a simple syntaxing/compilation engine for speeding up FramerD
-  scripts by 5-10x;
-
 * various caching facilities for improving performance against
   resource-intensive functions or services;
-
 * support for OAuth2 authorization and API access;
-
 * HTTP access to CouchDB databases and RSS feeds;
-
 * facilities for integrating with SOAP-based web services;
-
 * interfaces to the APIs for Facebook, Gravatar, OpenLibrary,
-  LibraryThing, Twilio (SMS), PayPal, and others;
-
+  LibraryThing, Twilio (SMS), PayPal, and others.
