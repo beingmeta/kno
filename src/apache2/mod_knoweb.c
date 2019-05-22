@@ -2248,6 +2248,17 @@ static int ap_bwrite_upcase(BUFF *b,char *string,int len)
   b->ptr=write;
   return len;
 }
+static int ap_bwrite_lcase(BUFF *b,char *string,int len)
+{
+  unsigned char *scan=(unsigned char *)string;
+  unsigned char *limit=scan+len, *write;
+  if (ap_bneeds(b,len+1)<0) return -1; 
+  write=(b->ptr); while (scan<limit) {
+    int c=*scan++; if (c>=128) *write++=c;
+    else *write++=tolower(c);}
+  b->ptr=write;
+  return len;
+}
 static BUFF *ap_bcreate(apr_pool_t *p,int ignore_flag)
 {
   struct BUFF *b=apr_palloc(p,sizeof(struct BUFF));
@@ -2278,7 +2289,7 @@ static int buf_write_symbol(char *string,BUFF *b)
   int len=strlen(string);
   if (ap_bneeds(b,len+5)<0) return -1; 
   ap_bputc(0x07,b); buf_write_4bytes(len,b);
-  ap_bwrite_upcase(b,string,len);
+  ap_bwrite_lcase(b,string,len);
   return len+5;
 }
 
