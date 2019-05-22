@@ -101,11 +101,16 @@ tidy testclean cleantests cleantest:
 # Test targets
 
 all_tests alltests: tidy
-	make libtests cmdtests optimize_modules
+	make libtests
+	make optimize_modules
+	make cmdtests
 	@${header} "■■■■■■■■ Done with alltests"
 
 libtests: scheme optscheme slotmaps tables pools indexes db
-cmdtests: execscripts chainscripts batchscripts chained_batchscripts utilscripts
+cmdtests:
+	@echo "# ■■■■■■■■ Running command line tests ${RUNCONF}"
+	@echo "# ■■■ Various stderr log messages or termination warnings are normal"
+	make execscripts chainscripts batchscripts chained_batchscripts utilscripts
 
 schemetest schemetests scheme: r4rs exceptions choices sequences breaks numvecs reflect hashsets \
 	picktest cachecall texttools webtools timefns threads i18n misc gctests profiling \

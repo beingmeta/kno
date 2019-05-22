@@ -1827,7 +1827,6 @@ tests: testclean
 	@if test ! -f tests/data/private.text; then \
 	 echo "#### Can't test primitives on protected files, enable with 'make private_files'"; \
 	 fi;
-	@echo "#### Note that killed/exited messages for the 'countup' scripts are normal"
 	@DATE=`date +%d%b%yT%T`; make -s -C tests -k -j && \
 	 sort tests/timing.log -k 2 > tests/logs/timing-$${DATE}.log;
 	@if test ! -f tests/data/private.text; then \
@@ -1836,7 +1835,6 @@ tests: testclean
 
 tests.log: tests/knox tests/makefile.in makefile
 	@echo "#### Running test scripts, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
-	@echo "#### Note that killed/exited messages for the 'countup' scripts are normal"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; make -s -C tests -k -j 2>&1 > tests.log && \
 	 cp tests.log tests/logs/tests-$${DATE}.log; \
