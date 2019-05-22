@@ -550,14 +550,14 @@ static lispval read_oid_value(kno_oidpool op,
                               const u8_string cxt)
 {
   int zip_code;
-  zip_code = kno_read_zint(in);
+  zip_code = kno_read_varint(in);
   if (PRED_FALSE(zip_code>(op->oidpool_n_schemas)))
     return kno_err(kno_InvalidSchemaRef,"oidpool_fetch",op->poolid,VOID);
   else if (zip_code==0)
     return kno_read_dtype(in);
   else {
     struct KNO_SCHEMA_ENTRY *se = &(op->oidpool_schemas[zip_code-1]);
-    int n_vals = kno_read_zint(in), n_slotids = se->op_nslots;
+    int n_vals = kno_read_varint(in), n_slotids = se->op_nslots;
     if (PRED_TRUE(n_vals == n_slotids)) {
       lispval *values = u8_alloc_n(n_vals,lispval);
       unsigned int i = 0, *mapin = se->op_slotmapin;
@@ -787,12 +787,12 @@ static int oidpool_write_value(lispval value,kno_stream stream,
       kno_write_dtype(tmpout,value);}
     else {
       struct KNO_SCHEMA_ENTRY *se = &(p->oidpool_schemas[schema_id]);
-      kno_write_zint(tmpout,schema_id+1);
+      kno_write_varint(tmpout,schema_id+1);
       if (SCHEMAPP(value)) {
         struct KNO_SCHEMAP *sm = (kno_schemap)value;
         lispval *values = sm->schema_values;
         int i = 0, size = sm->schema_length;
-        kno_write_zint(tmpout,size);
+        kno_write_varint(tmpout,size);
         while (i<size) {
           kno_write_dtype(tmpout,values[se->op_slotmapout[i]]);
           i++;}}
@@ -800,7 +800,7 @@ static int oidpool_write_value(lispval value,kno_stream stream,
         struct KNO_SLOTMAP *sm = (kno_slotmap)value;
         struct KNO_KEYVAL *data = sm->sm_keyvals;
         int i = 0, size = KNO_XSLOTMAP_NUSED(sm);
-        kno_write_zint(tmpout,size);
+        kno_write_varint(tmpout,size);
         while (i<size) {
           kno_write_dtype(tmpout,data[se->op_slotmapin[i]].kv_val);
           i++;}}}}

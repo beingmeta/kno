@@ -943,7 +943,7 @@ KNO_EXPORT ssize_t kno_encode_slotmap(struct KNO_OUTBUF *out,
     int n_slots = map->n_slots;
     struct KNO_KEYVAL *kv = map->sm_keyvals;
     DTOUT(dtype_len,kno_write_byte(out,0xFF));
-    DTOUT(dtype_len,kno_write_zint(out,n_slots));
+    DTOUT(dtype_len,kno_write_varint(out,n_slots));
     int i=0; while (i<n_slots) {
       lispval key = kv[i].kv_key;
       lispval val = kv[i].kv_val;
@@ -957,7 +957,7 @@ KNO_EXPORT ssize_t kno_encode_slotmap(struct KNO_OUTBUF *out,
         DTOUT(dtype_len,kno_write_dtype(out,val));}
       else {
         DTOUT(dtype_len,kno_write_byte(out,0xFE));
-        DTOUT(dtype_len,kno_write_zint(out,code));
+        DTOUT(dtype_len,kno_write_varint(out,code));
         DTOUT(dtype_len,kno_write_dtype(out,val));}
       i++;}
     return dtype_len;}
@@ -970,7 +970,7 @@ KNO_EXPORT lispval kno_decode_slotmap(struct KNO_INBUF *in,struct KNO_SLOTCODER 
     int byte = kno_probe_byte(in);
     if (byte == 0xFF) {
       kno_read_byte(in); /* Already checked */ 
-      int n_slots = kno_read_zint(in);
+      int n_slots = kno_read_varint(in);
       lispval result = kno_make_slotmap(n_slots,n_slots,NULL);
       if (KNO_ABORTP(result)) return result;
       struct KNO_SLOTMAP *map = (kno_slotmap) result;
@@ -979,7 +979,7 @@ KNO_EXPORT lispval kno_decode_slotmap(struct KNO_INBUF *in,struct KNO_SLOTCODER 
         lispval key, val;
         if (kno_probe_byte(in) == 0xFE) {
           kno_read_byte(in); /* Already checked */ 
-          int code = kno_read_zint(in);
+          int code = kno_read_varint(in);
           key = kno_code2slotid(slotcodes,code);}
         else key = kno_read_dtype(in);
         if (KNO_ABORTP(key)) {

@@ -1757,7 +1757,7 @@ static ssize_t leveldb_encode_key(struct KNO_OUTBUF *out,lispval key,
       return kno_write_dtype(out,key);
     else {
       DT_BUILD(key_len,kno_write_byte(out,LEVELDB_CODED_KEY));
-      DT_BUILD(key_len,kno_write_zint(out,code));
+      DT_BUILD(key_len,kno_write_varint(out,code));
       DT_BUILD(key_len,kno_write_dtype(out,KNO_CDR(key)));}
     return key_len;}
   else return kno_write_dtype(out,key);
@@ -1769,7 +1769,7 @@ static lispval leveldb_decode_key(struct KNO_INBUF *in,
   if (kno_probe_byte(in) == LEVELDB_CODED_KEY) {
     if ( (slotcodes) && (slotcodes->slotids) ) {
       kno_read_byte(in); /* skip LEVELDB_CODED_KEY */
-      int code = kno_read_zint(in);
+      int code = kno_read_varint(in);
       if (code < 0) {
         u8_seterr("BadEncodedKey","leveldb_decode_key",NULL);
         return KNO_ERROR;}
@@ -1795,10 +1795,10 @@ static lispval leveldb_decode_value(struct KNO_INBUF *in,
   if (kno_probe_byte(in) == LEVELDB_CODED_VALUES) {
     if ( (oidcodes) && (oidcodes->n_oids) ) {
       kno_read_byte(in);
-      size_t n_values = kno_read_zint(in);
+      size_t n_values = kno_read_varint(in);
       lispval results = KNO_EMPTY_CHOICE;
       int err=0, i = 0; while (i<n_values) {
-        int code = kno_read_zint(in);
+        int code = kno_read_varint(in);
         if (code<0) { err=1; break;}
         if (code == 0) {
           lispval elt = kno_read_dtype(in);
@@ -1808,7 +1808,7 @@ static lispval leveldb_decode_value(struct KNO_INBUF *in,
           lispval baseoid = kno_get_baseoid(oidcodes,code-1);
           if (KNO_ABORTP(baseoid)) { err=1; break;}
           int baseid = KNO_OID_BASE_ID(baseoid);
-          int off = kno_read_zint(in);
+          int off = kno_read_varint(in);
           if (off < 0) { err=1; break;}
           lispval elt = KNO_CONSTRUCT_OID(baseid,off);
           KNO_ADD_TO_CHOICE(results,elt);}
@@ -1836,7 +1836,7 @@ static ssize_t leveldb_encode_value(struct KNO_OUTBUF *out,lispval val,
     if (all_oids) {
       ssize_t dtype_len = 0;
       DT_BUILD(dtype_len,kno_write_byte(out,LEVELDB_CODED_VALUES));
-      DT_BUILD(dtype_len,kno_write_zint(out,n_vals));
+      DT_BUILD(dtype_len,kno_write_varint(out,n_vals));
       KNO_DO_CHOICES(elt,val) {
         int base = KNO_OID_BASE_ID(elt);
         int oidcode = kno_get_oidcode(oc,base);
@@ -1848,8 +1848,8 @@ static ssize_t leveldb_encode_value(struct KNO_OUTBUF *out,lispval val,
           DT_BUILD(dtype_len,kno_write_dtype(out,elt));}
         else {
           int offset = KNO_OID_BASE_OFFSET(elt);
-          DT_BUILD(dtype_len,kno_write_zint(out,oidcode+1));
-          DT_BUILD(dtype_len,kno_write_zint(out,offset));}}
+          DT_BUILD(dtype_len,kno_write_varint(out,oidcode+1));
+          DT_BUILD(dtype_len,kno_write_varint(out,offset));}}
       return dtype_len;}
     else return kno_write_dtype(out,val);}
   else return kno_write_dtype(out,val);

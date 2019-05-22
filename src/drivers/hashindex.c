@@ -12,8 +12,8 @@
 /* Notes:
    A normal 32-bit hash index with N buckets consists of 256 bytes of
    header, followed by N*8 bytes of offset table, followed by an arbitrary
-   number of "data blocks", each starting with a zint-encoded byte,
-   count and a zint-encoded element count;
+   number of "data blocks", each starting with a varint-encoded byte,
+   count and a varint-encoded element count;
 
    The header consists of: a 4-byte magic number (identifying the file
    type), a 4-byte number indicating the number of buckets, 1 byte
@@ -54,18 +54,18 @@
    (N), and a (possibly zero) continuation pointer, followed by N
    "zvalue" dtype representations.  A key block consists of a
    byte_count, an element_count, and a number of key entries.  A key
-   entry consists of a zint-coded size (in bytes) followed by a zkey
-   dtype representation, followed by a zint value_count.  If the
+   entry consists of a varint-coded size (in bytes) followed by a zkey
+   dtype representation, followed by a varint value_count.  If the
    value_count is zero, the entry ends, if it is one, it is followed
    by a single zvalue dtype.  Otherwise, it is followed by a 4 byte
-   file offset to a value block and a zint coded block size.
+   file offset to a value block and a varint coded block size.
 
-   A zvalue dtype representation consists of a zint encoded OID serial
+   A zvalue dtype representation consists of a varint encoded OID serial
    number.  If this is zero, it is followed by a regular DTYPE representation.
    Otherwise, it is followed by three bytes of OID offset which are added
    to the base OID associated with the serial number.
 
-   A zkey dtype representation consists of a zint encoded SLOTID
+   A zkey dtype representation consists of a varint encoded SLOTID
    serial number followed by a regular DTYPE representation.  If the
    serial number is zero, the key is the following DTYPE; otherwise,
    the key is a pair of the corresponding SLOTID and the following
@@ -676,7 +676,7 @@ KNO_FASTOP ssize_t write_zkey(kno_hashindex hx,kno_outbuf out,lispval key)
       kno_release_slotcodes(& hx->index_slotcodes );
       if (slotid_index<0)
         retval = kno_write_byte(out,0)+kno_write_dtype(out,key);
-      else retval = kno_write_zint(out,slotid_index+1)+
+      else retval = kno_write_varint(out,slotid_index+1)+
              fast_write_dtype(out,KNO_CDR(key));}
     else retval = kno_write_byte(out,0)+kno_write_dtype(out,key);}
   else retval = kno_write_byte(out,0)+kno_write_dtype(out,key);
@@ -697,7 +697,7 @@ KNO_FASTOP ssize_t write_zkey_wsc(kno_slotcoder sc,kno_outbuf out,lispval key)
         slotid_index = kno_add_slotcode(sc,car);
       if (slotid_index < 0)
         retval = kno_write_byte(out,0)+kno_write_dtype(out,key);
-      else retval = kno_write_zint(out,slotid_index+1)+
+      else retval = kno_write_varint(out,slotid_index+1)+
              fast_write_dtype(out,KNO_CDR(key));}
     else retval = kno_write_byte(out,0)+kno_write_dtype(out,key);}
   else retval = kno_write_byte(out,0)+kno_write_dtype(out,key);
@@ -770,7 +770,7 @@ static lispval fast_read_dtype(kno_inbuf in)
 
 KNO_FASTOP lispval read_key(kno_hashindex hx,kno_inbuf in)
 {
-  int code = kno_read_zint(in);
+  int code = kno_read_varint(in);
   if (code==0)
     return fast_read_dtype(in);
   else if (hx->index_slotcodes.slotids) {
@@ -823,10 +823,10 @@ KNO_FASTOP int write_zvalue(kno_hashindex hx,kno_outbuf out,
       else return bytes_written+1;}
     else {
       int offset = KNO_OID_BASE_OFFSET(value), bytes_written;
-      bytes_written = kno_write_zint(out,oidcode+1);
+      bytes_written = kno_write_varint(out,oidcode+1);
       if (bytes_written<0)
         return KNO_ERROR;
-      int more = kno_write_zint(out,offset);
+      int more = kno_write_varint(out,offset);
       if (more<0)
         return KNO_ERROR;
       else bytes_written = bytes_written+more;
@@ -839,13 +839,13 @@ KNO_FASTOP int write_zvalue(kno_hashindex hx,kno_outbuf out,
 
 KNO_FASTOP lispval read_zvalue(kno_hashindex hx,kno_inbuf in)
 {
-  int prefix = kno_read_zint(in);
+  int prefix = kno_read_varint(in);
   if (prefix==0)
     return kno_read_dtype(in);
   else {
     lispval baseoid = kno_get_baseoid(&(hx->index_oidcodes),(prefix-1));
     unsigned int base = KNO_OID_BASE_ID(baseoid);
-    unsigned int offset = kno_read_zint(in);
+    unsigned int offset = kno_read_varint(in);
     return KNO_CONSTRUCT_OID(base,offset);}
 }
 
@@ -904,13 +904,13 @@ static lispval hashindex_fetch(kno_index ix,lispval key)
     if (opened==NULL) {
       kno_close_outbuf(&out);
       return KNO_ERROR_VALUE;}
-    n_keys = kno_read_zint(&keystream);
+    n_keys = kno_read_varint(&keystream);
     i = 0; while (i<n_keys) {
-      int key_len = kno_read_zint(&keystream);
+      int key_len = kno_read_varint(&keystream);
       if ((key_len == dtype_len) &&
           (memcmp(keystream.bufread,out.buffer,dtype_len)==0)) {
         keystream.bufread = keystream.bufread+key_len;
-        n_values = kno_read_zint(&keystream);
+        n_values = kno_read_varint(&keystream);
         if (n_values==0) {
           kno_close_inbuf(&keystream);
           kno_close_outbuf(&out);
@@ -921,24 +921,24 @@ static lispval hashindex_fetch(kno_index ix,lispval key)
           kno_close_outbuf(&out);
           return value;}
         else {
-          vblock_off = (kno_off_t)kno_read_zint(&keystream);
-          vblock_size = (size_t)kno_read_zint(&keystream);
+          vblock_off = (kno_off_t)kno_read_varint(&keystream);
+          vblock_size = (size_t)kno_read_varint(&keystream);
           kno_close_inbuf(&keystream);
           kno_close_outbuf(&out);
           return read_values(hx,key,n_values,vblock_off,vblock_size);}}
       else {
         keystream.bufread = keystream.bufread+key_len;
-        n_values = kno_read_zint(&keystream);
+        n_values = kno_read_varint(&keystream);
         if (n_values==0) {}
         else if (n_values==1) {
-          int code = kno_read_zint(&keystream);
+          int code = kno_read_varint(&keystream);
           if (code==0) {
             lispval val = kno_read_dtype(&keystream);
             kno_decref(val);}
-          else kno_read_zint(&keystream);}
+          else kno_read_varint(&keystream);}
         else {
-          kno_read_zint(&keystream);
-          kno_read_zint(&keystream);}}
+          kno_read_varint(&keystream);
+          kno_read_varint(&keystream);}}
       i++;}
     kno_close_inbuf(&keystream);}
   kno_close_outbuf(&out);
@@ -979,7 +979,7 @@ static KNO_CHUNK_REF read_value_block
   kno_off_t next_off;
   ssize_t next_size=-1;
   int i=0, atomicp = 1;
-  ssize_t n_elts = kno_read_zint(vblock);
+  ssize_t n_elts = kno_read_varint(vblock);
   if (n_elts<0) {
     kno_close_inbuf(vblock);
     return result;}
@@ -997,10 +997,10 @@ static KNO_CHUNK_REF read_value_block
     i++;}
   /* For vblock continuation pointers, we make the size be first,
      so that we don't need to store an offset if it's zero. */
-  next_size = kno_read_zint(vblock);
+  next_size = kno_read_varint(vblock);
   if (next_size<0) {}
   else if (next_size)
-    next_off = kno_read_zint(vblock);
+    next_off = kno_read_varint(vblock);
   else next_off = 0;
   if ( (next_size<0) || (next_off < 0)) {
     *n_readp = n_read;
@@ -1089,12 +1089,12 @@ static int hashindex_fetchsize(kno_index ix,lispval key)
       kno_open_block(stream,&keystream,keyblock.off,keyblock.size,1);
     if (opened==NULL)
       return -1;
-    n_keys = kno_read_zint(&keystream);
+    n_keys = kno_read_varint(&keystream);
     i = 0; while (i<n_keys) {
-      int key_len = kno_read_zint(&keystream);
-      n_values = kno_read_zint(&keystream);
-      /* vblock_off = */ (void)(kno_off_t)kno_read_zint(&keystream);
-      /* vblock_size = */ (void)(size_t)kno_read_zint(&keystream);
+      int key_len = kno_read_varint(&keystream);
+      n_values = kno_read_varint(&keystream);
+      /* vblock_off = */ (void)(kno_off_t)kno_read_varint(&keystream);
+      /* vblock_size = */ (void)(size_t)kno_read_varint(&keystream);
       if (key_len!=dtype_len)
         keystream.bufread = keystream.bufread+key_len;
       else if (memcmp(keystream.bufread,out.buffer,dtype_len)==0) {
@@ -1286,7 +1286,7 @@ static lispval *fetchn(struct KNO_HASHINDEX *hx,int n,const lispval *keys)
             return NULL;}}
         keyblock_start = keyblock.bufread;
         /* And initialize bucket position and limit */
-        k=0; n_keys = kno_read_zint(&keyblock);
+        k=0; n_keys = kno_read_varint(&keyblock);
         keyblock_start = keyblock.bufread;}
       else {
         /* We could be smarter here, but it's probably not worth it */
@@ -1294,11 +1294,11 @@ static lispval *fetchn(struct KNO_HASHINDEX *hx,int n,const lispval *keys)
         k=0;}
       while (k<n_keys) {
         int n_vals;
-        kno_size_t dtsize = kno_read_zint(&keyblock);
+        kno_size_t dtsize = kno_read_varint(&keyblock);
         if (match_keybuf(keyblock.bufread,dtsize,&ksched[j],keyreps)) {
           found = 1;
           keyblock.bufread = keyblock.bufread+dtsize;
-          n_vals = kno_read_zint(&keyblock);
+          n_vals = kno_read_varint(&keyblock);
           if (n_vals==0)
             values[ksched[j].ksched_i]=EMPTY;
           else if (n_vals==1)
@@ -1306,8 +1306,8 @@ static lispval *fetchn(struct KNO_HASHINDEX *hx,int n,const lispval *keys)
             values[ksched[j].ksched_i]=read_zvalue(hx,&keyblock);
           else {
             /* Populate the values schedule for that key */
-            kno_off_t block_off = kno_read_zint(&keyblock);
-            kno_size_t block_size = kno_read_zint(&keyblock);
+            kno_off_t block_off = kno_read_varint(&keyblock);
+            kno_size_t block_size = kno_read_varint(&keyblock);
             struct KNO_CHOICE *result = kno_alloc_choice(n_vals);
             /* Track the max vblock size for later buffer allocation */
             if (block_size>vbuf_size) vbuf_size=block_size;
@@ -1329,7 +1329,7 @@ static lispval *fetchn(struct KNO_HASHINDEX *hx,int n,const lispval *keys)
         else {
           /* Skip this key */
           keyblock.bufread = keyblock.bufread+dtsize;
-          n_vals = kno_read_zint(&keyblock);
+          n_vals = kno_read_varint(&keyblock);
           if (n_vals==0) {}
           else if (n_vals==1) {
             /* Read the one inline value */
@@ -1338,8 +1338,8 @@ static lispval *fetchn(struct KNO_HASHINDEX *hx,int n,const lispval *keys)
             kno_decref(v);}
           else {
             /* Skip offset information */
-            kno_read_zint(&keyblock);
-            kno_read_zint(&keyblock);}}
+            kno_read_varint(&keyblock);
+            kno_read_varint(&keyblock);}}
         k++;}
       if (!(found))
         values[ksched[j].ksched_i]=EMPTY;
@@ -1364,16 +1364,16 @@ static lispval *fetchn(struct KNO_HASHINDEX *hx,int n,const lispval *keys)
             (size > kno_bigbuf_threshold) ) ?
           ( kno_open_block(stream,&bigvblock,off,size,1) ) :
           ( kno_open_block(stream,&vblock,off,size,1) );
-        n_vals = kno_read_zint(valstream);
+        n_vals = kno_read_varint(valstream);
         while (j<n_vals) {
           lispval v = read_zvalue(hx,valstream);
           if (CONSP(v)) vsched[i].vsched_atomicp = 0;
           *((vsched[i].vsched_write)++) = v;
           j++;}
-        next_size = kno_read_zint(valstream);
+        next_size = kno_read_varint(valstream);
         if (next_size) {
           vsched[i].vsched_chunk.size = next_size;
-          vsched[i].vsched_chunk.off = kno_read_zint(valstream);}
+          vsched[i].vsched_chunk.off = kno_read_varint(valstream);}
         else {
           vsched[i].vsched_chunk.size = 0;
           vsched[i].vsched_chunk.off = 0;}
@@ -1502,10 +1502,10 @@ static lispval *hashindex_fetchkeys(kno_index ix,int *n)
       kno_close_inbuf(&keyblock);
       *n=-1;
       return NULL;}
-    n_keys = kno_read_zint(&keyblock);
+    n_keys = kno_read_varint(&keyblock);
     while (j<n_keys) {
       lispval key; int n_vals;
-      ssize_t dtype_len = kno_read_zint(&keyblock); /* IGNORE size */
+      ssize_t dtype_len = kno_read_varint(&keyblock); /* IGNORE size */
       if (dtype_len<0) {
         kno_seterr(kno_UnexpectedEOD,"",hx->indexid,KNO_VOID);
         key=KNO_ERROR_VALUE;}
@@ -1513,7 +1513,7 @@ static lispval *hashindex_fetchkeys(kno_index ix,int *n)
         const unsigned char *key_end = keyblock.bufread+dtype_len;
         key = read_key(hx,&keyblock);
         if (KNO_ABORTP(key)) keyblock.bufread=key_end;}
-      if ( (n_vals = kno_read_zint(&keyblock)) < 0) {
+      if ( (n_vals = kno_read_varint(&keyblock)) < 0) {
         kno_seterr(kno_UnexpectedEOD,"",hx->indexid,KNO_VOID);
         key=KNO_ERROR_VALUE;}
       if (!(KNO_TROUBLEP(key))) {
@@ -1533,14 +1533,14 @@ static lispval *hashindex_fetchkeys(kno_index ix,int *n)
       if (n_vals<0) {}
       else if (n_vals==0) {}
       else if (n_vals==1) {
-        int code = kno_read_zint(&keyblock);
+        int code = kno_read_varint(&keyblock);
         if (code==0) {
           lispval val = kno_read_dtype(&keyblock);
           kno_decref(val);}
-        else kno_read_zint(&keyblock);}
+        else kno_read_varint(&keyblock);}
       else {
-        kno_read_zint(&keyblock);
-        kno_read_zint(&keyblock);}
+        kno_read_varint(&keyblock);
+        kno_read_varint(&keyblock);}
       if (KNO_ABORTP(key)) {
         if ( hx->index_flags & KNO_STORAGE_REPAIR ) {
           kno_clear_errors(0);
@@ -1648,10 +1648,10 @@ static struct KNO_KEY_SIZE *hashindex_fetchinfo(kno_index ix,kno_choice filter,i
       kno_close_inbuf(&keyblock);
       *n=-1;
       return NULL;}
-    n_keys = kno_read_zint(&keyblock);
+    n_keys = kno_read_varint(&keyblock);
     while (j<n_keys) {
       lispval key; int n_vals;
-      ssize_t dtype_len = kno_read_zint(&keyblock); /* IGNORE size */
+      ssize_t dtype_len = kno_read_varint(&keyblock); /* IGNORE size */
       if (dtype_len<0) {
         kno_seterr(kno_UnexpectedEOD,"",hx->indexid,KNO_VOID);
         key=KNO_ERROR_VALUE;}
@@ -1659,7 +1659,7 @@ static struct KNO_KEY_SIZE *hashindex_fetchinfo(kno_index ix,kno_choice filter,i
         const unsigned char *key_end = keyblock.bufread+dtype_len;
         key = read_key(hx,&keyblock);
         if (KNO_ABORTP(key)) keyblock.bufread=key_end;}
-      if ( (n_vals = kno_read_zint(&keyblock)) < 0) {
+      if ( (n_vals = kno_read_varint(&keyblock)) < 0) {
         kno_seterr(kno_UnexpectedEOD,"",hx->indexid,KNO_VOID);
         key=KNO_ERROR_VALUE;}
       if ( (!(KNO_TROUBLEP(key))) &&
@@ -1682,14 +1682,14 @@ static struct KNO_KEY_SIZE *hashindex_fetchinfo(kno_index ix,kno_choice filter,i
       if (n_vals<0) {}
       else if (n_vals==0) {}
       else if (n_vals==1) {
-        int code = kno_read_zint(&keyblock);
+        int code = kno_read_varint(&keyblock);
         if (code==0) {
           lispval val = kno_read_dtype(&keyblock);
           kno_decref(val);}
-        else kno_read_zint(&keyblock);}
+        else kno_read_varint(&keyblock);}
       else {
-        kno_read_zint(&keyblock);
-        kno_read_zint(&keyblock);}
+        kno_read_varint(&keyblock);
+        kno_read_varint(&keyblock);}
       if (KNO_ABORTP(key)) {
         if ( hx->index_flags & KNO_STORAGE_REPAIR ) {
           kno_clear_errors(0);
@@ -1787,11 +1787,11 @@ struct KNO_KEY_SIZE *hashindex_fetchinfo(kno_index ix,kno_choice filter,int *n)
       u8_big_free(buckets);
       *n=-1;
       return NULL;}
-    n_keys = kno_read_zint(&keyblkstrm);
+    n_keys = kno_read_varint(&keyblkstrm);
     while (j<n_keys) {
-      /* size = */ kno_read_zint(&keyblkstrm);
+      /* size = */ kno_read_varint(&keyblkstrm);
       lipsval key = read_key(hx,&keyblkstrm);
-      int n_vals = kno_read_zint(&keyblkstrm);
+      int n_vals = kno_read_varint(&keyblkstrm);
       if ( (filter == NULL) || (fast_choice_containsp(key,filter)) ) {
         sizes[key_count].keysize_key = key;
         sizes[key_count].keysize_count = n_vals;
@@ -1799,14 +1799,14 @@ struct KNO_KEY_SIZE *hashindex_fetchinfo(kno_index ix,kno_choice filter,int *n)
       else kno_decref(key);
       if (n_vals==0) {}
       else if (n_vals==1) {
-        int code = kno_read_zint(&keyblkstrm);
+        int code = kno_read_varint(&keyblkstrm);
         if (code==0) {
           lispval val = kno_read_dtype(&keyblkstrm);
           kno_decref(val);}
-        else kno_read_zint(&keyblkstrm);}
+        else kno_read_varint(&keyblkstrm);}
       else {
-        kno_read_zint(&keyblkstrm);
-        kno_read_zint(&keyblkstrm);}
+        kno_read_varint(&keyblkstrm);
+        kno_read_varint(&keyblkstrm);}
       j++;}
     i++;}
   kno_close_inbuf(&keyblkstrm);
@@ -1867,7 +1867,7 @@ static void hashindex_getstats(struct KNO_HASHINDEX *hx,
   int n_keys;
   i = 0; while (i<n_to_fetch) {
     kno_open_block(s,&keyblkstrm,buckets[i].off,buckets[i].size,1);
-    n_keys = kno_read_zint(&keyblkstrm);
+    n_keys = kno_read_varint(&keyblkstrm);
     if (n_keys==1) (*singles)++;
     if (n_keys>(*max)) *max = n_keys;
     *n2sum = *n2sum+(n_keys*n_keys);
@@ -2181,12 +2181,12 @@ KNO_FASTOP void parse_keybucket(kno_hashindex hx,struct KEYBUCKET *kb,
   int i = 0; struct KEYENTRY *base_entry = &(kb->kb_elt0);
   kb->kb_n_keys = n_keys;
   while (i<n_keys) {
-    int dt_size = kno_read_zint(in), n_values;
+    int dt_size = kno_read_varint(in), n_values;
     struct KEYENTRY *entry = base_entry+i;
     entry->ke_dtrep_size = dt_size;
     entry->ke_dtstart    = in->bufread;
     in->bufread          = in->bufread+dt_size;
-    entry->ke_nvals      = n_values = kno_read_zint(in);
+    entry->ke_nvals      = n_values = kno_read_varint(in);
     if (n_values==0)
       entry->ke_values = EMPTY;
     else if (n_values==1) {
@@ -2195,8 +2195,8 @@ KNO_FASTOP void parse_keybucket(kno_hashindex hx,struct KEYBUCKET *kb,
       if (KNO_EMPTYP(v)) entry->ke_nvals = 0;}
     else {
       entry->ke_values    = VOID;
-      entry->ke_vref.off  = kno_read_zint(in);
-      entry->ke_vref.size = kno_read_zint(in);}
+      entry->ke_vref.off  = kno_read_varint(in);
+      entry->ke_vref.size = kno_read_varint(in);}
     i++;}
 }
 
@@ -2210,21 +2210,21 @@ KNO_FASTOP KNO_CHUNK_REF write_value_block
   KNO_CHUNK_REF retval; kno_off_t endpos = startpos;
   if (CHOICEP(values)) {
     int full_size = KNO_CHOICE_SIZE(values)+((VOIDP(extra))?0:1);
-    endpos = endpos+kno_write_zint(outstream,full_size);
+    endpos = endpos+kno_write_varint(outstream,full_size);
     if (!(VOIDP(extra)))
       endpos = endpos+write_zvalue(hx,outstream,oc,extra);
     {DO_CHOICES(value,values)
         endpos = endpos+write_zvalue(hx,outstream,oc,value);}}
   else if (VOIDP(extra)) {
-    endpos = endpos+kno_write_zint(outstream,1);
+    endpos = endpos+kno_write_varint(outstream,1);
     endpos = endpos+write_zvalue(hx,outstream,oc,values);}
   else {
-    endpos = endpos+kno_write_zint(outstream,2);
+    endpos = endpos+kno_write_varint(outstream,2);
     endpos = endpos+write_zvalue(hx,outstream,oc,extra);
     endpos = endpos+write_zvalue(hx,outstream,oc,values);}
-  endpos = endpos+kno_write_zint(outstream,cont_size);
+  endpos = endpos+kno_write_varint(outstream,cont_size);
   if (cont_size)
-    endpos = endpos+kno_write_zint(outstream,cont_off);
+    endpos = endpos+kno_write_varint(outstream,cont_off);
   CHECK_POS(endpos,stream);
   retval.off  = startpos;
   retval.size = endpos-startpos;
@@ -2392,20 +2392,20 @@ KNO_FASTOP kno_off_t write_keybucket
   int i = 0, n_keys = kb->kb_n_keys;
   struct KEYENTRY *ke = &(kb->kb_elt0);
   struct KNO_OUTBUF *outstream = kno_writebuf(stream);
-  endpos = endpos+kno_write_zint(outstream,n_keys);
+  endpos = endpos+kno_write_varint(outstream,n_keys);
   while (i<n_keys) {
     int dtype_size = ke[i].ke_dtrep_size, n_values = ke[i].ke_nvals;
-    endpos = endpos+kno_write_zint(outstream,dtype_size);
+    endpos = endpos+kno_write_varint(outstream,dtype_size);
     endpos = endpos+kno_write_bytes(outstream,ke[i].ke_dtstart,dtype_size);
-    endpos = endpos+kno_write_zint(outstream,n_values);
+    endpos = endpos+kno_write_varint(outstream,n_values);
     if (n_values==0) {}
     else if (n_values==1) {
       endpos = endpos+write_zvalue(hx,outstream,oc,ke[i].ke_values);
       kno_decref(ke[i].ke_values);
       ke[i].ke_values = VOID;}
     else {
-      endpos = endpos+kno_write_zint(outstream,ke[i].ke_vref.off);
-      endpos = endpos+kno_write_zint(outstream,ke[i].ke_vref.size);}
+      endpos = endpos+kno_write_varint(outstream,ke[i].ke_vref.off);
+      endpos = endpos+kno_write_varint(outstream,ke[i].ke_vref.size);}
     i++;}
   if (endpos>=maxpos) {
     u8_seterr(kno_DataFileOverflow,"write_keybucket",
@@ -2432,7 +2432,7 @@ KNO_FASTOP struct KEYBUCKET *read_keybucket
     else {
       struct KNO_INBUF keystream = { 0 };
       KNO_INIT_INBUF(&keystream,keybuf,ref.size,0);
-      n_keys = kno_read_zint(&keystream);
+      n_keys = kno_read_varint(&keystream);
       kb = (struct KEYBUCKET *)
         u8_malloc(sizeof(struct KEYBUCKET)+
                   sizeof(struct KEYENTRY)*((extra+n_keys)-1));
@@ -3407,12 +3407,12 @@ KNO_EXPORT lispval kno_hashindex_keyinfo(lispval lix,
       u8_big_free(bucket_no);
       kno_decref_elts(elts,key_count);
       return KNO_EMPTY_CHOICE;}
-    n_keys = kno_read_zint(&keyblkstrm);
+    n_keys = kno_read_varint(&keyblkstrm);
     while (j<n_keys) {
-      size_t key_rep_len = kno_read_zint(&keyblkstrm);
+      size_t key_rep_len = kno_read_varint(&keyblkstrm);
       const unsigned char *start = keyblkstrm.bufread;
       lispval key = read_key(hx,&keyblkstrm);
-      int n_vals = kno_read_zint(&keyblkstrm);
+      int n_vals = kno_read_varint(&keyblkstrm);
       assert(key!=0);
       if ( ( (min_thresh < 0) || (n_vals > min_thresh) ) &&
            ( (max_thresh < 0) || (n_vals < max_thresh) ) ) {
@@ -3430,14 +3430,14 @@ KNO_EXPORT lispval kno_hashindex_keyinfo(lispval lix,
       else kno_decref(key);
       if (n_vals==0) {}
       else if (n_vals==1) {
-        int code = kno_read_zint(&keyblkstrm);
+        int code = kno_read_varint(&keyblkstrm);
         if (code==0) {
           lispval val=kno_read_dtype(&keyblkstrm);
           kno_decref(val);}
-        else kno_read_zint(&keyblkstrm);}
+        else kno_read_varint(&keyblkstrm);}
       else {
-        kno_read_zint(&keyblkstrm);
-        kno_read_zint(&keyblkstrm);}
+        kno_read_varint(&keyblkstrm);
+        kno_read_varint(&keyblkstrm);}
       j++;}
     i++;}
   kno_close_inbuf(&keyblkstrm);
@@ -3527,12 +3527,12 @@ static lispval hashbucket_info(struct KNO_HASHINDEX *hx,lispval bucket_nums)
       u8_big_free(bucket_no);
       kno_decref(keyinfo);
       return KNO_EMPTY_CHOICE;}
-    n_keys = kno_read_zint(&keyblkstrm);
+    n_keys = kno_read_varint(&keyblkstrm);
     while (j<n_keys) {
-      size_t key_rep_len = kno_read_zint(&keyblkstrm);
+      size_t key_rep_len = kno_read_varint(&keyblkstrm);
       const unsigned char *start = keyblkstrm.bufread;
       lispval key = read_key(hx,&keyblkstrm);
-      int n_vals = kno_read_zint(&keyblkstrm);
+      int n_vals = kno_read_varint(&keyblkstrm);
       assert(key!=0);
       int n_slots = (n_vals>1) ? (4) : (5);
       lispval *keyinfo_values = u8_alloc_n(n_slots,lispval);
@@ -3547,8 +3547,8 @@ static lispval hashbucket_info(struct KNO_HASHINDEX *hx,lispval bucket_nums)
         lispval value = read_zvalue(hx,&keyblkstrm);
         keyinfo_values[4]=value;}
       else {
-        kno_read_zint(&keyblkstrm);
-        kno_read_zint(&keyblkstrm);}
+        kno_read_varint(&keyblkstrm);
+        kno_read_varint(&keyblkstrm);}
       lispval sm =
         kno_make_schemap(NULL,n_slots,
                         KNO_SCHEMAP_FIXED|KNO_SCHEMAP_READONLY,
@@ -3605,12 +3605,12 @@ static lispval hashrange_info(struct KNO_HASHINDEX *hx,
       u8_big_free(bucket_no);
       kno_decref(keyinfo);
       return KNO_EMPTY_CHOICE;}
-    n_keys = kno_read_zint(&keyblkstrm);
+    n_keys = kno_read_varint(&keyblkstrm);
     while (j<n_keys) {
-      size_t key_rep_len = kno_read_zint(&keyblkstrm);
+      size_t key_rep_len = kno_read_varint(&keyblkstrm);
       const unsigned char *start = keyblkstrm.bufread;
       lispval key = read_key(hx,&keyblkstrm);
-      int n_vals = kno_read_zint(&keyblkstrm);
+      int n_vals = kno_read_varint(&keyblkstrm);
       assert(key!=0);
       int n_slots = (n_vals>1) ? (4) : (5);
       lispval *keyinfo_values = u8_alloc_n(n_slots,lispval);
@@ -3625,8 +3625,8 @@ static lispval hashrange_info(struct KNO_HASHINDEX *hx,
         lispval value = read_zvalue(hx,&keyblkstrm);
         keyinfo_values[4]=value;}
       else {
-        kno_read_zint(&keyblkstrm);
-        kno_read_zint(&keyblkstrm);}
+        kno_read_varint(&keyblkstrm);
+        kno_read_varint(&keyblkstrm);}
       lispval sm = kno_make_schemap
         (NULL,n_slots,
          KNO_SCHEMAP_FIXED|KNO_SCHEMAP_READONLY,

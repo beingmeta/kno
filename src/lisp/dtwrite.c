@@ -543,7 +543,7 @@ KNO_EXPORT int kno_zwrite_dtype(struct KNO_OUTBUF *s,lispval x)
   zbytes = kno_zlib_compress(out.buffer,dt_len,zbuf,&zlen,-1);
   if (zbytes) {
     rv=kno_write_byte(s,dt_ztype);
-    if (rv>0) {size += rv; rv=kno_write_zint(s,zlen);}
+    if (rv>0) {size += rv; rv=kno_write_varint(s,zlen);}
     if (rv>0) {size += rv; rv=kno_write_bytes(s,zbytes,zlen);}}
   if (zbytes != zbuf) u8_free(zbytes);
   kno_close_outbuf(&out);
@@ -577,7 +577,7 @@ KNO_EXPORT int kno_zwrite_dtypes(struct KNO_OUTBUF *s,lispval x)
       retval = kno_write_byte(s,dt_ztype);
       if (retval>=0) {
         size += retval;
-        retval=kno_write_zint(s,zlen);}
+        retval=kno_write_varint(s,zlen);}
       if (retval>=0) {
         size += retval;
         retval=kno_write_bytes(s,zbytes,zlen);}}

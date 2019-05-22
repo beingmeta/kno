@@ -309,7 +309,7 @@ static lispval zread_int(lispval stream)
 {
   struct KNO_STREAM *ds=
     kno_consptr(struct KNO_STREAM *,stream,kno_stream_type);
-  unsigned int ival = kno_read_zint(kno_readbuf(ds));
+  unsigned int ival = kno_read_varint(kno_readbuf(ds));
   return KNO_INT(ival);
 }
 
@@ -318,7 +318,7 @@ static lispval zwrite_int(lispval object,lispval stream)
   struct KNO_STREAM *ds=
     kno_consptr(struct KNO_STREAM *,stream,kno_stream_type);
   int ival = kno_getint(object);
-  int bytes = kno_write_zint(kno_writebuf(ds),ival);
+  int bytes = kno_write_varint(kno_writebuf(ds),ival);
   if (bytes<0) return KNO_ERROR;
   else return KNO_INT(bytes);
 }

@@ -360,11 +360,11 @@ KNO_EXPORT int
   else return -1;
 }
 
-KNO_EXPORT int _kno_read_zint(struct KNO_INBUF *buf)
+KNO_EXPORT int _kno_read_varint(struct KNO_INBUF *buf)
 {
   if (PRED_FALSE(KNO_ISWRITING(buf)))
     return kno_iswritebuf(buf);
-  else return kno_read_zint(buf);
+  else return kno_read_varint(buf);
 }
 
 /* Compression functions */

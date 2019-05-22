@@ -295,7 +295,7 @@ KNO_EXPORT int _kno_write_8bytes(struct KNO_OUTBUF *,kno_8bytes);
      len)                                                               \
     : (_kno_write_bytes(buf,bvec,len))))
 
-KNO_FASTOP int kno_write_zint(struct KNO_OUTBUF *s,kno_8bytes n)
+KNO_FASTOP int kno_write_varint(struct KNO_OUTBUF *s,kno_8bytes n)
 {
   if (KNO_EXPECT_FALSE(KNO_ISREADING(s)))
     return kno_isreadbuf(s);
@@ -415,7 +415,7 @@ KNO_EXPORT long long _kno_read_4bytes(struct KNO_INBUF *buf);
 KNO_EXPORT kno_8bytes _kno_read_8bytes(struct KNO_INBUF *buf);
 KNO_EXPORT int _kno_read_bytes
   (unsigned char *bytes,struct KNO_INBUF *buf,int len);
-KNO_EXPORT int _kno_read_zint(struct KNO_INBUF *buf);
+KNO_EXPORT int _kno_read_varint(struct KNO_INBUF *buf);
 
 KNO_EXPORT size_t _kno_raw_closebuf(struct KNO_RAWBUF *buf);
 
@@ -496,7 +496,7 @@ KNO_FASTOP int kno_read_bytes
     return len;}
   else return -1;
 }
-KNO_FASTOP kno_8bytes kno_read_zint(struct KNO_INBUF *s)
+KNO_FASTOP kno_8bytes kno_read_varint(struct KNO_INBUF *s)
 {
   kno_8bytes result = 0; int probe;
   while ((probe = (kno_read_byte(s))))
@@ -511,7 +511,7 @@ KNO_FASTOP kno_8bytes kno_read_zint(struct KNO_INBUF *s)
 #define kno_unread_byte _kno_unread_byte
 #define kno_read_4bytes _kno_read_4bytes
 #define kno_read_bytes  _kno_read_bytes
-#define kno_read_zint   _kno_read_zint
+#define kno_read_varint   _kno_read_varint
 #endif
 
 #define kno_output_byte(out,b) \

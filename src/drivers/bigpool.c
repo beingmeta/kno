@@ -701,10 +701,10 @@ static lispval read_oid_value(kno_bigpool bp,
   if (byte0==0xFF) {
     /* Compressed data */
     kno_compress_type zmethod=
-      (kno_compress_type)(kno_read_byte(in), kno_read_zint(in));
-    ssize_t data_len = kno_read_zint(in);
+      (kno_compress_type)(kno_read_byte(in), kno_read_varint(in));
+    ssize_t data_len = kno_read_varint(in);
     if (data_len<0) {
-      u8_seterr("ReadZintFailed",cxt,u8_strdup(bp->poolid));
+      u8_seterr("ReadVarintFailed",cxt,u8_strdup(bp->poolid));
       return KNO_ERROR_VALUE;}
     else if (kno_request_bytes(in,data_len)<0) {
       u8_seterr("UnableToGetBytes",cxt,u8_strdup(bp->poolid));
@@ -724,14 +724,14 @@ static lispval read_oid_value(kno_bigpool bp,
       else return kno_err("UncompressFailed",cxt,bp->poolid,VOID);}}
   else if (byte0==0xF0) {
     /* Encoded slotmap/schemap */
-    unsigned int n_slots = (kno_read_byte(in), kno_read_zint(in));
+    unsigned int n_slots = (kno_read_byte(in), kno_read_varint(in));
     lispval sm = kno_make_slotmap(n_slots+1,n_slots,NULL);
     struct KNO_KEYVAL *kvals = KNO_SLOTMAP_KEYVALS(sm);
     int i = 0; while (i<n_slots) {
       lispval key = VOID, val = VOID;
       int slot_byte0 = kno_probe_byte(in);
       if (slot_byte0==0xE0) {
-        long long slotcode = (kno_read_byte(in), kno_read_zint(in));
+        long long slotcode = (kno_read_byte(in), kno_read_varint(in));
         lispval slotid = (slotcode < 0) ? (KNO_ERROR) :
           kno_code2slotid( & bp->pool_slotcodes, slotcode );
         if (KNO_TROUBLEP(slotid)) {
@@ -1273,7 +1273,7 @@ static ssize_t bigpool_write_value(kno_bigpool p,lispval value,
     lispval *values = sm->schema_values;
     int i = 0, size = sm->schema_length;
     kno_write_byte(tmpout,0xF0);
-    kno_write_zint(tmpout,size);
+    kno_write_varint(tmpout,size);
     while (i<size) {
       lispval slotid = schema[i], value = values[i];
       if ( ( (KNO_SYMBOLP(slotid)) || (KNO_OIDP(slotid)) ) &&
@@ -1283,7 +1283,7 @@ static ssize_t bigpool_write_value(kno_bigpool p,lispval value,
           slotcode = kno_add_slotcode( & p->pool_slotcodes , slotid );
         if (slotcode>=0) {
           kno_write_byte(tmpout,0xE0);
-          kno_write_zint(tmpout,slotcode);}
+          kno_write_varint(tmpout,slotcode);}
         else if (kno_write_dtype(tmpout,slotid)<0)
           return -1;
         else NO_ELSE;}
@@ -1298,7 +1298,7 @@ static ssize_t bigpool_write_value(kno_bigpool p,lispval value,
     struct KNO_KEYVAL *keyvals = sm->sm_keyvals;
     int i = 0, size = sm->n_slots;
     kno_write_byte(tmpout,0xF0);
-    kno_write_zint(tmpout,size);
+    kno_write_varint(tmpout,size);
     while (i<size) {
       lispval slotid = keyvals[i].kv_key;
       lispval value  = keyvals[i].kv_val;
@@ -1309,7 +1309,7 @@ static ssize_t bigpool_write_value(kno_bigpool p,lispval value,
           slotcode = kno_add_slotcode( & p->pool_slotcodes , slotid );
         if (slotcode>=0) {
           kno_write_byte(tmpout,0xE0);
-          kno_write_zint(tmpout,slotcode);}
+          kno_write_varint(tmpout,slotcode);}
         else if (kno_write_dtype(tmpout,slotid)<0)
           return -1;
         else NO_ELSE;}
@@ -1330,8 +1330,8 @@ static ssize_t bigpool_write_value(kno_bigpool p,lispval value,
     if (compressed) {
       size_t header = 1;
       kno_write_byte(outstream,0xFF);
-      header+=kno_write_zint(outstream,(int)p->pool_compression);
-      header+=kno_write_zint(outstream,compressed_length);
+      header+=kno_write_varint(outstream,(int)p->pool_compression);
+      header+=kno_write_varint(outstream,compressed_length);
       kno_write_bytes(outstream,compressed,compressed_length);
       u8_big_free(compressed);
       return header+compressed_length;}
