@@ -9,7 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-#include "kno/dtype.h"
+#include "kno/lisp.h"
 #include "kno/numbers.h"
 #include "kno/eval.h"
 

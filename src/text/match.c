@@ -201,7 +201,7 @@
 #define U8_INLINE_IO 1
 
 #include "kno/knosource.h"
-#include "kno/dtype.h"
+#include "kno/lisp.h"
 #include "kno/eval.h"
 #include "kno/texttools.h"
 #include "kno/fdregex.h"

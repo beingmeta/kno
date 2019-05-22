@@ -81,7 +81,7 @@ static int hashindex_loglevel = -1;
 #define KNO_FAST_CHOICE_CONTAINSP 1
 
 #include "kno/knosource.h"
-#include "kno/dtype.h"
+#include "kno/lisp.h"
 #include "kno/dtypeio.h"
 #include "kno/numbers.h"
 #include "kno/storage.h"

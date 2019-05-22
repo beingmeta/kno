@@ -15,7 +15,7 @@
 #define KNO_INLINE_APPLY  1
 
 #include "kno/knosource.h"
-#include "kno/dtype.h"
+#include "kno/lisp.h"
 #include "kno/lexenv.h"
 #include "kno/stacks.h"
 #include "kno/profiles.h"

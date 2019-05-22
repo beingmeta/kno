@@ -10,7 +10,7 @@
 #endif
 
 #include "kno/knosource.h"
-#include "kno/dtype.h"
+#include "kno/lisp.h"
 #include "kno/compounds.h"
 #include "kno/numbers.h"
 #include "kno/sequences.h"

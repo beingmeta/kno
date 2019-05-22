@@ -19,7 +19,7 @@
 #define KNO_INLINE_FCNIDS 1
 
 #include "kno/knosource.h"
-#include "kno/dtype.h"
+#include "kno/lisp.h"
 #include "kno/apply.h"
 
 #include <libu8/u8printf.h>

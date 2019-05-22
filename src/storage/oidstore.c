@@ -16,7 +16,7 @@
 #include "kno/components/storage_layer.h"
 
 #include "kno/knosource.h"
-#include "kno/dtype.h"
+#include "kno/lisp.h"
 #include "kno/storage.h"
 #include "kno/apply.h"
 

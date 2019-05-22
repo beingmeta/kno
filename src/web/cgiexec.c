@@ -13,7 +13,7 @@
 #define KNO_PROVIDE_FASTEVAL 1
 
 #include "kno/knosource.h"
-#include "kno/dtype.h"
+#include "kno/lisp.h"
 #include "kno/tables.h"
 #include "kno/eval.h"
 #include "kno/storage.h"

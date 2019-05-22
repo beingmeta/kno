@@ -13,7 +13,7 @@
 #define KNO_INLINE_FCNIDS 1
 
 #include "kno/knosource.h"
-#include "kno/dtype.h"
+#include "kno/lisp.h"
 #include "kno/compounds.h"
 #include "kno/sequences.h"
 #include "kno/numbers.h"

@@ -13,7 +13,7 @@
 #define KNO_INLINE_STACKS 1
 
 #include "kno/knosource.h"
-#include "kno/dtype.h"
+#include "kno/lisp.h"
 #include "kno/lexenv.h"
 #include "kno/apply.h"
 #include "kno/cprims.h"

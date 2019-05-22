@@ -10,7 +10,7 @@
 #endif
 
 #include "kno/knosource.h"
-#include "kno/dtype.h"
+#include "kno/lisp.h"
 #include "kno/cons.h"
 
 static lispval build_info=VOID;

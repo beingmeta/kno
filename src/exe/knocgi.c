@@ -11,7 +11,7 @@
 
 #include "kno/knosource.h"
 #include "kno/defines.h"
-#include "kno/dtype.h"
+#include "kno/lisp.h"
 #include "kno/tables.h"
 #include "kno/numbers.h"
 #include "kno/eval.h"

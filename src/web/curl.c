@@ -12,7 +12,7 @@
 #define U8_LOGLEVEL (u8_getloglevel(curl_loglevel))
 
 #include "kno/knosource.h"
-#include "kno/dtype.h"
+#include "kno/lisp.h"
 #include "kno/tables.h"
 #include "kno/eval.h"
 #include "kno/webtools.h"

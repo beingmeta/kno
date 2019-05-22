@@ -11,7 +11,7 @@
 #define KNO_STREAMS_H_INFO "include/kno/streams.h"
 #endif
 
-#include "dtype.h"
+#include "lisp.h"
 #include "dtypeio.h"
 
 #include <unistd.h>

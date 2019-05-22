@@ -5,7 +5,7 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#include "kno/dtype.h"
+#include "kno/lisp.h"
 #include "kno/streams.h"
 
 #include <libu8/libu8.h>

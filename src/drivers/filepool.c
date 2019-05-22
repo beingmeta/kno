@@ -14,7 +14,7 @@
 #define KNO_INLINE_BUFIO 1
 
 #include "kno/knosource.h"
-#include "kno/dtype.h"
+#include "kno/lisp.h"
 #include "kno/numbers.h"
 #include "kno/storage.h"
 #include "kno/pools.h"

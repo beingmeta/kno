@@ -7,10 +7,10 @@
 
 /* Dealing with DTYPE (dynamically typed) objects */
 
-#ifndef KNO_DTYPE_H
-#define KNO_DTYPE_H 1
-#ifndef KNO_DTYPE_H_INFO
-#define KNO_DTYPE_H_INFO "include/kno/dtype.h"
+#ifndef KNO_LISP_H
+#define KNO_LISP_H 1
+#ifndef KNO_LISP_H_INFO
+#define KNO_LISP_H_INFO "include/kno/lisp.h"
 #endif
 
 #include "common.h"
@@ -109,7 +109,7 @@ KNO_EXPORT int kno_pprint
 (u8_output out,lispval x,u8_string prefix,
  int indent,int col,int maxcol);
 
-#endif /* ndef KNO_DTYPE_H */
+#endif /* ndef KNO_LISP_H */
 
 /* Emacs local variables
    ;;;  Local variables: ***

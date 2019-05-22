@@ -16,7 +16,7 @@ static int stream_loglevel;
 #define KNO_INLINE_STREAMIO 1
 
 #include "kno/knosource.h"
-#include "kno/dtype.h"
+#include "kno/lisp.h"
 #include "kno/streams.h"
 
 #include <libu8/u8pathfns.h>

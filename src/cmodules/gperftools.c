@@ -23,7 +23,7 @@
 #include <gperftools/malloc_extension_c.h>
 #endif
 
-#include "kno/dtype.h"
+#include "kno/lisp.h"
 #include "kno/eval.h"
 #include "kno/storage.h"
 #include "kno/pools.h"

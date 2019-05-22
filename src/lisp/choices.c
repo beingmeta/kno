@@ -11,7 +11,7 @@
 
 #define KNO_INLINE_CHOICES 1
 #include "kno/knosource.h"
-#include "kno/dtype.h"
+#include "kno/lisp.h"
 
 #define MYSTERIOUS_MODULUS 256001281
 #define MYSTERIOUS_MULTIPLIER 2654435769U

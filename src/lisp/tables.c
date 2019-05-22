@@ -13,7 +13,7 @@
 #define KNO_INLINE_TABLES 1
 
 #include "kno/knosource.h"
-#include "kno/dtype.h"
+#include "kno/lisp.h"
 #include "kno/compounds.h"
 #include "kno/hash.h"
 #include "kno/tables.h"

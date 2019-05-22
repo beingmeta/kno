@@ -14,7 +14,7 @@
 #define KNO_INLINE_TABLES 1
 
 #include "kno/knosource.h"
-#include "kno/dtype.h"
+#include "kno/lisp.h"
 #include "kno/eval.h"
 #include "kno/cprims.h"
 #include "kno/storage.h"

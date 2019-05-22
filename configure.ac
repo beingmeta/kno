@@ -1,5 +1,5 @@
 AC_PREREQ(2.50)
-AC_INIT(include/kno/dtype.h)
+AC_INIT(include/kno/lisp.h)
 AC_PREFIX_PROGRAM(autoconf)
 
 AC_DEFUN([AC_CHECK_USER],[

@@ -10,7 +10,7 @@
 #endif
 
 #include "kno/knosource.h"
-#include "kno/dtype.h"
+#include "kno/lisp.h"
 #include <libu8/u8rusage.h>
 #include <libu8/u8logging.h>
 #include <stdarg.h>
@@ -50,7 +50,7 @@ static void register_header_files()
   u8_register_source_file(KNO_DEFINES_H_INFO);
   u8_register_source_file(KNO_PTR_H_INFO);
   u8_register_source_file(KNO_CONS_H_INFO);
-  u8_register_source_file(KNO_DTYPE_H_INFO);
+  u8_register_source_file(KNO_LISP_H_INFO);
   u8_register_source_file(KNO_CHOICES_H_INFO);
   u8_register_source_file(KNO_TABLES_H_INFO);
   u8_register_source_file(KNO_DTYPEIO_H_INFO);

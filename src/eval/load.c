@@ -6,7 +6,7 @@
 */
 
 #include "kno/knosource.h"
-#include "kno/dtype.h"
+#include "kno/lisp.h"
 #include "kno/eval.h"
 #include "kno/streams.h"
 #include "kno/support.h"

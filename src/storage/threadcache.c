@@ -12,7 +12,7 @@
 #include "kno/components/storage_layer.h"
 
 #include "kno/knosource.h"
-#include "kno/dtype.h"
+#include "kno/lisp.h"
 #include "kno/tables.h"
 #include "kno/apply.h"
 #include "kno/storage.h"

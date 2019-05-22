@@ -14,7 +14,7 @@ static int knod_loglevel;
 
 #include "kno/knosource.h"
 #include "kno/defines.h"
-#include "kno/dtype.h"
+#include "kno/lisp.h"
 #include "kno/numbers.h"
 #include "kno/support.h"
 #include "kno/tables.h"

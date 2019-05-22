@@ -14,7 +14,7 @@
 #define U8_INLINE_IO 1
 
 #include "kno/knosource.h"
-#include "kno/dtype.h"
+#include "kno/lisp.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8streamio.h>

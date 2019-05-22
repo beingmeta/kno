@@ -13,7 +13,7 @@
 #define KNO_INLINE_REFCOUNTS 0
 
 #include "kno/knosource.h"
-#include "kno/dtype.h"
+#include "kno/lisp.h"
 #include "kno/eval.h"
 #include "kno/numbers.h"
 #include "kno/sequences.h"

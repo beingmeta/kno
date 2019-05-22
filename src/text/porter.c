@@ -19,7 +19,7 @@
 */
 
 #include "kno/knosource.h"
-#include "kno/dtype.h"
+#include "kno/lisp.h"
 
 #include <libu8/u8stringfns.h>
 
