@@ -1,7 +1,7 @@
 #!@SCRIPT_SHELL@
 function usage() {
-    echo "Usage: fdinject <task> <file>";
-    echo "Usage: fdinject <task> - (read from stdin)";
+    echo "Usage: knoinject <task> <file>";
+    echo "Usage: knoinject <task> - (read from stdin)";
 }
 if ! test $# -eq 2; then
     usage;
@@ -12,7 +12,7 @@ else
     INJECT_INTO=
 fi
 if test "${INJECT_FILE}" = "-"; then
-    INJECT_FILE=fdinject.temp;
+    INJECT_FILE=knoinject.temp;
     cat > ${INJECT_FILE};
 fi
 if test -f ${TARGET}; then
@@ -21,7 +21,7 @@ elif test -f ${TARGET}.pid; then
   INJECT_INTO=${TARGET}.inj;
 elif test -f @daemon_rundir@/${TARGET}.pid; then
   INJECT_INTO=@daemon_rundir@/${TARGET}.inj;
-  OWNER=@fdaemon@;
+  OWNER=@knoaemon@;
 elif test -f @servlet_rundir@/${TARGET}.pid; then
   INJECT_INTO=@daemon_rundir@/${TARGET}.inj;
   OWNER=@webuser@;

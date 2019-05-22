@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 SUDO=sudo
-if getent group framerd > /dev/null; then
-  echo "Group framerd already exists";
+if getent group kno > /dev/null; then
+  echo "Group kno already exists";
 else
-  ${SUDO} addgroup --system framerd;
+  ${SUDO} addgroup --system kno;
 fi
-if id -u fdaemon; then
-  echo "User fdaemon already exists";
+if id -u knodaemon; then
+  echo "User knodaemon already exists";
 else
-  ${SUDO} adduser --system fdaemon \
+  ${SUDO} adduser --system knodaemon \
   	  --disabled-login --disabled-password \
           --no-create-home --shell ${FALSE};
 fi

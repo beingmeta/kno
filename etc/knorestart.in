@@ -36,7 +36,7 @@ else for name in $*; do
 	     restartworker "@daemon_rundir@/${name}.ppid";
 	 elif test -f @servlet_rundir@/${name}.ppid; then
 	     restartworker "@servlet_rundir@/${name}.ppid";
-	 else echo "fdrestart: Couldn't find task ${name}";
+	 else echo "knorestart: Couldn't find task ${name}";
 	 fi;
      done;
 fi;

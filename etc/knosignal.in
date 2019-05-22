@@ -6,7 +6,7 @@ SIGNALNAMES="^(sig)?(kill|term|hup|alarm|alrm|quit|int|[1]?[0-9])"
 SHOWLOG=
 
 showusage ( ) {
-    echo "Usage: fdsignal [signal] <job>*";
+    echo "Usage: knosignal [signal] <job>*";
 }
 
 listpids ( ) {
@@ -65,7 +65,7 @@ for name in $*; do
 	signalled="no";
     fi;
     if [ ${signalled} = "no" ]; then
-	echo "fdsignal: Couldn't find task ${name} for signal ${SIGNAL}";
+	echo "knosignal: Couldn't find task ${name} for signal ${SIGNAL}";
     elif [ -z "${SHOWLOG}" ]; then
 	SHOWLOG=${name};
     else
@@ -73,5 +73,5 @@ for name in $*; do
     fi;
 done;
 if [ ! -z ${SHOWLOG} ] && [ ${SHOWLOG} != ".none" ]; then
-    exec fdlog ${SHOWLOG};
+    exec knolog ${SHOWLOG};
 fi;

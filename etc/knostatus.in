@@ -1,10 +1,10 @@
 #!@SCRIPT_SHELL@
 
 showusage( ) {
-    echo "Usage: fdstatus <activity> ... ";
-    echo "Usage: fdstatus --list";
-    echo "Usage: fdstatus --files";
-    echo "Usage: fdstatus --compact";
+    echo "Usage: knostatus <activity> ... ";
+    echo "Usage: knostatus --list";
+    echo "Usage: knostatus --files";
+    echo "Usage: knostatus --compact";
 }
 
 compactlist( ) {
@@ -59,7 +59,7 @@ else for name in $*; do
 	     ROOT=@daemon_rundir@/`basename ${name} .pid`
 	 elif test -f @servlet_rundir@/${name}.pid; then
 	     ROOT=@servlet_rundir@/`basename ${name} .pid`
-	 else echo "fdstatus: Couldn't find activity ${name}";
+	 else echo "knostatus: Couldn't find activity ${name}";
 	 fi;
 	 if test "x${ROOT}" != "x"; then
 	     if test -f ${ROOT}.ppid; then

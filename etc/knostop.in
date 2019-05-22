@@ -14,7 +14,7 @@ for rundir in ${TARGETS}; do
     for ppid in ${rundir}/*.ppid; do
 	if [ `basename ${ppid}` != "*.ppid" ]; then
             export pidnum=`cat ${ppid}`;
-            echo "fdstop: Terminating manager ${ppid} (${pidnum})";
+            echo "knostop: Terminating manager ${ppid} (${pidnum})";
      	    unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; sudo kill ${pidnum};
 	fi;
     done;
@@ -25,17 +25,17 @@ for rundir in ${TARGETS}; do
 	if [ -f ${ppid} ]; then
 	    export base=`basename ${ppid} .ppid`;
             export pidnum=`cat ${ppid}`;
-	    echo "fdstop: Waiting for stubborn manager ${ppid} (${pidnum})";
+	    echo "knostop: Waiting for stubborn manager ${ppid} (${pidnum})";
 	    if [ -f ${ppid} ]; then sleep 1; fi
 	    if [ -f ${ppid} ]; then sleep 2; fi
 	    if [ -f ${ppid} ]; then sleep 4; fi
-	    echo "fdstop: Killing stubborn manager ${ppid} (${pidnum})";
+	    echo "knostop: Killing stubborn manager ${ppid} (${pidnum})";
      	    unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; \
 	            sudo kill -9 ${pidnum} &&
     		unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; \
 	            sudo rm -f ${ppid} ${rundir}/${base}.nospawn;
 	    if [ -f ${ppid}]; then\
-	      echo "Warning: (fdstop) Server manager ${ppid} (${pidnum}) couldn't be terminated or killed"; 
+	      echo "Warning: (knostop) Server manager ${ppid} (${pidnum}) couldn't be terminated or killed"; 
 	    fi;
 	fi;
     done;
@@ -45,15 +45,15 @@ for rundir in ${TARGETS}; do
     for pid in ${rundir}/*.pid; do
 	if [ -f ${pid} ]; then
 	   export pidnum=`cat ${pid}`
-	   echo "fdstop: Waiting for stubborn server ${pid} (${pidnum})";
+	   echo "knostop: Waiting for stubborn server ${pid} (${pidnum})";
 	   if [ -f ${pid} ]; then kill ${pidnum}; sleep 1; fi
 	   if [ -f ${pid} ] && checkpid ${pidnum}; then sleep 2; fi
 	   if [ -f ${pid} ] && checkpid ${pidnum}; then sleep 4; fi
      	   if [ -f ${pid} ]; then 
-	       echo "fdstop: Terminating server ${pid} (${pidnum})";
+	       echo "knostop: Terminating server ${pid} (${pidnum})";
 	       unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; \
 	         sudo kill ${pidnum}; 
-	   else echo "fdstop: Server ${pid} died of natural causes"; fi
+	   else echo "knostop: Server ${pid} died of natural causes"; fi
 	fi;
     done;
 done;
@@ -64,7 +64,7 @@ for rundir in ${TARGETS}; do
      	    if [ -f ${pid} ]; then 
 		export pidnum=`cat ${pid}`
 		if checkpid ${pidnum}; then
-		    echo "fdstop: Killing stubborn server ${pid} (${pidnum})";
+		    echo "knostop: Killing stubborn server ${pid} (${pidnum})";
 		    unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; \
 		      sudo kill -9 ${pidnum} && 
 			  unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; \
@@ -75,15 +75,15 @@ for rundir in ${TARGETS}; do
 			if [ -f ${pid} ]; then sleep 1; fi
 			# If the file still exists, check the process
 			if checkpid ${pidnum}; then
-			    echo "Warning: (fdstop) Server ${pid} (${pidnum}) didn't die";
-			else echo "fdstop: removing server pid file ${pid}";
+			    echo "Warning: (knostop) Server ${pid} (${pidnum}) didn't die";
+			else echo "knostop: removing server pid file ${pid}";
 			     sudo rm -f ${pid};
 			fi;
 		    fi;
-		else echo "fdstop: Removing leftover server pid file ${pid}";
+		else echo "knostop: Removing leftover server pid file ${pid}";
 		     sudo rm -f ${pid};
 		fi;
-	    else echo "fdstop: Server ${pid} eventually died of natural causes"; fi
+	    else echo "knostop: Server ${pid} eventually died of natural causes"; fi
 	fi;
     done;
 done;

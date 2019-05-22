@@ -34,7 +34,7 @@ case ${option} in
 	echo local_safe_modules "\t\t(Where locally installed sandboxed modules live)";
 	echo cmodules "\t\t\t(Where compiled dynamic modules live)";
 	echo webuser "\t\t\t(The name of the web content user account for this installation)";
-	echo fdaemon "\t\t\t(The name of the fdaemon user account for this installation)";
+	echo knodaemon "\t\t\t(The name of the knodaemon user account for this installation)";
 	echo admin_group "\t\t\t(The name of the administrator account for this installation)";
 	echo state "\t\t\t\t(Ephemeral state directory for Kno)";
 	echo rundir "\t\t\t\t(Where ephemeral state is stored for Kno applications and services)";
@@ -100,8 +100,8 @@ case ${option} in
 	echo "@libdir@/kno";;
     webuser)
 	echo "@webuser@";;
-    fdaemon)
-	echo "@fdaemon@";;
+    knodaemon)
+	echo "@knodaemon@";;
     admin|admingroup|admin_group)
 	echo "@admin_group@";;
     state)

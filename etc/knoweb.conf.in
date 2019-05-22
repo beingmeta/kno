@@ -2,7 +2,7 @@
   LoadModule knoweb_module      @apache_modules_dir@/mod_knoweb.so
 </IfModule>
 <IfModule mod_knoweb.c>
-        AddHandler knoweb .fdcgi .fdxml
+        AddHandler knoweb .fdcgi .fdxml .knocgi .knoxml
 	KnowebExecutable @prefix@/bin/knoweb
 	KnowebUser @webuser@
 	KnowebGroup @admin_group@

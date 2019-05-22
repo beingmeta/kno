@@ -3,54 +3,54 @@ SUDO=sudo
 DOMAIN=.
 LOGINSHELL=/usr/bin/false
 DSCL="sudo dscl"
-if dscl ${DOMAIN} read /Groups/_framerd RecordName 2>&1 > /dev/null; then
-  echo "Group _framerd already exists";
-elif dscl ${DOMAIN} read /Groups/framerd RecordName 2>&1 > /dev/null; then
-  echo "Group framerd already exists";
+if dscl ${DOMAIN} read /Groups/_kno RecordName 2>&1 > /dev/null; then
+  echo "Group _kno already exists";
+elif dscl ${DOMAIN} read /Groups/kno RecordName 2>&1 > /dev/null; then
+  echo "Group kno already exists";
 elif ! dscl /Local/Default -ls Groups gid | grep -q ^253\$ ; then
-	  echo Creating user/group for _framerd with TID 253
-          ${DSCL} /Local/Default -create Groups/__framerd;
-          ${DSCL} /Local/Default -create Groups/__framerd Password \*;
-          ${DSCL} /Local/Default -create Groups/__framerd PrimaryGroupID 253;
-          ${DSCL} /Local/Default -create Groups/__framerd RealName "FramerD group";
-          ${DSCL} /Local/Default -create Groups/__framerd RecordName __framerd _framerd;
+	  echo Creating user/group for _kno with TID 253
+          ${DSCL} /Local/Default -create Groups/__kno;
+          ${DSCL} /Local/Default -create Groups/__kno Password \*;
+          ${DSCL} /Local/Default -create Groups/__kno PrimaryGroupID 253;
+          ${DSCL} /Local/Default -create Groups/__kno RealName "Kno group";
+          ${DSCL} /Local/Default -create Groups/__kno RecordName __kno _kno;
 else  for (( uid = 500;; --uid )) ; do
     if ! id -u $uid &>/dev/null; then
         if ! dscl /Local/Default -ls Groups gid | grep -q [^0-9]$uid\$ ; then
-	  echo Creating user/group for _fdaemon $uid
-          ${DSCL} /Local/Default -create Groups/__framerd;
-          ${DSCL} /Local/Default -create Groups/__framerd Password \*;
-          ${DSCL} /Local/Default -create Groups/__framerd PrimaryGroupID $uid;
-          ${DSCL} /Local/Default -create Groups/__framerd RealName "FramerD group";
-          ${DSCL} /Local/Default -create Groups/__framerd RecordName __framerd _framerd;
+	  echo Creating user/group for _knodaemon $uid
+          ${DSCL} /Local/Default -create Groups/__kno;
+          ${DSCL} /Local/Default -create Groups/__kno Password \*;
+          ${DSCL} /Local/Default -create Groups/__kno PrimaryGroupID $uid;
+          ${DSCL} /Local/Default -create Groups/__kno RealName "Kno group";
+          ${DSCL} /Local/Default -create Groups/__kno RecordName __kno _kno;
 	fi;
     fi;
 	  done;
 
 fi
-if dscl ${DOMAIN} read /Users/_fdaemon RecordName 2>&1 > /dev/null; then
-  echo "User _fdaemon already exists";
-elif dscl ${DOMAIN} read /Users/_fdaemon RecordName 2>&1 > /dev/null; then
-  echo "User fdaemon already exists";
+if dscl ${DOMAIN} read /Users/_knodaemon RecordName 2>&1 > /dev/null; then
+  echo "User _knodaemon already exists";
+elif dscl ${DOMAIN} read /Users/_knodaemon RecordName 2>&1 > /dev/null; then
+  echo "User knodaemon already exists";
 else for (( uid = 500;; --uid )) ; do
     if ! id -u $uid &>/dev/null; then
         if ! dscl /Local/Default -ls Groups gid | grep -q [^0-9]$uid\$ ; then
-	  echo Creating user/group for _fdaemon $uid
-          ${DSCL} /Local/Default -create Groups/__fdaemon;
-          ${DSCL} /Local/Default -create Groups/__fdaemon Password \*;
-          ${DSCL} /Local/Default -create Groups/__fdaemon PrimaryGroupID $uid;
-          ${DSCL} /Local/Default -create Groups/__fdaemon RealName "FramerD daemon";
-          ${DSCL} /Local/Default -create Groups/__fdaemon RecordName __fdaemon _fdaemon;
-          ${DSCL} /Local/Default -create Users/__fdaemon;
-          ${DSCL} /Local/Default -create Users/__fdaemon NFSHomeDirectory /var/empty;
-          ${DSCL} /Local/Default -create Users/__fdaemon Password \*;
-          ${DSCL} /Local/Default -create Users/__fdaemon PrimaryGroupID $uid;
-          ${DSCL} /Local/Default -create Users/__fdaemon RealName "FramerD daemon";
-          ${DSCL} /Local/Default -create Users/__fdaemon RecordName __fdaemon _fdaemon;
-          ${DSCL} /Local/Default -create Users/__fdaemon UniqueID $uid;
-          ${DSCL} /Local/Default -create Users/__fdaemon UserShell /usr/bin/false;
-          ${DSCL} /Local/Default -delete /Users/__fdaemon AuthenticationAuthority;
-          ${DSCL} /Local/Default -delete /Users/__fdaemon PasswordPolicyOptions;
+	  echo Creating user/group for _knodaemon $uid
+          ${DSCL} /Local/Default -create Groups/__knodaemon;
+          ${DSCL} /Local/Default -create Groups/__knodaemon Password \*;
+          ${DSCL} /Local/Default -create Groups/__knodaemon PrimaryGroupID $uid;
+          ${DSCL} /Local/Default -create Groups/__knodaemon RealName "Kno daemon";
+          ${DSCL} /Local/Default -create Groups/__knodaemon RecordName __knodaemon _knodaemon;
+          ${DSCL} /Local/Default -create Users/__knodaemon;
+          ${DSCL} /Local/Default -create Users/__knodaemon NFSHomeDirectory /var/empty;
+          ${DSCL} /Local/Default -create Users/__knodaemon Password \*;
+          ${DSCL} /Local/Default -create Users/__knodaemon PrimaryGroupID $uid;
+          ${DSCL} /Local/Default -create Users/__knodaemon RealName "Kno daemon";
+          ${DSCL} /Local/Default -create Users/__knodaemon RecordName __knodaemon _knodaemon;
+          ${DSCL} /Local/Default -create Users/__knodaemon UniqueID $uid;
+          ${DSCL} /Local/Default -create Users/__knodaemon UserShell /usr/bin/false;
+          ${DSCL} /Local/Default -delete /Users/__knodaemon AuthenticationAuthority;
+          ${DSCL} /Local/Default -delete /Users/__knodaemon PasswordPolicyOptions;
           break;
         fi
     fi

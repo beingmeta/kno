@@ -11,25 +11,25 @@ if ${READLINK} -e /tmp 2>&1 > /dev/null; then
 fi;
 if test -z "${TARGETS}"; then TARGETS=${DEFAULT_TARGETS}; fi
 export KNO_LOGLEVEL=7
-export KNO_LAUNCHER=${KNO_LAUNCHER:-fdstart} 
+export KNO_LAUNCHER=${KNO_LAUNCHER:-knostart} 
 export LAUNCHCFG="LAUNCHER=${KNO_LAUNCHER}" 
 export COMMONCFG="RESTART=1 PIDWAIT=no STEALSOCKETS=yes" 
-export FDSTART="sudo -u @fdaemon@ -g @admin_group@"
+export KNOSTART="sudo -u @knoaemon@ -g @admin_group@"
 export WEBSTART="sudo -u @webuser@ -g @admin_group@"
 for TARGET in ${TARGETS}; do
-    export DAEMONCFG="${LAUNCHCFG} ${COMMONCFG} STATEDIR=@daemon_rundir@ FDSTART=${TARGET}";
+    export DAEMONCFG="${LAUNCHCFG} ${COMMONCFG} STATEDIR=@daemon_rundir@ KNOSTART=${TARGET}";
     for ctl in $(find -L ${TARGET} -name "*.fdz");
     do echo "Starting daemon manager for ${ctl}";
        if (${READLINK} ${ctl}>/dev/null);
-       then ${FDSTART} LOGFILE=@daemon_logdir@/`basename ${ctl} .fdz`.log \
+       then ${KNOSTART} LOGFILE=@daemon_logdir@/`basename ${ctl} .fdz`.log \
 	        knod `${READLINK} ${ctl}` ${DAEMONCFG} ${XARGS};
        else echo "Missing daemon controller " ${ctl} " linked to " `readlink -m ${ctl}`;
        fi;
     done;
 done;
 for TARGET in ${TARGETS}; do
-    export SERVLETCFG="${COMMONCFG} STATEDIR=@servlet_rundir@ FDSTART=${TARGET}";
-    export DAEMONCFG="${LAUNCHCFG} ${COMMONCFG} STATEDIR=@daemon_rundir@ FDSTART=${TARGET}";
+    export SERVLETCFG="${COMMONCFG} STATEDIR=@servlet_rundir@ KNOSTART=${TARGET}";
+    export DAEMONCFG="${LAUNCHCFG} ${COMMONCFG} STATEDIR=@daemon_rundir@ KNOSTART=${TARGET}";
     for sock in $(find -L ${TARGET} -name "*.sock");
     do if (${READLINK} ${sock}>/dev/null);
        then sudo touch @servlet_rundir@/`basename ${sock}`.nospawn;
@@ -42,7 +42,7 @@ for TARGET in ${TARGETS}; do
     done;
 done;
 for TARGET in ${TARGETS}; do
-    export SERVLETCFG="${COMMONCFG} STATEDIR=@servlet_rundir@ FDSTART=${TARGET}";
+    export SERVLETCFG="${COMMONCFG} STATEDIR=@servlet_rundir@ KNOSTART=${TARGET}";
     for cfg in $(find -L ${TARGET} -name "*.cfg");
     do if (${READLINK} ${cfg}>/dev/null);
        then sudo touch @servlet_rundir@/`basename ${cfg} .cfg`.nospawn;
@@ -55,7 +55,7 @@ for TARGET in ${TARGETS}; do
     done;
 done;
 for TARGET in ${TARGETS}; do
-    export SERVLETCFG="${COMMONCFG} STATEDIR=@servlet_rundir@ FDSTART=${TARGET}";
+    export SERVLETCFG="${COMMONCFG} STATEDIR=@servlet_rundir@ KNOSTART=${TARGET}";
     for addr in $(find -L ${TARGET} -name "*@*");
     do if (${READLINK} ${addr}>/dev/null);
        then sudo touch @servlet_rundir@/`basename ${addr}`.nospawn;
@@ -68,8 +68,8 @@ for TARGET in ${TARGETS}; do
     done;
 done;
 for TARGET in ${TARGETS}; do
-    export SERVLETCFG="${COMMONCFG} STATEDIR=@servlet_rundir@ FDSTART=${TARGET}";
-    export DAEMONCFG="${LAUNCHCFG} ${COMMONCFG} STATEDIR=@daemon_rundir@ FDSTART=${TARGET}";
+    export SERVLETCFG="${COMMONCFG} STATEDIR=@servlet_rundir@ KNOSTART=${TARGET}";
+    export DAEMONCFG="${LAUNCHCFG} ${COMMONCFG} STATEDIR=@daemon_rundir@ KNOSTART=${TARGET}";
     for addr in $(find -L ${TARGET} -name "*:*");
     do if (readlink ${addr}>/dev/null);
        then echo "Starting servlet manager for ${addr}";

@@ -91,7 +91,7 @@ for rundir in ${RUNDIRS}; do
 		pidnum=`cat ${pidfile}`;
 		kill -HUP ${ppidnum};
 		if livepid ${pidnum} ${count} ${sleep}; then
-		    echo "fdreload: forced kill (-9) of ${pidile} (${pidnum})";
+		    echo "knoreload: forced kill (-9) of ${pidile} (${pidnum})";
 		    kill -9 ${ppidnum}; 
 		    rm -f ${pidfile}; 
 		fi;
@@ -99,7 +99,7 @@ for rundir in ${RUNDIRS}; do
 		kill -HUP ${ppidnum}; 
 	    fi
 	    if waitfile ${pidfile} ${count} ${sleep}; then
-		echo "fdreload: Gave up waiting for ${pidile} to exist"; fi;
+		echo "knoreload: Gave up waiting for ${pidile} to exist"; fi;
 	fi;
     done;
 done;
