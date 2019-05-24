@@ -1520,7 +1520,7 @@ static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
       if (rp) mongoc_read_prefs_destroy(rp);
       if (q) bson_destroy(q);
       if (fields) bson_destroy(fields);}
-    else result = kno_err(kno_TypeError,"mongodb_find","bad skip/limit/batch",opts);
+    else result = kno_err(kno_TypeError,"mongodb_count","bad skip/limit/batch",opts);
     collection_done(collection,client,domain);
     U8_CLEAR_ERRNO();
     kno_decref(opts);
