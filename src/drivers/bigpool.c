@@ -211,7 +211,7 @@ static kno_size_t get_maxpos(kno_bigpool p)
 /* Making and opening bigpools */
 
 static kno_pool open_bigpool(u8_string fname,kno_storage_flags open_flags,
-                            lispval opts)
+                             lispval opts)
 {
   KNO_OID base = KNO_NULL_OID_INIT;
   unsigned int hi, lo, magicno, capacity, load, n_slotids, bigpool_format = 0;
@@ -231,7 +231,9 @@ static kno_pool open_bigpool(u8_string fname,kno_storage_flags open_flags,
   u8_string realpath = u8_realpath(fname,NULL);
   u8_string abspath = u8_abspath(fname,NULL);
   int stream_flags =
-    KNO_STREAM_CAN_SEEK | KNO_STREAM_NEEDS_LOCK | KNO_STREAM_READ_ONLY;
+    KNO_STREAM_CAN_SEEK | KNO_STREAM_NEEDS_LOCK | KNO_STREAM_READ_ONLY |
+    (( (open_flags) & (KNO_STORAGE_LOUDSYMS) ) ? (KNO_STREAM_LOUDSYMS) : (0));
+
   struct KNO_STREAM *stream=
     kno_init_file_stream(&(pool->pool_stream),fname,KNO_FILE_READ,stream_flags,-1);
   struct KNO_INBUF *instream = (stream) ? (kno_readbuf(stream)) : (NULL);
@@ -533,8 +535,7 @@ static int make_bigpool
   if (mtime<0) mtime = now;
 
   struct KNO_STREAM _stream, *stream=
-    kno_init_file_stream(&_stream,fname,
-                        KNO_FILE_CREATE,-1,
+    kno_init_file_stream(&_stream,fname,KNO_FILE_CREATE,-1,
                         kno_driver_bufsize);
   kno_outbuf outstream = (stream) ? (kno_writebuf(stream)) : (NULL);
   kno_offset_type offtype = (kno_offset_type)((flags)&(KNO_BIGPOOL_OFFMODE));
@@ -718,6 +719,8 @@ static lispval read_oid_value(kno_bigpool bp,
       if (uncompressed) {
         struct KNO_INBUF inflated = { 0 };
         KNO_INIT_BYTE_INPUT(&inflated,uncompressed,uncompressed_len);
+        if ( (in->buf_flags) & (KNO_FIX_DTSYMS) )
+          inflated.buf_flags |= KNO_FIX_DTSYMS;
         lispval oid_value = read_oid_value(bp,&inflated,cxt);
         u8_big_free(uncompressed);
         return oid_value;}
@@ -1388,8 +1391,7 @@ static int set_bigpool_label(kno_bigpool bp,u8_string label)
   /* We use this so we don't intrude on any active commits */
   u8_lock_mutex(&(bp->pool_commit_lock));
   /* But we open our own copy of the file */
-  kno_stream stream = kno_init_file_stream
-    (NULL,source,KNO_FILE_MODIFY,-1,256);
+  kno_stream stream = kno_init_file_stream(NULL,source,KNO_FILE_MODIFY,-1,256);
   if (stream == NULL) {
     u8_unlock_mutex(&(bp->pool_commit_lock));
     return -1;}
@@ -1947,8 +1949,7 @@ static void bigpool_setbuf(kno_pool p,ssize_t bufsize)
 
 static int bigpool_set_compression(kno_bigpool bp,kno_compress_type cmptype)
 {
-  struct KNO_STREAM _stream, *stream = kno_init_file_stream
-    (&_stream,bp->pool_source,KNO_FILE_MODIFY,-1,-1);
+  struct KNO_STREAM _stream, *stream = kno_init_file_stream(&_stream,bp->pool_source,KNO_FILE_MODIFY,-1,-1);
   if (stream == NULL) return -1;
   unsigned int format = kno_read_4bytes_at(stream,KNO_BIGPOOL_FORMAT_POS,KNO_STREAM_ISLOCKED);
   format = format & (~(KNO_BIGPOOL_COMPRESSION));
@@ -1965,8 +1966,7 @@ static int bigpool_set_compression(kno_bigpool bp,kno_compress_type cmptype)
 
 static int bigpool_set_read_only(kno_bigpool bp,int read_only)
 {
-  struct KNO_STREAM _stream, *stream = kno_init_file_stream
-    (&_stream,bp->pool_source,KNO_FILE_MODIFY,-1,-1);
+  struct KNO_STREAM _stream, *stream = kno_init_file_stream(&_stream,bp->pool_source,KNO_FILE_MODIFY,-1,-1);
   if (stream == NULL) return -1;
   unsigned int format = kno_read_4bytes_at(stream,KNO_BIGPOOL_FORMAT_POS,KNO_STREAM_ISLOCKED);
   if (read_only)

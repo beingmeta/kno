@@ -57,7 +57,7 @@ int kno_dbconn_init_default = KNO_DBCONN_INIT_DEFAULT;
 lispval kno_commit_phases[8];
 
 static lispval id_symbol, flags_symbol, background_symbol,
-  readonly_symbol, repair_symbol,
+  readonly_symbol, repair_symbol, fixsyms_symbol,
   sparse_symbol, register_symbol, virtual_symbol, phased_symbol,
   oidcodes_symbol, slotcodes_symbol;
 
@@ -106,6 +106,8 @@ kno_get_dbflags(lispval opts,kno_storage_flags init_flags)
       flags |= KNO_STORAGE_VIRTUAL;
     if (testopt(opts,repair_symbol,0))
       flags |= KNO_STORAGE_REPAIR;
+    if (testopt(opts,fixsyms_symbol,0))
+      flags |= KNO_STORAGE_LOUDSYMS;
     if ( (is_index) && (testopt(opts,background_symbol,0)) )
       flags |= KNO_INDEX_IN_BACKGROUND;
     if ( (!(is_index)) &&
@@ -663,6 +665,7 @@ KNO_EXPORT int kno_init_storage()
   slotcodes_symbol = kno_intern("slotcodes");
   oidcodes_symbol = kno_intern("oidcodes");
   virtual_symbol = kno_intern("virtual");
+  fixsyms_symbol = kno_intern("fixsyms");
 
   kno_set_oid_parser(better_parse_oid);
   kno_unparsers[kno_oid_type]=better_unparse_oid;
@@ -733,7 +736,7 @@ KNO_EXPORT int kno_init_storage()
      config_onsave_set,
      NULL);
   kno_register_config
-    ("STORAGE:FIXSYMS",_("Whether to convert legacy uppercase to lowercase"),
+    ("STORAGE:LOUDSYMS",_("Whether to convert legacy uppercase to lowercase"),
      kno_boolconfig_get,
      kno_boolconfig_set,
      &kno_norm_syms);

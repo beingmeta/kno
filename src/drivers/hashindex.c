@@ -193,6 +193,41 @@ static lispval slotids_symbol, baseoids_symbol, buckets_symbol, nkeys_symbol;
 #define output_bytes(out,bytes,n)                       \
   if (kno_write_bytes(out,bytes,n)<0) return -1; else {}
 
+/* For fixing case, from dtwrite.c */
+static ssize_t output_symbol_bytes(struct KNO_OUTBUF *out,
+                                   const unsigned char *bytes,
+                                   size_t len)
+{
+  int dtflags = out->buf_flags;
+  if ( ( (dtflags) & KNO_FIX_DTSYMS) || ( kno_dtype_fixcase ) ) {
+    u8_string scan = bytes;
+    int c = u8_sgetc(&scan), hascase = 0, fix = u8_islower(c);
+    U8_STATIC_OUTPUT(upper,len*2);
+    while (c >= 0) {
+      if (fix)
+        u8_putc(&upper,u8_toupper(c));
+      else if (u8_isupper(c)) {
+        if (hascase < 0) {
+          /* Mixed case, leave it */
+          fix=0; break;}
+        else {
+          u8_putc(&upper,c);
+          hascase=1;}}
+      else if (u8_islower(c)) {
+        if (hascase > 0) {
+          /* Mixed case, leave it */
+          fix=0; break;}
+        else {
+          u8_putc(&upper,u8_toupper(c));
+          hascase=-11;}}
+      else u8_putc(&upper,c);
+      c = u8_sgetc(&scan);}
+    if (fix) {
+      kno_output_bytes(out,u8_outstring(&upper),u8_outlen(&upper));}
+    else {kno_output_bytes(out,bytes,len);}}
+  else {kno_output_bytes(out,bytes,len);}
+}
+
 /* Getting chunk refs */
 
 static ssize_t get_chunk_ref_size(kno_hashindex ix)
@@ -217,11 +252,11 @@ KNO_FASTOP lispval read_dtype_at_pos(kno_stream s,kno_off_t off)
 
 static int load_header(struct KNO_HASHINDEX *index,struct KNO_STREAM *stream);
 
-static kno_index open_hashindex(u8_string fname,kno_storage_flags flags,
+static kno_index open_hashindex(u8_string fname,kno_storage_flags open_flags,
                                lispval opts)
 {
   struct KNO_HASHINDEX *index = u8_alloc(struct KNO_HASHINDEX);
-  int read_only = U8_BITP(flags,KNO_STORAGE_READ_ONLY);
+  int read_only = U8_BITP(open_flags,KNO_STORAGE_READ_ONLY);
 
   if ( (read_only == 0) && (u8_file_writablep(fname)) ) {
     if (kno_check_rollback("open_hashindex",fname)<0) {
@@ -238,13 +273,14 @@ static kno_index open_hashindex(u8_string fname,kno_storage_flags flags,
   unsigned int magicno;
   kno_stream_mode mode=
     ((read_only) ? (KNO_FILE_READ) : (KNO_FILE_MODIFY));
-  int stream_flags =
-    KNO_STREAM_CAN_SEEK | KNO_STREAM_NEEDS_LOCK | KNO_STREAM_READ_ONLY;
 
   kno_init_index((kno_index)index,&hashindex_handler,
-                fname,abspath,realpath,
-                flags,KNO_VOID,opts);
+                 fname,abspath,realpath,
+                 open_flags,KNO_VOID,opts);
 
+  int stream_flags =
+    KNO_STREAM_CAN_SEEK | KNO_STREAM_NEEDS_LOCK | KNO_STREAM_READ_ONLY  |
+    (( (open_flags) & (KNO_STORAGE_LOUDSYMS) ) ? (KNO_STREAM_LOUDSYMS) : (0));
   kno_stream stream=
     kno_init_file_stream(&(index->index_stream),abspath,mode,stream_flags,-1);
   u8_free(abspath); u8_free(realpath);
@@ -275,7 +311,7 @@ static kno_index open_hashindex(u8_string fname,kno_storage_flags flags,
     U8_SETBITS(index->index_flags,KNO_STORAGE_READ_ONLY);}
   else NO_ELSE;
 
-  if ((flags) & (KNO_INDEX_ONESLOT) ) {}
+  if ((open_flags) & (KNO_INDEX_ONESLOT) ) {}
   else if ((index->hashindex_format) & (KNO_HASHINDEX_ONESLOT) ) {
     U8_SETBITS(index->index_flags,KNO_INDEX_ONESLOT);}
   else NO_ELSE;
@@ -645,7 +681,7 @@ static int fast_write_dtype(kno_outbuf out,lispval key)
     else {
       {output_byte(out,dt_symbol);}
       {output_4bytes(out,len);}
-      {output_bytes(out,s->str_bytes,len);}
+      {output_symbol_bytes(out,s->str_bytes,len);}
       return len+5;}}
   else if (STRINGP(key)) {
     struct KNO_STRING *s = kno_consptr(struct KNO_STRING *,key,kno_string_type);
@@ -653,7 +689,7 @@ static int fast_write_dtype(kno_outbuf out,lispval key)
     if ((v2) && (len<256)) {
       {output_byte(out,dt_tiny_string);}
       {output_byte(out,len);}
-      {output_bytes(out,s->str_bytes,len);}
+      {output_symbol_bytes(out,s->str_bytes,len);}
       return len+2;}
     else {
       {output_byte(out,dt_string);}
@@ -751,18 +787,25 @@ static lispval fast_read_dtype(kno_inbuf in)
           unsigned char buf[len+1];
           memcpy(buf,in->bufread,len); buf[len]='\0';
           in->bufread = in->bufread+len;
-          symbol = kno_make_symbol(buf,len);
+          if ( ( (in->buf_flags) & KNO_FIX_DTSYMS) ||
+               ( kno_dtype_fixcase ) )
+            symbol = kno_fixcase_symbol(buf,len);
+          else symbol = kno_make_symbol(buf,len);
           return symbol;}}
     case dt_tiny_symbol:
       if (nobytes(in,2)) return kno_return_errcode(KNO_EOD);
       else {
         int len = kno_get_byte(in->bufread+1); in->bufread = in->bufread+2;
-        if (nobytes(in,len)) return kno_return_errcode(KNO_EOD);
+        if (nobytes(in,len))
+          return kno_return_errcode(KNO_EOD);
         else {
           unsigned char buf[257];
           memcpy(buf,in->bufread,len); buf[len]='\0';
           in->bufread = in->bufread+len;
-          return kno_make_symbol(buf,len);}}
+          if ( ( (in->buf_flags) & KNO_FIX_DTSYMS) ||
+               ( kno_dtype_fixcase ) )
+            return kno_fixcase_symbol(buf,len);
+          else return kno_make_symbol(buf,len);}}
     default:
       return kno_read_dtype(in);} /* switch */
   } /* else */
@@ -792,6 +835,8 @@ KNO_EXPORT ssize_t hashindex_bucket(struct KNO_HASHINDEX *hx,lispval key,
   KNO_INIT_BYTE_OUTBUF(&out,buf,1024);
   if ((hx->hashindex_format)&(KNO_HASHINDEX_DTYPEV2))
     out.buf_flags = out.buf_flags|KNO_USE_DTYPEV2;
+  if ((hx->index_stream.stream_flags)&(KNO_STREAM_LOUDSYMS))
+    out.buf_flags |= KNO_FIX_DTSYMS;
   out.buf_flags |= KNO_WRITE_OPAQUE;
   dtype_len = write_zkey(hx,&out,key);
   hashval = hash_bytes(out.buffer,dtype_len);
@@ -880,6 +925,8 @@ static lispval hashindex_fetch(kno_index ix,lispval key)
         return EMPTY;}}}
   if ((hx->hashindex_format)&(KNO_HASHINDEX_DTYPEV2))
     out.buf_flags |= KNO_USE_DTYPEV2;
+  if ((hx->index_stream.stream_flags)&(KNO_STREAM_LOUDSYMS))
+    out.buf_flags |= KNO_FIX_DTSYMS;
   out.buf_flags |= KNO_WRITE_OPAQUE;
   dtype_len = write_zkey(hx,&out,key); {}
   hashval = hash_bytes(out.buffer,dtype_len);
@@ -1070,6 +1117,8 @@ static int hashindex_fetchsize(kno_index ix,lispval key)
   KNO_INIT_BYTE_OUTBUF(&out,buf,64);
   if ((hx->hashindex_format)&(KNO_HASHINDEX_DTYPEV2))
     out.buf_flags = out.buf_flags|KNO_USE_DTYPEV2;
+  if ((hx->index_stream.stream_flags)&(KNO_STREAM_LOUDSYMS))
+    out.buf_flags |= KNO_FIX_DTSYMS;
   out.buf_flags |= KNO_WRITE_OPAQUE;
   dtype_len = write_zkey(hx,&out,key);
   hashval = hash_bytes(out.buffer,dtype_len);
@@ -1180,6 +1229,8 @@ static lispval *fetchn(struct KNO_HASHINDEX *hx,int n,const lispval *keys)
   KNO_INIT_BYTE_OUTPUT(&keysbuf,n*32);
   if ((hx->hashindex_format)&(KNO_HASHINDEX_DTYPEV2))
     keysbuf.buf_flags = keysbuf.buf_flags|KNO_USE_DTYPEV2;
+  if ((hx->index_stream.stream_flags)&(KNO_STREAM_LOUDSYMS))
+    keysbuf.buf_flags |= KNO_FIX_DTSYMS;
 
   keysbuf.buf_flags |= KNO_WRITE_OPAQUE;
 
@@ -2523,6 +2574,9 @@ static int hashindex_save(struct KNO_HASHINDEX *hx,
   if ((hx->hashindex_format)&(KNO_HASHINDEX_DTYPEV2)) {
     out.buf_flags |= KNO_USE_DTYPEV2;
     newkeys.buf_flags |= KNO_USE_DTYPEV2;}
+  if ((hx->index_stream.stream_flags)&(KNO_STREAM_LOUDSYMS)) {
+    out.buf_flags |= KNO_FIX_DTSYMS;
+    newkeys.buf_flags |= KNO_FIX_DTSYMS;}
 
   out.buf_flags |= KNO_WRITE_OPAQUE;
   newkeys.buf_flags |= KNO_WRITE_OPAQUE;

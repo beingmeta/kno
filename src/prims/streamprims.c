@@ -33,6 +33,8 @@
 #define KNO_DTWRITE_SIZE 10000
 #endif
 
+static lispval fixsyms_symbol;
+
 static lispval read_dtype(lispval stream,lispval pos,lispval len)
 {
   struct KNO_STREAM *ds=
@@ -427,6 +429,8 @@ static ssize_t write_dtypes(lispval dtypes,struct KNO_STREAM *out)
   struct KNO_OUTBUF tmp = { 0 };
   unsigned char tmpbuf[1000];
   KNO_INIT_BYTE_OUTBUF(&tmp,tmpbuf,1000);
+  if ( (out->stream_flags) & KNO_STREAM_LOUDSYMS )
+    tmp.buf_flags |= KNO_FIX_DTSYMS;
   if ((CHOICEP(dtypes))||(PRECHOICEP(dtypes))) {
     /* This writes out the objects sequentially, writing into memory
        first and then to disk, to reduce the danger of malformed
@@ -612,13 +616,15 @@ static lispval zipfile2dtypes(lispval filename)
   else return kno_type_error(_("string"),"zipfile2dtypes",filename);;
 }
 
-static lispval open_dtype_output_file(lispval fname)
+static lispval open_dtype_output_file(lispval fname,lispval opts)
 {
   u8_string filename = CSTRING(fname);
   struct KNO_STREAM *dts=
     (u8_file_existsp(filename)) ?
     (kno_open_file(filename,KNO_FILE_MODIFY)) :
     (kno_open_file(filename,KNO_FILE_CREATE));
+  if ( (KNO_CONSP(opts)) && (kno_testopt(opts,fixsyms_symbol,VOID)) ) {
+    dts->stream_flags |= KNO_STREAM_LOUDSYMS;}
   if (dts) {
     U8_CLEAR_ERRNO();
     return LISP_CONS(dts);}
@@ -628,7 +634,7 @@ static lispval open_dtype_output_file(lispval fname)
     return KNO_ERROR;}
 }
 
-static lispval open_dtype_input_file(lispval fname)
+static lispval open_dtype_input_file(lispval fname,lispval opts)
 {
   u8_string filename = CSTRING(fname);
   if (!(u8_file_existsp(filename))) {
@@ -637,6 +643,8 @@ static lispval open_dtype_input_file(lispval fname)
   else {
     struct KNO_STREAM *stream = kno_open_file(filename,KNO_STREAM_READ_ONLY);
     if (stream) {
+      if ( (KNO_CONSP(opts)) && (kno_testopt(opts,fixsyms_symbol,VOID)) ) {
+        stream->stream_flags |= KNO_STREAM_LOUDSYMS;}
       U8_CLEAR_ERRNO();
       return (lispval) stream;}
     else return KNO_ERROR_VALUE;}
@@ -775,6 +783,7 @@ KNO_EXPORT void kno_init_streamprims_c()
   streamprims_module =
     kno_new_cmodule("streamprims",(KNO_MODULE_DEFAULT),kno_init_streamprims_c);
   u8_register_source_file(_FILEINFO);
+  fixsyms_symbol = kno_intern("LOUDSYMS");
 
   kno_idefn3(kno_scheme_module,"READ-DTYPE",read_dtype,1,
             "(READ-DTYPE *stream* [*off*] [*len*]) reads "
@@ -875,17 +884,17 @@ KNO_EXPORT void kno_init_streamprims_c()
   kno_defalias(streamprims_module,"ZIPFILE->DTYPES","ZFILE->DTYPES");
 
   kno_idefn(streamprims_module,
-           kno_make_cprim1x("OPEN-DTYPE-FILE",open_dtype_input_file,1,
-                           kno_string_type,VOID));
+           kno_make_cprim2x("OPEN-DTYPE-FILE",open_dtype_input_file,1,
+                            kno_string_type,VOID,-1,VOID));
   kno_idefn(streamprims_module,
-           kno_make_cprim1x("OPEN-DTYPE-INPUT",open_dtype_input_file,1,
-                           kno_string_type,VOID));
+           kno_make_cprim2x("OPEN-DTYPE-INPUT",open_dtype_input_file,1,
+                            kno_string_type,VOID,-1,VOID));
   kno_idefn(streamprims_module,
-           kno_make_cprim1x("OPEN-DTYPE-OUTPUT",open_dtype_output_file,1,
-                           kno_string_type,VOID));
+           kno_make_cprim2x("OPEN-DTYPE-OUTPUT",open_dtype_output_file,1,
+                            kno_string_type,VOID,-1,VOID));
   kno_idefn(streamprims_module,
            kno_make_cprim1x("EXTEND-DTYPE-FILE",extend_dtype_file,1,
-                           kno_string_type,VOID));
+                            kno_string_type,VOID));
 
   kno_idefn(streamprims_module,kno_make_cprim1("DTYPE-STREAM?",streamp,1));
   kno_idefn(streamprims_module,kno_make_cprim1("DTYPE-INPUT?",dtype_inputp,1));

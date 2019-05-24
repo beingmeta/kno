@@ -55,6 +55,7 @@ typedef int kno_stream_flags;
 #define KNO_STREAM_MMAPPED        (KNO_STREAM_FLAGS << 10)
 /* DType related flags */
 #define KNO_STREAM_DTYPEV2        (KNO_STREAM_FLAGS << 16)
+#define KNO_STREAM_LOUDSYMS        (KNO_STREAM_FLAGS << 17)
 
 #define KNO_DEFAULT_FILESTREAM_FLAGS \
   (KNO_STREAM_CAN_SEEK|KNO_STREAM_OWNS_FILENO)
@@ -115,10 +116,10 @@ struct KNO_STREAM *kno_init_stream(kno_stream s,
 
 KNO_EXPORT
 kno_stream kno_init_file_stream (kno_stream stream,
-                               u8_string filename,
-                               kno_stream_mode mode,
-                               kno_stream_flags flags,
-                               ssize_t bufsiz);
+                                 u8_string filename,
+                                 kno_stream_mode mode,
+                                 kno_stream_flags flags,
+                                 ssize_t bufsiz);
 
 KNO_EXPORT kno_stream kno_open_file(u8_string filename,kno_stream_mode mode);
 

@@ -135,6 +135,41 @@ static ssize_t write_choice_dtype(kno_outbuf out,kno_choice ch)
   return dtype_len;
 }
 
+static ssize_t output_symbol_bytes(struct KNO_OUTBUF *out,
+                                   const unsigned char *bytes,
+                                   size_t len)
+{
+  int dtflags = out->buf_flags;
+  if ( ( (dtflags) & KNO_FIX_DTSYMS) || ( kno_dtype_fixcase ) ) {
+    u8_string scan = bytes;
+    int c = u8_sgetc(&scan), hascase = 0, fix = ! (u8_isupper(c));
+    U8_STATIC_OUTPUT(upper,len*2);
+    while (c >= 0) {
+      if (fix)
+        u8_putc(&upper,u8_toupper(c));
+      else if (u8_isupper(c)) {
+        if (hascase < 0) {
+          /* Mixed case, leave it */
+          fix=0; break;}
+        else {
+          u8_putc(&upper,c);
+          hascase=1;}}
+      else if (u8_islower(c)) {
+        if (hascase > 0) {
+          /* Mixed case, leave it */
+          fix=0; break;}
+        else {
+          u8_putc(&upper,u8_toupper(c));
+          hascase=-11;}}
+      else u8_putc(&upper,c);
+      c = u8_sgetc(&scan);}
+    if (fix) {
+      kno_output_bytes(out,u8_outstring(&upper),u8_outlen(&upper));}
+    else {kno_output_bytes(out,bytes,len);}}
+  else {kno_output_bytes(out,bytes,len);}
+  return len;
+}
+
 KNO_EXPORT ssize_t kno_write_dtype(struct KNO_OUTBUF *out,lispval x)
 {
   if (PRED_FALSE(KNO_ISREADING(out)))
@@ -174,16 +209,17 @@ KNO_EXPORT ssize_t kno_write_dtype(struct KNO_OUTBUF *out,lispval x)
       if (itype == kno_symbol_type) { /* output symbol */
         lispval name = kno_symbol_names[data];
         struct KNO_STRING *s = kno_consptr(struct KNO_STRING *,name,kno_string_type);
-        int len = s->str_bytelen;
-        if (((out->buf_flags)&(KNO_USE_DTYPEV2)) && (len<256)) {
+        const unsigned char *bytes = s->str_bytes;
+        int len = s->str_bytelen, dtflags = out->buf_flags;
+        if (((dtflags)&(KNO_USE_DTYPEV2)) && (len<256)) {
           {kno_output_byte(out,dt_tiny_symbol);}
           {kno_output_byte(out,len);}
-          {kno_output_bytes(out,s->str_bytes,len);}
+          {output_symbol_bytes(out,bytes,len);}
           return len+2;}
         else {
           {kno_output_byte(out,dt_symbol);}
           {kno_output_4bytes(out,len);}
-          {kno_output_bytes(out,s->str_bytes,len);}
+          {output_symbol_bytes(out,bytes,len);}
           return len+5;}}
       else if (itype == kno_character_type) { /* Output unicode character */
         kno_output_byte(out,dt_character_package);

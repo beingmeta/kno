@@ -295,7 +295,8 @@ KNO_EXPORT lispval kno_read_dtype(struct KNO_INBUF *in)
         u8_byte data[257];
         memcpy(data,in->bufread,len); data[len]='\0';
         in->bufread += len;
-        if ( kno_dtype_fixcase )
+        if ( ( (in->buf_flags) & KNO_FIX_DTSYMS) ||
+             ( kno_dtype_fixcase ) )
           return kno_fixcase_symbol(data,len);
         else return kno_make_symbol(data,len);}
     case dt_tiny_string:
@@ -316,7 +317,8 @@ KNO_EXPORT lispval kno_read_dtype(struct KNO_INBUF *in)
         unsigned char data[len+1];
         memcpy(data,in->bufread,len); data[len]='\0';
         in->bufread += len;
-        if ( kno_dtype_fixcase )
+        if ( ( (in->buf_flags) & KNO_FIX_DTSYMS) ||
+             ( kno_dtype_fixcase ) )
           return kno_fixcase_symbol(data,len);
         else return kno_make_symbol(data,len);}
     case dt_vector:
@@ -602,7 +604,8 @@ static lispval make_character_type(int code,
     while (scan < limit) {
       int c = scan[0]<<8|scan[1]; scan = scan+2;
       u8_putc(&os,c);}
-    if ( kno_dtype_fixcase )
+    if ( ( (dtflags) & KNO_FIX_DTSYMS) ||
+         ( kno_dtype_fixcase ) )
       sym = kno_fixcase_symbol(os.u8_outbuf,os.u8_write-os.u8_outbuf);
     else sym = kno_make_symbol(os.u8_outbuf,os.u8_write-os.u8_outbuf);
     u8_free(bytes);
