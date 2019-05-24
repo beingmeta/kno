@@ -6,7 +6,7 @@
 #set env FD_INDICES bground@localhost
 env DYLD_LIBRARY_PATH=@abs_top_srcdir@/lib
 env LD_LIBRARY_PATH=@abs_top_srcdir@/lib
-env FD_INIT_DLOADPATH=@abs_top_srcdir@/lib/framerd/%.@shared_suffix@:@abs_top_srcdir@/../lingo/%.@shared_suffix@:@prefix@/lib/framerd/%.@shared_suffix@
+env KNO_INIT_DLOADPATH @abs_top_srcdir@/lib/kno/%.@shared_suffix@:@abs_top_srcdir@/lib/libkno%.@shared_suffix@:@abs_top_srcdir@/../lingo/%.@shared_suffix@:@prefix@/lib/kno/%.@shared_suffix@
 env FD_INIT_LOADPATH=@abs_top_srcdir@/src/extmods/:@abs_top_srcdir@/src/extmods/safe/:@default_module_path@
 env FD_INIT_SAFELOADPATH=@abs_top_srcdir@/src/extmods/safe/:@default_safe_module_path@
 env FD_UPDATEMODULES=5
@@ -20,4 +20,3 @@ env FD_TRACEWEB=yes
 env FD_WEBDEBUG=yes
 env FD_WEBALLOWDEBUG=yes
 env FD_LIBSCM_DIR=@abs_top_srcdir@/src/libscm/
-

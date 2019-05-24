@@ -1,5 +1,6 @@
 export VG_ENV="\
         LD_LIBRARY_PATH=./lib DYLD_LIBRARY_PATH=../lib			\
+	KNO_INIT_DLOADPATH=@abs_top_srcdir@/lib/kno/%.@shared_suffix@:@abs_top_srcdir@/../lingo/%.@shared_suffix@:@prefix@/lib/kno/%.@shared_suffix@ \
 	MEMCHECKING=yes UNDERGDB=yes					\
 	FD_DLOADPATH=../lib/framerd					\
 	FD_LIBSCM_DIR=../src/libscm					\

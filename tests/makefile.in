@@ -3,7 +3,7 @@
 # This file is a part of beingmeta's Kno implementation
 
 MAKEFLAGS = -s
-export KNO_INIT_DLOADPATH=../lib/kno/%..@shared_suffix@:../../tagger/c/%..@shared_suffix@:@prefix@/lib/kno/%.@shared_suffix@
+export KNO_INIT_DLOADPATH=../lib/kno/%..@shared_suffix@:../lib/libkno%..@shared_suffix@:@prefix@/lib/kno/%.@shared_suffix@
 export KNO_INIT_LOADPATH=../src/libscm/:../src/extmods:@default_module_path@
 export KNO_INIT_SAFELOADPATH=../src/libscm/:../src/extmods/safe/:@default_safe_module_path@
 export KNO_LOADPATH=../src/libscm/:../src/extmods/:
@@ -31,12 +31,12 @@ XLIBS      	=
 LIBS       	= $(XLIBS) $(BMLIBS) $(BASELIBS)
 EXEFLAGS	= @EXEFLAGS@
 EXELIBS   	= @EXELIBS@
-CORE_LIBS  	= ../lib/libfdscheme@suffix@.a       \
-	          ../lib/libfddbserv@suffix@.a  \
-	          ../lib/libfddrivers@suffix@.a \
-	          ../lib/libfdstorage@suffix@.a     \
-	          ../lib/libfdcore@suffix@.a
-EXTRA_LIBS 	= ../lib/libtexttools@suffix@.a ../lib/libwebtools@suffix@.a
+CORE_LIBS  	= ../lib/libknoscheme@suffix@.a       \
+	          ../lib/libknodbserv@suffix@.a  \
+	          ../lib/libknodrivers@suffix@.a \
+	          ../lib/libknostorage@suffix@.a     \
+	          ../lib/libknocore@suffix@.a
+EXTRA_LIBS 	= ../lib/libknotexttools@suffix@.a ../lib/libknowebtools@suffix@.a
 DESTDIR		=
 prefix		= @prefix@
 exec_prefix	= @exec_prefix@
