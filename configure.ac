@@ -117,10 +117,16 @@ module_path=""
 safe_module_path=""
 source_dir=""
 CMODULES=""
-INSTALLCMODULES=""
+DB_CMODULES=""
+TEXT_MODULES=""
+GRAPHICS_CMODULES=""
+ARCHIVE_CMODULES=""
+INSTALL_CMODULES=""
+INSTALL_DB_CMODULES=""
+INSTALL_TEXT_MODULES=""
+INSTALL_GRAPHICS_CMODULES=""
+INSTALL_ARCHIVE_CMODULES=""
 TESTCMODULES=""
-DBMODULES=""
-INSTALLDBMODULES=""
 DATAFILES="etc/version"
 SUDO=""
 SUINSTALL=
@@ -332,12 +338,18 @@ AC_SUBST(SUDO)
 AC_SUBST(SUINSTALL)
 AC_SUBST(WWWUSER)
 AC_SUBST(CMODULES)
-AC_SUBST(DBMODULES)
+AC_SUBST(DB_CMODULES)
+AC_SUBST(TEXT_CMODULES)
+AC_SUBST(GRAPHICS_CMODULES)
+AC_SUBST(ARCHIVE_CMODULES)
 AC_SUBST(DATAFILES)
 AC_SUBST(BOOTSETUP)
-AC_SUBST(INSTALLCMODULES)
+AC_SUBST(INSTALL_CMODULES)
+AC_SUBST(INSTALL_DB_CMODULES)
+AC_SUBST(INSTALL_TEXT_CMODULES)
+AC_SUBST(INSTALL_GRAPHICS_CMODULES)
+AC_SUBST(INSTALL_ARCHIVE_CMODULES)
 AC_SUBST(TESTCMODULES)
-AC_SUBST(INSTALLDBMODULES)
 AC_SUBST(MALLOC_FLAGS)
 AC_SUBST(MYSQL_CFLAGS)
 AC_SUBST(MYSQL_LDFLAGS)
@@ -769,7 +781,7 @@ else
     AC_CHECK_LIB(tcmalloc,malloc,EXELIBS="-ltcmalloc $EXELIBS")
     AC_CHECK_LIB(profiler,ProfilerStart,EXELIBS="-lprofiler $EXELIBS")
     CMODULES="lib/kno/gperftools.${shared_suffix} ${CMODULES}"
-    INSTALLCMODULES="install-gperftools ${INSTALLCMODULES}"
+    INSTALL_CMODULES="install-gperftools ${INSTALL_CMODULES}"
   elif test "$gperftools" = "minimal"; then
     AC_CHECK_LIB(tcmalloc_minimal,malloc,EXELIBS="-ltcmalloc_minimal $EXELIBS")
   else
@@ -817,7 +829,120 @@ AC_CHECK_FUNCS(u8_cryptic,with_crypto_default="yes")
 AC_ARG_WITH(crypto,--with[out]-crypto Compile the crypto module,,with_crypto=$with_crypto_default)
 if test $with_crypto = "yes"; then
   CMODULES="lib/kno/crypto.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-crypto ${INSTALLCMODULES}"
+  INSTALL_CMODULES="install-crypto ${INSTALL_CMODULES}"
+fi
+
+# OpenSSL checks
+AC_CHECK_FUNCS(CRYPTO_set_locking_callback)
+
+### Regular expressions library
+
+regex_included=no
+
+AC_CHECK_HEADER(regex.h,have_regex_h="yes",have_regex_h="no")
+if (test "$have_regex_h" = "yes"); then
+  AC_CHECK_FUNC(regcomp,have_regcomp="yes",have_regcomp="no")
+  regex_included=yes
+fi
+if (test "$have_regex_h" = "yes") && (test "$have_regcomp" = "no"); then
+  AC_CHECK_LIB(regex,regcomp,have_regcomp="yes",have_regcomp="no")
+  regex_included=yes
+fi
+
+if test ! "${regex_included}" = "yes"; then
+   missing="regex ${missing}";
+fi   
+
+# IPEVAL configuration (disabled by default, patented)
+
+dnl This enables the ipeval implementation within Kno
+AC_ARG_ENABLE(ipeval,--en[dis]able-ipeval Enable IPEVAL,,enable_ipeval=$enable_ipeval_default)
+if test $enable_ipeval = "yes"; then
+  ipevalo=src/storage/ipeval.o
+  ipevalprimso=src/prims/ipevalprims.o
+  AC_DEFINE(KNO_IPEVAL_ENABLED,1)
+else
+  AC_DEFINE(KNO_IPEVAL_ENABLED,0)
+fi
+
+dnl This forces the use of a global lock for ipeval, which can reduce
+dnl  parallellism  but may help track down subtle bugs
+AC_ARG_WITH(global_ipeval,--with[out]-global-ipeval Use global lock and variables for ipeval,,with_global_ipeval=$global_ipeval_default)
+if test $with_global_ipeval = "yes"; then
+  AC_DEFINE(KNO_GLOBAL_IPEVAL,1)
+else
+  AC_DEFINE(KNO_GLOBAL_IPEVAL,0)
+fi
+
+## Build CURL cmodule
+
+dnl Build with primitives accessing libcurl, if it is available
+AC_CHECK_LIB(curl,curl_easy_init,curl_default="yes")
+AC_ARG_WITH(curl,--with[out]-curl Use libcurl in webtools,,with_curl=$curl_default)
+if test $with_curl = "yes"; then
+  AC_CHECK_LIB(curl,curl_easy_init)
+  AC_CHECK_HEADERS(curl/curl.h)
+  AC_DEFINE(KNO_WITH_CURL,1)
+  curlo="src/web/curl.o"
+  curlconfig="\`curl-config --libs\`"
+else
+  AC_DEFINE(KNO_WITH_CURL,0)
+  missing="curl ${missing}"
+fi
+
+## Providing DNS functions in webtools
+
+dnl Build with primitives accessing DNS resolution functions, if available
+AC_CHECK_HEADERS(resolv.h)
+AC_CHECK_HEADERS(arpa/nameser.h)
+AC_CHECK_HEADERS(netinet/in.h)
+AC_CHECK_HEADERS(netdb.h)
+AC_CHECK_LIB(ldns,ldns_resolver_query,dns_default="yes")
+AC_ARG_WITH(dns,--with[out]-dns Use dns in web,,with_dns=$dns_default)
+if test "$with_dns" = "yes"; then
+  AC_CHECK_LIB(ldns,ldns_resolver_query)
+  AC_DEFINE(KNO_WITH_DNS,1)
+  ldnso="src/web/ldns.o"
+else
+  AC_DEFINE(KNO_WITH_DNS,0)
+  missing="ldns ${missing}"
+fi
+
+# For UUID functions
+AC_CHECK_LIB(uuid,uuid_generate_time)
+AC_CHECK_FUNCS(uuid_generate_time)
+
+## Large files
+
+dnl Compile for access to large files, essentially defining off_t as 64 bits.
+AC_ARG_ENABLE(largefiles,--en[dis]able-largefiles Enable use of large (> 2GB) file support,,enable_largefiles=yes)
+if test $enable_largefiles = "yes"; then
+  AC_DEFINE(KNO_LARGEFILES_ENABLED,1)
+else
+  AC_DEFINE(KNO_LARGEFILES_ENABLED,0)
+fi
+
+dnl This integrates the webtools module into executables by default; otherwise
+dnl  it is built and installed as a plugin library
+AC_ARG_ENABLE(htmldump,--en[dis]able-htmldump write HTML backtraces,,enable_htmldump="yes")
+if test $enable_htmldump = "yes"; then
+  scheme_builtins_init="$scheme_builtins_init; kno_init_webtools()"
+  xdynamic_scheme_libs="$xdynamic_scheme_libs -lknowebtools${suffix}"
+  xstatic_exe_libs="lib/libknowebtools${suffix}.a $xstatic_exe_libs"
+  xstatic_scheme_libs=" ../../lib/libknowebtools${suffix}.a $xstatic_scheme_libs"
+  AC_DEFINE(KNO_HTMLDUMP_ENABLED,1)
+fi
+
+### Object/index database prefetching
+
+dnl This is used to disable the simplest automatic database prefetches.
+dnl This is typically used to configure for benchmarking prefetch mechanisms
+dnl against the base case of no prefetches at all.
+AC_ARG_ENABLE(prefetching,--en[dis]able-prefetching make frame operations prefetch when they can,,enable_prefetching="yes")
+if test $enable_prefetching = "yes"; then
+  AC_DEFINE(KNO_PREFETCHING_ENABLED,1)
+else
+  AC_DEFINE(KNO_PREFETCHING_ENABLED,0)
 fi
 
 ### Installation configuration
@@ -1097,6 +1222,14 @@ AC_DEFINE_UNQUOTED(KNO_CONFIG_FILE_PATH,"$with_local_config/%:$with_shared_confi
 
 AC_ARG_WITH(unpackage_dir,--with-unpackage-dir location,,with_unpackage_dir=$share_dir/packages)
 unpackage_dir=$with_unpackage_dir
+
+dnl This builds in file config lookups
+AC_ARG_ENABLE(fileconfig,--en[dis]able-fileconfig enable file-based configuration,,enable_fileconfig="yes")
+if test "$enable_fileconfig" = "yes"; then
+  AC_DEFINE(KNO_FILECONFIG_ENABLED,1)
+else
+  AC_DEFINE(KNO_FILECONFIG_ENABLED,0)
+fi
 
 ### Scheme Module search paths
 
@@ -1380,6 +1513,16 @@ if test "$with_libu8" != ""; then
   EXEFLAGS="$EXEFLAGS -L$with_libu8/lib"
 fi
 
+dnl check for building with parseltongue
+AC_ARG_WITH(parseltongue,--with[out]-parseltongue Build parseltongue libraries for connecting Kno and Python)
+if test "$with_parseltongue" = "yes"; then
+   AX_PYTHON2
+fi;
+if test "$with_parseltongue" = "yes" &&  test ! -z "${ax_python2_lib}"; then
+   CMODULES="lib/kno/parseltongue.$shared_suffix ${CMODULES}"
+   INSTALL_CMODULES="install-parseltongue ${INSTALL_CMODULES}"
+fi
+
 ### Control use of 'sudo' for installation
 
 dnl Use sudo for installations in makefile
@@ -1421,11 +1564,11 @@ if test "${enable_leveldb}" = "yes" ||
    if test "${enable_leveldb}" = "yes" &&
       test "${ac_cv_header_leveldb_c_h}" = "yes" &&
       test "${leveldb_ok}" = "yes"; then
-      DBMODULES="${DBMODULES} lib/kno/leveldb.${shared_suffix}";
-     INSTALLDBMODULES="${INSTALLDBMODULES} install-leveldb";
+      DB_CMODULES="${DB_CMODULES} lib/kno/leveldb.${shared_suffix}";
+     INSTALL_DB_CMODULES="${INSTALL_DB_CMODULES} install-leveldb";
    elif test "${enable_leveldb}" = "force"; then
-     DBMODULES="lib/kno/leveldb.${shared_suffix} ${DBMODULES}";
-     INSTALLDBMODULES="${INSTALLDBMODULES} install-leveldb";
+     DB_CMODULES="lib/kno/leveldb.${shared_suffix} ${DB_CMODULES}";
+     INSTALL_DB_CMODULES="${INSTALL_DB_CMODULES} install-leveldb";
      force_enabled="leveldb ${force_enabled}";
    else
      auto_disabled="leveldb ${auto_disabled}";
@@ -1447,11 +1590,11 @@ if test "${enable_rocksdb}" = "yes" ||
    if test "${enable_rocksdb}" = "yes" && 
       test "${ac_cv_header_rocksdb_c_h}" = "yes";
       test "${rocksdb_ok}" = "yes"; then
-     DBMODULES="lib/kno/rocksdb.${shared_suffix} ${DBMODULES}";
-     INSTALLDBMODULES="install-rocksdb ${INSTALLDBMODULES}";
+     DB_CMODULES="lib/kno/rocksdb.${shared_suffix} ${DB_CMODULES}";
+     INSTALL_DB_CMODULES="install-rocksdb ${INSTALL_DB_CMODULES}";
    elif test "${enable_rocksdb}" = "force"; then
-     DBMODULES="lib/kno/rocksdb.${shared_suffix} ${DBMODULES}";
-     INSTALLDBMODULES="install-rocksdb ${INSTALLDBMODULES}";
+     DB_CMODULES="lib/kno/rocksdb.${shared_suffix} ${DB_CMODULES}";
+     INSTALL_DB_CMODULES="install-rocksdb ${INSTALL_DB_CMODULES}";
      force_enabled="rocksdb ${force_enabled}";
    else
      auto_disabled="rocksdb ${auto_disabled}";
@@ -1470,11 +1613,11 @@ if test "$enable_imagick" = "yes" &&
    $pkg_config --exists MagickWand; then
   IMAGICK_CFLAGS=`$pkg_config MagickWand --cflags`;
   IMAGICK_LDFLAGS=`$pkg_config MagickWand --libs`;
-  CMODULES="lib/kno/imagick.$shared_suffix ${CMODULES}";
-  INSTALLCMODULES="install-imagick ${INSTALLCMODULES}";
+  GRAPHICS_CMODULES="lib/kno/imagick.$shared_suffix ${GRAPHICS_CMODULES}";
+  INSTALL_GRAPHICS_CMODULES="imagick-install ${INSTALL_GRAPHICS_CMODULES}";
 elif test "$enable_imagick" = "force"; then
-  CMODULES="lib/kno/imagick.$shared_suffix ${CMODULES}";
-  INSTALLCMODULES="install-imagick ${INSTALLCMODULES}";
+  GRAPHICS_CMODULES="lib/kno/imagick.$shared_suffix ${GRAPHICS_CMODULES}";
+  INSTALL_GRAPHICS_CMODULES="imagick-install ${INSTALL_GRAPHICS_CMODULES}";
 elif test "$enable_imagick" = "yes"; then
   auto_disabled="imagick ${auto_disabled}";
   enable_imagick="failed";
@@ -1488,8 +1631,8 @@ AC_CHECK_HEADERS(archive.h)
 AC_CHECK_LIB(archive,archive_read_new)
 if test "${ac_cv_header_archive_h}" == "yes" && \
    test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
-  CMODULES="lib/kno/libarchive.${shared_suffix} ${CMODULES}"
-  INSTALLCMODULES="install-libarchive ${INSTALLCMODULES}"
+  ARCHIVE_CMODULES="lib/kno/libarchive.${shared_suffix} ${ARCHIVE_CMODULES}"
+  INSTALL_ARCHIVE_CMODULES="archive ${INSTALL_ARCHIVE_CMODULES}"
 else
   missing="libarchive ${missing}"
 fi
@@ -1510,15 +1653,15 @@ if test "$enable_ziptools" = "yes" ||
     CFLAGS="${CFLAGS} ${LIBZIP_CFLAGS}"
     CPPFLAGS="${CPPFLAGS} ${LIBZIP_CFLAGS}"
     LDFLAGS="${LDFLAGS} ${LIBZIP_LDFLAGS}"
-    CMODULES="lib/kno/ziptools.$shared_suffix ${CMODULES}";
-    INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}";
+    ARCHIVE_CMODULES="lib/kno/ziptools.$shared_suffix ${ARCHIVE_CMODULES}";
+    INSTALL_ARCHIVE_CMODULES="install-ziptools ${INSTALL_ARCHIVE_CMODULES}";
   elif test "$have_zip_h" = "yes" &&
        test "$have_libzip" = "yes"; then
-    CMODULES="lib/kno/ziptools.$shared_suffix ${CMODULES}";
-    INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}";
+    ARCHIVE_CMODULES="lib/kno/ziptools.$shared_suffix ${ARCHIVE_CMODULES}";
+    INSTALL_ARCHIVE_CMODULES="install-ziptools ${INSTALL_ARCHIVE_CMODULES}";
   elif test "$enable_ziptools" = "force"; then
-    CMODULES="lib/kno/ziptools.$shared_suffix ${CMODULES}";
-    INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}";
+    ARCHIVE_CMODULES="lib/kno/ziptools.$shared_suffix ${ARCHIVE_CMODULES}";
+    INSTALL_ARCHIVE_CMODULES="install-ziptools ${INSTALL_ARCHIVE_CMODULES}";
     force_enabled="ziptools ${force_enabled}";
   else
     auto_disabled="ziptools ${auto_disabled}";
@@ -1538,13 +1681,13 @@ if test "$enable_mongodb" = "yes" ||
      $pkg_config --exists libmongoc-1.0; then
     MONGODB_CFLAGS=`$pkg_config libmongoc-1.0 --cflags` 
     MONGODB_LDFLAGS=`$pkg_config libmongoc-1.0 --libs` 
-    DBMODULES="lib/kno/mongodb.$shared_suffix ${DBMODULES}";
-    INSTALLDBMODULES="install-mongodb ${INSTALLDBMODULES}";
+    DB_CMODULES="lib/kno/mongodb.$shared_suffix ${DB_CMODULES}";
+    INSTALL_DB_CMODULES="install-mongodb ${INSTALL_DB_CMODULES}";
     MONGODB_ENABLED=yes
   elif test "$enable_mongodb" = "force"; then
     force_enabled="mongodb ${force_enabled}";
-    DBMODULES="lib/kno/mongodb.$shared_suffix ${DBMODULES}";
-    INSTALLDBMODULES="install-mongodb ${INSTALLDBMODULES}";
+    DB_CMODULES="lib/kno/mongodb.$shared_suffix ${DB_CMODULES}";
+    INSTALL_DB_CMODULES="install-mongodb ${INSTALL_DB_CMODULES}";
     MONGODB_ENABLED=yes
   else
     auto_disabled="mongodb ${auto_disabled}";
@@ -1553,8 +1696,8 @@ elif test "$enable_mongodb" = "bundled"; then
     MONGODB_BUNDLED=mongodb.bundled
     MONGODB_CFLAGS="-I./include/bson -I./include/mongoc"
     MONGODB_LDFLAGS="-Wl,--whole-archive -Wl,-Bstatic -lmongoc -Wl,--no-whole-archive  -lbson -Wl,-Bdynamic"
-    DBMODULES="lib/kno/mongodb.$shared_suffix ${DBMODULES}";
-    INSTALLDBMODULES="install-mongodb ${INSTALLDBMODULES}";
+    DB_CMODULES="lib/kno/mongodb.$shared_suffix ${DB_CMODULES}";
+    INSTALL_DB_CMODULES="install-mongodb ${INSTALL_DB_CMODULES}";
 else
     manually_disabled="mongodb ${manually_disabled}";      
 fi;
@@ -1584,8 +1727,8 @@ elif test "$with_mysql" != "no"; then
 fi
 
 if test "$with_mysql" != "no"; then
-  DBMODULES="lib/kno/mysql.$shared_suffix ${DBMODULES}"
-  INSTALLDBMODULES="install-mysql ${INSTALLDBMODULES}"
+  DB_CMODULES="lib/kno/mysql.$shared_suffix ${DB_CMODULES}"
+  INSTALL_DB_CMODULES="install-mysql ${INSTALL_DB_CMODULES}"
 else
   missing="mysql ${missing}"
 fi
@@ -1604,8 +1747,8 @@ if test "$enable_odbc" = "yes"; then
      AC_CHECK_LIB(iodbc,SQLNumResultCols,ODBC_LIBS="-liodbc")
      AC_CHECK_LIB(odbc,SQLNumResultCols,ODBC_LIBS="-lodbc")
      if test ! -z "${ODBC_LIBS}"; then
-       DBMODULES="lib/kno/odbc.$shared_suffix ${DBMODULES}"
-       INSTALLDBMODULES="install-odbc ${INSTALLDBMODULES}"
+       DB_CMODULES="lib/kno/odbc.$shared_suffix ${DB_CMODULES}"
+       INSTALL_DB_CMODULES="install-odbc ${INSTALL_DB_CMODULES}"
        odbc_included=yes
      fi;
    fi;
@@ -1627,8 +1770,8 @@ if test $have_sqlite3_h = "yes"; then
   AC_CHECK_LIB(sqlite3,sqlite3_open,sqlite3_ok="yes")
   AC_CHECK_LIB(sqlite3,sqlite3_open_v2,sqlite3v2_ok="yes")
   if test "$sqlite3_ok" = "yes"; then
-    DBMODULES="lib/kno/sqlite.$shared_suffix ${DBMODULES}";
-    INSTALLDBMODULES="install-sqlite ${INSTALLDBMODULES}";
+    DB_CMODULES="lib/kno/sqlite.$shared_suffix ${DB_CMODULES}";
+    INSTALL_DB_CMODULES="install-sqlite ${INSTALL_DB_CMODULES}";
     sqlite_included=no
     if test "${sqlite3v2_ok}" == "yes"; then
       AC_DEFINE(HAVE_SQLITE3_V2,1)
@@ -1640,24 +1783,6 @@ if test ! "${sqlite_included}" = "yes"; then
    missing="sqlite ${missing}";
 fi   
 
-### Regular expressions library
-
-regex_included=no
-
-AC_CHECK_HEADER(regex.h,have_regex_h="yes",have_regex_h="no")
-if (test "$have_regex_h" = "yes"); then
-  AC_CHECK_FUNC(regcomp,have_regcomp="yes",have_regcomp="no")
-  regex_included=yes
-fi
-if (test "$have_regex_h" = "yes") && (test "$have_regcomp" = "no"); then
-  AC_CHECK_LIB(regex,regcomp,have_regcomp="yes",have_regcomp="no")
-  regex_included=yes
-fi
-
-if test ! "${regex_included}" = "yes"; then
-   missing="regex ${missing}";
-fi   
-
 ### zlib/libz compression functions
 
 AC_CHECK_HEADER(zlib.h,have_zlib_h="yes",have_zlib_h="no")
@@ -1666,8 +1791,8 @@ if (test "$have_zlib_h" = "yes"); then
 fi
 
 if (test "$have_libz" = "yes"); then
-  CMODULES="lib/kno/zlib.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-zlib ${INSTALLCMODULES}"
+  ARCHIVE_CMODULES="lib/kno/zlib.$shared_suffix ${ARCHIVE_CMODULES}"
+  INSTALL_ARCHIVE_CMODULES="install-zlib ${INSTALL_ARCHIVE_CMODULES}"
 fi
 
 AC_CHECK_HEADER(zlib.h,have_zlib_h="yes",have_zlib_h="no")
@@ -1699,8 +1824,8 @@ fi;
 AC_ARG_ENABLE(tidy,--en[dis]able-tidy Build and install tidy module,,enable_tidy="yes")
 
 if test "$enable_tidy" = "yes"; then
-  CMODULES="lib/kno/tidy.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-tidy ${INSTALLCMODULES}"
+  TEXT_CMODULES="lib/kno/tidy.$shared_suffix ${TEXT_CMODULES}"
+  INSTALL_TEXT_CMODULES="install-tidy ${INSTALL_TEXT_CMODULES}"
 fi
 
 ### Hyphenate library
@@ -1716,12 +1841,12 @@ fi
 if test "$enable_hyphenate" = "yes" &&
    test "$ac_cv_header_hyphen_h" = "yes" &&
    test "$hyphen_ok" = "yes"; then
-  CMODULES="lib/kno/hyphenate.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-hyphenate ${INSTALLCMODULES}"
+  TEXT_CMODULES="lib/kno/hyphenate.$shared_suffix ${TEXT_CMODULES}"
+  INSTALL_TEXT_CMODULES="install-hyphenate ${INSTALL_TEXT_CMODULES}"
   DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
 elif test "$enable_hyphenate" = "force"; then
-  CMODULES="lib/kno/hyphenate.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-hyphenate ${INSTALLCMODULES}"
+  TEXT_CMODULES="lib/kno/hyphenate.$shared_suffix ${TEXT_CMODULES}"
+  INSTALL_TEXT_CMODULES="install-hyphenate ${INSTALL_TEXT_CMODULES}"
   DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
   force_enabled="hyphenate ${force_enabled}";
 elif test "$enable_hyphenate" = "yes"; then
@@ -1731,123 +1856,12 @@ else
   manually_disabled="hyphenate $manually_disabled";
 fi
 
-# OpenSSL checks
-AC_CHECK_FUNCS(CRYPTO_set_locking_callback)
-
-# For UUID functions
-AC_CHECK_LIB(uuid,uuid_generate_time)
-AC_CHECK_FUNCS(uuid_generate_time)
-
-## Large files
-
-dnl Compile for access to large files, essentially defining off_t as 64 bits.
-AC_ARG_ENABLE(largefiles,--en[dis]able-largefiles Enable use of large (> 2GB) file support,,enable_largefiles=yes)
-if test $enable_largefiles = "yes"; then
-  AC_DEFINE(KNO_LARGEFILES_ENABLED,1)
-else
-  AC_DEFINE(KNO_LARGEFILES_ENABLED,0)
-fi
-
 # Sundown library for converting markdown to HTML
 
 AC_ARG_WITH(sundown,--with[out]-sundown Compile the sundown module,,with_sundown="yes")
 if test "$with_sundown" = "yes"; then
-  CMODULES="lib/kno/sundown.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-sundown ${INSTALLCMODULES}"
-fi
-
-### Object/index database prefetching
-
-dnl This is used to disable the simplest automatic database prefetches.
-dnl This is typically used to configure for benchmarking prefetch mechanisms
-dnl against the base case of no prefetches at all.
-AC_ARG_ENABLE(prefetching,--en[dis]able-prefetching make frame operations prefetch when they can,,enable_prefetching="yes")
-if test $enable_prefetching = "yes"; then
-  AC_DEFINE(KNO_PREFETCHING_ENABLED,1)
-else
-  AC_DEFINE(KNO_PREFETCHING_ENABLED,0)
-fi
-
-dnl This builds in file config lookups
-AC_ARG_ENABLE(fileconfig,--en[dis]able-fileconfig enable file-based configuration,,enable_fileconfig="yes")
-if test "$enable_fileconfig" = "yes"; then
-  AC_DEFINE(KNO_FILECONFIG_ENABLED,1)
-else
-  AC_DEFINE(KNO_FILECONFIG_ENABLED,0)
-fi
-
-dnl This integrates the webtools module into executables by default; otherwise
-dnl  it is built and installed as a plugin library
-AC_ARG_ENABLE(htmldump,--en[dis]able-htmldump write HTML backtraces,,enable_htmldump="yes")
-if test $enable_htmldump = "yes"; then
-  scheme_builtins_init="$scheme_builtins_init; kno_init_webtools()"
-  xdynamic_scheme_libs="$xdynamic_scheme_libs -lknowebtools${suffix}"
-  xstatic_exe_libs="lib/libknowebtools${suffix}.a $xstatic_exe_libs"
-  xstatic_scheme_libs=" ../../lib/libknowebtools${suffix}.a $xstatic_scheme_libs"
-  AC_DEFINE(KNO_HTMLDUMP_ENABLED,1)
-fi
-
-dnl This enables the ipeval implementation within Kno
-AC_ARG_ENABLE(ipeval,--en[dis]able-ipeval Enable IPEVAL,,enable_ipeval=$enable_ipeval_default)
-if test $enable_ipeval = "yes"; then
-  ipevalo=src/storage/ipeval.o
-  ipevalprimso=src/prims/ipevalprims.o
-  AC_DEFINE(KNO_IPEVAL_ENABLED,1)
-else
-  AC_DEFINE(KNO_IPEVAL_ENABLED,0)
-fi
-
-dnl This forces the use of a global lock for ipeval, which can reduce
-dnl  parallellism  but may help track down subtle bugs
-AC_ARG_WITH(global_ipeval,--with[out]-global-ipeval Use global lock and variables for ipeval,,with_global_ipeval=$global_ipeval_default)
-if test $with_global_ipeval = "yes"; then
-  AC_DEFINE(KNO_GLOBAL_IPEVAL,1)
-else
-  AC_DEFINE(KNO_GLOBAL_IPEVAL,0)
-fi
-
-dnl check for building with parseltongue
-AC_ARG_WITH(parseltongue,--with[out]-parseltongue Build parseltongue libraries for connecting Kno and Python)
-if test "$with_parseltongue" = "yes"; then
-   AX_PYTHON2
-fi;
-if test "$with_parseltongue" = "yes" &&  test ! -z "${ax_python2_lib}"; then
-   CMODULES="lib/kno/parseltongue.$shared_suffix ${CMODULES}"
-   INSTALLCMODULES="install-parseltongue ${INSTALLCMODULES}"
-fi
-
-## Build CURL cmodule
-
-dnl Build with primitives accessing libcurl, if it is available
-AC_CHECK_LIB(curl,curl_easy_init,curl_default="yes")
-AC_ARG_WITH(curl,--with[out]-curl Use libcurl in webtools,,with_curl=$curl_default)
-if test $with_curl = "yes"; then
-  AC_CHECK_LIB(curl,curl_easy_init)
-  AC_CHECK_HEADERS(curl/curl.h)
-  AC_DEFINE(KNO_WITH_CURL,1)
-  curlo="src/web/curl.o"
-  curlconfig="\`curl-config --libs\`"
-else
-  AC_DEFINE(KNO_WITH_CURL,0)
-  missing="curl ${missing}"
-fi
-
-## Providing DNS functions in webtools
-
-dnl Build with primitives accessing DNS resolution functions, if available
-AC_CHECK_HEADERS(resolv.h)
-AC_CHECK_HEADERS(arpa/nameser.h)
-AC_CHECK_HEADERS(netinet/in.h)
-AC_CHECK_HEADERS(netdb.h)
-AC_CHECK_LIB(ldns,ldns_resolver_query,dns_default="yes")
-AC_ARG_WITH(dns,--with[out]-dns Use dns in web,,with_dns=$dns_default)
-if test "$with_dns" = "yes"; then
-  AC_CHECK_LIB(ldns,ldns_resolver_query)
-  AC_DEFINE(KNO_WITH_DNS,1)
-  ldnso="src/web/ldns.o"
-else
-  AC_DEFINE(KNO_WITH_DNS,0)
-  missing="ldns ${missing}"
+  TEXT_CMODULES="lib/kno/sundown.$shared_suffix ${TEXT_CMODULES}"
+  INSTALL_TEXT_CMODULES="install-sundown ${INSTALL_TEXT_CMODULES}"
 fi
 
 ### exif (extract metadata from image files)
@@ -1858,8 +1872,8 @@ AC_CHECK_HEADER(libexif/exif-data.h,exif_default=$exif_default,exif_default="no"
 AC_ARG_WITH(exif,--with[out]-exif Use libexif in webtools,,with_exif=$exif_default)
 if test "$with_exif" = "yes"; then
   AC_CHECK_HEADERS(libexif/exif-data.h)
-  CMODULES="lib/kno/exif.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-exif ${INSTALLCMODULES}"
+  GRAPHICS_CMODULES="lib/kno/exif.$shared_suffix ${GRAPHICS_CMODULES}"
+  INSTALLC_GRAPHICS_MODULES="install-exif ${INSTALL_GRAPHICS_CMODULES}"
 else
   missing="curl ${missing}"
 fi
@@ -1879,8 +1893,8 @@ if (test "$with_qrcode" = "yes"); then
   AC_CHECK_LIB(qrencode,QRcode_encodeString8bit,qrcode_ok="yes")
   if ( (test "$have_png_h" = "yes") && (test "$have_qrencode_h" = "yes") &&
        (test "$libpng_ok" = "yes") && (test "$qrcode_ok" = "yes") ); then
-    CMODULES="lib/kno/qrcode.$shared_suffix ${CMODULES}"
-    INSTALLCMODULES="install-qrcode ${INSTALLCMODULES}"
+    GRAPHICS_CMODULES="lib/kno/qrcode.$shared_suffix ${GRAPHICS_CMODULES}"
+    INSTALL_GRAPHICS_CMODULES="install-qrcode ${INSTALL_GRAPHICS_CMODULES}"
   else			    
     missing="qrcode ${missing}"
   fi;

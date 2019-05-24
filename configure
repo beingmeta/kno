@@ -621,11 +621,11 @@ ac_includes_default="\
 
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
+mysql_config
+sudo_program
 PYTHON2_LIB
 PYTHON2_INCLUDE_DIR
 PYTHON2_BIN
-mysql_config
-sudo_program
 PTHREAD_CFLAGS
 PTHREAD_LIBS
 PTHREAD_CC
@@ -713,12 +713,18 @@ MONGODB_BUNDLED
 MYSQL_LDFLAGS
 MYSQL_CFLAGS
 MALLOC_FLAGS
-INSTALLDBMODULES
 TESTCMODULES
-INSTALLCMODULES
+INSTALL_ARCHIVE_CMODULES
+INSTALL_GRAPHICS_CMODULES
+INSTALL_TEXT_CMODULES
+INSTALL_DB_CMODULES
+INSTALL_CMODULES
 BOOTSETUP
 DATAFILES
-DBMODULES
+ARCHIVE_CMODULES
+GRAPHICS_CMODULES
+TEXT_CMODULES
+DB_CMODULES
 CMODULES
 WWWUSER
 SUINSTALL
@@ -849,7 +855,6 @@ infodir
 docdir
 oldincludedir
 includedir
-runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -898,6 +903,13 @@ with_profiling
 with_duma
 with_malloc
 with_crypto
+enable_ipeval
+with_global_ipeval
+with_curl
+with_dns
+enable_largefiles
+enable_htmldump
+enable_prefetching
 with_codename
 with_admin_group
 with_daemonid
@@ -917,6 +929,7 @@ with_config_dir
 with_local_config
 with_shared_config
 with_unpackage_dir
+enable_fileconfig
 with_installed_module_dir
 with_local_modules
 with_builtin_module_dir
@@ -939,6 +952,7 @@ enable_thread_debug
 enable_lockfree
 with_editline
 with_libu8
+with_parseltongue
 with_sudo
 with_fastcgi
 enable_leveldb
@@ -950,16 +964,7 @@ with_mysql
 enable_odbc
 enable_tidy
 enable_hyphenate
-enable_largefiles
 with_sundown
-enable_prefetching
-enable_fileconfig
-enable_htmldump
-enable_ipeval
-with_global_ipeval
-with_parseltongue
-with_curl
-with_dns
 with_exif
 with_qrcode
 with_bootsystem
@@ -1016,7 +1021,6 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
-runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE}'
@@ -1269,15 +1273,6 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
-  -runstatedir | --runstatedir | --runstatedi | --runstated \
-  | --runstate | --runstat | --runsta | --runst | --runs \
-  | --run | --ru | --r)
-    ac_prev=runstatedir ;;
-  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
-  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
-  | --run=* | --ru=* | --r=*)
-    runstatedir=$ac_optarg ;;
-
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1415,7 +1410,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir runstatedir
+		libdir localedir mandir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1568,7 +1563,6 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
-  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -1601,7 +1595,12 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+--endisable-ipeval Enable IPEVAL
+--endisable-largefiles Enable use of large (> 2GB) file support
+--endisable-htmldump write HTML backtraces
+--endisable-prefetching make frame operations prefetch when they can
 --enable-ffi enable the FFI interface
+--endisable-fileconfig enable file-based configuration
 --endisable-shared Build with/without shared libraries
 --endisable-maintainer-mode doesn't do anything
 --endisable-dependency-tracking doesn't do anything
@@ -1617,11 +1616,6 @@ Optional Features:
 --endisable-odbc Build odbc modules
 --endisable-tidy Build and install tidy module
 --endisable-hyphenate Build and install the hyphenate module
---endisable-largefiles Enable use of large (> 2GB) file support
---endisable-prefetching make frame operations prefetch when they can
---endisable-fileconfig enable file-based configuration
---endisable-htmldump write HTML backtraces
---endisable-ipeval Enable IPEVAL
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -1652,6 +1646,9 @@ Optional Packages:
 --with-duma Build with Detect Unintended Memory Access
 --with-malloc Use custom malloc
 --without-crypto Compile the crypto module
+--without-global-ipeval Use global lock and variables for ipeval
+--without-curl Use libcurl in webtools
+--without-dns Use dns in web
 --with-codename for distribution
 --with-admin-group Install files with admin group and group write permissions
 --with-daemonid The identity (user) for Kno servers to run as
@@ -1685,14 +1682,11 @@ Optional Packages:
 --with-nptrlocks Sets the number of pointer hash locks to use
 --without-editline Use the editline with the kno console
 --without-libu8 Use libu8 includes
+--without-parseltongue Build parseltongue libraries for connecting Kno and Python
 --without-sudo use sudo with install
 --without-fastcgi Use fastcgi
 --without-mysql Use alternate mysql lib
 --without-sundown Compile the sundown module
---without-global-ipeval Use global lock and variables for ipeval
---without-parseltongue Build parseltongue libraries for connecting Kno and Python
---without-curl Use libcurl in webtools
---without-dns Use dns in web
 --without-exif Use libexif in webtools
 --without-qrcode Create qrcode binary module
 --with-bootsystem Setup boot method
@@ -3024,10 +3018,16 @@ module_path=""
 safe_module_path=""
 source_dir=""
 CMODULES=""
-INSTALLCMODULES=""
+DB_CMODULES=""
+TEXT_MODULES=""
+GRAPHICS_CMODULES=""
+ARCHIVE_CMODULES=""
+INSTALL_CMODULES=""
+INSTALL_DB_CMODULES=""
+INSTALL_TEXT_MODULES=""
+INSTALL_GRAPHICS_CMODULES=""
+INSTALL_ARCHIVE_CMODULES=""
 TESTCMODULES=""
-DBMODULES=""
-INSTALLDBMODULES=""
 DATAFILES="etc/version"
 SUDO=""
 SUINSTALL=
@@ -3153,6 +3153,12 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
+
+
+
+
+
+
 
 
 
@@ -7343,7 +7349,7 @@ if test "x$ac_cv_lib_profiler_ProfilerStart" = xyes; then :
 fi
 
     CMODULES="lib/kno/gperftools.${shared_suffix} ${CMODULES}"
-    INSTALLCMODULES="install-gperftools ${INSTALLCMODULES}"
+    INSTALL_CMODULES="install-gperftools ${INSTALL_CMODULES}"
   elif test "$gperftools" = "minimal"; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_minimal" >&5
 $as_echo_n "checking for malloc in -ltcmalloc_minimal... " >&6; }
@@ -7677,7 +7683,506 @@ fi
 
 if test $with_crypto = "yes"; then
   CMODULES="lib/kno/crypto.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-crypto ${INSTALLCMODULES}"
+  INSTALL_CMODULES="install-crypto ${INSTALL_CMODULES}"
+fi
+
+# OpenSSL checks
+for ac_func in CRYPTO_set_locking_callback
+do :
+  ac_fn_c_check_func "$LINENO" "CRYPTO_set_locking_callback" "ac_cv_func_CRYPTO_set_locking_callback"
+if test "x$ac_cv_func_CRYPTO_set_locking_callback" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_CRYPTO_SET_LOCKING_CALLBACK 1
+_ACEOF
+
+fi
+done
+
+
+### Regular expressions library
+
+regex_included=no
+
+ac_fn_c_check_header_mongrel "$LINENO" "regex.h" "ac_cv_header_regex_h" "$ac_includes_default"
+if test "x$ac_cv_header_regex_h" = xyes; then :
+  have_regex_h="yes"
+else
+  have_regex_h="no"
+fi
+
+
+if (test "$have_regex_h" = "yes"); then
+  ac_fn_c_check_func "$LINENO" "regcomp" "ac_cv_func_regcomp"
+if test "x$ac_cv_func_regcomp" = xyes; then :
+  have_regcomp="yes"
+else
+  have_regcomp="no"
+fi
+
+  regex_included=yes
+fi
+if (test "$have_regex_h" = "yes") && (test "$have_regcomp" = "no"); then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for regcomp in -lregex" >&5
+$as_echo_n "checking for regcomp in -lregex... " >&6; }
+if ${ac_cv_lib_regex_regcomp+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lregex  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char regcomp ();
+int
+main ()
+{
+return regcomp ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_regex_regcomp=yes
+else
+  ac_cv_lib_regex_regcomp=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_regex_regcomp" >&5
+$as_echo "$ac_cv_lib_regex_regcomp" >&6; }
+if test "x$ac_cv_lib_regex_regcomp" = xyes; then :
+  have_regcomp="yes"
+else
+  have_regcomp="no"
+fi
+
+  regex_included=yes
+fi
+
+if test ! "${regex_included}" = "yes"; then
+   missing="regex ${missing}";
+fi
+
+# IPEVAL configuration (disabled by default, patented)
+
+# Check whether --enable-ipeval was given.
+if test "${enable_ipeval+set}" = set; then :
+  enableval=$enable_ipeval;
+else
+  enable_ipeval=$enable_ipeval_default
+fi
+
+if test $enable_ipeval = "yes"; then
+  ipevalo=src/storage/ipeval.o
+  ipevalprimso=src/prims/ipevalprims.o
+  $as_echo "#define KNO_IPEVAL_ENABLED 1" >>confdefs.h
+
+else
+  $as_echo "#define KNO_IPEVAL_ENABLED 0" >>confdefs.h
+
+fi
+
+
+# Check whether --with-global_ipeval was given.
+if test "${with_global_ipeval+set}" = set; then :
+  withval=$with_global_ipeval;
+else
+  with_global_ipeval=$global_ipeval_default
+fi
+
+if test $with_global_ipeval = "yes"; then
+  $as_echo "#define KNO_GLOBAL_IPEVAL 1" >>confdefs.h
+
+else
+  $as_echo "#define KNO_GLOBAL_IPEVAL 0" >>confdefs.h
+
+fi
+
+## Build CURL cmodule
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for curl_easy_init in -lcurl" >&5
+$as_echo_n "checking for curl_easy_init in -lcurl... " >&6; }
+if ${ac_cv_lib_curl_curl_easy_init+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lcurl  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char curl_easy_init ();
+int
+main ()
+{
+return curl_easy_init ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_curl_curl_easy_init=yes
+else
+  ac_cv_lib_curl_curl_easy_init=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_curl_curl_easy_init" >&5
+$as_echo "$ac_cv_lib_curl_curl_easy_init" >&6; }
+if test "x$ac_cv_lib_curl_curl_easy_init" = xyes; then :
+  curl_default="yes"
+fi
+
+
+# Check whether --with-curl was given.
+if test "${with_curl+set}" = set; then :
+  withval=$with_curl;
+else
+  with_curl=$curl_default
+fi
+
+if test $with_curl = "yes"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for curl_easy_init in -lcurl" >&5
+$as_echo_n "checking for curl_easy_init in -lcurl... " >&6; }
+if ${ac_cv_lib_curl_curl_easy_init+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lcurl  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char curl_easy_init ();
+int
+main ()
+{
+return curl_easy_init ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_curl_curl_easy_init=yes
+else
+  ac_cv_lib_curl_curl_easy_init=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_curl_curl_easy_init" >&5
+$as_echo "$ac_cv_lib_curl_curl_easy_init" >&6; }
+if test "x$ac_cv_lib_curl_curl_easy_init" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBCURL 1
+_ACEOF
+
+  LIBS="-lcurl $LIBS"
+
+fi
+
+  for ac_header in curl/curl.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "curl/curl.h" "ac_cv_header_curl_curl_h" "$ac_includes_default"
+if test "x$ac_cv_header_curl_curl_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_CURL_CURL_H 1
+_ACEOF
+
+fi
+
+done
+
+  $as_echo "#define KNO_WITH_CURL 1" >>confdefs.h
+
+  curlo="src/web/curl.o"
+  curlconfig="\`curl-config --libs\`"
+else
+  $as_echo "#define KNO_WITH_CURL 0" >>confdefs.h
+
+  missing="curl ${missing}"
+fi
+
+## Providing DNS functions in webtools
+
+for ac_header in resolv.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "resolv.h" "ac_cv_header_resolv_h" "$ac_includes_default"
+if test "x$ac_cv_header_resolv_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_RESOLV_H 1
+_ACEOF
+
+fi
+
+done
+
+for ac_header in arpa/nameser.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "arpa/nameser.h" "ac_cv_header_arpa_nameser_h" "$ac_includes_default"
+if test "x$ac_cv_header_arpa_nameser_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_ARPA_NAMESER_H 1
+_ACEOF
+
+fi
+
+done
+
+for ac_header in netinet/in.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "netinet/in.h" "ac_cv_header_netinet_in_h" "$ac_includes_default"
+if test "x$ac_cv_header_netinet_in_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_NETINET_IN_H 1
+_ACEOF
+
+fi
+
+done
+
+for ac_header in netdb.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "netdb.h" "ac_cv_header_netdb_h" "$ac_includes_default"
+if test "x$ac_cv_header_netdb_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_NETDB_H 1
+_ACEOF
+
+fi
+
+done
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ldns_resolver_query in -lldns" >&5
+$as_echo_n "checking for ldns_resolver_query in -lldns... " >&6; }
+if ${ac_cv_lib_ldns_ldns_resolver_query+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lldns  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char ldns_resolver_query ();
+int
+main ()
+{
+return ldns_resolver_query ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_ldns_ldns_resolver_query=yes
+else
+  ac_cv_lib_ldns_ldns_resolver_query=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ldns_ldns_resolver_query" >&5
+$as_echo "$ac_cv_lib_ldns_ldns_resolver_query" >&6; }
+if test "x$ac_cv_lib_ldns_ldns_resolver_query" = xyes; then :
+  dns_default="yes"
+fi
+
+
+# Check whether --with-dns was given.
+if test "${with_dns+set}" = set; then :
+  withval=$with_dns;
+else
+  with_dns=$dns_default
+fi
+
+if test "$with_dns" = "yes"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ldns_resolver_query in -lldns" >&5
+$as_echo_n "checking for ldns_resolver_query in -lldns... " >&6; }
+if ${ac_cv_lib_ldns_ldns_resolver_query+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lldns  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char ldns_resolver_query ();
+int
+main ()
+{
+return ldns_resolver_query ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_ldns_ldns_resolver_query=yes
+else
+  ac_cv_lib_ldns_ldns_resolver_query=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ldns_ldns_resolver_query" >&5
+$as_echo "$ac_cv_lib_ldns_ldns_resolver_query" >&6; }
+if test "x$ac_cv_lib_ldns_ldns_resolver_query" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBLDNS 1
+_ACEOF
+
+  LIBS="-lldns $LIBS"
+
+fi
+
+  $as_echo "#define KNO_WITH_DNS 1" >>confdefs.h
+
+  ldnso="src/web/ldns.o"
+else
+  $as_echo "#define KNO_WITH_DNS 0" >>confdefs.h
+
+  missing="ldns ${missing}"
+fi
+
+# For UUID functions
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_generate_time in -luuid" >&5
+$as_echo_n "checking for uuid_generate_time in -luuid... " >&6; }
+if ${ac_cv_lib_uuid_uuid_generate_time+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-luuid  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char uuid_generate_time ();
+int
+main ()
+{
+return uuid_generate_time ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_uuid_uuid_generate_time=yes
+else
+  ac_cv_lib_uuid_uuid_generate_time=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_uuid_uuid_generate_time" >&5
+$as_echo "$ac_cv_lib_uuid_uuid_generate_time" >&6; }
+if test "x$ac_cv_lib_uuid_uuid_generate_time" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBUUID 1
+_ACEOF
+
+  LIBS="-luuid $LIBS"
+
+fi
+
+for ac_func in uuid_generate_time
+do :
+  ac_fn_c_check_func "$LINENO" "uuid_generate_time" "ac_cv_func_uuid_generate_time"
+if test "x$ac_cv_func_uuid_generate_time" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_UUID_GENERATE_TIME 1
+_ACEOF
+
+fi
+done
+
+
+## Large files
+
+# Check whether --enable-largefiles was given.
+if test "${enable_largefiles+set}" = set; then :
+  enableval=$enable_largefiles;
+else
+  enable_largefiles=yes
+fi
+
+if test $enable_largefiles = "yes"; then
+  $as_echo "#define KNO_LARGEFILES_ENABLED 1" >>confdefs.h
+
+else
+  $as_echo "#define KNO_LARGEFILES_ENABLED 0" >>confdefs.h
+
+fi
+
+# Check whether --enable-htmldump was given.
+if test "${enable_htmldump+set}" = set; then :
+  enableval=$enable_htmldump;
+else
+  enable_htmldump="yes"
+fi
+
+if test $enable_htmldump = "yes"; then
+  scheme_builtins_init="$scheme_builtins_init; kno_init_webtools()"
+  xdynamic_scheme_libs="$xdynamic_scheme_libs -lknowebtools${suffix}"
+  xstatic_exe_libs="lib/libknowebtools${suffix}.a $xstatic_exe_libs"
+  xstatic_scheme_libs=" ../../lib/libknowebtools${suffix}.a $xstatic_scheme_libs"
+  $as_echo "#define KNO_HTMLDUMP_ENABLED 1" >>confdefs.h
+
+fi
+
+### Object/index database prefetching
+
+# Check whether --enable-prefetching was given.
+if test "${enable_prefetching+set}" = set; then :
+  enableval=$enable_prefetching;
+else
+  enable_prefetching="yes"
+fi
+
+if test $enable_prefetching = "yes"; then
+  $as_echo "#define KNO_PREFETCHING_ENABLED 1" >>confdefs.h
+
+else
+  $as_echo "#define KNO_PREFETCHING_ENABLED 0" >>confdefs.h
+
 fi
 
 ### Installation configuration
@@ -8662,6 +9167,21 @@ else
 fi
 
 unpackage_dir=$with_unpackage_dir
+
+# Check whether --enable-fileconfig was given.
+if test "${enable_fileconfig+set}" = set; then :
+  enableval=$enable_fileconfig;
+else
+  enable_fileconfig="yes"
+fi
+
+if test "$enable_fileconfig" = "yes"; then
+  $as_echo "#define KNO_FILECONFIG_ENABLED 1" >>confdefs.h
+
+else
+  $as_echo "#define KNO_FILECONFIG_ENABLED 0" >>confdefs.h
+
+fi
 
 ### Scheme Module search paths
 
@@ -10678,6 +11198,182 @@ if test "$with_libu8" != ""; then
   EXEFLAGS="$EXEFLAGS -L$with_libu8/lib"
 fi
 
+
+# Check whether --with-parseltongue was given.
+if test "${with_parseltongue+set}" = set; then :
+  withval=$with_parseltongue;
+fi
+
+if test "$with_parseltongue" = "yes"; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for python2 build information" >&5
+$as_echo_n "checking for python2 build information... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: " >&5
+$as_echo "" >&6; }
+for python2 in python2.7 python2.6 python2.5 python2.4 python2.3 python2.2 python2.1 python; do
+for ac_prog in $python2
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_PYTHON2_BIN+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$PYTHON2_BIN"; then
+  ac_cv_prog_PYTHON2_BIN="$PYTHON2_BIN" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_PYTHON2_BIN="$ac_prog"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+PYTHON2_BIN=$ac_cv_prog_PYTHON2_BIN
+if test -n "$PYTHON2_BIN"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON2_BIN" >&5
+$as_echo "$PYTHON2_BIN" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  test -n "$PYTHON2_BIN" && break
+done
+
+ax_python2_bin=$PYTHON2_BIN
+if test x$ax_python2_bin != x; then
+   as_ac_Lib=`$as_echo "ac_cv_lib_$ax_python2_bin''_main" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -l$ax_python2_bin" >&5
+$as_echo_n "checking for main in -l$ax_python2_bin... " >&6; }
+if eval \${$as_ac_Lib+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-l$ax_python2_bin  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  eval "$as_ac_Lib=yes"
+else
+  eval "$as_ac_Lib=no"
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+eval ac_res=\$$as_ac_Lib
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_Lib"\" = x"yes"; then :
+  ax_python2_lib=$ax_python2_bin
+else
+  ax_python2_lib=no
+fi
+
+   if test x$ax_python2_lib == xno; then
+     as_ac_Lib=`$as_echo "ac_cv_lib_${ax_python2_bin}m''_main" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -l${ax_python2_bin}m" >&5
+$as_echo_n "checking for main in -l${ax_python2_bin}m... " >&6; }
+if eval \${$as_ac_Lib+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-l${ax_python2_bin}m  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  eval "$as_ac_Lib=yes"
+else
+  eval "$as_ac_Lib=no"
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+eval ac_res=\$$as_ac_Lib
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_Lib"\" = x"yes"; then :
+  ax_python2_lib=${ax_python2_bin}m
+else
+  ax_python2_lib=no
+fi
+
+   fi
+   if test x$ax_python2_lib != xno; then
+     ax_python2_header=`$ax_python2_bin -c "from distutils.sysconfig import *; print(get_config_var('CONFINCLUDEPY'))"`
+     if test x$ax_python2_header != x; then
+       break;
+     fi
+   fi
+fi
+done
+if test x$ax_python2_bin = x; then
+   ax_python2_bin=no
+fi
+if test x$ax_python2_header = x; then
+   ax_python2_header=no
+fi
+if test x$ax_python2_lib = x; then
+   ax_python2_lib=no
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result:   results of the Python2 check:" >&5
+$as_echo "  results of the Python2 check:" >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result:     Binary:      $ax_python2_bin" >&5
+$as_echo "    Binary:      $ax_python2_bin" >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result:     Library:     $ax_python2_lib" >&5
+$as_echo "    Library:     $ax_python2_lib" >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result:     Include Dir: $ax_python2_header" >&5
+$as_echo "    Include Dir: $ax_python2_header" >&6; }
+
+if test x$ax_python2_header != xno; then
+  PYTHON2_INCLUDE_DIR=$ax_python2_header
+
+fi
+if test x$ax_python2_lib != xno; then
+  PYTHON2_LIB=$ax_python2_lib
+
+fi
+
+fi;
+if test "$with_parseltongue" = "yes" &&  test ! -z "${ax_python2_lib}"; then
+   CMODULES="lib/kno/parseltongue.$shared_suffix ${CMODULES}"
+   INSTALL_CMODULES="install-parseltongue ${INSTALL_CMODULES}"
+fi
+
 ### Control use of 'sudo' for installation
 
 for ac_prog in sudo
@@ -10886,11 +11582,11 @@ fi
    if test "${enable_leveldb}" = "yes" &&
       test "${ac_cv_header_leveldb_c_h}" = "yes" &&
       test "${leveldb_ok}" = "yes"; then
-      DBMODULES="${DBMODULES} lib/kno/leveldb.${shared_suffix}";
-     INSTALLDBMODULES="${INSTALLDBMODULES} install-leveldb";
+      DB_CMODULES="${DB_CMODULES} lib/kno/leveldb.${shared_suffix}";
+     INSTALL_DB_CMODULES="${INSTALL_DB_CMODULES} install-leveldb";
    elif test "${enable_leveldb}" = "force"; then
-     DBMODULES="lib/kno/leveldb.${shared_suffix} ${DBMODULES}";
-     INSTALLDBMODULES="${INSTALLDBMODULES} install-leveldb";
+     DB_CMODULES="lib/kno/leveldb.${shared_suffix} ${DB_CMODULES}";
+     INSTALL_DB_CMODULES="${INSTALL_DB_CMODULES} install-leveldb";
      force_enabled="leveldb ${force_enabled}";
    else
      auto_disabled="leveldb ${auto_disabled}";
@@ -10968,11 +11664,11 @@ fi
    if test "${enable_rocksdb}" = "yes" &&
       test "${ac_cv_header_rocksdb_c_h}" = "yes";
       test "${rocksdb_ok}" = "yes"; then
-     DBMODULES="lib/kno/rocksdb.${shared_suffix} ${DBMODULES}";
-     INSTALLDBMODULES="install-rocksdb ${INSTALLDBMODULES}";
+     DB_CMODULES="lib/kno/rocksdb.${shared_suffix} ${DB_CMODULES}";
+     INSTALL_DB_CMODULES="install-rocksdb ${INSTALL_DB_CMODULES}";
    elif test "${enable_rocksdb}" = "force"; then
-     DBMODULES="lib/kno/rocksdb.${shared_suffix} ${DBMODULES}";
-     INSTALLDBMODULES="install-rocksdb ${INSTALLDBMODULES}";
+     DB_CMODULES="lib/kno/rocksdb.${shared_suffix} ${DB_CMODULES}";
+     INSTALL_DB_CMODULES="install-rocksdb ${INSTALL_DB_CMODULES}";
      force_enabled="rocksdb ${force_enabled}";
    else
      auto_disabled="rocksdb ${auto_disabled}";
@@ -10997,11 +11693,11 @@ if test "$enable_imagick" = "yes" &&
    $pkg_config --exists MagickWand; then
   IMAGICK_CFLAGS=`$pkg_config MagickWand --cflags`;
   IMAGICK_LDFLAGS=`$pkg_config MagickWand --libs`;
-  CMODULES="lib/kno/imagick.$shared_suffix ${CMODULES}";
-  INSTALLCMODULES="install-imagick ${INSTALLCMODULES}";
+  GRAPHICS_CMODULES="lib/kno/imagick.$shared_suffix ${GRAPHICS_CMODULES}";
+  INSTALL_GRAPHICS_CMODULES="imagick-install ${INSTALL_GRAPHICS_CMODULES}";
 elif test "$enable_imagick" = "force"; then
-  CMODULES="lib/kno/imagick.$shared_suffix ${CMODULES}";
-  INSTALLCMODULES="install-imagick ${INSTALLCMODULES}";
+  GRAPHICS_CMODULES="lib/kno/imagick.$shared_suffix ${GRAPHICS_CMODULES}";
+  INSTALL_GRAPHICS_CMODULES="imagick-install ${INSTALL_GRAPHICS_CMODULES}";
 elif test "$enable_imagick" = "yes"; then
   auto_disabled="imagick ${auto_disabled}";
   enable_imagick="failed";
@@ -11070,8 +11766,8 @@ fi
 
 if test "${ac_cv_header_archive_h}" == "yes" && \
    test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
-  CMODULES="lib/kno/libarchive.${shared_suffix} ${CMODULES}"
-  INSTALLCMODULES="install-libarchive ${INSTALLCMODULES}"
+  ARCHIVE_CMODULES="lib/kno/libarchive.${shared_suffix} ${ARCHIVE_CMODULES}"
+  INSTALL_ARCHIVE_CMODULES="archive ${INSTALL_ARCHIVE_CMODULES}"
 else
   missing="libarchive ${missing}"
 fi
@@ -11157,15 +11853,15 @@ done
     CFLAGS="${CFLAGS} ${LIBZIP_CFLAGS}"
     CPPFLAGS="${CPPFLAGS} ${LIBZIP_CFLAGS}"
     LDFLAGS="${LDFLAGS} ${LIBZIP_LDFLAGS}"
-    CMODULES="lib/kno/ziptools.$shared_suffix ${CMODULES}";
-    INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}";
+    ARCHIVE_CMODULES="lib/kno/ziptools.$shared_suffix ${ARCHIVE_CMODULES}";
+    INSTALL_ARCHIVE_CMODULES="install-ziptools ${INSTALL_ARCHIVE_CMODULES}";
   elif test "$have_zip_h" = "yes" &&
        test "$have_libzip" = "yes"; then
-    CMODULES="lib/kno/ziptools.$shared_suffix ${CMODULES}";
-    INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}";
+    ARCHIVE_CMODULES="lib/kno/ziptools.$shared_suffix ${ARCHIVE_CMODULES}";
+    INSTALL_ARCHIVE_CMODULES="install-ziptools ${INSTALL_ARCHIVE_CMODULES}";
   elif test "$enable_ziptools" = "force"; then
-    CMODULES="lib/kno/ziptools.$shared_suffix ${CMODULES}";
-    INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}";
+    ARCHIVE_CMODULES="lib/kno/ziptools.$shared_suffix ${ARCHIVE_CMODULES}";
+    INSTALL_ARCHIVE_CMODULES="install-ziptools ${INSTALL_ARCHIVE_CMODULES}";
     force_enabled="ziptools ${force_enabled}";
   else
     auto_disabled="ziptools ${auto_disabled}";
@@ -11191,13 +11887,13 @@ if test "$enable_mongodb" = "yes" ||
      $pkg_config --exists libmongoc-1.0; then
     MONGODB_CFLAGS=`$pkg_config libmongoc-1.0 --cflags`
     MONGODB_LDFLAGS=`$pkg_config libmongoc-1.0 --libs`
-    DBMODULES="lib/kno/mongodb.$shared_suffix ${DBMODULES}";
-    INSTALLDBMODULES="install-mongodb ${INSTALLDBMODULES}";
+    DB_CMODULES="lib/kno/mongodb.$shared_suffix ${DB_CMODULES}";
+    INSTALL_DB_CMODULES="install-mongodb ${INSTALL_DB_CMODULES}";
     MONGODB_ENABLED=yes
   elif test "$enable_mongodb" = "force"; then
     force_enabled="mongodb ${force_enabled}";
-    DBMODULES="lib/kno/mongodb.$shared_suffix ${DBMODULES}";
-    INSTALLDBMODULES="install-mongodb ${INSTALLDBMODULES}";
+    DB_CMODULES="lib/kno/mongodb.$shared_suffix ${DB_CMODULES}";
+    INSTALL_DB_CMODULES="install-mongodb ${INSTALL_DB_CMODULES}";
     MONGODB_ENABLED=yes
   else
     auto_disabled="mongodb ${auto_disabled}";
@@ -11206,8 +11902,8 @@ elif test "$enable_mongodb" = "bundled"; then
     MONGODB_BUNDLED=mongodb.bundled
     MONGODB_CFLAGS="-I./include/bson -I./include/mongoc"
     MONGODB_LDFLAGS="-Wl,--whole-archive -Wl,-Bstatic -lmongoc -Wl,--no-whole-archive  -lbson -Wl,-Bdynamic"
-    DBMODULES="lib/kno/mongodb.$shared_suffix ${DBMODULES}";
-    INSTALLDBMODULES="install-mongodb ${INSTALLDBMODULES}";
+    DB_CMODULES="lib/kno/mongodb.$shared_suffix ${DB_CMODULES}";
+    INSTALL_DB_CMODULES="install-mongodb ${INSTALL_DB_CMODULES}";
 else
     manually_disabled="mongodb ${manually_disabled}";
 fi;
@@ -11328,8 +12024,8 @@ elif test "$with_mysql" != "no"; then
 fi
 
 if test "$with_mysql" != "no"; then
-  DBMODULES="lib/kno/mysql.$shared_suffix ${DBMODULES}"
-  INSTALLDBMODULES="install-mysql ${INSTALLDBMODULES}"
+  DB_CMODULES="lib/kno/mysql.$shared_suffix ${DB_CMODULES}"
+  INSTALL_DB_CMODULES="install-mysql ${INSTALL_DB_CMODULES}"
 else
   missing="mysql ${missing}"
 fi
@@ -11450,8 +12146,8 @@ if test "x$ac_cv_lib_odbc_SQLNumResultCols" = xyes; then :
 fi
 
      if test ! -z "${ODBC_LIBS}"; then
-       DBMODULES="lib/kno/odbc.$shared_suffix ${DBMODULES}"
-       INSTALLDBMODULES="install-odbc ${INSTALLDBMODULES}"
+       DB_CMODULES="lib/kno/odbc.$shared_suffix ${DB_CMODULES}"
+       INSTALL_DB_CMODULES="install-odbc ${INSTALL_DB_CMODULES}"
        odbc_included=yes
      fi;
    fi;
@@ -11559,8 +12255,8 @@ if test "x$ac_cv_lib_sqlite3_sqlite3_open_v2" = xyes; then :
 fi
 
   if test "$sqlite3_ok" = "yes"; then
-    DBMODULES="lib/kno/sqlite.$shared_suffix ${DBMODULES}";
-    INSTALLDBMODULES="install-sqlite ${INSTALLDBMODULES}";
+    DB_CMODULES="lib/kno/sqlite.$shared_suffix ${DB_CMODULES}";
+    INSTALL_DB_CMODULES="install-sqlite ${INSTALL_DB_CMODULES}";
     sqlite_included=no
     if test "${sqlite3v2_ok}" == "yes"; then
       $as_echo "#define HAVE_SQLITE3_V2 1" >>confdefs.h
@@ -11571,78 +12267,6 @@ fi
 
 if test ! "${sqlite_included}" = "yes"; then
    missing="sqlite ${missing}";
-fi
-
-### Regular expressions library
-
-regex_included=no
-
-ac_fn_c_check_header_mongrel "$LINENO" "regex.h" "ac_cv_header_regex_h" "$ac_includes_default"
-if test "x$ac_cv_header_regex_h" = xyes; then :
-  have_regex_h="yes"
-else
-  have_regex_h="no"
-fi
-
-
-if (test "$have_regex_h" = "yes"); then
-  ac_fn_c_check_func "$LINENO" "regcomp" "ac_cv_func_regcomp"
-if test "x$ac_cv_func_regcomp" = xyes; then :
-  have_regcomp="yes"
-else
-  have_regcomp="no"
-fi
-
-  regex_included=yes
-fi
-if (test "$have_regex_h" = "yes") && (test "$have_regcomp" = "no"); then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for regcomp in -lregex" >&5
-$as_echo_n "checking for regcomp in -lregex... " >&6; }
-if ${ac_cv_lib_regex_regcomp+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lregex  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char regcomp ();
-int
-main ()
-{
-return regcomp ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_regex_regcomp=yes
-else
-  ac_cv_lib_regex_regcomp=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_regex_regcomp" >&5
-$as_echo "$ac_cv_lib_regex_regcomp" >&6; }
-if test "x$ac_cv_lib_regex_regcomp" = xyes; then :
-  have_regcomp="yes"
-else
-  have_regcomp="no"
-fi
-
-  regex_included=yes
-fi
-
-if test ! "${regex_included}" = "yes"; then
-   missing="regex ${missing}";
 fi
 
 ### zlib/libz compression functions
@@ -11701,8 +12325,8 @@ fi
 fi
 
 if (test "$have_libz" = "yes"); then
-  CMODULES="lib/kno/zlib.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-zlib ${INSTALLCMODULES}"
+  ARCHIVE_CMODULES="lib/kno/zlib.$shared_suffix ${ARCHIVE_CMODULES}"
+  INSTALL_ARCHIVE_CMODULES="install-zlib ${INSTALL_ARCHIVE_CMODULES}"
 fi
 
 ac_fn_c_check_header_mongrel "$LINENO" "zlib.h" "ac_cv_header_zlib_h" "$ac_includes_default"
@@ -11906,8 +12530,8 @@ fi
 
 
 if test "$enable_tidy" = "yes"; then
-  CMODULES="lib/kno/tidy.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-tidy ${INSTALLCMODULES}"
+  TEXT_CMODULES="lib/kno/tidy.$shared_suffix ${TEXT_CMODULES}"
+  INSTALL_TEXT_CMODULES="install-tidy ${INSTALL_TEXT_CMODULES}"
 fi
 
 ### Hyphenate library
@@ -11979,12 +12603,12 @@ fi
 if test "$enable_hyphenate" = "yes" &&
    test "$ac_cv_header_hyphen_h" = "yes" &&
    test "$hyphen_ok" = "yes"; then
-  CMODULES="lib/kno/hyphenate.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-hyphenate ${INSTALLCMODULES}"
+  TEXT_CMODULES="lib/kno/hyphenate.$shared_suffix ${TEXT_CMODULES}"
+  INSTALL_TEXT_CMODULES="install-hyphenate ${INSTALL_TEXT_CMODULES}"
   DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
 elif test "$enable_hyphenate" = "force"; then
-  CMODULES="lib/kno/hyphenate.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-hyphenate ${INSTALLCMODULES}"
+  TEXT_CMODULES="lib/kno/hyphenate.$shared_suffix ${TEXT_CMODULES}"
+  INSTALL_TEXT_CMODULES="install-hyphenate ${INSTALL_TEXT_CMODULES}"
   DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
   force_enabled="hyphenate ${force_enabled}";
 elif test "$enable_hyphenate" = "yes"; then
@@ -11992,94 +12616,6 @@ elif test "$enable_hyphenate" = "yes"; then
   enable_hyphenate="failed";
 else
   manually_disabled="hyphenate $manually_disabled";
-fi
-
-# OpenSSL checks
-for ac_func in CRYPTO_set_locking_callback
-do :
-  ac_fn_c_check_func "$LINENO" "CRYPTO_set_locking_callback" "ac_cv_func_CRYPTO_set_locking_callback"
-if test "x$ac_cv_func_CRYPTO_set_locking_callback" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_CRYPTO_SET_LOCKING_CALLBACK 1
-_ACEOF
-
-fi
-done
-
-
-# For UUID functions
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_generate_time in -luuid" >&5
-$as_echo_n "checking for uuid_generate_time in -luuid... " >&6; }
-if ${ac_cv_lib_uuid_uuid_generate_time+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-luuid  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char uuid_generate_time ();
-int
-main ()
-{
-return uuid_generate_time ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_uuid_uuid_generate_time=yes
-else
-  ac_cv_lib_uuid_uuid_generate_time=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_uuid_uuid_generate_time" >&5
-$as_echo "$ac_cv_lib_uuid_uuid_generate_time" >&6; }
-if test "x$ac_cv_lib_uuid_uuid_generate_time" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBUUID 1
-_ACEOF
-
-  LIBS="-luuid $LIBS"
-
-fi
-
-for ac_func in uuid_generate_time
-do :
-  ac_fn_c_check_func "$LINENO" "uuid_generate_time" "ac_cv_func_uuid_generate_time"
-if test "x$ac_cv_func_uuid_generate_time" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_UUID_GENERATE_TIME 1
-_ACEOF
-
-fi
-done
-
-
-## Large files
-
-# Check whether --enable-largefiles was given.
-if test "${enable_largefiles+set}" = set; then :
-  enableval=$enable_largefiles;
-else
-  enable_largefiles=yes
-fi
-
-if test $enable_largefiles = "yes"; then
-  $as_echo "#define KNO_LARGEFILES_ENABLED 1" >>confdefs.h
-
-else
-  $as_echo "#define KNO_LARGEFILES_ENABLED 0" >>confdefs.h
-
 fi
 
 # Sundown library for converting markdown to HTML
@@ -12093,536 +12629,8 @@ else
 fi
 
 if test "$with_sundown" = "yes"; then
-  CMODULES="lib/kno/sundown.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-sundown ${INSTALLCMODULES}"
-fi
-
-### Object/index database prefetching
-
-# Check whether --enable-prefetching was given.
-if test "${enable_prefetching+set}" = set; then :
-  enableval=$enable_prefetching;
-else
-  enable_prefetching="yes"
-fi
-
-if test $enable_prefetching = "yes"; then
-  $as_echo "#define KNO_PREFETCHING_ENABLED 1" >>confdefs.h
-
-else
-  $as_echo "#define KNO_PREFETCHING_ENABLED 0" >>confdefs.h
-
-fi
-
-# Check whether --enable-fileconfig was given.
-if test "${enable_fileconfig+set}" = set; then :
-  enableval=$enable_fileconfig;
-else
-  enable_fileconfig="yes"
-fi
-
-if test "$enable_fileconfig" = "yes"; then
-  $as_echo "#define KNO_FILECONFIG_ENABLED 1" >>confdefs.h
-
-else
-  $as_echo "#define KNO_FILECONFIG_ENABLED 0" >>confdefs.h
-
-fi
-
-# Check whether --enable-htmldump was given.
-if test "${enable_htmldump+set}" = set; then :
-  enableval=$enable_htmldump;
-else
-  enable_htmldump="yes"
-fi
-
-if test $enable_htmldump = "yes"; then
-  scheme_builtins_init="$scheme_builtins_init; kno_init_webtools()"
-  xdynamic_scheme_libs="$xdynamic_scheme_libs -lknowebtools${suffix}"
-  xstatic_exe_libs="lib/libknowebtools${suffix}.a $xstatic_exe_libs"
-  xstatic_scheme_libs=" ../../lib/libknowebtools${suffix}.a $xstatic_scheme_libs"
-  $as_echo "#define KNO_HTMLDUMP_ENABLED 1" >>confdefs.h
-
-fi
-
-# Check whether --enable-ipeval was given.
-if test "${enable_ipeval+set}" = set; then :
-  enableval=$enable_ipeval;
-else
-  enable_ipeval=$enable_ipeval_default
-fi
-
-if test $enable_ipeval = "yes"; then
-  ipevalo=src/storage/ipeval.o
-  ipevalprimso=src/prims/ipevalprims.o
-  $as_echo "#define KNO_IPEVAL_ENABLED 1" >>confdefs.h
-
-else
-  $as_echo "#define KNO_IPEVAL_ENABLED 0" >>confdefs.h
-
-fi
-
-
-# Check whether --with-global_ipeval was given.
-if test "${with_global_ipeval+set}" = set; then :
-  withval=$with_global_ipeval;
-else
-  with_global_ipeval=$global_ipeval_default
-fi
-
-if test $with_global_ipeval = "yes"; then
-  $as_echo "#define KNO_GLOBAL_IPEVAL 1" >>confdefs.h
-
-else
-  $as_echo "#define KNO_GLOBAL_IPEVAL 0" >>confdefs.h
-
-fi
-
-
-# Check whether --with-parseltongue was given.
-if test "${with_parseltongue+set}" = set; then :
-  withval=$with_parseltongue;
-fi
-
-if test "$with_parseltongue" = "yes"; then
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for python2 build information" >&5
-$as_echo_n "checking for python2 build information... " >&6; }
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: " >&5
-$as_echo "" >&6; }
-for python2 in python2.7 python2.6 python2.5 python2.4 python2.3 python2.2 python2.1 python; do
-for ac_prog in $python2
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_prog_PYTHON2_BIN+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test -n "$PYTHON2_BIN"; then
-  ac_cv_prog_PYTHON2_BIN="$PYTHON2_BIN" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_prog_PYTHON2_BIN="$ac_prog"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-fi
-fi
-PYTHON2_BIN=$ac_cv_prog_PYTHON2_BIN
-if test -n "$PYTHON2_BIN"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON2_BIN" >&5
-$as_echo "$PYTHON2_BIN" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-  test -n "$PYTHON2_BIN" && break
-done
-
-ax_python2_bin=$PYTHON2_BIN
-if test x$ax_python2_bin != x; then
-   as_ac_Lib=`$as_echo "ac_cv_lib_$ax_python2_bin''_main" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -l$ax_python2_bin" >&5
-$as_echo_n "checking for main in -l$ax_python2_bin... " >&6; }
-if eval \${$as_ac_Lib+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-l$ax_python2_bin  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-
-int
-main ()
-{
-return main ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  eval "$as_ac_Lib=yes"
-else
-  eval "$as_ac_Lib=no"
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-eval ac_res=\$$as_ac_Lib
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_Lib"\" = x"yes"; then :
-  ax_python2_lib=$ax_python2_bin
-else
-  ax_python2_lib=no
-fi
-
-   if test x$ax_python2_lib == xno; then
-     as_ac_Lib=`$as_echo "ac_cv_lib_${ax_python2_bin}m''_main" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -l${ax_python2_bin}m" >&5
-$as_echo_n "checking for main in -l${ax_python2_bin}m... " >&6; }
-if eval \${$as_ac_Lib+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-l${ax_python2_bin}m  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-
-int
-main ()
-{
-return main ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  eval "$as_ac_Lib=yes"
-else
-  eval "$as_ac_Lib=no"
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-eval ac_res=\$$as_ac_Lib
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_Lib"\" = x"yes"; then :
-  ax_python2_lib=${ax_python2_bin}m
-else
-  ax_python2_lib=no
-fi
-
-   fi
-   if test x$ax_python2_lib != xno; then
-     ax_python2_header=`$ax_python2_bin -c "from distutils.sysconfig import *; print(get_config_var('CONFINCLUDEPY'))"`
-     if test x$ax_python2_header != x; then
-       break;
-     fi
-   fi
-fi
-done
-if test x$ax_python2_bin = x; then
-   ax_python2_bin=no
-fi
-if test x$ax_python2_header = x; then
-   ax_python2_header=no
-fi
-if test x$ax_python2_lib = x; then
-   ax_python2_lib=no
-fi
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result:   results of the Python2 check:" >&5
-$as_echo "  results of the Python2 check:" >&6; }
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result:     Binary:      $ax_python2_bin" >&5
-$as_echo "    Binary:      $ax_python2_bin" >&6; }
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result:     Library:     $ax_python2_lib" >&5
-$as_echo "    Library:     $ax_python2_lib" >&6; }
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result:     Include Dir: $ax_python2_header" >&5
-$as_echo "    Include Dir: $ax_python2_header" >&6; }
-
-if test x$ax_python2_header != xno; then
-  PYTHON2_INCLUDE_DIR=$ax_python2_header
-
-fi
-if test x$ax_python2_lib != xno; then
-  PYTHON2_LIB=$ax_python2_lib
-
-fi
-
-fi;
-if test "$with_parseltongue" = "yes" &&  test ! -z "${ax_python2_lib}"; then
-   CMODULES="lib/kno/parseltongue.$shared_suffix ${CMODULES}"
-   INSTALLCMODULES="install-parseltongue ${INSTALLCMODULES}"
-fi
-
-## Build CURL cmodule
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for curl_easy_init in -lcurl" >&5
-$as_echo_n "checking for curl_easy_init in -lcurl... " >&6; }
-if ${ac_cv_lib_curl_curl_easy_init+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lcurl  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char curl_easy_init ();
-int
-main ()
-{
-return curl_easy_init ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_curl_curl_easy_init=yes
-else
-  ac_cv_lib_curl_curl_easy_init=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_curl_curl_easy_init" >&5
-$as_echo "$ac_cv_lib_curl_curl_easy_init" >&6; }
-if test "x$ac_cv_lib_curl_curl_easy_init" = xyes; then :
-  curl_default="yes"
-fi
-
-
-# Check whether --with-curl was given.
-if test "${with_curl+set}" = set; then :
-  withval=$with_curl;
-else
-  with_curl=$curl_default
-fi
-
-if test $with_curl = "yes"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for curl_easy_init in -lcurl" >&5
-$as_echo_n "checking for curl_easy_init in -lcurl... " >&6; }
-if ${ac_cv_lib_curl_curl_easy_init+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lcurl  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char curl_easy_init ();
-int
-main ()
-{
-return curl_easy_init ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_curl_curl_easy_init=yes
-else
-  ac_cv_lib_curl_curl_easy_init=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_curl_curl_easy_init" >&5
-$as_echo "$ac_cv_lib_curl_curl_easy_init" >&6; }
-if test "x$ac_cv_lib_curl_curl_easy_init" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBCURL 1
-_ACEOF
-
-  LIBS="-lcurl $LIBS"
-
-fi
-
-  for ac_header in curl/curl.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "curl/curl.h" "ac_cv_header_curl_curl_h" "$ac_includes_default"
-if test "x$ac_cv_header_curl_curl_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_CURL_CURL_H 1
-_ACEOF
-
-fi
-
-done
-
-  $as_echo "#define KNO_WITH_CURL 1" >>confdefs.h
-
-  curlo="src/web/curl.o"
-  curlconfig="\`curl-config --libs\`"
-else
-  $as_echo "#define KNO_WITH_CURL 0" >>confdefs.h
-
-  missing="curl ${missing}"
-fi
-
-## Providing DNS functions in webtools
-
-for ac_header in resolv.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "resolv.h" "ac_cv_header_resolv_h" "$ac_includes_default"
-if test "x$ac_cv_header_resolv_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_RESOLV_H 1
-_ACEOF
-
-fi
-
-done
-
-for ac_header in arpa/nameser.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "arpa/nameser.h" "ac_cv_header_arpa_nameser_h" "$ac_includes_default"
-if test "x$ac_cv_header_arpa_nameser_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_ARPA_NAMESER_H 1
-_ACEOF
-
-fi
-
-done
-
-for ac_header in netinet/in.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "netinet/in.h" "ac_cv_header_netinet_in_h" "$ac_includes_default"
-if test "x$ac_cv_header_netinet_in_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_NETINET_IN_H 1
-_ACEOF
-
-fi
-
-done
-
-for ac_header in netdb.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "netdb.h" "ac_cv_header_netdb_h" "$ac_includes_default"
-if test "x$ac_cv_header_netdb_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_NETDB_H 1
-_ACEOF
-
-fi
-
-done
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ldns_resolver_query in -lldns" >&5
-$as_echo_n "checking for ldns_resolver_query in -lldns... " >&6; }
-if ${ac_cv_lib_ldns_ldns_resolver_query+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lldns  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char ldns_resolver_query ();
-int
-main ()
-{
-return ldns_resolver_query ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_ldns_ldns_resolver_query=yes
-else
-  ac_cv_lib_ldns_ldns_resolver_query=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ldns_ldns_resolver_query" >&5
-$as_echo "$ac_cv_lib_ldns_ldns_resolver_query" >&6; }
-if test "x$ac_cv_lib_ldns_ldns_resolver_query" = xyes; then :
-  dns_default="yes"
-fi
-
-
-# Check whether --with-dns was given.
-if test "${with_dns+set}" = set; then :
-  withval=$with_dns;
-else
-  with_dns=$dns_default
-fi
-
-if test "$with_dns" = "yes"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ldns_resolver_query in -lldns" >&5
-$as_echo_n "checking for ldns_resolver_query in -lldns... " >&6; }
-if ${ac_cv_lib_ldns_ldns_resolver_query+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lldns  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char ldns_resolver_query ();
-int
-main ()
-{
-return ldns_resolver_query ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_ldns_ldns_resolver_query=yes
-else
-  ac_cv_lib_ldns_ldns_resolver_query=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ldns_ldns_resolver_query" >&5
-$as_echo "$ac_cv_lib_ldns_ldns_resolver_query" >&6; }
-if test "x$ac_cv_lib_ldns_ldns_resolver_query" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBLDNS 1
-_ACEOF
-
-  LIBS="-lldns $LIBS"
-
-fi
-
-  $as_echo "#define KNO_WITH_DNS 1" >>confdefs.h
-
-  ldnso="src/web/ldns.o"
-else
-  $as_echo "#define KNO_WITH_DNS 0" >>confdefs.h
-
-  missing="ldns ${missing}"
+  TEXT_CMODULES="lib/kno/sundown.$shared_suffix ${TEXT_CMODULES}"
+  INSTALL_TEXT_CMODULES="install-sundown ${INSTALL_TEXT_CMODULES}"
 fi
 
 ### exif (extract metadata from image files)
@@ -12696,8 +12704,8 @@ fi
 
 done
 
-  CMODULES="lib/kno/exif.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-exif ${INSTALLCMODULES}"
+  GRAPHICS_CMODULES="lib/kno/exif.$shared_suffix ${GRAPHICS_CMODULES}"
+  INSTALLC_GRAPHICS_MODULES="install-exif ${INSTALL_GRAPHICS_CMODULES}"
 else
   missing="curl ${missing}"
 fi
@@ -12815,8 +12823,8 @@ fi
 
   if ( (test "$have_png_h" = "yes") && (test "$have_qrencode_h" = "yes") &&
        (test "$libpng_ok" = "yes") && (test "$qrcode_ok" = "yes") ); then
-    CMODULES="lib/kno/qrcode.$shared_suffix ${CMODULES}"
-    INSTALLCMODULES="install-qrcode ${INSTALLCMODULES}"
+    GRAPHICS_CMODULES="lib/kno/qrcode.$shared_suffix ${GRAPHICS_CMODULES}"
+    INSTALL_GRAPHICS_CMODULES="install-qrcode ${INSTALL_GRAPHICS_CMODULES}"
   else
     missing="qrcode ${missing}"
   fi;

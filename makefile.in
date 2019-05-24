@@ -502,7 +502,7 @@ SCHEME_MODULES=src/extmods/*.scm \
 CMODULE_DEPENDS=lib/libknocore@suffix@.@shared_suffix@	\
 	lib/libknostorage@suffix@.@shared_suffix@ 	\
 	lib/libknostorage@suffix@.@shared_suffix@ 	\
-	 lib/libknoscheme@suffix@.@shared_suffix@
+	lib/libknoscheme@suffix@.@shared_suffix@
 
 ALL=testbin exe cmodules @TAGS@
 
@@ -792,8 +792,11 @@ constestbin: libs tests/lisp/makefile tests/lisp/.gdbinit
 dbtestbin: libs tests/storage/makefile tests/storage/.gdbinit
 	@make -s  XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
 		-C tests/storage
-cmodules: dbmodules @CMODULES@
-dbmodules: @DBMODULES@
+cmodules: dbmodules textmodules graphicsmodules @CMODULES@
+dbmodules: @DB_CMODULES@
+textmodules: @TEXT_CMODULES@
+graphicsmodules: @GRAPHICS_CMODULES@
+archivemodules: @ARCHIVE_CMODULES@
 
 dbg/knoweb.webuser: dbg/knoweb
 	@echo "Making" $@
@@ -1507,8 +1510,8 @@ install-fastcgi: $(BININSTALLDIR)/knocgi@suffix@
 $(BININSTALLDIR)/knocgi@suffix@:
 	@$(SYSINSTALL) -p @install_exe_opts@ exe/knocgi@suffix@ $(BININSTALLDIR)
 
-install-cmodules: @INSTALLCMODULES@
-install-dbmodules: @INSTALLDBMODULES@
+install-cmodules: @INSTALL_CMODULES@
+install-dbmodules: @INSTALLDB_CMODULES@
 install-odbc: ${CMODULES}/odbc.@shared_suffix@ ${CMODULES}/odbc.@vshared_suffix@
 install-sqlite: ${CMODULES}/sqlite.@shared_suffix@ ${CMODULES}/sqlite.@vshared_suffix@
 install-crypto: ${CMODULES}/crypto.@shared_suffix@ ${CMODULES}/crypto.@vshared_suffix@
