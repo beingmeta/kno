@@ -116,12 +116,12 @@ default_safe_module_path=""
 module_path=""
 safe_module_path=""
 source_dir=""
-CMODULES=""
+CORE_CMODULES=""
 DB_CMODULES=""
 TEXT_MODULES=""
 GRAPHICS_CMODULES=""
 ARCHIVE_CMODULES=""
-INSTALL_CMODULES=""
+INSTALL_CORE_CMODULES=""
 INSTALL_DB_CMODULES=""
 INSTALL_TEXT_MODULES=""
 INSTALL_GRAPHICS_CMODULES=""
@@ -337,14 +337,14 @@ AC_SUBST(INSTALLI18N)
 AC_SUBST(SUDO)
 AC_SUBST(SUINSTALL)
 AC_SUBST(WWWUSER)
-AC_SUBST(CMODULES)
+AC_SUBST(CORE_CMODULES)
 AC_SUBST(DB_CMODULES)
 AC_SUBST(TEXT_CMODULES)
 AC_SUBST(GRAPHICS_CMODULES)
 AC_SUBST(ARCHIVE_CMODULES)
 AC_SUBST(DATAFILES)
 AC_SUBST(BOOTSETUP)
-AC_SUBST(INSTALL_CMODULES)
+AC_SUBST(INSTALL_CORE_CMODULES)
 AC_SUBST(INSTALL_DB_CMODULES)
 AC_SUBST(INSTALL_TEXT_CMODULES)
 AC_SUBST(INSTALL_GRAPHICS_CMODULES)
@@ -780,8 +780,8 @@ else
   elif test "$gperftools" = "profile"; then
     AC_CHECK_LIB(tcmalloc,malloc,EXELIBS="-ltcmalloc $EXELIBS")
     AC_CHECK_LIB(profiler,ProfilerStart,EXELIBS="-lprofiler $EXELIBS")
-    CMODULES="lib/kno/gperftools.${shared_suffix} ${CMODULES}"
-    INSTALL_CMODULES="install-gperftools ${INSTALL_CMODULES}"
+    CORE_CMODULES="lib/kno/gperftools.${shared_suffix} ${CORE_CMODULES}"
+    INSTALL_CORE_CMODULES="install-gperftools ${INSTALL_CORE_CMODULES}"
   elif test "$gperftools" = "minimal"; then
     AC_CHECK_LIB(tcmalloc_minimal,malloc,EXELIBS="-ltcmalloc_minimal $EXELIBS")
   else
@@ -828,8 +828,8 @@ dnl Check for cryptic in in libu8
 AC_CHECK_FUNCS(u8_cryptic,with_crypto_default="yes")
 AC_ARG_WITH(crypto,--with[out]-crypto Compile the crypto module,,with_crypto=$with_crypto_default)
 if test $with_crypto = "yes"; then
-  CMODULES="lib/kno/crypto.$shared_suffix ${CMODULES}"
-  INSTALL_CMODULES="install-crypto ${INSTALL_CMODULES}"
+  CORE_CMODULES="lib/kno/crypto.$shared_suffix ${CORE_CMODULES}"
+  INSTALL_CORE_CMODULES="install-crypto ${INSTALL_CORE_CMODULES}"
 fi
 
 # OpenSSL checks
@@ -1519,8 +1519,8 @@ if test "$with_parseltongue" = "yes"; then
    AX_PYTHON2
 fi;
 if test "$with_parseltongue" = "yes" &&  test ! -z "${ax_python2_lib}"; then
-   CMODULES="lib/kno/parseltongue.$shared_suffix ${CMODULES}"
-   INSTALL_CMODULES="install-parseltongue ${INSTALL_CMODULES}"
+   CORE_CMODULES="lib/kno/parseltongue.$shared_suffix ${CORE_CMODULES}"
+   INSTALL_CORE_CMODULES="install-parseltongue ${INSTALL_CORE_CMODULES}"
 fi
 
 ### Control use of 'sudo' for installation
@@ -1614,10 +1614,10 @@ if test "$enable_imagick" = "yes" &&
   IMAGICK_CFLAGS=`$pkg_config MagickWand --cflags`;
   IMAGICK_LDFLAGS=`$pkg_config MagickWand --libs`;
   GRAPHICS_CMODULES="lib/kno/imagick.$shared_suffix ${GRAPHICS_CMODULES}";
-  INSTALL_GRAPHICS_CMODULES="imagick-install ${INSTALL_GRAPHICS_CMODULES}";
+  INSTALL_GRAPHICS_CMODULES="install-imagick ${INSTALL_GRAPHICS_CMODULES}";
 elif test "$enable_imagick" = "force"; then
   GRAPHICS_CMODULES="lib/kno/imagick.$shared_suffix ${GRAPHICS_CMODULES}";
-  INSTALL_GRAPHICS_CMODULES="imagick-install ${INSTALL_GRAPHICS_CMODULES}";
+  INSTALL_GRAPHICS_CMODULES="install-imagick ${INSTALL_GRAPHICS_CMODULES}";
 elif test "$enable_imagick" = "yes"; then
   auto_disabled="imagick ${auto_disabled}";
   enable_imagick="failed";
@@ -1632,7 +1632,7 @@ AC_CHECK_LIB(archive,archive_read_new)
 if test "${ac_cv_header_archive_h}" == "yes" && \
    test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
   ARCHIVE_CMODULES="lib/kno/libarchive.${shared_suffix} ${ARCHIVE_CMODULES}"
-  INSTALL_ARCHIVE_CMODULES="archive ${INSTALL_ARCHIVE_CMODULES}"
+  INSTALL_ARCHIVE_CMODULES="install-archive-cmodules ${INSTALL_ARCHIVE_CMODULES}"
 else
   missing="libarchive ${missing}"
 fi

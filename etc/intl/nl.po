@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-05-22 12:38-0400\n"
+"POT-Creation-Date: 2019-05-24 21:53+0000\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Dutch <nl@li.org>\n"
@@ -275,11 +275,11 @@ msgstr ""
 msgid "Malformed DTYPE representation"
 msgstr ""
 
-#: src/lisp/dtread.c:769
+#: src/lisp/dtread.c:772
 msgid "Use the DTBLOCK dtype code when appropriate"
 msgstr ""
 
-#: src/lisp/dtread.c:772
+#: src/lisp/dtread.c:775
 msgid "whether to check returned and real dtype sizes"
 msgstr ""
 
@@ -450,11 +450,11 @@ msgstr ""
 #: src/support/config.c:670 src/support/startup.c:247 src/support/startup.c:630
 #: src/prims/dbprims.c:282 src/prims/dbprims.c:300 src/prims/dbprims.c:318
 #: src/prims/portprims.c:181 src/prims/portprims.c:459
-#: src/prims/portprims.c:543 src/prims/streamprims.c:376
-#: src/prims/streamprims.c:415 src/prims/streamprims.c:499
-#: src/prims/streamprims.c:528 src/prims/streamprims.c:543
-#: src/prims/streamprims.c:563 src/prims/streamprims.c:594
-#: src/prims/streamprims.c:612 src/prims/stringprims.c:466
+#: src/prims/portprims.c:543 src/prims/streamprims.c:378
+#: src/prims/streamprims.c:417 src/prims/streamprims.c:503
+#: src/prims/streamprims.c:532 src/prims/streamprims.c:547
+#: src/prims/streamprims.c:567 src/prims/streamprims.c:598
+#: src/prims/streamprims.c:616 src/prims/stringprims.c:466
 #: src/prims/stringprims.c:644 src/prims/stringprims.c:670
 #: src/prims/stringprims.c:1549 src/prims/fileprims.c:271
 #: src/prims/fileprims.c:560 src/web/cgiexec.c:1286 src/web/cgiexec.c:1313
@@ -1229,7 +1229,7 @@ msgstr ""
 msgid "Error getting metadata"
 msgstr ""
 
-#: src/storage/storage.c:380 src/storage/pools.c:2675 src/prims/dbprims.c:1196
+#: src/storage/storage.c:382 src/storage/pools.c:2675 src/prims/dbprims.c:1196
 #: src/prims/dbprims.c:1207 src/prims/dbprims.c:1215 src/prims/dbprims.c:1223
 #: src/prims/dbprims.c:1264 src/prims/dbprims.c:1277 src/prims/dbprims.c:1293
 #: src/prims/dbprims.c:1305 src/prims/dbprims.c:1316 src/prims/dbprims.c:1334
@@ -1238,55 +1238,55 @@ msgstr ""
 msgid "pool spec"
 msgstr ""
 
-#: src/storage/storage.c:687
+#: src/storage/storage.c:690
 msgid "Sets a level of time/memory tradeoff [0-3], default 1"
 msgstr ""
 
-#: src/storage/storage.c:692
+#: src/storage/storage.c:695
 msgid "Default oid display level [0-3]"
 msgstr ""
 
-#: src/storage/storage.c:697
+#: src/storage/storage.c:700
 msgid "Default log level for database messages"
 msgstr ""
 
-#: src/storage/storage.c:701
+#: src/storage/storage.c:704
 msgid "Whether to prefetch for large operations"
 msgstr ""
 
-#: src/storage/storage.c:706
+#: src/storage/storage.c:709
 msgid "pools used for OID resolution"
 msgstr ""
 
-#: src/storage/storage.c:709
+#: src/storage/storage.c:712
 msgid "indexes opened"
 msgstr ""
 
-#: src/storage/storage.c:712
+#: src/storage/storage.c:715
 msgid "indexes in the default search background"
 msgstr ""
 
-#: src/storage/storage.c:717
+#: src/storage/storage.c:720
 msgid "Number of connections to keep for each DB server"
 msgstr ""
 
-#: src/storage/storage.c:720
+#: src/storage/storage.c:723
 msgid "Max number of connections (default) for each DB server"
 msgstr ""
 
-#: src/storage/storage.c:724
+#: src/storage/storage.c:727
 msgid "Number of connections to initially create for each DB server"
 msgstr ""
 
-#: src/storage/storage.c:728
+#: src/storage/storage.c:731
 msgid "Functions and slotids for lookup up objects by name (@?name)"
 msgstr ""
 
-#: src/storage/storage.c:731
+#: src/storage/storage.c:734
 msgid "Functions to run when saving databases"
 msgstr ""
 
-#: src/storage/storage.c:736
+#: src/storage/storage.c:739
 msgid "Whether to convert legacy uppercase to lowercase"
 msgstr ""
 
@@ -1346,19 +1346,19 @@ msgstr ""
 msgid "Not MMapped"
 msgstr ""
 
-#: src/storage/streams.c:625
+#: src/storage/streams.c:626
 msgid "StreamClosed"
 msgstr ""
 
-#: src/storage/streams.c:668
+#: src/storage/streams.c:669
 msgid "FreeingStaticStream"
 msgstr ""
 
-#: src/storage/streams.c:673
+#: src/storage/streams.c:674
 msgid "DanglingStreamPointers"
 msgstr ""
 
-#: src/storage/streams.c:1569
+#: src/storage/streams.c:1574
 msgid "LOGLEVEL for binary streams"
 msgstr ""
 
@@ -1764,7 +1764,7 @@ msgstr ""
 
 #: src/drivers/filepool.c:900 src/drivers/oidpool.c:1640
 #: src/drivers/bigpool.c:2037 src/drivers/fileindex.c:1199
-#: src/drivers/hashindex.c:3747
+#: src/drivers/hashindex.c:3802
 msgid "cachelevel"
 msgstr ""
 
@@ -1800,11 +1800,11 @@ msgstr ""
 msgid "Invalid offset in BIGPOOL"
 msgstr ""
 
-#: src/drivers/bigpool.c:247
+#: src/drivers/bigpool.c:249
 msgid "Not a bigpool"
 msgstr ""
 
-#: src/drivers/bigpool.c:738
+#: src/drivers/bigpool.c:741
 msgid "BadSlotCode"
 msgstr ""
 
@@ -1829,7 +1829,7 @@ msgstr ""
 msgid "hashindex has unknown hash function"
 msgstr ""
 
-#: src/drivers/hashindex.c:3356
+#: src/drivers/hashindex.c:3411
 msgid "NotAHashIndex"
 msgstr ""
 
@@ -2256,7 +2256,7 @@ msgstr ""
 msgid "OIDPOOL compress ran out of memory"
 msgstr ""
 
-#: src/prims/streamprims.c:704 src/prims/streamprims.c:711
+#: src/prims/streamprims.c:712 src/prims/streamprims.c:719
 msgid "Out of file range"
 msgstr ""
 
@@ -2777,109 +2777,109 @@ msgstr ""
 msgid "positive fixnum"
 msgstr ""
 
-#: src/exe/knosh.c:75
+#: src/exe/knoc.c:75
 msgid "prompt is not a string"
 msgstr ""
 
-#: src/exe/knosh.c:86
+#: src/exe/knoc.c:86
 #, c-format
 msgid ";; Done in %f seconds, with %d/%d object/index loads\n"
 msgstr ""
 
-#: src/exe/knosh.c:88
+#: src/exe/knoc.c:88
 #, c-format
 msgid ";; %s computed in %f seconds, %d/%d object/index loads\n"
 msgstr ""
 
-#: src/exe/knosh.c:760
+#: src/exe/knoc.c:760
 msgid "Threshold for displaying execution time"
 msgstr ""
 
-#: src/exe/knosh.c:762
+#: src/exe/knoc.c:762
 msgid "Eval prompt (within #||#s)"
 msgstr ""
 
-#: src/exe/knosh.c:766
+#: src/exe/knoc.c:766
 msgid "Max number of string characters to display in debug message"
 msgstr ""
 
-#: src/exe/knosh.c:770
+#: src/exe/knoc.c:770
 msgid "Max number of sequence/choice elements to display in debug message"
 msgstr ""
 
-#: src/exe/knosh.c:773
+#: src/exe/knoc.c:773
 msgid "Whether to minimize console output"
 msgstr ""
 
-#: src/exe/knosh.c:776
+#: src/exe/knoc.c:776
 msgid "Report startup times when longer than N seconds"
 msgstr ""
 
-#: src/exe/knosh.c:780
+#: src/exe/knoc.c:780
 msgid "Number of characters available for pretty-printing console output"
 msgstr ""
 
-#: src/exe/knosh.c:784
+#: src/exe/knoc.c:784
 msgid "Number of elements to initially show in displaying results"
 msgstr ""
 
-#: src/exe/knosh.c:787
+#: src/exe/knoc.c:787
 msgid "Where to create directories for saving backtraces"
 msgstr ""
 
-#: src/exe/knosh.c:790
+#: src/exe/knoc.c:790
 msgid "The base URL for referencing HTML backtraces"
 msgstr ""
 
-#: src/exe/knosh.c:793
+#: src/exe/knoc.c:793
 msgid "The command to use to open saved backtraces"
 msgstr ""
 
-#: src/exe/knosh.c:796
+#: src/exe/knoc.c:796
 msgid "Whether to dump HTML versions of backtraces"
 msgstr ""
 
-#: src/exe/knosh.c:799
+#: src/exe/knoc.c:799
 msgid "Whether to dump LISP object versions of backtraces"
 msgstr ""
 
-#: src/exe/knosh.c:802
+#: src/exe/knoc.c:802
 msgid "Whether to dump binary DTYPE versions of backtraces"
 msgstr ""
 
-#: src/exe/knosh.c:805
+#: src/exe/knoc.c:805
 msgid "Whether to plaintext versions of backtraces"
 msgstr ""
 
-#: src/exe/knosh.c:808
+#: src/exe/knoc.c:808
 msgid "Whether to always save backtraces in the history"
 msgstr ""
 
-#: src/exe/knosh.c:811
+#: src/exe/knoc.c:811
 msgid "Whether to always output backtraces to stderr"
 msgstr ""
 
-#: src/exe/knosh.c:814
-msgid "Whether load .knosh or other dot files"
+#: src/exe/knoc.c:814
+msgid "Whether load .knoc or other dot files"
 msgstr ""
 
-#: src/exe/knosh.c:817
+#: src/exe/knoc.c:817
 msgid "Where to dump console errors"
 msgstr ""
 
-#: src/exe/knosh.c:863 src/exe/knox.c:242 src/exe/knox.c:247
+#: src/exe/knoc.c:863 src/exe/knox.c:242 src/exe/knox.c:247
 msgid "File to wait to exist before starting"
 msgstr ""
 
-#: src/exe/knosh.c:949
+#: src/exe/knoc.c:949
 msgid "Whether to use EDITLINE for the console"
 msgstr ""
 
-#: src/exe/knosh.c:979
+#: src/exe/knoc.c:979
 msgid ";; Bound %q\n"
 msgstr ""
 
-#: src/exe/knosh.c:980
+#: src/exe/knoc.c:980
 msgid ";; Bad command result %q\n"
 msgstr ""
 

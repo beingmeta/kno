@@ -792,11 +792,12 @@ constestbin: libs tests/lisp/makefile tests/lisp/.gdbinit
 dbtestbin: libs tests/storage/makefile tests/storage/.gdbinit
 	@make -s  XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
 		-C tests/storage
-cmodules: dbmodules textmodules graphicsmodules @CMODULES@
-dbmodules: @DB_CMODULES@
-textmodules: @TEXT_CMODULES@
-graphicsmodules: @GRAPHICS_CMODULES@
-archivemodules: @ARCHIVE_CMODULES@
+cmodules: core-modules db-modules text-modules graphics-modules archive-modules
+core-modules: @CORE_CMODULES@
+db-modules: @DB_CMODULES@
+text-modules: @TEXT_CMODULES@
+graphics-modules: @GRAPHICS_CMODULES@
+archive-modules: @ARCHIVE_CMODULES@
 
 dbg/knoweb.webuser: dbg/knoweb
 	@echo "Making" $@
@@ -1411,8 +1412,10 @@ install-status:
 	@if test -f .malloc && test -f .buildmode; then \
 	  echo "Installing" $(shell cat .buildmode) "build linked with" $(shell cat .malloc); \
 	fi;
-install: install-status install-core install-cmodules install-dbmodules \
-		install-libscm install-modules @setup_target@
+install: install-status install-core 			\
+		install-cmodules 			\
+		install-libscm install-extmods 		\
+		@setup_target@
 	@if test -f .malloc && test -f .buildmode; then \
 	  echo "Installed" $(shell cat .buildmode) "build linked with" $(shell cat .malloc); \
 	fi;
@@ -1510,8 +1513,14 @@ install-fastcgi: $(BININSTALLDIR)/knocgi@suffix@
 $(BININSTALLDIR)/knocgi@suffix@:
 	@$(SYSINSTALL) -p @install_exe_opts@ exe/knocgi@suffix@ $(BININSTALLDIR)
 
-install-cmodules: @INSTALL_CMODULES@
-install-dbmodules: @INSTALLDB_CMODULES@
+install-cmodules: install-core-cmodules install-db-cmodules install-text-cmodules \
+	install-graphics-cmodules install-archive-cmodules
+
+install-core-cmodules: @INSTALL_CORE_CMODULES@
+install-db-cmodules: @INSTALL_DB_CMODULES@
+install-text-cmodules: @INSTALL_TEXT_CMODULES@
+install-graphics-cmodules: @INSTALL_GRAPHICS_CMODULES@
+install-archive-cmodules: @INSTALL_ARCHIVE_CMODULES@
 install-odbc: ${CMODULES}/odbc.@shared_suffix@ ${CMODULES}/odbc.@vshared_suffix@
 install-sqlite: ${CMODULES}/sqlite.@shared_suffix@ ${CMODULES}/sqlite.@vshared_suffix@
 install-crypto: ${CMODULES}/crypto.@shared_suffix@ ${CMODULES}/crypto.@vshared_suffix@
@@ -1564,7 +1573,7 @@ EXT_MODULE_DIRS=xhtml fdxml domutils textindex morph misc tests  knodules \
 
 EXT_MODULE_DATA=textindex/data knodules/data aws/templates morph/data
 
-install-modules: install-standard-modules install-safe-modules
+install-extmods: install-standard-modules install-safe-modules
 install-standard-modules: install-module-source install-module-data
 
 install-module-source: $(DESTDIR)@builtin_module_dir@

@@ -718,14 +718,14 @@ INSTALL_ARCHIVE_CMODULES
 INSTALL_GRAPHICS_CMODULES
 INSTALL_TEXT_CMODULES
 INSTALL_DB_CMODULES
-INSTALL_CMODULES
+INSTALL_CORE_CMODULES
 BOOTSETUP
 DATAFILES
 ARCHIVE_CMODULES
 GRAPHICS_CMODULES
 TEXT_CMODULES
 DB_CMODULES
-CMODULES
+CORE_CMODULES
 WWWUSER
 SUINSTALL
 SUDO
@@ -855,6 +855,7 @@ infodir
 docdir
 oldincludedir
 includedir
+runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -1021,6 +1022,7 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
+runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE}'
@@ -1273,6 +1275,15 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
+  -runstatedir | --runstatedir | --runstatedi | --runstated \
+  | --runstate | --runstat | --runsta | --runst | --runs \
+  | --run | --ru | --r)
+    ac_prev=runstatedir ;;
+  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
+  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
+  | --run=* | --ru=* | --r=*)
+    runstatedir=$ac_optarg ;;
+
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1410,7 +1421,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir
+		libdir localedir mandir runstatedir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1563,6 +1574,7 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
+  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -3017,12 +3029,12 @@ default_safe_module_path=""
 module_path=""
 safe_module_path=""
 source_dir=""
-CMODULES=""
+CORE_CMODULES=""
 DB_CMODULES=""
 TEXT_MODULES=""
 GRAPHICS_CMODULES=""
 ARCHIVE_CMODULES=""
-INSTALL_CMODULES=""
+INSTALL_CORE_CMODULES=""
 INSTALL_DB_CMODULES=""
 INSTALL_TEXT_MODULES=""
 INSTALL_GRAPHICS_CMODULES=""
@@ -7348,8 +7360,8 @@ if test "x$ac_cv_lib_profiler_ProfilerStart" = xyes; then :
   EXELIBS="-lprofiler $EXELIBS"
 fi
 
-    CMODULES="lib/kno/gperftools.${shared_suffix} ${CMODULES}"
-    INSTALL_CMODULES="install-gperftools ${INSTALL_CMODULES}"
+    CORE_CMODULES="lib/kno/gperftools.${shared_suffix} ${CORE_CMODULES}"
+    INSTALL_CORE_CMODULES="install-gperftools ${INSTALL_CORE_CMODULES}"
   elif test "$gperftools" = "minimal"; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_minimal" >&5
 $as_echo_n "checking for malloc in -ltcmalloc_minimal... " >&6; }
@@ -7682,8 +7694,8 @@ else
 fi
 
 if test $with_crypto = "yes"; then
-  CMODULES="lib/kno/crypto.$shared_suffix ${CMODULES}"
-  INSTALL_CMODULES="install-crypto ${INSTALL_CMODULES}"
+  CORE_CMODULES="lib/kno/crypto.$shared_suffix ${CORE_CMODULES}"
+  INSTALL_CORE_CMODULES="install-crypto ${INSTALL_CORE_CMODULES}"
 fi
 
 # OpenSSL checks
@@ -11370,8 +11382,8 @@ fi
 
 fi;
 if test "$with_parseltongue" = "yes" &&  test ! -z "${ax_python2_lib}"; then
-   CMODULES="lib/kno/parseltongue.$shared_suffix ${CMODULES}"
-   INSTALL_CMODULES="install-parseltongue ${INSTALL_CMODULES}"
+   CORE_CMODULES="lib/kno/parseltongue.$shared_suffix ${CORE_CMODULES}"
+   INSTALL_CORE_CMODULES="install-parseltongue ${INSTALL_CORE_CMODULES}"
 fi
 
 ### Control use of 'sudo' for installation
@@ -11694,10 +11706,10 @@ if test "$enable_imagick" = "yes" &&
   IMAGICK_CFLAGS=`$pkg_config MagickWand --cflags`;
   IMAGICK_LDFLAGS=`$pkg_config MagickWand --libs`;
   GRAPHICS_CMODULES="lib/kno/imagick.$shared_suffix ${GRAPHICS_CMODULES}";
-  INSTALL_GRAPHICS_CMODULES="imagick-install ${INSTALL_GRAPHICS_CMODULES}";
+  INSTALL_GRAPHICS_CMODULES="install-imagick ${INSTALL_GRAPHICS_CMODULES}";
 elif test "$enable_imagick" = "force"; then
   GRAPHICS_CMODULES="lib/kno/imagick.$shared_suffix ${GRAPHICS_CMODULES}";
-  INSTALL_GRAPHICS_CMODULES="imagick-install ${INSTALL_GRAPHICS_CMODULES}";
+  INSTALL_GRAPHICS_CMODULES="install-imagick ${INSTALL_GRAPHICS_CMODULES}";
 elif test "$enable_imagick" = "yes"; then
   auto_disabled="imagick ${auto_disabled}";
   enable_imagick="failed";
@@ -11767,7 +11779,7 @@ fi
 if test "${ac_cv_header_archive_h}" == "yes" && \
    test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
   ARCHIVE_CMODULES="lib/kno/libarchive.${shared_suffix} ${ARCHIVE_CMODULES}"
-  INSTALL_ARCHIVE_CMODULES="archive ${INSTALL_ARCHIVE_CMODULES}"
+  INSTALL_ARCHIVE_CMODULES="install-archive-cmodules ${INSTALL_ARCHIVE_CMODULES}"
 else
   missing="libarchive ${missing}"
 fi
