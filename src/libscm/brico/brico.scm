@@ -77,13 +77,20 @@
 (define brico-background #t)
 (varconfig! brico:background brico-background)
 
+(define brico-opts #[fixsyms #t])
+
 (define absfreqs {})
 
 (define host-string '(+ {(isalnum) "-"}))
 (define host-name `#((* #(,host-string ".")) ,host-string))
 
-(defambda (setup-brico source (success #f) (setup #f) 
-		       (use-indexes #f))
+(defambda (setup-brico source (success #f) (setup #f) (use-indexes #f)
+		       (use-opts brico-opts))
+  (unless (and (testopt use-opts 'readonly brico-readonly)
+	       (testopt use-opts 'readonly brico-background))
+    (set! use-opts (deep-copy brico-opts))
+    (store! use-opts 'readonly brico-readonly)
+    (store! use-opts 'background brico-background))
   (logdebug |SetupBrico| source)
   (cond ((ambiguous? source)
 	 (do-choices (elt source)
@@ -112,12 +119,9 @@
 	     (onerror
 		 (cond ;; Use other pools in the directory
 		       ((has-suffix file ".pool")
-			(set+! pools (pool/ref file `#[readonly ,brico-readonly])))
+			(set+! pools (pool/ref file use-opts)))
 		       ((has-suffix file ".index")
-			(set+! indexes
-			  (open-index file
-			    `#[readonly ,brico-readonly
-			       background ,brico-background]))))
+			(set+! indexes (open-index file use-opts))))
 		 (lambda (ex) 
 		   (logwarn |DBFailed| "Couldn't use " file)
 		   (set! failed #t)
@@ -134,7 +138,7 @@
 	       (do-choices (index indexes) (printout "\n\t" index))))
 	   (when  (and (not failed) (exists? pools) (exists? indexes)
 		       (name->pool "brico.framerd.org"))
-	     (set! brico.db `#[%pools ,pools %indexes ,indexes])
+	     (set! brico.db `#[%pools ,pools %indexes ,indexes opts ,use-opts])
 	     (set! use-indexes indexes)
 	     (set! success #t)
 	     (set! setup #t))
@@ -142,9 +146,7 @@
 	((file-exists? source)
 	 (onerror
 	     (begin
-	       (set! brico.db 
-		 (usedb source `#[readonly ,brico-readonly
-				  background ,brico-background]))
+	       (set! brico.db (usedb source use-opts))
 	       (set! success #t)
 	       (set! setup #t))
 	     (lambda (ex)
@@ -153,14 +155,13 @@
 		 ex)
 	       #f)))
 	((file-exists? (glom source ".db"))
-	 (set! success (setup-brico (glom source ".db"))))
+	 (set! success (setup-brico (glom source ".db") use-opts)))
 	((or (textmatch `#((isalnum+) "@" ,host-name) source)
 	     (textmatch `#(,host-name ":" (isdigit+)) source))
 	 (onerror
 	     (begin
-	       (use-pool source `#[readonly ,brico-readonly])
-	       (open-index source `#[readonly ,brico-readonly
-				     background ,brico-background])
+	       (use-pool source use-opts)
+	       (open-index source use-opts)
 	       (set! success #t)
 	       (set! setup #t))
 	     (lambda (ex)
