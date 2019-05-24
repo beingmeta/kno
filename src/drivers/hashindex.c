@@ -226,6 +226,7 @@ static ssize_t output_symbol_bytes(struct KNO_OUTBUF *out,
       kno_output_bytes(out,u8_outstring(&upper),u8_outlen(&upper));}
     else {kno_output_bytes(out,bytes,len);}}
   else {kno_output_bytes(out,bytes,len);}
+  return len;
 }
 
 /* Getting chunk refs */
