@@ -124,8 +124,8 @@ Section: debug
 Depends: 
     kno-core-dbg (= ${binary:Version}),
     kno-rocksdb (= ${binary:Version}),
+#    librocksdb5.10-dbg | librocksdb5.8-dbg | librocksdb4.5-dbg | librocksdb4.1-dbg,
     librocksdb-dev,
-    librocksdb5.10-dbg | librocksdb5.8-dbg | librocksdb4.5-dbg | librocksdb4.1-dbg,
     ${misc:Depends}
 Description: This package contains the debugging symbols for kno-rocksdb
 

@@ -1632,7 +1632,7 @@ AC_CHECK_LIB(archive,archive_read_new)
 if test "${ac_cv_header_archive_h}" == "yes" && \
    test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
   ARCHIVE_CMODULES="lib/kno/libarchive.${shared_suffix} ${ARCHIVE_CMODULES}"
-  INSTALL_ARCHIVE_CMODULES="install-archive-cmodules ${INSTALL_ARCHIVE_CMODULES}"
+  INSTALL_ARCHIVE_CMODULES="install-libarchive ${INSTALL_ARCHIVE_CMODULES}"
 else
   missing="libarchive ${missing}"
 fi
@@ -1873,7 +1873,7 @@ AC_ARG_WITH(exif,--with[out]-exif Use libexif in webtools,,with_exif=$exif_defau
 if test "$with_exif" = "yes"; then
   AC_CHECK_HEADERS(libexif/exif-data.h)
   GRAPHICS_CMODULES="lib/kno/exif.$shared_suffix ${GRAPHICS_CMODULES}"
-  INSTALLC_GRAPHICS_MODULES="install-exif ${INSTALL_GRAPHICS_CMODULES}"
+  INSTALL_GRAPHICS_CMODULES="install-exif ${INSTALL_GRAPHICS_CMODULES}"
 else
   missing="curl ${missing}"
 fi
