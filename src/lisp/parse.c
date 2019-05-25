@@ -1337,7 +1337,8 @@ static lispval parse_histref(u8_input in)
          (c=='-') || (c=='_') ||
          (c=='/') || (c=='+') ||
          (c=='%') || (c=='$') ||
-         (c=='&') || (c=='!') ) {
+         (c=='&') || (c=='!') ||
+         (c=='@') ) {
       u8_putc(&tmpbuf,c); }
     else if (c == '.') {
       lispval elt = kno_parse(tmpbuf.u8_outbuf);

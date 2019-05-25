@@ -15,7 +15,7 @@
 #include "kno/sequences.h"
 #include "kno/history.h"
 
-static lispval history_symbol, histref_symbol;
+static lispval history_symbol, histref_typetag;
 
 #define hashtable_get(tbl,key,dflt) \
   kno_hashtable_get((kno_hashtable)tbl,key,dflt)
@@ -27,17 +27,20 @@ KNO_EXPORT lispval kno_oid_value(lispval oid);
 
 */
 
-int unpack_history(lispval history,lispval *roots,lispval *vals,lispval *refs,
-		   lispval *root_refs)
+int unpack_history(lispval history,
+                   lispval *roots,
+                   lispval *vals,
+                   lispval *refs,
+                   lispval *root_refs)
 {
   if (KNO_COMPOUND_TYPEP(history,history_symbol)) {
     int top = -1;
     if (KNO_FIXNUMP(KNO_COMPOUND_REF(history,0)))
       top = KNO_FIX2INT(KNO_COMPOUND_REF(history,0));
     if ( (top >= 0) &&
-	 (KNO_COMPOUND_LENGTH(history)>=4) &&
-	 (KNO_HASHTABLEP(KNO_COMPOUND_REF(history,1))) &&
-	 (KNO_HASHTABLEP(KNO_COMPOUND_REF(history,2)))) {
+         (KNO_COMPOUND_LENGTH(history)>=4) &&
+         (KNO_HASHTABLEP(KNO_COMPOUND_REF(history,1))) &&
+         (KNO_HASHTABLEP(KNO_COMPOUND_REF(history,2)))) {
     if (roots) *roots = KNO_COMPOUND_REF(history,1);
     if (vals) *vals = KNO_COMPOUND_REF(history,2);
     if (refs) *refs = KNO_COMPOUND_REF(history,3);
@@ -85,13 +88,13 @@ static int better_refp(lispval ref,lispval best)
     return 0;
   else if (KNO_FIXNUMP(best))
     return 1;
-  else if ( (KNO_COMPOUND_TYPEP(ref,histref_symbol)) &&
-	    (KNO_COMPOUND_TYPEP(best,histref_symbol)) ) {
+  else if ( (KNO_COMPOUND_TYPEP(ref,histref_typetag)) &&
+            (KNO_COMPOUND_TYPEP(best,histref_typetag)) ) {
     lispval ref_root = KNO_COMPOUND_REF(ref,0);
     lispval best_root = KNO_COMPOUND_REF(best,0);
-    if	(named_rootp(ref_root)) {
+    if  (named_rootp(ref_root)) {
       if (!(named_rootp(best_root)))
-	return 1;}
+        return 1;}
     if (named_rootp(best_root))
       return 0;
     else return ( (KNO_COMPOUND_LENGTH(ref)) < (KNO_COMPOUND_LENGTH(best)) );}
@@ -106,17 +109,11 @@ KNO_EXPORT lispval kno_history_add(lispval history,lispval val,lispval ref)
     return KNO_ERROR_VALUE;
   else if (KNO_CONSTANTP(val))
     return KNO_VOID;
-#if 0
-  else if ( (KNO_SYMBOLP(val)) ||
-            ( (KNO_STRINGP(val)) && ( (KNO_STRLEN(val)) < 40 ) ) || 
-            ( (KNO_NUMBERP(val)) ) )
-    return KNO_VOID;
-#endif
   lispval val_key = ( (KNO_CHOICEP(val)) || (KNO_PRECHOICEP(val)) ) ?
     (kno_make_qchoice(val)) : (val);
   if (!( (KNO_VOIDP(ref)) || (KNO_FALSEP(ref)) ) ) {
     if ( ! ( (KNO_FIXNUMP(ref)) || (KNO_STRINGP(ref)) || (KNO_SYMBOLP(ref)) ||
-             (KNO_COMPOUND_TYPEP(ref,histref_symbol)) ) )
+             (KNO_COMPOUND_TYPEP(ref,histref_typetag)) ) )
       return kno_err("InvalidHistRef","kno_history_add",NULL,ref);
 
     lispval overwrite = kno_hashtable_get((kno_hashtable)refs,ref,KNO_VOID);
@@ -130,7 +127,7 @@ KNO_EXPORT lispval kno_history_add(lispval history,lispval val,lispval ref)
     /* If it can be a root, make it one */
     if ( (KNO_FIXNUMP(ref)) || (KNO_STRINGP(ref)) || (KNO_SYMBOLP(ref)) )
       kno_store(roots,ref,val);
-    else if (KNO_COMPOUND_TYPEP(ref,histref_symbol))
+    else if (KNO_COMPOUND_TYPEP(ref,histref_typetag))
       kno_add(root_refs,KNO_COMPOUND_REF(ref,0),ref);
     else NO_ELSE;}
   else if (! (kno_test(vals,val_key,KNO_VOID)) ) {
@@ -232,15 +229,18 @@ lispval kno_get_histref(lispval elts)
     lispval path = KNO_CAR(paths); paths = KNO_CDR(paths);
     if (KNO_FIXNUMP(path)) {
       int rel_off = KNO_FIX2INT(path);
+      u8_byte numbuf[64];
       if (KNO_CHOICEP(scan)) {
-	ssize_t n_choices = KNO_CHOICE_SIZE(scan);
-	ssize_t off = (rel_off>=0) ?  (rel_off) : (n_choices + rel_off);
-	if ( (off < 0) || (off > n_choices) )
-	  return kno_err(kno_RangeError,"histref_evalfn",NULL,path);
-	else {
-	  lispval new_scan = KNO_CHOICE_ELTS(scan)[off];
-	  kno_incref(new_scan); kno_decref(scan);
-	  scan=new_scan;}}
+        ssize_t n_choices = KNO_CHOICE_SIZE(scan);
+        ssize_t off = (rel_off>=0) ?  (rel_off) : (n_choices + rel_off);
+        if ( (off < 0) || (off > n_choices) )
+          return kno_err(kno_RangeError,"histref_evalfn",
+                         u8_write_long_long((long long)rel_off,numbuf,64),
+                         path);
+        else {
+          lispval new_scan = KNO_CHOICE_ELTS(scan)[off];
+          kno_incref(new_scan); kno_decref(scan);
+          scan=new_scan;}}
       else if (KNO_PAIRP(scan)) {
         lispval base = scan, lst = base;
         size_t n_elts = 0;
@@ -248,9 +248,11 @@ lispval kno_get_histref(lispval elts)
         while (KNO_PAIRP(lst)) { lst=KNO_CDR(lst); n_elts++; }
         if (lst != KNO_EMPTY_LIST) { improper=1; n_elts++; }
         ssize_t off = (rel_off>=0) ?  (rel_off) : (n_elts + rel_off);
-	if ( (off < 0) || (off > n_elts) )
-	  return kno_err(kno_RangeError,"histref_evalfn",NULL,path);
-	else {
+        if ( (off < 0) || (off > n_elts) )
+          return kno_err(kno_RangeError,"histref_evalfn",
+                         u8_write_long_long((long long)rel_off,numbuf,64),
+                         path);
+        else {
           ssize_t i = 0; lst = base; while ( i < off) {
             lst = KNO_CDR(lst); i++;}
           if ( (improper) && ((off+1) == n_elts) ) {
@@ -260,31 +262,34 @@ lispval kno_get_histref(lispval elts)
             kno_incref(new_scan); kno_decref(scan);
             scan = new_scan;}}}
       else if (KNO_SEQUENCEP(scan)) {
-	ssize_t n_elts = kno_seq_length(scan);
-	ssize_t off = (rel_off>=0) ?  (rel_off) : (n_elts + rel_off);
-	if ( (off < 0) || (off > n_elts) )
-	  return kno_err(kno_RangeError,"histref_evalfn",NULL,scan);
-	else {
-	  lispval new_scan = kno_seq_elt(scan,off);
-	  kno_decref(scan);
-	  scan=new_scan;}}
+        ssize_t n_elts = kno_seq_length(scan);
+        ssize_t off = (rel_off>=0) ?  (rel_off) : (n_elts + rel_off);
+        if ( (off < 0) || (off > n_elts) )
+          return kno_err(kno_RangeError,"histref_evalfn",
+                         u8_write_long_long((long long)rel_off,numbuf,64),
+                         scan);
+        else {
+          lispval new_scan = kno_seq_elt(scan,off);
+          kno_decref(scan);
+          scan=new_scan;}}
       else {
-        return kno_err("NotASequence","histref_evalfn",NULL,scan);}}
+        return kno_err("NotASequence","histref_evalfn",
+                       u8_write_long_long((long long)rel_off,numbuf,64),
+                       scan);}}
     else if (KNO_STRINGP(path)) {
       if (KNO_TABLEP(scan)) {
-	lispval v = kno_get(scan,path,KNO_VOID);
-	if (KNO_VOIDP(v)) {
-	  u8_string upper = u8_upcase(KNO_CSTRING(scan));
-	  lispval sym = kno_probe_symbol(upper,-1);
-	  if (KNO_SYMBOLP(sym)) v = kno_get(scan,sym,KNO_VOID);}
+        lispval v = kno_get(scan,path,KNO_VOID);
+        if (KNO_VOIDP(v)) {
+          u8_string upper = u8_upcase(KNO_CSTRING(scan));
+          lispval sym = kno_probe_symbol(upper,-1);
+          if (KNO_SYMBOLP(sym)) v = kno_get(scan,sym,KNO_VOID);}
         if (KNO_VOIDP(v)) {
           kno_seterr("NoSuchKey","histref_evalfn",KNO_CSTRING(path),scan);
           return KNO_ERROR;}
         kno_decref(scan);
         scan = v;}
       else {
-        lispval err =
-          kno_err("NotATable","histref_evalfn",KNO_CSTRING(path),scan);
+        lispval err = kno_err("NotATable","histref_evalfn",KNO_CSTRING(path),scan);
         kno_decref(scan);
         scan = KNO_VOID;
         return err;}}
@@ -299,13 +304,18 @@ lispval kno_get_histref(lispval elts)
         kno_seterr("InvalidHistRef","histref_evalfn",NULL,root);
         kno_decref(root);
         return KNO_ERROR;}}
-    else if (KNO_SYMBOLP(path)) {
+    else if ( (KNO_SYMBOLP(path)) || (KNO_OIDP(path)) ) {
       if (KNO_TABLEP(scan)) {
-	lispval v = kno_get(scan,path,KNO_VOID);
+        lispval v = kno_get(scan,path,KNO_VOID);
+        u8_byte keybuf[64];
         if (KNO_VOIDP(v))
-	  kno_seterr("NoSuchKey","histref_evalfn",KNO_SYMBOL_NAME(path),scan);
-	kno_decref(scan);
-	scan = v;}
+          kno_seterr("NoSuchKey","histref_evalfn",
+                     ((KNO_SYMBOLP(path)) ? 
+                      (KNO_SYMBOL_NAME(path)) :
+                      (kno_oid2string(path,keybuf,64))),
+                     scan);
+        kno_decref(scan);
+        scan = v;}
       else scan = KNO_VOID;}
     else scan = KNO_VOID;}
   if (KNO_VOIDP(scan)) {
@@ -333,11 +343,11 @@ KNO_EXPORT void kno_histinit(int size)
   if (VOIDP(history)) {
     history = kno_init_compound(NULL,history_symbol,
                                KNO_COMPOUND_USEREF,5,
-			       KNO_INT(1),
-			       kno_make_hashtable(NULL,size),
-			       kno_make_hashtable(NULL,size),
-			       kno_make_hashtable(NULL,size),
-			       kno_make_hashtable(NULL,size));
+                               KNO_INT(1),
+                               kno_make_hashtable(NULL,size),
+                               kno_make_hashtable(NULL,size),
+                               kno_make_hashtable(NULL,size),
+                               kno_make_hashtable(NULL,size));
     kno_thread_set(history_symbol,history);}
   kno_decref(history);
 }
@@ -357,15 +367,15 @@ KNO_EXPORT void kno_init_history_c()
   u8_register_source_file(_FILEINFO);
 
   history_symbol = kno_intern("%history");
-  histref_symbol = kno_intern("%histref");
+  histref_typetag = kno_intern("%histref");
 
   kno_resolve_histref = kno_get_histref;
 
 }
 
 /* Emacs local variables
-   ;;;	Local variables: ***
-   ;;;	compile-command: "make -C ../.. debugging;" ***
-   ;;;	indent-tabs-mode: nil ***
-   ;;;	End: ***
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debugging;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
 */

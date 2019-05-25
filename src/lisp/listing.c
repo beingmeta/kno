@@ -121,13 +121,17 @@ static void list_table(u8_output out,lispval table,
     if (count >= show_keys) {
       KNO_STOP_DO_CHOICES;
       break;}
-    u8_byte label_buf[64] = { 0 };
-    u8_byte val_pathbuf[64] = { 0 };
+    u8_byte key_buf[64] = { 0 };
+    u8_byte label_buf[256] = { 0 };
+    u8_byte val_pathbuf[256] = { 0 };
+    u8_string keystring =
+      ( (KNO_OIDP(key)) ? (kno_oid2string(key,key_buf,64)) :
+        (u8_bprintf(key_buf,"%q",key)) );
     u8_string val_pathref = (full_pathref) ?
-      (u8_sprintf(val_pathbuf,64,"%s.%q",full_pathref,key)) :
+      (u8_bprintf(val_pathbuf,"%s.%s",full_pathref,keystring)) :
       (NULL);
     u8_string val_label = (full_pathref) ?
-      (u8_sprintf(label_buf,64,"%s.%q",full_pathref,key)) :
+      (u8_bprintf(label_buf,"%s.%s",full_pathref,keystring)) :
       (NULL);
     lispval val = kno_get(table,key,KNO_EMPTY_CHOICE);
     if (EMPTYP(val)) {
@@ -157,19 +161,20 @@ static void list_table(u8_output out,lispval table,
         list_item(tmpout,val,eltfn);
         if ((tmp.u8_write-tmp.u8_outbuf)<width) {
           if (full_pathref)
-            u8_printf(out,"\n%s  %s \t;;=%s.%q",
-                      indent,tmp.u8_outbuf,full_pathref,key);
-          else u8_printf(out,"\n%s  %s \t;; (%q)",indent,tmp.u8_outbuf,key);}
+            u8_printf(out,"\n%s  %s \t;;=%s.%s",
+                      indent,tmp.u8_outbuf,full_pathref,keystring);
+          else u8_printf(out,"\n%s  %s \t;; (%s)",
+                         indent,tmp.u8_outbuf,keystring);}
         else {
           /* Reset to zero */
           tmp.u8_write=tmp.u8_outbuf; tmp.u8_outbuf[0]='\0';
           kno_pprint(tmpout,val,val_indent,3,3,width);
           if (full_pathref)
-            u8_printf(out,"\n%s  %q #> ;;=%s.%q\n%s%s",
-                      indent,key,full_pathref,key,
+            u8_printf(out,"\n%s  %s #> ;;=%s.%s\n%s%s",
+                      indent,keystring,full_pathref,keystring,
                       val_indent,tmp.u8_outbuf);
-          else u8_printf(out,"\n%s  %q #> ;;\n%s%s",
-                         indent,key,val_indent,tmp.u8_outbuf);}
+          else u8_printf(out,"\n%s  %s #> ;;\n%s%s",
+                         indent,keystring,val_indent,tmp.u8_outbuf);}
         u8_close_output(tmpout);}
       u8_flush(out);}
     kno_decref(val);
