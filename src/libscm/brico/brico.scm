@@ -77,7 +77,7 @@
 (define brico-background #t)
 (varconfig! brico:background brico-background)
 
-(define brico-opts #[fixsyms #t])
+(define brico-opts #[])
 
 (define absfreqs {})
 
