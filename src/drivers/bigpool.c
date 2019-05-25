@@ -47,7 +47,8 @@ static int bigpool_loglevel = -1;
 #define FETCHBUF_SIZE 16000
 #endif
 
-static lispval load_symbol, slotids_symbol, compression_symbol, offmode_symbol;
+static lispval load_symbol, slotids_symbol, compression_symbol;
+static lispval offmode_symbol, created_upsym;
 
 static void bigpool_setcache(kno_bigpool p,int level);
 static int update_offdata_cache(kno_bigpool bp,int level,int chunk_ref_size);
@@ -314,7 +315,23 @@ static kno_pool open_bigpool(u8_string fname,kno_storage_flags open_flags,
 
     if ( (KNO_FALSEP(metadata)) || (KNO_VOIDP(metadata)) )
       metadata = KNO_VOID;
-    else if (KNO_SLOTMAPP(metadata)) {}
+    else if (KNO_SLOTMAPP(metadata)) {
+      lispval lisp_ctime = kno_get(metadata,created_upsym,KNO_VOID);
+      if (!(VOIDP(lisp_ctime))) {
+        /* Lowercase metadata symbols, reopen/read with FIXCASE */
+        u8_log(LOGWARN,"LegacySymbols",
+               "Opening %s with legacy FramerD symbols, re-reading metadata",
+               fname);
+        open_flags |= KNO_STORAGE_LOUDSYMS;
+        stream->stream_flags |= KNO_STREAM_LOUDSYMS;
+        stream->buf.raw.buf_flags |= KNO_FIX_DTSYMS;
+        if (kno_setpos(stream,metadata_loc)>0) {
+          kno_inbuf in = kno_readbuf(stream);
+          lispval new_metadata = kno_read_dtype(in);
+          kno_decref(metadata);
+          metadata=new_metadata;}
+        else {
+          metadata=KNO_ERROR_VALUE;}}}
     else if ( open_flags & KNO_STORAGE_REPAIR ) {
       u8_logf(LOG_WARN,"BadMetaData",
               "Ignoring bad metadata stored for %s",fname);
@@ -2371,6 +2388,7 @@ KNO_EXPORT void kno_init_bigpool_c()
   compression_symbol=kno_intern("compression");
   offmode_symbol=kno_intern("offmode");
   metadata_readonly_props = kno_intern("_readonly_props");
+  created_upsym=kno_intern("CREATED");
 
   kno_register_config("BIGPOOL:LOGLEVEL",
                      "The default loglevel for bigpools",

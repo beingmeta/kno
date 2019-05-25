@@ -178,7 +178,7 @@ static struct KNO_INDEX_HANDLER hashindex_handler;
 static u8_condition CorruptedHashIndex=_("Corrupted hashindex file");
 static u8_condition BadHashFn=_("hashindex has unknown hash function");
 
-static lispval set_symbol, drop_symbol, keycounts_symbol;
+static lispval set_symbol, drop_symbol, keycounts_symbol, created_upsym;
 static lispval slotids_symbol, baseoids_symbol, buckets_symbol, nkeys_symbol;
 
 /* Utilities for DTYPE I/O */
@@ -341,6 +341,11 @@ static kno_index open_hashindex(u8_string fname,kno_storage_flags open_flags,
     kno_free_stream(stream);
     u8_free(index);
     return NULL;}
+  else {
+    if ( (index->index_flags) & (KNO_STORAGE_LOUDSYMS) )
+      open_flags |= KNO_STORAGE_LOUDSYMS;
+    if ( (stream->stream_flags) & (KNO_STREAM_LOUDSYMS) )
+      stream_flags |= KNO_STREAM_LOUDSYMS;}
 
   u8_init_mutex(&(index->index_lock));
 
@@ -415,7 +420,23 @@ static int load_header(struct KNO_HASHINDEX *index,struct KNO_STREAM *stream)
   if (KNO_FALSEP(metadata))
     metadata = KNO_VOID;
   else if (KNO_VOIDP(metadata)) {}
-  else if (KNO_SLOTMAPP(metadata)) {}
+  else if (KNO_SLOTMAPP(metadata)) {
+    lispval lisp_ctime = kno_get(metadata,created_upsym,KNO_VOID);
+    if (!(KNO_VOIDP(lisp_ctime))) {
+      /* Lowercase metadata symbols, reopen/read with FIXCASE */
+      u8_log(LOGWARN,"LegacySymbols",
+             "Opening %s with legacy FramerD symbols, re-reading metadata",
+             fname);
+      index->index_flags |= KNO_STORAGE_LOUDSYMS;
+      stream->stream_flags |= KNO_STREAM_LOUDSYMS;
+      stream->buf.raw.buf_flags |= KNO_FIX_DTSYMS;
+      if (kno_setpos(stream,metadata_loc)>0) {
+        kno_inbuf in = kno_readbuf(stream);
+        lispval new_metadata = kno_read_dtype(in);
+        kno_decref(metadata);
+        metadata=new_metadata;}
+      else {
+        metadata=KNO_ERROR_VALUE;}}}
   else if ( index->index_flags & KNO_STORAGE_REPAIR ) {
     u8_log(LOG_WARN,"BadMetadata",
                "Repairing bad metadata for %s @%lld+%lld = %q",
@@ -444,8 +465,9 @@ static int load_header(struct KNO_HASHINDEX *index,struct KNO_STREAM *stream)
   return 1;
 }
 
-static kno_index recover_hashindex(u8_string fname,kno_storage_flags open_flags,
-                                  lispval opts)
+static kno_index recover_hashindex(u8_string fname,
+                                   kno_storage_flags open_flags,
+                                   lispval opts)
 {
   u8_string recovery_file=u8_string_append(fname,".rollback",NULL);
   if (u8_file_existsp(recovery_file)) {
@@ -834,9 +856,9 @@ KNO_EXPORT ssize_t hashindex_bucket(struct KNO_HASHINDEX *hx,lispval key,
   struct KNO_OUTBUF out = { 0 }; unsigned char buf[1024];
   unsigned int hashval; int dtype_len;
   KNO_INIT_BYTE_OUTBUF(&out,buf,1024);
-  if ((hx->hashindex_format)&(KNO_HASHINDEX_DTYPEV2))
+  if ( (hx->hashindex_format) & (KNO_HASHINDEX_DTYPEV2) )
     out.buf_flags = out.buf_flags|KNO_USE_DTYPEV2;
-  if ((hx->index_stream.stream_flags)&(KNO_STREAM_LOUDSYMS))
+  if ( (hx->index_stream.stream_flags) & (KNO_STREAM_LOUDSYMS) )
     out.buf_flags |= KNO_FIX_DTSYMS;
   out.buf_flags |= KNO_WRITE_OPAQUE;
   dtype_len = write_zkey(hx,&out,key);
@@ -924,9 +946,9 @@ static lispval hashindex_fetch(kno_index ix,lispval key)
 #endif
         kno_close_outbuf(&out);
         return EMPTY;}}}
-  if ((hx->hashindex_format)&(KNO_HASHINDEX_DTYPEV2))
+  if ( (hx->hashindex_format) & (KNO_HASHINDEX_DTYPEV2) )
     out.buf_flags |= KNO_USE_DTYPEV2;
-  if ((hx->index_stream.stream_flags)&(KNO_STREAM_LOUDSYMS))
+  if ( (hx->index_stream.stream_flags) & (KNO_STREAM_LOUDSYMS) )
     out.buf_flags |= KNO_FIX_DTSYMS;
   out.buf_flags |= KNO_WRITE_OPAQUE;
   dtype_len = write_zkey(hx,&out,key); {}
@@ -1116,9 +1138,9 @@ static int hashindex_fetchsize(kno_index ix,lispval key)
   unsigned int hashval, bucket, n_keys, i, dtype_len, n_values;
   KNO_CHUNK_REF keyblock;
   KNO_INIT_BYTE_OUTBUF(&out,buf,64);
-  if ((hx->hashindex_format)&(KNO_HASHINDEX_DTYPEV2))
+  if ( (hx->hashindex_format) & (KNO_HASHINDEX_DTYPEV2) )
     out.buf_flags = out.buf_flags|KNO_USE_DTYPEV2;
-  if ((hx->index_stream.stream_flags)&(KNO_STREAM_LOUDSYMS))
+  if ( (hx->index_stream.stream_flags) & (KNO_STREAM_LOUDSYMS) )
     out.buf_flags |= KNO_FIX_DTSYMS;
   out.buf_flags |= KNO_WRITE_OPAQUE;
   dtype_len = write_zkey(hx,&out,key);
@@ -1228,9 +1250,9 @@ static lispval *fetchn(struct KNO_HASHINDEX *hx,int n,const lispval *keys)
 #endif
   /* Initialize sized based on assuming 32 bytes per key */
   KNO_INIT_BYTE_OUTPUT(&keysbuf,n*32);
-  if ((hx->hashindex_format)&(KNO_HASHINDEX_DTYPEV2))
+  if ( (hx->hashindex_format) & (KNO_HASHINDEX_DTYPEV2) )
     keysbuf.buf_flags = keysbuf.buf_flags|KNO_USE_DTYPEV2;
-  if ((hx->index_stream.stream_flags)&(KNO_STREAM_LOUDSYMS))
+  if ( (hx->index_stream.stream_flags) & (KNO_STREAM_LOUDSYMS) )
     keysbuf.buf_flags |= KNO_FIX_DTSYMS;
 
   keysbuf.buf_flags |= KNO_WRITE_OPAQUE;
@@ -2572,10 +2594,10 @@ static int hashindex_save(struct KNO_HASHINDEX *hx,
   struct KNO_OUTBUF out = { 0 }, newkeys = { 0 };
   KNO_INIT_BYTE_OUTPUT(&out,1024);
   KNO_INIT_BYTE_OUTPUT(&newkeys,schedule_max*16);
-  if ((hx->hashindex_format)&(KNO_HASHINDEX_DTYPEV2)) {
+  if ( (hx->hashindex_format) & (KNO_HASHINDEX_DTYPEV2) ) {
     out.buf_flags |= KNO_USE_DTYPEV2;
     newkeys.buf_flags |= KNO_USE_DTYPEV2;}
-  if ((hx->index_stream.stream_flags)&(KNO_STREAM_LOUDSYMS)) {
+  if ( (hx->index_stream.stream_flags) & (KNO_STREAM_LOUDSYMS) ) {
     out.buf_flags |= KNO_FIX_DTSYMS;
     newkeys.buf_flags |= KNO_FIX_DTSYMS;}
 
@@ -3972,6 +3994,7 @@ KNO_EXPORT void kno_init_hashindex_c()
   baseoids_symbol = kno_intern("baseoids");
   buckets_symbol = kno_intern("buckets");
   nkeys_symbol = kno_intern("keys");
+  created_upsym = kno_intern("CREATED");
 
   metadata_readonly_props = kno_intern("_readonly_props");
 
