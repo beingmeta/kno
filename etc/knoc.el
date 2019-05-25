@@ -35,7 +35,7 @@
 ;; The knoc command line
 (make-variable-buffer-local 'knoc-cmdline)
 
-(defvar *framerd-keywords*
+(defvar *kno-keywords*
   '("\\<do-choices-mt\\>" "\\<do-vector-mt\\>" "\\<for-choices-mt\\>"
     "\\<do-choices\\>" "\\<for-choices\\>" "\\<filter-choices\\>"
     "\\<doseq\\>" "\\<dolist\\>" "\\<dotimes\\>" "\\<forseq>\\"
@@ -107,7 +107,7 @@
     (goto-char (elt state 1))
     (+ (current-column) 2)))
 
-;;; FRAMERD stuff
+;;; KNO stuff
 (put 'when 'scheme-indent-function 1)
 (put 'unless 'scheme-indent-function 1)
 (put 'tryif 'scheme-indent-function 1)
@@ -444,7 +444,7 @@ run). \(Type \\[describe-mode] in the process buffer for a list of commands.)"
   (interactive)
   (local-set-key "\e\C-m" 'knoc-sender)
   (setq undo-limit 32)
-  (font-lock-add-keywords 'scheme-mode *framerd-keywords*))
+  (font-lock-add-keywords 'scheme-mode *kno-keywords*))
 (add-hook 'scheme-mode-hook 'knoc-scheme-mode-hook)
 
 (provide 'knoc)
