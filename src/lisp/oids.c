@@ -13,8 +13,8 @@
 #include "kno/lisp.h"
 #include "kno/preoids.h"
 
-/* For sprintf */
-#include <ctype.h>
+#include <libu8/u8printf.h>
+#include <ctype.h> /* For sprintf */
 
 #define HASH_MULTIPLIER 2654435769U
 
@@ -124,6 +124,14 @@ static u8_string _simple_oid_info(lispval oid)
     strcat(oid_info_buf,u8_uitoa16(lo,tmpbuf));
     return oid_info_buf;}
   else return "not an oid!";
+}
+
+KNO_EXPORT u8_string kno_oid2string(lispval oidval,u8_byte *buf,ssize_t len)
+{
+  KNO_OID addr = KNO_OID_ADDR(oidval);
+  if ( (buf == NULL) || (len < 0) )
+    return u8_mkstring("@%x/%x",KNO_OID_HI(addr),KNO_OID_LO(addr));
+  else return u8_sprintf(buf,len,"@%x/%x",KNO_OID_HI(addr),KNO_OID_LO(addr));
 }
 
 /* B32 representation */

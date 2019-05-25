@@ -517,6 +517,7 @@ KNO_EXPORT const int _KNO_OID_BUCKET_MASK;
 KNO_EXPORT char *kno_ulonglong_to_b32(unsigned long long offset,char *buf,int *len);
 KNO_EXPORT int kno_b32_to_ulonglong(const char *digits,unsigned long long *out);
 KNO_EXPORT long long kno_b32_to_longlong(const char *digits);
+KNO_EXPORT u8_string kno_oid2string(lispval oidval,u8_byte *buf,ssize_t len);
 
 /* Fixnums */
 
