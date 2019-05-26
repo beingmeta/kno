@@ -13,6 +13,7 @@
 #include "kno/lisp.h"
 #include "kno/compounds.h"
 #include "kno/sequences.h"
+#include "kno/storage.h"
 #include "kno/history.h"
 
 static lispval history_symbol, histref_typetag;
@@ -306,7 +307,8 @@ lispval kno_get_histref(lispval elts)
         return KNO_ERROR;}}
     else if ( (KNO_SYMBOLP(path)) || (KNO_OIDP(path)) ) {
       if (KNO_TABLEP(scan)) {
-        lispval v = kno_get(scan,path,KNO_VOID);
+        lispval v = (OIDP(scan)) ? (kno_frame_get(scan,path)) :
+          (kno_get(scan,path,KNO_VOID));
         u8_byte keybuf[64];
         if (KNO_VOIDP(v))
           kno_seterr("NoSuchKey","histref_evalfn",

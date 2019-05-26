@@ -447,7 +447,6 @@ static lispval histstring_prim(lispval x,lispval label)
   if (VOIDP(history))
     return KNO_FALSE;
   else {
-    U8_OUTPUT *out = u8_current_output;
     lispval ref = kno_history_add(history,x,label);
     if ( (KNO_FALSEP(ref)) || (KNO_VOIDP(ref)) || (KNO_EMPTYP(ref)) ) {
       return KNO_FALSE;}
