@@ -442,6 +442,16 @@ typedef double kno_double;
 #endif
 #endif
 
+/* liu8 stream/port flags */
+
+#ifndef U8_STREAM_NEXT_FLAG
+#define U8_STREAM_NEXT_FLAG 0x10000
+#endif
+
+#define KNO_U8STREAM_ISATTY   ( (U8_STREAM_NEXT_FLAG) << 0 )
+#define KNO_U8STREAM_NOLIMITS ( (U8_STREAM_NEXT_FLAG) << 1 )
+#define KNO_U8STREAM_HISTORIC ( (U8_STREAM_NEXT_FLAG) << 2 )
+
 #endif /* KNO_DEFINES_H */
 
 /* Emacs local variables
