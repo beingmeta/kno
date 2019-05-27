@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-05-24 21:53+0000\n"
+"POT-Creation-Date: 2019-05-27 18:21-0400\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Dutch <nl@li.org>\n"
@@ -383,7 +383,7 @@ msgstr ""
 
 #: src/lisp/lisp.c:62 src/support/config.c:703 src/eval/eval.c:1341
 #: src/eval/opcode_defs.c:106 src/prims/dbprims.c:2654
-#: src/prims/portprims.c:537 src/eval/choiceops.c:1220
+#: src/prims/portprims.c:626 src/eval/choiceops.c:1220
 #: src/eval/choiceops.c:1253 src/eval/choiceops.c:1272
 #: src/eval/choiceops.c:1303 src/eval/choiceops.c:1314
 #: src/eval/choiceops.c:1318 src/eval/choiceops.c:1319 src/prims/seqprims.c:334
@@ -449,8 +449,8 @@ msgstr ""
 #: src/lisp/lisp.c:77 src/support/config.c:632 src/support/config.c:651
 #: src/support/config.c:670 src/support/startup.c:247 src/support/startup.c:630
 #: src/prims/dbprims.c:282 src/prims/dbprims.c:300 src/prims/dbprims.c:318
-#: src/prims/portprims.c:181 src/prims/portprims.c:459
-#: src/prims/portprims.c:543 src/prims/streamprims.c:378
+#: src/prims/portprims.c:182 src/prims/portprims.c:548
+#: src/prims/portprims.c:632 src/prims/streamprims.c:378
 #: src/prims/streamprims.c:417 src/prims/streamprims.c:503
 #: src/prims/streamprims.c:532 src/prims/streamprims.c:547
 #: src/prims/streamprims.c:567 src/prims/streamprims.c:598
@@ -1699,7 +1699,7 @@ msgid "The head file has no data"
 msgstr ""
 
 #: src/storage/compress.c:131 src/storage/compress.c:171
-#: src/prims/portprims.c:1015 src/drivers/headers/zcompress.h:27
+#: src/prims/portprims.c:1104 src/drivers/headers/zcompress.h:27
 #: src/drivers/headers/zcompress.h:66
 msgid "ZLIB ran out of memory"
 msgstr ""
@@ -1713,7 +1713,7 @@ msgid "ZLIB uncompress data error"
 msgstr ""
 
 #: src/storage/compress.c:145 src/storage/compress.c:184
-#: src/prims/portprims.c:1028 src/drivers/headers/zcompress.h:40
+#: src/prims/portprims.c:1117 src/drivers/headers/zcompress.h:40
 #: src/drivers/headers/zcompress.h:79
 msgid "Bad ZLIB return code"
 msgstr ""
@@ -1722,7 +1722,7 @@ msgstr ""
 msgid "pool value compression ran out of memory"
 msgstr ""
 
-#: src/storage/compress.c:182 src/prims/portprims.c:1026
+#: src/storage/compress.c:182 src/prims/portprims.c:1115
 #: src/drivers/headers/zcompress.h:77
 msgid "ZLIB compress data error"
 msgstr ""
@@ -1757,14 +1757,14 @@ msgid "Stored %d oid values in oidpool %s in %f seconds"
 msgstr ""
 
 #: src/drivers/filepool.c:806 src/drivers/oidpool.c:1545
-#: src/drivers/bigpool.c:2238 src/cmodules/leveldb.c:1463
+#: src/drivers/bigpool.c:2255 src/cmodules/leveldb.c:1463
 #: src/cmodules/rocksdb.c:1469
 msgid "FileAlreadyExists"
 msgstr ""
 
 #: src/drivers/filepool.c:900 src/drivers/oidpool.c:1640
-#: src/drivers/bigpool.c:2037 src/drivers/fileindex.c:1199
-#: src/drivers/hashindex.c:3802
+#: src/drivers/bigpool.c:2054 src/drivers/fileindex.c:1199
+#: src/drivers/hashindex.c:3824
 msgid "cachelevel"
 msgstr ""
 
@@ -1792,19 +1792,19 @@ msgstr ""
 msgid "Out of luck"
 msgstr ""
 
-#: src/drivers/bigpool.c:103
+#: src/drivers/bigpool.c:104
 msgid "Corrupt bigpool"
 msgstr ""
 
-#: src/drivers/bigpool.c:104
+#: src/drivers/bigpool.c:105
 msgid "Invalid offset in BIGPOOL"
 msgstr ""
 
-#: src/drivers/bigpool.c:249
+#: src/drivers/bigpool.c:250
 msgid "Not a bigpool"
 msgstr ""
 
-#: src/drivers/bigpool.c:741
+#: src/drivers/bigpool.c:758
 msgid "BadSlotCode"
 msgstr ""
 
@@ -1829,7 +1829,7 @@ msgstr ""
 msgid "hashindex has unknown hash function"
 msgstr ""
 
-#: src/drivers/hashindex.c:3411
+#: src/drivers/hashindex.c:3433
 msgid "NotAHashIndex"
 msgstr ""
 
@@ -2226,33 +2226,33 @@ msgstr ""
 msgid "No more information"
 msgstr ""
 
-#: src/prims/portprims.c:33
+#: src/prims/portprims.c:34
 msgid "Unknown encoding"
 msgstr ""
 
-#: src/prims/portprims.c:194 src/prims/portprims.c:210
+#: src/prims/portprims.c:195 src/prims/portprims.c:211
 #: src/prims/fileprims.c:1173 src/prims/fileprims.c:1198
 #: src/prims/fileprims.c:1222 src/prims/fileprims.c:1246
 msgid "port"
 msgstr ""
 
-#: src/prims/portprims.c:230 src/prims/portprims.c:249
-#: src/prims/portprims.c:270 src/prims/portprims.c:285
+#: src/prims/portprims.c:231 src/prims/portprims.c:250
+#: src/prims/portprims.c:271 src/prims/portprims.c:286
 #: src/prims/fileprims.c:262
 msgid "output port"
 msgstr ""
 
-#: src/prims/portprims.c:429 src/prims/portprims.c:456
-#: src/prims/portprims.c:482 src/prims/portprims.c:502
-#: src/prims/portprims.c:533 src/text/texttools.c:2142
+#: src/prims/portprims.c:518 src/prims/portprims.c:545
+#: src/prims/portprims.c:571 src/prims/portprims.c:591
+#: src/prims/portprims.c:622 src/text/texttools.c:2142
 msgid "input port"
 msgstr ""
 
-#: src/prims/portprims.c:462
+#: src/prims/portprims.c:551
 msgid "fixum"
 msgstr ""
 
-#: src/prims/portprims.c:1023
+#: src/prims/portprims.c:1112
 msgid "OIDPOOL compress ran out of memory"
 msgstr ""
 
