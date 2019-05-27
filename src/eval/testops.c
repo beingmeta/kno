@@ -87,8 +87,8 @@ static lispval applytest_inner(int n,lispval *args)
       u8_printf(&out,"Error returned from %q",args[1]);
       int i=2; while (i<n) {u8_printf(&out," %q",args[i]); i++;}
       u8_printf(&out,"\n   Error:    %m <%s> %s%s%s",
-                ex->u8x_cond,ex->u8x_context,
-                U8OPTSTR(" (",ex->u8x_details,")"));
+		ex->u8x_cond,ex->u8x_context,
+		U8OPTSTR(" (",ex->u8x_details,")"));
       u8_printf(&out,"\n   Expected: %q",args[0]);
       u8_restore_exception(ex);
       lispval err = kno_err(TestError,"applytest",out.u8_outbuf,args[1]);
@@ -105,7 +105,7 @@ static lispval applytest_inner(int n,lispval *args)
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
       u8_printf(&out,"Unexpected result from %q",args[1]);
       u8_printf(&out,"\n   Expected: %q",args[0]);
-      u8_printf(&out,"\n        Got: %q",value);
+      u8_printf(&out,"\n	Got: %q",value);
       lispval err = kno_err(TestFailed,"applytest",out.u8_outbuf,value);
       u8_close_output(&out);
       kno_decref(value);
@@ -138,7 +138,7 @@ static lispval applytest(int n,lispval *args)
     else {
       u8_exception ex = u8_erreify();
       if (ex->u8x_cond == TestFailed)
-        u8_log(LOG_CRIT,TestFailed,"In applytest:\n %s",ex->u8x_details);
+	u8_log(LOG_CRIT,TestFailed,"In applytest:\n %s",ex->u8x_details);
       else u8_log(LOG_CRIT,TestError,"In applytest:\n %s",ex->u8x_details);
       add_failed_test(kno_get_exception(ex));
       u8_free_exception(ex,LEAVE_EXSTACK);
@@ -165,7 +165,7 @@ static lispval evaltest_inner(lispval expr,kno_lexenv env,kno_stack s)
     (kno_eval(name_expr,env));
   u8_string name = name2string(name_value);
 
-  lispval expected_expr  = kno_get_arg(expr,1);
+  lispval expected_expr	 = kno_get_arg(expr,1);
   lispval expected  = kno_eval(expected_expr,env);
   if (KNO_ABORTED(expected)) {
     kno_seterr("BadExpectedValue","evaltest_evalfn",name,expected_expr);
@@ -175,11 +175,11 @@ static lispval evaltest_inner(lispval expr,kno_lexenv env,kno_stack s)
     if (KNO_ABORTED(value)) {
       u8_exception ex = u8_erreify();
       u8_string msg =
-        u8_mkstring("%s%s%s%q signaled an error %m <%s> %s%s%s, expecting %q",
-                    U8OPTSTR("(",name,") "),testexpr,
-                    ex->u8x_cond,ex->u8x_context,
-                    U8OPTSTR(" (",ex->u8x_details,")"),
-                    expected);
+	u8_mkstring("%s%s%s%q signaled an error %m <%s> %s%s%s, expecting %q",
+		    U8OPTSTR("(",name,") "),testexpr,
+		    ex->u8x_cond,ex->u8x_context,
+		    U8OPTSTR(" (",ex->u8x_details,")"),
+		    expected);
       lispval err = kno_err(TestError,"evaltest",msg,value);
       kno_decref(expected); u8_free(msg);
       return err;}
@@ -189,18 +189,18 @@ static lispval evaltest_inner(lispval expr,kno_lexenv env,kno_stack s)
       kno_decref(value);
       return KNO_TRUE;}
     else if ( (KNO_VOIDP(value)) &&
-              (expected == FDSYM_VOID) ) {
+	      (expected == FDSYM_VOID) ) {
       kno_decref(name_value);
       kno_decref(expected);
       kno_decref(value);
       return KNO_TRUE;}
     else {
       u8_string msg =
-        u8_mkstring("%s%s%s%q"
-                    "\n returned   %q"
-                    "\n instead of %q",
-                    U8OPTSTR("(",name,") "),testexpr,
-                    value,expected);
+	u8_mkstring("%s%s%s%q"
+		    "\n returned   %q"
+		    "\n instead of %q",
+		    U8OPTSTR("(",name,") "),testexpr,
+		    value,expected);
       lispval err = kno_err(TestFailed,"evaltest",msg,value);
       u8_free(msg); kno_decref(name_value);
       kno_decref(value); kno_decref(expected);
@@ -216,13 +216,37 @@ static lispval evaltest_evalfn(lispval expr,kno_lexenv env,kno_stack s)
     else {
       u8_exception ex = u8_erreify();
       if (ex->u8x_cond == TestFailed)
-        u8_log(LOG_CRIT,TestFailed,"In evaltest:\n %s",ex->u8x_details);
+	u8_log(LOG_CRIT,TestFailed,"In evaltest:\n %s",ex->u8x_details);
       else u8_log(LOG_CRIT,TestError,"In applytest:\n %s",ex->u8x_details);
       add_failed_test(kno_get_exception(ex));
       u8_free_exception(ex,LEAVE_EXSTACK);
       kno_clear_errors(1);
       return KNO_FALSE;}}
   else return v;
+}
+
+static lispval errtest_evalfn(lispval expr,kno_lexenv env,kno_stack s)
+{
+  lispval test_expr = kno_get_arg(expr,1);
+  lispval v = kno_stack_eval(test_expr,env,s,0);
+  if (KNO_ABORTP(v)) {
+    u8_log(LOG_NOTICE,"ExpectedError",
+	   "As expected, %q generated the following error",
+	   test_expr);
+    kno_clear_errors(1);
+    return KNO_TRUE;}
+  else {
+    u8_string details = u8_mkstring("%q",test_expr);
+    kno_seterr("ExpectedErrorNotSignalled","errtest",details,v);
+    u8_free(details);
+    kno_decref(v);
+    if ( (KNO_VOIDP(log_testfail)) || (KNO_FALSEP(log_testfail)) )
+      return KNO_ERROR;
+    else {
+      u8_exception ex = u8_erreify();
+      add_failed_test(kno_get_exception(ex));
+      u8_free_exception(ex,LEAVE_EXSTACK);
+      return KNO_FALSE;}}
 }
 
 /* Initialization */
@@ -232,9 +256,20 @@ KNO_EXPORT void kno_init_eval_testops_c()
   u8_register_source_file(_FILEINFO);
 
   kno_idefn(kno_scheme_module,
-           kno_make_ndprim(kno_make_cprimn("APPLYTEST",applytest,2)));
-  kno_def_evalfn(kno_scheme_module,"EVALTEST","",evaltest_evalfn);
-  
+	   kno_make_ndprim(kno_make_cprimn("APPLYTEST",applytest,2)));
+  kno_def_evalfn(kno_scheme_module,"EVALTEST",
+		 "`(EVALTEST *expected* *expr*)` evalutes *expr* and checks "
+		 "if it is EQUAL? to *expected*. If so it does nothing, "
+		 "otherwise it either logs the failed test (depending on "
+		 "the LOGTESTS config) or signals an error.",
+		 evaltest_evalfn);
+  kno_def_evalfn(kno_scheme_module,"ERRTEST",
+		 "`(ERRTEST *buggy-expr*)` evalutes *bugg-expr* and ignores "
+		 "any signalled error. However, if *buggy-expr* returns a "
+		 "without an error, this is either logged (depending on "
+		 "the LOGTESTS config) or signalled as an error",
+		 errtest_evalfn);
+
   kno_register_config
     ("LOGTESTS",
      "Whether to log failed tests, rather than treating them as errors",
@@ -243,3 +278,10 @@ KNO_EXPORT void kno_init_eval_testops_c()
     ("FAILEDTESTS","All failed tests",
      kno_lconfig_get,config_failed_tests_set,&failed_tests);
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "make -C ../.. debugging;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/
