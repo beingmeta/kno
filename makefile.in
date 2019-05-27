@@ -220,7 +220,6 @@ SCHEME_OBJS=\
 	src/eval/choiceops.o \
 	src/eval/coreops.o \
 	src/eval/arith.o \
-	src/eval/side-effects.o \
 	src/eval/regex.o \
 	src/eval/reqstate.o \
 	src/prims/dbprims.o \
@@ -433,7 +432,7 @@ KNO_SOURCES=\
 	src/eval/modules.c src/eval/load.c src/eval/reflection.c 		\
 	src/eval/compoundfns.c 							\
 	src/eval/coreops.c                  					\
-	src/eval/arith.c src/eval/side-effects.c              			\
+	src/eval/arith.c 			              			\
 	src/prims/dbprims.c 							\
 	src/prims/logprims.c							\
 	src/prims/portprims.c							\

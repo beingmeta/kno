@@ -2112,7 +2112,6 @@ KNO_EXPORT void kno_init_streamprims_c(void);
 KNO_EXPORT void kno_init_timeprims_c(void);
 KNO_EXPORT void kno_init_sysprims_c(void);
 KNO_EXPORT void kno_init_arith_c(void);
-KNO_EXPORT void kno_init_side_effects_c(void);
 KNO_EXPORT void kno_init_reflection_c(void);
 KNO_EXPORT void kno_init_reqstate_c(void);
 KNO_EXPORT void kno_init_regex_c(void);
@@ -2147,7 +2146,6 @@ static void init_eval_core()
   kno_init_compoundfns_c();
   kno_init_quasiquote_c();
   kno_init_struct_eval_c();
-  kno_init_side_effects_c();
   kno_init_reflection_c();
   kno_init_reqstate_c();
 
