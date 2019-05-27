@@ -15,10 +15,10 @@ export PPROF_PATH
 
 CC		= @CC@
 XCFLAGS		=
-CFLAGS          = -I../../include @CFLAGS@ @PROFILING@ 	\
+CFLAGS          = -I../../include @CFLAGS@ @PROFILING@ @GCOV_CFLAGS@	\
 		  @DREENTRANT@ @dynamic_cflag@ 		\
 		  -I../../include $(XCFLAGS)
-LDFLAGS         =-L../../lib @LDFLAGS@ $(EFENCE) @TESTLDFLAGS@ -L../../lib 
+LDFLAGS         =-L../../lib @LDFLAGS@ $(EFENCE) @GCOV_CFLAGS@ @TESTLDFLAGS@ -L../../lib 
 RPATH           = @rpath@
 RPATHFLAGS      = @RPATHFLAGS@
 BASELIBS        = @LIBS@ -lm -lz

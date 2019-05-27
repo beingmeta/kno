@@ -18,7 +18,8 @@
 	    ((vector? v)
 	     (applytest #t vector? cmp))))))
 
-(applytest #t string? (uname))
+(applytest #t table? (uname))
+(applytest #t string? (get (uname) 'osname))
 (applytest #t fixnum? (getpid))
 (applytest #t integer? (stacksize))
 (applytest #t integer? (threadid))

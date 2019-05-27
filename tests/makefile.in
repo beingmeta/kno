@@ -61,7 +61,7 @@ LEAKTEST	= ${TEST_ENV} ${LEAKTEST_ENV} ${LEAKTESTER:-${TESTPROG}}
 FRAMETEST_FILES	= r4rs.scm misctest.scm seqtest.scm choicetest.scm frametest.scm
 TESTBASE	= tmptest
 TESTFILE	= ${TESTBASE}.file
-FDX		= ./knox
+FDX		= ../dbg/knox
 OIDPOOL		= POOLTYPE=oidpool
 BIGPOOL		= POOLTYPE=bigpool
 SNAPPY		= COMPRESSION=snappy
@@ -106,16 +106,18 @@ all_tests alltests: tidy
 	make cmdtests
 	@${header} "■■■■■■■■ Done with alltests"
 
-libtests: scheme optscheme slotmaps tables pools indexes db
+libtests: scheme optscheme cmodtests slotmaps tables pools indexes db
 cmdtests:
 	@echo "# ■■■■■■■■ Running command line tests ${RUNCONF}"
 	@echo "# ■■■ Various stderr log messages or termination warnings are normal"
 	make execscripts chainscripts batchscripts chained_batchscripts utilscripts
 
+static-tests: schemetests optscheme loadmods optmods slotmaps tables pools indexes db
 schemetest schemetests scheme: r4rs exceptions choices sequences breaks numvecs reflect hashsets \
 	picktest cachecall texttools webtools timefns sysprims stringprims \
 	threads i18n misc gctests profiling \
-	fileprims xml crypto
+	fileprims xml
+cmodtests: crypto
 optscheme:
 	@${header} "■■■■■■■■ Running optimized scheme tests ${RUNCONF}"
 	@${RUN} ${FDX} TESTOPTIMIZED=yes r4rs.scm ${RUNCONF}

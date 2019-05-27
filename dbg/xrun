@@ -1,2 +1,15 @@
-. runenv.sh
-MEMCHECKING=yes ASAN_SYMBOLIZER_PATH= ASAN_OPTIONS=malloc_context_size=20 LSAN_OPTIONS=report_objects=1  exec $* DLOAD:TRACE=yes
+#!/bin/sh
+
+if [ -f runenv.sh ]; then
+   . runenv.sh;
+elif [ -f dbg/runenv.sh ]; then
+    echo "Using dbg/runenv.sh";
+   . dbg/runenv.sh;
+elif [ -f ../dbg/runenv.sh ]; then
+    echo "Using ../dbg/runenv.sh";
+   . ../dbg/runenv.sh;
+else
+    echo "Can't find runenv.sh!";
+    exit;
+fi;
+MEMCHECKING=yes ASAN_SYMBOLIZER_PATH= ASAN_OPTIONS=malloc_context_size=20 LSAN_OPTIONS=report_objects=1  $* DLOAD:TRACE=yes

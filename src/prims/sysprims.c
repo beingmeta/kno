@@ -488,11 +488,11 @@ static lispval uname_prim()
   int rv = uname(&sysinfo);
   if (rv==0) {
     lispval result = kno_init_slotmap(NULL,0,NULL);
-    setprop(result,"OSNAME",sysinfo.sysname);
-    setprop(result,"NODENAME",sysinfo.nodename);
-    setprop(result,"RELEASE",sysinfo.release);
-    setprop(result,"VERSION",sysinfo.version);
-    setprop(result,"MACHINE",sysinfo.machine);
+    setprop(result,"osname",sysinfo.sysname);
+    setprop(result,"nodename",sysinfo.nodename);
+    setprop(result,"release",sysinfo.release);
+    setprop(result,"version",sysinfo.version);
+    setprop(result,"machine",sysinfo.machine);
     return result;}
   else {
     u8_graberr(errno,"uname_prim",NULL);

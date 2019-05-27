@@ -7,16 +7,17 @@ XCFLAGS       =
 OPTFLAGS      = "@OPTFLAGS@"
 XOPTFLAGS     = "@XOPTFLAGS@"
 ARCHFLAGS     = @archflags@
-EXECFLAGS     = @CFLAGS@ ${OPTFLAGS} @MALLOC_FLAGS@ @PROFILING@ @DREENTRANT@ \
+EXECFLAGS     = @CFLAGS@ ${OPTFLAGS} @MALLOC_FLAGS@ @DREENTRANT@ \
+		@PROFILING@ @GCOV_CFLAGS@ \
 		-I./include $(XCFLAGS) $(ARCHFLAGS)
 DYNAMIC_CFLAG = @dynamic_cflag@
 CFLAGS        = -I./include @CFLAGS@ ${OPTFLAGS} \
-		@MALLOC_FLAGS@ @PROFILING@ @DREENTRANT@ \
+		@MALLOC_FLAGS@ @PROFILING@ @GCOV_CFLAGS@ @DREENTRANT@ \
 		@PTHREAD_LIBS@ $(DYNAMIC_CFLAG) \
 		-I./include $(XCFLAGS)  $(ARCHFLAGS)
 RPATH         = @rpath@
 RPATHFLAGS    = @RPATHFLAGS@
-LDFLAGS       = -L./ -L./lib @LDFLAGS@ @PTHREAD_LIBS@ $(XLDFLAGS)
+LDFLAGS       = -L./ -L./lib @LDFLAGS@ @PTHREAD_LIBS@ @GCOV_LDFLAGS@ $(XLDFLAGS)
 DYLIB_FLAGS   = -compatibility_version @KNO_MAJOR@.0.0 \
 		-current_version @KNO_MAJOR@.@KNO_MINOR@.@KNO_RELEASE@
 EXEFLAGS      = @EXEFLAGS@
@@ -24,7 +25,7 @@ EXELIBS       = @EXELIBS@
 STATIC_CFLAGS = -I./include @CFLAGS@ @PROFILING@ @DREENTRANT@ \
 		$(DYNAMIC_CFLAG) -I./include $(XCFLAGS)
 TEST_CFLAGS   = -DKNO_TESTCONFIG=1 ${STATIC_CFLAGS}
-STATIC_LDFLAGS= -L./lib @LDFLAGS@ $(EFENCE) @TESTLDFLAGS@ -L./lib
+STATIC_LDFLAGS= -L./lib @LDFLAGS@ $(EFENCE) @GCOV_LDFLAGS@ @TESTLDFLAGS@ -L./lib
 TEST_LDFLAGS  = ${STATIC_LDFLAGS}
 TEST_EXEFLAGS = @EXEFLAGS@
 XLIBS         =
@@ -56,7 +57,7 @@ SUDO	        = @SUDO@
 INSTALL		= @INSTALL@
 MKSTATIC	= @MKSTATIC@ -o 
 CODENAME	= @CODENAME@
-MKSO		= $(CC) -shared $(LDFLAGS)
+MKSO		= $(CC) -shared @GCOV_CFLAGS@ $(LDFLAGS)
 MACLIBTOOL	= $(CC) -dynamiclib -single_module -undefined dynamic_lookup \
 			$(LDFLAGS)
 BUILD		= `pwd`
@@ -377,7 +378,8 @@ CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config $(DESTDIR)@share_d
 	$(DESTDIR)@local_module_dir@ $(DESTDIR)@local_safe_module_dir@
 
 CLEANDIRS=include/kno src/drivers/headers 		\
-	src/lisp src/apply src/storage src/drivers	\
+	src/lisp src/apply src/support 			\
+	src/storage src/drivers				\
 	src/eval src/prims				\
 	src/text src/web src/extmods			\
 	src/cmodules					\
@@ -912,12 +914,12 @@ SCHEMETAGS: ${SCHEME_MODULES}
 	@ls -l SCHEMETAGS
 
 profile-clean:
-	@find . -name "*.gcda" -writable | xargs rm -f
-	@find . -name "*.gcno" -writable | xargs rm -f
-	@find . -name "*.gcov" -writable | xargs rm -f
-	@find . -name "*.bb" -writable | xargs rm -f
-	@find . -name "*.bbg" -writable | xargs rm -f
-	@find . -name "*.da" -writable | xargs rm -f
+	@find . -name "*.gcda" -type f -writable | xargs rm -f
+	@find . -name "*.gcno" -type f -writable | xargs rm -f
+	@find . -name "*.gcov" -type f -writable | xargs rm -f
+	@find . -name "*.bb" -type f -writable | xargs rm -f
+	@find . -name "*.bbg" -type f -writable | xargs rm -f
+	@find . -name "*.da" -type f -writable | xargs rm -f
 	@find . -name "gmon.out" -writable | xargs rm -f
 tidy: profile-clean
 	@for dir in ${CLEANDIRS}; do \
@@ -1919,6 +1921,17 @@ tests/data/private:
 	@@SUDO@ chmod og-w $@
 
 .PHONY: tests libtests schemetests dbtests cmtdtests memtests leaktests
+
+# GCOV targets
+
+lcov.info:
+	make -C tests static-tests
+	lcov -c -o $@ -b . -d .
+staging/lcov/index.html: lcov.info
+	if test ! -d staging/lcov; then \
+	  mkdir staging/lcov; \
+	else rm -rf staging/lcov/*; fi
+	genhtml -o staging/lcov/ lcov.info
 
 # DIY rules
 

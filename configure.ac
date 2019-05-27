@@ -539,6 +539,7 @@ fi;
 m4_include([etc/ax_pthread.m4])
 m4_include([etc/ax_check_link_flag.m4])
 m4_include([etc/ax_python.m4])
+m4_include([etc/ax_gcov.m4])
 
 AC_DEFINE(KNO_WORDS_ARE_ALIGNED,1)
 AC_TYPE_UID_T
@@ -604,6 +605,12 @@ if test $with_profiling = "yes"; then
 else 
   PROFILING=""
 fi
+
+### GNU Coverage checking
+
+AC_TDD_GCOV
+AC_SUBST(GCOV_CFLAGS)
+AC_SUBST(GCOV_LDFLAGS)
 
 ### Check some compiler fancies
 
