@@ -1,0 +1,32 @@
+;;; -*- Mode: Scheme; text-encoding: latin-1 -*-
+
+(load-component "common.scm")
+
+(applytest #t string? (getenv "USER"))
+(applytest #t inexact? (getload))
+(applytest #t every? inexact? (loadavg))
+
+(let ((usage (rusage)))
+  (do-choices (key (getkeys usage))
+    (let ((v (get usage key))
+	  (cmp (rusage key)))
+      (cond ((fail? cmp))
+	    ((integer? v)
+	     (applytest #t integer? cmp))
+	    ((inexact? v)
+	     (applytest #t inexact? cmp))
+	    ((vector? v)
+	     (applytest #t vector? cmp))))))
+
+(applytest #t string? (uname))
+(applytest #t fixnum? (getpid))
+(applytest #t integer? (stacksize))
+(applytest #t integer? (threadid))
+(applytest #t string? (procstring))
+(applytest #t integer? (memusage))
+(applytest #t integer? (vmemusage))
+(applytest #t integer? (physmem))
+(applytest #t inexact? (memload))
+(applytest #t inexact? (usertime))
+(applytest #t inexact? (systime))
+(applytest #t inexact? (cpusage))

@@ -113,7 +113,8 @@ cmdtests:
 	make execscripts chainscripts batchscripts chained_batchscripts utilscripts
 
 schemetest schemetests scheme: r4rs exceptions choices sequences breaks numvecs reflect hashsets \
-	picktest cachecall texttools webtools timefns threads i18n misc gctests profiling \
+	picktest cachecall texttools webtools timefns sysprims stringprims \
+	threads i18n misc gctests profiling \
 	fileprims xml crypto
 optscheme:
 	@${header} "■■■■■■■■ Running optimized scheme tests ${RUNCONF}"
@@ -126,6 +127,7 @@ optscheme:
 	@${RUN} ${FDX} TESTOPTIMIZED=yes picktest.scm ${RUNCONF}
 	@${RUN} ${FDX} TESTOPTIMIZED=yes cachecall.scm ${RUNCONF}
 	@${RUN} ${FDX} TESTOPTIMIZED=yes timefns.scm ${RUNCONF}
+	@${RUN} ${FDX} TESTOPTIMIZED=yes sysprims.scm ${RUNCONF}
 	@${RUN} ${FDX} TESTOPTIMIZED=yes i18n.scm ${RUNCONF}
 	@${RUN} ${FDX} TESTOPTIMIZED=yes fileprimtest.scm ${RUNCONF}
 	@${RUN} ${FDX} TESTOPTIMIZED=yes numvecs.scm ${RUNCONF}
@@ -178,9 +180,15 @@ texttools texttest:
 webtools webtoolstest:
 	@${RUN} ${FDX} webtoolstest.scm ${RUNCONF}
 	@${header} "■■■■ Completed webtools tests ${RUNCONF}"
+stringprims:
+	@${RUN} ${FDX} stringprims.scm ${RUNCONF}
+	@${header} "■■■■ Completed stringprims tests ${RUNCONF}"
 timefns:
 	@${RUN} ${FDX} timefns.scm ${RUNCONF}
 	@${header} "■■■■ Completed timefns tests ${RUNCONF}"
+sysprims:
+	@${RUN} ${FDX} sysprims.scm ${RUNCONF}
+	@${header} "■■■■ Completed sysprims tests ${RUNCONF}"
 threads threadtest:
 	@${RUN} ${FDX} threadtest.scm ${RUNCONF}
 	@${header} "■■■■ Completed threads tests ${RUNCONF}"
