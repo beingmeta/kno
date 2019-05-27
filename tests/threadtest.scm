@@ -6,7 +6,8 @@
 (define addnumber
   (slambda (n) (set! numbers (cons n numbers))))
 (define sleep-base 0.01)
-(define (addrange start (len 10))
+(define (addrange start (len 10) (sleepfor #f))
+  (when sleepfor (if (number? sleepfor) (sleep sleepfor) (sleep 1)))
   (dotimes (i len)
     (addnumber (+ start i))
     (sleep (* (1+ (random 5)) sleep-base))))
@@ -27,7 +28,8 @@
 (define (test-spawn)
   (let ((threads {}))
     (set! numbers '())
-    (set+! threads (spawn (addrange 10)))
+    (set+! threads (spawn (begin (sleep 2) (addrange 10))))
+    (applytest #t exists? (config 'ALLTHREADS))
     (set+! threads (spawn (addrange 0)))
     (threadjoin threads)
     (applytest 20 length numbers)
@@ -37,8 +39,11 @@
 (define (test-threadcall)
   (let ((threads {}))
     (set! numbers '())
-    (set+! threads (threadcall addrange 10))
-    (set+! threads (threadcall addrange 0))
+    ;; We're testing a bunch of things here and have addrange sleep so
+    ;; it doesn't exit before we finish the thread-find tests
+    (set+! threads (thread/call addrange 10 10 #t))
+    (set+! threads (thread/call addrange 0 10 #t))
+    (applytest threads (find-thread (thread-id threads)))
     (threadjoin threads)
     (applytest 20 length numbers)
     (applytest #f check-ordered numbers)
@@ -99,6 +104,7 @@
     (message "DO-CHOICES-MT-TEST: " ids)
     (applytest #t (> (choice-size ids) 1))))
 
+(errtest (find-thread "NoSuchThread"))
 (test-parallel)
 (test-spawn)
 (test-threadcall)
