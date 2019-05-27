@@ -24,7 +24,7 @@
 (applytest "quux" pick '{"quux" bar} fq3)
 (applytest 3 pick '{1 2 3} fq3)
 
-(applytest {3 4} picknums '{a b 3 c4})
+(applytest {3 4} picknums '{a b 3 c 4})
 (applytest {"three" "four"} pickstrings '{"three" 3 three "four" 4 four})
 (applytest {@1/99 @2/99} pickoids '{"three" 3 three "four" 4 four @1/99 @2/99})
 
