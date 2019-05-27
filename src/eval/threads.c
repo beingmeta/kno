@@ -133,6 +133,12 @@ static lispval findthread_prim(lispval threadid_arg)
   return kno_err("NoThreadID","find_thread",NULL,threadid_arg);
 }
 
+static lispval threadid_prim(lispval thread)
+{
+  struct KNO_THREAD_STRUCT *th = (kno_thread_struct) thread;
+  return KNO_INT(th->threadid);
+}
+
 static lispval allthreads_config_get(lispval var,U8_MAYBE_UNUSED void *data)
 {
   lispval results = EMPTY;
@@ -1028,6 +1034,9 @@ KNO_EXPORT void kno_init_threads_c()
             "(SYNCHRONIZER? *arg*) returns #t if *arg* is a "
             "synchronizer (condvar)",
             -1,KNO_VOID);
+  kno_idefn1(kno_scheme_module,"THREAD-ID",threadid_prim,1,
+             "`(THREAD-ID *thread*)` returns the integer identifier for *thread*",
+             kno_thread_type,KNO_VOID);
 
 
   kno_idefnN(kno_scheme_module,"THREAD/CALL",threadcall_prim,
