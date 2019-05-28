@@ -316,17 +316,18 @@ KNO_FASTOP U8_MAYBE_UNUSED int _KNO_ISDTYPE(lispval x){ return 1;}
 
 #define KNO_CONSPTR(cast,x) ((cast)((kno_cons)x))
 #define kno_consptr(cast,x,typecode)                                     \
-  ((KNO_EXPECT_TRUE(KNO_TYPEP(x,typecode))) ? ((cast)((kno_cons)(x))) :    \
-   (((KNO_CHECK_PTR(x))?                                                 \
-     (kno_seterr(kno_TypeError,kno_type_names[typecode],NULL,x),           \
-      (_kno_bad_pointer(x,kno_type_names[typecode]))) :                   \
-     (kno_raise(kno_BadPtr,kno_type_names[typecode],NULL,x))),             \
+  ((KNO_EXPECT_TRUE(KNO_TYPEP(x,typecode))) ?                           \
+   ((cast)((kno_cons)(x))) :                                            \
+   ((((KNO_CHECK_PTR(x)) ?                                              \
+      (kno_raise(kno_TypeError,kno_type_names[typecode],NULL,x)) :      \
+      (_kno_bad_pointer(x,kno_type_names[typecode])))),                 \
     ((cast)NULL)))
-#define kno_xconsptr(cast,x,typecode)                                    \
-  ((KNO_EXPECT_TRUE(KNO_TYPEP(x,typecode))) ? ((cast)((kno_cons)(x))) :    \
-   (((KNO_CHECK_PTR(x))?                                                 \
-     (kno_seterr(kno_TypeError,kno_type_names[typecode],NULL,x)):          \
-     (kno_seterr(kno_BadPtr,kno_type_names[typecode],NULL,x))),            \
+#define kno_xconsptr(cast,x,typecode)                                   \
+  ((KNO_EXPECT_TRUE(KNO_TYPEP(x,typecode))) ?                           \
+   ((cast)((kno_cons)(x))) :                                            \
+   (((KNO_CHECK_PTR(x))?                                                \
+     (kno_seterr(kno_TypeError,kno_type_names[typecode],NULL,x)):       \
+     (kno_seterr(kno_BadPtr,kno_type_names[typecode],NULL,x))),         \
     ((cast)NULL)))
 
 #define KNO_NULL ((lispval)(NULL))
@@ -362,7 +363,7 @@ static kno_ptr_type KNO_PTR_TYPE(lispval x)
 #endif
 #define KNO_PRIM_TYPE(x)         (KNO_PTR_TYPE(x))
 
-#define KNO_TYPEP(ptr,type)                                                    \
+#define KNO_TYPEP(ptr,type)                                                     \
   ((type >= 0x84) ? ( (KNO_CONSP(ptr)) && (KNO_CONSPTR_TYPE(ptr) == type) ) :   \
    (type >= 0x04) ? ( (KNO_IMMEDIATEP(ptr)) && (KNO_IMM_TYPE(ptr) == type ) ) : \
    ( ( (ptr) & (0x3) ) == type) )
