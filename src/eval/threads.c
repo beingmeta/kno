@@ -795,13 +795,18 @@ static lispval threadjoin_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
         if ( (tstruct->resultptr == NULL) ||
              ((tstruct->resultptr) == &(tstruct->result)) ) {
           /* If the result wasn't put somewhere else, add it to the results */
-          if (VOIDP(tstruct->result))
+          lispval result = tstruct->result;
+          if (KNO_NULLP(result))
             u8_log(LOG_INFO,ThreadVOID,
-                   "The thread %q unexpectedly returned VOID but without error",
+                   "Thread %q unexpected returned NULL without any error",
+                   thread);
+          else if (VOIDP(result))
+            u8_log(LOG_INFO,ThreadVOID,
+                   "Thread %q unexpectedly returned VOID but without error",
                    thread);
           else  {
-            kno_incref(tstruct->result);
-            CHOICE_ADD(results,tstruct->result);}}}}}
+            kno_incref(result);
+            CHOICE_ADD(results,result);}}}}}
 
   return results;
 }
@@ -984,17 +989,17 @@ static int walk_thread_struct(kno_walker walker,lispval x,
 
 /* Thread information */
 
-static lispval stack_depth_prim()
+static lispval cstack_depth_prim()
 {
   ssize_t depth = u8_stack_depth();
   return KNO_INT2DTYPE(depth);
 }
-static lispval stack_limit_prim()
+static lispval cstack_limit_prim()
 {
   ssize_t limit = kno_stack_limit;
   return KNO_INT2DTYPE(limit);
 }
-static lispval set_stack_limit_prim(lispval arg)
+static lispval set_cstack_limit_prim(lispval arg)
 {
   if (KNO_FLONUMP(arg)) {
     ssize_t result = kno_stack_resize(KNO_FLONUM(arg));
@@ -1118,18 +1123,28 @@ KNO_EXPORT void kno_init_threads_c()
 
   kno_idefn(kno_scheme_module,kno_make_cprim0("MAKE-CONDVAR",make_condvar));
   kno_idefn(kno_scheme_module,kno_make_cprim2("CONDVAR-WAIT",condvar_wait,1));
-  kno_idefn(kno_scheme_module,kno_make_cprim2("CONDVAR-SIGNAL",condvar_signal,1));
-  kno_idefn(kno_scheme_module,kno_make_cprim1("CONDVAR-LOCK",condvar_lock,1));
-  kno_idefn(kno_scheme_module,kno_make_cprim1("CONDVAR-UNLOCK",condvar_unlock,1));
+  kno_idefn2(kno_scheme_module,"CONDVAR-SIGNAL",condvar_signal,1,
+             "`(CONDVAR-SIGNAL *condvar* [*broadcast*])` signals that "
+             "*condvar* has been modified. If *broadcast* is provided "
+             "and not #f, all waiting threads are notified of the change.",
+             kno_condvar_type,KNO_VOID,-1,KNO_VOID);
+  kno_idefn1(kno_scheme_module,"CONDVAR-LOCK",condvar_lock,1,
+             "`(CONDVAR-LOCK *condvar*)` locks *condvar* (or precisely, "
+             "its mutex)..",
+             kno_condvar_type,KNO_VOID);
+  kno_idefn1(kno_scheme_module,"CONDVAR-UNLOCK",condvar_unlock,1,
+             "`(CONDVAR-UNLOCK *condvar*)` unlocks *condvar* (or precisely, "
+             "its mutex)..",
+             kno_condvar_type,KNO_VOID);
   kno_idefn(kno_scheme_module,kno_make_cprim1("SYNCHRO-LOCK",synchro_lock,1));
   kno_idefn(kno_scheme_module,kno_make_cprim1("SYNCHRO-UNLOCK",synchro_unlock,1));
   kno_def_evalfn(kno_scheme_module,"WITH-LOCK","",with_lock_evalfn);
 
 
-  kno_idefn(kno_scheme_module,kno_make_cprim0("STACK-DEPTH",stack_depth_prim));
-  kno_idefn(kno_scheme_module,kno_make_cprim0("STACK-LIMIT",stack_limit_prim));
-  kno_idefn(kno_scheme_module,kno_make_cprim1x("STACK-LIMIT!",set_stack_limit_prim,1,
-                                            kno_fixnum_type,VOID));
+  kno_idefn(kno_scheme_module,kno_make_cprim0("CSTACK-DEPTH",cstack_depth_prim));
+  kno_idefn(kno_scheme_module,kno_make_cprim0("CSTACK-LIMIT",cstack_limit_prim));
+  kno_idefn(kno_scheme_module,kno_make_cprim1x("CSTACK-LIMIT!",set_cstack_limit_prim,1,
+                                               kno_fixnum_type,VOID));
 
   kno_register_config("ALLTHREADS",
                      "All active LISP threads",
