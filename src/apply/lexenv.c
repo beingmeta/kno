@@ -117,6 +117,8 @@ static int envcountproc(lispval v,void *data)
   kno_lexenv env = state->env;
   if (!(CONSP(v)))
     return 1;
+  else if (KNO_NULLP(v))
+    return 0;
   else if (KNO_STATICP(v))
     return 0;
   else if (KNO_LEXENVP(v)) {
