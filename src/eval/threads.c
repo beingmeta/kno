@@ -111,7 +111,7 @@ static lispval synchronizerp_prim(lispval arg)
   else return KNO_FALSE;
 }
 
-static lispval findthread_prim(lispval threadid_arg)
+static lispval findthread_prim(lispval threadid_arg,lispval err)
 {
   long long threadid =
     ( (KNO_VOIDP(threadid_arg)) || (KNO_DEFAULTP(threadid_arg)) ) ?
@@ -130,7 +130,9 @@ static lispval findthread_prim(lispval threadid_arg)
       else scan = scan->ring_right;}
     u8_unlock_mutex(&thread_ring_lock);
     return KNO_FALSE;}
-  return kno_err("NoThreadID","find_thread",NULL,threadid_arg);
+  if ( (KNO_VOIDP(err)) || (KNO_FALSEP(err)) )
+    return KNO_EMPTY;
+  else return kno_err("NoThreadID","find_thread",NULL,threadid_arg);
 }
 
 static lispval threadid_prim(lispval thread)
@@ -1091,13 +1093,14 @@ KNO_EXPORT void kno_init_threads_c()
             "and returns VOID. *opts is currently ignored.",
             -1,KNO_VOID,-1,KNO_VOID);
 
-  kno_idefn1(kno_scheme_module,"FIND-THREAD",findthread_prim,0,
-            "(FIND-THREAD [*id*]) returns the thread object for "
-            "the the thread numbered *id* (which is the value returned "
-            "by (threadid)). If *id* is not provided or #default, returns "
-            "the thread object for the current thread. If a thread object "
-            "doesn't exist, returns #f",
-            -1,KNO_VOID);
+  kno_idefn2(kno_scheme_module,"FIND-THREAD",findthread_prim,0,
+             "(FIND-THREAD [*id*] [*err*]) returns the thread object for "
+             "the the thread numbered *id* (which is the value returned "
+             "by (threadid)). If *id* is not provided or #default, returns "
+             "the thread object for the current thread. If a thread object "
+             "doesn't exist, either reports an error if *err* is not-false or"
+             "returns #f otherwise.",
+             kno_fixnum_type,KNO_VOID,-1,KNO_VOID);
 
   kno_idefn1(kno_scheme_module,"THREAD/EXITED?",thread_exitedp,1,
             "(THREAD/EXITED? *thread*) returns true if *thread* has exited",
