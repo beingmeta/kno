@@ -31,7 +31,7 @@
     (set+! threads (spawn (begin (sleep 2) (addrange 10))))
     (applytest #t exists? (config 'ALLTHREADS))
     (set+! threads (spawn (addrange 0)))
-    (threadjoin threads)
+    (thread/join threads)
     (applytest 20 length numbers)
     (applytest #f check-ordered numbers)
     (message "TEST-SPAWN: " numbers)))
@@ -113,7 +113,7 @@
       (sleep (* (random 10) (* 0.1 sleep-base))))
     (sleep 1)
     (stop-condvar-test cvar)
-    (threadjoin threads)
+    (thread/join threads)
     (message "CONDVARS: sightings=" sightings "; touches=" touches)
     (applytest #t = sightings touches)))
 
