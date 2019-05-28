@@ -130,7 +130,7 @@
 (applytest #t number? (cstack-limit))
 (applytest #t number? (cstack-depth))
 (applytest #t < (cstack-depth) (cstack-limit))
-(cstack-limit! (* 2 (cstack-limit)))
+(cstack-limit! (+ 2 (cstack-limit)))
 (test-threadids)
 (test-parallel)
 (test-spawn)

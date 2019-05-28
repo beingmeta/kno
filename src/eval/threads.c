@@ -23,6 +23,7 @@
 #include "kno/sequences.h"
 #include "kno/ports.h"
 #include "kno/dtcall.h"
+#include "kno/cprims.h"
 
 #include "eval_internals.h"
 
@@ -97,6 +98,9 @@ static void remove_thread(struct KNO_THREAD_STRUCT *thread)
     u8_unlock_mutex(&thread_ring_lock);}
 }
 
+DCLPRIM1("THREAD?",threadp_prim,MIN_ARGS(1),
+         "`(THREAD? *object*)` returns #t if *object is a thread.",
+         kno_any_type,KNO_VOID)
 static lispval threadp_prim(lispval arg)
 {
   if (KNO_TYPEP(arg,kno_thread_type))
@@ -104,6 +108,10 @@ static lispval threadp_prim(lispval arg)
   else return KNO_FALSE;
 }
 
+DCLPRIM1("SYNCHRONIZER?",synchronizerp_prim,MIN_ARGS(1),
+         "`(SYNCHRONIZER? *object*)` returns #t if *object is a synchronizer object. "
+         "Synchronizers include condvars, synchronized lambdas, and threads.",
+         kno_any_type,KNO_VOID)
 static lispval synchronizerp_prim(lispval arg)
 {
   if (KNO_TYPEP(arg,kno_condvar_type))
@@ -111,6 +119,14 @@ static lispval synchronizerp_prim(lispval arg)
   else return KNO_FALSE;
 }
 
+DCLPRIM2("FIND-THREAD",findthread_prim,MIN_ARGS(1),
+         "(FIND-THREAD [*id*] [*err*]) returns the thread object for "
+         "the the thread numbered *id* (which is the value returned "
+         "by (threadid)). If *id* is not provided or #default, returns "
+         "the thread object for the current thread. If a thread object "
+         "doesn't exist, either reports an error if *err* is not-false or"
+         "returns #f otherwise.",
+         kno_fixnum_type,KNO_VOID,kno_any_type,KNO_VOID)
 static lispval findthread_prim(lispval threadid_arg,lispval err)
 {
   long long threadid =
@@ -135,6 +151,8 @@ static lispval findthread_prim(lispval threadid_arg,lispval err)
   else return kno_err("NoThreadID","find_thread",NULL,threadid_arg);
 }
 
+DCLPRIM("THREAD-ID",threadid_prim,MIN_ARGS(1)|MAX_ARGS(1),
+        "`(THREAD-ID *thread*)` returns the integer identifier for *thread*")
 static lispval threadid_prim(lispval thread)
 {
   struct KNO_THREAD_STRUCT *th = (kno_thread_struct) thread;
@@ -197,6 +215,8 @@ KNO_EXPORT void recycle_thread_struct(struct KNO_RAW_CONS *c)
 
 /* CONDVAR support */
 
+DCLPRIM("MAKE-CONDVAR",make_condvar,0,
+        "(MAKE-CONDVAR) allocates and returns a new condvar.")
 static lispval make_condvar()
 {
   int rv = 0;
@@ -216,6 +236,9 @@ static lispval make_condvar()
 /* This primitive combine cond_wait and cond_timedwait
    through a second (optional) argument, which is an
    interval in seconds. */
+DCLPRIM("CONDVAR-WAIT",condvar_wait,MIN_ARGS(1)|MAX_ARGS(2),
+        "(CONDVAR-WAIT *condvar*) waits for the value associated with "
+        "*condvar* to change.")
 static lispval condvar_wait(lispval cvar,lispval timeout)
 {
   int rv = 0;
@@ -250,9 +273,11 @@ static lispval condvar_wait(lispval cvar,lispval timeout)
     return kno_type_error(_("valid condvar"),"condvar_wait",cvar);}
 }
 
-/* This primitive combines signals and broadcasts through
-   a second (optional) argument which, when true, implies
-   a broadcast. */
+DCLPRIM("CONDVAR-SIGNAL",condvar_signal,MIN_ARGS(1)|MAX_ARGS(2),
+        "(CONDVAR-SIGNAL *condvar* [*broadcast*]) signals that *condvar* "
+        "has changed, signalling threads waiting on the value and causing their "
+        "`thread-wait` calls to return. If *broadcast* is #t, all waiting threads "
+        "are signalled. Otherwise only one is signalled.")
 static lispval condvar_signal(lispval cvar,lispval broadcast)
 {
   struct KNO_CONDVAR *cv=
@@ -266,6 +291,9 @@ static lispval condvar_signal(lispval cvar,lispval broadcast)
   else return kno_type_error(_("valid condvar"),"condvar_signal",cvar);
 }
 
+DCLPRIM("CONDVAR-LOCK",condvar_lock,MIN_ARGS(1)|MAX_ARGS(1),
+        "`(CONDVAR-LOCK *condvar*)` locks *condvar* (or precisely, "
+        "its mutex)..")
 static lispval condvar_lock(lispval cvar)
 {
   struct KNO_CONDVAR *cv=
@@ -274,6 +302,9 @@ static lispval condvar_lock(lispval cvar)
   return KNO_TRUE;
 }
 
+DCLPRIM("CONDVAR-LOCK",condvar_unlock,MIN_ARGS(1)|MAX_ARGS(1),
+        "`(CONDVAR-UNLOCK *condvar*)` unlocks *condvar* (or precisely, "
+        "its mutex)..")
 static lispval condvar_unlock(lispval cvar)
 {
   struct KNO_CONDVAR *cv=
@@ -301,6 +332,9 @@ KNO_EXPORT void recycle_condvar(struct KNO_RAW_CONS *c)
 /* These functions generically access the locks on CONDVARs
    and LAMBDAs */
 
+DCLPRIM("SYNCHRO-LOCK",synchro_lock,MIN_ARGS(1)|MAX_ARGS(1),
+        "Locks a synchronizer object, which can be a condvar, "
+        "a synchronized lambda, or a thread")
 static lispval synchro_lock(lispval lck)
 {
   if (TYPEP(lck,kno_condvar_type)) {
@@ -317,6 +351,9 @@ static lispval synchro_lock(lispval lck)
   else return kno_type_error("lockable","synchro_lock",lck);
 }
 
+DCLPRIM("SYNCHRO-UNLOCK",synchro_unlock,MIN_ARGS(1)|MAX_ARGS(1),
+        "Unlocks a synchronizer object, which can be a condvar, "
+        "a synchronized lambda, or a thread")
 static lispval synchro_unlock(lispval lck)
 {
   if (TYPEP(lck,kno_condvar_type)) {
@@ -557,6 +594,11 @@ kno_thread_struct kno_thread_eval(lispval *resultptr,
 
 /* Scheme primitives */
 
+DCLPRIM("THREAD/CALL",threadcall_prim,
+        KNO_NEEDS_1_ARG|KNO_VAR_ARGS,
+        "(THREAD/CALL *fcn* *args*...) applies *fcn* "
+        "in parallel to all of the combinations of *args* "
+        "and returns one thread for each combination.")
 static lispval threadcall_prim(int n,lispval *args)
 {
   lispval fn = args[0];
@@ -595,6 +637,12 @@ static int threadopts(lispval opts)
     return KNO_THREAD_TRACE_EXIT;}
 }
 
+DCLPRIM("THREAD/CALL+",
+        threadcallx_prim,KNO_NEEDS_2_ARGS|KNO_VAR_ARGS,
+        "(THREAD/CALL+ *opts* *fcn* *args*...) applies *fcn* "
+        "in parallel to all of the combinations of *args* "
+        "and returns one thread for each combination. *opts* "
+        "specifies options for creating each thread.")
 static lispval threadcallx_prim(int n,lispval *args)
 {
   lispval opts = args[0];
@@ -664,6 +712,8 @@ static lispval threadeval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return results;}
 }
 
+DCLPRIM("THREAD/EXITED?",thread_exitedp,MIN_ARGS(1)|MAX_ARGS(1),
+        "(THREAD/EXITED? *thread*) returns true if *thread* has exited")
 static lispval thread_exitedp(lispval thread_arg)
 {
   struct KNO_THREAD_STRUCT *thread = (struct KNO_THREAD_STRUCT *)thread_arg;
@@ -672,6 +722,9 @@ static lispval thread_exitedp(lispval thread_arg)
   else return KNO_FALSE;
 }
 
+DCLPRIM("THREAD/FINISHED?",thread_finishedp,MIN_ARGS(1)|MAX_ARGS(1),
+        "(THREAD/EXITED? *thread*) returns true "
+        "if *thread* exited normally, #F otherwise")
 static lispval thread_finishedp(lispval thread_arg)
 {
   struct KNO_THREAD_STRUCT *thread = (struct KNO_THREAD_STRUCT *)thread_arg;
@@ -681,6 +734,9 @@ static lispval thread_finishedp(lispval thread_arg)
   else return KNO_FALSE;
 }
 
+DCLPRIM("THREAD/ERROR?",thread_errorp,MIN_ARGS(1)|MAX_ARGS(1),
+        "(THREAD/ERROR? *thread*) returns #t if *thread* "
+        "exited with an error, #f otherwise")
 static lispval thread_errorp(lispval thread_arg)
 {
   struct KNO_THREAD_STRUCT *thread = (struct KNO_THREAD_STRUCT *)thread_arg;
@@ -690,6 +746,11 @@ static lispval thread_errorp(lispval thread_arg)
   else return KNO_FALSE;
 }
 
+DCLPRIM("THREAD/RESULT",thread_result,MIN_ARGS(1)|MAX_ARGS(1),
+        "(THREAD/RESULT *thread*) returns the final result of the thread "
+        "or {} if it hasn't finished. If the thread returned an error "
+        "this returns the exception object for the error. If you want to "
+        "wait for the result, use THREAD/FINISH.")
 static lispval thread_result(lispval thread_arg)
 {
   struct KNO_THREAD_STRUCT *thread = (struct KNO_THREAD_STRUCT *)thread_arg;
@@ -777,6 +838,13 @@ static int join_thread(struct KNO_THREAD_STRUCT *tstruct,int waiting,
   }
 }
 
+DCLPRIM2("THREAD/JOIN",threadjoin_prim,
+         MIN_ARGS(1)|MAX_ARGS(2)|KNO_NDCALL,
+         "(THREAD/JOIN *threads* [*opts*]) waits for all of *threads* "
+         "to finish and returns all of their non VOID results "
+         "(as a choice), logging when a VOID result is returned. "
+         "*opts is currently ignored.",
+         -1,KNO_VOID,-1,KNO_VOID)
 static lispval threadjoin_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
 {
   {DO_CHOICES(thread,threads)
@@ -813,6 +881,12 @@ static lispval threadjoin_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
   return results;
 }
 
+DCLPRIM2("THREAD/WAIT",threadwait_prim,
+         MIN_ARGS(1)|MAX_ARGS(2)|KNO_NDCALL,
+         "(THREAD/WAIT *threads* [*opts*]) waits for all of *threads* "
+         "to return, returning the thread objects. "
+         "*opts is currently ignored.",
+         -1,KNO_VOID,-1,KNO_VOID)
 static lispval threadwait_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
 {
   struct timespec until;
@@ -831,6 +905,12 @@ static lispval threadwait_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
   return kno_incref(threads);
 }
 
+DCLPRIM2("THREAD/FINISH",threadfinish_prim,
+         MIN_ARGS(1)|MAX_ARGS(2)|KNO_NDCALL,
+         "(THREAD/FINISH *args* [*opts*]) waits for all of threads in *args* "
+            "to return, returning the non-VOID thread results together "
+         "with any non-thread *args*. *opts is currently ignored.",
+         -1,KNO_VOID,-1,KNO_VOID)
 static lispval threadfinish_prim(lispval args,lispval U8_MAYBE_UNUSED opts)
 {
   lispval results = EMPTY;
@@ -870,6 +950,11 @@ static lispval threadfinish_prim(lispval args,lispval U8_MAYBE_UNUSED opts)
   return results;
 }
 
+DCLPRIM2("THREAD/WAIT!",threadwaitbang_prim,
+         KNO_NEEDS_1_ARG|KNO_NDCALL,
+         "(THREAD/WAIT! *threads*) waits for all of *threads* to return, "
+         "and returns VOID. *opts is currently ignored.",
+         -1,KNO_VOID,-1,KNO_VOID)
 static lispval threadwaitbang_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
 {
   struct timespec until;
@@ -925,6 +1010,8 @@ static lispval parallel_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return result;
 }
 
+DCLPRIM("THREAD/YIELD",threadyield_prim,0,
+        "(THREAD/YIELD) allows other threads to run.")
 static lispval threadyield_prim()
 {
 #if _POSIX_PRIORITY_SCHEDULING
@@ -991,16 +1078,22 @@ static int walk_thread_struct(kno_walker walker,lispval x,
 
 /* Thread information */
 
+DCLPRIM("CSTACK-DEPTH",cstack_depth_prim,MAX_ARGS(0),
+        "Returns the current depth of the C stack")
 static lispval cstack_depth_prim()
 {
   ssize_t depth = u8_stack_depth();
   return KNO_INT2DTYPE(depth);
 }
+DCLPRIM("CSTACK-LIMIT",cstack_limit_prim,MAX_ARGS(0),
+        "Returns the allocated limit of the C stack")
 static lispval cstack_limit_prim()
 {
   ssize_t limit = kno_stack_limit;
   return KNO_INT2DTYPE(limit);
 }
+DCLPRIM("CSTACK-LIMIT!",set_cstack_limit_prim,MIN_ARGS(1)|MAX_ARGS(1),
+        "Returns the allocated limit of the C stack")
 static lispval set_cstack_limit_prim(lispval arg)
 {
   if (KNO_FLONUMP(arg)) {
@@ -1034,120 +1127,60 @@ KNO_EXPORT void kno_init_threads_c()
   kno_def_evalfn(kno_scheme_module,"PARALLEL","",parallel_evalfn);
   kno_def_evalfn(kno_scheme_module,"SPAWN","",threadeval_evalfn);
 
-  kno_idefn1(kno_scheme_module,"THREAD?",threadp_prim,1,
-            "(THREAD? *arg*) returns #t if *arg* is a thread object",
-            -1,KNO_VOID);
-  kno_idefn1(kno_scheme_module,"SYNCHRONIZER?",synchronizerp_prim,1,
-            "(SYNCHRONIZER? *arg*) returns #t if *arg* is a "
-            "synchronizer (condvar)",
-            -1,KNO_VOID);
-  kno_idefn1(kno_scheme_module,"THREAD-ID",threadid_prim,1,
-             "`(THREAD-ID *thread*)` returns the integer identifier for *thread*",
-             kno_thread_type,KNO_VOID);
+  DECL_PRIM_N(threadcall_prim,kno_scheme_module);
+  DECL_ALIAS("THREADCALL",threadcall_prim,kno_scheme_module);
 
+  DECL_PRIM_N(threadcallx_prim,kno_scheme_module);
 
-  kno_idefnN(kno_scheme_module,"THREAD/CALL",threadcall_prim,
-            KNO_NEEDS_1_ARG,
-            "(THREAD/CALL *fcn* *args*...) applies *fcn* "
-            "in parallel to all of the combinations of *args* "
-            "and returns one thread for each combination.");
-  kno_defalias(kno_scheme_module,"THREADCALL","THREAD/CALL");
+  DECL_ALIAS("THREADYIELD",threadyield_prim,kno_scheme_module);
 
-  kno_idefnN(kno_scheme_module,"THREAD/CALL+",
-            threadcallx_prim,KNO_NEEDS_2_ARGS,
-            "(THREAD/CALL+ *opts* *fcn* *args*...) applies *fcn* "
-            "in parallel to all of the combinations of *args* "
-            "and returns one thread for each combination. *opts* "
-            "specifies options for creating each thread.");
+  DECL_PRIM(threadyield_prim,0,kno_scheme_module);
 
-  kno_idefn0(kno_scheme_module,"THREAD/YIELD",threadyield_prim,
-            "(THREAD/YIELD) allows other threads to run");
-  kno_defalias(kno_scheme_module,"THREADYIELD","THREAD/YIELD");
+  DECL_PRIM(threadjoin_prim,2,kno_scheme_module);
+  DECL_PRIM(threadwait_prim,2,kno_scheme_module);
+  DECL_PRIM(threadwaitbang_prim,2,kno_scheme_module);
+  DECL_PRIM(threadfinish_prim,2,kno_scheme_module);
 
-  kno_idefn2(kno_scheme_module,"THREAD/JOIN",threadjoin_prim,
-            KNO_NEEDS_1_ARG|KNO_NDCALL,
-            "(THREAD/JOIN *threads* [*opts*]) waits for all of *threads* "
-            "to finish and returns all of their non VOID results "
-            "(as a choice), logging when a VOID result is returned. "
-            "*opts is currently ignored.",
-            -1,KNO_VOID,-1,KNO_VOID);
-  kno_defalias(kno_scheme_module,"THREADJOIN","THREAD/JOIN");
+  DECL_PRIM(threadp_prim,1,kno_scheme_module);
+  DECL_PRIM(synchronizerp_prim,1,kno_scheme_module);
 
-  kno_idefn2(kno_scheme_module,"THREAD/WAIT",threadwait_prim,
-            KNO_NEEDS_1_ARG|KNO_NDCALL,
-            "(THREAD/WAIT *threads* [*opts*]) waits for all of *threads* "
-            "to return, returning the thread objects. "
-            "*opts is currently ignored.",
-            -1,KNO_VOID,-1,KNO_VOID);
+  int one_thread_arg[1] = { kno_thread_type };
+  int find_thread_types[2] = { kno_fixnum_type, kno_any_type };
 
-  kno_idefn2(kno_scheme_module,"THREAD/FINISH",threadfinish_prim,
-            KNO_NEEDS_1_ARG|KNO_NDCALL,
-            "(THREAD/FINISH *args* [*opts*]) waits for all of threads in *args* "
-            "to return, returning the non-VOID thread results together "
-            "with any non-thread *args*. *opts is currently ignored.",
-            -1,KNO_VOID,-1,KNO_VOID);
+  DECL_PRIM_ARGS(threadid_prim,1,kno_scheme_module,one_thread_arg,NULL);
+  DECL_PRIM_ARGS(findthread_prim,2,kno_scheme_module,find_thread_types,NULL);
 
-  kno_idefn2(kno_scheme_module,"THREAD/WAIT!",threadwaitbang_prim,
-            KNO_NEEDS_1_ARG|KNO_NDCALL,
-            "(THREAD/WAIT! *threads*) waits for all of *threads* to return, "
-            "and returns VOID. *opts is currently ignored.",
-            -1,KNO_VOID,-1,KNO_VOID);
-
-  kno_idefn2(kno_scheme_module,"FIND-THREAD",findthread_prim,0,
-             "(FIND-THREAD [*id*] [*err*]) returns the thread object for "
-             "the the thread numbered *id* (which is the value returned "
-             "by (threadid)). If *id* is not provided or #default, returns "
-             "the thread object for the current thread. If a thread object "
-             "doesn't exist, either reports an error if *err* is not-false or"
-             "returns #f otherwise.",
-             kno_fixnum_type,KNO_VOID,-1,KNO_VOID);
-
-  kno_idefn1(kno_scheme_module,"THREAD/EXITED?",thread_exitedp,1,
-            "(THREAD/EXITED? *thread*) returns true if *thread* has exited",
-            kno_thread_type,VOID);
-  kno_idefn1(kno_scheme_module,"THREAD/FINISHED?",thread_finishedp,1,
-            "(THREAD/EXITED? *thread*) returns true "
-            "if *thread* exited normally, #F otherwise",
-            kno_thread_type,VOID);
-  kno_idefn1(kno_scheme_module,"THREAD/ERROR?",thread_errorp,1,
-            "(THREAD/ERROR? *thread*) returns true if *thread* "
-            "exited with an error, #F otherwise",
-            kno_thread_type,VOID);
-  kno_idefn1(kno_scheme_module,"THREAD/RESULT",thread_result,1,
-            "(THREAD/RESULT *thread*) returns the final result of the thread "
-            "or {} if it hasn't finished. If the thread returned an error "
-            "this returns the exception object for the error. If you want to "
-            "wait for the result, use THREAD/JOIN.",
-            kno_thread_type,VOID);
+  DECL_PRIM_ARGS(thread_exitedp,1,kno_scheme_module,one_thread_arg,NULL);
+  DECL_PRIM_ARGS(thread_finishedp,1,kno_scheme_module,one_thread_arg,NULL);
+  DECL_PRIM_ARGS(thread_errorp,1,kno_scheme_module,one_thread_arg,NULL);
+  DECL_PRIM_ARGS(thread_result,1,kno_scheme_module,one_thread_arg,NULL);
 
   timeout_symbol = kno_intern("timeout");
   logexit_symbol = kno_intern("logexit");
   void_symbol = kno_intern("void");
 
-  kno_idefn(kno_scheme_module,kno_make_cprim0("MAKE-CONDVAR",make_condvar));
-  kno_idefn(kno_scheme_module,kno_make_cprim2("CONDVAR-WAIT",condvar_wait,1));
-  kno_idefn2(kno_scheme_module,"CONDVAR-SIGNAL",condvar_signal,1,
-             "`(CONDVAR-SIGNAL *condvar* [*broadcast*])` signals that "
-             "*condvar* has been modified. If *broadcast* is provided "
-             "and not #f, all waiting threads are notified of the change.",
-             kno_condvar_type,KNO_VOID,-1,KNO_VOID);
-  kno_idefn1(kno_scheme_module,"CONDVAR-LOCK",condvar_lock,1,
-             "`(CONDVAR-LOCK *condvar*)` locks *condvar* (or precisely, "
-             "its mutex)..",
-             kno_condvar_type,KNO_VOID);
-  kno_idefn1(kno_scheme_module,"CONDVAR-UNLOCK",condvar_unlock,1,
-             "`(CONDVAR-UNLOCK *condvar*)` unlocks *condvar* (or precisely, "
-             "its mutex)..",
-             kno_condvar_type,KNO_VOID);
-  kno_idefn(kno_scheme_module,kno_make_cprim1("SYNCHRO-LOCK",synchro_lock,1));
-  kno_idefn(kno_scheme_module,kno_make_cprim1("SYNCHRO-UNLOCK",synchro_unlock,1));
+  int one_condvar_arg[1] = { kno_condvar_type };
+  int condvar_signal_args[2] = { kno_condvar_type, kno_any_type };
+
+  DECL_PRIM(make_condvar,0,kno_scheme_module);
+
+  DECL_PRIM_ARGS(condvar_signal,2,kno_scheme_module,
+                 condvar_signal_args,NULL);
+  DECL_PRIM_ARGS(condvar_wait,2,kno_scheme_module,
+                 condvar_signal_args,NULL);
+  DECL_PRIM_ARGS(condvar_lock,1,kno_scheme_module,
+                 one_condvar_arg,NULL);
+  DECL_PRIM_ARGS(condvar_unlock,1,kno_scheme_module,
+                 one_condvar_arg,NULL);
+
+  DECL_PRIM(synchro_lock,1,kno_scheme_module);
+  DECL_PRIM(synchro_unlock,1,kno_scheme_module);
+
   kno_def_evalfn(kno_scheme_module,"WITH-LOCK","",with_lock_evalfn);
 
-
-  kno_idefn(kno_scheme_module,kno_make_cprim0("CSTACK-DEPTH",cstack_depth_prim));
-  kno_idefn(kno_scheme_module,kno_make_cprim0("CSTACK-LIMIT",cstack_limit_prim));
-  kno_idefn(kno_scheme_module,kno_make_cprim1x("CSTACK-LIMIT!",set_cstack_limit_prim,1,
-                                               kno_fixnum_type,VOID));
+  DECL_PRIM(cstack_depth_prim,0,kno_scheme_module);
+  DECL_PRIM(cstack_limit_prim,0,kno_scheme_module);
+  DECL_PRIM(set_cstack_limit_prim,1,kno_scheme_module);
 
   kno_register_config("ALLTHREADS",
                      "All active LISP threads",
