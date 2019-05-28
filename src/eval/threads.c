@@ -51,6 +51,8 @@ static lispval void_symbol = VOID;
 #define U8_STRING_ARG(s) (((s) == NULL)?((u8_string)""):((u8_string)(s)))
 #endif
 
+#define notexited(tstruct) (! ( ((tstruct)->flags) & (KNO_THREAD_DONE) ) )
+
 /* Thread structures */
 
 static struct KNO_THREAD_STRUCT *thread_ring=NULL;
@@ -198,9 +200,11 @@ KNO_EXPORT void recycle_thread_struct(struct KNO_RAW_CONS *c)
   struct KNO_THREAD_STRUCT *th = (struct KNO_THREAD_STRUCT *)c;
   remove_thread(th);
   if (th->flags&KNO_EVAL_THREAD) {
-    kno_decref(th->evaldata.expr);
     if (th->evaldata.env) {
-      kno_decref((lispval)(th->evaldata.env));}}
+      lispval free_env = (lispval) th->evaldata.env;
+      th->evaldata.env = NULL;
+      kno_decref(free_env);}
+    kno_decref(th->evaldata.expr);}
   else {
     int i = 0, n = th->applydata.n_args;
     lispval *args = th->applydata.args;
@@ -302,7 +306,7 @@ static lispval condvar_lock(lispval cvar)
   return KNO_TRUE;
 }
 
-DCLPRIM("CONDVAR-LOCK",condvar_unlock,MIN_ARGS(1)|MAX_ARGS(1),
+DCLPRIM("CONDVAR-UNLOCK",condvar_unlock,MIN_ARGS(1)|MAX_ARGS(1),
         "`(CONDVAR-UNLOCK *condvar*)` unlocks *condvar* (or precisely, "
         "its mutex)..")
 static lispval condvar_unlock(lispval cvar)
@@ -595,7 +599,7 @@ kno_thread_struct kno_thread_eval(lispval *resultptr,
 /* Scheme primitives */
 
 DCLPRIM("THREAD/CALL",threadcall_prim,
-        KNO_NEEDS_1_ARG|KNO_VAR_ARGS,
+        MIN_ARGS(1)|KNO_VAR_ARGS,
         "(THREAD/CALL *fcn* *args*...) applies *fcn* "
         "in parallel to all of the combinations of *args* "
         "and returns one thread for each combination.")
@@ -638,7 +642,7 @@ static int threadopts(lispval opts)
 }
 
 DCLPRIM("THREAD/CALL+",
-        threadcallx_prim,KNO_NEEDS_2_ARGS|KNO_VAR_ARGS,
+        threadcallx_prim,MIN_ARGS(2)|KNO_VAR_ARGS,
         "(THREAD/CALL+ *opts* *fcn* *args*...) applies *fcn* "
         "in parallel to all of the combinations of *args* "
         "and returns one thread for each combination. *opts* "
@@ -684,12 +688,12 @@ static lispval threadeval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
      (TABLEP(env_arg)))?
     (env_arg):
     (opts_arg);
-  kno_lexenv use_env=
-    ((VOIDP(env_arg))||(FALSEP(env_arg)))?(env):
-    (KNO_LEXENVP(env_arg))?((kno_lexenv)env_arg):
+  kno_lexenv use_env= ((VOIDP(env_arg))||(FALSEP(env_arg))) ? (env) :
+    (KNO_LEXENVP(env_arg)) ? ((kno_lexenv)env_arg) :
     (NULL);
   if (VOIDP(to_eval)) {
-    kno_decref(opts_arg); kno_decref(env_arg);
+    kno_decref(opts_arg);
+    kno_decref(env_arg);
     return kno_err(kno_SyntaxError,"threadeval_evalfn",NULL,expr);}
   else if (use_env == NULL) {
     kno_decref(opts_arg);
@@ -852,13 +856,13 @@ static lispval threadjoin_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
        return kno_type_error(_("thread"),"threadjoin_prim",thread);}
 
   lispval results = EMPTY;
-  struct timespec until;
+  struct timespec until = { 0 };
   int waiting = get_thread_wait(opts,&until);
 
   {DO_CHOICES(thread,threads) {
       struct KNO_THREAD_STRUCT *tstruct = (kno_thread_struct)thread;
       int retval = join_thread(tstruct,waiting,&until,NULL);
-      if (retval == EINVAL)
+      if ( (retval == EINVAL) && (notexited(tstruct)) )
         u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
                retval,strerror(retval),thread);
       else if (retval == 0) {
@@ -886,7 +890,7 @@ DCLPRIM2("THREAD/WAIT",threadwait_prim,
          "(THREAD/WAIT *threads* [*opts*]) waits for all of *threads* "
          "to return, returning the thread objects. "
          "*opts is currently ignored.",
-         -1,KNO_VOID,-1,KNO_VOID)
+         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID)
 static lispval threadwait_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
 {
   struct timespec until;
@@ -898,7 +902,7 @@ static lispval threadwait_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
   {DO_CHOICES(thread,threads) {
     struct KNO_THREAD_STRUCT *tstruct = (kno_thread_struct)thread;
     int retval = join_thread(tstruct,waiting,&until,NULL);
-    if (retval == EINVAL)
+    if ( (retval == EINVAL) && (notexited(tstruct)) )
       u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
              retval,strerror(retval),thread);}}
 
@@ -921,7 +925,7 @@ static lispval threadfinish_prim(lispval args,lispval U8_MAYBE_UNUSED opts)
       if (TYPEP(arg,kno_thread_type)) {
         struct KNO_THREAD_STRUCT *tstruct = (kno_thread_struct)arg;
         int retval = join_thread(tstruct,waiting,&until,NULL);
-        if (retval == EINVAL) {
+        if ( (retval == EINVAL) && (notexited(tstruct)) ) {
           u8_log(LOG_WARN,ThreadReturnError,
                  "Bad return code %d (%s) from %q",
                  retval,strerror(retval),arg);}
@@ -951,7 +955,7 @@ static lispval threadfinish_prim(lispval args,lispval U8_MAYBE_UNUSED opts)
 }
 
 DCLPRIM2("THREAD/WAIT!",threadwaitbang_prim,
-         KNO_NEEDS_1_ARG|KNO_NDCALL,
+         MIN_ARGS(1)|MAX_ARGS(2)|KNO_NDCALL,
          "(THREAD/WAIT! *threads*) waits for all of *threads* to return, "
          "and returns VOID. *opts is currently ignored.",
          -1,KNO_VOID,-1,KNO_VOID)
@@ -1043,8 +1047,9 @@ static int walk_thread_struct(kno_walker walker,lispval x,
   if ( (tstruct->flags) & (KNO_EVAL_THREAD) ) {
     if (kno_walk(walker,tstruct->evaldata.expr,walkdata,flags,depth-1)<0)
       return -1;
-    else if (kno_walk(walker,((lispval)(tstruct->evaldata.env)),walkdata,
-                       flags,depth-1)<0)
+    else if ( (tstruct->evaldata.env) &&
+              (kno_walk(walker,((lispval)(tstruct->evaldata.env)),walkdata,
+                        flags,depth-1)<0) )
       return -1;}
   else if (kno_walk(walker,tstruct->applydata.fn,walkdata,flags,depth-1)<0)
     return -1;
@@ -1128,15 +1133,11 @@ KNO_EXPORT void kno_init_threads_c()
   kno_def_evalfn(kno_scheme_module,"SPAWN","",threadeval_evalfn);
 
   DECL_PRIM_N(threadcall_prim,kno_scheme_module);
-  DECL_ALIAS("THREADCALL",threadcall_prim,kno_scheme_module);
 
   DECL_PRIM_N(threadcallx_prim,kno_scheme_module);
-
-  DECL_ALIAS("THREADYIELD",threadyield_prim,kno_scheme_module);
-
   DECL_PRIM(threadyield_prim,0,kno_scheme_module);
-
   DECL_PRIM(threadjoin_prim,2,kno_scheme_module);
+
   DECL_PRIM(threadwait_prim,2,kno_scheme_module);
   DECL_PRIM(threadwaitbang_prim,2,kno_scheme_module);
   DECL_PRIM(threadfinish_prim,2,kno_scheme_module);
