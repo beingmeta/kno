@@ -653,6 +653,7 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
 
   /* Make the call */
   if (stackcheck()) {
+    int trouble = 0;
     lispval result=VOID;
     struct KNO_PROFILE *profile = (f) ? (f->fcn_profile) : (NULL);
     KNO_APPLY_STACK(apply_stack,fname,fn);
@@ -710,17 +711,19 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
       else result=kno_applyfns[ftype](fn,n,argvec);
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
+      trouble = 1;
       result = KNO_ERROR;}
     U8_END_EXCEPTION;
     if (!(KNO_CHECK_PTR(result))) {
       if (errno) {u8_graberrno("kno_apply",fname);}
       result = kno_badptr_err(result,"kno_deterministic_apply",fname);}
-    if ( (errno) && (!(KNO_TROUBLEP(result)))) {
+    if ( (errno) && (!(trouble))) {
       u8_string cond=u8_strerror(errno);
       u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) after %s",
              errno,cond,U8ALT(fname,"primcall"));
       errno=0;}
-    if ( (KNO_TROUBLEP(result)) &&  (u8_current_exception==NULL) ) {
+    if ( ( (trouble) || (KNO_TROUBLEP(result)) ) && 
+         (u8_current_exception==NULL) ) {
       if (errno) {u8_graberrno("kno_apply",fname);}
       else kno_seterr(kno_UnknownError,"kno_apply",fname,VOID);}
     kno_pop_stack(apply_stack);
