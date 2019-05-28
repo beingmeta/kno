@@ -703,7 +703,7 @@ static int unpack_browseinfo(lispval info,u8_string *baseuri,u8_string *classnam
     if (*baseuri == NULL) {
       if (default_browse_uri)
         *baseuri = default_browse_uri;
-      else *baseuri="browse.fdcgi?";}
+      else *baseuri="browse.knocgi?";}
     if (*classname == NULL) {
       if (default_browse_class)
         *classname = default_browse_class;
@@ -719,7 +719,7 @@ static int unpack_browseinfo(lispval info,u8_string *baseuri,u8_string *classnam
     if (*classname == NULL)
       *classname = ((default_browse_class) ? (default_browse_class) : ((u8_string)"oid"));
     if (*baseuri == NULL)
-      *baseuri = ((default_browse_uri) ? (default_browse_uri) : ((u8_string)"browse.fdcgi?"));
+      *baseuri = ((default_browse_uri) ? (default_browse_uri) : ((u8_string)"browse.knocgi?"));
     switch (VEC_LEN(info)) {
     case 2:
       if (STRINGP(VEC_REF(info,1)))
@@ -735,7 +735,7 @@ static int unpack_browseinfo(lispval info,u8_string *baseuri,u8_string *classnam
       if (displayer) *displayer = VEC_REF(info,3);}}
   else {
     u8_log(LOG_WARN,kno_TypeError,"Bad browse info %q",info);
-    *baseuri="browse.fdcgi?";}
+    *baseuri="browse.knocgi?";}
   return 0;
 }
 
@@ -980,7 +980,7 @@ static lispval xml2string_prim(lispval xml,lispval env_arg,lispval xml_env_arg)
                (KNO_LEXENVP(xml_env_arg)) || (TABLEP(xml_env_arg)))) {
     return kno_type_error("environment","xmleval_evalfn",xml_env_arg);}
   if (STRINGP(xml)) {
-    lispval parsed = kno_fdxml_arg(xml);
+    lispval parsed = kno_knoml_arg(xml);
     lispval result = xml2string_prim(parsed,env_arg,xml_env_arg);
     kno_decref(parsed);
     return result;}

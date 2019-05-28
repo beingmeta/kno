@@ -1140,9 +1140,9 @@ static lispval xmlparse(lispval input,lispval options)
   else return xmlparse_core(input,kno_xmlparseoptions(options));
 }
 
-/* Parsing FDXML */
+/* Parsing KNOML */
 
-static lispval fdxml_load(lispval input,lispval sloppy)
+static lispval knoml_load(lispval input,lispval sloppy)
 {
   int flags = KNO_XML_KEEP_RAW;
   struct KNO_XML *parsed;
@@ -1163,7 +1163,7 @@ static lispval fdxml_load(lispval input,lispval sloppy)
   else if (!((VOIDP(sloppy)) || (FALSEP(sloppy))))
     flags = flags|KNO_SLOPPY_XML;
   else {}
-  parsed = kno_load_fdxml(in,flags);
+  parsed = kno_load_knoml(in,flags);
   if (parsed) {
     lispval result = kno_incref(parsed->xml_head);
     lispval lispenv = (lispval)(parsed->xml_data);
@@ -1172,7 +1172,7 @@ static lispval fdxml_load(lispval input,lispval sloppy)
   else return KNO_ERROR;
 }
 
-static lispval fdxml_read(lispval input,lispval sloppy)
+static lispval knoml_read(lispval input,lispval sloppy)
 {
   int flags = KNO_XML_KEEP_RAW;
   struct KNO_XML *parsed;
@@ -1182,7 +1182,7 @@ static lispval fdxml_read(lispval input,lispval sloppy)
     struct KNO_PORT *p = kno_consptr(struct KNO_PORT *,input,kno_port_type);
     in = p->port_input;}
   else if ((STRINGP(input))&&(strchr(CSTRING(input),'<') == NULL))
-    return fdxml_load(input,sloppy);
+    return knoml_load(input,sloppy);
  else if (STRINGP(input)) {
     U8_INIT_STRING_INPUT(&_in,STRLEN(input),CSTRING(input));
     in = &_in;}
@@ -1195,7 +1195,7 @@ static lispval fdxml_read(lispval input,lispval sloppy)
   else if (!((VOIDP(sloppy)) || (FALSEP(sloppy))))
     flags = flags|KNO_SLOPPY_XML;
   else {}
-  parsed = kno_parse_fdxml(in,flags);
+  parsed = kno_parse_knoml(in,flags);
   if (parsed) {
     lispval result = parsed->xml_head;
     kno_incref(result);
@@ -1204,9 +1204,9 @@ static lispval fdxml_read(lispval input,lispval sloppy)
   else return KNO_ERROR;
 }
 
-KNO_EXPORT lispval kno_fdxml_arg(lispval input)
+KNO_EXPORT lispval kno_knoml_arg(lispval input)
 {
-  return fdxml_read(input,KNO_INT(KNO_XML_SLOPPY|KNO_XML_KEEP_RAW));
+  return knoml_read(input,KNO_INT(KNO_XML_SLOPPY|KNO_XML_KEEP_RAW));
 }
 
 /* Initialization functions */
@@ -1216,16 +1216,16 @@ KNO_EXPORT void kno_init_xmlinput_c()
   lispval full_module = kno_new_module("WEBTOOLS",0);
   lispval safe_module = kno_new_module("WEBTOOLS",(KNO_MODULE_SAFE));
   lispval xmlparse_prim = kno_make_ndprim(kno_make_cprim2("XMLPARSE",xmlparse,1));
-  lispval fdxml_load_prim=
-    kno_make_ndprim(kno_make_cprim2("FDXML/LOAD",fdxml_load,1));
-  lispval fdxml_read_prim=
-    kno_make_ndprim(kno_make_cprim2("FDXML/PARSE",fdxml_read,1));
+  lispval knoml_load_prim=
+    kno_make_ndprim(kno_make_cprim2("KNOML/LOAD",knoml_load,1));
+  lispval knoml_read_prim=
+    kno_make_ndprim(kno_make_cprim2("KNOML/PARSE",knoml_read,1));
   kno_defn(full_module,xmlparse_prim); kno_idefn(safe_module,xmlparse_prim);
-  kno_defn(full_module,fdxml_read_prim); kno_idefn(safe_module,fdxml_read_prim);
-  kno_defn(full_module,fdxml_load_prim);
+  kno_defn(full_module,knoml_read_prim); kno_idefn(safe_module,knoml_read_prim);
+  kno_defn(full_module,knoml_load_prim);
 
   kno_defn(full_module,xmlparse_prim); kno_idefn(safe_module,xmlparse_prim);
-  kno_defn(full_module,fdxml_read_prim); kno_idefn(safe_module,fdxml_read_prim);
+  kno_defn(full_module,knoml_read_prim); kno_idefn(safe_module,knoml_read_prim);
 
   attribs_symbol = kno_intern("%attribs");
   type_symbol = kno_intern("%type");

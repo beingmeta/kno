@@ -136,10 +136,10 @@ KNO_EXPORT lispval kno_xmlout(u8_output out,lispval xml,
 KNO_EXPORT int kno_xmlout_helper(U8_OUTPUT *out,U8_OUTPUT *tmp,lispval x,
                                lispval xmloidfn,kno_lexenv env);
 
-KNO_EXPORT struct KNO_XML *kno_load_fdxml(u8_input in,int bits);
-KNO_EXPORT struct KNO_XML *kno_read_fdxml(u8_input in,int bits);
-KNO_EXPORT struct KNO_XML *kno_parse_fdxml(u8_input in,int bits);
-KNO_EXPORT lispval kno_fdxml_arg(lispval arg);
+KNO_EXPORT struct KNO_XML *kno_load_knoml(u8_input in,int bits);
+KNO_EXPORT struct KNO_XML *kno_read_knoml(u8_input in,int bits);
+KNO_EXPORT struct KNO_XML *kno_parse_knoml(u8_input in,int bits);
+KNO_EXPORT lispval kno_knoml_arg(lispval arg);
 
 KNO_EXPORT void kno_lisp2html(u8_output s,lispval v,u8_string tag,u8_string cl);
 

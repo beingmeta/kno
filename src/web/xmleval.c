@@ -27,7 +27,7 @@
 
 #include <ctype.h>
 
-kno_lexenv fdxml_module;
+kno_lexenv knoml_module;
 
 int kno_cache_markup = 1;
 
@@ -56,7 +56,7 @@ kno_lexenv read_xml_env(kno_lexenv env)
 {
   lispval xmlenv = kno_symeval(xml_env_symbol,env);
   if (VOIDP(xmlenv))
-    return fdxml_module;
+    return knoml_module;
   else if (KNO_LEXENVP(xmlenv)) {
     kno_decref(xmlenv);
     return (kno_lexenv)xmlenv;}
@@ -508,7 +508,7 @@ static lispval get_xml_handler(lispval xml,kno_lexenv xml_env)
 
 struct XMLAPPLY { lispval xml; kno_lexenv env;};
 
-KNO_EXPORT lispval fdxml_get(lispval xml,lispval sym,kno_lexenv env)
+KNO_EXPORT lispval knoml_get(lispval xml,lispval sym,kno_lexenv env)
 {
   if ((sym == xmlnode_symbol) || (sym == pnode_symbol)) return kno_incref(xml);
   else if (sym == env_symbol) return (lispval) kno_copy_env(env);
@@ -571,7 +571,7 @@ KNO_EXPORT lispval fdxml_get(lispval xml,lispval sym,kno_lexenv env)
 static lispval xmlgetarg(void *vcxt,lispval sym)
 {
   struct XMLAPPLY *cxt = (struct XMLAPPLY *)vcxt;
-  return fdxml_get(cxt->xml,sym,cxt->env);
+  return knoml_get(cxt->xml,sym,cxt->env);
 }
 
 static lispval xmlapply(u8_output out,lispval fn,lispval xml,
@@ -819,7 +819,7 @@ KNO_XML *kno_xmleval_popfn(KNO_XML *node)
       node->xml_attribs = EMPTY;}
     return node->xml_parent;}
 }
-/* Handling the FDXML PI */
+/* Handling the KNOML PI */
 
 static u8_string get_pi_string(u8_string start)
 {
@@ -872,11 +872,11 @@ static int test_piescape(KNO_XML *xml,u8_string content,int len)
       return 0;}}
 }
 
-static KNO_XML *handle_fdxml_pi
+static KNO_XML *handle_knoml_pi
   (u8_input in,KNO_XML *xml,u8_string content,int len)
 {
   kno_lexenv env = (kno_lexenv)(xml->xml_data), xml_env = NULL;
-  if (strncmp(content,"?fdxml ",6)==0) {
+  if (strncmp(content,"?knoml ",6)==0) {
     u8_byte *copy = (u8_byte *)u8_strdup(content);
     u8_byte *scan = copy; u8_string attribs[16];
     int i = 0, n_attribs = kno_parse_xmltag(&scan,copy+len,attribs,16,0);
@@ -914,20 +914,20 @@ static KNO_XML *handle_fdxml_pi
             lispval irritant = VOID;
             if (kno_poperr(&c,&cxt,&details,&irritant)) {
               if ((VOIDP(irritant)) && (details == NULL) && (cxt == NULL))
-                u8_log(LOG_WARN,"FDXML_CONFIG",
+                u8_log(LOG_WARN,"KNOML_CONFIG",
                        _("In config '%s' %m"),filename,c);
               else if ((VOIDP(irritant)) && (details == NULL))
-                u8_log(LOG_WARN,"FDXML_CONFIG",
+                u8_log(LOG_WARN,"KNOML_CONFIG",
                        _("In config '%s' %m@%s"),filename,c,cxt);
               else if (VOIDP(irritant))
-                u8_log(LOG_WARN,"FDXML_CONFIG",
+                u8_log(LOG_WARN,"KNOML_CONFIG",
                        _("In config '%s' [%m@%s] %s"),filename,c,cxt,details);
-              else u8_log(LOG_WARN,"FDXML_CONFIG",
+              else u8_log(LOG_WARN,"KNOML_CONFIG",
                           _("In config '%s' [%m@%s] %s %q"),
                           filename,c,cxt,details,irritant);
               if (details) u8_free(details);
               kno_decref(irritant);}
-            else u8_log(LOG_WARN,"FDXML_CONFIG",
+            else u8_log(LOG_WARN,"KNOML_CONFIG",
                         _("In config '%s', unknown error"),filename);}}}
       else if ((strncmp(attribs[i],"module=",7))==0) {
         u8_string arg = get_pi_string(attribs[i]+7);
@@ -1150,17 +1150,17 @@ lispval kno_xmleval_with(U8_OUTPUT *out,lispval xml,
   kno_lexenv scheme_env = NULL, xml_env = NULL;
   if (!(out)) out = u8_current_output;
   if ((PAIRP(xml))&&(KNO_LEXENVP(KNO_CAR(xml)))) {
-    /* This is returned by FDXML parsing */
+    /* This is returned by KNOML parsing */
     scheme_env = (kno_lexenv)kno_refcar(xml); xml = KNO_CDR(xml);}
   else scheme_env = kno_working_lexenv();
   { lispval implicit_xml_env = kno_symeval(xml_env_symbol,scheme_env);
     if (VOIDP(implicit_xml_env)) {
-      xml_env = kno_make_env(kno_make_hashtable(NULL,17),fdxml_module);}
+      xml_env = kno_make_env(kno_make_hashtable(NULL,17),knoml_module);}
     else if (KNO_LEXENVP(implicit_xml_env)) {
       xml_env = (kno_lexenv)implicit_xml_env;}
     else if (TABLEP(implicit_xml_env)) {
       xml_env = kno_make_env(kno_make_hashtable(NULL,17),
-                          kno_make_env(implicit_xml_env,fdxml_module));}
+                          kno_make_env(implicit_xml_env,knoml_module));}
     else {}}
   {DO_CHOICES(given,given_env){
       if ((SYMBOLP(given))||(TABLEP(given))||
@@ -1176,7 +1176,7 @@ lispval kno_xmleval_with(U8_OUTPUT *out,lispval xml,
   return result;
 }
 
-/* Breaking up FDXML evaluation */
+/* Breaking up KNOML evaluation */
 
 KNO_EXPORT
 lispval kno_open_xml(lispval xml,kno_lexenv env)
@@ -1232,15 +1232,15 @@ lispval kno_close_xml(lispval xml)
 /* Reading for evaluation */
 
 KNO_EXPORT
-struct KNO_XML *kno_load_fdxml(u8_input in,int bits)
+struct KNO_XML *kno_load_knoml(u8_input in,int bits)
 {
   struct KNO_XML *xml = u8_alloc(struct KNO_XML), *retval;
   kno_lexenv working_env = kno_working_lexenv();
-  kno_bind_value(xml_env_symbol,(lispval)fdxml_module,working_env);
+  kno_bind_value(xml_env_symbol,(lispval)knoml_module,working_env);
   kno_init_xml_node(xml,NULL,u8_strdup("top"));
   xml->xml_bits = bits; xml->xml_data = working_env;
   retval = kno_walk_xml(in,kno_xmleval_contentfn,
-                     handle_fdxml_pi,
+                     handle_knoml_pi,
                      kno_xmleval_attribfn,
                      NULL,
                      kno_xmleval_popfn,
@@ -1249,11 +1249,11 @@ struct KNO_XML *kno_load_fdxml(u8_input in,int bits)
   else return retval;
 }
 KNO_EXPORT
-struct KNO_XML *kno_read_fdxml(u8_input in,int bits){
-  return kno_load_fdxml(in,bits); }
+struct KNO_XML *kno_read_knoml(u8_input in,int bits){
+  return kno_load_knoml(in,bits); }
 
 KNO_EXPORT
-struct KNO_XML *kno_parse_fdxml(u8_input in,int bits)
+struct KNO_XML *kno_parse_knoml(u8_input in,int bits)
 {
   struct KNO_XML *xml = u8_alloc(struct KNO_XML), *retval;
   kno_init_xml_node(xml,NULL,u8_strdup("top"));
@@ -1268,7 +1268,7 @@ struct KNO_XML *kno_parse_fdxml(u8_input in,int bits)
   else return retval;
 }
 
-/* FDXML evalfns */
+/* KNOML evalfns */
 
 static lispval test_symbol, predicate_symbol, else_symbol, value_symbol;
 
@@ -1277,9 +1277,9 @@ static lispval do_else(lispval expr,kno_lexenv env);
 
 /* Simple execution */
 
-static lispval fdxml_insert(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval knoml_insert(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval value = fdxml_get(expr,value_symbol,env);
+  lispval value = knoml_get(expr,value_symbol,env);
   u8_output out = u8_current_output;
   u8_printf(out,"%q",value);
   return VOID;
@@ -1287,9 +1287,9 @@ static lispval fdxml_insert(lispval expr,kno_lexenv env,kno_stack _stack)
 
 /* Conditionals */
 
-static lispval fdxml_if(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval knoml_if(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval test = fdxml_get(expr,test_symbol,env);
+  lispval test = knoml_get(expr,test_symbol,env);
   if (FALSEP(test))
     return do_else(expr,env);
   else {
@@ -1297,14 +1297,14 @@ static lispval fdxml_if(lispval expr,kno_lexenv env,kno_stack _stack)
     return do_body(expr,env);}
 }
 
-static lispval fdxml_alt(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval knoml_alt(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval content = kno_get(expr,content_slotid,VOID);
   if ((PAIRP(content))||(VECTORP(content))) {
     KNO_DOELTS(x,content,count) {
       if (STRINGP(x)) {}
       else if (kno_test(x,test_symbol,VOID)) {
-        lispval test = fdxml_get(x,test_symbol,env);
+        lispval test = knoml_get(x,test_symbol,env);
         if (!((FALSEP(test))||(EMPTYP(test)))) {
           lispval result = kno_xmleval(u8_current_output,x,env);
           kno_decref(result);}
@@ -1314,10 +1314,10 @@ static lispval fdxml_alt(lispval expr,kno_lexenv env,kno_stack _stack)
   return VOID;
 }
 
-static lispval fdxml_ifreq(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval knoml_ifreq(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval test = kno_get(expr,test_symbol,VOID);
-  lispval value = fdxml_get(expr,value_symbol,env);
+  lispval value = knoml_get(expr,value_symbol,env);
   lispval var = ((SYMBOLP(test))?(test):
               (STRINGP(test))?(kno_parse(CSTRING(test))):
               (VOID));
@@ -1359,7 +1359,7 @@ static lispval do_else(lispval expr,kno_lexenv env)
 
 /* Choice/Set operations */
 
-static lispval fdxml_try(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval knoml_try(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   u8_output out = u8_current_output;
   lispval body = kno_get(expr,content_slotid,VOID), result = EMPTY;
@@ -1379,7 +1379,7 @@ static lispval fdxml_try(lispval expr,kno_lexenv env,kno_stack _stack)
   return result;
 }
 
-static lispval fdxml_union(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval knoml_union(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   u8_output out = u8_current_output;
   lispval body = kno_get(expr,content_slotid,VOID), result = EMPTY;
@@ -1399,7 +1399,7 @@ static lispval fdxml_union(lispval expr,kno_lexenv env,kno_stack _stack)
   return result;
 }
 
-static lispval fdxml_intersection(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval knoml_intersection(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   u8_output out = u8_current_output;
   lispval body = kno_get(expr,content_slotid,VOID);
@@ -1431,7 +1431,7 @@ static lispval fdxml_intersection(lispval expr,kno_lexenv env,kno_stack _stack)
 
 /* Binding */
 
-static lispval fdxml_binding(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval knoml_binding(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   u8_output out = u8_current_output;
   lispval body = kno_get(expr,content_slotid,VOID), result = VOID;
@@ -1448,7 +1448,7 @@ static lispval fdxml_binding(lispval expr,kno_lexenv env,kno_stack _stack)
     kno_decref(attribs); attribs = idchoice;}
 
   {DO_CHOICES(attrib,attribs) {
-    lispval val = fdxml_get(expr,attrib,env);
+    lispval val = knoml_get(expr,attrib,env);
     kno_bind_value(attrib,val,inner_env);
     kno_decref(val);}}
   kno_decref(attribs);
@@ -1475,14 +1475,14 @@ static lispval choice_symbol, max_symbol, min_symbol;
 
 static u8_condition MissingAttrib=_("Missing XML attribute");
 
-static lispval fdxml_seq_loop(lispval var,lispval count_var,lispval xpr,kno_lexenv env);
-static lispval fdxml_choice_loop(lispval var,lispval count_var,lispval xpr,kno_lexenv env);
-static lispval fdxml_range_loop(lispval var,lispval count_var,lispval xpr,kno_lexenv env);
+static lispval knoml_seq_loop(lispval var,lispval count_var,lispval xpr,kno_lexenv env);
+static lispval knoml_choice_loop(lispval var,lispval count_var,lispval xpr,kno_lexenv env);
+static lispval knoml_range_loop(lispval var,lispval count_var,lispval xpr,kno_lexenv env);
 
-static lispval fdxml_loop(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval knoml_loop(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   if (!(kno_test(expr,each_symbol,VOID)))
-    return kno_err(MissingAttrib,"fdxml:loop",NULL,each_symbol);
+    return kno_err(MissingAttrib,"knoml:loop",NULL,each_symbol);
   else {
     lispval each_val = kno_get(expr,each_symbol,VOID);
     lispval count_val = kno_get(expr,count_symbol,VOID);
@@ -1493,28 +1493,28 @@ static lispval fdxml_loop(lispval expr,kno_lexenv env,kno_stack _stack)
       ((STRINGP(count_val)) ? (kno_parse(CSTRING(count_val)))
        : (count_val));
     if (kno_test(expr,sequence_symbol,VOID))
-      return fdxml_seq_loop(to_bind,to_count,expr,env);
+      return knoml_seq_loop(to_bind,to_count,expr,env);
     else if (kno_test(expr,choice_symbol,VOID))
-      return fdxml_choice_loop(to_bind,to_count,expr,env);
+      return knoml_choice_loop(to_bind,to_count,expr,env);
     else if (kno_test(expr,max_symbol,VOID))
-      return fdxml_range_loop(to_bind,to_count,expr,env);
-    else return kno_err(MissingAttrib,"fdxml:loop",_("no LOOP arg"),VOID);}
+      return knoml_range_loop(to_bind,to_count,expr,env);
+    else return kno_err(MissingAttrib,"knoml:loop",_("no LOOP arg"),VOID);}
 }
 
 static lispval iter_var;
 
-static lispval fdxml_seq_loop(lispval var,lispval count_var,lispval xpr,kno_lexenv env)
+static lispval knoml_seq_loop(lispval var,lispval count_var,lispval xpr,kno_lexenv env)
 {
   int i = 0, lim;
   u8_output out = u8_current_output;
-  lispval seq = fdxml_get(xpr,sequence_symbol,env), *iterval = NULL;
+  lispval seq = knoml_get(xpr,sequence_symbol,env), *iterval = NULL;
   lispval body = kno_get(xpr,content_slotid,EMPTY);
   lispval vars[2], vals[2];
   struct KNO_SCHEMAP bindings;
   struct KNO_LEXENV envstruct;
   if (EMPTYP(seq)) return VOID;
   else if (!(KNO_SEQUENCEP(seq)))
-    return kno_type_error("sequence","fdxml:loop sequence",seq);
+    return kno_type_error("sequence","knoml:loop sequence",seq);
   else lim = kno_seq_length(seq);
   if (lim==0) {
     kno_decref(seq);
@@ -1558,10 +1558,10 @@ static lispval fdxml_seq_loop(lispval var,lispval count_var,lispval xpr,kno_lexe
   return VOID;
 }
 
-static lispval fdxml_choice_loop(lispval var,lispval count_var,lispval xpr,kno_lexenv env)
+static lispval knoml_choice_loop(lispval var,lispval count_var,lispval xpr,kno_lexenv env)
 {
   u8_output out = u8_current_output;
-  lispval choices = fdxml_get(xpr,choice_symbol,env);
+  lispval choices = knoml_get(xpr,choice_symbol,env);
   lispval body = kno_get(xpr,content_slotid,EMPTY);
   lispval *vloc = NULL, *iloc = NULL;
   lispval vars[2], vals[2];
@@ -1614,11 +1614,11 @@ static lispval fdxml_choice_loop(lispval var,lispval count_var,lispval xpr,kno_l
     return VOID;}
 }
 
-static lispval fdxml_range_loop(lispval var,lispval count_var,
+static lispval knoml_range_loop(lispval var,lispval count_var,
                                lispval xpr,kno_lexenv env)
 {
   u8_output out = u8_current_output; int i = 0, limit;
-  lispval limit_val = fdxml_get(xpr,max_symbol,env);
+  lispval limit_val = knoml_get(xpr,max_symbol,env);
   lispval body = kno_get(xpr,content_slotid,EMPTY);
   lispval vars[2], vals[2];
   struct KNO_SCHEMAP bindings; struct KNO_LEXENV envstruct;
@@ -1657,21 +1657,21 @@ static lispval fdxml_range_loop(lispval var,lispval count_var,
   return VOID;
 }
 
-/* FDXML find */
+/* KNOML find */
 
 static lispval index_symbol, with_symbol, slot_symbol, value_symbol;
 
-static lispval fdxml_find(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval knoml_find(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval index_arg = fdxml_get(expr,index_symbol,env), results;
+  lispval index_arg = knoml_get(expr,index_symbol,env), results;
   lispval *slotvals = u8_alloc_n(16,lispval);
   lispval content = kno_get(expr,content_slotid,NIL);
   int i = 0, n = 0, lim = 16;
   KNO_DOELTS(elt,content,count) {
     lispval name = kno_get(elt,xmltag_symbol,VOID);
     if (KNO_EQ(name,with_symbol)) {
-      lispval slotid = fdxml_get(expr,slot_symbol,env);
-      lispval slotval = fdxml_get(expr,value_symbol,env);
+      lispval slotid = knoml_get(expr,slot_symbol,env);
+      lispval slotval = knoml_get(expr,value_symbol,env);
       if (n>=lim) {
         slotvals = u8_realloc_n(slotvals,lim*2,lispval);
         lim = lim*2;}
@@ -1684,14 +1684,14 @@ static lispval fdxml_find(lispval expr,kno_lexenv env,kno_stack _stack)
   return results;
 }
 
-/* FDXML define */
+/* KNOML define */
 
-static lispval xmlarg_symbol, doseq_symbol, fdxml_define_body;
+static lispval xmlarg_symbol, doseq_symbol, knoml_define_body;
 
-static lispval fdxml_define(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval knoml_define(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   if (!(kno_test(expr,id_symbol,VOID)))
-    return kno_err(MissingAttrib,"fdxml:loop",NULL,id_symbol);
+    return kno_err(MissingAttrib,"knoml:loop",NULL,id_symbol);
   else {
     lispval id_arg = kno_get(expr,id_symbol,VOID);
     lispval to_bind=
@@ -1724,7 +1724,7 @@ static lispval fdxml_define(lispval expr,kno_lexenv env,kno_stack _stack)
     /* Construct the body */
     body = kno_make_list(2,quote_symbol,kno_incref(content));
     body = kno_make_list(2,xmlarg_symbol,body);
-    body = kno_make_list(3,doseq_symbol,body,kno_incref(fdxml_define_body));
+    body = kno_make_list(3,doseq_symbol,body,kno_incref(knoml_define_body));
     body = kno_make_list(1,body);
 
     /* Construct the lambda */
@@ -1749,20 +1749,20 @@ KNO_EXPORT void kno_init_xmleval_c()
   if (xmleval_initialized) return;
   xmleval_initialized = 1;
   kno_init_scheme();
-  fdxml_module = kno_make_env(kno_make_hashtable(NULL,17),NULL);
-  lispval addtomod = (lispval) fdxml_module;
+  knoml_module = kno_make_env(kno_make_hashtable(NULL,17),NULL);
+  lispval addtomod = (lispval) knoml_module;
 
-  kno_def_evalfn(addtomod,"IF","",fdxml_if);
-  kno_def_evalfn(addtomod,"ALT","",fdxml_alt);
-  kno_def_evalfn(addtomod,"IFREQ","",fdxml_ifreq);
-  kno_def_evalfn(addtomod,"LOOP","",fdxml_loop);
-  kno_def_evalfn(addtomod,"INSERT","",fdxml_insert);
-  kno_def_evalfn(addtomod,"DEFINE","",fdxml_define);
-  kno_def_evalfn(addtomod,"FIND","",fdxml_find);
-  kno_def_evalfn(addtomod,"TRY","",fdxml_try);
-  kno_def_evalfn(addtomod,"UNION","",fdxml_union);
-  kno_def_evalfn(addtomod,"INTERSECTION","",fdxml_intersection);
-  kno_def_evalfn(addtomod,"BINDING","",fdxml_binding);
+  kno_def_evalfn(addtomod,"IF","",knoml_if);
+  kno_def_evalfn(addtomod,"ALT","",knoml_alt);
+  kno_def_evalfn(addtomod,"IFREQ","",knoml_ifreq);
+  kno_def_evalfn(addtomod,"LOOP","",knoml_loop);
+  kno_def_evalfn(addtomod,"INSERT","",knoml_insert);
+  kno_def_evalfn(addtomod,"DEFINE","",knoml_define);
+  kno_def_evalfn(addtomod,"FIND","",knoml_find);
+  kno_def_evalfn(addtomod,"TRY","",knoml_try);
+  kno_def_evalfn(addtomod,"UNION","",knoml_union);
+  kno_def_evalfn(addtomod,"INTERSECTION","",knoml_intersection);
+  kno_def_evalfn(addtomod,"BINDING","",knoml_binding);
 
   xmleval_tag = kno_intern("%xmleval");
   xmleval2expr_tag = kno_intern("%xmleval2expr");
@@ -1820,7 +1820,7 @@ KNO_EXPORT void kno_init_xmleval_c()
   quote_symbol = kno_intern("quote");
   xmlarg_symbol = kno_intern("%xmlarg");
   doseq_symbol = kno_intern("doseq");
-  fdxml_define_body = kno_make_list(2,kno_intern("xmleval"),xmlarg_symbol);
+  knoml_define_body = kno_make_list(2,kno_intern("xmleval"),xmlarg_symbol);
 
   kno_register_config
     ("CACHEMARKUP",_("Whether to cache markup generated from unparsing XML"),

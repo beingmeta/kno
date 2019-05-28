@@ -28,7 +28,7 @@
 (define test-result-3
   '(#[%XMLTAG P %CONTENT 
       ("Two plus three is " (BEGIN (+ 2 3)) " ") %QNAME P]))
-(applytester test-result-3 fdxml/parse test-input-3)
+(applytester test-result-3 knoml/parse test-input-3)
 (evaltest "<p>Two plus three is 5 </p>"
 	  (xml->string test-result-3))
 
@@ -41,7 +41,7 @@
 	%ATTRIBS #("title" #f (%XMLEVAL GLOM 'ALPHA 2 #f 'OMEGA))
 	%QNAME  P %ATTRIBIDS  TITLE 
 	TITLE (%XMLEVAL GLOM 'ALPHA 2 #f 'OMEGA)])))
-(applytester test-result-4 fdxml/parse test-input-4)
+(applytester test-result-4 knoml/parse test-input-4)
 (evaltest "<p title=\"alpha2omega\">Two plus three is 5.</p>"
 	  (xml->string test-result-4))
 

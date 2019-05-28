@@ -520,12 +520,12 @@ static lispval loadcontent(lispval path)
     lispval lenv, ldata, parsed;
     U8_INIT_STRING_INPUT(&in,strlen(content),content);
     oldsource = kno_bind_sourcebase(pathname);
-    xml = kno_read_fdxml(&in,(KNO_SLOPPY_XML|KNO_XML_KEEP_RAW));
+    xml = kno_read_knoml(&in,(KNO_SLOPPY_XML|KNO_XML_KEEP_RAW));
     kno_restore_sourcebase(oldsource);
     if (xml == NULL) {
       u8_free(content);
       if (u8_current_exception == NULL) {
-        u8_seterr("BadFDXML","loadconfig/fdxml",u8_strdup(pathname));}
+        u8_seterr("BadKNOML","loadconfig/knoml",u8_strdup(pathname));}
       u8_log(LOG_CRIT,Startup,"ERROR","Error parsing %s",pathname);
       return KNO_ERROR_VALUE;}
     parsed = xml->xml_head;

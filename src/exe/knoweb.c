@@ -1016,7 +1016,7 @@ static int webservefn(u8_client ucl)
       if (STRINGP(uri))
         ucl->status = u8_strdup(CSTRING(uri));}
 
-    /* This is what we'll execute, be it a procedure or FDXML */
+    /* This is what we'll execute, be it a procedure or KNOML */
     proc = getcontent(path);}
 
   u8_set_default_output(outstream);
@@ -1095,7 +1095,7 @@ static int webservefn(u8_client ucl)
     base_env = sp->lambda_env;
     result = kno_cgiexec(KNO_CAR(proc),cgidata);}
   else if (KNO_PAIRP(proc)) {
-    /* This is handling FDXML */
+    /* This is handling KNOML */
     lispval setup_proc = VOID;
     kno_lexenv base = kno_consptr(kno_lexenv,KNO_CDR(proc),kno_lexenv_type);
     kno_lexenv runenv = kno_make_env(kno_incref(cgidata),base);
@@ -1118,7 +1118,7 @@ static int webservefn(u8_client ucl)
       lispval v = kno_apply(setup_proc,0,NULL);
       kno_decref(v);}
     kno_decref(setup_proc);
-    /* We assume that the FDXML contains headers, so we won't add them. */
+    /* We assume that the KNOML contains headers, so we won't add them. */
     write_headers = 0;
     kno_output_xml_preface(&(client->out),cgidata);
     if (KNO_PAIRP(KNO_CAR(proc))) {
@@ -2177,8 +2177,8 @@ int main(int argc,char **argv)
 
   if (!(load_source)) {}
   else if ((u8_has_suffix(load_source,".scm",1))||
-           (u8_has_suffix(load_source,".fdcgi",1))||
-           (u8_has_suffix(load_source,".fdxml",1))) {
+           (u8_has_suffix(load_source,".knocgi",1))||
+           (u8_has_suffix(load_source,".knoml",1))) {
     lispval path = fdstring(load_source);
     lispval result = getcontent(path);
     kno_decref(path); kno_decref(result);}

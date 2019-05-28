@@ -144,7 +144,7 @@ typedef unsigned int INTPOINTER;
 #endif
 
 #define KNOWEB_MAGIC_TYPE "application/x-httpd-knoweb"
-#define FDSTATUS_MAGIC_TYPE "application/x-httpd-knostatus"
+#define KNOSTATUS_MAGIC_TYPE "application/x-httpd-knostatus"
 
 #ifndef DEFAULT_KEEP_SOCKS
 #define DEFAULT_KEEP_SOCKS 2
@@ -2799,7 +2799,7 @@ static int knoweb_handler(request_rec *r)
 	    (STRMATCH(r->handler, KNOWEB_MAGIC_TYPE)) )
     status_request=0;
   else if ( (STRMATCH(r->handler, "knostatus")) ||
-	    (STRMATCH(r->handler, FDSTATUS_MAGIC_TYPE)) )
+	    (STRMATCH(r->handler, KNOSTATUS_MAGIC_TYPE)) )
     status_request=1;
   else return DECLINED;
 #if DEBUG_KNOWEB
