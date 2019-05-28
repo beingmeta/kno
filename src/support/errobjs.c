@@ -78,8 +78,9 @@ static lispval get_exception_context(u8_exception ex)
     return kno_make_slotmap(4,1,&init_kv);}
 }
 
-KNO_EXPORT void kno_seterr
-  (u8_condition c,u8_context caller,u8_string details,lispval irritant)
+static u8_exception mkerr(u8_condition c,u8_context caller,
+                          u8_string details,
+                          lispval irritant)
 {
   u8_exception ex = u8_current_exception;
   u8_condition condition = (c) ? (c) : (ex) ? (ex->u8x_cond) :
@@ -97,8 +98,21 @@ KNO_EXPORT void kno_seterr
      u8_elapsed_base(),
      u8_threadid());
   kno_incref(irritant);
-  u8_push_exception(condition,caller,u8_strdup(details),
-                    (void *)exception,kno_decref_embedded_exception);
+  return u8_new_exception(condition,caller,u8_strdup(details),
+                          (void *)exception,kno_decref_embedded_exception);
+}
+
+KNO_EXPORT u8_exception kno_mkerr
+  (u8_condition c,u8_context caller,u8_string details,lispval irritant)
+{
+  return mkerr(c,caller,details,irritant);
+}
+
+KNO_EXPORT void kno_seterr
+  (u8_condition c,u8_context caller,u8_string details,lispval irritant)
+{
+  u8_exception ex = mkerr(c,caller,details,irritant);
+  u8_expush(ex);
 }
 
 KNO_EXPORT void kno_restore_exception(struct KNO_EXCEPTION *exo)
@@ -106,7 +120,8 @@ KNO_EXPORT void kno_restore_exception(struct KNO_EXCEPTION *exo)
   kno_incref((lispval)exo);
   u8_push_exception(exo->ex_condition,exo->ex_caller,
                     u8_strdup(exo->ex_details),
-                    (void *)exo,kno_decref_embedded_exception);
+                    (void *)exo,
+                    kno_decref_embedded_exception);
 }
 
 KNO_EXPORT lispval kno_wrap_exception(u8_exception ex)
@@ -174,8 +189,8 @@ KNO_EXPORT struct KNO_EXCEPTION *kno_exception_object(u8_exception ex)
 KNO_EXPORT void kno_raise
   (u8_condition c,u8_context cxt,u8_string details,lispval irritant)
 {
-  kno_seterr(c,cxt,details,irritant);
-  u8_raise(c,cxt,u8dup(details));
+  u8_exception ex = kno_mkerr(c,cxt,details,irritant);
+  u8_raise_exception(ex);
 }
 
 KNO_EXPORT int kno_poperr

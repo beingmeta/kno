@@ -41,6 +41,8 @@ KNO_EXPORT lispval kno_exception_backtrace(u8_exception ex);
 
 KNO_EXPORT void kno_compact_backtrace(u8_output out,lispval stack,int limit);
 
+KNO_EXPORT U8_NOINLINE u8_exception kno_mkerr
+  (u8_condition c,u8_context cxt,u8_string details,lispval irritant);
 KNO_EXPORT U8_NOINLINE void kno_seterr
   (u8_condition c,u8_context cxt,u8_string details,lispval irritant);
 KNO_EXPORT U8_NOINLINE void kno_raise

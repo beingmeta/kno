@@ -641,6 +641,16 @@ static lispval unwind_protect_evalfn(lispval uwp,kno_lexenv env,kno_stack _stack
   return result;
 }
 
+/* Testing raise() which will be invoked by */
+
+static lispval test_u8raise_prim(lispval obj)
+{
+  struct KNO_STRING *string =
+    kno_consptr(struct KNO_STRING *,obj,kno_string_type);
+  int len = string->str_bytelen;
+  return KNO_INT(len);
+}
+
 /* Reraising exceptions */
 
 static lispval reraise_prim(lispval exo)
@@ -801,6 +811,10 @@ KNO_EXPORT void kno_init_errfns_c()
   /* Deprecated, from old error system */
   kno_def_evalfn(kno_scheme_module,"NEWERR","",irritant_evalfn);
 
+
+  kno_idefn1(kno_scheme_module,"TEST-U8RAISE",test_u8raise_prim,1,
+             "Reraises the exception represented by an object",
+             -1,KNO_VOID);
 
   kno_idefn1(kno_scheme_module,"RERAISE",reraise_prim,1,
             "Reraises the exception represented by an object",
