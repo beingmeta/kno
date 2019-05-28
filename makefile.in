@@ -1731,7 +1731,7 @@ setup-linux: setup-unix
 
 setup-osx: @share_dir@ startupdirs statedirs logdirs 
 	@$(MSG) Setting up OSX system configuration
-	@$(SUINSTALL) etc/setup-osx "@share_dir@" \
+	@$(SUINSTALL) etc/macos/setup-osx "@share_dir@" \
 		"${INSTALL} @install_dir_opts@" \
 		"${INSTALL} @install_exe_opts@" \
 		"${INSTALL} @install_exe_opts@" \
