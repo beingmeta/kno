@@ -76,17 +76,17 @@ static int skip_whitespace(u8_input s)
   int c = u8_getc(s);
   if (c<-1) return c;
   while (1) {
-    while ((c>0) && (spacecharp(c))) c = u8_getc(s);
+    while ( (c>0) && (spacecharp(c)) ) c = u8_getc(s);
     if (c==';') {
-      while ((c>=0) && (c != '\n')) c = u8_getc(s);
+      while ( (c>=0) && (c != '\n') ) c = u8_getc(s);
       if (c<0) return -1;}
-    else if ((c=='#')&&(u8_peekc(s)<0)) {
+    else if ( (c=='#') && (u8_peekc(s)<0) ) {
       u8_ungetc(s,c);
       return c;}
-    else if ((c=='#') && (u8_probec(s)=='|')) {
+    else if ( (c=='#') && (u8_probec(s)=='|') ) {
       int bar = 0; c = u8_getc(s);
       /* Read block comment */
-      while ((c = u8_getc(s))>=0)
+      while ( (c = u8_getc(s)) >= 0 )
         if (c=='|') bar = 1;
         else if ((bar) && (c=='#')) break;
         else bar = 0;
@@ -249,7 +249,7 @@ static lispval lookup_constname(u8_string s,int lock)
   U8_STATIC_OUTPUT(namebuf,128);
   if (c == '#') c = u8_sgetc(&scan);
   while (c >= 0) {
-    u8_putc(&namebuf,u8_toupper(c));
+    u8_putc(&namebuf,u8_tolower(c));
     c=u8_sgetc(&scan);}
   struct KNO_STRING _string;
   lispval string=kno_init_string
@@ -274,7 +274,7 @@ int kno_add_constname(u8_string s,lispval value)
     if (value==cur) return 0;
     else return -1;}
   else {
-    u8_string d= (*s == '#') ? (u8_upcase(s+1)) : (u8_upcase(s));
+    u8_string d= (*s == '#') ? (u8_downcase(s+1)) : (u8_downcase(s));
     lispval string=lispval_string(d);
     struct KNO_KEYVAL *added=
       kno_sortvec_insert(string,&constnames,
@@ -471,9 +471,9 @@ static lispval parse_oid(U8_INPUT *in)
      The buffer will almost never grow, but it might
      if we have a really long prefix id. */
   c = copy_atom(in,&tmpbuf,0);
-  if ((c=='"')&&((tmpbuf.u8_write-tmpbuf.u8_outbuf)==2)&&
-      (buf[0]=='@')&&(ispunct(buf[1]))&&
-      (strchr("(){}[]<>",buf[1]) == NULL)) {
+  if ( (c=='"') &&( (tmpbuf.u8_write-tmpbuf.u8_outbuf)==2) &&
+       (buf[0]=='@') && (ispunct(buf[1])) &&
+       (strchr("(){}[]<>",buf[1]) == NULL) ) {
     copy_string(in,&tmpbuf); c='@';}
   if (tmpbuf.u8_write<=tmpbuf.u8_outbuf)
     return KNO_EOX;
@@ -1189,7 +1189,7 @@ lispval kno_parser(u8_input in)
           ch = u8_getc(in);
           while ( ( ch >= 0 ) && (label_length < 42) &&
                   (strchr("{(\":'`#",ch) == NULL) ) {
-            int uch = u8_toupper(ch);
+            int uch = u8_tolower(ch);
             u8_putc(labelout,uch);
             ch = u8_getc(in);
             label_length++;}
