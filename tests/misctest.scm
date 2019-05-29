@@ -494,6 +494,16 @@
 		(singleton (let ((x 3) (y 3)) (choice x y)))
 		(singleton (let ((x 3) (y 5)) (choice x y)))))
 
+;;;; Other small tests
+
+(define z 8)
+
+(evaltest 8 (prog1 z (set! z (1+ z)) z) )
+
+(define seq #("foo" foo 3))
+(evaltest 3 (tryseq (e seq) (tryif (number? e) e)))
+(evaltest 6 (tryseq (e seq i) (tryif (number? e) (* i e))))
+
 ;;; Check for apply bugs with different arities
 
 (applytest 20 _plus4 5 5 5 5)
