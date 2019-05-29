@@ -483,8 +483,8 @@ static lispval prechoice_eval(lispval expr,kno_lexenv env,
 
 KNO_EXPORT
 lispval kno_stack_eval(lispval expr,kno_lexenv env,
-                     struct KNO_STACK *_stack,
-                     int tail)
+                       struct KNO_STACK *_stack,
+                       int tail)
 {
   if (_stack==NULL) _stack=kno_stackptr;
   if (KNO_IMMEDIATEP(expr)) {
@@ -1065,9 +1065,12 @@ static lispval boundp_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return kno_err(kno_SyntaxError,"boundp_evalfn",NULL,kno_incref(expr));
   else {
     lispval val = kno_symeval(symbol,env);
-    if (KNO_ABORTED(val)) return val;
-    else if (VOIDP(val)) return KNO_FALSE;
-    else if (val == KNO_UNBOUND) return KNO_FALSE;
+    if (KNO_ABORTED(val))
+      return val;
+    else if (VOIDP(val))
+      return KNO_FALSE;
+    else if (val == KNO_UNBOUND)
+      return KNO_FALSE;
     else {
       kno_decref(val);
       return KNO_TRUE;}}
@@ -1080,9 +1083,12 @@ static lispval unboundp_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return kno_err(kno_SyntaxError,"boundp_evalfn",NULL,kno_incref(expr));
   else {
     lispval val = kno_symeval(symbol,env);
-    if (KNO_ABORTED(val)) return val;
-    else if (VOIDP(val)) return KNO_TRUE;
-    else if (val == KNO_UNBOUND) return KNO_TRUE;
+    if (KNO_ABORTED(val))
+      return val;
+    else if (VOIDP(val))
+      return KNO_TRUE;
+    else if (val == KNO_UNBOUND)
+      return KNO_TRUE;
     else {
       kno_decref(val);
       return KNO_FALSE;}}
@@ -1095,7 +1101,8 @@ static lispval definedp_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return kno_err(kno_SyntaxError,"definedp_evalfn",NULL,kno_incref(expr));
   else {
     lispval val = kno_symeval(symbol,env);
-    if (KNO_ABORTED(val)) return val;
+    if (KNO_ABORTED(val))
+      return val;
     if ( (VOIDP(val)) || (val == KNO_DEFAULT_VALUE) )
       return KNO_FALSE;
     else if (val == KNO_UNBOUND)
@@ -1233,7 +1240,7 @@ static lispval env_reset_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return VOID;
 }
 
-static lispval symbol_boundp_prim(lispval symbol,lispval envarg)
+static lispval symbol_boundin_prim(lispval symbol,lispval envarg)
 {
   if (!(SYMBOLP(symbol)))
     return kno_type_error(_("symbol"),"symbol_boundp_prim",symbol);
@@ -1256,6 +1263,46 @@ static lispval symbol_boundp_prim(lispval symbol,lispval envarg)
       kno_decref(val);
       return KNO_TRUE;}}
   else return kno_type_error(_("environment"),"symbol_boundp_prim",envarg);
+}
+
+static lispval symbol_boundp_evalfn(lispval expr,kno_lexenv env,
+                                    kno_stack stack)
+{
+  lispval symbol_expr = kno_get_arg(expr,1), symbol;
+  kno_lexenv use_env = NULL;
+  if (VOIDP(symbol_expr))
+    return kno_err(kno_SyntaxError,"symbol_boundp_evalfn",NULL,expr);
+  else symbol = kno_stack_eval(symbol_expr,env,stack,0);
+  if (KNO_ABORTED(symbol))
+    return symbol;
+  else if (!(KNO_SYMBOLP(symbol)))
+    return kno_err("NotASymbol","symbol_boundp_evalfn",NULL,symbol);
+  else NO_ELSE;
+  lispval env_expr = kno_get_arg(expr,2), env_value = VOID;
+  if (VOIDP(env_expr))
+    use_env = env;
+  else {
+    env_value = kno_stack_eval(env_expr,env,stack,0);
+    if (KNO_FALSEP(env_value))
+      use_env = env;
+    else if (KNO_LEXENVP(env_value))
+      use_env = (kno_lexenv) env_value;
+    else {
+      lispval err = kno_err("NotAnEnvironment","symbol_boundp_evalfn",
+                            NULL,env_value);
+      kno_decref(env_value);
+      return err;}}
+  lispval v = kno_symeval(symbol,use_env);
+  if (KNO_ABORTED(v)) {
+    kno_decref(env_value);
+    return v;}
+  else if ( (VOIDP(v)) || (v == KNO_DEFAULT_VALUE) || (v == KNO_UNBOUND) ) {
+    kno_decref(env_value);
+    return KNO_FALSE;}
+  else {
+    kno_decref(env_value);
+    kno_decref(v);
+    return KNO_TRUE;}
 }
 
 static lispval environmentp_prim(lispval arg)
@@ -1952,16 +1999,48 @@ static void init_types_and_tables()
 static void init_localfns()
 {
   kno_def_evalfn(kno_scheme_module,"EVAL","",eval_evalfn);
-  kno_def_evalfn(kno_scheme_module,"BOUND?","",boundp_evalfn);
-  kno_def_evalfn(kno_scheme_module,"UNBOUND?","",unboundp_evalfn);
+  kno_def_evalfn(kno_scheme_module,"BOUND?",
+                 "`(BOUND? *sym*)` returns true if *sym* (not evaluated) "
+                 "is bound in the current environment.",
+                 boundp_evalfn);
+  kno_def_evalfn(kno_scheme_module,"UNBOUND?",
+                 "`(UNBOUND? *sym*)` returns true if *sym* (*not evaluated*) "
+                 "is *not* bound in the current environment.",unboundp_evalfn);
   kno_def_evalfn(kno_scheme_module,"DEFINED?","",definedp_evalfn);
-  kno_def_evalfn(kno_scheme_module,"VOID?","",voidp_evalfn);
-  kno_def_evalfn(kno_scheme_module,"DEFAULT?","",defaultp_evalfn);
-  kno_def_evalfn(kno_scheme_module,"CONSTANT?","",constantp_evalfn);
-  kno_def_evalfn(kno_scheme_module,"BAD?","",badp_evalfn);
-  kno_def_evalfn(kno_scheme_module,"QUOTE","",quote_evalfn);
-  kno_def_evalfn(kno_scheme_module,"%ENV","",env_evalfn);
-  kno_def_evalfn(kno_scheme_module,"%MODREF","",modref_evalfn);
+  kno_def_evalfn(kno_scheme_module,"VOID?",
+                 "`(VOID? *expr*)` returns true if evaluating *expr* "
+                 "returns the **VOID** value.",
+                 voidp_evalfn);
+  kno_def_evalfn(kno_scheme_module,"DEFAULT?",
+                 "`(DEFAULT? *expr*)` returns true if evaluating *expr* "
+                 "returns the **DEFAULT** value token.",
+                 defaultp_evalfn);
+  kno_def_evalfn(kno_scheme_module,"CONSTANT?",
+                 "`(CONSTANT? *expr*)` returns true if evaluating *expr* "
+                 "returns a Scheme constant.",
+                 constantp_evalfn);
+  kno_def_evalfn(kno_scheme_module,"BAD?",
+                 "`(BAD? *expr*)` returns true if evaluating *expr* "
+                 "returns an invalid pointer",
+                 badp_evalfn);
+  kno_def_evalfn(kno_scheme_module,"QUOTE",
+                 "`(QUOTE *x*)` returns the subexpression *x*, "
+                 "which is *not* evaluated.",
+                 quote_evalfn);
+  kno_def_evalfn(kno_scheme_module,"%ENV",
+                 "`(%ENV)` returns the current lexical environment.",
+                 env_evalfn);
+  kno_def_evalfn(kno_scheme_module,"%MODREF",
+                 "`(%MODREF *modobj* *symbol*) returns the binding of "
+                 "*symbol* in the module *modobj*, neither of which are "
+                 "evaluated. This is intended for use in automatically "
+                 "generated/optimized code",
+                 modref_evalfn);
+  kno_def_evalfn(kno_scheme_module,"SYMBOL-BOUND?",
+                 "`(SYMBOL-BOUND? *sym* [*env*])` returns #t "
+                 "if *sym* is bound in *env*, which defaults to "
+                 "the current environment.",
+                 symbol_boundp_evalfn);
 
   kno_def_evalfn(kno_scheme_module,"%ENV/RESET!",
                 "Resets the cached dynamic copy of the current "
@@ -1976,7 +2055,7 @@ static void init_localfns()
   kno_idefn(kno_scheme_module,
            kno_make_cprim1("ENVIRONMENT?",environmentp_prim,1));
   kno_idefn(kno_scheme_module,
-           kno_make_cprim2("SYMBOL-BOUND?",symbol_boundp_prim,2));
+            kno_make_cprim2("SYMBOL-BOUND-IN?",symbol_boundin_prim,2));
   kno_idefn2(kno_scheme_module,"%LEXREF",lexref_prim,2,
             "(%LEXREF *up* *across*) returns a lexref (lexical reference) "
             "given a 'number of environments' *up* and a 'number of bindings' "

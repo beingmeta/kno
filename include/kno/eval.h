@@ -278,8 +278,8 @@ KNO_FASTOP lispval kno_symeval(lispval symbol,kno_lexenv env)
 }
 
 KNO_FASTOP lispval _kno_fast_eval(lispval x,kno_lexenv env,
-                               struct KNO_STACK *stack,
-                               int tail)
+                                  struct KNO_STACK *stack,
+                                  int tail)
 {
   switch (KNO_PTR_MANIFEST_TYPE(x)) {
   case kno_oid_ptr_type: case kno_fixnum_ptr_type:
