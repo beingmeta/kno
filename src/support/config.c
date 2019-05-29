@@ -443,33 +443,41 @@ KNO_EXPORT lispval kno_interpret_value(lispval expr)
     lispval arg = KNO_CADR(expr);
     if (head == path_macro) {
       if ( (KNO_STRINGP(arg)) ) {
-        u8_string fullpath = (kno_sourcebase()) ?
-          (kno_get_component(KNO_CSTRING(arg))) :
-          (u8_abspath(KNO_CSTRING(arg),NULL));
+        u8_string fullpath = (u8_abspath(KNO_CSTRING(arg),NULL));
         return kno_init_string(NULL,-1,fullpath);}
       else return kno_incref(arg);}
     else if (head == source_macro) {
       u8_string sourcepath = kno_sourcebase();
-      if (sourcepath)
+      if (!(sourcepath))
+        return kno_incref(arg);
+      else if (KNO_FALSEP(arg))
         return kno_make_string(NULL,-1,sourcepath);
-      else return KNO_FALSE;}
+      else if (KNO_STRINGP(arg)) {
+        u8_string str = kno_get_component(KNO_CSTRING(arg));
+        return kno_lispstring(str);}
+      else return kno_incref(expr);}
     else if (head == config_macro) {
       if (KNO_SYMBOLP(arg)) {
         lispval v = kno_config_get(KNO_SYMBOL_NAME(arg));
         if (KNO_VOIDP(v))
           return expr;
-        else return v;}}
+        else return v;}
+      else return kno_incref(expr);}
     else if (head == env_macro) {
-      if ( (KNO_SYMBOLP(arg)) || (KNO_STRINGP(arg)) ) {
-        u8_string strval = (KNO_SYMBOLP(arg)) ?
-          (u8_getenv(KNO_SYMBOL_NAME(arg))) :
-          (u8_getenv(KNO_CSTRING(arg)));
-        if (strval) {
-          lispval val = kno_lispstring(strval);
-          u8_free(strval);
-          return val;}
-        else return KNO_FALSE;}
-      else return expr;}
+      u8_string varname; int free_varname = 0;
+      if (KNO_SYMBOLP(arg)) {
+        varname = u8_upcase(KNO_SYMBOL_NAME(arg));
+        free_varname = 1;}
+      else if (KNO_STRINGP(arg))
+        varname = KNO_CSTRING(arg);
+      else return kno_incref(expr);
+      u8_string strval = u8_getenv(varname);
+      if (free_varname) u8_free(varname);
+      if (strval) {
+        lispval val = fdstring(strval);
+        u8_free(strval);
+        return val;}
+      else return KNO_FALSE;}
     else if (head == now_macro) {
       if (KNO_SYMBOLP(arg)) {
         lispval now = kno_make_timestamp(NULL);
@@ -477,9 +485,9 @@ KNO_EXPORT lispval kno_interpret_value(lispval expr)
         kno_decref(now);
         if (KNO_VOIDP(v))
           return expr;
-        else return v;}}
-    else NO_ELSE;
-    return kno_incref(expr);}
+        else return v;}
+      else return kno_make_timestamp(NULL);}
+    else return kno_incref(expr);}
   else return kno_incref(expr);
 }
 
