@@ -819,16 +819,16 @@ static lispval cons_extindex(lispval label,lispval fetchfn,lispval commitfn,
 
 static lispval extindex_cacheadd(lispval index,lispval key,lispval values)
 {
-  FDTC *fdtc = kno_threadcache;
+  KNOTC *knotc = kno_threadcache;
   kno_index ix = kno_indexptr(index);
   if ( (ix) && (ix->index_handler == &kno_extindex_handler) )
     if (kno_hashtable_add(&(ix->index_cache),key,values)<0)
       return KNO_ERROR;
     else {}
   else return kno_type_error("extindex","extindex_cacheadd",index);
-  if (fdtc) {
+  if (knotc) {
     struct KNO_PAIR tempkey;
-    struct KNO_HASHTABLE *h = &(fdtc->indexes);
+    struct KNO_HASHTABLE *h = &(knotc->indexes);
     KNO_INIT_STATIC_CONS(&tempkey,kno_pair_type);
     tempkey.car = index2lisp(ix); tempkey.cdr = key;
     if (kno_hashtable_probe(h,(lispval)&tempkey)) {
@@ -838,7 +838,7 @@ static lispval extindex_cacheadd(lispval index,lispval key,lispval values)
 
 static lispval extindex_decache(lispval index,lispval key)
 {
-  FDTC *fdtc = kno_threadcache;
+  KNOTC *knotc = kno_threadcache;
   kno_index ix = kno_indexptr(index);
   lispval lix = index2lisp(ix);
   if ( (ix) && (ix->index_handler == &kno_extindex_handler) )
@@ -850,15 +850,15 @@ static lispval extindex_decache(lispval index,lispval key)
       return KNO_ERROR;
     else {}
   else return kno_type_error("extindex","extindex_decache",index);
-  if ((fdtc)&&(!(VOIDP(key)))) {
+  if ((knotc)&&(!(VOIDP(key)))) {
     struct KNO_PAIR tempkey;
-    struct KNO_HASHTABLE *h = &(fdtc->indexes);
+    struct KNO_HASHTABLE *h = &(knotc->indexes);
     KNO_INIT_STATIC_CONS(&tempkey,kno_pair_type);
     tempkey.car = index2lisp(ix); tempkey.cdr = key;
     if (kno_hashtable_probe(h,(lispval)&tempkey)) {
       kno_hashtable_store(h,(lispval)&tempkey,VOID);}}
-  else if (fdtc) {
-    struct KNO_HASHTABLE *h = &(fdtc->indexes);
+  else if (knotc) {
+    struct KNO_HASHTABLE *h = &(knotc->indexes);
     lispval keys = kno_hashtable_keys(h), drop = EMPTY;
     DO_CHOICES(key,keys) {
       if ((PAIRP(key))&&(KNO_CAR(key) == lix)) {

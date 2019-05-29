@@ -264,7 +264,7 @@ typedef struct KNO_THREAD_CACHE {
   struct KNO_HASHTABLE calls;
   struct KNO_THREAD_CACHE *threadcache_prev;} KNO_THREAD_CACHE;
 typedef struct KNO_THREAD_CACHE *kno_thread_cache;
-typedef struct KNO_THREAD_CACHE FDTC;
+typedef struct KNO_THREAD_CACHE KNOTC;
 
 #if (KNO_USE__THREAD)
 KNO_EXPORT __thread struct KNO_THREAD_CACHE *kno_threadcache;

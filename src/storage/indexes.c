@@ -538,7 +538,7 @@ static void cleanup_tmpchoice(struct KNO_CHOICE *reduced)
 
 KNO_EXPORT int kno_index_prefetch(kno_index ix,lispval keys)
 {
-  // FDTC *fdtc = ((KNO_USE_THREADCACHE)?(kno_threadcache):(NULL));
+  // KNOTC *knotc = ((KNO_USE_THREADCACHE)?(kno_threadcache):(NULL));
   struct KNO_HASHTABLE *cache = &(ix->index_cache);
   struct KNO_HASHTABLE *adds = &(ix->index_adds);
   struct KNO_HASHTABLE *drops = &(ix->index_drops);
@@ -632,7 +632,7 @@ KNO_EXPORT int kno_index_prefetch(kno_index ix,lispval keys)
           return kno_interr(v);}
         if (! read_only ) v = edit_result(key,v,adds,drops);
         kno_hashtable_op(cache,kno_table_store_noref,key,v);
-        /* if (fdtc) fdtc_store(ix,key,v); */
+        /* if (knotc) knotc_store(ix,key,v); */
         n_fetched++;}
       rv=n_fetched;}}
   else if (kno_ipeval_status()) {
@@ -664,7 +664,7 @@ KNO_EXPORT int kno_index_prefetch(kno_index ix,lispval keys)
     lispval val = edit_result(needed,fetched,adds,drops);
     if (!(KNO_ABORTED(val))) {
       kno_hashtable_store(cache,needed,val);
-      /* fdtc_store(ix,needed,val); */
+      /* knotc_store(ix,needed,val); */
       kno_decref(val);
       rv = n_fetched+1;}
     else rv=-1;}
@@ -848,11 +848,11 @@ KNO_EXPORT lispval kno_index_sizes(kno_index ix)
 KNO_EXPORT lispval _kno_index_get(kno_index ix,lispval key)
 {
   lispval cached; struct KNO_PAIR tempkey;
-  FDTC *fdtc = kno_threadcache;
-  if (fdtc) {
+  KNOTC *knotc = kno_threadcache;
+  if (knotc) {
     KNO_INIT_STATIC_CONS(&tempkey,kno_pair_type);
     tempkey.car = kno_index2lisp(ix); tempkey.cdr = key;
-    cached = kno_hashtable_get(&(fdtc->indexes),(lispval)&tempkey,VOID);
+    cached = kno_hashtable_get(&(knotc->indexes),(lispval)&tempkey,VOID);
     if (!(VOIDP(cached))) return cached;}
   if (ix->index_cache_level == 0) cached = VOID;
   else if ((PAIRP(key)) && (!(VOIDP(ix->index_covers_slotids))) &&
@@ -862,8 +862,8 @@ KNO_EXPORT lispval _kno_index_get(kno_index ix,lispval key)
   if (VOIDP(cached))
     cached = kno_index_fetch(ix,key);
 #if KNO_USE_THREADCACHE
-  if (fdtc) {
-    kno_hashtable_store(&(fdtc->indexes),(lispval)&tempkey,cached);}
+  if (knotc) {
+    kno_hashtable_store(&(knotc->indexes),(lispval)&tempkey,cached);}
 #endif
   return cached;
 }
@@ -891,7 +891,7 @@ static void extend_slotids(kno_index ix,const lispval *keys,int n)
 
 KNO_EXPORT int _kno_index_add(kno_index ix,lispval key,lispval value)
 {
-  // FDTC *fdtc = kno_threadcache;
+  // KNOTC *knotc = kno_threadcache;
   kno_hashtable adds = &(ix->index_adds), cache = &(ix->index_cache);
   kno_hashtable drops = &(ix->index_drops);
 
@@ -935,7 +935,7 @@ KNO_EXPORT int _kno_index_add(kno_index ix,lispval key,lispval value)
       kno_hashtable_op(drops,kno_table_drop,key,value);
     if (!(VOIDP(ix->index_covers_slotids))) extend_slotids(ix,&key,1);}
 
-  /* if ((fdtc)&&(KNO_WRITETHROUGH_THREADCACHE)) fdtc_add(ix,keys,value); */
+  /* if ((knotc)&&(KNO_WRITETHROUGH_THREADCACHE)) knotc_add(ix,keys,value); */
 
   if (ix->index_flags&KNO_INDEX_IN_BACKGROUND) clear_bg_cache(key);
 
@@ -985,7 +985,7 @@ KNO_EXPORT int kno_index_drop(kno_index ix_arg,lispval key,lispval value)
     if (cache->table_n_keys) kno_hashtable_drop(cache,key,value);
     if (adds->table_n_keys) kno_hashtable_drop(adds,key,value);}
 
-  /* if ((fdtc)&&(KNO_WRITETHROUGH_THREADCACHE)) fdtc_drop(ix,keys,value); */
+  /* if ((knotc)&&(KNO_WRITETHROUGH_THREADCACHE)) knotc_drop(ix,keys,value); */
 
   if (ix->index_flags&KNO_INDEX_IN_BACKGROUND) clear_bg_cache(key);
 
@@ -1044,7 +1044,7 @@ KNO_EXPORT int kno_index_store(kno_index ix_arg,lispval key,lispval value)
     if (adds->table_n_keys) kno_hashtable_drop(adds,key,VOID);
     if (drops->table_n_keys) kno_hashtable_drop(drops,key,VOID);}
 
-  /* if ((fdtc)&&(KNO_WRITETHROUGH_THREADCACHE)) fdtc_store(ix,keys,value); */
+  /* if ((knotc)&&(KNO_WRITETHROUGH_THREADCACHE)) knotc_store(ix,keys,value); */
 
   if (ix->index_flags&KNO_INDEX_IN_BACKGROUND) clear_bg_cache(key);
   if (decref_key) kno_decref(key);
