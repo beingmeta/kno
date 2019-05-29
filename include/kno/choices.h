@@ -316,7 +316,8 @@ static void _prechoice_add(struct KNO_PRECHOICE *ch,lispval v)
 static U8_MAYBE_UNUSED lispval _add_to_choice(lispval current,lispval new)
 {
   KNO_PTR_CHECK1(new,"_add_to_choice");
-  if (KNO_EMPTY_CHOICEP(new)) return current;
+  if ( (KNO_EMPTY_CHOICEP(new)) || (KNO_VOIDP(new)) )
+    return current;
   else if ((KNO_CONSP(new)) && (KNO_STATIC_CONSP(new)))
     new=kno_copy(new);
   if (KNO_EMPTY_CHOICEP(current))
