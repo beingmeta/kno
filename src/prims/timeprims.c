@@ -1044,7 +1044,8 @@ static lispval now_macro(lispval expr,kno_lexenv env,kno_stack ptr)
 {
   lispval field = kno_get_arg(expr,1);
   lispval now = kno_make_timestamp(NULL);
-  lispval v = kno_get(now,field,KNO_VOID);
+  lispval v = (FALSEP(field)) ? (kno_incref(now)) :
+    (kno_get(now,field,KNO_VOID));
   kno_decref(now);
   if ( (KNO_VOIDP(v)) || (KNO_EMPTYP(v)) )
     return KNO_FALSE;
