@@ -113,7 +113,8 @@ cmdtests:
 	make execscripts chainscripts batchscripts chained_batchscripts utilscripts
 
 static-tests: schemetests optscheme loadmods optmods slotmaps tables pools indexes db
-schemetest schemetests scheme: r4rs exceptions choices sequences breaks numvecs reflect hashsets \
+schemetest schemetests scheme: r4rs exceptions choices sequences breaks numvecs regex \
+	reflect hashsets \
 	picktest cachecall texttools webtools timefns sysprims stringprims \
 	threads i18n misc gctests profiling \
 	fileprims xml
@@ -133,6 +134,7 @@ optscheme:
 	@${RUN} ${FDX} TESTOPTIMIZED=yes i18n.scm ${RUNCONF}
 	@${RUN} ${FDX} TESTOPTIMIZED=yes fileprimtest.scm ${RUNCONF}
 	@${RUN} ${FDX} TESTOPTIMIZED=yes numvecs.scm ${RUNCONF}
+	@${RUN} ${FDX} TESTOPTIMIZED=yes regex.scm ${RUNCONF}
 	@${RUN} ${FDX} TESTOPTIMIZED=yes threadtest.scm ${RUNCONF}
 	@${RUN} ${FDX} TESTOPTIMIZED=yes gctests.scm ${RUNCONF}
 	@${RUN} ${FDX} TESTOPTIMIZED=yes xmltest.scm ${RUNCONF}
@@ -167,6 +169,9 @@ sequences seqtest:
 numvecs:
 	@${RUN} ${FDX} numvecs.scm ${RUNCONF}
 	@${header} "■■■■ Completed numvecs tests ${RUNCONF}"
+regex:
+	@${RUN} ${FDX} regex.scm ${RUNCONF}
+	@${header} "■■■■ Completed regex tests ${RUNCONF}"
 hashsets:
 	@${RUN} ${FDX} hashsets.scm ${RUNCONF}
 	@${header} "■■■■ Completed numvecs tests ${RUNCONF}"
