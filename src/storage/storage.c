@@ -63,7 +63,7 @@ static lispval id_symbol, flags_symbol, background_symbol,
 
 static lispval lookupfns = KNO_NIL;
 
-static int fdstorage_initialized = 0;
+static int knostorage_initialized = 0;
 
 static int testopt(lispval opts,lispval sym,int dflt)
 {
@@ -629,8 +629,8 @@ KNO_EXPORT void kno_init_bloom_c(void);
 
 KNO_EXPORT int kno_init_storage()
 {
-  if (fdstorage_initialized) return fdstorage_initialized;
-  fdstorage_initialized = 211*kno_init_lisp_types();
+  if (knostorage_initialized) return knostorage_initialized;
+  knostorage_initialized = 211*kno_init_lisp_types();
 
   register_header_files();
   u8_register_source_file(_FILEINFO);
@@ -742,7 +742,7 @@ KNO_EXPORT int kno_init_storage()
      &kno_norm_syms);
 
 
-  return fdstorage_initialized;
+  return knostorage_initialized;
 }
 
 /* Emacs local variables

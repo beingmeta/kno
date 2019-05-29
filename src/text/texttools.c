@@ -2567,10 +2567,10 @@ static int texttools_init = 0;
 
 void kno_init_texttools()
 {
-  int fdscheme_version = kno_init_scheme();
+  int knoscheme_version = kno_init_scheme();
   if (texttools_init) return;
   u8_register_source_file(_FILEINFO);
-  texttools_init = fdscheme_version;
+  texttools_init = knoscheme_version;
   texttools_module =
     kno_new_cmodule("texttools",(KNO_MODULE_SAFE),kno_init_texttools);
   kno_init_match_c();

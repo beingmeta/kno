@@ -457,7 +457,9 @@ static int bad_arg(u8_context cxt,struct KNO_FUNCTION *f,int i,lispval v)
   else {
     u8_byte addr_buf[64];
     u8_string addr = u8_sprintf(addr_buf,64,"#!%llx",v);
-    kno_seterr(kno_TypeError,cxt,details,fdstring(addr));}
+    lispval addr_string = knostring(addr);
+    kno_seterr(kno_TypeError,cxt,details,addr_string);
+    kno_decref(addr_string);}
   return -1;
 }
 

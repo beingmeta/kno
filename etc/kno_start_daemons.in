@@ -46,7 +46,7 @@ logstart( ) {
     cmd=$1; shift;
     ${cmd} $*;}
 
-for fdz in  $(find -L ${ROOTDIR} -name "*.fdz"); do daemon ${fdz} $(basename ${fdz} .fdz); done
+for knoz in  $(find -L ${ROOTDIR} -name "*.knoz"); do daemon ${knoz} $(basename ${knoz} .knoz); done
 for cfg in  $(find -L ${ROOTDIR} -name "*.cfg"); do daemon ${cfg} $(basename ${cfg} .cfg); done
 for addr in $(find -L ${ROOTDIR} -name "*@*"); do daemon ${addr} ${addr}; done
 for addr in $(find -L ${ROOTDIR} -name "*:*"); do daemon ${addr} ${addr}; done

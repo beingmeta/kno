@@ -725,7 +725,7 @@ static int loadpath_config_set(lispval var,lispval vals,void *d)
           else {
             buf[len]='/'; len++;
             buf[len]='\0';}
-          add_paths = kno_init_pair(NULL,fdstring(buf),add_paths);
+          add_paths = kno_init_pair(NULL,knostring(buf),add_paths);
           if (next)
             start=next+1;
           else start=NULL;}}}}
@@ -768,7 +768,7 @@ static int loadfile_config_set(lispval var,lispval vals,void *d)
       kno_seterr(_("load error"),"loadfile_config_set",loadpath,val);
       return -1;}
     else {
-      loadfile_list = kno_conspair(fdstring(loadpath),loadfile_list);
+      loadfile_list = kno_conspair(knostring(loadpath),loadfile_list);
       u8_free(loadpath);
       loads++;}}
   return loads;

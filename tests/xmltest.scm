@@ -5,9 +5,9 @@
 (define xml-test-input-1
   "<p title='check if x > 8'>x is a value.</p>")
 (define xml-test-input-2
-  "<p>x is <?fdeval x?> supposedly.</p>")
+  "<p>x is <?knoeval x?> supposedly.</p>")
 (define xml-test-input-3
-  "<p title='check if x > 8'>x is <?fdeval x?> supposedly.</p>")
+  "<p title='check if x > 8'>x is <?knoeval x?> supposedly.</p>")
 (define xml-test-input-4
   "<p> We have <em>embedded</em> markup <strong>to many <em>many</em> levels</strong></p>")
 (define xml-test-input-5

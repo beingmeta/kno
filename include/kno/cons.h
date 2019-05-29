@@ -477,7 +477,7 @@ KNO_EXPORT lispval lispval_string(u8_string string);
 #define kno_stream_string(stream) \
   (kno_make_string(NULL,(((stream)->u8_write)-((stream)->u8_outbuf)),   \
                   ((stream)->u8_outbuf)))
-#define fdstring(s) (kno_make_string(NULL,-1,(s)))
+#define knostring(s) (kno_make_string(NULL,-1,(s)))
 
 #define kno_lispstring(s) kno_init_string(NULL,-1,(s))
 #define kno_unistring(s) kno_conv_string(NULL,-1,(s))
@@ -1049,7 +1049,7 @@ KNO_EXPORT short kno_functionp[];
 #include "choices.h"
 #include "tables.h"
 #include "sequences.h"
-#include "fdregex.h"
+#include "knoregex.h"
 
 U8_MAYBE_UNUSED static int _kno_applicablep(lispval x)
 {

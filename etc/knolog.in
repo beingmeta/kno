@@ -1,7 +1,7 @@
 #!@SCRIPT_SHELL@
 
 showusage ( ) {
-    echo "Usage: fdlog <activity> [watch|tail|more] [lines]"
+    echo "Usage: knolog <activity> [watch|tail|more] [lines]"
 }
 listlogs ( ) {
     echo "Activities:"
@@ -50,7 +50,7 @@ elif test -f @daemon_logdir@/${name}.log; then
 elif test -f @servlet_logdir@/${name}.log; then
     LOGFILE=@servlet_logdir@/${name}.log;
 else 
-    echo "fdlog: Couldn't find activity ${name}";
+    echo "knolog: Couldn't find activity ${name}";
     showusage;
     exit;
 fi;

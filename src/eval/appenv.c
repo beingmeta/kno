@@ -290,7 +290,7 @@ static int loadfile_config_set(lispval var,lispval vals,void *d)
 	kno_seterr(_("load error"),"loadfile_config_set",loadpath,val);
 	return -1;}
       else {
-	loadfile_list = kno_conspair(fdstring(loadpath),loadfile_list);
+	loadfile_list = kno_conspair(knostring(loadpath),loadfile_list);
 	u8_free(loadpath);
 	loads++;}}}
   return loads;

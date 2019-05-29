@@ -18,10 +18,10 @@ export KNOSTART="sudo -u @knoaemon@ -g @admin_group@"
 export WEBSTART="sudo -u @webuser@ -g @admin_group@"
 for TARGET in ${TARGETS}; do
     export DAEMONCFG="${LAUNCHCFG} ${COMMONCFG} STATEDIR=@daemon_rundir@ KNOSTART=${TARGET}";
-    for ctl in $(find -L ${TARGET} -name "*.fdz");
+    for ctl in $(find -L ${TARGET} -name "*.knoz");
     do echo "Starting daemon manager for ${ctl}";
        if (${READLINK} ${ctl}>/dev/null);
-       then ${KNOSTART} LOGFILE=@daemon_logdir@/`basename ${ctl} .fdz`.log \
+       then ${KNOSTART} LOGFILE=@daemon_logdir@/`basename ${ctl} .knoz`.log \
 	        knod `${READLINK} ${ctl}` ${DAEMONCFG} ${XARGS};
        else echo "Missing daemon controller " ${ctl} " linked to " `readlink -m ${ctl}`;
        fi;

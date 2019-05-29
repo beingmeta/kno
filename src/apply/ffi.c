@@ -94,7 +94,7 @@ static ffi_type *get_ffi_type(lispval arg)
 
 /** Change notes:
 
-    Make kno_make_ffi_proc take fdtypes for the return type and
+    Make kno_make_ffi_proc take knotypes for the return type and
     argtypes, and convert them into ffi_types to be passed in.
 **/
 

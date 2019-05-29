@@ -19,7 +19,7 @@
 #include "kno/sequences.h"
 #include "kno/texttools.h"
 #include "kno/bigints.h"
-#include "kno/fdregex.h"
+#include "kno/knoregex.h"
 #include "kno/storage.h"
 #include "kno/pools.h"
 #include "kno/indexes.h"
@@ -356,9 +356,9 @@ static lispval leveldb_reopen_prim(lispval leveldb)
 static lispval leveldb_get_prim(lispval leveldb,lispval key,lispval opts)
 {
   struct KNO_LEVELDB_CONS *db = (kno_leveldb_cons)leveldb;
-  struct KNO_LEVELDB *fdldb = &(db->leveldb);
+  struct KNO_LEVELDB *knoldb = &(db->leveldb);
   char *errmsg = NULL;
-  leveldb_readoptions_t *readopts = get_read_options(fdldb,opts);
+  leveldb_readoptions_t *readopts = get_read_options(knoldb,opts);
   if (KNO_PACKETP(key)) {
     ssize_t binary_size;
     unsigned char *binary_data=
@@ -366,7 +366,7 @@ static lispval leveldb_get_prim(lispval leveldb,lispval key,lispval opts)
                   KNO_PACKET_DATA(key),
                   KNO_PACKET_LENGTH(key),
                   &binary_size,&errmsg);
-    if (readopts!=fdldb->readopts)
+    if (readopts!=knoldb->readopts)
       leveldb_readoptions_destroy(readopts);
     if (binary_data) {
       lispval result = kno_bytes2packet(NULL,binary_size,binary_data);
@@ -387,7 +387,7 @@ static lispval leveldb_get_prim(lispval leveldb,lispval key,lispval opts)
                     keyout.bufwrite-keyout.buffer,
                     &binary_size,&errmsg);
       kno_close_outbuf(&keyout);
-      if (readopts!=fdldb->readopts)
+      if (readopts!=knoldb->readopts)
         leveldb_readoptions_destroy(readopts);
       if (binary_data == NULL) {
         if (errmsg)
@@ -400,7 +400,7 @@ static lispval leveldb_get_prim(lispval leveldb,lispval key,lispval opts)
         u8_free(binary_data);}
       return result;}
     else {
-      if (readopts!=fdldb->readopts)
+      if (readopts!=knoldb->readopts)
         leveldb_readoptions_destroy(readopts);
       return KNO_ERROR_VALUE;}}
 }
@@ -410,10 +410,10 @@ static lispval leveldb_put_prim(lispval leveldb,lispval key,lispval value,
 {
   char *errmsg = NULL;
   struct KNO_LEVELDB_CONS *db = (kno_leveldb_cons)leveldb;
-  struct KNO_LEVELDB *fdldb = &(db->leveldb);
+  struct KNO_LEVELDB *knoldb = &(db->leveldb);
   if ((KNO_PACKETP(key))&&(KNO_PACKETP(value))) {
-    leveldb_writeoptions_t *useopts = get_write_options(fdldb,opts);
-    leveldb_writeoptions_t *writeopts = (useopts)?(useopts):(fdldb->writeopts);
+    leveldb_writeoptions_t *useopts = get_write_options(knoldb,opts);
+    leveldb_writeoptions_t *writeopts = (useopts)?(useopts):(knoldb->writeopts);
     leveldb_put(db->leveldb.dbptr,writeopts,
                 KNO_PACKET_DATA(key),KNO_PACKET_LENGTH(key),
                 KNO_PACKET_DATA(value),KNO_PACKET_LENGTH(value),
@@ -436,8 +436,8 @@ static lispval leveldb_put_prim(lispval leveldb,lispval key,lispval value,
       kno_close_outbuf(&valout);
       return KNO_ERROR_VALUE;}
     else {
-      leveldb_writeoptions_t *useopts = get_write_options(fdldb,opts);
-      leveldb_writeoptions_t *writeopts = (useopts)?(useopts):(fdldb->writeopts);
+      leveldb_writeoptions_t *useopts = get_write_options(knoldb,opts);
+      leveldb_writeoptions_t *writeopts = (useopts)?(useopts):(knoldb->writeopts);
       leveldb_put(db->leveldb.dbptr,writeopts,
                   keyout.buffer,keyout.bufwrite-keyout.buffer,
                   valout.buffer,valout.bufwrite-valout.buffer,
@@ -454,9 +454,9 @@ static lispval leveldb_drop_prim(lispval leveldb,lispval key,lispval opts)
 {
   char *errmsg = NULL;
   struct KNO_LEVELDB_CONS *db = (kno_leveldb_cons)leveldb;
-  struct KNO_LEVELDB *fdldb = &(db->leveldb);
-  leveldb_writeoptions_t *useopts = get_write_options(fdldb,opts);
-  leveldb_writeoptions_t *writeopts = (useopts)?(useopts):(fdldb->writeopts);
+  struct KNO_LEVELDB *knoldb = &(db->leveldb);
+  leveldb_writeoptions_t *useopts = get_write_options(knoldb,opts);
+  leveldb_writeoptions_t *writeopts = (useopts)?(useopts):(knoldb->writeopts);
   if (KNO_PACKETP(key)) {
     leveldb_delete(db->leveldb.dbptr,writeopts,
                    KNO_PACKET_DATA(key),KNO_PACKET_LENGTH(key),

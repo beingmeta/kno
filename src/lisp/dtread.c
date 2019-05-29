@@ -146,7 +146,7 @@ static lispval unexpected_eod()
 KNO_EXPORT lispval kno_read_dtype(struct KNO_INBUF *in)
 {
   if (PRED_FALSE(KNO_ISWRITING(in)))
-    return fdt_iswritebuf(in);
+    return kno_lisp_iswritebuf(in);
   else if (havebytes(in,1)) {
     int code = *(in->bufread++);
     long long len=-1;

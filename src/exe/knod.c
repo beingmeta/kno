@@ -320,7 +320,7 @@ static lispval config_get_ports(lispval var,void U8_MAYBE_UNUSED *data)
   lispval results = KNO_EMPTY;
   int i = 0, lim = dtype_server.n_servers;
   while (i<lim) {
-    lispval id = fdstring(dtype_server.server_info[i].idstring);
+    lispval id = knostring(dtype_server.server_info[i].idstring);
     CHOICE_ADD(results,id); i++;}
   return results;
 }
@@ -447,7 +447,7 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
                  client->idstring,sock,KNO_STREAM_SOCKET,
                  KNO_NETWORK_BUFSIZE);
   /* To help debugging, move the client->idstring (libu8)
-     into the stream's id (fdstorage). */
+     into the stream's id (knostorage). */
   client->env = kno_make_env(kno_make_hashtable(NULL,16),server_env);
   client->elapsed = 0; client->lastlive = ((time_t)(-1));
   u8_set_nodelay(sock,1);
@@ -607,7 +607,7 @@ static int dtypeserver(u8_client ucl)
     return 0;}
 }
 
-static int close_fdclient(u8_client ucl)
+static int close_knoclient(u8_client ucl)
 {
   kno_client client = (kno_client)ucl;
   kno_close_stream(&(client->clientstream),0);
@@ -927,7 +927,7 @@ static void init_server()
      simply_accept, /* acceptfn */
      dtypeserver, /* handlefn */
      NULL, /* donefn */
-     close_fdclient, /* closefn */
+     close_knoclient, /* closefn */
      U8_SERVER_INIT_CLIENTS,init_clients,
      U8_SERVER_NTHREADS,n_threads,
      U8_SERVER_BACKLOG,max_backlog,
@@ -1142,7 +1142,7 @@ int main(int argc,char **argv)
     kno_set_config("SOURCE",src);
     kno_decref(interpreter); kno_decref(src);}
   if (server_port) {
-    lispval sval = fdstring(server_port);
+    lispval sval = knostring(server_port);
     kno_set_config("PORT",sval);
     kno_decref(sval);}
 

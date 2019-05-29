@@ -204,7 +204,7 @@
 #include "kno/lisp.h"
 #include "kno/eval.h"
 #include "kno/texttools.h"
-#include "kno/fdregex.h"
+#include "kno/knoregex.h"
 
 #include <libu8/u8printf.h>
 #include <libu8/u8ctype.h>

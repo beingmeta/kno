@@ -45,8 +45,8 @@ int main(int argc,char *argv[])
     exit(1);}
   else pid=(pid_t)int_pid;
   if (argc>2) interval=atoi(argv[2]);
-  if ((interval<0)&&(getenv("FDKILL_WAIT")))
-    interval=atoi(getenv("FDKILL_WAIT"));
+  if ((interval<0)&&(getenv("KNOKILL_WAIT")))
+    interval=atoi(getenv("KNOKILL_WAIT"));
   else {}
   if (interval<0) interval=7;
   rv=kill(pid,SIGTERM);

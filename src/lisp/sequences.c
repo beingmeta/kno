@@ -697,7 +697,7 @@ KNO_EXPORT lispval kno_reverse(lispval sequence)
     return result;}
 }
 
-typedef lispval *fdtypep;
+typedef lispval *kno_types;
 
 KNO_EXPORT lispval kno_append(int n,lispval *sequences)
 {
@@ -709,7 +709,7 @@ KNO_EXPORT lispval kno_append(int n,lispval *sequences)
     if (NILP(sequences[0])) result_type = kno_pair_type;
     if (n>16) {
       lengths = u8_alloc_n(n,int);
-      elts = u8_alloc_n(n,fdtypep);}
+      elts = u8_alloc_n(n,kno_types);}
     else {lengths=_lengths; elts=_elts;}
     while (i < n) {
       lispval seq = sequences[i];

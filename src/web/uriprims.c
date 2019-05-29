@@ -681,16 +681,16 @@ static lispval scripturl(int n,lispval *args)
   else return scripturl_core(CSTRING(args[0]),VOID,n-1,args+1,1,0);
 }
 
-static lispval fdscripturl(int n,lispval *args)
+static lispval knoscripturl(int n,lispval *args)
 {
   if (EMPTYP(args[0])) return EMPTY;
   else if (!((STRINGP(args[0]))||
              (FALSEP(args[0]))||
              (TYPEP(args[0],kno_secret_type))))
-    return kno_err(kno_TypeError,"fdscripturl",
+    return kno_err(kno_TypeError,"knoscripturl",
                   u8_strdup("script name or #f"),args[0]);
   else if ((n>2) && ((n%2)==0))
-    return kno_err(kno_SyntaxError,"fdscripturl",
+    return kno_err(kno_SyntaxError,"knoscripturl",
                   u8dup("odd number of arguments"),VOID);
   else if (FALSEP(args[0]))
     return scripturl_core(NULL,VOID,n-1,args+1,0,0);
@@ -717,16 +717,16 @@ static lispval scripturlplus(int n,lispval *args)
   else return scripturl_core(CSTRING(args[0]),args[1],n-2,args+2,1,0);
 }
 
-static lispval fdscripturlplus(int n,lispval *args)
+static lispval knoscripturlplus(int n,lispval *args)
 {
   if (EMPTYP(args[0])) return EMPTY;
   else if  (!((STRINGP(args[0]))||
              (FALSEP(args[0]))||
              (TYPEP(args[0],kno_secret_type))))
-    return kno_err(kno_TypeError,"fdscripturlplus",
+    return kno_err(kno_TypeError,"knoscripturlplus",
                   u8_strdup("script name"),args[0]);
   else if ((n>2) && ((n%2)==1))
-    return kno_err(kno_SyntaxError,"fdscripturlplus",
+    return kno_err(kno_SyntaxError,"knoscripturlplus",
                   u8dup("odd number of arguments"),VOID);
   else if (FALSEP(args[0]))
     return scripturl_core(NULL,args[1],n-2,args+2,0,0);
@@ -811,12 +811,12 @@ KNO_EXPORT void kno_init_urifns_c()
     kno_make_cprim2x("OID2ID",oid2id,1,kno_oid_type,VOID,-1,VOID);
   lispval scripturl_proc=
     kno_make_ndprim(kno_make_cprimn("SCRIPTURL",scripturl,1));
-  lispval fdscripturl_proc=
-    kno_make_ndprim(kno_make_cprimn("FDSCRIPTURL",fdscripturl,2));
+  lispval knoscripturl_proc=
+    kno_make_ndprim(kno_make_cprimn("KNOSCRIPTURL",knoscripturl,2));
   lispval scripturlplus_proc=
     kno_make_ndprim(kno_make_cprimn("SCRIPTURL+",scripturlplus,1));
-  lispval fdscripturlplus_proc=
-    kno_make_ndprim(kno_make_cprimn("FDSCRIPTURL+",fdscripturlplus,2));
+  lispval knoscripturlplus_proc=
+    kno_make_ndprim(kno_make_cprimn("KNOSCRIPTURL+",knoscripturlplus,2));
 
   kno_defn(module,uriencode_proc);
   kno_defn(module,uridecode_proc);
@@ -825,10 +825,12 @@ KNO_EXPORT void kno_init_urifns_c()
   kno_defn(module,oid2id_proc);
   kno_defn(module,scripturl_proc);
   kno_defn(module,scripturlplus_proc);
-  kno_defn(module,fdscripturl_proc);
-  kno_defn(module,fdscripturlplus_proc);
+  kno_defn(module,knoscripturl_proc);
+  kno_defn(module,knoscripturlplus_proc);
 
   kno_store(module,kno_intern("scripturl+"),scripturlplus_proc);
+  kno_store(module,kno_intern("knoscripturl"),knoscripturl_proc);
+  kno_store(module,kno_intern("knoscripturl+"),knoscripturlplus_proc);
 
   kno_idefn(safe_module,form_encode_proc);
   kno_idefn(safe_module,uriencode_proc);
@@ -837,8 +839,8 @@ KNO_EXPORT void kno_init_urifns_c()
   kno_idefn(safe_module,oid2id_proc);
   kno_idefn(safe_module,scripturl_proc);
   kno_idefn(safe_module,scripturlplus_proc);
-  kno_idefn(safe_module,fdscripturl_proc);
-  kno_idefn(safe_module,fdscripturlplus_proc);
+  kno_idefn(safe_module,knoscripturl_proc);
+  kno_idefn(safe_module,knoscripturlplus_proc);
 
   kno_store(safe_module,kno_intern("scripturl+"),scripturlplus_proc);
 

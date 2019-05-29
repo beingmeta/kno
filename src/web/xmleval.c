@@ -851,7 +851,7 @@ static void set_xml_env(KNO_XML *xml,kno_lexenv newenv)
 
 static int test_piescape(KNO_XML *xml,u8_string content,int len)
 {
-  if ((strncmp(content,"?fdeval ",7)==0)) return 7;
+  if ((strncmp(content,"?knoeval ",7)==0)) return 7;
   else {
     lispval piescape = kno_get((lispval)(inherit_node_data(xml)),
                            piescape_symbol,VOID);

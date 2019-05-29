@@ -1,5 +1,5 @@
 #!@SCRIPT_SHELL@
-fdstopall
+knostopall
 if test -d @servlet_logdir@; then
   rm -f @servlet_logdir@/*.log @servlet_logdir@/*.log*
 fi

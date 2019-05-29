@@ -32,7 +32,7 @@ XLIBS         =
 LIBS          = $(XLIBS) @LIBS@
 PATH          = @BINPATH@
 DEBBUILD      = -b
-INDENTOPTS    = -br -ce -psl -Tfdtype -Tu8_string -Tkno_stream -Tkno_inbuf \
+INDENTOPTS    = -br -ce -psl -Tknodtype -Tu8_string -Tkno_stream -Tkno_inbuf \
 		-Tkno_outbuf -Tkno_rawbuf -Tkno_function -Tkno_pair -Tkno_choice
 
 DESTDIR		=
@@ -94,7 +94,7 @@ LISP_HEADERS=\
  include/kno/choices.h			     \
  include/kno/tables.h  			     \
  include/kno/sequences.h  			     \
- include/kno/fdregex.h  			     \
+ include/kno/knoregex.h  			     \
  include/kno/bufio.h			     \
  include/kno/dtypeio.h
 APPLY_HEADERS=\
@@ -137,7 +137,7 @@ SRC_HEADERS=src/lisp/biginternals.h 		\
 	src/drivers/headers/hashindex.h		\
 	src/drivers/headers/netindex.h		\
 	src/drivers/headers/netpool.h		\
-	src/cmodules/fdsqlite.h			\
+	src/cmodules/knosqlite.h			\
 
 LISP_OBJS=\
 	src/lisp/oids.o src/lisp/fcnids.o 			\
@@ -947,7 +947,7 @@ distclean: clean
 	rm -f tests/lisp/makefile tests/storage/makefile tests/makefile
 	rm -f tests/lisp/.gdbinit tests/storage/.gdbinit tests/.gdbinit
 	rm -f dbg/gdbinit
-	rm -f etc/fdgetconfig etc/fdsetconfig etc/kno-rc.d
+	rm -f etc/knogetconfig etc/knosetconfig etc/kno-rc.d
 	rm -f exe/.gdbinit include/kno/config.h include/kno/revision.h
 
 commit:
@@ -1569,7 +1569,7 @@ $(DESTDIR)@unpackage_dir@:
 
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
-EXT_MODULE_DIRS=xhtml fdxml domutils textindex morph misc tests  knodules \
+EXT_MODULE_DIRS=xhtml knoml domutils textindex morph misc tests  knodules \
 		jwt aws facebook paypal twitter twilio dropbox google
 
 EXT_MODULE_DATA=textindex/data knodules/data aws/templates morph/data
@@ -1617,7 +1617,7 @@ install-support: $(DESTDIR)@share_dir@
 	cd $(BUILD)/src/web; $(SYSINSTALL) @install_file_opts@ 	\
 		webinfo.knocgi $(DESTDIR)@share_dir@
 
-LIBSCM_DIRS=optimize bugjar storage flexdb brico brico/build mongodb xhtml fdweb
+LIBSCM_DIRS=optimize bugjar flexdb brico brico/build mongodb xhtml
 install-libscm:
 	@if [ ! -d ${DESTDIR}${LIBSCM} ]; then 						\
 	  make really-install-libscm; 							\

@@ -29,13 +29,13 @@ KNO_EXPORT void kno_init_webtools()
 {
   if (webtools_init_done) return;
   else {
-    int fdscheme_version = kno_init_scheme();
+    int knoscheme_version = kno_init_scheme();
     lispval webtools_module = kno_new_cmodule("webtools",0,kno_init_webtools);
     lispval safe_webtools_module =
       kno_new_cmodule("webtools",(KNO_MODULE_SAFE),kno_init_webtools);
     lispval xhtml_module =
       kno_new_cmodule("xhtml",KNO_MODULE_SAFE,kno_init_webtools);
-    webtools_init_done = fdscheme_version;
+    webtools_init_done = knoscheme_version;
     kno_init_xmloutput_c();
     kno_init_htmlout_c();
     kno_init_xmldata_c();

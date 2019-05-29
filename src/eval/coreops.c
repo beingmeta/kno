@@ -909,7 +909,7 @@ KNO_EXPORT void kno_init_coreprims_c()
             -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID);
 
   kno_def_evalfn(kno_scheme_module,"#CONFIG",
-                "#:CONFIG\"FDVERSION\" or #:CONFIG:LOADPATH\n"
+                "#:CONFIG\"KNOVERSION\" or #:CONFIG:LOADPATH\n"
                 "evaluates to a value from the current configuration "
                 "environment",
                 config_macro);

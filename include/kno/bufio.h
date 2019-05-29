@@ -215,8 +215,8 @@ KNO_EXPORT ssize_t kno_grow_byte_input(struct KNO_INBUF *b,size_t len);
 
 KNO_EXPORT int kno_iswritebuf(struct KNO_INBUF *b);
 KNO_EXPORT int kno_isreadbuf(struct KNO_OUTBUF *b);
-KNO_EXPORT lispval fdt_isreadbuf(struct KNO_OUTBUF *b);
-KNO_EXPORT lispval fdt_iswritebuf(struct KNO_INBUF *b);
+KNO_EXPORT lispval kno_lisp_isreadbuf(struct KNO_OUTBUF *b);
+KNO_EXPORT lispval kno_lisp_iswritebuf(struct KNO_INBUF *b);
 
 /* Handle endianness */
 

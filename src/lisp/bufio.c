@@ -55,7 +55,7 @@ KNO_EXPORT int kno_iswritebuf(struct KNO_INBUF *b)
   return -1;
 }
 
-KNO_EXPORT lispval fdt_isreadbuf(struct KNO_OUTBUF *b)
+KNO_EXPORT lispval kno_lisp_isreadbuf(struct KNO_OUTBUF *b)
 {
   u8_log(LOG_CRIT,"WriteToRead",
          "Trying to write to an input buffer 0x%llx",
@@ -64,7 +64,7 @@ KNO_EXPORT lispval fdt_isreadbuf(struct KNO_OUTBUF *b)
   return KNO_ERROR;
 }
 
-KNO_EXPORT lispval fdt_iswritebuf(struct KNO_INBUF *b)
+KNO_EXPORT lispval kno_lisp_iswritebuf(struct KNO_INBUF *b)
 {
   u8_log(LOG_CRIT,kno_IsWriteBuf,
          "Trying to read from an output buffer 0x%llx",

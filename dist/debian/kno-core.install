@@ -50,7 +50,6 @@ usr/share/kno/libscm/kno-*/brico/*.scm
 usr/share/kno/libscm/kno-*/brico/build/*.scm
 usr/share/kno/libscm/kno-*/brico/data/*
 usr/share/kno/libscm/kno-*/optimize/*.scm
-usr/share/kno/libscm/kno-*/storage/*.scm
 usr/share/kno/libscm/kno-*/flexdb/*.scm
 usr/share/kno/libscm/kno-*/mongodb/*.scm
 usr/share/kno/libscm/kno-*/xhtml/*.scm

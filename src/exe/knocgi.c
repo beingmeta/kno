@@ -100,7 +100,7 @@ static lispval reqsetup()
 static void copy_envparam(char *name,lispval target,lispval slotid)
 {
   char *param = getenv(name);
-  lispval value = ((param) ? (fdstring(param)) : (VOID));
+  lispval value = ((param) ? (knostring(param)) : (VOID));
   if (!(KNO_VOIDP(value))) kno_add(target,slotid,value);
   kno_decref(value);
 }
@@ -151,7 +151,7 @@ static int fcgi_socket = -1;
 static void copy_param(char *name,FCGX_ParamArray envp,lispval target,lispval slotid)
 {
   char *param = FCGX_GetParam(name,envp);
-  lispval value = ((param) ? (fdstring(param)) : (VOID));
+  lispval value = ((param) ? (knostring(param)) : (VOID));
   if (!(KNO_VOIDP(value))) kno_add(target,slotid,value);
   kno_decref(value);
 }
@@ -729,12 +729,12 @@ int main(int argc,char **argv)
 
 #if KNO_WITH_FASTCGI
   if ((loadfile) || (FCGX_IsCGI()))
-    simplecgi(fdstring(loadfile));
+    simplecgi(knostring(loadfile));
   else start_fcgi_server(socketspec);
 #else
   if (loadfile == NULL) {
     u8_log(LOG_CRIT,"No file","No script file specified");}
-  else simplecgi(fdstring(loadfile));
+  else simplecgi(knostring(loadfile));
 #endif
   return 0;
 }

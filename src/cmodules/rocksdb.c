@@ -19,7 +19,7 @@
 #include "kno/sequences.h"
 #include "kno/texttools.h"
 #include "kno/bigints.h"
-#include "kno/fdregex.h"
+#include "kno/knoregex.h"
 #include "kno/storage.h"
 #include "kno/pools.h"
 #include "kno/indexes.h"
@@ -363,9 +363,9 @@ static lispval rocksdb_reopen_prim(lispval rocksdb)
 static lispval rocksdb_get_prim(lispval rocksdb,lispval key,lispval opts)
 {
   struct KNO_ROCKSDB_CONS *db = (kno_rocksdb_cons)rocksdb;
-  struct KNO_ROCKSDB *fdldb = &(db->rocksdb);
+  struct KNO_ROCKSDB *knoldb = &(db->rocksdb);
   char *errmsg = NULL;
-  rocksdb_readoptions_t *readopts = get_read_options(fdldb,opts);
+  rocksdb_readoptions_t *readopts = get_read_options(knoldb,opts);
   if (KNO_PACKETP(key)) {
     ssize_t binary_size;
     unsigned char *binary_data=
@@ -373,7 +373,7 @@ static lispval rocksdb_get_prim(lispval rocksdb,lispval key,lispval opts)
                   KNO_PACKET_DATA(key),
                   KNO_PACKET_LENGTH(key),
                   &binary_size,&errmsg);
-    if (readopts!=fdldb->readopts)
+    if (readopts!=knoldb->readopts)
       rocksdb_readoptions_destroy(readopts);
     if (binary_data) {
       lispval result = kno_bytes2packet(NULL,binary_size,binary_data);
@@ -394,7 +394,7 @@ static lispval rocksdb_get_prim(lispval rocksdb,lispval key,lispval opts)
                     keyout.bufwrite-keyout.buffer,
                     &binary_size,&errmsg);
       kno_close_outbuf(&keyout);
-      if (readopts!=fdldb->readopts)
+      if (readopts!=knoldb->readopts)
         rocksdb_readoptions_destroy(readopts);
       if (binary_data == NULL) {
         if (errmsg)
@@ -407,7 +407,7 @@ static lispval rocksdb_get_prim(lispval rocksdb,lispval key,lispval opts)
         u8_free(binary_data);}
       return result;}
     else {
-      if (readopts!=fdldb->readopts)
+      if (readopts!=knoldb->readopts)
         rocksdb_readoptions_destroy(readopts);
       return KNO_ERROR_VALUE;}}
 }
@@ -417,10 +417,10 @@ static lispval rocksdb_put_prim(lispval rocksdb,lispval key,lispval value,
 {
   char *errmsg = NULL;
   struct KNO_ROCKSDB_CONS *db = (kno_rocksdb_cons)rocksdb;
-  struct KNO_ROCKSDB *fdldb = &(db->rocksdb);
+  struct KNO_ROCKSDB *knoldb = &(db->rocksdb);
   if ((KNO_PACKETP(key))&&(KNO_PACKETP(value))) {
-    rocksdb_writeoptions_t *useopts = get_write_options(fdldb,opts);
-    rocksdb_writeoptions_t *writeopts = (useopts)?(useopts):(fdldb->writeopts);
+    rocksdb_writeoptions_t *useopts = get_write_options(knoldb,opts);
+    rocksdb_writeoptions_t *writeopts = (useopts)?(useopts):(knoldb->writeopts);
     rocksdb_put(db->rocksdb.dbptr,writeopts,
                 KNO_PACKET_DATA(key),KNO_PACKET_LENGTH(key),
                 KNO_PACKET_DATA(value),KNO_PACKET_LENGTH(value),
@@ -443,8 +443,8 @@ static lispval rocksdb_put_prim(lispval rocksdb,lispval key,lispval value,
       kno_close_outbuf(&valout);
       return KNO_ERROR_VALUE;}
     else {
-      rocksdb_writeoptions_t *useopts = get_write_options(fdldb,opts);
-      rocksdb_writeoptions_t *writeopts = (useopts)?(useopts):(fdldb->writeopts);
+      rocksdb_writeoptions_t *useopts = get_write_options(knoldb,opts);
+      rocksdb_writeoptions_t *writeopts = (useopts)?(useopts):(knoldb->writeopts);
       rocksdb_put(db->rocksdb.dbptr,writeopts,
                   keyout.buffer,keyout.bufwrite-keyout.buffer,
                   valout.buffer,valout.bufwrite-valout.buffer,
@@ -461,9 +461,9 @@ static lispval rocksdb_drop_prim(lispval rocksdb,lispval key,lispval opts)
 {
   char *errmsg = NULL;
   struct KNO_ROCKSDB_CONS *db = (kno_rocksdb_cons)rocksdb;
-  struct KNO_ROCKSDB *fdldb = &(db->rocksdb);
-  rocksdb_writeoptions_t *useopts = get_write_options(fdldb,opts);
-  rocksdb_writeoptions_t *writeopts = (useopts)?(useopts):(fdldb->writeopts);
+  struct KNO_ROCKSDB *knoldb = &(db->rocksdb);
+  rocksdb_writeoptions_t *useopts = get_write_options(knoldb,opts);
+  rocksdb_writeoptions_t *writeopts = (useopts)?(useopts):(knoldb->writeopts);
   if (KNO_PACKETP(key)) {
     rocksdb_delete(db->rocksdb.dbptr,writeopts,
                    KNO_PACKET_DATA(key),KNO_PACKET_LENGTH(key),

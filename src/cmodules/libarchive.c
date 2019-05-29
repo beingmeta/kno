@@ -163,15 +163,15 @@ static  int archive_seek(struct KNO_ARCHIVE *archive,lispval seek,
 
 static int unparse_archive(struct U8_OUTPUT *out,lispval x)
 {
-  struct KNO_ARCHIVE *fdarchive = (struct KNO_ARCHIVE *)x;
-  u8_string format = archive_format_name(fdarchive->kno_archive);
-  int n_filters = archive_filter_count(fdarchive->kno_archive);
+  struct KNO_ARCHIVE *knoarchive = (struct KNO_ARCHIVE *)x;
+  u8_string format = archive_format_name(knoarchive->kno_archive);
+  int n_filters = archive_filter_count(knoarchive->kno_archive);
   u8_puts(out,"#<FileArchive ");
-  if (fdarchive->archive_spec) {
-    u8_puts(out,fdarchive->archive_spec);
+  if (knoarchive->archive_spec) {
+    u8_puts(out,knoarchive->archive_spec);
     u8_puts(out," (");}
   int i =0; while (i<n_filters) {
-    u8_string filter = archive_filter_name(fdarchive->kno_archive,i);
+    u8_string filter = archive_filter_name(knoarchive->kno_archive,i);
     if (i>0) u8_putc(out,'|');
     u8_puts(out,filter);
     i++;}
@@ -179,7 +179,7 @@ static int unparse_archive(struct U8_OUTPUT *out,lispval x)
 
   if (format) u8_puts(out,format);
   else u8_puts(out,"badformat");
-  u8_printf(out,"#!0x%llx>",KNO_LONGVAL(fdarchive));
+  u8_printf(out,"#!0x%llx>",KNO_LONGVAL(knoarchive));
   return 1;
 }
 static void recycle_archive(struct KNO_RAW_CONS *c)
@@ -354,7 +354,7 @@ static void set_time_prop(lispval tbl,u8_string slotname,time_t t)
 static void set_string_prop(lispval tbl,u8_string slotname,u8_string s)
 {
   if (s) {
-    lispval v = fdstring(s);
+    lispval v = knostring(s);
     kno_store(tbl,kno_intern(slotname),v);
     kno_decref(v);}
 }

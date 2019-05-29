@@ -1464,7 +1464,7 @@ lispval kno_read_arg(u8_input in)
       lispval result = kno_parse_atom(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
       if (KNO_TROUBLEP(result)) {
         if (result != KNO_EOX) u8_pop_exception();
-        result = fdstring("");}
+        result = knostring("");}
       else if (!(KNO_NUMBERP(result))) {
         kno_decref(result);
         result = kno_make_string
@@ -1520,7 +1520,7 @@ lispval kno_parse_arg(u8_string arg)
   else {
     u8_exception ex = u8_erreify();
     u8_free_exception(ex,0);}
-  return fdstring(arg);
+  return knostring(arg);
 }
 
 /* Initializations */

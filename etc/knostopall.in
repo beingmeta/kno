@@ -1,2 +1,2 @@
 #!@SCRIPT_SHELL@
-fdstop @servlet_rundir@/ @daemon_rundir@/
+knostop @servlet_rundir@/ @daemon_rundir@/

@@ -107,7 +107,7 @@ KNO_EXPORT lispval *kno_handle_argv(int argc,char **argv,
 {
   if (argc>0) {
     exe_name = u8_fromlibc(argv[0]);
-    lispval interp = fdstring(exe_name);
+    lispval interp = knostring(exe_name);
     u8_string exec_path = NULL;
     kno_set_config("INTERPRETER",interp);
     kno_set_config("EXE",interp);

@@ -28,7 +28,7 @@ static int mongodb_loglevel;
 #include <libu8/u8crypto.h>
 #include <libu8/u8pathfns.h>
 
-#include "kno/fdregex.h"
+#include "kno/knoregex.h"
 #include "kno/mongodb.h"
 
 #include <math.h>
@@ -53,9 +53,9 @@ static u8_string default_cafile = NULL;
 static u8_string default_cadir = NULL;
 static u8_string default_certfile = NULL;
 
-static lispval dbname_symbol, username_symbol, auth_symbol, fdtag_symbol;
+static lispval dbname_symbol, username_symbol, auth_symbol, knotag_symbol;
 static lispval hosts_symbol, connections_symbol, fieldmap_symbol, logopsym;
-static lispval fdparse_symbol, dotcar_symbol, dotcdr_symbol;
+static lispval knoparse_symbol, dotcar_symbol, dotcdr_symbol;
 static lispval certfile, certpass, cafilesym, cadirsym, crlsym;
 static lispval symslots_symbol, vecslots_symbol, rawslots_symbol;
 static lispval mongo_timestamp_tag;
@@ -763,8 +763,9 @@ static lispval mongodb_open(lispval arg,lispval opts)
   if (smoke_test) {
     u8_string errmsg = mongodb_check(client_pool);
     if (errmsg) {
-      kno_seterr("MongoDB/ConnectFailed","mongodb_open",errmsg,
-                fdstring(mongoc_uri_get_string(info)));
+      lispval uri_string = knostring(mongoc_uri_get_string(info));
+      kno_seterr("MongoDB/ConnectFailed","mongodb_open",errmsg,uri_string);
+      kno_decref(uri_string);
       mongoc_client_pool_destroy(client_pool);
       mongoc_uri_destroy(info);
       u8_free(errmsg);
@@ -2262,11 +2263,11 @@ static bool bson_append_dtype(struct KNO_BSON_OUTPUT b,
         ok = bson_append_int32(out,key,keylen,0);}
       break;}
     case kno_timestamp_type: {
-      struct KNO_TIMESTAMP *fdt=
+      struct KNO_TIMESTAMP *knot=
         kno_consptr(struct KNO_TIMESTAMP* ,val,kno_timestamp_type);
-      unsigned long long millis = (fdt->u8xtimeval.u8_tick*1000)+
-        ((fdt->u8xtimeval.u8_prec>u8_second)?
-         (fdt->u8xtimeval.u8_nsecs/1000000):
+      unsigned long long millis = (knot->u8xtimeval.u8_tick*1000)+
+        ((knot->u8xtimeval.u8_prec>u8_second)?
+         (knot->u8xtimeval.u8_nsecs/1000000):
          (0));
       ok = bson_append_date_time(out,key,keylen,millis);
       break;}
@@ -2396,7 +2397,7 @@ static bool bson_append_dtype(struct KNO_BSON_OUTPUT b,
       else {
         /* Or a tagged object */
         int i = 0;
-        ok = bson_append_dtype(rout,"%fdtag",6,tag,-1);
+        ok = bson_append_dtype(rout,"%knotag",6,tag,-1);
         if (ok) while (i<len) {
             char buf[16]; sprintf(buf,"%d",i);
             ok = bson_append_dtype(rout,buf,strlen(buf),elts[i++],-1);
@@ -2632,7 +2633,7 @@ KNO_EXPORT lispval kno_bson_output(struct KNO_BSON_OUTPUT out,lispval obj)
         if (!(ok)) break;}}
     else {
       int i = 0;
-      ok = bson_append_dtype(out,"%fdtag",6,tag,0);
+      ok = bson_append_dtype(out,"%knotag",6,tag,0);
       if (ok) while (i<len) {
           char buf[16]; sprintf(buf,"%d",i);
           ok = bson_append_dtype(out,buf,strlen(buf),elts[i++],-1);
@@ -2848,8 +2849,8 @@ static void bson_read_step(KNO_BSON_INPUT b,int flags,
         lispval cdr = kno_get(value,dotcdr_symbol,KNO_VOID);
         kno_decref(value);
         value = kno_init_pair(NULL,car,cdr);}
-      else if (kno_test(value,fdtag_symbol,KNO_VOID)) {
-        lispval tag = kno_get(value,fdtag_symbol,KNO_VOID), compound;
+      else if (kno_test(value,knotag_symbol,KNO_VOID)) {
+        lispval tag = kno_get(value,knotag_symbol,KNO_VOID), compound;
         struct KNO_COMPOUND_TYPEINFO *entry = kno_lookup_compound(tag);
         lispval fields[16] = { KNO_VOID }, keys = kno_getkeys(value);
         int max = -1, i = 0, n, ok = 1;
@@ -3392,8 +3393,8 @@ KNO_EXPORT int kno_init_mongodb()
   auth_symbol = kno_intern("authentication");
   hosts_symbol = kno_intern("hosts");
   connections_symbol = kno_intern("connections");
-  fdtag_symbol = kno_intern("%fdtag");
-  fdparse_symbol = kno_intern("%fdparse");
+  knotag_symbol = kno_intern("%knotag");
+  knoparse_symbol = kno_intern("%knoparse");
 
   primarysym = kno_intern("primary");
   primarypsym = kno_intern("primary+");

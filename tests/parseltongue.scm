@@ -7,11 +7,11 @@
 
 (define (pp x y) (+ x y))
 
-(define py_plus (py/fcn "fdtest" "py_plus"))
-(define py_times (py/fcn "fdtest" "py_times"))
-(define py_divide (py/fcn "fdtest" "py_divide"))
-(define doubled (py/fcn "fdtest" "call_doubled"))
-(define py_triple (py/fcn "fdtest" "py_triple"))
+(define py_plus (py/fcn "knotest" "py_plus"))
+(define py_times (py/fcn "knotest" "py_times"))
+(define py_divide (py/fcn "knotest" "py_divide"))
+(define doubled (py/fcn "knotest" "call_doubled"))
+(define py_triple (py/fcn "knotest" "py_triple"))
 
 (applytest 42 py_times 6 7)
 (applytest 21 py_plus 14 7)

@@ -830,10 +830,10 @@ int main(int argc,char **argv)
 
   if (u8_has_suffix(argv[0],"/knoc",0))
     u8_default_appid("knoc");
-  else if (u8_has_suffix(argv[0],"/fdsh",0))
-    u8_default_appid("fdsh");
-  else if (u8_has_suffix(argv[0],"/fdshell",0))
-    u8_default_appid("fdshell");
+  else if (u8_has_suffix(argv[0],"/knosh",0))
+    u8_default_appid("knosh");
+  else if (u8_has_suffix(argv[0],"/knoshell",0))
+    u8_default_appid("knoshell");
   else u8_default_appid(argv[0]);
   setlocale(LC_ALL,"");
   that_symbol = kno_intern("that");
@@ -885,8 +885,11 @@ int main(int argc,char **argv)
     kno_use_index(source_file,0,VOID);
     eval_server = newstream;}
   else if (u8_file_existsp(source_file)) {
-    lispval sourceval = fdstring(u8_realpath(source_file,NULL));
-    kno_set_config("SOURCE",sourceval); kno_decref(sourceval);
+    u8_string real = u8_realpath(source_file,NULL);
+    lispval sourceval = knostring(real);
+    kno_set_config("SOURCE",sourceval);
+    kno_decref(sourceval);
+    u8_free(real);
     kno_load_source(source_file,env,NULL);}
   else {}
 

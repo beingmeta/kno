@@ -17,7 +17,7 @@
 #include "kno/indexes.h"
 #include "kno/frames.h"
 #include "kno/numbers.h"
-#include "kno/fdregex.h"
+#include "kno/knoregex.h"
 
 #include <libu8/libu8io.h>
 

@@ -471,7 +471,7 @@ static int setprop(lispval result,u8_string field,char *value)
   if ((value)&&(strcmp(value,"(none)"))) {
     lispval slotid = kno_intern(field);
     u8_string svalue = u8_fromlibc(value);
-    lispval lvalue = fdstring(svalue);
+    lispval lvalue = knostring(svalue);
     int rv = kno_store(result,slotid,lvalue);
     kno_decref(lvalue);
     u8_free(svalue);

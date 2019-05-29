@@ -17,7 +17,7 @@
 
 export KNOD=@prefix@/bin/knod
 export KNOWEB=@prefix@/bin/knoweb
-export FDAEMON_USER=@fdaemon@
+export FDAEMON_USER=@knoaemon@
 export FDAEMON_GROUP=@admin_group@
 export WEB_USER=@webuser@
 CTLFILE=@config_dir@/servers
@@ -33,10 +33,10 @@ case "$1" in
 	     rm -f @kno_rundir@/_upstart @kno_rundir@/_system;
 	     cp @kno_rundir@/_started @kno_rundir@/_sysv;
 	fi
-	fdstartall;
+	knostartall;
 	;;
   stop)
-	fdstopall;
+	knostopall;
 	rm -f @daemon_rundir@/_started @daemon_rundir@/_sysv;
 	;;
   status)

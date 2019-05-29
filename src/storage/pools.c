@@ -2390,7 +2390,7 @@ static void mdstore(lispval md,lispval slot,lispval v)
 static void mdstring(lispval md,lispval slot,u8_string s)
 {
   if (s==NULL) return;
-  lispval v=fdstring(s);
+  lispval v=knostring(s);
   kno_store(md,slot,v);
   kno_decref(v);
 }

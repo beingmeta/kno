@@ -336,8 +336,8 @@ KNO_EXPORT lispval kno_all_configs(int with_docs)
       lispval var = scan->configname;
       if (with_docs) {
         lispval doc = ((scan->configdoc)?
-                    (fdstring(scan->configdoc)):
-                    (NIL));
+                       (knostring(scan->configdoc)):
+                       (NIL));
         lispval pair = kno_conspair(var,doc); kno_incref(var);
         CHOICE_ADD(results,pair);}
       else {kno_incref(var); CHOICE_ADD(results,var);}
@@ -474,7 +474,7 @@ KNO_EXPORT lispval kno_interpret_value(lispval expr)
       u8_string strval = u8_getenv(varname);
       if (free_varname) u8_free(varname);
       if (strval) {
-        lispval val = fdstring(strval);
+        lispval val = knostring(strval);
         u8_free(strval);
         return val;}
       else return KNO_FALSE;}
@@ -840,15 +840,15 @@ KNO_EXPORT int kno_boolstring(u8_string string,int dflt)
 
 /* Version info */
 
-static lispval fdversion_config_get(lispval var,void *data)
+static lispval knoversion_config_get(lispval var,void *data)
 {
   return lispval_string(KNO_VERSION);
 }
-static lispval fdrevision_config_get(lispval var,void *data)
+static lispval knorevision_config_get(lispval var,void *data)
 {
   return lispval_string(KNO_REVISION);
 }
-static lispval fdbranch_config_get(lispval var,void *data)
+static lispval knobranch_config_get(lispval var,void *data)
 {
 #ifdef KNO_BRANCH
   return lispval_string(KNO_BRANCH);
@@ -856,7 +856,7 @@ static lispval fdbranch_config_get(lispval var,void *data)
   return lispval_string("unknown_branch");
 #endif
 }
-static lispval fdmajor_config_get(lispval var,void *data)
+static lispval knomajor_config_get(lispval var,void *data)
 {
   return KNO_INT(KNO_MAJOR_VERSION);
 }
@@ -1014,17 +1014,17 @@ void kno_init_config_c()
   source_macro = kno_intern("#source");
 
   kno_register_config
-    ("FDVERSION",_("Get the Kno version string"),
-     fdversion_config_get,kno_readonly_config_set,NULL);
+    ("KNOVERSION",_("Get the Kno version string"),
+     knoversion_config_get,kno_readonly_config_set,NULL);
   kno_register_config
-    ("FDREVISION",_("Get the Kno revision identifier"),
-     fdrevision_config_get,kno_readonly_config_set,NULL);
+    ("KNOREVISION",_("Get the Kno revision identifier"),
+     knorevision_config_get,kno_readonly_config_set,NULL);
   kno_register_config
-    ("FDBRANCH",_("Get the Kno branch name"),
-     fdbranch_config_get,kno_readonly_config_set,NULL);
+    ("KNOBRANCH",_("Get the Kno branch name"),
+     knobranch_config_get,kno_readonly_config_set,NULL);
   kno_register_config
-    ("FDMAJOR",_("Get the Kno major version number"),
-     fdmajor_config_get,kno_readonly_config_set,NULL);
+    ("KNOMAJOR",_("Get the Kno major version number"),
+     knomajor_config_get,kno_readonly_config_set,NULL);
   kno_register_config
     ("U8VERSION",_("Get the libu8 version string"),
      u8version_config_get,kno_readonly_config_set,NULL);

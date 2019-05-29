@@ -645,7 +645,7 @@ static lispval temproot_get(lispval sym,void *ignore)
     return lispval_string(tempdir_template);
   else {
     char *tmpdir = get_tmpdir();
-    u8_string tmp = u8_mkpath(tmpdir,"fdtempXXXXXX");
+    u8_string tmp = u8_mkpath(tmpdir,"knotempXXXXXX");
     lispval result = lispval_string(tmp);
     u8_free(tmp);
     return result;}
@@ -683,7 +683,7 @@ static u8_string tempdir_core(lispval template_arg,int keep)
   if (!(template)) template = tempdir_template;
   if (!(template)) {
     char *tmpdir = get_tmpdir();
-    template = consed = u8_mkpath(tmpdir,"fdtempXXXXXX");}
+    template = consed = u8_mkpath(tmpdir,"knotempXXXXXX");}
   /* Unlike mkdtemp, u8_tempdir doesn't overwrite its argument */
   tempname = u8_tempdir(template);
   if (tempname) {

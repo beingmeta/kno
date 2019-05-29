@@ -297,12 +297,12 @@ define osx_trace_heap
 end
 
 # Init Framer print limits (init done through the config interface)
-define set_fdmaxelts
+define set_knomaxelts
   set env KNO_DISPLAYMAXELTS=36
   set env KNO_DISPLAYMAXCHARS=1024
 end
 
-define reset_fdmaxelts
+define reset_knomaxelts
   unset env KNO_DISPLAYMAXELTS
   unset env KNO_DISPLAYMAXCHARS
 end
@@ -316,11 +316,11 @@ define trace_server
 end
 
 define debug_tempsrv
-  set args tempsrv.fdz
+  set args tempsrv.knoz
 end
 
 define trace_tempsrv
-  set args tempsrv.fdz
+  set args tempsrv.knoz
   set env KNO_U8LOGLISTEN=yes
   set env KNO_U8LOGCONNECT=yes
   set env KNO_U8LOGTRANSACT=yes
@@ -365,44 +365,44 @@ end
 # Commands for the new stack
 define stackframe
   if ($argc == 1)
-    call _fdbg_show_stack_frame($arg0)
+    call _knobg_show_stack_frame($arg0)
   else
-   call _fdbg_show_stack_frame((void *)0)
+   call _knobg_show_stack_frame((void *)0)
   end
 end
 
 define showstack
   if ($argc == 0)
-   call _fdbg_show_stack((void *)0,-1)
+   call _knobg_show_stack((void *)0,-1)
   end
   if ($argc == 1)
-    call _fdbg_show_stack_frame($arg0)
+    call _knobg_show_stack_frame($arg0)
   end
   if ($argc == 2)
-   call _fdbg_show_stack($arg1,$arg0)
+   call _knobg_show_stack($arg1,$arg0)
   end
 end
 
 define stackarg
-  print/x _fdbg_get_stack_arg($arg0,$arg1)
+  print/x _knobg_get_stack_arg($arg0,$arg1)
   printf "type of 0x%llx is 0x%x: %s\n",((lispval)$),(((($)&0x03)==2)?(kno_fixnum_type):((($)&0x3)==3)?(kno_oid_type):((($)&0x3)==0)?((enum KNO_PTR_TYPE)(((((struct KNO_CONS *)($))->conshead)&0x7F)+0x84)):((enum KNO_PTR_TYPE)(((($)>>25)&0x7f)+0x04))),kno_type_names[(((($)&0x03)==2)?(kno_fixnum_type):((($)&0x3)==3)?(kno_oid_type):((($)&0x3)==0)?((enum KNO_PTR_TYPE)(((((struct KNO_CONS *)($))->conshead)&0x7F)+0x84)):((enum KNO_PTR_TYPE)(((($)>>25)&0x7f)+0x04)))]
 end
 
 define stackvar
-  print/x _fdbg_get_stack_var($arg0,"$arg1")
+  print/x _knobg_get_stack_var($arg0,"$arg1")
   printf "type of 0x%llx is 0x%x: %s\n",((lispval)$),(((($)&0x03)==2)?(kno_fixnum_type):((($)&0x3)==3)?(kno_oid_type):((($)&0x3)==0)?((enum KNO_PTR_TYPE)(((((struct KNO_CONS *)($))->conshead)&0x7F)+0x84)):((enum KNO_PTR_TYPE)(((($)>>25)&0x7f)+0x04))),kno_type_names[(((($)&0x03)==2)?(kno_fixnum_type):((($)&0x3)==3)?(kno_oid_type):((($)&0x3)==0)?((enum KNO_PTR_TYPE)(((((struct KNO_CONS *)($))->conshead)&0x7F)+0x84)):((enum KNO_PTR_TYPE)(((($)>>25)&0x7f)+0x04)))]
 end
 
 
 define lexenv
-  call _fdbg_show_env($arg0,20)
+  call _knobg_show_env($arg0,20)
 end
 define lexvals
-  call _fdbg_show_env($arg0,-1)
+  call _knobg_show_env($arg0,-1)
 end
 
 define stackenv
-  call _fdbg_show_stack_env($arg0,20)
+  call _knobg_show_stack_env($arg0,20)
 end
 
 # Init some tracing configurations
