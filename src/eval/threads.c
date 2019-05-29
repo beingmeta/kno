@@ -110,14 +110,29 @@ static lispval threadp_prim(lispval arg)
   else return KNO_FALSE;
 }
 
+DCLPRIM1("CONDVAR?",condvarp_prim,MIN_ARGS(1),
+         "`(CONDVAR? *object*)` returns #t if *object is a condition variable",
+         kno_any_type,KNO_VOID)
+static lispval condvarp_prim(lispval arg)
+{
+  if (KNO_TYPEP(arg,kno_condvar_type))
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
 DCLPRIM1("SYNCHRONIZER?",synchronizerp_prim,MIN_ARGS(1),
-         "`(SYNCHRONIZER? *object*)` returns #t if *object is a synchronizer object. "
-         "Synchronizers include condvars, synchronized lambdas, and threads.",
+         "`(SYNCHRONIZER? *obj*)` returns #t if *obj* is a synchronizer. "
+         "Synchronizers currently include condvars and synchronized lambdas.",
          kno_any_type,KNO_VOID)
 static lispval synchronizerp_prim(lispval arg)
 {
   if (KNO_TYPEP(arg,kno_condvar_type))
     return KNO_TRUE;
+  else if (KNO_LAMBDAP(arg)) {
+    struct KNO_LAMBDA *sp = kno_consptr(kno_lambda,arg,kno_lambda_type);
+    if (sp->lambda_synchronized)
+      return KNO_TRUE;
+    else return KNO_FALSE;}
   else return KNO_FALSE;
 }
 
@@ -186,11 +201,15 @@ static int unparse_thread_struct(u8_output out,lispval x)
   if (th->flags&KNO_EVAL_THREAD)
     u8_printf(out,"#<THREAD (%lld)0x%x%s eval %q>",
               th->threadid,(unsigned long)(th->tid),
-              ((th->flags&KNO_THREAD_DONE) ? (" done") : ("")),
+              ((th->flags&KNO_THREAD_ERROR) ? (" error") :
+               (th->flags&KNO_THREAD_DONE) ? (" done") :
+               ("live")),
               th->evaldata.expr);
   else u8_printf(out,"#<THREAD (%lld)0x%x%s apply %q>",
                  th->threadid,(unsigned long)(th->tid),
-                 ((th->flags&KNO_THREAD_DONE) ? (" done") : ("")),
+                 ((th->flags&KNO_THREAD_ERROR) ? (" error") :
+                  (th->flags&KNO_THREAD_DONE) ? (" done") :
+                  ("live")),
                  th->applydata.fn);
   return 1;
 }
@@ -240,8 +259,8 @@ static lispval make_condvar()
 /* This primitive combine cond_wait and cond_timedwait
    through a second (optional) argument, which is an
    interval in seconds. */
-DCLPRIM("CONDVAR-WAIT",condvar_wait,MIN_ARGS(1)|MAX_ARGS(2),
-        "(CONDVAR-WAIT *condvar*) waits for the value associated with "
+DCLPRIM("CONDVAR/WAIT",condvar_wait,MIN_ARGS(1)|MAX_ARGS(2),
+        "(CONDVAR/WAIT *condvar*) waits for the value associated with "
         "*condvar* to change.")
 static lispval condvar_wait(lispval cvar,lispval timeout)
 {
@@ -277,8 +296,8 @@ static lispval condvar_wait(lispval cvar,lispval timeout)
     return kno_type_error(_("valid condvar"),"condvar_wait",cvar);}
 }
 
-DCLPRIM("CONDVAR-SIGNAL",condvar_signal,MIN_ARGS(1)|MAX_ARGS(2),
-        "(CONDVAR-SIGNAL *condvar* [*broadcast*]) signals that *condvar* "
+DCLPRIM("CONDVAR/SIGNAL",condvar_signal,MIN_ARGS(1)|MAX_ARGS(2),
+        "(CONDVAR/SIGNAL *condvar* [*broadcast*]) signals that *condvar* "
         "has changed, signalling threads waiting on the value and causing their "
         "`thread-wait` calls to return. If *broadcast* is #t, all waiting threads "
         "are signalled. Otherwise only one is signalled.")
@@ -295,8 +314,8 @@ static lispval condvar_signal(lispval cvar,lispval broadcast)
   else return kno_type_error(_("valid condvar"),"condvar_signal",cvar);
 }
 
-DCLPRIM("CONDVAR-LOCK",condvar_lock,MIN_ARGS(1)|MAX_ARGS(1),
-        "`(CONDVAR-LOCK *condvar*)` locks *condvar* (or precisely, "
+DCLPRIM("CONDVAR/LOCK!",condvar_lock,MIN_ARGS(1)|MAX_ARGS(1),
+        "`(CONDVAR/LOCK! *condvar*)` locks *condvar* (or precisely, "
         "its mutex)..")
 static lispval condvar_lock(lispval cvar)
 {
@@ -306,8 +325,8 @@ static lispval condvar_lock(lispval cvar)
   return KNO_TRUE;
 }
 
-DCLPRIM("CONDVAR-UNLOCK",condvar_unlock,MIN_ARGS(1)|MAX_ARGS(1),
-        "`(CONDVAR-UNLOCK *condvar*)` unlocks *condvar* (or precisely, "
+DCLPRIM("CONDVAR/UNLOCK!",condvar_unlock,MIN_ARGS(1)|MAX_ARGS(1),
+        "`(CONDVAR/UNLOCK! *condvar*)` unlocks *condvar* (or precisely, "
         "its mutex)..")
 static lispval condvar_unlock(lispval cvar)
 {
@@ -336,9 +355,9 @@ KNO_EXPORT void recycle_condvar(struct KNO_RAW_CONS *c)
 /* These functions generically access the locks on CONDVARs
    and LAMBDAs */
 
-DCLPRIM("SYNCHRO-LOCK",synchro_lock,MIN_ARGS(1)|MAX_ARGS(1),
-        "Locks a synchronizer object, which can be a condvar, "
-        "a synchronized lambda, or a thread")
+DCLPRIM("SYNCHRO/LOCK!",synchro_lock,MIN_ARGS(1)|MAX_ARGS(1),
+        "(SYNCHRO/LOCK! *syncobj*)` Locks *syncobj*, "
+        "which can currently be a condvar or a synchronized lambda.")
 static lispval synchro_lock(lispval lck)
 {
   if (TYPEP(lck,kno_condvar_type)) {
@@ -355,9 +374,9 @@ static lispval synchro_lock(lispval lck)
   else return kno_type_error("lockable","synchro_lock",lck);
 }
 
-DCLPRIM("SYNCHRO-UNLOCK",synchro_unlock,MIN_ARGS(1)|MAX_ARGS(1),
-        "Unlocks a synchronizer object, which can be a condvar, "
-        "a synchronized lambda, or a thread")
+DCLPRIM("SYNCHRO/UNLOCK!",synchro_unlock,MIN_ARGS(1)|MAX_ARGS(1),
+        "(SYNCHRO/UNLOCK! *syncobj*)` Unlocks *syncobj*, "
+        "which can currently be a condvar or a synchronized lambda.")
 static lispval synchro_unlock(lispval lck)
 {
   if (TYPEP(lck,kno_condvar_type)) {
@@ -627,6 +646,38 @@ static lispval threadcall_prim(int n,lispval *args)
     return kno_type_error(_("applicable"),"threadcall_prim",fn);}
 }
 
+DCLPRIM("THREAD/APPLY",threadapply_prim,
+        MIN_ARGS(1)|KNO_VAR_ARGS,
+        "(THREAD/APPLY *fcn* *args*...) applies *fcn* "
+        "in parallel to all of the combinations of *args* "
+        "and returns one thread for each combination. Choice "
+        "arguments can be passed as one by using `QCHOICE`.")
+static lispval threadapply_prim(int n,lispval *args)
+{
+  if (n == 1)
+    return threadcall_prim(1,args);
+  else {
+    lispval last = args[n-1];
+    if (KNO_NILP(last))
+      return threadcall_prim(n-1,args);
+    else if (!(KNO_SEQUENCEP(last)))
+      return kno_err("NotASequence","threadapply_prim",
+                     "The last argument to THREAD/APPLY was not a sequence",
+                     last);
+    else {
+      int n_last = kno_seq_length(last);
+      lispval extended_args[n+n_last-1];
+      int i = 0, lim = n-1; while (i <lim) {
+        lispval arg = args[i]; kno_incref(arg);
+        extended_args[i] = args[i];
+        i++;}
+      int j = 0; while (j < n_last) {
+        lispval arg = kno_seq_elt(last,j);
+        extended_args[i++] = arg;
+        j++;}
+      return threadcall_prim(n+n_last-1,extended_args);}}
+}
+
 static int threadopts(lispval opts)
 {
   lispval logexit = kno_getopt(opts,logexit_symbol,VOID);
@@ -673,7 +724,7 @@ static lispval threadcallx_prim(int n,lispval *args)
     return kno_type_error(_("applicable"),"threadcallx_prim",fn);}
 }
 
-static lispval threadeval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval inthread_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval to_eval = kno_get_arg(expr,1);
   lispval env_arg = kno_eval(kno_get_arg(expr,2),env);
@@ -694,10 +745,10 @@ static lispval threadeval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   if (VOIDP(to_eval)) {
     kno_decref(opts_arg);
     kno_decref(env_arg);
-    return kno_err(kno_SyntaxError,"threadeval_evalfn",NULL,expr);}
+    return kno_err(kno_SyntaxError,"inthread_evalfn",NULL,expr);}
   else if (use_env == NULL) {
     kno_decref(opts_arg);
-    return kno_type_error(_("lispenv"),"threadeval_evalfn",env_arg);}
+    return kno_type_error(_("lispenv"),"inthread_evalfn",env_arg);}
   else {
     int flags = threadopts(opts)|KNO_EVAL_THREAD;
     kno_lexenv env_copy = kno_copy_env(use_env);
@@ -711,6 +762,58 @@ static lispval threadeval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
         lispval thread_val = (lispval) thread;
         CHOICE_ADD(results,thread_val);}}
     kno_decref(envptr);
+    kno_decref(env_arg);
+    kno_decref(opts_arg);
+    return results;}
+}
+
+static lispval threadeval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+{
+  lispval to_eval = kno_eval(kno_get_arg(expr,1),env);
+  if (KNO_ABORTED(to_eval))
+    return to_eval;
+  lispval env_arg = kno_eval(kno_get_arg(expr,2),env);
+  if (KNO_ABORTED(env_arg)) {
+    kno_decref(to_eval);
+    return env_arg;}
+  lispval opts_arg = kno_eval(kno_get_arg(expr,3),env);
+  if (KNO_ABORTED(opts_arg)) {
+    kno_decref(to_eval);
+    kno_decref(env_arg);
+    return opts_arg;}
+  lispval opts=
+    ((VOIDP(opts_arg)) &&
+     (!(KNO_LEXENVP(env_arg))) &&
+     (TABLEP(env_arg))) ?
+    (env_arg):
+    (opts_arg);
+  kno_lexenv use_env= ( (VOIDP(env_arg)) || (FALSEP(env_arg))) ? (env) :
+    (KNO_LEXENVP(env_arg)) ? ((kno_lexenv)env_arg) :
+    (NULL);
+
+  if (VOIDP(to_eval)) {
+    kno_decref(opts_arg);
+    kno_decref(env_arg);
+    return kno_err(kno_SyntaxError,"inthread_evalfn","VOID expression",expr);}
+  else if (use_env == NULL) {
+    kno_decref(to_eval);
+    kno_decref(opts_arg);
+    kno_decref(env_arg);
+    return kno_type_error(_("lispenv"),"inthread_evalfn",env_arg);}
+  else {
+    int flags = threadopts(opts)|KNO_EVAL_THREAD;
+    kno_lexenv env_copy = kno_copy_env(use_env);
+    lispval results = EMPTY, envptr = (lispval)env_copy;
+    DO_CHOICES(thread_expr,to_eval) {
+      kno_thread_struct thread = kno_thread_eval(NULL,thread_expr,env_copy,flags);
+      if ( thread == NULL ) {
+        u8_log(LOG_WARN,"ThreadLaunchFailed",
+               "Error evaluating %q in its own thread, ignoring",thread_expr);}
+      else {
+        lispval thread_val = (lispval) thread;
+        CHOICE_ADD(results,thread_val);}}
+    kno_decref(envptr);
+    kno_decref(to_eval);
     kno_decref(env_arg);
     kno_decref(opts_arg);
     return results;}
@@ -1129,9 +1232,27 @@ KNO_EXPORT void kno_init_threads_c()
   kno_recyclers[kno_condvar_type]=recycle_condvar;
   kno_unparsers[kno_condvar_type]=unparse_condvar;
 
-  kno_def_evalfn(kno_scheme_module,"PARALLEL","",parallel_evalfn);
-  kno_def_evalfn(kno_scheme_module,"SPAWN","",threadeval_evalfn);
+  kno_def_evalfn(kno_scheme_module,"PARALLEL",
+                 "`(PARALLEL *exprs...*)` is just like `CHOICE`, "
+                 "but each of *exprs* is evaluated in its own thread.",
+                 parallel_evalfn);
+  kno_def_evalfn(kno_scheme_module,"INTHREAD",
+                 "`(INTHREAD *expr* [*env*] [*opts*])` starts a parallel "
+                 "thread evaluating *expr*. If *env* is provided, it is used, "
+                 "otherwise, the current environment is used in the new thread."
+                 "*opts*, if provided, specifies thread creation options.",
+                 inthread_evalfn);
+  kno_defalias(kno_scheme_module,"SPAWN","INTHREAD");
 
+  kno_def_evalfn(kno_scheme_module,"THREAD/EVAL",
+                 "`(THREAD/EVAL *expr* [*env*] [*opts*])` starts a parallel "
+                 "thread evaluating *expr*. If *env* is provided, it is used, "
+                 "otherwise, *expr* is evaluated in a *copy* of the current "
+                 "environment. *opts*, if provided, specifies thread creation "
+                 "options.",
+                 threadeval_evalfn);
+
+  DECL_PRIM_N(threadapply_prim,kno_scheme_module);
   DECL_PRIM_N(threadcall_prim,kno_scheme_module);
 
   DECL_PRIM_N(threadcallx_prim,kno_scheme_module);
@@ -1143,6 +1264,7 @@ KNO_EXPORT void kno_init_threads_c()
   DECL_PRIM(threadfinish_prim,2,kno_scheme_module);
 
   DECL_PRIM(threadp_prim,1,kno_scheme_module);
+  DECL_PRIM(condvarp_prim,1,kno_scheme_module);
   DECL_PRIM(synchronizerp_prim,1,kno_scheme_module);
 
   int one_thread_arg[1] = { kno_thread_type };
