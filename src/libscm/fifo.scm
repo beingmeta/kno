@@ -161,7 +161,7 @@
   "Checks whether a FIFO is paused for any of FLAGS "
   "and blocks until it is un-paused."
   (while (overlaps? (fifo-pause fifo) flags)
-    (condvar-wait (fifo-condvar fifo))))
+    (condvar/wait (fifo-condvar fifo))))
 
 (define (fifo/push! fifo item (broadcast #f))
   "Pushes a new item into the FIFO. If *broadcast* is true, "
@@ -171,7 +171,7 @@
       (begin (if (fifo-debug fifo)
 		 (always%watch "FIFO/PUSH!" item broadcast fifo)
 		 (debug%watch "FIFO/PUSH!" item broadcast fifo))
-	(condvar-lock (fifo-condvar fifo))
+	(condvar/lock! (fifo-condvar fifo))
 	(check-paused fifo '{write readwrite})
 	(if (and (fifo-items fifo)
 		 (hashset-get (fifo-items fifo) item))
@@ -210,7 +210,7 @@
 		       (vector-set! newvec (- end start) item)
 		       (set-fifo-end! fifo (1+ (- end start))))))))
 	(condvar-signal (fifo-condvar fifo) broadcast))
-    (condvar-unlock (fifo-condvar fifo))))
+    (condvar/unlock! (fifo-condvar fifo))))
 (define (fifo-push fifo item (broadcast #f))
   "Pushes a new item into the FIFO. If *broadcast* is true, "
   "a broadcast signal is sent to all waiting threads, rather than "
@@ -225,7 +225,7 @@
       (begin (if (fifo-debug fifo)
 		 (always%watch "FIFO/PUSH/N!" "N" (length items) broadcast fifo)
 		 (debug%watch "FIFO/PUSH/N!" "N" (length items) broadcast fifo))
-	(when uselock (condvar-lock (fifo-condvar fifo)))
+	(when uselock (condvar/lock! (fifo-condvar fifo)))
 	(check-paused fifo '{write readwrite})
 	(let ((vec (fifo-queue fifo))
 	      (start (fifo-start fifo))
@@ -264,7 +264,7 @@
 		     (vector-set! vec (+ end i) item))
 		   (set-fifo-end! fifo (+ end add))))))
 	(condvar-signal (fifo-condvar fifo) broadcast))
-    (when uselock (condvar-unlock (fifo-condvar fifo)))))
+    (when uselock (condvar/unlock! (fifo-condvar fifo)))))
 
 (define (getlen needed current)
   (if (< needed current) 
@@ -283,7 +283,7 @@
   (set! cvar (fifo-condvar fifo))
   (set! tid (threadid))
   (set-fifo-waiting! fifo (choice (fifo-waiting fifo) tid))
-  (unless (identical? (threadget '_fifo) fifo) (threadset! '_fifo fifo))
+  (unless (identical? (thread/get '_fifo) fifo) (thread/set! '_fifo fifo))
   (set-fifo-running! fifo (difference (fifo-running fifo) tid))
   (condvar-signal (fifo-condvar fifo) #t)
   (choice-size (fifo-waiting fifo)))
@@ -321,7 +321,7 @@
   (set! condvar (fifo-condvar fifo))
   (if (fifo-live? fifo)
       (unwind-protect
-	  (begin (condvar-lock condvar)
+	  (begin (condvar/lock! condvar)
 	    ;; Assert that we're waiting
 	    (fifo-waiting! fifo)
 	    ;; Wait if it is paused
@@ -334,7 +334,7 @@
 	      (when (and (fifo-live? fifo)
 			 (= (fifo-start fifo) (fifo-end fifo))
 			 (not (overlaps? (fifo-pause fifo) '{read readwrite})))
-		(condvar-wait condvar)))
+		(condvar/wait condvar)))
 	    (fifo-running! fifo)
 	    (check-paused fifo '{read readwrite})
 	    ;; If it's still alive, do the pop
@@ -361,7 +361,7 @@
 		    (hashset-drop! (fifo-items fifo) items))
 		  items)
 		(fail)))
-	(condvar-unlock condvar))
+	(condvar/unlock! condvar))
       (fail)))
 (define (fifo-pop fifo)
   "Pops some number of items (at least one) from the FIFO."
@@ -373,7 +373,7 @@
   "Removes an item from the FIFO"
   (if (fifo-live? fifo)
       (unwind-protect
-	  (begin (condvar-lock (fifo-condvar fifo))
+	  (begin (condvar/lock! (fifo-condvar fifo))
 	    (if (and (fifo-live? fifo)
 		     (< (fifo-start fifo) (fifo-end fifo)))
 		(let* ((vec (fifo-queue fifo))
@@ -392,7 +392,7 @@
 			queued)
 		      (fail)))
 		(fail)))
-	(condvar-unlock (fifo-condvar fifo)))
+	(condvar/unlock! (fifo-condvar fifo)))
       (fail)))
 (define (fifo-jump fifo item)
   (fifo/remove! fifo item))
@@ -411,7 +411,7 @@
   (set! condvar (fifo-condvar fifo))
   (unwind-protect
       (begin
-	(when uselock (condvar-lock condvar))
+	(when uselock (condvar/lock! condvar))
 	(set! result
 	  (slice (fifo-queue fifo)
 		 (fifo-start fifo) (fifo-end fifo)))
@@ -419,7 +419,7 @@
 	result)
     (begin
       (condvar-signal condvar #t)
-      (when uselock (condvar-unlock condvar)))))
+      (when uselock (condvar/unlock! condvar)))))
 (define (close-fifo fifo) (fifo/close! fifo))
 
 (define (fifo/exhausted! fifo) (fifo/close! fifo #f))
@@ -427,53 +427,53 @@
 (define (fifo/queued fifo (result #f))
   "Returns a vector of the queued items in a FIFO, in order"
   (unwind-protect
-      (begin (condvar-lock (fifo-condvar fifo))
+      (begin (condvar/lock! (fifo-condvar fifo))
 	(set! result (subseq (fifo-queue fifo)
 			     (fifo-start fifo)
 			     (fifo-end fifo))))
-    (condvar-unlock (fifo-condvar fifo)))
+    (condvar/unlock! (fifo-condvar fifo)))
   result)
 (define (fifo-queued fifo) (fifo/queued fifo))
 
 (define (fifo/load fifo)
   "Returns the number of queued items in *fifo*, locking to compute it"
   (unwind-protect
-      (begin (condvar-lock (fifo-condvar fifo))
+      (begin (condvar/lock! (fifo-condvar fifo))
 	     (- (fifo-end fifo) (fifo-start fifo)))
-    (condvar-unlock (fifo-condvar fifo))))
+    (condvar/unlock! (fifo-condvar fifo))))
 (define (fifo-load fifo) (- (fifo-end fifo) (fifo-start fifo)))
 (define (fifo-size fifo) (length (fifo-queue fifo)))
 
 (define (fifo/wait fifo (state))
   "Waits for something about *fifo* to change."
   (default! state (fifo-condvar fifo))
-  (condvar-lock state)
-  (condvar-wait state)
-  (condvar-unlock state))
+  (condvar/lock! state)
+  (condvar/wait state)
+  (condvar/unlock! state))
 
 (define (fifo/waiting fifo (nonzero #t))
   "Returns the number of threads waiting on the fifo.
    If *nonzero* is true, wait (block)  until the number 
    is non-zero."
   (unwind-protect
-      (begin (condvar-lock (fifo-condvar fifo))
+      (begin (condvar/lock! (fifo-condvar fifo))
 	(when nonzero
 	  (while (fail? (fifo-waiting fifo))
-	    (condvar-wait (fifo-condvar fifo))))
+	    (condvar/wait (fifo-condvar fifo))))
 	(choice-size (fifo-waiting fifo)))
-    (condvar-unlock (fifo-condvar fifo))))
+    (condvar/unlock! (fifo-condvar fifo))))
 
 (define (fifo/idle? fifo)
   "Returns true when *fifo* is idle, waiting until the queue is empty "
   "and there are still threads waiting on the fifo."
   (unwind-protect
-      (begin (condvar-lock (fifo-condvar fifo))
+      (begin (condvar/lock! (fifo-condvar fifo))
 	(until (and (exists? (fifo-waiting fifo))
 		    (= (fifo-start fifo) (fifo-end fifo)))
-	  (condvar-wait (fifo-condvar fifo)))
+	  (condvar/wait (fifo-condvar fifo)))
 	(and (exists? (fifo-waiting fifo))
 	     (= (fifo-start fifo) (fifo-end fifo))))
-    (condvar-unlock (fifo-condvar fifo))))
+    (condvar/unlock! (fifo-condvar fifo))))
 
 (define (fifo/pause! fifo rdwr)
   "Pauses operations on *fifo*. *rdwr* can be READ, WRITE, or READWRITE "
@@ -481,10 +481,10 @@
   (if (not (overlaps? rdwr '{#f read write readwrite}))
       (irritant rdwr |FIFO/BadPauseArg|)
       (unwind-protect 
-	  (begin (condvar-lock (fifo-condvar fifo))
+	  (begin (condvar/lock! (fifo-condvar fifo))
 	    (set-fifo-pause! fifo rdwr)
 	    (condvar-signal (fifo-condvar fifo) #t))
-	(condvar-unlock (fifo-condvar fifo)))))
+	(condvar/unlock! (fifo-condvar fifo)))))
 
 (define (fifo/pausing? fifo) (fifo-pause fifo))
 

@@ -97,7 +97,7 @@
 (config-def! 'optwarn optwarn-config)
 (defslambda (codewarning warning)
   (debug%watch "CODEWARNING" warning)
-  (threadset! 'codewarnings (choice warning (threadget 'codewarnings))))
+  (thread/set! 'codewarnings (choice warning (thread/get 'codewarnings))))
 
 (define (annotate optimized source opts)
   (if (keep-source? opts)
@@ -649,7 +649,7 @@
 	(optimize arg env bound opts))))
 
 (define (inner-optimize-procedure! proc (opts #f))
-  (threadset! 'codewarnings #{})
+  (thread/set! 'codewarnings #{})
   (let* ((env (lambda-env proc))
 	 (arglist (lambda-args proc))
 	 (body (lambda-body proc))
@@ -670,16 +670,16 @@
 	(let ((optimized-args (optimize-arglist arglist env opts)))
 	  (unless (equal? arglist optimized-args)
 	    (set-lambda-args! proc optimized-args))))
-      (if (exists? (threadget 'codewarnings))
+      (if (exists? (thread/get 'codewarnings))
 	  (logwarn |OptimizeErrors|
 	    "for " proc ": "
-	    (do-choices (warning (threadget 'codewarnings))
+	    (do-choices (warning (thread/get 'codewarnings))
 	      (printout "\n\t" warning)))
 	  (lognotice |Optimized| proc)))
-    (threadset! 'codewarnings #{})))
+    (thread/set! 'codewarnings #{})))
 
 (define (optimize-procedure! proc (opts #f))
-  (threadset! 'codewarnings #{})
+  (thread/set! 'codewarnings #{})
   (unless (reflect/get proc 'optimized)
     (if (getopt opts 'err #f)
 	(inner-optimize-procedure! proc opts)

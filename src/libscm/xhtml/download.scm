@@ -19,7 +19,7 @@
 (define (xhtml/download . specs)
   "Takes an alternating list of filenames and contents"
   (when (> (length specs) 2)
-    (if (try (threadget 'usezip) (req/get 'usezip) #f)
+    (if (try (thread/get 'usezip) (req/get 'usezip) #f)
 	(zipfile-download specs)
 	(multipart-download specs)))
   (when (<= (length specs) 2)
@@ -35,7 +35,7 @@
       (write-content content))))
 
 (define (multipart-download specs)
-  (let ((boundary (try (threadget 'xhtml/boundary)
+  (let ((boundary (try (thread/get 'xhtml/boundary)
 		       (req/get 'xhtml/boundary)
 		       boundary)))
     (req/set! 'content-type
@@ -55,14 +55,14 @@
 	  (write-attachment (car scan) (cadr scan))))))
 
 (define (zipfile-download specs)
-  (let* ((name (try (threadget 'zipfilename)
+  (let* ((name (try (thread/get 'zipfilename)
 		    (req/get 'zipfilename)
 		    (if (string? (car specs))
 			(string-append (basename (car specs) #t) ".zip")
 			(tryif (table? (car specs))
 			  (string-append (basename (get (car specs) 'filename) #t))))
 		    "download"))
-	 (zipname (mkpath (try (threadget 'tmpdir) (req/get 'tmpdir)
+	 (zipname (mkpath (try (thread/get 'tmpdir) (req/get 'tmpdir)
 			       (or tmpdir (getenv "TMPDIR") "/tmp"))
 			  (string-append (uuid->string (getuuid)) ".zip")))
 	 (zipfile (zip/make zipname)))

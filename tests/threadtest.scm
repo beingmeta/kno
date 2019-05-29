@@ -93,7 +93,7 @@
     (look-busy 2)
     (applytest sleep2 find-thread (thread-id sleep2))
     (applytest #t inexact? (thread/finish sleep1))
-    (thread/wait sleep2)
+    (thread/wait! sleep2)
     (applytest #t inexact? (thread/result sleep2))))
 
 ;;;; Lock testing

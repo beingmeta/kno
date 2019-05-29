@@ -832,7 +832,7 @@ slot of the loop state.
 			   (not (fifo-pause fifo)))
 		  (let ((wait-start (elapsed-time)))
 		    (until (fifo/paused? fifo)
-		      (condvar-wait (fifo-condvar fifo)))
+		      (condvar/wait (fifo-condvar fifo)))
 		    (when (> (elapsed-time wait-start) 1)
 		      (lognotice |Engine/Checkpoint| 
 			"Waited " (secs->string (elapsed-time wait-start))
