@@ -7,7 +7,7 @@ usr/share/kno/modules/builtin/bench
 usr/share/kno/modules/builtin/domutils
 usr/share/kno/modules/builtin/dropbox
 usr/share/kno/modules/builtin/facebook
-usr/share/kno/modules/builtin/fdxml
+usr/share/kno/modules/builtin/knoml
 usr/share/kno/modules/builtin/google
 usr/share/kno/modules/builtin/knodules
 usr/share/kno/modules/builtin/knodules/data

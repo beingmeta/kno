@@ -4,7 +4,7 @@ usr/share/kno/modules/builtin/aws/templates/*.json
 usr/share/kno/modules/builtin/domutils/*.scm
 usr/share/kno/modules/builtin/dropbox/*.scm
 usr/share/kno/modules/builtin/facebook/*.scm
-usr/share/kno/modules/builtin/fdxml/*.scm
+usr/share/kno/modules/builtin/knoml/*.scm
 usr/share/kno/modules/builtin/google/*.scm
 usr/share/kno/modules/builtin/knodules/*.scm
 usr/share/kno/modules/builtin/knodules/data/*

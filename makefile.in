@@ -1569,7 +1569,7 @@ $(DESTDIR)@unpackage_dir@:
 
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
-EXT_MODULE_DIRS=xhtml knoml domutils textindex morph misc tests  knodules \
+EXT_MODULE_DIRS=xhtml domutils textindex morph misc tests knodules knoml \
 		jwt aws facebook paypal twitter twilio dropbox google
 
 EXT_MODULE_DATA=textindex/data knodules/data aws/templates morph/data
