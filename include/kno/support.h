@@ -129,6 +129,7 @@ KNO_EXPORT int kno_clear_errors(int);
 KNO_EXPORT void kno_log_exception(u8_exception ex);
 
 KNO_EXPORT lispval kno_thread_get(lispval var);
+KNO_EXPORT int kno_thread_probe(lispval var);
 KNO_EXPORT lispval kno_init_threadtable(lispval);
 KNO_EXPORT void kno_reset_threadvars(void);
 KNO_EXPORT int kno_thread_set(lispval var,lispval val);

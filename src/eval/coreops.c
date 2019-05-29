@@ -20,6 +20,7 @@
 #include "kno/frames.h"
 #include "kno/numbers.h"
 #include "kno/support.h"
+#include "kno/cprims.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8filefns.h>
@@ -672,13 +673,42 @@ static int reuse_lconfig(struct KNO_CONFIG_HANDLER *e){
     return 1;}
   else return 0;}
 
+DCLPRIM1("THREAD/GET",thread_get,MIN_ARGS(1),
+         "`(THREAD/GET *sym*)` gets the fluid (thread-local) value for *sym* "
+         "or the empty choice if there isn't one",
+         kno_symbol_type,KNO_VOID)
 static lispval thread_get(lispval var)
 {
   lispval value = kno_thread_get(var);
-  if (VOIDP(value)) return EMPTY;
+  if (VOIDP(value))
+    return EMPTY;
   else return value;
 }
 
+DCLPRIM("THREAD/RESET-VARS!",thread_reset_vars,MIN_ARGS(0)|MAX_ARGS(0),
+        "`(THREAD/RESET-VARS!)` resets all the fluid (thread-local) "
+        "variables for the current thread.")
+static lispval thread_reset_vars()
+{
+  kno_reset_threadvars();
+  return VOID;
+}
+
+DCLPRIM1("THREAD/BOUND?",thread_boundp,MIN_ARGS(1),
+         "`(THREAD/BOUND? *sym*)` returns true if *sym* is "
+         "fluidly bound in the current thread.",
+         kno_symbol_type,KNO_VOID)
+static lispval thread_boundp(lispval var)
+{
+  if (kno_thread_probe(var))
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+DCLPRIM2("THREAD/SET!",thread_set,MIN_ARGS(2),
+         "`(THREAD/SET! *sym* *value*)` sets the fluid (thread-local) value "
+         "for *sym* to *value and returns VOID.",
+         kno_symbol_type,KNO_VOID,kno_any_type,KNO_VOID)
 static lispval thread_set(lispval var,lispval val)
 {
   if (kno_thread_set(var,val)<0)
@@ -686,6 +716,10 @@ static lispval thread_set(lispval var,lispval val)
   else return VOID;
 }
 
+DCLPRIM2("THREAD/ADD!",thread_add,MIN_ARGS(2),
+         "`(THREAD/ADD! *sym* *values*)` inserts *values* into "
+         "the fluid (thread-local) binding for *sym*.",
+         kno_symbol_type,KNO_VOID,kno_any_type,KNO_VOID)
 static lispval thread_add(lispval var,lispval val)
 {
   if (kno_thread_add(var,val)<0)
@@ -697,18 +731,28 @@ static lispval thread_ref_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
 {
   lispval sym_arg = kno_get_arg(expr,1), sym, val;
   lispval dflt_expr = kno_get_arg(expr,2);
-  if ((VOIDP(sym_arg))||(VOIDP(dflt_expr)))
-    return kno_err(kno_SyntaxError,"thread_ref",NULL,VOID);
-  sym = kno_eval(sym_arg,env);
-  if (KNO_ABORTP(sym)) return sym;
+  if (VOIDP(sym_arg))
+    return kno_err(kno_SyntaxError,"thread_ref",
+                   "No thread symbol",expr);
+  else if (VOIDP(dflt_expr))
+    return kno_err(kno_SyntaxError,"thread_ref",
+                   "No generating expression",expr);
+  else sym = kno_eval(sym_arg,env);
+  if (KNO_ABORTP(sym))
+    return sym;
   else if (!(SYMBOLP(sym)))
     return kno_err(kno_TypeError,"thread_ref",u8_strdup("symbol"),sym);
   else val = kno_thread_get(sym);
-  if (KNO_ABORTP(val)) return val;
+  if (KNO_ABORTP(val))
+    return val;
   else if (VOIDP(val)) {
-    lispval useval = kno_eval(dflt_expr,env); int rv;
-    if (KNO_ABORTP(useval)) return useval;
-    rv = kno_thread_set(sym,useval);
+    lispval useval = kno_eval(dflt_expr,env);
+    if (KNO_ABORTP(useval))
+      return useval;
+    else if (KNO_VOIDP(useval))
+      return KNO_VOID;
+    else NO_ELSE;
+    int rv = kno_thread_set(sym,useval);
     if (rv<0) {
       kno_decref(useval);
       return KNO_ERROR;}
@@ -882,10 +926,19 @@ KNO_EXPORT void kno_init_coreprims_c()
            kno_make_cprim3x("CONFIG-DEF!",config_def,2,
                            kno_symbol_type,VOID,-1,VOID,
                            kno_string_type,VOID));
-  kno_idefn(kno_scheme_module,kno_make_cprim1("THREADGET",thread_get,1));
-  kno_idefn(kno_scheme_module,kno_make_cprim2("THREADSET!",thread_set,2));
-  kno_idefn(kno_scheme_module,kno_make_cprim2("THREADADD!",thread_add,2));
-  kno_def_evalfn(kno_scheme_module,"THREADREF","",thread_ref_evalfn);
+
+  DECL_PRIM(thread_get,1,kno_scheme_module);
+  DECL_PRIM(thread_boundp,1,kno_scheme_module);
+  DECL_PRIM(thread_set,2,kno_scheme_module);
+  DECL_PRIM(thread_add,2,kno_scheme_module);
+  DECL_PRIM(thread_reset_vars,0,kno_scheme_module);
+
+  kno_def_evalfn(kno_scheme_module,"THREAD/REF",
+                 "`(THREAD/REF *sym* *expr*)` returns the fluid "
+                 "(thread-local) value of *sym* (which is evaluated) "
+                 "if it exists. If it doesn't exist, *expr* is evaluted "
+                 "and fluidly assigned to *sym*.",
+                 thread_ref_evalfn);
 
   kno_idefn(kno_scheme_module,kno_make_cprim1("INTERN",lisp_intern,1));
   kno_idefn(kno_scheme_module,

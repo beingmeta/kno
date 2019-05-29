@@ -134,6 +134,11 @@ KNO_EXPORT lispval kno_thread_get(lispval var)
   return kno_get(get_threadtable(),var,VOID);
 }
 
+KNO_EXPORT int kno_thread_probe(lispval var)
+{
+  return kno_test(get_threadtable(),var,VOID);
+}
+
 KNO_EXPORT int kno_thread_set(lispval var,lispval val)
 {
   return kno_store(get_threadtable(),var,val);
