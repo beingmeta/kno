@@ -115,7 +115,7 @@ cmdtests:
 static-tests: schemetests optscheme loadmods optmods slotmaps tables pools indexes db
 schemetest schemetests scheme: r4rs exceptions choices sequences breaks numvecs regex \
 	reflect hashsets \
-	picktest cachecall texttools webtools timefns sysprims stringprims \
+	picktest cachecall texttools webtools timefns sysprims startup stringprims \
 	threads i18n misc gctests profiling \
 	fileprims xml
 cmodtests: crypto
@@ -196,6 +196,9 @@ timefns:
 sysprims:
 	@${RUN} ${FDX} sysprims.scm ${RUNCONF}
 	@${header} "■■■■ Completed sysprims tests ${RUNCONF}"
+startup:
+	@${RUN} ${FDX} CONFIG=../dbg/startup.cfg startup.scm ${RUNCONF}
+	@${header} "■■■■ Completed startup tests ${RUNCONF}"
 threads threadtest:
 	@${RUN} ${FDX} threadtest.scm ${RUNCONF}
 	@${header} "■■■■ Completed threads tests ${RUNCONF}"
