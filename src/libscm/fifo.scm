@@ -209,7 +209,7 @@
 		       (set-fifo-start! fifo 0)
 		       (vector-set! newvec (- end start) item)
 		       (set-fifo-end! fifo (1+ (- end start))))))))
-	(condvar-signal (fifo-condvar fifo) broadcast))
+	(condvar/signal (fifo-condvar fifo) broadcast))
     (condvar/unlock! (fifo-condvar fifo))))
 (define (fifo-push fifo item (broadcast #f))
   "Pushes a new item into the FIFO. If *broadcast* is true, "
@@ -263,7 +263,7 @@
 		   (doseq (item items i)
 		     (vector-set! vec (+ end i) item))
 		   (set-fifo-end! fifo (+ end add))))))
-	(condvar-signal (fifo-condvar fifo) broadcast))
+	(condvar/signal (fifo-condvar fifo) broadcast))
     (when uselock (condvar/unlock! (fifo-condvar fifo)))))
 
 (define (getlen needed current)
@@ -285,7 +285,7 @@
   (set-fifo-waiting! fifo (choice (fifo-waiting fifo) tid))
   (unless (identical? (thread/get '_fifo) fifo) (thread/set! '_fifo fifo))
   (set-fifo-running! fifo (difference (fifo-running fifo) tid))
-  (condvar-signal (fifo-condvar fifo) #t)
+  (condvar/signal (fifo-condvar fifo) #t)
   (choice-size (fifo-waiting fifo)))
 
 (define (fifo-running! fifo (cvar) (tid))
@@ -299,7 +299,7 @@
   (set! tid (threadid))
   (set-fifo-waiting! fifo (difference (fifo-waiting fifo) tid))
   (set-fifo-running! fifo (choice (fifo-running fifo) tid))
-  (condvar-signal (fifo-condvar fifo) #t)
+  (condvar/signal (fifo-condvar fifo) #t)
   (choice-size (fifo-running fifo)))
 
 (define (fifo/fill! fifo (fillfn) (condvar)) 
@@ -409,6 +409,7 @@
 (define (fifo/close! fifo (uselock #t) (result #f) (condvar))
   "Closes a FIFO, returning a vector of the remaining queued items."
   (set! condvar (fifo-condvar fifo))
+  (when (fifo-debug fifo) (always%watch "FIFO/CLOSE!" fifo condvar))
   (unwind-protect
       (begin
 	(when uselock (condvar/lock! condvar))
@@ -418,11 +419,13 @@
 	(set-fifo-live?! fifo #f)
 	result)
     (begin
-      (condvar-signal condvar #t)
+      (condvar/signal condvar #t)
       (when uselock (condvar/unlock! condvar)))))
 (define (close-fifo fifo) (fifo/close! fifo))
 
-(define (fifo/exhausted! fifo) (fifo/close! fifo #f))
+(define (fifo/exhausted! fifo) 
+  (when (fifo-debug fifo) (always%watch "FIFO/EXHAUSTED!" fifo))
+  (fifo/close! fifo #f))
 
 (define (fifo/queued fifo (result #f))
   "Returns a vector of the queued items in a FIFO, in order"
@@ -483,7 +486,7 @@
       (unwind-protect 
 	  (begin (condvar/lock! (fifo-condvar fifo))
 	    (set-fifo-pause! fifo rdwr)
-	    (condvar-signal (fifo-condvar fifo) #t))
+	    (condvar/signal (fifo-condvar fifo) #t))
 	(condvar/unlock! (fifo-condvar fifo)))))
 
 (define (fifo/pausing? fifo) (fifo-pause fifo))
