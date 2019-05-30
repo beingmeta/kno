@@ -70,7 +70,7 @@
     (when (zero? (random 5)) (thread/yield)))
   (elapsed-time start))
 
-(define (test-threadcall (waitfn thread/join) (wait-opts #f))
+(define (test-threadcall (waitfn thread/join) (wait-opts #default))
   (let ((threads {}))
     (set! numbers '())
     ;; We're testing a bunch of things here and have addrange sleep so
@@ -206,6 +206,8 @@
 
 (define (main)
 
+  (applytest {} (find-thread 0))
+  (applytest {} (find-thread 0 #f))
   (errtest (find-thread 0 #t))
   (applytest #f condvar? 3)
   (applytest #f synchronizer? 3)
@@ -214,10 +216,8 @@
 
   ;;; This doesn't seem to be working right
   
-  #|
   (evaltest {"foofoo" "barbar" "carcar"}
 	    (thread/finish (thread/call doubleup {"foo" "bar" "car"})))
-  |#
 
   (evaltest 3 (thread/finish (inthread (length "abc"))))
   (evaltest {3 4 5} (thread/finish (thread/eval (list 'length {"abc" "abcd" "abcde"}))))
@@ -227,8 +227,8 @@
   (applytest #t < (cstack-depth) (cstack-limit))
   (cstack-limit! (+ 2 (cstack-limit)))
 
-  (let ((good-thread (thread/wait (thread/call goodfact 5)))
-	(error-thread (thread/wait (thread/call errfact 5))))
+  (let ((good-thread (thread/join (thread/call goodfact 5)))
+	(error-thread (thread/join (thread/call errfact 5))))
     (applytest #t thread? good-thread)
     (applytest #t thread/exited? good-thread)
     (applytest #t thread/finished? good-thread)
