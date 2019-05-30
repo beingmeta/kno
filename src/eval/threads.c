@@ -926,6 +926,7 @@ static int join_thread(struct KNO_THREAD_STRUCT *tstruct,int waiting,
   if (tstruct->finished > 0)
     return 0;
   else if (waiting == 0)
+  else if (waiting == 0) 
     rv = pthread_join(tstruct->tid,vptr);
   else if (waiting < 0) {
 #if HAVE_PTHREAD_TRYJOIN_NP
