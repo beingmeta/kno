@@ -2,7 +2,7 @@
 
 (load-component "common.scm")
 
-(use-module 'mttools)
+(use-module '{mttools fifo})
 
 (define (nrange (start 0) (n 8))
   (let ((nums {}))
@@ -126,9 +126,6 @@
   (prog1 (glom (thread/get 'thstring) string)
     (thread/reset-vars!)))
 
-(evaltest {"foofoo" "barbar" "carcar"}
-	  (thread/finish (thread/call doubleup {"foo" "bar" "car"})))
-
 ;;;; We don't run this because we can't easily ignore the failed tests
 
 (define (change-num-recklessly (n (nrandom 1)))
@@ -141,53 +138,41 @@
 
 ;;;; CONDVAR testing
 
-(define touches 0)
-(define sightings 0)
-(define noisy (config 'NOISY #f))
+(define (fifo-generator fifo generated (count 20))
+  (dotimes (i count)
+    (let ((r (random 1000000)))
+      (hashset-add! generated r)
+      (fifo/push! fifo r))
+    (sleep 0.01)))
 
-(define cvar (make-condvar))
-(define var 33)
-(define (watchv i cvar)
-  (while var
-    (condvar/lock! cvar)
-    (if (if (zero? (remainder i 2))
-	    (condvar/wait cvar (+ 2 (random 4)))
-	    (condvar/wait cvar))
-	(begin (when noisy
-		 (if var
-		     (message " [" i "] Seen " var)
-		     (message " [" i "] Exiting test")))
-	       (when var (set! sightings (1+ sightings)))
-	       (condvar/unlock! cvar))
-	(begin (when noisy
-		 (if var (message " [" i "] Just dozing")
-		     (message " [" i "] Exiting test")))
-	       (condvar/unlock! cvar)))))
-(define (touchv j cvar)
-  (condvar/lock! cvar)
-  (set! touches (1+ touches))
-  (unless (identical? j var)
-    (set! var j) (condvar/signal cvar))
-  (condvar/unlock! cvar))
-(define (stop-condvar-test (cvar cvar))
-  (condvar/lock! cvar)
-  (set! var #f)
-  (condvar/signal cvar #t)
-  (condvar/unlock! cvar))
+(defimport fifo-load 'fifo)
 
-(define (test-condvars (cvar cvar))
-  (message "Testing conditional variable " cvar)
-  (let ((threads {}))
-    (set! var (random 100))
-    (dotimes (i 5) (set+! threads (spawn (watchv i cvar))))
-    (dotimes (i 200)
-      (touchv (random 9999) cvar)
-      (sleep (* (random 10) (* 0.1 sleep-base))))
-    (sleep 1)
-    (stop-condvar-test cvar)
-    (thread/join threads)
-    (message "CONDVARS: sightings=" sightings "; touches=" touches)
-    (applytest #t = sightings touches)))
+(define (fifo-watcher fifo seen)
+  (while (fifo-live? fifo)
+    (hashset-add! seen (fifo/pop fifo))))
+
+(defimport fifo-condvar 'fifo)
+
+(define (test-fifo-condvars)
+  (let ((fifo (fifo/make #[fillfn #f]))
+	(generated (make-hashset))
+	(seen (make-hashset))
+	(gen-threads {})
+	(watch-threads {}))
+    (message "Testing conditional variable via FIFO" fifo)
+
+    (applytest #t condvar? (fifo-condvar fifo))
+    (applytest #t synchronizer? (fifo-condvar fifo))
+
+    (dotimes (i 4)
+      (set+! gen-threads (thread/call fifo-generator fifo generated)))
+    (dotimes (i 16)
+      (set+! watch-threads (thread/call fifo-watcher fifo seen)))
+    (thread/wait! gen-threads)
+    (until (zero? (fifo/load fifo)) (fifo/wait! fifo))
+    (fifo/close! fifo)
+    (thread/wait! watch-threads)
+    (applytest #t identical? (hashset-elts generated) (hashset-elts seen))))
 
 (define (test-do-choices-mt)
   (let ((ids {}))
@@ -219,58 +204,58 @@
 
 ;;; Actual tests
 
-(errtest (find-thread 0 #t))
-(applytest #f condvar? 3)
-(applytest #t condvar? cvar)
-(applytest #f synchronizer? 3)
-(applytest #t synchronizer? cvar)
-(applytest #t synchronizer? change-slambda-test-value)
-(applytest #f thread? 3)
+(define (main)
 
-(evaltest 3 (thread/finish (inthread (length "abc"))))
-(evaltest {3 4 5} (thread/finish (thread/eval (list 'length {"abc" "abcd" "abcde"}))))
+  (errtest (find-thread 0 #t))
+  (applytest #f condvar? 3)
+  (applytest #f synchronizer? 3)
+  (applytest #t synchronizer? change-slambda-test-value)
+  (applytest #f thread? 3)
 
-(applytest #t number? (cstack-limit))
-(applytest #t number? (cstack-depth))
-(applytest #t < (cstack-depth) (cstack-limit))
-(cstack-limit! (+ 2 (cstack-limit)))
+  
+  (evaltest {"foofoo" "barbar" "carcar"}
+	    (thread/finish (thread/call doubleup {"foo" "bar" "car"})))
+  
+  (evaltest 3 (thread/finish (inthread (length "abc"))))
+  (evaltest {3 4 5} (thread/finish (thread/eval (list 'length {"abc" "abcd" "abcde"}))))
 
-(define good-thread (thread/wait (thread/call goodfact 5)))
-(applytest #t thread? good-thread)
-(applytest #t thread/exited? good-thread)
-(applytest #t thread/finished? good-thread)
-(applytest #f thread/error? good-thread)
+  (applytest #t number? (cstack-limit))
+  (applytest #t number? (cstack-depth))
+  (applytest #t < (cstack-depth) (cstack-limit))
+  (cstack-limit! (+ 2 (cstack-limit)))
 
-(define error-thread (thread/wait (thread/call errfact 5)))
-(applytest #t thread? error-thread)
-(applytest #t thread/exited? error-thread)
-(applytest #f thread/finished? error-thread)
-(applytest #t thread/error? error-thread)
-(applytest #t exception? (thread/result error-thread))
-(applytest #t vector? (ex/stack (thread/result error-thread)))
+  (let ((good-thread (thread/wait (thread/call goodfact 5)))
+	(error-thread (thread/wait (thread/call errfact 5))))
+    (applytest #t thread? good-thread)
+    (applytest #t thread/exited? good-thread)
+    (applytest #t thread/finished? good-thread)
+    (applytest #f thread/error? good-thread)
+    
+    (applytest #t thread? error-thread)
+    (applytest #t thread/exited? error-thread)
+    (applytest #f thread/finished? error-thread)
+    (applytest #t thread/error? error-thread)
+    (applytest #t exception? (thread/result error-thread))
+    (applytest #t vector? (ex/stack (thread/result error-thread))))
+    
+  (test-synchro-locks)
+  (test-with-lock)
+  
+  (test-threadids)
+  (test-parallel)
+  (test-spawn)
+  (test-slambdas)
 
-(test-synchro-locks)
-(test-with-lock)
+  (test-threadcall)
+  (test-threadcall thread/wait 3)
+  (test-threadcall thread/wait #f)
+  (test-threadcall thread/wait! 0.0003)
+  (test-threadcall thread/wait (timestamp+ 1))
+  (test-threadcall thread/wait [timeout 3])
 
-(test-threadids)
-(test-parallel)
-(test-spawn)
-(test-slambdas)
+  (test-fifo-condvars)
 
-(test-threadcall)
-(test-threadcall thread/wait 3)
-(test-threadcall thread/wait #f)
-(test-threadcall thread/wait! 0.0003)
-(test-threadcall thread/wait (timestamp+ 1))
-(test-threadcall thread/wait [timeout 3])
+  (test-do-choices-mt)
 
-(test-condvars)
-
-(set! sightings 0)
-(set! touches 0)
-(set! var 33)
-(set! cvar #f)
-(test-condvars (make-condvar))
-(test-do-choices-mt)
-
-(test-finished "THREADTEST")
+  (test-finished "THREADTEST")
+  )
