@@ -922,13 +922,14 @@ static int join_thread(struct KNO_THREAD_STRUCT *tstruct,int waiting,
                        struct timespec *ts,
                        void **vptr)
 {
+  int rv = 0;
   if (tstruct->finished > 0)
     return 0;
-  else if (waiting == 0) 
-    return pthread_join(tstruct->tid,vptr);
+  else if (waiting == 0)
+    rv = pthread_join(tstruct->tid,vptr);
   else if (waiting < 0) {
 #if HAVE_PTHREAD_TRYJOIN_NP
-    return pthread_tryjoin_np(tstruct->tid,vptr);
+    rv = pthread_tryjoin_np(tstruct->tid,vptr);
 #else
   u8_log(LOG_WARN,"NotImplemented",
          "No pthread_tryjoin_np support");
@@ -936,13 +937,16 @@ static int join_thread(struct KNO_THREAD_STRUCT *tstruct,int waiting,
 #endif
   } else {
 #if HAVE_PTHREAD_TIMEDJOIN_NP
-    return pthread_timedjoin_np(tstruct->tid,vptr,ts);
+    rv = pthread_timedjoin_np(tstruct->tid,vptr,ts);
 #else
     u8_log(LOG_WARN,"NotImplemented",
            "No pthread_timedjoin_np support");
-  return 0;
-#endif    
+#endif
   }
+  if (rv != 0) {
+    u8_log(LOG_ERROR,"ThreadJoinFailed",
+           "Error trying to join thread, rv=%d");}
+  return rv;
 }
 
 DCLPRIM2("THREAD/JOIN",threadjoin_prim,
@@ -964,7 +968,8 @@ static lispval threadjoin_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
 
   {DO_CHOICES(thread,threads) {
       struct KNO_THREAD_STRUCT *tstruct = (kno_thread_struct)thread;
-      int retval = join_thread(tstruct,waiting,&until,NULL);
+      void *thread_result = NULL;
+      int retval = join_thread(tstruct,waiting,&until,(void *)&thread_result);
       if ( (retval == EINVAL) && (notexited(tstruct)) )
         u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
                retval,strerror(retval),thread);
@@ -1004,7 +1009,8 @@ static lispval threadwait_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
        return kno_type_error(_("thread"),"threadjoin_prim",thread);}
   {DO_CHOICES(thread,threads) {
     struct KNO_THREAD_STRUCT *tstruct = (kno_thread_struct)thread;
-    int retval = join_thread(tstruct,waiting,&until,NULL);
+    void *thread_result = NULL;
+    int retval = join_thread(tstruct,waiting,&until,&thread_result);
     if ( (retval == EINVAL) && (notexited(tstruct)) )
       u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
              retval,strerror(retval),thread);}}
@@ -1021,19 +1027,20 @@ DCLPRIM2("THREAD/FINISH",threadfinish_prim,
 static lispval threadfinish_prim(lispval args,lispval U8_MAYBE_UNUSED opts)
 {
   lispval results = EMPTY;
-  struct timespec until;
-  int waiting = get_thread_wait(opts,&until);
 
   {DO_CHOICES(arg,args)
       if (TYPEP(arg,kno_thread_type)) {
+        struct timespec until = { 0 };
         struct KNO_THREAD_STRUCT *tstruct = (kno_thread_struct)arg;
-        int retval = join_thread(tstruct,waiting,&until,NULL);
+        int waiting = get_thread_wait(opts,&until);
+        void *thread_result = NULL;
+        int retval = join_thread(tstruct,waiting,&until,&thread_result);
         if (retval == EINVAL)
           u8_log(LOG_WARN,ThreadReturnError,
                  "Bad return code %d (%s) from %q",
                  retval,strerror(retval),arg);
         while (notexited(tstruct)) {
-          retval = join_thread(tstruct,waiting,&until,NULL);
+          retval = join_thread(tstruct,waiting,&until,&thread_result);
           if (retval == EINVAL)
             u8_log(LOG_WARN,ThreadReturnError,
                    "Bad return code %d (%s) from %q",
@@ -1051,8 +1058,14 @@ static lispval threadfinish_prim(lispval args,lispval U8_MAYBE_UNUSED opts)
                  u8_elapsed_base(),
                  tstruct->threadid);}
             tstruct->result = void_val;}
-          kno_incref(result);
-          CHOICE_ADD(results,result);}
+          if (result == 0) result=tstruct->result;
+          if (result) {
+            kno_incref(result);
+            CHOICE_ADD(results,result);}
+          else {
+            u8_log(LOG_CRIT,"ThreadBug",
+                   "The thread %q was joined, but doesn't have a result",
+                   arg);}}
         else {
           kno_incref((lispval)tstruct);
           KNO_ADD_TO_CHOICE(results,arg);}}
@@ -1074,14 +1087,15 @@ static lispval threadwaitbang_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
   int waiting = get_thread_wait(opts,&until);
 
   {DO_CHOICES(thread,threads)
-     if (!(TYPEP(thread,kno_thread_type)))
-       return kno_type_error(_("thread"),"threadjoin_prim",thread);}
+      if (!(TYPEP(thread,kno_thread_type)))
+        return kno_type_error(_("thread"),"threadjoin_prim",thread);}
   {DO_CHOICES(thread,threads) {
-    struct KNO_THREAD_STRUCT *tstruct = (kno_thread_struct)thread;
-    int retval = join_thread(tstruct,waiting,&until,NULL);
-    if (retval)
-      u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
-             retval,strerror(retval),thread);}}
+      void *thread_result = NULL;
+      struct KNO_THREAD_STRUCT *tstruct = (kno_thread_struct)thread;
+      int retval = join_thread(tstruct,waiting,&until,&thread_result);
+      if (retval)
+        u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
+               retval,strerror(retval),thread);}}
   return KNO_VOID;
 }
 
