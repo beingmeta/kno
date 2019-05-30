@@ -79,20 +79,11 @@ KNO_EXPORT void kno_init_build_info()
 #ifdef KNO_LOCAL_MODULE_DIR
   config_string(KNO_LOCAL_MODULE_DIR);
 #endif
-#ifdef KNO_LOCAL_SAFE_MODULE_DIR
-  config_string(KNO_LOCAL_SAFE_MODULE_DIR);
-#endif
 #ifdef KNO_INSTALLED_MODULE_DIR
   config_string(KNO_INSTALLED_MODULE_DIR);
 #endif
-#ifdef KNO_INSTALLED_SAFE_MODULE_DIR
-  config_string(KNO_INSTALLED_SAFE_MODULE_DIR);
-#endif
 #ifdef KNO_BUILTIN_MODULE_DIR
   config_string(KNO_BUILTIN_MODULE_DIR);
-#endif
-#ifdef KNO_BUILTIN_SAFE_MODULE_DIR
-  config_string(KNO_BUILTIN_SAFE_MODULE_DIR);
 #endif
 
 #ifdef KNO_LIBSCM_DIR
@@ -491,18 +482,14 @@ KNO_EXPORT void kno_init_build_info()
   config_string(KNO_ADMIN_GROUP);
   config_string(KNO_CONFIG_FILE_PATH);
   config_string(KNO_DEFAULT_LOADPATH);
-  config_string(KNO_DEFAULT_SAFE_LOADPATH);
   config_string(KNO_DEFAULT_DLOADPATH);
   config_string(KNO_DLOAD_SUFFIX);
   config_string(KNO_EXEC);
   config_string(KNO_DBSERVER);
   config_string(KNO_EXEC_WRAPPER);
   config_string(KNO_LOCAL_MODULE_DIR);
-  config_string(KNO_LOCAL_SAFE_MODULE_DIR);
   config_string(KNO_INSTALLED_MODULE_DIR);
-  config_string(KNO_INSTALLED_SAFE_MODULE_DIR);
   config_string(KNO_BUILTIN_MODULE_DIR);
-  config_string(KNO_BUILTIN_SAFE_MODULE_DIR);
   config_string(KNO_UNPACKAGE_DIR);
 
 #ifdef KNO_WITH_FILE_LOCKING

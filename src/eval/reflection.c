@@ -21,7 +21,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-static lispval moduleid_symbol, source_symbol, safe_symbol;
+static lispval moduleid_symbol, source_symbol;
 
 #define GETEVALFN(x) ((kno_evalfn)(kno_fcnid_ref(x)))
 
@@ -655,7 +655,7 @@ static lispval module_exports(lispval arg)
   else if (TABLEP(arg))
     return kno_getkeys(arg);
   else if (SYMBOLP(arg)) {
-    lispval module = kno_find_module(arg,0,1);
+    lispval module = kno_find_module(arg,1);
     if (KNO_ABORTP(module))
       return module;
     else if (VOIDP(module))
@@ -727,8 +727,7 @@ static lispval wherefrom_evalfn(lispval expr,kno_lexenv call_env,
         lispval id = kno_get(bindings,moduleid_symbol,KNO_VOID);
         if ( (KNO_SYMBOLP(id)) &&
              ( (lookup_ids) || (!(KNO_MALLOCD_CONSP((kno_cons)bindings))) ) ) {
-          int safe = kno_test(bindings,safe_symbol,KNO_VOID);
-          lispval mod = kno_get_module(id,safe);
+          lispval mod = kno_get_module(id);
           if (KNO_ABORTP(mod)) return mod;
           else if (KNO_TABLEP(mod)) return mod;
           else kno_decref(mod);}
@@ -972,8 +971,7 @@ static lispval get_all_modules_prim()
 
 KNO_EXPORT void kno_init_reflection_c()
 {
-  lispval module =
-    kno_new_cmodule("reflection",KNO_MODULE_SAFE,kno_init_reflection_c);
+  lispval module = kno_new_cmodule("reflection",0,kno_init_reflection_c);
 
   lispval apropos_cprim = kno_make_cprim1("APROPOS",apropos_prim,1);
   kno_idefn(module,apropos_cprim);
@@ -981,7 +979,6 @@ KNO_EXPORT void kno_init_reflection_c()
 
   moduleid_symbol = kno_intern("%moduleid");
   source_symbol = kno_intern("%source");
-  safe_symbol = kno_intern("%safemod");
   call_profile_symbol = kno_intern("%callprofile");
 
   kno_idefn1(module,"MACRO?",macrop,1,
@@ -1119,10 +1116,6 @@ KNO_EXPORT void kno_init_reflection_c()
   kno_idefn0(module,"ALL-MODULES",get_all_modules_prim,
             "(ALL-MODULES) "
             "Returns all loaded modules as an alist "
-            "of module names and modules");
-  kno_idefn0(module,"SAFE-MODULES",get_all_modules_prim,
-            "(SAFE-MODULES) "
-            "Returns all 'safe' loaded modules as an alist"
             "of module names and modules");
 
   kno_idefn1(module,"CONSBLOCK",make_consblock,1,

@@ -3340,7 +3340,7 @@ KNO_EXPORT int kno_init_mongodb()
 
   init_mongo_opmap();
 
-  module = kno_new_cmodule("mongodb",(KNO_MODULE_SAFE),kno_init_mongodb);
+  module = kno_new_cmodule("mongodb",0,kno_init_mongodb);
 
   idsym = kno_intern("_id");
   maxkey = kno_intern("mongomax");

@@ -259,7 +259,7 @@ KNO_EXPORT int kno_init_tidy()
   dontfix_symbol = kno_intern("dontfix");
   xhtml_symbol = kno_intern("xhtml");
   wrap_symbol = kno_intern("wrap");
-  tidy_module = kno_new_cmodule("tidy",(KNO_MODULE_SAFE),kno_init_tidy);
+  tidy_module = kno_new_cmodule("tidy",0,kno_init_tidy);
 
   kno_idefn(tidy_module,
            kno_make_cprim3x("TIDY5",tidy_prim,1,

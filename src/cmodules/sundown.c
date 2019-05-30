@@ -81,7 +81,7 @@ KNO_EXPORT int kno_init_sundown()
   if (sundown_init) return 0;
   /* u8_register_source_file(_FILEINFO); */
   sundown_init = 1;
-  sundown_module = kno_new_cmodule("sundown",(KNO_MODULE_SAFE),kno_init_sundown);
+  sundown_module = kno_new_cmodule("sundown",0,kno_init_sundown);
 
   kno_idefn(sundown_module,
            kno_make_cprim2x("MARKDOWN->HTML",markdown2html_prim,1,

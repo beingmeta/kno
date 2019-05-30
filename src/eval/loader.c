@@ -63,15 +63,14 @@ static u8_condition kno_ReloadError=_("Module reload error");
 
 static u8_string libscm_path;
 
-static lispval safe_loadpath = NIL;
 static lispval loadpath = NIL;
 static int log_reloads = 1;
 
 static void add_load_record
   (lispval spec,u8_string filename,kno_lexenv env,time_t mtime);
 static lispval load_source_for_module
-  (lispval spec,u8_string module_source,int safe);
-static u8_string get_module_source(lispval spec,int safe);
+  (lispval spec,u8_string module_source);
+static u8_string get_module_source(lispval spec);
 
 static lispval moduleid_symbol, source_symbol, loadstamps_symbol;
 
@@ -139,18 +138,18 @@ static u8_string check_module_source(u8_string name,u8_string search_path)
     else return NULL;}
 }
 
-static int load_source_module(lispval spec,int safe,void *ignored)
+static int load_source_module(lispval spec,void *ignored)
 {
-  u8_string module_source = get_module_source(spec,safe);
+  u8_string module_source = get_module_source(spec);
   if (module_source) {
-    lispval load_result = load_source_for_module(spec,module_source,safe);
+    lispval load_result = load_source_for_module(spec,module_source);
     if (KNO_ABORTP(load_result)) {
       u8_free(module_source);
       kno_decref(load_result);
       return -1;}
     else {
       lispval module_filename = lispval_string(module_source);
-      kno_register_module_x(module_filename,load_result,safe);
+      kno_register_module_x(module_filename,load_result,0);
       /* Store non symbolic specifiers as module identifiers */
       if (STRINGP(spec))
         kno_add(load_result,source_symbol,spec);
@@ -162,7 +161,7 @@ static int load_source_module(lispval spec,int safe,void *ignored)
       /* Register the module under its filename too. */
       if (strchr(module_source,':') == NULL) {
         lispval abspath_key = kno_lispstring(u8_abspath(module_source,NULL));
-        kno_register_module_x(abspath_key,load_result,safe);
+        kno_register_module_x(abspath_key,load_result,0);
         kno_decref(abspath_key);}
       kno_decref(module_filename);
       u8_free(module_source);
@@ -171,7 +170,7 @@ static int load_source_module(lispval spec,int safe,void *ignored)
   else return 0;
 }
 
-static u8_string get_module_source(lispval spec,int safe)
+static u8_string get_module_source(lispval spec)
 {
   if (SYMBOLP(spec)) {
     u8_string name = u8_downcase(SYM_NAME(spec));
@@ -179,14 +178,7 @@ static u8_string get_module_source(lispval spec,int safe)
     if (module_source) {
       u8_free(name);
       return module_source;}
-    else if (safe==0) {
-      KNO_DOLIST(elt,loadpath) {
-        if (STRINGP(elt)) {
-          module_source = check_module_source(name,CSTRING(elt));
-          if (module_source) {
-            u8_free(name);
-            return module_source;}}}}
-    KNO_DOLIST(elt,safe_loadpath) {
+    KNO_DOLIST(elt,loadpath) {
       if (STRINGP(elt)) {
         module_source = check_module_source(name,CSTRING(elt));
         if (module_source) {
@@ -194,7 +186,7 @@ static u8_string get_module_source(lispval spec,int safe)
           return module_source;}}}
     u8_free(name);
     return NULL;}
-  else if ((safe==0) && (STRINGP(spec))) {
+  else if (STRINGP(spec)) {
     u8_string spec_data = CSTRING(spec);
     if (strchr(spec_data,':') == NULL) {
       u8_string abspath = u8_abspath(CSTRING(spec),NULL);
@@ -212,14 +204,10 @@ static u8_string get_module_source(lispval spec,int safe)
   else return NULL;
 }
 
-static lispval load_source_for_module
-  (lispval spec,u8_string module_source,int safe)
+static lispval load_source_for_module(lispval spec,u8_string module_source)
 {
   time_t mtime;
-  kno_lexenv env=
-    ((safe) ?
-     (kno_safe_working_lexenv()) :
-     (kno_working_lexenv()));
+  kno_lexenv env = kno_working_lexenv();
   lispval load_result =
     kno_load_source_with_date(module_source,env,"auto",&mtime);
   if (KNO_ABORTP(load_result)) {
@@ -228,8 +216,7 @@ static lispval load_source_for_module
     kno_decref((lispval)env);
     return load_result;}
   if (STRINGP(spec))
-    kno_register_module_x(spec,(lispval) env,
-                         ((safe) ? (KNO_MODULE_SAFE) : (0)));
+    kno_register_module_x(spec,(lispval) env,0);
   add_load_record(spec,module_source,env,mtime);
   kno_decref(load_result);
   return (lispval)env;
@@ -238,10 +225,10 @@ static lispval load_source_for_module
 static lispval reload_module(lispval module)
 {
   if (STRINGP(module)) {
-    int retval = load_source_module(module,0,NULL);
+    int retval = load_source_module(module,NULL);
     if (retval) return KNO_TRUE; else return KNO_FALSE;}
   else if (SYMBOLP(module)) {
-    lispval resolved = kno_get_module(module,0);
+    lispval resolved = kno_get_module(module);
     if (TABLEP(resolved)) {
       lispval result = reload_module(resolved);
       kno_decref(resolved);
@@ -261,35 +248,6 @@ static lispval reload_module(lispval module)
       return kno_err(kno_ReloadError,"reload_module",
                     "Couldn't find source",module);}}
   else return kno_err(kno_TypeError,"reload_module",
-                     "module name or path",module);
-}
-
-static lispval safe_reload_module(lispval module)
-{
-  if (STRINGP(module)) {
-    int retval = load_source_module(module,1,NULL);
-    if (retval) return KNO_TRUE; else return KNO_FALSE;}
-  else if (SYMBOLP(module)) {
-    lispval resolved = kno_get_module(module,1);
-    if (TABLEP(resolved)) {
-      lispval result = safe_reload_module(resolved);
-      kno_decref(resolved);
-      return result;}
-    else return kno_err(kno_TypeError,"safe_reload_module",
-                       "module name or path",module);}
-  else if (TABLEP(module)) {
-    lispval ids = kno_get(module,source_symbol,EMPTY), source = VOID;
-    DO_CHOICES(id,ids) {
-      if (STRINGP(id)) {source = id; KNO_STOP_DO_CHOICES; break;}}
-    if (STRINGP(source)) {
-      lispval result = safe_reload_module(source);
-      kno_decref(ids);
-      return result;}
-    else {
-      kno_decref(ids);
-      return kno_err(kno_ReloadError,"safe_reload_module",
-                    "Couldn't find source",module);}}
-  else return kno_err(kno_TypeError,"safe_reload_module",
                      "module name or path",module);
 }
 
@@ -489,7 +447,7 @@ static lispval update_modules_prim(lispval flag)
 static lispval update_module_prim(lispval spec,lispval force)
 {
   if (FALSEP(force)) {
-    u8_string module_source = get_module_source(spec,0);
+    u8_string module_source = get_module_source(spec);
     if (module_source) {
       int retval = kno_update_file_module(module_source,0);
       if (retval) return KNO_TRUE;
@@ -499,7 +457,7 @@ static lispval update_module_prim(lispval spec,lispval force)
                 _("Module does not exist"),
                 spec);
       return KNO_ERROR;}}
-  else return load_source_module(spec,0,NULL);
+  else return load_source_module(spec,NULL);
 }
 
 static lispval updatemodules_config_get(lispval var,void *ignored)
@@ -808,12 +766,6 @@ KNO_EXPORT void kno_init_loader_c()
     loadpath_config_set(kno_intern("loadpath"),v,&loadpath);
     kno_decref(v);}
 
-  {u8_string path = u8_getenv("KNO_INIT_SAFELOADPATH");
-    lispval v = ((path) ? (kno_lispstring(path)) :
-                (lispval_string(KNO_DEFAULT_SAFE_LOADPATH)));
-    loadpath_config_set(kno_intern("safeloadpath"),v,&safe_loadpath);
-    kno_decref(v);}
-
   {u8_string dir=u8_getenv("KNO_LIBSCM_DIR");
     if (dir==NULL) dir = u8_strdup(KNO_LIBSCM_DIR);
     if (u8_has_suffix(dir,"/",0))
@@ -829,9 +781,6 @@ KNO_EXPORT void kno_init_loader_c()
     ("LOADPATH","Directories/URIs to search for modules (not sandbox)",
      loadpath_config_get,loadpath_config_set,&loadpath);
   kno_register_config
-    ("SAFELOADPATH","Directories/URIs to search for sandbox modules",
-     loadpath_config_get,loadpath_config_set,&safe_loadpath);
-  kno_register_config
     ("LIBSCM","The location for bundled modules (prioritized before loadpath)",
      kno_sconfig_get,kno_sconfig_set,&libscm_path);
 
@@ -844,15 +793,13 @@ KNO_EXPORT void kno_init_loader_c()
      loadfile_config_get,loadfile_config_set,&loadfile_list);
 #endif
 
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim1("RELOAD-MODULE",safe_reload_module,1));
   kno_idefn(loader_module,
-           kno_make_cprim1("RELOAD-MODULE",reload_module,1));
+            kno_make_cprim1("RELOAD-MODULE",reload_module,1));
   kno_idefn(loader_module,
-           kno_make_cprim1("UPDATE-MODULES",update_modules_prim,0));
+            kno_make_cprim1("UPDATE-MODULES",update_modules_prim,0));
   kno_idefn(loader_module,
-           kno_make_cprim2x("UPDATE-MODULE",update_module_prim,1,
-                           -1,VOID,-1,KNO_FALSE));
+            kno_make_cprim2x("UPDATE-MODULE",update_module_prim,1,
+                             -1,VOID,-1,KNO_FALSE));
 
   kno_def_evalfn(loader_module,"LOAD-LATEST","",load_latest_evalfn);
 

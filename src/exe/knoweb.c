@@ -2125,7 +2125,7 @@ int main(int argc,char **argv)
 #endif
 
   /* This is the module where the data-access API lives */
-  kno_register_module("dbserv",kno_incref(kno_dbserv_module),KNO_MODULE_SAFE);
+  kno_register_module("dbserv",kno_incref(kno_dbserv_module),0);
   kno_finish_module(kno_dbserv_module);
 
   kno_init_webtools();

@@ -84,7 +84,7 @@ static int load_db_module(lispval opts,u8_context context)
     if ( (KNO_VOIDP(modules)) || (KNO_FALSEP(modules)) || (KNO_EMPTYP(modules)) )
       return 0;
     else {
-      lispval mod = kno_find_module(modules,0,1);
+      lispval mod = kno_find_module(modules,1);
       kno_decref(modules);
       if (KNO_ABORTP(mod)) {
         kno_seterr("MissingDBModule",context,
@@ -370,8 +370,7 @@ static lispval open_index_helper(lispval arg,lispval opts,int registered)
   kno_storage_flags flags = kno_get_dbflags(opts,KNO_STORAGE_ISINDEX);
   kno_index ix = NULL;
   lispval modules = kno_getopt(opts,FDSYM_MODULE,KNO_VOID);
-  lispval mod = (KNO_VOIDP(modules)) ? (KNO_VOID) :
-    (kno_get_module(modules,0));
+  lispval mod = (KNO_VOIDP(modules)) ? (KNO_VOID) : (kno_get_module(modules));
   kno_decref(modules);
   if (KNO_ABORTP(mod))
     return mod;

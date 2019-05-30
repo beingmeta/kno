@@ -24,7 +24,6 @@ KNO_EXPORT u8_condition kno_InvalidMacro, KNO_BadArglist;
 KNO_EXPORT u8_condition kno_ReadOnlyEnv;
 
 KNO_EXPORT lispval kno_scheme_module, kno_xscheme_module;
-
 KNO_EXPORT lispval _kno_comment_symbol;
 
 KNO_EXPORT int kno_scheme_initialized;
@@ -46,14 +45,14 @@ KNO_EXPORT int kno_choice_evalp(lispval x);
 
 KNO_EXPORT u8_string kno_evalstack_type, kno_ndevalstack_type;
 
+#define KNO_MODULE_OPTIONAL 0
+#define KNO_MODULE_DEFAULT 1
+
 /* Constants */
 
 #define KNO_STACK_ARGS 6
 
 /* Environments */
-
-#define KNO_MODULE_SAFE 1
-#define KNO_MODULE_DEFAULT 2
 
 KNO_EXPORT int kno_assign_value(lispval,lispval,kno_lexenv);
 KNO_EXPORT int kno_add_value(lispval,lispval,kno_lexenv);
@@ -120,32 +119,30 @@ typedef struct KNO_DTSERVER *kno_stream_erver;
 
 /* Modules */
 
-KNO_EXPORT kno_lexenv kno_new_lexenv(lispval bindings,int safe);
+KNO_EXPORT kno_lexenv kno_new_lexenv(lispval bindings);
 KNO_EXPORT kno_lexenv kno_working_lexenv(void);
-KNO_EXPORT kno_lexenv kno_safe_working_lexenv(void);
 KNO_EXPORT kno_lexenv kno_make_env(lispval module,kno_lexenv parent);
 KNO_EXPORT kno_lexenv kno_make_export_env(lispval exports,kno_lexenv parent);
 KNO_EXPORT lispval kno_register_module_x(lispval name,lispval module,int flags);
 KNO_EXPORT lispval kno_register_module(u8_string name,lispval module,int flags);
-KNO_EXPORT lispval kno_get_module(lispval name,int safe);
-KNO_EXPORT int kno_discard_module(lispval name,int safe);
+KNO_EXPORT lispval kno_get_module(lispval name);
+KNO_EXPORT int kno_discard_module(lispval name);
 
 KNO_EXPORT lispval kno_all_modules(void);
-KNO_EXPORT lispval kno_safe_modules(void);
 
 KNO_EXPORT int kno_module_finished(lispval module,int flags);
 KNO_EXPORT int kno_finish_module(lispval module);
 KNO_EXPORT int kno_static_module(lispval module);
 KNO_EXPORT int kno_lock_exports(lispval module);
 
-KNO_EXPORT lispval kno_find_module(lispval,int,int);
+KNO_EXPORT lispval kno_find_module(lispval,int);
 KNO_EXPORT lispval kno_new_module(char *name,int flags);
 KNO_EXPORT lispval kno_new_cmodule(char *name,int flags,void *addr);
 
 KNO_EXPORT lispval kno_use_module(kno_lexenv env,lispval module);
 
 
-KNO_EXPORT void kno_add_module_loader(int (*loader)(lispval,int,void *),void *);
+KNO_EXPORT void kno_add_module_loader(int (*loader)(lispval,void *),void *);
 
 #define KNO_LOCK_EXPORTS 0x01
 #define KNO_FIX_EXPORTS 0x02

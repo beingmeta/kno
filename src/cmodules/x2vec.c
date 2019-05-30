@@ -2259,7 +2259,7 @@ KNO_EXPORT int kno_init_x2vec_c()
 
   init_x2vec_symbols();
 
-  module=kno_new_cmodule("x2vec",(KNO_MODULE_SAFE),kno_init_x2vec_c);
+  module=kno_new_cmodule("x2vec",0,kno_init_x2vec_c);
 
   kno_idefn(module,kno_make_cprim3("X2VEC/START",x2vec_start_prim,1));
   kno_idefn(module,kno_make_cprim3("X2VEC/MSTART",x2vec_modular_start_prim,1));

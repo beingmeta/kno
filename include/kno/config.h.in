@@ -387,9 +387,6 @@
 /* Where to find module files */
 #undef KNO_DEFAULT_LOADPATH
 
-/* Where to find "safe" module files */
-#undef KNO_DEFAULT_SAFE_LOADPATH
-
 /* Where to find dynamic loading files (.dll, .so, .dylib, etc) */
 #undef KNO_DEFAULT_DLOADPATH
 
@@ -605,11 +602,8 @@
 
 /* Default module dirs */
 #undef KNO_LOCAL_MODULE_DIR
-#undef KNO_LOCAL_SAFE_MODULE_DIR
 #undef KNO_INSTALLED_MODULE_DIR
-#undef KNO_INSTALLED_SAFE_MODULE_DIR
 #undef KNO_BUILTIN_MODULE_DIR
-#undef KNO_BUILTIN_SAFE_MODULE_DIR
 
 /* Where packages are unpacked */
 #undef KNO_UNPACKAGE_DIR

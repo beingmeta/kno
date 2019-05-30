@@ -466,7 +466,8 @@ static lispval define_return_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
 
 /* This defines an identifier in the local environment only if
    it is not currently defined. */
-static lispval define_import_evalfn(lispval expr,kno_lexenv env,kno_stack _stack,int safe)
+static lispval define_import_evalfn(lispval expr,kno_lexenv env,
+                                    kno_stack _stack)
 {
   lispval var = kno_get_arg(expr,1);
   lispval module_expr = kno_get_arg(expr,2);
@@ -484,7 +485,7 @@ static lispval define_import_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
   if (KNO_ABORTP(module_spec)) return module_spec;
 
   lispval module = ( (KNO_HASHTABLEP(module_spec)) || (KNO_LEXENVP(module_spec)) ) ?
-    (kno_incref(module_spec)) : (kno_find_module(module_spec,safe,0));
+    (kno_incref(module_spec)) : (kno_find_module(module_spec,0));
   if (KNO_ABORTP(module)) {
     kno_decref(module_spec);
     return module;}
@@ -509,12 +510,7 @@ static lispval define_import_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
 
 static lispval define_import(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  return define_import_evalfn(expr,env,_stack,0);
-}
-
-static lispval safe_define_import(lispval expr,kno_lexenv env,kno_stack _stack)
-{
-  return define_import_evalfn(expr,env,_stack,1);
+  return define_import_evalfn(expr,env,_stack);
 }
 
 /* Initialization */
@@ -546,10 +542,6 @@ KNO_EXPORT void kno_init_binders_c()
   kno_def_evalfn(kno_xscheme_module,"DEFINE-IMPORT",
                 "Defines a local binding for a value in another module",
                 define_import);
-  kno_def_evalfn(kno_scheme_module,"DEFINE-IMPORT",
-                "Defines a local binding for a value in another module",
-                safe_define_import);
-  kno_defalias(kno_xscheme_module,"DEFIMPORT","DEFINE-IMPORT");
   kno_defalias(kno_scheme_module,"DEFIMPORT","DEFINE-IMPORT");
 
 }

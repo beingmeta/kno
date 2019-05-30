@@ -466,7 +466,7 @@ KNO_EXPORT int kno_init_ziptools()
 
   ziptools_init = u8_millitime();
   ziptools_module =
-    kno_new_cmodule("ziptools",(KNO_MODULE_SAFE),kno_init_ziptools);
+    kno_new_cmodule("ziptools",0,kno_init_ziptools);
 
   kno_zipfile_type = kno_register_cons_type("ZIPFILE");
 

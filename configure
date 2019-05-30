@@ -806,13 +806,9 @@ data_dir
 shared_config
 local_config
 config_dir
-default_safe_module_path
 default_module_path
-local_safe_module_dir
 local_module_dir
-installed_safe_module_dir
 installed_module_dir
-builtin_safe_module_dir
 builtin_module_dir
 unpackage_dir
 share_dir
@@ -944,7 +940,6 @@ with_builtin_module_dir
 with_loadpath
 with_libscm
 with_module_path
-with_safe_module_path
 with_boot_config
 with_dload_path
 enable_shared
@@ -1693,7 +1688,6 @@ Optional Packages:
 --with-loadpath location
 --with-libscm location
 --with-module-path location
---with-safe-module-path location
 --with-boot-config configstring
 --with-dload-path location
 --without-i18n built and install message catalogs
@@ -3028,14 +3022,10 @@ apache_modinfo="/etc/apache2"
 APXSFLAGS=
 A2EN="none"
 builtin_module_dir=""
-builtin_safe_module_dir=""
 installed_module_dir=""
-installed_safe_module_dir=""
 local_module_dir=""
 default_module_path=""
-default_safe_module_path=""
 module_path=""
-safe_module_path=""
 source_dir=""
 CORE_CMODULES=""
 DB_CMODULES=""
@@ -3173,10 +3163,6 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
-
-
-
-
 
 
 
@@ -9472,7 +9458,6 @@ else
 fi
 
 installed_module_dir=$with_installed_module_dir
-installed_safe_module_dir=$with_installed_module_dir/safe
 
 
 # Check whether --with-local_modules was given.
@@ -9483,7 +9468,6 @@ else
 fi
 
 local_module_dir=$with_local_modules
-local_safe_module_dir=$with_local_modules/safe
 
 
 # Check whether --with-builtin_module_dir was given.
@@ -9494,7 +9478,6 @@ else
 fi
 
 builtin_module_dir=$with_builtin_module_dir
-builtin_safe_module_dir=$builtin_module_dir/safe
 
 LIBSCM="${share_dir}/libscm/\${REVISION}"
 
@@ -9526,16 +9509,12 @@ _ACEOF
 fi;
 
 builtin_module_path=$builtin_module_dir/
-builtin_safe_module_path=$builtin_module_dir/safe/
 
 installed_module_path=$installed_module_dir/
-installed_safe_module_path=$installed_safe_module_dir/
 
 local_module_path=$local_module_dir/
-local_safe_module_path=$local_safe_module_dir/
 
 default_module_path=$local_module_path:$installed_module_path:$builtin_module_path
-default_safe_module_path=$local_safe_module_path:$installed_safe_module_path:$builtin_safe_module_path
 
 
 # Check whether --with-module_path was given.
@@ -9545,16 +9524,7 @@ else
   with_module_path=$default_module_path
 fi
 
-
-# Check whether --with-safe_module_path was given.
-if test "${with_safe_module_path+set}" = set; then :
-  withval=$with_safe_module_path;
-else
-  with_safe_module_path=$default_safe_module_path
-fi
-
 module_path=$with_module_path
-safe_module_path=$with_safe_module_path
 
 if test ! -z ${with_loadpath}; then
    module_path="${with_loadpath}:${module_path}";
@@ -9565,23 +9535,11 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
-#define KNO_LOCAL_SAFE_MODULE_DIR "$local_safe_module_dir"
-_ACEOF
-
-cat >>confdefs.h <<_ACEOF
 #define KNO_INSTALLED_MODULE_DIR "$installed_module_dir"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
-#define KNO_INSTALLED_SAFE_MODULE_DIR "$installed_safe_module_dir"
-_ACEOF
-
-cat >>confdefs.h <<_ACEOF
 #define KNO_BUILTIN_MODULE_DIR "$builtin_module_dir"
-_ACEOF
-
-cat >>confdefs.h <<_ACEOF
-#define KNO_BUILTIN_SAFE_MODULE_DIR "$builtin_safe_module_dir"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
@@ -9591,10 +9549,6 @@ _ACEOF
 
 cat >>confdefs.h <<_ACEOF
 #define KNO_DEFAULT_LOADPATH "$module_path"
-_ACEOF
-
-cat >>confdefs.h <<_ACEOF
-#define KNO_DEFAULT_SAFE_LOADPATH "$safe_module_path"
 _ACEOF
 
 

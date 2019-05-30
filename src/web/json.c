@@ -601,15 +601,9 @@ static lispval jsonstring(lispval x,lispval flags_arg,lispval slotfn,
 
 KNO_EXPORT void kno_init_json_c()
 {
-  lispval module = kno_new_module("WEBTOOLS",(KNO_MODULE_SAFE));
-  lispval unsafe_module = kno_new_module("WEBTOOLS",0);
+  lispval module = kno_new_module("WEBTOOLS",0);
 
   kno_idefn3(module,"JSONPARSE",jsonparseprim,1,
-            "(JSONPARSE *string*) Parse the JSON in *string* into a LISP object",
-            -1,VOID,
-            -1,KNO_INT(KNO_JSON_DEFAULTS),
-            -1,VOID);
-  kno_idefn3(unsafe_module,"JSONPARSE",jsonparseprim,1,
             "(JSONPARSE *string*) Parse the JSON in *string* into a LISP object",
             -1,VOID,
             -1,KNO_INT(KNO_JSON_DEFAULTS),
@@ -620,17 +614,8 @@ KNO_EXPORT void kno_init_json_c()
             -1,VOID,-1,KNO_INT(KNO_JSON_DEFAULTS),
             -1,VOID,-1,VOID,
             -1,VOID);
-  kno_idefn5(unsafe_module,"->JSON",jsonstring,1,
-            "(->JSON *obj* ...) returns a JSON string for the lisp object *obj*",
-            -1,VOID,-1,KNO_INT(KNO_JSON_DEFAULTS),
-            -1,VOID,-1,VOID,
-            -1,VOID);
 
   kno_idefn5(module,"JSONOUTPUT",jsonoutput,1,
-            "Outputs a JSON representation to the standard output",
-            -1,VOID,-1,KNO_INT(KNO_JSON_DEFAULTS),
-            -1,VOID,-1,VOID,-1,VOID);
-  kno_idefn5(unsafe_module,"JSONOUTPUT",jsonoutput,1,
             "Outputs a JSON representation to the standard output",
             -1,VOID,-1,KNO_INT(KNO_JSON_DEFAULTS),
             -1,VOID,-1,VOID,-1,VOID);

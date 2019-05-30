@@ -330,12 +330,10 @@ static lispval load_into_env_prim(lispval source,lispval envarg,lispval resultfn
     return kno_type_error("callback procedure","LOAD->ENV",envarg);
   if ((VOIDP(envarg))||(KNO_TRUEP(envarg)))
     env = kno_working_lexenv();
-  else if (FALSEP(envarg))
-    env = kno_safe_working_lexenv();
   else if (KNO_LEXENVP(envarg)) {
     env = (kno_lexenv)envarg; kno_incref(envarg);}
   else if (TABLEP(envarg)) {
-    env = kno_new_lexenv(envarg,0);
+    env = kno_new_lexenv(envarg);
     kno_incref(envarg);}
   else return kno_type_error("environment","LOAD->ENV",envarg);
   result = kno_load_source(CSTRING(source),env,NULL);

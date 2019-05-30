@@ -659,7 +659,7 @@ int kno_init_imagick()
   lispval imagick_module;
   if (imagick_init) return 0;
   else imagick_init = u8_millitime();
-  imagick_module = kno_new_cmodule("imagick",(KNO_MODULE_SAFE),kno_init_imagick);
+  imagick_module = kno_new_cmodule("imagick",0,kno_init_imagick);
 
   kno_imagick_type = kno_register_cons_type("IMAGICK");
   kno_unparsers[kno_imagick_type]=unparse_imagick;

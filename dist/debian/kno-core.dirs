@@ -5,9 +5,7 @@ usr/share/kno
 usr/share/kno/data
 usr/share/kno/config
 usr/share/kno/modules/installed
-usr/share/kno/modules/installed/safe
 usr/share/kno/modules/local
-usr/share/kno/modules/local/safe
 usr/share/kno/libscm
 usr/share/kno/libscm/bench
 usr/share/kno/libscm/bugjar

@@ -278,7 +278,7 @@ KNO_EXPORT int kno_init_exif()
   if (exif_init) return 0;
   /* u8_register_source_file(_FILEINFO); */
   exif_init = u8_millitime();
-  exif_module = kno_new_cmodule("exif",(KNO_MODULE_SAFE),kno_init_exif);
+  exif_module = kno_new_cmodule("exif",0,kno_init_exif);
   KNO_INIT_STATIC_CONS(&exif_tagmap,kno_hashtable_type);
   kno_make_hashtable(&exif_tagmap,139);
   while (scan->tagname) {

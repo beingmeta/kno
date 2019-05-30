@@ -270,8 +270,7 @@ KNO_EXPORT int kno_init_hyphenate()
              dictfile);}
     u8_free(dictfile);}
 
-  hyphenate_module =
-    kno_new_cmodule("hyphenate",(KNO_MODULE_SAFE),kno_init_hyphenate);
+  hyphenate_module = kno_new_cmodule("hyphenate",0,kno_init_hyphenate);
 
   kno_idefn(hyphenate_module,
            kno_make_cprim1x("HYPHENATE-WORD",

@@ -1366,14 +1366,6 @@ static lispval withenv_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return result;
 }
 
-static lispval withenv_safe_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
-{
-  kno_lexenv consed_env = kno_safe_working_lexenv();
-  lispval result = withenv(expr,env,consed_env,"WITHENV/SAFE");
-  kno_recycle_lexenv(consed_env);
-  return result;
-}
-
 /* Eval/apply related primitives */
 
 static lispval get_arg_prim(lispval expr,lispval elt,lispval dflt)
@@ -2085,10 +2077,7 @@ static void init_localfns()
            kno_make_ndprim(kno_make_cprim1("%FIXCHOICE",fixchoice_prim,1)));
 
 
-  kno_def_evalfn(kno_scheme_module,"WITHENV","",withenv_safe_evalfn);
   kno_def_evalfn(kno_xscheme_module,"WITHENV","",withenv_evalfn);
-  kno_def_evalfn(kno_xscheme_module,"WITHENV/SAFE","",withenv_safe_evalfn);
-
 
   kno_idefn3(kno_scheme_module,"GET-ARG",get_arg_prim,2,
             "`(GET-ARG *expression* *i* [*default*])` "

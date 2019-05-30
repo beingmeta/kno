@@ -633,29 +633,22 @@ static lispval config_get_modules(lispval var,void *data)
 }
 static int config_use_module(lispval var,lispval val,void *data)
 {
-  lispval safe_module = kno_find_module(val,1,1), module = safe_module;
-  if (KNO_VOIDP(module)) {}
-  else if (HASHTABLEP(module))
-    exposed_lexenv=
+  int failed = 0;
+  lispval module = kno_find_module(val,1);
+  if (HASHTABLEP(module))
+    exposed_lexenv =
       kno_make_env(kno_incref(module),exposed_lexenv);
   else if (KNO_LEXENVP(module)) {
     KNO_LEXENV *env = KNO_CONSPTR(kno_lexenv,module);
     if (HASHTABLEP(env->env_exports))
-      exposed_lexenv=
+      exposed_lexenv =
         kno_make_env(kno_incref(env->env_exports),exposed_lexenv);}
-  module = kno_find_module(val,0,1);
-  if (KNO_EQ(module,safe_module))
-    if (KNO_VOIDP(module)) return 0;
-    else return 1;
-  else if (HASHTABLEP(module))
-    exposed_lexenv=
-      kno_make_env(kno_incref(module),exposed_lexenv);
-  else if (KNO_LEXENVP(module)) {
-    KNO_LEXENV *env = KNO_CONSPTR(kno_lexenv,module);
-    if (HASHTABLEP(env->env_exports))
-      exposed_lexenv=
-        kno_make_env(kno_incref(env->env_exports),exposed_lexenv);}
-  module_list = kno_conspair(kno_incref(val),module_list);
+  else {
+    u8_log(LOG_WARN,"CorruptedModuleTable","Got %q for %q",
+           module,var);
+    failed = 1;}
+  if (!(failed))
+    module_list = kno_conspair(kno_incref(val),module_list);
   return 1;
 }
 
@@ -967,10 +960,7 @@ int main(int argc,char **argv)
   /* This is the base of the environment used to be passed to the server.
      It is augmented by the dbserv module, all of the modules declared by
      MODULE = configurations, and either the exports or the definitions of
-     the server control file from the command line.
-     It starts out built on the default safe environment, but loses that if
-     fullscheme is zero after configuration and file loading.  fullscheme can be
-     set by the FULLSCHEME configuration parameter. */
+     the server control file from the command line. */
   kno_lexenv core_env;
 
   kno_main_errno_ptr = &errno;
@@ -1273,10 +1263,10 @@ static void init_configs()
 static kno_lexenv init_core_env()
 {
   /* This is a safe environment (e.g. a sandbox without file/io etc). */
-  kno_lexenv core_env = kno_safe_working_lexenv();
+  kno_lexenv core_env = kno_working_lexenv();
   lispval core_module = (lispval) core_env;
   kno_init_dbserv();
-  kno_register_module("dbserv",kno_incref(kno_dbserv_module),KNO_MODULE_SAFE);
+  kno_register_module("dbserv",kno_incref(kno_dbserv_module),0);
   kno_finish_module(kno_dbserv_module);
 
   /* We add some special functions */

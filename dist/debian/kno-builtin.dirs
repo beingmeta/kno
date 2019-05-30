@@ -15,7 +15,6 @@ usr/share/kno/modules/builtin/jwt
 usr/share/kno/modules/builtin/misc
 usr/share/kno/modules/builtin/mongodb
 usr/share/kno/modules/builtin/paypal
-usr/share/kno/modules/builtin/safe
 usr/share/kno/modules/builtin/tests
 usr/share/kno/modules/builtin/textindex
 usr/share/kno/modules/builtin/textindex/data

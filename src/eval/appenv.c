@@ -123,7 +123,7 @@ KNO_EXPORT void kno_set_app_env(kno_lexenv env)
     int inits_run = 0, inits_failed = 0;
     lispval modules = kno_reverse(module_list);
     {KNO_DOLIST(modname,modules) {
-	lispval module = kno_find_module(modname,0,0);
+	lispval module = kno_find_module(modname,0);
 	if (KNO_ABORTP(module)) {
 	  u8_log(LOG_WARN,"LoadModuleError","Error loading module %q",modname);
 	  kno_clear_errors(1);
@@ -208,7 +208,7 @@ static u8_string get_next(u8_string pt,u8_string seps)
 static int add_modname(lispval modname)
 {
   if (kno_app_env) {
-    lispval module = kno_find_module(modname,0,0);
+    lispval module = kno_find_module(modname,0);
     if (KNO_ABORTP(module))
       return -1;
     else if (KNO_VOIDP(module)) {

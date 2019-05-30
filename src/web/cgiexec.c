@@ -1319,8 +1319,8 @@ KNO_EXPORT void kno_init_cgiexec_c()
   if (cgiexec_initialized) return;
   cgiexec_initialized = 1;
   kno_init_scheme();
-  module = kno_new_cmodule("webtools",(0),kno_init_cgiexec_c);
-  xhtmlout_module = kno_new_cmodule("xhtml",KNO_MODULE_SAFE,kno_init_cgiexec_c);
+  module = kno_new_cmodule("webtools",0,kno_init_cgiexec_c);
+  xhtmlout_module = kno_new_cmodule("xhtml",0,kno_init_cgiexec_c);
 
   u8_init_mutex(&protected_cgi_lock);
 

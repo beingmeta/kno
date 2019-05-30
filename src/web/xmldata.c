@@ -189,8 +189,7 @@ static lispval xmlcontent(lispval doc,lispval attrib_id)
 KNO_EXPORT
 void kno_init_xmldata_c()
 {
-  lispval safe_module = kno_new_module("WEBTOOLS",(0));
-  lispval module = kno_new_module("WEBTOOLS",(KNO_MODULE_SAFE));
+  lispval module = kno_new_module("WEBTOOLS",0);
 
   kno_idefn(module,kno_make_cprim2("XMLATTRIB",xmlattrib,2));
   kno_idefn(module,kno_make_cprim2("XMLGET",xmlget,2));
@@ -199,14 +198,6 @@ void kno_init_xmldata_c()
   kno_idefn(module,kno_make_cprim2("XMLCONENTS",xmlcontents,1));
   kno_idefn(module,kno_make_cprim2("XMLCONTENT",xmlcontent,1));
   kno_idefn(module,kno_make_cprim2("XMLEMPTY?",xmlemptyp,1));
-
-  kno_idefn(safe_module,kno_make_cprim2("XMLATTRIB",xmlattrib,2));
-  kno_idefn(safe_module,kno_make_cprim2("XMLGET",xmlget,2));
-  kno_idefn(safe_module,kno_make_cprim2("XMLGET/FIRST",xmlget_first,2));
-  kno_idefn(safe_module,kno_make_cprim2("XMLGET/SORTED",xmlget_sorted,2));
-  kno_idefn(safe_module,kno_make_cprim2("XMLCONENTS",xmlcontents,1));
-  kno_idefn(safe_module,kno_make_cprim2("XMLCONTENT",xmlcontent,1));
-  kno_idefn(safe_module,kno_make_cprim2("XMLEMPTY?",xmlemptyp,1));
 
   name_slotid = kno_intern("%xmltag");
   content_slotid = kno_intern("%content");

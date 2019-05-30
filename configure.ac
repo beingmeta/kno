@@ -107,14 +107,10 @@ apache_modinfo="/etc/apache2"
 APXSFLAGS=
 A2EN="none"
 builtin_module_dir=""
-builtin_safe_module_dir=""
 installed_module_dir=""
-installed_safe_module_dir=""
 local_module_dir=""
 default_module_path=""
-default_safe_module_path=""
 module_path=""
-safe_module_path=""
 source_dir=""
 CORE_CMODULES=""
 DB_CMODULES=""
@@ -253,13 +249,9 @@ AC_SUBST(systemd_loc)
 AC_SUBST(share_dir)
 AC_SUBST(unpackage_dir)
 AC_SUBST(builtin_module_dir)
-AC_SUBST(builtin_safe_module_dir)
 AC_SUBST(installed_module_dir)
-AC_SUBST(installed_safe_module_dir)
 AC_SUBST(local_module_dir)
-AC_SUBST(local_safe_module_dir)
 AC_SUBST(default_module_path)
-AC_SUBST(default_safe_module_path)
 AC_SUBST(config_dir)
 AC_SUBST(local_config)
 AC_SUBST(shared_config)
@@ -1242,15 +1234,12 @@ fi
 
 AC_ARG_WITH(installed_module_dir,--with-installed-module-dir location,,with_installed_module_dir=$share_dir/modules/installed)
 installed_module_dir=$with_installed_module_dir
-installed_safe_module_dir=$with_installed_module_dir/safe
 
 AC_ARG_WITH(local_modules,--with-local-modules location,,with_local_modules=$share_dir/modules/local)
 local_module_dir=$with_local_modules
-local_safe_module_dir=$with_local_modules/safe
 
 AC_ARG_WITH(builtin_module_dir,--with-builtin-module-dir location,,with_builtin_module_dir=$share_dir/modules/builtin)
 builtin_module_dir=$with_builtin_module_dir
-builtin_safe_module_dir=$builtin_module_dir/safe
 
 LIBSCM="${share_dir}/libscm/\${REVISION}"
 
@@ -1266,36 +1255,26 @@ elif test ! -z "$with_libscm"; then
 fi;
 
 builtin_module_path=$builtin_module_dir/
-builtin_safe_module_path=$builtin_module_dir/safe/
 
 installed_module_path=$installed_module_dir/
-installed_safe_module_path=$installed_safe_module_dir/
 
 local_module_path=$local_module_dir/
-local_safe_module_path=$local_safe_module_dir/
 
 default_module_path=$local_module_path:$installed_module_path:$builtin_module_path
-default_safe_module_path=$local_safe_module_path:$installed_safe_module_path:$builtin_safe_module_path
 
 AC_ARG_WITH(module_path,--with-module-path location,,with_module_path=$default_module_path)
-AC_ARG_WITH(safe_module_path,--with-safe-module-path location,,with_safe_module_path=$default_safe_module_path)
 module_path=$with_module_path
-safe_module_path=$with_safe_module_path
 
 if test ! -z ${with_loadpath}; then
    module_path="${with_loadpath}:${module_path}";
 fi;
 
 AC_DEFINE_UNQUOTED(KNO_LOCAL_MODULE_DIR,"$local_module_dir")
-AC_DEFINE_UNQUOTED(KNO_LOCAL_SAFE_MODULE_DIR,"$local_safe_module_dir")
 AC_DEFINE_UNQUOTED(KNO_INSTALLED_MODULE_DIR,"$installed_module_dir")
-AC_DEFINE_UNQUOTED(KNO_INSTALLED_SAFE_MODULE_DIR,"$installed_safe_module_dir")
 AC_DEFINE_UNQUOTED(KNO_BUILTIN_MODULE_DIR,"$builtin_module_dir")
-AC_DEFINE_UNQUOTED(KNO_BUILTIN_SAFE_MODULE_DIR,"$builtin_safe_module_dir")
 AC_DEFINE_UNQUOTED(KNO_UNPACKAGE_DIR,"$unpackage_dir")
 
 AC_DEFINE_UNQUOTED(KNO_DEFAULT_LOADPATH,"$module_path")
-AC_DEFINE_UNQUOTED(KNO_DEFAULT_SAFE_LOADPATH,"$safe_module_path")
 
 AC_ARG_WITH(boot_config,--with-boot-config configstring,,with_boot_config="")
 AC_DEFINE_UNQUOTED(KNO_BOOT_CONFIG,"$with_boot_config")

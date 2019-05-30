@@ -932,7 +932,7 @@ static KNO_XML *handle_knoml_pi
       else if ((strncmp(attribs[i],"module=",7))==0) {
         u8_string arg = get_pi_string(attribs[i]+7);
         lispval module_name = kno_parse(arg);
-        lispval module = kno_find_module(module_name,0,1);
+        lispval module = kno_find_module(module_name,1);
         kno_lexenv xml_env = get_xml_env(xml);
         u8_free(arg); kno_decref(module_name);
         if ((KNO_LEXENVP(module)) &&
@@ -959,7 +959,7 @@ static KNO_XML *handle_knoml_pi
       else if ((strncmp(attribs[i],"scheme_module=",14))==0) {
         u8_string arg = get_pi_string(attribs[i]+14);
         lispval module_name = kno_parse(arg);
-        lispval module = kno_find_module(module_name,0,1);
+        lispval module = kno_find_module(module_name,1);
         kno_lexenv scheme_env = (kno_lexenv)(xml->xml_data);
         u8_free(arg); kno_decref(module_name);
         if ((KNO_LEXENVP(module)) &&

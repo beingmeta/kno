@@ -373,8 +373,7 @@ SCHEME_SCRIPTS=exe/scripts/repack-pool exe/scripts/repack-index \
 	       exe/scripts/knomerge exe/scripts/knopkg
 
 CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config $(DESTDIR)@share_dir@ \
-	$(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \
-	$(DESTDIR)@local_module_dir@ $(DESTDIR)@local_safe_module_dir@
+	$(DESTDIR)@builtin_module_dir@ $(DESTDIR)@local_module_dir@
 
 CLEANDIRS=include/kno src/drivers/headers 		\
 	src/lisp src/apply src/support 			\
@@ -494,8 +493,8 @@ SCHEME_MODULES=src/extmods/*.scm \
 	src/extmods/paypal/*.scm src/extmods/twitter/*.scm \
 	src/extmods/dropbox/*.scm src/extmods/twilio/*.scm \
 	src/extmods/misc/*.scm src/extmods/tests/*.scm \
-	src/extmods/safe/domutils/*.scm src/extmods/safe/knodules/*.scm \
-	src/extmods/safe/textindex/*.scm src/extmods/safe/jwt/*.scm
+	src/extmods/domutils/*.scm src/extmods/knodules/*.scm \
+	src/extmods/textindex/*.scm src/extmods/jwt/*.scm
 
 # These might be neccessary on MacOS
 CMODULE_DEPENDS=lib/libknocore@suffix@.@shared_suffix@	\
@@ -822,8 +821,7 @@ uninstall-core:
 uninstall-all: uninstall-core
 	rm -rf $(DESTDIR)@share_dir@ $(DESTDIR)@config_dir@ \
 		$(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
-		$(DESTDIR)@builtin_module_dir@ \
-		$(DESTDIR)@builtin_safe_module_dir@
+		$(DESTDIR)@builtin_module_dir@
 uninstall: uninstall-core
 	@if (test -d $(DESTDIR)@share_dir@); then \
 	  $(MSG) $(DESTDIR)@share_dir@ "still exists"; fi
@@ -835,8 +833,6 @@ uninstall: uninstall-core
 	  $(MSG) $(DESTDIR)@shared_config@ "still exists"; fi
 	@if (test -d $(DESTDIR)@module_dir@); then \
 	  $(MSG) $(DESTDIR)@module_dir@ "still exists"; fi
-	@if (test -d $(DESTDIR)@safe_module_dir@); then \
-	  $(MSG) $(DESTDIR)@safe_module_dir@ "still exists"; fi
 
 # Utility targets
 
@@ -1545,10 +1541,8 @@ workdirs: $(DESTDIR)@kno_rundir@ $(DESTDIR)@kno_logdir@ \
 	$(DESTDIR)@servlet_rundir@ $(DESTDIR)@servlet_logdir@ \
 	$(DESTDIR)@bugjar@
 
-confdirs: $(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \
-	  $(DESTDIR)@installed_module_dir@ $(DESTDIR)@installed_safe_module_dir@ \
-	  $(DESTDIR)@local_module_dir@ $(DESTDIR)@local_safe_module_dir@ \
-	  $(DESTDIR)@unpackage_dir@ \
+confdirs: $(DESTDIR)@builtin_module_dir@ $(DESTDIR)@installed_module_dir@ \
+	  $(DESTDIR)@local_module_dir@ $(DESTDIR)@unpackage_dir@ \
 	  $(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
 	  $(DESTDIR)@config_dir@  $(DESTDIR)@config_dir@/config_files \
 	  $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets \
@@ -1558,9 +1552,7 @@ confdirs: $(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \
 		$(SYSINSTALL) @install_file_opts@ /dev/null \
 			$(DESTDIR)@config_dir@/servers; fi
 
-$(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \
-  $(DESTDIR)@installed_module_dir@ $(DESTDIR)@installed_safe_module_dir@ \
-  $(DESTDIR)@local_module_dir@ $(DESTDIR)@local_safe_module_dir@:
+$(DESTDIR)@builtin_module_dir@ $(DESTDIR)@installed_module_dir@ $(DESTDIR)@local_module_dir@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 $(DESTDIR)@unpackage_dir@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
@@ -1572,7 +1564,7 @@ EXT_MODULE_DIRS=xhtml domutils textindex morph misc tests knodules knoml \
 
 EXT_MODULE_DATA=textindex/data knodules/data aws/templates morph/data
 
-install-extmods: install-standard-modules install-safe-modules
+install-extmods: install-standard-modules
 install-standard-modules: install-module-source install-module-data
 
 install-module-source: $(DESTDIR)@builtin_module_dir@
@@ -1596,17 +1588,6 @@ install-module-data: $(DESTDIR)@builtin_module_dir@
 	  $(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
 	  $(SYSINSTALL) @install_file_opts@ $${src_dir}/* $${install_dir};	\
 	done
-
-install-safe-modules: $(DESTDIR)@builtin_safe_module_dir@ \
-		install-standard-modules
-	@$(ECHO) Linking 'safe' Scheme modules \
-		 from @builtin_module_dir@ to @builtin_safe_module_dir@
-	@for safe_link in src/extmods/safe/*; do	\
-	  if test -h "$${safe_link}"; then			\
-            $(SUINSTALL) ln -sf `readlink $${safe_link}`	\
-		          $(DESTDIR)@builtin_safe_module_dir@;	\
-	 fi; 							\
-	 done
 
 install-support: $(DESTDIR)@share_dir@
 	cd $(BUILD)/etc; $(SYSINSTALL) @install_file_opts@ 	\

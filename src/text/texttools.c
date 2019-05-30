@@ -2571,8 +2571,7 @@ void kno_init_texttools()
   if (texttools_init) return;
   u8_register_source_file(_FILEINFO);
   texttools_init = knoscheme_version;
-  texttools_module =
-    kno_new_cmodule("texttools",(KNO_MODULE_SAFE),kno_init_texttools);
+  texttools_module = kno_new_cmodule("texttools",0,kno_init_texttools);
   kno_init_match_c();
   kno_init_phonetic_c();
   kno_idefn(texttools_module,kno_make_cprim1("MD5",md5_prim,1));

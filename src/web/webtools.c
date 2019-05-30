@@ -31,10 +31,7 @@ KNO_EXPORT void kno_init_webtools()
   else {
     int knoscheme_version = kno_init_scheme();
     lispval webtools_module = kno_new_cmodule("webtools",0,kno_init_webtools);
-    lispval safe_webtools_module =
-      kno_new_cmodule("webtools",(KNO_MODULE_SAFE),kno_init_webtools);
-    lispval xhtml_module =
-      kno_new_cmodule("xhtml",KNO_MODULE_SAFE,kno_init_webtools);
+    lispval xhtml_module = kno_new_cmodule("xhtml",0,kno_init_webtools);
     webtools_init_done = knoscheme_version;
     kno_init_xmloutput_c();
     kno_init_htmlout_c();
@@ -49,7 +46,6 @@ KNO_EXPORT void kno_init_webtools()
 #if (KNO_WITH_CURL)
     kno_init_curl_c();
 #endif
-    kno_finish_module(safe_webtools_module);
     kno_finish_module(webtools_module);
     kno_finish_module(xhtml_module);}
 
