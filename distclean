@@ -12,9 +12,23 @@ rmconf () {
 
 for x in *.in */*.in */*/*.in */*/*/*.in; do rmconf ${x}; done
 
-find . -name "*~" -writable -exec rm '{}' \;
-find . -name "#*#" -writable -exec rm '{}' \;
-find . -name "*.o" -writable -exec rm '{}' \;
+find . -name "*~" -type f -writable -exec rm '{}' \;
+find . -name "#*#" -type f -writable -exec rm '{}' \;
+find . -name "*.o" -type f -writable -exec rm '{}' \;
+find . -name "*.gcda" -type f -writable -exec rm '{}' \;
+find . -name "*.gcno" -type f -writable -exec rm '{}' \;
+find . -name "*.gcov" -type f -writable -exec rm '{}' \;
+find . -name "*.bb" -type f -writable -exec rm '{}' \;
+find . -name "*.bbg" -type f -writable -exec rm '{}' \;
+find . -name "*.da" -type f -writable -exec rm '{}' \;
+find . -name "gmon.out" -writable -exec rm '{}' \;
+# find . -name "*.gcda" -type f -writable | xargs rm -f
+# find . -name "*.gcno" -type f -writable | xargs rm -f
+# find . -name "*.gcov" -type f -writable | xargs rm -f
+# find . -name "*.bb" -type f -writable | xargs rm -f
+# find . -name "*.bbg" -type f -writable | xargs rm -f
+# find . -name "*.da" -type f -writable | xargs rm -f
+# find . -name "gmon.out" -writable | xargs rm -f
 
 # Miscellaneous files
 find . -name "*.dSYM" -writable | xargs rm -rf;

@@ -26,6 +26,10 @@ while [ $# -gt 0 ]; do
 	ipeval)
 	    CONFIG_ARGS="--with-ipeval ${CONFIG_ARGS}";
 	    ;;
+	profile|profiling|gcov)
+	    CONFIG_ARGS="--enable-gcov ${CONFIG_ARGS}";
+	    MAKE_ARGS="${MAKE_ARGS} debug";
+	    ;;
 	libc|tcmalloc|jemalloc|asan|asan_noleak|tcmalloc_debug|tcmalloc_minimal|gperftools|asan_thread)
 	    CONFIG_ARGS="--with-malloc=${arg} ${CONFIG_ARGS}"; 
 	    ;;

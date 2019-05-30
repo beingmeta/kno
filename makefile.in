@@ -495,9 +495,7 @@ SCHEME_MODULES=src/extmods/*.scm \
 	src/extmods/dropbox/*.scm src/extmods/twilio/*.scm \
 	src/extmods/misc/*.scm src/extmods/tests/*.scm \
 	src/extmods/safe/domutils/*.scm src/extmods/safe/knodules/*.scm \
-	src/extmods/safe/textindex/*.scm src/extmods/safe/jwt/*.scm \
-	src/beingmeta/chopper/*.scm src/beingmeta/morph/*.scm \
-	src/beingmeta/gnosys/*.scm
+	src/extmods/safe/textindex/*.scm src/extmods/safe/jwt/*.scm
 
 # These might be neccessary on MacOS
 CMODULE_DEPENDS=lib/libknocore@suffix@.@shared_suffix@	\
