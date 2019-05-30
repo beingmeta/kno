@@ -536,13 +536,14 @@ static void *thread_main(void *data)
     if (tstruct->resultptr) {
       kno_incref(exception);
       *(tstruct->resultptr) = exception;}
-    else {}
+    else NO_ELSE;
     u8_free_exception(ex,1);}
   else {
     tstruct->result = result;
     if (tstruct->resultptr) {
       *(tstruct->resultptr) = result;
-      kno_incref(result);}}
+      kno_incref(result);}
+    else NO_ELSE;}
   if (tstruct->flags&KNO_EVAL_THREAD) {
     lispval free_env = (lispval) tstruct->evaldata.env;
     tstruct->evaldata.env = NULL;
@@ -918,19 +919,19 @@ static int get_thread_wait(lispval opts,struct timespec *wait)
   else return 0;
 }
 
-static int join_thread(struct KNO_THREAD_STRUCT *tstruct,int waiting,
-                       struct timespec *ts,
-                       void **vptr)
+static int join_thread(struct KNO_THREAD_STRUCT *tstruct,
+                       int waiting,
+                       struct timespec *ts)
 {
   int rv = 0;
   if (tstruct->finished > 0)
     return 0;
   else if (waiting == 0)
   else if (waiting == 0) 
-    rv = pthread_join(tstruct->tid,vptr);
+    rv = pthread_join(tstruct->tid,NULL);
   else if (waiting < 0) {
 #if HAVE_PTHREAD_TRYJOIN_NP
-    rv = pthread_tryjoin_np(tstruct->tid,vptr);
+    rv = pthread_tryjoin_np(tstruct->tid,NULL);
 #else
   u8_log(LOG_WARN,"NotImplemented",
          "No pthread_tryjoin_np support");
@@ -938,7 +939,7 @@ static int join_thread(struct KNO_THREAD_STRUCT *tstruct,int waiting,
 #endif
   } else {
 #if HAVE_PTHREAD_TIMEDJOIN_NP
-    rv = pthread_timedjoin_np(tstruct->tid,vptr,ts);
+    rv = pthread_timedjoin_np(tstruct->tid,NULL,ts);
 #else
     u8_log(LOG_WARN,"NotImplemented",
            "No pthread_timedjoin_np support");
@@ -969,8 +970,7 @@ static lispval threadjoin_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
 
   {DO_CHOICES(thread,threads) {
       struct KNO_THREAD_STRUCT *tstruct = (kno_thread_struct)thread;
-      void *thread_result = NULL;
-      int retval = join_thread(tstruct,waiting,&until,(void *)&thread_result);
+      int retval = join_thread(tstruct,waiting,&until);
       if ( (retval == EINVAL) && (notexited(tstruct)) )
         u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
                retval,strerror(retval),thread);
@@ -1010,8 +1010,7 @@ static lispval threadwait_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
        return kno_type_error(_("thread"),"threadjoin_prim",thread);}
   {DO_CHOICES(thread,threads) {
     struct KNO_THREAD_STRUCT *tstruct = (kno_thread_struct)thread;
-    void *thread_result = NULL;
-    int retval = join_thread(tstruct,waiting,&until,&thread_result);
+    int retval = join_thread(tstruct,waiting,&until);
     if ( (retval == EINVAL) && (notexited(tstruct)) )
       u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
              retval,strerror(retval),thread);}}
@@ -1034,14 +1033,13 @@ static lispval threadfinish_prim(lispval args,lispval U8_MAYBE_UNUSED opts)
         struct timespec until = { 0 };
         struct KNO_THREAD_STRUCT *tstruct = (kno_thread_struct)arg;
         int waiting = get_thread_wait(opts,&until);
-        void *thread_result = NULL;
-        int retval = join_thread(tstruct,waiting,&until,&thread_result);
+        int retval = join_thread(tstruct,waiting,&until);
         if (retval == EINVAL)
           u8_log(LOG_WARN,ThreadReturnError,
                  "Bad return code %d (%s) from %q",
                  retval,strerror(retval),arg);
         while (notexited(tstruct)) {
-          retval = join_thread(tstruct,waiting,&until,&thread_result);
+          retval = join_thread(tstruct,waiting,&until);
           if (retval == EINVAL)
             u8_log(LOG_WARN,ThreadReturnError,
                    "Bad return code %d (%s) from %q",
@@ -1091,9 +1089,8 @@ static lispval threadwaitbang_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
       if (!(TYPEP(thread,kno_thread_type)))
         return kno_type_error(_("thread"),"threadjoin_prim",thread);}
   {DO_CHOICES(thread,threads) {
-      void *thread_result = NULL;
       struct KNO_THREAD_STRUCT *tstruct = (kno_thread_struct)thread;
-      int retval = join_thread(tstruct,waiting,&until,&thread_result);
+      int retval = join_thread(tstruct,waiting,&until);
       if (retval)
         u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
                retval,strerror(retval),thread);}}
