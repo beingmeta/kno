@@ -1028,11 +1028,17 @@ static lispval threadfinish_prim(lispval args,lispval U8_MAYBE_UNUSED opts)
       if (TYPEP(arg,kno_thread_type)) {
         struct KNO_THREAD_STRUCT *tstruct = (kno_thread_struct)arg;
         int retval = join_thread(tstruct,waiting,&until,NULL);
-        if ( (retval == EINVAL) && (notexited(tstruct)) ) {
+        if (retval == EINVAL)
           u8_log(LOG_WARN,ThreadReturnError,
                  "Bad return code %d (%s) from %q",
-                 retval,strerror(retval),arg);}
-        else if (retval == 0) {
+                 retval,strerror(retval),arg);
+        while (notexited(tstruct)) {
+          retval = join_thread(tstruct,waiting,&until,NULL);
+          if (retval == EINVAL)
+            u8_log(LOG_WARN,ThreadReturnError,
+                   "Bad return code %d (%s) from %q",
+                   retval,strerror(retval),arg);}
+        if (retval == 0) {
           lispval result = tstruct->result;
           if (KNO_VOIDP(result)) {
             lispval void_val = kno_getopt(opts,void_symbol,KNO_VOID);
