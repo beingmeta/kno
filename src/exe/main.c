@@ -103,7 +103,7 @@ static void stack_frame_label(u8_output out,struct KNO_STACK *stack)
     u8_printf(out,".%s",stack->stack_type);
 }
 
-KNO_EXPORT void _knobg_show_env(kno_lexenv start,int limit)
+KNO_EXPORT void _knodbg_show_env(kno_lexenv start,int limit)
 {
   lispval moduleid = kno_intern("%moduleid");
   int depth = 0;
@@ -175,11 +175,11 @@ static void _concise_stack_frame(struct KNO_STACK *stack)
   fprintf(stderr,"\n");
 }
 
-KNO_EXPORT void _knobg_show_stack_frame(void *arg)
+KNO_EXPORT void _knodbg_show_stack_frame(void *arg)
 {
   struct KNO_STACK *stack=_get_stack_frame(arg);
   _concise_stack_frame(stack);
-  if (stack->stack_env) _knobg_show_env(stack->stack_env,20);
+  if (stack->stack_env) _knodbg_show_env(stack->stack_env,20);
   if (PAIRP(stack->stack_op))
     u8_fprintf(stderr,"%Q",stack->stack_op);
   else if (KNO_APPLICABLEP(stack->stack_op)) {
@@ -194,10 +194,10 @@ KNO_EXPORT void _knobg_show_stack_frame(void *arg)
         i++;}}}
   fputs("\n",stderr);
   if (stack->stack_env)
-    _knobg_show_env(stack->stack_env,-1);
+    _knodbg_show_env(stack->stack_env,-1);
 }
 
-KNO_EXPORT lispval _knobg_get_stack_arg(void *arg,int n)
+KNO_EXPORT lispval _knodbg_get_stack_arg(void *arg,int n)
 {
   struct KNO_STACK *stack=_get_stack_frame(arg);
   if (stack->stack_args)
@@ -207,7 +207,7 @@ KNO_EXPORT lispval _knobg_get_stack_arg(void *arg,int n)
   else return KNO_NULL;
 }
 
-KNO_EXPORT lispval _knobg_get_stack_var(void *arg,u8_string varname)
+KNO_EXPORT lispval _knodbg_get_stack_var(void *arg,u8_string varname)
 {
   struct KNO_STACK *stack=_get_stack_frame(arg);
   if (stack->stack_env) {
@@ -216,7 +216,7 @@ KNO_EXPORT lispval _knobg_get_stack_var(void *arg,u8_string varname)
   else return KNO_NULL;
 }
 
-KNO_EXPORT void _knobg_show_stack(void *arg,int limit)
+KNO_EXPORT void _knodbg_show_stack(void *arg,int limit)
 {
   int count=0;
   struct KNO_STACK *stack=_get_stack_frame(arg);
@@ -230,7 +230,7 @@ KNO_EXPORT void _knobg_show_stack(void *arg,int limit)
     if ( (limit > 0) && (count >= limit) ) break;}
 }
 
-KNO_EXPORT void _knobg_show_stack_env(void *arg)
+KNO_EXPORT void _knodbg_show_stack_env(void *arg)
 {
   struct KNO_STACK *stack=_get_stack_frame(arg);
   if (stack==NULL) {
@@ -238,7 +238,7 @@ KNO_EXPORT void _knobg_show_stack_env(void *arg)
     return;}
   _concise_stack_frame(stack);
   if (stack->stack_env)
-    _knobg_show_env(stack->stack_env,-1);
+    _knodbg_show_env(stack->stack_env,-1);
   else fprintf(stderr,"!! No env\n");
 }
 
