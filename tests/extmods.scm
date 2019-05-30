@@ -10,11 +10,6 @@
 		 ;; Kind of legacy
 		 flexdb/slotindex flexdb/splitpool})
 
-(check-modules '{storage/flex storage/flexpool storage/flexindex
-		 storage/adjuncts storage/branches storage/aggregates
-		 storage/registry storage/slotindex storage/splitpool
-		 storage/typeindex})
-
 (check-modules '{bugjar bugjar/html bugjar/servlet})
 
 (check-modules '{xhtml/auth xhtml/buglog xhtml/clickit 
