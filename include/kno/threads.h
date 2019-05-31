@@ -12,7 +12,7 @@
 #endif
 
 KNO_EXPORT kno_ptr_type kno_thread_type;
-KNO_EXPORT kno_ptr_type kno_condvar_type;
+KNO_EXPORT kno_ptr_type kno_synchronizer_type;
 
 #define KNO_THREAD_DONE       0x0001
 #define KNO_THREAD_ERROR      0x0002
@@ -39,12 +39,19 @@ typedef struct KNO_THREAD_STRUCT {
     struct {lispval fn, *args; int n_args;} applydata;};} KNO_THREAD;
 typedef struct KNO_THREAD_STRUCT *kno_thread_struct;
 
-typedef struct KNO_CONDVAR {
+typedef struct KNO_SYNCHRONIZER {
   KNO_CONS_HEADER;
-  u8_mutex kno_cvlock;
-  u8_condvar kno_cvar;}
-  KNO_CONDVAR;
-typedef struct KNO_CONDVAR *kno_consed_condvar;
+  enum { sync_condvar, sync_mutex, sync_rwlock } synctype;
+  union {
+    u8_rwlock rwlock;
+    u8_mutex  mutex;
+    struct {
+      u8_mutex lock;
+      u8_condvar cvar;}
+      condvar;}
+    obj;}
+  KNO_SYNCHRONIZER;
+typedef struct KNO_SYNCHORNIZER *kno_synchornizer;
 
 #endif
 

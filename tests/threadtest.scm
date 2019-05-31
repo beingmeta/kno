@@ -115,7 +115,7 @@
 
 (define (test-synchro-locks (nthreads 8))
   (thread/wait! (thread/call change-num (nrandom))))
-(define (test-with-lock (nthreads 8))
+(define (test-with-lock (lock (make-mutex)) (nthreads 8))
   (thread/wait! (thread/call change-num-with-lock (nrandom))))
 
 ;;;; Test fluid variables
@@ -204,13 +204,25 @@
 
 ;;; Actual tests
 
+(define condvar (make-condvar))
+(define mutex (make-mutex))
+(define rwlock (make-rwlock))
+
 (define (main)
 
   (applytest {} (find-thread 0))
-  (applytest {} (find-thread 0 #f))
+  (applytest #f (find-thread 0 #f))
   (errtest (find-thread 0 #t))
   (applytest #f condvar? 3)
+  (applytest #t condvar? condvar)
+  (applytest #f mutex? 3)
+  (applytest #t mutex? mutex)
+  (applytest #f rwlock? 8)
+  (applytest #t rwlock? rwlock)
   (applytest #f synchronizer? 3)
+  (applytest #t synchronizer? mutex)
+  (applytest #t synchronizer? rwlock)
+  (applytest #t synchronizer? condvar)
   (applytest #t synchronizer? change-slambda-test-value)
   (applytest #f thread? 3)
 
@@ -243,6 +255,9 @@
     
   (test-synchro-locks)
   (test-with-lock)
+  (test-with-lock (make-rwlock))
+  (test-with-lock (make-condvar))
+  (test-with-lock change-slambda-test-value)
   
   (test-threadids)
   (test-parallel)

@@ -52,13 +52,16 @@ static lispval void_symbol = VOID;
 
 #define notexited(tstruct) (! ( ((tstruct)->flags) & (KNO_THREAD_DONE) ) )
 
+#define SYNC_TYPEP(x,tp) \
+  ( (((struct KNO_SYNCHRONIZER *)x)->synctype) == (tp) )
+
 /* Thread structures */
 
 static struct KNO_THREAD_STRUCT *thread_ring=NULL;
 u8_mutex thread_ring_lock;
 
 kno_ptr_type kno_thread_type;
-kno_ptr_type kno_condvar_type;
+kno_ptr_type kno_synchronizer_type;
 
 static void add_thread(struct KNO_THREAD_STRUCT *thread)
 {
@@ -109,31 +112,7 @@ static lispval threadp_prim(lispval arg)
   else return KNO_FALSE;
 }
 
-DCLPRIM1("CONDVAR?",condvarp_prim,MIN_ARGS(1),
-         "`(CONDVAR? *object*)` returns #t if *object is a condition variable",
-         kno_any_type,KNO_VOID)
-static lispval condvarp_prim(lispval arg)
-{
-  if (KNO_TYPEP(arg,kno_condvar_type))
-    return KNO_TRUE;
-  else return KNO_FALSE;
-}
-
-DCLPRIM1("SYNCHRONIZER?",synchronizerp_prim,MIN_ARGS(1),
-         "`(SYNCHRONIZER? *obj*)` returns #t if *obj* is a synchronizer. "
-         "Synchronizers currently include condvars and synchronized lambdas.",
-         kno_any_type,KNO_VOID)
-static lispval synchronizerp_prim(lispval arg)
-{
-  if (KNO_TYPEP(arg,kno_condvar_type))
-    return KNO_TRUE;
-  else if (KNO_LAMBDAP(arg)) {
-    struct KNO_LAMBDA *sp = kno_consptr(kno_lambda,arg,kno_lambda_type);
-    if (sp->lambda_synchronized)
-      return KNO_TRUE;
-    else return KNO_FALSE;}
-  else return KNO_FALSE;
-}
+/* Finding threads by numeric ID */
 
 DCLPRIM2("FIND-THREAD",findthread_prim,MIN_ARGS(1),
          "(FIND-THREAD [*id*] [*err*]) returns the thread object for "
@@ -237,25 +216,288 @@ KNO_EXPORT void recycle_thread_struct(struct KNO_RAW_CONS *c)
   if (!(KNO_STATIC_CONSP(c))) u8_free(c);
 }
 
-/* CONDVAR support */
+/* Synchronizer methods */
+
+static int unparse_synchronizer(u8_output out,lispval obj)
+{
+  struct KNO_SYNCHRONIZER *sync =
+    kno_consptr(struct KNO_SYNCHRONIZER *,obj,kno_synchronizer_type);
+  u8_string synctype = "synchronizer";
+  switch (sync->synctype) {
+  case sync_condvar:
+    synctype = "CONDVAR"; break;
+  case sync_mutex:
+    synctype = "MUTEX"; break;
+  case sync_rwlock:
+    synctype = "RWLOCK"; break;}
+  u8_printf(out,"#<%s %lx>",synctype,obj);
+  return 1;
+}
+
+KNO_EXPORT void recycle_synchronizer(struct KNO_RAW_CONS *c)
+{
+  struct KNO_SYNCHRONIZER *sync = (struct KNO_SYNCHRONIZER *)c;
+  switch (sync->synctype) {
+  case sync_condvar: {
+    u8_destroy_mutex(&(sync->obj.condvar.lock));
+    u8_destroy_condvar(&(sync->obj.condvar.cvar));
+    break;}
+  case sync_mutex: {
+    u8_destroy_mutex(&(sync->obj.mutex));
+    break;}
+  case sync_rwlock: {
+    u8_destroy_rwlock(&(sync->obj.rwlock));
+    break;}}
+  if (!(KNO_STATIC_CONSP(c))) u8_free(c);
+}
+
+DCLPRIM1("SYNCHRONIZER?",synchronizerp_prim,MIN_ARGS(1),
+         "`(SYNCHRONIZER? *obj*)` returns #t if *obj* is a synchronizer. "
+         "Synchronizers currently include condvars and synchronized lambdas.",
+         kno_any_type,KNO_VOID)
+static lispval synchronizerp_prim(lispval arg)
+{
+  if (KNO_TYPEP(arg,kno_synchronizer_type))
+    return KNO_TRUE;
+  else if (KNO_LAMBDAP(arg)) {
+    struct KNO_LAMBDA *sp = kno_consptr(kno_lambda,arg,kno_lambda_type);
+    if (sp->lambda_synchronized)
+      return KNO_TRUE;
+    else return KNO_FALSE;}
+  else return KNO_FALSE;
+}
+
+DCLPRIM1("CONDVAR?",condvarp_prim,MIN_ARGS(1),
+         "`(CONDVAR? *object*)` returns #t if *object* is a condition variable",
+         kno_any_type,KNO_VOID)
+static lispval condvarp_prim(lispval arg)
+{
+  if ( (KNO_TYPEP(arg,kno_synchronizer_type)) &&
+       (SYNC_TYPEP(arg,sync_condvar)) )
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+DCLPRIM1("MUTEX?",mutexp_prim,MIN_ARGS(1),
+         "`(MUTEX? *object*)` returns #t if *object* is a mutex",
+         kno_any_type,KNO_VOID)
+static lispval mutexp_prim(lispval arg)
+{
+  if ( (KNO_TYPEP(arg,kno_synchronizer_type)) &&
+       (SYNC_TYPEP(arg,sync_mutex)) )
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+DCLPRIM1("RWLOCK?",rwlockp_prim,MIN_ARGS(1),
+         "`(RWLOCK? *object*)` returns #t if *object* is a mutex",
+         kno_any_type,KNO_VOID)
+static lispval rwlockp_prim(lispval arg)
+{
+  if ( (KNO_TYPEP(arg,kno_synchronizer_type)) &&
+       (SYNC_TYPEP(arg,sync_rwlock)) )
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+/* MUTEXes */
+
+DCLPRIM("MAKE-MUTEX",make_mutex,0,
+        "(MAKE-MUTEX) allocates and returns a new mutex.")
+static lispval make_mutex()
+{
+  int rv = 0;
+  struct KNO_SYNCHRONIZER *cv = u8_alloc(struct KNO_SYNCHRONIZER);
+  KNO_INIT_FRESH_CONS(cv,kno_synchronizer_type);
+  cv->synctype = sync_mutex;
+  rv = u8_init_mutex(&(cv->obj.mutex));
+  if (rv) {
+    u8_graberrno("make_mutex",NULL);
+    u8_free(cv);
+    return KNO_ERROR;}
+  else return LISP_CONS(cv);
+}
+
+DCLPRIM("MAKE-RWLOCK",make_rwlock,0,
+        "(MAKE-RWLOCK) allocates and returns a new read/write lock.")
+static lispval make_rwlock()
+{
+  int rv = 0;
+  struct KNO_SYNCHRONIZER *cv = u8_alloc(struct KNO_SYNCHRONIZER);
+  KNO_INIT_FRESH_CONS(cv,kno_synchronizer_type);
+  cv->synctype = sync_rwlock;
+  rv = u8_init_rwlock(&(cv->obj.rwlock));
+  if (rv) {
+    u8_graberrno("make_rwlock",NULL);
+    u8_free(cv);
+    return KNO_ERROR;}
+  else return LISP_CONS(cv);
+}
 
 DCLPRIM("MAKE-CONDVAR",make_condvar,0,
         "(MAKE-CONDVAR) allocates and returns a new condvar.")
 static lispval make_condvar()
 {
   int rv = 0;
-  struct KNO_CONDVAR *cv = u8_alloc(struct KNO_CONDVAR);
-  KNO_INIT_FRESH_CONS(cv,kno_condvar_type);
-  rv = u8_init_mutex(&(cv->kno_cvlock));
+  struct KNO_SYNCHRONIZER *cv = u8_alloc(struct KNO_SYNCHRONIZER);
+  KNO_INIT_FRESH_CONS(cv,kno_synchronizer_type);
+  cv->synctype = sync_condvar;
+  rv = u8_init_mutex(&(cv->obj.condvar.lock));
   if (rv) {
     u8_graberrno("make_condvar",NULL);
+    u8_free(cv);
     return KNO_ERROR;}
-  else rv = u8_init_condvar(&(cv->kno_cvar));
+  else rv = u8_init_condvar(&(cv->obj.condvar.cvar));
   if (rv) {
     u8_graberrno("make_condvar",NULL);
     return KNO_ERROR;}
   return LISP_CONS(cv);
 }
+
+/* Generic locking/unlocking/withlocking */
+
+static void lock_synchronizer(struct KNO_SYNCHRONIZER *sync)
+{
+  switch (sync->synctype) {
+  case sync_mutex:
+    u8_lock_mutex(&(sync->obj.mutex));
+  case sync_rwlock:
+    u8_write_lock(&(sync->obj.rwlock));
+  case sync_condvar:
+    u8_lock_mutex(&(sync->obj.condvar.lock));}
+
+}
+
+static void unlock_synchronizer(struct KNO_SYNCHRONIZER *sync)
+{
+  switch (sync->synctype) {
+  case sync_mutex:
+    u8_unlock_mutex(&(sync->obj.mutex));
+  case sync_rwlock:
+    u8_rw_unlock(&(sync->obj.rwlock));
+  case sync_condvar:
+    u8_unlock_mutex(&(sync->obj.condvar.lock));}
+
+}
+
+/* These functions generically access the locks on CONDVARs
+   and LAMBDAs */
+
+DCLPRIM("SYNCHRO/LOCK!",synchro_lock,MIN_ARGS(1)|MAX_ARGS(1),
+        "`(SYNCHRO/LOCK! *syncobj*)` Locks *syncobj*, "
+        "which can currently be a condvar or a synchronized lambda.")
+static lispval synchro_lock(lispval lck)
+{
+  if (TYPEP(lck,kno_synchronizer_type)) {
+    struct KNO_SYNCHRONIZER *sync =
+      kno_consptr(struct KNO_SYNCHRONIZER *,lck,kno_synchronizer_type);
+    lock_synchronizer(sync);
+    return KNO_TRUE;}
+  else if (KNO_LAMBDAP(lck)) {
+    struct KNO_LAMBDA *sp = kno_consptr(kno_lambda,lck,kno_lambda_type);
+    if (sp->lambda_synchronized) {
+      u8_lock_mutex(&(sp->lambda_lock));}
+    else return kno_type_error("lockable","synchro_lock",lck);
+    return KNO_TRUE;}
+  else return kno_type_error("lockable","synchro_lock",lck);
+}
+
+DCLPRIM("SYNCHRO/UNLOCK!",synchro_unlock,MIN_ARGS(1)|MAX_ARGS(1),
+        "`(SYNCHRO/UNLOCK! *syncobj*)` Unlocks *syncobj*, "
+        "which can currently be a condvar or a synchronized lambda.")
+static lispval synchro_unlock(lispval lck)
+{
+  if (TYPEP(lck,kno_synchronizer_type)) {
+    struct KNO_SYNCHRONIZER *sync =
+      kno_consptr(struct KNO_SYNCHRONIZER *,lck,kno_synchronizer_type);
+    unlock_synchronizer(sync);
+    return KNO_TRUE;}
+  else if (KNO_LAMBDAP(lck)) {
+    struct KNO_LAMBDA *sp = kno_consptr(kno_lambda,lck,kno_lambda_type);
+    if (sp->lambda_synchronized) {
+      u8_lock_mutex(&(sp->lambda_lock));}
+    else return kno_type_error("lockable","synchro_lock",lck);
+    return KNO_TRUE;}
+  else return kno_type_error("lockable","synchro_unlock",lck);
+}
+
+DCLPRIM("SYNCHRO/READ/LOCK!",synchro_read_lock,MIN_ARGS(1)|MAX_ARGS(1),
+        "`(SYNCHRO/READ/LOCK! *syncobj*)` Locks *syncobj* for reading. "
+        "For all synchronizers except rwlocks, this is the same as "
+        "`SYNCHRO/LOCK!`.")
+static lispval synchro_read_lock(lispval lck)
+{
+  if (TYPEP(lck,kno_synchronizer_type)) {
+    struct KNO_SYNCHRONIZER *sync =
+      kno_consptr(struct KNO_SYNCHRONIZER *,lck,kno_synchronizer_type);
+    if (sync->synctype == sync_rwlock)
+      u8_read_lock(&(sync->obj.rwlock));
+    else lock_synchronizer(sync);
+    return KNO_TRUE;}
+  else if (KNO_LAMBDAP(lck)) {
+    struct KNO_LAMBDA *sp = kno_consptr(kno_lambda,lck,kno_lambda_type);
+    if (sp->lambda_synchronized) {
+      u8_lock_mutex(&(sp->lambda_lock));}
+    else return kno_type_error("lockable","synchro_read_lock",lck);
+    return KNO_TRUE;}
+  else return kno_type_error("lockable","synchro_read_lock",lck);
+}
+
+static lispval with_lock_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+{
+  lispval lock_expr = kno_get_arg(expr,1), lck, value = VOID;
+  u8_mutex *mutex = NULL; u8_rwlock *rwlock = NULL;
+  if (VOIDP(lock_expr))
+    return kno_err(kno_SyntaxError,"with_lock_evalfn",NULL,expr);
+  else lck = kno_eval(lock_expr,env);
+  if (KNO_ABORTED(lck))
+    return lck;
+  else if (TYPEP(lck,kno_synchronizer_type)) {
+    struct KNO_SYNCHRONIZER *sync =
+      kno_consptr(struct KNO_SYNCHRONIZER *,lck,kno_synchronizer_type);
+    switch (sync->synctype) {
+    case sync_mutex:
+      mutex = &(sync->obj.mutex); break;
+    case sync_rwlock:
+      rwlock = &(sync->obj.rwlock); break;
+    case sync_condvar:
+      mutex = &(sync->obj.condvar.lock); break;}}
+  else if (KNO_LAMBDAP(lck)) {
+    struct KNO_LAMBDA *sp = kno_consptr(kno_lambda,lck,kno_lambda_type);
+    if (sp->lambda_synchronized) {
+      mutex = &(sp->lambda_lock);}
+    else {
+      kno_decref(lck);
+      return kno_type_error("lockable","synchro_lock",lck);}}
+  else {
+    kno_decref(lck);
+    return kno_type_error("lockable","synchro_unlock",lck);}
+  {U8_WITH_CONTOUR("WITH-LOCK",0) {
+      if (mutex)
+        u8_lock_mutex(mutex);
+      else u8_write_lock(rwlock);
+      KNO_DOLIST(elt_expr,KNO_CDDR(expr)) {
+        kno_decref(value);
+        value = kno_eval(elt_expr,env);
+        if (KNO_ABORTED(value)) {
+          if (mutex)
+            u8_unlock_mutex(mutex);
+          else u8_rw_unlock(rwlock);
+          kno_decref(lck);
+          break;}}}
+    U8_ON_EXCEPTION {
+      U8_CLEAR_CONTOUR();
+      kno_decref(value);
+      value = KNO_ERROR;}
+    U8_END_EXCEPTION;}
+  if (mutex)
+    u8_unlock_mutex(mutex);
+  else u8_rw_unlock(rwlock);
+  kno_decref(lck);
+  return value;
+}
+
+/* CONDVAR functions */
 
 /* This primitive combine cond_wait and cond_timedwait
    through a second (optional) argument, which is an
@@ -266,10 +508,12 @@ DCLPRIM("CONDVAR/WAIT",condvar_wait,MIN_ARGS(1)|MAX_ARGS(2),
 static lispval condvar_wait(lispval cvar,lispval timeout)
 {
   int rv = 0;
-  struct KNO_CONDVAR *cv=
-    kno_consptr(struct KNO_CONDVAR *,cvar,kno_condvar_type);
+  if (!(SYNC_TYPEP(cvar,sync_condvar)))
+    return kno_type_error("condvar","condvar_wait",cvar);
+  struct KNO_SYNCHRONIZER *cv =
+    kno_consptr(struct KNO_SYNCHRONIZER *,cvar,kno_synchronizer_type);
   if (VOIDP(timeout))
-    if ((rv = u8_condvar_wait(&(cv->kno_cvar),&(cv->kno_cvlock)))==0)
+    if ((rv = u8_condvar_wait(&(cv->obj.condvar.cvar),&(cv->obj.condvar.lock)))==0)
       return KNO_TRUE;
     else {
       return kno_type_error(_("valid condvar"),"condvar_wait",cvar);}
@@ -289,7 +533,7 @@ static lispval condvar_wait(lispval cvar,lispval timeout)
       else return kno_type_error(_("time interval"),"condvar_wait",timeout);}
 #endif
     else return kno_type_error(_("time interval"),"condvar_wait",timeout);
-    rv = u8_condvar_timedwait(&(cv->kno_cvar),&(cv->kno_cvlock),&tm);
+    rv = u8_condvar_timedwait(&(cv->obj.condvar.cvar),&(cv->obj.condvar.lock),&tm);
     if (rv==0)
       return KNO_TRUE;
     else if (rv == ETIMEDOUT)
@@ -304,13 +548,15 @@ DCLPRIM("CONDVAR/SIGNAL",condvar_signal,MIN_ARGS(1)|MAX_ARGS(2),
         "are signalled. Otherwise only one is signalled.")
 static lispval condvar_signal(lispval cvar,lispval broadcast)
 {
-  struct KNO_CONDVAR *cv=
-    kno_consptr(struct KNO_CONDVAR *,cvar,kno_condvar_type);
+  if (!(SYNC_TYPEP(cvar,sync_condvar)))
+    return kno_type_error("condvar","condvar_wait",cvar);
+  struct KNO_SYNCHRONIZER *cv=
+    kno_consptr(struct KNO_SYNCHRONIZER *,cvar,kno_synchronizer_type);
   if (KNO_TRUEP(broadcast))
-    if (u8_condvar_broadcast(&(cv->kno_cvar))==0)
+    if (u8_condvar_broadcast(&(cv->obj.condvar.cvar))==0)
       return KNO_TRUE;
     else return kno_type_error(_("valid condvar"),"condvar_signal",cvar);
-  else if (u8_condvar_signal(&(cv->kno_cvar))==0)
+  else if (u8_condvar_signal(&(cv->obj.condvar.cvar))==0)
     return KNO_TRUE;
   else return kno_type_error(_("valid condvar"),"condvar_signal",cvar);
 }
@@ -320,9 +566,11 @@ DCLPRIM("CONDVAR/LOCK!",condvar_lock,MIN_ARGS(1)|MAX_ARGS(1),
         "its mutex)..")
 static lispval condvar_lock(lispval cvar)
 {
-  struct KNO_CONDVAR *cv=
-    kno_consptr(struct KNO_CONDVAR *,cvar,kno_condvar_type);
-  u8_lock_mutex(&(cv->kno_cvlock));
+  if (!(SYNC_TYPEP(cvar,sync_condvar)))
+    return kno_type_error("condvar","condvar_wait",cvar);
+  struct KNO_SYNCHRONIZER *cv=
+    kno_consptr(struct KNO_SYNCHRONIZER *,cvar,kno_synchronizer_type);
+  u8_lock_mutex(&(cv->obj.condvar.lock));
   return KNO_TRUE;
 }
 
@@ -331,108 +579,12 @@ DCLPRIM("CONDVAR/UNLOCK!",condvar_unlock,MIN_ARGS(1)|MAX_ARGS(1),
         "its mutex)..")
 static lispval condvar_unlock(lispval cvar)
 {
-  struct KNO_CONDVAR *cv=
-    kno_consptr(struct KNO_CONDVAR *,cvar,kno_condvar_type);
-  u8_unlock_mutex(&(cv->kno_cvlock));
+  if (!(SYNC_TYPEP(cvar,sync_condvar)))
+    return kno_type_error("condvar","condvar_wait",cvar);
+  struct KNO_SYNCHRONIZER *cv=
+    kno_consptr(struct KNO_SYNCHRONIZER *,cvar,kno_synchronizer_type);
+  u8_unlock_mutex(&(cv->obj.condvar.lock));
   return KNO_TRUE;
-}
-
-static int unparse_condvar(u8_output out,lispval cvar)
-{
-  struct KNO_CONDVAR *cv=
-    kno_consptr(struct KNO_CONDVAR *,cvar,kno_condvar_type);
-  u8_printf(out,"#<CONDVAR %lx>",cv);
-  return 1;
-}
-
-KNO_EXPORT void recycle_condvar(struct KNO_RAW_CONS *c)
-{
-  struct KNO_CONDVAR *cv=
-    (struct KNO_CONDVAR *)c;
-  u8_destroy_mutex(&(cv->kno_cvlock));  u8_destroy_condvar(&(cv->kno_cvar));
-  if (!(KNO_STATIC_CONSP(c))) u8_free(c);
-}
-
-/* These functions generically access the locks on CONDVARs
-   and LAMBDAs */
-
-DCLPRIM("SYNCHRO/LOCK!",synchro_lock,MIN_ARGS(1)|MAX_ARGS(1),
-        "(SYNCHRO/LOCK! *syncobj*)` Locks *syncobj*, "
-        "which can currently be a condvar or a synchronized lambda.")
-static lispval synchro_lock(lispval lck)
-{
-  if (TYPEP(lck,kno_condvar_type)) {
-    struct KNO_CONDVAR *cv=
-      kno_consptr(struct KNO_CONDVAR *,lck,kno_condvar_type);
-    u8_lock_mutex(&(cv->kno_cvlock));
-    return KNO_TRUE;}
-  else if (KNO_LAMBDAP(lck)) {
-    struct KNO_LAMBDA *sp = kno_consptr(kno_lambda,lck,kno_lambda_type);
-    if (sp->lambda_synchronized) {
-      u8_lock_mutex(&(sp->lambda_lock));}
-    else return kno_type_error("lockable","synchro_lock",lck);
-    return KNO_TRUE;}
-  else return kno_type_error("lockable","synchro_lock",lck);
-}
-
-DCLPRIM("SYNCHRO/UNLOCK!",synchro_unlock,MIN_ARGS(1)|MAX_ARGS(1),
-        "(SYNCHRO/UNLOCK! *syncobj*)` Unlocks *syncobj*, "
-        "which can currently be a condvar or a synchronized lambda.")
-static lispval synchro_unlock(lispval lck)
-{
-  if (TYPEP(lck,kno_condvar_type)) {
-    struct KNO_CONDVAR *cv=
-      kno_consptr(struct KNO_CONDVAR *,lck,kno_condvar_type);
-    u8_unlock_mutex(&(cv->kno_cvlock));
-    return KNO_TRUE;}
-  else if (KNO_LAMBDAP(lck)) {
-    struct KNO_LAMBDA *sp = kno_consptr(kno_lambda,lck,kno_lambda_type);
-    if (sp->lambda_synchronized) {
-      u8_lock_mutex(&(sp->lambda_lock));}
-    else return kno_type_error("lockable","synchro_lock",lck);
-    return KNO_TRUE;}
-  else return kno_type_error("lockable","synchro_unlock",lck);
-}
-
-static lispval with_lock_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
-{
-  lispval lock_expr = kno_get_arg(expr,1), lck, value = VOID;
-  u8_mutex *uselock = NULL;
-  if (VOIDP(lock_expr))
-    return kno_err(kno_SyntaxError,"with_lock_evalfn",NULL,expr);
-  else lck = kno_eval(lock_expr,env);
-  if (KNO_ABORTED(lck)) return lck;
-  else if (TYPEP(lck,kno_condvar_type)) {
-    struct KNO_CONDVAR *cv=
-      kno_consptr(struct KNO_CONDVAR *,lck,kno_condvar_type);
-    uselock = &(cv->kno_cvlock);}
-  else if (KNO_LAMBDAP(lck)) {
-    struct KNO_LAMBDA *sp = kno_consptr(kno_lambda,lck,kno_lambda_type);
-    if (sp->lambda_synchronized) {
-      uselock = &(sp->lambda_lock);}
-    else {
-      kno_decref(lck);
-      return kno_type_error("lockable","synchro_lock",lck);}}
-  else {
-    kno_decref(lck);
-    return kno_type_error("lockable","synchro_unlock",lck);}
-  {U8_WITH_CONTOUR("WITH-LOCK",0) {
-      u8_lock_mutex(uselock);
-      KNO_DOLIST(elt_expr,KNO_CDDR(expr)) {
-        kno_decref(value);
-        value = kno_eval(elt_expr,env);
-        if (KNO_ABORTED(value)) {
-          u8_unlock_mutex(uselock);
-          kno_decref(lck);
-          break;}}}
-    U8_ON_EXCEPTION {
-      U8_CLEAR_CONTOUR();
-      kno_decref(value);
-      value = KNO_ERROR;}
-    U8_END_EXCEPTION;}
-  u8_unlock_mutex(uselock);
-  kno_decref(lck);
-  return value;
 }
 
 /* Functions */
@@ -1249,9 +1401,9 @@ KNO_EXPORT void kno_init_threads_c()
   kno_recyclers[kno_thread_type]=recycle_thread_struct;
   kno_unparsers[kno_thread_type]=unparse_thread_struct;
 
-  kno_condvar_type = kno_register_cons_type(_("condvar"));
-  kno_recyclers[kno_condvar_type]=recycle_condvar;
-  kno_unparsers[kno_condvar_type]=unparse_condvar;
+  kno_synchronizer_type = kno_register_cons_type(_("synchronizer"));
+  kno_recyclers[kno_synchronizer_type]=recycle_synchronizer;
+  kno_unparsers[kno_synchronizer_type]=unparse_synchronizer;
 
   kno_def_evalfn(kno_scheme_module,"PARALLEL",
                  "`(PARALLEL *exprs...*)` is just like `CHOICE`, "
@@ -1285,8 +1437,10 @@ KNO_EXPORT void kno_init_threads_c()
   DECL_PRIM(threadfinish_prim,2,kno_scheme_module);
 
   DECL_PRIM(threadp_prim,1,kno_scheme_module);
-  DECL_PRIM(condvarp_prim,1,kno_scheme_module);
   DECL_PRIM(synchronizerp_prim,1,kno_scheme_module);
+  DECL_PRIM(mutexp_prim,1,kno_scheme_module);
+  DECL_PRIM(rwlockp_prim,1,kno_scheme_module);
+  DECL_PRIM(condvarp_prim,1,kno_scheme_module);
 
   int one_thread_arg[1] = { kno_thread_type };
   int find_thread_types[2] = { kno_fixnum_type, kno_any_type };
@@ -1303,9 +1457,11 @@ KNO_EXPORT void kno_init_threads_c()
   logexit_symbol = kno_intern("logexit");
   void_symbol = kno_intern("void");
 
-  int one_condvar_arg[1] = { kno_condvar_type };
-  int condvar_signal_args[2] = { kno_condvar_type, kno_any_type };
+  int one_synchronizer_arg[1] = { kno_synchronizer_type };
+  int condvar_signal_args[2] = { kno_synchronizer_type, kno_any_type };
 
+  DECL_PRIM(make_mutex,0,kno_scheme_module);
+  DECL_PRIM(make_rwlock,0,kno_scheme_module);
   DECL_PRIM(make_condvar,0,kno_scheme_module);
 
   DECL_PRIM_ARGS(condvar_signal,2,kno_scheme_module,
@@ -1313,12 +1469,13 @@ KNO_EXPORT void kno_init_threads_c()
   DECL_PRIM_ARGS(condvar_wait,2,kno_scheme_module,
                  condvar_signal_args,NULL);
   DECL_PRIM_ARGS(condvar_lock,1,kno_scheme_module,
-                 one_condvar_arg,NULL);
+                 one_synchronizer_arg,NULL);
   DECL_PRIM_ARGS(condvar_unlock,1,kno_scheme_module,
-                 one_condvar_arg,NULL);
+                 one_synchronizer_arg,NULL);
 
   DECL_PRIM(synchro_lock,1,kno_scheme_module);
   DECL_PRIM(synchro_unlock,1,kno_scheme_module);
+  DECL_PRIM(synchro_read_lock,1,kno_scheme_module);
 
   kno_def_evalfn(kno_scheme_module,"WITH-LOCK","",with_lock_evalfn);
 
