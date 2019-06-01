@@ -45,7 +45,7 @@ Package: kno-builtin
 Architecture: any
 Depends: ${misc:Depends}, kno-core
 Provides: kno-modules
-Description: This package directly provides hundreds of source (scheme) modules for
+Description: This package directly provides many source (scheme) modules for
   use with Kno
 
 Package: libapache2-mod-knoweb
@@ -219,7 +219,7 @@ Description: Provides an Emacs mode for interacting with knoc
 
 Package: kno-full
 Architecture: any
-Depends: ${misc:Depends}, kno-core, kno-builtin, kno-doc,
+Depends: ${misc:Depends}, kno-core, kno-modules, kno-doc,
 	 kno-imagetools, kno-mysql, kno-mongodb,
 	 kno-sqlite, kno-sundown, kno-tidy,
 	 elpa-knoc
