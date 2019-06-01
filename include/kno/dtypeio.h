@@ -16,10 +16,11 @@
 KNO_EXPORT unsigned int kno_check_dtsize;
 
 #define KNO_DTYPEIO_FLAGS     (KNO_BUFIO_MAX_FLAG)
-#define KNO_WRITE_OPAQUE      (KNO_DTYPEIO_FLAGS << 0)
-#define KNO_NATSORT_VALUES    (KNO_DTYPEIO_FLAGS << 1)
-#define KNO_USE_DTYPEV2       (KNO_DTYPEIO_FLAGS << 2)
-#define KNO_FIX_DTSYMS        (KNO_DTYPEIO_FLAGS << 3)
+#define KNO_IS_NOT_DTYPEIO    (KNO_DTYPEIO_FLAGS << 0)
+#define KNO_WRITE_OPAQUE      (KNO_DTYPEIO_FLAGS << 1)
+#define KNO_NATSORT_VALUES    (KNO_DTYPEIO_FLAGS << 2)
+#define KNO_USE_DTYPEV2       (KNO_DTYPEIO_FLAGS << 3)
+#define KNO_FIX_DTSYMS        (KNO_DTYPEIO_FLAGS << 4)
 
 /* DTYPE constants */
 

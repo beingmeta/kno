@@ -15,9 +15,10 @@
 
 KNO_EXPORT unsigned int kno_check_dtsize;
 
-#define KNO_XTYPES_FLAGS     (KNO_BUFIO_MAX_FLAG)
-#define KNO_WRITE_OPAQUE      (KNO_XTYPES_FLAGS << 0)
-#define KNO_NATSORT_VALUES    (KNO_XTYPES_FLAGS << 1)
+#define KNO_XTYPES_FLAGS      (KNO_BUFIO_MAX_FLAG)
+#define KNO_IS_XTYPE          (KNO_XTYPES_FLAGS << 0)
+#define KNO_WRITE_OPAQUE      (KNO_XTYPES_FLAGS << 1)
+#define KNO_NATSORT_VALUES    (KNO_XTYPES_FLAGS << 2)
 
 /* DTYPE constants */
 
@@ -80,16 +81,11 @@ typedef enum xt_type_code {
   xt_choice_bb = 0x41,
   xt_choice_bbbb = 0x42,
   xt_choice_bbbbbbbb = 0x43,
-  /* xt_tables */
+  /* Tables */
   xt_table_b = 0x50,
   xt_table_bb = 0x51,
   xt_table_bbbb = 0x52,
   xt_table_bbbbbbbb = 0x53,
-  /* OIDs */
-  xt_oid = 0x60, /* 8 bytes */
-  xt_oid_x_bb = 0x61, /* */
-  xt_oid_x_bbbb = 0x62, /* */
-  xt_oid_x_ bbbbbbbb = 0x63, /* */
   /* Refs */
   xt_ref_b = 0x60,
   xt_ref_bb = 0x61,
@@ -99,6 +95,12 @@ typedef enum xt_type_code {
   xt_ref_bbbbbb = 0x65,
   xt_ref_bbbbbbb = 0x66,
   xt_ref_bbbbbbbb = 0x67,
+  /* OID refs */
+  xt_oid = 0x68, /* 8 bytes */
+  xt_oid_b = 0x69, /* has form base (xtype) + off (bytes) */
+  xt_oid_bb = 0x6a, /* ... */
+  xt_oid_bbb = 0x6b, /* ... */
+  xt_oid_bbbb = 0x6c, /* ... */
   /* Type codes */
   xt_type_short16_vec = 0x70,
   xt_type_int32_vec = 0x71,
