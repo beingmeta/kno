@@ -200,8 +200,8 @@ KNO_INLINE_FCN void kno_set_ipeval_state(kno_wideint s)
 #endif
 
 typedef struct KNO_IPEVAL_RECORD {
-  int cycle, delays;
-  double exec_time, fetch_time;} KNO_IPEVAL_RECORD;
+  int ipv_cycle, ipv_delays;
+  double ipv_exec_time, ipv_fetch_time;} KNO_IPEVAL_RECORD;
 typedef struct KNO_IPEVAL_RECORD *kno_ipeval_record;
 
 KNO_EXPORT int kno_tracked_ipeval_call

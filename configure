@@ -818,7 +818,7 @@ xdynamic_scheme_libs
 xstatic_scheme_libs
 xstatic_exe_libs
 suffix
-ipevalprimso
+ipevalopso
 ipevalo
 exifo
 ldnso
@@ -2971,7 +2971,7 @@ calltracko=""
 curlo=""
 ldnso=""
 ipevalo=""
-ipevalprimso=""
+ipevalopso=""
 curlconfig=""
 curl_default="no"
 dns_default="no"
@@ -8046,7 +8046,7 @@ fi
 
 if test $enable_ipeval = "yes"; then
   ipevalo=src/storage/ipeval.o
-  ipevalprimso=src/prims/ipevalprims.o
+  ipevalopso=src/eval/ipevalops.o
   $as_echo "#define KNO_IPEVAL_ENABLED 1" >>confdefs.h
 
 else

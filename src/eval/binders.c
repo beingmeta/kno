@@ -183,43 +183,6 @@ static lispval sassign_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return kno_err(kno_BindError,"SSET!",SYM_NAME(var),var);}
 }
 
-/* Environment utilities */
-
-KNO_FASTOP int check_bindexprs(lispval bindexprs,lispval *why_not)
-{
-  if (PAIRP(bindexprs)) {
-    int n = 0; KNO_DOLIST(bindexpr,bindexprs) {
-      lispval var = kno_get_arg(bindexpr,0);
-      if (VOIDP(var)) {
-        *why_not = kno_err(kno_BindSyntaxError,NULL,NULL,bindexpr);
-        return -1;}
-      else n++;}
-    return n;}
-  else if (KNO_CODEP(bindexprs)) {
-    int len = KNO_CODE_LENGTH(bindexprs);
-    if ((len%2)==1) {
-      *why_not = kno_err(kno_BindSyntaxError,"check_bindexprs",NULL,bindexprs);
-      return -1;}
-    else return len/2;}
-  else return -1;
-}
-
-KNO_FASTOP kno_lexenv make_dynamic_env(int n,kno_lexenv parent)
-{
-  int i = 0;
-  struct KNO_LEXENV *e = u8_alloc(struct KNO_LEXENV);
-  lispval *vars = u8_alloc_n(n,lispval);
-  lispval *vals = u8_alloc_n(n,lispval);
-  lispval schemap = kno_make_schemap(NULL,n,KNO_SCHEMAP_PRIVATE,vars,vals);
-  while (i<n) {vars[i]=VOID; vals[i]=VOID; i++;}
-  KNO_INIT_FRESH_CONS(e,kno_lexenv_type);
-  e->env_copy = e;
-  e->env_bindings = schemap;
-  e->env_exports = VOID;
-  e->env_parent = kno_copy_env(parent);
-  return e;
-}
-
 /* Simple binders */
 
 static lispval let_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)

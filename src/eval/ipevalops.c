@@ -19,18 +19,26 @@
 
 #include <libu8/u8printf.h>
 
+#if KNO_IPEVAL_ENABLED
+struct IPEVAL_BINDSTRUCT {
+  int bs_len;
+  lispval *bs_values;
+  lispval bs_val_exprs;
+  kno_lexenv bs_env;};
+
+struct IPEVAL_STRUCT {
+  lispval ipv_expr, ipv_value;
+  kno_lexenv ipv_env;};
+#endif
+
 /* IPEVAL binding */
 
 #if KNO_IPEVAL_ENABLED
-struct IPEVAL_BINDSTRUCT {
-  int n_bindings; lispval *vals;
-  lispval valexprs; kno_lexenv env;};
-
 static int ipeval_let_step(struct IPEVAL_BINDSTRUCT *bs)
 {
-  int i = 0, n = bs->n_bindings;
-  lispval *bindings = bs->vals, scan = bs->valexprs;
-  kno_lexenv env = bs->lambda_env;
+  int i = 0, n = bs->bs_len;
+  lispval *bindings = bs->bs_values, scan = bs->bs_val_exprs;
+  kno_lexenv env = bs->bs_env;
   while (i<n) {
     kno_decref(bindings[i]); bindings[i++]=VOID;}
   i = 0; while (PAIRP(scan)) {
@@ -44,9 +52,9 @@ static int ipeval_let_step(struct IPEVAL_BINDSTRUCT *bs)
 
 static int ipeval_letstar_step(struct IPEVAL_BINDSTRUCT *bs)
 {
-  int i = 0, n = bs->n_bindings;
-  lispval *bindings = bs->vals, scan = bs->valexprs;
-  kno_lexenv env = bs->lambda_env;
+  int i = 0, n = bs->bs_len;
+  lispval *bindings = bs->bs_values, scan = bs->bs_val_exprs;
+  kno_lexenv env = bs->bs_env;
   while (i<n) {
     kno_decref(bindings[i]); bindings[i++]=KNO_UNBOUND;}
   i = 0; while (PAIRP(scan)) {
@@ -62,8 +70,8 @@ static int ipeval_let_binding
   (int n,lispval *vals,lispval bindexprs,kno_lexenv env)
 {
   struct IPEVAL_BINDSTRUCT bindstruct;
-  bindstruct.n_bindings = n; bindstruct.vals = vals;
-  bindstruct.valexprs = bindexprs; bindstruct.env = env;
+  bindstruct.bs_len = n; bindstruct.bs_values = vals;
+  bindstruct.bs_val_exprs = bindexprs; bindstruct.bs_env = env;
   return kno_ipeval_call((kno_ipevalfn)ipeval_let_step,&bindstruct);
 }
 
@@ -71,8 +79,8 @@ static int ipeval_letstar_binding
   (int n,lispval *vals,lispval bindexprs,kno_lexenv bind_env,kno_lexenv env)
 {
   struct IPEVAL_BINDSTRUCT bindstruct;
-  bindstruct.n_bindings = n; bindstruct.vals = vals;
-  bindstruct.valexprs = bindexprs; bindstruct.env = env;
+  bindstruct.bs_len = n; bindstruct.bs_values = vals;
+  bindstruct.bs_val_exprs = bindexprs; bindstruct.bs_env = env;
   return kno_ipeval_call((kno_ipevalfn)ipeval_letstar_step,&bindstruct);
 }
 
@@ -93,13 +101,13 @@ static lispval letq_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       lispval bind_expr = KNO_CAR(scan), var = KNO_CAR(bind_expr);
       vars[i]=var; vals[i]=VOID; scan = KNO_CDR(scan); i++;}
     if (ipeval_let_binding(n,vals,bindexprs,env)<0)
-      return ERROR_VALUE;
+      return KNO_ERROR_VALUE;
     {lispval body = kno_get_body(expr,2);
      KNO_DOLIST(bodyexpr,body) {
       kno_decref(result);
       result = fast_eval(bodyexpr,inner_env);
       if (KNO_ABORTED(result))
-        return result}}
+        return result;}}
     kno_free_lexenv(inner_env);
     return result;}
 }
@@ -138,12 +146,10 @@ static lispval letqstar_evalfn
 /* IPEVAL */
 
 #if KNO_IPEVAL_ENABLED
-struct IPEVAL_STRUCT { lispval expr, kno_value; kno_lexenv env;};
-
 static int ipeval_step(struct IPEVAL_STRUCT *s)
 {
-  lispval kno_value = kno_eval(s->expr,s->env);
-  kno_decref(s->kv_val); s->kv_val = kno_value;
+  lispval kno_value = kno_eval(s->ipv_expr,s->ipv_env);
+  kno_decref(s->ipv_value); s->ipv_value = kno_value;
   if (KNO_ABORTED(kno_value))
     return -1;
   else return 1;
@@ -152,36 +158,43 @@ static int ipeval_step(struct IPEVAL_STRUCT *s)
 static lispval ipeval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   struct IPEVAL_STRUCT tmp;
-  tmp.expr = kno_refcar(kno_refcdr(expr)); tmp.env = env; tmp.kv_val = VOID;
+  tmp.ipv_expr = kno_refcar(kno_refcdr(expr));
+  tmp.ipv_env = env; tmp.ipv_value = VOID;
   kno_ipeval_call((kno_ipevalfn)ipeval_step,&tmp);
-  return tmp.kv_val;
+  return tmp.ipv_value;
 }
 
 static lispval trace_ipeval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   struct IPEVAL_STRUCT tmp; int old_trace = kno_trace_ipeval;
-  tmp.expr = kno_refcar(kno_refcdr(expr)); tmp.env = env; tmp.kv_val = VOID;
+  tmp.ipv_expr = kno_refcar(kno_refcdr(expr));
+  tmp.ipv_env = env;
+  tmp.ipv_value = VOID;
   kno_trace_ipeval = 1;
   kno_ipeval_call((kno_ipevalfn)ipeval_step,&tmp);
   kno_trace_ipeval = old_trace;
-  return tmp.kv_val;
+  return tmp.ipv_value;
 }
 
 static lispval track_ipeval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   struct IPEVAL_STRUCT tmp;
-  struct KNO_IPEVAL_RECORD *records; int n_cycles; double total_time;
+  int n_cycles; double total_time;
+  struct KNO_IPEVAL_RECORD *records;
   lispval *vec; int i = 0;
-  tmp.expr = kno_refcar(kno_refcdr(expr)); tmp.env = env; tmp.kv_val = VOID;
-  kno_tracked_ipeval_call((kno_ipevalfn)ipeval_step,&tmp,&records,&n_cycles,&total_time);
+  tmp.ipv_expr = kno_refcar(kno_refcdr(expr));
+  tmp.ipv_value = VOID;
+  tmp.ipv_env = env;
+  kno_tracked_ipeval_call((kno_ipevalfn)ipeval_step,
+                          &tmp,&records,&n_cycles,&total_time);
   vec = u8_alloc_n(n_cycles,lispval);
   i = 0; while (i<n_cycles) {
     struct KNO_IPEVAL_RECORD *record = &(records[i]);
     vec[i++]=
-      kno_make_nvector(3,KNO_INT(record->delays),
-                      kno_init_double(NULL,record->exec_time),
-                      kno_init_double(NULL,record->fetch_time));}
-  return kno_make_nvector(3,tmp.kv_val,
+      kno_make_nvector(3,KNO_INT(record->ipv_delays),
+                      kno_init_double(NULL,record->ipv_exec_time),
+                      kno_init_double(NULL,record->ipv_fetch_time));}
+  return kno_make_nvector(3,tmp.ipv_value,
                          kno_init_double(NULL,total_time),
                          kno_wrap_vector(n_cycles,vec));
 }

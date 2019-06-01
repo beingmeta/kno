@@ -56,7 +56,7 @@ calltracko=""
 curlo=""
 ldnso=""
 ipevalo=""
-ipevalprimso=""
+ipevalopso=""
 curlconfig=""
 curl_default="no"
 dns_default="no"
@@ -239,7 +239,7 @@ AC_SUBST(curlo)
 AC_SUBST(ldnso)
 AC_SUBST(exifo)
 AC_SUBST(ipevalo)
-AC_SUBST(ipevalprimso)
+AC_SUBST(ipevalopso)
 AC_SUBST(suffix)
 AC_SUBST(xstatic_exe_libs)
 AC_SUBST(xstatic_scheme_libs)

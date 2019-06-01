@@ -179,10 +179,10 @@ KNO_EXPORT int kno_tracked_ipeval_call(int (*fcn)(void *),void *data,
     if (ipeval_count>=n_records) {
       records = u8_realloc_n(records,n_records+16,struct KNO_IPEVAL_RECORD);
       n_records = n_records+16;}
-    records[ipeval_count-1].cycle = ipeval_count;
-    records[ipeval_count-1].delays = delays;
-    records[ipeval_count-1].exec_time = exec_time;
-    records[ipeval_count-1].fetch_time = fetch_time;
+    records[ipeval_count-1].ipv_cycle = ipeval_count;
+    records[ipeval_count-1].ipv_delays = delays;
+    records[ipeval_count-1].ipv_exec_time = exec_time;
+    records[ipeval_count-1].ipv_fetch_time = fetch_time;
     ipeval_count++;
     kno_set_ipeval_state(1);
 #if KNO_TRACE_IPEVAL
@@ -196,10 +196,10 @@ KNO_EXPORT int kno_tracked_ipeval_call(int (*fcn)(void *),void *data,
     kno_set_ipeval_state(0);
     retval = fcn(data);
     exec_time = time_since(point); delays = 0;}
-  records[ipeval_count-1].cycle = ipeval_count;
-  records[ipeval_count-1].delays = delays;
-  records[ipeval_count-1].exec_time = exec_time;
-  records[ipeval_count-1].fetch_time = 0.0;
+  records[ipeval_count-1].ipv_cycle = ipeval_count;
+  records[ipeval_count-1].ipv_delays = delays;
+  records[ipeval_count-1].ipv_exec_time = exec_time;
+  records[ipeval_count-1].ipv_fetch_time = 0.0;
   kno_set_ipeval_state(saved_state);
   *history = records; *n_cycles = ipeval_count; *total_time = time_since(start);
 #if KNO_TRACE_IPEVAL
