@@ -494,15 +494,15 @@ static lispval kno_run(u8_string source_file,struct U8_OUTPUT *out,
       else return result;}}
 }
 
-static lispval lisp_knox_file(int n,lispval *args)
+static lispval kno_run_file(int n,lispval *args)
 {
   if ( (KNO_STRINGP(args[0])) &&
        (u8_file_existsp(KNO_CSTRING(args[0]))) )
     return kno_run(KNO_CSTRING(args[0]),NULL,n-1,args+1);
-  else return kno_type_error("filename","lisp_run_file",args[0]);
+  else return kno_type_error("filename","kno_run_file",args[0]);
 }
 
-static lispval lisp_knoxout_file(int n,lispval *args)
+static lispval kno_run_file_2string(int n,lispval *args)
 {
   if ( (KNO_STRINGP(args[0])) &&
        (u8_file_existsp(KNO_CSTRING(args[0]))) ) {
@@ -512,7 +512,7 @@ static lispval lisp_knoxout_file(int n,lispval *args)
       if ( (out.u8_write-out.u8_outbuf) > 0) {
         lispval output = kno_stream_string(&out);
         u8_close_output(&out);
-        kno_seterr("RunFailed","lisp_run2string_file",
+        kno_seterr("RunFailed","kno_run_file_2string",
                   u8_strdup(KNO_CSTRING(args[0])),
                   output);
         kno_decref(output);
@@ -523,7 +523,7 @@ static lispval lisp_knoxout_file(int n,lispval *args)
       kno_decref(result);
       u8_close_output(&out);
       return output;}}
-  else return kno_type_error("filename","lisp_run_file",args[0]);
+  else return kno_type_error("filename","kno_run_file_2string",args[0]);
 }
 
 /* Config config */
@@ -645,12 +645,13 @@ KNO_EXPORT void kno_init_load_c()
           kno_make_cprim1x("LOAD-DEFAULT-CONFIG",lisp_load_default_config,1,
                           -1,VOID));
 
- kno_idefnN(kno_scheme_module,"KNOX",
-           lisp_knox_file,KNO_NEEDS_1_ARG|KNO_NDCALL,
+ kno_idefnN(kno_scheme_module,"KNO/RUN-FILE",
+           kno_run_file,KNO_NEEDS_1_ARG|KNO_NDCALL,
            "Loads a file and applies its (main) procedure to the arguments");
- kno_idefnN(kno_scheme_module,"KNOXOUT",
-           lisp_knoxout_file,KNO_NEEDS_1_ARG|KNO_NDCALL,
-           "Loads a file and applies its (main) procedure to the arguments");
+ kno_idefnN(kno_scheme_module,"KNO/RUN->STRING",
+            kno_run_file_2string,KNO_NEEDS_1_ARG|KNO_NDCALL,
+            "Loads a KNO file and applies its (main) procedure "
+            "to the arguments, returns the output as a string");
 
  kno_idefn(kno_scheme_module,
           kno_make_cprim2x("GET-COMPONENT",lisp_get_component,1,

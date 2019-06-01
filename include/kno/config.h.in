@@ -402,7 +402,7 @@
 /* The string of semicolon separated config assignments processed at startup */
 #undef KNO_BOOT_CONFIG
 
-/* This is where the knox exectuable will be installed */
+/* This is where the kno exectuable will be installed */
 #undef KNO_EXEC
 
 /* This is where the knod executable will be installed */

@@ -1280,10 +1280,10 @@ AC_ARG_WITH(boot_config,--with-boot-config configstring,,with_boot_config="")
 AC_DEFINE_UNQUOTED(KNO_BOOT_CONFIG,"$with_boot_config")
 
 if test $exec_prefix = "NONE"; then
-  AC_DEFINE_UNQUOTED(KNO_EXEC,"$prefix/bin/knox")
+  AC_DEFINE_UNQUOTED(KNO_EXEC,"$prefix/bin/kno")
   AC_DEFINE_UNQUOTED(KNO_DBSERVER,"$prefix/bin/knod")
 else
-  AC_DEFINE_UNQUOTED(KNO_EXEC,"$exec_prefix/bin/knox")
+  AC_DEFINE_UNQUOTED(KNO_EXEC,"$exec_prefix/bin/kno")
   AC_DEFINE_UNQUOTED(KNO_DBSERVER,"$prefix/bin/knod")
 fi
 
@@ -1960,7 +1960,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/knosetconfig etc/knogetconfig etc/knoconfig
 	   tests/testenv.sh tests/xtest
 	   tests/runtest tests/memtest
-	   tests/leaktest tests/knoxtest
+	   tests/leaktest tests/knotest
 	   src/scripts/knopkg.scm
 	   etc/knojob
 	   etc/logrotate

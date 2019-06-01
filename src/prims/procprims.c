@@ -219,17 +219,17 @@ static lispval exec_cmd_prim(int n,lispval *args)
   return exec_helper("exec_cmd_prim",KNO_DO_LOOKUP,n,KNO_FALSE,args);
 }
 
-DCLPRIM("KNOX",knox_prim,MIN_ARGS(1)|KNO_VAR_ARGS,
-        "`(KNOX *scheme_file* [*envmap*] [*args*...])` replaces "
+DCLPRIM("KNO",kno_prim,MIN_ARGS(1)|KNO_VAR_ARGS,
+        "`(KNO *scheme_file* [*envmap*] [*args*...])` replaces "
         "the current application with a Kno process reading "
         "the file *scheme_file* and applying the file's `MAIN` "
         "definition to the results of parsing *args* (also strings).\n"
         "*envmap*, if provided, specifies CONFIG settings for the "
         "reading and execution of *scheme-file*. Environment variables "
         "can also be explicitly provided in the string *command*.\n")
-static lispval knox_prim(int n,lispval *args)
+static lispval kno_prim(int n,lispval *args)
 {
-  return exec_helper("knox_prim",KNO_IS_SCHEME,n,KNO_FALSE,args);
+  return exec_helper("kno_prim",KNO_IS_SCHEME,n,KNO_FALSE,args);
 }
 
 DCLPRIM("FORK",fork_prim,MIN_ARGS(1)|KNO_VAR_ARGS,
@@ -847,7 +847,7 @@ KNO_EXPORT void kno_init_procprims_c()
   DECL_PRIM_N(fork_prim,procprims_module);
   DECL_PRIM_N(fork_cmd_prim,procprims_module);
 
-  DECL_PRIM_N(knox_prim,procprims_module);
+  DECL_PRIM_N(kno_prim,procprims_module);
   DECL_PRIM_N(knofork_prim,procprims_module);
 
 #if HAVE_WAITPID

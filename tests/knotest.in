@@ -1,0 +1,4 @@
+echo "Test run ./kno" $*
+. ../dbg/runenv.sh
+. ./testenv.sh
+@test_env@ exec ./kno $*  DLOAD_TRACE=yes SHOWTIME=1.0 DISPLAYMAXELTS=36 DISPLAYMAXCHARS=1024

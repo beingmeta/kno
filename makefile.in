@@ -357,12 +357,12 @@ CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
 	     src/cmodules/hyphenate.o \
 	     ${SUNDOWN_OBJS} ${TIDY_OBJECTS}
 
-EXECUTABLES=exe/knox@suffix@ exe/knoc@suffix@ exe/knotask@suffix@  \
+EXECUTABLES=exe/kno@suffix@ exe/knoc@suffix@ exe/knotask@suffix@  \
 	    exe/knoweb@suffix@ exe/knod@suffix@
-STATIC_EXECUTABLES=static/knox@suffix@ static/knoc@suffix@ \
+STATIC_EXECUTABLES=static/kno@suffix@ static/knoc@suffix@ \
 	static/knotask@suffix@ \
 	static/knoweb@suffix@ static/knod@suffix@
-DEBUG_EXECUTABLES=dbg/knox dbg/knoc dbg/knotask dbg/knoweb dbg/knod
+DEBUG_EXECUTABLES=dbg/kno dbg/knoc dbg/knotask dbg/knoweb dbg/knod
 SHELL_SCRIPTS=etc/knosetconfig etc/knogetconfig etc/knoconfig \
 	etc/knostart etc/knostop etc/knostartall etc/knostopall \
 	etc/kno_start_daemons etc/kno_start_servlets etc/kno_stop_jobs \
@@ -450,7 +450,7 @@ KNO_SOURCES=\
 	src/text/texttools.c src/text/match.c                			\
 	src/text/porter.c src/text/phonetic.c                			\
 	src/exe/knoc.c                                            		\
-	src/exe/knox.c src/exe/knotask.c                             		\
+	src/exe/kno.c src/exe/knotask.c                             		\
 	src/exe/knoweb.c src/exe/knocgi.c src/exe/knod.c
 
 CMODULE_SOURCES=\
@@ -627,7 +627,7 @@ dbginstall:
 	@$(MSG) CC $@ $<
 
 exe/scripts/%: src/scripts/%.scm
-	@$(ECHO) "#!"@prefix@/bin/knox | cat - $< > $@
+	@$(ECHO) "#!"@prefix@/bin/kno | cat - $< > $@
 	@chmod a+x $@
 	@$(MSG) MAKESCRIPT $@ $<
 
@@ -755,7 +755,7 @@ src/cmodules/ext/tidy5/%.o: src/cmodules/ext/tidy5/%.c $(SUNDOWN_H_FILES)
 	@$(CC) $(CFLAGS) -I./src/cmodules/ext/tidy5/ -o $@ -c $<
 	@$(MSG) CC "(TIDY5)" $@
 
-exe/knox@suffix@ exe/knotask@suffix@ exe/knoc@suffix@: \
+exe/kno@suffix@ exe/knotask@suffix@ exe/knoc@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
 exe/knocgi@suffix@ exe/knod@suffix@ exe/knoweb@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
@@ -928,7 +928,7 @@ clean: tidy
 	rm -f lib/*@suffix@.so.*
 	rm -f lib/kno/*@suffix@.so lib/kno/*@suffix@.so.* 
 	rm -f lib/kno/*.dylib
-	rm -f exe/knox@suffix@ exe/knotask@suffix@
+	rm -f exe/kno@suffix@ exe/knotask@suffix@
 	rm -f exe/knoweb@suffix@ exe/knod@suffix@
 	rm -f exe/knoc@suffix@ exe/knocgi@suffix@
 	rm -f TAGS
@@ -1830,14 +1830,14 @@ tests: testclean
 	 echo "#### Can't test primitives on protected files, enable with 'make private_files'"; \
 	 fi;
 
-tests.log: tests/knox tests/makefile.in makefile
+tests.log: tests/kno tests/makefile.in makefile
 	@echo "#### Running test scripts, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; make -s -C tests -k -j 2>&1 > tests.log && \
 	 cp tests.log tests/logs/tests-$${DATE}.log; \
 	 sort tests/timing.log -k 2 > tests/logs/timing-$${DATE}.log;
 
-libtests.log: tests/knox tests/makefile.in
+libtests.log: tests/kno tests/makefile.in
 	@echo "#### Running libtests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; \
@@ -1845,7 +1845,7 @@ libtests.log: tests/knox tests/makefile.in
 	 cp libtests.log tests/logs/libtests-$${DATE}.log;
 libtests: libtests.log
 
-tests/memtests.log: tests/knox tests/makefile.in
+tests/memtests.log: tests/kno tests/makefile.in
 	@echo "#### Running memory tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; \
@@ -1853,14 +1853,14 @@ tests/memtests.log: tests/knox tests/makefile.in
 	 cp memtests.log tests/logs/memtests-`date +%d%b%yT%T`.log;
 memtests: memtests.log
 
-tests/leaktests.log: tests/knox tests/makefile.in
+tests/leaktests.log: tests/kno tests/makefile.in
 	@echo "#### Running leak tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; make -s -C tests -k -j leaktests 2>&1 > leaktests.log && \
 	cp leaktests.log tests/logs/leaktests-`date +%d%b%yT%T`.log;
 leaktests: leaktests.log
 
-tests/schemetests.log: tests/knox tests/makefile.in
+tests/schemetests.log: tests/kno tests/makefile.in
 	@echo "#### Running scheme tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; \
@@ -1868,7 +1868,7 @@ tests/schemetests.log: tests/knox tests/makefile.in
 	 cp schemtests.log tests/logs/schemetests-`date +%d%b%yT%T`.log;
 schemetests: schemetests.log
 
-tests/cmdtests.log: tests/knox tests/makefile.in
+tests/cmdtests.log: tests/kno tests/makefile.in
 	@echo "#### Running command tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; \
@@ -1876,7 +1876,7 @@ tests/cmdtests.log: tests/knox tests/makefile.in
 	 cp tests/cmdtests.log tests/logs/cmdtests-`date +%d%b%yT%T`.log;
 cmdtests: tests/cmdtests.log
 
-tests/dbtests.log: tests/knox tests/makefile.in
+tests/dbtests.log: tests/kno tests/makefile.in
 	@echo "#### Running database tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; \

@@ -5,7 +5,7 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef EMBEDDED_KNOX
+#ifndef EMBEDDED_KNO
 #ifndef _FILEINFO
 #define _FILEINFO __FILE__
 #endif
@@ -57,9 +57,9 @@ static int chain_fast_exit=1;
 
 static u8_condition FileWait=_("FILEWAIT");
 
-static void exit_knox()
+static void exit_kno()
 {
-  if (!(kno_be_vewy_quiet)) kno_log_status("Exit(knox)");
+  if (!(kno_be_vewy_quiet)) kno_log_status("Exit(kno)");
 }
 
 static lispval load_stdin(kno_lexenv env)
@@ -266,7 +266,7 @@ int do_main(int argc,char **argv,
   setlocale(LC_ALL,"");
   /* Process command line arguments */
 
-  atexit(exit_knox);
+  atexit(exit_kno);
 
   /* INITIALIZING MODULES */
   /* Normally, modules have initialization functions called when
@@ -384,7 +384,7 @@ int do_main(int argc,char **argv,
   return retval;
 }
 
-#ifndef EMBEDDED_KNOX
+#ifndef EMBEDDED_KNO
 int main(int argc,char **argv)
 {
   u8_string source_file = NULL, exe_name = NULL;
@@ -403,7 +403,7 @@ int main(int argc,char **argv)
 
   args = handle_argv(argc,argv,&n_args,&exe_name,&source_file,NULL);
 
-  KNO_NEW_STACK(((struct KNO_STACK *)NULL),"knox",NULL,VOID);
+  KNO_NEW_STACK(((struct KNO_STACK *)NULL),"kno",NULL,VOID);
   u8_string appid=u8_appid();
   if (appid==NULL) appid=argv[0];
   _stack->stack_label=u8_strdup(appid);

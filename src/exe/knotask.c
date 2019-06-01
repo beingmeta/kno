@@ -9,9 +9,9 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define EMBEDDED_KNOX 1
+#define EMBEDDED_KNO 1
 
-#include "knox.c"
+#include "kno.c"
 
 #if HAVE_SYS_TYPES_H
 #include <sys/types.h>
@@ -201,7 +201,7 @@ int main(int argc,char **argv)
       kno_pop_stack(_stack);
       exit(1);}}
 
-  atexit(exit_knox);
+  atexit(exit_kno);
 
   stop_file = get_stopfile();
 
@@ -262,7 +262,7 @@ int main(int argc,char **argv)
     if (log_file) close(log_fd);
     if (err_file) close(err_fd);}
   else {
-    /* The child process redirects stdio, runs knox, and
+    /* The child process redirects stdio, runs kno, and
        removes the pid file and writes the done file when
        when it exits normally. */
     int retval = -1;
