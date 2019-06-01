@@ -858,7 +858,7 @@ dnl This enables the ipeval implementation within Kno
 AC_ARG_ENABLE(ipeval,--en[dis]able-ipeval Enable IPEVAL,,enable_ipeval=$enable_ipeval_default)
 if test $enable_ipeval = "yes"; then
   ipevalo=src/storage/ipeval.o
-  ipevalprimso=src/prims/ipevalprims.o
+  ipevalopso=src/eval/ipevalops.o
   AC_DEFINE(KNO_IPEVAL_ENABLED,1)
 else
   AC_DEFINE(KNO_IPEVAL_ENABLED,0)

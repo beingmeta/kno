@@ -232,7 +232,7 @@ SCHEME_OBJS=\
 	src/prims/timeprims.o \
 	src/prims/sysprims.o \
 	src/prims/procprims.o \
-	@ipevalprimso@ \
+	@ipevalopso@ \
 	src/prims/extdbprims.o \
 	src/prims/fileprims.o \
 	src/prims/driverprims.o \
