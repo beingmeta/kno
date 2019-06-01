@@ -56,7 +56,7 @@ static lispval tick_symbol, xtick_symbol, prim_tick_symbol;
 static lispval iso_symbol, isostring_symbol, iso8601_symbol;
 static lispval isodate_symbol, isobasic_symbol, isobasicdate_symbol;
 static lispval rfc822_symbol, rfc822date_symbol, rfc822x_symbol;
-static lispval localstring_symbol;
+static lispval localstring_symbol, utcstring_symbol;
 static lispval time_of_day_symbol, dowid_symbol, monthid_symbol;
 static lispval shortmonth_symbol, longmonth_symbol;
 static lispval  shortday_symbol, longday_symbol;
@@ -501,9 +501,9 @@ static lispval xtime_get(struct U8_XTIME *xt,lispval slotid,int reterr)
     else return EMPTY;
   else if (KNO_EQ(slotid,fullstring_symbol))
     if (xt->u8_prec>=u8_day)
-      return use_strftime("%A %d %B %Y %r %Z",xt);
+      return use_strftime("%A %d %B %Y %r %z",xt);
     else if (xt->u8_prec == u8_day)
-      return use_strftime("%A %d %B %Y %Z",xt);
+      return use_strftime("%A %d %B %Y %z",xt);
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
                     SYM_NAME(slotid),VOID);
@@ -558,6 +558,11 @@ static lispval xtime_get(struct U8_XTIME *xt,lispval slotid,int reterr)
     struct U8_OUTPUT out;
     U8_INIT_OUTPUT(&out,128);
     u8_xtime_to_rfc822_x(&out,xt,1,U8_RFC822_NOZONE);
+    return kno_stream2string(&out);}
+  else if (KNO_EQ(slotid,utcstring_symbol)) {
+    struct U8_OUTPUT out;
+    U8_INIT_OUTPUT(&out,128);
+    u8_xtime_to_rfc822_x(&out,xt,0,U8_RFC822_NOZONE);
     return kno_stream2string(&out);}
   else if (KNO_EQ(slotid,gmt_symbol))
     if (xt->u8_tzoff==0)
@@ -1452,6 +1457,8 @@ KNO_EXPORT void kno_init_timeprims_c()
   CHOICE_ADD(xtime_keys,rfc822x_symbol);
   localstring_symbol = kno_intern("localstring");
   CHOICE_ADD(xtime_keys,localstring_symbol);
+  utcstring_symbol = kno_intern("utcstring");
+  CHOICE_ADD(xtime_keys,utcstring_symbol);
 
   time_of_day_symbol = kno_intern("time-of-day");
   CHOICE_ADD(xtime_keys,time_of_day_symbol);
