@@ -1538,6 +1538,48 @@ if test "$with_fastcgi" != "no"; then
   AC_CHECK_LIB(fcgi,FCGX_Init)
 fi
 
+### zlib/libz compression functions
+
+AC_CHECK_HEADER(zlib.h,have_zlib_h="yes",have_zlib_h="no")
+if (test "$have_zlib_h" = "yes"); then
+  AC_CHECK_LIB(z,compress2,have_libz="yes",have_libz="no")
+fi
+
+if (test "$have_libz" = "yes"); then
+  ARCHIVE_CMODULES="lib/kno/zlib.$shared_suffix ${ARCHIVE_CMODULES}"
+  INSTALL_ARCHIVE_CMODULES="install-zlib ${INSTALL_ARCHIVE_CMODULES}"
+fi
+
+AC_CHECK_HEADER(zlib.h,have_zlib_h="yes",have_zlib_h="no")
+if test "${have_zlib_h}" = "yes"; then
+   AC_CHECK_LIB(zlib,uncompress)
+   AC_DEFINE(HAVE_ZLIB_H,1)
+fi;
+
+### Google SNAPPY compression library
+
+AC_CHECK_HEADER(snappy-c.h,have_snappyc_h="yes",have_snappyc_h="no")
+if test "${have_snappyc_h}" = "yes"; then
+   AC_CHECK_LIB(snappy,snappy_compress)
+   AC_DEFINE(HAVE_SNAPPYC_H,1)
+fi;
+LIBS="${LIBS} -lsnappy"
+
+### ZSTD (compression wrapper)
+
+AC_CHECK_HEADER(zstd.h,have_zstd_h="yes",have_zstd_h="no")
+if test "${have_zstd_h}" = "yes"; then
+   AC_CHECK_LIB(zstd,ZSTD_decompress)
+   AC_DEFINE(HAVE_ZSTD_H,1)
+   AC_CHECK_FUNCS(ZSTD_getFrameContentSize)
+fi;
+
+AC_CHECK_HEADER(zmq.h,have_zmq_h="yes",have_zmq_h="no")
+if test "${have_zmq_h}" = "yes"; then
+   AC_CHECK_LIB(zmq,zmq_socket)
+   AC_DEFINE(HAVE_ZMQ_H,1)
+fi;
+
 ### LevelDB cmodule build
 
 AC_ARG_ENABLE(leveldb,--en[dis]able-leveldb Build and install LevelDB module,,enable_leveldb="yes")
@@ -1768,42 +1810,6 @@ fi
 if test ! "${sqlite_included}" = "yes"; then
    missing="sqlite ${missing}";
 fi   
-
-### zlib/libz compression functions
-
-AC_CHECK_HEADER(zlib.h,have_zlib_h="yes",have_zlib_h="no")
-if (test "$have_zlib_h" = "yes"); then
-  AC_CHECK_LIB(z,compress2,have_libz="yes",have_libz="no")
-fi
-
-if (test "$have_libz" = "yes"); then
-  ARCHIVE_CMODULES="lib/kno/zlib.$shared_suffix ${ARCHIVE_CMODULES}"
-  INSTALL_ARCHIVE_CMODULES="install-zlib ${INSTALL_ARCHIVE_CMODULES}"
-fi
-
-AC_CHECK_HEADER(zlib.h,have_zlib_h="yes",have_zlib_h="no")
-if test "${have_zlib_h}" = "yes"; then
-   AC_CHECK_LIB(zlib,uncompress)
-   AC_DEFINE(HAVE_ZLIB_H,1)
-fi;
-
-### Google SNAPPY compression library
-
-AC_CHECK_HEADER(snappy-c.h,have_snappyc_h="yes",have_snappyc_h="no")
-if test "${have_snappyc_h}" = "yes"; then
-   AC_CHECK_LIB(snappy,snappy_compress)
-   AC_DEFINE(HAVE_SNAPPYC_H,1)
-fi;
-LIBS="${LIBS} -lsnappy"
-
-### ZSTD (compression wrapper)
-
-AC_CHECK_HEADER(zstd.h,have_zstd_h="yes",have_zstd_h="no")
-if test "${have_zstd_h}" = "yes"; then
-   AC_CHECK_LIB(zstd,ZSTD_decompress)
-   AC_DEFINE(HAVE_ZSTD_H,1)
-   AC_CHECK_FUNCS(ZSTD_getFrameContentSize)
-fi;
 
 ### HTML TIDY
 
