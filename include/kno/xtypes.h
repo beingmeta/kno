@@ -36,39 +36,38 @@ typedef enum xt_type_code {
   xt_utf8_b = 0x10,
   xt_utf8_bb = 0x1,
   xt_utf8_bbbb = 0x12,
-  xt_utf8_bbbbbbbb = 0x13,
+  xt_utf8_v = 0x13,
   xt_packet_b = 0x14,
   xt_packet_bb = 0x15,
   xt_packet_bbbb = 0x16,
-  xt_packet_bbbbbbbb = 0x17,
+  xt_packet_v = 0x17,
   xt_secret_b = 0x18,
   xt_secret_bb = 0x19,
   xt_secret_bbbb = 0x1a,
-  xt_secret_bbbbbbbb = 0x1b,
+  xt_secret_v = 0x1b,
   xt_u8symbol_b = 0x18,
   xt_u8symbol_bb = 0x19,
   xt_u8symbol_bbbb = 0x1a,
-  xt_u8symbol_bbbbbbbb = 0x1b,
+  xt_u8symbol_v = 0x1b,
   /* Scalars */
   xt_fixnum_b = 0x20,
   xt_fixnum_bb = 0x21,
   xt_fixnum_bbbb = 0x22,
-  xt_fixnum_bbbbbbbb = 0x23,
+  xt_fixnum_v = 0x23,
   xt_bigint_b = 0x24,
   xt_bigint_bb = 0x25,
   xt_bigint_bbbb = 0x26,
-  xt_bigint_bbbbbbbb = 0x27,
-  xt_flonum_bbbb = 0x28,
-  xt_flonum_bbbbbbbb = 0x29,
+  xt_flonum_bbbb = 0x27,
+  xt_flonum_bbbbbbbb = 0x28,
   xt_character_b = 0x2c,
   xt_character_bb = 0x2d,
   xt_character_bbbb = 0x2e,
-  xt_character_bbbbbbbb = 0x2f,
+  xt_character_v = 0x2f,
   /* Pair types */
   xt_pair = 0x30,
   xt_rational = 0x31,
   xt_complex = 0x32,
-  xt_coord = 0x33,
+  xt_xycoord = 0x33,
   xt_tagged = 0x34,
   xt_compressed = 0x35,
   xt_encrypted = 0x36,
@@ -76,16 +75,16 @@ typedef enum xt_type_code {
   xt_vector_b = 0x40,
   xt_vector_bb = 0x41,
   xt_vector_bbbb = 0x42,
-  xt_vector_bbbbbbbb = 0x43,
+  xt_vector_v = 0x43,
   xt_choice_b = 0x40,
   xt_choice_bb = 0x41,
   xt_choice_bbbb = 0x42,
-  xt_choice_bbbbbbbb = 0x43,
+  xt_choice_v = 0x43,
   /* Tables */
   xt_table_b = 0x50,
   xt_table_bb = 0x51,
   xt_table_bbbb = 0x52,
-  xt_table_bbbbbbbb = 0x53,
+  xt_table_v = 0x53,
   /* Refs */
   xt_ref_b = 0x60,
   xt_ref_bb = 0x61,
@@ -109,13 +108,24 @@ typedef enum xt_type_code {
   xt_type_double_vec = 0x74,
   xt_type_hashset = 0x75,
   xt_type_hashtable = 0x76
-} dt_type_code;
+} xt_type_code;
+
+typedef struct XTYPE_REFS {
+  size_t xt_nrefs;
+  size_t xt_refslen;
+  lispval *xt_refs;
+  struct KNO_HASHTABLE xt_lookup;} XTYPE_REFS;
+typedef struct XTYPE_REFS *xtype_refs;
+
 
 /* The top level functions */
 
-KNO_EXPORT ssize_t kno_write_xtype(struct KNO_OUTBUF *out,lispval x);
-KNO_EXPORT ssize_t kno_validate_xtype(struct KNO_INBUF *in);
-KNO_EXPORT lispval kno_read_xtype(struct KNO_INBUF *in,lispval *refs);
+KNO_EXPORT ssize_t kno_write_xtype
+(struct KNO_OUTBUF *out,lispval x,struct XTYPE_REFS *);
+KNO_EXPORT ssize_t kno_validate_xtype
+(struct KNO_INBUF *in);
+KNO_EXPORT lispval kno_read_xtype
+(struct KNO_INBUF *in,lispval *refs,struct XTYPE_REFS *);
 
 /* Returning error codes */
 
