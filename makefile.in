@@ -462,7 +462,7 @@ CMODULE_SOURCES=\
 	src/cmodules/hyphenate.c 			 			\
 	src/cmodules/qrcode.c src/cmodules/exif.c src/cmodules/imagick.c	\
 	src/cmodules/gperftools.c 						\
-	src/cmodules/crypto.c
+	src/cmodules/crypto.c src/cmodules/zeromq.c
 
 STATIC_LIBS=lib/libknocore@suffix@.a 	\
 	lib/libknostorage@suffix@.a	\
@@ -1124,6 +1124,11 @@ src/cmodules/crypto.o: src/cmodules/crypto.c
 lib/kno/crypto.so: src/cmodules/crypto.o
 lib/kno/crypto.dylib: src/cmodules/crypto.o ${CMODULE_DEPENDS}
 
+src/cmodules/zeromq.o: src/cmodules/zeromq.c
+lib/kno/zeromq.so: src/cmodules/zeromq.o
+lib/kno/zeromq.dylib: src/cmodules/zeromq.o ${CMODULE_DEPENDS}
+
+
 lib/kno/odbc.o: src/cmodules/odbc.c
 lib/kno/odbc.so: src/cmodules/odbc.o
 lib/kno/odbc.dylib: src/cmodules/odbc.o ${CMODULE_DEPENDS}
@@ -1509,16 +1514,17 @@ $(BININSTALLDIR)/knocgi@suffix@:
 	@$(SYSINSTALL) -p @install_exe_opts@ exe/knocgi@suffix@ $(BININSTALLDIR)
 
 install-cmodules: install-core-cmodules install-db-cmodules install-text-cmodules \
-	install-graphics-cmodules install-archive-cmodules
+	install-graphics-cmodules install-archive-cmodules install-net-cmodules
 
 install-core-cmodules: @INSTALL_CORE_CMODULES@
 install-db-cmodules: @INSTALL_DB_CMODULES@
 install-text-cmodules: @INSTALL_TEXT_CMODULES@
 install-graphics-cmodules: @INSTALL_GRAPHICS_CMODULES@
 install-archive-cmodules: @INSTALL_ARCHIVE_CMODULES@
+install-crypto: ${CMODULES}/crypto.@shared_suffix@ ${CMODULES}/crypto.@vshared_suffix@
+install-zeromq: ${CMODULES}/zeromq.@shared_suffix@ ${CMODULES}/zeromq.@vshared_suffix@
 install-odbc: ${CMODULES}/odbc.@shared_suffix@ ${CMODULES}/odbc.@vshared_suffix@
 install-sqlite: ${CMODULES}/sqlite.@shared_suffix@ ${CMODULES}/sqlite.@vshared_suffix@
-install-crypto: ${CMODULES}/crypto.@shared_suffix@ ${CMODULES}/crypto.@vshared_suffix@
 install-mysql: ${CMODULES}/mysql.@shared_suffix@ ${CMODULES}/mysql.@vshared_suffix@
 install-qrcode: ${CMODULES}/qrcode.@shared_suffix@ ${CMODULES}/qrcode.@vshared_suffix@
 install-hyphenate: ${CMODULES}/hyphenate.@shared_suffix@ ${CMODULES}/hyphenate.@vshared_suffix@

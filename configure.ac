@@ -1574,10 +1574,18 @@ if test "${have_zstd_h}" = "yes"; then
    AC_CHECK_FUNCS(ZSTD_getFrameContentSize)
 fi;
 
+have_libzmq=no
+
 AC_CHECK_HEADER(zmq.h,have_zmq_h="yes",have_zmq_h="no")
 if test "${have_zmq_h}" = "yes"; then
-   AC_CHECK_LIB(zmq,zmq_socket)
+   AC_CHECK_LIB(zmq,zmq_socket,have_libzmq=yes)
    AC_DEFINE(HAVE_ZMQ_H,1)
+fi;
+
+if test "${have_zmq_h}" = "yes" &&
+   test "${have_libzmq}" = "yes"; then
+   CORE_CMODULES="lib/kno/zeromq.$shared_suffix ${CORE_CMODULES}"
+   INSTALL_CORE_CMODULES="install-zeromq ${INSTALL_CORE_CMODULES}"
 fi;
 
 ### LevelDB cmodule build
