@@ -1199,20 +1199,6 @@ KNO_EXPORT void kno_init_xmloutput_c()
   kno_def_evalfn(webtools_module,"SOAPENVELOPE","",soapenvelope_evalfn);
   kno_defn(webtools_module,kno_make_cprim3("XML->STRING",xml2string_prim,1));
 
-  kno_store(webtools_module,kno_intern("xmlout"),xmlout_prim);
-  kno_store(webtools_module,kno_intern("xmlblock"),xmlblock_prim);
-  kno_store(webtools_module,kno_intern("xmlblockn"),xmlblockn_prim);
-  kno_store(webtools_module,kno_intern("xmlelt"),xmlelt_prim);
-  kno_defn(webtools_module,xmlempty_proc);
-  kno_defn(webtools_module,xmlify_proc);
-  kno_store(webtools_module,kno_intern("markupfn"),markup_prim);
-  kno_store(webtools_module,kno_intern("markup*fn"),markupstar_prim);
-  kno_store(webtools_module,kno_intern("blockmarkupfn"),markupblock_prim);
-  kno_store(webtools_module,kno_intern("blockmarkup*fn"),markupstarblock_prim);
-  kno_store(webtools_module,kno_intern("emptymarkupfn"),emptymarkup_prim);
-  kno_def_evalfn(webtools_module,"SOAPENVELOPE","",soapenvelope_evalfn);
-  kno_defn(webtools_module,kno_make_cprim3("XML->STRING",xml2string_prim,1));
-
   kno_def_evalfn(xhtml_module,"ANCHOR","",doanchor_evalfn);
   kno_def_evalfn(xhtml_module,"ANCHOR*","",doanchor_star_evalfn);
   kno_idefn(xhtml_module,kno_make_cprim1("%XMLOID",xmloid,1));
