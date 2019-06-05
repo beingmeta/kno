@@ -693,6 +693,7 @@ APTREPO
 GPG
 RPMFLAGS
 RPMDIR
+ZEROMQ_LIBS
 ODBC_LIBS
 LIBSCM
 BINPATH
@@ -3163,6 +3164,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
+
 
 
 
@@ -11997,6 +11999,7 @@ done
 fi;
 
 have_libzmq=no
+ZMQ_LIBS=
 
 ac_fn_c_check_header_mongrel "$LINENO" "zmq.h" "ac_cv_header_zmq_h" "$ac_includes_default"
 if test "x$ac_cv_header_zmq_h" = xyes; then :
@@ -12053,6 +12056,7 @@ fi;
 
 if test "${have_zmq_h}" = "yes" &&
    test "${have_libzmq}" = "yes"; then
+   ZEROMQ_LIBS=-lzmq
    CORE_CMODULES="lib/kno/zeromq.$shared_suffix ${CORE_CMODULES}"
    INSTALL_CORE_CMODULES="install-zeromq ${INSTALL_CORE_CMODULES}"
 fi;

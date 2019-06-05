@@ -1127,6 +1127,8 @@ lib/kno/crypto.dylib: src/cmodules/crypto.o ${CMODULE_DEPENDS}
 src/cmodules/zeromq.o: src/cmodules/zeromq.c
 lib/kno/zeromq.so: src/cmodules/zeromq.o
 lib/kno/zeromq.dylib: src/cmodules/zeromq.o ${CMODULE_DEPENDS}
+lib/kno/zeromq.so : MODLIBS="@ZEROMQ_LIBS@"
+lib/kno/zeromq.dylib : MODLIBS="@ZEROMQ_LIBS@"
 
 
 lib/kno/odbc.o: src/cmodules/odbc.c
@@ -1135,7 +1137,6 @@ lib/kno/odbc.dylib: src/cmodules/odbc.o ${CMODULE_DEPENDS}
 lib/kno/odbc.so : MODLIBS="@ODBC_LIBS@"
 lib/kno/odbc.dylib : MODLIBS="@ODBC_LIBS@"
 
-lib/kno/sqlite.o: src/cmodules/sqlite.c
 lib/kno/sqlite.so: src/cmodules/sqlite.o
 lib/kno/sqlite.dylib: src/cmodules/sqlite.o ${CMODULE_DEPENDS}
 
@@ -1514,7 +1515,7 @@ $(BININSTALLDIR)/knocgi@suffix@:
 	@$(SYSINSTALL) -p @install_exe_opts@ exe/knocgi@suffix@ $(BININSTALLDIR)
 
 install-cmodules: install-core-cmodules install-db-cmodules install-text-cmodules \
-	install-graphics-cmodules install-archive-cmodules install-net-cmodules
+	install-graphics-cmodules install-archive-cmodules
 
 install-core-cmodules: @INSTALL_CORE_CMODULES@
 install-db-cmodules: @INSTALL_DB_CMODULES@

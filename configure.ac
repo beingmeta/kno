@@ -368,6 +368,7 @@ AC_SUBST(CODENAME)
 AC_SUBST(BINPATH)
 AC_SUBST(LIBSCM)
 AC_SUBST(ODBC_LIBS)
+AC_SUBST(ZEROMQ_LIBS)
 
 AC_ARG_VAR(RPMDIR,"Location for writing built RPMs")
 AC_ARG_VAR(RPMFLAGS,"Default flags for building RPMs")
@@ -1575,6 +1576,7 @@ if test "${have_zstd_h}" = "yes"; then
 fi;
 
 have_libzmq=no
+ZMQ_LIBS=
 
 AC_CHECK_HEADER(zmq.h,have_zmq_h="yes",have_zmq_h="no")
 if test "${have_zmq_h}" = "yes"; then
@@ -1584,6 +1586,7 @@ fi;
 
 if test "${have_zmq_h}" = "yes" &&
    test "${have_libzmq}" = "yes"; then
+   ZEROMQ_LIBS=-lzmq
    CORE_CMODULES="lib/kno/zeromq.$shared_suffix ${CORE_CMODULES}"
    INSTALL_CORE_CMODULES="install-zeromq ${INSTALL_CORE_CMODULES}"
 fi;
