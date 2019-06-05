@@ -262,11 +262,11 @@ kno_pool kno_open_pool(u8_string spec,kno_storage_flags flags,lispval opts)
     ptype = ptype->next_type;}
   lispval pool_typeid = kno_getopt(opts,pooltype_symbol,KNO_VOID);
   if (KNO_VOIDP(pool_typeid))
-    pool_typeid = kno_getopt(opts,FDSYM_TYPE,KNO_VOID);
+    pool_typeid = kno_getopt(opts,KNOSYM_TYPE,KNO_VOID);
   /* MODULE is an alias for type and 'may' have the additional
      semantics of being auto-loaded. */
   if (KNO_VOIDP(pool_typeid))
-    pool_typeid = kno_getopt(opts,FDSYM_MODULE,KNO_VOID);
+    pool_typeid = kno_getopt(opts,KNOSYM_MODULE,KNO_VOID);
   ptype = (KNO_STRINGP(pool_typeid)) ?
     (kno_get_pool_typeinfo(KNO_CSTRING(pool_typeid))) :
     (KNO_SYMBOLP(pool_typeid)) ?
@@ -484,11 +484,11 @@ kno_index kno_open_index(u8_string spec,kno_storage_flags flags,lispval opts)
     else ixtype = ixtype->next_type;}
   lispval index_typeid = kno_getopt(opts,indextype_symbol,KNO_VOID);
   if (KNO_VOIDP(index_typeid))
-    index_typeid = kno_getopt(opts,FDSYM_TYPE,KNO_VOID);
+    index_typeid = kno_getopt(opts,KNOSYM_TYPE,KNO_VOID);
   /* MODULE is an alias for type and 'may' have the additional
      semantics of being auto-loaded. */
   if (KNO_VOIDP(index_typeid))
-    index_typeid = kno_getopt(opts,FDSYM_MODULE,KNO_VOID);
+    index_typeid = kno_getopt(opts,KNOSYM_MODULE,KNO_VOID);
   ixtype = (KNO_STRINGP(index_typeid)) ?
     (kno_get_index_typeinfo(KNO_CSTRING(index_typeid))) :
     (KNO_SYMBOLP(index_typeid)) ?

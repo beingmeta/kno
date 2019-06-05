@@ -151,10 +151,10 @@ void handle_content_type(char *value,lispval table)
   if (slash) *slash='\0';
   endbyte = *end; *end='\0';
   major_type = kno_parse(value);
-  kno_store(table,FDSYM_TYPE,major_type);
+  kno_store(table,KNOSYM_TYPE,major_type);
   if (slash) *slash='/';
   full_type = lispval_string(value);
-  kno_add(table,FDSYM_TYPE,full_type); *end = endbyte;
+  kno_add(table,KNOSYM_TYPE,full_type); *end = endbyte;
   kno_decref(major_type); kno_decref(full_type);
   if ((chset = (strstr(value,"charset=")))) {
     lispval chset_val;
@@ -824,7 +824,7 @@ static lispval handlefetchresult(struct KNO_CURL_HANDLE *h,lispval result,
     data->bytes = buf;
     buf[data->size]='\0';}
   if (data->size<0) cval = EMPTY;
-  else if ((kno_test(result,FDSYM_TYPE,text_types))&&
+  else if ((kno_test(result,KNOSYM_TYPE,text_types))&&
            (!(kno_test(result,content_encoding_symbol,VOID))))
     if (data->size==0)
       cval = kno_block_string(data->size,data->bytes);
@@ -1068,7 +1068,7 @@ static lispval urlxml(lispval url,lispval xmlopt,lispval curl)
     if (data.size==0)
       cval = kno_init_packet(NULL,data.size,data.bytes);
     else cval = EMPTY;}
-  else if ((kno_test(result,FDSYM_TYPE,text_types))&&
+  else if ((kno_test(result,KNOSYM_TYPE,text_types))&&
            (!(kno_test(result,content_encoding_symbol,VOID)))) {
     U8_INPUT in; u8_string buf;
     struct KNO_XML xmlnode, *xmlret;
@@ -1714,7 +1714,7 @@ KNO_EXPORT void kno_init_curl_c()
   filetime_symbol = kno_intern("filetime");
   follow_symbol = kno_intern("follow");
 
-  CHOICE_ADD(text_types,FDSYM_TEXT);
+  CHOICE_ADD(text_types,KNOSYM_TEXT);
   decl_text_type("application/xml");
   decl_text_type("application/rss+xml");
   decl_text_type("application/atom+xml");

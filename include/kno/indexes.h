@@ -320,7 +320,7 @@ U8_MAYBE_UNUSED static kno_index kno_get_writable_index(kno_index ix)
 {
   if (ix == NULL) return ix;
   else if (U8_BITP(ix->index_flags,KNO_STORAGE_READ_ONLY)) {
-    lispval front_val = kno_slotmap_get(&(ix->index_props),FDSYM_FRONT,KNO_VOID);
+    lispval front_val = kno_slotmap_get(&(ix->index_props),KNOSYM_FRONT,KNO_VOID);
     if (KNO_INDEXP(front_val)) {
       kno_index front = kno_indexptr(front_val);
       if (U8_BITP(front->index_flags,KNO_STORAGE_READ_ONLY)) {

@@ -1351,7 +1351,7 @@ static lispval parse_histref(u8_input in)
       n_elts++;}
     else if (c == '=') {
       lispval elt = kno_parse(tmpbuf.u8_outbuf);
-      lispval new_tail = kno_make_list(2,elt,FDSYM_EQUALS);
+      lispval new_tail = kno_make_list(2,elt,KNOSYM_EQUALS);
       lispval new_cdr = KNO_CDR(new_tail);
       *tail = new_tail;
       tail = &(KNO_CDR(new_cdr));

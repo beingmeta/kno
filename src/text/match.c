@@ -916,7 +916,7 @@ static lispval extract_star
       DO_CHOICES(extraction,extractions) {
         lispval size = KNO_CAR(extraction), data = KNO_CDR(extraction);
         lispval pair=
-          kno_conspair(size,kno_conspair(FDSYM_STAR,kno_incref(data)));
+          kno_conspair(size,kno_conspair(KNOSYM_STAR,kno_incref(data)));
         CHOICE_ADD(answer,pair);}
       kno_decref(extractions);
       return answer;}}
@@ -955,7 +955,7 @@ static lispval extract_plus
     DO_CHOICES(extraction,extractions) {
       lispval size = KNO_CAR(extraction), data = KNO_CDR(extraction);
       lispval pair=
-        kno_conspair(size,kno_conspair(FDSYM_PLUS,kno_incref(data)));
+        kno_conspair(size,kno_conspair(KNOSYM_PLUS,kno_incref(data)));
       CHOICE_ADD(answer,pair);}
     kno_decref(extractions);
     return answer;}
@@ -988,7 +988,7 @@ static lispval extract_opt
     lispval extraction = textract(pat_arg,next,NULL,string,off,lim,flags);
     if (EMPTYP(extraction))
       return kno_conspair(KNO_INT(off),
-                         kno_make_list(1,FDSYM_OPT));
+                         kno_make_list(1,KNOSYM_OPT));
     else return extraction;}
 }
 

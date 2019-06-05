@@ -98,7 +98,7 @@ static lispval applytest_inner(int n,lispval *args)
     else if (KNO_EQUAL(value,args[0])) {
       kno_decref(value);
       return KNO_TRUE;}
-    else if ( (KNO_VOIDP(value)) && (args[0] == FDSYM_VOID) ) {
+    else if ( (KNO_VOIDP(value)) && (args[0] == KNOSYM_VOID) ) {
       kno_decref(value);
       return KNO_TRUE;}
     else {
@@ -189,7 +189,7 @@ static lispval evaltest_inner(lispval expr,kno_lexenv env,kno_stack s)
       kno_decref(value);
       return KNO_TRUE;}
     else if ( (KNO_VOIDP(value)) &&
-	      (expected == FDSYM_VOID) ) {
+	      (expected == KNOSYM_VOID) ) {
       kno_decref(name_value);
       kno_decref(expected);
       kno_decref(value);

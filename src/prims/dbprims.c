@@ -80,7 +80,7 @@ static int load_db_module(lispval opts,u8_context context)
        (KNO_FALSEP(opts)) || (KNO_DEFAULTP(opts)) )
     return 0;
   else {
-    lispval modules = kno_getopt(opts,FDSYM_MODULE,KNO_VOID);
+    lispval modules = kno_getopt(opts,KNOSYM_MODULE,KNO_VOID);
     if ( (KNO_VOIDP(modules)) || (KNO_FALSEP(modules)) || (KNO_EMPTYP(modules)) )
       return 0;
     else {
@@ -369,7 +369,7 @@ static lispval open_index_helper(lispval arg,lispval opts,int registered)
 {
   kno_storage_flags flags = kno_get_dbflags(opts,KNO_STORAGE_ISINDEX);
   kno_index ix = NULL;
-  lispval modules = kno_getopt(opts,FDSYM_MODULE,KNO_VOID);
+  lispval modules = kno_getopt(opts,KNOSYM_MODULE,KNO_VOID);
   lispval mod = (KNO_VOIDP(modules)) ? (KNO_VOID) : (kno_get_module(modules));
   kno_decref(modules);
   if (KNO_ABORTP(mod))
@@ -438,9 +438,9 @@ static lispval make_pool(lispval path,lispval opts)
 {
   if (load_db_module(opts,"make_pool")<0) return KNO_ERROR;
   kno_pool p = NULL;
-  lispval type = kno_getopt(opts,FDSYM_TYPE,VOID);
+  lispval type = kno_getopt(opts,KNOSYM_TYPE,VOID);
   kno_storage_flags flags = kno_get_dbflags(opts,KNO_STORAGE_ISPOOL);
-  if (KNO_VOIDP(type)) type = kno_getopt(opts,FDSYM_MODULE,VOID);
+  if (KNO_VOIDP(type)) type = kno_getopt(opts,KNOSYM_MODULE,VOID);
   if (VOIDP(type))
     p = kno_make_pool(CSTRING(path),NULL,flags,opts);
   else if (SYMBOLP(type))
@@ -470,12 +470,12 @@ static lispval make_index(lispval path,lispval opts)
 {
   if (load_db_module(opts,"make_index")<0) return KNO_ERROR;
   kno_index ix = NULL;
-  lispval type = kno_getopt(opts,FDSYM_TYPE,VOID);
+  lispval type = kno_getopt(opts,KNOSYM_TYPE,VOID);
   kno_storage_flags flags =
     (FIXNUMP(opts)) ?
     (KNO_STORAGE_ISINDEX) :
     (kno_get_dbflags(opts,KNO_STORAGE_ISINDEX)) ;
-  if (KNO_VOIDP(type)) type = kno_getopt(opts,FDSYM_MODULE,VOID);
+  if (KNO_VOIDP(type)) type = kno_getopt(opts,KNOSYM_MODULE,VOID);
   if (VOIDP(type))
     ix = kno_make_index(CSTRING(path),NULL,flags,opts);
   else if (SYMBOLP(type))
@@ -603,7 +603,7 @@ static lispval make_aggregate_index(lispval sources,lispval opts)
       else if (INDEXP(val)) ix = kno_indexptr(val);
       else NO_ELSE;}
     else if ( (KNO_PAIRP(source)) || (KNO_SLOTMAPP(source)) ) {
-      lispval spec = kno_getopt(source,FDSYM_SOURCE,KNO_VOID);
+      lispval spec = kno_getopt(source,KNOSYM_SOURCE,KNO_VOID);
       if (KNO_STRINGP(spec))
         ix = kno_open_index(KNO_CSTRING(spec),-1,source);
       kno_decref(spec);}

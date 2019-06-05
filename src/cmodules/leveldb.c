@@ -1632,15 +1632,15 @@ kno_index kno_make_leveldb_index(u8_string path,lispval opts)
   lispval slotids = kno_getopt(opts,SYM("SLOTIDS"),KNO_VOID);
   lispval baseoids = kno_getopt(opts,SYM("BASEOIDS"),KNO_VOID);
 
-  lispval keyslot = kno_getopt(opts,FDSYM_KEYSLOT,KNO_VOID);
+  lispval keyslot = kno_getopt(opts,KNOSYM_KEYSLOT,KNO_VOID);
 
   if ( (KNO_VOIDP(keyslot)) || (KNO_FALSEP(keyslot)) ) {}
   else if ( (KNO_SYMBOLP(keyslot)) || (KNO_OIDP(keyslot)) ) {
     if (KNO_SLOTMAPP(metadata))
-      kno_store(metadata,FDSYM_KEYSLOT,keyslot);
+      kno_store(metadata,KNOSYM_KEYSLOT,keyslot);
     else {
       metadata = kno_empty_slotmap();
-      kno_store(metadata,FDSYM_KEYSLOT,keyslot);}}
+      kno_store(metadata,KNOSYM_KEYSLOT,keyslot);}}
   else u8_log(LOG_WARN,"InvalidKeySlot",
               "Not initializing keyslot of %s to %q",path,keyslot);
 

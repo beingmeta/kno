@@ -56,8 +56,8 @@ kno_pool kno_make_procpool(KNO_OID base,
   struct KNO_PROCPOOL *pp = u8_alloc(struct KNO_PROCPOOL);
   struct KNO_PROCPOOL_METHODS *methods;
   unsigned int flags = KNO_STORAGE_ISPOOL;
-  lispval pool_type = kno_getopt(opts,FDSYM_TYPE,KNO_VOID);
-  lispval metadata = kno_getopt(opts,FDSYM_METADATA,KNO_VOID);
+  lispval pool_type = kno_getopt(opts,KNOSYM_TYPE,KNO_VOID);
+  lispval metadata = kno_getopt(opts,KNOSYM_METADATA,KNO_VOID);
   struct KNO_POOL_TYPEINFO *typeinfo =
     (KNO_STRINGP(pool_type)) ?
     (kno_get_pool_typeinfo(KNO_CSTRING(pool_type))) :
@@ -87,12 +87,12 @@ kno_pool kno_make_procpool(KNO_OID base,
   lispval source_opt = KNO_VOID;
 
   if (source == NULL) {
-    source_opt = kno_getopt(opts,FDSYM_SOURCE,KNO_VOID);
+    source_opt = kno_getopt(opts,KNOSYM_SOURCE,KNO_VOID);
     if (KNO_STRINGP(source_opt))
       source = CSTRING(source_opt);}
 
-  if (kno_testopt(opts,FDSYM_CACHELEVEL,KNO_VOID)) {
-    lispval v = kno_getopt(opts,FDSYM_CACHELEVEL,KNO_VOID);
+  if (kno_testopt(opts,KNOSYM_CACHELEVEL,KNO_VOID)) {
+    lispval v = kno_getopt(opts,KNOSYM_CACHELEVEL,KNO_VOID);
     if (KNO_FALSEP(v))
       cache_level=0;
     else if (KNO_FIXNUMP(v))
@@ -376,7 +376,7 @@ static void recycle_procpool(kno_pool p)
 
 static kno_pool open_procpool(u8_string source,kno_storage_flags flags,lispval opts)
 {
-  lispval pool_type = kno_getopt(opts,FDSYM_TYPE,KNO_VOID);
+  lispval pool_type = kno_getopt(opts,KNOSYM_TYPE,KNO_VOID);
   struct KNO_POOL_TYPEINFO *typeinfo =
     (KNO_STRINGP(pool_type)) ?
     (kno_get_pool_typeinfo(KNO_CSTRING(pool_type))) :

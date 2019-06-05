@@ -316,7 +316,7 @@ static lispval open_archive(lispval spec,lispval path,lispval opts)
     int rv = archive_seek(archive,path,&entry);
     if (rv<0) return KNO_ERROR_VALUE;
     else if (rv == 0) {
-      if (kno_testopt(opts,FDSYM_DROP,KNO_TRUE)) {
+      if (kno_testopt(opts,KNOSYM_DROP,KNO_TRUE)) {
         u8_byte msgbuf[1000];
         kno_seterr("NotFound","open_archive",
                   archive_errmsg(msgbuf,1000,archive),

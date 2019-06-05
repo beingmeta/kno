@@ -386,7 +386,7 @@ static lispval stream_read(u8_input in,kno_lexenv env)
     lispval expr = kno_parser(in);
     swallow_hspace(in);
     return kno_init_compound
-      (NULL,command_tag,KNO_COMPOUND_SEQUENCE,2,FDSYM_EQUALS,expr);}
+      (NULL,command_tag,KNO_COMPOUND_SEQUENCE,2,KNOSYM_EQUALS,expr);}
   else if ( (c==',') || (c == ':') ) {
     lispval cmds[KNO_MAX_COMMAND_LENGTH];
     int n = 0, nextc = swallow_hspace(in);
@@ -465,7 +465,7 @@ static lispval console_read(u8_input in,kno_lexenv env)
       U8_INIT_STRING_INPUT(&scan,n_bytes-1,line+1);
       lispval expr = kno_parser(&scan);
       return kno_init_compound
-        (NULL,command_tag,KNO_COMPOUND_SEQUENCE,2,FDSYM_EQUALS,expr);}
+        (NULL,command_tag,KNO_COMPOUND_SEQUENCE,2,KNOSYM_EQUALS,expr);}
     else if ( (line[0] == ',') || (line[0] == ':') ) {
       U8_INIT_STRING_INPUT(&scan,n_bytes-1,line+1);
       lispval cmd = read_command(&scan,(line[0]==':'),env);
@@ -974,7 +974,7 @@ int main(int argc,char **argv)
     if (KNO_COMPOUND_TYPEP(expr,command_tag)) {
       /* Handle commands */
       lispval head = KNO_COMPOUND_REF(expr,0);
-      if ( (head == FDSYM_EQUALS ) &&
+      if ( (head == KNOSYM_EQUALS ) &&
            ( (KNO_COMPOUND_LENGTH(expr)) == 2) &&
            ( SYMBOLP(KNO_COMPOUND_REF(expr,1)) ) ) {
         lispval sym = KNO_COMPOUND_REF(expr,1);
@@ -990,7 +990,7 @@ int main(int argc,char **argv)
       expr = kno_err(kno_ParseError,"stream_read",NULL,expr);
     else NO_ELSE;
     /* Clear the buffer (should do more?) */
-    if (((PAIRP(expr)) && ((KNO_EQ(KNO_CAR(expr),FDSYM_QUOTE))))) {
+    if (((PAIRP(expr)) && ((KNO_EQ(KNO_CAR(expr),KNOSYM_QUOTE))))) {
       showall = 1;}
     start_time = u8_elapsed_time();
     if (errno) {

@@ -40,8 +40,8 @@ kno_index kno_make_procindex(lispval opts,lispval state,
                            u8_string typeid)
 {
   struct KNO_PROCINDEX_METHODS *methods;
-  lispval index_type = kno_getopt(opts,FDSYM_TYPE,KNO_VOID);
-  lispval metadata = kno_getopt(opts,FDSYM_METADATA,KNO_VOID);
+  lispval index_type = kno_getopt(opts,KNOSYM_TYPE,KNO_VOID);
+  lispval metadata = kno_getopt(opts,KNOSYM_METADATA,KNO_VOID);
   struct KNO_INDEX_TYPEINFO *typeinfo =
     (KNO_STRINGP(index_type)) ? 
     (kno_get_index_typeinfo(KNO_CSTRING(index_type))) :
@@ -73,12 +73,12 @@ kno_index kno_make_procindex(lispval opts,lispval state,
   int cache_level = -1;
 
   if (source == NULL) {
-    source_opt = kno_getopt(opts,FDSYM_SOURCE,KNO_VOID);
+    source_opt = kno_getopt(opts,KNOSYM_SOURCE,KNO_VOID);
     if (KNO_STRINGP(source_opt))
       source = CSTRING(source_opt);}
 
-  if (kno_testopt(opts,FDSYM_CACHELEVEL,KNO_VOID)) {
-    lispval v = kno_getopt(opts,FDSYM_CACHELEVEL,KNO_VOID);
+  if (kno_testopt(opts,KNOSYM_CACHELEVEL,KNO_VOID)) {
+    lispval v = kno_getopt(opts,KNOSYM_CACHELEVEL,KNO_VOID);
     if (KNO_FALSEP(v))
       cache_level = 0;
     else if (KNO_FIXNUMP(v)) {
@@ -105,7 +105,7 @@ kno_index kno_make_procindex(lispval opts,lispval state,
                 metadata,
                 opts);
 
-  lispval init_metadata = kno_getopt(opts,FDSYM_METADATA,KNO_VOID);
+  lispval init_metadata = kno_getopt(opts,KNOSYM_METADATA,KNO_VOID);
   if (KNO_SLOTMAPP(init_metadata)) {
     struct KNO_SLOTMAP *index_metadata = &(pix->index_metadata);
     kno_copy_slotmap((kno_slotmap)init_metadata,index_metadata);}
@@ -399,7 +399,7 @@ static void recycle_procindex(kno_index ix)
 
 static kno_index open_procindex(u8_string source,kno_storage_flags flags,lispval opts)
 {
-  lispval index_type = kno_getopt(opts,FDSYM_TYPE,KNO_VOID);
+  lispval index_type = kno_getopt(opts,KNOSYM_TYPE,KNO_VOID);
   struct KNO_INDEX_TYPEINFO *typeinfo =
     (KNO_STRINGP(index_type)) ? 
     (kno_get_index_typeinfo(KNO_CSTRING(index_type))) :

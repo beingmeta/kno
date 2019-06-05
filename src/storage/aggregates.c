@@ -193,7 +193,7 @@ KNO_EXPORT kno_aggregate_index kno_make_aggregate_index
 (lispval opts,int n_allocd,int n,kno_index *indexes)
 {
   struct KNO_AGGREGATE_INDEX *aix = u8_alloc(struct KNO_AGGREGATE_INDEX);
-  lispval metadata = kno_getopt(opts,FDSYM_METADATA,KNO_VOID);
+  lispval metadata = kno_getopt(opts,KNOSYM_METADATA,KNO_VOID);
   kno_storage_flags flags =
     kno_get_dbflags(opts,KNO_STORAGE_ISINDEX|KNO_STORAGE_READ_ONLY);
   kno_init_index((kno_index)aix,&aggregate_index_handler,

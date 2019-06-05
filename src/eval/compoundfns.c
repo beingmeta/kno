@@ -190,16 +190,16 @@ static lispval compound_modify(lispval x,lispval offset,
         else {
           lispval args[2] = { old_value, value };
           new_value = kno_apply(modifier,2,args);}}
-      else if (modifier == FDSYM_ADD) {
+      else if (modifier == KNOSYM_ADD) {
         new_value = old_value; kno_incref(value);
         CHOICE_ADD(new_value,value);}
-      else if (modifier == FDSYM_DROP)
+      else if (modifier == KNOSYM_DROP)
         new_value = kno_difference(old_value,value);
-      else if (modifier == FDSYM_STORE)
+      else if (modifier == KNOSYM_STORE)
         new_value = kno_incref(value);
-      else if (modifier == FDSYM_PLUS)
+      else if (modifier == KNOSYM_PLUS)
         new_value = kno_plus(old_value,value);
-      else if (modifier == FDSYM_MINUS)
+      else if (modifier == KNOSYM_MINUS)
         new_value = kno_subtract(old_value,value);
       else new_value = kno_err("BadCompoundModifier","compound_modify",NULL,
                               modifier);
@@ -408,7 +408,7 @@ static lispval compound_metadata_prim(lispval compound,lispval field)
 static lispval cons_compound(int n,lispval *args,kno_compound_typeinfo e)
 {
   if (e->compound_metadata) {
-    lispval method = kno_get(e->compound_metadata,FDSYM_CONS,VOID);
+    lispval method = kno_get(e->compound_metadata,KNOSYM_CONS,VOID);
     if (VOIDP(method)) return VOID;
     else {
       lispval result = kno_apply(method,n,args);
@@ -442,14 +442,14 @@ static lispval compound_set_consfn_prim(lispval tag,lispval consfn)
     if (FALSEP(consfn)) {
       lispval slotmap = tag_slotdata(tag);
       struct KNO_COMPOUND_TYPEINFO *e = kno_lookup_compound(tag);
-      kno_drop(slotmap,FDSYM_CONS,VOID);
+      kno_drop(slotmap,KNOSYM_CONS,VOID);
       kno_decref(slotmap);
       e->compound_parser = NULL;
       return VOID;}
     else if (KNO_APPLICABLEP(consfn)) {
       lispval slotmap = tag_slotdata(tag);
       struct KNO_COMPOUND_TYPEINFO *e = kno_lookup_compound(tag);
-      kno_store(slotmap,FDSYM_CONS,consfn);
+      kno_store(slotmap,KNOSYM_CONS,consfn);
       kno_decref(slotmap);
       e->compound_parser = cons_compound;
       return VOID;}

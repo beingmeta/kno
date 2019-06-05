@@ -491,7 +491,7 @@ static lispval zmq_recv_prim(lispval s,lispval data,lispval opts)
   if (KNO_TRUEP(opts))
     flags |= ZMQ_DONTWAIT;
   else if (KNO_TABLEP(opts)) {
-    lispval lenval = kno_getopt(opts,FDSYM_BUFSIZE,KNO_VOID);
+    lispval lenval = kno_getopt(opts,KNOSYM_BUFSIZE,KNO_VOID);
     if (KNO_FIXNUMP(lenval))
       buflen = KNO_INT(lenval);
     else kno_decref(lenval);

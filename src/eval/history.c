@@ -294,7 +294,7 @@ lispval kno_get_histref(lispval elts)
         kno_decref(scan);
         scan = KNO_VOID;
         return err;}}
-    else if (path == FDSYM_EQUALS) {
+    else if (path == KNOSYM_EQUALS) {
       if ( (KNO_PAIRP(paths)) &&
            ( (KNO_STRINGP(KNO_CAR(paths))) ||
              (KNO_SYMBOLP(KNO_CAR(paths))) ) ) {
@@ -329,7 +329,7 @@ lispval kno_get_histref(lispval elts)
     kno_decref(val);
     if (void_root)
       return scan;
-    else return kno_make_list(2,FDSYM_QUOTE,scan);}
+    else return kno_make_list(2,KNOSYM_QUOTE,scan);}
 }
 
 KNO_EXPORT void kno_histinit(int size)

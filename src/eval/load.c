@@ -469,7 +469,7 @@ static lispval kno_run(u8_string source_file,struct U8_OUTPUT *out,
     kno_decref((lispval)env);
     return load_result;}
   else {
-    lispval main_proc = kno_symeval(FDSYM_MAIN,env);
+    lispval main_proc = kno_symeval(KNOSYM_MAIN,env);
     if (KNO_VOIDP(main_proc)) {
       u8_log(LOG_CRIT,"NoMain",
              "No (MAIN) was defined in '%s', returning last value",
