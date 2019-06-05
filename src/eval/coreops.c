@@ -330,11 +330,6 @@ static lispval vectorp(lispval x)
   if (VECTORP(x)) return KNO_TRUE; else return KNO_FALSE;
 }
 
-static lispval railp(lispval x)
-{
-  if (KNO_CODEP(x)) return KNO_TRUE; else return KNO_FALSE;
-}
-
 static lispval numberp(lispval x)
 {
   if (NUMBERP(x)) return KNO_TRUE; else return KNO_FALSE;
@@ -868,8 +863,6 @@ KNO_EXPORT void kno_init_coreprims_c()
   kno_idefn(kno_scheme_module,kno_make_cprim1("LIST?",listp,1));
   kno_idefn(kno_scheme_module,kno_make_cprim1("PROPER-LIST?",proper_listp,1));
   kno_idefn(kno_scheme_module,kno_make_cprim1("VECTOR?",vectorp,1));
-  kno_idefn(kno_scheme_module,kno_make_cprim1("CODE?",railp,1));
-  kno_defalias(kno_scheme_module,"RAIL?","CODE?");
   kno_idefn(kno_scheme_module,kno_make_cprim1("CHARACTER?",characterp,1));
   kno_idefn(kno_scheme_module,kno_make_cprim1("OPCODE?",opcodep,1));
   kno_idefn(kno_scheme_module,kno_make_cprim1("EXCEPTION?",exceptionp,1));

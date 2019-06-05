@@ -58,17 +58,7 @@ static lispval op_eval(lispval x,kno_lexenv env,kno_stack stack,int tail);
 KNO_FASTOP lispval op_eval_body(lispval body,kno_lexenv env,kno_stack stack,int tail)
 {
   lispval result=VOID;
-  if (KNO_CODEP(body)) {
-    int j=0, n_sub_exprs=KNO_CODE_LENGTH(body);
-    lispval *sub_exprs=KNO_CODE_DATA(body);
-    while (j<n_sub_exprs) {
-      lispval sub_expr=sub_exprs[j++];
-      kno_decref(result);
-      result=op_eval(sub_expr,env,stack,j==n_sub_exprs);
-      if (KNO_ABORTED(result))
-        return result;}
-    return result;}
-  else if (body == NIL)
+  if (body == NIL)
     return VOID;
   else while (PAIRP(body)) {
       lispval subex = KNO_CAR(body), next = KNO_CDR(body);

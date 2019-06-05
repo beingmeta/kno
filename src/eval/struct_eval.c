@@ -111,7 +111,7 @@ static lispval struct_evalfn(lispval expr,kno_lexenv env,struct KNO_STACK *stack
     return vector_evalfn(x,env,stackptr);
   else if (KNO_SLOTMAPP(x))
     return slotmap_evalfn(x,env,stackptr);
-  else if ( (KNO_PAIRP(x)) || (KNO_CODEP(x)) )
+  else if (KNO_PAIRP(x))
     return _kno_fast_eval(x,env,stackptr,0);
   else return x;
 }

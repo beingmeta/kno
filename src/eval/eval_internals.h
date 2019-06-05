@@ -190,12 +190,6 @@ KNO_FASTOP int check_bindexprs(lispval bindexprs,lispval *why_not)
         return -1;}
       else n++;}
     return n;}
-  else if (KNO_CODEP(bindexprs)) {
-    int len = KNO_CODE_LENGTH(bindexprs);
-    if ((len%2)==1) {
-      *why_not = kno_err(kno_BindSyntaxError,"check_bindexprs",NULL,bindexprs);
-      return -1;}
-    else return len/2;}
   else return -1;
 }
 

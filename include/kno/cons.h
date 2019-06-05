@@ -622,26 +622,6 @@ KNO_EXPORT lispval kno_fill_vector(int len,lispval init_elt);
 
 #define KNO_XVECTOR(x) (kno_consptr(struct KNO_VECTOR *,x,kno_vector_type))
 
-/* Rails are basically vectors but used for executable code */
-
-#define KNO_CODEP(x) (KNO_TYPEP((x),kno_code_type))
-#define KNO_CODE_LENGTH(x) \
-  ((KNO_CONSPTR(kno_vector,(x)))->vec_length)
-#define KNO_CODE_DATA(x) \
-  ((KNO_CONSPTR(kno_vector,(x)))->vec_elts)
-#define KNO_CODE_ELTS(x) \
-  ((KNO_CONSPTR(kno_vector,(x)))->vec_elts)
-#define KNO_CODE_REF(x,i) \
-  ((KNO_CONSPTR(kno_vector,(x)))->vec_elts[i])
-#define KNO_CODE_SET(x,i,v) \
-  ((KNO_CONSPTR(kno_vector,(x)))->vec_elts[i]=(v))
-
-KNO_EXPORT lispval kno_init_code(struct KNO_VECTOR *ptr,int len,lispval *data);
-KNO_EXPORT lispval kno_make_code(int len,lispval *elts);
-KNO_EXPORT lispval kno_make_nrail(int len,...);
-
-#define KNO_XRAIL(x) (kno_consptr(struct KNO_VECTOR *,x,kno_code_type))
-
 /* Generic-ish iteration macro */
 
 #define KNO_DOELTS(evar,seq,counter)              \
@@ -650,8 +630,7 @@ KNO_EXPORT lispval kno_make_nrail(int len,...);
   int _i = 0, _islist = 0, _lim = 0, _ok = 0;            \
   if (KNO_PAIRP(seq)) {                           \
      _islist = 1; _scan=_seq; _ok = 1;}              \
-  else if ((KNO_VECTORP(_seq))||                  \
-           (KNO_CODEP(_seq))) {                   \
+  else if (KNO_VECTORP(_seq)) {                   \
     _lim = KNO_VECTOR_LENGTH(_seq);                 \
     _elts = KNO_VECTOR_DATA(_seq);                  \
     _ok = 1;}                                      \

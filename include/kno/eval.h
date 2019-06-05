@@ -37,10 +37,10 @@ KNO_EXPORT int kno_choice_evalp(lispval x);
 
 #define KNO_NEED_EVALP(x) \
   ((KNO_SYMBOLP(x)) || (KNO_LEXREFP(x)) ||        \
-   (KNO_PAIRP(x))   || (KNO_CODEP(x)))
+   (KNO_PAIRP(x)))
 #define KNO_EVALP(x) \
   ( (KNO_SYMBOLP(x)) || (KNO_LEXREFP(x)) || \
-    (KNO_PAIRP(x))   || (KNO_CODEP(x))   ||       \
+    (KNO_PAIRP(x))  ||       \
     ( (KNO_AMBIGP(x)) && (kno_choice_evalp(x)) ) )
 
 KNO_EXPORT u8_string kno_evalstack_type, kno_ndevalstack_type;
@@ -295,8 +295,7 @@ KNO_FASTOP lispval _kno_fast_eval(lispval x,kno_lexenv env,
   case kno_cons_ptr_type: {
     kno_ptr_type type = KNO_CONSPTR_TYPE(x);
     switch (type) {
-    case kno_pair_type: case kno_code_type:
-    case kno_choice_type: case kno_prechoice_type:
+    case kno_pair_type: case kno_choice_type: case kno_prechoice_type:
     case kno_schemap_type:
       return kno_stack_eval(x,env,stack,tail);
     case kno_slotmap_type:

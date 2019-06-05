@@ -705,7 +705,7 @@ lispval position_if_prim(lispval test,lispval seq,lispval start_arg,
   int end, start = (KNO_FIXNUMP(start_arg)) ? (KNO_FIX2INT(start_arg)) : (0);
   int ctype = KNO_PTR_TYPE(seq);
   switch (ctype) {
-  case kno_vector_type: case kno_code_type: {
+  case kno_vector_type: {
     int len = KNO_VECTOR_LENGTH(seq), delta = 1;
     if (KNO_FIXNUMP(end_arg)) end = KNO_FIX2INT(end_arg); else end = len;
     int ok = interpret_range_args
@@ -804,7 +804,7 @@ lispval position_if_not_prim(lispval test,lispval seq,lispval start_arg,
   int start = KNO_FIX2INT(start_arg), end;
   int ctype = KNO_PTR_TYPE(seq);
   switch (ctype) {
-  case kno_vector_type: case kno_code_type: {
+  case kno_vector_type: {
     int len = KNO_VECTOR_LENGTH(seq), delta = 1;
     if (KNO_FIXNUMP(end_arg)) end = KNO_FIX2INT(end_arg); else end = len;
     int ok = interpret_range_args
@@ -906,7 +906,7 @@ lispval find_if_prim(lispval test,lispval seq,lispval start_arg,
   int end, start = (KNO_FIXNUMP(start_arg)) ? (KNO_FIX2INT(start_arg)) : (0);
   int ctype = KNO_PTR_TYPE(seq);
   switch (ctype) {
-  case kno_vector_type: case kno_code_type: {
+  case kno_vector_type: {
     int len = KNO_VECTOR_LENGTH(seq), delta = 1;
     if (KNO_FIXNUMP(end_arg)) end = KNO_FIX2INT(end_arg); else end = len;
     int ok = interpret_range_args
@@ -1009,7 +1009,7 @@ lispval find_if_not_prim(lispval test,lispval seq,lispval start_arg,
   int start = KNO_FIX2INT(start_arg), end;
   int ctype = KNO_PTR_TYPE(seq);
   switch (ctype) {
-  case kno_vector_type: case kno_code_type: {
+  case kno_vector_type: {
     int len = KNO_VECTOR_LENGTH(seq), delta = 1;
     if (KNO_FIXNUMP(end_arg)) end = KNO_FIX2INT(end_arg); else end = len;
     int ok = interpret_range_args
@@ -1401,22 +1401,6 @@ static lispval onevector_prim(int n,lispval *args)
   return result;
 }
 
-static lispval seq2rail(lispval seq)
-{
-  if (NILP(seq))
-    return kno_make_code(0,NULL);
-  else if (KNO_SEQUENCEP(seq)) {
-    int n = -1;
-    lispval *data = kno_seq_elts(seq,&n);
-    if (n < 0) {
-      kno_seterr("NonEnumerableSequence","seq2vector",NULL,seq);
-      return KNO_ERROR;}
-    lispval result = kno_make_code(n,data);
-    u8_free(data);
-    return result;}
-  else return kno_type_error(_("sequence"),"seq2rail",seq);
-}
-
 static lispval seq2list(lispval seq)
 {
   if (NILP(seq)) return NIL;
@@ -1514,7 +1498,7 @@ KNO_EXPORT lispval kno_seq2choice(lispval x)
     lispval result = EMPTY;
     int ctype = KNO_PTR_TYPE(x), i = 0, len;
     switch (ctype) {
-    case kno_vector_type: case kno_code_type:
+    case kno_vector_type:
       len = VEC_LEN(x); while (i < len) {
         lispval elt = kno_incref(VEC_REF(x,i));
         CHOICE_ADD(result,elt); i++;}
@@ -1557,7 +1541,7 @@ static lispval elts_prim(lispval x,lispval start_arg,lispval end_arg)
   int ctype = KNO_PTR_TYPE(x);
   if (KNO_ABORTED(check)) return check;
   else switch (ctype) {
-    case kno_vector_type: case kno_code_type: {
+    case kno_vector_type: {
       lispval *read, *limit;
       read = VEC_DATA(x)+start; limit = VEC_DATA(x)+end;
       while (read<limit) {
@@ -2068,15 +2052,6 @@ static lispval seq2doublevec(lispval arg)
   else return kno_type_error(_("sequence"),"seq2doublevec",arg);
 }
 
-/* Rails */
-
-static lispval make_code(int n,lispval *elts)
-{
-  int i = 0; while (i<n) {
-    lispval v = elts[i++]; kno_incref(v);}
-  return kno_make_code(n,elts);
-}
-
 /* side effecting operations (not threadsafe) */
 
 static lispval set_car(lispval pair,lispval val)
@@ -2266,20 +2241,14 @@ KNO_EXPORT void kno_init_seqprims_c()
   kno_idefn(kno_scheme_module,kno_make_cprim2("MEMV",memv_prim,2));
   kno_idefn(kno_scheme_module,kno_make_cprim2("MEMBER",member_prim,2));
 
-
   /* Standard lexprs */
   kno_idefn(kno_scheme_module,kno_make_cprimn("LIST",list,0));
   kno_idefn(kno_scheme_module,kno_make_cprimn("VECTOR",vector,0));
-  kno_idefn(kno_scheme_module,kno_make_cprimn("MAKE-CODE",make_code,0));
-  kno_defalias(kno_scheme_module,"MAKE-RAIL","MAKE-CODE");
 
   kno_idefn(kno_scheme_module,
            kno_make_cprim2x("MAKE-VECTOR",make_vector,1,
                            kno_fixnum_type,VOID,
                            -1,KNO_FALSE));
-
-  kno_idefn(kno_scheme_module,kno_make_cprim1("->CODE",seq2rail,1));
-  kno_defalias(kno_scheme_module,"->RAIL","->CODE");
 
   kno_idefn(kno_scheme_module,kno_make_cprim1("->VECTOR",seq2vector,1));
   kno_idefn(kno_scheme_module,kno_make_cprim1("->LIST",seq2list,1));

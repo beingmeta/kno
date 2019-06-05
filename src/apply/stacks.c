@@ -70,7 +70,7 @@ static lispval annotate_source(lispval expr,lispval target)
       lispval car = source_subst(KNO_CAR(expr),target);
       lispval cdr = source_subst(KNO_CDR(expr),target);
       return kno_init_pair(NULL,car,cdr);}
-    case kno_vector_type: case kno_code_type: {
+    case kno_vector_type: {
       struct KNO_VECTOR *vec = (kno_vector) expr;
       lispval *elts = vec->vec_elts;
       int i=0, n=vec->vec_length;
@@ -148,7 +148,7 @@ static lispval copy_bindings(lispval bindings)
   else return kno_copier(bindings,KNO_FULL_COPY);
 }
 
-#define IS_EVAL_EXPR(x) ( (!(KNO_NULLP(x))) && ((KNO_PAIRP(x)) || (KNO_CODEP(x))) )
+#define IS_EVAL_EXPR(x) ( (!(KNO_NULLP(x))) && ((KNO_PAIRP(x))) )
 
 /* Stacks are rendered into LISP as vectors as follows:
    1. depth  (integer, increasing with calls)
