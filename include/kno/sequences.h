@@ -21,6 +21,7 @@ typedef struct KNO_SEQFNS {
   int (*search)(lispval key,lispval x,int i,int j);
   lispval *(*elts)(lispval x,int *);
   lispval (*make)(int,lispval *);
+  int (*sequencep)(lispval);
 } KNO_SEQFNS;
 
 KNO_EXPORT struct KNO_SEQFNS *kno_seqfns[];
@@ -41,8 +42,16 @@ KNO_EXPORT lispval kno_removeif(lispval test,lispval sequence,int invert);
 KNO_EXPORT int kno_generic_position(lispval key,lispval x,int start,int end);
 KNO_EXPORT int kno_generic_search(lispval subseq,lispval seq,int start,int end);
 
-#define KNO_SEQUENCEP(x) \
-  ((KNO_EMPTY_LISTP(x)) || ((kno_seqfns[KNO_PTR_TYPE(x)])!=NULL))
+/* #define KNO_SEQUENCEP(x) ((KNO_EMPTY_LISTP(x)) || ((kno_seqfns[KNO_PTR_TYPE(x)])!=NULL)) */
+static int KNO_SEQUENCEP(lispval x)
+{
+  kno_ptr_type x_type = KNO_PTR_TYPE(x);
+  if ((kno_seqfns[x_type]) == NULL)
+    return 0;
+  else if ((kno_seqfns[x_type])->sequencep)
+    return ((kno_seqfns[x_type])->sequencep)(x);
+  else return 1;
+}
 
 lispval *kno_seq_elts(lispval seq,int *len);
 lispval kno_makeseq(kno_ptr_type ctype,int n,lispval *v);
