@@ -2082,7 +2082,10 @@ static lispval make_code(int n,lispval *elts)
 static lispval set_car(lispval pair,lispval val)
 {
   struct KNO_PAIR *p = kno_consptr(struct KNO_PAIR *,pair,kno_pair_type);
-  lispval oldv = p->car; p->car = kno_incref(val);
+  kno_incref(val);
+  KNO_LOCK_PTR(p);
+  lispval oldv = p->car; p->car = val;
+  KNO_UNLOCK_PTR(p);
   kno_decref(oldv);
   return VOID;
 }
@@ -2090,7 +2093,10 @@ static lispval set_car(lispval pair,lispval val)
 static lispval set_cdr(lispval pair,lispval val)
 {
   struct KNO_PAIR *p = kno_consptr(struct KNO_PAIR *,pair,kno_pair_type);
-  lispval oldv = p->cdr; p->cdr = kno_incref(val);
+  kno_incref(val); 
+  KNO_LOCK_PTR(p);
+  lispval oldv = p->cdr; p->cdr = val;
+  KNO_UNLOCK_PTR(p);
   kno_decref(oldv);
   return VOID;
 }
@@ -2098,16 +2104,20 @@ static lispval set_cdr(lispval pair,lispval val)
 static lispval vector_set(lispval vec,lispval index,lispval val)
 {
   struct KNO_VECTOR *v = kno_consptr(struct KNO_VECTOR *,vec,kno_vector_type);
-  if (!(KNO_UINTP(index))) return kno_type_error("uint","vector_set",index);
-  int offset = FIX2INT(index); lispval *elts = v->vec_elts;
+  if (!(KNO_UINTP(index)))
+    return kno_type_error("uint","vector_set",index);
+  int offset = FIX2INT(index);
   if (offset>v->vec_length) {
     char buf[32];
     return kno_err(kno_RangeError,"vector_set",
                   u8_uitoa10(offset,buf),
                   vec);}
   else {
-    lispval oldv = elts[offset];
-    elts[offset]=kno_incref(val);
+    kno_incref(val);
+    KNO_LOCK_PTR(v);
+    lispval *elts = v->vec_elts, oldv = elts[offset]; 
+    elts[offset] = val;
+    KNO_UNLOCK_PTR(v);
     kno_decref(oldv);
     return VOID;}
 }
@@ -2350,7 +2360,6 @@ KNO_EXPORT void kno_init_seqprims_c()
                            -1,VOID,-1,VOID,
                            kno_pair_type,VOID));
 
-  /* Note that these are not threadsafe */
   kno_idefn(kno_scheme_module,
            kno_make_cprim2x("SET-CAR!",set_car,2,
                            kno_pair_type,VOID,-1,VOID));
