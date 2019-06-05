@@ -2856,12 +2856,12 @@ KNO_EXPORT void kno_init_pools_c()
                      kno_poolconfig_get,kno_poolconfig_set,
                      &kno_default_pool);
 
-  kno_tablefns[kno_pool_type]=u8_alloc(struct KNO_TABLEFNS);
+  kno_tablefns[kno_pool_type]=u8_zalloc(struct KNO_TABLEFNS);
   kno_tablefns[kno_pool_type]->get = (kno_table_get_fn)pool_tableget;
   kno_tablefns[kno_pool_type]->store = (kno_table_store_fn)pool_tablestore;
   kno_tablefns[kno_pool_type]->keys = (kno_table_keys_fn)kno_pool_keys;
 
-  kno_tablefns[kno_consed_pool_type]=u8_alloc(struct KNO_TABLEFNS);
+  kno_tablefns[kno_consed_pool_type]=u8_zalloc(struct KNO_TABLEFNS);
   kno_tablefns[kno_consed_pool_type]->get = (kno_table_get_fn)pool_tableget;
   kno_tablefns[kno_consed_pool_type]->store = (kno_table_store_fn)pool_tablestore;
   kno_tablefns[kno_consed_pool_type]->keys = (kno_table_keys_fn)kno_pool_keys;

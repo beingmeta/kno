@@ -688,7 +688,7 @@ KNO_EXPORT void kno_init_oidobj_c()
   padjslotid=kno_intern("%adjunct_slotid");
 
   /* Table functions for OIDs */
-  kno_tablefns[kno_oid_type]=u8_alloc(struct KNO_TABLEFNS);
+  kno_tablefns[kno_oid_type]=u8_zalloc(struct KNO_TABLEFNS);
   kno_tablefns[kno_oid_type]->get = kno_oid_get;
   kno_tablefns[kno_oid_type]->add = kno_oid_add;
   kno_tablefns[kno_oid_type]->drop = kno_oid_drop;
@@ -698,7 +698,7 @@ KNO_EXPORT void kno_init_oidobj_c()
   kno_tablefns[kno_oid_type]->getsize = NULL;
 
   /* Table functions for CHOICEs */
-  kno_tablefns[kno_choice_type]=u8_alloc(struct KNO_TABLEFNS);
+  kno_tablefns[kno_choice_type]=u8_zalloc(struct KNO_TABLEFNS);
   kno_tablefns[kno_choice_type]->get = choice_get;
   kno_tablefns[kno_choice_type]->add = choice_add;
   kno_tablefns[kno_choice_type]->drop = choice_drop;
@@ -708,7 +708,7 @@ KNO_EXPORT void kno_init_oidobj_c()
   kno_tablefns[kno_choice_type]->getsize = NULL;
 
   /* Table functions for CHOICEs */
-  kno_tablefns[kno_prechoice_type]=u8_alloc(struct KNO_TABLEFNS);
+  kno_tablefns[kno_prechoice_type]=u8_zalloc(struct KNO_TABLEFNS);
   kno_tablefns[kno_prechoice_type]->get = choice_get;
   kno_tablefns[kno_prechoice_type]->add = choice_add;
   kno_tablefns[kno_prechoice_type]->drop = choice_drop;

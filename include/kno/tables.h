@@ -83,16 +83,17 @@ KNO_EXPORT lispval kno_table_skim(lispval table,lispval maxval,lispval scope);
 
 KNO_EXPORT void kno_display_table(u8_output out,lispval table,lispval keys);
 
+#define KNO_TABLEP(x)                                               \
+  ( (KNO_CONSP(x)) ?                                                \
+    ( (kno_tablefns[KNO_CONSPTR_TYPE(x)] != NULL ) &&               \
+      ( (kno_tablefns[KNO_CONSPTR_TYPE(x)]->tablep == NULL ) ||      \
+        (kno_tablefns[KNO_CONSPTR_TYPE(x)]->tablep(x)) ) ) :         \
+    (KNO_IMMEDIATEP(x)) ?                                               \
+    ( (kno_tablefns[KNO_IMMEDIATE_TYPE(x)] != NULL ) &&                 \
+      ( (kno_tablefns[KNO_IMMEDIATE_TYPE(x)]->tablep == NULL ) ||       \
+        (kno_tablefns[KNO_IMMEDIATE_TYPE(x)]->tablep(x)) ) ) :          \
+    (0))
 /* #define KNO_TABLEP(x) ( ((kno_tablefns[KNO_PTR_TYPE(x)])!=NULL)  */
-static int KNO_TABLEP(lispval x)
-{
-  kno_ptr_type x_type = KNO_PTR_TYPE(x);
-  if ((kno_tablefns[x_type]) == NULL)
-    return 0;
-  else if ((kno_tablefns[x_type])->tablep)
-    return ((kno_tablefns[x_type])->tablep)(x);
-  else return 1;
-}
 
 #define KNO_INIT_SMAP_SIZE 7
 #define KNO_INIT_HASH_SIZE 73

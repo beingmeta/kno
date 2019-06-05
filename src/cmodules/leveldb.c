@@ -2386,7 +2386,7 @@ KNO_EXPORT int kno_init_leveldb()
   kno_type_names[kno_leveldb_type]="LevelDB";
 
   /* Table functions for leveldbs */
-  kno_tablefns[kno_leveldb_type]=u8_alloc(struct KNO_TABLEFNS);
+  kno_tablefns[kno_leveldb_type]=u8_zalloc(struct KNO_TABLEFNS);
   kno_tablefns[kno_leveldb_type]->get = leveldb_table_get;
   kno_tablefns[kno_leveldb_type]->store = leveldb_table_store;
 

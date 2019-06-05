@@ -2424,7 +2424,7 @@ KNO_EXPORT void kno_init_indexes_c()
       kno_register_compound(kno_intern("index"),NULL,NULL);
     e->compound_parser = index_parsefn;}
 
-  kno_tablefns[kno_index_type]=u8_alloc(struct KNO_TABLEFNS);
+  kno_tablefns[kno_index_type]=u8_zalloc(struct KNO_TABLEFNS);
   kno_tablefns[kno_index_type]->get = table_indexget;
   kno_tablefns[kno_index_type]->add = table_indexadd;
   kno_tablefns[kno_index_type]->drop = table_indexdrop;
@@ -2433,7 +2433,7 @@ KNO_EXPORT void kno_init_indexes_c()
   kno_tablefns[kno_index_type]->keys = table_indexkeys;
   kno_tablefns[kno_index_type]->getsize = NULL;
 
-  kno_tablefns[kno_consed_index_type]=u8_alloc(struct KNO_TABLEFNS);
+  kno_tablefns[kno_consed_index_type]=u8_zalloc(struct KNO_TABLEFNS);
   kno_tablefns[kno_consed_index_type]->get = table_indexget;
   kno_tablefns[kno_consed_index_type]->add = table_indexadd;
   kno_tablefns[kno_consed_index_type]->drop = table_indexdrop;

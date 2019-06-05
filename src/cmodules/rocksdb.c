@@ -2395,7 +2395,7 @@ KNO_EXPORT int kno_init_rocksdb()
   kno_type_names[kno_rocksdb_type]="Rocksdb";
 
   /* Table functions for rocksdbs */
-  kno_tablefns[kno_rocksdb_type]=u8_alloc(struct KNO_TABLEFNS);
+  kno_tablefns[kno_rocksdb_type]=u8_zalloc(struct KNO_TABLEFNS);
   kno_tablefns[kno_rocksdb_type]->get = rocksdb_table_get;
   kno_tablefns[kno_rocksdb_type]->store = rocksdb_table_store;
 

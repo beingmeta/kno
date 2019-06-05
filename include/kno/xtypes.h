@@ -13,17 +13,10 @@
 
 #include "bufio.h"
 
-KNO_EXPORT unsigned int kno_check_dtsize;
-
-#define KNO_XTYPES_FLAGS      (KNO_BUFIO_MAX_FLAG)
-#define KNO_IS_XTYPE          (KNO_XTYPES_FLAGS << 0)
-#define KNO_WRITE_OPAQUE      (KNO_XTYPES_FLAGS << 1)
-#define KNO_NATSORT_VALUES    (KNO_XTYPES_FLAGS << 2)
-
 /* DTYPE constants */
 
 typedef enum xt_type_code {
-  /* One-byte codes */
+  /* One-byte codes (format: <code> ) */
   xt_invalid = 0x00,
   xt_true = 0x01,
   xt_false = 0x02,
@@ -32,7 +25,7 @@ typedef enum xt_type_code {
   xt_default = 0x05,
   xt_void = 0x06,
   xt_qempty = 0x07,
-  /* Scalars */
+  /* Scalars format: <code> <byte>+ */
   xt_fixnum_b = 0x10,
   xt_fixnum_bb = 0x11,
   xt_fixnum_bbb = 0x12,
@@ -45,63 +38,63 @@ typedef enum xt_type_code {
   xt_character_bb = 0x19,
   xt_character_bbbb = 0x1a,
   xt_character_v = 0x1b,
+  /* String types (format: <code> <len> <byte>*) */
+  xt_utf8_b = 0x20,
+  xt_utf8_bb = 0x2,
+  xt_utf8_bbbb = 0x22,
+  xt_utf8_v = 0x23,
+  xt_packet_b = 0x24,
+  xt_packet_bb = 0x25,
+  xt_packet_bbbb = 0x26,
+  xt_packet_v = 0x27,
+  xt_secret_b = 0x28,
+  xt_secret_bb = 0x29,
+  xt_secret_bbbb = 0x2a,
+  xt_secret_v = 0x2b,
+  xt_u8symbol_b = 0x28,
+  xt_u8symbol_bb = 0x29,
+  xt_u8symbol_bbbb = 0x2a,
+  xt_u8symbol_v = 0x2b,
+  /* Pair types (format: <code> <xtype> <xtype>) */
+  xt_pair = 0x30,
+  xt_rational = 0x31,
+  xt_complex = 0x32,
+  xt_tagged = 0x33,
+  xt_compressed = 0x34,
+  xt_encrypted = 0x35,
+  xt_media = 0x36,
+  /* Repeated types (format: <code> <len> <xtype>*) */
+  xt_vector_b = 0x40,
+  xt_vector_bb = 0x41,
+  xt_vector_bbb = 0x42,
+  xt_vector_v = 0x43,
+  xt_choice_b = 0x44,
+  xt_choice_bb = 0x45,
+  xt_choice_bbb = 0x46,
+  xt_choice_v = 0x47,
+  xt_table_b = 0x48,
+  xt_table_bb = 0x49,
+  xt_table_bbb = 0x4a,
+  xt_table_v = 0x4b,
+  /* Type codes, used in combination with xt_tagged and
+     xt_vector/xt_packet types */
+  xt_type_short16_vec = 0x50,
+  xt_type_int32_vec = 0x51,
+  xt_type_long64_vec = 0x52,
+  xt_type_float_vec = 0x53,
+  xt_type_double_vec = 0x54,
+  xt_type_hashset = 0x55,
+  xt_type_hashtable = 0x56,
   /* Refs */
-  xt_ref_b = 0x20,
-  xt_ref_bb = 0x21,
-  xt_ref_bbb = 0x22,
-  xt_ref_v = 0x23,
-  /* String types */
-  xt_utf8_b = 0x30,
-  xt_utf8_bb = 0x3,
-  xt_utf8_bbbb = 0x32,
-  xt_utf8_v = 0x33,
-  xt_packet_b = 0x34,
-  xt_packet_bb = 0x35,
-  xt_packet_bbbb = 0x36,
-  xt_packet_v = 0x37,
-  xt_secret_b = 0x38,
-  xt_secret_bb = 0x39,
-  xt_secret_bbbb = 0x3a,
-  xt_secret_v = 0x3b,
-  xt_u8symbol_b = 0x38,
-  xt_u8symbol_bb = 0x39,
-  xt_u8symbol_bbbb = 0x3a,
-  xt_u8symbol_v = 0x3b,
-  /* Pair types */
-  xt_pair = 0x40,
-  xt_rational = 0x41,
-  xt_complex = 0x42,
-  xt_tagged = 0x43,
-  xt_compressed = 0x44,
-  xt_encrypted = 0x45,
-  xt_media = 0x46,
-  /* Repeated types */
-  xt_vector_b = 0x50,
-  xt_vector_bb = 0x51,
-  xt_vector_bbb = 0x52,
-  xt_vector_v = 0x53,
-  xt_choice_b = 0x54,
-  xt_choice_bb = 0x55,
-  xt_choice_bbb = 0x56,
-  xt_choice_v = 0x57,
-  xt_table_b = 0x58,
-  xt_table_bb = 0x59,
-  xt_table_bbb = 0x5a,
-  xt_table_v = 0x5b,
-  /* OID refs */
-  xt_oid = 0x60, /* 8 bytes */
-  xt_poolref_b = 0x64, /* has form off (bytes) + base (xtype) */
-  xt_poolref_bb = 0x65, /* ... */
-  xt_poolref_bbb = 0x66, /* ... */
-  xt_poolrev_bbbb = 0x67, /* ... */
-  /* Type codes */
-  xt_type_short16_vec = 0x70,
-  xt_type_int32_vec = 0x71,
-  xt_type_long64_vec = 0x72,
-  xt_type_float_vec = 0x73,
-  xt_type_double_vec = 0x74,
-  xt_type_hashset = 0x75,
-  xt_type_hashtable = 0x76
+  xt_ref_b = 0x60,
+  xt_ref_bb = 0x61,
+  xt_ref_bbb = 0x62,
+  xt_ref_v = 0x63,
+  xt_oid = 0x64, /* 8 bytes */
+  xt_poolref_b = 0x65, /* has form off (bytes) + base (xtype) */
+  xt_poolref_bb = 0x66, /* ... */
+  xt_poolref_bbb = 0x67, /* ... */
+  xt_poolrev_bbbb = 0x68 /* ... */
 } xt_type_code;
 
 typedef struct XTYPE_REFS {
@@ -121,19 +114,16 @@ typedef struct XTYPE_REFS *xtype_refs;
 
 /* The top level functions */
 
-KNO_EXPORT ssize_t kno_write_xtype
-(struct KNO_OUTBUF *out,lispval x,struct XTYPE_REFS *);
-KNO_EXPORT ssize_t kno_validate_xtype
-(struct KNO_INBUF *in);
-KNO_EXPORT lispval kno_read_xtype
-(struct KNO_INBUF *in,lispval *refs,struct XTYPE_REFS *);
+KNO_EXPORT ssize_t xtype_write(kno_outbuf out,lispval x,xtype_refs refs);
+KNO_EXPORT ssize_t xtype_validate(struct KNO_INBUF *in);
+KNO_EXPORT lispval xtype_read(kno_inbuf in,xtype_refs refs);
 
 /* Returning error codes */
 
 #if KNO_DEBUG_XTYPES
-#define kno_return_errcode(x) ((lispval)(_kno_return_errcode(x)))
+#define xtype_return_errcode(x) ((lispval)(_kno_return_errcode(x)))
 #else
-#define kno_return_errcode(x) ((lispval)(x))
+#define xtype_return_errcode(x) ((lispval)(x))
 #endif
 
 /* Arithmetic stubs */

@@ -1955,7 +1955,7 @@ void kno_init_module_tables(void);
 
 static void init_types_and_tables()
 {
-  struct KNO_TABLEFNS *fns = u8_alloc(struct KNO_TABLEFNS);
+  struct KNO_TABLEFNS *fns = u8_zalloc(struct KNO_TABLEFNS);
   fns->get = lispenv_get; fns->store = lispenv_store;
   fns->add = lispenv_add; fns->drop = NULL; fns->test = NULL;
 
