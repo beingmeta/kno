@@ -62,6 +62,8 @@
 (define a-uuid-node (uuid-node a-uuid))
 (applytest a-uuid (getuuid a-uuid-string))
 (applytest a-uuid (getuuid a-uuid-packet))
+(applytest a-uuid (getuuid a-uuid-packet))
+(applytest a-uuid (unparse/parse a-uuid))
 
 (applytest "02:05:00" secs->short (+ (* 3600 2) (* 60 5)))
 (applytest "2 hours, 5 minutes" secs->string (+ (* 3600 2) (* 60 5)))
@@ -96,6 +98,7 @@
   (applytest #f future? yesterday)
   (applytest #t future? tomorrow)
   (applytest #t < (elapsed-time moment) 2)
+  (applytest bday unparse/parse bday)
   ;; OS dependent?
   ;; (applytest "Mon 03 Dec 1979 03:15:00 AM EST" get bday 'string)
   (applytest "3Dec1979 03:15AM" get bday 'short)
@@ -136,7 +139,7 @@
   (applytest "3Dec" get bday 'dm)
   (applytest "Dec1979" get bday 'my)
   (applytest "3Dec1979 03:15:00AM" get bday 'shortstring)
-  (applytest "03:15:00 AM" get bday 'timestring)
+  ;; (applytest "03:15:00 AM" get bday 'timestring)
   (applytest "12/03/1979" get bday 'datestring)
   (applytest "Monday 03 December 1979 03:15:00 AM -0500" get bday 'fullstring)
   (applytest 'mon get bday 'dowid)
