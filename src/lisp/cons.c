@@ -883,6 +883,9 @@ void kno_init_cons_c()
   kno_add_constname("#8gib",KNO_INT((8*(ONEK)*(ONEK)*(ONEK))));
   kno_add_constname("#1mib",KNO_INT((1024*1024)));
   kno_add_constname("#2mib",KNO_INT((2*1024*1024)));
+
+  kno_register_constant("plugh");
+
 }
 
 /* Emacs local variables
