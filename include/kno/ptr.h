@@ -151,17 +151,17 @@ typedef enum KNO_PTR_TYPE {
 
   kno_string_type = KNO_CONS_TYPECODE(0),
   kno_packet_type = KNO_CONS_TYPECODE(1),
-  kno_secret_type = KNO_CONS_TYPECODE(2),
-  kno_bigint_type = KNO_CONS_TYPECODE(3),
-  kno_pair_type = KNO_CONS_TYPECODE(4),
+  kno_vector_type = KNO_CONS_TYPECODE(2),
+  kno_matrix_type = KNO_CONS_TYPECODE(3), /* NYI */
+  kno_numeric_vector_type = KNO_CONS_TYPECODE(4),
+  kno_pair_type = KNO_CONS_TYPECODE(5),
+  kno_secret_type = KNO_CONS_TYPECODE(6),
+  kno_bigint_type = KNO_CONS_TYPECODE(7),
 
-  kno_compound_type = KNO_CONS_TYPECODE(5),
-  kno_choice_type = KNO_CONS_TYPECODE(6),
-  kno_prechoice_type = KNO_CONS_TYPECODE(7),
-  kno_qchoice_type = KNO_CONS_TYPECODE(8),
-  kno_vector_type = KNO_CONS_TYPECODE(9),
-  kno_matrix_type = KNO_CONS_TYPECODE(10), /* NYI */
-  kno_numeric_vector_type = KNO_CONS_TYPECODE(11),
+  kno_compound_type = KNO_CONS_TYPECODE(8),
+  kno_choice_type = KNO_CONS_TYPECODE(9),
+  kno_prechoice_type = KNO_CONS_TYPECODE(10),
+  kno_qchoice_type = KNO_CONS_TYPECODE(11),
 
   kno_slotmap_type = KNO_CONS_TYPECODE(12),
   kno_schemap_type = KNO_CONS_TYPECODE(13),
