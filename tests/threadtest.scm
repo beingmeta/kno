@@ -70,7 +70,7 @@
     (when (zero? (random 5)) (thread/yield)))
   (elapsed-time start))
 
-(define (test-threadcall (waitfn thread/join) (wait-opts #default))
+(define (test-thread/call (waitfn thread/join) (wait-opts #default))
   (let ((threads {}))
     (set! numbers '())
     ;; We're testing a bunch of things here and have addrange sleep so
@@ -85,7 +85,7 @@
     (applytest #f thread/error? threads)
     (applytest 20 length numbers)
     (applytest #f check-ordered numbers)
-    (message "TEST-THREADCALL: " numbers)))
+    (message "TEST-THREAD/CALL: " numbers)))
 
 (define (test-threadids)
   (let ((sleep1 (thread/call look-busy 5))
@@ -264,12 +264,12 @@
   (test-spawn)
   (test-slambdas)
 
-  (test-threadcall)
-  (test-threadcall thread/wait 3)
-  (test-threadcall thread/wait #f)
-  (test-threadcall thread/wait! 0.0003)
-  (test-threadcall thread/wait (timestamp+ 1))
-  (test-threadcall thread/wait [timeout 3])
+  (test-thread/call)
+  (test-thread/call thread/wait 3)
+  (test-thread/call thread/wait #f)
+  (test-thread/call thread/wait! 0.0003)
+  (test-thread/call thread/wait (timestamp+ 1))
+  (test-thread/call thread/wait [timeout 3])
 
   (test-fifo-condvars)
 

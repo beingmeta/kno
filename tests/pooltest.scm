@@ -100,8 +100,8 @@
       (let ((n-per-thread (1+ (quotient testcount rthreads)))
 	    (threads {}))
 	(dotimes (i wthreads)
-	  (set+! threads (threadcall test-n-frames n-per-thread pool)))
-	(threadjoin threads))
+	  (set+! threads (thread/call test-n-frames n-per-thread pool)))
+	(thread/join threads))
       (test-n-frames count pool)))
 
 (define (main (testcount 250) (poolfile poolfile) 
@@ -126,8 +126,8 @@
 		(threads {}))
 	    (dotimes (i wthreads)
 	      (set+! threads 
-		(threadcall make-n-frames n-per-thread pool)))
-	    (threadjoin threads))
+		(thread/call make-n-frames n-per-thread pool)))
+	    (thread/join threads))
 	  (dotimes (i (* testcount 4))
 	    (make-random-frame pool))))
     (when (exists? (poolctl pool 'metadata 'status))
