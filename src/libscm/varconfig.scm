@@ -45,6 +45,18 @@
 			    (else 'val)))
 	       ,varname))))))
 
+(define (extract-doc body (before '()))
+  (if (null? body)
+      (cons #f (reverse before))
+      (if (string? (car body))
+	  (cons (car body) (append (reverse before) (cdr body)))
+	  (extract-doc (cdr body) (cons (car body) before)))))
+
+(define (make-docstring symbol env)
+  (stringout "the variable `" symbol "`"
+    (when (module? env)
+      (printout " in the module **" (pick (get env '%moduleid) symbol?) "**"))))
+
 (define (string2lisp arg)
   (if (string? arg)
       (if (has-prefix arg {":" "(" "#" "{"}) 
@@ -56,9 +68,14 @@
 
 (define varconfig!
   (macro expr
-    (let ((confname (cadr expr))
-	  (confbody (cddr expr)))
-      `(config-def! ',confname (varconfigfn ,@confbody)))))
+    (let* ((confspec (cadr expr))
+	   (confarg (if (symbol? confspec) `(quote ,confspec)
+			(if (string? confspec)
+			    `(quote ,(string->symbol confspec))
+			    confspec)))
+	   (confbody (extract-doc (cddr expr))))
+      `(config-def! ,confarg (varconfigfn ,@(cdr confbody))
+		    ,(or (car confbody) `(,make-docstring ',(cadr confbody) (,%env)))))))
 
 (define optconfigfn
   (macro expr
