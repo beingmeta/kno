@@ -565,7 +565,7 @@ static lispval parse_regex(U8_INPUT *in)
           kno_seterr(kno_ParseError,"parse_regex",src.u8_outbuf,VOID);
           return KNO_PARSE_ERROR;}
         mc = u8_getc(in);}
-      u8_ungetc(in,mc);
+      if (mc >= 0) u8_ungetc(in,mc);
       *optwrite++='\0';
       result = make_regex(src.u8_outbuf,opts);
       u8_close((u8_stream)&src);
