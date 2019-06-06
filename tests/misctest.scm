@@ -138,9 +138,9 @@
       #("thirty" "three" "hundred" "five")})
 (applytest #(33 33.100000 33.200000 34 34.500000 134 1300000000000
 		"thirty-eight" "thirty-one"
-		("thirty" "three")
 		#("thirty" "one" "hundred")
-		#("thirty" "three" "hundred" "five"))
+		#("thirty" "three" "hundred" "five")
+		("thirty" "three"))
 	   sorted sort-sample)
 (define sort-seq-sample
   (filter-choices (elt sort-sample)
@@ -154,9 +154,9 @@
 
 (applytest #(33 33.100000 33.200000 34 34.500000 134 1300000000000
 		"thirty-eight" "thirty-one"
-		("thirty" "three")
 		#("thirty" "one" "hundred")
-		#("thirty" "three" "hundred" "five"))
+		#("thirty" "three" "hundred" "five")
+		("thirty" "three"))
 	   sorted sort-sample deep-copy)
 
 (applytest #("thirty-one"
