@@ -24,7 +24,7 @@ lispval KNOSYM_ADD, KNOSYM_ADJUNCT, KNOSYM_ALL, KNOSYM_ALWAYS;
 lispval KNOSYM_BLOCKSIZE, KNOSYM_BUFSIZE;
 lispval KNOSYM_CACHELEVEL, KNOSYM_CACHESIZE;
 lispval KNOSYM_CONS, KNOSYM_CONTENT, KNOSYM_CREATE;
-lispval KNOSYM_DEFAULT, KNOSYM_DOT, KNOSYM_DROP;
+lispval KNOSYM_DEFAULT, KNOSYM_DOT, KNOSYM_DROP, KNOSYM_DTYPE;
 lispval KNOSYM_ENCODING, KNOSYM_EQUALS, KNOSYM_ERROR;
 lispval KNOSYM_FILE, KNOSYM_FILENAME;
 lispval KNOSYM_FLAGS, KNOSYM_FORMAT, KNOSYM_FRONT, KNOSYM_HISTORY_THREADVAL;
@@ -34,13 +34,15 @@ lispval KNOSYM_MAIN, KNOSYM_MERGE, KNOSYM_METADATA;
 lispval KNOSYM_MINUS, KNOSYM_MODULE;
 lispval KNOSYM_NAME, KNOSYM_NO, KNOSYM_NONE, KNOSYM_NOT;
 lispval KNOSYM_OPT, KNOSYM_OPTS, KNOSYM_OUTPUT;
-lispval KNOSYM_PCTID, KNOSYM_PLUS;
+lispval KNOSYM_PACKET, KNOSYM_PCTID, KNOSYM_PLUS;
 lispval KNOSYM_PREFIX, KNOSYM_PROPS;
 lispval KNOSYM_QMARK, KNOSYM_QUOTE, KNOSYM_READONLY, KNOSYM_SEP;
 lispval KNOSYM_SET, KNOSYM_SIZE, KNOSYM_SORT, KNOSYM_SORTED;
 lispval KNOSYM_SOURCE, KNOSYM_STAR, KNOSYM_STORE, KNOSYM_STRING, KNOSYM_SUFFIX;
 lispval KNOSYM_TAG, KNOSYM_TEST, KNOSYM_TEXT, KNOSYM_TYPE;
+lispval KNOSYM_UTF8;
 lispval KNOSYM_VERSION, KNOSYM_VOID;
+lispval KNOSYM_XTYPE;
 
 u8_rwlock kno_symbol_lock;
 static u8_memlist old_symbol_data = NULL;
@@ -108,6 +110,7 @@ static void init_builtin_symbols()
   KNOSYM_DEFAULT = kno_intern("default");
   KNOSYM_DOT = kno_intern(".");
   KNOSYM_DROP = kno_intern("drop");
+  KNOSYM_DTYPE = kno_intern("dtype");
   KNOSYM_ENCODING = kno_intern("encoding");
   KNOSYM_EQUALS = kno_intern("=");
   KNOSYM_ERROR = kno_intern("error");
@@ -136,6 +139,7 @@ static void init_builtin_symbols()
   KNOSYM_OPT = kno_intern("opt");
   KNOSYM_OPTS = kno_intern("opts");
   KNOSYM_OUTPUT = kno_intern("output");
+  KNOSYM_PACKET = kno_intern("packet");
   KNOSYM_PCTID = kno_intern("%id");
   KNOSYM_PLUS = kno_intern("+");
   KNOSYM_PREFIX = kno_intern("prefix");
@@ -157,8 +161,10 @@ static void init_builtin_symbols()
   KNOSYM_TEST = kno_intern("test");
   KNOSYM_TEXT = kno_intern("text");
   KNOSYM_TYPE = kno_intern("type");
+  KNOSYM_UTF8 = kno_intern("utf8");
   KNOSYM_VERSION = kno_intern("version");
   KNOSYM_VOID = kno_intern("void");
+  KNOSYM_XTYPE = kno_intern("xtype");
 }
 
 static void grow_symbol_tables()

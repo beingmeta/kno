@@ -1918,6 +1918,9 @@ staging/lcov/index.html: lcov.info
 	  mkdir staging/lcov; \
 	else rm -rf staging/lcov/*; fi
 	genhtml -o staging/lcov/ lcov.info
+lcov_html: staging/lcov/index.html
+
+.PHONY: lcov_html
 
 # DIY rules
 

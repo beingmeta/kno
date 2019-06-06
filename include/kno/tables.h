@@ -83,11 +83,13 @@ KNO_EXPORT lispval kno_table_skim(lispval table,lispval maxval,lispval scope);
 
 KNO_EXPORT void kno_display_table(u8_output out,lispval table,lispval keys);
 
-#define KNO_TABLEP(x)                                               \
-  ( (KNO_CONSP(x)) ?                                                \
-    ( (kno_tablefns[KNO_CONSPTR_TYPE(x)] != NULL ) &&               \
-      ( (kno_tablefns[KNO_CONSPTR_TYPE(x)]->tablep == NULL ) ||      \
-        (kno_tablefns[KNO_CONSPTR_TYPE(x)]->tablep(x)) ) ) :         \
+#define KNO_TABLEP(x)                                                  \
+  ( (KNO_CONSP(x)) ?                                                   \
+    ( ( ( KNO_CONSPTR_TYPE(x) >= kno_slotmap_type) &&                  \
+        ( KNO_CONSPTR_TYPE(x) <= kno_hashset_type) ) ||                 \
+      ( (kno_tablefns[KNO_CONSPTR_TYPE(x)] != NULL ) &&                 \
+        ( (kno_tablefns[KNO_CONSPTR_TYPE(x)]->tablep == NULL ) ||       \
+          (kno_tablefns[KNO_CONSPTR_TYPE(x)]->tablep(x)) ) ) ) :        \
     (KNO_IMMEDIATEP(x)) ?                                               \
     ( (kno_tablefns[KNO_IMMEDIATE_TYPE(x)] != NULL ) &&                 \
       ( (kno_tablefns[KNO_IMMEDIATE_TYPE(x)]->tablep == NULL ) ||       \

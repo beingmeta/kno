@@ -81,12 +81,10 @@ lispval kno_copier(lispval x,int flags)
       else *tail = scan;
       if (static_copy) {KNO_MAKE_STATIC(result);}
       return result;}
-    case kno_vector_type: case kno_code_type: {
+    case kno_vector_type: {
       struct KNO_VECTOR *v = KNO_CONSPTR(kno_vector,x);
       lispval *olddata = v->vec_elts; int i = 0, len = v->vec_length;
-      lispval result = ((ctype == kno_vector_type)?
-                        (kno_empty_vector(len)):
-                        (kno_init_code(NULL,len,NULL)));
+      lispval result = kno_empty_vector(len);
       lispval *newdata = KNO_VECTOR_ELTS(result);
       while (i<len) {
         lispval v = olddata[i];

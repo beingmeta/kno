@@ -19,6 +19,7 @@
 #include "kno/zeromq.h"
 
 #include "libu8/u8printf.h"
+#include "libu8/u8convert.h"
 
 #include "zeromq_sockopts.h"
 
@@ -29,8 +30,6 @@ KNO_EXPORT int kno_init_zeromq(void) KNO_LIBINIT_FN;
 kno_ptr_type kno_zeromq_type;
 
 static size_t default_recv_len = 10000;
-
-static lispval nowait_symbol;
 
 static struct KNO_HASHTABLE sockopts_table;
 
@@ -50,6 +49,8 @@ static void *init_default_ctx()
 static lispval publish_symbol, subscribe_symbol, request_symbol, reply_symbol;
 static lispval push_symbol, pull_symbol, pair_symbol, stream_symbol;
 static lispval dealer_symbol, router_symbol, xpub_symbol, xsub_symbol;
+static lispval nowait_symbol, convert_symbol;
+
 
 static int get_socket_type(lispval symbol)
 {
@@ -120,11 +121,12 @@ static lispval zmq_error(u8_context cxt,lispval obj)
 #define ZMQ_TYPEP(x,ztype) \
   ( (KNO_TYPEP(x,kno_zeromq_type)) && \
     ( ((kno_zeromq)x)->zmq_type == (ztype) ) )
-#define ZMQ_CHECK_TYPE(x,ztype,caller)			\
-  kno_zeromq x ## _zmq;	void * x ## _ptr;			\
-  if (! (PRED_FALSE( (KNO_TYPEP(x,kno_zeromq_type)) &&		\
-		     ( (((kno_zeromq)x)->zmq_type) == (ztype) ) )) )	\
-    return kno_err(kno_TypeError,caller,# ztype,x);		   \
+#define ZMQ_CHECK_TYPE(x,ztype,caller)                                  \
+  kno_zeromq U8_MAYBE_UNUSED x ## _zmq;                                 \
+  void U8_MAYBE_UNUSED * x ## _ptr;                                     \
+  if (! (PRED_FALSE( (KNO_TYPEP(x,kno_zeromq_type)) &&                  \
+                     ( (((kno_zeromq)x)->zmq_type) == (ztype) ) )) )    \
+    return kno_err(kno_TypeError,caller,# ztype,x);                     \
   else {x ## _zmq = (kno_zeromq) x; x ## _ptr = x ## _zmq ->zmq_ptr; }
 
 /* Contexts */
@@ -312,7 +314,7 @@ static lispval zmq_getsockopt_prim(lispval socket,lispval optname)
 	if (u8_validate(val,sz))
 	  return kno_make_string(NULL,sz,val);
 	else return kno_make_packet(NULL,sz,val);}
-      else KNO_FALSE;}
+      else return KNO_FALSE;}
     else return zmq_error(KNO_SYMBOL_NAME(optname),socket);}
   case ZMQ_ROUTING_ID:
   case ZMQ_CURVE_PUBLICKEY: case ZMQ_CURVE_SECRETKEY: case ZMQ_CURVE_SERVERKEY: {
@@ -321,7 +323,7 @@ static lispval zmq_getsockopt_prim(lispval socket,lispval optname)
     if (rv == 0) {
       if ( (val) && (sz >= 0) )
 	return kno_make_packet(NULL,sz,val);
-      else KNO_FALSE;}
+      else return KNO_FALSE;}
     else return zmq_error(KNO_SYMBOL_NAME(optname),socket);}
   default:
     return KNO_FALSE;}
@@ -394,7 +396,7 @@ static lispval zmq_setsockopt_prim(lispval socket,lispval optname,
       int rv = zmq_setsockopt(socket_ptr,optcode,bytes,sz);
       if (rv == 0)
 	return KNO_TRUE;
-      else KNO_FALSE;}
+      else return KNO_FALSE;}
     else return kno_type_error("packet",KNO_SYMBOL_NAME(optname),socket);}
   default:
     return KNO_FALSE;}
@@ -460,8 +462,25 @@ static lispval zmq_send_prim(lispval s,lispval data,lispval opts)
 {
   ZMQ_CHECK_TYPE(s,zmq_socket_type,"ZMQ/DISCONNECT!");
   zmq_msg_t msg;
-  unsigned char *bytes; size_t len; int flags = 0;
-  if (KNO_PACKETP(data)) {
+  unsigned char *bytes; size_t len;
+  int flags = 0, free_bytes = 0, free_converter;
+  lispval converter = VOID;
+  if (KNO_SYMBOLP(opts))
+    converter = opts;
+  else if (KNO_TABLEP(opts)) {
+    converter = kno_getopt(opts,convert_symbol,VOID);
+    if (KNO_CONSP(converter)) free_converter = 1;}
+  else NO_ELSE;
+
+  if (converter == KNOSYM_DTYPE) {
+    struct KNO_OUTBUF out = { 0 };
+    KNO_INIT_BYTE_OUTPUT(&out,2048);
+    len = kno_write_dtype(&out,data);
+    if (len < 0) {
+      kno_close_outbuf(&out);
+      return KNO_ERROR;}
+    else bytes = out.buffer;}
+  else if (KNO_PACKETP(data)) {
     bytes = (unsigned char *) KNO_PACKET_DATA(data);
     len   = KNO_PACKET_LENGTH(data);}
   else if (KNO_STRINGP(data)) {
@@ -470,11 +489,15 @@ static lispval zmq_send_prim(lispval s,lispval data,lispval opts)
   else return kno_err("string or packet","zmq_send_prim",NULL,data);
   if (KNO_TRUEP(opts)) flags |= ZMQ_DONTWAIT;
   int rv = zmq_msg_init_data(&msg,bytes,len,free_lisp_wrapper,(void *)data);
-  if (rv)
-    return zmq_error("ZMQ/SEND(msg)",data);
+  if (rv) {
+    if (free_bytes) u8_free(bytes);
+    if (free_converter) kno_decref(converter);
+    return zmq_error("ZMQ/SEND(msg)",data);}
   kno_incref(data);
   ssize_t n_bytes = zmq_msg_send(&msg,s_zmq->zmq_ptr,flags);
   zmq_msg_close(&msg);
+  if (free_bytes) u8_free(bytes);
+  if (free_converter) kno_decref(converter);
   if (n_bytes>=0)
     return KNO_INT(n_bytes);
   else return zmq_error("ZMQ/SEND!",s);
@@ -487,25 +510,55 @@ static lispval zmq_recv_prim(lispval s,lispval data,lispval opts)
   ZMQ_CHECK_TYPE(s,zmq_socket_type,"ZMQ/DISCONNECT!");
   zmq_msg_t msg;
   size_t buflen = default_recv_len;
-  int flags = 0;
+  int flags = 0, free_converter = 0;
+  lispval converter = VOID;
   if (KNO_TRUEP(opts))
     flags |= ZMQ_DONTWAIT;
+  else if ( (KNO_SYMBOLP(opts)) || (KNO_APPLICABLEP(opts)) )
+    converter = opts;
   else if (KNO_TABLEP(opts)) {
     lispval lenval = kno_getopt(opts,KNOSYM_BUFSIZE,KNO_VOID);
     if (KNO_FIXNUMP(lenval))
       buflen = KNO_INT(lenval);
     else kno_decref(lenval);
     if (kno_testopt(opts,nowait_symbol,KNO_VOID))
-      flags |= ZMQ_DONTWAIT;}
+      flags |= ZMQ_DONTWAIT;
+    converter = kno_getopt(opts,convert_symbol,VOID);
+    if (KNO_CONSP(converter)) free_converter = 1;}
   int rv = zmq_msg_init_size(&msg,buflen);
   if (rv)
     return zmq_error("ZMQ/RECV!(msg)",data);
   /* TODO: Need to handle multi-part messages here */
   ssize_t n_bytes = zmq_msg_recv(&msg,s_zmq->zmq_ptr,flags);
   lispval result = VOID;
-  if (n_bytes>=0)
-    result = kno_make_packet(NULL,n_bytes,zmq_msg_data(&msg));
+  if (n_bytes>=0) {
+    unsigned char *bytes = zmq_msg_data(&msg);
+    if ( converter == KNOSYM_PACKET )
+      result = kno_make_packet(NULL,n_bytes,zmq_msg_data(&msg));
+    else if ( converter == KNOSYM_UTF8 )
+      result = kno_make_string(NULL,n_bytes,zmq_msg_data(&msg));
+    else if ( converter == KNOSYM_STRING ) {
+      if (u8_validp(bytes))
+        result = kno_make_string(NULL,n_bytes,bytes);
+      else {
+        u8_log(LOGWARN,"ZMQ/RECV(non UTF-8 string)",
+               "Converting result to latin0");
+        u8_string converted = u8_make_string(latin0_encoding,bytes,bytes+n_bytes);
+        result = kno_init_string(NULL,-1,converted);}}
+    else if (KNO_STRINGP(converter)) {
+      u8_encoding enc = u8_get_encoding(KNO_CSTRING(converter));
+      if (enc) {
+        u8_string converted  = u8_make_string(enc,bytes,bytes+n_bytes);
+        result = kno_init_string(NULL,-1,converted);}
+      else result =kno_err("Unknown character encoding","zmq_recv",
+                           KNO_CSTRING(converter),s);}
+    else if (KNO_APPLICABLEP(converter)) {
+      lispval packet = kno_make_packet(NULL,n_bytes,zmq_msg_data(&msg));
+      result = kno_apply(converter,1,&packet);
+      kno_decref(packet);}
+    else result = kno_make_packet(NULL,n_bytes,zmq_msg_data(&msg));}
   else result = zmq_error("ZMQ/RECV!",s);
+  if (free_converter) kno_decref(converter);
   zmq_msg_close(&msg);
   return result;
 }
@@ -527,6 +580,7 @@ static void init_symbols()
   xpub_symbol = kno_intern("xpub");
   xsub_symbol = kno_intern("xsub");
   nowait_symbol = kno_intern("nowait");
+  convert_symbol = kno_intern("convert");
 }
 
 static void init_sockopts()

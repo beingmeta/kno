@@ -28,12 +28,12 @@ static lispval if_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   test_result = kno_eval(test_expr,env);
   if (KNO_ABORTED(test_result)) return test_result;
   else if (FALSEP(test_result))
-    if ((PAIRP(else_expr))||(KNO_CODEP(else_expr)))
+    if (PAIRP(else_expr))
       return kno_tail_eval(else_expr,env);
     else return kno_eval(else_expr,env);
   else {
     kno_decref(test_result);
-    if ((PAIRP(consequent_expr))||(KNO_CODEP(consequent_expr)))
+    if (PAIRP(consequent_expr))
       return kno_tail_eval(consequent_expr,env);
     else return kno_eval(consequent_expr,env);}
 }
@@ -56,7 +56,7 @@ static lispval ifstar_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return val;}
   else {
     kno_decref(test_result);
-    if ((PAIRP(consequent_expr))||(KNO_CODEP(consequent_expr)))
+    if (PAIRP(consequent_expr))
       return kno_tail_eval(consequent_expr,env);
     else return kno_eval(consequent_expr,env);}
 }
@@ -78,7 +78,7 @@ static lispval ifelse_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return val;}
   else {
     kno_decref(test_result);
-    if ((PAIRP(consequent_expr))||(KNO_CODEP(consequent_expr)))
+    if (PAIRP(consequent_expr))
       return kno_tail_eval(consequent_expr,env);
     else return kno_eval(consequent_expr,env);}
 }

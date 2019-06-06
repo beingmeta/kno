@@ -231,7 +231,7 @@
   (evaltest {"foofoo" "barbar" "carcar"}
 	    (thread/finish (thread/call doubleup {"foo" "bar" "car"})))
 
-  (evaltest 3 (thread/finish (inthread (length "abc"))))
+  (evaltest 3 (thread/finish (spawn (length "abc"))))
   (evaltest {3 4 5} (thread/finish (thread/eval (list 'length {"abc" "abcd" "abcde"}))))
 
   (applytest #t number? (cstack-limit))

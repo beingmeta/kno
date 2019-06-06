@@ -25,6 +25,7 @@ typedef struct KNO_LEXENV *kno_lexenv;
 
 KNO_EXPORT kno_lexenv kno_copy_env(kno_lexenv env);
 KNO_EXPORT void _kno_free_lexenv(struct KNO_LEXENV *env);
+KNO_EXPORT kno_lexenv kno_dynamic_lexenv(kno_lexenv env);
 KNO_EXPORT int kno_recycle_lexenv(kno_lexenv env);
 
 #define KNO_XENV(x) \

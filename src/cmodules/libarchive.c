@@ -143,7 +143,7 @@ static  int archive_seek(struct KNO_ARCHIVE *archive,lispval seek,
         return 1;}}
     else if (KNO_TYPEP(seek,kno_regex_type)) {
       u8_string name = entry_pathname(entry);
-      ssize_t match = kno_regex_op(match,seek,name,strlen(name),0);
+      ssize_t match = kno_regex_op(rx_exactmatch,seek,name,strlen(name),0);
       if (match>0) {
         if (entryp) *entryp = entry;
         return 1;}}

@@ -957,15 +957,6 @@ static lispval parse_vector(U8_INPUT *in)
   else return KNO_PARSE_ERROR;
 }
 
-static lispval parse_code(U8_INPUT *in)
-{
-  int n_elts = -2;
-  lispval *elts = parse_vec(in,')',&n_elts);
-  if (n_elts>=0)
-    return kno_init_code(u8_alloc(struct KNO_VECTOR),n_elts,elts);
-  else return KNO_PARSE_ERROR;
-}
-
 static lispval parse_slotmap(U8_INPUT *in)
 {
   int n_elts = -2;
@@ -1150,10 +1141,6 @@ lispval kno_parser(u8_input in)
         return parse_histref(in);}
       else if (u8_ispunct(ch)) switch (ch) {
         case '(': return parse_vector(in);
-        case '~': {
-          ch = u8_getc(in); if (ch<0) return KNO_EOX;
-          if (ch!='(') return kno_err(kno_ParseError,"kno_parser",NULL,VOID);
-          return parse_code(in);}
         case '{': return parse_qchoice(in);
         case '[': return parse_slotmap(in);
         case '|': {

@@ -36,7 +36,7 @@ static lispval moduleid_symbol;
 static kno_lexenv copy_lexenv(kno_lexenv env);
 
 KNO_EXPORT
-kno_lexenv dynamic_lexenv(kno_lexenv env)
+kno_lexenv kno_dynamic_lexenv(kno_lexenv env)
 {
   if (env->env_copy)
     return env->env_copy;
@@ -69,7 +69,7 @@ kno_lexenv dynamic_lexenv(kno_lexenv env)
 static kno_lexenv copy_lexenv(kno_lexenv env)
 {
   kno_lexenv dynamic = (env->env_copy) ? (env->env_copy) :
-    (dynamic_lexenv(env));
+    (kno_dynamic_lexenv(env));
   return (kno_lexenv) kno_incref((lispval)dynamic);
 }
 
@@ -86,7 +86,7 @@ KNO_EXPORT kno_lexenv kno_copy_env(kno_lexenv env)
     kno_incref(existing);
     return env->env_copy;}
   else {
-    kno_lexenv fresh = dynamic_lexenv(env);
+    kno_lexenv fresh = kno_dynamic_lexenv(env);
     lispval ref = (lispval)fresh;
     kno_incref(ref);
     return fresh;}

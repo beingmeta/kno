@@ -108,7 +108,7 @@ int lispval_compare(lispval x,lispval y,kno_compare_flags flags)
         if ((quick)||(compare_lengths)) {
           if (xlen>ylen) return 1; else if (xlen<ylen) return -1;}
         return memcmp(KNO_PACKET_DATA(x),KNO_PACKET_DATA(y),xlen);}
-      case kno_vector_type: case kno_code_type: {
+      case kno_vector_type: {
         int i = 0, xlen = VEC_LEN(x), ylen = VEC_LEN(y), lim;
         lispval *xdata = VEC_DATA(x), *ydata = VEC_DATA(y);
         if (quick) {

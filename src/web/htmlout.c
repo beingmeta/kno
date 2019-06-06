@@ -236,7 +236,7 @@ static int isexprp(lispval expr)
   KNO_DOLIST(elt,expr) {
     if ( (PAIRP(elt)) || (CHOICEP(elt)) ||
          (SLOTMAPP(elt)) || (SCHEMAPP(elt)) ||
-         (VECTORP(elt)) || (KNO_CODEP(elt)))
+         (VECTORP(elt)))
       return 0;}
   return 1;
 }

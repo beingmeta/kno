@@ -801,7 +801,7 @@ static lispval jsout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     KNO_DOLIST(x,body) {
       if (STRINGP(x))
         u8_puts(&_out,CSTRING(x));
-      else if ((SYMBOLP(x))||(PAIRP(x))||(KNO_CODEP(x))) {
+      else if ((SYMBOLP(x))||(PAIRP(x))) {
         result = kno_eval(x,env);
         if (KNO_ABORTP(result)) break;
         else if ((VOIDP(result))||(FALSEP(result))||
@@ -836,7 +836,7 @@ static lispval cssout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   {KNO_DOLIST(x,body) {
       if (STRINGP(x))
         u8_puts(&_out,CSTRING(x));
-      else if ((SYMBOLP(x))||(PAIRP(x))||(KNO_CODEP(x))) {
+      else if ((SYMBOLP(x))||(PAIRP(x))) {
         result = kno_eval(x,env);
         if (KNO_ABORTP(result)) break;
         else if ((VOIDP(result))||(FALSEP(result))||

@@ -2289,7 +2289,7 @@ static bool bson_append_dtype(struct KNO_BSON_OUTPUT b,
           if (!(ok)) KNO_STOP_DO_CHOICES;}}
       bson_append_document_end(out,&arr);
       break;}
-    case kno_vector_type: case kno_code_type: {
+    case kno_vector_type: {
       struct KNO_BSON_OUTPUT rout;
       bson_t arr, ch; char buf[16];
       struct KNO_VECTOR *vec = (struct KNO_VECTOR *)val;

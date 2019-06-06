@@ -4680,12 +4680,13 @@ void kno_init_tables_c()
   kno_tablefns[kno_hashset_type]->keys=(kno_table_keys_fn)hashset_elts;
   kno_tablefns[kno_hashset_type]->modified=(kno_table_modified_fn)hashset_modified;
 
-  /* HASHSET table functions */
+  /* PAIR table functions */
   kno_tablefns[kno_pair_type]=u8_zalloc(struct KNO_TABLEFNS);
   kno_tablefns[kno_pair_type]->get=pairget;
   kno_tablefns[kno_pair_type]->test=pairtest;
   kno_tablefns[kno_pair_type]->keys=pairkeys;
   kno_tablefns[kno_pair_type]->getsize=(kno_table_getsize_fn)pairgetsize;
+  kno_tablefns[kno_pair_type]->tablep=NULL;
 
   /* Table functions for
        OIDS

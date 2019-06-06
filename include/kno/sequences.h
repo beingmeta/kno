@@ -43,10 +43,12 @@ KNO_EXPORT int kno_generic_position(lispval key,lispval x,int start,int end);
 KNO_EXPORT int kno_generic_search(lispval subseq,lispval seq,int start,int end);
 
 #define KNO_SEQUENCEP(x)                                          \
-  ( (KNO_CONSP(x)) ?                                              \
-    ( (kno_seqfns[KNO_CONSPTR_TYPE(x)] != NULL ) &&               \
-      ( (kno_seqfns[KNO_CONSPTR_TYPE(x)]->sequencep == NULL ) ||  \
-        (kno_seqfns[KNO_CONSPTR_TYPE(x)]->sequencep(x)) ) ) :     \
+  ( (KNO_CONSP(x)) ?                                               \
+  ( ( (KNO_CONSPTR_TYPE(x) >= kno_string_type) &&                   \
+      (KNO_CONSPTR_TYPE(x) <= kno_pair_type) ) ||         \
+    ( (kno_seqfns[KNO_CONSPTR_TYPE(x)] != NULL ) &&                 \
+      ( (kno_seqfns[KNO_CONSPTR_TYPE(x)]->sequencep == NULL ) ||        \
+        (kno_seqfns[KNO_CONSPTR_TYPE(x)]->sequencep(x)) ) ) ) :         \
     (KNO_IMMEDIATEP(x)) ?                                               \
     ( (x == KNO_EMPTY_LIST) ||                                          \
       ( (kno_seqfns[KNO_IMMEDIATE_TYPE(x)] != NULL ) &&                 \
