@@ -16,11 +16,6 @@ KNO_EXPORT lispval kno_foreach(lispval fn,int n,lispval *seqs);
 KNO_EXPORT lispval kno_removeif(lispval test,lispval sequence,int invert);
 KNO_EXPORT lispval kno_reduce(lispval fn,lispval sequence,lispval result);
 
-#ifndef KNO_SEQUENCEP
-#define KNO_SEQUENCEP(x) \
-  ((KNO_EMPTY_LISTP(x)) || ((kno_seqfns[KNO_PTR_TYPE(x)])!=NULL))
-#endif
-
 #endif /*  KNO_SEQUENCES_H */
 
 /* Emacs local variables
