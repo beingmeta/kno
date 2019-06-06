@@ -624,7 +624,8 @@ static lispval find_configs(lispval pat,lispval raw)
     if ((STRINGP(pat))?(strcasestr(keystring,CSTRING(pat))!=NULL):
         (TYPEP(pat,kno_regex_type))?(kno_regex_test(pat,keystring,-1)):
         (0)) {
-      CHOICE_ADD(results,config); kno_incref(config);}}
+      CHOICE_ADD(results,config);
+      kno_incref(config);}}
   return results;
 }
 
@@ -648,6 +649,15 @@ static int lconfig_set(lispval var,lispval val,void *data)
 }
 
 static int reuse_lconfig(struct KNO_CONFIG_HANDLER *e);
+DCLPRIM3("CONFIG-DEF!",config_def,MIN_ARGS(2),
+         "`(CONFIG/DEF! *config_name* *handler* [*doc*])` Defines "
+         "the procedure *handler* as the config handler for the "
+         "*config_name* configuration setting, with *doc* if it's "
+         "provided. *handler* should be a function of 1 required and "
+         "one optional argument. If the second argument is provided, "
+         "the configuration setting is being set; otherwise, it is just "
+         "being requested.",
+         kno_symbol_type,KNO_VOID,-1,KNO_VOID,kno_string_type,KNO_VOID)
 static lispval config_def(lispval var,lispval handler,lispval docstring)
 {
   int retval;
@@ -915,10 +925,7 @@ KNO_EXPORT void kno_init_coreprims_c()
   kno_idefn(kno_scheme_module,kno_make_cprim2("FIND-CONFIGS",find_configs,1));
   kno_defalias(kno_scheme_module,"CONFIG?","FIND-CONFIGS");
 
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim3x("CONFIG-DEF!",config_def,2,
-                           kno_symbol_type,VOID,-1,VOID,
-                           kno_string_type,VOID));
+  DECL_PRIM(config_def,3,kno_scheme_module);
 
   DECL_PRIM(thread_get,1,kno_scheme_module);
   DECL_PRIM(thread_boundp,1,kno_scheme_module);
