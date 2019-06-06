@@ -11,7 +11,6 @@ usr/share/kno/modules/builtin/knodules/data/*
 usr/share/kno/modules/builtin/jwt/*.scm
 usr/share/kno/modules/builtin/misc/*.scm
 usr/share/kno/modules/builtin/paypal/*.scm
-usr/share/kno/modules/builtin/safe/*.scm
 usr/share/kno/modules/builtin/tests/*.scm
 usr/share/kno/modules/builtin/morph/*.scm
 usr/share/kno/modules/builtin/morph/data/*.dtype
