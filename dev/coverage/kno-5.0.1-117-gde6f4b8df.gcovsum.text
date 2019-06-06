@@ -1,0 +1,841 @@
+File 'src/eval/eval.c'
+Lines executed:48.01% of 1454
+Creating 'eval.c.gcov'
+
+File 'src/eval/opcode_names.h'
+Lines executed:100.00% of 87
+Creating 'opcode_names.h.gcov'
+
+File 'src/eval/opcode_defs.c'
+Lines executed:49.80% of 1020
+Creating 'opcode_defs.c.gcov'
+
+File 'src/eval/eval_internals.h'
+Lines executed:51.35% of 111
+Creating 'eval_internals.h.gcov'
+
+File 'include/kno/eval.h'
+Lines executed:88.16% of 76
+Creating 'eval.h.gcov'
+
+File 'include/kno/apply.h'
+Lines executed:69.23% of 26
+Creating 'apply.h.gcov'
+
+File 'include/kno/stacks.h'
+Lines executed:76.67% of 30
+Creating 'stacks.h.gcov'
+
+File 'include/kno/lexenv.h'
+Lines executed:100.00% of 24
+Creating 'lexenv.h.gcov'
+
+File 'include/kno/indexes.h'
+Lines executed:61.32% of 106
+Creating 'indexes.h.gcov'
+
+File 'include/kno/streams.h'
+Lines executed:67.65% of 136
+Creating 'streams.h.gcov'
+
+File 'include/kno/cons.h'
+Lines executed:68.78% of 205
+Creating 'cons.h.gcov'
+
+File 'include/kno/tables.h'
+Lines executed:87.41% of 135
+Creating 'tables.h.gcov'
+
+File 'include/kno/choices.h'
+Lines executed:76.27% of 118
+Creating 'choices.h.gcov'
+
+File 'include/kno/ptr.h'
+Lines executed:64.29% of 14
+Creating 'ptr.h.gcov'
+
+File 'include/kno/bufio.h'
+Lines executed:60.00% of 180
+Creating 'bufio.h.gcov'
+
+File '/usr/include/libu8/u8streamio.h'
+Lines executed:96.77% of 62
+Creating 'u8streamio.h.gcov'
+
+File '/usr/include/libu8/u8malloc.h'
+Lines executed:61.54% of 39
+Creating 'u8malloc.h.gcov'
+
+File '/usr/include/libu8/u8threading.h'
+Lines executed:100.00% of 5
+Creating 'u8threading.h.gcov'
+
+File 'src/eval/options.c'
+Lines executed:23.45% of 145
+Creating 'options.c.gcov'
+
+File 'src/eval/load.c'
+Lines executed:38.15% of 443
+Creating 'load.c.gcov'
+
+File 'src/eval/choiceops.c'
+Lines executed:55.99% of 1177
+Creating 'choiceops.c.gcov'
+
+File 'include/kno/sorting.h'
+Lines executed:18.52% of 189
+Creating 'sorting.h.gcov'
+
+File 'src/eval/quasiquote.c'
+Lines executed:64.20% of 257
+Creating 'quasiquote.c.gcov'
+
+File 'src/eval/compoundfns.c'
+Lines executed:47.11% of 380
+Creating 'compoundfns.c.gcov'
+
+File 'src/eval/history.c'
+Lines executed:2.69% of 260
+Creating 'history.c.gcov'
+
+File 'src/eval/modules.c'
+Lines executed:49.93% of 759
+Creating 'modules.c.gcov'
+
+File 'src/eval/arith.c'
+Lines executed:38.79% of 928
+Creating 'arith.c.gcov'
+
+File 'src/eval/errfns.c'
+Lines executed:23.95% of 597
+Creating 'errfns.c.gcov'
+
+File 'src/eval/lambda.c'
+Lines executed:56.18% of 769
+Creating 'lambda.c.gcov'
+
+File 'src/eval/coreops.c'
+Lines executed:52.39% of 502
+Creating 'coreops.c.gcov'
+
+File 'src/eval/binders.c'
+Lines executed:57.26% of 351
+Creating 'binders.c.gcov'
+
+File 'src/eval/loader.c'
+Lines executed:31.24% of 493
+Creating 'loader.c.gcov'
+
+File 'src/eval/conditionals.c'
+Lines executed:70.72% of 181
+Creating 'conditionals.c.gcov'
+
+File 'src/eval/regex.c'
+Lines executed:57.76% of 161
+Creating 'regex.c.gcov'
+
+File 'src/eval/threads.c'
+Lines executed:68.99% of 919
+Creating 'threads.c.gcov'
+
+File 'src/eval/iterators.c'
+Lines executed:84.08% of 314
+Creating 'iterators.c.gcov'
+
+File 'src/eval/reqstate.c'
+Lines executed:12.31% of 260
+Creating 'reqstate.c.gcov'
+
+File 'src/eval/debug.c'
+Lines executed:11.14% of 673
+Creating 'debug.c.gcov'
+
+File 'src/eval/testops.c'
+Lines executed:39.88% of 163
+Creating 'testops.c.gcov'
+
+File 'src/eval/appenv.c'
+Lines executed:48.82% of 211
+Creating 'appenv.c.gcov'
+
+File 'src/eval/struct_eval.c'
+Lines executed:86.96% of 69
+Creating 'struct_eval.c.gcov'
+
+File 'src/eval/reflection.c'
+Lines executed:53.43% of 758
+Creating 'reflection.c.gcov'
+
+File 'include/kno/profiles.h'
+Lines executed:100.00% of 12
+Creating 'profiles.h.gcov'
+
+File 'src/eval/macros.c'
+Lines executed:54.10% of 61
+Creating 'macros.c.gcov'
+
+File 'src/text/porter.c'
+Lines executed:81.25% of 176
+Creating 'porter.c.gcov'
+
+File 'src/text/match.c'
+Lines executed:36.96% of 2443
+Creating 'match.c.gcov'
+
+File '/usr/include/libu8/u8stringfns.h'
+Lines executed:45.21% of 73
+Creating 'u8stringfns.h.gcov'
+
+File 'src/text/texttools.c'
+Lines executed:32.39% of 1945
+Creating 'texttools.c.gcov'
+
+File 'src/text/phonetic.c'
+Lines executed:1.88% of 160
+Creating 'phonetic.c.gcov'
+
+File 'src/storage/dtproc.c'
+Lines executed:12.99% of 77
+Creating 'dtproc.c.gcov'
+
+File 'src/storage/cachecall.c'
+Lines executed:22.67% of 172
+Creating 'cachecall.c.gcov'
+
+File 'src/storage/storage.c'
+Lines executed:38.14% of 451
+Creating 'storage.c.gcov'
+
+File 'include/kno/drivers.h'
+Lines executed:74.29% of 35
+Creating 'drivers.h.gcov'
+
+File 'src/storage/tempindex.c'
+Lines executed:10.34% of 58
+Creating 'tempindex.c.gcov'
+
+File 'src/storage/frames.c'
+Lines executed:22.50% of 440
+Creating 'frames.c.gcov'
+
+File 'include/kno/pools.h'
+Lines executed:69.57% of 23
+Creating 'pools.h.gcov'
+
+File 'src/storage/mempool.c'
+Lines executed:19.33% of 119
+Creating 'mempool.c.gcov'
+
+File 'src/storage/alcor.c'
+Lines executed:34.62% of 130
+Creating 'alcor.c.gcov'
+
+File 'src/storage/extpool.c'
+Lines executed:2.92% of 171
+Creating 'extpool.c.gcov'
+
+File 'src/storage/dbserv.c'
+Lines executed:9.56% of 596
+Creating 'dbserv.c.gcov'
+
+File 'src/storage/bloom.c'
+Lines executed:4.00% of 225
+Creating 'bloom.c.gcov'
+
+File 'include/kno/hash.h'
+Lines executed:100.00% of 8
+Creating 'hash.h.gcov'
+
+File 'src/storage/slotindexes.c'
+Lines executed:26.80% of 556
+Creating 'slotindexes.c.gcov'
+
+File 'src/storage/procindex.c'
+Lines executed:6.76% of 340
+Creating 'procindex.c.gcov'
+
+File 'src/storage/methods.c'
+Lines executed:8.96% of 536
+Creating 'methods.c.gcov'
+
+File 'src/storage/aggregates.c'
+Lines executed:28.89% of 270
+Creating 'aggregates.c.gcov'
+
+File 'src/storage/dtcall.c'
+Lines executed:3.73% of 134
+Creating 'dtcall.c.gcov'
+
+File 'src/storage/drivers.c'
+Lines executed:44.62% of 901
+Creating 'drivers.c.gcov'
+
+File 'src/storage/hashdtype.c'
+Lines executed:32.55% of 298
+Creating 'hashdtype.c.gcov'
+
+File 'src/storage/indexes.c'
+Lines executed:44.26% of 1681
+Creating 'indexes.c.gcov'
+
+File 'src/storage/procpool.c'
+Lines executed:35.39% of 308
+Creating 'procpool.c.gcov'
+
+File 'src/storage/pools.c'
+Lines executed:47.73% of 1871
+Creating 'pools.c.gcov'
+
+File 'src/storage/threadcache.c'
+Lines executed:4.05% of 74
+Creating 'threadcache.c.gcov'
+
+File 'src/storage/extindex.c'
+Lines executed:13.10% of 145
+Creating 'extindex.c.gcov'
+
+File 'src/storage/streams.c'
+Lines executed:48.61% of 1008
+Creating 'streams.c.gcov'
+
+File 'src/storage/compress.c'
+Lines executed:28.77% of 212
+Creating 'compress.c.gcov'
+
+File 'src/storage/oidstore.c'
+Lines executed:32.83% of 460
+Creating 'oidstore.c.gcov'
+
+File 'src/cmodules/zlib.c'
+Lines executed:0.00% of 92
+Creating 'zlib.c.gcov'
+
+File 'src/cmodules/hyphenate.c'
+Lines executed:7.81% of 192
+Creating 'hyphenate.c.gcov'
+
+File 'src/cmodules/leveldb.c'
+Lines executed:2.68% of 1679
+Creating 'leveldb.c.gcov'
+
+File 'src/cmodules/ziptools.c'
+Lines executed:8.70% of 299
+Creating 'ziptools.c.gcov'
+
+File 'src/cmodules/libarchive.c'
+Lines executed:0.00% of 267
+Creating 'libarchive.c.gcov'
+
+File 'src/cmodules/sqlite.c'
+Lines executed:0.00% of 508
+Creating 'sqlite.c.gcov'
+
+File 'src/cmodules/crypto.c'
+Lines executed:61.42% of 127
+Creating 'crypto.c.gcov'
+
+File 'src/cmodules/mongodb.c'
+Lines executed:11.05% of 2343
+Creating 'mongodb.c.gcov'
+
+File '/usr/include/libbson-1.0/bcon.h'
+Lines executed:0.00% of 1
+Creating 'bcon.h.gcov'
+
+File 'src/cmodules/ext/sundown/html.c'
+Lines executed:0.00% of 315
+Creating 'html.c.gcov'
+
+File 'src/cmodules/ext/sundown/stack.c'
+Lines executed:0.00% of 40
+Creating 'stack.c.gcov'
+
+File 'src/cmodules/ext/sundown/markdown.c'
+Lines executed:0.00% of 1270
+Creating 'markdown.c.gcov'
+
+File 'src/cmodules/ext/sundown/html_blocks.h'
+Lines executed:0.00% of 17
+Creating 'html_blocks.h.gcov'
+
+File 'src/cmodules/ext/sundown/html_smartypants.c'
+Lines executed:0.00% of 145
+Creating 'html_smartypants.c.gcov'
+
+File 'src/cmodules/ext/sundown/houdini_href_e.c'
+Lines executed:0.00% of 25
+Creating 'houdini_href_e.c.gcov'
+
+File 'src/cmodules/ext/sundown/houdini_html_e.c'
+Lines executed:0.00% of 19
+Creating 'houdini_html_e.c.gcov'
+
+File 'src/cmodules/ext/sundown/buffer.c'
+Lines executed:0.00% of 89
+Creating 'buffer.c.gcov'
+
+File 'src/cmodules/ext/sundown/autolink.c'
+Lines executed:0.00% of 125
+Creating 'autolink.c.gcov'
+
+File 'src/cmodules/ext/tidy5/streamio.c'
+Lines executed:0.00% of 502
+Creating 'streamio.c.gcov'
+
+File 'src/cmodules/ext/tidy5/tmbstr.c'
+Lines executed:0.00% of 108
+Creating 'tmbstr.c.gcov'
+
+File 'src/cmodules/ext/tidy5/fileio.c'
+Lines executed:0.00% of 44
+Creating 'fileio.c.gcov'
+
+File 'src/cmodules/ext/tidy5/access.c'
+Lines executed:0.00% of 1112
+Creating 'access.c.gcov'
+
+File 'src/cmodules/ext/tidy5/buffio.c'
+Lines executed:0.00% of 115
+Creating 'buffio.c.gcov'
+
+File 'src/cmodules/ext/tidy5/config.c'
+Lines executed:0.00% of 728
+Creating 'config.c.gcov'
+
+File 'src/cmodules/ext/tidy5/attrs.c'
+Lines executed:0.00% of 781
+Creating 'attrs.c.gcov'
+
+File 'src/cmodules/ext/tidy5/utf8.c'
+Lines executed:0.00% of 174
+Creating 'utf8.c.gcov'
+
+File 'src/cmodules/ext/tidy5/tidylib.c'
+Lines executed:0.00% of 1019
+Creating 'tidylib.c.gcov'
+
+File 'src/cmodules/ext/tidy5/tags.c'
+Lines executed:0.00% of 373
+Creating 'tags.c.gcov'
+
+File 'src/cmodules/ext/tidy5/lexer.c'
+Lines executed:0.00% of 2032
+Creating 'lexer.c.gcov'
+
+File 'src/cmodules/ext/tidy5/gdoc.c'
+Lines executed:0.00% of 51
+Creating 'gdoc.c.gcov'
+
+File 'src/cmodules/ext/tidy5/sprtf.c'
+Lines executed:0.00% of 132
+Creating 'sprtf.c.gcov'
+
+File 'src/cmodules/ext/tidy5/tagask.c'
+Lines executed:0.00% of 172
+Creating 'tagask.c.gcov'
+
+File 'src/cmodules/ext/tidy5/pprint.c'
+Lines executed:0.00% of 1133
+Creating 'pprint.c.gcov'
+
+File 'src/cmodules/ext/tidy5/parser.c'
+Lines executed:0.00% of 2204
+Creating 'parser.c.gcov'
+
+File 'src/cmodules/ext/tidy5/clean.c'
+Lines executed:0.00% of 1180
+Creating 'clean.c.gcov'
+
+File 'src/cmodules/ext/tidy5/attrask.c'
+Lines executed:0.00% of 92
+Creating 'attrask.c.gcov'
+
+File 'src/cmodules/ext/tidy5/mappedio.c'
+Lines executed:0.00% of 35
+Creating 'mappedio.c.gcov'
+
+File 'src/cmodules/ext/tidy5/alloc.c'
+Lines executed:0.00% of 36
+Creating 'alloc.c.gcov'
+
+File 'src/cmodules/ext/tidy5/language.c'
+Lines executed:0.00% of 151
+Creating 'language.c.gcov'
+
+File 'src/cmodules/ext/tidy5/language_fr.h'
+Lines executed:0.00% of 2
+Creating 'language_fr.h.gcov'
+
+File 'src/cmodules/ext/tidy5/language_zh_cn.h'
+Lines executed:0.00% of 2
+Creating 'language_zh_cn.h.gcov'
+
+File 'src/cmodules/ext/tidy5/language_es_mx.h'
+Lines executed:0.00% of 2
+Creating 'language_es_mx.h.gcov'
+
+File 'src/cmodules/ext/tidy5/language_es.h'
+Lines executed:0.00% of 2
+Creating 'language_es.h.gcov'
+
+File 'src/cmodules/ext/tidy5/language_en_gb.h'
+Lines executed:0.00% of 2
+Creating 'language_en_gb.h.gcov'
+
+File 'src/cmodules/ext/tidy5/language_en.h'
+Lines executed:0.00% of 2
+Creating 'language_en.h.gcov'
+
+File 'src/cmodules/ext/tidy5/attrget.c'
+Lines executed:0.00% of 93
+Creating 'attrget.c.gcov'
+
+File 'src/cmodules/ext/tidy5/entities.c'
+Lines executed:0.00% of 37
+Creating 'entities.c.gcov'
+
+File 'src/cmodules/ext/tidy5/istack.c'
+Lines executed:0.00% of 152
+Creating 'istack.c.gcov'
+
+File 'src/cmodules/ext/tidy5/charsets.c'
+Lines executed:0.00% of 30
+Creating 'charsets.c.gcov'
+
+File 'src/cmodules/ext/tidy5/message.c'
+Lines executed:0.00% of 512
+Creating 'message.c.gcov'
+
+File 'src/cmodules/exif.c'
+Lines executed:0.00% of 129
+Creating 'exif.c.gcov'
+
+File 'src/cmodules/odbc.c'
+Lines executed:0.00% of 305
+Creating 'odbc.c.gcov'
+
+File 'src/cmodules/zeromq.c'
+Lines executed:0.00% of 347
+Creating 'zeromq.c.gcov'
+
+File 'src/cmodules/imagick.c'
+Lines executed:13.49% of 430
+Creating 'imagick.c.gcov'
+
+File 'src/cmodules/rocksdb.c'
+Lines executed:2.66% of 1689
+Creating 'rocksdb.c.gcov'
+
+File 'src/cmodules/qrcode.c'
+Lines executed:0.00% of 113
+Creating 'qrcode.c.gcov'
+
+File 'src/cmodules/mysql.c'
+Lines executed:0.00% of 983
+Creating 'mysql.c.gcov'
+
+File 'src/web/webtools.c'
+Lines executed:100.00% of 22
+Creating 'webtools.c.gcov'
+
+File 'src/web/xmleval.c'
+Lines executed:23.65% of 1336
+Creating 'xmleval.c.gcov'
+
+File 'src/web/htmlout.c'
+Lines executed:6.65% of 466
+Creating 'htmlout.c.gcov'
+
+File 'src/web/curl.c'
+Lines executed:8.21% of 1243
+Creating 'curl.c.gcov'
+
+File '/usr/include/x86_64-linux-gnu/curl/typecheck-gcc.h'
+Lines executed:0.00% of 29
+Creating 'typecheck-gcc.h.gcov'
+
+File 'src/web/xmlinput.c'
+Lines executed:49.77% of 878
+Creating 'xmlinput.c.gcov'
+
+File 'src/web/xmldata.c'
+Lines executed:8.76% of 137
+Creating 'xmldata.c.gcov'
+
+File 'src/web/email.c'
+Lines executed:9.89% of 91
+Creating 'email.c.gcov'
+
+File 'src/web/ldns.c'
+Lines executed:8.43% of 83
+Creating 'ldns.c.gcov'
+
+File 'src/web/mime.c'
+Lines executed:7.61% of 197
+Creating 'mime.c.gcov'
+
+File 'src/web/xmloutput.c'
+Lines executed:16.56% of 942
+Creating 'xmloutput.c.gcov'
+
+File 'src/web/cgiexec.c'
+Lines executed:9.61% of 1051
+Creating 'cgiexec.c.gcov'
+
+File 'src/web/json.c'
+Lines executed:2.98% of 470
+Creating 'json.c.gcov'
+
+File 'src/web/uriprims.c'
+Lines executed:9.45% of 614
+Creating 'uriprims.c.gcov'
+
+File 'src/apply/apply.c'
+Lines executed:64.36% of 724
+Creating 'apply.c.gcov'
+
+File 'src/apply/ffi.c'
+Lines executed:7.69% of 364
+Creating 'ffi.c.gcov'
+
+File 'src/apply/stacks.c'
+Lines executed:54.00% of 200
+Creating 'stacks.c.gcov'
+
+File 'src/apply/lexenv.c'
+Lines executed:48.73% of 158
+Creating 'lexenv.c.gcov'
+
+File 'src/apply/cprims.c'
+Lines executed:68.95% of 380
+Creating 'cprims.c.gcov'
+
+File 'src/support/logging.c'
+Lines executed:17.65% of 170
+Creating 'logging.c.gcov'
+
+File 'src/support/config.c'
+Lines executed:47.98% of 692
+Creating 'config.c.gcov'
+
+File 'src/support/errobjs.c'
+Lines executed:26.37% of 512
+Creating 'errobjs.c.gcov'
+
+File 'src/support/posix.c'
+Lines executed:9.84% of 61
+Creating 'posix.c.gcov'
+
+File 'src/support/startup.c'
+Lines executed:37.06% of 653
+Creating 'startup.c.gcov'
+
+File 'src/support/support.c'
+Lines executed:44.83% of 87
+Creating 'support.c.gcov'
+
+File 'src/support/getopt.c'
+Lines executed:63.50% of 137
+Creating 'getopt.c.gcov'
+
+File 'src/support/signals.c'
+Lines executed:0.00% of 105
+Creating 'signals.c.gcov'
+
+File 'src/support/buildinfo.c'
+Lines executed:97.60% of 167
+Creating 'buildinfo.c.gcov'
+
+File 'src/support/sourcebase.c'
+Lines executed:91.30% of 23
+Creating 'sourcebase.c.gcov'
+
+File 'src/support/fluid.c'
+Lines executed:18.92% of 185
+Creating 'fluid.c.gcov'
+
+File 'src/lisp/recycle.c'
+Lines executed:77.06% of 170
+Creating 'recycle.c.gcov'
+
+File 'src/lisp/dtread.c'
+Lines executed:42.27% of 582
+Creating 'dtread.c.gcov'
+
+File 'src/lisp/dtwrite.c'
+Lines executed:39.04% of 502
+Creating 'dtwrite.c.gcov'
+
+File 'src/lisp/misctypes.c'
+Lines executed:48.31% of 178
+Creating 'misctypes.c.gcov'
+
+File 'src/lisp/compounds.c'
+Lines executed:75.00% of 200
+Creating 'compounds.c.gcov'
+
+File 'src/lisp/fcnids.c'
+Lines executed:20.49% of 122
+Creating 'fcnids.c.gcov'
+
+File 'src/lisp/compare.c'
+Lines executed:77.45% of 235
+Creating 'compare.c.gcov'
+
+File 'src/lisp/tables.c'
+Lines executed:56.77% of 3495
+Creating 'tables.c.gcov'
+
+File 'src/lisp/bufio.c'
+Lines executed:40.15% of 269
+Creating 'bufio.c.gcov'
+
+File 'src/lisp/numbers.c'
+Lines executed:50.65% of 2304
+Creating 'numbers.c.gcov'
+
+File 'src/lisp/listing.c'
+Lines executed:0.00% of 248
+Creating 'listing.c.gcov'
+
+File 'src/lisp/unparse.c'
+Lines executed:46.46% of 396
+Creating 'unparse.c.gcov'
+
+File 'src/lisp/parse.c'
+Lines executed:58.38% of 1062
+Creating 'parse.c.gcov'
+
+File 'src/lisp/symbols.c'
+Lines executed:86.78% of 227
+Creating 'symbols.c.gcov'
+
+File 'src/lisp/cons.c'
+Lines executed:57.96% of 578
+Creating 'cons.c.gcov'
+
+File 'src/lisp/pprint.c'
+Lines executed:19.57% of 460
+Creating 'pprint.c.gcov'
+
+File 'src/lisp/copy.c'
+Lines executed:65.96% of 141
+Creating 'copy.c.gcov'
+
+File 'src/lisp/sequences.c'
+Lines executed:55.12% of 713
+Creating 'sequences.c.gcov'
+
+File 'src/lisp/oids.c'
+Lines executed:40.34% of 176
+Creating 'oids.c.gcov'
+
+File 'src/lisp/consblocks.c'
+Lines executed:83.67% of 98
+Creating 'consblocks.c.gcov'
+
+File 'src/lisp/walk.c'
+Lines executed:38.78% of 147
+Creating 'walk.c.gcov'
+
+File 'src/lisp/lisp.c'
+Lines executed:91.85% of 135
+Creating 'lisp.c.gcov'
+
+File 'src/lisp/choices.c'
+Lines executed:77.06% of 837
+Creating 'choices.c.gcov'
+
+File 'src/drivers/builtin_drivers.c'
+Lines executed:95.00% of 20
+Creating 'builtin_drivers.c.gcov'
+
+File 'src/drivers/bigpool.c'
+Lines executed:51.98% of 1589
+Creating 'bigpool.c.gcov'
+
+File 'src/drivers/headers/zcompress.h'
+Lines executed:0.00% of 52
+Creating 'zcompress.h.gcov'
+
+File 'src/drivers/netpool.c'
+Lines executed:8.99% of 178
+Creating 'netpool.c.gcov'
+
+File 'src/drivers/fileindex.c'
+Lines executed:60.34% of 832
+Creating 'fileindex.c.gcov'
+
+File 'src/drivers/oidpool.c'
+Lines executed:0.47% of 1062
+Creating 'oidpool.c.gcov'
+
+File 'src/drivers/memindex.c'
+Lines executed:65.31% of 245
+Creating 'memindex.c.gcov'
+
+File 'src/drivers/hashindex.c'
+Lines executed:51.87% of 2589
+Creating 'hashindex.c.gcov'
+
+File 'src/drivers/filepool.c'
+Lines executed:52.72% of 624
+Creating 'filepool.c.gcov'
+
+File 'src/drivers/netindex.c'
+Lines executed:16.67% of 168
+Creating 'netindex.c.gcov'
+
+File 'src/prims/extdbprims.c'
+Lines executed:13.33% of 195
+Creating 'extdbprims.c.gcov'
+
+File 'src/prims/fileprims.c'
+Lines executed:20.39% of 1192
+Creating 'fileprims.c.gcov'
+
+File 'src/prims/stringprims.c'
+Lines executed:55.16% of 1144
+Creating 'stringprims.c.gcov'
+
+File 'src/prims/tableprims.c'
+Lines executed:28.86% of 686
+Creating 'tableprims.c.gcov'
+
+File 'src/prims/portprims.c'
+Lines executed:31.02% of 764
+Creating 'portprims.c.gcov'
+
+File 'src/prims/timeprims.c'
+Lines executed:57.53% of 1229
+Creating 'timeprims.c.gcov'
+
+File 'src/prims/procprims.c'
+Lines executed:15.24% of 433
+Creating 'procprims.c.gcov'
+
+File 'src/prims/streamprims.c'
+Lines executed:16.23% of 604
+Creating 'streamprims.c.gcov'
+
+File 'src/prims/dbprims.c'
+Lines executed:31.91% of 2755
+Creating 'dbprims.c.gcov'
+
+File 'src/prims/seqprims.c'
+Lines executed:36.04% of 1726
+Creating 'seqprims.c.gcov'
+
+File 'src/prims/logprims.c'
+Lines executed:28.62% of 276
+Creating 'logprims.c.gcov'
+
+File 'src/prims/sysprims.c'
+Lines executed:73.76% of 484
+Creating 'sysprims.c.gcov'
+
+File 'src/prims/driverprims.c'
+Lines executed:30.43% of 138
+Creating 'driverprims.c.gcov'
+
+Lines executed:31.21% of 99952
