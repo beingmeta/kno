@@ -170,14 +170,14 @@ typedef enum KNO_PTR_TYPE {
 
   /* Evaluator/apply types, defined here to be constant */
   kno_cprim_type = KNO_CONS_TYPECODE(16),
-  kno_lexenv_type = KNO_CONS_TYPECODE(17),
-  kno_evalfn_type = KNO_CONS_TYPECODE(18),
-  kno_macro_type = KNO_CONS_TYPECODE(19),
-  kno_dtproc_type = KNO_CONS_TYPECODE(20),
-  kno_stackframe_type = KNO_CONS_TYPECODE(21),
-  kno_tailcall_type = KNO_CONS_TYPECODE(22),
-  kno_lambda_type = KNO_CONS_TYPECODE(23),
-  kno_ffi_type = KNO_CONS_TYPECODE(24),
+  kno_lambda_type = KNO_CONS_TYPECODE(17),
+  kno_ffi_type = KNO_CONS_TYPECODE(18),
+  kno_dtproc_type = KNO_CONS_TYPECODE(19),
+  kno_lexenv_type = KNO_CONS_TYPECODE(20),
+  kno_evalfn_type = KNO_CONS_TYPECODE(21),
+  kno_macro_type = KNO_CONS_TYPECODE(22),
+  kno_stackframe_type = KNO_CONS_TYPECODE(23),
+  kno_tailcall_type = KNO_CONS_TYPECODE(24),
   kno_exception_type = KNO_CONS_TYPECODE(25),
 
   kno_complex_type = KNO_CONS_TYPECODE(26),
