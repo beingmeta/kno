@@ -462,8 +462,25 @@ static lispval zmq_send_prim(lispval s,lispval data,lispval opts)
 {
   ZMQ_CHECK_TYPE(s,zmq_socket_type,"ZMQ/DISCONNECT!");
   zmq_msg_t msg;
-  unsigned char *bytes; size_t len; int flags = 0;
-  if (KNO_PACKETP(data)) {
+  unsigned char *bytes; size_t len;
+  int flags = 0, free_bytes = 0, free_converter;
+  lispval converter = VOID;
+  if (KNO_SYMBOLP(opts))
+    converter = opts;
+  else if (KNO_TABLEP(opts)) {
+    converter = kno_getopt(opts,convert_symbol,VOID);
+    if (KNO_CONSP(converter)) free_converter = 1;}
+  else NO_ELSE;
+
+  if (converter == KNOSYM_DTYPE) {
+    struct KNO_OUTBUF out = { 0 };
+    KNO_INIT_BYTE_OUTPUT(&out,2048);
+    len = kno_write_dtype(&out,data);
+    if (len < 0) {
+      kno_close_outbuf(&out);
+      return KNO_ERROR;}
+    else bytes = out.buffer;}
+  else if (KNO_PACKETP(data)) {
     bytes = (unsigned char *) KNO_PACKET_DATA(data);
     len   = KNO_PACKET_LENGTH(data);}
   else if (KNO_STRINGP(data)) {
@@ -472,11 +489,15 @@ static lispval zmq_send_prim(lispval s,lispval data,lispval opts)
   else return kno_err("string or packet","zmq_send_prim",NULL,data);
   if (KNO_TRUEP(opts)) flags |= ZMQ_DONTWAIT;
   int rv = zmq_msg_init_data(&msg,bytes,len,free_lisp_wrapper,(void *)data);
-  if (rv)
-    return zmq_error("ZMQ/SEND(msg)",data);
+  if (rv) {
+    if (free_bytes) u8_free(bytes);
+    if (free_converter) kno_decref(converter);
+    return zmq_error("ZMQ/SEND(msg)",data);}
   kno_incref(data);
   ssize_t n_bytes = zmq_msg_send(&msg,s_zmq->zmq_ptr,flags);
   zmq_msg_close(&msg);
+  if (free_bytes) u8_free(bytes);
+  if (free_converter) kno_decref(converter);
   if (n_bytes>=0)
     return KNO_INT(n_bytes);
   else return zmq_error("ZMQ/SEND!",s);
