@@ -700,8 +700,7 @@
       (cons
        (if (and (pair? (car arglist)) (pair? (cdr (car arglist)))
 		(singleton? (cadr (car arglist)))
-		(or (pair? (cadr (car arglist))) (symbol? (cadr (car arglist)))
-		    (code? (cadr (car arglist)))))
+		(or (pair? (cadr (car arglist))) (symbol? (cadr (car arglist)))))
 	   `(,(caar arglist) 
 	     ,(optimize (cadr (car arglist)) env '() opts))
 	   (car arglist))
