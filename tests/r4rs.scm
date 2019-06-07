@@ -371,6 +371,7 @@
 
 (applytester '(c b a) reverse '(a b c))
 (applytester '((e (f)) d (b c) a) reverse '(a (b c) d (e (f))))
+(errtest (reverse '(a b c . d)))
 
 (define list-ref elt)
 (applytester 'c list-ref '(a b c d) 2)
@@ -1160,6 +1161,7 @@
 (test-call/cc)
 (test-bignums)
 (test-inexact)
+(test-tail-calls)
 
 (applytest #t optimized-tail-testfn)
 

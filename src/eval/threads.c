@@ -887,18 +887,14 @@ static lispval spawn_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return opts;}
   int flags = threadopts(opts)|KNO_EVAL_THREAD;
   lispval results = KNO_EMPTY;
-  kno_lexenv use_env = kno_dynamic_lexenv(env);
-  lispval envptr = (lispval) use_env;
   DO_CHOICES(thread_expr,to_eval) {
-    kno_thread_struct thread = kno_thread_eval(NULL,thread_expr,use_env,flags);
+    kno_thread_struct thread = kno_thread_eval(NULL,thread_expr,env,flags);
     if ( thread == NULL ) {
       u8_log(LOG_WARN,"ThreadLaunchFailed",
              "Error evaluating %q in its own thread, ignoring",thread_expr);}
     else {
       lispval thread_val = (lispval) thread;
-      kno_incref(envptr);
       CHOICE_ADD(results,thread_val);}}
-  kno_decref(envptr);
   kno_decref(opts);
   return results;
 }
@@ -938,18 +934,15 @@ static lispval threadeval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return kno_type_error(_("lispenv"),"spawn_evalfn",env_arg);}
   else {
     int flags = threadopts(opts)|KNO_EVAL_THREAD;
-    kno_lexenv env_copy = kno_dynamic_lexenv(use_env);
-    lispval results = EMPTY, envptr = (lispval)env_copy;
+    lispval results = EMPTY;
     DO_CHOICES(thread_expr,to_eval) {
-      kno_thread_struct thread = kno_thread_eval(NULL,thread_expr,env_copy,flags);
+      kno_thread_struct thread = kno_thread_eval(NULL,thread_expr,use_env,flags);
       if ( thread == NULL ) {
         u8_log(LOG_WARN,"ThreadLaunchFailed",
                "Error evaluating %q in its own thread, ignoring",thread_expr);}
       else {
-        kno_incref(envptr);
         lispval thread_val = (lispval) thread;
         CHOICE_ADD(results,thread_val);}}
-    kno_decref(envptr);
     kno_decref(to_eval);
     kno_decref(env_arg);
     kno_decref(opts_arg);

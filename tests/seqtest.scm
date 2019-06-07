@@ -320,6 +320,11 @@
 (applytester #t equal? #"foobar889" #B"Zm9vYmFyODg5")
 (applytester #t equal? #"foobar889" #B"Zm9vYmFyODg5")
 
+(applytester  #X"666F6F626172383839" parser/roundtrip #"foobar889")
+(applytester  #X"666F6F626172383839" dtype/roundtrip #"foobar889")
+(applytester "#*\"9:d927ea9799dc294722671dc3f73dcd0e\""
+	     lisp->string #*"foobar889")
+
 (define (parsefail string)
   (onerror (begin (string->lisp 
 		   (string-subst* string
