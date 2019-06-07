@@ -29,11 +29,6 @@
 	 (check-ordered (cdr list)))
 	(else #f)))
 
-;;; TODO: Test threads which throw errors
-;;; TODO: Test synchro/lock, with-lock, etc (different kinds of synchronizers)
-;;; TODO: Figure out why condvar tests sometimes fail
-;;; TODO: Test slambdas
-
 (define (test-parallel)
   (set! numbers '())
   (parallel (addrange 0) (addrange 10))
@@ -66,7 +61,7 @@
     (message "TEST-SPAWN: " numbers)))
 
 (define (look-busy n (start (elapsed-time)))
-  (dotimes (i (* n 1000))
+  (dotimes (i (* n 100))
     (when (zero? (random 5)) (thread/yield)))
   (elapsed-time start))
 
@@ -102,10 +97,10 @@
 (define numlock (make-condvar))
 
 (define (change-num (n (nrandom 1)))
-  (synchro/lock! numlock)
+  (sync/lock! numlock)
   (set! num n)
   (unwind-protect (evaltest n num)
-    (synchro/unlock! numlock)))
+    (sync/release! numlock)))
 
 (define (change-num-with-lock (n (nrandom 1)))
   (with-lock numlock
@@ -277,3 +272,4 @@
 
   (test-finished "THREADTEST")
   )
+
