@@ -559,7 +559,6 @@ static lispval read_packaged_dtype
     if (vectorp)
       return kno_make_mystery_vector(package,code,len,vector);
     else return make_character_type(code,len,packet,in->buf_flags);
-    break;
   default:
     if (vectorp)
       return kno_make_mystery_vector(package,code,len,vector);
@@ -595,6 +594,7 @@ static lispval make_character_type(int code,
   case dt_secret_packet: case dt_short_secret_packet: {
     lispval result = kno_make_packet(NULL,len,bytes);
     KNO_SET_CONS_TYPE(result,kno_secret_type);
+    u8_free(bytes);
     return result;}
   case dt_unicode_short_symbol: case dt_unicode_symbol: {
     lispval sym;
@@ -627,8 +627,10 @@ KNO_EXPORT lispval kno_make_mystery_packet
     return (kno_dtype_packages[pkg_offset]->packetfns[code_offset])(len,bytes);
   myst = u8_alloc(struct KNO_MYSTERY_DTYPE);
   KNO_INIT_CONS(myst,kno_mystery_type);
-  myst->myst_dtpackage = package; myst->myst_dtcode = typecode;
-  myst->mystery_payload.bytes = bytes; myst->myst_dtsize = len;
+  myst->myst_dtpackage = package;
+  myst->myst_dtcode = typecode;
+  myst->mystery_payload.bytes = bytes;
+  myst->myst_dtsize = len;
   return LISP_CONS(myst);
 }
 
