@@ -24,14 +24,9 @@ case ${option} in
 	echo libsuffix "\t\t\t(The suffix for shared objects)";
 	echo loadpath "\t\t\t(The path used to search for source modules)";
 	echo modulepath "\t\t\t(The path used to search for source modules)";
-	echo safeloadpath "\t\t\t(The path used to search for sandboxed source modules)";
-	echo safemodulepath "\t\t\t(The path used to search for sandboxed source modules)";
 	echo builtin_modules "\t\t(Where built-in Kno source modules live)";
-	echo builtin_safe_modules "\t\t(Where built-in sanboxed source modules live)";
-	echo installed_modules "\t\t(Where installed source modules live)";
-	echo installed_safe_modules "\t\t(Where installed sandboxed modules live)";
-	echo local_modules "\t\t\t(Where locally installed source modules live)";
-	echo local_safe_modules "\t\t(Where locally installed sandboxed modules live)";
+	echo installed_modules|installmods "\t\t(Where installed source modules live)";
+	echo local_modules|localmods "\t\t\t(Where locally installed source modules live)";
 	echo cmodules "\t\t\t(Where compiled dynamic modules live)";
 	echo webuser "\t\t\t(The name of the web content user account for this installation)";
 	echo knodaemon "\t\t\t(The name of the knodaemon user account for this installation)";
@@ -78,24 +73,14 @@ case ${option} in
 	echo "@shared_suffix@";;
     loadpath)
 	echo "@default_module_path@";;
-    safeloadpath)
-	echo "@default_safe_module_path@";;
     modulepath)
 	echo "@default_module_path@";;
-    safemodulepath)
-	echo "@default_safe_module_path@";;
     builtin_modules)
 	echo "@builtin_module_dir@";;
-    builtin_safe_modules)
-	echo "@safe_module_dir@";;
-    installed_modules)
+    installed_modules|installmods)
 	echo "@installed_module_dir@";;
-    installed_safe_modules)
-	echo "@installed_safe_module_dir@";;
-    local_modules)
+    local_modules|localmods)
 	echo "@local_module_dir@";;
-    local_safe_modules)
-	echo "@local_safe_module_dir@";;
     cmodules)
 	echo "@libdir@/kno";;
     webuser)
