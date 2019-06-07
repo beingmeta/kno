@@ -1,8 +1,8 @@
 source @abs_top_srcdir@/etc/gdbinit
-directory @abs_top_srcdir@:@abs_top_srcdir@/../libu8:@abs_top_srcdir@/../lingo:@extra_sources@
+directory @abs_top_srcdir@:@abs_top_srcdir@/../libu8:@extra_sources@
 set env DYLD_LIBRARY_PATH @abs_top_srcdir@/lib
 set env LD_LIBRARY_PATH @abs_top_srcdir@/lib
-set env KNO_INIT_DLOADPATH @abs_top_srcdir@/lib/kno/%.@shared_suffix@:@abs_top_srcdir@/lib/libkno%.@shared_suffix@:@abs_top_srcdir@/../lingo/%.@shared_suffix@:@prefix@/lib/kno/%.@shared_suffix@
+set env KNO_INIT_DLOADPATH @abs_top_srcdir@/lib/kno/%.@shared_suffix@:@abs_top_srcdir@/lib/libkno%.@shared_suffix@:@prefix@/lib/kno/%.@shared_suffix@
 set env KNO_INIT_LOADPATH @abs_top_srcdir@/src/extmods/:@abs_top_srcdir@/src/extmods/safe/:@default_module_path@
 set env KNO_INIT_SAFELOADPATH @abs_top_srcdir@/src/extmods/safe/:@default_safe_module_path@
 set env KNO_UPDATEMODULES=5
