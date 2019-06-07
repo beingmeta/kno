@@ -595,11 +595,13 @@ static lispval make_regex(u8_string src_arg,u8_string opts)
     u8_byte buf[512];
     regerror(retval,&(ptr->rxcompiled),buf,512);
     u8_free(ptr);
+    u8_free(src);
     return kno_err(kno_RegexError,"parse_regex",u8_strdup(buf),VOID);}
   else {
     U8_CLEAR_ERRNO();
     ptr->rxflags = cflags; ptr->rxsrc = src;
-    u8_init_mutex(&(ptr->rx_lock)); ptr->rxactive = 1;
+    u8_init_mutex(&(ptr->rx_lock));
+    ptr->rxactive = 1;
     return LISP_CONS(ptr);}
 }
 
