@@ -4,9 +4,9 @@
 
 MAKEFLAGS = -s
 export KNO_INIT_DLOADPATH=../lib/kno/%..@shared_suffix@:../lib/libkno%..@shared_suffix@:@prefix@/lib/kno/%.@shared_suffix@
-export KNO_INIT_LOADPATH=../src/libscm/:../src/extmods:@default_module_path@
-export KNO_INIT_SAFELOADPATH=../src/libscm/:../src/extmods/safe/:@default_safe_module_path@
-export KNO_LOADPATH=../src/libscm/:../src/extmods/:
+export KNO_INIT_LOADPATH=../src/libscm/:../src/stdlib:@default_module_path@
+export KNO_INIT_SAFELOADPATH=../src/libscm/:../src/stdlib/safe/:@default_safe_module_path@
+export KNO_LOADPATH=../src/libscm/:../src/stdlib/:
 export KNO_DLOADPATH=../lib/kno
 export LD_LIBRARY_PATH=../lib
 export DYLD_LIBRARY_PATH=../lib
@@ -51,7 +51,7 @@ MEMTEST_ENV	= @memtest_env@
 LEAKTEST_ENV	= @leaktest_env@
 TESTSIZE	= @test_size@
 SMALLTESTSIZE	= @small_test_size@
-BASETESTCONFIG	= LOADPATH=../src/extmods/
+BASETESTCONFIG	= LOADPATH=../src/stdlib/
 RUNCONF		= @test_config@
 MEMCONF		= @memtest_config@
 LEAKCONF	= @leaktest_config@

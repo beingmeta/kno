@@ -1957,7 +1957,7 @@ else BINDIR="${exec_prefix}/bin";
 fi
 
 dnl Try to init submodules if needed and possible
-if (test ! -f src/extmods/samplefns.scm); then
+if (test ! -f src/stdlib/samplefns.scm); then
    if (which git 2>&1 > /dev/null) && (test -d .git); then
      git submodule update --init;
    else

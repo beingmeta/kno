@@ -13188,7 +13188,7 @@ if test $exec_prefix = 'NONE';
 else BINDIR="${exec_prefix}/bin";
 fi
 
-if (test ! -f src/extmods/samplefns.scm); then
+if (test ! -f src/stdlib/samplefns.scm); then
    if (which git 2>&1 > /dev/null) && (test -d .git); then
      git submodule update --init;
    else
