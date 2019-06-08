@@ -1981,7 +1981,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/knosetconfig etc/knogetconfig etc/knoconfig
 	   tests/testenv.sh tests/xtest
 	   tests/runtest tests/memtest
-	   tests/leaktest tests/knotest
+	   tests/leaktest tests/knoxtest
 	   src/scripts/knopkg.scm
 	   etc/knojob
 	   etc/logrotate
