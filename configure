@@ -861,6 +861,7 @@ infodir
 docdir
 oldincludedir
 includedir
+runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -1027,6 +1028,7 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
+runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE}'
@@ -1279,6 +1281,15 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
+  -runstatedir | --runstatedir | --runstatedi | --runstated \
+  | --runstate | --runstat | --runsta | --runst | --runs \
+  | --run | --ru | --r)
+    ac_prev=runstatedir ;;
+  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
+  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
+  | --run=* | --ru=* | --r=*)
+    runstatedir=$ac_optarg ;;
+
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1416,7 +1427,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir
+		libdir localedir mandir runstatedir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1569,6 +1580,7 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
+  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -13198,7 +13210,7 @@ fi;
 
 ### Here's where stuff gets made
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/makefile DIY/makefile etc/gdbinit exe/.gdbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind tests/lisp/.gdbinit tests/storage/.gdbinit tests/.valgrind etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup etc/knosignal etc/knoinject etc/knostatus etc/knolog etc/knoreload etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec etc/knosetconfig etc/knogetconfig etc/knoconfig tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knotest src/scripts/knopkg.scm etc/knojob etc/logrotate etc/kno-rc.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoweb.conf etc/upstart/ex_knoweb.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/knod.service etc/systemd/knoweb.service etc/systemd/kno.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/apache/knoweb.conf etc/apache/knoweb.load etc/install-script dist/kno-4.3.spec"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/makefile DIY/makefile etc/gdbinit exe/.gdbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind tests/lisp/.gdbinit tests/storage/.gdbinit tests/.valgrind etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup etc/knosignal etc/knoinject etc/knostatus etc/knolog etc/knoreload etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec etc/knosetconfig etc/knogetconfig etc/knoconfig tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm etc/knojob etc/logrotate etc/kno-rc.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoweb.conf etc/upstart/ex_knoweb.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/knod.service etc/systemd/knoweb.service etc/systemd/kno.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/apache/knoweb.conf etc/apache/knoweb.load etc/install-script dist/kno-4.3.spec"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -13940,7 +13952,7 @@ do
     "tests/runtest") CONFIG_FILES="$CONFIG_FILES tests/runtest" ;;
     "tests/memtest") CONFIG_FILES="$CONFIG_FILES tests/memtest" ;;
     "tests/leaktest") CONFIG_FILES="$CONFIG_FILES tests/leaktest" ;;
-    "tests/knotest") CONFIG_FILES="$CONFIG_FILES tests/knotest" ;;
+    "tests/knoxtest") CONFIG_FILES="$CONFIG_FILES tests/knoxtest" ;;
     "src/scripts/knopkg.scm") CONFIG_FILES="$CONFIG_FILES src/scripts/knopkg.scm" ;;
     "etc/knojob") CONFIG_FILES="$CONFIG_FILES etc/knojob" ;;
     "etc/logrotate") CONFIG_FILES="$CONFIG_FILES etc/logrotate" ;;
