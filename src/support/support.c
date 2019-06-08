@@ -69,7 +69,7 @@ KNO_EXPORT lispval _kno_debug(lispval x)
 #define LOCAL_MODULES 1
 #define INSTALLED_MODULES 2
 #define SHARED_MODULES 3
-#define BUILTIN_MODULES 4
+#define STDLIB_MODULES 4
 #define UNPACKAGE_DIR 5
 
 static lispval config_get_module_loc(lispval var,void *which_arg)
@@ -84,8 +84,8 @@ static lispval config_get_module_loc(lispval var,void *which_arg)
     return lispval_string(KNO_LOCAL_MODULE_DIR);
   case INSTALLED_MODULES:
     return lispval_string(KNO_INSTALLED_MODULE_DIR);
-  case BUILTIN_MODULES:
-    return lispval_string(KNO_BUILTIN_MODULE_DIR);
+  case STDLIB_MODULES:
+    return lispval_string(KNO_STDLIB_MODULE_DIR);
   case UNPACKAGE_DIR:
     return lispval_string(KNO_UNPACKAGE_DIR);
   default:
@@ -246,8 +246,8 @@ KNO_EXPORT void kno_init_support_c()
                      config_get_module_loc,NULL,(void *) INSTALLED_MODULES);
   kno_register_config("SHARED_MODULES",_("value of SHARED_MODULES"),
                      config_get_module_loc,NULL,(void *) SHARED_MODULES);
-  kno_register_config("BUILTIN_MODULES",_("value of BUILTIN_MODULES"),
-                     config_get_module_loc,NULL,(void *) BUILTIN_MODULES);
+  kno_register_config("STDLIB_MODULES",_("value of STDLIB_MODULES"),
+                     config_get_module_loc,NULL,(void *) STDLIB_MODULES);
 
   kno_register_config("UNPACKAGE_DIR",_("value of UNPACKAGE_DIR"),
                      config_get_module_loc,NULL,(void *) UNPACKAGE_DIR);

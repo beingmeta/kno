@@ -8,7 +8,7 @@ abspath( ) {
     base=$(basename ${file})
     echo ${absdir}/${base};
 }
-KNO=@BINDIR@/kno
+KNOX=@BINDIR@/knox
 BASE=_$(basename ${FILE} .scm)
 FULLPATH=$(abspath ${FILE})
 RUNDIR=${RUNDIR:-$(pwd)}
@@ -17,4 +17,4 @@ PIDFILE=${RUNDIR}/${BASE}.pid
 LOGDIR=${LOGDIR:-${RUNDIR}}
 LOGFILE=${LOGDIR}/${BASE}.log
 ERRFILE=${LOGDIR}/${BASE}.err
-exec u8run +daemon ${BASE} PIDFILE=${PIDFILE} PPIDFILE=${PPIDFILE} ${KNO} ${FILE} $* LOGCMD=yes STDOUT=+${LOGFILE} STDERR=+${ERRFILE} RUNDIR=${RUNDIR} PIDFILE=${PIDFILE}
+exec u8run +daemon ${BASE} PIDFILE=${PIDFILE} PPIDFILE=${PPIDFILE} ${KNOX} ${FILE} $* LOGCMD=yes STDOUT=+${LOGFILE} STDERR=+${ERRFILE} RUNDIR=${RUNDIR} PIDFILE=${PIDFILE}

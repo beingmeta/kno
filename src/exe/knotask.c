@@ -11,7 +11,7 @@
 
 #define EMBEDDED_KNO 1
 
-#include "kno.c"
+#include "knox.c"
 
 #if HAVE_SYS_TYPES_H
 #include <sys/types.h>

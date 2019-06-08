@@ -61,7 +61,7 @@ LEAKTEST	= ${TEST_ENV} ${LEAKTEST_ENV} ${LEAKTESTER:-${TESTPROG}}
 FRAMETEST_FILES	= r4rs.scm misctest.scm seqtest.scm choicetest.scm frametest.scm
 TESTBASE	= tmptest
 TESTFILE	= ${TESTBASE}.file
-FDX		= ../dbg/kno
+KNOX		= ../dbg/knox
 OIDPOOL		= POOLTYPE=oidpool
 BIGPOOL		= POOLTYPE=bigpool
 SNAPPY		= COMPRESSION=snappy
@@ -121,33 +121,33 @@ schemetest schemetests scheme: r4rs exceptions choices sequences breaks numvecs 
 cmodtests: crypto
 optscheme:
 	@${header} "■■■■■■■■ Running optimized scheme tests ${RUNCONF}"
-	@${RUN} ${FDX} TESTOPTIMIZED=yes r4rs.scm ${RUNCONF}
-	@${RUN} ${FDX} TESTOPTIMIZED=yes choicetest.scm ${RUNCONF}
-	@${RUN} ${FDX} TESTOPTIMIZED=yes seqtest.scm ${RUNCONF}
-	@${RUN} ${FDX} TESTOPTIMIZED=yes misctest.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz"
-	@${RUN} ${FDX} TESTOPTIMIZED=yes reflect.scm ${RUNCONF}
-	@${RUN} ${FDX} TESTOPTIMIZED=yes exceptions.scm ${RUNCONF}
-	@${RUN} ${FDX} TESTOPTIMIZED=yes picktest.scm ${RUNCONF}
-	@${RUN} ${FDX} TESTOPTIMIZED=yes cachecall.scm ${RUNCONF}
-	@${RUN} ${FDX} TESTOPTIMIZED=yes timefns.scm ${RUNCONF}
-	@${RUN} ${FDX} TESTOPTIMIZED=yes sysprims.scm ${RUNCONF}
-	@${RUN} ${FDX} TESTOPTIMIZED=yes i18n.scm ${RUNCONF}
-	@${RUN} ${FDX} TESTOPTIMIZED=yes fileprimtest.scm ${RUNCONF}
-	@${RUN} ${FDX} TESTOPTIMIZED=yes numvecs.scm ${RUNCONF}
-	@${RUN} ${FDX} TESTOPTIMIZED=yes regex.scm ${RUNCONF}
-	@${RUN} ${FDX} TESTOPTIMIZED=yes threadtest.scm ${RUNCONF}
-	@${RUN} ${FDX} TESTOPTIMIZED=yes gctests.scm ${RUNCONF}
-	@${RUN} ${FDX} TESTOPTIMIZED=yes xmltest.scm ${RUNCONF}
-	@${RUN} ${FDX} TESTOPTIMIZED=yes texttest.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes r4rs.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes choicetest.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes seqtest.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes misctest.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz"
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes reflect.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes exceptions.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes picktest.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes cachecall.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes timefns.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes sysprims.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes i18n.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes fileprimtest.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes numvecs.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes regex.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes threadtest.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes gctests.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes xmltest.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes texttest.scm ${RUNCONF}
 	@${header} "■■■■■■■■ Completed optimized scheme tests ${RUNCONF}"
 
 loadmods load_modules:
 	@${header} "■■■■■■■■ Testing default module loads ${RUNCONF}"
-	@${RUN} ${FDX} loadmods.scm ${RUNCONF}
+	@${RUN} ${KNOX} loadmods.scm ${RUNCONF}
 	@${header} "■■■■■■■■ Finished testing default module loads ${RUNCONF}"
 optmods optimize_modules: load_modules
 	@${header} "■■■■■■■■ Testing optimized module loads ${RUNCONF}"
-	@${RUN} ${FDX} optmods.scm ${RUNCONF}
+	@${RUN} ${KNOX} optmods.scm ${RUNCONF}
 	@${header} "■■■■■■■■ Finished testing optimized module loads ${RUNCONF}"
 
 .PHONY: scheme schemetest schemetests optscheme loadmodes load_modules optmodes optimize_modules
@@ -155,93 +155,93 @@ optmods optimize_modules: load_modules
 # Individual scheme tests
 
 r4rs:
-	@${RUN} ${FDX} r4rs.scm ${RUNCONF}
+	@${RUN} ${KNOX} r4rs.scm ${RUNCONF}
 	@${header} "■■■■ Completed r4rs tests ${RUNCONF}"
 exceptions:
-	@${RUN} ${FDX} exceptions.scm ${RUNCONF}
+	@${RUN} ${KNOX} exceptions.scm ${RUNCONF}
 	@${header} "■■■■ Completed exceptions tests ${RUNCONF}"
 choices choicetest:
-	@${RUN} ${FDX} choicetest.scm ${RUNCONF}
+	@${RUN} ${KNOX} choicetest.scm ${RUNCONF}
 	@${header} "■■■■ Completed choices tests ${RUNCONF}"
 sequences seqtest:
-	@${RUN} ${FDX} seqtest.scm ${RUNCONF}
+	@${RUN} ${KNOX} seqtest.scm ${RUNCONF}
 	@${header} "■■■■ Completed sequences tests ${RUNCONF}"
 numvecs:
-	@${RUN} ${FDX} numvecs.scm ${RUNCONF}
+	@${RUN} ${KNOX} numvecs.scm ${RUNCONF}
 	@${header} "■■■■ Completed numvecs tests ${RUNCONF}"
 regex:
-	@${RUN} ${FDX} regex.scm ${RUNCONF}
+	@${RUN} ${KNOX} regex.scm ${RUNCONF}
 	@${header} "■■■■ Completed regex tests ${RUNCONF}"
 hashsets:
-	@${RUN} ${FDX} hashsets.scm ${RUNCONF}
+	@${RUN} ${KNOX} hashsets.scm ${RUNCONF}
 	@${header} "■■■■ Completed numvecs tests ${RUNCONF}"
 pick picktest:
-	@${RUN} ${FDX} picktest.scm ${RUNCONF}
+	@${RUN} ${KNOX} picktest.scm ${RUNCONF}
 	@${header} "■■■■ Completed picktest tests ${RUNCONF}"
 cachecall:
-	@${RUN} ${FDX} cachecall.scm ${RUNCONF}
+	@${RUN} ${KNOX} cachecall.scm ${RUNCONF}
 	@${header} "■■■■ Completed cachecall tests ${RUNCONF}"
 texttools texttest:
-	@${RUN} ${FDX} texttest.scm ${RUNCONF}
+	@${RUN} ${KNOX} texttest.scm ${RUNCONF}
 	@${header} "■■■■ Completed texttools tests ${RUNCONF}"
 webtools webtoolstest:
-	@${RUN} ${FDX} webtoolstest.scm ${RUNCONF}
+	@${RUN} ${KNOX} webtoolstest.scm ${RUNCONF}
 	@${header} "■■■■ Completed webtools tests ${RUNCONF}"
 stringprims:
-	@${RUN} ${FDX} stringprims.scm ${RUNCONF}
+	@${RUN} ${KNOX} stringprims.scm ${RUNCONF}
 	@${header} "■■■■ Completed stringprims tests ${RUNCONF}"
 timefns:
-	@${RUN} ${FDX} timefns.scm ${RUNCONF}
+	@${RUN} ${KNOX} timefns.scm ${RUNCONF}
 	@${header} "■■■■ Completed timefns tests ${RUNCONF}"
 sysprims:
-	@${RUN} ${FDX} sysprims.scm ${RUNCONF}
+	@${RUN} ${KNOX} sysprims.scm ${RUNCONF}
 	@${header} "■■■■ Completed sysprims tests ${RUNCONF}"
 startup:
-	@${RUN} ${FDX} CONFIG=../dbg/startup.cfg startup.scm ${RUNCONF}
+	@${RUN} ${KNOX} CONFIG=../dbg/startup.cfg startup.scm ${RUNCONF}
 	@${header} "■■■■ Completed startup tests ${RUNCONF}"
 threads threadtest:
-	@${RUN} ${FDX} threadtest.scm ${RUNCONF}
+	@${RUN} ${KNOX} threadtest.scm ${RUNCONF}
 	@${header} "■■■■ Completed threads tests ${RUNCONF}"
 reflect:
-	@${RUN} ${FDX} reflect.scm ${RUNCONF}
+	@${RUN} ${KNOX} reflect.scm ${RUNCONF}
 	@${header} "■■■■ Completed reflection tests ${RUNCONF}"
 breaks breaktests:
-	@${RUN} ${FDX} breaktests.scm ${RUNCONF}
+	@${RUN} ${KNOX} breaktests.scm ${RUNCONF}
 	@${header} "■■■■ Completed breaks tests ${RUNCONF}"
 i18n:
-	@${RUN} ${FDX} i18n.scm ${RUNCONF}
+	@${RUN} ${KNOX} i18n.scm ${RUNCONF}
 	@${header} "■■■■ Completed i18n tests ${RUNCONF}"
 fileprims fileprimtest fileprimstest:
 	@if test ! -f ../data/private.text; then				\
 	echo "!!! Warning: no protected files for testing file prims";	\
 	fi
-	@${RUN} ${FDX} fileprimtest.scm ${RUNCONF}
+	@${RUN} ${KNOX} fileprimtest.scm ${RUNCONF}
 	@${header} "■■■■ Completed fileprim tests ${RUNCONF}"
 misc misctest:
-	@${RUN} ${FDX} misctest.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz"
+	@${RUN} ${KNOX} misctest.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz"
 	@${header} "■■■■ Completed misc tests ${RUNCONF}"
 gctests:
-	@${RUN} ${FDX} gctests.scm ${RUNCONF}
+	@${RUN} ${KNOX} gctests.scm ${RUNCONF}
 	@${header} "■■■■ Completed GC tests ${RUNCONF}"
 profiling profiletest:
-	@${RUN} ${FDX} profiletest.scm ${RUNCONF}
+	@${RUN} ${KNOX} profiletest.scm ${RUNCONF}
 	@${header} "■■■■ Completed GC tests ${RUNCONF}"
 xml xmltest:
-	@${RUN} ${FDX} xmltest.scm ${RUNCONF}
+	@${RUN} ${KNOX} xmltest.scm ${RUNCONF}
 	@${header} "■■■■ Completed xml tests ${RUNCONF}"
 crypto cryptotest:
-	@${RUN} ${FDX} cryptotest.scm ${RUNCONF}
+	@${RUN} ${KNOX} cryptotest.scm ${RUNCONF}
 	@${header} "■■■■ Completed crypto tests ${RUNCONF}"
 
 temptest:
-	@${RUN} ${FDX} temptest.scm ${RUNCONF}
+	@${RUN} ${KNOX} temptest.scm ${RUNCONF}
 	@${header} "■■■■ Completed misc tests ${RUNCONF}"
 
 # Table tests
 
 tabletest:
-	@${RUN} ${FDX} tabletest.scm ${TESTFILE} ${TESTSIZE} ${RUNCONF} && \
-	 ${RUN} ${FDX} tabletest.scm ${TESTFILE} ${RUNCONF} && \
+	@${RUN} ${KNOX} tabletest.scm ${TESTFILE} ${TESTSIZE} ${RUNCONF} && \
+	 ${RUN} ${KNOX} tabletest.scm ${TESTFILE} ${RUNCONF} && \
 	 rm ${TESTFILE}
 
 slotmaptests slotmaps:
@@ -256,7 +256,7 @@ tabletests hashtables:
 
 storagebase:
 	@${header} "■■■■■■■■ Running pool tests ${TESTBASE} ${RUNCONF}"
-	${RUN} ${FDX} storage.scm
+	${RUN} ${KNOX} storage.scm
 
 storage: storagebase pooltest indextest frametest
 
@@ -265,10 +265,10 @@ storage: storagebase pooltest indextest frametest
 pooltest:
 	@${header} "■■■■■■■■ Running pool tests ${TESTBASE} ${RUNCONF}"
 	@rm -rf ${TESTBASE}.pool ${TESTBASE}.adjunct.pool
-	${RUN} ${FDX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool ${RUNCONF}
-	${RUN} ${FDX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool CACHELEVEL=1 ${RUNCONF}
-	${RUN} ${FDX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool CACHELEVEL=2 ${RUNCONF}
-	${RUN} ${FDX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool CACHELEVEL=3 ${RUNCONF}
+	${RUN} ${KNOX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool ${RUNCONF}
+	${RUN} ${KNOX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool CACHELEVEL=1 ${RUNCONF}
+	${RUN} ${KNOX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool CACHELEVEL=2 ${RUNCONF}
+	${RUN} ${KNOX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool CACHELEVEL=3 ${RUNCONF}
 
 filepooltest:
 	@make TESTBASE=filepool RUNCONF="${FILEPOOL} ${RUNCONF}" pooltest
@@ -306,8 +306,8 @@ oidpools oidpooltests: oidpooltest oidpool32test oidpool64test
 
 flexpools flexpooltests:
 	@${header} "■■■■■■■■ Running flexpool tests, ${TESTBASE} ${TESTSIZE} ${RUNCONF}";
-	@${RUN} ${FDX} flextest.scm flex${TESTBASE}.flexpool RESET=yes ${RUNCONF};
-	@${RUN} ${FDX} flextest.scm flex${TESTBASE}.flexpool ${RUNCONF};
+	@${RUN} ${KNOX} flextest.scm flex${TESTBASE}.flexpool RESET=yes ${RUNCONF};
+	@${RUN} ${KNOX} flextest.scm flex${TESTBASE}.flexpool ${RUNCONF};
 
 pooltests pools: filepooltest bigpooltests flexpooltests
 
@@ -319,55 +319,55 @@ indextest:
 	@${header} "■■■■■■■■ Running index tests ${TESTBASE} ${RUNCONF}"
 	@rm -rf *.edit.dtype ${TESTBASE}
 	@${header} Build with the offsets cache off
-	@${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} ${RUNCONF} && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${RUNCONF}             && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} CACHELEVEL=2  ${RUNCONF} && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} CACHELEVEL=3  ${RUNCONF} && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} CONSINDEX=yes  ${RUNCONF} && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${RUNCONF} CACHELEVEL=2 CONSINDEX=yes && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} +${TESTBASE}.edit.dtype ${RUNCONF} && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ?${TESTBASE}.edit.dtype ${RUNCONF}
+	@${RUN} ${KNOX} tabletest.scm ${TESTBASE} ${TESTSIZE} ${RUNCONF} && \
+	${RUN} ${KNOX} tabletest.scm ${TESTBASE} ${RUNCONF}             && \
+	${RUN} ${KNOX} tabletest.scm ${TESTBASE} CACHELEVEL=2  ${RUNCONF} && \
+	${RUN} ${KNOX} tabletest.scm ${TESTBASE} CACHELEVEL=3  ${RUNCONF} && \
+	${RUN} ${KNOX} tabletest.scm ${TESTBASE} CONSINDEX=yes  ${RUNCONF} && \
+	${RUN} ${KNOX} tabletest.scm ${TESTBASE} ${RUNCONF} CACHELEVEL=2 CONSINDEX=yes && \
+	${RUN} ${KNOX} tabletest.scm ${TESTBASE} +${TESTBASE}.edit.dtype ${RUNCONF} && \
+	${RUN} ${KNOX} tabletest.scm ${TESTBASE} ?${TESTBASE}.edit.dtype ${RUNCONF}
 	@${header} "■■■■■■■■ Finished index tests ${TESTBASE} ${RUNCONF}"
 
 fileindextest:
 	@${header} "■■■■■■■■ Running file index tests ${TESTBASE} ${RUNCONF}"
 	@rm -rf *.edit.dtype ${TESTBASE}
 	@${header} Build with the offsets cache off
-	@${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} ${RUNCONF} && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${RUNCONF}             && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} CACHELEVEL=2  ${RUNCONF} && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} CACHELEVEL=3  ${RUNCONF} && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} CONSINDEX=yes  ${RUNCONF} && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${RUNCONF} CACHELEVEL=2 CONSINDEX=yes && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} +${TESTBASE}.edit.dtype ${RUNCONF} && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ?${TESTBASE}.edit.dtype ${RUNCONF} && \
+	@${RUN} ${KNOX} tabletest.scm ${TESTBASE} ${TESTSIZE} ${RUNCONF} && \
+	${RUN} ${KNOX} tabletest.scm ${TESTBASE} ${RUNCONF}             && \
+	${RUN} ${KNOX} tabletest.scm ${TESTBASE} CACHELEVEL=2  ${RUNCONF} && \
+	${RUN} ${KNOX} tabletest.scm ${TESTBASE} CACHELEVEL=3  ${RUNCONF} && \
+	${RUN} ${KNOX} tabletest.scm ${TESTBASE} CONSINDEX=yes  ${RUNCONF} && \
+	${RUN} ${KNOX} tabletest.scm ${TESTBASE} ${RUNCONF} CACHELEVEL=2 CONSINDEX=yes && \
+	${RUN} ${KNOX} tabletest.scm ${TESTBASE} +${TESTBASE}.edit.dtype ${RUNCONF} && \
+	${RUN} ${KNOX} tabletest.scm ${TESTBASE} ?${TESTBASE}.edit.dtype ${RUNCONF} && \
 	rm ${TESTBASE}
 	@${header} Build with the offsets cache on
-	@${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} CACHELEVEL=2 ${RUNCONF} && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} CACHELEVEL=2 ${RUNCONF} && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} +${TESTBASE}.edit.dtype ${RUNCONF} && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ?${TESTBASE}.edit.dtype ${RUNCONF} && \
+	@${RUN} ${KNOX} tabletest.scm ${TESTBASE} ${TESTSIZE} CACHELEVEL=2 ${RUNCONF} && \
+	${RUN} ${KNOX} tabletest.scm ${TESTBASE} CACHELEVEL=2 ${RUNCONF} && \
+	${RUN} ${KNOX} tabletest.scm ${TESTBASE} +${TESTBASE}.edit.dtype ${RUNCONF} && \
+	${RUN} ${KNOX} tabletest.scm ${TESTBASE} ?${TESTBASE}.edit.dtype ${RUNCONF} && \
 	rm ${TESTBASE}
 	@${header} Build and edit with the offsets cache on
-	@${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} CACHELEVEL=2 ${RUNCONF} && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} CACHELEVEL=2 ${RUNCONF} && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} +${TESTBASE}.edit.dtype ${RUNCONF} CACHELEVEL=2 && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ?${TESTBASE}.edit.dtype ${RUNCONF} CACHELEVEL=2 && \
+	@${RUN} ${KNOX} tabletest.scm ${TESTBASE} ${TESTSIZE} CACHELEVEL=2 ${RUNCONF} && \
+	${RUN} ${KNOX} tabletest.scm ${TESTBASE} CACHELEVEL=2 ${RUNCONF} && \
+	${RUN} ${KNOX} tabletest.scm ${TESTBASE} +${TESTBASE}.edit.dtype ${RUNCONF} CACHELEVEL=2 && \
+	${RUN} ${KNOX} tabletest.scm ${TESTBASE} ?${TESTBASE}.edit.dtype ${RUNCONF} CACHELEVEL=2 && \
 	rm ${TESTBASE}
 	@${header} Build and edit with the offsets cache and memorymapping on
-	@${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} CACHELEVEL=3 ${RUNCONF} && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} CACHELEVEL=3 ${RUNCONF} && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} +${TESTBASE}.edit.dtype ${RUNCONF} CACHELEVEL=3 && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ?${TESTBASE}.edit.dtype ${RUNCONF} CACHELEVEL=3 && \
+	@${RUN} ${KNOX} tabletest.scm ${TESTBASE} ${TESTSIZE} CACHELEVEL=3 ${RUNCONF} && \
+	${RUN} ${KNOX} tabletest.scm ${TESTBASE} CACHELEVEL=3 ${RUNCONF} && \
+	${RUN} ${KNOX} tabletest.scm ${TESTBASE} +${TESTBASE}.edit.dtype ${RUNCONF} CACHELEVEL=3 && \
+	${RUN} ${KNOX} tabletest.scm ${TESTBASE} ?${TESTBASE}.edit.dtype ${RUNCONF} CACHELEVEL=3 && \
 	rm ${TESTBASE}
 	@${header} Build with both cache and consindices
-	@${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} \
+	@${RUN} ${KNOX} tabletest.scm ${TESTBASE} ${TESTSIZE} \
 		${RUNCONF} CACHELEVEL=2 CONSINDEX=yes && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} \
+	${RUN} ${KNOX} tabletest.scm ${TESTBASE} \
 		${RUNCONF} CACHELEVEL=2 CONSINDEX=yes && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} +${TESTBASE}.edit.dtype \
+	${RUN} ${KNOX} tabletest.scm ${TESTBASE} +${TESTBASE}.edit.dtype \
 		${RUNCONF} CACHELEVEL=2 CONSINDEX=yes && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ?${TESTBASE}.edit.dtype \
+	${RUN} ${KNOX} tabletest.scm ${TESTBASE} ?${TESTBASE}.edit.dtype \
 		${RUNCONF} && \
 	rm -rf ${TESTBASE} *.edit.dtype
 	@${header} "■■■■■■■■ Finished file index tests ${TESTBASE} ${RUNCONF}"
@@ -412,20 +412,20 @@ indextests indexes: fileindexes hashindexes memindexes
 frametest:
 	@${header} "■■■■■■■■ Running frame/database tests, ${TESTBASE} ${TESTSIZE} ${RUNCONF}";
 	rm -rf ${TESTBASE}db.pool ${TESTBASE}db.index
-	@${RUN} ${FDX} frametest.scm ${TESTBASE}db init \
+	@${RUN} ${KNOX} frametest.scm ${TESTBASE}db init \
 		COUNT=${TESTSIZE} ${FRAMETEST_FILES} \
 		${RUNCONF};
-	@${RUN} ${FDX} frametest.scm ${TESTBASE}db COUNT=${TESTSIZE} ${RUNCONF};
-	@${RUN} ${FDX} frametest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
+	@${RUN} ${KNOX} frametest.scm ${TESTBASE}db COUNT=${TESTSIZE} ${RUNCONF};
+	@${RUN} ${KNOX} frametest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
 		 ${RUNCONF} CACHELEVEL=2;
-	@${RUN} ${FDX} frametest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
+	@${RUN} ${KNOX} frametest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
 		 ${RUNCONF} CACHELEVEL=3;
 	@${header} "■■■■■■■■ Testing database creation with CACHELEVEL=2";
-	@${RUN} ${FDX} frametest.scm ${TESTBASE}db init COUNT=${TESTSIZE} 	\
+	@${RUN} ${KNOX} frametest.scm ${TESTBASE}db init COUNT=${TESTSIZE} 	\
 		${FRAMETEST_FILES} ${RUNCONF} CACHELEVEL=2;
-	@${RUN} ${FDX} frametest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
+	@${RUN} ${KNOX} frametest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
 		 ${RUNCONF} CACHELEVEL=2;
-	@${RUN} ${FDX} frametest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
+	@${RUN} ${KNOX} frametest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
 		 ${RUNCONF} CACHELEVEL=3;
 	@${header} "■■■■■■■■ Finished frame/database tests, ${TESTBASE} ${TESTSIZE} ${RUNCONF} ■■■■■■■■■■■■■■■■";
 
@@ -487,7 +487,7 @@ scripts: chainscripts batchscripts atexit_tests utilscripts
 
 execscripts:
 	@${header} "■■■■■■■■ Running exec tests ■■■■■■■■"
-	@@test_env@ ${FDX} ./exectest.scm a "b b" c foobar=8 quux=1/2 4 1/3 9/3 5.9 :x
+	@@test_env@ ${KNOX} ./exectest.scm a "b b" c foobar=8 quux=1/2 4 1/3 9/3 5.9 :x
 	@${header} "■■■■■■■■ Running exec test as script ■■■■■■■■"
 	@@test_env@ ./exectest.scm a "b b" c foobar=8 quux=1/2 4 1/3 9/3 5.9 :x
 	@${header} "■■■■■■■■ Done with exec tests ■■■■■■■■"
@@ -496,9 +496,9 @@ chainscripts: execscripts
 	@${header} "■■■■■■■■ Testing scripts which call CHAIN"
 	@rm -f chaintest.log; touch chaintest.failed;
 	@@test_env@ \
-	        ${FDX} chaintest.scm > chaintest.log && \
-		${FDX} chaintest.scm 0 30 > chaintest.log && \
-		${FDX} chaintest.scm 10 50 > chaintest.log && \
+	        ${KNOX} chaintest.scm > chaintest.log && \
+		${KNOX} chaintest.scm 0 30 > chaintest.log && \
+		${KNOX} chaintest.scm 10 50 > chaintest.log && \
 		rm chaintest.failed;
 	@if test -f chaintest.failed; then \
 	  echo "FAILURE: chaintest.scm failed, log in chaintest.log"; fi
@@ -585,7 +585,7 @@ atexit_tests: atexit_kill atexit_quit atexit_term
 
 atexit_normal:
 	@rm -f ./_atexit*;
-	@@test_env@ ${FDX} ./atexit.scm SLEEP4=3 QUIET=yes LOGLEVEL=4 ; \
+	@@test_env@ ${KNOX} ./atexit.scm SLEEP4=3 QUIET=yes LOGLEVEL=4 ; \
 	if test -f ./_atexit.oldout; then \
 	  ./batchfail atexit.scm Earlier atexit handler called; \
 	elif test ! -f ./_atexit.out; then \
@@ -596,7 +596,7 @@ atexit_normal:
 	fi;
 atexit_term: atexit_normal
 	@rm -f ./_atexit_term.pid
-	@@test_env@ ${FDX} ./atexit.scm PREFIX=_atexit_term SLEEP4=20 QUIET=yes LOGLEVEL=4 & \
+	@@test_env@ ${KNOX} ./atexit.scm PREFIX=_atexit_term SLEEP4=20 QUIET=yes LOGLEVEL=4 & \
 	sleep 3; kill `cat ./_atexit_term.pid`; sleep 3; \
 	if test -f ./_atexit_term.pid; then \
 	  ./batchfail "ATEXIT handler not run on SIGTERM, .pid file still exists"; \
@@ -605,7 +605,7 @@ atexit_term: atexit_normal
 	fi;
 atexit_quit: atexit_normal
 	@rm -f ./_atexit_quit.pid
-	@@test_env@ ${FDX} ./atexit.scm PREFIX=_atexit_quit SLEEP4=20 QUIET=yes LOGLEVEL=4 &
+	@@test_env@ ${KNOX} ./atexit.scm PREFIX=_atexit_quit SLEEP4=20 QUIET=yes LOGLEVEL=4 &
 	sleep 3 ; kill -s QUIT `cat ./_atexit_quit.pid` ; sleep 3 ; \
 	if test -f ./_atexit_quit.pid; then \
 	  echo "Success: ATEXIT handlers not run on SIGQUIT"; \
@@ -614,7 +614,7 @@ atexit_quit: atexit_normal
 	fi;
 atexit_kill: atexit_normal
 	@rm -f ./_atexit_kill.pid
-	@@test_env@ ${FDX} ./atexit.scm PREFIX=_atexit_kill SLEEP4=20 QUIET=yes LOGLEVEL=4 & \
+	@@test_env@ ${KNOX} ./atexit.scm PREFIX=_atexit_kill SLEEP4=20 QUIET=yes LOGLEVEL=4 & \
 	sleep 3 && kill -s KILL `cat ./_atexit_kill.pid` && sleep 3 && \
 	if test -f ./_atexit_kill.pid; then \
 	  echo "Success: ATEXIT handlers not run on SIGKILL"; \
@@ -630,13 +630,13 @@ utilscripts: repack-index split-index
 repack-index:
 	@${header} "■■■■■■■■ Testing repack index"
 	@rm -f packed.index
-	@${RUN} ${FDX} ${PACKINDEX} data/misc.index packed.index ${RUNCONF} TESTLOAD=common.scm;
-	@${RUN} ${FDX} indexcompare.scm data/misc.index packed.index ${RUNCONF} TESTLOAD=common.scm;
+	@${RUN} ${KNOX} ${PACKINDEX} data/misc.index packed.index ${RUNCONF} TESTLOAD=common.scm;
+	@${RUN} ${KNOX} indexcompare.scm data/misc.index packed.index ${RUNCONF} TESTLOAD=common.scm;
 
 split-index:
 	@${header} "■■■■■■■■ Testing split index"
 	@rm -f unique.index split.index
-	@${RUN} ${FDX} ${PACKINDEX} data/misc.index split.index UNIQUE=unique.index TESTLOAD=common.scm ${RUNCONF};
+	@${RUN} ${KNOX} ${PACKINDEX} data/misc.index split.index UNIQUE=unique.index TESTLOAD=common.scm ${RUNCONF};
 
 .PHONY: chained_batchscripts batchscripts chainscripts execscripts atexit
 
@@ -707,16 +707,16 @@ crypto_memtests:
 	@${header} "■■■■■■■■ Finished heap integrity tests on crypto functions"
 
 load_modules_memtest:
-	@${header} "■■■■■■■■ Running heap integrity tests on builtin modules"
+	@${header} "■■■■■■■■ Running heap integrity tests on stdlib modules"
 	make TESTPROG="${MEMTESTER}" TEST_ENV="${MEMTEST_ENV}" RUNCONF="${MEMCONF}" \
 	     TESTSIZE="${SMALLTESTSIZE}" load_modules
-	@${header} "■■■■■■■■ Finished heap integrity tests on builtin modules"
+	@${header} "■■■■■■■■ Finished heap integrity tests on stdlib modules"
 
 optimize_modules_memtest:
-	@${header} "■■■■■■■■ Running heap integrity tests on optimized builtin modules"
+	@${header} "■■■■■■■■ Running heap integrity tests on optimized stdlib modules"
 	make TESTPROG="${MEMTESTER}" TEST_ENV="${MEMTEST_ENV}" RUNCONF="${MEMCONF}" \
 	     TESTSIZE="${SMALLTESTSIZE}" optimize_modules
-	@${header} "■■■■■■■■ Finished heap integrity tests on optimized builtin modules"
+	@${header} "■■■■■■■■ Finished heap integrity tests on optimized stdlib modules"
 
 .PHONY: memtest memtest
 .PHONY:	all_memtests scheme_memtests table_memtests
@@ -779,14 +779,14 @@ crypto_leaktest:
 	@${header} "■■■■■■■■ Finished leak tests on crypto functions"
 
 load_modules_leaktest:
-	@${header} "■■■■■■■■ Running leak tests on builtin modules"
+	@${header} "■■■■■■■■ Running leak tests on stdlib modules"
 	make TESTPROG="${LEAKTESTER}" TEST_ENV="${LEAKTEST_ENV}" RUNCONF="${LEAKCONF}" TESTSIZE="${SMALLTESTSIZE}" load_modules
-	@${header} "■■■■■■■■ Finished leak tests on builtin modules"
+	@${header} "■■■■■■■■ Finished leak tests on stdlib modules"
 
 optimize_modules_leaktest:
-	@${header} "■■■■■■■■ Running leak tests on optimized builtin modules"
+	@${header} "■■■■■■■■ Running leak tests on optimized stdlib modules"
 	make TESTPROG="${LEAKTESTER}" TEST_ENV="${LEAKTEST_ENV}" RUNCONF="${LEAKCONF}" TESTSIZE="${SMALLTESTSIZE}" optimize_modules
-	@${header} "■■■■■■■■ Finished leak tests on optimized builtin modules"
+	@${header} "■■■■■■■■ Finished leak tests on optimized stdlib modules"
 
 optscheme_leaktest:
 	@${header} "■■■■■■■■ Leak checking the optimized scheme tests"
@@ -806,5 +806,5 @@ optscheme_leaktest:
 test-cmodules: @TESTCMODULES@
 
 test-hunspell:
-	@${RUN} ${FDX} test-hunspell.scm ${RUNCONF}
+	@${RUN} ${KNOX} test-hunspell.scm ${RUNCONF}
 	@${header} "■■■■ Completed hunspell tests ${RUNCONF}"

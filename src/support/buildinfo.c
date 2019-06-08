@@ -82,8 +82,8 @@ KNO_EXPORT void kno_init_build_info()
 #ifdef KNO_INSTALLED_MODULE_DIR
   config_string(KNO_INSTALLED_MODULE_DIR);
 #endif
-#ifdef KNO_BUILTIN_MODULE_DIR
-  config_string(KNO_BUILTIN_MODULE_DIR);
+#ifdef KNO_STDLIB_MODULE_DIR
+  config_string(KNO_STDLIB_MODULE_DIR);
 #endif
 
 #ifdef KNO_LIBSCM_DIR
@@ -489,7 +489,7 @@ KNO_EXPORT void kno_init_build_info()
   config_string(KNO_EXEC_WRAPPER);
   config_string(KNO_LOCAL_MODULE_DIR);
   config_string(KNO_INSTALLED_MODULE_DIR);
-  config_string(KNO_BUILTIN_MODULE_DIR);
+  config_string(KNO_STDLIB_MODULE_DIR);
   config_string(KNO_UNPACKAGE_DIR);
 
 #ifdef KNO_WITH_FILE_LOCKING

@@ -24,7 +24,7 @@ case ${option} in
 	echo libsuffix "\t\t\t(The suffix for shared objects)";
 	echo loadpath "\t\t\t(The path used to search for source modules)";
 	echo modulepath "\t\t\t(The path used to search for source modules)";
-	echo builtin_modules "\t\t(Where built-in Kno source modules live)";
+	echo stdlib_modules "\t\t(Where built-in Kno source modules live)";
 	echo installed_modules|installmods "\t\t(Where installed source modules live)";
 	echo local_modules|localmods "\t\t\t(Where locally installed source modules live)";
 	echo cmodules "\t\t\t(Where compiled dynamic modules live)";
@@ -75,8 +75,8 @@ case ${option} in
 	echo "@default_module_path@";;
     modulepath)
 	echo "@default_module_path@";;
-    builtin_modules)
-	echo "@builtin_module_dir@";;
+    stdlib_modules)
+	echo "@stdlib_module_dir@";;
     installed_modules|installmods)
 	echo "@installed_module_dir@";;
     local_modules|localmods)
