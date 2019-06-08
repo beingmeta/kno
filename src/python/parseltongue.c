@@ -26,6 +26,53 @@
 #include <libu8/u8streamio.h>
 #include <libu8/u8printf.h>
 
+/* Compatibility */
+
+#if PY_MAJOR_VERSION >= 3
+#define PyText_Check(x) PyUnicode_Check(x)
+#define PyString_Check(x) (0)
+#define PyString_FromFormat PyUnicode_FromFormat
+#define PyInt_FromLong PyLong_FromLong
+#define PyInt PyLong
+#define PyInt_Check PyLong_Check
+#define PyInt_AS_LONG PyLong_AS_LONG
+#define staticforward static
+static u8_string pytext2utf8(PyObject *o,PyObject **tmpobj)
+{
+  PyObject *utf8 = PyUnicode_AsUTF8String(o);
+  *tmpobj = utf8;
+  if (utf8)
+    return PyBytes_AS_STRING(utf8);
+  else return NULL;
+}
+static PyObject *do_rich_compare(int cmp,int op)
+{
+  int rv = -1;
+  switch (op) {
+  case Py_LT: rv = (cmp<0); break;
+  case Py_LE: rv = (cmp<=0); break;
+  case Py_EQ: rv = (cmp==0); break;
+  case Py_NE: rv = (cmp!=0); break;
+  case Py_GT: rv = (cmp>0); break;
+  case Py_GE: rv = (cmp>=0); break;}
+  if (rv < 0)
+    return Py_NotImplemented;
+  else if (rv)
+    return Py_True;
+  else return Py_False;
+}
+#else
+#define PyText_Check(x) PyUnicode_Check(x)
+static u8_string pytext2utf8(PyObject *o,PyObject **tmpobj)
+{
+  PyObject *utf8 = PyString_AsEncodedObject(o,"utf8","none");
+  *tmpobj = utf8;
+  if (utf8)
+    return PyString_AS_STRING(utf8);
+  else return NULL;
+}
+#endif
+
 void kno_init_parseltongue(void) KNO_LIBINIT_FN;
 
 typedef struct KNO_PYTHON_WRAPPER {
@@ -183,12 +230,23 @@ pylisp_dealloc(self)             /* when reference-count reaches zero */
   PyObject_Del(self);            /* same as 'free(self)' */
 }
 
-static int
-pylisp_compare(v, w)
-     pylisp *v, *w;
+#if PY_MAJOR_VERSION >= 3
+static PyObject *pylisp_compare(PyObject *v_arg,PyObject *w_arg,int op)
+{
+  if ( (PyObject_TypeCheck(v_arg,&KnoType)) &&
+       (PyObject_TypeCheck(w_arg,&KnoType)) ) {
+    pylisp *v = (pylisp *) v_arg;
+    pylisp *w = (pylisp *) w_arg;
+    int cmp = KNO_FULL_COMPARE(v->lval,w->lval);
+    return do_rich_compare(cmp,op);}
+  else return Py_NotImplemented;
+}
+#else
+static int pylisp_compare(pylisp *v,pylisp *w)
 {
   return (KNO_FULL_COMPARE(v->lval,w->lval));
 }
+#endif
 
 static PyObject *
 pylisp_apply(PyObject *self,PyObject *args,PyObject *kwargs)
@@ -226,6 +284,24 @@ static void recycle_python_object(struct KNO_RAW_CONS *obj)
   Py_DECREF(po->pyval); u8_free(po);
 }
 
+#if PY_MAJOR_VERSION >= 3
+static int unparse_python_object(u8_output out,lispval obj)
+{
+  struct KNO_PYTHON_OBJECT *pyo = (struct KNO_PYTHON_OBJECT *)obj;
+  PyObject *as_string = PyObject_Repr(pyo->pyval);
+  if (as_string == NULL) {
+    u8_printf(out,"#<PYTHON Weird #x%llx>",(unsigned long long) pyo->pyval);
+    return 1;}
+  PyObject *utf8 = PyUnicode_AsUTF8String(as_string);
+  u8_string repr = PyBytes_AS_STRING(utf8);
+  if (repr[0] == '<')
+    u8_printf(out,"#🐍%s",repr);
+  else u8_printf(out,"#<PYTHON %s>",repr);
+  Py_DECREF(as_string);
+  Py_DECREF(utf8);
+  return 1;
+}
+#else
 static int unparse_python_object(u8_output out,lispval obj)
 {
   struct KNO_PYTHON_OBJECT *pyo = (struct KNO_PYTHON_OBJECT *)obj;
@@ -239,6 +315,7 @@ static int unparse_python_object(u8_output out,lispval obj)
   Py_DECREF(u8);
   return 1;
 }
+#endif
 
 /* Python/LISP mapping */
 
@@ -281,6 +358,7 @@ static lispval py2lisp(PyObject *o)
       return (lispval)
 	kno_digit_stream_to_bigint(bytelen,(bigint_producer)read_bigint_byte,
 				  (void *)bytes,256,(sign<0));}}
+#if PY_MAJOR_VERSION < 3
   else if (PyString_Check(o)) {
     PyObject *u8=PyString_AsEncodedObject(o,"utf8","none");
     if (u8) {
@@ -289,12 +367,26 @@ static lispval py2lisp(PyObject *o)
       return v;}
     else return kno_err("InvalidPythonString","py2lisp",NULL,KNO_VOID);}
   else if (PyUnicode_Check(o)) {
-    PyObject *u8=PyUnicode_AsEncodedString(o,"utf8","none");
-    if (u8) {
-      lispval v = lispval_string((u8_string)PyString_AS_STRING(u8));
-      Py_DECREF(u8);
+    PyObject *utf8 = PyUnicode_AsUTF8String(o);
+    if (utf8) {
+      lispval v = lispval_string((u8_string)PyBytes_AS_STRING(utf8));
+      Py_DECREF(utf8);
       return v;}
     else return kno_err("InvalidPythonString","py2lisp",NULL,KNO_VOID);}
+#endif
+#if PY_MAJOR_VERSION >= 3
+  else if (PyUnicode_Check(o)) {
+    PyObject *utf8 = PyUnicode_AsUTF8String(o);
+    if (utf8) {
+      lispval v = lispval_string((u8_string)PyBytes_AS_STRING(utf8));
+      Py_DECREF(utf8);
+      return v;}
+    else return kno_err("InvalidPythonString","py2lisp",NULL,KNO_VOID);}
+  else if (PyBytes_Check(o)) {
+    Py_ssize_t len = PyBytes_GET_SIZE(o);
+    char *data = PyBytes_AS_STRING(o);
+    return kno_make_packet(NULL,len,data);}
+#endif
   else if (PyTuple_Check(o)) {
     /* TODO: Should we map tuples and lists into separate types? */
     int i=0, n=PyTuple_Size(o);
@@ -342,7 +434,18 @@ static u8_string py2string(PyObject *o)
     o = PyObject_Str(o);
     free_temp = 1;}
 
-  if (PyString_Check(o)) {
+  if (PyUnicode_Check(o)) {
+    PyObject *utf8 = PyUnicode_AsUTF8String(o);
+    if (free_temp) Py_DECREF(o);
+    if (utf8) {
+      u8_string s = u8_strdup((u8_string)PyBytes_AS_STRING(utf8));
+      Py_DECREF(utf8);
+      return s;}
+    else {
+      kno_seterr("InvalidPythonString","py2string",NULL,KNO_VOID);
+      return NULL;}}
+#if PY_MAJOR_VERSION < 3
+  else if (PyString_Check(o)) {
     PyObject *u8=PyString_AsEncodedObject(o,"utf8","none");
     if (free_temp) Py_DECREF(o);
     if (u8) {
@@ -352,16 +455,7 @@ static u8_string py2string(PyObject *o)
     else {
       kno_seterr("InvalidPythonString","py2string",NULL,KNO_VOID);
       return NULL;}}
-  else if (PyUnicode_Check(o)) {
-    PyObject *u8=PyUnicode_AsEncodedString(o,"utf8","none");
-    if (free_temp) Py_DECREF(o);
-    if (u8) {
-      u8_string s = u8_strdup((u8_string)PyString_AS_STRING(u8));
-      Py_DECREF(u8);
-      return s;}
-    else {
-      kno_seterr("InvalidPythonString","py2string",NULL,KNO_VOID);
-      return NULL;}}
+#endif
   else {
     if (free_temp) Py_DECREF(o);
     kno_seterr("InvalidPythonString","py2string",NULL,KNO_VOID);
@@ -401,17 +495,38 @@ static lispval py2lispx(PyObject *o)
       if (sign<0) { negate_bigint(bytes,bytelen);}
       return (lispval) kno_digit_stream_to_bigint(bytelen,(bigint_producer)read_bigint_byte,
 						 (void *)bytes,256,(sign<0));}}
+#if PY_MAJOR_VERSION < 3
   else if (PyString_Check(o)) {
     PyObject *u8=PyString_AsEncodedObject(o,"utf8","none");
-    u8_string sdata=(u8_string)PyString_AS_STRING(u8);
-    lispval v=((*sdata==':') ? (kno_parse(sdata+1)) : (kno_parse(sdata)));
-    Py_DECREF(u8);
-    return v;}
+    if (u8) {
+      u8_string sdata=(u8_string)PyString_AS_STRING(u8);
+      lispval v=((*sdata==':') ? (kno_parse(sdata+1)) : (kno_parse(sdata)));
+      Py_DECREF(u8);
+      return v;}
+    else {
+      translate_python_error("py2lispx");
+      return KNO_ERROR_VALUE;}}
   else if (PyUnicode_Check(o)) {
-    PyObject *u8=PyUnicode_AsEncodedString(o,"utf8","none");
-    lispval v=kno_parse((u8_string)PyString_AS_STRING(u8));
-    Py_DECREF(u8);
-    return v;}
+    PyObject *u8=PyUnicode_AsEncodedObject(o,"utf8","none");
+    if (u8) {
+      u8_string sdata=(u8_string)PyString_AS_STRING(u8);
+      lispval v=((*sdata==':') ? (kno_parse(sdata+1)) : (kno_parse(sdata)));
+      Py_DECREF(u8);
+      return v;}
+    else {
+      translate_python_error("py2lispx");
+      return KNO_ERROR_VALUE;}}
+#else
+  else if (PyUnicode_Check(o)) {
+    PyObject *utf8 = PyUnicode_AsUTF8String(o);
+    if (utf8) {
+      lispval v=kno_parse((u8_string)PyBytes_AS_STRING(utf8));
+      Py_DECREF(utf8);
+      return v;}
+    else {
+      translate_python_error("py2lispx");
+      return KNO_ERROR_VALUE;}}
+#endif
   else if (PyTuple_Check(o)) {
     int i=0, n=PyTuple_Size(o);
     lispval *data=u8_alloc_n(n,lispval);
@@ -699,8 +814,7 @@ static PySequenceMethods choice_methods = {  /* sequence supplement     */
 
 static PyTypeObject KnoType = {      /* main python type-descriptor */
   /* type header */                    /* shared by all instances */
-  PyObject_HEAD_INIT(&PyType_Type)
-  0,                               /* ob_size */
+  PyVarObject_HEAD_INIT(&PyType_Type,0)
   "kno",                         /* tp_name */
   sizeof(struct KNO_PYTHON_WRAPPER),/* tp_basicsize */
   0,                               /* tp_itemsize */
@@ -710,7 +824,11 @@ static PyTypeObject KnoType = {      /* main python type-descriptor */
   (printfunc)   NULL,     /* tp_print    "print x"     */
   (getattrfunc) NULL,   /* tp_getattr  "x.attr"      */
   (setattrfunc) NULL,               /* tp_setattr  "x.attr=v"    */
+#if PY_MAJOR_VERSION < 3
   (cmpfunc)     pylisp_compare,   /* tp_compare  "x > y"       */
+#else
+  NULL,
+#endif
   (reprfunc)    pylisp_str,               /* tp_repr     `x`, print x  */
 
   /* type categories */
@@ -727,8 +845,7 @@ static PyTypeObject KnoType = {      /* main python type-descriptor */
 
 static PyTypeObject OIDType = {      /* main python type-descriptor */
   /* type header */                    /* shared by all instances */
-  PyObject_HEAD_INIT(&PyType_Type)
-  0,                               /* ob_size */
+  PyVarObject_HEAD_INIT(&PyType_Type,0)
   "kno",                         /* tp_name */
   sizeof(struct KNO_PYTHON_WRAPPER),/* tp_basicsize */
   0,                               /* tp_itemsize */
@@ -738,7 +855,11 @@ static PyTypeObject OIDType = {      /* main python type-descriptor */
   (printfunc)   NULL,     /* tp_print    "print x"     */
   (getattrfunc) NULL,   /* tp_getattr  "x.attr"      */
   (setattrfunc) NULL,               /* tp_setattr  "x.attr=v"    */
+#if PY_MAJOR_VERSION < 3
   (cmpfunc)     pylisp_compare,   /* tp_compare  "x > y"       */
+#else
+  NULL,
+#endif
   (reprfunc)    oid_str,               /* tp_repr     `x`, print x  */
 
   /* type categories */
@@ -755,8 +876,7 @@ static PyTypeObject OIDType = {      /* main python type-descriptor */
 
 static PyTypeObject ChoiceType = {      /* main python type-descriptor */
   /* type header */                    /* shared by all instances */
-  PyObject_HEAD_INIT(&PyType_Type)
-  0,                               /* ob_size */
+  PyVarObject_HEAD_INIT(&PyType_Type,0)
   "choice",                         /* tp_name */
   sizeof(struct KNO_PYTHON_WRAPPER),/* tp_basicsize */
   0,                               /* tp_itemsize */
@@ -766,7 +886,11 @@ static PyTypeObject ChoiceType = {      /* main python type-descriptor */
   (printfunc)   NULL,     /* tp_print    "print x"     */
   (getattrfunc) NULL,   /* tp_getattr  "x.attr"      */
   (setattrfunc) NULL,               /* tp_setattr  "x.attr=v"    */
+#if PY_MAJOR_VERSION < 3
   (cmpfunc)     pylisp_compare,   /* tp_compare  "x > y"       */
+#else
+  NULL,
+#endif
   (reprfunc)    choice_str,               /* tp_repr     `x`, print x  */
 
   /* type categories */
@@ -783,8 +907,7 @@ static PyTypeObject ChoiceType = {      /* main python type-descriptor */
 
 static PyTypeObject ApplicableType = {      /* main python type-descriptor */
   /* type header */                    /* shared by all instances */
-  PyObject_HEAD_INIT(&PyType_Type)
-  0,                               /* ob_size */
+  PyVarObject_HEAD_INIT(&PyType_Type,0)
   "kno",                         /* tp_name */
   sizeof(struct KNO_PYTHON_WRAPPER),/* tp_basicsize */
   0,                               /* tp_itemsize */
@@ -794,7 +917,11 @@ static PyTypeObject ApplicableType = {      /* main python type-descriptor */
   (printfunc)   NULL,     /* tp_print    "print x"     */
   (getattrfunc) NULL,   /* tp_getattr  "x.attr"      */
   (setattrfunc) NULL,               /* tp_setattr  "x.attr=v"    */
+#if PY_MAJOR_VERSION < 3
   (cmpfunc)     pylisp_compare,   /* tp_compare  "x > y"       */
+#else
+  NULL,
+#endif
   (reprfunc)    pylisp_str,               /* tp_repr     `x`, print x  */
 
   /* type categories */
@@ -834,14 +961,26 @@ pool_dealloc(self)             /* when reference-count reaches zero */
   PyObject_Del(self);            /* same as 'free(self)' */
 }
 
-static int
-pool_compare(v, w)
-     struct KNO_PYTHON_POOL *v, *w;
+#if PY_MAJOR_VERSION >= 3
+static PyObject *pool_compare(PyObject *v_arg,PyObject *w_arg,int op)
 {
-  if (v->pool<w->pool) return -1;
-  else if (v->pool == w->pool) return 0;
-  else return 1;
+  if ( (PyObject_TypeCheck(v_arg,&PoolType)) &&
+       (PyObject_TypeCheck(w_arg,&PoolType)) ) {
+    struct KNO_PYTHON_POOL *v = (struct KNO_PYTHON_POOL *) v_arg;
+    struct KNO_PYTHON_POOL *w = (struct KNO_PYTHON_POOL *) w_arg;
+    int cmp = (v->pool<w->pool) ? (-1) : (v->pool == w->pool) ? (0): (1);
+    return do_rich_compare(cmp,op);}
+  else return Py_NotImplemented;
 }
+#else
+static int pool_compare(struct KNO_PYTHON_POOL *v,struct KNO_PYTHON_POOL *w,
+			int op)
+{
+  int cmp = (v->pool<w->pool) ? (-1) :
+    (v->pool == w->pool) ? (0): (1);
+  return cmp;
+}
+#endif
 
 static PyObject *pool_str(PyObject *self)
 {
@@ -851,29 +990,32 @@ static PyObject *pool_str(PyObject *self)
 
 static PyTypeObject PoolType = {      /* main python type-descriptor */
   /* type header */                    /* shared by all instances */
-      PyObject_HEAD_INIT(&PyType_Type)
-      0,                               /* ob_size */
-      "pool",                         /* tp_name */
-      sizeof(struct KNO_PYTHON_POOL),/* tp_basicsize */
-      0,                               /* tp_itemsize */
+  PyVarObject_HEAD_INIT(&PyType_Type,0)
+  "pool",                         /* tp_name */
+  sizeof(struct KNO_PYTHON_POOL),/* tp_basicsize */
+  0,                               /* tp_itemsize */
 
   /* standard methods */
-      (destructor)  pool_dealloc,   /* tp_dealloc  ref-count==0  */
-      (printfunc)   NULL,     /* tp_print    "print x"     */
-      (getattrfunc) NULL,   /* tp_getattr  "x.attr"      */
-      (setattrfunc) NULL,               /* tp_setattr  "x.attr=v"    */
-      (cmpfunc)     pool_compare,   /* tp_compare  "x > y"       */
-      (reprfunc)    pool_str,               /* tp_repr     `x`, print x  */
+  (destructor)  pool_dealloc,   /* tp_dealloc  ref-count==0  */
+  (printfunc)   NULL,     /* tp_print    "print x"     */
+  (getattrfunc) NULL,   /* tp_getattr  "x.attr"      */
+  (setattrfunc) NULL,               /* tp_setattr  "x.attr=v"    */
+#if PY_MAJOR_VERSION < 3
+  (cmpfunc)     pool_compare,   /* tp_compare  "x > y"       */
+#else
+  NULL,
+#endif
+  (reprfunc)    pool_str,               /* tp_repr     `x`, print x  */
 
   /* type categories */
-      0,                             /* tp_as_number   +,-,*,/,%,&,>>,pow...*/
-      0,            /* tp_as_sequence +,[i],[i:j],len, ...*/
-      0,                             /* tp_as_mapping  [key], len, ...*/
+  0,                             /* tp_as_number   +,-,*,/,%,&,>>,pow...*/
+  0,            /* tp_as_sequence +,[i],[i:j],len, ...*/
+  0,                             /* tp_as_mapping  [key], len, ...*/
 
-      /* more methods */
-      (hashfunc)     0,              /* tp_hash    "dict[x]" */
-      (ternaryfunc)  0,              /* tp_call    "x()"     */
-      (reprfunc)     0,              /* tp_str     "str(x)"  */
+  /* more methods */
+  (hashfunc)     0,              /* tp_hash    "dict[x]" */
+  (ternaryfunc)  0,              /* tp_call    "x()"     */
+  (reprfunc)     0,              /* tp_str     "str(x)"  */
 
 };  /* plus others: see Include/object.h */
 
@@ -899,14 +1041,27 @@ index_dealloc(self)             /* when reference-count reaches zero */
   PyObject_Del(self);            /* same as 'free(self)' */
 }
 
-static int
-index_compare(v, w)
-     struct KNO_PYTHON_INDEX *v, *w;
+#if PY_MAJOR_VERSION >= 3
+static PyObject *index_compare(PyObject *v_arg,PyObject *w_arg,int op)
 {
-  if (v->index<w->index) return -1;
-  else if (v->index == w->index) return 0;
+  if ( (PyObject_TypeCheck(v_arg,&IndexType)) &&
+       (PyObject_TypeCheck(w_arg,&IndexType)) ) {
+    struct KNO_PYTHON_INDEX *v = (struct KNO_PYTHON_INDEX *) v_arg;
+    struct KNO_PYTHON_INDEX *w = (struct KNO_PYTHON_INDEX *) w_arg;
+    int cmp = (v->index<w->index) ? (-1) : (v->index == w->index) ? (0): (1);
+    return do_rich_compare(cmp,op);}
+  else return Py_NotImplemented;
+}
+#else
+static int index_compare(struct KNO_PYTHON_INDEX *v,struct KNO_PYTHON_INDEX *w)
+{
+  if (v->index<w->index)
+    return -1;
+  else if (v->index == w->index)
+    return 0;
   else return 1;
 }
+#endif
 
 static PyObject *index_str(PyObject *self)
 {
@@ -916,32 +1071,36 @@ static PyObject *index_str(PyObject *self)
 
 static PyTypeObject IndexType = {      /* main python type-descriptor */
   /* type header */                    /* shared by all instances */
-      PyObject_HEAD_INIT(&PyType_Type)
-      0,                               /* ob_size */
-      "index",                         /* tp_name */
-      sizeof(struct KNO_PYTHON_INDEX),/* tp_basicsize */
-      0,                               /* tp_itemsize */
+  PyVarObject_HEAD_INIT(&PyType_Type,0)
+  "index",                         /* tp_name */
+  sizeof(struct KNO_PYTHON_INDEX),/* tp_basicsize */
+  0,                               /* tp_itemsize */
 
   /* standard methods */
-      (destructor)  index_dealloc,   /* tp_dealloc  ref-count==0  */
-      (printfunc)   NULL,     /* tp_print    "print x"     */
-      (getattrfunc) NULL,   /* tp_getattr  "x.attr"      */
-      (setattrfunc) NULL,               /* tp_setattr  "x.attr=v"    */
-      (cmpfunc)     index_compare,   /* tp_compare  "x > y"       */
-      (reprfunc)    index_str,               /* tp_repr     `x`, print x  */
+  (destructor)  index_dealloc,   /* tp_dealloc  ref-count==0  */
+  (printfunc)   NULL,     /* tp_print    "print x"     */
+  (getattrfunc) NULL,   /* tp_getattr  "x.attr"      */
+  (setattrfunc) NULL,               /* tp_setattr  "x.attr=v"    */
+#if PY_MAJOR_VERSION < 3
+  (cmpfunc)     index_compare,   /* tp_compare  "x > y"       */
+#else
+  NULL,
+#endif
+  (reprfunc)    index_str,               /* tp_repr     `x`, print x  */
 
   /* type categories */
-      0,                             /* tp_as_number   +,-,*,/,%,&,>>,pow...*/
-      0,            /* tp_as_sequence +,[i],[i:j],len, ...*/
-      0,                             /* tp_as_mapping  [key], len, ...*/
+  0,                             /* tp_as_number   +,-,*,/,%,&,>>,pow...*/
+  0,            /* tp_as_sequence +,[i],[i:j],len, ...*/
+  0,                             /* tp_as_mapping  [key], len, ...*/
 
-      /* more methods */
-      (hashfunc)     0,              /* tp_hash    "dict[x]" */
-      (ternaryfunc)  0,              /* tp_call    "x()"     */
-      (reprfunc)     0,              /* tp_str     "str(x)"  */
+  /* more methods */
+  (hashfunc)     0,              /* tp_hash    "dict[x]" */
+  (ternaryfunc)  0,              /* tp_call    "x()"     */
+  (reprfunc)     0,              /* tp_str     "str(x)"  */
 
 };  /* plus others: see Include/object.h */
 
+#if PY_MAJOR_VERSION < 3
 static PyObject *pylisp_ref(PyObject *self,PyObject *arg)
 {
   if (PyString_Check(arg)) {
@@ -953,15 +1112,31 @@ static PyObject *pylisp_ref(PyObject *self,PyObject *arg)
     return lisp2py(obj);}
   else return NULL;
 }
+#else
+static PyObject *pylisp_ref(PyObject *self,PyObject *arg)
+  {
+  if (PyUnicode_Check(arg)) {
+  lispval obj;
+  PyObject *utf8 = PyUnicode_AsUTF8String(arg);
+  if (utf8)
+    obj=kno_parse((u8_string)(PyBytes_AS_STRING(utf8)));
+  else return pass_error();
+  Py_DECREF(utf8);
+  return lisp2py(obj);}
+  else return NULL;
+  }
+#endif
 
 static PyObject *usepool(PyObject *self,PyObject *arg)
 {
   kno_pool p;
-  if (PyString_Check(arg)) {
-    PyObject *u8=PyString_AsEncodedObject(arg,"utf8","none");
-    if (u8) p=kno_use_pool((u8_string)PyString_AS_STRING(u8),-1,KNO_FALSE);
+  if (PyText_Check(arg)) {
+    PyObject *utf8 = NULL;
+    u8_string spec = pytext2utf8(arg,&utf8);
+    if (spec)
+      p=kno_use_pool(spec,-1,KNO_FALSE);
     else return pass_error();
-    Py_DECREF(u8);}
+    if (utf8) Py_DECREF(utf8);}
   else return NULL;
   if (p) {
     struct KNO_PYTHON_POOL *pw=(struct KNO_PYTHON_POOL *)newpool();
@@ -973,11 +1148,13 @@ static PyObject *usepool(PyObject *self,PyObject *arg)
 static PyObject *openindex(PyObject *self,PyObject *arg)
 {
   kno_index ix;
-  if (PyString_Check(arg)) {
-    PyObject *u8=PyString_AsEncodedObject(arg,"utf8","none");
-    if (u8) ix=kno_open_index((u8_string)PyString_AS_STRING(u8),-1,KNO_FALSE);
-    else return pass_error();
-    Py_DECREF(u8);}
+  if (PyText_Check(arg)) {
+    PyObject *utf8 = NULL;
+    u8_string spec = pytext2utf8(arg,&utf8);
+    if (spec == NULL)
+      return pass_error();
+    else ix = kno_open_index(spec,-1,KNO_FALSE);
+    if (utf8) Py_DECREF(utf8);}
   else return NULL;
   if (ix) {
     struct KNO_PYTHON_INDEX *pw=(struct KNO_PYTHON_INDEX *)newindex();
@@ -989,11 +1166,12 @@ static PyObject *openindex(PyObject *self,PyObject *arg)
 static PyObject *useindex(PyObject *self,PyObject *arg)
 {
   kno_index ix;
-  if (PyString_Check(arg)) {
-    PyObject *u8=PyString_AsEncodedObject(arg,"utf8","none");
-    if (u8) ix=kno_use_index((u8_string)PyString_AS_STRING(u8),-1,KNO_FALSE);
-    else return pass_error();
-    Py_DECREF(u8);}
+  if (PyText_Check(arg)) {
+    PyObject *utf8; u8_string spec = pytext2utf8(arg,&utf8);
+    if (spec == NULL)
+      return pass_error();
+    else ix = kno_use_index(spec,-1,KNO_FALSE);
+    if (utf8) Py_DECREF(utf8);}
   else return NULL;
   if (ix) {
     struct KNO_PYTHON_INDEX *pw=(struct KNO_PYTHON_INDEX *)newindex();
@@ -1700,7 +1878,11 @@ static void init_kno_module()
   kno_init_texttools();
   kno_init_fdweb();
 #endif
+#if PY_MAJOR_VERSION >= 3
   pymodule=kno_new_module("PARSELTONGUE",0);
+#else
+  pymodule=kno_new_module("PARSELTONGUE2",0);
+#endif
   python_object_type=kno_register_cons_type("python");
   default_env=kno_working_lexenv();
   kno_recyclers[python_object_type]=recycle_python_object;
@@ -1759,6 +1941,29 @@ static void init_kno_module()
 
 }
 
+#if PY_MAJOR_VERSION >= 3
+static struct PyModuleDef parseltongue_mod = {
+  PyModuleDef_HEAD_INIT,
+  "parseltongue",
+  "Provides a bridge between KNO and Python",
+  -1,
+  kno_methods,
+  NULL,
+  NULL,
+  NULL,
+  NULL};
+
+static void init_python_module()
+{
+  PyObject *m;
+  if (python_init_done) return;
+  m = PyModule_Create(&parseltongue_mod);
+  kno_error=PyErr_NewException("kno.error",NULL,NULL);
+  Py_INCREF(kno_error);
+  PyModule_AddObject(m,"error",kno_error);
+  python_init_done=1;
+}
+#else
 static void init_python_module()
 {
   PyObject *m;
@@ -1769,20 +1974,45 @@ static void init_python_module()
   PyModule_AddObject(m,"error",kno_error);
   python_init_done=1;
 }
+#endif
 
+#if PY_MAJOR_VERSION >= 3
+static wchar_t *py_argv[256]={L"",NULL};
+static int py_argc=1;
+#else
 static char *py_argv[256]={"",NULL};
 static int py_argc=1;
+#endif
+
+static void setup_rich_compare_methods()
+{
+#if PY_MAJOR_VERSION >= 3
+  KnoType.tp_richcompare = pylisp_compare;
+  PoolType.tp_richcompare = pool_compare;
+  IndexType.tp_richcompare = index_compare;
+#endif
+}
 
 void kno_init_parseltongue()
 {
   if (!(Py_IsInitialized())) Py_Initialize();
   PySys_SetArgvEx(py_argc,py_argv,0);
+  setup_rich_compare_methods();
   init_kno_module();
   init_python_module();
 }
 
-void initparseltongue(void)
+#if PY_MAJOR_VERSION >= 3
+PyMODINIT_FUNC PyIinit_parseltongue(void)
+{
+  kno_init_parseltongue();
+  return NULL;
+}
+#else
+PyMODINIT_FUNC initparseltongue(void)
 {
   kno_init_parseltongue();
 }
+#endif
+
 

@@ -1198,19 +1198,19 @@ lib/kno/tidy.dylib: \
 		src/cmodules/tidy.c $(TIDY_OBJECTS)
 	@$(MSG) MACLIBTOOL  $@ $<
 
-# Parseltongue
+# Parseltongue (default: v3)
 src/python/parseltongue.o: src/python/parseltongue.c
-	$(CC) "-I@PYTHON2_INCLUDE_DIR@" $(CFLAGS) -o $@ -c $< ${MODLIBS}
+	$(CC) "-I@PYTHON3_INCLUDE_DIR@" $(CFLAGS) -o $@ -c $< ${MODLIBS}
 	@$(MSG) CC_PYTHON $@ $<
 
 lib/kno/parseltongue.so: src/python/parseltongue.o
-	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS} -l@PYTHON2_LIB@
+	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS} -l@PYTHON3_LIB@
 	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
 	@$(MSG) MKSO  $@ $<
 lib/kno/parseltongue.dylib: src/python/parseltongue.o ${CMODULE_DEPENDS}
 	@$(MACLIBTOOL) -install_name \
 		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
-		$(DYLIB_FLAGS) ${MODLIBS} -l@PYTHON2_LIB@ -o $@ $< 
+		$(DYLIB_FLAGS) ${MODLIBS} -l@PYTHON3_LIB@ -o $@ $< 
 	@$(MSG) MACLIBTOOL  $@ $<
 lib/kno/parseltongue.@KNO_MAJOR@.dylib: lib/kno/parseltongue.dylib
 	@ln -sf $(*F).dylib $@
@@ -1219,6 +1219,29 @@ parseltongue: lib/kno/parseltongue.@shared_suffix@
 
 install-parseltongue: ${CMODULES}/parseltongue.@shared_suffix@ \
 	${CMODULES}/parseltongue.@vshared_suffix@
+
+# Parseltongue (v2)
+src/python/parseltongue2.o: src/python/parseltongue.c
+	$(CC) "-I@PYTHON2_INCLUDE_DIR@" $(CFLAGS) -o $@ -c $< ${MODLIBS}
+	@$(MSG) CC_PYTHON $@ $<
+
+lib/kno/parseltongue2.so: src/python/parseltongue2.o
+	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS} -l@PYTHON2_LIB@
+	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
+	@$(MSG) MKSO  $@ $<
+lib/kno/parseltongue2.dylib: src/python/parseltongue2.o ${CMODULE_DEPENDS}
+	@$(MACLIBTOOL) -install_name \
+		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
+		$(DYLIB_FLAGS) ${MODLIBS} -l@PYTHON2_LIB@ -o $@ $< 
+	@$(MSG) MACLIBTOOL  $@ $<
+lib/kno/parseltongue2.@KNO_MAJOR@.dylib: lib/kno/parseltongue2.dylib
+	@ln -sf $(*F).dylib $@
+
+parseltongue2: lib/kno/parseltongue2.@shared_suffix@
+
+install-parseltongue: ${CMODULES}/parseltongue.@shared_suffix@ \
+	${CMODULES}/parseltongue.@vshared_suffix@
+
 
 # Internationalization stuff
 
