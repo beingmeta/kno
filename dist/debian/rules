@@ -8,7 +8,7 @@
 export DH_OPTIONS
 
 %:
-	dh $@ --with autotools-dev --with elpa --with systemd --parallel
+	dh $@ --with elpa --with systemd --parallel
 
 override_dh_auto_configure:
 	dh_auto_configure -- --libdir=$(DESTDIR)/usr/lib 	\

@@ -11746,6 +11746,314 @@ fi
 
 fi
 
+### zlib/libz compression functions
+
+ac_fn_c_check_header_mongrel "$LINENO" "zlib.h" "ac_cv_header_zlib_h" "$ac_includes_default"
+if test "x$ac_cv_header_zlib_h" = xyes; then :
+  have_zlib_h="yes"
+else
+  have_zlib_h="no"
+fi
+
+
+if (test "$have_zlib_h" = "yes"); then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for compress2 in -lz" >&5
+$as_echo_n "checking for compress2 in -lz... " >&6; }
+if ${ac_cv_lib_z_compress2+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lz  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char compress2 ();
+int
+main ()
+{
+return compress2 ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_z_compress2=yes
+else
+  ac_cv_lib_z_compress2=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_z_compress2" >&5
+$as_echo "$ac_cv_lib_z_compress2" >&6; }
+if test "x$ac_cv_lib_z_compress2" = xyes; then :
+  have_libz="yes"
+else
+  have_libz="no"
+fi
+
+fi
+
+if (test "$have_libz" = "yes"); then
+  ARCHIVE_CMODULES="lib/kno/zlib.$shared_suffix ${ARCHIVE_CMODULES}"
+  INSTALL_ARCHIVE_CMODULES="install-zlib ${INSTALL_ARCHIVE_CMODULES}"
+fi
+
+ac_fn_c_check_header_mongrel "$LINENO" "zlib.h" "ac_cv_header_zlib_h" "$ac_includes_default"
+if test "x$ac_cv_header_zlib_h" = xyes; then :
+  have_zlib_h="yes"
+else
+  have_zlib_h="no"
+fi
+
+
+if test "${have_zlib_h}" = "yes"; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uncompress in -lzlib" >&5
+$as_echo_n "checking for uncompress in -lzlib... " >&6; }
+if ${ac_cv_lib_zlib_uncompress+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lzlib  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char uncompress ();
+int
+main ()
+{
+return uncompress ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_zlib_uncompress=yes
+else
+  ac_cv_lib_zlib_uncompress=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_zlib_uncompress" >&5
+$as_echo "$ac_cv_lib_zlib_uncompress" >&6; }
+if test "x$ac_cv_lib_zlib_uncompress" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBZLIB 1
+_ACEOF
+
+  LIBS="-lzlib $LIBS"
+
+fi
+
+   $as_echo "#define HAVE_ZLIB_H 1" >>confdefs.h
+
+fi;
+
+### Google SNAPPY compression library
+
+ac_fn_c_check_header_mongrel "$LINENO" "snappy-c.h" "ac_cv_header_snappy_c_h" "$ac_includes_default"
+if test "x$ac_cv_header_snappy_c_h" = xyes; then :
+  have_snappyc_h="yes"
+else
+  have_snappyc_h="no"
+fi
+
+
+if test "${have_snappyc_h}" = "yes"; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for snappy_compress in -lsnappy" >&5
+$as_echo_n "checking for snappy_compress in -lsnappy... " >&6; }
+if ${ac_cv_lib_snappy_snappy_compress+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lsnappy  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char snappy_compress ();
+int
+main ()
+{
+return snappy_compress ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_snappy_snappy_compress=yes
+else
+  ac_cv_lib_snappy_snappy_compress=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_snappy_snappy_compress" >&5
+$as_echo "$ac_cv_lib_snappy_snappy_compress" >&6; }
+if test "x$ac_cv_lib_snappy_snappy_compress" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBSNAPPY 1
+_ACEOF
+
+  LIBS="-lsnappy $LIBS"
+
+fi
+
+   $as_echo "#define HAVE_SNAPPYC_H 1" >>confdefs.h
+
+fi;
+LIBS="${LIBS} -lsnappy"
+
+### ZSTD (compression wrapper)
+
+ac_fn_c_check_header_mongrel "$LINENO" "zstd.h" "ac_cv_header_zstd_h" "$ac_includes_default"
+if test "x$ac_cv_header_zstd_h" = xyes; then :
+  have_zstd_h="yes"
+else
+  have_zstd_h="no"
+fi
+
+
+if test "${have_zstd_h}" = "yes"; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ZSTD_decompress in -lzstd" >&5
+$as_echo_n "checking for ZSTD_decompress in -lzstd... " >&6; }
+if ${ac_cv_lib_zstd_ZSTD_decompress+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lzstd  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char ZSTD_decompress ();
+int
+main ()
+{
+return ZSTD_decompress ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_zstd_ZSTD_decompress=yes
+else
+  ac_cv_lib_zstd_ZSTD_decompress=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_zstd_ZSTD_decompress" >&5
+$as_echo "$ac_cv_lib_zstd_ZSTD_decompress" >&6; }
+if test "x$ac_cv_lib_zstd_ZSTD_decompress" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBZSTD 1
+_ACEOF
+
+  LIBS="-lzstd $LIBS"
+
+fi
+
+   $as_echo "#define HAVE_ZSTD_H 1" >>confdefs.h
+
+   for ac_func in ZSTD_getFrameContentSize
+do :
+  ac_fn_c_check_func "$LINENO" "ZSTD_getFrameContentSize" "ac_cv_func_ZSTD_getFrameContentSize"
+if test "x$ac_cv_func_ZSTD_getFrameContentSize" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_ZSTD_GETFRAMECONTENTSIZE 1
+_ACEOF
+
+fi
+done
+
+fi;
+
+ac_fn_c_check_header_mongrel "$LINENO" "zmq.h" "ac_cv_header_zmq_h" "$ac_includes_default"
+if test "x$ac_cv_header_zmq_h" = xyes; then :
+  have_zmq_h="yes"
+else
+  have_zmq_h="no"
+fi
+
+
+if test "${have_zmq_h}" = "yes"; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for zmq_socket in -lzmq" >&5
+$as_echo_n "checking for zmq_socket in -lzmq... " >&6; }
+if ${ac_cv_lib_zmq_zmq_socket+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lzmq  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char zmq_socket ();
+int
+main ()
+{
+return zmq_socket ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_zmq_zmq_socket=yes
+else
+  ac_cv_lib_zmq_zmq_socket=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_zmq_zmq_socket" >&5
+$as_echo "$ac_cv_lib_zmq_zmq_socket" >&6; }
+if test "x$ac_cv_lib_zmq_zmq_socket" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBZMQ 1
+_ACEOF
+
+  LIBS="-lzmq $LIBS"
+
+fi
+
+   $as_echo "#define HAVE_ZMQ_H 1" >>confdefs.h
+
+fi;
+
 ### LevelDB cmodule build
 
 # Check whether --enable-leveldb was given.
@@ -12500,256 +12808,6 @@ fi
 if test ! "${sqlite_included}" = "yes"; then
    missing="sqlite ${missing}";
 fi
-
-### zlib/libz compression functions
-
-ac_fn_c_check_header_mongrel "$LINENO" "zlib.h" "ac_cv_header_zlib_h" "$ac_includes_default"
-if test "x$ac_cv_header_zlib_h" = xyes; then :
-  have_zlib_h="yes"
-else
-  have_zlib_h="no"
-fi
-
-
-if (test "$have_zlib_h" = "yes"); then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for compress2 in -lz" >&5
-$as_echo_n "checking for compress2 in -lz... " >&6; }
-if ${ac_cv_lib_z_compress2+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lz  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char compress2 ();
-int
-main ()
-{
-return compress2 ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_z_compress2=yes
-else
-  ac_cv_lib_z_compress2=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_z_compress2" >&5
-$as_echo "$ac_cv_lib_z_compress2" >&6; }
-if test "x$ac_cv_lib_z_compress2" = xyes; then :
-  have_libz="yes"
-else
-  have_libz="no"
-fi
-
-fi
-
-if (test "$have_libz" = "yes"); then
-  ARCHIVE_CMODULES="lib/kno/zlib.$shared_suffix ${ARCHIVE_CMODULES}"
-  INSTALL_ARCHIVE_CMODULES="install-zlib ${INSTALL_ARCHIVE_CMODULES}"
-fi
-
-ac_fn_c_check_header_mongrel "$LINENO" "zlib.h" "ac_cv_header_zlib_h" "$ac_includes_default"
-if test "x$ac_cv_header_zlib_h" = xyes; then :
-  have_zlib_h="yes"
-else
-  have_zlib_h="no"
-fi
-
-
-if test "${have_zlib_h}" = "yes"; then
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uncompress in -lzlib" >&5
-$as_echo_n "checking for uncompress in -lzlib... " >&6; }
-if ${ac_cv_lib_zlib_uncompress+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lzlib  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char uncompress ();
-int
-main ()
-{
-return uncompress ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_zlib_uncompress=yes
-else
-  ac_cv_lib_zlib_uncompress=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_zlib_uncompress" >&5
-$as_echo "$ac_cv_lib_zlib_uncompress" >&6; }
-if test "x$ac_cv_lib_zlib_uncompress" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBZLIB 1
-_ACEOF
-
-  LIBS="-lzlib $LIBS"
-
-fi
-
-   $as_echo "#define HAVE_ZLIB_H 1" >>confdefs.h
-
-fi;
-
-### Google SNAPPY compression library
-
-ac_fn_c_check_header_mongrel "$LINENO" "snappy-c.h" "ac_cv_header_snappy_c_h" "$ac_includes_default"
-if test "x$ac_cv_header_snappy_c_h" = xyes; then :
-  have_snappyc_h="yes"
-else
-  have_snappyc_h="no"
-fi
-
-
-if test "${have_snappyc_h}" = "yes"; then
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for snappy_compress in -lsnappy" >&5
-$as_echo_n "checking for snappy_compress in -lsnappy... " >&6; }
-if ${ac_cv_lib_snappy_snappy_compress+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lsnappy  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char snappy_compress ();
-int
-main ()
-{
-return snappy_compress ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_snappy_snappy_compress=yes
-else
-  ac_cv_lib_snappy_snappy_compress=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_snappy_snappy_compress" >&5
-$as_echo "$ac_cv_lib_snappy_snappy_compress" >&6; }
-if test "x$ac_cv_lib_snappy_snappy_compress" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBSNAPPY 1
-_ACEOF
-
-  LIBS="-lsnappy $LIBS"
-
-fi
-
-   $as_echo "#define HAVE_SNAPPYC_H 1" >>confdefs.h
-
-fi;
-LIBS="${LIBS} -lsnappy"
-
-### ZSTD (compression wrapper)
-
-ac_fn_c_check_header_mongrel "$LINENO" "zstd.h" "ac_cv_header_zstd_h" "$ac_includes_default"
-if test "x$ac_cv_header_zstd_h" = xyes; then :
-  have_zstd_h="yes"
-else
-  have_zstd_h="no"
-fi
-
-
-if test "${have_zstd_h}" = "yes"; then
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ZSTD_decompress in -lzstd" >&5
-$as_echo_n "checking for ZSTD_decompress in -lzstd... " >&6; }
-if ${ac_cv_lib_zstd_ZSTD_decompress+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lzstd  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char ZSTD_decompress ();
-int
-main ()
-{
-return ZSTD_decompress ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_zstd_ZSTD_decompress=yes
-else
-  ac_cv_lib_zstd_ZSTD_decompress=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_zstd_ZSTD_decompress" >&5
-$as_echo "$ac_cv_lib_zstd_ZSTD_decompress" >&6; }
-if test "x$ac_cv_lib_zstd_ZSTD_decompress" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBZSTD 1
-_ACEOF
-
-  LIBS="-lzstd $LIBS"
-
-fi
-
-   $as_echo "#define HAVE_ZSTD_H 1" >>confdefs.h
-
-   for ac_func in ZSTD_getFrameContentSize
-do :
-  ac_fn_c_check_func "$LINENO" "ZSTD_getFrameContentSize" "ac_cv_func_ZSTD_getFrameContentSize"
-if test "x$ac_cv_func_ZSTD_getFrameContentSize" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_ZSTD_GETFRAMECONTENTSIZE 1
-_ACEOF
-
-fi
-done
-
-fi;
 
 ### HTML TIDY
 
