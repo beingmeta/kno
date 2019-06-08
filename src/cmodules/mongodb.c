@@ -368,7 +368,7 @@ static U8_MAYBE_UNUSED bson_t *get_search_opts(lispval opts,int flags,int for_fi
 {
   lispval skip_arg = kno_getopt(opts,skipsym,KNO_FIXZERO);
   lispval limit_arg = kno_getopt(opts,limitsym,KNO_VOID);
-  lispval sort_arg   = kno_getopt(opts,FDSYM_SORTED,KNO_VOID);
+  lispval sort_arg   = kno_getopt(opts,KNOSYM_SORTED,KNO_VOID);
   lispval batch_arg = (for_find) ? (kno_getopt(opts,batchsym,KNO_FIXZERO)) : (KNO_VOID);
   lispval projection = (for_find) ? (kno_getopt(opts,returnsym,KNO_VOID)) : (KNO_VOID);
   struct KNO_BSON_OUTPUT out;
@@ -424,7 +424,7 @@ static U8_MAYBE_UNUSED bson_t *getbulkopts(lispval opts,int flags)
   out.bson_opts = opts;
   out.bson_flags = flags;
   out.bson_fieldmap = kno_getopt(opts,fieldmap_symbol,KNO_VOID);
-  lispval ordered_arg = kno_getopt(opts,FDSYM_SORTED,KNO_FALSE);
+  lispval ordered_arg = kno_getopt(opts,KNOSYM_SORTED,KNO_FALSE);
   if (!(KNO_FALSEP(ordered_arg))) {
     bson_append_dtype(out,"ordered",4,ordered_arg,0);}
 
@@ -1278,7 +1278,7 @@ static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
     bson_t *findopts = get_search_opts(opts,flags,KNO_FIND_MATCHES);
     mongoc_read_prefs_t *rp = get_read_prefs(opts);
     lispval *vec = NULL; size_t n = 0, max = 0;
-    int sort_results = kno_testopt(opts,FDSYM_SORTED,KNO_VOID);
+    int sort_results = kno_testopt(opts,KNOSYM_SORTED,KNO_VOID);
     if ((logops)||(flags&KNO_MONGODB_LOGOPS)) {
       char *qstring = bson_as_json(q,NULL);
       u8_logf(LOG_NOTICE,"MongoDB/find",
@@ -1358,7 +1358,7 @@ static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
     lispval skip_arg = kno_getopt(opts,skipsym,KNO_FIXZERO);
     lispval limit_arg = kno_getopt(opts,limitsym,KNO_FIXZERO);
     lispval batch_arg = kno_getopt(opts,batchsym,KNO_FIXZERO);
-    int sort_results = kno_testopt(opts,FDSYM_SORTED,KNO_VOID);
+    int sort_results = kno_testopt(opts,KNOSYM_SORTED,KNO_VOID);
     lispval *vec = NULL; size_t n = 0, max = 0;
     if ((KNO_UINTP(skip_arg))&&(KNO_UINTP(limit_arg))&&(KNO_UINTP(batch_arg))) {
       bson_t *q = kno_lisp2bson(query,flags,opts);
@@ -1644,7 +1644,7 @@ static lispval mongodb_modify(lispval arg,lispval query,lispval update,
   mongoc_collection_t *collection = open_collection(domain,&client,flags);
   if (collection) {
     lispval result = KNO_VOID;
-    lispval sort = kno_getopt(opts,FDSYM_SORT,KNO_VOID);
+    lispval sort = kno_getopt(opts,KNOSYM_SORT,KNO_VOID);
     lispval fields = kno_getopt(opts,fieldssym,KNO_VOID);
     lispval upsert = kno_getopt(opts,upsertsym,KNO_FALSE);
     lispval remove = kno_getopt(opts,removesym,KNO_FALSE);
@@ -2146,7 +2146,7 @@ static lispval mongodb_cursor_reader(lispval cursor,lispval howmany,
     return kno_type_error("uint","mongodb_skip",howmany);
   int i = 0, n = KNO_FIX2INT(howmany);
   int flags = getflags(opts_arg,c->cursor_flags);
-  if (sorted < 0) sorted = kno_testopt(opts_arg,FDSYM_SORTED,KNO_VOID);
+  if (sorted < 0) sorted = kno_testopt(opts_arg,KNOSYM_SORTED,KNO_VOID);
   if (n == 0) {
     if (sorted)
       return kno_make_vector(0,NULL);
@@ -2289,7 +2289,7 @@ static bool bson_append_dtype(struct KNO_BSON_OUTPUT b,
           if (!(ok)) KNO_STOP_DO_CHOICES;}}
       bson_append_document_end(out,&arr);
       break;}
-    case kno_vector_type: case kno_code_type: {
+    case kno_vector_type: {
       struct KNO_BSON_OUTPUT rout;
       bson_t arr, ch; char buf[16];
       struct KNO_VECTOR *vec = (struct KNO_VECTOR *)val;

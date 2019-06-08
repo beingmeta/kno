@@ -64,7 +64,7 @@ kno_compress_type kno_compression_type(lispval opts,kno_compress_type dflt)
   else if ( (opts == zlib9_symbol) ||
 	    (opts == KNO_INT(9)) )
     return KNO_ZLIB9;
-  else if ( (opts == FDSYM_NO) || (opts == KNO_INT(0)) )
+  else if ( (opts == KNOSYM_NO) || (opts == KNO_INT(0)) )
     return KNO_NOCOMPRESS;
   else if (opts == snappy_symbol)
     return KNO_SNAPPY;
@@ -75,7 +75,7 @@ kno_compress_type kno_compression_type(lispval opts,kno_compress_type dflt)
     return KNO_SNAPPY;
   else if ( (kno_testopt(opts,compression_symbol,KNO_TRUE)) ||
 	    (kno_testopt(opts,compression_symbol,KNO_DEFAULT_VALUE)) ||
-	    (kno_testopt(opts,compression_symbol,FDSYM_DEFAULT)) )
+	    (kno_testopt(opts,compression_symbol,KNOSYM_DEFAULT)) )
     return dflt;
   else if (kno_testopt(opts,compression_symbol,zstd_symbol))
     return KNO_ZSTD;
@@ -85,12 +85,12 @@ kno_compress_type kno_compression_type(lispval opts,kno_compress_type dflt)
   else if ( (kno_testopt(opts,compression_symbol,zlib9_symbol)) ||
 	    (kno_testopt(opts,compression_symbol,KNO_INT(9))) )
     return KNO_ZLIB9;
-  else if ( (kno_testopt(opts,compression_symbol,FDSYM_NO)) ||
+  else if ( (kno_testopt(opts,compression_symbol,KNOSYM_NO)) ||
 	    (kno_testopt(opts,compression_symbol,KNO_INT(0))) )
     return KNO_NOCOMPRESS;
   else if ( (kno_testopt(opts,compression_symbol,KNO_TRUE)) ||
 	    (kno_testopt(opts,compression_symbol,KNO_DEFAULT_VALUE)) ||
-	    (kno_testopt(opts,compression_symbol,FDSYM_DEFAULT)) ) {
+	    (kno_testopt(opts,compression_symbol,KNOSYM_DEFAULT)) ) {
     if (dflt)
       return dflt;
     else return DEFAULT_COMPRESSION;}

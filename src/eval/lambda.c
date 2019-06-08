@@ -543,10 +543,7 @@ static lispval lambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval proc = VOID;
   if (VOIDP(arglist))
     return kno_err(kno_TooFewExpressions,"LAMBDA",NULL,expr);
-  if (KNO_CODEP(body)) {
-    kno_incref(arglist);
-    proc=_make_lambda(NULL,arglist,body,env,0,0,0,0,0);}
-  else proc=make_lambda(NULL,arglist,body,env,0,0,0);
+  proc=make_lambda(NULL,arglist,body,env,0,0,0);
   KNO_SET_LAMBDA_SOURCE(proc,expr);
   return proc;
 }
@@ -558,10 +555,7 @@ static lispval ambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval proc = VOID;
   if (VOIDP(arglist))
     return kno_err(kno_TooFewExpressions,"AMBDA",NULL,expr);
-  if (KNO_CODEP(body)) {
-    kno_incref(arglist);
-    proc=_make_lambda(NULL,arglist,body,env,1,0,0,0,0);}
-  else proc=make_lambda(NULL,arglist,body,env,1,0,0);
+  proc=make_lambda(NULL,arglist,body,env,1,0,0);
   KNO_SET_LAMBDA_SOURCE(proc,expr);
   return proc;
 }
@@ -580,10 +574,7 @@ static lispval nlambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else if (STRINGP(name)) namestring = CSTRING(name);
   else return kno_type_error("procedure name (string or symbol)",
                             "nlambda_evalfn",name);
-  if (KNO_CODEP(body)) {
-    kno_incref(arglist);
-    proc=_make_lambda(namestring,arglist,body,env,1,0,0,0,0);}
-  else proc=make_lambda(namestring,arglist,body,env,1,0,0);
+  proc=make_lambda(namestring,arglist,body,env,1,0,0);
   KNO_SET_LAMBDA_SOURCE(proc,expr);
   return proc;
 }
@@ -602,10 +593,7 @@ static lispval def_helper(lispval expr,kno_lexenv env,int nd,int sync)
   else if (STRINGP(name)) namestring = CSTRING(name);
   else return kno_type_error
          ("procedure name (string or symbol)","def_evalfn",name);
-  if (KNO_CODEP(body)) {
-    kno_incref(arglist);
-    proc=_make_lambda(namestring,arglist,body,env,1,0,0,0,0);}
-  else proc=make_lambda(namestring,arglist,body,env,1,0,0);
+  proc=make_lambda(namestring,arglist,body,env,1,0,0);
   KNO_SET_LAMBDA_SOURCE(proc,expr);
   return proc;
 }
@@ -632,11 +620,8 @@ static lispval slambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval proc = VOID;
   if (VOIDP(arglist))
     return kno_err(kno_TooFewExpressions,"SLAMBDA",NULL,expr);
- if (KNO_CODEP(body)) {
-    kno_incref(arglist);
-    proc=_make_lambda(NULL,arglist,body,env,0,1,0,0,0);}
- else proc=make_lambda(NULL,arglist,body,env,0,1,0);
- KNO_SET_LAMBDA_SOURCE(proc,expr);
+  proc=make_lambda(NULL,arglist,body,env,0,1,0);
+  KNO_SET_LAMBDA_SOURCE(proc,expr);
   return proc;
 }
 
@@ -647,21 +632,16 @@ static lispval sambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval proc = VOID;
   if (VOIDP(arglist))
     return kno_err(kno_TooFewExpressions,"SLAMBDA",NULL,expr);
- if (KNO_CODEP(body)) {
-    kno_incref(arglist);
-    proc=_make_lambda(NULL,arglist,body,env,1,1,0,0,0);}
- else proc=make_lambda(NULL,arglist,body,env,1,1,0);
- KNO_SET_LAMBDA_SOURCE(proc,expr);
- return proc;
+  proc=make_lambda(NULL,arglist,body,env,1,1,0);
+  KNO_SET_LAMBDA_SOURCE(proc,expr);
+  return proc;
 }
 
 static lispval thunk_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval body = kno_get_body(expr,1);
   lispval proc = VOID;
-  if (KNO_CODEP(body))
-    return _make_lambda(NULL,NIL,body,env,0,0,0,0,0);
-  else return make_lambda(NULL,NIL,body,env,0,0,0);
+  return make_lambda(NULL,NIL,body,env,0,0,0);
   KNO_SET_LAMBDA_SOURCE(proc,expr);
   return proc;
 }

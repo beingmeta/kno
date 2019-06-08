@@ -1022,14 +1022,14 @@ static int dorewrite(u8_output out,lispval xtract)
       if (retval<0) return retval; else i++;}}
   else if (PAIRP(xtract)) {
     lispval sym = KNO_CAR(xtract);
-    if ((sym == FDSYM_STAR) || (sym == FDSYM_PLUS) || (sym == FDSYM_OPT)) {
+    if ((sym == KNOSYM_STAR) || (sym == KNOSYM_PLUS) || (sym == KNOSYM_OPT)) {
       lispval elts = KNO_CDR(xtract);
       if (NILP(elts)) {}
       else {
         KNO_DOLIST(elt,elts) {
           int retval = dorewrite(out,elt);
           if (retval<0) return retval;}}}
-    else if (sym == FDSYM_LABEL) {
+    else if (sym == KNOSYM_LABEL) {
       lispval content = kno_get_arg(xtract,2);
       if (VOIDP(content)) {
         kno_seterr(kno_BadExtractData,"dorewrite",NULL,xtract);
@@ -1527,14 +1527,14 @@ static int framify(lispval f,u8_output out,lispval xtract)
       if (retval<0) return retval; else i++;}}
   else if (PAIRP(xtract)) {
     lispval sym = KNO_CAR(xtract);
-    if ((sym == FDSYM_STAR) || (sym == FDSYM_PLUS) || (sym == FDSYM_OPT)) {
+    if ((sym == KNOSYM_STAR) || (sym == KNOSYM_PLUS) || (sym == KNOSYM_OPT)) {
       lispval elts = KNO_CDR(xtract);
       if (NILP(elts)) {}
       else {
         KNO_DOLIST(elt,elts) {
           int retval = framify(f,out,elt);
           if (retval<0) return retval;}}}
-    else if (sym == FDSYM_LABEL) {
+    else if (sym == KNOSYM_LABEL) {
       lispval slotid = kno_get_arg(xtract,1);
       lispval content = kno_get_arg(xtract,2);
       if (VOIDP(content)) {
@@ -1675,11 +1675,11 @@ static int interpret_keep_arg(lispval keep_arg)
   else if (KNO_TRUEP(keep_arg)) return 1;
   else if (KNO_INTP(keep_arg))
     return FIX2INT(keep_arg);
-  else if (KNO_EQ(keep_arg,FDSYM_SUFFIX))
+  else if (KNO_EQ(keep_arg,KNOSYM_SUFFIX))
     return 1;
-  else if (KNO_EQ(keep_arg,FDSYM_PREFIX))
+  else if (KNO_EQ(keep_arg,KNOSYM_PREFIX))
     return -1;
-  else if (KNO_EQ(keep_arg,FDSYM_SEP))
+  else if (KNO_EQ(keep_arg,KNOSYM_SEP))
     return 2;
   else return 0;
 }

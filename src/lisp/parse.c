@@ -565,7 +565,7 @@ static lispval parse_regex(U8_INPUT *in)
           kno_seterr(kno_ParseError,"parse_regex",src.u8_outbuf,VOID);
           return KNO_PARSE_ERROR;}
         mc = u8_getc(in);}
-      u8_ungetc(in,mc);
+      if (mc >= 0) u8_ungetc(in,mc);
       *optwrite++='\0';
       result = make_regex(src.u8_outbuf,opts);
       u8_close((u8_stream)&src);
@@ -595,11 +595,13 @@ static lispval make_regex(u8_string src_arg,u8_string opts)
     u8_byte buf[512];
     regerror(retval,&(ptr->rxcompiled),buf,512);
     u8_free(ptr);
+    u8_free(src);
     return kno_err(kno_RegexError,"parse_regex",u8_strdup(buf),VOID);}
   else {
     U8_CLEAR_ERRNO();
     ptr->rxflags = cflags; ptr->rxsrc = src;
-    u8_init_mutex(&(ptr->rx_lock)); ptr->rxactive = 1;
+    u8_init_mutex(&(ptr->rx_lock));
+    ptr->rxactive = 1;
     return LISP_CONS(ptr);}
 }
 
@@ -957,15 +959,6 @@ static lispval parse_vector(U8_INPUT *in)
   else return KNO_PARSE_ERROR;
 }
 
-static lispval parse_code(U8_INPUT *in)
-{
-  int n_elts = -2;
-  lispval *elts = parse_vec(in,')',&n_elts);
-  if (n_elts>=0)
-    return kno_init_code(u8_alloc(struct KNO_VECTOR),n_elts,elts);
-  else return KNO_PARSE_ERROR;
-}
-
 static lispval parse_slotmap(U8_INPUT *in)
 {
   int n_elts = -2;
@@ -1150,10 +1143,6 @@ lispval kno_parser(u8_input in)
         return parse_histref(in);}
       else if (u8_ispunct(ch)) switch (ch) {
         case '(': return parse_vector(in);
-        case '~': {
-          ch = u8_getc(in); if (ch<0) return KNO_EOX;
-          if (ch!='(') return kno_err(kno_ParseError,"kno_parser",NULL,VOID);
-          return parse_code(in);}
         case '{': return parse_qchoice(in);
         case '[': return parse_slotmap(in);
         case '|': {
@@ -1351,7 +1340,7 @@ static lispval parse_histref(u8_input in)
       n_elts++;}
     else if (c == '=') {
       lispval elt = kno_parse(tmpbuf.u8_outbuf);
-      lispval new_tail = kno_make_list(2,elt,FDSYM_EQUALS);
+      lispval new_tail = kno_make_list(2,elt,KNOSYM_EQUALS);
       lispval new_cdr = KNO_CDR(new_tail);
       *tail = new_tail;
       tail = &(KNO_CDR(new_cdr));

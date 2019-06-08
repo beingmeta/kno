@@ -151,17 +151,17 @@ typedef enum KNO_PTR_TYPE {
 
   kno_string_type = KNO_CONS_TYPECODE(0),
   kno_packet_type = KNO_CONS_TYPECODE(1),
-  kno_secret_type = KNO_CONS_TYPECODE(2),
-  kno_bigint_type = KNO_CONS_TYPECODE(3),
-  kno_pair_type = KNO_CONS_TYPECODE(4),
+  kno_vector_type = KNO_CONS_TYPECODE(2),
+  kno_matrix_type = KNO_CONS_TYPECODE(3), /* NYI */
+  kno_numeric_vector_type = KNO_CONS_TYPECODE(4),
+  kno_pair_type = KNO_CONS_TYPECODE(5),
+  kno_secret_type = KNO_CONS_TYPECODE(6),
+  kno_bigint_type = KNO_CONS_TYPECODE(7),
 
-  kno_compound_type = KNO_CONS_TYPECODE(5),
-  kno_choice_type = KNO_CONS_TYPECODE(6),
-  kno_prechoice_type = KNO_CONS_TYPECODE(7),
-  kno_qchoice_type = KNO_CONS_TYPECODE(8),
-  kno_vector_type = KNO_CONS_TYPECODE(9),
-  kno_matrix_type = KNO_CONS_TYPECODE(10), /* NYI */
-  kno_numeric_vector_type = KNO_CONS_TYPECODE(11),
+  kno_compound_type = KNO_CONS_TYPECODE(8),
+  kno_choice_type = KNO_CONS_TYPECODE(9),
+  kno_prechoice_type = KNO_CONS_TYPECODE(10),
+  kno_qchoice_type = KNO_CONS_TYPECODE(11),
 
   kno_slotmap_type = KNO_CONS_TYPECODE(12),
   kno_schemap_type = KNO_CONS_TYPECODE(13),
@@ -170,37 +170,36 @@ typedef enum KNO_PTR_TYPE {
 
   /* Evaluator/apply types, defined here to be constant */
   kno_cprim_type = KNO_CONS_TYPECODE(16),
-  kno_lexenv_type = KNO_CONS_TYPECODE(17),
-  kno_evalfn_type = KNO_CONS_TYPECODE(18),
-  kno_macro_type = KNO_CONS_TYPECODE(19),
-  kno_dtproc_type = KNO_CONS_TYPECODE(20),
-  kno_stackframe_type = KNO_CONS_TYPECODE(21),
-  kno_tailcall_type = KNO_CONS_TYPECODE(22),
-  kno_lambda_type = KNO_CONS_TYPECODE(23),
-  kno_code_type = KNO_CONS_TYPECODE(24),
-  kno_ffi_type = KNO_CONS_TYPECODE(25),
-  kno_exception_type = KNO_CONS_TYPECODE(26),
+  kno_lambda_type = KNO_CONS_TYPECODE(17),
+  kno_ffi_type = KNO_CONS_TYPECODE(18),
+  kno_dtproc_type = KNO_CONS_TYPECODE(19),
+  kno_lexenv_type = KNO_CONS_TYPECODE(20),
+  kno_evalfn_type = KNO_CONS_TYPECODE(21),
+  kno_macro_type = KNO_CONS_TYPECODE(22),
+  kno_stackframe_type = KNO_CONS_TYPECODE(23),
+  kno_tailcall_type = KNO_CONS_TYPECODE(24),
+  kno_exception_type = KNO_CONS_TYPECODE(25),
 
-  kno_complex_type = KNO_CONS_TYPECODE(27),
-  kno_rational_type = KNO_CONS_TYPECODE(28),
-  kno_flonum_type = KNO_CONS_TYPECODE(29),
+  kno_complex_type = KNO_CONS_TYPECODE(26),
+  kno_rational_type = KNO_CONS_TYPECODE(27),
+  kno_flonum_type = KNO_CONS_TYPECODE(28),
 
-  kno_timestamp_type = KNO_CONS_TYPECODE(30),
-  kno_uuid_type = KNO_CONS_TYPECODE(31),
+  kno_timestamp_type = KNO_CONS_TYPECODE(29),
+  kno_uuid_type = KNO_CONS_TYPECODE(30),
 
   /* Other types, also defined here to be constant*/
-  kno_mystery_type = KNO_CONS_TYPECODE(32),
+  kno_mystery_type = KNO_CONS_TYPECODE(31),
 
-  kno_port_type = KNO_CONS_TYPECODE(33),
-  kno_stream_type = KNO_CONS_TYPECODE(34),
+  kno_port_type = KNO_CONS_TYPECODE(32),
+  kno_stream_type = KNO_CONS_TYPECODE(33),
 
-  kno_regex_type = KNO_CONS_TYPECODE(35),
+  kno_regex_type = KNO_CONS_TYPECODE(34),
 
-  kno_consblock_type = KNO_CONS_TYPECODE(36),
-  kno_rawptr_type = KNO_CONS_TYPECODE(37),
+  kno_consblock_type = KNO_CONS_TYPECODE(35),
+  kno_rawptr_type = KNO_CONS_TYPECODE(36),
 
-  kno_dtserver_type = KNO_CONS_TYPECODE(38),
-  kno_bloom_filter_type = KNO_CONS_TYPECODE(39),
+  kno_dtserver_type = KNO_CONS_TYPECODE(37),
+  kno_bloom_filter_type = KNO_CONS_TYPECODE(38),
 
   /* Extended types */
 
@@ -769,28 +768,31 @@ KNO_EXPORT lispval kno_all_symbols(void);
 
 KNO_EXPORT int kno_flipcase_fix;
 
-KNO_EXPORT lispval FDSYM_ADD, FDSYM_ADJUNCT, FDSYM_ALL, FDSYM_ALWAYS;
-KNO_EXPORT lispval FDSYM_BLOCKSIZE, FDSYM_BUFSIZE;
-KNO_EXPORT lispval FDSYM_CACHELEVEL, FDSYM_CACHESIZE;
-KNO_EXPORT lispval FDSYM_CONS, FDSYM_CONTENT, FDSYM_CREATE;
-KNO_EXPORT lispval FDSYM_DEFAULT, FDSYM_DOT, FDSYM_DROP;
-KNO_EXPORT lispval FDSYM_ENCODING, FDSYM_EQUALS, FDSYM_ERROR;
-KNO_EXPORT lispval FDSYM_FILE, FDSYM_FILENAME;
-KNO_EXPORT lispval FDSYM_FLAGS, FDSYM_FORMAT, FDSYM_FRONT;
-KNO_EXPORT lispval FDSYM_HISTORY_THREADVAL, FDSYM_INPUT;
-KNO_EXPORT lispval FDSYM_ISADJUNCT, FDSYM_KEYSLOT;
-KNO_EXPORT lispval FDSYM_LABEL, FDSYM_LAZY, FDSYM_LENGTH, FDSYM_LOGLEVEL;
-KNO_EXPORT lispval FDSYM_MAIN, FDSYM_MERGE, FDSYM_METADATA;
-KNO_EXPORT lispval FDSYM_MINUS, FDSYM_MODULE;
-KNO_EXPORT lispval FDSYM_NAME, FDSYM_NO, FDSYM_NONE, FDSYM_NOT;
-KNO_EXPORT lispval FDSYM_OPT, FDSYM_OPTS, FDSYM_OUTPUT;
-KNO_EXPORT lispval FDSYM_PCTID, FDSYM_PLUS, FDSYM_PREFIX, FDSYM_PROPS;
-KNO_EXPORT lispval FDSYM_QMARK, FDSYM_QUOTE, FDSYM_READONLY, FDSYM_SEP;
-KNO_EXPORT lispval FDSYM_SET, FDSYM_SIZE, FDSYM_SORT, FDSYM_SORTED;
-KNO_EXPORT lispval FDSYM_SOURCE, FDSYM_STAR, FDSYM_STRING, FDSYM_SUFFIX;
-KNO_EXPORT lispval FDSYM_TAG, FDSYM_TEST, FDSYM_TEXT, FDSYM_TYPE;
-KNO_EXPORT lispval FDSYM_STORE;
-KNO_EXPORT lispval FDSYM_VERSION, FDSYM_VOID;
+KNO_EXPORT lispval KNOSYM_ADD, KNOSYM_ADJUNCT, KNOSYM_ALL, KNOSYM_ALWAYS;
+KNO_EXPORT lispval KNOSYM_BLOCKSIZE, KNOSYM_BUFSIZE;
+KNO_EXPORT lispval KNOSYM_CACHELEVEL, KNOSYM_CACHESIZE;
+KNO_EXPORT lispval KNOSYM_CONS, KNOSYM_CONTENT, KNOSYM_CREATE;
+KNO_EXPORT lispval KNOSYM_DEFAULT, KNOSYM_DOT, KNOSYM_DROP, KNOSYM_DTYPE;
+KNO_EXPORT lispval KNOSYM_ENCODING, KNOSYM_EQUALS, KNOSYM_ERROR;
+KNO_EXPORT lispval KNOSYM_FILE, KNOSYM_FILENAME;
+KNO_EXPORT lispval KNOSYM_FLAGS, KNOSYM_FORMAT, KNOSYM_FRONT;
+KNO_EXPORT lispval KNOSYM_HISTORY_THREADVAL, KNOSYM_INPUT;
+KNO_EXPORT lispval KNOSYM_ISADJUNCT, KNOSYM_KEYSLOT;
+KNO_EXPORT lispval KNOSYM_LABEL, KNOSYM_LAZY, KNOSYM_LENGTH, KNOSYM_LOGLEVEL;
+KNO_EXPORT lispval KNOSYM_MAIN, KNOSYM_MERGE, KNOSYM_METADATA;
+KNO_EXPORT lispval KNOSYM_MINUS, KNOSYM_MODULE;
+KNO_EXPORT lispval KNOSYM_NAME, KNOSYM_NO, KNOSYM_NONE, KNOSYM_NOT;
+KNO_EXPORT lispval KNOSYM_OPT, KNOSYM_OPTS, KNOSYM_OUTPUT;
+KNO_EXPORT lispval KNOSYM_PACKET, KNOSYM_PCTID, KNOSYM_PLUS, KNOSYM_PREFIX;
+KNO_EXPORT lispval KNOSYM_PROPS;
+KNO_EXPORT lispval KNOSYM_QMARK, KNOSYM_QUOTE, KNOSYM_READONLY, KNOSYM_SEP;
+KNO_EXPORT lispval KNOSYM_SET, KNOSYM_SIZE, KNOSYM_SORT, KNOSYM_SORTED;
+KNO_EXPORT lispval KNOSYM_SOURCE, KNOSYM_STAR, KNOSYM_STORE, KNOSYM_STRING;
+KNO_EXPORT lispval KNOSYM_SUFFIX;
+KNO_EXPORT lispval KNOSYM_TAG, KNOSYM_TEST, KNOSYM_TEXT, KNOSYM_TYPE;
+KNO_EXPORT lispval KNOSYM_UTF8;
+KNO_EXPORT lispval KNOSYM_VERSION, KNOSYM_VOID;
+KNO_EXPORT lispval KNOSYM_XTYPE;
 
 /* Function IDs */
 

@@ -4040,6 +4040,10 @@ static int bad_table_call(lispval arg,kno_ptr_type type,void *handler,
   else if (PRED_FALSE(kno_tablefns[type]==NULL)) {
     kno_seterr(NotATable,cxt,NULL,arg);
     return 1;}
+  else if ( (kno_tablefns[type]->tablep) &&
+            ((kno_tablefns[type]->tablep)(arg)) ) {
+    kno_seterr(NotATable,cxt,NULL,arg);
+    return 1;}
   else {
     kno_seterr(kno_NoMethod,cxt,NULL,arg);
     return 1;}
@@ -4627,22 +4631,19 @@ void kno_init_tables_c()
   memset(kno_tablefns,0,sizeof(kno_tablefns));
 
   /* HASHTABLE table functions */
-  kno_tablefns[kno_hashtable_type]=u8_alloc(struct KNO_TABLEFNS);
+  kno_tablefns[kno_hashtable_type]=u8_zalloc(struct KNO_TABLEFNS);
   kno_tablefns[kno_hashtable_type]->get=(kno_table_get_fn)kno_hashtable_get;
   kno_tablefns[kno_hashtable_type]->add=(kno_table_add_fn)kno_hashtable_add;
   kno_tablefns[kno_hashtable_type]->drop=(kno_table_drop_fn)kno_hashtable_drop;
   kno_tablefns[kno_hashtable_type]->store=(kno_table_store_fn)kno_hashtable_store;
   kno_tablefns[kno_hashtable_type]->test=(kno_table_test_fn)hashtable_test;
-  kno_tablefns[kno_hashtable_type]->getsize=
-    (kno_table_getsize_fn)hashtable_getsize;
+  kno_tablefns[kno_hashtable_type]->getsize=(kno_table_getsize_fn)hashtable_getsize;
   kno_tablefns[kno_hashtable_type]->keys=(kno_table_keys_fn)kno_hashtable_keys;
-  kno_tablefns[kno_hashtable_type]->modified=
-    (kno_table_modified_fn)hashtable_modified;
-  kno_tablefns[kno_hashtable_type]->readonly=
-    (kno_table_readonly_fn)hashtable_readonly;
+  kno_tablefns[kno_hashtable_type]->modified=(kno_table_modified_fn)hashtable_modified;
+  kno_tablefns[kno_hashtable_type]->readonly=(kno_table_readonly_fn)hashtable_readonly;
 
   /* SLOTMAP table functions */
-  kno_tablefns[kno_slotmap_type]=u8_alloc(struct KNO_TABLEFNS);
+  kno_tablefns[kno_slotmap_type]=u8_zalloc(struct KNO_TABLEFNS);
   kno_tablefns[kno_slotmap_type]->get=(kno_table_get_fn)kno_slotmap_get;
   kno_tablefns[kno_slotmap_type]->add=(kno_table_add_fn)kno_slotmap_add;
   kno_tablefns[kno_slotmap_type]->drop=(kno_table_drop_fn)kno_slotmap_drop;
@@ -4650,13 +4651,11 @@ void kno_init_tables_c()
   kno_tablefns[kno_slotmap_type]->test=(kno_table_test_fn)kno_slotmap_test;
   kno_tablefns[kno_slotmap_type]->getsize=(kno_table_getsize_fn)slotmap_getsize;
   kno_tablefns[kno_slotmap_type]->keys=(kno_table_keys_fn)kno_slotmap_keys;
-  kno_tablefns[kno_slotmap_type]->modified=
-    (kno_table_modified_fn)slotmap_modified;
-  kno_tablefns[kno_slotmap_type]->readonly=
-    (kno_table_readonly_fn)slotmap_readonly;
+  kno_tablefns[kno_slotmap_type]->modified=(kno_table_modified_fn)slotmap_modified;
+  kno_tablefns[kno_slotmap_type]->readonly=(kno_table_readonly_fn)slotmap_readonly;
 
   /* SCHEMAP table functions */
-  kno_tablefns[kno_schemap_type]=u8_alloc(struct KNO_TABLEFNS);
+  kno_tablefns[kno_schemap_type]=u8_zalloc(struct KNO_TABLEFNS);
   kno_tablefns[kno_schemap_type]->get=(kno_table_get_fn)kno_schemap_get;
   kno_tablefns[kno_schemap_type]->add=(kno_table_add_fn)kno_schemap_add;
   kno_tablefns[kno_schemap_type]->drop=(kno_table_drop_fn)kno_schemap_drop;
@@ -4664,13 +4663,11 @@ void kno_init_tables_c()
   kno_tablefns[kno_schemap_type]->test=(kno_table_test_fn)kno_schemap_test;
   kno_tablefns[kno_schemap_type]->getsize=(kno_table_getsize_fn)schemap_getsize;
   kno_tablefns[kno_schemap_type]->keys=(kno_table_keys_fn)kno_schemap_keys;
-  kno_tablefns[kno_schemap_type]->modified=
-    (kno_table_modified_fn)schemap_modified;
-  kno_tablefns[kno_schemap_type]->readonly=
-    (kno_table_readonly_fn)schemap_readonly;
+  kno_tablefns[kno_schemap_type]->modified=(kno_table_modified_fn)schemap_modified;
+  kno_tablefns[kno_schemap_type]->readonly=(kno_table_readonly_fn)schemap_readonly;
 
   /* HASHSET table functions */
-  kno_tablefns[kno_hashset_type]=u8_alloc(struct KNO_TABLEFNS);
+  kno_tablefns[kno_hashset_type]=u8_zalloc(struct KNO_TABLEFNS);
   kno_tablefns[kno_hashset_type]->get=(kno_table_get_fn)hashset_get;
   kno_tablefns[kno_hashset_type]->add=(kno_table_add_fn)hashset_store;
   /* This is a no-op because you can't drop a value from a hashset.
@@ -4681,15 +4678,15 @@ void kno_init_tables_c()
   kno_tablefns[kno_hashset_type]->test=NULL;
   kno_tablefns[kno_hashset_type]->getsize=(kno_table_getsize_fn)hashset_getsize;
   kno_tablefns[kno_hashset_type]->keys=(kno_table_keys_fn)hashset_elts;
-  kno_tablefns[kno_hashset_type]->modified=
-    (kno_table_modified_fn)hashset_modified;
+  kno_tablefns[kno_hashset_type]->modified=(kno_table_modified_fn)hashset_modified;
 
-  /* HASHSET table functions */
-  kno_tablefns[kno_pair_type]=u8_alloc(struct KNO_TABLEFNS);
+  /* PAIR table functions */
+  kno_tablefns[kno_pair_type]=u8_zalloc(struct KNO_TABLEFNS);
   kno_tablefns[kno_pair_type]->get=pairget;
   kno_tablefns[kno_pair_type]->test=pairtest;
   kno_tablefns[kno_pair_type]->keys=pairkeys;
   kno_tablefns[kno_pair_type]->getsize=(kno_table_getsize_fn)pairgetsize;
+  kno_tablefns[kno_pair_type]->tablep=NULL;
 
   /* Table functions for
        OIDS

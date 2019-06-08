@@ -34,7 +34,7 @@ KNO_FASTOP int fast_walk(kno_walker walker,lispval obj,
   else if (CONSP(obj)) {
     int constype = KNO_PTR_TYPE(obj);
     switch (constype) {
-    case kno_pair_type: case kno_vector_type: case kno_code_type:
+    case kno_pair_type: case kno_vector_type:
     case kno_choice_type: case kno_prechoice_type: case kno_qchoice_type:
     case kno_slotmap_type: case kno_schemap_type:
     case kno_hashtable_type: case kno_hashset_type: {
@@ -90,7 +90,7 @@ static int cons_walk(kno_walker walker,int constype,
           scan = pair->cdr;}
         else return rv;}
       return fast_walk(walker,scan,walkdata,flags,depth-1);}
-    case kno_code_type: case kno_vector_type: {
+    case kno_vector_type: {
       int i = 0, len = VEC_LEN(obj), rv = 0;
       lispval *elts = VEC_DATA(obj);
       while (i<len) {

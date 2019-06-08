@@ -216,7 +216,7 @@ KNO_EXPORT void kno_register_index(kno_index ix)
   if (KNO_NULLP(keyslotid))
     keyslotid = KNO_VOID;
   if ( (KNO_VOIDP(keyslotid)) && (ix->index_metadata.n_slots) )
-    keyslotid = kno_slotmap_get(&(ix->index_metadata),FDSYM_KEYSLOT,KNO_VOID);
+    keyslotid = kno_slotmap_get(&(ix->index_metadata),KNOSYM_KEYSLOT,KNO_VOID);
   if (KNO_VOIDP(keyslotid)) {}
   else if ( (KNO_SYMBOLP(keyslotid)) || (KNO_OIDP(keyslotid)) ) {}
   else if (KNO_FALSEP(keyslotid))
@@ -724,7 +724,7 @@ static int edit_key_fn(lispval key,lispval val,void *data)
   lispval **write = (lispval **)data;
   if (PAIRP(key)) {
     struct KNO_PAIR *pair = (struct KNO_PAIR *)key;
-    if (pair->car == FDSYM_SET) {
+    if (pair->car == KNOSYM_SET) {
       lispval real_key = pair->cdr;
       kno_incref(real_key);
       *((*write)++) = real_key;}}
@@ -1790,7 +1790,7 @@ KNO_EXPORT lispval kno_index_base_metadata(kno_index ix)
   mdstore(metadata,drops_slot,KNO_INT(ix->index_drops.table_n_keys));
   mdstore(metadata,replaced_slot,KNO_INT(ix->index_stores.table_n_keys));
   if ((ix->index_handler) && (ix->index_handler->name))
-    mdstring(metadata,FDSYM_TYPE,(ix->index_handler->name));
+    mdstring(metadata,KNOSYM_TYPE,(ix->index_handler->name));
 
   if (U8_BITP(flags,KNO_STORAGE_READ_ONLY))
     kno_add(metadata,flags_slot,read_only_flag);
@@ -1821,7 +1821,7 @@ KNO_EXPORT lispval kno_index_base_metadata(kno_index ix)
   kno_add(metadata,metadata_readonly_props,indexid_slot);
   kno_add(metadata,metadata_readonly_props,realpath_slot);
   kno_add(metadata,metadata_readonly_props,source_slot);
-  kno_add(metadata,metadata_readonly_props,FDSYM_TYPE);
+  kno_add(metadata,metadata_readonly_props,KNOSYM_TYPE);
   kno_add(metadata,metadata_readonly_props,edits_slot);
   kno_add(metadata,metadata_readonly_props,adds_slot);
   kno_add(metadata,metadata_readonly_props,drops_slot);
@@ -1829,7 +1829,7 @@ KNO_EXPORT lispval kno_index_base_metadata(kno_index ix)
   kno_add(metadata,metadata_readonly_props,cached_slot);
   kno_add(metadata,metadata_readonly_props,flags_slot);
 
-  kno_add(metadata,metadata_readonly_props,FDSYM_PROPS);
+  kno_add(metadata,metadata_readonly_props,KNOSYM_PROPS);
   kno_add(metadata,metadata_readonly_props,opts_slot);
 
   return metadata;
@@ -1868,11 +1868,11 @@ KNO_EXPORT void kno_init_index(kno_index ix,
 
   ix->index_handler = h;
 
-  lispval keyslot = kno_getopt(opts,FDSYM_KEYSLOT,VOID);
+  lispval keyslot = kno_getopt(opts,KNOSYM_KEYSLOT,VOID);
   KNO_INIT_STATIC_CONS(&(ix->index_metadata),kno_slotmap_type);
   if (KNO_SLOTMAPP(metadata)) {
     kno_copy_slotmap((kno_slotmap)metadata,&(ix->index_metadata));
-    if (KNO_VOIDP(keyslot)) keyslot=kno_get(metadata,FDSYM_KEYSLOT,VOID);}
+    if (KNO_VOIDP(keyslot)) keyslot=kno_get(metadata,KNOSYM_KEYSLOT,VOID);}
   else {
     kno_init_slotmap(&(ix->index_metadata),17,NULL);
     ix->index_keyslot = VOID;}
@@ -1891,7 +1891,7 @@ KNO_EXPORT void kno_init_index(kno_index ix,
     ix->index_opts = KNO_FALSE;
   else ix->index_opts = kno_incref(opts);
 
-  lispval ll = kno_getopt(opts,FDSYM_LOGLEVEL,KNO_VOID);
+  lispval ll = kno_getopt(opts,KNOSYM_LOGLEVEL,KNO_VOID);
   if (KNO_VOIDP(ll))
     ix->index_loglevel = -1;
   else if ( (KNO_FIXNUMP(ll)) && ( (KNO_FIX2INT(ll)) >= 0 ) &&
@@ -1910,7 +1910,7 @@ KNO_EXPORT int kno_index_set_metadata(kno_index ix,lispval metadata)
 {
   if (KNO_SLOTMAPP(metadata)) {
     kno_copy_slotmap((kno_slotmap)metadata,&(ix->index_metadata));
-    ix->index_keyslot = kno_get(metadata,FDSYM_KEYSLOT,VOID);}
+    ix->index_keyslot = kno_get(metadata,KNOSYM_KEYSLOT,VOID);}
   else {
     KNO_INIT_STATIC_CONS(&(ix->index_metadata),kno_slotmap_type);
     kno_init_slotmap(&(ix->index_metadata),17,NULL);
@@ -2236,7 +2236,7 @@ KNO_EXPORT lispval kno_default_indexctl(kno_index ix,lispval op,
     return kno_err("BadIndexOpCall","kno_default_indexctl",ix->indexid,VOID);
   else if (n<0)
     return kno_err("BadIndexOpCall","kno_default_indexctl",ix->indexid,VOID);
-  else if (op == FDSYM_OPTS)  {
+  else if (op == KNOSYM_OPTS)  {
     lispval opts = ix->index_opts;
     if (n > 1)
       return kno_err(kno_TooManyArgs,"kno_default_indexctl",ix->indexid,VOID);
@@ -2258,7 +2258,7 @@ KNO_EXPORT lispval kno_default_indexctl(kno_index ix,lispval op,
       return v;}
     else if (n == 2) {
       lispval extended=kno_index_ctl(ix,kno_metadata_op,0,NULL);
-      if (kno_test(extended,FDSYM_READONLY,slotid)) {
+      if (kno_test(extended,KNOSYM_READONLY,slotid)) {
         kno_decref(extended);
         return kno_err("ReadOnlyMetadataProperty","kno_default_indexctl",
                       ix->indexid,slotid);}
@@ -2269,7 +2269,7 @@ KNO_EXPORT lispval kno_default_indexctl(kno_index ix,lispval op,
       else return kno_incref(args[1]);}
     else return kno_err(kno_TooManyArgs,"kno_index_ctl/metadata",
                        KNO_SYMBOL_NAME(op),kno_index2lisp(ix));}
-  else if (op == FDSYM_PROPS) {
+  else if (op == KNOSYM_PROPS) {
     lispval props = (lispval) &(ix->index_props);
     lispval slotid = (n>0) ? (args[0]) : (KNO_VOID);
     if (n == 0)
@@ -2283,7 +2283,7 @@ KNO_EXPORT lispval kno_default_indexctl(kno_index ix,lispval op,
       else return kno_incref(args[1]);}
     else return kno_err(kno_TooManyArgs,"kno_index_ctl/props",
                        KNO_SYMBOL_NAME(op),kno_index2lisp(ix));}
-  else if (op == FDSYM_KEYSLOT) {
+  else if (op == KNOSYM_KEYSLOT) {
     if (n == 0) {
       if ( (KNO_NULLP(ix->index_keyslot)) || (KNO_VOIDP(ix->index_keyslot)) )
         return KNO_FALSE;
@@ -2314,14 +2314,14 @@ KNO_EXPORT lispval kno_default_indexctl(kno_index ix,lispval op,
              add the new keyslot to the metadata, so it will be
              saved. */
           lispval metadata = ((lispval)&(ix->index_metadata));
-          kno_store(metadata,FDSYM_KEYSLOT,defslot);}
+          kno_store(metadata,KNOSYM_KEYSLOT,defslot);}
         ix->index_keyslot=defslot;
         return kno_incref(defslot);}
       else return kno_type_error("slotid","kno_default_indexctl/keyslot",
                                 defslot);}
     else return kno_err(kno_TooManyArgs,"kno_index_ctl/keyslot",
                        KNO_SYMBOL_NAME(op),kno_index2lisp(ix));}
-  else if (op == FDSYM_LOGLEVEL) {
+  else if (op == KNOSYM_LOGLEVEL) {
     if (n == 0) {
       if (ix->index_loglevel < 0)
         return KNO_FALSE;
@@ -2346,9 +2346,9 @@ KNO_EXPORT lispval kno_default_indexctl(kno_index ix,lispval op,
     return KNO_EMPTY;
   else if (op == kno_raw_metadata_op)
     return kno_deep_copy((lispval) &(ix->index_metadata));
-  else if (op == FDSYM_CACHELEVEL)
+  else if (op == KNOSYM_CACHELEVEL)
     return KNO_INT2FIX(1);
-  else if (op == FDSYM_READONLY) {
+  else if (op == KNOSYM_READONLY) {
     if (KNO_INDEX_READONLYP(ix))
       return KNO_TRUE;
     else return KNO_FALSE;}
@@ -2411,7 +2411,7 @@ KNO_EXPORT void kno_init_indexes_c()
   registered_slot=kno_intern("registered");
   opts_slot=kno_intern("opts");
 
-  read_only_flag=FDSYM_READONLY;
+  read_only_flag=KNOSYM_READONLY;
   unregistered_flag=kno_intern("unregistered");
   registered_flag=kno_intern("registered");
   noswap_flag=kno_intern("noswap");
@@ -2424,7 +2424,7 @@ KNO_EXPORT void kno_init_indexes_c()
       kno_register_compound(kno_intern("index"),NULL,NULL);
     e->compound_parser = index_parsefn;}
 
-  kno_tablefns[kno_index_type]=u8_alloc(struct KNO_TABLEFNS);
+  kno_tablefns[kno_index_type]=u8_zalloc(struct KNO_TABLEFNS);
   kno_tablefns[kno_index_type]->get = table_indexget;
   kno_tablefns[kno_index_type]->add = table_indexadd;
   kno_tablefns[kno_index_type]->drop = table_indexdrop;
@@ -2433,7 +2433,7 @@ KNO_EXPORT void kno_init_indexes_c()
   kno_tablefns[kno_index_type]->keys = table_indexkeys;
   kno_tablefns[kno_index_type]->getsize = NULL;
 
-  kno_tablefns[kno_consed_index_type]=u8_alloc(struct KNO_TABLEFNS);
+  kno_tablefns[kno_consed_index_type]=u8_zalloc(struct KNO_TABLEFNS);
   kno_tablefns[kno_consed_index_type]->get = table_indexget;
   kno_tablefns[kno_consed_index_type]->add = table_indexadd;
   kno_tablefns[kno_consed_index_type]->drop = table_indexdrop;

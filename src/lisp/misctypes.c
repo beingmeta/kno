@@ -236,7 +236,8 @@ KNO_EXPORT lispval kno_make_regex(u8_string src,int flags)
     return kno_err(kno_RegexError,"kno_make_regex",u8_strdup(buf),
                   kno_init_string(NULL,-1,src));}
   else {
-    ptr->rxflags = flags; ptr->rxsrc = src;
+    ptr->rxsrc = src;
+    ptr->rxflags = flags;
     u8_init_mutex(&(ptr->rx_lock)); ptr->rxactive = 1;
     return LISP_CONS(ptr);}
 }

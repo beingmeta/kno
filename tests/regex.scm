@@ -18,6 +18,8 @@
 (applytest 12 (regex/search in-angles (slice test-string 1)))
 (applytest 0 (regex/search in-angles test-string))
 
+(applytest in-angles parser/roundtrip in-angles)
+
 (errtest (regex/match 'test-string))
 (errtest (regex/match 33))
 (errtest (regex/matchlen in-angles 'symbol))

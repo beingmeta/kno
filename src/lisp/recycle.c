@@ -145,6 +145,7 @@ static void recycle_regex(struct KNO_RAW_CONS *c)
   struct KNO_REGEX *rx = (struct KNO_REGEX *)c;
   regfree(&(rx->rxcompiled));
   u8_destroy_mutex(&(rx->rx_lock));
+  u8_free(rx->rxsrc);
   u8_free(c);
 }
 
@@ -200,7 +201,7 @@ void kno_recycle_cons(kno_raw_cons c)
   case kno_string_type: case kno_packet_type: case kno_secret_type:
     recycle_string((struct KNO_STRING *)c);
     return;
-  case kno_vector_type: case kno_code_type:
+  case kno_vector_type:
     recycle_vector((struct KNO_VECTOR *)c);
     return;
   case kno_choice_type:

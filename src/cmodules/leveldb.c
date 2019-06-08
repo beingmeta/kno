@@ -1632,15 +1632,15 @@ kno_index kno_make_leveldb_index(u8_string path,lispval opts)
   lispval slotids = kno_getopt(opts,SYM("SLOTIDS"),KNO_VOID);
   lispval baseoids = kno_getopt(opts,SYM("BASEOIDS"),KNO_VOID);
 
-  lispval keyslot = kno_getopt(opts,FDSYM_KEYSLOT,KNO_VOID);
+  lispval keyslot = kno_getopt(opts,KNOSYM_KEYSLOT,KNO_VOID);
 
   if ( (KNO_VOIDP(keyslot)) || (KNO_FALSEP(keyslot)) ) {}
   else if ( (KNO_SYMBOLP(keyslot)) || (KNO_OIDP(keyslot)) ) {
     if (KNO_SLOTMAPP(metadata))
-      kno_store(metadata,FDSYM_KEYSLOT,keyslot);
+      kno_store(metadata,KNOSYM_KEYSLOT,keyslot);
     else {
       metadata = kno_empty_slotmap();
-      kno_store(metadata,FDSYM_KEYSLOT,keyslot);}}
+      kno_store(metadata,KNOSYM_KEYSLOT,keyslot);}}
   else u8_log(LOG_WARN,"InvalidKeySlot",
               "Not initializing keyslot of %s to %q",path,keyslot);
 
@@ -2386,7 +2386,7 @@ KNO_EXPORT int kno_init_leveldb()
   kno_type_names[kno_leveldb_type]="LevelDB";
 
   /* Table functions for leveldbs */
-  kno_tablefns[kno_leveldb_type]=u8_alloc(struct KNO_TABLEFNS);
+  kno_tablefns[kno_leveldb_type]=u8_zalloc(struct KNO_TABLEFNS);
   kno_tablefns[kno_leveldb_type]->get = leveldb_table_get;
   kno_tablefns[kno_leveldb_type]->store = leveldb_table_store;
 

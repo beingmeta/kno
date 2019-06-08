@@ -602,68 +602,6 @@ KNO_EXPORT lispval kno_make_vector(int len,lispval *data)
   return LISP_CONS(ptr);
 }
 
-/* Rails */
-
-KNO_EXPORT lispval kno_init_code(struct KNO_VECTOR *ptr,int len,lispval *data)
-{
-  lispval *elts; int i = 0, freedata = 1;
-  if (len<0) {
-    kno_seterr("NegativeLength","kno_init_code",NULL,KNO_INT(len));
-    return KNO_ERROR;}
-  if ((ptr == NULL)&&(data == NULL)) {
-    ptr = u8_malloc(KNO_VECTOR_LEN+(LISPVEC_BYTELEN(len)));
-    elts = ((lispval *)(((unsigned char *)ptr)+KNO_VECTOR_LEN));
-    freedata = 0;}
-  else if (ptr == NULL) {
-    ptr = u8_alloc(struct KNO_VECTOR);
-    elts = data;}
-  else if (data == NULL) {
-    int i = 0; elts = u8_alloc_n(len,lispval);
-    while (i<len) elts[i]=VOID;
-    freedata = 1;}
-  else {
-    ptr = u8_alloc(struct KNO_VECTOR);
-    elts = data;}
-  KNO_INIT_CONS(ptr,kno_code_type);
-  if (data == NULL) while (i < len) elts[i++]=VOID;
-  ptr->vec_length = len;
-  ptr->vec_elts = elts;
-  ptr->vec_free_elts = freedata;
-  ptr->vec_bigalloc = 0;
-  return LISP_CONS(ptr);
-}
-
-KNO_EXPORT lispval kno_make_nrail(int len,...)
-{
-  va_list args; int i = 0;
-  if (len<0) {
-    kno_seterr("NegativeLength","kno_init_code",NULL,KNO_INT(len));
-    return KNO_ERROR;}
-  lispval result = kno_init_code(NULL,len,NULL);
-  lispval *elts = KNO_CODE_ELTS(result);
-  va_start(args,len);
-  while (i<len) elts[i++]=va_arg(args,lispval);
-  va_end(args);
-  return result;
-}
-
-KNO_EXPORT lispval kno_make_code(int len,lispval *data)
-{
-  int i = 0;
-  if (len<0) {
-    kno_seterr("NegativeLength","kno_init_code",NULL,KNO_INT(len));
-    return KNO_ERROR;}
-  struct KNO_VECTOR *ptr = u8_malloc(KNO_VECTOR_LEN+(LISPVEC_BYTELEN(len)));
-  lispval *elts = ((lispval *)(((unsigned char *)ptr)+KNO_VECTOR_LEN));
-  KNO_INIT_CONS(ptr,kno_code_type);
-  ptr->vec_length = len;
-  ptr->vec_elts = elts;
-  ptr->vec_free_elts = 0;
-  ptr->vec_bigalloc = 0;
-  while (i < len) {elts[i]=data[i]; i++;}
-  return LISP_CONS(ptr);
-}
-
 /* Packets */
 
 KNO_EXPORT lispval kno_init_packet
@@ -945,6 +883,9 @@ void kno_init_cons_c()
   kno_add_constname("#8gib",KNO_INT((8*(ONEK)*(ONEK)*(ONEK))));
   kno_add_constname("#1mib",KNO_INT((1024*1024)));
   kno_add_constname("#2mib",KNO_INT((2*1024*1024)));
+
+  kno_register_constant("plugh");
+
 }
 
 /* Emacs local variables

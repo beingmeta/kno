@@ -269,7 +269,7 @@ static void get_form_args(kno_slotmap c)
             lispval ctype = kno_get(elt,content_type,EMPTY);
             kno_add((lispval)c,intern_compound(nstring,"_TYPE"),ctype);
             kno_decref(ctype);}
-          if ((VOIDP(ctype)) || (kno_overlapp(ctype,FDSYM_TEXT))) {
+          if ((VOIDP(ctype)) || (kno_overlapp(ctype,KNOSYM_TEXT))) {
             if (STRINGP(content)) {
               u8_string chars = CSTRING(content); int len = STRLEN(content);
               /* Remove trailing \r\n from the MIME field */
@@ -532,9 +532,9 @@ KNO_EXPORT int kno_parse_cgidata(lispval data)
       lispval value = kno_apply(handler,1,&data);
       kno_decref(value);}
     else u8_log(LOG_WARN,"Not Applicable","Invalid CGI prep handler %q",handler);}}
-  if (!(kno_slotmap_test(cgidata,FDSYM_PCTID,KNO_VOID))) {
+  if (!(kno_slotmap_test(cgidata,KNOSYM_PCTID,KNO_VOID))) {
     lispval req_uri = kno_slotmap_get(cgidata,request_uri,KNO_VOID);
-    if (KNO_STRINGP(req_uri)) kno_slotmap_store(cgidata,FDSYM_PCTID,req_uri);
+    if (KNO_STRINGP(req_uri)) kno_slotmap_store(cgidata,KNOSYM_PCTID,req_uri);
     kno_decref(req_uri);}
   return 1;
 }
@@ -801,7 +801,7 @@ static lispval jsout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     KNO_DOLIST(x,body) {
       if (STRINGP(x))
         u8_puts(&_out,CSTRING(x));
-      else if ((SYMBOLP(x))||(PAIRP(x))||(KNO_CODEP(x))) {
+      else if ((SYMBOLP(x))||(PAIRP(x))) {
         result = kno_eval(x,env);
         if (KNO_ABORTP(result)) break;
         else if ((VOIDP(result))||(FALSEP(result))||
@@ -836,7 +836,7 @@ static lispval cssout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   {KNO_DOLIST(x,body) {
       if (STRINGP(x))
         u8_puts(&_out,CSTRING(x));
-      else if ((SYMBOLP(x))||(PAIRP(x))||(KNO_CODEP(x))) {
+      else if ((SYMBOLP(x))||(PAIRP(x))) {
         result = kno_eval(x,env);
         if (KNO_ABORTP(result)) break;
         else if ((VOIDP(result))||(FALSEP(result))||

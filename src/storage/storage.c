@@ -111,10 +111,10 @@ kno_get_dbflags(lispval opts,kno_storage_flags init_flags)
     if ( (is_index) && (testopt(opts,background_symbol,0)) )
       flags |= KNO_INDEX_IN_BACKGROUND;
     if ( (!(is_index)) &&
-         ( (testopt(opts,FDSYM_ADJUNCT,0)) ||
-           (testopt(opts,FDSYM_ISADJUNCT,0)) ||
-           (kno_testopt(opts,FDSYM_FORMAT,FDSYM_ISADJUNCT)) ||
-           (kno_testopt(opts,FDSYM_FORMAT,FDSYM_ADJUNCT))) )
+         ( (testopt(opts,KNOSYM_ADJUNCT,0)) ||
+           (testopt(opts,KNOSYM_ISADJUNCT,0)) ||
+           (kno_testopt(opts,KNOSYM_FORMAT,KNOSYM_ISADJUNCT)) ||
+           (kno_testopt(opts,KNOSYM_FORMAT,KNOSYM_ADJUNCT))) )
       flags |= KNO_POOL_ADJUNCT;
     if ( (!(is_index)) && (testopt(opts,sparse_symbol,0)) )
       flags |= KNO_POOL_SPARSE;

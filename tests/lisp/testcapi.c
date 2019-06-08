@@ -34,7 +34,7 @@ int main(int argc,char **argv)
   lispval string1 = kno_make_string(NULL,3,"foo");
   lispval string2 = kno_init_string(u8_alloc(struct KNO_STRING),3,u8_strdup("bar"));
   lispval compound=
-    kno_init_compound(NULL,FDSYM_QUOTE,KNO_COMPOUND_USEREF,1,
+    kno_init_compound(NULL,KNOSYM_QUOTE,KNO_COMPOUND_USEREF,1,
                      kno_make_pair(KNO_INT(5),KNO_TRUE));
   lispval vec = kno_make_nvector(3,fix1,dbl1,string1);
   lispval lst = kno_make_list(4,vec,string2,dbl2,compound);

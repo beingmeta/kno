@@ -77,7 +77,7 @@ kno_pool kno_make_extpool(u8_string label,
     xp->pool_label = u8_strdup(label);
     xp->pool_flags = xp->pool_flags|KNO_POOL_SPARSE;
 
-    lispval metadata = kno_getopt(opts,FDSYM_METADATA,KNO_VOID);
+    lispval metadata = kno_getopt(opts,KNOSYM_METADATA,KNO_VOID);
     if (KNO_SLOTMAPP(metadata))
       kno_copy_slotmap((kno_slotmap)metadata,&(xp->pool_metadata));
     kno_decref(metadata);

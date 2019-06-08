@@ -8,6 +8,6 @@
   (let ((start (elapsed-time))
 	(threads {}))
     (dotimes (i m) (set+! threads (spawn (evaln server n))))
-    (threadjoin threads)
+    (thread/join threads)
     (/ (* m n) (- (elapsed-time) start))))
 

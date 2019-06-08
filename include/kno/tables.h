@@ -35,6 +35,7 @@ typedef int (*kno_table_store_fn)(lispval,lispval,lispval);
 typedef int (*kno_table_getsize_fn)(lispval);
 typedef int (*kno_table_modified_fn)(lispval,int);
 typedef int (*kno_table_readonly_fn)(lispval,int);
+typedef int (*kno_table_tablep_fn)(lispval);
 typedef lispval (*kno_table_keys_fn)(lispval);
 
 struct KNO_TABLEFNS {
@@ -49,6 +50,7 @@ struct KNO_TABLEFNS {
   int (*getsize)(lispval obj);
   lispval (*keys)(lispval obj);
   struct KNO_KEYVAL (*keyvals)(lispval obj,int *);
+  int (*tablep)(lispval obj);
 };
 
 KNO_EXPORT struct KNO_TABLEFNS *kno_tablefns[];
@@ -81,7 +83,20 @@ KNO_EXPORT lispval kno_table_skim(lispval table,lispval maxval,lispval scope);
 
 KNO_EXPORT void kno_display_table(u8_output out,lispval table,lispval keys);
 
-#define KNO_TABLEP(x) ((kno_tablefns[KNO_PTR_TYPE(x)])!=NULL)
+#define KNO_TABLEP(x)                                                  \
+  ( (KNO_OIDP(x)) ? (1) :                                              \
+    (KNO_CONSP(x)) ?                                                   \
+    ( ( ( KNO_CONSPTR_TYPE(x) >= kno_slotmap_type) &&                  \
+        ( KNO_CONSPTR_TYPE(x) <= kno_hashset_type) ) ||                 \
+      ( (kno_tablefns[KNO_CONSPTR_TYPE(x)] != NULL ) &&                 \
+        ( (kno_tablefns[KNO_CONSPTR_TYPE(x)]->tablep == NULL ) ||       \
+          (kno_tablefns[KNO_CONSPTR_TYPE(x)]->tablep(x)) ) ) ) :        \
+    (KNO_IMMEDIATEP(x)) ?                                               \
+    ( (kno_tablefns[KNO_IMMEDIATE_TYPE(x)] != NULL ) &&                 \
+      ( (kno_tablefns[KNO_IMMEDIATE_TYPE(x)]->tablep == NULL ) ||       \
+        (kno_tablefns[KNO_IMMEDIATE_TYPE(x)]->tablep(x)) ) ) :          \
+    (0))
+/* #define KNO_TABLEP(x) ( ((kno_tablefns[KNO_PTR_TYPE(x)])!=NULL)  */
 
 #define KNO_INIT_SMAP_SIZE 7
 #define KNO_INIT_HASH_SIZE 73

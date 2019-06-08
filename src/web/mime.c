@@ -179,7 +179,7 @@ static lispval convert_content(const char *start,const char *end,
                               lispval majtype,lispval dataenc,lispval charenc)
 {
   if (end == NULL) end = start+strlen(start);
-  if ((STRINGP(charenc)) || (KNO_EQ(majtype,FDSYM_TEXT)))
+  if ((STRINGP(charenc)) || (KNO_EQ(majtype,KNOSYM_TEXT)))
     return convert_text(start,end,dataenc,charenc);
   else return convert_data(start,end,dataenc,VOIDP(majtype));
 }

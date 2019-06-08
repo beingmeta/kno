@@ -65,8 +65,6 @@ KNO_FASTOP int seq_length(lispval x)
       return -1;
     else return (compound->compound_length)-(compound->compound_off);}
     return VEC_LEN(x);
-  case kno_code_type:
-    return KNO_CODE_LENGTH(x);
   case kno_packet_type: case kno_secret_type:
     return KNO_PACKET_LENGTH(x);
   case kno_numeric_vector_type:
@@ -100,9 +98,6 @@ KNO_EXPORT lispval kno_seq_elt(lispval x,int i)
     case kno_vector_type:
       if (i>=VEC_LEN(x)) return KNO_RANGE_ERROR;
       else return kno_incref(VEC_REF(x,i));
-    case kno_code_type:
-      if (i>=KNO_CODE_LENGTH(x)) return KNO_RANGE_ERROR;
-      else return kno_incref(KNO_CODE_REF(x,i));
     case kno_packet_type: case kno_secret_type:
       if (i>=KNO_PACKET_LENGTH(x)) return KNO_RANGE_ERROR;
       else {
@@ -161,7 +156,7 @@ KNO_EXPORT lispval kno_slice(lispval x,int start,int end)
   int ctype = KNO_PTR_TYPE(x);
   if (start<0) return KNO_RANGE_ERROR;
   else switch (ctype) {
-    case kno_vector_type: case kno_code_type: {
+    case kno_vector_type: {
       lispval *elts, *write, *read, *limit, result;
       if (end<0) end = VEC_LEN(x);
       else if (start>VEC_LEN(x)) return KNO_RANGE_ERROR;
@@ -170,9 +165,7 @@ KNO_EXPORT lispval kno_slice(lispval x,int start,int end)
       read = VEC_DATA(x)+start; limit = VEC_DATA(x)+end;
       while (read<limit) {
         lispval v = *read++; kno_incref(v); *write++=v;}
-      if (ctype == kno_vector_type)
-        result = kno_make_vector(end-start,elts);
-      else result = kno_make_code(end-start,elts);
+      result = kno_make_vector(end-start,elts);
       u8_free(elts);
       return result;}
     case kno_packet_type: case kno_secret_type: {
@@ -258,7 +251,7 @@ KNO_EXPORT int kno_position(lispval key,lispval seq,int start,int limit)
   else if (start>end)
     return -1;
   else switch (ctype) {
-    case kno_vector_type: case kno_code_type: {
+    case kno_vector_type: {
       lispval *data = KNO_VECTOR_ELTS(seq);
       int i = start; while (i!=end) {
         if (LISP_EQUAL(key,data[i])) return i;
@@ -346,7 +339,7 @@ KNO_EXPORT int kno_rposition(lispval key,lispval x,int start,int end)
       else return -1;
     else return -1;}
   else switch (KNO_PTR_TYPE(x)) {
-    case kno_vector_type: case kno_code_type: {
+    case kno_vector_type: {
       lispval *data = VEC_DATA(x);
       int len = VEC_LEN(x);
       if (end<0) end = len;
@@ -543,7 +536,7 @@ lispval *kno_seq_elts(lispval seq,int *n)
           vec[i]=KNO_CODE2CHAR(ch); i++;}
       *n = i;
       break;}
-    case kno_vector_type: case kno_code_type: {
+    case kno_vector_type: {
       int i = 0;
       lispval *scan = VEC_DATA(seq),
         *limit = scan+VEC_LEN(seq);
@@ -648,9 +641,6 @@ lispval kno_makeseq(kno_ptr_type ctype,int n,lispval *v)
   case kno_vector_type: {
     int i = 0; while (i < n) {kno_incref(v[i]); i++;}
     return kno_make_vector(n,v);}
-  case kno_code_type: {
-    int i = 0; while (i < n) {kno_incref(v[i]); i++;}
-    return kno_make_code(n,v);}
   case kno_pair_type:
     if (n == 0) return NIL;
     else {
@@ -871,8 +861,6 @@ static lispval makesecret(int n,lispval *elts) {
   return kno_makeseq(kno_secret_type,n,elts);}
 static lispval makevector(int n,lispval *elts) {
   return kno_makeseq(kno_vector_type,n,elts);}
-static lispval makerail(int n,lispval *elts) {
-  return kno_makeseq(kno_code_type,n,elts);}
 
 static struct KNO_SEQFNS pair_seqfns={
   kno_seq_length,
@@ -914,14 +902,6 @@ static struct KNO_SEQFNS numeric_vector_seqfns={
   kno_search,
   kno_seq_elts,
   makevector};
-static struct KNO_SEQFNS code_seqfns={
-  kno_seq_length,
-  kno_seq_elt,
-  kno_slice,
-  kno_position,
-  kno_search,
-  kno_seq_elts,
-  makerail};
 static struct KNO_SEQFNS secret_seqfns={
   kno_seq_length,
   NULL,
@@ -950,7 +930,6 @@ KNO_EXPORT void kno_init_sequences_c()
   kno_seqfns[kno_secret_type]= &secret_seqfns;
   kno_seqfns[kno_vector_type]= &vector_seqfns;
   kno_seqfns[kno_compound_type]= &compound_seqfns;
-  kno_seqfns[kno_code_type]= &code_seqfns;
   kno_seqfns[kno_numeric_vector_type]= &numeric_vector_seqfns;
 
   u8_register_source_file(_FILEINFO);

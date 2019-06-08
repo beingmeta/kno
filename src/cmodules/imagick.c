@@ -667,7 +667,7 @@ int kno_init_imagick()
 
   init_symbols();
 
-  kno_tablefns[kno_imagick_type]=u8_alloc(struct KNO_TABLEFNS);
+  kno_tablefns[kno_imagick_type]=u8_zalloc(struct KNO_TABLEFNS);
   kno_tablefns[kno_imagick_type]->get = (kno_table_get_fn)imagick_table_get;
   kno_tablefns[kno_imagick_type]->add = NULL;
   kno_tablefns[kno_imagick_type]->drop = NULL;

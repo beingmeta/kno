@@ -264,6 +264,8 @@ AC_SUBST(apache_modinfo)
 AC_SUBST(webuser)
 AC_SUBST(webgroup)
 AC_SUBST(wwwinstall)
+AC_SUBST(knodaemon)
+AC_SUBST(knodaemoninstall)
 AC_SUBST(admin_group)
 AC_SUBST(admininstall)
 AC_SUBST(daemonid)
@@ -368,6 +370,7 @@ AC_SUBST(CODENAME)
 AC_SUBST(BINPATH)
 AC_SUBST(LIBSCM)
 AC_SUBST(ODBC_LIBS)
+AC_SUBST(ZEROMQ_LIBS)
 
 AC_ARG_VAR(RPMDIR,"Location for writing built RPMs")
 AC_ARG_VAR(RPMFLAGS,"Default flags for building RPMs")
@@ -1574,10 +1577,20 @@ if test "${have_zstd_h}" = "yes"; then
    AC_CHECK_FUNCS(ZSTD_getFrameContentSize)
 fi;
 
+have_libzmq=no
+ZMQ_LIBS=
+
 AC_CHECK_HEADER(zmq.h,have_zmq_h="yes",have_zmq_h="no")
 if test "${have_zmq_h}" = "yes"; then
-   AC_CHECK_LIB(zmq,zmq_socket)
+   AC_CHECK_LIB(zmq,zmq_socket,have_libzmq=yes)
    AC_DEFINE(HAVE_ZMQ_H,1)
+fi;
+
+if test "${have_zmq_h}" = "yes" &&
+   test "${have_libzmq}" = "yes"; then
+   ZEROMQ_LIBS=-lzmq
+   CORE_CMODULES="lib/kno/zeromq.$shared_suffix ${CORE_CMODULES}"
+   INSTALL_CORE_CMODULES="install-zeromq ${INSTALL_CORE_CMODULES}"
 fi;
 
 ### LevelDB cmodule build

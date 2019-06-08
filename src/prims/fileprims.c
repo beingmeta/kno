@@ -103,7 +103,7 @@ static lispval open_output_file(lispval fname,lispval opts,lispval escape_char)
   u8_encoding enc = NULL;
   int open_flags = O_EXCL|O_CREAT|O_WRONLY;
   if (KNO_OPTIONSP(opts)) {
-    encid = kno_getopt(opts,FDSYM_ENCODING,KNO_VOID);}
+    encid = kno_getopt(opts,KNOSYM_ENCODING,KNO_VOID);}
   else if ( (KNO_SYMBOLP(opts)) || (KNO_STRINGP(opts)) )
     encid = opts;
   else NO_ELSE;
@@ -131,7 +131,7 @@ static lispval extend_output_file(lispval fname,lispval opts,lispval escape_char
   u8_encoding enc = NULL;
   int open_flags = O_APPEND|O_CREAT|O_WRONLY;
   if (KNO_OPTIONSP(opts)) {
-    encid = kno_getopt(opts,FDSYM_ENCODING,KNO_VOID);}
+    encid = kno_getopt(opts,KNOSYM_ENCODING,KNO_VOID);}
   else if ( (KNO_SYMBOLP(opts)) || (KNO_STRINGP(opts)) )
     encid = opts;
   else NO_ELSE;
@@ -159,7 +159,7 @@ static lispval open_input_file(lispval fname,lispval opts)
   u8_encoding enc = NULL;
   int open_flags = O_RDONLY;
   if (KNO_OPTIONSP(opts)) {
-    encid = kno_getopt(opts,FDSYM_ENCODING,KNO_VOID);}
+    encid = kno_getopt(opts,KNOSYM_ENCODING,KNO_VOID);}
   else if ( (KNO_SYMBOLP(opts)) || (KNO_STRINGP(opts)) )
     encid = opts;
   else NO_ELSE;

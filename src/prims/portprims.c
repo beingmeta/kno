@@ -298,7 +298,7 @@ static int printout_helper(U8_OUTPUT *out,lispval x)
   if (STRINGP(x))
     u8_puts(out,CSTRING(x));
   else if ( (out->u8_streaminfo) & (KNO_U8STREAM_HISTORIC) ) {
-    lispval history = kno_thread_get(FDSYM_HISTORY_THREADVAL);
+    lispval history = kno_thread_get(KNOSYM_HISTORY_THREADVAL);
     if (VOIDP(history))
       kno_unparse(out,x);
     else {
@@ -443,7 +443,7 @@ DCLPRIM2("$HISTSTRING",histstring_prim,MIN_ARGS(1),
          -1,KNO_VOID,-1,KNO_VOID)
 static lispval histstring_prim(lispval x,lispval label)
 {
-  lispval history = kno_thread_get(FDSYM_HISTORY_THREADVAL);
+  lispval history = kno_thread_get(KNOSYM_HISTORY_THREADVAL);
   if (VOIDP(history))
     return KNO_FALSE;
   else {
@@ -465,7 +465,7 @@ DCLPRIM2("$HISTREF",histref_prim,MIN_ARGS(1),
          -1,KNO_VOID,-1,KNO_VOID)
 static lispval histref_prim(lispval x,lispval label)
 {
-  lispval history = kno_thread_get(FDSYM_HISTORY_THREADVAL);
+  lispval history = kno_thread_get(KNOSYM_HISTORY_THREADVAL);
   if (VOIDP(history))
     return VOID;
   else {
@@ -487,7 +487,7 @@ DCLPRIM2("$HISTVAL",histval_prim,MIN_ARGS(1),
          -1,KNO_VOID,-1,KNO_VOID)
 static lispval histval_prim(lispval x,lispval label)
 {
-  lispval history = kno_thread_get(FDSYM_HISTORY_THREADVAL);
+  lispval history = kno_thread_get(KNOSYM_HISTORY_THREADVAL);
   if (VOIDP(history))
     return VOID;
   else {
@@ -804,13 +804,13 @@ static lispval lisp_pprint(int n,lispval *args)
       else ppcxt.pp_maxcol=-1;
       kno_decref(maxcol);}}
   if (out == NULL) {
-    lispval port = kno_getopt(opts,FDSYM_OUTPUT,VOID);
+    lispval port = kno_getopt(opts,KNOSYM_OUTPUT,VOID);
     if (!(VOIDP(port))) out = get_output_port(port);
     if (out)
       port_arg=port;
     else {kno_decref(port);}}
   if (out == NULL) {
-    lispval filename = kno_getopt(opts,FDSYM_FILENAME,VOID);
+    lispval filename = kno_getopt(opts,KNOSYM_FILENAME,VOID);
     if (!(VOIDP(filename))) {
       out = (u8_output) u8_open_output_file(CSTRING(filename),NULL,-1,-1);
       if (out == NULL) {

@@ -18,6 +18,12 @@
 (define indextype 'hashindex)
 (varconfig! indextype indextype #t)
 
+(define (parser/roundtrip x)
+  (string->lisp (lisp->string x)))
+
+(define (dtype/roundtrip x)
+  (packet->dtype (dtype->packet x)))
+
 (define (optimization-leaks)
   (when (and (config 'testoptimized) 
 	     (or (getenv "MEMCHECKING") (getenv "HEAPCHECK")))

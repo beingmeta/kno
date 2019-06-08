@@ -29,11 +29,6 @@
 	 (check-ordered (cdr list)))
 	(else #f)))
 
-;;; TODO: Test threads which throw errors
-;;; TODO: Test synchro/lock, with-lock, etc (different kinds of synchronizers)
-;;; TODO: Figure out why condvar tests sometimes fail
-;;; TODO: Test slambdas
-
 (define (test-parallel)
   (set! numbers '())
   (parallel (addrange 0) (addrange 10))
@@ -66,11 +61,11 @@
     (message "TEST-SPAWN: " numbers)))
 
 (define (look-busy n (start (elapsed-time)))
-  (dotimes (i (* n 1000))
+  (dotimes (i (* n 100))
     (when (zero? (random 5)) (thread/yield)))
   (elapsed-time start))
 
-(define (test-threadcall (waitfn thread/join) (wait-opts #default))
+(define (test-thread/call (waitfn thread/join) (wait-opts #default))
   (let ((threads {}))
     (set! numbers '())
     ;; We're testing a bunch of things here and have addrange sleep so
@@ -85,7 +80,7 @@
     (applytest #f thread/error? threads)
     (applytest 20 length numbers)
     (applytest #f check-ordered numbers)
-    (message "TEST-THREADCALL: " numbers)))
+    (message "TEST-THREAD/CALL: " numbers)))
 
 (define (test-threadids)
   (let ((sleep1 (thread/call look-busy 5))
@@ -102,10 +97,10 @@
 (define numlock (make-condvar))
 
 (define (change-num (n (nrandom 1)))
-  (synchro/lock! numlock)
+  (sync/lock! numlock)
   (set! num n)
   (unwind-protect (evaltest n num)
-    (synchro/unlock! numlock)))
+    (sync/release! numlock)))
 
 (define (change-num-with-lock (n (nrandom 1)))
   (with-lock numlock
@@ -231,7 +226,7 @@
   (evaltest {"foofoo" "barbar" "carcar"}
 	    (thread/finish (thread/call doubleup {"foo" "bar" "car"})))
 
-  (evaltest 3 (thread/finish (inthread (length "abc"))))
+  (evaltest 3 (thread/finish (spawn (length "abc"))))
   (evaltest {3 4 5} (thread/finish (thread/eval (list 'length {"abc" "abcd" "abcde"}))))
 
   (applytest #t number? (cstack-limit))
@@ -264,12 +259,12 @@
   (test-spawn)
   (test-slambdas)
 
-  (test-threadcall)
-  (test-threadcall thread/wait 3)
-  (test-threadcall thread/wait #f)
-  (test-threadcall thread/wait! 0.0003)
-  (test-threadcall thread/wait (timestamp+ 1))
-  (test-threadcall thread/wait [timeout 3])
+  (test-thread/call)
+  (test-thread/call thread/wait 3)
+  (test-thread/call thread/wait #f)
+  (test-thread/call thread/wait! 0.0003)
+  (test-thread/call thread/wait (timestamp+ 1))
+  (test-thread/call thread/wait [timeout 3])
 
   (test-fifo-condvars)
 
@@ -277,3 +272,4 @@
 
   (test-finished "THREADTEST")
   )
+

@@ -101,7 +101,6 @@ static void init_type_names()
   kno_type_names[kno_stackframe_type]=_("stackframe");
   kno_type_names[kno_tailcall_type]=_("tailcall");
   kno_type_names[kno_lambda_type]=_("lambda procedure");
-  kno_type_names[kno_code_type]=_("bytecode");
   kno_type_names[kno_ffi_type]=_("foreign function");
   kno_type_names[kno_exception_type]=_("error");
 

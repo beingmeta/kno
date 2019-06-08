@@ -427,7 +427,7 @@ KNO_EXPORT lispval kno_frame_get(lispval f,lispval slotid)
     else {
       int ipestate = kno_ipeval_status();
       struct KNO_HASHTABLE *cache = get_slot_cache(slotid);
-      lispval methods, cached, computed = EMPTY;
+      lispval methods, cached = VOID, computed = EMPTY;
       if (cache) {
         cached = kno_hashtable_get(cache,f,VOID);
         kno_decref(((lispval)cache));

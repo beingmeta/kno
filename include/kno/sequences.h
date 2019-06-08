@@ -21,6 +21,7 @@ typedef struct KNO_SEQFNS {
   int (*search)(lispval key,lispval x,int i,int j);
   lispval *(*elts)(lispval x,int *);
   lispval (*make)(int,lispval *);
+  int (*sequencep)(lispval);
 } KNO_SEQFNS;
 
 KNO_EXPORT struct KNO_SEQFNS *kno_seqfns[];
@@ -41,8 +42,21 @@ KNO_EXPORT lispval kno_removeif(lispval test,lispval sequence,int invert);
 KNO_EXPORT int kno_generic_position(lispval key,lispval x,int start,int end);
 KNO_EXPORT int kno_generic_search(lispval subseq,lispval seq,int start,int end);
 
-#define KNO_SEQUENCEP(x) \
-  ((KNO_EMPTY_LISTP(x)) || ((kno_seqfns[KNO_PTR_TYPE(x)])!=NULL))
+#define KNO_SEQUENCEP(x)                                          \
+  ( (KNO_CONSP(x)) ?                                               \
+  ( ( (KNO_CONSPTR_TYPE(x) >= kno_string_type) &&                   \
+      (KNO_CONSPTR_TYPE(x) <= kno_pair_type) ) ||         \
+    ( (kno_seqfns[KNO_CONSPTR_TYPE(x)] != NULL ) &&                 \
+      ( (kno_seqfns[KNO_CONSPTR_TYPE(x)]->sequencep == NULL ) ||        \
+        (kno_seqfns[KNO_CONSPTR_TYPE(x)]->sequencep(x)) ) ) ) :         \
+    (KNO_IMMEDIATEP(x)) ?                                               \
+    ( (x == KNO_EMPTY_LIST) ||                                          \
+      ( (kno_seqfns[KNO_IMMEDIATE_TYPE(x)] != NULL ) &&                 \
+        ( (kno_seqfns[KNO_IMMEDIATE_TYPE(x)]->sequencep == NULL ) ||    \
+          (kno_seqfns[KNO_IMMEDIATE_TYPE(x)]->sequencep(x)) ) ) ) :     \
+    (0))
+/* #define KNO_SEQUENCEP(x) ((KNO_EMPTY_LISTP(x)) || ((kno_seqfns[KNO_PTR_TYPE(x)])!=NULL)) */
+
 
 lispval *kno_seq_elts(lispval seq,int *len);
 lispval kno_makeseq(kno_ptr_type ctype,int n,lispval *v);

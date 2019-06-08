@@ -396,13 +396,18 @@ KNO_EXPORT lispval kno_init_cprim2(u8_string name,u8_string filename,u8_string d
 
 /* Useful macros */
 
-#define KNO_FUNCTIONP(x) (kno_functionp[KNO_PRIM_TYPE(x)])
-#define KNO_XFUNCTION(x)                         \
-  ((KNO_FUNCTIONP(x)) ?                                       \
-   ((struct KNO_FUNCTION *)(KNO_CONS_DATA(kno_fcnid_ref(x)))) :            \
+#define KNO_FUNCTION_TYPEP(typecode) \
+  ( (typecode == kno_cprim_type) || (typecode == kno_lambda_type) || \
+    (kno_functionp[typecode]) )
+
+#define KNO_FUNCTIONP(x) \
+  (KNO_FUNCTION_TYPEP(KNO_PRIM_TYPE(x)))
+#define KNO_XFUNCTION(x)                                      \
+  ((KNO_FUNCTIONP(x)) ?                                                 \
+   ((struct KNO_FUNCTION *)(KNO_CONS_DATA(kno_fcnid_ref(x)))) :         \
    ((struct KNO_FUNCTION *)(u8_raise(kno_TypeError,"function",NULL),NULL)))
-#define KNO_FUNCTION_ARITY(x)                    \
-  ((KNO_FUNCTIONP(x)) ?                                                  \
+#define KNO_FUNCTION_ARITY(x)                                           \
+  ((KNO_FUNCTIONP(x)) ?                                                 \
    (((struct KNO_FUNCTION *)(KNO_CONS_DATA(kno_fcnid_ref(x))))->fcn_arity) : \
    (0))
 
@@ -534,10 +539,14 @@ lispval kno_stack_ndapply(struct KNO_STACK *stack,lispval fn,int n_args,lispval 
 #define kno_ndapply(fn,n_args,argv) (kno_stack_ndapply(kno_stackptr,fn,n_args,argv))
 #define kno_dapply(fn,n_args,argv) (kno_stack_dapply(kno_stackptr,fn,n_args,argv))
 
+#define KNO_APPLICABLE_TYPEP(typecode) \
+  ( ( ((typecode) >= kno_cprim_type) && ((typecode) <= kno_dtproc_type) ) || \
+    ( (kno_applyfns[typecode]) != NULL) )
+
 #define KNO_APPLICABLEP(x)                       \
   ((KNO_TYPEP(x,kno_fcnid_type)) ?                \
-   ((kno_applyfns[KNO_FCNID_TYPE(x)])!=NULL) :    \
-   ((kno_applyfns[KNO_PRIM_TYPE(x)])!=NULL))
+   (KNO_APPLICABLE_TYPEP(KNO_FCNID_TYPE(x))) :    \
+   (KNO_APPLICABLE_TYPEP(KNO_PRIM_TYPE(x))))
 
 #define KNO_DTYPE2FCN(x)              \
   ((KNO_FCNIDP(x)) ?                   \

@@ -268,7 +268,7 @@ void kno_init_compounds_c()
     kno_init_compound
     (NULL,VOID,KNO_COMPOUND_MUTABLE,9,
      kno_intern("compoundtype"),0,KNO_INT(9),
-     kno_make_nvector(9,FDSYM_TAG,FDSYM_LENGTH,
+     kno_make_nvector(9,KNOSYM_TAG,KNOSYM_LENGTH,
 		     kno_intern("fields"),kno_intern("initfn"),
 		     kno_intern("freefn"),kno_intern("comparefn"),
 		     kno_intern("stringfn"),kno_intern("dumpfn"),

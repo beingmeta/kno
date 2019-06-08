@@ -230,7 +230,7 @@ static kno_pool open_oidpool(u8_string fname,
     pool->pool_load=load=capacity;}
 
   if ((U8_BITP(oidpool_format,KNO_OIDPOOL_READ_ONLY))&&
-      (!(kno_testopt(opts,FDSYM_READONLY,KNO_FALSE)))) {
+      (!(kno_testopt(opts,KNOSYM_READONLY,KNO_FALSE)))) {
     /* If the pool is intrinsically read-only, make it so. */
     kno_unlock_stream(stream);
     kno_close_stream(stream,0);
@@ -1394,8 +1394,8 @@ static unsigned int get_oidpool_format(kno_storage_flags sflags,lispval opts)
        (kno_testopt(opts,kno_intern("readonly"),VOID)) )
     flags |= KNO_OIDPOOL_READ_ONLY;
 
-  if ( (kno_testopt(opts,FDSYM_ISADJUNCT,VOID)) ||
-       (kno_testopt(opts,FDSYM_FLAGS,FDSYM_ISADJUNCT)) )
+  if ( (kno_testopt(opts,KNOSYM_ISADJUNCT,VOID)) ||
+       (kno_testopt(opts,KNOSYM_FLAGS,KNOSYM_ISADJUNCT)) )
     flags |= KNO_OIDPOOL_ADJUNCT;
 
   if ( (sflags) & (KNO_POOL_ADJUNCT) ||
@@ -1537,7 +1537,7 @@ kno_pool oidpool_create
   lispval base_oid = kno_getopt(opts,kno_intern("base"),VOID);
   lispval capacity_arg = kno_getopt(opts,kno_intern("capacity"),VOID);
   lispval load_arg = kno_getopt(opts,kno_intern("load"),KNO_FIXZERO);
-  lispval label = kno_getopt(opts,FDSYM_LABEL,VOID);
+  lispval label = kno_getopt(opts,KNOSYM_LABEL,VOID);
   lispval schemas = kno_getopt(opts,kno_intern("schemas"),VOID);
   unsigned int capacity, load;
   int rv = 0;

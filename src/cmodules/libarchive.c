@@ -143,7 +143,7 @@ static  int archive_seek(struct KNO_ARCHIVE *archive,lispval seek,
         return 1;}}
     else if (KNO_TYPEP(seek,kno_regex_type)) {
       u8_string name = entry_pathname(entry);
-      ssize_t match = kno_regex_op(match,seek,name,strlen(name),0);
+      ssize_t match = kno_regex_op(rx_exactmatch,seek,name,strlen(name),0);
       if (match>0) {
         if (entryp) *entryp = entry;
         return 1;}}
@@ -316,7 +316,7 @@ static lispval open_archive(lispval spec,lispval path,lispval opts)
     int rv = archive_seek(archive,path,&entry);
     if (rv<0) return KNO_ERROR_VALUE;
     else if (rv == 0) {
-      if (kno_testopt(opts,FDSYM_DROP,KNO_TRUE)) {
+      if (kno_testopt(opts,KNOSYM_DROP,KNO_TRUE)) {
         u8_byte msgbuf[1000];
         kno_seterr("NotFound","open_archive",
                   archive_errmsg(msgbuf,1000,archive),

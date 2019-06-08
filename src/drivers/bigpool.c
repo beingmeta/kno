@@ -266,7 +266,7 @@ static kno_pool open_bigpool(u8_string fname,kno_storage_flags open_flags,
     pool->pool_load=load=capacity;}
 
   if ((U8_BITP(bigpool_format,KNO_BIGPOOL_READ_ONLY))&&
-      (!(kno_testopt(opts,FDSYM_READONLY,KNO_FALSE)))) {
+      (!(kno_testopt(opts,KNOSYM_READONLY,KNO_FALSE)))) {
     /* If the pool is intrinsically read-only make it so. */
     open_flags |= KNO_STORAGE_READ_ONLY;}
 
@@ -2092,40 +2092,40 @@ static lispval bigpool_ctl(kno_pool p,lispval op,int n,lispval *args)
     kno_store(base,load_symbol,KNO_INT(bp->pool_load));
     kno_store(base,slotids_symbol,KNO_INT(bp->pool_slotcodes.n_slotcodes));
     if ( bp->bigpool_format & KNO_BIGPOOL_READ_ONLY )
-      kno_store(base,FDSYM_READONLY,KNO_TRUE);
+      kno_store(base,KNOSYM_READONLY,KNO_TRUE);
     if ( bp->bigpool_format & KNO_BIGPOOL_READ_ONLY )
-      kno_add(base,FDSYM_FORMAT,FDSYM_READONLY);
+      kno_add(base,KNOSYM_FORMAT,KNOSYM_READONLY);
     if ( bp->bigpool_format & KNO_BIGPOOL_ADJUNCT )
-      kno_add(base,FDSYM_FORMAT,FDSYM_ADJUNCT);
+      kno_add(base,KNOSYM_FORMAT,KNOSYM_ADJUNCT);
     if ( bp->bigpool_format & KNO_BIGPOOL_DTYPEV2 )
-      kno_add(base,FDSYM_FORMAT,kno_intern("dtypev2"));
+      kno_add(base,KNOSYM_FORMAT,kno_intern("dtypev2"));
     if ( bp->bigpool_format & KNO_BIGPOOL_SPARSE )
-      kno_add(base,FDSYM_FORMAT,kno_intern("sparse"));
+      kno_add(base,KNOSYM_FORMAT,kno_intern("sparse"));
     if ( bp->pool_offtype == KNO_B32) {
       kno_store(base,offmode_symbol,kno_intern("b32"));
-      kno_add(base,FDSYM_FORMAT,kno_intern("b32"));}
+      kno_add(base,KNOSYM_FORMAT,kno_intern("b32"));}
     else if ( bp->pool_offtype == KNO_B40) {
       kno_store(base,offmode_symbol,kno_intern("b40"));
-      kno_add(base,FDSYM_FORMAT,kno_intern("b40"));}
+      kno_add(base,KNOSYM_FORMAT,kno_intern("b40"));}
     else if ( bp->pool_offtype == KNO_B64) {
       kno_store(base,offmode_symbol,kno_intern("b64"));
-      kno_add(base,FDSYM_FORMAT,kno_intern("b64"));}
+      kno_add(base,KNOSYM_FORMAT,kno_intern("b64"));}
     else kno_store(base,offmode_symbol,kno_intern("!!invalid!!"));
     if ( bp->pool_compression == KNO_NOCOMPRESS ) {
       kno_store(base,compression_symbol,KNO_FALSE);
-      kno_add(base,FDSYM_FORMAT,kno_intern("nocompress"));}
+      kno_add(base,KNOSYM_FORMAT,kno_intern("nocompress"));}
     else if ( bp->pool_compression == KNO_ZLIB ) {
       kno_store(base,compression_symbol,kno_intern("zlib"));
-      kno_add(base,FDSYM_FORMAT,kno_intern("zlib"));}
+      kno_add(base,KNOSYM_FORMAT,kno_intern("zlib"));}
     else if ( bp->pool_compression == KNO_ZLIB9 ) {
       kno_store(base,compression_symbol,kno_intern("zlib9"));
-      kno_add(base,FDSYM_FORMAT,kno_intern("zlib9"));}
+      kno_add(base,KNOSYM_FORMAT,kno_intern("zlib9"));}
     else if ( bp->pool_compression == KNO_SNAPPY ) {
       kno_store(base,compression_symbol,kno_intern("snappy"));
-      kno_add(base,FDSYM_FORMAT,kno_intern("snappy"));}
+      kno_add(base,KNOSYM_FORMAT,kno_intern("snappy"));}
     else if ( bp->pool_compression == KNO_ZSTD ) {
       kno_store(base,compression_symbol,kno_intern("zstd"));
-      kno_add(base,FDSYM_FORMAT,kno_intern("zstd"));}
+      kno_add(base,KNOSYM_FORMAT,kno_intern("zstd"));}
     else kno_store(base,compression_symbol,kno_intern("!!invalid!!"));
     kno_add(base,metadata_readonly_props,load_symbol);
     kno_add(base,metadata_readonly_props,slotids_symbol);
@@ -2151,16 +2151,16 @@ static lispval bigpool_ctl(kno_pool p,lispval op,int n,lispval *args)
     else {
       kno_seterr("BadCompressionType","bigpool_ctl",bp->poolid,KNO_VOID);
       return KNO_ERROR;}}
-  else if ( ( ( op == FDSYM_READONLY ) && (n == 0) ) ||
+  else if ( ( ( op == KNOSYM_READONLY ) && (n == 0) ) ||
             ( ( op == kno_metadata_op ) && (n == 1) &&
-              ( args[0] == FDSYM_READONLY ) ) ) {
+              ( args[0] == KNOSYM_READONLY ) ) ) {
     if ( (bp->pool_flags) & (KNO_STORAGE_READ_ONLY) )
       return KNO_TRUE;
     else return KNO_FALSE;}
-  else if ( ( ( op == FDSYM_READONLY ) && (n == 1) ) ||
+  else if ( ( ( op == KNOSYM_READONLY ) && (n == 1) ) ||
             ( ( op == kno_metadata_op ) && (n == 2) &&
-              ( args[0] == FDSYM_READONLY ) ) ) {
-    lispval arg = ( op == FDSYM_READONLY ) ? (args[0]) : (args[1]);
+              ( args[0] == KNOSYM_READONLY ) ) ) {
+    lispval arg = ( op == KNOSYM_READONLY ) ? (args[0]) : (args[1]);
     int rv = (KNO_FALSEP(arg)) ? (bigpool_set_read_only(bp,0)) :
       (bigpool_set_read_only(bp,1));
     if (rv<0)
@@ -2198,32 +2198,32 @@ static unsigned int get_bigpool_format(kno_storage_flags sflags,lispval opts)
   lispval offtype = kno_intern("offtype");
   if ( kno_testopt(opts,offtype,kno_intern("b64"))  ||
        kno_testopt(opts,offtype,KNO_INT(64))        ||
-       kno_testopt(opts,FDSYM_FLAGS,kno_intern("b64")))
+       kno_testopt(opts,KNOSYM_FLAGS,kno_intern("b64")))
     flags |= KNO_B64;
   else if ( kno_testopt(opts,offtype,kno_intern("b40"))  ||
             kno_testopt(opts,offtype,KNO_INT(40))        ||
-            kno_testopt(opts,FDSYM_FLAGS,kno_intern("b40")) )
+            kno_testopt(opts,KNOSYM_FLAGS,kno_intern("b40")) )
     flags |= KNO_B40;
   else if ( kno_testopt(opts,offtype,kno_intern("b32"))  ||
             kno_testopt(opts,offtype,KNO_INT(32))        ||
-            kno_testopt(opts,FDSYM_FLAGS,kno_intern("b40")) )
+            kno_testopt(opts,KNOSYM_FLAGS,kno_intern("b40")) )
     flags |= KNO_B32;
   else flags |= KNO_B40;
 
   flags |= ((kno_compression_type(opts,KNO_NOCOMPRESS))<<3);
 
   if ( kno_testopt(opts,kno_intern("dtypev2"),VOID) ||
-       kno_testopt(opts,FDSYM_FLAGS,kno_intern("dtypev2")) ||
-       kno_testopt(opts,FDSYM_FORMAT,kno_intern("dtypev2")) )
+       kno_testopt(opts,KNOSYM_FLAGS,kno_intern("dtypev2")) ||
+       kno_testopt(opts,KNOSYM_FORMAT,kno_intern("dtypev2")) )
     flags |= KNO_BIGPOOL_DTYPEV2;
 
-  if ( (kno_testopt(opts,FDSYM_READONLY,VOID)) )
+  if ( (kno_testopt(opts,KNOSYM_READONLY,VOID)) )
     flags |= KNO_BIGPOOL_READ_ONLY;
 
-  if ( (kno_testopt(opts,FDSYM_ISADJUNCT,VOID)) ||
-       (kno_testopt(opts,FDSYM_FLAGS,FDSYM_ISADJUNCT)) ||
-       (kno_testopt(opts,FDSYM_FORMAT,FDSYM_ISADJUNCT)) ||
-       (kno_testopt(opts,FDSYM_FORMAT,FDSYM_ADJUNCT)) )
+  if ( (kno_testopt(opts,KNOSYM_ISADJUNCT,VOID)) ||
+       (kno_testopt(opts,KNOSYM_FLAGS,KNOSYM_ISADJUNCT)) ||
+       (kno_testopt(opts,KNOSYM_FORMAT,KNOSYM_ISADJUNCT)) ||
+       (kno_testopt(opts,KNOSYM_FORMAT,KNOSYM_ADJUNCT)) )
     flags |= KNO_BIGPOOL_ADJUNCT;
 
   if ( ( (sflags) & (KNO_POOL_SPARSE) ) ||
@@ -2240,7 +2240,7 @@ static kno_pool bigpool_create(u8_string spec,void *type_data,
   lispval base_oid = kno_getopt(opts,kno_intern("base"),VOID);
   lispval capacity_arg = kno_getopt(opts,kno_intern("capacity"),VOID);
   lispval load_arg = kno_getopt(opts,kno_intern("load"),KNO_FIXZERO);
-  lispval label = kno_getopt(opts,FDSYM_LABEL,VOID);
+  lispval label = kno_getopt(opts,KNOSYM_LABEL,VOID);
   lispval slotcodes = kno_getopt(opts,kno_intern("slotids"),VOID);
   lispval metadata_init = kno_getopt(opts,kno_intern("metadata"),VOID);
   lispval ctime_opt = kno_getopt(opts,kno_intern("ctime"),KNO_VOID);

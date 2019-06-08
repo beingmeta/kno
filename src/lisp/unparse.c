@@ -287,24 +287,6 @@ static int unparse_vector(U8_OUTPUT *out,lispval x)
   return u8_puts(out,")");
 }
 
-static int unparse_code(U8_OUTPUT *out,lispval x)
-{
-  struct KNO_VECTOR *v = (struct KNO_VECTOR *) x;
-  int i = 0, len = v->vec_length; lispval *data = v->vec_elts;
-  int unparse_maxelts =
-    ( (out->u8_streaminfo) & (U8_STREAM_VERBOSE) ) ? (-1) :
-    (kno_unparse_maxelts);
-  u8_puts(out,"#~(");
-  while (i < len) {
-    if ((unparse_maxelts>0) && (i>=unparse_maxelts)) {
-      u8_puts(out," "); output_ellipsis(out,len-i,"elts");
-      return u8_puts(out,")");}
-    if (i>0) u8_puts(out," ");
-    kno_unparse(out,data[i]);
-    i++;}
-  return u8_puts(out,")");
-}
-
 static int unparse_choice(U8_OUTPUT *out,lispval x)
 {
   struct KNO_CHOICE *v = (struct KNO_CHOICE *) x;
@@ -591,7 +573,6 @@ KNO_EXPORT void kno_init_unparse_c()
   kno_unparsers[kno_packet_type]=unparse_packet;
   kno_unparsers[kno_secret_type]=unparse_secret;
   kno_unparsers[kno_vector_type]=unparse_vector;
-  kno_unparsers[kno_code_type]=unparse_code;
   kno_unparsers[kno_pair_type]=unparse_pair;
   kno_unparsers[kno_choice_type]=unparse_choice;
 

@@ -512,8 +512,6 @@ lispval kno_stack_eval(lispval expr,kno_lexenv env,
       return choice_eval(expr,env,_stack,tail);
     case kno_prechoice_type:
       return prechoice_eval(expr,env,_stack,tail);
-    case kno_code_type:
-      return kno_incref(expr);
     case kno_slotmap_type:
       return kno_deep_copy(expr);
     case kno_schemap_type: {
@@ -721,7 +719,7 @@ static lispval get_headval(lispval head,kno_lexenv env,kno_stack eval_stack,
       headval=kno_symeval(head,env);
       if (KNO_CONSP(headval)) *gc_headval=1;}
     else headval = head;}
-  else if ( (PAIRP(head)) || (KNO_CODEP(head)) || (CHOICEP(head)) ) {
+  else if ( (PAIRP(head)) || (CHOICEP(head)) ) {
     headval=stack_eval(head,env,eval_stack);
     headval=simplify_value(headval);
     *gc_headval=1;}
@@ -760,7 +758,6 @@ KNO_FASTOP lispval arg_eval(lispval x,kno_lexenv env,struct KNO_STACK *stack)
       if (fast_eval_args)
         return pair_eval(KNO_CAR(x),x,env,stack,0,0);
       else return kno_stack_eval(x,env,stack,0);
-    case kno_code_type:
     case kno_choice_type: case kno_prechoice_type:
       return kno_stack_eval(x,env,stack,0);
     case kno_slotmap_type:
@@ -1955,7 +1952,7 @@ void kno_init_module_tables(void);
 
 static void init_types_and_tables()
 {
-  struct KNO_TABLEFNS *fns = u8_alloc(struct KNO_TABLEFNS);
+  struct KNO_TABLEFNS *fns = u8_zalloc(struct KNO_TABLEFNS);
   fns->get = lispenv_get; fns->store = lispenv_store;
   fns->add = lispenv_add; fns->drop = NULL; fns->test = NULL;
 

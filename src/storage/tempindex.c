@@ -64,8 +64,8 @@ static kno_index open_tempindex(u8_string name,kno_storage_flags flags,
                                lispval opts)
 {
   struct KNO_TEMPINDEX *tempindex = u8_alloc(struct KNO_TEMPINDEX);
-  lispval metadata = kno_getopt(opts,FDSYM_METADATA,KNO_VOID);
-  lispval size = kno_getopt(opts,FDSYM_SIZE,KNO_VOID);
+  lispval metadata = kno_getopt(opts,KNOSYM_METADATA,KNO_VOID);
+  lispval size = kno_getopt(opts,KNOSYM_SIZE,KNO_VOID);
   kno_init_index((kno_index)tempindex,&tempindex_handler,
                 name,name,name,
                 flags|KNO_STORAGE_NOSWAP,

@@ -3246,20 +3246,20 @@ static int interpret_hashindex_flags(lispval opts)
   lispval offtype = kno_intern("offtype");
   if ( kno_testopt(opts,offtype,kno_intern("b64"))  ||
        kno_testopt(opts,offtype,KNO_INT(64))        ||
-       kno_testopt(opts,FDSYM_FLAGS,kno_intern("b64")))
+       kno_testopt(opts,KNOSYM_FLAGS,kno_intern("b64")))
     flags |= (KNO_B64<<4);
   else if ( kno_testopt(opts,offtype,kno_intern("b40"))  ||
             kno_testopt(opts,offtype,KNO_INT(40))        ||
-            kno_testopt(opts,FDSYM_FLAGS,kno_intern("b40")) )
+            kno_testopt(opts,KNOSYM_FLAGS,kno_intern("b40")) )
     flags |= (KNO_B40<<4);
   else if ( kno_testopt(opts,offtype,kno_intern("b32"))  ||
             kno_testopt(opts,offtype,KNO_INT(32))        ||
-            kno_testopt(opts,FDSYM_FLAGS,kno_intern("b32")))
+            kno_testopt(opts,KNOSYM_FLAGS,kno_intern("b32")))
     flags |= (KNO_B32<<4);
   else flags |= (KNO_B40<<4);
 
   if ( kno_testopt(opts,kno_intern("dtypev2"),VOID) ||
-       kno_testopt(opts,FDSYM_FLAGS,kno_intern("dtypev2")) )
+       kno_testopt(opts,KNOSYM_FLAGS,kno_intern("dtypev2")) )
     flags |= KNO_HASHINDEX_DTYPEV2;
 
   return flags;
@@ -3276,7 +3276,7 @@ static kno_index hashindex_create(u8_string spec,void *typedata,
   lispval baseoids_arg=KNO_VOID, baseoids_init =
     kno_getopt(opts,kno_intern("baseoids"),VOID);
   lispval buckets_arg = kno_getopt(opts,kno_intern("buckets"),KNO_VOID);
-  lispval size_arg = kno_getopt(opts,FDSYM_SIZE,KNO_INT(hashindex_default_size));
+  lispval size_arg = kno_getopt(opts,KNOSYM_SIZE,KNO_INT(hashindex_default_size));
   lispval hashconst = kno_getopt(opts,kno_intern("hashconst"),KNO_FIXZERO);
   int n_buckets = hashindex_default_size;
   if (KNO_FIXNUMP(buckets_arg))
@@ -3326,11 +3326,11 @@ static kno_index hashindex_create(u8_string spec,void *typedata,
     kno_store(metadata,init_opts,opts);
   kno_store(metadata,make_opts,opts);
 
-  lispval keyslot = kno_getopt(opts,FDSYM_KEYSLOT,KNO_VOID);
+  lispval keyslot = kno_getopt(opts,KNOSYM_KEYSLOT,KNO_VOID);
 
   if ( (KNO_VOIDP(keyslot)) || (KNO_FALSEP(keyslot)) ) {}
   else if ( (KNO_SYMBOLP(keyslot)) || (KNO_OIDP(keyslot)) )
-    kno_store(metadata,FDSYM_KEYSLOT,keyslot);
+    kno_store(metadata,KNOSYM_KEYSLOT,keyslot);
   else if (KNO_AMBIGP(keyslot)) {
     lispval reduced = KNO_EMPTY;
     KNO_DO_CHOICES(slotid,keyslot) {
@@ -3344,7 +3344,7 @@ static kno_index hashindex_create(u8_string spec,void *typedata,
     else {
       kno_decref(keyslot);
       keyslot = kno_simplify_choice(reduced);
-      kno_store(metadata,FDSYM_KEYSLOT,keyslot);}}
+      kno_store(metadata,KNOSYM_KEYSLOT,keyslot);}}
   else u8_log(LOG_WARN,"InvalidKeySlot",
               "Not initializing keyslot of %s to %q",spec,keyslot);
 
@@ -3869,7 +3869,7 @@ static lispval hashindex_ctl(kno_index ix,lispval op,int n,lispval *args)
     int n_slotids = hx->index_slotcodes.n_slotcodes;
     int n_baseoids = hx->index_oidcodes.n_oids;
     if ( hx->hashindex_format & KNO_HASHINDEX_READ_ONLY )
-      kno_store(base,FDSYM_READONLY,KNO_TRUE);
+      kno_store(base,KNOSYM_READONLY,KNO_TRUE);
     kno_store(base,slotids_symbol,KNO_INT(n_slotids));
     kno_store(base,baseoids_symbol,KNO_INT(n_baseoids));
     kno_store(base,buckets_symbol,KNO_INT(hx->index_n_buckets));
@@ -3879,16 +3879,16 @@ static lispval hashindex_ctl(kno_index ix,lispval op,int n,lispval *args)
     kno_add(base,metadata_readonly_props,buckets_symbol);
     kno_add(base,metadata_readonly_props,nkeys_symbol);
     return base;}
-  else if ( ( ( op == FDSYM_READONLY ) && (n == 0) ) ||
+  else if ( ( ( op == KNOSYM_READONLY ) && (n == 0) ) ||
             ( ( op == kno_metadata_op ) && (n == 1) &&
-              ( args[0] == FDSYM_READONLY ) ) ) {
+              ( args[0] == KNOSYM_READONLY ) ) ) {
     if ( (ix->index_flags) & (KNO_STORAGE_READ_ONLY) )
       return KNO_TRUE;
     else return KNO_FALSE;}
-  else if ( ( ( op == FDSYM_READONLY ) && (n == 1) ) ||
+  else if ( ( ( op == KNOSYM_READONLY ) && (n == 1) ) ||
             ( ( op == kno_metadata_op ) && (n == 2) &&
-              ( args[0] == FDSYM_READONLY ) ) ) {
-    lispval arg = ( op == FDSYM_READONLY ) ? (args[0]) : (args[1]);
+              ( args[0] == KNOSYM_READONLY ) ) ) {
+    lispval arg = ( op == KNOSYM_READONLY ) ? (args[0]) : (args[1]);
     int rv = (KNO_FALSEP(arg)) ? (hashindex_set_read_only(hx,0)) :
       (hashindex_set_read_only(hx,1));
     if (rv<0)

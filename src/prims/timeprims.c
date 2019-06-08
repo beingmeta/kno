@@ -1391,7 +1391,7 @@ KNO_EXPORT void kno_init_timeprims_c()
 
   init_id_tables();
 
-  kno_tablefns[kno_timestamp_type]=u8_alloc(struct KNO_TABLEFNS);
+  kno_tablefns[kno_timestamp_type]=u8_zalloc(struct KNO_TABLEFNS);
   kno_tablefns[kno_timestamp_type]->get = timestamp_get;
   kno_tablefns[kno_timestamp_type]->add = NULL;
   kno_tablefns[kno_timestamp_type]->drop = NULL;
