@@ -24,37 +24,17 @@ typedef enum xt_type_code {
   xt_empty_list = 0x04,
   xt_default = 0x05,
   xt_void = 0x06,
-  xt_qempty = 0x07,
-  /* Scalars format: <code> <byte>+ */
-  xt_fixnum_b = 0x10,
-  xt_fixnum_bb = 0x11,
-  xt_fixnum_bbb = 0x12,
-  xt_fixnum_bbbb = 0x13,
-  xt_posint_v = 0x14,
-  xt_negint_v = 0x15,
-  xt_flonum_bbbb = 0x16,
-  xt_flonum_bbbbbbbb = 0x17,
-  xt_character_b = 0x18,
-  xt_character_bb = 0x19,
-  xt_character_bbbb = 0x1a,
-  xt_character_v = 0x1b,
-  /* String types (format: <code> <len> <byte>*) */
-  xt_utf8_b = 0x20,
-  xt_utf8_bb = 0x2,
-  xt_utf8_bbbb = 0x22,
-  xt_utf8_v = 0x23,
-  xt_packet_b = 0x24,
-  xt_packet_bb = 0x25,
-  xt_packet_bbbb = 0x26,
-  xt_packet_v = 0x27,
-  xt_secret_b = 0x28,
-  xt_secret_bb = 0x29,
-  xt_secret_bbbb = 0x2a,
-  xt_secret_v = 0x2b,
-  xt_u8symbol_b = 0x28,
-  xt_u8symbol_bb = 0x29,
-  xt_u8symbol_bbbb = 0x2a,
-  xt_u8symbol_v = 0x2b,
+  /* Scalars */
+  xt_pos_int = 0x20, /* + <varint> */
+  xt_neg_int = 0x21, /* + <varint> */
+  xt_pos_big = 0x22, /* + <varint(len)> <byte>+ */
+  xt_neg_big = 0x23, /* + <varint(len)> <byte>+ */
+  xt_float = 0x24, /* + 4bytes */
+  xt_double = 0x25, /* + 8bytes */
+  xt_character = 0x26, /* + <varint> */
+  xt_oid = 0x27, /* 8 bytes */
+  xt_objid = 0x28, /* 12 bytes */
+  xt_uuid = 0x29, /* 16 bytes */
   /* Pair types (format: <code> <xtype> <xtype>) */
   xt_pair = 0x30,
   xt_rational = 0x31,
@@ -62,20 +42,18 @@ typedef enum xt_type_code {
   xt_tagged = 0x33,
   xt_compressed = 0x34,
   xt_encrypted = 0x35,
-  xt_media = 0x36,
+  xt_mime = 0x36,
+  /* Packet types (format: <code> <len> <byte>*) */
+  xt_utf8 = 0x40,
+  xt_packet = 0x41,
+  xt_secret = 0x42,
+  xt_symbol = 0x42,
+  xt_tagged_packet = 0x43,
   /* Repeated types (format: <code> <len> <xtype>*) */
-  xt_vector_b = 0x40,
-  xt_vector_bb = 0x41,
-  xt_vector_bbb = 0x42,
-  xt_vector_v = 0x43,
-  xt_choice_b = 0x44,
-  xt_choice_bb = 0x45,
-  xt_choice_bbb = 0x46,
-  xt_choice_v = 0x47,
-  xt_table_b = 0x48,
-  xt_table_bb = 0x49,
-  xt_table_bbb = 0x4a,
-  xt_table_v = 0x4b,
+  xt_vector = 0x48,
+  xt_choice = 0x49,
+  xt_table = 0x4a,
+  xt_tagged_vector = 0x4b,
   /* Type codes, used in combination with xt_tagged and
      xt_vector/xt_packet types */
   xt_type_short16_vec = 0x50,
@@ -86,15 +64,8 @@ typedef enum xt_type_code {
   xt_type_hashset = 0x55,
   xt_type_hashtable = 0x56,
   /* Refs */
-  xt_ref_b = 0x60,
-  xt_ref_bb = 0x61,
-  xt_ref_bbb = 0x62,
-  xt_ref_v = 0x63,
-  xt_oid = 0x64, /* 8 bytes */
-  xt_poolref_b = 0x65, /* has form off (bytes) + base (xtype) */
-  xt_poolref_bb = 0x66, /* ... */
-  xt_poolref_bbb = 0x67, /* ... */
-  xt_poolrev_bbbb = 0x68 /* ... */
+  xt_ref = 0x60, /* + <varint> */
+  xt_pool_ref = 0x61 /* + <varint> <xtype(base)> */
 } xt_type_code;
 
 typedef struct XTYPE_REFS {
@@ -114,9 +85,9 @@ typedef struct XTYPE_REFS *xtype_refs;
 
 /* The top level functions */
 
-KNO_EXPORT ssize_t xtype_write(kno_outbuf out,lispval x,xtype_refs refs);
-KNO_EXPORT ssize_t xtype_validate(struct KNO_INBUF *in);
-KNO_EXPORT lispval xtype_read(kno_inbuf in,xtype_refs refs);
+KNO_EXPORT ssize_t kno_write_xtype(kno_outbuf out,lispval x,xtype_refs refs);
+KNO_EXPORT ssize_t kno_validate_xtype(struct KNO_INBUF *in);
+KNO_EXPORT lispval kno_read_xtype(kno_inbuf in,xtype_refs refs);
 
 /* Returning error codes */
 
