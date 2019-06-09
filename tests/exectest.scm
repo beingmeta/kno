@@ -1,4 +1,4 @@
-#!../dbg/kno
+#!../dbg/knox
 ;;; -*- Mode: Scheme; text-encoding: latin-1 -*-
 
 (load-component "common.scm")
@@ -28,13 +28,13 @@
   (applytest 5.9 identity arg7)
   (applytest 'x identity arg8)
   (applytest 
-   #("kno" 
+   #("knox" 
      "exectest.scm" "a" "b b" "c" 
      "foobar=8" "quux=1/2" "4" 
      "1/3" "9/3" "5.9" ":x")
    simpconfig 'ARGV)
   (applytest
-   #("kno" "exectest.scm" "a" "b b" "c" 
+   #("knox" "exectest.scm" "a" "b b" "c" 
      "foobar=8" "quux=1/2" "4" 
      "1/3" "9/3" "5.9" ":x")
    simpconfig 'RAWARGS)

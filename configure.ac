@@ -1507,11 +1507,20 @@ fi
 dnl check for building with parseltongue
 AC_ARG_WITH(parseltongue,--with[out]-parseltongue Build parseltongue libraries for connecting Kno and Python)
 if test "$with_parseltongue" = "yes"; then
+   AX_PYTHON3
    AX_PYTHON2
+elif test "$with_parseltongue" = "2"; then
+   AX_PYTHON2
+elif test "$with_parseltongue" = "3"; then
+   AX_PYTHON3
 fi;
-if test "$with_parseltongue" = "yes" &&  test ! -z "${ax_python2_lib}"; then
+if test ! -z "${ax_python3_lib}"; then
    CORE_CMODULES="lib/kno/parseltongue.$shared_suffix ${CORE_CMODULES}"
    INSTALL_CORE_CMODULES="install-parseltongue ${INSTALL_CORE_CMODULES}"
+fi
+if test ! -z "${ax_python2_lib}"; then
+   CORE_CMODULES="lib/kno/parseltongue2.$shared_suffix ${CORE_CMODULES}"
+   INSTALL_CORE_CMODULES="install-parseltongue2 ${INSTALL_CORE_CMODULES}"
 fi
 
 ### Control use of 'sudo' for installation
