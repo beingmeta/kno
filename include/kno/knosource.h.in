@@ -13,9 +13,9 @@
     (GPL) Version 2 or the GNU Lesser General Public License.
 */
 
-#ifndef FRAMERD_SOURCE_H
-#define FRAMERD_SOURCE_H 1
-#define FRAMERD_SOURCE_H_VERSION __FILE__
+#ifndef KNO_SOURCE_H
+#define KNO_SOURCE_H 1
+#define KNO_SOURCE_H_VERSION __FILE__
 
 /** For system extensions **/
 
@@ -28,7 +28,7 @@
 #undef _POSIX_1_SOURCE
 #undef _MINIX
 
-#include "framerd/config.h"
+#include "kno/config.h"
 
 #include <stdlib.h>
 #include <string.h>
