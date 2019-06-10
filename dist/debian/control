@@ -271,5 +271,5 @@ Description: Installs all standard Kno modules
 
 Package: kno-dev
 Architecture: any
-Depends: kno (= ${binary:Version}), libu8-dev, kno-core-dbg
+Depends: kno (= ${binary:Version}), kno-core-dev (= ${binary:Version}), libu8-dev, kno-core-dbg
 Description: Development files for Kno
