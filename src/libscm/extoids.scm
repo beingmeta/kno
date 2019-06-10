@@ -3,10 +3,10 @@
 
 (in-module 'extoids)
 
-(use-module '{extdb varconfig reflection logger})
+(use-module '{sqldb varconfig reflection logger})
 
 (define default-sqlmap #[])
-(varconfig! extdb:sqlmap default-sqlmap)
+(varconfig! sqldb:sqlmap default-sqlmap)
 
 (define-init %loglevel %notice!)
 ;;(define  %loglevel %debug!)
@@ -134,7 +134,7 @@
   (default! valtype (try (get default-sqlmap slotid) #f))
   (store! store-procs
 	  (if pool (cons pool slotid) slotid)
-	  (extdb/proc db query
+	  (sqldb/proc db query
 		      (qc default-sqlmap)
 		      (try (get typefns valtype) valtype)
 		      (pool-base pool))))
@@ -147,7 +147,7 @@
   (default! valtype (try (get default-sqlmap slotid) #f))
   (store! add-procs
 	  (if pool (cons pool slotid) slotid)
-	  (extdb/proc db query
+	  (sqldb/proc db query
 		      (qc default-sqlmap)
 		      (try (get typefns valtype) valtype)
 		      (pool-base pool))))
@@ -159,7 +159,7 @@
   (default! valtype (try (get default-sqlmap slotid) #f))
   (store! drop-procs
 	  (if pool (cons pool slotid) slotid)
-	  (extdb/proc db query
+	  (sqldb/proc db query
 		      (qc default-sqlmap)
 		      (try (get typefns valtype) valtype)
 		      (pool-base pool))))
@@ -190,7 +190,7 @@
 		     (normalize #f)
 		     (cache usecache))
   (let ((index (cons-extindex (stringout slotid) (get-getter normalize) #f
-			      (extdb/proc db query
+			      (sqldb/proc db query
 					  (if (getopt sqlmap '%merge) sqlmap
 					      (cons #[%merge #t] sqlmap))
 					  (pool-base pool))
@@ -204,7 +204,7 @@
 		     (sqlmap default-sqlmap)
 		     (normalize #f)
 		     (cache usecache))
-  (let* ((getter/sql (extdb/proc db query (cons #[%merge #t] sqlmap)
+  (let* ((getter/sql (sqldb/proc db query (cons #[%merge #t] sqlmap)
 				 (pool-base pool)))
 	 (rawgetter (lambda (key)
 		      (if (vector? key)

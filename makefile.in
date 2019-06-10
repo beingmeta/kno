@@ -233,7 +233,7 @@ SCHEME_OBJS=\
 	src/prims/sysprims.o \
 	src/prims/procprims.o \
 	@ipevalopso@ \
-	src/prims/extdbprims.o \
+	src/prims/sqldbprims.o \
 	src/prims/fileprims.o \
 	src/prims/driverprims.o \
 	src/eval/loader.o \
@@ -441,7 +441,7 @@ KNO_SOURCES=\
 	src/prims/fileprims.c src/prims/driverprims.c                		\
 	src/eval/loader.c                                            		\
 	src/prims/timeprims.c src/prims/sysprims.c 				\
-	src/prims/extdbprims.c                    				\
+	src/prims/sqldbprims.c                    				\
 	src/eval/reqstate.c                                          		\
 	src/web/webtools.c src/web/json.c src/web/ldns.c            		\
 	src/web/xmloutput.c src/web/xmlinput.c src/web/xmldata.c 		\
@@ -449,8 +449,7 @@ KNO_SOURCES=\
 	src/web/uriprims.c src/web/mime.c src/web/email.c src/web/curl.c	\
 	src/text/texttools.c src/text/match.c                			\
 	src/text/porter.c src/text/phonetic.c                			\
-	src/exe/knoc.c                                            		\
-	src/exe/knox.c src/exe/knotask.c                             		\
+	src/exe/knoc.c src/exe/knox.c src/exe/knotask.c				\
 	src/exe/knoweb.c src/exe/knocgi.c src/exe/knod.c
 
 CMODULE_SOURCES=\
@@ -662,7 +661,7 @@ dbg/%: src/exe/%.c $(STATIC_LIBS)
 	@echo MKEXE_DEBUG $@
 	$(CC) $(TEST_CFLAGS) -o $@ $^ 		\
 	      @STATICLDFLAGS@ $(TEST_LDFLAGS) $(TEST_EXEFLAGS) 	\
-	      -lu8stdio -lu8syslog 		\
+	      -lu8 -lu8stdio -lu8syslog 		\
 	      $(LIBS) $(EXELIBS)
 dbg/%: ${REVISION_H} ${CONFIG_H} src/exe/main.h src/exe/webcommon.h
 

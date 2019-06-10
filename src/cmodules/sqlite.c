@@ -17,7 +17,7 @@
 #include "kno/numbers.h"
 #include "kno/sequences.h"
 #include "kno/texttools.h"
-#include "kno/extdb.h"
+#include "kno/sqldb.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8printf.h>
@@ -31,18 +31,18 @@
 #include <stdio.h>
 
 KNO_EXPORT int kno_init_sqlite(void) KNO_LIBINIT_FN;
-static struct KNO_EXTDB_HANDLER sqlite_handler;
+static struct KNO_SQLDB_HANDLER sqlite_handler;
 static lispval sqlitecallproc(struct KNO_FUNCTION *fn,int n,lispval *args);
 
 typedef struct KNO_SQLITE {
-  KNO_EXTDB_FIELDS;
+  KNO_SQLDB_FIELDS;
   u8_mutex sqlite_lock;
   u8_string sqlitefile, sqlitevfs;
   sqlite3 *sqlitedb;} KNO_SQLITE;
 typedef struct KNO_SQLITE *kno_sqlite;
 
 typedef struct KNO_SQLITE_PROC {
-  KNO_EXTDB_PROC_FIELDS;
+  KNO_SQLDB_PROC_FIELDS;
 
   u8_mutex sqliteproc_lock;
 
@@ -107,7 +107,7 @@ static int open_knosqlite(struct KNO_SQLITE *knosqlptr)
 {
   u8_log(LOG_WARN,"open_knosqlite",
          "Opening SQLite database %s info=%s, filename=%s",
-         knosqlptr->extdb_spec,knosqlptr->extdb_info,knosqlptr->sqlitefile);
+         knosqlptr->sqldb_spec,knosqlptr->sqldb_info,knosqlptr->sqlitefile);
   u8_lock_mutex(&(knosqlptr->sqlite_lock));
   if (knosqlptr->sqlitedb) {
     u8_unlock_mutex(&(knosqlptr->sqlite_lock));
@@ -115,7 +115,7 @@ static int open_knosqlite(struct KNO_SQLITE *knosqlptr)
   else {
     sqlite3 *db = NULL; int retval;
 #if HAVE_SQLITE3_V2
-    int flags = getv2flags(knosqlptr->extdb_options,knosqlptr->sqlitefile);
+    int flags = getv2flags(knosqlptr->sqldb_options,knosqlptr->sqlitefile);
     if (flags<0) return flags;
     retval = sqlite3_open_v2(knosqlptr->sqlitefile,&db,flags,knosqlptr->sqlitevfs);
 #else
@@ -129,16 +129,16 @@ static int open_knosqlite(struct KNO_SQLITE *knosqlptr)
       u8_unlock_mutex(&(knosqlptr->sqlite_lock));
       return -1;}
     knosqlptr->sqlitedb = db;
-    if (knosqlptr->extdb_n_procs) {
-      struct KNO_EXTDB_PROC **scan = knosqlptr->extdb_procs;
-      struct KNO_EXTDB_PROC **limit = scan+knosqlptr->extdb_n_procs;
+    if (knosqlptr->sqldb_n_procs) {
+      struct KNO_SQLDB_PROC **scan = knosqlptr->sqldb_procs;
+      struct KNO_SQLDB_PROC **limit = scan+knosqlptr->sqldb_n_procs;
       while (scan<limit) {
-        struct KNO_EXTDB_PROC *edbp = *scan++;
+        struct KNO_SQLDB_PROC *edbp = *scan++;
         struct KNO_SQLITE_PROC *sp = (struct KNO_SQLITE_PROC *)edbp;
         int retval = open_knosqliteproc(knosqlptr,sp);
         if (retval)
           u8_log(LOG_CRIT,"sqlite_opendb","Error '%s' updating query '%s'",
-                 sqlite3_errmsg(db),sp->extdb_qtext);}}
+                 sqlite3_errmsg(db),sp->sqldb_qtext);}}
     u8_unlock_mutex(&(knosqlptr->sqlite_lock));
     return 1;}
 }
@@ -179,16 +179,16 @@ static lispval sqlite_open_prim(lispval filename,lispval colinfo,lispval options
 #endif
 
   sqlcons = u8_alloc(struct KNO_SQLITE);
-  KNO_INIT_FRESH_CONS(sqlcons,kno_extdb_type);
-  sqlcons->extdb_handler = &sqlite_handler;
+  KNO_INIT_FRESH_CONS(sqlcons,kno_sqldb_type);
+  sqlcons->sqldb_handler = &sqlite_handler;
   sqlcons->sqlitefile = u8_abspath(KNO_CSTRING(filename),NULL);
-  sqlcons->extdb_colinfo = colinfo; kno_incref(colinfo);
-  sqlcons->extdb_options = options; kno_incref(options);
-  sqlcons->extdb_spec = sqlcons->extdb_info = u8_strdup(KNO_CSTRING(filename));
+  sqlcons->sqldb_colinfo = colinfo; kno_incref(colinfo);
+  sqlcons->sqldb_options = options; kno_incref(options);
+  sqlcons->sqldb_spec = sqlcons->sqldb_info = u8_strdup(KNO_CSTRING(filename));
   sqlcons->sqlitedb = NULL;
   sqlcons->sqlitevfs = vfs;
   u8_init_mutex(&(sqlcons->sqlite_lock));
-  u8_init_mutex(&(sqlcons->extdb_proclock));
+  u8_init_mutex(&(sqlcons->sqldb_proclock));
   retval = open_knosqlite(sqlcons);
   if (retval<0) {
     lispval lptr = LISP_CONS(sqlcons);
@@ -199,22 +199,22 @@ static lispval sqlite_open_prim(lispval filename,lispval colinfo,lispval options
 
 static lispval sqlite_reopen_prim(lispval db)
 {
-  struct KNO_EXTDB *extdb = kno_consptr(struct KNO_EXTDB *,db,kno_extdb_type);
-  if (extdb->extdb_handler!= &sqlite_handler)
+  struct KNO_SQLDB *sqldb = kno_consptr(struct KNO_SQLDB *,db,kno_sqldb_type);
+  if (sqldb->sqldb_handler!= &sqlite_handler)
     return kno_type_error("Not a SQLITE DB","sqlite_close_prim",db);
   else {
-    int retval = open_knosqlite((struct KNO_SQLITE *)extdb);
+    int retval = open_knosqlite((struct KNO_SQLITE *)sqldb);
     if (retval<0) return KNO_ERROR_VALUE;
     else return kno_incref(db);}
 }
 
 static void close_knosqlite(struct KNO_SQLITE *dbp,int lock)
 {
-  u8_log(LOG_WARN,"Closing SQLITE db %s",dbp->extdb_spec);
+  u8_log(LOG_WARN,"Closing SQLITE db %s",dbp->sqldb_spec);
   if (lock) u8_lock_mutex(&(dbp->sqlite_lock)); {
     sqlite3 *db = dbp->sqlitedb;
-    struct KNO_EXTDB_PROC **scan = dbp->extdb_procs;
-    struct KNO_EXTDB_PROC **limit = scan+dbp->extdb_n_procs;
+    struct KNO_SQLDB_PROC **scan = dbp->sqldb_procs;
+    struct KNO_SQLDB_PROC **limit = scan+dbp->sqldb_n_procs;
     while (scan<limit)
       close_knosqliteproc((struct KNO_SQLITE_PROC *)(*scan++));
     closedb(db);
@@ -224,22 +224,22 @@ static void close_knosqlite(struct KNO_SQLITE *dbp,int lock)
 
 static lispval sqlite_close_prim(lispval db)
 {
-  struct KNO_EXTDB *extdb = kno_consptr(struct KNO_EXTDB *,db,kno_extdb_type);
-  if (extdb->extdb_handler!= &sqlite_handler)
+  struct KNO_SQLDB *sqldb = kno_consptr(struct KNO_SQLDB *,db,kno_sqldb_type);
+  if (sqldb->sqldb_handler!= &sqlite_handler)
     return kno_type_error("Not a SQLITE DB","sqlite_close_prim",db);
-  close_knosqlite((struct KNO_SQLITE *)extdb,1);
+  close_knosqlite((struct KNO_SQLITE *)sqldb,1);
   return KNO_VOID;
 }
 
-static void recycle_knosqlite(struct KNO_EXTDB *c)
+static void recycle_knosqlite(struct KNO_SQLDB *c)
 {
   struct KNO_SQLITE *dbp = (struct KNO_SQLITE *)c;
   u8_lock_mutex(&(dbp->sqlite_lock)); {
     close_knosqlite(dbp,0);
-    if (dbp->extdb_info!=dbp->extdb_spec) u8_free(dbp->extdb_info);
-    u8_free(dbp->extdb_spec);
-    kno_decref(dbp->extdb_options);
-    kno_decref(dbp->extdb_colinfo);
+    if (dbp->sqldb_info!=dbp->sqldb_spec) u8_free(dbp->sqldb_info);
+    u8_free(dbp->sqldb_spec);
+    kno_decref(dbp->sqldb_options);
+    kno_decref(dbp->sqldb_colinfo);
     u8_destroy_mutex(&(dbp->sqlite_lock));}
 }
 
@@ -294,7 +294,7 @@ static lispval sqliteexec(struct KNO_SQLITE *knos,lispval string,lispval colinfo
   int retval;
   u8_lock_mutex(&(knos->sqlite_lock));
   retval = newstmt(dbp,KNO_CSTRING(string),KNO_STRLEN(string),&stmt);
-  if (KNO_VOIDP(colinfo)) colinfo = knos->extdb_colinfo;
+  if (KNO_VOIDP(colinfo)) colinfo = knos->sqldb_colinfo;
   if (retval == SQLITE_OK) {
     lispval values = sqlite_values(dbp,stmt,colinfo);
     if (KNO_ABORTP(values)) {
@@ -313,23 +313,23 @@ static lispval sqliteexec(struct KNO_SQLITE *knos,lispval string,lispval colinfo
     return KNO_ERROR_VALUE;}
 }
 
-static lispval sqliteexechandler(struct KNO_EXTDB *extdb,lispval string,
+static lispval sqliteexechandler(struct KNO_SQLDB *sqldb,lispval string,
                                 lispval colinfo)
 {
-  if (extdb->extdb_handler== &sqlite_handler) {
-    struct KNO_SQLITE *sdb = (struct KNO_SQLITE *)extdb;
+  if (sqldb->sqldb_handler== &sqlite_handler) {
+    struct KNO_SQLITE *sdb = (struct KNO_SQLITE *)sqldb;
     u8_lock_mutex(&(sdb->sqlite_lock));
     if (!(sdb->sqlitedb)) {
       u8_unlock_mutex(&(sdb->sqlite_lock));
-      if (extdb->extdb_spec!=extdb->extdb_info)
+      if (sqldb->sqldb_spec!=sqldb->sqldb_info)
         u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s (%s)",
-               extdb->extdb_spec,extdb->extdb_info);
+               sqldb->sqldb_spec,sqldb->sqldb_info);
       else u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s",
-                  extdb->extdb_spec);
+                  sqldb->sqldb_spec);
       open_knosqlite(sdb);
       if (!(sdb->sqlitedb)) return KNO_ERROR_VALUE;}
     return sqliteexec(sdb,string,colinfo);}
-  else return kno_type_error("SQLITE EXTDB","sqliteexechandler",(lispval)extdb);
+  else return kno_type_error("SQLITE SQLDB","sqliteexechandler",(lispval)sqldb);
 }
 
 /* SQLITE procs */
@@ -347,11 +347,11 @@ static lispval sqlitemakeproc
     u8_lock_mutex(&(dbp->sqlite_lock));
     if (!(dbp->sqlitedb)) {
       u8_unlock_mutex(&(dbp->sqlite_lock));
-      if (dbp->extdb_spec!=dbp->extdb_info)
+      if (dbp->sqldb_spec!=dbp->sqldb_info)
         u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s (%s)",
-               dbp->extdb_spec,dbp->extdb_info);
+               dbp->sqldb_spec,dbp->sqldb_info);
       else u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s",
-                  dbp->extdb_spec);
+                  dbp->sqldb_spec);
       open_knosqlite(dbp);
       if (!(dbp->sqlitedb)) return KNO_ERROR_VALUE;}
     db = dbp->sqlitedb;}
@@ -363,16 +363,16 @@ static lispval sqlitemakeproc
               errmsg,kno_incref(dbptr));
     return KNO_ERROR_VALUE;}
   else sqlcons = u8_alloc(struct KNO_SQLITE_PROC);
-  KNO_INIT_FRESH_CONS(sqlcons,kno_extdb_proc_type);
-  sqlcons->extdb_handler = &sqlite_handler;
+  KNO_INIT_FRESH_CONS(sqlcons,kno_sqldb_proc_type);
+  sqlcons->sqldb_handler = &sqlite_handler;
   sqlcons->sqlitedb = dbp->sqlitedb;
-  sqlcons->extdbptr = (lispval)dbp;
-  kno_incref(sqlcons->extdbptr);
+  sqlcons->sqldbptr = (lispval)dbp;
+  kno_incref(sqlcons->sqldbptr);
   sqlcons->sqlitedb = db; sqlcons->stmt = stmt;
   u8_init_mutex(&(sqlcons->sqliteproc_lock));
-  sqlcons->fcn_filename = sqlcons->extdb_spec = u8_strdup(dbp->extdb_spec);
+  sqlcons->fcn_filename = sqlcons->sqldb_spec = u8_strdup(dbp->sqldb_spec);
   /* include NUL */
-  sqlcons->fcn_name = sqlcons->extdb_qtext=_memdup((u8_byte *)sql,sql_len+1);
+  sqlcons->fcn_name = sqlcons->sqldb_qtext=_memdup((u8_byte *)sql,sql_len+1);
   sqlcons->fcn_n_params = n_params = sqlite3_bind_parameter_count(stmt);
   sqlcons->fcn_ndcall = 0; sqlcons->fcn_xcall = 1; sqlcons->fcn_arity = -1;
   sqlcons->fcn_min_arity = n_params;
@@ -383,47 +383,47 @@ static lispval sqlitemakeproc
       if (j<n) paramtypes[j]=kno_incref(ptypes[j]);
       else paramtypes[j]=KNO_VOID;
       j++;}
-    sqlcons->extdb_paramtypes = paramtypes;}
-  sqlcons->extdb_colinfo = merge_colinfo(dbp,colinfo);
-  kno_incref(dbp->extdb_colinfo);
-  kno_register_extdb_proc((struct KNO_EXTDB_PROC *)sqlcons);
+    sqlcons->sqldb_paramtypes = paramtypes;}
+  sqlcons->sqldb_colinfo = merge_colinfo(dbp,colinfo);
+  kno_incref(dbp->sqldb_colinfo);
+  kno_register_sqldb_proc((struct KNO_SQLDB_PROC *)sqlcons);
   return LISP_CONS(sqlcons);
 }
 
 static lispval merge_colinfo(KNO_SQLITE *dbp,lispval colinfo)
 {
-  if (KNO_VOIDP(colinfo)) return kno_incref(dbp->extdb_colinfo);
-  else if (KNO_VOIDP(dbp->extdb_colinfo))
+  if (KNO_VOIDP(colinfo)) return kno_incref(dbp->sqldb_colinfo);
+  else if (KNO_VOIDP(dbp->sqldb_colinfo))
     return kno_incref(colinfo);
-  else if (colinfo == dbp->extdb_colinfo)
+  else if (colinfo == dbp->sqldb_colinfo)
     return kno_incref(colinfo);
   else if ((KNO_PAIRP(colinfo))&&
-           ((KNO_CDR(colinfo)) == (dbp->extdb_colinfo)))
+           ((KNO_CDR(colinfo)) == (dbp->sqldb_colinfo)))
     return kno_incref(colinfo);
   else {
-    kno_incref(dbp->extdb_colinfo); kno_incref(colinfo);
-    return kno_conspair(colinfo,dbp->extdb_colinfo);}
+    kno_incref(dbp->sqldb_colinfo); kno_incref(colinfo);
+    return kno_conspair(colinfo,dbp->sqldb_colinfo);}
 }
 
 static lispval sqlitemakeprochandler
-  (struct KNO_EXTDB *extdb,u8_string sql,int sql_len,
+  (struct KNO_SQLDB *sqldb,u8_string sql,int sql_len,
    lispval colinfo,int n,lispval *ptypes)
 {
-  if (extdb->extdb_handler== &sqlite_handler)
-    return sqlitemakeproc((kno_sqlite)extdb,sql,sql_len,colinfo,n,ptypes);
+  if (sqldb->sqldb_handler== &sqlite_handler)
+    return sqlitemakeproc((kno_sqlite)sqldb,sql,sql_len,colinfo,n,ptypes);
   else return kno_type_error
-         ("SQLITE EXTDB","sqlitemakeprochandler",(lispval)extdb);
+         ("SQLITE SQLDB","sqlitemakeprochandler",(lispval)sqldb);
 }
 
 static int open_knosqliteproc(struct KNO_SQLITE *knosqlptr,struct KNO_SQLITE_PROC *knop)
 {
-  sqlite3 *db = knosqlptr->sqlitedb; u8_string query = knop->extdb_qtext;
+  sqlite3 *db = knosqlptr->sqlitedb; u8_string query = knop->sqldb_qtext;
   sqlite3_stmt *stmt;
   int retval = newstmt(db,query,strlen(query),&stmt);
   if (retval)
     return retval;
   else {
-    knop->extdbptr = (lispval)knosqlptr;
+    knop->sqldbptr = (lispval)knosqlptr;
     knop->sqlitedb = db;
     knop->stmt = stmt;
     return 0;}
@@ -434,21 +434,21 @@ static void close_knosqliteproc(struct KNO_SQLITE_PROC *dbp)
   sqlite3_finalize(dbp->stmt); dbp->stmt = NULL;
 }
 
-static void recycle_knosqliteproc(struct KNO_EXTDB_PROC *c)
+static void recycle_knosqliteproc(struct KNO_SQLDB_PROC *c)
 {
   struct KNO_SQLITE_PROC *dbp = (struct KNO_SQLITE_PROC *)c;
-  int retval = kno_release_extdb_proc(c);
+  int retval = kno_release_sqldb_proc(c);
   if (retval<0) {
     u8_log(LOG_CRIT,"recycle_knosqliteproc","Unexpected error during GC");
     kno_clear_errors(1);
     return;}
   close_knosqliteproc(dbp);
-  kno_decref(dbp->extdb_colinfo);
-  u8_free(dbp->extdb_spec); u8_free(dbp->extdb_qtext);
+  kno_decref(dbp->sqldb_colinfo);
+  u8_free(dbp->sqldb_spec); u8_free(dbp->sqldb_qtext);
   {int j = 0, lim = dbp->fcn_n_params;; while (j<lim) {
-    kno_decref(dbp->extdb_paramtypes[j]); j++;}}
-  u8_free(dbp->sqltypes); u8_free(dbp->extdb_paramtypes);
-  kno_decref(dbp->extdbptr); dbp->extdbptr = KNO_VOID;
+    kno_decref(dbp->sqldb_paramtypes[j]); j++;}}
+  u8_free(dbp->sqltypes); u8_free(dbp->sqldb_paramtypes);
+  kno_decref(dbp->sqldbptr); dbp->sqldbptr = KNO_VOID;
 }
 
 /* Calling a SQLITE proc */
@@ -461,19 +461,19 @@ static lispval sqlitecallproc(struct KNO_FUNCTION *fn,int n,lispval *args)
   lispval values = KNO_EMPTY_CHOICE;
   int i = 0, ret = -1;
   if (!(knos->sqlitedb)) {
-    if (knos->extdb_spec!=knos->extdb_info)
+    if (knos->sqldb_spec!=knos->sqldb_info)
       u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s (%s) for '%s'",
-             knos->extdb_spec,knos->extdb_info,dbproc->extdb_qtext);
+             knos->sqldb_spec,knos->sqldb_info,dbproc->sqldb_qtext);
     else u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s for '%s'",
-                knos->extdb_spec,dbproc->extdb_qtext);
+                knos->sqldb_spec,dbproc->sqldb_qtext);
     open_knosqlite(knos);
     if (!(knos->sqlitedb)) return KNO_ERROR_VALUE;}
   u8_lock_mutex(&(dbproc->sqliteproc_lock));
   while (i<n) {
     lispval arg = args[i]; int dofree = 0;
-    if (!(KNO_VOIDP(dbproc->extdb_paramtypes[i])))
-      if (KNO_APPLICABLEP(dbproc->extdb_paramtypes[i])) {
-        arg = kno_apply(dbproc->extdb_paramtypes[i],1,&arg);
+    if (!(KNO_VOIDP(dbproc->sqldb_paramtypes[i])))
+      if (KNO_APPLICABLEP(dbproc->sqldb_paramtypes[i])) {
+        arg = kno_apply(dbproc->sqldb_paramtypes[i],1,&arg);
         if (KNO_ABORTP(arg)) {
           u8_unlock_mutex(&(dbproc->sqliteproc_lock));
           return arg;}
@@ -495,9 +495,9 @@ static lispval sqlitecallproc(struct KNO_FUNCTION *fn,int n,lispval *args)
          KNO_PACKET_DATA(arg),KNO_PACKET_LENGTH(arg),
          SQLITE_TRANSIENT);
     else if (KNO_OIDP(arg)) {
-      if (KNO_OIDP(dbproc->extdb_paramtypes[i])) {
+      if (KNO_OIDP(dbproc->sqldb_paramtypes[i])) {
         KNO_OID addr = KNO_OID_ADDR(arg);
-        KNO_OID base = KNO_OID_ADDR(dbproc->extdb_paramtypes[i]);
+        KNO_OID base = KNO_OID_ADDR(dbproc->sqldb_paramtypes[i]);
         unsigned long offset = KNO_OID_DIFFERENCE(addr,base);
         ret = sqlite3_bind_int(dbproc->stmt,i+1,offset);}
       else {
@@ -534,7 +534,7 @@ static lispval sqlitecallproc(struct KNO_FUNCTION *fn,int n,lispval *args)
       return KNO_ERROR_VALUE;}
     i++;}
   u8_lock_mutex(&(knos->sqlite_lock));
-  values = sqlite_values(dbproc->sqlitedb,dbproc->stmt,dbproc->extdb_colinfo);
+  values = sqlite_values(dbproc->sqlitedb,dbproc->stmt,dbproc->sqldb_colinfo);
   u8_unlock_mutex(&(knos->sqlite_lock));
   sqlite3_reset(dbproc->stmt);
   u8_unlock_mutex(&(dbproc->sqliteproc_lock));
@@ -770,7 +770,7 @@ static time_t sqlite_time_to_xtime(const char *s,struct U8_XTIME *xtp)
 
 static long long int sqlite_init = 0;
 
-static struct KNO_EXTDB_HANDLER sqlite_handler=
+static struct KNO_SQLDB_HANDLER sqlite_handler=
   {"sqlite",NULL,NULL,NULL,NULL};
 
 KNO_EXPORT int kno_init_sqlite()
@@ -784,16 +784,16 @@ KNO_EXPORT int kno_init_sqlite()
   sqlite_handler.recycle_db = recycle_knosqlite;
   sqlite_handler.recycle_proc = recycle_knosqliteproc;
 
-  kno_register_extdb_handler(&sqlite_handler);
+  kno_register_sqldb_handler(&sqlite_handler);
 
   kno_defn(module,
           kno_make_cprim3x("SQLITE/OPEN",sqlite_open_prim,1,
                           kno_string_type,KNO_VOID,
                           -1,KNO_VOID,-1,KNO_VOID));
   kno_defn(module,kno_make_cprim1x("SQLITE/REOPEN",sqlite_reopen_prim,1,
-                                 kno_extdb_type,KNO_VOID));
+                                 kno_sqldb_type,KNO_VOID));
   kno_defn(module,kno_make_cprim1x("SQLITE/CLOSE",sqlite_close_prim,1,
-                                 kno_extdb_type,KNO_VOID));
+                                 kno_sqldb_type,KNO_VOID));
   sqlite_init = u8_millitime();
 
   merge_symbol = kno_intern("%merge");

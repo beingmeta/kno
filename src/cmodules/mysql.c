@@ -17,7 +17,7 @@
 #include "kno/numbers.h"
 #include "kno/sequences.h"
 #include "kno/texttools.h"
-#include "kno/extdb.h"
+#include "kno/sqldb.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8printf.h>
@@ -80,11 +80,11 @@ static int restart_wait = MYSQL_RESTART_WAIT;
 static u8_mutex mysql_connect_lock;
 
 KNO_EXPORT int kno_init_mysql(void) KNO_LIBINIT_FN;
-static struct KNO_EXTDB_HANDLER mysql_handler;
+static struct KNO_SQLDB_HANDLER mysql_handler;
 static lispval callmysqlproc(kno_function fn,int n,lispval *args);
 
 typedef struct KNO_MYSQL {
-  KNO_EXTDB_FIELDS;
+  KNO_SQLDB_FIELDS;
   const char *mysql_hostname, *mysql_username, *mysql_passwd;
   const char *mysql_dbstring, *mysql_sockname;
   double mysql_startup, mysql_restarted;
@@ -102,7 +102,7 @@ typedef struct KNO_MYSQL *kno_mysql;
 union MYSQL_VALBUF { double fval; void *ptr; long lval; long long llval;};
 
 typedef struct KNO_MYSQL_PROC {
-  KNO_EXTDB_PROC_FIELDS;
+  KNO_SQLDB_PROC_FIELDS;
   struct KNO_MYSQL *extbptr;
 
   u8_mutex mysqlproc_lock;
@@ -132,17 +132,17 @@ static unsigned char *_memdup(const unsigned char *data,int len)
 
 static lispval merge_colinfo(KNO_MYSQL *dbp,lispval colinfo)
 {
-  if (KNO_VOIDP(colinfo)) return kno_incref(dbp->extdb_colinfo);
-  else if (KNO_VOIDP(dbp->extdb_colinfo))
+  if (KNO_VOIDP(colinfo)) return kno_incref(dbp->sqldb_colinfo);
+  else if (KNO_VOIDP(dbp->sqldb_colinfo))
     return kno_incref(colinfo);
-  else if (colinfo == dbp->extdb_colinfo)
+  else if (colinfo == dbp->sqldb_colinfo)
     return kno_incref(colinfo);
   else if ((KNO_PAIRP(colinfo))&&
-           ((KNO_CDR(colinfo)) == (dbp->extdb_colinfo)))
+           ((KNO_CDR(colinfo)) == (dbp->sqldb_colinfo)))
     return kno_incref(colinfo);
   else {
-    kno_incref(dbp->extdb_colinfo); kno_incref(colinfo);
-    return kno_conspair(colinfo,dbp->extdb_colinfo);}
+    kno_incref(dbp->sqldb_colinfo); kno_incref(colinfo);
+    return kno_conspair(colinfo,dbp->sqldb_colinfo);}
 }
 
 /* Connection operations */
@@ -150,7 +150,7 @@ static lispval merge_colinfo(KNO_MYSQL *dbp,lispval colinfo)
 static int setup_connection(struct KNO_MYSQL *dbp)
 {
   int retval = 0;
-  lispval options = dbp->extdb_options;
+  lispval options = dbp->sqldb_options;
   int timeout = -1, ctimeout = -1, rtimeout = -1, wtimeout = -1;
 #ifdef MYSQL_OPT_SSL_MODE
   int ssl_mode = SSL_MODE_PREFERRED;
@@ -243,7 +243,7 @@ static int restart_connection(struct KNO_MYSQL *dbp)
     if ((db == NULL)&&(mysql_errno(dbp->mysqldb) == CR_ALREADY_CONNECTED)) {
       u8_log(LOG_WARN,"mysql/restart_connection",
              "Already connected to %s (%s) with id=%d/%d",
-             dbp->extdb_spec,dbp->extdb_info,
+             dbp->sqldb_spec,dbp->sqldb_info,
              dbp->mysql_thread_id,
              mysql_thread_id(dbp->mysqldb));
       db = dbp->mysqldb;}
@@ -257,19 +257,19 @@ static int restart_connection(struct KNO_MYSQL *dbp)
     lispval conn = (lispval) dbp; kno_incref(conn);
     u8_log(LOG_CRIT,"mysql/reconnect",
            "Failed after %ds to reconnect to MYSQL %s (%s), final err %s (%d)",
-           waited,dbp->extdb_spec,dbp->extdb_info,msg,err);
+           waited,dbp->sqldb_spec,dbp->sqldb_info,msg,err);
     kno_seterr(MySQL_Error,"restart_connection",msg,conn);
     return -1;}
   else {
-    int i = 0, n = dbp->extdb_n_procs;
-    struct KNO_MYSQL_PROC **procs = (KNO_MYSQL_PROC **)dbp->extdb_procs;
+    int i = 0, n = dbp->sqldb_n_procs;
+    struct KNO_MYSQL_PROC **procs = (KNO_MYSQL_PROC **)dbp->sqldb_procs;
     u8_log(LOG_WARN,"mysql/reconnect",
            "Took %ds to reconnect to MYSQL %s (%s), thread_id=%d",
-           waited,dbp->extdb_spec,dbp->extdb_info,dbp->mysql_thread_id);
+           waited,dbp->sqldb_spec,dbp->sqldb_info,dbp->mysql_thread_id);
     dbp->mysql_thread_id = thread_id = mysql_thread_id(db);
     u8_log(LOG_WARN,"myql/reconnect",
            "Reconnect #%d for MYSQL with %s (%s) rv=%d, thread_id=%d",
-           dbp->mysql_restart_count+1,dbp->extdb_spec,dbp->extdb_info,retval,
+           dbp->mysql_restart_count+1,dbp->sqldb_spec,dbp->sqldb_info,retval,
            thread_id);
 
     /* Flag all the sqlprocs (prepared statements) as needing to be
@@ -288,7 +288,7 @@ static int restart_connection(struct KNO_MYSQL *dbp)
     u8_log(LOG_WARN,"myql/reconnect",
            "Reconnect #%d MYSQL connection #%d with %s (%s)",
            dbp->mysql_restart_count,dbp->mysql_thread_id,
-           dbp->extdb_spec,dbp->extdb_info);
+           dbp->sqldb_spec,dbp->sqldb_info);
 
     return RETVAL_OK;}
 }
@@ -331,36 +331,36 @@ static int open_connection(struct KNO_MYSQL *dbp)
   dbp->mysql_restarted = 0;
   dbp->mysql_startup = u8_elapsed_time();
   dbp->mysql_thread_id = mysql_thread_id(db);
-  u8_lock_mutex(&(dbp->extdb_proclock)); {
-    int i = 0, n = dbp->extdb_n_procs;
-    struct KNO_MYSQL_PROC **procs = (KNO_MYSQL_PROC **)dbp->extdb_procs;
+  u8_lock_mutex(&(dbp->sqldb_proclock)); {
+    int i = 0, n = dbp->sqldb_n_procs;
+    struct KNO_MYSQL_PROC **procs = (KNO_MYSQL_PROC **)dbp->sqldb_procs;
     while (i<n) procs[i++]->mysqlproc_needs_init = 1;
-    u8_unlock_mutex(&(dbp->extdb_proclock));
+    u8_unlock_mutex(&(dbp->sqldb_proclock));
     return 1;}
 }
 
-static void recycle_mysqldb(struct KNO_EXTDB *c)
+static void recycle_mysqldb(struct KNO_SQLDB *c)
 {
   struct KNO_MYSQL *dbp = (struct KNO_MYSQL *)c;
-  int n_procs = dbp->extdb_n_procs;
-  lispval *toremove = u8_malloc(LISPVEC_BYTELEN(dbp->extdb_n_procs)), *write = toremove;
+  int n_procs = dbp->sqldb_n_procs;
+  lispval *toremove = u8_malloc(LISPVEC_BYTELEN(dbp->sqldb_n_procs)), *write = toremove;
   int i = 0;
-  u8_lock_mutex(&(dbp->extdb_proclock));
+  u8_lock_mutex(&(dbp->sqldb_proclock));
   while (i<n_procs) {
-    struct KNO_EXTDB_PROC *p = dbp->extdb_procs[--i];
+    struct KNO_SQLDB_PROC *p = dbp->sqldb_procs[--i];
     if (KNO_CONS_REFCOUNT(p)>1)
       u8_log(LOG_WARN,"freemysqldb",
-             "dangling pointer to extdbproc %s on %s (%s)",
-             p->extdb_qtext,dbp->extdb_spec,dbp->extdb_info);
+             "dangling pointer to sqldbproc %s on %s (%s)",
+             p->sqldb_qtext,dbp->sqldb_spec,dbp->sqldb_info);
     *write++=(lispval)p;}
-  u8_unlock_mutex(&(dbp->extdb_proclock));
+  u8_unlock_mutex(&(dbp->sqldb_proclock));
 
   i = 0; while (i<n_procs) {lispval proc = toremove[i++]; kno_decref(proc);}
 
-  u8_free(dbp->extdb_procs);
-  kno_decref(dbp->extdb_colinfo); kno_decref(dbp->extdb_options);
-  u8_free(dbp->extdb_spec); u8_free(dbp->extdb_info);
-  u8_destroy_mutex(&(dbp->extdb_proclock));
+  u8_free(dbp->sqldb_procs);
+  kno_decref(dbp->sqldb_colinfo); kno_decref(dbp->sqldb_options);
+  u8_free(dbp->sqldb_spec); u8_free(dbp->sqldb_info);
+  u8_destroy_mutex(&(dbp->sqldb_proclock));
   u8_destroy_mutex(&(dbp->mysql_lock));
 
   mysql_close(dbp->mysqldb);
@@ -397,7 +397,7 @@ static lispval open_mysql
   else dbp = u8_alloc(struct KNO_MYSQL);
 
   /* Initialize the cons (does a memset too) */
-  KNO_INIT_FRESH_CONS(dbp,kno_extdb_type);
+  KNO_INIT_FRESH_CONS(dbp,kno_sqldb_type);
   /* Initialize the MYSQL side of things (after the memset!) */
   /* If the hostname looks like a filename, we assume it's a Unix domain
      socket. */
@@ -415,7 +415,7 @@ static lispval open_mysql
   flags = CLIENT_REMEMBER_OPTIONS;
 
   /* Initialize the other fields */
-  dbp->extdb_handler = &mysql_handler;
+  dbp->sqldb_handler = &mysql_handler;
   dbp->mysql_hostname = host;
   dbp->mysql_username = username;
   dbp->mysql_passwd = passwd;
@@ -423,20 +423,20 @@ static lispval open_mysql
   dbp->mysql_sockname = sockname;
   dbp->mysql_portno = portno;
   dbp->mysql_flags = flags;
-  dbp->extdb_colinfo = kno_incref(colinfo);
-  dbp->extdb_spec = spec;
-  dbp->extdb_options = options; kno_incref(options);
+  dbp->sqldb_colinfo = kno_incref(colinfo);
+  dbp->sqldb_spec = spec;
+  dbp->sqldb_options = options; kno_incref(options);
 
-  u8_init_mutex(&dbp->extdb_proclock);
+  u8_init_mutex(&dbp->sqldb_proclock);
   u8_init_mutex(&dbp->mysql_lock);
 
   /* Prep the structure */
   retval = open_connection(dbp);
   if (retval<0) {
-    recycle_mysqldb((struct KNO_EXTDB *)dbp);
+    recycle_mysqldb((struct KNO_SQLDB *)dbp);
     return KNO_ERROR_VALUE;}
 
-  dbp->extdb_info=
+  dbp->sqldb_info=
     u8_mkstring("%s;client %s",
                 mysql_get_host_info(dbp->mysqldb),
                 mysql_get_client_info());
@@ -859,11 +859,11 @@ static lispval mysqlexec(struct KNO_MYSQL *dbp,lispval string,
 }
 
 static lispval mysqlexechandler
-  (struct KNO_EXTDB *extdb,lispval string,lispval colinfo)
+  (struct KNO_SQLDB *sqldb,lispval string,lispval colinfo)
 {
-  if (extdb->extdb_handler== &mysql_handler)
-    return mysqlexec((kno_mysql)extdb,string,colinfo,1);
-  else return kno_type_error("MYSQL EXTDB","mysqlexechandler",(lispval)extdb);
+  if (sqldb->sqldb_handler== &mysql_handler)
+    return mysqlexec((kno_mysql)sqldb,string,colinfo,1);
+  else return kno_type_error("MYSQL SQLDB","mysqlexechandler",(lispval)sqldb);
 }
 
 /* MYSQL procs */
@@ -878,7 +878,7 @@ static lispval mysqlmakeproc
   MYSQL *db = dbp->mysqldb; int retval = 0;
   struct KNO_MYSQL_PROC *dbproc = u8_alloc(struct KNO_MYSQL_PROC);
   unsigned int lazy_init = 0;
-  lispval lazy_opt = kno_getopt(dbp->extdb_options,lazy_symbol,KNO_VOID);
+  lispval lazy_opt = kno_getopt(dbp->sqldb_options,lazy_symbol,KNO_VOID);
   if (KNO_VOIDP(lazy_opt))
     lazy_init = default_lazy_init;
   else if (KNO_TRUEP(lazy_opt))
@@ -888,14 +888,14 @@ static lispval mysqlmakeproc
 
   memset(dbproc,0,sizeof(struct KNO_MYSQL_PROC));
 
-  KNO_INIT_FRESH_CONS(dbproc,kno_extdb_proc_type);
+  KNO_INIT_FRESH_CONS(dbproc,kno_sqldb_proc_type);
 
-  /* Set up fields for EXTDBPROC */
-  dbproc->extdb_handler = &mysql_handler;
-  dbproc->extdbptr = (lispval)dbp; kno_incref(dbproc->extdbptr);
-  dbproc->extdb_spec = u8_strdup(dbp->extdb_spec);
-  dbproc->extdb_qtext=_memdup(stmt,stmt_len+1); /* include space for NUL */
-  colinfo = dbproc->extdb_colinfo = merge_colinfo(dbp,colinfo);
+  /* Set up fields for SQLDBPROC */
+  dbproc->sqldb_handler = &mysql_handler;
+  dbproc->sqldbptr = (lispval)dbp; kno_incref(dbproc->sqldbptr);
+  dbproc->sqldb_spec = u8_strdup(dbp->sqldb_spec);
+  dbproc->sqldb_qtext=_memdup(stmt,stmt_len+1); /* include space for NUL */
+  colinfo = dbproc->sqldb_colinfo = merge_colinfo(dbp,colinfo);
   u8_init_mutex(&(dbproc->mysqlproc_lock));
 
   /* Set up MYSQL specific fields */
@@ -905,14 +905,14 @@ static lispval mysqlmakeproc
   dbproc->mysqlproc_string_len = stmt_len;
 
   /* Set up fields for the function object itself */
-  dbproc->fcn_filename = dbproc->extdb_spec;
-  dbproc->fcn_name = dbproc->extdb_qtext;
+  dbproc->fcn_filename = dbproc->sqldb_spec;
+  dbproc->fcn_name = dbproc->sqldb_qtext;
   dbproc->fcn_ndcall = 0; dbproc->fcn_xcall = 1; dbproc->fcn_arity = -1;
   dbproc->fcn_min_arity = 0;
   dbproc->fcn_handler.xcalln = callmysqlproc;
 
   /* Register the procedure on the database's list */
-  kno_register_extdb_proc((struct KNO_EXTDB_PROC *)dbproc);
+  kno_register_sqldb_proc((struct KNO_SQLDB_PROC *)dbproc);
 
   /* This indicates that the procedure hasn't been initialized */
   dbproc->mysqlproc_n_cols = -1;
@@ -921,7 +921,7 @@ static lispval mysqlmakeproc
     lispval *init_ptypes = u8_alloc_n(n,lispval);
     int i = 0; while (i<n) {
       init_ptypes[i]=kno_incref(ptypes[i]); i++;}
-    dbproc->extdb_paramtypes = init_ptypes;}
+    dbproc->sqldb_paramtypes = init_ptypes;}
 
   if (lazy_init) {
     dbproc->mysqlproc_stmt = NULL;
@@ -936,14 +936,14 @@ static lispval mysqlmakeproc
 
 /* This is the handler stored in the method table */
 static lispval mysqlmakeprochandler
-  (struct KNO_EXTDB *extdb,
+  (struct KNO_SQLDB *sqldb,
    u8_string stmt,int stmt_len,
    lispval colinfo,int n,lispval *ptypes)
 {
-  if (extdb->extdb_handler== &mysql_handler)
-    return mysqlmakeproc((kno_mysql)extdb,stmt,stmt_len,colinfo,n,ptypes);
-  else return kno_type_error("MYSQL EXTDB","mysqlmakeprochandler",
-                            (lispval)extdb);
+  if (sqldb->sqldb_handler== &mysql_handler)
+    return mysqlmakeproc((kno_mysql)sqldb,stmt,stmt_len,colinfo,n,ptypes);
+  else return kno_type_error("MYSQL SQLDB","mysqlmakeprochandler",
+                            (lispval)sqldb);
 }
 
 /* Various MYSQLPROC functions */
@@ -1014,7 +1014,7 @@ static int init_mysqlproc(KNO_MYSQL *dbp,struct KNO_MYSQL_PROC *dbproc)
 
   if (n_params == dbproc->fcn_n_params) {}
   else {
-    lispval *init_ptypes = dbproc->extdb_paramtypes;
+    lispval *init_ptypes = dbproc->sqldb_paramtypes;
     lispval *ptypes = u8_alloc_n(n_params,lispval);
     int i = 0, init_n = dbproc->fcn_n_params; while ((i<init_n)&&(i<n_params)) {
       ptypes[i]=init_ptypes[i]; i++;}
@@ -1026,9 +1026,9 @@ static int init_mysqlproc(KNO_MYSQL *dbp,struct KNO_MYSQL_PROC *dbproc)
       lispval ptype = init_ptypes[i++];
       if (KNO_VOIDP(ptype)) {}
       else u8_log(LOG_WARN,UnusedType,"Parameter type %hq is not used for %s",
-                  ptype,dbproc->extdb_qtext);
+                  ptype,dbproc->sqldb_qtext);
       kno_decref(ptype);}
-    dbproc->extdb_paramtypes = ptypes; dbproc->fcn_n_params = n_params;
+    dbproc->sqldb_paramtypes = ptypes; dbproc->fcn_n_params = n_params;
     if (init_ptypes) u8_free(init_ptypes);}
 
   /* Check that the number of returned columns has not changed
@@ -1036,7 +1036,7 @@ static int init_mysqlproc(KNO_MYSQL *dbp,struct KNO_MYSQL_PROC *dbproc)
   if ((dbproc->mysqlproc_n_cols>=0)&&(n_cols!=dbproc->mysqlproc_n_cols)) {
     u8_log(LOG_WARN,ServerReset,
            "The number of columns for query '%s' on %s (%s) has changed",
-           dbproc->extdb_qtext,dbp->extdb_spec,dbp->extdb_info);}
+           dbproc->sqldb_qtext,dbp->sqldb_spec,dbp->sqldb_info);}
   dbproc->mysqlproc_n_cols = n_cols;
 
   /* Check that the number of parameters has not changed
@@ -1054,11 +1054,11 @@ static int init_mysqlproc(KNO_MYSQL *dbp,struct KNO_MYSQL_PROC *dbproc)
   return RETVAL_OK;
 }
 
-static void recycle_mysqlproc(struct KNO_EXTDB_PROC *c)
+static void recycle_mysqlproc(struct KNO_SQLDB_PROC *c)
 {
   struct KNO_MYSQL_PROC *dbproc = (struct KNO_MYSQL_PROC *)c;
   int i, lim, rv;
-  kno_release_extdb_proc(c);
+  kno_release_sqldb_proc(c);
   if (dbproc->mysqlproc_stmt) {
     if ((rv = mysql_stmt_close(dbproc->mysqlproc_stmt))) {
       int mysqlerrno = mysql_stmt_errno(dbproc->mysqlproc_stmt);
@@ -1066,7 +1066,7 @@ static void recycle_mysqlproc(struct KNO_EXTDB_PROC *c)
       dbproc->mysqlproc_stmt = NULL;
       u8_log(LOG_WARN,MySQL_Error,"Error (%d:%d) closing statement %s: %s",
              rv,mysqlerrno,dbproc->mysqlproc_string,errmsg);}}
-  kno_decref(dbproc->extdb_colinfo);
+  kno_decref(dbproc->sqldb_colinfo);
 
   if (dbproc->mysqlproc_valbuf) u8_free(dbproc->mysqlproc_valbuf);
   if (dbproc->mysqlproc_isnullbuf) u8_free(dbproc->mysqlproc_isnullbuf);
@@ -1084,18 +1084,18 @@ static void recycle_mysqlproc(struct KNO_EXTDB_PROC *c)
       i++;}
     u8_free(dbproc->mysqlproc_outbound);}
 
-  if (dbproc->extdb_paramtypes) {
+  if (dbproc->sqldb_paramtypes) {
     i = 0; lim = dbproc->fcn_n_params; while (i< lim) {
-      kno_decref(dbproc->extdb_paramtypes[i]); i++;}
-    u8_free(dbproc->extdb_paramtypes);}
+      kno_decref(dbproc->sqldb_paramtypes[i]); i++;}
+    u8_free(dbproc->sqldb_paramtypes);}
 
-  u8_free(dbproc->extdb_spec);
-  u8_free(dbproc->extdb_qtext);
+  u8_free(dbproc->sqldb_spec);
+  u8_free(dbproc->sqldb_qtext);
   u8_free(dbproc->mysqlproc_string);
 
   u8_destroy_mutex(&(dbproc->mysqlproc_lock));
 
-  kno_decref(dbproc->extdbptr);
+  kno_decref(dbproc->sqldbptr);
 }
 
 /* Actually calling a MYSQL proc */
@@ -1109,7 +1109,7 @@ static lispval applymysqlproc(kno_function fn,int n,lispval *args,int reconn)
 {
   struct KNO_MYSQL_PROC *dbproc = (struct KNO_MYSQL_PROC *)fn;
   struct KNO_MYSQL *dbp=
-    KNO_GET_CONS(dbproc->extdbptr,kno_extdb_type,struct KNO_MYSQL *);
+    KNO_GET_CONS(dbproc->sqldbptr,kno_sqldb_type,struct KNO_MYSQL *);
   int n_params = dbproc->fcn_n_params;
   MYSQL_BIND *inbound = dbproc->mysqlproc_inbound;
   union MYSQL_VALBUF *valbuf = dbproc->mysqlproc_valbuf;
@@ -1119,7 +1119,7 @@ static lispval applymysqlproc(kno_function fn,int n,lispval *args,int reconn)
 
   /* Argbuf stores objects we consed in the process of
      converting application objects to SQLish values. */
-  lispval *ptypes = dbproc->extdb_paramtypes;
+  lispval *ptypes = dbproc->sqldb_paramtypes;
   lispval values = KNO_EMPTY_CHOICE;
   int i = 0, n_bound = 0;
   /* *retval* tracks the most recent operation and tells whether to keep going.
@@ -1147,7 +1147,7 @@ static lispval applymysqlproc(kno_function fn,int n,lispval *args,int reconn)
     n_params = dbproc->fcn_n_params;
     inbound = dbproc->mysqlproc_inbound;
     valbuf = dbproc->mysqlproc_valbuf;
-    ptypes = dbproc->extdb_paramtypes;
+    ptypes = dbproc->sqldb_paramtypes;
 
     /* We check arity here because the procedure may not have been initialized
        (and determined its arity) during the arity checking done by APPLY. */
@@ -1287,7 +1287,7 @@ static lispval applymysqlproc(kno_function fn,int n,lispval *args,int reconn)
         if (kno_unparse(&out,arg)<0) {
           int j = 0;
           kno_seterr(MySQL_NoConvert,"applymysqlproc",
-                    dbproc->extdb_qtext,kno_incref(arg));
+                    dbproc->sqldb_qtext,kno_incref(arg));
           while (j<i) {kno_decref(argbuf[i]); i++;}
           j = 0; while (j<n_mstimes) {u8_free(mstimes[j]); j++;}
           if (argbuf!=_argbuf) u8_free(argbuf);
@@ -1308,7 +1308,7 @@ static lispval applymysqlproc(kno_function fn,int n,lispval *args,int reconn)
         int j;
         /* Finally, if we can't convert the value, we error. */
         kno_seterr(MySQL_NoConvert,"applymysqlproc",
-                  dbproc->extdb_qtext,kno_incref(arg));
+                  dbproc->sqldb_qtext,kno_incref(arg));
         j = 0; while (j<n_mstimes) {u8_free(mstimes[j]); j++;}
         j = 0; while (j<i) {kno_decref(argbuf[j]); j++;}
         if (argbuf!=_argbuf) u8_free(argbuf);
@@ -1349,7 +1349,7 @@ static lispval applymysqlproc(kno_function fn,int n,lispval *args,int reconn)
   if (retval == RETVAL_OK) {
     if (dbproc->mysqlproc_n_cols) {
       values = get_stmt_values(dbproc->mysqlproc_stmt,
-                             dbproc->extdb_colinfo,
+                             dbproc->sqldb_colinfo,
                              dbproc->mysqlproc_n_cols,
                              dbproc->mysqlproc_colnames,
                              dbproc->mysqlproc_outbound,
@@ -1370,7 +1370,7 @@ static lispval applymysqlproc(kno_function fn,int n,lispval *args,int reconn)
             (bretval)?("applymysqlprocproc/bind"):
             ("applymysqlproc")),
            "MYSQL error '%s' (%d) for %s at %s",
-           mysqlerrmsg,mysqlerrno,dbproc->mysqlproc_string,dbp->extdb_spec);
+           mysqlerrmsg,mysqlerrno,dbproc->mysqlproc_string,dbp->sqldb_spec);
     /* mysql_stmt_reset(dbproc->mysqlproc_stmt); */
 
     /* Figure out if we're going to retry */
@@ -1433,7 +1433,7 @@ static lispval applymysqlproc(kno_function fn,int n,lispval *args,int reconn)
 
 static long long int mysql_initialized = 0;
 
-static struct KNO_EXTDB_HANDLER mysql_handler=
+static struct KNO_SQLDB_HANDLER mysql_handler=
   {"mysql",NULL,NULL,NULL,NULL};
 
 int first_call = 1;
@@ -1470,7 +1470,7 @@ KNO_EXPORT int kno_init_mysql()
   mysql_handler.recycle_db = recycle_mysqldb;
   mysql_handler.recycle_proc = recycle_mysqlproc;
 
-  kno_register_extdb_handler(&mysql_handler);
+  kno_register_sqldb_handler(&mysql_handler);
 
   kno_idefn6(module,"MYSQL/OPEN",open_mysql,1,
             "`(MYSQL/OPEN *host* *dbname* *colmap* *user* *pass* *opts*)`",
@@ -1482,7 +1482,7 @@ KNO_EXPORT int kno_init_mysql()
             -1,KNO_VOID);
   kno_idefn2(module,"MYSQL/REFRESH",refresh_mysqldb,1,
             "`(MYSQL/REFRESH *dbptr* *flags*)`",
-            kno_extdb_type,KNO_VOID,
+            kno_sqldb_type,KNO_VOID,
             -1,KNO_VOID);
   
   mysql_initialized = u8_millitime();
