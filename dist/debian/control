@@ -29,6 +29,19 @@ Depends: ${misc:Depends}, libu8 (>= 2.6.7-83), libzip4 | libzip2, libarchive13, 
 Description: This package provides the core libraries, executables, and 
   configuration files for Kno applications
 
+Package: kno-core-dev
+Architecture: any
+Section: debug
+Depends: 
+    kno-core (= ${binary:Version}),
+    libu8-dev,
+    libu8-dbg,
+    ${misc:Depends}
+Suggests:
+    libssl1.1-dbg | libssl1.0-dbg | libssl1.0.0-dbg,
+    libcurl4-dbg | libcurl3-dbg
+Description: This package contains the debugging symbols for kno-core
+
 Package: kno-core-dbg
 Architecture: any
 Section: debug
@@ -261,7 +274,6 @@ Depends: ${misc:Depends}, kno-full,
 	 kno-mysql-dbg,
 	 kno-mongodb-dbg,
 	 kno-leveldb-dbg,
-	 kno-rocksdb-dbg,
 	 kno-sqlite-dbg,
 	 kno-zeromq-dbg,
 	 kno-sundown-dbg,
@@ -271,5 +283,5 @@ Description: Installs all standard Kno modules
 
 Package: kno-dev
 Architecture: any
-Depends: kno (= ${binary:Version}), kno-core-dev (= ${binary:Version}), libu8-dev, kno-core-dbg
+Depends: kno, kno-core (= ${binary:Version}), kno-core-dev (= ${binary:Version}), libu8-dev, kno-core-dbg
 Description: Development files for Kno

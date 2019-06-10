@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-06-09 22:01+0000\n"
+"POT-Creation-Date: 2019-06-10 21:12+0000\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Dutch <nl@li.org>\n"
@@ -2498,32 +2498,32 @@ msgstr ""
 msgid "rusage"
 msgstr ""
 
-#: src/prims/extdbprims.c:53
+#: src/prims/sqldbprims.c:53
 msgid "No implementation for prepared SQL statements"
 msgstr ""
 
-#: src/prims/extdbprims.c:73
-msgid "Too many extdb handlers"
+#: src/prims/sqldbprims.c:73
+msgid "Too many sqldb handlers"
 msgstr ""
 
-#: src/prims/extdbprims.c:111
-msgid "EXTDB proc without a database"
+#: src/prims/sqldbprims.c:111
+msgid "SQLDB proc without a database"
 msgstr ""
 
-#: src/prims/extdbprims.c:157 src/prims/extdbprims.c:164
+#: src/prims/sqldbprims.c:157 src/prims/sqldbprims.c:164
 msgid "recycle failed"
 msgstr ""
 
-#: src/prims/extdbprims.c:165
+#: src/prims/sqldbprims.c:165
 #, c-format
 msgid "No recycle method for %s database procs"
 msgstr ""
 
-#: src/prims/extdbprims.c:204
+#: src/prims/sqldbprims.c:204
 msgid "Direct SQL execution disabled"
 msgstr ""
 
-#: src/prims/extdbprims.c:358
+#: src/prims/sqldbprims.c:358
 msgid "whether direct execution of SQL strings is allowed"
 msgstr ""
 
@@ -3012,19 +3012,19 @@ msgid "Startup"
 msgstr ""
 
 #: src/exe/knod.c:84
-msgid "KNODaemon/ABORT"
+msgid "Knodaemon/ABORT"
 msgstr ""
 
 #: src/exe/knod.c:85
-msgid "KNODaemon/CONFIG"
+msgid "Knodaemon/CONFIG"
 msgstr ""
 
 #: src/exe/knod.c:86
-msgid "KNODaemon/STARTUP"
+msgid "Knodaemon/STARTUP"
 msgstr ""
 
 #: src/exe/knod.c:87
-msgid "KNODaemon/SHUTDOWN"
+msgid "Knodaemon/SHUTDOWN"
 msgstr ""
 
 #: src/exe/knod.c:91

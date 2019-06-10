@@ -15,7 +15,7 @@ pre-start script
    mkdir -p @daemon_rundir@
    mkdir -p @logdir@/kno
    chown @webuser@ @servlet_rundir@ @logdir@/knoweb
-   chown @fdaemon@ @daemon_rundir@ @logdir@/kno
+   chown @knodaemon@ @daemon_rundir@ @logdir@/kno
    chgrp @admin_group@ @servlet_rundir@ @logdir@/knoweb
    chgrp @admin_group@ @daemon_rundir@ @logdir@/kno
    chmod g+rwx @servlet_rundir@  @logdir@/knoweb

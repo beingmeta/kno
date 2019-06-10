@@ -852,7 +852,7 @@ TAGS: makefile.in configure.ac include/kno/config.h.in		\
 		include/kno/config.h.in     	\
 		include/kno/knosource.h.in     	\
 	        tests/*/*.in tests/*.in dbg/*.in 	\
-		etc/*.in include/kno/*.h 		\
+		etc/*.in etc/*/*.in include/kno/*.h 		\
 		include/kno/components/*.h		\
 		${SRC_HEADERS};
 	@etags -o TAGS -a src/exe/*.c src/exe/*.h 

@@ -17,8 +17,8 @@
 
 export KNOD=@prefix@/bin/knod
 export KNOWEB=@prefix@/bin/knoweb
-export FDAEMON_USER=@knoaemon@
-export FDAEMON_GROUP=@admin_group@
+export KNODAEMON_USER=@knoaemon@
+export KNODAEMON_GROUP=@admin_group@
 export WEB_USER=@webuser@
 CTLFILE=@config_dir@/servers
 PIDFILE=/var/run/kno.pid

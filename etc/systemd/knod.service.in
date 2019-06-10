@@ -6,12 +6,12 @@ After=upsource.target
 [Service]
 Type=forking
 RemainAfterExit=true
-Environment=KNO_LAUNCHER=kno.service RUNUSER=@fdaemon@ RUNGROUP=@admin_group@
-PassEnvironment=KNO_LAUNCHER RUNUSER=@fdaemon@ RUNGROUP=@admin_group@
+Environment=KNO_LAUNCHER=kno.service RUNUSER=@knodaemon@ RUNGROUP=@admin_group@
+PassEnvironment=KNO_LAUNCHER RUNUSER=@knodaemon@ RUNGROUP=@admin_group@
 TimeoutStartSec=300
 TimeoutStopSec=300
 ExecStartPre=@MKDIR@ -p @daemon_rundir@ @daemon_logdir@
-ExecStartPre=@CHOWN@ @fdaemon@ @daemon_rundir@ @daemon_logdir@
+ExecStartPre=@CHOWN@ @knodaemon@ @daemon_rundir@ @daemon_logdir@
 ExecStartPre=@CHGRP@ @admin_group@ @daemon_rundir@ @daemon_logdir@
 ExecStartPre=@CHMOD@ g+rwx @daemon_rundir@ @daemon_logdir@
 ExecStart=@BINDIR@/kno_start_daemons @config_dir@/daemons
