@@ -81,6 +81,20 @@ Depends:
     ${misc:Depends}
 Description: This package contains the debugging symbols for kno-sqlite
 
+Package: kno-zeromq
+Architecture: any
+Depends: kno-core (= ${binary:Version})
+Description: ZeroMQ bindings for KNO
+
+Package: kno-zeromq-dbg
+Architecture: any
+Section: debug
+Depends: 
+    kno-core-dbg (= ${binary:Version}),
+    kno-zeromq (= ${binary:Version}),
+    ${misc:Depends}
+Description: This package contains the debugging symbols for kno-zeromq
+
 Package: kno-mongodb
 Architecture: any
 Depends: kno-core (= ${binary:Version}), mongo-c-driver | libbson-dev, mongo-c-driver | libmongoc-dev
@@ -131,7 +145,7 @@ Description: This package contains the debugging symbols for kno-rocksdb
 
 Package: kno-parseltongue
 Architecture: any
-Depends: kno-core, python2.7
+Depends: kno-core, python3
 Description: Kno/Python FFI
 
 Package: kno-parseltongue-dbg
@@ -140,6 +154,20 @@ Section: debug
 Depends: 
     kno-core-dbg (= ${binary:Version}),
     kno-parseltongue (= ${binary:Version}),
+    ${misc:Depends}
+Description: This package contains the debugging symbols for kno-parseltongue
+
+Package: kno-parseltongue2
+Architecture: any
+Depends: kno-core, python2.7
+Description: Kno/Python FFI
+
+Package: kno-parseltongue2-dbg
+Architecture: any
+Section: debug
+Depends: 
+    kno-core-dbg (= ${binary:Version}),
+    kno-parseltongue2 (= ${binary:Version}),
     ${misc:Depends}
 Description: This package contains the debugging symbols for kno-parseltongue
 
@@ -220,8 +248,9 @@ Description: Provides an Emacs mode for interacting with knoc
 Package: kno-full
 Architecture: any
 Depends: ${misc:Depends}, kno-core, kno-stdlib, kno-doc,
-	 kno-imagetools, kno-mysql, kno-mongodb,
-	 kno-sqlite, kno-sundown, kno-tidy,
+	 kno-zeromq, kno-imagetools, kno-sundown, kno-tidy,
+	 kno-mysql, kno-mongodb, kno-sqlite, kno-leveldb, kno-rocksdb,
+	 kno-parseltongue,
 	 elpa-knoc
 Description: Installs all standard Kno modules
 
@@ -231,8 +260,12 @@ Depends: ${misc:Depends}, kno-full,
 	 kno-imagetools-dbg,
 	 kno-mysql-dbg,
 	 kno-mongodb-dbg,
+	 kno-leveldb-dbg,
+	 kno-rocksdb-dbg,
 	 kno-sqlite-dbg,
+	 kno-zeromq-dbg,
 	 kno-sundown-dbg,
+	 kno-parseltongue-dbg,
 	 kno-tidy-dbg
 Description: Installs all standard Kno modules
 
