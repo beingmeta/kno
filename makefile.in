@@ -1240,9 +1240,8 @@ lib/kno/parseltongue2.@KNO_MAJOR@.dylib: lib/kno/parseltongue2.dylib
 
 parseltongue2: lib/kno/parseltongue2.@shared_suffix@
 
-install-parseltongue: ${CMODULES}/parseltongue.@shared_suffix@ \
-	${CMODULES}/parseltongue.@vshared_suffix@
-
+install-parseltongue2: ${CMODULES}/parseltongue2.@shared_suffix@ \
+	${CMODULES}/parseltongue2.@vshared_suffix@
 
 # Internationalization stuff
 

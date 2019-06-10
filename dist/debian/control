@@ -8,7 +8,7 @@ Homepage: http://www.framerd.org/
 
 Package: kno
 Architecture: any
-Depends: ${misc:Depends}, kno-core, kno-builtin
+Depends: ${misc:Depends}, kno-core, kno-stdlib
 Description: Scalable knowledge base development and application platform
  Kno provides a robust and scalable object database especially
  designed and optimized for pointer-intensive semi-structured data based on
@@ -41,7 +41,7 @@ Suggests:
     libcurl4-dbg | libcurl3-dbg
 Description: This package contains the debugging symbols for kno-core
 
-Package: kno-builtin
+Package: kno-stdlib
 Architecture: any
 Depends: ${misc:Depends}, kno-core
 Provides: kno-modules
@@ -219,7 +219,7 @@ Description: Provides an Emacs mode for interacting with knoc
 
 Package: kno-full
 Architecture: any
-Depends: ${misc:Depends}, kno-core, kno-modules, kno-doc,
+Depends: ${misc:Depends}, kno-core, kno-stdlib, kno-doc,
 	 kno-imagetools, kno-mysql, kno-mongodb,
 	 kno-sqlite, kno-sundown, kno-tidy,
 	 elpa-knoc
