@@ -33,6 +33,11 @@ KNO_EXPORT struct KNO_FFI_PROC *kno_make_ffi_proc
 
 KNO_EXPORT lispval kno_ffi_call(struct KNO_FUNCTION *fn,int n,lispval *args);
 
+KNO_EXPORT u8_condition kno_ffi_BadTypeinfo;
+KNO_EXPORT u8_condition kno_ffi_BadABI;
+KNO_EXPORT u8_condition kno_ffi_FFIError;
+KNO_EXPORT u8_condition kno_ffi_NoFunction;
+
 #endif
 
 #endif /* KNO_FFI_H */

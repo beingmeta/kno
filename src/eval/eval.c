@@ -1902,9 +1902,7 @@ static lispval ffi_proc_helper(int err,int n,lispval *args)
       kno_make_ffi_proc(name,filename,n-3,return_type,args+3);
     if (fcn)
       return (lispval) fcn;
-    else {
-      kno_clear_errors(1);
-      return KNO_FALSE;}}
+    else return KNO_ERROR;}
 }
 static lispval ffi_proc(int n,lispval *args)
 {
@@ -1912,7 +1910,15 @@ static lispval ffi_proc(int n,lispval *args)
 }
 static lispval ffi_probe(int n,lispval *args)
 {
-  return ffi_proc_helper(0,n,args);
+  lispval v = ffi_proc_helper(0,n,args);
+  if (KNO_ABORTP(v)) {
+    u8_exception ex = u8_current_exception;
+    if (ex->u8x_cond == kno_ffi_NoFunction) {
+      ex = u8_erreify();
+      u8_free_exception(ex,0);
+      return KNO_FALSE;}
+    else return v;}
+  else return v;
 }
 static lispval ffi_found_prim(lispval name,lispval modname)
 {

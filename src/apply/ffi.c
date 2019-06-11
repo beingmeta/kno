@@ -27,13 +27,15 @@
 u8_condition kno_ffi_BadTypeinfo=_("Bad FFI type info");
 u8_condition kno_ffi_BadABI=_("Bad FFI ABI value");
 u8_condition kno_ffi_FFIError=_("Unknown libffi error");
+u8_condition kno_ffi_NoFunction=_("Unknown foreign function");
 
 static lispval uint_symbol, int_symbol, ushort_symbol, short_symbol;
 static lispval ulong_symbol, long_symbol, uchar_symbol, char_symbol;
 static lispval string_symbol, packet_symbol, ptr_symbol, cons_symbol;
 static lispval float_symbol, double_symbol, size_symbol, lisp_symbol;
 static lispval lispref_symbol, strcpy_symbol, void_symbol;
-static lispval byte_symbol, basetype_symbol;
+static lispval byte_symbol, basetype_symbol, typespec_symbol;
+static lispval ffi_result_symbol;
 
 #if KNO_ENABLE_FFI
 #if HAVE_FFI_FFI_H
@@ -111,7 +113,7 @@ KNO_EXPORT struct KNO_FFI_PROC *kno_make_ffi_proc
     return NULL;
   void *symbol=u8_dynamic_symbol(name,mod_arg);
   if (symbol == NULL) {
-    u8_seterr("NoSuchLink","kno_make_ffi_proc/u8_dynamic_symbol",
+    u8_seterr(kno_ffi_NoFunction,"kno_make_ffi_proc/u8_dynamic_symbol",
               u8_strdup(name));
     return NULL;}
   ffi_type *return_type = get_ffi_type(return_spec);
@@ -187,6 +189,19 @@ static int handle_ffi_arg(lispval arg,lispval spec,
     else if (CONSP(arg))
       *valptr = (void *)arg;
     else return ffi_type_error("pointer",arg);}
+  else if ( (KNO_TABLEP(spec)) &&
+            (kno_test(spec,typespec_symbol,KNO_VOID)) ) {
+    if (KNO_PRIM_TYPEP(arg,kno_rawptr_type)) {
+      struct KNO_RAWPTR *raw=(kno_rawptr)arg;
+      lispval typespec = kno_get(spec,typespec_symbol,KNO_VOID);
+      if ( KNO_EQUALP(typespec,raw->raw_typespec) )
+        *valptr=raw->ptrval;
+      else if (KNO_SYMBOLP(typespec))
+        return ffi_type_error(KNO_SYMBOL_NAME(typespec),arg);
+      else {
+        kno_decref(typespec);
+        return ffi_type_error("tagged pointer",arg);}}
+    else return ffi_type_error("tagged pointer",arg);}
   else if (FIXNUMP(arg)) {
     long long ival = FIX2INT(arg);
     if (spec == int_symbol) {
@@ -247,9 +262,12 @@ static int handle_ffi_arg(lispval arg,lispval spec,
     else if (spec == double_symbol) {
       double f=(float)KNO_FLONUM(arg);
       *((double *)valptr)=f;}
-    else if (SYMBOLP(spec))
-      return kno_type_error(SYM_NAME(spec),"handle_ffi_arg",spec);
-    else return kno_type_error("ctype","handle_ffi_arg",spec);
+    else if (SYMBOLP(spec)) {
+      kno_type_error(SYM_NAME(spec),"handle_ffi_arg",spec);
+      return -1;}
+    else {
+      kno_type_error("ctype","handle_ffi_arg",spec);
+      return -1;}
     *argptr = valptr;
     return 1;}
   else if (STRINGP(arg)) {
@@ -296,6 +314,18 @@ KNO_EXPORT lispval kno_ffi_call(struct KNO_FUNCTION *fn,int n,lispval *args)
       lispval result;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&result,argptrs);
       return kno_incref(result);}
+    else if ( (KNO_TABLEP(return_spec)) &&
+              (kno_test(return_spec,typespec_symbol,KNO_VOID )) ) {
+      lispval typespec = kno_get(return_spec,typespec_symbol,KNO_VOID);
+      if ( ! (VOIDP(typespec)) ) {}
+      else if (fn->fcn_name)
+        typespec = kno_intern(fn->fcn_name);
+      else typespec = ffi_result_symbol;
+      void *value = NULL;
+      ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&value,argptrs);
+      lispval wv = kno_wrap_pointer(value,NULL,typespec,NULL);
+      kno_decref(typespec);
+      return wv;}
     else if ( (return_spec == string_symbol) ||
               (return_spec == strcpy_symbol) ) {
       u8_string stringval = NULL;
@@ -346,12 +376,12 @@ KNO_EXPORT lispval kno_ffi_call(struct KNO_FUNCTION *fn,int n,lispval *args)
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&dval,argptrs);
       return kno_make_flonum(dval);}
     else if (return_spec == float_symbol) {
-      float dval = -1;
-      ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&dval,argptrs);
-      return kno_make_flonum(dval);}
+      float fval = -1;
+      ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&fval,argptrs);
+      return kno_make_flonum(fval);}
     else return VOID;}
   else return kno_err(_("Not an foreign function interface"),
-                     "ffi_caller",u8_strdup(fn->fcn_name),VOID);
+                      "ffi_caller",u8_strdup(fn->fcn_name),VOID);
 }
 
 /* Generic object methods */
@@ -483,6 +513,7 @@ KNO_EXPORT void kno_init_ffi_c()
   lisp_symbol = kno_intern("lisp");
 
   basetype_symbol = kno_intern("basetype");
+  typespec_symbol = kno_intern("typespec");
 
   u8_register_source_file(_FILEINFO);
 }
@@ -506,6 +537,7 @@ KNO_EXPORT void kno_init_ffi_c()
   byte_symbol = kno_intern("byte");
   size_symbol = kno_intern("size");
   char_symbol = kno_intern("char");
+  character_symbol = kno_intern("character");
   string_symbol = kno_intern("string");
   packet_symbol = kno_intern("packet");
   ptr_symbol = kno_intern("ptr");
@@ -515,6 +547,8 @@ KNO_EXPORT void kno_init_ffi_c()
   strcpy_symbol = kno_intern("strcpy");
 
   basetype_symbol = kno_intern("basetype");
+  typespec_symbol = kno_intern("typespec");
+  ffi_result_symbol = kno_intern("ffi_result");
 
   u8_register_source_file(_FILEINFO);
 }
