@@ -123,10 +123,11 @@ INSTALL_DB_CMODULES=""
 INSTALL_TEXT_MODULES=""
 INSTALL_GRAPHICS_CMODULES=""
 INSTALL_ARCHIVE_CMODULES=""
-TEST_CMODULES=""
+TEST_CORE_CMODULES=""
 TEST_DB_CMODULES=""
 TEST_TEXT_CMODULES=""
 TEST_GRAPHICS_CMODULES=""
+TEST_ARCHIVE_CMODULES=""
 DATAFILES="etc/version"
 SUDO=""
 SUINSTALL=
@@ -348,10 +349,11 @@ AC_SUBST(INSTALL_DB_CMODULES)
 AC_SUBST(INSTALL_TEXT_CMODULES)
 AC_SUBST(INSTALL_GRAPHICS_CMODULES)
 AC_SUBST(INSTALL_ARCHIVE_CMODULES)
-AC_SUBST(TEST_CMODULES)
+AC_SUBST(TEST_CORE_CMODULES)
 AC_SUBST(TEST_DB_CMODULES)
 AC_SUBST(TEST_TEXT_CMODULES)
 AC_SUBST(TEST_GRAPHICS_CMODULES)
+AC_SUBST(TEST_ARCHIVE_CMODULES)
 AC_SUBST(MALLOC_FLAGS)
 AC_SUBST(MYSQL_CFLAGS)
 AC_SUBST(MYSQL_LDFLAGS)
@@ -840,6 +842,7 @@ AC_ARG_WITH(crypto,--with[out]-crypto Compile the crypto module,,with_crypto=$wi
 if test $with_crypto = "yes"; then
   CORE_CMODULES="lib/kno/crypto.$shared_suffix ${CORE_CMODULES}"
   INSTALL_CORE_CMODULES="install-crypto ${INSTALL_CORE_CMODULES}"
+  TEST_CORE_CMODULES="test-crypto ${TEST_CORE_CMODULES}"
 fi
 
 # OpenSSL checks
@@ -1568,7 +1571,7 @@ fi
 if (test "$have_libz" = "yes"); then
   ARCHIVE_CMODULES="lib/kno/zlib.$shared_suffix ${ARCHIVE_CMODULES}"
   INSTALL_ARCHIVE_CMODULES="install-zlib ${INSTALL_ARCHIVE_CMODULES}"
-  TEST_CMODULES="${TEST_CMODULES} test-zlib"
+  TEST_ARCHIVE_CMODULES="${TEST_ARCHIVE_CMODULES} test-zlib"
 fi
 
 AC_CHECK_HEADER(zlib.h,have_zlib_h="yes",have_zlib_h="no")
@@ -1609,7 +1612,7 @@ if test "${have_zmq_h}" = "yes" &&
    ZEROMQ_LIBS=-lzmq
    CORE_CMODULES="lib/kno/zeromq.$shared_suffix ${CORE_CMODULES}"
    INSTALL_CORE_CMODULES="install-zeromq ${INSTALL_CORE_CMODULES}"
-   TEST_CMODULES="${TEST_CMODULES} test-zeromq"	
+   TEST_CORE_CMODULES="${TEST_CORE_CMODULES} test-zeromq"	
 fi;
 
 ### LevelDB cmodule build
@@ -1699,7 +1702,7 @@ if test "${ac_cv_header_archive_h}" == "yes" && \
    test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
   ARCHIVE_CMODULES="lib/kno/libarchive.${shared_suffix} ${ARCHIVE_CMODULES}"
   INSTALL_ARCHIVE_CMODULES="install-libarchive ${INSTALL_ARCHIVE_CMODULES}"
-  TEST_CMODULES="${TEST_CMODULES} test-libarchive"
+  TEST_ARCHIVE_CMODULES="${TEST_ARCHIVE_CMODULES} test-libarchive"
 else
   missing="libarchive ${missing}"
 fi
@@ -1722,16 +1725,16 @@ if test "$enable_ziptools" = "yes" ||
     LDFLAGS="${LDFLAGS} ${LIBZIP_LDFLAGS}"
     ARCHIVE_CMODULES="lib/kno/ziptools.$shared_suffix ${ARCHIVE_CMODULES}";
     INSTALL_ARCHIVE_CMODULES="install-ziptools ${INSTALL_ARCHIVE_CMODULES}";
-    TEST_CMODULES="${TEST_CMODULES} test-ziptools"
+    TEST_ARCHIVE_CMODULES="${TEST_ARCHIVE_CMODULES} test-ziptools"
   elif test "$have_zip_h" = "yes" &&
        test "$have_libzip" = "yes"; then
     ARCHIVE_CMODULES="lib/kno/ziptools.$shared_suffix ${ARCHIVE_CMODULES}";
     INSTALL_ARCHIVE_CMODULES="install-ziptools ${INSTALL_ARCHIVE_CMODULES}";
-    TEST_CMODULES="${TEST_CMODULES} test-ziptools"
+    TEST_ARCHIVE_CMODULES="${TEST_ARCHIVE_CMODULES} test-ziptools"
   elif test "$enable_ziptools" = "force"; then
     ARCHIVE_CMODULES="lib/kno/ziptools.$shared_suffix ${ARCHIVE_CMODULES}";
     INSTALL_ARCHIVE_CMODULES="install-ziptools ${INSTALL_ARCHIVE_CMODULES}";
-    TEST_CMODULES="${TEST_CMODULES} test-ziptools"
+    TEST_ARCHIVE_CMODULES="${TEST_ARCHIVE_CMODULES} test-ziptools"
     force_enabled="ziptools ${force_enabled}";
   else
     auto_disabled="ziptools ${auto_disabled}";
