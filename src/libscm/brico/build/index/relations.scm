@@ -1,4 +1,4 @@
-#!/usr/bin/kno
+#!/usr/bin/knox
 ;;; -*- Mode: Scheme; -*-
 
 (load-component "common.scm")

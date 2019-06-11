@@ -97,6 +97,7 @@ DEBVERSION=${KNO_RELEASE}
 mshared_suffix=so.${KNO_MAJOR}
 mmshared_suffix=so.${KNO_MAJOR}.${KNO_MINOR}
 vshared_suffix=so.${KNO_VERSION}
+CLEAN="rm -f "
 I18N=""
 INSTALLI18N=""
 WWWUSER="apache"
@@ -106,7 +107,7 @@ apache_log_dir=""
 apache_modinfo="/etc/apache2"
 APXSFLAGS=
 A2EN="none"
-builtin_module_dir=""
+stdlib_module_dir=""
 installed_module_dir=""
 local_module_dir=""
 default_module_path=""
@@ -122,7 +123,10 @@ INSTALL_DB_CMODULES=""
 INSTALL_TEXT_MODULES=""
 INSTALL_GRAPHICS_CMODULES=""
 INSTALL_ARCHIVE_CMODULES=""
-TESTCMODULES=""
+TEST_CMODULES=""
+TEST_DB_CMODULES=""
+TEST_TEXT_CMODULES=""
+TEST_GRAPHICS_CMODULES=""
 DATAFILES="etc/version"
 SUDO=""
 SUINSTALL=
@@ -248,7 +252,7 @@ AC_SUBST(scheme_builtins_init)
 AC_SUBST(systemd_loc)
 AC_SUBST(share_dir)
 AC_SUBST(unpackage_dir)
-AC_SUBST(builtin_module_dir)
+AC_SUBST(stdlib_module_dir)
 AC_SUBST(installed_module_dir)
 AC_SUBST(local_module_dir)
 AC_SUBST(default_module_path)
@@ -264,6 +268,8 @@ AC_SUBST(apache_modinfo)
 AC_SUBST(webuser)
 AC_SUBST(webgroup)
 AC_SUBST(wwwinstall)
+AC_SUBST(knodaemon)
+AC_SUBST(knodaemoninstall)
 AC_SUBST(admin_group)
 AC_SUBST(admininstall)
 AC_SUBST(daemonid)
@@ -324,6 +330,7 @@ AC_SUBST(VERSION)
 AC_SUBST(PROFILING)
 AC_SUBST(MKSTATIC)
 AC_SUBST(GITDESCRIBE)
+AC_SUBST(CLEAN)
 AC_SUBST(I18N)
 AC_SUBST(INSTALLI18N)
 AC_SUBST(SUDO)
@@ -341,7 +348,10 @@ AC_SUBST(INSTALL_DB_CMODULES)
 AC_SUBST(INSTALL_TEXT_CMODULES)
 AC_SUBST(INSTALL_GRAPHICS_CMODULES)
 AC_SUBST(INSTALL_ARCHIVE_CMODULES)
-AC_SUBST(TESTCMODULES)
+AC_SUBST(TEST_CMODULES)
+AC_SUBST(TEST_DB_CMODULES)
+AC_SUBST(TEST_TEXT_CMODULES)
+AC_SUBST(TEST_GRAPHICS_CMODULES)
 AC_SUBST(MALLOC_FLAGS)
 AC_SUBST(MYSQL_CFLAGS)
 AC_SUBST(MYSQL_LDFLAGS)
@@ -1239,8 +1249,8 @@ installed_module_dir=$with_installed_module_dir
 AC_ARG_WITH(local_modules,--with-local-modules location,,with_local_modules=$share_dir/modules/local)
 local_module_dir=$with_local_modules
 
-AC_ARG_WITH(builtin_module_dir,--with-builtin-module-dir location,,with_builtin_module_dir=$share_dir/modules/builtin)
-builtin_module_dir=$with_builtin_module_dir
+AC_ARG_WITH(stdlib_module_dir,--with-stdlib-module-dir location,,with_stdlib_module_dir=$share_dir/modules/stdlib)
+stdlib_module_dir=$with_stdlib_module_dir
 
 LIBSCM="${share_dir}/libscm/\${REVISION}"
 
@@ -1255,13 +1265,13 @@ elif test ! -z "$with_libscm"; then
    LIBSCM=$with_libscm
 fi;
 
-builtin_module_path=$builtin_module_dir/
+stdlib_module_path=$stdlib_module_dir/
 
 installed_module_path=$installed_module_dir/
 
 local_module_path=$local_module_dir/
 
-default_module_path=$local_module_path:$installed_module_path:$builtin_module_path
+default_module_path=$local_module_path:$installed_module_path:$stdlib_module_path
 
 AC_ARG_WITH(module_path,--with-module-path location,,with_module_path=$default_module_path)
 module_path=$with_module_path
@@ -1272,7 +1282,7 @@ fi;
 
 AC_DEFINE_UNQUOTED(KNO_LOCAL_MODULE_DIR,"$local_module_dir")
 AC_DEFINE_UNQUOTED(KNO_INSTALLED_MODULE_DIR,"$installed_module_dir")
-AC_DEFINE_UNQUOTED(KNO_BUILTIN_MODULE_DIR,"$builtin_module_dir")
+AC_DEFINE_UNQUOTED(KNO_STDLIB_MODULE_DIR,"$stdlib_module_dir")
 AC_DEFINE_UNQUOTED(KNO_UNPACKAGE_DIR,"$unpackage_dir")
 
 AC_DEFINE_UNQUOTED(KNO_DEFAULT_LOADPATH,"$module_path")
@@ -1281,10 +1291,10 @@ AC_ARG_WITH(boot_config,--with-boot-config configstring,,with_boot_config="")
 AC_DEFINE_UNQUOTED(KNO_BOOT_CONFIG,"$with_boot_config")
 
 if test $exec_prefix = "NONE"; then
-  AC_DEFINE_UNQUOTED(KNO_EXEC,"$prefix/bin/kno")
+  AC_DEFINE_UNQUOTED(KNO_EXEC,"$prefix/bin/knox")
   AC_DEFINE_UNQUOTED(KNO_DBSERVER,"$prefix/bin/knod")
 else
-  AC_DEFINE_UNQUOTED(KNO_EXEC,"$exec_prefix/bin/kno")
+  AC_DEFINE_UNQUOTED(KNO_EXEC,"$exec_prefix/bin/knox")
   AC_DEFINE_UNQUOTED(KNO_DBSERVER,"$prefix/bin/knod")
 fi
 
@@ -1503,11 +1513,20 @@ fi
 dnl check for building with parseltongue
 AC_ARG_WITH(parseltongue,--with[out]-parseltongue Build parseltongue libraries for connecting Kno and Python)
 if test "$with_parseltongue" = "yes"; then
+   AX_PYTHON3
    AX_PYTHON2
+elif test "$with_parseltongue" = "2"; then
+   AX_PYTHON2
+elif test "$with_parseltongue" = "3"; then
+   AX_PYTHON3
 fi;
-if test "$with_parseltongue" = "yes" &&  test ! -z "${ax_python2_lib}"; then
+if test ! -z "${ax_python3_lib}"; then
    CORE_CMODULES="lib/kno/parseltongue.$shared_suffix ${CORE_CMODULES}"
    INSTALL_CORE_CMODULES="install-parseltongue ${INSTALL_CORE_CMODULES}"
+fi
+if test ! -z "${ax_python2_lib}"; then
+   CORE_CMODULES="lib/kno/parseltongue2.$shared_suffix ${CORE_CMODULES}"
+   INSTALL_CORE_CMODULES="install-parseltongue2 ${INSTALL_CORE_CMODULES}"
 fi
 
 ### Control use of 'sudo' for installation
@@ -1549,6 +1568,7 @@ fi
 if (test "$have_libz" = "yes"); then
   ARCHIVE_CMODULES="lib/kno/zlib.$shared_suffix ${ARCHIVE_CMODULES}"
   INSTALL_ARCHIVE_CMODULES="install-zlib ${INSTALL_ARCHIVE_CMODULES}"
+  TEST_CMODULES="${TEST_CMODULES} test-zlib"
 fi
 
 AC_CHECK_HEADER(zlib.h,have_zlib_h="yes",have_zlib_h="no")
@@ -1589,6 +1609,7 @@ if test "${have_zmq_h}" = "yes" &&
    ZEROMQ_LIBS=-lzmq
    CORE_CMODULES="lib/kno/zeromq.$shared_suffix ${CORE_CMODULES}"
    INSTALL_CORE_CMODULES="install-zeromq ${INSTALL_CORE_CMODULES}"
+   TEST_CMODULES="${TEST_CMODULES} test-zeromq"	
 fi;
 
 ### LevelDB cmodule build
@@ -1604,11 +1625,13 @@ if test "${enable_leveldb}" = "yes" ||
       test "${ac_cv_header_leveldb_c_h}" = "yes" &&
       test "${leveldb_ok}" = "yes"; then
       DB_CMODULES="${DB_CMODULES} lib/kno/leveldb.${shared_suffix}";
-     INSTALL_DB_CMODULES="${INSTALL_DB_CMODULES} install-leveldb";
+      INSTALL_DB_CMODULES="${INSTALL_DB_CMODULES} install-leveldb";
+      TEST_DB_CMODULES="${TEST_DB_CMODULES} test-leveldb"
    elif test "${enable_leveldb}" = "force"; then
      DB_CMODULES="lib/kno/leveldb.${shared_suffix} ${DB_CMODULES}";
      INSTALL_DB_CMODULES="${INSTALL_DB_CMODULES} install-leveldb";
      force_enabled="leveldb ${force_enabled}";
+     TEST_DB_CMODULES="${TEST_DB_CMODULES} test-leveldb"
    else
      auto_disabled="leveldb ${auto_disabled}";
      enable_leveldb="no";
@@ -1631,9 +1654,11 @@ if test "${enable_rocksdb}" = "yes" ||
       test "${rocksdb_ok}" = "yes"; then
      DB_CMODULES="lib/kno/rocksdb.${shared_suffix} ${DB_CMODULES}";
      INSTALL_DB_CMODULES="install-rocksdb ${INSTALL_DB_CMODULES}";
+     TEST_DB_CMODULES="${TEST_DB_CMODULES} test-rocksdb"
    elif test "${enable_rocksdb}" = "force"; then
      DB_CMODULES="lib/kno/rocksdb.${shared_suffix} ${DB_CMODULES}";
      INSTALL_DB_CMODULES="install-rocksdb ${INSTALL_DB_CMODULES}";
+     TEST_DB_CMODULES="${TEST_DB_CMODULES} test-rocksdb"
      force_enabled="rocksdb ${force_enabled}";
    else
      auto_disabled="rocksdb ${auto_disabled}";
@@ -1654,9 +1679,11 @@ if test "$enable_imagick" = "yes" &&
   IMAGICK_LDFLAGS=`$pkg_config MagickWand --libs`;
   GRAPHICS_CMODULES="lib/kno/imagick.$shared_suffix ${GRAPHICS_CMODULES}";
   INSTALL_GRAPHICS_CMODULES="install-imagick ${INSTALL_GRAPHICS_CMODULES}";
+  TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} test-imagick"
 elif test "$enable_imagick" = "force"; then
   GRAPHICS_CMODULES="lib/kno/imagick.$shared_suffix ${GRAPHICS_CMODULES}";
   INSTALL_GRAPHICS_CMODULES="install-imagick ${INSTALL_GRAPHICS_CMODULES}";
+  TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} test-imagick"
 elif test "$enable_imagick" = "yes"; then
   auto_disabled="imagick ${auto_disabled}";
   enable_imagick="failed";
@@ -1672,6 +1699,7 @@ if test "${ac_cv_header_archive_h}" == "yes" && \
    test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
   ARCHIVE_CMODULES="lib/kno/libarchive.${shared_suffix} ${ARCHIVE_CMODULES}"
   INSTALL_ARCHIVE_CMODULES="install-libarchive ${INSTALL_ARCHIVE_CMODULES}"
+  TEST_CMODULES="${TEST_CMODULES} test-libarchive"
 else
   missing="libarchive ${missing}"
 fi
@@ -1694,13 +1722,16 @@ if test "$enable_ziptools" = "yes" ||
     LDFLAGS="${LDFLAGS} ${LIBZIP_LDFLAGS}"
     ARCHIVE_CMODULES="lib/kno/ziptools.$shared_suffix ${ARCHIVE_CMODULES}";
     INSTALL_ARCHIVE_CMODULES="install-ziptools ${INSTALL_ARCHIVE_CMODULES}";
+    TEST_CMODULES="${TEST_CMODULES} test-ziptools"
   elif test "$have_zip_h" = "yes" &&
        test "$have_libzip" = "yes"; then
     ARCHIVE_CMODULES="lib/kno/ziptools.$shared_suffix ${ARCHIVE_CMODULES}";
     INSTALL_ARCHIVE_CMODULES="install-ziptools ${INSTALL_ARCHIVE_CMODULES}";
+    TEST_CMODULES="${TEST_CMODULES} test-ziptools"
   elif test "$enable_ziptools" = "force"; then
     ARCHIVE_CMODULES="lib/kno/ziptools.$shared_suffix ${ARCHIVE_CMODULES}";
     INSTALL_ARCHIVE_CMODULES="install-ziptools ${INSTALL_ARCHIVE_CMODULES}";
+    TEST_CMODULES="${TEST_CMODULES} test-ziptools"
     force_enabled="ziptools ${force_enabled}";
   else
     auto_disabled="ziptools ${auto_disabled}";
@@ -1722,11 +1753,13 @@ if test "$enable_mongodb" = "yes" ||
     MONGODB_LDFLAGS=`$pkg_config libmongoc-1.0 --libs` 
     DB_CMODULES="lib/kno/mongodb.$shared_suffix ${DB_CMODULES}";
     INSTALL_DB_CMODULES="install-mongodb ${INSTALL_DB_CMODULES}";
+    TEST_DB_CMODULES="${TEST_DB_CMODULES} test-mongodb"
     MONGODB_ENABLED=yes
   elif test "$enable_mongodb" = "force"; then
     force_enabled="mongodb ${force_enabled}";
     DB_CMODULES="lib/kno/mongodb.$shared_suffix ${DB_CMODULES}";
     INSTALL_DB_CMODULES="install-mongodb ${INSTALL_DB_CMODULES}";
+    TEST_DB_CMODULES="${TEST_DB_CMODULES} test-mongodb"
     MONGODB_ENABLED=yes
   else
     auto_disabled="mongodb ${auto_disabled}";
@@ -1737,6 +1770,7 @@ elif test "$enable_mongodb" = "bundled"; then
     MONGODB_LDFLAGS="-Wl,--whole-archive -Wl,-Bstatic -lmongoc -Wl,--no-whole-archive  -lbson -Wl,-Bdynamic"
     DB_CMODULES="lib/kno/mongodb.$shared_suffix ${DB_CMODULES}";
     INSTALL_DB_CMODULES="install-mongodb ${INSTALL_DB_CMODULES}";
+    TEST_DB_CMODULES="${TEST_DB_CMODULES} test-mongodb"
 else
     manually_disabled="mongodb ${manually_disabled}";      
 fi;
@@ -1768,6 +1802,7 @@ fi
 if test "$with_mysql" != "no"; then
   DB_CMODULES="lib/kno/mysql.$shared_suffix ${DB_CMODULES}"
   INSTALL_DB_CMODULES="install-mysql ${INSTALL_DB_CMODULES}"
+  TEST_DB_CMODULES="${TEST_DB_CMODULES} test-mysql"
 else
   missing="mysql ${missing}"
 fi
@@ -1788,6 +1823,7 @@ if test "$enable_odbc" = "yes"; then
      if test ! -z "${ODBC_LIBS}"; then
        DB_CMODULES="lib/kno/odbc.$shared_suffix ${DB_CMODULES}"
        INSTALL_DB_CMODULES="install-odbc ${INSTALL_DB_CMODULES}"
+       TEST_DB_CMODULES="${TEST_DB_CMODULES} test-odbc"
        odbc_included=yes
      fi;
    fi;
@@ -1811,6 +1847,7 @@ if test $have_sqlite3_h = "yes"; then
   if test "$sqlite3_ok" = "yes"; then
     DB_CMODULES="lib/kno/sqlite.$shared_suffix ${DB_CMODULES}";
     INSTALL_DB_CMODULES="install-sqlite ${INSTALL_DB_CMODULES}";
+    TEST_DB_CMODULES="${TEST_DB_CMODULES} test-sqlite"
     sqlite_included=no
     if test "${sqlite3v2_ok}" == "yes"; then
       AC_DEFINE(HAVE_SQLITE3_V2,1)
@@ -1829,6 +1866,7 @@ AC_ARG_ENABLE(tidy,--en[dis]able-tidy Build and install tidy module,,enable_tidy
 if test "$enable_tidy" = "yes"; then
   TEXT_CMODULES="lib/kno/tidy.$shared_suffix ${TEXT_CMODULES}"
   INSTALL_TEXT_CMODULES="install-tidy ${INSTALL_TEXT_CMODULES}"
+  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} test-tidy"
 fi
 
 ### Hyphenate library
@@ -1847,10 +1885,12 @@ if test "$enable_hyphenate" = "yes" &&
   TEXT_CMODULES="lib/kno/hyphenate.$shared_suffix ${TEXT_CMODULES}"
   INSTALL_TEXT_CMODULES="install-hyphenate ${INSTALL_TEXT_CMODULES}"
   DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
+  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} test-hyphenate"
 elif test "$enable_hyphenate" = "force"; then
   TEXT_CMODULES="lib/kno/hyphenate.$shared_suffix ${TEXT_CMODULES}"
   INSTALL_TEXT_CMODULES="install-hyphenate ${INSTALL_TEXT_CMODULES}"
   DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
+  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} test-hyphenate"
   force_enabled="hyphenate ${force_enabled}";
 elif test "$enable_hyphenate" = "yes"; then
   auto_disabled="hyphenate $auto_disabled";
@@ -1865,6 +1905,7 @@ AC_ARG_WITH(sundown,--with[out]-sundown Compile the sundown module,,with_sundown
 if test "$with_sundown" = "yes"; then
   TEXT_CMODULES="lib/kno/sundown.$shared_suffix ${TEXT_CMODULES}"
   INSTALL_TEXT_CMODULES="install-sundown ${INSTALL_TEXT_CMODULES}"
+  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} test-sundown"
 fi
 
 ### exif (extract metadata from image files)
@@ -1877,6 +1918,7 @@ if test "$with_exif" = "yes"; then
   AC_CHECK_HEADERS(libexif/exif-data.h)
   GRAPHICS_CMODULES="lib/kno/exif.$shared_suffix ${GRAPHICS_CMODULES}"
   INSTALL_GRAPHICS_CMODULES="install-exif ${INSTALL_GRAPHICS_CMODULES}"
+  TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} test-exif"
 else
   missing="curl ${missing}"
 fi
@@ -1898,6 +1940,7 @@ if (test "$with_qrcode" = "yes"); then
        (test "$libpng_ok" = "yes") && (test "$qrcode_ok" = "yes") ); then
     GRAPHICS_CMODULES="lib/kno/qrcode.$shared_suffix ${GRAPHICS_CMODULES}"
     INSTALL_GRAPHICS_CMODULES="install-qrcode ${INSTALL_GRAPHICS_CMODULES}"
+    TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} test-qrencode"
   else			    
     missing="qrcode ${missing}"
   fi;
@@ -1953,7 +1996,7 @@ else BINDIR="${exec_prefix}/bin";
 fi
 
 dnl Try to init submodules if needed and possible
-if (test ! -f src/extmods/samplefns.scm); then
+if (test ! -f src/stdlib/samplefns.scm); then
    if (which git 2>&1 > /dev/null) && (test -d .git); then
      git submodule update --init;
    else
@@ -1977,7 +2020,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/knosetconfig etc/knogetconfig etc/knoconfig
 	   tests/testenv.sh tests/xtest
 	   tests/runtest tests/memtest
-	   tests/leaktest tests/knotest
+	   tests/leaktest tests/knoxtest
 	   src/scripts/knopkg.scm
 	   etc/knojob
 	   etc/logrotate

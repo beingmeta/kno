@@ -8,7 +8,7 @@ Homepage: http://www.framerd.org/
 
 Package: kno
 Architecture: any
-Depends: ${misc:Depends}, kno-core, kno-builtin
+Depends: ${misc:Depends}, kno-core, kno-stdlib
 Description: Scalable knowledge base development and application platform
  Kno provides a robust and scalable object database especially
  designed and optimized for pointer-intensive semi-structured data based on
@@ -29,6 +29,19 @@ Depends: ${misc:Depends}, libu8 (>= 2.6.7-83), libzip4 | libzip2, libarchive13, 
 Description: This package provides the core libraries, executables, and 
   configuration files for Kno applications
 
+Package: kno-core-dev
+Architecture: any
+Section: debug
+Depends: 
+    kno-core (= ${binary:Version}),
+    libu8-dev,
+    libu8-dbg,
+    ${misc:Depends}
+Suggests:
+    libssl1.1-dbg | libssl1.0-dbg | libssl1.0.0-dbg,
+    libcurl4-dbg | libcurl3-dbg
+Description: This package contains the debugging symbols for kno-core
+
 Package: kno-core-dbg
 Architecture: any
 Section: debug
@@ -41,7 +54,7 @@ Suggests:
     libcurl4-dbg | libcurl3-dbg
 Description: This package contains the debugging symbols for kno-core
 
-Package: kno-builtin
+Package: kno-stdlib
 Architecture: any
 Depends: ${misc:Depends}, kno-core
 Provides: kno-modules
@@ -80,6 +93,20 @@ Depends:
     kno-sqlite (= ${binary:Version}),
     ${misc:Depends}
 Description: This package contains the debugging symbols for kno-sqlite
+
+Package: kno-zeromq
+Architecture: any
+Depends: kno-core (= ${binary:Version})
+Description: ZeroMQ bindings for KNO
+
+Package: kno-zeromq-dbg
+Architecture: any
+Section: debug
+Depends: 
+    kno-core-dbg (= ${binary:Version}),
+    kno-zeromq (= ${binary:Version}),
+    ${misc:Depends}
+Description: This package contains the debugging symbols for kno-zeromq
 
 Package: kno-mongodb
 Architecture: any
@@ -131,7 +158,7 @@ Description: This package contains the debugging symbols for kno-rocksdb
 
 Package: kno-parseltongue
 Architecture: any
-Depends: kno-core, python2.7
+Depends: kno-core, python3
 Description: Kno/Python FFI
 
 Package: kno-parseltongue-dbg
@@ -140,6 +167,20 @@ Section: debug
 Depends: 
     kno-core-dbg (= ${binary:Version}),
     kno-parseltongue (= ${binary:Version}),
+    ${misc:Depends}
+Description: This package contains the debugging symbols for kno-parseltongue
+
+Package: kno-parseltongue2
+Architecture: any
+Depends: kno-core, python2.7
+Description: Kno/Python FFI
+
+Package: kno-parseltongue2-dbg
+Architecture: any
+Section: debug
+Depends: 
+    kno-core-dbg (= ${binary:Version}),
+    kno-parseltongue2 (= ${binary:Version}),
     ${misc:Depends}
 Description: This package contains the debugging symbols for kno-parseltongue
 
@@ -219,9 +260,10 @@ Description: Provides an Emacs mode for interacting with knoc
 
 Package: kno-full
 Architecture: any
-Depends: ${misc:Depends}, kno-core, kno-modules, kno-doc,
-	 kno-imagetools, kno-mysql, kno-mongodb,
-	 kno-sqlite, kno-sundown, kno-tidy,
+Depends: ${misc:Depends}, kno-core, kno-stdlib, kno-doc,
+	 kno-zeromq, kno-imagetools, kno-sundown, kno-tidy,
+	 kno-mysql, kno-mongodb, kno-sqlite, kno-leveldb, kno-rocksdb,
+	 kno-parseltongue,
 	 elpa-knoc
 Description: Installs all standard Kno modules
 
@@ -231,12 +273,15 @@ Depends: ${misc:Depends}, kno-full,
 	 kno-imagetools-dbg,
 	 kno-mysql-dbg,
 	 kno-mongodb-dbg,
+	 kno-leveldb-dbg,
 	 kno-sqlite-dbg,
+	 kno-zeromq-dbg,
 	 kno-sundown-dbg,
+	 kno-parseltongue-dbg,
 	 kno-tidy-dbg
 Description: Installs all standard Kno modules
 
 Package: kno-dev
 Architecture: any
-Depends: kno (= ${binary:Version}), libu8-dev, kno-core-dbg
+Depends: kno, kno-core (= ${binary:Version}), kno-core-dev (= ${binary:Version}), libu8-dev, kno-core-dbg
 Description: Development files for Kno

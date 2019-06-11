@@ -2182,7 +2182,7 @@ KNO_EXPORT void kno_init_reqstate_c(void);
 KNO_EXPORT void kno_init_regex_c(void);
 KNO_EXPORT void kno_init_quasiquote_c(void);
 KNO_EXPORT void kno_init_struct_eval_c(void);
-KNO_EXPORT void kno_init_extdbprims_c(void);
+KNO_EXPORT void kno_init_sqldbprims_c(void);
 KNO_EXPORT void kno_init_history_c(void);
 KNO_EXPORT void kno_init_eval_appenv_c(void);
 KNO_EXPORT void kno_init_eval_moduleops_c(void);
@@ -2229,7 +2229,7 @@ static void init_eval_core()
   kno_init_streamprims_c();
   kno_init_timeprims_c();
   kno_init_sysprims_c();
-  kno_init_extdbprims_c();
+  kno_init_sqldbprims_c();
 
   u8_threadcheck();
 

@@ -233,7 +233,7 @@ SCHEME_OBJS=\
 	src/prims/sysprims.o \
 	src/prims/procprims.o \
 	@ipevalopso@ \
-	src/prims/extdbprims.o \
+	src/prims/sqldbprims.o \
 	src/prims/fileprims.o \
 	src/prims/driverprims.o \
 	src/eval/loader.o \
@@ -357,12 +357,12 @@ CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
 	     src/cmodules/hyphenate.o \
 	     ${SUNDOWN_OBJS} ${TIDY_OBJECTS}
 
-EXECUTABLES=exe/kno@suffix@ exe/knoc@suffix@ exe/knotask@suffix@  \
+EXECUTABLES=exe/knox@suffix@ exe/knoc@suffix@ exe/knotask@suffix@  \
 	    exe/knoweb@suffix@ exe/knod@suffix@
 STATIC_EXECUTABLES=static/kno@suffix@ static/knoc@suffix@ \
 	static/knotask@suffix@ \
 	static/knoweb@suffix@ static/knod@suffix@
-DEBUG_EXECUTABLES=dbg/kno dbg/knoc dbg/knotask dbg/knoweb dbg/knod
+DEBUG_EXECUTABLES=dbg/knox dbg/knoc dbg/knotask dbg/knoweb dbg/knod
 SHELL_SCRIPTS=etc/knosetconfig etc/knogetconfig etc/knoconfig \
 	etc/knostart etc/knostop etc/knostartall etc/knostopall \
 	etc/kno_start_daemons etc/kno_start_servlets etc/kno_stop_jobs \
@@ -373,13 +373,13 @@ SCHEME_SCRIPTS=exe/scripts/repack-pool exe/scripts/repack-index \
 	       exe/scripts/knomerge exe/scripts/knopkg
 
 CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config $(DESTDIR)@share_dir@ \
-	$(DESTDIR)@builtin_module_dir@ $(DESTDIR)@local_module_dir@
+	$(DESTDIR)@stdlib_module_dir@ $(DESTDIR)@local_module_dir@
 
 CLEANDIRS=include/kno src/drivers/headers 		\
 	src/lisp src/apply src/support 			\
 	src/storage src/drivers				\
 	src/eval src/prims				\
-	src/text src/web src/extmods			\
+	src/text src/web src/stdlib			\
 	src/cmodules					\
 	src/cmodules/ext/sundown 			\
 	src/cmodules/ext/tidy5 				\
@@ -441,7 +441,7 @@ KNO_SOURCES=\
 	src/prims/fileprims.c src/prims/driverprims.c                		\
 	src/eval/loader.c                                            		\
 	src/prims/timeprims.c src/prims/sysprims.c 				\
-	src/prims/extdbprims.c                    				\
+	src/prims/sqldbprims.c                    				\
 	src/eval/reqstate.c                                          		\
 	src/web/webtools.c src/web/json.c src/web/ldns.c            		\
 	src/web/xmloutput.c src/web/xmlinput.c src/web/xmldata.c 		\
@@ -449,8 +449,7 @@ KNO_SOURCES=\
 	src/web/uriprims.c src/web/mime.c src/web/email.c src/web/curl.c	\
 	src/text/texttools.c src/text/match.c                			\
 	src/text/porter.c src/text/phonetic.c                			\
-	src/exe/knoc.c                                            		\
-	src/exe/kno.c src/exe/knotask.c                             		\
+	src/exe/knoc.c src/exe/knox.c src/exe/knotask.c				\
 	src/exe/knoweb.c src/exe/knocgi.c src/exe/knod.c
 
 CMODULE_SOURCES=\
@@ -487,14 +486,14 @@ SHARED_LIBS=lib/libknocore@suffix@.@shared_suffix@  		\
 	lib/libknowebtools@suffix@.@mshared_suffix@       		\
 	lib/libknotexttools@suffix@.@mshared_suffix@
 
-SCHEME_MODULES=src/extmods/*.scm \
-	src/extmods/aws/*.scm \
-	src/extmods/facebook/*.scm src/extmods/google/*.scm \
-	src/extmods/paypal/*.scm src/extmods/twitter/*.scm \
-	src/extmods/dropbox/*.scm src/extmods/twilio/*.scm \
-	src/extmods/misc/*.scm src/extmods/tests/*.scm \
-	src/extmods/domutils/*.scm src/extmods/knodules/*.scm \
-	src/extmods/textindex/*.scm src/extmods/jwt/*.scm
+SCHEME_MODULES=src/stdlib/*.scm \
+	src/stdlib/aws/*.scm \
+	src/stdlib/facebook/*.scm src/stdlib/google/*.scm \
+	src/stdlib/paypal/*.scm src/stdlib/twitter/*.scm \
+	src/stdlib/dropbox/*.scm src/stdlib/twilio/*.scm \
+	src/stdlib/misc/*.scm src/stdlib/tests/*.scm \
+	src/stdlib/domutils/*.scm src/stdlib/knodules/*.scm \
+	src/stdlib/textindex/*.scm src/stdlib/jwt/*.scm
 
 # These might be neccessary on MacOS
 CMODULE_DEPENDS=lib/libknocore@suffix@.@shared_suffix@	\
@@ -627,7 +626,7 @@ dbginstall:
 	@$(MSG) CC $@ $<
 
 exe/scripts/%: src/scripts/%.scm
-	@$(ECHO) "#!"@prefix@/bin/kno | cat - $< > $@
+	@$(ECHO) "#!"@prefix@/bin/knox | cat - $< > $@
 	@chmod a+x $@
 	@$(MSG) MAKESCRIPT $@ $<
 
@@ -662,7 +661,7 @@ dbg/%: src/exe/%.c $(STATIC_LIBS)
 	@echo MKEXE_DEBUG $@
 	$(CC) $(TEST_CFLAGS) -o $@ $^ 		\
 	      @STATICLDFLAGS@ $(TEST_LDFLAGS) $(TEST_EXEFLAGS) 	\
-	      -lu8stdio -lu8syslog 		\
+	      -lu8 -lu8stdio -lu8syslog 		\
 	      $(LIBS) $(EXELIBS)
 dbg/%: ${REVISION_H} ${CONFIG_H} src/exe/main.h src/exe/webcommon.h
 
@@ -755,7 +754,7 @@ src/cmodules/ext/tidy5/%.o: src/cmodules/ext/tidy5/%.c $(SUNDOWN_H_FILES)
 	@$(CC) $(CFLAGS) -I./src/cmodules/ext/tidy5/ -o $@ -c $<
 	@$(MSG) CC "(TIDY5)" $@
 
-exe/kno@suffix@ exe/knotask@suffix@ exe/knoc@suffix@: \
+exe/knox@suffix@ exe/knotask@suffix@ exe/knoc@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
 exe/knocgi@suffix@ exe/knod@suffix@ exe/knoweb@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
@@ -821,7 +820,7 @@ uninstall-core:
 uninstall-all: uninstall-core
 	rm -rf $(DESTDIR)@share_dir@ $(DESTDIR)@config_dir@ \
 		$(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
-		$(DESTDIR)@builtin_module_dir@
+		$(DESTDIR)@stdlib_module_dir@
 uninstall: uninstall-core
 	@if (test -d $(DESTDIR)@share_dir@); then \
 	  $(MSG) $(DESTDIR)@share_dir@ "still exists"; fi
@@ -851,8 +850,9 @@ TAGS: makefile.in configure.ac include/kno/config.h.in		\
 	@echo Building TAGS file
 	@etags makefile.in configure.ac 		\
 		include/kno/config.h.in     	\
+		include/kno/knosource.h.in     	\
 	        tests/*/*.in tests/*.in dbg/*.in 	\
-		etc/*.in include/kno/*.h 		\
+		etc/*.in etc/*/*.in include/kno/*.h 		\
 		include/kno/components/*.h		\
 		${SRC_HEADERS};
 	@etags -o TAGS -a src/exe/*.c src/exe/*.h 
@@ -901,7 +901,7 @@ SCHEMETAGS: ${SCHEME_MODULES}
 	@find src/libscm -name "*.scm" -readable | \
 		grep -v module.scm | \
 		xargs etags -o SCHEMETAGS -a
-	@find src/extmods -name "*.scm" -readable | \
+	@find src/stdlib -name "*.scm" -readable | \
 		grep -v module.scm | \
 		xargs etags -o SCHEMETAGS -a
 	@ls -l SCHEMETAGS
@@ -1198,19 +1198,19 @@ lib/kno/tidy.dylib: \
 		src/cmodules/tidy.c $(TIDY_OBJECTS)
 	@$(MSG) MACLIBTOOL  $@ $<
 
-# Parseltongue
+# Parseltongue (default: v3)
 src/python/parseltongue.o: src/python/parseltongue.c
-	$(CC) "-I@PYTHON2_INCLUDE_DIR@" $(CFLAGS) -o $@ -c $< ${MODLIBS}
+	$(CC) "-I@PYTHON3_INCLUDE_DIR@" $(CFLAGS) -o $@ -c $< ${MODLIBS}
 	@$(MSG) CC_PYTHON $@ $<
 
 lib/kno/parseltongue.so: src/python/parseltongue.o
-	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS} -l@PYTHON2_LIB@
+	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS} -l@PYTHON3_LIB@
 	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
 	@$(MSG) MKSO  $@ $<
 lib/kno/parseltongue.dylib: src/python/parseltongue.o ${CMODULE_DEPENDS}
 	@$(MACLIBTOOL) -install_name \
 		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
-		$(DYLIB_FLAGS) ${MODLIBS} -l@PYTHON2_LIB@ -o $@ $< 
+		$(DYLIB_FLAGS) ${MODLIBS} -l@PYTHON3_LIB@ -o $@ $< 
 	@$(MSG) MACLIBTOOL  $@ $<
 lib/kno/parseltongue.@KNO_MAJOR@.dylib: lib/kno/parseltongue.dylib
 	@ln -sf $(*F).dylib $@
@@ -1219,6 +1219,28 @@ parseltongue: lib/kno/parseltongue.@shared_suffix@
 
 install-parseltongue: ${CMODULES}/parseltongue.@shared_suffix@ \
 	${CMODULES}/parseltongue.@vshared_suffix@
+
+# Parseltongue (v2)
+src/python/parseltongue2.o: src/python/parseltongue.c
+	$(CC) "-I@PYTHON2_INCLUDE_DIR@" $(CFLAGS) -o $@ -c $< ${MODLIBS}
+	@$(MSG) CC_PYTHON $@ $<
+
+lib/kno/parseltongue2.so: src/python/parseltongue2.o
+	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS} -l@PYTHON2_LIB@
+	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
+	@$(MSG) MKSO  $@ $<
+lib/kno/parseltongue2.dylib: src/python/parseltongue2.o ${CMODULE_DEPENDS}
+	@$(MACLIBTOOL) -install_name \
+		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
+		$(DYLIB_FLAGS) ${MODLIBS} -l@PYTHON2_LIB@ -o $@ $< 
+	@$(MSG) MACLIBTOOL  $@ $<
+lib/kno/parseltongue2.@KNO_MAJOR@.dylib: lib/kno/parseltongue2.dylib
+	@ln -sf $(*F).dylib $@
+
+parseltongue2: lib/kno/parseltongue2.@shared_suffix@
+
+install-parseltongue2: ${CMODULES}/parseltongue2.@shared_suffix@ \
+	${CMODULES}/parseltongue2.@vshared_suffix@
 
 # Internationalization stuff
 
@@ -1267,7 +1289,7 @@ staging/kno-@KNO_VERSION@: include/kno/revision.h \
 	$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
 	@git archive --prefix=kno-@KNO_VERSION@/ \
 	            -o staging/kno-@KNO_VERSION@.tar HEAD
-	cd src/extmods; git archive --prefix=kno-@KNO_VERSION@/src/extmods/ \
+	cd src/stdlib; git archive --prefix=kno-@KNO_VERSION@/src/stdlib/ \
 	            -o ../../staging/kno_modules-@KNO_VERSION@.tar HEAD;
 	cd staging; tar -xf kno-@KNO_VERSION@.tar; rm kno-@KNO_VERSION@.tar
 	cd staging; tar -xf kno_modules-@KNO_VERSION@.tar; rm kno_modules-@KNO_VERSION@.tar;
@@ -1277,7 +1299,7 @@ staging/kno_@KNO_VERSION@: include/kno/revision.h \
 	$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
 	@git archive --prefix=kno_@KNO_VERSION@/ \
 	            -o staging/kno_@KNO_VERSION@.tar HEAD;
-	cd src/extmods; git archive --prefix=kno_@KNO_VERSION@/src/extmods/ \
+	cd src/stdlib; git archive --prefix=kno_@KNO_VERSION@/src/stdlib/ \
 	            -o ../../staging/kno_modules_@KNO_VERSION@.tar HEAD;
 	cd staging; tar -xf kno_@KNO_VERSION@.tar; rm kno_@KNO_VERSION@.tar;
 	cd staging; tar -xf kno_modules_@KNO_VERSION@.tar; rm kno_modules_@KNO_VERSION@.tar;
@@ -1415,7 +1437,7 @@ install-status:
 	fi;
 install: install-status install-core 			\
 		install-cmodules 			\
-		install-libscm install-extmods 		\
+		install-libscm install-stdlib 		\
 		@setup_target@
 	@if test -f .malloc && test -f .buildmode; then \
 	  echo "Installed" $(shell cat .buildmode) "build linked with" $(shell cat .malloc); \
@@ -1548,7 +1570,7 @@ workdirs: $(DESTDIR)@kno_rundir@ $(DESTDIR)@kno_logdir@ \
 	$(DESTDIR)@servlet_rundir@ $(DESTDIR)@servlet_logdir@ \
 	$(DESTDIR)@bugjar@
 
-confdirs: $(DESTDIR)@builtin_module_dir@ $(DESTDIR)@installed_module_dir@ \
+confdirs: $(DESTDIR)@stdlib_module_dir@ $(DESTDIR)@installed_module_dir@ \
 	  $(DESTDIR)@local_module_dir@ $(DESTDIR)@unpackage_dir@ \
 	  $(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
 	  $(DESTDIR)@config_dir@  $(DESTDIR)@config_dir@/config_files \
@@ -1559,7 +1581,7 @@ confdirs: $(DESTDIR)@builtin_module_dir@ $(DESTDIR)@installed_module_dir@ \
 		$(SYSINSTALL) @install_file_opts@ /dev/null \
 			$(DESTDIR)@config_dir@/servers; fi
 
-$(DESTDIR)@builtin_module_dir@ $(DESTDIR)@installed_module_dir@ $(DESTDIR)@local_module_dir@:
+$(DESTDIR)@stdlib_module_dir@ $(DESTDIR)@installed_module_dir@ $(DESTDIR)@local_module_dir@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 $(DESTDIR)@unpackage_dir@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
@@ -1571,26 +1593,26 @@ EXT_MODULE_DIRS=xhtml domutils textindex morph misc tests knodules knoml \
 
 EXT_MODULE_DATA=textindex/data knodules/data aws/templates morph/data
 
-install-extmods: install-standard-modules
+install-stdlib: install-standard-modules
 install-standard-modules: install-module-source install-module-data
 
-install-module-source: $(DESTDIR)@builtin_module_dir@
-	@$(ECHO) Copying standard Scheme modules to @builtin_module_dir@
-	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/extmods/*.scm 		\
-		$(DESTDIR)@builtin_module_dir@;
+install-module-source: $(DESTDIR)@stdlib_module_dir@
+	@$(ECHO) Copying standard Scheme modules to @stdlib_module_dir@
+	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/stdlib/*.scm 		\
+		$(DESTDIR)@stdlib_module_dir@;
 	@for dir in $(EXT_MODULE_DIRS); do					\
-	  install_dir="$(DESTDIR)@builtin_module_dir@/$${dir}";			\
+	  install_dir="$(DESTDIR)@stdlib_module_dir@/$${dir}";			\
 	  echo "Installing $${dir} module at $${install_dir}";			\
 	  $(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
-	  $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/extmods/$${dir}/*.scm	\
+	  $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/stdlib/$${dir}/*.scm	\
 	      $${install_dir};							\
 	done;
 
-install-module-data: $(DESTDIR)@builtin_module_dir@
-	@$(ECHO) Copying module data to @builtin_module_dir@;
+install-module-data: $(DESTDIR)@stdlib_module_dir@
+	@$(ECHO) Copying module data to @stdlib_module_dir@;
 	@for dir in $(EXT_MODULE_DATA); do					\
-	  src_dir="$(BUILD)/src/extmods/$${dir}";				\
-	  install_dir="$(DESTDIR)@builtin_module_dir@/$${dir}";			\
+	  src_dir="$(BUILD)/src/stdlib/$${dir}";				\
+	  install_dir="$(DESTDIR)@stdlib_module_dir@/$${dir}";			\
 	  echo Installing data from $${src_dir} to $${install_dir};		\
 	  $(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
 	  $(SYSINSTALL) @install_file_opts@ $${src_dir}/* $${install_dir};	\
@@ -1837,14 +1859,14 @@ tests: testclean
 	 echo "#### Can't test primitives on protected files, enable with 'make private_files'"; \
 	 fi;
 
-tests.log: tests/kno tests/makefile.in makefile
+tests.log: tests/knox tests/makefile.in makefile
 	@echo "#### Running test scripts, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; make -s -C tests -k -j 2>&1 > tests.log && \
 	 cp tests.log tests/logs/tests-$${DATE}.log; \
 	 sort tests/timing.log -k 2 > tests/logs/timing-$${DATE}.log;
 
-libtests.log: tests/kno tests/makefile.in
+libtests.log: tests/knox tests/makefile.in
 	@echo "#### Running libtests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; \
@@ -1852,7 +1874,7 @@ libtests.log: tests/kno tests/makefile.in
 	 cp libtests.log tests/logs/libtests-$${DATE}.log;
 libtests: libtests.log
 
-tests/memtests.log: tests/kno tests/makefile.in
+tests/memtests.log: tests/knox tests/makefile.in
 	@echo "#### Running memory tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; \
@@ -1860,14 +1882,14 @@ tests/memtests.log: tests/kno tests/makefile.in
 	 cp memtests.log tests/logs/memtests-`date +%d%b%yT%T`.log;
 memtests: memtests.log
 
-tests/leaktests.log: tests/kno tests/makefile.in
+tests/leaktests.log: tests/knox tests/makefile.in
 	@echo "#### Running leak tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; make -s -C tests -k -j leaktests 2>&1 > leaktests.log && \
 	cp leaktests.log tests/logs/leaktests-`date +%d%b%yT%T`.log;
 leaktests: leaktests.log
 
-tests/schemetests.log: tests/kno tests/makefile.in
+tests/schemetests.log: tests/knox tests/makefile.in
 	@echo "#### Running scheme tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; \
@@ -1875,7 +1897,7 @@ tests/schemetests.log: tests/kno tests/makefile.in
 	 cp schemtests.log tests/logs/schemetests-`date +%d%b%yT%T`.log;
 schemetests: schemetests.log
 
-tests/cmdtests.log: tests/kno tests/makefile.in
+tests/cmdtests.log: tests/knox tests/makefile.in
 	@echo "#### Running command tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; \
@@ -1883,7 +1905,7 @@ tests/cmdtests.log: tests/kno tests/makefile.in
 	 cp tests/cmdtests.log tests/logs/cmdtests-`date +%d%b%yT%T`.log;
 cmdtests: tests/cmdtests.log
 
-tests/dbtests.log: tests/kno tests/makefile.in
+tests/dbtests.log: tests/knox tests/makefile.in
 	@echo "#### Running database tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; \
@@ -1939,7 +1961,7 @@ DIY/mongo-c-driver/built:
 # Meta operations
 
 update-modules:
-	git submodule update --remote --merge src/extmods
+	git submodule update --remote --merge src/stdlib
 
 .PHONY: knoweb update-knoweb install-knoweb update-modules
 

@@ -29,19 +29,31 @@ KNO_EXPORT int kno_init_zeromq(void) KNO_LIBINIT_FN;
 
 kno_ptr_type kno_zeromq_type;
 
-static size_t default_recv_len = 10000;
-
 static struct KNO_HASHTABLE sockopts_table;
 
-static void *zmq_default_ctx = NULL;
-static U8_MUTEX_DECL(default_ctx_lock);
-static void *init_default_ctx()
+static U8_MUTEX_DECL(zeromq_ctx_lock);
+
+void *kno_zeromq_ctx = NULL;
+
+static void destroy_zeromq_cxt()
 {
-  u8_lock_mutex(&default_ctx_lock);
-  if (zmq_default_ctx == NULL)
-    zmq_default_ctx = zmq_ctx_new();
-  u8_unlock_mutex(&default_ctx_lock);
-  return zmq_default_ctx;
+  if (kno_zeromq_ctx) {
+    void *ctx;
+    u8_lock_mutex(&zeromq_ctx_lock);
+    ctx = kno_zeromq_ctx;
+    kno_zeromq_ctx = NULL;
+    u8_unlock_mutex(&zeromq_ctx_lock);
+    zmq_ctx_destroy(ctx);}
+}
+
+KNO_EXPORT void *kno_init_zeromq_ctx()
+{
+  u8_lock_mutex(&zeromq_ctx_lock);
+  if (kno_zeromq_ctx == NULL) {
+    kno_zeromq_ctx = zmq_ctx_new();
+    atexit(destroy_zeromq_cxt);}
+  u8_unlock_mutex(&zeromq_ctx_lock);
+  return kno_zeromq_ctx;
 }
 
 /* Symbols to constants */
@@ -49,7 +61,7 @@ static void *init_default_ctx()
 static lispval publish_symbol, subscribe_symbol, request_symbol, reply_symbol;
 static lispval push_symbol, pull_symbol, pair_symbol, stream_symbol;
 static lispval dealer_symbol, router_symbol, xpub_symbol, xsub_symbol;
-static lispval nowait_symbol, convert_symbol;
+static lispval nowait_symbol, convert_symbol, wait_symbol;
 
 
 static int get_socket_type(lispval symbol)
@@ -85,9 +97,8 @@ static void recycle_zeromq(struct KNO_RAW_CONS *c)
   int rv = 0;
   struct KNO_ZEROMQ *zmq = (kno_zeromq) c;
   switch (zmq->zmq_type) {
-  case zmq_context_type:
-    rv = zmq_ctx_destroy(zmq->zmq_ptr); break;
   case zmq_socket_type:
+    zmq_close(zmq->zmq_ptr);
     rv = 0;
   }
   if (rv != 0) {
@@ -99,8 +110,6 @@ static int unparse_zeromq(struct U8_OUTPUT *out,lispval x)
   struct KNO_ZEROMQ *zmq = (kno_zeromq) x;
   u8_string typename = "unknown", id = zmq->zmq_id;
   switch (zmq->zmq_type) {
-  case zmq_context_type:
-    typename = "context"; break;
   case zmq_socket_type:
     typename = "socket"; break;}
   if (id)
@@ -129,63 +138,13 @@ static lispval zmq_error(u8_context cxt,lispval obj)
     return kno_err(kno_TypeError,caller,# ztype,x);                     \
   else {x ## _zmq = (kno_zeromq) x; x ## _ptr = x ## _zmq ->zmq_ptr; }
 
-/* Contexts */
-
-DCLPRIM("ZMQ/CONTEXT",zmq_context_prim,0,
-	"Creates a ZeroMQ context object");
-static lispval zmq_context_prim()
-{
-  void *cxt = zmq_ctx_new();
-  if (cxt)
-    return zmq_make(zmq_context_type,cxt);
-  else return kno_err(ZeroMQ_Error,"zmq_context_prim",NULL,KNO_VOID);
-}
-
-DCLPRIM("ZMQ/SHUTDOWN!",zmq_shutdown_prim,0,
-	"Shuts down a ZeroMQ context");
-static lispval zmq_shutdown_prim(lispval v)
-{
-  ZMQ_CHECK_TYPE(v,zmq_context_type,"ZMQ/SHUTDOWN!");
-  int rv = zmq_ctx_shutdown(v_zmq->zmq_ptr);
-  if (rv == 0)
-    return KNO_VOID;
-  else return zmq_error("ZMQ/SHUTDOWN!",v);
-}
-
-DCLPRIM("ZMQ/TERMINATE",zmq_terminate_prim,0,
-	"Terminates a ZeroMQ context");
-static lispval zmq_terminate_prim(lispval v)
-{
-  ZMQ_CHECK_TYPE(v,zmq_context_type,"ZMQ/TERMINATE!");
-  int rv = zmq_term(v_zmq->zmq_ptr);
-  if (rv == 0)
-    return KNO_VOID;
-  else return zmq_error("ZMQ/TERMINATE!",v);
-}
-
-/* Getting contexts for operations */
-
-static void *get_zmq_ctx(lispval v)
-{
-  if ( (VOIDP(v)) || (KNO_FALSEP(v)) )
-    if (zmq_default_ctx)
-      return zmq_default_ctx;
-    else return init_default_ctx();
-  else if (KNO_TYPEP(v,kno_zeromq_type)) {
-    struct KNO_ZEROMQ *kz = (kno_zeromq) v;
-    if (kz->zmq_type == zmq_context_type)
-      return kz->zmq_ptr;}
-  kno_seterr(kno_TypeError,"zmq_cxt",NULL,v);
-  return NULL;
-}
-
 /* Sockets */
 
 DCLPRIM("ZMQ/SOCKET",zmq_socket_prim,MIN_ARGS(1)|MAX_ARGS(2),
 	"Creates a ZMQ socket")
-static lispval zmq_socket_prim(lispval typename,lispval ctx_arg)
+static lispval zmq_socket_prim(lispval typename)
 {
-  void *ctx = get_zmq_ctx(ctx_arg);
+  void *ctx = KNO_ZMQ_CTX;
   if (ctx == NULL)
     return KNO_ERROR_VALUE;
   int sock_type = get_socket_type(typename);
@@ -223,7 +182,7 @@ static lispval zmq_bind_prim(lispval s,lispval address)
 }
 
 DCLPRIM("ZMQ/UNBIND!",zmq_unbind_prim,MIN_ARGS(2)|MAX_ARGS(2),
-	"Unbinds a ZMQ socket to an address")
+	"Unbinds a ZMQ socket from an address")
 static lispval zmq_unbind_prim(lispval s,lispval address)
 {
   ZMQ_CHECK_TYPE(s,zmq_socket_type,"ZMQ/UNBIND!");
@@ -404,11 +363,11 @@ static lispval zmq_setsockopt_prim(lispval socket,lispval optname,
 
 /* High level operations */
 
-DCLPRIM("ZMQ/OPEN",zmq_open_prim,MIN_ARGS(2)|MAX_ARGS(3),
+DCLPRIM("ZMQ/OPEN",zmq_open_prim,MIN_ARGS(2)|MAX_ARGS(2),
 	"Opens a ZMQ socket on an address")
-static lispval zmq_open_prim(lispval address,lispval typename,lispval cxt)
+static lispval zmq_open_prim(lispval address,lispval typename)
 {
-  void *ctx = get_zmq_ctx(cxt);
+  void *ctx = KNO_ZMQ_CTX;
   if (ctx == NULL)
     return KNO_ERROR_VALUE;
   int sock_type = get_socket_type(typename);
@@ -426,18 +385,18 @@ static lispval zmq_open_prim(lispval address,lispval typename,lispval cxt)
   else return zmq_error("ZMQ/OPEN",address);
 }
 
-DCLPRIM("ZMQ/LISTEN",zmq_listen_prim,MIN_ARGS(2)|MAX_ARGS(3),
+DCLPRIM("ZMQ/LISTEN",zmq_listen_prim,MIN_ARGS(2)|MAX_ARGS(2),
 	"Opens a ZMQ socket on an address")
-static lispval zmq_listen_prim(lispval address,lispval type,lispval cxt)
+static lispval zmq_listen_prim(lispval address,lispval type)
 {
-  void *ctx = get_zmq_ctx(cxt);
+  void *ctx = KNO_ZMQ_CTX;
   if (ctx == NULL)
     return KNO_ERROR_VALUE;
   int sock_type = get_socket_type(type);
   if (sock_type < 0)
     return kno_err("InvalidZmqSocketType","zmq_socket_prim",NULL,type);
   if (!(KNO_STRINGP(address)))
-    return kno_err(kno_TypeError,"zmq_open_prim","address string",address);
+    return kno_err(kno_TypeError,"zmq_listen_prim","address string",address);
   void *sockptr = zmq_socket(ctx,sock_type);
   if (sockptr == NULL)
     return zmq_error("ZMQ/LISTEN",address);
@@ -456,14 +415,14 @@ static void free_lisp_wrapper(void *data,void *vptr)
   kno_decref(val);
 }
 
-DCLPRIM("ZMQ/SEND",zmq_send_prim,MIN_ARGS(2)|MAX_ARGS(3),
+DCLPRIM("ZMQ/SEND!",zmq_send_prim,MIN_ARGS(2)|MAX_ARGS(3),
 	"Sends a string or packet to a socket")
 static lispval zmq_send_prim(lispval s,lispval data,lispval opts)
 {
-  ZMQ_CHECK_TYPE(s,zmq_socket_type,"ZMQ/DISCONNECT!");
+  ZMQ_CHECK_TYPE(s,zmq_socket_type,"ZMQ/SEND!");
   zmq_msg_t msg;
   unsigned char *bytes; size_t len;
-  int flags = 0, free_bytes = 0, free_converter;
+  int flags = 0, free_bytes = 0, decref_data = 0, free_converter = 0;
   lispval converter = VOID;
   if (KNO_SYMBOLP(opts))
     converter = opts;
@@ -482,19 +441,29 @@ static lispval zmq_send_prim(lispval s,lispval data,lispval opts)
     else bytes = out.buffer;}
   else if (KNO_PACKETP(data)) {
     bytes = (unsigned char *) KNO_PACKET_DATA(data);
-    len   = KNO_PACKET_LENGTH(data);}
+    len   = KNO_PACKET_LENGTH(data);
+    kno_incref(data);
+    decref_data = 1;}
   else if (KNO_STRINGP(data)) {
     bytes = (unsigned char *) KNO_CSTRING(data);
-    len   = KNO_STRLEN(data);}
+    len   = KNO_STRLEN(data);
+    kno_incref(data);
+    decref_data = 1;}
   else return kno_err("string or packet","zmq_send_prim",NULL,data);
-  if (KNO_TRUEP(opts)) flags |= ZMQ_DONTWAIT;
-  int rv = zmq_msg_init_data(&msg,bytes,len,free_lisp_wrapper,(void *)data);
+  if (!((KNO_TRUEP(opts)) ||
+        ( (KNO_TABLEP(opts)) && (kno_testopt(opts,wait_symbol,KNO_VOID)) ) ) )
+    flags |= ZMQ_DONTWAIT;
+  int rv = (decref_data) ?
+    (zmq_msg_init_data(&msg,bytes,len,free_lisp_wrapper,(void *)data)) :
+    (zmq_msg_init_data(&msg,bytes,len,NULL,NULL));
   if (rv) {
     if (free_bytes) u8_free(bytes);
     if (free_converter) kno_decref(converter);
-    return zmq_error("ZMQ/SEND(msg)",data);}
-  kno_incref(data);
+    return zmq_error("ZMQ/SEND!",data);}
   ssize_t n_bytes = zmq_msg_send(&msg,s_zmq->zmq_ptr,flags);
+  while ( (n_bytes < 0) && (errno == EAGAIN) ) {
+    errno = 0;
+    n_bytes = zmq_msg_send(&msg,s_zmq->zmq_ptr,flags);}
   zmq_msg_close(&msg);
   if (free_bytes) u8_free(bytes);
   if (free_converter) kno_decref(converter);
@@ -504,62 +473,76 @@ static lispval zmq_send_prim(lispval s,lispval data,lispval opts)
 }
 
 DCLPRIM("ZMQ/RECV",zmq_recv_prim,MIN_ARGS(1)|MAX_ARGS(2),
-	"Receives a packet from a socket")
-static lispval zmq_recv_prim(lispval s,lispval data,lispval opts)
+        "Receives a packet from a socket")
+static lispval zmq_recv_prim(lispval s,lispval opts)
 {
-  ZMQ_CHECK_TYPE(s,zmq_socket_type,"ZMQ/DISCONNECT!");
-  zmq_msg_t msg;
-  size_t buflen = default_recv_len;
-  int flags = 0, free_converter = 0;
-  lispval converter = VOID;
-  if (KNO_TRUEP(opts))
-    flags |= ZMQ_DONTWAIT;
-  else if ( (KNO_SYMBOLP(opts)) || (KNO_APPLICABLEP(opts)) )
+  ZMQ_CHECK_TYPE(s,zmq_socket_type,"ZMQ/RECV");
+  int flags = 0, wait = 1;
+  if ( (KNO_FALSEP(opts)) ||
+       ( (KNO_TABLEP(opts)) && (kno_testopt(opts,nowait_symbol,KNO_VOID)) ) )
+    wait = 0;
+  if (!(wait)) flags |= ZMQ_DONTWAIT;
+  KNO_DECL_OUTBUF(out,1024);
+  int more = 1, n_parts = 0;
+  size_t more_size = sizeof (more);
+  while (more) {
+    /* Create an empty ØMQ message to hold the message part */
+    zmq_msg_t part;
+    int rc = zmq_msg_init (&part);
+    if (rc) {
+      kno_close_outbuf(&out);
+      return zmq_error("ZMQ/RECV(initmsg)",s);}
+    /* Wait for some data */
+    int part_len = zmq_msg_recv (&part, s_zmq->zmq_ptr, flags);
+    if ( part_len < 0 ) {
+      kno_close_outbuf(&out);
+      return zmq_error("ZMQ/RECV(recv)",s);}
+    /* Check if there's more */
+    rc = zmq_getsockopt (s_zmq->zmq_ptr, ZMQ_RCVMORE, &more, &more_size);
+    if (rc) {
+      kno_close_outbuf(&out);
+      return zmq_error("ZMQ/RECV(morep)",s);}
+    kno_write_bytes(&out,zmq_msg_data(&part),zmq_msg_size(&part));
+    zmq_msg_close (&part);
+    n_parts++;}
+
+  lispval converter = VOID; int free_converter = 0;
+  if ( (KNO_SYMBOLP(opts)) || (KNO_APPLICABLEP(opts)) )
     converter = opts;
   else if (KNO_TABLEP(opts)) {
-    lispval lenval = kno_getopt(opts,KNOSYM_BUFSIZE,KNO_VOID);
-    if (KNO_FIXNUMP(lenval))
-      buflen = KNO_INT(lenval);
-    else kno_decref(lenval);
-    if (kno_testopt(opts,nowait_symbol,KNO_VOID))
-      flags |= ZMQ_DONTWAIT;
     converter = kno_getopt(opts,convert_symbol,VOID);
     if (KNO_CONSP(converter)) free_converter = 1;}
-  int rv = zmq_msg_init_size(&msg,buflen);
-  if (rv)
-    return zmq_error("ZMQ/RECV!(msg)",data);
-  /* TODO: Need to handle multi-part messages here */
-  ssize_t n_bytes = zmq_msg_recv(&msg,s_zmq->zmq_ptr,flags);
+  else NO_ELSE;
+
   lispval result = VOID;
-  if (n_bytes>=0) {
-    unsigned char *bytes = zmq_msg_data(&msg);
-    if ( converter == KNOSYM_PACKET )
-      result = kno_make_packet(NULL,n_bytes,zmq_msg_data(&msg));
-    else if ( converter == KNOSYM_UTF8 )
-      result = kno_make_string(NULL,n_bytes,zmq_msg_data(&msg));
-    else if ( converter == KNOSYM_STRING ) {
-      if (u8_validp(bytes))
-        result = kno_make_string(NULL,n_bytes,bytes);
-      else {
-        u8_log(LOGWARN,"ZMQ/RECV(non UTF-8 string)",
-               "Converting result to latin0");
-        u8_string converted = u8_make_string(latin0_encoding,bytes,bytes+n_bytes);
-        result = kno_init_string(NULL,-1,converted);}}
-    else if (KNO_STRINGP(converter)) {
-      u8_encoding enc = u8_get_encoding(KNO_CSTRING(converter));
-      if (enc) {
-        u8_string converted  = u8_make_string(enc,bytes,bytes+n_bytes);
-        result = kno_init_string(NULL,-1,converted);}
-      else result =kno_err("Unknown character encoding","zmq_recv",
-                           KNO_CSTRING(converter),s);}
-    else if (KNO_APPLICABLEP(converter)) {
-      lispval packet = kno_make_packet(NULL,n_bytes,zmq_msg_data(&msg));
-      result = kno_apply(converter,1,&packet);
-      kno_decref(packet);}
-    else result = kno_make_packet(NULL,n_bytes,zmq_msg_data(&msg));}
-  else result = zmq_error("ZMQ/RECV!",s);
+  unsigned char *bytes = out.buffer;
+  ssize_t n_bytes = out.bufwrite-out.buffer;
+  if ( converter == KNOSYM_PACKET )
+    result = kno_make_packet(NULL,n_bytes,bytes);
+  else if ( converter == KNOSYM_UTF8 )
+    result = kno_make_string(NULL,n_bytes,bytes);
+  else if ( converter == KNOSYM_STRING ) {
+    if (u8_validp(bytes))
+      result = kno_make_string(NULL,n_bytes,bytes);
+    else {
+      u8_log(LOGWARN,"ZMQ/RECV(non UTF-8 string)",
+             "Converting result to latin0");
+      u8_string converted = u8_make_string(latin0_encoding,bytes,bytes+n_bytes);
+      result = kno_init_string(NULL,-1,converted);}}
+  else if (KNO_STRINGP(converter)) {
+    u8_encoding enc = u8_get_encoding(KNO_CSTRING(converter));
+    if (enc) {
+      u8_string converted  = u8_make_string(enc,bytes,bytes+n_bytes);
+      result = kno_init_string(NULL,-1,converted);}
+    else result =kno_err("Unknown character encoding","zmq_recv",
+                         KNO_CSTRING(converter),s);}
+  else if (KNO_APPLICABLEP(converter)) {
+    lispval packet = kno_make_packet(NULL,n_bytes,bytes);
+    result = kno_apply(converter,1,&packet);
+    kno_decref(packet);}
+  else result = kno_make_packet(NULL,n_bytes,bytes);
+  kno_close_outbuf(&out);
   if (free_converter) kno_decref(converter);
-  zmq_msg_close(&msg);
   return result;
 }
 
@@ -581,6 +564,7 @@ static void init_symbols()
   xsub_symbol = kno_intern("xsub");
   nowait_symbol = kno_intern("nowait");
   convert_symbol = kno_intern("convert");
+  wait_symbol = kno_intern("wait");
 }
 
 static void init_sockopts()
@@ -604,7 +588,7 @@ KNO_EXPORT int kno_init_zeromq()
   else zeromq_init = u8_millitime();
   module = kno_new_cmodule("zeromq",0,kno_init_zeromq);
 
-  u8_init_mutex(&default_ctx_lock);
+  u8_init_mutex(&zeromq_ctx_lock);
   kno_zeromq_type = kno_register_cons_type("ZeroMQ");
 
   kno_recyclers[kno_zeromq_type]=recycle_zeromq;
@@ -613,14 +597,10 @@ KNO_EXPORT int kno_init_zeromq()
   init_symbols();
   init_sockopts();
 
-  DECL_PRIM(zmq_context_prim,0,module);
-  DECL_PRIM(zmq_shutdown_prim,1,module);
-  DECL_PRIM(zmq_terminate_prim,1,module);
-
-  DECL_PRIM(zmq_socket_prim,2,module);
+  DECL_PRIM(zmq_socket_prim,1,module);
   DECL_PRIM(zmq_close_prim,1,module);
-  DECL_PRIM(zmq_open_prim,3,module);
-  DECL_PRIM(zmq_listen_prim,3,module);
+  DECL_PRIM(zmq_open_prim,2,module);
+  DECL_PRIM(zmq_listen_prim,2,module);
 
   DECL_PRIM(zmq_getsockopt_prim,2,module);
   DECL_PRIM(zmq_setsockopt_prim,3,module);
@@ -631,7 +611,7 @@ KNO_EXPORT int kno_init_zeromq()
   DECL_PRIM(zmq_disconnect_prim,2,module);
 
   DECL_PRIM(zmq_send_prim,3,module);
-  DECL_PRIM(zmq_recv_prim,3,module);
+  DECL_PRIM(zmq_recv_prim,2,module);
 
   kno_finish_module(module);
 

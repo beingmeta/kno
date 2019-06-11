@@ -19,6 +19,6 @@
 
 (optimize-module! 'optimize)
 
-(load-component "extmods.scm")
+(load-component "stdlib.scm")
 
 (when trouble (exit 1))

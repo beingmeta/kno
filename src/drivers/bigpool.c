@@ -331,7 +331,8 @@ static kno_pool open_bigpool(u8_string fname,kno_storage_flags open_flags,
           kno_decref(metadata);
           metadata=new_metadata;}
         else {
-          metadata=KNO_ERROR_VALUE;}}}
+          metadata=KNO_ERROR_VALUE;}}
+      kno_decref(lisp_ctime);}
     else if ( open_flags & KNO_STORAGE_REPAIR ) {
       u8_logf(LOG_WARN,"BadMetaData",
               "Ignoring bad metadata stored for %s",fname);

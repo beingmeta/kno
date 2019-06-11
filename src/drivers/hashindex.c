@@ -436,7 +436,8 @@ static int load_header(struct KNO_HASHINDEX *index,struct KNO_STREAM *stream)
         kno_decref(metadata);
         metadata=new_metadata;}
       else {
-        metadata=KNO_ERROR_VALUE;}}}
+        metadata=KNO_ERROR_VALUE;}}
+    kno_decref(lisp_ctime);}
   else if ( index->index_flags & KNO_STORAGE_REPAIR ) {
     u8_log(LOG_WARN,"BadMetadata",
                "Repairing bad metadata for %s @%lld+%lld = %q",

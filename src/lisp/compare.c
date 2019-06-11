@@ -250,6 +250,19 @@ static int compare_uuids(lispval x,lispval y,kno_compare_flags flags)
   return memcmp(xuuid->uuid16,yuuid->uuid16,16);
 }
 
+static int compare_regex(lispval x,lispval y,kno_compare_flags flags)
+{
+  struct KNO_REGEX *xrx = kno_consptr(struct KNO_REGEX *,x,kno_regex_type);
+  struct KNO_REGEX *yrx = kno_consptr(struct KNO_REGEX *,y,kno_regex_type);
+  int scmp = strcmp(xrx->rxsrc,yrx->rxsrc);
+  if (scmp) return scmp;
+  if (xrx->rxflags == yrx->rxflags)
+    return 0;
+  else if (xrx->rxflags < yrx->rxflags)
+    return -1;
+  else return 1;
+}
+
 lispval compare_quick, compare_recursive, compare_elts, compare_natural,
   compare_natsort, compare_numeric, compare_lexical, compare_alphabetical,
   compare_ci, compare_ic, compare_caseinsensitive, compare_case_insensitive,
@@ -296,6 +309,7 @@ void kno_init_compare_c()
   kno_comparators[kno_compound_type]=compare_compounds;
   kno_comparators[kno_timestamp_type]=compare_timestamps;
   kno_comparators[kno_uuid_type]=compare_uuids;
+  kno_comparators[kno_regex_type]=compare_regex;
 
   compare_quick = kno_intern("quick");
   compare_recursive = kno_intern("recursive");

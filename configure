@@ -626,6 +626,9 @@ sudo_program
 PYTHON2_LIB
 PYTHON2_INCLUDE_DIR
 PYTHON2_BIN
+PYTHON3_LIB
+PYTHON3_INCLUDE_DIR
+PYTHON3_BIN
 PTHREAD_CFLAGS
 PTHREAD_LIBS
 PTHREAD_CC
@@ -720,7 +723,10 @@ MONGODB_BUNDLED
 MYSQL_LDFLAGS
 MYSQL_CFLAGS
 MALLOC_FLAGS
-TESTCMODULES
+TEST_GRAPHICS_CMODULES
+TEST_TEXT_CMODULES
+TEST_DB_CMODULES
+TEST_CMODULES
 INSTALL_ARCHIVE_CMODULES
 INSTALL_GRAPHICS_CMODULES
 INSTALL_TEXT_CMODULES
@@ -738,6 +744,7 @@ SUINSTALL
 SUDO
 INSTALLI18N
 I18N
+CLEAN
 GITDESCRIBE
 MKSTATIC
 PROFILING
@@ -795,6 +802,8 @@ daemonidinstall
 daemonid
 admininstall
 admin_group
+knodaemoninstall
+knodaemon
 wwwinstall
 webgroup
 webuser
@@ -810,7 +819,7 @@ config_dir
 default_module_path
 local_module_dir
 installed_module_dir
-builtin_module_dir
+stdlib_module_dir
 unpackage_dir
 share_dir
 systemd_loc
@@ -858,6 +867,7 @@ infodir
 docdir
 oldincludedir
 includedir
+runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -936,7 +946,7 @@ with_unpackage_dir
 enable_fileconfig
 with_installed_module_dir
 with_local_modules
-with_builtin_module_dir
+with_stdlib_module_dir
 with_loadpath
 with_libscm
 with_module_path
@@ -1024,6 +1034,7 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
+runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE}'
@@ -1276,6 +1287,15 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
+  -runstatedir | --runstatedir | --runstatedi | --runstated \
+  | --runstate | --runstat | --runsta | --runst | --runs \
+  | --run | --ru | --r)
+    ac_prev=runstatedir ;;
+  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
+  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
+  | --run=* | --ru=* | --r=*)
+    runstatedir=$ac_optarg ;;
+
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1413,7 +1433,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir
+		libdir localedir mandir runstatedir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1566,6 +1586,7 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
+  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -1673,7 +1694,7 @@ Optional Packages:
 --with-unpackage-dir location
 --with-installed-module-dir location
 --with-local-modules location
---with-builtin-module-dir location
+--with-stdlib-module-dir location
 --with-loadpath location
 --with-libscm location
 --with-module-path location
@@ -3001,6 +3022,7 @@ DEBVERSION=${KNO_RELEASE}
 mshared_suffix=so.${KNO_MAJOR}
 mmshared_suffix=so.${KNO_MAJOR}.${KNO_MINOR}
 vshared_suffix=so.${KNO_VERSION}
+CLEAN="rm -f "
 I18N=""
 INSTALLI18N=""
 WWWUSER="apache"
@@ -3010,7 +3032,7 @@ apache_log_dir=""
 apache_modinfo="/etc/apache2"
 APXSFLAGS=
 A2EN="none"
-builtin_module_dir=""
+stdlib_module_dir=""
 installed_module_dir=""
 local_module_dir=""
 default_module_path=""
@@ -3026,7 +3048,10 @@ INSTALL_DB_CMODULES=""
 INSTALL_TEXT_MODULES=""
 INSTALL_GRAPHICS_CMODULES=""
 INSTALL_ARCHIVE_CMODULES=""
-TESTCMODULES=""
+TEST_CMODULES=""
+TEST_DB_CMODULES=""
+TEST_TEXT_CMODULES=""
+TEST_GRAPHICS_CMODULES=""
 DATAFILES="etc/version"
 SUDO=""
 SUINSTALL=
@@ -3152,6 +3177,12 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
+
+
+
+
+
+
 
 
 
@@ -9460,14 +9491,14 @@ fi
 local_module_dir=$with_local_modules
 
 
-# Check whether --with-builtin_module_dir was given.
-if test "${with_builtin_module_dir+set}" = set; then :
-  withval=$with_builtin_module_dir;
+# Check whether --with-stdlib_module_dir was given.
+if test "${with_stdlib_module_dir+set}" = set; then :
+  withval=$with_stdlib_module_dir;
 else
-  with_builtin_module_dir=$share_dir/modules/builtin
+  with_stdlib_module_dir=$share_dir/modules/stdlib
 fi
 
-builtin_module_dir=$with_builtin_module_dir
+stdlib_module_dir=$with_stdlib_module_dir
 
 LIBSCM="${share_dir}/libscm/\${REVISION}"
 
@@ -9498,13 +9529,13 @@ _ACEOF
    LIBSCM=$with_libscm
 fi;
 
-builtin_module_path=$builtin_module_dir/
+stdlib_module_path=$stdlib_module_dir/
 
 installed_module_path=$installed_module_dir/
 
 local_module_path=$local_module_dir/
 
-default_module_path=$local_module_path:$installed_module_path:$builtin_module_path
+default_module_path=$local_module_path:$installed_module_path:$stdlib_module_path
 
 
 # Check whether --with-module_path was given.
@@ -9529,7 +9560,7 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
-#define KNO_BUILTIN_MODULE_DIR "$builtin_module_dir"
+#define KNO_STDLIB_MODULE_DIR "$stdlib_module_dir"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
@@ -9557,7 +9588,7 @@ _ACEOF
 
 if test $exec_prefix = "NONE"; then
   cat >>confdefs.h <<_ACEOF
-#define KNO_EXEC "$prefix/bin/kno"
+#define KNO_EXEC "$prefix/bin/knox"
 _ACEOF
 
   cat >>confdefs.h <<_ACEOF
@@ -9566,7 +9597,7 @@ _ACEOF
 
 else
   cat >>confdefs.h <<_ACEOF
-#define KNO_EXEC "$exec_prefix/bin/kno"
+#define KNO_EXEC "$exec_prefix/bin/knox"
 _ACEOF
 
   cat >>confdefs.h <<_ACEOF
@@ -11427,6 +11458,169 @@ if test "${with_parseltongue+set}" = set; then :
 fi
 
 if test "$with_parseltongue" = "yes"; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for python build information" >&5
+$as_echo_n "checking for python build information... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: " >&5
+$as_echo "" >&6; }
+for python3 in python3.7 python3.6 python3.5 python3.4 python3.3 python3.2 python3.1 python3.0; do
+for ac_prog in $python3
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_PYTHON3_BIN+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$PYTHON3_BIN"; then
+  ac_cv_prog_PYTHON3_BIN="$PYTHON3_BIN" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_PYTHON3_BIN="$ac_prog"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+PYTHON3_BIN=$ac_cv_prog_PYTHON3_BIN
+if test -n "$PYTHON3_BIN"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON3_BIN" >&5
+$as_echo "$PYTHON3_BIN" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  test -n "$PYTHON3_BIN" && break
+done
+
+ax_python3_bin=$PYTHON3_BIN
+if test x$ax_python3_bin != x; then
+   as_ac_Lib=`$as_echo "ac_cv_lib_$ax_python3_bin''_main" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -l$ax_python3_bin" >&5
+$as_echo_n "checking for main in -l$ax_python3_bin... " >&6; }
+if eval \${$as_ac_Lib+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-l$ax_python3_bin  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  eval "$as_ac_Lib=yes"
+else
+  eval "$as_ac_Lib=no"
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+eval ac_res=\$$as_ac_Lib
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_Lib"\" = x"yes"; then :
+  ax_python3_lib=$ax_python3_bin
+else
+  ax_python3_lib=no
+fi
+
+   if test x$ax_python3_lib == xno; then
+     as_ac_Lib=`$as_echo "ac_cv_lib_${ax_python3_bin}m''_main" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -l${ax_python3_bin}m" >&5
+$as_echo_n "checking for main in -l${ax_python3_bin}m... " >&6; }
+if eval \${$as_ac_Lib+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-l${ax_python3_bin}m  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  eval "$as_ac_Lib=yes"
+else
+  eval "$as_ac_Lib=no"
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+eval ac_res=\$$as_ac_Lib
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_Lib"\" = x"yes"; then :
+  ax_python3_lib=${ax_python3_bin}m
+else
+  ax_python3_lib=no
+fi
+
+   fi
+   if test x$ax_python3_lib != xno; then
+     ax_python3_header=`$ax_python3_bin -c "from distutils.sysconfig import *; print(get_config_var('CONFINCLUDEPY'))"`
+     if test x$ax_python3_header != x; then
+       break;
+     fi
+   fi
+fi
+done
+if test x$ax_python3_bin = x; then
+   ax_python3_bin=no
+fi
+if test x$ax_python3_header = x; then
+   ax_python3_header=no
+fi
+if test x$ax_python3_lib = x; then
+   ax_python3_lib=no
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result:   results of the Python3 check:" >&5
+$as_echo "  results of the Python3 check:" >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result:     Binary:      $ax_python3_bin" >&5
+$as_echo "    Binary:      $ax_python3_bin" >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result:     Library:     $ax_python3_lib" >&5
+$as_echo "    Library:     $ax_python3_lib" >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result:     Include Dir: $ax_python3_header" >&5
+$as_echo "    Include Dir: $ax_python3_header" >&6; }
+
+if test x$ax_python3_header != xno; then
+  PYTHON3_INCLUDE_DIR=$ax_python3_header
+
+fi
+if test x$ax_python3_lib != xno; then
+  PYTHON3_LIB=$ax_python3_lib
+
+fi
+
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for python2 build information" >&5
 $as_echo_n "checking for python2 build information... " >&6; }
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: " >&5
@@ -11590,10 +11784,342 @@ if test x$ax_python2_lib != xno; then
 
 fi
 
+elif test "$with_parseltongue" = "2"; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for python2 build information" >&5
+$as_echo_n "checking for python2 build information... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: " >&5
+$as_echo "" >&6; }
+for python2 in python2.7 python2.6 python2.5 python2.4 python2.3 python2.2 python2.1 python; do
+for ac_prog in $python2
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_PYTHON2_BIN+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$PYTHON2_BIN"; then
+  ac_cv_prog_PYTHON2_BIN="$PYTHON2_BIN" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_PYTHON2_BIN="$ac_prog"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+PYTHON2_BIN=$ac_cv_prog_PYTHON2_BIN
+if test -n "$PYTHON2_BIN"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON2_BIN" >&5
+$as_echo "$PYTHON2_BIN" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  test -n "$PYTHON2_BIN" && break
+done
+
+ax_python2_bin=$PYTHON2_BIN
+if test x$ax_python2_bin != x; then
+   as_ac_Lib=`$as_echo "ac_cv_lib_$ax_python2_bin''_main" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -l$ax_python2_bin" >&5
+$as_echo_n "checking for main in -l$ax_python2_bin... " >&6; }
+if eval \${$as_ac_Lib+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-l$ax_python2_bin  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  eval "$as_ac_Lib=yes"
+else
+  eval "$as_ac_Lib=no"
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+eval ac_res=\$$as_ac_Lib
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_Lib"\" = x"yes"; then :
+  ax_python2_lib=$ax_python2_bin
+else
+  ax_python2_lib=no
+fi
+
+   if test x$ax_python2_lib == xno; then
+     as_ac_Lib=`$as_echo "ac_cv_lib_${ax_python2_bin}m''_main" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -l${ax_python2_bin}m" >&5
+$as_echo_n "checking for main in -l${ax_python2_bin}m... " >&6; }
+if eval \${$as_ac_Lib+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-l${ax_python2_bin}m  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  eval "$as_ac_Lib=yes"
+else
+  eval "$as_ac_Lib=no"
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+eval ac_res=\$$as_ac_Lib
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_Lib"\" = x"yes"; then :
+  ax_python2_lib=${ax_python2_bin}m
+else
+  ax_python2_lib=no
+fi
+
+   fi
+   if test x$ax_python2_lib != xno; then
+     ax_python2_header=`$ax_python2_bin -c "from distutils.sysconfig import *; print(get_config_var('CONFINCLUDEPY'))"`
+     if test x$ax_python2_header != x; then
+       break;
+     fi
+   fi
+fi
+done
+if test x$ax_python2_bin = x; then
+   ax_python2_bin=no
+fi
+if test x$ax_python2_header = x; then
+   ax_python2_header=no
+fi
+if test x$ax_python2_lib = x; then
+   ax_python2_lib=no
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result:   results of the Python2 check:" >&5
+$as_echo "  results of the Python2 check:" >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result:     Binary:      $ax_python2_bin" >&5
+$as_echo "    Binary:      $ax_python2_bin" >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result:     Library:     $ax_python2_lib" >&5
+$as_echo "    Library:     $ax_python2_lib" >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result:     Include Dir: $ax_python2_header" >&5
+$as_echo "    Include Dir: $ax_python2_header" >&6; }
+
+if test x$ax_python2_header != xno; then
+  PYTHON2_INCLUDE_DIR=$ax_python2_header
+
+fi
+if test x$ax_python2_lib != xno; then
+  PYTHON2_LIB=$ax_python2_lib
+
+fi
+
+elif test "$with_parseltongue" = "3"; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for python build information" >&5
+$as_echo_n "checking for python build information... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: " >&5
+$as_echo "" >&6; }
+for python3 in python3.7 python3.6 python3.5 python3.4 python3.3 python3.2 python3.1 python3.0; do
+for ac_prog in $python3
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_PYTHON3_BIN+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$PYTHON3_BIN"; then
+  ac_cv_prog_PYTHON3_BIN="$PYTHON3_BIN" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_PYTHON3_BIN="$ac_prog"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+PYTHON3_BIN=$ac_cv_prog_PYTHON3_BIN
+if test -n "$PYTHON3_BIN"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON3_BIN" >&5
+$as_echo "$PYTHON3_BIN" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  test -n "$PYTHON3_BIN" && break
+done
+
+ax_python3_bin=$PYTHON3_BIN
+if test x$ax_python3_bin != x; then
+   as_ac_Lib=`$as_echo "ac_cv_lib_$ax_python3_bin''_main" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -l$ax_python3_bin" >&5
+$as_echo_n "checking for main in -l$ax_python3_bin... " >&6; }
+if eval \${$as_ac_Lib+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-l$ax_python3_bin  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  eval "$as_ac_Lib=yes"
+else
+  eval "$as_ac_Lib=no"
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+eval ac_res=\$$as_ac_Lib
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_Lib"\" = x"yes"; then :
+  ax_python3_lib=$ax_python3_bin
+else
+  ax_python3_lib=no
+fi
+
+   if test x$ax_python3_lib == xno; then
+     as_ac_Lib=`$as_echo "ac_cv_lib_${ax_python3_bin}m''_main" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -l${ax_python3_bin}m" >&5
+$as_echo_n "checking for main in -l${ax_python3_bin}m... " >&6; }
+if eval \${$as_ac_Lib+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-l${ax_python3_bin}m  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  eval "$as_ac_Lib=yes"
+else
+  eval "$as_ac_Lib=no"
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+eval ac_res=\$$as_ac_Lib
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_Lib"\" = x"yes"; then :
+  ax_python3_lib=${ax_python3_bin}m
+else
+  ax_python3_lib=no
+fi
+
+   fi
+   if test x$ax_python3_lib != xno; then
+     ax_python3_header=`$ax_python3_bin -c "from distutils.sysconfig import *; print(get_config_var('CONFINCLUDEPY'))"`
+     if test x$ax_python3_header != x; then
+       break;
+     fi
+   fi
+fi
+done
+if test x$ax_python3_bin = x; then
+   ax_python3_bin=no
+fi
+if test x$ax_python3_header = x; then
+   ax_python3_header=no
+fi
+if test x$ax_python3_lib = x; then
+   ax_python3_lib=no
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result:   results of the Python3 check:" >&5
+$as_echo "  results of the Python3 check:" >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result:     Binary:      $ax_python3_bin" >&5
+$as_echo "    Binary:      $ax_python3_bin" >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result:     Library:     $ax_python3_lib" >&5
+$as_echo "    Library:     $ax_python3_lib" >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result:     Include Dir: $ax_python3_header" >&5
+$as_echo "    Include Dir: $ax_python3_header" >&6; }
+
+if test x$ax_python3_header != xno; then
+  PYTHON3_INCLUDE_DIR=$ax_python3_header
+
+fi
+if test x$ax_python3_lib != xno; then
+  PYTHON3_LIB=$ax_python3_lib
+
+fi
+
 fi;
-if test "$with_parseltongue" = "yes" &&  test ! -z "${ax_python2_lib}"; then
+if test ! -z "${ax_python3_lib}"; then
    CORE_CMODULES="lib/kno/parseltongue.$shared_suffix ${CORE_CMODULES}"
    INSTALL_CORE_CMODULES="install-parseltongue ${INSTALL_CORE_CMODULES}"
+fi
+if test ! -z "${ax_python2_lib}"; then
+   CORE_CMODULES="lib/kno/parseltongue2.$shared_suffix ${CORE_CMODULES}"
+   INSTALL_CORE_CMODULES="install-parseltongue2 ${INSTALL_CORE_CMODULES}"
 fi
 
 ### Control use of 'sudo' for installation
@@ -11794,6 +12320,7 @@ fi
 if (test "$have_libz" = "yes"); then
   ARCHIVE_CMODULES="lib/kno/zlib.$shared_suffix ${ARCHIVE_CMODULES}"
   INSTALL_ARCHIVE_CMODULES="install-zlib ${INSTALL_ARCHIVE_CMODULES}"
+  TEST_CMODULES="${TEST_CMODULES} test-zlib"
 fi
 
 ac_fn_c_check_header_mongrel "$LINENO" "zlib.h" "ac_cv_header_zlib_h" "$ac_includes_default"
@@ -12047,6 +12574,7 @@ if test "${have_zmq_h}" = "yes" &&
    ZEROMQ_LIBS=-lzmq
    CORE_CMODULES="lib/kno/zeromq.$shared_suffix ${CORE_CMODULES}"
    INSTALL_CORE_CMODULES="install-zeromq ${INSTALL_CORE_CMODULES}"
+   TEST_CMODULES="${TEST_CMODULES} test-zeromq"
 fi;
 
 ### LevelDB cmodule build
@@ -12118,11 +12646,13 @@ fi
       test "${ac_cv_header_leveldb_c_h}" = "yes" &&
       test "${leveldb_ok}" = "yes"; then
       DB_CMODULES="${DB_CMODULES} lib/kno/leveldb.${shared_suffix}";
-     INSTALL_DB_CMODULES="${INSTALL_DB_CMODULES} install-leveldb";
+      INSTALL_DB_CMODULES="${INSTALL_DB_CMODULES} install-leveldb";
+      TEST_DB_CMODULES="${TEST_DB_CMODULES} test-leveldb"
    elif test "${enable_leveldb}" = "force"; then
      DB_CMODULES="lib/kno/leveldb.${shared_suffix} ${DB_CMODULES}";
      INSTALL_DB_CMODULES="${INSTALL_DB_CMODULES} install-leveldb";
      force_enabled="leveldb ${force_enabled}";
+     TEST_DB_CMODULES="${TEST_DB_CMODULES} test-leveldb"
    else
      auto_disabled="leveldb ${auto_disabled}";
      enable_leveldb="no";
@@ -12201,9 +12731,11 @@ fi
       test "${rocksdb_ok}" = "yes"; then
      DB_CMODULES="lib/kno/rocksdb.${shared_suffix} ${DB_CMODULES}";
      INSTALL_DB_CMODULES="install-rocksdb ${INSTALL_DB_CMODULES}";
+     TEST_DB_CMODULES="${TEST_DB_CMODULES} test-rocksdb"
    elif test "${enable_rocksdb}" = "force"; then
      DB_CMODULES="lib/kno/rocksdb.${shared_suffix} ${DB_CMODULES}";
      INSTALL_DB_CMODULES="install-rocksdb ${INSTALL_DB_CMODULES}";
+     TEST_DB_CMODULES="${TEST_DB_CMODULES} test-rocksdb"
      force_enabled="rocksdb ${force_enabled}";
    else
      auto_disabled="rocksdb ${auto_disabled}";
@@ -12230,9 +12762,11 @@ if test "$enable_imagick" = "yes" &&
   IMAGICK_LDFLAGS=`$pkg_config MagickWand --libs`;
   GRAPHICS_CMODULES="lib/kno/imagick.$shared_suffix ${GRAPHICS_CMODULES}";
   INSTALL_GRAPHICS_CMODULES="install-imagick ${INSTALL_GRAPHICS_CMODULES}";
+  TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} test-imagick"
 elif test "$enable_imagick" = "force"; then
   GRAPHICS_CMODULES="lib/kno/imagick.$shared_suffix ${GRAPHICS_CMODULES}";
   INSTALL_GRAPHICS_CMODULES="install-imagick ${INSTALL_GRAPHICS_CMODULES}";
+  TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} test-imagick"
 elif test "$enable_imagick" = "yes"; then
   auto_disabled="imagick ${auto_disabled}";
   enable_imagick="failed";
@@ -12303,6 +12837,7 @@ if test "${ac_cv_header_archive_h}" == "yes" && \
    test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
   ARCHIVE_CMODULES="lib/kno/libarchive.${shared_suffix} ${ARCHIVE_CMODULES}"
   INSTALL_ARCHIVE_CMODULES="install-libarchive ${INSTALL_ARCHIVE_CMODULES}"
+  TEST_CMODULES="${TEST_CMODULES} test-libarchive"
 else
   missing="libarchive ${missing}"
 fi
@@ -12390,13 +12925,16 @@ done
     LDFLAGS="${LDFLAGS} ${LIBZIP_LDFLAGS}"
     ARCHIVE_CMODULES="lib/kno/ziptools.$shared_suffix ${ARCHIVE_CMODULES}";
     INSTALL_ARCHIVE_CMODULES="install-ziptools ${INSTALL_ARCHIVE_CMODULES}";
+    TEST_CMODULES="${TEST_CMODULES} test-ziptools"
   elif test "$have_zip_h" = "yes" &&
        test "$have_libzip" = "yes"; then
     ARCHIVE_CMODULES="lib/kno/ziptools.$shared_suffix ${ARCHIVE_CMODULES}";
     INSTALL_ARCHIVE_CMODULES="install-ziptools ${INSTALL_ARCHIVE_CMODULES}";
+    TEST_CMODULES="${TEST_CMODULES} test-ziptools"
   elif test "$enable_ziptools" = "force"; then
     ARCHIVE_CMODULES="lib/kno/ziptools.$shared_suffix ${ARCHIVE_CMODULES}";
     INSTALL_ARCHIVE_CMODULES="install-ziptools ${INSTALL_ARCHIVE_CMODULES}";
+    TEST_CMODULES="${TEST_CMODULES} test-ziptools"
     force_enabled="ziptools ${force_enabled}";
   else
     auto_disabled="ziptools ${auto_disabled}";
@@ -12424,11 +12962,13 @@ if test "$enable_mongodb" = "yes" ||
     MONGODB_LDFLAGS=`$pkg_config libmongoc-1.0 --libs`
     DB_CMODULES="lib/kno/mongodb.$shared_suffix ${DB_CMODULES}";
     INSTALL_DB_CMODULES="install-mongodb ${INSTALL_DB_CMODULES}";
+    TEST_DB_CMODULES="${TEST_DB_CMODULES} test-mongodb"
     MONGODB_ENABLED=yes
   elif test "$enable_mongodb" = "force"; then
     force_enabled="mongodb ${force_enabled}";
     DB_CMODULES="lib/kno/mongodb.$shared_suffix ${DB_CMODULES}";
     INSTALL_DB_CMODULES="install-mongodb ${INSTALL_DB_CMODULES}";
+    TEST_DB_CMODULES="${TEST_DB_CMODULES} test-mongodb"
     MONGODB_ENABLED=yes
   else
     auto_disabled="mongodb ${auto_disabled}";
@@ -12439,6 +12979,7 @@ elif test "$enable_mongodb" = "bundled"; then
     MONGODB_LDFLAGS="-Wl,--whole-archive -Wl,-Bstatic -lmongoc -Wl,--no-whole-archive  -lbson -Wl,-Bdynamic"
     DB_CMODULES="lib/kno/mongodb.$shared_suffix ${DB_CMODULES}";
     INSTALL_DB_CMODULES="install-mongodb ${INSTALL_DB_CMODULES}";
+    TEST_DB_CMODULES="${TEST_DB_CMODULES} test-mongodb"
 else
     manually_disabled="mongodb ${manually_disabled}";
 fi;
@@ -12561,6 +13102,7 @@ fi
 if test "$with_mysql" != "no"; then
   DB_CMODULES="lib/kno/mysql.$shared_suffix ${DB_CMODULES}"
   INSTALL_DB_CMODULES="install-mysql ${INSTALL_DB_CMODULES}"
+  TEST_DB_CMODULES="${TEST_DB_CMODULES} test-mysql"
 else
   missing="mysql ${missing}"
 fi
@@ -12683,6 +13225,7 @@ fi
      if test ! -z "${ODBC_LIBS}"; then
        DB_CMODULES="lib/kno/odbc.$shared_suffix ${DB_CMODULES}"
        INSTALL_DB_CMODULES="install-odbc ${INSTALL_DB_CMODULES}"
+       TEST_DB_CMODULES="${TEST_DB_CMODULES} test-odbc"
        odbc_included=yes
      fi;
    fi;
@@ -12792,6 +13335,7 @@ fi
   if test "$sqlite3_ok" = "yes"; then
     DB_CMODULES="lib/kno/sqlite.$shared_suffix ${DB_CMODULES}";
     INSTALL_DB_CMODULES="install-sqlite ${INSTALL_DB_CMODULES}";
+    TEST_DB_CMODULES="${TEST_DB_CMODULES} test-sqlite"
     sqlite_included=no
     if test "${sqlite3v2_ok}" == "yes"; then
       $as_echo "#define HAVE_SQLITE3_V2 1" >>confdefs.h
@@ -12817,6 +13361,7 @@ fi
 if test "$enable_tidy" = "yes"; then
   TEXT_CMODULES="lib/kno/tidy.$shared_suffix ${TEXT_CMODULES}"
   INSTALL_TEXT_CMODULES="install-tidy ${INSTALL_TEXT_CMODULES}"
+  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} test-tidy"
 fi
 
 ### Hyphenate library
@@ -12891,10 +13436,12 @@ if test "$enable_hyphenate" = "yes" &&
   TEXT_CMODULES="lib/kno/hyphenate.$shared_suffix ${TEXT_CMODULES}"
   INSTALL_TEXT_CMODULES="install-hyphenate ${INSTALL_TEXT_CMODULES}"
   DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
+  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} test-hyphenate"
 elif test "$enable_hyphenate" = "force"; then
   TEXT_CMODULES="lib/kno/hyphenate.$shared_suffix ${TEXT_CMODULES}"
   INSTALL_TEXT_CMODULES="install-hyphenate ${INSTALL_TEXT_CMODULES}"
   DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
+  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} test-hyphenate"
   force_enabled="hyphenate ${force_enabled}";
 elif test "$enable_hyphenate" = "yes"; then
   auto_disabled="hyphenate $auto_disabled";
@@ -12916,6 +13463,7 @@ fi
 if test "$with_sundown" = "yes"; then
   TEXT_CMODULES="lib/kno/sundown.$shared_suffix ${TEXT_CMODULES}"
   INSTALL_TEXT_CMODULES="install-sundown ${INSTALL_TEXT_CMODULES}"
+  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} test-sundown"
 fi
 
 ### exif (extract metadata from image files)
@@ -12991,6 +13539,7 @@ done
 
   GRAPHICS_CMODULES="lib/kno/exif.$shared_suffix ${GRAPHICS_CMODULES}"
   INSTALL_GRAPHICS_CMODULES="install-exif ${INSTALL_GRAPHICS_CMODULES}"
+  TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} test-exif"
 else
   missing="curl ${missing}"
 fi
@@ -13110,6 +13659,7 @@ fi
        (test "$libpng_ok" = "yes") && (test "$qrcode_ok" = "yes") ); then
     GRAPHICS_CMODULES="lib/kno/qrcode.$shared_suffix ${GRAPHICS_CMODULES}"
     INSTALL_GRAPHICS_CMODULES="install-qrcode ${INSTALL_GRAPHICS_CMODULES}"
+    TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} test-qrencode"
   else
     missing="qrcode ${missing}"
   fi;
@@ -13181,7 +13731,7 @@ if test $exec_prefix = 'NONE';
 else BINDIR="${exec_prefix}/bin";
 fi
 
-if (test ! -f src/extmods/samplefns.scm); then
+if (test ! -f src/stdlib/samplefns.scm); then
    if (which git 2>&1 > /dev/null) && (test -d .git); then
      git submodule update --init;
    else
@@ -13191,7 +13741,7 @@ fi;
 
 ### Here's where stuff gets made
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/makefile DIY/makefile etc/gdbinit exe/.gdbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind tests/lisp/.gdbinit tests/storage/.gdbinit tests/.valgrind etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup etc/knosignal etc/knoinject etc/knostatus etc/knolog etc/knoreload etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec etc/knosetconfig etc/knogetconfig etc/knoconfig tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knotest src/scripts/knopkg.scm etc/knojob etc/logrotate etc/kno-rc.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoweb.conf etc/upstart/ex_knoweb.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/knod.service etc/systemd/knoweb.service etc/systemd/kno.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/apache/knoweb.conf etc/apache/knoweb.load etc/install-script dist/kno-4.3.spec"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/makefile DIY/makefile etc/gdbinit exe/.gdbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind tests/lisp/.gdbinit tests/storage/.gdbinit tests/.valgrind etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup etc/knosignal etc/knoinject etc/knostatus etc/knolog etc/knoreload etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec etc/knosetconfig etc/knogetconfig etc/knoconfig tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm etc/knojob etc/logrotate etc/kno-rc.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoweb.conf etc/upstart/ex_knoweb.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/knod.service etc/systemd/knoweb.service etc/systemd/kno.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/apache/knoweb.conf etc/apache/knoweb.load etc/install-script dist/kno-4.3.spec"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -13933,7 +14483,7 @@ do
     "tests/runtest") CONFIG_FILES="$CONFIG_FILES tests/runtest" ;;
     "tests/memtest") CONFIG_FILES="$CONFIG_FILES tests/memtest" ;;
     "tests/leaktest") CONFIG_FILES="$CONFIG_FILES tests/leaktest" ;;
-    "tests/knotest") CONFIG_FILES="$CONFIG_FILES tests/knotest" ;;
+    "tests/knoxtest") CONFIG_FILES="$CONFIG_FILES tests/knoxtest" ;;
     "src/scripts/knopkg.scm") CONFIG_FILES="$CONFIG_FILES src/scripts/knopkg.scm" ;;
     "etc/knojob") CONFIG_FILES="$CONFIG_FILES etc/knojob" ;;
     "etc/logrotate") CONFIG_FILES="$CONFIG_FILES etc/logrotate" ;;

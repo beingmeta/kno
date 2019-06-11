@@ -6,10 +6,9 @@
 
 . /etc/rc.common
 
-export FDMANAGER=@prefix@/bin/fdmanager
-export FDSERVER=@prefix@/bin/fdbserver
-export FDSERVER_USER=fdaemon
-export FDSERVER_GROUP=fdaemon
+export KNOSERVER=@prefix@/bin/knodaemon
+export KNOSERVER_USER=knodaemon
+export KNOSERVER_GROUP=knodaemon
 CTLFILE=@data_dir@/servers
 PIDFILE=/var/run/kno.pid
 STATFILE=/var/run/kno.status
@@ -18,7 +17,7 @@ StartService ()
 {
     if [ "${KNO:=-NO-}" = "-YES-" ]; then
 	ConsoleMessage "Starting KNO server manager"
-	$FDMANAGER $CTLFILE $PIDFILE $STATFILE &
+	$KNOMANAGER $CTLFILE $PIDFILE $STATFILE &
         sleep 5; time=5;
         if ((test ! -f $STATFILE) && (test -f $PIDFILE)) then
 	    echo "Waited $time seconds for fdmanager"; sleep 5; time=10

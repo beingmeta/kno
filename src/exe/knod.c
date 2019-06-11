@@ -81,10 +81,10 @@ static u8_condition BadPortSpec=_("Bad port spec");
 static u8_condition BadRequest=_("Bad client request");
 static u8_condition NoServers=_("NoServers");
 static u8_condition Startup=_("Startup");
-static u8_condition ServerAbort=_("KNODaemon/ABORT");
-static u8_condition ServerConfig=_("KNODaemon/CONFIG");
-static u8_condition ServerStartup=_("KNODaemon/STARTUP");
-static u8_condition ServerShutdown=_("KNODaemon/SHUTDOWN");
+static u8_condition ServerAbort=_("Knodaemon/ABORT");
+static u8_condition ServerConfig=_("Knodaemon/CONFIG");
+static u8_condition ServerStartup=_("Knodaemon/STARTUP");
+static u8_condition ServerShutdown=_("Knodaemon/SHUTDOWN");
 
 static const sigset_t *server_sigmask;
 
@@ -155,7 +155,7 @@ static int check_for_injection()
     u8_string temp_file = u8_string_append(inject_file,".loading",NULL);
     int rv = u8_movefile(inject_file,temp_file);
     if (rv<0) {
-      u8_log(LOG_WARN,"KNODaemon/InjectionIgnored",
+      u8_log(LOG_WARN,"Knodaemon/InjectionIgnored",
              "Can't stage injection file %s to %s",
              inject_file,temp_file);
       kno_clear_errors(1);
@@ -164,43 +164,43 @@ static int check_for_injection()
     else {
       u8_string content = u8_filestring(temp_file,NULL);
       if (content == NULL)  {
-        u8_log(LOG_WARN,"KNODaemon/InjectionCantRead",
+        u8_log(LOG_WARN,"Knodaemon/InjectionCantRead",
                "Can't read %s",temp_file);
         kno_clear_errors(1);
         u8_free(temp_file);
         return -1;}
       else {
         lispval result;
-        u8_log(LOG_WARN,"KNODaemon/InjectLoad",
+        u8_log(LOG_WARN,"Knodaemon/InjectLoad",
                "From %s\n\"%s\"",temp_file,content);
         result = kno_load_source(temp_file,working_env,NULL);
         if (KNO_ABORTP(result)) {
           u8_exception ex = u8_current_exception;
           if (!(ex)) {
-            u8_log(LOG_CRIT,"KNODaemon/InjectError",
+            u8_log(LOG_CRIT,"Knodaemon/InjectError",
                    "Unknown error processing injection from %s: \"%s\"",
                    inject_file,content);}
           else if ((ex->u8x_context!=NULL)&&
                    (ex->u8x_details!=NULL))
-            u8_log(LOG_CRIT,"KNODaemon/InjectionError",
+            u8_log(LOG_CRIT,"Knodaemon/InjectionError",
                    "Error %s (%s) processing injection %s: %s\n\"%s\"",
                    ex->u8x_cond,ex->u8x_context,inject_file,
                    ex->u8x_details,content);
           else if (ex->u8x_context!=NULL)
-            u8_log(LOG_CRIT,"KNODaemon/InjectionError",
+            u8_log(LOG_CRIT,"Knodaemon/InjectionError",
                    "Error %s (%s) processing injection %s\n\"%s\"",
                    ex->u8x_cond,ex->u8x_context,inject_file,content);
-          else u8_log(LOG_CRIT,"KNODaemon/InjectionError",
+          else u8_log(LOG_CRIT,"Knodaemon/InjectionError",
                       "Error %s processing injection %s\n\"%s\"",
                       ex->u8x_cond,inject_file,content);
           kno_clear_errors(1);
           return -1;}
         else {
-          u8_log(LOG_WARN,"KNODaemon/InjectionDone",
+          u8_log(LOG_WARN,"Knodaemon/InjectionDone",
                  "Finished from %s",inject_file);}
         rv = u8_removefile(temp_file);
         if (rv<0) {
-          u8_log(LOG_CRIT,"KNODaemon/InjectionCleanup",
+          u8_log(LOG_CRIT,"Knodaemon/InjectionCleanup",
                  "Error removing %s",temp_file);
           kno_clear_errors(1);}
         kno_decref(result);
@@ -697,7 +697,7 @@ static lispval knodaemon_shutdown_prim(lispval why)
     shutdown_server(KNO_SYMBOL_NAME(why));
   else if (KNO_STRINGP(why))
     shutdown_server(KNO_CSTRING(why));
-  else shutdown_server("KNODaemon/SHUTDOWN");
+  else shutdown_server("Knodaemon/SHUTDOWN");
   return KNO_TRUE;
 }
 
@@ -940,7 +940,7 @@ static int run_server(u8_string source_file);
 static void exit_knodaemon()
 {
   if (!(kno_be_vewy_quiet))
-    kno_log_status("Exit(KNODaemon)");
+    kno_log_status("Exit(Knodaemon)");
 }
 
 int main(int argc,char **argv)
@@ -987,7 +987,7 @@ int main(int argc,char **argv)
   /* Find the server spec */
   while (i<argc) {
     if (isconfig(argv[i]))
-      u8_log(LOG_NOTICE,"KNODaemonConfig","    %s",argv[i++]);
+      u8_log(LOG_NOTICE,"KnodaemonConfig","    %s",argv[i++]);
     else if (server_spec) i++;
     else {
       arg_mask[i] = 'X';
@@ -1049,10 +1049,10 @@ int main(int argc,char **argv)
         unsigned char *arg = argv[i++];
         if (arg == server_spec) u8_puts(&out," @");
         else {u8_putc(&out,' '); u8_puts(&out,arg);}}
-      u8_log(LOG_WARN,Startup,"Starting beingmeta KNODaemon %s with:\n  %s",
+      u8_log(LOG_WARN,Startup,"Starting beingmeta Knodaemon %s with:\n  %s",
              server_spec,out.u8_outbuf);
       u8_close((U8_STREAM *)&out);}
-    else u8_log(LOG_WARN,Startup,"Starting beingmeta KNODaemon %s",server_spec);
+    else u8_log(LOG_WARN,Startup,"Starting beingmeta Knodaemon %s",server_spec);
     u8_log(LOG_WARN,Startup,
            "Copyright (C) beingmeta 2004-2019, all rights reserved");}
 
@@ -1382,7 +1382,7 @@ static int init_server_env(u8_string server_spec,kno_lexenv core_env)
           else kno_decref(result);}}}}
   else server_env = exposed_lexenv;
   kno_idefn1((lispval)working_env,"KNOD/SHUTDOWN!",knodaemon_shutdown_prim,0,
-            "Shuts down the running KNODaemon",
+            "Shuts down the running Knodaemon",
             -1,KNO_VOID);
   return 1;
 }
@@ -1407,7 +1407,7 @@ static int run_server(u8_string server_spec)
   write_state_files();
   u8_message("beingmeta Kno, (C) beingmeta 2004-2019, all rights reserved");
   u8_log(LOG_NOTICE,ServerStartup,
-         "Kno (%s) KNODaemon %s running, %d/%d pools/indexes, %d ports",
+         "Kno (%s) Knodaemon %s running, %d/%d pools/indexes, %d ports",
          KNO_REVISION,server_spec,kno_n_pools,
          kno_n_primary_indexes+kno_n_secondary_indexes,n_ports);
   u8_log(LOG_NOTICE,ServerStartup,"Serving on %d sockets",n_ports);

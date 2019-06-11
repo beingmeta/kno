@@ -565,7 +565,7 @@ static lispval parse_regex(U8_INPUT *in)
           kno_seterr(kno_ParseError,"parse_regex",src.u8_outbuf,VOID);
           return KNO_PARSE_ERROR;}
         mc = u8_getc(in);}
-      u8_ungetc(in,mc);
+      if (mc >= 0) u8_ungetc(in,mc);
       *optwrite++='\0';
       result = make_regex(src.u8_outbuf,opts);
       u8_close((u8_stream)&src);
@@ -595,11 +595,13 @@ static lispval make_regex(u8_string src_arg,u8_string opts)
     u8_byte buf[512];
     regerror(retval,&(ptr->rxcompiled),buf,512);
     u8_free(ptr);
+    u8_free(src);
     return kno_err(kno_RegexError,"parse_regex",u8_strdup(buf),VOID);}
   else {
     U8_CLEAR_ERRNO();
     ptr->rxflags = cflags; ptr->rxsrc = src;
-    u8_init_mutex(&(ptr->rx_lock)); ptr->rxactive = 1;
+    u8_init_mutex(&(ptr->rx_lock));
+    ptr->rxactive = 1;
     return LISP_CONS(ptr);}
 }
 

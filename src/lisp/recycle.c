@@ -145,6 +145,7 @@ static void recycle_regex(struct KNO_RAW_CONS *c)
   struct KNO_REGEX *rx = (struct KNO_REGEX *)c;
   regfree(&(rx->rxcompiled));
   u8_destroy_mutex(&(rx->rx_lock));
+  u8_free(rx->rxsrc);
   u8_free(c);
 }
 
