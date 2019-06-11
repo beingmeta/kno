@@ -10,30 +10,21 @@ characters of any human language and most machine languages.
 
 Taken by itself, a pattern specifies a set of strings; for instance, the
 pattern `(isalnum+)` matches any sequence of alphanumeric characters, so that:
-
-    
-    
-    #|kno>|# (tx-match '(isalnum+) "haase")
+````console
+    #|kno>|# (textmatch '(isalnum+) "haase")
     #t
-    
-
+````
 but:
-
-    
-    
-    #|kno>|# (tx-match '(isalnum+) "haase@media")
+````console
+    #|kno>|# (textmatch '(isalnum+) "haase@media")
     #f
-    
-
+````
 since ``@'` isn't a letter or number. The pattern `(isalnum+)` also matches
 letters and numbers in other languages, so
-
-    
-    
-    #|kno>|# (tx-match '(isalnum+) "häse")
+````console
+    #|kno>|# (textmatch '(isalnum+) "häse")
     #t
-    
-
+````
 `(isalnum+)` is called a matching operator. Strings and matching operators are
 the "basis level" for matching and searching: any search or match eventually
 gets down to either strings or matching operators. However, the matcher
@@ -45,13 +36,10 @@ A vector pattern combines several patterns into a sequence, matching all
 strings consisting of a substring matched by the vector's first element
 followed by a substring matching the vector's second element, and so on. For
 example, the following vector pattern matches the string `"haase@media"`:
-
-    
-    
-    #|kno>|# (tx-match '#((isalnum+) "@" (isalnum+))  "haase@media")
+````console
+    #|kno>|# (textmatch '#((isalnum+) "@" (isalnum+))  "haase@media")
     #t
-    
-
+````
 since the first `(isalnum+)` matches `"haase"`, the string `"@"` matches `"@"`
 (strings always match themselves), and the second `(isalnum+)` matches
 `"media"`. Note that this pattern would not, however, match a string like
@@ -62,44 +50,35 @@ since the first `(isalnum+)` matches `"haase"`, the string `"@"` matches `"@"`
 Alternatives like this can be described by using Kno choices to represent
 different patterns which can be matched. For example, we can extend the
 pattern above to also match `"haase%prep.ai.mit.edu"`:
-
-    
-    
-    #|kno>|# (tx-match '#((isalnum+) {"@" "%"} (isalnum+))  "haase%prep.ai.mit.edu")
+````console
+    #|kno>|# (textmatch '#((isalnum+) {"@" "%"} (isalnum+))  "haase%prep.ai.mit.edu")
     #t
-    
-
+````
 The choices in a pattern like this need not be strings; any pattern can be
 recursively included, e.g.
-
-    
-    
-    #|kno>|# (tx-match '#((isalnum+) {"@" "%" (ispunct)} (isalnum+))  "haase-media")
+````console
+    #|kno>|# (textmatch '#((isalnum+) {"@" "%" (ispunct)} (isalnum+))  "haase-media")
     #t
-    
-
+````
 ## Named Patterns
 
 When a symbol is used as a pattern, the value of that symbol is used for the
 matching, allowing complex patterns to be broken into smaller pieces. The
-procedure `tx-closure` (with abbreviation `txc`) takes a pattern and
+procedure `textclosure` (with abbreviation `txc`) takes a pattern and
 associates it with the current environment, so that symbol references within
 the pattern will be resolved in the corresponding environment. An example may
 make things clearer:
-
-    
-    
+````console
     (define user-name '(isalnum+))
     (define host-name
       {(isalnum+)
        #((isalnum+) "." (isalnum+) ".edu")
        #((isalnum+) "." (isalnum+) "." (isalnum+) ".edu")
        #((isalnum+) "." (isalnum+) "." (isalnum+) "." (isalnum+) ".edu")})
-    #|kno>|# (tx-match (tx-closure '#(user-name "@" host-name))
+    #|kno>|# (textmatch (textclosure '#(user-name "@" host-name))
                          "haase@media.mit.edu")
     #t
-    
-
+````
 The use of symbols as patterns is mostly meant to provide a way of reducing
 the complexity of individual patterns and enchancing their readability.
 Technically, however, it also makes the matcher more powerful because it
@@ -109,113 +88,81 @@ allows the specification of _recursive_ patterns.
 
 We now know enough about patterns to look at the different ways patterns can
 be used in the TX package. Patterns can be used for more than matching against
-strings. As we saw above, the function `tx-extract` extracts the structure of
+strings. As we saw above, the function `textextract` extracts the structure of
 the match:
-
-    
-    
-    #|kno>|# (tx-extract '#((isalnum+) "@" (isalnum+))  "haase@media.mit.edu")
+````console
+    #|kno>|# (textextract '#((isalnum+) "@" (isalnum+))  "haase@media.mit.edu")
     #("haase" "@" "media.mit.edu")
-    
-
-`tx-extract` treats named patterns as "atoms" and doesn't expand the internal
+````
+`textextract` treats named patterns as "atoms" and doesn't expand the internal
 structure of their match. This allows something like this:
-
-    
-    
-    #|kno>|# (tx-extract (txc #(user-name "@" host-name)) "haase@media.mit.edu")
+````console
+    #|kno>|# (textextract (txc #(user-name "@" host-name)) "haase@media.mit.edu")
     #("haase" "@" "media.mit.edu")
-    
-
+````
 where simple substitution would extract the substructure of the hostname
 `"media.mit.edu"`, rather than treating it as a single chunk:
-
-    
-    
-    #|kno>|# (tx-extract (vector user-name "@" host-name))
+````console
+    #|kno>|# (textextract (vector user-name "@" host-name))
     #("haase" "@" #("media" "." "mit" ".edu"))
-    
-
+````
 Note that in this example, we use `vector` to construct the pattern on the
 fly.
 
-The function `tx-search` locates the first substring which matches a pattern,
+The function `textsearch` locates the first substring which matches a pattern,
 returning the integer position at which the substring starts. For example,
-
-    
-    
-    #|kno>|# (tx-search '(isdigit+) "My name is 007, JAMES 007")
+````console
+    #|kno>|# (textsearch '(isdigit+) "My name is 007, JAMES 007")
     11
-    
-
-The function `tx-matcher` returns the length of the substring which a pattern
+````
+The function `textmatcher` returns the length of the substring which a pattern
 does match, for example
-
-    
-    
-    #|kno>|# (tx-matcher '(isdigit+) "123ABC")
+````console
+    #|kno>|# (textmatcher '(isdigit+) "123ABC")
     3
-    
-
-The function `tx-gather` returns the substrings of a string which match a
+````
+The function `gather` returns the substrings of a string which match a
 pattern, as in
-
-    
-    
-    #|kno>|# (tx-gather '(isdigit+) "There were 12 grapes and 66 apples")
+````console
+    #|kno>|# (gather '(isdigit+) "There were 12 grapes and 66 apples")
     ;; There are 2 results
     {"12" "66"}
-    
-
+````
 The matches are returned as a choice and can then be operated on by other
 procedures. For example, using `read-from-string` would return the actual
 numeric values:
-
-    
-    
+````console
     #|kno>|# (read-from-string
-                 (tx-gather '(isdigit+) "There were 12 grapes and 66 apples"))
+                 (gather '(isdigit+) "There were 12 grapes and 66 apples"))
     ;; There are 2 results
     {12 66}
-    
-
-The function `tx-segment` breaks a larger string into smaller substrings at
+````
+The function `textslice` breaks a larger string into smaller substrings at
 separators designated by a particular pattern. For instance, we can get
 substrings separated by vowels as follows:
-
-    
-    
+````console
     (define vowels '(+ {"a" "e" "i" "o" "u"}))
-    #|kno>|# (tx-segment "How long has it been?" vowels)
+    #|kno>|# (textslice "How long has it been?" vowels)
     ("H" "w l" "ng h" "s " "t b" "n?")
-    
-
+````
 which we could glue back together with `string-append`:
-
-    
-    
-    #|kno>|# (apply string-append (tx-segment "How long has it been?" vowels))
+````console
+    #|kno>|# (apply string-append (textslice "How long has it been?" vowels))
     "Hw lng hs t bn?"
-    
-
-The function `tx-fragment` works much like `tx-segment`, but it keeps the
+````
+The function `textfragment` works much like `textslice`, but it keeps the
 separating strings, so we would have:
-
-    
-    
-    #|kno>|# (tx-fragment "How long has it been?" vowels)
+````console
+    #|kno>|# (textfragment "How long has it been?" vowels)
     ("" "H" "o" "w l" "o" "ng h" "a" "s " "i" "t b" "ee" "n?")
-    
-
-Applying `string-append` to the results of `tx-fragment` will restore the
+````
+Applying `string-append` to the results of `textfragment` will restore the
 original string, as in:
-
-    
-    
+````console
     #|kno>|# (apply string-append
-                  (tx-fragment "How long has it been?" vowels))
+                  (textfragment "How long has it been?" vowels))
     "How long has it been?"
-    
+````
 
 ## Parsing Files with Record Streams
 
@@ -325,27 +272,22 @@ using the compound ` *` and `+` operators (e.g. as `(+ (isalpha))`.
 
 `(char-not chars)` matches any string that does not contain any of the
 characters in chars (which is a string). E.G.
-
-    
-    
-    #|kno>|# (tx-match '(char-not "+-") "333.5")
+````console
+    #|kno>|# (textmatch '(char-not "+-") "333.5")
     #t
-    #|kno>|# (tx-match '(char-not "+-") "333.5+5i")
+    #|kno>|# (textmatch '(char-not "+-") "333.5+5i")
     #f
-    
+````
 
 `(char-range first-char last-char)` matches any character whose Unicode code
 point lies between the characters first-char and last-char (inclusive). For
 example, we could rewrite `(islower)` with
-
-    
-    
-    #|kno>|# (tx-match '(char-range #\a #\z) "a")
+````console
+    #|kno>|# (textmatch '(char-range #\a #\z) "a")
     #t
-    #|kno>|# (tx-match '(char-range #\a #\z) "m")
+    #|kno>|# (textmatch '(char-range #\a #\z) "m")
     #t
-    
-
+````
 though this would only work for ASCII characters `(islower)` works for any
 Unicode character.
 
@@ -360,111 +302,79 @@ contain pat; and `(not> pat)` matches the longest possible string consisting
 of anything BUT **pat**.
 
 For example, we can recognize certain nonsense words:
-
-    
-    
-    #|kno>|# (tx-match '(* {"hum" "dum" "doo" "de"}) "humdumdoodedum")
+````console
+    #|kno>|# (textmatch '(* {"hum" "dum" "doo" "de"}) "humdumdoodedum")
     #t
-    
-
+````
 which uses a choices as the repeated pattern. We can even extract structure
 from this nonsense:
-
-    
-    
-    (tx-extract '(* {"hum" "dum" "doo" "de"}) "humdumdoodedum")
+````console
+    (textextract '(* {"hum" "dum" "doo" "de"}) "humdumdoodedum")
     (* "hum" "dum" "doo" "de" "dum")
-    
-
+````
 More interestingly, we can use the `(* pat)` operator to match lists of items
 whose length may vary, e.g.
-
-    
-    
-    #|kno>|# (tx-extract '(* #((isalnum+) {(eol) (isspace+) #("," (isspace+))}))
+````console
+    #|kno>|# (textextract '(* #((isalnum+) {(eol) (isspace+) #("," (isspace+))}))
                            "foo bar baz")
     (* #("foo" " ") #("bar" " ") #("baz" ""))
-    #|kno>|# (tx-extract '(* #((isalnum+) {(eol) (isspace+) #("," (isspace+))}))
+    #|kno>|# (textextract '(* #((isalnum+) {(eol) (isspace+) #("," (isspace+))}))
                            "foo, bar, baz, quux")
     (* #("foo" #("," " ")) #("bar" #("," " "))
        #("baz" #("," " ")) #("quux" ""))
-    
-
+````
 The `(* pat)` operator successfully matches no occurences of its pattern, so
 we get the somewhat confusing:
-
-    
-    
-    #|kno>|# (tx-match '(* #((isalnum+) {(eol) (isspace+) #("," (isspace+))}))
+````console
+    #|kno>|# (textmatch '(* #((isalnum+) {(eol) (isspace+) #("," (isspace+))}))
                          "")
     #t
-    
-
+````
 though it does have some standards:
-
-    
-    
-    #|kno>|# (tx-match '(* #((isalnum+) {(eol) (isspace+) #("," (isspace+))}))
+````console
+    #|kno>|# (textmatch '(* #((isalnum+) {(eol) (isspace+) #("," (isspace+))}))
                          ",")
     #f
-    
-
+````
 We can use the operator `(+ pat)` for cases where there will always be at
 least one instance of the pattern. So, we get
-
-    
-    
-    #|kno>|# (tx-match '(+ #((isalnum+) {(eol) (isspace+) #("," (isspace+))}))
+````console
+    #|kno>|# (textmatch '(+ #((isalnum+) {(eol) (isspace+) #("," (isspace+))}))
                          "")
     #f
-    
-
+````
 but can still handle the single case:
-
-    
-    
-    #|kno>|# (tx-match '(+ #((isalnum+) {(eol) (isspace+) #("," (isspace+))}))
+````console
+    #|kno>|# (textmatch '(+ #((isalnum+) {(eol) (isspace+) #("," (isspace+))}))
                          "cook")
     #t
-    
-
+````
 The `(NOT pat)` operator is apparently simple but hides some complexity. In
-its top level usage, it just reverses the behaviour of tx-match:
-
-    
-    
-    #|kno>|# (tx-match '(not (isalpha+)) "good")
+its top level usage, it just reverses the behaviour of textmatch:
+````console
+    #|kno>|# (textmatch '(not (isalpha+)) "good")
     #f
-    
-
+````
 ## Matching character case
 
 Normally the matcher ignores case when comparing strings, so you have
-
-    
-    
-    (tx-match "Good" "good")
+````console
+    (textmatch "Good" "good")
     #t
-    
-
+````
 however, the compound operator `(MATCH-CASE pat)` causes a pattern to pay
 attention to case, so that you have
-
-    
-    
-    #|kno>|# (tx-match '(match-case "Good") "good")
+````console
+    #|kno>|# (textmatch '(match-case "Good") "good")
     #f
-    
-
+````
 `(MATCH-CASE pat)` (which can be abbreviated MC) turns on case comparison; the
 complementary procedure `(IGNORE-CASE pat)` (which can be abbreviated IC)
 turns it back off. So, we can have:
-
-    
-    
-    #|kno>|# (tx-match
+````console
+    #|kno>|# (textmatch
                 '(match-case #("Good" ", " (ignore-case "BAD") ", " "Ugly"))
                 "Good, bad, Ugly")
     #t
-    
+````
 

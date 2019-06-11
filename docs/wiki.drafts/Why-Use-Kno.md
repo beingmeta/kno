@@ -1,4 +1,4 @@
-# ![](fdlogo.png)Why Should I Use Kno?
+# Why Should I Use Kno?
 
 ## Kno manages descriptions and systems of description
 
@@ -347,25 +347,27 @@ share data, provide lab-wide utilities, etc. As a result, access to Kno
 was made available from many different platforms. Basic libraries allow
 Kno data and services to be directly accessed from C, Lisp, and Java.
 
-Kno includes FDScript, a simple scripting language based on
-[Scheme](r4rs.html). FDScript can be used to write command line scripts (it is
-smaller than many shells), implement specialized network servers, or provide
-World Wide Web (CGI) access to Kno data and services.
+Kno includes a scripting and programming language based on
+[Scheme](r4rs.html). This can be used to write command line scripts
+(it is smaller than many shells), implement specialized network
+servers, or provide World Wide Web (CGI) access to Kno data and
+services.
 
 Basic Kno services are built on the DType protocol and libraries for
-accessing DType services are available in Perl and TCL as well as from the
-command line (with the [`dtcall` executable](commands.html#DTCALL)) or from
-the C, Lisp, or Java libraries.
+accessing DType services are available in Perl and TCL as well as from
+the command line (with the
+[`dtcall` executable](commands.html#DTCALL)) or from the C, Lisp, or
+Java libraries.
 
 ## C programs can use function libraries to access Kno
 
 C does not natively provide most the datatypes used in Kno structures.
 Pairs, lists, heterogenous vectors, and interned symbols need to be
-implemented by the C function libraries connecting to Kno. The libraries
-for accessing Kno provide these data structures, access to th DType
-protocol, object maintenance and caching functions, and the FDScript
-interpreter. Despite this, it is relatively lightweight, as shown in this
-table:
+implemented by the C function libraries connecting to Kno. The
+libraries for accessing Kno provide these data structures, access to
+th DType protocol, object maintenance and caching functions, and the
+FDScript interpreter. Despite this, it is relatively lightweight, as
+shown in this table:
 
 Library | Binary Library Size  
 ---|---  
@@ -388,7 +390,7 @@ libraries in LISP and Scheme are loaded to provide the same level of access as
 the C libraries, including network access, local caching, and FDScript
 execution.
 
-## FDScript can be used to write simple Kno programs
+## Knox can be used to write simple Kno programs
 
 FDScript is a lightweight LISP interpreter which incorporates the Kno
 kernel functions. It is appropriate for casual database access, writing
