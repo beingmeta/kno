@@ -723,7 +723,10 @@ MONGODB_BUNDLED
 MYSQL_LDFLAGS
 MYSQL_CFLAGS
 MALLOC_FLAGS
-TESTCMODULES
+TEST_GRAPHICS_CMODULES
+TEST_TEXT_CMODULES
+TEST_DB_CMODULES
+TEST_CMODULES
 INSTALL_ARCHIVE_CMODULES
 INSTALL_GRAPHICS_CMODULES
 INSTALL_TEXT_CMODULES
@@ -3045,7 +3048,10 @@ INSTALL_DB_CMODULES=""
 INSTALL_TEXT_MODULES=""
 INSTALL_GRAPHICS_CMODULES=""
 INSTALL_ARCHIVE_CMODULES=""
-TESTCMODULES=""
+TEST_CMODULES=""
+TEST_DB_CMODULES=""
+TEST_TEXT_CMODULES=""
+TEST_GRAPHICS_CMODULES=""
 DATAFILES="etc/version"
 SUDO=""
 SUINSTALL=
@@ -3171,6 +3177,9 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
+
+
+
 
 
 
@@ -12311,6 +12320,7 @@ fi
 if (test "$have_libz" = "yes"); then
   ARCHIVE_CMODULES="lib/kno/zlib.$shared_suffix ${ARCHIVE_CMODULES}"
   INSTALL_ARCHIVE_CMODULES="install-zlib ${INSTALL_ARCHIVE_CMODULES}"
+  TEST_CMODULES="${TEST_CMODULES} test-zlib"
 fi
 
 ac_fn_c_check_header_mongrel "$LINENO" "zlib.h" "ac_cv_header_zlib_h" "$ac_includes_default"
@@ -12564,6 +12574,7 @@ if test "${have_zmq_h}" = "yes" &&
    ZEROMQ_LIBS=-lzmq
    CORE_CMODULES="lib/kno/zeromq.$shared_suffix ${CORE_CMODULES}"
    INSTALL_CORE_CMODULES="install-zeromq ${INSTALL_CORE_CMODULES}"
+   TEST_CMODULES="${TEST_CMODULES} test-zeromq"
 fi;
 
 ### LevelDB cmodule build
@@ -12635,11 +12646,13 @@ fi
       test "${ac_cv_header_leveldb_c_h}" = "yes" &&
       test "${leveldb_ok}" = "yes"; then
       DB_CMODULES="${DB_CMODULES} lib/kno/leveldb.${shared_suffix}";
-     INSTALL_DB_CMODULES="${INSTALL_DB_CMODULES} install-leveldb";
+      INSTALL_DB_CMODULES="${INSTALL_DB_CMODULES} install-leveldb";
+      TEST_DB_CMODULES="${TEST_DB_CMODULES} test-leveldb"
    elif test "${enable_leveldb}" = "force"; then
      DB_CMODULES="lib/kno/leveldb.${shared_suffix} ${DB_CMODULES}";
      INSTALL_DB_CMODULES="${INSTALL_DB_CMODULES} install-leveldb";
      force_enabled="leveldb ${force_enabled}";
+     TEST_DB_CMODULES="${TEST_DB_CMODULES} test-leveldb"
    else
      auto_disabled="leveldb ${auto_disabled}";
      enable_leveldb="no";
@@ -12718,9 +12731,11 @@ fi
       test "${rocksdb_ok}" = "yes"; then
      DB_CMODULES="lib/kno/rocksdb.${shared_suffix} ${DB_CMODULES}";
      INSTALL_DB_CMODULES="install-rocksdb ${INSTALL_DB_CMODULES}";
+     TEST_DB_CMODULES="${TEST_DB_CMODULES} test-rocksdb"
    elif test "${enable_rocksdb}" = "force"; then
      DB_CMODULES="lib/kno/rocksdb.${shared_suffix} ${DB_CMODULES}";
      INSTALL_DB_CMODULES="install-rocksdb ${INSTALL_DB_CMODULES}";
+     TEST_DB_CMODULES="${TEST_DB_CMODULES} test-rocksdb"
      force_enabled="rocksdb ${force_enabled}";
    else
      auto_disabled="rocksdb ${auto_disabled}";
@@ -12747,9 +12762,11 @@ if test "$enable_imagick" = "yes" &&
   IMAGICK_LDFLAGS=`$pkg_config MagickWand --libs`;
   GRAPHICS_CMODULES="lib/kno/imagick.$shared_suffix ${GRAPHICS_CMODULES}";
   INSTALL_GRAPHICS_CMODULES="install-imagick ${INSTALL_GRAPHICS_CMODULES}";
+  TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} test-imagick"
 elif test "$enable_imagick" = "force"; then
   GRAPHICS_CMODULES="lib/kno/imagick.$shared_suffix ${GRAPHICS_CMODULES}";
   INSTALL_GRAPHICS_CMODULES="install-imagick ${INSTALL_GRAPHICS_CMODULES}";
+  TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} test-imagick"
 elif test "$enable_imagick" = "yes"; then
   auto_disabled="imagick ${auto_disabled}";
   enable_imagick="failed";
@@ -12820,6 +12837,7 @@ if test "${ac_cv_header_archive_h}" == "yes" && \
    test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
   ARCHIVE_CMODULES="lib/kno/libarchive.${shared_suffix} ${ARCHIVE_CMODULES}"
   INSTALL_ARCHIVE_CMODULES="install-libarchive ${INSTALL_ARCHIVE_CMODULES}"
+  TEST_CMODULES="${TEST_CMODULES} test-libarchive"
 else
   missing="libarchive ${missing}"
 fi
@@ -12907,13 +12925,16 @@ done
     LDFLAGS="${LDFLAGS} ${LIBZIP_LDFLAGS}"
     ARCHIVE_CMODULES="lib/kno/ziptools.$shared_suffix ${ARCHIVE_CMODULES}";
     INSTALL_ARCHIVE_CMODULES="install-ziptools ${INSTALL_ARCHIVE_CMODULES}";
+    TEST_CMODULES="${TEST_CMODULES} test-ziptools"
   elif test "$have_zip_h" = "yes" &&
        test "$have_libzip" = "yes"; then
     ARCHIVE_CMODULES="lib/kno/ziptools.$shared_suffix ${ARCHIVE_CMODULES}";
     INSTALL_ARCHIVE_CMODULES="install-ziptools ${INSTALL_ARCHIVE_CMODULES}";
+    TEST_CMODULES="${TEST_CMODULES} test-ziptools"
   elif test "$enable_ziptools" = "force"; then
     ARCHIVE_CMODULES="lib/kno/ziptools.$shared_suffix ${ARCHIVE_CMODULES}";
     INSTALL_ARCHIVE_CMODULES="install-ziptools ${INSTALL_ARCHIVE_CMODULES}";
+    TEST_CMODULES="${TEST_CMODULES} test-ziptools"
     force_enabled="ziptools ${force_enabled}";
   else
     auto_disabled="ziptools ${auto_disabled}";
@@ -12941,11 +12962,13 @@ if test "$enable_mongodb" = "yes" ||
     MONGODB_LDFLAGS=`$pkg_config libmongoc-1.0 --libs`
     DB_CMODULES="lib/kno/mongodb.$shared_suffix ${DB_CMODULES}";
     INSTALL_DB_CMODULES="install-mongodb ${INSTALL_DB_CMODULES}";
+    TEST_DB_CMODULES="${TEST_DB_CMODULES} test-mongodb"
     MONGODB_ENABLED=yes
   elif test "$enable_mongodb" = "force"; then
     force_enabled="mongodb ${force_enabled}";
     DB_CMODULES="lib/kno/mongodb.$shared_suffix ${DB_CMODULES}";
     INSTALL_DB_CMODULES="install-mongodb ${INSTALL_DB_CMODULES}";
+    TEST_DB_CMODULES="${TEST_DB_CMODULES} test-mongodb"
     MONGODB_ENABLED=yes
   else
     auto_disabled="mongodb ${auto_disabled}";
@@ -12956,6 +12979,7 @@ elif test "$enable_mongodb" = "bundled"; then
     MONGODB_LDFLAGS="-Wl,--whole-archive -Wl,-Bstatic -lmongoc -Wl,--no-whole-archive  -lbson -Wl,-Bdynamic"
     DB_CMODULES="lib/kno/mongodb.$shared_suffix ${DB_CMODULES}";
     INSTALL_DB_CMODULES="install-mongodb ${INSTALL_DB_CMODULES}";
+    TEST_DB_CMODULES="${TEST_DB_CMODULES} test-mongodb"
 else
     manually_disabled="mongodb ${manually_disabled}";
 fi;
@@ -13078,6 +13102,7 @@ fi
 if test "$with_mysql" != "no"; then
   DB_CMODULES="lib/kno/mysql.$shared_suffix ${DB_CMODULES}"
   INSTALL_DB_CMODULES="install-mysql ${INSTALL_DB_CMODULES}"
+  TEST_DB_CMODULES="${TEST_DB_CMODULES} test-mysql"
 else
   missing="mysql ${missing}"
 fi
@@ -13200,6 +13225,7 @@ fi
      if test ! -z "${ODBC_LIBS}"; then
        DB_CMODULES="lib/kno/odbc.$shared_suffix ${DB_CMODULES}"
        INSTALL_DB_CMODULES="install-odbc ${INSTALL_DB_CMODULES}"
+       TEST_DB_CMODULES="${TEST_DB_CMODULES} test-odbc"
        odbc_included=yes
      fi;
    fi;
@@ -13309,6 +13335,7 @@ fi
   if test "$sqlite3_ok" = "yes"; then
     DB_CMODULES="lib/kno/sqlite.$shared_suffix ${DB_CMODULES}";
     INSTALL_DB_CMODULES="install-sqlite ${INSTALL_DB_CMODULES}";
+    TEST_DB_CMODULES="${TEST_DB_CMODULES} test-sqlite"
     sqlite_included=no
     if test "${sqlite3v2_ok}" == "yes"; then
       $as_echo "#define HAVE_SQLITE3_V2 1" >>confdefs.h
@@ -13334,6 +13361,7 @@ fi
 if test "$enable_tidy" = "yes"; then
   TEXT_CMODULES="lib/kno/tidy.$shared_suffix ${TEXT_CMODULES}"
   INSTALL_TEXT_CMODULES="install-tidy ${INSTALL_TEXT_CMODULES}"
+  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} test-tidy"
 fi
 
 ### Hyphenate library
@@ -13408,10 +13436,12 @@ if test "$enable_hyphenate" = "yes" &&
   TEXT_CMODULES="lib/kno/hyphenate.$shared_suffix ${TEXT_CMODULES}"
   INSTALL_TEXT_CMODULES="install-hyphenate ${INSTALL_TEXT_CMODULES}"
   DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
+  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} test-hyphenate"
 elif test "$enable_hyphenate" = "force"; then
   TEXT_CMODULES="lib/kno/hyphenate.$shared_suffix ${TEXT_CMODULES}"
   INSTALL_TEXT_CMODULES="install-hyphenate ${INSTALL_TEXT_CMODULES}"
   DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
+  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} test-hyphenate"
   force_enabled="hyphenate ${force_enabled}";
 elif test "$enable_hyphenate" = "yes"; then
   auto_disabled="hyphenate $auto_disabled";
@@ -13433,6 +13463,7 @@ fi
 if test "$with_sundown" = "yes"; then
   TEXT_CMODULES="lib/kno/sundown.$shared_suffix ${TEXT_CMODULES}"
   INSTALL_TEXT_CMODULES="install-sundown ${INSTALL_TEXT_CMODULES}"
+  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} test-sundown"
 fi
 
 ### exif (extract metadata from image files)
@@ -13508,6 +13539,7 @@ done
 
   GRAPHICS_CMODULES="lib/kno/exif.$shared_suffix ${GRAPHICS_CMODULES}"
   INSTALL_GRAPHICS_CMODULES="install-exif ${INSTALL_GRAPHICS_CMODULES}"
+  TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} test-exif"
 else
   missing="curl ${missing}"
 fi
@@ -13627,6 +13659,7 @@ fi
        (test "$libpng_ok" = "yes") && (test "$qrcode_ok" = "yes") ); then
     GRAPHICS_CMODULES="lib/kno/qrcode.$shared_suffix ${GRAPHICS_CMODULES}"
     INSTALL_GRAPHICS_CMODULES="install-qrcode ${INSTALL_GRAPHICS_CMODULES}"
+    TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} test-qrencode"
   else
     missing="qrcode ${missing}"
   fi;

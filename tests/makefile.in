@@ -803,8 +803,34 @@ optscheme_leaktest:
 
 # CMODULE tests
 
-test-cmodules: @TESTCMODULES@
+test-cmodules: test-core-cmodules test-text-cmodules test-db-cmodules test-graphics-cmodules
 
-test-hunspell:
-	@${RUN} ${KNOX} test-hunspell.scm ${RUNCONF}
-	@${header} "■■■■ Completed hunspell tests ${RUNCONF}"
+test-core-cmodules: @TEST_CMODULES@
+test-text-cmodules: @TEST_TEXT_CMODULES@
+test-db-cmodules: @TEST_DB_CMODULES@
+test-graphics-cmodules: @TEST_DB_CMODULES@
+
+
+test-zeromq:
+	@${RUN} ${KNOX} zeromq.scm ${RUNCONF}
+	@${header} "■■■■ Completed ZeroMQ tests ${RUNCONF}"
+
+test-sqlite:
+test-mongodb:
+test-mysql:
+test-odbc:
+
+test-leveldb:
+test-rocksdb:
+
+test-imagick:
+test-exif:
+test-qrcode:
+
+test-zlib:
+test-ziptools:
+test-libarchive:
+
+test-tidy:
+test-sundown:
+test-hyphenate:
