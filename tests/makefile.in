@@ -106,7 +106,7 @@ all_tests alltests: tidy
 	make cmdtests
 	@${header} "■■■■■■■■ Done with alltests"
 
-libtests: scheme optscheme cmodtests slotmaps tables pools indexes db
+libtests: scheme optscheme cmodules slotmaps tables pools indexes db
 cmdtests:
 	@echo "# ■■■■■■■■ Running command line tests ${RUNCONF}"
 	@echo "# ■■■ Various stderr log messages or termination warnings are normal"
@@ -802,39 +802,38 @@ optscheme_leaktest:
 
 # CMODULE tests
 
-test-cmodules: test-core-cmodules test-text-cmodules test-db-cmodules test-graphics-cmodules
+cmodules: core-cmodules text-cmodules db-cmodules graphics-cmodules archive-cmodules
 
-test-core-cmodules: @TEST_CORE_CMODULES@
-test-text-cmodules: @TEST_TEXT_CMODULES@
-test-db-cmodules: @TEST_DB_CMODULES@
-test-graphics-cmodules: @TEST_DB_CMODULES@
-test-archive-cmodules: @TEST_ARCHIVE_CMODULES@
+core-cmodules: @TEST_CORE_CMODULES@
+text-cmodules: @TEST_TEXT_CMODULES@
+db-cmodules: @TEST_DB_CMODULES@
+graphics-cmodules: @TEST_DB_CMODULES@
+archive-cmodules: @TEST_ARCHIVE_CMODULES@
 
-
-test-zeromq:
+zeromq:
 	@${RUN} ${KNOX} zeromq.scm ${RUNCONF}
 	@${header} "■■■■ Completed ZeroMQ tests ${RUNCONF}"
 
-test-sqlite:
-test-mongodb:
-test-mysql:
-test-odbc:
+sqlite:
+mongodb:
+mysql:
+odbc:
 
-test-leveldb:
-test-rocksdb:
+leveldb:
+rocksdb:
 
-test-imagick:
-test-exif:
-test-qrcode:
+imagick:
+exif:
+qrcode:
 
-test-zlib:
-test-ziptools:
-test-libarchive:
+zlib:
+ziptools:
+libarchive:
 
-test-tidy:
-test-sundown:
-test-hyphenate:
+tidy:
+sundown:
+hyphenate:
 
-test-crypto cryptotest:
+crypto cryptotest:
 	@${RUN} ${KNOX} cryptotest.scm ${RUNCONF}
 	@${header} "■■■■ Completed crypto tests ${RUNCONF}"
