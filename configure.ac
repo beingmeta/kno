@@ -123,10 +123,11 @@ INSTALL_DB_CMODULES=""
 INSTALL_TEXT_MODULES=""
 INSTALL_GRAPHICS_CMODULES=""
 INSTALL_ARCHIVE_CMODULES=""
-TEST_CMODULES=""
+TEST_CORE_CMODULES=""
 TEST_DB_CMODULES=""
 TEST_TEXT_CMODULES=""
 TEST_GRAPHICS_CMODULES=""
+TEST_ARCHIVE_CMODULES=""
 DATAFILES="etc/version"
 SUDO=""
 SUINSTALL=
@@ -348,10 +349,11 @@ AC_SUBST(INSTALL_DB_CMODULES)
 AC_SUBST(INSTALL_TEXT_CMODULES)
 AC_SUBST(INSTALL_GRAPHICS_CMODULES)
 AC_SUBST(INSTALL_ARCHIVE_CMODULES)
-AC_SUBST(TEST_CMODULES)
+AC_SUBST(TEST_CORE_CMODULES)
 AC_SUBST(TEST_DB_CMODULES)
 AC_SUBST(TEST_TEXT_CMODULES)
 AC_SUBST(TEST_GRAPHICS_CMODULES)
+AC_SUBST(TEST_ARCHIVE_CMODULES)
 AC_SUBST(MALLOC_FLAGS)
 AC_SUBST(MYSQL_CFLAGS)
 AC_SUBST(MYSQL_LDFLAGS)
@@ -840,6 +842,7 @@ AC_ARG_WITH(crypto,--with[out]-crypto Compile the crypto module,,with_crypto=$wi
 if test $with_crypto = "yes"; then
   CORE_CMODULES="lib/kno/crypto.$shared_suffix ${CORE_CMODULES}"
   INSTALL_CORE_CMODULES="install-crypto ${INSTALL_CORE_CMODULES}"
+  TEST_CORE_CMODULES="crypto ${TEST_CORE_CMODULES}"
 fi
 
 # OpenSSL checks
@@ -1568,7 +1571,7 @@ fi
 if (test "$have_libz" = "yes"); then
   ARCHIVE_CMODULES="lib/kno/zlib.$shared_suffix ${ARCHIVE_CMODULES}"
   INSTALL_ARCHIVE_CMODULES="install-zlib ${INSTALL_ARCHIVE_CMODULES}"
-  TEST_CMODULES="${TEST_CMODULES} test-zlib"
+  TEST_ARCHIVE_CMODULES="${TEST_ARCHIVE_CMODULES} zlib"
 fi
 
 AC_CHECK_HEADER(zlib.h,have_zlib_h="yes",have_zlib_h="no")
@@ -1609,7 +1612,7 @@ if test "${have_zmq_h}" = "yes" &&
    ZEROMQ_LIBS=-lzmq
    CORE_CMODULES="lib/kno/zeromq.$shared_suffix ${CORE_CMODULES}"
    INSTALL_CORE_CMODULES="install-zeromq ${INSTALL_CORE_CMODULES}"
-   TEST_CMODULES="${TEST_CMODULES} test-zeromq"	
+   TEST_CORE_CMODULES="${TEST_CORE_CMODULES} zeromq"	
 fi;
 
 ### LevelDB cmodule build
@@ -1626,12 +1629,12 @@ if test "${enable_leveldb}" = "yes" ||
       test "${leveldb_ok}" = "yes"; then
       DB_CMODULES="${DB_CMODULES} lib/kno/leveldb.${shared_suffix}";
       INSTALL_DB_CMODULES="${INSTALL_DB_CMODULES} install-leveldb";
-      TEST_DB_CMODULES="${TEST_DB_CMODULES} test-leveldb"
+      TEST_DB_CMODULES="${TEST_DB_CMODULES} leveldb"
    elif test "${enable_leveldb}" = "force"; then
      DB_CMODULES="lib/kno/leveldb.${shared_suffix} ${DB_CMODULES}";
      INSTALL_DB_CMODULES="${INSTALL_DB_CMODULES} install-leveldb";
      force_enabled="leveldb ${force_enabled}";
-     TEST_DB_CMODULES="${TEST_DB_CMODULES} test-leveldb"
+     TEST_DB_CMODULES="${TEST_DB_CMODULES} leveldb"
    else
      auto_disabled="leveldb ${auto_disabled}";
      enable_leveldb="no";
@@ -1654,11 +1657,11 @@ if test "${enable_rocksdb}" = "yes" ||
       test "${rocksdb_ok}" = "yes"; then
      DB_CMODULES="lib/kno/rocksdb.${shared_suffix} ${DB_CMODULES}";
      INSTALL_DB_CMODULES="install-rocksdb ${INSTALL_DB_CMODULES}";
-     TEST_DB_CMODULES="${TEST_DB_CMODULES} test-rocksdb"
+     TEST_DB_CMODULES="${TEST_DB_CMODULES} rocksdb"
    elif test "${enable_rocksdb}" = "force"; then
      DB_CMODULES="lib/kno/rocksdb.${shared_suffix} ${DB_CMODULES}";
      INSTALL_DB_CMODULES="install-rocksdb ${INSTALL_DB_CMODULES}";
-     TEST_DB_CMODULES="${TEST_DB_CMODULES} test-rocksdb"
+     TEST_DB_CMODULES="${TEST_DB_CMODULES} rocksdb"
      force_enabled="rocksdb ${force_enabled}";
    else
      auto_disabled="rocksdb ${auto_disabled}";
@@ -1679,11 +1682,11 @@ if test "$enable_imagick" = "yes" &&
   IMAGICK_LDFLAGS=`$pkg_config MagickWand --libs`;
   GRAPHICS_CMODULES="lib/kno/imagick.$shared_suffix ${GRAPHICS_CMODULES}";
   INSTALL_GRAPHICS_CMODULES="install-imagick ${INSTALL_GRAPHICS_CMODULES}";
-  TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} test-imagick"
+  TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} imagick"
 elif test "$enable_imagick" = "force"; then
   GRAPHICS_CMODULES="lib/kno/imagick.$shared_suffix ${GRAPHICS_CMODULES}";
   INSTALL_GRAPHICS_CMODULES="install-imagick ${INSTALL_GRAPHICS_CMODULES}";
-  TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} test-imagick"
+  TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} imagick"
 elif test "$enable_imagick" = "yes"; then
   auto_disabled="imagick ${auto_disabled}";
   enable_imagick="failed";
@@ -1699,7 +1702,7 @@ if test "${ac_cv_header_archive_h}" == "yes" && \
    test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
   ARCHIVE_CMODULES="lib/kno/libarchive.${shared_suffix} ${ARCHIVE_CMODULES}"
   INSTALL_ARCHIVE_CMODULES="install-libarchive ${INSTALL_ARCHIVE_CMODULES}"
-  TEST_CMODULES="${TEST_CMODULES} test-libarchive"
+  TEST_ARCHIVE_CMODULES="${TEST_ARCHIVE_CMODULES} libarchive"
 else
   missing="libarchive ${missing}"
 fi
@@ -1722,16 +1725,16 @@ if test "$enable_ziptools" = "yes" ||
     LDFLAGS="${LDFLAGS} ${LIBZIP_LDFLAGS}"
     ARCHIVE_CMODULES="lib/kno/ziptools.$shared_suffix ${ARCHIVE_CMODULES}";
     INSTALL_ARCHIVE_CMODULES="install-ziptools ${INSTALL_ARCHIVE_CMODULES}";
-    TEST_CMODULES="${TEST_CMODULES} test-ziptools"
+    TEST_ARCHIVE_CMODULES="${TEST_ARCHIVE_CMODULES} ziptools"
   elif test "$have_zip_h" = "yes" &&
        test "$have_libzip" = "yes"; then
     ARCHIVE_CMODULES="lib/kno/ziptools.$shared_suffix ${ARCHIVE_CMODULES}";
     INSTALL_ARCHIVE_CMODULES="install-ziptools ${INSTALL_ARCHIVE_CMODULES}";
-    TEST_CMODULES="${TEST_CMODULES} test-ziptools"
+    TEST_ARCHIVE_CMODULES="${TEST_ARCHIVE_CMODULES} ziptools"
   elif test "$enable_ziptools" = "force"; then
     ARCHIVE_CMODULES="lib/kno/ziptools.$shared_suffix ${ARCHIVE_CMODULES}";
     INSTALL_ARCHIVE_CMODULES="install-ziptools ${INSTALL_ARCHIVE_CMODULES}";
-    TEST_CMODULES="${TEST_CMODULES} test-ziptools"
+    TEST_ARCHIVE_CMODULES="${TEST_ARCHIVE_CMODULES} ziptools"
     force_enabled="ziptools ${force_enabled}";
   else
     auto_disabled="ziptools ${auto_disabled}";
@@ -1753,13 +1756,13 @@ if test "$enable_mongodb" = "yes" ||
     MONGODB_LDFLAGS=`$pkg_config libmongoc-1.0 --libs` 
     DB_CMODULES="lib/kno/mongodb.$shared_suffix ${DB_CMODULES}";
     INSTALL_DB_CMODULES="install-mongodb ${INSTALL_DB_CMODULES}";
-    TEST_DB_CMODULES="${TEST_DB_CMODULES} test-mongodb"
+    TEST_DB_CMODULES="${TEST_DB_CMODULES} mongodb"
     MONGODB_ENABLED=yes
   elif test "$enable_mongodb" = "force"; then
     force_enabled="mongodb ${force_enabled}";
     DB_CMODULES="lib/kno/mongodb.$shared_suffix ${DB_CMODULES}";
     INSTALL_DB_CMODULES="install-mongodb ${INSTALL_DB_CMODULES}";
-    TEST_DB_CMODULES="${TEST_DB_CMODULES} test-mongodb"
+    TEST_DB_CMODULES="${TEST_DB_CMODULES} mongodb"
     MONGODB_ENABLED=yes
   else
     auto_disabled="mongodb ${auto_disabled}";
@@ -1770,7 +1773,7 @@ elif test "$enable_mongodb" = "bundled"; then
     MONGODB_LDFLAGS="-Wl,--whole-archive -Wl,-Bstatic -lmongoc -Wl,--no-whole-archive  -lbson -Wl,-Bdynamic"
     DB_CMODULES="lib/kno/mongodb.$shared_suffix ${DB_CMODULES}";
     INSTALL_DB_CMODULES="install-mongodb ${INSTALL_DB_CMODULES}";
-    TEST_DB_CMODULES="${TEST_DB_CMODULES} test-mongodb"
+    TEST_DB_CMODULES="${TEST_DB_CMODULES} mongodb"
 else
     manually_disabled="mongodb ${manually_disabled}";      
 fi;
@@ -1802,7 +1805,7 @@ fi
 if test "$with_mysql" != "no"; then
   DB_CMODULES="lib/kno/mysql.$shared_suffix ${DB_CMODULES}"
   INSTALL_DB_CMODULES="install-mysql ${INSTALL_DB_CMODULES}"
-  TEST_DB_CMODULES="${TEST_DB_CMODULES} test-mysql"
+  TEST_DB_CMODULES="${TEST_DB_CMODULES} mysql"
 else
   missing="mysql ${missing}"
 fi
@@ -1823,7 +1826,7 @@ if test "$enable_odbc" = "yes"; then
      if test ! -z "${ODBC_LIBS}"; then
        DB_CMODULES="lib/kno/odbc.$shared_suffix ${DB_CMODULES}"
        INSTALL_DB_CMODULES="install-odbc ${INSTALL_DB_CMODULES}"
-       TEST_DB_CMODULES="${TEST_DB_CMODULES} test-odbc"
+       TEST_DB_CMODULES="${TEST_DB_CMODULES} odbc"
        odbc_included=yes
      fi;
    fi;
@@ -1847,7 +1850,7 @@ if test $have_sqlite3_h = "yes"; then
   if test "$sqlite3_ok" = "yes"; then
     DB_CMODULES="lib/kno/sqlite.$shared_suffix ${DB_CMODULES}";
     INSTALL_DB_CMODULES="install-sqlite ${INSTALL_DB_CMODULES}";
-    TEST_DB_CMODULES="${TEST_DB_CMODULES} test-sqlite"
+    TEST_DB_CMODULES="${TEST_DB_CMODULES} sqlite"
     sqlite_included=no
     if test "${sqlite3v2_ok}" == "yes"; then
       AC_DEFINE(HAVE_SQLITE3_V2,1)
@@ -1866,7 +1869,7 @@ AC_ARG_ENABLE(tidy,--en[dis]able-tidy Build and install tidy module,,enable_tidy
 if test "$enable_tidy" = "yes"; then
   TEXT_CMODULES="lib/kno/tidy.$shared_suffix ${TEXT_CMODULES}"
   INSTALL_TEXT_CMODULES="install-tidy ${INSTALL_TEXT_CMODULES}"
-  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} test-tidy"
+  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} tidy"
 fi
 
 ### Hyphenate library
@@ -1885,12 +1888,12 @@ if test "$enable_hyphenate" = "yes" &&
   TEXT_CMODULES="lib/kno/hyphenate.$shared_suffix ${TEXT_CMODULES}"
   INSTALL_TEXT_CMODULES="install-hyphenate ${INSTALL_TEXT_CMODULES}"
   DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
-  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} test-hyphenate"
+  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} hyphenate"
 elif test "$enable_hyphenate" = "force"; then
   TEXT_CMODULES="lib/kno/hyphenate.$shared_suffix ${TEXT_CMODULES}"
   INSTALL_TEXT_CMODULES="install-hyphenate ${INSTALL_TEXT_CMODULES}"
   DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
-  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} test-hyphenate"
+  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} hyphenate"
   force_enabled="hyphenate ${force_enabled}";
 elif test "$enable_hyphenate" = "yes"; then
   auto_disabled="hyphenate $auto_disabled";
@@ -1905,7 +1908,7 @@ AC_ARG_WITH(sundown,--with[out]-sundown Compile the sundown module,,with_sundown
 if test "$with_sundown" = "yes"; then
   TEXT_CMODULES="lib/kno/sundown.$shared_suffix ${TEXT_CMODULES}"
   INSTALL_TEXT_CMODULES="install-sundown ${INSTALL_TEXT_CMODULES}"
-  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} test-sundown"
+  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} sundown"
 fi
 
 ### exif (extract metadata from image files)
@@ -1918,7 +1921,7 @@ if test "$with_exif" = "yes"; then
   AC_CHECK_HEADERS(libexif/exif-data.h)
   GRAPHICS_CMODULES="lib/kno/exif.$shared_suffix ${GRAPHICS_CMODULES}"
   INSTALL_GRAPHICS_CMODULES="install-exif ${INSTALL_GRAPHICS_CMODULES}"
-  TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} test-exif"
+  TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} exif"
 else
   missing="curl ${missing}"
 fi
@@ -1940,7 +1943,7 @@ if (test "$with_qrcode" = "yes"); then
        (test "$libpng_ok" = "yes") && (test "$qrcode_ok" = "yes") ); then
     GRAPHICS_CMODULES="lib/kno/qrcode.$shared_suffix ${GRAPHICS_CMODULES}"
     INSTALL_GRAPHICS_CMODULES="install-qrcode ${INSTALL_GRAPHICS_CMODULES}"
-    TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} test-qrencode"
+    TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} qrencode"
   else			    
     missing="qrcode ${missing}"
   fi;

@@ -106,7 +106,7 @@ all_tests alltests: tidy
 	make cmdtests
 	@${header} "■■■■■■■■ Done with alltests"
 
-libtests: scheme optscheme cmodtests slotmaps tables pools indexes db
+libtests: scheme optscheme cmodules slotmaps tables pools indexes db
 cmdtests:
 	@echo "# ■■■■■■■■ Running command line tests ${RUNCONF}"
 	@echo "# ■■■ Various stderr log messages or termination warnings are normal"
@@ -114,11 +114,10 @@ cmdtests:
 
 static-tests: schemetests optscheme loadmods optmods slotmaps tables pools indexes db
 schemetest schemetests scheme: r4rs exceptions choices sequences breaks numvecs regex \
-	reflect hashsets \
+	reflect hashsets ffi \
 	picktest cachecall texttools webtools timefns sysprims startup stringprims \
 	threads i18n misc gctests profiling \
 	fileprims xml
-cmodtests: crypto
 optscheme:
 	@${header} "■■■■■■■■ Running optimized scheme tests ${RUNCONF}"
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes r4rs.scm ${RUNCONF}
@@ -208,6 +207,9 @@ reflect:
 breaks breaktests:
 	@${RUN} ${KNOX} breaktests.scm ${RUNCONF}
 	@${header} "■■■■ Completed breaks tests ${RUNCONF}"
+ffi:
+	@${RUN} ${KNOX} ffi.scm ${RUNCONF}
+	@${header} "■■■■ Completed FFI tests ${RUNCONF}"
 i18n:
 	@${RUN} ${KNOX} i18n.scm ${RUNCONF}
 	@${header} "■■■■ Completed i18n tests ${RUNCONF}"
@@ -229,9 +231,6 @@ profiling profiletest:
 xml xmltest:
 	@${RUN} ${KNOX} xmltest.scm ${RUNCONF}
 	@${header} "■■■■ Completed xml tests ${RUNCONF}"
-crypto cryptotest:
-	@${RUN} ${KNOX} cryptotest.scm ${RUNCONF}
-	@${header} "■■■■ Completed crypto tests ${RUNCONF}"
 
 temptest:
 	@${RUN} ${KNOX} temptest.scm ${RUNCONF}
@@ -803,34 +802,38 @@ optscheme_leaktest:
 
 # CMODULE tests
 
-test-cmodules: test-core-cmodules test-text-cmodules test-db-cmodules test-graphics-cmodules
+cmodules: core-cmodules text-cmodules db-cmodules graphics-cmodules archive-cmodules
 
-test-core-cmodules: @TEST_CMODULES@
-test-text-cmodules: @TEST_TEXT_CMODULES@
-test-db-cmodules: @TEST_DB_CMODULES@
-test-graphics-cmodules: @TEST_DB_CMODULES@
+core-cmodules: @TEST_CORE_CMODULES@
+text-cmodules: @TEST_TEXT_CMODULES@
+db-cmodules: @TEST_DB_CMODULES@
+graphics-cmodules: @TEST_DB_CMODULES@
+archive-cmodules: @TEST_ARCHIVE_CMODULES@
 
-
-test-zeromq:
+zeromq:
 	@${RUN} ${KNOX} zeromq.scm ${RUNCONF}
 	@${header} "■■■■ Completed ZeroMQ tests ${RUNCONF}"
 
-test-sqlite:
-test-mongodb:
-test-mysql:
-test-odbc:
+sqlite:
+mongodb:
+mysql:
+odbc:
 
-test-leveldb:
-test-rocksdb:
+leveldb:
+rocksdb:
 
-test-imagick:
-test-exif:
-test-qrcode:
+imagick:
+exif:
+qrcode:
 
-test-zlib:
-test-ziptools:
-test-libarchive:
+zlib:
+ziptools:
+libarchive:
 
-test-tidy:
-test-sundown:
-test-hyphenate:
+tidy:
+sundown:
+hyphenate:
+
+crypto cryptotest:
+	@${RUN} ${KNOX} cryptotest.scm ${RUNCONF}
+	@${header} "■■■■ Completed crypto tests ${RUNCONF}"

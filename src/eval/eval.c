@@ -1885,7 +1885,7 @@ static lispval choiceref_prim(lispval arg,lispval off)
 /* FFI */
 
 #if KNO_ENABLE_FFI
-static lispval ffi_proc_helper(int err,int n,lispval *args)
+static lispval ffi_proc(int n,lispval *args)
 {
   lispval name_arg = args[0], filename_arg = args[1];
   lispval return_type = args[2];
@@ -1895,25 +1895,16 @@ static lispval ffi_proc_helper(int err,int n,lispval *args)
     (NULL);
   if (!(name))
     return kno_type_error("String","ffi_proc/name",name_arg);
-  else if (!((STRINGP(filename_arg))||(FALSEP(filename_arg))))
+  else if (!( (STRINGP(filename_arg)) || (FALSEP(filename_arg)) ))
     return kno_type_error("String","ffi_proc/filename",filename_arg);
   else {
     struct KNO_FFI_PROC *fcn=
       kno_make_ffi_proc(name,filename,n-3,return_type,args+3);
     if (fcn)
       return (lispval) fcn;
-    else {
-      kno_clear_errors(1);
-      return KNO_FALSE;}}
+    else return KNO_ERROR;}
 }
-static lispval ffi_proc(int n,lispval *args)
-{
-  return ffi_proc_helper(1,n,args);
-}
-static lispval ffi_probe(int n,lispval *args)
-{
-  return ffi_proc_helper(0,n,args);
-}
+
 static lispval ffi_found_prim(lispval name,lispval modname)
 {
   void *module=NULL, *sym=NULL;
@@ -2139,11 +2130,10 @@ static void init_localfns()
             "Information about the build and startup environment");
 
   kno_idefn(kno_xscheme_module,kno_make_cprimn("FFI/PROC",ffi_proc,3));
-  kno_idefn(kno_xscheme_module,kno_make_cprimn("FFI/PROBE",ffi_probe,3));
   kno_idefn(kno_xscheme_module,
            kno_make_cprim2x("FFI/FOUND?",ffi_found_prim,1,
-                           kno_string_type,VOID,
-                           kno_string_type,VOID));
+                            kno_string_type,VOID,
+                            -1,VOID));
 
   kno_register_config
     ("TAILCALL",
