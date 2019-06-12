@@ -950,6 +950,7 @@ KNO_EXPORT void lispval_sort(lispval *v,size_t n,kno_compare_flags flags);
 #if KNO_SOURCE
 #define VOID       (KNO_VOID)
 #define VOIDP(x)   (KNO_VOIDP(x))
+#define DEFAULTP(x) (KNO_DEFAULTP(x))
 #define EMPTY      (KNO_EMPTY_CHOICE)
 #define EMPTYP(x)  (KNO_EMPTY_CHOICEP(x))
 #define EXISTSP(x) (! (KNO_EMPTY_CHOICEP(x)) )
