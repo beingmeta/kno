@@ -1944,6 +1944,8 @@ lcov_html: staging/lcov/index.html
 
 .PHONY: lcov_html
 
+.PRECIOUS: %.gcda %.gcno
+
 # DIY rules
 
 mongodb.bundled: include/bson include/mongoc lib/libbson.a lib/libmongoc.a

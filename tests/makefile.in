@@ -83,6 +83,8 @@ default: alltests
 fresh: clean
 	make alltests
 
+.PRECIOUS: %.gcda %.gcno
+
 # Clean targets
 
 clean: tidy
@@ -103,6 +105,7 @@ tidy testclean cleantests cleantest:
 all_tests alltests: tidy
 	make libtests
 	make optimize_modules
+	make cmodule_tests
 	make cmdtests
 	@${header} "■■■■■■■■ Done with alltests"
 
