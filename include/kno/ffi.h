@@ -37,6 +37,7 @@ KNO_EXPORT u8_condition kno_ffi_BadTypeinfo;
 KNO_EXPORT u8_condition kno_ffi_BadABI;
 KNO_EXPORT u8_condition kno_ffi_FFIError;
 KNO_EXPORT u8_condition kno_ffi_NoFunction;
+KNO_EXPORT u8_condition kno_FFI_TypeError;
 
 #endif
 

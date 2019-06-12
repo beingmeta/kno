@@ -2,7 +2,7 @@
 
 (load "common.scm")
 
-(applytest #f ffi/probe "kumquat_lime" #f 'int 'int)
+(applytest #f ffi/found? "kumquat_lime" #f)
 
 (define ipi (ffi/proc "ffitest_ipi" #f 'long 'int 'int))
 (define sps (ffi/proc "ffitest_sps" #f 'int 'short 'short))
@@ -22,9 +22,14 @@
 (errtest (ipi 3 3.14))
 (errtest (ipi 3 (1+ (* 4 1024 1024 1024))))
 
+(define ffi_time (ffi/proc "time" #f 'time_t #[basetype ptr nullable #t]))
+(applytest #t timestamp? (ffi_time #f))
+
+(define ffi_elapsed (ffi/proc "u8_elapsed_time" #f 'double))
+(applytest? flonum? ffi_elapsed)
+
 (define ffi_getenv (ffi/proc "getenv" #f #[basetype ptr typespec envstring] 'string))
-(define ffi_strdup (ffi/proc "_u8_strdup" #f 'string #[basetype ptr typespec envstring]))
+(define ffi_strdup (ffi/proc "_u8_strdup" #f #[basetype string mallocd #t] #[basetype ptr typespec envstring]))
 
 (when (getenv "USER")
   (applytest (getenv "USER") ffi_strdup (ffi_getenv "USER")))
-
