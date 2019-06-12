@@ -92,7 +92,10 @@ static int config_failed_tests_set(lispval var,lispval val,void *data)
   return 1;
 }
 
-static lispval applytest_inner(int n,lispval *args)
+#define USE_EQUAL_TEST 0
+#define USE_PREDICATE_TEST 1
+
+static lispval applytest_inner(int n,lispval *args,int predtest)
 {
   if (n<2)
     return kno_err(kno_TooFewArgs,"applytest",NULL,VOID);
@@ -112,6 +115,24 @@ static lispval applytest_inner(int n,lispval *args)
       u8_close_output(&out);
       kno_decref(value);
       return err;}
+    else if (predtest) {
+      lispval comparision = (VOIDP(value)) ?
+        (kno_apply(args[0],0,NULL)) :
+        (kno_apply(args[0],1,&value));
+      if (KNO_ABORTP(comparision))
+        return comparision;
+      else if (KNO_FALSEP(comparision)) {
+        struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
+        u8_printf(&out,"Unexpected result from %q didn't pass %q:",
+                  args[1],args[0]);
+        u8_printf(&out,"\n	%q",value);
+        lispval err = kno_err(TestFailed,"applytest",out.u8_outbuf,value);
+        u8_close_output(&out);
+        kno_decref(value);
+        return err;}
+      else {
+        kno_decref(value);
+        return KNO_TRUE;}}
     else if (test_match(value,args[0])) {
       kno_decref(value);
       return KNO_TRUE;}
@@ -148,7 +169,25 @@ static lispval applytest_inner(int n,lispval *args)
 
 static lispval applytest(int n,lispval *args)
 {
-  lispval v = applytest_inner(n,args);
+  lispval v = applytest_inner(n,args,USE_EQUAL_TEST);
+  if (KNO_ABORTP(v)) {
+    if ( (KNO_VOIDP(log_testfail)) || (KNO_FALSEP(log_testfail)) )
+      return v;
+    else {
+      u8_exception ex = u8_erreify();
+      if (ex->u8x_cond == TestFailed)
+	u8_log(LOG_CRIT,TestFailed,"In applytest:\n %s",ex->u8x_details);
+      else u8_log(LOG_CRIT,TestError,"In applytest:\n %s",ex->u8x_details);
+      add_failed_test(kno_get_exception(ex));
+      u8_free_exception(ex,LEAVE_EXSTACK);
+      kno_clear_errors(1);
+      return KNO_FALSE;}}
+  else return v;
+}
+
+static lispval applytestp(int n,lispval *args)
+{
+  lispval v = applytest_inner(n,args,USE_PREDICATE_TEST);
   if (KNO_ABORTP(v)) {
     if ( (KNO_VOIDP(log_testfail)) || (KNO_FALSEP(log_testfail)) )
       return v;
@@ -278,6 +317,8 @@ KNO_EXPORT void kno_init_eval_testops_c()
 
   kno_idefn(kno_scheme_module,
 	   kno_make_ndprim(kno_make_cprimn("APPLYTEST",applytest,2)));
+  kno_idefn(kno_scheme_module,
+	   kno_make_ndprim(kno_make_cprimn("APPLYTEST?",applytestp,2)));
   kno_def_evalfn(kno_scheme_module,"EVALTEST",
 		 "`(EVALTEST *expected* *expr*)` evalutes *expr* and checks "
 		 "if it is EQUAL? to *expected*. If so it does nothing, "
