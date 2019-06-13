@@ -2789,7 +2789,8 @@ static int hash_numeric_vector(lispval x,unsigned int (*fn)(lispval))
     double reformed=
       ((exp<0) ? (ldexpf(mantissa,0)) : (ldexpf(mantissa,exp)));
     int asint = (int)reformed;
-    hashval = hash_combine(hashval,asint);}
+    hashval = hash_combine(hashval,asint);
+    i++;}
   return hashval;
 }
 
