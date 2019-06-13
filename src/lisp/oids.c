@@ -136,6 +136,7 @@ KNO_EXPORT u8_string kno_oid2string(lispval oidval,u8_byte *buf,ssize_t len)
 
 /* B32 representation */
 
+#if 0
 static char b32_chars[32]="0123456789abcdefghjkmnpqrtuvwxyz";
 static char b32_weights[]=
   {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
@@ -201,6 +202,8 @@ KNO_EXPORT long long kno_b32_to_longlong(const char *digits)
   if ((err)||(xsum<0)) return -1;
   else return xsum;
 }
+
+#endif
 
 /* Zero pool OIDs */
 

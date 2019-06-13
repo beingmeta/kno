@@ -2954,6 +2954,7 @@ static lispval oidhex_prim(lispval oid,lispval base_arg)
   return kno_make_string(NULL,-1,u8_uitoa16(offset,buf));
 }
 
+#if 0
 static lispval oidb32_prim(lispval oid,lispval base_arg)
 {
   char buf[64]; int offset, buflen = 64;
@@ -2977,6 +2978,7 @@ static lispval oidb32_prim(lispval oid,lispval base_arg)
   kno_ulonglong_to_b32(offset,buf,&buflen);
   return kno_make_string(NULL,buflen,buf);
 }
+#endif
 
 static lispval oidplus(KNO_OID base,int delta)
 {
@@ -3006,6 +3008,7 @@ static lispval hex2oid_prim(lispval arg,lispval base_arg)
   else return kno_type_error("pool id","hex2oid_prim",base_arg);
 }
 
+#if 0
 static lispval b32oid_prim(lispval arg,lispval base_arg)
 {
   long long offset;
@@ -3030,6 +3033,7 @@ static lispval b32oid_prim(lispval arg,lispval base_arg)
     else return kno_type_error("pool id","hex2oid_prim",base_arg);}
   else return kno_type_error("pool id","hex2oid_prim",base_arg);
 }
+#endif
 
 static lispval oidaddr_prim(lispval oid)
 {
@@ -3669,6 +3673,7 @@ KNO_EXPORT void kno_init_dbprims_c()
            kno_make_cprim2x("HEX->OID",hex2oid_prim,2,
                            -1,VOID,-1,VOID));
 
+#if 0
   kno_idefn(kno_scheme_module,
            kno_make_cprim2x("OID/B32",oidb32_prim,1,
                            kno_oid_type,VOID,
@@ -3676,7 +3681,7 @@ KNO_EXPORT void kno_init_dbprims_c()
   kno_idefn(kno_scheme_module,
            kno_make_cprim2x("B32/OID",b32oid_prim,2,
                            -1,VOID,-1,VOID));
-
+#endif
 
   kno_idefn(kno_scheme_module,
            kno_make_cprim6x("MAKE-MEMPOOL",make_mempool,2,
