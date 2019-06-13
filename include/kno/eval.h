@@ -14,6 +14,8 @@
 #include "kno/lexenv.h"
 #include "kno/apply.h"
 #include "kno/threads.h"
+
+#include <libu8/u8printf.h>
 #include <assert.h>
 
 KNO_EXPORT u8_condition kno_UnboundIdentifier, kno_BindError;
@@ -244,10 +246,11 @@ KNO_FASTOP lispval fastget(lispval table,lispval key)
     return kno_hashtable_get((kno_hashtable)table,key,KNO_UNBOUND);
   default: return kno_get(table,key,KNO_UNBOUND);}
 }
-KNO_FASTOP lispval kno_lexref(lispval lexref,kno_lexenv env)
+KNO_FASTOP lispval kno_lexref(lispval lexref,kno_lexenv env_arg)
 {
   int code = KNO_GET_IMMEDIATE(lexref,kno_lexref_type);
   int up = code/32, across = code%32;
+  kno_lexenv env = env_arg;
   while ((env) && (up)) {
     if (env->env_copy) env = env->env_copy;
     env = env->env_parent; up--;}
@@ -256,8 +259,13 @@ KNO_FASTOP lispval kno_lexref(lispval lexref,kno_lexenv env)
     lispval bindings = env->env_bindings;
     if (KNO_EXPECT_TRUE(KNO_SCHEMAPP(bindings))) {
       struct KNO_SCHEMAP *s = (struct KNO_SCHEMAP *)bindings;
-      return kno_incref(s->schema_values[across]);}}
-  return kno_err("Bad lexical reference","kno_lexref",NULL,KNO_VOID);
+      if ( across < s->schema_length)
+        return kno_incref(s->schema_values[across]);}}
+  lispval env_ptr = (lispval) env_arg;
+  u8_byte errbuf[64];
+  return kno_err("Bad lexical reference","kno_lexref",
+                 u8_bprintf(errbuf,"up=%d,across=%d",up, across),
+                 ((KNO_STATICP(env_ptr)) ? KNO_FALSE : (env_ptr)));
 }
 KNO_FASTOP lispval kno_symeval(lispval symbol,kno_lexenv env)
 {
