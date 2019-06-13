@@ -770,8 +770,8 @@ static lispval thread_ref_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
 static lispval hashptr_prim(lispval x)
 {
   unsigned long long intval = (unsigned long long)x;
-  if ((intval<KNO_MAX_FIXNUM)&&(intval>KNO_MIN_FIXNUM))
-    return FIX2INT(((int)intval));
+  if (intval<KNO_MAX_FIXNUM)
+    return KNO_INT2FIX(intval);
   else return (lispval)kno_ulong_long_to_bigint(intval);
 }
 
