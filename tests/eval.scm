@@ -332,6 +332,10 @@
 (errtest #.(3 4 (+ 4 "one")))
 (errtest #.[foo (+ 2 "one") bar (+ (* 2 2) 1)])
 
+;;; Other cases
+
+(define (return-void) (void))
+(applytest 'void return-void)
 
 (test-finished "EVALTEST")
 

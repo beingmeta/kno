@@ -55,6 +55,7 @@
     (applytest #t thread? threads)
     (applytest #t exists? (config 'ALLTHREADS))
     (set+! threads (spawn (addrange 0)))
+    (applytest? string lisp->string (pick-one threads))
     (thread/join threads)
     (applytest 20 length numbers)
     (applytest #f check-ordered numbers)
@@ -96,22 +97,24 @@
 (define num #f)
 (define numlock (make-condvar))
 
-(define (change-num (n (nrandom 1)))
+(applytest? string? lisp->string numlock)
+
+(define (change-num numlock (n (nrandom 1)))
   (sync/lock! numlock)
   (set! num n)
   (unwind-protect (evaltest n num)
     (sync/release! numlock)))
 
-(define (change-num-with-lock (n (nrandom 1)))
+(define (change-num-with-lock numlock (n (nrandom 1)))
   (with-lock numlock
     (set! num n)
     (sleep 2)
     (evaltest n num)))
 
-(define (test-synchro-locks (nthreads 8))
-  (thread/wait! (thread/call change-num (nrandom))))
+(define (test-synchro-locks (numlock (make-mutex)) (nthreads 8))
+  (thread/wait! (thread/call change-num numlock (nrandom))))
 (define (test-with-lock (lock (make-mutex)) (nthreads 8))
-  (thread/wait! (thread/call change-num-with-lock (nrandom))))
+  (thread/wait! (thread/call change-num-with-lock numlock (nrandom))))
 
 ;;;; Test fluid variables
 
@@ -219,6 +222,7 @@
 
   (applytest {} (find-thread 0))
   (applytest #f (find-thread 0 #f))
+  (applytest #f (find-thread 1))
   (errtest (find-thread 0 #t))
   (applytest #f condvar? 3)
   (applytest #t condvar? condvar)
@@ -233,7 +237,11 @@
   (applytest #t synchronizer? change-slambda-test-value)
   (applytest #f thread? 3)
 
-  ;;; This doesn't seem to be working right
+  (applytest? string? lisp->string condvar)
+  (applytest? string? lisp->string mutex)
+  (applytest? string? lisp->string rwlock)
+  
+    ;;; This doesn't seem to be working right
   
   (evaltest {"foofoo" "barbar" "carcar"}
 	    (thread/finish (thread/call doubleup {"foo" "bar" "car"})))
@@ -259,7 +267,7 @@
     (applytest #t thread/error? error-thread)
     (applytest #t exception? (thread/result error-thread))
     (applytest #t vector? (ex/stack (thread/result error-thread))))
-    
+  
   (test-synchro-locks)
   (test-with-lock)
   (test-with-lock (make-rwlock))
