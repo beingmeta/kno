@@ -35,3 +35,5 @@
 (applytest #t empty-string? "")
 (applytest #t empty-string? " ")
 (applytest #t empty-string? " \t ")
+
+(test-finished "FILEPRIMS")

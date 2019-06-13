@@ -117,8 +117,20 @@
 
 (define (doubleup string)
   (thread/set! 'thstring string)
+  (errtest (thread/set! "thstring" string))
   (sleep 2)
   (prog1 (glom (thread/get 'thstring) string)
+    (applytest #t thread/bound? 'thstring)
+    (applytest #f thread/bound? 'nothstring)
+    (evaltest string (thread/ref 'thstring #f))
+    (evaltest string (thread/ref 'thstring (+ 3 'x)))
+    (applytest #f thread/bound? 'alpha)
+    (applytest {} thread/get 'alpha)
+    (evaltest "here" (thread/ref 'alpha "here"))
+    (applytest #t thread/bound? 'alpha)
+    (applytest "here" thread/get 'alpha)
+    (errtest (thread/ref 33))
+    (errtest (thread/ref 33 39))
     (thread/reset-vars!)))
 
 ;;;; We don't run this because we can't easily ignore the failed tests

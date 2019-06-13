@@ -5,12 +5,18 @@ if test $# -eq 0; then
    exit;
 fi
 PROGNAME=$1; shift;
-LOGFILE=$$.log
+LOGFILE=${USELOG:-$$.log}
 LOGTIME=t$$.elapsed
-KEEPTIMES=yes
+KEEPTIMES=no
 KEEPLOGS=no
 COMBOLOG=success.log
 
+if [ ! -z "${DEBUGGING}" ]; then
+    echo "Testing: @test_env@ ${PROGNAME} $* LOGTIME=${LOGTIME} > ${LOGFILE}";
+    echo "$$ ${PROGNAME} $* > ${LOGFILE}" >> alltests.log
+    echo "$$ ${PROGNAME} $* > ${LOGFILE}" > $$.cmd
+fi;
+    
 if test ! -z ${PREAMBLE}; then
    echo "TEST: " ${PROGNAME} $*;
 fi;
@@ -31,7 +37,7 @@ if test -f ${LOGTIME}; then
     TIMING=$(awk '{ print $2}' ${LOGTIME});
     printf "%f\t %s\n" ${TIMING} "${PROGNAME} $*" >> timing.log
     if [ "${KEEPTIMES}" = "no" ]; then
-	rm ${LOGTIME};
+	rm -f ${LOGTIME};
     fi;
 else
     TIMING=untimed;
@@ -39,17 +45,21 @@ fi;
 
 # Save the log file
 printf "# TEST: %s\t(t%d) (%ssecs)\n" "${PROGNAME} $*" "$$" "${TIMING}" >> ${COMBOLOG}
-cat ${LOGFILE} >> ${COMBOLOG}
+if [ -f ${LOGFILE} ]; then
+    if [ ! -z "${DEBUGGING}" ]; then
+	cat ${LOGFILE} >> ${COMBOLOG} || echo "Log file ${LOGFILE} has disappeared";
+    else
+	cat ${LOGFILE} >> ${COMBOLOG} || true;
+    fi;
+    if [ "$SUCCESS" = "no" ]; then
+	printf "Log file in %s\n" "${LOGFILE}";
+    elif [ "$KEEPLOGS" = "no" ]; then
+	rm -f ${LOGFILE};
+    fi;
+elif [ ! -z "${DEBUGGING}" ]; then
+    echo "Warning, log file ${LOGFILE} doesn't exist for ($MSG) test $*";
+fi;
 
 # Output the result message
 printf "%s: (%s) (t%d)\t%s\n" "$MSG" "$TIMING" "$$" "${PROGNAME} $*";
-
-# Deal with the log file
-if [ "$SUCCESS" = "no" ]; then
-    printf "Log file in %s\n" "${LOGFILE}";
-    exit 17
-elif [ "$KEEPLOGS" = "no" ]; then
-    rm ${LOGFILE};
-fi;
-
     

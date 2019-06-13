@@ -116,10 +116,10 @@
 
 (applytest #t secret? s1)
 (applytest #t secret? s2)
-(applytest #t secret? "foo")
-(applytest #t secret? 3)
-(applytest #t secret? #(a b c))
-(applytest #t secret? '(a b c))
+(applytest #f secret? "foo")
+(applytest #f secret? 3)
+(applytest #f secret? #(a b c))
+(applytest #f secret? '(a b c))
 
 (applytest 2 length p1)
 (applytest 16 length p2)

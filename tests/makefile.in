@@ -58,7 +58,7 @@ LEAKCONF	= @leaktest_config@
 RUN		= ${TEST_ENV} ${TESTPROG}
 MEMTEST		= ${TEST_ENV} ${MEMTEST_ENV} ${MEMTESTER:-${TESTPROG}}
 LEAKTEST	= ${TEST_ENV} ${LEAKTEST_ENV} ${LEAKTESTER:-${TESTPROG}}
-FRAMETEST_FILES	= r4rs.scm misctest.scm seqtest.scm choicetest.scm frametest.scm
+FRAMEDB_FILES	= r4rs.scm misctest.scm sequences.scm choices.scm framedb.scm
 TESTBASE	= tmptest
 TESTFILE	= ${TESTBASE}.file
 KNOX		= ../dbg/knox
@@ -105,17 +105,16 @@ tidy testclean cleantests cleantest:
 all_tests alltests: tidy
 	make libtests
 	make optimize_modules
-	make cmodule_tests
 	make cmdtests
 	@${header} "■■■■■■■■ Done with alltests"
 
-libtests: scheme optscheme cmodules slotmaps tables pools indexes db
+libtests: scheme optscheme cmodules slotmaps tables pools indexes framedbs
 cmdtests:
 	@echo "# ■■■■■■■■ Running command line tests ${RUNCONF}"
 	@echo "# ■■■ Various stderr log messages or termination warnings are normal"
 	make execscripts chainscripts batchscripts chained_batchscripts utilscripts
 
-static-tests: schemetests optscheme loadmods optmods slotmaps tables pools indexes db
+static-tests: schemetests optscheme loadmods optmods slotmaps tables pools indexes framedbs
 schemetest schemetests scheme: r4rs exceptions choices sequences breaks numvecs regex \
 	reflect hashsets eval ffi \
 	picktest cachecall texttools webtools timefns sysprims startup stringprims \
@@ -124,8 +123,8 @@ schemetest schemetests scheme: r4rs exceptions choices sequences breaks numvecs 
 optscheme:
 	@${header} "■■■■■■■■ Running optimized scheme tests ${RUNCONF}"
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes r4rs.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes choicetest.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes seqtest.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes choices.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes sequences.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes misctest.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz"
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes reflect.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes exceptions.scm ${RUNCONF}
@@ -134,13 +133,13 @@ optscheme:
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes timefns.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes sysprims.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes i18n.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes fileprimtest.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes fileprims.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes numvecs.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes regex.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes threadtest.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes threads.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes gctests.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes xmltest.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes texttest.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes xml.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes texttools.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes eval.scm ${RUNCONF}
 	@${header} "■■■■■■■■ Completed optimized scheme tests ${RUNCONF}"
 
@@ -164,10 +163,10 @@ exceptions:
 	@${RUN} ${KNOX} exceptions.scm ${RUNCONF}
 	@${header} "■■■■ Completed exceptions tests ${RUNCONF}"
 choices choicetest:
-	@${RUN} ${KNOX} choicetest.scm ${RUNCONF}
+	@${RUN} ${KNOX} choices.scm ${RUNCONF}
 	@${header} "■■■■ Completed choices tests ${RUNCONF}"
 sequences seqtest:
-	@${RUN} ${KNOX} seqtest.scm ${RUNCONF}
+	@${RUN} ${KNOX} sequences.scm ${RUNCONF}
 	@${header} "■■■■ Completed sequences tests ${RUNCONF}"
 numvecs:
 	@${RUN} ${KNOX} numvecs.scm ${RUNCONF}
@@ -191,10 +190,10 @@ cachecall:
 	@${RUN} ${KNOX} cachecall.scm ${RUNCONF}
 	@${header} "■■■■ Completed cachecall tests ${RUNCONF}"
 texttools texttest:
-	@${RUN} ${KNOX} texttest.scm ${RUNCONF}
+	@${RUN} ${KNOX} texttools.scm ${RUNCONF}
 	@${header} "■■■■ Completed texttools tests ${RUNCONF}"
 webtools webtoolstest:
-	@${RUN} ${KNOX} webtoolstest.scm ${RUNCONF}
+	@${RUN} ${KNOX} webtools.scm ${RUNCONF}
 	@${header} "■■■■ Completed webtools tests ${RUNCONF}"
 stringprims:
 	@${RUN} ${KNOX} stringprims.scm ${RUNCONF}
@@ -209,7 +208,7 @@ startup:
 	@${RUN} ${KNOX} CONFIG=../dbg/startup.cfg startup.scm ${RUNCONF}
 	@${header} "■■■■ Completed startup tests ${RUNCONF}"
 threads threadtest:
-	@${RUN} ${KNOX} threadtest.scm ${RUNCONF}
+	@${RUN} ${KNOX} threads.scm ${RUNCONF}
 	@${header} "■■■■ Completed threads tests ${RUNCONF}"
 reflect:
 	@${RUN} ${KNOX} reflect.scm ${RUNCONF}
@@ -223,11 +222,11 @@ ffi:
 i18n:
 	@${RUN} ${KNOX} i18n.scm ${RUNCONF}
 	@${header} "■■■■ Completed i18n tests ${RUNCONF}"
-fileprims fileprimtest fileprimstest:
+fileprims:
 	@if test ! -f ../data/private.text; then				\
 	echo "!!! Warning: no protected files for testing file prims";	\
 	fi
-	@${RUN} ${KNOX} fileprimtest.scm ${RUNCONF}
+	@${RUN} ${KNOX} fileprims.scm ${RUNCONF}
 	@${header} "■■■■ Completed fileprim tests ${RUNCONF}"
 misc misctest:
 	@${RUN} ${KNOX} misctest.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz"
@@ -235,11 +234,11 @@ misc misctest:
 gctests:
 	@${RUN} ${KNOX} gctests.scm ${RUNCONF}
 	@${header} "■■■■ Completed GC tests ${RUNCONF}"
-profiling profiletest:
-	@${RUN} ${KNOX} profiletest.scm ${RUNCONF}
+profiling profiler:
+	@${RUN} ${KNOX} profiler.scm ${RUNCONF}
 	@${header} "■■■■ Completed GC tests ${RUNCONF}"
 xml xmltest:
-	@${RUN} ${KNOX} xmltest.scm ${RUNCONF}
+	@${RUN} ${KNOX} xml.scm ${RUNCONF}
 	@${header} "■■■■ Completed xml tests ${RUNCONF}"
 
 temptest:
@@ -267,7 +266,7 @@ storagebase:
 	@${header} "■■■■■■■■ Running pool tests ${TESTBASE} ${RUNCONF}"
 	${RUN} ${KNOX} storage.scm
 
-storage: storagebase pooltest indextest frametest
+storage: storagebase pooltest indextest framedb
 
 # Pool tests
 
@@ -418,65 +417,65 @@ indextests indexes: fileindexes hashindexes memindexes
 
 # Database/frames test
 
-frametest:
+framedb:
 	@${header} "■■■■■■■■ Running frame/database tests, ${TESTBASE} ${TESTSIZE} ${RUNCONF}";
 	rm -rf ${TESTBASE}db.pool ${TESTBASE}db.index
-	@${RUN} ${KNOX} frametest.scm ${TESTBASE}db init \
-		COUNT=${TESTSIZE} ${FRAMETEST_FILES} \
+	@${RUN} ${KNOX} framedb.scm ${TESTBASE}db init \
+		COUNT=${TESTSIZE} ${FRAMEDB_FILES} \
 		${RUNCONF};
-	@${RUN} ${KNOX} frametest.scm ${TESTBASE}db COUNT=${TESTSIZE} ${RUNCONF};
-	@${RUN} ${KNOX} frametest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
+	@${RUN} ${KNOX} framedb.scm ${TESTBASE}db COUNT=${TESTSIZE} ${RUNCONF};
+	@${RUN} ${KNOX} framedb.scm ${TESTBASE}db COUNT=${TESTSIZE} \
 		 ${RUNCONF} CACHELEVEL=2;
-	@${RUN} ${KNOX} frametest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
+	@${RUN} ${KNOX} framedb.scm ${TESTBASE}db COUNT=${TESTSIZE} \
 		 ${RUNCONF} CACHELEVEL=3;
 	@${header} "■■■■■■■■ Testing database creation with CACHELEVEL=2";
-	@${RUN} ${KNOX} frametest.scm ${TESTBASE}db init COUNT=${TESTSIZE} 	\
-		${FRAMETEST_FILES} ${RUNCONF} CACHELEVEL=2;
-	@${RUN} ${KNOX} frametest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
+	@${RUN} ${KNOX} framedb.scm ${TESTBASE}db init COUNT=${TESTSIZE} 	\
+		${FRAMEDB_FILES} ${RUNCONF} CACHELEVEL=2;
+	@${RUN} ${KNOX} framedb.scm ${TESTBASE}db COUNT=${TESTSIZE} \
 		 ${RUNCONF} CACHELEVEL=2;
-	@${RUN} ${KNOX} frametest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
+	@${RUN} ${KNOX} framedb.scm ${TESTBASE}db COUNT=${TESTSIZE} \
 		 ${RUNCONF} CACHELEVEL=3;
 	@${header} "■■■■■■■■ Finished frame/database tests, ${TESTBASE} ${TESTSIZE} ${RUNCONF} ■■■■■■■■■■■■■■■■";
 
-frametest_base:
-	@make TESTBASE=testdb RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40}" frametest
-frametest_aggregate:
-	@make TESTBASE=agg RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40} AGGINDEX=yes" frametest
-frametest_keyslot:
-	@make TESTBASE=slotindex RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40} SEPINDEX=FILENAME" frametest
-frametest_keyslots:
-	@make TESTBASE=slotindex RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40} SEPINDEX=FILENAME SEPINDEX=IN-FILE^CONTEXT" frametest
-frametest_bigpool32:
-	@make TESTBASE=tmpbigpool32 RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB32}" frametest
-frametest_bigpool40:
-	@make TESTBASE=tmpbigpool40 RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40}" frametest
-frametest_bigpool64:
-	@make TESTBASE=tmpbigpool64 RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB64}" frametest
-frametest_fileindex:
-	@make TESTBASE=tmpfileindex RUNCONF="${BIGPOOL} ${FILEINDEX} ${OFFB40}" frametest
-frametest_memindex:
-	@make TESTBASE=tmpmemindex RUNCONF="${BIGPOOL} ${MEMINDEX} ${OFFB40}" frametest
-frametest_oidpool32:
-	@make TESTBASE=tmpoidpool32 RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB32}" frametest
-frametest_oidpool40:
-	@make TESTBASE=tmpoidpool40 RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB40}" frametest
-frametest_oidpool64:
-	@make TESTBASE=tmpoidpool64 RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB64}" frametest
-frametest_consindex:
-	@make TESTBASE=tmpbigpool40cx RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40} CONSINDEX=yes" frametest
+framedb_base:
+	@make TESTBASE=testdb RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40}" framedb
+framedb_aggregate:
+	@make TESTBASE=agg RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40} AGGINDEX=yes" framedb
+framedb_keyslot:
+	@make TESTBASE=slotindex RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40} SEPINDEX=FILENAME" framedb
+framedb_keyslots:
+	@make TESTBASE=slotindex RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40} SEPINDEX=FILENAME SEPINDEX=IN-FILE^CONTEXT" framedb
+framedb_bigpool32:
+	@make TESTBASE=tmpbigpool32 RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB32}" framedb
+framedb_bigpool40:
+	@make TESTBASE=tmpbigpool40 RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40}" framedb
+framedb_bigpool64:
+	@make TESTBASE=tmpbigpool64 RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB64}" framedb
+framedb_fileindex:
+	@make TESTBASE=tmpfileindex RUNCONF="${BIGPOOL} ${FILEINDEX} ${OFFB40}" framedb
+framedb_memindex:
+	@make TESTBASE=tmpmemindex RUNCONF="${BIGPOOL} ${MEMINDEX} ${OFFB40}" framedb
+framedb_oidpool32:
+	@make TESTBASE=tmpoidpool32 RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB32}" framedb
+framedb_oidpool40:
+	@make TESTBASE=tmpoidpool40 RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB40}" framedb
+framedb_oidpool64:
+	@make TESTBASE=tmpoidpool64 RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB64}" framedb
+framedb_consindex:
+	@make TESTBASE=tmpbigpool40cx RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40} CONSINDEX=yes" framedb
 
 
-lvldbframes lvldbframetest:
-	@make TESTBASE=lvldb RUNCONF="POOLTYPE=leveldb INDEXTYPE=leveldb INDEXMOD=leveldb POOLMOD=leveldb" frametest
-rckdbframes rckdbframetest:
-	@make TESTBASE=rckdb RUNCONF="POOLTYPE=rocksdb INDEXTYPE=rocksdb INDEXMOD=rocksdb POOLMOD=rocksdb" frametest
+lvldbframes lvldbframedb:
+	@make TESTBASE=lvldb RUNCONF="POOLTYPE=leveldb INDEXTYPE=leveldb INDEXMOD=leveldb POOLMOD=leveldb" framedb
+rckdbframes rckdbframedb:
+	@make TESTBASE=rckdb RUNCONF="POOLTYPE=rocksdb INDEXTYPE=rocksdb INDEXMOD=rocksdb POOLMOD=rocksdb" framedb
 
-frametests dbtest dbtests db: frametest_base \
-	frametest_bigpool32 frametest_bigpool40 frametest_bigpool64 \
-	frametest_aggregate frametest_keyslot \
-	frametest_fileindex frametest_memindex \
+framedbs: framedb_base \
+	framedb_bigpool32 framedb_bigpool40 framedb_bigpool64 \
+	framedb_aggregate framedb_keyslot \
+	framedb_fileindex framedb_memindex \
 
-.PHONY: frametests frametest dbtest dbtests db
+.PHONY: framedb
 
 # Miscellanous module tests
 
@@ -671,7 +670,7 @@ heaptest memtest memtests: all_memtests
 
 all_memtests: scheme_memtests \
 	slotmap_memtests table_memtests \
-	pool_memtests index_memtests db_memtests \
+	pool_memtests index_memtests framedbs_memtests \
 	crypto_memtests load_modules_memtest
 
 scheme_memtests:
@@ -704,10 +703,10 @@ index_memtests:
 	     TESTSIZE="${SMALLTESTSIZE}" indexes
 	@${header} "■■■■■■■■ Finished heap integrity tests on indexes and index drivers"
 
-frames_memtests db_memtests:
+framedb_memtests:
 	@${header} "■■■■■■■■ Running heap integrity tests on database layers"
 	make TESTPROG="${MEMTESTER}" TEST_ENV="${MEMTEST_ENV}" RUNCONF="${MEMCONF}" \
-	     TESTSIZE="${SMALLTESTSIZE}" db
+	     TESTSIZE="${SMALLTESTSIZE}" framedbs
 	@${header} "■■■■■■■■ Finished heap integrity tests on database layers"
 
 crypto_memtests:
@@ -729,7 +728,7 @@ optimize_modules_memtest:
 
 .PHONY: memtest memtest
 .PHONY:	all_memtests scheme_memtests table_memtests
-.PHONY:	pool_memtests index_memtests db_memtests
+.PHONY:	pool_memtests index_memtests framedbs_memtests
 .PHONY:	crypto_memtests load_modules_memtest
 .PHONY:	optimize_modules_memtest
 
@@ -739,7 +738,7 @@ heaptests heaptest heap leak leaks leaktest leaktests: all_leaktests
 
 all_leaktests: scheme_leaktests \
 	slotmap_leaktests table_leaktests \
-	pool_leaktests index_leaktests db_leaktests \
+	pool_leaktests index_leaktests framedbs_leaktests \
 	crypto_leaktest load_modules_leaktest
 
 scheme_leaktests:
@@ -777,9 +776,9 @@ hashindex_leaktests:
 	make TESTPROG="${LEAKTESTER}" TEST_ENV="${LEAKTEST_ENV}" RUNCONF="${LEAKCONF}" TESTSIZE="${SMALLTESTSIZE}" hashindexes
 	@${header} "■■■■■■■■ Finished leak tests on indexes and index drivers"
 
-frames_leaktest db_leaktests:
+framesdbs_leaktest:
 	@${header} "■■■■■■■■ Running leak tests on database layers"
-	make TESTPROG="${LEAKTESTER}" TEST_ENV="${LEAKTEST_ENV}" RUNCONF="${LEAKCONF}" TESTSIZE="${SMALLTESTSIZE}" db
+	make TESTPROG="${LEAKTESTER}" TEST_ENV="${LEAKTEST_ENV}" RUNCONF="${LEAKCONF}" TESTSIZE="${SMALLTESTSIZE}" framedbs
 	@${header} "■■■■■■■■ Finished leak tests on database layers"
 
 crypto_leaktest:
@@ -806,7 +805,7 @@ optscheme_leaktest:
 
 .PHONY: leaktest leaktest
 .PHONY:	all_leaktest scheme_leaktest table_leaktests
-.PHONY:	pool_leaktests index_leaktests db_leaktests
+.PHONY:	pool_leaktests index_leaktests framedbs_leaktests
 .PHONY:	crypto_leaktest load_modules_leaktest
 .PHONY:	optimize_modules_leaktest
 
@@ -845,5 +844,5 @@ sundown:
 hyphenate:
 
 crypto cryptotest:
-	@${RUN} ${KNOX} cryptotest.scm ${RUNCONF}
+	@${RUN} ${KNOX} crypto.scm ${RUNCONF}
 	@${header} "■■■■ Completed crypto tests ${RUNCONF}"

@@ -137,7 +137,11 @@
   (if (pair? x)
       (choice (get-expr-atoms (car x))
 	      (get-expr-atoms (cdr x)))
-      x))
+      ;; If we have a secret, we can't use it for indexing, so we
+      ;; exclude it from atoms.
+      (if (not (secret? x))
+	  x
+	  (fail))))
 (define (random-atom x)
   (if (pair? x)
       (if (null? (cdr x))
@@ -304,12 +308,16 @@
 (define (checkexpr frame pool index)
   (applytest (get frame 'in-file)
 	     find-frames index 'contents-as-frames frame)
-  (applytest #t overlaps? frame
-	     (find-frames index 'in-file (get frame 'in-file)))
+  (unless (overlaps? frame (find-frames index 'in-file (get frame 'in-file)))
+    (logwarn "Didn't find " frame " based on file " (get frame 'in-file)))
+  (unless (overlaps? (get frame 'in-file) (find-frames index 'contents-as-choice (get frame 'expr)))
+    (logwarn "Didn't find " frame " based on file " (get frame 'in-file)))
   (applytest #t overlaps? (get frame 'in-file)
 	     (find-frames index 'contents-as-choice (get frame 'expr)))
   (do-choices (atom (get-expr-atoms (get frame 'expr)))
     (applytest #t test frame 'atoms atom)
+    (unless (overlaps? frame  (find-frames testindex 'atoms atom))
+      (logwarn "Didn't find " frame " based on atom " atom))
     (applytest #t overlaps? frame
 	       (find-frames testindex 'atoms atom))))
 

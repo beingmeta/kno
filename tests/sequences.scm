@@ -407,5 +407,5 @@
 (applytest #f find-if even-string? vec2 -1 0)
 (applytest #f find-if odd-string? vec2 -1 0)
 
-(test-finished "SEQTEST")
+(test-finished "SEQUENCES")
 

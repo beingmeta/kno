@@ -31,3 +31,5 @@
 (applytest #t inexact? (usertime))
 (applytest #t inexact? (systime))
 (applytest #t inexact? (cpusage))
+
+(test-finished "SYSPRIMS")
