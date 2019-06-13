@@ -360,24 +360,24 @@ static void lock_synchronizer(struct KNO_SYNCHRONIZER *sync)
 {
   switch (sync->synctype) {
   case sync_mutex:
-    u8_lock_mutex(&(sync->obj.mutex));
+    u8_lock_mutex(&(sync->obj.mutex)); return;
   case sync_rwlock:
-    u8_write_lock(&(sync->obj.rwlock));
+    u8_write_lock(&(sync->obj.rwlock)); return;
   case sync_condvar:
-    u8_lock_mutex(&(sync->obj.condvar.lock));}
-
+    u8_lock_mutex(&(sync->obj.condvar.lock));
+    return;}
 }
 
 static void unlock_synchronizer(struct KNO_SYNCHRONIZER *sync)
 {
   switch (sync->synctype) {
   case sync_mutex:
-    u8_unlock_mutex(&(sync->obj.mutex));
+    u8_unlock_mutex(&(sync->obj.mutex)); return;
   case sync_rwlock:
-    u8_rw_unlock(&(sync->obj.rwlock));
+    u8_rw_unlock(&(sync->obj.rwlock)); return;
   case sync_condvar:
-    u8_unlock_mutex(&(sync->obj.condvar.lock));}
-
+    u8_unlock_mutex(&(sync->obj.condvar.lock));
+    return;}
 }
 
 /* These functions generically access the locks on CONDVARs
