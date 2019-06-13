@@ -60,7 +60,7 @@
   (evaltest #t (default? z))
   (errtest (default! q (* p 'p)))
   (errtest (default! r 9))
-  (errtest (default! q (* p p)))
+  (default! q (* p p))
   (evaltest #t (symbol-bound-in? 'p (%env)))
   (evaltest #f (symbol-bound-in? 'xyzddr (%env)))
   (let ((x (+ p p))
@@ -72,6 +72,24 @@
     (set+! vals q)
     (errtest (set+! vals (* p 'p)))
     vals))
+
+(test-bindings)
+
+(define (test-macros)
+  (let ((swapf (macro expr 
+		 (let ((arg1 (get-arg expr 1))
+		       (arg2 (get-arg expr 2)))
+		   `(let ((tmp ,arg1))
+		      (set! ,arg1 ,arg2)
+		      (set! ,arg2 tmp)))))
+	(x 3)
+	(y 4))
+    (applytest? string? (lisp->string swapf))
+    (applytest? string? (lisp->string swapf))
+    (swapf x y)
+    (applytest -1 - y x)))
+
+(test-macros)
 
 (applytest #t string? (lisp->string if))
 (applytest #t packet? (dtype->packet if))
