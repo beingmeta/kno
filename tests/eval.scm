@@ -325,6 +325,14 @@
 (applytest? integer? hashptr "thirtythree")
 (applytest? integer? hashptr '(a b))
 
+;;;; Structure eval tests
+
+(evaltest #(3 4 5) #.(3 4 (+ 4 1)))
+(evaltest #[foo 3 bar 5] #.[foo (+ 2 1) bar (+ (* 2 2) 1)])
+(errtest #.(3 4 (+ 4 "one")))
+(errtest #.[foo (+ 2 "one") bar (+ (* 2 2) 1)])
+
+
 (test-finished "EVALTEST")
 
 
