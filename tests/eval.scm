@@ -53,14 +53,20 @@
 
 (test-opcodes)
 
-(define (test-bindings (p 3) (q) (z #default))
+(define (test-bindings (p 3) (q) (z #default) (g #f))
   (evaltest #f (void? p))
   (evaltest #t (void? q))
   (evaltest #f (default? p))
   (evaltest #t (default? z))
+  (errtest (setfalse! g))
+  (errtest (setfalse! g (* 8 'p)))
+  (evaltest 'void (setfalse! g 17))
   (errtest (default! q (* p 'p)))
   (errtest (default! r 9))
+  (errtest (default!))
+  (errtest (default! r))
   (default! q (* p p))
+  (evaltest 17 g)
   (evaltest #t (symbol-bound-in? 'p (%env)))
   (evaltest #f (symbol-bound-in? 'xyzddr (%env)))
   (let ((x (+ p p))
@@ -84,7 +90,6 @@
 		      (set! ,arg2 tmp)))))
 	(x 3)
 	(y 4))
-    (%watch swapf (lisp->string swapf))
     (applytest? string? lisp->string swapf)
     (swapf x y)
     (applytest -1 - y x)))
@@ -336,6 +341,31 @@
 
 (define (return-void) (void))
 (applytest 'void return-void)
+
+;;; Syntax errors
+
+(define exprs '((+ 2 3) (* 3 9)))
+
+(errtest (begin . exprs))
+(errtest (dotimes (i 18) . exprs))
+(errtest (dolist (i '(a b c)) . exprs))
+(errtest (doseq (e #(a b c)) . exprs))
+(errtest (let (()) (+ 3 4)))
+(errtest (let ((x)) (+ 3 4)))
+(errtest (let ((x (+ 3 "one"))) (+ 3 4)))
+(errtest (let ((x (+ 3 "one"))) (+ 3 4)))
+(errtest (let* (()) (+ 3 4)))
+(errtest (let* ((x)) (+ 3 4)))
+(errtest (let* ((x (+ 3 "one"))) (+ 3 4)))
+(errtest (let* ((x (+ 3 "one"))) (+ 3 4)))
+(errtest (let ((x 3)) x1))
+(errtest (let* ((x 3)) x1))
+
+(errtest (dotimes (i '(a b c)) . exprs))
+(errtest (dolist (e 3) . exprs))
+(errtest (doseq (e 3) . exprs))
+
+;;; All done
 
 (test-finished "EVALTEST")
 
