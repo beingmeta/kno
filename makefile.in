@@ -219,6 +219,8 @@ SCHEME_OBJS=\
 	src/eval/compoundfns.o \
 	src/eval/choiceops.o \
 	src/eval/coreops.o \
+	src/eval/configops.o \
+	src/eval/dteval.o \
 	src/eval/arith.o \
 	src/eval/regex.o \
 	src/eval/reqstate.o \
@@ -442,7 +444,7 @@ KNO_SOURCES=\
 	src/eval/loader.c                                            		\
 	src/prims/timeprims.c src/prims/sysprims.c 				\
 	src/prims/sqldbprims.c                    				\
-	src/eval/reqstate.c                                          		\
+	src/eval/reqstate.c src/eval/dteval.c src/eval/configops.c		\
 	src/web/webtools.c src/web/json.c src/web/ldns.c            		\
 	src/web/xmloutput.c src/web/xmlinput.c src/web/xmldata.c 		\
 	src/web/xmleval.c src/web/cgiexec.c src/web/htmlout.c 			\

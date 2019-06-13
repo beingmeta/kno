@@ -1287,6 +1287,95 @@ static lispval threadyield_prim()
   else return KNO_FALSE;
 }
 
+/* Thread variables */
+
+DCLPRIM1("THREAD/GET",thread_get,MIN_ARGS(1),
+         "`(THREAD/GET *sym*)` gets the fluid (thread-local) value for *sym* "
+         "or the empty choice if there isn't one",
+         kno_symbol_type,KNO_VOID)
+static lispval thread_get(lispval var)
+{
+  lispval value = kno_thread_get(var);
+  if (VOIDP(value))
+    return EMPTY;
+  else return value;
+}
+
+DCLPRIM("THREAD/RESET-VARS!",thread_reset_vars,MIN_ARGS(0)|MAX_ARGS(0),
+        "`(THREAD/RESET-VARS!)` resets all the fluid (thread-local) "
+        "variables for the current thread.")
+static lispval thread_reset_vars()
+{
+  kno_reset_threadvars();
+  return VOID;
+}
+
+DCLPRIM1("THREAD/BOUND?",thread_boundp,MIN_ARGS(1),
+         "`(THREAD/BOUND? *sym*)` returns true if *sym* is "
+         "fluidly bound in the current thread.",
+         kno_symbol_type,KNO_VOID)
+static lispval thread_boundp(lispval var)
+{
+  if (kno_thread_probe(var))
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+DCLPRIM2("THREAD/SET!",thread_set,MIN_ARGS(2),
+         "`(THREAD/SET! *sym* *value*)` sets the fluid (thread-local) value "
+         "for *sym* to *value and returns VOID.",
+         kno_symbol_type,KNO_VOID,kno_any_type,KNO_VOID)
+static lispval thread_set(lispval var,lispval val)
+{
+  if (kno_thread_set(var,val)<0)
+    return KNO_ERROR;
+  else return VOID;
+}
+
+DCLPRIM2("THREAD/ADD!",thread_add,MIN_ARGS(2),
+         "`(THREAD/ADD! *sym* *values*)` inserts *values* into "
+         "the fluid (thread-local) binding for *sym*.",
+         kno_symbol_type,KNO_VOID,kno_any_type,KNO_VOID)
+static lispval thread_add(lispval var,lispval val)
+{
+  if (kno_thread_add(var,val)<0)
+    return KNO_ERROR;
+  else return VOID;
+}
+
+static lispval thread_ref_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
+{
+  lispval sym_arg = kno_get_arg(expr,1), sym, val;
+  lispval dflt_expr = kno_get_arg(expr,2);
+  if (VOIDP(sym_arg))
+    return kno_err(kno_SyntaxError,"thread_ref",
+                   "No thread symbol",expr);
+  else if (VOIDP(dflt_expr))
+    return kno_err(kno_SyntaxError,"thread_ref",
+                   "No generating expression",expr);
+  else sym = kno_eval(sym_arg,env);
+  if (KNO_ABORTP(sym))
+    return sym;
+  else if (!(SYMBOLP(sym)))
+    return kno_err(kno_TypeError,"thread_ref",u8_strdup("symbol"),sym);
+  else val = kno_thread_get(sym);
+  if (KNO_ABORTP(val))
+    return val;
+  else if (VOIDP(val)) {
+    lispval useval = kno_eval(dflt_expr,env);
+    if (KNO_ABORTP(useval))
+      return useval;
+    else if (KNO_VOIDP(useval))
+      return KNO_VOID;
+    else NO_ELSE;
+    int rv = kno_thread_set(sym,useval);
+    if (rv<0) {
+      kno_decref(useval);
+      return KNO_ERROR;}
+    return useval;}
+  else return val;
+}
+
 /* Walking thread structs */
 
 static int walk_thread_struct(kno_walker walker,lispval x,
@@ -1455,6 +1544,19 @@ KNO_EXPORT void kno_init_threads_c()
                  "`(WITH-LOCK *synchronizer* *body...*)` executes the "
                  "expressions in *body* with *synchronizer* locked.",
                  with_lock_evalfn);
+
+  DECL_PRIM(thread_get,1,kno_scheme_module);
+  DECL_PRIM(thread_boundp,1,kno_scheme_module);
+  DECL_PRIM(thread_set,2,kno_scheme_module);
+  DECL_PRIM(thread_add,2,kno_scheme_module);
+  DECL_PRIM(thread_reset_vars,0,kno_scheme_module);
+
+  kno_def_evalfn(kno_scheme_module,"THREAD/REF",
+                 "`(THREAD/REF *sym* *expr*)` returns the fluid "
+                 "(thread-local) value of *sym* (which is evaluated) "
+                 "if it exists. If it doesn't exist, *expr* is evaluted "
+                 "and fluidly assigned to *sym*.",
+                 thread_ref_evalfn);
 
   DECL_PRIM(cstack_depth_prim,0,kno_scheme_module);
   DECL_PRIM(cstack_limit_prim,0,kno_scheme_module);
