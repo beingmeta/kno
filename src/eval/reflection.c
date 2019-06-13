@@ -692,7 +692,7 @@ static lispval wherefrom_evalfn(lispval expr,kno_lexenv call_env,
   lispval symbol_arg = kno_get_arg(expr,1);
   lispval symbol = kno_eval(symbol_arg,call_env);
   if (SYMBOLP(symbol)) {
-    kno_lexenv env, scan;
+    kno_lexenv env = NULL, scan = env;
     int lookup_ids = 1, decref_env = 0;
     lispval env_arg = kno_get_arg(expr,2);
     if (KNO_VOIDP(env_arg))
@@ -714,7 +714,8 @@ static lispval wherefrom_evalfn(lispval expr,kno_lexenv call_env,
         lookup_ids = 0;
       else lookup_ids = 1;
       kno_decref(lookup);}
-    if (TYPEP(env_arg,kno_lexenv_type))
+    if (KNO_VOIDP(env_arg)) {}
+    else if (TYPEP(env_arg,kno_lexenv_type))
       env = kno_consptr(kno_lexenv,env_arg,kno_lexenv_type);
     else return kno_type_error(_("environment"),"wherefrom",env_arg);
     if (env->env_copy)
