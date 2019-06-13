@@ -55,7 +55,7 @@
     (applytest #t thread? threads)
     (applytest #t exists? (config 'ALLTHREADS))
     (set+! threads (spawn (addrange 0)))
-    (applytest? string lisp->string (pick-one threads))
+    (applytest? string? lisp->string (pick-one threads))
     (thread/join threads)
     (applytest 20 length numbers)
     (applytest #f check-ordered numbers)
@@ -212,6 +212,20 @@
   (if (<= n 0) 'one 
       (* n (errfact (-1+ n)))))
 
+;;;; SSET
+
+(define sset-value 0)
+(define (increment-sset)
+  (sset! sset-value (1+ sset-value)))
+(define (safe-increment)
+  (sset! sset-value (1+ sset-value)))
+(define (increment-sset (n 100) (threadid #f))
+  (dotimes (i n) (safe-increment)))
+(define (test-sset)
+  (set! sset-value 0)
+  (thread/wait! (thread/call increment-sset 100 {1 2 3 4 5 6 7}))
+  (evaltest 700 sset-value))
+
 ;;; Actual tests
 
 (define condvar (make-condvar))
@@ -278,6 +292,8 @@
   (test-parallel)
   (test-spawn)
   (test-slambdas)
+
+  (test-sset)
 
   (test-thread/call)
   (test-thread/call thread/wait 3)
