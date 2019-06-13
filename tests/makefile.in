@@ -117,7 +117,7 @@ cmdtests:
 
 static-tests: schemetests optscheme loadmods optmods slotmaps tables pools indexes db
 schemetest schemetests scheme: r4rs exceptions choices sequences breaks numvecs regex \
-	reflect hashsets ffi \
+	reflect hashsets eval ffi \
 	picktest cachecall texttools webtools timefns sysprims startup stringprims \
 	threads i18n misc gctests profiling \
 	fileprims xml
@@ -141,6 +141,7 @@ optscheme:
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes gctests.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes xmltest.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes texttest.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes eval.scm ${RUNCONF}
 	@${header} "■■■■■■■■ Completed optimized scheme tests ${RUNCONF}"
 
 loadmods load_modules:
@@ -174,6 +175,12 @@ numvecs:
 regex:
 	@${RUN} ${KNOX} regex.scm ${RUNCONF}
 	@${header} "■■■■ Completed regex tests ${RUNCONF}"
+eval:
+	@${RUN} ${KNOX} eval.scm ${RUNCONF}
+	@${header} "■■■■ Completed miscellaneous eval tests ${RUNCONF}"
+opts:
+	@${RUN} ${KNOX} opts.scm ${RUNCONF}
+	@${header} "■■■■ Completed opts tests ${RUNCONF}"
 hashsets:
 	@${RUN} ${KNOX} hashsets.scm ${RUNCONF}
 	@${header} "■■■■ Completed numvecs tests ${RUNCONF}"
