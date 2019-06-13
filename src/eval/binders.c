@@ -149,40 +149,6 @@ static lispval bind_default_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       kno_decref(val); return VOID;}}
 }
 
-static u8_mutex sassign_lock;
-
-/* This implements a simple version of globally synchronized set, which
-   wraps a mutex around a regular set call, including evaluation of the
-   value expression.  This can be used, for instance, to safely increment
-   a variable. */
-static lispval sassign_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
-{
-  int retval;
-  lispval var = kno_get_arg(expr,1), val_expr = kno_get_arg(expr,2), value;
-  if (VOIDP(var))
-    return kno_err(kno_TooFewExpressions,"SSET!",NULL,expr);
-  else if (!(SYMBOLP(var)))
-    return kno_err(kno_NotAnIdentifier,"SSET!",NULL,expr);
-  else if (VOIDP(val_expr))
-    return kno_err(kno_TooFewExpressions,"SSET!",NULL,expr);
-  u8_lock_mutex(&sassign_lock);
-  value = fast_eval(val_expr,env);
-  if (KNO_ABORTED(value)) {
-    u8_unlock_mutex(&sassign_lock);
-    return value;}
-  else if ((retval = (kno_assign_value(var,value,env)))) {
-    kno_decref(value); u8_unlock_mutex(&sassign_lock);
-    if (retval<0) return KNO_ERROR;
-    else return VOID;}
-  else if ((retval = (kno_bind_value(var,value,env)))) {
-    kno_decref(value); u8_unlock_mutex(&sassign_lock);
-    if (retval<0) return KNO_ERROR;
-    else return VOID;}
-  else {
-    u8_unlock_mutex(&sassign_lock);
-    return kno_err(kno_BindError,"SSET!",SYM_NAME(var),var);}
-}
-
 /* Simple binders */
 
 static lispval let_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
@@ -208,8 +174,8 @@ static lispval let_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
           letenv_vars[i]=var;
           letenv_vals[i]=value;
           i++;}}}
-    result = eval_inner_body(":LET",SYM_NAME(letenv_vars[0]),
-                       expr,2,letenv,_stack);
+    result = eval_inner_body
+      (":LET",SYM_NAME(letenv_vars[0]),expr,2,letenv,_stack);
     _return result;}
 }
 
@@ -484,11 +450,8 @@ KNO_EXPORT void kno_init_binders_c()
 
   moduleid_symbol = kno_intern("%moduleid");
 
-  u8_init_mutex(&sassign_lock);
-
   kno_def_evalfn(kno_scheme_module,"SET!","",assign_evalfn);
   kno_def_evalfn(kno_scheme_module,"SET+!","",assign_plus_evalfn);
-  kno_def_evalfn(kno_scheme_module,"SSET!","",sassign_evalfn);
 
   kno_def_evalfn(kno_scheme_module,"LET","",let_evalfn);
   kno_def_evalfn(kno_scheme_module,"LET*","",letstar_evalfn);

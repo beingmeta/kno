@@ -50,9 +50,9 @@ KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,kno_stack stack,int tai
 }
 
 KNO_FASTOP lispval eval_inner_body(u8_context cxt,u8_string label,
-                                  lispval expr,int offset,
-                                  kno_lexenv inner_env,
-                                  struct KNO_STACK *_stack)
+                                   lispval expr,int offset,
+                                   kno_lexenv inner_env,
+                                   struct KNO_STACK *_stack)
 {
   lispval body = kno_get_body(expr,offset);
   if (KNO_EMPTY_LISTP(body))

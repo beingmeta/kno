@@ -1287,6 +1287,42 @@ static lispval threadyield_prim()
   else return KNO_FALSE;
 }
 
+/* Synchronized SET */
+
+static u8_mutex sassign_lock;
+
+/* This implements a simple version of globally synchronized set, which
+   wraps a mutex around a regular set call, including evaluation of the
+   value expression.  This can be used, for instance, to safely increment
+   a variable. */
+static lispval sassign_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+{
+  int retval;
+  lispval var = kno_get_arg(expr,1), val_expr = kno_get_arg(expr,2), value;
+  if (VOIDP(var))
+    return kno_err(kno_TooFewExpressions,"SSET!",NULL,expr);
+  else if (!(SYMBOLP(var)))
+    return kno_err(kno_NotAnIdentifier,"SSET!",NULL,expr);
+  else if (VOIDP(val_expr))
+    return kno_err(kno_TooFewExpressions,"SSET!",NULL,expr);
+  u8_lock_mutex(&sassign_lock);
+  value = fast_eval(val_expr,env);
+  if (KNO_ABORTED(value)) {
+    u8_unlock_mutex(&sassign_lock);
+    return value;}
+  else if ((retval = (kno_assign_value(var,value,env)))) {
+    kno_decref(value); u8_unlock_mutex(&sassign_lock);
+    if (retval<0) return KNO_ERROR;
+    else return VOID;}
+  else if ((retval = (kno_bind_value(var,value,env)))) {
+    kno_decref(value); u8_unlock_mutex(&sassign_lock);
+    if (retval<0) return KNO_ERROR;
+    else return VOID;}
+  else {
+    u8_unlock_mutex(&sassign_lock);
+    return kno_err(kno_BindError,"SSET!",SYM_NAME(var),var);}
+}
+
 /* Thread variables */
 
 DCLPRIM1("THREAD/GET",thread_get,MIN_ARGS(1),
@@ -1504,6 +1540,12 @@ KNO_EXPORT void kno_init_threads_c()
   DECL_PRIM(mutexp_prim,1,kno_scheme_module);
   DECL_PRIM(rwlockp_prim,1,kno_scheme_module);
   DECL_PRIM(condvarp_prim,1,kno_scheme_module);
+
+  u8_init_mutex(&sassign_lock);
+  kno_def_evalfn(kno_scheme_module,"SSET!",
+		 "`(SSET! *var* *value*)` thread-safely sets *var* "
+		 "to *value*, just like `SET!` would do.",
+		 sassign_evalfn);
 
   int one_thread_arg[1] = { kno_thread_type };
   int find_thread_types[2] = { kno_fixnum_type, kno_any_type };
