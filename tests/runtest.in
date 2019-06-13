@@ -24,13 +24,24 @@ fi;
 . ../dbg/runenv.sh
 . ./testenv.sh
 
-if @test_env@ ${PROGNAME} $* LOGTIME=${LOGTIME} > ${LOGFILE}; then
-    MSG="SUCCESS"
-    SUCCESS=yes
+if [ "${LOGFILE}" != "none" ]; then
+    if @test_env@ ${PROGNAME} $* LOGTIME=${LOGTIME} > ${LOGFILE}; then
+	MSG="SUCCESS"
+	SUCCESS=yes
+    else
+	MSG="FAILURE"
+	COMBINED=failure.log
+	SUCCESS=no
+    fi;
 else
-    MSG="FAILURE"
-    COMBINED=failure.log
-    SUCCESS=no
+    if @test_env@ ${PROGNAME} $* LOGTIME=${LOGTIME}; then
+	MSG="SUCCESS"
+	SUCCESS=yes
+    else
+	MSG="FAILURE"
+	COMBINED=failure.log
+	SUCCESS=no
+    fi;
 fi;
 
 if test -f ${LOGTIME}; then
