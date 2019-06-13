@@ -84,8 +84,8 @@
 		      (set! ,arg2 tmp)))))
 	(x 3)
 	(y 4))
-    (applytest? string? (lisp->string swapf))
-    (applytest? string? (lisp->string swapf))
+    (%watch swapf (lisp->string swapf))
+    (applytest? string? lisp->string swapf)
     (swapf x y)
     (applytest -1 - y x)))
 
