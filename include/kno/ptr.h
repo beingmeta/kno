@@ -690,7 +690,7 @@ KNO_EXPORT lispval kno_register_constant(u8_string name);
 #define KNO_INTERRUPTED() (KNO_EXPECT_FALSE(u8_current_exception!=(NULL)))
 
 #define KNO_CONSTANTP(x) \
-  ((KNO_IMMEDIATEP(x)) && ((KNO_IMMEDIATE_TYPE(x))==0))
+  ((KNO_IMMEDIATEP(x)) && ((KNO_IMMEDIATE_TYPE(x)) == kno_constant_type))
 
 #define KNO_NIL (KNO_EMPTY_LIST)
 
