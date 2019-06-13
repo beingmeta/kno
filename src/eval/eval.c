@@ -160,6 +160,13 @@ static lispval coderef_prim(lispval offset)
   return LISPVAL_IMMEDIATE(kno_coderef_type,off);
 }
 
+static lispval coderefp_prim(lispval ref)
+{
+  if (KNO_TYPEP(ref,kno_coderef_type))
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
 static lispval coderef_value_prim(lispval offset)
 {
   long long off = KNO_GET_IMMEDIATE(offset,kno_coderef_type);
@@ -1016,18 +1023,6 @@ KNO_EXPORT lispval kno_make_evalfn(u8_string name,kno_eval_handler fn)
   return LISP_CONS(f);
 }
 
-KNO_EXPORT void kno_defspecial(lispval mod,u8_string name,kno_eval_handler fn)
-{
-  struct KNO_EVALFN *f = u8_alloc(struct KNO_EVALFN);
-  KNO_INIT_CONS(f,kno_evalfn_type);
-  f->evalfn_name = u8_strdup(name);
-  f->evalfn_handler = fn;
-  f->evalfn_filename = NULL;
-  kno_store(mod,kno_getsym(name),LISP_CONS(f));
-  f->evalfn_moduleid = kno_get(mod,moduleid_symbol,KNO_VOID);
-  kno_decref(LISP_CONS(f));
-}
-
 KNO_EXPORT void kno_new_evalfn(lispval mod,u8_string name,
                              u8_string filename,u8_string doc,
                              kno_eval_handler fn)
@@ -1853,11 +1848,9 @@ static lispval choiceref_prim(lispval arg,lispval off)
 {
   if (PRED_TRUE(FIXNUMP(off))) {
     long long i = FIX2INT(off);
-    if (i==0) {
-      if (EMPTYP(arg)) {
-        kno_seterr(kno_RangeError,"choiceref_prim","0",arg);
-        return KNO_ERROR;}
-      else return kno_incref(arg);}
+    if (EMPTYP(arg)) {
+      kno_seterr(kno_RangeError,"choiceref_prim","0",arg);
+      return KNO_ERROR;}
     else if (CHOICEP(arg)) {
       struct KNO_CHOICE *ch = (kno_choice)arg;
       if (i>ch->choice_size) {
@@ -1874,6 +1867,8 @@ static lispval choiceref_prim(lispval arg,lispval off)
       lispval result = choiceref_prim(simplified,off);
       kno_decref(simplified);
       return result;}
+    else if (i == 0)
+      return kno_incref(arg);
     else {
       u8_byte buf[50];
       kno_seterr(kno_RangeError,"choiceref_prim",
@@ -2053,9 +2048,13 @@ static void init_localfns()
   kno_idefn1(kno_scheme_module,"%CODEREF",coderef_prim,1,
             "(%CODEREF *nelts*) returns a 'coderef' (a relative position) value",
             kno_fixnum_type,VOID);
-  kno_idefn1(kno_scheme_module,"%CODREFVAL",coderef_value_prim,1,
+  kno_idefn1(kno_scheme_module,"%CODEREFVAL",coderef_value_prim,1,
             "(%CODEREFVAL *coderef*) returns the integer relative offset of a coderef",
-            kno_lexref_type,VOID);
+             kno_coderef_type,VOID);
+  kno_idefn1(kno_scheme_module,"CODEREF?",coderefp_prim,1,
+             "(CODEREF? *nelts*) returns #t if *arg* is a coderef",
+             -1,VOID);
+
 
   kno_idefn(kno_scheme_module,kno_make_cprim1("NAME->OPCODE",name2opcode_prim,1));
 

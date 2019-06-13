@@ -81,7 +81,6 @@ typedef struct KNO_EVALFN {
 typedef struct KNO_EVALFN *kno_evalfn;
 
 KNO_EXPORT lispval kno_make_evalfn(u8_string name,kno_eval_handler fn);
-KNO_EXPORT void kno_defspecial(lispval mod,u8_string name,kno_eval_handler fn);
 KNO_EXPORT void kno_new_evalfn(lispval mod,u8_string name,
                              u8_string filename,
                              u8_string doc,
