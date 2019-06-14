@@ -36,6 +36,14 @@
   (applytest #f check-ordered numbers)
   (message "TEST-PARALLEL: " numbers))
 
+(define (test-more-parallel)
+  (set! numbers '())
+  (parallel (addrange 0) (addrange 10) (addrange 8) (addrange 15)
+	    (addrange 0) (addrange 10) (addrange 8) (addrange 15))
+  (applytest 20 length numbers)
+  (applytest #f check-ordered numbers)
+  (message "TEST-PARALLEL: " numbers))
+
 (define (test-thread/apply)
   (let ((threads (thread/apply glom "foo" {"bar" "baz"} #("alpha" "beta"))))
     (applytest 2 choice-size threads)
@@ -113,7 +121,8 @@
 
 (define (test-synchro-locks (numlock (make-mutex)) (nthreads 8))
   (thread/wait! (thread/call change-num numlock (nrandom))))
-(define (test-with-lock (lock (make-mutex)) (nthreads 8))
+(define (test-with-lock (numlock (make-mutex)) (nthreads 8))
+  (applytest? string? lisp->string numlock)
   (thread/wait! (thread/call change-num-with-lock numlock (nrandom))))
 
 ;;;; Test fluid variables
@@ -226,11 +235,22 @@
   (thread/wait! (thread/call increment-sset 100 {1 2 3 4 5 6 7}))
   (evaltest 700 sset-value))
 
+(test-sset)
+
 ;;; Actual tests
 
 (define condvar (make-condvar))
 (define mutex (make-mutex))
 (define rwlock (make-rwlock))
+
+(errtest (condvar/wait mutex))
+(errtest (condvar/wait rwlock))
+(errtest (condvar/signal mutex))
+(errtest (condvar/signal rwlock))
+(errtest (condvar/lock! mutex))
+(errtest (condvar/lock! rwlock))
+(errtest (condvar/unlock! mutex))
+(errtest (condvar/unlock! rwlock))
 
 (define (main)
 
@@ -249,6 +269,7 @@
   (applytest #t synchronizer? rwlock)
   (applytest #t synchronizer? condvar)
   (applytest #t synchronizer? change-slambda-test-value)
+  (applytest #f synchronizer? change-num-recklessly)
   (applytest #f thread? 3)
 
   (applytest? string? lisp->string condvar)
@@ -283,6 +304,9 @@
     (applytest #t vector? (ex/stack (thread/result error-thread))))
   
   (test-synchro-locks)
+  (test-synchro-locks (make-rwlock))
+  (test-synchro-locks (make-condvar))
+  (test-synchro-locks change-slambda-test-value)
   (test-with-lock)
   (test-with-lock (make-rwlock))
   (test-with-lock (make-condvar))
@@ -294,6 +318,18 @@
   (test-slambdas)
 
   (test-sset)
+
+  (errtest (thread/call "proc"))
+  (errtest (thread/call cons "car"))
+  (errtest (thread/call+ "proc"))
+  (errtest (thread/call+ cons "car"))
+
+  (errtest (thread/eval (cons)))
+  (errtest (thread/eval (cons 'x 'y) (cons)))
+  (errtest (thread/eval (cons 'x 'y) #f (cons)))
+
+  (errtest (thread/apply list 3 4 5 6))
+  (evaltest '(3 4 5 6) (thread/finish (thread/apply 3 4 5 (list 6))))
 
   (test-thread/call)
   (test-thread/call thread/wait 3)
