@@ -320,9 +320,9 @@
   (test-sset)
 
   (errtest (thread/call "proc"))
-  (errtest (thread/call cons "car"))
+  (errtest (thread/call))
   (errtest (thread/call+ "proc"))
-  (errtest (thread/call+ cons "car"))
+  (errtest (thread/call+))
 
   (errtest (thread/eval (cons)))
   (errtest (thread/eval (cons 'x 'y) (cons)))

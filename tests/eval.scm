@@ -103,7 +103,6 @@
 
 (evaltest #f (bad? 3))
 (evaltest #f (bad? if))
-(evaltest #t (bad? (!!!NULL!!!)))
 
 (evaltest textmatch (eval `(%modref ,(get-module 'texttools) textmatch)))
 

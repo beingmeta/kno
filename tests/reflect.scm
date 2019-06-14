@@ -46,11 +46,11 @@
 (defslambda (syncit x y) (lineout "Syncing " x " with " y))
 (defambda (nelts c) (choice-size c))
 
-(applytest? (contains-string? "engine.scm") get-source (get-module 'engine))
-(applytest? (contains-string? "sqlite.") get-source (get-module 'sqlite))
-(applytest? (contains-string? "engine.scm") get-source (get (get-module 'engine) 'engine/run))
-(applytest? (contains-string? "sqlite.") get-source (get (get-module 'sqlite) 'sqlite/open))
-(applytest? (contains-string? "iterators.c") get-source dolist)
+(applytest? (contains-string "engine.scm") get-source (get-module 'engine))
+(applytest? (contains-string "sqlite.") get-source (get-module 'sqlite))
+(applytest? (contains-string "engine.scm") get-source (get (get-module 'engine) 'engine/run))
+(applytest? (contains-string "sqlite.") get-source (get (get-module 'sqlite) 'sqlite/open))
+(applytest? (contains-string "iterators.c") get-source dolist)
 (applytest? string? get-source swapf)
 
 (applytest #t synchronized? syncit)
