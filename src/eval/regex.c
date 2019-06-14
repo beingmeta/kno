@@ -47,7 +47,8 @@ static lispval make_regex(lispval pat,lispval nocase,lispval matchnl)
 
 static lispval regexp_prim(lispval x)
 {
-  if (TYPEP(x,kno_regex_type)) return KNO_TRUE;
+  if (TYPEP(x,kno_regex_type))
+    return KNO_TRUE;
   else return KNO_FALSE;
 }
 
@@ -112,8 +113,8 @@ static lispval regex_searchop(enum KNO_REGEX_OP op,
 }
 
 KNO_EXPORT ssize_t kno_regex_op(enum KNO_REGEX_OP op,lispval pat,
-                              u8_string s,size_t len,
-                              int eflags)
+                                u8_string s,size_t len,
+                                int eflags)
 {
   struct KNO_REGEX *ptr = kno_consptr(struct KNO_REGEX *,pat,kno_regex_type);
   regmatch_t results[1];
@@ -142,7 +143,9 @@ KNO_EXPORT ssize_t kno_regex_op(enum KNO_REGEX_OP op,lispval pat,
   else {
     u8_unlock_mutex(&(ptr->rx_lock));
     U8_CLEAR_ERRNO();}
-  if (results[0].rm_so<0) return -1;
+  u8_string op_string = NULL;
+  if (results[0].rm_so<0)
+    return -1;
   else switch (op) {
     case rx_search:
       return results[0].rm_so;
@@ -155,26 +158,22 @@ KNO_EXPORT ssize_t kno_regex_op(enum KNO_REGEX_OP op,lispval pat,
           (results[0].rm_eo<=len))
         return results[0].rm_eo;
       else return -1;
-    case rx_matchstring: {
-      kno_seterr(kno_RegexBadOp,"kno_regex_op","rx_matchstring",pat);
-      kno_incref(pat);
-      return -2;}
-    case rx_matchspan: {
-      kno_seterr(kno_RegexBadOp,"kno_regex_op","rx_matchspan",pat);
-      kno_incref(pat);
-      return -2;}
+    case rx_matchstring:
+      op_string = "rx_matchstring"; break;
+    case rx_matchspan:
+      op_string = "rx_matchspan"; break;
     default: {
-      kno_seterr(kno_RegexBadOp,"kno_regex_op","badop",pat);
-      kno_incref(pat);
-      return -2;}}
+      op_string = "badop"; break;}}
+  kno_seterr(kno_RegexBadOp,"kno_regex_op",op_string,pat);
+  return -2;
 }
 
 KNO_EXPORT int kno_regex_test(lispval pat,u8_string s,ssize_t len)
- {
-   if (len<0) len = strlen(s);
-   if (kno_regex_op(rx_search,pat,s,len,0)>=0)
-     return 1;
-   else return 0;
+{
+  if (len<0) len = strlen(s);
+  if (kno_regex_op(rx_search,pat,s,len,0)>=0)
+    return 1;
+  else return 0;
 }
 KNO_EXPORT off_t kno_regex_search(lispval pat,u8_string s,ssize_t len)
 {
@@ -223,6 +222,36 @@ static lispval regex_matchspan(lispval pat,lispval string,lispval ef)
   else return kno_type_error("unsigned int","regex_matchspan",ef);
 }
 
+static lispval regex_coverme()
+{
+  lispval pattern = knostring("[0123456789]+");
+  lispval regex = make_regex(pattern,KNO_FALSE,KNO_FALSE);
+  lispval bad_pattern = knostring("[0123456789+");
+  lispval bad_regex = make_regex(bad_pattern,KNO_FALSE,KNO_FALSE);
+  u8_string test_string = "There were 112 different people";
+  size_t test_len = strlen(test_string);
+  int rv = kno_regex_op(rx_search,regex,test_string,test_len,0);
+  rv = kno_regex_op(rx_search,regex,test_string,test_len,1);
+  rv = kno_regex_op(rx_search,regex,test_string,test_len,2);
+  rv = kno_regex_op(rx_search,regex,test_string,test_len,3);
+  /* Now start breaking things */
+  rv = kno_regex_op(rx_matchstring,regex,test_string,test_len,0);
+  if (rv<0) {u8_pop_exception();}
+  rv = kno_regex_op(rx_matchspan,regex,test_string,test_len,0);
+  if (rv<0) {u8_pop_exception();}
+  rv = kno_regex_matchlen(regex,test_string,test_len);
+  if (rv<0) {u8_pop_exception();}
+  rv = kno_regex_matchlen(regex,test_string+11,test_len-11);
+  if (rv<0) {u8_pop_exception();}
+  rv = kno_regex_match(regex,"3333",4);
+  if (rv<0) {u8_pop_exception();}
+  rv = kno_regex_op(rx_matchlen,bad_regex,test_string,test_len,0);
+  if (rv<0) {u8_pop_exception();}
+  kno_decref(regex); kno_decref(pattern);
+  kno_decref(bad_regex); kno_decref(bad_pattern);
+  return VOID;
+}
+
 /* Initialization */
 
 static int regex_init = 0;
@@ -236,30 +265,31 @@ KNO_EXPORT int kno_init_regex_c()
   regex_module = kno_new_cmodule("regex",0,kno_init_regex_c);
 
   kno_idefn(regex_module,
-           kno_make_cprim3x("REGEX",make_regex,1,
-                           kno_string_type,VOID,-1,KNO_FALSE,-1,KNO_FALSE));
+            kno_make_cprim3x("REGEX",make_regex,1,
+                             kno_string_type,VOID,-1,KNO_FALSE,-1,KNO_FALSE));
   kno_idefn(regex_module,kno_make_cprim1("REGEX?",regexp_prim,1));
 
   kno_idefn(regex_module,
-           kno_make_cprim3x("REGEX/SEARCH",regex_search,2,
-                           kno_regex_type,VOID,kno_string_type,VOID,
-                           kno_fixnum_type,KNO_FIXZERO));
+            kno_make_cprim3x("REGEX/SEARCH",regex_search,2,
+                             kno_regex_type,VOID,kno_string_type,VOID,
+                             kno_fixnum_type,KNO_FIXZERO));
   kno_idefn(regex_module,
-           kno_make_cprim3x("REGEX/MATCH",regex_exactmatch,2,
-                           kno_regex_type,VOID,kno_string_type,VOID,
-                           kno_fixnum_type,KNO_FIXZERO));
+            kno_make_cprim3x("REGEX/MATCH",regex_exactmatch,2,
+                             kno_regex_type,VOID,kno_string_type,VOID,
+                             kno_fixnum_type,KNO_FIXZERO));
   kno_idefn(regex_module,
-           kno_make_cprim3x("REGEX/MATCHLEN",regex_matchlen,2,
-                           kno_regex_type,VOID,kno_string_type,VOID,
-                           kno_fixnum_type,KNO_FIXZERO));
+            kno_make_cprim3x("REGEX/MATCHLEN",regex_matchlen,2,
+                             kno_regex_type,VOID,kno_string_type,VOID,
+                             kno_fixnum_type,KNO_FIXZERO));
   kno_idefn(regex_module,
-           kno_make_cprim3x("REGEX/MATCHSTRING",regex_matchstring,2,
-                           kno_regex_type,VOID,kno_string_type,VOID,
-                           kno_fixnum_type,KNO_FIXZERO));
+            kno_make_cprim3x("REGEX/MATCHSTRING",regex_matchstring,2,
+                             kno_regex_type,VOID,kno_string_type,VOID,
+                             kno_fixnum_type,KNO_FIXZERO));
   kno_idefn(regex_module,
-           kno_make_cprim3x("REGEX/MATCHSPAN",regex_matchspan,2,
-                           kno_regex_type,VOID,kno_string_type,VOID,
-                           kno_fixnum_type,KNO_FIXZERO));
+            kno_make_cprim3x("REGEX/MATCHSPAN",regex_matchspan,2,
+                             kno_regex_type,VOID,kno_string_type,VOID,
+                             kno_fixnum_type,KNO_FIXZERO));
+  kno_idefn(regex_module,kno_make_cprim0("REGEX/COVERME",regex_coverme));
 
   kno_finish_module(regex_module);
 
