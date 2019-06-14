@@ -60,7 +60,7 @@
   (evaltest #t (default? z))
   (errtest (default! q (* p 'p)))
   (errtest (default! r 9))
-  (errtest (default! q (* p p)))
+  (default! q (* p p))
   (evaltest #t (symbol-bound-in? 'p (%env)))
   (evaltest #f (symbol-bound-in? 'xyzddr (%env)))
   (let ((x (+ p p))
@@ -72,6 +72,24 @@
     (set+! vals q)
     (errtest (set+! vals (* p 'p)))
     vals))
+
+(test-bindings)
+
+(define (test-macros)
+  (let ((swapf (macro expr 
+		 (let ((arg1 (get-arg expr 1))
+		       (arg2 (get-arg expr 2)))
+		   `(let ((tmp ,arg1))
+		      (set! ,arg1 ,arg2)
+		      (set! ,arg2 tmp)))))
+	(x 3)
+	(y 4))
+    (%watch swapf (lisp->string swapf))
+    (applytest? string? lisp->string swapf)
+    (swapf x y)
+    (applytest -1 - y x)))
+
+(test-macros)
 
 (applytest #t string? (lisp->string if))
 (applytest #t packet? (dtype->packet if))
@@ -306,6 +324,14 @@
 (applytest? fixnum? hashptr 'thirtythree)
 (applytest? integer? hashptr "thirtythree")
 (applytest? integer? hashptr '(a b))
+
+;;;; Structure eval tests
+
+(evaltest #(3 4 5) #.(3 4 (+ 4 1)))
+(evaltest #[foo 3 bar 5] #.[foo (+ 2 1) bar (+ (* 2 2) 1)])
+(errtest #.(3 4 (+ 4 "one")))
+(errtest #.[foo (+ 2 "one") bar (+ (* 2 2) 1)])
+
 
 (test-finished "EVALTEST")
 
