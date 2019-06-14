@@ -26,10 +26,11 @@
 #include "kno/numbers.h"
 #include "kno/sequences.h"
 #include "kno/ports.h"
-#include "kno/dtcall.h"
 #include "kno/opcodes.h"
 #include "kno/dbprims.h"
 #include "kno/ffi.h"
+
+#include "kno/cprims.h"
 
 #include "eval_internals.h"
 
@@ -160,6 +161,13 @@ static lispval coderef_prim(lispval offset)
   return LISPVAL_IMMEDIATE(kno_coderef_type,off);
 }
 
+static lispval coderefp_prim(lispval ref)
+{
+  if (KNO_TYPEP(ref,kno_coderef_type))
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
 static lispval coderef_value_prim(lispval offset)
 {
   long long off = KNO_GET_IMMEDIATE(offset,kno_coderef_type);
@@ -253,6 +261,17 @@ static u8_string opcode_name(lispval opcode)
       (kno_opcode_names[opcode_offset]))
     return kno_opcode_names[opcode_offset];
   else return "anonymous_opcode";
+}
+
+static lispval opcode_name_prim(lispval opcode)
+{
+  long opcode_offset = (KNO_GET_IMMEDIATE(opcode,kno_opcode_type));
+  if ((opcode_offset<kno_opcodes_length) &&
+      (kno_opcode_names[opcode_offset]))
+    return knostring(kno_opcode_names[opcode_offset]);
+  else if (opcode_offset<kno_opcodes_length)
+    return KNO_FALSE;
+  else return kno_err("InvalidOpcode","opcode_name_prim",NULL,opcode);
 }
 
 /* Some datatype methods */
@@ -1016,18 +1035,6 @@ KNO_EXPORT lispval kno_make_evalfn(u8_string name,kno_eval_handler fn)
   return LISP_CONS(f);
 }
 
-KNO_EXPORT void kno_defspecial(lispval mod,u8_string name,kno_eval_handler fn)
-{
-  struct KNO_EVALFN *f = u8_alloc(struct KNO_EVALFN);
-  KNO_INIT_CONS(f,kno_evalfn_type);
-  f->evalfn_name = u8_strdup(name);
-  f->evalfn_handler = fn;
-  f->evalfn_filename = NULL;
-  kno_store(mod,kno_getsym(name),LISP_CONS(f));
-  f->evalfn_moduleid = kno_get(mod,moduleid_symbol,KNO_VOID);
-  kno_decref(LISP_CONS(f));
-}
-
 KNO_EXPORT void kno_new_evalfn(lispval mod,u8_string name,
                              u8_string filename,u8_string doc,
                              kno_eval_handler fn)
@@ -1095,7 +1102,7 @@ static lispval definedp_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval symbol = kno_get_arg(expr,1);
   if (!(SYMBOLP(symbol)))
-    return kno_err(kno_SyntaxError,"definedp_evalfn",NULL,kno_incref(expr));
+    return kno_err(kno_SyntaxError,"definedp_evalfn",NULL,expr);
   else {
     lispval val = kno_symeval(symbol,env);
     if (KNO_ABORTED(val))
@@ -1244,8 +1251,10 @@ static lispval symbol_boundin_prim(lispval symbol,lispval envarg)
   else if (KNO_LEXENVP(envarg)) {
     kno_lexenv env = (kno_lexenv)envarg;
     lispval val = kno_symeval(symbol,env);
-    if (KNO_ABORTED(val)) return val;
-    else if (VOIDP(val)) return KNO_FALSE;
+    if (KNO_ABORTED(val))
+      return val;
+    else if (VOIDP(val))
+      return KNO_FALSE;
     else if (val == KNO_DEFAULT_VALUE)
       return KNO_FALSE;
     else if (val == KNO_UNBOUND)
@@ -1255,7 +1264,8 @@ static lispval symbol_boundin_prim(lispval symbol,lispval envarg)
       return KNO_TRUE;}}
   else if (TABLEP(envarg)) {
     lispval val = kno_get(envarg,symbol,VOID);
-    if (VOIDP(val)) return KNO_FALSE;
+    if (VOIDP(val))
+      return KNO_FALSE;
     else {
       kno_decref(val);
       return KNO_TRUE;}}
@@ -1272,8 +1282,10 @@ static lispval symbol_boundp_evalfn(lispval expr,kno_lexenv env,
   else symbol = kno_stack_eval(symbol_expr,env,stack,0);
   if (KNO_ABORTED(symbol))
     return symbol;
-  else if (!(KNO_SYMBOLP(symbol)))
-    return kno_err("NotASymbol","symbol_boundp_evalfn",NULL,symbol);
+  else if (!(KNO_SYMBOLP(symbol))) {
+    lispval err = kno_err("NotASymbol","symbol_boundp_evalfn",NULL,symbol);
+    kno_decref(symbol);
+    return err;}
   else NO_ELSE;
   lispval env_expr = kno_get_arg(expr,2), env_value = VOID;
   if (VOIDP(env_expr))
@@ -1371,8 +1383,10 @@ static lispval get_arg_prim(lispval expr,lispval elt,lispval dflt)
     if (KNO_UINTP(elt)) {
       int i = 0, lim = FIX2INT(elt); lispval scan = expr;
       while ((i<lim) && (PAIRP(scan))) {
-        scan = KNO_CDR(scan); i++;}
-      if (PAIRP(scan)) return kno_incref(KNO_CAR(scan));
+        scan = KNO_CDR(scan);
+        i++;}
+      if (PAIRP(scan))
+        return kno_incref(KNO_CAR(scan));
       else return kno_incref(dflt);}
     else return kno_type_error(_("fixnum"),"get_arg_prim",elt);
   else return kno_type_error(_("pair"),"get_arg_prim",expr);
@@ -1396,17 +1410,22 @@ static lispval apply_lexpr(int n,lispval *args)
         /* Copy regular arguments */
         while (i<lim) {values[j]=kno_incref(args[i]); j++; i++;}
         i = 0; while (j<n_args) {
-          values[j]=kno_seq_elt(final_arg,i); j++; i++;}
+          values[j]=kno_seq_elt(final_arg,i);
+          j++; i++;}
         result = kno_apply(fn,n_args,values);
         if (KNO_ABORTED(result)) {
           kno_decref(results);
           KNO_STOP_DO_CHOICES;
-          i = 0; while (i<n_args) {kno_decref(values[i]); i++;}
+          i = 0; while (i<n_args) {
+            kno_decref(values[i]);
+            i++;}
           u8_free(values);
           results = result;
           break;}
         else {CHOICE_ADD(results,result);}
-        i = 0; while (i<n_args) {kno_decref(values[i]); i++;}
+        i = 0; while (i<n_args) {
+          kno_decref(values[i]);
+          i++;}
         u8_free(values);}
       if (KNO_ABORTED(results)) {
         KNO_STOP_DO_CHOICES;
@@ -1415,9 +1434,171 @@ static lispval apply_lexpr(int n,lispval *args)
   }
 }
 
-/* Initialization */
+/* Delays */
 
-extern void kno_init_coreprims_c(void);
+static lispval delay_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+{
+  lispval delay_expr = kno_get_arg(expr,1);
+  if (KNO_VOIDP(delay_expr))
+    return kno_err(kno_SyntaxError,"delay_evalfn",NULL,expr);
+  else {
+    struct KNO_PROMISE *promise = u8_alloc(struct KNO_PROMISE);
+    KNO_INIT_FRESH_CONS(promise,kno_promise_type);
+    u8_init_mutex(&promise->promise_lock);
+    promise->promise_expr = kno_incref(delay_expr);
+    promise->promise_env = kno_copy_env(env);
+    promise->promise_consumers = KNO_EMPTY;
+    if (KNO_EVALP(delay_expr))
+      promise->promise_value = KNO_NULL;
+    else promise->promise_value = kno_incref(delay_expr);
+    return (lispval) promise;}
+}
+
+DCLPRIM1("FORCE",force_promise_prim,MIN_ARGS(1),
+         "`(FORCE *promise*)` returns the value promised by "
+         "*promise*. If *promise* is not a promise object, "
+         "it is simply returned. Promises only compute their "
+         "values once, so the result of the first call is "
+         "memoized",
+         -1,KNO_VOID)
+static lispval force_promise_prim(lispval promise)
+{
+  if (KNO_TYPEP(promise,kno_promise_type)) {
+    struct KNO_PROMISE *p = (kno_promise) promise;
+    if (p->promise_value)
+      return kno_incref(p->promise_value);
+    else {
+      u8_lock_mutex(&p->promise_lock);
+      if (p->promise_value) {
+        u8_unlock_mutex(&p->promise_lock);
+        return kno_incref(p->promise_value);}
+      lispval result = kno_stack_eval
+        (p->promise_expr,p->promise_env,kno_stackptr,0);
+      if (KNO_ABORTED(result)) {
+        lispval exception = kno_get_exception(u8_current_exception);
+        p->promise_broken = 1;
+        p->promise_value = kno_incref(exception);}
+      else p->promise_value = result;
+      lispval consumers = p->promise_consumers;
+      p->promise_consumers = KNO_EMPTY;
+      u8_unlock_mutex(&p->promise_lock);
+      /* This should handle consumers somehow, TBD */
+      kno_decref(consumers);
+      return result;}}
+  else return kno_incref(promise);
+}
+
+DCLPRIM2("PROMISE/PROBE",probe_promise_prim,MIN_ARGS(1),
+         "`(PROMISE/PROBE *promise* *marker*)` returns the value promised by "
+         "*promise* if it has been resolved. If *promise* has "
+         "not been resolved, *marker* is returned and if *promise* "
+         "is not a promise it is returned.",
+         -1,KNO_VOID,-1,KNO_VOID)
+static lispval probe_promise_prim(lispval promise,lispval marker)
+{
+  if (KNO_TYPEP(promise,kno_promise_type)) {
+    struct KNO_PROMISE *promise = (kno_promise) promise;
+    if (promise->promise_value)
+      return kno_incref(promise->promise_value);
+    else return kno_incref(marker);}
+  else return kno_incref(promise);
+}
+
+DCLPRIM1("MAKE-PROMISE",make_promise_prim,MIN_ARGS(1),
+         "`(MAKE-PROMISE *value*)` returns a promise which "
+         "returns *value* when FORCEd.",
+         -1,KNO_VOID)
+static lispval make_promise_prim(lispval value)
+{
+  struct KNO_PROMISE *promise = u8_alloc(struct KNO_PROMISE);
+  KNO_INIT_FRESH_CONS(promise,kno_promise_type);
+  u8_init_mutex(&promise->promise_lock);
+  promise->promise_expr = kno_incref(value);
+  promise->promise_env = NULL;
+  promise->promise_consumers = KNO_EMPTY;
+  promise->promise_value = kno_incref(value);
+  return (lispval) promise;
+}
+
+DCLPRIM1("PROMISE/RESOLVED?",promise_resolvedp_prim,MIN_ARGS(1),
+         "`(PROMISE/RESOLVED? *promise*)` returns #t if "
+         "*promise* has had its value computed and cached "
+         "(or generated an error).",
+         kno_promise_type,KNO_VOID)
+static lispval promise_resolvedp_prim(lispval value)
+{
+  struct KNO_PROMISE *promise = (kno_promise) value;
+  if (promise->promise_value)
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+DCLPRIM1("PROMISE/BROKEN?",promise_brokenp_prim,MIN_ARGS(1),
+         "`(PROMISE/BROKEN? *promise*)` returns #t if "
+         "*promise* generated an error when evaluated.",
+         kno_promise_type,KNO_VOID)
+static lispval promise_brokenp_prim(lispval value)
+{
+  struct KNO_PROMISE *promise = (kno_promise) value;
+  if ( (promise->promise_value) &&
+       (promise->promise_broken) )
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+DCLPRIM1("PROMISE/SATISFIED?",promise_satisfiedp_prim,MIN_ARGS(1),
+         "`(PROMISE/SATISFIED? *promise*)` returns #t if "
+         "*promise* has been computed and cached without error.",
+         kno_promise_type,KNO_VOID)
+static lispval promise_satisfiedp_prim(lispval value)
+{
+  struct KNO_PROMISE *promise = (kno_promise) value;
+  if ( (promise->promise_value) &&
+       (! (KNO_EXCEPTIONP(promise->promise_value)) ) )
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+DCLPRIM1("PROMISE?",promisep_prim,MIN_ARGS(1),
+         "`(PROMISE? *value*)` returns true if *value* is a promise.",
+         -1,KNO_VOID)
+static lispval promisep_prim(lispval value)
+{
+  if (KNO_TYPEP(value,kno_promise_type))
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+KNO_EXPORT void recycle_promise(struct KNO_RAW_CONS *c)
+{
+  struct KNO_PROMISE *p = (struct KNO_PROMISE *)c;
+  kno_decref(p->promise_expr);
+  p->promise_expr = KNO_VOID;
+  if (p->promise_value) {
+    kno_decref(p->promise_expr);
+    p->promise_value = KNO_NULL;}
+  if (p->promise_env) {
+    lispval envptr = (lispval)p->promise_env;
+    if (!(KNO_STATICP(envptr)))
+      kno_decref(envptr);
+    p->promise_env = NULL;}
+  if (!(EMPTYP(p->promise_consumers))) {
+    kno_decref(p->promise_consumers);
+    p->promise_consumers = KNO_EMPTY;}
+  if (!(KNO_STATIC_CONSP(c))) u8_free(c);
+}
+
+static int unparse_promise(u8_output out,lispval x)
+{
+  struct KNO_PROMISE *p = (kno_promise) x;
+  u8_printf(out,"#<PROMISE %s %q>",
+            ((p->promise_value == KNO_NULL) ? ("pending") :
+             (p->promise_broken) ? ("broken") : ("resolved")),
+            p->promise_expr);
+  return 1;
+}
+
+/* Table functions used everywhere (:)) */
 
 static lispval lispenv_get(lispval e,lispval s,lispval d)
 {
@@ -1573,116 +1754,6 @@ static lispval make_dtproc(lispval name,lispval server,lispval min_arity,
           FIX2INT(minsock),FIX2INT(maxsock),
           FIX2INT(initsock));
   return result;
-}
-
-/* Remote evaluation */
-
-static u8_condition ServerUndefined=_("Server unconfigured");
-
-KNO_EXPORT lispval kno_open_dtserver(u8_string server,int bufsiz)
-{
-  struct KNO_DTSERVER *dts = u8_alloc(struct KNO_DTSERVER);
-  u8_string server_addr; u8_socket socket;
-  /* Start out by parsing the address */
-  if ((*server)==':') {
-    lispval server_id = kno_config_get(server+1);
-    if (STRINGP(server_id))
-      server_addr = u8_strdup(CSTRING(server_id));
-    else  {
-      kno_seterr(ServerUndefined,"open_server",
-                dts->dtserverid,server_id);
-      u8_free(dts);
-      return -1;}}
-  else server_addr = u8_strdup(server);
-  dts->dtserverid = u8_strdup(server);
-  dts->dtserver_addr = server_addr;
-  /* Then try to connect, just to see if that works */
-  socket = u8_connect_x(server,&(dts->dtserver_addr));
-  if (socket<0) {
-    /* If connecting fails, signal an error rather than creating
-       the dtserver connection pool. */
-    u8_free(dts->dtserverid);
-    u8_free(dts->dtserver_addr);
-    u8_free(dts);
-    return kno_err(kno_ConnectionFailed,"kno_open_dtserver",
-                  u8_strdup(server),VOID);}
-  /* Otherwise, close the socket */
-  else close(socket);
-  /* And create a connection pool */
-  dts->connpool = u8_open_connpool(dts->dtserverid,2,4,1);
-  /* If creating the connection pool fails for some reason,
-     cleanup and return an error value. */
-  if (dts->connpool == NULL) {
-    u8_free(dts->dtserverid);
-    u8_free(dts->dtserver_addr);
-    u8_free(dts);
-    return KNO_ERROR;}
-  /* Otherwise, returh a dtserver object */
-  KNO_INIT_CONS(dts,kno_dtserver_type);
-  return LISP_CONS(dts);
-}
-
-static lispval dtserverp(lispval arg)
-{
-  if (TYPEP(arg,kno_dtserver_type))
-    return KNO_TRUE;
-  else return KNO_FALSE;
-}
-
-static lispval dtserver_id(lispval arg)
-{
-  struct KNO_DTSERVER *dts = (struct KNO_DTSERVER *) arg;
-  return lispval_string(dts->dtserverid);
-}
-
-static lispval dtserver_address(lispval arg)
-{
-  struct KNO_DTSERVER *dts = (struct KNO_DTSERVER *) arg;
-  return lispval_string(dts->dtserver_addr);
-}
-
-static lispval dteval(lispval server,lispval expr)
-{
-  if (TYPEP(server,kno_dtserver_type))  {
-    struct KNO_DTSERVER *dtsrv=
-      kno_consptr(kno_stream_erver,server,kno_dtserver_type);
-    return kno_dteval(dtsrv->connpool,expr);}
-  else if (STRINGP(server)) {
-    lispval s = kno_open_dtserver(CSTRING(server),-1);
-    if (KNO_ABORTED(s)) return s;
-    else {
-      lispval result = kno_dteval(((kno_stream_erver)s)->connpool,expr);
-      kno_decref(s);
-      return result;}}
-  else return kno_type_error(_("server"),"dteval",server);
-}
-
-static lispval dtcall(int n,lispval *args)
-{
-  lispval server; lispval request = NIL, result; int i = n-1;
-  if (n<2) return kno_err(kno_SyntaxError,"dtcall",NULL,VOID);
-  if (TYPEP(args[0],kno_dtserver_type))
-    server = kno_incref(args[0]);
-  else if (STRINGP(args[0])) server = kno_open_dtserver(CSTRING(args[0]),-1);
-  else return kno_type_error(_("server"),"eval/dtcall",args[0]);
-  if (KNO_ABORTED(server)) return server;
-  while (i>=1) {
-    lispval param = args[i];
-    if ((i>1) && ((SYMBOLP(param)) || (PAIRP(param))))
-      request = kno_conspair(kno_make_list(2,quote_symbol,param),request);
-    else request = kno_conspair(param,request);
-    kno_incref(param); i--;}
-  result = kno_dteval(((kno_stream_erver)server)->connpool,request);
-  kno_decref(request);
-  kno_decref(server);
-  return result;
-}
-
-static lispval open_dtserver(lispval server,lispval bufsiz)
-{
-  return kno_open_dtserver(CSTRING(server),
-                             ((VOIDP(bufsiz)) ? (-1) :
-                              (FIX2INT(bufsiz))));
 }
 
 /* Getting documentation */
@@ -1853,18 +1924,16 @@ static lispval choiceref_prim(lispval arg,lispval off)
 {
   if (PRED_TRUE(FIXNUMP(off))) {
     long long i = FIX2INT(off);
-    if (i==0) {
-      if (EMPTYP(arg)) {
-        kno_seterr(kno_RangeError,"choiceref_prim","0",arg);
-        return KNO_ERROR;}
-      else return kno_incref(arg);}
+    if (EMPTYP(arg)) {
+      kno_seterr(kno_RangeError,"choiceref_prim","0",arg);
+      return KNO_ERROR;}
     else if (CHOICEP(arg)) {
       struct KNO_CHOICE *ch = (kno_choice)arg;
       if (i>ch->choice_size) {
         u8_byte buf[50];
         kno_seterr(kno_RangeError,"choiceref_prim",
                   u8_sprintf(buf,50,"%lld",i),
-                  kno_incref(arg));
+                  arg);
         return KNO_ERROR;}
       else {
         lispval elt = KNO_XCHOICE_DATA(ch)[i];
@@ -1874,6 +1943,8 @@ static lispval choiceref_prim(lispval arg,lispval off)
       lispval result = choiceref_prim(simplified,off);
       kno_decref(simplified);
       return result;}
+    else if (i == 0)
+      return kno_incref(arg);
     else {
       u8_byte buf[50];
       kno_seterr(kno_RangeError,"choiceref_prim",
@@ -1885,7 +1956,7 @@ static lispval choiceref_prim(lispval arg,lispval off)
 /* FFI */
 
 #if KNO_ENABLE_FFI
-static lispval ffi_proc_helper(int err,int n,lispval *args)
+static lispval ffi_proc(int n,lispval *args)
 {
   lispval name_arg = args[0], filename_arg = args[1];
   lispval return_type = args[2];
@@ -1895,25 +1966,16 @@ static lispval ffi_proc_helper(int err,int n,lispval *args)
     (NULL);
   if (!(name))
     return kno_type_error("String","ffi_proc/name",name_arg);
-  else if (!((STRINGP(filename_arg))||(FALSEP(filename_arg))))
+  else if (!( (STRINGP(filename_arg)) || (FALSEP(filename_arg)) ))
     return kno_type_error("String","ffi_proc/filename",filename_arg);
   else {
     struct KNO_FFI_PROC *fcn=
       kno_make_ffi_proc(name,filename,n-3,return_type,args+3);
     if (fcn)
       return (lispval) fcn;
-    else {
-      kno_clear_errors(1);
-      return KNO_FALSE;}}
+    else return KNO_ERROR;}
 }
-static lispval ffi_proc(int n,lispval *args)
-{
-  return ffi_proc_helper(1,n,args);
-}
-static lispval ffi_probe(int n,lispval *args)
-{
-  return ffi_proc_helper(0,n,args);
-}
+
 static lispval ffi_found_prim(lispval name,lispval modname)
 {
   void *module=NULL, *sym=NULL;
@@ -1961,6 +2023,10 @@ static void init_types_and_tables()
 
   kno_unparsers[kno_evalfn_type]=unparse_evalfn;
   kno_dtype_writers[kno_evalfn_type]=write_evalfn_dtype;
+
+  kno_type_names[kno_promise_type]=_("promise");
+  kno_unparsers[kno_promise_type]=unparse_promise;
+  kno_recyclers[kno_promise_type]=recycle_promise;
 
   kno_unparsers[kno_lexref_type]=unparse_lexref;
   kno_dtype_writers[kno_lexref_type]=write_lexref_dtype;
@@ -2062,17 +2128,40 @@ static void init_localfns()
   kno_idefn1(kno_scheme_module,"%CODEREF",coderef_prim,1,
             "(%CODEREF *nelts*) returns a 'coderef' (a relative position) value",
             kno_fixnum_type,VOID);
-  kno_idefn1(kno_scheme_module,"%CODREFVAL",coderef_value_prim,1,
+  kno_idefn1(kno_scheme_module,"%CODEREFVAL",coderef_value_prim,1,
             "(%CODEREFVAL *coderef*) returns the integer relative offset of a coderef",
-            kno_lexref_type,VOID);
+             kno_coderef_type,VOID);
+  kno_idefn1(kno_scheme_module,"CODEREF?",coderefp_prim,1,
+             "(CODEREF? *nelts*) returns #t if *arg* is a coderef",
+             -1,VOID);
 
   kno_idefn(kno_scheme_module,kno_make_cprim1("NAME->OPCODE",name2opcode_prim,1));
+  kno_idefn(kno_scheme_module,kno_make_cprim1("NAME->OPCODE",name2opcode_prim,1));
+  kno_idefn1(kno_scheme_module,"OPCODE-NAME",opcode_name_prim,1,
+             "(OPCODE-NAME *opcode*) returns the name of *opcode* "
+             "or #f it's valid but anonymous, and errors if it is "
+             "not an opcode or invalid",
+             kno_opcode_type,VOID);
+
+  DECL_PRIM(promisep_prim,1,kno_scheme_module);
+  DECL_PRIM(promisep_prim,1,kno_scheme_module);
+
+  kno_def_evalfn(kno_scheme_module,"DELAY",
+                 "`(DELAY *expr*)` creates a *promise* to evalute *expr* in "
+                 "the current environment, which is delivered when "
+                 "the promise is *forced*.",
+                 delay_evalfn);
+  DECL_PRIM(force_promise_prim,1,kno_scheme_module);
+  DECL_PRIM(probe_promise_prim,2,kno_scheme_module);
+  DECL_PRIM(make_promise_prim,1,kno_scheme_module);
+  DECL_PRIM(promise_satisfiedp_prim,1,kno_scheme_module);
+  DECL_PRIM(promise_brokenp_prim,1,kno_scheme_module);
+  DECL_PRIM(promise_resolvedp_prim,1,kno_scheme_module);
 
   kno_idefn(kno_scheme_module,
            kno_make_ndprim(kno_make_cprim2("%CHOICEREF",choiceref_prim,2)));
   kno_idefn(kno_scheme_module,
            kno_make_ndprim(kno_make_cprim1("%FIXCHOICE",fixchoice_prim,1)));
-
 
   kno_def_evalfn(kno_xscheme_module,"WITHENV","",withenv_evalfn);
 
@@ -2118,32 +2207,14 @@ static void init_localfns()
   kno_idefn(kno_scheme_module,kno_make_cprimn("CHECK-VERSION",check_version_prim,1));
   kno_idefn(kno_scheme_module,kno_make_cprimn("REQUIRE-VERSION",require_version_prim,1));
 
-  kno_idefn(kno_scheme_module,kno_make_cprim2("DTEVAL",dteval,2));
-  kno_idefn(kno_scheme_module,kno_make_cprimn("DTCALL",dtcall,2));
-  kno_idefn(kno_scheme_module,kno_make_cprim2x("OPEN-DTSERVER",open_dtserver,1,
-                                            kno_string_type,VOID,
-                                            kno_fixnum_type,VOID));
-  kno_idefn1(kno_scheme_module,"DTSERVER?",dtserverp,KNO_NEEDS_1_ARG,
-            "Returns true if it's argument is a dtype server object",
-            -1,VOID);
-  kno_idefn1(kno_scheme_module,"DTSERVER-ID",
-            dtserver_id,KNO_NEEDS_1_ARG,
-            "Returns the ID of a dtype server (the argument used to create it)",
-            kno_dtserver_type,VOID);
-  kno_idefn1(kno_scheme_module,"DTSERVER-ADDRESS",
-            dtserver_address,KNO_NEEDS_1_ARG,
-            "Returns the address (host/port) of a dtype server",
-            kno_dtserver_type,VOID);
-
   kno_idefn0(kno_scheme_module,"%BUILDINFO",kno_get_build_info,
             "Information about the build and startup environment");
 
   kno_idefn(kno_xscheme_module,kno_make_cprimn("FFI/PROC",ffi_proc,3));
-  kno_idefn(kno_xscheme_module,kno_make_cprimn("FFI/PROBE",ffi_probe,3));
   kno_idefn(kno_xscheme_module,
            kno_make_cprim2x("FFI/FOUND?",ffi_found_prim,1,
-                           kno_string_type,VOID,
-                           kno_string_type,VOID));
+                            kno_string_type,VOID,
+                            -1,VOID));
 
   kno_register_config
     ("TAILCALL",
@@ -2182,20 +2253,25 @@ KNO_EXPORT void kno_init_reqstate_c(void);
 KNO_EXPORT void kno_init_regex_c(void);
 KNO_EXPORT void kno_init_quasiquote_c(void);
 KNO_EXPORT void kno_init_struct_eval_c(void);
-KNO_EXPORT void kno_init_extdbprims_c(void);
+KNO_EXPORT void kno_init_sqldbprims_c(void);
 KNO_EXPORT void kno_init_history_c(void);
 KNO_EXPORT void kno_init_eval_appenv_c(void);
 KNO_EXPORT void kno_init_eval_moduleops_c(void);
 KNO_EXPORT void kno_init_eval_getopt_c(void);
 KNO_EXPORT void kno_init_eval_debug_c(void);
 KNO_EXPORT void kno_init_eval_testops_c(void);
+KNO_EXPORT void kno_init_configops_c(void);
+KNO_EXPORT void kno_init_dteval_c(void);
 
 static void init_eval_core()
 {
   init_localfns();
+
+  kno_init_configops_c();
   kno_init_eval_getopt_c();
   kno_init_eval_debug_c();
   kno_init_eval_testops_c();
+  kno_init_dteval_c();
   kno_init_tableprims_c();
   kno_init_modules_c();
   kno_init_arith_c();
@@ -2229,7 +2305,7 @@ static void init_eval_core()
   kno_init_streamprims_c();
   kno_init_timeprims_c();
   kno_init_sysprims_c();
-  kno_init_extdbprims_c();
+  kno_init_sqldbprims_c();
 
   u8_threadcheck();
 

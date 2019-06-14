@@ -79,6 +79,7 @@ static lispval slotmap_evalfn(lispval sm,kno_lexenv env,struct KNO_STACK *stackp
     lispval eval_expr = old_kv[read_slot].kv_val;
     lispval val = _kno_fast_eval(eval_expr,env,stackptr,0);
     if (KNO_ABORTP(val)) {
+      if (unlock) u8_rw_unlock(&(smap->table_rwlock));
       kno_decref(result);
       return val;}
     else if (KNO_EMPTYP(val)) {

@@ -28,3 +28,5 @@
 
 ;; Since we've made fibi not tailable, the time for fibi is not greater than fib-iter
 (applytest #t > (profile/time (profile/getcalls fibi)) (profile/time (profile/getcalls fib-iter)) )
+
+(test-finished "PROFILETEST")

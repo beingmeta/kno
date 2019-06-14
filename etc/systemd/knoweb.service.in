@@ -1,7 +1,7 @@
 [Unit]
 Description=Kno servlet starter
 Requires=network.target local-fs.target
-After=fdaemons.service upsource.target
+After=knodaemons.service upsource.target
 
 [Service]
 Type=forking

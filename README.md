@@ -1,19 +1,55 @@
 # This is KNO
 
-**KNO** is a platform for symbolic computing at scale, especially
-  suited to symbolic artificial intelligence and qualitative data
-  analysis. *KNO* is based on the general architecture and data model
-  of [http://www.framerd.org/](FramerD) which has been stable (but
-  growing) for over twenty years with both experimental and commercial
-  deployments.  Earlier versions of KNO (known as FramerD) have been
-  deployed commercially in contexts with high availability to tens of
-  thousands of users and largely maintained by in-house sysops
-  administrators.
+**KNO** is a platform for high-performance symbolic computing at
+scale, especially suited for development and deployment of symbolic AI
+services and solutions. The core platform is implemented in C for Unix
+platforms (including MacOS) and is released under the open-source AGPL
+license.
+
+*KNO* is based on the general architecture and data model of
+[http://www.framerd.org/](FramerD) which has been stable (but growing)
+for over twenty years in both experimental and commercial deployments.
+Earlier versions of KNO (known as FramerD) have been deployed
+commercially in contexts with high availability to tens of thousands
+of users and largely maintained by in-house sysops administrators.
 
 **KNO** databases readily include millions of searchable frames with
 multiple properties and relations.  These databases can be distributed
 over multiple networked machines. In experimental applications, KNO
 has supported over a billion frames.
+
+The *KNO* runtime and language kernel provides:
+  * a lockless reference-counting GC suited to real-time applications;
+  * an extensible type system
+  * full UTF-8 support with conversion from external encodings (using libu8)
+  * graph representations with *heapless nodes* allowing very large
+knowledge and data graphs.
+  * a simple and powerful abstract *storage layer* for representing graphs and graph indexes;
+  * many optimizations for multi-threaded execution and the writing of
+high-utilization threaded services and applications
+  * an application language, based on Scheme, with an extensible optimization/compilation facility
+  * support for *non-deterministic* programming, a paradigm 
+  * high performance data structures (tables, sets, etc) and components (e.g. bloom filters)
+  * native modules for text analysis and web format parsing (including XML, JSON, and MIME)
+  * native wrappers for:
+    * image processing (imagick, qrencode, exif, etc),
+	* cryptographic functions,
+    * text processing (tidy, markdown,hyphenation, etc),
+    * external database libraries (leveldb, rocksdb, sqlite, etc), 
+    * external archival data files (ziptools, libarchive, libzip, etc),
+  * native database drivers for MongoDB, MySQL, ODBC, etc
+  * a performant web *servlet* architecture integrated with Apache
+  * a distributed processing and data model
+
+In addition, *Kno* includes **parseltongue**, a library for using and
+being used by Python libraries and applications. *Parseltongue*
+provides in-memory access to Python libraries and objects as well as
+enabling both the KNO runtime and modules to be accessed from Python
+code directly. This effectively enables Kno to leverage the vast
+variety of existing python libraries as well as it's own advanced
+features and components.
+
+## General architecture
 
 *KNO* consists of four main components: 
 
@@ -22,7 +58,7 @@ has supported over a billion frames.
   especially optimized for the sort of pointer-intensive data
   structures used by semantic networks, frame systems, and many
   intelligent agent applications. This database provides a simple and
-  flexible object and index model grounded in *drivers* for both
+  flexible object and index model grounded in *drivers* for both KNO's
   native database formats and external formats and services.
 
 * a **Scheme**-based scripting language with special provisions for
@@ -65,8 +101,8 @@ has supported over a billion frames.
   module (`mod_knoweb`) to communicate with multi-threaded KNO
   *servlets* using a binary wire protocol.
 
-KNO is implemented in ANSI C for Unix-based platforms including Linux
-and macOS.
+KNO is implemented in C for Unix-based platforms including Linux and
+macOS.
 
 ## Background
 
@@ -88,7 +124,7 @@ SCHEME-like VM.
 
 Originally called `Enterprise FramerD` or sometimes (confusingly) just
 `FramerD`, this was renamed **KNO** in May 2019 and released under an
-open source license (the GPLV2).
+open source license (the AGPLV2).
 
 **beingmeta**'s implementation of KNO provides a novel query
   optimization technique called *iterated partial evaluation*

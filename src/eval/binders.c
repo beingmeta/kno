@@ -149,47 +149,13 @@ static lispval bind_default_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       kno_decref(val); return VOID;}}
 }
 
-static u8_mutex sassign_lock;
-
-/* This implements a simple version of globally synchronized set, which
-   wraps a mutex around a regular set call, including evaluation of the
-   value expression.  This can be used, for instance, to safely increment
-   a variable. */
-static lispval sassign_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
-{
-  int retval;
-  lispval var = kno_get_arg(expr,1), val_expr = kno_get_arg(expr,2), value;
-  if (VOIDP(var))
-    return kno_err(kno_TooFewExpressions,"SSET!",NULL,expr);
-  else if (!(SYMBOLP(var)))
-    return kno_err(kno_NotAnIdentifier,"SSET!",NULL,expr);
-  else if (VOIDP(val_expr))
-    return kno_err(kno_TooFewExpressions,"SSET!",NULL,expr);
-  u8_lock_mutex(&sassign_lock);
-  value = fast_eval(val_expr,env);
-  if (KNO_ABORTED(value)) {
-    u8_unlock_mutex(&sassign_lock);
-    return value;}
-  else if ((retval = (kno_assign_value(var,value,env)))) {
-    kno_decref(value); u8_unlock_mutex(&sassign_lock);
-    if (retval<0) return KNO_ERROR;
-    else return VOID;}
-  else if ((retval = (kno_bind_value(var,value,env)))) {
-    kno_decref(value); u8_unlock_mutex(&sassign_lock);
-    if (retval<0) return KNO_ERROR;
-    else return VOID;}
-  else {
-    u8_unlock_mutex(&sassign_lock);
-    return kno_err(kno_BindError,"SSET!",SYM_NAME(var),var);}
-}
-
 /* Simple binders */
 
 static lispval let_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval bindexprs = kno_get_arg(expr,1), result = VOID;
   int n;
-  if (VOIDP(bindexprs))
+  if (PRED_FALSE(! ( (bindexprs == KNO_NIL) || (PAIRP(bindexprs)) ) ))
     return kno_err(kno_BindSyntaxError,"LET",NULL,expr);
   else if ((n = check_bindexprs(bindexprs,&result))<0)
     return result;
@@ -208,8 +174,8 @@ static lispval let_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
           letenv_vars[i]=var;
           letenv_vals[i]=value;
           i++;}}}
-    result = eval_inner_body(":LET",SYM_NAME(letenv_vars[0]),
-                       expr,2,letenv,_stack);
+    result = eval_inner_body
+      (":LET",SYM_NAME(letenv_vars[0]),expr,2,letenv,_stack);
     _return result;}
 }
 
@@ -217,7 +183,7 @@ static lispval letstar_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval bindexprs = kno_get_arg(expr,1), result = VOID;
   int n;
-  if (VOIDP(bindexprs))
+  if (PRED_FALSE(! ( (bindexprs == KNO_NIL) || (PAIRP(bindexprs)) ) ))
     return kno_err(kno_BindSyntaxError,"LET*",NULL,expr);
   else if ((n = check_bindexprs(bindexprs,&result))<0)
     return result;
@@ -249,6 +215,45 @@ static lispval letstar_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     _return result;}
 }
 
+/* LETREC */
+
+static lispval letrec_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+{
+  lispval bindexprs = kno_get_arg(expr,1), result = VOID;
+  int n;
+  if (PRED_FALSE(! ( (bindexprs == KNO_NIL) || (PAIRP(bindexprs)) ) ))
+    return kno_err(kno_BindSyntaxError,"LETREC",NULL,expr);
+  else if ((n = check_bindexprs(bindexprs,&result))<0)
+    return result;
+  else {
+    INIT_STACK_ENV(_stack,letrec,env,n);
+    int i = 0, j = 0;
+    {KNO_DOBINDINGS(var,val_expr,bindexprs) {
+        letrec_vars[j]=var;
+        letrec_vals[j]=KNO_UNBOUND;
+        j++;}}
+    {KNO_DOBINDINGS(var,val_expr,bindexprs) {
+        lispval value = fast_eval(val_expr,letrec);
+        if (KNO_ABORTED(value))
+          _return value;
+        else if (VOIDP(value)) {
+          kno_seterr(kno_VoidBinding,"letstar_evalfn",
+                    KNO_SYMBOL_NAME(var),val_expr);
+          kno_decref_vec(letrec_vals,i);
+          return KNO_ERROR_VALUE;}
+        else if (letrec->env_copy) {
+          kno_bind_value(var,value,letrec->env_copy);
+          kno_decref(value);}
+        else {
+          letrec_vars[i]=var;
+          letrec_vals[i]=value;}
+        i++;}}
+    result = eval_inner_body(":LETREC",
+                             SYM_NAME(letrec_vars[0]),
+                             expr,2,letrec,_stack);
+    _return result;}
+}
+
 /* DO */
 
 static lispval do_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
@@ -256,7 +261,7 @@ static lispval do_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval bindexprs = kno_get_arg(expr,1);
   lispval exitexprs = kno_get_arg(expr,2);
   lispval testexpr = kno_get_arg(exitexprs,0), testval = VOID;
-  if (VOIDP(bindexprs))
+  if (PRED_FALSE(! ( (bindexprs == KNO_NIL) || (PAIRP(bindexprs)) ) ))
     return kno_err(kno_BindSyntaxError,"DO",NULL,expr);
   else if (VOIDP(exitexprs))
     return kno_err(kno_BindSyntaxError,"DO",NULL,expr);
@@ -484,14 +489,12 @@ KNO_EXPORT void kno_init_binders_c()
 
   moduleid_symbol = kno_intern("%moduleid");
 
-  u8_init_mutex(&sassign_lock);
-
   kno_def_evalfn(kno_scheme_module,"SET!","",assign_evalfn);
   kno_def_evalfn(kno_scheme_module,"SET+!","",assign_plus_evalfn);
-  kno_def_evalfn(kno_scheme_module,"SSET!","",sassign_evalfn);
 
   kno_def_evalfn(kno_scheme_module,"LET","",let_evalfn);
   kno_def_evalfn(kno_scheme_module,"LET*","",letstar_evalfn);
+  kno_def_evalfn(kno_scheme_module,"LETREC","",letrec_evalfn);
   kno_def_evalfn(kno_scheme_module,"DEFINE-INIT","",define_init_evalfn);
   kno_def_evalfn(kno_scheme_module,"DEFINE-LOCAL","",define_local_evalfn);
   kno_def_evalfn(kno_scheme_module,"DEF+","",define_return_evalfn);

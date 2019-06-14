@@ -24,4 +24,4 @@
 (applytest #t environment? (%appenv))
 (applytest #t test (%appenv) 'foo)
 
-(message "Finished startup/config testing")
+(test-finished "STARTUP")

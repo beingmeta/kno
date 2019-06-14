@@ -43,3 +43,5 @@
   (evaltest #f (onerror
 		   (read-dtype (open-dtype-input private-dtype-file))
 		   #f)))
+
+(test-finished "FILEPRIMS")

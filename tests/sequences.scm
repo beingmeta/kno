@@ -19,56 +19,107 @@
 (applytester  3 search #X"ba9c" p1)
 
 (define short-vec
-  (vector 0 127 256 (* 256 16) (1+ (* 256 16)) (1- (* 256 16))))
+  (vector 0 127 256 (* 256 16) (1+ (* 256 16)) (1- (* 256 16)) 127))
 (define int-vec
   (vector 0 127 256 (* 256 256)
-		(1+ (* 256 256 16)) (1- (* 256 256 16))))
-(define float-vec
-  (vector 0.1 1.0 10.0 1000.0 1000000.53 1000000000000.0
-	  .0000000001 0.0))
-(define double-vec
-  (vector 0.1 1.0 10.0 1000.0 1000000.53 1000000000000000000.0
-	  .000000000000000001 0.0))
+		(1+ (* 256 256 16))
+		(1- (* 256 256 16))
+		127))
+(define flonum-vec
+  (vector 0.1 127 1.0 10.0 1000.0 1000000.53 1000000000000.0
+	  .0000000001 127 0.0))
 
-(applytester 6 length short-vec)
-(applytester #t find 4096 short-vec)
-(applytester #f find 8192 short-vec)
-(applytester #f find 1048578 short-vec)
-(applytester 3 position 4096 short-vec)
-(applytester #f position 17 short-vec)
-(applytester 4095 elt short-vec 5)
-(applytester 2 search (vector 256 4096) short-vec)
-(applytester 2 search (vector 256 4096) short-vec)
-(applytester 2 search (vector 256 4096) short-vec)
-(applytester 256 first (vector 256 4096))
-(applytester 4096 second (vector 256 4096))
-(applytester 0 first short-vec)
-(applytester 127 second short-vec)
-(applytester 1.0 second float-vec)
+(define (seqtest seq len . pos.vals)
+  (applytester len length seq)
+  (applytest #t sequence? seq)
+  (errtest (elt seq (+ (+ len 10))))
+  (errtest (elt seq (+ len 5)))
+  (errtest (elt seq (1+ len)))
+  (errtest (elt seq (- (1+ len))))
+  (let ((scan pos.vals))
+    (while (pair? scan)
+      (let* ((posdata (car scan)) 
+	     (val (cadr scan))
+	     (pos (and posdata
+		       (if (pair? posdata) (car posdata) posdata)))
+	     (rpos (and posdata (pair? posdata) (cdr posdata))))
+	(set! scan (cddr scan))
+	(when pos
+	  (applytest val elt seq pos)
+	  (applytest val elt seq (- (- len pos))))
+	(applytest (and pos #t) find val seq)
+	(applytest pos position val seq)
+	(when pos
+	  (if rpos
+	      (applytest rpos rposition val seq)
+	      (applytest pos rposition val seq)))	
+	(when (> len 0) (applytest (elt seq 0) (first seq)))
+	(when (> len 1) (applytest (elt seq 1) (second seq)))
+	(when (> len 2) (applytest (elt seq 2) (third seq))))))
+  (when (> len 4)
+    (let ((part (slice seq 2 4)))
+      (applytest 2 search part seq)))
+  #t)
 
-(applytester 6 length int-vec)
-(applytester 3 position 65536 int-vec)
-(applytester #f position 17 int-vec)
-(applytester 1048575 elt int-vec 5)
-(applytester 3 search (vector 65536 1048577) int-vec)
-(applytester 3 search (vector 65536 1048577) int-vec)
-(applytester 1 search (vector 127 256) int-vec)
+(seqtest short-vec 7 
+	 '(1 . 6) 127
+	 3 4096
+	 4 4097
+	 #f 17
+	 5 4095)
+(seqtest int-vec 7 
+	 '(1 . 6) 127
+	 3 65536
+	 4 1048577
+	 #f 17
+	 5 1048575)
+(seqtest (->shortvec short-vec) 7 
+	 '(1 . 6) 127
+	 3 4096
+	 4 4097
+	 #f 17
+	 5 4095)
+(seqtest (->intvec short-vec) 7 
+	 '(1 . 6) 127
+	 3 4096
+	 4 4097
+	 #f 17
+	 5 4095)
+(seqtest (->intvec int-vec) 7 
+	 '(1 . 6) 127
+	 3 65536
+	 4 1048577
+	 #f 17
+	 5 1048575)
+(seqtest (->longvec int-vec) 7 
+	 '(1 . 6) 127
+	 3 65536
+	 4 1048577
+	 #f 17
+	 5 1048575)
 
-(applytester 8 length float-vec)
-(applytester 4 position 1000000.53 float-vec)
-(applytester #f position 1000000.54 float-vec)
-(applytester 0.000000000000000001 elt double-vec 6)
-(applytester 1 search (vector 1.0 10.0) float-vec)
-(applytester 1 search (vector 1.0 10.0) float-vec)
-(applytester 1 search (vector 1.0 10.0) float-vec)
-
-(applytester 8 length double-vec)
-(applytester 4 position 1000000.53 double-vec)
-(applytester #f position 1000000.54 double-vec)
-(applytester .000000000000000001 elt double-vec 6)
-(applytester 1 search (vector 1.0 10.0) double-vec)
-(applytester 1 search (vector 1.0 10.0) float-vec)
-(applytester 1 search (vector 1.0 10.0) float-vec)
+(seqtest flonum-vec 10
+	 '(1 . 8) 127
+	 3 10.0
+	 4 1000.0
+	 #f 17
+	 5 1000000.53
+	 9 0.0)
+(seqtest (->floatvec flonum-vec) 10
+	 '(1 . 8) 127.0
+	 3 10.0
+	 4 1000.0
+	 #f 17
+	 ;; We lose precision here
+	 5 1000000.50
+	 9 0.0)
+(seqtest (->doublevec flonum-vec) 10
+	 '(1 . 8) 127.0
+	 3 10.0
+	 4 1000.0
+	 #f 17
+	 5 1000000.53
+	 9 0.0)
 
 (applytester #(a b c "d" 3 3.1 g h i j k '(l m) n)
 	   append #(a b c "d" 3) #(3.1 g h i j k '(l m) n))
@@ -407,5 +458,5 @@
 (applytest #f find-if even-string? vec2 -1 0)
 (applytest #f find-if odd-string? vec2 -1 0)
 
-(test-finished "SEQTEST")
+(test-finished "SEQUENCES")
 

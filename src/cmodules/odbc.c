@@ -18,7 +18,7 @@
 #include "kno/sequences.h"
 #include "kno/texttools.h"
 
-#include "kno/extdb.h"
+#include "kno/sqldb.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8printf.h>
@@ -42,16 +42,16 @@ static unsigned char *_memdup(const unsigned char *data,int len)
    This is distinct from SQLITE, where connections aren't threadsafe,
    so the lock is on connections. */
 
-static struct KNO_EXTDB_HANDLER odbc_handler;
+static struct KNO_SQLDB_HANDLER odbc_handler;
 
 typedef struct KNO_ODBC {
-  KNO_EXTDB_FIELDS;
+  KNO_SQLDB_FIELDS;
   SQLHENV env;
   SQLHDBC conn;} KNO_ODBC;
 typedef struct KNO_ODBC *kno_odbc;
 
 typedef struct KNO_ODBC_PROC {
-  KNO_EXTDB_PROC_FIELDS;
+  KNO_SQLDB_PROC_FIELDS;
 
   u8_mutex odbc_proc_lock;
 
@@ -89,7 +89,7 @@ KNO_EXPORT lispval kno_odbc_connect(lispval spec,lispval colinfo,int interactive
   struct KNO_ODBC *dbp = u8_alloc(struct KNO_ODBC);
   int ret = -1, howfar = 0;
   if (interactive<0) interactive = interactive_dflt;
-  KNO_INIT_FRESH_CONS(dbp,kno_extdb_type);
+  KNO_INIT_FRESH_CONS(dbp,kno_sqldb_type);
   ret = SQLAllocHandle(SQL_HANDLE_ENV,SQL_NULL_HANDLE,&(dbp->env));
   if (SQL_SUCCEEDED(ret)) {
     char *info;
@@ -97,10 +97,10 @@ KNO_EXPORT lispval kno_odbc_connect(lispval spec,lispval colinfo,int interactive
     SQLSetEnvAttr(dbp->env, SQL_ATTR_ODBC_VERSION,
                   (void *) SQL_OV_ODBC3, 0);
     ret = SQLAllocHandle(SQL_HANDLE_DBC,dbp->env,&(dbp->conn));
-    dbp->extdb_spec = u8_strdup(KNO_CSTRING(spec)); dbp->extdb_options = KNO_VOID;
-    info = u8_malloc(512); strcpy(info,"uninitialized"); dbp->extdb_info = info;
-    u8_init_mutex(&(dbp->extdb_proclock));
-    dbp->extdb_handler = &odbc_handler;
+    dbp->sqldb_spec = u8_strdup(KNO_CSTRING(spec)); dbp->sqldb_options = KNO_VOID;
+    info = u8_malloc(512); strcpy(info,"uninitialized"); dbp->sqldb_info = info;
+    u8_init_mutex(&(dbp->sqldb_proclock));
+    dbp->sqldb_handler = &odbc_handler;
     if (SQL_SUCCEEDED(ret)) {
       howfar++;
       ret = SQLDriverConnect(dbp->conn,sqldialog,
@@ -110,7 +110,7 @@ KNO_EXPORT lispval kno_odbc_connect(lispval spec,lispval colinfo,int interactive
                             (interactive==1) ? (SQL_DRIVER_COMPLETE_REQUIRED) :
                             (SQL_DRIVER_PROMPT)));
       if (SQL_SUCCEEDED(ret)) {
-        dbp->extdb_colinfo = colinfo; kno_incref(colinfo);
+        dbp->sqldb_colinfo = colinfo; kno_incref(colinfo);
         return LISP_CONS(dbp);}}}
   if (howfar>1)
     u8_seterr(ODBCError,"kno_odbc_connect",
@@ -120,18 +120,18 @@ KNO_EXPORT lispval kno_odbc_connect(lispval spec,lispval colinfo,int interactive
               odbc_errstring(dbp->env,SQL_HANDLE_ENV));
   if (howfar>1) {
     SQLFreeHandle(SQL_HANDLE_DBC,dbp->conn);
-    u8_free(dbp->extdb_info); u8_free(dbp->extdb_spec);}
+    u8_free(dbp->sqldb_info); u8_free(dbp->sqldb_spec);}
   if (howfar) SQLFreeHandle(SQL_HANDLE_ENV,dbp->env);
   u8_free(dbp);
   return KNO_ERROR_VALUE;
 }
 
-static void recycle_odbconn(struct KNO_EXTDB *c)
+static void recycle_odbconn(struct KNO_SQLDB *c)
 {
   struct KNO_ODBC *dbp = (struct KNO_ODBC *)c;
   SQLFreeHandle(SQL_HANDLE_DBC,dbp->conn);
   SQLFreeHandle(SQL_HANDLE_ENV,dbp->env);
-  u8_free(dbp->extdb_info); u8_free(dbp->extdb_spec);
+  u8_free(dbp->sqldb_info); u8_free(dbp->sqldb_spec);
 }
 
 static lispval odbcopen(lispval spec,lispval colinfo)
@@ -151,7 +151,7 @@ static lispval odbcmakeproc
   int ret = 0, have_stmt = 0;
   SQLSMALLINT n_params, *sqltypes;
   struct KNO_ODBC_PROC *dbproc = u8_alloc(struct KNO_ODBC_PROC);
-  KNO_INIT_FRESH_CONS(dbproc,kno_extdb_proc_type);
+  KNO_INIT_FRESH_CONS(dbproc,kno_sqldb_proc_type);
   ret = SQLAllocHandle(SQL_HANDLE_STMT, dbp->conn, &(dbproc->stmt));
   if (SQL_SUCCEEDED(ret)) have_stmt = 1;
   if (SQL_SUCCEEDED(ret))
@@ -169,58 +169,58 @@ static lispval odbcmakeproc
                 odbc_errstring(dbp->conn,SQL_HANDLE_DBC));
       u8_free(dbproc);}
     return KNO_ERROR_VALUE;}
-  dbproc->extdbptr = (lispval)dbp; kno_incref(dbproc->extdbptr);
-  dbproc->extdb_handler = &odbc_handler;
+  dbproc->sqldbptr = (lispval)dbp; kno_incref(dbproc->sqldbptr);
+  dbproc->sqldb_handler = &odbc_handler;
   dbproc->fcn_ndcall = 0;
   dbproc->fcn_xcall = 1;
   dbproc->fcn_arity = -1;
   dbproc->fcn_min_arity = dbproc->fcn_n_params = n_params;
-  dbproc->fcn_name = dbproc->extdb_qtext=_memdup(stmt,stmt_len+1);
-  dbproc->fcn_filename = dbproc->extdb_spec = u8_strdup(dbp->extdb_spec);
+  dbproc->fcn_name = dbproc->sqldb_qtext=_memdup(stmt,stmt_len+1);
+  dbproc->fcn_filename = dbproc->sqldb_spec = u8_strdup(dbp->sqldb_spec);
   dbproc->sqltypes = sqltypes = u8_alloc_n(n_params,SQLSMALLINT);
   dbproc->fcn_handler.xcalln = callodbcproc;
 
   u8_init_mutex(&(dbproc->odbc_proc_lock));
 
   if (KNO_VOIDP(colinfo))
-    dbproc->extdb_colinfo = kno_incref(dbp->extdb_colinfo);
-  else if (KNO_VOIDP(dbp->extdb_colinfo))
-    dbproc->extdb_colinfo = kno_incref(colinfo);
+    dbproc->sqldb_colinfo = kno_incref(dbp->sqldb_colinfo);
+  else if (KNO_VOIDP(dbp->sqldb_colinfo))
+    dbproc->sqldb_colinfo = kno_incref(colinfo);
   else {
-    kno_incref(colinfo); kno_incref(dbp->extdb_colinfo);
-    dbproc->extdb_colinfo = kno_conspair(colinfo,dbp->extdb_colinfo);}
+    kno_incref(colinfo); kno_incref(dbp->sqldb_colinfo);
+    dbproc->sqldb_colinfo = kno_conspair(colinfo,dbp->sqldb_colinfo);}
   {
     int i = 0; lispval *specs = u8_alloc_n(n_params,lispval);
     while (i<n_params)
       if (i<n) {specs[i]=kno_incref(args[i]); i++;}
       else {specs[i]=KNO_VOID; i++;}
-    dbproc->extdb_paramtypes = specs;}
+    dbproc->sqldb_paramtypes = specs;}
   {
     int i = 0; while (i<n_params) {
       SQLDescribeParam((dbproc->stmt),i+1,&(sqltypes[i]),NULL,NULL,NULL);
       i++;}}
-  kno_register_extdb_proc((struct KNO_EXTDB_PROC *) dbproc);
+  kno_register_sqldb_proc((struct KNO_SQLDB_PROC *) dbproc);
   return LISP_CONS(dbproc);
 }
 
 static lispval odbcmakeprochandler
-  (struct KNO_EXTDB *extdb,
+  (struct KNO_SQLDB *sqldb,
    u8_string stmt,int stmt_len,
    lispval colinfo,int n,lispval *ptypes)
 {
-  if (extdb->extdb_handler== &odbc_handler)
-    return odbcmakeproc((kno_odbc)extdb,stmt,stmt_len,colinfo,n,ptypes);
-  else return kno_type_error("ODBC EXTDB","odbcmakeprochandler",(lispval)extdb);
+  if (sqldb->sqldb_handler== &odbc_handler)
+    return odbcmakeproc((kno_odbc)sqldb,stmt,stmt_len,colinfo,n,ptypes);
+  else return kno_type_error("ODBC SQLDB","odbcmakeprochandler",(lispval)sqldb);
 }
 
-static void recycle_odbcproc(struct KNO_EXTDB_PROC *c)
+static void recycle_odbcproc(struct KNO_SQLDB_PROC *c)
 {
   struct KNO_ODBC_PROC *dbproc = (struct KNO_ODBC_PROC *)c;
-  kno_release_extdb_proc((struct KNO_EXTDB_PROC *) dbproc);
+  kno_release_sqldb_proc((struct KNO_SQLDB_PROC *) dbproc);
   SQLFreeHandle(SQL_HANDLE_STMT,dbproc->stmt);
-  kno_decref(dbproc->extdb_colinfo);
-  u8_free(dbproc->extdb_spec); u8_free(dbproc->extdb_qtext);
-  u8_free(dbproc->sqltypes); kno_decref(dbproc->extdbptr);
+  kno_decref(dbproc->sqldb_colinfo);
+  u8_free(dbproc->sqldb_spec); u8_free(dbproc->sqldb_qtext);
+  u8_free(dbproc->sqltypes); kno_decref(dbproc->sqldbptr);
 }
 
 /* Getting attributes from connections */
@@ -251,7 +251,7 @@ static lispval odbcintattr(struct KNO_ODBC *dbp,int attrid)
 
 static lispval odbcattr(lispval conn,lispval attr)
 {
-  struct KNO_ODBC *dbp = kno_consptr(struct KNO_ODBC *,conn,kno_extdb_type);
+  struct KNO_ODBC *dbp = kno_consptr(struct KNO_ODBC *,conn,kno_sqldb_type);
   char *attr_name = KNO_SYMBOL_NAME(attr);
   if (strcmp(attr_name,"DBMS")==0)
     return odbcstringattr(dbp,SQL_DBMS_NAME);
@@ -426,18 +426,18 @@ static lispval odbcexec(struct KNO_ODBC *dbp,lispval string,lispval colinfo)
     u8_seterr(ODBCError,"odbcexec",NULL);
     return KNO_ERROR_VALUE;}
   ret = SQLExecDirect(stmt,(char *)KNO_CSTRING(string),KNO_STRLEN(string));
-  if (KNO_VOIDP(colinfo)) colinfo = dbp->extdb_colinfo;
+  if (KNO_VOIDP(colinfo)) colinfo = dbp->sqldb_colinfo;
   if (SQL_SUCCEEDED(ret))
     return get_stmt_results(stmt,"odbcexec",1,colinfo);
   else return stmt_error(stmt,"odbcexec",1);
 }
 
 static lispval odbcexechandler
-  (struct KNO_EXTDB *extdb,lispval string,lispval colinfo)
+  (struct KNO_SQLDB *sqldb,lispval string,lispval colinfo)
 {
-  if (extdb->extdb_handler== &odbc_handler)
-    return odbcexec((kno_odbc)extdb,string,colinfo);
-  else return kno_type_error("ODBC EXTDB","odbcexechandler",(lispval)extdb);
+  if (sqldb->sqldb_handler== &odbc_handler)
+    return odbcexec((kno_odbc)sqldb,string,colinfo);
+  else return kno_type_error("ODBC SQLDB","odbcexechandler",(lispval)sqldb);
 }
 
 static lispval callodbcproc(struct KNO_FUNCTION *fn,int n,lispval *args)
@@ -447,9 +447,9 @@ static lispval callodbcproc(struct KNO_FUNCTION *fn,int n,lispval *args)
   u8_lock_mutex(&(dbp->odbc_proc_lock));
   while (i<n) {
     lispval arg = args[i]; int dofree = 0;
-    if (!(KNO_VOIDP(dbp->extdb_paramtypes[i])))
-      if (KNO_APPLICABLEP(dbp->extdb_paramtypes[i])) {
-        arg = kno_apply(dbp->extdb_paramtypes[i],1,&arg);
+    if (!(KNO_VOIDP(dbp->sqldb_paramtypes[i])))
+      if (KNO_APPLICABLEP(dbp->sqldb_paramtypes[i])) {
+        arg = kno_apply(dbp->sqldb_paramtypes[i],1,&arg);
         if (KNO_ABORTP(arg)) {
           u8_unlock_mutex(&(dbp->odbc_proc_lock));
           return arg;}
@@ -472,9 +472,9 @@ static lispval callodbcproc(struct KNO_FUNCTION *fn,int n,lispval *args)
                        KNO_STRLEN(arg),
                        NULL);}
     else if (KNO_OIDP(arg)) {
-      if (KNO_OIDP(dbp->extdb_paramtypes[i])) {
+      if (KNO_OIDP(dbp->sqldb_paramtypes[i])) {
         KNO_OID addr = KNO_OID_ADDR(arg);
-        KNO_OID base = KNO_OID_ADDR(dbp->extdb_paramtypes[i]);
+        KNO_OID base = KNO_OID_ADDR(dbp->sqldb_paramtypes[i]);
         unsigned long offset = KNO_OID_DIFFERENCE(addr,base);
         SQLBindParameter(dbp->stmt,i+1,
                          SQL_PARAM_INPUT,SQL_C_ULONG,
@@ -488,7 +488,7 @@ static lispval callodbcproc(struct KNO_FUNCTION *fn,int n,lispval *args)
     i++;}
   ret = SQLExecute(dbp->stmt);
   if (SQL_SUCCEEDED(ret)) {
-    lispval results = get_stmt_results(dbp->stmt,"odbcexec",0,dbp->extdb_colinfo);
+    lispval results = get_stmt_results(dbp->stmt,"odbcexec",0,dbp->sqldb_colinfo);
     SQLFreeStmt(dbp->stmt,SQL_CLOSE);
     SQLFreeStmt(dbp->stmt,SQL_RESET_PARAMS);
     u8_unlock_mutex(&(dbp->odbc_proc_lock));
@@ -502,7 +502,7 @@ static lispval callodbcproc(struct KNO_FUNCTION *fn,int n,lispval *args)
 
 static int odbc_initialized = 0;
 
-static struct KNO_EXTDB_HANDLER odbc_handler=
+static struct KNO_SQLDB_HANDLER odbc_handler=
   {"odbc",NULL,NULL,NULL,NULL};
 
 KNO_EXPORT int kno_init_odbc()

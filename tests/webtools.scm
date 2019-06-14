@@ -45,3 +45,7 @@
 (evaltest "<p title=\"alpha2omega\">Two plus three is 5.</p>"
 	  (xml->string test-result-4))
 
+
+(test-finished "WEBTOOLS")
+
+

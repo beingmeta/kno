@@ -903,7 +903,7 @@ int main(int argc,char **argv)
   kno_idefn((lispval)env,kno_make_cprim1("BACKTRACE",backtrace_prim,0));
   kno_defalias((lispval)env,"%","BACKTRACE");
 
-  kno_defspecial((lispval)env,"%HISTREF",histref_evalfn);
+  kno_def_evalfn((lispval)env,"%HISTREF","",histref_evalfn);
   kno_idefn0((lispval)env,"%HISTORY",history_prim,
             "Returns the current history object");
   history_symbol = kno_intern("%history");

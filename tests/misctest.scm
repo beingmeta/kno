@@ -101,6 +101,26 @@
 (define p2 #X"c0bd4ec937cfd6780ea29c4ba6cf3074")
 (define p3 #X"1f0320")
 
+(define s1 #*X"1f0320")
+(define s2 #*"keep it safe")
+
+(applytest #t packet? p1)
+(applytest #t packet? p2)
+(applytest #t packet? p3)
+(applytest #t packet? s1)
+(applytest #t packet? s2)
+(applytest #f packet? "foo")
+(applytest #f packet? 3)
+(applytest #f packet? #(a b c))
+(applytest #f packet? '(a b c))
+
+(applytest #t secret? s1)
+(applytest #t secret? s2)
+(applytest #f secret? "foo")
+(applytest #f secret? 3)
+(applytest #f secret? #(a b c))
+(applytest #f secret? '(a b c))
+
 (applytest 2 length p1)
 (applytest 16 length p2)
 (applytest 3 length p3)

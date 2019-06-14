@@ -21,7 +21,7 @@ set -e
 case "$1" in
     configure)
 	chown -R root:kno /etc/kno /usr/share/kno /var/log/kno;
-	chown -R fdaemon:kno /var/run/kno/daemons /var/log/kno/daemons;
+	chown -R knodaemon:kno /var/run/kno/daemons /var/log/kno/daemons;
         chown -R www-data:kno /var/run/kno/servlets /var/log/kno/servlets;
         chown -R root:kno /var/log/kno/bugjar;
 	chmod -R g+rwX /etc/kno /usr/share/kno;

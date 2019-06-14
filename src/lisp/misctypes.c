@@ -246,9 +246,9 @@ KNO_EXPORT lispval kno_make_regex(u8_string src,int flags)
 /* Raw pointers */
 
 KNO_EXPORT lispval kno_wrap_pointer(void *ptrval,
-                                  kno_raw_recyclefn recycler,
-                                  lispval typespec,
-                                  u8_string idstring)
+                                    kno_raw_recyclefn recycler,
+                                    lispval typespec,
+                                    u8_string idstring)
 {
   struct KNO_RAWPTR *rawptr = u8_alloc(struct KNO_RAWPTR);
   KNO_INIT_CONS(rawptr,kno_rawptr_type);
@@ -260,7 +260,9 @@ KNO_EXPORT lispval kno_wrap_pointer(void *ptrval,
   else if (STRINGP(typespec))
     rawptr->typestring = CSTRING(typespec);
   else rawptr->typestring = NULL;
-  rawptr->idstring = u8_strdup(idstring);
+  if (idstring)
+    rawptr->idstring = u8_strdup(idstring);
+  else rawptr->idstring = NULL;
   return (lispval) rawptr;
 }
 

@@ -1,4 +1,4 @@
-static lispval moduleid_symbol;
+static U8_MAYBE_UNUSED lispval moduleid_symbol;
 
 #define fast_eval(x,env) (_kno_fast_eval(x,env,_stack,0))
 #define fast_stack_eval(x,env,stack) (_kno_fast_eval(x,env,stack,0))
@@ -36,50 +36,6 @@ KNO_FASTOP lispval _pop_arg(lispval *scan)
 #define simplify_value(v) \
   ( (KNO_PRECHOICEP(v)) ? (kno_simplify_choice(v)) : (v) )
 
-static U8_MAYBE_UNUSED
-lispval find_module_id( kno_lexenv env )
-{
-  if (!(env)) return KNO_VOID;
-  else if (KNO_HASHTABLEP(env->env_bindings))
-    return kno_get(env->env_bindings,moduleid_symbol,KNO_VOID);
-  else if (env->env_copy)
-    return find_module_id(env->env_copy->env_parent);
-  else return find_module_id(env->env_parent);
-}
-
-static U8_MAYBE_UNUSED
-void free_lexenv(struct KNO_LEXENV *env)
-{
-  /* There are three cases:
-        a simple static environment (env->env_copy == NULL)
-        a static environment copied into a dynamic environment
-          (env->env_copy!=env)
-        a dynamic environment (env->env_copy == env->env_copy)
-  */
-  if (env->env_copy)
-    if (env == env->env_copy)
-      kno_recycle_lexenv(env->env_copy);
-    else {
-      struct KNO_SCHEMAP *sm = KNO_XSCHEMAP(env->env_bindings);
-      int i = 0, n = KNO_XSCHEMAP_SIZE(sm); 
-      lispval *vals = sm->schema_values;
-      while (i < n) {
-        lispval val = vals[i++];
-        if ((KNO_CONSP(val))&&(KNO_MALLOCD_CONSP((kno_cons)val))) {
-          kno_decref(val);}}
-      u8_destroy_rwlock(&(sm->table_rwlock));
-      kno_recycle_lexenv(env->env_copy);}
-  else {
-    struct KNO_SCHEMAP *sm = KNO_XSCHEMAP(env->env_bindings);
-    int i = 0, n = KNO_XSCHEMAP_SIZE(sm);
-    lispval *vals = sm->schema_values;
-    while (i < n) {
-      lispval val = vals[i++];
-      if ((KNO_CONSP(val))&&(KNO_MALLOCD_CONSP((kno_cons)val))) {
-        kno_decref(val);}}
-    u8_destroy_rwlock(&(sm->table_rwlock));}
-}
-
 KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,kno_stack stack,int tail)
 {
   while (PAIRP(body)) {
@@ -94,9 +50,9 @@ KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,kno_stack stack,int tai
 }
 
 KNO_FASTOP lispval eval_inner_body(u8_context cxt,u8_string label,
-                                  lispval expr,int offset,
-                                  kno_lexenv inner_env,
-                                  struct KNO_STACK *_stack)
+                                   lispval expr,int offset,
+                                   kno_lexenv inner_env,
+                                   struct KNO_STACK *_stack)
 {
   lispval body = kno_get_body(expr,offset);
   if (KNO_EMPTY_LISTP(body))

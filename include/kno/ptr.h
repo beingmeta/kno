@@ -179,27 +179,28 @@ typedef enum KNO_PTR_TYPE {
   kno_stackframe_type = KNO_CONS_TYPECODE(23),
   kno_tailcall_type = KNO_CONS_TYPECODE(24),
   kno_exception_type = KNO_CONS_TYPECODE(25),
+  kno_promise_type = KNO_CONS_TYPECODE(26),
 
-  kno_complex_type = KNO_CONS_TYPECODE(26),
-  kno_rational_type = KNO_CONS_TYPECODE(27),
-  kno_flonum_type = KNO_CONS_TYPECODE(28),
+  kno_complex_type = KNO_CONS_TYPECODE(27),
+  kno_rational_type = KNO_CONS_TYPECODE(28),
+  kno_flonum_type = KNO_CONS_TYPECODE(29),
 
-  kno_timestamp_type = KNO_CONS_TYPECODE(29),
-  kno_uuid_type = KNO_CONS_TYPECODE(30),
+  kno_timestamp_type = KNO_CONS_TYPECODE(30),
+  kno_uuid_type = KNO_CONS_TYPECODE(31),
 
   /* Other types, also defined here to be constant*/
-  kno_mystery_type = KNO_CONS_TYPECODE(31),
+  kno_mystery_type = KNO_CONS_TYPECODE(32),
 
-  kno_port_type = KNO_CONS_TYPECODE(32),
-  kno_stream_type = KNO_CONS_TYPECODE(33),
+  kno_port_type = KNO_CONS_TYPECODE(33),
+  kno_stream_type = KNO_CONS_TYPECODE(34),
 
-  kno_regex_type = KNO_CONS_TYPECODE(34),
+  kno_regex_type = KNO_CONS_TYPECODE(35),
 
-  kno_consblock_type = KNO_CONS_TYPECODE(35),
-  kno_rawptr_type = KNO_CONS_TYPECODE(36),
+  kno_consblock_type = KNO_CONS_TYPECODE(36),
+  kno_rawptr_type = KNO_CONS_TYPECODE(37),
 
-  kno_dtserver_type = KNO_CONS_TYPECODE(37),
-  kno_bloom_filter_type = KNO_CONS_TYPECODE(38),
+  kno_dtserver_type = KNO_CONS_TYPECODE(38),
+  kno_bloom_filter_type = KNO_CONS_TYPECODE(39),
 
   /* Extended types */
 
@@ -690,7 +691,7 @@ KNO_EXPORT lispval kno_register_constant(u8_string name);
 #define KNO_INTERRUPTED() (KNO_EXPECT_FALSE(u8_current_exception!=(NULL)))
 
 #define KNO_CONSTANTP(x) \
-  ((KNO_IMMEDIATEP(x)) && ((KNO_IMMEDIATE_TYPE(x))==0))
+  ((KNO_IMMEDIATEP(x)) && ((KNO_IMMEDIATE_TYPE(x)) == kno_constant_type))
 
 #define KNO_NIL (KNO_EMPTY_LIST)
 
@@ -950,6 +951,7 @@ KNO_EXPORT void lispval_sort(lispval *v,size_t n,kno_compare_flags flags);
 #if KNO_SOURCE
 #define VOID       (KNO_VOID)
 #define VOIDP(x)   (KNO_VOIDP(x))
+#define DEFAULTP(x) (KNO_DEFAULTP(x))
 #define EMPTY      (KNO_EMPTY_CHOICE)
 #define EMPTYP(x)  (KNO_EMPTY_CHOICEP(x))
 #define EXISTSP(x) (! (KNO_EMPTY_CHOICEP(x)) )

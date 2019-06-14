@@ -1,0 +1,1 @@
+Kno is a multi-faceted platform for symbolic computing at scale. It consists of a high-performance runtime hosting a simple and versatile object/graph model with underlying drivers for both it's own file formats and databases such as LevelDB and RocksDB. Drivers also existing for persisting objects to external databases, particularly MongoDB and MySQL.

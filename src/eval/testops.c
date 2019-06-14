@@ -52,6 +52,23 @@ static u8_condition TestError=_("Test error");
 static lispval failed_tests = KNO_EMPTY_CHOICE;
 static u8_mutex failed_tests_lock;
 
+double test_float_precision = 0.00001;
+
+static int test_match(lispval x,lispval y)
+{
+  if (x == y)
+    return 1;
+  else if (KNO_EQUALP(x,y))
+    return 1;
+  else if ( (KNO_FLONUMP(x)) && (KNO_FLONUMP(y)) ) {
+    double diff = KNO_FLONUM(x) - KNO_FLONUM(y);
+    if (diff < 0) diff = -diff;
+    if (diff > test_float_precision)
+      return 0;
+    else return 1;}
+  else return 0;
+}
+
 static void add_failed_test(lispval object)
 {
   u8_lock_mutex(&failed_tests_lock);
@@ -75,7 +92,10 @@ static int config_failed_tests_set(lispval var,lispval val,void *data)
   return 1;
 }
 
-static lispval applytest_inner(int n,lispval *args)
+#define USE_EQUAL_TEST 0
+#define USE_PREDICATE_TEST 1
+
+static lispval applytest_inner(int n,lispval *args,int predtest)
 {
   if (n<2)
     return kno_err(kno_TooFewArgs,"applytest",NULL,VOID);
@@ -95,7 +115,25 @@ static lispval applytest_inner(int n,lispval *args)
       u8_close_output(&out);
       kno_decref(value);
       return err;}
-    else if (KNO_EQUAL(value,args[0])) {
+    else if (predtest) {
+      lispval comparision = (VOIDP(value)) ?
+        (kno_apply(args[0],0,NULL)) :
+        (kno_apply(args[0],1,&value));
+      if (KNO_ABORTP(comparision))
+        return comparision;
+      else if (KNO_FALSEP(comparision)) {
+        struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
+        u8_printf(&out,"Unexpected result from %q didn't pass %q:",
+                  args[1],args[0]);
+        u8_printf(&out,"\n	%q",value);
+        lispval err = kno_err(TestFailed,"applytest",out.u8_outbuf,value);
+        u8_close_output(&out);
+        kno_decref(value);
+        return err;}
+      else {
+        kno_decref(value);
+        return KNO_TRUE;}}
+    else if (test_match(value,args[0])) {
       kno_decref(value);
       return KNO_TRUE;}
     else if ( (KNO_VOIDP(value)) && (args[0] == KNOSYM_VOID) ) {
@@ -111,7 +149,7 @@ static lispval applytest_inner(int n,lispval *args)
       kno_decref(value);
       return err;}}
   else if (n==2) {
-    if (KNO_EQUAL(args[1],args[0]))
+    if (test_match(args[1],args[0]))
       return KNO_TRUE;
     else {
       u8_string s = u8_mkstring("%q ≭ %q",args[0],args[1]);
@@ -119,7 +157,7 @@ static lispval applytest_inner(int n,lispval *args)
       u8_free(s);
       return err;}}
   else if (n == 3) {
-    if (KNO_EQUAL(args[2],args[0]))
+    if (test_match(args[2],args[0]))
       return KNO_TRUE;
     else {
       u8_string s = u8_mkstring("%q: %q ≭ %q",args[1],args[0],args[2]);
@@ -131,7 +169,25 @@ static lispval applytest_inner(int n,lispval *args)
 
 static lispval applytest(int n,lispval *args)
 {
-  lispval v = applytest_inner(n,args);
+  lispval v = applytest_inner(n,args,USE_EQUAL_TEST);
+  if (KNO_ABORTP(v)) {
+    if ( (KNO_VOIDP(log_testfail)) || (KNO_FALSEP(log_testfail)) )
+      return v;
+    else {
+      u8_exception ex = u8_erreify();
+      if (ex->u8x_cond == TestFailed)
+	u8_log(LOG_CRIT,TestFailed,"In applytest:\n %s",ex->u8x_details);
+      else u8_log(LOG_CRIT,TestError,"In applytest:\n %s",ex->u8x_details);
+      add_failed_test(kno_get_exception(ex));
+      u8_free_exception(ex,LEAVE_EXSTACK);
+      kno_clear_errors(1);
+      return KNO_FALSE;}}
+  else return v;
+}
+
+static lispval applytestp(int n,lispval *args)
+{
+  lispval v = applytest_inner(n,args,USE_PREDICATE_TEST);
   if (KNO_ABORTP(v)) {
     if ( (KNO_VOIDP(log_testfail)) || (KNO_FALSEP(log_testfail)) )
       return v;
@@ -175,21 +231,20 @@ static lispval evaltest_inner(lispval expr,kno_lexenv env,kno_stack s)
     if (KNO_ABORTED(value)) {
       u8_exception ex = u8_erreify();
       u8_string msg =
-	u8_mkstring("%s%s%s%q signaled an error %m <%s> %s%s%s, expecting %q",
-		    U8OPTSTR("(",name,") "),testexpr,
-		    ex->u8x_cond,ex->u8x_context,
-		    U8OPTSTR(" (",ex->u8x_details,")"),
-		    expected);
+        u8_mkstring("%s%s%s%q signaled an error %m <%s> %s%s%s, expecting %q",
+                    U8OPTSTR("(",name,") "),testexpr,
+                    ex->u8x_cond,ex->u8x_context,
+                    U8OPTSTR(" (",ex->u8x_details,")"),
+                    expected);
       lispval err = kno_err(TestError,"evaltest",msg,value);
       kno_decref(expected); u8_free(msg);
       return err;}
-    else if (KNO_EQUAL(value,expected)) {
+    else if (test_match(value,expected)) {
       kno_decref(name_value);
       kno_decref(expected);
       kno_decref(value);
       return KNO_TRUE;}
-    else if ( (KNO_VOIDP(value)) &&
-	      (expected == KNOSYM_VOID) ) {
+    else if ( (KNO_VOIDP(value)) && (expected == KNOSYM_VOID) ) {
       kno_decref(name_value);
       kno_decref(expected);
       kno_decref(value);
@@ -230,12 +285,11 @@ static lispval errtest_evalfn(lispval expr,kno_lexenv env,kno_stack s)
   lispval test_expr = kno_get_arg(expr,1);
   lispval v = kno_stack_eval(test_expr,env,s,0);
   if (KNO_ABORTP(v)) {
-    u8_exception ex = u8_pop_exception();
+    u8_exception ex = u8_erreify();
     if (ex) {
-      u8_log(LOG_NOTICE,"ExpectedError",
+      u8_log(LOG_INFO,"ExpectedError",
              "As expected, %q generated the error %s <%s> (%s)",
-             test_expr,ex->u8x_cond,test_expr,ex->u8x_context,
-             ex->u8x_details);
+             test_expr,ex->u8x_cond,ex->u8x_context,ex->u8x_details);
       u8_free_exception(ex,0);}
     else u8_log(LOG_NOTICE,"Missing Exception",
                 "As expected, %q generated an error, but no exception was set",
@@ -263,6 +317,8 @@ KNO_EXPORT void kno_init_eval_testops_c()
 
   kno_idefn(kno_scheme_module,
 	   kno_make_ndprim(kno_make_cprimn("APPLYTEST",applytest,2)));
+  kno_idefn(kno_scheme_module,
+	   kno_make_ndprim(kno_make_cprimn("APPLYTEST?",applytestp,2)));
   kno_def_evalfn(kno_scheme_module,"EVALTEST",
 		 "`(EVALTEST *expected* *expr*)` evalutes *expr* and checks "
 		 "if it is EQUAL? to *expected*. If so it does nothing, "

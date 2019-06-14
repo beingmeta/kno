@@ -66,6 +66,9 @@ static lispval parse_control_spec
    It returns VOID. */
 static lispval dochoices_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
+  lispval steps = kno_get_body(expr,2);
+  if (! (PRED_TRUE( (KNO_PAIRP(steps)) || (steps == KNO_NIL) )) )
+    return kno_err(kno_SyntaxError,"dochoices_evalfn",NULL,expr);
   lispval var, count_var, choices=
     parse_control_spec(expr,&var,&count_var,env,_stack);
   if (KNO_ABORTED(var)) return var;
@@ -81,8 +84,7 @@ static lispval dochoices_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   int i = 0; DO_CHOICES(elt,choices) {
     dochoices_vals[0]=kno_incref(elt);
     dochoices_vals[1]=KNO_INT(i);
-    {lispval steps = kno_get_body(expr,2);
-      KNO_DOLIST(step,steps) {
+    {KNO_DOLIST(step,steps) {
         lispval val = fast_eval(step,dochoices);
         if (KNO_BROKEP(val))
           _return KNO_VOID;
@@ -104,6 +106,9 @@ static lispval dochoices_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
    It returns VOID. */
 static lispval trychoices_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
+  lispval steps = kno_get_body(expr,2);
+  if (! (PRED_TRUE( (KNO_PAIRP(steps)) || (steps == KNO_NIL) )) )
+    return kno_err(kno_SyntaxError,"trychoices_evalfn",NULL,expr);
   lispval var, count_var, choices=
     parse_control_spec(expr,&var,&count_var,env,_stack);
   if (KNO_ABORTED(var)) return var;
@@ -120,7 +125,6 @@ static lispval trychoices_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     lispval val = VOID;
     trychoices_vals[0]=kno_incref(elt);
     trychoices_vals[1]=KNO_INT(i);
-    lispval steps = kno_get_body(expr,2);
     KNO_DOLIST(step,steps) {
       kno_decref(val);
       val = fast_eval(step,trychoices);
@@ -145,6 +149,9 @@ static lispval trychoices_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
    It returns the combined results of its body's execution. */
 static lispval forchoices_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
+  lispval steps = kno_get_body(expr,2);
+  if (! (PRED_TRUE( (KNO_PAIRP(steps)) || (steps == KNO_NIL) )) )
+    return kno_err(kno_SyntaxError,"forchoices_evalfn",NULL,expr);
   lispval results = EMPTY;
   lispval var, count_var, choices=
     parse_control_spec(expr,&var,&count_var,env,_stack);
@@ -163,7 +170,6 @@ static lispval forchoices_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     lispval val = VOID;
     forchoices_vals[0]=kno_incref(elt);
     forchoices_vals[1]=KNO_INT(i);
-    lispval steps = kno_get_body(expr,2);
     KNO_DOLIST(step,steps) {
       kno_decref(val);
       val = fast_eval(step,forchoices);
@@ -189,6 +195,9 @@ static lispval forchoices_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
    It returns the subset of values which pass the body. */
 static lispval filterchoices_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
+  lispval steps = kno_get_body(expr,2);
+  if (! (PRED_TRUE( (KNO_PAIRP(steps)) || (steps == KNO_NIL) )) )
+    return kno_err(kno_SyntaxError,"filterchoices_evalfn",NULL,expr);
   lispval results = EMPTY;
   lispval var, count_var, choices=
     parse_control_spec(expr,&var,&count_var,env,_stack);
@@ -203,7 +212,6 @@ static lispval filterchoices_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
   if (SYMBOLP(count_var))
     filterchoices_vars[1]=count_var;
   else filterchoices_bindings.schema_length=1;
-  lispval steps = kno_get_body(expr,2);
   int i = 0; DO_CHOICES(elt,choices) {
     lispval val = VOID;
     filterchoices_vals[0]=kno_incref(elt);
@@ -237,6 +245,9 @@ static lispval filterchoices_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
    This returns VOID.  */
 static lispval dosubsets_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
+  lispval body = kno_get_body(expr,2);
+  if (! (PRED_TRUE( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
+    return kno_err(kno_SyntaxError,"forchoices_evalfn",NULL,expr);
   lispval choices, count_var, var;
   lispval control_spec = kno_get_arg(expr,1);
   lispval bsize; long long blocksize;
@@ -289,8 +300,7 @@ static lispval dosubsets_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     else block = kno_incref(choices);
     dosubsets_vals[0]=block;
     dosubsets_vals[1]=KNO_INT(i);
-    {lispval body = kno_get_body(expr,2);
-      KNO_DOLIST(subexpr,body) {
+    {KNO_DOLIST(subexpr,body) {
         lispval val = fast_eval(subexpr,dosubsets);
         if (KNO_BROKEP(val)) {
           _return VOID;}

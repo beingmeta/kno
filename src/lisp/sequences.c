@@ -392,7 +392,7 @@ KNO_EXPORT int kno_generic_position(lispval key,lispval x,int start,int end)
     int delta = (start<end)?(1):(-1);
     int i = start; while (i<len) {
       lispval elt = kno_seq_elt(x,i);
-      if (KNO_EQUALP(elt,x)) {
+      if (KNO_EQUALP(elt,key)) {
         kno_decref(elt);
         return i;}
       else {

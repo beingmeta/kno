@@ -12,7 +12,7 @@
 #endif
 
 enum KNO_REGEX_OP {
-  rx_search, rx_zeromatch, rx_matchlen, rx_exactmatch, rx_matchpair,
+  rx_search, rx_zeromatch, rx_matchlen, rx_exactmatch, rx_matchspan,
   rx_matchstring};
 
 KNO_EXPORT ssize_t kno_regex_op(enum KNO_REGEX_OP op,lispval pat,

@@ -2789,7 +2789,8 @@ static int hash_numeric_vector(lispval x,unsigned int (*fn)(lispval))
     double reformed=
       ((exp<0) ? (ldexpf(mantissa,0)) : (ldexpf(mantissa,exp)));
     int asint = (int)reformed;
-    hashval = hash_combine(hashval,asint);}
+    hashval = hash_combine(hashval,asint);
+    i++;}
   return hashval;
 }
 
@@ -2999,7 +3000,8 @@ KNO_EXPORT lispval kno_make_numeric_vector(int n,enum kno_num_elt_type vectype)
 static void decref_vec(lispval *elts,int n)
 {
   int i = 0; while (i<n) {
-    lispval elt = elts[i++]; kno_decref(elt);}
+    lispval elt = elts[i++];
+    kno_decref(elt);}
 }
 
 static int numvec_length(lispval x)

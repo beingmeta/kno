@@ -55,6 +55,7 @@
     (applytest #t thread? threads)
     (applytest #t exists? (config 'ALLTHREADS))
     (set+! threads (spawn (addrange 0)))
+    (applytest? string? lisp->string (pick-one threads))
     (thread/join threads)
     (applytest 20 length numbers)
     (applytest #f check-ordered numbers)
@@ -96,29 +97,43 @@
 (define num #f)
 (define numlock (make-condvar))
 
-(define (change-num (n (nrandom 1)))
+(applytest? string? lisp->string numlock)
+
+(define (change-num numlock (n (nrandom 1)))
   (sync/lock! numlock)
   (set! num n)
   (unwind-protect (evaltest n num)
     (sync/release! numlock)))
 
-(define (change-num-with-lock (n (nrandom 1)))
+(define (change-num-with-lock numlock (n (nrandom 1)))
   (with-lock numlock
     (set! num n)
     (sleep 2)
     (evaltest n num)))
 
-(define (test-synchro-locks (nthreads 8))
-  (thread/wait! (thread/call change-num (nrandom))))
+(define (test-synchro-locks (numlock (make-mutex)) (nthreads 8))
+  (thread/wait! (thread/call change-num numlock (nrandom))))
 (define (test-with-lock (lock (make-mutex)) (nthreads 8))
-  (thread/wait! (thread/call change-num-with-lock (nrandom))))
+  (thread/wait! (thread/call change-num-with-lock numlock (nrandom))))
 
 ;;;; Test fluid variables
 
 (define (doubleup string)
   (thread/set! 'thstring string)
+  (errtest (thread/set! "thstring" string))
   (sleep 2)
   (prog1 (glom (thread/get 'thstring) string)
+    (applytest #t thread/bound? 'thstring)
+    (applytest #f thread/bound? 'nothstring)
+    (evaltest string (thread/ref 'thstring #f))
+    (evaltest string (thread/ref 'thstring (+ 3 'x)))
+    (applytest #f thread/bound? 'alpha)
+    (applytest {} thread/get 'alpha)
+    (evaltest "here" (thread/ref 'alpha "here"))
+    (applytest #t thread/bound? 'alpha)
+    (applytest "here" thread/get 'alpha)
+    (errtest (thread/ref 33))
+    (errtest (thread/ref 33 39))
     (thread/reset-vars!)))
 
 ;;;; We don't run this because we can't easily ignore the failed tests
@@ -197,6 +212,20 @@
   (if (<= n 0) 'one 
       (* n (errfact (-1+ n)))))
 
+;;;; SSET
+
+(define sset-value 0)
+(define (increment-sset)
+  (sset! sset-value (1+ sset-value)))
+(define (safe-increment)
+  (sset! sset-value (1+ sset-value)))
+(define (increment-sset (n 100) (threadid #f))
+  (dotimes (i n) (safe-increment)))
+(define (test-sset)
+  (set! sset-value 0)
+  (thread/wait! (thread/call increment-sset 100 {1 2 3 4 5 6 7}))
+  (evaltest 700 sset-value))
+
 ;;; Actual tests
 
 (define condvar (make-condvar))
@@ -207,6 +236,7 @@
 
   (applytest {} (find-thread 0))
   (applytest #f (find-thread 0 #f))
+  (applytest #f (find-thread 1))
   (errtest (find-thread 0 #t))
   (applytest #f condvar? 3)
   (applytest #t condvar? condvar)
@@ -221,7 +251,11 @@
   (applytest #t synchronizer? change-slambda-test-value)
   (applytest #f thread? 3)
 
-  ;;; This doesn't seem to be working right
+  (applytest? string? lisp->string condvar)
+  (applytest? string? lisp->string mutex)
+  (applytest? string? lisp->string rwlock)
+  
+    ;;; This doesn't seem to be working right
   
   (evaltest {"foofoo" "barbar" "carcar"}
 	    (thread/finish (thread/call doubleup {"foo" "bar" "car"})))
@@ -247,7 +281,7 @@
     (applytest #t thread/error? error-thread)
     (applytest #t exception? (thread/result error-thread))
     (applytest #t vector? (ex/stack (thread/result error-thread))))
-    
+  
   (test-synchro-locks)
   (test-with-lock)
   (test-with-lock (make-rwlock))
@@ -258,6 +292,8 @@
   (test-parallel)
   (test-spawn)
   (test-slambdas)
+
+  (test-sset)
 
   (test-thread/call)
   (test-thread/call thread/wait 3)

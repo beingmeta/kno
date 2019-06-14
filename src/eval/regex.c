@@ -105,9 +105,9 @@ static lispval regex_searchop(enum KNO_REGEX_OP op,
       return kno_extract_string
         (NULL,CSTRING(string)+results[0].rm_so,
          CSTRING(string)+results[0].rm_eo);
-    case rx_matchpair:
+    case rx_matchspan:
       return kno_conspair(getcharoff(s,results[0].rm_so),
-                         getcharoff(s,results[0].rm_eo));
+                          getcharoff(s,results[0].rm_eo));
     default: return KNO_FALSE;}
 }
 
@@ -159,8 +159,8 @@ KNO_EXPORT ssize_t kno_regex_op(enum KNO_REGEX_OP op,lispval pat,
       kno_seterr(kno_RegexBadOp,"kno_regex_op","rx_matchstring",pat);
       kno_incref(pat);
       return -2;}
-    case rx_matchpair: {
-      kno_seterr(kno_RegexBadOp,"kno_regex_op","rx_matchpair",pat);
+    case rx_matchspan: {
+      kno_seterr(kno_RegexBadOp,"kno_regex_op","rx_matchspan",pat);
       kno_incref(pat);
       return -2;}
     default: {
@@ -216,11 +216,11 @@ static lispval regex_matchstring(lispval pat,lispval string,lispval ef)
     return regex_searchop(rx_matchstring,pat,string,FIX2INT(ef));
   else return kno_type_error("unsigned int","regex_matchstring",ef);
 }
-static lispval regex_matchpair(lispval pat,lispval string,lispval ef)
+static lispval regex_matchspan(lispval pat,lispval string,lispval ef)
 {
   if (KNO_UINTP(ef))
-    return regex_searchop(rx_matchstring,pat,string,FIX2INT(ef));
-  else return kno_type_error("unsigned int","regex_matchpair",ef);
+    return regex_searchop(rx_matchspan,pat,string,FIX2INT(ef));
+  else return kno_type_error("unsigned int","regex_matchspan",ef);
 }
 
 /* Initialization */
@@ -257,7 +257,7 @@ KNO_EXPORT int kno_init_regex_c()
                            kno_regex_type,VOID,kno_string_type,VOID,
                            kno_fixnum_type,KNO_FIXZERO));
   kno_idefn(regex_module,
-           kno_make_cprim3x("REGEX/MATCHPAIR",regex_matchpair,2,
+           kno_make_cprim3x("REGEX/MATCHSPAN",regex_matchspan,2,
                            kno_regex_type,VOID,kno_string_type,VOID,
                            kno_fixnum_type,KNO_FIXZERO));
 

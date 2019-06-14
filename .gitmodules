@@ -1,6 +1,6 @@
 [submodule "src/stdlib"]
 	path = src/stdlib
-	url = git@github.com:beingmeta/sourcemods.git
+	url = git@github.com:beingmeta/stdlib.git
 	branch = trunk
 [submodule "docs/wiki"]
 	path = docs/wiki
