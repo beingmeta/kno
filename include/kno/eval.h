@@ -377,6 +377,18 @@ typedef struct KNO_CONTINUATION {
   KNO_FUNCTION_FIELDS; lispval retval;} KNO_CONTINUATION;
 typedef struct KNO_CONTINUATION *kno_continuation;
 
+/* Delays */
+
+typedef struct KNO_PROMISE {
+  KNO_CONS_HEADER;
+  lispval promise_expr;
+  kno_lexenv promise_env;
+  u8_mutex promise_lock;
+  int promise_broken;
+  lispval promise_value;
+  lispval promise_consumers;} KNO_PROMISE;
+typedef struct KNO_PROMISE *kno_promise;
+
 /* Basic thread eval/apply functions */
 
 KNO_EXPORT kno_thread_struct kno_thread_call(lispval *,lispval,int,lispval *,int);

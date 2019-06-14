@@ -179,27 +179,28 @@ typedef enum KNO_PTR_TYPE {
   kno_stackframe_type = KNO_CONS_TYPECODE(23),
   kno_tailcall_type = KNO_CONS_TYPECODE(24),
   kno_exception_type = KNO_CONS_TYPECODE(25),
+  kno_promise_type = KNO_CONS_TYPECODE(26),
 
-  kno_complex_type = KNO_CONS_TYPECODE(26),
-  kno_rational_type = KNO_CONS_TYPECODE(27),
-  kno_flonum_type = KNO_CONS_TYPECODE(28),
+  kno_complex_type = KNO_CONS_TYPECODE(27),
+  kno_rational_type = KNO_CONS_TYPECODE(28),
+  kno_flonum_type = KNO_CONS_TYPECODE(29),
 
-  kno_timestamp_type = KNO_CONS_TYPECODE(29),
-  kno_uuid_type = KNO_CONS_TYPECODE(30),
+  kno_timestamp_type = KNO_CONS_TYPECODE(30),
+  kno_uuid_type = KNO_CONS_TYPECODE(31),
 
   /* Other types, also defined here to be constant*/
-  kno_mystery_type = KNO_CONS_TYPECODE(31),
+  kno_mystery_type = KNO_CONS_TYPECODE(32),
 
-  kno_port_type = KNO_CONS_TYPECODE(32),
-  kno_stream_type = KNO_CONS_TYPECODE(33),
+  kno_port_type = KNO_CONS_TYPECODE(33),
+  kno_stream_type = KNO_CONS_TYPECODE(34),
 
-  kno_regex_type = KNO_CONS_TYPECODE(34),
+  kno_regex_type = KNO_CONS_TYPECODE(35),
 
-  kno_consblock_type = KNO_CONS_TYPECODE(35),
-  kno_rawptr_type = KNO_CONS_TYPECODE(36),
+  kno_consblock_type = KNO_CONS_TYPECODE(36),
+  kno_rawptr_type = KNO_CONS_TYPECODE(37),
 
-  kno_dtserver_type = KNO_CONS_TYPECODE(37),
-  kno_bloom_filter_type = KNO_CONS_TYPECODE(38),
+  kno_dtserver_type = KNO_CONS_TYPECODE(38),
+  kno_bloom_filter_type = KNO_CONS_TYPECODE(39),
 
   /* Extended types */
 

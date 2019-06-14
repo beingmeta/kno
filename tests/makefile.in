@@ -116,7 +116,7 @@ cmdtests:
 
 static-tests: schemetests optscheme loadmods optmods slotmaps tables pools indexes framedbs
 schemetest schemetests scheme: r4rs exceptions choices sequences breaks numvecs regex \
-	reflect hashsets eval ffi \
+	reflect hashsets eval promises ffi \
 	picktest cachecall texttools webtools timefns sysprims startup stringprims \
 	threads i18n misc gctests profiling \
 	fileprims xml
@@ -177,6 +177,9 @@ regex:
 eval:
 	@${RUN} ${KNOX} eval.scm ${RUNCONF}
 	@${header} "■■■■ Completed miscellaneous eval tests ${RUNCONF}"
+promises:
+	@${RUN} ${KNOX} promises.scm ${RUNCONF}
+	@${header} "■■■■ Completed promises tests ${RUNCONF}"
 opts:
 	@${RUN} ${KNOX} opts.scm ${RUNCONF}
 	@${header} "■■■■ Completed opts tests ${RUNCONF}"
