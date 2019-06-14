@@ -1935,7 +1935,6 @@ tests/data/private:
 # GCOV targets
 
 lcov.info:
-	make -C tests static-tests
 	lcov -c -o $@ -b . -d .
 staging/lcov/index.html: lcov.info
 	if test ! -d staging/lcov; then \
