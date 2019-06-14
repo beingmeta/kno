@@ -417,7 +417,7 @@ static lispval sync_unlock(lispval lck)
   else if (KNO_LAMBDAP(lck)) {
     struct KNO_LAMBDA *sp = kno_consptr(kno_lambda,lck,kno_lambda_type);
     if (sp->lambda_synchronized) {
-      u8_lock_mutex(&(sp->lambda_lock));}
+      u8_unlock_mutex(&(sp->lambda_lock));}
     else return kno_type_error("lockable","synchro_lock",lck);
     return KNO_TRUE;}
   else return kno_type_error("lockable","synchro_unlock",lck);
@@ -434,12 +434,6 @@ static lispval sync_read_lock(lispval lck)
     if (sync->synctype == sync_rwlock)
       u8_read_lock(&(sync->obj.rwlock));
     else lock_synchronizer(sync);
-    return KNO_TRUE;}
-  else if (KNO_LAMBDAP(lck)) {
-    struct KNO_LAMBDA *sp = kno_consptr(kno_lambda,lck,kno_lambda_type);
-    if (sp->lambda_synchronized) {
-      u8_lock_mutex(&(sp->lambda_lock));}
-    else return kno_type_error("lockable","synchro_read_lock",lck);
     return KNO_TRUE;}
   else return kno_type_error("lockable","synchro_read_lock",lck);
 }
