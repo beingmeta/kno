@@ -32,9 +32,9 @@
 (errtest (regex/matchstring in-angles 'symbol))
 (errtest (regex/search in-angles 'symbol))
 
-(errtest (regex/matchlen in-angles -4))
-(errtest (regex/matchstring in-angles -9))
-(errtest (regex/search in-angles -17))
+(errtest (regex/matchlen in-angles test-string -4))
+(errtest (regex/matchstring in-angles test-string -9))
+(errtest (regex/search in-angles test-string -17))
 
 (applytest {"<P>" "</P>" "<em>" "</em>"} gather in-angles test-string)
 (applytest "<p>" pick {"<p>" ".p" "paragraph"} in-angles)

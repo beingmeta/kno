@@ -67,6 +67,8 @@
   (errtest (default! r))
   (default! q (* p p))
   (evaltest 17 g)
+  (evaltest #f (symbol-bound-in? 'x #[a 3 b 4]))
+  (evaltest #t (symbol-bound-in? 'a #[a 3 b 4]))
   (evaltest #t (symbol-bound-in? 'p (%env)))
   (evaltest #f (symbol-bound-in? 'xyzddr (%env)))
   (let ((x (+ p p))
@@ -98,6 +100,12 @@
 
 (applytest #t string? (lisp->string if))
 (applytest #t packet? (dtype->packet if))
+
+(evaltest #f (bad? 3))
+(evaltest #f (bad? if))
+(evaltest #t (bad? (!!!NULL!!!)))
+
+(evaltest textmatch (eval `(%modref ,(get-module 'texttools) textmatch)))
 
 (evaltest 3 (quote 3))
 (evaltest 3 (eval (list 'quote 3)))
@@ -364,6 +372,14 @@
 (errtest (dotimes (i '(a b c)) . exprs))
 (errtest (dolist (e 3) . exprs))
 (errtest (doseq (e 3) . exprs))
+
+;;; Loading stuff
+
+(dynamic-load "sqlite")
+(errtest (dynamic-load "sqheavy"))
+(errtest (dynamic-load 'sqlite))
+
+(config 'used_modules)
 
 ;;; All done
 
