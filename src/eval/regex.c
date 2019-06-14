@@ -195,31 +195,31 @@ static lispval regex_search(lispval pat,lispval string,lispval ef)
 {
   if (KNO_UINTP(ef))
     return regex_searchop(rx_search,pat,string,FIX2INT(ef));
-  else return kno_type_error("unsigned int","regex_search",ef);
+  else return kno_type_error("unsigned int","regex_search/flags",ef);
 }
 static lispval regex_matchlen(lispval pat,lispval string,lispval ef)
 {
   if (KNO_UINTP(ef))
     return regex_searchop(rx_matchlen,pat,string,FIX2INT(ef));
-  else return kno_type_error("unsigned int","regex_matchlen",ef);
+  else return kno_type_error("unsigned int","regex_matchlen/flags",ef);
 }
 static lispval regex_exactmatch(lispval pat,lispval string,lispval ef)
 {
   if (KNO_UINTP(ef))
     return regex_searchop(rx_exactmatch,pat,string,FIX2INT(ef));
-  else return kno_type_error("unsigned int","regex_exactmatch",ef);
+  else return kno_type_error("unsigned int","regex_exactmatch/flags",ef);
 }
 static lispval regex_matchstring(lispval pat,lispval string,lispval ef)
 {
   if (KNO_UINTP(ef))
     return regex_searchop(rx_matchstring,pat,string,FIX2INT(ef));
-  else return kno_type_error("unsigned int","regex_matchstring",ef);
+  else return kno_type_error("unsigned int","regex_matchstring/flags",ef);
 }
 static lispval regex_matchspan(lispval pat,lispval string,lispval ef)
 {
   if (KNO_UINTP(ef))
     return regex_searchop(rx_matchspan,pat,string,FIX2INT(ef));
-  else return kno_type_error("unsigned int","regex_matchspan",ef);
+  else return kno_type_error("unsigned int","regex_matchspan/flags",ef);
 }
 
 static lispval regex_coverme()
