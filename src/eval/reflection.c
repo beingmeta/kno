@@ -679,11 +679,6 @@ static lispval local_bindings_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
     return bindings;}
 }
 
-static lispval thisenv_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
-{
-  return (lispval) kno_copy_env(env);
-}
-
 /* Finding where a symbol comes from */
 
 static lispval wherefrom_evalfn(lispval expr,kno_lexenv call_env,
@@ -1201,7 +1196,6 @@ KNO_EXPORT void kno_init_reflection_c()
             -1,KNO_VOID);
 
 
-  kno_def_evalfn(module,"%ENV","",thisenv_evalfn);
   kno_def_evalfn(module,"%BINDINGS","",local_bindings_evalfn);
 
   kno_def_evalfn(module,"WHEREFROM","",wherefrom_evalfn);
