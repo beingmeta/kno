@@ -1493,13 +1493,13 @@ DCLPRIM2("PROMISE/PROBE",probe_promise_prim,MIN_ARGS(1),
          "*promise* if it has been resolved. If *promise* has "
          "not been resolved, *marker* is returned and if *promise* "
          "is not a promise it is returned.",
-         -1,KNO_VOID,-1,KNO_VOID)
+         -1,KNO_VOID,-1,KNO_FALSE)
 static lispval probe_promise_prim(lispval promise,lispval marker)
 {
   if (KNO_TYPEP(promise,kno_promise_type)) {
-    struct KNO_PROMISE *promise = (kno_promise) promise;
-    if (promise->promise_value)
-      return kno_incref(promise->promise_value);
+    struct KNO_PROMISE *p = (kno_promise) promise;
+    if (p->promise_value)
+      return kno_incref(p->promise_value);
     else return kno_incref(marker);}
   else return kno_incref(promise);
 }
@@ -1813,6 +1813,12 @@ static lispval void_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       return v;
     else kno_decref(v);}
   return VOID;
+}
+
+static lispval null_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+{
+  /* This is for breaking things */
+  return KNO_NULL;
 }
 
 static lispval break_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
@@ -2201,6 +2207,7 @@ static void init_localfns()
   kno_defalias(kno_scheme_module,"CACHEPOINT","TCACHECALL");
 
   kno_def_evalfn(kno_scheme_module,"VOID","",void_evalfn);
+  kno_def_evalfn(kno_scheme_module,"!!!NULL!!!","",null_evalfn);
   kno_def_evalfn(kno_scheme_module,"BREAK","",break_evalfn);
   kno_def_evalfn(kno_scheme_module,"DEFAULT","",default_evalfn);
 
