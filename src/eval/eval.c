@@ -672,13 +672,15 @@ lispval pair_eval(lispval head,lispval expr,kno_lexenv env,
       result=headval;}
     else if (PRED_FALSE(VOIDP(headval))) {
       result=kno_err(kno_UnboundIdentifier,"for function",
-                    ((SYMBOLP(head))?(SYM_NAME(head)):
-                     (NULL)),
-                    head);}
+                     ((SYMBOLP(head))?(SYM_NAME(head)):
+                      (NULL)),
+                     head);}
     else if (EMPTYP(headval) )
       result=EMPTY;
     else result=kno_err(kno_NotAFunction,NULL,NULL,headval);}
-  if (!tail) {
+  if (!(KNO_CHECK_PTR(result)))
+    return kno_err(kno_NullPtr,"pair_eval",NULL,expr);
+  else if (!tail) {
     if (KNO_TAILCALLP(result))
       result=kno_finish_call(result);
     else {}}

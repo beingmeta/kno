@@ -29,7 +29,8 @@ u8_condition kno_UsingFreedCons=_("Using freed CONS");
 u8_condition kno_FreeingNonHeapCons=_("Freeing non-heap cons");
 u8_mutex _kno_ptr_locks[KNO_N_PTRLOCKS];
 
-u8_condition kno_BadPtr=_("bad dtype pointer");
+u8_condition kno_BadPtr=_("bad lisp pointer");
+u8_condition kno_NullPtr=_("NULL lisp pointer");
 
 u8_string kno_type_names[KNO_TYPE_MAX];
 kno_hashfn kno_hashfns[KNO_TYPE_MAX];

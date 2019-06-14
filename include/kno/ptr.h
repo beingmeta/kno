@@ -113,7 +113,7 @@
 #define kno_fixnum_ptr_type (2)
 #define kno_oid_ptr_type (3)
 
-KNO_EXPORT u8_condition kno_BadPtr;
+KNO_EXPORT u8_condition kno_BadPtr, kno_NullPtr;
 
 #define KNO_PTR_WIDTH ((SIZEOF_VOID_P)*8)
 
@@ -598,26 +598,27 @@ KNO_EXPORT u8_string kno_oid2string(lispval oidval,u8_byte *buf,ssize_t len);
 #define KNO_INTP(x) \
   ((KNO_FIXNUMP(x))&&(KNO_FIX2INT(x)<=INT_MAX)&&(KNO_FIX2INT(x)>=INT_MIN))
 #define KNO_UINTP(x) \
-  ((KNO_FIXNUMP(x))&&((KNO_INT2DTYPE(x))>=0)&&(KNO_FIX2INT(x)<=UINT_MAX))
+  ( (KNO_FIXNUMP(x)) && ((KNO_FIX2INT(x))>=0) && (KNO_FIX2INT(x)<=UINT_MAX) )
 #define KNO_LONGP(x) (KNO_FIXNUMP(x))
-#define KNO_ULONGP(x) ((KNO_FIXNUMP(x))&&((KNO_FIX2INT(x))>=0))
+#define KNO_ULONGP(x) ( (KNO_FIXNUMP(x)) && ((KNO_FIX2INT(x))>=0) )
 #endif
 
 #define KNO_BYTEP(x) \
-  ((KNO_FIXNUMP(x))&&(KNO_FIX2INT(x)>=0)&&(KNO_FIX2INT(x)<0x100))
+  ( (KNO_FIXNUMP(x)) && (KNO_FIX2INT(x)>=0) && (KNO_FIX2INT(x)<0x100) )
 #define KNO_SHORTP(x) \
-  ((KNO_FIXNUMP(x))&&(KNO_FIX2INT(x)>=SHRT_MIN)&&(KNO_FIX2INT(x)<=SHRT_MAX))
+  ( (KNO_FIXNUMP(x)) && (KNO_FIX2INT(x)>=SHRT_MIN) && \
+    (KNO_FIX2INT(x)<=SHRT_MAX) )
 #define KNO_USHORTP(x) \
-  ((KNO_FIXNUMP(x))&&(KNO_FIX2INT(x)>=0)&&(KNO_FIX2INT(x)<=USHRT_MAX))
+  ( (KNO_FIXNUMP(x)) && (KNO_FIX2INT(x)>=0) && (KNO_FIX2INT(x)<=USHRT_MAX) )
 
 #define KNO_POSITIVE_FIXNUMP(n) \
-  ((KNO_FIXNUMP(x))&&(KNO_FIX2INT(x)>0))
+  ( (KNO_FIXNUMP(x)) && (KNO_FIX2INT(x)>0) )
 #define KNO_NOTNEG_FIXNUMP(n) \
-  ((KNO_FIXNUMP(x))&&(KNO_FIX2INT(x)>=0))
+  ( (KNO_FIXNUMP(x)) && (KNO_FIX2INT(x)>=0) )
 #define KNO_POSITIVE_FIXINTP(n) \
-  ((KNO_INTP(x))&&(KNO_FIX2INT(x)>0))
+  ( (KNO_INTP(x)) && (KNO_FIX2INT(x)>0) )
 #define KNO_NOTNEG_FIXINTP(n) \
-  ((KNO_INTP(x))&&(KNO_FIX2INT(x)>=0))
+  ( (KNO_INTP(x)) && (KNO_FIX2INT(x)>=0) )
 
 /* Constants */
 
@@ -1012,8 +1013,9 @@ KNO_EXPORT int kno_check_immediate(lispval);
    (KNO_OIDP(x)) ? (((x>>2)&0x3FF)<kno_n_base_oids) : \
    (x==0) ? (0) :                                   \
    (KNO_CONSP(x)) ?                                  \
-   (((((KNO_CONS *)x)->conshead)<0xFFFFFF80) &&      \
-    (KNO_CONS_TYPE((KNO_CONS *)x)>3) &&               \
+   (x == KNO_NULL) ? (0) :                           \
+   (((((KNO_CONS *)x)->conshead)<0xFFFFFF80) &&       \
+    (KNO_CONS_TYPE((KNO_CONS *)x)>3) &&                  \
     (KNO_CONS_TYPE((KNO_CONS *)x)<kno_next_cons_type)) : \
    (kno_check_immediate(x))))
 

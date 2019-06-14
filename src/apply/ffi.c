@@ -372,7 +372,7 @@ KNO_EXPORT lispval kno_ffi_call(struct KNO_FUNCTION *fn,int n,lispval *args)
       lispval result = KNO_NULL;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&result,argptrs);
       if (result == KNO_NULL) {
-        kno_seterr("NULLPTR","kno_ffi_call",NULL,VOID);
+        kno_seterr(kno_NullPtr,"kno_ffi_call",NULL,VOID);
         return KNO_ERROR;}
       else if (return_type == lispref_symbol)
         return kno_incref(result);
