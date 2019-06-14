@@ -695,29 +695,30 @@ static lispval wherefrom_evalfn(lispval expr,kno_lexenv call_env,
     kno_lexenv env = NULL, scan = env;
     int lookup_ids = 1, decref_env = 0;
     lispval env_arg = kno_get_arg(expr,2);
+    lispval env_val = kno_get_arg(expr,2);
     if (KNO_VOIDP(env_arg))
       env = call_env;
     else {
-      lispval env_val = kno_eval(env_arg,call_env);
+      env_val = kno_eval(env_arg,call_env);
       if (KNO_ABORTED(env_val))
         return env_val;
-      else {
-        env_arg = env_val;
-        decref_env = 1;}}
+      else if (TYPEP(env_val,kno_lexenv_type)) {
+        env = kno_consptr(kno_lexenv,env_val,kno_lexenv_type);
+        decref_env = 1;}
+      else  {
+        lispval err = kno_type_error(_("environment"),"wherefrom",env_val);
+        kno_decref(env_val);
+        return err;}}
     lispval lookup = kno_get_arg(expr,3);
     if (!(KNO_VOIDP(lookup))) {
       lookup = kno_eval(lookup,call_env);
       if (KNO_ABORTED(lookup)) {
-        if (decref_env) kno_decref(env_arg);
+        if (decref_env) kno_decref(env_val);
         return lookup;}
       else if (KNO_FALSEP(lookup))
         lookup_ids = 0;
       else lookup_ids = 1;
       kno_decref(lookup);}
-    if (KNO_VOIDP(env_arg)) {}
-    else if (TYPEP(env_arg,kno_lexenv_type))
-      env = kno_consptr(kno_lexenv,env_arg,kno_lexenv_type);
-    else return kno_type_error(_("environment"),"wherefrom",env_arg);
     if (env->env_copy)
       scan = env->env_copy;
     else scan = env;
@@ -729,20 +730,25 @@ static lispval wherefrom_evalfn(lispval expr,kno_lexenv call_env,
         if ( (KNO_SYMBOLP(id)) &&
              ( (lookup_ids) || (!(KNO_MALLOCD_CONSP((kno_cons)bindings))) ) ) {
           lispval mod = kno_get_module(id);
-          if (KNO_ABORTP(mod)) return mod;
-          else if (KNO_TABLEP(mod)) return mod;
+          if ( (KNO_ABORTP(mod)) || (KNO_TABLEP(mod))  ) {
+            if (decref_env) kno_decref(env_val);
+            return mod;}
           else kno_decref(mod);}
         if (KNO_MALLOCD_CONSP((kno_cons)bindings)) {
           lispval result = (lispval) scan;
           kno_incref(result);
+          if (decref_env) kno_decref(env_val);
           return result;}
         else return KNO_FALSE;}
       scan = scan->env_parent;
       if ((scan) && (scan->env_copy))
         scan = scan->env_copy;}
-    kno_decref(env_arg);
+    if (decref_env) kno_decref(env_val);
     return KNO_FALSE;}
-  else return kno_type_error(_("symbol"),"wherefrom",symbol);
+  else {
+    lispval err = kno_type_error(_("symbol"),"wherefrom",symbol);
+    kno_decref(symbol);
+    return err;}
 }
 
 /* Finding all the modules used from an environment */
