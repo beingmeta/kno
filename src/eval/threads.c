@@ -1393,7 +1393,7 @@ static lispval thread_ref_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
   if (KNO_ABORTP(sym))
     return sym;
   else if (!(SYMBOLP(sym)))
-    return kno_err(kno_TypeError,"thread_ref",u8_strdup("symbol"),sym);
+    return kno_err(kno_TypeError,"thread_ref","symbol",sym);
   else val = kno_thread_get(sym);
   if (KNO_ABORTP(val))
     return val;

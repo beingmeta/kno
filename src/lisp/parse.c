@@ -1020,14 +1020,16 @@ static lispval parse_qchoice(U8_INPUT *in)
     return kno_init_qchoice(u8_alloc(struct KNO_QCHOICE),
                            EMPTY);
   else if (n_elts==1) {
-    lispval result = elts[0]; u8_free(elts);
+    lispval result = elts[0];
+    u8_free(elts);
     return result;}
   else if (n_elts>1) {
     struct KNO_CHOICE *xch = kno_alloc_choice(n_elts);
     lispval choice = kno_init_choice(xch,n_elts,elts,KNO_CHOICE_DOSORT);
     if (KNO_XCHOICE_SIZE(xch)==1) {
       lispval result = KNO_XCHOICE_DATA(xch)[0];
-      u8_free(elts); return result;}
+      u8_free(elts);
+      return result;}
     u8_free(elts);
     return kno_init_qchoice(u8_alloc(struct KNO_QCHOICE),choice);}
   else if (n_elts== -1) return KNO_EOX;

@@ -3000,7 +3000,8 @@ KNO_EXPORT lispval kno_make_numeric_vector(int n,enum kno_num_elt_type vectype)
 static void decref_vec(lispval *elts,int n)
 {
   int i = 0; while (i<n) {
-    lispval elt = elts[i++]; kno_decref(elt);}
+    lispval elt = elts[i++];
+    kno_decref(elt);}
 }
 
 static int numvec_length(lispval x)

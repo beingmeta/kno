@@ -321,7 +321,8 @@ static lispval sequencep_prim(lispval x)
 static lispval seqlen_prim(lispval x)
 {
   int len = kno_seq_length(x);
-  if (len<0) return kno_type_error(_("sequence"),"seqlen",x);
+  if (len<0)
+    return kno_type_error(_("sequence"),"seqlen",x);
   else return KNO_INT(len);
 }
 
@@ -330,7 +331,8 @@ static lispval seqelt_prim(lispval x,lispval offset)
   char buf[32]; int off; lispval result;
   if (!(KNO_SEQUENCEP(x)))
     return kno_type_error(_("sequence"),"seqelt_prim",x);
-  else if (KNO_INTP(offset)) off = FIX2INT(offset);
+  else if (KNO_INTP(offset))
+    off = FIX2INT(offset);
   else return kno_type_error(_("fixnum"),"seqelt_prim",offset);
   if (off<0) off = kno_seq_length(x)+off;
   result = kno_seq_elt(x,off);
@@ -351,7 +353,8 @@ enum COMPARISON {
 static int has_length_helper(lispval x,lispval length_arg,enum COMPARISON cmp)
 {
   int seqlen = kno_seq_length(x), testlen;
-  if (seqlen<0) return kno_type_error(_("sequence"),"seqlen",x);
+  if (seqlen<0)
+    return kno_type_error(_("sequence"),"seqlen",x);
   else if (KNO_INTP(length_arg))
     testlen = (FIX2INT(length_arg));
   else return kno_type_error(_("fixnum"),"has-length?",x);
@@ -1431,12 +1434,15 @@ static lispval seq2packet(lispval seq)
     unsigned char *bytes = u8_malloc(n);
     while (i<n) {
       if (KNO_BYTEP(data[i])) {
-        bytes[i]=FIX2INT(data[i]); i++;}
+        bytes[i]=FIX2INT(data[i]);
+        i++;}
       else {
-        lispval bad = kno_incref(data[i]);
-        i = 0; while (i < n) {kno_decref(data[i]); i++;}
+        lispval err = kno_type_error(_("byte"),"seq2packet",data[i]);
+        i = 0; while (i < n) {
+          kno_decref(data[i]);
+          i++;}
         u8_free(data);
-        return kno_type_error(_("byte"),"seq2packet",bad);}}
+        return err;}}
     u8_free(data);
     result = kno_make_packet(NULL,n,bytes);
     u8_free(bytes);
@@ -1468,19 +1474,19 @@ static lispval x2string(lispval seq)
       if (FIXNUMP(data[i])) {
         long long charcode = FIX2INT(data[i]);
         if ((charcode<0)||(charcode>=0x10000)) {
-          lispval bad = kno_incref(data[i]);
-          i = 0; while (i<n) {kno_decref(data[i]); i++;}
+          lispval err = kno_type_error(_("character"),"seq2string",data[i]);
+          kno_decref_vec(data,n);
           u8_free(data);
-          return kno_type_error(_("character"),"seq2string",bad);}
+          return err;}
         u8_putc(&out,charcode); i++;}
       else if (KNO_CHARACTERP(data[i])) {
         int charcode = KNO_CHAR2CODE(data[i]);
         u8_putc(&out,charcode); i++;}
       else {
-        lispval bad = kno_incref(data[i]);
-        i = 0; while (i<n) {kno_decref(data[i]); i++;}
+        lispval err = kno_type_error(_("character"),"seq2string",data[i]);
+        kno_decref_vec(data,n);
         u8_free(data);
-        return kno_type_error(_("character"),"seq2string",bad);}}
+        return err;}}
     u8_free(data);
     return kno_stream2string(&out);}
   else return kno_type_error(_("sequence"),"x2string",seq);
@@ -1872,7 +1878,7 @@ static lispval make_short_vector(int n,lispval *from_elts)
     if (KNO_SHORTP(elt))
       elts[i++]=(kno_short)(FIX2INT(elt));
     else {
-      u8_free((struct KNO_CONS *)vec); kno_incref(elt);
+      u8_free((struct KNO_CONS *)vec);
       return kno_type_error(_("short element"),"make_short_vector",elt);}}
   return vec;
 }
@@ -1911,7 +1917,7 @@ static lispval make_int_vector(int n,lispval *from_elts)
              (kno_bigint_fits_in_word_p((kno_bigint)elt,sizeof(kno_int),1)))
       elts[i++]=kno_bigint_to_long((kno_bigint)elt);
     else {
-      u8_free((struct KNO_CONS *)vec); kno_incref(elt);
+      u8_free((struct KNO_CONS *)vec);
       return kno_type_error(_("int element"),"make_int_vector",elt);}}
   return vec;
 }
@@ -1949,7 +1955,7 @@ static lispval make_long_vector(int n,lispval *from_elts)
     else if (KNO_BIGINTP(elt))
       elts[i++]=kno_bigint_to_long_long((kno_bigint)elt);
     else {
-      u8_free((struct KNO_CONS *)vec); kno_incref(elt);
+      u8_free((struct KNO_CONS *)vec);
       return kno_type_error(_("flonum element"),"make_long_vector",elt);}}
   return vec;
 }
@@ -1987,7 +1993,7 @@ static lispval make_float_vector(int n,lispval *from_elts)
     else if (NUMBERP(elt))
       elts[i++]=kno_todouble(elt);
     else {
-      u8_free((struct KNO_CONS *)vec); kno_incref(elt);
+      u8_free((struct KNO_CONS *)vec);
       return kno_type_error(_("float element"),"make_float_vector",elt);}}
   return vec;
 }
@@ -2025,7 +2031,7 @@ static lispval make_double_vector(int n,lispval *from_elts)
     else if (NUMBERP(elt))
       elts[i++]=kno_todouble(elt);
     else {
-      u8_free((struct KNO_CONS *)vec); kno_incref(elt);
+      u8_free((struct KNO_CONS *)vec);
       return kno_type_error(_("double(float) element"),"make_double_vector",elt);}}
   return vec;
 }

@@ -162,8 +162,8 @@ KNO_EXPORT lispval kno_get_irritant(u8_exception ex)
   else return KNO_VOID;
 }
 
-/* This gets the 'actual' irritant from a u8_exception, extracting it
-   from the underlying u8_condition (if that's an irritant) */
+/* This gets the exception object (if there is one) from a u8_exception, extracting it from the
+   underlying u8_condition (if that's an irritant) */
 KNO_EXPORT lispval kno_get_exception(u8_exception ex)
 {
   if (ex->u8x_free_xdata == kno_decref_embedded_exception) {

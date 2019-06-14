@@ -564,7 +564,8 @@ static lispval ptrlock_prim(lispval x,lispval mod)
 static void add_sourceid(u8_string s,void *vp)
 {
   lispval *valp = (lispval *)vp;
-  *valp = kno_make_pair(lispval_string(s),*valp);
+  lispval string = knostring(s);
+  *valp = kno_init_pair(NULL,string,*valp);
 }
 
 static lispval lisp_getsourceids()
