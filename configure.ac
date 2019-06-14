@@ -617,6 +617,11 @@ AC_TDD_GCOV
 AC_SUBST(GCOV_CFLAGS)
 AC_SUBST(GCOV_LDFLAGS)
 
+if test "${use_gcov}" == "yes"; then
+   OPTFLAGS=
+   XOPTFLAGS=
+fi;
+
 ### Check some compiler fancies
 
 dnl ***********************************

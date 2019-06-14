@@ -7107,6 +7107,11 @@ fi
 
 
 
+if test "${use_gcov}" == "yes"; then
+   OPTFLAGS=
+   XOPTFLAGS=
+fi;
+
 ### Check some compiler fancies
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for working __builtin_expect" >&5
