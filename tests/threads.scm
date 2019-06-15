@@ -70,7 +70,7 @@
     (message "TEST-SPAWN: " numbers)))
 
 (define (look-busy n (start (elapsed-time)))
-  (dotimes (i (* n 100))
+  (dotimes (i (* n 400))
     (when (zero? (random 5)) (thread/yield)))
   (elapsed-time start))
 
