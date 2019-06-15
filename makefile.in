@@ -1947,7 +1947,7 @@ gcovr.text: src/lisp/cons.gcda
 	gcovr -r . -o gcovr.text
 gcovr.html: src/lisp/cons.gcda
 	gcovr -r . --html -o gcovr.html
-gcovr_details.html: src/lisp/cons.gcda staging/gcovr
+staging/gcovr/details.html: src/lisp/cons.gcda staging/gcovr
 	gcovr -r . --html --html-details -o staging/gcovr/details.html
 staging/gcovr:
 	if test ! -d staging/gcovr; then mkdir staging/gcovr; fi
@@ -1956,7 +1956,9 @@ src/lisp/cons.gcda: lib/libknocore.a
 	find . -name "*.gcda" -exec rm '{}' \;
 	cd tests; make libtests;
 
-.PHONY: lcov_html
+gcovr_details: staging/gcovr/details.html
+
+.PHONY: lcov_html gcovr_details
 
 .PRECIOUS: %.gcda %.gcno
 
