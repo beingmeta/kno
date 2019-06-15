@@ -329,7 +329,7 @@
   (errtest (thread/eval (cons 'x 'y) #f (cons)))
 
   (errtest (thread/apply list 3 4 5 6))
-  (evaltest '(3 4 5 6) (thread/finish (thread/apply 3 4 5 (list 6))))
+  (evaltest '(3 4 5 6) (thread/finish (thread/apply list 3 4 5 (list 6))))
 
   (test-thread/call)
   (test-thread/call thread/wait 3)

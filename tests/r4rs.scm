@@ -183,8 +183,6 @@
 ;(applytester 10 'letrec (letrec ((x 3)) (define x 10) x))
 ;(applytester 34 'letrec x)
 (evaltest 5 (letrec ((x 3) (y 2)) (+ x y)))
-(errtest (letrec))
-(errtest (letrec 3))
 (SECTION 4 2 3)
 (define x 0)
 (evaltester 6 (begin (set! x 5) (+ x 1))
@@ -376,7 +374,6 @@
 
 (applytester '(c b a) reverse '(a b c))
 (applytester '((e (f)) d (b c) a) reverse '(a (b c) d (e (f))))
-(errtest (reverse '(a b c . d)))
 
 (define list-ref elt)
 (applytester 'c list-ref '(a b c d) 2)

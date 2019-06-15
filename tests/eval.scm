@@ -2,6 +2,8 @@
 
 (load-component "common.scm")
 
+(define textmatch (get (get-module 'texttools) 'textmatch))
+
 (define (test-lexrefs (v 'foo))
   (let ((lexref (%lexref 0 1))
 	(value v)
@@ -147,6 +149,10 @@
 (evaltest #t (unbound? xyzayzdrs))
 
 (define x23f9b #f)
+
+(errtest (letrec))
+(errtest (letrec 3))
+(errtest (reverse '(a b c . d)))
 
 (evaltest #t (void? (set! x23f9b #t)))
 (evaltest #f (void? (not x23f9b)))
@@ -375,7 +381,7 @@
 ;;; Loading stuff
 
 (dynamic-load "sqlite")
-(errtest (dynamic-load "sqheavy"))
+(errtest (dynamic-load "sqheavy" #t))
 (errtest (dynamic-load 'sqlite))
 
 (config 'used_modules)
