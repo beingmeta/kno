@@ -467,8 +467,9 @@ static lispval zmq_send_prim(lispval s,lispval data,lispval opts)
   zmq_msg_close(&msg);
   if (free_bytes) u8_free(bytes);
   if (free_converter) kno_decref(converter);
-  if (n_bytes>=0)
-    return KNO_INT(n_bytes);
+  if (n_bytes>=0) {
+    U8_CLEAR_ERRNO();
+    return KNO_INT(n_bytes);}
   else return zmq_error("ZMQ/SEND!",s);
 }
 
@@ -543,6 +544,7 @@ static lispval zmq_recv_prim(lispval s,lispval opts)
   else result = kno_make_packet(NULL,n_bytes,bytes);
   kno_close_outbuf(&out);
   if (free_converter) kno_decref(converter);
+  U8_CLEAR_ERRNO();
   return result;
 }
 
