@@ -496,9 +496,6 @@ static lispval opcode_eval(lispval opcode,lispval expr,
 static lispval choice_eval(lispval expr,kno_lexenv env,
                            struct KNO_STACK *_stack,
                            int tail);
-static lispval prechoice_eval(lispval expr,kno_lexenv env,
-                              struct KNO_STACK *_stack,
-                              int tail);
 
 KNO_EXPORT
 lispval kno_stack_eval(lispval expr,kno_lexenv env,
@@ -529,8 +526,11 @@ lispval kno_stack_eval(lispval expr,kno_lexenv env,
       return result;}
     case kno_choice_type:
       return choice_eval(expr,env,_stack,tail);
-    case kno_prechoice_type:
-      return prechoice_eval(expr,env,_stack,tail);
+    case kno_prechoice_type: {
+      lispval normalized = kno_make_simple_choice(expr);
+      lispval result = kno_stack_eval(normalized,env,_stack,tail);
+      kno_decref(normalized);
+      return result;}
     case kno_slotmap_type:
       return kno_deep_copy(expr);
     case kno_schemap_type: {
@@ -560,32 +560,6 @@ static lispval choice_eval(lispval expr,kno_lexenv env,
     else {CHOICE_ADD(result,r);}}
   kno_pop_stack(nd_eval_stack);
   return simplify_value(result);
-}
-
-static lispval prechoice_eval(lispval expr,kno_lexenv env,
-                              struct KNO_STACK *_stack,
-                              int tail)
-{
-  lispval exprs = kno_make_simple_choice(expr);
-  KNO_PUSH_STACK(prechoice_eval_stack,kno_evalstack_type,NULL,expr);
-  if (CHOICEP(exprs)) {
-    lispval results = EMPTY;
-    DO_CHOICES(expr,exprs) {
-      lispval result = stack_eval(expr,env,prechoice_eval_stack);
-      if (KNO_ABORTED(result)) {
-        KNO_STOP_DO_CHOICES;
-        kno_decref(results);
-        kno_pop_stack(prechoice_eval_stack);
-        return result;}
-      else {CHOICE_ADD(results,result);}}
-    kno_decref(exprs);
-    kno_pop_stack(prechoice_eval_stack);
-    return simplify_value(results);}
-  else {
-    lispval result = kno_stack_eval(exprs,env,prechoice_eval_stack,tail);
-    kno_decref(exprs);
-    kno_pop_stack(prechoice_eval_stack);
-    return result;}
 }
 
 /* Function application */
