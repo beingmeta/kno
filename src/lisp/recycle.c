@@ -217,8 +217,11 @@ void kno_recycle_cons(kno_raw_cons c)
   case kno_rational_type: case kno_complex_type:
     recycle_pair((struct KNO_PAIR *)c);
     return;
-  case kno_uuid_type: case kno_timestamp_type:
-    u8_free(c);
+  case kno_uuid_type:
+    recycle_uuid(c);
+    return;
+  case kno_timestamp_type:
+    recycle_timestamp(c);
     return;
   case kno_regex_type:
     recycle_regex(c);
