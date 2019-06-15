@@ -8,6 +8,7 @@
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/eval.h"
+#include "kno/cprims.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8stringfns.h>
@@ -35,7 +36,10 @@ static struct MODULE_LOADER {
 
 static struct KNO_HASHTABLE module_map;
 static kno_lexenv default_env = NULL;
-lispval kno_scheme_module = KNO_VOID, kno_xscheme_module = KNO_VOID;
+lispval kno_scheme_module = KNO_VOID;
+lispval kno_io_module = KNO_VOID;
+lispval kno_db_module = KNO_VOID;
+lispval kno_sys_module = KNO_VOID;
 
 static u8_mutex module_loaders_lock;
 static u8_mutex module_wait_lock;
@@ -168,20 +172,25 @@ KNO_EXPORT lispval kno_new_module(char *name,int flags)
     default_env->env_parent = kno_make_env(module,default_env->env_parent);}
   return module;}
 
-KNO_EXPORT lispval kno_new_cmodule(char *name,int flags,void *addr)
+KNO_EXPORT lispval kno_new_cmodule_x(char *name,int flags,void *addr,
+                                     u8_string filename)
 {
+  int free_filename = 0;
   lispval mod = kno_new_module(name,flags);
 #if HAVE_DLADDR
   Dl_info  dlinfo;
-  if (dladdr(addr,&dlinfo)) {
-    const char *cfilename = dlinfo.dli_fname;
-    if (cfilename) {
-      u8_string filename = u8_fromlibc((char *)cfilename);
-      lispval fname = kno_make_string(NULL,-1,filename);
-      u8_free(filename);
-      kno_add(mod,source_symbol,fname);
-      kno_decref(fname);}}
+  if (filename == NULL) {
+    if (dladdr(addr,&dlinfo)) {
+      const char *cfilename = dlinfo.dli_fname;
+      if (cfilename) {
+        filename = u8_fromlibc((char *)cfilename);
+        free_filename = 1;}}}
 #endif
+  if (filename) {
+    lispval fname = kno_make_string(NULL,-1,filename);
+    if (free_filename) u8_free(filename);
+    kno_add(mod,source_symbol,fname);
+    kno_decref(fname);}
   return mod;
 }
 
@@ -475,7 +484,13 @@ static int load_dynamic_module(lispval spec,void *data)
   else return 0;
 }
 
-static lispval dynamic_load_prim(lispval arg)
+DCLPRIM2("DYNAMIC-LOAD",dynamic_load_prim,MIN_ARGS(1),
+         "`(DYNAMIC-LOAD *modname* [*err*])` loads a dynamic module "
+         "into KNO. If *modname* (a string) is a path (includes a '/'), "
+         "it is loaded directly. Otherwise, it looks for an dynamic "
+         "module file in the default search path.",
+         kno_string_type,KNO_VOID,-1,KNO_FALSE)
+static lispval dynamic_load_prim(lispval arg,lispval err)
 {
   u8_string name = KNO_STRING_DATA(arg);
   if (*name=='/') {
@@ -491,7 +506,9 @@ static lispval dynamic_load_prim(lispval arg)
           u8_free(module_name);
           if (mod) return KNO_TRUE;
           else return KNO_ERROR;}}}
-    return KNO_FALSE;}
+    if ( (KNO_FALSEP(err)) || (KNO_VOIDP(err)) )
+      return KNO_FALSE;
+    else return kno_err("ModuleNotFound","dynamic_load_prim",NULL,arg);}
 }
 
 /* Switching modules */
@@ -1070,15 +1087,25 @@ void kno_init_module_tables()
   KNO_INIT_STATIC_CONS(&module_map,kno_hashtable_type);
   kno_make_hashtable(&module_map,67);
 
-  if (KNO_VOIDP(kno_scheme_module)) {
-    kno_scheme_module = kno_xscheme_module =
-      kno_make_hashtable(NULL,71);}
-
   lispval default_bindings = kno_make_hashtable(NULL,0);
   default_env = kno_make_env(default_bindings,kno_app_env);
   kno_store(default_bindings,kno_intern("%source"),KNO_FALSE);
 
+  if (KNO_VOIDP(kno_scheme_module)) {
+    kno_scheme_module = kno_make_hashtable(NULL,71);}
   kno_register_module("scheme",kno_scheme_module,(KNO_MODULE_DEFAULT));
+
+  if (KNO_VOIDP(kno_io_module)) {
+    kno_io_module = kno_make_hashtable(NULL,71);}
+  kno_register_module("io",kno_io_module,(KNO_MODULE_DEFAULT));
+
+  if (KNO_VOIDP(kno_sys_module)) {
+    kno_sys_module = kno_make_hashtable(NULL,71);}
+  kno_register_module("sys",kno_sys_module,(KNO_MODULE_DEFAULT));
+
+  if (KNO_VOIDP(kno_db_module)) {
+    kno_db_module = kno_make_hashtable(NULL,71);}
+  kno_register_module("db",kno_db_module,(KNO_MODULE_DEFAULT));
 }
 
 /* Initialization */
@@ -1102,56 +1129,52 @@ KNO_EXPORT void kno_init_modules_c()
                      "Whether to announce the loading of dynamic modules",
                      kno_boolconfig_get,kno_boolconfig_set,&trace_dload);
 
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim1x("DYNAMIC-LOAD",dynamic_load_prim,1,
-                           kno_string_type,VOID));
-  kno_defalias(kno_scheme_module,"DLOAD","DYNAMIC-LOAD");
-  kno_defalias(kno_scheme_module,"LOAD-DLL","DYNAMIC-LOAD");
+  DECL_PRIM(dynamic_load_prim,2,kno_sys_module);
 
-  kno_idefn1(kno_xscheme_module,"GET-SOURCE",get_source_prim,0,
+  kno_idefn1(kno_sys_module,"GET-SOURCE",get_source_prim,0,
             "(get-source [*obj*])\nGets the source file implementing *obj*, "
             "which can be a function (or macro or evalfn), module, or module "
             "name. With no arguments, returns the current SOURCEBASE",
             -1,VOID);
 
-  kno_def_evalfn(kno_xscheme_module,"EXPORT-ALIAS!",
+  kno_def_evalfn(kno_sys_module,"EXPORT-ALIAS!",
                 "Combine the exports of this module with another",
                 export_alias_evalfn);
 
-  kno_idefn3(kno_xscheme_module,"GET-BINDING",get_binding_prim,2,
+  kno_idefn3(kno_sys_module,"GET-BINDING",get_binding_prim,2,
             "(get-binding *module* *symbol* [*default*])\n"
             "Gets *module*'s exported binding of *symbol*. "
             "On failure, returns *default* if provided "
             "or errs if none is provided.",
             -1,VOID,kno_symbol_type,VOID,-1,VOID);
 
-  kno_idefn3(kno_xscheme_module,"%GET-BINDING",get_internal_binding_prim,2,
+  kno_idefn3(kno_sys_module,"%GET-BINDING",get_internal_binding_prim,2,
             "(get-binding *module* *symbol* [*default*])\n"
             "Gets *module*'s binding of *symbol* "
             "(internal or external). On failure returns "
             "*default* (if provided) or errs if none is provided.",
             -1,VOID,kno_symbol_type,VOID,-1,VOID);
-  kno_idefn3(kno_xscheme_module,"IMPORTVAR",import_var_prim,2,
+  kno_idefn3(kno_sys_module,"IMPORTVAR",import_var_prim,2,
             "(importvar *module* *symbol* [*default*])\n"
             "Gets *module*'s binding of *symbol* "
             "(internal, external, or inherhited). On failure returns "
             "*default*, if provided, or errors (if not).",
             -1,VOID,kno_symbol_type,VOID,-1,KNO_VOID);
 
-  kno_def_evalfn(kno_xscheme_module,"IN-MODULE","",in_module_evalfn);
-  kno_def_evalfn(kno_xscheme_module,"WITHIN-MODULE","",within_module_evalfn);
-  kno_defalias(kno_xscheme_module,"W/M","WITHIN-MODULE");
-  kno_defalias(kno_xscheme_module,"%WM","WITHIN-MODULE");
-  kno_def_evalfn(kno_xscheme_module,"ACCESSING-MODULE","",accessing_module_evalfn);
-  kno_def_evalfn(kno_xscheme_module,"USE-MODULE","",use_module_evalfn);
+  kno_def_evalfn(kno_scheme_module,"IN-MODULE","",in_module_evalfn);
+  kno_def_evalfn(kno_sys_module,"WITHIN-MODULE","",within_module_evalfn);
+  kno_defalias(kno_sys_module,"W/M","WITHIN-MODULE");
+  kno_defalias(kno_sys_module,"%WM","WITHIN-MODULE");
+  kno_def_evalfn(kno_sys_module,"ACCESSING-MODULE","",accessing_module_evalfn);
+  kno_def_evalfn(kno_scheme_module,"USE-MODULE","",use_module_evalfn);
   kno_def_evalfn(kno_scheme_module,"MODULE-EXPORT!","",module_export_evalfn);
-  kno_idefn(kno_xscheme_module,kno_make_cprim1("GET-MODULE",get_module,1));
-  kno_idefn(kno_xscheme_module,kno_make_cprim1("GET-LOADED-MODULE",get_loaded_module,1));
-  kno_idefn(kno_xscheme_module,
+  kno_idefn(kno_sys_module,kno_make_cprim1("GET-MODULE",get_module,1));
+  kno_idefn(kno_sys_module,kno_make_cprim1("GET-LOADED-MODULE",get_loaded_module,1));
+  kno_idefn(kno_sys_module,
            kno_make_cprim1("GET-EXPORTS",get_exports_prim,1));
-  kno_defalias(kno_xscheme_module,"%LS","GET-EXPORTS");
+  kno_defalias(kno_sys_module,"%LS","GET-EXPORTS");
 
-  kno_idefn(kno_scheme_module,kno_make_cprim1("STATIC-MODULE!",static_module,1));
+  kno_idefn(kno_sys_module,kno_make_cprim1("STATIC-MODULE!",static_module,1));
 
   kno_register_config("LOCKEXPORTS",
                      "Lock the exports of modules when loaded",

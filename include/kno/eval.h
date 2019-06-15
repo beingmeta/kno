@@ -25,7 +25,11 @@ KNO_EXPORT u8_condition kno_TooFewExpressions, kno_NotAnIdentifier;
 KNO_EXPORT u8_condition kno_InvalidMacro, KNO_BadArglist;
 KNO_EXPORT u8_condition kno_ReadOnlyEnv;
 
-KNO_EXPORT lispval kno_scheme_module, kno_xscheme_module;
+KNO_EXPORT lispval kno_scheme_module;
+KNO_EXPORT lispval kno_io_module;
+KNO_EXPORT lispval kno_sys_module;
+KNO_EXPORT lispval kno_db_module;
+
 KNO_EXPORT lispval _kno_comment_symbol;
 
 KNO_EXPORT int kno_scheme_initialized;
@@ -138,7 +142,11 @@ KNO_EXPORT int kno_lock_exports(lispval module);
 
 KNO_EXPORT lispval kno_find_module(lispval,int);
 KNO_EXPORT lispval kno_new_module(char *name,int flags);
-KNO_EXPORT lispval kno_new_cmodule(char *name,int flags,void *addr);
+KNO_EXPORT lispval kno_new_cmodule_x
+(char *name,int flags,void *addr,u8_string filename);
+
+#define kno_new_cmodule(name,flags,addr) \
+  kno_new_cmodule_x(name,flags,addr,__FILE__)
 
 KNO_EXPORT lispval kno_use_module(kno_lexenv env,lispval module);
 
