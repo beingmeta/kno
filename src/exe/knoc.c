@@ -717,6 +717,13 @@ int main(int argc,char **argv)
   /* This is the environment the console will start in */
   kno_lexenv env = kno_working_lexenv();
 
+  if (getenv("KNO_QUIET")) quiet_console=1;
+
+  /* Announce preamble, suppressed by quiet_console */
+  if (!(quiet_console)) {
+    if (kno_boot_message()) {
+      /* Extra stuff, if desired */}}
+
   kno_set_app_env(env);
 
   kno_main_errno_ptr = &errno;
@@ -826,8 +833,6 @@ int main(int argc,char **argv)
   errconsole = err;
   atexit(exit_knoc);
 
-  kno_autoload_config("LOADMOD","LOADFILE","INITS");
-
   if (u8_has_suffix(argv[0],"/knoc",0))
     u8_default_appid("knoc");
   else if (u8_has_suffix(argv[0],"/knosh",0))
@@ -864,10 +869,19 @@ int main(int argc,char **argv)
      kno_sconfig_get,kno_sconfig_set,
      &stop_file);
 
-  /* Announce preamble, suppressed by quiet_console */
-  if (!(quiet_console)) {
-    if (kno_boot_message()) {
-      /* Extra stuff, if desired */}}
+  if (dotload) {
+    u8_string home_config = u8_realpath("~/.knoconfig",NULL);
+    u8_string cwd_config = u8_realpath(".knoconfig",NULL);
+    int not_in_kansas = strcmp(home_config,cwd_config);
+    dotloader("~/.knoconfig",NULL);
+    if (not_in_kansas) dotloader(".knoconfig",NULL);
+    dotloader("~/.knoc",env);
+    if (not_in_kansas) dotloader(".knoc",env);
+    u8_free(home_config);
+    u8_free(cwd_config);}
+  else u8_message("Warning: .knoconfig/.knoc files are suppressed");
+
+  kno_autoload_config("LOADMOD","LOADFILE","INITS");
 
   if (source_file == NULL) {}
   else if (strchr(source_file,'@')) {
@@ -924,17 +938,6 @@ int main(int argc,char **argv)
       u8_message("Kno %s loaded in %0.3f%s, %d/%d pools/indexes",
                  u8_appid(),show_startup_time,units,kno_n_pools,
                  kno_n_primary_indexes+kno_n_secondary_indexes);}
-  if (dotload) {
-    u8_string home_config = u8_realpath("~/.knoconfig",NULL);
-    u8_string cwd_config = u8_realpath(".knoconfig",NULL);
-    int not_in_kansas = strcmp(home_config,cwd_config);
-    dotloader("~/.knoconfig",NULL);
-    if (not_in_kansas) dotloader(".knoconfig",NULL);
-    dotloader("~/.knoc",env);
-    if (not_in_kansas) dotloader(".knoc",env);
-    u8_free(home_config);
-    u8_free(cwd_config);}
-  else u8_message("Warning: .knoconfig/.knoc files are suppressed");
 
 #if USING_EDITLINE
   if (!(getenv("INSIDE_EMACS"))) {
