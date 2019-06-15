@@ -223,6 +223,7 @@ SCHEME_OBJS=\
 	src/eval/dteval.o \
 	src/eval/arith.o \
 	src/eval/regex.o \
+	src/eval/promises.o \
 	src/eval/reqstate.o \
 	src/prims/dbprims.o \
 	src/prims/tableprims.o \
@@ -434,6 +435,8 @@ KNO_SOURCES=\
 	src/eval/compoundfns.c 							\
 	src/eval/coreops.c                  					\
 	src/eval/arith.c 			              			\
+	src/eval/regex.c 			              			\
+	src/eval/promises.c 			              			\
 	src/prims/dbprims.c 							\
 	src/prims/logprims.c							\
 	src/prims/portprims.c							\
