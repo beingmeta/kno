@@ -87,8 +87,10 @@ static lispval zmq_make(zmq_type type,void *ptr)
 {
   struct KNO_ZEROMQ *zmq = u8_alloc(KNO_ZEROMQ);
   KNO_INIT_FRESH_CONS(zmq,kno_zeromq_type);
-  zmq->zmq_type = type;
-  zmq->zmq_ptr  = ptr;
+  zmq->zmq_threadid = u8_threadid();
+  zmq->zmq_type     = type;
+  zmq->zmq_flags    = 0;
+  zmq->zmq_ptr      = ptr;
   return (lispval) zmq;
 }
 

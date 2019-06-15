@@ -6,7 +6,9 @@ typedef enum zmq_type { zmq_socket_type } zmq_type;
 typedef struct KNO_ZEROMQ {
   KNO_CONS_HEADER;
   u8_string zmq_id;
+  pthread_t zmq_threadid;
   enum zmq_type zmq_type;
+  unsigned int zmq_flags;
   void *zmq_ptr;} KNO_ZEROMQ;
 typedef struct KNO_ZEROMQ *kno_zeromq;
 
