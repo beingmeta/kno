@@ -147,6 +147,22 @@ KNO_EXPORT lispval kno_wrap_exception(u8_exception ex)
                              ex->u8x_thread);}
 }
 
+KNO_EXPORT lispval kno_simple_exception(u8_exception ex)
+{
+  if (ex == NULL) ex = u8_current_exception;
+  u8_condition condition = (ex) ? (ex->u8x_cond) :
+    ((u8_condition)"missingCondition");
+  u8_context caller = (ex) ? (ex->u8x_context) : (NULL);
+  u8_string details = (ex) ? (ex->u8x_details) : (NULL);
+  return kno_init_exception(NULL,condition,caller,
+                            u8_strdup(details),
+                            KNO_VOID,KNO_VOID,KNO_VOID,
+                            u8_sessionid(),
+                            ex->u8x_moment,
+                            u8_elapsed_base(),
+                            ex->u8x_thread);
+}
+
 /* This gets the 'actual' irritant from a u8_exception, extracting it
    from the underlying u8_condition (if that's an irritant) */
 KNO_EXPORT lispval kno_get_irritant(u8_exception ex)
