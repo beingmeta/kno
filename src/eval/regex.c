@@ -27,22 +27,10 @@ u8_condition kno_RegexBadOp=_("Invalid Regex operation");
 
 static lispval make_regex(lispval pat,lispval nocase,lispval matchnl)
 {
-  struct KNO_REGEX *ptr = u8_alloc(struct KNO_REGEX);
-  int retval, cflags = REG_EXTENDED;
-  u8_string src = u8_strdup(CSTRING(pat));
-  KNO_INIT_FRESH_CONS(ptr,kno_regex_type);
+  int cflags = REG_EXTENDED;
   if (!(FALSEP(nocase))) cflags = cflags|REG_ICASE;
   if (!(FALSEP(matchnl))) cflags = cflags|REG_NEWLINE;
-  retval = regcomp(&(ptr->rxcompiled),src,cflags);
-  if (retval) {
-    u8_byte buf[512];
-    regerror(retval,&(ptr->rxcompiled),buf,512);
-    u8_free(ptr);
-    return kno_err(kno_RegexError,"kno_make_regex",u8_strdup(buf),VOID);}
-  else {
-    ptr->rxflags = cflags; ptr->rxsrc = src;
-    u8_init_mutex(&(ptr->rx_lock)); ptr->rxactive = 1;
-    return LISP_CONS(ptr);}
+  return kno_make_regex(CSTRING(pat),cflags);
 }
 
 static lispval regexp_prim(lispval x)
@@ -117,7 +105,7 @@ KNO_EXPORT ssize_t kno_regex_op(enum KNO_REGEX_OP op,lispval pat,
                                 int eflags)
 {
   struct KNO_REGEX *ptr = kno_consptr(struct KNO_REGEX *,pat,kno_regex_type);
-  regmatch_t results[1];
+  regmatch_t results[1] = { 0 };
   int retval;
   /* Convert numeric eflags value to correct flags field */
   if (eflags==1)
@@ -222,36 +210,6 @@ static lispval regex_matchspan(lispval pat,lispval string,lispval ef)
   else return kno_type_error("unsigned int","regex_matchspan/flags",ef);
 }
 
-static lispval regex_coverme()
-{
-  lispval pattern = knostring("[0123456789]+");
-  lispval regex = make_regex(pattern,KNO_FALSE,KNO_FALSE);
-  lispval bad_pattern = knostring("[0123456789+");
-  lispval bad_regex = make_regex(bad_pattern,KNO_FALSE,KNO_FALSE);
-  u8_string test_string = "There were 112 different people";
-  size_t test_len = strlen(test_string);
-  int rv = kno_regex_op(rx_search,regex,test_string,test_len,0);
-  rv = kno_regex_op(rx_search,regex,test_string,test_len,1);
-  rv = kno_regex_op(rx_search,regex,test_string,test_len,2);
-  rv = kno_regex_op(rx_search,regex,test_string,test_len,3);
-  /* Now start breaking things */
-  rv = kno_regex_op(rx_matchstring,regex,test_string,test_len,0);
-  if (rv<0) {u8_pop_exception();}
-  rv = kno_regex_op(rx_matchspan,regex,test_string,test_len,0);
-  if (rv<0) {u8_pop_exception();}
-  rv = kno_regex_matchlen(regex,test_string,test_len);
-  if (rv<0) {u8_pop_exception();}
-  rv = kno_regex_matchlen(regex,test_string+11,test_len-11);
-  if (rv<0) {u8_pop_exception();}
-  rv = kno_regex_match(regex,"3333",4);
-  if (rv<0) {u8_pop_exception();}
-  rv = kno_regex_op(rx_matchlen,bad_regex,test_string,test_len,0);
-  if (rv<0) {u8_pop_exception();}
-  kno_decref(regex); kno_decref(pattern);
-  kno_decref(bad_regex); kno_decref(bad_pattern);
-  return VOID;
-}
-
 /* Initialization */
 
 static int regex_init = 0;
@@ -289,7 +247,6 @@ KNO_EXPORT int kno_init_regex_c()
             kno_make_cprim3x("REGEX/MATCHSPAN",regex_matchspan,2,
                              kno_regex_type,VOID,kno_string_type,VOID,
                              kno_fixnum_type,KNO_FIXZERO));
-  kno_idefn(regex_module,kno_make_cprim0("REGEX/COVERME",regex_coverme));
 
   kno_finish_module(regex_module);
 

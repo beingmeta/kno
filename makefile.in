@@ -1126,6 +1126,10 @@ src/cmodules/crypto.o: src/cmodules/crypto.c
 lib/kno/crypto.so: src/cmodules/crypto.o
 lib/kno/crypto.dylib: src/cmodules/crypto.o ${CMODULE_DEPENDS}
 
+src/cmodules/testcapi.o: src/cmodules/testcapi.c
+lib/kno/testcapi.so: src/cmodules/testcapi.o
+lib/kno/testcapi.dylib: src/cmodules/testcapi.o ${CMODULE_DEPENDS}
+
 src/cmodules/zeromq.o: src/cmodules/zeromq.c
 lib/kno/zeromq.so: src/cmodules/zeromq.o
 lib/kno/zeromq.dylib: src/cmodules/zeromq.o ${CMODULE_DEPENDS}
@@ -1546,6 +1550,7 @@ install-db-cmodules: @INSTALL_DB_CMODULES@
 install-text-cmodules: @INSTALL_TEXT_CMODULES@
 install-graphics-cmodules: @INSTALL_GRAPHICS_CMODULES@
 install-archive-cmodules: @INSTALL_ARCHIVE_CMODULES@
+install-testcapi: ${CMODULES}/testcapi.@shared_suffix@ ${CMODULES}/testcapi.@vshared_suffix@
 install-crypto: ${CMODULES}/crypto.@shared_suffix@ ${CMODULES}/crypto.@vshared_suffix@
 install-zeromq: ${CMODULES}/zeromq.@shared_suffix@ ${CMODULES}/zeromq.@vshared_suffix@
 install-odbc: ${CMODULES}/odbc.@shared_suffix@ ${CMODULES}/odbc.@vshared_suffix@

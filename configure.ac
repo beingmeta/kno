@@ -583,6 +583,11 @@ case $host_os in
    ;;
 esac  
 
+# Now that we have shared_suffix defined, set some things up
+
+CORE_CMODULES="lib/kno/testcapi.${shared_suffix} ${CORE_CMODULES}"
+INSTALL_CORE_CMODULES="install-testcapi ${INSTALL_CORE_CMODULES}"
+
 AX_CHECK_LINK_FLAG("-static-libgcc",static_libgcc="yes")
 
 if test "${static_libgcc}" == "yes"; then

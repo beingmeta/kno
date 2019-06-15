@@ -6785,6 +6785,11 @@ case $host_os in
    ;;
 esac
 
+# Now that we have shared_suffix defined, set some things up
+
+CORE_CMODULES="lib/kno/testcapi.${shared_suffix} ${CORE_CMODULES}"
+INSTALL_CORE_CMODULES="install-testcapi ${INSTALL_CORE_CMODULES}"
+
 as_CACHEVAR=`$as_echo "ax_cv_check_ldflags__"-static-libgcc"" | $as_tr_sh`
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the linker accepts \"-static-libgcc\"" >&5
 $as_echo_n "checking whether the linker accepts \"-static-libgcc\"... " >&6; }
