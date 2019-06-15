@@ -285,7 +285,7 @@ static lispval rusage_prim(lispval field)
           lvec = kno_make_nvector(1,kno_make_flonum(loadavg[0]));
         else if (nsamples==2)
           lvec = kno_make_nvector(2,kno_make_flonum(loadavg[0]),
-                                 kno_make_flonum(loadavg[1]));
+                                  kno_make_flonum(loadavg[1]));
         else lvec = kno_make_nvector
                (3,kno_make_flonum(loadavg[0]),
                 kno_make_flonum(loadavg[1]),
@@ -387,7 +387,7 @@ static lispval rusage_prim(lispval field)
         return kno_make_nvector(1,kno_make_flonum(loadavg[0]));
       else if (nsamples==2)
         return kno_make_nvector(2,kno_make_flonum(loadavg[0]),
-                               kno_make_flonum(loadavg[1]));
+                                kno_make_flonum(loadavg[1]));
       else return kno_make_nvector
              (3,kno_make_flonum(loadavg[0]),kno_make_flonum(loadavg[1]),
               kno_make_flonum(loadavg[2]));}
@@ -802,49 +802,42 @@ KNO_EXPORT void kno_init_sysprims_c()
   total_ram_symbol=kno_intern("totalram");
   max_vmem_symbol=kno_intern("maxvmem");
 
-  DECL_PRIM(hostname_prim,0,kno_scheme_module);
-  DECL_PRIM(hostaddrs_prim,1,kno_scheme_module);
-  DECL_PRIM(getenv_prim,1,kno_scheme_module);
+  DECL_PRIM(hostname_prim,0,kno_sys_module);
+  DECL_PRIM(hostaddrs_prim,1,kno_sys_module);
+  DECL_PRIM(getenv_prim,1,kno_sys_module);
 
-  kno_idefn(kno_scheme_module,kno_make_cprim1("RUSAGE",rusage_prim,0));
-  kno_idefn(kno_scheme_module,kno_make_cprim1("CPUSAGE",cpusage_prim,0));
+  kno_idefn(kno_sys_module,kno_make_cprim1("RUSAGE",rusage_prim,0));
+  kno_idefn(kno_sys_module,kno_make_cprim1("CPUSAGE",cpusage_prim,0));
 
-  DECL_PRIM(rusage_prim,1,kno_scheme_module);
-  DECL_PRIM(cpusage_prim,1,kno_scheme_module);
+  DECL_PRIM(rusage_prim,1,kno_sys_module);
+  DECL_PRIM(cpusage_prim,1,kno_sys_module);
 
-  DECL_PRIM(memusage_prim,0,kno_scheme_module);
+  DECL_PRIM(memusage_prim,0,kno_sys_module);
 
-  DECL_PRIM(memusage_prim,0,kno_scheme_module);
-  DECL_PRIM(vmemusage_prim,0,kno_scheme_module);
-  DECL_PRIM(memload_prim,0,kno_scheme_module);
-  DECL_PRIM(vmemload_prim,0,kno_scheme_module);
-  DECL_PRIM(usertime_prim,0,kno_scheme_module);
-  DECL_PRIM(systime_prim,0,kno_scheme_module);
-  DECL_PRIM(physmem_prim,0,kno_scheme_module);
+  DECL_PRIM(memusage_prim,0,kno_sys_module);
+  DECL_PRIM(vmemusage_prim,0,kno_sys_module);
+  DECL_PRIM(memload_prim,0,kno_sys_module);
+  DECL_PRIM(vmemload_prim,0,kno_sys_module);
+  DECL_PRIM(usertime_prim,0,kno_sys_module);
+  DECL_PRIM(systime_prim,0,kno_sys_module);
+  DECL_PRIM(physmem_prim,0,kno_sys_module);
 
-  DECL_PRIM(loadavg_prim,0,kno_scheme_module);
-  DECL_PRIM(loadavgs_prim,0,kno_scheme_module);
+  DECL_PRIM(loadavg_prim,0,kno_sys_module);
+  DECL_PRIM(loadavgs_prim,0,kno_sys_module);
 
-  DECL_PRIM(uname_prim,0,kno_scheme_module);
+  DECL_PRIM(uname_prim,0,kno_sys_module);
 
-  DECL_PRIM(getpid_prim,0,kno_scheme_module);
-  DECL_PRIM(getppid_prim,0,kno_scheme_module);
-  DECL_PRIM(threadid_prim,0,kno_scheme_module);
-  DECL_PRIM(getprocstring_prim,0,kno_scheme_module);
-  DECL_PRIM(stacksize_prim,0,kno_scheme_module);
+  DECL_PRIM(getpid_prim,0,kno_sys_module);
+  DECL_PRIM(getppid_prim,0,kno_sys_module);
+  DECL_PRIM(threadid_prim,0,kno_sys_module);
+  DECL_PRIM(getprocstring_prim,0,kno_sys_module);
+  DECL_PRIM(stacksize_prim,0,kno_sys_module);
 
-  kno_def_evalfn(kno_scheme_module,"#ENV",
-                "#:ENV\"HOME\" or #:ENV:HOME\n"
-                "evaluates to an environment variable",
-                getenv_macro);
+  kno_def_evalfn(kno_sys_module,"#ENV",
+                 "#:ENV\"HOME\" or #:ENV:HOME\n"
+                 "evaluates to an environment variable",
+                 getenv_macro);
 
   kno_init_procprims_c();
 
 }
-
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

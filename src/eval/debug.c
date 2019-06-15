@@ -1169,12 +1169,12 @@ KNO_EXPORT void kno_init_eval_debug_c()
             "'./errors/' or './'",
             kno_exception_type,KNO_VOID,-1,KNO_VOID);
 
-  kno_idefn1(kno_xscheme_module,"MTRACE",mtrace_prim,KNO_NEEDS_0_ARGS,
+  kno_idefn1(kno_scheme_module,"MTRACE",mtrace_prim,KNO_NEEDS_0_ARGS,
             "Activates LIBC heap tracing to MALLOC_TRACE and "
             "returns true if it worked. Optional argument is a "
             "filename to set as MALLOC_TRACE",
             -1,VOID);
-  kno_idefn0(kno_xscheme_module,"MUNTRACE",muntrace_prim,
+  kno_idefn0(kno_scheme_module,"MUNTRACE",muntrace_prim,
             "Deactivates LIBC heap tracing, returns true if it did anything");
 
 #if USING_GOOGLE_PROFILER

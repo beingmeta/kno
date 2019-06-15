@@ -1198,56 +1198,56 @@ KNO_EXPORT void kno_init_portprims_c()
 
   init_portprims_symbols();
 
-  DECL_PRIM(eofp,1,kno_scheme_module);
-  DECL_ALIAS("EOF?",eofp,kno_scheme_module);
-  DECL_PRIM(portp,1,kno_scheme_module);
-  DECL_PRIM(input_portp,1,kno_scheme_module);
-  DECL_PRIM(output_portp,1,kno_scheme_module);
-  DECL_PRIM(packet2dtype,1,kno_scheme_module);
-  DECL_PRIM(lisp2packet,2,kno_scheme_module);
+  DECL_PRIM(eofp,1,kno_io_module);
+  DECL_ALIAS("EOF?",eofp,kno_io_module);
+  DECL_PRIM(portp,1,kno_io_module);
+  DECL_PRIM(input_portp,1,kno_io_module);
+  DECL_PRIM(output_portp,1,kno_io_module);
+  DECL_PRIM(packet2dtype,1,kno_io_module);
+  DECL_PRIM(lisp2packet,2,kno_io_module);
 
-  DECL_PRIM(open_output_string,0,kno_scheme_module);
-  DECL_PRIM(open_input_string,1,kno_scheme_module);
+  DECL_PRIM(open_output_string,0,kno_io_module);
+  DECL_PRIM(open_input_string,1,kno_io_module);
 
   int one_port_arg[1] = { kno_port_type };
-  DECL_PRIM_ARGS(portid_prim,1,kno_scheme_module,
+  DECL_PRIM_ARGS(portid_prim,1,kno_io_module,
                  one_port_arg,NULL);
-  DECL_PRIM_ARGS(portdata_prim,1,kno_scheme_module,
+  DECL_PRIM_ARGS(portdata_prim,1,kno_io_module,
                  one_port_arg,NULL);
 
-  DECL_PRIM(write_prim,2,kno_scheme_module);
-  DECL_PRIM(display_prim,2,kno_scheme_module);
-  DECL_PRIM(putchar_prim,2,kno_scheme_module);
-  DECL_PRIM(newline_prim,1,kno_scheme_module);
-  DECL_ALIAS("WRITE-CHAR",putchar_prim,kno_scheme_module);
+  DECL_PRIM(write_prim,2,kno_io_module);
+  DECL_PRIM(display_prim,2,kno_io_module);
+  DECL_PRIM(putchar_prim,2,kno_io_module);
+  DECL_PRIM(newline_prim,1,kno_io_module);
+  DECL_ALIAS("WRITE-CHAR",putchar_prim,kno_io_module);
 
-  DECL_PRIM(getchar_prim,1,kno_scheme_module);
-  DECL_PRIM(read_prim,1,kno_scheme_module);
-  DECL_PRIM(getline_prim,4,kno_scheme_module);
+  DECL_PRIM(getchar_prim,1,kno_io_module);
+  DECL_PRIM(read_prim,1,kno_io_module);
+  DECL_PRIM(getline_prim,4,kno_io_module);
 
-  DECL_PRIM_N(lisp_pprint,kno_scheme_module);
-  DECL_PRIM(lisp_listdata,3,kno_scheme_module);
+  DECL_PRIM_N(lisp_pprint,kno_io_module);
+  DECL_PRIM(lisp_listdata,3,kno_io_module);
 
-  DECL_PRIM(read_record_prim,3,kno_scheme_module);
+  DECL_PRIM(read_record_prim,3,kno_io_module);
 
-  DECL_PRIM(substringout,3,kno_scheme_module);
-  DECL_PRIM(uniscape,2,kno_scheme_module);
+  DECL_PRIM(substringout,3,kno_io_module);
+  DECL_PRIM(uniscape,2,kno_io_module);
 
-  DECL_PRIM(from_base64_prim,1,kno_scheme_module);
-  DECL_PRIM(to_base64_prim,3,kno_scheme_module);
-  DECL_PRIM(any_to_base64_prim,3,kno_scheme_module);
+  DECL_PRIM(from_base64_prim,1,kno_io_module);
+  DECL_PRIM(to_base64_prim,3,kno_io_module);
+  DECL_PRIM(any_to_base64_prim,3,kno_io_module);
 
-  DECL_PRIM(from_base16_prim,1,kno_scheme_module);
-  DECL_PRIM(to_base16_prim,1,kno_scheme_module);
+  DECL_PRIM(from_base16_prim,1,kno_io_module);
+  DECL_PRIM(to_base16_prim,1,kno_io_module);
 
-  DECL_PRIM(gzip_prim,3,kno_scheme_module);
+  DECL_PRIM(gzip_prim,3,kno_io_module);
 
-  kno_def_evalfn(kno_scheme_module,"PRINTOUT","",printout_evalfn);
-  kno_def_evalfn(kno_scheme_module,"LINEOUT","",lineout_evalfn);
-  kno_def_evalfn(kno_scheme_module,"STRINGOUT","",stringout_evalfn);
-  DECL_PRIM(histstring_prim,2,kno_scheme_module);
-  DECL_PRIM(histref_prim,2,kno_scheme_module);
-  DECL_PRIM(histval_prim,2,kno_scheme_module);
+  kno_def_evalfn(kno_io_module,"PRINTOUT","",printout_evalfn);
+  kno_def_evalfn(kno_io_module,"LINEOUT","",lineout_evalfn);
+  kno_def_evalfn(kno_io_module,"STRINGOUT","",stringout_evalfn);
+  DECL_PRIM(histstring_prim,2,kno_io_module);
+  DECL_PRIM(histref_prim,2,kno_io_module);
+  DECL_PRIM(histval_prim,2,kno_io_module);
 
 }
 

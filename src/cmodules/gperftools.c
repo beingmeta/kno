@@ -165,18 +165,18 @@ KNO_EXPORT int kno_init_gperftools()
   kno_add_sensor(kno_intern("mallocinfo"),mallocinfo_sensor);
 
 #if HAVE_GPERFTOOLS_HEAP_PROFILER_H
-  kno_idefn(kno_xscheme_module,
+  kno_idefn(kno_scheme_module,
            kno_make_cprim1("GPERF/HEAP/PROFILE!",gperf_heap_profile,0));
-  kno_idefn(kno_xscheme_module,
+  kno_idefn(kno_scheme_module,
            kno_make_cprim0("GPERF/HEAP?",gperf_profiling_heap));
-  kno_idefn(kno_xscheme_module,
+  kno_idefn(kno_scheme_module,
            kno_make_cprim1("GPERF/DUMPHEAP",gperf_dump_heap,1));
 #endif
 
 #if HAVE_GPERFTOOLS_PROFILER_H
-  kno_idefn(kno_xscheme_module,
+  kno_idefn(kno_scheme_module,
            kno_make_cprim1("GPERF/PROFILE!",gperf_startstop,0));
-  kno_idefn(kno_xscheme_module,kno_make_cprim0("GPERF/FLUSH",gperf_flush));
+  kno_idefn(kno_scheme_module,kno_make_cprim0("GPERF/FLUSH",gperf_flush));
 #endif
 
   kno_idefn1(kno_scheme_module,"RELEASE-MEMORY",release_memory_prim,0,

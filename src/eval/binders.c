@@ -505,7 +505,7 @@ KNO_EXPORT void kno_init_binders_c()
   kno_def_evalfn(kno_scheme_module,"SETFALSE!","",assign_false_evalfn);
   kno_def_evalfn(kno_scheme_module,"BIND-DEFAULT!","",bind_default_evalfn);
 
-  kno_def_evalfn(kno_xscheme_module,"DEFINE-IMPORT",
+  kno_def_evalfn(kno_scheme_module,"DEFINE-IMPORT",
                 "Defines a local binding for a value in another module",
                 define_import);
   kno_defalias(kno_scheme_module,"DEFIMPORT","DEFINE-IMPORT");

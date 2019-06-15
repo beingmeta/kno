@@ -88,8 +88,8 @@ static int load_db_module(lispval opts,u8_context context)
       kno_decref(modules);
       if (KNO_ABORTP(mod)) {
         kno_seterr("MissingDBModule",context,
-                  ((KNO_SYMBOLP(modules)) ? (KNO_SYMBOL_NAME(modules)) : (NULL)),
-                  modules);
+                   ((KNO_SYMBOLP(modules)) ? (KNO_SYMBOL_NAME(modules)) : (NULL)),
+                   modules);
         return -1;}
       else {
         kno_decref(mod);
@@ -112,21 +112,21 @@ static lispval find_frames_lexpr(int n,lispval *args)
 static lispval xfind_frames_lexpr(int n,lispval *args)
 {
   int i = (n%2); while (i<n)
-    if (EMPTYP(args[i+1])) {
-      lispval *slotvals = u8_alloc_n((n),lispval), results;
-      int j = 0; i = 1; while (i<n)
-        if (EMPTYP(args[i+1])) i = i+2;
-        else {
-          slotvals[j]=args[i]; j++; i++;
-          slotvals[j]=args[i]; j++; i++;}
-      if (n%2)
-        if (FALSEP(args[0]))
-          results = kno_bgfinder(j,slotvals);
-        else results = kno_finder(args[0],j,slotvals);
-      else results = kno_bgfinder(j,slotvals);
-      u8_free(slotvals);
-      return results;}
-    else i = i+2;
+                   if (EMPTYP(args[i+1])) {
+                     lispval *slotvals = u8_alloc_n((n),lispval), results;
+                     int j = 0; i = 1; while (i<n)
+                                         if (EMPTYP(args[i+1])) i = i+2;
+                                         else {
+                                           slotvals[j]=args[i]; j++; i++;
+                                           slotvals[j]=args[i]; j++; i++;}
+                     if (n%2)
+                       if (FALSEP(args[0]))
+                         results = kno_bgfinder(j,slotvals);
+                       else results = kno_finder(args[0],j,slotvals);
+                     else results = kno_bgfinder(j,slotvals);
+                     u8_free(slotvals);
+                     return results;}
+                   else i = i+2;
   if (n%2)
     if (FALSEP(args[0]))
       return kno_bgfinder(n-1,args+1);
@@ -149,10 +149,10 @@ static lispval find_frames_prefetch(int n,lispval *args)
   if (PRED_FALSE(ix == NULL))
     return kno_type_error("index","prefetch_slotvals",args[0]);
   else while (i<n) {
-    DO_CHOICES(slotid,args[i]) {
-      if ((SYMBOLP(slotid)) || (OIDP(slotid))) {}
-      else return kno_type_error("slotid","find_frames_prefetch",slotid);}
-    i = i+2;}
+      DO_CHOICES(slotid,args[i]) {
+        if ((SYMBOLP(slotid)) || (OIDP(slotid))) {}
+        else return kno_type_error("slotid","find_frames_prefetch",slotid);}
+      i = i+2;}
   i = (n%2); while (i<n) {
     lispval slotids = args[i], values = args[i+1];
     kno_find_prefetch(ix,slotids,values);
@@ -184,7 +184,7 @@ static void hashtable_index_frame(lispval ix,
 }
 
 static lispval index_frame_prim
-  (lispval indexes,lispval frames,lispval slotids,lispval values)
+(lispval indexes,lispval frames,lispval slotids,lispval values)
 {
   if (CHOICEP(indexes)) {
     DO_CHOICES(index,indexes)
@@ -281,7 +281,7 @@ static lispval try_pool(lispval arg1,lispval opts)
   else if (!(STRINGP(arg1)))
     return kno_type_error(_("string"),"load_pool",arg1);
   else {
-    kno_storage_flags flags = kno_get_dbflags(opts,KNO_STORAGE_ISPOOL) | 
+    kno_storage_flags flags = kno_get_dbflags(opts,KNO_STORAGE_ISPOOL) |
       KNO_STORAGE_NOERR;
     kno_pool p = kno_get_pool(CSTRING(arg1),flags,opts);
     if (p)
@@ -320,7 +320,7 @@ static lispval use_pool(lispval arg1,lispval opts)
     kno_pool p = kno_get_pool(CSTRING(arg1),-1,opts);
     if (p) return pool2lisp(p);
     else return kno_err(kno_NoSuchPool,"use_pool",
-                       CSTRING(arg1),VOID);}
+                        CSTRING(arg1),VOID);}
 }
 
 static lispval use_index(lispval arg,lispval opts)
@@ -342,8 +342,8 @@ static lispval use_index(lispval arg,lispval opts)
       u8_byte *start = copy, *end = strchr(start,';');
       *end='\0'; while (start) {
         kno_index ix = kno_use_index(start,
-                                   kno_get_dbflags(opts,KNO_STORAGE_ISINDEX),
-                                   opts);
+                                     kno_get_dbflags(opts,KNO_STORAGE_ISINDEX),
+                                     opts);
         if (ix) {
           lispval ixv = index_ref(ix);
           CHOICE_ADD(results,ixv);}
@@ -572,7 +572,7 @@ static lispval unlockoids(lispval oids,lispval commitp)
     return KNO_FALSE;}
   else if ((TYPEP(oids,kno_pool_type))||(STRINGP(oids))) {
     kno_pool p = ((TYPEP(oids,kno_pool_type)) ? (kno_lisp2pool(oids)) :
-               (kno_name2pool(CSTRING(oids))));
+                  (kno_name2pool(CSTRING(oids))));
     if (p) {
       int retval = kno_pool_unlock_all(p,force_commit);
       if (retval<0) return KNO_ERROR;
@@ -644,12 +644,12 @@ static lispval extend_aggregate_index(lispval into_arg,lispval partition_arg)
           return KNO_ERROR;
         else return VOID;}
       else return kno_type_error(_("eternal (not-ephemeral) index"),
-                                "add_to_aggregate_index",
-                                partition_arg);}
+                                 "add_to_aggregate_index",
+                                 partition_arg);}
     else return kno_type_error
            (_("index"),"add_to_aggregate_index",partition_arg);}
   else return kno_type_error(_("aggregate index"),"add_to_aggregate_index",
-                            into_arg);
+                             into_arg);
 }
 
 static lispval tempindexp(lispval arg)
@@ -709,7 +709,7 @@ static lispval make_procpool(lispval label,
   kno_pool p = kno_make_procpool
     (KNO_OID_ADDR(base),FIX2INT(cap),FIX2INT(load),
      opts,state,CSTRING(label),NULL);
-return pool2lisp(p);
+  return pool2lisp(p);
 }
 
 static lispval make_extpool(lispval label,lispval base,lispval cap,
@@ -866,7 +866,7 @@ static lispval extindex_decache(lispval index,lispval key)
       DO_CHOICES(d,drop) kno_hashtable_drop(h,d,VOID);}
     kno_decref(drop); kno_decref(keys);}
   else {}
-return VOID;
+  return VOID;
 }
 
 static lispval extindex_fetchfn(lispval index)
@@ -994,12 +994,12 @@ static lispval swapout_lexpr(int n,lispval *args)
           if (!(p)) {
             kno_decref(oids);
             return kno_type_error(_("pool, index, or OIDs"),
-                                 "swapout_lexpr",e);}
+                                  "swapout_lexpr",e);}
           else rv = kno_pool_swapout(p,VOID);}
         else {
           kno_decref(oids);
           return kno_type_error(_("pool, index, or OIDs"),
-                               "swapout_lexpr",e);}
+                                "swapout_lexpr",e);}
         if (rv<0) {
           u8_log(LOG_WARN,"SwapoutFailed","Error swapping out %q",e);
           kno_clear_errors(1);}
@@ -1129,12 +1129,12 @@ static lispval pool_storen_prim(lispval pool,lispval oids,lispval values)
     long long v_len = KNO_VECTOR_LENGTH(values);
     lispval intpair = kno_make_pair(KNO_INT(oid_len),KNO_INT(v_len));
     lispval rlv=kno_err("OIDs/Values mismatch","pool_storen_prim",p->poolid,
-                       intpair);
+                        intpair);
     kno_decref(intpair);
     return rlv;}
   int rv = kno_pool_storen(p,KNO_VECTOR_LENGTH(oids),
-                          KNO_VECTOR_ELTS(oids),
-                          KNO_VECTOR_ELTS(values));
+                           KNO_VECTOR_ELTS(oids),
+                           KNO_VECTOR_ELTS(values));
   if (rv<0)
     return KNO_ERROR_VALUE;
   else return KNO_INT(oid_len);
@@ -1343,8 +1343,8 @@ static lispval oid_range(lispval start,lispval end)
   KNO_OID base = KNO_OID_ADDR(start);
   if (lim<0) return KNO_ERROR;
   else while (i<lim) {
-    lispval each = kno_make_oid(KNO_OID_PLUS(base,i));
-    CHOICE_ADD(result,each); i++;}
+      lispval each = kno_make_oid(KNO_OID_PLUS(base,i));
+      CHOICE_ADD(result,each); i++;}
   return result;
 }
 
@@ -1817,8 +1817,8 @@ static lispval cacheget_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval table_arg = kno_get_arg(expr,1), key_arg = kno_get_arg(expr,2);
   lispval default_expr = kno_get_arg(expr,3);
   if (PRED_FALSE((VOIDP(table_arg)) ||
-                      (VOIDP(key_arg)) ||
-                      (VOIDP(default_expr))))
+                 (VOIDP(key_arg)) ||
+                 (VOIDP(default_expr))))
     return kno_err(kno_SyntaxError,"cacheget_evalfn",NULL,expr);
   else {
     lispval table = kno_eval(table_arg,env), key, value;
@@ -2108,7 +2108,7 @@ KNO_FASTOP int test_selector_relation(lispval f,lispval pred,lispval val,int dat
         kno_decref(value);
         return retval;}
       else result = kno_err(kno_TypeError,"test_selector_relation",
-                         "invalid relation",pred);}
+                            "invalid relation",pred);}
     if (KNO_ABORTED(result))
       return kno_interr(result);
     else if ((FALSEP(result)) || (EMPTYP(result)) || (VOIDP(result)) )
@@ -2131,8 +2131,8 @@ KNO_FASTOP int test_selector_relation(lispval f,lispval pred,lispval val,int dat
 KNO_FASTOP int test_relation_regex(lispval candidate,lispval pred,lispval regex)
 {
   lispval values = ((OIDP(candidate))?
-                 (kno_frame_get(candidate,pred)):
-                 (kno_get(candidate,pred,EMPTY)));
+                    (kno_frame_get(candidate,pred)):
+                    (kno_get(candidate,pred,EMPTY)));
   if (EMPTYP(values)) return 0;
   else {
     struct KNO_REGEX *rx = (struct KNO_REGEX *)regex;
@@ -2157,7 +2157,7 @@ KNO_FASTOP int test_relation_regex(lispval candidate,lispval pred,lispval regex)
 }
 
 KNO_FASTOP int test_selector_predicate(lispval candidate,lispval test,
-                                      int datalevel)
+                                       int datalevel)
 {
   if (EMPTYP(candidate)) return 0;
   else if (EMPTYP(test)) return 0;
@@ -2212,7 +2212,7 @@ KNO_FASTOP int test_selector_predicate(lispval candidate,lispval test,
     else argv[j++]=args;
     if (j>7)
       newval = kno_err(kno_RangeError,"test_selector_relation",
-                    "too many elements in test condition",VOID);
+                       "too many elements in test condition",VOID);
     else newval = kno_apply(j,fcn,argv);
     if (KNO_ABORTED(newval)) return newval;
     else if ((FALSEP(newval))||(EMPTYP(newval)))
@@ -2243,7 +2243,7 @@ KNO_FASTOP int test_selector_predicate(lispval candidate,lispval test,
 }
 
 KNO_FASTOP int test_selector_clauses(lispval candidate,int n,lispval *args,
-                                    int datalevel)
+                                     int datalevel)
 {
   if (n==1)
     if (EMPTYP(args[0])) return 0;
@@ -2255,7 +2255,7 @@ KNO_FASTOP int test_selector_clauses(lispval candidate,int n,lispval *args,
     return retval;}
   else if (n%2) {
     kno_seterr(kno_TooManyArgs,"test_selector_clauses",
-              "odd number of args/clauses in db pick/reject",VOID);
+               "odd number of args/clauses in db pick/reject",VOID);
     return -1;}
   else {
     int i = 0; while (i<n) {
@@ -2436,7 +2436,7 @@ static lispval prefer_lexpr(int n,lispval *args)
       return kno_incref(args[0]);
     else return results;}
   else return kno_err(kno_TooManyArgs,"prefer_lexpr",
-                     "PICK PREFER two or 2n+1 arguments",VOID);
+                      "PICK PREFER two or 2n+1 arguments",VOID);
 }
 
 static lispval prim_pick_lexpr(int n,lispval *args)
@@ -2448,7 +2448,7 @@ static lispval prim_pick_lexpr(int n,lispval *args)
   else if ((n<=4)||(n%2))
     return pick_helper(args[0],n-1,args+1,1);
   else return kno_err(kno_TooManyArgs,"prim_pick_lexpr",
-                     "%PICK requires two or 2n+1 arguments",VOID);
+                      "%PICK requires two or 2n+1 arguments",VOID);
 }
 
 static lispval prim_prefer_lexpr(int n,lispval *args)
@@ -2459,7 +2459,7 @@ static lispval prim_prefer_lexpr(int n,lispval *args)
       return kno_incref(args[0]);
     else return results;}
   else return kno_err(kno_TooManyArgs,"prim_prefer_lexpr",
-                     "%PICK requires two or 2n+1 arguments",VOID);
+                      "%PICK requires two or 2n+1 arguments",VOID);
 }
 
 /* REJECT etc */
@@ -2481,7 +2481,7 @@ static lispval reject_helper(lispval candidates,int n,lispval *tests,int datalev
         const lispval *scan  = KNO_XCHOICE_DATA(write_choice);
         const lispval *limit = scan+n_results;
         while (scan<limit) {
-          lispval v = *scan++; 
+          lispval v = *scan++;
           kno_decref(v);}
         kno_free_choice(write_choice);
         return KNO_ERROR;}
@@ -2525,7 +2525,7 @@ static lispval reject_lexpr(int n,lispval *args)
   else if ((n<=4)||(n%2))
     return reject_helper(args[0],n-1,args+1,0);
   else return kno_err(kno_TooManyArgs,"reject_lexpr",
-                     "REJECT requires two or 2n+1 arguments",VOID);
+                      "REJECT requires two or 2n+1 arguments",VOID);
 }
 
 static lispval avoid_lexpr(int n,lispval *args)
@@ -2546,7 +2546,7 @@ static lispval avoid_lexpr(int n,lispval *args)
       return kno_incref(args[0]);
     else return values;}
   else return kno_err(kno_TooManyArgs,"avoid_lexpr",
-                     "AVOID requires two or 2n+1 arguments",VOID);
+                      "AVOID requires two or 2n+1 arguments",VOID);
 }
 
 static lispval prim_reject_lexpr(int n,lispval *args)
@@ -2558,7 +2558,7 @@ static lispval prim_reject_lexpr(int n,lispval *args)
   else if ((n<=4)||(n%2))
     return reject_helper(args[0],n-1,args+1,1);
   else return kno_err(kno_TooManyArgs,"prim_reject_lexpr",
-                     "%REJECT requires two or 2n+1 arguments",VOID);
+                      "%REJECT requires two or 2n+1 arguments",VOID);
 }
 
 static lispval prim_avoid_lexpr(int n,lispval *args)
@@ -2579,7 +2579,7 @@ static lispval prim_avoid_lexpr(int n,lispval *args)
       return kno_incref(args[0]);
     else return values;}
   else return kno_err(kno_TooManyArgs,"prim_avoid_lexpr",
-                     "%AVOID requires two or 2n+1 arguments",VOID);
+                      "%AVOID requires two or 2n+1 arguments",VOID);
 }
 
 /* Kleene* operations */
@@ -2704,11 +2704,11 @@ static lispval frame_update_lexpr(int n,lispval *args)
       else i = i+2;}
     return result;}
   else return kno_err(kno_SyntaxError,"frame_update_lexpr",
-                     _("wrong number of args"),VOID);
+                      _("wrong number of args"),VOID);
 }
 
 static lispval seq2frame_prim
-  (lispval poolspec,lispval values,lispval schema,lispval dflt)
+(lispval poolspec,lispval values,lispval schema,lispval dflt)
 {
   if (!(KNO_SEQUENCEP(schema)))
     return kno_type_error(_("sequence"),"seq2frame_prim",schema);
@@ -2855,7 +2855,7 @@ static lispval oid_minus_prim(lispval oidarg,lispval against)
 static lispval oid_ptrdata_prim(lispval oid)
 {
   return kno_conspair(KNO_INT(KNO_OID_BASE_ID(oid)),
-                     KNO_INT(KNO_OID_BASE_OFFSET(oid)));
+                      KNO_INT(KNO_OID_BASE_OFFSET(oid)));
 }
 #endif
 
@@ -3098,7 +3098,7 @@ static lispval applyfn(lispval fn,lispval node)
 }
 
 static int walkgraph(lispval fn,lispval state,lispval arcs,
-                      struct KNO_HASHSET *seen,lispval *results)
+                     struct KNO_HASHSET *seen,lispval *results)
 {
   lispval next_state = EMPTY;
   DO_CHOICES(node,state)
@@ -3348,16 +3348,16 @@ static lispval make_bloom_filter(lispval n_entries,lispval allowed_error)
 #define BLOOM_DTYPE_LEN 1000
 
 static lispval bloom_add(lispval filter,lispval value,
-                        lispval raw_arg,
-                        lispval ignore_errors)
+                         lispval raw_arg,
+                         lispval ignore_errors)
 {
   struct KNO_BLOOM *bloom = (struct KNO_BLOOM *)filter;
   int raw = (!(FALSEP(raw_arg)));
   int noerr = (!(FALSEP(ignore_errors)));
   int rv = kno_bloom_op(bloom,value,
-                       ( ( (raw) ? (KNO_BLOOM_RAW) : (0)) |
-                         ( (noerr) ? (0) : (KNO_BLOOM_ERR) ) |
-                         (KNO_BLOOM_ADD) ));
+                        ( ( (raw) ? (KNO_BLOOM_RAW) : (0)) |
+                          ( (noerr) ? (0) : (KNO_BLOOM_ERR) ) |
+                          (KNO_BLOOM_ADD) ));
   if (rv<0)
     return KNO_ERROR;
   else if (rv == 0)
@@ -3366,16 +3366,16 @@ static lispval bloom_add(lispval filter,lispval value,
 }
 
 static lispval bloom_check(lispval filter,lispval value,
-                          lispval raw_arg,
-                          lispval ignore_errors)
+                           lispval raw_arg,
+                           lispval ignore_errors)
 {
   struct KNO_BLOOM *bloom = (struct KNO_BLOOM *)filter;
   int raw = (!(FALSEP(raw_arg)));
   int noerr = (!(FALSEP(ignore_errors)));
   int rv = kno_bloom_op(bloom,value,
-                       ( ( (raw) ? (KNO_BLOOM_RAW) : (0)) |
-                         ( (noerr) ? (0) : (KNO_BLOOM_ERR) ) |
-                         (KNO_BLOOM_CHECK) ));
+                        ( ( (raw) ? (KNO_BLOOM_RAW) : (0)) |
+                          ( (noerr) ? (0) : (KNO_BLOOM_ERR) ) |
+                          (KNO_BLOOM_CHECK) ));
   if (rv<0)
     return KNO_ERROR;
   else if (rv)
@@ -3384,15 +3384,15 @@ static lispval bloom_check(lispval filter,lispval value,
 }
 
 static lispval bloom_hits(lispval filter,lispval value,
-                         lispval raw_arg,
-                         lispval ignore_errors)
+                          lispval raw_arg,
+                          lispval ignore_errors)
 {
   struct KNO_BLOOM *bloom = (struct KNO_BLOOM *)filter;
   int raw = (!(FALSEP(raw_arg)));
   int noerr = (!(FALSEP(ignore_errors)));
   int rv = kno_bloom_op(bloom,value,
-                       ( ( (raw) ? (KNO_BLOOM_RAW) : (0)) |
-                         ( (noerr) ? (0) : (KNO_BLOOM_ERR) ) ));
+                        ( ( (raw) ? (KNO_BLOOM_RAW) : (0)) |
+                          ( (noerr) ? (0) : (KNO_BLOOM_ERR) ) ));
   if (rv<0)
     return KNO_ERROR;
   else return KNO_INT(rv);
@@ -3428,7 +3428,7 @@ static lispval def_procpool(lispval typesym,lispval handlers)
 {
   if (!(KNO_TABLEP(handlers)))
     return kno_err(kno_TypeError,"register_procpool",
-                  "not a handler table",handlers);
+                   "not a handler table",handlers);
   else if (KNO_SYMBOLP(typesym)) {
     kno_register_procpool(KNO_SYMBOL_NAME(typesym),handlers);
     return kno_incref(handlers);}
@@ -3442,7 +3442,7 @@ static lispval def_procindex(lispval typesym,lispval handlers)
 {
   if (!(KNO_TABLEP(handlers)))
     return kno_err(kno_TypeError,"register_procpool",
-                  "not a handler table",handlers);
+                   "not a handler table",handlers);
   else if (KNO_SYMBOLP(typesym)) {
     kno_register_procindex(KNO_SYMBOL_NAME(typesym),handlers);
     return kno_incref(handlers);}
@@ -3474,545 +3474,545 @@ KNO_EXPORT void kno_init_dbprims_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  kno_idefn(kno_scheme_module,kno_make_cprim1("SLOTID?",slotidp,1));
-  kno_idefn(kno_scheme_module,kno_make_cprim2("LOADED?",dbloadedp,1));
-  kno_idefn(kno_scheme_module,kno_make_cprim2("MODIFIED?",dbmodifiedp,1));
-  kno_idefn(kno_scheme_module,kno_make_cprim1("DB/WRITABLE?",db_writablep,1));
-  kno_idefn(kno_scheme_module,kno_make_cprim1("LOCKED?",oidlockedp,1));
+  kno_idefn(kno_db_module,kno_make_cprim1("SLOTID?",slotidp,1));
+  kno_idefn(kno_db_module,kno_make_cprim2("LOADED?",dbloadedp,1));
+  kno_idefn(kno_db_module,kno_make_cprim2("MODIFIED?",dbmodifiedp,1));
+  kno_idefn(kno_db_module,kno_make_cprim1("DB/WRITABLE?",db_writablep,1));
+  kno_idefn(kno_db_module,kno_make_cprim1("LOCKED?",oidlockedp,1));
 
-  kno_idefn(kno_scheme_module,kno_make_ndprim(kno_make_cprim2("GET",kno_fget,2)));
-  kno_idefn(kno_scheme_module,kno_make_ndprim(kno_make_cprim3("TEST",kno_ftest,2)));
-  kno_idefn(kno_scheme_module,kno_make_ndprim(kno_make_cprimn("TESTP",testp,3)));
-  kno_idefn(kno_scheme_module,
-           kno_make_ndprim(kno_make_cprim3("ASSERT!",kno_assert,3)));
-  kno_idefn(kno_scheme_module,
-           kno_make_ndprim(kno_make_cprim3("RETRACT!",kno_retract,2)));
-  kno_idefn(kno_scheme_module,
-           kno_make_ndprim(kno_make_cprim1("GETSLOTS",kno_getkeys,1)));
-  kno_idefn(kno_scheme_module,
-           kno_make_ndprim(kno_make_cprim2("SUMFRAME",sumframe_prim,2)));
-  kno_idefn(kno_scheme_module,
-           kno_make_ndprim(kno_make_cprimn("GETPATH",getpath_prim,1)));
-  kno_idefn(kno_scheme_module,
-           kno_make_ndprim(kno_make_cprimn("GETPATH*",getpathstar_prim,1)));
+  kno_idefn(kno_db_module,kno_make_ndprim(kno_make_cprim2("GET",kno_fget,2)));
+  kno_idefn(kno_db_module,kno_make_ndprim(kno_make_cprim3("TEST",kno_ftest,2)));
+  kno_idefn(kno_db_module,kno_make_ndprim(kno_make_cprimn("TESTP",testp,3)));
+  kno_idefn(kno_db_module,
+            kno_make_ndprim(kno_make_cprim3("ASSERT!",kno_assert,3)));
+  kno_idefn(kno_db_module,
+            kno_make_ndprim(kno_make_cprim3("RETRACT!",kno_retract,2)));
+  kno_idefn(kno_db_module,
+            kno_make_ndprim(kno_make_cprim1("GETSLOTS",kno_getkeys,1)));
+  kno_idefn(kno_db_module,
+            kno_make_ndprim(kno_make_cprim2("SUMFRAME",sumframe_prim,2)));
+  kno_idefn(kno_db_module,
+            kno_make_ndprim(kno_make_cprimn("GETPATH",getpath_prim,1)));
+  kno_idefn(kno_db_module,
+            kno_make_ndprim(kno_make_cprimn("GETPATH*",getpathstar_prim,1)));
 
-  kno_def_evalfn(kno_scheme_module,"CACHEGET","",cacheget_evalfn);
+  kno_def_evalfn(kno_db_module,"CACHEGET","",cacheget_evalfn);
 
-  kno_idefn(kno_scheme_module,kno_make_ndprim(kno_make_cprim2("GET*",getstar,2)));
-  kno_idefn(kno_scheme_module,kno_make_ndprim(kno_make_cprim3("PATH?",pathp,3)));
-  kno_idefn(kno_scheme_module,kno_make_ndprim(kno_make_cprim3("INHERIT",inherit_prim,3)));
+  kno_idefn(kno_db_module,kno_make_ndprim(kno_make_cprim2("GET*",getstar,2)));
+  kno_idefn(kno_db_module,kno_make_ndprim(kno_make_cprim3("PATH?",pathp,3)));
+  kno_idefn(kno_db_module,kno_make_ndprim(kno_make_cprim3("INHERIT",inherit_prim,3)));
+  kno_idefn(kno_db_module,
+            kno_make_ndprim(kno_make_cprim2("GET-BASIS",getbasis,2)));
+
+  kno_idefn(kno_db_module,
+            kno_make_cprim1x("OID-VALUE",oidvalue,1,kno_oid_type,VOID));
+
+  kno_idefn3(kno_db_module,"SET-OID-VALUE!",
+             setoidvalue,KNO_NEEDS_2_ARGS|KNO_NDCALL,
+             "`(SET-OID-VALUE! *oid* *value* [*nocopy*])` "
+             "directly sets the value of *oid* to *value*. If "
+             "the value is a slotmap or schemap, a copy is stored unless "
+             "*nocopy* is not false (the default).",
+             kno_oid_type,VOID,-1,VOID,-1,KNO_FALSE);
+  kno_idefn(kno_db_module,
+            kno_make_cprim2x("LOCK-OID!",lockoid,2,
+                             kno_oid_type,VOID,-1,VOID));
+  kno_idefn(kno_db_module,
+            kno_make_ndprim(kno_make_cprim1("LOCK-OIDS!",lockoids,1)));
+  kno_idefn(kno_db_module,
+            kno_make_ndprim(kno_make_cprim2("UNLOCK-OIDS!",unlockoids,0)));
+  kno_idefn(kno_db_module,kno_make_cprim1("LOCKED-OIDS",lockedoids,1));
+
+  kno_idefn2(kno_db_module,"%SET-OID-VALUE!",
+             xsetoidvalue,KNO_NEEDS_2_ARGS|KNO_NDCALL,
+             "`(%SET-OID-VALUE! *oid* *value* [*nocopy*])` "
+             "directly sets the value of *oid* to *value*. If "
+             "the value is a slotmap or schemap, a copy is stored unless "
+             "*nocopy* is not false (the default).",
+             kno_oid_type,VOID,-1,VOID);
+
+
+  kno_idefn(kno_db_module,kno_make_cprim1("POOL?",poolp,1));
+  kno_idefn(kno_db_module,kno_make_cprim1("INDEX?",indexp,1));
+
+  kno_idefn(kno_db_module,
+            kno_make_cprim2("SET-CACHE-LEVEL!",set_cache_level,2));
+
+  kno_idefn(kno_db_module,kno_make_cprim1("NAME->POOL",getpool,1));
+  kno_idefn(kno_db_module,kno_make_cprim1("GETPOOL",getpool,1));
+  kno_idefn(kno_db_module,kno_make_cprim2x("POOL-LABEL",pool_label,1,
+                                           -1,VOID,-1,KNO_FALSE));
+  kno_idefn(kno_db_module,kno_make_cprim1("POOL-SOURCE",pool_source,1));
+  kno_idefn(kno_db_module,kno_make_cprim1("POOL-BASE",pool_base,1));
+  kno_idefn(kno_db_module,kno_make_cprim1("POOL-CAPACITY",pool_capacity,1));
+  kno_idefn(kno_db_module,kno_make_cprim1("POOL-LOAD",pool_load,1));
+  kno_idefn(kno_db_module,kno_make_cprim3("POOL-ELTS",pool_elts,1));
+  kno_idefn(kno_db_module,
+            kno_make_cprim2("SET-POOL-NAMEFN!",set_pool_namefn,2));
+  kno_idefn(kno_db_module,kno_make_cprim1("POOL-PREFIX",pool_prefix,1));
+  kno_idefn(kno_db_module,kno_make_cprim2x
+            ("SET-POOL-PREFIX!",set_pool_prefix,2,
+             -1,VOID,kno_string_type,VOID));
+
+  kno_idefn(kno_db_module,kno_make_cprim1("POOL-SOURCE",pool_source,1));
+  kno_idefn(kno_db_module,kno_make_cprim1("POOL-ID",pool_id,1));
+
+  kno_idefn(kno_db_module,
+            kno_make_cprim2x("OID-RANGE",oid_range,2,
+                             kno_oid_type,VOID,kno_fixnum_type,VOID));
+  kno_idefn(kno_db_module,
+            kno_make_cprim2x("OID-VECTOR",oid_vector,2,
+                             kno_oid_type,VOID,kno_fixnum_type,VOID));
+  kno_idefn(kno_db_module,kno_make_cprim1("RANDOM-OID",random_oid,1));
+  kno_idefn(kno_db_module,kno_make_cprim1("POOL-VECTOR",pool_vec,1));
+
+  kno_idefn(kno_db_module,
+            kno_make_cprim1x("OID-HI",oidhi,1,kno_oid_type,VOID));
+  kno_idefn(kno_db_module,
+            kno_make_cprim1x("OID-LO",oidlo,1,kno_oid_type,VOID));
+  kno_idefn(kno_scheme_module,kno_make_cprim1("OID?",oidp,1));
   kno_idefn(kno_scheme_module,
-           kno_make_ndprim(kno_make_cprim2("GET-BASIS",getbasis,2)));
-
+            kno_make_cprim1x("OID-POOL",oidpool,1,kno_oid_type,VOID));
   kno_idefn(kno_scheme_module,
-           kno_make_cprim1x("OID-VALUE",oidvalue,1,kno_oid_type,VOID));
-
-  kno_idefn3(kno_scheme_module,"SET-OID-VALUE!",
-            setoidvalue,KNO_NEEDS_2_ARGS|KNO_NDCALL,
-            "`(SET-OID-VALUE! *oid* *value* [*nocopy*])` "
-            "directly sets the value of *oid* to *value*. If "
-            "the value is a slotmap or schemap, a copy is stored unless "
-            "*nocopy* is not false (the default).",
-            kno_oid_type,VOID,-1,VOID,-1,KNO_FALSE);
+            kno_make_cprim2x("IN-POOL?",inpoolp,2,
+                             kno_oid_type,VOID,-1,VOID));
   kno_idefn(kno_scheme_module,
-           kno_make_cprim2x("LOCK-OID!",lockoid,2,
-                           kno_oid_type,VOID,-1,VOID));
-  kno_idefn(kno_scheme_module,
-           kno_make_ndprim(kno_make_cprim1("LOCK-OIDS!",lockoids,1)));
-  kno_idefn(kno_scheme_module,
-           kno_make_ndprim(kno_make_cprim2("UNLOCK-OIDS!",unlockoids,0)));
-  kno_idefn(kno_scheme_module,kno_make_cprim1("LOCKED-OIDS",lockedoids,1));
+            kno_make_cprim2x("VALID-OID?",validoidp,1,
+                             kno_oid_type,VOID,-1,VOID));
 
-  kno_idefn2(kno_scheme_module,"%SET-OID-VALUE!",
-            xsetoidvalue,KNO_NEEDS_2_ARGS|KNO_NDCALL,
-            "`(%SET-OID-VALUE! *oid* *value* [*nocopy*])` "
-            "directly sets the value of *oid* to *value*. If "
-            "the value is a slotmap or schemap, a copy is stored unless "
-            "*nocopy* is not false (the default).",
-            kno_oid_type,VOID,-1,VOID);
+  kno_idefn(kno_scheme_module,kno_make_cprim2("USE-POOL",use_pool,1));
+  kno_idefn(kno_scheme_module,kno_make_cprim2("ADJUNCT-POOL",adjunct_pool,1));
+  kno_idefn(kno_scheme_module,kno_make_cprim2("TRY-POOL",try_pool,1));
+  kno_idefn(kno_scheme_module,kno_make_cprim1("CACHECOUNT",cachecount,0));
+  kno_defalias(kno_scheme_module,"LOAD-POOL","TRY-POOL");
 
-
-  kno_idefn(kno_scheme_module,kno_make_cprim1("POOL?",poolp,1));
-  kno_idefn(kno_scheme_module,kno_make_cprim1("INDEX?",indexp,1));
-
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim2("SET-CACHE-LEVEL!",set_cache_level,2));
-
-  kno_idefn(kno_scheme_module,kno_make_cprim1("NAME->POOL",getpool,1));
-  kno_idefn(kno_scheme_module,kno_make_cprim1("GETPOOL",getpool,1));
-  kno_idefn(kno_scheme_module,kno_make_cprim2x("POOL-LABEL",pool_label,1,
-                                            -1,VOID,-1,KNO_FALSE));
-  kno_idefn(kno_scheme_module,kno_make_cprim1("POOL-SOURCE",pool_source,1));
-  kno_idefn(kno_scheme_module,kno_make_cprim1("POOL-BASE",pool_base,1));
-  kno_idefn(kno_scheme_module,kno_make_cprim1("POOL-CAPACITY",pool_capacity,1));
-  kno_idefn(kno_scheme_module,kno_make_cprim1("POOL-LOAD",pool_load,1));
-  kno_idefn(kno_scheme_module,kno_make_cprim3("POOL-ELTS",pool_elts,1));
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim2("SET-POOL-NAMEFN!",set_pool_namefn,2));
-  kno_idefn(kno_scheme_module,kno_make_cprim1("POOL-PREFIX",pool_prefix,1));
-  kno_idefn(kno_scheme_module,kno_make_cprim2x
-           ("SET-POOL-PREFIX!",set_pool_prefix,2,
-            -1,VOID,kno_string_type,VOID));
-
-  kno_idefn(kno_scheme_module,kno_make_cprim1("POOL-SOURCE",pool_source,1));
-  kno_idefn(kno_scheme_module,kno_make_cprim1("POOL-ID",pool_id,1));
-
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim2x("OID-RANGE",oid_range,2,
-                           kno_oid_type,VOID,kno_fixnum_type,VOID));
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim2x("OID-VECTOR",oid_vector,2,
-                           kno_oid_type,VOID,kno_fixnum_type,VOID));
-  kno_idefn(kno_scheme_module,kno_make_cprim1("RANDOM-OID",random_oid,1));
-  kno_idefn(kno_scheme_module,kno_make_cprim1("POOL-VECTOR",pool_vec,1));
-
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim1x("OID-HI",oidhi,1,kno_oid_type,VOID));
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim1x("OID-LO",oidlo,1,kno_oid_type,VOID));
-  kno_idefn(kno_xscheme_module,kno_make_cprim1("OID?",oidp,1));
-  kno_idefn(kno_xscheme_module,
-           kno_make_cprim1x("OID-POOL",oidpool,1,kno_oid_type,VOID));
-  kno_idefn(kno_xscheme_module,
-           kno_make_cprim2x("IN-POOL?",inpoolp,2,
-                           kno_oid_type,VOID,-1,VOID));
-  kno_idefn(kno_xscheme_module,
-           kno_make_cprim2x("VALID-OID?",validoidp,1,
-                           kno_oid_type,VOID,-1,VOID));
-
-  kno_idefn(kno_xscheme_module,kno_make_cprim2("USE-POOL",use_pool,1));
-  kno_idefn(kno_xscheme_module,kno_make_cprim2("ADJUNCT-POOL",adjunct_pool,1));
-  kno_idefn(kno_xscheme_module,kno_make_cprim2("TRY-POOL",try_pool,1));
-  kno_idefn(kno_xscheme_module,kno_make_cprim1("CACHECOUNT",cachecount,0));
-  kno_defalias(kno_xscheme_module,"LOAD-POOL","TRY-POOL");
-
-  kno_idefn2(kno_xscheme_module,"USE-INDEX",use_index,1,
-            "(USE-INDEX *spec* [*opts*]) adds an index to the search background",
-            -1,VOID,-1,VOID);
-  kno_idefn2(kno_xscheme_module,"OPEN-INDEX",open_index,1,
-            "(OPEN-INDEX *spec* [*opts*]) opens and returns an index",
-            -1,VOID,-1,VOID);
-  kno_idefn2(kno_xscheme_module,"REGISTER-INDEX",register_index,1,
-            "(REGISTER-INDEX *spec* [*opts*]) opens, registers, and returns an index",
-            -1,VOID,-1,VOID);
-  kno_idefn2(kno_xscheme_module,"CONS-INDEX",cons_index,1,
-            "(CONS-INDEX *spec* [*opts*]) opens and returns an unregistered index",
-            -1,VOID,-1,VOID);
-  kno_defalias(kno_xscheme_module,"TEMP-INDEX","CONS-INDEX");
-
-  kno_idefn(kno_xscheme_module,
-           kno_make_cprim2x("MAKE-INDEX",make_index,2,
-                           kno_string_type,VOID,-1,VOID));
-  kno_idefn(kno_xscheme_module,
-           kno_make_cprim2x("MAKE-POOL",make_pool,2,
-                           kno_string_type,VOID,-1,VOID));
-  kno_idefn(kno_xscheme_module,
-           kno_make_cprim2x("OPEN-POOL",open_pool,1,
-                           kno_string_type,VOID,-1,KNO_FALSE));
+  kno_idefn2(kno_scheme_module,"USE-INDEX",use_index,1,
+             "(USE-INDEX *spec* [*opts*]) adds an index to the search background",
+             -1,VOID,-1,VOID);
+  kno_idefn2(kno_scheme_module,"OPEN-INDEX",open_index,1,
+             "(OPEN-INDEX *spec* [*opts*]) opens and returns an index",
+             -1,VOID,-1,VOID);
+  kno_idefn2(kno_scheme_module,"REGISTER-INDEX",register_index,1,
+             "(REGISTER-INDEX *spec* [*opts*]) opens, registers, and returns an index",
+             -1,VOID,-1,VOID);
+  kno_idefn2(kno_scheme_module,"CONS-INDEX",cons_index,1,
+             "(CONS-INDEX *spec* [*opts*]) opens and returns an unregistered index",
+             -1,VOID,-1,VOID);
+  kno_defalias(kno_scheme_module,"TEMP-INDEX","CONS-INDEX");
 
   kno_idefn(kno_scheme_module,
-           kno_make_ndprim
-           (kno_make_cprimn("FRAME-CREATE",frame_create_lexpr,1)));
+            kno_make_cprim2x("MAKE-INDEX",make_index,2,
+                             kno_string_type,VOID,-1,VOID));
   kno_idefn(kno_scheme_module,
-           kno_make_ndprim(kno_make_cprimn("FRAME-UPDATE",frame_update_lexpr,3)));
+            kno_make_cprim2x("MAKE-POOL",make_pool,2,
+                             kno_string_type,VOID,-1,VOID));
   kno_idefn(kno_scheme_module,
-           kno_make_ndprim(kno_make_cprimn("MODIFY-FRAME",modify_frame_lexpr,3)));
-  kno_idefn(kno_scheme_module,
-           kno_make_ndprim(kno_make_cprim4("SEQ->FRAME",seq2frame_prim,3)));
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim2("ALLOCATE-OIDS",allocate_oids,1));
+            kno_make_cprim2x("OPEN-POOL",open_pool,1,
+                             kno_string_type,VOID,-1,KNO_FALSE));
 
-  kno_idefn2(kno_scheme_module,"OID-PLUS",oid_plus_prim,1,
-            "Adds an integer to an OID address and returns that OID",
-            kno_oid_type,VOID,
-            kno_fixnum_type,KNO_INT(1));
-  kno_idefn2(kno_scheme_module,"OID-MINUS",oid_minus_prim,1,
-            "Returns the difference between two OIDs. If the second "
-            "argument is a pool, the base of the pool is used for "
-            "comparision",
-            kno_oid_type,VOID,-1,KNO_VOID);
-  kno_defalias(kno_scheme_module,"OID+","OID-PLUS");
-  kno_defalias(kno_scheme_module,"OID-","OID-MINUS");
+  kno_idefn(kno_db_module,
+            kno_make_ndprim
+            (kno_make_cprimn("FRAME-CREATE",frame_create_lexpr,1)));
+  kno_idefn(kno_db_module,
+            kno_make_ndprim(kno_make_cprimn("FRAME-UPDATE",frame_update_lexpr,3)));
+  kno_idefn(kno_db_module,
+            kno_make_ndprim(kno_make_cprimn("MODIFY-FRAME",modify_frame_lexpr,3)));
+  kno_idefn(kno_db_module,
+            kno_make_ndprim(kno_make_cprim4("SEQ->FRAME",seq2frame_prim,3)));
+  kno_idefn(kno_db_module,
+            kno_make_cprim2("ALLOCATE-OIDS",allocate_oids,1));
 
-  kno_idefn2(kno_scheme_module,"OID-OFFSET",oid_offset_prim,1,
-            "Returns the offset of an OID from a container and #f if "
-            "it is not in the container. When the second argument "
-            "is an OID, it is used as the base of container; if it "
-            "is a pool, it is used as the container. Without a second "
-            "argument the registered pool for the OID is used as the "
-            "container.",
-            kno_oid_type,VOID,-1,VOID);
+  kno_idefn2(kno_db_module,"OID-PLUS",oid_plus_prim,1,
+             "Adds an integer to an OID address and returns that OID",
+             kno_oid_type,VOID,
+             kno_fixnum_type,KNO_INT(1));
+  kno_idefn2(kno_db_module,"OID-MINUS",oid_minus_prim,1,
+             "Returns the difference between two OIDs. If the second "
+             "argument is a pool, the base of the pool is used for "
+             "comparision",
+             kno_oid_type,VOID,-1,KNO_VOID);
+  kno_defalias(kno_db_module,"OID+","OID-PLUS");
+  kno_defalias(kno_db_module,"OID-","OID-MINUS");
 
-  kno_idefn2(kno_scheme_module,"MAKE-OID",make_oid_prim,1,
-            "(MAKE-OID *addr* [*lo*]) returns an OID from numeric "
-            "components. If *lo* is not provided (or #f) *addr* is used "
-            "as the complete address. Otherwise, *addr* specifies "
-            "the high part of the OID address.",
-            -1,KNO_VOID,-1,KNO_VOID);
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim2x("OID->STRING",oid2string_prim,1,
-                           kno_oid_type,VOID,-1,VOID));
-  kno_idefn1(kno_scheme_module,"OID-ADDR",oidaddr_prim,1,
-            "Returns the absolute numeric address of an OID",
-            kno_oid_type,VOID);
-  kno_defalias(kno_scheme_module,"OID@","OID-ADDR");
+  kno_idefn2(kno_db_module,"OID-OFFSET",oid_offset_prim,1,
+             "Returns the offset of an OID from a container and #f if "
+             "it is not in the container. When the second argument "
+             "is an OID, it is used as the base of container; if it "
+             "is a pool, it is used as the container. Without a second "
+             "argument the registered pool for the OID is used as the "
+             "container.",
+             kno_oid_type,VOID,-1,VOID);
+
+  kno_idefn2(kno_db_module,"MAKE-OID",make_oid_prim,1,
+             "(MAKE-OID *addr* [*lo*]) returns an OID from numeric "
+             "components. If *lo* is not provided (or #f) *addr* is used "
+             "as the complete address. Otherwise, *addr* specifies "
+             "the high part of the OID address.",
+             -1,KNO_VOID,-1,KNO_VOID);
+  kno_idefn(kno_db_module,
+            kno_make_cprim2x("OID->STRING",oid2string_prim,1,
+                             kno_oid_type,VOID,-1,VOID));
+  kno_idefn1(kno_db_module,"OID-ADDR",oidaddr_prim,1,
+             "Returns the absolute numeric address of an OID",
+             kno_oid_type,VOID);
+  kno_defalias(kno_db_module,"OID@","OID-ADDR");
 
 #ifdef KNO_OID_BASE_ID
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim1x("OID-PTRDATA",oid_ptrdata_prim,1,
-                           kno_oid_type,VOID));
+  kno_idefn(kno_db_module,
+            kno_make_cprim1x("OID-PTRDATA",oid_ptrdata_prim,1,
+                             kno_oid_type,VOID));
 #endif
 
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim2x("OID->HEX",oidhex_prim,1,
-                           kno_oid_type,VOID,
-                           -1,VOID));
-  kno_defalias(kno_scheme_module,"OIDHEX","OID->HEX");
-  kno_defalias(kno_scheme_module,"HEXOID","OID->HEX");
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim2x("HEX->OID",hex2oid_prim,2,
-                           -1,VOID,-1,VOID));
+  kno_idefn(kno_db_module,
+            kno_make_cprim2x("OID->HEX",oidhex_prim,1,
+                             kno_oid_type,VOID,
+                             -1,VOID));
+  kno_defalias(kno_db_module,"OIDHEX","OID->HEX");
+  kno_defalias(kno_db_module,"HEXOID","OID->HEX");
+  kno_idefn(kno_db_module,
+            kno_make_cprim2x("HEX->OID",hex2oid_prim,2,
+                             -1,VOID,-1,VOID));
 
 #if 0
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim2x("OID/B32",oidb32_prim,1,
-                           kno_oid_type,VOID,
-                           -1,VOID));
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim2x("B32/OID",b32oid_prim,2,
-                           -1,VOID,-1,VOID));
+  kno_idefn(kno_db_module,
+            kno_make_cprim2x("OID/B32",oidb32_prim,1,
+                             kno_oid_type,VOID,
+                             -1,VOID));
+  kno_idefn(kno_db_module,
+            kno_make_cprim2x("B32/OID",b32oid_prim,2,
+                             -1,VOID,-1,VOID));
 #endif
 
+  kno_idefn(kno_db_module,
+            kno_make_cprim6x("MAKE-MEMPOOL",make_mempool,2,
+                             kno_string_type,VOID,
+                             kno_oid_type,VOID,
+                             kno_fixnum_type,(KNO_INT(1024*1024)),
+                             kno_fixnum_type,(KNO_INT(0)),
+                             -1,KNO_FALSE,-1,KNO_FALSE));
+  kno_idefn(kno_db_module,
+            kno_make_cprim1("CLEAN-MEMPOOL",clean_mempool,1));
+  kno_idefn(kno_db_module,
+            kno_make_cprim1("RESET-MEMPOOL",reset_mempool,1));
+
+  kno_idefn6(kno_db_module,"MAKE-PROCPOOL",make_procpool,4,
+             "Returns a pool implemented by userspace functions",
+             kno_string_type,KNO_VOID,kno_oid_type,KNO_VOID,kno_fixnum_type,KNO_VOID,
+             -1,KNO_VOID,-1,KNO_VOID,kno_fixnum_type,KNO_FIXZERO);
+
+  kno_idefn5(kno_db_module,"MAKE-PROCINDEX",make_procindex,2,
+             "Returns a pool implemented by userspace functions",
+             kno_string_type,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,
+             kno_string_type,KNO_VOID,kno_string_type,KNO_VOID);
+
+  kno_idefn2(kno_db_module,"DEFPOOLTYPE",def_procpool,2,
+             "Registers handlers for a procpool",
+             -1,KNO_VOID,-1,KNO_VOID);
+  kno_idefn2(kno_db_module,"DEFINDEXTYPE",def_procindex,2,
+             "Registers handlers for a procindex",
+             -1,KNO_VOID,-1,KNO_VOID);
+
+  kno_idefn1(kno_db_module,"PROCPOOL?",procpoolp,1,
+             "Returns #t if it's argument is a procpool",
+             -1,KNO_VOID);
+  kno_idefn1(kno_db_module,"PROCINDEX?",procindexp,1,
+             "Returns #t if it's argument is a procindex",
+             -1,KNO_VOID);
+
+
+  kno_idefn(kno_db_module,
+            kno_make_cprim10x("MAKE-EXTPOOL",make_extpool,4,
+                              kno_string_type,VOID,
+                              kno_oid_type,VOID,
+                              kno_fixnum_type,VOID,
+                              -1,VOID,-1,VOID,
+                              -1,VOID,-1,VOID,
+                              -1,VOID,-1,KNO_TRUE,
+                              -1,KNO_FALSE));
+  kno_idefn(kno_db_module,
+            kno_make_cprim3x("EXTPOOL-CACHE!",extpool_setcache,3,
+                             kno_pool_type,VOID,kno_oid_type,VOID,
+                             -1,VOID));
+  kno_idefn(kno_db_module,
+            kno_make_cprim1x("EXTPOOL-FETCHFN",extpool_fetchfn,1,
+                             kno_pool_type,VOID));
+  kno_idefn(kno_db_module,
+            kno_make_cprim1x("EXTPOOL-SAVEFN",extpool_savefn,1,
+                             kno_pool_type,VOID));
+  kno_idefn(kno_db_module,
+            kno_make_cprim1x("EXTPOOL-LOCKFN",extpool_lockfn,1,
+                             kno_pool_type,VOID));
+  kno_idefn(kno_db_module,
+            kno_make_cprim1x("EXTPOOL-STATE",extpool_state,1,
+                             kno_pool_type,VOID));
+
+  kno_idefn(kno_db_module,
+            kno_make_cprim6x("MAKE-EXTINDEX",make_extindex,2,
+                             kno_string_type,VOID,
+                             -1,VOID,-1,VOID,-1,VOID,
+                             -1,KNO_TRUE,-1,KNO_FALSE));
+  kno_idefn(kno_db_module,
+            kno_make_cprim6x("CONS-EXTINDEX",cons_extindex,2,
+                             kno_string_type,VOID,
+                             -1,VOID,-1,VOID,-1,VOID,
+                             -1,KNO_TRUE,-1,KNO_FALSE));
+
+  kno_idefn1(kno_db_module,"EXTINDEX?",extindexp,1,
+             "`(EXTINDEX *arg*)` returns #t if *arg* is an extindex, "
+             "#f otherwise",
+             -1,VOID);
+
+  kno_idefn(kno_db_module,
+            kno_make_cprim2x("EXTINDEX-DECACHE!",extindex_decache,1,
+                             -1,VOID,-1,VOID));
+  kno_idefn(kno_db_module,
+            kno_make_cprim3x("EXTINDEX-CACHEADD!",extindex_cacheadd,3,
+                             -1,VOID,-1,VOID,
+                             -1,VOID));
+  kno_idefn(kno_db_module,
+            kno_make_cprim1x("EXTINDEX-FETCHFN",extindex_fetchfn,1,
+                             -1,VOID));
+  kno_idefn(kno_db_module,
+            kno_make_cprim1x("EXTINDEX-COMMITFN",extindex_commitfn,1,
+                             -1,VOID));
+  kno_idefn(kno_db_module,
+            kno_make_cprim1x("EXTINDEX-STATE",extindex_state,1,
+                             -1,VOID));
+
+  kno_idefn(kno_db_module,
+            kno_make_ndprim(kno_make_cprimn("??",find_frames_lexpr,2)));
   kno_idefn(kno_scheme_module,
-           kno_make_cprim6x("MAKE-MEMPOOL",make_mempool,2,
-                           kno_string_type,VOID,
-                           kno_oid_type,VOID,
-                           kno_fixnum_type,(KNO_INT(1024*1024)),
-                           kno_fixnum_type,(KNO_INT(0)),
-                           -1,KNO_FALSE,-1,KNO_FALSE));
+            kno_make_ndprim(kno_make_cprimn("FIND-FRAMES",find_frames_lexpr,3)));
   kno_idefn(kno_scheme_module,
-           kno_make_cprim1("CLEAN-MEMPOOL",clean_mempool,1));
+            kno_make_ndprim(kno_make_cprimn("XFIND-FRAMES",xfind_frames_lexpr,3)));
   kno_idefn(kno_scheme_module,
-           kno_make_cprim1("RESET-MEMPOOL",reset_mempool,1));
-
-  kno_idefn6(kno_scheme_module,"MAKE-PROCPOOL",make_procpool,4,
-            "Returns a pool implemented by userspace functions",
-            kno_string_type,KNO_VOID,kno_oid_type,KNO_VOID,kno_fixnum_type,KNO_VOID,
-            -1,KNO_VOID,-1,KNO_VOID,kno_fixnum_type,KNO_FIXZERO);
-
-  kno_idefn5(kno_scheme_module,"MAKE-PROCINDEX",make_procindex,2,
-            "Returns a pool implemented by userspace functions",
-            kno_string_type,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,
-            kno_string_type,KNO_VOID,kno_string_type,KNO_VOID);
-
-  kno_idefn2(kno_scheme_module,"DEFPOOLTYPE",def_procpool,2,
-            "Registers handlers for a procpool",
-            -1,KNO_VOID,-1,KNO_VOID);
-  kno_idefn2(kno_scheme_module,"DEFINDEXTYPE",def_procindex,2,
-            "Registers handlers for a procindex",
-            -1,KNO_VOID,-1,KNO_VOID);
-
-  kno_idefn1(kno_scheme_module,"PROCPOOL?",procpoolp,1,
-            "Returns #t if it's argument is a procpool",
-            -1,KNO_VOID);
-  kno_idefn1(kno_scheme_module,"PROCINDEX?",procindexp,1,
-            "Returns #t if it's argument is a procindex",
-            -1,KNO_VOID);
-
-
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim10x("MAKE-EXTPOOL",make_extpool,4,
-                            kno_string_type,VOID,
-                            kno_oid_type,VOID,
-                            kno_fixnum_type,VOID,
-                            -1,VOID,-1,VOID,
-                            -1,VOID,-1,VOID,
-                            -1,VOID,-1,KNO_TRUE,
-                            -1,KNO_FALSE));
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim3x("EXTPOOL-CACHE!",extpool_setcache,3,
-                           kno_pool_type,VOID,kno_oid_type,VOID,
-                           -1,VOID));
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim1x("EXTPOOL-FETCHFN",extpool_fetchfn,1,
-                           kno_pool_type,VOID));
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim1x("EXTPOOL-SAVEFN",extpool_savefn,1,
-                           kno_pool_type,VOID));
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim1x("EXTPOOL-LOCKFN",extpool_lockfn,1,
-                           kno_pool_type,VOID));
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim1x("EXTPOOL-STATE",extpool_state,1,
-                           kno_pool_type,VOID));
-
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim6x("MAKE-EXTINDEX",make_extindex,2,
-                           kno_string_type,VOID,
-                           -1,VOID,-1,VOID,-1,VOID,
-                           -1,KNO_TRUE,-1,KNO_FALSE));
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim6x("CONS-EXTINDEX",cons_extindex,2,
-                           kno_string_type,VOID,
-                           -1,VOID,-1,VOID,-1,VOID,
-                           -1,KNO_TRUE,-1,KNO_FALSE));
-
-  kno_idefn1(kno_scheme_module,"EXTINDEX?",extindexp,1,
-            "`(EXTINDEX *arg*)` returns #t if *arg* is an extindex, "
-            "#f otherwise",
-            -1,VOID);
-
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim2x("EXTINDEX-DECACHE!",extindex_decache,1,
-                           -1,VOID,-1,VOID));
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim3x("EXTINDEX-CACHEADD!",extindex_cacheadd,3,
-                           -1,VOID,-1,VOID,
-                           -1,VOID));
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim1x("EXTINDEX-FETCHFN",extindex_fetchfn,1,
-                           -1,VOID));
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim1x("EXTINDEX-COMMITFN",extindex_commitfn,1,
-                           -1,VOID));
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim1x("EXTINDEX-STATE",extindex_state,1,
-                           -1,VOID));
-
-  kno_idefn(kno_scheme_module,
-           kno_make_ndprim(kno_make_cprimn("??",find_frames_lexpr,2)));
-  kno_idefn(kno_xscheme_module,
-           kno_make_ndprim(kno_make_cprimn("FIND-FRAMES",find_frames_lexpr,3)));
-  kno_idefn(kno_xscheme_module,
-           kno_make_ndprim(kno_make_cprimn("XFIND-FRAMES",xfind_frames_lexpr,3)));
-  kno_idefn(kno_xscheme_module,
-           kno_make_ndprim(kno_make_cprim3
-                          ("PREFETCH-SLOTVALS!",prefetch_slotvals,3)));
-  kno_idefn(kno_scheme_module,
-           kno_make_ndprim(kno_make_cprimn
-                          ("FIND-FRAMES/PREFETCH!",find_frames_prefetch,2)));
-  kno_defalias(kno_scheme_module,"FIND-FRAMES-PREFETCH!","FIND-FRAMES/PREFETCH!");
-  kno_defalias(kno_scheme_module,"\?\?/PREFETCH!","FIND-FRAMES/PREFETCH!");
-  kno_defalias(kno_scheme_module,"\?\?!","FIND-FRAMES/PREFETCH!");
-
-  kno_idefn(kno_xscheme_module,
-           kno_make_ndprim(kno_make_cprimn("SWAPOUT",swapout_lexpr,0)));
-  kno_idefn(kno_xscheme_module,kno_make_cprimn("COMMIT",commit_lexpr,0));
-  kno_idefn(kno_xscheme_module,
-           kno_make_ndprim(kno_make_cprim2x("FINISH-OIDS",finish_oids,1,
-                                          -1,VOID,
-                                          kno_pool_type,VOID)));
-  kno_idefn(kno_xscheme_module,
-           kno_make_ndprim(kno_make_cprim1x("COMMIT-OIDS",commit_oids,
-                                          1,-1,VOID)));
-  kno_idefn(kno_xscheme_module,
-           kno_make_cprim2x("COMMIT-POOL",commit_pool,1,
-                           kno_pool_type,VOID,-1,VOID));
-  kno_idefn(kno_xscheme_module,
-           kno_make_cprim1x("COMMIT-FINISHED",commit_finished,1,
-                           kno_pool_type,VOID));
-  kno_idefn3(kno_xscheme_module,"POOL/STOREN!",pool_storen_prim,3,
-            "Stores values in a pool, skipping the object cache",
-            -1,VOID,kno_vector_type,VOID,
-            kno_vector_type,VOID);
-  kno_idefn2(kno_xscheme_module,"POOL/FETCHN",pool_fetchn_prim,2|KNO_NDCALL,
-            "Fetches values from a pool, skipping the object cache",
-            -1,VOID,-1,VOID);
-
-  kno_idefn(kno_xscheme_module,kno_make_cprim1("POOL-CLOSE",pool_close_prim,1));
-  kno_idefn(kno_xscheme_module,
-           kno_make_cprim1("CLEAR-SLOTCACHE!",clear_slotcache,0));
-  kno_idefn(kno_xscheme_module,
-           kno_make_cprim0("CLEARCACHES",clearcaches));
-
-  kno_idefn(kno_xscheme_module,kno_make_cprim0("SWAPCHECK",swapcheck_prim));
-
-  kno_idefn2(kno_scheme_module,"PREFETCH-OIDS!",
-            prefetch_oids_prim,(KNO_NEEDS_1_ARG|KNO_NDCALL),
-            "'(PREFETCH-OIDS! oids [pool])' prefetches OIDs from pool",
-            -1,VOID,-1,VOID);
-  kno_idefn2(kno_scheme_module,"POOL-PREFETCH!",
-            pool_prefetch_prim,(KNO_NEEDS_2_ARGS|KNO_NDCALL),
-            "'(POOL-PREFETCH! pool oids)' prefetches OIDs from pool",
-            -1,VOID,-1,VOID);
-  kno_idefn2(kno_scheme_module,"PREFETCH-KEYS!",prefetch_keys,
-            (KNO_NEEDS_1_ARG|KNO_NDCALL),
-            "(PREFETCH-KEYS! *keys*) or (PREFETCH-KEYS! *index* *keys*)",
-            -1,KNO_VOID,-1,KNO_VOID);
-  kno_idefn2(kno_scheme_module,"INDEX-PREFETCH!",index_prefetch_keys,
-            (KNO_NEEDS_2_ARGS|KNO_NDCALL),"(INDEX-PREFETCH! *index* *keys*)",
-            -1,KNO_VOID,-1,KNO_VOID);
-  kno_idefn2(kno_xscheme_module,"INDEX/FETCHN",index_fetchn_prim,2|KNO_NDCALL,
-            "Fetches values from an index, skipping the index cache",
-            -1,VOID,-1,VOID);
-  kno_idefn5(kno_scheme_module,"INDEX/SAVE!",index_save_prim,KNO_NEEDS_2_ARGS,
-            "(INDEX-PREFETCH! *index* *keys*)",
-            -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID);
-  kno_idefn1(kno_scheme_module,"FETCHOIDS",fetchoids_prim,KNO_NEEDS_1_ARG|KNO_NDCALL,
-            "(FETCHOIDS *oids*) returns *oids* after prefetching their values.",
-            -1,KNO_VOID);
-
-  kno_idefn(kno_scheme_module,kno_make_cprim1("CACHED-OIDS",cached_oids,0));
-  kno_idefn(kno_scheme_module,kno_make_cprim1("CACHED-KEYS",cached_keys,0));
-
-  kno_idefn1(kno_scheme_module,"CACHE-LOAD",cache_load,1,
-            "(CACHE-LOAD *pool-or-index*) returns the number of "
-            "cached items in a database.",
-            -1,KNO_VOID);
-  kno_idefn1(kno_scheme_module,"CHANGE-LOAD",change_load,1,
-            "Returns the number of items modified "
-            "(or locked for modification) in a database",
-            -1,KNO_VOID);
-
-  kno_idefn(kno_scheme_module,kno_make_cprim1("INDEX-SOURCE",index_source_prim,1));
-  kno_idefn(kno_scheme_module,kno_make_cprim1("INDEX-ID",index_id,1));
-
-  kno_idefn2(kno_xscheme_module,"MAKE-AGGREGATE-INDEX",make_aggregate_index,
-            KNO_NDCALL|KNO_NEEDS_1_ARG,
-            "Creates an aggregate index from a collection of other indexes",
-            -1,KNO_VOID,-1,KNO_FALSE);
-  kno_idefn1(kno_xscheme_module,"AGGREGATE-INDEX?",aggregate_indexp,1,
-            "(AGGREGATE-INDEX? *arg*) => true if *arg* is an aggregate index",
-            -1,KNO_VOID);
-  kno_idefn2(kno_xscheme_module,
-            "EXTEND-AGGREGATE-INDEX!",extend_aggregate_index,2,
-            "(EXTEND-AGGREGATE-INDEX! *agg* *index*) "
-            "adds *index* to the aggregate index *agg*",
-            -1,KNO_VOID,-1,KNO_VOID);
-  kno_defalias(kno_xscheme_module,"ADD-TO-AGGREGATE-INDEX!",
-              "EXTEND-AGGREGATE-INDEX!");
-
-  kno_idefn1(kno_xscheme_module,"TEMPINDEX?",tempindexp,1,
-            "(TEMPINDEX? *arg*) returns #t if *arg* is a temporary index.",
-            -1,VOID);
-  
-  kno_idefn(kno_xscheme_module,
-           kno_make_ndprim(kno_make_cprim4("INDEX-FRAME",index_frame_prim,3)));
-  kno_idefn(kno_xscheme_module,kno_make_cprim3("INDEX-SET!",index_set,3));
-  kno_idefn(kno_xscheme_module,kno_make_cprim3("INDEX-ADD!",index_add,3));
-  kno_idefn(kno_xscheme_module,kno_make_cprim2("INDEX-GET",index_get,2));
-  kno_idefn(kno_xscheme_module,kno_make_cprim1("INDEX-KEYS",index_keys,1));
-  kno_idefn(kno_xscheme_module,kno_make_cprim1("INDEX-KEYSVEC",index_keysvec,1));
-  kno_idefn(kno_xscheme_module,kno_make_cprim2("INDEX-SIZES",index_sizes,1));
-  kno_idefn(kno_xscheme_module,kno_make_cprim1("INDEX-SOURCE",index_source,1));
-  kno_idefn2(kno_xscheme_module,"INDEX/MERGE!",index_merge,2,
-            "Merges a hashtable into the ADDS of an index "
-            "as a batch operation",
-            -1,VOID,-1,VOID);
-  kno_defalias(kno_xscheme_module,"INDEX-MERGE!","INDEX/MERGE!");
-  kno_idefn2(kno_xscheme_module,"SLOTINDEX/MERGE!",slotindex_merge,2,
-            "Merges a hashtable or temporary index into the ADDS of an index "
-            "as a batch operation, trying to handle conversions between "
-            "slotkeys if needed.",
-            -1,VOID,-1,VOID);
-  kno_idefn1(kno_xscheme_module,"CLOSE-INDEX",close_index_prim,1,
-            "(INDEX-CLOSE *index*) closes any resources associated with *index*",
-            -1,VOID);
-  kno_idefn1(kno_xscheme_module,"COMMIT-INDEX",commit_index_prim,1,
-            "(INDEX-COMMIT *index*) saves any buffered changes to *index*",
-            -1,VOID);
+            kno_make_ndprim(kno_make_cprim3
+                            ("PREFETCH-SLOTVALS!",prefetch_slotvals,3)));
+  kno_idefn(kno_db_module,
+            kno_make_ndprim(kno_make_cprimn
+                            ("FIND-FRAMES/PREFETCH!",find_frames_prefetch,2)));
+  kno_defalias(kno_db_module,"FIND-FRAMES-PREFETCH!","FIND-FRAMES/PREFETCH!");
+  kno_defalias(kno_db_module,"\?\?/PREFETCH!","FIND-FRAMES/PREFETCH!");
+  kno_defalias(kno_db_module,"\?\?!","FIND-FRAMES/PREFETCH!");
 
   kno_idefn(kno_scheme_module,
-           kno_make_cprim1x("SUGGEST-HASH-SIZE",suggest_hash_size,1,
-                           kno_fixnum_type,VOID));
-  kno_idefn(kno_xscheme_module,kno_make_cprim3("INDEX-DECACHE",index_decache,2));
-  kno_idefn(kno_xscheme_module,kno_make_cprim2("BGDECACHE",bgdecache,1));
-  kno_idefn(kno_xscheme_module,
-           kno_make_ndprim(kno_make_cprimn("PICK",pick_lexpr,2)));
-  kno_idefn(kno_xscheme_module,
-           kno_make_ndprim(kno_make_cprimn("PREFER",prefer_lexpr,2)));
-  kno_idefn(kno_xscheme_module,
-           kno_make_ndprim(kno_make_cprimn("REJECT",reject_lexpr,2)));
-  kno_idefn(kno_xscheme_module,
-           kno_make_ndprim(kno_make_cprimn("AVOID",avoid_lexpr,2)));
+            kno_make_ndprim(kno_make_cprimn("SWAPOUT",swapout_lexpr,0)));
+  kno_idefn(kno_scheme_module,kno_make_cprimn("COMMIT",commit_lexpr,0));
+  kno_idefn(kno_scheme_module,
+            kno_make_ndprim(kno_make_cprim2x("FINISH-OIDS",finish_oids,1,
+                                             -1,VOID,
+                                             kno_pool_type,VOID)));
+  kno_idefn(kno_scheme_module,
+            kno_make_ndprim(kno_make_cprim1x("COMMIT-OIDS",commit_oids,
+                                             1,-1,VOID)));
+  kno_idefn(kno_scheme_module,
+            kno_make_cprim2x("COMMIT-POOL",commit_pool,1,
+                             kno_pool_type,VOID,-1,VOID));
+  kno_idefn(kno_scheme_module,
+            kno_make_cprim1x("COMMIT-FINISHED",commit_finished,1,
+                             kno_pool_type,VOID));
+  kno_idefn3(kno_scheme_module,"POOL/STOREN!",pool_storen_prim,3,
+             "Stores values in a pool, skipping the object cache",
+             -1,VOID,kno_vector_type,VOID,
+             kno_vector_type,VOID);
+  kno_idefn2(kno_scheme_module,"POOL/FETCHN",pool_fetchn_prim,2|KNO_NDCALL,
+             "Fetches values from a pool, skipping the object cache",
+             -1,VOID,-1,VOID);
 
-  kno_idefn(kno_xscheme_module,
-           kno_make_ndprim(kno_make_cprimn("%PICK",prim_pick_lexpr,2)));
-  kno_idefn(kno_xscheme_module,
-           kno_make_ndprim(kno_make_cprimn("%PREFER",prim_prefer_lexpr,2)));
-  kno_idefn(kno_xscheme_module,
-           kno_make_ndprim(kno_make_cprimn("%REJECT",prim_reject_lexpr,2)));
-  kno_idefn(kno_xscheme_module,
-           kno_make_ndprim(kno_make_cprimn("%AVOID",prim_avoid_lexpr,2)));
+  kno_idefn(kno_scheme_module,kno_make_cprim1("POOL-CLOSE",pool_close_prim,1));
+  kno_idefn(kno_scheme_module,
+            kno_make_cprim1("CLEAR-SLOTCACHE!",clear_slotcache,0));
+  kno_idefn(kno_scheme_module,
+            kno_make_cprim0("CLEARCACHES",clearcaches));
 
-  kno_idefn(kno_xscheme_module,
-           kno_make_ndprim(kno_make_cprim3("MAPGRAPH",mapgraph,3)));
-  kno_idefn(kno_xscheme_module,
-           kno_make_ndprim(kno_make_cprim3("FORGRAPH",forgraph,3)));
+  kno_idefn(kno_scheme_module,kno_make_cprim0("SWAPCHECK",swapcheck_prim));
 
-  kno_idefn3(kno_xscheme_module,"USE-ADJUNCT",use_adjunct,1,
-            "(table [slot] [pool])\n"
-            "arranges for *table* to store values of the slotid *slot* "
-            "for objects in *pool*. If *pool* is not specified, "
-            "the adjunct is declared globally.",
-            -1,VOID,-1,VOID,-1,VOID);
-  kno_idefn3(kno_xscheme_module,"ADJUNCT!",add_adjunct,3,
-            "(pool slot table)\n"
-            "arranges for *table* to store values of the slotid *slot* "
-            "for objects in *pool*. Table can be an in-memory table, "
-            "an index or an adjunct pool",
-            -1,VOID,-1,VOID,-1,VOID);
-  kno_defalias(kno_xscheme_module,"ADD-ADJUNCT!","ADJUNCT!");
-  kno_idefn1(kno_xscheme_module,"GET-ADJUNCTS",get_adjuncts,1,
-            "`(GET_ADJUNCTS pool)\\n"
-            "Gets the adjuncts associated with the specified pool",
-            -1,VOID);
+  kno_idefn2(kno_db_module,"PREFETCH-OIDS!",
+             prefetch_oids_prim,(KNO_NEEDS_1_ARG|KNO_NDCALL),
+             "'(PREFETCH-OIDS! oids [pool])' prefetches OIDs from pool",
+             -1,VOID,-1,VOID);
+  kno_idefn2(kno_db_module,"POOL-PREFETCH!",
+             pool_prefetch_prim,(KNO_NEEDS_2_ARGS|KNO_NDCALL),
+             "'(POOL-PREFETCH! pool oids)' prefetches OIDs from pool",
+             -1,VOID,-1,VOID);
+  kno_idefn2(kno_db_module,"PREFETCH-KEYS!",prefetch_keys,
+             (KNO_NEEDS_1_ARG|KNO_NDCALL),
+             "(PREFETCH-KEYS! *keys*) or (PREFETCH-KEYS! *index* *keys*)",
+             -1,KNO_VOID,-1,KNO_VOID);
+  kno_idefn2(kno_db_module,"INDEX-PREFETCH!",index_prefetch_keys,
+             (KNO_NEEDS_2_ARGS|KNO_NDCALL),"(INDEX-PREFETCH! *index* *keys*)",
+             -1,KNO_VOID,-1,KNO_VOID);
+  kno_idefn2(kno_scheme_module,"INDEX/FETCHN",index_fetchn_prim,2|KNO_NDCALL,
+             "Fetches values from an index, skipping the index cache",
+             -1,VOID,-1,VOID);
+  kno_idefn5(kno_db_module,"INDEX/SAVE!",index_save_prim,KNO_NEEDS_2_ARGS,
+             "(INDEX-PREFETCH! *index* *keys*)",
+             -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID);
+  kno_idefn1(kno_db_module,"FETCHOIDS",fetchoids_prim,KNO_NEEDS_1_ARG|KNO_NDCALL,
+             "(FETCHOIDS *oids*) returns *oids* after prefetching their values.",
+             -1,KNO_VOID);
 
-  kno_idefn1(kno_xscheme_module,"ADJUNCT?",isadjunctp,1,
-            "`(ADJUNCT? pool)`\n"
-            "Returns true if *pool* is an adjunct pool",
-            -1,VOID);
+  kno_idefn(kno_db_module,kno_make_cprim1("CACHED-OIDS",cached_oids,0));
+  kno_idefn(kno_db_module,kno_make_cprim1("CACHED-KEYS",cached_keys,0));
 
-  kno_idefn2(kno_scheme_module,"MAKE-BLOOM-FILTER",make_bloom_filter,1,
-            "Creates a bloom filter for a a number of items and an error rate",
-            kno_fixnum_type,VOID,kno_flonum_type,VOID);
+  kno_idefn1(kno_db_module,"CACHE-LOAD",cache_load,1,
+             "(CACHE-LOAD *pool-or-index*) returns the number of "
+             "cached items in a database.",
+             -1,KNO_VOID);
+  kno_idefn1(kno_db_module,"CHANGE-LOAD",change_load,1,
+             "Returns the number of items modified "
+             "(or locked for modification) in a database",
+             -1,KNO_VOID);
 
-  kno_idefn4(kno_scheme_module,"BLOOM/ADD!",bloom_add,KNO_NEEDS_2_ARGS|KNO_NDCALL,
-            "(BLOOM/ADD! *filter* *key* [*raw*]) adds a key to a bloom filter. "
-            "The *raw* argument indicates that the key is a string or packet "
-            "should be added to the filter. Otherwise, the binary DTYPE "
-            "representation for the value is added to the filter.",
-            kno_bloom_filter_type,VOID,-1,VOID,-1,KNO_FALSE,-1,KNO_FALSE);
+  kno_idefn(kno_db_module,kno_make_cprim1("INDEX-SOURCE",index_source_prim,1));
+  kno_idefn(kno_db_module,kno_make_cprim1("INDEX-ID",index_id,1));
 
-  kno_idefn4(kno_scheme_module,"BLOOM/ADD",bloom_add,1|KNO_NDCALL,
-            "(BLOOM/ADD! *filter* *keys* [*raw*] [*noerr*]) "
-            "adds the keys *keys* to *filter*, returning #t if it was added "
-            "(and, so, not originally present). "
-            "If *raw* is true, *values* must be strings or packets and their "
-            "byte values are used directly; otherwise, values are converted to "
-            "dtypes before being tested. If *noerr* is true, type or conversion "
-            "errors are just considered misses and ignored.",
-            kno_bloom_filter_type,VOID,-1,VOID,-1,KNO_FALSE,-1,KNO_FALSE);
+  kno_idefn2(kno_scheme_module,"MAKE-AGGREGATE-INDEX",make_aggregate_index,
+             KNO_NDCALL|KNO_NEEDS_1_ARG,
+             "Creates an aggregate index from a collection of other indexes",
+             -1,KNO_VOID,-1,KNO_FALSE);
+  kno_idefn1(kno_scheme_module,"AGGREGATE-INDEX?",aggregate_indexp,1,
+             "(AGGREGATE-INDEX? *arg*) => true if *arg* is an aggregate index",
+             -1,KNO_VOID);
+  kno_idefn2(kno_scheme_module,
+             "EXTEND-AGGREGATE-INDEX!",extend_aggregate_index,2,
+             "(EXTEND-AGGREGATE-INDEX! *agg* *index*) "
+             "adds *index* to the aggregate index *agg*",
+             -1,KNO_VOID,-1,KNO_VOID);
+  kno_defalias(kno_scheme_module,"ADD-TO-AGGREGATE-INDEX!",
+               "EXTEND-AGGREGATE-INDEX!");
 
-  kno_idefn4(kno_scheme_module,"BLOOM/CHECK",bloom_check,1|KNO_NDCALL,
-            "(BLOOM/CHECK *filter* *keys* [*raw*] [*noerr*]) "
-            "returns true if any of *keys* are probably found in *filter*. "
-            "If *raw* is true, *keys* must be strings or packets and their "
-            "byte values are used directly; otherwise, values are converted to "
-            "dtypes before being tested. If *noerr* is true, type or conversion "
-            "errors are just considered misses and ignored.",
-            kno_bloom_filter_type,VOID,-1,VOID,-1,KNO_FALSE,-1,KNO_FALSE);
-  kno_idefn4(kno_scheme_module,"BLOOM/HITS",bloom_hits,1|KNO_NDCALL,
-            "(BLOOM/HITS *filter* *keys* [*raw*] [*noerr*]) "
-            "returns the number of *keys* probably found in *filter*. "
-            "If *raw* is true, *keys* must be strings or packets and their "
-            "byte values are used directly; otherwise, values are converted to "
-            "dtypes before being tested. If *noerr* is true, type or conversion "
-            "errors are just considered misses and ignored.",
-            kno_bloom_filter_type,VOID,-1,VOID,-1,KNO_FALSE,-1,KNO_FALSE);
+  kno_idefn1(kno_scheme_module,"TEMPINDEX?",tempindexp,1,
+             "(TEMPINDEX? *arg*) returns #t if *arg* is a temporary index.",
+             -1,VOID);
 
-  kno_idefn1(kno_scheme_module,"BLOOM-SIZE",bloom_size,1,
-            "Returns the size (in bytes) of a bloom filter ",
-            kno_bloom_filter_type,VOID);
-  kno_idefn1(kno_scheme_module,"BLOOM-COUNT",bloom_count,1,
-            "Returns the number of objects added to a bloom filter",
-            kno_bloom_filter_type,VOID);
-  kno_idefn1(kno_scheme_module,"BLOOM-ERROR",bloom_error,1,
-            "Returns the error threshold (a flonum) for the filter",
-            kno_bloom_filter_type,VOID);
-  kno_idefn1(kno_scheme_module,"BLOOM-DATA",bloom_data,1,
-            "Returns the bytes of the filter as a packet",
-            kno_bloom_filter_type,VOID);
+  kno_idefn(kno_scheme_module,
+            kno_make_ndprim(kno_make_cprim4("INDEX-FRAME",index_frame_prim,3)));
+  kno_idefn(kno_scheme_module,kno_make_cprim3("INDEX-SET!",index_set,3));
+  kno_idefn(kno_scheme_module,kno_make_cprim3("INDEX-ADD!",index_add,3));
+  kno_idefn(kno_scheme_module,kno_make_cprim2("INDEX-GET",index_get,2));
+  kno_idefn(kno_scheme_module,kno_make_cprim1("INDEX-KEYS",index_keys,1));
+  kno_idefn(kno_scheme_module,kno_make_cprim1("INDEX-KEYSVEC",index_keysvec,1));
+  kno_idefn(kno_scheme_module,kno_make_cprim2("INDEX-SIZES",index_sizes,1));
+  kno_idefn(kno_scheme_module,kno_make_cprim1("INDEX-SOURCE",index_source,1));
+  kno_idefn2(kno_scheme_module,"INDEX/MERGE!",index_merge,2,
+             "Merges a hashtable into the ADDS of an index "
+             "as a batch operation",
+             -1,VOID,-1,VOID);
+  kno_defalias(kno_scheme_module,"INDEX-MERGE!","INDEX/MERGE!");
+  kno_idefn2(kno_scheme_module,"SLOTINDEX/MERGE!",slotindex_merge,2,
+             "Merges a hashtable or temporary index into the ADDS of an index "
+             "as a batch operation, trying to handle conversions between "
+             "slotkeys if needed.",
+             -1,VOID,-1,VOID);
+  kno_idefn1(kno_scheme_module,"CLOSE-INDEX",close_index_prim,1,
+             "(INDEX-CLOSE *index*) closes any resources associated with *index*",
+             -1,VOID);
+  kno_idefn1(kno_scheme_module,"COMMIT-INDEX",commit_index_prim,1,
+             "(INDEX-COMMIT *index*) saves any buffered changes to *index*",
+             -1,VOID);
+
+  kno_idefn(kno_db_module,
+            kno_make_cprim1x("SUGGEST-HASH-SIZE",suggest_hash_size,1,
+                             kno_fixnum_type,VOID));
+  kno_idefn(kno_scheme_module,kno_make_cprim3("INDEX-DECACHE",index_decache,2));
+  kno_idefn(kno_scheme_module,kno_make_cprim2("BGDECACHE",bgdecache,1));
+  kno_idefn(kno_scheme_module,
+            kno_make_ndprim(kno_make_cprimn("PICK",pick_lexpr,2)));
+  kno_idefn(kno_scheme_module,
+            kno_make_ndprim(kno_make_cprimn("PREFER",prefer_lexpr,2)));
+  kno_idefn(kno_scheme_module,
+            kno_make_ndprim(kno_make_cprimn("REJECT",reject_lexpr,2)));
+  kno_idefn(kno_scheme_module,
+            kno_make_ndprim(kno_make_cprimn("AVOID",avoid_lexpr,2)));
+
+  kno_idefn(kno_scheme_module,
+            kno_make_ndprim(kno_make_cprimn("%PICK",prim_pick_lexpr,2)));
+  kno_idefn(kno_scheme_module,
+            kno_make_ndprim(kno_make_cprimn("%PREFER",prim_prefer_lexpr,2)));
+  kno_idefn(kno_scheme_module,
+            kno_make_ndprim(kno_make_cprimn("%REJECT",prim_reject_lexpr,2)));
+  kno_idefn(kno_scheme_module,
+            kno_make_ndprim(kno_make_cprimn("%AVOID",prim_avoid_lexpr,2)));
+
+  kno_idefn(kno_scheme_module,
+            kno_make_ndprim(kno_make_cprim3("MAPGRAPH",mapgraph,3)));
+  kno_idefn(kno_scheme_module,
+            kno_make_ndprim(kno_make_cprim3("FORGRAPH",forgraph,3)));
+
+  kno_idefn3(kno_scheme_module,"USE-ADJUNCT",use_adjunct,1,
+             "(table [slot] [pool])\n"
+             "arranges for *table* to store values of the slotid *slot* "
+             "for objects in *pool*. If *pool* is not specified, "
+             "the adjunct is declared globally.",
+             -1,VOID,-1,VOID,-1,VOID);
+  kno_idefn3(kno_scheme_module,"ADJUNCT!",add_adjunct,3,
+             "(pool slot table)\n"
+             "arranges for *table* to store values of the slotid *slot* "
+             "for objects in *pool*. Table can be an in-memory table, "
+             "an index or an adjunct pool",
+             -1,VOID,-1,VOID,-1,VOID);
+  kno_defalias(kno_scheme_module,"ADD-ADJUNCT!","ADJUNCT!");
+  kno_idefn1(kno_scheme_module,"GET-ADJUNCTS",get_adjuncts,1,
+             "`(GET_ADJUNCTS pool)\\n"
+             "Gets the adjuncts associated with the specified pool",
+             -1,VOID);
+
+  kno_idefn1(kno_scheme_module,"ADJUNCT?",isadjunctp,1,
+             "`(ADJUNCT? pool)`\n"
+             "Returns true if *pool* is an adjunct pool",
+             -1,VOID);
+
+  kno_idefn2(kno_db_module,"MAKE-BLOOM-FILTER",make_bloom_filter,1,
+             "Creates a bloom filter for a a number of items and an error rate",
+             kno_fixnum_type,VOID,kno_flonum_type,VOID);
+
+  kno_idefn4(kno_db_module,"BLOOM/ADD!",bloom_add,KNO_NEEDS_2_ARGS|KNO_NDCALL,
+             "(BLOOM/ADD! *filter* *key* [*raw*]) adds a key to a bloom filter. "
+             "The *raw* argument indicates that the key is a string or packet "
+             "should be added to the filter. Otherwise, the binary DTYPE "
+             "representation for the value is added to the filter.",
+             kno_bloom_filter_type,VOID,-1,VOID,-1,KNO_FALSE,-1,KNO_FALSE);
+
+  kno_idefn4(kno_db_module,"BLOOM/ADD",bloom_add,1|KNO_NDCALL,
+             "(BLOOM/ADD! *filter* *keys* [*raw*] [*noerr*]) "
+             "adds the keys *keys* to *filter*, returning #t if it was added "
+             "(and, so, not originally present). "
+             "If *raw* is true, *values* must be strings or packets and their "
+             "byte values are used directly; otherwise, values are converted to "
+             "dtypes before being tested. If *noerr* is true, type or conversion "
+             "errors are just considered misses and ignored.",
+             kno_bloom_filter_type,VOID,-1,VOID,-1,KNO_FALSE,-1,KNO_FALSE);
+
+  kno_idefn4(kno_db_module,"BLOOM/CHECK",bloom_check,1|KNO_NDCALL,
+             "(BLOOM/CHECK *filter* *keys* [*raw*] [*noerr*]) "
+             "returns true if any of *keys* are probably found in *filter*. "
+             "If *raw* is true, *keys* must be strings or packets and their "
+             "byte values are used directly; otherwise, values are converted to "
+             "dtypes before being tested. If *noerr* is true, type or conversion "
+             "errors are just considered misses and ignored.",
+             kno_bloom_filter_type,VOID,-1,VOID,-1,KNO_FALSE,-1,KNO_FALSE);
+  kno_idefn4(kno_db_module,"BLOOM/HITS",bloom_hits,1|KNO_NDCALL,
+             "(BLOOM/HITS *filter* *keys* [*raw*] [*noerr*]) "
+             "returns the number of *keys* probably found in *filter*. "
+             "If *raw* is true, *keys* must be strings or packets and their "
+             "byte values are used directly; otherwise, values are converted to "
+             "dtypes before being tested. If *noerr* is true, type or conversion "
+             "errors are just considered misses and ignored.",
+             kno_bloom_filter_type,VOID,-1,VOID,-1,KNO_FALSE,-1,KNO_FALSE);
+
+  kno_idefn1(kno_db_module,"BLOOM-SIZE",bloom_size,1,
+             "Returns the size (in bytes) of a bloom filter ",
+             kno_bloom_filter_type,VOID);
+  kno_idefn1(kno_db_module,"BLOOM-COUNT",bloom_count,1,
+             "Returns the number of objects added to a bloom filter",
+             kno_bloom_filter_type,VOID);
+  kno_idefn1(kno_db_module,"BLOOM-ERROR",bloom_error,1,
+             "Returns the error threshold (a flonum) for the filter",
+             kno_bloom_filter_type,VOID);
+  kno_idefn1(kno_db_module,"BLOOM-DATA",bloom_data,1,
+             "Returns the bytes of the filter as a packet",
+             kno_bloom_filter_type,VOID);
 
 
   id_symbol = kno_intern("%id");
@@ -4031,10 +4031,3 @@ KNO_EXPORT void kno_init_dbprims_c()
   repair_symbol = kno_intern("repair");
 
 }
-
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

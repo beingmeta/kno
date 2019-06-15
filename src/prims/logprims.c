@@ -376,22 +376,22 @@ KNO_EXPORT void kno_init_logprims_c()
   u8_register_source_file(_FILEINFO);
 
   /* Logging functions for specific levels */
-  kno_def_evalfn(kno_scheme_module,"NOTIFY","",notify_evalfn);
-  kno_def_evalfn(kno_scheme_module,"STATUS","",status_evalfn);
-  kno_def_evalfn(kno_scheme_module,"WARNING","",warning_evalfn);
+  kno_def_evalfn(kno_sys_module,"NOTIFY","",notify_evalfn);
+  kno_def_evalfn(kno_sys_module,"STATUS","",status_evalfn);
+  kno_def_evalfn(kno_sys_module,"WARNING","",warning_evalfn);
 
   /* Generic logging function, always outputs */
-  kno_def_evalfn(kno_scheme_module,"MESSAGE","",message_evalfn);
-  kno_def_evalfn(kno_scheme_module,"%LOGGER","",message_evalfn);
+  kno_def_evalfn(kno_sys_module,"MESSAGE","",message_evalfn);
+  kno_def_evalfn(kno_sys_module,"%LOGGER","",message_evalfn);
 
   /* Logging with message level */
-  kno_def_evalfn(kno_scheme_module,"LOGMSG","",log_evalfn);
+  kno_def_evalfn(kno_sys_module,"LOGMSG","",log_evalfn);
   /* Conditional logging */
-  kno_def_evalfn(kno_scheme_module,"LOGIF","",logif_evalfn);
+  kno_def_evalfn(kno_sys_module,"LOGIF","",logif_evalfn);
   /* Conditional logging with priority level */
-  kno_def_evalfn(kno_scheme_module,"LOGIF+","",logifplus_evalfn);
+  kno_def_evalfn(kno_sys_module,"LOGIF+","",logifplus_evalfn);
 
-  kno_idefn3(kno_scheme_module,"%SHOW",lisp_show_table,1|KNO_NDCALL,
+  kno_idefn3(kno_sys_module,"%SHOW",lisp_show_table,1|KNO_NDCALL,
             "Shows a table",
             -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID);
 }

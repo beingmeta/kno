@@ -889,8 +889,8 @@ KNO_EXPORT void kno_init_procprims_c()
   DECL_PRIM(exit_prim,1,procprims_module);
   DECL_PRIM(fast_exit_prim,1,procprims_module);
 
-  DECL_PRIM(getrlimit_prim,2,kno_scheme_module);
-  DECL_PRIM(setrlimit_prim,3,kno_scheme_module);
+  DECL_PRIM(getrlimit_prim,2,procprims_module);
+  DECL_PRIM(setrlimit_prim,3,procprims_module);
 
   kno_finish_module(procprims_module);
 }

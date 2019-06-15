@@ -201,28 +201,28 @@ KNO_EXPORT void kno_init_driverfns_c()
                                     kno_init_driverfns_c);
   u8_register_source_file(_FILEINFO);
 
-  kno_idefn(kno_xscheme_module,kno_make_cprim1("INDEX-SLOTIDS",index_slotids,1));
-  kno_defalias(kno_xscheme_module,"HASH-INDEX-SLOTIDS","INDEX-SLOTIDS");
+  kno_idefn(kno_db_module,kno_make_cprim1("INDEX-SLOTIDS",index_slotids,1));
+  kno_defalias(kno_db_module,"HASH-INDEX-SLOTIDS","INDEX-SLOTIDS");
 
 
-  kno_idefnN(kno_xscheme_module,"DBCTL",dbctl_prim,KNO_NEEDS_2_ARGS|KNO_NDCALL,
+  kno_idefnN(kno_db_module,"DBCTL",dbctl_prim,KNO_NEEDS_2_ARGS|KNO_NDCALL,
             "(DBCTL *dbref* *op* ... *args*) performs an operation *op* "
             "on the pool or index *dbref* with *args*. *op* is a symbol and "
             "*dbref* must be a pool or index object.");
-  kno_idefnN(kno_xscheme_module,"POOLCTL",poolctl_prim,KNO_NEEDS_2_ARGS|KNO_NDCALL,
+  kno_idefnN(kno_db_module,"POOLCTL",poolctl_prim,KNO_NEEDS_2_ARGS|KNO_NDCALL,
             "(POOLCTL *pool* *op* ... *args*) performs an operation *op* "
             "on the pool *pool* with *args*. *op* is a symbol and *pool* is "
             "a pool object.");
-  kno_idefnN(kno_xscheme_module,"INDEXCTL",indexctl_prim,KNO_NEEDS_2_ARGS|KNO_NDCALL,
+  kno_idefnN(kno_db_module,"INDEXCTL",indexctl_prim,KNO_NEEDS_2_ARGS|KNO_NDCALL,
             "(INDEXCTL *index* *op* ... *args*) performs an operation *op* "
             "on the index *index* with *args*. *op* is a symbol and *index* "
             "is an index object.");
 
-  kno_idefn(kno_xscheme_module,kno_make_cprimn("INDEXCTL",indexctl_prim,2));
-  kno_idefn(kno_xscheme_module,kno_make_cprimn("POOLCTL",poolctl_prim,2));
+  kno_idefn(kno_db_module,kno_make_cprimn("INDEXCTL",indexctl_prim,2));
+  kno_idefn(kno_db_module,kno_make_cprimn("POOLCTL",poolctl_prim,2));
 
-  kno_idefn(kno_xscheme_module,kno_make_cprimn("INDEXCTL/DEFAULT",indexctl_default_prim,2));
-  kno_idefn(kno_xscheme_module,kno_make_cprimn("POOLCTL/DEFAULT",poolctl_default_prim,2));
+  kno_idefn(kno_db_module,kno_make_cprimn("INDEXCTL/DEFAULT",indexctl_default_prim,2));
+  kno_idefn(kno_db_module,kno_make_cprimn("POOLCTL/DEFAULT",poolctl_default_prim,2));
 
   kno_idefn(driverfns_module,kno_make_cprim1("HASH-DTYPE",lisphash2,1));
   kno_idefn(driverfns_module,kno_make_cprim1("HASH-DTYPE2",lisphash2,1));
@@ -247,10 +247,3 @@ KNO_EXPORT void kno_init_driverfns_c()
 
   kno_finish_module(driverfns_module);
 }
-
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

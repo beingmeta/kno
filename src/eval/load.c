@@ -626,10 +626,10 @@ KNO_EXPORT void kno_init_load_c()
  postload_symbol = kno_intern("%postload");
 
 
- kno_def_evalfn(kno_xscheme_module,"LOAD","",load_source_evalfn);
- kno_def_evalfn(kno_xscheme_module,"LOAD-COMPONENT","",load_component_evalfn);
+ kno_def_evalfn(kno_scheme_module,"LOAD","",load_source_evalfn);
+ kno_def_evalfn(kno_scheme_module,"LOAD-COMPONENT","",load_component_evalfn);
 
- kno_defn(kno_xscheme_module,
+ kno_defn(kno_scheme_module,
          kno_make_cprim3x("LOAD->ENV",load_into_env_prim,1,
                          kno_string_type,VOID,
                          kno_lexenv_type,VOID,

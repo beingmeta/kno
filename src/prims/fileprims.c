@@ -1588,12 +1588,11 @@ KNO_EXPORT void kno_init_loader_c(void);
 
 KNO_EXPORT void kno_init_fileprims_c()
 {
-  lispval fileio_module;
+  lispval fileio_module = KNO_VOID;
   if (scheme_fileio_initialized) return;
   scheme_fileio_initialized = 1;
   kno_init_scheme();
-  fileio_module =
-    kno_new_cmodule("fileio",(KNO_MODULE_DEFAULT),kno_init_fileprims_c);
+  fileio_module = kno_new_cmodule("fileio",(KNO_MODULE_DEFAULT),kno_init_fileprims_c);
   u8_register_source_file(_FILEINFO);
 
 
@@ -1830,7 +1829,7 @@ KNO_EXPORT void kno_init_fileprims_c()
   kno_idefn(kno_scheme_module,
            kno_make_cprim1x("FILE%",file_progress_prim,1,kno_port_type,VOID));
 
-  kno_idefn(kno_xscheme_module,
+  kno_idefn(kno_scheme_module,
            kno_make_cprim2x
            ("OPEN-SOCKET",open_socket_prim,1,
             kno_string_type,VOID,-1,VOID));

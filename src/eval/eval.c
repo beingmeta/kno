@@ -2171,7 +2171,7 @@ static void init_localfns()
   kno_idefn(kno_scheme_module,
            kno_make_ndprim(kno_make_cprim1("%FIXCHOICE",fixchoice_prim,1)));
 
-  kno_def_evalfn(kno_xscheme_module,"WITHENV","",withenv_evalfn);
+  kno_def_evalfn(kno_scheme_module,"WITHENV","",withenv_evalfn);
 
   kno_idefn3(kno_scheme_module,"GET-ARG",get_arg_prim,2,
             "`(GET-ARG *expression* *i* [*default*])` "
@@ -2180,7 +2180,7 @@ static void init_localfns()
             -1,KNO_VOID,kno_fixnum_type,KNO_VOID,-1,KNO_VOID);
   kno_idefn(kno_scheme_module,
            kno_make_ndprim(kno_make_cprimn("APPLY",apply_lexpr,1)));
-  kno_idefn(kno_xscheme_module,kno_make_cprim7x
+  kno_idefn(kno_scheme_module,kno_make_cprim7x
            ("DTPROC",make_dtproc,2,
             kno_symbol_type,VOID,kno_string_type,VOID,
             -1,VOID,-1,VOID,
@@ -2219,8 +2219,8 @@ static void init_localfns()
   kno_idefn0(kno_scheme_module,"%BUILDINFO",kno_get_build_info,
             "Information about the build and startup environment");
 
-  kno_idefn(kno_xscheme_module,kno_make_cprimn("FFI/PROC",ffi_proc,3));
-  kno_idefn(kno_xscheme_module,
+  kno_idefn(kno_scheme_module,kno_make_cprimn("FFI/PROC",ffi_proc,3));
+  kno_idefn(kno_scheme_module,
            kno_make_cprim2x("FFI/FOUND?",ffi_found_prim,1,
                             kno_string_type,VOID,
                             -1,VOID));
@@ -2319,7 +2319,7 @@ static void init_eval_core()
   u8_threadcheck();
 
   kno_finish_module(kno_scheme_module);
-  kno_finish_module(kno_xscheme_module);
+  kno_finish_module(kno_scheme_module);
 }
 
 KNO_EXPORT int kno_load_scheme()
