@@ -1,15 +1,15 @@
 export VG_ENV="\
         LD_LIBRARY_PATH=./lib DYLD_LIBRARY_PATH=../lib			\
 	MEMCHECKING=yes UNDERGDB=yes					\
-	FD_INIT_LOADPATH=@abs_top_srcdir@/src/extmods/:@abs_top_srcdir@/src/extmods/safe/:@default_module_path@ \
-	FD_INIT_SAFELOADPATH=@abs_top_srcdir@/src/extmods/safe/:@default_safe_module_path@ \
-	FD_LOADPATH=../src/extmods/%/module.scm:../src/extmods/%.scm: 	\
-	FD_LIBSCM_DIR=@abs_top_srcdir@/src/libscm/ 			\
-	FD_DLOADPATH=../lib/framerd					\
-	FD_TRACECONFIGLOAD=yes FD_UPDATE_MODULES=5			\
-	FD_LIBSCM_DIR=../src/libscm					\
-	FD_INVALGRIND=yes FD_MEMCHECKING=yes				\
-	FD_DISPLAYMAXELTS=36 FD_DISPLAYMAXCHARS=2048			\
-	FD_SKIP_DOTLOAD=yes FD_SHOWTIME=0.0 FD_DLOADTRACE=yes		\
-	FD_FOREGROUND=yes FD_STEALSOCKETS=yes				\
+	KNO_INIT_LOADPATH=@abs_top_srcdir@/src/extmods/:@abs_top_srcdir@/src/extmods/safe/:@default_module_path@ \
+	KNO_INIT_SAFELOADPATH=@abs_top_srcdir@/src/extmods/safe/:@default_safe_module_path@ \
+	KNO_LOADPATH=../src/extmods/%/module.scm:../src/extmods/%.scm: 	\
+	KNO_LIBSCM_DIR=@abs_top_srcdir@/src/libscm/ 			\
+	KNO_DLOADPATH=../lib/framerd					\
+	KNO_TRACECONFIGLOAD=yes KNO_UPDATE_MODULES=5			\
+	KNO_LIBSCM_DIR=../src/libscm					\
+	KNO_INVALGRIND=yes KNO_MEMCHECKING=yes				\
+	KNO_DISPLAYMAXELTS=36 KNO_DISPLAYMAXCHARS=2048			\
+	KNO_SKIP_DOTLOAD=yes KNO_SHOWTIME=0.0 KNO_DLOADTRACE=yes		\
+	KNO_FOREGROUND=yes KNO_STEALSOCKETS=yes				\
 	${VG_ENV}"

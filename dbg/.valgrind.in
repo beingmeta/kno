@@ -2,11 +2,11 @@ export VG_ENV="\
         LD_LIBRARY_PATH=./lib DYLD_LIBRARY_PATH=../lib			\
 	KNO_INIT_DLOADPATH=@abs_top_srcdir@/lib/kno/%.@shared_suffix@:@abs_top_srcdir@/../lingo/%.@shared_suffix@:@prefix@/lib/kno/%.@shared_suffix@ \
 	MEMCHECKING=yes UNDERGDB=yes					\
-	FD_DLOADPATH=../lib/framerd					\
-	FD_LIBSCM_DIR=../src/libscm					\
-	FD_INVALGRIND=yes FD_MEMCHECKING=yes				\
-	FD_DISPLAYMAXELTS=36 FD_DISPLAYMAXCHARS=2048			\
-	FD_SKIP_DOTLOAD=yes FD_SHOWTIME=0.0 FD_DLOADTRACE=yes		\
-	FD_TRACECONFIGLOAD=yes FD_UPDATE_MODULES=5			\
-	FD_FOREGROUND=yes FD_STEALSOCKETS=yes				\
+	KNO_DLOADPATH=../lib/framerd					\
+	KNO_LIBSCM_DIR=../src/libscm					\
+	KNO_INVALGRIND=yes KNO_MEMCHECKING=yes				\
+	KNO_DISPLAYMAXELTS=36 KNO_DISPLAYMAXCHARS=2048			\
+	KNO_SKIP_DOTLOAD=yes KNO_SHOWTIME=0.0 KNO_DLOADTRACE=yes		\
+	KNO_TRACECONFIGLOAD=yes KNO_UPDATE_MODULES=5			\
+	KNO_FOREGROUND=yes KNO_STEALSOCKETS=yes				\
 	${VG_ENV}"
