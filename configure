@@ -7115,6 +7115,8 @@ fi
 if test "${use_gcov}" == "yes"; then
    OPTFLAGS=
    XOPTFLAGS=
+   $as_echo "#define KNO_AVOID_INLINE 1" >>confdefs.h
+
 fi;
 
 ### Check some compiler fancies

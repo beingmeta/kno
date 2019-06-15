@@ -83,7 +83,11 @@ typedef unsigned char uchar;
 #include <limits.h>
 
 #ifndef KNO_INLINE_FCN
+#if KNO_AVOID_INLINE
+#define KNO_INLINE_FCN
+#else
 #define KNO_INLINE_FCN U8_INLINE_FCN
+#endif
 #endif
 
 #define KNO_ISLOCKED 1

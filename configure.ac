@@ -625,6 +625,7 @@ AC_SUBST(GCOV_LDFLAGS)
 if test "${use_gcov}" == "yes"; then
    OPTFLAGS=
    XOPTFLAGS=
+   AC_DEFINE(KNO_AVOID_INLINE,1)
 fi;
 
 ### Check some compiler fancies

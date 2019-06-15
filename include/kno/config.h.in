@@ -23,6 +23,9 @@
 /* Define if integers should be aligned  */
 #undef KNO_WORDS_ARE_ALIGNED
 
+/* Whether to suppress inline declarations  */
+#undef KNO_AVOID_INLINE
+
 /* Whether you can use the stdatomic.h header file */
 #undef HAVE_STDATOMIC_H
 
