@@ -23,7 +23,9 @@
 
 #include "zeromq_sockopts.h"
 
-static u8_condition ZeroMQ_Error=_("ZeroMQ error");
+static u8_condition ZeroMQ_Error = _("ZeroMQ error");
+static u8_condition ZeroMQ_WrongThread =
+  _("Using ZeroMQ socket from different thread");
 
 KNO_EXPORT int kno_init_zeromq(void) KNO_LIBINIT_FN;
 
@@ -35,7 +37,32 @@ static U8_MUTEX_DECL(zeromq_ctx_lock);
 
 void *kno_zeromq_ctx = NULL;
 
-static void destroy_zeromq_cxt()
+#ifndef KNO_INIT_ZMQ_SOCKETS_PER_THREAD
+#define KNO_INIT_ZMQ_SOCKETS_PER_THREAD 16
+#endif
+
+static kno_zmq_thread_data init_zmq_perthread_data(void);
+
+#if KNO_USE__THREAD
+__thread kno_zmq_thread_data kno_zmq_thread_data = NULL;
+#define get_thread_sockets() \
+  ( (kno_zmq_thread_data) ? (kno_zmq_thread_data) : (init_zmq_perthread_data()) )
+#else
+u8_tld_key kno_zmq_thread_data_key = 0;
+#define get_thread_sockets()                            \
+  ( (u8_tld_get(kno_zmq_thread_data_key)) ?                 \
+    (u8_tld_get(kno_zmq_thread_data_key)) :                 \
+    (init_zmq_perthread_data()) )
+#endif
+
+KNO_EXPORT kno_zmq_thread_data kno_thread_zsockets()
+{
+  return get_thread_sockets();
+}
+
+/* ZeroMQ contexts */
+
+static void destroy_zeromq_ctx()
 {
   if (kno_zeromq_ctx) {
     void *ctx;
@@ -51,7 +78,7 @@ KNO_EXPORT void *kno_init_zeromq_ctx()
   u8_lock_mutex(&zeromq_ctx_lock);
   if (kno_zeromq_ctx == NULL) {
     kno_zeromq_ctx = zmq_ctx_new();
-    atexit(destroy_zeromq_cxt);}
+    atexit(destroy_zeromq_ctx);}
   u8_unlock_mutex(&zeromq_ctx_lock);
   return kno_zeromq_ctx;
 }
@@ -83,15 +110,34 @@ static int get_socket_type(lispval symbol)
 
 /* ZMQ objects */
 
-static lispval zmq_make(zmq_type type,void *ptr)
+static ssize_t zmq_drop_socket(struct KNO_ZEROMQ *socket);
+static ssize_t zmq_add_socket(struct KNO_ZEROMQ *socket);
+
+static struct KNO_ZEROMQ *zmq_make(zmq_type type,void *ptr)
 {
   struct KNO_ZEROMQ *zmq = u8_alloc(KNO_ZEROMQ);
+  if (zmq == NULL) return NULL;
   KNO_INIT_FRESH_CONS(zmq,kno_zeromq_type);
-  zmq->zmq_threadid = u8_threadid();
+  zmq->zmq_thread   = 0;
   zmq->zmq_type     = type;
   zmq->zmq_flags    = 0;
   zmq->zmq_ptr      = ptr;
-  return (lispval) zmq;
+  if (type == zmq_socket_type) {
+    ssize_t rv = zmq_add_socket(zmq);
+    if (rv<0) {
+      u8_free(zmq);
+      u8_seterr("ZeroMQ_AddSocketFailed","zmq_make",NULL);
+      return NULL;}
+    zmq->zmq_thread  = pthread_self();}
+  return zmq;
+}
+
+static lispval zmq_make_lisp(zmq_type type,void *ptr)
+{
+  struct KNO_ZEROMQ *zmq = zmq_make(type,ptr);
+  if (zmq)
+    return (lispval) zmq;
+  else return KNO_ERROR;
 }
 
 static void recycle_zeromq(struct KNO_RAW_CONS *c)
@@ -99,13 +145,17 @@ static void recycle_zeromq(struct KNO_RAW_CONS *c)
   int rv = 0;
   struct KNO_ZEROMQ *zmq = (kno_zeromq) c;
   switch (zmq->zmq_type) {
-  case zmq_socket_type:
-    zmq_close(zmq->zmq_ptr);
-    rv = 0;
+  case zmq_socket_type: {
+    int linger = 500;
+    rv = zmq_setsockopt(zmq->zmq_ptr,ZMQ_LINGER,&linger,sizeof(linger));
+    if (rv == 0) rv = zmq_close(zmq->zmq_ptr);
+    if (rv == 0) rv = zmq_drop_socket(zmq);
+    break;}
   }
-  if (rv != 0) {
-    u8_log(LOG_WARN,"ZeroMQ/Recycle/Failed","rv=%d",rv);}
-  if (!(KNO_STATIC_CONSP(c))) u8_free(c);
+  if (rv < 0) {
+    u8_log(LOG_CRIT,"ZeroMQ/Recycle/Failed","rv=%d",rv);}
+  else if (!(KNO_STATIC_CONSP(c)))
+    u8_free(c);
 }
 static int unparse_zeromq(struct U8_OUTPUT *out,lispval x)
 {
@@ -138,7 +188,21 @@ static lispval zmq_error(u8_context cxt,lispval obj)
   if (! (PRED_FALSE( (KNO_TYPEP(x,kno_zeromq_type)) &&                  \
                      ( (((kno_zeromq)x)->zmq_type) == (ztype) ) )) )    \
     return kno_err(kno_TypeError,caller,# ztype,x);                     \
-  else {x ## _zmq = (kno_zeromq) x; x ## _ptr = x ## _zmq ->zmq_ptr; }
+  else {                                                                \
+    x ## _zmq = (kno_zeromq) x;                                         \
+    x ## _ptr = x ## _zmq ->zmq_ptr;                                    \
+    if ( ( ztype == zmq_socket_type ) &&                                \
+         ( (x ## _zmq->zmq_thread) != (pthread_self()) ) ) {             \
+      u8_byte buf[128];                                                 \
+      return kno_err(ZeroMQ_WrongThread,caller,                         \
+                     u8_bprintf(buf,"S0x%llx from T0x%llx used in T0x%llx", \
+                                (KNO_LONGVAL(x)),                       \
+                                (KNO_LONGVAL(x ## _zmq->zmq_thread)),   \
+                                (KNO_LONGVAL(pthread_self()))),         \
+                     KNO_VOID);}}
+
+#define ZMQ_CHECK_SOCKET(socket,context)        \
+
 
 /* Sockets */
 
@@ -153,8 +217,11 @@ static lispval zmq_socket_prim(lispval typename)
   if (sock_type < 0)
     return kno_err("InvalidZmqSocketType","zmq_socket_prim",NULL,typename);
   void *sockptr = zmq_socket(ctx,sock_type);
-  if (sockptr)
-    return zmq_make(zmq_socket_type,sockptr);
+  if (sockptr) {
+    struct KNO_ZEROMQ *sock = zmq_make(zmq_socket_type,sockptr);
+    if (sock)
+      return (lispval) sock;
+    else return zmq_error("ZMQ/SOCKET",typename);}
   else return zmq_error("ZMQ/SOCKET",typename);
 }
 
@@ -383,7 +450,7 @@ static lispval zmq_open_prim(lispval address,lispval typename)
   u8_string addr = KNO_CSTRING(address);
   int rv = zmq_connect(sockptr,addr);
   if (rv == 0)
-    return zmq_make(zmq_socket_type,sockptr);
+    return zmq_make_lisp(zmq_socket_type,sockptr);
   else return zmq_error("ZMQ/OPEN",address);
 }
 
@@ -405,7 +472,7 @@ static lispval zmq_listen_prim(lispval address,lispval type)
   u8_string addr = KNO_CSTRING(address);
   int rv = zmq_bind(sockptr,addr);
   if (rv == 0)
-    return zmq_make(zmq_socket_type,sockptr);
+    return zmq_make_lisp(zmq_socket_type,sockptr);
   else return zmq_error("ZMQ/LISTEN",address);
 }
 
@@ -550,6 +617,107 @@ static lispval zmq_recv_prim(lispval s,lispval opts)
   return result;
 }
 
+/* Initializing the per-thread socket table */
+
+static int init_zmq_sockets_per_thread = KNO_INIT_ZMQ_SOCKETS_PER_THREAD;
+
+static kno_zmq_thread_data init_zmq_perthread_data()
+{
+#if KNO_USE__THREAD
+  kno_zmq_thread_data sockets = kno_zmq_thread_data;
+#else
+  kno_zmq_thread_data sockets = u8_tld_get(kno_zmq_thread_data_key);
+#endif
+  if (sockets) {
+    if (((sockets)->data_thread) == (pthread_self()))
+      return sockets;
+    else {
+      kno_seterr("Thread/ZeroMQ_Error","init_zmq_perthread_data",NULL,VOID);
+      return NULL;}}
+  ssize_t alloc_size = sizeof(struct KNO_ZMQ_THREAD_DATA) +
+    (sizeof(kno_zeromq)*init_zmq_sockets_per_thread);
+  sockets = u8_malloc(alloc_size); memset(sockets,0,alloc_size);
+  sockets->data_thread = pthread_self();
+  sockets->sockets_len = init_zmq_sockets_per_thread;
+  sockets->sockets_end = 0;
+  sockets->open_socket = 0;
+#if KNO_USE__THREAD
+  kno_zmq_thread_data = sockets;
+#else
+  u8_tld_set(kno_zmq_thread_data_key,sockets);
+#endif
+  return sockets;
+}
+
+/* Managing the per-thread socket table */
+
+static kno_zmq_thread_data grow_perthread_table(kno_zmq_thread_data perthread);
+
+static ssize_t zmq_add_socket(struct KNO_ZEROMQ *socket)
+{
+  kno_zmq_thread_data sockets = get_thread_sockets();
+  ssize_t off = -1;
+  if (sockets == NULL) {
+    kno_seterr("No thread-local sockets","zmq_add_socket",NULL,KNO_VOID);
+    return -1;}
+  else if (sockets->open_socket < 0) {
+    /* Grow the table */
+    ssize_t len = sockets->sockets_len;
+    kno_zmq_thread_data new_sockets = grow_perthread_table(sockets);
+    if (new_sockets) {
+      sockets = new_sockets;
+      off = len;}
+    else return -1;}
+  else off = sockets->open_socket;
+  /* Save the socket and the index it is stored at */
+  ZMQ_SOCK_REF(sockets,off) = socket;
+  socket->zmq_off = off;
+  ssize_t i = off+1, len = sockets->sockets_len;
+  while (i < len) {
+    if ( (ZMQ_SOCK_REF(sockets,i)) == NULL)
+      break;
+    else i++;}
+  if (i < len)
+    sockets->open_socket = i;
+  else sockets->open_socket = -1;
+  return off;
+}
+
+static ssize_t zmq_drop_socket(struct KNO_ZEROMQ *socket)
+{
+  kno_zmq_thread_data sockets = get_thread_sockets();
+  ssize_t off = socket->zmq_off;
+  if (off >= 0) {
+    ZMQ_SOCK_REF(sockets,off) = NULL;
+    if ( ( (sockets->open_socket) < 0) ||
+         ( (off) < (sockets->open_socket) ) )
+      sockets->open_socket = off;}
+  return off;
+}
+
+static kno_zmq_thread_data grow_perthread_table(kno_zmq_thread_data perthread)
+{
+  ssize_t len = perthread->sockets_len;
+  ssize_t new_len = len + init_zmq_sockets_per_thread;
+  kno_zmq_thread_data new_perthread =
+    u8_zalloc(sizeof(struct KNO_ZMQ_THREAD_DATA)+
+              ((sizeof(struct KNO_ZEROMQ))*new_len));
+  if (new_perthread) {
+    memcpy(new_perthread,perthread,
+           sizeof(struct KNO_ZMQ_THREAD_DATA)+
+           ((sizeof(struct KNO_ZEROMQ))*len));
+#if KNO_USE__THREAD
+    kno_zmq_thread_data = new_perthread;
+#else
+    u8_tld_set(kno_zmq_thread_data_key,new_perthread);
+#endif
+    u8_free(perthread);
+    return new_perthread;}
+  else {
+    u8_seterr(u8_MallocFailed,"grow_thread_table",NULL);
+    return NULL;}
+}
+
 /* Initializing symbols */
 
 static void init_symbols()
@@ -592,8 +760,14 @@ KNO_EXPORT int kno_init_zeromq()
   else zeromq_init = u8_millitime();
   module = kno_new_cmodule("zeromq",0,kno_init_zeromq);
 
-  u8_init_mutex(&zeromq_ctx_lock);
   kno_zeromq_type = kno_register_cons_type("ZeroMQ");
+
+  u8_init_mutex(&zeromq_ctx_lock);
+
+#if ! KNO_USE__THREAD
+  u8_new_threadkey(&kno_zmq_thread_data_key,NULL);
+  u8_tld_set(kno_zmq_thread_data_key,(void *)NULL);
+#endif
 
   kno_recyclers[kno_zeromq_type]=recycle_zeromq;
   kno_unparsers[kno_zeromq_type]=unparse_zeromq;
