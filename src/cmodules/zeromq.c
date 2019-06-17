@@ -794,6 +794,11 @@ static void kno_zeromq_thread_cleanup()
   if (kno_zeromq_ctx == NULL) return;
   kno_zmq_thread_data info = get_zmq_thread_data();
   if (info == NULL) return;
+#if KNO_USE__THREAD
+    kno_zmq_thread_data = NULL;
+#else
+    u8_tld_set(kno_zmq_thread_data_key,NULL);
+#endif
   ssize_t i = 0, len = info->sockets_len;
   if (len>0)
     u8_logf(LOG_DEBUG,"ZeroMQ/ThreadCleanup",
@@ -828,6 +833,7 @@ static void kno_zeromq_thread_cleanup()
     zmq->zmq_thread_off = -1;
     sockets[i] = NULL;
     i++;}
+  u8_free(info);
 }
 
 /* Initializing symbols */
