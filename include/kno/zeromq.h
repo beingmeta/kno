@@ -7,8 +7,9 @@ typedef struct KNO_ZEROMQ {
   KNO_CONS_HEADER;
   u8_string zmq_id;
   enum zmq_type zmq_type;
+  lispval zmq_subtype;
   pthread_t zmq_thread;
-  int zmq_off; /* Offset in thread table */
+  int zmq_thread_off; /* Offset in thread table */
   unsigned int zmq_flags;
   void *zmq_ptr;} KNO_ZEROMQ;
 typedef struct KNO_ZEROMQ *kno_zeromq;
@@ -21,12 +22,13 @@ KNO_EXPORT void *kno_zeromq_ctx;
 KNO_EXPORT void *kno_init_zeromq_ctx(void);
 
 typedef struct KNO_ZMQ_THREAD_DATA {
-  pthread_t data_thread;
-  ssize_t sockets_len, sockets_end, open_socket;
+  pthread_t data_for_thread;
+  ssize_t sockets_len, last_socket, open_socket;
   struct KNO_ZEROMQ *zmq_socket0;}
   *kno_zmq_thread_data;
 
-#define ZMQ_SOCK_REF(s,i) ((&(s->zmq_socket0))[i])
+#define KNO_ZMQ_SOCK_REF(s,i) ((&(s->zmq_socket0))[i])
+#define KNO_ZMQ_SOCKETS(s)    (&(s->zmq_socket0))
 
 #if KNO_USE__THREAD
 KNO_EXPORT __thread kno_zmq_thread_socks kno_zeromq_thread_data;
