@@ -1,4 +1,4 @@
-(check-modules '{condense dopool engine extoids ezrecords fifo
+(check-modules '{condense dopool engine sqloids ezrecords fifo
 		 gpath jsonout logctl logger mimetable
 		 mttools packetfns parsetime readfile
 		 stringfmts usedb varconfig

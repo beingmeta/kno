@@ -1,7 +1,7 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2010-2019 beingmeta, inc. All rights reserved
 
-(in-module 'extoids)
+(in-module 'sqloids)
 
 (use-module '{sqldb varconfig reflection logger})
 
@@ -16,7 +16,7 @@
 (module-export! '{xo/defstore xo/defadd xo/defdrop xo/defget xo/defgetstore})
 
 (define-init usecache #t)
-(varconfig! extoids:cache usecache)
+(varconfig! sqloids:cache usecache)
 
 (define-init store-procs (make-hashtable))
 (define-init add-procs (make-hashtable))
