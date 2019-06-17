@@ -1418,6 +1418,7 @@ static int run_server(u8_string server_spec)
          shutdown_reason);
   run_shutdown_procs();
   u8_log(LOG_NOTICE,ServerShutdown,"Exited server loop");
+  u8_threadexit();
   kno_doexit(KNO_FALSE);
   return 0;
 }

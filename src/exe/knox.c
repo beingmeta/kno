@@ -381,6 +381,11 @@ int do_main(int argc,char **argv,
     kno_decref(result);
     kno_decref(main_proc);}
 
+  /* Run registered thread cleanup handlers.
+     Note that since the main thread wasn't started with a function which
+     calls u8_threadexit(), we do it here. */
+  u8_threadexit();
+
   return retval;
 }
 

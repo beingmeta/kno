@@ -1635,8 +1635,8 @@ static void shutdown_server()
 static void shutdown_servlet(u8_condition reason)
 {
   if (reason == NULL) reason = "fate";
+  u8_lock_mutex(&server_port_lock);
   int i = n_ports-1;
-  u8_lock_mutex(&server_port_lock); i = n_ports-1;
   if (reason)
     u8_log(LOG_WARN,reason,
            "Shutting down, removing socket files and pidfile %s",
@@ -1662,6 +1662,7 @@ static void shutdown_servlet(u8_condition reason)
       u8_log(LOG_WARN,"Servlet/shutdown",
              "Couldn't remove pid file %s",pidfile);
     u8_free(filename);}
+  u8_threadexit();
 }
 
 static lispval servlet_status_string()
@@ -2261,6 +2262,8 @@ static int run_servlet(u8_string socket_spec)
   u8_message("Servlet, normal exit of u8_server_loop()");
 
   shutdown_servlet(shutdown_reason);
+
+  kno_doexit(KNO_FALSE);
 
   exit(0);
 

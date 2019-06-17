@@ -1130,6 +1130,10 @@ int main(int argc,char **argv)
     u8_free(eval_server);
     kno_decref(lastval);
     kno_decref(result);}
+  /* Run registered thread cleanup handlers.
+     Note that since the main thread wasn't started with a function which
+     calls u8_threadexit(), we do it here. */
+  u8_threadexit();
   kno_pop_stack(_stack);
   kno_doexit(KNO_FALSE);
   exit(0);
