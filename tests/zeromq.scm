@@ -2,6 +2,13 @@
 
 (use-module '{zeromq crypto packetfns})
 
+(define (main)
+  (test-send/recv)
+  (test-simple-server)
+  (test-proxy-server))
+
+;;; Simple tests
+
 (define (test-addr addr (listen #f))
   (let ((client (zmq/open addr 'request))
 	(server (zmq/listen (or listen addr) 'reply))
@@ -21,6 +28,8 @@
 (define (test-send/recv)
   (test-addr "inproc://build-test")
   (test-addr "tcp://localhost:9999" "tcp://*:9999"))
+
+;;; Very simple server
 
 (define (serverfn server (fn #f) (running #t))
   (when (string? server) 
@@ -44,12 +53,13 @@
 
 (define (client-loop addr)
   (let ((client (zmq/open addr 'request)))
-    (dotimes (i 100)
+    (dotimes (i 5)
       (let ((msg (random-packet 32)))
 	(zmq/send! client msg)
-	(applytest msg (zmq/recv client))))))
+	(applytest msg (zmq/recv client)))))
+  (logwarn |ExitClient|))
 
-(define (test-simple-server (addr "tcp://localhost:8888") (listen))
+(define (test-simple-server (addr "tcp://localhost:9999") (listen))
   (default! listen (string-subst addr "//localhost:" "//127.0.0.1:"))
   (let* ((server (thread/call serverfn listen #f))
 	 (clients {}))
@@ -66,8 +76,53 @@
       (sleep 1)
       (applytest #t thread/finished? server))))
 
+;;;; Proxy server (multiple threads)
 
-(define (main)
-  (test-send/recv)
-  (test-simple-server))
+(define (test-proxy-server (addr "tcp://localhost:9999") (listen))
+  (default! listen (string-subst addr "//localhost:" "//127.0.0.1:"))
+  (let* ((proxy-thread (thread/call proxyfn listen "inproc://workers"))
+	 (workers {})
+	 (clients {}))
+    (dotimes (i 2)
+      (set+! workers (thread/call workerfn "inproc://workers")))
+    (dotimes (i 2)
+      (set+! clients (thread/call client-loop addr)))
+    (lognotice |StartedClients|
+      "Waiting for " (choice-size clients) " to finish:"
+      (do-choices (client clients)
+	(printout "\n    " client)))
+    (let ((joined-clients (thread/join clients))
+	  (external-port (zmq/open addr 'request)))
+      (applytest #t (thread/finished? joined-clients))
+      (sleep 1)
+      (begin (zmq/send! external-port #X"00")  (zmq/recv external-port))
+      (let ((remaining (thread/wait workers 0.1)))
+	(while (exists? remaining)
+	  (zmq/send! external-port #X"00")
+	  (zmq/recv external-port)
+	  (set! remaining (thread/wait remaining 0.1))))
+      (applytest #t thread/finished? workers)
+      (thread/cancel! proxy-thread)
+      proxy-thread)))
+
+(define (workerfn dealer (fn #f) (running #t))
+  (when (string? dealer) 
+    (set! dealer (zmq/open dealer 'reply)))
+  (while running
+    (let ((request (zmq/recv dealer)))
+      (if (equal? request #X"00")
+	  (begin (zmq/send! dealer request)
+	    (set! running #f))
+	  (if fn
+	      (let ((response (fn request)))
+		(zmq/send! dealer response))
+	      (zmq/send! dealer request)))))
+  (logwarn |ExitWorker|))
+
+(define (proxyfn world workers)
+  (let ((router (zmq/listen world 'router))
+	(dealer (zmq/listen workers 'dealer)))
+    (zmq/proxy! router dealer)))
+
+(optimize!)
 
