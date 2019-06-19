@@ -74,6 +74,15 @@
     (when (zero? (random 5)) (thread/yield)))
   (elapsed-time start))
 
+(define (test-thread-cancel)
+  (let ((slowhand (lambda (x) (sleep 5) x))
+	(thread1 (thread/call slowhand 1))
+	(thread2 (thread/call slowhand 7))
+	(thread3 (thread/call slowhand 10)))
+    (sleep 2)
+    (thread/cancel thread2)
+    (applytest {1 10} thread/finish {thread1 thread2 thread3})))
+
 (define (test-thread/call (waitfn thread/join) (wait-opts #default))
   (let ((threads {}))
     (set! numbers '())
