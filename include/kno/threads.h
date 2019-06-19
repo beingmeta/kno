@@ -17,6 +17,7 @@ KNO_EXPORT kno_ptr_type kno_synchronizer_type;
 #define KNO_THREAD_DONE       0x0001
 #define KNO_THREAD_ERROR      0x0002
 #define KNO_EVAL_THREAD       0x0004
+#define KNO_THREAD_CANCELLED  0x0008
 #define KNO_THREAD_TRACE_EXIT 0x0080
 #define KNO_THREAD_QUIET_EXIT 0x0100
 

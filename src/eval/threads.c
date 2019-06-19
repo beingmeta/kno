@@ -183,12 +183,14 @@ static int unparse_thread_struct(u8_output out,lispval x)
 	      th->threadid,(unsigned long)(th->tid),
 	      ((th->flags&KNO_THREAD_ERROR) ? (" error") :
 	       (th->flags&KNO_THREAD_DONE) ? (" done") :
+	       (th->flags&KNO_THREAD_CANCELLED) ? (" cancelled") :
 	       ("live")),
 	      th->evaldata.expr);
   else u8_printf(out,"#<THREAD (%lld)0x%x%s apply %q>",
 		 th->threadid,(unsigned long)(th->tid),
 		 ((th->flags&KNO_THREAD_ERROR) ? (" error") :
 		  (th->flags&KNO_THREAD_DONE) ? (" done") :
+		  (th->flags&KNO_THREAD_CANCELLED) ? (" cancelled") :
 		  ("live")),
 		 th->applydata.fn);
   return 1;
@@ -582,6 +584,23 @@ static lispval condvar_unlock(lispval cvar)
   return KNO_TRUE;
 }
 
+static void threadexit_cleanup(void *calldata)
+{
+  struct KNO_THREAD_STRUCT *tstruct =
+    (struct KNO_THREAD_STRUCT *) calldata;
+  int rv = u8_threadexit();
+  if (tstruct->finished < 0) {
+    lispval reason = tstruct->result;
+    if ( (KNO_NULLP(reason)) || (KNO_VOIDP(reason)) )
+      u8_log(LOGWARN,"ThreadCanceled",
+	     "%q was cancelled prematurely after %f seconds",
+	     (lispval)tstruct,u8_elapsed_time()-tstruct->started);
+    else u8_log(LOGWARN,"ThreadCanceled",
+		"%q was cancelled prematurely after %f seconds",
+		(lispval)tstruct,u8_elapsed_time()-tstruct->started);}
+  return;
+}
+
 /* Functions */
 
 static void *thread_main(void *data)
@@ -593,112 +612,115 @@ static void *thread_main(void *data)
     (((flags)&(KNO_THREAD_QUIET_EXIT)) ? (0) :
      (thread_log_exit));
 
-  tstruct->errnop = &(errno);
-  tstruct->threadid = u8_threadid();
+  pthread_cleanup_push(threadexit_cleanup,data); {
 
-  KNO_INIT_STACK();
+    tstruct->errnop = &(errno);
+    tstruct->threadid = u8_threadid();
 
-  KNO_NEW_STACK(((struct KNO_STACK *)NULL),"thread",NULL,VOID);
-  _stack->stack_label=u8_mkstring("thread%lld",u8_threadid());
-  U8_SETBITS(_stack->stack_flags,KNO_STACK_FREE_LABEL);
-  tstruct->thread_stackptr=_stack;
+    KNO_INIT_STACK();
 
-  /* Set (block) most signals */
-  pthread_sigmask(SIG_SETMASK,kno_default_sigmask,NULL);
+    KNO_NEW_STACK(((struct KNO_STACK *)NULL),"thread",NULL,VOID);
+    _stack->stack_label=u8_mkstring("thread%lld",u8_threadid());
+    U8_SETBITS(_stack->stack_flags,KNO_STACK_FREE_LABEL);
+    tstruct->thread_stackptr=_stack;
 
-  /* Run any thread init functions */
-  u8_threadcheck();
+    /* Set (block) most signals */
+    pthread_sigmask(SIG_SETMASK,kno_default_sigmask,NULL);
 
-  tstruct->started = u8_elapsed_time();
-  tstruct->finished = -1;
+    /* Run any thread init functions */
+    u8_threadcheck();
 
-  if (tstruct->flags&KNO_EVAL_THREAD)
-    result = kno_eval(tstruct->evaldata.expr,tstruct->evaldata.env);
-  else
-    result = kno_dapply(tstruct->applydata.fn,
-			tstruct->applydata.n_args,
-			tstruct->applydata.args);
-  result = kno_finish_call(result);
+    tstruct->started = u8_elapsed_time();
+    tstruct->finished = -1;
 
-  tstruct->finished = u8_elapsed_time();
-  tstruct->flags = tstruct->flags|KNO_THREAD_DONE;
-
-  if ( (KNO_ABORTP(result)) && (errno) ) {
-    u8_exception ex = u8_current_exception;
-    u8_log(thread_loglevel,ThreadExit,
-	   "Thread #%lld error (errno=%s:%d) %s (%s) %s",
-	   u8_threadid(),u8_strerror(errno),errno,
-	   ex->u8x_cond,U8_STRING_ARG(ex->u8x_context),
-	   U8_STRING_ARG(ex->u8x_details));}
-  else if (KNO_ABORTP(result)) {
-    u8_exception ex = u8_current_exception;
-    u8_log(thread_loglevel,ThreadExit,
-	   "Thread #%lld error %s (%s) %s",
-	   u8_threadid(),ex->u8x_cond,
-	   U8_STRING_ARG(ex->u8x_context),
-	   U8_STRING_ARG(ex->u8x_details));}
-  else if (errno) {
-    u8_log(thread_loglevel,ThreadExit,
-	   "Thread #%lld exited (errno=%s:%d) returning %s%q",
-	   u8_threadid(),u8_strerror(errno),errno,
-	   ((CONSP(result))?("\n    "):("")),
-	   result);}
-  else if (log_exit) {
-    tstruct->result = result;
-    u8_log(thread_loglevel,ThreadExit,
-	   "Thread #%lld exited returning %s%q",
-	   u8_threadid(),((CONSP(result))?("\n    "):("")),result);}
-  else tstruct->result = result;
-
-  u8_threadexit();
-
-  if (KNO_ABORTP(result)) {
-    u8_exception ex = u8_erreify();
-    tstruct->flags = tstruct->flags|KNO_THREAD_ERROR;
-    if (ex->u8x_details)
-      u8_log(LOG_WARN,ThreadReturnError,
-	     "Thread #%d %s @%s (%s)",u8_threadid(),
-	     ex->u8x_cond,ex->u8x_context,ex->u8x_details);
-    else u8_log(LOG_WARN,ThreadReturnError,
-		"Thread #%d %s @%s",u8_threadid(),
-		ex->u8x_cond,ex->u8x_context);
     if (tstruct->flags&KNO_EVAL_THREAD)
-      u8_log(LOG_WARN,ThreadReturnError,"Thread #%d was evaluating %q",
-	     u8_threadid(),tstruct->evaldata.expr);
-    else u8_log(LOG_WARN,ThreadReturnError,"Thread #%d was applying %q",
-		u8_threadid(),tstruct->applydata.fn);
-    kno_log_errstack(ex,LOG_WARN,1);
-    if (kno_thread_backtrace) {
-      U8_STATIC_OUTPUT(tmp,8000);
-      kno_sum_exception(tmpout,ex);
-      u8_log(LOG_WARN,ThreadBacktrace,"%s",tmp.u8_outbuf);
-      if (kno_dump_exception) {
-	lispval exo = kno_get_exception(ex);
-	kno_dump_exception(exo);}
-      u8_close_output(tmpout);}
-    lispval exception = kno_get_exception(ex);
-    if (KNO_VOIDP(exception))
-      exception = kno_wrap_exception(ex);
-    else kno_incref(exception);
-    if (kno_dump_exception) kno_dump_exception(exception);
-    tstruct->result = exception;
-    if (tstruct->resultptr) {
-      kno_incref(exception);
-      *(tstruct->resultptr) = exception;}
-    else NO_ELSE;
-    u8_free_exception(ex,1);}
-  else {
-    if (tstruct->resultptr) {
-      kno_incref(result);
-      *(tstruct->resultptr) = result;}
-    else NO_ELSE;}
-  if (tstruct->flags&KNO_EVAL_THREAD) {
-    lispval free_env = (lispval) tstruct->evaldata.env;
-    tstruct->evaldata.env = NULL;
-    kno_decref(free_env);}
-  tstruct->thread_stackptr = NULL;
-  kno_pop_stack(_stack);
+      result = kno_eval(tstruct->evaldata.expr,tstruct->evaldata.env);
+    else
+      result = kno_dapply(tstruct->applydata.fn,
+			  tstruct->applydata.n_args,
+			  tstruct->applydata.args);
+    result = kno_finish_call(result);
+
+    tstruct->finished = u8_elapsed_time();
+    tstruct->flags = tstruct->flags|KNO_THREAD_DONE;
+
+    if ( (KNO_ABORTP(result)) && (errno) ) {
+      u8_exception ex = u8_current_exception;
+      u8_log(thread_loglevel,ThreadExit,
+	     "Thread #%lld error (errno=%s:%d) %s (%s) %s",
+	     u8_threadid(),u8_strerror(errno),errno,
+	     ex->u8x_cond,U8_STRING_ARG(ex->u8x_context),
+	     U8_STRING_ARG(ex->u8x_details));}
+    else if (KNO_ABORTP(result)) {
+      u8_exception ex = u8_current_exception;
+      u8_log(thread_loglevel,ThreadExit,
+	     "Thread #%lld error %s (%s) %s",
+	     u8_threadid(),ex->u8x_cond,
+	     U8_STRING_ARG(ex->u8x_context),
+	     U8_STRING_ARG(ex->u8x_details));}
+    else if (errno) {
+      u8_log(thread_loglevel,ThreadExit,
+	     "Thread #%lld exited (errno=%s:%d) returning %s%q",
+	     u8_threadid(),u8_strerror(errno),errno,
+	     ((CONSP(result))?("\n    "):("")),
+	     result);}
+    else if (log_exit) {
+      tstruct->result = result;
+      u8_log(thread_loglevel,ThreadExit,
+	     "Thread #%lld exited returning %s%q",
+	     u8_threadid(),((CONSP(result))?("\n    "):("")),result);}
+    else tstruct->result = result;
+
+    if (KNO_ABORTP(result)) {
+      u8_exception ex = u8_erreify();
+      tstruct->flags = tstruct->flags|KNO_THREAD_ERROR;
+      if (ex->u8x_details)
+	u8_log(LOG_WARN,ThreadReturnError,
+	       "Thread #%d %s @%s (%s)",u8_threadid(),
+	       ex->u8x_cond,ex->u8x_context,ex->u8x_details);
+      else u8_log(LOG_WARN,ThreadReturnError,
+		  "Thread #%d %s @%s",u8_threadid(),
+		  ex->u8x_cond,ex->u8x_context);
+      if (tstruct->flags&KNO_EVAL_THREAD)
+	u8_log(LOG_WARN,ThreadReturnError,"Thread #%d was evaluating %q",
+	       u8_threadid(),tstruct->evaldata.expr);
+      else u8_log(LOG_WARN,ThreadReturnError,"Thread #%d was applying %q",
+		  u8_threadid(),tstruct->applydata.fn);
+      kno_log_errstack(ex,LOG_WARN,1);
+      if (kno_thread_backtrace) {
+	U8_STATIC_OUTPUT(tmp,8000);
+	kno_sum_exception(tmpout,ex);
+	u8_log(LOG_WARN,ThreadBacktrace,"%s",tmp.u8_outbuf);
+	if (kno_dump_exception) {
+	  lispval exo = kno_get_exception(ex);
+	  kno_dump_exception(exo);}
+	u8_close_output(tmpout);}
+      lispval exception = kno_get_exception(ex);
+      if (KNO_VOIDP(exception))
+	exception = kno_wrap_exception(ex);
+      else kno_incref(exception);
+      if (kno_dump_exception) kno_dump_exception(exception);
+      tstruct->result = exception;
+      if (tstruct->resultptr) {
+	kno_incref(exception);
+	*(tstruct->resultptr) = exception;}
+      else NO_ELSE;
+      u8_free_exception(ex,1);}
+    else {
+      if (tstruct->resultptr) {
+	kno_incref(result);
+	*(tstruct->resultptr) = result;}
+      else NO_ELSE;}
+    if (tstruct->flags&KNO_EVAL_THREAD) {
+      lispval free_env = (lispval) tstruct->evaldata.env;
+      tstruct->evaldata.env = NULL;
+      kno_decref(free_env);}
+    tstruct->thread_stackptr = NULL;
+    kno_pop_stack(_stack);}
+  pthread_cleanup_pop(1);
+
   kno_decref((lispval)tstruct);
+
   return NULL;
 }
 
@@ -942,6 +964,28 @@ static lispval threadeval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     kno_decref(opts_arg);
     return results;}
 }
+
+DCLPRIM("THREAD/CANCEL!",thread_cancel_prim,MIN_ARGS(1)|MAX_ARGS(2),
+	"(THREAD/CANCEL! *thread*) attempts to cancel (terminate) *thread*.")
+static lispval thread_cancel_prim(lispval thread_arg,lispval reason)
+{
+  struct KNO_THREAD_STRUCT *thread = (struct KNO_THREAD_STRUCT *)thread_arg;
+  if ((thread->flags)&(KNO_THREAD_DONE))
+    return KNO_FALSE;
+  else {
+    int rv = pthread_cancel(thread->tid);
+    if (rv < 0) {
+      int e = errno; errno =0;
+      if (e) u8_log(LOG_WARN,"Thread/Cancel/Failed","For %q",thread_arg);
+      return KNO_FALSE;}
+    else {
+      kno_incref(reason);
+      thread->flags |= KNO_THREAD_CANCELLED;
+      thread->finished = u8_elapsed_time();
+      thread->result = reason;
+      return KNO_TRUE;}}
+}
+
 
 DCLPRIM("THREAD/EXITED?",thread_exitedp,MIN_ARGS(1)|MAX_ARGS(1),
 	"(THREAD/EXITED? *thread*) returns true if *thread* has exited")
@@ -1545,6 +1589,7 @@ KNO_EXPORT void kno_init_threads_c()
 		 sassign_evalfn);
 
   int one_thread_arg[1] = { kno_thread_type };
+  int thread_plus_arg[2] = { kno_thread_type, kno_any_type };
   int find_thread_types[2] = { kno_fixnum_type, kno_any_type };
 
   DECL_PRIM_ARGS(threadid_prim,1,threads_module,one_thread_arg,NULL);
@@ -1554,6 +1599,8 @@ KNO_EXPORT void kno_init_threads_c()
   DECL_PRIM_ARGS(thread_finishedp,1,threads_module,one_thread_arg,NULL);
   DECL_PRIM_ARGS(thread_errorp,1,threads_module,one_thread_arg,NULL);
   DECL_PRIM_ARGS(thread_result,1,threads_module,one_thread_arg,NULL);
+
+  DECL_PRIM_ARGS(thread_cancel_prim,2,threads_module,thread_plus_arg,NULL);
 
   timeout_symbol = kno_intern("timeout");
   logexit_symbol = kno_intern("logexit");
