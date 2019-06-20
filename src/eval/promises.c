@@ -184,7 +184,8 @@ static int unparse_promise(u8_output out,lispval x)
   struct KNO_PROMISE *p = (kno_promise) x;
   u8_printf(out,"#<PROMISE %s %q>",
 	    ((p->promise_value == KNO_NULL) ? ("pending") :
-	     (p->promise_broken) ? ("broken") : ("resolved")),
+	     (p->promise_broken) ? ("broken") :
+             ("resolved")),
 	    p->promise_expr);
   return 1;
 }
