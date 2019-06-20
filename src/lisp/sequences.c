@@ -99,7 +99,8 @@ KNO_EXPORT lispval kno_seq_elt(lispval x,int i)
       if (i>=VEC_LEN(x)) return KNO_RANGE_ERROR;
       else return kno_incref(VEC_REF(x,i));
     case kno_packet_type: case kno_secret_type:
-      if (i>=KNO_PACKET_LENGTH(x)) return KNO_RANGE_ERROR;
+      if (i>=KNO_PACKET_LENGTH(x))
+        return KNO_RANGE_ERROR;
       else {
         int val = KNO_PACKET_DATA(x)[i];
         return KNO_INT(val);}
@@ -269,7 +270,10 @@ KNO_EXPORT int kno_position(lispval key,lispval seq,int start,int limit)
           else i = i+delta;
         else i = i+delta;}
       return -1;}
-    case kno_packet_type: case kno_secret_type: {
+    case kno_secret_type: {
+      kno_err("SecretData","kno_position",NULL,seq);
+      return -1;}
+    case kno_packet_type: {
       int intval = (KNO_INTP(key))?(FIX2INT(key)):(-1);
       if ((KNO_UINTP(key))&&(intval>=0)&&(intval<0x100)) {
         const unsigned char *data = KNO_PACKET_DATA(seq);
@@ -357,7 +361,10 @@ KNO_EXPORT int kno_rposition(lispval key,lispval x,int start,int end)
       else while (start<end--)
              if (LISP_EQUAL(key,data[end])) return end;
       return -1;}
-    case kno_packet_type: case kno_secret_type: {
+    case kno_secret_type: {
+      kno_err("SecretData","kno_rposition",NULL,x);
+      return -1;}
+    case kno_packet_type: {
       const unsigned char *data = KNO_PACKET_DATA(x);
       int len = KNO_PACKET_LENGTH(x), keyval;
       if (end<0) end = len;
@@ -517,7 +524,11 @@ lispval *kno_seq_elts(lispval seq,int *n)
     lispval *vec = u8_alloc_n(len,lispval);
     *n = len;
     switch (ctype) {
-    case kno_packet_type: case kno_secret_type: {
+    case kno_secret_type: {
+      *n = -1;
+      kno_err("SecretData","kno_elts",NULL,seq);
+      return NULL;}
+    case kno_packet_type: {
       const unsigned char *packet = KNO_PACKET_DATA(seq);
       int i = 0; while (i < len) {
         int byte = packet[i];
