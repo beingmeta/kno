@@ -32,8 +32,8 @@
     (applytest #t coderef? coderef)
     (applytest #f coderef? '(code))
     (applytest #f coderef? 0xc0de)
-    (applytest? string? lisp->string coderef)
-    (applytest? packet? dtype->packet coderef)
+    (applytest-pred string? lisp->string coderef)
+    (applytest-pred packet? dtype->packet coderef)
     (applytest #t coderef? coderef)
     (applytest 16 %coderefval coderef)))
 
@@ -96,13 +96,20 @@
 		      (set! ,arg2 tmp)))))
 	(x 3)
 	(y 4))
-    (applytest? string? lisp->string swapf)
+    (applytest-pred string? lisp->string swapf)
     ;; From ezrecords, coverage for macros defined in module
-    (applytest? string? lisp->string defrecord)
+    (applytest-pred string? lisp->string defrecord)
     (swapf x y)
     (applytest -1 - y x)))
 
 (test-macros)
+
+;;; If variants
+
+
+
+
+;;; Reflection like tests
 
 (applytest #t string? (lisp->string if))
 (applytest #t packet? (dtype->packet if))
@@ -225,26 +232,26 @@
 (evaltest 5 (%choiceref (qc {5 (symbol->string '{a b c})}) 0))
 
 (applytest 0 compare 5 5)
-(applytest? positive? compare 5 4)
-(applytest? negative? compare 4 5)
+(applytest-pred positive? compare 5 4)
+(applytest-pred negative? compare 4 5)
 
 (applytest 0 compare 'five 'five)
 (applytest 0 compare "five" "five")
-(applytest? positive? compare "six" "five")
-(applytest? negative? compare "five" "six")
+(applytest-pred positive? compare "six" "five")
+(applytest-pred negative? compare "five" "six")
 
 (applytest 0 compare '(5 3) '(5 3))
-(applytest? negative? compare '(5 3) '(6 3))
-(applytest? positive? compare '(5 4) '(5 3))
+(applytest-pred negative? compare '(5 3) '(6 3))
+(applytest-pred positive? compare '(5 4) '(5 3))
 
 (applytest 0 compare #(5 3) #(5 3))
-(applytest? negative? compare #(5 3) #(6 3))
-(applytest? positive? compare #(5 4) #(5 3))
+(applytest-pred negative? compare #(5 3) #(6 3))
+(applytest-pred positive? compare #(5 4) #(5 3))
 
 
 (applytest 0 compare/quick 5 5)
-(applytest? positive? compare/quick 5 4)
-(applytest? negative? compare/quick 4 5)
+(applytest-pred positive? compare/quick 5 4)
+(applytest-pred negative? compare/quick 4 5)
 
 (applytest 0 compare/quick 'five 'five)
 (applytest 0 compare/quick "five" "five")
@@ -339,13 +346,13 @@
 
 (applytest "#!5" hashref #f)
 (applytest "#!86" hashref 33)
-(applytest? string? hashref "foo")
-(applytest? string? hashref '(x y))
+(applytest-pred string? hashref "foo")
+(applytest-pred string? hashref '(x y))
 
-(applytest? fixnum? hashptr 33)
-(applytest? fixnum? hashptr 'thirtythree)
-(applytest? integer? hashptr "thirtythree")
-(applytest? integer? hashptr '(a b))
+(applytest-pred fixnum? hashptr 33)
+(applytest-pred fixnum? hashptr 'thirtythree)
+(applytest-pred integer? hashptr "thirtythree")
+(applytest-pred integer? hashptr '(a b))
 
 ;;;; Structure eval tests
 
@@ -359,9 +366,25 @@
 (define (return-void) (void))
 (applytest 'void return-void)
 
+(applytest-pred packet? dtype->packet return-void)
+
 ;;; Syntax errors
 
 (define exprs '((+ 2 3) (* 3 9)))
+
+(errtest (lambda))
+(errtest (ambda))
+(errtest (slambda))
+(errtest (define))
+(errtest (define foo))
+(errtest (define "foo"))
+(errtest (define ("foo")))
+(errtest (defslambda))
+(errtest (defslambda foo))
+(errtest (defslambda ("foo")))
+(errtest (defambda))
+(errtest (defambda foo))
+(errtest (defambda ("foo")))
 
 (errtest (begin . exprs))
 (errtest (dotimes (i 18) . exprs))
@@ -381,6 +404,84 @@
 (errtest (dotimes (i '(a b c)) . exprs))
 (errtest (dolist (e 3) . exprs))
 (errtest (doseq (e 3) . exprs))
+(errtest (dotimes (i) i))
+(errtest (dolist (e) i))
+(errtest (doseq (e) i))
+(errtest (dotimes ("i" 3) i))
+(errtest (dolist ("e" '(x y)) i))
+(errtest (doseq ("e" #(x y)) i))
+(errtest (dotimes (i "three") i))
+(errtest (dolist ("e" #(x y)) e))
+(errtest (doseq ("e" 'xyseq) e))
+(errtest (dotimes (i 3) (+ i "one")))
+(errtest (dolist (e '(a b c)) (string->symbol e)))
+(errtest (doseq (e #(a b c)) (string->symbol e)))
+(errtest (tryseq (e #(a b c)) . exprs))
+(errtest (tryseq (e #(a b c)) (string->symbol e)))
+(errtest (tryseq (e (append 'z #(a b c))) (string->symbol e)))
+(errtest (while))
+(errtest (while . broke))
+(errtest (while (= 3 "three")))
+(errtest (until))
+(errtest (until . broke))
+(errtest (until (= 3 "three")))
+
+(errtest (if))
+(errtest (if (= 3 3)))
+(errtest (when))
+(errtest (unless))
+(errtest (tryif))
+
+(errtest (when (= 3 "three")))
+(errtest (unless (= 9 'nine)))
+(errtest (tryif (> 7 "seven")))
+
+(errtest (case))
+(errtest (case (* 3 'x)))
+(evaltest 30 (case (* 3 5) (15 30)))
+(errtest (case (* 3 5) (15 (+ 30 'z))))
+
+(errtest (tryif (= 3 3) (fail) (define foo 3)))
+
+;;; Lambda stuff
+
+(define test-nlambda
+  (nlambda 'test (x y) (+ x y)))
+(applytest #t applicable? test-nlambda)
+(applytest #t procedure? test-nlambda)
+(applytest 5 test-nlambda 3 2)
+(applytest "test" procedure-name test-nlambda)
+(applytest 'test procedure-symbol test-nlambda)
+
+(define test-def (def (td x y) (+ x y)))
+(applytest #t applicable? test-def)
+(applytest #t procedure? test-def)
+(applytest #f non-deterministic? test-def)
+(applytest #f synchronized? test-def)
+(applytest 5 test-def 3 2)
+(applytest "td" procedure-name test-def)
+(applytest 'td procedure-symbol test-def)
+(evaltest #f (bound? testfn))
+
+(define test-defsync (defsync (td x y) (+ x y)))
+(applytest #t applicable? test-defsync)
+(applytest #t procedure? test-defsync)
+(applytest #f non-deterministic? test-defsync)
+(applytest #t synchronized? test-defsync)
+(applytest 5 test-defsync 3 2)
+(applytest "td" procedure-name test-defsync)
+(applytest 'td procedure-symbol test-defsync)
+(evaltest #f (bound? testfn))
+
+(define test-defamb (def (td x y) (+ x y)))
+(applytest #t applicable? test-defamb)
+(applytest #t procedure? test-defamb)
+(applytest #t non-deterministic? test-defamb)
+(applytest #f synchronized? test-defamb)
+(applytest 5 test-defamb 3 2)
+(applytest "td" procedure-name test-defamb)
+(applytest 'td procedure-symbol test-defamb)
+(evaltest #f (bound? testfn))
 
 ;;; Loading stuff
 
