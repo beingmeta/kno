@@ -2,6 +2,8 @@
 
 (load-component "common.scm")
 
+(use-module 'ezrecords)
+
 (define textmatch (get (get-module 'texttools) 'textmatch))
 
 (define (test-lexrefs (v 'foo))
@@ -95,6 +97,8 @@
 	(x 3)
 	(y 4))
     (applytest? string? lisp->string swapf)
+    ;; From ezrecords, coverage for macros defined in module
+    (applytest? string? lisp->string defrecord)
     (swapf x y)
     (applytest -1 - y x)))
 
