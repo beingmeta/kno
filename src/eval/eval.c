@@ -1814,10 +1814,6 @@ static lispval ffi_proc(int n,lispval *args)
             u8_strdup("No FFI support is available in this build of Kno"));
   return KNO_ERROR;
 }
-static lispval ffi_probe(int n,lispval *args)
-{
-  return KNO_FALSE;
-}
 static lispval ffi_found_prim(lispval name,lispval modname)
 {
   return KNO_FALSE;
