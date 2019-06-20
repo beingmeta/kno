@@ -453,6 +453,11 @@
 (applytest "test" procedure-name test-nlambda)
 (applytest 'test procedure-symbol test-nlambda)
 
+(define test-nlambda-copy (deep-copy test-nlambda))
+(applytest #f eq? test-nlambda test-nlambda-copy)
+(applytest #f equal? test-nlambda test-nlambda-copy)
+(applytest 5 test-nlambda-copy 3 2)
+
 (define test-def (def (td x y) (+ x y)))
 (applytest #t applicable? test-def)
 (applytest #t procedure? test-def)
@@ -482,6 +487,18 @@
 (applytest "td" procedure-name test-defamb)
 (applytest 'td procedure-symbol test-defamb)
 (evaltest #f (bound? testfn))
+
+(define test-sappend (def (string-append x (y "something")) (append x y)))
+(applytest "foobar" test-sappend "foo" "bar")
+(applytest "foosomething" test-sappend "foo")
+(errtest (test-sappend))
+
+(define test-sappend-copy (deep-copy test-sappend))
+(applytest "foobar" test-sappend-copy "foo" "bar")
+(applytest "foosomething" test-sappend-copy "foo")
+(errtest (test-sappend-copy))
+(errtest (test-sappend-copy 'foo))
+
 
 ;;; Loading stuff
 

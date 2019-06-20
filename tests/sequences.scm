@@ -18,6 +18,31 @@
 (applytester  2 position 51 p1)
 (applytester  3 search #X"ba9c" p1)
 
+(applytester 2 position 'foo #({a b} {9 11} {foo bar}))
+(applytester 1 position '#{foo 9} #({a b} {9 11} {foo bar}))
+(applytester 2 position '#{foo bar} #({a b} {9 11} {foo bar}))
+
+(errtest (length 'foo))
+(errtest (position 3 'foo))
+(errtest (position 3 "345" 'start))
+(errtest (position 3 "345" 0 'end))
+(errtest (subseq 3 0 9))
+(errtest (subseq 'foo 0 9))
+(errtest (subseq "foo" 'start))
+(errtest (subseq "foo" 0 'end))
+(errtest (search 'foo "barfoofuzz"))
+(errtest (elt 'foo 1))
+(errtest (elt 3 1))
+(errtest (elts 'foo))
+(errtest (elts "foo" 'start))
+(errtest (elts "foo" 0 'end))
+(errtest (elts '(a b c . d)))
+
+(applytest #("foo" "bar" "quuz") remove "baz" #("foo" "bar" "baz" "quuz"))
+(applytest "abcdegh" remove #\f "abcdefgh")
+(applytest '("foo" "bar" "quuz") remove "baz" '("foo" "bar" "baz" "quuz"))
+(applytest #"abcdegh" remove (char->integer #\f) "abcdefgh")
+
 (define short-vec
   (vector 0 127 256 (* 256 16) (1+ (* 256 16)) (1- (* 256 16)) 127))
 (define int-vec
@@ -389,6 +414,20 @@
 (applytester #f parsefail "#B“M/8=”")
 (applytester #t parsefail "#B“M/_8=”")
 (applytester #t parsefail "#B“_M/8=”")
+
+;;; Secret operations
+
+(define asecret #*"keepitsafe")
+
+(applytest-pred secret? glom "thering" asecret)
+(applytest-pred secret? glom asecret "thering")
+(applytest-pred secret? slice asecret 0 2)
+(applytest 11 length asecret)
+
+(errtest (elt asecret 3))
+(errtest (position (char->integer #\k) asecret))
+(errtest (rposition (char->integer #\k) asecret))
+(errtest (elts asecret))
 
 ;;; Some simple test for non vector compounds
 

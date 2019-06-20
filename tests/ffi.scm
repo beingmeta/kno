@@ -32,4 +32,5 @@
 (define ffi_strdup (ffi/proc "_u8_strdup" #f #[basetype string mallocd #t] #[basetype ptr typespec envstring]))
 
 (when (getenv "USER")
-  (applytest (getenv "USER") ffi_strdup (ffi_getenv "USER")))
+  (applytest (getenv "USER") ffi_strdup (ffi_getenv "USER"))
+  (applytest-pred string? lisp->string (ffi_getenv "USER")))
