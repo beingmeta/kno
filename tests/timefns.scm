@@ -3,8 +3,11 @@
 (define est-time1 #T2011-12-03T03:23:00EST)
 (define gmt-time1 #T2011-12-03T08:23:00Z)
 
-(define est-time1-string #T2011-12-03T03:23:00EST)
+(define est-time1-string "2011-12-03T03:23:00EST")
 (define gmt-time1-string "2011-12-03T08:23:00Z")
+
+(applytest #t timestamp? est-time1)
+(applytest #f timestamp? est-time1-string)
 
 (define (get-sign n)
   (if (< n 0) -1 (if (> n 0) 1 0)))
@@ -18,6 +21,14 @@
 (applytest 0 get est-time1 'dstoff)
 (applytest -18000 get est-time1 'gmtoff)
 (applytest -18000 get est-time1 'tzoff)
+
+(applytest est-time1 timestamp (get est-time1 'rfc822))
+(applytest est-time1 timestamp (get est-time1 'iso))
+(applytest est-time1 timestamp (get est-time1 'isobasic))
+
+(applytest gmt-time1 timestamp (get gmt-time1 'rfc822))
+(applytest gmt-time1 timestamp (get gmt-time1 'iso))
+(applytest gmt-time1 timestamp (get gmt-time1 'isobasic))
 
 (applytest #f time<? time1-tick)
 (applytest #t time>? time1-tick)
@@ -66,8 +77,20 @@
 (applytest a-uuid parser/roundtrip a-uuid)
 (applytest a-uuid dtype/roundtrip a-uuid)
 
+(define yesterday (timestamp+ (* 3600 -24)))
+(define b-uuid (getuuid 42 yesterday))
+(applytest 42 (uuid-node b-uuid))
+;;(applytest yesterday (uuid-time b-uuid))
+;;; TODO: Need to see why this doesn't work
+
+(applytest-pred string? timestring)
 (applytest "02:05:00" secs->short (+ (* 3600 2) (* 60 5)))
+(applytest "64d-02:05:00" secs->short (+ (* 3600 24 365 3) (* 3600 24 9) (* 3600 2) (* 60 5)))
 (applytest "2 hours, 5 minutes" secs->string (+ (* 3600 2) (* 60 5)))
+(applytest "one week, 2 days, 2 hours, 5 minutes" 
+	   secs->string (+ (* 3600 24 9) (* 3600 2) (* 60 5)))
+(applytest "3 years, one week, 2 days, 2 hours, 5 minutes" 
+	   secs->string (+ (* 3600 24 365 3) (* 3600 24 9) (* 3600 2) (* 60 5)))
 
 (applytest #t > (microtime) (millitime) (time))
 
@@ -86,19 +109,40 @@
   (applytest -86400 tuntil yesterday)
   (applytest 172800 secsdiff tomorrow yesterday)
   (applytest -172800 secsdiff yesterday tomorrow)
+  (applytest #t time<? yesterday)
+  (applytest #t time<? (get yesterday 'tick))
+  (applytest #t time<? (get yesterday 'iso))
+  (applytest #t time<? (get yesterday 'tick) (get tomorrow 'tick))
+  (applytest #t time<? (get yesterday 'tick) (get tomorrow 'iso))
+  (applytest #t time<? (get yesterday 'iso) (get tomorrow 'tick))
+  (applytest #t time<? (get yesterday 'iso) (get tomorrow 'iso))
   (applytest #t time<? yesterday tomorrow)
   (applytest #t time<? yesterday now)
   (applytest #f time<? tomorrow yesterday)
   (applytest #f time<? now yesterday)
   (applytest #f time>? yesterday tomorrow)
+  (applytest #f time>? (get yesterday 'tick) (get tomorrow 'tick))
+  (applytest #f time>? (get yesterday 'iso) (get tomorrow 'tick))
+  (applytest #f time>? (get yesterday 'tick) (get tomorrow 'iso))
+  (applytest #f time>? (get yesterday 'iso) (get tomorrow 'iso))
   (applytest #f time>? yesterday now)
   (applytest #t time>? tomorrow yesterday)
+  (applytest #t time>? tomorrow)
+  (applytest #t time>? (get tomorrow 'tick))
+  (applytest #t time>? (get tomorrow 'iso))
   (applytest #t time>? now yesterday)
   (applytest #t past? yesterday)
   (applytest #f past? tomorrow)
+  (applytest #t past? yesterday 0.5)
+  (applytest #f past? tomorrow 0.5)
   (applytest #f future? yesterday)
   (applytest #t future? tomorrow)
+  (applytest #f future? yesterday 0.5)
+  (applytest #t future? tomorrow 0.5)
   (applytest #t < (elapsed-time moment) 2)
+  (applytest #t < (elapsed-time (->exact (+ moment 1.0))) 2)
+  (applytest-pred flonum? difftime moment)
+  (applytest-pred flonum? difftime (elapsed-time) moment)
   (applytest bday parser/roundtrip bday)
   ;; OS dependent?
   ;; (applytest "Mon 03 Dec 1979 03:15:00 AM EST" get bday 'string)
@@ -146,4 +190,20 @@
   (applytest 'mon get bday 'dowid)
   (applytest 'dec get bday 'monthid))
   
+;;; Precision tests
+
+(define *precisions* #(year month date hour minute second millisecond 
+		       microsecond)) ;;  nanoseconds picoseconds femtoseconds
+#|
+(doseq (precision *precisions*)
+  (applytest precision get (timestamp precision) 'precision))
+(doseq (precision *precisions* i)
+  (let ((time (timestamp precision)))
+    (applytest-pred number? get time precision)
+    (doseq (valid (slice *precisions* 0 i))
+      (applytest-pred number? get time valid))
+    (doseq (invalid (slice *precisions* i))
+      (applytest {} get time valid))))
+|#
+
 (message "TIMEFNS tests successfuly completed")
