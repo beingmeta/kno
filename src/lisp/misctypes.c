@@ -119,24 +119,13 @@ lispval kno_time2timestamp(time_t moment)
   return kno_make_timestamp(&xt);
 }
 
-static int reversible_time = 1;
-
 static int unparse_timestamp(struct U8_OUTPUT *out,lispval x)
 {
   struct KNO_TIMESTAMP *tm=
     kno_consptr(struct KNO_TIMESTAMP *,x,kno_timestamp_type);
-  if (reversible_time) {
-    u8_puts(out,"#T");
-    u8_xtime_to_iso8601(out,&(tm->u8xtimeval));
-    return 1;}
-  else {
-    char xbuf[32];
-    u8_puts(out,"#<TIMESTAMP 0x");
-    u8_puts(out,u8_uitoa16(KNO_LONGVAL(x),xbuf));
-    u8_puts(out," \"");
-    u8_xtime_to_iso8601(out,&(tm->u8xtimeval));
-    u8_puts(out,"\">");
-    return 1;}
+  u8_puts(out,"#T");
+  u8_xtime_to_iso8601(out,&(tm->u8xtimeval));
+  return 1;
 }
 
 static lispval timestamp_parsefn(int n,lispval *args,kno_compound_typeinfo e)
