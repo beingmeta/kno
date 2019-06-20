@@ -464,8 +464,6 @@ KNO_EXPORT lispval kno_init_string
 KNO_EXPORT lispval kno_make_string
   (struct KNO_STRING *ptr,int slen,u8_string string);
 KNO_EXPORT lispval kno_block_string(int slen,u8_string string);
-KNO_EXPORT lispval kno_conv_string
-  (struct KNO_STRING *ptr,int slen,u8_string string);
 KNO_EXPORT lispval lispval_string(u8_string string);
 
 #define kno_stream2string(stream) \
@@ -480,7 +478,6 @@ KNO_EXPORT lispval lispval_string(u8_string string);
 #define knostring(s) (kno_make_string(NULL,-1,(s)))
 
 #define kno_lispstring(s) kno_init_string(NULL,-1,(s))
-#define kno_unistring(s) kno_conv_string(NULL,-1,(s))
 
 /* Packets */
 /* Packets are blocks of binary data. */

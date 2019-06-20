@@ -213,11 +213,13 @@ int lispval_equal(lispval x,lispval y)
     if (convert_y) kno_decref(cy);
     return result;}
   else if ((NUMBERP(x)) && (NUMBERP(y)))
-    if (kno_numcompare(x,y)==0) return 1;
+    if (kno_numcompare(x,y)==0)
+      return 1;
     else return 0;
   else if ((PACKETP(x))&&(PACKETP(y))) {
     size_t xlen=KNO_PACKET_LENGTH(x), ylen=KNO_PACKET_LENGTH(y);
-    if (((xlen)) != (ylen)) return 0;
+    if (((xlen)) != (ylen))
+      return 0;
     else if (memcmp(KNO_PACKET_DATA(x),KNO_PACKET_DATA(y),xlen)==0)
       return 1;
     else return 0;}
@@ -232,11 +234,6 @@ int lispval_equal(lispval x,lispval y)
   else if (STRINGP(x))
     if ((STRLEN(x)) != (STRLEN(y))) return 0;
     else if (strncmp(CSTRING(x),CSTRING(y),STRLEN(x)) == 0)
-      return 1;
-    else return 0;
-  else if (PACKETP(x))
-    if ((KNO_PACKET_LENGTH(x)) != (KNO_PACKET_LENGTH(y))) return 0;
-    else if (memcmp(KNO_PACKET_DATA(x),KNO_PACKET_DATA(y),KNO_PACKET_LENGTH(x))==0)
       return 1;
     else return 0;
   else if (VECTORP(x))
@@ -408,39 +405,6 @@ lispval kno_block_string(int len,u8_string string)
     return KNO_ERROR_VALUE;}
   else return LISP_CONS(ptr);
   return LISP_CONS(ptr);
-}
-
-KNO_EXPORT
-/* kno_conv_string:
-    Arguments: A pointer to an KNO_STRING struct, a length, and a
-      pointer to a byte vector
-    Returns: a lisp string
-  This returns a lisp string object from a string, copying and freeing the string
-  If the structure pointer is NULL, the lisp string is uniconsed, so that
-    the string data is contiguous with the struct. */
-lispval kno_conv_string(struct KNO_STRING *ptr,int len,u8_string string)
-{
-  int length = ((len>0)?(len):(strlen(string)));
-  u8_byte *bytes = NULL; int freedata = 1;
-  if (ptr == NULL) {
-    ptr = u8_malloc(KNO_STRING_LEN+length+1);
-    bytes = ((u8_byte *)ptr)+KNO_STRING_LEN;
-    memcpy(bytes,string,length); bytes[length]='\0';
-    freedata = 0;}
-  else {
-    bytes = u8_malloc(length+1);
-    memcpy(bytes,string,length); bytes[length]='\0';}
-  KNO_INIT_CONS(ptr,kno_string_type);
-  ptr->str_bytelen = length;
-  ptr->str_bytes = bytes;
-  ptr->str_freebytes = freedata;
-  /* Free the string */
-  u8_free(string);
-  if ( (kno_check_utf8) && (!(u8_validp(bytes))) ) {
-    KNO_SET_CONS_TYPE(ptr,kno_packet_type);
-    kno_seterr("InvalidUTF8","kno_extract_string",NULL,LISP_CONS(ptr));
-    return KNO_ERROR_VALUE;}
-  else return LISP_CONS(ptr);
 }
 
 KNO_EXPORT
