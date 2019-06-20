@@ -38,51 +38,6 @@ static lispval if_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     else return kno_eval(consequent_expr,env);}
 }
 
-static lispval ifstar_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
-{
-  lispval test_expr = kno_get_arg(expr,1), test_result;
-  lispval consequent_expr = kno_get_arg(expr,2);
-  if ((VOIDP(test_expr)) || (VOIDP(consequent_expr)))
-    return kno_err(kno_TooFewExpressions,"IF*",NULL,expr);
-  test_result = kno_eval(test_expr,env);
-  if (KNO_ABORTED(test_result))
-    return test_result;
-  else if ((FALSEP(test_result)) || (EMPTYP(test_result))) {
-    lispval val = VOID;
-    lispval alt_body = kno_get_body(expr,3);
-    KNO_DOLIST(alt,alt_body) {
-      kno_decref(val); val = kno_eval(alt,env);
-      if (KNO_ABORTED(val)) return val;}
-    return val;}
-  else {
-    kno_decref(test_result);
-    if (PAIRP(consequent_expr))
-      return kno_tail_eval(consequent_expr,env);
-    else return kno_eval(consequent_expr,env);}
-}
-
-static lispval ifelse_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
-{
-  lispval test_expr = kno_get_arg(expr,1), test_result;
-  lispval consequent_expr = kno_get_arg(expr,2);
-  if ((VOIDP(test_expr)) || (VOIDP(consequent_expr)))
-    return kno_err(kno_TooFewExpressions,"IFELSE",NULL,expr);
-  test_result = kno_eval(test_expr,env);
-  if (KNO_ABORTED(test_result)) return test_result;
-  else if (FALSEP(test_result)) {
-    lispval val = VOID;
-    lispval alt_body = kno_get_body(expr,3);
-    KNO_DOLIST(alt,alt_body) {
-      kno_decref(val); val = kno_eval(alt,env);
-      if (KNO_ABORTED(val)) return val;}
-    return val;}
-  else {
-    kno_decref(test_result);
-    if (PAIRP(consequent_expr))
-      return kno_tail_eval(consequent_expr,env);
-    else return kno_eval(consequent_expr,env);}
-}
-
 static lispval tryif_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval test_expr = kno_get_arg(expr,1), test_result;
@@ -192,7 +147,7 @@ static lispval unless_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval test_expr = kno_get_arg(expr,1), test_val;
   if (VOIDP(test_expr))
-    return kno_err(kno_TooFewExpressions,"WHEN",NULL,expr);
+    return kno_err(kno_TooFewExpressions,"UNLESS",NULL,expr);
   else test_val = kno_eval(test_expr,env);
   if (KNO_ABORTED(test_val)) return test_val;
   else if (FALSEP(test_val)) {
@@ -242,19 +197,6 @@ KNO_EXPORT void kno_init_conditionals_c()
                 "and *else* (if provided) when *test* is #f. "
                 "Returns VOID otherwise.",
                 if_evalfn);
-  kno_def_evalfn(kno_scheme_module,"IF*",
-                "(IF* *test* *then* *else*...) "
-                "returns *then* if *test* is neither #f or {}. "
-                "Otherwise (even if *test* fails (is {}), "
-                "evaluate the *else* clauses in order. If there "
-                "are no *else* clauses, returns VOID",
-                ifstar_evalfn);
-  kno_def_evalfn(kno_scheme_module,"IFELSE",
-                "(IFELSE *test* *then* *else*...) "
-                "returns *then* if *test* is neither #f or {}. "
-                "If *test* is #f, evaluate the *else* clauses in order. "
-                "If there are no *else* clauses, returns VOID",
-                ifelse_evalfn);
   kno_def_evalfn(kno_scheme_module,"TRYIF","",tryif_evalfn);
   kno_def_evalfn(kno_scheme_module,"COND","",cond_evalfn);
   kno_def_evalfn(kno_scheme_module,"CASE","",case_evalfn);
