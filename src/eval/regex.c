@@ -105,7 +105,7 @@ KNO_EXPORT ssize_t kno_regex_op(enum KNO_REGEX_OP op,lispval pat,
                                 int eflags)
 {
   struct KNO_REGEX *ptr = kno_consptr(struct KNO_REGEX *,pat,kno_regex_type);
-  regmatch_t results[1] = { 0 };
+  regmatch_t results[1] = { { 0 } };
   int retval;
   /* Convert numeric eflags value to correct flags field */
   if (eflags==1)

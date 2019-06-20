@@ -198,17 +198,8 @@ static lispval zmq_sockptr(void *ptr,lispval typesym,lispval id)
   return (lispval) zmq;
 }
 
-static lispval zmq_make_lisp(lispval socktype)
-{
-  struct KNO_ZMQSOCK *zmq = zmq_sock(socktype);
-  if (zmq)
-    return (lispval) zmq;
-  else return KNO_ERROR;
-}
-
 static void recycle_zeromq(struct KNO_RAW_CONS *c)
 {
-  int rv = 0;
   struct KNO_ZMQSOCK *zmq = (kno_zmqsock) c;
   u8_logf(LOG_DEBUG,"ZeroMQ/Recycle",
           "Recycling %q in thread %lld",(lispval)zmq,u8_threadid());

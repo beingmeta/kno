@@ -603,10 +603,12 @@ static void init_symbols()
   size_t_symbol = kno_intern("size_t");
   char_symbol = kno_intern("char");
   string_symbol = kno_intern("string");
+  strcpy_symbol = kno_intern("strcpy");
   packet_symbol = kno_intern("packet");
   ptr_symbol = kno_intern("ptr");
   cons_symbol = kno_intern("cons");
   lisp_symbol = kno_intern("lisp");
+  lispref_symbol = kno_intern("lispref");
   time_t_symbol = kno_intern("time_t");
   null_symbol = kno_intern("null");
   nullable_symbol = kno_intern("nullable");
@@ -614,6 +616,8 @@ static void init_symbols()
 
   basetype_symbol = kno_intern("basetype");
   typespec_symbol = kno_intern("typespec");
+
+  ffi_result_symbol = kno_intern("result");
 }
 
 /* Emacs local variables
