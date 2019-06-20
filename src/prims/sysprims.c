@@ -94,7 +94,8 @@ DCLPRIM1("GETENV",getenv_prim,0,
 static lispval getenv_prim(lispval var)
 {
   u8_string enval = u8_getenv(CSTRING(var));
-  if (enval == NULL) return KNO_FALSE;
+  if (enval == NULL)
+    return KNO_FALSE;
   else return kno_lispstring(enval);
 }
 
@@ -119,7 +120,8 @@ static lispval loadavg_prim()
 {
   double loadavg;
   int nsamples = getloadavg(&loadavg,1);
-  if (nsamples==1) return kno_make_flonum(loadavg);
+  if (nsamples==1)
+    return kno_make_flonum(loadavg);
   else return KNO_FALSE;
 }
 
@@ -290,7 +292,8 @@ static lispval rusage_prim(lispval field)
                (3,kno_make_flonum(loadavg[0]),
                 kno_make_flonum(loadavg[1]),
                 kno_make_flonum(loadavg[2]));
-        if (!(VOIDP(lvec))) kno_store(result,loadavg_symbol,lvec);
+        if (!(VOIDP(lvec)))
+	  kno_store(result,loadavg_symbol,lvec);
         kno_decref(lval); kno_decref(lvec);}}
     { /* Elapsed time */
       double elapsed = u8_elapsed_time();
@@ -317,7 +320,8 @@ static lispval rusage_prim(lispval field)
       long long available_memory = get_available_memory();
       kno_add(result,n_cpus_symbol,KNO_INT(n_cpus));
       kno_add(result,max_cpus_symbol,KNO_INT(max_cpus));
-      if (pagesize>0) kno_add(result,pagesize_symbol,KNO_INT(pagesize));
+      if (pagesize>0)
+	kno_add(result,pagesize_symbol,KNO_INT(pagesize));
       if (physical_pages>0)
         add_intval(result,physical_pages_symbol,physical_pages);
       if (available_pages>0)
@@ -378,7 +382,8 @@ static lispval rusage_prim(lispval field)
     else return EMPTY;}
   else if (KNO_EQ(field,load_symbol)) {
     double loadavg; int nsamples = getloadavg(&loadavg,1);
-    if (nsamples>0) return kno_make_flonum(loadavg);
+    if (nsamples>0)
+      return kno_make_flonum(loadavg);
     else return EMPTY;}
   else if (KNO_EQ(field,loadavg_symbol)) {
     double loadavg[3]; int nsamples = getloadavg(loadavg,3);
@@ -398,64 +403,82 @@ static lispval rusage_prim(lispval field)
     else return EMPTY;}
   else if (KNO_EQ(field,n_cpus_symbol)) {
     int n_cpus = get_n_cpus();
-    if (n_cpus>0) return KNO_INT(n_cpus);
-    else if (n_cpus==0) return EMPTY;
+    if (n_cpus>0)
+      return KNO_INT(n_cpus);
+    else if (n_cpus==0)
+      return EMPTY;
     else {
       u8_graberrno("rusage_prim/N_CPUS",NULL);
       return KNO_ERROR;}}
   else if (KNO_EQ(field,max_cpus_symbol)) {
     int max_cpus = get_max_cpus();
-    if (max_cpus>0) return KNO_INT(max_cpus);
-    else if (max_cpus==0) return EMPTY;
+    if (max_cpus>0)
+      return KNO_INT(max_cpus);
+    else if (max_cpus==0)
+      return EMPTY;
     else {
       u8_graberrno("rusage_prim/MAX_CPUS",NULL);
       return KNO_ERROR;}}
   else if (KNO_EQ(field,pagesize_symbol)) {
     int pagesize = get_pagesize();
-    if (pagesize>0) return KNO_INT(pagesize);
-    else if (pagesize==0) return EMPTY;
+    if (pagesize>0)
+      return KNO_INT(pagesize);
+    else if (pagesize==0)
+      return EMPTY;
     else {
       u8_graberrno("rusage_prim/PAGESIZE",NULL);
       return KNO_ERROR;}}
   else if (KNO_EQ(field,physical_pages_symbol)) {
     int physical_pages = get_physical_pages();
-    if (physical_pages>0) return KNO_INT(physical_pages);
-    else if (physical_pages==0) return EMPTY;
+    if (physical_pages>0)
+      return KNO_INT(physical_pages);
+    else if (physical_pages==0)
+      return EMPTY;
     else {
       u8_graberrno("rusage_prim/PHYSICAL_PAGES",NULL);
       return KNO_ERROR;}}
   else if (KNO_EQ(field,available_pages_symbol)) {
     int available_pages = get_available_pages();
-    if (available_pages>0) return KNO_INT(available_pages);
-    else if (available_pages==0) return EMPTY;
+    if (available_pages>0)
+      return KNO_INT(available_pages);
+    else if (available_pages==0)
+      return EMPTY;
     else {
       u8_graberrno("rusage_prim/AVAILABLE_PAGES",NULL);
       return KNO_ERROR;}}
   else if (KNO_EQ(field,physical_memory_symbol)) {
     long long physical_memory = get_physical_memory();
-    if (physical_memory>0) return KNO_INT(physical_memory);
-    else if (physical_memory==0) return EMPTY;
+    if (physical_memory>0)
+      return KNO_INT(physical_memory);
+    else if (physical_memory==0)
+      return EMPTY;
     else {
       u8_graberrno("rusage_prim/PHYSICAL_MEMORY",NULL);
       return KNO_ERROR;}}
   else if (KNO_EQ(field,physicalmb_symbol)) {
     long long physical_memory = get_physical_memory();
-    if (physical_memory>0) return KNO_INT(physical_memory/(1024*1024));
-    else if (physical_memory==0) return EMPTY;
+    if (physical_memory>0)
+      return KNO_INT(physical_memory/(1024*1024));
+    else if (physical_memory==0)
+      return EMPTY;
     else {
       u8_graberrno("rusage_prim/PHYSICAL_MEMORY",NULL);
       return KNO_ERROR;}}
   else if (KNO_EQ(field,available_memory_symbol)) {
     long long available_memory = get_available_memory();
-    if (available_memory>0) return KNO_INT(available_memory);
-    else if (available_memory==0) return EMPTY;
+    if (available_memory>0)
+      return KNO_INT(available_memory);
+    else if (available_memory==0)
+      return EMPTY;
     else {
       u8_graberrno("rusage_prim/AVAILABLE_MEMORY",NULL);
       return KNO_ERROR;}}
   else if (KNO_EQ(field,availablemb_symbol)) {
     long long available_memory = get_available_memory();
-    if (available_memory>0) return KNO_INT(available_memory/(1024*1024));
-    else if (available_memory==0) return EMPTY;
+    if (available_memory>0)
+      return KNO_INT(available_memory/(1024*1024));
+    else if (available_memory==0)
+      return EMPTY;
     else {
       u8_graberrno("rusage_prim/AVAILABLE_MEMORY",NULL);
       return KNO_ERROR;}}
@@ -577,7 +600,7 @@ static lispval memload_prim()
   return kno_make_flonum(load);
 }
 
-DCLPRIM("MEMLOAD",vmemload_prim,0,
+DCLPRIM("VMEMLOAD",vmemload_prim,0,
         "Gets the virtual memory load for the current process.")
 static lispval vmemload_prim()
 {
@@ -653,8 +676,10 @@ static int get_max_cpus()
   int retval = 0;
 #if ((HAVE_SYSCONF)&&(defined(_SC_NPROCESSORS_CONF)))
   retval = sysconf(_SC_NPROCESSORS_CONF);
-  if (retval>0) return retval;
-  if (retval<0) kno_clear_errors(1);
+  if (retval>0)
+    return retval;
+  if (retval<0)
+    kno_clear_errors(1);
   return 1;
 #else
   return 1;
@@ -666,8 +691,10 @@ static int get_n_cpus()
   int retval = 0;
 #if ((HAVE_SYSCONF)&&(defined(_SC_NPROCESSORS_ONLN)))
   retval = sysconf(_SC_NPROCESSORS_ONLN);
-  if (retval>0) return retval;
-  if (retval<0) kno_clear_errors(1);
+  if (retval>0)
+    return retval;
+  if (retval<0)
+    kno_clear_errors(1);
   return 1;
 #elif (HAVE_SYSCONF)
   return get_max_cpus();
@@ -679,7 +706,8 @@ static int get_n_cpus()
 static int get_pagesize()
 {
   int retval = 0;
-  if (pagesize>=0) return pagesize;
+  if (pagesize>=0)
+    return pagesize;
 #if (HAVE_SYSCONF)
 #if (defined(_SC_PAGESIZE))
   retval = sysconf(_SC_PAGESIZE);
@@ -690,8 +718,10 @@ static int get_pagesize()
 #endif
 #endif
   pagesize = retval;
-  if (retval>0) return retval;
-  if (retval<0) kno_clear_errors(1);
+  if (retval>0)
+    return retval;
+  if (retval<0)
+    kno_clear_errors(1);
   return 0;
 }
 
@@ -699,8 +729,10 @@ static int get_physical_pages()
 {
 #if ((HAVE_SYSCONF)&&(defined(_SC_PHYS_PAGES)))
   int retval = sysconf(_SC_PHYS_PAGES);
-  if (retval>0) return retval;
-  if (retval<0) kno_clear_errors(1);
+  if (retval>0)
+    return retval;
+  if (retval<0)
+    kno_clear_errors(1);
 #endif
   return 0;
 }
@@ -709,8 +741,10 @@ static int get_available_pages()
 {
 #if ((HAVE_SYSCONF)&&(defined(_SC_AVPHYS_PAGES)))
   int retval = sysconf(_SC_AVPHYS_PAGES);
-  if (retval>0) return retval;
-  if (retval<0) kno_clear_errors(1);
+  if (retval>0)
+    return retval;
+  if (retval<0)
+    kno_clear_errors(1);
 #endif
   return 0;
 }
@@ -719,11 +753,14 @@ static long long get_physical_memory()
 {
   long long retval = 0;
   if (pagesize<0) pagesize = get_pagesize();
-  if (pagesize==0) return 0;
+  if (pagesize==0)
+    return 0;
 #if ((HAVE_SYSCONF)&&(defined(_SC_PHYS_PAGES)))
   retval = sysconf(_SC_PHYS_PAGES);
-  if (retval>0) return retval*pagesize;
-  if (retval<0) kno_clear_errors(1);
+  if (retval>0)
+    return retval*pagesize;
+  if (retval<0)
+    kno_clear_errors(1);
 #endif
   return 0;
 }
@@ -732,11 +769,14 @@ static long long get_available_memory()
 {
   long long retval = 0;
   if (pagesize<0) pagesize = get_pagesize();
-  if (pagesize==0) return 0;
+  if (pagesize==0)
+    return 0;
 #if ((HAVE_SYSCONF)&&(defined(_SC_AVPHYS_PAGES)))
   retval = sysconf(_SC_AVPHYS_PAGES);
-  if (retval>0) return retval*pagesize;
-  if (retval<0) kno_clear_errors(1);
+  if (retval>0)
+    return retval*pagesize;
+  if (retval<0)
+    kno_clear_errors(1);
 #endif
   return retval;
 }
