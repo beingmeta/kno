@@ -185,7 +185,7 @@ static lispval applytest(int n,lispval *args)
   else return v;
 }
 
-static lispval applytestp(int n,lispval *args)
+static lispval applytest_pred(int n,lispval *args)
 {
   lispval v = applytest_inner(n,args,USE_PREDICATE_TEST);
   if (KNO_ABORTP(v)) {
@@ -318,7 +318,7 @@ KNO_EXPORT void kno_init_eval_testops_c()
   kno_idefn(kno_scheme_module,
 	   kno_make_ndprim(kno_make_cprimn("APPLYTEST",applytest,2)));
   kno_idefn(kno_scheme_module,
-	   kno_make_ndprim(kno_make_cprimn("APPLYTEST?",applytestp,2)));
+	   kno_make_ndprim(kno_make_cprimn("APPLYTEST-PRED",applytest_pred,2)));
   kno_def_evalfn(kno_scheme_module,"EVALTEST",
 		 "`(EVALTEST *expected* *expr*)` evalutes *expr* and checks "
 		 "if it is EQUAL? to *expected*. If so it does nothing, "

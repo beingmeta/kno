@@ -26,7 +26,7 @@
 (applytest #t timestamp? (ffi_time #f))
 
 (define ffi_elapsed (ffi/proc "u8_elapsed_time" #f 'double))
-(applytest? flonum? ffi_elapsed)
+(applytest-pred flonum? ffi_elapsed)
 
 (define ffi_getenv (ffi/proc "getenv" #f #[basetype ptr typespec envstring] 'string))
 (define ffi_strdup (ffi/proc "_u8_strdup" #f #[basetype string mallocd #t] #[basetype ptr typespec envstring]))

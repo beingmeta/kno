@@ -63,7 +63,7 @@
     (applytest #t thread? threads)
     (applytest #t exists? (config 'ALLTHREADS))
     (set+! threads (spawn (addrange 0)))
-    (applytest? string? lisp->string (pick-one threads))
+    (applytest-pred string? lisp->string (pick-one threads))
     (thread/join threads)
     (applytest 20 length numbers)
     (applytest #f check-ordered numbers)
@@ -114,7 +114,7 @@
 (define num #f)
 (define numlock (make-condvar))
 
-(applytest? string? lisp->string numlock)
+(applytest-pred string? lisp->string numlock)
 
 (define (change-num numlock (n (nrandom 1)))
   (sync/lock! numlock)
@@ -131,7 +131,7 @@
 (define (test-synchro-locks (numlock (make-mutex)) (nthreads 8))
   (thread/wait! (thread/call change-num numlock (nrandom))))
 (define (test-with-lock (numlock (make-mutex)) (nthreads 8))
-  (applytest? string? lisp->string numlock)
+  (applytest-pred string? lisp->string numlock)
   (thread/wait! (thread/call change-num-with-lock numlock (nrandom))))
 
 ;;;; Test fluid variables
@@ -281,9 +281,9 @@
   (applytest #f synchronizer? change-num-recklessly)
   (applytest #f thread? 3)
 
-  (applytest? string? lisp->string condvar)
-  (applytest? string? lisp->string mutex)
-  (applytest? string? lisp->string rwlock)
+  (applytest-pred string? lisp->string condvar)
+  (applytest-pred string? lisp->string mutex)
+  (applytest-pred string? lisp->string rwlock)
   
     ;;; This doesn't seem to be working right
   

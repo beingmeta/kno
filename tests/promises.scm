@@ -13,7 +13,7 @@
 (applytest #f promise/resolved? promise1)
 (applytest #f promise/satisfied? promise1)
 
-(applytest? string? lisp->string promise1)
+(applytest-pred string? lisp->string promise1)
 
 (applytest 5 force promise1)
 (applytest #f promise/broken? promise1)
