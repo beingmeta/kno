@@ -33,7 +33,7 @@ static lispval while_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   if (VOIDP(test_expr))
     return kno_err(kno_TooFewExpressions,"WHILE",NULL,expr);
   else if (! (PRED_TRUE( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
-    return kno_err(kno_SyntaxError,"doseq_evalfn",NULL,expr);
+    return kno_err(kno_SyntaxError,"WHILE",NULL,expr);
   else {
     while ((VOIDP(result)) &&
            (testeval(test_expr,env,&result,_stack))) {
@@ -57,7 +57,7 @@ static lispval until_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   if (VOIDP(test_expr))
     return kno_err(kno_TooFewExpressions,"UNTIL",NULL,expr);
   else if (! (PRED_TRUE( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
-    return kno_err(kno_SyntaxError,"doseq_evalfn",NULL,expr);
+    return kno_err(kno_SyntaxError,"UNTIL",NULL,expr);
   else {
     while ((VOIDP(result)) &&
            (!(testeval(test_expr,env,&result,_stack)))) {
