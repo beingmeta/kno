@@ -929,45 +929,6 @@ static lispval get_source_prim(lispval arg)
   return get_source(arg);
 }
 
-/* LOADMODULE config */
-
-static int loadmodule_sandbox = 0;
-
-static int loadmodule_config_set(lispval var,lispval val,void *ignored)
-{
-  lispval module = kno_find_module(val,loadmodule_sandbox);
-  if (FALSEP(module)) {
-    u8_log(LOG_WARN,"NoModuleLoaded","Couldn't load the module %q",val);
-    return -1;}
-  else return 1;
-}
-
-static lispval loadmodule_config_get(lispval var,void *ignored)
-{
-  return KNO_FALSE;
-}
-
-static int loadmodule_sandbox_config_set(lispval var,lispval val,void *ignored)
-{
-  if (FALSEP(val)) {
-    if (!(loadmodule_sandbox)) return 0;
-    else {
-      kno_seterr("Can't reset LOADMODULE:SANDBOX",
-                "loadmodule_sandbox_config_set",NULL,
-                val);
-      return -1;}}
-  else {
-    if (loadmodule_sandbox) return 0;
-    else {
-      loadmodule_sandbox = 1;
-      return 1;}}
-}
-
-static lispval loadmodule_sandbox_config_get(lispval var,void *ignored)
-{
-  if (loadmodule_sandbox) return KNO_TRUE; else return KNO_FALSE;
-}
-
 /* Modules to be used by kno_app_env */
 
 static lispval config_used_modules(lispval var,void *data)
@@ -1188,14 +1149,6 @@ KNO_EXPORT void kno_init_modules_c()
                      "Convert function values in a module into static values",
                      kno_boolconfig_get,kno_boolconfig_set,
                      &auto_static_modules);
-  kno_register_config("LOADMODULE",
-                     "Specify modules to be loaded",
-                     loadmodule_config_get,loadmodule_config_set,NULL);
-  kno_register_config("LOADMODULE:SANDBOX",
-                     "Whether LOADMODULE loads from the sandbox",
-                     loadmodule_sandbox_config_get,
-                     loadmodule_sandbox_config_set,
-                     NULL);
   kno_register_config("MODULE",
                      "Specify modules to be used by the default live environment",
                      config_used_modules,config_use_module,NULL);

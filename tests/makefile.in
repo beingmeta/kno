@@ -183,6 +183,9 @@ promises:
 opts:
 	@${RUN} ${KNOX} opts.scm ${RUNCONF}
 	@${header} "■■■■ Completed opts tests ${RUNCONF}"
+loading:
+	@${RUN} ${KNOX} loading.scm ${RUNCONF}
+	@${header} "■■■■ Completed loading tests ${RUNCONF}"
 hashsets:
 	@${RUN} ${KNOX} hashsets.scm ${RUNCONF}
 	@${header} "■■■■ Completed numvecs tests ${RUNCONF}"

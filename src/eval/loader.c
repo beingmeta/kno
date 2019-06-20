@@ -625,6 +625,7 @@ static lispval load_latest_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 /* The LIVELOAD config */
 
+#if 0
 static lispval liveload_get(lispval var,void *ignored)
 {
   lispval result=EMPTY;
@@ -645,6 +646,8 @@ static int liveload_add(lispval var,lispval val,void *ignored)
     return 0;
   else return kno_load_latest(KNO_CSTRING(val),kno_app_env,NULL);
 }
+
+#endif
 
 /* loadpath config set */
 
@@ -705,40 +708,6 @@ static lispval loadpath_config_get(lispval var,void *d)
   return kno_incref(path);
 }
 
-/* Load file support */
-
-#if 0
-
-static lispval loadfile_list = NIL;
-
-static int loadfile_config_set(lispval var,lispval vals,void *d)
-{
-  int loads = 0; DO_CHOICES(val,vals) {
-    u8_string loadpath; lispval loadval;
-    if (!(STRINGP(val))) {
-      kno_seterr(kno_TypeError,"loadfile_config_set","filename",val);
-      return -1;}
-    else if (!(strchr(CSTRING(val),':')))
-      loadpath = u8_abspath(CSTRING(val),NULL);
-    else loadpath = u8_strdup(CSTRING(val));
-    loadval = kno_load_source(loadpath,console_env,NULL);
-    if (KNO_ABORTP(loadval)) {
-      kno_seterr(_("load error"),"loadfile_config_set",loadpath,val);
-      return -1;}
-    else {
-      loadfile_list = kno_conspair(knostring(loadpath),loadfile_list);
-      u8_free(loadpath);
-      loads++;}}
-  return loads;
-}
-
-static lispval loadfile_config_get(lispval var,void *d)
-{
-  return kno_incref(loadfile_list);
-}
-
-#endif
-
 /* The init function */
 
 static int scheme_loader_initialized = 0;
@@ -784,13 +753,10 @@ KNO_EXPORT void kno_init_loader_c()
     ("LIBSCM","The location for bundled modules (prioritized before loadpath)",
      kno_sconfig_get,kno_sconfig_set,&libscm_path);
 
+#if 0
   kno_register_config
     ("LIVELOAD","Files to be reloaded as they change",
      liveload_get,liveload_add,NULL);
-#if 0
-  kno_register_config
-    ("LOADFILE",_("Which files to load"),
-     loadfile_config_get,loadfile_config_set,&loadfile_list);
 #endif
 
   kno_idefn(loader_module,
