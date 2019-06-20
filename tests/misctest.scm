@@ -537,6 +537,31 @@
 (evaltest "quux" (config 'foo))
 (evaltest "baz" (config 'xconf))
 
+;;; Assoc errors
+
+(errtest (assq))
+(errtest (assv))
+(errtest (assoc))
+(errtest (assq 'x))
+(errtest (assv 'x))
+(errtest (assoc 'x))
+(errtest (assq 'x "string"))
+(errtest (assv 'x "string"))
+(errtest (assoc 'x "string"))
+(errtest (assq 'x '("string")))
+(errtest (assv 'x '("string")))
+(errtest (assoc 'x '("string")))
+
+(errtest (memq))
+(errtest (memv))
+(errtest (member))
+(errtest (memq 'x))
+(errtest (memv 'x))
+(errtest (member 'x))
+(errtest (memq 'x "string"))
+(errtest (memv 'x "string"))
+(errtest (member 'x "string"))
+
 ;;; Gather errors
 
 (if (exists? errors)

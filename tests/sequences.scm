@@ -22,6 +22,22 @@
 (applytester 1 position '#{foo 9} #({a b} {9 11} {foo bar}))
 (applytester 2 position '#{foo bar} #({a b} {9 11} {foo bar}))
 
+(applytest #t some? odd? #(1 2 3 4 5 6))
+(applytest #f some? odd? #(2 4 6))
+(applytest #t every? even? #(2 4 6))
+(applytest #(2 4 6) remove-if odd? #(1 2 3 4 5 6))
+(applytest '(2 4 6) remove-if odd? '(1 2 3 4 5 6))
+(applytest "CC" remove-if lowercase? "CamelCase")
+
+(evaltest #(4 5 6) (map 1+ #(3 4 5)))
+(evaltest {4 5 6} (map->choice 1+ #(3 4 5)))
+(evaltest #((1 . 4) (2 . 5) (3 . 6)) (map cons #(1 2 3) #(4 5 6)))
+
+(errtest (map 1+ ))
+(errtest (map 1+ 33))
+(errtest (map 1+ #(3 4 5) 33))
+(errtest (map 1+ #(3 4 5) 33))
+
 (errtest (length 'foo))
 (errtest (position 3 'foo))
 (errtest (position 3 "345" 'start))
@@ -31,6 +47,8 @@
 (errtest (subseq "foo" 'start))
 (errtest (subseq "foo" 0 'end))
 (errtest (search 'foo "barfoofuzz"))
+(errtest (elt #(1 2 3)))
+(errtest (elt))
 (errtest (elt 'foo 1))
 (errtest (elt 3 1))
 (errtest (elts 'foo))
@@ -81,6 +99,8 @@
 	(when (> len 0) (applytest (elt seq 0) (first seq)))
 	(when (> len 1) (applytest (elt seq 1) (second seq)))
 	(when (> len 2) (applytest (elt seq 2) (third seq))))))
+  (dotimes (i len)
+    (applytest (-1+ len) remove (elt seq i) seq))
   (when (> len 4)
     (let ((part (slice seq 2 4)))
       (applytest 2 search part seq)))
@@ -442,6 +462,11 @@
 (define vec #("1" "2" "3" "4" "5" "6" "7"))
 (define vec2 #("a" "b" "c" "d" "e" "f"))
 
+(errtest (position-if))
+(errtest (position-if even?))
+(errtest (position-if-not))
+(errtest (position-if-not even?))
+
 (applytest 1 position-if even-string? vec)
 (applytest 0 position-if odd-string? vec)
 (applytest 0 position-if-not even-string? vec)
@@ -475,6 +500,8 @@
 (applytest "2" find-if-not odd-string? vec)
 (applytest #f find-if even-string? vec2)
 (applytest #f find-if odd-string? vec2)
+(errtest (find-if))
+(errtest (find-if even?))
 
 (applytest "4" find-if even-string? vec 2)
 (applytest "3" find-if odd-string? vec 2)
@@ -496,6 +523,100 @@
 (applytest "6" find-if-not odd-string? vec -1 0)
 (applytest #f find-if even-string? vec2 -1 0)
 (applytest #f find-if odd-string? vec2 -1 0)
+
+;;; Pair tests
+
+(define (xseqtest seq (numeric #f) (sorted))
+  (default! sorted numeric)
+  (when numeric
+    (applytest #t every? number? seq)
+    (applytest #t some? number? seq)
+    (applytest-pred sequence? map 1+ seq)
+    (applytest 'void for-each 1+ seq)
+    (evaltest (largest (elts seq)) (apply max (seq->list seq)))
+    (evaltest (smallest (elts seq)) (apply min (seq->list seq))))
+  (when sorted
+    (let ((increasing (sortvec seq))
+	  (decreasing (rsortvec seq))
+	  (len (length seq)))
+      (applytest decreasing reverse increasing)
+      (doseq (e increasing i)
+	(when (> i 0) 
+	  (applytest #t >=? e (elt increasing (-1+ i)))))
+      (doseq (e decreasing i)
+	(when (> i 0)
+	  (applytest #t <=? e (elt decreasing (-1+ i)))))))
+  (applytest string? (lisp->string seq))
+  (applytest (elt seq 0) first seq)
+  (applytest (elt seq 1) second seq)
+  (applytest (elt seq 2) third seq)
+  (applytest (elt seq 3) fourth seq)
+  (applytest (elt seq 4) fifth seq)
+  (applytest (elt seq 5) sixth seq)
+  (applytest (elt seq 6) seventh seq)
+  (applytest (slice seq 1) rest seq)
+  (errtest (first (slice seq 0 0)))
+  (errtest (second (slice seq 0 1)))
+  (errtest (third (slice seq 0 2)))
+  (errtest (fourth (slice seq 0 3)))
+  (errtest (fifth (slice seq 0 4)))
+  (errtest (sixth (slice seq 0 5)))
+  (errtest (seventh (slice seq 0 6)))
+  (applytest-pred ambiguous? elts seq))
+
+(define vec #("three" "four" "five" "six" "seven" "eight" "nine" 
+	      "ten" "eleven" "twelve" "thirteen"))
+
+(applytest  {"three" "four" "five" "six" "seven" "eight" "nine" 
+	     "ten" "eleven" "twelve" "thirteen"}
+	    vec->elts 
+	    vec)
+(xseqtest vec)
+(xseqtest (vector->list vec))
+(xseqtest "abcdefghijklmnopqrs")
+
+(applytest #t veclen>=? vec 3)
+(applytest #f veclen<=? vec 3)
+(applytest #t veclen=? vec (length numvec))
+(applytest #f veclen>? vec 20)
+(applytest #f veclen>=? vec 20)
+
+(applytest #t seqlen>=? vec 3)
+(applytest #f seqlen<=? vec 3)
+(applytest #t seqlen=? vec (length numvec))
+(applytest #f seqlen>? vec 20)
+(applytest #f seqlen>=? vec 20)
+
+(define numvec #(1 11 2 4 5 3 10 6 7 13 8 2 9 10 12))
+
+(xseqtest numvec #t)
+(xseqtest (->shortvec numvec) #t)
+(xseqtest (->intvec numvec) #t)
+(xseqtest (->longvec numvec) #t)
+(xseqtest (->floatvec numvec) #t)
+(xseqtest (->doublvec numvec) #t)
+
+(xseqtest (string->packet "abcdefghijklmnopqrs"))
+(errtest (->secret (string->packet "abcdefghijklmnopqrs")))
+
+(applytest "foo" cdar '((a . "foo") (b . "bar")))
+(errtest (caar '(a b)))
+(errtest (caddr '(a b)))
+(errtest (cdddr '(a b)))
+(errtest (cadr '(a . b)))
+(errtest (cddr '(a . b)))
+
+(let ((lst '("foo" "bar" "baz")))
+  (applytest "foo" car lst)
+  (applytest "bar" cadr lst)
+  (applytest "baz" caddr lst)
+  (set-car! (cddr lst) "quux")
+  (applytest "quux" caddr lst)
+  (applytest 3 length lst)
+  (set-cdr! (cddr lst) '())
+  (applytest 2 length lst))
+
+(errtest (make-vector -5 "backward"))
 
 (test-finished "SEQUENCES")
 
