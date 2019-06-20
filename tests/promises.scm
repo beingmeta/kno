@@ -20,6 +20,8 @@
 (applytest #t promise/resolved? promise1)
 (applytest #t promise/satisfied? promise1)
 
+(applytest-pred string? lisp->string promise1)
+
 (define two 2)
 (define promise2 (delay (+ two 3)))
 
@@ -66,6 +68,8 @@
 (applytest #t promise/broken? promise5)
 (applytest #t promise/resolved? promise5)
 (applytest #f promise/satisfied? promise5)
+
+(applytest-pred string? lisp->string promise5)
 
 (define promise6 (delay {3 4 5 two}))
 (applytest {3 4 5 2} (force promise6))
