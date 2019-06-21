@@ -51,7 +51,7 @@ static lispval regex_testcapi()
   return VOID;
 }
 
-static int check_error(u8_string cxt,lispval result)
+static U8_MAYBE_UNUSED int check_error(u8_string cxt,lispval result)
 {
   int rv = 1;
   if (KNO_ABORTP(result)) {
@@ -70,7 +70,8 @@ static int check_error(u8_string cxt,lispval result)
 typedef void (*ptr_freefn)(void *);
 #define freefn(x) ((ptr_freefn)(x))
 
-static int check_null(u8_string cxt,void *result,ptr_freefn fn)
+static int  U8_MAYBE_UNUSED check_null
+(u8_string cxt,void *result,ptr_freefn fn)
 {
   int rv = 1;
   if (result==NULL) {
@@ -84,7 +85,8 @@ static int check_null(u8_string cxt,void *result,ptr_freefn fn)
   return rv;
 }
 
-static int check_result(u8_string cxt,lispval result,lispval expected)
+static  U8_MAYBE_UNUSED int check_result
+(u8_string cxt,lispval result,lispval expected)
 {
   int rv = 1;
   if (KNO_EQUALP(result,expected)) {
@@ -97,7 +99,8 @@ static int check_result(u8_string cxt,lispval result,lispval expected)
 
 typedef int (*testp)(lispval);
 
-static int check_resultp(u8_string cxt,lispval result,testp tester)
+static U8_MAYBE_UNUSED int check_resultp
+(u8_string cxt,lispval result,testp tester)
 {
   int rv = 1;
   if (tester(result)) {
@@ -108,7 +111,7 @@ static int check_resultp(u8_string cxt,lispval result,testp tester)
   return rv;
 }
 
-static int lexenvp(lispval x) { return (KNO_LEXENVP(x)); }
+static U8_MAYBE_UNUSED int lexenvp(lispval x) { return (KNO_LEXENVP(x)); }
 
 KNO_DCLPRIM("MODULES/TESTCAPI",modules_testcapi,MAX_ARGS(0)|MIN_ARGS(0),
 	    "Run various tests of the module C API which are "
