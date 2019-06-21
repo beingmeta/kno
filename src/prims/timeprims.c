@@ -327,7 +327,8 @@ static lispval timestamp_diff(lispval timestamp1,lispval timestamp2)
     struct KNO_TIMESTAMP *t1 = get_timestamp(timestamp1,&free1);
     struct KNO_TIMESTAMP *t2 = get_timestamp(timestamp2,&free2);
     if ((t1 == NULL) || (t2 == NULL)) {
-      if (free1) u8_free(t1); if (free2) u8_free(t2);
+      if (free1) u8_free(t1);
+      if (free2) u8_free(t2);
       return KNO_ERROR;}
     else {
       double diff = u8_xtime_diff(&(t1->u8xtimeval),&(t2->u8xtimeval));
@@ -360,14 +361,16 @@ static lispval timestamp_greater(lispval timestamp1,lispval timestamp2)
       return KNO_TRUE;
     else return KNO_FALSE;}
   else {
-    double diff; int free2 = 0;
+    double diff; int free2 = 0, err = 0;
     struct KNO_TIMESTAMP *t2 = get_timestamp(timestamp2,&free2);
-    if (t2 == NULL) {
-      if (free1) u8_free(t1);
-      if (free2) u8_free(t2);
-      return KNO_ERROR;}
-    else diff = u8_xtime_diff(&(t1->u8xtimeval),&(t2->u8xtimeval));
-    if (diff>0)
+    if (t2)
+      diff = u8_xtime_diff(&(t1->u8xtimeval),&(t2->u8xtimeval));
+    else err = 1;
+    if (free1) u8_free(t1);
+    if (free2) u8_free(t2);
+    if (err)
+      return KNO_ERROR;
+    else if (diff>0)
       return KNO_TRUE;
     else return KNO_FALSE;}
 }
@@ -387,14 +390,16 @@ static lispval timestamp_lesser(lispval timestamp1,lispval timestamp2)
       return KNO_TRUE;
     else return KNO_FALSE;}
   else {
-    double diff; int free2 = 0;
+    double diff; int free2 = 0, err = 0;
     struct KNO_TIMESTAMP *t2 = get_timestamp(timestamp2,&free2);
-    if (t2 == NULL) {
-      if (free1) u8_free(t1);
-      if (free2) u8_free(t2);
-      return KNO_ERROR;}
-    else diff = u8_xtime_diff(&(t1->u8xtimeval),&(t2->u8xtimeval));
-    if (diff<0)
+    if (t2)
+      diff = u8_xtime_diff(&(t1->u8xtimeval),&(t2->u8xtimeval));
+    else err = 1;
+    if (free1) u8_free(t1);
+    if (free2) u8_free(t2);
+    if (err)
+      return KNO_ERROR;
+    else if (diff<0)
       return KNO_TRUE;
     else return KNO_FALSE;}
 }
