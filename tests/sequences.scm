@@ -109,7 +109,7 @@
       ;;  it will reduce the length by 1
       (applytest (-1+ len) length
 		 (remove (elt seq i) seq))))
-  (when (> len 4)
+  (when (and (> len 4) (not (compound? seq)))
     (let ((part (slice seq 2 4)))
       (applytest 2 search part seq)))
   #t)
@@ -173,6 +173,13 @@
 	 #f 17
 	 5 1000000.53
 	 9 0.0)
+
+(seqtest (sequence->compound (->vector short-vec) 'seqtest) 7 
+	 '(1 . 6) 127
+	 3 4096
+	 4 4097
+	 #f 17
+	 5 4095)
 
 (applytester #(a b c "d" 3 3.1 g h i j k '(l m) n)
 	   append #(a b c "d" 3) #(3.1 g h i j k '(l m) n))
@@ -550,14 +557,15 @@
   (applytest (elt seq 4) fifth seq)
   (applytest (elt seq 5) sixth seq)
   (applytest (elt seq 6) seventh seq)
-  (applytest (slice seq 1) rest seq)
-  (errtest (first (slice seq 0 0)))
-  (errtest (second (slice seq 0 1)))
-  (errtest (third (slice seq 0 2)))
-  (errtest (fourth (slice seq 0 3)))
-  (errtest (fifth (slice seq 0 4)))
-  (errtest (sixth (slice seq 0 5)))
-  (errtest (seventh (slice seq 0 6)))
+  (unless (compound? seq)
+    (applytest (slice seq 1) rest seq)
+    (errtest (first (slice seq 0 0)))
+    (errtest (second (slice seq 0 1)))
+    (errtest (third (slice seq 0 2)))
+    (errtest (fourth (slice seq 0 3)))
+    (errtest (fifth (slice seq 0 4)))
+    (errtest (sixth (slice seq 0 5)))
+    (errtest (seventh (slice seq 0 6))))
   (applytest-pred ambiguous? elts seq))
 
 (define vec #("three" "four" "five" "six" "seven" "eight" "nine" 
@@ -568,6 +576,7 @@
 	    vector->elts 
 	    vec)
 (xseqtest vec)
+(xseqtest (sequence->compound vec 'xseqtest))
 (xseqtest (->list vec))
 (xseqtest "abcdefghijklmnopqrs")
 
