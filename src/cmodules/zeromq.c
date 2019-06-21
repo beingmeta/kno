@@ -41,7 +41,7 @@ static struct KNO_HASHTABLE sockopts_table;
 
 static U8_MUTEX_DECL(zeromq_ctx_lock);
 
-void *kno_zeromq_ctx = NULL;
+void *kno_zeromq_ctx = NULL, *zeromq_init_ctx = NULL;
 
 #ifndef KNO_INIT_ZMQ_SOCKETS_PER_THREAD
 #define KNO_INIT_ZMQ_SOCKETS_PER_THREAD 16
@@ -84,7 +84,8 @@ KNO_EXPORT void *kno_init_zeromq_ctx()
   int initialized = 0;
   u8_lock_mutex(&zeromq_ctx_lock);
   if (kno_zeromq_ctx == NULL) {
-    kno_zeromq_ctx = zmq_ctx_new();
+    zeromq_init_ctx = zmq_ctx_new();
+    kno_zeromq_ctx = zeromq_init_ctx;
     atexit(destroy_zeromq_ctx);
     initialized = 1;}
   u8_unlock_mutex(&zeromq_ctx_lock);
@@ -111,8 +112,6 @@ static lispval zeromq_shutdown_prim()
     else return KNO_FALSE;}
   else return KNO_FALSE;
 }
-
-
 
 /* Symbols to constants */
 
@@ -814,7 +813,7 @@ static kno_zmq_thread_data grow_zmq_thread_data(kno_zmq_thread_data perthread)
 static void kno_zeromq_thread_cleanup()
 {
   /* If this hasn't been initalized, nothing could have been saved */
-  if (kno_zeromq_ctx == NULL) return;
+  if (zeromq_init_ctx == NULL) return;
   kno_zmq_thread_data info = get_zmq_thread_data();
   if (info == NULL) return;
 #if KNO_USE__THREAD
@@ -822,14 +821,14 @@ static void kno_zeromq_thread_cleanup()
 #else
   u8_tld_set(kno_zmq_thread_data_key,NULL);
 #endif
-  ssize_t i = 0, len = info->sockets_len;
-  if (len>0)
+  ssize_t i = 0, end = info->last_socket;
+  if (end>=0)
     u8_logf(LOG_DEBUG,"ZeroMQ/ThreadCleanup",
-            "%lld sockets for thread %lld",len,u8_threadid());
+            "%lld sockets for thread %lld",end,u8_threadid());
   else u8_logf(LOG_DELUGE,"ZeroMQ/ThreadCleanup",
-               "%lld sockets for thread %lld",len,u8_threadid());
+               "%lld sockets for thread %lld",end,u8_threadid());
   struct KNO_ZMQSOCK **sockets = ZMQ_SOCKETS(info);
-  while (i<len) {
+  while (i<=end) {
     struct KNO_ZMQSOCK *zmq = sockets[i];
     if (zmq == NULL) {i++; continue;}
     else if (zmq->zmq_thread_off < 0) {}
