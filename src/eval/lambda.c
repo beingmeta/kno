@@ -388,7 +388,8 @@ KNO_EXPORT void recycle_lambda(struct KNO_RAW_CONS *c)
   if (lambda->lambda_inits) {
     kno_decref_vec(lambda->lambda_inits,n_vars);
     u8_free(lambda->lambda_inits);}
-  if (lambda->lambda_env->env_copy) {
+  if ( (lambda->lambda_env) &&
+       (lambda->lambda_env->env_copy) ) {
     kno_decref((lispval)(lambda->lambda_env->env_copy));
     /* kno_recycle_lexenv(lambda->lambda_env->env_copy); */
   }
@@ -490,7 +491,7 @@ static int *copy_intvec(int *vec,int n,int *into)
   return dest;
 }
 
-KNO_EXPORT lispval copy_lambda(struct KNO_CONS *c,int flags)
+KNO_EXPORT lispval copy_lambda(lispval c,int flags)
 {
   struct KNO_LAMBDA *lambda = (struct KNO_LAMBDA *)c;
   if (lambda->lambda_synchronized) {
@@ -503,7 +504,7 @@ KNO_EXPORT lispval copy_lambda(struct KNO_CONS *c,int flags)
     memcpy(fresh,lambda,sizeof(struct KNO_LAMBDA));
 
     /* This sets a new reference count or declares it static */
-    KNO_INIT_FRESH_CONS(fresh,kno_lambda_type);
+    KNO_INIT_CONS(fresh,kno_lambda_type);
 
     if (lambda->fcn_name) fresh->fcn_name = u8_strdup(lambda->fcn_name);
     if (lambda->fcn_filename)
@@ -593,7 +594,7 @@ static lispval def_helper(lispval expr,kno_lexenv env,int nd,int sync)
   else if (STRINGP(name)) namestring = CSTRING(name);
   else return kno_type_error
          ("procedure name (string or symbol)","def_evalfn",name);
-  proc=make_lambda(namestring,arglist,body,env,1,0,0);
+  proc=make_lambda(namestring,arglist,body,env,nd,sync,1);
   KNO_SET_LAMBDA_SOURCE(proc,expr);
   return proc;
 }
@@ -1004,6 +1005,7 @@ KNO_EXPORT void kno_init_lambdas_c()
   kno_unparsers[kno_fcnid_type]=unparse_extended_fcnid;
 
   kno_dtype_writers[kno_lambda_type] = write_lambda_dtype;
+  kno_copiers[kno_lambda_type] = copy_lambda;
 
   kno_def_evalfn(kno_scheme_module,"LAMBDA","",lambda_evalfn);
   kno_def_evalfn(kno_scheme_module,"AMBDA","",ambda_evalfn);
