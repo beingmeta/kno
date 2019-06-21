@@ -2,6 +2,8 @@
 
 (load-component "common.scm")
 
+(use-module 'texttools)
+
 (applytest #t string? (getenv "USER"))
 (applytest #t inexact? (getload))
 (applytest #t every? inexact? (loadavg))
@@ -17,7 +19,7 @@
 	     (applytest #t inexact? cmp))
 	    ((vector? v)
 	     (applytest #t vector? cmp)))))
-  (applytest flonum? cpusage usage))
+  (applytest-pred flonum? cpusage usage))
 
 (applytest #t table? (uname))
 (applytest #t string? (get (uname) 'osname))
@@ -37,13 +39,14 @@
 (errtest (sleep -5))
 (errtest (sleep -5.0))
 
-(define triplet #((isdigit) (opt (isdigit)) (opt (isdigit))))
-(define ipv4 (vector triplet triplet triplet triplet))
+(define ipcomp #((isdigit) (opt (isdigit)) (opt (isdigit))))
+(define ipv4 (vector ipcomp "." ipcomp "." ipcomp "." ipcomp))
 
 (define (ip-addr? string)
   (and (string? string) (textmatch ipv4 string)))
 
-(applytest-pred string? hostname)
+(applytest-pred string? gethostname)
+(applytest-pred ip-addr? hostaddrs "beingmeta.com")
 (applytest {} hostaddrs "beingmeta.cox")
 
 (test-finished "SYSPRIMS")
