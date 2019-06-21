@@ -27,6 +27,7 @@
 #include "kno/sequences.h"
 #include "kno/ports.h"
 #include "kno/dtcall.h"
+#include "kno/history.h"
 #include "kno/ffi.h"
 
 #include "eval_internals.h"
@@ -101,6 +102,7 @@ static lispval applytest_inner(int n,lispval *args,int predtest)
     return kno_err(kno_TooFewArgs,"applytest",NULL,VOID);
   else if (KNO_APPLICABLEP(args[1])) {
     lispval value = kno_apply(args[1],n-2,args+2);
+    int historyp = kno_historyp();
     if (KNO_ABORTP(value)) {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
       u8_exception ex = u8_erreify();
@@ -125,7 +127,12 @@ static lispval applytest_inner(int n,lispval *args,int predtest)
         struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
         u8_printf(&out,"Unexpected result from %q didn't pass %q:",
                   args[1],args[0]);
-        u8_printf(&out,"\n	%q",value);
+        if (historyp) {
+          int ref = kno_histpush(value);
+          if (ref > 0)
+            u8_printf(&out,"\n #%d	%q",ref,value);
+          else u8_printf(&out,"\n	%q",value);}
+        else u8_printf(&out,"\n	%q",value);
         lispval err = kno_err(TestFailed,"applytest",out.u8_outbuf,value);
         u8_close_output(&out);
         kno_decref(value);
@@ -142,8 +149,14 @@ static lispval applytest_inner(int n,lispval *args,int predtest)
     else {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
       u8_printf(&out,"Unexpected result from %q",args[1]);
-      u8_printf(&out,"\n   Expected: %q",args[0]);
-      u8_printf(&out,"\n	Got: %q",value);
+      int expected_ref = (historyp) ? (kno_histpush(args[0])) : (-1);
+      int got_ref = (historyp) ? (kno_histpush(value)) : (-1);
+      if (expected_ref > 0)
+        u8_printf(&out,"\n #%d   Expected: %q",expected_ref,args[0]);
+      else u8_printf(&out,"\n    Expected: %q",args[0]);
+      if (got_ref > 0)
+        u8_printf(&out,"\n #%d	Got: %q",got_ref,value);
+      else u8_printf(&out,"\n	Got: %q",value);
       lispval err = kno_err(TestFailed,"applytest",out.u8_outbuf,value);
       u8_close_output(&out);
       kno_decref(value);
@@ -221,7 +234,7 @@ static lispval evaltest_inner(lispval expr,kno_lexenv env,kno_stack s)
     (kno_eval(name_expr,env));
   u8_string name = name2string(name_value);
 
-  lispval expected_expr	 = kno_get_arg(expr,1);
+  lispval expected_expr = kno_get_arg(expr,1);
   lispval expected  = kno_eval(expected_expr,env);
   if (KNO_ABORTED(expected)) {
     kno_seterr("BadExpectedValue","evaltest_evalfn",name,expected_expr);
@@ -250,12 +263,22 @@ static lispval evaltest_inner(lispval expr,kno_lexenv env,kno_stack s)
       kno_decref(value);
       return KNO_TRUE;}
     else {
+      int historyp = kno_historyp();
+      int got_ref = (historyp) ? (kno_histpush(value)) : (-1);
+      int expect_ref = (historyp) ? (kno_histpush(expected)) : (-1);
       u8_string msg =
-	u8_mkstring("%s%s%s%q"
-		    "\n returned   %q"
-		    "\n instead of %q",
-		    U8OPTSTR("(",name,") "),testexpr,
-		    value,expected);
+        ((got_ref>0) || (expect_ref>0)) ?
+        (u8_mkstring("%s%s%s%q"
+                     "\n returned   %q (#%d)"
+                     "\n instead of %q (#%d)",
+                     U8OPTSTR("(",name,") "),testexpr,
+                     value,got_ref,
+                     expected,expect_ref)) :
+        (u8_mkstring("%s%s%s%q"
+                     "\n returned   %q (#%d)"
+                     "\n instead of %q (#%d)",
+                     U8OPTSTR("(",name,") "),testexpr,
+                     value,expected));
       lispval err = kno_err(TestFailed,"evaltest",msg,value);
       u8_free(msg); kno_decref(name_value);
       kno_decref(value); kno_decref(expected);
