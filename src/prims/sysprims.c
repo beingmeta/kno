@@ -667,8 +667,11 @@ static lispval cpusage_prim(lispval arg)
         double stime = (u8_dbltime(r.ru_stime)-KNO_FLONUM(prestime));
         double utime = u8_dbltime(r.ru_utime)-KNO_FLONUM(preutime);
         double cpusage = (stime+utime)*100.0/elapsed;
-        return kno_init_double(NULL,cpusage);}
-      else return kno_type_error(_("rusage"),"getcpusage",arg);}}
+	kno_decref(prelapsed); kno_decref(prestime); kno_decref(preutime);
+       return kno_init_double(NULL,cpusage);}
+      else {
+	kno_decref(prelapsed); kno_decref(prestime); kno_decref(preutime);
+	return kno_type_error(_("rusage"),"getcpusage",arg);}}}
 }
 
 static int get_max_cpus()
