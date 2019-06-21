@@ -339,11 +339,14 @@ static int compare_lisp(lispval x,lispval y)
 
 static lispval getmagnitude(lispval val,lispval magfn)
 {
-  if (VOIDP(magfn)) return kno_incref(val);
+  if (VOIDP(magfn))
+    return kno_incref(val);
   else {
     kno_ptr_type magtype = KNO_PTR_TYPE(magfn);
     switch (magtype) {
-    case kno_hashtable_type: case kno_slotmap_type: case kno_schemap_type:
+    case kno_hashtable_type:
+    case kno_slotmap_type:
+    case kno_schemap_type:
       return kno_get(magfn,val,EMPTY);
     default:
       if (KNO_APPLICABLEP(magfn))
@@ -356,7 +359,10 @@ static lispval smallest_evalfn(lispval elts,lispval magnitude)
   lispval top = EMPTY, top_score = VOID;
   DO_CHOICES(elt,elts) {
     lispval score = getmagnitude(elt,magnitude);
-    if (KNO_ABORTED(score)) return score;
+    if (KNO_ABORTED(score)) {
+      kno_decref(top);
+      kno_decref(top_score);
+      return score;}
     else if (VOIDP(top_score))
       if (EMPTYP(score)) {}
       else {
@@ -365,13 +371,15 @@ static lispval smallest_evalfn(lispval elts,lispval magnitude)
     else if (EMPTYP(score)) {}
     else {
       int comparison = compare_lisp(score,top_score);
-      if (comparison>0) {}
+      if (comparison>0) {
+        kno_decref(score);}
       else if (comparison == 0) {
         kno_incref(elt);
         CHOICE_ADD(top,elt);
         kno_decref(score);}
       else {
-        kno_decref(top); kno_decref(top_score);
+        kno_decref(top);
+        kno_decref(top_score);
         top = kno_incref(elt);
         top_score = score;}}}
   kno_decref(top_score);
@@ -392,13 +400,15 @@ static lispval largest_evalfn(lispval elts,lispval magnitude)
     else if (EMPTYP(score)) {}
     else {
       int comparison = compare_lisp(score,top_score);
-      if (comparison<0) {}
+      if (comparison<0) {
+        kno_decref(score);}
       else if (comparison == 0) {
         kno_incref(elt);
         CHOICE_ADD(top,elt);
         kno_decref(score);}
       else {
-        kno_decref(top); kno_decref(top_score);
+        kno_decref(top);
+        kno_decref(top_score);
         top = kno_incref(elt);
         top_score = score;}}}
   kno_decref(top_score);
