@@ -331,6 +331,8 @@ static lispval seqelt_prim(lispval x,lispval offset)
   char buf[32]; int off; lispval result;
   if (!(KNO_SEQUENCEP(x)))
     return kno_type_error(_("sequence"),"seqelt_prim",x);
+  else if (KNO_SECRETP(x))
+    return kno_err(kno_SecretData,"seqelt_prim",NULL,x);
   else if (KNO_INTP(offset))
     off = FIX2INT(offset);
   else return kno_type_error(_("fixnum"),"seqelt_prim",offset);
@@ -525,7 +527,8 @@ static lispval position_prim(lispval key,lispval x,lispval start_arg,lispval end
 {
   int result, start, end; char buf[128];
   lispval check = check_range("position_prim",x,start_arg,end_arg,&start,&end);
-  if (KNO_ABORTED(check)) return check;
+  if (KNO_ABORTED(check))
+    return check;
   else result = kno_position(key,x,start,end);
   if (result>=0) return KNO_INT(result);
   else if (result == -1) return KNO_FALSE;
@@ -1127,7 +1130,8 @@ static lispval first(lispval x)
 }
 static lispval rest(lispval x)
 {
-  if (PAIRP(x)) return kno_incref(KNO_CDR(x));
+  if (PAIRP(x))
+    return kno_incref(KNO_CDR(x));
   else {
     lispval v = kno_slice(x,1,-1);
     if (KNO_TROUBLEP(v))
@@ -1545,7 +1549,8 @@ static lispval elts_prim(lispval x,lispval start_arg,lispval end_arg)
   lispval check = check_range("elts_prim",x,start_arg,end_arg,&start,&end);
   lispval results = EMPTY;
   int ctype = KNO_PTR_TYPE(x);
-  if (KNO_ABORTED(check)) return check;
+  if (KNO_ABORTED(check))
+    return check;
   else switch (ctype) {
     case kno_vector_type: {
       lispval *read, *limit;
@@ -1566,7 +1571,9 @@ static lispval elts_prim(lispval x,lispval start_arg,lispval end_arg)
         CHOICE_ADD(results,v);
         scan++;}
       return results;}
-    case kno_packet_type: case kno_secret_type: {
+    case kno_secret_type:
+      return kno_err(kno_SecretData,"position_prim",NULL,x);
+    case kno_packet_type: {
       const unsigned char *read = KNO_PACKET_DATA(x), *lim = read+end;
       while (read<lim) {
         unsigned char v = *read++;
@@ -1582,8 +1589,7 @@ static lispval elts_prim(lispval x,lispval start_arg,lispval end_arg)
         while (i<lim) {
           kno_short num = vec[i++];
           lispval elt = KNO_SHORT2FIX(num);
-          CHOICE_ADD(results,elt);
-          i++;}}
+          CHOICE_ADD(results,elt);}}
       case kno_int_elt: {
         kno_int *vec = KNO_NUMVEC_INTS(x);
         while (i<lim) {
@@ -1616,11 +1622,14 @@ static lispval elts_prim(lispval x,lispval start_arg,lispval end_arg)
     case kno_pair_type: {
       int j = 0; lispval scan = x;
       while (PAIRP(scan))
-        if (j == end) return results;
+        if (j == end)
+          return results;
         else if (j>=start) {
-          lispval car = KNO_CAR(scan); kno_incref(car);
+          lispval car = KNO_CAR(scan);
           CHOICE_ADD(results,car);
-          j++; scan = KNO_CDR(scan);}
+          kno_incref(car);
+          scan = KNO_CDR(scan);
+          j++;}
         else {j++; scan = KNO_CDR(scan);}
       return results;}
     case kno_string_type: {

@@ -25,6 +25,8 @@
 
 #include <limits.h>
 
+u8_condition kno_SecretData=_("SecretData");
+
 struct KNO_SEQFNS *kno_seqfns[KNO_TYPE_MAX];
 
 #define KNO_EQV(x,y) \
@@ -165,14 +167,17 @@ KNO_EXPORT lispval kno_slice(lispval x,int start,int end)
       write = elts = u8_alloc_n((end-start),lispval);
       read = VEC_DATA(x)+start; limit = VEC_DATA(x)+end;
       while (read<limit) {
-        lispval v = *read++; kno_incref(v); *write++=v;}
+        lispval v = *read++;
+        kno_incref(v);
+        *write++=v;}
       result = kno_make_vector(end-start,elts);
       u8_free(elts);
       return result;}
     case kno_packet_type: case kno_secret_type: {
       const unsigned char *data = KNO_PACKET_DATA(x);
       if (end<0) end = KNO_PACKET_LENGTH(x);
-      else if (end>KNO_PACKET_LENGTH(x)) return VOID;
+      else if (end>KNO_PACKET_LENGTH(x))
+        return VOID;
       else if (ctype == kno_secret_type) {
         lispval packet = kno_make_packet(NULL,end-start,data+start);
         KNO_SET_CONS_TYPE(packet,ctype);
@@ -181,11 +186,12 @@ KNO_EXPORT lispval kno_slice(lispval x,int start,int end)
       return kno_make_packet(NULL,end-start,data+start);}
     case kno_numeric_vector_type: {
       int len = KNO_NUMVEC_LENGTH(x), newlen;
-      if (start>len) return KNO_RANGE_ERROR;
-      else if (end>len) return KNO_RANGE_ERROR;
-      else if (end<0) {
-        newlen = (KNO_NUMVEC_LENGTH(x)+end)-start;
-        if (newlen<0) return KNO_RANGE_ERROR;}
+      if (start>len)
+        return KNO_RANGE_ERROR;
+      else if (end>len)
+        return KNO_RANGE_ERROR;
+      else if (end<0)
+        newlen = KNO_NUMVEC_LENGTH(x)-start;
       else newlen = end-start;
       switch (KNO_NUMVEC_TYPE(x)) {
       case kno_short_elt:
@@ -206,13 +212,20 @@ KNO_EXPORT lispval kno_slice(lispval x,int start,int end)
         if (j == end) return head;
         else if (j>=start) {
           lispval cons = kno_conspair(kno_incref(KNO_CAR(scan)),NIL);
-          *tail = cons; tail = &(((struct KNO_PAIR *)cons)->cdr);
-          j++; scan = KNO_CDR(scan);}
-        else {j++; scan = KNO_CDR(scan);}
-      if (j<start) return KNO_RANGE_ERROR;
-      else if (j<=end) return head;
+          *tail = cons;
+          tail = &(((struct KNO_PAIR *)cons)->cdr);
+          scan = KNO_CDR(scan);
+          j++;}
+        else {
+          scan = KNO_CDR(scan);
+          j++;}
+      if (j<start)
+        return KNO_RANGE_ERROR;
+      else if (j<=end)
+        return head;
       else {
-        kno_decref(head); return KNO_RANGE_ERROR;}}
+        kno_decref(head);
+        return KNO_RANGE_ERROR;}}
     case kno_string_type: {
       const u8_byte *starts = string_start(CSTRING(x),start);
       if (starts == NULL) return KNO_RANGE_ERROR;
@@ -244,6 +257,9 @@ KNO_EXPORT int kno_position(lispval key,lispval seq,int start,int limit)
   if (len<0) {
     kno_seterr("NotASequence","kno_position",NULL,seq);
     return -1;}
+  else if (ctype == kno_secret_type) {
+    kno_seterr(kno_SecretData,"kno_position",NULL,seq);
+    return -2;}
   int end = (limit<0)?(len+limit+1):(limit>len)?(len):(limit);
   int delta = (start<end)?(1):(-1);
   int min = ((start<end)?(start):(end)), max = ((start<end)?(end):(start));
@@ -271,7 +287,7 @@ KNO_EXPORT int kno_position(lispval key,lispval seq,int start,int limit)
         else i = i+delta;}
       return -1;}
     case kno_secret_type: {
-      kno_err("SecretData","kno_position",NULL,seq);
+      kno_err(kno_SecretData,"kno_position",NULL,seq);
       return -1;}
     case kno_packet_type: {
       int intval = (KNO_INTP(key))?(FIX2INT(key)):(-1);
@@ -362,8 +378,8 @@ KNO_EXPORT int kno_rposition(lispval key,lispval x,int start,int end)
              if (LISP_EQUAL(key,data[end])) return end;
       return -1;}
     case kno_secret_type: {
-      kno_err("SecretData","kno_rposition",NULL,x);
-      return -1;}
+      kno_err(kno_SecretData,"kno_rposition",NULL,x);
+      return -2;}
     case kno_packet_type: {
       const unsigned char *data = KNO_PACKET_DATA(x);
       int len = KNO_PACKET_LENGTH(x), keyval;
@@ -387,10 +403,14 @@ KNO_EXPORT int kno_rposition(lispval key,lispval x,int start,int end)
 KNO_EXPORT int kno_generic_position(lispval key,lispval x,int start,int end)
 {
   int len = seq_length(x);
-  if (end<0) end = len+end;
+  if (len<0) return len;
+  else if (end<0)
+    end = len+end;
   else if (end<start)  {
-    int tmp = start; start = end; end = tmp;}
-  else {}
+    int tmp = start;
+    start = end;
+    end = tmp;}
+  else NO_ELSE;
   if ((start<0)||(end<0))
     return KNO_RANGE_ERROR;
   else if (start>end)
@@ -415,10 +435,17 @@ static int vector_search(lispval subseq,lispval seq,int start,int end);
 
 KNO_EXPORT int kno_search(lispval subseq,lispval seq,int start,int end)
 {
-  if (start>=end) return -1;
+  if (start>=end)
+    return -1;
   else if ((STRINGP(subseq)) && (STRINGP(seq))) {
+    if (STRLEN(subseq) == 0)
+      return 0;
+    else if (STRLEN(seq) == 0)
+      return -1;
+    else NO_ELSE;
     const u8_byte *starts = string_start(CSTRING(seq),start), *found;
-    if (starts == NULL) return -2;
+    if (starts == NULL)
+      return -2;
     found = strstr(starts,CSTRING(subseq));
     if (end<0) {
       if (found) return start+u8_strlen_x(starts,found-starts);
@@ -429,10 +456,17 @@ KNO_EXPORT int kno_search(lispval subseq,lispval seq,int start,int end)
       else if ((found) && (found<ends))
         return start+u8_strlen_x(starts,found-starts);
       else return -1;}}
-  else if (NILP(seq)) return -1;
+  else if (NILP(seq))
+    return -1;
   else {
-    int ctype = KNO_PTR_TYPE(seq);
-    if ((kno_seqfns[ctype]) && (kno_seqfns[ctype]->search) &&
+    int ctype = KNO_PTR_TYPE(seq), keytype = KNO_PTR_TYPE(subseq);
+    if (ctype == kno_secret_type) {
+      kno_seterr(kno_SecretData,"kno_seq_search",NULL,seq);
+      return -1;}
+    else if (keytype == kno_secret_type) {
+      kno_seterr(kno_SecretData,"kno_seq_search",NULL,subseq);
+      return -1;}
+    else if ((kno_seqfns[ctype]) && (kno_seqfns[ctype]->search) &&
         ((kno_seqfns[ctype]->search)!=kno_search))
       return (kno_seqfns[ctype]->search)(subseq,seq,start,end);
     else if ((PACKETP(seq)) && (PACKETP(subseq)))
@@ -446,6 +480,11 @@ KNO_EXPORT int kno_generic_search(lispval subseq,lispval seq,int start,int end)
 {
   /* Generic implementation */
   int subseqlen = seq_length(subseq), pos = start;
+  if (subseqlen < 0)
+    return -2;
+  else if (subseqlen == 0)
+    return 0;
+  else NO_ELSE;
   lispval subseqstart = kno_seq_elt(subseq,0);
   if (end<0) end = seq_length(seq);
   while ((pos = kno_position(subseqstart,seq,pos,pos-subseqlen))>=0) {
@@ -467,6 +506,7 @@ KNO_EXPORT int kno_generic_search(lispval subseq,lispval seq,int start,int end)
 static int packet_search(lispval key,lispval x,int start,int end)
 {
   int klen = KNO_PACKET_LENGTH(key);
+  if (klen == 0) return 0;
   const unsigned char *kdata = KNO_PACKET_DATA(key), first_byte = kdata[0];
   const unsigned char *data = KNO_PACKET_DATA(x), *scan, *lim = data+end;
   if (klen>(end-start)) return -1;
@@ -480,6 +520,7 @@ static int packet_search(lispval key,lispval x,int start,int end)
 static int vector_search(lispval key,lispval x,int start,int end)
 {
   int klen = VEC_LEN(key);
+  if (klen == 0) return 0;
   lispval *kdata = VEC_DATA(key), first_elt = kdata[0];
   lispval *data = VEC_DATA(x), *scan, *lim = data+(end-klen)+1;
   if (klen>(end-start)) return -1;
@@ -526,7 +567,7 @@ lispval *kno_seq_elts(lispval seq,int *n)
     switch (ctype) {
     case kno_secret_type: {
       *n = -1;
-      kno_err("SecretData","kno_elts",NULL,seq);
+      kno_err(kno_SecretData,"kno_elts",NULL,seq);
       return NULL;}
     case kno_packet_type: {
       const unsigned char *packet = KNO_PACKET_DATA(seq);
@@ -597,12 +638,6 @@ lispval *kno_seq_elts(lispval seq,int *n)
         lispval elt = kno_incref(KNO_CAR(scan));
         scan=KNO_CDR(scan);
         vec[i++]=elt;}
-      if (!(KNO_EMPTY_LISTP(scan))) {
-        kno_seterr("ImproperList","kno_seq_elts",NULL,seq);
-        kno_decref_vec(vec,len);
-        u8_free(vec);
-        vec=NULL;
-        *n=-1;}
       break;}
     default:
       if ((kno_seqfns[ctype]) && (kno_seqfns[ctype]->elts))
