@@ -438,7 +438,8 @@
 
 (errtest (case))
 (errtest (case (* 3 'x)))
-(evaltest 30 (case (* 3 5) (15 30)))
+(errtest (case (* 3 5) (15 30)))
+(evaltest 30 (case (* 3 5) ((15) 30)))
 (errtest (case (* 3 5) (15 (+ 30 'z))))
 
 (errtest (tryif (= 3 3) (fail) (define foo 3)))
@@ -478,7 +479,7 @@
 (applytest 'td procedure-symbol test-defsync)
 (evaltest #f (bound? testfn))
 
-(define test-defamb (def (td x y) (+ x y)))
+(define test-defamb (defamb (td x y) (+ x y)))
 (applytest #t applicable? test-defamb)
 (applytest #t procedure? test-defamb)
 (applytest #t non-deterministic? test-defamb)
