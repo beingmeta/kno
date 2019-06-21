@@ -256,7 +256,7 @@ KNO_EXPORT int kno_position(lispval key,lispval seq,int start,int limit)
   int ctype = KNO_PTR_TYPE(seq), len = seq_length(seq);
   if (len<0) {
     kno_seterr("NotASequence","kno_position",NULL,seq);
-    return -1;}
+    return -2;}
   else if (ctype == kno_secret_type) {
     kno_seterr(kno_SecretData,"kno_position",NULL,seq);
     return -2;}
@@ -266,7 +266,7 @@ KNO_EXPORT int kno_position(lispval key,lispval seq,int start,int limit)
   if ( (start<0) || (end<0) )
     return -2;
   else if (start>end)
-    return -1;
+    return -3;
   else switch (ctype) {
     case kno_vector_type: {
       lispval *data = KNO_VECTOR_ELTS(seq);
@@ -332,7 +332,8 @@ KNO_EXPORT int kno_position(lispval key,lispval seq,int start,int limit)
         else if (pos>=end) return -1;
         else if (LISP_EQUAL(KNO_CAR(scan),key)) return pos;
         else {pos++; scan = KNO_CDR(scan);}
-      if ((pos<start) || ((end>0) && (pos<end))) return -2;
+      if ((pos<start) || ((end>0) && (pos<end)))
+        return -3;
       else return -1;}
     default:
       if (NILP(seq)) return -1;
@@ -342,14 +343,15 @@ KNO_EXPORT int kno_position(lispval key,lispval seq,int start,int limit)
       else if (kno_seqfns[ctype])
         return kno_generic_position(key,seq,start,end);
       else {
-        kno_seterr(_("Not a sequence"),"kno_position",NULL,seq); kno_incref(seq);
-        return -3;}}
+        kno_seterr(_("Not a sequence"),"kno_position",NULL,seq);
+        return -2;}}
 }
 
 KNO_EXPORT int kno_rposition(lispval key,lispval x,int start,int end)
 {
   if (NILP(x)) return -1;
-  else if ((STRINGP(x)) && (KNO_CHARACTERP(key)) &&
+  else if ((STRINGP(x)) &&
+           (KNO_CHARACTERP(key)) &&
            (KNO_CHAR2CODE(key)<0x80)) {
     u8_string data = CSTRING(x);
     int code = KNO_CHAR2CODE(key);
@@ -364,16 +366,17 @@ KNO_EXPORT int kno_rposition(lispval key,lispval x,int start,int end)
       int len = VEC_LEN(x);
       if (end<0) end = len;
       if ((start<0) || (end<start) || (start>len) || (end>len))
-        return -2;
+        return -3;
       else while (start<end--)
-             if (LISP_EQUAL(key,data[end])) return end;
+             if (LISP_EQUAL(key,data[end]))
+               return end;
       return -1;}
     case kno_compound_type: {
       lispval *data = KNO_COMPOUND_VECELTS(x);
       int len = KNO_COMPOUND_VECLEN(x);
       if (end<0) end = len;
       if ((start<0) || (end<start) || (start>len) || (end>len))
-        return -2;
+        return -3;
       else while (start<end--)
              if (LISP_EQUAL(key,data[end])) return end;
       return -1;}
@@ -384,19 +387,26 @@ KNO_EXPORT int kno_rposition(lispval key,lispval x,int start,int end)
       const unsigned char *data = KNO_PACKET_DATA(x);
       int len = KNO_PACKET_LENGTH(x), keyval;
       if (end<0) end = len;
-      if (FIXNUMP(key)) keyval = FIX2INT(key); else return -1;
-      if ((keyval<0) || (keyval>255)) return -1;
+      if (FIXNUMP(key))
+        keyval = FIX2INT(key);
+      else return -1;
+      if ((keyval<0) || (keyval>255))
+        return -1;
       else if ((start<0) || (end<start) || (start>len) || (end>len))
-        return -2;
+        return -3;
       else while (start<end--) {
-          if (keyval == data[end]) return start;}
+          if (keyval == data[end])
+            return start;}
       return -1;}
     default: {
       int last = -1, pos;
       while ((start<end) &&
              (pos = kno_position(key,x,start,end))>=0) {
-        last = pos; start = pos+1;}
-      return last;}}
+        last = pos;
+        start = pos+1;}
+      if (pos < -1)
+        return pos;
+      else return last;}}
 }
 
 /* Generic position */

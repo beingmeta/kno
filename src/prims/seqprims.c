@@ -533,7 +533,7 @@ static lispval position_prim(lispval key,lispval x,lispval start_arg,lispval end
   if (result>=0) return KNO_INT(result);
   else if (result == -1) return KNO_FALSE;
   else if (result == -2)
-    return kno_type_error(_("sequence"),"position_prim",x);
+    return KNO_ERROR;
   else if (result == -3) {
     return kno_err(kno_RangeError,"position_prim",
                   u8_sprintf(buf,128,"%d[%d:%d]",kno_seq_length(x),start,end),
@@ -550,7 +550,7 @@ static lispval rposition_prim(lispval key,lispval x,lispval start_arg,lispval en
   if (result>=0) return KNO_INT(result);
   else if (result == -1) return KNO_FALSE;
   else if (result == -2)
-    return kno_type_error(_("sequence"),"rposition_prim",x);
+    return KNO_ERROR;
   else if (result == -3) {
     return kno_err(kno_RangeError,"rposition_prim",
                   u8_sprintf(buf,128,"%d[%d:%d]",kno_seq_length(x),start,end),
