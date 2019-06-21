@@ -350,6 +350,7 @@ int do_main(int argc,char **argv,
     main_proc = kno_symeval(main_symbol,env);
     if ( (KNO_VOIDP(main_proc)) && (main_symbol == real_main) ) {
       /* Nothing to do */
+      kno_decref(result);
       result = KNO_VOID;}
     else if (KNO_APPLICABLEP(main_proc)) {
       kno_decref(result);
