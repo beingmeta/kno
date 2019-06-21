@@ -255,8 +255,10 @@ static lispval do_compare(int n,lispval *v,int testspec[3])
 {
   int i = 1; while (i < n) {
     int comparison = numeric_compare(v[i-1],v[i]);
-    if (comparison>1) return KNO_ERROR;
-    else if (testspec[comparison+1]) i++;
+    if (comparison>1)
+      return KNO_ERROR;
+    else if (testspec[comparison+1])
+      i++;
     else return KNO_FALSE;}
   return KNO_TRUE;
 }

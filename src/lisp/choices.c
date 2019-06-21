@@ -48,6 +48,8 @@ static void recycle_prechoice_wrapper(struct KNO_PRECHOICE *ch)
 {
   kno_decref(ch->prechoice_normalized);
   u8_destroy_mutex(&(ch->prechoice_lock));
+  ch->prechoice_data = NULL;
+  ch->prechoice_choicedata = NULL;
   if (!(KNO_STATIC_CONSP(ch))) u8_free(ch);
 }
 static ssize_t write_prechoice_dtype(struct KNO_OUTBUF *s,lispval x)
@@ -168,9 +170,11 @@ static int compress_choice(lispval *v,int n,int atomicp)
       if (KNO_EMPTYP(elt)) {
         scan++;}
       else if (cons_compare(pt,elt)==0) {
-        kno_decref(*scan); scan++;
+        kno_decref(*scan);
+        scan++;
         while ((scan<limit) && (cons_compare(pt,*scan)==0)) {
-          kno_decref(*scan); scan++;}}
+          kno_decref(*scan);
+          scan++;}}
       else *write++=pt = *scan++;}
   return write-v;
 }
@@ -350,7 +354,8 @@ lispval kno_make_prechoice(lispval x,lispval y)
   ch->prechoice_choicedata = kno_alloc_choice(64);
   ch->prechoice_write = ch->prechoice_data =
     (lispval *)KNO_XCHOICE_DATA(ch->prechoice_choicedata);
-  ch->prechoice_limit = ch->prechoice_data+64; ch->prechoice_normalized = VOID;
+  ch->prechoice_limit = ch->prechoice_data+64;
+  ch->prechoice_normalized = VOID;
   ch->prechoice_mallocd = 1;
   ch->prechoice_nested = 0;
   ch->prechoice_muddled = 0;

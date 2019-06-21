@@ -2595,13 +2595,11 @@ int kno_numcompare(lispval x,lispval y)
     double dx = KNO_FLONUM(x), dy = KNO_FLONUM(y);
     if (dx>dy) return 1; else if (dx<dy) return -1; else return 0;}
   else if (!(NUMBERP(x))) {
-    kno_seterr(kno_TypeError,"compare","object is not a number",
-              x);
+    kno_seterr(kno_TypeError,"compare","object is not a number",x);
     /* Any number > 1 indicates an error. */
     return 17;}
   else if (!(NUMBERP(y))) {
-    kno_seterr(kno_TypeError,"compare","object is not a number",
-	      y);
+    kno_seterr(kno_TypeError,"compare","object is not a number",y);
     /* Any number > 1 indicates an error. */
     return 17;}
   else if ((COMPLEXP(x)) || (COMPLEXP(x))) {
