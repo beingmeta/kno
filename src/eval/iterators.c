@@ -35,8 +35,7 @@ static lispval while_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else if (! (PRED_TRUE( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
     return kno_err(kno_SyntaxError,"WHILE",NULL,expr);
   else {
-    while ((VOIDP(result)) &&
-           (testeval(test_expr,env,&result,_stack))) {
+    while (testeval(test_expr,env,&result,_stack) == 1) {
       KNO_DOLIST(iter_expr,body) {
         lispval val = fast_eval(iter_expr,env);
         if (KNO_BROKEP(val))
@@ -59,8 +58,7 @@ static lispval until_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else if (! (PRED_TRUE( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
     return kno_err(kno_SyntaxError,"UNTIL",NULL,expr);
   else {
-    while ((VOIDP(result)) &&
-           (!(testeval(test_expr,env,&result,_stack)))) {
+    while (testeval(test_expr,env,&result,_stack) == 0) {
       KNO_DOLIST(iter_expr,body) {
         lispval val = fast_eval(iter_expr,env);
         if (KNO_BROKEP(val))
@@ -118,8 +116,10 @@ static lispval dotimes_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return var;
   else if (KNO_ABORTED(limit_val))
     return limit_val;
-  else if (!(KNO_UINTP(limit_val)))
-    return kno_type_error("fixnum","dotimes_evalfn",limit_val);
+  else if (!(KNO_UINTP(limit_val))) {
+    lispval err = kno_type_error("fixnum","dotimes_evalfn",limit_val);
+    kno_decref(limit_val);
+    return err;}
   else limit = FIX2INT(limit_val);
   INIT_STACK_ENV(_stack,dotimes,env,1);
   dotimes_vars[0]=var;

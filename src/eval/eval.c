@@ -64,6 +64,7 @@ u8_condition
   kno_UnboundIdentifier=_("the variable is unbound"),
   kno_VoidArgument=_("VOID result passed as argument"),
   kno_VoidBinding=_("VOID result used as variable binding"),
+  kno_VoidBoolean=_("VOID result as boolean value"),
   kno_NotAnIdentifier=_("not an identifier"),
   kno_TooFewExpressions=_("too few subexpressions"),
   kno_CantBind=_("can't add binding to environment"),

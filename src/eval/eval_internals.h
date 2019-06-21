@@ -14,9 +14,17 @@ static int testeval(lispval expr,kno_lexenv env,lispval *whoops,
 {
   lispval val = _kno_fast_eval(expr,env,_stack,0);
   if (KNO_ABORTP(val)) {
-    *whoops = val; return 0;}
-  else if (KNO_FALSEP(val)) return 0;
-  else {kno_decref(val); return 1;}
+    *whoops = val;
+    return -1;}
+  else if (KNO_VOIDP(val)) {
+    kno_seterr(kno_VoidBoolean,"testeval",NULL,expr);
+    *whoops = KNO_ERROR;
+    return -1;}
+  else if (KNO_FALSEP(val))
+    return 0;
+  else {
+    kno_decref(val);
+    return 1;}
 }
 
 KNO_FASTOP lispval _pop_arg(lispval *scan)
