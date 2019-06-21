@@ -985,6 +985,22 @@ static lispval thread_cancel_prim(lispval thread_arg,lispval reason)
       return KNO_TRUE;}}
 }
 
+DCLPRIM("THREAD/SIGNAL!",thread_signal_prim,MIN_ARGS(2)|MAX_ARGS(2),
+	"(THREAD/SIGNAL! *thread* *signal*) signals *thread* with *signal*.")
+static lispval thread_signal_prim(lispval thread_arg,lispval signal)
+{
+  struct KNO_THREAD_STRUCT *thread = (struct KNO_THREAD_STRUCT *)thread_arg;
+  if ((thread->flags)&(KNO_THREAD_DONE))
+    return KNO_FALSE;
+  else {
+    int sig = KNO_INT(signal);
+    int rv = pthread_kill(thread->tid,sig);
+    if (rv < 0) {
+      int e = errno; errno =0;
+      if (e) u8_log(LOG_WARN,"Thread/Signal/Failed","For %q",thread_arg);
+      return KNO_FALSE;}
+    else return KNO_TRUE;}
+}
 
 DCLPRIM("THREAD/EXITED?",thread_exitedp,MIN_ARGS(1)|MAX_ARGS(1),
 	"(THREAD/EXITED? *thread*) returns true if *thread* has exited")
@@ -1589,6 +1605,7 @@ KNO_EXPORT void kno_init_threads_c()
 
   int one_thread_arg[1] = { kno_thread_type };
   int thread_plus_arg[2] = { kno_thread_type, kno_any_type };
+  int thread_plus_fixnum_arg[2] = { kno_thread_type, kno_fixnum_type };
   int find_thread_types[2] = { kno_fixnum_type, kno_any_type };
 
   DECL_PRIM_ARGS(threadid_prim,1,threads_module,one_thread_arg,NULL);
@@ -1599,7 +1616,10 @@ KNO_EXPORT void kno_init_threads_c()
   DECL_PRIM_ARGS(thread_errorp,1,threads_module,one_thread_arg,NULL);
   DECL_PRIM_ARGS(thread_result,1,threads_module,one_thread_arg,NULL);
 
-  DECL_PRIM_ARGS(thread_cancel_prim,2,threads_module,thread_plus_arg,NULL);
+  DECL_PRIM_ARGS(thread_signal_prim,2,threads_module,
+		 thread_plus_fixnum_arg,NULL);
+  DECL_PRIM_ARGS(thread_cancel_prim,2,threads_module,
+		 thread_plus_arg,NULL);
 
   timeout_symbol = kno_intern("timeout");
   logexit_symbol = kno_intern("logexit");
