@@ -205,6 +205,11 @@ KNO_EXPORT lispval kno_histfind(lispval value)
     return refs;}
 }
 
+KNO_EXPORT int kno_historyp()
+{
+  return kno_thread_probe(history_symbol);
+}
+
 KNO_EXPORT
 lispval kno_get_histref(lispval elts)
 {
