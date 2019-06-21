@@ -500,7 +500,7 @@ KNO_EXPORT lispval copy_lambda(lispval c,int flags)
     return sp;}
   else {
     struct KNO_LAMBDA *fresh = u8_alloc(struct KNO_LAMBDA);
-    int n_args = lambda->lambda_n_vars+1, arity = lambda->fcn_arity;
+    int n_vars = lambda->lambda_n_vars, arity = lambda->fcn_arity;
     memcpy(fresh,lambda,sizeof(struct KNO_LAMBDA));
 
     /* This sets a new reference count or declares it static */
@@ -519,7 +519,7 @@ KNO_EXPORT lispval copy_lambda(lispval c,int flags)
     kno_incref(lambda->lambda_source);
     fresh->lambda_consblock = NULL;
     if (lambda->lambda_vars)
-      fresh->lambda_vars = kno_copy_vec(lambda->lambda_vars,n_args,NULL,flags);
+      fresh->lambda_vars = kno_copy_vec(lambda->lambda_vars,n_vars,NULL,flags);
     if (lambda->fcn_defaults)
       fresh->fcn_defaults = kno_copy_vec(lambda->fcn_defaults,arity,NULL,flags);
 
