@@ -19,8 +19,9 @@
 (applytester  3 search #X"ba9c" p1)
 
 (applytester 2 position 'foo #({a b} {9 11} {foo bar}))
-(applytester 1 position '#{foo 9} #({a b} {9 11} {foo bar}))
-(applytester 2 position '#{foo bar} #({a b} {9 11} {foo bar}))
+(applytester 2 position 'bar #({a b} {9 11} {foo bar}))
+(applytester 1 position 9 #({a b} {9 11} {foo bar}))
+(applytester 1 position 11 #({a b} {9 11} {foo bar}))
 
 (applytest #t some? odd? #(1 2 3 4 5 6))
 (applytest #f some? odd? #(2 4 6))
@@ -54,15 +55,17 @@
 (errtest (elts 'foo))
 (errtest (elts "foo" 'start))
 (errtest (elts "foo" 0 'end))
-(errtest (elts '(a b c . d)))
+(evaltest '{a b c} (elts '(a b c . d)))
 
 (applytest #("foo" "bar" "quuz") remove "baz" #("foo" "bar" "baz" "quuz"))
 (applytest "abcdegh" remove #\f "abcdefgh")
 (applytest '("foo" "bar" "quuz") remove "baz" '("foo" "bar" "baz" "quuz"))
-(applytest #"abcdegh" remove (char->integer #\f) "abcdefgh")
+(applytest #"abcdegh" remove (char->integer #\f) #"abcdefgh")
 
 (define short-vec
-  (vector 0 127 256 (* 256 16) (1+ (* 256 16)) (1- (* 256 16)) 127))
+  (vector 0 127 256 (* 256 16)
+	  (1+ (* 256 16)) (1- (* 256 16))
+	  127))
 (define int-vec
   (vector 0 127 256 (* 256 256)
 		(1+ (* 256 256 16))
@@ -100,7 +103,12 @@
 	(when (> len 1) (applytest (elt seq 1) (second seq)))
 	(when (> len 2) (applytest (elt seq 2) (third seq))))))
   (dotimes (i len)
-    (applytest (-1+ len) remove (elt seq i) seq))
+    (unless (find (elt seq i) seq
+		  (1+ (position (elt seq i) seq)))
+      ;; Unless seq[i] is duplicated, removing
+      ;;  it will reduce the length by 1
+      (applytest (-1+ len) length
+		 (remove (elt seq i) seq))))
   (when (> len 4)
     (let ((part (slice seq 2 4)))
       (applytest 2 search part seq)))
@@ -442,7 +450,7 @@
 (applytest-pred secret? glom "thering" asecret)
 (applytest-pred secret? glom asecret "thering")
 (applytest-pred secret? slice asecret 0 2)
-(applytest 11 length asecret)
+(applytest 10 length asecret)
 
 (errtest (elt asecret 3))
 (errtest (position (char->integer #\k) asecret))
@@ -526,27 +534,15 @@
 
 ;;; Pair tests
 
-(define (xseqtest seq (numeric #f) (sorted))
-  (default! sorted numeric)
+(define (xseqtest seq (numeric #f))
   (when numeric
     (applytest #t every? number? seq)
     (applytest #t some? number? seq)
     (applytest-pred sequence? map 1+ seq)
     (applytest 'void for-each 1+ seq)
-    (evaltest (largest (elts seq)) (apply max (seq->list seq)))
-    (evaltest (smallest (elts seq)) (apply min (seq->list seq))))
-  (when sorted
-    (let ((increasing (sortvec seq))
-	  (decreasing (rsortvec seq))
-	  (len (length seq)))
-      (applytest decreasing reverse increasing)
-      (doseq (e increasing i)
-	(when (> i 0) 
-	  (applytest #t >=? e (elt increasing (-1+ i)))))
-      (doseq (e decreasing i)
-	(when (> i 0)
-	  (applytest #t <=? e (elt decreasing (-1+ i)))))))
-  (applytest string? (lisp->string seq))
+    (evaltest (largest (elts seq)) (apply max (->list seq)))
+    (evaltest (smallest (elts seq)) (apply min (->list seq))))
+  (applytest-pred string? lisp->string seq)
   (applytest (elt seq 0) first seq)
   (applytest (elt seq 1) second seq)
   (applytest (elt seq 2) third seq)
@@ -569,21 +565,21 @@
 
 (applytest  {"three" "four" "five" "six" "seven" "eight" "nine" 
 	     "ten" "eleven" "twelve" "thirteen"}
-	    vec->elts 
+	    vector->elts 
 	    vec)
 (xseqtest vec)
-(xseqtest (vector->list vec))
+(xseqtest (->list vec))
 (xseqtest "abcdefghijklmnopqrs")
 
 (applytest #t veclen>=? vec 3)
 (applytest #f veclen<=? vec 3)
-(applytest #t veclen=? vec (length numvec))
+(applytest #t veclen=? vec (length vec))
 (applytest #f veclen>? vec 20)
 (applytest #f veclen>=? vec 20)
 
 (applytest #t seqlen>=? vec 3)
 (applytest #f seqlen<=? vec 3)
-(applytest #t seqlen=? vec (length numvec))
+(applytest #t seqlen=? vec (length vec))
 (applytest #f seqlen>? vec 20)
 (applytest #f seqlen>=? vec 20)
 
@@ -594,10 +590,22 @@
 (xseqtest (->intvec numvec) #t)
 (xseqtest (->longvec numvec) #t)
 (xseqtest (->floatvec numvec) #t)
-(xseqtest (->doublvec numvec) #t)
+(xseqtest (->doublevec numvec) #t)
 
 (xseqtest (string->packet "abcdefghijklmnopqrs"))
-(errtest (->secret (string->packet "abcdefghijklmnopqrs")))
+
+(define (sort-test seq)
+  (let ((increasing (sortvec seq))
+	(decreasing (rsortvec seq))
+	(len (length seq)))
+    (applytest decreasing reverse increasing)
+    (doseq (e increasing i)
+      (when (> i 0) 
+	(applytest #t >= e (elt increasing (-1+ i)))))
+    (doseq (e decreasing i)
+      (when (> i 0)
+	(applytest #t <= e (elt decreasing (-1+ i)))))))
+(sort-test numvec)
 
 (applytest "foo" cdar '((a . "foo") (b . "bar")))
 (errtest (caar '(a b)))
@@ -613,7 +621,7 @@
   (set-car! (cddr lst) "quux")
   (applytest "quux" caddr lst)
   (applytest 3 length lst)
-  (set-cdr! (cddr lst) '())
+  (set-cdr! (cdr lst) '())
   (applytest 2 length lst))
 
 (errtest (make-vector -5 "backward"))
