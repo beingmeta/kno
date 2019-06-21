@@ -354,7 +354,7 @@ static lispval timestamp_greater(lispval timestamp1,lispval timestamp2)
   else if (VOIDP(timestamp2)) {
     double diff;
     struct U8_XTIME xtime; u8_now(&xtime);
-    diff = u8_xtime_diff(&xtime,&(t1->u8xtimeval));
+    diff = u8_xtime_diff(&(t1->u8xtimeval),(&xtime));
     if (free1) u8_free(t1);
     if (diff>0)
       return KNO_TRUE;
@@ -381,7 +381,7 @@ static lispval timestamp_lesser(lispval timestamp1,lispval timestamp2)
   else if (VOIDP(timestamp2)) {
     double diff;
     struct U8_XTIME xtime; u8_now(&xtime);
-    diff = u8_xtime_diff(&xtime,&(t1->u8xtimeval));
+    diff = u8_xtime_diff(&(t1->u8xtimeval),&xtime);
     if (free1) u8_free(t1);
     if (diff<0)
       return KNO_TRUE;
@@ -1202,14 +1202,14 @@ static lispval secs2short(lispval secs)
     u8_free(out.u8_outbuf);
     return lispval_string("0 seconds");}
   else reduce = seconds;
-  days = (int)floor(reduce/(24*3600));
+  days = (int) (floor(reduce/(24*3600)));
   reduce = reduce-days*(3600*24);
-  hours = (int)floor(reduce/(3600));
+  hours = (int) (floor(reduce/(3600)));
   reduce = reduce-hours*(3600);
-  minutes = floor(reduce/60);
+  minutes = (int) (floor(reduce/60));
   reduce = reduce-minutes*60;
 
-  if (days>0) u8_printf(&out,"%dd-");
+  if (days>0) u8_printf(&out,"%dd-",days);
   if ((days==0)&&(hours==0)&&(minutes==0))
     if (reduce>=10)
       u8_printf(&out,"%.2d:%0.2d:%f",hours,minutes,reduce);

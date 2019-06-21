@@ -30,8 +30,8 @@
 (applytest gmt-time1 timestamp (get gmt-time1 'iso))
 (applytest gmt-time1 timestamp (get gmt-time1 'isobasic))
 
-(applytest #f time<? time1-tick)
-(applytest #t time>? time1-tick)
+(applytest #t time<? time1-tick)
+(applytest #f time>? time1-tick)
 (evaltest 1 (get-sign (time-since time1-tick)))
 (evaltest -1 (get-sign (time-until time1-tick)))
 
@@ -85,7 +85,8 @@
 
 (applytest-pred string? timestring)
 (applytest "02:05:00" secs->short (+ (* 3600 2) (* 60 5)))
-(applytest "64d-02:05:00" secs->short (+ (* 3600 24 365 3) (* 3600 24 9) (* 3600 2) (* 60 5)))
+(applytest "1104d-02:05:00"
+	   secs->short (+ (* 3600 24 365 3) (* 3600 24 9) (* 3600 2) (* 60 5)))
 (applytest "2 hours, 5 minutes" secs->string (+ (* 3600 2) (* 60 5)))
 (applytest "one week, 2 days, 2 hours, 5 minutes" 
 	   secs->string (+ (* 3600 24 9) (* 3600 2) (* 60 5)))
