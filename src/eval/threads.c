@@ -598,6 +598,7 @@ static void threadexit_cleanup(void *calldata)
     else u8_log(LOGWARN,"ThreadCanceled",
 		"%q was cancelled prematurely after %f seconds",
 		(lispval)tstruct,u8_elapsed_time()-tstruct->started);}
+  kno_decref((lispval)tstruct);
   return;
 }
 
@@ -718,8 +719,6 @@ static void *thread_main(void *data)
     tstruct->thread_stackptr = NULL;
     kno_pop_stack(_stack);}
   pthread_cleanup_pop(1);
-
-  kno_decref((lispval)tstruct);
 
   return NULL;
 }
