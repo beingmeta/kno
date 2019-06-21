@@ -274,7 +274,7 @@ KNO_EXPORT lispval kno_map2choice(lispval fn,lispval sequence)
         u8_free(results);
         return new_elt;}
       else results[i++]=new_elt;}
-    return kno_make_choice(len,results,0);}
+    return kno_make_choice(len,results,KNO_CHOICE_FREEDATA);}
   else return kno_err(kno_NotAFunction,"MAP",NULL,fn);
 }
 
@@ -1593,30 +1593,35 @@ static lispval elts_prim(lispval x,lispval start_arg,lispval end_arg)
       case kno_int_elt: {
         kno_int *vec = KNO_NUMVEC_INTS(x);
         while (i<lim) {
-          kno_int num = vec[i++]; lispval elt = KNO_INT(num);
+          kno_int num = vec[i++];
+          lispval elt = KNO_INT(num);
           CHOICE_ADD(results,elt);}
         break;}
       case kno_long_elt: {
         kno_long *vec = KNO_NUMVEC_LONGS(x);
         while (i<lim) {
-          kno_long num = vec[i++]; lispval elt = KNO_INT(num);
+          kno_long num = vec[i++];
+          lispval elt = KNO_INT(num);
           CHOICE_ADD(results,elt);}
         break;}
       case kno_float_elt: {
         kno_float *vec = KNO_NUMVEC_FLOATS(x);
         while (i<lim) {
-          kno_float num = vec[i++]; lispval elt = kno_make_flonum(num);
+          kno_float num = vec[i++];
+          lispval elt = kno_make_flonum(num);
           CHOICE_ADD(results,elt);}
         break;}
       case kno_double_elt: {
         kno_double *vec = KNO_NUMVEC_DOUBLES(x);
         while (i<lim) {
-          kno_double num = vec[i++]; lispval elt = kno_make_flonum(num);
+          kno_double num = vec[i++];
+          lispval elt = kno_make_flonum(num);
           CHOICE_ADD(results,elt);}
         break;}
       default: {
         kno_seterr(_("Corrputed numerical vector"),"kno_seq2choice",NULL,x);
-        kno_incref(x); kno_decref(results);
+        kno_incref(x);
+        kno_decref(results);
         results = KNO_ERROR;}}
       break;}
     case kno_pair_type: {
@@ -1626,8 +1631,8 @@ static lispval elts_prim(lispval x,lispval start_arg,lispval end_arg)
           return results;
         else if (j>=start) {
           lispval car = KNO_CAR(scan);
-          CHOICE_ADD(results,car);
           kno_incref(car);
+          CHOICE_ADD(results,car);
           scan = KNO_CDR(scan);
           j++;}
         else {j++; scan = KNO_CDR(scan);}
