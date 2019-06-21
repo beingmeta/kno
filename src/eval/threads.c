@@ -588,7 +588,7 @@ static void threadexit_cleanup(void *calldata)
 {
   struct KNO_THREAD_STRUCT *tstruct =
     (struct KNO_THREAD_STRUCT *) calldata;
-  int rv = u8_threadexit();
+  u8_threadexit();
   if (tstruct->finished < 0) {
     lispval reason = tstruct->result;
     if ( (KNO_NULLP(reason)) || (KNO_VOIDP(reason)) )
@@ -1637,8 +1637,8 @@ KNO_EXPORT void kno_init_threads_c()
   DECL_PRIM(thread_add,2,threads_module);
   DECL_PRIM(thread_reset_vars,0,threads_module);
 
-  kno_def_evalfn(threads_module,"THREAD/REF",
-		 "`(THREAD/REF *sym* *expr*)` returns the fluid "
+  kno_def_evalfn(threads_module,"THREAD/CACHE",
+		 "`(THREAD/CACHE *sym* *expr*)` returns the fluid "
 		 "(thread-local) value of *sym* (which is evaluated) "
 		 "if it exists. If it doesn't exist, *expr* is evaluted "
 		 "and fluidly assigned to *sym*.",
