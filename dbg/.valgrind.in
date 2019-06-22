@@ -1,12 +1,13 @@
 export VG_ENV="\
         LD_LIBRARY_PATH=./lib DYLD_LIBRARY_PATH=../lib			\
-	KNO_INIT_DLOADPATH=@abs_top_srcdir@/lib/kno/%.@shared_suffix@:@abs_top_srcdir@/../lingo/%.@shared_suffix@:@prefix@/lib/kno/%.@shared_suffix@ \
 	MEMCHECKING=yes UNDERGDB=yes					\
+	KNO_INIT_LOADPATH=@abs_top_srcdir@/src/stdlib/:@abs_top_srcdir@/src/stdlib/safe/:@default_module_path@ \
+	KNO_LOADPATH=../src/stdlib/%/module.scm:../src/stdlib/%.scm: 	\
+	KNO_LIBSCM_DIR=@abs_top_srcdir@/src/libscm/ 			\
 	KNO_DLOADPATH=../lib/framerd					\
-	KNO_LIBSCM_DIR=../src/libscm					\
+	KNO_TRACECONFIGLOAD=yes KNO_UPDATE_MODULES=5			\
 	KNO_INVALGRIND=yes KNO_MEMCHECKING=yes				\
 	KNO_DISPLAYMAXELTS=36 KNO_DISPLAYMAXCHARS=2048			\
 	KNO_SKIP_DOTLOAD=yes KNO_SHOWTIME=0.0 KNO_DLOADTRACE=yes		\
-	KNO_TRACECONFIGLOAD=yes KNO_UPDATE_MODULES=5			\
 	KNO_FOREGROUND=yes KNO_STEALSOCKETS=yes				\
 	${VG_ENV}"
