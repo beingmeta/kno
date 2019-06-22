@@ -184,12 +184,14 @@ KNO_EXPORT lispval kno_new_cmodule_x(char *name,int flags,void *addr,
       const char *cfilename = dlinfo.dli_fname;
       if (cfilename) {
         filename = u8_fromlibc((char *)cfilename);
+        if ( ((char *)filename) == cfilename)
+          filename = u8_strdup(filename);
         free_filename = 1;}}}
 #endif
   if (filename) {
     lispval fname = kno_make_string(NULL,-1,filename);
-    if (free_filename) u8_free(filename);
     kno_add(mod,source_symbol,fname);
+    if (free_filename) u8_free(filename);
     kno_decref(fname);}
   return mod;
 }
