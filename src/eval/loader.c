@@ -450,13 +450,13 @@ static lispval update_module_prim(lispval spec,lispval force)
     u8_string module_source = get_module_source(spec);
     if (module_source) {
       int retval = kno_update_file_module(module_source,0);
-      if (retval) return KNO_TRUE;
+      u8_free(module_source);
+      if (retval)
+        return KNO_TRUE;
       else return KNO_FALSE;}
-    else {
-      kno_seterr(kno_ReloadError,"update_module_prim",
-                 _("Module does not exist"),
-                 spec);
-      return KNO_ERROR;}}
+    else return kno_err(kno_ReloadError,"update_module_prim",
+                        _("Module does not exist"),
+                        spec);}
   else return load_source_module(spec,NULL);
 }
 
