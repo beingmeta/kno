@@ -247,7 +247,7 @@ xml xmltest:
 	@${RUN} ${KNOX} xml.scm ${RUNCONF}
 	@${header} "■■■■ Completed xml tests ${RUNCONF}"
 
-temptest:
+temp:
 	@${RUN} ${KNOX} temp.scm ${RUNCONF}
 	@${header} "■■■■ Completed temp tests ${RUNCONF}"
 
