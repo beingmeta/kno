@@ -133,10 +133,10 @@ static lispval mailout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 void kno_init_email_c()
 {
-  lispval unsafe_module = kno_new_cmodule("webtools",(0),kno_init_email_c);
+  lispval module = kno_new_module("WEBTOOLS",(0));
 
-  kno_idefn(unsafe_module,kno_make_cprim5("SMTP",smtp_function,3));
-  kno_def_evalfn(unsafe_module,"MAILOUT","",mailout_evalfn);
+  kno_idefn(module,kno_make_cprim5("SMTP",smtp_function,3));
+  kno_def_evalfn(module,"MAILOUT","",mailout_evalfn);
 
   kno_register_config("MAILHOST",_("SMTP host"),
                      kno_sconfig_get,kno_sconfig_set,&mailhost_dflt);

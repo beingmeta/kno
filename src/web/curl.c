@@ -1654,7 +1654,6 @@ KNO_EXPORT void kno_init_curl_c(void) KNO_LIBINIT_FN;
 
 KNO_EXPORT void kno_init_curl_c()
 {
-  lispval module;
   if (curl_initialized) return;
   curl_initialized = 1;
   kno_init_scheme();
@@ -1663,7 +1662,7 @@ KNO_EXPORT void kno_init_curl_c()
     default_user_agent=u8_strdup(getenv("USERAGENT"));
   else default_user_agent=u8_strdup(default_user_agent);
 
-  module = kno_new_module("WEBTOOLS",(0));
+  lispval module = kno_new_module("WEBTOOLS",(0));
 
   kno_curl_type = kno_register_cons_type("CURLHANDLE");
   kno_recyclers[kno_curl_type]=recycle_curl_handle;
