@@ -116,7 +116,7 @@ cmdtests:
 
 static-tests: schemetests optscheme loadmods optmods slotmaps tables pools indexes framedbs
 schemetest schemetests scheme: r4rs exceptions choices sequences breaks numvecs regex \
-	reflect hashsets eval promises ffi \
+	reflect hashsets eval loading promises ffi \
 	picktest cachecall texttools webtools timefns sysprims startup stringprims \
 	threads i18n misc gctests profiling \
 	fileprims xml
@@ -195,10 +195,10 @@ pick picktest:
 cachecall:
 	@${RUN} ${KNOX} cachecall.scm ${RUNCONF}
 	@${header} "■■■■ Completed cachecall tests ${RUNCONF}"
-texttools texttest:
+texttools:
 	@${RUN} ${KNOX} texttools.scm ${RUNCONF}
 	@${header} "■■■■ Completed texttools tests ${RUNCONF}"
-webtools webtoolstest:
+webtools:
 	@${RUN} ${KNOX} webtools.scm ${RUNCONF}
 	@${header} "■■■■ Completed webtools tests ${RUNCONF}"
 stringprims:
@@ -213,13 +213,13 @@ sysprims:
 startup:
 	@${RUN} ${KNOX} CONFIG=../dbg/startup.cfg startup.scm ${RUNCONF}
 	@${header} "■■■■ Completed startup tests ${RUNCONF}"
-threads threadtest:
+threads:
 	@${RUN} ${KNOX} threads.scm ${RUNCONF}
 	@${header} "■■■■ Completed threads tests ${RUNCONF}"
 reflect:
 	@${RUN} ${KNOX} reflect.scm ${RUNCONF}
 	@${header} "■■■■ Completed reflection tests ${RUNCONF}"
-breaks breaktests:
+breaks:
 	@${RUN} ${KNOX} breaktests.scm ${RUNCONF}
 	@${header} "■■■■ Completed breaks tests ${RUNCONF}"
 ffi:
@@ -248,8 +248,8 @@ xml xmltest:
 	@${header} "■■■■ Completed xml tests ${RUNCONF}"
 
 temptest:
-	@${RUN} ${KNOX} temptest.scm ${RUNCONF}
-	@${header} "■■■■ Completed misc tests ${RUNCONF}"
+	@${RUN} ${KNOX} temp.scm ${RUNCONF}
+	@${header} "■■■■ Completed temp tests ${RUNCONF}"
 
 # Table tests
 

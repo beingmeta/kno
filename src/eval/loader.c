@@ -67,9 +67,9 @@ static lispval loadpath = NIL;
 static int log_reloads = 1;
 
 static void add_load_record
-  (lispval spec,u8_string filename,kno_lexenv env,time_t mtime);
+(lispval spec,u8_string filename,kno_lexenv env,time_t mtime);
 static lispval load_source_for_module
-  (lispval spec,u8_string module_source);
+(lispval spec,u8_string module_source);
 static u8_string get_module_source(lispval spec);
 
 static lispval moduleid_symbol, source_symbol, loadstamps_symbol;
@@ -126,7 +126,7 @@ static u8_string check_module_source(u8_string name,u8_string search_path)
     return NULL;}
   else {
     unsigned char buf[1000];
-    u8_string init_sep = (u8_has_suffix(search_path,"/",0)) 
+    u8_string init_sep = (u8_has_suffix(search_path,"/",0))
       ? (U8S(""))
       : (U8S("/"));
     if (u8_file_existsp
@@ -234,7 +234,7 @@ static lispval reload_module(lispval module)
       kno_decref(resolved);
       return result;}
     else return kno_err(kno_TypeError,"reload_module",
-                       "module name or path",module);}
+                        "module name or path",module);}
   else if (TABLEP(module)) {
     lispval ids = kno_get(module,source_symbol,EMPTY), source = VOID;
     DO_CHOICES(id,ids) {
@@ -246,9 +246,9 @@ static lispval reload_module(lispval module)
     else {
       kno_decref(ids);
       return kno_err(kno_ReloadError,"reload_module",
-                    "Couldn't find source",module);}}
+                     "Couldn't find source",module);}}
   else return kno_err(kno_TypeError,"reload_module",
-                     "module name or path",module);
+                      "module name or path",module);
 }
 
 /* Automatic module reloading */
@@ -267,20 +267,20 @@ struct KNO_LOAD_RECORD {
   struct KNO_LOAD_RECORD *prev_loaded;} *load_records = NULL;
 
 static void add_load_record
-  (lispval spec,u8_string filename,kno_lexenv env,time_t mtime)
+(lispval spec,u8_string filename,kno_lexenv env,time_t mtime)
 {
   struct KNO_LOAD_RECORD *scan;
   u8_lock_mutex(&load_record_lock);
   scan = load_records; while (scan)
-    if ((strcmp(filename,scan->loadfile))==0) {
-      if (env!=scan->loadenv) {
-        kno_incref((lispval)env);
-        kno_decref((lispval)(scan->loadenv));
-        scan->loadenv = env;}
-      scan->file_modtime = mtime;
-      u8_unlock_mutex(&load_record_lock);
-      return;}
-    else scan = scan->prev_loaded;
+                         if ((strcmp(filename,scan->loadfile))==0) {
+                           if (env!=scan->loadenv) {
+                             kno_incref((lispval)env);
+                             kno_decref((lispval)(scan->loadenv));
+                             scan->loadenv = env;}
+                           scan->file_modtime = mtime;
+                           u8_unlock_mutex(&load_record_lock);
+                           return;}
+                         else scan = scan->prev_loaded;
   scan = u8_alloc(struct KNO_LOAD_RECORD);
   scan->loadfile = u8_strdup(filename);
   scan->file_modtime = mtime;
@@ -402,9 +402,9 @@ KNO_EXPORT int kno_update_file_module(u8_string module_source,int force)
     u8_unlock_mutex(&update_modules_lock);
     /* Maybe, this should load it. */
     kno_seterr(kno_ReloadError,"kno_update_file_module",
-              u8_sprintf(buf,200,_("The file %s has never been loaded"),
-                         module_source),
-              VOID);
+               u8_sprintf(buf,200,_("The file %s has never been loaded"),
+                          module_source),
+               VOID);
     return -1;}
   else if ((!(force))&&(mtime<=scan->file_modtime)) {
     u8_unlock_mutex(&load_record_lock);
@@ -421,7 +421,7 @@ KNO_EXPORT int kno_update_file_module(u8_string module_source,int force)
       (scan->loadfile,scan->loadenv,"auto");
     if (KNO_ABORTP(load_result)) {
       kno_seterr(kno_ReloadError,"kno_reload_modules",
-                scan->loadfile,load_result);
+                 scan->loadfile,load_result);
       u8_lock_mutex(&load_record_lock);
       scan->reloading = 0;
       u8_unlock_mutex(&load_record_lock);
@@ -454,8 +454,8 @@ static lispval update_module_prim(lispval spec,lispval force)
       else return KNO_FALSE;}
     else {
       kno_seterr(kno_ReloadError,"update_module_prim",
-                _("Module does not exist"),
-                spec);
+                 _("Module does not exist"),
+                 spec);
       return KNO_ERROR;}}
   else return load_source_module(spec,NULL);
 }
@@ -518,7 +518,9 @@ static lispval get_entry(lispval key,lispval entries)
   DO_CHOICES(each,entries)
     if (!(PAIRP(each))) {}
     else if (LISP_EQUAL(key,KNO_CAR(each))) {
-      entry = each; KNO_STOP_DO_CHOICES; break;}
+      entry = each;
+      KNO_STOP_DO_CHOICES;
+      break;}
     else {}
   return entry;
 }
@@ -549,27 +551,33 @@ int kno_load_latest(u8_string filename,kno_lexenv env,u8_string base)
                    CSTRING(KNO_CAR(entry)));
           result = kno_load_source(CSTRING(KNO_CAR(entry)),scan,"auto");
           if (KNO_ABORTP(result)) {
-            kno_decref(loadstamps);
-            return kno_interr(result);}
+            KNO_STOP_DO_CHOICES;
+            break;}
           else kno_decref(result);
           loads++;}}
-      scan = scan->env_parent;}
+      kno_decref(loadstamps);
+      if (KNO_ABORTP(result))
+        return kno_interr(result);
+      else scan = scan->env_parent;}
     return loads;}
   else {
     u8_string abspath = u8_abspath(filename,base);
-    lispval abspath_dtype = lispval_string(abspath);
+    lispval lisp_abspath = lispval_string(abspath);
     lispval loadstamps =
       kno_get(env->env_bindings,loadstamps_symbol,EMPTY);
-    lispval entry = get_entry(abspath_dtype,loadstamps);
+    lispval entry = get_entry(lisp_abspath,loadstamps);
     lispval result = VOID;
     if (PAIRP(entry))
       if (TYPEP(KNO_CDR(entry),kno_timestamp_type)) {
         struct KNO_TIMESTAMP *curstamp=
           kno_consptr(kno_timestamp,KNO_CDR(entry),kno_timestamp_type);
         time_t last_loaded = curstamp->u8xtimeval.u8_tick;
-        time_t mod_time = u8_file_mtime(CSTRING(abspath_dtype));
-        if (mod_time<=last_loaded)
-          return 0;
+        time_t mod_time = u8_file_mtime(CSTRING(lisp_abspath));
+        if (mod_time<=last_loaded) {
+          kno_decref(lisp_abspath);
+          kno_decref(loadstamps);
+          u8_free(abspath);
+          return 0;}
         else {
           struct KNO_PAIR *pair = (struct KNO_PAIR *)entry;
           struct KNO_TIMESTAMP *tstamp = u8_alloc(struct KNO_TIMESTAMP);
@@ -579,16 +587,17 @@ int kno_load_latest(u8_string filename,kno_lexenv env,u8_string base)
           pair->cdr = LISP_CONS(tstamp);}}
       else {
         kno_seterr("Invalid load_latest record","load_latest",
-                  abspath,entry);
+                   abspath,entry);
         kno_decref(loadstamps);
-        kno_decref(abspath_dtype);
+        kno_decref(lisp_abspath);
+        u8_free(abspath);
         return -1;}
     else {
       time_t mod_time = u8_file_mtime(abspath);
       struct KNO_TIMESTAMP *tstamp = u8_alloc(struct KNO_TIMESTAMP);
       KNO_INIT_CONS(tstamp,kno_timestamp_type);
       u8_init_xtime(&(tstamp->u8xtimeval),mod_time,u8_second,0,0,0);
-      entry = kno_conspair(kno_incref(abspath_dtype),LISP_CONS(tstamp));
+      entry = kno_conspair(kno_incref(lisp_abspath),LISP_CONS(tstamp));
       if (EMPTYP(loadstamps))
         kno_bind_value(loadstamps_symbol,entry,env);
       else kno_add_value(loadstamps_symbol,entry,env);}
@@ -596,7 +605,7 @@ int kno_load_latest(u8_string filename,kno_lexenv env,u8_string base)
       u8_log(LOG_WARN,"kno_load_latest","Reloading %s",abspath);
     result = kno_load_source(abspath,env,"auto");
     u8_free(abspath);
-    kno_decref(abspath_dtype);
+    kno_decref(lisp_abspath);
     kno_decref(loadstamps);
     if (KNO_ABORTP(result))
       return kno_interr(result);
@@ -616,11 +625,12 @@ static lispval load_latest_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     if (!(STRINGP(path)))
       return kno_type_error("pathname","load_latest",path);
     else retval = kno_load_latest(CSTRING(path),env,NULL);
-    if (retval<0) return KNO_ERROR;
-    else if (retval) {
-      kno_decref(path); return KNO_TRUE;}
-    else {
-      kno_decref(path); return KNO_FALSE;}}
+    kno_decref(path);
+    if (retval<0)
+      return KNO_ERROR;
+    else if (retval)
+      return KNO_TRUE;
+    else return KNO_FALSE;}
 }
 
 /* The LIVELOAD config */
@@ -731,7 +741,7 @@ KNO_EXPORT void kno_init_loader_c()
   /* Setup load paths */
   {u8_string path = u8_getenv("KNO_INIT_LOADPATH");
     lispval v = ((path) ? (kno_lispstring(path)) :
-                (lispval_string(KNO_DEFAULT_LOADPATH)));
+                 (lispval_string(KNO_DEFAULT_LOADPATH)));
     loadpath_config_set(kno_intern("loadpath"),v,&loadpath);
     kno_decref(v);}
 
@@ -745,7 +755,7 @@ KNO_EXPORT void kno_init_loader_c()
 
   kno_register_config
     ("UPDATEMODULES","Modules to update automatically on UPDATEMODULES",
-                     updatemodules_config_get,updatemodules_config_set,NULL);
+     updatemodules_config_get,updatemodules_config_set,NULL);
   kno_register_config
     ("LOADPATH","Directories/URIs to search for modules (not sandbox)",
      loadpath_config_get,loadpath_config_set,&loadpath);
@@ -774,10 +784,3 @@ KNO_EXPORT void kno_init_loader_c()
 
   kno_finish_module(loader_module);
 }
-
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

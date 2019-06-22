@@ -38,7 +38,7 @@ static struct KNO_SOURCEFN *sourcefns = NULL;
 static u8_mutex sourcefns_lock;
 
 KNO_EXPORT u8_string kno_get_source
-  (u8_string path,u8_string enc,u8_string *basepathp,time_t *timep)
+(u8_string path,u8_string enc,u8_string *basepathp,time_t *timep)
 {
   struct KNO_SOURCEFN *scan = sourcefns;
   while (scan) {
@@ -53,7 +53,7 @@ KNO_EXPORT u8_string kno_get_source
   return NULL;
 }
 KNO_EXPORT int kno_probe_source
-  (u8_string path,u8_string *basepathp,time_t *timep)
+(u8_string path,u8_string *basepathp,time_t *timep)
 {
   struct KNO_SOURCEFN *scan = sourcefns;
   while (scan) {
@@ -85,7 +85,7 @@ static lispval loading_symbol;
 #define LOAD_CONTEXT_SIZE 40
 
 KNO_EXPORT lispval kno_load_stream(u8_input loadstream,kno_lexenv env,
-                                 u8_string sourcebase)
+                                   u8_string sourcebase)
 {
   u8_string outer_sourcebase = kno_bind_sourcebase(sourcebase);
   double start = u8_elapsed_time();
@@ -153,8 +153,10 @@ KNO_EXPORT lispval kno_load_stream(u8_input loadstream,kno_lexenv env,
       kno_decref(last_expr);
       last_expr = VOID;}
     else if (KNO_TROUBLEP(expr)) {
-      kno_seterr(NULL,"kno_parse_expr",load_stack->stack_status,last_expr);
+      if (u8_current_exception == NULL)
+        kno_seterr(NULL,"kno_parse_expr",load_stack->stack_status,last_expr);
       kno_decref(result); /* This is the previous result */
+      kno_decref(last_expr);
       last_expr = VOID;
       /* This is now also the result */
       result = expr;
@@ -201,7 +203,7 @@ KNO_EXPORT lispval kno_load_stream(u8_input loadstream,kno_lexenv env,
 }
 
 KNO_EXPORT lispval kno_load_source_with_date
-  (u8_string sourceid,kno_lexenv env,u8_string enc_name,time_t *modtime)
+(u8_string sourceid,kno_lexenv env,u8_string enc_name,time_t *modtime)
 {
   struct U8_INPUT stream;
   u8_string sourcebase = NULL;
@@ -222,7 +224,7 @@ KNO_EXPORT lispval kno_load_source_with_date
 }
 
 KNO_EXPORT lispval kno_load_source
-  (u8_string sourceid,kno_lexenv env,u8_string enc_name)
+(u8_string sourceid,kno_lexenv env,u8_string enc_name)
 {
   return kno_load_source_with_date(sourceid,env,enc_name,NULL);
 }
@@ -303,11 +305,11 @@ static lispval load_source_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       source = config_val;}
     else if (VOIDP(config_val)) {
       return kno_err(UnconfiguredSource,"load_source",
-                    "this source is not configured",
-                    source_expr);}
+                     "this source is not configured",
+                     source_expr);}
     else return kno_err(UnconfiguredSource,"load_source",
-                       "this source is misconfigured",
-                       config_val);}
+                        "this source is misconfigured",
+                        config_val);}
   if (!(STRINGP(source)))
     return kno_type_error("filename","LOAD",source);
   encval = kno_eval(encname_expr,env);
@@ -331,10 +333,10 @@ static lispval load_into_env_prim(lispval source,lispval envarg,lispval resultfn
   if ((VOIDP(envarg))||(KNO_TRUEP(envarg)))
     env = kno_working_lexenv();
   else if (KNO_LEXENVP(envarg)) {
-    env = (kno_lexenv)envarg; kno_incref(envarg);}
-  else if (TABLEP(envarg)) {
-    env = kno_new_lexenv(envarg);
+    env = (kno_lexenv)envarg;
     kno_incref(envarg);}
+  else if (TABLEP(envarg))
+    env = kno_new_lexenv(envarg);
   else return kno_type_error("environment","LOAD->ENV",envarg);
   result = kno_load_source(CSTRING(source),env,NULL);
   if (KNO_ABORTP(result)) {
@@ -372,7 +374,8 @@ static lispval load_component_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
     result = kno_load_source(abspath,env,encname);
     u8_free(abspath);
   }
-  kno_decref(source); kno_decref(encval);
+  kno_decref(source);
+  kno_decref(encval);
   return result;
 }
 
@@ -414,11 +417,11 @@ static lispval lisp_load_config(lispval arg)
       return result;}
     else if (VOIDP(config_val))
       return kno_err(UnconfiguredSource,"lisp_load_config",
-                    "this source is not configured",
-                    arg);
+                     "this source is not configured",
+                     arg);
     else return kno_err(UnconfiguredSource,"lisp_load_config",
-                       "this source source is misconfigured",
-                       config_val);}
+                        "this source source is misconfigured",
+                        config_val);}
   else return kno_type_error
          ("path or config symbol","lisp_load_config",arg);
 }
@@ -440,11 +443,11 @@ static lispval lisp_load_default_config(lispval arg)
       return result;}
     else if (VOIDP(config_val))
       return kno_err(UnconfiguredSource,"lisp_load_default_config",
-                    "this source is not configured",
-                    arg);
+                     "this source is not configured",
+                     arg);
     else return kno_err(UnconfiguredSource,"lisp_load_default_config",
-                       "this source is misconfigured",
-                       config_val);}
+                        "this source is misconfigured",
+                        config_val);}
   else return kno_type_error
          ("path or config symbol","lisp_load_default_config",arg);
 }
@@ -461,7 +464,7 @@ static lispval lisp_read_config(lispval arg)
 /* Lisp run */
 
 static lispval kno_run(u8_string source_file,struct U8_OUTPUT *out,
-                      int n,lispval *args)
+                       int n,lispval *args)
 {
   kno_lexenv env = kno_working_lexenv();
   lispval load_result = kno_load_source(source_file,env,NULL);
@@ -513,8 +516,8 @@ static lispval kno_run_file_2string(int n,lispval *args)
         lispval output = kno_stream_string(&out);
         u8_close_output(&out);
         kno_seterr("RunFailed","kno_run_file_2string",
-                  u8_strdup(KNO_CSTRING(args[0])),
-                  output);
+                   u8_strdup(KNO_CSTRING(args[0])),
+                   output);
         kno_decref(output);
         return result;}
       else return result;}
@@ -620,66 +623,59 @@ KNO_EXPORT void kno_init_load_c()
   u8_init_mutex(&sourcefns_lock);
   u8_init_mutex(&config_file_lock);
 
- after_symbol = kno_intern("afterexpr");
- loading_symbol = kno_intern("%loading");
- traceloadeval_symbol = kno_intern("%traceloadeval");
- postload_symbol = kno_intern("%postload");
+  after_symbol = kno_intern("afterexpr");
+  loading_symbol = kno_intern("%loading");
+  traceloadeval_symbol = kno_intern("%traceloadeval");
+  postload_symbol = kno_intern("%postload");
 
 
- kno_def_evalfn(kno_scheme_module,"LOAD","",load_source_evalfn);
- kno_def_evalfn(kno_scheme_module,"LOAD-COMPONENT","",load_component_evalfn);
+  kno_def_evalfn(kno_scheme_module,"LOAD","",load_source_evalfn);
+  kno_def_evalfn(kno_scheme_module,"LOAD-COMPONENT","",load_component_evalfn);
 
- kno_defn(kno_scheme_module,
-         kno_make_cprim3x("LOAD->ENV",load_into_env_prim,1,
-                         kno_string_type,VOID,
-                         kno_lexenv_type,VOID,
-                         -1,VOID));
+  kno_defn(kno_scheme_module,
+           kno_make_cprim3x("LOAD->ENV",load_into_env_prim,1,
+                            kno_string_type,VOID,
+                            kno_lexenv_type,VOID,
+                            -1,VOID));
 
- kno_idefn(kno_scheme_module,
-          kno_make_cprim1x("READ-CONFIG",lisp_read_config,1,
-                          kno_string_type,VOID));
- kno_idefn(kno_scheme_module,
-          kno_make_cprim1x("LOAD-CONFIG",lisp_load_config,1,
-                          -1,VOID));
- kno_idefn(kno_scheme_module,
-          kno_make_cprim1x("LOAD-DEFAULT-CONFIG",lisp_load_default_config,1,
-                          -1,VOID));
+  kno_idefn(kno_scheme_module,
+            kno_make_cprim1x("READ-CONFIG",lisp_read_config,1,
+                             kno_string_type,VOID));
+  kno_idefn(kno_scheme_module,
+            kno_make_cprim1x("LOAD-CONFIG",lisp_load_config,1,
+                             -1,VOID));
+  kno_idefn(kno_scheme_module,
+            kno_make_cprim1x("LOAD-DEFAULT-CONFIG",lisp_load_default_config,1,
+                             -1,VOID));
 
- kno_idefnN(kno_scheme_module,"KNO/RUN-FILE",
-           kno_run_file,KNO_NEEDS_1_ARG|KNO_NDCALL,
-           "Loads a file and applies its (main) procedure to the arguments");
- kno_idefnN(kno_scheme_module,"KNO/RUN->STRING",
-            kno_run_file_2string,KNO_NEEDS_1_ARG|KNO_NDCALL,
-            "Loads a KNO file and applies its (main) procedure "
-            "to the arguments, returns the output as a string");
+  kno_idefnN(kno_scheme_module,"KNO/RUN-FILE",
+             kno_run_file,KNO_NEEDS_1_ARG|KNO_NDCALL,
+             "Loads a file and applies its (main) procedure to the arguments");
+  kno_idefnN(kno_scheme_module,"KNO/RUN->STRING",
+             kno_run_file_2string,KNO_NEEDS_1_ARG|KNO_NDCALL,
+             "Loads a KNO file and applies its (main) procedure "
+             "to the arguments, returns the output as a string");
 
- kno_idefn(kno_scheme_module,
-          kno_make_cprim2x("GET-COMPONENT",lisp_get_component,1,
-                          kno_string_type,VOID,
-                          kno_string_type,VOID));
+  kno_idefn(kno_scheme_module,
+            kno_make_cprim2x("GET-COMPONENT",lisp_get_component,1,
+                             kno_string_type,VOID,
+                             kno_string_type,VOID));
 
   kno_def_evalfn(kno_scheme_module,"#PATH",
-                "#:PATH\"init/foo.scm\" or #:PATH:home.scm\n"
-                "evaluates to an environment variable",
-                path_macro);
+                 "#:PATH\"init/foo.scm\" or #:PATH:home.scm\n"
+                 "evaluates to an environment variable",
+                 path_macro);
 
- kno_register_config("CONFIG","Add a CONFIG file/URI to process",
-                    get_config_files,add_config_file,NULL);
- kno_register_config("DEFAULTS","Add a CONFIG file/URI to process as defaults",
-                    get_config_files,add_default_config_file,NULL);
- kno_register_config("OPTCONFIG","Add an optional CONFIG file/URI to process",
-                    get_config_files,add_opt_config_file,NULL);
- kno_register_config("TRACELOAD","Trace file load starts and ends",
-                    kno_boolconfig_get,kno_boolconfig_set,&trace_load);
- kno_register_config("TRACELOADCONFIG","Trace config file loading",
-                    kno_boolconfig_get,kno_boolconfig_set,&trace_config_load);
- kno_register_config("TRACELOADEVAL","Trace expressions while loading files",
-                    kno_boolconfig_get,kno_boolconfig_set,&trace_load_eval);
+  kno_register_config("CONFIG","Add a CONFIG file/URI to process",
+                      get_config_files,add_config_file,NULL);
+  kno_register_config("DEFAULTS","Add a CONFIG file/URI to process as defaults",
+                      get_config_files,add_default_config_file,NULL);
+  kno_register_config("OPTCONFIG","Add an optional CONFIG file/URI to process",
+                      get_config_files,add_opt_config_file,NULL);
+  kno_register_config("TRACELOAD","Trace file load starts and ends",
+                      kno_boolconfig_get,kno_boolconfig_set,&trace_load);
+  kno_register_config("TRACELOADCONFIG","Trace config file loading",
+                      kno_boolconfig_get,kno_boolconfig_set,&trace_config_load);
+  kno_register_config("TRACELOADEVAL","Trace expressions while loading files",
+                      kno_boolconfig_get,kno_boolconfig_set,&trace_load_eval);
 }
-
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
