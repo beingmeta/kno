@@ -208,13 +208,15 @@ static int output_result(struct U8_OUTPUT *out,lispval result,
       u8_string label = (histref) ?
         (u8_bprintf(_label,"%q %s",result,histref)) :
         (u8_bprintf(_label,"%q",result));
-      u8_printf(out,"%q\n",result);
-      kno_list_object(out,v,label,histref,"",oid_listfn,width,
+      /* Just list the value */
+      u8_printf(out,"#|=>| %q\n#|frame\n  ",result);
+      kno_list_object(out,v,label,histref,"  ",oid_listfn,width,
                      (showall)?(-4):(7));
-      u8_putc(out,'\n');
+      u8_printf(out,"\n|#\n");
       u8_flush(out);
       return 1;}}
-  kno_list_object(out,result,NULL,histref,"",oid_listfn,width,detail);
+  u8_puts(out,"#|=>| ");
+  kno_list_object(out,result,NULL,histref,"      ",oid_listfn,width,detail);
   u8_putc(out,'\n');
   u8_flush(out);
   return 1;
