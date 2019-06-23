@@ -18,6 +18,10 @@ KNO_EXPORT u8_condition kno_ReadOnlyConfig;
 
 KNO_EXPORT int kno_trace_config;
 
+KNO_EXPORT int kno_thread_sigterm;
+KNO_EXPORT int kno_thread_sigint;
+KNO_EXPORT int kno_thread_siginfo;
+
 #define KNO_CONFIG_ALREADY_MODIFIED 1
 
 typedef struct KNO_CONFIG_HANDLER {
@@ -192,6 +196,7 @@ KNO_EXPORT struct sigaction *kno_sigaction_raise;
 KNO_EXPORT struct sigaction *kno_sigaction_exit;
 KNO_EXPORT struct sigaction *kno_sigaction_abort;
 KNO_EXPORT struct sigaction *kno_sigaction_default;
+KNO_EXPORT struct sigaction *kno_sigaction_ignore;
 
 KNO_EXPORT sigset_t *kno_default_sigmask;
 

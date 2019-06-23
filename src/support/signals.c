@@ -37,6 +37,7 @@
 
 struct sigaction sigaction_raise, sigaction_abort;
 struct sigaction sigaction_exit, sigaction_default;
+struct sigaction sigaction_ignore;
 static sigset_t sigcatch_set, sigexit_set, sigdefault_set, sigabort_set;
 
 static sigset_t default_sigmask;
@@ -46,6 +47,9 @@ struct sigaction *kno_sigaction_raise = &sigaction_raise;
 struct sigaction *kno_sigaction_abort = &sigaction_abort;
 struct sigaction *kno_sigaction_exit = &sigaction_exit;
 struct sigaction *kno_sigaction_default = &sigaction_default;
+struct sigaction *kno_sigaction_ignore = &sigaction_ignore;
+
+int kno_thread_sigterm = -1, kno_thread_sigint = -1, kno_thread_siginfo = -1;
 
 static void siginfo_raise(int signum,siginfo_t *info,void *stuff)
 {
@@ -53,10 +57,9 @@ static void siginfo_raise(int signum,siginfo_t *info,void *stuff)
   u8_condition ex = u8_signal_name(signum);
   if (!(c)) {
     u8_log(LOG_CRIT,ex,"Unexpected signal");
-    exit(1);}
+    pthread_exit(NULL);}
   else {
     u8_raise(ex,c->u8c_label,NULL);}
-  exit(1);
 }
 
 static void siginfo_exit(int signum,siginfo_t *info,void *stuff)
@@ -176,6 +179,10 @@ void kno_init_signals_c()
   sigaction_default.sa_handler = SIG_DFL;
   sigemptyset(&(sigaction_default.sa_mask));
 
+  /* Setup sigaction for default action */
+  sigaction_ignore.sa_handler = SIG_IGN;
+  sigemptyset(&(sigaction_ignore.sa_mask));
+
   /* Setup sigaction for exit action */
   sigaction_exit.sa_sigaction = siginfo_exit;
   sigaction_exit.sa_flags = SA_SIGINFO;
@@ -197,7 +204,7 @@ void kno_init_signals_c()
   sigaddset(&(sigaction_abort.sa_mask),SIGFPE);
   sigaction(SIGFPE,&(sigaction_abort),NULL);
 
-  sigaddset(&(sigaction_exit.sa_mask),SIGTERM);
+  sigaddset(&(sigaction_raise.sa_mask),SIGTERM);
   sigaction(SIGTERM,&(sigaction_exit),NULL);
 
   sigaddset(&(sigaction_abort.sa_mask),SIGQUIT);
@@ -220,6 +227,20 @@ void kno_init_signals_c()
 #ifdef SIGBUS
   sigaddset(&default_sigmask,SIGBUS);
 #endif
+
+  int thread_signum = SIGRTMIN+4;
+  if (thread_signum < SIGRTMAX) {
+    kno_thread_sigterm = thread_signum++;
+    sigdelset(&default_sigmask,kno_thread_sigterm);
+    sigaction(kno_thread_sigterm,kno_sigaction_ignore,NULL);}
+  if (thread_signum < SIGRTMAX) {
+    kno_thread_sigint = thread_signum++;
+    sigdelset(&default_sigmask,kno_thread_sigint);
+    sigaction(kno_thread_sigint,kno_sigaction_ignore,NULL);}
+  if (thread_signum < SIGRTMAX) {
+    kno_thread_siginfo = thread_signum++;
+    sigdelset(&default_sigmask,kno_thread_siginfo);
+    sigaction(kno_thread_siginfo,kno_sigaction_ignore,NULL);}
 
   kno_register_config
     ("SIGRAISE",_("SIGNALS to catch and return as errors"),

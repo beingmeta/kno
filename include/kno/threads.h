@@ -20,6 +20,7 @@ KNO_EXPORT kno_ptr_type kno_synchronizer_type;
 #define KNO_THREAD_CANCELLED  0x0008
 #define KNO_THREAD_TRACE_EXIT 0x0080
 #define KNO_THREAD_QUIET_EXIT 0x0100
+#define KNO_THREAD_TERMINATED 0x0200
 
 typedef struct KNO_THREAD_STRUCT {
   KNO_CONS_HEADER;
@@ -32,6 +33,7 @@ typedef struct KNO_THREAD_STRUCT {
   double started;
   double finished;
   lispval threadvars;
+  sigset_t sigmask;
   struct KNO_STACK *thread_stackptr;
   struct KNO_THREAD_STRUCT *ring_left, *ring_right;
   lispval *resultptr, result;

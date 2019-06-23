@@ -72,6 +72,19 @@ typedef unsigned char uchar;
 #define kno_alloc(n)  (u8_alloc_n(lispval,(n)))
 #define kno_alloca(n) (alloca(SIZEOF_LISPVAL*(n)))
 
+/* Important globals */
+
+KNO_EXPORT int kno_lockdown;
+
+#if ((KNO_THREADS_ENABLED)&&(KNO_USE_TLS))
+KNO_EXPORT u8_tld_key kno_curthread_key;
+#define kno_current_thread ((lispval*)u8_tld_get(kno_curthread_key))
+#elif ((KNO_THREADS_ENABLED)&&(HAVE_THREAD_STORAGE_CLASS))
+KNO_EXPORT __thread lispval kno_current_thread;
+#else
+KNO_EXPORT lispval kno_current_thread
+#endif
+
 /* Utility functions */
 
 #define KNO_INIT_STRUCT(s,sname) memset(s,0,sizeof(sname));
@@ -109,6 +122,8 @@ KNO_EXPORT u8_condition kno_InvalidHexChar, kno_InvalidBase64Char;
 KNO_EXPORT u8_condition kno_InvalidCharacterConstant, kno_BadAtom;
 KNO_EXPORT u8_condition kno_NoPointerExpressions, kno_BadPointerRef;
 KNO_EXPORT u8_condition kno_FileNotFound, kno_NoSuchFile;
+
+KNO_EXPORT u8_condition kno_ThreadTerminated, kno_ThreadInterrupted;
 
 #include "malloc.h"
 #include "dtypeio.h"

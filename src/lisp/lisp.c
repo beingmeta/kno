@@ -36,6 +36,19 @@ KNO_EXPORT u8_string kno_getversion(){return KNO_VERSION;}
 KNO_EXPORT u8_string kno_getrevision(){return KNO_REVISION;}
 KNO_EXPORT int kno_getmajorversion(){return KNO_MAJOR_VERSION;}
 
+int kno_lockdown = 0;
+
+#if ((KNO_THREADS_ENABLED)&&(KNO_USE_TLS))
+u8_tld_key kno_curthread_key;
+#elif ((KNO_THREADS_ENABLED)&&(HAVE_THREAD_STORAGE_CLASS))
+__thread lispval kno_current_thread = KNO_VOID;
+#else
+lispval kno_current_thread = KNO_VOID;
+#endif
+
+u8_condition kno_ThreadTerminated=_("Thread terminated");
+u8_condition kno_ThreadInterrupted=_("Thread interrupted");
+
 /* Initialization procedures */
 
 extern void kno_init_choices_c(void);
@@ -206,6 +219,10 @@ KNO_EXPORT int kno_init_lisp_types()
   kno_load_start = u8_elapsed_time();
   u8_version = u8_initialize();
   lisp_types_initialized = lisp_types_version*u8_version;
+
+#if ((KNO_THREADS_ENABLED)&&(KNO_USE_TLS))
+  u8_new_threadkey(&kno_curthread_key,NULL);
+#endif
 
   u8_register_source_file(_FILEINFO);
 

@@ -159,6 +159,7 @@ void kno_init_startup_c(void);
 void kno_init_getopt_c(void);
 void kno_init_fluid_c(void);
 void kno_init_posix_c(void);
+void kno_init_signals_c(void);
 void kno_init_sourcebase_c(void);
 
 KNO_EXPORT void kno_init_support_c()
@@ -177,6 +178,7 @@ KNO_EXPORT void kno_init_support_c()
   kno_init_getopt_c();
   kno_init_fluid_c();
   kno_init_posix_c();
+  kno_init_signals_c();
 
   kno_register_config
     ("MAXCHARS",_("Max number of chars to show in strings"),
