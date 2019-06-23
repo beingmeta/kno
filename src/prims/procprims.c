@@ -602,10 +602,11 @@ DCLPRIM("EXIT",exit_prim,MIN_ARGS(0)|MAX_ARGS(1),
         "a return code of *retval* (defaults to 0)")
 static lispval exit_prim(lispval arg)
 {
-  if (KNO_INTP(arg))
-    exit(FIX2INT(arg));
-  else exit(0);
-  return VOID;
+  pid_t main_thread = getpid();
+  int rv = kill(main_thread,SIGTERM);
+  if (rv<0)
+    return kno_err("ExitFailed","exit_prim",NULL,VOID);
+  else return VOID;
 }
 
 DCLPRIM("EXIT/FAST",fast_exit_prim,MIN_ARGS(0)|MAX_ARGS(1),
@@ -615,10 +616,11 @@ DCLPRIM("EXIT/FAST",fast_exit_prim,MIN_ARGS(0)|MAX_ARGS(1),
 static lispval fast_exit_prim(lispval arg)
 {
   kno_fast_exit=1;
-  if (KNO_INTP(arg))
-    exit(FIX2INT(arg));
-  else exit(0);
-  return VOID;
+  pid_t main_thread = getpid();
+  int rv = kill(main_thread,SIGTERM);
+  if (rv<0)
+    return kno_err("ExitFailed","exit_prim",NULL,VOID);
+  else return VOID;
 }
 
 /* PID functions */
