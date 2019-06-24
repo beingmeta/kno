@@ -203,19 +203,32 @@ static void recycle_zeromq(struct KNO_RAW_CONS *c)
   u8_logf(LOG_DEBUG,"ZeroMQ/Recycle",
           "Recycling %q in thread %lld",(lispval)zmq,u8_threadid());
   int linger = 500;
+
   int sockset = zmq_setsockopt(zmq->zmq_ptr,ZMQ_LINGER,&linger,sizeof(linger));
+  if (sockset<0) {sockset=errno; errno=0;}
+  if (sockset == ETERM) sockset = 0;
+
   int sockclosed = zmq_close(zmq->zmq_ptr);
+  if (sockclosed<0) {sockclosed=errno; errno=0;}
+
   int sockdropped = zmq_drop_socket(zmq);
+  if (sockdropped<0) {sockdropped=errno; errno=0;}
+
   if (zmq->zmq_id) {
     u8_free(zmq->zmq_id);
     zmq->zmq_id = NULL;}
-  if ( (sockset) || (sockclosed) || (sockdropped) ) {
-    u8_log(LOG_CRIT,"ZeroMQ/Recycle/Failed",
-           "set=%d,close=%d,drop=%d",
-           sockset,sockclosed,sockdropped);}
-  else if (!(KNO_STATIC_CONSP(c)))
+  if (sockset)
+    u8_log(LOG_CRIT,"ZeroMQ/Recycle/setsockopt",
+           "Failed with %d (%s)",sockset,zmq_strerror(sockset));
+  if (sockclosed)
+    u8_log(LOG_CRIT,"ZeroMQ/Recycle/closesock",
+           "Failed with %d (%s)",sockclosed,zmq_strerror(sockclosed));
+  if (sockdropped)
+    u8_log(LOG_CRIT,"ZeroMQ/Recycle/dropsock",
+           "Failed with %d (%s)",sockdropped,zmq_strerror(sockdropped));
+  if ( (sockset) || (sockclosed) || (sockdropped) ) return;
+  if (!(KNO_STATIC_CONSP(c)))
     u8_free(c);
-  else NO_ELSE;
 }
 static int unparse_zeromq(struct U8_OUTPUT *out,lispval x)
 {

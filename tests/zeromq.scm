@@ -6,7 +6,7 @@
   (test-send/recv)
   (test-simple-server)
   ;; Need to fix cancel/kill leaks
-  ;; (test-proxy-server)
+  (test-proxy-server)
   )
 
 ;;; Simple tests
@@ -104,7 +104,7 @@
 	  (zmq/recv external-port)
 	  (set! remaining (thread/wait remaining 0.1))))
       (applytest #t thread/finished? workers)
-      (thread/cancel! proxy-thread)
+      ;; (thread/cancel! proxy-thread)
       proxy-thread)))
 
 (define (workerfn dealer (fn #f) (running #t))
@@ -124,6 +124,7 @@
 (define (proxyfn world workers)
   (let ((router (zmq/listen world 'router))
 	(dealer (zmq/listen workers 'dealer)))
+    (%watch "PROXYFN" router dealer)
     (zmq/proxy! router dealer)))
 
 (optimize!)
