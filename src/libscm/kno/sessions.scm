@@ -20,7 +20,7 @@
   (when (file-exists? (mkpath location "setup.scm"))
     (unless (overlaps? (abspath (mkpath location "setup.scm")) loaded-setups)
       (set+! loaded-setups (abspath (mkpath location "setup.scm")))
-      (load (mkpath location "setup.scm"))))
+      (load->env (mkpath location "setup.scm") (%appenv))))
   ;;; Initialize the history
   ;;; Run the preload
   location)
