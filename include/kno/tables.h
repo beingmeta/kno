@@ -83,6 +83,28 @@ KNO_EXPORT lispval kno_table_skim(lispval table,lispval maxval,lispval scope);
 
 KNO_EXPORT void kno_display_table(u8_output out,lispval table,lispval keys);
 
+#if KNO_AVOID_MACROS
+static U8_MAYBE_UNUSED int KNO_TABLEP(lispval x)
+{
+  if (KNO_OIDP(x)) return 1;
+  else if (KNO_CONSP(x)) {
+    if ( ( KNO_CONSPTR_TYPE(x) >= kno_slotmap_type) &&
+         ( KNO_CONSPTR_TYPE(x) <= kno_hashset_type) )
+      return 1;
+    else if ( (kno_tablefns[KNO_CONSPTR_TYPE(x)] != NULL ) &&
+              ( (kno_tablefns[KNO_CONSPTR_TYPE(x)]->tablep == NULL ) ||
+                (kno_tablefns[KNO_CONSPTR_TYPE(x)]->tablep(x)) ) )
+      return 1;
+    else return 0;}
+  else if (KNO_IMMEDIATEP(x)) {
+    if ( (kno_tablefns[KNO_IMMEDIATE_TYPE(x)] != NULL ) &&
+         ( (kno_tablefns[KNO_IMMEDIATE_TYPE(x)]->tablep == NULL ) ||
+           (kno_tablefns[KNO_IMMEDIATE_TYPE(x)]->tablep(x)) ) )
+      return 1;
+    else return 0;}
+  else return 0;
+}
+#else
 #define KNO_TABLEP(x)                                                  \
   ( (KNO_OIDP(x)) ? (1) :                                              \
     (KNO_CONSP(x)) ?                                                   \
@@ -96,6 +118,7 @@ KNO_EXPORT void kno_display_table(u8_output out,lispval table,lispval keys);
       ( (kno_tablefns[KNO_IMMEDIATE_TYPE(x)]->tablep == NULL ) ||       \
         (kno_tablefns[KNO_IMMEDIATE_TYPE(x)]->tablep(x)) ) ) :          \
     (0))
+#endif
 /* #define KNO_TABLEP(x) ( ((kno_tablefns[KNO_PTR_TYPE(x)])!=NULL)  */
 
 #define KNO_INIT_SMAP_SIZE 7

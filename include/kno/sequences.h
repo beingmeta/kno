@@ -43,19 +43,40 @@ KNO_EXPORT lispval kno_removeif(lispval test,lispval sequence,int invert);
 KNO_EXPORT int kno_generic_position(lispval key,lispval x,int start,int end);
 KNO_EXPORT int kno_generic_search(lispval subseq,lispval seq,int start,int end);
 
+#if KNO_AVOID_MACROS
+static U8_MAYBE_UNUSED int KNO_SEQUENCEP(lispval x)
+{
+  if (KNO_CONSP(x))
+    if ( (KNO_CONSPTR_TYPE(x) >= kno_string_type) &&
+         (KNO_CONSPTR_TYPE(x) <= kno_pair_type) )
+      return 1;
+    else if ( (kno_seqfns[KNO_CONSPTR_TYPE(x)] != NULL ) &&
+              ( (kno_seqfns[KNO_CONSPTR_TYPE(x)]->sequencep == NULL ) ||
+                (kno_seqfns[KNO_CONSPTR_TYPE(x)]->sequencep(x)) ) )
+      return 1;
+    else return 0;
+  else if (KNO_IMMEDIATEP(x))
+    if (x == KNO_EMPTY_LIST)
+      return 1;
+    else if ( (kno_seqfns[KNO_IMMEDIATE_TYPE(x)] != NULL ) &&
+              ( (kno_seqfns[KNO_IMMEDIATE_TYPE(x)]->sequencep == NULL ) ||
+                (kno_seqfns[KNO_IMMEDIATE_TYPE(x)]->sequencep(x)) ) )
+      return 1;
+    else return 0;
+  else return 0;
+}
+#else
 #define KNO_SEQUENCEP(x)                                          \
   ( (KNO_CONSP(x)) ?                                               \
-  ( ( (KNO_CONSPTR_TYPE(x) >= kno_string_type) &&                   \
-      (KNO_CONSPTR_TYPE(x) <= kno_pair_type) ) ||         \
-    ( (kno_seqfns[KNO_CONSPTR_TYPE(x)] != NULL ) &&                 \
-      ( (kno_seqfns[KNO_CONSPTR_TYPE(x)]->sequencep == NULL ) ||        \
-        (kno_seqfns[KNO_CONSPTR_TYPE(x)]->sequencep(x)) ) ) ) :         \
+  (  ||         \
+     ) :         \
     (KNO_IMMEDIATEP(x)) ?                                               \
-    ( (x == KNO_EMPTY_LIST) ||                                          \
+    (  ||                                          \
       ( (kno_seqfns[KNO_IMMEDIATE_TYPE(x)] != NULL ) &&                 \
         ( (kno_seqfns[KNO_IMMEDIATE_TYPE(x)]->sequencep == NULL ) ||    \
           (kno_seqfns[KNO_IMMEDIATE_TYPE(x)]->sequencep(x)) ) ) ) :     \
     (0))
+#endif
 /* #define KNO_SEQUENCEP(x) ((KNO_EMPTY_LISTP(x)) || ((kno_seqfns[KNO_PTR_TYPE(x)])!=NULL)) */
 
 
