@@ -396,7 +396,7 @@ KNO_EXPORT int kno_rposition(lispval key,lispval x,int start,int end)
         return -3;
       else while (start<end--) {
           if (keyval == data[end])
-            return start;}
+            return end;}
       return -1;}
     default: {
       int last = -1, pos;
