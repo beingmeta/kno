@@ -399,8 +399,8 @@ typedef struct KNO_PROMISE *kno_promise;
 
 /* Basic thread eval/apply functions */
 
-KNO_EXPORT kno_thread_struct kno_thread_call(lispval *,lispval,int,lispval *,int);
-KNO_EXPORT kno_thread_struct kno_thread_eval(lispval *,lispval,kno_lexenv,int);
+KNO_EXPORT kno_thread kno_thread_call(lispval *,lispval,int,lispval *,int);
+KNO_EXPORT kno_thread kno_thread_eval(lispval *,lispval,kno_lexenv,int);
 
 /* Opcodes */
 

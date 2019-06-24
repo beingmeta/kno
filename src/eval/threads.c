@@ -64,14 +64,14 @@ static struct sigaction sigaction_info = { 0 };
 
 /* Thread structures */
 
-static struct KNO_THREAD_STRUCT *thread_ring=NULL;
+static struct KNO_THREAD *thread_ring=NULL;
 u8_mutex thread_ring_lock;
 static int n_threads = 0;
 
 kno_ptr_type kno_thread_type;
 kno_ptr_type kno_synchronizer_type;
 
-static void add_thread(struct KNO_THREAD_STRUCT *thread)
+static void add_thread(struct KNO_THREAD *thread)
 {
   if (thread == NULL)
     u8_log(LOG_CRIT,"AddThreadError","NULL thread added to thread ring!");
@@ -89,15 +89,15 @@ static void add_thread(struct KNO_THREAD_STRUCT *thread)
     u8_unlock_mutex(&thread_ring_lock);}
 }
 
-static void remove_thread(struct KNO_THREAD_STRUCT *thread)
+static void remove_thread(struct KNO_THREAD *thread)
 {
   if (thread == NULL)
     u8_log(LOG_CRIT,"RemoveThreadError",
 	   "Attempt to remove NULL thread description!");
   else {
     u8_lock_mutex(&thread_ring_lock);
-    struct KNO_THREAD_STRUCT *left = thread->ring_left;
-    struct KNO_THREAD_STRUCT *right = thread->ring_right;
+    struct KNO_THREAD *left = thread->ring_left;
+    struct KNO_THREAD *right = thread->ring_right;
     if (left) {
       assert( left->ring_right == thread );
       left->ring_right = right;}
@@ -141,7 +141,7 @@ static lispval findthread_prim(lispval threadid_arg,lispval err)
     (-1);
   if (threadid>0) {
     u8_lock_mutex(&thread_ring_lock);
-    struct KNO_THREAD_STRUCT *scan = thread_ring;
+    struct KNO_THREAD *scan = thread_ring;
     while (scan) {
       if (scan->threadid == threadid) {
 	lispval found = (lispval) scan;
@@ -162,7 +162,7 @@ DCLPRIM("THREAD-ID",threadid_prim,MIN_ARGS(1)|MAX_ARGS(1),
 	"`(THREAD-ID *thread*)` returns the integer identifier for *thread*")
 static lispval threadid_prim(lispval thread)
 {
-  struct KNO_THREAD_STRUCT *th = (kno_thread_struct) thread;
+  struct KNO_THREAD *th = (kno_thread) thread;
   return KNO_INT(th->threadid);
 }
 
@@ -170,7 +170,7 @@ static lispval allthreads_config_get(lispval var,U8_MAYBE_UNUSED void *data)
 {
   lispval results = EMPTY;
   u8_lock_mutex(&thread_ring_lock);
-  struct KNO_THREAD_STRUCT *scan = thread_ring;
+  struct KNO_THREAD *scan = thread_ring;
   while (scan) {
     lispval thread = (lispval) scan;
     kno_incref(thread);
@@ -186,8 +186,8 @@ int kno_thread_backtrace = 0;
 
 static int unparse_thread_struct(u8_output out,lispval x)
 {
-  struct KNO_THREAD_STRUCT *th=
-    kno_consptr(struct KNO_THREAD_STRUCT *,x,kno_thread_type);
+  struct KNO_THREAD *th=
+    kno_consptr(struct KNO_THREAD *,x,kno_thread_type);
   if (th->flags&KNO_EVAL_THREAD)
     u8_printf(out,"#<THREAD (%lld)0x%x%s eval %q>",
 	      th->threadid,(unsigned long)(th->tid),
@@ -208,7 +208,7 @@ static int unparse_thread_struct(u8_output out,lispval x)
 
 KNO_EXPORT void recycle_thread_struct(struct KNO_RAW_CONS *c)
 {
-  struct KNO_THREAD_STRUCT *th = (struct KNO_THREAD_STRUCT *)c;
+  struct KNO_THREAD *th = (struct KNO_THREAD *)c;
   remove_thread(th);
   if (th->flags&KNO_EVAL_THREAD) {
     if (th->evaldata.env) {
@@ -596,8 +596,8 @@ static lispval condvar_unlock(lispval cvar)
 
 static void threadexit_cleanup(void *calldata)
 {
-  struct KNO_THREAD_STRUCT *tstruct =
-    (struct KNO_THREAD_STRUCT *) calldata;
+  struct KNO_THREAD *tstruct =
+    (struct KNO_THREAD *) calldata;
   u8_threadexit();
   if (tstruct->finished < 0) {
     lispval reason = tstruct->result;
@@ -619,7 +619,7 @@ static sigset_t thread_sigmask;
 static void *_kno_thread_main(void *data)
 {
   lispval result;
-  struct KNO_THREAD_STRUCT *tstruct = (struct KNO_THREAD_STRUCT *)data;
+  struct KNO_THREAD *tstruct = (struct KNO_THREAD *)data;
   int flags = tstruct->flags, log_exit=
     ((flags)&(KNO_THREAD_TRACE_EXIT)) ||
     (((flags)&(KNO_THREAD_QUIET_EXIT)) ? (0) :
@@ -746,11 +746,11 @@ static void *_kno_thread_main(void *data)
 }
 
 KNO_EXPORT
-kno_thread_struct kno_thread_call(lispval *resultptr,
+kno_thread kno_thread_call(lispval *resultptr,
 				  lispval fn,int n,lispval *args,
 				  int flags)
 {
-  struct KNO_THREAD_STRUCT *tstruct = u8_alloc(struct KNO_THREAD_STRUCT);
+  struct KNO_THREAD *tstruct = u8_alloc(struct KNO_THREAD);
   if (tstruct == NULL) {
     u8_seterr(u8_MallocFailed,"kno_thread_call",NULL);
     return NULL;}
@@ -780,11 +780,11 @@ kno_thread_struct kno_thread_call(lispval *resultptr,
 }
 
 KNO_EXPORT
-kno_thread_struct kno_thread_eval(lispval *resultptr,
+kno_thread kno_thread_eval(lispval *resultptr,
 				  lispval expr,kno_lexenv env,
 				  int flags)
 {
-  struct KNO_THREAD_STRUCT *tstruct = u8_alloc(struct KNO_THREAD_STRUCT);
+  struct KNO_THREAD *tstruct = u8_alloc(struct KNO_THREAD);
   if (tstruct == NULL) {
     u8_seterr(u8_MallocFailed,"kno_thread_eval",NULL);
     return NULL;}
@@ -820,7 +820,7 @@ static lispval threadcall_prim(int n,lispval *args)
 {
   lispval fn = args[0];
   if (KNO_APPLICABLEP(fn)) {
-    kno_thread_struct thread = NULL;
+    kno_thread thread = NULL;
     lispval call_args[n];
     int i = 1; while (i<n) {
       lispval call_arg = args[i];
@@ -897,7 +897,7 @@ static lispval threadcallx_prim(int n,lispval *args)
   lispval opts = args[0];
   lispval fn   = args[1];
   if (KNO_APPLICABLEP(fn)) {
-    kno_thread_struct thread = NULL;
+    kno_thread thread = NULL;
     lispval call_args[n];
     int flags = threadopts(opts);
     int i = 2; while (i<n) {
@@ -927,7 +927,7 @@ static lispval spawn_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   int flags = threadopts(opts)|KNO_EVAL_THREAD;
   lispval results = KNO_EMPTY;
   DO_CHOICES(thread_expr,to_eval) {
-    kno_thread_struct thread = kno_thread_eval(NULL,thread_expr,env,flags);
+    kno_thread thread = kno_thread_eval(NULL,thread_expr,env,flags);
     if ( thread == NULL ) {
       u8_log(LOG_WARN,"ThreadLaunchFailed",
 	     "Error evaluating %q in its own thread, ignoring",thread_expr);}
@@ -975,7 +975,7 @@ static lispval threadeval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     int flags = threadopts(opts)|KNO_EVAL_THREAD;
     lispval results = EMPTY;
     DO_CHOICES(thread_expr,to_eval) {
-      kno_thread_struct thread = kno_thread_eval(NULL,thread_expr,use_env,flags);
+      kno_thread thread = kno_thread_eval(NULL,thread_expr,use_env,flags);
       if ( thread == NULL ) {
 	u8_log(LOG_WARN,"ThreadLaunchFailed",
 	       "Error evaluating %q in its own thread, ignoring",thread_expr);}
@@ -992,7 +992,7 @@ DCLPRIM("THREAD/CANCEL!",thread_cancel_prim,MIN_ARGS(1)|MAX_ARGS(2),
 	"(THREAD/CANCEL! *thread*) attempts to cancel (terminate) *thread*.")
 static lispval thread_cancel_prim(lispval thread_arg,lispval reason)
 {
-  struct KNO_THREAD_STRUCT *thread = (struct KNO_THREAD_STRUCT *)thread_arg;
+  struct KNO_THREAD *thread = (struct KNO_THREAD *)thread_arg;
   if ((thread->flags)&(KNO_THREAD_DONE))
     return KNO_FALSE;
   else {
@@ -1013,7 +1013,7 @@ DCLPRIM("THREAD/SIGNAL!",thread_signal_prim,MIN_ARGS(2)|MAX_ARGS(2),
 	"(THREAD/SIGNAL! *thread* *signal*) signals *thread* with *signal*.")
 static lispval thread_signal_prim(lispval thread_arg,lispval signal)
 {
-  struct KNO_THREAD_STRUCT *thread = (struct KNO_THREAD_STRUCT *)thread_arg;
+  struct KNO_THREAD *thread = (struct KNO_THREAD *)thread_arg;
   if ((thread->flags)&(KNO_THREAD_DONE))
     return KNO_FALSE;
   else {
@@ -1031,7 +1031,7 @@ DCLPRIM("THREAD/TERMINATE!",thread_terminate_prim,MIN_ARGS(1)|MAX_ARGS(2),
 	"If *result* is provided, the thread returns with that value.")
 static lispval thread_terminate_prim(lispval thread_arg,lispval returnval)
 {
-  struct KNO_THREAD_STRUCT *thread = (struct KNO_THREAD_STRUCT *)thread_arg;
+  struct KNO_THREAD *thread = (struct KNO_THREAD *)thread_arg;
   if ((thread->flags)&(KNO_THREAD_DONE))
     return KNO_FALSE;
   else {
@@ -1042,15 +1042,18 @@ static lispval thread_terminate_prim(lispval thread_arg,lispval returnval)
       int e = errno; errno =0;
       if (e) u8_log(LOG_WARN,"Thread/Signal/Failed","For %q",thread_arg);
       return KNO_FALSE;}
-    else return KNO_TRUE;}
+    else {
+      thread->flags |= KNO_THREAD_TERMINATING;
+      return KNO_TRUE;}}
 }
 
+#if 0
 DCLPRIM("THREAD/INTERRUPT!",thread_interrupt_prim,MIN_ARGS(2)|MAX_ARGS(2),
 	"(THREAD/INTERRUPT! *thread* *thunk*) tells *thread* to "
 	"apply *thunk* asynchronously.")
 static lispval thread_interrupt_prim(lispval thread_arg,lispval thunk)
 {
-  struct KNO_THREAD_STRUCT *thread = (struct KNO_THREAD_STRUCT *)thread_arg;
+  struct KNO_THREAD *thread = (struct KNO_THREAD *)thread_arg;
   if ((thread->flags)&(KNO_THREAD_DONE))
     return KNO_FALSE;
   else {
@@ -1062,13 +1065,14 @@ static lispval thread_interrupt_prim(lispval thread_arg,lispval thunk)
       return KNO_FALSE;}
     else return KNO_TRUE;}
 }
+#endif
 
 DCLPRIM("THREAD/REPORT!",thread_report_prim,MIN_ARGS(1)|MAX_ARGS(1),
 	"(THREAD/REPORT! *thread*) tells *thread* to "
 	"apply *thunk* asynchronously.")
 static lispval thread_report_prim(lispval thread_arg)
 {
-  struct KNO_THREAD_STRUCT *thread = (struct KNO_THREAD_STRUCT *)thread_arg;
+  struct KNO_THREAD *thread = (struct KNO_THREAD *)thread_arg;
   if ((thread->flags)&(KNO_THREAD_DONE))
     return KNO_FALSE;
   else {
@@ -1084,7 +1088,7 @@ DCLPRIM("THREAD/EXITED?",thread_exitedp,MIN_ARGS(1)|MAX_ARGS(1),
 	"(THREAD/EXITED? *thread*) returns true if *thread* has exited")
 static lispval thread_exitedp(lispval thread_arg)
 {
-  struct KNO_THREAD_STRUCT *thread = (struct KNO_THREAD_STRUCT *)thread_arg;
+  struct KNO_THREAD *thread = (struct KNO_THREAD *)thread_arg;
   if ((thread->flags)&(KNO_THREAD_DONE))
     return KNO_TRUE;
   else return KNO_FALSE;
@@ -1095,7 +1099,7 @@ DCLPRIM("THREAD/FINISHED?",thread_finishedp,MIN_ARGS(1)|MAX_ARGS(1),
 	"if *thread* exited normally, #F otherwise")
 static lispval thread_finishedp(lispval thread_arg)
 {
-  struct KNO_THREAD_STRUCT *thread = (struct KNO_THREAD_STRUCT *)thread_arg;
+  struct KNO_THREAD *thread = (struct KNO_THREAD *)thread_arg;
   if ( ( (thread->flags)&(KNO_THREAD_DONE) )  &&
        (! ( (thread->flags) & (KNO_THREAD_ERROR) ) ) )
     return KNO_TRUE;
@@ -1107,7 +1111,7 @@ DCLPRIM("THREAD/ERROR?",thread_errorp,MIN_ARGS(1)|MAX_ARGS(1),
 	"exited with an error, #f otherwise")
 static lispval thread_errorp(lispval thread_arg)
 {
-  struct KNO_THREAD_STRUCT *thread = (struct KNO_THREAD_STRUCT *)thread_arg;
+  struct KNO_THREAD *thread = (struct KNO_THREAD *)thread_arg;
   if ( ( (thread->flags) & (KNO_THREAD_DONE) ) &&
        ( (thread->flags) & (KNO_THREAD_ERROR) ) )
     return KNO_TRUE;
@@ -1121,7 +1125,7 @@ DCLPRIM("THREAD/RESULT",thread_result,MIN_ARGS(1)|MAX_ARGS(1),
 	"wait for the result, use THREAD/FINISH.")
 static lispval thread_result(lispval thread_arg)
 {
-  struct KNO_THREAD_STRUCT *thread = (struct KNO_THREAD_STRUCT *)thread_arg;
+  struct KNO_THREAD *thread = (struct KNO_THREAD *)thread_arg;
   if ((thread->flags)&(KNO_THREAD_DONE)) {
     if (thread->result!=KNO_NULL) {
       lispval result = thread->result;
@@ -1185,7 +1189,7 @@ static int get_join_wait(lispval opts,struct timespec *wait)
   else return 0;
 }
 
-static int join_thread(struct KNO_THREAD_STRUCT *tstruct,
+static int join_thread(struct KNO_THREAD *tstruct,
 		       int waiting,struct timespec *ts)
 {
   int rv = 0;
@@ -1232,7 +1236,7 @@ static lispval threadjoin_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
   int waiting = get_join_wait(opts,&until);
 
   {DO_CHOICES(thread,threads) {
-      struct KNO_THREAD_STRUCT *tstruct = (kno_thread_struct)thread;
+      struct KNO_THREAD *tstruct = (kno_thread)thread;
       int retval = join_thread(tstruct,waiting,&until);
       if (retval == 0) {
 	kno_incref(thread);
@@ -1264,7 +1268,7 @@ static lispval threadwait_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
       if (!(TYPEP(thread,kno_thread_type)))
 	return kno_type_error(_("thread"),"threadjoin_prim",thread);}
   {DO_CHOICES(thread,threads) {
-      struct KNO_THREAD_STRUCT *tstruct = (kno_thread_struct)thread;
+      struct KNO_THREAD *tstruct = (kno_thread)thread;
       int retval = join_thread(tstruct,waiting,&until);
       if (retval != 0) {
 	kno_incref(thread);
@@ -1294,7 +1298,7 @@ static lispval threadfinish_prim(lispval args,lispval opts)
   {DO_CHOICES(arg,args)
       if (TYPEP(arg,kno_thread_type)) {
 	struct timespec until = { 0 };
-	struct KNO_THREAD_STRUCT *tstruct = (kno_thread_struct)arg;
+	struct KNO_THREAD *tstruct = (kno_thread)arg;
 	int waiting = get_join_wait(opts,&until);
 	int retval = join_thread(tstruct,waiting,&until);
 	if (retval == 0) {
@@ -1345,7 +1349,7 @@ static lispval threadwaitbang_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
       if (!(TYPEP(thread,kno_thread_type)))
 	return kno_type_error(_("thread"),"threadjoin_prim",thread);}
   {DO_CHOICES(thread,threads) {
-      struct KNO_THREAD_STRUCT *tstruct = (kno_thread_struct)thread;
+      struct KNO_THREAD *tstruct = (kno_thread)thread;
       int retval = join_thread(tstruct,waiting,&until);
       if (retval==0) {}
       else if ( (retval == EBUSY) || (retval == ETIMEDOUT) )
@@ -1361,7 +1365,7 @@ static lispval threadwaitbang_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
 
 static lispval parallel_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  kno_thread_struct _threads[6], *threads;
+  kno_thread _threads[6], *threads;
   lispval _results[6], *results, scan = KNO_CDR(expr), result = EMPTY;
   int i = 0, n_exprs = 0;
   /* Compute number of expressions */
@@ -1369,12 +1373,12 @@ static lispval parallel_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   /* Malloc two vectors if neccessary. */
   if (n_exprs>6) {
     results = u8_alloc_n(n_exprs,lispval);
-    threads = u8_alloc_n(n_exprs,kno_thread_struct);}
+    threads = u8_alloc_n(n_exprs,kno_thread);}
   else {results=_results; threads=_threads;}
   /* Start up the threads and store the pointers. */
   scan = KNO_CDR(expr); while (PAIRP(scan)) {
     lispval thread_expr = KNO_CAR(scan);
-    kno_thread_struct thread =
+    kno_thread thread =
       kno_thread_eval(&results[i],thread_expr,env,KNO_EVAL_THREAD|KNO_THREAD_QUIET_EXIT);
     if (thread == NULL) {
       u8_log(LOG_WARN,"ThreadLaunchFailed",
@@ -1550,8 +1554,8 @@ static int walk_thread_struct(kno_walker walker,lispval x,
 			      kno_walk_flags flags,
 			      int depth)
 {
-  struct KNO_THREAD_STRUCT *tstruct =
-    kno_consptr(struct KNO_THREAD_STRUCT *,x,kno_thread_type);
+  struct KNO_THREAD *tstruct =
+    kno_consptr(struct KNO_THREAD *,x,kno_thread_type);
   if ( (tstruct->flags) & (KNO_EVAL_THREAD) ) {
     if (kno_walk(walker,tstruct->evaldata.expr,walkdata,flags,depth-1)<0)
       return -1;
@@ -1694,21 +1698,75 @@ static void init_signal_handling()
 
 /* finish all threads */
 
+/* How long to wait for threads to finish in microseconds,
+   defaults to 2 seconds. */
+static int thread_grace = 2*1000*1000;
+
 static void finish_threads()
 {
   if (n_threads == 0) return;
   u8_lock_mutex(&thread_ring_lock);
+  int live_threads = n_threads;
   pthread_t thread_ids[n_threads];
-  struct KNO_THREAD_STRUCT *scan = thread_ring;
+  unsigned char live[n_threads];
+  struct KNO_THREAD *scan = thread_ring;
   int i= 0; while (scan) {
-    struct KNO_THREAD_STRUCT *tstruct = (kno_thread_struct) scan;
+    struct KNO_THREAD *tstruct = (kno_thread) scan;
     if (tstruct->tid > 0) {
-      thread_ids[i++]=tstruct->tid;}
+      thread_ids[i]=tstruct->tid;
+      live[i]=1;
+      i++;}
     scan=scan->ring_right;}
   u8_unlock_mutex(&thread_ring_lock);
   int n = i; i=0; while (i<n) {
     pthread_kill(thread_ids[i],kno_thread_sigterm);
     i++;}
+  /* 'Join' any threads which have finished */
+  i=0; while (i<n) {
+    if (live[i]) {
+      pthread_t pthread = thread_ids[i];
+      if (pthread_tryjoin_np(pthread,NULL) == 0) {
+	live_threads--;
+	live[i] = 0;}
+      else errno=0;
+      i++;}
+    else i++;}
+  int nsecs = (thread_grace*1000)/live_threads;
+  struct timespec limit = { 0, nsecs };
+  i=0; while (i<n) {
+    if (live[i]) {
+      pthread_t pthread = thread_ids[i];
+      if (pthread_timedjoin_np(pthread,NULL,&limit) == 0) {
+	live_threads--;
+	live[i] = 0;}
+      else errno=0;
+      i++;}
+    else i++;}
+  /* Get stragglers */
+  i=0; while (i<n) {
+    if (live[i]) {
+      pthread_t pthread = thread_ids[i];
+      if (pthread_tryjoin_np(pthread,NULL) == 0) {
+	live_threads--;
+	live[i] = 0;}
+      else errno=0;
+      i++;}
+    else i++;}
+  /* Cancel all the recalcitrants */
+  if (live_threads) {
+    u8_log(LOGCRIT,"StuckThreads","Cancelling %d hung threads",live_threads);
+    i=0; while (i<n) {
+      if (live[i]) {
+	pthread_t pthread = thread_ids[i];
+	pthread_cancel(pthread);
+	if (errno != ESRCH)
+	  u8_log(LOGWARN,"ForcedCancel",
+		 "Cancelled unfininished thread %lld",
+		 pthread);
+	live_threads--;
+	live[i] = 0;
+	errno = 0;}
+      else i++;}}
 }
 
 /* Initialization */
@@ -1787,7 +1845,7 @@ KNO_EXPORT void kno_init_threads_c()
   DECL_PRIM_ARGS(thread_cancel_prim,2,threads_module,
 		 thread_plus_arg,NULL);
   DECL_PRIM_ARGS(thread_terminate_prim,2,threads_module,thread_plus_arg,NULL);
-  DECL_PRIM_ARGS(thread_interrupt_prim,2,threads_module,thread_plus_arg,NULL);
+  /* DECL_PRIM_ARGS(thread_interrupt_prim,2,threads_module,thread_plus_arg,NULL); */
   DECL_PRIM_ARGS(thread_report_prim,1,threads_module,one_thread_arg,NULL);
 
   timeout_symbol = kno_intern("timeout");
@@ -1853,6 +1911,11 @@ KNO_EXPORT void kno_init_threads_c()
 		      "Whether to log the normal exit values of threads",
 		      kno_boolconfig_get,kno_boolconfig_set,
 		      &thread_log_exit);
+
+  kno_register_config("THREAD:GRACE",
+		      "Whether to log the normal exit values of threads",
+		      kno_intconfig_get,kno_intconfig_set,
+		      &thread_grace);
 
   kno_walkers[kno_thread_type]=walk_thread_struct;
 

@@ -12,6 +12,12 @@
   (let ((nums {}))
     (dotimes (i n) (set+! nums (random range)))
     nums))
+(define (sleeper n (secs 3) (fn (getuuid)))
+  (dotimes (i n) 
+    (sleep secs)
+    (cond ((not fn))
+	  ((applicable? fn) (fn i))
+	  (else (message "@" i ": " fn)))))
 
 (define numbers '())
 (define addnumber

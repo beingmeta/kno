@@ -14,15 +14,15 @@
 KNO_EXPORT kno_ptr_type kno_thread_type;
 KNO_EXPORT kno_ptr_type kno_synchronizer_type;
 
-#define KNO_THREAD_DONE       0x0001
-#define KNO_THREAD_ERROR      0x0002
-#define KNO_EVAL_THREAD       0x0004
-#define KNO_THREAD_CANCELLED  0x0008
-#define KNO_THREAD_TRACE_EXIT 0x0080
-#define KNO_THREAD_QUIET_EXIT 0x0100
-#define KNO_THREAD_TERMINATED 0x0200
+#define KNO_THREAD_DONE        0x0001
+#define KNO_THREAD_ERROR       0x0002
+#define KNO_EVAL_THREAD        0x0004
+#define KNO_THREAD_CANCELLED   0x0008
+#define KNO_THREAD_TRACE_EXIT  0x0080
+#define KNO_THREAD_QUIET_EXIT  0x0100
+#define KNO_THREAD_TERMINATING 0x0200
 
-typedef struct KNO_THREAD_STRUCT {
+typedef struct KNO_THREAD {
   KNO_CONS_HEADER;
   pthread_t tid;
   long long threadid;
@@ -32,15 +32,14 @@ typedef struct KNO_THREAD_STRUCT {
   int loglevel;
   double started;
   double finished;
-  lispval threadvars;
   sigset_t sigmask;
   struct KNO_STACK *thread_stackptr;
-  struct KNO_THREAD_STRUCT *ring_left, *ring_right;
+  struct KNO_THREAD *ring_left, *ring_right;
   lispval *resultptr, result;
   union {
     struct {lispval expr; kno_lexenv env;} evaldata;
     struct {lispval fn, *args; int n_args;} applydata;};} KNO_THREAD;
-typedef struct KNO_THREAD_STRUCT *kno_thread_struct;
+typedef struct KNO_THREAD *kno_thread;
 
 typedef struct KNO_SYNCHRONIZER {
   KNO_CONS_HEADER;
