@@ -31,8 +31,10 @@ int main(int argc,char **argv)
   lispval fix1 = KNO_INT(33994);
   lispval dbl1 = kno_init_flonum(NULL,3.445);
   lispval dbl2 = kno_init_flonum(u8_alloc(struct KNO_FLONUM),-3.9994);
+  struct KNO_STRING *strcons = u8_alloc(struct KNO_STRING);
   lispval string1 = kno_make_string(NULL,3,"foo");
-  lispval string2 = kno_init_string(u8_alloc(struct KNO_STRING),3,u8_strdup("bar"));
+  lispval string2 = kno_init_string(strcons,3,u8_strdup("bar"));
+  strcons->str_freebytes = 1;
   lispval compound=
     kno_init_compound(NULL,KNOSYM_QUOTE,KNO_COMPOUND_USEREF,1,
                      kno_make_pair(KNO_INT(5),KNO_TRUE));
