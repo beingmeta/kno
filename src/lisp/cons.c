@@ -849,7 +849,9 @@ void kno_init_cons_c()
   kno_add_constname("#1mib",KNO_INT((1024*1024)));
   kno_add_constname("#2mib",KNO_INT((2*1024*1024)));
 
-  kno_register_constant("plugh");
+  lispval plugh = kno_register_constant("plugh");
+  if (plugh != kno_register_constant("plugh"))
+    u8_log(LOGERR,"RegisterConstant","Doesn't handle repeated calls");
 
 }
 

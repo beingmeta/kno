@@ -290,7 +290,9 @@ static lispval valid_utf8p(lispval x)
 }
 static lispval regexp(lispval x)
 {
-  if (KNO_REGEXP(x)) return KNO_TRUE; else return KNO_FALSE;
+  if (KNO_REGEXP(x))
+    return KNO_TRUE;
+  else return KNO_FALSE;
 }
 
 static lispval packetp(lispval x)
@@ -387,7 +389,8 @@ static lispval exceptionp(lispval x)
 
 static lispval applicablep(lispval x)
 {
-  if (KNO_APPLICABLEP(x)) return KNO_TRUE;
+  if (KNO_APPLICABLEP(x))
+    return KNO_TRUE;
   else return KNO_FALSE;
 }
 
@@ -400,7 +403,9 @@ static lispval fcnidp(lispval x)
 
 static lispval opcodep(lispval x)
 {
-  if (KNO_OPCODEP(x)) return KNO_TRUE; else return KNO_FALSE;
+  if (KNO_OPCODEP(x))
+    return KNO_TRUE;
+  else return KNO_FALSE;
 }
 
 static lispval make_opcode(lispval x)
@@ -410,10 +415,17 @@ static lispval make_opcode(lispval x)
   else return kno_err(kno_RangeError,"make_opcode",NULL,x);
 }
 
+static lispval coderefp(lispval x)
+{
+  if (KNO_CODEREFP(x))
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
 static lispval make_coderef(lispval x)
 {
   if ( (KNO_UINTP(x)) && ((KNO_FIX2INT(x)) < KNO_IMMEDIATE_MAX) )
-    return KNO_OPCODE(FIX2INT(x));
+    return KNO_ENCODEREF(FIX2INT(x));
   else return kno_err(kno_RangeError,"make_coderef",NULL,x);
 }
 
@@ -640,6 +652,7 @@ KNO_EXPORT void kno_init_coreprims_c()
   kno_idefn(kno_scheme_module,kno_make_cprim1("VECTOR?",vectorp,1));
   kno_idefn(kno_scheme_module,kno_make_cprim1("CHARACTER?",characterp,1));
   kno_idefn(kno_scheme_module,kno_make_cprim1("OPCODE?",opcodep,1));
+  kno_idefn(kno_scheme_module,kno_make_cprim1("CODEREF?",coderefp,1));
   kno_idefn(kno_scheme_module,kno_make_cprim1("EXCEPTION?",exceptionp,1));
   kno_defalias(kno_scheme_module,"ERROR?","EXCEPTION?");
   kno_idefn(kno_scheme_module,kno_make_cprim1("APPLICABLE?",applicablep,1));
@@ -661,8 +674,8 @@ KNO_EXPORT void kno_init_coreprims_c()
   kno_idefn(kno_scheme_module,
            kno_make_cprim1x("MAKE-OPCODE",make_opcode,1,
                            kno_fixnum_type,VOID));
-  kno_idefn1(kno_scheme_module,"-MAKE-CODEREF",make_coderef,1,
-            "(CODEREF <fixnum>)\nReturns a coderef object",
+  kno_idefn1(kno_scheme_module,"MAKE-CODEREF",make_coderef,1,
+            "(MAKE-CODEREF <fixnum>)\nReturns a coderef object",
             kno_fixnum_type,KNO_VOID);
 
   kno_idefn(kno_scheme_module,kno_make_cprim1("PROCEDURE-NAME",procedure_name,1));
