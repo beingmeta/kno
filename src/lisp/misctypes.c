@@ -246,8 +246,10 @@ KNO_EXPORT lispval kno_wrap_pointer(void *ptrval,
   rawptr->raw_typespec = typespec; kno_incref(typespec);
   if (SYMBOLP(typespec))
     rawptr->typestring = SYM_NAME(typespec);
+#if 0 /* This just seems like a bad idea */
   else if (STRINGP(typespec))
     rawptr->typestring = CSTRING(typespec);
+#endif
   else rawptr->typestring = NULL;
   if (idstring)
     rawptr->idstring = u8_strdup(idstring);
