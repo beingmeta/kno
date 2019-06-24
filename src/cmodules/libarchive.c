@@ -361,7 +361,7 @@ static void set_string_prop(lispval tbl,u8_string slotname,u8_string s)
 
 static void set_int_prop(lispval tbl,u8_string slotname,long long ival)
 {
-  lispval v = KNO_INT2DTYPE(ival);
+  lispval v = KNO_INT2LISP(ival);
   kno_store(tbl,kno_intern(slotname),v);
   kno_decref(v);
 }

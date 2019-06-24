@@ -732,7 +732,7 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
     return result;}
   else {
     u8_string limit=u8_mkstring("%lld",kno_stack_limit);
-    lispval depth=KNO_INT2DTYPE(u8_stack_depth());
+    lispval depth=KNO_INT2LISP(u8_stack_depth());
     return kno_err(kno_StackOverflow,fname,limit,depth);}
 }
 

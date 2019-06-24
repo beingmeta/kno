@@ -1600,14 +1600,14 @@ DCLPRIM("CSTACK-DEPTH",cstack_depth_prim,MAX_ARGS(0),
 static lispval cstack_depth_prim()
 {
   ssize_t depth = u8_stack_depth();
-  return KNO_INT2DTYPE(depth);
+  return KNO_INT2LISP(depth);
 }
 DCLPRIM("CSTACK-LIMIT",cstack_limit_prim,MAX_ARGS(0),
 	"Returns the allocated limit of the C stack")
 static lispval cstack_limit_prim()
 {
   ssize_t limit = kno_stack_limit;
-  return KNO_INT2DTYPE(limit);
+  return KNO_INT2LISP(limit);
 }
 DCLPRIM("CSTACK-LIMIT!",set_cstack_limit_prim,MIN_ARGS(1)|MAX_ARGS(1),
 	"Returns the allocated limit of the C stack")
@@ -1617,14 +1617,14 @@ static lispval set_cstack_limit_prim(lispval arg)
     ssize_t result = kno_stack_resize(KNO_FLONUM(arg));
     if (result<0)
       return KNO_ERROR;
-    else return KNO_INT2DTYPE(result);}
+    else return KNO_INT2LISP(result);}
   else if ( (FIXNUMP(arg)) || (KNO_BIGINTP(arg)) ) {
     ssize_t limit = (ssize_t) kno_getint(arg);
     ssize_t result = (limit)?(kno_stack_setsize(limit)):(-1);
     if (limit) {
       if (result<0)
 	return KNO_ERROR;
-      else return KNO_INT2DTYPE(result);}
+      else return KNO_INT2LISP(result);}
     else return kno_type_error("stacksize","set_stack_limit_prim",arg);}
   else return kno_type_error("stacksize","set_stack_limit_prim",arg);
 }

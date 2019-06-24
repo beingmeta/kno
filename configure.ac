@@ -626,6 +626,7 @@ if test "${use_gcov}" == "yes"; then
    OPTFLAGS=
    XOPTFLAGS=
    AC_DEFINE(KNO_AVOID_INLINE,1)
+   AC_DEFINE(KNO_AVOID_MACROS,1)
 fi;
 
 ### Check some compiler fancies

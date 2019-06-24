@@ -3543,7 +3543,7 @@ static lispval get_hashbuckets(struct KNO_HASHINDEX *hx)
       KNO_CHUNK_REF ref =
         kno_get_chunk_ref(offdata,offtype,i,hx->index_n_buckets);
       if (ref.size>0) {
-        lispval fixnum = KNO_INT2DTYPE(i);
+        lispval fixnum = KNO_INT2LISP(i);
         KNO_ADD_TO_CHOICE(buckets,fixnum);}
       i++;}}
   else {
@@ -3552,7 +3552,7 @@ static lispval get_hashbuckets(struct KNO_HASHINDEX *hx)
     while (i<n_buckets) {
       KNO_CHUNK_REF ref = kno_fetch_chunk_ref(s,256,offtype,i,1);
       if (ref.size>0) {
-        lispval fixnum = KNO_INT2DTYPE(i);
+        lispval fixnum = KNO_INT2LISP(i);
         KNO_ADD_TO_CHOICE(buckets,fixnum);}
       i++;}
     kno_unlock_stream(s);}

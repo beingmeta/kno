@@ -1308,9 +1308,9 @@ static void statfs_set(lispval r,u8_string name,
                        long long int val,long long int mul)
 {
   lispval slotid = kno_intern(name);
-  lispval lval = KNO_INT2DTYPE(val);
+  lispval lval = KNO_INT2LISP(val);
   if (mul!=1) {
-    lispval mulval = KNO_INT2DTYPE(mul);
+    lispval mulval = KNO_INT2LISP(mul);
     lispval rval = kno_multiply(lval,mulval);
     kno_decref(mulval); kno_decref(lval);
     lval = rval;}

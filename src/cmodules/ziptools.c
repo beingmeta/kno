@@ -410,7 +410,7 @@ static lispval zipgetsize_prim(lispval zipfile,lispval filename)
     return ziperr("zipgetsize_prim/stat",zf,filename);}
   else {
     size_t uncompressed_size = zstat.size;
-    lispval size = KNO_INT2DTYPE(uncompressed_size);
+    lispval size = KNO_INT2LISP(uncompressed_size);
     u8_unlock_mutex(&(zf->zipfile_lock));
     return size;}
 }

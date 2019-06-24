@@ -47,7 +47,7 @@
    For positive numbers, converting between C ints dtype fixnums is
    simply a matter of multiply or diving by 4 and adding the type
    code (when converting to DTYPEs).  For negative numbers, it is
-   trickier but not much, as in KNO_INT2DTYPE and KNO_DTYPE2INT below.
+   trickier but not much, as in KNO_INT2LISP and KNO_LISP2INT below.
    Currently, fixnums do not take advantage of the full word on
    64-bit machines, for a mix of present practical and prospective
    design reasons.
@@ -342,34 +342,48 @@ KNO_FASTOP U8_MAYBE_UNUSED int _KNO_ISDTYPE(lispval x){ return 1;}
 #define KNO_IMM_TYPE(x) ((((LISPVAL(x))>>25)&0x7F)+0x4)
 #define KNO_IMMEDIATE_MAX (1<<24)
 
-#if KNO_PTR_TYPE_MACRO
+#if KNO_AVOID_MACROS
+static U8_MAYBE_UNUSED kno_ptr_type KNO_PTR_TYPE(lispval x)
+{
+  int type_field = (KNO_PTR_MANIFEST_TYPE(x));
+  switch (type_field) {
+  case kno_cons_type: {
+    struct KNO_CONS *cons = (struct KNO_CONS *)x;
+    return KNO_CONS_TYPE(cons);}
+  case kno_immediate_type:
+    return KNO_IMMEDIATE_TYPE(x);
+  default: return type_field;
+  }
+}
+#else
 #define KNO_PTR_TYPE(x) \
   (((KNO_PTR_MANIFEST_TYPE(LISPVAL(x)))>1) ? (KNO_PTR_MANIFEST_TYPE(x)) :  \
    ((KNO_PTR_MANIFEST_TYPE(x))==1) ? (KNO_IMMEDIATE_TYPE(x)) : \
    (x) ? (KNO_CONS_TYPE(((struct KNO_CONS *)KNO_CONS_DATA(x)))) : (-1))
-
-#else
-static kno_ptr_type KNO_PTR_TYPE(lispval x)
-{
-  int type_field = (KNO_PTR_MANIFEST_TYPE(x));
-  switch (type_field) {
-  case kno_cons_ptr_type: {
-    struct KNO_CONS *cons = (struct KNO_CONS *)x;
-    return KNO_CONS_TYPE(cons);}
-  case kno_cons_immediate_type: return KNO_IMMEDIATE_TYPE(x);
-  default: return type_field;
-  }
-}
 #endif
 #define KNO_PRIM_TYPE(x)         (KNO_PTR_TYPE(x))
 
-#define KNO_TYPEP(ptr,type)                                                     \
+#if KNO_AVOID_MACROS
+static U8_MAYBE_UNUSED int KNO_TYPEP(lispval ptr,int type)
+{
+  if (type < 0x04)
+    return ( ( (ptr) & (0x3) ) == type);
+  else if (type >= 0x84)
+    if ( (KNO_CONSP(ptr)) && (KNO_CONSPTR_TYPE(ptr) == type) )
+      return 1;
+    else return 0;
+  else if (type >= 0x04)
+    if ( (KNO_IMMEDIATEP(ptr)) && (KNO_IMM_TYPE(ptr) == type ) )
+      return 1;
+    else return 0;
+  else return 0;
+}
+#else
+#define KNO_TYPEP(ptr,type)                                       \
   ((type >= 0x84) ? ( (KNO_CONSP(ptr)) && (KNO_CONSPTR_TYPE(ptr) == type) ) :   \
    (type >= 0x04) ? ( (KNO_IMMEDIATEP(ptr)) && (KNO_IMM_TYPE(ptr) == type ) ) : \
    ( ( (ptr) & (0x3) ) == type) )
-/* Other variants */
-#define KNO_CONS_TYPEP(x,type) ( (KNO_CONSP(x)) && ((KNO_CONS_TYPE(x)) == type) )
-#define KNO_PTR_TYPEP(x,type)  ( (KNO_PTR_TYPE(x)) == type )
+#endif
 #define KNO_PRIM_TYPEP(x,tp)   ( KNO_TYPEP(x,tp) )
 
 #define KNO_MAKE_STATIC(ptr) \
@@ -559,16 +573,29 @@ KNO_EXPORT u8_string kno_oid2string(lispval oidval,u8_byte *buf,ssize_t len);
 
 #define KNO_MAKE_FIXNUM KNO_INT2FIX
 
+KNO_EXPORT lispval kno_make_bigint(long long intval);
+
 /* The sizeof check here avoids *tautological* range errors
    when n can't be too big for a fixnum. */
-#define KNO_INT2DTYPE(n)                         \
-  ( ( (sizeof(n) < KNO_FIXNUM_BYTES) ||           \
-      (((long long)(n)) > KNO_MAX_FIXNUM) ||      \
-      (((long long)(n)) < KNO_MIN_FIXNUM) ) ?     \
-    (kno_make_bigint(n)) :                        \
-    (KNO_INT2FIX(n)) )
-#define KNO_INT(x) (KNO_INT2DTYPE(x))
-#define KNO_MAKEINT(x) (KNO_INT2DTYPE(x))
+#if KNO_AVOID_MACROS
+static U8_MAYBE_UNUSED lispval KNO_INT2LISP(long long intval)
+{
+  if   ( (intval > KNO_MAX_FIXNUM) ||
+         (intval < KNO_MIN_FIXNUM) )
+    return kno_make_bigint(intval);
+  else return KNO_INT2FIX(intval);
+}
+#else
+#define KNO_INT2LISP(n)               \
+  ( (sizeof(n) < KNO_FIXNUM_BYTES) ?                      \
+    (KNO_INT2FIX(n)) :                                    \
+    ( (((long long)(n)) > KNO_MAX_FIXNUM) ||                  \
+      (((long long)(n)) < KNO_MIN_FIXNUM) ) ?                 \
+    (kno_make_bigint(n)) :                                    \
+    (KNO_INT2FIX(n)))
+#endif
+#define KNO_INT(x) (KNO_INT2LISP(x))
+#define KNO_MAKEINT(x) (KNO_INT2LISP(x))
 
 #define KNO_UINT2DTYPE(x) \
   (((to64u(x)) > (to64(KNO_MAX_FIXNUM))) ?                       \
@@ -676,6 +703,20 @@ KNO_EXPORT lispval kno_register_constant(u8_string name);
 #define KNO_ERROR     (KNO_ERROR_VALUE)
 #define KNO_EMPTYP(x) (KNO_EMPTY_CHOICEP(x))
 
+#if KNO_AVOID_MACROS
+static U8_MAYBE_UNUSED int KNO_ABORTP(lispval x)
+{
+  return ( (KNO_TYPEP(x,kno_constant_type)) &&
+           (KNO_GET_IMMEDIATE(x,kno_constant_type)>6) &&
+           (KNO_GET_IMMEDIATE(x,kno_constant_type)<=16));
+}
+static U8_MAYBE_UNUSED int KNO_ERRORP(lispval x)
+{
+  return (((KNO_TYPEP(x,kno_constant_type)) &&
+           (KNO_GET_IMMEDIATE(x,kno_constant_type)>6) &&
+           (KNO_GET_IMMEDIATE(x,kno_constant_type)<15)));
+}
+#else
 #define KNO_ABORTP(x) \
   (((KNO_TYPEP(x,kno_constant_type)) && \
     (KNO_GET_IMMEDIATE(x,kno_constant_type)>6) && \
@@ -684,6 +725,7 @@ KNO_EXPORT lispval kno_register_constant(u8_string name);
   (((KNO_TYPEP(x,kno_constant_type)) && \
     (KNO_GET_IMMEDIATE(x,kno_constant_type)>6) && \
     (KNO_GET_IMMEDIATE(x,kno_constant_type)<15)))
+#endif
 #define KNO_TROUBLEP(x) (KNO_EXPECT_FALSE(KNO_ERRORP(x)))
 #define KNO_COOLP(x) (!(KNO_TROUBLEP(x)))
 

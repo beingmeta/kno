@@ -458,7 +458,7 @@ static lispval lisp_read_config(lispval arg)
   U8_INIT_STRING_INPUT(&in,STRLEN(arg),CSTRING(arg));
   retval = kno_read_config(&in);
   if (retval<0) return KNO_ERROR;
-  else return KNO_INT2DTYPE(retval);
+  else return KNO_INT2LISP(retval);
 }
 
 /* Lisp run */

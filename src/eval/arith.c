@@ -220,7 +220,7 @@ static lispval plus1(lispval x)
 {
   if (FIXNUMP(x)) {
     long long iv = kno_getint(x); iv++;
-    return KNO_INT2DTYPE(iv);}
+    return KNO_INT2LISP(iv);}
   else if (KNO_FLONUMP(x)) {
     kno_double iv = KNO_FLONUM(x); iv = iv+1;
     return kno_make_flonum(iv);}
@@ -232,7 +232,7 @@ static lispval minus1(lispval x)
 {
   if (FIXNUMP(x)) {
     long long iv = kno_getint(x); iv--;
-    return KNO_INT2DTYPE(iv);}
+    return KNO_INT2LISP(iv);}
   else if (KNO_FLONUMP(x)) {
     kno_double iv = KNO_FLONUM(x); iv = iv-1;
     return kno_make_flonum(iv);}

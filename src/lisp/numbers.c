@@ -72,8 +72,13 @@ u8_condition kno_InvalidNumericLiteral=_("Invalid numeric literal");
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wshift-negative-value"
 
+#if KNO_AVOID_MACROS
+lispval kno_max_fixnum;
+lispval kno_min_fixnum;
+#else
 lispval kno_max_fixnum = KNO_INT(KNO_MAX_FIXNUM);
 lispval kno_min_fixnum = KNO_INT(KNO_MIN_FIXNUM);
+#endif
 
 #pragma clang diagnostic pop
 
@@ -3052,9 +3057,9 @@ static lispval NUM_ELT(lispval x,int i)
     case kno_float_elt:
       return kno_make_flonum(KNO_NUMVEC_FLOAT(x,i));
     case kno_long_elt:
-      return KNO_INT2DTYPE(KNO_NUMVEC_LONG(x,i));
+      return KNO_INT2LISP(KNO_NUMVEC_LONG(x,i));
     case kno_int_elt:
-      return KNO_INT2DTYPE(KNO_NUMVEC_INT(x,i));
+      return KNO_INT2LISP(KNO_NUMVEC_INT(x,i));
     case kno_short_elt:
       return KNO_SHORT2DTYPE(KNO_NUMVEC_SHORT(x,i));
     default: {
@@ -3152,7 +3157,7 @@ static lispval vector_add(lispval x,lispval y,int mult)
       return result;}}
   else {
     lispval *sums = u8_alloc_n(x_len,lispval), result;
-    lispval factor = KNO_INT2DTYPE(mult);
+    lispval factor = KNO_INT2LISP(mult);
     int i = 0; while (i<x_len) {
       lispval xelt = NUM_ELT(x,i);
       lispval yelt = NUM_ELT(y,i);
@@ -3231,7 +3236,7 @@ static lispval vector_dotproduct(lispval x,lispval y)
         kno_long yelt = EXACT_REF(y,y_elt_type,i);
         dot = dot+(xelt*yelt);
         i++;}
-      return KNO_INT2DTYPE(dot);}
+      return KNO_INT2LISP(dot);}
     else if ((x_elt_type == kno_int_elt)||(y_elt_type == kno_int_elt)) {
       kno_long dot = 0;
       int i = 0; while (i<x_len) {
@@ -3239,7 +3244,7 @@ static lispval vector_dotproduct(lispval x,lispval y)
         kno_int yelt = EXACT_REF(y,y_elt_type,i);
         dot = dot+(xelt*yelt);
         i++;}
-      return KNO_INT2DTYPE(dot);}
+      return KNO_INT2LISP(dot);}
     else {
       /* They're both short vectors */
       kno_long dot = 0;
@@ -3248,7 +3253,7 @@ static lispval vector_dotproduct(lispval x,lispval y)
         kno_int yelt = EXACT_REF(y,y_elt_type,i);
         dot = dot+(xelt*yelt);
         i++;}
-      return KNO_INT2DTYPE(dot);}}
+      return KNO_INT2LISP(dot);}}
   else {
     lispval dot = KNO_FIXNUM_ZERO;
     int i = 0; while (i<x_len) {
@@ -3739,6 +3744,11 @@ void kno_init_numbers_c()
     (dt_numeric_package,dt_bigint,unpack_bigint);
 
   bigint_magic_modulus = kno_long_to_bigint(256001281);
+
+#if KNO_AVOID_MACROS
+  kno_max_fixnum = KNO_INT(KNO_MAX_FIXNUM);
+  kno_min_fixnum = KNO_INT(KNO_MIN_FIXNUM);
+#endif
 
 #define ONEK ((unsigned long long)1024)
 

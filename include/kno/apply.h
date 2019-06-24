@@ -539,6 +539,21 @@ lispval kno_stack_ndapply(struct KNO_STACK *stack,lispval fn,int n_args,lispval 
 #define kno_ndapply(fn,n_args,argv) (kno_stack_ndapply(kno_stackptr,fn,n_args,argv))
 #define kno_dapply(fn,n_args,argv) (kno_stack_dapply(kno_stackptr,fn,n_args,argv))
 
+#if KNO_AVOID_MACROS
+static U8_MAYBE_UNUSED int KNO_APPLICABLE_TYPEP(int typecode)
+{
+  if ( ((typecode) >= kno_cprim_type) &&
+       ((typecode) <= kno_dtproc_type) )
+    return 1;
+  else return ( (kno_applyfns[typecode]) != NULL);
+}
+static U8_MAYBE_UNUSED int KNO_APPLICABLEP(lispval x)
+{
+  if (KNO_TYPEP(x,kno_fcnid_type))
+    return (KNO_APPLICABLE_TYPEP(KNO_FCNID_TYPE(x)));
+  else return KNO_APPLICABLE_TYPEP(KNO_PRIM_TYPE(x));
+}
+#else
 #define KNO_APPLICABLE_TYPEP(typecode) \
   ( ( ((typecode) >= kno_cprim_type) && ((typecode) <= kno_dtproc_type) ) || \
     ( (kno_applyfns[typecode]) != NULL) )
@@ -547,6 +562,7 @@ lispval kno_stack_ndapply(struct KNO_STACK *stack,lispval fn,int n_args,lispval 
   ((KNO_TYPEP(x,kno_fcnid_type)) ?                \
    (KNO_APPLICABLE_TYPEP(KNO_FCNID_TYPE(x))) :    \
    (KNO_APPLICABLE_TYPEP(KNO_PRIM_TYPE(x))))
+#endif
 
 #define KNO_DTYPE2FCN(x)              \
   ((KNO_FCNIDP(x)) ?                   \

@@ -43,13 +43,13 @@ static lispval rdf2dtype ( ldns_rdf *field )
     return kno_time2timestamp(tick);}
   case LDNS_RDF_TYPE_INT8: {
     long long val = ldns_rdf2native_int8( field );
-    return KNO_INT2DTYPE( val );}
+    return KNO_INT2LISP( val );}
   case LDNS_RDF_TYPE_INT16: {
     long long val = ldns_rdf2native_int16( field );
-    return KNO_INT2DTYPE( val );}
+    return KNO_INT2LISP( val );}
   case LDNS_RDF_TYPE_INT32: {
     long long val = ldns_rdf2native_int32( field );
-    return KNO_INT2DTYPE( val );}
+    return KNO_INT2LISP( val );}
   case LDNS_RDF_TYPE_DNAME: case LDNS_RDF_TYPE_A: case LDNS_RDF_TYPE_AAAA:
   case LDNS_RDF_TYPE_LOC: case LDNS_RDF_TYPE_TAG: case LDNS_RDF_TYPE_LONG_STR: {
     lispval result = VOID;

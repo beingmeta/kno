@@ -247,7 +247,7 @@ static lispval fork_prim(int n,lispval *args)
     pid_t pid = fork();
     if (pid) {
       long long int_pid = (long long) pid;
-      return KNO_INT2DTYPE(int_pid);}
+      return KNO_INT2LISP(int_pid);}
     else return KNO_FALSE;}
   else return exec_helper("fork_prim",KNO_DO_FORK,n,KNO_FALSE,args);
 }

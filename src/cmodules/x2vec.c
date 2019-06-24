@@ -1860,7 +1860,7 @@ static lispval x2vec_add_vocab_prim(lispval x2varg,lispval vocab)
   long long retval=import_vocab(x2v,vocab);
   if (retval<0) 
     return KNO_ERROR_VALUE;
-  else return KNO_INT2DTYPE(retval);
+  else return KNO_INT2LISP(retval);
 }
 
 /* Getting stuff out to Scheme */
@@ -1888,7 +1888,7 @@ static lispval x2vec_counts_prim(lispval arg,lispval word)
     kno_hashtable h=(kno_hashtable) result;
     while (i<n) {
       lispval s=kno_make_string(NULL,-1,words[i].word);
-      lispval v=KNO_INT2DTYPE(words[i].count);
+      lispval v=KNO_INT2LISP(words[i].count);
       kno_hashtable_op(h,kno_table_store_noref,s,v);
       i++;}
     return result;}
@@ -1899,7 +1899,7 @@ static lispval x2vec_counts_prim(lispval arg,lispval word)
     else {
       x2vec_word vocab=x2v->x2vec_vocab;
       int count=vocab[id].count;
-      return KNO_INT2DTYPE(count);}}
+      return KNO_INT2LISP(count);}}
   else return kno_type_error("string","x2vec_counts_prim",word);
 }
 

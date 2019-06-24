@@ -7117,6 +7117,8 @@ if test "${use_gcov}" == "yes"; then
    XOPTFLAGS=
    $as_echo "#define KNO_AVOID_INLINE 1" >>confdefs.h
 
+   $as_echo "#define KNO_AVOID_MACROS 1" >>confdefs.h
+
 fi;
 
 ### Check some compiler fancies
