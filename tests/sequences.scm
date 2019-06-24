@@ -464,6 +464,19 @@
 (errtest (rposition (char->integer #\k) asecret))
 (errtest (elts asecret))
 
+;;; FORSEQ
+
+(evaltest #(2 3 4) (forseq (e #(1 2 3)) (+ e 1)))
+(errtest (forseq))
+(errtest (forseq ("x" '(a b))))
+(errtest (forseq (x 3)))
+(errtest (forseq (x #(1 2 3)) (if (even? x) (irritant x "EvenValue") x)))
+
+(evaltest '() (forseq (x '()) (if (even? x) (irritant x "EvenValue") x)))
+(evaltest #() (forseq (x #()) (if (even? x) (irritant x "EvenValue") x)))
+(evaltest "" (forseq (x "") (if (even? x) (irritant x "EvenValue") x)))
+(evaltest #"" (forseq (x #"") (if (even? x) (irritant x "EvenValue") x)))
+
 ;;; Some simple test for non vector compounds
 
 (define not-sequence (make-opaque-compound 'noelts 1 2 3 4))
