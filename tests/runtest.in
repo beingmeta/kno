@@ -13,9 +13,9 @@ COMBOLOG=success.log
 
 if [ ! -z "${DEBUGGING}" ]; then
     echo "Testing: @test_env@ ${PROGNAME} $* LOGTIME=${LOGTIME} > ${LOGFILE}";
-    echo "$$ ${PROGNAME} $* > ${LOGFILE}" >> alltests.log
-    echo "$$ ${PROGNAME} $* > ${LOGFILE}" > $$.cmd
 fi;
+echo "$$ @test_env@ ${PROGNAME} $* LOGTIME=${LOGTIME} > ${LOGFILE}" >> alltests.log
+echo "$$ @test_env@ ${PROGNAME} $* LOGTIME=${LOGTIME} > ${LOGFILE}" > $$.cmd
     
 if test ! -z ${PREAMBLE}; then
    echo "TEST: " ${PROGNAME} $*;
@@ -65,7 +65,7 @@ if [ -f ${LOGFILE} ]; then
     if [ "$SUCCESS" = "no" ]; then
 	printf "Log file in %s\n" "${LOGFILE}";
     elif [ "$KEEPLOGS" = "no" ]; then
-	rm -f ${LOGFILE};
+	rm -f ${LOGFILE} $$.*.started $$.*.cmd;
     fi;
 elif [ ! -z "${DEBUGGING}" ]; then
     echo "Warning, log file ${LOGFILE} doesn't exist for ($MSG) test $*";
