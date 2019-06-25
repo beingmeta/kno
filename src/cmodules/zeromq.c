@@ -83,10 +83,13 @@ KNO_EXPORT kno_zmq_thread_data kno_thread_zsockets()
 
 /* ZeroMQ contexts */
 
+static void kno_zeromq_thread_cleanup(void);
+
 static void destroy_zeromq_ctx()
 {
   if (kno_zeromq_ctx) {
     void *ctx;
+    kno_zeromq_thread_cleanup();
     u8_lock_mutex(&zeromq_ctx_lock);
     ctx = kno_zeromq_ctx;
     kno_zeromq_ctx = NULL;
@@ -109,8 +112,6 @@ KNO_EXPORT void *kno_init_zeromq_ctx()
   else NO_ELSE;
   return kno_zeromq_ctx;
 }
-
-static void kno_zeromq_thread_cleanup(void);
 
 DCLPRIM("ZEROMQ/SHUTDOWN!",zeromq_shutdown_prim,MAX_ARGS(0),
         "Shuts down the current ZeroMQ session/context")
@@ -536,7 +537,9 @@ static lispval zmq_open_prim(lispval address,lispval typename)
   int rv = zmq_connect(sockptr,addr);
   if (rv == 0)
     return zmq_sockptr(sockptr,typename,address);
-  else return zmq_error("ZMQ/OPEN",address);
+  else {
+    zmq_close(sockptr);
+    return zmq_error("ZMQ/OPEN",address);}
 }
 
 DCLPRIM("ZMQ/LISTEN",zmq_listen_prim,MIN_ARGS(2)|MAX_ARGS(2),
@@ -558,7 +561,9 @@ static lispval zmq_listen_prim(lispval address,lispval type)
   int rv = zmq_bind(sockptr,addr);
   if (rv == 0)
     return zmq_sockptr(sockptr,type,address);
-  else return zmq_error("ZMQ/LISTEN",address);
+  else {
+    zmq_close(sockptr);
+    return zmq_error("ZMQ/LISTEN",address);}
 }
 
 /* Sending and receiving */
@@ -914,7 +919,8 @@ static lispval zmq_proxy_prim(lispval front,lispval back,lispval capture)
                       (NULL)));
   if (rv < 0) {
     int eno = errno; errno=0;
-    u8_log(LOGWARN,"ZMQ/PROXY/Exit","with errno=%d (%s)",eno,u8_strerror(eno));
+    u8_log(LOGWARN,"ZMQ/PROXY/Exit","with errno=%d (%s)",
+           eno,zmq_strerror(eno));
     return KNO_FALSE;}
   else return KNO_FALSE;
 }
