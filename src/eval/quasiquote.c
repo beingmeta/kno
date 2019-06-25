@@ -94,7 +94,8 @@ static lispval quasiquote_list(lispval obj,kno_lexenv env,int level)
             new_elt=kno_simplify_choice(new_elt);}
         else {
           lispval embed = kno_quasiquote(KNO_CADR(elt),env,level-1);
-          if (KNO_ABORTED(embed)) new_elt = embed;
+          if (KNO_ABORTED(embed))
+            new_elt = embed;
           else new_elt = kno_make_list(2,unquote,embed);}
         if (KNO_ABORTED(new_elt)) {
           kno_decref(head);
@@ -121,8 +122,9 @@ static lispval quasiquote_list(lispval obj,kno_lexenv env,int level)
               err = kno_err(kno_SyntaxError,
                          "splicing UNQUOTE for an improper list",
                          details_string,insertion);
-              kno_decref(head); u8_free(details_string);
+              kno_decref(head);
               kno_decref(insertion);
+              u8_free(details_string);
               return err;}
             else {
               KNO_DOLIST(insert_elt,insertion) {
@@ -142,7 +144,7 @@ static lispval quasiquote_list(lispval obj,kno_lexenv env,int level)
               u8_mkstring("RESULT=%q=%q",elt,insertion);
             lispval err;
             err = kno_err(kno_SyntaxError,
-                       "splicing UNQUOTE used with a non-squence",
+                       "splicing UNQUOTE used with a non-sequence",
                        details_string,insertion);
             kno_decref(head); u8_free(details_string);
             kno_decref(insertion);
