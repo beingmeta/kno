@@ -185,6 +185,8 @@ opts:
 	@${header} "■■■■ Completed opts tests ${RUNCONF}"
 loading:
 	@${RUN} ${KNOX} loading.scm ${RUNCONF}
+	@${RUN} ${KNOX} loading.scm TRACELOAD=yes ${RUNCONF}
+	@${RUN} ${KNOX} loading.scm TRACELOADEVAL=yes ${RUNCONF}
 	@${header} "■■■■ Completed loading tests ${RUNCONF}"
 hashsets:
 	@${RUN} ${KNOX} hashsets.scm ${RUNCONF}

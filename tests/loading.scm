@@ -4,7 +4,7 @@
 
 (config! 'loadpath (get-component "data"))
 
-(use-module 'stringfmts)
+(use-module '{stringfmts testcapi})
 
 (errtest (load-component "data/parsefail.scm"))
 (errtest (load-component "data/nosuchfile.scm"))
@@ -24,10 +24,11 @@
     (update-modules)
     (applytest (1+ base) get-load-count)
     (set-file-modtime! (get-source 'reloadmod) (timestamp))
+    (sleep 1)
     (update-module 'reloadmod)
     (applytest (+ 2 base) get-load-count)
-    (sleep 1)
     (set-file-modtime! (get-source 'reloadmod) (timestamp))
+    (sleep 1)
     (update-modules)
     (applytest (+ 3 base) get-load-count)))
 
@@ -93,3 +94,5 @@
 (evaltest #t (overlaps? (get-exports (get-module 'fileio)) 'open-output-file))
 (evaltest #t (overlaps? (get-exports (get-module 'stringfmts))
 			'get%))
+
+(modules/testcapi)

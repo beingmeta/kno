@@ -70,6 +70,10 @@
 (applytest '{x y z} elts (choice->list (choice 'x 'y 'z)))
 
 (applytest #t empty? (choice))
+(evaltest {"three" "four" "five"} (intersection {"three" "four" "five"}))
+(evaltest {"three" "four" "five"} (union {"three" "four" "five"}))
+(evaltest "three" (difference {"three" "four" "five"}  {"four" "five"}))
+(evaltest {"three" "six"} (difference {"three" "four" "five" "six"}  {"four" "five"}))
 (applytest #t empty? (intersection (choice 1 2 3) (choice 4 5 6)))
 (applytest #f empty? (intersection (choice 1 2 3 4) (choice 4 5 6 7)))
 (applytest #t exists? (intersection (choice 1 2 3 4) (choice 4 5 6 7)))
@@ -222,6 +226,58 @@
 (applytest #f set-overlaps? '(a b c) #(x y z))
 (applytest #f set-overlaps? '(a c d) '(p q r))
 (applytest #t set-overlaps? '(a c d) '(p q r d))
+
+;;; Just try
+
+(evaltest {} (try))
+(errtest (try (fail) (+ 2 "3")))
+(errtest (try (fail) (if (zero? 1) #t)))
+
+(applytest #t satisfied? (= 3 3))
+(applytest #f satisfied? (= 3 4))
+(applytest #f satisfied? (= 3 (+ {} 1)))
+
+(applytest {"a" "b" "c"} simplify {"a" "b" "c"})
+(applytest #t sometrue (= 3 {1 2 3}))
+
+(applytest #() choice->vector {})
+(applytest #("a" "b") choice->vector {"a" "b"})
+(applytest #("a") choice->vector "a")
+
+(applytest {} pick-one {})
+
+;;; Try-choices
+
+(evaltest 9 (try-choices (e {4 6 8 9} i) (tryif (odd? e) e)))
+(evaltest {} (try-choices (e {} i) (tryif (odd? e) e)))
+(evaltest {} (try-choices (e {4 6 8 9} i) (if (> e 5) (break) (if (odd? e) e (fail)))))
+
+(errtest (trychoices))
+(errtest (trychoices (e)))
+(errtest (trychoices (e {4 6 8 9}) . noexprs))
+(errtest (trychoices (e {9 nosuchvalue}) e))
+
+(evaltest {101 102 103} (for-choices (e {1 2 3} i) (+ e 100)))
+
+(errtest (do-choices (e {1 2 3} i) (+ e "delta")))
+(errtest (do-choices (e {1 2 3}) . err))
+
+(evaltest {2 3 4} (for-choices (e {1 2 3} i) (+ e 1)))
+(evaltest {4 6} (for-choices (e {4 6 8 9} i) (if (> e 6) (break) e)))
+(errtest (for-choices (e {4 6 'eight 9} i) (+ e 1)))
+
+(errtest (do-choices (e {1 2 3}) . err))
+(errtest (do-choices (e {3 unbound}) . err))
+(errtest (do-choices (e)))
+(errtest (do-choices))
+
+(evaltest 2 (filter-choices (e {1 2 3} i) (even? e)))
+(evaltest {1 3} (filter-choices (e {1 2 3} i) (odd? e)))
+
+(evaltest 1 (filter-choices (e {1 2 3} i) (if (> e 2) (break) (odd? e))))
+
+(evaltest {4 6} (for-choices (e {4 6 8 9} i) (if (> e 6) (break) e)))
+(errtest (for-choices (e {4 6 'eight 9} i) (+ e 1)))
 
 ;;; Bigger sets
 

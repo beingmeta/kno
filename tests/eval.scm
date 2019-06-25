@@ -21,6 +21,8 @@
     (applytest #f %lexref? 3)
     (errtest (eval bad-lexref-1))
     (errtest (eval bad-lexref-2))
+    (errtest (%lexref -9 3))
+    (errtest (%lexref 2 777))
     (evaltest value (eval lexref))))
 
 (test-lexrefs)
@@ -87,6 +89,8 @@
 
 (test-bindings)
 
+(errtest (let ((foo #f)) (set+! notbound 3)))
+
 (define (test-macros)
   (let ((swapf (macro expr 
 		 (let ((arg1 (get-arg expr 1))
@@ -94,20 +98,22 @@
 		   `(let ((tmp ,arg1))
 		      (set! ,arg1 ,arg2)
 		      (set! ,arg2 tmp)))))
+	(bad-swapf (macro expr 
+		     (let ((arg1 (get-arg expr 1))
+			   (arg2 (get-arg expr 2)))
+		       `(let ((xtmp ,arg1))
+			  (set! ,arg1 ,arg2)
+			  (set! ,arg2 tmp)))))
 	(x 3)
 	(y 4))
     (applytest-pred string? lisp->string swapf)
     ;; From ezrecords, coverage for macros defined in module
     (applytest-pred string? lisp->string defrecord)
     (swapf x y)
-    (applytest -1 - y x)))
+    (applytest -1 - y x)
+    (errtest (bad-swapf x y))))
 
 (test-macros)
-
-;;; If variants
-
-
-
 
 ;;; Reflection like tests
 
@@ -118,14 +124,22 @@
 (evaltest #f (bad? if))
 
 (evaltest textmatch (eval `(%modref ,(get-module 'texttools) textmatch)))
+(errtest (%modref))
+(errtest (eval `(%modref)))
+(errtest (eval `(%modref . bad)))
+(errtest (eval `(%modref 'bad)))
+(errtest (eval `(%modref ,(get-module 'texttools) 'notbound)))
 
 (evaltest 3 (quote 3))
 (evaltest 3 (eval (list 'quote 3)))
 
 (errtest {(+ 2 3) (+ 2 'a) (+ 3 9)})
+(errtest ({1+ if} 3))
 
 (define (broken x y)
   (fizzbin x))
+
+(evaltest #t (onerror (+ 3 "three") (lambda (ex) (exception? ex))))
 
 (applytest "broken" procedure-name broken)
 (applytest "IF" procedure-name if)
@@ -368,6 +382,13 @@
 
 (applytest-pred packet? dtype->packet return-void)
 
+;;; Largest
+
+(evaltest @1/44 (largest {@1/33 @1/44}))
+(evaltest 200 (largest {30 200 120}))
+(evaltest @1/33 (smallest {@1/33 @1/44}))
+(evaltest 30 (smallest {30 200 120}))
+
 ;;; Syntax errors
 
 (define exprs '((+ 2 3) (* 3 9)))
@@ -457,13 +478,27 @@
 (errtest (unless (= 9 'nine)))
 (errtest (tryif (> 7 "seven")))
 
+(evaltest 3 (let ((x 3))
+	      (unless (pick x odd?) (set! x 4))
+	      x))
+(evaltest 4 (let ((x 3))
+	      (when (pick x odd?) (set! x 4))
+	      x))
+(evaltest 3 (let ((x 3))
+	      (unless (pick x odd?) (set! x 4))
+	      x))
+
 (errtest (case))
 (errtest (case (* 3 'x)))
 (errtest (case (* 3 5) (15 30)))
 (evaltest 30 (case (* 3 5) ((15) 30)))
 (errtest (case (* 3 5) (15 (+ 30 'z))))
+(errtest (case (* 3 5) clause))
 
 (errtest (tryif (= 3 3) (fail) (define foo 3)))
+
+(errtest (let ((x 3)) (define-local car)))
+(errtest (let ((x 3)) (define-init y 9)))
 
 ;;; Lambda stuff
 
@@ -521,6 +556,31 @@
 (errtest (test-sappend-copy))
 (errtest (test-sappend-copy 'foo))
 
+;;;; Testing COND apply
+
+(define (tester x) (cond ((number? x) x) ((string? x) => list) ((symbol? x) => messedup)))
+(applytest 9 tester 9)
+(applytest '(#t) tester "string")
+(errtest (tester 'symbol))
+
+;;; Some more tests
+
+(applytest #t packet? (dtype->packet (make-hashset)))
+(applytest #t packet? (dtype->packet (choice->hashset {1 2 3 "four"})))
+(applytest #t packet? (dtype->packet (choice->hashset {1 2 3 "four"})))
+
+(applytest #t packet? (dtype->packet [x 3 y (+ 2 3)]))
+
+
+;;; Withenv tests
+
+(define x 3)
+(withenv #f (set! x 9) (applytest 10 1+ x))
+(applytest 4 1+ x)
+
+(withenv ((x 9)) (applytest 10 1+ x))
+(withenv #[x 9] (applytest 10 1+ x))
+(withenv [x 9] (applytest 10 1+ x))
 
 ;;; Loading stuff
 

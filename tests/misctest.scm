@@ -524,6 +524,8 @@
 (evaltest 3 (tryseq (e seq) (tryif (number? e) e)))
 (evaltest 6 (tryseq (e seq i) (tryif (number? e) (* i e))))
 
+(applytest #t coderef? (make-coderef 5))
+
 ;;; Check for apply bugs with different arities
 
 (applytest 20 _plus4 5 5 5 5)

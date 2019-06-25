@@ -104,7 +104,7 @@
 	  (zmq/recv external-port)
 	  (set! remaining (thread/wait remaining 0.1))))
       (applytest #t thread/finished? workers)
-      ;; (thread/cancel! proxy-thread)
+      (thread/terminate! proxy-thread)
       proxy-thread)))
 
 (define (workerfn dealer (fn #f) (running #t))
@@ -124,7 +124,6 @@
 (define (proxyfn world workers)
   (let ((router (zmq/listen world 'router))
 	(dealer (zmq/listen workers 'dealer)))
-    (%watch "PROXYFN" router dealer)
     (zmq/proxy! router dealer)))
 
 (optimize!)

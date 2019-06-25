@@ -252,6 +252,13 @@
 
 (test-sset)
 
+(errtest (sset!))
+(errtest (sset! "foo"))
+(errtest (sset! foo))
+(errtest (sset! sset-value (+ 3 "four")))
+
+(errtest (let ((x 3)) (sset! y (+ y 3))))
+
 ;;; Actual tests
 
 (define condvar (make-condvar))
@@ -322,11 +329,18 @@
   (test-synchro-locks (make-rwlock))
   (test-synchro-locks (make-condvar))
   (test-synchro-locks change-slambda-test-value)
+  (test-synchro-locks "string")
+  (test-synchro-locks change-num-recklessly)
   (test-with-lock)
   (test-with-lock (make-rwlock))
   (test-with-lock (make-condvar))
   (test-with-lock change-slambda-test-value)
+  (test-with-lock "string")
+  (test-with-lock change-num-recklessly)
   
+  (errtest (thread/wait "thread"))
+  (errtest (thread/wait! "thread"))
+
   (test-threadids)
   (test-parallel)
   (test-spawn)
@@ -356,6 +370,8 @@
   (test-fifo-condvars)
 
   (test-do-choices-mt)
+
+  ;;; Need to add a thread/shutdown! primitive which calls finish_threads
 
   (test-finished "THREADTEST")
   )

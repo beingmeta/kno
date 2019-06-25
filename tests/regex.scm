@@ -2,13 +2,15 @@
 
 (load-component "common.scm")
 
-(use-module '{regex texttools})
+(use-module '{regex texttools testcapi})
 
 (define in-angles (regex "<[^>]+>"))
 (define in-atsigns (regex "@[^@]+@"))
 
 (applytest #t regex? in-angles)
 (applytest #f regex? "<[^>]+>")
+
+(errtest (regex "<[^]>"))
 
 (define test-string "<P>This is a <em>simple</em> sentence</P>")
 
@@ -39,5 +41,7 @@
 (applytest {"<P>" "</P>" "<em>" "</em>"} gather in-angles test-string)
 (applytest "<p>" pick {"<p>" ".p" "paragraph"} in-angles)
 (applytest {".p" "paragraph"} reject {"<p>" ".p" "paragraph"} in-angles)
+
+(regex/testcapi)
 
 (test-finished "regex")

@@ -14,6 +14,9 @@
 
 (applytest gmt-time1 gmtimestamp "2011-12-03T08:23:00Z")
 
+(applytest #t timestamp? #%(TIMESTAMP "2001-03-12T03:00"))
+(applytest #t timestamp? #%(TIMESTAMP 888 "2001-03-12T03:00"))
+
 (define time1-tick 1322900580)
 (applytest #t equal? est-time1 gmt-time1)
 (applytest #t equal? (get est-time1 'tick) (get gmt-time1 'tick))
@@ -76,6 +79,7 @@
 (applytest a-uuid (getuuid a-uuid-packet))
 (applytest a-uuid parser/roundtrip a-uuid)
 (applytest a-uuid dtype/roundtrip a-uuid)
+(applytest a-uuid deep-copy a-uuid)
 
 (define yesterday (timestamp+ (* 3600 -24)))
 (define b-uuid (getuuid 42 yesterday))

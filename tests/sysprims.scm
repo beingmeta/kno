@@ -49,4 +49,12 @@
 (applytest-pred ip-addr? hostaddrs "beingmeta.com")
 (applytest {} hostaddrs "beingmeta.cox")
 
+(applytest #t check-version 5)
+(applytest #t check-version 5 0)
+(applytest #f check-version 5 1)
+(applytest #f check-version 6)
+
+(errtest (require-version 6))
+(errtest (require-version 5 1))
+
 (test-finished "SYSPRIMS")

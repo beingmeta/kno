@@ -53,6 +53,11 @@
 (applytest-pred (contains-string "iterators.c") get-source dolist)
 (applytest-pred string? get-source swapf)
 
+(applytest #t applicable? syncit)
+(applytest #t applicable? contains-string)
+(applytest #f applicable? if)
+(applytest #f applicable? "if")
+
 (applytest #t synchronized? syncit)
 (applytest #f synchronized? contains-string)
 
@@ -106,6 +111,9 @@
 (errtest (def+))
 (errtest (def+ foo))
 (errtest (def+ 3))
+(errtest (def+ foo (* 3 "nine")))
+(errtest (def+ "foo" (* 3 "nine")))
+(errtest (let ((x 3)) (def+ y 9)))
 
 (errtest (define-init))
 (errtest (define-init z))
@@ -119,6 +127,8 @@
 (defimport fibr 'bench/miscfns)
 (evaltest (%env) (wherefrom 'fibr))
 (errtest (defimport))
+(errtest (defimport "rrzy"))
 (errtest (defimport rrzy))
 (errtest (defimport rrzy (get-module 'reflection)))
 (errtest (defimport rrzy (get-module 'bench/miscfns)))
+(errtest (defimport rrzy 'nosuchmodule))

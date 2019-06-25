@@ -445,6 +445,9 @@
 
 (applytester #t exact? 3)
 (applytester #f inexact? 3)
+;; Added
+(applytester #f nan? 3)
+(applytester #t nan? "three")
 
 (applytester #t = 22 22 22)
 (applytester #t = 22 22)
@@ -886,6 +889,9 @@
 (applytester #t string-ci>=? "9" "0")
 (applytester #t string-ci>=? "A" "A")
 (applytester #t string-ci>=? "A" "a")
+;; Extras
+(applytester #f regex? "\d+")
+(applytester #t regex? #/\d+/)
 (SECTION 6 8)
 (define vector-length length)
 (define vector-ref elt)

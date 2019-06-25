@@ -92,7 +92,8 @@
 	(else (vector flags))))
 
 (defambda (convert-schemaps obj)
-  (cond ((ambiguous? obj) (for-choices (v obj) (convert-schemaps v)))
+  (cond ((unbound? obj) #f)
+	((ambiguous? obj) (for-choices (v obj) (convert-schemaps v)))
 	((not (cons? obj)) obj)
 	((schemap? obj) (schemap->slotmap obj))
 	((vector? obj) (map convert-schemaps obj))
@@ -134,22 +135,24 @@
     elts))
 
 (define (get-expr-atoms x)
-  (if (pair? x)
-      (choice (get-expr-atoms (car x))
-	      (get-expr-atoms (cdr x)))
-      ;; If we have a secret, we can't use it for indexing, so we
-      ;; exclude it from atoms.
-      (if (not (secret? x))
-	  x
-	  (fail))))
+  (if (unbound? x) {}
+      (if (pair? x)
+	  (choice (get-expr-atoms (car x))
+		  (get-expr-atoms (cdr x)))
+	  ;; If we have a secret, we can't use it for indexing, so we
+	  ;; exclude it from atoms.
+	  (if (not (secret? x))
+	      x
+	      (fail)))))
 (define (random-atom x)
-  (if (pair? x)
-      (if (null? (cdr x))
-	  (random-atom (car x))
-	(try (random-atom (pick-one (choice (car x) (cdr x))))
-	     (random-atom (car x))
-	     (random-atom (cdr x))))
-    x))
+  (if (unbound? x) {}
+      (if (pair? x)
+	  (if (null? (cdr x))
+	      (random-atom (car x))
+	      (try (random-atom (pick-one (choice (car x) (cdr x))))
+		   (random-atom (car x))
+		   (random-atom (cdr x))))
+	  x)))
 
 (define (analyze-file file pool index)
   (message "Analyzing file " file)
@@ -292,6 +295,8 @@
     ;; (%watch "TESTLIST" "\nLISTAVAL" listval "\nSTORED" (get frame 'contents-as-list))
     ;; (dtype->file listval "listval.dtype")
     ;; (dtype->file (get frame 'contents-as-list) "cal.dtype")
+    (logwarn |Watch|
+      "listval=" ($histref listval) ", contents=" ($histref (get frame 'contents-as-list)))
     (evaltest #t (equal? listval (get frame 'contents-as-list)))
     (applytest #t test frame 'contents-as-list listval)
     (applytest listval get frame 'contents-as-list)

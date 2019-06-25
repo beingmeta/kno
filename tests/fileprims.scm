@@ -5,6 +5,10 @@
 (define data-dir (get-component "data"))
 (define text-file (mkpath data-dir "testobj.text"))
 (define dtype-file (mkpath data-dir "testobj.dtype"))
+(define ztype-file (mkpath data-dir "testobj.ztype"))
+(define temp-dtype-file (mkpath data-dir "tempobj.dtype"))
+(define temp-ztype-file (mkpath data-dir "tempobj.ztype"))
+
 (define private-text-file
   (and (file-exists? (mkpath data-dir "private.text"))
        (mkpath data-dir "private.text")))
@@ -30,11 +34,27 @@
 (define indata (filedata dtype-file))
 (applytest indata (filedata dtype-file))
 
+(let ((obj (read (open-input-file text-file))))
+  (dtype->file obj temp-dtype-file)
+  (dtype->file obj temp-ztype-file)
+  (applytest obj file->dtype temp-dtype-file)
+  (applytest obj file->dtype temp-ztype-file)
+  (zwrite-dtype obj (open-dtype-output temp-ztype-file))
+  (applytest obj file->dtype temp-ztype-file)
+  (zwrite-dtypes obj (open-dtype-output temp-ztype-file))
+  (applytest obj file->dtype temp-ztype-file))
+
 (define from-text (read (open-input-file text-file)))
 (define from-dtype (file->dtype (open-dtype-input dtype-file)))
+(define from-ztype (file->dtype ztype-file))
+(errtest (file->dtype (open-dtype-input z-file)))
 (evaltest #t (equal? from-text from-dtype))
+(evaltest #t (equal? from-ztype from-dtype))
 (applytest from-text (file->dtype dtype-file))
 (applytest from-text (file->dtype (open-dtype-input dtype-file)))
+
+(when (file-exists? temp-dtype-file) (remove-file temp-dtype-file))
+(when (file-exists? temp-ztype-file) (remove-file temp-ztype-file))
 
 (set! inport #f)
 (when private-text-file
