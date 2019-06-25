@@ -1,3 +1,7 @@
+;;; Put this out before doing anything
+(fileout (glom (getppid) "." (getpid)  ".started") 
+  (config 'sessionid) "\n" (config 'cmdline))
+
 (use-module '{reflection varconfig optimize logger})
 
 (define started (elapsed-time))
