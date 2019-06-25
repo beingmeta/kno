@@ -82,6 +82,7 @@ int kno_argc = -1;
 static void set_vector_length(lispval vector,int len);
 static lispval exec_arg = KNO_FALSE, lisp_argv = KNO_FALSE, string_argv = KNO_FALSE;
 static lispval raw_argv = KNO_FALSE, config_argv = KNO_FALSE;
+static lispval lisp_cmdline = KNO_FALSE, lisp_cmdargs;
 static u8_string exe_name = NULL;
 static int init_argc = 0;
 static size_t app_argc;
@@ -102,8 +103,8 @@ static void log_argv(int n,lispval *argv)
 /* This takes an argv, argc combination and processes the argv elements
    which are configs (var = value again) */
 KNO_EXPORT lispval *kno_handle_argv(int argc,char **argv,
-                                  unsigned char *arg_mask,
-                                  size_t *arglen_ptr)
+                                    unsigned char *arg_mask,
+                                    size_t *arglen_ptr)
 {
   if (argc>0) {
     exe_name = u8_fromlibc(argv[0]);
@@ -146,6 +147,8 @@ KNO_EXPORT lispval *kno_handle_argv(int argc,char **argv,
     return NULL;}
   else {
     int i = 0, n = 0, config_i = 0;
+    U8_STATIC_OUTPUT(cmdline,256);
+    U8_STATIC_OUTPUT(cmdargs,256);
     lispval string_args = kno_make_vector(argc-1,NULL), string_arg = VOID;
     lispval lisp_args = kno_make_vector(argc-1,NULL), lisp_arg = VOID;
     lispval config_args = kno_make_vector(argc-1,NULL);
@@ -160,6 +163,8 @@ KNO_EXPORT lispval *kno_handle_argv(int argc,char **argv,
     while (i<argc) {
       char *carg = argv[i];
       u8_string arg = u8_fromlibc(carg), eq = strchr(arg,'=');
+      u8_printf(&cmdargs,"(%d)\t%s\n",i,arg);
+      if (i>0) u8_putc(&cmdline,' '); u8_puts(&cmdline,arg);
       KNO_VECTOR_SET(raw_args,i,lispval_string(arg));
       /* Don't include argv[0] in the arglists */
       if ( (i==0) || (arg_mask[i]) ) {
@@ -195,6 +200,8 @@ KNO_EXPORT lispval *kno_handle_argv(int argc,char **argv,
       n++;}
     set_vector_length(lisp_args,n);
     lisp_argv = lisp_args;
+    lisp_cmdline = kno_stream2string(&cmdline);
+    lisp_cmdargs = kno_stream2string(&cmdargs);
     set_vector_length(string_args,n);
     string_argv = string_args;
     set_vector_length(config_args,config_i);
@@ -1039,6 +1046,13 @@ void kno_init_startup_c()
   kno_register_config("APPID",_("application ID used in messages and SESSIONID"),
                      config_getappid,config_setappid,NULL);
 
+  kno_register_config("CMDARGS",
+                      _("the command line arguments as a string, with arguments "
+                        "numbered and separated by newlines"),
+                      kno_lconfig_get,NULL,&lisp_cmdargs);
+  kno_register_config("CMDLINE",
+                      _("the command line arguments as a string"),
+                      kno_lconfig_get,NULL,&lisp_cmdline);
   kno_register_config("ARGV",
                      _("the vector of args (before parsing) to the application (no configs)"),
                      kno_lconfig_get,NULL,&raw_argv);
@@ -1056,14 +1070,15 @@ void kno_init_startup_c()
      kno_lconfig_get,NULL,&string_argv);
   kno_register_config("CONFIGARGS",
                      _("config arguments passed to the application (unparsed)"),
-                     kno_lconfig_get,NULL,&config_argv);
+                      kno_lconfig_get,NULL,&config_argv);
   kno_register_config("EXENAME",
                      _("the vector of args (before parsing) to the application (no configs)"),
                      kno_lconfig_get,NULL,&exec_arg);
 
 
 
-  kno_register_config("LOGCMD",_("Whether to display command line args on entry and exit"),
+  kno_register_config("LOGCMD",
+                      _("Whether to display command line args on entry and exit"),
                      kno_boolconfig_get,kno_boolconfig_set,&kno_logcmd);
 
 
