@@ -477,8 +477,9 @@ static lispval with_lock_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       kno_decref(lck);
       return kno_type_error("lockable","with_lock_evalfn",lck);}}
   else {
+    kno_type_error("lockable","with_lock_evalfn",lck);
     kno_decref(lck);
-    return kno_type_error("lockable","with_lock_evalfn",lck);}
+    return KNO_ERROR;}
   {U8_WITH_CONTOUR("WITH-LOCK",0) {
       if (mutex)
 	u8_lock_mutex(mutex);
