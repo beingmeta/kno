@@ -30,7 +30,8 @@
 
 (define (optimization-leaks)
   (when (and (config 'testoptimized) 
-	     (or (getenv "MEMCHECKING") (getenv "HEAPCHECK")))
+	     (or (getenv "MEMCHECKING") (getenv "HEAPCHECK"))
+	     (not (or (config 'leaksok) (getenv "LEAKSOK"))))
     (exit)))
 
 (define (qc-wrap x) `(qc ,x))
@@ -57,6 +58,9 @@
 			  arglist))))
 
 (when (config 'testoptimized #f)
+  (config! 'optimize:level 4))
+
+(when (config 'testoptimized #f)
   (use-module 'optimize)
   (define applytester
     (macro expr
@@ -68,12 +72,30 @@
 	`(let ((fcn (ambda ,arglist (,fn-form ,@arglist))))
 	   (optimize-procedure! fcn)
 	   (applytest ,result-form fcn ,@args-forms)))))
+  (define applytester-pred
+    (macro expr
+      (let* ((predicate-form (second expr))
+	     (fn-form (third expr))
+	     (args-forms (slice expr 3))
+	     (n-args (length args-forms))
+	     (arglist (temp-arglist n-args)))
+	`(let ((_predicate ,predicate-form)
+	       (_fcn (ambda ,arglist (,fn-form ,@arglist))))
+	   (optimize-procedure! _fcn)
+	   (optimize-procedure! _predicate)
+	   (applytest-pred _predicate _fcn ,@args-forms)))))
   (define evaltester
     (macro expr
       `(let ((fcn (lambda () ,(third expr))))
 	 (optimize-procedure! fcn)
-	 (pprint (lambda-body fcn))
+	 ;; (pprint (lambda-body fcn))
 	 (,evaltest ,(second expr) (fcn)))))
+  (define errtester
+    (macro expr
+      `(let ((fcn (lambda () ,(second expr))))
+	 (optimize-procedure! fcn)
+	 ;; (pprint (lambda-body fcn))
+	 (,errtest ,(second expr) (fcn)))))
   (define define-tester
     (macro expr
       (if (pair? (cadr expr))
@@ -88,13 +110,11 @@
 	  `(defambda ,@(cdr expr)))))
   (define test-optimize! optimize!))
 
-(when (config 'testoptimized #f)
-  (config! 'optimize:rails #t)
-  (config! 'optimize:level 4))
-
 (unless (config 'testoptimized #f)
   (define applytester applytest)
+  (define applytester-pred applytest-pred)
   (define evaltester evaltest)
+  (define errtester errtest)
   (define define-tester define)
   (define define-amb-tester defambda)
   (define test-optimize! comment))

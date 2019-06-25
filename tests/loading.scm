@@ -16,7 +16,7 @@
 
 (lognotice |LoadPath| (config 'loadpath))
 
-(define (test-reloading)
+(define-tester (test-reloading)
   (let ((base (get-load-count)))
     (applytest base get-load-count)
     (reload-module 'reloadmod)
@@ -38,24 +38,24 @@
 
 (load-component "data/loadok.scm")
 
-(applytest 1 get-load-ok-count)
+(applytester 1 get-load-ok-count)
 
 (load (get-component  "data/loadok.scm"))
 
-(applytest 2 get-load-ok-count)
+(applytester 2 get-load-ok-count)
 
 (load->env (get-component "data/loadok.scm") (%env))
 
-(applytest 3 get-load-ok-count)
+(applytester 3 get-load-ok-count)
 
 (begin (load-latest (get-component "data/loadok.scm"))
-  (applytest 4 get-load-ok-count))
+  (applytester 4 get-load-ok-count))
 (begin (load-latest (get-component "data/loadok.scm"))
-  (applytest 4 get-load-ok-count))
+  (applytester 4 get-load-ok-count))
 
 (begin (set-file-modtime! (get-component "data/loadok.scm") (timestamp))
   (load-latest (get-component "data/loadok.scm"))
-  (applytest 5 get-load-ok-count))
+  (applytester 5 get-load-ok-count))
 
 (evaltest 1
 	  (withenv #f 

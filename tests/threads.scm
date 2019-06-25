@@ -4,15 +4,15 @@
 
 (use-module '{mttools fifo})
 
-(define (nrange (start 0) (n 8))
+(define-tester (nrange (start 0) (n 8))
   (let ((nums {}))
     (dotimes (i n) (set+! nums (+ start i)))
     nums))
-(define (nrandom (n 8) (range 1101513929))
+(define-tester (nrandom (n 8) (range 1101513929))
   (let ((nums {}))
     (dotimes (i n) (set+! nums (random range)))
     nums))
-(define (sleeper n (secs 3) (fn (getuuid)))
+(define-tester (sleeper n (secs 3) (fn (getuuid)))
   (dotimes (i n) 
     (sleep secs)
     (cond ((not fn))
@@ -23,26 +23,26 @@
 (define addnumber
   (slambda (n) (set! numbers (cons n numbers))))
 (define sleep-base 0.01)
-(define (addrange start (len 10))
+(define-tester (addrange start (len 10))
   (dotimes (i len)
     (when (zero? (random 5)) (thread/yield))
     (addnumber (+ start i))
     (sleep (* (1+ (random 5)) sleep-base))))
 
-(define (check-ordered list)
+(define-tester (check-ordered list)
   (cond ((or (null? list) (null? (cdr list))) #t)
 	((< (car list) (cadr list))
 	 (check-ordered (cdr list)))
 	(else #f)))
 
-(define (test-parallel)
+(define-tester (test-parallel)
   (set! numbers '())
   (parallel (addrange 0) (addrange 10))
   (applytest 20 length numbers)
   (applytest #f check-ordered numbers)
   (message "TEST-PARALLEL: " numbers))
 
-(define (test-more-parallel)
+(define-tester (test-more-parallel)
   (set! numbers '())
   (parallel (addrange 0) (addrange 10) (addrange 8) (addrange 15)
 	    (addrange 0) (addrange 10) (addrange 8) (addrange 15))
@@ -50,7 +50,7 @@
   (applytest #f check-ordered numbers)
   (message "TEST-PARALLEL: " numbers))
 
-(define (test-thread/apply)
+(define-tester (test-thread/apply)
   (let ((threads (thread/apply glom "foo" {"bar" "baz"} #("alpha" "beta"))))
     (applytest 2 choice-size threads)
     (applytest #t thread? threads)
@@ -61,7 +61,7 @@
     (applytest #t thread/finished? threads)
     (message "TEST-THREAD/APPLY done")))
 
-(define (test-spawn)
+(define-tester (test-spawn)
   (let ((threads {}))
     (set! numbers '())
     (set+! threads (spawn (begin (sleep 2) (addrange 10))))
@@ -75,12 +75,12 @@
     (applytest #f check-ordered numbers)
     (message "TEST-SPAWN: " numbers)))
 
-(define (look-busy n (start (elapsed-time)))
+(define-tester (look-busy n (start (elapsed-time)))
   (dotimes (i (* n 400))
     (when (zero? (random 5)) (thread/yield)))
   (elapsed-time start))
 
-(define (test-thread-cancel)
+(define-tester (test-thread-cancel)
   (let ((slowhand (lambda (x) (sleep 5) x))
 	(thread1 (thread/call slowhand 1))
 	(thread2 (thread/call slowhand 7))
@@ -89,7 +89,7 @@
     (thread/cancel thread2)
     (applytest {1 10} thread/finish {thread1 thread2 thread3})))
 
-(define (test-thread/call (waitfn thread/join) (wait-opts #default))
+(define-tester (test-thread/call (waitfn thread/join) (wait-opts #default))
   (let ((threads {}))
     (set! numbers '())
     ;; We're testing a bunch of things here and have addrange sleep so
@@ -106,7 +106,7 @@
     (applytest #f check-ordered numbers)
     (message "TEST-THREAD/CALL: " numbers)))
 
-(define (test-threadids)
+(define-tester (test-threadids)
   (let ((sleep1 (thread/call look-busy 5))
 	(sleep2 (thread/call look-busy 5)))
     (look-busy 2)
@@ -122,27 +122,40 @@
 
 (applytest-pred string? lisp->string numlock)
 
-(define (change-num numlock (n (nrandom 1)))
+(define-tester (change-num numlock (n (nrandom 1)))
   (sync/lock! numlock)
   (set! num n)
+  (sleep 0.2)
   (unwind-protect (evaltest n num)
     (sync/release! numlock)))
 
-(define (change-num-with-lock numlock (n (nrandom 1)))
+(define-tester (change-num-with-lock numlock (n (nrandom 1)))
   (with-lock numlock
     (set! num n)
-    (sleep 2)
+    (sleep 0.2)
     (evaltest n num)))
 
-(define (test-synchro-locks (numlock (make-mutex)) (nthreads 8))
+(define-tester (test-synchro-locks (numlock (make-mutex)) (nthreads 8))
+  (when numlock (applytest-pred string? lisp->string numlock))
+  (let ((num #f))
+    (let ((change-num (lambda (lock newval)
+			(when lock (sync/lock! lock))
+			(set! num newval)
+			(sleep 0.2)
+			(unwind-protect (evaltest newval num)
+			  (when lock (sync/release! lock))))))
+      (thread/wait! (thread/call change-num numlock (nrandom))))))
+(define-tester (test-synchro-locks (numlock (make-mutex)) (nthreads 8))
+  (when numlock (applytest-pred string? lisp->string numlock))
   (thread/wait! (thread/call change-num numlock (nrandom))))
-(define (test-with-lock (numlock (make-mutex)) (nthreads 8))
-  (applytest-pred string? lisp->string numlock)
+
+(define-tester (test-with-lock (numlock (make-mutex)) (nthreads 8))
+  (when numlock (applytest-pred string? lisp->string numlock))
   (thread/wait! (thread/call change-num-with-lock numlock (nrandom))))
 
 ;;;; Test fluid variables
 
-(define (doubleup string)
+(define-tester (doubleup string)
   (thread/set! 'thstring string)
   (errtest (thread/set! "thstring" string))
   (sleep 2)
@@ -164,15 +177,15 @@
 
 (define (change-num-recklessly (n (nrandom 1)))
   (set! num n)
-  (sleep 2)
+  (sleep 0.2)
   (evaltest n num))
 
-(define (test-reckless-locks (nthreads 8))
+(define-tester (test-reckless-locks (nthreads 8))
   (thread/wait! (thread/call change-num-recklessly (nrandom))))
 
 ;;;; CONDVAR testing
 
-(define (fifo-generator fifo generated (count 20))
+(define-tester (fifo-generator fifo generated (count 20))
   (dotimes (i count)
     (let ((r (random 1000000)))
       (hashset-add! generated r)
@@ -181,13 +194,13 @@
 
 (defimport fifo-load 'fifo)
 
-(define (fifo-watcher fifo seen)
+(define-tester (fifo-watcher fifo seen)
   (while (fifo-live? fifo)
     (hashset-add! seen (fifo/pop fifo))))
 
 (defimport fifo-condvar 'fifo)
 
-(define (test-fifo-condvars)
+(define-tester (test-fifo-condvars)
   (let ((fifo (fifo/make #[fillfn #f]))
 	(generated (make-hashset))
 	(seen (make-hashset))
@@ -208,7 +221,7 @@
     (thread/wait! watch-threads)
     (applytest #t identical? (hashset-elts generated) (hashset-elts seen))))
 
-(define (test-do-choices-mt)
+(define-tester (test-do-choices-mt)
   (let ((ids {}))
     (do-choices-mt (num (mt/nrange 0 2000))
       (set+! ids (threadid)))
@@ -325,12 +338,14 @@
     (applytest #t exception? (thread/result error-thread))
     (applytest #t vector? (ex/stack (thread/result error-thread))))
   
+  (logwarn |SynchroLocks|)
   (test-synchro-locks)
   (test-synchro-locks (make-rwlock))
   (test-synchro-locks (make-condvar))
   (test-synchro-locks change-slambda-test-value)
   (test-synchro-locks "string")
   (test-synchro-locks change-num-recklessly)
+  (logwarn |WithLocks|)
   (test-with-lock)
   (test-with-lock (make-rwlock))
   (test-with-lock (make-condvar))
@@ -342,8 +357,11 @@
   (errtest (thread/wait! "thread"))
 
   (test-threadids)
+  (logwarn |Parallel|)
   (test-parallel)
+  (logwarn |Spawn|)
   (test-spawn)
+  (logwarn |Slambda|)
   (test-slambdas)
 
   (test-sset)
@@ -360,6 +378,7 @@
   (errtest (thread/apply list 3 4 5 6))
   (evaltest '(3 4 5 6) (thread/finish (thread/apply list 3 4 5 (list 6))))
 
+  (logwarn |ThreadCalls|)
   (test-thread/call)
   (test-thread/call thread/wait 3)
   (test-thread/call thread/wait #f)
