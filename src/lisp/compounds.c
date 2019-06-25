@@ -119,7 +119,21 @@ KNO_EXPORT lispval kno_init_compound_from_elts
     write = &(p->compound_0); limit = write+n;
     while (write<limit) {
       lispval value = *read++;
-      if (copyref)
+      if (value == KNO_NULL) {
+	lispval *start = &(p->compound_0); int n =0;
+	u8_byte buf[64];
+	if ( (incref) || (copyref) || (decref) ) {
+	  while (write>=start) {kno_decref(*write); write--;}}
+	if (decref) {
+	  lispval *read_limit = elts + n;
+	  while (read < read_limit) {
+	    lispval init = *read++;
+	    if (init) kno_decref(init);}}
+	u8_free(p);
+	return kno_err(kno_NullPtr,"kno_init_compound_from_elts",
+		       u8_bprintf(buf,"at elt#%d",read-elts-1),
+		       tag);}
+      else if (copyref)
 	value = kno_copier(value,0);
       else if (incref)
 	kno_incref(value);
