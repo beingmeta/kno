@@ -11,7 +11,10 @@
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
+#include "kno/hash.h"
 #include "kno/cons.h"
+
+#include "libu8/u8printf.h"
 
 /* UUID Types */
 
@@ -86,6 +89,14 @@ static lispval uuid_restore(lispval MU tag,lispval x,kno_compound_typeinfo MU e)
                      x);
 }
 
+static int unparse_uuid(u8_output out,lispval x)
+{
+  struct KNO_UUID *uuid = kno_consptr(struct KNO_UUID *,x,kno_uuid_type);
+  char buf[37]; u8_uuidstring((u8_uuid)(&(uuid->uuid16)),buf);
+  u8_printf(out,"#U%s",buf);
+  return 1;
+}
+
 
 /* Timestamps */
 
@@ -141,6 +152,13 @@ static lispval timestamp_parsefn(int n,lispval *args,kno_compound_typeinfo e)
   else return kno_err(kno_CantParseRecord,"TIMESTAMP",NULL,VOID);
   u8_iso8601_to_xtime(timestring,&(tm->u8xtimeval));
   return LISP_CONS(tm);
+}
+
+static int hash_timestamp(lispval x,unsigned int (*fn)(lispval))
+{
+  struct KNO_TIMESTAMP *tm=
+    kno_consptr(struct KNO_TIMESTAMP *,x,kno_timestamp_type);
+  return hash_mult(tm->u8xtimeval.u8_tick,MYSTERIOUS_MODULUS);
 }
 
 static lispval copy_timestamp(lispval x,int deep)
@@ -249,6 +267,24 @@ KNO_EXPORT lispval kno_make_regex(u8_string src,int flags)
     return LISP_CONS(ptr);}
 }
 
+static int hash_regex(lispval x,unsigned int (*fn)(lispval))
+{
+  struct KNO_REGEX *rx = kno_consptr(struct KNO_REGEX *,x,kno_regex_type);
+  u8_string src = rx->rxsrc;
+  return kno_hash_bytes(src,strlen(src));
+}
+
+static int unparse_regex(struct U8_OUTPUT *out,lispval x)
+{
+  struct KNO_REGEX *rx = (struct KNO_REGEX *)x;
+  u8_printf(out,"#/%s/%s%s%s%s",rx->rxsrc,
+            (((rx->rxflags)&REG_EXTENDED)?"e":""),
+            (((rx->rxflags)&REG_NEWLINE)?"m":""),
+            (((rx->rxflags)&REG_ICASE)?"i":""),
+            (((rx->rxflags)&REG_NOSUB)?"s":""));
+  return 1;
+}
+
 
 /* Raw pointers */
 
@@ -278,11 +314,16 @@ KNO_EXPORT lispval kno_wrap_pointer(void *ptrval,
 
 void kno_init_misctypes_c()
 {
+  kno_unparsers[kno_uuid_type]=unparse_uuid;
   kno_hashfns[kno_uuid_type]=hash_uuid;
   kno_dtype_writers[kno_uuid_type]=uuid_dtype;
   kno_copiers[kno_uuid_type]=copy_uuid;
 
+  kno_unparsers[kno_regex_type]=unparse_regex;
+  kno_hashfns[kno_regex_type]=hash_regex;
+
   kno_unparsers[kno_timestamp_type]=unparse_timestamp;
+  kno_hashfns[kno_timestamp_type]=hash_timestamp;
 
   uuid_symbol = kno_intern("uuid");
   {

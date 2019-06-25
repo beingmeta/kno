@@ -486,25 +486,6 @@ u8_string kno_unparse_arg(lispval arg)
 
 /* Custom unparsers */
 
-static int unparse_uuid(u8_output out,lispval x)
-{
-  struct KNO_UUID *uuid = kno_consptr(struct KNO_UUID *,x,kno_uuid_type);
-  char buf[37]; u8_uuidstring((u8_uuid)(&(uuid->uuid16)),buf);
-  u8_printf(out,"#U%s",buf);
-  return 1;
-}
-
-static int unparse_regex(struct U8_OUTPUT *out,lispval x)
-{
-  struct KNO_REGEX *rx = (struct KNO_REGEX *)x;
-  u8_printf(out,"#/%s/%s%s%s%s",rx->rxsrc,
-            (((rx->rxflags)&REG_EXTENDED)?"e":""),
-            (((rx->rxflags)&REG_NEWLINE)?"m":""),
-            (((rx->rxflags)&REG_ICASE)?"i":""),
-            (((rx->rxflags)&REG_NOSUB)?"s":""));
-  return 1;
-}
-
 static int unparse_mystery(u8_output out,lispval x)
 {
   struct KNO_MYSTERY_DTYPE *d=
@@ -581,9 +562,6 @@ KNO_EXPORT void kno_init_unparse_c()
 
   if (kno_unparsers[kno_rawptr_type]==NULL)
     kno_unparsers[kno_rawptr_type]=unparse_rawptr;
-
-  kno_unparsers[kno_uuid_type]=unparse_uuid;
-  kno_unparsers[kno_regex_type]=unparse_regex;
 
   quote_symbol = kno_intern("quote");
   quasiquote_symbol = kno_intern("quasiquote");
