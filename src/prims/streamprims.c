@@ -395,10 +395,12 @@ static lispval lisp2zipfile(lispval object,lispval filename,lispval bufsiz)
     if (bytes<0) {
       kno_close_stream(stream,KNO_STREAM_CLOSE_FULL);
       u8_free(temp_name);
+      u8_free(stream);
       return KNO_ERROR;}
     kno_close_stream(stream,KNO_STREAM_CLOSE_FULL);
     u8_movefile(temp_name,CSTRING(filename));
     u8_free(temp_name);
+    u8_free(stream);
     return KNO_INT(bytes);}
   else if (TYPEP(filename,kno_stream_type)) {
     KNO_DECL_OUTBUF(tmp,KNO_DTWRITE_SIZE);
