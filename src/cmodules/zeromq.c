@@ -10,6 +10,7 @@
 #endif
 
 #define U8_INLINE_IO 1
+#define DEBUG_ZEROMQ 0
 
 static int zeromq_loglevel = 4;
 #define U8_LOGLEVEL (zeromq_loglevel)
@@ -36,6 +37,20 @@ static u8_condition ZeroMQ_WrongThread =
 KNO_EXPORT int kno_init_zeromq(void) KNO_LIBINIT_FN;
 
 kno_ptr_type kno_zmqsock_type;
+
+#if DEBUG_ZEROMQ
+static u8_mutex socket_counter_lock;
+static int n_zeromq_sockets = 0;
+
+static void count_zmq_sockets(int delta)
+{
+  u8_lock_mutex(&socket_counter_lock);
+  n_zeromq_sockets += delta;
+  u8_unlock_mutex(&socket_counter_lock);
+}
+#else
+#define count_zmq_sockets(n)
+#endif
 
 static struct KNO_HASHTABLE sockopts_table;
 
@@ -95,11 +110,14 @@ KNO_EXPORT void *kno_init_zeromq_ctx()
   return kno_zeromq_ctx;
 }
 
+static void kno_zeromq_thread_cleanup(void);
+
 DCLPRIM("ZEROMQ/SHUTDOWN!",zeromq_shutdown_prim,MAX_ARGS(0),
         "Shuts down the current ZeroMQ session/context")
 static lispval zeromq_shutdown_prim()
 {
   if (kno_zeromq_ctx) {
+    kno_zeromq_thread_cleanup();
     void *ctx; int done = 0;
     u8_lock_mutex(&zeromq_ctx_lock);
     if (kno_zeromq_ctx) {
@@ -167,7 +185,8 @@ static struct KNO_ZMQSOCK *zmq_sock(lispval typesym)
     return NULL;}
   zmq->zmq_thread  = pthread_self();
   u8_logf(LOG_DEBUG,"ZeroMQ/Socket",
-          "%q in thread %lld",(lispval)zmq,u8_threadid());
+          "%q by zmq_sock in thread %lld",(lispval)zmq,u8_threadid());
+  count_zmq_sockets(1);
   return zmq;
 }
 
@@ -193,7 +212,8 @@ static lispval zmq_sockptr(void *ptr,lispval typesym,lispval id)
     return kno_err("ZeroMQ_AddSocketFailed","zmq_make",NULL,VOID);}
   zmq->zmq_thread  = pthread_self();
   u8_logf(LOG_DEBUG,"ZeroMQ/Socket",
-          "%q in thread %lld",(lispval)zmq,u8_threadid());
+          "%q by zmq_sockptr in thread %lld",(lispval)zmq,u8_threadid());
+  count_zmq_sockets(1);
   return (lispval) zmq;
 }
 
@@ -201,7 +221,8 @@ static void recycle_zeromq(struct KNO_RAW_CONS *c)
 {
   struct KNO_ZMQSOCK *zmq = (kno_zmqsock) c;
   u8_logf(LOG_DEBUG,"ZeroMQ/Recycle",
-          "Recycling %q in thread %lld",(lispval)zmq,u8_threadid());
+          "Recycling %q in thread %lld",
+          (lispval)zmq,u8_threadid());
   int linger = 500;
 
   int sockset = zmq_setsockopt(zmq->zmq_ptr,ZMQ_LINGER,&linger,sizeof(linger));
@@ -226,6 +247,7 @@ static void recycle_zeromq(struct KNO_RAW_CONS *c)
   if (sockdropped)
     u8_log(LOG_CRIT,"ZeroMQ/Recycle/dropsock",
            "Failed with %d (%s)",sockdropped,zmq_strerror(sockdropped));
+  count_zmq_sockets(-1);
   if ( (sockset) || (sockclosed) || (sockdropped) ) return;
   if (!(KNO_STATIC_CONSP(c)))
     u8_free(c);
@@ -291,6 +313,9 @@ static lispval zmq_close_prim(lispval s)
 {
   ZMQ_CHECK_SOCK(s,"ZMQ/BIND!");
   int rv = zmq_close(s_zmq->zmq_ptr);
+  u8_logf(LOG_DEBUG,"ZMQ/CLOSE",
+          "Closed (rv=%d) %q in thread %lld",
+          rv,(lispval)s,u8_threadid());
   if (rv)
     return kno_err("ZMQ/CloseFailed","zmq_close_prim",NULL,s);
   else return KNO_FALSE;
@@ -863,7 +888,10 @@ static void kno_zeromq_thread_cleanup()
         int err = errno; errno = 0; u8_string errstring = u8_strerror(err);
         u8_log(LOG_ERROR,"ZMQCloseFailed",
                "%s on socket 0x%llx/0x%llx [%s] @%d",
-               errstring,zmq,zmq->zmq_ptr,zmq->zmq_id,i);}}
+               errstring,zmq,zmq->zmq_ptr,zmq->zmq_id,i);}
+      else u8_logf(LOG_DEBUG,"ZeroMQ/ThreadCleanup/Close",
+                   "Closed %q in thread %lld",
+                   (lispval)zmq,u8_threadid());}
     zmq->zmq_thread_off = -1;
     sockets[i] = NULL;
     i++;}
@@ -873,7 +901,7 @@ static void kno_zeromq_thread_cleanup()
 /* The proxy function */
 
 DCLPRIM("ZMQ/PROXY!",zmq_proxy_prim,MIN_ARGS(2)|MAX_ARGS(3),
-        "`(ZMQ/PROXY! *frontend* *backend* [*capture*)` starts "
+        "`(ZMQ/PROXY! *frontend* *backend* [*capture*])` starts "
         "a synchronouse proxy passing messages from *frontend* to "
         "*backend*. It terminates when the zeromq context is closed. "
         "If provided, all messages are also sent to *capture*. All "
@@ -890,6 +918,43 @@ static lispval zmq_proxy_prim(lispval front,lispval back,lispval capture)
     return KNO_FALSE;}
   else return KNO_FALSE;
 }
+
+#if 0
+DCLPRIM("ZMQ/PROXY!",zmq_proxy_prim,MIN_ARGS(2)|MAX_ARGS(3),
+        "`(ZMQ/PROXY! *frontend* *backend* [*capture*])` starts "
+        "a synchronouse proxy passing messages from *frontend* to "
+        "*backend*. It terminates when the zeromq context is closed. "
+        "If provided, all messages are also sent to *capture*. All "
+        "arguments should be ZMQ sockets.")
+static lispval zmq_proxy_prim(lispval front_addr,lispval front_type,
+                              lispval back_addr,lispval back_type,
+                              lispval capture)
+{
+  void *ctx = zmq_ctx_new();
+  int ftype = get_socket_type(front_type);
+  if (ftype <0) return kno_type_error("SocketType","zmq_proxy_prim",
+                                      NULL,front_type);
+  int btype = get_socket_type(back_type);
+  if (btype <0) return kno_type_error("SocketType","zmq_proxy_prim",
+                                      NULL,back_type);
+  void *front = zmq_socket(ctx,ftype);
+  if (front == NULL)
+    return kno_err("SocketFailed","zmq_proxy",NULL,VOID);
+  void *back = zmq_socket(ctx,btype);
+  if (back == NULL)
+    return kno_err("SocketFailed","zmq_proxy",NULL,VOID);
+
+  int rv = zmq_proxy(ZMQ_SOCKPTR(front),ZMQ_SOCKPTR(back),
+                     ((TYPEP(capture,kno_zmqsock_type)) ?
+                      (ZMQ_SOCKPTR(capture)) :
+                      (NULL)));
+  if (rv < 0) {
+    int eno = errno; errno=0;
+    u8_log(LOGWARN,"ZMQ/PROXY/Exit","with errno=%d (%s)",eno,u8_strerror(eno));
+    return KNO_FALSE;}
+  else return KNO_FALSE;
+}
+#endif
 
 /* Initializing symbols */
 
@@ -938,6 +1003,10 @@ KNO_EXPORT int kno_init_zeromq()
   u8_init_mutex(&zeromq_ctx_lock);
   u8_register_threadexit(kno_zeromq_thread_cleanup);
 
+#if DEBUG_ZEROMQ
+  u8_init_mutex(&socket_counter_lock);
+#endif
+
 #if ! KNO_USE__THREAD
   u8_new_threadkey(&kno_zmq_thread_data_key,NULL);
   u8_tld_set(kno_zmq_thread_data_key,(void *)NULL);
@@ -973,6 +1042,12 @@ KNO_EXPORT int kno_init_zeromq()
   kno_ptr_type proxy_args[3] =
     { kno_zmqsock_type, kno_zmqsock_type, kno_zmqsock_type };
   DECL_PRIM_ARGS(zmq_proxy_prim,3,module,proxy_args,NULL);
+
+  kno_register_config("ZEROMQ:LOGLEVEL",
+                      "Loglevel for the ZeroMQ wrapper",
+                      kno_intconfig_get,
+                      kno_loglevelconfig_set,
+                      &zeromq_loglevel);
 
   kno_finish_module(module);
 
