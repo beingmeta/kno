@@ -81,7 +81,9 @@ static int  U8_MAYBE_UNUSED check_null
     u8_free_exception(ex,0);
     rv = 0;}
   else u8_log(LOG_ERROR,cxt,"Test failed to generate expected error",result);
-  if (fn) fn(result);
+
+  if ( (fn) && (result) )
+    fn(result);
   return rv;
 }
 
@@ -130,6 +132,7 @@ static lispval modules_testcapi()
   errors += check_null("kno_make_export_env(#f)",
 		       kno_make_export_env(astring,NULL),
 		       freefn(kno_free_lexenv));
+  kno_decref(astring);
   if (errors == 0)
     return KNO_FALSE;
   else return KNO_INT(errors);
