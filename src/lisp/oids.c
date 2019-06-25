@@ -90,8 +90,9 @@ KNO_EXPORT int kno_get_oid_base_index(KNO_OID addr,int add)
   KNO_SET_OID_LO(base,((KNO_OID_LO(base))&0xFFF00000U));
   if (add) {
     int retval = add_base_oid_index(base);
-    if (retval<0) kno_seterr1(OIDBucketOverflow);
-    return retval;}
+    if (retval<0)
+      return KNO_ERR1(retval,OIDBucketOverflow);
+    else return retval;}
   else return find_base_oid(base);
 }
 

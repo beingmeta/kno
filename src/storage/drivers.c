@@ -203,8 +203,8 @@ static kno_pool open_pool(kno_pool_typeinfo ptype,u8_string spec,
     (ptype->opener(spec,flags,opts));
   if (opened==NULL) {
     if (! ( flags & KNO_STORAGE_NOERR) )
-      kno_seterr(kno_CantOpenPool,"kno_open_pool",spec,opts);
-    return opened;}
+      return KNO_ERR(NULL,kno_CantOpenPool,"kno_open_pool",spec,opts);
+    else return opened;}
   else if (kno_testopt(opts,wadjuncts_symbol,VOID)) {
     lispval adjuncts=kno_getopt(opts,wadjuncts_symbol,EMPTY);
     int rv=kno_set_adjuncts(opened,adjuncts);
@@ -215,9 +215,7 @@ static kno_pool open_pool(kno_pool_typeinfo ptype,u8_string spec,
                 "Opening pool '%s' with opts=%q",
                 opened->poolid,opts);
         kno_clear_errors(1);}
-      else {
-        kno_seterr(kno_AdjunctError,"kno_open_pool",spec,opts);
-        return NULL;}}}
+      else return KNO_ERR(NULL,kno_AdjunctError,"kno_open_pool",spec,opts);}}
   lispval old_opts=opened->pool_opts;
   opened->pool_opts=kno_incref(opts);
   kno_decref(old_opts);
@@ -238,9 +236,8 @@ kno_pool kno_open_pool(u8_string spec,kno_storage_flags flags,lispval opts)
         kno_pool opened = (found) ? (found) :
           (ptype->opener(use_spec,flags,opts));
         if (use_spec!=spec) u8_free(use_spec);
-        if (opened==NULL) {
-          kno_seterr(kno_CantOpenPool,"kno_open_pool",spec,opts);
-          return opened;}
+        if (opened==NULL)
+          return KNO_ERR(NULL,kno_CantOpenPool,"kno_open_pool",spec,opts);
         else if (kno_testopt(opts,wadjuncts_symbol,VOID)) {
           lispval adjuncts=kno_getopt(opts,wadjuncts_symbol,EMPTY);
           int rv=kno_set_adjuncts(opened,adjuncts);
@@ -251,9 +248,7 @@ kno_pool kno_open_pool(u8_string spec,kno_storage_flags flags,lispval opts)
                       "Opening pool '%s' with opts=%q",
                       opened->poolid,opts);
               kno_clear_errors(1);}
-            else {
-              kno_seterr(kno_AdjunctError,"kno_open_pool",spec,opts);
-              return NULL;}}}
+            else return KNO_ERR(NULL,kno_AdjunctError,"kno_open_pool",spec,opts);}}
         lispval old_opts=opened->pool_opts;
         opened->pool_opts=kno_incref(opts);
         kno_decref(old_opts);
@@ -279,10 +274,9 @@ kno_pool kno_open_pool(u8_string spec,kno_storage_flags flags,lispval opts)
       open_spec = ptype->matcher(spec,ptype->type_data);
       if (open_spec==NULL) {
         unsigned char buf[200];
-        kno_seterr(kno_CantOpenPool,"kno_open_pool",
-                  u8_sprintf(buf,200,"(%s)%s",ptype->pool_typename,spec),
-                  opts);
-        return NULL;}}
+        return KNO_ERR(NULL,kno_CantOpenPool,"kno_open_pool",
+                       u8_sprintf(buf,200,"(%s)%s",ptype->pool_typename,spec),
+                       opts);}}
     kno_pool p = open_pool(ptype,open_spec,flags,opts);
     if (open_spec != spec) u8_free(open_spec);
     return p;}
@@ -306,27 +300,22 @@ static int fix_pool_opts(u8_string spec,lispval opts)
 {
   lispval base_oid = kno_getopt(opts,kno_intern("base"),VOID);
   lispval capacity_arg = kno_getopt(opts,kno_intern("capacity"),VOID);
-  if (!(OIDP(base_oid))) {
-    kno_seterr("PoolBaseNotOID","kno_make_pool",spec,opts);
-    return -1;}
-  else if (!(FIXNUMP(capacity_arg))) {
-    kno_seterr("PoolCapacityNotFixnum","kno_make_pool",spec,opts);
-    return -1;}
+  if (!(OIDP(base_oid)))
+    return KNO_ERR(-1,"PoolBaseNotOID","kno_make_pool",spec,opts);
+  else if (!(FIXNUMP(capacity_arg)))
+    return KNO_ERR(-1,"PoolCapacityNotFixnum","kno_make_pool",spec,opts);
   else {
     KNO_OID addr=KNO_OID_ADDR(base_oid);
     unsigned int lo=KNO_OID_LO(addr);
     int capacity=KNO_FIX2INT(capacity_arg);
-    if (capacity<=0) {
-      kno_seterr("NegativePoolCapacity","kno_make_pool",spec,opts);
-      return -1;}
-    else if (capacity>=0x40000000) {
-      kno_seterr("PoolCapacityTooLarge","kno_make_pool",spec,opts);
-      return -1;}
+    if (capacity<=0)
+      return KNO_ERR(-1,"NegativePoolCapacity","kno_make_pool",spec,opts);
+    else if (capacity>=0x40000000)
+      return KNO_ERR(-1,"PoolCapacityTooLarge","kno_make_pool",spec,opts);
     else {}
     int span_pool=(capacity>KNO_OID_BUCKET_SIZE);
-    if ((span_pool)&&(lo%KNO_OID_BUCKET_SIZE)) {
-      kno_seterr("MisalignedBaseOID","kno_make_pool",spec,opts);
-      return -1;}
+    if ((span_pool)&&(lo%KNO_OID_BUCKET_SIZE))
+      return KNO_ERR(-1,"MisalignedBaseOID","kno_make_pool",spec,opts);
     else if ((span_pool)&&(capacity%KNO_OID_BUCKET_SIZE)) {
       lispval opt_root=opts;
       unsigned int new_capacity =
@@ -349,15 +338,12 @@ kno_pool kno_make_pool(u8_string spec,
                      lispval opts)
 {
   kno_pool_typeinfo ptype = kno_get_pool_typeinfo(pooltype);
-  if (ptype == NULL) {
-    kno_seterr3(kno_UnknownPoolType,"kno_make_pool",pooltype);
-    return NULL;}
-  else if (ptype->handler == NULL) {
-    kno_seterr3(_("NoPoolHandler"),"kno_make_pool",pooltype);
-    return NULL;}
-  else if (ptype->handler->create == NULL) {
-    kno_seterr3(_("NoCreateHandler"),"kno_make_pool",pooltype);
-    return NULL;}
+  if (ptype == NULL)
+    return KNO_ERR3(NULL,kno_UnknownPoolType,"kno_make_pool",pooltype);
+  else if (ptype->handler == NULL)
+    return KNO_ERR3(NULL,_("NoPoolHandler"),"kno_make_pool",pooltype);
+  else if (ptype->handler->create == NULL)
+    return KNO_ERR3(NULL,_("NoCreateHandler"),"kno_make_pool",pooltype);
   else if (fix_pool_opts(spec,opts)<0)
     return NULL;
   else return ptype->handler->create(spec,ptype->type_data,flags,opts);
@@ -449,7 +435,7 @@ static kno_index open_index(kno_index_typeinfo ixtype,u8_string spec,
   if (search_spec != spec) u8_free(search_spec);
   if (opened==NULL) {
     if (! ( flags & KNO_STORAGE_NOERR) )
-      kno_seterr(kno_CantOpenIndex,"kno_open_index",spec,opts);
+      return KNO_ERR(NULL,kno_CantOpenIndex,"kno_open_index",spec,opts);
     return opened;}
   lispval old_opts=opened->index_opts;
   opened->index_opts=kno_incref(opts);
@@ -471,9 +457,8 @@ kno_index kno_open_index(u8_string spec,kno_storage_flags flags,lispval opts)
           (kno_find_index_by_source(use_spec));
         kno_index opened = (found) ? (found) :
           (ixtype->opener(use_spec,flags,opts));
-        if (opened==NULL) {
-          kno_seterr(kno_CantOpenIndex,"kno_open_index",spec,opts);
-          return opened;}
+        if (opened==NULL)
+          return KNO_ERR(NULL,kno_CantOpenIndex,"kno_open_index",spec,opts);
         if (use_spec!=spec) u8_free(use_spec);
         lispval old_opts=opened->index_opts;
         opened->index_opts=kno_incref(opts);
@@ -501,10 +486,9 @@ kno_index kno_open_index(u8_string spec,kno_storage_flags flags,lispval opts)
       open_spec = ixtype->matcher(spec,ixtype->type_data);
       if (open_spec == NULL) {
         unsigned char buf[200];
-        kno_seterr(kno_CantOpenIndex,"kno_open_index",
-                  u8_sprintf(buf,200,"(%s)%s",ixtype->index_typename,spec),
-                  opts);
-        return NULL;}}
+        return KNO_ERR(NULL,kno_CantOpenIndex,"kno_open_index",
+                       u8_sprintf(buf,200,"(%s)%s",ixtype->index_typename,spec),
+                       opts);}}
     kno_index ix = open_index(ixtype,open_spec,flags,opts);
     if (open_spec != spec) u8_free(open_spec);
     return ix;}
@@ -531,15 +515,12 @@ kno_index kno_make_index(u8_string spec,
                        lispval opts)
 {
   kno_index_typeinfo ixtype = kno_get_index_typeinfo(indextype);
-  if (ixtype == NULL) {
-    kno_seterr3(_("UnknownIndexType"),"kno_make_index",indextype);
-    return NULL;}
-  else if (ixtype->handler == NULL) {
-    kno_seterr3(_("NoIndexHandler"),"kno_make_index",indextype);
-    return NULL;}
-  else if (ixtype->handler->create == NULL) {
-    kno_seterr3(_("NoCreateHandler"),"kno_make_index",indextype);
-    return NULL;}
+  if (ixtype == NULL)
+    return KNO_ERR3(NULL,_("UnknownIndexType"),"kno_make_index",indextype);
+  else if (ixtype->handler == NULL)
+    return KNO_ERR3(NULL,_("NoIndexHandler"),"kno_make_index",indextype);
+  else if (ixtype->handler->create == NULL)
+    return KNO_ERR3(NULL,_("NoCreateHandler"),"kno_make_index",indextype);
   else {
     if (FIXNUMP(opts)) {
       lispval tmp_opts = kno_init_slotmap(NULL,3,NULL);

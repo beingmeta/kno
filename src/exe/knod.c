@@ -268,13 +268,14 @@ static int n_ports = 0;
 static int config_serve_port(lispval var,lispval val,void U8_MAYBE_UNUSED *data)
 {
   if (server_initialized==0) init_server();
-  if (n_ports<0) return -1;
+  if (n_ports<0)
+    return -1;
   else if (KNO_UINTP(val)) {
     int retval = u8_add_server(&dtype_server,NULL,FIX2INT(val));
     if (retval>0)
       n_ports = n_ports+retval;
     else if (retval<0)
-      kno_seterr(BadPortSpec,"config_serve_port",NULL,val);
+      return KNO_ERR(retval,BadPortSpec,"config_serve_port",NULL,val);
     else {
       u8_log(LOG_WARN,"NoServers","No servers were added for port #%q",val);
       return 0;}
@@ -303,16 +304,13 @@ static int config_serve_port(lispval var,lispval val,void U8_MAYBE_UNUSED *data)
     rv = u8_add_server(&dtype_server,CSTRING(val),0);
     if (rv>0)
       n_ports = n_ports+rv;
-    else if (rv<0) {
-      kno_seterr(BadPortSpec,"config_serve_port",NULL,val);
-      return rv;}
+    else if (rv<0)
+      return KNO_ERR(rv,BadPortSpec,"config_serve_port",NULL,val);
     else {
       u8_log(LOG_WARN,"NoServers","No servers were added for port %q",val);
       return 0;}
     return rv;}
-  else {
-    kno_seterr(BadPortSpec,"config_serve_port",NULL,val);
-    return -1;}
+  else return KNO_ERR(-1,BadPortSpec,"config_serve_port",NULL,val);
 }
 
 static lispval config_get_ports(lispval var,void U8_MAYBE_UNUSED *data)

@@ -517,15 +517,12 @@ static int read_config(U8_INPUT *in,int dflt)
           (kno_default_config(SYM_NAME(KNO_CAR(entry)),val)<0) :
           (kno_set_config(SYM_NAME(KNO_CAR(entry)),val)<0);
         if (rv < 0) {
-          kno_seterr(kno_ConfigError,"kno_read_config",NULL,entry);
           kno_decref(val);
-          return -1;}
+          return KNO_ERR(-1,kno_ConfigError,"kno_read_config",NULL,entry);}
         if (rv) count++;
         kno_decref(entry);
         kno_decref(val);}
-      else {
-        kno_seterr(kno_ConfigError,"kno_read_config",NULL,entry);
-        return -1;}}
+      else return KNO_ERR(-1,kno_ConfigError,"kno_read_config",NULL,entry);}
     else if ((u8_isspace(c)) || (u8_isctrl(c))) {}
     else {
       u8_ungetc(in,c);
@@ -792,9 +789,8 @@ KNO_EXPORT int kno_boolconfig_set(lispval var,lispval v,void *vptr)
     *ptr = 0; return 1;}
   else if ((STRINGP(v)) && (true_stringp(CSTRING(v)))) {
     *ptr = 1; return 1;}
-  else if (STRINGP(v)) {
-    kno_seterr(kno_TypeError,"kno_boolconfig_set",KNO_XSYMBOL_NAME(var),v);
-    return -1;}
+  else if (STRINGP(v))
+    return KNO_ERR(-1,kno_TypeError,"kno_boolconfig_set",KNO_XSYMBOL_NAME(var),v);
   else {*ptr = 1; return 1;}
 }
 
@@ -893,9 +889,7 @@ static int loglevelconfig_set(lispval var,lispval val,void *data)
     if (loglevel>=0) {
       int *valp = (int *)data; *valp = loglevel;
       return 1;}
-    else {
-      kno_seterr(kno_TypeError,"loglevelconfig_set",KNO_XSYMBOL_NAME(var),val);
-      return -1;}}
+    else return KNO_ERR(-1,kno_TypeError,"loglevelconfig_set",KNO_XSYMBOL_NAME(var),val);}
   else {
     kno_seterr(kno_TypeError,"loglevelconfig_set",KNO_XSYMBOL_NAME(var),val);
     return -1;}

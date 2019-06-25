@@ -94,9 +94,8 @@ static int group_config_set(lispval var,lispval val,void *data)
     if (rv<0) {
       u8_graberrno("group_config_set",kno_lisp2string(val));
       return -1;}
-    else if (info == NULL) {
-      kno_seterr("NoSuchGroup","group_config_set",KNO_CSTRING(val),KNO_VOID);
-      return -1;}
+    else if (info == NULL)
+      return KNO_ERR(-1,"NoSuchGroup","group_config_set",KNO_CSTRING(val),KNO_VOID);
     else {
       u8_gid gid = info->gr_gid;
       int rv = setgid(gid);

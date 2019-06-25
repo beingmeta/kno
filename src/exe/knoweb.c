@@ -1738,10 +1738,7 @@ static int addknowebport(lispval var,lispval val,void *data)
       return -1;}}
   else if (KNO_FIXNUMP(val))
     new_port = u8_mkstring("%lld",KNO_FIX2INT(val));
-  else {
-    kno_incref(val);
-    kno_seterr(kno_TypeError,"setportconfig",NULL,val);
-    return -1;}
+  else return KNO_ERR(-1,kno_TypeError,"setportconfig",NULL,val);
   if (!(server_id)) server_id = new_port;
   if (n_ports>=max_ports) {
     int new_max = ((max_ports)?(max_ports+8):(8));

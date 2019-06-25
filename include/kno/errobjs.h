@@ -56,6 +56,22 @@ KNO_EXPORT U8_NOINLINE void kno_raise
 #define kno_seterr1(c) \
    kno_seterr(c,NULL,NULL,KNO_VOID)
 
+#define kno_err3(c,cxt,details) \
+  ( (kno_seterr(c,cxt,details,KNO_VOID)) , (KNO_ERROR_VALUE) )
+#define kno_err2(c,cxt) \
+  ( (kno_seterr(c,cxt,NULL,KNO_VOID)) , (KNO_ERROR_VALUE) )
+#define kno_err1(c) \
+  ( (kno_seterr(c,NULL,NULL,KNO_VOID)) , (KNO_ERROR_VALUE) )
+
+#define KNO_ERR(rv,cond,cxt,details,irritant) \
+  ( (kno_seterr(cond,cxt,(details),(irritant))) , (rv) )
+#define KNO_ERR3(rv,cond,cxt,details) \
+  ( (kno_seterr(cond,cxt,(details),(KNO_VOID))) , (rv) )
+#define KNO_ERR2(rv,cond,cxt) \
+  ( (kno_seterr(cond,cxt,(NULL),(KNO_VOID))) , (rv) )
+#define KNO_ERR1(rv,cond) \
+  ( (kno_seterr(cond,NULL,(NULL),(KNO_VOID))) , (rv) )
+
 KNO_EXPORT void kno_set_type_error(u8_string type_name,lispval irritant);
 
 KNO_EXPORT int kno_geterr

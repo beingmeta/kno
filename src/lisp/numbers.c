@@ -2254,9 +2254,8 @@ lispval kno_plus(lispval x,lispval y)
   else if (((VECTORP(x))||(KNO_NUMVECP(x)))&&
            ((VECTORP(x))||(KNO_NUMVECP(y)))) {
     int x_len = numvec_length(x), y_len = numvec_length(y);
-    if (x_len != y_len) {
-      kno_seterr2(_("Vector size mismatch"),"kno_plus");
-      return KNO_ERROR;}
+    if (x_len != y_len)
+      return kno_err2(_("Vector size mismatch"),"kno_plus");
     return vector_add(x,y,1);}
   else if (!(NUMBERP(x)))
     return kno_type_error(_("number"),"kno_plus",x);
@@ -2328,9 +2327,8 @@ lispval kno_multiply(lispval x,lispval y)
   else if (((VECTORP(x))||(KNO_NUMVECP(x)))&&
            ((VECTORP(y))||(KNO_NUMVECP(y)))) {
     int x_len = numvec_length(x), y_len = numvec_length(y);
-    if (x_len != y_len) {
-      kno_seterr2(_("Vector size mismatch"),"kno_multiply");
-      return KNO_ERROR;}
+    if (x_len != y_len)
+      return kno_err2(_("Vector size mismatch"),"kno_multiply");
     return vector_dotproduct(x,y);}
   else if (!(NUMBERP(x)))
     return kno_type_error(_("number"),"kno_multiply",x);
@@ -2386,9 +2384,8 @@ lispval kno_subtract(lispval x,lispval y)
   else if (((VECTORP(x))||(KNO_NUMVECP(x)))&&
            ((VECTORP(x))||(KNO_NUMVECP(y)))) {
     int x_len = numvec_length(x), y_len = numvec_length(y);
-    if (x_len != y_len) {
-      kno_seterr2(_("Vector size mismatch"),"kno_subtract");
-      return KNO_ERROR;}
+    if (x_len != y_len)
+      return kno_err2(_("Vector size mismatch"),"kno_subtract");
     return vector_add(x,y,-1);}
   else if (!(NUMBERP(x)))
     return kno_type_error(_("number"),"kno_subtract",x);
@@ -2599,14 +2596,12 @@ int kno_numcompare(lispval x,lispval y)
   else if ((xt == kno_flonum_type) && (yt == kno_flonum_type)) {
     double dx = KNO_FLONUM(x), dy = KNO_FLONUM(y);
     if (dx>dy) return 1; else if (dx<dy) return -1; else return 0;}
-  else if (!(NUMBERP(x))) {
-    kno_seterr(kno_TypeError,"compare","object is not a number",x);
+  else if (!(NUMBERP(x)))
     /* Any number > 1 indicates an error. */
-    return 17;}
-  else if (!(NUMBERP(y))) {
-    kno_seterr(kno_TypeError,"compare","object is not a number",y);
+    return KNO_ERR(17,kno_TypeError,"compare","object is not a number",y);
+  else if (!(NUMBERP(y)))
     /* Any number > 1 indicates an error. */
-    return 17;}
+    return KNO_ERR(17,kno_TypeError,"compare","object is not a number",y);
   else if ((COMPLEXP(x)) || (COMPLEXP(x))) {
     double magx = todouble(x), magy = todouble(y);
     return signum(magx-magy);}
@@ -3071,9 +3066,8 @@ static lispval NUM_ELT(lispval x,int i)
 static lispval vector_add(lispval x,lispval y,int mult)
 {
   int x_len = numvec_length(x), y_len = numvec_length(y);
-  if (x_len!=y_len) {
-    kno_seterr2("Dimensional conflict","vector_add");
-    return KNO_ERROR;}
+  if (x_len!=y_len)
+    return kno_err2("Dimensional conflict","vector_add");
   else if ((KNO_NUMVECP(x))&&(KNO_NUMVECP(y))) {
     struct KNO_NUMERIC_VECTOR *vx = (struct KNO_NUMERIC_VECTOR *)x;
     struct KNO_NUMERIC_VECTOR *vy = (struct KNO_NUMERIC_VECTOR *)y;
@@ -3184,9 +3178,8 @@ static lispval vector_add(lispval x,lispval y,int mult)
 static lispval vector_dotproduct(lispval x,lispval y)
 {
   int x_len = numvec_length(x), y_len = numvec_length(y);
-  if (x_len!=y_len) {
-    kno_seterr2("Dimensional conflict","vector_add");
-    return KNO_ERROR;}
+  if (x_len!=y_len)
+    return kno_err2("Dimensional conflict","vector_add");
   else if ((KNO_NUMVECP(x))&&(KNO_NUMVECP(y))) {
     struct KNO_NUMERIC_VECTOR *vx = (struct KNO_NUMERIC_VECTOR *)x;
     struct KNO_NUMERIC_VECTOR *vy = (struct KNO_NUMERIC_VECTOR *)y;

@@ -42,9 +42,8 @@ static U8_MAYBE_UNUSED unsigned char *do_zuncompress
     *dbytes = dsize;
     return dbuf;}
   else {
-    kno_seterr2(error,"do_zuncompress");
     if (dbuf != init_dbuf) u8_free(dbuf);
-    return NULL;}
+    return KNO_ERR2(NULL,error,"do_zuncompress");}
 }
 
 static U8_MAYBE_UNUSED unsigned char *do_zcompress
@@ -80,7 +79,5 @@ static U8_MAYBE_UNUSED unsigned char *do_zcompress
   if (error == NULL) {
     *cbytes = csize;
     return cbuf;}
-  else {
-    kno_seterr2(error,"do_zcompress");
-    return NULL;}
+  else return KNO_ERR2(NULL,error,"do_zcompress");
 }

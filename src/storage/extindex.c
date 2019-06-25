@@ -29,14 +29,12 @@ kno_index kno_make_extindex
 (u8_string name,lispval fetchfn,lispval commitfn,lispval state,
  kno_storage_flags flags,lispval opts)
 {
-  if (!(PRED_TRUE(KNO_APPLICABLEP(fetchfn)))) {
-    kno_seterr(kno_TypeError,"kno_make_extindex","fetch function",
-              kno_incref(fetchfn));
-    return NULL;}
-  else if (!(KNO_ISFUNARG(commitfn))) {
-    kno_seterr(kno_TypeError,"kno_make_extindex","commit function",
-              kno_incref(commitfn));
-    return NULL;}
+  if (!(PRED_TRUE(KNO_APPLICABLEP(fetchfn))))
+    return KNO_ERR(NULL,kno_TypeError,"kno_make_extindex","fetch function",
+                   kno_incref(fetchfn));
+  else if (!(KNO_ISFUNARG(commitfn)))
+    return KNO_ERR(NULL,kno_TypeError,"kno_make_extindex","commit function",
+                   kno_incref(commitfn));
   else {
     struct KNO_EXTINDEX *fetchix = u8_alloc(struct KNO_EXTINDEX);
     KNO_INIT_STRUCT(fetchix,struct KNO_EXTINDEX);

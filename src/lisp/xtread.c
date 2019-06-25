@@ -198,8 +198,7 @@ static lispval *read_dtypes(int n,struct KNO_INBUF *in,
 
 static lispval unexpected_eod()
 {
-  kno_seterr1(kno_UnexpectedEOD);
-  return KNO_ERROR;
+  return kno_err1(kno_UnexpectedEOD);
 }
 
 KNO_EXPORT lispval kno_read_dtype(struct KNO_INBUF *in)
@@ -771,9 +770,8 @@ static unsigned char *do_uncompress
   uLongf xbuf_size=buflen;
   while ((error = uncompress(xbuf,&xbuf_size,fdata,n_bytes)) < Z_OK)
     if (error == Z_MEM_ERROR) {
-      kno_seterr1("ZLIB Out of Memory");
       if (xbuf!=init_xbuf) u8_free(xbuf);
-      return NULL;}
+      return KNO_ERR1(NULL,"ZLIB Out of Memory");}
     else if (error == Z_BUF_ERROR) {
       Bytef *newbuf;
       if (xbuf == init_xbuf)
@@ -788,16 +786,13 @@ static unsigned char *do_uncompress
       xbuf_size=buflen;}
     else if (error == Z_DATA_ERROR) {
       if (xbuf == init_xbuf) u8_free(xbuf);
-      kno_seterr1("ZLIB Data error");
-      return NULL;}
+      return KNO_ERR1(NULL,"ZLIB Data error");}
     else if (error == Z_STREAM_ERROR) {
       if (xbuf == init_xbuf) u8_free(xbuf);
-      kno_seterr1("ZLIB Data error");
-      return NULL;}
+      return KNO_ERR1(NULL,"ZLIB Data error");}
     else {
       if (xbuf == init_xbuf) u8_free(xbuf);
-      kno_seterr1("Bad ZLIB return code");
-      return NULL;}
+      return KNO_ERR1(NULL,"Bad ZLIB return code");}
   *dbytes = xbuf_size;
   return xbuf;
 }

@@ -36,9 +36,8 @@ KNO_EXPORT lispval kno_init_compound
   int decref      = (refmask==KNO_COMPOUND_USEREF);
   int copyref     = (refmask==KNO_COMPOUND_COPYREF);
   va_list args; int i = 0;
-  if (n<0) {
-    kno_seterr("NegativeLength","kno_init_compound",NULL,KNO_INT(n));
-    return KNO_ERROR;}
+  if (n<0)
+    return kno_err("NegativeLength","kno_init_compound",NULL,KNO_INT(n));
   if (PRED_FALSE((n<0)||(n>=256))) {
     /* Consume the arguments on error, just in case the vararg
        implementation is a little flaky. */

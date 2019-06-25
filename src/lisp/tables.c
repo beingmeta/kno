@@ -282,13 +282,12 @@ static int slotmap_fail(struct KNO_SLOTMAP *sm,u8_context caller)
   char dbuf[64];
   int size = sm->n_slots, space = sm->n_allocd;
   if (space >= SHRT_MAX)
-    kno_seterr("SlotmapOverflow",caller,
-              u8_sprintf(dbuf,64,"%d:%d>%d",size,space,SHRT_MAX),
-              (lispval)sm);
-  else kno_seterr("SlotmapInsertFail",caller,
-                 u8_sprintf(dbuf,64,"%d:%d",size,space),
-                 (lispval)sm);
-  return -1;
+    return KNO_ERR(-1,"SlotmapOverflow",caller,
+                   u8_sprintf(dbuf,64,"%d:%d>%d",size,space,SHRT_MAX),
+                   (lispval)sm);
+  else return KNO_ERR(-1,"SlotmapInsertFail",caller,
+                      u8_sprintf(dbuf,64,"%d:%d",size,space),
+                      (lispval)sm);
 }
 
 KNO_EXPORT lispval _kno_slotmap_get
@@ -312,9 +311,8 @@ KNO_EXPORT int kno_slotmap_store(struct KNO_SLOTMAP *sm,lispval key,lispval valu
     return kno_interr(value);
   else if (KNO_EMPTYP(key))
     return 0;
-  else if (sm->table_readonly) {
-    kno_seterr(kno_ReadOnlyTable,"kno_slotmap_store",NULL,key);
-    return -1;}
+  else if (sm->table_readonly)
+    return KNO_ERR(-1,kno_ReadOnlyTable,"kno_slotmap_store",NULL,key);
   else if (sm->table_uselock) {
     u8_write_lock(&sm->table_rwlock);
     unlock=1;}
@@ -359,9 +357,8 @@ KNO_EXPORT int kno_slotmap_add(struct KNO_SLOTMAP *sm,lispval key,lispval value)
     return 0;
   else if (EMPTYP(value))
     return 0;
-  else if (sm->table_readonly) {
-    kno_seterr(kno_ReadOnlyTable,"kno_slotmap_store",NULL,key);
-    return -1;}
+  else if (sm->table_readonly)
+    return KNO_ERR(-1,kno_ReadOnlyTable,"kno_slotmap_store",NULL,key);
   else if (sm->table_uselock) {
     u8_write_lock(&sm->table_rwlock);
     unlock=1;}
@@ -410,9 +407,8 @@ KNO_EXPORT int kno_slotmap_drop(struct KNO_SLOTMAP *sm,lispval key,lispval value
     return kno_interr(value);
   else if (EMPTYP(key))
     return 0;
-  else if (sm->table_readonly) {
-    kno_seterr(kno_ReadOnlyTable,"kno_slotmap_store",NULL,key);
-    return -1;}
+  else if (sm->table_readonly)
+    return KNO_ERR(-1,kno_ReadOnlyTable,"kno_slotmap_store",NULL,key);
   else if (sm->table_uselock) {
     u8_write_lock(&sm->table_rwlock);
     unlock=1;}
@@ -453,9 +449,8 @@ KNO_EXPORT int kno_slotmap_delete(struct KNO_SLOTMAP *sm,lispval key)
     return kno_interr(key);
   else if (EMPTYP(key))
     return 0;
-  else if (sm->table_readonly) {
-    kno_seterr(kno_ReadOnlyTable,"kno_slotmap_store",NULL,key);
-    return -1;}
+  else if (sm->table_readonly)
+    return KNO_ERR(-1,kno_ReadOnlyTable,"kno_slotmap_store",NULL,key);
   else if (sm->table_uselock) {
     u8_write_lock(&sm->table_rwlock);
     unlock=1;}
@@ -1261,9 +1256,8 @@ KNO_EXPORT int kno_schemap_store
     return kno_interr(value);
   else if (EMPTYP(key))
     return 0;
-  else if (sm->table_readonly) {
-    kno_seterr(kno_ReadOnlyTable,"kno_schemap_store",NULL,key);
-    return -1;}
+  else if (sm->table_readonly)
+    return KNO_ERR(-1,kno_ReadOnlyTable,"kno_schemap_store",NULL,key);
   else if (KNO_XSCHEMAP_USELOCKP(sm)) {
     kno_write_lock_table(sm);
     unlock=1;}
@@ -1281,8 +1275,7 @@ KNO_EXPORT int kno_schemap_store
     return 1;}
   else {
     if (unlock) kno_unlock_table(sm);
-    kno_seterr(kno_NoSuchKey,"kno_schemap_store",NULL,key);
-    return -1;}
+    return KNO_ERR(-1,kno_NoSuchKey,"kno_schemap_store",NULL,key);}
 }
 
 KNO_EXPORT int kno_schemap_add
@@ -1300,9 +1293,8 @@ KNO_EXPORT int kno_schemap_add
     return 0;
   else if ((KNO_TROUBLEP(value)))
     return kno_interr(value);
-  else if (sm->table_readonly) {
-    kno_seterr(kno_ReadOnlyTable,"kno_schemap_add",NULL,key);
-    return -1;}
+  else if (sm->table_readonly)
+    return KNO_ERR(-1,kno_ReadOnlyTable,"kno_schemap_add",NULL,key);
   else if (KNO_XSCHEMAP_USELOCKP(sm)) {
     kno_write_lock_table(sm);
     unlock=1;}
@@ -1320,8 +1312,7 @@ KNO_EXPORT int kno_schemap_add
     return 1;}
   else {
     if (unlock) kno_unlock_table(sm);
-    kno_seterr(kno_NoSuchKey,"kno_schemap_add",NULL,key);
-    return -1;}
+    return KNO_ERR(-1,kno_NoSuchKey,"kno_schemap_add",NULL,key);}
 }
 
 KNO_EXPORT int kno_schemap_drop
@@ -1339,9 +1330,8 @@ KNO_EXPORT int kno_schemap_drop
     return 0;
   else if ((KNO_TROUBLEP(value)))
     return kno_interr(value);
-  else if (sm->table_readonly) {
-    kno_seterr(kno_ReadOnlyTable,"kno_schemap_drop",NULL,key);
-    return -1;}
+  else if (sm->table_readonly)
+    return KNO_ERR(-1,kno_ReadOnlyTable,"kno_schemap_drop",NULL,key);
   else if (KNO_XSCHEMAP_USELOCKP(sm)) {
     kno_write_lock_table(sm);
     unlock=1;}
@@ -2043,9 +2033,8 @@ KNO_EXPORT int kno_hashtable_store(kno_hashtable ht,lispval key,lispval value)
     return 0;
   else if (KNO_TROUBLEP(key))
     return kno_interr(key);
-  else if (ht->table_readonly) {
-    kno_seterr(kno_ReadOnlyHashtable,"kno_hashtable_store",NULL,key);
-    return -1;}
+  else if (ht->table_readonly)
+    return KNO_ERR(-1,kno_ReadOnlyHashtable,"kno_hashtable_store",NULL,key);
   else if (ht->table_uselock) {
     kno_write_lock_table(ht);
     unlock = 1;}
@@ -2082,9 +2071,8 @@ static int add_to_hashtable(kno_hashtable ht,lispval key,lispval value)
   int added=0, n_keys=ht->table_n_keys;
   if (KNO_TROUBLEP(value))
     return kno_interr(value);
-  else if (ht->table_readonly) {
-    kno_seterr(kno_ReadOnlyHashtable,"kno_hashtable_add",NULL,key);
-    return -1;}
+  else if (ht->table_readonly)
+    return KNO_ERR(-1,kno_ReadOnlyHashtable,"kno_hashtable_add",NULL,key);
   else if (PRED_FALSE(EMPTYP(value)))
     return 0;
   else if (PRED_FALSE(KNO_TROUBLEP(value)))
@@ -2132,9 +2120,8 @@ KNO_EXPORT int kno_hashtable_add(kno_hashtable ht,lispval key,lispval value)
   KEY_CHECK(key,ht); KNO_CHECK_TYPE_RET(ht,kno_hashtable_type);
   if (EMPTYP(key))
     return 0;
-  else if (ht->table_readonly) {
-    kno_seterr(kno_ReadOnlyHashtable,"kno_hashtable_add",NULL,key);
-    return -1;}
+  else if (ht->table_readonly)
+    return KNO_ERR(-1,kno_ReadOnlyHashtable,"kno_hashtable_add",NULL,key);
   else if (PRED_FALSE(EMPTYP(value)))
     return 0;
   else if ((KNO_TROUBLEP(value)))
@@ -2176,9 +2163,8 @@ KNO_EXPORT int kno_hashtable_drop
     return kno_interr(value);
   else if (ht->table_n_keys == 0)
     return 0;
-  else if (ht->table_readonly) {
-    kno_seterr(kno_ReadOnlyHashtable,"kno_hashtable_drop",NULL,key);
-    return -1;}
+  else if (ht->table_readonly)
+    return KNO_ERR(-1,kno_ReadOnlyHashtable,"kno_hashtable_drop",NULL,key);
   else if (ht->table_uselock) {
     kno_write_lock_table(ht);
     unlock=1;}
@@ -2281,9 +2267,8 @@ static int do_hashtable_op(struct KNO_HASHTABLE *ht,kno_tableop op,
   else if (KNO_TROUBLEP(value))
     return kno_interr(value);
   else NO_ELSE;
-  if ( (ht->table_readonly) && ( ! (TESTOP(op) ) ) ) {
-    kno_seterr2(kno_ReadOnlyHashtable,"do_hashtable_op");
-    return -1;}
+  if ( (ht->table_readonly) && ( ! (TESTOP(op) ) ) )
+    return KNO_ERR2(-1,kno_ReadOnlyHashtable,"do_hashtable_op");
   switch (op) {
   case kno_table_replace: case kno_table_replace_novoid: case kno_table_drop:
   case kno_table_add_if_present: case kno_table_test: case kno_table_haskey:
@@ -2354,7 +2339,7 @@ static int do_hashtable_op(struct KNO_HASHTABLE *ht,kno_tableop op,
     if (KNO_VOIDP(value)) {
       drop_key = 1; new=EMPTY;}
     else if (KNO_EMPTYP(cur)) {
-        drop_key = 1; new=EMPTY;}
+      drop_key = 1; new=EMPTY;}
     else {
       new=kno_difference(cur,value);
       if (EMPTYP(new)) drop_key=1;}
@@ -2388,9 +2373,8 @@ static int do_hashtable_op(struct KNO_HASHTABLE *ht,kno_tableop op,
     if ((EMPTYP(result->kv_val)) ||
         (VOIDP(result->kv_val))) {
       result->kv_val=kno_incref(value);}
-    else if (!(NUMBERP(result->kv_val))) {
-      kno_seterr(kno_TypeError,"kno_table_increment","number",result->kv_val);
-      return -1;}
+    else if (!(NUMBERP(result->kv_val)))
+      return KNO_ERR(-1,kno_TypeError,"kno_table_increment","number",result->kv_val);
     else {
       lispval current=result->kv_val;
       DO_CHOICES(v,value)
@@ -2410,18 +2394,15 @@ static int do_hashtable_op(struct KNO_HASHTABLE *ht,kno_tableop op,
           if (newnum != current) {
             kno_decref(current);
             result->kv_val=newnum;}}
-        else {
-          kno_seterr(kno_TypeError,"kno_table_increment","number",v);
-          return -1;}}
+        else return KNO_ERR(-1,kno_TypeError,"kno_table_increment","number",v);}
     break;
   case kno_table_multiply_if_present:
     if (VOIDP(result->kv_val)) break;
   case kno_table_multiply:
     if ((VOIDP(result->kv_val))||(EMPTYP(result->kv_val)))  {
       result->kv_val=kno_incref(value);}
-    else if (!(NUMBERP(result->kv_val))) {
-      kno_seterr(kno_TypeError,"kno_table_multiply","number",result->kv_val);
-      return -1;}
+    else if (!(NUMBERP(result->kv_val)))
+      return KNO_ERR(-1,kno_TypeError,"kno_table_multiply","number",result->kv_val);
     else {
       lispval current=result->kv_val;
       DO_CHOICES(v,value)
@@ -2441,9 +2422,7 @@ static int do_hashtable_op(struct KNO_HASHTABLE *ht,kno_tableop op,
           if (newnum != current) {
             kno_decref(current);
             result->kv_val=newnum;}}
-        else {
-          kno_seterr(kno_TypeError,"table_multiply_op","number",v);
-          return -1;}}
+        else return KNO_ERR(-1,kno_TypeError,"table_multiply_op","number",v);}
     break;
   case kno_table_maximize_if_present:
     if (VOIDP(result->kv_val)) break;
@@ -2451,36 +2430,30 @@ static int do_hashtable_op(struct KNO_HASHTABLE *ht,kno_tableop op,
     if ((EMPTYP(result->kv_val)) ||
         (VOIDP(result->kv_val))) {
       result->kv_val=kno_incref(value);}
-    else if (!(NUMBERP(result->kv_val))) {
-      kno_seterr(kno_TypeError,"table_maximize_op","number",result->kv_val);
-      return -1;}
+    else if (!(NUMBERP(result->kv_val)))
+      return KNO_ERR(-1,kno_TypeError,"table_maximize_op","number",result->kv_val);
     else {
       lispval current=result->kv_val;
       if ((NUMBERP(current)) && (NUMBERP(value))) {
         if (kno_numcompare(value,current)>0) {
           result->kv_val=kno_incref(value);
           kno_decref(current);}}
-      else {
-        kno_seterr(kno_TypeError,"table_maximize_op","number",value);
-        return -1;}}
+      else return KNO_ERR(-1,kno_TypeError,"table_maximize_op","number",value);}
     break;
   case kno_table_minimize_if_present:
     if (VOIDP(result->kv_val)) break;
   case kno_table_minimize:
     if ((EMPTYP(result->kv_val))||(VOIDP(result->kv_val))) {
       result->kv_val=kno_incref(value);}
-    else if (!(NUMBERP(result->kv_val))) {
-      kno_seterr(kno_TypeError,"table_maximize_op","number",result->kv_val);
-      return -1;}
+    else if (!(NUMBERP(result->kv_val)))
+      return KNO_ERR(-1,kno_TypeError,"table_maximize_op","number",result->kv_val);
     else {
       lispval current=result->kv_val;
       if ((NUMBERP(current)) && (NUMBERP(value))) {
         if (kno_numcompare(value,current)<0) {
           result->kv_val=kno_incref(value);
           kno_decref(current);}}
-      else {
-        kno_seterr(kno_TypeError,"table_maximize_op","number",value);
-        return -1;}}
+      else return KNO_ERR(-1,kno_TypeError,"table_maximize_op","number",value);}
     break;
   case kno_table_push:
     if ((VOIDP(result->kv_val)) || (EMPTYP(result->kv_val))) {
@@ -2495,7 +2468,7 @@ static int do_hashtable_op(struct KNO_HASHTABLE *ht,kno_tableop op,
     u8_byte buf[64];
     added=-1;
     kno_seterr3(BadHashtableMethod,"do_hashtable_op",
-               u8_sprintf(buf,64,"0x%x",op));
+                u8_sprintf(buf,64,"0x%x",op));
     break;}
   }
   ht->table_modified=1;
@@ -3375,10 +3348,9 @@ KNO_EXPORT int kno_hashtable_set_readonly(KNO_HASHTABLE *ht,int readonly)
   if (readonly) {
     if ((ht->table_readonly) && (ht->table_uselock==0))
       return 0;
-    else if ((!(ht->table_readonly)) && (ht->table_uselock==0)) {
-      kno_seterr2("Can't make non-locking hashtable readonly",
-                "kno_hashtable_set_readonly");
-      return -1;}
+    else if ((!(ht->table_readonly)) && (ht->table_uselock==0))
+      return KNO_ERR2(-1,"Can't make non-locking hashtable readonly",
+                      "kno_hashtable_set_readonly");
     kno_read_lock_table(ht);
     ht->table_readonly=1;
     ht->table_uselock=0;
@@ -3440,9 +3412,8 @@ KNO_EXPORT struct KNO_KEYVAL *kno_hashtable_keyvals
    (struct KNO_HASHTABLE *ht,int *sizep,int lock)
 {
   struct KNO_KEYVAL *results, *rscan; int unlock=0;
-  if ((KNO_CONS_TYPE(ht)) != kno_hashtable_type) {
-    kno_seterr(kno_TypeError,"hashtable",NULL,(lispval)ht);
-    return NULL;}
+  if ((KNO_CONS_TYPE(ht)) != kno_hashtable_type)
+    return KNO_ERR(NULL,kno_TypeError,"hashtable",NULL,(lispval)ht);
   if (ht->table_n_keys == 0) {
     *sizep=0;
     return NULL;}
@@ -4019,9 +3990,7 @@ static int hashset_store(lispval x,lispval key,lispval val)
     return kno_hashset_mod(h,key,1);
   else if (FALSEP(val))
     return kno_hashset_mod(h,key,0);
-  else {
-    kno_seterr(kno_RangeError,_("value is not a boolean"),NULL,val);
-    return -1;}
+  else return KNO_ERR(-1,kno_RangeError,_("value is not a boolean"),NULL,val);
 }
 
 /* Generic table functions */
@@ -4037,16 +4006,12 @@ static int bad_table_call(lispval arg,kno_ptr_type type,void *handler,
 {
   if (handler)
     return 0;
-  else if (PRED_FALSE(kno_tablefns[type]==NULL)) {
-    kno_seterr(NotATable,cxt,NULL,arg);
-    return 1;}
+  else if (PRED_FALSE(kno_tablefns[type]==NULL))
+    return KNO_ERR(-1,NotATable,cxt,NULL,arg);
   else if ( (kno_tablefns[type]->tablep) &&
-            ((kno_tablefns[type]->tablep)(arg)) ) {
-    kno_seterr(NotATable,cxt,NULL,arg);
-    return 1;}
-  else {
-    kno_seterr(kno_NoMethod,cxt,NULL,arg);
-    return 1;}
+            ((kno_tablefns[type]->tablep)(arg)) )
+    return KNO_ERR(1,NotATable,cxt,NULL,arg);
+  else return KNO_ERR(-1,kno_NoMethod,cxt,NULL,arg);
 }
 
 #define BAD_TABLEP(arg,type,meth,cxt) \

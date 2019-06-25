@@ -315,8 +315,7 @@ lispval kno_extract_string(struct KNO_STRING *ptr,u8_string start,u8_string end)
     ptr->str_freebytes = freedata;
     if ( (kno_check_utf8) && (!(u8_validp(bytes))) ) {
       KNO_SET_CONS_TYPE(ptr,kno_packet_type);
-      kno_seterr("InvalidUTF8","kno_extract_string",NULL,LISP_CONS(ptr));
-      return KNO_ERROR_VALUE;}
+      return kno_err("InvalidUTF8","kno_extract_string",NULL,LISP_CONS(ptr));}
     else return LISP_CONS(ptr);}
   else return kno_err(kno_StringOverflow,"kno_extract_string",NULL,VOID);
 }
@@ -342,8 +341,7 @@ lispval kno_substring(u8_string start,u8_string end)
     ptr->str_freebytes = 0;
     if ( (kno_check_utf8) && (!(u8_validp(bytes))) ) {
       KNO_SET_CONS_TYPE(ptr,kno_packet_type);
-      kno_seterr("InvalidUTF8","kno_extract_string",NULL,LISP_CONS(ptr));
-      return KNO_ERROR_VALUE;}
+      return kno_err("InvalidUTF8","kno_extract_string",NULL,LISP_CONS(ptr));}
     else return LISP_CONS(ptr);}
   else return kno_err(kno_StringOverflow,"kno_substring",NULL,VOID);
 }
@@ -375,8 +373,7 @@ lispval kno_make_string(struct KNO_STRING *ptr,int len,u8_string string)
   ptr->str_freebytes = freedata;
   if ( (kno_check_utf8) && (!(u8_validp(bytes))) ) {
     KNO_SET_CONS_TYPE(ptr,kno_packet_type);
-    kno_seterr("InvalidUTF8","kno_extract_string",NULL,LISP_CONS(ptr));
-    return KNO_ERROR_VALUE;}
+    return kno_err("InvalidUTF8","kno_extract_string",NULL,LISP_CONS(ptr));}
   else return LISP_CONS(ptr);
 }
 
@@ -401,8 +398,7 @@ lispval kno_block_string(int len,u8_string string)
   if (string) u8_free(string);
   if ( (kno_check_utf8) && (!(u8_validp(bytes))) ) {
     KNO_SET_CONS_TYPE(ptr,kno_packet_type);
-    kno_seterr("InvalidUTF8","kno_extract_string",NULL,LISP_CONS(ptr));
-    return KNO_ERROR_VALUE;}
+    return kno_err("InvalidUTF8","kno_extract_string",NULL,LISP_CONS(ptr));}
   else return LISP_CONS(ptr);
   return LISP_CONS(ptr);
 }
@@ -463,9 +459,8 @@ KNO_EXPORT lispval kno_reverse_list(lispval l)
   if (NILP(scan))
     return result;
   else {
-    kno_seterr("ImproperList","kno_reverse_list",NULL,l);
     kno_decref(result);
-    return KNO_ERROR_VALUE;}
+    return kno_err("ImproperList","kno_reverse_list",NULL,l);}
 }
 
 /* Vectors */
@@ -475,9 +470,8 @@ KNO_EXPORT lispval kno_cons_vector(struct KNO_VECTOR *ptr,
                                  lispval *data)
 {
   lispval *elts; int free_data = 1; int big_alloc = 0;
-  if (len<0) {
-    kno_seterr("NegativeLength","kno_cons_vector",NULL,KNO_INT(len));
-    return KNO_ERROR;}
+  if (len<0)
+    return kno_err("NegativeLength","kno_cons_vector",NULL,KNO_INT(len));
   else if ((ptr == NULL)&&(data == NULL)) {
     int i = 0;
     if ( len > kno_bigvec_threshold) {
@@ -533,9 +527,8 @@ KNO_EXPORT lispval kno_make_nvector(int len,...)
 {
   va_list args; int i = 0;
   lispval result, *elts;
-  if (len<0) {
-    kno_seterr("NegativeLength","kno_make_nvector",NULL,KNO_INT(len));
-    return KNO_ERROR;}
+  if (len<0)
+    return kno_err("NegativeLength","kno_make_nvector",NULL,KNO_INT(len));
   va_start(args,len);
   result = kno_empty_vector(len);
   elts = KNO_VECTOR_ELTS(result);
@@ -547,9 +540,8 @@ KNO_EXPORT lispval kno_make_nvector(int len,...)
 KNO_EXPORT lispval kno_make_vector(int len,lispval *data)
 {
   int i = 0;
-  if (len<0) {
-    kno_seterr("NegativeLength","kno_make_vector",NULL,KNO_INT(len));
-    return KNO_ERROR;}
+  if (len<0)
+    return kno_err("NegativeLength","kno_make_vector",NULL,KNO_INT(len));
   int use_big_alloc = (len > kno_bigvec_threshold);
   struct KNO_VECTOR *ptr =
     (use_big_alloc) ?
@@ -572,9 +564,8 @@ KNO_EXPORT lispval kno_make_vector(int len,lispval *data)
 KNO_EXPORT lispval kno_init_packet
   (struct KNO_STRING *ptr,int len,const unsigned char *data)
 {
-  if (len<0) {
-    kno_seterr("NegativeLength","kno_init_packet",NULL,KNO_INT(len));
-    return KNO_ERROR;}
+  if (len<0)
+    return kno_err("NegativeLength","kno_init_packet",NULL,KNO_INT(len));
   else if ((ptr == NULL)&&(data == NULL))
     return kno_make_packet(ptr,len,data);
   if (ptr == NULL) {
@@ -593,9 +584,8 @@ KNO_EXPORT lispval kno_make_packet
   (struct KNO_STRING *ptr,int len,const unsigned char *data)
 {
   u8_byte *bytes = NULL; int freedata = 1;
-  if (len<0) {
-    kno_seterr("NegativeLength","kno_make_packet",NULL,KNO_INT(len));
-    return KNO_ERROR;}
+  if (len<0)
+    return kno_err("NegativeLength","kno_make_packet",NULL,KNO_INT(len));
   else if (ptr == NULL) {
     ptr = u8_malloc(KNO_STRING_LEN+len+1);
     bytes = ((u8_byte *)ptr)+KNO_STRING_LEN;
@@ -617,9 +607,8 @@ KNO_EXPORT lispval kno_bytes2packet
 {
   struct KNO_STRING *ptr = NULL;
   u8_byte *bytes = NULL; int freedata = (data!=NULL);
-  if (len<0) {
-    kno_seterr("NegativeLength","kno_bytes2packet",NULL,KNO_INT(len));
-    return KNO_ERROR;}
+  if (len<0)
+    return kno_err("NegativeLength","kno_bytes2packet",NULL,KNO_INT(len));
   else if (use_ptr == NULL) {
     ptr = u8_malloc(KNO_STRING_LEN+len+1);
     bytes = ((u8_byte *)ptr)+KNO_STRING_LEN;
@@ -732,9 +721,8 @@ KNO_EXPORT lispval kno_badptr_err(lispval result,u8_context cxt,
                                 u8_string details)
 {
   if (errno) u8_graberrno(cxt,u8_strdup(details));
-  kno_seterr( get_pointer_exception(result), cxt,
-             details, KNO_UINT2DTYPE(result) );
-  return KNO_ERROR;
+  return kno_err( get_pointer_exception(result), cxt,
+                  details, KNO_UINT2DTYPE(result) );
 }
 
 /* Testing */

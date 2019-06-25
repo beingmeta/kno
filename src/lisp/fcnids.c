@@ -108,9 +108,8 @@ KNO_EXPORT lispval kno_set_fcnid(lispval id,lispval value)
 
 KNO_EXPORT int kno_deregister_fcnid(lispval id,lispval value)
 {
-  if (!(KNO_FCNIDP(id))) {
-    kno_seterr(kno_TypeError,"kno_degister_fcnid","fcnid",id);
-    return -1;}
+  if (!(KNO_FCNIDP(id)))
+    return KNO_ERR(-1,kno_TypeError,"kno_degister_fcnid","fcnid",id);
   else if (!(CONSP(value)))
     return 0;
   else if (!((KNO_FUNCTIONP(value))||
@@ -123,15 +122,13 @@ KNO_EXPORT int kno_deregister_fcnid(lispval id,lispval value)
     int block_off = serialno%KNO_FCNID_BLOCKSIZE;
     if (serialno>=_kno_fcnid_count) {
       u8_unlock_mutex(&_kno_fcnid_lock);
-      kno_seterr(kno_InvalidFCNID,"kno_set_fcnid",NULL,id);
-      return -1;}
+      return KNO_ERR(-1,kno_InvalidFCNID,"kno_set_fcnid",NULL,id);}
     else {
       struct KNO_CONS **block=_kno_fcnids[block_num];
       if (!(block)) {
         /* We should never get here, but let's check anyway */
         u8_unlock_mutex(&_kno_fcnid_lock);
-        kno_seterr(kno_InvalidFCNID,"kno_set_fcnid",NULL,id);
-        return -1;}
+        return KNO_ERR(-1,kno_InvalidFCNID,"kno_set_fcnid",NULL,id);}
       else {
         struct KNO_CONS *current = block[block_off];
         /* No longer registered */

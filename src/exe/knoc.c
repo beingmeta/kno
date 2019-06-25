@@ -71,9 +71,7 @@ static int set_prompt(lispval ignored,lispval v,void *vptr)
       *ptr = u8_strdup(data);
     else *ptr = u8_string_append("#|",data,"|# ",NULL);
     return 1;}
-  else {
-    kno_seterr(kno_TypeError,"set_prompt",_("prompt is not a string"),v);
-    return -1;}
+  else return KNO_ERR(-1,kno_TypeError,"set_prompt",_("prompt is not a string"),v);
 }
 
 #include "main.c"
@@ -231,9 +229,8 @@ static lispval histref_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval history = kno_thread_get(history_symbol);
   if (KNO_ABORTP(history))
     return history;
-  else if (VOIDP(history)) {
-    kno_seterr("NoActiveHistory","histref_evalfn",NULL,KNO_VOID);
-    return KNO_ERROR_VALUE;}
+  else if (VOIDP(history))
+    return kno_err("NoActiveHistory","histref_evalfn",NULL,KNO_VOID);
   else NO_ELSE;
   lispval root = kno_get_arg(expr,1);
   lispval val = kno_history_ref(history,root);
@@ -351,9 +348,8 @@ static lispval read_command(u8_input in,int iscmd,kno_lexenv env)
       arg = kno_init_string(NULL,argout.u8_write-argout.u8_outbuf,
                            argout.u8_outbuf);}
     if (n >= KNO_MAX_COMMAND_LENGTH) {
-      kno_seterr("TooManyCommandArgs","stream_read",NULL,KNO_VOID);
       kno_decref_vec(cmds,n);
-      return KNO_ERROR;}
+      return kno_err("TooManyCommandArgs","stream_read",NULL,KNO_VOID);}
     cmds[n++] = arg;
     /* Add environment */
     if (n == 1) cmds[n++] = kno_incref((lispval)env);
@@ -418,9 +414,8 @@ static lispval stream_read(u8_input in,kno_lexenv env)
         arg = kno_init_string(NULL,argout.u8_write-argout.u8_outbuf,
                              argout.u8_outbuf);}
       if (n >= KNO_MAX_COMMAND_LENGTH) {
-        kno_seterr("TooManyCommandArgs","stream_read",NULL,KNO_VOID);
         kno_decref_vec(cmds,n);
-        return KNO_ERROR;}
+        return kno_err("TooManyCommandArgs","stream_read",NULL,KNO_VOID);}
       cmds[n++] = arg;
       nextc = swallow_hspace(in);}
     if (n == 0)
@@ -667,12 +662,9 @@ static int bugdir_config_set(lispval var,lispval val,void *d)
     *bugdir = u8_abspath(KNO_CSTRING(val),NULL);
     if (old_dir) u8_free(old_dir);
     return 1;}
-  else if (KNO_STRINGP(val)) {
-    kno_seterr("BadConsoleBugDir","bugdir_config_set",KNO_CSTRING(val),val);
-    return -1;}
-  else {
-    kno_seterr("BadConsoleBugDir","bugdir_config_set",NULL,val);
-    return -1;}
+  else if (KNO_STRINGP(val))
+    return KNO_ERR(-1,"BadConsoleBugDir","bugdir_config_set",KNO_CSTRING(val),val);
+  else return KNO_ERR(-1,"BadConsoleBugDir","bugdir_config_set",NULL,val);
 }
 
 /* Load dot files into the console */

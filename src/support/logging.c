@@ -179,9 +179,8 @@ static int config_add_logfn(lispval var,lispval val,void *data)
 {
   lispval arity = -1;
   if (KNO_FUNCTIONP(val)) arity = KNO_FUNCTION_ARITY(val);
-  if (arity!=3) {
-    kno_seterr(kno_TypeError,"config_add_logfn","log function",val);
-    return -1;}
+  if (arity!=3)
+    return KNO_ERR(-1,kno_TypeError,"config_add_logfn","log function",val);
   use_kno_logger(); kno_incref(val);
   u8_lock_mutex(&log_lock);
   CHOICE_ADD(kno_logfns,val);
@@ -206,9 +205,8 @@ static int config_set_reqloglevel(lispval var,lispval val,void *data)
     else return 0;}
   else if (FIXNUMP(val)) {
     long long level = FIX2INT(val);
-    if ((level>INT_MAX)||(level<INT_MIN)) {
-      kno_seterr("Invalid loglevel","config_set_reqloglevel",NULL,val);
-      return -1;}
+    if ((level>INT_MAX)||(level<INT_MIN))
+      return KNO_ERR(-1,"Invalid loglevel","config_set_reqloglevel",NULL,val);
     if (level == req_loglevel) return 0;
     else if (level>=0) use_kno_logger();
     else {}
@@ -235,9 +233,8 @@ static int config_set_reqlogonly(lispval var,lispval val,void *data)
     else return 0;}
   else if (FIXNUMP(val)) {
     long long level = FIX2INT(val);
-    if ((level>INT_MAX)||(level<INT_MIN)) {
-      kno_seterr("Invalid loglevel","config_set_reqloglevel",NULL,val);
-      return -1;}
+    if ((level>INT_MAX)||(level<INT_MIN))
+      return KNO_ERR(-1,"Invalid loglevel","config_set_reqloglevel",NULL,val);
     if (level == req_logonly) return 0;
     else if (level>=0) use_kno_logger();
     else {}

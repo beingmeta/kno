@@ -744,9 +744,8 @@ static int serve_pool(lispval var,lispval val,void *data)
   else return kno_reterr(kno_NotAPool,"serve_pool",NULL,val);
   if (p)
     if (served_poolp(p)) return 0;
-    else if (n_served_pools>=KNO_DBSERV_MAX_POOLS) {
-      kno_seterr(_("too many pools to serve"),"serve_pool",NULL,val);
-      return -1;}
+    else if (n_served_pools>=KNO_DBSERV_MAX_POOLS)
+      return KNO_ERR(-1,_("too many pools to serve"),"serve_pool",NULL,val);
     else {
       u8_logf(LOG_NOTICE,"SERVE_POOL","Serving objects from %s",p->poolid);
       served_pools[n_served_pools++]=p;

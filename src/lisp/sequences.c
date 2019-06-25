@@ -100,9 +100,8 @@ KNO_EXPORT lispval kno_seq_elt(lispval x,int i)
     case kno_vector_type:
       if (i>=VEC_LEN(x)) return KNO_RANGE_ERROR;
       else return kno_incref(VEC_REF(x,i));
-    case kno_secret_type: {
-      kno_seterr(kno_SecretData,"kno_seq_elt",NULL,x);
-      return -2;}
+    case kno_secret_type:
+      return KNO_ERR(-2,kno_SecretData,"kno_seq_elt",NULL,x);
     case kno_packet_type:
       if (i>=KNO_PACKET_LENGTH(x))
         return KNO_RANGE_ERROR;
@@ -111,9 +110,8 @@ KNO_EXPORT lispval kno_seq_elt(lispval x,int i)
         return KNO_INT(val);}
     case kno_compound_type: {
       int len; lispval *elts = compound2vector(x,&len);
-      if (elts == NULL) {
-        kno_seterr("NotACompoundVector","kno_seq_elt",NULL,x);
-        return KNO_ERROR_VALUE;}
+      if (elts == NULL)
+        return kno_err("NotACompoundVector","kno_seq_elt",NULL,x);
       else if (i>=len)
         return KNO_RANGE_ERROR;
       else return kno_incref(elts[i]);}
@@ -257,12 +255,11 @@ KNO_EXPORT lispval kno_slice(lispval x,int start,int end)
 KNO_EXPORT int kno_position(lispval key,lispval seq,int start,int limit)
 {
   int ctype = KNO_PTR_TYPE(seq), len = seq_length(seq);
-  if (len<0) {
-    kno_seterr("NotASequence","kno_position",NULL,seq);
-    return -2;}
-  else if (ctype == kno_secret_type) {
-    kno_seterr(kno_SecretData,"kno_position",NULL,seq);
-    return -2;}
+  if (len<0)
+    return KNO_ERR(-2,"NotASequence","kno_position",NULL,seq);
+  else if (ctype == kno_secret_type)
+    return KNO_ERR(-2,kno_SecretData,"kno_position",NULL,seq);
+  else NO_ELSE;
   int end = (limit<0)?(len+limit+1):(limit>len)?(len):(limit);
   int delta = (start<end)?(1):(-1);
   int min = ((start<end)?(start):(end)), max = ((start<end)?(end):(start));
@@ -345,9 +342,7 @@ KNO_EXPORT int kno_position(lispval key,lispval seq,int start,int limit)
         return (kno_seqfns[ctype]->position)(key,seq,start,end);
       else if (kno_seqfns[ctype])
         return kno_generic_position(key,seq,start,end);
-      else {
-        kno_seterr(_("Not a sequence"),"kno_position",NULL,seq);
-        return -2;}}
+      else return KNO_ERR(-2,_("Not a sequence"),"kno_position",NULL,seq);}
 }
 
 KNO_EXPORT int kno_rposition(lispval key,lispval x,int start,int end)
@@ -459,10 +454,9 @@ KNO_EXPORT int kno_search(lispval subseq,lispval seq,int start,int end)
     const u8_byte *starts = string_start(CSTRING(seq),start), *found;
     if (starts == NULL) {
       char buf[128];
-      kno_seterr(kno_RangeError,"kno_search",
-                 u8_bprintf(buf,"%d:%d",start,end),
-                 seq);
-      return -2;}
+      return KNO_ERR(-2,kno_RangeError,"kno_search",
+                     u8_bprintf(buf,"%d:%d",start,end),
+                     seq);}
     found = strstr(starts,CSTRING(subseq));
     if (end<0) {
       if (found) return start+u8_strlen_x(starts,found-starts);
@@ -477,21 +471,13 @@ KNO_EXPORT int kno_search(lispval subseq,lispval seq,int start,int end)
     return -1;
   else {
     int ctype = KNO_PTR_TYPE(seq), keytype = KNO_PTR_TYPE(subseq);
-    if (ctype == kno_secret_type) {
-      kno_seterr(kno_SecretData,"kno_seq_search",NULL,seq);
-      return -2;}
-    else if (keytype == kno_secret_type) {
-      kno_seterr(kno_SecretData,"kno_seq_search",NULL,subseq);
-      return -2;}
+    if (ctype == kno_secret_type)
+      return KNO_ERR(-2,kno_SecretData,"kno_seq_search",NULL,seq);
+    else if (keytype == kno_secret_type)
+      return KNO_ERR(-2,kno_SecretData,"kno_seq_search",NULL,seq);
     else if ((kno_seqfns[ctype]) && (kno_seqfns[ctype]->search) &&
         ((kno_seqfns[ctype]->search)!=kno_search))
       return (kno_seqfns[ctype]->search)(subseq,seq,start,end);
-    else if (KNO_SECRETP(seq)) {
-      kno_seterr(kno_SecretData,"kno_seq_search",NULL,seq);
-      return -2;}
-    else if (KNO_SECRETP(subseq)) {
-      kno_seterr(kno_SecretData,"kno_seq_search",NULL,subseq);
-      return -2;}
     else if ((PACKETP(seq)) && (PACKETP(subseq)))
       return packet_search(subseq,seq,start,end);
     else if ((VECTORP(seq)) && (VECTORP(subseq)))
@@ -623,9 +609,8 @@ lispval *kno_seq_elts(lispval seq,int *n)
     case kno_compound_type: {
       int i = 0, len; lispval *elts = compound2vector(seq,&len);
       if (elts == NULL) {
-        kno_seterr("NotACompoundVector","kno_seq_elts",NULL,seq);
         *n = -1;
-        return NULL;}
+        return KNO_ERR(NULL,"NotACompoundVector","kno_seq_elts",NULL,seq);}
       while (i<len) {
         lispval v = elts[i];
         vec[i] = kno_incref(v);

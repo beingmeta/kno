@@ -431,11 +431,9 @@ KNO_EXPORT int kno_config_rlimit_set(lispval ignored,lispval v,void *vptr)
   int retval = getrlimit(nrl->code,&rlim); rlim_t setval;
   if ((FIXNUMP(v))||(KNO_BIGINTP(v))) {
     long lval = kno_getint(v);
-    if (lval<0) {
-      kno_incref(v);
-      kno_seterr(kno_TypeError,"kno_config_rlimit_set",
-               "resource limit (integer)",v);
-      return -1;}
+    if (lval<0)
+      return KNO_ERR(-1,kno_TypeError,"kno_config_rlimit_set",
+                     "resource limit (integer)",v);
     else setval = lval;}
   else if (FALSEP(v)) setval = (RLIM_INFINITY);
   else if ((STRINGP(v))&&
@@ -446,18 +444,14 @@ KNO_EXPORT int kno_config_rlimit_set(lispval ignored,lispval v,void *vptr)
             (strcasecmp(CSTRING(v),"false")==0)||
             (strcasecmp(CSTRING(v),"none")==0)))
     setval = (RLIM_INFINITY);
-  else {
-    kno_incref(v);
-    kno_seterr(kno_TypeError,"kno_config_rlimit_set",
-              "resource limit (integer)",v);
-    return -1;}
+  else return KNO_ERR(-1,kno_TypeError,"kno_config_rlimit_set",
+                      "resource limit (integer)",v);
   if (retval<0) {
     u8_condition cond = u8_strerror(errno); errno = 0;
     return kno_err(cond,"rlimit_get",u8_strdup(nrl->name),VOID);}
-  else if (setval>rlim.rlim_max) {
+  else if (setval>rlim.rlim_max)
     /* Should be more informative */
-    kno_seterr(_("RLIMIT too high"),"set_rlimit",nrl->name,VOID);
-    return -1;}
+    return KNO_ERR(-1,_("RLIMIT too high"),"set_rlimit",nrl->name,VOID);
   if (setval == rlim.rlim_cur)
     u8_log(LOG_WARN,SetRLimit,
            "Setting for %s did not need to change",
@@ -572,8 +566,7 @@ static int config_setrandomseed(lispval var,lispval val,void *data)
     time_t tick = time(NULL);
     if (tick<0) {
       u8_graberrno("time",NULL);
-      kno_seterr2(TimeFailed,"setrandomseed");
-      return -1;}
+      return KNO_ERR2(-1,TimeFailed,"setrandomseed");}
     else {
       randomseed = (unsigned int)tick;
       u8_randomize(randomseed);
@@ -674,8 +667,7 @@ static int resolve_uid(lispval val)
 #endif
     if ((retval<0)||(uinfo == NULL)) {
       if (errno) u8_graberr(errno,"resolve_uid",NULL);
-      kno_seterr("BadUser","resolve_uid",NULL,val);
-      return (u8_uid) -1;}
+      return KNO_ERR(((u8_uid) -1),"BadUser","resolve_uid",NULL,val);}
     else return uinfo->pw_uid;}
   else return kno_type_error("userid","resolve_uid",val);
 #else
@@ -696,8 +688,7 @@ static int resolve_gid(lispval val)
 #endif
     if ((retval<0)||(ginfo == NULL)) {
       if (errno) u8_graberr(errno,"resolve_gid",NULL);
-      kno_seterr("BadGroup","resolve_gid",NULL,val);
-      return (u8_uid) -1;}
+      return KNO_ERR(((u8_uid) -1),"BadGroup","resolve_gid",NULL,val);}
     else return ginfo->gr_gid;}
   else return kno_type_error("groupid","resolve_gid",val);
 #else
@@ -757,16 +748,14 @@ static int config_setuser(lispval var,lispval val,void *data)
     if (rv<0) {
       u8_graberr(errno,"config_setuser",NULL);
       u8_log(LOG_CRIT,"Can't set user","Can't change user ID from %d",cur_uid);
-      kno_seterr("CantSetUser","config_setuser",NULL,uid);
-      return -1;}
+      return KNO_ERR(-1,"CantSetUser","config_setuser",NULL,uid);}
     return 1;}
 }
 #else
 static int config_setuser(lispval var,lispval val,void *kno_vecelts)
 {
   u8_log(LOG_CRIT,"Can't set user","Can't change user ID in this OS");
-  kno_seterr("SystemCantSetUser","config_setuser",NULL,val);
-  return -1;
+  return KNO_ERR(-1,"SystemCantSetUser","config_setuser",NULL,val);
 }
 #endif
 
@@ -796,16 +785,14 @@ static int config_setgroup(lispval var,lispval val,void *data)
     if (rv<0) {
       u8_graberr(errno,"config_setgroup",NULL);
       u8_log(LOG_CRIT,"Can't set group","Can't change group ID from %d",cur_gid);
-      kno_seterr("CantSetGroup","config_setgroup",NULL,gid);
-      return -1;}
+      return KNO_ERR(-1,"CantSetGroup","config_setgroup",NULL,gid);}
     return 1;}
 }
 #else
 static int config_setgroup(lispval var,lispval val,void *kno_vecelts)
 {
   u8_log(LOG_CRIT,"Can't set group","Can't change group ID in this OS");
-  kno_seterr("SystemCantSetGroup","config_setgroup",NULL,val);
-  return -1;
+  return KNO_ERR(-1,"SystemCantSetGroup","config_setgroup",NULL,val);
 }
 #endif
 
@@ -887,9 +874,7 @@ static int rlimit_set(lispval symbol,lispval value,void *rlimit_id)
   else if (TYPEP(value,kno_bigint_type))
     limit.rlim_cur =
       kno_bigint_to_long_long((struct KNO_BIGINT *)(value));
-  else {
-    kno_seterr(kno_TypeError,"rlimit_set",NULL,value);
-    return -1;}
+  else return KNO_ERR(-1,kno_TypeError,"rlimit_set",NULL,value);
   rv = setrlimit(RLIMIT_ID,&limit);
   if (rv<0) {
     u8_graberr(errno,"rlimit_set",KNO_SYMBOL_NAME(symbol));
@@ -916,9 +901,7 @@ static int stdout_config_set(lispval var,lispval val,void *data)
       u8_graberrno("stdout_config_set/dup",u8_strdup(filename));
       close(fd);}
     return rv;}
-  else {
-    kno_seterr("Not a filename","stdout_config_set",NULL,val);
-    return -1;}
+  else return KNO_ERR(-1,"Not a filename","stdout_config_set",NULL,val);
 }
 
 static int stderr_config_set(lispval var,lispval val,void *data)
@@ -938,18 +921,15 @@ static int stderr_config_set(lispval var,lispval val,void *data)
       *save_filename = u8_strdup(filename+1);
     else *save_filename = u8_strdup(filename);
     return rv;}
-  else {
-    kno_seterr("Not a filename","stderr_config_set",NULL,val);
-    return -1;}
+  else return KNO_ERR(-1,"Not a filename","stderr_config_set",NULL,val);
 }
 
 static int stdin_config_set(lispval var,lispval val,void *data)
 {
   if (KNO_STRINGP(val)) {
     u8_string filename = KNO_CSTRING(val);
-    if (!(u8_file_existsp(filename))) {
-      kno_seterr("MissingFile","stdin_config_set",filename,KNO_VOID);
-      return -1;}
+    if (!(u8_file_existsp(filename)))
+      return KNO_ERR(-1,"MissingFile","stdin_config_set",filename,KNO_VOID);
     else {
       int fd = open(filename,O_RDONLY,0664), rv=0;
       if (fd<0) {
@@ -959,9 +939,7 @@ static int stdin_config_set(lispval var,lispval val,void *data)
         u8_graberrno("stdin_config_set/dup",u8_strdup(filename));
         close(fd);}
       return rv;}}
-  else {
-    kno_seterr("Not a filename","stdin_config_set",NULL,val);
-    return -1;}
+  else return KNO_ERR(-1,"Not a filename","stdin_config_set",NULL,val);
 }
 
 /* Setting a pid file */
@@ -976,9 +954,8 @@ static int pidfile_config_set(lispval var,lispval val,void *data)
     filename=u8_abspath(basename,NULL);
     u8_free(basename);}
   else filename = NULL;
-  if (filename == NULL) {
-    kno_seterr("BadPIDFilename","pidfile_config_set",NULL,val);
-    return -1;}
+  if (filename == NULL)
+    return KNO_ERR(-1,"BadPIDFilename","pidfile_config_set",NULL,val);
   if (*fname_ptr) {
     if ( ( (*fname_ptr) == filename ) ||
          ( strcmp((*fname_ptr),filename) == 0 ) )

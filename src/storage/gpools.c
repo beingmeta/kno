@@ -71,9 +71,7 @@ static int gpool_load(kno_pool p)
   if (FIXNUMP(value)) return FIX2INT(value);
   else if (KNO_ABORTP(value))
     return kno_interr(value);
-  else {
-    kno_seterr(kno_BadServerResponse,"POOL-LOAD",NULL,value);
-    return -1;}
+  else return KNO_ERR(-1,kno_BadServerResponse,"POOL-LOAD",NULL,value);
 }
 
 static lispval gpool_fetch(kno_pool p,lispval oid)
@@ -99,10 +97,8 @@ static lispval *gpool_fetchn(kno_pool p,int n,lispval *oids)
     if (vstruct->str_freebytes) u8_free(vstruct->vec_elts);
     u8_free((struct KNO_CONS *)value);
     return results;}
-  else {
-    kno_seterr(kno_BadServerResponse,"netpool_fetchn",
-              np->poolid,kno_incref(value));
-    return NULL;}
+  else return KNO_ERR(NULL,kno_BadServerResponse,"netpool_fetchn",
+                      np->poolid,kno_incref(value));
 }
 
 static int gpool_lock(kno_pool p,lispval oid)

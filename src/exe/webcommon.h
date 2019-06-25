@@ -483,9 +483,8 @@ static lispval get_web_handler(kno_lexenv env,u8_string src)
   if (!(KNO_APPLICABLEP(handler))) {
       u8_log(LOG_CRIT,"ServletMainNotApplicable",
              "From default environment: %q",handler);
-      kno_seterr("ServletMainNotApplicable","get_web_handler",
-                src,handler);
-      return KNO_ERROR;}
+      return kno_err("ServletMainNotApplicable","get_web_handler",
+                     src,handler);}
   else return handler;
 }
 

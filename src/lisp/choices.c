@@ -233,8 +233,7 @@ struct KNO_CHOICE *kno_cleanup_choice(struct KNO_CHOICE *ch,unsigned int flags)
   if (ch == NULL) {
     u8_log(LOG_CRIT,"kno_cleanup_choice",
            "The argument to kno_cleanup_choice is NULL");
-    kno_seterr2("choice arg is NULL","kno_make_choice");
-    return NULL;}
+    return KNO_ERR2(NULL,_("choice arg is NULL"),"kno_make_choice");}
   else {
     int atomicp = 1; int n = ch->choice_size;
     lispval *base = &(ch->choice_0), *scan = base, *limit = scan+n;
@@ -278,9 +277,8 @@ lispval kno_init_choice
       (KNO_NULL);
     if (ch) kno_free_choice(ch);
     if ((data) && (flags&KNO_CHOICE_FREEDATA)) u8_free(data);
-    if (elt == KNO_NULL) {
-      kno_seterr2(_("BadInitData"),"kno_init_choice");
-      return KNO_ERROR;}
+    if (elt == KNO_NULL)
+      return kno_err2(_("BadInitData"),"kno_init_choice");
     else {
       return elt;}}
   else if (ch == NULL) {

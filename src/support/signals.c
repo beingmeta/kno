@@ -97,9 +97,7 @@ static int arg2signum(lispval arg)
   else sig = -1;
   if ((sig>1)&&(sig<32))
     return sig;
-  else {
-    kno_seterr(kno_TypeError,"arg2signum",NULL,arg);
-    return -1;}
+  else return KNO_ERR(-1,kno_TypeError,"arg2signum",NULL,arg);
 }
 
 static lispval sigconfig_getfn(lispval var,void *data)

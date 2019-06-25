@@ -17,9 +17,8 @@ static int testeval(lispval expr,kno_lexenv env,lispval *whoops,
     *whoops = val;
     return -1;}
   else if (KNO_VOIDP(val)) {
-    kno_seterr(kno_VoidBoolean,"testeval",NULL,expr);
     *whoops = KNO_ERROR;
-    return -1;}
+    return KNO_ERR(-1,kno_VoidBoolean,"testeval",NULL,expr);}
   else if (KNO_FALSEP(val))
     return 0;
   else {
@@ -65,9 +64,8 @@ KNO_FASTOP lispval eval_inner_body(u8_context cxt,u8_string label,
   lispval body = kno_get_body(expr,offset);
   if (KNO_EMPTY_LISTP(body))
     return KNO_VOID;
-  else if (!(KNO_PAIRP(body))) {
-    kno_seterr(kno_SyntaxError,"eval_body",label,expr);
-    return KNO_ERROR_VALUE;}
+  else if (!(KNO_PAIRP(body)))
+    return kno_err(kno_SyntaxError,"eval_body",label,expr);
   else return eval_body(body,inner_env,_stack,1);
 }
 

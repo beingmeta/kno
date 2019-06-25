@@ -144,9 +144,7 @@ static int parse_unicode_escape(u8_string arg)
       int code = -1;
       if (sscanf(s+1,"{%x}",&code)<1) code = -1;
       return code;}
-    else {
-      kno_seterr3(kno_BadEscapeSequence,"parse_unicode_escape",s);
-      return -1;}}
+    else return KNO_ERR3(-1,kno_BadEscapeSequence,"parse_unicode_escape",s);}
   else if (s[0] == 'U')
     if ((strlen(s)==9) &&
         (isxdigit(s[1])) && (isxdigit(s[2])) &&
@@ -160,12 +158,8 @@ static int parse_unicode_escape(u8_string arg)
       int code = -1;
       if (sscanf(s+1,"{%x}",&code)<1) code = -1;
       return code;}
-    else {
-      kno_seterr3(kno_BadEscapeSequence,"parse_unicode_escape",s);
-      return -1;}
-  else {
-    kno_seterr3(kno_BadEscapeSequence,"parse_unicode_escape",s);
-    return -1;}
+    else return KNO_ERR3(-1,kno_BadEscapeSequence,"parse_unicode_escape",s);
+  else return KNO_ERR3(-1,kno_BadEscapeSequence,"parse_unicode_escape",s);
 }
 
 /* This reads an escape sequence inside of a string.
@@ -194,9 +188,7 @@ static int read_escape(u8_input in)
       int code = -1;
       if (sscanf(buf,"%x",&code)<1) code = -1;
       return code;}
-    else {
-      kno_seterr3(kno_BadEscapeSequence,"parse_unicode_escape",NULL);
-      return -1;}}
+    else return KNO_ERR2(-1,kno_BadEscapeSequence,"parse_unicode_escape");}
   case 'u': {
     char buf[16]; int nc = u8_probec(in), len;
     if (nc=='{') {
@@ -214,14 +206,14 @@ static int read_escape(u8_input in)
     if (strlen(buf)==4) {
       if (sscanf(buf+1,"%o",&code)<1) code = -1;
       if (code<0)
-        kno_seterr3(kno_BadEscapeSequence,"read_escape",buf);
-      return code;}
+        return KNO_ERR3(code,kno_BadEscapeSequence,"read_escape",buf);
+      else return code;}
     else return -1;}
   case '&': {
     int code = u8_get_entity(in);
     if (code<0)
-      kno_seterr3(kno_BadEscapeSequence,"read_escape",NULL);
-    return code;}
+      return KNO_ERR3(code,kno_BadEscapeSequence,"read_escape",NULL);
+    else return code;}
   default:
     return c;
   }

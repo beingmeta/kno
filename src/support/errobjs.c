@@ -272,8 +272,7 @@ KNO_EXPORT lispval kno_type_error(u8_string type_name,u8_context cxt,lispval irr
 {
   u8_byte buf[512];
   u8_string msg = u8_sprintf(buf,512,_("object is not a %m"),type_name);
-  kno_seterr(kno_TypeError,cxt,msg,irritant);
-  return KNO_TYPE_ERROR;
+  return KNO_ERR(KNO_TYPE_ERROR,kno_TypeError,cxt,msg,irritant);
 }
 
 KNO_EXPORT void kno_set_type_error(u8_string type_name,lispval irritant)

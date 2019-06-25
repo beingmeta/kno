@@ -140,13 +140,11 @@ struct KNO_BLOOM *
 kno_init_bloom_filter(struct KNO_BLOOM *use_bloom,int entries,double error)
 {
   struct KNO_BLOOM *bloom = NULL;
-  if (entries < 1) {
-    kno_seterr(kno_TypeError,"kno_bloom_init","bad n_entries arg",KNO_INT(entries));
-    return NULL;}
-  else if (error <= 0) {
-    kno_seterr(kno_TypeError,"kno_bloom_init","bad allowed error value",
-              kno_make_double(error));
-    return NULL;}
+  if (entries < 1)
+    return KNO_ERR(NULL,kno_TypeError,"kno_bloom_init","bad n_entries arg",KNO_INT(entries));
+  else if (error <= 0)
+    return KNO_ERR(NULL,kno_TypeError,"kno_bloom_init","bad allowed error value",
+                   kno_make_double(error));
   else if (use_bloom == NULL)
     bloom = u8_alloc(struct KNO_BLOOM);
   else bloom = use_bloom;
@@ -189,13 +187,11 @@ kno_import_bloom_filter(struct KNO_BLOOM *use_bloom,
                        size_t n_bytes)
 {
   struct KNO_BLOOM *bloom = NULL;
-  if (entries < 1) {
-    kno_seterr(kno_TypeError,"kno_bloom_init","bad n_entries arg",KNO_INT(entries));
-    return NULL;}
-  else if (error <= 0) {
-    kno_seterr(kno_TypeError,"kno_bloom_init","bad allowed error value",
-              kno_make_double(error));
-    return NULL;}
+  if (entries < 1)
+    return KNO_ERR(NULL,kno_TypeError,"kno_bloom_init","bad n_entries arg",KNO_INT(entries));
+  else if (error <= 0)
+    return KNO_ERR(NULL,kno_TypeError,"kno_bloom_init","bad allowed error value",
+                   kno_make_double(error));
   else if (use_bloom == NULL)
     bloom = u8_alloc(struct KNO_BLOOM);
   else bloom = use_bloom;
@@ -253,10 +249,9 @@ int bloom_check_add_dtype(struct KNO_BLOOM *bloom,lispval key,
       rv=bloom_check_add(bloom,CSTRING(key),STRLEN(key),add);
     else if (PACKETP(key))
       rv=bloom_check_add(bloom,KNO_PACKET_DATA(key),KNO_PACKET_LENGTH(key),add);
-    else if (err) {
-      kno_seterr("Raw bloom arg wasn't a string or packet",
-                "bloom_check_add_dtype",NULL,key);
-      return -1;}
+    else if (err)
+      return KNO_ERR(-1,"Raw bloom arg wasn't a string or packet",
+                     "bloom_check_add_dtype",NULL,key);
     if (rv<0)
       u8_seterr("BadBloomFilter","bloom_check_add_dtype",NULL);
     return rv;}

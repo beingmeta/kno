@@ -499,12 +499,10 @@ KNO_FASTOP int fill_arbguf(struct KNO_FUNCTION *f,int n,
 {
   int arity = f->fcn_arity, min_arity = f->fcn_min_arity;
   lispval fptr = (lispval)f;
-  if ((min_arity>0) && (n<min_arity)) {
-    kno_seterr(kno_TooFewArgs,"kno_dapply",f->fcn_name,fptr);
-    return -1;}
-  else if ((arity>=0) && (n>arity)) {
-    kno_seterr(kno_TooManyArgs,"kno_dapply",f->fcn_name,fptr);
-    return -1;}
+  if ((min_arity>0) && (n<min_arity))
+    return KNO_ERR(-1,kno_TooFewArgs,"kno_dapply",f->fcn_name,fptr);
+  else if ((arity>=0) && (n>arity))
+    return KNO_ERR(-1,kno_TooManyArgs,"kno_dapply",f->fcn_name,fptr);
   else if ((arity<0)||(arity == n))
     return check_argbuf(f,n,argbuf,argvec);
   else {
@@ -1025,10 +1023,9 @@ KNO_EXPORT lispval make_tail_call(lispval fcn,int tcflags,int n,lispval *vec)
   struct KNO_FUNCTION *f = (struct KNO_FUNCTION *)fcn;
   if (PRED_FALSE(((f->fcn_arity)>=0) && (n>(f->fcn_arity)))) {
     u8_byte buf[64];
-    kno_seterr(kno_TooManyArgs,"kno_void_tail_call",
-              u8_sprintf(buf,64,"%d",n),
-              fcn);
-    return KNO_ERROR;}
+    return kno_err(kno_TooManyArgs,"kno_void_tail_call",
+                   u8_sprintf(buf,64,"%d",n),
+                   fcn);}
   else {
     int atomic = 1, nd = 0;
     lispval fcnid = f->fcnid;
@@ -1220,9 +1217,7 @@ static int config_add_profiled(lispval var,lispval val,void *data)
     fcn->fcn_profile=profile;
     *ptr = cur;
     return 1;}
-  else {
-    kno_seterr("Not a function","config_add_profiled",NULL,val);
-    return -1;}
+  else return KNO_ERR(-1,"Not a function","config_add_profiled",NULL,val);
 }
 
 /* Initializations */

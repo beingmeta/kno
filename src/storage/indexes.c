@@ -300,9 +300,7 @@ KNO_EXPORT kno_index kno_lisp2index(lispval lix)
       return index;}}
   else if (TYPEP(lix,kno_consed_index_type))
     return (kno_index) lix;
-  else {
-    kno_seterr(kno_TypeError,_("not an index"),NULL,lix);
-    return NULL;}
+  else return KNO_ERR(NULL,kno_TypeError,_("not an index"),NULL,lix);
 }
 
 KNO_EXPORT kno_index _kno_ref2index(lispval indexval)
@@ -895,9 +893,8 @@ KNO_EXPORT int _kno_index_add(kno_index ix,lispval key,lispval value)
   kno_hashtable adds = &(ix->index_adds), cache = &(ix->index_cache);
   kno_hashtable drops = &(ix->index_drops);
 
-  if (ix == NULL) {
-    kno_seterr("Not an index","_kno_index_add",NULL,KNO_VOID);
-    return -1;}
+  if (ix == NULL)
+    return KNO_ERR(-1,"Not an index","_kno_index_add",NULL,KNO_VOID);
   else if ( (EMPTYP(value)) || (EMPTYP(key)) )
     return 0;
   else if (U8_BITP(ix->index_flags,KNO_STORAGE_READ_ONLY)) {
@@ -908,9 +905,7 @@ KNO_EXPORT int _kno_index_add(kno_index ix,lispval key,lispval value)
       return rv;}
     else if (front)
       return kno_index_add(front,key,value);
-    else {
-      kno_seterr(kno_ReadOnlyIndex,"_kno_index_add/front",ix->indexid,KNO_VOID);
-      return -1;}}
+    else return KNO_ERR(-1,kno_ReadOnlyIndex,"_kno_index_add/front",ix->indexid,KNO_VOID);}
   else init_cache_level(ix);
 
   int decref_key = 0;
@@ -957,9 +952,8 @@ KNO_EXPORT int kno_index_drop(kno_index ix_arg,lispval key,lispval value)
   if ( (EMPTYP(key)) || (EMPTYP(value)) ) return 0;
 
   kno_index ix = kno_get_writable_index(ix_arg);
-  if (ix == NULL) {
-    kno_seterr(kno_ReadOnlyIndex,"_kno_index_drop",ix_arg->indexid,VOID);
-    return -1;}
+  if (ix == NULL)
+    return KNO_ERR(-1,kno_ReadOnlyIndex,"_kno_index_drop",ix_arg->indexid,VOID);
   else init_cache_level(ix);
 
   kno_hashtable cache = &(ix->index_cache);
@@ -1010,9 +1004,8 @@ KNO_EXPORT int kno_index_store(kno_index ix_arg,lispval key,lispval value)
 
   kno_index ix = kno_get_writable_index(ix_arg);
 
-  if (ix == NULL) {
-    kno_seterr(kno_ReadOnlyIndex,"_kno_index_store",ix_arg->indexid,VOID);
-    return -1;}
+  if (ix == NULL)
+    return KNO_ERR(-1,kno_ReadOnlyIndex,"_kno_index_store",ix_arg->indexid,VOID);
   else init_cache_level(ix);
 
   kno_hashtable cache = &(ix->index_cache);
@@ -1073,9 +1066,8 @@ static int merge_kv_into_adds(struct KNO_KEYVAL *kv,void *data)
 KNO_EXPORT int kno_index_merge(kno_index ix,kno_hashtable table)
 {
   kno_index into_index = kno_get_writable_index(ix);
-  if (into_index == NULL) {
-    kno_seterr(kno_ReadOnlyIndex,"kno_index_merge",ix->indexid,VOID);
-    return -1;}
+  if (into_index == NULL)
+    return KNO_ERR(-1,kno_ReadOnlyIndex,"kno_index_merge",ix->indexid,VOID);
   else init_cache_level(into_index);
 
   kno_hashtable adds = &(into_index->index_adds);
@@ -1093,9 +1085,8 @@ KNO_EXPORT int kno_index_merge(kno_index ix,kno_hashtable table)
 KNO_EXPORT int kno_batch_add(kno_index ix_arg,lispval table)
 {
   kno_index ix = kno_get_writable_index(ix_arg);
-  if (ix == NULL) {
-    kno_seterr(kno_ReadOnlyIndex,"_kno_batch_add",ix_arg->indexid,VOID);
-    return -1;}
+  if (ix == NULL)
+    return KNO_ERR(-1,kno_ReadOnlyIndex,"_kno_batch_add",ix_arg->indexid,VOID);
   else init_cache_level(ix);
   if (HASHTABLEP(table)) {
     int rv = kno_index_merge(ix,(kno_hashtable)table);

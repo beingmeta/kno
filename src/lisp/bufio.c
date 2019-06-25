@@ -313,13 +313,13 @@ KNO_EXPORT int _kno_unread_byte(struct KNO_INBUF *buf,int byte)
 {
   if (PRED_FALSE(KNO_ISWRITING(buf)))
     return kno_iswritebuf(buf);
-  else if (buf->bufread == buf->buffer) {
-    kno_seterr2(BadUnReadByte,"_kno_unread_byte");
-    return -1;}
-  else if (buf->bufread[-1]!=byte) {
-    kno_seterr2(BadUnReadByte,"_kno_unread_byte");
-    return -1;}
-  else {buf->bufread--; return 0;}
+  else if (buf->bufread == buf->buffer)
+    return KNO_ERR2(-1,BadUnReadByte,"_kno_unread_byte");
+  else if (buf->bufread[-1]!=byte)
+    return KNO_ERR2(-1,BadUnReadByte,"_kno_unread_byte");
+  else {
+    buf->bufread--;
+    return 0;}
 }
 
 KNO_EXPORT long long _kno_read_4bytes(struct KNO_INBUF *buf)
@@ -330,9 +330,7 @@ KNO_EXPORT long long _kno_read_4bytes(struct KNO_INBUF *buf)
     kno_4bytes value = kno_get_4bytes(buf->bufread);
     buf->bufread = buf->bufread+4;
     return value;}
-  else {
-    kno_seterr1(kno_UnexpectedEOD);
-    return -1;}
+  else return KNO_ERR1(-1,kno_UnexpectedEOD);
 }
 
 KNO_EXPORT kno_8bytes _kno_read_8bytes(struct KNO_INBUF *buf)
@@ -343,9 +341,7 @@ KNO_EXPORT kno_8bytes _kno_read_8bytes(struct KNO_INBUF *buf)
     kno_8bytes value = kno_get_8bytes(buf->bufread);
     buf->bufread = buf->bufread+8;
     return value;}
-  else {
-    kno_seterr1(kno_UnexpectedEOD);
-    return 0;}
+  else return KNO_ERR1(0,kno_UnexpectedEOD);
 }
 
 KNO_EXPORT int

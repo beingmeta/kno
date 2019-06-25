@@ -37,22 +37,14 @@ kno_pool kno_make_extpool(u8_string label,
                         lispval state,
                         lispval opts)
 {
-  if (!(PRED_TRUE(KNO_APPLICABLEP(fetchfn)))) {
-    kno_seterr(kno_TypeError,"kno_make_extpool","fetch function",
-              kno_incref(fetchfn));
-    return NULL;}
-  else if (!(KNO_ISFUNARG(savefn))) {
-    kno_seterr(kno_TypeError,"kno_make_extpool","save function",
-              kno_incref(savefn));
-    return NULL;}
-  else if (!(KNO_ISFUNARG(lockfn))) {
-    kno_seterr(kno_TypeError,"kno_make_extpool","lock function",
-              kno_incref(lockfn));
-    return NULL;}
-  else if (!(KNO_ISFUNARG(allocfn))) {
-    kno_seterr(kno_TypeError,"kno_make_extpool","alloc function",
-              kno_incref(allocfn));
-    return NULL;}
+  if (!(PRED_TRUE(KNO_APPLICABLEP(fetchfn))))
+    return KNO_ERR(NULL,kno_TypeError,"kno_make_extpool","fetch function",fetchfn);
+  else if (!(KNO_ISFUNARG(savefn)))
+    return KNO_ERR(NULL,kno_TypeError,"kno_make_extpool","save function",savefn);
+  else if (!(KNO_ISFUNARG(lockfn)))
+    return KNO_ERR(NULL,kno_TypeError,"kno_make_extpool","lock function",lockfn);
+  else if (!(KNO_ISFUNARG(allocfn)))
+    return KNO_ERR(NULL,kno_TypeError,"kno_make_extpool","alloc function",allocfn);
   else {
     struct KNO_EXTPOOL *xp = u8_alloc(struct KNO_EXTPOOL);
     kno_storage_flags flags = KNO_STORAGE_ISPOOL | KNO_POOL_VIRTUAL;
@@ -180,9 +172,8 @@ static int extpool_lock(kno_pool p,lispval oids)
         kno_hashtable_store(locks,oid,KNO_LOCKHOLDER);}
       else kno_hashtable_store(locks,oid,value);
       kno_decref(cur); kno_decref(value);}}
-  else if (FALSEP(xp->lockfn)) {
-    kno_seterr(kno_CantLockOID,"kno_pool_lock",p->poolid,kno_incref(oids));
-    return -1;}
+  else if (FALSEP(xp->lockfn))
+    return KNO_ERR(-1,kno_CantLockOID,"kno_pool_lock",p->poolid,oids);
   else {
     DO_CHOICES(oid,oids) {
       kno_hashtable_store(&(p->pool_changes),oids,KNO_LOCKHOLDER);}}
