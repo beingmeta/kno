@@ -46,26 +46,26 @@ static lispval config_get(lispval vars,lispval dflt,lispval valfn)
     else if (KNO_APPLICABLEP(valfn)) {
       lispval converted = kno_apply(valfn,1,&value);
       if (KNO_ABORTP(converted)) {
-        u8_log(LOG_WARN,"ConfigConversionError",
-               "Error converting config value of %q=%q using %q",
-               var,value,valfn);
-        kno_clear_errors(1);
-        kno_decref(value);}
+	u8_log(LOG_WARN,"ConfigConversionError",
+	       "Error converting config value of %q=%q using %q",
+	       var,value,valfn);
+	kno_clear_errors(1);
+	kno_decref(value);}
       else {
-        CHOICE_ADD(result,converted);
-        kno_decref(value);}}
+	CHOICE_ADD(result,converted);
+	kno_decref(value);}}
     else if ((KNO_STRINGP(value)) && (KNO_TRUEP(valfn))) {
       u8_string valstring = KNO_CSTRING(value);
       lispval parsed = kno_parse(valstring);
       if (KNO_ABORTP(parsed)) {
-        u8_log(LOG_WARN,"ConfigParseError",
-               "Error parsing config value of %q=%q",
-               var,value);
-        kno_clear_errors(1);
-        kno_decref(value);}
+	u8_log(LOG_WARN,"ConfigParseError",
+	       "Error parsing config value of %q=%q",
+	       var,value);
+	kno_clear_errors(1);
+	kno_decref(value);}
       else {
-        CHOICE_ADD(result,parsed);
-        kno_decref(value);}}
+	CHOICE_ADD(result,parsed);
+	kno_decref(value);}}
     else {
       CHOICE_ADD(result,value);}}
   if ( (VOIDP(result)) || (EMPTYP(result)) )
@@ -124,10 +124,11 @@ static lispval find_configs(lispval pat,lispval raw)
     u8_string keystring=
       ((STRINGP(key))?(CSTRING(key)):(SYM_NAME(key)));
     if ((STRINGP(pat))?(strcasestr(keystring,CSTRING(pat))!=NULL):
-        (TYPEP(pat,kno_regex_type))?(kno_regex_test(pat,keystring,-1)):
-        (0)) {
+	(TYPEP(pat,kno_regex_type))?(kno_regex_test(pat,keystring,-1)):
+	(0)) {
       CHOICE_ADD(results,config);
       kno_incref(config);}}
+  kno_decref(configs);
   return results;
 }
 
@@ -152,14 +153,14 @@ static int lconfig_set(lispval var,lispval val,void *data)
 
 static int reuse_lconfig(struct KNO_CONFIG_HANDLER *e);
 DCLPRIM3("CONFIG-DEF!",config_def,MIN_ARGS(2),
-         "`(CONFIG/DEF! *config_name* *handler* [*doc*])` Defines "
-         "the procedure *handler* as the config handler for the "
-         "*config_name* configuration setting, with *doc* if it's "
-         "provided. *handler* should be a function of 1 required and "
-         "one optional argument. If the second argument is provided, "
-         "the configuration setting is being set; otherwise, it is just "
-         "being requested.",
-         kno_symbol_type,KNO_VOID,-1,KNO_VOID,kno_string_type,KNO_VOID)
+	 "`(CONFIG/DEF! *config_name* *handler* [*doc*])` Defines "
+	 "the procedure *handler* as the config handler for the "
+	 "*config_name* configuration setting, with *doc* if it's "
+	 "provided. *handler* should be a function of 1 required and "
+	 "one optional argument. If the second argument is provided, "
+	 "the configuration setting is being set; otherwise, it is just "
+	 "being requested.",
+	 kno_symbol_type,KNO_VOID,-1,KNO_VOID,kno_string_type,KNO_VOID)
 static lispval config_def(lispval var,lispval handler,lispval docstring)
 {
   int retval;
@@ -187,24 +188,24 @@ KNO_EXPORT void kno_init_configops_c()
   u8_register_source_file(_FILEINFO);
 
   kno_idefn3(kno_scheme_module,"CONFIG",config_get,KNO_NEEDS_1_ARG,
-            "CONFIG *name* *default* *valfn*)\n"
-            "Gets the configuration value named *name*, returning *default* "
-            "if it isn't defined. *valfn*, if provided is either a function "
-            "to call on the retrieved value or #t to indicate that string "
-            "values should be parsed as lisp",
-            -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID);
+	     "CONFIG *name* *default* *valfn*)\n"
+	     "Gets the configuration value named *name*, returning *default* "
+	     "if it isn't defined. *valfn*, if provided is either a function "
+	     "to call on the retrieved value or #t to indicate that string "
+	     "values should be parsed as lisp",
+	     -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID);
 
   kno_def_evalfn(kno_scheme_module,"#CONFIG",
-                "#:CONFIG\"KNOVERSION\" or #:CONFIG:LOADPATH\n"
-                "evaluates to a value from the current configuration "
-                "environment",
-                config_macro);
+		 "#:CONFIG\"KNOVERSION\" or #:CONFIG:LOADPATH\n"
+		 "evaluates to a value from the current configuration "
+		 "environment",
+		 config_macro);
 
   kno_idefn(kno_scheme_module,
-           kno_make_ndprim(kno_make_cprimn("SET-CONFIG!",set_config,2)));
+	    kno_make_ndprim(kno_make_cprimn("SET-CONFIG!",set_config,2)));
   kno_defalias(kno_scheme_module,"CONFIG!","SET-CONFIG!");
   kno_idefn(kno_scheme_module,
-           kno_make_ndprim(kno_make_cprim2("CONFIG-DEFAULT!",config_default,2)));
+	    kno_make_ndprim(kno_make_cprim2("CONFIG-DEFAULT!",config_default,2)));
   kno_idefn(kno_scheme_module,kno_make_cprim2("FIND-CONFIGS",find_configs,1));
   kno_defalias(kno_scheme_module,"CONFIG?","FIND-CONFIGS");
 
