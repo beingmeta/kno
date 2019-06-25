@@ -1097,7 +1097,7 @@ static lispval modref_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval module = kno_get_arg(expr,1);
   lispval symbol = kno_get_arg(expr,2);
   if ((VOIDP(module))||(VOIDP(module)))
-    return kno_err(kno_SyntaxError,"modref_evalfn",NULL,kno_incref(expr));
+    return kno_err(kno_SyntaxError,"modref_evalfn",NULL,expr);
   else if (!(HASHTABLEP(module)))
     return kno_type_error("module hashtable","modref_evalfn",module);
   else if (!(SYMBOLP(symbol)))
@@ -1730,10 +1730,12 @@ static lispval require_version_prim(int n,lispval *args)
       if (!(KNO_FIXNUMP(args[i])))
         return kno_type_error("version number(integer)","require_version_prim",args[i]);
       else i++;}
+    lispval version_vec = kno_make_vector(n,args);
     kno_seterr("VersionError","require_version_prim",
                u8_sprintf(buf,50,"Version is %s",KNO_REVISION),
-               /* We don't need to incref *args* because they're all fixnums */
-               kno_make_vector(n,args));
+	       /* We don't need to incref *args* because they're all fixnums */
+	       version_vec);
+    kno_decref(version_vec);
     return KNO_ERROR;}
 }
 
