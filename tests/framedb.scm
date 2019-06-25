@@ -141,9 +141,9 @@
 		  (get-expr-atoms (cdr x)))
 	  ;; If we have a secret, we can't use it for indexing, so we
 	  ;; exclude it from atoms.
-	  (if (not (secret? x))
-	      x
-	      (fail)))))
+	  (if (or (secret? x))
+	      (fail)
+	      x))))
 (define (random-atom x)
   (if (unbound? x) {}
       (if (pair? x)
