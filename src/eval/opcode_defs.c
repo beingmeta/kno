@@ -398,7 +398,21 @@ static lispval d1_call(lispval opcode,lispval arg1)
   case KNO_NUMBERP_OPCODE:
     if (NUMBERP(arg1)) return KNO_TRUE; else return KNO_FALSE;
   case KNO_ZEROP_OPCODE:
-    if (arg1==KNO_INT(0)) return KNO_TRUE; else return KNO_FALSE;
+    if (arg1==KNO_INT(0))
+      return KNO_TRUE;
+    else if (KNO_FLONUMP(arg1))
+      if ( (KNO_FLONUM(arg1)) == 0.0)
+        return KNO_TRUE;
+      else return KNO_FALSE;
+    else if (!(KNO_NUMBERP(arg1)))
+      return KNO_FALSE;
+    else {
+      int cmp = kno_numcompare(arg1,KNO_INT(0));
+      if (cmp==0)
+        return KNO_TRUE;
+      else if (cmp>1)
+        return KNO_ERROR;
+      else return KNO_FALSE;}
   case KNO_VECTORP_OPCODE:
     if (VECTORP(arg1)) return KNO_TRUE; else return KNO_FALSE;
   case KNO_PAIRP_OPCODE:
@@ -633,8 +647,10 @@ static lispval nd2_call(lispval opcode,lispval arg1,lispval arg2)
     case KNO_CONTAINSP_OPCODE:
       if (EMPTYP(arg2))
         result = KNO_FALSE;
-      else if (EMPTYP(arg1))
+      else if (arg1 == arg2)
         result = KNO_TRUE;
+      else if (EMPTYP(arg1))
+        result = KNO_FALSE;
       else if (kno_containsp(arg1,arg2))
         result = KNO_TRUE;
       else result = KNO_FALSE;
