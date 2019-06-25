@@ -94,7 +94,7 @@ clean: tidy
 	rm -rf mongodb/dbdata;
 
 tidy testclean cleantests cleantest:
-	rm -rf *.log *.err *.done *.finished *.pid *.died *.elapsed
+	rm -rf *.log *.err *.done *.finished *.pid *.died *.elapsed *.cmd *.started
 	rm -rf tmp* utf8-temp* memoization.index *.dtype
 	rm -rf *.pool *.index *.flexpool *.flexindex
 	rm -rf logfile thirty2fifty thirtythree 
