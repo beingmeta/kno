@@ -387,7 +387,8 @@ KNO_EXPORT void recycle_lambda(struct KNO_RAW_CONS *c)
   u8_free(lambda->lambda_vars);
   if (lambda->lambda_inits) {
     kno_decref_vec(lambda->lambda_inits,n_vars);
-    u8_free(lambda->lambda_inits);}
+    u8_free(lambda->lambda_inits);
+    lambda->lambda_inits=NULL;}
   if ( (lambda->lambda_env) &&
        (lambda->lambda_env->env_copy) ) {
     kno_decref((lispval)(lambda->lambda_env->env_copy));
@@ -522,6 +523,8 @@ KNO_EXPORT lispval copy_lambda(lispval c,int flags)
       fresh->lambda_vars = kno_copy_vec(lambda->lambda_vars,n_vars,NULL,flags);
     if (lambda->fcn_defaults)
       fresh->fcn_defaults = kno_copy_vec(lambda->fcn_defaults,arity,NULL,flags);
+    if (lambda->lambda_inits) {
+      fresh->lambda_inits = kno_copy_vec(lambda->lambda_inits,arity,NULL,flags);}
 
     fresh->lambda_start = fresh->lambda_body;
     fresh->lambda_consblock = NULL;
