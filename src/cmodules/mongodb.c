@@ -3532,10 +3532,11 @@ KNO_EXPORT int kno_init_mongodb()
 
   kno_register_config("MONGODB:LOGLEVEL",
                      "Default flags (fixnum) for MongoDB/BSON processing",
-                     kno_intconfig_get,kno_intconfig_set,&mongodb_loglevel);
+                     kno_intconfig_get,kno_loglevelconfig_set,
+                      &mongodb_loglevel);
   kno_register_config("MONGO:MAXLOG",
                      "Controls which log messages are always discarded",
-                     kno_intconfig_get,kno_intconfig_set,
+                     kno_intconfig_get,kno_loglevelconfig_set,
                      &mongodb_ignore_loglevel);
   kno_register_config("MONGODB:LOGOPS",
                      "Whether to log mongodb operations",
