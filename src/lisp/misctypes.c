@@ -221,13 +221,16 @@ KNO_EXPORT lispval kno_make_regex(u8_string src,int flags)
   if (retval) {
     u8_byte buf[512];
     regerror(retval,&(ptr->rxcompiled),buf,512);
+    lispval src_string = kno_init_string(NULL,-1,src);
     u8_free(ptr);
-    return kno_err(kno_RegexError,"kno_make_regex",u8_strdup(buf),
-                  kno_init_string(NULL,-1,src));}
+    kno_seterr(kno_RegexError,"kno_make_regex",buf,src_string);
+    kno_decref(src_string);
+    return KNO_ERROR;}
   else {
     ptr->rxsrc = src;
     ptr->rxflags = flags;
-    u8_init_mutex(&(ptr->rx_lock)); ptr->rxactive = 1;
+    u8_init_mutex(&(ptr->rx_lock));
+    ptr->rxactive = 1;
     return LISP_CONS(ptr);}
 }
 
