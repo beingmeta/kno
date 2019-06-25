@@ -7,6 +7,7 @@
   (test-simple-server)
   ;; Need to fix cancel/kill leaks
   (test-proxy-server)
+  ;; (zeromq/shutdown!)
   )
 
 ;;; Simple tests
@@ -104,7 +105,6 @@
 	  (zmq/recv external-port)
 	  (set! remaining (thread/wait remaining 0.1))))
       (applytest #t thread/finished? workers)
-      (thread/terminate! proxy-thread)
       proxy-thread)))
 
 (define (workerfn dealer (fn #f) (running #t))
