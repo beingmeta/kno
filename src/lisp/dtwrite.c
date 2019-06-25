@@ -269,11 +269,11 @@ KNO_EXPORT ssize_t kno_write_dtype(struct KNO_OUTBUF *out,lispval x)
             kno_output_byte(out,0);
             return 3;}
         case 4: kno_output_byte(out,dt_empty_list); return 1;
+        case 20: {
+          kno_output_byte(out,dt_default_value);
+          return 1;}
         default:
-          if ( (data == 20) && ((out->buf_flags)&(KNO_USE_DTYPEV2)) ) {
-            kno_output_byte(out,dt_default_value);
-            return 1;}
-          else if ((out->buf_flags)&(KNO_WRITE_OPAQUE))
+          if ((out->buf_flags)&(KNO_WRITE_OPAQUE))
             return write_opaque(out,x);
           else {
             u8_log(LOG_CRIT,"InvalidConstantDType",

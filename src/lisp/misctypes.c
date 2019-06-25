@@ -204,6 +204,21 @@ static lispval timestamp_restore(lispval tag,lispval x,kno_compound_typeinfo e)
   else return kno_err(kno_DTypeError,"bad timestamp compound",NULL,x);
 }
 
+/* Restoring 'lispvals' which are basically strings to parse */
+
+static lispval lispval_symbol;
+
+static lispval lispval_restore(lispval tag,lispval x,kno_compound_typeinfo e)
+{
+  if (KNO_STRINGP(x)) {
+    lispval v = kno_parse(KNO_CSTRING(x));
+    if (KNO_ABORTP(v)) {
+      kno_clear_errors(0);
+      return kno_init_compound(NULL,lispval_symbol,KNO_COMPOUND_INCREF,1,x);}
+    else return v;}
+  else return kno_init_compound(NULL,lispval_symbol,KNO_COMPOUND_INCREF,1,x);
+}
+
 
 /* Regexes */
 
@@ -294,6 +309,14 @@ void kno_init_misctypes_c()
 
   kno_copiers[kno_timestamp_type]=copy_timestamp;
 
+  lispval_symbol = kno_intern("%lispval");
+  {
+    struct KNO_COMPOUND_TYPEINFO *e=
+      kno_register_compound(lispval_symbol,NULL,NULL);
+    e->compound_parser = NULL;
+    e->compound_dumpfn = NULL;
+    e->compound_restorefn = lispval_restore;}
+  kno_dtype_writers[kno_timestamp_type]=timestamp_dtype;
 
   u8_register_source_file(_FILEINFO);
 }

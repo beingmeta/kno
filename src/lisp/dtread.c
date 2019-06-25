@@ -153,7 +153,8 @@ KNO_EXPORT lispval kno_read_dtype(struct KNO_INBUF *in)
     case dt_empty_list: return NIL;
     case dt_void: return VOID;
     case dt_empty_choice: return EMPTY;
-    case dt_default_value: return KNO_DEFAULT_VALUE;
+    case dt_default_value:
+      return KNO_DEFAULT_VALUE;
     case dt_boolean:
       if (nobytes(in,1))
         return kno_return_errcode(KNO_EOD);
