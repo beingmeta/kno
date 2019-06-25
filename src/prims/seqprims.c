@@ -577,16 +577,16 @@ static lispval find_prim(lispval key,lispval x,lispval start_arg,lispval end_arg
 
 static lispval search_prim(lispval key,lispval x,lispval start_arg,lispval end_arg)
 {
-  int result, start, end; char buf[128];
+  int result, start, end;
   lispval check = check_range("search_prim",x,start_arg,end_arg,&start,&end);
-  if (KNO_ABORTED(check)) return check;
+  if (KNO_ABORTED(check))
+    return check;
   else result = kno_search(key,x,start,end);
   if (result>=0) return KNO_INT(result);
-  else if (result == -1) return KNO_FALSE;
-  else if (result == -2) {
-    return kno_err(kno_RangeError,"search_prim",
-                  u8_sprintf(buf,128,"%d:%d",start,end),
-                  x);}
+  else if (result == -1)
+    return KNO_FALSE;
+  else if (result == -2)
+    return KNO_ERROR;
   else if (result == -3)
     return kno_type_error(_("sequence"),"search_prim",x);
   else return result;

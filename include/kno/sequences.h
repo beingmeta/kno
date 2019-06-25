@@ -66,12 +66,15 @@ static U8_MAYBE_UNUSED int KNO_SEQUENCEP(lispval x)
   else return 0;
 }
 #else
-#define KNO_SEQUENCEP(x)                                          \
+#define KNO_SEQUENCEP(x)                                           \
   ( (KNO_CONSP(x)) ?                                               \
-  (  ||         \
-     ) :         \
+    ( ( (KNO_CONSPTR_TYPE(x) >= kno_string_type) &&                \
+        (KNO_CONSPTR_TYPE(x) <= kno_pair_type) ) ||                \
+      ( (kno_seqfns[KNO_CONSPTR_TYPE(x)] != NULL ) &&                   \
+        ( (kno_seqfns[KNO_CONSPTR_TYPE(x)]->sequencep == NULL ) ||      \
+          (kno_seqfns[KNO_CONSPTR_TYPE(x)]->sequencep(x)) ) ) ) :       \
     (KNO_IMMEDIATEP(x)) ?                                               \
-    (  ||                                          \
+    ( (x == KNO_EMPTY_LIST) ||                                          \
       ( (kno_seqfns[KNO_IMMEDIATE_TYPE(x)] != NULL ) &&                 \
         ( (kno_seqfns[KNO_IMMEDIATE_TYPE(x)]->sequencep == NULL ) ||    \
           (kno_seqfns[KNO_IMMEDIATE_TYPE(x)]->sequencep(x)) ) ) ) :     \

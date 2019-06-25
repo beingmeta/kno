@@ -19,9 +19,9 @@
 #include "kno/numbers.h"
 #include "kno/apply.h"
 
-
 #include <libu8/libu8.h>
 #include <libu8/u8stringfns.h>
+#include <libu8/u8printf.h>
 
 #include <limits.h>
 
@@ -100,7 +100,10 @@ KNO_EXPORT lispval kno_seq_elt(lispval x,int i)
     case kno_vector_type:
       if (i>=VEC_LEN(x)) return KNO_RANGE_ERROR;
       else return kno_incref(VEC_REF(x,i));
-    case kno_packet_type: case kno_secret_type:
+    case kno_secret_type: {
+      kno_seterr(kno_SecretData,"kno_seq_elt",NULL,x);
+      return -2;}
+    case kno_packet_type:
       if (i>=KNO_PACKET_LENGTH(x))
         return KNO_RANGE_ERROR;
       else {
@@ -454,8 +457,12 @@ KNO_EXPORT int kno_search(lispval subseq,lispval seq,int start,int end)
       return -1;
     else NO_ELSE;
     const u8_byte *starts = string_start(CSTRING(seq),start), *found;
-    if (starts == NULL)
-      return -2;
+    if (starts == NULL) {
+      char buf[128];
+      kno_seterr(kno_RangeError,"kno_search",
+                 u8_bprintf(buf,"%d:%d",start,end),
+                 seq);
+      return -2;}
     found = strstr(starts,CSTRING(subseq));
     if (end<0) {
       if (found) return start+u8_strlen_x(starts,found-starts);
@@ -472,13 +479,19 @@ KNO_EXPORT int kno_search(lispval subseq,lispval seq,int start,int end)
     int ctype = KNO_PTR_TYPE(seq), keytype = KNO_PTR_TYPE(subseq);
     if (ctype == kno_secret_type) {
       kno_seterr(kno_SecretData,"kno_seq_search",NULL,seq);
-      return -1;}
+      return -2;}
     else if (keytype == kno_secret_type) {
       kno_seterr(kno_SecretData,"kno_seq_search",NULL,subseq);
-      return -1;}
+      return -2;}
     else if ((kno_seqfns[ctype]) && (kno_seqfns[ctype]->search) &&
         ((kno_seqfns[ctype]->search)!=kno_search))
       return (kno_seqfns[ctype]->search)(subseq,seq,start,end);
+    else if (KNO_SECRETP(seq)) {
+      kno_seterr(kno_SecretData,"kno_seq_search",NULL,seq);
+      return -2;}
+    else if (KNO_SECRETP(subseq)) {
+      kno_seterr(kno_SecretData,"kno_seq_search",NULL,subseq);
+      return -2;}
     else if ((PACKETP(seq)) && (PACKETP(subseq)))
       return packet_search(subseq,seq,start,end);
     else if ((VECTORP(seq)) && (VECTORP(subseq)))
