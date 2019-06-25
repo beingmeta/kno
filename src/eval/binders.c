@@ -64,7 +64,7 @@ static lispval assign_plus_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   if (KNO_ABORTED(value)) return value;
   else if (kno_add_value(var,value,env)>0) {}
   else if (kno_bind_value(var,value,env)>=0) {}
-  else return kno_err(kno_BindError,"SET+!",SYM_NAME(var),var);
+  else return KNO_ERROR;
   kno_decref(value);
   return VOID;
 }
@@ -367,16 +367,17 @@ static lispval define_local_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return kno_err(kno_TooFewExpressions,"DEFINE-LOCAL",NULL,expr);
   else if (SYMBOLP(var)) {
     lispval inherited = kno_symeval(var,env->env_parent);
-    if (KNO_ABORTED(inherited)) return inherited;
+    if (KNO_ABORTED(inherited))
+      return inherited;
     else if (VOIDP(inherited))
       return kno_err(kno_UnboundIdentifier,"DEFINE-LOCAL",
-                    SYM_NAME(var),var);
-    else if (kno_bind_value(var,inherited,env)) {
+                     SYM_NAME(var),var);
+    else if (kno_bind_value(var,inherited,env)<0)  {
       kno_decref(inherited);
-      return VOID;}
+      return KNO_ERROR;}
     else {
       kno_decref(inherited);
-      return kno_err(kno_BindError,"DEFINE-LOCAL",SYM_NAME(var),var);}}
+      return VOID;}}
   else return kno_err(kno_NotAnIdentifier,"DEFINE-LOCAL",NULL,var);
 }
 
@@ -422,11 +423,10 @@ static lispval define_return_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
     lispval value = fast_stack_eval(val_expr,env,_stack);
     if (KNO_ABORTED(value))
       return value;
-    else if (kno_bind_value(var,value,env))
-      return value;
-    else {
+    else if (kno_bind_value(var,value,env)<0) {
       kno_decref(value);
-      return kno_err(kno_BindError,"DEF+",SYM_NAME(var),var);}}
+      return KNO_ERROR;}
+    else return value;}
   else return kno_err(kno_NotAnIdentifier,"DEF+",NULL,var);
 }
 

@@ -176,8 +176,10 @@ static lispval forchoices_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       if (KNO_BROKEP(val)) {
         lispval result = kno_simplify_choice(results);
         _return result;}
-      else if (KNO_ABORTED(val))
+      else if (KNO_ABORTED(val)) {
+        kno_decref(results);
         _return val;}
+      else NO_ELSE;}
     CHOICE_ADD(results,val);
     reset_env(forchoices);
     kno_decref(forchoices_vals[0]);
@@ -222,12 +224,13 @@ static lispval filterchoices_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
       if (KNO_BROKEP(val)) {
         lispval result = kno_simplify_choice(results);
         _return result;}
-      else if (KNO_ABORTED(val))
+      else if (KNO_ABORTED(val)) {
         _return val;}
-    if (!(FALSEP(val))) {
-      CHOICE_ADD(results,elt);
-      kno_incref(elt);}
-    kno_decref(val);
+      else if (!(FALSEP(val))) {
+        CHOICE_ADD(results,elt);
+        kno_incref(elt);
+        break;}
+      else NO_ELSE;}
     reset_env(filterchoices);
     kno_decref(filterchoices_vals[0]);
     filterchoices_vals[0]=VOID;

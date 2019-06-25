@@ -155,8 +155,10 @@ static lispval doseq_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return seq;
   else if (EMPTYP(seq))
     return VOID;
-  else if (!(KNO_SEQUENCEP(seq)))
-    return kno_type_error("sequence","doseq_evalfn",seq);
+  else if (!(KNO_SEQUENCEP(seq))) {
+    kno_type_error("sequence","doseq_evalfn",seq);
+    kno_decref(seq);
+    return KNO_ERROR;}
   else lim = kno_seq_length(seq);
   if (lim==0) {
     kno_decref(seq);
@@ -208,8 +210,10 @@ static lispval forseq_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return EMPTY;
   else if (NILP(seq))
     return seq;
-  else if (!(KNO_SEQUENCEP(seq)))
-    return kno_type_error("sequence","forseq_evalfn",seq);
+  else if (!(KNO_SEQUENCEP(seq))) {
+    kno_type_error("sequence","forseq_evalfn",seq);
+    kno_decref(seq);
+    return KNO_ERROR;}
   else lim = kno_seq_length(seq);
   if (lim==0)
     return seq;
@@ -273,11 +277,14 @@ static lispval tryseq_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return EMPTY;
   else if (NILP(seq))
     return EMPTY;
-  else if (!(KNO_SEQUENCEP(seq)))
-    return kno_type_error("sequence","tryseq_evalfn",seq);
+  else if (!(KNO_SEQUENCEP(seq))) {
+    kno_type_error("sequence","tryseq_evalfn",seq);
+    kno_decref(seq);
+    return KNO_ERROR;}
   else lim = kno_seq_length(seq);
-  if (lim==0)
-    return EMPTY;
+  if (lim==0) {
+    kno_decref(seq);
+    return EMPTY;}
   else if (PAIRP(seq)) {
     islist = 1;
     pairscan = seq;}
@@ -332,8 +339,10 @@ static lispval dolist_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return VOID;
   else if (NILP(seq))
     return VOID;
-  else if (!(PAIRP(seq)))
-    return kno_type_error("pair","dolist_evalfn",seq);
+  else if (!(PAIRP(seq))) {
+    kno_type_error("pair","dolist_evalfn",seq);
+    kno_decref(seq);
+    return KNO_ERROR;}
   else pairscan = seq;
   INIT_STACK_ENV(_stack,dolist,env,2);
   CHOICE_ADD((_stack->stack_vals),seq);
@@ -379,9 +388,11 @@ static lispval onbreak_evalfn(lispval begin_expr,kno_lexenv env,kno_stack _stack
 static lispval prog1_evalfn(lispval prog1_expr,kno_lexenv env,kno_stack _stack)
 {
   lispval arg1 = kno_get_arg(prog1_expr,1);
+  if (VOIDP(arg1))
+    return kno_err(kno_SyntaxError,"prog1_evalfn",NULL,prog1_expr);
   lispval prog1_body = kno_get_body(prog1_expr,2);
   if (! (PRED_TRUE( (KNO_PAIRP(prog1_body)) || (prog1_body == KNO_NIL) )) )
-    return kno_err(kno_SyntaxError,"dolist_evalfn",NULL,prog1_expr);
+    return kno_err(kno_SyntaxError,"prog1_evalfn",NULL,prog1_expr);
   lispval result = kno_stack_eval(arg1,env,_stack,0);
   if (KNO_ABORTED(result))
     return result;
