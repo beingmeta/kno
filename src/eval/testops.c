@@ -275,8 +275,8 @@ static lispval evaltest_inner(lispval expr,kno_lexenv env,kno_stack s)
                      value,got_ref,
                      expected,expect_ref)) :
         (u8_mkstring("%s%s%s%q"
-                     "\n returned   %q (#%d)"
-                     "\n instead of %q (#%d)",
+                     "\n returned   %q"
+                     "\n instead of %q",
                      U8OPTSTR("(",name,") "),testexpr,
                      value,expected));
       lispval err = kno_err(TestFailed,"evaltest",msg,value);
