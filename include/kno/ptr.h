@@ -753,7 +753,7 @@ static U8_MAYBE_UNUSED int KNO_ERRORP(lispval x)
   ((KNO_PTR_MANIFEST_TYPE(x) == kno_immediate_ptr_type) && \
    (KNO_IMMEDIATE_TYPE(x) == kno_coderef_type))
 #define KNO_DECODEREF(cref) (KNO_IMMEDIATE_DATA(cref))
-#define KNO_ENCODEREF(off) (LISPVAL_IMMEDIATE((off),kno_coderef_type))
+#define KNO_ENCODEREF(off) (LISPVAL_IMMEDIATE(kno_coderef_type,off))
 
 /* Lexrefs */
 

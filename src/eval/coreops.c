@@ -350,7 +350,7 @@ static lispval isnanp(lispval x)
 {
   if (KNO_FLONUMP(x)) {
     double d = KNO_FLONUM(x);
-    if (isnan(d))
+    if (fpclassify(d) != FP_NORMAL)
       return KNO_TRUE;
     else return KNO_FALSE;}
   else if (NUMBERP(x))
@@ -424,8 +424,9 @@ static lispval coderefp(lispval x)
 
 static lispval make_coderef(lispval x)
 {
-  if ( (KNO_UINTP(x)) && ((KNO_FIX2INT(x)) < KNO_IMMEDIATE_MAX) )
-    return KNO_ENCODEREF(FIX2INT(x));
+  if ( (KNO_UINTP(x)) && ((KNO_FIX2INT(x)) < KNO_IMMEDIATE_MAX) ) {
+    int off = FIX2INT(x);
+    return KNO_ENCODEREF(off);}
   else return kno_err(kno_RangeError,"make_coderef",NULL,x);
 }
 
