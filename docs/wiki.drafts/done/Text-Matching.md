@@ -1,7 +1,3 @@
-# Text Matching
-
-## The Pattern Matcher
-
 The TX pattern matcher recognizes and extracts structure from arbitrary
 strings. TX is organized around matching patterns (which are LISP objects)
 against strings (which are linear sequences of characters). Since Kno
@@ -45,7 +41,7 @@ since the first `(isalnum+)` matches `"haase"`, the string `"@"` matches `"@"`
 `"media"`. Note that this pattern would not, however, match a string like
 "haase%prep.ai.mit.edu".
 
-## Choices can be used as Patterns
+## Choices can be used as alternative patterns
 
 Alternatives like this can be described by using Kno choices to represent
 different patterns which can be matched. For example, we can extend the
@@ -132,10 +128,9 @@ The matches are returned as a choice and can then be operated on by other
 procedures. For example, using `read-from-string` would return the actual
 numeric values:
 ````console
-    #|kno>|# (read-from-string
-                 (gather '(isdigit+) "There were 12 grapes and 66 apples"))
-    ;; There are 2 results
-    {12 66}
+#|kno>|# (string->number (gather '(isdigit+) "There were 12 grapes and 66 apples"))
+;; There are 2 results
+{12 66}
 ````
 The function `textslice` breaks a larger string into smaller substrings at
 separators designated by a particular pattern. For instance, we can get
@@ -199,70 +194,70 @@ Simple operators are built-in primitives for identifying syntactic points
 (beginnings and end of lines), character properties (spacing, case,
 puncutation, etc), and some common patterns (mail ids, markup, etc).
 
-(bol)
-
+`(bol)`
     matches either the beginning of a string or the beginning of a new line
-(eol)
 
+`(eol)`
     matches either the end of a string or the end of a line
-(isalpha)
 
+`(isalpha)`
     matches any alphabetic character
-(isalpha+)
 
+`(isalpha+)`
     matches any string of alphabetic characters
-(isdigit)
 
+`(isdigit)`
     matches any base 10 digit character
-(isdigit+)
 
+`(isdigit+)`
     matches any sequence of base 10 digits
-(isalnum)
 
+`(isalnum)`
     matches any alphanumeric character
-(isalnum+)
 
+`(isalnum+)`
     matches any string of alphanumeric characters
-(ispunct)
 
+`(ispunct)`
     matches any punctuation character
-(ispunct+)
 
+`(ispunct+)`
     matches any string of punctuation characters
-(isupper)
 
+`(isupper)`
     matches any upper-case character
-(isupper+)
 
+`(isupper+)`
     matches any string of upper-case characters
-(islower)
 
+`(islower)`
     matches any lower-case character
-(islower+)
 
+`(islower+)`
     matches any string of lower-case characters
-(isspace)
 
+`(isspace)`
     matches any whitespace characters
-(isspace+)
 
+`(isspace+)`
     matches any sequence of whitespace characters
-(spaces)
 
+`(spaces)`
     matches any sequence of whitespace characters
-(lsymbol)
 
+`(lsymbol)`
     matches any LISP symbol
-(csymbol)
 
+`(csymbol)`
     matches any valid C identifier
-(mailid)
 
+`(mailid)`
     matches any email address or message reference
 
 The primitive match operators which match more than a single character are
 _maximizing_ ; this means that they match the longest string possible. In
 particular, they will not match any substrings of a string they match. This
+
 means that an operator like `(isalpha+)` will match the substring "abc" in the
 string "abc3", but will _not_ match the substring "ab". This makes the
 matching a lot faster and the more general sort of matching can be done by
@@ -277,6 +272,8 @@ characters in chars (which is a string). E.G.
     #t
     #|kno>|# (textmatch '(char-not "+-") "333.5+5i")
     #f
+    #|kno>|# (textmatcher '(char-not "+-") "333.5+5i")
+    5
 ````
 
 `(char-range first-char last-char)` matches any character whose Unicode code
@@ -359,14 +356,14 @@ its top level usage, it just reverses the behaviour of textmatch:
 
 Normally the matcher ignores case when comparing strings, so you have
 ````console
-    (textmatch "Good" "good")
+#|kno>|# (textmatch "Good" "good")
     #t
 ````
 however, the compound operator `(MATCH-CASE pat)` causes a pattern to pay
 attention to case, so that you have
 ````console
-    #|kno>|# (textmatch '(match-case "Good") "good")
-    #f
+#|kno>|`# (textmatch '(match-case "Good") "good")
+#f
 ````
 `(MATCH-CASE pat)` (which can be abbreviated MC) turns on case comparison; the
 complementary procedure `(IGNORE-CASE pat)` (which can be abbreviated IC)
@@ -377,4 +374,3 @@ turns it back off. So, we can have:
                 "Good, bad, Ugly")
     #t
 ````
-

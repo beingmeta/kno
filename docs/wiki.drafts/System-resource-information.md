@@ -1,4 +1,4 @@
-# Counting Resources
+## RUSAGE
 
 The procedure `(rusage)` returns a slotmap containing various
 implementation-dependent resource information, e.g.
@@ -14,6 +14,11 @@ With an argument, `RUSAGE` gets a particular field:
 167218
 ````
 
+Many of the fields are just fields provided by the native `getrusage`
+implementation, though some are also added. 
+
+## Other functions
+
 The `(clock)` function returns the number of microseconds of processing time
 expended since the first time `clock` was called:
 ````console
@@ -26,4 +31,6 @@ expended since the first time `clock` was called:
 The `(memusage)` function returns the number of KBytes of memory being
 used by the data of the current process. This is based on the
 operating system's accounting.
+
+# RUSAGE fields
 

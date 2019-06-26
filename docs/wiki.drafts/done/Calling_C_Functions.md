@@ -27,8 +27,6 @@ structured objects or pointers to structured objects, but it does
 functions can return raw pointer values which are wrapped by KNO and
 can be passed to other foreign functions.
 
-
-
 ## Type codes
 
 The base type codes are symbols, including:
@@ -53,4 +51,33 @@ The base type codes are symbols, including:
 * `lispref` is a KNO lisp pointer, which needs to be incref'd
 * `time_t` is a unix time value
 * `null` is any object but is always passed as a NULL pointer value
+
+## Tagged results
+
+KNO's FFI interface allows the annotation of values, including pointer
+values, with **typetag*s. This can be used to have the foreign
+function interface do type checking on arguments. For example,a simple
+wrapper of the UNIX filename access could be:
+````scheme
+(define fopen
+  (ffi/proc "fopen" #f #[basetype ptr typetag file] 'string 'string))
+(define fclose
+  (ffi/proc "fclose" #f 'int #[basetype ptr typetag file]))
+(define fgetc
+  (ffi/proc "fgetc" #f 'int #[basetype ptr typetag file]))
+(define fputc
+  (ffi/proc "fgetc" #f 'int 'int #[basetype ptr typetag file]))
+
+````
+
+In this example, `fopen` returns a *raw pointer* tagged with `file`
+and the other functions will automatically check for this tagged value
+when they are invoked.
+
+## Light wrappers
+
+For more complicated libraries, one approach for connecting with them
+is to define a lightweight C wrapper which provides the basic API in
+terms of the core FFI types and then linking to that wrapper using the
+FFI interface.
 

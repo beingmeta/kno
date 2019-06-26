@@ -1,9 +1,4 @@
-Multi-Threaded Programming | Kno experimentally provides facilities for
-multi-threaded programming. These include procedures for starting parallel
-threads of computation and for synchronizing access to shared resources.  
----|---  
-  
-On some platforms, Kno provides support for the implementation of multi-
+Kno provides extensive support for the implementation of multi-
 threaded applications. Multi-threaded applications can do many things at once,
 proceeding with one task while blocked on another. On machines with multiple
 processors, different tasks can be divided among the different processors,
