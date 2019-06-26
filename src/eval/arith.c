@@ -1156,7 +1156,8 @@ static lispval number2locale(lispval x,lispval precision)
 
 static lispval string2number(lispval x,lispval base)
 {
-  return kno_string2number(CSTRING(x),kno_getint(base));
+  int use_base = ((VOIDP(base))||(DEFAULTP(base))) ? (-1) : (kno_getint(base));
+  return kno_string2number(CSTRING(x),use_base);
 }
 
 static lispval tohex(lispval x)
@@ -1174,8 +1175,10 @@ static lispval just2number(lispval x,lispval base)
 {
   if (NUMBERP(x)) return kno_incref(x);
   else if (STRINGP(x)) {
-    lispval num = kno_string2number(CSTRING(x),kno_getint(base));
-    if (FALSEP(num)) return KNO_FALSE;
+    int use_base = ((VOIDP(base))||(DEFAULTP(base))) ? (-1) : (kno_getint(base));
+    lispval num = kno_string2number(CSTRING(x),use_base);
+    if (FALSEP(num))
+      return KNO_FALSE;
     else return num;}
   else return kno_type_error(_("string or number"),"->NUMBER",x);
 }
@@ -1285,10 +1288,10 @@ KNO_EXPORT void kno_init_arith_c()
   kno_idefn2(kno_scheme_module,"STRING->NUMBER",string2number,1,
             "(string->number *string* [*base*])\n"
             "Converts *string* into a number, returning #f on failure",
-            kno_string_type,VOID,kno_fixnum_type,KNO_INT(-1));
+            kno_string_type,VOID,kno_fixnum_type,VOID);
   kno_idefn2(kno_scheme_module,"->NUMBER",just2number,1,
             "(->number *obj* [*base*])\nConverts *obj* into a number",
-            -1,VOID,kno_fixnum_type,KNO_INT(-1));
+            -1,VOID,kno_fixnum_type,VOID);
   kno_idefn1(kno_scheme_module,"->HEX",tohex,1,
             "Converts a number to a hex string or a hex string to a number",
             -1,VOID);
