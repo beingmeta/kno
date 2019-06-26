@@ -827,9 +827,11 @@ db-cmodules: @TEST_DB_CMODULES@
 graphics-cmodules: @TEST_DB_CMODULES@
 archive-cmodules: @TEST_ARCHIVE_CMODULES@
 
-zeromq:
+test-zeromq:
 	@${RUN} ${KNOX} zeromq.scm ${RUNCONF}
 	@${header} "■■■■ Completed ZeroMQ tests ${RUNCONF}"
+
+zeromq:
 
 sqlite:
 mongodb:
