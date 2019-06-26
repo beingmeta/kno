@@ -649,7 +649,7 @@ exe/%@suffix@: src/exe/%.c ${CONFIG_HDRS}
 	@$(MSG) MKEXE $@ $<
 
 src/cmodules/%.o: src/cmodules/%.c ${CONFIG_HDRS}
-	@$(CC) $(CFLAGS) -o $@ -c $< ${MODLIBS}
+	@$(CC) $(CFLAGS) -o $@ -c $<
 	@$(MSG) CC_MODULE  $@ $<
 lib/kno/%.so: src/cmodules/%.o # ${CMODULE_DEPENDS}
 	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS}
@@ -695,7 +695,9 @@ lib/%@suffix@.so:
 lib/%@suffix@.@KNO_MAJOR@.dylib: lib/%@suffix@.dylib
 	@ln -sf $(*F).dylib $@
 lib/%@suffix@.dylib:
-	@$(MACLIBTOOL) -install_name @rpath/lib/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib $(DYLIB_FLAGS) -o $@ $^
+	@$(MACLIBTOOL) -install_name \
+		@rpath/lib/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
+		$(DYLIB_FLAGS) -o $@ $^
 	@ln -sf $(@F) $(@D)/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib
 	@$(MSG) MACLIBTOOL $@
 
@@ -1001,7 +1003,9 @@ lib/libknodbserv@suffix@.dylib: $(DBSERV_OBJS) 	\
 	lib/libknodrivers@suffix@.dylib		\
 	lib/libknostorage@suffix@.dylib		\
 	lib/libknocore@suffix@.dylib
-	@$(MACLIBTOOL) -install_name @rpath/lib/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib $(DYLIB_FLAGS) -o $@ $^
+	@$(MACLIBTOOL) -install_name \
+		@rpath/lib/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
+		$(DYLIB_FLAGS) -o $@ $^
 	@$(MSG) MACLIBTOOL $@
 
 lib/libknoscheme@suffix@.a: $(SCHEME_OBJS)
@@ -1134,12 +1138,9 @@ src/cmodules/testcapi.o: src/cmodules/testcapi.c
 lib/kno/testcapi.so: src/cmodules/testcapi.o
 lib/kno/testcapi.dylib: src/cmodules/testcapi.o ${CMODULE_DEPENDS}
 
-src/cmodules/zeromq.o: src/cmodules/zeromq.c
+lib/kno/zeromq.so lib/kno/zeromq.dylib : MODLIBS="@ZEROMQ_LIBS@"
 lib/kno/zeromq.so: src/cmodules/zeromq.o
 lib/kno/zeromq.dylib: src/cmodules/zeromq.o ${CMODULE_DEPENDS}
-lib/kno/zeromq.so : MODLIBS="@ZEROMQ_LIBS@"
-lib/kno/zeromq.dylib : MODLIBS="@ZEROMQ_LIBS@"
-
 
 lib/kno/odbc.o: src/cmodules/odbc.c
 lib/kno/odbc.so: src/cmodules/odbc.o
@@ -1147,6 +1148,7 @@ lib/kno/odbc.dylib: src/cmodules/odbc.o ${CMODULE_DEPENDS}
 lib/kno/odbc.so : MODLIBS="@ODBC_LIBS@"
 lib/kno/odbc.dylib : MODLIBS="@ODBC_LIBS@"
 
+lib/kno/sqlite.so lib/kno/sqlite.dylib : MODLIBS=-lsqlite3
 lib/kno/sqlite.so: src/cmodules/sqlite.o
 lib/kno/sqlite.dylib: src/cmodules/sqlite.o ${CMODULE_DEPENDS}
 
@@ -1154,27 +1156,23 @@ lib/kno/libarchive.o: src/cmodules/libarchive.c
 lib/kno/libarchive.so: src/cmodules/libarchive.o
 lib/kno/libarchive.dylib: src/cmodules/libarchive.o ${CMODULE_DEPENDS}
 
-lib/kno/qrcode.so : MODLIBS=-lqrencode -lpng
-lib/kno/qrcode.o: src/cmodules/qrcode.c
+lib/kno/qrcode.so lib/kno/qrcode.dylib : MODLIBS=-lqrencode -lpng
 lib/kno/qrcode.so: src/cmodules/qrcode.o
 lib/kno/qrcode.dylib: src/cmodules/qrcode.o ${CMODULE_DEPENDS}
 
-lib/kno/hyphenate.so : MODLIBS=-lhyphen
-lib/kno/hyphenate.o: src/cmodules/hyphenate.c
+lib/kno/hyphenate.so lib/kno/hyphenate.dylib : MODLIBS=-lhyphen
 lib/kno/hyphenate.so: src/cmodules/hyphenate.o
 lib/kno/hyphenate.dylib: src/cmodules/hyphenate.o ${CMODULE_DEPENDS}
 
-lib/kno/zlib.so : MODLIBS="-lz"
-lib/kno/zlib.o: src/cmodules/zlib.c
+lib/kno/zlib.so lib/kno/zlib.dylib : MODLIBS="-lz"
 lib/kno/zlib.so: src/cmodules/zlib.o
 lib/kno/zlib.dylib: src/cmodules/zlib.o
 
-lib/kno/leveldb.so : MODLIBS="-lleveldb"
-lib/kno/leveldb.o: src/cmodules/leveldb.c
+lib/kno/leveldb.so lib/kno/leveldb.dylib : MODLIBS="-lleveldb"
 lib/kno/leveldb.so: src/cmodules/leveldb.o
 lib/kno/leveldb.dylib: src/cmodules/leveldb.o ${CMODULE_DEPENDS}
 
-lib/kno/rocksdb.so : MODLIBS="-lrocksdb"
+lib/kno/rocksdb.so lib/kno/rocksdb.dylib : MODLIBS="-lrocksdb"
 lib/kno/rocksdb.o: src/cmodules/rocksdb.c
 lib/kno/rocksdb.so: src/cmodules/rocksdb.o
 lib/kno/rocksdb.dylib: src/cmodules/rocksdb.o ${CMODULE_DEPENDS}

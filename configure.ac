@@ -380,6 +380,7 @@ AC_SUBST(CODENAME)
 AC_SUBST(BINPATH)
 AC_SUBST(LIBSCM)
 AC_SUBST(ODBC_LIBS)
+AC_SUBST(SQLITE3_LIBS)
 AC_SUBST(ZEROMQ_LIBS)
 
 AC_ARG_VAR(RPMDIR,"Location for writing built RPMs")
@@ -1854,6 +1855,7 @@ AC_CHECK_HEADER(sqlite3.h,have_sqlite3_h="yes",have_sqlite3_h="no")
 sqlite3_ok="no"
 sqlite3v2_ok="no"
 sqlite_included=no
+SQLITE3_LIBS=
 
 if test $have_sqlite3_h = "yes"; then
   AC_DEFINE(HAVE_SQLITE3_H,1)
@@ -1863,6 +1865,7 @@ if test $have_sqlite3_h = "yes"; then
     DB_CMODULES="lib/kno/sqlite.$shared_suffix ${DB_CMODULES}";
     INSTALL_DB_CMODULES="install-sqlite ${INSTALL_DB_CMODULES}";
     TEST_DB_CMODULES="${TEST_DB_CMODULES} sqlite"
+    SQLITE3_LIBS=-lsqlite3
     sqlite_included=no
     if test "${sqlite3v2_ok}" == "yes"; then
       AC_DEFINE(HAVE_SQLITE3_V2,1)
