@@ -12,8 +12,12 @@
 #endif
 
 #include "kno/apply.h"
+#if ( HAVE_FFI_H || HAVE_FFI_FFI_H )
 #if HAVE_FFI_H
 #include <ffi.h>
+#elif HAVE_FFI_FFI_H
+#include <ffi/ffi.h>
+#endif
 
 typedef struct KNO_FFI_PROC {
   KNO_FUNCTION_FIELDS;

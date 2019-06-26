@@ -77,6 +77,8 @@
 
 #if ( (HAVE_FFI_H) && (HAVE_LIBFFI) )
 #define KNO_ENABLE_FFI 1
+#elif ( (HAVE_FFI_FFI_H) && (HAVE_LIBFFI) )
+#define KNO_ENABLE_FFI 1
 #else
 #define KNO_ENABLE_FFI 0
 #endif
