@@ -64,7 +64,7 @@
 (define-tester (test-spawn)
   (let ((threads {}))
     (set! numbers '())
-    (set+! threads (spawn (begin (sleep 2) (addrange 10))))
+    (set+! threads (spawn (begin (sleep 1) (addrange 10))))
     ;; TODO: Cycle in thread environment which contains the threads?
     (applytest #t thread? threads)
     (applytest #t exists? (config 'ALLTHREADS))
@@ -76,7 +76,7 @@
     (message "TEST-SPAWN: " numbers)))
 
 (define-tester (look-busy n (start (elapsed-time)))
-  (dotimes (i (* n 400))
+  (dotimes (i (* n 200))
     (when (zero? (random 5)) (thread/yield)))
   (elapsed-time start))
 
@@ -107,8 +107,8 @@
     (message "TEST-THREAD/CALL: " numbers)))
 
 (define-tester (test-threadids)
-  (let ((sleep1 (thread/call look-busy 5))
-	(sleep2 (thread/call look-busy 5)))
+  (let ((sleep1 (thread/call look-busy 1))
+	(sleep2 (thread/call look-busy 1)))
     (look-busy 2)
     (applytest sleep2 find-thread (thread-id sleep2))
     (applytest #t inexact? (thread/finish sleep1))
@@ -125,14 +125,14 @@
 (define-tester (change-num numlock (n (nrandom 1)))
   (sync/lock! numlock)
   (set! num n)
-  (sleep 0.2)
+  (sleep 0.01)
   (unwind-protect (evaltest n num)
     (sync/release! numlock)))
 
 (define-tester (change-num-with-lock numlock (n (nrandom 1)))
   (with-lock numlock
     (set! num n)
-    (sleep 0.2)
+    (sleep 0.01)
     (evaltest n num)))
 
 (define-tester (test-synchro-locks (numlock (make-mutex)) (nthreads 8))
@@ -141,7 +141,7 @@
     (let ((change-num (lambda (lock newval)
 			(when lock (sync/lock! lock))
 			(set! num newval)
-			(sleep 0.2)
+			(sleep 0.01)
 			(unwind-protect (evaltest newval num)
 			  (when lock (sync/release! lock))))))
       (thread/wait! (thread/call change-num numlock (nrandom))))))
@@ -158,7 +158,7 @@
 (define-tester (doubleup string)
   (thread/set! 'thstring string)
   (errtest (thread/set! "thstring" string))
-  (sleep 2)
+  (sleep 0.01)
   (prog1 (glom (thread/get 'thstring) string)
     (applytest #t thread/bound? 'thstring)
     (applytest #f thread/bound? 'nothstring)
@@ -235,7 +235,7 @@
 (define change-slambda-test-value
   (slambda (n) 
     (set! slambda-test-value n)
-    (sleep 1)
+    (sleep 0.01)
     (evaltest n slambda-test-value)))
 
 (define (test-slambdas (nthreads 8))
