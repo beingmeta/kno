@@ -78,7 +78,7 @@ KNO_EXPORT int kno_lockdown;
 
 #if ((KNO_THREADS_ENABLED)&&(KNO_USE_TLS))
 KNO_EXPORT u8_tld_key kno_curthread_key;
-#define kno_current_thread ((lispval*)u8_tld_get(kno_curthread_key))
+#define kno_current_thread ((lispval)u8_tld_get(kno_curthread_key))
 #elif ((KNO_THREADS_ENABLED)&&(HAVE_THREAD_STORAGE_CLASS))
 KNO_EXPORT __thread lispval kno_current_thread;
 #else
