@@ -766,6 +766,7 @@ kno_thread kno_thread_call(lispval *resultptr,
     tstruct->result = KNO_NULL;
     tstruct->resultptr = NULL;}
   tstruct->sigmask = thread_sigmask;
+  tstruct->interrupt = NULL;
   tstruct->finished = -1;
   tstruct->flags = flags;
   pthread_attr_init(&(tstruct->attr));
@@ -798,6 +799,7 @@ kno_thread kno_thread_eval(lispval *resultptr,
     tstruct->result = KNO_NULL;
     tstruct->resultptr = NULL;}
   tstruct->sigmask = thread_sigmask;
+  tstruct->interrupt = NULL;
   tstruct->finished = -1;
   tstruct->flags = flags|KNO_EVAL_THREAD;
   tstruct->evaldata.expr = kno_incref(expr);
@@ -1010,7 +1012,7 @@ static lispval thread_cancel_prim(lispval thread_arg,lispval reason)
       return KNO_TRUE;}}
 }
 
-DCLPRIM("THREAD/SIGNAL!",thread_signal_prim,MIN_ARGS(2)|MAX_ARGS(2),
+DCLPRIM("THREAD/SIGNAL!",thread_signal_prim,MIN_ARGS(1)|MAX_ARGS(2),
 	"(THREAD/SIGNAL! *thread* *signal*) signals *thread* with *signal*.")
 static lispval thread_signal_prim(lispval thread_arg,lispval signal)
 {
@@ -1038,7 +1040,8 @@ static lispval thread_terminate_prim(lispval thread_arg,lispval returnval)
   else {
     if (! ( (KNO_VOIDP(returnval)) || (KNO_DEFAULTP(returnval)) ) ) {
       thread->result = kno_incref(returnval);}
-    int rv = pthread_kill(thread->tid,kno_thread_sigterm);
+    thread->interrupt = kno_ThreadTerminated;
+    int rv = pthread_kill(thread->tid,kno_thread_sigint);
     if (rv < 0) {
       int e = errno; errno =0;
       if (e) u8_log(LOG_WARN,"Thread/Signal/Failed","For %q",thread_arg);
@@ -1046,43 +1049,6 @@ static lispval thread_terminate_prim(lispval thread_arg,lispval returnval)
     else {
       thread->flags |= KNO_THREAD_TERMINATING;
       return KNO_TRUE;}}
-}
-
-#if 0
-DCLPRIM("THREAD/INTERRUPT!",thread_interrupt_prim,MIN_ARGS(2)|MAX_ARGS(2),
-	"(THREAD/INTERRUPT! *thread* *thunk*) tells *thread* to "
-	"apply *thunk* asynchronously.")
-static lispval thread_interrupt_prim(lispval thread_arg,lispval thunk)
-{
-  struct KNO_THREAD *thread = (struct KNO_THREAD *)thread_arg;
-  if ((thread->flags)&(KNO_THREAD_DONE))
-    return KNO_FALSE;
-  else {
-    /* TODO: We need to do something with thunk here */
-    int rv = pthread_kill(thread->tid,kno_thread_sigint);
-    if (rv < 0) {
-      int e = errno; errno =0;
-      if (e) u8_log(LOG_WARN,"Thread/Interrupt/Failed","For %q",thread_arg);
-      return KNO_FALSE;}
-    else return KNO_TRUE;}
-}
-#endif
-
-DCLPRIM("THREAD/REPORT!",thread_report_prim,MIN_ARGS(1)|MAX_ARGS(1),
-	"(THREAD/REPORT! *thread*) tells *thread* to "
-	"apply *thunk* asynchronously.")
-static lispval thread_report_prim(lispval thread_arg)
-{
-  struct KNO_THREAD *thread = (struct KNO_THREAD *)thread_arg;
-  if ((thread->flags)&(KNO_THREAD_DONE))
-    return KNO_FALSE;
-  else {
-    int rv = pthread_kill(thread->tid,kno_thread_siginfo);
-    if (rv < 0) {
-      int e = errno; errno =0;
-      if (e) u8_log(LOG_WARN,"Thread/Report/Failed","For %q",thread_arg);
-      return KNO_FALSE;}
-    else return KNO_TRUE;}
 }
 
 DCLPRIM("THREAD/EXITED?",thread_exitedp,MIN_ARGS(1)|MAX_ARGS(1),
@@ -1212,6 +1178,7 @@ static int join_thread(struct KNO_THREAD *tstruct,
 #else
     u8_log(LOG_WARN,"NotImplemented",
 	   "No pthread_timedjoin_np support");
+    rv = -1;
 #endif
   }
   if ( (rv == 0) && (tstruct->result == KNO_NULL) ) {
@@ -1632,14 +1599,18 @@ static lispval set_cstack_limit_prim(lispval arg)
 
 /* Initialize signalling */
 
-static void thread_sigterm(int signum,siginfo_t *info,void *stuff)
-{
-  u8_raise(kno_ThreadTerminated,"thread_sigterm",NULL);
-}
-
 static void thread_sigint(int signum,siginfo_t *info,void *stuff)
 {
-  u8_raise(kno_ThreadInterrupted,"thread_sigint",NULL);
+  lispval cur = kno_current_thread;
+  if ( (cur == KNO_NULL) || (!(KNO_CONSP(cur))) ||
+       (! (KNO_TYPEP(cur,kno_thread_type)) ) ) {
+    kno_thread thread = (kno_thread) cur;
+    u8_condition interrupt = thread->interrupt;
+    thread->interrupt = NULL;
+    if (interrupt)
+      u8_raise(interrupt,"thread_sigint",NULL);
+    else u8_raise(kno_ThreadInterrupted,"thread_sigint",NULL);}
+  else u8_raise(kno_ThreadInterrupted,"thread_sigint",NULL);
 }
 
 static void thread_siginfo(int signum,siginfo_t *info,void *stuff)
@@ -1676,25 +1647,15 @@ static void init_signal_handling()
   sigdelset(&thread_sigmask,SIGILL);
   sigdelset(&thread_sigmask,SIGFPE);
   sigdelset(&thread_sigmask,SIGQUIT);
-  sigdelset(&thread_sigmask,kno_thread_sigterm);
   sigdelset(&thread_sigmask,kno_thread_sigint);
-  sigdelset(&thread_sigmask,kno_thread_siginfo);
 #ifdef SIGBUS
   sigaddset(&thread_sigmask,SIGBUS);
 #endif
 
-  sigaction_term.sa_sigaction = thread_sigterm;
-  sigaction_term.sa_flags = SA_SIGINFO;
-
   sigaction_interrupt.sa_sigaction = thread_sigint;
   sigaction_interrupt.sa_flags = SA_SIGINFO;
 
-  sigaction_info.sa_sigaction = thread_siginfo;
-  sigaction_info.sa_flags = SA_SIGINFO;
-
-  sigaction(kno_thread_sigterm,&(sigaction_term),NULL);
   sigaction(kno_thread_sigint,&(sigaction_interrupt),NULL);
-  sigaction(kno_thread_siginfo,&(sigaction_info),NULL);
 }
 
 /* finish all threads */
@@ -1702,6 +1663,7 @@ static void init_signal_handling()
 /* How long to wait for threads to finish in microseconds,
    defaults to 2 seconds. */
 static int thread_grace = 2*1000*1000;
+static int detach_on_exit = 0;
 
 static void finish_threads()
 {
@@ -1713,15 +1675,18 @@ static void finish_threads()
   struct KNO_THREAD *scan = thread_ring;
   int i= 0; while (scan) {
     struct KNO_THREAD *tstruct = (kno_thread) scan;
-    if (tstruct->tid > 0) {
+    if ( (tstruct->tid > 0) ||
+	 (tstruct->finished < 0) ) {
       thread_ids[i]=tstruct->tid;
+      tstruct->interrupt = kno_ThreadTerminated;
       live[i]=1;
       i++;}
     scan=scan->ring_right;}
   u8_unlock_mutex(&thread_ring_lock);
   int n = i; i=0; while (i<n) {
-    pthread_kill(thread_ids[i],kno_thread_sigterm);
+    pthread_kill(thread_ids[i],kno_thread_sigint);
     i++;}
+#if HAVE_PTHREAD_TRYJOIN
   /* 'Join' any threads which have finished */
   i=0; while (i<n) {
     if (live[i]) {
@@ -1753,21 +1718,25 @@ static void finish_threads()
       else errno=0;
       i++;}
     else i++;}
-  /* Cancel all the recalcitrants */
-  if (live_threads) {
-    u8_log(LOGCRIT,"StuckThreads","Cancelling %d hung threads",live_threads);
-    i=0; while (i<n) {
-      if (live[i]) {
-	pthread_t pthread = thread_ids[i];
-	pthread_cancel(pthread);
-	if (errno != ESRCH)
-	  u8_log(LOGWARN,"ForcedCancel",
-		 "Cancelled unfininished thread %lld",
-		 pthread);
-	live_threads--;
-	live[i] = 0;
-	errno = 0;}
-      else i++;}}
+#else
+  int secs = thread_grace/1000000;
+  sleep(secs);
+#endif
+  /* Detach all the recalcitrants and latecomers */
+  {u8_lock_mutex(&thread_ring_lock);
+    struct KNO_THREAD *scan = thread_ring;
+    int i= 0; while (scan) {
+      struct KNO_THREAD *tstruct = (kno_thread) scan;
+      if ( (tstruct->tid > 0) ||
+	   (tstruct->finished < 0) ) {
+	u8_log(LOG_ERR,_("StubbornThread"),"Thread %q isn't done, %s",
+	       (lispval)(tstruct),
+	       (detach_on_exit) ? ("detaching") : ("cancelling"));
+	if (detach_on_exit)
+	  pthread_detach(tstruct->tid);
+	else pthread_cancel(tstruct->tid);}
+      scan=scan->ring_right;}
+    u8_unlock_mutex(&thread_ring_lock);}
 }
 
 /* Initialization */
@@ -1833,6 +1802,8 @@ KNO_EXPORT void kno_init_threads_c()
   int thread_plus_fixnum_arg[2] = { kno_thread_type, kno_fixnum_type };
   int find_thread_types[2] = { kno_fixnum_type, kno_any_type };
 
+  lispval thread_plus_fix1[2] = { VOID, KNO_INT(kno_thread_sigint) };
+
   DECL_PRIM_ARGS(threadid_prim,1,threads_module,one_thread_arg,NULL);
   DECL_PRIM_ARGS(findthread_prim,2,threads_module,find_thread_types,NULL);
 
@@ -1842,12 +1813,10 @@ KNO_EXPORT void kno_init_threads_c()
   DECL_PRIM_ARGS(thread_result,1,threads_module,one_thread_arg,NULL);
 
   DECL_PRIM_ARGS(thread_signal_prim,2,threads_module,
-		 thread_plus_fixnum_arg,NULL);
+		 thread_plus_fixnum_arg,thread_plus_fix1);
   DECL_PRIM_ARGS(thread_cancel_prim,2,threads_module,
 		 thread_plus_arg,NULL);
   DECL_PRIM_ARGS(thread_terminate_prim,2,threads_module,thread_plus_arg,NULL);
-  /* DECL_PRIM_ARGS(thread_interrupt_prim,2,threads_module,thread_plus_arg,NULL); */
-  DECL_PRIM_ARGS(thread_report_prim,1,threads_module,one_thread_arg,NULL);
 
   timeout_symbol = kno_intern("timeout");
   logexit_symbol = kno_intern("logexit");
@@ -1912,6 +1881,10 @@ KNO_EXPORT void kno_init_threads_c()
 		      "Whether to log the normal exit values of threads",
 		      kno_boolconfig_get,kno_boolconfig_set,
 		      &thread_log_exit);
+  kno_register_config("THREAD:DEATCH_EXIT",
+		      "Whether to detach misbehaving threads on exit",
+		      kno_boolconfig_get,kno_boolconfig_set,
+		      &detach_on_exit);
 
   kno_register_config("THREAD:GRACE",
 		      "Whether to log the normal exit values of threads",

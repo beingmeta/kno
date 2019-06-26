@@ -18,9 +18,7 @@ KNO_EXPORT u8_condition kno_ReadOnlyConfig;
 
 KNO_EXPORT int kno_trace_config;
 
-KNO_EXPORT int kno_thread_sigterm;
 KNO_EXPORT int kno_thread_sigint;
-KNO_EXPORT int kno_thread_siginfo;
 
 #define KNO_CONFIG_ALREADY_MODIFIED 1
 
